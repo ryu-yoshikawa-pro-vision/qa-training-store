@@ -51,3 +51,11 @@ baseline／current comparisonはResult schema 2、`split=all`、dataset fingerpr
 Routing Targetのpreflightは、Git work tree、clean、Evaluatorとのrealpath / common-dir分離、alternates、canonical Skill readable、Trigger dataset不存在、Evaluator source status、output分離に加えて、git rev-parse --abbrev-ref HEADの値がHEADであることを必須とする。Targetはdetached checkoutで作成する。期待routing source SHAは新しいCLI optionへ移さず、Target作成時のRun preflightで明示比較し、実Resultのprovenanceでも再確認する。
 
 この補修はPR2のinitial routing observation、Result schema 2、process lifecycle、comparison、dataset schema 1、query、Skill、Hook、timeoutの契約を変更しない。Hostが未承認compound shapeを返した場合は、selectorを一般parserへ拡張せずunreliableとしてQualificationを停止する。
+
+## Target-aware absolute canonical Skill recognition
+
+実行時にpreflightで解決したRouting Target rootをselectorへ渡し、absolute pathはそのcontextがあるlive evaluationでのみcanonical候補として扱う。HostがHookへ出力したpathはuntrusted observation inputであり、single direct `Get-Content`の既存bounded grammarに合致したうえで、存在するregular fileであり、realpath取得に成功し、resolved pathがTarget root内にあり、6つの既知canonical `SKILL.md`のresolved pathのいずれかと完全一致し、Skillへ一意にmappingできる場合だけ`canonical_skill`へ分類する。
+
+存在、stat、realpath、regular file、containment、canonical一致、または一意mappingのいずれかが成立しないHost pathは、runner-level exceptionへ昇格させず`unreliable`、`selector_reliable=false`、`skill=null`へfail-closeする。`realpathOrFail()`はEvaluator rootやRouting Target rootなどpreflightで存在必須のpathに限定し、Host由来candidateの判定には無条件に使用しない。Target contextなしのabsolute path、arbitrary absolute path、substring/suffixだけの一致は受理しない。
+
+この認識追加は既存relative direct-read、exact negative compound、first trusted candidateとcandidate後の不確実性を変更しない。compound一般対応、PowerShell一般parser、汎用path resolverは追加せず、absolute candidateより前のunreliableは従来どおり全体をunobservableにする。

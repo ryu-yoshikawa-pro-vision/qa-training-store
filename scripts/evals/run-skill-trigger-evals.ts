@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import {
   CANONICAL_SKILLS,
   RESULT_SCHEMA_VERSION,
@@ -542,6 +542,37 @@ function canonicalSkillForRelativePath(path: string): SkillName | null {
   return null;
 }
 
+function classifyAbsoluteCanonicalPath(pathValue: string, targetRoot: string): SelectorDecision {
+  try {
+    if (!existsSync(pathValue) || !statSync(pathValue).isFile()) {
+      return selectorDecision("unreliable");
+    }
+
+    const resolvedHostPath = normalizeRealPath(realpathSync(pathValue));
+    if (!isSameOrDescendant(resolvedHostPath, targetRoot)) {
+      return selectorDecision("unreliable");
+    }
+
+    const matchingSkills = CANONICAL_SKILLS.filter((skill) => {
+      const canonicalPath = join(targetRoot, ...`.agents/skills/${skill}/SKILL.md`.split("/"));
+      if (!existsSync(canonicalPath) || !statSync(canonicalPath).isFile()) {
+        return false;
+      }
+      const resolvedCanonicalPath = normalizeRealPath(realpathSync(canonicalPath));
+      return (
+        isSameOrDescendant(resolvedCanonicalPath, targetRoot) &&
+        comparablePath(resolvedCanonicalPath) === comparablePath(resolvedHostPath)
+      );
+    });
+
+    return matchingSkills.length === 1
+      ? selectorDecision("canonical_skill", matchingSkills[0] ?? null)
+      : selectorDecision("unreliable");
+  } catch {
+    return selectorDecision("unreliable");
+  }
+}
+
 function isCanonicalSkillTree(path: string): boolean {
   const normalized = path.toLowerCase();
   return (
@@ -554,7 +585,12 @@ function isCanonicalSkillTree(path: string): boolean {
   );
 }
 
-function classifyDirectPath(pathValue: string): SelectorDecision {
+function classifyDirectPath(pathValue: string, targetRoot?: string): SelectorDecision {
+  if (isAbsolute(pathValue)) {
+    return targetRoot === undefined
+      ? selectorDecision("unreliable")
+      : classifyAbsoluteCanonicalPath(pathValue, targetRoot);
+  }
   const path = normalizeBoundedRelativePath(pathValue);
   if (path === null) {
     return selectorDecision("unreliable");
@@ -565,7 +601,10 @@ function classifyDirectPath(pathValue: string): SelectorDecision {
     : selectorDecision("canonical_skill", skill);
 }
 
-function classifyGetContent(tokens: readonly CommandToken[]): SelectorDecision {
+function classifyGetContent(
+  tokens: readonly CommandToken[],
+  targetRoot?: string,
+): SelectorDecision {
   let pathValue: string | null = null;
   let positionalPath: string | null = null;
   let rawSeen = false;
@@ -608,7 +647,7 @@ function classifyGetContent(tokens: readonly CommandToken[]): SelectorDecision {
     return selectorDecision("unreliable");
   }
   const path = pathValue ?? positionalPath;
-  return path === null ? selectorDecision("unreliable") : classifyDirectPath(path);
+  return path === null ? selectorDecision("unreliable") : classifyDirectPath(path, targetRoot);
 }
 
 function classifySearchScope(scope: string): SelectorDecision {
@@ -692,7 +731,7 @@ function isKnownSafeCommand(tokens: readonly CommandToken[]): boolean {
   return false;
 }
 
-export function classifyCommand(command: string): SelectorDecision {
+export function classifyCommand(command: string, targetRoot?: string): SelectorDecision {
   if (APPROVED_PACKAGE_NAME_COMPOUND.test(command)) {
     return selectorDecision("safe_no_read");
   }
@@ -702,7 +741,7 @@ export function classifyCommand(command: string): SelectorDecision {
   }
   const name = parsed.tokens[0]?.value.toLowerCase();
   if (name === "get-content") {
-    return classifyGetContent(parsed.tokens);
+    return classifyGetContent(parsed.tokens, targetRoot);
   }
   if (name === "rg" || name === "grep" || name === "select-string") {
     return classifySimpleSearch(parsed.tokens);
@@ -712,8 +751,8 @@ export function classifyCommand(command: string): SelectorDecision {
     : selectorDecision("unreliable");
 }
 
-export function canonicalSkillForCommand(command: string): SkillName | null {
-  const decision = classifyCommand(command);
+export function canonicalSkillForCommand(command: string, targetRoot?: string): SkillName | null {
+  const decision = classifyCommand(command, targetRoot);
   return decision.classification === "canonical_skill" ? decision.skill : null;
 }
 
@@ -745,7 +784,7 @@ function isKnownHistoryQuery(value: Record<string, unknown>): boolean {
   return true;
 }
 
-export function classifyHookEvent(event: HookEvent): SelectorDecision {
+export function classifyHookEvent(event: HookEvent, targetRoot?: string): SelectorDecision {
   if (event.event !== "PostToolUse") {
     return selectorDecision("safe_no_read");
   }
@@ -755,7 +794,7 @@ export function classifyHookEvent(event: HookEvent): SelectorDecision {
   }
   if (event.tool_name === "Bash") {
     return typeof toolInput.command === "string"
-      ? classifyCommand(toolInput.command)
+      ? classifyCommand(toolInput.command, targetRoot)
       : selectorDecision("unreliable");
   }
   if (event.tool_name === "historylist_items" && isKnownHistoryQuery(toolInput)) {
@@ -771,13 +810,16 @@ export interface InitialSkillSelection {
   readonly candidate_index: number | null;
 }
 
-export function selectInitialSkill(events: readonly HookEvent[]): InitialSkillSelection {
+export function selectInitialSkill(
+  events: readonly HookEvent[],
+  targetRoot?: string,
+): InitialSkillSelection {
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
     if (event?.event !== "PostToolUse") {
       continue;
     }
-    const decision = classifyHookEvent(event);
+    const decision = classifyHookEvent(event, targetRoot);
     if (decision.classification === "unreliable") {
       return {
         selector_reliable: false,
@@ -1012,6 +1054,7 @@ export function parseComparableRun(value: unknown): Parameters<typeof compareRun
 export function prepareSignals(
   execution: CodexExecution,
   hookDelta: HookDelta,
+  targetRoot?: string,
 ): ObservationSignals {
   if (!hookDelta.correlation_ok) {
     return {
@@ -1028,7 +1071,7 @@ export function prepareSignals(
     };
   }
   const parsed = parseHookEvents(hookDelta.raw);
-  const selected = selectInitialSkill(parsed.events);
+  const selected = selectInitialSkill(parsed.events, targetRoot);
   const candidatePrefixParseOk =
     selected.initial_skill !== null &&
     (parsed.invalid_index === null ||
@@ -1059,7 +1102,7 @@ async function evaluateCases(
     const executed = await executeCodex(evaluatorRoot, targetRoot, triggerCase.query);
     const after = snapshotHookFiles(targetRoot);
     const hookDelta = collectHookDelta(before, after);
-    const signals = prepareSignals(executed.execution, hookDelta);
+    const signals = prepareSignals(executed.execution, hookDelta, targetRoot);
     results.push(evaluateCase(triggerCase, signals));
   }
   return results;

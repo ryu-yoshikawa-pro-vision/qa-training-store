@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -113,6 +113,18 @@ function bashEvent(command: string, overrides: Partial<HookEvent> = {}): HookEve
   };
 }
 
+function absoluteSkillPath(targetRoot: string, skill: string): string {
+  return join(targetRoot, ".agents", "skills", skill, "SKILL.md");
+}
+
+function absoluteSkillReadCommand(targetRoot: string, skill = "feature-plan"): string {
+  return absolutePathReadCommand(absoluteSkillPath(targetRoot, skill));
+}
+
+function absolutePathReadCommand(pathValue: string): string {
+  return `Get-Content -Raw '${pathValue}'`;
+}
+
 function historyEvent(): HookEvent {
   return {
     event: "PostToolUse",
@@ -172,6 +184,132 @@ describe("Skill Trigger Eval deterministic contract", () => {
         "Get-Content -Raw -LiteralPath '.agents/skills/feature-plan/SKILL.md'",
       ),
     ).toBe("feature-plan");
+  });
+
+  it("recognizes a canonical absolute Skill read only with Target context and exact realpath identity", () => {
+    const targetRoot = createGitFixture(true);
+    const command = absoluteSkillReadCommand(targetRoot);
+
+    expect(classifyCommand(command)).toEqual({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+    expect(classifyCommand(command, targetRoot)).toEqual({
+      classification: "canonical_skill",
+      selector_reliable: true,
+      skill: "feature-plan",
+    });
+    expect(canonicalSkillForCommand(command, targetRoot)).toBe("feature-plan");
+    expect(classifyHookEvent(bashEvent(command), targetRoot)).toEqual({
+      classification: "canonical_skill",
+      selector_reliable: true,
+      skill: "feature-plan",
+    });
+    expect(
+      canonicalSkillForCommand(absoluteSkillReadCommand(targetRoot, "code-review"), targetRoot),
+    ).toBe("code-review");
+  });
+
+  it("fails closed for absolute paths that are missing, directories, outside, or only share a suffix", () => {
+    const targetRoot = createGitFixture(true);
+    const outsideRoot = createGitFixture(true);
+    const sameSuffix = join(targetRoot, "not-a-canonical-skill", "SKILL.md");
+    mkdirSync(join(targetRoot, "not-a-canonical-skill"), { recursive: true });
+    writeFileSync(sameSuffix, "# different file\n", "utf8");
+
+    const commands = [
+      absolutePathReadCommand(join(targetRoot, "missing", "SKILL.md")),
+      absolutePathReadCommand(join(outsideRoot, "missing", "SKILL.md")),
+      absolutePathReadCommand(join(outsideRoot, ".agents", "skills", "feature-plan", "SKILL.md")),
+      absolutePathReadCommand(join(targetRoot, ".agents", "skills", "feature-plan")),
+      absolutePathReadCommand(sameSuffix),
+    ];
+    for (const command of commands) {
+      expect(() => classifyCommand(command, targetRoot), command).not.toThrow();
+      expect(classifyCommand(command, targetRoot), command).toEqual({
+        classification: "unreliable",
+        selector_reliable: false,
+        skill: null,
+      });
+    }
+  });
+
+  it("rejects an absolute path resolving through a link outside the Target", () => {
+    const targetRoot = createGitFixture(true);
+    const outsideRoot = createGitFixture();
+    const outsideSkill = join(outsideRoot, "SKILL.md");
+    writeFileSync(outsideSkill, "# outside\n", "utf8");
+    const linkDirectory = join(targetRoot, "external-link");
+    symlinkSync(outsideRoot, linkDirectory, process.platform === "win32" ? "junction" : "dir");
+
+    const command = absolutePathReadCommand(join(linkDirectory, "SKILL.md"));
+    expect(classifyCommand(command, targetRoot)).toEqual({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+  });
+
+  it("keeps absolute candidate prefix and post-candidate uncertainty boundaries", () => {
+    const targetRoot = createGitFixture(true);
+    const command = absoluteSkillReadCommand(targetRoot);
+    const execution = {
+      timed_out: false,
+      spawn_failed: false,
+      signaled: false,
+      exit_code: 0,
+      trusted_terminal: "turn.completed",
+    } as const;
+
+    expect(
+      selectInitialSkill(
+        [bashEvent('rg "foo" .agents/skills/feature-plan'), bashEvent(command)],
+        targetRoot,
+      ),
+    ).toEqual({
+      selector_reliable: false,
+      initial_skill: null,
+      observed_skills: null,
+      candidate_index: null,
+    });
+
+    const postCandidate = prepareSignals(
+      execution,
+      {
+        correlation_ok: true,
+        raw:
+          JSON.stringify(bashEvent(command)) +
+          "\n" +
+          JSON.stringify(
+            bashEvent("Get-Content -Raw .agents/skills/code-review/SKILL.md; echo later"),
+          ) +
+          "\n",
+      },
+      targetRoot,
+    );
+    expect(postCandidate).toMatchObject({
+      hook_parse_ok: true,
+      selector_reliable: true,
+      initial_skill: "feature-plan",
+      observed_skills: ["feature-plan"],
+    });
+
+    const truncated = classifyHookEvent(bashEvent(command, { truncated: true }), targetRoot);
+    expect(truncated).toEqual({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+    const malformed = classifyHookEvent(
+      { ...bashEvent(command), tool_input_preview: "not-json" },
+      targetRoot,
+    );
+    expect(malformed).toEqual({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
   });
 
   it("recognizes only the measured package-name compound as reliable no-read", () => {
