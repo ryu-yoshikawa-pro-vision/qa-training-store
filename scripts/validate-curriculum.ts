@@ -249,6 +249,16 @@ function assertRepositoryPath(
     fail(`${name} has a non-existent ${column}: ${value}`);
 }
 
+function assertEvidenceReference(name: string, value: string): void {
+  if (value === "") return;
+  if (/^file:/i.test(value)) fail(`${name} has a local file URI evidence reference: ${value}`);
+  if (/^[A-Za-z]:/.test(value) || /^(?:[\\/])/.test(value))
+    fail(`${name} has a local absolute evidence reference: ${value}`);
+  const segments = value.replace(/\\/g, "/").split("/");
+  if (segments.some((segment) => segment === ".."))
+    fail(`${name} has an evidence reference outside the repository: ${value}`);
+}
+
 export function validateWorkbook(rootDir: string): number {
   const workbookRoot = path.join(rootDir, "training", "workbook");
   if (!fs.existsSync(path.join(workbookRoot, "README.md")))
@@ -377,7 +387,7 @@ export function validateWorkbook(rootDir: string): number {
               fail(`${rowLabel} requires ${field} when result is Fail`);
           }
         }
-        assertRepositoryPath(rootDir, rowLabel, "evidence", evidence, false);
+        assertEvidenceReference(rowLabel, evidence);
       }
     }
   }
@@ -393,6 +403,7 @@ function validateTrainingAssets(rootDir: string): string[] {
   for (const requiredPath of [
     "training/playwright/baseline",
     "training/playwright/exercises",
+    "training/playwright/exercises/training-exercise-starter.spec.ts",
     "training/playwright/diagnostic-exercises",
     "training/playwright/support/reset-scenario.ts",
     "training/playwright/failure-exercises",
@@ -419,13 +430,6 @@ function validateTrainingAssets(rootDir: string): string[] {
   const nativeFlow = read(rootDir, "training/maestro/baseline/native-training-baseline.yaml");
   assertContains(nativeFlow, "com.ryuyoshikawa.scenarioshop", "Training Maestro baseline");
   assertContains(nativeFlow, "scenario-shop://test-control/reset", "Training Maestro baseline");
-  const starterExercise = read(
-    rootDir,
-    "training/playwright/exercises/training-exercise-starter.spec.ts",
-  );
-  if (/\.first\s*\(/.test(starterExercise) || /toBeVisible\s*\(/.test(starterExercise))
-    fail("Training Playwright starter must not contain a completed catalog assertion");
-  assertContains(starterExercise, "resetScenario", "Training Playwright starter");
   const windowsAndroidHelper = read(rootDir, "scripts/native/windows/android-local.ps1");
   for (const required of [
     "RequirePhysicalDevice",

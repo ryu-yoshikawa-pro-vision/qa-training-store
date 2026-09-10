@@ -40,3 +40,8 @@ Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regressi
 - 同じ修復commitで、3回目のlauncher ANR dialog tap後にUI階層を再検査する処理を`android-maestro-run.sh`へ追加した。UI dump失敗やdialog残存はfail-closedとし、Maestro FlowやProduct Codeは変更していない。Contract testは最終検査がtap後・loop終了前にあり、dialog absence時だけ`return 0`することを確認する。
 - Remote Mobile App CI `34419805406`は全Native jobがsuccessとなった。Android Runtime / Maestroは13分9秒、iOS Production-validationは26分8秒、iOS Automationは26分52秒で完了し、`native-ci / verify`もsuccessだった。Remote Web CI `34419805168`もrequired gateがsuccessとなった。
 - iOSのCurrent Guaranteeは引き続きBuild-onlyであり、今回のRemote iOS build successをiOS Runtime / Maestroの証明として扱わない。
+
+## レビュー指摘に伴う変更範囲の補正（2026-09-10）
+
+- PR #133でPlaywright / Maestroを含むカリキュラムの学習順序・説明、Training Workbook、Training Playwright starter / diagnostic / reset helper、`pull_request`のTraining Workflow、validator / contract testを変更した。公開カリキュラムnavigationの変更に伴い、`e2e/web/smoke.spec.ts`のdocs公開Smoke期待値も同期した。
+- 変更していない境界はProduct Behavior、BR / ACの意味、Seed Scenarioの意味、`src/**`、Maestro Flowの業務上の意味、Formal Regressionが保証する製品機能のテスト対象、本番 / Preview CI、Native保証範囲である。iOSの保証は引き続きBuild-onlyである。

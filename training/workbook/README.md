@@ -27,7 +27,7 @@ P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追�
 
 1. `01_target-risk.csv` で対象、Spec、Riskを整理する。
 2. `02_test-cases.csv` で条件、前提、期待結果、設計技法を整理する。
-3. `03_automation-mapping.csv` で自動化する / しない / LaterとLayer・Toolを決める。
+3. `03_automation-mapping.csv` で `automation_decision` の `Automate` / `Later` / `Do not automate` とLayer・Toolを決める。
 4. `04_execution-improvement.csv` でEvidence、原因、改善を記録する。
 
 ## 空欄の条件

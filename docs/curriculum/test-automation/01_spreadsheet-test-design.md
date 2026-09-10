@@ -246,6 +246,8 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 
 各ケースについて、次の観点から自動化可否を判断します。
 
+判断結果は `03_automation-mapping.csv` の `automation_decision` へ `Automate` / `Later` / `Do not automate` のいずれかで記録します。デシジョンテーブルやRole Matrixにある `Yes` / `No` は条件値の例であり、この列へ入力する値ではありません。
+
 - 繰り返し実行するか。
 - 結果が機械的に判定できるか。
 - 初期状態を再現できるか。

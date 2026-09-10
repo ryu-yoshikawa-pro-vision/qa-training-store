@@ -7,7 +7,7 @@
 
 Test Automation Curriculumは、仕様分析、Workbook、Playwright / Maestro、Failure分析、保守、GitHub Actionsを同じScenario Shopへ接続する。既存の教材には、初学者がCLIや実装上のIDを先に読む経路、基準確認と受講者成果物の混同、診断Failureと恒久Failureの混在、Workbookの実行状態の曖昧さ、演習用CIで受講者Testが継続実行されない経路があった。
 
-Product Behavior、Formal Regression、Production / Preview CIの意味を変更せず、既存の4 CSVとTraining実行経路を使ったまま、受講者が仕様から実行証跡までを一巡できる契約を定める必要がある。
+Product Behavior、BR / AC、Formal Regressionが保証する製品機能のテスト対象、Production / Preview CIの意味を変更せず、既存の4 CSVとTraining実行経路を使ったまま、受講者が仕様から実行証跡までを一巡できる契約を定める必要がある。公開カリキュラムのnavigation変更に伴うdocs公開Smokeの期待値は同期対象とする。
 
 ## Decision
 
@@ -26,6 +26,6 @@ Product Behavior、Formal Regression、Production / Preview CIの意味を変更
 
 ## Guardrails
 
-- `src/**`、BR / AC、Seed Scenarioの意味、Formal Regression、本番 / Preview CI、既存の汎用Training runnerは変更しない。
+- `src/**`、BR / AC、Seed Scenarioの意味、Formal Regressionが保証する製品機能のテスト対象、本番 / Preview CI、既存の汎用Training runnerは変更しない。公開カリキュラムのnavigation変更に対する`e2e/web/smoke.spec.ts`のdocs公開Smoke期待値の同期はこの境界に含める。
 - Workbookの列追加、独自Evidence URI / Manifest、新しい実行基盤、受講者専用の自動採点は追加しない。
 - `training:copy:validate`のPASSを、受講者がTestを変更した後のGitHub Actions runtime PASSとして扱わない。

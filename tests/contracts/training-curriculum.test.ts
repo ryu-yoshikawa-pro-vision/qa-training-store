@@ -20,6 +20,30 @@ describe("Training curriculum contracts", () => {
     expect(summary.trainingProjects).toEqual(["training-chromium", "training-mobile-chromium"]);
   });
 
+  it("allows learner-authored Playwright assertions in the editable starter", () => {
+    const starterPath = resolve(
+      process.cwd(),
+      "training/playwright/exercises/training-exercise-starter.spec.ts",
+    );
+    const source = readFileSync(starterPath, "utf8");
+    try {
+      const learnerEdited = source
+        .replace(
+          'import { test } from "@playwright/test";',
+          'import { expect, test } from "@playwright/test";',
+        )
+        .replace('  await resetScenario(page, "default");\n', "")
+        .replace(
+          "  // Learners add the Workbook condition, meaningful Locator, and Assertion here.",
+          '  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();',
+        );
+      writeFileSync(starterPath, learnerEdited, "utf8");
+      expect(() => validateCurriculum(process.cwd())).not.toThrow();
+    } finally {
+      writeFileSync(starterPath, source, "utf8");
+    }
+  });
+
   it("keeps the Common competency and Native specialization contract", () => {
     const rubric = readFileSync(
       resolve(process.cwd(), "docs/curriculum/test-automation/02_competency-rubric.md"),
@@ -584,6 +608,24 @@ jobs:
         "utf8",
       );
       const mappingPath = join(root, "training", "workbook", "03_automation-mapping.csv");
+      const mappingSource = readFileSync(mappingPath, "utf8");
+      for (const decision of ["Automate", "Later", "Do not automate"]) {
+        writeFileSync(
+          mappingPath,
+          mappingSource.replace("TC-CART-001,Automate", `TC-CART-001,${decision}`),
+          "utf8",
+        );
+        expect(() => validateWorkbook(root)).not.toThrow();
+      }
+      for (const decision of ["Yes", "No"]) {
+        writeFileSync(
+          mappingPath,
+          mappingSource.replace("TC-CART-001,Automate", `TC-CART-001,${decision}`),
+          "utf8",
+        );
+        expect(() => validateWorkbook(root)).toThrow(/invalid automation_decision/);
+      }
+      writeFileSync(mappingPath, mappingSource, "utf8");
       writeFileSync(
         mappingPath,
         readFileSync(mappingPath, "utf8").replace("TC-CART-001", "TC-CART-999"),
@@ -674,6 +716,46 @@ jobs:
         "utf8",
       );
       expect(() => validateWorkbook(root)).not.toThrow();
+
+      for (const evidence of [
+        "github-actions-artifact/training-web",
+        "https://github.com/example/repo/actions/runs/123",
+        "Run 123 / diagnostic initial",
+        "output/training/playwright/report",
+        "output/training/playwright/missing-report",
+      ]) {
+        writeFileSync(
+          executionPath,
+          source.replace(
+            "TC-CART-001,Training Web exercise,Not run,,,,,",
+            `TC-CART-001,Training Web exercise,Pass,${evidence},,,,`,
+          ),
+          "utf8",
+        );
+        expect(() => validateWorkbook(root)).not.toThrow();
+      }
+
+      for (const evidence of [
+        "/home/user/report.zip",
+        "\\\\absolute\\\\windows\\\\path",
+        "C:\\Users\\user\\report.zip",
+        "C:/Users/user/report.zip",
+        "C:Users\\user\\report.zip",
+        "file:///C:/Users/user/report.zip",
+        "file:///home/user/report.zip",
+        "../outside/report.zip",
+        "..\\outside\\report.zip",
+      ]) {
+        writeFileSync(
+          executionPath,
+          source.replace(
+            "TC-CART-001,Training Web exercise,Not run,,,,,",
+            `TC-CART-001,Training Web exercise,Pass,${evidence},,,,`,
+          ),
+          "utf8",
+        );
+        expect(() => validateWorkbook(root)).toThrow();
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
