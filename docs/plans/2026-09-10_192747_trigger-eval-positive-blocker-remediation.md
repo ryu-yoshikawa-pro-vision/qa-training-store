@@ -46,7 +46,7 @@ PR #127のpositive Environment Qualification blockerについて、保存済みr
 - 現行のrelative direct-read、safe no-read、unreliable、first trusted candidate、candidate後unreliable非上書き契約を維持する。
 - dataset schema 1、Result schema 2、`CASE_TIMEOUT_MS = 327000`、negative/positive query、8/8 validityの契約を変更しない。
 - 必須testsとPlan記載のstatic gateがPASSする。
-- Qualificationはfresh Targetのnegative/positive両方がPASSした場合だけ開始し、canonicalはその後だけ開始する。
+- Qualificationは、実装・必須static gate・Evaluator SHA固定・fresh Target作成・Target preflight・routing SHA・Codex versionの前提が揃った後、negative→positiveの順に実行する。negative PASS時だけpositiveを実行し、両方PASSした場合のみEnvironment QualificationをPASSと判定し、その後にcanonicalを開始する。
 
 ## 2. 現状理解と前提
 
@@ -262,15 +262,22 @@ process側はexit 0、`turn.completed`、Hook correlation/parse PASSであり、
 
 1. 既存のbounded command tokenizerとsingle direct `Get-Content` grammarを再利用する。
 2. live evaluationでは、`assertTargetPreflight`が返すresolved Target rootをselector contextとして渡す。
-3. absolute pathの場合だけ、次をすべて満たすときにcanonical Skillへmappingする。
+3. HostがHook内で出力したabsolute pathは、信頼済み設定ではなく`untrusted observation input`として扱う。absolute pathをcanonical Skillへmappingするには、次をすべて満たす必要がある。
    - parsed commandがsingle direct `Get-Content`である。
    - `-Raw`、`-Path` / `-LiteralPath`、quote、slashは既存bounded direct-read grammarの範囲にある。
-   - pathをrealpath化した結果がTarget root配下である。
-   - pathのrealpathが、`join(targetRoot, .agents, skills, <known-skill>, SKILL.md)`のresolved fileと完全一致する。
+   - Target contextが存在する。
+   - Host pathが存在する。
+   - `stat`結果がregular fileである。
+   - Host pathのrealpath取得に成功する。
+   - Host pathのresolved realpathがTarget root内である。
+   - Host pathのresolved realpathが、`join(targetRoot, .agents, skills, <known-skill>, SKILL.md)`の6 canonical Skill resolved realpathのいずれか一つと完全一致する。
    - 6 canonical Skillのいずれか一つへ一意にmappingできる。
-4. Target contextがない公開unit helper呼出しではabsolute pathを受理せず、従来どおり`unreliable`とする。これによりmachine固有pathの暗黙許可を防ぐ。
-5. `selectInitialSkill`はabsolute candidateを最初のtrusted candidateとして返し、`initial_skill=feature-plan`、`observed_skills=[feature-plan]`、candidate indexを確定する。candidate後のunreliableは既存契約どおりinitialを上書きしない。
-6. compound selectorは変更しない。raw evidence後半の`if`、semicolon、variable、foreach、pipe、call operatorは引き続き`unreliable`とする。
+4. 上記条件の一つでも満たさない場合、Host pathの分類は`unreliable`、`selector_reliable=false`、`skill=null`とする。path不存在、`stat`失敗、realpath取得失敗、regular fileでない場合、Target外への解決、canonical pathとの一致なしを含む。これらはrunner全体を`fail()`させず、Host observationのfail-close classificationとして扱う。
+5. `realpathOrFail()`は、Evaluator root、Routing Target root、その他preflightで存在必須と定義されたpathにだけ使用する。これらが存在しない場合は評価自体が成立しないため、runner-level failureになり得る。Host由来absolute candidateへは無条件に流用しない。
+6. Host由来absolute candidateの判定は、`existsSync`、`statSync`、`realpathSync`と`try/catch`を用いた小さなnon-throwing処理で実装し、path不存在・`statSync`失敗・`realpathSync`失敗を`unreliable`へ変換する。汎用filesystem abstractionは新設しない。Routing Target root自体が消える、またはTarget preflight前提が崩れる場合は、selector問題ではなくpreflight/runtime integrity failureとして扱う。
+7. Target contextがない公開unit helper呼出しではabsolute pathを受理せず、従来どおり`unreliable`とする。これによりmachine固有pathの暗黙許可を防ぐ。
+8. `selectInitialSkill`はabsolute candidateを最初のtrusted candidateとして返し、`initial_skill=feature-plan`、`observed_skills=[feature-plan]`、candidate indexを確定する。candidate後のunreliableは既存契約どおりinitialを上書きしない。
+9. compound selectorは変更しない。raw evidence後半の`if`、semicolon、variable、foreach、pipe、call operatorは引き続き`unreliable`とする。
 
 ### 6.3 Target rootを使った処理経路
 
@@ -296,7 +303,7 @@ assertTargetPreflight(evaluatorRoot, targetRootArgument)
 - `classifyGetContent(tokens, targetRoot?)`、`classifyCommand(command, targetRoot?)`、`canonicalSkillForCommand(command, targetRoot?)`: bounded parserのcontextを透過する。
 - `classifyHookEvent(event, targetRoot?)`、`selectInitialSkill(events, targetRoot?)`、`prepareSignals(execution, hookDelta, targetRoot?)`: live evaluatorからresolved Target rootを渡す。
 - `evaluateCases`: `preflight.target_root`を`prepareSignals`へ渡す。
-- `realpathOrFail`、`normalizeRealPath`、`isSameOrDescendant`、`KNOWN_SKILL_PATHS`は既存helperとして再利用し、一般filesystem resolverは新設しない。
+- `realpathOrFail`はpreflightで存在必須なroot/pathに限定して再利用する。Host path candidateの判定は`existsSync`、`statSync`、`realpathSync`、`try/catch`によるnon-throwing fail-close処理と、`normalizeRealPath`、`isSameOrDescendant`、`KNOWN_SKILL_PATHS`等の既存path helperを組み合わせ、一般filesystem resolverは新設しない。
 
 既存unit testのrelative呼出し互換性を保つため、Target contextなしのabsolute commandはreliableへ昇格させない。
 
@@ -305,6 +312,7 @@ assertTargetPreflight(evaluatorRoot, targetRootArgument)
 - raw machine pathを正規表現や定数としてhard-codeする。
 - command文字列に`feature-plan`と`SKILL.md`が含まれればcanonicalとするsubstring判定。
 - absolute pathをrealpath確認なしでrelative化する。
+- `realpathOrFail()`をHost由来absolute candidateへ無条件に呼び出し、path不存在・`stat`失敗・realpath取得失敗をrunner-level `fail()`へする。
 - `if`、semicolon、pipe、foreach、variable、PowerShell invocationを一般parserで解釈する。
 - compound内のcanonical readをsafe no-readまたはcanonical candidateとして扱う。
 - candidate前のunreliableを後続candidateで救済する。
@@ -319,15 +327,21 @@ assertTargetPreflight(evaluatorRoot, targetRootArgument)
 
 | fixture | 期待 |
 | --- | --- |
-| raw exact absolute single direct read + matching Target root | `canonical_skill=feature-plan`、reliable |
+| raw exact absolute single direct read + matching Target root、存在するregular file、resolved realpath一致 | `canonical_skill=feature-plan`、`selector_reliable=true`、`skill=feature-plan` |
 | same command without Target root context | `unreliable`、hard-code防止 |
 | absolute path outside Target root | `unreliable` |
+| Target内の存在しないabsolute path（例: `<TARGET_ROOT>\\missing\\SKILL.md`） | `unreliable`、runner exceptionなし |
+| Target外の存在しないabsolute path | `unreliable`、runner exceptionなし |
+| directoryを指すabsolute path（例: `<TARGET_ROOT>\\.agents\\skills\\feature-plan`） | `unreliable`、runner exceptionなし |
 | absolute path containing same suffix but different file | `unreliable` |
 | absolute path resolving through symlink/reparse outside Target | `unreliable` |
+| realpath取得不能ケース（安定再現できる場合はstub等、安全なfixture） | `unreliable`、runner exceptionなし |
 | another known Skill absolute path | corresponding Skillへ一意にmapping |
 | path text only / search result / output mention | canonical readにしない |
 | absolute direct readの前にunsupported event | `unobservable`、candidate前unreliable契約維持 |
 | absolute candidate後にunsupported compound / truncated / malformed event | `initial_skill`を上書きしない |
+
+上表のHost path failureケースは、`classification=unreliable`、`selector_reliable=false`、`skill=null`、runner exceptionなしを共通期待とする。OS依存でrealpath取得不能を安定再現できない場合は、特殊filesystem fixtureを無理に作らず、存在しないabsolute pathのfail-close testでnon-throwing責務を固定する。
 
 ### 8.2 existing contract regression
 
@@ -335,6 +349,7 @@ assertTargetPreflight(evaluatorRoot, targetRootArgument)
 - exact negative compoundだけを`safe_no_read`とする現行testsを維持する。
 - compound内canonical read、任意suffix、別variable、variable path、追加reader、別operator、truncated、malformedを`unreliable`のまま検証する。
 - `candidate前unreliable -> unobservable`、`first trusted candidate -> initial_skill`、`candidate後unreliable -> initial_skill非上書き`を検証する。
+- 存在しないabsolute path、Target外の存在しないabsolute path、directory path、realpath取得失敗（安定再現可能な場合）で、selectorがthrowせず`unreliable`を返すことを検証する。realpath失敗を特殊fixtureで再現できない環境では、存在しないabsolute path testをfail-closeの責務テストとして扱う。
 - dataset schema 1、Result schema 2、lifecycle、comparison、`CASE_TIMEOUT_MS`に関する既存testsを変更しない。
 
 ### 8.3 Target/preflight regression
@@ -379,39 +394,81 @@ powershell -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunI
 - source/tests/ADR、dataset、query、Skill、Hook、timeoutに差分がない。
 - Plan、Run Artifact、evaluationだけが今回のcommit対象になる。
 
-## 11. Qualification再実行条件
+## 11. Qualification開始条件と実行順序
 
-実装Runでstatic gateと必須testsが全PASSし、Evaluator source SHAをcommitで固定した後に限る。
+### 11.1 Environment Qualificationの開始条件
 
-1. Evaluatorと別のfresh independent Targetを1つ作り、detached、clean、common-dir分離、alternates空、6 Skill readable、12 trigger YAML不存在、named evaluator artifact不存在、output分離、他Codex process 0を確認する。
-2. Target root、Evaluator SHA、routing SHA、Codex version、dataset fingerprintをRunへ記録する。
-3. 同じTarget上でnegative queryを1回だけ実行し、既存のexact compoundによるtrusted absenceを確認する。
-4. negative PASS時だけ、同じTargetでpositive queryを1回だけ実行する。
-5. positiveはraw ordinal 5相当のabsolute direct readをTarget-aware selectorが`canonical_skill=feature-plan`としてtrusted candidateにできることを確認する。後続compoundはcandidate後なのでinitial routingを変更しない。
-6. どちらかがunreliable、Target/SHA/correlation/parse不一致、unexpected shapeの場合はQualification FAILとして停止する。
+Environment Qualificationは、negative/positiveの判定結果を開始条件にするのではなく、次の前提をすべて満たした後にnegativeから開始する。
 
-negative query、positive query、timeout、lifecycle、Result schema、8/8 validityの意味は変更しない。
+- 実装済み。
+- 必須contract tests PASS。
+- dataset validation PASS。
+- `validate:skills` PASS。
+- `lint:markdown` PASS。
+- Prettier PASS。
+- `git diff --check` PASS。
+- `pnpm run verify` PASS。
+- Evaluator source SHA固定。
+- fresh independent Routing Target作成済み。
+- Target preflight PASS。
+- routing SHA一致。
+- Codex version固定。
+
+これらを満たした後、同じfresh Target上でNegative Qualificationを開始する。negative/positiveはEnvironment Qualificationそのものであり、両方のPASS結果を得るまでEnvironment Qualification PASSとは判定しない。
+
+### 11.2 実行順序
+
+実際の実行・判定順序は次のとおりである。
+
+```text
+static gate PASS
+↓
+Evaluator SHA固定
+↓
+fresh independent Routing Target作成
+↓
+Target preflight PASS
+↓
+Negative Qualificationを1回実行
+↓（Negative PASS時のみ）
+Positive Qualificationを1回実行
+↓（Negative / Positive両方PASS）
+Environment Qualification = PASS
+↓
+同じTargetでcanonical all
+```
+
+1. Static gate、Evaluator source SHA、routing SHA、Codex versionを固定・記録する。
+2. Evaluatorと別のfresh independent Targetを1つ作り、detached、clean、common-dir分離、alternates空、6 Skill readable、12 trigger YAML不存在、named evaluator artifact不存在、output分離、他Codex process 0をTarget preflightで確認する。
+3. 同じTarget上でNegative Qualificationを1回だけ実行し、既存のexact compoundによるtrusted absenceを確認する。trusted absenceが成立しない、またはFAILの場合は直ちに停止し、Positiveとcanonicalは実行しない。
+4. Negative PASS時だけ、同じTargetでPositive Qualificationを1回だけ実行する。Positiveはraw ordinal 5相当のabsolute direct readをTarget-aware selectorが`canonical_skill=feature-plan`としてtrusted initial candidateにできること、`selector_reliable=true`、`skill=feature-plan`、後続compoundがinitial routingを変更しないことを確認する。PositiveがFAIL、unreliable、Target/SHA/correlation/parse不一致、unexpected shapeの場合は停止し、canonicalは実行しない。
+5. Negative / Positiveが両方PASSした場合だけ、Environment Qualification = PASSと判定する。
+
+Negative query、positive query、timeout、lifecycle、Result schema、8/8 validityの意味は変更しない。Host pathの不存在・`stat`失敗・realpath取得失敗はselector-levelの`unreliable`であり、これだけを理由にrunner全体を`fail()`させない。Routing Target root自体が消える、またはpreflight前提が崩れる場合は、preflight/runtime integrity failureとしてrunner-level failureになり得る。
 
 ## 12. canonical開始条件
 
-canonical `all`は、同じfresh Targetのnegative/positive Qualificationが両方PASSした場合だけ開始する。
+canonical `all`は、同じfresh TargetでNegative QualificationとPositive Qualificationをこの順序で実行し、両方PASSしてEnvironment Qualification = PASSと確定した後だけ開始する。Environment Qualification PASSはcanonicalの後付け結果ではなく、canonical開始前の判定条件である。
 
 - `split=all`、24 cases、sequential、retryなし、query変更なし。
 - Result schema 2、dataset fingerprint、case ID set、Codex version、Evaluator/Routing SHAのprovenance一致。
 - `summary.by_outcome`と`summary.by_process_lifecycle`を分離したまま確認する。
 - 4 boundary × 2 expected sideの8/8 observable条件を満たさない結果はvalid baselineへ昇格しない。
 
-QualificationがFAILした場合、canonical未実行、8/8未判定、valid baseline未取得を維持する。
+NegativeまたはPositiveがFAILした場合、後続のQualificationを実行せず、canonical未実行、8/8未判定、valid baseline未取得を維持する。
 
 ## 13. 停止条件
 
-- absolute pathがTarget root外、realpath不一致、regular fileでない、または6 Skillへ一意にmappingできない。
+Host由来absolute pathのTarget root外、path不存在、`stat`失敗、realpath取得失敗、regular fileでない、realpath不一致、または6 Skillへ一意にmappingできない場合は、runner-level failureではなく`unreliable`、`selector_reliable=false`、`skill=null`へ倒す。これらがtrusted candidateを成立させずQualificationの判定条件を満たせない場合に限り、該当QualificationをFAILとして停止する。
+
 - absolute readより前にunsupported eventが観測される。
 - compound内のcanonical read、path mention、search、variable pathをcanonicalへ昇格したくなる。
 - Hook correlation/parse、Target clean、detached、SHA、common-dir、alternates、output分離が不一致。
 - negative exact compoundがtrusted absenceを満たさない。
 - positive selectorがunreliableのまま、またはunexpected shapeがcandidate前に出る。
 - static gateのfirst anomalyを修正せずに後続runtimeへ進みたくなる。
+
+一方、Routing Target root自体が消える、Evaluator rootやpreflightで存在必須なpathが消える、またはTarget preflight前提が崩れる場合は、Host input failureと異なるpreflight/runtime integrity failureとしてrunner-level failureになり得る。二つの失敗境界を混同しない。
 
 停止時はretry、selectorの場当たり変更、query tuning、別Target交換、canonical実行を行わず、raw evidenceと理由をRun Artifactへ記録する。
 
