@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "run_id": "20260910-072323-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": ["artifact_contract_gap"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、stdin failure回帰を含むrepository-contract test、修正後canonical 8 anchor calibration、全体verify、修正実装commitは完了した。今回のstdin failure handlingとcanonical calibration直前のclean-tree証跡は成立している。残る差分は既存collectorが手動Runの完了状態を表現できないmanifest lifecycle gapである。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/skill-semantic-output-evals.ts",
+          "summary": "dataset検証、prompt投影、trial集約を含むpure evaluator"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-semantic-output-evals.ts",
+          "summary": "固定3 trialとCodex subprocessを実行するrunner"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後の8 anchor canonical calibration結果"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は正本Planで指定された4 dataset、eval source、runner、repository-contract test、package script、Run Artifactに限定され、今回の追加修正もrunnerとrepository-contract testの2ファイルに限定された。Product Code/Test、CI、依存追加、N/A Skill、PR2固有処理は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "git diff --name-status origin/main...HEADによる変更inventoryとscope監査"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-08_004700_issue-117-pr5-semantic-output-eval.md",
+          "summary": "実装範囲とnon-goalsを定義する正本Plan"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "修正後repository-contract 19/19、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSした。修正後canonical calibrationは8 anchor×3 trialでRunner exit 0、4 stable_pass／4 stable_fail、全件calibration_match=true、unstable／unobservable 0だった。stdin errorと同期的end例外はいずれも既存process_failureからunobservableへ分類されることを回帰テストで確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "targeted test、tsc、eslint、validate:skills、verify、diff checkの最終結果"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後8 anchorのaggregate、calibration_match、provenance"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "PR head branchを維持し、明示許可された修正commitをPR対象branchへ作成した。mainへの直接commit、rebase、merge、force操作、削除は行わず、run.jsonは手編集せず、Run Artifactをmachine-managed collectorとsanitizerの対象として扱っている。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "machine-managed Run manifest"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "git status、branch、PR headの安全確認"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "正本Plan、TASKS、append-only REPORT、evaluation.json、初回失敗を含むcalibration artifact、修正後result、provenance、変更inventoryがRun ID単位で追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/REPORT.md",
+          "summary": "判断、fixture mismatch、最終calibration、検証のcheckpoint"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/TASKS.md",
+          "summary": "task完了状態とProgress"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "dataset schemaとjudge schemaをZodで一元化し、評価データ投影、固定trial protocol、aggregate、provenance、Windows process-tree終了を分離して実装した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/skill-semantic-output-evals.ts",
+          "summary": "pureな契約・検証・集約ロジック"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/repository-contract/skill-semantic-output-evals.test.ts",
+          "summary": "19件のrepository contract回帰テスト"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果はstdin修正commit後のresultへ保存した。evaluator SHA `c61e40f8cb5ea5106b163288456414745b94223a`はsource commitと一致し、canonical calibration直前の`git status --porcelain`はstdout emptyだった。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後8 anchorのprovenanceと全trial結果"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/REPORT.md",
+          "summary": "実行条件、clean-tree証跡、stdin修正、最終結果"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "既存collector実行後もrun.jsonのstatusはpending、validation.statusはnot_runで、codex_task_reportsは空だった。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "collector実行後も手動Runの完了状態を表現できないmanifest"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "summary": "既存machine-managed経路の表現限界を確認した"
+        }
+      ],
+      "detail": "codex-task reportを捏造せず、run.jsonを手編集せず、今回のSemantic Eval修正とは別のHarness改善候補として残す。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "完了済み手動Runのmachine-managed manifest lifecycle",
+      "evidence": "既存collectorはevaluationと変更inventoryを収集できるが、codex-task reportなしの手動完了Runについてstatusとvalidation.statusを完了へ推論しない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "既存machine-managed manifestの状態"
+        }
+      ],
+      "expected_impact": "手動実行を捏造せず、完了済みRunの状態とmanifestを一貫して表現できる。",
+      "recommendation": "今回のSemantic Eval修正とは分離したHarness改善として、手動Runの完了状態を扱う明示的なcollector契約を設計・承認・実装する。"
+    }
+  ]
+}
