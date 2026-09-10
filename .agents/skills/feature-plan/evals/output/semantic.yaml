@@ -69,24 +69,28 @@ cases:
       strategy, risks, and a validation plan with completion criteria.
     candidate_output: |
       ## Goal
-      Investigate the parser issue and make the reporting system more flexible.
+      Investigate why the report parser mishandles a quoted delimiter and prepare an approvable
+      implementation plan.
 
       ## Current understanding
-      The parser is in scripts/report-parser.ts and the current test is
-      tests/report-parser.test.ts. The issue mentions a quoted delimiter, but the exact failure
-      still needs to be reproduced.
+      The relevant parser is scripts/report-parser.ts, the existing contract test is
+      tests/report-parser.test.ts, and the report format is owned by the repository documentation.
+      The quoted-delimiter failure still needs to be reproduced before its root cause is stated.
 
       ## Non-goals
-      Avoid unrelated UI work and document any assumptions.
+      Do not change Product Code, change the documented report format, add a parser framework, or
+      migrate existing reports during this plan-only request.
 
       ## Change strategy
-      Implement the parser fix immediately, redesign the report format so it can support future
-      consumers, introduce a generic parsing framework, and migrate all existing reports while
-      investigating the issue. Add a broad integration suite after the migration.
+      Map the parser, its call sites, the existing contract test, and the documented format. Then
+      implement the smallest parser fix immediately in this same task, before the plan is approved,
+      and update the existing contract test if the fix requires it.
 
       ## Risks and validation
-      The migration may affect old reports. Run the full test suite and verify that the new format
-      can be read by future consumers.
+      The main risk is changing delimiter handling for valid reports. Validate the plan and later
+      implementation with the existing contract test, a quoted-delimiter regression case, and a
+      format-preservation check. Completion requires those checks to pass without changing the
+      documented report format.
     expected:
       outcome: fail
       failed_criteria:

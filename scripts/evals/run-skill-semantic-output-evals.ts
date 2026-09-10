@@ -22,7 +22,6 @@ import {
 } from "./skill-semantic-output-evals";
 
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
-const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
 
 export interface SemanticEvalCliOptions {
   readonly model: string;
@@ -99,11 +98,98 @@ function commandFailureDetail(result: {
   return String(result.error ?? result.stderr ?? result.status);
 }
 
+export interface CodexInvocation {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly shell: false;
+}
+
+export function buildCodexInvocation(
+  platform: NodeJS.Platform,
+  args: readonly string[],
+  codexScriptPath?: string,
+  nodeExecutable = process.execPath,
+): CodexInvocation {
+  if (platform === "win32") {
+    if (codexScriptPath === undefined || codexScriptPath.length === 0) {
+      throw new Error("Windows Codex invocation requires the resolved codex.js path");
+    }
+    return {
+      command: nodeExecutable,
+      args: [codexScriptPath, ...args],
+      shell: false,
+    };
+  }
+
+  return { command: "codex", args: [...args], shell: false };
+}
+
+export function buildCodexJudgeArguments(
+  model: string,
+  schemaPath: string,
+  outputPath: string,
+): readonly string[] {
+  return [
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--sandbox",
+    "read-only",
+    "--model",
+    model,
+    "--output-schema",
+    schemaPath,
+    "--output-last-message",
+    outputPath,
+    "-",
+  ];
+}
+
+function resolveCodexScriptPath(): string {
+  const lookup = spawnSync("where.exe", [CODEX_COMMAND], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  if (lookup.error || lookup.status !== 0) {
+    throw new Error(`where ${CODEX_COMMAND} failed: ${commandFailureDetail(lookup)}`);
+  }
+
+  const commandPath = String(lookup.stdout ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  if (commandPath === undefined) {
+    throw new Error(`where ${CODEX_COMMAND} returned no command path`);
+  }
+
+  const scriptPath = resolve(
+    dirname(commandPath),
+    "node_modules",
+    "@openai",
+    "codex",
+    "bin",
+    "codex.js",
+  );
+  if (!existsSync(scriptPath)) {
+    throw new Error(`resolved Codex entrypoint does not exist: ${scriptPath}`);
+  }
+  return scriptPath;
+}
+
+function codexInvocation(args: readonly string[]): CodexInvocation {
+  const codexScriptPath = process.platform === "win32" ? resolveCodexScriptPath() : undefined;
+  return buildCodexInvocation(process.platform, args, codexScriptPath);
+}
+
 export function getCodexVersion(evaluatorRoot: string): string {
-  const result = spawnSync(CODEX_COMMAND, ["--version"], {
+  const invocation = codexInvocation(["--version"]);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: evaluatorRoot,
     encoding: "utf8",
-    shell: CODEX_SHELL,
+    shell: invocation.shell,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   });
@@ -148,29 +234,13 @@ function executeCodexJudge(
   return new Promise((resolveExecution) => {
     let child: ChildProcess;
     try {
-      child = spawn(
-        CODEX_COMMAND,
-        [
-          "exec",
-          "--ephemeral",
-          "--skip-git-repo-check",
-          "--sandbox",
-          "read-only",
-          "--model",
-          model,
-          "--output-schema",
-          schemaPath,
-          "--output-last-message",
-          outputPath,
-          "-",
-        ],
-        {
-          cwd: workingDirectory,
-          shell: CODEX_SHELL,
-          stdio: ["pipe", "ignore", "ignore"],
-          windowsHide: true,
-        },
-      );
+      const invocation = codexInvocation(buildCodexJudgeArguments(model, schemaPath, outputPath));
+      child = spawn(invocation.command, invocation.args, {
+        cwd: workingDirectory,
+        shell: invocation.shell,
+        stdio: ["pipe", "ignore", "ignore"],
+        windowsHide: true,
+      });
     } catch {
       resolveExecution({
         timed_out: false,

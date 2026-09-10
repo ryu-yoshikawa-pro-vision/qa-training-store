@@ -12,8 +12,10 @@
 
 ## Discovered
 
-- 作業中に発見したタスクはここに追記する（セッション内で増える前提）
+- [x] 8. 4件のレビュー指摘をtriageし、bounded repair scopeを確定する
+- [x] 9. runner、repository-contract test、4 fixtureを最小修正し、初回検証を完了する
+- [ ] 10. 再calibration、全体検証、Run Artifact更新、最終修正報告を完了する
 
 ## Blocked
 
-- なし
+- evaluator SHAを最終実装commitへ一致させるには、明示されたno-commit scopeの外でcommitと再calibrationが必要。run.jsonも既存collectorの手動Run表現限界によりpending/not_runのまま。ユーザー判断待ち。

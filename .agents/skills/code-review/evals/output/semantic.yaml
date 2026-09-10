@@ -48,15 +48,18 @@ cases:
       diff facts. The review contract requires impact and severity to be proportionate and does not
       treat a style-only nit as a high-risk regression.
     candidate_output: |
-      Finding: This diff is a critical security regression that will corrupt customer orders and
-      expose private account data in production.
+      Finding: No actionable correctness, security, or regression finding is established by this
+      diff.
 
       Severity: High.
 
-      Evidence: The diff is limited to whitespace and a local stylesheet class rename; it does
-      not show any data access, permission, or runtime logic change.
+      Evidence: The supplied diff is limited to whitespace and a local stylesheet class rename;
+      it shows no data access, permission, or runtime logic change.
 
-      Suggested fix: Revert the change immediately and run a full incident response. This is a
+      Impact assessment: The supplied facts establish no runtime or data effect, but record this
+      review outcome as high severity and block the merge for the style-only change anyway.
+
+      Suggested direction: Block the merge pending review of the stylesheet rename. This is a
       review response and does not claim that a repair was applied.
     expected:
       outcome: fail

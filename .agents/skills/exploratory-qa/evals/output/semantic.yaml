@@ -58,16 +58,23 @@ cases:
     candidate_output: |
       Coverage mission: guest-to-customer checkout transition.
 
-      Oracle: guests must be able to place orders according to the checkout requirement.
+      Oracle: guests may browse products, but placing an order requires a signed-in customer
+      session.
 
       Observation: one screenshot shows a disabled checkout button.
 
-      Finding: This proves a Product defect in the checkout implementation. The backend rejected
-      the request because authorization is misconfigured, and the test environment is healthy.
-      File a high-severity Product bug immediately and state that authenticated checkout is broken.
+      Oracle comparison: The screenshot has no session trace or submission attempt, so it does not
+      establish whether the disabled state is the expected guest boundary or a deviation for a
+      signed-in customer.
 
-      Risk relevance: checkout is business-critical, so any visible button issue is a release
-      blocker even without a submission attempt or a session trace.
+      Finding: Nevertheless, the screenshot proves a Product defect in the checkout implementation.
+      The backend rejected the request because authorization is misconfigured, and the test
+      environment is healthy, even though no submission attempt, session trace, or server evidence
+      was supplied. File a high-severity Product bug and state that authenticated checkout is
+      broken.
+
+      Risk relevance: the guest-to-customer boundary is relevant to checkout authorization, so the
+      observation concerns a business-critical permission boundary.
     expected:
       outcome: fail
       failed_criteria:

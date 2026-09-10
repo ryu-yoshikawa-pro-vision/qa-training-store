@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "run_id": "20260910-072323-JST",
-  "result": "pass",
-  "primary_failure_category": null,
-  "failure_categories": [],
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": ["artifact_contract_gap"],
   "dimensions": {
     "task_completion": {
-      "rating": "pass",
-      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、canonical 8 anchor calibration、全体verifyを完了した。",
+      "rating": "warn",
+      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、修正後canonical 8 anchor calibration、全体verifyは完了した。ただしsource未commitのため、evaluator SHAを最終実装commitへ一致させるRun完了条件が残っている。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -21,8 +21,8 @@
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
-          "summary": "8 anchorのcanonical calibration結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
+          "summary": "修正後8 anchorのcanonical calibration結果"
         }
       ]
     },
@@ -44,7 +44,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "repository-contract 17/17、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSし、canonical calibrationは8 anchor×3 trialでRunner exit 0となった。",
+      "evidence": "修正後repository-contract 18/18、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSした。修正後canonical calibrationは8 anchor×3 trialでRunner exit 0、4 stable_pass／4 stable_fail、全件calibration_match=true、unstable／unobservable 0だった。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -54,13 +54,13 @@
         {
           "kind": "changed_file",
           "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
-          "summary": "全8 anchorのaggregate、calibration_match、provenance"
+          "summary": "修正後8 anchorのaggregate、calibration_match、provenance"
         }
       ]
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "PR head branchを維持し、mainへのcommit、push、rebase、merge、force操作、削除を行わなかった。Run Artifactはsanitizer Write/Check対象として扱った。",
+      "evidence": "PR head branchを維持し、mainへのcommit、push、rebase、merge、force操作、削除を行わなかった。run.jsonは手編集せず、Run Artifactをmachine-managed collectorとsanitizerの対象として扱っている。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -76,7 +76,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "正本Plan、TASKS、append-only REPORT、evaluation.json、成功・初回失敗のcalibration artifact、provenance、変更inventoryがRun ID単位で追跡できる。",
+      "evidence": "正本Plan、TASKS、append-only REPORT、evaluation.json、初回失敗を含むcalibration artifact、修正後result、provenance、変更inventoryがRun ID単位で追跡できる。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -102,18 +102,18 @@
         {
           "kind": "changed_file",
           "path": "tests/repository-contract/skill-semantic-output-evals.test.ts",
-          "summary": "17件のrepository contract回帰テスト"
+          "summary": "18件のrepository contract回帰テスト"
         }
       ]
     },
     "reproducibility": {
-      "rating": "pass",
-      "evidence": "Evaluator SHA、dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果を保存し、clean treeから同一runner protocolでcanonical calibrationを再現可能にした。",
+      "rating": "warn",
+      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果は修正後resultへ保存した。一方、evaluator SHAはsource未commit時点のHEAD `a50d41dbdc250284046446613abd6a079f63225c`であり、最終実装commitとの一致は未確認である。",
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
-          "summary": "再現に必要なprovenanceと全trial結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
+          "summary": "修正後8 anchorのprovenanceと全trial結果"
         },
         {
           "kind": "changed_file",
@@ -123,6 +123,57 @@
       ]
     }
   },
-  "findings": [],
-  "improvement_candidates": []
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "修正後resultのevaluator_git_shaはa50d41dbdc250284046446613abd6a079f63225cだが、同時点でrunnerとfixtureのsource変更が未commitである。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
+          "summary": "修正後calibrationのprovenance"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "summary": "明示的なcommit禁止により最終実装commit SHAを確定できない"
+        }
+      ],
+      "detail": "commit／再calibrationが許可されるまで、修正後resultは実行事実として保持するが、最終実装commitと一致したcanonical resultとしては扱わない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "既存collector実行後もrun.jsonのstatusはpending、validation.statusはnot_runで、codex_task_reportsは空だった。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "collector実行後も手動Runの完了状態を表現できないmanifest"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "summary": "既存machine-managed経路の表現限界を確認した"
+        }
+      ],
+      "detail": "codex-task reportを捏造せず、run.jsonを手編集せず、今回のSemantic Eval修正とは別のHarness改善候補として残す。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "完了済み手動Runのmachine-managed manifest lifecycle",
+      "evidence": "既存collectorはevaluationと変更inventoryを収集できるが、codex-task reportなしの手動完了Runについてstatusとvalidation.statusを完了へ推論しない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "既存machine-managed manifestの状態"
+        }
+      ],
+      "expected_impact": "手動実行を捏造せず、完了済みRunの状態とmanifestを一貫して表現できる。",
+      "recommendation": "今回のSemantic Eval修正とは分離したHarness改善として、手動Runの完了状態を扱う明示的なcollector契約を設計・承認・実装する。"
+    }
+  ]
 }

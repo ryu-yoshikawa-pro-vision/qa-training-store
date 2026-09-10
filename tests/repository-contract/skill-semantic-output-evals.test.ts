@@ -28,6 +28,8 @@ import {
   type TrialResult,
 } from "../../scripts/evals/skill-semantic-output-evals";
 import {
+  buildCodexJudgeArguments,
+  buildCodexInvocation,
   parseSemanticEvalCliArguments,
   selectSemanticCases,
 } from "../../scripts/evals/run-skill-semantic-output-evals";
@@ -507,6 +509,43 @@ describe("Semantic Output Eval aggregation and runner preflight contracts", () =
     const bundle = loadSemanticDatasets(repositoryRoot);
     expect(() => selectSemanticCases(bundle, "UNKNOWN-CASE")).toThrow(/unknown case ID/);
     expect(selectSemanticCases(bundle, "FP-SEM-001")).toHaveLength(1);
+  });
+
+  it("isolates Judge flags and passes dynamic values as non-shell arguments on Windows", () => {
+    const schemaPath = "C:\\temp\\semantic eval\\judge-response.schema.json";
+    const outputPath = "C:\\temp\\semantic eval\\judge-response.json";
+    const model = "gpt-5.6-luna";
+    const args = buildCodexJudgeArguments(model, schemaPath, outputPath);
+    const invocation = buildCodexInvocation(
+      "win32",
+      args,
+      "C:\\Program Files\\Codex\\bin\\codex.js",
+      "C:\\Program Files\\nodejs\\node.exe",
+    );
+
+    expect(args).toContain("--ignore-user-config");
+    expect(args).toContain("--ignore-rules");
+    expect(args.filter((argument) => argument === model)).toHaveLength(1);
+    expect(args.filter((argument) => argument === schemaPath)).toHaveLength(1);
+    expect(args.filter((argument) => argument === outputPath)).toHaveLength(1);
+    expect(invocation).toEqual({
+      command: "C:\\Program Files\\nodejs\\node.exe",
+      args: ["C:\\Program Files\\Codex\\bin\\codex.js", ...args],
+      shell: false,
+    });
+
+    const metacharacterModel = "gpt-5.6-luna&echo injected";
+    const metacharacterArgs = buildCodexJudgeArguments(metacharacterModel, schemaPath, outputPath);
+    const metacharacterInvocation = buildCodexInvocation(
+      "win32",
+      metacharacterArgs,
+      "C:\\Program Files\\Codex\\bin\\codex.js",
+      "C:\\Program Files\\nodejs\\node.exe",
+    );
+    expect(metacharacterInvocation.shell).toBe(false);
+    expect(metacharacterInvocation.args).toContain(metacharacterModel);
+    expect(metacharacterInvocation.args).not.toContain("echo");
+    expect(metacharacterInvocation.args).not.toContain("injected");
   });
 
   it("keeps canonical fingerprint independent of input order and OS separators", () => {

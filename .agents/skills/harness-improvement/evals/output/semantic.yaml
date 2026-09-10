@@ -50,15 +50,18 @@ cases:
       Subagent evidence implicating the harness. The Product fix and a harness proposal must remain
       separate under the improvement workflow.
     candidate_output: |
-      Candidate: The harness must add blanket retries and a longer timeout because the checkout
-      button failed in R-201.
+      Candidate: Propose blanket retries and a longer timeout for the harness based on R-201.
 
       Evidence: R-201 contains one observation that the Product checkout button was not enabled.
+      There is no repeated harness failure, runner evaluation finding, validation evidence, hook
+      evidence, review evidence, or Subagent evidence implicating the harness.
 
-      Expected impact: make the Product behavior reliable by changing the runner.
+      Assessment: Despite the absence of harness evidence, classify this single Product observation
+      as a harness reliability failure and use it to justify the harness change.
 
-      Recommended change: modify the Product checkout implementation and the harness together,
-      then auto-apply both changes after this candidate is generated.
+      Recommended change: Add blanket retries and a longer timeout to the runner as a separate
+      harness proposal for owner review. Do not modify Product implementation or auto-apply this
+      proposal from candidate generation.
 
       Strictness: strict
       Status: proposed

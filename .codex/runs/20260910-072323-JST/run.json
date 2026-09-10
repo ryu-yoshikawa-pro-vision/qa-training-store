@@ -10,7 +10,13 @@
   "base_branch": null,
   "codex_task_reports": [],
   "changed_files": [
-    ".codex/reports/codex-task-20260910-083828.report.json"
+    ".codex/reports/codex-task-20260910-083828.report.json",
+    ".agents/skills/code-review/evals/output/semantic.yaml",
+    ".agents/skills/exploratory-qa/evals/output/semantic.yaml",
+    ".agents/skills/feature-plan/evals/output/semantic.yaml",
+    ".agents/skills/harness-improvement/evals/output/semantic.yaml",
+    "scripts/evals/run-skill-semantic-output-evals.ts",
+    "tests/repository-contract/skill-semantic-output-evals.test.ts"
   ],
   "validation": {
     "status": "not_run",
@@ -27,5 +33,5 @@
   },
   "evaluation_path": ".codex/runs/20260910-072323-JST/evaluation.json",
   "status": "pending",
-  "primary_failure_category": null
+  "primary_failure_category": "artifact_contract_gap"
 }
