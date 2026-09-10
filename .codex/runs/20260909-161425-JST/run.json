@@ -14,7 +14,7 @@
     "status": "passed",
     "commands": [
       "pnpm run verify (exit 0; 全Gate PASS)",
-      "Training Copy prepare / validate (source SHA 7b00ab6d5180e9486ae6795de698f2cc988d459b; source / resolved SHA一致; PASS)",
+      "Training Copy prepare / validate (source SHA 0ed721af94433d47d53113ca61400556ec9a4680; source / resolved SHA一致; PASS)",
       "Native local validation (Doctor / Release APK build / install / Maestro / Training; PASS)",
       "Remote Web CI 34422390091 (success)",
       "Remote Mobile App CI 34422390228 (success; Android Runtime / Maestro、iOS Automation Build、iOS Production-validation Build、native-ci / verifyを含む)",

@@ -224,6 +224,15 @@
 - Blocker / Remaining: 今回修正の最終source commit、Training Copy再検証、指定local validation、Sanitizer、commit / push、新HEAD CI、PR本文同期が残る。
 - Progress: 95% (19/20)
 
+## 2026-09-10 13:07 (JST)
+
+- Summary: 記録commit `0ed721af94433d47d53113ca61400556ec9a4680`を対象にTraining Copyのprepare / validateを再確認した。
+- Changes: working tree外の一時targetへ正式なTraining Copy手順を実行し、target `run.json`のvalidation commandも今回の実測SHAへ更新した。初回の短縮SHA指定は40文字要件でexit 1となったが、full SHAへ補正した再実行ではtargetを生成し、追加の変更は行っていない。
+- Decision / Rationale: `sourceSha`と`resolvedSourceSha`が記録commitのfull SHAに一致したため、未commit変更を含めずに今回の整理結果を検証できたと判断した。短縮SHAの失敗は入力形式の問題であり、コードや依存のFAILではない。
+- Validation: `pnpm run training:copy:prepare -- --source-sha 0ed721af94433d47d53113ca61400556ec9a4680 --target <TEMP_ROOT>`はPASS、`sourceSha` / `resolvedSourceSha`は一致し、`pnpm run training:copy:validate -- --root <TEMP_ROOT>`もPASSした。
+- Blocker / Remaining: 最終Run sanitization、commit / non-force push、新HEADのWeb / Mobile CI、PR本文とRunの最終同期が残る。
+- Progress: 95% (19/20)
+
 ## 2026-09-10 13:04 (JST)
 
 - Summary: lockfile整理後の依存再現性と指定されたlocal validationを完了した。

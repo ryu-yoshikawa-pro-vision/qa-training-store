@@ -62,3 +62,12 @@
 - Validation: `git diff --check`、`pnpm run format:check`、`pnpm run lint:markdown`（0 issues / 387 files）、`pnpm run validate:curriculum`、`pnpm run typecheck:training`、`pnpm run test:contracts --reporter=verbose`（35 files、505 passed / 3 skipped）、`pnpm run verify`（全gate PASS、lint 0 errors / 65 existing warnings、Web / Spec build）を確認した。
 - Blocker / Remaining: 最終commit後のTraining Copy、Sanitizer、commit / non-force push、新HEADのWeb / Mobile CI、PR本文とManifestの最終同期が残る。
 - Progress: 58% (7/12)
+
+## 2026-09-10 13:07 (JST)
+
+- Summary: 最初の記録commit `0ed721af94433d47d53113ca61400556ec9a4680`を対象にTraining Copyのprepare / validateを完了した。
+- Changes: `pnpm run training:copy:prepare`と`training:copy:validate`をworking tree外の一時targetへ実行した。初回の短縮SHA指定はscriptの40文字要件でexit 1となったため、`git rev-parse HEAD`でfull SHAを取得して同じ検証を再実行した。
+- Decision / Rationale: 初回失敗ではtargetは生成されず、full SHA再実行で指定SHAと解決SHAを一致させた。Training Copyは未commit変更を含めない契約のため、commit済みSHAを使った結果だけを完了証拠とする。
+- Validation: prepare出力は`sourceSha=0ed721af94433d47d53113ca61400556ec9a4680`、`resolvedSourceSha=0ed721af94433d47d53113ca61400556ec9a4680`でPASS。続く`pnpm run training:copy:validate`もPASSした。
+- Blocker / Remaining: この結果のRun反映、最終sanitizer、commit / non-force push、新HEADのWeb / Mobile CI、PR本文同期が残る。
+- Progress: 67% (8/12)
