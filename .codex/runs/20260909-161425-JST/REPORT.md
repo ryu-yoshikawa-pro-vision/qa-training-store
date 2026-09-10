@@ -268,3 +268,12 @@
 - Validation: `pnpm install --frozen-lockfile`、`git diff --check`、`pnpm run format:check`、`pnpm run lint:markdown`（0 issues / 387 files）、`pnpm run validate:curriculum`、`pnpm run typecheck:training`、`pnpm run test:contracts --reporter=verbose`（35 files、505 passed / 3 skipped）、`pnpm run verify`（全gate PASS、lint 0 errors / 65 existing warnings、Web / Spec build）を確認した。
 - Blocker / Remaining: 最終commit SHAでのTraining Copy、Sanitizer、commit / non-force push、新HEAD CI、PR本文とRunの最終同期が残る。
 - Progress: 95% (19/20)
+
+## 2026-09-10 14:19 (JST)
+
+- Summary: PR metadata、Run Manifest、lockfile、local / remote検証の最終状態を確認した。
+- Changes: PR #133の本文とタイトルを日本語へ同期し、Expo versionをPR固有変更から除外した。Web Smokeのnavigation期待値同期と製品挙動の非変更を分離して記載し、Training Copy SHA、final-head Web / Mobile run ID、iOS 60分timeoutの記録を実態へ揃えた。
+- Decision / Rationale: PR本文は最終記録commit後のhead `2bfa085da02681c2c83138d9ec0de1865fe37341`と、同headでsuccessしたCIへ同期した。`CodeRabbit`はOSS repositoryのmanual review required skipであり、Full Reviewは起動していない。target Runの`run.json`はschema v2、`completed` / `passed`、branch / base、clean Runの`changed_files=[]`を維持している。
+- Validation: `gh pr checks 133`はCodeRabbitのmanual review required skipを除く全checkがpass。`git status --short`はclean、local HEAD・remote branch・PR HEADは一致した。Sanitizer Write / Checkはtarget Run 4 files、0 replacements、0 residual findings。新HEAD Web CI `34438445066` / Mobile App CI `34438445219`はsuccessし、Android Runtime / Maestro、iOS Automation / Production-validation、iOS Native CI Verify、`native-ci / verify`を含むMobile必須jobがsuccessした。
+- Blocker / Remaining: なし。
+- Progress: 100% (20/20)
