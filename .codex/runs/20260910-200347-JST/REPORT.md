@@ -64,6 +64,13 @@
 - Decision: continue（ローカル品質ゲートとscope監査が完了したため、明示stage・commit・pushへ進む）。
 - Progress: 58% (7/12)
 
+## 2026-09-10 20:29 (JST)
+
+- Summary: commit前に対象branch、stage内容、diff checkを確認し、`150e932028de82f0057596f002f4d83de2062e16`を作成した。
+- Push / PR: `git push origin HEAD:docs/require-push-ci-on-completion`が成功し、remote branchへ反映した。既存PRがなかったため、base `main`、head `docs/require-push-ci-on-completion`、日本語title／bodyでPR #139（OPEN）を作成した。
+- Decision: continue（push後のPR最新headを固定し、そのheadで必須GitHub Actionsの状態を確認する）。
+- Progress: 83% (10/12)
+
 ## 2026-09-10 20:09 (JST)
 
 - Summary: `pnpm install --frozen-lockfile --ignore-scripts`がexit 0で完了し、既存lockfileから検証依存を準備した。`pnpm-lock.yaml`と依存定義は変更していない。
