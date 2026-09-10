@@ -18,8 +18,9 @@
 - [x] 11. child.stdinのerror／同期書込失敗を既存process_failureへ接続し、回帰テストを追加する
 - [x] 12. source commit後にclean-treeを確認し、canonical calibrationとad-hoc report復元hashを検証する
 - [x] 13. calibration artifact、evaluation、REPORT、sanitizer、全体検証を確定する
-- [ ] 14. Run Artifactをcommit・pushし、最新PR headの本文とCIを確認する
+- [x] 14. Run Artifactをcommit・pushし、最新PR headの本文とCIを確認する
 
 ## Blocked
 
 - 既存collectorはcodex-task reportなしの手動Runを完了状態へ推論しないため、run.jsonはpending/not_runのまま。今回のSemantic Eval修正とは分離したHarness改善候補として保持する。
+- Progress: 100% (14/14)

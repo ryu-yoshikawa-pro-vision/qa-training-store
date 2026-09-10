@@ -238,3 +238,11 @@
 - Scope: datasetと4 semantic.yamlは未変更。collector、Run Manifest schema、CI workflow、Product Code／Test、依存は変更していない。追加source差分はrunnerとrepository-contract testの2ファイルだけである。
 - Decision: continue（source commit、canonical calibration、clean-tree／hash証跡、Run Artifact検証、全体品質ゲートが成立。残りはRun Artifact commit、push、PR本文更新、最新head CI確認）。
 - Progress: 93% (13/14)
+
+## 2026-09-10 21:56 (JST)
+
+- Summary: stdin修正後の最新PR head `0f0e360d8552f52221f674600c85c058248a9f23`について、Web CIとMobile App CIの完了成功を確認した。
+- GitHub Actions: Web CI run `34476681769`、Mobile App CI run `34476681993`、PR集約 run `34476677477`はいずれも対象headでcompleted／successだった。Mobile App CIではAndroid Production／Automation build、iOS Automation／Production-validation build、Native Static、Production Bundle Guard、Android Maestro、iOS Native CI Verifyを含む全jobが成功した。
+- PR / Git: PR #137はOPEN、base `main`、head branch `test/117-pr5-semantic-output-eval`であり、対象headとbranchの一致を確認した。Run Artifactの最終TASK／REPORT更新を含むcommit・pushはこのcheckpoint後に実施し、push後の新head CIとPR本文を最終確認する。
+- Decision: complete（修正後calibration、clean-tree証跡、Run Artifact検証、全体品質ゲート、指定branchへのpush、対象head CI成功確認を完了した。collectorの`run.json` pending／not_run表現は既存machine-managed lifecycleの別課題として残す）。
+- Progress: 100% (14/14)
