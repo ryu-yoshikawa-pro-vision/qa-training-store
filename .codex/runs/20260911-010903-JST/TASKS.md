@@ -23,6 +23,7 @@
 
 - 新PlanとRun Artifactをcommitし、対象branchへ明示refspecでnon-force pushした。
 - PR #127はOPEN、base `main`、head branch一致。local／remote／PR headは最終commitへ一致させる。
-- `gh pr checks 127`の取得時点ではAnalyze 3件、CodeQL、CodeRabbitがPASS。未表示・未完了のCIを全体PASSとは扱わない。
+- `0acf47b` push直後の`gh pr checks 127`ではAnalyze 3件、CodeQL、CodeRabbitがPASSだった。最終head後の未表示・未完了CIを全体PASSとは扱わない。
 - Negative FAIL、Positive未実行、canonical未実行、8/8未判定、valid baseline未取得を維持する。
+- 最終Run Artifact commitは`e5d8d44a063d096b9a5764e7cd8419dd269a3bb2`である。
 - Progress: 100% (8/8)
