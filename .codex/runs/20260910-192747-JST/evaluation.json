@@ -15,7 +15,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "Plan-onlyのMarkdown、Prettier、diff、evaluation schema、sanitizer、strict collectorを指定順で検証する。"
+      "evidence": "Plan-onlyのMarkdown、Prettier、diff、evaluation schema、sanitizer、strict collectorを実行し、すべてexit 0、sanitizer residual 0を確認した。"
     },
     "safety_compliance": {
       "rating": "pass",
