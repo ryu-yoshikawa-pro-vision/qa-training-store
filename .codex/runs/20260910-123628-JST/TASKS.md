@@ -9,10 +9,10 @@
 - [x] 5. target REPORTへ今回の判断、検証、CI、未解決事項をappend-onlyで追記する
 - [x] 6. frozen installと指定されたlocal validationを実行する
 - [x] 7. 最終commit SHAでTraining Copy prepare / validateを実行する
-- [ ] 8. Sanitizer Write / Check、scope、Run Artifactを最終確認する
-- [ ] 9. branch safetyを確認してcommit / non-force pushする
-- [ ] 10. 新HEADのWeb / Mobile CIを確認し、PR本文を実態へ同期する
-- [ ] 11. 最終status、PR HEAD、Manifest、検証結果を確認してRunを完了する
+- [x] 8. Sanitizer Write / Check、scope、Run Artifactを最終確認する
+- [x] 9. branch safetyを確認してcommit / non-force pushする
+- [x] 10. 新HEADのWeb / Mobile CIを確認し、PR本文を実態へ同期する
+- [x] 11. 最終status、PR HEAD、Manifest、検証結果を確認してRunを完了する
 
 ## Discovered
 

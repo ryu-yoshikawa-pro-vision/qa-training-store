@@ -71,3 +71,30 @@
 - Validation: prepare出力は`sourceSha=0ed721af94433d47d53113ca61400556ec9a4680`、`resolvedSourceSha=0ed721af94433d47d53113ca61400556ec9a4680`でPASS。続く`pnpm run training:copy:validate`もPASSした。
 - Blocker / Remaining: この結果のRun反映、最終sanitizer、commit / non-force push、新HEADのWeb / Mobile CI、PR本文同期が残る。
 - Progress: 67% (8/12)
+
+## 2026-09-10 13:15 (JST)
+
+- Summary: 記録commit `8b40bb76beb3563561fc6b146da53dcf7cc50115`のRemote Web CIがsuccessした。
+- Changes: Web CI `34436087850`を新HEADで確認した。Style / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、Codex artifact sanitizationを確認し、意図的なskip以外のgateにFAILはなかった。
+- Decision / Rationale: Web側の新HEAD検証は完了したと判断する。Mobile App CIは同じHEADで実行中のため、Run全体の完了判定とPR本文の最終同期は保留する。
+- Validation: Web CI run `34436087850`はhead SHA `8b40bb76beb3563561fc6b146da53dcf7cc50115`で`success`。Extended E2E / deploy-productionは既存条件によるskipだった。
+- Blocker / Remaining: Mobile App CIのAndroid Runtime / Maestro、iOS build、`native-ci / verify`、Run最終追記、PR本文同期が残る。
+- Progress: 67% (8/12)
+
+## 2026-09-10 13:41 (JST)
+
+- Summary: 記録commit `8b40bb76beb3563561fc6b146da53dcf7cc50115`のRemote Web / Mobile CIを完了まで確認した。
+- Changes: Web CI `34436087850`とMobile App CI `34436087909`を新HEADで確認した。MobileはNative Static、Android Automation / Production-validation Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production-validation Build、iOS Native CI Verify、`native-ci / verify`を含む全jobがsuccessした。
+- Decision / Rationale: 今回のsource差分とlockfile整理を含むcommitのRemote gateは完了と判断する。Runの最終checkpoint、PR本文、current Runの最終task、worktree / PR HEADの再確認を残す。
+- Validation: 両runのhead SHAは`8b40bb76beb3563561fc6b146da53dcf7cc50115`と一致し、Web / Mobileとも`success`だった。WebのExtended E2E / deploy-productionは既存条件によるskipだった。
+- Blocker / Remaining: PR本文の最終同期、Run final record、最終sanitizerとclean status確認が残る。
+- Progress: 83% (10/12)
+
+## 2026-09-10 13:44 (JST)
+
+- Summary: 残存不整合の修復結果、最終source検証、Remote gateを今回のRunへ反映した。
+- Changes: target `run.json`をschema v2の`completed` / `passed`状態へ維持し、Remote Web `34436087850` / Mobile `34436087909`とTraining Copy SHA `0ed721af94433d47d53113ca61400556ec9a4680`を記録した。`pnpm-lock.yaml`は`origin/main`と同一である。
+- Decision / Rationale: 既存のRun管理script / collector / schemaは変更せず、専用close経路がないtarget Runだけをユーザー指示に基づき最小同期した。PR本文はExpo versionをPR固有変更から外し、Web Smoke navigation同期、iOS 60分timeout、Product Behavior / BR / ACの非変更範囲、新HEAD CIの事実へ更新する。
+- Validation: target RunのSanitizer Write / Checkは4 files、0 replacements、0 residual findings。新HEAD `8b40bb76beb3563561fc6b146da53dcf7cc50115`のWeb / Mobile CIはsuccessし、MobileのAndroid Runtime / Maestro、iOS Automation / Production-validation、iOS Native CI Verify、`native-ci / verify`もsuccessした。current RunのTASKSは全項目完了とした。
+- Blocker / Remaining: commit後のPR metadata最終確認とclean worktree確認を残す。
+- Progress: 100% (12/12)
