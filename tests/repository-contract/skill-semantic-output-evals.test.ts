@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
+import { EventEmitter } from "node:events";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
+import { Writable } from "node:stream";
+import type { ChildProcess } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -30,6 +33,7 @@ import {
 import {
   buildCodexJudgeArguments,
   buildCodexInvocation,
+  executeCodexJudgeProcess,
   parseSemanticEvalCliArguments,
   selectSemanticCases,
 } from "../../scripts/evals/run-skill-semantic-output-evals";
@@ -134,6 +138,42 @@ function observableTrial(outcome: "pass" | "fail", failedId = "FP-SCOPE"): Trial
       },
     ],
   };
+}
+
+class FakeJudgeChild extends EventEmitter {
+  readonly pid = undefined;
+  exitCode: number | null = null;
+  signalCode: NodeJS.Signals | null = null;
+  killCalls = 0;
+
+  constructor(readonly stdin: Writable | null) {
+    super();
+  }
+
+  kill(): boolean {
+    this.killCalls += 1;
+    this.signalCode = "SIGKILL";
+    return true;
+  }
+}
+
+function failingStdin(mode: "error" | "throw"): Writable {
+  const stdin = new Writable({
+    write(_chunk, _encoding, callback) {
+      callback();
+    },
+  });
+  if (mode === "error") {
+    stdin.end = (() => {
+      stdin.destroy(new Error("EPIPE"));
+      return stdin;
+    }) as typeof stdin.end;
+  } else {
+    stdin.end = (() => {
+      throw new Error("EPIPE");
+    }) as typeof stdin.end;
+  }
+  return stdin;
 }
 
 afterEach(() => {
@@ -546,6 +586,33 @@ describe("Semantic Output Eval aggregation and runner preflight contracts", () =
     expect(metacharacterInvocation.args).toContain(metacharacterModel);
     expect(metacharacterInvocation.args).not.toContain("echo");
     expect(metacharacterInvocation.args).not.toContain("injected");
+  });
+
+  it("classifies stdin write errors as process failures without crashing or waiting for timeout", async () => {
+    const criteria = [{ id: "FP-SCOPE" }, { id: "FP-VALIDATION" }] as const;
+
+    for (const mode of ["error", "throw"] as const) {
+      const child = new FakeJudgeChild(failingStdin(mode));
+      const execution = await executeCodexJudgeProcess(
+        child as unknown as ChildProcess,
+        "judge prompt",
+      );
+
+      expect(execution).toEqual({
+        timed_out: false,
+        spawn_failed: true,
+        signaled: false,
+        exit_code: null,
+      });
+      expect(deriveTrialResult(execution, null, criteria)).toEqual({
+        outcome: "unobservable",
+        reason: "process_failure",
+      });
+      expect(child.killCalls).toBe(1);
+
+      child.emit("close", null, "SIGKILL");
+      expect(child.killCalls).toBe(1);
+    }
   });
 
   it("keeps canonical fingerprint independent of input order and OS separators", () => {

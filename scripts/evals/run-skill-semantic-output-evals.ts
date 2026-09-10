@@ -224,49 +224,58 @@ function terminateCodexProcessTree(child: ChildProcess): void {
   child.kill("SIGKILL");
 }
 
-function executeCodexJudge(
+export function executeCodexJudgeProcess(
+  child: ChildProcess,
   prompt: string,
-  model: string,
-  schemaPath: string,
-  outputPath: string,
-  workingDirectory: string,
 ): Promise<JudgeExecution> {
   return new Promise((resolveExecution) => {
-    let child: ChildProcess;
-    try {
-      const invocation = codexInvocation(buildCodexJudgeArguments(model, schemaPath, outputPath));
-      child = spawn(invocation.command, invocation.args, {
-        cwd: workingDirectory,
-        shell: invocation.shell,
-        stdio: ["pipe", "ignore", "ignore"],
-        windowsHide: true,
-      });
-    } catch {
-      resolveExecution({
-        timed_out: false,
-        spawn_failed: true,
-        signaled: false,
-        exit_code: null,
-      });
-      return;
-    }
-
     let timedOut = false;
     let spawnFailed = false;
     let settled = false;
+    let terminationRequested = false;
+
+    const settle = (execution: JudgeExecution): boolean => {
+      if (settled) return false;
+      settled = true;
+      clearTimeout(timer);
+      resolveExecution(execution);
+      return true;
+    };
+
+    const terminateOnce = (): void => {
+      if (terminationRequested) return;
+      terminationRequested = true;
+      try {
+        terminateCodexProcessTree(child);
+      } catch {
+        // The execution is already classified as a process failure.
+      }
+    };
+
+    const failFromStdin = (): void => {
+      if (settled || timedOut) return;
+      spawnFailed = true;
+      const childHasExited = child.exitCode !== null || child.signalCode !== null;
+      settle({
+        timed_out: false,
+        spawn_failed: true,
+        signaled: child.signalCode !== null,
+        exit_code: child.exitCode,
+      });
+      if (!childHasExited) terminateOnce();
+    };
+
     const timer = setTimeout(() => {
+      if (settled) return;
       timedOut = true;
-      terminateCodexProcessTree(child);
+      terminateOnce();
     }, JUDGE_TIMEOUT_MS);
 
     child.on("error", () => {
       spawnFailed = true;
     });
     child.on("close", (code, signal) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolveExecution({
+      settle({
         timed_out: timedOut,
         spawn_failed: spawnFailed,
         signaled: signal !== null,
@@ -274,12 +283,43 @@ function executeCodexJudge(
       });
     });
     if (child.stdin === null) {
-      spawnFailed = true;
-      child.kill("SIGKILL");
+      failFromStdin();
       return;
     }
-    child.stdin.end(prompt, "utf8");
+    child.stdin.on("error", failFromStdin);
+    try {
+      child.stdin.end(prompt, "utf8");
+    } catch {
+      failFromStdin();
+    }
   });
+}
+
+function executeCodexJudge(
+  prompt: string,
+  model: string,
+  schemaPath: string,
+  outputPath: string,
+  workingDirectory: string,
+): Promise<JudgeExecution> {
+  let child: ChildProcess;
+  try {
+    const invocation = codexInvocation(buildCodexJudgeArguments(model, schemaPath, outputPath));
+    child = spawn(invocation.command, invocation.args, {
+      cwd: workingDirectory,
+      shell: invocation.shell,
+      stdio: ["pipe", "ignore", "ignore"],
+      windowsHide: true,
+    });
+  } catch {
+    return Promise.resolve({
+      timed_out: false,
+      spawn_failed: true,
+      signaled: false,
+      exit_code: null,
+    });
+  }
+  return executeCodexJudgeProcess(child, prompt);
 }
 
 async function runJudgeTrial(
