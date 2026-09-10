@@ -564,3 +564,10 @@
 
 - 修復commit `f6c3ae4`のMobile App CI run `34367492136`では、Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildがPASSした。一方、iOS Production-validation Buildは`SwiftExplicitDependencyGeneratePcm`実行中にjobの`timeout-minutes: 40`へ到達し、40分35秒でcancelledとなった。後続のiOS Native CI Verifyと`native-ci / verify`はこの結果をfail-closeで反映した。
 - 直近3 runの同じiOS Production-validation Buildは約25分で成功している。今回のcancelはコンパイルエラーではなくrunner固有の一時遅延と仮説を置き、最終headのRemote runで再確認する。Product Code、BR / AC、Maestro Flowの意味は変更しない。
+
+## PR #133 iOS timeout / Android launcher最終修復（2026-09-10）
+
+- 修復commit `7b00ab6`で`.github/workflows/native-ios-ci.yml`のiOS Automation / Production-validation build timeoutを40分から60分へ延長し、`scripts/native/android-maestro-run.sh`は3回目のlauncher ANR dialog tap後にUI階層を再取得して、消失時だけ成功扱いにした。`tests/contracts/native-ci-workflow.test.ts`で修復の順序とfail-closed条件を固定した。
+- Remote Mobile App CI run `34419805406`はNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、Native iOS CI Verify、`native-ci / verify`を全てsuccessで完了した。iOS Production-validationは26分8秒、iOS Automationは26分52秒で、40分timeoutは再発しなかった。
+- 対応するRemote Web CI run `34419805168`もStyle / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、CodeQL / securityをsuccessで完了した。Extended E2Eとdeploy-productionは既存条件によりskipである。
+- Repository標準verify、Native workflow contract、Training Web / Native local検証、Training Copy、Run sanitizationの証跡はactive Runへ記録する。Product Code、BR / AC、Maestro Flow、iOS Build-only保証の意味は変更していない。

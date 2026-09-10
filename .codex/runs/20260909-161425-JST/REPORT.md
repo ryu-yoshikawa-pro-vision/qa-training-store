@@ -161,3 +161,47 @@
 - Validation: 同runのNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildはPASS。iOS Production buildの最初の異常は`The operation was canceled.`で、先行工程のFAILはない。`gh pr checks 133`ではこのiOS timeout由来の2件以外をPASSとして確認した。
 - Blocker / Remaining: 最終headのRun Artifact更新、最終docs commit / push、iOS Production-validationを含むRemote gate再確認、PR #133本文の最終SHA同期が残る。
 - Progress: 94% (17/18)
+
+## 2026-09-10 01:34 (JST)
+
+- Summary: 最終head `15b703d5630e9641c05176a574dd585aa460ab0d`のMobile App CI `34372933530`で、iOS Automation / Production-validationの両buildが同じtimeoutで終了した。
+- Changes: 新しいProduct / Test変更は行っていない。一次ログは`.artifacts/pr133-ci/20260910-013200-ios-timeout/automation-job.log`と`production-job.log`へ保存した。Automationは40分39秒、Production-validationは40分33秒で、どちらも`xcodebuild`中の`The operation was canceled.`となった。
+- Decision / Rationale: `SwiftExplicitDependencyGeneratePcm`および`ExtractAppIntentsMetadata`の実行中にworkflowの`timeout-minutes: 40`へ到達し、直近成功runとの差分から、iOS workflow timeoutが現在の検証を止めていると分類した。Android全gateとWeb CIはPASSしている。AGENTS.mdの同一エラー再試行停止条件に従い、追加rerunは行わない。
+- Blocker / Remaining: `.github/workflows/native-ios-ci.yml`の両iOS build jobのtimeoutを延長する変更はworkflow behaviorに当たり、AGENTS.md §11 L2の事前承認が必要。承認後に60分へ変更し、契約・全体検証・Remote gateを再実行する。
+- Progress: 94% (17/18)
+
+## 2026-09-10 08:41 (JST)
+
+- Summary: 承認済みのbounded repair scopeに従い、iOS build timeoutとAndroid launcher dismissal helperの最小修正を実装した。
+- Changes: `.github/workflows/native-ios-ci.yml`の`iOS Automation Build`と`iOS Production-validation Build`だけを`timeout-minutes: 40`から`60`へ変更した。`scripts/native/android-maestro-run.sh`は3回目のtap後にUI階層を再取得し、launcher ANRが消えていれば成功、取得失敗または残存ならfail-closedで終了する。`tests/contracts/native-ci-workflow.test.ts`へ最終検査がtap後かつloop終了前にあること、UI dump・launcher absence・`return 0`を確認する契約を追加した。
+- Decision / Rationale: 変更対象はユーザー承認済みの`.github/workflows/native-ios-ci.yml`、既存Android helper、関連contract testに限定した。Product Code、Maestro Flow、BR / AC、Runner/Xcode/cache/retry/build topologyは変更していない。
+- Validation: Native workflow contractは23 passed、Git Bashの`bash -n scripts/native/android-maestro-run.sh`、Prettier check、`git diff --check`がPASSした。全Repository verifyと修復後Remote gateは次のcheckpointで確認する。
+- Blocker / Remaining: 全`pnpm run verify`、branch safety、commit / push、最終headのWeb / Mobile App CI（iOS 60分timeoutを含む）、Training Copy、Run sanitization、PR本文同期が残る。
+- Progress: 94% (17/18)
+
+## 2026-09-10 09:05 (JST)
+
+- Summary: iOS timeout / Android launcher helper修復後のRepository標準検証を完了した。
+- Changes: 追加のSource変更は行っていない。最初の全体verifyではCodex Hook代表テスト1件が15秒timeoutとなったが、該当テストのみを`--testTimeout=60000`で再実行してPASSし、全体verifyを再実行した。
+- Decision / Rationale: Hook timeoutは今回のworkflow / helper差分を含まない既知の実行環境依存事象であり、対象単独PASSと全体再実行PASSで切り分けた。安全なProduct / Hook変更は追加していない。
+- Validation: 最終`pnpm run verify`はexit 0。format、markdown、skills、spec / final visual、curriculum、typecheck、image manifest、security、Unit 66、Integration 111、Repository 47、Component Web 102、Component Native 64、Contract 505 passed / 3 skipped、Web build、Spec buildをPASSした。lintは0 error / 65 existing warnings。Focused Native workflow contractは23 passed、Git Bash `bash -n`、Prettier check、`git diff --check`もPASSした。
+- Blocker / Remaining: 修復commitのbranch safety確認、commit / push、対象最終headのWeb / Mobile App CI、Training Copy、Run sanitization、PR本文同期が残る。
+- Progress: 94% (17/18)
+
+## 2026-09-10 09:36 (JST)
+
+- Summary: 修復commit `7b00ab6`のRemote Web / Mobile gateを完了まで確認し、D3を完了した。
+- Changes: iOS Automation / Production-validationは60分timeout設定でそれぞれ26分52秒 / 26分8秒にsuccessとなった。Android Runtime / Maestroは13分9秒でsuccessとなり、`native-ci / verify`もsuccessだった。
+- Decision / Rationale: 40分timeoutの再発はなく、H5のlauncher dialog bounded dismissalとH6のiOS timeout延長は、Product Code、Maestro Flow、BR / ACの意味を変更せずに最初のCI failureを解消した。iOSはBuild-only保証のため、build successをRuntime successへ拡張していない。
+- Validation: Mobile App CI `34419805406`はDetect Native Changes、Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、iOS Native CI Verify、`native-ci / verify`が全てsuccess。Web CI `34419805168`もStyle / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、CodeQL / securityがsuccess（Extended E2E / deploy-productionはskip）。
+- Blocker / Remaining: 最終source SHAでTraining Copyを再検証し、Run Artifactをsanitizationして、最終commit / pushとPR本文のhead・CI結果同期を完了する。
+- Progress: 94% (18/19)
+
+## 2026-09-10 09:40 (JST)
+
+- Summary: PR #133の実装とbounded repair、Repository / local Native / Remote gate、Training Copy、Run sanitizationの検証を完了した。
+- Changes: 対象変更commitは`7b00ab6d5180e9486ae6795de698f2cc988d459b`である。最終修復はiOS build timeoutを60分へ変更し、Android launcher ANR helperの3回目tap後再検査とcontract testを追加した。
+- Decision / Rationale: Remote Mobile App CI `34419805406`の全Native gateとRemote Web CI `34419805168`のrequired gateがsuccessであり、40分iOS timeoutとPixel Launcher ANRによる一次FAILは解消した。Product Code、Maestro Flow、BR / AC、iOS Build-only保証の意味は変更していない。
+- Validation: Training Copy prepare / validateはsource SHAとresolved SHAが上記commitへ一致してPASS。Run sanitizer Write / Checkは4 files scanned、0 changes、0 residual findingsでPASS。最終`pnpm run verify`はexit 0、Native workflow contractは23 passed、Native local Doctor / APK / Maestro / TrainingもPASSした。
+- Blocker / Remaining: なし。
+- Progress: 100% (19/19)

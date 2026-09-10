@@ -67,3 +67,4 @@
 - 2026-09-09: Push後Native Runtimeの一次FAILは、アプリの起動失敗ではなくPixel Launcher ANRダイアログによるMaestro画面遮蔽と分類した。D2の修復範囲を`.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`へ限定し、APK起動前のlauncher停止を追加する。
 - 2026-09-09: `origin/main`取り込み後のMobile CIで同じANRダイアログが再発し、H4の事前停止だけでは既存ダイアログを閉じられないと反証した。修復範囲を既存の`android-maestro-run.sh`とNative CI契約へ広げ、Maestro開始前のUI階層検出・boundsタップをH5として固定する。
 - 2026-09-10: `f6c3ae4`のMobile App CI `34367492136`ではAndroid Runtimeが成功した一方、iOS Production-validation buildが`timeout-minutes: 40`で40分35秒後にcancelledとなった。直近の同build成功は約25分であり、現時点ではrunner固有の一時遅延と仮説を置き、最終headのRemote runで再確認する。
+- 2026-09-10: 修復commit `7b00ab6`でiOS Automation / Production-validationのtimeoutを60分へ延長し、Android helperの3回目tap後のUI再検査を追加した。Mobile App CI `34419805406`はNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、iOS Native CI Verify、`native-ci / verify`を全てsuccessで完了し、H5 / H6を支持した。

@@ -33,3 +33,10 @@ Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regressi
 - `f6c3ae4`のMobile App CI run `34367492136`を完了まで確認した。Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildはPASSしたが、iOS Production-validation Buildは40分35秒でcancelledとなり、iOS Native CI Verifyと`native-ci / verify`は派生FAILになった。
 - 一次ログは`.artifacts/pr133-ci/20260909-234500-ios-production-timeout/job.log`へ保存した。iOS build stepは`SwiftExplicitDependencyGeneratePcm`の実行中にworkflowの`timeout-minutes: 40`へ到達し、`The operation was canceled.`で停止した。直近の同build成功は約25分であり、現行差分のcompile errorではなくrunner固有の一時遅延と分類する。
 - 最終docs / Run commit後の新しいRemote runでiOS Production-validationを再確認する。同じtimeoutが再発した場合はbuildログとworkflow timeout契約を再評価する。Product Code、Maestro Flow、BR / ACの意味は変更しない。
+
+## iOS timeout / Android launcher最終修復（2026-09-10）
+
+- `f6c3ae4`のMobile App CI `34367492136`でiOS Automation / Production-validationのxcodebuildが40分timeoutに達したため、直近成功runの所要時間と一次ログを比較し、workflowの上限だけをbounded repair対象にした。`7b00ab6`で両iOS build jobの`timeout-minutes`を60へ変更した。
+- 同じ修復commitで、3回目のlauncher ANR dialog tap後にUI階層を再検査する処理を`android-maestro-run.sh`へ追加した。UI dump失敗やdialog残存はfail-closedとし、Maestro FlowやProduct Codeは変更していない。Contract testは最終検査がtap後・loop終了前にあり、dialog absence時だけ`return 0`することを確認する。
+- Remote Mobile App CI `34419805406`は全Native jobがsuccessとなった。Android Runtime / Maestroは13分9秒、iOS Production-validationは26分8秒、iOS Automationは26分52秒で完了し、`native-ci / verify`もsuccessだった。Remote Web CI `34419805168`もrequired gateがsuccessとなった。
+- iOSのCurrent Guaranteeは引き続きBuild-onlyであり、今回のRemote iOS build successをiOS Runtime / Maestroの証明として扱わない。
