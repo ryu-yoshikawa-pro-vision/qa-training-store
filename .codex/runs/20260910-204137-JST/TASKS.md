@@ -9,7 +9,7 @@
 - [x] 5. Plan自己レビューで承認済み設計、禁止範囲、循環表現の不在を確認する
 - [x] 6. Plan-only validation、evaluation、sanitizer、strict collectorを実行する
 - [x] 7. REPORTへrepair iterationと検証結果を記録し、Run Artifactを最終化する
-- [ ] 8. branch safety確認後にcommit／non-force pushし、PR #127とhead一致を最終確認する
+- [x] 8. branch safety確認後にcommit／non-force pushし、PR #127とhead一致を最終確認する
 
 ## Discovered
 

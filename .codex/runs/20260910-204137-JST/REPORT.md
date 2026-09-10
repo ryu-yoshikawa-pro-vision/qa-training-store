@@ -57,6 +57,19 @@
   - Parent decision: repair loopを`stop_success`としてcommit準備へ進める。
 - Progress: 88% (7/8)
 
+## 2026-09-10 20:53 (JST)
+
+- Summary: Plan修正とRun Artifactをcommit・pushし、PR #127本文へ修正済みPlan pathと実装未着手を最小追記した。
+- Changes: commit `d80deab`（`docs: Planレビュー指摘を反映`）を対象branchへnon-force pushした。PR本文のruntime判定は変更せず、Host absolute path fail-close契約、`realpathOrFail()`責務分離、Qualification順序の修正概要と修正Run pathだけを追記した。
+- Decision / Rationale: 修正対象は既存Planと新Run Artifactに限定し、レビュー指摘2件を解消したためrepair loopを`stop_success`として完了する。A判定、compound非対応、既存Qualification／canonical判定、valid baseline未取得は維持する。
+- Validation: commit前の最終Markdown lint、Prettier、evaluation schema、sanitizer Write/Check、strict collector、`git diff --check`はすべてPASS（sanitizer residual 0）。
+- Blocker / Remaining: なし。実装・tests・ADR・Qualification・Probe・canonical・valid baselineはユーザー指定どおり未実施であり、次回実装Runへ引き継ぐ。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: Plan修正、Run保存、PR最小追記を完了として採用する。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
