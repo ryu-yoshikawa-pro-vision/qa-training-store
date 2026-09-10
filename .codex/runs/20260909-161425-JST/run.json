@@ -16,8 +16,8 @@
       "pnpm run verify (exit 0; 全Gate PASS)",
       "Training Copy prepare / validate (source SHA 0ed721af94433d47d53113ca61400556ec9a4680; source / resolved SHA一致; PASS)",
       "Native local validation (Doctor / Release APK build / install / Maestro / Training; PASS)",
-      "Remote Web CI 34422390091 (success)",
-      "Remote Mobile App CI 34422390228 (success; Android Runtime / Maestro、iOS Automation Build、iOS Production-validation Build、native-ci / verifyを含む)",
+      "Remote Web CI 34436087850 (success; head SHA 8b40bb76beb3563561fc6b146da53dcf7cc50115)",
+      "Remote Mobile App CI 34436087909 (success; head SHA 8b40bb76beb3563561fc6b146da53dcf7cc50115、Android Runtime / Maestro、iOS Automation Build、iOS Production-validation Build、native-ci / verifyを含む)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260909-161425-JST -Write -Check (4 files scanned; 0 residual findings; PASS)"
     ],
     "warnings": []

@@ -233,6 +233,33 @@
 - Blocker / Remaining: 最終Run sanitization、commit / non-force push、新HEADのWeb / Mobile CI、PR本文とRunの最終同期が残る。
 - Progress: 95% (19/20)
 
+## 2026-09-10 13:15 (JST)
+
+- Summary: 記録commit `8b40bb76beb3563561fc6b146da53dcf7cc50115`のRemote Web CIがsuccessした。
+- Changes: Web CI `34436087850`を新HEADで確認した。Style / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、Codex artifact sanitizationを確認した。
+- Decision / Rationale: Web側の新HEAD検証は完了したと判断する。Mobile App CIは同じHEADで実行中のため、今回のRunとPR本文の完了同期はMobile全gate確認後に行う。
+- Validation: Web CI run `34436087850`はhead SHA `8b40bb76beb3563561fc6b146da53dcf7cc50115`で`success`。Extended E2E / deploy-productionは既存条件によるskipだった。
+- Blocker / Remaining: Mobile App CIのAndroid Runtime / Maestro、iOS Automation / Production-validation Build、iOS Native CI Verify、`native-ci / verify`、Run最終追記、PR本文同期が残る。
+- Progress: 95% (19/20)
+
+## 2026-09-10 13:41 (JST)
+
+- Summary: 記録commit `8b40bb76beb3563561fc6b146da53dcf7cc50115`のRemote Web / Mobile CIを完了まで確認した。
+- Changes: Web CI `34436087850`とMobile App CI `34436087909`をtarget Runの最終実証結果として採用する。target `run.json`のRemote commandもこの新HEADのrun IDへ同期した。
+- Decision / Rationale: source差分、lockfile整理、Run記録を含むcommitのRemote gateは完了と判断する。Run TASKSのD5、PR本文、最終sanitizer、clean statusの同期は後続の最終checkpointで完了する。
+- Validation: Web CIはStyle / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、Codex artifact sanitizationを含めてsuccess。Mobile App CIはNative Static、Android Automation / Production-validation Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production-validation Build、iOS Native CI Verify、`native-ci / verify`を含めてsuccessした。両runのhead SHAは`8b40bb76beb3563561fc6b146da53dcf7cc50115`と一致した。
+- Blocker / Remaining: PR本文、Run TASKS / REPORTの最終状態、Sanitizer、commit / push後の最終確認が残る。
+- Progress: 95% (19/20)
+
+## 2026-09-10 13:44 (JST)
+
+- Summary: PR #133の残存記録・差分不整合を、実証済みの新HEAD結果へ同期した。
+- Changes: target `run.json`はschema v2のまま`status=completed`、`validation.status=passed`、対象branch / `main`を保持し、Remote commandをWeb `34436087850` / Mobile `34436087909`へ更新した。`pnpm-lock.yaml`の不要peer snapshot差分は除去済みである。
+- Decision / Rationale: `codex-task` / collectorに既存Runをcompletedへ遷移させる専用経路がなく、一般仕様は変更しなかった。ユーザー指示の限定例外でtarget Manifestを最小修復し、`changed_files=[]`をclean Runの契約として維持した。PR本文ではExpo version更新をPR固有変更から削除し、Web Smokeの期待値同期と製品挙動の非変更を分けて記述する。
+- Validation: 最終source整理commit `0ed721af94433d47d53113ca61400556ec9a4680`でTraining Copy prepare / validateを実行し、source / resolved SHA一致でPASS。`pnpm install --frozen-lockfile`、`pnpm run verify`、Sanitizer Write / Check（4 files、0 residual findings）、新HEAD Web / Mobile CI（両方success）を確認した。MobileはAndroid Runtime / Maestro、iOS Automation / Production-validation、iOS Native CI Verify、`native-ci / verify`を含む全必須jobがsuccessした。
+- Blocker / Remaining: commit後のPR本文最終確認、clean worktree、Run完了状態の最終確認を残す。
+- Progress: 100% (20/20)
+
 ## 2026-09-10 13:04 (JST)
 
 - Summary: lockfile整理後の依存再現性と指定されたlocal validationを完了した。
