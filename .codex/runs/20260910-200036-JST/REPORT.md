@@ -80,3 +80,39 @@
 - Validation: `training:copy:prepare -- --source-sha 7d78f30f9444771ffd32920dfbb241858b0200a9 --target <TEMP_ROOT>`は`sourceSha` / `resolvedSourceSha`一致でPASS。続く`training:copy:validate -- --root <TEMP_ROOT>`は、active workflow allowlist、manifest SHA、Training workflow契約、Native runtime tokenを含めてPASSした。
 - Blocker / Remaining: scope / sanitizer、push、Remote CI、PR本文同期が残る。
 - Progress: 67% (10/15)
+
+## 2026-09-10 20:38 (JST)
+
+- Summary: 対象PR branchへnon-force pushし、remote PR headを確認した。
+- Changes: `7d78f30`と`b2aa65c`を`refactor/test-automation-curriculum-learning-experience`へ明示refspecでpushした。
+- Decision / Rationale: current branch、PR `headRefName`、base `main`をpush直前に確認し、bare pushやforce pushは使用しなかった。
+- Validation: pushは`914aad2..b2aa65c`でexit 0。PR #133はopen、head `b2aa65cfd717bc1c2c11baff9fcca7ca554a8827`、base `main`。新規Remote runはWeb CI `34472344945`、Mobile App CI `34472345406`、CodeQL `34472342239`で、確認時点は実行中またはqueuedだった。push時にdefault branchの既存Dependabot通知（32 vulnerabilities: 24 high / 8 moderate）が表示された。
+- Blocker / Remaining: 上記Remote CI、PR本文同期、最終sanitizer / clean worktree / 完了判定が残る。
+- Progress: 80% (12/15)
+
+## 2026-09-10 21:15 (JST)
+
+- Summary: 最終source / Run checkpoint commit `b2aa65cfd717bc1c2c11baff9fcca7ca554a8827`のRemote CIとPR required checksを完了まで確認した。
+- Changes: 追加のSource変更はない。Android Runtime / Maestro、`native-ci / verify`を含むMobile gateが完了し、同一HEADのWeb / CodeQL gateと合わせて確認対象を確定した。
+- Decision / Rationale: iOS Automation / Production-validationは60分timeout内でsuccessし、Android Runtime / Maestroもsuccessした。CodeRabbitはOSS repositoryのmanual review required skipであり、Full Review / 再レビューは起動しない。次にStrict evaluation、PR本文、最終Run状態を同期する。
+- Validation: Web CI `34472344945`、Mobile App CI `34472345406`、CodeQL `34472342239`は同一HEAD `b2aa65cfd717bc1c2c11baff9fcca7ca554a8827`でsuccess。`gh pr checks 133`はCodeRabbitのmanual review required skipを除き全checkがpassし、Extended E2E / deploy-productionは既存条件でskipした。
+- Blocker / Remaining: Strict `evaluation.json`、PR本文とRunの最終結果同期、最終sanitizer、commit / push後の最終HEAD CI確認が残る。
+- Progress: 87% (13/15)
+
+## 2026-09-10 21:22 (JST)
+
+- Summary: Strict evaluationとPR #133の日本語本文を、完了済みのレビュー修正およびRemote CI結果へ同期した。
+- Changes: `.codex/runs/20260910-200036-JST/evaluation.json`をevaluation schemaに適合する`pass`評価として追加し、collectorを実行して`evaluation_path` / `evaluation_present`をmachine writer経由で更新した。PR本文はレビュー5件、Native bounded repair、変更境界、local / Training Copy / Remote CIの実測結果へ更新した。
+- Decision / Rationale: `evaluation.json`は7評価軸をすべて`pass`、findings / improvement_candidatesを空とした。`run.json`は直接編集せず、schemaで許容された既存machine-managed状態を維持した。CodeRabbitのmanual review required skipに対してFull Review / 再レビューは起動しない。
+- Validation: `python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260910-200036-JST/evaluation.json`、collector `-RefreshGitChangedFiles -Strict`がexit 0。PR本文とタイトルは日本語で、本文へRemote Web `34472344945`、Mobile `34472345406`、CodeQL `34472342239`、Training Copy SHA `7d78f30f9444771ffd32920dfbb241858b0200a9`を記録した。
+- Blocker / Remaining: 最終Run Artifact Sanitizer、artifact commit / non-force push、push後の最終HEAD CIとclean worktree確認が残る。
+- Progress: 93% (14/15)
+
+## 2026-09-10 21:30 (JST)
+
+- Summary: Strict Run ArtifactとPR #133の完了記録を確定し、最後のartifact commitへ進める状態にした。
+- Changes: TASKSの全15項目を完了へ更新し、evaluation、collector更新済みManifest、PR本文、Remote CI結果を同一Runへ記録した。追加のProduct / Native source変更はない。
+- Decision / Rationale: 現在のPR本文は日本語で、レビュー5件の修正、変更境界、local / Training Copy / Remote CIの実測結果を説明している。CodeRabbitのmanual review required skipは手動Full Reviewを起動しない方針と整合する。最後のpushはRun Artifactだけを含むため、push後も新HEADの全CIを確認して完了状態を再確認する。
+- Validation: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260910-200036-JST -Write -Check`は5 files scanned、0 changes、0 replacements、0 residual findings。evaluation schema、collector `-Strict`、`pnpm run format:check`、`pnpm run lint:markdown`、`git diff --check`が全てPASS。直前のPR HEAD `b2aa65cfd717bc1c2c11baff9fcca7ca554a8827`ではWeb `34472344945`、Mobile `34472345406`、CodeQL `34472342239`がsuccessした。
+- Blocker / Remaining: なし。Run成果物だけをcommit / non-force pushし、新HEADのCI、PR head、clean worktreeを最終確認する。
+- Progress: 100% (15/15)

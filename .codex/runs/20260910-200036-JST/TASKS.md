@@ -12,11 +12,11 @@
 - [x] 8. 局所検証と指定された learner / Evidenceケースを実行する
 - [x] 9. Repository標準 `pnpm run verify` と差分検査を完了する
 - [x] 10. 関連変更を含むSHAでTraining Copyをprepare / validateする
-- [ ] 11. scope、sanitizer、branch safetyを確認して責務単位でcommitする
-- [ ] 12. 対象branchへnon-force pushし、新headを確認する
-- [ ] 13. push後のRemote CIとPR required checksを確認する
-- [ ] 14. PR本文とRun REPORTの最終結果を日本語で同期する
-- [ ] 15. 最終sanitizer、clean worktree、PR head、完了判定を記録する
+- [x] 11. scope、sanitizer、branch safetyを確認して責務単位でcommitする
+- [x] 12. 対象branchへnon-force pushし、新headを確認する
+- [x] 13. push後のRemote CIとPR required checksを確認する
+- [x] 14. PR本文とRun REPORTの最終結果を日本語で同期する
+- [x] 15. 最終sanitizer、clean worktree、PR head、完了判定を記録する
 
 ## Discovered
 
