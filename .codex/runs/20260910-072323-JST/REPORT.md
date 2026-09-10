@@ -193,3 +193,20 @@
 - Final state: 修正対象のsource、test、4 fixture、Run Artifact以外に変更はなく、commit／pushは行っていない。未追跡は既知のactive Run外ad-hoc reportと修正後calibration artifactであり、前者はDeletion candidatesへ記録済み、後者はRun Artifactとして保存済みである。
 - Decision: stop_needs_human（追加の安全な検証は残っていない。no-commit scopeを維持する限り、evaluator SHAの最終commit一致と手動Runのmanifest完了状態は確定できない）。
 - Progress: 90% (9/10)
+
+## 2026-09-10 19:36 (JST)
+
+- Summary: ユーザーからcommit／pushの明示許可を受領し、修正対象をPR branchへcommitした。
+- Commit: `a070657630bccfb2e577ef5198c91a2b43f9b3cf`（`fix: PR #137レビュー指摘を修正する`）。対象はrunner、repository-contract test、4 semantic fixture、既存Run Artifactであり、既知のactive Run外ad-hoc reportは含めていない。
+- Calibration: `pnpm run eval:skills:semantic -- --model gpt-5.6-luna --output .artifacts/semantic-output/repair-calibration-post-commit.json`はexit 0。8 anchor × 3 trialで4 stable_pass／4 stable_fail、全8件`calibration_match=true`、unstable／unobservable 0、target 4件は各3/3 trialで検出した。
+- Provenance: `.codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json`へ保存した。evaluator SHAは`a070657630bccfb2e577ef5198c91a2b43f9b3cf`、dataset SHA-256は`129f3fd85f211eae794b959087e48866e2490ed9a7f26ba07630bef643b395f1`、Codex `0.153.4`、model `gpt-5.6-luna`、3 trial、timeout `600000ms`である。
+- Evaluation: `evaluation.json`のprovenance gapを解消し、既存collectorが手動Runを`pending`／`not_run`のまま扱うmanifest lifecycle gapだけを残した。
+- Decision: continue（Run Artifactのsanitizer／collector確認、最終品質・scope検証、artifact更新commit、PR branchへのpushを実施する）。
+- Progress: 90% (9/10)
+
+## 2026-09-10 19:38 (JST)
+
+- Validation: commit後のtargeted repository-contractは18/18 PASS、`pnpm run validate:skills`はPASS、`git diff --check`もPASSした。commit前に実施済みの`pnpm run verify`（全quality gate）もexit 0である。
+- Artifact gate: `evaluation.json` schema validation、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`、`sanitize-codex-artifacts.ps1 -Write -Check`はすべてexit 0。sanitizerは9 files、0 replacements、0 residualだった。collectorは既存契約どおり`run.json`を`status=pending`／`validation.status=not_run`として保持した。
+- Decision: continue（post-commit calibration result、evaluation、REPORTを最終artifact commitへ含め、push直前のPR branch safety check後にpushする）。
+- Progress: 90% (9/10)

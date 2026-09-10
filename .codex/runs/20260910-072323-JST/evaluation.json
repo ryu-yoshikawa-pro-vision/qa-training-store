@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、修正後canonical 8 anchor calibration、全体verifyは完了した。ただしsource未commitのため、evaluator SHAを最終実装commitへ一致させるRun完了条件が残っている。",
+      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、修正後canonical 8 anchor calibration、全体verify、修正実装commitは完了した。残る差分は既存collectorが手動Runの完了状態を表現できないmanifest lifecycle gapである。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -21,8 +21,8 @@
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
-          "summary": "修正後8 anchorのcanonical calibration結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
+          "summary": "修正実装commit後の8 anchor canonical calibration結果"
         }
       ]
     },
@@ -53,14 +53,14 @@
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
-          "summary": "修正後8 anchorのaggregate、calibration_match、provenance"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
+          "summary": "修正実装commit後8 anchorのaggregate、calibration_match、provenance"
         }
       ]
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "PR head branchを維持し、mainへのcommit、push、rebase、merge、force操作、削除を行わなかった。run.jsonは手編集せず、Run Artifactをmachine-managed collectorとsanitizerの対象として扱っている。",
+      "evidence": "PR head branchを維持し、明示許可された修正commitをPR対象branchへ作成した。mainへの直接commit、rebase、merge、force操作、削除は行わず、run.jsonは手編集せず、Run Artifactをmachine-managed collectorとsanitizerの対象として扱っている。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -108,12 +108,12 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果は修正後resultへ保存した。一方、evaluator SHAはsource未commit時点のHEAD `a50d41dbdc250284046446613abd6a079f63225c`であり、最終実装commitとの一致は未確認である。",
+      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果は修正実装commit後のresultへ保存した。evaluator SHA `a070657630bccfb2e577ef5198c91a2b43f9b3cf`は修正実装commit `a070657`と一致する。",
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
-          "summary": "修正後8 anchorのprovenanceと全trial結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
+          "summary": "修正実装commit後8 anchorのprovenanceと全trial結果"
         },
         {
           "kind": "changed_file",
@@ -124,24 +124,6 @@
     }
   },
   "findings": [
-    {
-      "category": "artifact_contract_gap",
-      "severity": "medium",
-      "evidence": "修正後resultのevaluator_git_shaはa50d41dbdc250284046446613abd6a079f63225cだが、同時点でrunnerとfixtureのsource変更が未commitである。",
-      "evidence_refs": [
-        {
-          "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair.json",
-          "summary": "修正後calibrationのprovenance"
-        },
-        {
-          "kind": "evaluation_note",
-          "path": null,
-          "summary": "明示的なcommit禁止により最終実装commit SHAを確定できない"
-        }
-      ],
-      "detail": "commit／再calibrationが許可されるまで、修正後resultは実行事実として保持するが、最終実装commitと一致したcanonical resultとしては扱わない。"
-    },
     {
       "category": "artifact_contract_gap",
       "severity": "medium",
