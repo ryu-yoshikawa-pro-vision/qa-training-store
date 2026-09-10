@@ -11,7 +11,7 @@
 - [x] 7. ADR、history、PROJECT_CONTEXTへ実際の変更範囲を記録する
 - [x] 8. 局所検証と指定された learner / Evidenceケースを実行する
 - [x] 9. Repository標準 `pnpm run verify` と差分検査を完了する
-- [ ] 10. 関連変更を含むSHAでTraining Copyをprepare / validateする
+- [x] 10. 関連変更を含むSHAでTraining Copyをprepare / validateする
 - [ ] 11. scope、sanitizer、branch safetyを確認して責務単位でcommitする
 - [ ] 12. 対象branchへnon-force pushし、新headを確認する
 - [ ] 13. push後のRemote CIとPR required checksを確認する

@@ -62,3 +62,21 @@
 - Validation: `pnpm run verify`はformat、Markdown / Skill / Spec / Curriculum、lint、全typecheck、image / security、unit 66、integration 111、repository 47、component web 102、component native 64、contract 506 passed / 3 skipped、Web build、Spec buildを含めてexit 0。`git diff --check`もPASSした。
 - Blocker / Remaining: Training Copy、scope / sanitizer、commit / push、Remote CI、PR本文同期が残る。
 - Progress: 60% (9/15)
+
+## 2026-09-10 20:36 (JST)
+
+- Summary: Training Copy prepareの初回指定値を訂正する必要が生じた。
+- Changes: 変更ファイル、commit、作業treeへの追加変更はない。clone開始前のSHA解決で停止したため、Copy targetも作成されていない。
+- Decision / Rationale: `7d78f304ad71806fc4b0fb7368f79c2a26e0754d`は実HEADと異なる転記ミスだった。`git rev-parse HEAD`で得たcommit `7d78f30f9444771ffd32920dfbb241858b0200a9`を唯一の再実行値とする。
+- Validation: `training:copy:prepare`初回は`git rev-parse --verify`でexit 1。失敗地点はclone前の入力SHA検証であり、target absentを確認した。
+- Blocker / Remaining: 正しいfull SHAでTraining Copyを再実行し、以後のscope / sanitizer、push、Remote CI、PR本文同期が残る。
+- Progress: 60% (9/15)
+
+## 2026-09-10 20:36 (JST)
+
+- Summary: commit済みの変更からTraining Copyを生成し、Copy固有の配布境界を検証した。
+- Changes: 作業tree外のDisposable Copyへ`training:copy:prepare`を実行した。Copy内のactive workflowをTraining用allowlistへ切り替え、manifestへsource SHAとresolved SHAを記録した。
+- Decision / Rationale: Copy検証は実装変更後の完全SHAを対象にする必要があるため、`7d78f30f9444771ffd32920dfbb241858b0200a9`を使用した。初回の誤SHA失敗はclone前に分離済みで、正しい値で再実行した。
+- Validation: `training:copy:prepare -- --source-sha 7d78f30f9444771ffd32920dfbb241858b0200a9 --target <TEMP_ROOT>`は`sourceSha` / `resolvedSourceSha`一致でPASS。続く`training:copy:validate -- --root <TEMP_ROOT>`は、active workflow allowlist、manifest SHA、Training workflow契約、Native runtime tokenを含めてPASSした。
+- Blocker / Remaining: scope / sanitizer、push、Remote CI、PR本文同期が残る。
+- Progress: 67% (10/15)
