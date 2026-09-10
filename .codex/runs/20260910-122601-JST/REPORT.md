@@ -91,3 +91,16 @@
   - Result: —
   - Parent decision: 未承認Host shapeを安全判定へ昇格せず、Qualification FAILとして保存し、canonicalを停止する。
 - Progress: 92% (12/13)
+
+## 2026-09-10 13:20 (JST)
+
+- Summary: Qualification FAILの条件分岐を確定し、canonical未実行を維持したままRun Artifact、PR本文、branch pushの最終化を完了した。
+- Changes: Run Artifact commit `4b3454c4efb08d1df9cc20dde98db5a0a7ad3ca8`を明示refspec `origin HEAD:refactor/117-pr2-trigger-eval-baseline`でpushした。PR #127本文を日本語へ更新し、実装SHA、Run SHA、negative PASS、positive FAIL、canonical未実行、evaluation `partial / flaky_or_env_issue`を反映した。
+- Decision / Rationale: positiveの未承認absolute Skill path / 複合commandをsafe判定へ拡張せず、追加query、retry、別Target、canonicalを行わない。今回Runの成果は実装・静的検証・preflight・Qualification判定・証跡保存・PR/Git反映までとし、valid baseline取得は未達のまま明示する。
+- Validation: `evaluation.json` schema validation、sanitizer Write/Check、strict collectorはPASS。push後のPR checks監視時点では0 failing、32 successful、2 skipped、4 pendingであり、pendingをPASSとは扱っていない。
+- Blocker / Remaining: PR #127のpush後checks完了確認が残る。canonical `all`、8/8 side validity、valid baselineはQualification停止条件により未実行・未判定・未取得であり、Hostの新shapeを受理する場合は別途raw evidenceと契約判断が必要である。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: Runの実装・検証・記録・PR/Git反映を完了し、Qualification blockerを安全側のFAILとして引き継ぐ。
+- Progress: 100% (13/13)

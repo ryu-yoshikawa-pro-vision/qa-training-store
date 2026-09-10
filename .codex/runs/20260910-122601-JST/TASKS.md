@@ -14,7 +14,7 @@
 + [x] 10. source / test / ADRをcommitしてEvaluator SHAを凍結する
 - [x] 11. fresh independent Targetを作成し、全preflightをPASSさせる
 - [x] 12. 同一Targetでnegative / positive Environment Qualificationを実行・判定する（negative PASS、positive FAIL）
-- [ ] 13. Qualification PASS時のみcanonical `all`、8/8 side、valid baseline、Run/PR/Git最終化を完了する
+- [x] 13. Qualification PASS時のみcanonical `all`、8/8 side、valid baseline、Run/PR/Git最終化を完了する（Qualification FAILのためcanonicalは停止し、Run/PR/Git最終化を完了）
 
 ## Discovered
 
@@ -22,4 +22,4 @@
 
 ## Blocked
 
-- 条件付きcanonical `all`、8/8 side、valid baselineはpositive Qualification FAILのため実行しない。Qualification FAILのRun/PR/Git最終化だけを継続する。
+- 条件付きcanonical `all`、8/8 side、valid baselineはpositive Qualification FAILのため実行しない。未承認Host shapeの追加evidenceと契約判断が別途必要である。
