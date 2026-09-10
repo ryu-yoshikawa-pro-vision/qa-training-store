@@ -6,13 +6,20 @@
   "preset": "safe",
   "runtime": "host",
   "repo": "qa-training-store",
-  "branch": null,
-  "base_branch": null,
+  "branch": "refactor/test-automation-curriculum-learning-experience",
+  "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [],
   "validation": {
-    "status": "not_run",
-    "commands": [],
+    "status": "passed",
+    "commands": [
+      "pnpm run verify (exit 0; 全Gate PASS)",
+      "Training Copy prepare / validate (source SHA 7b00ab6d5180e9486ae6795de698f2cc988d459b; source / resolved SHA一致; PASS)",
+      "Native local validation (Doctor / Release APK build / install / Maestro / Training; PASS)",
+      "Remote Web CI 34422390091 (success)",
+      "Remote Mobile App CI 34422390228 (success; Android Runtime / Maestro、iOS Automation Build、iOS Production-validation Build、native-ci / verifyを含む)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260909-161425-JST -Write -Check (4 files scanned; 0 residual findings; PASS)"
+    ],
     "warnings": []
   },
   "safety": {
@@ -24,6 +31,6 @@
     "evaluation_present": false
   },
   "evaluation_path": null,
-  "status": "pending",
+  "status": "completed",
   "primary_failure_category": null
 }

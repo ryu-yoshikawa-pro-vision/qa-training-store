@@ -205,3 +205,30 @@
 - Validation: Training Copy prepare / validateはsource SHAとresolved SHAが上記commitへ一致してPASS。Run sanitizer Write / Checkは4 files scanned、0 changes、0 residual findingsでPASS。最終`pnpm run verify`はexit 0、Native workflow contractは23 passed、Native local Doctor / APK / Maestro / TrainingもPASSした。
 - Blocker / Remaining: なし。
 - Progress: 100% (19/19)
+
+## 2026-09-10 12:44 (JST)
+
+- Summary: 完了済みRunに残っていたManifestとlockfileの記録不整合を再監査した。
+- Changes: `scripts/codex-task.ps1` / `.sh`、`scripts/collect-run-artifacts.py` / `.ps1`、`.codex/templates/RUN_MANIFEST.json`、`docs/reference/run-artifacts.md`を確認した。専用のRun close / finalize commandは存在せず、collectorは既存`status` / `validation`をREPORTから推測しないことを確認した。`pnpm-lock.yaml`はPR差分のpeer snapshot 16行を`origin/main`のblobへ戻した。
+- Decision / Rationale: `package.json`のPR固有差分は`training:web:diagnostic` scriptだけで、依存versionやimporterの変更はなく、Expo patch同期はmain側の`55cb43a`に含まれているため、lockfile差分はPR #133に必要ないと判断した。`changed_files`はclean Runで空を維持し、branch / baseはschemaで許容される確定値へ同期する。専用終了経路がないため、ユーザー指示の例外に従い`run.json`のみschemaを変えず最小修復する。
+- Validation: `pnpm install --frozen-lockfile`はexit 0、実行後もlockfileは`origin/main`と同一である。対象branch / PR / main / merge-base /既存CIは開始時確認値を維持している。
+- Blocker / Remaining: `run.json`、このREPORT、TASKSの今回修復結果、指定local validation、最終commit / push後の新HEAD CI、PR本文同期が残る。
+- Progress: 95% (19/20)
+
+## 2026-09-10 12:46 (JST)
+
+- Summary: target Runの初期Manifest状態を、実証済みの完了結果へ同期した。
+- Changes: `run.json`はschema v2のまま、`status=completed`、`validation.status=passed`、`branch=refactor/test-automation-curriculum-learning-experience`、`base_branch=main`へ最小更新した。`changed_files=[]`、`codex_task_reports=[]`、evaluationなしはcollectorのclean Run / 実体なし契約に合わせて維持した。validation commandは実行済みのverify、Training Copy、Native local、Remote Web / Mobile、Sanitizerだけを記録した。
+- Decision / Rationale: `codex-task` / `codex-safe`の終了時collectorは実行事実を集約するが、既存Manifestをcompletedへ遷移させず、独立close / finalize commandも存在しなかった。通常script、collector、schemaは変更せず、ユーザー指示の限定例外としてtarget `run.json`だけを直接修復した。
+- Validation: `run.json`のJSON parse成功、`status=completed`、`validation.status=passed`、6件のvalidation command、空の`changed_files`を確認した。lockfileは`origin/main`と一致し、`pnpm install --frozen-lockfile`はexit 0だった。
+- Blocker / Remaining: 今回修正の最終source commit、Training Copy再検証、指定local validation、Sanitizer、commit / push、新HEAD CI、PR本文同期が残る。
+- Progress: 95% (19/20)
+
+## 2026-09-10 13:04 (JST)
+
+- Summary: lockfile整理後の依存再現性と指定されたlocal validationを完了した。
+- Changes: 追加のsource変更は行っていない。`pnpm-lock.yaml`は`origin/main`と同一blobを維持し、PR #133のpackage差分は`training:web:diagnostic` scriptだけに保った。
+- Decision / Rationale: frozen install後にlockfileが再変更されず、peer snapshot差分はPR #133のscript追加から説明できないため、除去判断を確定した。標準verifyは全工程を完了まで確認し、無目的な再実行は行っていない。
+- Validation: `pnpm install --frozen-lockfile`、`git diff --check`、`pnpm run format:check`、`pnpm run lint:markdown`（0 issues / 387 files）、`pnpm run validate:curriculum`、`pnpm run typecheck:training`、`pnpm run test:contracts --reporter=verbose`（35 files、505 passed / 3 skipped）、`pnpm run verify`（全gate PASS、lint 0 errors / 65 existing warnings、Web / Spec build）を確認した。
+- Blocker / Remaining: 最終commit SHAでのTraining Copy、Sanitizer、commit / non-force push、新HEAD CI、PR本文とRunの最終同期が残る。
+- Progress: 95% (19/20)
