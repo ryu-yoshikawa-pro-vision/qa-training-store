@@ -252,11 +252,16 @@ function assertRepositoryPath(
 function assertEvidenceReference(name: string, value: string): void {
   if (value === "") return;
   const normalized = value.replace(/\\/g, "/");
-  if (/(?:^|[\s"'(=])file:/i.test(value))
+  const evidencePathBoundary = String.raw`(?:^|[\s"'(=]|(?<!https)(?<!http):)`;
+  if (new RegExp(`${evidencePathBoundary}file:`, "i").test(value))
     fail(`${name} has a local file URI evidence reference: ${value}`);
-  if (/(?:^|[\s"'(=])(?:[A-Za-z]:[^\s]|\/(?:\/|[^\s/]))/.test(normalized))
+  if (
+    new RegExp(
+      `${evidencePathBoundary}(?:[A-Za-z]:[^\\s]|\\/(?:\\/|[^\\s/]))`,
+    ).test(normalized)
+  )
     fail(`${name} has a local absolute evidence reference: ${value}`);
-  if (/(?:^|[\s"'(=])\.\.(?:\/|$)/.test(normalized))
+  if (new RegExp(`${evidencePathBoundary}\\.\\.(?:\\/|$)`).test(normalized))
     fail(`${name} has an evidence reference outside the repository: ${value}`);
   const segments = normalized.split("/");
   if (segments.some((segment) => segment === ".."))

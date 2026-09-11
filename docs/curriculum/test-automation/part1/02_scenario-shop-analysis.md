@@ -104,7 +104,7 @@ UIテストは画面だけ見ても十分に設計できません。
 - Payment拒否
 - Payment処理中
 
-状態と期待結果を仕様から整理した後、`src/seeds/metadata.ts` のScenarioを、必要な初期状態を決定的に作る実装上のReferenceとして確認します。
+状態と期待結果を仕様から整理した後、`docs/spec/state-and-scenarios.md` と `docs/07_testability/seed_catalog.md` の必要な節でScenarioの目的と初期状態を確認します。続けて`/guide`で現在の画面・入口・観察状態を確認します。このLessonではTypeScript実装を読みません。
 
 ## Lesson 4: User Journeyで見る
 
@@ -158,24 +158,26 @@ Scenario ShopではUI操作によって内部状態が変化します。
 
 `/guide` では固定Account、Role、Scenario、確認画面、安全なReset先などを確認できます。
 
-仕様、状態、画面を分析した後に`/guide`と`src/seeds/metadata.ts`を照合し、次を確認します。
+仕様と状態を分析した後に`docs/spec/state-and-scenarios.md`と`docs/07_testability/seed_catalog.md`の必要な節を読み、`/guide`で現在の画面を観察して、次を人間向け資料として整理します。
 
-- どんなScenarioが用意されているか。
-- 何を確認するためのScenarioか。
+- Scenarioの目的は何か。
+- 初期状態は何か。
 - 初期Login状態は何か。
 - 推奨Accountは何か。
 - どのRouteを確認するか。
+- Reset先はどこか。
 
-ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。
+ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。具体的なScenario ID、seed value、固定ClockなどのExecutable Sourceの値は、このLessonでは確認しません。Playwright実装へ進んだ後に必要な値だけをExecutable Sourceで確認します。
 
 ### 既存SSOTへ戻る経路
 
-値をこの教材へ転記せず、判断が必要になったら次の順に参照します。
+値をこの教材へ転記せず、P1-2では次の順に人間向け資料を参照します。
 
 1. State、Scenario、Clock、Reset、Test Controlの意味: [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md)
-2. Scenario ID、初期状態、固定Clockの定義: [`src/seeds/metadata.ts`](../../../../src/seeds/metadata.ts)
-3. 郵便番号からの住所候補の扱い: [`docs/05_ui/ui_specifications.md`](../../../05_ui/ui_specifications.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md)
+2. Scenarioの目的、初期状態、初期Login状態、推奨Account、確認Route、Reset先: [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節
+3. 郵便番号からの住所候補の扱い: [`docs/05_ui/ui_specifications.md`](../../../05_ui/ui_specifications.md)
 4. 実際の画面・安全な入口: Scenario Shopの`/guide`とTest Control
+5. 具体的な実装上のIDは、Playwright実装へ進んだ後にExecutable Sourceで確認します。
 
 教材本文の一覧やサンプル値とSSOTが異なる場合は、SSOTの値を採用し、差異をProduct仕様の変更として扱いません。
 

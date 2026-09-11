@@ -15,7 +15,7 @@
 
 まず [`docs/spec/README.md`](../../../spec/README.md) から対象FeatureのBR / ACを読み、Workbookへ `spec_ref`、`br_ids`、`ac_ids`を記録します。既存TestのAssertionを期待結果のOracleへ逆変換しません。
 
-主にCart、Checkout、Payment、Role制御を題材にします。初期状態の識別子が必要になった段階で、P1-2で確認したState / Scenarioの説明と`src/seeds/metadata.ts`を照合します。
+主にCart、Checkout、Payment、Role制御を題材にします。State / Scenarioの意味は、P1-2で確認した [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節から確認します。この段階では具体的なScenario IDや実装上の値を確認せず、仕様・Risk・Test Case・`automation_decision`の設計に集中します。Executable Sourceの具体的なIDは、Playwright実装へ進んだ後に参照します。
 
 Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
 
