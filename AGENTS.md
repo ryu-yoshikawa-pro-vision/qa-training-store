@@ -125,6 +125,9 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 - 分母は `## Now` + `## Discovered` の checkbox task
 - `## Blocked` は分母に含めない
 - 表記は `Progress: <NN>% (<done>/<total>)`
+- `TASKS.md` のcheckboxによるProgressは、final commit前に完了できるtracked taskの進捗を示すものであり、実装・変更タスク全体の完了判定とは同一視しない。
+- 実装・変更タスクでは、`TASKS.md` のtracked taskが完了していても、final push後の最新PR headで必須CI確認が終わるまでは「作業完了」と報告しない。
+- `Progress: 100%`は、ユーザー向け最終報告では、最新PR headの`Web CI`と`Mobile App CI`がsuccessになった後だけ使用する。
 
 ## 4. ユーザー向けレポート
 
@@ -205,13 +208,16 @@ Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む
 
 コード、テスト、設定、文書、Run Artifactなどを実際に変更する実装・変更タスクでは、ユーザーがそのタスクでGit操作を明示的に禁止していない限り、ローカル検証だけで完了扱いにしない。次の工程を作業範囲とする。
 
-`変更 → ローカル検証 → commit → push → PR確認 → 必須CI確認`
+`変更 → ローカル検証 → tracked Run Artifactをfinal commit前状態まで更新・検証 → commit → push → local/remote HEAD確認 → PR最新head確認 → そのheadの必須CI確認 → PR本文とユーザー向け最終報告へ結果を記載`
 
+- tracked Run Artifact（`PLAN.md`、`TASKS.md`、`REPORT.md`、必要なmachine-managed artifact）は、final commit前に保存すべき状態まで確定・検証する。final commit前の`REPORT.md`にはローカル検証、変更内容、commit対象、sanitizer結果、push後に必須CIを確認する残作業を記録できるが、未実行のCIを`PASS`と記録してはいけない。
+- final push後は、CI successを記録する目的だけでtracked fileを変更・再commit・再pushしない。最新headの実際のCI結果はGitHub上のCI結果、PR本文、ユーザー向け最終報告へ記録する。
 - ローカル検証がPASSした後、[`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)の既存契約に従い、対象branchとstage内容を確認し、commit、通常push、local HEAD／remote HEAD一致確認まで行う。Git安全手順の詳細をこの文書へ重複して記載しない。
 - 対象branchに既存PRがある場合はそのPRを使用する。PRがなく、対象CIが`pull_request`を契機として実行される場合は、CI確認に必要なPRを作成する。PRのタイトルと本文は既存の言語ルールに従い、原則日本語とする。CI確認のために`main`へ直接pushしてはいけない。
+- 通常PRで確認する必須CIは、現時点では`Web CI`と`Mobile App CI`とする。`Cross Browser Smoke`はscheduleと`workflow_dispatch`で起動する通常PR外のworkflowであり、通常PRの必須CIには含めない。必須CIの列挙はこの節を正本とし、branch protectionから自動推測しない。CI構成を変更する場合は、この列挙も更新する。
 - push後は、pushした最新commitをheadとするPRのGitHub Actionsを確認する。以前のcommitで成功した結果を、最新headの結果として流用しない。対象タスクの必須CIがすべて`success`になるまで完了扱いにしない。
 - 必須CIが`queued`または`in_progress`の場合は、現在状態と残作業を記録し、`Progress: 100%`や作業完了として報告しない。無制限pollingや独自の監視scriptは追加しない。
-- 必須CIが`failure`の場合は、失敗workflow、失敗job、最初の異常、今回の変更との因果関係を確認する。今回の変更が原因で、現在の権限とスコープ内で安全に最小修正できる場合だけ、修正、ローカル検証、commit、push、新headのCI確認を既存の停止条件内で繰り返す。secret／credential／権限不足、外部サービス障害、GitHub Actions側の一時障害、ユーザー判断が必要な仕様変更、破壊的操作が必要な場合、または今回の変更と独立して安全な最小修正ができない場合は、自動修正せず根拠と残作業を記録して停止する。
+- 必須CIが`failure`の場合は、§8「必須検証」の品質ゲート失敗時の原因調査・修正・停止条件に従う。修正後は新しいcommitをpushし、その最新PR headの必須CIを改めて確認する。
 - review-only、plan-only、調査のみ、質問への回答、状態確認のみ、コード変更を伴わない分析にはこのcommit・push・PR・CI完了条件を適用しない。これらのタスクで勝手にGit操作やPR作成を行ってはいけない。
 - ユーザーが「今回は実装のみ。commitしない」「pushしない」「PRは作らない」「Git操作をしない」など、そのタスクでGit操作を明示的に禁止した場合は、その指示を常設ルールより優先する。禁止された工程は実施せず、未実施の理由と残作業を報告する。
 

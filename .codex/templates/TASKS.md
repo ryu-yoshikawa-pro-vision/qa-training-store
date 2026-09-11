@@ -4,17 +4,25 @@
 
 - 実行順に並べる（上から順に処理）
 - [ ] 1. PLANを確定する
-- [ ] 2. 不足知識を repo docs / tickets / logs / 必要なWeb検索で補い、証跡を run-local REPORT に残す
+- [ ] 2. 必要な調査を行い、証跡を run-local REPORT に残す
 - [ ] 3. 実行タスクへ落とし込む
-- [ ] 4. 実行・ローカル検証する
-- [ ] 5. （実装・変更タスクの場合）変更とstage内容を確認し、対象branchへcommitする
-- [ ] 6. （実装・変更タスクの場合）Git branch safetyを確認し、対象branchへ通常pushする
-- [ ] 7. （実装・変更タスクの場合）PRを作成または既存PRを確認し、push後の最新PR headと必須CIがsuccessであることを確認する
-- [ ] 8. REPORTへ記録し完了判定する
+- [ ] 4. 実装・変更する
+- [ ] 5. ローカル検証する
+- [ ] 6. 変更範囲を確認する
+- [ ] 7. Run Artifactをfinal commit前状態まで更新・検証する
+- [ ] 8. commit対象を確定する
 
-- 実装・変更タスク以外（review-only、plan-only、調査のみ、質問への回答、状態確認のみ、コード変更を伴わない分析）では5〜7を実行しない。
-- 実装・変更タスクでユーザーがcommit、push、PR作成、Git操作を明示的に禁止した場合は、その指示を優先し、禁止された工程を実行しない。
-- 実装・変更タスクは、最新PR headの必須CIが`success`になるまで完了扱いにしない。CIが`queued`／`in_progress`なら未完了、`failure`なら原因確認と残作業をREPORTへ記録する。
+## 実装・変更タスクの完了処理
+
+上記タスク完了後、`AGENTS.md`の実装タスク完了条件に従ってcommit・pushする。
+
+- push後の最新PR headで、`AGENTS.md`で定義された必須CIを確認する。
+- CI結果はPR本文とユーザー向け最終報告へ記録する。
+- CI結果を記録するためだけにtracked Run Artifactを再commitしない。
+- 必須CIがfailureの場合は、`AGENTS.md` §8「必須検証」の品質ゲート失敗時の原因調査・修正・停止条件に従う。
+- `TASKS.md`のcheckbox完了はfinal commit前のtracked task進捗であり、実装・変更タスク全体の完了を意味しない。
+- review-only、plan-only、調査のみ、質問への回答、状態確認のみ、コード変更を伴わない分析ではcommit・push・PR・CI確認を実行しない。
+- ユーザーがcommit、push、PR作成、Git操作を明示的に禁止した場合は、その指示を優先し、禁止された工程を実行しない。
 
 ## Discovered
 

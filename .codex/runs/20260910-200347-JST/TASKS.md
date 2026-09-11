@@ -2,16 +2,14 @@
 
 ## Now
 
-- [x] 1. 最新`origin/main`、作業ツリー、専用branch、既存PRの有無を確認する
-- [x] 2. 必須docs・CI triggerを確認し、planとRun Artifactを初期化する
-- [x] 3. 変更方針と検証・完了条件をplanへ保存する
-- [x] 4. `AGENTS.md`と`.codex/templates/TASKS.md`を更新する
-- [x] 5. ローカル検証と変更scope監査を実行する
-- [x] 6. 明示stage、commit前安全確認、commitを実行する
-- [x] 7. push前安全確認を行い、対象branchへ通常pushする
-- [x] 8. PRを作成または既存PRを確認し、最新headを取得する
-- [ ] 9. 最新headの必須GitHub Actionsがsuccessになるまで確認する
-- [ ] 10. Run Report、sanitizer、最終statusを更新し完了判定する
+- [x] 9. レビュー指摘3件を`AGENTS.md`、TASKS template、Planへ反映する
+- [x] 10. ローカル検証、scope監査、Run Artifact更新、sanitizerを完了する
+- [x] 11. final commit対象を確認する
+
+## Previous cycle history
+
+- 初回実装時の確認・検証・commit・push・PR確認は、既存の`REPORT.md` checkpoint（2026-09-10）に記録済みである。
+- 旧task 9〜10の「push後CI確認後にRun Report／TASKSを更新する」順序は、今回のレビュー修正で廃止し、上記3 taskへ置き換える。
 
 ## Discovered
 
@@ -22,3 +20,11 @@
 ## Blocked
 
 - なし
+
+## 実装・変更タスクの完了処理（checkboxではない）
+
+- 上記task完了後、`AGENTS.md`の実装タスク完了条件に従ってcommit・通常pushする。
+- push後の最新PR headで、`AGENTS.md`で定義された必須CIを確認する。
+- CI結果はPR本文とユーザー向け最終報告へ記録する。
+- CI結果を記録するためだけにtracked Run Artifactを再commitしない。
+- 必須CIがfailureの場合は、`AGENTS.md` §8「必須検証」の品質ゲート失敗時の原因調査・修正・停止条件に従う。
