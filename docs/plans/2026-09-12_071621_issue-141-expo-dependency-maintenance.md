@@ -33,8 +33,8 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 - `expo-router`と`expo-build-properties`の既存設定を維持している。
 - `expo-sqlite`へ`enableFTS`、`useSQLCipher`、`customBuildFlags`等の不要なoptionを追加していない。
 - `tests/contracts/app-config.test.ts`が`expo-sqlite`のplugin登録を回帰検出できる。
-- `pnpm exec expo config --json`が成功し、既存runtime metadataを維持している。
-- `pnpm exec expo config --type prebuild --json`が成功し、JSONの`_internal.pluginHistory["expo-sqlite"]`が存在する。
+- 依存関係更新後の最終状態で`pnpm exec expo config --json`が成功し、既存runtime metadataを維持している。
+- 依存関係更新後の最終状態で`pnpm exec expo config --type prebuild --json`が成功し、JSONの`_internal.pluginHistory["expo-sqlite"]`が存在する。
 
 #### 依存関係
 
@@ -43,6 +43,7 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 - `pnpm install --frozen-lockfile`が成功する。
 - `package.json`のExpo互換packageが、実装時点のSDK 57推奨versionへ更新されている。
 - `pnpm.overrides.expo-constants`が更新後のdirect dependencyと一致している。
+- `@react-native/jest-preset`を更新する場合、既存の`pnpm.packageExtensions`にあるversion付きselectorも必要性を再評価し、必要なら同じversion lineへ同期し、不要なら古いworkaroundを残さない。
 - `pnpm-lock.yaml`が最終`package.json`と整合している。
 - Expo / React Nativeのmajor.minorを変更していない。
 - peer dependency warningを確認し、warningを消すだけのdirect dependency、override、major.minor upgradeを追加していない。
@@ -51,10 +52,10 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 
 - `Expo Dependency Maintenance`の既存のno-op / update分岐、major.minor guard、changed-file allowlist、非force push、main向けPR作成契約を変更していない。
 - plugin追加後のversion mismatch状態で`pnpm exec expo install --fix`を実行し、今回のdynamic configエラーが再発しないことを確認する。
-- `expo install --fix`直前の作業ツリーを基準点として記録し、fixからworkflow後続処理までに新たに変更されたpathが`package.json`と`pnpm-lock.yaml`だけであることを確認する。
-- fix前後で`app.config.ts`と`tests/contracts/app-config.test.ts`の内容が変わっていないことをhash等で確認し、既存の人間による変更とautomation由来の変更を区別する。
+- `expo install --fix`直前の作業ツリーを基準点として、変更済み・未追跡の全fileのpathと内容hashを記録する。
+- fixからworkflow後続処理までの間はRun Artifact等の人間変更を追加せず、後続処理完了後に基準点と比較する。
+- fix直前から新たに変更されたpathが`package.json`と`pnpm-lock.yaml`だけであり、`package.json`と`pnpm-lock.yaml`を除く基準点上の既存変更fileが内容不変であることを確認する。
 - `tests/contracts/expo-dependency-maintenance-workflow.test.ts`が成功する。
-- mainへ反映後、更新不要状態の`Expo Dependency Maintenance`を`workflow_dispatch`で実行し、no-opで成功する。
 
 更新必要状態からGitHub上で新しいautomation PRを実際に作成するE2E確認は、mainへ意図的に古い依存関係を戻さない限り再現できない。今回の実装では、次の証跡を組み合わせて確認する。
 
@@ -73,6 +74,15 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 - `native-ci / verify`が成功する。
 - 今回のPRで起動した必須CIがすべて成功する。
 - Repository標準検証が成功する。
+
+#### main反映後のIssue確認
+
+これは実装・PR作成・CI確認までの完了条件とは分離する。mergeやmainへの反映は、このPlanを実装する指示だけでは実行しない。
+
+ユーザーからmergeまたはmain反映を明示的に依頼された後に、次をIssue #141の残確認として実施する。
+
+- 更新不要状態の`Expo Dependency Maintenance`を`main`から`workflow_dispatch`で実行し、no-opで成功する。
+- 不要なautomation PRが作成されない。
 
 ## 2. 現状理解と前提
 
@@ -201,6 +211,17 @@ PR #133 run `34617976977`では、次は成功している。
 
 そのため、ローカル`pnpm run verify`だけで完了扱いにせず、PR上では`Web CI / verify`の成功も必須とする。
 
+#### `@react-native/jest-preset`の既存workaround
+
+現在の`package.json`は`@react-native/jest-preset`を`0.86.2`へ直接固定し、`pnpm.packageExtensions`にも`"@react-native/jest-preset@0.86.2"`というversion付きselectorを持つ。このpackageExtensionsはjest-presetのpeer解決用workaroundとして追加された履歴がある。
+
+一方、失敗runでは次のwarningが確認されている。
+
+- `react-native 0.86.3`が`@react-native/jest-preset@0.86.3`を要求する。
+- `jest-expo 57.0.5`が`@react-native/jest-preset@^0.86.3`を要求する。
+
+したがって`@react-native/jest-preset`を更新する場合は、direct devDependencyだけを変更して終わらせない。既存のpackageExtensionsが更新後versionでも必要か確認し、必要ならselectorを同期し、不要なら古いworkaroundを残さない。
+
 ### peer dependency warning
 
 `expo install --fix`の途中で少なくとも次が確認されている。
@@ -215,6 +236,7 @@ PR #133 run `34617976977`では、次は成功している。
 - Expo SDK 57の推奨versionへ揃えた後もwarningが残るか確認する。
 - `pnpm install --frozen-lockfile`、Expo Doctor、test、prebuild、buildを阻害する場合だけ追加対応を検討する。
 - Repositoryがdirect dependencyとして管理するpackageで、同じmajor.minor内のpatch整合が必要と確認できた場合だけ追加更新する。
+- `@react-native/jest-preset`を更新する場合は、version付き`pnpm.packageExtensions`も同時に再評価する。
 - transitive warningを消すためだけにdirect dependencyやoverrideを追加しない。
 - Expo CLIの推奨versionとpeer metadataが一時的に食い違う場合、warningだけを理由にExpo推奨versionから戻さない。
 - React Native / Expoのmajor.minor upgradeへ広げない。
@@ -227,6 +249,7 @@ PR #133 run `34617976977`では、次は成功している。
 - `pnpm.overrides.expo-constants`は既存workflowと同じルールでdirect dependencyへ同期する。
 - `expo-sqlite`のplugin optionは追加しない。
 - `android/` / `ios/`は生成物として扱い、Git管理へ追加しない。
+- このPlanの実装指示だけではmerge、mainへの直接反映、merge後workflow実行へ進まない。
 
 ### 対象外
 
@@ -247,7 +270,7 @@ PR #133 run `34617976977`では、次は成功している。
 
 1. 実装時点でSDK 57の推奨patchが2026-09-11時点から進んでいないか。
 2. 互換package更新後にpeer dependency warningがどれだけ残るか。
-3. `@react-native/jest-preset`等のdirect dependencyに追加patch更新が必要か。
+3. `@react-native/jest-preset`等のdirect dependencyに追加patch更新が必要か。更新する場合、version付き`pnpm.packageExtensions`が更新後versionでも必要か。
 
 これらは実装時のCLI出力と検証結果で判断できるため、現時点ではユーザー質問で停止しない。
 
@@ -256,6 +279,7 @@ PR #133 run `34617976977`では、次は成功している。
 - SDK 57の推奨patchが進んでいた場合は実装時の`expo install --check`を正とする。ただしExpo / React Nativeのmajor.minorは維持する。
 - warningが残っても標準検証とNative buildが成功し、upstream peer metadataの不一致と説明できる場合は追加修正しない。
 - direct dependencyのpatch更新が必要と確認できた場合だけIssue #141の範囲へ追加し、対応するtestを確認する。
+- `@react-native/jest-preset`を更新する場合は、現在の`pnpm.packageExtensions`のselectorと内容が更新後versionでも必要か確認する。必要ならselectorを同期し、不要ならobsoleteなworkaroundを削除する。
 - workflow固有の別不具合が再現した場合だけworkflow変更を検討する。
 
 ### update path確認の制約
@@ -267,9 +291,11 @@ Issue #141は「更新が必要な状態ではworkflowが更新PR作成まで進
 - version mismatch状態で`expo install --fix`からallowlist相当までを再現し、今回のblockerが除去されたことを確認する。
 - PR作成部分を変更していないことをdiffとcontract testで確認する。
 - PR #136で同じPR作成経路の実績を確認する。
-- merge後のmainではno-op経路を実行する。
+- main反映後のno-op確認は、ユーザーからmergeまたはmain反映を明示的に依頼された後に別確認として行う。
 
-branch上では`app.config.ts`、contract test、Run Artifact等の人間による変更がすでに存在するため、workflowの`git diff --name-only HEAD`をそのまま実行してallowlistを判定しない。`expo install --fix`直前の作業ツリーを基準点として記録し、fix以降に追加された差分だけを比較する。
+branch上では`app.config.ts`、contract test、Run Artifact等の人間による変更がすでに存在するため、workflowの`git diff --name-only HEAD`をそのまま実行してallowlistを判定しない。`expo install --fix`直前に変更済み・未追跡の全fileについてpathと内容hashを保存し、fix以降に追加されたpathと既存変更fileの内容変化を分けて比較する。
+
+基準点を記録してから後続処理の比較が終わるまでは、Run Artifactのcheckpoint更新等を挟まない。必要なRun Artifact更新は比較完了後に行う。
 
 新しいupdate-needed PRをGitHub Actions上で実際に作成していない場合、その点は実装結果で明示する。
 
@@ -299,11 +325,12 @@ production codeへ新しいhelperやfactoryを追加せず、現在のdefault ex
 
 - `expo install --fix`が示すSDK 57互換packageへ更新する。
 - `pnpm.overrides.expo-constants`を更新後のdirect dependencyへ同期する。
+- `@react-native/jest-preset`を更新する場合は、version付き`pnpm.packageExtensions`の必要性を再評価し、必要なら同じversionへ同期する。
 - Expo / React Nativeのmajor.minorを変更しない。
 
 #### `pnpm-lock.yaml`
 
-- 最終`package.json`とoverrideに合わせて再生成する。
+- 最終`package.json`とoverride / packageExtensionsに合わせて再生成する。
 - Issue #141と無関係な意図しない解決変更が混ざっていないか確認する。
 
 ### 原則変更しない
@@ -394,8 +421,9 @@ production側の新しい公開helperやconfig factoryは追加しない。
 最低限、次を保存する。
 
 - `git diff --name-only HEAD`と`git ls-files --others --exclude-standard`から得られる変更path一覧。
-- `app.config.ts`の内容hash。
-- `tests/contracts/app-config.test.ts`の内容hash。
+- 上記一覧に含まれる各fileの内容hash。`package.json`と`pnpm-lock.yaml`も基準点として記録するが、この2fileは後続処理で変更されることを許容する。
+
+基準点記録後から5.8の比較完了までは、Run Artifactのcheckpoint更新や手動編集を含む追加の人間変更を挟まない。
 
 その後、次を1回だけ実行する。
 
@@ -412,7 +440,6 @@ pnpm exec expo install --fix
 - Expo / React Nativeのmajor.minorが変わらない。
 - `app.config.ts`へ追加の自動変更を要求しない。
 - Issue #141と無関係なdirect dependencyを追加しない。
-- fix後も`app.config.ts`と`tests/contracts/app-config.test.ts`のhashがfix直前から変わっていない。
 
 ### 5.5 `expo-constants` overrideとlockfileを同期する
 
@@ -452,7 +479,16 @@ Expo CLIが要求する両packageのversionと`expo install --check` / Expo Doct
 
 #### `react-native` / `@react-native/jest-preset`
 
-`@react-native/jest-preset`はdirect devDependencyである。warningが残る場合はsame `0.86.x` lineで必要なpatch整合があるか確認する。追加更新する場合はNative Jest testを必須とする。
+`@react-native/jest-preset`はdirect devDependencyであり、現在は`0.86.2`である。失敗runでは`react-native 0.86.3`が`0.86.3`を、`jest-expo 57.0.5`が`^0.86.3`を要求している。
+
+warningが残る場合はsame `0.86.x` lineで必要なpatch整合があるか確認する。`@react-native/jest-preset`を更新する場合は次も行う。
+
+- `pnpm.packageExtensions`の`"@react-native/jest-preset@0.86.2"`が更新後versionでも必要か確認する。
+- packageExtensionsが引き続き必要ならselectorを更新後versionへ同期する。
+- upstream修正等により不要なら古いpackageExtensionsを削除する。
+- Native Jest testと`pnpm install --frozen-lockfile`で最終状態を検証する。
+
+packageExtensionsを残すか削除するかはwarningを消すこと自体ではなく、更新後packageの実際のpeer metadataと既存test結果で判断する。
 
 #### `@react-native/community-cli-plugin` / `@react-native/metro-config`
 
@@ -504,8 +540,10 @@ allowlist相当の確認は、workflowの`git diff --name-only HEAD`をbranch上
 成功条件:
 
 - fix直前から新たに変更されたpathが`package.json`と`pnpm-lock.yaml`だけである。
-- `app.config.ts`と`tests/contracts/app-config.test.ts`の内容hashがfix直前から変わっていない。
+- `package.json`と`pnpm-lock.yaml`を除き、fix直前に変更済み・未追跡だった全fileのhashが基準点から変わっていない。
 - active Run Artifact等、fix直前から存在していた人間による変更をautomation生成差分として誤判定しない。
+
+比較完了後に、必要なRun Artifactのcheckpoint更新を再開する。
 
 これにより、実workflowの「automationが生成する変更を`package.json` / `pnpm-lock.yaml`へ限定する」という意図を、既存の人間変更があるbranch上でも再現する。
 
@@ -515,9 +553,11 @@ workflow自体を変更しないため、PR作成部分は次で確認する。
 - `tests/contracts/expo-dependency-maintenance-workflow.test.ts`が成功する。
 - PR #136で同じPR作成経路が成功した実績を確認する。
 
-### 5.9 merge後にmainのno-op経路を確認する
+### 5.9 main反映後のno-op確認は別作業として扱う
 
-main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行する。
+このPlanの実装、commit、push、PR作成、PR CI確認のためにmergeやmainへの直接反映は行わない。
+
+ユーザーからmergeまたはmain反映を明示的に依頼された後だけ、Issue #141の残確認として`Expo Dependency Maintenance`を`workflow_dispatch`で実行する。
 
 期待結果:
 
@@ -543,29 +583,34 @@ main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行す�
 
 - [ ] `app.config.ts`へ`expo-sqlite`を1回だけ追加する。
 - [ ] `expo-sqlite`へoptionを追加しない。
-- [ ] `pnpm exec expo config --json`でruntime metadataを確認する。
-- [ ] `pnpm exec expo config --type prebuild --json`をJSONとして検証し、`_internal.pluginHistory["expo-sqlite"]`の存在をassertする。
+- [ ] plugin追加直後に`pnpm exec expo config --json`でruntime metadataを確認する。
+- [ ] plugin追加直後に`pnpm exec expo config --type prebuild --json`をJSONとして検証し、`_internal.pluginHistory["expo-sqlite"]`の存在をassertする。
 - [ ] `tests/contracts/app-config.test.ts`へplugin契約を追加する。
 
 ### 依存関係更新
 
-- [ ] `expo install --fix`直前の変更path一覧と`app.config.ts` / `tests/contracts/app-config.test.ts`のhashを基準点として記録する。
+- [ ] `expo install --fix`直前の変更済み・未追跡fileについて、path一覧と全fileの内容hashを基準点として記録する。
+- [ ] 基準点記録後からallowlist相当の比較完了まで、Run Artifact等の追加変更を挟まない。
 - [ ] version mismatch状態で`pnpm exec expo install --fix`を1回実行する。
 - [ ] dynamic config errorが消えたことを確認する。
-- [ ] `app.config.ts` / `tests/contracts/app-config.test.ts`がfixによって変更されていないことをhashで確認する。
 - [ ] package変更内容とmajor.minor不変を確認する。
 - [ ] `pnpm.overrides.expo-constants`を同期する。
+- [ ] peer確認の結果`@react-native/jest-preset`を更新する場合は、version付き`pnpm.packageExtensions`の必要性を確認して同期または削除する。
 - [ ] `pnpm install --lockfile-only --no-frozen-lockfile`でlockfileを再生成する。
 - [ ] `pnpm install --frozen-lockfile`を再実行する。
 - [ ] fix直前の基準点との差分から、新たな変更pathが`package.json` / `pnpm-lock.yaml`だけであることを確認する。
+- [ ] `package.json` / `pnpm-lock.yaml`以外の基準点fileがすべてhash不変であることを確認する。
 - [ ] peer dependency warningを分類する。
 
 ### 回帰確認
 
 - [ ] `pnpm exec expo install --check`が成功する。
 - [ ] `pnpm dlx expo-doctor@1.17.6`が成功する。
+- [ ] 依存関係更新後の最終状態でも`pnpm exec expo config --json`でruntime metadataを確認する。
+- [ ] 依存関係更新後の最終状態でも`pnpm exec expo config --type prebuild --json`で`_internal.pluginHistory["expo-sqlite"]`の存在をassertする。
 - [ ] App Config contract testが成功する。
 - [ ] Expo Dependency Maintenance contract testが成功する。
+- [ ] `@react-native/jest-preset`またはpackageExtensionsを変更した場合はNative Jest testが成功する。
 - [ ] Android prebuildが成功する。
 - [ ] 実行可能な環境ではiOS prebuildを確認する。実行できない場合はPR CIを必須証跡とする。
 
@@ -575,6 +620,8 @@ main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行す�
 pnpm install --frozen-lockfile
 pnpm exec expo install --check
 pnpm dlx expo-doctor@1.17.6
+pnpm exec expo config --json
+pnpm exec expo config --type prebuild --json
 pnpm run test:contracts
 pnpm run test:component:native
 pnpm run check:native-route-dependencies
@@ -585,6 +632,8 @@ pnpm run lint:markdown
 git diff --check
 pnpm run verify
 ```
+
+`expo config --type prebuild --json`は標準検証でもJSONの`_internal.pluginHistory["expo-sqlite"]`をNodeまたは`jq`でassertする。
 
 active Run ArtifactをRepositoryへ追加または更新した場合は、作業完了前にRepository規約どおり`scripts/sanitize-codex-artifacts.ps1`のWriteとCheckを実行する。未sanitizationのRun Artifactが残る場合は完了扱いにしない。
 
@@ -599,12 +648,14 @@ PR上では少なくとも次を確認する。
 - `native-ci / verify`
 - 今回のPRで起動したその他の必須CI
 
-### merge後確認
+### main反映後の別確認
+
+このチェックリストは実装・PR完了条件には含めない。ユーザーからmergeまたはmain反映を明示的に依頼された後に実行する。
 
 - [ ] main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行する。
 - [ ] no-opでsuccessになることを確認する。
 - [ ] 不要なautomation PRが作成されないことを確認する。
-- [ ] update-needed経路を今回新規E2E実行していない場合、その点を実装結果に明記する。
+- [ ] update-needed経路を今回新規E2E実行していない場合、その点をIssue / 実装結果に明記する。
 
 ## 7. 検証方法
 
@@ -629,6 +680,8 @@ pnpm dlx expo-doctor@1.17.6
 - `Check that packages match versions required by installed Expo SDK`がPASSする。
 
 ### App Config
+
+plugin追加直後と依存関係更新後の最終状態の両方で確認する。
 
 ```bash
 pnpm exec expo config --json
@@ -666,6 +719,7 @@ pnpm install --frozen-lockfile
 
 - exit code 0。
 - lockfile更新要求が出ない。
+- `@react-native/jest-preset`を更新した場合、`pnpm.packageExtensions`のversion付きselectorが意図した最終状態になっている。
 
 ### maintenance update path
 
@@ -673,9 +727,10 @@ pnpm install --frozen-lockfile
 
 fix直前に次を基準点として保存する。
 
-- 変更path一覧。
-- `app.config.ts`のhash。
-- `tests/contracts/app-config.test.ts`のhash。
+- 変更済み・未追跡fileのpath一覧。
+- 上記全fileの内容hash。
+
+基準点記録後から後続処理完了時点の比較まで、Run Artifact更新等の追加の人間変更を行わない。
 
 後続処理完了後、基準点と比較する。
 
@@ -685,7 +740,7 @@ fix直前に次を基準点として保存する。
 - Expo / React Native major.minor不変。
 - final `expo install --check` success。
 - fix直前から新たに変更されたpathが`package.json` / `pnpm-lock.yaml`だけである。
-- `app.config.ts`と`tests/contracts/app-config.test.ts`はfix直前から内容不変である。
+- `package.json` / `pnpm-lock.yaml`を除く基準点fileはすべて内容hash不変である。
 
 PR作成部分はworkflow非変更、contract test、PR #136の実績で確認する。
 
@@ -740,6 +795,7 @@ git status --short
 
 想定する最終変更:
 
+- `docs/plans/2026-09-12_071621_issue-141-expo-dependency-maintenance.md`（実装開始前からこのbranchに保存済み。削除しない）
 - `app.config.ts`
 - `tests/contracts/app-config.test.ts`
 - `package.json`
@@ -773,6 +829,7 @@ Expo CLIが推奨するversionと個別packageのpeerDependenciesが同時に更
 - warningだけでversionを戻さない。
 - Expo Doctor、test、prebuild、buildの実結果で判断する。
 - transitive warning用の独自overrideを増やさない。
+- `@react-native/jest-preset`を更新する場合は、既存packageExtensionsのselectorと必要性も同時に確認する。
 
 ### Native生成物はGit管理されていない
 
@@ -790,10 +847,10 @@ Expo CLIが推奨するversionと個別packageのpeerDependenciesが同時に更
 
 対応:
 
-- `expo install --fix`直前を基準点として変更path一覧を保存する。
-- `app.config.ts`とcontract testのhashを保存する。
-- fixから後続処理完了までの追加差分だけを比較する。
-- 人間変更済みファイルがfixによって追加変更されていないことをhashで確認する。
+- `expo install --fix`直前を基準点として変更済み・未追跡fileのpath一覧と全fileの内容hashを保存する。
+- 基準点記録から比較完了までRun Artifact等の追加変更を挟まない。
+- fixから後続処理完了までの新規変更pathを比較する。
+- `package.json` / `pnpm-lock.yaml`以外の基準点fileが追加変更されていないことをhashで確認する。
 
 ### update-needed workflowのlive E2Eを再現しない
 
@@ -804,8 +861,18 @@ mainへ反映した時点では依存関係が互換状態になるため、main
 - blockerまでのupdate pathをbranch上で再現する。
 - PR作成部分のworkflowを変更しない。
 - contract testとPR #136の実績を使う。
-- merge後はno-op経路を実行する。
+- main反映後のno-op確認は、ユーザーからmergeまたはmain反映を明示的に依頼された後に別作業として行う。
 - 新しいupdate-needed PRを実際に作成していない場合は明示する。
+
+### merge後確認は実装範囲外
+
+Issue #141にはmain上でのworkflow確認があるが、このPlanを実装する指示だけではmergeまで進まない。
+
+対応:
+
+- 実装・commit・push・PR・PR CIまでと、main反映後のIssue確認を分離する。
+- mergeまたはmain反映はユーザーから明示的に依頼された場合だけ行う。
+- main反映後のno-op確認が未実施なら、PR完了時にIssueの残確認として明記する。
 
 ### lockfileの不要差分
 
@@ -821,12 +888,20 @@ mainへ反映した時点では依存関係が互換状態になるため、main
 
 ### 実装PRで想定する変更
 
+実装開始前から保存済み:
+
+- `docs/plans/2026-09-12_071621_issue-141-expo-dependency-maintenance.md`
+
 必須:
 
 - `app.config.ts`
 - `tests/contracts/app-config.test.ts`
 - `package.json`
 - `pnpm-lock.yaml`
+
+条件付き:
+
+- `package.json`内の`pnpm.packageExtensions`。`@react-native/jest-preset`を更新し、既存selectorの同期または削除が必要と確認できた場合だけ変更する。
 
 原則変更しない:
 
@@ -847,6 +922,8 @@ Repository規約に従い、実装時のactive Runでは次を管理する。
 
 Repositoryへ追加するRun Artifactは完了前に`scripts/sanitize-codex-artifacts.ps1`のWrite / Checkを実行する。actual `run.json`を直接編集しない。
 
+maintenance update pathの基準点記録から比較完了までの間はRun Artifact更新を一時停止し、比較完了後にcheckpointを追記する。
+
 ### 保存Plan
 
 - `docs/plans/2026-09-12_071621_issue-141-expo-dependency-maintenance.md`
@@ -863,11 +940,14 @@ Repositoryへ追加するRun Artifactは完了前に`scripts/sanitize-codex-arti
 - Expo / React Native major.minorを更新する。
 - peer warningを消すためだけにtransitive packageをdirect dependencyへ追加する。
 - 根拠なく新しい`pnpm.overrides`を追加する。
+- `@react-native/jest-preset`だけを更新し、version付き`pnpm.packageExtensions`の必要性を確認せず古いselectorを放置する。
 - `expo-sqlite`へ未使用のoptionやcustom build flagを追加する。
 - testのためだけにApp Config用の新しいproduction helper / factoryを追加する。
 - `android/` / `ios/`をGit管理へ追加する。
 - update path確認のためだけに、最終更新後のpackageを再downgradeして検証をやり直す。
 - branch上でworkflowの`git diff --name-only HEAD`をそのままallowlist判定に使い、人間変更をautomation生成差分と誤認する。
+- 基準点記録からallowlist相当の比較完了までの間にRun Artifact等を更新し、hash比較の前提を崩す。
+- このPlanの実装指示だけを根拠にmerge、mainへの直接反映、merge後workflow実行へ進む。
 - Issue #141と無関係なdependency整理を同時に行う。
 
 ## 11. 実装順序
@@ -876,14 +956,19 @@ Repositoryへ追加するRun Artifactは完了前に`scripts/sanitize-codex-arti
 2. `app.config.ts`へ`expo-sqlite`を明示する。
 3. `expo config --json`と`expo config --type prebuild --json`を実行し、`_internal.pluginHistory["expo-sqlite"]`までassertする。
 4. `tests/contracts/app-config.test.ts`へplugin回帰testを追加する。
-5. fix直前の変更path一覧と`app.config.ts` / contract testのhashを基準点として記録する。
-6. version mismatch状態のまま`expo install --fix`を1回実行し、dynamic config blockerの解消と基準ファイル不変を確認する。
-7. `expo-constants` overrideとlockfileを同期し、基準点との差分からautomation由来の変更pathを確認する。
-8. Expo check / Doctorとpeer warningを確認する。
-9. prebuild、contract test、Native test、Repository標準検証を実行する。
-10. active Run Artifactを更新した場合はsanitizationのWrite / Checkを完了する。
-11. workflow自体は別のworkflow固有不具合が確認されない限り変更しない。
-12. PR CIで`Web CI / verify`、`native-ci / verify`、Android / iOS buildを含む必須CIを確認する。
-13. main反映後にmaintenance workflowのno-op経路を確認する。
+5. fix直前の変更済み・未追跡fileについてpath一覧と全fileの内容hashを基準点として記録し、比較完了までRun Artifact等の追加変更を止める。
+6. version mismatch状態のまま`expo install --fix`を1回実行し、dynamic config blockerの解消を確認する。
+7. `expo-constants` overrideとlockfileを同期し、`@react-native/jest-preset`を更新する場合はpackageExtensionsの必要性も再評価する。
+8. 基準点との差分からautomation由来の新規変更pathと、既存変更fileのhash不変を確認する。
+9. 比較完了後にRun Artifactのcheckpoint更新を再開する。
+10. 依存関係更新後の最終状態で`expo config --json`と`expo config --type prebuild --json`を再実行し、runtime metadataと`_internal.pluginHistory["expo-sqlite"]`を確認する。
+11. Expo check / Doctorとpeer warningを確認する。
+12. prebuild、contract test、Native test、Repository標準検証を実行する。
+13. active Run Artifactを更新した場合はsanitizationのWrite / Checkを完了する。
+14. workflow自体は別のworkflow固有不具合が確認されない限り変更しない。
+15. PR CIで`Web CI / verify`、`native-ci / verify`、Android / iOS buildを含む必須CIを確認する。
+16. PR完了時点でmain反映後のno-op確認が未実施なら、Issue #141の残確認として明記して停止する。
+
+mainへのmerge、直接反映、main上の`workflow_dispatch`はこの実装順序に含めない。ユーザーからmergeまたはmain反映を明示的に依頼された後に、5.9と6の「main反映後の別確認」を実施する。
 
 この順序により、今回の不具合を最初に発生しているApp ConfigとExpo CLIの境界で修正し、既存workflowの安全guardやPR作成経路を不要に変更しない。
