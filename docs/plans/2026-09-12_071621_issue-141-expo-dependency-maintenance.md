@@ -34,7 +34,7 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 - `expo-sqlite`へ`enableFTS`、`useSQLCipher`、`customBuildFlags`等の不要なoptionを追加していない。
 - `tests/contracts/app-config.test.ts`が`expo-sqlite`のplugin登録を回帰検出できる。
 - `pnpm exec expo config --json`が成功し、既存runtime metadataを維持している。
-- `pnpm exec expo config --type prebuild --json`が成功し、`expo-sqlite`のconfig pluginを解決できる。
+- `pnpm exec expo config --type prebuild --json`が成功し、JSONの`_internal.pluginHistory["expo-sqlite"]`が存在する。
 
 #### 依存関係
 
@@ -51,7 +51,8 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 
 - `Expo Dependency Maintenance`の既存のno-op / update分岐、major.minor guard、changed-file allowlist、非force push、main向けPR作成契約を変更していない。
 - plugin追加後のversion mismatch状態で`pnpm exec expo install --fix`を実行し、今回のdynamic configエラーが再発しないことを確認する。
-- workflowと同じ後続処理を再現し、自動更新による最終変更が`package.json`と`pnpm-lock.yaml`に限定されることを確認する。
+- `expo install --fix`直前の作業ツリーを基準点として記録し、fixからworkflow後続処理までに新たに変更されたpathが`package.json`と`pnpm-lock.yaml`だけであることを確認する。
+- fix前後で`app.config.ts`と`tests/contracts/app-config.test.ts`の内容が変わっていないことをhash等で確認し、既存の人間による変更とautomation由来の変更を区別する。
 - `tests/contracts/expo-dependency-maintenance-workflow.test.ts`が成功する。
 - mainへ反映後、更新不要状態の`Expo Dependency Maintenance`を`workflow_dispatch`で実行し、no-opで成功する。
 
@@ -63,12 +64,14 @@ Issue #141で確認された次の2つの失敗を、既存のRepository設計�
 
 この組み合わせを今回のupdate path確認とし、「今回の変更後にGitHub Actions上でupdate-needed状態から新しいPR作成までE2E実行した」とは扱わない。
 
-#### Native CI
+#### PR CI
 
+- `Web CI / verify`が成功する。
 - `Native Static`が成功する。
 - Android Automation BuildとAndroid Production-validation Buildが成功する。
 - Native iOS CIのAutomation BuildとProduction-validation Buildが成功する。
 - `native-ci / verify`が成功する。
+- 今回のPRで起動した必須CIがすべて成功する。
 - Repository標準検証が成功する。
 
 ## 2. 現状理解と前提
@@ -145,7 +148,7 @@ Repositoryの`.gitignore`は`android/`と`ios/`を除外している。したが
 
 今回の検証は次で行う。
 
-- `expo config --type prebuild --json`によるplugin解決確認。
+- `expo config --type prebuild --json`を実行し、`_internal.pluginHistory["expo-sqlite"]`でplugin解決を確認する。
 - freshな`android/` / `ios/`生成先でのprebuild成功確認。
 - 必要な場合は生成されたGradle / Podfile propertyを直接確認する。
 - 最終的には既存のAndroid / iOS build CIで実buildを確認する。
@@ -191,6 +194,12 @@ PR #133 run `34617976977`では、次は成功している。
 失敗したのは`Native Static`の`Run Expo Doctor`で、17 checks中1 check、8 packageのpatch mismatchだった。
 
 このため、現状の主な既知不具合は依存version checkである。ただし更新後にもAndroid / iOS buildが成立することをPR CIで確認する。
+
+#### Web CIの確認範囲
+
+今回更新対象となる`expo`、`expo-router`、`expo-linking`、`expo-constants`等はWeb側のbuildやroutingにも影響し得る。Repositoryの`Web CI / verify`はDependency Review、lint / typecheck、Vitest、automation / production Web build、Playwright E2E、UI Review、production smoke等を集約している。
+
+そのため、ローカル`pnpm run verify`だけで完了扱いにせず、PR上では`Web CI / verify`の成功も必須とする。
 
 ### peer dependency warning
 
@@ -259,6 +268,8 @@ Issue #141は「更新が必要な状態ではworkflowが更新PR作成まで進
 - PR作成部分を変更していないことをdiffとcontract testで確認する。
 - PR #136で同じPR作成経路の実績を確認する。
 - merge後のmainではno-op経路を実行する。
+
+branch上では`app.config.ts`、contract test、Run Artifact等の人間による変更がすでに存在するため、workflowの`git diff --name-only HEAD`をそのまま実行してallowlistを判定しない。`expo install --fix`直前の作業ツリーを基準点として記録し、fix以降に追加された差分だけを比較する。
 
 新しいupdate-needed PRをGitHub Actions上で実際に作成していない場合、その点は実装結果で明示する。
 
@@ -357,8 +368,10 @@ pnpm exec expo config --type prebuild --json
 
 - 通常configが解決できる。
 - `extra.appEnvironment`等の既存runtime metadataが変わっていない。
-- prebuild configで`expo-sqlite`がpluginとして解決される。
+- prebuild configのJSONに`_internal.pluginHistory["expo-sqlite"]`が存在する。
 - pluginが重複していない。
+
+`expo config --type prebuild --json`は目視だけで済ませず、JSONを一時ファイルへ保存してNodeまたは`jq`で`_internal.pluginHistory["expo-sqlite"]`の存在をassertする。
 
 ### 5.3 App Configの回帰testを追加する
 
@@ -376,7 +389,15 @@ production側の新しい公開helperやconfig factoryは追加しない。
 
 ### 5.4 version mismatch状態のままupdate pathを1回だけ通す
 
-`app.config.ts`とcontract testを修正した後、依存関係がまだ古い状態で次を実行する。
+`app.config.ts`とcontract testを修正した後、依存関係がまだ古い状態で`expo install --fix`直前の基準点を記録する。
+
+最低限、次を保存する。
+
+- `git diff --name-only HEAD`と`git ls-files --others --exclude-standard`から得られる変更path一覧。
+- `app.config.ts`の内容hash。
+- `tests/contracts/app-config.test.ts`の内容hash。
+
+その後、次を1回だけ実行する。
 
 ```bash
 pnpm exec expo install --fix
@@ -391,6 +412,7 @@ pnpm exec expo install --fix
 - Expo / React Nativeのmajor.minorが変わらない。
 - `app.config.ts`へ追加の自動変更を要求しない。
 - Issue #141と無関係なdirect dependencyを追加しない。
+- fix後も`app.config.ts`と`tests/contracts/app-config.test.ts`のhashがfix直前から変わっていない。
 
 ### 5.5 `expo-constants` overrideとlockfileを同期する
 
@@ -476,9 +498,16 @@ branchからworkflowのmain guardを緩めない。
 - Expo / React Native major.minor不変確認。
 - `pnpm install --frozen-lockfile`。
 - `pnpm exec expo install --check`。
-- 自動更新由来の変更が`package.json`と`pnpm-lock.yaml`だけであること。
 
-`app.config.ts`と`tests/contracts/app-config.test.ts`は今回の人間による実装修正であり、maintenance automationが生成した変更ではない。allowlist確認では、この2ファイルをautomation生成差分と混同しない。
+allowlist相当の確認は、workflowの`git diff --name-only HEAD`をbranch上でそのまま使わない。5.4で保存したfix直前の基準点と、後続処理完了時点を比較する。
+
+成功条件:
+
+- fix直前から新たに変更されたpathが`package.json`と`pnpm-lock.yaml`だけである。
+- `app.config.ts`と`tests/contracts/app-config.test.ts`の内容hashがfix直前から変わっていない。
+- active Run Artifact等、fix直前から存在していた人間による変更をautomation生成差分として誤判定しない。
+
+これにより、実workflowの「automationが生成する変更を`package.json` / `pnpm-lock.yaml`へ限定する」という意図を、既存の人間変更があるbranch上でも再現する。
 
 workflow自体を変更しないため、PR作成部分は次で確認する。
 
@@ -515,17 +544,20 @@ main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行す�
 - [ ] `app.config.ts`へ`expo-sqlite`を1回だけ追加する。
 - [ ] `expo-sqlite`へoptionを追加しない。
 - [ ] `pnpm exec expo config --json`でruntime metadataを確認する。
-- [ ] `pnpm exec expo config --type prebuild --json`でplugin解決を確認する。
+- [ ] `pnpm exec expo config --type prebuild --json`をJSONとして検証し、`_internal.pluginHistory["expo-sqlite"]`の存在をassertする。
 - [ ] `tests/contracts/app-config.test.ts`へplugin契約を追加する。
 
 ### 依存関係更新
 
+- [ ] `expo install --fix`直前の変更path一覧と`app.config.ts` / `tests/contracts/app-config.test.ts`のhashを基準点として記録する。
 - [ ] version mismatch状態で`pnpm exec expo install --fix`を1回実行する。
 - [ ] dynamic config errorが消えたことを確認する。
+- [ ] `app.config.ts` / `tests/contracts/app-config.test.ts`がfixによって変更されていないことをhashで確認する。
 - [ ] package変更内容とmajor.minor不変を確認する。
 - [ ] `pnpm.overrides.expo-constants`を同期する。
 - [ ] `pnpm install --lockfile-only --no-frozen-lockfile`でlockfileを再生成する。
 - [ ] `pnpm install --frozen-lockfile`を再実行する。
+- [ ] fix直前の基準点との差分から、新たな変更pathが`package.json` / `pnpm-lock.yaml`だけであることを確認する。
 - [ ] peer dependency warningを分類する。
 
 ### 回帰確認
@@ -536,7 +568,6 @@ main反映後、`Expo Dependency Maintenance`を`workflow_dispatch`で実行す�
 - [ ] Expo Dependency Maintenance contract testが成功する。
 - [ ] Android prebuildが成功する。
 - [ ] 実行可能な環境ではiOS prebuildを確認する。実行できない場合はPR CIを必須証跡とする。
-- [ ] automation由来の変更が`package.json` / `pnpm-lock.yaml`に限定されることを確認する。
 
 ### 標準検証
 
@@ -555,14 +586,18 @@ git diff --check
 pnpm run verify
 ```
 
+active Run ArtifactをRepositoryへ追加または更新した場合は、作業完了前にRepository規約どおり`scripts/sanitize-codex-artifacts.ps1`のWriteとCheckを実行する。未sanitizationのRun Artifactが残る場合は完了扱いにしない。
+
 PR上では少なくとも次を確認する。
 
+- `Web CI / verify`
 - `Native Static`
 - `Android Automation Build`
 - `Android Production-validation Build`
 - `Native iOS CI / iOS Automation Build`
 - `Native iOS CI / iOS Production-validation Build`
 - `native-ci / verify`
+- 今回のPRで起動したその他の必須CI
 
 ### merge後確認
 
@@ -611,7 +646,9 @@ pnpm exec expo config --type prebuild --json
 成功条件:
 
 - config解決成功。
-- `expo-sqlite` pluginが解決される。
+- 出力JSONの`_internal.pluginHistory["expo-sqlite"]`が存在する。
+
+この確認は目視ではなく、JSONを一時ファイルへ保存してNodeまたは`jq`でassertする。
 
 `tests/contracts/app-config.test.ts`では次を自動検証する。
 
@@ -634,12 +671,21 @@ pnpm install --frozen-lockfile
 
 今回のblocker確認は、plugin追加後・version mismatch状態での最初の`pnpm exec expo install --fix`で行う。
 
+fix直前に次を基準点として保存する。
+
+- 変更path一覧。
+- `app.config.ts`のhash。
+- `tests/contracts/app-config.test.ts`のhash。
+
+後続処理完了後、基準点と比較する。
+
 成功条件:
 
 - dynamic config errorなし。
 - Expo / React Native major.minor不変。
 - final `expo install --check` success。
-- automationが生成する変更は`package.json` / `pnpm-lock.yaml`に限定される。
+- fix直前から新たに変更されたpathが`package.json` / `pnpm-lock.yaml`だけである。
+- `app.config.ts`と`tests/contracts/app-config.test.ts`はfix直前から内容不変である。
 
 PR作成部分はworkflow非変更、contract test、PR #136の実績で確認する。
 
@@ -654,6 +700,17 @@ PR作成部分はworkflow非変更、contract test、PR #136の実績で確認�
 
 `android/` / `ios/`はGit管理対象外なので、`git diff`によるnative生成物検証は完了条件にしない。
 
+### PR CI
+
+成功条件:
+
+- `Web CI / verify`がsuccess。
+- `native-ci / verify`がsuccess。
+- `Native Static`とAndroid / iOSの各buildがsuccess。
+- 今回のPRで起動した必須CIにfailureがない。
+
+ローカル`pnpm run verify`は必要だが、GitHub Actions上の`Web CI / verify`の代替とはみなさない。
+
 ### workflow contract
 
 ```bash
@@ -663,6 +720,16 @@ pnpm exec vitest run tests/contracts/expo-dependency-maintenance-workflow.test.t
 成功条件:
 
 - trigger、permission、main guard、duplicate PR guard、major.minor guard、allowlist、非force push、非auto-merge契約がすべてPASSする。
+
+### Run Artifact sanitization
+
+active Run ArtifactをRepositoryへ追加または更新した場合は、作業完了前に`scripts/sanitize-codex-artifacts.ps1`のWriteとCheckを実行する。
+
+成功条件:
+
+- Write後のArtifactに未sanitizationのローカル絶対pathが残らない。
+- Checkが成功する。
+- actual `run.json`を直接編集していない。
 
 ### 最終diff
 
@@ -713,9 +780,20 @@ Expo CLIが推奨するversionと個別packageのpeerDependenciesが同時に更
 
 対応:
 
-- plugin解決は`expo config --type prebuild --json`で確認する。
+- plugin解決は`expo config --type prebuild --json`の`_internal.pluginHistory["expo-sqlite"]`で確認する。
 - prebuild成功と必要な生成propertyの直接確認を行う。
 - 最終保証はPR CIの実buildで行う。
+
+### branch上の人間変更とautomation生成差分が混在する
+
+`app.config.ts`、contract test、Run Artifact等は`expo install --fix`より前に変更されるため、workflowの`git diff --name-only HEAD`をbranch上でそのまま使うとallowlist違反になる。
+
+対応:
+
+- `expo install --fix`直前を基準点として変更path一覧を保存する。
+- `app.config.ts`とcontract testのhashを保存する。
+- fixから後続処理完了までの追加差分だけを比較する。
+- 人間変更済みファイルがfixによって追加変更されていないことをhashで確認する。
 
 ### update-needed workflowのlive E2Eを再現しない
 
@@ -789,20 +867,23 @@ Repositoryへ追加するRun Artifactは完了前に`scripts/sanitize-codex-arti
 - testのためだけにApp Config用の新しいproduction helper / factoryを追加する。
 - `android/` / `ios/`をGit管理へ追加する。
 - update path確認のためだけに、最終更新後のpackageを再downgradeして検証をやり直す。
+- branch上でworkflowの`git diff --name-only HEAD`をそのままallowlist判定に使い、人間変更をautomation生成差分と誤認する。
 - Issue #141と無関係なdependency整理を同時に行う。
 
 ## 11. 実装順序
 
 1. `main`差分と実装時点のSDK 57推奨versionを確認する。
 2. `app.config.ts`へ`expo-sqlite`を明示する。
-3. `expo config --json`と`expo config --type prebuild --json`でconfigを確認する。
+3. `expo config --json`と`expo config --type prebuild --json`を実行し、`_internal.pluginHistory["expo-sqlite"]`までassertする。
 4. `tests/contracts/app-config.test.ts`へplugin回帰testを追加する。
-5. version mismatch状態のまま`expo install --fix`を1回実行し、dynamic config blockerの解消を確認する。
-6. `expo-constants` overrideとlockfileを同期する。
-7. Expo check / Doctorとpeer warningを確認する。
-8. prebuild、contract test、Native test、Repository標準検証を実行する。
-9. workflow自体は別のworkflow固有不具合が確認されない限り変更しない。
-10. PR CIでAndroid / iOS buildを確認する。
-11. main反映後にmaintenance workflowのno-op経路を確認する。
+5. fix直前の変更path一覧と`app.config.ts` / contract testのhashを基準点として記録する。
+6. version mismatch状態のまま`expo install --fix`を1回実行し、dynamic config blockerの解消と基準ファイル不変を確認する。
+7. `expo-constants` overrideとlockfileを同期し、基準点との差分からautomation由来の変更pathを確認する。
+8. Expo check / Doctorとpeer warningを確認する。
+9. prebuild、contract test、Native test、Repository標準検証を実行する。
+10. active Run Artifactを更新した場合はsanitizationのWrite / Checkを完了する。
+11. workflow自体は別のworkflow固有不具合が確認されない限り変更しない。
+12. PR CIで`Web CI / verify`、`native-ci / verify`、Android / iOS buildを含む必須CIを確認する。
+13. main反映後にmaintenance workflowのno-op経路を確認する。
 
 この順序により、今回の不具合を最初に発生しているApp ConfigとExpo CLIの境界で修正し、既存workflowの安全guardやPR作成経路を不要に変更しない。
