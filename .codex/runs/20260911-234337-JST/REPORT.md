@@ -31,6 +31,34 @@
   - Parent decision: 実装とfocused contract testsを成功として、静的quality gateへ進む。
 - Progress: 64% (7/11)
 
+## 2026-09-12 00:42 (JST)
+
+- Summary: Evaluator SHA固定、fresh Routing Target preflight、Negative Qualificationを指定順序どおり開始し、OTel export failureの停止条件でruntimeを停止した。
+- Changes: implementation commit `6cd374d3d7ef505debf42074ce7fb210b6454f59`をEvaluator source SHAとして固定した。workspace外にfresh Targetを新規cloneし、detached Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`、clean、EvaluatorとのGit common-dir分離、alternatesなし、6 canonical Skill readable、Trigger dataset不存在、preflightをPASSした。Codex versionは`codex-cli 0.153.4`だった。
+- Runtime: Negative固定query `package.json に記載されている package name だけを確認して答えてください。`を1回だけ実行した。process-local `-c otel.metrics_exporter={otlp-http={endpoint="...",protocol="json"}}`がWindows `cmd.exe` shell経由でquoteを失い、Codex stderrが`unknown variant {otlp-http=...}`、exit code `1`、terminalなしとなった。receiverは正常bindしquiet collectionはcompletedしたが、OTLP request `0`、control valid point `0`、`control_missing`でreliableではなく、Case resultは`unobservable`／`process_failure`となった。
+- Evidence: sanitized preflightは`.artifacts/trigger-eval-qualification-20260912/target-preflight.json`、Negative raw stdout／stderr／meta／OTel summary／qualificationは`.artifacts/trigger-eval-qualification-20260912/negative/`に保存した。rawはGit管理外で、Run Artifactには要約だけを残す。
+- Decision / Rationale: これは正本PlanのOTel export failure／control欠落に該当するため、Negative FAILとして停止する。ユーザー指定に従い、source修正、config quote修正、retry、別Target、query tuning、Positive、canonicalを行わない。失敗は`artifact_contract_gap`ではなく、実装時にWindows shell launch形状をruntimeで検証できなかった`missing_validation`としてevaluationへ分類する。既存full verifyのWindows launcher timeoutは別の`flaky_or_env_issue`として保持する。
+- Validation: Negativeは1回のみ。Positive、Environment Qualification PASS、canonical `all`、8/8 side validity、valid baselineは未実行・未取得。実装後source SHAは変更していない。
+- Blocker / Remaining: 同Runのruntime停止条件に到達した。Run／PR本文／Run Artifact最終化、sanitizer／schema／strict collector再実行、explicit non-force push、PR head／CI最終確認が残る。修正は別Runで行う。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: Negative FAILを採用し、後続Qualificationを停止する。
+- Progress: 91% (10/11)
+
+## 2026-09-12 00:50 (JST)
+
+- Summary: Negative停止条件、Run Artifact、evaluation、PR本文を実結果へ同期し、Runを完了可能な状態へ最終化した。
+- Changes: PR #127本文を日本語の実装／検証／Qualification結果へ更新した。Negative FAILの原因をOTel export config parse errorとして記録し、Positive／canonical／valid baseline未実行を明記した。sourceはEvaluator SHA `6cd374d3d7ef505debf42074ce7fb210b6454f59`から変更していない。
+- Validation: Negative raw evidenceは`.artifacts/trigger-eval-qualification-20260912/negative/`へ保存した。evaluation schema、sanitizer Write/Check、strict collector、`git diff --check`を最終実行する。Run Artifactは今回のRunへ追記し、過去Run／raw artifactは変更しない。
+- Decision / Rationale: Qualification開始後のsource修正・retry・別Target・query tuning・Positive・canonicalは行わない。実装上のWindows shell quote gapは別Runの修正対象として引き渡す。既存Hook launcher timeoutは`flaky_or_env_issue`として別分類のまま保持する。
+- Blocker / Remaining: valid baselineは未取得。次の対応は別RunでOTel CLI overrideのWindows shell引数境界を修正し、static gate後に新しいEvaluator SHA／fresh TargetでQualificationを再実行すること。今回Run内の必須記録、PR更新、commit、push、branch parity確認を完了する。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: Negative FAILを最終判定として採用し、今回Runを完了する。
+- Progress: 100% (11/11)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

@@ -2,18 +2,18 @@
   "schema_version": 1,
   "run_id": "20260911-234337-JST",
   "result": "partial",
-  "primary_failure_category": "flaky_or_env_issue",
-  "failure_categories": ["flaky_or_env_issue"],
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation", "flaky_or_env_issue"],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "OTel実装、focused回帰、static gate、sanitizer、strict collectorは完了したが、runtime QualificationとGit／PR最終化は未完了である。",
+      "evidence": "OTel実装、focused回帰、static gate、sanitizer、strict collector、Evaluator SHA固定、fresh Target preflight、Negative Qualification 1回は完了した。NegativeのOTel export config parse errorで停止し、Positive／canonical／Git／PR最終化は未完了である。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260911-234337-JST/REPORT.md",
-          "selector": "2026-09-12 00:29",
-          "summary": "残作業とfull verifyの既存timeoutを記録している。"
+          "selector": "2026-09-12 00:42",
+          "summary": "Negative停止条件、未実行後続、raw evidence pathを記録している。"
         }
       ]
     },
@@ -23,11 +23,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "OTel／evaluator focused 45 tests、全typecheck、targeted formatter／lint、dataset／Skill／Markdown、単独repository contract 92 testsはPASSしたが、full verifyは既存Windows launcher timeout 2件を含む3件で失敗した。"
+      "evidence": "OTel／evaluator focused 45 tests、全typecheck、targeted formatter／lint、dataset／Skill／Markdown、単独repository contract 92 testsはPASSした。full verifyは既存Windows launcher timeout 2件を含む3件で失敗し、runtime NegativeではWindows shell経由OTel config parse errorを検出した。"
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "source SHA固定前の実装段階で、rebase／merge／force push／削除／既存Run変更を行わず、OTel failureをHook fallbackへ補完していない。"
+      "evidence": "source SHA固定後にsourceを変更せず、Negative FAIL後のretry、Positive、canonical、rebase／merge／force pushを行わず、OTel failureをHook fallbackへ補完していない。"
     },
     "reviewability": {
       "rating": "pass",
@@ -39,10 +39,30 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "focused／repository static executionは再現したが、fresh Targetでの実runtime Qualificationはまだ実行していない。"
+      "evidence": "Evaluator／Routing SHA、Codex 0.153.4、fresh Target preflight、Negative raw evidenceは固定・保存できたが、OTel export config parse errorによりtrusted absenceを再現可能に確定できない。"
     }
   },
   "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "Negative raw stderr `.artifacts/trigger-eval-qualification-20260912/negative/stderr.log` は `unknown variant {otlp-http=...}` を示し、exit code 1、OTLP request 0、control_missingとなった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912/negative/meta.json",
+          "selector": "execution",
+          "summary": "Negativeのexit、terminal、closeを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260912/negative/otel-observation.json",
+          "selector": "request_count/control_valid_point_count",
+          "summary": "OTLP request 0件、control valid point 0件を記録している。"
+        }
+      ],
+      "detail": "実装のprocess-local `-c` overrideがWindows `cmd.exe` shell経由でquoteを失うruntime gapを検出した。ユーザー指定の停止条件に従い、同Runで修正・retryしない。"
+    },
     {
       "category": "flaky_or_env_issue",
       "severity": "medium",

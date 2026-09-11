@@ -61,14 +61,14 @@
   5. control欠落、unknown、malformed、duplicate canonical、Hook fallback禁止、outcome mapping、diagnostic-only fieldsをテストする。
   6. lint／typecheck／focused test／verifyを実行し、source SHA固定後にfresh Target Qualificationを順序どおり実行する。
 - 実行タスク:
-  - [ ] 1. 正本Planの44ms／956ms／約22.7倍を補正し、既存契約との差分を確定する。
-  - [ ] 2. OTel observerとcollection lifecycleを実装する。
-  - [ ] 3. runner／evaluatorへOTel primaryとobserver-commonを統合する。
-  - [ ] 4. observer／evaluator／runnerの回帰テストを追加・更新する。
-  - [ ] 5. ADR、静的検証、focused test、full quality gateを完了する。
-  - [ ] 6. Evaluator source SHAを固定し、fresh Target preflightを記録する。
-  - [ ] 7. Negative → Positive → canonical allを停止条件付きでQualificationする。
-  - [ ] 8. Run Artifact、PR、commit、non-force push、最終状態を確定する。
+  - [x] 1. 正本Planの44ms／956ms／約22.7倍を補正し、既存契約との差分を確定する。
+  - [x] 2. OTel observerとcollection lifecycleを実装する。
+  - [x] 3. runner／evaluatorへOTel primaryとobserver-commonを統合する。
+  - [x] 4. observer／evaluator／runnerの回帰テストを追加・更新する。
+  - [x] 5. ADR、静的検証、focused test、full quality gateを完了する（full verifyは既存Windows launcher timeoutを除きPASS）。
+  - [x] 6. Evaluator source SHAを固定し、fresh Target preflightを記録する。
+  - [x] 7. Negative → Positive → canonical allを停止条件付きでQualificationする（NegativeのOTel export config parse errorで停止）。
+  - [x] 8. Run Artifact、PR、commit、non-force push、最終状態を確定する。
 
 ## 6. 検証方法
 
@@ -98,3 +98,9 @@
 - 実装前のreview修正は既存Planで完了済み。今回の実装Runはその契約を実コードとQualificationへ移す。
 - repair-loopは validation failure が出た場合に限り、許可ファイルを固定したbounded iterationとして適用する。
 - Thinking logはTASK完了・重要判断・停止条件のcheckpointでREPORTへ追記する。
+
+## 10. Runtime outcome
+
+- Evaluator source SHA `6cd374d3d7ef505debf42074ce7fb210b6454f59`を固定し、fresh detached Target／Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`のpreflightをPASSした。
+- Negative固定queryを1回だけ実行した。Windowsのshell経由でprocess-local `-c` override内のOTLP config quoteが失われ、Codexが`unknown variant {otlp-http=...}`でexit `1`となった。OTLP requestは0、controlは欠落し、Resultは`unobservable`／`process_failure`となった。
+- これはOTel export failure／control欠落のQualification停止条件に該当するため、Positive、Environment Qualification PASS、canonical、8/8、valid baselineは未実行・未取得とする。同Runでsource修正・retryを行わない。
