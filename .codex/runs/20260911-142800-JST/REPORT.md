@@ -44,6 +44,32 @@
   - Parent decision: static gateをPASSとして、PR/Git最終化へ進む。
 - Progress: 63% (5/8)
 
+## 2026-09-11 14:50 (JST)
+
+- Summary: Plan修正とRun Artifactをcommit `56b527c2d828e046e0fa4d5cf5cf3c8292378090`へまとめ、対象branchへnon-force pushし、PR本文を日本語で最小追記した。
+- Changes: PR #127本文にレビュー修正のcontrol liveness、dynamic port、collection window、Hook非scoring、outcome責務、diagnostic-only属性、Plan/Run path、Plan-only境界を追記した。PR本文更新の初回`--body`引数渡しはMarkdown行分割で失敗したが、本文は変更されず、stdin `--body-file -`で1回成功した。
+- Decision / Rationale: branchは`refactor/117-pr2-trigger-eval-baseline`、PR head branchと一致し、PRはOPEN/base `main`を維持した。`mergeable=CONFLICTING`は確認したが、scope外のrebase/mergeは行わない。CIは取得時点で4件PASS、CodeQL/Analyze(python/actions)/CodeRabbit、Analyze(javascript-typescript)はIN_PROGRESSであり、pendingを全体PASSと扱わない。
+- Validation: `gh pr view 127`でhead SHA、body marker、Plan path、Run pathを確認した。runtime、Qualification、canonical、baseline、retry、rebase、merge、force pushは実行していない。
+- Blocker / Remaining: TASKS/REPORTの最終checkpointを追記し、sanitizer、strict collector、最終static gate後にRun Artifact最終commitをpushする。CIのIN_PROGRESSは外部状態として残る。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: PR反映を成功として、Run最終化へ進む。
+- Progress: 88% (7/8)
+
+## 2026-09-11 14:56 (JST)
+
+- Summary: レビュー修正Runを完了状態へ更新した。正本Plan、Run Artifact、evaluation、PR本文の最小追記が同一のbounded scope内で揃った。
+- Changes: TASKSを`8/8`へ更新し、Run完了条件を記録した。既存Run `.codex/runs/20260911-083242-JST/`と既存evaluation `partial` / `flaky_or_env_issue`は変更していない。
+- Decision / Rationale: `codex.thread.started` control欠落、OTel failure + Hook reliable、wrong Skill mapping、diagnostic-only属性、dynamic port/collection windowの各境界をPlanへ固定したため、今回のrepair loopは`stop_success`とする。実装Runへは承認後に引き継ぐ。
+- Validation: 最終static gateはMarkdown lint 398 files / 0 issues、対象Plan/Run Prettier、`git diff --check`、evaluation schema、sanitizer Write/Check（5 files / 0 replacements / residual 0）、strict collectorをPASSした。PR body marker、Plan path、Run path、head SHAも確認した。
+- Blocker / Remaining: PRの`Analyze (javascript-typescript)`は取得時点でIN_PROGRESS。`mergeable=CONFLICTING`も確認したが、rebase/mergeは今回scope外で実行しない。pending CIの完了待ちはこのRunのPlan修正完了を妨げない。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: `stop_success`。既存runtime状態を維持し、次回はPlan承認後の実装Runへ進む。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
