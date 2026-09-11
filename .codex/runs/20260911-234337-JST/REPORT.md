@@ -68,6 +68,19 @@
 |---|---|---|
 |  |  |  |
 
+## 2026-09-12 00:49 (JST)
+
+- Summary: Run Artifactの最終記録をcommitし、PR #127の対象branchへ明示refspecでnon-force pushした。
+- Changes: Run Artifactのみのcommit `7c44c8cf16c79014b7deee6764737b366e1d2e17`を作成し、`origin HEAD:refactor/117-pr2-trigger-eval-baseline`へpushした。source implementation SHA `6cd374d3d7ef505debf42074ce7fb210b6454f59`は変更していない。
+- Validation: push直前にcurrent branch、clean status、branch tracking、PR #127のbase／head／stateを確認した。current branchとPR head branchは一致し、PRはOPEN／base `main`。push後にlocal／remote／PR headが `7c44c8cf16c79014b7deee6764737b366e1d2e17`で一致し、CodeQL 3ジョブ、CodeQL aggregate、CodeRabbitはすべてSUCCESSだった。
+- Decision / Rationale: merge conflictは今回scopeで解消せず、既存Hook timeoutとNegative OTel config parse errorをそれぞれ別分類のまま保持する。valid baseline未取得のため、Positive／canonicalは実行しない。
+- Blocker / Remaining: valid baselineは未取得。別RunでWindows shell引数境界を修正し、static gate後に新Evaluator SHA／fresh TargetでQualificationを再実行する。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: Run Artifactのcommit／pushを完了し、今回Runを完了する。
+- Progress: 100% (11/11)
+
 ## 2026-09-12 00:29 (JST)
 
 - Summary: フルquality gateの最初の異常を切り分け、OTel実装の追加修正とfocused回帰を完了した。
@@ -81,3 +94,15 @@
   - Result: —
   - Parent decision: 既存Hook timeoutはscope外の環境／launcher failureとして保留し、OTel関連gateを進める。Qualification開始後はsourceを変更しない。
 - Progress: 64% (7/11)
+
+## 2026-09-12 00:50 (JST)
+
+- Summary: push後のbranch／PR／CI最終確認を完了し、Runの状態を確定した。
+- Evidence: `git rev-parse HEAD`、`git ls-remote origin refs/heads/refactor/117-pr2-trigger-eval-baseline`、`gh pr view 127 --json ...`を実行し、local／remote／PR headはすべて `7c44c8cf16c79014b7deee6764737b366e1d2e17`で一致した。PR #127はOPEN、baseは`main`、mergeableは`CONFLICTING`。CodeQL 3ジョブ、CodeQL aggregate、CodeRabbitはSUCCESSだった。
+- Validation: evaluation schema、sanitizer Write/Check、strict collector、`git diff --check`はPASS。source差分はなく、残る変更はこのREPORT追記のみ。
+- Decision / Rationale: 今回RunはNegative OTel export config parse errorでQualificationを停止した結果を正式記録し、valid baseline未取得のまま完了とする。Windows shell引数境界の修正と再Qualificationは別Runへ引き継ぐ。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: Run完了を確定する。
+- Progress: 100% (11/11)
