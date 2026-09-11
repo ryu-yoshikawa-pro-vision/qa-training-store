@@ -27,7 +27,7 @@
 |---|---|---|
 |  |  |  |
 
-## 2026-09-11 23:10 (JST)
+## 2026-09-11 22:35 (JST)
 
 - Summary: PR #127のOTel collection window最終固定Runを開始し、保存済みraw evidenceの直接解析と正本Planの具体化へ進んだ。
 - Changes: active branch/PR/既存Runを確認し、Explicit / Implicit / Negativeの`meta.json`、`stdout.jsonl`、`receiver-events.ndjson`、全request bodyをread-onlyで解析した。正本Planへprocess close基準、全request時系列、quiet/hard cap契約の追記を開始した。
@@ -40,7 +40,7 @@
   - Parent decision: raw evidenceに基づくbounded repairとしてPlan-only修正を継続する。
 - Progress: 50% (4/8)
 
-## 2026-09-11 23:25 (JST)
+## 2026-09-11 22:45 (JST)
 
 - Summary: Plan-only static validationとRun Artifactのschema/sanitizer確認を完了した。
 - Changes: 正本Planのcollection表現を検索し、genericなlate request absenceの主張を除き、quiet/hard-cap、receiver close、timeout/spawn/bind failure、fake timer、Positive multiple Skill、24 cases影響へ統一した。
@@ -53,7 +53,7 @@
   - Parent decision: static gateをPASSとして、PR/Git最終化へ進む。
 - Progress: 63% (5/8)
 
-## 2026-09-11 23:35 (JST)
+## 2026-09-11 22:49 (JST)
 
 - Summary: PR #127本文へcollection windowの最終契約を日本語で最小追記した。
 - Changes: PR本文にquiet 1,000ms、hard cap 5,000ms、child close基準、Explicit/Negativeの実測差分、Implicitのtimeout分離、実装未着手、Plan path、Run pathを追記した。既存のNegative Qualification FAIL、Positive未実行、Environment FAIL、canonical/baseline未取得は変更していない。
@@ -65,3 +65,29 @@
   - Result: —
   - Parent decision: PR本文追補を成功としてGit最終化へ進む。
 - Progress: 75% (6/8)
+
+## 2026-09-11 22:54 (JST)
+
+- Summary: Planと新Run Artifactをcommitし、指定branchへnon-force pushした。
+- Changes: commit `87027ae4e20fd2914b67832d323f4901a103aeaa`を`refactor/117-pr2-trigger-eval-baseline`へ作成し、明示refspec `HEAD:refactor/117-pr2-trigger-eval-baseline`でpushした。
+- Decision / Rationale: push直前にcurrent branch、worktree、branch tracking、PR #127 head branch/SHA/state/baseを再確認した。PRはOPEN/base `main`/head branch一致だが`mergeable=CONFLICTING`のため、rebase/mergeは行わない。
+- Validation: push後のlocal HEAD、`origin/refactor/117-pr2-trigger-eval-baseline`、`git ls-remote`、PR headはすべて`87027ae4e20fd2914b67832d323f4901a103aeaa`で一致した。CodeRabbitはPASS、CodeQL Analyze(actions/javascript-typescript/python)はpending/in progressで、未完了CIをPASSとは扱っていない。
+- Blocker / Remaining: TASKS/REPORT/evaluation/run.jsonの最終checkpointと、可能ならpush後CIの完了確認が残る。runtime実装・Qualification・canonical・baselineは引き続き未実行。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: Git/PR pushを成功としてRun最終化へ進む。CI pendingは外部状態として明記する。
+- Progress: 88% (7/8)
+
+## 2026-09-11 22:56 (JST)
+
+- Summary: OTel collection window最終固定Runを完了した。
+- Changes: TASKSを8/8へ更新し、正本Plan、evaluation、Run Artifact、PR本文追補、commit/push後の状態を最終記録した。既存Run、source、tests、ADR、config、dataset、Skill、raw probeは変更していない。
+- Decision / Rationale: `OTEL_COLLECTION_QUIET_MS = 1,000`と`OTEL_COLLECTION_HARD_CAP_MS = 5,000`をchild close起算で採用し、quiet timer reset、process close後requestなし、hard cap failure、timeout/spawn/bind failure、Negative trusted absence、Positive multiple Skillを実装者判断なしで固定した。repair loopは`stop_success`とする。
+- Validation: local/remote/PR headは`87027ae4e20fd2914b67832d323f4901a103aeaa`で一致。Plan-only gateはMarkdown lint（398 files / 0 issues）、Prettier、`git diff --check`、evaluation schema、sanitizer（5 files / 0 replacements / residual 0）、strict collectorがPASS。push後CIはCodeQL、Analyze(actions)、Analyze(python)、CodeRabbitがPASS、Analyze(javascript-typescript)は確認時点でpending。
+- Blocker / Remaining: PRの`mergeable=CONFLICTING`は既存外部状態であり、rebase/mergeはscope外。Analyze(javascript-typescript)の完了は外部CI待ちで、未完了をPASSとは扱わない。次の実装はPlan承認後に別Runで開始する。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: `stop_success`。Plan-onlyの目的とRun保存・push条件を満たしたため終了する。
+- Progress: 100% (8/8)
