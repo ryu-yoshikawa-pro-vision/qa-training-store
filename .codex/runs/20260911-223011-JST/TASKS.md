@@ -15,8 +15,8 @@
 
 - 正本Planへraw timing、child close基準、quiet 1,000ms、hard cap 5,000ms、completion algorithm、timeout/failure semantics、diagnostic values、tests、24 cases影響を固定した。
 - Plan-only validation、evaluation schema、sanitizer Write/Check、strict collectorをPASSした。
-- commit `87027ae4e20fd2914b67832d323f4901a103aeaa`を作成し、指定branchへnon-force pushした。local/remote/PR headは一致している。
-- PR #127はOPEN/base `main`/head branch一致、`mergeable=CONFLICTING`。CodeQL、Analyze(actions/python)、CodeRabbitはPASS、Analyze(javascript-typescript)は確認時点でpending。未完了CIをPASSとは扱わない。
+- commits `87027ae4e20fd2914b67832d323f4901a103aeaa` と最終Run記録 `5a32c701a07af707451ecbfd5d7caa110b87d5f1`を作成し、指定branchへnon-force pushした。local/remote/PR headは最終SHAで一致している。
+- PR #127はOPEN/base `main`/head branch一致、`mergeable=CONFLICTING`。最終push後のCodeQL Analyze(actions/javascript-typescript/python)は確認時点でpending/in progress、CodeRabbitはPASS。未完了CIをPASSとは扱わない。
 - runtime実装、probe再実行、Qualification、Positive、canonical、baseline、retry、rebase、merge、force pushは行っていない。
 - Progress: 100% (8/8)
 

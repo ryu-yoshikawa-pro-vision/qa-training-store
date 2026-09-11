@@ -91,3 +91,16 @@
   - Result: —
   - Parent decision: `stop_success`。Plan-onlyの目的とRun保存・push条件を満たしたため終了する。
 - Progress: 100% (8/8)
+
+## 2026-09-11 22:58 (JST)
+
+- Summary: 最終Run記録をcommitし、指定branchへ再度non-force pushしてRunを確定した。
+- Changes: 最終Run checkpointを含むcommit `5a32c701a07af707451ecbfd5d7caa110b87d5f1`を作成し、`HEAD:refactor/117-pr2-trigger-eval-baseline`でpushした。PR本文、正本Plan、evaluation、Run Artifactのscopeを維持した。
+- Decision / Rationale: 最終push後もPR #127はOPEN/base `main`/head branch一致、`mergeable=CONFLICTING`。rebase/mergeは行わない。最終pushでCIが再起動したため、現在のCodeQL Analyze 3件はpending/in progress、CodeRabbitはPASSとして扱う。
+- Validation: local HEAD、origin branch、`git ls-remote`、PR headはすべて`5a32c701a07af707451ecbfd5d7caa110b87d5f1`で一致し、worktreeはclean。直前のPlan-only gate、evaluation schema、sanitizer、strict collectorはPASS済みである。
+- Blocker / Remaining: 最終push後のCodeQL 3件の完了は外部CI待ち。未完了CIをRunのPASS根拠にせず、runtime実装・Qualification・canonical・baselineはPlan承認後の別Runへ引き継ぐ。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: `stop_success`。今回のPlan-only目的、artifact保存、commit、non-force push、PR状態確認を満たした。
+- Progress: 100% (8/8)
