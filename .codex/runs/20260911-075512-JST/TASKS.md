@@ -14,9 +14,9 @@
 - [x] 10. Run collector / manifest / evaluationのcanonical Evidence追跡性を検証する
 - [x] 11. 判定一覧、変更scope、未確認事項、PR説明方針をRunへ記録する
 - [x] 12. focused contract、validator、shell / YAML、local標準検証を実行する
-- [ ] 13. 最終SHAでTraining Copy、Sanitizer、必要なNative / Remote CIを確認する
-- [ ] 14. PR本文、Run Artifact、PROJECT_CONTEXT / history / Planを最終同期する
-- [ ] 15. branch safety、commit / non-force push、同一HEAD checks、clean worktreeを確認し完了する
+- [x] 13. 最終SHAでTraining Copy、Sanitizer、必要なNative / Remote CIを確認する
+- [x] 14. PR本文、Run Artifact、PROJECT_CONTEXT / history / Planを最終同期する
+- [x] 15. branch safety、commit / non-force push、同一HEAD checks、clean worktreeを確認し完了する
 
 ## Discovered
 

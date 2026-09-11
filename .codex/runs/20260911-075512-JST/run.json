@@ -8,7 +8,9 @@
   "repo": "qa-training-store",
   "branch": "refactor/test-automation-curriculum-learning-experience",
   "base_branch": null,
-  "codex_task_reports": [],
+  "codex_task_reports": [
+    ".codex/runs/20260911-075512-JST/reports/codex-task-20260911-094801.report.json"
+  ],
   "changed_files": [
     ".github/workflows/native-ci.yml",
     "docs/PROJECT_CONTEXT.md",
@@ -29,7 +31,7 @@
     "training/workbook/04_execution-improvement.csv"
   ],
   "validation": {
-    "status": "not_run",
+    "status": "skipped",
     "commands": [],
     "warnings": []
   },
@@ -38,10 +40,10 @@
     "scope_violation": false
   },
   "artifact_summary": {
-    "codex_task_report_count": 0,
+    "codex_task_report_count": 1,
     "evaluation_present": true
   },
   "evaluation_path": ".codex/runs/20260911-075512-JST/evaluation.json",
-  "status": "running",
-  "primary_failure_category": "flaky_or_env_issue"
+  "status": "completed",
+  "primary_failure_category": null
 }

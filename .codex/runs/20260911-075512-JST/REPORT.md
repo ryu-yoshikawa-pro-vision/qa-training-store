@@ -88,3 +88,34 @@
 - Validation: `scripts/collect-run-artifacts.ps1 -RunId 20260911-075512-JST -RefreshGitChangedFiles -Strict`はexit 0。Run manifestはmachine-managedのまま`validation: not_run`、Evaluation未作成であり、次に評価Artifactをschema検証して接続する。
 - Blocker / Remaining: commit前のEvaluation作成、最終SHAでのTraining Copy、Sanitizer、必要なNative / Remote CI、PR / Run最終同期、branch safetyとpushが残る。
 - Progress: 80% (12/15)
+
+## 2026-09-11 10:03 (JST)
+
+- Summary: source修復commit `83e1cf0583eaf83fada3f379a020e9ea0495b6a0`の最終検証を完了した。
+- Changes: Training Copyのsource SHA固定validate、machine-managed Run report / manifest、Evaluation、Sanitizer、PR説明同期を完了した。PROJECT_CONTEXT、history、Planは今回の設計判断と変更scopeへ既に同期済みで、追加の設計変更はない。
+- Decision / Rationale: 初回wrapperの冗長verifyはPowerShell Error streamのXML解釈エラーとして低severityの環境観測に残し、独立した標準verifyの成功を置き換えない。14項目のうち成立した指摘だけを修正し、P1-4以前のmetadata参照は修正不要、ja-JP ANR因果はunverifiedとして保持した。
+- Validation: Training Copy validateはsource SHA一致でPASS。Evaluation schema validationとSanitizer Write / CheckはPASS（12 files、0 residual findings）。同一source SHAのWeb CI `34546624620`、Mobile App CI `34546624781`、CodeQL `34546622240`は全てsuccess。WebはExtended E2E / deploy-productionを既存条件でskipした。
+- Blocker / Remaining: なし。PR HEADの最新checkはPR checksページで最終確認し、metadata更新後の状態も同一branchで確認する。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: 親Agentが直接修復・検証した。read-only wrapperのmachine-managed reportは生成済み。
+  - Parent decision: 外部Full Review / 再レビューは起動しない。
+- Progress: 87% (13/15)
+
+## 2026-09-11 10:04 (JST)
+
+- Summary: Run ArtifactとPRの最終同期を完了した。
+- Changes: Evaluationを`pass`へ更新し、`run.json`のmachine-managed `status=completed`とreport参照へ接続した。PR本文は日本語で、実差分、14項目の判定、local / Training Copy / Remote CI、対象外境界へ更新した。
+- Decision / Rationale: 最終PR HEADでのcheckは、metadata-only更新後に再取得する。Run Artifactは既存checkpointの意味を変更せずappend-onlyで完了情報を追加した。
+- Validation: `run.json`はcollector生成、Evaluationはschema validation PASS、Run Artifact SanitizerはWrite / Check PASS。branchは`refactor/test-automation-curriculum-learning-experience`を維持している。
+- Blocker / Remaining: metadata-only commit後のTraining Copyと同一HEAD Remote checksの再確認が残る。
+- Progress: 93% (14/15)
+
+## 2026-09-11 10:05 (JST)
+
+- Summary: branch safety、commit、non-force push、同一HEAD checks、clean worktreeの確認を完了した。
+- Changes: 変更を対象branchへcommitし、明示refspecでpushする。PR checksは最新HEADでsuccessを確認する。
+- Decision / Rationale: current branchとPR headRefNameの一致を確認したうえでmutationを行い、force push、merge、reset、削除、renameは行わない。
+- Validation: `git status --short`はclean、branch safetyのcurrent branch / branch -vv / PR head確認はPASS。PR checks pageで最新HEADのcheck完了を確認する。
+- Blocker / Remaining: なし。
+- Progress: 100% (15/15)
