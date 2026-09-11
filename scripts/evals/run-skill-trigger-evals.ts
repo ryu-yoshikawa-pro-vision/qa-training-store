@@ -9,7 +9,13 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
+import {
+  execFileSync,
+  spawn,
+  spawnSync,
+  type ChildProcess,
+  type ChildProcessWithoutNullStreams,
+} from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import {
@@ -25,6 +31,11 @@ import {
   type RunSplit,
   type SkillName,
 } from "./skill-trigger-evals.js";
+import {
+  createFailedOtelObservation,
+  createOtelSkillObserver,
+  type OtelObservation,
+} from "./otel-skill-observer.js";
 
 const CASE_TIMEOUT_MS = 327_000;
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
@@ -73,6 +84,7 @@ export interface CodexExecution {
   readonly signaled: boolean;
   readonly exit_code: number | null;
   readonly trusted_terminal: "turn.completed" | "turn.failed" | null;
+  readonly closed_at?: number;
 }
 
 interface EvaluationResult {
@@ -313,6 +325,30 @@ export function assertTargetPreflight(
     evaluator_git_sha: runGit(evaluatorReal, ["rev-parse", "HEAD"]),
     routing_source_git_sha: runGit(targetReal, ["rev-parse", "HEAD"]),
   };
+}
+
+interface OtelCaseDiagnostic {
+  readonly case_id: string;
+  readonly collection_state: OtelObservation["collection_state"];
+  readonly reliable: boolean;
+  readonly unobservable_reason: OtelObservation["unobservable_reason"];
+  readonly request_count: number;
+  readonly post_close_request_count: number;
+  readonly response_error_count: number;
+  readonly parse_error_count: number;
+  readonly close_to_first_request_ms: number | null;
+  readonly close_to_last_request_ms: number | null;
+  readonly collection_elapsed_ms: number | null;
+  readonly control_valid_point_count: number;
+  readonly skill_point_count: number;
+  readonly initial_skill: SkillName | null;
+  readonly observed_skills: readonly SkillName[] | null;
+  readonly diagnostic: OtelObservation["diagnostic"];
+}
+
+interface CaseEvaluation {
+  readonly result: CaseResult;
+  readonly otel: OtelCaseDiagnostic;
 }
 
 function assertOutputOutsideTarget(outputPath: string, targetRoot: string): void {
@@ -918,22 +954,80 @@ function terminateCodexProcessTree(child: ChildProcess): void {
   child.kill();
 }
 
+function relativeRequestAt(closeAt: number | null, requestAt: number | null): number | null {
+  if (closeAt === null || requestAt === null) {
+    return null;
+  }
+  return Number((requestAt - closeAt).toFixed(3));
+}
+
+function toOtelCaseDiagnostic(caseId: string, observation: OtelObservation): OtelCaseDiagnostic {
+  return {
+    case_id: caseId,
+    collection_state: observation.collection_state,
+    reliable: observation.reliable,
+    unobservable_reason: observation.unobservable_reason,
+    request_count: observation.request_count,
+    post_close_request_count: observation.post_close_request_count,
+    response_error_count: observation.response_error_count,
+    parse_error_count: observation.parse_error_count,
+    close_to_first_request_ms: relativeRequestAt(
+      observation.close_at,
+      observation.first_request_at,
+    ),
+    close_to_last_request_ms: relativeRequestAt(observation.close_at, observation.last_request_at),
+    collection_elapsed_ms: observation.collection_elapsed_ms,
+    control_valid_point_count: observation.control_valid_point_count,
+    skill_point_count: observation.skill_point_count,
+    initial_skill: observation.initial_skill,
+    observed_skills: observation.observed_skills,
+    diagnostic: observation.diagnostic,
+  };
+}
+
 function executeCodex(
   evaluatorRoot: string,
   targetRoot: string,
   query: string,
+  otelEndpoint: string,
 ): Promise<{ readonly execution: CodexExecution; readonly stdout: string }> {
   return new Promise((resolveExecution) => {
-    const child = spawn(
-      CODEX_COMMAND,
-      ["exec", "--json", "--ephemeral", "--sandbox", "read-only", "-C", targetRoot, "-"],
-      {
-        cwd: evaluatorRoot,
-        shell: CODEX_SHELL,
-        stdio: ["pipe", "pipe", "pipe"],
-        windowsHide: true,
-      },
-    );
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(
+        CODEX_COMMAND,
+        [
+          "exec",
+          "--json",
+          "--ephemeral",
+          "--sandbox",
+          "read-only",
+          "-C",
+          targetRoot,
+          "-c",
+          `otel.metrics_exporter={otlp-http={endpoint="${otelEndpoint}",protocol="json"}}`,
+          "-",
+        ],
+        {
+          cwd: evaluatorRoot,
+          shell: CODEX_SHELL,
+          stdio: ["pipe", "pipe", "pipe"],
+          windowsHide: true,
+        },
+      );
+    } catch {
+      resolveExecution({
+        execution: {
+          timed_out: false,
+          spawn_failed: true,
+          signaled: false,
+          exit_code: null,
+          trusted_terminal: null,
+        },
+        stdout: "",
+      });
+      return;
+    }
     let stdout = "";
     let timedOut = false;
     let spawnFailed = false;
@@ -967,6 +1061,7 @@ function executeCodex(
           signaled,
           exit_code: code,
           trusted_terminal: terminal,
+          closed_at: performance.now(),
         },
         stdout,
       });
@@ -1063,6 +1158,8 @@ export function prepareSignals(
       signaled: execution.signaled,
       exit_code: execution.exit_code,
       trusted_terminal: execution.trusted_terminal,
+      observation_source: "hook",
+      observation_reliable: false,
       hook_correlation_ok: false,
       hook_parse_ok: false,
       selector_reliable: false,
@@ -1083,6 +1180,8 @@ export function prepareSignals(
     signaled: execution.signaled,
     exit_code: execution.exit_code,
     trusted_terminal: execution.trusted_terminal,
+    observation_source: "hook",
+    observation_reliable: selected.selector_reliable,
     hook_correlation_ok: true,
     hook_parse_ok: hookParseOk,
     selector_reliable: selected.selector_reliable,
@@ -1091,19 +1190,78 @@ export function prepareSignals(
   };
 }
 
+export function prepareOtelSignals(
+  execution: CodexExecution,
+  otelObservation: OtelObservation,
+): ObservationSignals {
+  return {
+    timed_out: execution.timed_out,
+    spawn_failed: execution.spawn_failed,
+    signaled: execution.signaled,
+    exit_code: execution.exit_code,
+    trusted_terminal: execution.trusted_terminal,
+    observation_source: "otel",
+    observation_reliable: otelObservation.reliable,
+    otel_observation: otelObservation,
+    initial_skill: otelObservation.reliable ? otelObservation.initial_skill : null,
+    observed_skills: otelObservation.reliable ? otelObservation.observed_skills : null,
+  };
+}
+
 async function evaluateCases(
   evaluatorRoot: string,
   targetRoot: string,
   cases: readonly import("./skill-trigger-evals.js").TriggerCase[],
-): Promise<readonly CaseResult[]> {
-  const results: CaseResult[] = [];
+): Promise<readonly CaseEvaluation[]> {
+  const results: CaseEvaluation[] = [];
   for (const triggerCase of cases) {
+    let observer;
+    try {
+      observer = await createOtelSkillObserver();
+    } catch {
+      const failedExecution: CodexExecution = {
+        timed_out: false,
+        spawn_failed: true,
+        signaled: false,
+        exit_code: null,
+        trusted_terminal: null,
+      };
+      const otelObservation = createFailedOtelObservation("bind_failed");
+      results.push({
+        result: evaluateCase(triggerCase, prepareOtelSignals(failedExecution, otelObservation)),
+        otel: toOtelCaseDiagnostic(triggerCase.id, otelObservation),
+      });
+      continue;
+    }
     const before = snapshotHookFiles(targetRoot);
-    const executed = await executeCodex(evaluatorRoot, targetRoot, triggerCase.query);
+    const executed = await executeCodex(
+      evaluatorRoot,
+      targetRoot,
+      triggerCase.query,
+      observer.endpoint,
+    );
     const after = snapshotHookFiles(targetRoot);
-    const hookDelta = collectHookDelta(before, after);
-    const signals = prepareSignals(executed.execution, hookDelta, targetRoot);
-    results.push(evaluateCase(triggerCase, signals));
+    // Hook delta is retained only as a diagnostic boundary. It never feeds scoring in OTel mode.
+    void collectHookDelta(before, after);
+    let otelObservation: OtelObservation;
+    if (executed.execution.spawn_failed) {
+      await observer.close().catch(() => undefined);
+      otelObservation = createFailedOtelObservation("request_failed");
+    } else {
+      try {
+        otelObservation = await observer.waitForCollection(
+          executed.execution.closed_at ?? performance.now(),
+        );
+      } catch {
+        await observer.close().catch(() => undefined);
+        otelObservation = createFailedOtelObservation("request_failed");
+      }
+    }
+    const signals = prepareOtelSignals(executed.execution, otelObservation);
+    results.push({
+      result: evaluateCase(triggerCase, signals),
+      otel: toOtelCaseDiagnostic(triggerCase.id, otelObservation),
+    });
   }
   return results;
 }
@@ -1128,7 +1286,8 @@ async function runLive(options: CliOptions, evaluatorRoot: string): Promise<void
   assertOutputOutsideTarget(outputPath, preflight.target_root);
   const codexVersion = getCodexVersion(evaluatorRoot);
   const selectedCases = resultForSplit(datasets.cases, options.split);
-  const caseResults = await evaluateCases(evaluatorRoot, preflight.target_root, selectedCases);
+  const caseEvaluations = await evaluateCases(evaluatorRoot, preflight.target_root, selectedCases);
+  const caseResults = caseEvaluations.map((entry) => entry.result);
   const summary = (await import("./skill-trigger-evals.js")).summarizeCaseResults(caseResults);
   const result: EvaluationResult = {
     schema_version: RESULT_SCHEMA_VERSION,
@@ -1161,6 +1320,13 @@ async function runLive(options: CliOptions, evaluatorRoot: string): Promise<void
   }
 
   mkdirSync(dirname(outputPath), { recursive: true });
+  const otelDiagnosticPath = `${outputPath}.otel.jsonl`;
+  assertOutputOutsideTarget(otelDiagnosticPath, preflight.target_root);
+  writeFileSync(
+    otelDiagnosticPath,
+    caseEvaluations.map((entry) => JSON.stringify(entry.otel)).join("\n") + "\n",
+    "utf8",
+  );
   writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
   const coverage = evaluateRunCoverage(options.split, caseResults);
   if (!coverage.success) {

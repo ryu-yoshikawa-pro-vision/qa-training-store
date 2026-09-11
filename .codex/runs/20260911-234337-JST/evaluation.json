@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-234337-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "OTel実装、focused回帰、static gate、sanitizer、strict collectorは完了したが、runtime QualificationとGit／PR最終化は未完了である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-234337-JST/REPORT.md",
+          "selector": "2026-09-12 00:29",
+          "summary": "残作業とfull verifyの既存timeoutを記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は承認済みのPlan、OTel observer／runner／evaluator、回帰test、ADR、今回Run Artifactに限定されている。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "OTel／evaluator focused 45 tests、全typecheck、targeted formatter／lint、dataset／Skill／Markdown、単独repository contract 92 testsはPASSしたが、full verifyは既存Windows launcher timeout 2件を含む3件で失敗した。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "source SHA固定前の実装段階で、rebase／merge／force push／削除／既存Run変更を行わず、OTel failureをHook fallbackへ補完していない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "OTel liveness、metric schema、collection window、Hook非fallback、Result schema 2維持をsource／test／ADR／Run reportから追跡できる。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Node標準http、case-local receiver、固定quiet／hard cap、既存canonical Skill allowlist、別JSONL diagnosticを使用し、依存追加やtracked config変更を避けている。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "focused／repository static executionは再現したが、fresh Targetでの実runtime Qualificationはまだ実行していない。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "フルverifyとfocused再実行でtests/contracts/codex-hook-contract.test.tsのWindows launcher timeoutが再現した。OTel変更はHook source/config/testを変更していない。",
+      "detail": "今回の許可scope外の既存Windows launcher／実行環境問題として保留し、timeoutを延長して隠蔽しない。"
+    }
+  ],
+  "improvement_candidates": []
+}

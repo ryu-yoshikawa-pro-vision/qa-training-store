@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { parse } from "yaml";
 
+import type { OtelObservation } from "./otel-skill-observer.js";
+
 export const CANONICAL_SKILLS = [
   "android-native-local-validation",
   "code-review",
@@ -452,9 +454,16 @@ export interface ObservationSignals {
   readonly signaled: boolean;
   readonly exit_code: number | null;
   readonly trusted_terminal: TrustedTerminal | null;
-  readonly hook_correlation_ok: boolean;
-  readonly hook_parse_ok: boolean;
-  readonly selector_reliable: boolean;
+  /** Primary source for the routing observation. Omitted means legacy Hook mode. */
+  readonly observation_source?: "hook" | "otel";
+  /** Reliability of the selected routing observer; legacy callers may omit it. */
+  readonly observation_reliable?: boolean;
+  /** Hook fields are legacy/diagnostic and are not required by OTel mode. */
+  readonly hook_correlation_ok?: boolean;
+  readonly hook_parse_ok?: boolean;
+  readonly selector_reliable?: boolean;
+  /** OTel observer output; never used as an outcome or boundary decision. */
+  readonly otel_observation?: OtelObservation | null;
   /** First trusted Skill candidate, or null when no candidate was observed. */
   readonly initial_skill?: SkillName | null;
   /** [initial_skill], [] for trusted absence, or null when observation is untrusted. */
@@ -529,21 +538,72 @@ function processFailureReason(signals: ObservationSignals): UnobservableReason {
 export function deriveRoutingObservation(signals: ObservationSignals): RoutingObservation {
   const initialSkill = firstSkill(signals);
 
-  if (!signals.hook_correlation_ok) {
+  if (signals.observation_source === "otel") {
+    const lifecycle = deriveProcessLifecycle(signals);
+    const observationReliable =
+      (signals.observation_reliable ?? signals.otel_observation?.reliable) === true;
+    if (!observationReliable) {
+      return {
+        initial_skill: null,
+        observed_skills: null,
+        unobservable_reason:
+          lifecycle === "completed" ? "skill_read_observation" : processFailureReason(signals),
+      };
+    }
+    if (initialSkill !== null) {
+      if (
+        signals.observed_skills === null ||
+        signals.observed_skills.length !== 1 ||
+        signals.observed_skills[0] !== initialSkill
+      ) {
+        return {
+          initial_skill: null,
+          observed_skills: null,
+          unobservable_reason: "skill_read_observation",
+        };
+      }
+      return {
+        initial_skill: initialSkill,
+        observed_skills: [initialSkill],
+        unobservable_reason: null,
+      };
+    }
+    if (signals.observed_skills === null || signals.observed_skills.length !== 0) {
+      return {
+        initial_skill: null,
+        observed_skills: null,
+        unobservable_reason: "skill_read_observation",
+      };
+    }
+    if (lifecycle !== "completed") {
+      return {
+        initial_skill: null,
+        observed_skills: null,
+        unobservable_reason: processFailureReason(signals),
+      };
+    }
+    return {
+      initial_skill: null,
+      observed_skills: [],
+      unobservable_reason: null,
+    };
+  }
+
+  if (signals.hook_correlation_ok !== true) {
     return {
       initial_skill: null,
       observed_skills: null,
       unobservable_reason: "hook_correlation",
     };
   }
-  if (!signals.hook_parse_ok) {
+  if (signals.hook_parse_ok !== true) {
     return {
       initial_skill: null,
       observed_skills: null,
       unobservable_reason: "hook_parse",
     };
   }
-  if (!signals.selector_reliable) {
+  if (signals.selector_reliable !== true) {
     return {
       initial_skill: null,
       observed_skills: null,

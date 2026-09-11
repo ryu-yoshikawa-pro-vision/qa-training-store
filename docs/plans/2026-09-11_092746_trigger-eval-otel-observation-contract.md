@@ -121,7 +121,7 @@ Explicitでは、同一canonical Skillが2 datapointsになった。これは「
 | Negative | `00:22:54.907Z` | stdout line 12、timestampなし | `00:23:31.577Z`、exit `0` | 1: `00:23:31.524Z`（-53ms） | request 1に`codex.thread.started` 1 point、`codex.skill.injected` 0 points。bodyを直接JSON parseし、receiver eventのSHA-256と一致。 |
 | Implicit（timeout probe、正常flush根拠外） | `00:13:07.550Z` | terminal `turn.completed`なし | `00:20:47.432Z`、exit `1` | 1: `00:14:08.057Z`（-399,375ms）、2: `00:15:08.026Z`（-339,406ms）、3: `00:16:08.054Z`（-279,378ms）、4: `00:17:08.132Z`（-219,300ms）、5: `00:18:08.212Z`（-159,220ms）、6: `00:19:08.257Z`（-99,175ms）、7: `00:20:08.123Z`（-39,309ms） | request 1に`codex.thread.started` 1 point、`codex.skill.injected` 1 point（`feature-plan` / `status=ok`）。約60秒周期のexportはtelemetry挙動の参考にするが、trusted terminalがないため正常shutdown flushの遅延根拠にはしない。 |
 
-Completed probeのprocess closeから最終OTLP requestまでの遅延は、Explicit `-44ms`、Negative `-53ms`であり、process close後の実測late requestは0件（観測上の最大遅延は`0ms`）だった。最終requestのclose前最大近接は53msなので、collection値はこの近接を下回らない安全余裕を明示的に持たせる。request間隔はExplicitで59,980ms、60,024ms、39,781ms、Implicitで約60秒周期だった。これはprocess中のbatch exportであり、process close後のflush完了を意味しない。
+Completed probeのprocess closeから最終OTLP requestまでの遅延は、Explicit `-44ms`、Negative `-53ms`であり、process close後の実測late requestは0件（観測上の最大遅延は`0ms`）だった。closeに最も近いrequestはExplicitの44ms前であり、quiet `1,000ms`は956ms（約22.7倍）の追加余裕を持つ。request間隔はExplicitで59,980ms、60,024ms、39,781ms、Implicitで約60秒周期だった。これはprocess中のbatch exportであり、process close後のflush完了を意味しない。
 
 ## 8. Metric semanticsの確定範囲
 
