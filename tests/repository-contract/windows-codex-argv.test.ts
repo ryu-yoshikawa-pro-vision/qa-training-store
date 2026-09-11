@@ -5,7 +5,10 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildCodexOtelMetricsExporterConfig } from "../../scripts/evals/run-skill-trigger-evals";
+import {
+  buildCodexOtelMetricsExporterConfig,
+  quoteCodexShellArgument,
+} from "../../scripts/evals/run-skill-trigger-evals";
 
 const temporaryRoots: string[] = [];
 const windowsIt = process.platform === "win32" ? it : it.skip;
@@ -34,7 +37,7 @@ describe("Codex OTel argv contract", () => {
     writeFileSync(join(root, "fixture.cmd"), "@echo off\r\necho %~1\r\necho %~2\r\n", "utf8");
     const config = buildCodexOtelMetricsExporterConfig("http://127.0.0.1:12345/v1/metrics");
 
-    const result = spawnSync("fixture.cmd", ["-c", config], {
+    const result = spawnSync("fixture.cmd", ["-c", quoteCodexShellArgument(config)], {
       cwd: root,
       encoding: "utf8",
       shell: process.env.ComSpec ?? "cmd.exe",
@@ -43,9 +46,6 @@ describe("Codex OTel argv contract", () => {
 
     expect(result.error).toBeUndefined();
     expect(result.status).toBe(0);
-    expect(result.stdout.split(/\r?\n/u).filter((line) => line.length > 0)).toEqual([
-      "-c",
-      config,
-    ]);
+    expect(result.stdout.split(/\r?\n/u).filter((line) => line.length > 0)).toEqual(["-c", config]);
   });
 });

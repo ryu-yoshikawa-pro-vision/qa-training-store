@@ -50,6 +50,10 @@ export function buildCodexOtelMetricsExporterConfig(otelEndpoint: string): strin
   return `otel.metrics_exporter={otlp-http={endpoint='${otelEndpoint}',protocol='json'}}`;
 }
 
+export function quoteCodexShellArgument(value: string): string {
+  return process.platform === "win32" ? `"${value}"` : value;
+}
+
 interface CliOptions {
   readonly validate_only: boolean;
   readonly target_root: string | null;
@@ -1009,7 +1013,7 @@ function executeCodex(
           "-C",
           targetRoot,
           "-c",
-          buildCodexOtelMetricsExporterConfig(otelEndpoint),
+          quoteCodexShellArgument(buildCodexOtelMetricsExporterConfig(otelEndpoint)),
           "-",
         ],
         {
