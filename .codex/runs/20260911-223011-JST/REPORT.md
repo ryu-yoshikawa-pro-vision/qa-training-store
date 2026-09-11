@@ -92,6 +92,19 @@
   - Parent decision: `stop_success`。Plan-onlyの目的とRun保存・push条件を満たしたため終了する。
 - Progress: 100% (8/8)
 
+## 2026-09-11 23:00 (JST)
+
+- Summary: 最終SHAとevaluation参照を再照合し、Run Artifactの記録整合性を修正した。
+- Changes: evaluationのREPORT selectorを実在する`22:35` / `22:45` checkpointへ補正し、TASKSへ最終Run記録commit `16233e43c39984dff632486995b0626a25b9572a`を追記した。
+- Decision / Rationale: これは設計やscopeの変更ではなく、既存Run Artifact内の事実参照を正確にする補正である。最終補正後にsanitizer、strict collector、schema、Prettier、diffを再実行してからnon-force pushする。
+- Validation: 直前確認ではworktree clean、local/remote/PR headが`16233e43c39984dff632486995b0626a25b9572a`で一致し、evaluation resultは`pass`だった。補正後の最終gateを残す。
+- Blocker / Remaining: 補正後Run Artifactの最終commit/non-force pushと、push後のCI pending状態確認のみ。runtime実装・Qualification・canonical・baselineは行わない。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: artifact reference correctionをbounded finalizationとして採用する。
+- Progress: 100% (8/8)
+
 ## 2026-09-11 22:58 (JST)
 
 - Summary: 最終Run記録をcommitし、指定branchへ再度non-force pushしてRunを確定した。

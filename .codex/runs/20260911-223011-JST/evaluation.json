@@ -36,7 +36,7 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260911-223011-JST/REPORT.md",
-          "selector": "2026-09-11 23:25",
+          "selector": "2026-09-11 22:45",
           "summary": "Plan-only validation全項目のPASS結果を記録している。"
         }
       ]
@@ -84,7 +84,7 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260911-223011-JST/REPORT.md",
-          "selector": "2026-09-11 23:10",
+          "selector": "2026-09-11 22:35",
           "summary": "raw直接解析の対象数とprocess close差分を記録している。"
         }
       ]
