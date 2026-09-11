@@ -46,6 +46,10 @@ const HOOK_DIRECTORIES = [
 ] as const;
 const KNOWN_SKILL_PATHS = CANONICAL_SKILLS.map((skill) => `.agents/skills/${skill}/SKILL.md`);
 
+export function buildCodexOtelMetricsExporterConfig(otelEndpoint: string): string {
+  return `otel.metrics_exporter={otlp-http={endpoint='${otelEndpoint}',protocol='json'}}`;
+}
+
 interface CliOptions {
   readonly validate_only: boolean;
   readonly target_root: string | null;
@@ -1005,7 +1009,7 @@ function executeCodex(
           "-C",
           targetRoot,
           "-c",
-          `otel.metrics_exporter={otlp-http={endpoint="${otelEndpoint}",protocol="json"}}`,
+          buildCodexOtelMetricsExporterConfig(otelEndpoint),
           "-",
         ],
         {
