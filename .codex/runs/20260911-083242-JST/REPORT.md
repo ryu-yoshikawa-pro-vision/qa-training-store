@@ -65,3 +65,16 @@
   - Result: —
   - Parent decision: A案を採用し、Hookはdiagnostic/fallback、既存Negative Planは保留・fallbackとする。OTel実装は別の承認済みRunで行う。
 - Progress: 90% (9/10)
+
+## 2026-09-11 09:44 (JST)
+
+- Summary: Runを完了し、新PlanとRun Artifactを確認済みbranchへnon-force pushした。PR #127本文へOTel調査結果と新Planを日本語で追記した。
+- Changes: commit `c7c0a03b64025d42976b3e29848dbaec74b858d1`を`origin HEAD:refactor/117-pr2-trigger-eval-baseline`へpushした。PR #127のhead branch/SHA、OPEN、base `main`、本文追記を確認した。
+- Decision / Rationale: `local HEAD = remote branch HEAD = PR head`を確認し、PRの`mergeable=CONFLICTING`は取得時点の状態として維持した。rebase、merge、force push、PR close、runtime再実行は行っていない。
+- Validation: `git fetch origin refactor/117-pr2-trigger-eval-baseline`後のlocal/remote/PR head parity PASS、worktree clean PASS。`gh pr checks 127`はAnalyze (actions)、Analyze (javascript-typescript)、Analyze (python)、CodeQL、CodeRabbitの全表示項目がpass（CodeRabbitはmanual review requiredのskip理由を含む）。
+- Blocker / Remaining: 実装承認待ち。Negative Qualification FAIL、Positive未実行、Environment Qualification FAIL、canonical `all`未実行、8/8未判定、valid baseline未取得を維持する。新Plan承認後のみ実装Runへ進む。
+- Subagents:
+  - Delegation: なし（AGENTS.mdのNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 現Runを完了とし、PR #127はOPENのまま引き渡す。
+- Progress: 100% (10/10)

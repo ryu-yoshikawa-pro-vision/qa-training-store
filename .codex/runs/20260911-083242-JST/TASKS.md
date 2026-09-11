@@ -11,7 +11,7 @@
 - [x] 7. 3probeを比較してA/B/C/Dを決定し、既存契約・schema・8/8・comparison影響を整理する
 - [x] 8. 新しい観測契約Planを作成し、変更対象file・実装経路・tests・Qualification手順を固定する
 - [x] 9. Plan-only validation、evaluation、sanitizer、strict collector、scope確認を完了する
-- [ ] 10. PR本文、commit、non-force push、local/remote/PR head、Run完了を確認する
+- [x] 10. PR本文、commit、non-force push、local/remote/PR head、Run完了を確認する
 
 ## Discovered
 
