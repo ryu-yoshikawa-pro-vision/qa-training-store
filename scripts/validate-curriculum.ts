@@ -255,11 +255,7 @@ function assertEvidenceReference(name: string, value: string): void {
   const evidencePathBoundary = String.raw`(?:^|[\s"'(=]|(?<!https)(?<!http):)`;
   if (new RegExp(`${evidencePathBoundary}file:`, "i").test(value))
     fail(`${name} has a local file URI evidence reference: ${value}`);
-  if (
-    new RegExp(
-      `${evidencePathBoundary}(?:[A-Za-z]:[^\\s]|\\/(?:\\/|[^\\s/]))`,
-    ).test(normalized)
-  )
+  if (new RegExp(`${evidencePathBoundary}(?:[A-Za-z]:[^\\s]|\\/(?:\\/|[^\\s/]))`).test(normalized))
     fail(`${name} has a local absolute evidence reference: ${value}`);
   if (new RegExp(`${evidencePathBoundary}\\.\\.(?:\\/|$)`).test(normalized))
     fail(`${name} has an evidence reference outside the repository: ${value}`);
