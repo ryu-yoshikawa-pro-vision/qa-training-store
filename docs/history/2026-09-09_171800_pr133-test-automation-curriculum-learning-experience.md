@@ -45,3 +45,8 @@ Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regressi
 
 - PR #133でPlaywright / Maestroを含むカリキュラムの学習順序・説明、Training Workbook、Training Playwright starter / diagnostic / reset helper、`pull_request`のTraining Workflow、validator / contract testを変更した。公開カリキュラムnavigationの変更に伴い、`e2e/web/smoke.spec.ts`のdocs公開Smoke期待値も同期した。
 - 変更していない境界はProduct Behavior、BR / ACの意味、Seed Scenarioの意味、`src/**`、Maestro Flowの業務上の意味、Formal Regressionが保証する製品機能のテスト対象、本番 / Preview CI、Native保証範囲である。iOSの保証は引き続きBuild-onlyである。
+
+## 2026-09-11 08:20 (JST) 証拠強度の訂正
+
+- 先行記録にあるiOS timeoutの「runner固有の一時遅延」という断定は、観測事実を超えていたため訂正する。確認できた事実は、`xcodebuild`が`SwiftExplicitDependencyGeneratePcm` / `ExtractAppIntentsMetadata`付近で動作中に40分timeoutでcancelledとなったこと、直前のcompile errorは観測されなかったこと、その後60分設定でsuccessしたことである。
+- 正しい判定は、build phaseの遅延またはtimeout到達は確認できるが、runner固有性や遅延原因は未確定である、である。今後の報告ではこの区別を維持する。

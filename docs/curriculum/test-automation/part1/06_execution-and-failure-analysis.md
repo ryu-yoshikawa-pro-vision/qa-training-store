@@ -246,7 +246,8 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 - 意図的または実際のFailureを1件分析し、Evidenceから発生源と原因仮説を分けて記録している。
 - Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・Evidenceの有無に応じて分類している。
 - 報告の対象・操作・事象がEvidenceと一致し、Evidence不足時は未確定としている。
-- 固定待機または不安定Locatorを1件以上改善している。
+- C09の診断演習で、Locator / Timing / Assertionなどの意味のあるFailureを1件分析し、Failure Evidence、cause、action、修正後のre-run Evidenceを`04_execution-improvement.csv`へ別の`run_context`で記録している。
+- 固定待機または不安定Locatorの改善は、診断結果へ適用するPracticeとして説明できる。
 - RetryとTimeoutの利用判断を説明できる。
 - Training用Testと既存正式Suiteの実行目的を区別できる。
 - Failure Evidenceを利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。

@@ -910,7 +910,17 @@ jobs:
         run: |
           set -euo pipefail
           LAUNCHER_PACKAGE="com.google.android.apps.nexuslauncher"
-          if "$ADB" shell pm list packages | tr -d '\r' | grep -Fqx "package:$LAUNCHER_PACKAGE"; then
+          launcher_package_list="$RUNNER_TEMP/android-launcher-packages.txt"
+          launcher_package_list_normalized="$RUNNER_TEMP/android-launcher-packages-normalized.txt"
+          if ! timeout 30 "$ADB" shell pm list packages > "$launcher_package_list"; then
+            echo "Unable to capture the Android package list for launcher stabilization." >&2
+            exit 1
+          fi
+          if ! tr -d '\r' < "$launcher_package_list" > "$launcher_package_list_normalized"; then
+            echo "Unable to normalize the Android package list for launcher stabilization." >&2
+            exit 1
+          fi
+          if grep -Fqx "package:$LAUNCHER_PACKAGE" "$launcher_package_list_normalized"; then
             echo "Stopping Pixel Launcher before launching the test APK."
             timeout 30 "$ADB" shell am force-stop "$LAUNCHER_PACKAGE"
           else

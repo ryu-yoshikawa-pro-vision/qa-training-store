@@ -1,5 +1,5 @@
 test_case_id,run_context,result,evidence,failure_category,cause,action,improvement
 TC-CART-001,Training Web exercise,Not run,,,,,
 TC-CART-002,Training Web exercise,Not run,,,,,
-TC-CART-001,Training Web diagnostic initial,Fail,Run 20260909-161425-JST / diagnostic initial,Test Code Bug,購入上限超過の拒否操作に成功メッセージを期待していた,拒否メッセージと既存Cart数量を期待するよう修正,ExpectedとActualを分けて確認する
-TC-CART-001,Training Web diagnostic repaired,Pass,Run 20260909-161425-JST / diagnostic repaired,,,,
+TC-CART-001,Training Web diagnostic initial,Not run,,,,,
+TC-CART-001,Training Web diagnostic repaired,Not run,,,,,

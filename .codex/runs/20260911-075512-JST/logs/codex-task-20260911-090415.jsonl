@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-11T09:04:17.5276625+09:00","event":"wrapper_start","runtime":"host","run_id":"20260911-075512-JST","preset":"readonly"}
+{"timestamp":"2026-09-11T09:04:19.6887116+09:00","event":"preflight_start"}
+{"timestamp":"2026-09-11T09:04:24.4896762+09:00","event":"preflight_ok"}
+{"timestamp":"2026-09-11T09:04:24.5316694+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260911-075512-JST\\artifacts\\codex-task-20260911-090415.json"}
+{"timestamp":"2026-09-11T09:13:07.1512748+09:00","event":"codex_exec_exit","exit_code":0}
+{"timestamp":"2026-09-11T09:13:09.4432758+09:00","event":"verify_start","command":"pnpm run verify"}

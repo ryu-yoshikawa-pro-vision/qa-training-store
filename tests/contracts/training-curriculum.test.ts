@@ -60,6 +60,34 @@ describe("Training curriculum contracts", () => {
     expect(rubric).toContain("C12 Common Level 2: bounded Web CI");
   });
 
+  it("keeps canonical diagnostic workbook rows learner-owned", () => {
+    const rows = parseCsv(
+      readFileSync(
+        resolve(process.cwd(), "training/workbook/04_execution-improvement.csv"),
+        "utf8",
+      ),
+    );
+    const headers = rows[0] ?? [];
+    const contextIndex = headers.indexOf("run_context");
+    const resultIndex = headers.indexOf("result");
+    const diagnosticIndexes = [
+      headers.indexOf("evidence"),
+      headers.indexOf("failure_category"),
+      headers.indexOf("cause"),
+      headers.indexOf("action"),
+      headers.indexOf("improvement"),
+    ];
+    const diagnosticRows = rows
+      .slice(1)
+      .filter((row) => row[contextIndex]?.startsWith("Training Web diagnostic"));
+
+    expect(diagnosticRows).toHaveLength(2);
+    for (const row of diagnosticRows) {
+      expect(row[resultIndex]).toBe("Not run");
+      for (const index of diagnosticIndexes) expect(row[index]?.trim()).toBe("");
+    }
+  });
+
   it("keeps the Native specialization branch and rejoin routes", () => {
     const readme = readFileSync(
       resolve(process.cwd(), "docs/curriculum/test-automation/README.md"),
@@ -111,6 +139,31 @@ describe("Training curriculum contracts", () => {
     expect(packageManifest.scripts["typecheck"]).toContain("typecheck:training");
     expect(packageManifest.scripts["verify"]).toContain("validate:spec-visuals:final");
     expect(packageManifest.scripts["verify"]).toContain("validate:curriculum");
+  });
+
+  it("keeps the Training Web exercise pull_request condition on its own step", () => {
+    const trainingWorkflow = readFileSync(
+      resolve(process.cwd(), "training/github-actions/training-ci.yml"),
+      "utf8",
+    );
+    const exerciseCondition =
+      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:exercise";
+    const exerciseWithoutCondition = trainingWorkflow.replace(
+      exerciseCondition,
+      "        run: pnpm run training:web:exercise",
+    );
+    expect(() => validateTrainingWorkflow("training-ci.yml", trainingWorkflow)).not.toThrow();
+    expect(() => validateTrainingWorkflow("training-ci.yml", exerciseWithoutCondition)).toThrow(
+      /exercise step must set/,
+    );
+
+    const movedCondition = exerciseWithoutCondition.replace(
+      "        if: github.event_name != 'workflow_dispatch' || inputs.mode == 'baseline'\n        run: pnpm run training:web:baseline",
+      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:baseline",
+    );
+    expect(() => validateTrainingWorkflow("training-ci.yml", movedCondition)).toThrow(
+      /exercise step must set/,
+    );
   });
 
   it("accepts the current Training workflow templates through the structural boundary", () => {
@@ -723,6 +776,10 @@ jobs:
         "Run 123 / diagnostic initial",
         "output/training/playwright/report",
         "output/training/playwright/missing-report",
+        "Trace: https://github.com/example/repo/actions/runs/123",
+        "Trace: github-actions-artifact/training-web",
+        "Trace: output/training/playwright/report",
+        "Trace: Run 123 / diagnostic initial",
       ]) {
         writeFileSync(
           executionPath,
@@ -745,6 +802,13 @@ jobs:
         "file:///home/user/report.zip",
         "../outside/report.zip",
         "..\\outside\\report.zip",
+        "Trace: C:\\Users\\user\\report.zip",
+        "Trace: C:Users\\user\\report.zip",
+        "Trace: \\\\server\\share\\report.zip",
+        "Trace: /home/user/report.zip",
+        "Trace: file:///home/user/report.zip",
+        "Trace: ../outside/report.zip",
+        "Trace: ..\\outside\\report.zip",
       ]) {
         writeFileSync(
           executionPath,

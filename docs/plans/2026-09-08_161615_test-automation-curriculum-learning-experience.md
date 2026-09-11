@@ -1555,3 +1555,14 @@ pnpm run verify
 - 検証スクリプトで自然言語の良し悪しを判定すること
 - 新しい日本語文言を文字列の完全一致検証として固定し直すこと
 - 将来の教材追加だけを理由にした抽象化、フレームワーク、依存関係の追加
+
+## 実装時の限定例外（2026-09-11 複数モデルレビュー修復）
+
+本文の「非対象」に記録したNative CI構成変更の判断は維持する。今回のレビュー修復では、実行証跡から確認できた不安定要因を解消するため、実装時の限定例外として次の既存ファイルだけを扱う。
+
+- `.github/workflows/native-ci.yml`：Android launcher package取得をfail-closedなファイル経由へ修正する。
+- `.github/workflows/native-ios-ci.yml`：既存の40分timeoutを60分へ変更する。
+- `scripts/native/android-maestro-run.sh`：3回目のlauncher ANR dialog操作後のUI再確認を行う。
+- `tests/contracts/native-ci-workflow.test.ts`：上記の配置、順序、失敗時契約を検証する。
+
+この例外はAndroid launcher ANRとiOS build timeoutの検証補助に限り、Product Behavior、BR / AC、Seed Scenario、Android = Build + Runtime E2E / iOS = Build-onlyの保証、runner、Xcode、CocoaPods、cache、Maestro Flowの意味を変更しない。

@@ -132,6 +132,22 @@ function assertRootPermissions(workflowName: string, workflow: RecordValue): voi
   }
 }
 
+function assertTrainingWebExerciseCondition(
+  workflowName: string,
+  exerciseSteps: RecordValue[],
+): void {
+  if (workflowName !== "training-ci.yml") return;
+  if (exerciseSteps.length !== 1)
+    fail(workflowName, "training:web:exercise must have exactly one workflow step");
+  const exerciseStep = exerciseSteps[0];
+  if (exerciseStep?.if !== "github.event_name == 'pull_request'") {
+    fail(
+      workflowName,
+      "the training:web:exercise step must set if: github.event_name == 'pull_request'",
+    );
+  }
+}
+
 export function validateTrainingWorkflow(workflowName: string, text: string): void {
   let parsed: unknown;
   try {
@@ -147,6 +163,7 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
   if (!isRecord(jobs) || Object.keys(jobs).length === 0)
     fail(workflowName, "jobs must contain at least one job");
 
+  const trainingWebExerciseSteps: RecordValue[] = [];
   for (const [jobName, job] of Object.entries(jobs)) {
     if (!isRecord(job)) fail(workflowName, `job ${jobName} must be an object`);
     if (typeof job.uses === "string")
@@ -173,9 +190,12 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
       if (step.run !== undefined) {
         if (typeof step.run !== "string") fail(workflowName, "step run must be a scalar string");
         assertAllowedRun(workflowName, step.run);
+        if (step.run === "pnpm run training:web:exercise") trainingWebExerciseSteps.push(step);
       }
     }
   }
+
+  assertTrainingWebExerciseCondition(workflowName, trainingWebExerciseSteps);
 
   if (workflowName === "training-native-ci.yml") {
     for (const required of [

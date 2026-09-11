@@ -25,6 +25,50 @@ function expectInOrder(source: string, fragments: string[]): void {
   }
 }
 
+function assertAndroidLauncherStabilizationContract(source: string): void {
+  const capture = 'if ! timeout 30 "$ADB" shell pm list packages > "$launcher_package_list"; then';
+  const normalize =
+    'if ! tr -d \'\\r\' < "$launcher_package_list" > "$launcher_package_list_normalized"; then';
+  const exactMatch =
+    'if grep -Fqx "package:$LAUNCHER_PACKAGE" "$launcher_package_list_normalized"; then';
+  const forceStop = 'timeout 30 "$ADB" shell am force-stop "$LAUNCHER_PACKAGE"';
+  const captureIndex = source.indexOf(capture);
+  const captureFailure = source.indexOf("exit 1", captureIndex);
+  const normalizeIndex = source.indexOf(normalize, captureIndex);
+  const exactMatchIndex = source.indexOf(exactMatch, normalizeIndex);
+  const forceStopIndex = source.indexOf(forceStop, exactMatchIndex);
+
+  if (captureIndex < 0 || captureFailure < captureIndex)
+    throw new Error("launcher package capture must fail closed");
+  if (normalizeIndex < 0 || exactMatchIndex < normalizeIndex || forceStopIndex < exactMatchIndex)
+    throw new Error("launcher package normalization, exact match, and force-stop order is invalid");
+  if (source.includes("pm list packages |"))
+    throw new Error("launcher package detection must not use a truncating pipeline");
+}
+
+function assertAndroidStartupInvocationContract(source: string): void {
+  const functionStart = source.indexOf("dismiss_launcher_anr_dialog() {");
+  const functionEnd = source.indexOf(
+    '\n}\n\necho "Preparing Android application state before Maestro launch."',
+    functionStart,
+  );
+  const standaloneCalls = [...source.matchAll(/^dismiss_launcher_anr_dialog\s*$/gm)];
+  const firstForceStop = source.indexOf(
+    'timeout 30 "$ADB_BIN" shell am force-stop "$PACKAGE_ID"',
+    functionEnd,
+  );
+  const standaloneCall = standaloneCalls[0]?.index ?? -1;
+
+  if (functionStart < 0 || functionEnd < functionStart)
+    throw new Error("launcher dismissal function is missing");
+  if (standaloneCalls.length !== 1 || standaloneCall <= functionEnd)
+    throw new Error(
+      "launcher dismissal must have exactly one standalone call after its definition",
+    );
+  if (firstForceStop < 0 || standaloneCall > firstForceStop)
+    throw new Error("launcher dismissal must run before application force-stop");
+}
+
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
 const nativeBundleValidator = readWorkflow("scripts/validate-native-production-bundle.ts");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
@@ -268,6 +312,23 @@ describe("Native CI workflow contracts", () => {
       "Install pinned Maestro CLI",
       "Install and launch Automation APK",
     ]);
+
+    const stabilizationStart = runtime.indexOf(
+      "- name: Stabilize Android launcher before APK launch",
+    );
+    const stabilizationEnd = runtime.indexOf("\n      - name:", stabilizationStart + 1);
+    const stabilization = runtime.slice(
+      stabilizationStart,
+      stabilizationEnd === -1 ? undefined : stabilizationEnd,
+    );
+    expect(() => assertAndroidLauncherStabilizationContract(stabilization)).not.toThrow();
+    const captureLine =
+      'if ! timeout 30 "$ADB" shell pm list packages > "$launcher_package_list"; then';
+    expect(() =>
+      assertAndroidLauncherStabilizationContract(
+        stabilization.replace(captureLine, captureLine.slice(3)),
+      ),
+    ).toThrow(/fail closed/);
   });
 
   it("keeps canonical Android visual capture manual, profile-bound, and provenance-bound", () => {
@@ -548,7 +609,7 @@ describe("Native CI workflow contracts", () => {
     expect(androidStartupHelper).toContain('shell pm clear "$PACKAGE_ID"');
     expect(androidStartupHelper).toContain('shell pidof "$PACKAGE_ID"');
     expect(androidStartupHelper).toContain('"$MAESTRO_BIN" "${maestro_args[@]}"');
-    expect(androidStartupHelper.indexOf("dismiss_launcher_anr_dialog")).toBeLessThan(
+    expect(androidStartupHelper.indexOf("dismiss_launcher_anr_dialog() {")).toBeLessThan(
       androidStartupHelper.indexOf('am force-stop "$PACKAGE_ID"'),
     );
     expect(androidStartupHelper.indexOf("shell pm clear")).toBeGreaterThan(
@@ -580,6 +641,21 @@ describe("Native CI workflow contracts", () => {
     );
     expect(finalAttempt).toContain('if [[ "$ui_dump" != *"$launcher_anr_text"* ]]; then');
     expect(finalAttempt).toContain("return 0");
+
+    expect(() => assertAndroidStartupInvocationContract(androidStartupHelper)).not.toThrow();
+    const standaloneCall = "\ndismiss_launcher_anr_dialog\n";
+    const withoutStandaloneCall = androidStartupHelper.replace(standaloneCall, "\n");
+    expect(() => assertAndroidStartupInvocationContract(withoutStandaloneCall)).toThrow(
+      /exactly one standalone call/,
+    );
+    const appForceStop = 'timeout 30 "$ADB_BIN" shell am force-stop "$PACKAGE_ID"';
+    const movedAfterForceStop = withoutStandaloneCall.replace(
+      `${appForceStop}\n`,
+      `${appForceStop}\ndismiss_launcher_anr_dialog\n`,
+    );
+    expect(() => assertAndroidStartupInvocationContract(movedAfterForceStop)).toThrow(
+      /before application force-stop/,
+    );
   });
 
   it("detects Training Maestro changes and runs the baseline in the shared Android runtime", () => {

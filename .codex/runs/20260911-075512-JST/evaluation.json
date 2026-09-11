@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-075512-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "成立したレビュー指摘の修正とlocal品質ゲートは完了したが、commit後のTraining Copy、Remote CI、PR同期は未完了である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-075512-JST/REPORT.md",
+          "selector": "2026-09-11 09:05 (JST)",
+          "event_id": null,
+          "summary": "focused検証と標準verifyの完了を記録した。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-075512-JST/run.json",
+          "selector": "$.status",
+          "event_id": null,
+          "summary": "Runは最終完了前のrunning状態である。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は計画したNative workflow、validator、Training Workflow contract、教材、contract test、Run / history / Planの範囲に収まり、Product Codeの変更はない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-075512-JST/run.json",
+          "selector": "$.changed_files",
+          "event_id": null,
+          "summary": "collectorが観測した変更ファイル一覧である。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/native-ci.yml",
+          "selector": null,
+          "event_id": null,
+          "summary": "Android launcher stabilizationのfail-closed修正を含む。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/validate-curriculum.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Evidence参照境界の検証を含む。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused検証と独立した標準verifyはPASSした。一方、machine wrapperの冗長verifyはPowerShell Error streamのXML解釈エラーを繰り返し、完了前に停止した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-review/20260911-085000-contracts/contracts.log",
+          "selector": "Test Files 35 passed",
+          "event_id": null,
+          "summary": "標準contract testの全ファイル成功を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-review/20260911-090000-verify/verify.log",
+          "selector": "exit 0",
+          "event_id": null,
+          "summary": "独立実行した標準verifyの成功ログである。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260911-075512-JST/logs/codex-task-20260911-090415.jsonl",
+          "selector": "verify_start",
+          "event_id": null,
+          "summary": "wrapper verifyの開始まではmachine logに記録されている。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "read-only wrapper実行ではsource変更、削除、rename、Git mutation、外部システム操作を行わず、失敗した冗長検証も停止した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-075512-JST/run.json",
+          "selector": "$.safety",
+          "event_id": null,
+          "summary": "networkとscope violationのsummaryである。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-075512-JST/REPORT.md",
+          "selector": "2026-09-11 09:23 (JST)",
+          "event_id": null,
+          "summary": "同一エラーの再試行停止判断を記録した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "指摘の再判定、修正範囲、未確認事項、検証結果をPlanとRun REPORTへ記録し、変更差分を追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-075512-JST/REPORT.md",
+          "selector": "2026-09-11 08:18 (JST)",
+          "event_id": null,
+          "summary": "14項目の判定と修正方針を記録した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": "docs/plans/2026-09-11_075512_pr133-multimodel-review-repair.md",
+          "selector": "## 1. ゴール / 完了条件",
+          "event_id": null,
+          "summary": "bounded repairの完了条件を確認できる。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存validator、workflow contract、Sanitizer、Training Copy経路を再利用し、新規grader、schema、framework、dependencyを追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Native workflowの反例契約を追加した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/training-curriculum.test.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "WorkbookとTraining Workflowの回帰契約を追加した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "local検証ログ、Run ID、修復Planは揃っているが、commit SHA固定のTraining CopyとRemote CIは最終段階で確認する。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-075512-JST/run.json",
+          "selector": "$.run_id",
+          "event_id": null,
+          "summary": "再実行対象のRun IDを固定している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-review/20260911-090000-verify/verify.log",
+          "selector": "Exported: dist",
+          "event_id": null,
+          "summary": "標準verifyがbuildまで完了した。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "`.codex/runs/20260911-075512-JST/logs/codex-task-20260911-090415.jsonl`はwrapper verify開始後に進まず、machine-evidence logにはPowerShell Error streamのXML解釈エラーが反復記録されている。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260911-075512-JST/logs/codex-task-20260911-090415.jsonl",
+          "selector": "verify_start",
+          "event_id": null,
+          "summary": "wrapper verifyの開始事実を参照する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".artifacts/pr133-review/20260911-091500-codex-task/machine-evidence.log",
+          "selector": "Cannot process the XML from the 'Error' stream",
+          "event_id": null,
+          "summary": "冗長verifyを停止した環境エラーを参照する。"
+        }
+      ],
+      "detail": "独立した標準verifyはPASS済みで、wrapperの冗長再実行は同一エラーのため停止した。wrapperエラーを品質ゲート成功へ読み替えず、最終Runではこの制約を明示する。"
+    }
+  ],
+  "improvement_candidates": []
+}

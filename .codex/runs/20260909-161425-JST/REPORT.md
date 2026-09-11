@@ -260,6 +260,15 @@
 - Blocker / Remaining: commit後のPR本文最終確認、clean worktree、Run完了状態の最終確認を残す。
 - Progress: 100% (20/20)
 
+## 2026-09-11 08:20 (JST)
+
+- Summary: iOS timeout原因の過去記録について、証拠から導ける範囲へ訂正を追記した。
+- Changes: 先行checkpointの「runner固有の一時遅延」という表現を上書きせず、`xcodebuild`の対象phase、40分でのcancelled、直前compile error未観測、60分設定でのsuccessという確認済み事実を追記した。
+- Decision / Rationale: runner固有性や具体的な遅延原因は未確認とし、build phaseの遅延またはtimeout到達までを確認済みと扱う。既存のAndroid / iOS保証範囲とProduct意味は変更しない。
+- Validation: `docs/history/2026-09-09_171800_pr133-test-automation-curriculum-learning-experience.md`にも同じ訂正をappendした。
+- Blocker / Remaining: 今回のレビュー修復Runで、他の成立指摘の実装と最終検証を継続する。
+- Progress: 100% (20/20)
+
 ## 2026-09-10 13:04 (JST)
 
 - Summary: lockfile整理後の依存再現性と指定されたlocal validationを完了した。

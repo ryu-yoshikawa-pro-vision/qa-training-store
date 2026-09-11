@@ -323,6 +323,7 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - fail-closedを含むFailure reasoning
 - 必要最小限のbounded Web CI Diagram
 - 最終設計判断と理由
+- P2-5で受講者が作成したPlaywright TestをTraining Copy Pull Requestで成功させたrun結果 / Artifact
 
 ### Practice / Reference
 
@@ -378,6 +379,7 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 次を自分の最終設計、Job Graph、Gate条件、Failure Evidenceで確認できれば、Part 2 Commonの完了を自己判定できます。
 
 - Common RequiredとしてWeb CIのTrigger、Required Gate、Artifact、Failure reasoningを一つの設計へ接続できる。
+- P2-5で受講者が作成したPlaywright TestのTraining Copy Pull Request上のsuccessful run / Artifactを、Trigger、Gate、判定条件のEvidenceとして再利用できる。
 - Gateが止めるFailure、確認するArtifact、fail-closed条件を説明できる。
 - Test配置をRisk、Feedback速度、Flakiness、Runner Cost、Actionabilityの理由付きで判断できる。
 - Native specializationを選択しない場合にP2-6相当をskipし、Nativeを選択した場合だけ追加成果物を作ってCommonへrejoinできる。

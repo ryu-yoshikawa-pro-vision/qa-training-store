@@ -19,6 +19,8 @@ CoreはPlaywrightによるWeb Cart Journeyで完了します。Native specializa
 5. `training-mobile-chromium`でResponsive Riskを1件確認する。
 6. `03_automation-mapping.csv` と `04_execution-improvement.csv`へDecision、Evidence、Failure分類を追記する。
 
+P1-6のC09診断で作成したFailure Evidence、cause、action、修正後のre-run Evidenceは、同じ`test_case_id`の異なる`run_context`として再利用します。P1-9で診断Failureを新しく作り直す必要はありません。
+
 ## Native specialization（選択時）
 
 P1-7を選択した受講者は、P1-6までのCommon prerequisiteを満たした後、P1-7のNative開始条件とC08 Minimum Evidenceを確認します。Physical Android、Native artifact、Maestro実行EvidenceはNative specializationの範囲であり、Part 1 Common completionには要求しません。詳細はP1-7と [Competency Rubric](../02_competency-rubric.md) を参照します。

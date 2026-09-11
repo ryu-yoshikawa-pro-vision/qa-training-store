@@ -352,7 +352,7 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 ## ハンズオン6: Regression棚卸し（Practice Volume / 任意）
 
-追加演習として、スプレッドシートの `06_自動化対応表` と `08_改善管理` を更新します。
+追加演習として、Workbookの `03_automation-mapping.csv` と `04_execution-improvement.csv` を更新します。
 
 最低限次を分類します。
 

@@ -571,3 +571,12 @@
 - Remote Mobile App CI run `34419805406`はNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、Native iOS CI Verify、`native-ci / verify`を全てsuccessで完了した。iOS Production-validationは26分8秒、iOS Automationは26分52秒で、40分timeoutは再発しなかった。
 - 対応するRemote Web CI run `34419805168`もStyle / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、CodeQL / securityをsuccessで完了した。Extended E2Eとdeploy-productionは既存条件によりskipである。
 - Repository標準verify、Native workflow contract、Training Web / Native local検証、Training Copy、Run sanitizationの証跡はactive Runへ記録する。Product Code、BR / AC、Maestro Flow、iOS Build-only保証の意味は変更していない。
+
+## PR #133 複数モデルレビュー再評価・bounded repair（2026-09-11）
+
+- C09のCanonical Workbookに完成済みの診断回答を配布しないよう、`training/workbook/04_execution-improvement.csv`の診断2行を`Not run`・Evidence空欄へ戻した。受講者は`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`でFailure、原因、修正、再実行を記録する。Workbookの列と値の契約は維持する。
+- P1-6 / P1-9 / C12 / P2-8の学習導線は、意味のあるLocator・Timing・Assertionの診断と、Training Copy Pull Requestで受講者が作成したPlaywright Testの実成功run / Artifactを明示的なEvidenceとして扱う。`training:copy:validate`の成功は受講者TestのGitHub Actions成功とは別である。
+- Training Workflowの`training:web:exercise`は、そのStep自身に`if: github.event_name == 'pull_request'`を持つことを`workflow-contract.ts`で検証する。別Stepの条件や任意のworkflow条件では代用できない。
+- Workbook Evidence Validatorは説明文で囲まれたdrive / UNC / absolute / `file:` / traversal参照も拒否し、URL、Artifact、output、Runの追跡参照は許可する。静的検証はArtifactの実在を要求しない。
+- Android Native CIのlauncher package一覧は全出力を一度ファイルへ取得し、取得・正規化に失敗したらfail-closeしてから完全一致判定を行う。Android helperの関数定義とstandalone callの順序はNative contractで区別する。iOS timeout原因はrunner固有と断定せず、観測事実と仮説を分離する。ja-JP ANRとの因果関係は実UI証跡がない限り未確認とする。
+- `run.json`は引き続きmachine-managedであり、EvaluationのEvidenceは実際のRun manifest、`codex-task` report、validation command、GitHub runへ解決可能な参照を使う。Native限定修復例外のProduct / BR / AC / Seed / guarantee / runner / toolchain境界は変更しない。

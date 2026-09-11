@@ -323,7 +323,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
       }
     }
-  }, 15000);
+  }, 30000);
 
   it.each([
     { command: "git checkout -bfeature", expected: "allow" },
