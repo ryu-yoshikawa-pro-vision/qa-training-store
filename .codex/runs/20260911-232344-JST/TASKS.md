@@ -16,7 +16,7 @@
 - [x] 12. 新`SOURCE_SHA`でTraining Copy prepare / validateを実行する
 - [x] 13. 新Runでmachine-managed local validation Evidenceを取得する
 - [x] 14. Evaluation、Sanitizer、living documentation、PR本文を同期する
-- [ ] 15. branch safety、non-force push、同一HEAD checks、clean worktreeを確認する
+- [x] 15. branch safety、non-force push、同一HEAD checks、clean worktreeを確認する
 
 ## Discovered
 
