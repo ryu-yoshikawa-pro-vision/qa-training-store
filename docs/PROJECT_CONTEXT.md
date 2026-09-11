@@ -580,3 +580,9 @@
 - Workbook Evidence Validatorは説明文で囲まれたdrive / UNC / absolute / `file:` / traversal参照も拒否し、URL、Artifact、output、Runの追跡参照は許可する。静的検証はArtifactの実在を要求しない。
 - Android Native CIのlauncher package一覧は全出力を一度ファイルへ取得し、取得・正規化に失敗したらfail-closeしてから完全一致判定を行う。Android helperの関数定義とstandalone callの順序はNative contractで区別する。iOS timeout原因はrunner固有と断定せず、観測事実と仮説を分離する。ja-JP ANRとの因果関係は実UI証跡がない限り未確認とする。
 - `run.json`は引き続きmachine-managedであり、EvaluationのEvidenceは実際のRun manifest、`codex-task` report、validation command、GitHub runへ解決可能な参照を使う。Native限定修復例外のProduct / BR / AC / Seed / guarantee / runner / toolchain境界は変更しない。
+
+## PR #133 未対応3件の再対応（2026-09-12）
+
+- P1-2 / P1-3の標準学習導線は、`docs/spec/state-and-scenarios.md`、必要な`docs/07_testability/seed_catalog.md`、`/guide`、現在UIの観察を中心とし、`src/seeds/metadata.ts`の直接読解と実装IDの照合はPlaywright実装後へ送る。
+- Workbook Evidence Validatorは`Trace:`直後に空白がないdrive、relative drive、file URL、親参照、UNC参照も拒否し、`http` / `https`のschemeのcolonは許可する。危険Pathの負例とURL・Artifact・output・Runの正例をtraining curriculum contractで固定する。
+- 今回のbounded repairのsource差分は教材2ファイル、`scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`の4ファイルに限定し、Native CI、C09、C12、Training Workflow等の既修正領域は再設計しない。標準contractのWindows Hook timeoutはsourceと無関係な環境観測として扱う。
