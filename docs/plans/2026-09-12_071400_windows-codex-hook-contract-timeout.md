@@ -45,7 +45,7 @@ WindowsローカルでCodex Hook contractがtimeoutする原因を実測で特�
 - PR #102 / #113 / #114 / #127の既存timeout記録を再発履歴として整理し、今回の再現条件と照合している。
 - #140の2件、Hook matrix timeout、その他launcher timeoutが共通原因か別原因かを、確認できた範囲で説明できる。共通原因を確認できない場合は無理に統一しない。
 - Windowsで再現したtimeoutについて、どのtest、subprocess、Git処理、fixture、process lifecycle、またはsuite条件が所要時間へ寄与したか説明できる。
-- Node、pnpm、`powershell.exe`、`pwsh.exe`、`git`のpath / versionと、launcher内部で`Get-Command node`が解決するNode pathを記録している。
+- Node、pnpm、`powershell.exe`、`pwsh.exe`、`git`のpath / versionと、launcher内部で`Get-Command node`が解決するNode pathを記録している。`pwsh.exe`等が存在しない場合はtimeoutではなく環境前提の不足として分離して記録する。
 - `tests/contracts/codex-hook-contract.test.ts`のpolicy case数、policy ID集合、allow / deny、malformed input、fail-closed検証を削減・弱体化していない。
 - `.codex/hooks/pre_tool_use_policy.mjs`のpolicy semanticsを変更していない。変更が必要な場合も、性能改善だけを理由に判定を緩めていない。
 - `.codex/hooks/pre_tool_use_policy_windows.ps1`を変更する場合は、stdin / stdout / stderr、Node exit code、timeout時の停止、fail-closedのtransport契約を維持している。
@@ -57,10 +57,12 @@ WindowsローカルでCodex Hook contractがtimeoutする原因を実測で特�
 - `verify`が`test:contracts`到達前に停止したrunは、Windows launcher testをPASS / FAILへ数えず「未実行」と記録する。
 - GitHub Actions Web CIの`Vitest (contracts)`が成功する。
 - Windowsでしか検出できない回帰を今回修正する場合は、変更ファイルがproductionかtest-onlyかにかかわらず、focused Windows CIを継続検証として追加する必要性を判断し、追加しない場合も理由を記録する。
-- timeout値を変更した場合は、変更前の全runの生値、最小値・中央値・最大値、変更後の実測値、設定値と余裕幅の根拠を説明できる。
+- timeout値を変更した場合は、変更前の標準計測の生値、最小値・中央値・最大値、変更後の実測値、設定値と余裕幅の根拠を説明できる。
 - `skip`、case削除、Assertion弱体化、fail-closed緩和、無制限または根拠のない過大timeoutで回避していない。
 - 一時計測コード、調査用一時ファイル、予期しない生成物が最終差分に残っていない。
 - `issue-140-windows-launcher-timeout` branchでは重複実装していない。
+
+現在の環境で再現せず修正根拠を作れない場合は、sourceを推測変更しない。その場合は「現在非再現・原因未特定」として調査結果と再調査条件を残し、Issue #142を解決済みとは扱わない。
 
 ## 2. 既知の再発履歴
 
@@ -271,7 +273,7 @@ configured PreToolUse
 git symbolic-ref --quiet refs/remotes/origin/HEAD
 git remote
 git branch --show-current
-git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
+git rev-parse --abbrev-ref --symbol-full-name @{upstream}
 ```
 
 各Git commandには`2000ms` timeoutがある。Node startupだけでなく、各Git commandの時間と1 Hook invocationあたりの呼び出し回数も計測対象にする。
@@ -377,9 +379,11 @@ pnpm --version
 Get-Command powershell.exe | Select-Object -ExpandProperty Source
 powershell.exe -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
 powershell.exe -NoProfile -Command '(Get-Command node).Source'
-Get-Command pwsh.exe | Select-Object -ExpandProperty Source
-pwsh.exe --version
+$pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+if ($null -ne $pwsh) { $pwsh.Source; pwsh.exe --version } else { 'pwsh.exe: not found' }
 ```
+
+`pwsh.exe`等の必要な実行ファイルが存在しない、またはpath解決に失敗する場合は、そのrunをtimeout再現として数えない。configured `pwsh`経路を検証できない環境前提の不足として記録し、必要な検証が未実行なら完了扱いにしない。
 
 必要な場合だけ`codex --version`も記録する。
 
@@ -395,7 +399,7 @@ pwsh.exe --version
 - 意図的待機の有無
 - 過去にtimeout記録があるか
 
-#140の2件は、一時diagnosticなし・Vitest既定timeoutのまま別々にfocused実行する。
+#140の2件は、一時diagnosticなし・Vitest既定timeout・デフォルトreporterのまま別々にfocused実行する。
 
 ```powershell
 pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 -t "preserves safe and deny semantics through the Windows launcher from root and nested cwd"
@@ -423,11 +427,19 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 4. 必要な場合だけ`pnpm run test`
 5. `pnpm run verify`
 
-file単体:
+file単体の標準再現はデフォルトreporterで行う。
+
+```powershell
+pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1
+```
+
+個別test名、実行順、診断用の詳細表示が必要な場合だけ`--reporter=verbose`を追加する。
 
 ```powershell
 pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 --reporter=verbose
 ```
+
+`--reporter=verbose`、一時計測、`--testTimeout=30000`等を付けたrunは診断runとして標準計測と分離し、timeout値や性能判断の基準値には使わない。
 
 修正前の標準`test:contracts`は最大3回、`verify`は最大2回とする。停止条件に達したら上限まで消化しない。
 
@@ -435,14 +447,15 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 - `pnpm run test`でも再現する場合は、unit / integration / repository / component等の先行test suiteとの相関を確認する。
 - `pnpm run test`では再現せず`verify`で再現する場合は、format / lint / spec / typecheck / security等の前段処理との相関を確認する。
 - `verify`がcontract到達前にFAILしたrunはWindows timeout再現回数へ含めない。
-- `--testTimeout=30000`は診断比較に限る。恒久修正の結論にしない。
 - quote / LF / CRLF testだけfile単体で悪化する場合は、直前のconfigured PreToolUse testとの相関を優先して確認する。
 
 ### 手順4: 現行コードだけで原因を閉じられない場合にhistorical baselineを比較する
 
 現在の`main`で同等の問題を十分に再現し、現行コード上で原因を説明できる場合は古いSHA比較を必須にしない。
 
-必要な場合のみ次を比較する。
+historical baseline比較は、active implementation working treeでは行わない。`fix/windows-codex-hook-contract-timeout`上のPlan、active Run、一時計測コード、未commit変更と混ざらないよう、Git worktree等の隔離した作業ディレクトリを使用する。Git worktreeを利用できない場合も、同じworking treeをSHA間で往復checkoutするのではなく、同等に隔離されたcopyを用意する。
+
+比較対象:
 
 ```text
 historical baseline: 13cc542fa31f372bd4bc932cf7a82b92bcf81a23
@@ -450,7 +463,7 @@ historical baseline: 13cc542fa31f372bd4bc932cf7a82b92bcf81a23
 PR #139 current head: a7632fad478ac5d28f53849ce950b1d205024f36
 ```
 
-各baselineは自身のlockfileから依存を構築する。
+各baselineは同一PC、同一のOS / shell条件で測り、それぞれ自身のlockfileから依存を構築する。baseline間で`node_modules`を共有して結果を比較しない。
 
 ```powershell
 pnpm install --frozen-lockfile --ignore-scripts
@@ -461,12 +474,13 @@ git diff --exit-code -- package.json pnpm-lock.yaml
 - 必要な場合だけ`test:contracts`、さらに実行条件の因果確認が必要な場合だけ`verify`まで進む。
 - baseline間で5秒境界の判断を変える差が出た場合だけ実行順を反転して確認する。
 - PR #139 current headでPASSしても、未commit working treeの過去failure自体は否定しない。
+- baseline側で作成したraw logや一時diagnosticはactive implementation working treeへ持ち込まない。必要な測定値と判断だけを#142のactive Runへ記録する。
 
-### 手順5: 再現したtestを呼び出し単位へ分解する
+### 手順5: focusedまたはfile単体で再現したtestを呼び出し単位へ分解する
 
-focusedまたはfile単体で再現したtestだけ、一時計測を追加する。
+focusedまたはfile単体で再現した場合だけ、一時計測を追加する。
 
-#140の2件では少なくとも次を個別に測る。
+#140の2件で再現した場合は少なくとも次を個別に測る。
 
 - safe root
 - safe nested
@@ -494,7 +508,7 @@ focusedまたはfile単体で再現したtestだけ、一時計測を追加す�
 
 ### 手順6: suite限定の悪化とprocess残存を確認する
 
-focusedでは安定し、file単体 / full contracts / `pnpm run test` / `verify`でのみ悪化する場合だけ実施する。
+focusedでは安定し、file単体 / full contracts / `pnpm run test` / `verify`でのみ悪化する場合だけ実施する。この経路では手順5のlauncher invocation単位計測を必須にせず、先にsuite境界と先行処理との相関を確認する。
 
 process残存を疑う場合は、まず一時diagnosticで対象launcherのPIDを取得し、そのPIDと子孫processだけを追う。
 
@@ -578,7 +592,7 @@ configured経路でのみ悪化する場合は次を分けて測る。
 
 - launcher内部に不要な待機がない。
 - 直列起動を1つのcontractとして維持する合理性がある。
-- 一時diagnosticなしの標準計測で既存timeout超過が通常のばらつきとして確認できる。
+- 一時diagnosticなし、デフォルトreporterの標準計測で既存timeout超過が通常のばらつきとして確認できる。
 - 変更対象を該当testへ限定できる。
 - 変更前の生値、最小値・中央値・最大値から新しい値と余裕幅を説明できる。
 - 同じfileの既存`30000ms`を根拠なく流用していない。
@@ -591,6 +605,7 @@ configured経路でのみ悪化する場合は次を分けて測る。
 - 過去failureと現在の非再現を区別して記録する。
 - historical baseline比較でも原因を確定できない場合は未特定として残す。
 - 「Windowsだから遅い」「cold cacheだから」「5秒が短い」だけを修正根拠にしない。
+- この分岐はIssue解決ではなく調査終了である。Issue #142は解決済みと扱わず、再調査条件と未確認点をRun Artifactへ残す。
 
 ### 手順9: 回帰テストとCIを決める
 
@@ -639,6 +654,8 @@ production変更だから自動的にWindows CIを追加する、test-only変更
 sanitizer後の最終状態で`pnpm run lint:markdown`、`git diff --check`、`git status --short`を確認する。
 
 ## 9. 修正後の検証
+
+ここを修正後検証の正本とする。§1の完了条件、§12の成果物、§13の実装順序では、この節の個別commandを重複定義しない。
 
 ### 常に実行するWindows検証
 
@@ -691,7 +708,9 @@ pnpm run verify
 
 2回ともcontractまで到達して成功することを確認する。前段failureでcontractが未実行のrunは連続成功へ数えない。
 
-`verify`で再現しなかった場合でも、最終標準検証として`pnpm run verify`を1回成功させる。
+`verify`で再現しなかった場合でも、source / test / configを変更した場合は最終標準検証として`pnpm run verify`を1回成功させる。
+
+現在非再現でsource変更なしの調査終了となった場合は、実行済みの標準経路と未達検証を記録し、修正後検証を実施したとは表現しない。
 
 ### Repository固有検証
 
@@ -704,6 +723,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
 この結果はRepository harness / config契約の確認として記録し、Windows Vitest transport検証の代替にはしない。
 
 ### その他の最終確認
+
+source / test / configを変更した場合は次を確認する。
 
 ```powershell
 pnpm run format:check
@@ -725,14 +746,16 @@ git status --short
 
 ### timeout変更時
 
-- 変更前・変更後を同一環境、同一command、同一testで比較する。
+- 変更前・変更後を同一環境、同一command、同一test、デフォルトreporterで比較する。
 - default 5秒、test固有15 / 20 / 30秒、launcher内部15秒、Codex runtime 30秒のどれを変更したか明記する。
 - 値を変更しなかったtimeoutも、変更不要と判断した根拠を記録する。
-- test固有timeoutを変更した場合、旧5秒境界でPASSすることを完了条件にしない。新しい通常コマンドで安定し、変更前の実測分布から新しい設定値を説明できることを確認する。
+- test固有timeoutを変更した場合、旧5秒境界でPASSすることを完了条件にしない。新しい通常コマンドで安定し、変更前の標準計測分布から新しい設定値を説明できることを確認する。
 - failure後に値をさらに広げて回避しない。
 - hung Node testは通常性能の測定値から除外する。
 
 ## 10. 判断基準
+
+ここを修正方針の分岐条件の正本とする。
 
 ### production launcherを変更しない条件
 
@@ -754,7 +777,7 @@ git status --short
 
 - launcher内部に不要な待機がない。
 - 直列起動を1つのcontractとして維持する合理性がある。
-- 標準計測で既存timeout超過が通常のばらつきとして確認できる。
+- デフォルトreporterの標準計測で既存timeout超過が通常のばらつきとして確認できる。
 - 変更対象を該当testへ限定できる。
 - 変更前の実測分布から値と余裕幅を説明できる。
 
@@ -783,7 +806,7 @@ git status --short
 - process残存を根拠にする場合は対象実行由来のPID / 親PID / 生成時刻で確認する。
 - 相関を確認できない場合は「suite負荷が原因」と断定しない。
 
-### 変更なしで終了できる条件
+### source変更せず調査を終了する条件
 
 次のいずれかに該当し、変更根拠を作れない場合はsourceを変更しない。
 
@@ -792,7 +815,14 @@ git status --short
 - launcher内部の異常待機を示す証拠がない。
 - PR #139との直接因果を示すsource / 設定 / 実測差分がない。
 
-実行回数が停止条件により上限未満でも、実行回数と停止理由を明記する。
+この場合はIssue #142を解決済みとは扱わない。Run Artifactへ少なくとも次を残す。
+
+- 実行した標準runと診断runの回数・生値
+- 停止条件により上限未満で終了した場合の理由
+- 過去failureと現在の非再現の差
+- 未確認点
+- 再調査を開始する条件
+- sourceを変更しなかった理由
 
 ### 無関係な最終検証failure
 
@@ -806,9 +836,11 @@ git status --short
 - #140、PR #133、PR #102 / #113 / #114 / #127のfailureを、同じtest fileという理由だけで単一原因へまとめると別の遅延経路を見落とす。
 - 逆に#140の2件だけへ調査を限定すると、15秒matrix timeoutや`verify`限定の再発条件を見落とす。
 - historical failureの未commit working treeを完全に復元できない可能性がある。
-- baseline比較にはlockfile差分と実行順の影響が混ざる可能性がある。
+- historical baselineをactive implementation working treeで比較すると、branch state、active Run、一時計測コード、依存状態が混ざる。baseline比較は隔離した作業ディレクトリで行う。
+- baseline比較にはlockfile差分と実行順の影響が混ざる可能性があるため、各baselineの依存を分離し、必要な場合だけ実行順を反転する。
 - Windowsのprocess起動時間にはばらつきがあるため、生値と実行順を捨てない。
-- 一時diagnostic自体がtimingへ影響するため、標準計測と分離する。
+- `--reporter=verbose`や一時diagnostic自体がtimingへ影響するため、標準計測と分離する。
+- `pwsh.exe`等の環境前提不足をtimeoutとして数えると原因を誤る。実行ファイル不存在・path解決失敗は別failureとして扱う。
 - pure policy evaluationへ寄せすぎると、実Hook entrypoint、Git context、Windows transportの回帰検出力を落とす。
 - hung Node testの15秒はproduction finite timeout契約であり、通常遅延と誤認して短縮しない。
 - `getGitCommandContext()`は最大4 Git subprocessを起動するため、Node startupだけの計測では不十分である。
@@ -825,30 +857,29 @@ git status --short
 ### 必須
 
 - #140、PR #133、PR #102 / #113 / #114 / #127の既知timeout記録と今回の再現結果の整理
-- Node、pnpm、PowerShell、Git、launcherが解決するNode pathを含む再現条件
-- 修正前focused / file / contracts / 必要なsuite経路の生値と停止理由
-- 原因箇所の呼び出し単位の計測結果
-- 原因に対する必要最小限のsource / contract変更、または変更根拠がない場合の「変更なし」の判断
-- 修正前にtimeoutを再現した同じ実行経路での修正後成功記録
-- Windows対象file 3回連続成功
-- Windows `pnpm run test:contracts` 3回連続成功
-- 必要な場合の`pnpm run test` / `pnpm run verify`連続成功
-- 最終`pnpm run verify`成功
-- GitHub Actions Web CI contract成功
+- Node、pnpm、PowerShell、Git、launcherが解決するNode pathを含む再現条件。必要な実行ファイルが存在しない場合はその事実と未実行経路
+- 修正前focused / file / contracts / 必要なsuite経路の標準計測の生値と停止理由
+- 原因判定、または現在非再現・原因未特定という判断とその根拠
 - Windows CI追加要否と判断根拠
-- Hook / config変更時の`scripts/verify.ps1`結果
 - active Run `REPORT.md`の原因判定、採用対策、採用しなかった主要案、未確認点、検証結果
 - Run Artifact sanitizer Write / Check
 - sanitizer後の`pnpm run lint:markdown`、`git diff --check`、`git status --short`
 
 ### 条件付き
 
-- 現行`main`で原因を閉じられない場合のhistorical baseline比較
-- 5秒境界の判断に影響する差がある場合の実行順反転
-- historical baselineでも因果を閉じられない場合のPR #139 current head比較
-- process lifecycleに新しい恒久契約を追加した場合の回帰test
-- Windows専用回帰を継続検出する価値がある場合のfocused Windows CI
-- Hook runtime契約を変更した場合のみ`docs/PROJECT_CONTEXT.md`と対応する`docs/history/**` / ADR
+- focusedまたはfile単体で再現した場合: launcher invocation、PowerShell、Git context、fixture等の呼び出し単位の計測結果
+- suite限定で再現した場合: suite境界、先行処理、対象PID / 子孫process等の相関結果
+- 現行コードで原因を閉じられない場合: 隔離した作業ディレクトリでのhistorical baseline比較
+- 5秒境界の判断に影響する差がある場合: 実行順反転の比較結果
+- historical baselineでも因果を閉じられない場合: PR #139 current head比較
+- source / test / configを変更した場合: 原因に対する必要最小限の変更と§9の修正後検証結果
+- timeoutを再現した場合: 修正前にtimeoutした同じ実行経路での修正後成功記録
+- Hook / config変更時: `scripts/verify.ps1`結果
+- process lifecycleに新しい恒久契約を追加した場合: そのfailureを直接検出する回帰test
+- Windows専用回帰を継続検出する価値がある場合: focused Windows CI
+- Hook runtime契約を変更した場合のみ: `docs/PROJECT_CONTEXT.md`と対応する`docs/history/**` / ADR
+
+現在非再現でsource変更なしとなった場合は、「修正後成功記録」や「原因箇所の呼び出し単位計測」を必須成果物にしない。代わりに、実行済みの再現試行、診断試行、停止理由、未確認点、再調査条件を必須とする。
 
 ### 参照のみ
 
@@ -872,19 +903,16 @@ git status --short
 
 ## 13. 実装時の順序
 
-1. branch、最新`main`、merge base、Hook関連差分、環境情報を固定する。
+1. branch、最新`main`、merge base、Hook関連差分、環境情報を固定し、必要な実行ファイルの有無を確認する。
 2. 過去timeout記録と現在のWindows関連test一覧を対応付ける。
-3. #140の2件を既定5秒条件でfocused計測する。
+3. #140の2件を既定5秒・デフォルトreporterでfocused計測する。
 4. file単体 → full contracts → 必要な場合`pnpm run test` → `verify`の順で再現境界を特定する。
-5. 現行コードで原因を閉じられない場合だけhistorical baseline比較へ進む。
-6. 再現したtestをlauncher invocation、PowerShell、Git context、fixture等へ分解する。
-7. suite限定なら対象実行由来processと先行処理の相関を確認する。
-8. configured経路が対象なら外側Git root解決とlauncher内Git root解決を分けて測る。
-9. 原因に応じてtest構造、launcher、Hook本体、test固有timeoutの順に必要最小限の変更を選ぶ。
-10. 一時計測を削除し、Windows対象fileと標準contractsを連続検証する。
-11. 修正前にtimeoutを再現した同じ実行経路を再実行する。
-12. Hook / config変更時は`scripts/verify.ps1`を実行する。
-13. Windowsでしか検出できない回帰かを基準にfocused Windows CI追加要否を決める。
-14. `pnpm run verify`、GitHub Actions、Run Artifact sanitizer、最終diff / statusを確認する。
+5. 現行コードで原因を閉じられない場合だけ、隔離した作業ディレクトリでhistorical baseline比較へ進む。
+6. focused / file単体で再現した場合は呼び出し単位へ分解し、suite限定の場合は先にsuite境界とprocess相関を調べる。
+7. configured経路が対象なら外側Git root解決とlauncher内Git root解決を分けて測る。
+8. §10の判断基準に従い、原因が確認できた範囲だけ必要最小限の変更を選ぶ。現在非再現で根拠がない場合はsourceを変更しない。
+9. 一時計測を削除し、source / test / configを変更した場合は§9の修正後検証を実施する。
+10. Windowsでしか検出できない回帰かを基準にfocused Windows CI追加要否を決める。
+11. Run Artifact sanitizer、最終diff / status、必要なGitHub Actions結果を確認する。
 
 先にtimeout値を大きくする、caseを削る、skipする、policyを弱める、hung testのproduction timeoutをtest都合で短縮する対応は行わない。
