@@ -38,7 +38,9 @@ Resultはdataset schema 1と分離した`schema_version=2`を使用し、caseへ
 
 ### Comparison
 
-baseline／current comparisonはResult schema 2、`split=all`、dataset fingerprint一致、case ID set一致、Codex version完全一致を必須とする。schema 1、unknown／欠落schema、不一致Codex versionはfail closedし、変換やmarker後付けによる旧artifact移行は行わない。受理されたcomparisonの`codex_version_match`は常にtrueとなる。
+canonical executionではmodelを`gpt-5.6-luna`へ明示的に固定する。baseline／current comparisonはResult schema 2、`split=all`、dataset fingerprint一致、case ID set一致、Codex version完全一致、および`provenance.model`完全一致を必須とする。schema 1、unknown／欠落schema、不一致Codex version、不一致modelはfail closedし、変換やmarker後付けによる旧artifact移行は行わない。model不一致はdescription変更だけの比較として扱えない。受理されたcomparisonの`codex_version_match`は常にtrueとなる。
+
+canonical `all`のrun-level successには8 boundary sideすべてがobservableであることを要求し、8/8未達ではrunnerはexit 1のままとする。これはcoverage不足をrouting successへ読み替えないための条件である。一方、全selected caseを実行し、Result schema／provenance／case ID set等のcomparison contractを満たしてResult artifactが保存されている場合、そのartifactはcoverage不足でも後続runとのcomparison baselineとして利用できる。unobservable caseはbaselineへそのまま残し、後続comparisonでは`newly_unobservable`、`recovered_observable`、`unchanged_unobservable`として扱う。
 
 ## Qualification blocker remediation
 
