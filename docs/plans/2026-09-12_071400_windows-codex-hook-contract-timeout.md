@@ -358,7 +358,7 @@ Repository規約に従って記録する。実装Runは原則`strict`とする�
 
 このIssueはPreToolUse安全Hookとfail-closed契約を変更候補に含むため、実装Runは原則`strict`とする。
 
-同一タスクのactive `strict` Runがあれば再利用できる。なければRepository標準手順で新しい`strict` Runを作成する。actual `run.json`を直接編集しない。
+同じ会話セッション内の同一タスクのactive `strict` Runがあれば再利用する。別会話ではactive Runの引継ぎが明示されない限り、Repository標準手順で新しい`strict` Runを作成する。actual `run.json`を直接編集しない。
 
 開始時に少なくとも次を記録する。
 
