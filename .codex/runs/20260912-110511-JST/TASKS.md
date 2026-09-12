@@ -6,9 +6,7 @@
 - [x] 2. `exploratory-qa`側4代表caseと全timeout分類を比較する。
 - [x] 3. OTel observer、runner signal変換、evaluator、contract tests、ADR-0024を照合する。
 - [x] 4. source defectの証明可否を判定し、証明できないためsource/test修正を行わないと決定する。
-- [ ] 5. 修正時のみNegative→Positive→Environment→canonicalを各1回実行する（B1により未実行）。
-- [ ] 6. 8/8とvalid baselineを判定する（B1により未実行）。
-- [ ] 7. Run Artifact、evaluation、sanitizer、PR本文、branch/CIを最終同期する。
+- [x] 5. Run Artifact、evaluation、sanitizer、PR本文、branchを最終同期する。
 
 ## Discovered
 
@@ -17,3 +15,4 @@
 ## Blocked
 
 - B1. 既存evidenceだけではunknown Skillの値とsource defectの因果を確定できない。推測修正・同一canonical retry・query/dataset/Skill alias変更は行わない。
+- B2. source defectを証明できなかったため、Negative→Positive→Environment→canonical、8/8、valid baselineは未実行・未取得。merge conflict解消とCI再実行はvalid baseline取得後の後続条件とする。

@@ -31,6 +31,19 @@
   - Parent decision: source defect未証明として修正なし停止を採用し、次回別Runの診断強化候補だけをevaluationへ残す。
 - Progress: 57% (4/7)
 
+## 2026-09-12 11:25 (JST)
+
+- Summary: 原因調査Runを、source変更なし・valid baseline未取得の停止条件として確定した。
+- Changes: `docs/PROJECT_CONTEXT.md`とhistoryへ今回の知見を追記し、Run Artifactをcommit `651878e`としてfeature branchへ明示refspecでpushした。PR #127本文を日本語で更新し、diagnostic情報限界、4代表caseの分離、未取得条件を反映した。
+- Decision / Rationale: unknown OTel `skill`実値が保存されていないため、canonical alias、Hook fallback、query変更、timeout変更、retryは実施しない。Runの主分類は`artifact_contract_gap`、timeoutは副分類`flaky_or_env_issue`とした。merge conflict解消とCI再実行はvalid baseline後の後続条件として保留する。
+- Validation: focused observer/evaluator 2 files / 45 tests PASS、evaluation schema PASS、Prettier PASS、Markdown lint 401 files / 0 issues、`git diff --check` PASS、sanitizer Write/Check 5 files / residual 0、strict collector PASS。branchは`refactor/117-pr2-trigger-eval-baseline`、PR headはpush commitと同期し、PRはOPEN/base `main`/mergeable `CONFLICTING`を維持した。
+- Blocker / Remaining: valid baseline未取得。Negative/Positive/Environment/canonicalの新規実行、8/8、merge conflict、CIはB2により未実行。次回はunknown属性を安全に記録する別Runが必要。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: 今回Runをpartialとして完了し、source implementationへ進まない。
+- Progress: 100% (5/5)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
