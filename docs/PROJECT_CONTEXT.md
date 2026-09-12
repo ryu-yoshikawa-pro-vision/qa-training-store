@@ -563,3 +563,10 @@
 - この補修後も、Qualificationは同一fresh Targetでnegative / positiveが両方PASSした場合だけcanonical `all`へ進み、FAILまたはunreliableならcanonicalとvalid baselineを実行しない。
 - Positive blocker remediationでは、preflightで解決したRouting Target rootをlive selectorへ渡し、Host由来absolute pathをuntrusted inputとして検証する。存在するregular fileのrealpathがTarget内にあり、6つのcanonical `SKILL.md`のresolved pathのいずれかと完全一致し、一意にSkillへmappingできる場合だけ`canonical_skill`とする。それ以外はrunnerを落とさず`unreliable`へfail-closeし、Target contextなしabsoluteや任意absolute pathを`safe_no_read`へ推測変換しない。
 - `realpathOrFail()`はpreflight必須path専用であり、Host candidateの失敗処理には使わない。absolute対応後もrelative recognition、exact negative compound、candidate prefix、compound非対応、Result schema 2を維持する。
+
+## PR #127 valid baseline remediation investigation（2026-09-12）
+
+- 直前のcanonical `all`は固定Evaluator SHA `4921023c7f6ad2f2c7f8b8041ec3b08bf707c51e`、Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`、Codex `0.153.4`、dataset fingerprint `84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`で24 casesを実行した。結果は`pass=15`、`false_negative=1`、`unobservable=8`、lifecycleは`completed=4`、`timed_out=20`で、exploratory-qa-vs-android-native-local-validationのexploratory-qa sideは未達、valid baselineは未取得である。
+- missing sideの原因は一つのtimeoutではない。`exploratory-qa-train-001`とandroid ownerのexpected exploratory 2件はOTel `collection_state=completed`、control valid 1、Skill point 1、`unknown_skill`。`exploratory-qa-validation-001`はOTel `reliable=true`、control valid 1、Skill point 0、trusted absence候補だが、process lifecycle `timed_out`のためevaluatorは`unobservable/timeout`とする。
+- canonical OTel diagnosticはmetric名、invoke type、plugin id、件数を保存するが、observerが`unknown_skill`と判定した`skill`属性の実値とstatusを保存しない。既存observer/evaluator contract testはunknownをcanonical aliasせずfail-closeし、OTel failureをHook scoring fallbackへ変換しない。このため、実値がない状態でsource修正・alias追加・query変更・retryを行わない。
+- 次回別Runで診断契約を改善する場合も、redacted identity/statusの保存範囲と新Qualification条件を先に決める。既存canonical、dataset、query、Skill、Hook、timeout、Result schemaはこの調査結果を理由に変更しない。
