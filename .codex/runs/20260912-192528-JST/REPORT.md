@@ -193,6 +193,29 @@
   - Parent decision: PR2 baseline closureとCI確認は完了、main同期だけは停止条件として未完了のまま保持する。
 - Progress: 75% (6/8)
 
+## 2026-09-12 19:50 (JST)
+
+- Summary:
+  - closure Runを最終化した。PR2 baselineは取得済み・保存済み・比較可能であり、strict 8/8 observabilityだけを7/8の既知制約として残した。
+  - 現在のtracked head `3bb892d`に対するCIはAnalyze(actions)／Analyze(javascript-typescript)／Analyze(python)／CodeQL／CodeRabbitの全てPASSだった。
+- Changes:
+  - TASKSのRun最終化を完了にし、未完了事項をorigin/mainのrouting意味変更に起因するtask 6だけへ限定した。
+  - このcheckpointのdocs-only更新後も、PR本文とbaseline snapshot以外のsource／test／dataset／Skill／runtimeは変更しない。
+- Decision / Rationale:
+  - origin/mainへのmergeは、Trigger Evalからsemantic-output evaluatorへのrouting契約変更と過去Run削除を含むため、ユーザー指示の停止条件を適用した。
+  - 既存baselineは旧Routing SHAに対して有効。merge後routing状態と同一条件として扱わず、新baseline・追加Plan・canonical再実行・full verifyは行わない。
+- Validation:
+  - Run artifact: evaluation schema、Prettier、Markdown lint、Sanitizer Write／Check、strict collector、`git diff --check`がPASS。
+  - baseline raw／tracked SHA256一致: `D79927276D4DFD6F08B2E495E30989D58EE805BD783618D39C8405B62D2E30C6`。
+  - PR #127: OPEN、mergeable `CONFLICTING`、PR headは`3bb892d`時点で確認済み。
+- Blocker / Remaining:
+  - task 6（merge後の指定品質ゲート）はrouting意味変更の停止条件により未実行。PRレビュー／merge判断はユーザー側の次の判断事項。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: PR2 closureを完了扱いとし、main同期後のrouting非互換を明示して停止する。
+- Progress: 88% (7/8)
+
 ## 2026-09-12 19:53 (JST)
 
 - Summary:
