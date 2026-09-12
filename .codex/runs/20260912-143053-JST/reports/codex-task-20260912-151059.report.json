@@ -1,0 +1,16 @@
+{
+    "runtime":  "host",
+    "preset":  "safe",
+    "mode":  "safe",
+    "run_id":  "20260912-143053-JST",
+    "cwd":  "\u003cREPO_ROOT\u003e",
+    "git_branch":  "issue-141-expo-dependency-maintenance",
+    "git_dirty":  true,
+    "prompt_source":  "inline",
+    "output_file":  "\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260912-143053-JST\\artifacts\\codex-task-20260912-151059.json",
+    "output_schema":  null,
+    "log_path":  "\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260912-143053-JST\\logs\\codex-task-20260912-151059.jsonl",
+    "codex_exit_code":  0,
+    "verify_exit_code":  0,
+    "status":  "ok"
+}

@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-081339-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Three PR review findings were repaired without changing the existing Issue 141 product implementation, dependencies, or workflow.",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/app-config.test.ts",
+          "selector": "Expo config plugins",
+          "summary": "The contract detects both string and tuple expo-sqlite registrations and requires one optionless string."
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.status",
+          "summary": "The original Run is finalized through the official writer and collector."
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "The source change is limited to the target contract test. app.config.ts, package.json, pnpm-lock.yaml, workflows, and the existing Hook test are unchanged; Run artifacts are limited to the specified Run and this repair Run.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "repair scope",
+          "summary": "The allowed scope and out-of-scope paths are recorded."
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "The target test passes 3/3 and fails as expected with a temporary tuple duplicate. Existing Run validation and PR CI passed, while the known Windows launcher timeout remains factual; local iOS prebuild, post-main no-op, and live update-needed E2E were not run.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "14:36 checkpoint",
+          "summary": "Positive and negative regression plus restoration are recorded."
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "09:01 / 09:34 / 09:55 checkpoints",
+          "summary": "Local timeout, iOS not run, PR CI success, and main/live items are distinguished."
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "The required branch was maintained. No force push, main operation, merge, deletion, dependency or workflow change, or direct run.json edit was performed; the official writer/collector and sanitizer were used.",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "Review restrictions and the machine-managed Run Artifact boundary were followed."
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "The prior REPORT checkpoints were not reordered; one append-only correction was added at the end, and evaluation and manifest references are traceable.",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "record-order correction checkpoint",
+          "summary": "The timestamp-order inconsistency is corrected without rewriting history."
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "No production helper or new abstraction was added; only the existing contract test filter and assertions were strengthened.",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/app-config.test.ts",
+          "selector": "sqlitePlugins",
+          "summary": "The existing local detection and assertion responsibility was strengthened."
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "The repair Run PLAN/TASKS/REPORT, original Run REPORT/evaluation, official manifest, focused validation, negative regression, and sanitizer are traceable by repository-relative paths.",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.validation",
+          "summary": "The officially aggregated validation summary is available."
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "Local Windows pnpm run verify exited 1 on two existing Windows launcher timeout cases; the same two cases passed with a 30-second timeout and the equivalent PR CI verify passed.",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "09:00 / 09:01 checkpoints",
+          "summary": "The first anomaly and existing environment difference are recorded."
+        }
+      ],
+      "detail": "This is retained as an existing environment difference unrelated to the review fix; no timeout extension or existing Hook test change is included."
+    }
+  ],
+  "improvement_candidates": []
+}
