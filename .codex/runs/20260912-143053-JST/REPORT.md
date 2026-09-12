@@ -70,6 +70,19 @@
   - Parent decision: 両Runのcompleted状態と、local verifyの既知warningを併存させて採用する。
 - Progress: 88% (7/8)
 
+## 2026-09-12 15:44 (JST)
+
+- Summary: branch safety、review-fix commit/push、PR本文更新、およびcommit `614e243`の新HEAD CI確認を完了した。
+- Changes: `issue-141-expo-dependency-maintenance`でcommit `614e2437a4327ba7f9cbc3946ca9ee987135a918`を作成し、明示refspecでpushした。PR #143本文へtuple重複contract、両Runのfinalize/evaluation、append-only訂正、CI結果を追記した。
+- Decision / Rationale: PRはOPEN、baseは`main`、head branchは作業branchと一致する状態を維持した。merge、main直接操作、force push、Issue close、branch削除、live update-needed E2E、main反映後no-opは行っていない。
+- Validation: `gh pr checks 143`は新HEADに対して42 checks中40 PASS、2 SKIPPED、pending=0、failure=0。`Web CI / verify`、Native Static、Android Automation/Production、Android Runtime / Maestro、iOS Automation/Production、全Vitest、Chromium/UI、CodeQL、両OS artifact sanitizationを確認した。PR本文は日本語で新HEAD `614e243`を参照し、titleも確認済み。
+- Blocker / Remaining: なし。元Run `20260912-081339-JST`と修復Run `20260912-143053-JST`はともに公式manifestでcompleted。local Windowsの既知launcher timeout、local iOS prebuild未実施、main反映後no-op、live E2E未実施は事実として残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがbranch/PR一致、commit/push、PR本文、新HEAD CIを確認した。
+  - Parent decision: required/実行対象CIのPASSと条件付きSKIPPEDを採用し、未実施項目は完了扱いにしない。
+- Progress: 100% (8/8)
+
 ## 2026-09-12 14:57 (JST)
 
 - Summary: レビュー修正後のfocused validationを完了し、対象test/config/依存整合に新たな異常がないことを確認した。

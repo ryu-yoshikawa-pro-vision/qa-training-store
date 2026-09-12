@@ -9,7 +9,7 @@
 - [x] 5. 正常系と一時的tuple重複のFAILを確認し、正しいtreeへ復元する
 - [x] 6. 元RunのREPORT訂正、evaluation作成、公式writer/collectorによるStrict manifest同期を完了する
 - [x] 7. focused gate、標準verify、schema、scope、sanitizerを実行し結果を記録する
-- [ ] 8. branch safety、commit/push、新head PR CI/本文を確認し、両Runを完了判定する
+- [x] 8. branch safety、commit/push、新head PR CI/本文を確認し、両Runを完了判定する
 
 ## Discovered
 
