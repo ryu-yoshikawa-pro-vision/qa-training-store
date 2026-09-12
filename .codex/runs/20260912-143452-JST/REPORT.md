@@ -70,6 +70,19 @@
   - Parent decision: 一過性候補を単独再実行で確認したが、full verifyの新規failureを理由にruntimeを停止する。
 - Progress: 63% (5/8)
 
+## 2026-09-12 15:00 (JST)
+
+- Summary: 新規Runの実装・検証・停止判断・Run Artifact／PR同期・non-force push・CI確認を完了した。runtime診断はB1のまま未実行である。
+- Changes: evaluation schema準拠の`evaluation.json`（`partial`／`flaky_or_env_issue`）、PROJECT_CONTEXT／history、Run Artifactを確定し、PR #127本文へ今回Runのsource SHAと未実行理由を追記した。Run Artifactのnon-force pushを完了した。
+- Decision / Rationale: `skill_values`／`status_values`の実装と回帰は完了したが、`pnpm run verify`の新規Native timeoutがユーザー指定のruntime開始条件を満たさないため、3ケースの実値を推測せず停止した。canonical／Qualification／valid baseline／mergeは行わない。
+- Validation: sanitizer Write／Check 5 files・0 replacements・0 residual、evaluation schema PASS、strict collector PASS、最終Prettier／Markdown lint／`git diff --check` PASS。push後のlocal／remote／PR head parityを確認し、PR #127はOPEN/base `main`/mergeable `CONFLICTING`。`gh pr checks 127`はAnalyze (actions/javascript-typescript/python) pending、CodeRabbit pass（OSS手動review要求によるskip）。pendingをPASSとは扱わない。
+- Blocker / Remaining: B1。対象3ケースの`skill_values`、`status_values`、`invoke_type`、`plugin_id`実値は未取得で、次回Runでverify gate回復後に各1回だけ実行する。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: Runをpartialとして完了し、追加runtime・retry・source修正・mergeを行わない。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

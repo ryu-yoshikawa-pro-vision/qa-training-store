@@ -7,9 +7,9 @@
 - [x] 3. observer回帰テストを追加する
 - [x] 4. focused／repository／format／lint／typecheck／Skill／dataset／diff／verifyを実行・分類する（verifyは新規Native timeoutで停止、単独再実行PASS）
 - [x] 5. source/testをcommitし、Evaluator source SHAを固定する（`a8f3b7118e304a18c185a475f2d2cdeae97d4799`）
-- [ ] 8. evaluation／Run Artifact／sanitizerを確定する
-- [ ] 9. PR #127本文を更新し、branch確認後non-force pushする
-- [ ] 10. CI最終状態とremote／PR parityを確認し、Runを完了する
+- [x] 8. evaluation／Run Artifact／sanitizerを確定する
+- [x] 9. PR #127本文を更新し、branch確認後non-force pushする
+- [x] 10. CI最終状態とremote／PR parityを確認し、Runを完了する（CIは3 Analyze pending、CodeRabbit pass/手動review skip）
 
 ## Discovered
 
