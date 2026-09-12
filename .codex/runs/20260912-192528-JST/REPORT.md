@@ -261,6 +261,19 @@
   - merge commit、explicit push、PR本文更新、push後CI／PR状態確認はこのcheckpoint後に実施する。
 - Progress: 100% (8/8)
 
+## 2026-09-12 21:31 (JST)
+
+- Summary:
+  - merge commit `fc4c4d0faa0ea9d6466bd922f33fd3a8dca2455f`を指定branchへ通常pushし、PR本文をmain同期後の現在状態へ更新した。
+  - PR #127はOPENのまま、GitHub上のmergeableは`MERGEABLE`である。
+- Validation:
+  - push後の`gh pr checks 127`: failure 0、successful 40、skipped 2、pending 0。Android／iOS build、Android Runtime／Maestro、Web E2E／UI Review、Vitest、CodeQL、sanitizer、verifyを含め最終状態を確認した。
+  - CodeRabbitはOSS repositoryのmanual review requiredによりreview skipped表示だが、failureではない。
+  - remote branch headとlocal HEADはともに`fc4c4d0faa0ea9d6466bd922f33fd3a8dca2455f`。
+- Blocker / Remaining:
+  - 実装・検証上の未完了事項なし。PR reviewと、ユーザー判断によるPR mergeだけが残る。PR merge／close、branch削除は行っていない。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
