@@ -11,8 +11,8 @@
 - [x] 7. override / packageExtensions / lockfileをPlanの判断基準で同期し、基準点との差分・hashを比較する
 - [x] 8. 比較完了後にRun Artifactを再開し、最終App Config、Expo check、Doctor、contracts、Native test、route、EAS、prebuildを検証する
 - [x] 9. Repository標準検証、sanitization、最終scope/diffを実行する
-- [ ] 10. branch safetyを再確認してcommit/pushし、PR #143の最新headと起動CIを確認する
-- [ ] 11. PR本文を日本語で実装済み内容へ更新し、main反映後確認を対象外として完了報告する
+- [x] 10. branch safetyを再確認してcommit/pushし、PR #143の最新headと起動CIを確認する
+- [x] 11. PR本文を日本語で実装済み内容へ更新し、main反映後確認を対象外として完了報告する
 
 ## Discovered
 
