@@ -44,6 +44,15 @@
   - Parent decision: 今回Runをpartialとして完了し、source implementationへ進まない。
 - Progress: 100% (5/5)
 
+## 2026-09-12 11:29 (JST)
+
+- Summary: push後のremote／PR head parityとPR状態を最終確認した。
+- Evidence: local HEAD、`git ls-remote`、PR #127 `headRefOid`はすべて`04bb53853498053b831b3011cc8a7be022f3b1bd`。branchは`refactor/117-pr2-trigger-eval-baseline`、PRはOPEN、base `main`、mergeable `CONFLICTING`。PR本文は今回の調査内容を含む日本語へ同期済み。working treeはclean。
+- Validation: `gh pr checks 127`はCodeRabbit PASS（OSS manual review requiredのskip表示）、Analyze (actions/javascript-typescript/python)はこのpushに対してpending。valid baseline未取得のため、CIの完了待ちやmerge conflict解消は行わない。
+- Decision / Rationale: 今回Runの完了条件は原因調査・安全な停止・Run/PR記録であり、baseline gate後のmerge/CI工程は開始条件未達として保留する。
+- Blocker / Remaining: unknown Skill実値を含む診断を追加する別Runと、valid baseline取得後のmerge conflict/CIが残る。
+- Progress: 100% (5/5)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
