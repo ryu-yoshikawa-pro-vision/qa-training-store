@@ -1,4 +1,18 @@
-import { resolveRuntimeEnvironment } from "../../app.config";
+import resolveAppConfig, { resolveRuntimeEnvironment } from "../../app.config";
+
+describe("Expo config plugins", () => {
+  it("registers expo-sqlite without options while preserving existing plugins", () => {
+    const config = resolveAppConfig({ config: {} } as Parameters<typeof resolveAppConfig>[0]);
+    const plugins = config.plugins ?? [];
+    const sqlitePlugins = plugins.filter((plugin) => plugin === "expo-sqlite");
+
+    expect(sqlitePlugins).toHaveLength(1);
+    expect(plugins).toContain("expo-router");
+    expect(
+      plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-build-properties"),
+    ).toBe(true);
+  });
+});
 
 describe("Expo runtime metadata", () => {
   it("forces Test Control off for production builds", () => {

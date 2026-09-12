@@ -135,8 +135,8 @@ Expo SDK 57のCLI実装では、install対象packageがconfig pluginを持ち、
 
 - `packages/@expo/cli/src/install/utils/autoAddConfigPlugins.ts`
 - `packages/@expo/cli/src/utils/modifyConfigPlugins.ts`
-- Expo Config plugins: https://docs.expo.dev/config-plugins/development-and-debugging/
-- Expo app config: https://docs.expo.dev/workflow/configuration/
+- [Expo Config plugins](https://docs.expo.dev/config-plugins/development-and-debugging/)
+- [Expo app config](https://docs.expo.dev/workflow/configuration/)
 
 #### `expo-sqlite` config pluginのdefault動作
 
