@@ -115,6 +115,20 @@
   - Parent decision: 次はPR #127へ日本語の調査追記を行い、指定branchへRun ArtifactとPlanだけをcommitする。
 - Progress: 87% (7/8)
 
+## 2026-09-12 18:43 (JST)
+
+- Summary: PR本文を更新し、許可されたRun Artifact／Planだけをcommit・pushした。push後CIの最終状態を確認した。
+- Changes: commit `f02a642`（`docs: Trigger Eval routing原因調査と実装Planを記録`）をbranch `refactor/117-pr2-trigger-eval-baseline`へ作成し、`git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`でnon-force pushした。PR #127本文へ`playwright`の由来、Android 2件のtimeout分類、修正判断、Run／Plan／raw evidenceを日本語で追記した。
+- Decision / Rationale: PRはOPEN、baseは`main`、mergeableは`CONFLICTING`のままであり、merge conflict解消・rebase・mergeは行わない。実装Planは次の承認済み実装Runへ引き継ぎ、今回Runを実装完了やvalid baseline取得済みとは扱わない。
+- Validation: push前のbranch parity／status／branch -vv／`git diff --check`はPASS。PR checks最終値はAnalyze (actions)=pass、Analyze (javascript-typescript)=pass、Analyze (python)=pass、CodeQL=pass、CodeRabbit=pass（manual review requiredのためskip理由表示）。Run Artifact sanitizer Write／Check、strict collector、evaluation schema、Prettier、Markdown lint、`git diff --check`は前checkpointのPASSを維持する。
+- Evidence: pushed headは`f02a642`、PR head parityはpush後確認対象。Run `.codex/runs/20260912-181316-JST/`、Plan `docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md`、raw evidence `.artifacts/trigger-eval-unknown-skill-diagnostic-20260912-170130/`。Qualification、canonical all、8/8、valid baselineは未実行・未取得。
+- Blocker / Remaining: 実装Planに記載したprovenance contractの実装、contract test、実装後の新RunによるQualification等は次工程。今回Runに必須の調査・記録・push・CI確認は完了した。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: 本Runを完了扱いとし、コード実装や3ケース再実行へ自動継続しない。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

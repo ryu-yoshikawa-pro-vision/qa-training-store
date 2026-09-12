@@ -9,7 +9,7 @@
 - [x] 5. Codex `0.153.4`相当のSkill injection仕様、observer／evaluator判定経路、runner lifecycle、ADR-0024を突合する。
 - [x] 6. Android 2件のevent時系列・stderr・SKILL.md read・timeout直前処理を分析し、3ケース横比較と原因分類を確定する。
 - [x] 7. 修正要否を判断し、条件を満たす場合だけ実装Planを作成する。source／test／Skill等は変更しない。
-- [ ] 8. Run Artifact／evaluation／PR本文を同期し、Sanitizer・strict collector・指定validation・diff・branch parity・push・CIを確認する。
+- [x] 8. Run Artifact／evaluation／PR本文を同期し、Sanitizer・strict collector・指定validation・diff・branch parity・push・CIを確認する。
 
 ## Discovered
 
