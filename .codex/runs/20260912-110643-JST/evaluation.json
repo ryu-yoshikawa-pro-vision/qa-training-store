@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-110643-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "#140の2 testへ実測根拠のある10000msのtest固有timeoutを設定し、focused各3回、対象file各3回、pnpm run test:contracts各3回、pnpm run verifyを成功させた。matrix timeout、production異常、その他Hook timeoutは再現しなかった。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "tests/contracts/codex-hook-contract.test.ts", "summary": "#140の2 testだけに明示timeoutを追加"},
+        {"kind": "validation_command", "path": null, "summary": "focused/file/contract/verifyの連続実行結果"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "production Hook、config、global Vitest timeout、CI workflow、policy case、assertion、fail-closed semanticsは変更していない。Plan markdownはlint違反の意味不変修正だけである。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": null, "summary": "git diffの変更inventoryと禁止事項確認"},
+        {"kind": "changed_file", "path": "docs/plans/2026-09-12_071400_windows-codex-hook-contract-timeout.md", "summary": "Issue番号表記と末尾改行のみのMarkdown修正"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "対象fileは129/129 PASSを3回、contract suiteは35 files・503 passed・3 skippedを3回、pnpm run verifyは全工程とbuildまでPASSした。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": null, "summary": "pnpm exec vitest、pnpm run test:contracts、pnpm run verify"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "対象branchを維持し、mainへのcommit、push、merge、PR更新、Issue close、削除操作は行っていない。actual run.jsonは直接編集していない。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260912-110643-JST/run.json", "summary": "machine-managed Run manifest"},
+        {"kind": "validation_command", "path": null, "summary": "branch/status/PR safety確認"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "正本Plan、Run PLAN/TASKS/REPORT/evaluation、修正前実測、診断計測判断、修正後検証、CI判断を相互に追跡できる。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260912-110643-JST/REPORT.md", "summary": "append-only checkpointと判断根拠"},
+        {"kind": "changed_file", "path": ".codex/runs/20260912-110643-JST/TASKS.md", "summary": "task完了とProgress"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存test構造を維持し、timeoutを対象2 testへ局所設定した。helper、process manager、batch framework、production最適化は追加していない。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "tests/contracts/codex-hook-contract.test.ts", "summary": "test-local timeoutのみの最小修正"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows 10.0.19045、Node v24.12.0、pnpm 9.10.0、PowerShell 5.1/7.6.6、Git 2.44.0、process.execPathとPowerShell側node pathを記録した。GitHub Actionsの新head実行はno-push指示のため未実施だが、remote PR headのVitest (contracts)成功を確認した。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": null, "summary": "Plan手順1の環境probe"},
+        {"kind": "evaluation_note", "path": null, "summary": "local未push差分のGitHub Actions未実行"}
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "初回pnpm run verifyのNative component 1 test timeoutとJest haste collisionは、focused testとNative component suiteの再実行でPASSし、2回目verifyでも再現しなかった。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": null, "summary": "native-purchase focused、test:component:native、verify再実行"}
+      ],
+      "detail": "Hook変更との因果はなく、Jest設定やProduct codeは変更しなかった。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "low",
+      "evidence": "local差分を含むGitHub Actionsの新しいhead runとfocused Windows CI jobは、明示されたno-push指示およびjob非追加のため存在しない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": null, "summary": "remote PR headの既存Vitest contracts成功のみ確認"}
+      ],
+      "detail": "既存remote CIの確認とlocal verifyは完了した。Windows focused jobは将来の再発防止候補としてRun REPORTへ記録した。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Windows focused Hook contract CI",
+      "evidence": "今回のtimeoutはWindows launcherの実process累積で発生し、現行Web CIのUbuntu Vitest contractsではWindows branchを実行しない。既存Windows jobはartifact sanitizerのみである。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".github/workflows/ci.yml", "summary": "現行workflowにWindows Hook contract jobがない"},
+        {"kind": "validation_command", "path": null, "summary": "remote Web CI Vitest contracts成功とWindows artifact jobの確認"}
+      ],
+      "expected_impact": "Windows launcher固有のtimeout回帰をPR時に継続検出できる。",
+      "recommendation": "別Runで対象contract fileだけを実行するfocused windows-latest jobを設計し、維持コストとrequired check化を承認後に検討する。"
+    }
+  ]
+}

@@ -139,7 +139,7 @@ PR #133の正確な過去test名を復元すること自体はblockingにしな�
 
 ### PR #139との関係
 
-#140作成時のfailureはPR #139の未commit working treeで発生した。一方、PR #139 current headではローカル`pnpm run verify` PASSの記録がある。
+\#140作成時のfailureはPR #139の未commit working treeで発生した。一方、PR #139 current headではローカル`pnpm run verify` PASSの記録がある。
 
 少なくとも次のHook関連ファイルにPR #139固有の直接差分は確認されていない。
 
@@ -150,7 +150,7 @@ tests/contracts/codex-hook-contract.test.ts
 vitest.config.ts
 ```
 
-#140をPR #139固有の回帰とは扱わない。
+\#140をPR #139固有の回帰とは扱わない。
 
 historical比較が必要な場合に参照するSHA:
 
@@ -183,7 +183,7 @@ Node test process
      -> node pre_tool_use_policy.mjs
 ```
 
-#140の2件が渡すcommandは次である。
+\#140の2件が渡すcommandは次である。
 
 - `git status --short`
 - `rm -f sentinel.txt`
@@ -392,7 +392,7 @@ if ($null -ne $pwsh) { $pwsh.Source; pwsh.exe --version } else { 'pwsh.exe: not 
 
 一時計測なし、デフォルトreporter、現行の個別timeout条件のまま次をfocused実行する。
 
-#140の2件:
+\#140の2件:
 
 ```powershell
 pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 -t "preserves safe and deny semantics through the Windows launcher from root and nested cwd"
@@ -442,7 +442,7 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 
 ### 手順4: #140は1 launcherごとの総時間だけ測る
 
-#140の2件がfocusedまたはfile単体で再現した場合だけ実施する。
+\#140の2件がfocusedまたはfile単体で再現した場合だけ実施する。
 
 6個の`runWindowsLauncher()`呼び出しについて、test helper側から総時間だけ一時計測する。
 
@@ -546,7 +546,7 @@ batch化で既存contractの保証範囲を狭める可能性が残る場合は�
 - `git branch --show-current`
 - `git rev-parse --abbrev-ref --symbolic-full-name @{upstream}`
 
-#140の2件ではこの経路を調べない。
+\#140の2件ではこの経路を調べない。
 
 #### suite限定で悪化する場合
 
@@ -600,7 +600,7 @@ batch化は、手順5の条件を満たす場合だけ既存`runNodeHookWithExpl
 
 #### C. その他のHook timeoutがtest構造だけで説明できる
 
-#140 / matrix以外のcaseでも、複数subprocessの正常な累積やtest固有timeoutで説明できる場合は、そのtestだけを局所修正する。
+\#140 / matrix以外のcaseでも、複数subprocessの正常な累積やtest固有timeoutで説明できる場合は、そのtestだけを局所修正する。
 
 既存の保証範囲を維持し、他testやglobal timeoutへ設定を広げない。
 
@@ -805,7 +805,7 @@ sanitizer後にsource / test / configを追加修正した場合は、その変�
 - fail-closedとpolicy semanticsを維持できる。
 - repository / cwd / `git -C`境界を跨いだ共有を発生させない。
 
-#140の2件だけを根拠にHook内部Git contextを変更しない。#140では`getGitCommandContext()`が実行されない。
+\#140の2件だけを根拠にHook内部Git contextを変更しない。\#140では`getGitCommandContext()`が実行されない。
 
 ### source変更せず調査終了する条件
 
