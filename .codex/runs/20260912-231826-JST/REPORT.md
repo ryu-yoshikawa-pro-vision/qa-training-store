@@ -190,6 +190,24 @@
   - Parent decision: task 9を完了し、最新headの必須CIを確認する。
 - Progress: 90% (9/10)
 
+## 2026-09-13 02:51 (JST)
+
+- Summary:
+  - PR #127の最新head `360d2c9ded4cbac065d90d13389b743467acf2ff` に対する必須CIの終端状態を確認し、Runを完了した。
+  - PR本文は日本語で更新済みで、baselineのpartial結果、検証結果、provenance、最新headを反映している。
+- Validation:
+  - `gh pr view 127 --json headRefName,headRefOid,state,baseRefName,title`: PRはOPEN、baseは`main`、head branchは`refactor/117-pr2-trigger-eval-baseline`、headは`360d2c9ded4cbac065d90d13389b743467acf2ff`。
+  - `gh pr checks 127`: 40 success、2 skipped、0 cancelled、0 failing、0 pending。`Web CI`相当のweb系job、`Mobile App CI`相当のAndroid／iOS job、CodeQLを含め、失敗・保留はない。
+  - PR本文のCI記録と最新headが一致することを確認した。merge、close、branch削除、rebase、force pushは行っていない。
+- Decision / Rationale:
+  - Trigger Evalの8/8 boundary未達と19 timeoutはpartial baselineの事実として維持し、CI成功をbaseline valid化の根拠には使わない。
+  - task 10を完了としてRunの進捗を100%に確定する。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: strict Runを完了とする。
+- Progress: 100% (10/10)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

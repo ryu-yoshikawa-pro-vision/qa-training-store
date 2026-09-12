@@ -11,7 +11,7 @@
 - [x] 7. 新しいTrigger Eval `all` baselineを1回取得し、self-compare／model mismatch／coverageを確認する
 - [x] 8. Run Artifactを更新・sanitizer検証し、最終scope／diffを監査する
 - [x] 9. branch安全確認後にcommit・通常pushし、local／remote／PR headを照合する
-- [ ] 10. PR本文を更新し、最新headのWeb CI／Mobile App CIを終端確認してRunを完了する
+- [x] 10. PR本文を更新し、最新headのWeb CI／Mobile App CIを終端確認してRunを完了する
 
 ## 実装・変更タスクの完了処理
 

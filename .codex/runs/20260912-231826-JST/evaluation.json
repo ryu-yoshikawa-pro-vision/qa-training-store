@@ -10,13 +10,13 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "4件のレビュー指摘、回帰テスト、repository gate、full verifyは完了した。Trigger Eval allは24 casesを完走したが、8 required boundary sides中7 observedのためvalid 8/8 baselineには未達で、push後CIも未確認である。",
+        "evidence": "4件のレビュー指摘、回帰テスト、repository gate、full verify、PR #127のpush後必須CI確認は完了した。Trigger Eval allは24 casesを完走したが、8 required boundary sides中7 observedのためvalid 8/8 baselineには未達である。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260912-231826-JST/REPORT.md",
           "selector": "2026-09-13 02:04 (JST)",
-          "summary": "single allの24ケース完走、coverage不足、残作業を記録した。"
+          "summary": "single allの24ケース完走、coverage不足、push後CI確認済みのRun完了を記録した。"
         }
       ]
     },
