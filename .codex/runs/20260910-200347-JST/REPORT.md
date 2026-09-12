@@ -94,3 +94,72 @@
 - Decision / Rationale: final commit前のREPORTにはローカル検証、scope、sanitizer、変更内容、commit対象、push後に必須CIを確認する残作業を記録した。新しいPR headのCIはまだ確認しておらず、未実行の`Web CI PASS`／`Mobile App CI PASS`は記録していない。`run.json`は手編集していない。
 - Blocker / Remaining: commit前のbranch／stage最終確認、明示stage、commit、通常push、local／remote／PR head一致確認、最新headの`Web CI`／`Mobile App CI`確認、CI成功後のPR本文更新、ユーザー向け最終報告が残っている。CI成功結果をtracked Run Artifactへ書き戻すcommitは行わない。
 - Progress: 100% (5/5; tracked pre-push taskのみ。最新headの必須CI未確認のため作業全体は未完了)
+
+## 2026-09-11 22:44 (JST)
+
+- Summary: PR #139の再レビュー指摘4件を`must_fix`として確認し、修正前PR headを`a7632fad478ac5d28f53849ce950b1d205024f36`として記録した。PRはOPEN、baseは`main`、head branchは`docs/require-push-ci-on-completion`であり、今回の修正では新しいcommitを作成する。
+- Findings: (1) §2のRun完了checkpointとpush後CI確認が自己参照し得る、(2) TASKS checkboxだけではCI未確認でもProgress 100%となる、(3) `run.json`の`status=pending`／`validation.status=not_run`がREPORTの実検証結果と一致しない、(4)「文書を変更するタスク」がGitHub metadataのみの変更までcommit・push・CI対象に含め得る。
+- Changes planned: `AGENTS.md`、`.codex/templates/TASKS.md`、正本Plan、Run-local `PLAN.md`／`TASKS.md`／`REPORT.md`を更新する。§2のRun完了checkpoint自体は維持し、repository working tree変更をcommit・pushし必須CI確認まで行う場合だけtracked Artifactをcommit前に確定する例外を追加する。ユーザー向けProgressには必須CI確認1件を加算し、GitHub metadataのみの変更は対象外とする。
+- run.json: 実値は`branch=null`、`base_branch=null`、`changed_files=[]`、`validation.status=not_run`、`validation.commands=[]`、`status=pending`である。既存collectorをclean treeで1回実行したが、値は推論・更新されずJSON整形だけだったため採用せず、`run.json`の意味値は手編集していない。手動Runの完了状態をmanifestへ反映できない既存collector制約として記録する。
+- Decision / Rationale: CI成功後のtracked Run Artifact更新・再commit・再pushは行わず、CI結果はGitHub Actions、PR本文、ユーザー向け報告へ記録する。`run.json`、collector、manifest仕様、workflow、Hook、rules、Product Code／Test、依存は今回変更しない。
+- Progress: 38% (5/13; tracked task 5/12、push後の最新PR headに対する必須CI確認 0/1)
+
+## 2026-09-11 22:46 (JST)
+
+- Summary: §2のRun完了checkpoint例外、§3のCI確認1件を含むProgress算出、実装タスクのrepository working tree境界、GitHub metadataのみの対象外を`AGENTS.md`へ反映した。TASKS template、正本Plan、Run-local PLAN/TASKSも同じ順序へ更新した。
+- Validation: `run.json`はcollector実行後も`status=pending`／`validation.status=not_run`等の意味値が不変であり、collector生成の整形差分は採用していない。`run.json`、collector、manifest仕様、workflow、Hook、rules、Product Code／Test、依存には今回の意味変更を加えていない。
+- Decision / Rationale: 既存のRun完了checkpoint契約とreview-only等の対象外を維持し、例外をrepository working tree変更＋commit・push後CI確認の実装・変更タスクに限定した。CI確認はTASKS checkboxへ戻さない。
+- Blocker / Remaining: `pnpm run lint:markdown`、`pnpm run validate:skills`、`pnpm run verify`、`git diff --check`、scope監査、sanitizer、commit対象確認、commit・push・新head CI確認、PR本文更新が残っている。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-11 23:00 (JST)
+
+- Summary: `pnpm run verify`は`tests/contracts/codex-hook-contract.test.ts`のWindows launcher 2テストが既定5秒timeoutとなりexit 1で停止した。上流failureのため後続buildは実行していない。
+- First anomaly / Classification: `preserves safe and deny semantics through the Windows launcher from root and nested cwd`と`keeps quote, backslash, LF, and CRLF stdin semantics through the launcher`がtimeoutした。今回の差分にはProduct Test、`.codex/hooks/**`、config、package、lockfileの変更がなく、前回の同一head検証ではPASS済みである。
+- Root-cause assessment: 各テストを診断的に`--testTimeout=30000`で実行すると2/2 PASSし、処理時間は約5.10秒／10.17秒だった。今回の文書変更起因ではなく、既定5秒timeoutに対するWindows launcher実行環境の性能揺らぎと分類する。原因修正には今回禁止されたProduct Test／Hook／設定変更が必要なため、同一条件の無目的な再試行は停止する。
+- Validation: `pnpm run lint:markdown`（386 files、0 issues）と`pnpm run validate:skills`（6 Skill、15 Markdown、25 links）はPASSした。`pnpm run verify`は上記timeout failure、`git diff --check`・scope監査・sanitizer・commit対象確認・commit／push・新head CI確認は未完了である。
+- Decision / Rationale: これは`TEST_FAILURE`相当の既存／環境依存failureとして、修正対象外の既知制約に分離する。全ゲートPASSまたは安全な停止条件に到達するまで完了扱いにせず、Progress 100%を報告しない。
+- Blocker / Remaining: `pnpm run verify`の既定条件PASS、Run Artifact sanitizer、明示stage／commit、通常push、最新headのWeb CI／Mobile App CI、PR本文更新、最終報告が残っている。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-11 23:34 (JST)
+
+- Summary: 実行中のverify／Jest／Vitest／Playwright／build処理がないこと、Node `v24.12.0`、pnpm `9.10.0`、対象差分が契約修正6ファイルのみであることを確認し、標準の`pnpm run verify`を追加optionなしで1回だけ再実行した。
+- First anomaly / Result: `pnpm run test:contracts`の`tests/contracts/codex-hook-contract.test.ts`で、`preserves safe and deny semantics through the Windows launcher from root and nested cwd`が既定`5000ms`を超えて`5569ms`、`keeps quote, backslash, LF, and CRLF stdin semantics through the launcher`が`5071ms`となり、同じ5秒timeoutでFAILした。contracts suiteは35 files中34 passed、testsは501 passed・2 failed・3 skipped。`pnpm run verify`はexit code 1で、上流failure後の`build:web`／`build:spec`は実行されていない。
+- Revalidation context: 前回の30秒timeout対象確認では2/2 PASSしている。今回の再実行ではコード、テスト、設定、timeout、Hook、workflow、package、依存を変更していない。前回timeoutが今回再現しなかったとはならず、原因をWindows環境依存、cold cache、suite負荷等に断定しない。今回差分との直接因果は確認されていない。
+- Decision / Rationale: 同じlauncher関連2件・同じ5秒timeoutが再発したため、今回の指示に従い追加再試行を停止する。今回許可された変更範囲では安全な修正ができず、Product Test／Jest・Vitest設定／timeout／Hook／CI／package／依存へ変更を広げない。
+- Blocker / Remaining: `pnpm run verify` PASSがcommit条件を満たさないため、git add／commit／push／新head CI確認／PR本文更新は未実施。PR headは修正前の`a7632fad478ac5d28f53849ce950b1d205024f36`のまま。REPORT追記後の`git diff --check`とSanitizer Write／Checkを実施する。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-11 23:35 (JST)
+
+- Correction: 以前のcheckpointにある「環境依存」等の分類は、今回の再検証結果から確定したものではない。最新の判断は、同じ2テストが5秒timeoutしたこと、30秒timeoutの対象確認では2/2 PASSだったこと、今回6ファイル差分との直接因果を確認できていないこと、原因自体は未確定であることに限定する。
+- Decision: この補足は既存checkpointを削除・置換せずに意味を明確化するためのappend-only追記である。追加再試行、コード・テスト・設定変更、Git mutationは行わない。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-11 23:02 (JST)
+
+- Summary: `git diff --check`、禁止対象・Product Code／Testを含むscope監査、credential-like scan、Run Artifact sanitizerを確認した。
+- Validation: `git diff --check`はPASS。変更は`AGENTS.md`、`.codex/templates/TASKS.md`、正本Plan、Run-local `PLAN.md`／`TASKS.md`／`REPORT.md`の6ファイルのみで、禁止対象差分は0件。Sanitizer Write／Checkは4 files、0 replacements、0 residual findings。credential／token／secret value scanも該当なし。
+- Decision / Rationale: `pnpm run verify`だけは既定5秒timeoutの既存Windows launcher契約テスト2件でFAILしており、30秒診断では2/2 PASSだった。修正対象外のProduct Test／Hook／設定へ変更を広げず、品質ゲートfailureの再試行を停止条件として記録する。
+- Blocker / Remaining: task 17（全ローカル検証）とtask 18（commit対象確認）は未完了。commit・push・新PR headの必須CI確認・PR本文更新は、`pnpm run verify`の停止判断後にユーザー判断が必要である。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-12 19:09 (JST)
+
+- Summary: Issue #140はIssue #142へ統合され、Issue #142は完了済みであり、PR #144はmainへmerge済みであることを確認した。PR #139のWindows launcher timeout blockerは解消済みと判断する。
+- Changes: PR #144で、5秒境界を超えていた対象2 testの直列Windows launcher実行時間の累積が原因として特定され、対象2 testだけへtest-local `10000ms` timeoutが設定された。assertion削減やskipはなく、PR #144では`pnpm run verify`がPASSしている。#140／#142の原因調査はやり直していない。
+- Decision / Rationale: PR #144の修正を含むremote head `b3ca0e8e9adedd948137f5b860f56058b6935bbf`を、未commitの契約修正6ファイルを保持した対象branchへ取り込んだ。これからPR #139の標準ローカル検証を実施する。
+- Validation: 現在の対象testには2件ともtest-local `10000ms`があり、allow／deny、quote、backslash、LF、CRLFの既存assertionを維持している。PR #139はOPEN、baseは`main`、head branchは`docs/require-push-ci-on-completion`である。`run.json`は既存collectorの制約により`status=pending`／`validation.status=not_run`、`branch=null`／`base_branch=null`／`changed_files=[]`のままであり、手編集していない。
+- Blocker / Remaining: `pnpm run lint:markdown`、`pnpm run validate:skills`、`pnpm run verify`、`git diff --check`、REPORT更新後のSanitizer、scope監査、commit／push、push後の新head必須CI確認、PR本文更新が未完了である。
+- Progress: 77% (10/13; tracked task 10/12、必須CI確認 0/1)
+
+## 2026-09-12 19:18 (JST)
+
+- Summary: PR #144修正を含む現在HEADで、指定された標準ローカル検証、scope監査、Run Artifact Sanitizerを完了した。
+- Validation: `pnpm run lint:markdown`は387 files・0 issuesでPASS、`pnpm run validate:skills`は6 Skill／15 Markdown／25 local linksでPASS、標準`pnpm run verify`はexit 0でPASSした。verify内ではformat、Markdown、Skill、spec／visual、curriculum、ESLint（0 errors・既存65 warnings）、3種typecheck、image manifest、security、unit 66、integration 111、repository 66、web component 102、native component 64、contracts 35 files／503 passed／3 skipped、`build:web`、`build:spec`を完了した。`git diff --check`もPASSした。
+- Artifact / Sanitizer: 現行scriptのinterfaceを確認し、`-Path <string[]> -Write -Check`で`.codex/runs/20260910-200347-JST`をWrite／Checkした。4 files、0 replacements、0 residual findingsであり、絶対ローカルpath、credential／token／secretの残存はない。
+- Scope audit: 作業treeの変更は契約修正6ファイルだけで、禁止対象のProduct Code／Test、`tests/contracts/codex-hook-contract.test.ts`、Hook、workflow、rules、collector、manifest schema、config、package定義、lockfileに差分はない。PR #144由来の対象test変更は現在HEAD側にあり、今回stage対象へ含めない。
+- Decision / Rationale: 既定timeout／対象除外／skip／追加optionなしで標準verifyがPASSしたため、前回のWindows launcher timeout blockerは今回の対象branchでは解消済みとして扱う。これでfinal commit前のtracked Run Artifactを確定し、明示stage／commitへ進む。
+- Blocker / Remaining: commit前のbranch／stage最終確認、commit、通常push、local／remote／PR head一致確認、push後の新headに対するWeb CI／Mobile App CI確認、CI結果を反映したPR本文更新、最終報告が未完了である。CI成功結果を記録するためのtracked Run Artifact更新は行わない。
+- Progress: 92% (12/13; tracked task 12/12、push後の必須CI確認 0/1)
