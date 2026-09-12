@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-231826-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "4件のレビュー指摘、回帰テスト、repository gate、full verifyは完了した。Trigger Eval allは24 casesを完走したが、8 required boundary sides中7 observedのためvalid 8/8 baselineには未達で、push後CIも未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-231826-JST/REPORT.md",
+          "selector": "2026-09-13 02:04 (JST)",
+          "summary": "single allの24ケース完走、coverage不足、残作業を記録した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は指定されたvalidation query、固定model provenance／comparison、stdin fail-close、Plan注記、対応テストに限定し、Product code、Skill description、timeout、OTel意味契約、query全体は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-231826-JST/PLAN.md",
+          "selector": "## Scope",
+          "summary": "今回のin／out scopeを記録した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "dataset validation、focused tests、repository tests、static gates、full verifyはPASSした。一方、single allのrunnerはcoverage不足でexit 1となり、observable countは17、missing sideは1件である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "ローカル指定gateとpnpm run verifyはPASSした。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/trigger-eval-baseline.json",
+          "selector": "summary",
+          "summary": "24 casesのoutcome／lifecycle集計とpartial coverageの原本。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "fresh detached Targetを使用し、all実行は一回だけ行った。coverage改善目的のretry、Target交換、timeout変更、rebase、force push、PR merge／close／削除は行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-231826-JST/REPORT.md",
+          "selector": "2026-09-13 00:02 (JST)",
+          "summary": "Target isolationとbaseline固定条件を記録した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "source修正、テスト、dataset fingerprint、固定model、24ケースの実測結果、process lifecycle、coverage欠落、self-compare、model mismatchをRun Artifactへ明示し、raw telemetryはGit管理外に保持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/REPORT.md",
+          "selector": "2026-09-13 02:04 (JST)",
+          "summary": "baselineの実測結果と判断根拠を記録した。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Result schema 2、既存OTel primary契約、CASE_TIMEOUT_MS、Skill description、dataset schemaを維持し、modelはinvocationとprovenance／comparisonで同一値を要求する小さな契約拡張に留めた。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-231826-JST/PLAN.md",
+          "selector": "## Hypotheses",
+          "summary": "固定modelとstdin fail-closeの設計判断を記録した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Run snapshotとraw JSONのSHA256が一致し、Evaluator SHA、Routing SHA、dataset fingerprint、Codex version、model、split、24 case IDsを保存した。self-compareと異なるmodelの拒否もPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/trigger-eval-baseline.json",
+          "summary": "schema 2の実測baseline snapshot。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "single allは24 casesを完走したが、process lifecycleはcompleted=5、timed_out=19で、7 casesがunobservableとなった。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/trigger-eval-baseline.json",
+          "selector": "summary.by_process_lifecycle",
+          "summary": "実測lifecycle集計。"
+        }
+      ],
+      "detail": "結果改善目的のretryは行わず、runtime／environmentの後続調査候補として扱う。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "8 required boundary sides中7 observedで、exploratory-qa-vs-android-native-local-validation/exploratory-qa sideがmissingとなり、runnerがexit 1を返した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/trigger-eval-baseline.json",
+          "selector": "cases",
+          "summary": "欠落sideに対応するunobservable caseを含む24ケース原本。"
+        }
+      ],
+      "detail": "partial baselineは保存するが、valid 8/8 baselineとしては扱わない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval runtime coverage",
+      "evidence": "single allのmissing sideは1件で、19/24 casesがtimed_outとなった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-231826-JST/REPORT.md",
+          "selector": "2026-09-13 02:04 (JST)",
+          "summary": "coverage不足とlifecycleの実測を記録した。"
+        }
+      ],
+      "expected_impact": "全boundary sideをobservableにし、all runをvalid 8/8として評価できる。",
+      "recommendation": "今回のPRではretryやtimeout変更を行わず、別RunでCodex runtime／telemetry／環境条件を調査する。"
+    },
+    {
+      "target": "Trigger Eval baseline operational reporting",
+      "evidence": "runnerは全24ケースを保存したうえでcoverage不足をexit 1として報告でき、self-compareとmodel mismatchも検証できた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-231826-JST/trigger-eval-baseline.json",
+          "summary": "partialでもprovenanceとcase-level evidenceを保持した。"
+        }
+      ],
+      "expected_impact": "valid baseline未達時にも再現可能な診断情報を失わず、後続Runの比較条件を明確にできる。",
+      "recommendation": "今回追加したmodel provenance／fail-closed comparisonを維持し、次回は同一dataset・model・Target条件で環境原因を切り分ける。"
+    }
+  ]
+}
