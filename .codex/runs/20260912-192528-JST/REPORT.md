@@ -239,6 +239,28 @@
   - Parent decision: baseline closureは成立しているためmerge conflict解消を続行し、routing変更検出後に停止する。
 - Progress: 50% (4/8)
 
+## 2026-09-12 20:32 (JST)
+
+- Summary:
+  - `origin/main`（`a5402e4940ac8b790d1bb5bc7db5a68e5848a187`）を通常のmergeで取り込み、`package.json`のscript conflictを手動解消した。
+  - baseline Routing SHAから`origin/main`まで、`AGENTS.md`／各Skill `SKILL.md`／Trigger Eval datasetに変更はなく、main側のSemantic Output Eval追加のみであることを確認した。
+- Changes:
+  - `package.json`に`eval:skills:semantic`、`eval:skills:trigger:validate`、`eval:skills:trigger`を共存させた。
+  - Trigger Evalの`evals/trigger/**`、Semantic Output Evalの`evals/output/**`、両系統のevaluator／runner／observer／repository-contract testを保持した。
+  - baseline snapshot `.codex/runs/20260912-192528-JST/trigger-eval-baseline.json`は編集せず、canonical Trigger Eval／qualification／diagnostic／3ケース再診断は実行していない。
+- Decision / Rationale:
+  - conflict解消は`package.json`のscript追加に限定し、Semantic Eval runnerとTrigger Eval runnerの統合、共通helper新設、dataset／query／expected_skill／boundary／Skill description／AGENTS.mdの変更は行わない。
+  - 過去checkpointに記録したrouting変更検出は、今回のbaseline Routing SHA起点の正本差分再確認で該当なしと訂正し、履歴は削除せず本checkpointで最新判断を記録した。
+- Validation:
+  - `pnpm run eval:skills:trigger:validate`: PASS（12 files、24 cases、fingerprint `84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`）。
+  - Semantic repository-contract: PASS（19/19）。Trigger側指定3ファイル: PASS（48/48）。`pnpm run test:repository`: PASS（10 files、114/114）。
+  - `format:check`、`lint:markdown`、`validate:skills`、`lint`（0 errors、65 warnings）、`typecheck`: PASS。`git diff --check`: PASS。行頭conflict marker: なし。
+  - `pnpm run verify`: PASS。unit 66/66、integration 111/111、repository 114/114、component web 102/102、native 64/64、contracts 504 passed／3 skipped、web/docs/spec build完了。
+  - baseline SHA256: `D79927276D4DFD6F08B2E495E30989D58EE805BD783618D39C8405B62D2E30C6`を維持。
+- Blocker / Remaining:
+  - merge commit、explicit push、PR本文更新、push後CI／PR状態確認はこのcheckpoint後に実施する。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

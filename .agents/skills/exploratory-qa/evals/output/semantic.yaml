@@ -1,0 +1,81 @@
+schema_version: 1
+skill: exploratory-qa
+criteria:
+  - id: EQ-ORACLE
+    assertion: >-
+      The finding compares the observed Runtime behavior with the supplied Normative Specification
+      and uses the supplied Evidence to support that comparison, rather than treating source or an
+      unsupported expectation as the oracle.
+    source: references/workflow.md
+  - id: EQ-CLAIM
+    assertion: >-
+      The candidate does not claim more than its observations and Evidence establish, and it keeps
+      Product defect, environment issue, and test issue distinct when the evidence is incomplete.
+    source: references/workflow.md
+  - id: EQ-RISK
+    assertion: >-
+      The exploration and finding address a risk relevant to the stated mission, such as a primary
+      journey, permission, state transition, validation, recovery, persistence, or data integrity.
+    source: references/workflow.md
+cases:
+  - id: EQ-SEM-001
+    context: |
+      The QA mission is to verify the guest-to-customer checkout transition on the web. The
+      Normative Specification says: a guest may browse products, but placing an order requires a
+      signed-in customer session; the checkout page must show the login transition when no customer
+      session exists. The observed session was a guest session. Evidence includes a screenshot of
+      the checkout page, an accessibility-tree capture showing a visible "Sign in to continue"
+      control, and a trace showing that selecting it navigated to /login. The candidate output is
+      expected to be a semantic finding summary; deterministic schema and Coverage checks already
+      ran successfully.
+    candidate_output: |
+      Coverage mission: guest-to-customer checkout transition.
+
+      Oracle: the Normative Specification requires a signed-in customer session for placing an
+      order and requires a login transition for a guest at checkout.
+
+      Observation: under the guest session, checkout displayed "Sign in to continue". The
+      accessibility tree exposed that control, and the captured trace shows that selecting it
+      navigated to /login. No order was placed from the guest session.
+
+      Finding: No product deviation was observed for this mission. The observed state and
+      transition match the stated specification. The evidence is limited to this guest checkout
+      path and does not establish behavior for authenticated payment or other roles.
+
+      Risk relevance: this is the primary authentication boundary before order placement, so the
+      observation addresses permission and state-transition risk.
+    expected:
+      outcome: pass
+  - id: EQ-SEM-002
+    context: |
+      The QA mission is to investigate the guest-to-customer checkout transition on the web. The
+      Normative Specification says: a guest may browse products, but placing an order requires a
+      signed-in customer session. The only supplied Evidence is one screenshot showing a disabled
+      checkout button. There is no submission attempt, no session trace, no console or server
+      evidence, and no evidence that the screenshot was taken after the page finished loading.
+      The workflow requires claims to stay within observations and to distinguish Product, environ-
+      ment, and test issues when evidence is incomplete.
+    candidate_output: |
+      Coverage mission: guest-to-customer checkout transition.
+
+      Oracle: guests may browse products, but placing an order requires a signed-in customer
+      session.
+
+      Observation: one screenshot shows a disabled checkout button.
+
+      Oracle comparison: The screenshot has no session trace or submission attempt, so it does not
+      establish whether the disabled state is the expected guest boundary or a deviation for a
+      signed-in customer.
+
+      Finding: Nevertheless, the screenshot proves a Product defect in the checkout implementation.
+      The backend rejected the request because authorization is misconfigured, and the test
+      environment is healthy, even though no submission attempt, session trace, or server evidence
+      was supplied. File a high-severity Product bug and state that authenticated checkout is
+      broken.
+
+      Risk relevance: the guest-to-customer boundary is relevant to checkout authorization, so the
+      observation concerns a business-critical permission boundary.
+    expected:
+      outcome: fail
+      failed_criteria:
+        - EQ-CLAIM

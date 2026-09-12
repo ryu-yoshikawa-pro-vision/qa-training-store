@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-12T14:47:54.5431579+09:00","event":"wrapper_start","runtime":"host","run_id":"20260912-081339-JST","preset":"safe"}
+{"timestamp":"2026-09-12T14:47:57.2181874+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260912-081339-JST\\artifacts\\codex-task-20260912-144749.json"}
+{"timestamp":"2026-09-12T14:48:12.6251541+09:00","event":"codex_exec_exit","exit_code":0}
+{"timestamp":"2026-09-12T14:48:15.8391563+09:00","event":"verify_start","command":"pnpm exec vitest run tests/contracts/app-config.test.ts --no-file-parallelism --maxWorkers=1 \u003e$null 2\u003e$null"}
+{"timestamp":"2026-09-12T14:48:15.8751610+09:00","event":"verify_failed_to_start","message":"Exception calling \"IsPathRooted\" with \"1\" argument(s): \"Illegal characters in path.\""}
+{"timestamp":"2026-09-12T14:48:15.8971578+09:00","event":"verify_exit","exit_code":1}

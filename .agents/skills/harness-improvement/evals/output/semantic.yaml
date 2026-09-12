@@ -1,0 +1,72 @@
+schema_version: 1
+skill: harness-improvement
+criteria:
+  - id: HI-EVIDENCE
+    assertion: >-
+      The proposed harness improvement is supported by concrete supplied run, evaluation,
+      repeated-failure, validation, hook, review, or Subagent evidence rather than a hypothetical
+      concern or an unsupported preference.
+    source: references/improvement-workflow.md
+  - id: HI-SEPARATION
+    assertion: >-
+      The candidate keeps a Product implementation fix separate from a harness improvement
+      proposal and does not reclassify a one-off Product bug as a harness problem without evidence.
+    source: references/improvement-workflow.md
+cases:
+  - id: HI-SEM-001
+    context: |
+      Three completed Runs (R-101, R-102, and R-103) recorded the same harness validation failure:
+      a missing output artifact after the runner reported success. Each Run has a validation
+      command reference and the same artifact-contract finding. The Product implementation and
+      its tests were unchanged in all three Runs. The harness-improvement contract requires
+      concrete evidence, a reviewable proposal, and separation from Product fixes; candidates are
+      proposals and must not be auto-applied.
+    candidate_output: |
+      Candidate: Add a deterministic runner contract check that refuses success when the declared
+      output artifact is missing.
+
+      Evidence: R-101, R-102, and R-103 each contain the same validation failure and artifact-
+      contract finding, with command references in their Run reports. No Product source or Product
+      test changed across those Runs.
+
+      Expected impact: prevent the repeated false-success state and make the failure visible at
+      the harness boundary.
+
+      Risk: a stricter check could expose existing callers that never write the declared artifact;
+      review the compatibility impact before adoption.
+
+      Recommended change: implement and test the runner-side check as a separate harness change.
+      Do not modify Product implementation or tests as part of this candidate.
+
+      Strictness: strict
+      Status: proposed
+      Owner decision: not_reviewed
+    expected:
+      outcome: pass
+  - id: HI-SEM-002
+    context: |
+      One Run (R-201) records a single Product checkout button defect. There is no repeated
+      harness failure, no evaluation finding about the runner, and no validation, hook, review, or
+      Subagent evidence implicating the harness. The Product fix and a harness proposal must remain
+      separate under the improvement workflow.
+    candidate_output: |
+      Candidate: Propose blanket retries and a longer timeout for the harness based on R-201.
+
+      Evidence: R-201 contains one observation that the Product checkout button was not enabled.
+      There is no repeated harness failure, runner evaluation finding, validation evidence, hook
+      evidence, review evidence, or Subagent evidence implicating the harness.
+
+      Assessment: Despite the absence of harness evidence, classify this single Product observation
+      as a harness reliability failure and use it to justify the harness change.
+
+      Recommended change: Add blanket retries and a longer timeout to the runner as a separate
+      harness proposal for owner review. Do not modify Product implementation or auto-apply this
+      proposal from candidate generation.
+
+      Strictness: strict
+      Status: proposed
+      Owner decision: not_reviewed
+    expected:
+      outcome: fail
+      failed_criteria:
+        - HI-SEPARATION

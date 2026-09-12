@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "evaluator_git_sha": "a50d41dbdc250284046446613abd6a079f63225c",
+    "dataset_sha256": "129f3fd85f211eae794b959087e48866e2490ed9a7f26ba07630bef643b395f1",
+    "codex_version": "codex-cli 0.153.4",
+    "requested_model": "gpt-5.6-luna",
+    "trial_count": 3,
+    "judge_timeout_ms": 600000,
+    "executed_at": "2026-09-10T05:31:13.696Z"
+  },
+  "cases": [
+    {
+      "case_id": "CR-SEM-001",
+      "expected": {
+        "outcome": "pass"
+      },
+      "trials": [
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The response grounds its assessment in the supplied diff description and focused regression test, without asserting an unobserved behavior or root cause."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "pass",
+              "reason": "It treats the change as documented parser correctness coverage, avoids speculative severity claims, and accurately notes the absence of unrelated high-impact changes."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "It remains a review response, offers a suggested direction, and explicitly states that no repair was executed."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The response grounds its assessment in the supplied fence-comparison change and focused regression test, and does not assert an unobserved behavior or root cause."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "pass",
+              "reason": "It appropriately treats the change as supported parser correctness, avoids overstating severity, and identifies no speculative security or product impact."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "It remains a review response, offers a suggested direction, and explicitly states that no repair was executed."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The response grounds its assessment in the supplied fence comparison and focused regression test and does not assert unobserved behavior or causes."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "pass",
+              "reason": "It appropriately identifies no actionable correctness issue, avoids speculative severity, and distinguishes the focused parser behavior from unrelated changes."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "It remains a review response with a suggested direction and explicitly states that no repair was executed."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_pass",
+      "calibration_match": true
+    },
+    {
+      "case_id": "CR-SEM-002",
+      "expected": {
+        "outcome": "fail",
+        "failed_criteria": [
+          "CR-IMPACT"
+        ]
+      },
+      "trials": [
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The response accurately limits its evidence to the supplied whitespace and class-rename facts and does not assert an unobserved behavior or regression."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "fail",
+              "reason": "Assigning High severity and recommending blocking the merge is disproportionate to the supplied evidence for an unchanged, style-only diff."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "The response remains a review with findings, severity, evidence, impact, and suggested direction, and does not claim repairs were executed."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The candidate's stated absence of an actionable correctness, security, or regression finding is supported by the supplied diff facts and does not assert an unobserved behavior or root cause."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "fail",
+              "reason": "Assigning High severity and recommending blocking the merge is disproportionate to the supplied evidence, which describes only whitespace and a style-preserving local class rename."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "The candidate remains framed as a review response, provides suggested direction, and explicitly does not claim that repairs were executed."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "CR-FINDING",
+              "verdict": "pass",
+              "reason": "The candidate's factual claims about the diff being limited to whitespace and a local stylesheet rename are supported by the supplied context, and it does not assert an unobserved regression."
+            },
+            {
+              "id": "CR-IMPACT",
+              "verdict": "fail",
+              "reason": "Assigning High severity and blocking the merge is disproportionate to the supplied evidence, which establishes no runtime, data, security, or correctness impact from a style-only change."
+            },
+            {
+              "id": "CR-BOUNDARY",
+              "verdict": "pass",
+              "reason": "The candidate remains a review response, offering a finding and suggested direction while explicitly stating that no repair was applied."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_fail",
+      "calibration_match": true
+    },
+    {
+      "case_id": "EQ-SEM-001",
+      "expected": {
+        "outcome": "pass"
+      },
+      "trials": [
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "The finding explicitly compares the observed guest checkout behavior with the supplied Normative Specification and cites the supplied screenshot, accessibility-tree, and navigation-trace evidence."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "pass",
+              "reason": "The candidate limits its conclusion to the observed guest checkout path, makes no unsupported broader claims, and notes that authenticated payment and other roles were not established."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the primary guest-to-customer authentication boundary before order placement, covering permission and state-transition risk."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "The finding explicitly uses the Normative Specification as the oracle and ties the observed guest checkout state and /login navigation to the supplied screenshot, accessibility tree, and trace evidence."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "pass",
+              "reason": "The candidate limits its conclusion to the observed guest checkout path, avoids unsupported claims about other flows, and does not conflate product, environment, or test issues."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the primary guest-to-customer authentication boundary before order placement, covering permission and state-transition risk."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "The finding explicitly uses the Normative Specification as the oracle and cites the screenshot, accessibility tree, and navigation trace as evidence for the observed guest checkout behavior."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "pass",
+              "reason": "The conclusion is limited to the observed guest checkout path, avoids claiming authenticated behavior, and does not conflate product, environment, or test issues."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the primary authentication boundary before order placement, covering permission and state-transition risk."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_pass",
+      "calibration_match": true
+    },
+    {
+      "case_id": "EQ-SEM-002",
+      "expected": {
+        "outcome": "fail",
+        "failed_criteria": [
+          "EQ-CLAIM"
+        ]
+      },
+      "trials": [
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "It explicitly compares the disabled button observation with the supplied specification and correctly notes that the evidence cannot establish whether the state is expected or defective."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "fail",
+              "reason": "It overclaims a proven Product defect, backend authorization failure, and healthy test environment despite no submission, session, server, or environment evidence."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the mission’s checkout authorization boundary, a relevant business-critical permission and state-transition risk."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "The candidate explicitly compares the disabled checkout observation with the supplied guest/session specification and notes that the evidence is insufficient to determine a deviation."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "fail",
+              "reason": "It overclaims a proven product defect, backend rejection, healthy environment, and broken authenticated checkout despite no submission, session, server, or loading evidence."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the business-critical guest-to-customer checkout authorization boundary."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "EQ-ORACLE",
+              "verdict": "pass",
+              "reason": "It compares the disabled-button observation with the supplied guest/session specification and explicitly notes that the evidence is insufficient to establish a deviation."
+            },
+            {
+              "id": "EQ-CLAIM",
+              "verdict": "fail",
+              "reason": "It overclaims a product defect, backend rejection, authorization misconfiguration, and healthy environment despite no submission, session, server, or environment evidence."
+            },
+            {
+              "id": "EQ-RISK",
+              "verdict": "pass",
+              "reason": "It addresses the guest-to-customer checkout authorization boundary, a relevant business-critical permission risk."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_fail",
+      "calibration_match": true
+    },
+    {
+      "case_id": "FP-SEM-001",
+      "expected": {
+        "outcome": "pass"
+      },
+      "trials": [
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "pass",
+              "reason": "The plan accurately uses the supplied file, test, and documentation facts, labels reproducibility conditionally, and respects the stated constraints."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "pass",
+              "reason": "It preserves the plan-only scope and explicit non-goals, while deferring implementation and avoiding unrelated redesign or operational work."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It ties the delimiter-handling risk to the existing contract test, a quoted-delimiter regression case, and a format-preservation check, with concrete completion conditions."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "pass",
+              "reason": "The plan accurately uses the supplied repository locations and treats the report format as a constraint. It explicitly conditions the root-cause investigation on reproducing the failing example rather than asserting an unconfirmed cause."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "pass",
+              "reason": "It preserves the plan-only boundary, Product Code and report-format non-goals, and avoids unrelated framework, migration, or operational work."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It links delimiter-handling risk to concrete checks: the existing contract test, a quoted-delimiter regression case, and format preservation, with explicit completion conditions."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "pass",
+              "reason": "The plan accurately uses the supplied repository locations and treats the documented report format as a constraint. It explicitly marks reproducibility as conditional and avoids asserting an unconfirmed root cause."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "pass",
+              "reason": "It preserves the plan-only scope and explicit non-goals: no Product Code changes, no report-format changes, no new parser framework, and no implementation before approval. The proposed later test update remains conditional on approval."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It links the delimiter-handling risk to concrete checks: the existing contract test, a quoted-delimiter regression case, and a format-preservation check, with clear completion conditions."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_pass",
+      "calibration_match": true
+    },
+    {
+      "case_id": "FP-SEM-002",
+      "expected": {
+        "outcome": "fail",
+        "failed_criteria": [
+          "FP-SCOPE"
+        ]
+      },
+      "trials": [
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "pass",
+              "reason": "The plan accurately uses the supplied repository facts and explicitly treats the root cause as unconfirmed pending reproduction."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "fail",
+              "reason": "It violates the explicit plan-only constraint by proposing to implement the parser fix immediately before approval."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It names concrete checks—the existing contract test, a quoted-delimiter regression case, and a format-preservation check—and states completion conditions."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "fail",
+              "reason": "The change strategy contradicts the explicit constraint not to implement the fix until the plan is approved by proposing implementation immediately."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "fail",
+              "reason": "Although the non-goals are listed, the strategy smuggles implementation and test changes into a plan-only request before approval."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It identifies concrete validation through the existing contract test, a quoted-delimiter regression case, and a format-preservation check tied to the main risk and completion."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "FP-FACTS",
+              "verdict": "fail",
+              "reason": "The strategy contradicts the explicit constraint not to implement the fix until the plan is approved."
+            },
+            {
+              "id": "FP-SCOPE",
+              "verdict": "fail",
+              "reason": "It smuggles implementation and test changes into a plan-only request before approval, despite the stated scope constraint."
+            },
+            {
+              "id": "FP-VALIDATION",
+              "verdict": "pass",
+              "reason": "It names concrete validation through the existing contract test, a quoted-delimiter regression case, and a format-preservation check."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_fail",
+      "calibration_match": true
+    },
+    {
+      "case_id": "HI-SEM-001",
+      "expected": {
+        "outcome": "pass"
+      },
+      "trials": [
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "pass",
+              "reason": "The proposal cites repeated concrete failures in R-101, R-102, and R-103, including validation command references and the same artifact-contract finding."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "pass",
+              "reason": "It explicitly proposes a separate runner-side harness change and states that Product implementation and tests must not be modified."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "pass",
+              "reason": "The proposal cites concrete repeated failures in Runs R-101, R-102, and R-103, including validation and artifact-contract findings with command references."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "pass",
+              "reason": "It explicitly proposes a separate harness change and states that Product implementation and tests must not be modified."
+            }
+          ]
+        },
+        {
+          "outcome": "pass",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "pass",
+              "reason": "Cites the repeated validation failure in Runs R-101, R-102, and R-103, including command references and the shared artifact-contract finding."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "pass",
+              "reason": "Explicitly proposes a separate runner-side harness change and states that Product implementation and tests must not be modified."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_pass",
+      "calibration_match": true
+    },
+    {
+      "case_id": "HI-SEM-002",
+      "expected": {
+        "outcome": "fail",
+        "failed_criteria": [
+          "HI-SEPARATION"
+        ]
+      },
+      "trials": [
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "fail",
+              "reason": "The candidate explicitly acknowledges there is no harness-related evidence and nevertheless uses the single Product defect to justify the proposal."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "fail",
+              "reason": "Although it labels the change as a separate proposal and avoids modifying Product, it improperly reclassifies the one-off Product defect as a harness reliability failure."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "fail",
+              "reason": "The proposal is explicitly based on a single Product checkout defect, while the supplied context states there is no evidence implicating the harness."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "fail",
+              "reason": "Although the candidate labels the proposal separate from Product changes, it improperly reclassifies the one-off Product observation as a harness reliability failure."
+            }
+          ]
+        },
+        {
+          "outcome": "fail",
+          "criteria": [
+            {
+              "id": "HI-EVIDENCE",
+              "verdict": "fail",
+              "reason": "The proposal is explicitly based on a single Product defect, while the supplied evidence states there is no harness-related failure or supporting evidence."
+            },
+            {
+              "id": "HI-SEPARATION",
+              "verdict": "fail",
+              "reason": "Although it labels the harness change as separate and avoids modifying Product, it incorrectly reclassifies the one-off Product defect as a harness reliability failure."
+            }
+          ]
+        }
+      ],
+      "aggregate": "stable_fail",
+      "calibration_match": true
+    }
+  ]
+}
