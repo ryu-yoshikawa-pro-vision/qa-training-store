@@ -22,8 +22,8 @@
 - [x] D1. `docs/plans/2026-09-12_071400_windows-codex-hook-contract-timeout.md` のMarkdown lint違反を意味変更なしで修正し、verifyを再実行する
 - [x] D2. timeout根拠、matrix / その他timeoutの記述、Run Artifact sanitizationを最終監査し、必要な既取得値を追記する
 - [x] D3. `origin/main...HEAD`と作業ツリーの実装差分全体をレビューし、Issue #142以外の変更がないことを確認する
-- [ ] D4. Issue #142の変更だけをcommitし、branch安全条件を再確認して対象branchへ明示pushする
-- [ ] D5. PR #144を実装済み・検証済み内容へ日本語で更新し、remote HEAD・PR state・CI状態を確認する
+- [x] D4. Issue #142の変更だけをcommitし、branch安全条件を再確認して対象branchへ明示pushする
+- [x] D5. PR #144を実装済み・検証済み内容へ日本語で更新し、remote HEAD・PR state・CI状態を確認する
 
 ## Blocked
 

@@ -30,7 +30,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "対象branchを維持し、mainへのcommit、push、merge、PR更新、Issue close、削除操作は行っていない。actual run.jsonは直接編集していない。",
+      "evidence": "対象branchを維持し、Issue #142の変更だけをcommit `135ac25fe00c5cd89416623651d31fddae865fe8`としてpushした。PR #144をOPEN・非Draftのまま更新し、mainへのcommit、merge、Issue close、削除操作は行っていない。actual run.jsonは直接編集していない。",
       "evidence_refs": [
         {"kind": "run_manifest", "path": ".codex/runs/20260912-110643-JST/run.json", "summary": "machine-managed Run manifest"},
         {"kind": "validation_command", "path": null, "summary": "branch/status/PR safety確認"}
@@ -53,10 +53,10 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows 10.0.19045、Node v24.12.0、pnpm 9.10.0、PowerShell 5.1/7.6.6、Git 2.44.0、process.execPathとPowerShell側node pathを記録した。GitHub Actionsの新head実行はno-push指示のため未実施だが、remote PR headのVitest (contracts)成功を確認した。",
+      "evidence": "Windows 10.0.19045、Node v24.12.0、pnpm 9.10.0、PowerShell 5.1/7.6.6、Git 2.44.0、process.execPathとPowerShell側node pathを記録した。push後のGitHub Actions新headは32 successful / 8 skipped / 0 failing / 0 pendingで完了し、Vitest (contracts)も成功した。",
       "evidence_refs": [
         {"kind": "validation_command", "path": null, "summary": "Plan手順1の環境probe"},
-        {"kind": "evaluation_note", "path": null, "summary": "local未push差分のGitHub Actions未実行"}
+        {"kind": "evaluation_note", "path": null, "summary": "push後のGitHub Actions新head結果"}
       ]
     }
   },
@@ -73,11 +73,11 @@
     {
       "category": "missing_validation",
       "severity": "low",
-      "evidence": "local差分を含むGitHub Actionsの新しいhead runとfocused Windows CI jobは、明示されたno-push指示およびjob非追加のため存在しない。",
+      "evidence": "focused Windows CI jobは追加していない。一方、push後の新head GitHub Actionsは32 successful / 8 skipped / 0 failing / 0 pendingで完了した。",
       "evidence_refs": [
-        {"kind": "evaluation_note", "path": null, "summary": "remote PR headの既存Vitest contracts成功のみ確認"}
+        {"kind": "evaluation_note", "path": null, "summary": "push後の新head CI全体とVitest contracts成功"}
       ],
-      "detail": "既存remote CIの確認とlocal verifyは完了した。Windows focused jobは将来の再発防止候補としてRun REPORTへ記録した。"
+      "detail": "Windows focused jobは今回のtest-only修正とworkflow維持コストを理由に追加せず、将来の再発防止候補としてRun REPORTへ記録した。"
     }
   ],
   "improvement_candidates": [
