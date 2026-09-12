@@ -169,6 +169,30 @@
   - Parent decision: merge conflict解消ではなくrouting意味変更検出の停止条件を適用する。
 - Progress: 63% (5/8)
 
+## 2026-09-12 19:44 (JST)
+
+- Summary:
+  - closure Run artifactとbaseline snapshotをcommit `5089143`として保存し、指定branchへexplicit refspecでpushした。
+  - PR本文先頭へPR2 baseline status、比較結果、既知制約、origin/mainのrouting意味変更による停止条件を追加した。
+- Changes:
+  - PR #127はOPENのまま。PR headは`5089143a216584ad42ddd2b4d6c164a9a1588d74`。
+  - merge conflictはorigin/mainのrouting意味変更検出により未解消。merge commitは作成していない。
+- Decision / Rationale:
+  - PR2 baseline artifactの保存・比較可能性はpush済みのため確定した。
+  - origin/mainと条件が一致しないため、merge後のfull verifyやcanonical再評価は実施しない。既存baselineは旧Routing SHAに対する保存結果として扱う。
+- Validation:
+  - commit前`git status --short`はclosure Runのみ、`git diff --check`はPASS、raw `.artifacts/**`はstageされていない。
+  - push: `git push origin HEAD:refactor/117-pr2-trigger-eval-baseline` PASS。
+  - `gh pr checks 127`: Analyze(actions) PASS、Analyze(javascript-typescript) PASS、Analyze(python) PASS、CodeQL PASS、CodeRabbit PASS（manual review requiredのためreview skip表示）。
+  - PR状態: OPEN、head `5089143a216584ad42ddd2b4d6c164a9a1588d74`、mergeable `CONFLICTING`。
+- Blocker / Remaining:
+  - task 6（merge後の指定full verify）はrouting意味変更の停止条件により未実行。新しいbaselineや調査を開始しない。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: PR2 baseline closureとCI確認は完了、main同期だけは停止条件として未完了のまま保持する。
+- Progress: 75% (6/8)
+
 ## 2026-09-12 19:53 (JST)
 
 - Summary:
