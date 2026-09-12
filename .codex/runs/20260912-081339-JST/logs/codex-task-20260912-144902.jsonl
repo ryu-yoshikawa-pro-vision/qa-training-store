@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-12T14:49:06.1773419+09:00","event":"wrapper_start","runtime":"host","run_id":"20260912-081339-JST","preset":"safe"}
+{"timestamp":"2026-09-12T14:49:10.4888618+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260912-081339-JST\\artifacts\\codex-task-20260912-144902.json"}
+{"timestamp":"2026-09-12T14:49:24.1594775+09:00","event":"codex_exec_exit","exit_code":0}
+{"timestamp":"2026-09-12T14:49:26.7465457+09:00","event":"verify_start","command":"node -e \"require(\u0027child_process\u0027).execFileSync(\u0027pnpm.cmd\u0027,[\u0027exec\u0027,\u0027vitest\u0027,\u0027run\u0027,\u0027tests/contracts/app-config.test.ts\u0027,\u0027--no-file-parallelism\u0027,\u0027--maxWorkers=1\u0027],{stdio:\u0027ignore\u0027})\""}
+{"timestamp":"2026-09-12T14:49:26.7755427+09:00","event":"verify_failed_to_start","message":"Exception calling \"IsPathRooted\" with \"1\" argument(s): \"Illegal characters in path.\""}
+{"timestamp":"2026-09-12T14:49:26.7905430+09:00","event":"verify_exit","exit_code":1}

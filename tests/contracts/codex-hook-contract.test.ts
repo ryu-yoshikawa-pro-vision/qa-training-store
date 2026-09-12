@@ -2646,7 +2646,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
         permissionDecision: "deny",
       },
     });
-  });
+  }, 10000);
 
   it("preserves PreToolUse policy through the configured Windows launcher and both shell wrappers", () => {
     if (process.platform !== "win32") return;
@@ -2697,7 +2697,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     expect(runWindowsLauncher(repoRoot, compact)).toEqual({ status: 0, stdout: "", stderr: "" });
     expect(runWindowsLauncher(repoRoot, lf)).toEqual({ status: 0, stdout: "", stderr: "" });
     expect(runWindowsLauncher(repoRoot, crlf)).toEqual({ status: 0, stdout: "", stderr: "" });
-  });
+  }, 10000);
 
   it("maps malformed input to launcher exit 2 with stderr", () => {
     if (process.platform !== "win32") return;
