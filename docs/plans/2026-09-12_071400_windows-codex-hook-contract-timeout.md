@@ -631,7 +631,7 @@ sourceを推測変更しない。Issueは未解決のまま調査結果を残す
 
 現在の`main`で再現し、test-onlyまたはproductionの現在コードから原因を説明できる場合はhistorical SHA比較を行わない。
 
-現行コードだけでは因果を閉じられない場合のみ、隔離したGit working treeで比較する。
+現行コードだけでは因果を閉じられない場合のみ、隔離したGit working treeで段階的に比較する。
 
 使用できる例:
 
@@ -651,13 +651,17 @@ git rev-parse --show-toplevel
 git status --short
 ```
 
-比較対象:
+比較は次の順に行う。
 
-```text
-13cc542fa31f372bd4bc932cf7a82b92bcf81a23
-12fff8eafccef4ab939efec623ac8a8d4f1ac539
-a7632fad478ac5d28f53849ce950b1d205024f36
-```
+1. active Runで取得済みの現在実装の結果をcurrent baselineとする。現在と同じsourceを別working treeへ複製して再測定することから始めない。
+2. まずPR #139 base `13cc542fa31f372bd4bc932cf7a82b92bcf81a23`だけを隔離環境で確認する。
+3. 現在との差で原因または再現条件を説明できれば、そこでhistorical比較を終了する。
+4. `13cc542...`と現在の差だけでは、どの変更境界で挙動が変わったかを説明できない場合だけ追加SHAを比較する。
+5. 追加比較では、PR #139 current head `a7632fad478ac5d28f53849ce950b1d205024f36`やPlan作成時main `12fff8eafccef4ab939efec623ac8a8d4f1ac539`を、切り分けに必要なものだけ選ぶ。
+
+`12fff8e...`はPlan作成時のmain参照であり、実装開始時の最新`main`と同一とは限らない。実装時のcurrent baselineとの差分を確認したうえで、PR #138由来の`sharp` / lockfile境界等を切り分ける必要がある場合だけ個別環境を作る。
+
+3 SHA分の隔離環境を先にすべて構築しない。
 
 必要な測定値と判断だけを#142 active Runへ記録する。baseline側のraw logや一時計測コードは持ち込まない。
 
@@ -828,7 +832,7 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 - matrix全体をbatch化すると、contextなしcaseが現在通っている実Hook entrypoint検証を失う可能性がある。
 - matrixの実Hook entrypoint保証を維持できるなら、test固有timeout調整の方がbatch化より小さい変更になり得る。
 - configured経路の二重Git root解決は今回の原因と確認するまで変更しない。
-- historical baselineを早く実施すると、現在コードだけで閉じられる問題に不要な調査コストを使う。
+- historical baselineを早く実施したり、複数SHAの隔離環境を先にすべて構築すると、現在コードだけで閉じられる問題や1比較で十分な切り分けへ不要な調査コストを使う。
 - `--reporter=verbose`や一時計測自体がtimingへ影響するため標準計測と分離する。
 - `pwsh.exe`等の環境不足をtimeoutへ混ぜない。
 - `process.execPath`とPowerShell側Node pathが異なる場合は再現条件を分けて記録する。
@@ -888,7 +892,7 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 7. matrixは、保証範囲を維持したtest固有timeout調整と既存batch helper再利用を比較し、小さいだけでなく既存contractを保てる方を選ぶ。
 8. #140 / matrix以外のHook timeoutが再現した場合は、そのtestを同じtest-only優先で切り分ける。
 9. test-onlyで説明できない異常がある場合だけ、単一launcher / Hook / suite process / configured経路を必要な範囲で調べる。
-10. 現行コードで因果を閉じられない場合だけhistorical baselineへ進む。
+10. 現行コードで因果を閉じられない場合だけhistorical baselineへ進み、まず`13cc542...`を比較し、必要な場合だけ追加SHAへ広げる。
 11. 原因に対する必要最小限の変更だけ実装する。
 12. 最終原因と修正内容を確定した後、Windows CIの再発防止効果と維持コストを比較して追加要否を決める。
 13. 一時計測を除去し、§9の検証、Run Artifact sanitizer、sanitizer後の最小確認を実施する。
