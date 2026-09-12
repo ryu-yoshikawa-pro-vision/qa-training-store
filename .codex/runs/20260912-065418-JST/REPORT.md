@@ -53,6 +53,32 @@
   - Parent decision: canonical allの実測結果を採用し、valid baseline未取得で停止条件を確定する。
 - Progress: 82% (9/11)
 
+## 2026-09-12 09:48 (JST)
+
+- Summary: evaluation／Run Artifactをcommitし、対象PR branchへ明示refspecでpushした。PR本文を今回の実測結果へ日本語で更新した。
+- Evidence: push commitは`984eb055b36afacdc84f219db2dec91b3ac82510`、remote branch head／PR headとも同SHA。branchは`refactor/117-pr2-trigger-eval-baseline`、PR #127はOPEN、base `main`、mergeable `CONFLICTING`。PR本文にはWindows argv、全gate、Negative／Positive／Environment、canonical 24 cases、7/8、valid baseline未取得、Run／raw evidence pathを反映した。
+- Changes: `.codex/runs/20260912-065418-JST/`の5 artifactを`984eb05`へcommitした。source implementation `536ad46`、Evaluator snapshot `4921023c7f6ad2f2c7f8b8041ec3b08bf707c51e`は変更していない。
+- Validation: `git status`はpush直後にclean。`git ls-remote`はremote head `984eb055b36afacdc84f219db2dec91b3ac82510`を返した。CIはAnalyze (actions)、Analyze (python)、CodeRabbitがPASS、CodeQLはskipping、Analyze (javascript-typescript)は確認時点でpending。
+- Blocker / Remaining: Analyze (javascript-typescript)のCI最終状態確認、REPORT/TASKS最終checkpoint、sanitizer／schema／strict collectorの最終再実行、必要なRun Artifact commit／pushが残る。merge conflictは解消しない。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: PR本文とremote headの同期を採用し、CI完了まで監視する。
+- Progress: 91% (10/11)
+
+## 2026-09-12 09:49 (JST)
+
+- Summary: PR headのCIを再確認し、全checkがPASSした。Run Artifact最終検証を実行し、完了判定へ進む。
+- Evidence: `gh pr checks 127`はAnalyze (actions)、Analyze (javascript-typescript)、Analyze (python)、CodeQL、CodeRabbitをすべて`pass`で返した。CodeRabbitは`Review skipped: manual review required for this OSS repository`というサービス表示を伴うpassである。対象RunのPrettier check、markdownlint（400 files／0 issues）、evaluation schema validationもexit 0だった。
+- Changes: 追加のsource／test変更なし。canonical結果、Qualification条件、PR本文は変更しない。
+- Decision / Rationale: CI、Run Artifact format、evaluation schemaがPASSしたため、sanitizer Write／Check、strict collector、最終diff／branch確認後にRunを完了する。
+- Blocker / Remaining: 最終sanitizer／collector、TASKS／REPORT最終更新、Run Artifact commit／push、remote／PR head最終確認のみ。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: —
+  - Parent decision: CI全PASSを採用し、最終artifact gateへ進む。
+- Progress: 91% (10/11)
+
 ## 2026-09-12 07:29 (JST)
 
 - Summary: 固定Negative Qualificationを1回実行し、PASSした。

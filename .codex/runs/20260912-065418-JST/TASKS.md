@@ -11,7 +11,7 @@
 - [x] 7. Codex versionを確認し、Negativeを1回実行して判定する（PASS: request 1、control 1、Skill 0、completed）。
 - [x] 8. Negative PASS時だけPositiveを1回実行し、両方PASS時だけEnvironment Qualificationを判定する（Positive PASS、Environment Qualification PASS）。
 - [x] 9. Environment Qualification PASS時だけcanonical `all`、8/8、valid baselineを判定する（canonical完了、観測可能7/8、valid baseline未取得）。
-- [ ] 10. Evidence、evaluation、Run Artifact、PR本文を実結果へ同期する。
+- [x] 10. Evidence、evaluation、Run Artifact、PR本文を実結果へ同期する。
 - [ ] 11. sanitizer、schema、strict collector、branch safety、push、CIを完了する。
 
 ## Discovered
