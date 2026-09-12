@@ -28,10 +28,11 @@ Issue #134の目的は、既存Codex Harnessを拡張し、次を満たすこと
 
 - 既存 `pre_tool_use_policy.mjs` と `log_event.mjs` の主要契約が、子processを通すテストで固定されている。
 - `.codex/config.toml` のHookイベント、matcher、command、Windows / Unix経路を構造として検証できる。
-- #135が完了し、スリム化済みroot `AGENTS.md` が正本として確定してから、compact再注入を実装している。
+- #135が完了し、スリム化済みroot `AGENTS.md` が正本として確定してからcompact再注入を実装している。
 - `SessionStart` の `source=compact` だけでroot `AGENTS.md` 全文を `hookSpecificOutput.additionalContext` として返す。
 - compact以外の `SessionStart` では再注入しない。
 - root `AGENTS.md` の内容をHook専用ファイルへ複製しない。
+- `SessionStart` で再注入を保証できないエラーは、使用Codex versionで実際に停止できる契約を使ってfail-closeする。
 - `additionalContextLimit` を使用する場合、対象Codex versionの正式仕様と実測に基づく明示値を設定し、root `AGENTS.md` の扱いを契約テストで確認する。
 - 文章品質lintは決定論的な明示ルールだけを扱い、markdownlintの責務を重複実装しない。
 - productionでblockする文章品質ruleは、実装前に具体値を表で確定し、実装者が独自に推測追加しない。
@@ -39,7 +40,9 @@ Issue #134の目的は、既存Codex Harnessを拡張し、次を満たすこと
 - Stopでは同じ新規違反を完了前に確認し、`stop_hook_active=false` のときだけ1回blockできる。
 - `stop_hook_active=true` では同一違反を繰り返しblockしない。
 - baseline取得不能とHook内部エラーをlint違反と区別し、後から現在worktreeをbaselineとして再作成しない。
-- `pnpm run verify`、`bash scripts/verify --strict-harness`、`./scripts/verify.ps1 -StrictHarness`、GitHub Actionsのいずれでも必要なHook契約が抜けない。
+- baselineへ保存する違反fingerprintに、本文断片や正規化済みmatchを平文保存しない。
+- `pnpm run verify`、`scripts/verify` / `scripts/verify.ps1` のHook contract用明示opt-in経路、GitHub Actionsのいずれでも必要な検証が抜けない。
+- 既存 `--strict-harness` / `-StrictHarness` のsource repository検証用途を変更しない。
 - GitHub ActionsでUbuntuの既存 `Vitest (contracts)` とWindowsのfocused Hook contractを実行する。
 - Product code、Skill routing、Agent orchestrationへ変更を広げていない。
 
@@ -88,7 +91,23 @@ GitHub Actions `Web CI` のVitest matrixにも `contracts` が含まれている
 
 一方、現行 `Vitest (contracts)` はUbuntuであり、Windows Hook launcherを実行するCI経路はない。#134では新しいWindows command、temp path、UTF-8、cwd解決まで扱うため、WindowsではHook contractに限定したfocused実行を追加する。
 
-`scripts/verify` と `scripts/verify.ps1` は別のHarness契約を持つ。通常モードはconsumer-facing contractを維持し、source repository固有のfocused Hook process contractは既存のstrictモードへ接続する。
+`scripts/verify` と `scripts/verify.ps1` はconsumer-facing template contractを持つ。通常モードへ全Vitestやbuildを追加しない。
+
+既存の `--strict-harness` / `-StrictHarness` はHook contract用の「重い検証モード」ではない。qa-training-storeの親directoryをsource repositoryとして扱い、親側の `README.md`、`CHANGELOG.md`、`tools/validate-spec.*`、integration test、`validate-template.yml` 等を確認するsource repository maintainer向け契約である。この意味を#134で変更しない。
+
+Issue #134で `scripts/verify` 経由のfocused Hook contract実行を成立させるため、通常モードを重くする代わりに、Bash / PowerShell双方へHook contract専用の薄いopt-inを追加する方針とする。
+
+想定する入口:
+
+```bash
+bash scripts/verify --hook-contracts
+```
+
+```powershell
+./scripts/verify.ps1 -HookContracts
+```
+
+実装開始時に同等の既存optionが追加済みならそれを再利用し、重複optionを作らない。
 
 ### 2.3 現在のHook設定
 
@@ -123,25 +142,33 @@ Hook契約の不足分確認、文章lint scanner、baseline方式のテスト�
 
 - `SessionStart` inputの `source` に `compact`
 - `SessionStart` outputの `hookSpecificOutput.additionalContext`
+- universal outputの `continue` / `stopReason`
 - `Stop` inputの `stop_hook_active`
 - command Hook設定の `additionalContextLimit`
 
 参照:
 
 - https://github.com/openai/codex/blob/main/codex-rs/hooks/src/schema.rs
+- https://github.com/openai/codex/blob/main/codex-rs/hooks/src/events/session_start.rs
 - https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json
 
-Codex Hook仕様はversion依存である。実装開始時に、実際に使用するCodex CLI versionとそのversionに対応する正式仕様を再確認する。OpenAI repositoryの最新 `main` を、使用versionへ無条件に適用しない。
+現行OpenAI sourceの `SessionStart` では、exit code 0のstructured outputで `continue:false` を返した場合に `should_stop=true` となる。一方、非0終了はHook statusが `Failed` になるだけで `should_stop` はfalseのままである。
+
+そのため、非0終了を「compactを止める手段」として前提にしない。実装時に使用Codex CLI versionを確認し、そのversionでも同じ契約なら、再注入を保証できないエラーはexit code 0のstructured outputで `continue:false` と `stopReason` を返して停止させる。
+
+Codex Hook仕様はversion依存である。OpenAI repositoryの最新 `main` を使用versionへ無条件に適用しない。
 
 `additionalContextLimit` は現在確認した正式sourceでは `additionalContext` のspill閾値として扱われる。単純なstdout文字数上限として扱わない。実装時のversionで同じ契約か確認し、#135後のroot `AGENTS.md` の実サイズを使って境界を確認する。
 
 ### 2.6 前提
 
 - Node.js標準機能で実装できるHook処理へ、新しいruntime依存を追加しない。
+- baseline fingerprintのdigestにはNode.js標準 `crypto` を使用し、新しい依存を追加しない。
 - TOMLを意味的にparseするための既存direct dependencyが実装時点でも無い場合、手書きTOML parserを増やすより、test専用の小さなmaintained parser導入を比較する。依存を追加する場合はlicense、保守状況、lockfile影響を確認する。
 - 文章品質lintの対象は初期実装ではMarkdown (`*.md`) に限定する。Issueの目的だけを理由に `.txt`、CSV、source comment等へ対象を広げない。
 - 意味評価、自然さ、論理構成、未知の造語検出はblock条件にしない。
 - `scripts/verify` / `scripts/verify.ps1` の通常モードへ、project-wide Vitestやbuildを追加しない。
+- `--strict-harness` / `-StrictHarness` の既存source repository契約を変更しない。
 
 ## 3. 実装前に確定する事項
 
@@ -195,10 +222,11 @@ Task 6へ入る前に、採用するproduction ruleごとに次を確定する�
 
 次はPlanで具体値を固定せず、実装時のRepository状態とCodex versionに基づいて決める。
 
-- `SessionStart` failure時に `continue=false` を使えるか、非0終了とするか。
+- 使用versionの `SessionStart` 停止契約。現在確認したsourceと同じなら `continue:false` + `stopReason` を使用する。
 - `additionalContextLimit` の具体値。
 - TOML parserの具体package。手書きparserは作らない。
 - PostToolUseで利用できる実際のtool matcher alias。
+- `scripts/verify` / `scripts/verify.ps1` に同等のHook contract用optionが追加済みか。
 
 ## 4. 影響範囲
 
@@ -234,6 +262,8 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合だ
 - 既存Markdown全件の一括修正
 - 新しいHook test framework
 - 独自session manager
+- 独自diff engine
+- `--strict-harness` / `-StrictHarness` の既存責務
 
 ## 5. 変更方針
 
@@ -311,13 +341,36 @@ Codex compact
 - [ ] `additionalContextLimit` は実Codex versionの契約を確認したうえで明示する。
 - [ ] 通常サイズと境界値で `additionalContext` のruntime挙動を確認する。
 
-エラー契約:
+#### SessionStartの成功契約
 
-- malformed Hook input: 非0終了 + stderr。誤ったcontextは返さない。
-- `source != compact`: 正常終了、追加contextなし。
-- repository root / `AGENTS.md` 欠落 / read失敗: compact後の必須指示を欠落させるため黙殺しない。実Codex versionでSessionStartの停止方法を確認し、契約テストとfocused runで挙動を固定する。
+- `source=compact`: 正常終了し、structured JSONでroot `AGENTS.md` 全文を `hookSpecificOutput.additionalContext` に返す。
+- `source != compact`: 正常終了し、追加contextなし。
 
-停止方法はCodex version依存なので、schema確認前に固定しない。
+#### 再注入を保証できないエラー
+
+次は同じfail-close方針で扱う。
+
+- malformed Hook input
+- repository root解決失敗
+- root `AGENTS.md` 欠落
+- root `AGENTS.md` read失敗
+- structured output生成失敗
+
+これらを単に非0終了させて「停止した」とみなさない。
+
+実装時のCodex versionで `SessionStart` の停止契約を確認する。現在確認したOpenAI sourceと同じ契約なら、exit code 0のstructured outputとして次を返す。
+
+```json
+{
+  "continue": false,
+  "stopReason": "compact後の必須指示を再注入できなかった理由"
+}
+```
+
+- 誤った `additionalContext` は返さない。
+- `stopReason` へraw input、秘密情報、長いpath情報を含めない。
+- 非0終了を停止手段として採用するのは、使用versionの実runtimeで `should_stop=true` 相当になることを確認できた場合だけとする。
+- process単体testだけでなく、使用versionのfocused runtime確認で「Hook failed」ではなくcompact継続が止まることを確認する。
 
 ### Task 6: 決定論的な文章品質scannerを先に成立させる
 
@@ -342,7 +395,7 @@ message
 replacement   # 明示置換があるruleのみ
 ```
 
-秘密情報や行全体を診断へ不要に出さない。matched textを出す場合も短く制限する。
+秘密情報や行全体を診断へ不要に出さない。raw matchは原則として診断へ出さない。既存の `path`、`line`、`rule_id`、`message`、`replacement` で修正可能な情報を返す。
 
 ### Task 7: 作業開始baselineを最小状態で保持する
 
@@ -357,29 +410,37 @@ replacement   # 明示置換があるruleのみ
 - sessionを安全に識別する値
 - 開始時点でdirty / untrackedだった対象Markdown path
 - そのpathのcontent SHA-256
-- そのpathに存在した文章lint violationのfingerprintと件数
+- そのpathに存在した文章lint violationのfingerprint digestと件数
 
-source本文、token、secret、Hook raw payloadは保存しない。
+source本文、token、secret、Hook raw payload、正規化済みmatchそのものは保存しない。
 
 baselineはtracked fileにせず、OS temp directory等、Repositoryを汚さず同じsessionのHook processから再参照できる場所を使用する。
 
-#### 違反identity
+#### 違反identityと保存形式
 
-比較単位は、renameを解決した後のrepository-relative file pathとする。
-
-fingerprintは次とする。
+論理上のidentityは次とする。
 
 ```text
 rule_id + rule定義に従って正規化したmatch
 ```
 
+ただし、baselineへ正規化済みmatchを平文保存しない。
+
+保存形式は次とする。
+
+```text
+rule_id + SHA-256(normalized_match) + count
+```
+
+- SHA-256はNode.js標準 `crypto` で計算する。
 - 行番号はidentityへ含めない。
 - `message`、`replacement` はidentityへ含めない。
-- 大文字小文字、whitespace、Unicode等の正規化は、rule表で明示された場合だけ行う。
+- 大文字小文字、whitespace、Unicode等の正規化はrule表で明示された場合だけ行う。
 - 実装者が独自の正規化を追加しない。
 - 同一fingerprintが同一fileに複数存在できるため、setではなくmultisetとして件数を保持する。
+- digestは秘密情報をログ出力しないための保存形式であり、raw matchを復元する用途には使わない。
 
-新規違反数は同一file / fingerprintについて次で定義する。
+新規違反数は同一file / fingerprint digestについて次で定義する。
 
 ```text
 max(current_count - baseline_count, 0)
@@ -388,8 +449,8 @@ max(current_count - baseline_count, 0)
 例:
 
 ```text
-baseline: rule-X / foo = 2
-current : rule-X / foo = 3
+baseline: rule-X / digest-A = 2
+current : rule-X / digest-A = 3
 -> 新規違反 1件
 ```
 
@@ -403,7 +464,16 @@ current : rule-X / foo = 3
 - 開始時に存在したuntracked Markdownもbaseline manifestへ記録する。
 - task開始後に作られたuntracked Markdownはbaseline空として扱う。
 - deleteはlint対象外とする。
-- renameはGit差分から対応付け、純粋な移動だけで既存違反を新規扱いしない。
+- tracked renameはGitのrename情報から対応付ける。
+
+開始時からuntrackedだったMarkdownはGitのrename情報を持たないため、pure renameだけ次の方法で対応付ける。
+
+1. baseline時に記録したuntracked pathが現在消えていることを確認する。
+2. task後に存在するuntracked Markdownのcontent SHA-256を比較する。
+3. 同一content SHA-256の候補が一意に1件だけならpure moveとして同じfileに対応付ける。
+4. 同一hash候補が複数ある、または内容も変更されて一意に判断できない場合は推測してrename扱いしない。
+
+独自rename推定engineや類似度比較は追加しない。
 
 #### baseline lifecycle
 
@@ -419,7 +489,7 @@ current : rule-X / foo = 3
 
 baseline作成に失敗した後、PostToolUseやStop時点のworktreeを新しいbaselineとして作り直さない。Codexが既に追加した違反を開始時違反へ吸収するためである。
 
-baseline本体を作れない場合でも、同じsessionで「baseline unavailable」を判別できる最小状態だけを保持できる設計を採用する。そこへsource本文、raw Hook payload、違反本文は保存しない。
+baseline本体を作れない場合でも、同じsessionで「baseline unavailable」を判別できる最小状態だけを保持できる設計を採用する。そこへsource本文、raw Hook payload、違反本文、raw matchは保存しない。
 
 ### Task 8: PostToolUseへ即時フィードバックを接続する
 
@@ -477,31 +547,70 @@ Stopでは次の状態表に従う。
 - [ ] quality check不能でも現在worktreeをbaselineとして再作成しない。
 - [ ] CI側のdeterministic lintを独立した検証経路として残す。
 
-### Task 10: `lint:text` の責務を固定する
+### Task 10: `lint:text` の責務と比較基準を固定する
 
-scanner、Hook、CI、package scriptの責務を分ける。
+scanner、Hook、ローカル、CIの責務を分ける。
 
 #### scanner
 
-`scripts/lint-text-quality.mjs` は指定Markdownをscanして違反一覧を返す。baselineやGitHub eventの知識を持たせない。
+`scripts/lint-text-quality.mjs` は指定Markdownをscanして違反一覧を返す。baseline、Git、GitHub eventの知識を持たせない。
 
 #### Hook
 
-session開始baselineと現在worktreeを比較し、今回増えた違反だけを扱う。
+session開始baselineと現在worktreeを比較し、今回のCodex taskで増えた違反だけを扱う。
 
-#### CI
+比較:
 
-PRではbase branchとのmerge baseを比較基準にし、PRで増えた違反だけを判定する。
+```text
+session baseline -> current worktree
+```
 
-pushでは `github.event.before` を比較基準とし、zero SHA等は既存CIのfallback patternへ合わせる。
+#### ローカル `pnpm run lint:text` / `pnpm run verify`
 
-#### `pnpm run lint:text`
+ローカル検証はcommit前に実行されるため、`base...HEAD` だけではstaged / unstaged / untrackedの変更を検出できない。
 
-`lint:text` を「Repository全件に1件でも既存違反があれば失敗するcommand」として無条件に定義しない。
+比較基準を次で固定する。
 
-package scriptは、既存違反を一括修正しないIssue方針と整合する比較基準を明示してscannerを呼び出す。`pnpm run verify` からも同じ比較ロジックを使用し、CIとローカルverifyで判定規則を分岐させない。
+```text
+HEAD -> current worktree
+```
 
-比較基準を取得できないローカル実行方法が必要なら、対象fileを明示するscanner modeと、base refを明示するgate modeを分ける。新しいframeworkは作らず、同一scannerを再利用する。
+対象には次を含める。
+
+- staged
+- unstaged
+- untracked Markdown
+
+既存 `HEAD` に存在する違反は差分として増えていなければ失敗理由にしない。
+
+ローカル検証はsession baselineを知らないRepository-level検証であるため、開始前からworktreeに存在していた未commit変更も `HEAD -> current worktree` の対象になる。Codex task開始前のdirty状態を除外する責務はHookのsession baseline側に持たせる。
+
+#### PR CI
+
+比較:
+
+```text
+merge base -> PR HEAD
+```
+
+PRで増えた違反だけを判定する。
+
+#### push CI
+
+比較:
+
+```text
+github.event.before -> HEAD
+```
+
+zero SHA等は既存CIのfallback patternへ合わせる。
+
+#### 共通方針
+
+- scanner本体は共通化する。
+- 比較対象のMarkdown pathとbaseline violation multisetを決める薄い呼び出し側だけをHook / local / CIで分ける。
+- `lint:text` をRepository全件に1件でも既存違反があれば失敗するcommandとして無条件に定義しない。
+- 新しいlint frameworkやGit diff frameworkを作らない。
 
 ### Task 11: local verify / Harness / CIへ接続する
 
@@ -525,7 +634,7 @@ bash scripts/verify
 
 通常モードへ全Vitest、build、project-wide testを追加しない。
 
-source repository固有のfocused Hook process contractは既存strictモードへ接続する。
+既存strictモードも用途を変更しない。
 
 ```bash
 bash scripts/verify --strict-harness
@@ -535,11 +644,26 @@ bash scripts/verify --strict-harness
 ./scripts/verify.ps1 -StrictHarness
 ```
 
-- [ ] strictモードから `tests/contracts/codex-hook-contract.test.ts` のfocused実行へ到達する。
-- [ ] 文章品質contractを別fileへ分離した場合、そのfocused testもstrictモードへ接続する。
+strictモードは親directoryのsource repository構成を検証する既存のmaintainer向け契約であり、focused Hook contractの入口にはしない。
+
+Issue #134のfocused Hook process contractは、Bash / PowerShell双方へ明示opt-inを追加する。
+
+```bash
+bash scripts/verify --hook-contracts
+```
+
+```powershell
+./scripts/verify.ps1 -HookContracts
+```
+
+期待する責務:
+
+- [ ] opt-in指定時だけ `tests/contracts/codex-hook-contract.test.ts` のfocused Vitestを実行する。
+- [ ] 文章品質contractを別fileへ分離した場合、そのfocused testも同じopt-inへ接続する。
+- [ ] opt-inなしの通常モードをpnpm/Vitest必須へ変えない。
+- [ ] `--strict-harness` / `-StrictHarness` とHook contract optionを独立させ、意味を混在させない。
 - [ ] `.codex/config.toml`、新規Hook file、Harness文書の存在・基本契約はBash / PowerShellで可能な範囲を対称にする。
-- [ ] consumer-facing用途を理由なくpnpm/Vitest必須へ変えない。
-- [ ] 新しいverify frameworkを作らない。
+- [ ] 新しいverify frameworkを作らず、既存Vitest commandを呼ぶ薄い入口だけを追加する。
 
 #### GitHub Actions
 
@@ -574,7 +698,8 @@ Windows CIで検出する対象:
 - [ ] `docs/reference/codex-implementation-harness.md` に重複説明が必要か確認し、必要箇所だけ更新する。
 - [ ] `AGENTS.md` へHook詳細を再掲しない。#135後のroot文書を再び肥大化させない。
 - [ ] production ruleの正本pathとmarkdownlintとの責務分離を文書化する。
-- [ ] strict Harnessへfocused Hook contractを接続した場合、その実行方法を既存文書の適切な箇所へ反映する。
+- [ ] `scripts/verify` / `scripts/verify.ps1` にHook contract用opt-inを追加した場合、その実行方法を既存文書の適切な箇所へ反映する。
+- [ ] strict Harnessの既存説明をHook contract用へ書き換えない。
 
 ## 6. 検証方法
 
@@ -597,7 +722,7 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - `source=compact` + root `AGENTS.md` 読込成功
 - compact以外のsourceでは追加contextなし
 - nested cwd
-- malformed JSON
+- malformed JSON input
 - repository root解決失敗
 - `AGENTS.md` 欠落
 - read failure
@@ -607,6 +732,8 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - `additionalContextLimit` 境界
 - configured commandのUnix経路
 - configured commandのWindows経路
+- 使用Codex versionのfail-close structured output
+- 現行sourceと同じ契約なら `continue:false` で停止し、非0終了だけでは停止扱いにしないこと
 
 ### 6.3 文章品質contract
 
@@ -618,12 +745,15 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - 同一違反複数件のmultiset差分
 - 既存違反の行移動
 - 既存1件削除 + 同一fingerprint別位置1件追加で件数同一
+- persisted baselineにraw normalized matchが含まれず、SHA-256 digestだけが保存される
 - 開始時clean tracked file
 - 開始時dirty tracked file
 - staged + unstaged混在
 - 開始時untracked
 - task中に新規作成したuntracked
-- rename
+- tracked rename
+- 開始時untrackedのpure rename + content SHA-256一意一致
+- 開始時untracked rename候補が複数で曖昧な場合は推測しない
 - delete
 - baseline file欠落 / 破損
 - baseline作成失敗後に現在状態をbaseline化しない
@@ -667,7 +797,24 @@ bash scripts/verify
 ./scripts/verify.ps1
 ```
 
-strictモード:
+Hook contract用opt-in:
+
+```bash
+bash scripts/verify --hook-contracts
+```
+
+```powershell
+./scripts/verify.ps1 -HookContracts
+```
+
+確認内容:
+
+- 通常モードは既存consumer-facing contractを維持する。
+- Hook contract用opt-inはfocused Vitestだけを追加実行する。
+- Bash / PowerShellで同じ責務を持つ。
+- opt-inなしの通常verifyはpnpm/Vitestの新規必須化をしない。
+
+既存strictモード:
 
 ```bash
 bash scripts/verify --strict-harness
@@ -677,9 +824,40 @@ bash scripts/verify --strict-harness
 ./scripts/verify.ps1 -StrictHarness
 ```
 
-通常モードがconsumer-facing contractを維持し、strictモードがsource repository固有のfocused Hook process contractを実行することを確認する。
+strictモードは親directoryにsource repository layoutがある環境向けの既存回帰確認であり、#134のHook contract実行条件にはしない。単独のqa-training-store checkoutで親source repositoryがない場合は、#134検証のためにstrictモードを要求しない。
 
-### 6.7 Repository検証
+### 6.7 `lint:text` 比較基準の検証
+
+ローカル:
+
+```text
+HEAD -> current worktree
+```
+
+- staged変更を検出する。
+- unstaged変更を検出する。
+- untracked Markdownを検出する。
+- `HEAD` にしか存在しない既存違反を新規違反扱いしない。
+
+PR CI:
+
+```text
+merge base -> PR HEAD
+```
+
+push CI:
+
+```text
+github.event.before -> HEAD
+```
+
+Hook:
+
+```text
+session baseline -> current worktree
+```
+
+### 6.8 Repository検証
 
 変更内容に応じて少なくとも次を実行する。
 
@@ -691,7 +869,7 @@ pnpm run lint
 pnpm run typecheck
 pnpm run test:contracts
 bash scripts/verify
-bash scripts/verify --strict-harness
+bash scripts/verify --hook-contracts
 pnpm run verify
 git diff --check
 ```
@@ -700,10 +878,12 @@ Windowsでは次も実行する。
 
 ```powershell
 ./scripts/verify.ps1
-./scripts/verify.ps1 -StrictHarness
+./scripts/verify.ps1 -HookContracts
 ```
 
-### 6.8 CI確認
+source repository layoutが実際に存在するmaintainer環境でstrict Harnessへ変更影響がある場合だけ、既存strict回帰も追加確認する。
+
+### 6.9 CI確認
 
 Ubuntu:
 
@@ -728,9 +908,11 @@ Hook process契約の多くは既に実装済みである。Issue本文の想定
 
 ### 7.3 Codex version差
 
-OpenAI CodexのHook schemaは変更され得る。config field名、matcher、`additionalContextLimit`、block outputは使用versionの正式仕様を確認してから実装する。
+OpenAI CodexのHook schemaは変更され得る。config field名、matcher、`additionalContextLimit`、block output、SessionStartの停止契約は使用versionの正式仕様を確認してから実装する。
 
-### 7.4 baseline状態管理
+特に、現行OpenAI sourceではSessionStartの非0終了は `Failed` になるだけで停止しない。使用versionでも同じ場合は `continue:false` を明示的停止に使う。
+
+### 7.4 baseline状態管理と秘密情報
 
 「ユーザー既存変更とCodex変更を同一file内で分離する」要件のため、開始時の最小baseline manifestだけを許容する。
 
@@ -740,24 +922,40 @@ baselineへ次を持たせない。
 - workflow state machine
 - file本文copy
 - raw Hook payload
+- raw normalized match
 - secret / credential
 - Agent実行履歴
 
-baseline取得不能時に後から現在worktreeをbaseline化しない。
+違反identityのmatch部分はSHA-256 digestだけを保存する。baseline取得不能時に後から現在worktreeをbaseline化しない。
 
-### 7.5 `scripts/verify` / `scripts/verify.ps1` の既存責務
+### 7.5 untracked rename
 
-通常モードはconsumer-facing contractを維持する。Issue要件を理由に全Vitest / buildを重複実行しない。source repository固有のHook process contractは既存strictモードへ接続する。
+開始時からuntrackedだったfileはGit rename情報を持たない。pure renameは保存済みcontent SHA-256の一意一致だけで対応付ける。曖昧な場合や内容変更を伴うrenameを推測しない。
 
-### 7.6 production文章ruleの具体値
+### 7.6 `scripts/verify` / `scripts/verify.ps1` の既存責務
+
+通常モードはconsumer-facing contractを維持する。Issue要件を理由に全Vitest / buildを重複実行しない。
+
+既存 `--strict-harness` / `-StrictHarness` は親directoryのsource repository契約を検証するためのoptionであり、#134のfocused Hook contractへ流用しない。
+
+Hook contractは明示opt-inから既存focused Vitestを呼ぶ薄い入口として追加する。
+
+### 7.7 production文章ruleの具体値
 
 rule categoryだけから具体的禁止語を推測すると、誤検知と不要な既存文書修正を招く。production block ruleは明文化された値だけに限定する。
 
 具体値が確定していない場合は、scannerの設計は進めてもproduction gateを完成扱いにしない。
 
-### 7.7 `lint:text` の比較基準
+### 7.8 `lint:text` の比較基準
 
-scanner本体とgate判定を分離する。Repository全件の既存違反を無条件にfailさせる実装にしない。Hookはsession baseline、CIはbase commit / merge base、ローカルverifyはCIと同じ比較ロジックを再利用する。
+scanner本体とgate判定を分離する。
+
+- Hook: session baseline -> current worktree
+- local `lint:text` / `verify`: HEAD -> current worktree
+- PR CI: merge base -> PR HEAD
+- push CI: `github.event.before` -> HEAD
+
+ローカルではstaged / unstaged / untrackedを含める。Repository全件の既存違反を無条件にfailさせる実装にしない。
 
 ## 8. 成果物
 
@@ -765,12 +963,15 @@ scanner本体とgate判定を分離する。Repository全件の既存違反を�
 
 - 既存Hook contractの不足分テスト
 - compact限定 `SessionStart` Hook
+- 使用Codex versionに合ったSessionStart fail-close契約
 - 決定論的文章品質scanner / CLI
 - 明文化されたproduction文章品質rule
-- 最小baseline管理とPostToolUse / Stop adapter
+- raw matchを保存しない最小baseline管理
+- tracked / untracked rename境界を含むPostToolUse / Stop adapter
 - Hook config契約テスト
 - `pnpm run verify` 接続
-- Bash / PowerShell strict Harnessへのfocused Hook contract接続
+- Bash / PowerShellのHook contract用明示opt-in
+- 既存strict Harness責務の維持
 - Ubuntu既存contract CIとWindows focused Hook contract CI
 - 必要なHarness reference更新
 
@@ -786,15 +987,21 @@ scanner本体とgate判定を分離する。Repository全件の既存違反を�
 - [ ] Issue #134の範囲を越えていない。
 - [ ] `tests/contracts/codex-hook-contract.test.ts` を正本としている。
 - [ ] 新しいHook test frameworkを作っていない。
-- [ ] 新しいsession managerを作っていない。
+- [ ] 新しいsession managerやdiff engineを作っていない。
 - [ ] Windows CIはfocused Hook contractに限定している。
 - [ ] `scripts/verify` / `scripts/verify.ps1` の通常モードを重くしていない。
-- [ ] strict Harnessへsource repository固有のHook contractを接続する設計になっている。
+- [ ] `--strict-harness` / `-StrictHarness` の既存source repository用途を変更していない。
+- [ ] Hook contract用opt-inは既存Vitestを呼ぶ薄い入口に限定している。
+- [ ] SessionStartの非0終了を停止手段として無条件に扱っていない。
+- [ ] 再注入不能時は使用versionで実際に停止できるcontractを使う。
 - [ ] fingerprintとmultiset差分の意味が固定されている。
+- [ ] baselineへraw normalized matchを保存せずdigest化している。
+- [ ] 開始時untrackedのpure rename境界が定義されている。
 - [ ] baseline取得不能時に後からbaselineを再作成しない。
 - [ ] PostToolUseの対象tool / early return / path限定方針が決まっている。
 - [ ] production文章品質ruleを実装者が推測しない。
-- [ ] `lint:text` のscannerと比較基準が分離されている。
+- [ ] local `lint:text` が `HEAD -> current worktree` でstaged / unstaged / untrackedを検証する。
+- [ ] Hook / local / PR CI / push CIの比較基準が区別されている。
 - [ ] Hook failureとlint violationを区別している。
 - [ ] raw prompt / tool input / Markdown本文をbaselineへ保存しない。
 
@@ -804,5 +1011,9 @@ scanner本体とgate判定を分離する。Repository全件の既存違反を�
 - PR #144 (`test: Windows Codex Hook contract timeoutを解消`) は既に `main` へ入っているため、その修正を前提とする。
 - Issue #135はPlan更新時点でopen。compact再注入は #135 merge確認後に開始する。
 - Planレビューで確認されたWindows CIの検出穴を、Windows focused Hook contractで埋める。
-- Planレビューで確認された `scripts/verify.ps1` / `-StrictHarness` を検証経路へ含める。
+- 再レビューで `--strict-harness` / `-StrictHarness` の用途が親source repository検証であることを確認したため、Hook contractは別の明示opt-inへ分離する。
+- 再レビューで確認した現行Codex `SessionStart` の停止契約をPlanへ反映した。実装では使用versionを再確認する。
+- baseline fingerprintは論理上のmatch identityを維持しつつ、persist時はSHA-256 digestだけを保存する。
+- 開始時untracked Markdownのpure renameはcontent SHA-256の一意一致だけを採用する。
+- local `lint:text` / `pnpm run verify` は `HEAD -> current worktree` を比較し、staged / unstaged / untrackedを対象にする。
 - 新しい事実が見つかった場合はIssue本文へ機械的に合わせず、現在のsource / test / CIを正としてPlanを更新する。
