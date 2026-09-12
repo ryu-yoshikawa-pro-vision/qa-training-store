@@ -163,3 +163,12 @@
 - この時刻順の不整合は、過去checkpoint本文やそこに記録した検証結果そのものを無効化するものではない。
 - `REPORT.md`のappend-only規約に従い、既存checkpointを削除・並べ替え・過去時刻へ推測置換せず、この訂正をファイル末尾へ追記した。
 - 今後の時系列参照では、ファイル上の追記順と各checkpointの内容を併せて確認する。
+
+## 2026-09-12 17:41 (JST) — evaluation責務の再訂正と公式manifest再同期
+
+- Summary: 元Runの`evaluation.json`をIssue #141実装の評価へ戻し、repair Runの評価をレビュー修復の評価として分離した。両evaluationの人間向け説明は日本語へ統一した。
+- Changes: 元Run evaluationへ`expo-sqlite`のoptionなしApp Config登録、Expo SDK 57 patch更新、`expo-constants` override、`@react-native/jest-preset`／`packageExtensions`、lockfile、dynamic config error解消、update path比較、PR CIの実績を記録した。今回もProduct code、依存関係、workflowは変更していない。
+- Decision / Rationale: 公式collectorが取得する`changed_files`は現在の作業ツリーの観測値であり、commit済みのIssue #141実装pathを再構成しない。従ってmanifestへ過去pathを手書きで補わず、元実装のpathと検証事実は保存Plan、既存REPORT、branch差分を参照する。14:35の記録順訂正を含む過去checkpointは変更・並べ替えず、この責務訂正だけを末尾へappendした。
+- Validation: 両evaluationのschema validation、`run_id`／failure category／official `evaluation_path`のmanifest invariant、両RunのSanitizer Write／Check（元Run 27 files、repair Run 8 files、双方`residual_findings=0`）をPASSした。両manifestは`status=completed`、`validation.status=passed`である。既知のWindows launcher timeout、local iOS prebuild未実施、live E2E未実施、main反映後no-op未実施は成功へ補完していない。
+- Blocker / Remaining: なし。artifact-only follow-upのcommit／pushと、新HEADのPR CI確認はrepair Run側で継続する。
+- Progress: 100% (11/11)

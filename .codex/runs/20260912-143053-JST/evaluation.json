@@ -3,93 +3,141 @@
   "run_id": "20260912-143053-JST",
   "result": "pass",
   "primary_failure_category": "flaky_or_env_issue",
-  "failure_categories": ["flaky_or_env_issue"],
+  "failure_categories": ["flaky_or_env_issue", "missing_validation"],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "The three requested PR review findings were repaired within the bounded scope: the Expo config contract detects string and tuple duplicates, the original Run has a finalized evaluation and manifest, and one append-only REPORT correction was added.",
+      "evidence": "PR #143のレビュー修復として、`expo-sqlite`のstring／tuple双方を検出するcontract test強化、元RunのIssue #141実装評価への訂正、元Run REPORTのappend-only訂正、両Runのevaluation／manifest整合を完了した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "tests/contracts/app-config.test.ts",
-          "selector": "Expo config plugins",
-          "summary": "The contract counts both expo-sqlite registration forms and requires one optionless string."
+          "selector": "expo-sqlite",
+          "summary": "`expo-sqlite`のstring／tuple登録を同一対象として数え、optionなし1件を要求する。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/evaluation.json",
+          "selector": "Issue #141の実装として",
+          "summary": "元Runの評価対象を後続repairではなくIssue #141実装へ戻している。"
         },
         {
           "kind": "run_manifest",
-          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "path": ".codex/runs/20260912-143053-JST/run.json",
           "selector": "$.status",
-          "summary": "The original Strict Run is completed through the official writer and collector."
+          "summary": "repair Runが公式経路でcompletedへ同期されている。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "The only product source change is the requested contract test. Product configuration, dependencies, workflows, and the existing Hook timeout test were not changed.",
+      "evidence": "今回のfollow-upで追加した変更は両evaluation、元Run／repair RunのREPORT・PLAN・TASKS、machine-managed manifest、およびRun Artifactに限定した。既存repairで行ったcontract test以外のProduct code、app.config.ts、package.json、pnpm-lock.yaml、workflow、既存Windows launcher timeout testは変更していない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260912-143053-JST/REPORT.md",
-          "selector": "15:06 checkpoint",
-          "summary": "The final scope and verify classification are recorded."
+          "selector": "## 2026-09-12 17:29 (JST) — 元Run評価責務の再訂正開始",
+          "summary": "follow-upの許可範囲と禁止対象を記録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-143053-JST/PLAN.md",
+          "selector": "## Follow-up: 元Run評価責務の訂正",
+          "summary": "今回のbounded follow-upのin／out scopeを保存している。"
         }
       ]
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Focused positive and negative regression checks passed as expected, and all verify stages before the known Windows launcher timeout passed. The local verify command still exits 1 on two existing five-second Windows timeout cases; the same cases pass with a thirty-second timeout. Local iOS prebuild, post-main no-op, and live update-needed E2E remain unrun.",
+      "evidence": "両evaluationのschema／run_id／category確認、focused App Config test、runtime／prebuild config assert、Expo check、markdown lint、typecheck、sanitizer、diff checkは成功した。標準`pnpm run verify`は既存Windows launcher timeout 2件でexit 1となり、local iOS prebuild、live update-needed E2E、main反映後no-opは未実施のままである。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260912-143053-JST/REPORT.md",
-          "selector": "14:36 / 14:57 / 15:06 checkpoints",
-          "summary": "Positive, negative, focused, and standard validation results are recorded without masking the known limitation."
+          "selector": "## 2026-09-12 15:06 (JST)",
+          "summary": "standard verifyの最初の異常と既知環境差を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "## 2026-09-12 15:12 (JST)",
+          "summary": "schema、sanitizer、scope、公式manifestの前回成功結果を記録している。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-143053-JST/run.json",
+          "selector": "$.validation",
+          "summary": "repair Runの公式collectorによるvalidation summaryを参照できる。"
         }
       ]
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "The required feature branch was maintained. No main operation, force push, deletion, dependency or workflow change, or direct run.json edit was performed.",
+      "evidence": "feature branchを維持し、mainへ直接反映せず、merge、force push、削除、依存関係／workflow変更、run.jsonの直接編集を行っていない。manifestは公式writer／collectorで更新し、両Runをsanitizerへ通した。",
       "evidence_refs": [
         {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "## 2026-09-12 15:44 (JST)",
+          "summary": "branch safety、commit／push、PR OPEN維持、CI確認を記録している。"
+        },
+        {
           "kind": "evaluation_note",
-          "summary": "The bounded repair scope and machine-managed manifest boundary were followed."
+          "summary": "今回のfollow-upでもmachine-managed manifest境界と禁止操作を維持した。"
         }
       ]
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "The original REPORT history was preserved and exactly one timestamp-order correction was appended at its end; the focused test and both Run manifests are traceable.",
+      "evidence": "元Runとrepair Runの責務、評価対象、未実施項目、failure category、manifestの制約を日本語のRun Artifactから追跡できる。元Run／repair Runの既存REPORT checkpointは並べ替えず、必要な訂正を末尾へappendした。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": ".codex/runs/20260912-081339-JST/REPORT.md",
-          "selector": "record-order correction checkpoint",
-          "summary": "The correction explains the out-of-order headings without rewriting prior checkpoints."
+          "selector": "## 2026-09-12 14:35 (JST) — 記録順に関する訂正checkpoint",
+          "summary": "元Runの過去checkpointを保持したまま記録順を説明している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "## 2026-09-12 16:17 (JST) — 修復Run記録順の訂正checkpoint",
+          "summary": "repair Runの既存checkpointを保持したまま記録順を説明している。"
         }
       ]
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "The repair strengthens the existing contract test without introducing a production helper, abstraction, timeout workaround, or dependency change.",
+      "evidence": "既存contract testの責務を最小差分で強化し、Run評価を実装Runとrepair Runへ分離した。production helper、generic editor、timeout workaround、依存関係変更は追加していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "tests/contracts/app-config.test.ts",
           "selector": "sqlitePlugins",
-          "summary": "The existing test responsibility now covers both plugin entry forms."
+          "summary": "既存のApp Config契約testへstring／tuple検出を追加している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-143053-JST/PLAN.md",
+          "selector": "Bounded iteration",
+          "summary": "修復範囲を1回のbounded iterationとして固定している。"
         }
       ]
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "The repair PLAN, TASKS, REPORT, evaluations, official manifests, focused checks, negative regression, standard verify result, and sanitizer results are stored as repository-relative artifacts.",
+      "evidence": "repair PLAN／TASKS／REPORT、元Runの保存Plan／REPORT、両evaluation、公式manifest、focused／standard validation、sanitizer、PR CIをrepository-relative pathで再追跡できる。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
           "path": ".codex/runs/20260912-143053-JST/run.json",
-          "selector": "$.validation",
-          "summary": "The repair Run validation summary is aggregated by the official collector."
+          "selector": "$.evaluation_path",
+          "summary": "repair evaluationへの公式manifest linkを確認できる。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.evaluation_path",
+          "summary": "元Run evaluationへの公式manifest linkを確認できる。"
         }
       ]
     }
@@ -98,16 +146,36 @@
     {
       "category": "flaky_or_env_issue",
       "severity": "medium",
-      "evidence": "Local Windows pnpm run verify exits 1 on two existing launcher timeout cases, while the same cases pass with a thirty-second timeout and the equivalent PR CI verification passed.",
+      "evidence": "ローカルWindowsの`pnpm run verify`は既存Windows launcher timeout 2件でexit 1だったが、同じ2件は30秒timeoutで2/2 PASSし、前回PR CIの相当verifyも成功した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260912-143053-JST/REPORT.md",
-          "selector": "15:06 checkpoint",
-          "summary": "The first verify anomaly and its bounded classification are recorded."
+          "selector": "## 2026-09-12 15:06 (JST)",
+          "summary": "最初のverify異常と既存環境差としての分類を記録している。"
         }
       ],
-      "detail": "This environment difference is retained as a warning and is unrelated to the requested review fix; no existing Hook test or timeout was changed."
+      "detail": "既存の環境差としてwarn評価に保持し、今回のfollow-upでtimeoutや既存Hook testを変更していない。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "low",
+      "evidence": "local iOS prebuild、update-neededからautomation PR作成までのlive E2E、main反映後のmaintenance no-opは未実施である。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/evaluation.json",
+          "selector": "local iOS prebuild",
+          "summary": "元Run評価に未実施事項を成功扱いせず記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143053-JST/REPORT.md",
+          "selector": "## 2026-09-12 17:29 (JST) — 元Run評価責務の再訂正開始",
+          "summary": "follow-up開始時点で未実施項目を引き継いでいる。"
+        }
+      ],
+      "detail": "Plan上の残確認または実行環境制約であり、レビュー修復およびIssue #141実装全体をfailへ変更する根拠ではない。"
     }
   ],
   "improvement_candidates": []

@@ -83,6 +83,19 @@
   - Parent decision: required/実行対象CIのPASSと条件付きSKIPPEDを採用し、未実施項目は完了扱いにしない。
 - Progress: 100% (8/8)
 
+## 2026-09-12 17:29 (JST) — 元Run評価責務の再訂正開始
+
+- Summary: 再レビューで残ったRun Artifact整合性指摘を、既存repair Runのbounded follow-upとして開始した。元Runの評価対象をIssue #141実装へ戻し、repair Runとの責務を分離する。
+- Changes: このcheckpointではProduct code、依存関係、workflow、既存Windows launcher timeout testを変更していない。次の許可範囲は両evaluation、元Run／repair RunのREPORT・machine manifest、今回のRun Artifactだけとする。
+- Decision / Rationale: 元Runの`changed_files`は公式collectorが現在の作業ツリーから取得した値であり、commit済みの過去実装pathを自動再構成しない。この制約を手書きで補わず、元Runの実装評価は保存Plan、元REPORT、branch差分を参照する。`run.json`は直接編集せず、evaluation更新後に公式writer／collectorで再同期する。
+- Validation: branch `issue-141-expo-dependency-maintenance`、PR #143 OPEN、current head `b1c5aec`の一致を再確認した。既存の元Run／repair Runのcompleted manifest、focused gate、標準verifyの既知Windows timeout、未実施のlocal iOS／live E2E／main no-opは、後続評価へ事実どおり引き継ぐ。
+- Blocker / Remaining: 元Run evaluationのIssue #141実装評価化、両evaluationの日本語化、公式manifest再同期、両Run schema／sanitizer、artifact-only commit／push、最新head CI確認が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentが再レビュー指摘とcollector仕様を確認した。
+  - Parent decision: 新しい修復iterationを1回に限定し、製品実装へ範囲を拡張しない。
+- Progress: 62% (8/13)
+
 ## 2026-09-12 14:57 (JST)
 
 - Summary: レビュー修正後のfocused validationを完了し、対象test/config/依存整合に新たな異常がないことを確認した。
@@ -124,3 +137,16 @@
 - append-only契約に従い、既存checkpointを削除・並べ替え・置換せず、この訂正をファイル末尾へappendした。今後の時系列参照ではファイル上の追記順と各見出し時刻を併記して扱う。
 - 修復内容、検証結果、branch/PR/CIの完了判定は15:44 checkpointおよびPR #143の最終HEAD `266581c`に記録した。
 - Progress: 100% (8/8)
+
+## 2026-09-12 17:41 (JST) — evaluation責務分離とartifact-only検証checkpoint
+
+- Summary: 残ったRun Artifact整合性指摘へ、bounded follow-upの1 iterationで対応した。元RunはIssue #141実装、repair Runはレビュー修復を評価する責務へ整理した。
+- Changes: 両evaluationを日本語化し、元Run evaluationの主題をIssue #141実装へ修正した。公式collectorで両manifestを再同期したが、`changed_files`はcollectorの現在作業ツリー観測値`tests/contracts/app-config.test.ts`のままで、過去commitの実装pathを捏造していない。
+- Decision / Rationale: 今回の追加変更は両evaluation、元RunのREPORT、repair RunのPLAN／REPORT／TASKSおよび公式manifestに限定した。`app.config.ts`、`package.json`、`pnpm-lock.yaml`、`tests/contracts/app-config.test.ts`、workflow、既存Windows launcher timeout testは変更していない。collectorの履歴再構成制約はevaluationとREPORTへ明記した。
+- Validation: `python -X utf8 scripts/validate-output-schema.py`（両evaluation）、JSON／manifest invariant、Sanitizer Write／Check（元Run 27 files／0 residual、repair Run 8 files／0 residual）、`pnpm run lint:markdown`（386 files／0 issues）、`git diff --check`、forbidden product diff（0）、artifact-only scope check（unexpected 0）はPASSした。標準`pnpm run verify`の既知Windows launcher timeout 2件（502 passed／2 failed／3 skipped）は前回Runで分類済みであり、今回のartifact-only変更による新規異常ではない。
+- Blocker / Remaining: なし。残りはbranch safety再確認、artifact-only commit／push、PR本文更新、新HEAD CI確認である。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがevaluation、manifest、schema、sanitizer、scopeを再確認した。
+  - Parent decision: collectorの観測範囲を超えるchanged_filesを手書きせず、既存のIssue #141実装証跡を評価本文・保存Plan・REPORTで追跡する。
+- Progress: 92% (12/13)

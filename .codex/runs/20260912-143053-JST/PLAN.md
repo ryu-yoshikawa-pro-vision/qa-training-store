@@ -67,3 +67,12 @@ PR #143 のレビュー指摘3件を、Issue #141 の既存実装を再変更せ
 
 - 2026-09-12 14:31 JST: 3件とも明確なmust_fix。修復は1回のbounded iterationに固定し、production/dependency/workflowへscopeを拡張しない。
 - 2026-09-12 14:31 JST: 元Runの未完了manifestは今回の中心findingのため、作業用Runを新設しても元Runのfinalizeを省略しない。
+
+## Follow-up: 元Run評価責務の訂正
+
+今回の再レビューで、元Run `20260912-081339-JST` の `evaluation.json` がIssue #141の実装ではなく、後続repairのtuple重複検出を主題としていること、および両evaluationの人間向け説明文が英語であることが判明した。
+
+- In: 元Run evaluationのIssue #141実装評価への修正、両evaluationの人間向け文面の日本語化、公式collectorによる両manifestの再同期、必要なREPORT末尾checkpoint、schema／sanitizer／scope／CI確認。
+- Out: `app.config.ts`、`package.json`、`pnpm-lock.yaml`、`tests/contracts/app-config.test.ts`、workflow、Expo／React Native依存関係、既存Windows launcher timeout test、main操作、merge、force push、live E2E、main反映後no-op。
+- 判断: collectorが現在の作業ツリーから取得した`changed_files`は、既にcommit済みのIssue #141実装履歴を再構成しない。元実装のpathと検証事実は、元Run REPORT、保存Plan、branch差分を参照して評価し、manifestへ手書きで補わない。
+- Bounded iteration: 1回。evaluation、REPORT、公式manifest再同期、schema／sanitizer／lint／diff確認、branch／PR／push／最新head CI確認を完了条件とする。

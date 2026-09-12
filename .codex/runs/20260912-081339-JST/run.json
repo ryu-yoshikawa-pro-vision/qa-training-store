@@ -48,5 +48,5 @@
   },
   "evaluation_path": ".codex/runs/20260912-081339-JST/evaluation.json",
   "status": "completed",
-  "primary_failure_category": null
+  "primary_failure_category": "flaky_or_env_issue"
 }

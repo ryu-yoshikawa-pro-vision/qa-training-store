@@ -10,6 +10,11 @@
 - [x] 6. 元RunのREPORT訂正、evaluation作成、公式writer/collectorによるStrict manifest同期を完了する
 - [x] 7. focused gate、標準verify、schema、scope、sanitizerを実行し結果を記録する
 - [x] 8. branch safety、commit/push、新head PR CI/本文を確認し、両Runを完了判定する
+- [x] 9. 元Run evaluationをIssue #141実装の実績へ修正し、repair Run evaluationを日本語化する
+- [x] 10. 両Runのevaluation schema、run_id、failure category、evidence refsを確認する
+- [x] 11. 公式writer/collectorで両manifestを再同期し、REPORTへ責務分離と制約を記録する
+- [x] 12. 両Runのsanitizer、markdown lint、diff check、禁止対象差分を確認する
+- [ ] 13. branch safety、artifact-only commit/push、PR本文と最新head CIを確認する
 
 ## Discovered
 
