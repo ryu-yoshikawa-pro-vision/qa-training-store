@@ -166,6 +166,30 @@
   - Parent decision: sanitizer／schema／scope gateをPASSとしてcommit準備へ進む。
 - Progress: 80% (8/10)
 
+## 2026-09-13 02:25 (JST)
+
+- Summary:
+  - branch safetyを再確認し、source修正とRun ArtifactをcommitしてPR branchへ明示refspecで通常pushした。
+  - PR #127のタイトルと本文を日本語へ更新し、新baseline、partial coverage、provenance、検証結果を反映した。
+- Changes:
+  - commit `915b7b06a566cc5a4f670c2386b2c1063f1c33c3`（`chore(run): PR #127レビュー修正の実測を記録`）をpushした。
+  - Run-local TASKSのtask 9を完了に更新した。task 10はpush後CI終端確認が残るため未完了とした。
+- Decision / Rationale:
+  - current branch `refactor/117-pr2-trigger-eval-baseline`はPR #127の`headRefName`と一致し、PRはOPEN／base `main`である。pushは`git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`を使用し、force push／rebase／merge／close／branch削除は行っていない。
+  - PR本文にはvalid 8/8未達を隠さず、partial baselineとして保存したこと、旧fingerprintを再利用していないことを記録した。
+- Validation:
+  - push前のlocal HEAD、branch、status、branch -vv、PR headを照合した。
+  - push結果はremote branch `refactor/117-pr2-trigger-eval-baseline`が`915b7b0`へ更新された。
+  - `gh pr edit 127`は成功し、PR titleは`Trigger Eval baselineのレビュー指摘を修正する`、bodyは日本語の新実測内容へ更新済みである。
+  - `gh pr view 127`で確認したpush前のPR headは旧`15783faf`であり、push後の最新head CI確認が残る。
+- Blocker / Remaining:
+  - push後最新headのWeb CI／Mobile App CIが未確認。終端successを確認するまでRunは未完了とする。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: task 9を完了し、最新headの必須CIを確認する。
+- Progress: 90% (9/10)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
