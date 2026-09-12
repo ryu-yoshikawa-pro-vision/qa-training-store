@@ -82,6 +82,19 @@
   - Parent decision: validation結果を保持したままPR同期へ進む。
 - Progress: 71% (5/7)
 
+## 2026-09-12 16:31 (JST)
+
+- Summary: Run Artifactを `7902b80` としてnon-force pushし、PR #127本文へ今回のunknown Skill診断結果を追記した。push後のCI最終確認はPASS相当の完了状態である。
+- Changes: PR本文へverify PASS、diagnostic evaluator snapshot SHA、Routing SHA、Codex version、fresh Target preflight、固定script停止理由、3ケース各0回／実値未取得、Qualification／canonical／baseline／merge未実行を追記した。source／test／dataset／query／Skillは変更していない。
+- Decision / Rationale: `gh pr checks 127 --watch` は `5 successful / 0 failing / 0 pending / 0 cancelled / 0 skipped` で終了した。CodeRabbitはstatus `pass`（description: OSS repositoryのmanual review requiredによりreview skipped）。pendingをPASSへ読み替えていない。
+- Validation: push前branchは `refactor/117-pr2-trigger-eval-baseline`、worktree clean、PR headは `7902b80` と一致した。PRはOPEN、base `main`、mergeable `CONFLICTING` のままであり、merge conflict解消・rebase・force push・mergeは実施していない。
+- Blocker / Remaining: B1。3ケース実値取得とvalid baselineは未完了であり、次Runでdiagnostic scriptの実行条件を別途修正してから各1回診断する必要がある。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: 今回Runをpartialとして完了し、runtime未実行のまま停止する。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
