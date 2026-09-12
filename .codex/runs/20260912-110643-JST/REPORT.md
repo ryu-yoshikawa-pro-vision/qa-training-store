@@ -220,5 +220,18 @@
 - Subagents:
   - Delegation: なし。
   - Result: なし。
-  - Parent decision: Issue #142の最小test-only修正と必要なRun/PR反映を完了として扱う。追加改善は別件へ分離する。
+- Parent decision: Issue #142の最小test-only修正と必要なRun/PR反映を完了として扱う。追加改善は別件へ分離する。
+- Progress: 100% (18/18)
+
+## 2026-09-12 16:57 (JST)
+
+- Summary: REPORTのcheckpoint順序不一致を補足記録した。
+- Changes: 11:20 (JST)のcheckpointが後続checkpointより後に追記されたため、REPORT内に部分的な時系列順序不一致が残っている。
+- Decision / Rationale: append-only契約に従い、既存checkpointの削除・並べ替え・意味変更は行わず、この補足で順序不一致を明示する。
+- Validation: 既存checkpointの実行事実・判断・検証結果・Progressは変更していない。
+- Blocker / Remaining: なし。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: 既存記録を保持したまま、補足checkpointのみを追記する。
 - Progress: 100% (18/18)
