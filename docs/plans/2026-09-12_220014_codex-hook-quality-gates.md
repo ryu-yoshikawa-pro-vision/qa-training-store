@@ -7,7 +7,7 @@
 - Plan作成時base: `main` / `3c5e35ed42712574eb9d89051820c9e27f137a16`
 - 依存Issue: #135 `refactor: AGENTS.mdをスリム化し常駐指示と詳細運用仕様を分離する`
 - #135 Plan branch: `issue-135-agents-context-slimming`
-- このPlanでは実装しない。実装、commit、push、PR作成・更新は別タスクで行う。
+- このPlanでは実装しない。実装、PR作成・更新は別タスクで行う。
 
 Issue #134の目的は、既存Codex Harnessを拡張し、次を満たすことである。
 
@@ -16,7 +16,7 @@ Issue #134の目的は、既存Codex Harnessを拡張し、次を満たすこと
 3. Markdown文章へ決定論的な品質ルールを適用し、HookとCIの両方で検証する。
 4. 作業開始前から存在する違反と、今回のCodex作業で増えた違反を分離する。
 
-新しいAgent Runtime、独自Workflow Engine、AIによる文章評価基盤は作らない。既存の `.codex/**`、Node.js、Vitest、`scripts/verify`、`pnpm run verify`、GitHub Actionsを再利用する。
+新しいAgent Runtime、独自Workflow Engine、AIによる文章評価基盤は作らない。既存の `.codex/**`、Node.js、Vitest、`scripts/verify`、`scripts/verify.ps1`、`pnpm run verify`、GitHub Actionsを再利用する。
 
 ## 1. ゴール / 完了条件
 
@@ -32,14 +32,15 @@ Issue #134の目的は、既存Codex Harnessを拡張し、次を満たすこと
 - `SessionStart` の `source=compact` だけでroot `AGENTS.md` 全文を `hookSpecificOutput.additionalContext` として返す。
 - compact以外の `SessionStart` では再注入しない。
 - root `AGENTS.md` の内容をHook専用ファイルへ複製しない。
-- `additionalContextLimit` を使用する場合、対象Codex versionの正式仕様と実測に基づく明示値を設定し、root `AGENTS.md` 全文が意図しないspill対象にならないことを契約テストで確認する。
+- `additionalContextLimit` を使用する場合、対象Codex versionの正式仕様と実測に基づく明示値を設定し、root `AGENTS.md` の扱いを契約テストで確認する。
 - 文章品質lintは決定論的な明示ルールだけを扱い、markdownlintの責務を重複実装しない。
+- productionでblockする文章品質ruleは、実装前に具体値を表で確定し、実装者が独自に推測追加しない。
 - PostToolUseではRepository全体を毎回scanせず、作業開始baselineとの差分で今回増えた違反だけを即時フィードバック対象にする。
 - Stopでは同じ新規違反を完了前に確認し、`stop_hook_active=false` のときだけ1回blockできる。
 - `stop_hook_active=true` では同一違反を繰り返しblockしない。
-- Hook内部エラーとlint違反を別の結果として扱う。
-- `pnpm run verify`、`bash scripts/verify`、GitHub Actionsのいずれでも必要な検証が抜けない。
-- WindowsとUbuntu/Linuxの既存Harness経路を壊していない。
+- baseline取得不能とHook内部エラーをlint違反と区別し、後から現在worktreeをbaselineとして再作成しない。
+- `pnpm run verify`、`bash scripts/verify --strict-harness`、`./scripts/verify.ps1 -StrictHarness`、GitHub Actionsのいずれでも必要なHook契約が抜けない。
+- GitHub ActionsでUbuntuの既存 `Vitest (contracts)` とWindowsのfocused Hook contractを実行する。
 - Product code、Skill routing、Agent orchestrationへ変更を広げていない。
 
 ## 2. 現状理解と前提
@@ -64,7 +65,7 @@ Issue本文の「Hook process契約テストが不足している」という前
 - logger欠落、repository root解決失敗、canonical log path書込失敗時のfallback
 - concurrent appendが独立したJSON lineになること
 
-また、PR #144が2026-09-12にmergeされ、Windows上の既存Hook contract timeout対策も `main` に入っている。
+PR #144もmerge済みであり、Windows上の既存Hook contract timeout対策が `main` に入っている。
 
 したがって、Issue本文の想定どおり `tests/codex-hooks/` を新設して既存契約を作り直さない。現在の `tests/contracts/codex-hook-contract.test.ts` を正本として不足分を追加する。
 
@@ -83,9 +84,11 @@ pnpm run verify
   -> ... -> pnpm run test -> test:contracts
 ```
 
-GitHub Actions `Web CI` のVitest matrixにも `contracts` が含まれているため、`tests/contracts/**` に追加するHook契約テストは既存CI経路へ自動的に入る。
+GitHub Actions `Web CI` のVitest matrixにも `contracts` が含まれているため、`tests/contracts/**` に追加するHook契約テストはUbuntuの既存CI経路へ入る。
 
-一方、`scripts/verify` は別のshell harnessであり、現在はHook script/configの存在・文字列契約を確認するが、Vitestの `codex-hook-contract.test.ts` 自体は実行していない。Issue #134の要件を満たすには、この経路を別途接続する必要がある。
+一方、現行 `Vitest (contracts)` はUbuntuであり、Windows Hook launcherを実行するCI経路はない。#134では新しいWindows command、temp path、UTF-8、cwd解決まで扱うため、WindowsではHook contractに限定したfocused実行を追加する。
+
+`scripts/verify` と `scripts/verify.ps1` は別のHarness契約を持つ。通常モードはconsumer-facing contractを維持し、source repository固有のfocused Hook process contractは既存のstrictモードへ接続する。
 
 ### 2.3 現在のHook設定
 
@@ -100,15 +103,19 @@ GitHub Actions `Web CI` のVitest matrixにも `contracts` が含まれている
 
 `SessionStart` は未登録である。
 
-Windowsは `command_windows` を使う別command経路があり、Unix側と同一文字列ではない。新規Hookでも、必要な場合は両方のconfigured commandを契約テストする。
+Windowsは `command_windows` を使う別command経路があり、Unix側と同一文字列ではない。新規Hookでも必要なWindows / Unix commandを契約テストする。
+
+既存 `PreToolUse` はBash matcherであり、`apply_patch` は現行policy対象外である。Issue本文の例だけを理由に既存 `PreToolUse` matcherへ追加しない。
 
 ### 2.4 #135との依存関係
 
-Plan作成時点でIssue #135はopenである。
+Plan更新時点でIssue #135はopenである。
 
 compact再注入は #135完了後まで実装しない。#134 branchを #135 branchへ直接依存させず、#135が `main` へ入った後に、このbranchへ最新 `main` をRepositoryのGit安全規約に従って取り込んでから再注入実装へ進む。
 
-Hook契約の不足分確認、文章lintの独立したrule engine、baseline方式のテスト設計は #135前でも進められる。
+#135後のroot `AGENTS.md` を唯一の正本とする。#134側でcompact専用コピー、`COMPACTION_CRITICAL_START/END` のようなmarker領域、二重管理を追加しない。
+
+Hook契約の不足分確認、文章lint scanner、baseline方式のテスト設計は #135前でも進められる。
 
 ### 2.5 Codex Hook正式仕様
 
@@ -124,46 +131,78 @@ Hook契約の不足分確認、文章lintの独立したrule engine、baseline�
 - https://github.com/openai/codex/blob/main/codex-rs/hooks/src/schema.rs
 - https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json
 
-ただしCodex Hook仕様はversion依存である。実装開始時に、実際に使用するCodex CLI versionとそのversionに対応する正式仕様を再確認する。OpenAI repositoryの最新 `main` を、ローカルで使用しているversionへ無条件に適用しない。
+Codex Hook仕様はversion依存である。実装開始時に、実際に使用するCodex CLI versionとそのversionに対応する正式仕様を再確認する。OpenAI repositoryの最新 `main` を、使用versionへ無条件に適用しない。
 
-`additionalContextLimit` は現在の正式sourceでは `additionalContext` のspill閾値として扱われる。単純な「stdout文字数上限」として扱わない。実装時のversionで同じ契約か確認し、root `AGENTS.md` の実サイズを使って境界テストする。
+`additionalContextLimit` は現在確認した正式sourceでは `additionalContext` のspill閾値として扱われる。単純なstdout文字数上限として扱わない。実装時のversionで同じ契約か確認し、#135後のroot `AGENTS.md` の実サイズを使って境界を確認する。
 
 ### 2.6 前提
 
 - Node.js標準機能で実装できるHook処理へ、新しいruntime依存を追加しない。
 - TOMLを意味的にparseするための既存direct dependencyが実装時点でも無い場合、手書きTOML parserを増やすより、test専用の小さなmaintained parser導入を比較する。依存を追加する場合はlicense、保守状況、lockfile影響を確認する。
-- 文章品質lintの対象は、初期実装ではMarkdown (`*.md`) に限定する。Issueの目的だけを理由に `.txt`、CSV、source comment等へ対象を広げない。
+- 文章品質lintの対象は初期実装ではMarkdown (`*.md`) に限定する。Issueの目的だけを理由に `.txt`、CSV、source comment等へ対象を広げない。
 - 意味評価、自然さ、論理構成、未知の造語検出はblock条件にしない。
+- `scripts/verify` / `scripts/verify.ps1` の通常モードへ、project-wide Vitestやbuildを追加しない。
 
-## 3. 質問 / 曖昧性
+## 3. 実装前に確定する事項
 
-### 必ず実装前に確定する項目
+### 3.1 必須確認
 
 1. #135が `main` へmerge済みか。
-2. #135後のroot `AGENTS.md` のbyte数・概算token数と、通常SessionStart/compactでの読込契約。
+2. #135後のroot `AGENTS.md` のbyte数・概算token数。
 3. 実際に使用するCodex CLI versionと、Hook config field名・matcher・output schema。
-4. 文章品質lintでblockする具体的なルール表。
+4. productionでblockする文章品質rule表。
 
-### 文章ルールの扱い
+### 3.2 production文章品質rule表
 
 Issue #134は「禁止語」「表記揺れ」「定義済み置換」「全角/半角」「allowlist付き英語混在」を候補として示しているが、具体的な禁止語や置換表までは定義していない。
 
-そのため、実装時にモデル判断で禁止語・表記ルールを増やさない。次の順にルールを確定する。
+Task 6へ入る前に、採用するproduction ruleごとに次を確定する。
+
+| 項目 | 内容 |
+| --- | --- |
+| `rule_id` | 安定した識別子 |
+| 対象 | 対象Markdown |
+| 検出条件 | literalまたはregex |
+| 除外条件 | 必要な場合のみ |
+| `replacement` | 明示置換がある場合のみ |
+| allowlist | 必要な場合のみ |
+| 大文字小文字 | 区別するか |
+| fenced code block | 対象か |
+| inline code | 対象か |
+| URL | 対象か |
+| identifier | 対象か |
+| match正規化 | fingerprint比較で必要な場合のみ明示 |
+
+次の順で具体値を確定する。
 
 1. Repository内で既に明文化されている表記規約を確認する。
 2. Issue #134または関連Issueで明示されたruleを採用する。
-3. それでも値が無いrule categoryは、仕組みだけ先に作ってproduction block ruleを推測追加しない。
+3. それでも具体値が無いrule categoryはproduction block ruleへ追加しない。
 
-広い「英単語検出」や辞書ベースの自然言語判定は初期実装に含めない。allowlistで完全に説明できる狭いruleだけを追加する。
+実装者が独自判断で禁止語、置換、allowlist、英語検出条件を作らない。
 
-### 未回答でも先に進められる項目
+次はblock条件へ含めない。
 
-- #135完了前でも、既存Hook契約テストのgap確認と文章lint engineのunit/contract設計は進めてよい。
-- TOML parserの具体packageは、実装時点のdependency状態とCodex config syntaxを確認して決める。
+- 文脈依存の自然さ
+- 読みやすさや論理性の主観評価
+- 冗長さの意味評価
+- AI生成文らしさ
+- 未知の造語の完全検出
+- AI Judge
+- broad dictionaryや形態素解析
+
+### 3.3 実装時に確認すればよい事項
+
+次はPlanで具体値を固定せず、実装時のRepository状態とCodex versionに基づいて決める。
+
+- `SessionStart` failure時に `continue=false` を使えるか、非0終了とするか。
+- `additionalContextLimit` の具体値。
+- TOML parserの具体package。手書きparserは作らない。
+- PostToolUseで利用できる実際のtool matcher alias。
 
 ## 4. 影響範囲
 
-### 変更候補
+### 4.1 変更候補
 
 ```text
 .codex/config.toml
@@ -172,6 +211,7 @@ Issue #134は「禁止語」「表記揺れ」「定義済み置換」「全角/
 .codex/text-quality-rules.json                   # 新規候補: 明示済み決定論ruleだけ
 scripts/lint-text-quality.mjs                    # 新規候補: 共通scanner/CLI
 scripts/verify
+scripts/verify.ps1
 tests/contracts/codex-hook-contract.test.ts
 tests/contracts/codex-text-quality.test.ts       # 分離した方が読みやすい場合のみ新規
 package.json
@@ -180,9 +220,9 @@ docs/reference/codex-safety-harness.md
 docs/reference/codex-implementation-harness.md  # 関連箇所がある場合だけ
 ```
 
-ファイル名は実装時の既存命名へ合わせて調整してよい。候補ファイルをすべて作ることを目的にしない。
+候補ファイルをすべて作ることを目的にしない。既存ファイルへ自然に追加できる場合は新規ファイルを増やさない。
 
-### 原則変更しない範囲
+### 4.2 原則変更しない範囲
 
 - Product code
 - Playwright / application test
@@ -192,14 +232,16 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合だ
 - `log_event.mjs` のlogging意味
 - #135が所有するAGENTS分割方針
 - 既存Markdown全件の一括修正
+- 新しいHook test framework
+- 独自session manager
 
 ## 5. 変更方針
 
-### Task 1: 実装開始時baselineを固定する
+### Task 1: 実装開始時の状態を固定する
 
 - [ ] `main`、branch HEAD、merge base、working treeを確認する。
 - [ ] #135のstateとmerge有無を確認する。
-- [ ] `tests/contracts/codex-hook-contract.test.ts`、`.codex/config.toml`、Hook scripts、`package.json`、`scripts/verify`、`.github/workflows/ci.yml` の最新状態を再確認する。
+- [ ] `tests/contracts/codex-hook-contract.test.ts`、`.codex/config.toml`、Hook scripts、`package.json`、`scripts/verify`、`scripts/verify.ps1`、`.github/workflows/ci.yml` の最新状態を確認する。
 - [ ] 使用Codex CLI versionを記録し、そのversionに対応するHook schemaを確認する。
 - [ ] #144以降にHook contractへ追加変更がないか確認する。
 
@@ -211,36 +253,36 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合だ
 ### Task 2: 既存Hook契約テストの不足分だけを埋める
 
 - [ ] 現行 `codex-hook-contract.test.ts` とIssue #134のチェック項目を対応付ける。
-- [ ] 既にあるstdin / stdout / stderr / exit / cwd / side effect / Windows・Unix launcher caseは重複追加しない。
+- [ ] 既存のstdin / stdout / stderr / exit / cwd / side effect / Windows・Unix launcher caseは重複追加しない。
 - [ ] 未確認の入力サイズ境界をprocess経由で追加する。
 - [ ] `pre_tool_use_policy.mjs` は現行matcher契約どおり、`apply_patch` が `PreToolUse/Bash` policy対象外であることを固定する。Issue本文の例だけを理由にmatcherへ追加しない。
 - [ ] `log_event.mjs` は大きなpayloadでも保存fieldの上限・redaction・JSONL parseabilityが維持されることを確認する。
-- [ ] 既存Hook sourceの挙動変更が必要だと判明した場合は、contract test追加と挙動変更を同一判断にせず、原因・影響を分けて扱う。
+- [ ] 既存Hook sourceの挙動変更が必要だと判明した場合は、contract追加とproduction挙動変更を分けて判断する。
 
 ### Task 3: `.codex/config.toml` を構造として検証する
 
-現在のtestはHook blockを文字列で抽出する箇所がある。Issue #134の設定契約では、少なくとも次を構造として検証する。
+少なくとも次を構造として検証する。
 
 - [ ] event名
 - [ ] matcher
 - [ ] command
-- [ ] Windows command
+- [ ] `command_windows`
 - [ ] timeout
-- [ ] `SessionStart` のcompact限定matcher/条件
+- [ ] `SessionStart` のcompact限定条件
 - [ ] `additionalContextLimit` を使う場合の値
 
 方針:
 
 - TOML全仕様を自作しない。
-- 実装時点で利用可能なdirect parserが無ければ、小さなtest-only parser dependencyと、限定的な既存helper継続のどちらが安全か比較する。
-- parser追加の方が明確に安全な場合だけdevDependencyを追加する。
-- command文字列が指すscript pathは、parse後に実在確認する。
-- Windows / Unix commandは、文字列存在確認だけでなく既存configured launcher contract testで実行可能性も維持する。
+- 実装時点で利用可能なdirect parserが無ければ、小さなtest-only parser dependencyと限定的な既存helper継続を比較する。
+- parser追加の方が安全な場合だけdevDependencyを追加する。
+- command文字列が指すscript pathはparse後に実在確認する。
+- Windows / Unix commandは文字列存在だけでなくconfigured launcher contractで実行可能性も確認する。
 
 ### Task 4: #135完了ゲート
 
 - [ ] #135がmerge済みであることを確認する。
-- [ ] #135後のroot `AGENTS.md` が、常駐指示として全文再注入する設計になっていることを確認する。
+- [ ] #135後のroot `AGENTS.md` が常駐指示として全文再注入する設計になっていることを確認する。
 - [ ] このbranchへ最新 `main` を安全に取り込む。
 - [ ] root `AGENTS.md` の実サイズを測る。
 - [ ] #134側で `AGENTS.md` のmarker分類やコピーを追加しない。
@@ -267,27 +309,28 @@ Codex compact
 - [ ] `AGENTS.md` を別ファイルへコピーしない。
 - [ ] root解決、UTF-8読込、JSON serializeだけで閉じる。独自compact state managerは作らない。
 - [ ] `additionalContextLimit` は実Codex versionの契約を確認したうえで明示する。
-- [ ] 通常サイズでは全文が `additionalContext` として直接扱われることをtestする。
-- [ ] 閾値超過時のCodex側挙動は、versionに対応する正式仕様とfocused runtime確認で固定する。
+- [ ] 通常サイズと境界値で `additionalContext` のruntime挙動を確認する。
 
 エラー契約:
 
-- malformed Hook input: process contract違反として非0終了 + stderr。誤ったcontextは返さない。
+- malformed Hook input: 非0終了 + stderr。誤ったcontextは返さない。
 - `source != compact`: 正常終了、追加contextなし。
-- repository root / `AGENTS.md` 欠落 / read失敗: compact後の必須指示を欠落させるため、単なる成功として黙殺しない。実Codex versionで `continue=false` がSessionStartに有効か確認し、有効なら明示的停止を第一候補とする。利用中versionで安全に停止できない場合は非0終了 + stderrとし、そのruntime挙動を契約テスト・focused runで確認してから採用する。
+- repository root / `AGENTS.md` 欠落 / read失敗: compact後の必須指示を欠落させるため黙殺しない。実Codex versionでSessionStartの停止方法を確認し、契約テストとfocused runで挙動を固定する。
 
-このfail-close方法はCodex version依存なので、schema確認前に固定実装しない。
+停止方法はCodex version依存なので、schema確認前に固定しない。
 
-### Task 6: 決定論的な文章品質lintをCLIとして先に成立させる
+### Task 6: 決定論的な文章品質scannerを先に成立させる
 
-Hookへ接続する前に、共通scannerを単体で動かせる状態にする。
+Task 6へ入る前に「3.2 production文章品質rule表」を確定する。具体値がないrule categoryを実装者判断でproduction block ruleへ追加しない。
 
-- [ ] `scripts/lint-text-quality.mjs` 等へ、Node.js標準機能だけで実装する。
+- [ ] `scripts/lint-text-quality.mjs` 等へscanner/CLIを実装する。
 - [ ] production ruleは `.codex/text-quality-rules.json` 等の1か所を正本にする。
-- [ ] Markdown parserは追加せず、ruleが必要とする最小限の行単位判定から始める。
-- [ ] fenced code block、inline code、URL、技術識別子等を除外する必要があるruleは、誤検知しないことをfixtureで固定できる場合だけ追加する。
+- [ ] scannerは指定されたMarkdown fileを決定論的にscanする責務に限定する。
+- [ ] session baselineやGitHub Actions固有の比較基準をscanner本体へ埋め込まない。
+- [ ] Markdown parserは追加せず、採用ruleで必要な最小限の判定から始める。
+- [ ] fenced code block、inline code、URL、identifier等の除外はrule表に明記された場合だけ実装する。
 - [ ] markdownlintが見る見出し、空行、list、code fence構造を再実装しない。
-- [ ] broad dictionary、AI judge、形態素解析を追加しない。
+- [ ] broad dictionary、AI Judge、形態素解析を追加しない。
 
 rule出力は少なくとも次を持つ。
 
@@ -299,13 +342,11 @@ message
 replacement   # 明示置換があるruleのみ
 ```
 
-秘密情報や行全体を診断へ不要に出さない。matched textを出す必要がある場合も短く制限する。
+秘密情報や行全体を診断へ不要に出さない。matched textを出す場合も短く制限する。
 
 ### Task 7: 作業開始baselineを最小状態で保持する
 
-同じファイルにユーザー既存変更とCodex変更が共存する要件を満たすには、`HEAD` との差分だけでは不十分である。開始前から未commitの変更がある場合、その違反まで今回の変更として扱ってしまうためである。
-
-過剰なsession managerは作らず、文章lint専用の最小baseline manifestだけを使う。
+同じファイルにユーザー既存変更とCodex変更が共存する要件を満たすには、`HEAD` との差分だけでは不十分である。文章lint専用の最小baseline manifestだけを使う。
 
 #### baseline作成
 
@@ -313,103 +354,237 @@ replacement   # 明示置換があるruleのみ
 
 - 開始時 `HEAD` SHA
 - repository rootを識別するhash
-- session idを安全に識別する値
+- sessionを安全に識別する値
 - 開始時点でdirty / untrackedだった対象Markdown path
 - そのpathのcontent SHA-256
 - そのpathに存在した文章lint violationのfingerprintと件数
 
-source本文そのもの、token、secret、Hook raw payloadは保存しない。
+source本文、token、secret、Hook raw payloadは保存しない。
 
-baselineはrepository tracked fileにしない。OS temp directory等、Repositoryを汚さず同じsessionのHook processから再参照できる場所を使用する。
+baselineはtracked fileにせず、OS temp directory等、Repositoryを汚さず同じsessionのHook processから再参照できる場所を使用する。
+
+#### 違反identity
+
+比較単位は、renameを解決した後のrepository-relative file pathとする。
+
+fingerprintは次とする。
+
+```text
+rule_id + rule定義に従って正規化したmatch
+```
+
+- 行番号はidentityへ含めない。
+- `message`、`replacement` はidentityへ含めない。
+- 大文字小文字、whitespace、Unicode等の正規化は、rule表で明示された場合だけ行う。
+- 実装者が独自の正規化を追加しない。
+- 同一fingerprintが同一fileに複数存在できるため、setではなくmultisetとして件数を保持する。
+
+新規違反数は同一file / fingerprintについて次で定義する。
+
+```text
+max(current_count - baseline_count, 0)
+```
+
+例:
+
+```text
+baseline: rule-X / foo = 2
+current : rule-X / foo = 3
+-> 新規違反 1件
+```
+
+既存違反を1件削除し、同じfingerprintを別位置へ1件追加して件数が同じ場合は新規違反扱いしない。位置単位の由来追跡や独自diff engineは作らない。
+
+#### staged / unstaged / untracked / rename
+
+- 開始時 `HEAD` SHAを固定する。
+- stagedとunstagedを別の品質基準に分けず、開始時状態から現在worktreeまでの合成差分として扱う。
+- 開始時にdirtyだったtracked fileはbaseline manifestの違反multisetを比較基準にする。
+- 開始時に存在したuntracked Markdownもbaseline manifestへ記録する。
+- task開始後に作られたuntracked Markdownはbaseline空として扱う。
+- deleteはlint対象外とする。
+- renameはGit差分から対応付け、純粋な移動だけで既存違反を新規扱いしない。
 
 #### baseline lifecycle
 
 - baselineが無ければ、最初の通常 `UserPromptSubmit` で1回作る。
 - Stopがblockして自動継続している間は上書きしない。
-- quality gateを通過してStopを許可する時点でbaselineを削除する。
-- 次のユーザーtaskでは新しいbaselineを作る。
-- retry count等をbaselineへ持たせない。Stop再入は `stop_hook_active` を使う。
+- Stopを通常allowする時点でbaselineを削除する。
+- `stop_hook_active=true` でallowする場合もbaselineを削除する。
+- block時はbaselineを保持する。
+- 次の通常 `UserPromptSubmit` ではbaselineが無ければ新しく作る。
+- retry count、workflow state machineをbaselineへ持たせない。
 
-#### staged / unstaged / untracked
+#### baseline取得不能
 
-- 開始時 `HEAD` SHAを固定し、tracked fileはそのcommitを比較基準にする。
-- stagedとunstagedを別の品質基準に分けず、開始時状態から現在worktreeまでの合成差分として扱う。
-- 開始時にdirtyだったtracked fileは、baseline manifestの違反集合を比較基準にする。
-- 開始時に存在したuntracked fileもbaseline manifestへ記録し、元からあった違反を新規扱いしない。
-- task開始後に作られたuntracked Markdownはbaseline空として扱う。
-- deleteはlint対象外。renameは開始時pathとの対応をGit差分から解決し、同じ内容の移動だけで既存違反を新規扱いしない。
+baseline作成に失敗した後、PostToolUseやStop時点のworktreeを新しいbaselineとして作り直さない。Codexが既に追加した違反を開始時違反へ吸収するためである。
 
-新規違反は、baseline側と現在側の `rule_id + normalized match fingerprint` のmultiset差分として判定する。行番号だけをidentityに使わず、既存違反の行移動だけで新規判定しない。
+baseline本体を作れない場合でも、同じsessionで「baseline unavailable」を判別できる最小状態だけを保持できる設計を採用する。そこへsource本文、raw Hook payload、違反本文は保存しない。
 
 ### Task 8: PostToolUseへ即時フィードバックを接続する
 
-- [ ] `PostToolUse` で現在の変更対象Markdownだけを列挙する。
-- [ ] Repository全体はscanしない。
+既存のlogging用 `PostToolUse` Hookは維持し、文章品質用handlerを別責務として追加する。
+
+#### 対象tool
+
+- [ ] 実装時のCodex CLI versionで、Markdownを書き換え得る実際のtool name / matcher aliasを確認する。
+- [ ] Bash経由の変更と `apply_patch` 相当の変更toolを検討対象とする。
+- [ ] 存在しないtool名をPlanから推測してconfigへ固定しない。
+- [ ] matcherだけで限定できない場合はHook内で `tool_name` を確認し、読み取り専用toolでは即returnする。
+- [ ] 対象toolでもMarkdown変更が0件ならlintを実行しない。
+
+#### 対象path
+
+- [ ] tool payloadから変更pathを安全に取得できる場合は、そのMarkdown pathだけをscanする。
+- [ ] pathを安全に確定できない変更toolの場合だけGit差分から変更Markdownを列挙する。
+- [ ] Repository全体をPostToolUseごとにscanしない。
+
+#### 判定
+
 - [ ] baselineから増えた違反だけをblock理由に含める。
 - [ ] tool実行済みの副作用をrollbackできるとは扱わない。
-- [ ] tool payloadから対象pathを安全に限定できる場合はそのpathを優先し、不明なBash等ではGit差分から対象Markdownを絞る。
-- [ ] Hook内部エラーでは、実行済みtool結果を壊さないようfail-open + stderr診断とする。
-- [ ] lint違反時はstructured `decision=block` / `reason` の現行Codex contractを使い、短い修正情報だけ返す。
+- [ ] lint違反時は、使用Codex versionのstructured block contractで短い修正情報を返す。
+- [ ] baseline unavailable、Git差分取得失敗、rule読込失敗、scanner失敗、temp state読込失敗ではfail-open + stderr診断とする。
+- [ ] Hook failureとlint violationを別messageにする。
 
-PostToolUseの役割は早期フィードバックであり、完了判定ではない。
+PostToolUseは早期フィードバックであり、完了判定ではない。
 
 ### Task 9: Stopへ完了前品質ゲートを接続する
 
-- [ ] baselineから増えた文章lint違反を再評価する。
-- [ ] `stop_hook_active=false` かつ修正可能な新規違反あり: `decision=block` で1回だけ修正を促す。
-- [ ] `stop_hook_active=true`: 同じ違反が残っていても再blockしない。未解決内容を短い診断として返せる契約だけを使う。
+Stopでは次の状態表に従う。
+
+| 状態 | `stop_hook_active` | 動作 |
+| --- | --- | --- |
+| valid baseline + 新規違反あり | `false` | blockして修正を促す |
+| valid baseline + 新規違反あり | `true` | 再blockせずallowし、短い診断を残す |
+| valid baseline + 新規違反なし | 任意 | allow |
+| baseline unavailable / quality check不能 | `false` | 品質確認不能として1回block |
+| baseline unavailable / quality check不能 | `true` | 再blockせずallowし、短い診断を残す |
+| 対象Markdown変更なし | 任意 | allow |
+
+`quality check不能` には少なくとも次を含む。
+
+- baseline file欠落 / 破損
+- Git差分取得失敗
+- rule file読込失敗
+- scanner process失敗
+- temp state読込失敗
+
 - [ ] retry counter、独自loop stateを追加しない。
 - [ ] lint違反とHook内部エラーでmessageを分ける。
+- [ ] block時はbaselineを保持する。
+- [ ] allow時はbaselineを削除する。
+- [ ] quality check不能でも現在worktreeをbaselineとして再作成しない。
+- [ ] CI側のdeterministic lintを独立した検証経路として残す。
 
-Hook内部エラーの扱い:
+### Task 10: `lint:text` の責務を固定する
 
-- `stop_hook_active=false`: quality checkが実行不能だったことを1回だけblock理由として返す案を第一候補とし、正式Stop contractで成立するか確認する。
-- `stop_hook_active=true`: Hook故障だけでloopを継続しない。stderr/診断を残して停止を許可する。
-- CI側のdeterministic lintを別経路として必ず残す。
+scanner、Hook、CI、package scriptの責務を分ける。
 
-### Task 10: local verify / `scripts/verify` / CIへ接続する
+#### scanner
+
+`scripts/lint-text-quality.mjs` は指定Markdownをscanして違反一覧を返す。baselineやGitHub eventの知識を持たせない。
+
+#### Hook
+
+session開始baselineと現在worktreeを比較し、今回増えた違反だけを扱う。
+
+#### CI
+
+PRではbase branchとのmerge baseを比較基準にし、PRで増えた違反だけを判定する。
+
+pushでは `github.event.before` を比較基準とし、zero SHA等は既存CIのfallback patternへ合わせる。
+
+#### `pnpm run lint:text`
+
+`lint:text` を「Repository全件に1件でも既存違反があれば失敗するcommand」として無条件に定義しない。
+
+package scriptは、既存違反を一括修正しないIssue方針と整合する比較基準を明示してscannerを呼び出す。`pnpm run verify` からも同じ比較ロジックを使用し、CIとローカルverifyで判定規則を分岐させない。
+
+比較基準を取得できないローカル実行方法が必要なら、対象fileを明示するscanner modeと、base refを明示するgate modeを分ける。新しいframeworkは作らず、同一scannerを再利用する。
+
+### Task 11: local verify / Harness / CIへ接続する
 
 #### `pnpm run verify`
 
-- [ ] `lint:text` 等の専用scriptを追加する。
-- [ ] `pnpm run verify` のmarkdownlint近傍で実行する。
-- [ ] Hook contractは既存 `test:contracts` に残し、重複した `test:codex-hooks` suiteを原則追加しない。
+- [ ] `lint:text` をmarkdownlint近傍で実行する。
+- [ ] Hook contractは既存 `test:contracts` に残す。
+- [ ] 重複した `test:codex-hooks` suiteを原則追加しない。
 
-#### `scripts/verify`
+#### `scripts/verify` / `scripts/verify.ps1`
 
-`scripts/verify` は現在、consumer-facing template contractも担うため、無条件に重いproject-wide testを追加すると既存用途を壊す可能性がある。
+通常モードはconsumer-facing contractを維持する。
 
-- [ ] 現在の呼出元とconsumer契約を実装時に確認する。
-- [ ] Issue要件を満たすfocused Hook contract実行を追加する。
-- [ ] `tests/contracts/codex-hook-contract.test.ts` だけを実行できる既存Vitest経路を優先し、全test/buildを `scripts/verify` へ重複追加しない。
-- [ ] consumer環境でpnpm/Vitestを前提にできない既存契約が確認された場合は、その経路を壊さず、source-repo modeでfocused contractを実行する既存optionへ接続する。新しい独自verify frameworkは作らない。
+```bash
+bash scripts/verify
+```
+
+```powershell
+./scripts/verify.ps1
+```
+
+通常モードへ全Vitest、build、project-wide testを追加しない。
+
+source repository固有のfocused Hook process contractは既存strictモードへ接続する。
+
+```bash
+bash scripts/verify --strict-harness
+```
+
+```powershell
+./scripts/verify.ps1 -StrictHarness
+```
+
+- [ ] strictモードから `tests/contracts/codex-hook-contract.test.ts` のfocused実行へ到達する。
+- [ ] 文章品質contractを別fileへ分離した場合、そのfocused testもstrictモードへ接続する。
+- [ ] `.codex/config.toml`、新規Hook file、Harness文書の存在・基本契約はBash / PowerShellで可能な範囲を対称にする。
+- [ ] consumer-facing用途を理由なくpnpm/Vitest必須へ変えない。
+- [ ] 新しいverify frameworkを作らない。
 
 #### GitHub Actions
 
-- [ ] Hook contractは既存 `Vitest (contracts)` で継続実行する。
-- [ ] 文章lintは `Style Quality` へ追加する。
-- [ ] PRではmerge base / base branchとの差分から新規違反だけを判定する。
-- [ ] pushでは `github.event.before` を使い、zero SHA等は既存CI patternに合わせてfallbackする。
-- [ ] Windows固有runtime testを新jobへ増やすのは、static config contract + Windowsローカル契約では検出できない回帰が実際に残る場合だけとする。
+Ubuntu:
 
-### Task 11: 文書を更新する
+- [ ] 既存 `Vitest (contracts)` を維持し、`tests/contracts/**` を実行する。
+- [ ] `Style Quality` へ文章品質gateを追加する。
 
-- [ ] `docs/reference/codex-safety-harness.md` に、新しいSessionStart / text quality gateの責務、fail-open / fail-close、軽量性を反映する。
+Windows:
+
+- [ ] Hook contract専用のfocused CIを追加する。
+- [ ] 少なくとも `tests/contracts/codex-hook-contract.test.ts` をWindows runnerで実行する。
+- [ ] 文章品質HookのWindows契約を別test fileへ分離した場合は、それも対象に含める。
+- [ ] checkout、Node.js、pnpm、dependency install、focused Vitestに限定する。
+- [ ] Product test、build、E2EをWindowsへ複製しない。
+
+Windows CIで検出する対象:
+
+- `command_windows`
+- PowerShell / `cmd.exe` quoting
+- path separator
+- 空白を含むpath
+- 日本語を含むpath
+- stdin / stdout / stderr
+- UTF-8
+- temp path
+- nested cwd / repository root解決
+
+### Task 12: 文書を更新する
+
+- [ ] `docs/reference/codex-safety-harness.md` にSessionStart / text quality gateの責務、fail-open / fail-close、軽量性を反映する。
 - [ ] `docs/reference/codex-implementation-harness.md` に重複説明が必要か確認し、必要箇所だけ更新する。
 - [ ] `AGENTS.md` へHook詳細を再掲しない。#135後のroot文書を再び肥大化させない。
-- [ ] rule tableの正本pathと、markdownlintとの責務分離を文書化する。
+- [ ] production ruleの正本pathとmarkdownlintとの責務分離を文書化する。
+- [ ] strict Harnessへfocused Hook contractを接続した場合、その実行方法を既存文書の適切な箇所へ反映する。
 
 ## 6. 検証方法
 
 ### 6.1 focused contract
 
-最低限、次を個別に実行する。
-
 ```bash
 pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1
 ```
 
-文章lint testを分離した場合:
+文章品質testを分離した場合だけ次も実行する。
 
 ```bash
 pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1
@@ -420,7 +595,7 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 確認するcase:
 
 - `source=compact` + root `AGENTS.md` 読込成功
-- `startup` / `resume` / `clear` / `fork` では追加contextなし
+- compact以外のsourceでは追加contextなし
 - nested cwd
 - malformed JSON
 - repository root解決失敗
@@ -433,15 +608,16 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - configured commandのUnix経路
 - configured commandのWindows経路
 
-### 6.3 文章lint contract
+### 6.3 文章品質contract
 
 確認するcase:
 
 - 明示ruleのpositive / negative
-- code block / inline code / URL / identifierの除外をruleが要求する場合の誤検知防止
+- rule表で要求された除外条件
 - replacement付きrule
 - 同一違反複数件のmultiset差分
 - 既存違反の行移動
+- 既存1件削除 + 同一fingerprint別位置1件追加で件数同一
 - 開始時clean tracked file
 - 開始時dirty tracked file
 - staged + unstaged混在
@@ -450,6 +626,7 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - rename
 - delete
 - baseline file欠落 / 破損
+- baseline作成失敗後に現在状態をbaseline化しない
 - repository root外cwd
 - pathに空白・日本語を含むcase
 
@@ -459,8 +636,12 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - 今回増えた違反あり -> block reason
 - 既存違反のみ -> allow
 - 同一fileに既存違反 + 新規違反 -> 新規分だけ返す
-- Bash等でtarget pathをpayloadから特定できない -> Git差分でMarkdownだけ評価
-- scanner failure -> fail-open + stderr
+- 読み取り専用tool -> early return
+- 書き換えtoolだがMarkdown変更なし -> lintしない
+- target pathを安全に特定できる -> そのMarkdownだけ評価
+- target pathを特定できない変更tool -> Git差分でMarkdownだけ評価
+- baseline unavailable -> fail-open + stderr
+- scanner / rule / Git failure -> fail-open + stderr
 - 既存ファイルを勝手に修正しない
 
 ### 6.5 Stop contract
@@ -468,11 +649,37 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - `stop_hook_active=false` + 新規違反なし -> allow
 - `stop_hook_active=false` + 新規違反あり -> 1回block
 - `stop_hook_active=true` + 同一違反あり -> 再blockしない
-- Hook内部エラーとlint違反を区別する
+- baseline unavailable + `false` -> 品質確認不能として1回block
+- baseline unavailable + `true` -> allow
+- scanner / rule / Git failureをlint違反と区別する
 - allow時にbaseline cleanup
 - block時にbaseline維持
 
-### 6.6 Repository検証
+### 6.6 Harness検証
+
+通常モード:
+
+```bash
+bash scripts/verify
+```
+
+```powershell
+./scripts/verify.ps1
+```
+
+strictモード:
+
+```bash
+bash scripts/verify --strict-harness
+```
+
+```powershell
+./scripts/verify.ps1 -StrictHarness
+```
+
+通常モードがconsumer-facing contractを維持し、strictモードがsource repository固有のfocused Hook process contractを実行することを確認する。
+
+### 6.7 Repository検証
 
 変更内容に応じて少なくとも次を実行する。
 
@@ -484,34 +691,36 @@ pnpm run lint
 pnpm run typecheck
 pnpm run test:contracts
 bash scripts/verify
+bash scripts/verify --strict-harness
 pnpm run verify
 git diff --check
 ```
 
-`pnpm run verify` が上記の一部を包含していても、focused failureの原因切り分け用に個別実行結果を先に持つ。
+Windowsでは次も実行する。
 
-### 6.7 platform確認
+```powershell
+./scripts/verify.ps1
+./scripts/verify.ps1 -StrictHarness
+```
+
+### 6.8 CI確認
+
+Ubuntu:
+
+- `Vitest (contracts)` が既存contract suiteを実行する。
+- `Style Quality` が文章品質gateを実行する。
+- Web CIの既存必須jobを壊さない。
 
 Windows:
 
-- current repositoryの `command_windows` を実際に通すfocused Hook contract
-- nested cwd
-- pathに空白・日本語
-- baseline temp path
-
-Ubuntu/Linux:
-
-- GitHub Actions `Vitest (contracts)`
-- `Style Quality`
-- Web CIの既存必須job
-
-新しいWindows CI jobは事前に必須化しない。既存の検出穴が残ると確認できた場合だけ追加する。
+- focused Hook contract jobが `codex-hook-contract.test.ts` を実行する。
+- `command_windows`、PowerShell / `cmd.exe`、UTF-8、空白・日本語path、temp path、nested cwdを含むWindows固有契約を検出できる。
 
 ## 7. リスクと未解決論点
 
 ### 7.1 #135未完了
 
-compact再注入だけは実装を開始できない。#135を待たずに仮の `AGENTS.md` 抽出方式を作ると、後で削除する二重管理になるため行わない。
+compact再注入だけは実装を開始できない。#135を待たずに仮の `AGENTS.md` 抽出方式を作らない。
 
 ### 7.2 Issue本文と現在実装の差
 
@@ -519,13 +728,13 @@ Hook process契約の多くは既に実装済みである。Issue本文の想定
 
 ### 7.3 Codex version差
 
-OpenAI CodexのHook schemaは変更され得る。特にconfig field名、matcher、`additionalContextLimit`、block outputはローカルversionと正式sourceを一致させてから実装する。
+OpenAI CodexのHook schemaは変更され得る。config field名、matcher、`additionalContextLimit`、block outputは使用versionの正式仕様を確認してから実装する。
 
 ### 7.4 baseline状態管理
 
-「ユーザー既存変更とCodex変更を同一file内で分離する」要件は、完全なstateless処理では満たしにくい。開始時の最小baseline manifestはこの要件のために限定して許容する。
+「ユーザー既存変更とCodex変更を同一file内で分離する」要件のため、開始時の最小baseline manifestだけを許容する。
 
-ただしbaselineへ次を持たせない。
+baselineへ次を持たせない。
 
 - retry回数
 - workflow state machine
@@ -534,13 +743,21 @@ OpenAI CodexのHook schemaは変更され得る。特にconfig field名、matche
 - secret / credential
 - Agent実行履歴
 
-### 7.5 `scripts/verify` の既存責務
+baseline取得不能時に後から現在worktreeをbaseline化しない。
 
-現在の `scripts/verify` は単なるapplication test runnerではない。Hook contractを入れる際、consumer-facing用途を壊さないことを優先する。Issue要件を理由に全Vitest / buildを重複実行しない。
+### 7.5 `scripts/verify` / `scripts/verify.ps1` の既存責務
 
-### 7.6 文章ruleの未定義部分
+通常モードはconsumer-facing contractを維持する。Issue要件を理由に全Vitest / buildを重複実行しない。source repository固有のHook process contractは既存strictモードへ接続する。
 
-rule categoryだけから具体的禁止語を推測すると、誤検知と大量修正を招く。production block ruleは明文化された値だけに限定する。
+### 7.6 production文章ruleの具体値
+
+rule categoryだけから具体的禁止語を推測すると、誤検知と不要な既存文書修正を招く。production block ruleは明文化された値だけに限定する。
+
+具体値が確定していない場合は、scannerの設計は進めてもproduction gateを完成扱いにしない。
+
+### 7.7 `lint:text` の比較基準
+
+scanner本体とgate判定を分離する。Repository全件の既存違反を無条件にfailさせる実装にしない。Hookはsession baseline、CIはbase commit / merge base、ローカルverifyはCIと同じ比較ロジックを再利用する。
 
 ## 8. 成果物
 
@@ -548,19 +765,44 @@ rule categoryだけから具体的禁止語を推測すると、誤検知と大�
 
 - 既存Hook contractの不足分テスト
 - compact限定 `SessionStart` Hook
-- 決定論的文章lint CLI / shared scanner
+- 決定論的文章品質scanner / CLI
+- 明文化されたproduction文章品質rule
 - 最小baseline管理とPostToolUse / Stop adapter
 - Hook config契約テスト
-- `pnpm run verify` / `scripts/verify` / GitHub Actions接続
+- `pnpm run verify` 接続
+- Bash / PowerShell strict Harnessへのfocused Hook contract接続
+- Ubuntu既存contract CIとWindows focused Hook contract CI
 - 必要なHarness reference更新
 
-このPlan自体の保存先:
+このPlanの保存先:
 
 `docs/plans/2026-09-12_220014_codex-hook-quality-gates.md`
 
-## 9. 備考
+## 9. 実装前自己レビュー
+
+実装へ進む前に次を確認する。
+
+- [ ] #135依存を維持している。
+- [ ] Issue #134の範囲を越えていない。
+- [ ] `tests/contracts/codex-hook-contract.test.ts` を正本としている。
+- [ ] 新しいHook test frameworkを作っていない。
+- [ ] 新しいsession managerを作っていない。
+- [ ] Windows CIはfocused Hook contractに限定している。
+- [ ] `scripts/verify` / `scripts/verify.ps1` の通常モードを重くしていない。
+- [ ] strict Harnessへsource repository固有のHook contractを接続する設計になっている。
+- [ ] fingerprintとmultiset差分の意味が固定されている。
+- [ ] baseline取得不能時に後からbaselineを再作成しない。
+- [ ] PostToolUseの対象tool / early return / path限定方針が決まっている。
+- [ ] production文章品質ruleを実装者が推測しない。
+- [ ] `lint:text` のscannerと比較基準が分離されている。
+- [ ] Hook failureとlint violationを区別している。
+- [ ] raw prompt / tool input / Markdown本文をbaselineへ保存しない。
+
+## 10. 備考
 
 - Plan作成時の `main` HEADは `3c5e35ed42712574eb9d89051820c9e27f137a16`。
 - PR #144 (`test: Windows Codex Hook contract timeoutを解消`) は既に `main` へ入っているため、その修正を前提とする。
-- Issue #135はPlan作成時点でopen。compact再注入は #135 merge確認後に開始する。
-- Planレビューで新しい事実が見つかった場合は、Issue本文へ機械的に合わせるのではなく、現在のsource / test / CIを正としてPlanを更新する。
+- Issue #135はPlan更新時点でopen。compact再注入は #135 merge確認後に開始する。
+- Planレビューで確認されたWindows CIの検出穴を、Windows focused Hook contractで埋める。
+- Planレビューで確認された `scripts/verify.ps1` / `-StrictHarness` を検証経路へ含める。
+- 新しい事実が見つかった場合はIssue本文へ機械的に合わせず、現在のsource / test / CIを正としてPlanを更新する。
