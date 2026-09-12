@@ -17,4 +17,4 @@
 
 ## Blocked
 
-- B1. [解消済み 2026-09-12] origin/mainの差分をbaseline Routing SHAから再確認した結果、AGENTS.md／Skill description／Trigger Eval dataset／routing正本の変更はなく、Semantic Output Eval追加のみだったため、merge後の指定検証を実行した。
+- B1. [解消済み 2026-09-12] origin/mainの差分をbaseline Routing SHAから再確認した結果、`AGENTS.md`にはRun／CI完了契約の運用追記があるがSkill選択条件／routing正本は不変で、Skill description／Trigger Eval datasetにも変更はなく、Semantic Output Eval追加と共存可能だったため、merge後の指定検証を実行した。

@@ -274,6 +274,21 @@
   - 実装・検証上の未完了事項なし。PR reviewと、ユーザー判断によるPR mergeだけが残る。PR merge／close、branch削除は行っていない。
 - Progress: 100% (8/8)
 
+## 2026-09-12 21:33 (JST)
+
+- Correction:
+  - 最終routing差分の具体確認で、`AGENTS.md`には26行のRun／CI完了契約・Progress契約の運用追記があることを確認した。これはSkill選択条件／routing正本の変更ではなく、`SKILL.md`／Trigger Eval dataset／query／`expected_skill`／`boundary`にも変更はない。
+  - 20:32 checkpointの「`AGENTS.md`に変更なし」は運用文書差分を含めた表現として不正確だったため、履歴を残したまま本checkpointで訂正する。
+- Changes:
+  - PR本文へ`AGENTS.md`の非routing運用追記を明記し、Semantic Output Eval追加とTrigger Eval routingを区別した。
+  - この訂正はRun ArtifactとPR metadataのみで、Trigger Eval／Semantic Eval source、dataset、baseline JSONは変更していない。
+- Validation:
+  - `git diff --name-status 55cb43abb06fa96dd3f283d7ae4a20b6076af5f5 origin/main -- AGENTS.md ".agents/skills/*/SKILL.md"`: `AGENTS.md`のみ`M`。差分は上記の運用追記で、Skill routing意味変更なし。
+  - `SKILL.md`差分なし。Trigger dataset差分なし。baseline SHA256は`D79927276D4DFD6F08B2E495E30989D58EE805BD783618D39C8405B62D2E30C6`。
+- Blocker / Remaining:
+  - 訂正のdocs-only commitをpush後、最新headの必須CI（Web CI／Mobile App CI）を再確認する。
+- Progress: 83% (8/9)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

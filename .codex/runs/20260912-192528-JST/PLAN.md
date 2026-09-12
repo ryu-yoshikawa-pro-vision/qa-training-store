@@ -40,4 +40,4 @@
 ## Thinking Log
 
 - 2026-09-12 JST: 8/8をbaseline存在条件にせず、既存canonical 24件を測定結果として保存する方針を確定。
-- 2026-09-12 20:32 JST: Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`から`origin/main`（`a5402e4940ac8b790d1bb5bc7db5a68e5848a187`）を再確認し、`AGENTS.md`／Skill description／Trigger Eval datasetの差分がないことを確認。main側のSemantic Output Eval追加をTrigger Eval routing変更とは扱わず、両評価系を共存させてmerge・検証する判断に更新。
+- 2026-09-12 20:32 JST: Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`から`origin/main`（`a5402e4940ac8b790d1bb5bc7db5a68e5848a187`）を再確認。`AGENTS.md`にはRun／CI完了契約の運用追記があるが、Skill選択条件／routing正本は不変で、Skill description／Trigger Eval datasetにも変更なし。main側のSemantic Output Eval追加をTrigger Eval routing変更とは扱わず、両評価系を共存させてmerge・検証する判断に更新。
