@@ -66,6 +66,19 @@
   - Parent decision: このRunの検証範囲を完了として、次はPR同期だけを行う。
 - Progress: 86% (6/7)
 
+## 2026-09-12 17:42 (JST)
+
+- Summary: PR本文追記、Run Artifact commit／push、PR head parity、CI最終確認を完了した。
+- Changes: PR #127本文へ今回のCJS互換修正方法、script SHA256、dry-run、fresh Target、Routing SHA、Codex version、3ケースの`skill_values`／`status_values`／`invoke_types`／`plugin_ids`／lifecycle／reasonを追記した。Run Artifact commitは`7f9487876b70689fa999b09e171df5245737ada6`。
+- Decision / Rationale: `git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`をnon-forceで実行し、PR headがcommitと一致した。PRはOPEN、base `main`、mergeable `CONFLICTING`のままであり、merge conflict解消・rebase・force push・mergeは行わない。
+- Validation: push後の`gh pr checks 127 --watch --interval 10`および最終`gh pr checks 127`は5件すべてPASS（Analyze actions／javascript-typescript／python、CodeQL、CodeRabbit）。CodeRabbitはOSS manual review requiredによるreview skip説明付きpass。fail、pending、cancelled、skippedは0件。local／remote／PR headは`7f9487876b70689fa999b09e171df5245737ada6`で一致し、worktreeはclean。
+- Blocker / Remaining: 今回Runの必須作業は完了。PR全体のvalid baselineは未取得で、Qualification／canonical `all`／8/8判定は未実行。次Runで今回の実値を根拠に修正方針を決める。
+- Subagents:
+  - Delegation: なし（No child delegation）。
+  - Result: —
+  - Parent decision: 今回の診断Runを完了し、merge conflictとbaseline判定はユーザー指定どおり保留する。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

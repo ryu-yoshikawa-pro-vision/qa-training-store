@@ -8,7 +8,7 @@
 - [x] 4. fresh TargetをRouting SHAへdetachし、preflightとcase datasetの一意性を確認する。
 - [x] 5. 指定3ケースを固定順序で各1回実行し、stdout／stderr／meta／OTel／lifecycleを保存する。
 - [x] 6. 実値をRun／evaluation／REPORTへ反映し、schema・format・lint・sanitizer・collector・diffを検証する。
-- [ ] 7. PR本文を日本語で追記し、Run Artifactだけをcommit／pushしてPR headとCI最終状態を確認する。
+- [x] 7. PR本文を日本語で追記し、Run Artifactだけをcommit／pushしてPR headとCI最終状態を確認する。
 
 ## Discovered
 
