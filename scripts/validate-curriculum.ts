@@ -252,15 +252,17 @@ function assertRepositoryPath(
 function assertEvidenceReference(name: string, value: string): void {
   if (value === "") return;
   const normalized = value.replace(/\\/g, "/");
-  const evidencePathBoundary = String.raw`(?:^|[\s"'(=]|(?<!https)(?<!http):)`;
-  if (new RegExp(`${evidencePathBoundary}file:`, "i").test(value))
+  const withoutValidHttpUrls = normalized.replace(/https?:\/\/[^\s/]+[^\s]*/gi, " ");
+  const candidate = withoutValidHttpUrls.replace(/https?:/gi, " ");
+  if (/\bfile:\/\/(?:\/|[A-Za-z]:\/)/i.test(candidate))
     fail(`${name} has a local file URI evidence reference: ${value}`);
-  if (new RegExp(`${evidencePathBoundary}(?:[A-Za-z]:[^\\s]|\\/(?:\\/|[^\\s/]))`).test(normalized))
+  if (/(?:^|[^A-Za-z0-9_])[A-Za-z]:\S*/.test(candidate))
     fail(`${name} has a local absolute evidence reference: ${value}`);
-  if (new RegExp(`${evidencePathBoundary}\\.\\.(?:\\/|$)`).test(normalized))
-    fail(`${name} has an evidence reference outside the repository: ${value}`);
-  const segments = normalized.split("/");
-  if (segments.some((segment) => segment === ".."))
+  if (/(?:^|[^A-Za-z0-9_])\/\/[^\s/]/.test(candidate))
+    fail(`${name} has a local absolute evidence reference: ${value}`);
+  if (/(?:^|[^A-Za-z0-9_\/.])\/(?:\/|[^\s/])/.test(candidate))
+    fail(`${name} has a local absolute evidence reference: ${value}`);
+  if (/(?:^|[^.])\.\.(?:\/|$)/.test(candidate))
     fail(`${name} has an evidence reference outside the repository: ${value}`);
 }
 
