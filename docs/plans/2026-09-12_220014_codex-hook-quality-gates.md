@@ -6,7 +6,6 @@
 - 実装branch: `issue-134-codex-hook-quality-gates`
 - Plan作成時base: `main` / `3c5e35ed42712574eb9d89051820c9e27f137a16`
 - 依存Issue: #135 `refactor: AGENTS.mdをスリム化し常駐指示と詳細運用仕様を分離する`
-- #135 Plan branch: `issue-135-agents-context-slimming`
 - このPlanでは実装しない。実装、PR作成・更新は別タスクで行う。
 
 Issue #134では既存Codex Harnessを拡張し、次を実現する。
@@ -42,9 +41,12 @@ Issue #134では既存Codex Harnessを拡張し、次を実現する。
 - baselineへ本文断片や正規化済みmatchを平文保存しない。
 - 開始時clean tracked Markdownは保存済み開始時 `HEAD` SHAのblobから必要時にbaseline違反を算出する。
 - 開始時HEADに存在するかどうかを基準にbaseline取得元を決め、dirty / staged add / untrackedを正しく区別する。
-- renameは `Git rename mapping -> exact content SHA-256の一意一致 -> quality check不能` の順で解決し、対応付け不能時にbaseline空へ落とさない。
+- session baselineのrenameは `Git rename mapping -> exact content SHA-256の一意一致 -> quality check不能` の順で解決し、対応付け不能時にbaseline空へ落とさない。
 - local `lint:text` / `pnpm run verify` は `HEAD -> current worktree` を比較し、staged / unstaged / untracked Markdownを対象にする。
+- local working-tree比較でも、HEAD側の既存fileがworktree-only moveされた場合は `Git rename mapping -> HEAD blobと現在候補のexact SHA-256一意一致 -> 比較不能` の順でfile identityを解決する。
 - commit比較では比較開始commitを1つ確定し、変更path、baseline本文、rename mappingのすべてに同じtreeを使う。
+- PR CIでは現行 `pull_request` workflowがcheckoutした `HEAD` をcurrentとして扱い、raw PR headを前提にしない。
+- PR CIの比較開始commitは `git merge-base origin/<base branch> HEAD` とし、現行のmerge commit checkoutでは通常current base tipになる。
 - CIではイベントごとの比較元を明示する。`schedule` / `workflow_dispatch` は既存CI patternに合わせて `HEAD^` を使う。
 - `scripts/verify` / `scripts/verify.ps1` の既存strict責務を変えず、Hook contract用の明示opt-inを追加する。
 - GitHub ActionsではUbuntuの既存 `Vitest (contracts)` とWindowsのfocused Hook contractを実行する。
@@ -182,7 +184,25 @@ Repositoryには `scripts/spec/summarize-impact.ts` があり、差分取得で�
 
 文章品質gateはこのpatternを再利用し、新しいGit差分frameworkを作らない。
 
-### 2.8 前提
+### 2.8 PR workflowのcheckout前提
+
+現行 `Style Quality` は `pull_request` で起動し、`actions/checkout` にPR headを明示する `ref` を設定していない。`fetch-depth: 0` は設定済みである。
+
+そのため文章品質gateは、workflowで実際にcheckoutされた `HEAD` をcurrentとして扱う。raw PR headだけを評価するための追加checkoutへ変更しない。
+
+現行GitHub Actionsの `pull_request` workflowでは、merge可能なPRは通常 `refs/pull/<number>/merge` に対応するmerge commitがcheckoutされる。したがって、base branch tipを `B`、raw PR headを `P`、workflowでcheckoutされたmerge commitを `H` とすると、通常は次の形になる。
+
+```text
+M --- B
+ \     \
+  \ P---H
+```
+
+この場合、`git merge-base B H` は `B` である。
+
+文章品質gateは「PR作成時のfork地点Mからの差分」を独自に再構築しない。現在のbase branchに既に存在する違反をPR由来と誤認しないため、現行workflowのmerge resultを評価する。
+
+### 2.9 前提
 
 - Node.js標準機能で実装できるHook処理へ新しいruntime依存を追加しない。
 - fingerprint digestにはNode.js標準 `crypto` を使う。
@@ -198,7 +218,7 @@ Repositoryには `scripts/spec/summarize-impact.ts` があり、差分取得で�
 
 1. #135が `main` へmerge済みか。
 2. #135後のroot `AGENTS.md` のbyte数・概算token数。
-3. 実際に使用するCodex CLI versionと、Hook config field名・matcher・output schema。
+3. 実際に使用するCodex CLI versionとHook schema。
 4. productionでblockする文章品質rule表。
 
 ### 3.2 production文章品質rule表
@@ -220,17 +240,17 @@ Task 6へ入る前に、採用するproduction ruleごとに次を確定する�
 | inline code | 対象か |
 | URL | 対象か |
 | identifier | 対象か |
-| match正規化 | fingerprint比較で必要な場合のみ明示 |
+| match正規化 | fingerprint比較で必要な場合のみ |
 
-具体値は次の順で決める。
+具体値は次の順で確定する。
 
-1. Repository内で既に明文化されている表記規約を確認する。
-2. Issue #134または関連Issueで明示されたruleを採用する。
-3. それでも具体値が無いrule categoryはproduction block ruleへ追加しない。
+1. Repository内で既に明文化されている表記規約。
+2. Issue #134または関連Issueで明示されたrule。
+3. それでも具体値が無いcategoryはproduction block ruleへ追加しない。
 
 実装者が独自判断で禁止語、置換、allowlist、英語検出条件を作らない。
 
-次はblock条件へ含めない。
+次はblock条件に含めない。
 
 - 文脈依存の自然さ
 - 読みやすさや論理性の主観評価
@@ -238,14 +258,15 @@ Task 6へ入る前に、採用するproduction ruleごとに次を確定する�
 - AI生成文らしさ
 - 未知の造語の完全検出
 - AI Judge
-- broad dictionaryや形態素解析
+- broad dictionary
+- 形態素解析
 
 ### 3.3 実装時に確認すればよい事項
 
-- 使用versionの `SessionStart` 停止契約。現在確認したsourceと同じなら `continue:false` + `stopReason` を使用する。
+- 使用Codex versionの `SessionStart` 停止契約。
 - `additionalContextLimit` の具体値。
-- TOML parserの具体package。手書きparserは作らない。
-- PostToolUseで利用できる実際のtool name / matcher alias。
+- TOML parser dependencyの要否。
+- PostToolUseで利用できる実際のtool matcher alias。
 - `scripts/verify` / `scripts/verify.ps1` に同等のHook contract用optionが追加済みか。
 - Windows focused contractの実測timeout。
 
@@ -285,8 +306,10 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合の
 - 新しいHook test framework
 - 独自session manager
 - 独自diff framework
-- rename similarity engine
+- similarity rename engine
+- filename類似度判定
 - patch parser
+- Git履歴探索framework
 - `--strict-harness` / `-StrictHarness` の既存責務
 
 ## 5. 変更方針
@@ -299,47 +322,43 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合の
 - [ ] 使用Codex CLI versionを記録し、そのversionに対応するHook schemaを確認する。
 - [ ] #144以降にHook contractへ追加変更がないか確認する。
 
-判断:
-
-- Issue本文より現在実装を優先する。
-- 既に成立しているcontractを別test directoryへ複製しない。
+Issue本文より現在実装を優先し、既に成立しているcontractを別test directoryへ複製しない。
 
 ### Task 2: 既存Hook契約テストの不足分だけを埋める
 
 - [ ] 現行 `codex-hook-contract.test.ts` とIssue #134のチェック項目を対応付ける。
 - [ ] 既存のstdin / stdout / stderr / exit / cwd / side effect / Windows・Unix launcher caseは重複追加しない。
 - [ ] 未確認の入力サイズ境界をprocess経由で追加する。
-- [ ] `pre_tool_use_policy.mjs` は現行matcher契約どおり、`apply_patch` が `PreToolUse/Bash` policy対象外であることを固定する。
-- [ ] `log_event.mjs` は大きなpayloadでも保存fieldの上限・redaction・JSONL parseabilityが維持されることを確認する。
-- [ ] 既存Hook sourceの挙動変更が必要だと判明した場合は、contract追加とproduction挙動変更を分けて判断する。
+- [ ] `pre_tool_use_policy.mjs` は現行matcher契約どおり、`apply_patch` を `PreToolUse/Bash` policy対象へ勝手に追加しない。
+- [ ] `log_event.mjs` は大きなpayloadでも保存fieldの上限、redaction、JSONL parseabilityを維持する。
 
 ### Task 3: `.codex/config.toml` を構造として検証する
 
-少なくとも次を構造として検証する。
+少なくとも次を検証する。
 
-- [ ] event名
-- [ ] matcher
-- [ ] command
-- [ ] `command_windows`
-- [ ] timeout
-- [ ] `SessionStart` のcompact限定条件
-- [ ] `additionalContextLimit` を使う場合の値
+- event名
+- matcher
+- command
+- `command_windows`
+- timeout
+- `SessionStart` のcompact限定条件
+- `additionalContextLimit` を使う場合の値
 
 方針:
 
 - TOML全仕様を自作しない。
-- 実装時点で利用可能なdirect parserが無ければ、小さなtest-only parser dependencyと限定的な既存helper継続を比較する。
+- direct parserが無ければ、小さなtest-only parser dependencyと既存helper継続を比較する。
 - parser追加の方が安全な場合だけdevDependencyを追加する。
-- command文字列が指すscript pathはparse後に実在確認する。
-- Windows / Unix commandは文字列存在だけでなくconfigured launcher contractで実行可能性も確認する。
+- commandが指すscript pathはparse後に実在確認する。
+- Windows / Unix commandはconfigured launcher contractで実行可能性も確認する。
 
 ### Task 4: #135完了ゲート
 
 - [ ] #135がmerge済みであることを確認する。
-- [ ] #135後のroot `AGENTS.md` が全文再注入する正本として適切か確認する。
+- [ ] #135後のroot `AGENTS.md` が常駐指示として全文再注入する設計になっていることを確認する。
 - [ ] このbranchへ最新 `main` を安全に取り込む。
 - [ ] root `AGENTS.md` の実サイズを測る。
-- [ ] #134側で `AGENTS.md` のmarker分類やコピーを追加しない。
+- [ ] #134側でmarker分類やコピーを追加しない。
 
 #135未完了ならTask 5へ進まない。
 
@@ -351,28 +370,19 @@ docs/reference/codex-implementation-harness.md  # 関連箇所がある場合の
 Codex compact
   -> SessionStart(source=compact)
   -> .codex/hooks/session_start_context.mjs
-  -> repository rootを解決
+  -> repository root解決
   -> root AGENTS.mdをUTF-8で読む
   -> structured JSON
      hookSpecificOutput.hookEventName = "SessionStart"
      hookSpecificOutput.additionalContext = <AGENTS.md全文>
 ```
 
-- [ ] compact以外のsourceではcontextを追加しない。
-- [ ] nested cwdでもroot `AGENTS.md` を解決できるようにする。
-- [ ] `AGENTS.md` を別ファイルへコピーしない。
-- [ ] root解決、UTF-8読込、JSON serializeだけで閉じる。独自compact state managerは作らない。
-- [ ] `additionalContextLimit` は実Codex versionの契約を確認したうえで明示する。
-- [ ] 通常サイズと境界値で `additionalContext` のruntime挙動を確認する。
+成功契約:
 
-#### 成功契約
-
-- `source=compact`: 正常終了し、root `AGENTS.md` 全文をstructured `additionalContext` として返す。
+- `source=compact`: root `AGENTS.md` 全文をstructured outputで返す。
 - `source != compact`: 正常終了し、追加contextなし。
 
-#### 再注入を保証できないエラー
-
-次は同じfail-close方針で扱う。
+再注入を保証できないエラー:
 
 - malformed Hook input
 - repository root解決失敗
@@ -380,9 +390,7 @@ Codex compact
 - root `AGENTS.md` read失敗
 - structured output生成失敗
 
-これらを単に非0終了させて「停止した」とみなさない。
-
-実装時のCodex versionで停止契約を確認する。現在確認したsourceと同じならexit code 0で次のstructured outputを返す。
+現在確認したCodex sourceと使用versionが同じ契約なら、次をexit code 0で返す。
 
 ```json
 {
@@ -392,24 +400,25 @@ Codex compact
 ```
 
 - 誤った `additionalContext` は返さない。
-- `stopReason` へraw input、秘密情報、不要に長いpathを含めない。
-- 非0終了を停止手段として採用するのは、使用versionの実runtimeで停止を確認できた場合だけとする。
-- process単体testだけでなく、使用versionのfocused runtime確認でcompact継続が止まることを確認する。
+- `stopReason` へraw input、秘密情報、長いpath情報を含めない。
+- 非0終了を停止手段として無条件に採用しない。
+- process単体testだけでなく、使用versionのfocused runtime確認でcompact継続が実際に止まることを確認する。
+- `additionalContextLimit` は使用versionの契約を確認したうえで設定する。
 
 ### Task 6: 決定論的な文章品質scannerを成立させる
 
-Task 6へ入る前に「3.2 production文章品質rule表」を確定する。具体値がないrule categoryを実装者判断でproduction block ruleへ追加しない。
+Task 6へ入る前に「3.2 production文章品質rule表」を確定する。
 
-- [ ] `scripts/lint-text-quality.mjs` にscanner/CLIを実装する。
-- [ ] production ruleは `.codex/text-quality-rules.json` 等の1か所を正本にする。
-- [ ] scannerは指定Markdown fileまたは明示された本文を決定論的にscanする責務に限定する。
-- [ ] scannerへGit、session baseline、GitHub Actions eventの知識を持たせない。
-- [ ] Markdown parserは追加せず、採用ruleに必要な最小限の判定から始める。
-- [ ] fenced code、inline code、URL、identifier等の除外はrule表に明記された場合だけ実装する。
-- [ ] markdownlintが見る見出し、空行、list、code fence構造を再実装しない。
-- [ ] broad dictionary、AI Judge、形態素解析を追加しない。
+`scripts/lint-text-quality.mjs` 等のscannerは次に限定する。
 
-rule出力は少なくとも次を持つ。
+- 指定されたMarkdown fileまたは明示された本文をscanする。
+- production ruleは `.codex/text-quality-rules.json` 等の1か所を正本にする。
+- session baseline、Git、GitHub Actions eventを知らない。
+- Markdown構造は既存markdownlintへ任せる。
+- fenced code、inline code、URL、identifier等の除外はrule表で明示された場合だけ実装する。
+- broad dictionary、AI Judge、形態素解析を追加しない。
+
+出力は少なくとも次を持つ。
 
 ```text
 path
@@ -419,79 +428,67 @@ message
 replacement   # 明示置換があるruleのみ
 ```
 
-秘密情報や行全体を診断へ不要に出さない。raw matchは原則診断へ出さない。
+raw matchや行全体を不要に出力しない。
 
-### Task 7: 作業開始baselineを最小状態で保持する
+### Task 7: session開始baselineを最小状態で保持する
 
-同じファイルにユーザー既存変更とCodex変更が共存する要件を満たすため、文章lint専用の最小baseline manifestを使う。
+#### 7.1 保存する状態
 
-#### 7.1 開始時に保存する情報
-
-最初の通常 `UserPromptSubmit` で次を保存する。
+`UserPromptSubmit` でtask開始時に次だけを保存する。
 
 - 開始時 `HEAD` SHA
-- repository rootを識別するhash
-- sessionを安全に識別する値
-- 開始時点で `HEAD` と内容が一致しない対象Markdown path
-  - dirty tracked
-  - staged add等、開始時HEADに存在しないがindex/worktreeに存在するfile
-  - untracked
-- 上記pathの開始時content SHA-256
-- 上記pathの開始時文章lint violation fingerprint digestと件数
-
-開始時clean tracked Markdownは全件scan・保存しない。必要になったfileだけ、保存済み開始時 `HEAD` SHAのblobからbaselineを算出する。
+- repository root識別hash
+- session識別値
+- 開始時にHEADと異なるtracked Markdown path
+- 開始時にHEADへ存在しないがworktree / indexに存在するMarkdown path
+- 必要なpathのcontent SHA-256
+- 必要なpathの違反fingerprint digestと件数
 
 保存しないもの:
 
 - Markdown本文
-- prompt全文
-- raw tool input
-- raw Hook payload
 - raw normalized match
-- token / secret / credential / password
-- environment variables
+- raw Hook payload
+- prompt全文
+- token / secret / credential
 - Agent実行履歴
 
-baselineはtracked fileにせず、OS temp directory等、同じsessionのHook processから再参照できる場所へ保存する。
+開始時clean tracked Markdownは全件scanしない。変更対象になった時点で保存済み開始時 `HEAD` SHAのblobからbaselineを算出する。
 
 #### 7.2 baselineの取得元
 
-現在のMarkdown pathを評価するとき、開始時状態は次で取得する。
-
 | 開始時状態 | baseline取得元 |
 | --- | --- |
-| 開始時HEADに存在し、clean | 保存済み開始時 `HEAD` SHAの開始時path blobを必要時にscanする |
-| 開始時HEADに存在し、dirty | manifestへ保存した開始時worktreeの違反multiset |
-| 開始時HEADに存在しないがtask開始時には存在 | manifestへ保存した開始時worktreeの違反multiset |
+| HEADに存在しclean | 保存済み開始時 `HEAD` SHAのblob |
+| HEADに存在しdirty | UserPromptSubmit時worktreeのmanifest |
+| HEADに存在しないがtask開始時に存在 | UserPromptSubmit時worktreeのmanifest |
 | task開始後に初めて作成 | baseline空 |
 
 重要:
 
-- clean trackedの基準に現在の `HEAD` を使わない。session途中でcommitされても保存済み開始時 `HEAD` SHAを使う。
-- blob本文はmanifestへ保存しない。Git objectから取得した本文をそのままscannerへ渡し、digest multisetだけを比較に使う。
-- 保存済み開始時 `HEAD` SHAのblobを取得できない場合はbaseline空と推測せずquality check不能へ流す。
-- Repository全MarkdownをUserPromptSubmit時にscanしない。
+- session途中でcommitされても「現在のHEAD」へ基準を切り替えない。
+- clean trackedのblob取得には保存済み開始時 `HEAD` SHAを使う。
+- blob本文をmanifestへ永続化しない。
+- blob取得不能時はbaseline空へ落とさずquality check不能とする。
 
 #### 7.3 違反identityと保存形式
 
-論理上のidentity:
+論理identity:
 
 ```text
 rule_id + rule定義に従って正規化したmatch
 ```
 
-baselineへ正規化済みmatchを平文保存しない。
-
-保存形式:
+persist:
 
 ```text
 rule_id + SHA-256(normalized_match) + count
 ```
 
-- SHA-256はNode.js標準 `crypto` で計算する。
+- SHA-256はNode.js標準 `crypto` を使う。
 - 行番号、`message`、`replacement` はidentityへ含めない。
-- 大文字小文字、whitespace、Unicode等の正規化はrule表で明示された場合だけ行う。
-- 同一fingerprintが同一fileに複数存在できるためmultisetとして件数を保持する。
+- 正規化はrule表で明示された場合だけ行う。
+- 同一fingerprintはmultisetとして件数を保持する。
 
 新規違反数:
 
@@ -499,178 +496,145 @@ rule_id + SHA-256(normalized_match) + count
 max(current_count - baseline_count, 0)
 ```
 
-同じfingerprintの位置移動だけでは新規違反扱いしない。位置単位の由来追跡や独自diff engineは作らない。
+位置単位の由来追跡や独自diff engineは作らない。
 
-#### 7.4 file identity / rename解決
+#### 7.4 session内のfile identity / rename解決
 
-file identityは次の順で解決する。
+次の順で解決する。
 
-##### 1. Git rename mappingが得られる場合
+##### 1. Git rename mapping
 
 Gitのrename情報が成立している場合はそのmappingを使う。
 
-開始時pathのbaseline取得元は「7.2 baselineの取得元」に従う。
+開始時pathのbaseline取得元は7.2に従う。
 
-- 開始時clean tracked -> 保存済み開始時HEAD blob
-- 開始時dirty tracked -> manifestの開始時worktree baseline
-- 開始時HEADに存在しない開始時file -> manifestの開始時worktree baseline
+##### 2. exact content SHA-256の一意一致
 
-##### 2. Git rename mappingが得られない場合
+Git rename mappingが得られず、開始時pathが現在worktreeから消えている場合だけfallbackする。
 
-開始時pathが現在worktreeから消えているfileについて、exact content SHA-256の一意一致だけをfallbackとして使う。
+開始時content SHA-256:
 
-開始時content SHA-256の取得元:
-
-- 開始時HEADに存在しclean -> 保存済み開始時HEAD blobから算出
-- 開始時dirty -> manifest保存値
-- 開始時HEADに存在しないがtask開始時に存在 -> manifest保存値
+- HEADに存在しclean: 保存済み開始時HEAD blobから算出
+- HEADに存在しdirty: manifest保存値
+- HEADに存在しないがtask開始時に存在: manifest保存値
 
 現在候補:
 
 - 現在worktreeに存在するMarkdown
-- まだ開始時file identityへ対応付けられていないpath
+- まだ別file identityへ対応付けられていないpath
 - untrackedだけに限定しない
 - staged addも含む
 
-判定:
-
-1. 開始時pathが現在worktreeから消えていることを確認する。
-2. 未解決の現在Markdown候補のcontent SHA-256を比較する。
-3. 同一SHA-256候補が一意に1件だけならpure moveとして対応付ける。
-4. 同一SHA候補が複数ある、または内容変更を伴ってexact matchできない場合は推測しない。
-
-対象例:
-
-```text
-clean tracked -> unstaged filesystem move
-clean tracked -> staged rename
-start dirty tracked -> unstaged filesystem move
-start dirty tracked -> staged rename
-start staged add -> filesystem move
-start untracked -> untracked move
-start untracked -> staged add move
-```
+同一SHA-256候補が一意に1件だけならpure moveとして対応付ける。
 
 ##### 3. 対応付け不能
 
-Git rename mappingもexact SHA一意一致も成立しないfileは、baseline空へ落とさない。
+次では推測しない。
 
-そのfileは `quality check不能` として扱う。
+- move + 内容変更でexact SHAが一致しない
+- 同一SHA候補が複数
+- path / blob取得失敗
 
-例:
-
-- moveと同時に内容変更されexact SHAが一致しない
-- 同一SHA候補が複数あり一意に決められない
-- 開始時path / 現在pathの取得に失敗する
-
-対応:
+対応付け不能fileはbaseline空へ落とさず `quality check不能` とする。
 
 - PostToolUse: fail-open + stderr診断
-- Stop + `stop_hook_active=false`: 品質確認不能として1回block
-- Stop + `stop_hook_active=true`: 再blockせずallow
+- Stop + `stop_hook_active=false`: 1回block
+- Stop + `stop_hook_active=true`: allow
 
 similarity、filename推測、edit distance、独自rename engineは追加しない。
 
 #### 7.5 baseline lifecycle
 
 - baselineが無ければ最初の通常 `UserPromptSubmit` で1回作る。
-- Stopがblockして自動継続している間は上書きしない。
-- Stopをallowする時点でbaselineを削除する。
+- Stopがblockしている間は上書きしない。
+- Stop allow時に削除する。
 - `stop_hook_active=true` でallowする場合も削除する。
-- block時はbaselineを保持する。
-- 次の通常 `UserPromptSubmit` ではbaselineが無ければ新しく作る。
-- retry count、workflow state machineをbaselineへ持たせない。
-
-#### 7.6 baseline取得不能
-
-baseline作成に失敗した後、PostToolUseやStop時点のworktreeを新しいbaselineとして作り直さない。
-
-baseline本体を作れない場合でも、同じsessionで `baseline unavailable` を判別できる最小状態だけを保持する。そこへ本文やraw matchは保存しない。
+- block時は保持する。
+- 後から現在worktreeをbaselineとして作り直さない。
+- retry count、workflow state machineを持たせない。
 
 ### Task 8: PostToolUseへ即時フィードバックを接続する
 
 既存logging用 `PostToolUse` Hookは維持し、文章品質用handlerを別責務として追加する。
 
-#### 対象tool
+対象tool:
 
-- [ ] 実装時のCodex CLI versionで、Markdownを書き換え得るtool name / matcher aliasを確認する。
-- [ ] Bash経由の変更と `apply_patch` 相当の変更toolを検討対象とする。
-- [ ] 存在しないtool名を推測してconfigへ固定しない。
-- [ ] matcherだけで限定できない場合はHook内で `tool_name` を確認し、読み取り専用toolでは即returnする。
-- [ ] Markdown変更が0件ならscannerを実行しない。
+- 実装時のCodex CLI versionでMarkdownを書き換え得るtool name / matcher aliasを確認する。
+- Bashと `apply_patch` 相当を検討対象にする。
+- 存在しないtool名を推測してconfigへ固定しない。
+- matcherで限定できない場合は `tool_name` でread-only toolをearly returnする。
+- Markdown変更0件ならscannerを実行しない。
 
-#### 対象path
+対象path:
 
-- [ ] tool payloadから変更pathを安全に取得できる場合はそのMarkdownだけをscanする。
-- [ ] pathを安全に確定できない場合だけGit差分から変更Markdownを列挙する。
-- [ ] Repository全体をPostToolUseごとにscanしない。
+- tool payloadから安全に変更pathを取得できる場合はそのMarkdownだけをscanする。
+- pathを安全に確定できない場合だけGit差分へfallbackする。
+- Repository全体を毎回scanしない。
 
-#### 判定
+障害時:
 
-- [ ] baselineから増えた違反だけをblock理由に含める。
-- [ ] tool実行済みの副作用をrollbackできるとは扱わない。
-- [ ] lint違反時は使用Codex versionのstructured block contractで短い修正情報を返す。
-- [ ] baseline unavailable、rename mapping不能、Git差分取得失敗、rule読込失敗、scanner失敗、temp state読込失敗ではfail-open + stderr診断とする。
-- [ ] Hook failureとlint violationを別messageにする。
+- baseline unavailable
+- session rename mapping不能
+- Git差分取得失敗
+- rule読込失敗
+- scanner失敗
+- temp state読込失敗
 
-PostToolUseは早期フィードバックであり、完了判定ではない。
+ではfail-open + stderr診断とする。
+
+PostToolUseは早期フィードバックであり完了判定ではない。
 
 ### Task 9: Stopへ完了前品質ゲートを接続する
 
 | 状態 | `stop_hook_active` | 動作 |
 | --- | --- | --- |
-| valid baseline + 新規違反あり | `false` | blockして修正を促す |
-| valid baseline + 新規違反あり | `true` | 再blockせずallowし診断を残す |
+| valid baseline + 新規違反あり | `false` | block |
+| valid baseline + 新規違反あり | `true` | allow + 診断 |
 | valid baseline + 新規違反なし | 任意 | allow |
-| quality check不能 | `false` | 品質確認不能として1回block |
-| quality check不能 | `true` | 再blockせずallowし診断を残す |
+| quality check不能 | `false` | 1回block |
+| quality check不能 | `true` | allow + 診断 |
 | 対象Markdown変更なし | 任意 | allow |
 
 `quality check不能` には少なくとも次を含む。
 
 - baseline file欠落 / 破損
 - baseline作成失敗
-- 保存済み開始時 `HEAD` SHAのblob取得失敗
-- rename mapping不能
+- 開始時HEAD blob取得失敗
+- session rename mapping不能
 - Git差分取得失敗
 - rule file読込失敗
-- scanner process失敗
+- scanner失敗
 - temp state読込失敗
 
-- [ ] retry counter、独自loop stateを追加しない。
-- [ ] lint違反とHook内部エラーでmessageを分ける。
-- [ ] block時はbaselineを保持する。
-- [ ] allow時はbaselineを削除する。
-- [ ] quality check不能でも現在worktreeをbaselineとして再作成しない。
-- [ ] CI側のdeterministic lintを独立した検証経路として残す。
+独自retry counterを追加しない。
 
-### Task 10: 文章品質gateの比較処理を固定する
+### Task 10: Repository-level文章品質gateを実装する
 
-純粋scannerとRepository-levelのGit比較を分ける。
+#### 10.1 scannerとGit比較を分離する
 
-#### 10.1 scanner
+純粋scanner:
 
-`scripts/lint-text-quality.mjs` は指定Markdown fileまたは明示された本文をscanして違反一覧を返す。
+```text
+scripts/lint-text-quality.mjs
+```
 
-持たせない責務:
+Repository-level gate候補:
 
-- Git command
-- baseline ref選択
-- GitHub Actions event判定
-- working tree差分取得
+```text
+scripts/check-text-quality-changes.mjs
+```
 
-#### 10.2 Git比較用の薄い入口
+Git比較用scriptは次だけを担当する。
 
-`scripts/check-text-quality-changes.mjs` を候補とし、次だけを担当させる。
-
-1. 明示されたbase refと比較modeから比較開始commitを確定する。
-2. 同じ比較開始commitを使って対象Markdown pathとrename mappingを列挙する。
-3. baseline側とcurrent側の本文を取得する。
+1. base ref / modeから比較snapshotを確定する。
+2. 変更Markdown pathとfile identityを解決する。
+3. baseline側 / current側本文を取得する。
 4. scannerを両側へ適用する。
-5. fingerprint digestのmultiset差分を計算する。
-6. 新規違反がある場合だけ非0終了する。
+5. fingerprint multiset差分を計算する。
+6. 新規違反があれば非0終了する。
+7. 比較自体を安全に成立させられなければ、違反0件として扱わず非0終了する。
 
-新しいlint frameworkやGit diff frameworkは作らない。既存 `summarize-impact.ts` と同様に、Git commandは `execFile` / `execFileSync` の引数配列で呼び、shell quotingへ依存しない。
+Git commandは既存 `summarize-impact.ts` と同様、`execFile` / `execFileSync` と引数配列を使う。
 
 想定interface:
 
@@ -679,38 +643,77 @@ node scripts/check-text-quality-changes.mjs --base-ref <ref>
 node scripts/check-text-quality-changes.mjs --base-ref <ref> --working-tree
 ```
 
-#### 10.3 working tree比較mode
+#### 10.2 local working-tree比較mode
 
 `--working-tree` あり:
 
 ```text
-<base-ref> -> current worktree
+HEAD -> current worktree
 ```
 
-- staged
-- unstaged
-- untracked Markdown
+対象:
 
-を対象にする。
+- staged Markdown
+- unstaged Markdown
+- untracked Markdown
 
 local既定:
 
 ```text
 base-ref = HEAD
-comparison = HEAD -> current worktree
 ```
 
-#### 10.4 commit比較mode
+`git diff`だけではuntrackedを拾えないため、既存patternどおり `git ls-files --others --exclude-standard` 等で現在候補へ含める。
 
-`--working-tree` なしでは比較開始commitを1回確定し、そのtreeをすべてに使う。
+##### working-tree file identity
 
-原則:
+Repository-level local gateでもworktree-only moveを新規fileと誤認しない。
+
+次の順で解決する。
+
+1. Git rename mappingが成立している場合は使う。
+2. HEAD側Markdown pathが現在worktreeから消えており、Git mappingが無い場合は、HEAD blobのcontent SHA-256と現在の未解決Markdown候補を比較する。
+3. 同一SHA-256候補が一意に1件だけならpure moveとして対応付ける。
+4. exact matchできない、または候補が複数なら比較不能とする。
+
+現在候補には、少なくともstaged addとuntracked Markdownを含める。
+
+例:
+
+```text
+HEAD:
+docs/a.md  # 既存違反あり
+
+worktree:
+D  docs/a.md
+?? docs/b.md
+```
+
+`docs/a.md` のHEAD blobと `docs/b.md` の現在contentがexact matchする場合だけpure moveとして対応付け、既存違反を新規扱いしない。
+
+##### working-tree比較不能
+
+次ではbaseline空の新規fileとして処理しない。
+
+- deleted HEAD pathと現在候補のexact SHAが一致しないため、安全にmoveかdelete+newかを判別できない
+- 同一SHA候補が複数ある
+- baseline blob / current content取得に失敗する
+
+local `lint:text` / `pnpm run verify` では比較不能を非0終了として明示する。
+
+HookのようなPostToolUse fail-openは使わない。Repository-level gateは検証commandなので、比較不能をPASSにしない。
+
+similarity、filename推測、edit distanceは追加しない。
+
+#### 10.3 commit比較mode
+
+`--working-tree` なしでは、比較開始commitを1回確定する。
 
 ```text
 comparison_base = git merge-base <base-ref> HEAD
 ```
 
-以降は次を同じ `comparison_base` で行う。
+以降は同じtreeを使用する。
 
 ```text
 changed paths:
@@ -728,49 +731,79 @@ comparison_base -> HEAD
 
 重要:
 
-- `git diff <base-ref>...HEAD` のchanged pathsと、`git show <base-ref>:<path>` の本文を混在させない。
-- changed path判定、baseline本文、rename mappingで同じ比較開始treeを使う。
-- PRのbase branchがfork後に進んでも、base tipの本文をbaselineへ混ぜない。
-- 実装手段は `git merge-base` でcommitを先に解決する方法を基本とする。同じtreeを保証できる別の既存Git情報を使う場合も、契約は変えない。
+- changed pathsだけ `base-ref...HEAD`、baseline本文だけ `base-ref:<path>` という混在をしない。
+- changed path、baseline本文、rename mappingは同一の `comparison_base` を使う。
+- commit比較はGitが確定できるrename mappingを使い、独自similarity engineを追加しない。
 
-pushで `github.event.before` が通常のancestorならmerge baseはそのbefore SHAになる。`schedule` / `workflow_dispatch` の `HEAD^` も同様である。
+#### 10.4 PR CI
 
-#### 10.5 PR CI
-
-workflowでcheckoutされた `HEAD` を基準にし、raw PR headを独自に仮定しない。
+現行workflowのcheckout方式を変更しない。
 
 ```text
-base-ref = origin/${{ github.base_ref }}
-comparison_base = git merge-base base-ref HEAD
-comparison = comparison_base -> HEAD
+base_ref = origin/${{ github.base_ref }}
+current = workflowでcheckoutされたHEAD
+comparison_base = git merge-base base_ref current
+comparison = comparison_base -> current
 ```
 
-`Style Quality` は `fetch-depth: 0` を維持し、merge base解決に必要な履歴を取得する。
+現行 `pull_request` workflowではcurrentは通常PR merge commitである。
 
-#### 10.6 push CI
+例:
 
 ```text
-base-ref = github.event.before
+M = PR branchがbaseから分岐した地点
+B = workflow実行時のbase branch tip
+P = raw PR head
+H = GitHubが生成しworkflowでcheckoutしたmerge commit
+
+M --- B
+ \     \
+  \ P---H
+```
+
+この場合:
+
+```text
+git merge-base B H = B
+comparison_base = B
+comparison = B -> H
+```
+
+したがって、次を評価する。
+
+- current base branchだけに存在する違反をPR由来の新規違反として数えない。
+- PR側の変更がmerge resultへ追加した違反は検出する。
+- changed paths、baseline本文、rename mappingのすべてで `B -> H` を使う。
+
+raw PR headを評価するために `actions/checkout` の `ref` を変更しない。
+
+`Style Quality` は `fetch-depth: 0` を維持し、`origin/<base branch>` とmerge baseを解決できる履歴を取得する。
+
+#### 10.5 push CI
+
+```text
+base_ref = github.event.before
 ```
 
 空、zero SHA、利用不能の場合は既存CI patternどおり `HEAD^` へfallbackする。
 
-commit比較modeで `comparison_base` を確定し、変更pathとbaseline本文の両方に使う。
+commit比較modeで `comparison_base` を確定し、変更path、baseline本文、rename mappingへ同じtreeを使う。
 
-#### 10.7 `schedule` / `workflow_dispatch`
+#### 10.6 `schedule` / `workflow_dispatch`
 
 ```text
-base-ref = HEAD^
+base_ref = HEAD^
 comparison_base = git merge-base HEAD^ HEAD
+comparison = comparison_base -> HEAD
 ```
 
 直前commitから増えた違反を確認する。暗黙skipしない。
 
-現在のRepositoryはroot commitではないため、root commit専用の履歴探索frameworkは作らない。`HEAD^` を解決できない場合はgate failureとして扱う。
+現在のRepositoryはroot commitではないためroot commit専用の履歴探索frameworkは作らない。`HEAD^` を解決できない場合はgate failureとする。
 
-#### 10.8 CIから渡す値
+#### 10.7 CIから渡す値
 
-GitHub eventの解釈はworkflow側で行い、gate scriptへbase refを明示的に渡す。
+GitHub eventの解釈はworkflow側で行い、gate scriptへbase refを明示する。
 
 ```text
 pull_request      -> origin/${{ github.base_ref }}
@@ -779,20 +812,22 @@ schedule          -> HEAD^
 workflow_dispatch -> HEAD^
 ```
 
-clean checkoutのCIでローカル `HEAD -> worktree` modeを誤実行し、差分0件でPASSする構造にしない。
+clean checkoutのCIでlocal `HEAD -> worktree` modeを誤実行し、差分0件でPASSする構造にしない。
 
 ### Task 11: local verify / Harness / CIへ接続する
 
 #### `pnpm run verify`
 
 - [ ] `lint:text` をmarkdownlint近傍で実行する。
-- [ ] `lint:text` はローカル既定として `HEAD -> current worktree` のgate modeを実行する。
+- [ ] local `lint:text` は `HEAD -> current worktree` を使用する。
+- [ ] working-tree pure moveのexact SHA fallbackも `lint:text` から通る。
+- [ ] comparison不能は非0終了する。
 - [ ] Hook contractは既存 `test:contracts` に残す。
 - [ ] 重複した `test:codex-hooks` suiteを原則追加しない。
 
 #### `scripts/verify` / `scripts/verify.ps1`
 
-通常モード:
+通常:
 
 ```bash
 bash scripts/verify
@@ -822,64 +857,59 @@ bash scripts/verify --hook-contracts
 ./scripts/verify.ps1 -HookContracts
 ```
 
-- [ ] opt-in指定時だけ `tests/contracts/codex-hook-contract.test.ts` のfocused Vitestを実行する。
-- [ ] 文章品質contractを別fileへ分離した場合は同じopt-inへ接続する。
-- [ ] opt-inなしの通常モードをpnpm/Vitest必須へ変えない。
-- [ ] strict HarnessとHook contract optionの意味を混在させない。
-- [ ] Bash / PowerShellで同じ責務を持たせる。
-- [ ] 新しいverify frameworkを作らない。
+- opt-in指定時だけfocused Hook contractを追加実行する。
+- 文章品質contractを別fileへ分離した場合は同じopt-inへ接続する。
+- 通常モードをpnpm/Vitest必須へ変えない。
+- strict HarnessとHook contract optionの意味を混在させない。
+- Bash / PowerShellで同じ責務を持たせる。
 
 #### GitHub Actions
 
 Ubuntu:
 
-- [ ] 既存 `Vitest (contracts)` を維持する。
-- [ ] `Style Quality` へ文章品質gateを追加する。
-- [ ] `Style Quality` の文章品質stepでeventごとのbase refを明示し、commit比較modeを実行する。
-- [ ] `pull_request` では `fetch-depth: 0` を維持し、merge baseを解決する。
-- [ ] `schedule` / `workflow_dispatch` は `HEAD^` をbase refにする。
+- 既存 `Vitest (contracts)` を維持する。
+- `Style Quality` へ文章品質gateを追加する。
+- `Style Quality` の文章品質stepでeventごとのbase refを明示する。
+- PRでは現行checkoutされたmerge `HEAD` をcurrentとしてcommit比較modeを実行する。
+- `fetch-depth: 0` を維持する。
 
 Windows:
 
-- [ ] Hook contract専用のfocused CIを追加する。
-- [ ] 少なくとも `tests/contracts/codex-hook-contract.test.ts` をWindows runnerで実行する。
-- [ ] 文章品質HookのWindows契約を別test fileへ分離した場合はそれも対象に含める。
-- [ ] checkout、Node.js、pnpm、dependency install、focused Vitestに限定する。
-- [ ] Product test、build、E2E、Style Quality全体をWindowsへ複製しない。
+- Hook contract専用のfocused CIを追加する。
+- 少なくとも `tests/contracts/codex-hook-contract.test.ts` をWindows runnerで実行する。
+- 文章品質HookのWindows契約を別test fileへ分離した場合はそれも対象にする。
+- Product test、build、E2E、Style Quality全体をWindowsへ複製しない。
 
-Windows focused contractで確認する対象:
+Windows contractで確認する対象:
 
 - `command_windows`
 - PowerShell / `cmd.exe` quoting
 - path separator
-- 空白を含むpath
-- 日本語を含むpath
+- 空白・日本語path
 - stdin / stdout / stderr
 - UTF-8
 - temp path
 - nested cwd / repository root解決
-- text quality state / path処理のWindows互換性
 
 ### Task 12: 文書を更新する
 
-- [ ] `docs/reference/codex-safety-harness.md` にSessionStart / text quality gateの責務、fail-open / fail-close、軽量性を反映する。
-- [ ] `docs/reference/codex-implementation-harness.md` は関連箇所がある場合だけ更新する。
-- [ ] `AGENTS.md` へHook詳細を再掲しない。
-- [ ] production ruleの正本pathとmarkdownlintとの責務分離を文書化する。
-- [ ] Hook contract用opt-inの実行方法を適切な既存文書へ反映する。
-- [ ] strict Harnessの既存説明をHook contract用へ書き換えない。
-- [ ] local / PR / push / schedule / workflow_dispatchの文章品質比較基準を実装と同じ内容で記載する。
-- [ ] rename mapping不能をbaseline空へ落とさずquality check不能とする契約を記載する。
+- `docs/reference/codex-safety-harness.md` にSessionStart / text quality gateの責務、fail-open / fail-closeを反映する。
+- `docs/reference/codex-implementation-harness.md` は必要箇所だけ更新する。
+- `AGENTS.md` へHook詳細を再掲しない。
+- production ruleの正本pathとmarkdownlintとの責務分離を記載する。
+- Hook contract用verify opt-inを追加した場合は実行方法を記載する。
+- strict Harnessの既存説明をHook contract用へ書き換えない。
+- local / PR / push / schedule / workflow_dispatchの文章品質比較基準を実装と同じ内容で記載する。
 
 ## 6. 検証方法
 
-### 6.1 focused contract
+### 6.1 focused Hook contract
 
 ```bash
 pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1
 ```
 
-文章品質testを分離した場合だけ次も実行する。
+文章品質testを分離した場合:
 
 ```bash
 pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1
@@ -887,10 +917,10 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 
 ### 6.2 SessionStart contract
 
-確認するcase:
+確認case:
 
 - `source=compact` + root `AGENTS.md` 読込成功
-- compact以外のsourceでは追加contextなし
+- compact以外では追加contextなし
 - nested cwd
 - malformed JSON input
 - repository root解決失敗
@@ -900,143 +930,187 @@ pnpm exec vitest run tests/contracts/codex-text-quality.test.ts --no-file-parall
 - JSON escaping
 - `AGENTS.md` 実サイズ
 - `additionalContextLimit` 境界
-- configured commandのUnix経路
-- configured commandのWindows経路
+- Unix configured command
+- Windows configured command
 - 使用Codex versionのfail-close structured output
 - 現行sourceと同じ契約なら `continue:false` で停止し、非0終了だけでは停止扱いにしない
 
-### 6.3 文章品質 / baseline contract
+### 6.3 session baseline / rename contract
 
-- 明示ruleのpositive / negative
-- rule表で要求された除外条件
-- replacement付きrule
-- 同一違反複数件のmultiset差分
-- 既存違反の行移動
-- 既存1件削除 + 同一fingerprint別位置1件追加で件数同一
-- persisted baselineにraw normalized matchが含まれずSHA-256 digestだけが保存される
-- 開始時clean tracked fileに既存違反がある -> 保存済み開始時HEAD blobから算出し新規違反扱いしない
-- session途中でcommitされてもclean tracked baselineが開始時HEADから変わらない
-- 開始時dirty tracked file
-- 開始時staged add file
-- staged + unstaged混在
+- persisted baselineにraw normalized matchが含まれない
+- 開始時clean trackedに既存違反がある
+- session途中でcommitしてもstart HEAD baselineが変わらない
+- 開始時dirty tracked
+- 開始時staged add
 - 開始時untracked
-- task中に新規作成したfile
+- task中の新規file
 - tracked rename
-- clean tracked -> unstaged pure move
-- dirty tracked -> unstaged pure move
-- 開始時staged add -> pure move
-- 開始時untracked -> untracked pure move
-- 開始時untracked -> staged add pure move
-- move + 内容変更でmapping不能 -> baseline空にせずquality check不能
-- exact SHA候補複数 -> baseline空にせずquality check不能
-- delete
+- clean tracked -> unstaged filesystem pure move
+- dirty tracked -> unstaged filesystem pure move
+- start staged add -> filesystem move
+- start untracked -> staged add move
+- exact SHA候補複数 -> quality check不能
+- move + 内容変更でmapping不能 -> quality check不能
 - baseline file欠落 / 破損
-- 保存済み開始時HEAD blob取得失敗
+- start HEAD blob取得失敗
 - baseline作成失敗後に現在状態をbaseline化しない
-- repository root外cwd
-- pathに空白・日本語を含むcase
 
-### 6.4 Git比較contract
+### 6.4 Repository-level working-tree gate contract
 
-#### working tree
+次をfixtureで確認する。
+
+#### 通常変更
+
+- staged変更を検出する
+- unstaged変更を検出する
+- untracked Markdownを検出する
+- HEAD側にしかない既存違反を新規扱いしない
+
+#### worktree-only pure move
+
+```text
+HEAD:
+docs/a.md  # 既存違反あり
+
+worktree:
+D  docs/a.md
+?? docs/b.md
+```
+
+- Git rename mappingが無いことを前提にする。
+- HEAD blobと `docs/b.md` のcontent SHA-256一意一致でpure moveへ対応付ける。
+- `docs/a.md` に元からある違反を新規扱いしない。
+
+#### staged rename
+
+- Git rename mappingが成立する場合はそれを優先する。
+
+#### 比較不能
+
+- deleted HEAD pathと現在候補が内容変更されexact matchしない -> 非0終了
+- 同一SHA候補複数 -> 非0終了
+- HEAD blob / current content取得失敗 -> 非0終了
+
+baseline空へ落としてPASSまたは新規違反扱いしない。
+
+### 6.5 commit比較 / PR contract
+
+#### 同一tree契約
+
+- changed paths
+- baseline content
+- rename mapping
+
+が同じ `comparison_base` を使う。
+
+#### PR merge checkout fixture
+
+```text
+M = PR fork地点
+B = current base tip
+P = raw PR head
+H = BとPを親に持つworkflow checkout merge commit
+
+M --- B
+ \     \
+  \ P---H
+```
+
+確認:
+
+```text
+git merge-base B H = B
+comparison_base = B
+comparison = B -> H
+```
+
+contract:
+
+- B側だけに追加された既存違反をPR新規違反として数えない。
+- P側の変更によりHへ追加された違反は検出する。
+- changed paths / baseline本文 / rename mappingはすべてBを開始treeにする。
+- raw PR headへcheckout方式を変更しなくても成立する。
+
+### 6.6 PostToolUse contract
+
+- 新規違反なし -> allow
+- 今回増えた違反あり -> block reason
+- 既存違反のみ -> allow
+- 既存 + 新規混在 -> 新規分だけ返す
+- read-only tool -> early return
+- Markdown変更0件 -> lintしない
+- target path特定可能 -> 対象pathだけ評価
+- path不明 -> Git差分へfallback
+- baseline unavailable -> fail-open + stderr
+- session rename mapping不能 -> fail-open + stderr
+- scanner / rule / Git failure -> fail-open + stderr
+
+### 6.7 Stop contract
+
+- `stop_hook_active=false` + 新規違反なし -> allow
+- `false` + 新規違反あり -> block
+- `true` + 同一違反あり -> allow
+- quality check不能 + `false` -> 1回block
+- quality check不能 + `true` -> allow
+- allow時baseline cleanup
+- block時baseline維持
+
+### 6.8 `lint:text` 比較基準
+
+Hook:
+
+```text
+session baseline -> current worktree
+```
+
+local:
 
 ```text
 HEAD -> current worktree
 ```
 
-- staged変更を検出する
-- unstaged変更を検出する
-- untracked Markdownを検出する
-- HEAD側だけに存在する既存違反を新規扱いしない
-
-#### PR
-
-base branchがfork後に進んだ履歴をfixtureで作る。
+PR:
 
 ```text
-M = merge base
-B = 現在のbase tip
-H = checkoutされたHEAD
+base_ref = origin/<base branch>
+current = workflow checkout HEAD
+comparison_base = git merge-base base_ref current
+comparison_base -> current
 ```
 
-確認:
+push:
 
-- `comparison_base` はM
-- changed pathsはM -> H
-- baseline本文はMのblob
-- Bだけの変更をbaselineへ混ぜない
-- rename mappingもM -> Hで解決する
+```text
+github.event.before -> HEAD
+```
 
-#### push
+無効before:
 
-- valid `before` -> comparison baseとして使用
-- empty / zero SHA -> `HEAD^` fallback
+```text
+HEAD^ -> HEAD
+```
 
-#### schedule / workflow_dispatch
+schedule / workflow_dispatch:
 
-- `HEAD^ -> HEAD`
-- `HEAD^` 取得不能時は明示failure
+```text
+HEAD^ -> HEAD
+```
 
-### 6.5 PostToolUse contract
-
-- 新規違反なし -> allow
-- 今回増えた違反あり -> block reason
-- 既存違反のみ -> allow
-- 同一fileに既存違反 + 新規違反 -> 新規分だけ返す
-- 読み取り専用tool -> early return
-- 書き換えtoolだがMarkdown変更なし -> lintしない
-- target pathを安全に特定できる -> そのMarkdownだけ評価
-- target pathを特定できない変更tool -> Git差分でMarkdownだけ評価
-- rename mapping不能 -> fail-open + stderr
-- baseline unavailable -> fail-open + stderr
-- scanner / rule / Git failure -> fail-open + stderr
-- 既存ファイルを勝手に修正しない
-
-### 6.6 Stop contract
-
-- `stop_hook_active=false` + 新規違反なし -> allow
-- `stop_hook_active=false` + 新規違反あり -> 1回block
-- `stop_hook_active=true` + 同一違反あり -> 再blockしない
-- quality check不能 + `false` -> 1回block
-- quality check不能 + `true` -> allow
-- rename mapping不能をlint違反と区別する
-- scanner / rule / Git failureをlint違反と区別する
-- allow時にbaseline cleanup
-- block時にbaseline維持
-
-### 6.7 Harness検証
-
-通常:
+### 6.9 Harness検証
 
 ```bash
 bash scripts/verify
-```
-
-```powershell
-./scripts/verify.ps1
-```
-
-Hook contract opt-in:
-
-```bash
 bash scripts/verify --hook-contracts
 ```
 
 ```powershell
+./scripts/verify.ps1
 ./scripts/verify.ps1 -HookContracts
 ```
 
-strictはsource repository layoutがある環境で既存回帰確認としてのみ使う。
+source repository layoutが存在し、strict Harnessへの変更影響がある場合だけ既存strict回帰も確認する。
 
-```bash
-bash scripts/verify --strict-harness
-```
-
-```powershell
-./scripts/verify.ps1 -StrictHarness
-```
-
-### 6.8 Repository検証
+### 6.10 Repository検証
 
 変更内容に応じて少なくとも次を実行する。
 
@@ -1053,107 +1127,74 @@ pnpm run verify
 git diff --check
 ```
 
-Windowsでは次も実行する。
+Windows:
 
 ```powershell
 ./scripts/verify.ps1
 ./scripts/verify.ps1 -HookContracts
 ```
 
-### 6.9 CI確認
-
-Ubuntu:
-
-- `Vitest (contracts)` が既存contract suiteを実行する。
-- `Style Quality` が文章品質gateを実行する。
-- PRでは同一merge base treeからchanged pathsとbaseline本文を取得する。
-- push / schedule / workflow_dispatchのbase refがPlanどおり解決される。
-
-Windows:
-
-- focused Hook contract jobが `codex-hook-contract.test.ts` を実行する。
-- `command_windows`、PowerShell / `cmd.exe`、UTF-8、空白・日本語path、temp path、nested cwd等のWindows固有契約を検出できる。
-
-## 7. リスクと未解決論点
+## 7. リスクと未解決事項
 
 ### 7.1 #135未完了
 
-compact再注入だけは実装を開始できない。#135を待たずに仮の `AGENTS.md` 抽出方式を作らない。
+compact再注入だけは#135完了前に実装しない。仮の抽出方式を作らない。
 
-### 7.2 Issue本文と現在実装の差
+### 7.2 Codex version差
 
-Hook process契約の多くは既に実装済みである。Issue本文の想定file構成へ合わせるためだけのtest移動・分割はしない。
+Hook schema、matcher、`additionalContextLimit`、block output、SessionStart停止契約は使用versionを確認する。
 
-### 7.3 Codex version差
+### 7.3 production文章ruleの具体値
 
-OpenAI CodexのHook schemaは変更され得る。config field名、matcher、`additionalContextLimit`、block output、SessionStart停止契約は使用versionの正式仕様を確認してから実装する。
+具体値が未確定ならscanner構造やHook契約は進めても、production文章品質gateを完成扱いにしない。
 
-### 7.4 baseline状態管理
+実装者が禁止語、置換表、allowlistを勝手に作らない。
 
-開始時のfile identityは次の順で判定する。
+### 7.4 session file identity
 
-1. 保存済み開始時HEADに存在するか
-2. task開始時worktreeでの状態
-3. Git rename mapping
-4. exact SHA一意一致fallback
+Sessionではstart HEADだけでなく開始時worktree状態を保持する必要がある。最小manifest以外のsession managerへ広げない。
 
-mapping不能をbaseline空として扱わない。
+### 7.5 local working-tree move
 
-baselineへretry回数、workflow state machine、本文copy、raw Hook payload、raw normalized match、secret類を持たせない。
+`git diff`だけではuntracked destinationをrenameとして扱えない。
 
-### 7.5 rename
+local gateではGit mappingが無いdeleted HEAD pathについて、HEAD blobと現在未解決候補のexact SHA一意一致だけをfallbackとする。
 
-Gitがrenameを報告できる状態だけを前提にしない。worktree-only moveでもexact SHA一意一致でpure moveを対応付ける。
+判定不能をbaseline空へ落とさず、Repository-level gate failureとする。
 
-ただし、move + 内容変更や曖昧な候補まで推測しない。対応付け不能はquality check不能として既存障害契約へ流す。
+### 7.6 PR merge checkout
 
-### 7.6 commit比較
+現行 `pull_request` workflowではraw PR headではなくmerge resultをcheckoutする前提で設計する。
 
-`base-ref...HEAD` のchanged pathsと `base-ref:path` の本文を混在させない。
+base tip `B` とmerge `HEAD=H` のmerge baseは通常 `B` である。PR fork地点 `M` を比較開始treeだと決め打ちしない。
 
-commit比較modeでは `comparison_base` を1回解決し、changed paths、baseline本文、rename mappingのすべてで同じtreeを使う。
+raw PR headを評価するためだけにcheckout方式を変更しない。
 
-### 7.7 `scripts/verify` / `scripts/verify.ps1`
+### 7.7 `scripts/verify` の既存責務
 
-通常モードはconsumer-facing contractを維持する。既存strictは親source repository契約のままとする。Hook contractは別opt-inから既存focused Vitestを呼ぶ。
-
-### 7.8 production文章ruleの具体値
-
-具体値が確定していない場合はscannerの設計は進めてもproduction gateを完成扱いにしない。
-
-### 7.9 `lint:text` の比較基準
-
-- Hook: session baseline -> current worktree
-- local: HEAD -> current worktree
-- PR: merge base -> checkoutされたHEAD
-- push: beforeのmerge base -> HEAD。before無効時は `HEAD^`
-- schedule / workflow_dispatch: `HEAD^ -> HEAD`
-
-scanner本体と比較snapshot選択は分離する。
+通常モードとstrict Harnessの意味を変えない。Hook contractは別opt-inに限定する。
 
 ## 8. 成果物
 
 実装完了時の想定成果物:
 
-- 既存Hook contractの不足分テスト
+- 既存Hook contract不足分テスト
 - compact限定 `SessionStart` Hook
 - 使用Codex versionに合ったSessionStart fail-close契約
-- 決定論的文章品質scanner / CLI
-- Repository-level Git比較用の薄いCLI
+- 決定論的文章品質scanner
+- Repository-level Git比較CLI
 - 明文化されたproduction文章品質rule
-- raw matchを保存しない最小baseline管理
-- worktree-only moveを含むrename fallback
-- mapping不能時のquality check不能契約
-- Hook config契約テスト
+- raw matchを保存しない最小session baseline
+- session rename mapping / exact SHA fallback / quality check不能処理
+- local working-tree rename mapping / exact SHA fallback / 比較不能処理
+- commit比較で統一されたcomparison tree
+- PR merge checkoutに整合した文章品質gate
 - `pnpm run verify` 接続
-- Bash / PowerShellのHook contract用明示opt-in
+- Bash / PowerShell Hook contract opt-in
 - 既存strict Harness責務の維持
-- Ubuntu既存contract CIとWindows focused Hook contract CI
+- Ubuntu文章品質gate
+- Windows focused Hook contract CI
 - 必要なHarness reference更新
-
-このPlanの保存先:
-
-`docs/plans/2026-09-12_220014_codex-hook-quality-gates.md`
 
 ## 9. 実装前自己レビュー
 
@@ -1163,39 +1204,33 @@ scanner本体と比較snapshot選択は分離する。
 - [ ] Issue #134の範囲を越えていない。
 - [ ] `tests/contracts/codex-hook-contract.test.ts` を正本としている。
 - [ ] 新しいHook test frameworkを作っていない。
-- [ ] 新しいsession managerやdiff frameworkを作っていない。
-- [ ] Windows CIはfocused Hook contractに限定している。
-- [ ] `scripts/verify` / `scripts/verify.ps1` の通常モードを重くしていない。
-- [ ] strict Harnessの既存用途を変更していない。
-- [ ] Hook contract用opt-inは既存Vitestを呼ぶ薄い入口に限定している。
+- [ ] session managerやdiff frameworkを作っていない。
+- [ ] similarity rename、filename推測、edit distanceを追加していない。
+- [ ] Windows CIはfocused contractに限定している。
+- [ ] 通常verifyを重くしていない。
+- [ ] strict Harnessの意味を変更していない。
+- [ ] Hook contract opt-inは既存Vitestを呼ぶ薄い入口である。
 - [ ] SessionStartの非0終了を停止手段として無条件に扱っていない。
 - [ ] fingerprintとmultiset差分の意味が固定されている。
 - [ ] baselineへraw normalized matchを保存していない。
-- [ ] clean tracked baselineは保存済み開始時HEAD blobからlazy評価する。
-- [ ] 開始時HEADに存在しないtask開始時fileもmanifestへ保存する。
-- [ ] renameはGit mapping -> exact SHA一意一致 -> quality check不能の順で処理する。
-- [ ] mapping不能をbaseline空へ落とさない。
-- [ ] clean tracked -> unstaged move、dirty tracked -> unstaged move、開始時staged add -> moveをcontractへ含める。
-- [ ] PostToolUseの対象tool / early return / path限定方針が決まっている。
+- [ ] clean tracked baselineはstart HEAD blobからlazy評価する。
+- [ ] session renameはGit mapping -> exact SHA -> quality check不能の順である。
+- [ ] local working-tree gateもGit mapping -> HEAD blob exact SHA -> comparison failureの順である。
+- [ ] local comparison不能をbaseline空へ落としていない。
+- [ ] commit比較でchanged path / baseline本文 / rename mappingが同じcomparison treeを使う。
+- [ ] PR currentはworkflow checkout `HEAD` であり、raw PR headを仮定していない。
+- [ ] 現行PR merge checkoutではbase tip -> merge resultを評価する。
 - [ ] production文章品質ruleを実装者が推測しない。
-- [ ] local `lint:text` が `HEAD -> current worktree` でstaged / unstaged / untrackedを検証する。
-- [ ] commit比較ではcomparison baseを1回確定し、changed paths / baseline本文 / rename mappingで同じtreeを使う。
-- [ ] PRでbase branchが進んだfixtureを検証する。
-- [ ] push / schedule / workflow_dispatchのbase refが固定されている。
 - [ ] Hook failureとlint violationを区別している。
 - [ ] raw prompt / tool input / Markdown本文をbaselineへ保存しない。
 
 ## 10. 備考
 
 - Plan作成時の `main` HEADは `3c5e35ed42712574eb9d89051820c9e27f137a16`。
-- PR #144 (`test: Windows Codex Hook contract timeoutを解消`) はmerge済みで、その修正を前提とする。
-- Issue #135はPlan更新時点でopen。compact再注入は #135 merge確認後に開始する。
-- Windows focused Hook contractで、Ubuntu CIでは通らないWindows固有経路を検証する。
-- `--strict-harness` / `-StrictHarness` は親source repository検証用途のまま維持する。
-- Hook contractは別の明示opt-inへ分離する。
-- SessionStartの停止契約は実使用Codex versionで再確認する。
-- baseline fingerprintは論理上のmatch identityを維持しつつ、persist時はSHA-256 digestだけを保存する。
-- renameはGit mappingが得られないworktree状態もexact SHAで限定的に扱い、判定不能時はbaseline空へ落とさない。
-- commit比較では比較開始treeを統一し、PR base tipとmerge baseを混在させない。
-- local `lint:text` / `pnpm run verify` は `HEAD -> current worktree` を比較し、staged / unstaged / untrackedを対象にする。
+- PR #144はmerge済みで、そのWindows timeout修正を前提とする。
+- Issue #135はPlan更新時点でopen。compact再注入は#135 merge後に開始する。
+- 既存 `scripts/spec/summarize-impact.ts` とCIの差分取得patternを再利用する。
+- session file identityとRepository-level working-tree file identityは目的が異なるため、failure処理を混同しない。
+- HookではPostToolUseをfail-openにできるが、`pnpm run lint:text` は検証commandなのでcomparison不能をPASSにしない。
+- PR CIはworkflowでcheckoutされたmerge resultをcurrentとして扱い、現在のbase branchに既にある違反をPR由来と誤認しない。
 - 新しい事実が見つかった場合はIssue本文へ機械的に合わせず、現在のsource / test / CIを正としてPlanを更新する。
