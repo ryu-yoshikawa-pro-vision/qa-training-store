@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-081339-JST",
+  "result": "pass",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue", "missing_validation"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Issue #141の実装として、`expo-sqlite`をApp Configへoptionなしで登録し、Expo SDK 57互換packageへのpatch更新、`expo-constants` override同期、`@react-native/jest-preset`のpatch整合、lockfile同期を完了した。`expo install --fix`のdynamic config errorは解消され、maintenance update path比較とPR CIも成功した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "app.config.ts",
+          "selector": "\"expo-sqlite\"",
+          "summary": "App Configのpluginsへoptionなしの`expo-sqlite`を明示登録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "package.json",
+          "selector": "\"expo\": \"57.0.22\"",
+          "summary": "Expo SDK 57互換のpatch versionとoverride、packageExtensionsを記録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "pnpm-lock.yaml",
+          "selector": "expo-sqlite:",
+          "summary": "package.jsonと同期した依存解決結果をlockfileへ保存している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:35 (JST)",
+          "summary": "update path、dynamic config error解消、override同期、lockfile同期、比較結果を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:34 (JST)",
+          "summary": "Issue #141実装commitとPR CI成功を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "元Runで実際に変更した範囲は`app.config.ts`、`package.json`、`pnpm-lock.yaml`、`tests/contracts/app-config.test.ts`、保存Planの必要最小限のMarkdown修正、および元Run Artifactである。workflow、既存Windows launcher timeout test、Issue #141と無関係な製品実装は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/app-config.test.ts",
+          "selector": "expo-sqlite",
+          "summary": "Issue #141のApp Config契約testを元Runの実装範囲として記録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_071621_issue-141-expo-dependency-maintenance.md",
+          "selector": "URL",
+          "summary": "保存Planには品質ゲート回復に必要な最小限のMarkdown修正がある。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/PLAN.md",
+          "selector": "## Scope",
+          "summary": "元Runの実装対象と対象外を保存Planで確認できる。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.changed_files",
+          "summary": "collectorが現在の作業ツリーから取得したpathを示す。過去commitの全pathを自動再構成する値ではない。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused App Config test、Native component test、Expo check、CI相当のExpo Doctor、Android prebuild、PRのWeb CI／Native Static／Android Automation・Production build／iOS Automation・Production build／`native-ci / verify`／Vitest contractsは成功した。一方、ローカルWindowsの`pnpm run verify`は既存Windows launcher timeout 2件でexit 1となり、local iOS prebuild、update-neededからautomation PR作成までのlive E2E、main反映後のmaintenance no-opは未実施である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 08:30 (JST)",
+          "summary": "App Config、focused contract、runtime、prebuild pluginHistoryの成功を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:35 (JST)",
+          "summary": "maintenance update pathと依存関係同期の成功を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 08:47 (JST)",
+          "summary": "Native test、route、EAS、Android prebuildの成功とiOS local未実施を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:01 (JST)",
+          "summary": "標準verifyの既知timeoutとlint、typecheck、sanitizerの結果を区別して記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:34 (JST)",
+          "summary": "PR CIの成功結果と未実施のlive E2E、main no-opを区別して記録している。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.validation",
+          "summary": "公式collectorのvalidation summaryを確認できる。full local verifyの失敗はevaluationとREPORTにも保持する。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "feature branchを維持し、mainへ直接反映せず、merge、force push、workflow guard／allowlistの緩和、generic App Config editorの追加を行っていない。run.jsonは直接編集せず、公式writer／collectorとsanitizerを使用した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:34 (JST)",
+          "summary": "feature branch上のcommit、push、PR OPEN維持、禁止操作未実施を記録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.status",
+          "summary": "machine-managed manifestが公式経路で集約された成果物である。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Issue #141の保存Plan、元Runの実装・検証REPORT、PR CI、未実施項目、evaluation、manifestを相互に追跡できる。元REPORTの既存checkpointは並べ替えず、時刻順の訂正だけを末尾へappendした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 14:35 (JST) — 記録順に関する訂正checkpoint",
+          "summary": "過去checkpointを変更せず、append-only訂正を末尾へ追加している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/PLAN.md",
+          "selector": "## Definition of Done",
+          "summary": "元Runの完了条件と未実施項目を保存している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存App Configのplugins構造と既存の依存管理方針へ最小差分で適用し、`expo-sqlite`はoptionなし、`expo-constants` overrideと`@react-native/jest-preset` packageExtensionsは実際のpatch整合に合わせて同期した。不要なhelper、generic editor、warning抑制用overrideは追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "app.config.ts",
+          "selector": "expo-build-properties",
+          "summary": "既存routerとbuild-propertiesを保ったplugins構造へ登録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "package.json",
+          "selector": "packageExtensions",
+          "summary": "更新後の`@react-native/jest-preset@0.86.3`へ既存workaroundを同期している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "保存Planの検証順序、`expo install --fix`の実行事実、依存比較、config／prebuild assert、Native／Web／CI結果、未実施理由、元Run Artifactがrepository-relative pathで追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-081339-JST/PLAN.md",
+          "selector": "## Research Plan",
+          "summary": "実装Runの検証計画とexit criteriaを保存している。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-081339-JST/run.json",
+          "selector": "$.validation.commands",
+          "summary": "公式manifestのvalidation集約を参照できる。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "ローカルWindowsの`pnpm run verify`は、今回のdiffにも`origin/main`にも存在するWindows launcher test 2件が既定5秒timeoutとなりexit 1だった。同じ2件は30秒timeoutで2/2 PASSし、PRの相当verifyも成功した。通常のExpo Doctorもlocal ignored `.npmrc`のwarningで16/17だったが、CI相当の`NPM_CONFIG_LOGLEVEL=error`実行は17/17 PASSだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:00 (JST)",
+          "summary": "verifyの最初の異常と既存timeoutの切り分けを記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:55 (JST)",
+          "summary": "通常Doctorのlocal warningとCI相当17/17 PASSを区別している。"
+        }
+      ],
+      "detail": "製品実装の失敗とは分類せず、既知のWindows環境差として保持する。timeout変更や既存launcher testの変更は行っていない。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "low",
+      "evidence": "Windows上のlocal iOS prebuild、update-needed状態からautomation PR作成までのlive E2E、main反映後の`Expo Dependency Maintenance` no-opは実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-081339-JST/REPORT.md",
+          "selector": "## 2026-09-12 09:34 (JST)",
+          "summary": "未実施のlive E2Eとmain反映後no-opを残確認として記録している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_071621_issue-141-expo-dependency-maintenance.md",
+          "selector": "main反映後のIssue確認",
+          "summary": "main反映後確認を実装完了と分離するPlan方針を確認できる。"
+        }
+      ],
+      "detail": "Plan上のmain反映後の残確認とWindowsでは実行できないlocal iOS prebuildであり、Issue #141の製品実装およびPR CI成功を理由なくfailへ変更する根拠ではない。後続の適切な環境・時点で実施する。"
+    }
+  ],
+  "improvement_candidates": []
+}
