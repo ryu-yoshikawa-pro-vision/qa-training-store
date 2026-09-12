@@ -150,3 +150,16 @@
   - Result: 親agentがevaluation、manifest、schema、sanitizer、scopeを再確認した。
   - Parent decision: collectorの観測範囲を超えるchanged_filesを手書きせず、既存のIssue #141実装証跡を評価本文・保存Plan・REPORTで追跡する。
 - Progress: 92% (12/13)
+
+## 2026-09-12 18:23 (JST) — 最終HEAD CIとPR反映の確認checkpoint
+
+- Summary: artifact-only follow-upのcommit `0c99abd426c89cfd1b4f17990713a55ab882c743`を対象に、PR本文の訂正と最新HEAD CIの確認を完了した。
+- Changes: PR #143本文へ元Run／repair Runのevaluation責務分離、公式collectorの`changed_files`観測範囲、最新CI結果、未実施事項を日本語で追記した。Product code、依存関係、workflow、既存timeout testは変更していない。
+- Decision / Rationale: branch `issue-141-expo-dependency-maintenance`、base `main`、PR OPENを維持した。`run.json`は直接編集せず、既存の公式writer／collector生成物とevaluationを保持した。collectorが履歴から過去実装pathを再構成しない制約は、manifestへ手書き補完せずREPORT／evaluation／保存Planで説明した。
+- Validation: `gh pr checks 143 --json name,state,bucket,workflow,link`で`0c99abd`の42 checksは39 PASS、3 SKIPPED、pending=0、failure=0を確認した。`Android Runtime / Maestro`は43 stepすべて成功し、Web verify、`native-ci / verify`、Native Static、Android／iOS Automation・Production、Vitest、Chromium/UI、artifact sanitizationもPASSした。SKIPPEDはExtended E2E、production deploy、branch protection上のCodeQL checkである。
+- Blocker / Remaining: なし。local Windowsの既知launcher timeout 2件、local iOS prebuild、live update-needed E2E、main反映後no-opは未実施のまま事実どおり保持する。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがbranch／PR一致、PR本文、現HEAD CI、Android Runtimeの全stepを確認した。
+  - Parent decision: required CIのPASSと条件付きSKIPPEDを採用し、未実施項目を完了扱いにしない。
+- Progress: 100% (13/13)

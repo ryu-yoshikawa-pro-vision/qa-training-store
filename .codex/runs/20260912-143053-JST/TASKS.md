@@ -14,7 +14,7 @@
 - [x] 10. 両Runのevaluation schema、run_id、failure category、evidence refsを確認する
 - [x] 11. 公式writer/collectorで両manifestを再同期し、REPORTへ責務分離と制約を記録する
 - [x] 12. 両Runのsanitizer、markdown lint、diff check、禁止対象差分を確認する
-- [ ] 13. branch safety、artifact-only commit/push、PR本文と最新head CIを確認する
+- [x] 13. branch safety、artifact-only commit/push、PR本文と最新head CIを確認する
 
 ## Discovered
 
