@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-065418-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Windows argv修正、静的検証、Environment Qualification、canonical allの実行と判定まで完了したが、観測可能sideが7/8でvalid baselineは取得できなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "summary and provenance",
+          "event_id": null,
+          "summary": "canonical allの24件結果、schema、provenance、coverage判定の根拠。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Evaluator source／testの修正はQualification開始前に固定し、開始後はsource、dataset、query、Target、timeoutを変更せず、canonical allもretryしなかった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-065418-JST/REPORT.md",
+          "selector": "2026-09-12 09:40 (JST)",
+          "event_id": null,
+          "summary": "canonical完了後に再実行・条件変更を行わない判断を記録。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "argv、focused、repository、static gates、Negative、PositiveはPASSした。canonicalはschema／provenance／dataset fingerprintが一致した一方、unobservable 8件、timed_out 20件、missing side 1件により8/8を満たさない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "summary",
+          "event_id": null,
+          "summary": "canonical summaryはpass 15、false_negative 1、unobservable 8、completed 4、timed_out 20。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-065418-JST/REPORT.md",
+          "selector": "2026-09-12 07:19 (JST)",
+          "event_id": null,
+          "summary": "pnpm run verifyの既知Hook launcher timeout 2件を変更差分と分離して記録。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "raw evidenceはGit管理外の.artifactsに保持し、Run Artifactにはsanitized summaryだけを記録した。merge、rebase、force push、PR merge、Qualification中のsource変更は行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-065418-JST/REPORT.md",
+          "selector": "2026-09-12 09:40 (JST)",
+          "event_id": null,
+          "summary": "raw telemetryをRunへコピーせず、Qualification条件を固定したことを記録。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan、Tasks、Report、evaluation.json、canonical result、OTel diagnostic、Negative／Positive evidenceが相互参照可能な形で保存されている。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-065418-JST/run.json",
+          "selector": "run_id",
+          "event_id": null,
+          "summary": "Runの識別とmachine-managed manifestの参照。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-065418-JST/REPORT.md",
+          "selector": "2026-09-12 09:40 (JST)",
+          "event_id": null,
+          "summary": "canonical判定と残作業を記録。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Qualification前の修正はWindows shell boundaryの引数quote helperとそのcontract testへの適用に限定され、OTel observer、dataset、Hook、Result schema、timeoutは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-trigger-evals.ts",
+          "selector": "commit 536ad46",
+          "event_id": null,
+          "summary": "WindowsでOTel configを単一argvとして保持する最小実装。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/repository-contract/windows-codex-argv.test.ts",
+          "selector": "commit 536ad46",
+          "event_id": null,
+          "summary": "Nodeからcmd.exeを経由したargv保持の回帰テスト。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Evaluator SHA、Routing SHA、Codex version、dataset fingerprint、split all、case setを固定してcanonicalを実行したが、runtime timeoutとexploratory-qa side欠落のため比較可能なvalid baselineにはならない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "provenance",
+          "event_id": null,
+          "summary": "canonicalの再現条件を固定したprovenance。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "canonical all runnerはmissing sides exploratory-qa-vs-android-native-local-validation/exploratory-qaでexit code 1となり、24件中8件がunobservable、20件がtimed_outだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "summary and cases[*].unobservable_reason",
+          "event_id": null,
+          "summary": "canonicalのcoverage不足とtimeout分布。"
+        }
+      ],
+      "detail": "OTel観測を補完せず、exploratory-qa sideを未観測として扱ったため、8/8 boundary side validityおよびvalid baselineの条件を満たせなかった。別Runでruntime／environment原因を調査する必要がある。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run verifyは既知のtests/contracts/codex-hook-contract.test.ts Windows launcher timeout 2件でFAILした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-065418-JST/REPORT.md",
+          "selector": "2026-09-12 07:19 (JST)",
+          "event_id": null,
+          "summary": "今回のOTel argv/evaluator変更とは別経路の既知failure。"
+        }
+      ],
+      "detail": "Hook launcherのtimeoutは今回のsource変更とは別経路として保留し、timeout延長やHook修正は行っていない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval canonical runnerのtimeout／OTel観測診断",
+      "evidence": "固定条件のcanonical allで20件がtimed_out、8件がunobservableとなり、exploratory-qa sideが欠落した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "case_id and collection diagnostics",
+          "event_id": null,
+          "summary": "全caseのOTel診断を保持したraw evidence。"
+        }
+      ],
+      "expected_impact": "timeoutと観測欠落の因果関係を分離でき、valid baseline取得可否をより短時間で判断できる。",
+      "recommendation": "別RunでCodex process lifecycle、OTel collection state、exploratory-qa queryのtimeout原因を調査する。今回のRunのquery、timeout、OTel判定、datasetは変更しない。"
+    }
+  ]
+}
