@@ -115,5 +115,12 @@
 - Subagents:
   - Delegation: なし。
   - Result: 親agentが最初の異常と派生停止を分離し、既知環境差として記録した。
-  - Parent decision: local verifyのexit 1を成功へ補完せず、既存timeoutとして評価・最終報告へ明記する。
+- Parent decision: local verifyのexit 1を成功へ補完せず、既存timeoutとして評価・最終報告へ明記する。
 - Progress: 75% (6/8)
+
+## 2026-09-12 16:17 (JST) — 修復Run記録順の訂正checkpoint
+
+- 15:12と15:44のcheckpointが、既存の14:57と15:06のcheckpointより前に記録されていることを確認した。これはpatchの照合位置による追記順の不整合であり、各checkpointの意味情報は変更していない。
+- append-only契約に従い、既存checkpointを削除・並べ替え・置換せず、この訂正をファイル末尾へappendした。今後の時系列参照ではファイル上の追記順と各見出し時刻を併記して扱う。
+- 修復内容、検証結果、branch/PR/CIの完了判定は15:44 checkpointおよびPR #143の最終HEAD `266581c`に記録した。
+- Progress: 100% (8/8)
