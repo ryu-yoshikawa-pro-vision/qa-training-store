@@ -120,11 +120,19 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 3) 作業中に見つかったタスクは `## Discovered` に追加する。  
 4) 判断メモは `PLAN.md` に、意味情報はcheckpointとして `REPORT.md` に追記する。
 
+repository working tree上のファイルを変更する実装・変更タスクで、commit・push後の必須CI確認をもって作業全体の完了を判断する場合は、tracked Run Artifactの完了checkpointをfinal commit前に記録する。この場合、push後のCI成功だけを記録する目的で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等のtracked Run Artifactを更新・再commit・再pushしない。push後のCI結果はGitHub Actions、PR本文、ユーザー向け報告へ記録する。
+
+上記以外のreview-only、plan-only、調査のみ、Git操作を行わないタスク、GitHub metadataのみの変更、ユーザーがGit操作を禁止したタスクでは、Run完了checkpointを従来どおりRun Artifactへ記録できる。例外はrepository working treeのファイル変更を伴い、commit・push後の必須CI確認まで行う実装・変更タスクに限る。
+
 ## 3. Progress ルール
 
 - 分母は `## Now` + `## Discovered` の checkbox task
 - `## Blocked` は分母に含めない
 - 表記は `Progress: <NN>% (<done>/<total>)`
+- `TASKS.md` のcheckboxによるProgressは、final commit前に完了できるtracked taskの進捗を示すものであり、実装・変更タスク全体の完了判定とは同一視しない。
+- repository working tree上のコード、テスト、設定、文書、Run Artifact等のファイルを変更し、commit・push後の必須CI確認まで行う実装・変更タスクでは、ユーザー向けProgressの分母にpush後の必須CI確認1件を加算する。分母は`TASKS.md`の`## Now`＋`## Discovered`のcheckbox総数＋1、分子は完了済みcheckbox数＋条件を満たして完了した必須CI確認1件とする。push後の必須CI確認1件は、最新PR headの`Web CI`と`Mobile App CI`がともに`success`であることを確認し、そのCI結果をPR本文へ記録する必要がある場合は、PR本文の更新まで完了した時点で完了として数える。CI success確認済みでも必要なPR本文更新前はこの1件を分子へ加算しない。必須CI確認はTASKS checkbox、manifest field、独自schemaへ追加しない。
+- 例えばtracked taskが5/5の場合、commit前は`Progress: 83% (5/6)`、push後CI実行中も`Progress: 83% (5/6)`、CI success確認済みでも必要なPR本文未更新なら`Progress: 83% (5/6)`、CI success確認と必要なPR本文更新が完了した後は`Progress: 100% (6/6)`と報告する。CIが`queued`、`in_progress`、未確認、またはfailureの場合は100%と報告しない。
+- review-only、plan-only、調査のみ、質問への回答、状態確認のみ、repository file変更を伴わない分析、GitHub metadataのみの変更、ユーザーがcommit・pushを禁止したタスクにはCI確認1件を加算しない。これらはcheckboxのProgress契約だけを適用する。repository file変更とGitHub metadata変更を同時に行う場合はCI確認1件を加算する。
 
 ## 4. ユーザー向けレポート
 
@@ -200,6 +208,24 @@ Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む
 - Build／Install／Test／Maestroを新たに実行する前に、直近Run、完全ログ、変更差分、Shell／Version／環境条件、成功ベースラインを確認し、AndroidではNative Runbook 5.1.1のpreflightと仮説を記録する。同じ条件の無目的な再実行は禁止する。
 - 失敗時は最初の異常と派生エラーを分離し、上流工程が失敗したら後続工程を実行しない。同一エラー2回連続、同じ工程3回失敗、新しい情報なし、仮説なしの場合は再試行を止め、原因調査へ戻る。
 - 生ログは`.artifacts/native-local/<attempt-id>/`などのGit管理外へ保存し、Run Artifactには要約と相対参照を残す。実行ごとにattempt-idを分け、作業完了前にRun ArtifactのSanitizer Write／Checkを行う。
+
+### 実装タスクの完了条件
+
+repository working tree上のコード、テスト、設定、文書、Run Artifact等のファイルを実際に変更し、Git commit対象となる差分を作る実装・変更タスクでは、ユーザーがそのタスクでGit操作を明示的に禁止していない限り、ローカル検証だけで完了扱いにしない。次の工程を作業範囲とする。PRタイトル／本文、Issueタイトル／本文、label、review comment、reviewer設定等のGitHub metadataだけを変更するタスクはこの条件に含めず、commit・push・PR・CI完了条件を適用しない。repository file変更を同時に行う場合は通常の完了条件を適用する。
+
+`変更 → ローカル検証 → tracked Run Artifactをfinal commit前状態まで更新・検証 → commit → push → local/remote HEAD確認 → PR最新head確認 → そのheadの必須CI確認 → PR本文とユーザー向け最終報告へ結果を記載`
+
+- tracked Run Artifact（`PLAN.md`、`TASKS.md`、`REPORT.md`、必要なmachine-managed artifact）は、final commit前に保存すべき状態まで確定・検証する。final commit前の`REPORT.md`にはローカル検証、変更内容、commit対象、sanitizer結果、push後に必須CIを確認する残作業を記録できるが、未実行のCIを`PASS`と記録してはいけない。
+- final push後は、CI successを記録する目的だけでtracked fileを変更・再commit・再pushしない。最新headの実際のCI結果はGitHub上のCI結果、PR本文、ユーザー向け最終報告へ記録する。
+- ローカル検証がPASSした後、[`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)の既存契約に従い、対象branchとstage内容を確認し、commit、通常push、local HEAD／remote HEAD一致確認まで行う。Git安全手順の詳細をこの文書へ重複して記載しない。
+- 対象branchに既存PRがある場合はそのPRを使用する。PRがなく、対象CIが`pull_request`を契機として実行される場合は、CI確認に必要なPRを作成する。PRのタイトルと本文は既存の言語ルールに従い、原則日本語とする。CI確認のために`main`へ直接pushしてはいけない。
+- 通常PRで確認する必須CIは、現時点では`Web CI`と`Mobile App CI`とする。`Cross Browser Smoke`はscheduleと`workflow_dispatch`で起動する通常PR外のworkflowであり、通常PRの必須CIには含めない。必須CIの列挙はこの節を正本とし、branch protectionから自動推測しない。CI構成を変更する場合は、この列挙も更新する。
+- push後は、pushした最新commitをheadとするPRのGitHub Actionsを確認する。以前のcommitで成功した結果を、最新headの結果として流用しない。対象タスクの必須CIがすべて`success`になり、CI結果を記録する必要があるPR本文の更新まで完了するまでは完了扱いにしない。
+- 必須CIが`queued`または`in_progress`の場合は、現在状態と残作業を記録し、`Progress: 100%`や作業完了として報告しない。無制限pollingや独自の監視scriptは追加しない。
+- 必須CIが`failure`の場合は、§8「必須検証」の品質ゲート失敗時の原因調査・修正・停止条件に従う。修正後は新しいcommitをpushし、その最新PR headの必須CIを改めて確認する。
+- 必須CI確認1件のProgress加算は§3に従い、TASKS checkboxへcommit、push、PR head確認、CI確認、PR本文更新を追加しない。
+- review-only、plan-only、調査のみ、質問への回答、状態確認のみ、repository file変更を伴わない分析、GitHub metadataのみの変更にはこのcommit・push・PR・CI完了条件を適用しない。これらのタスクで勝手にGit操作やPR作成を行ってはいけない。
+- ユーザーが「今回は実装のみ。commitしない」「pushしない」「PRは作らない」「Git操作をしない」など、そのタスクでGit操作を明示的に禁止した場合は、その指示を常設ルールより優先する。禁止された工程は実施せず、未実施の理由と残作業を報告する。
 
 ## 9. 言語ポリシー
 
