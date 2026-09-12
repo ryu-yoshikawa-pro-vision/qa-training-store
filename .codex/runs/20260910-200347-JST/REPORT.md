@@ -163,3 +163,21 @@
 - Decision / Rationale: 既定timeout／対象除外／skip／追加optionなしで標準verifyがPASSしたため、前回のWindows launcher timeout blockerは今回の対象branchでは解消済みとして扱う。これでfinal commit前のtracked Run Artifactを確定し、明示stage／commitへ進む。
 - Blocker / Remaining: commit前のbranch／stage最終確認、commit、通常push、local／remote／PR head一致確認、push後の新headに対するWeb CI／Mobile App CI確認、CI結果を反映したPR本文更新、最終報告が未完了である。CI成功結果を記録するためのtracked Run Artifact更新は行わない。
 - Progress: 92% (12/13; tracked task 12/12、push後の必須CI確認 0/1)
+
+## 2026-09-12 19:55 (JST)
+
+- Summary: PR #139再レビューの3件の指摘を`must_fix`としてtriageし、bounded repair iteration 2を開始した。
+- Findings: (1) Issue #142 / PR #144で解消済みのWindows launcher timeoutがTASKSの現役blockerとして残っている、(2) 必須CI success確認直後に必要なPR本文更新が残るためProgress 100%の条件が早すぎる、(3) `run.json`についてcollectorが収集できる`changed_files`とREPORTから自動推論しないmanifest情報が一括して説明されている。
+- Repair plan / Scope: `AGENTS.md`のProgress／完了条件、`.codex/templates/TASKS.md`、Run-local `PLAN.md`／`TASKS.md`、正本Planを最小修正し、Run-local `REPORT.md`へ機能差をappend-onlyで記録する。`run.json`とcollectorは読み取りのみとし、CI workflow、Hook、rules、Product Code／Test、依存は変更しない。PR本文はpush後の最新head CI success確認後に更新する。
+- Decision / Rationale: `TASKS.md`へcommit前に完了できる5 taskを追加し、旧B1は`Blocked`から除外する。必須CI確認1件は最新PR headの両CI successと、必要なPR本文更新まで完了した時点で数える。`--refresh-git-changed-files`は実行時点のworking tree差分と未追跡ファイルを収集できるが、commit済みの過去差分をRun履歴として自動復元せず、REPORTからstatus／validation／branch／base branchを自動推論しない。
+- Progress: 67% (12/18; 新規task 19〜23は未完了、push後の必須CI確認 0/1)
+
+## 2026-09-12 20:07 (JST)
+
+- Summary: bounded repair iteration 2の3件のレビュー指摘について、文書とRun-local状態の修正、指定ローカル検証、scope監査を完了した。
+- Changes: `TASKS.md`の旧B1はIssue #142 / PR #144で解消済みのため現在blockerから除外し、`## Blocked`を`なし`へ揃えた。`AGENTS.md`、TASKS template、Plan類では、CI success確認だけではProgress 100%とせず、必要なPR本文反映までを既存の必須CI確認1件の完了条件へ含めた。`run.json`の説明は、`--refresh-git-changed-files`による実行時点のworking tree差分・未追跡ファイルの収集と、REPORTからstatus／validation／branch／base branchを自動推論しない制約、commit済み過去差分を自動復元しない点を分離した。
+- Validation: `pnpm run lint:markdown`（387 files・0 issues）、`pnpm run validate:skills`（6 Skill・15 Markdown・25 links）、標準`pnpm run verify`（exit 0、contracts 35 files・503 passed・3 skipped、build:web／build:specを含む）、`git diff --check`がPASSした。ESLintは0 errors・既存warning 65件。変更は許可した6ファイルだけで、禁止対象差分は0件。
+- Artifact / Sanitizer: `run.json`はmachine-managedのため手編集していない。確認した実値は`status=pending`、`validation.status=not_run`、`validation.commands=[]`、`branch=null`、`base_branch=null`、`changed_files=[]`である。REPORT追記後のSanitizer Write／Checkを実施する。
+- Decision / Rationale: `TASKS.md`のNow／Discoveredのcheckboxはすべて完了し、現在の`Blocked`はなし。CI success後にtracked Run Artifactへ戻らず、commit前にこの状態を確定する。bounded repair iteration 2は修正・検証成功として停止し、commit／push後に新headのCIを確認してから必要なPR本文を更新する。
+- Blocker / Remaining: 現在のRunにblockerはない。REPORT追記後のSanitizer、明示stage／commit、通常push、local／remote／PR head一致確認、新headの`Web CI`／`Mobile App CI`確認、CI結果を反映したPR本文更新が残っている。
+- Progress: 94% (17/18; tracked task 17/17、push後の必須CI確認 0/1。CI success確認済みでも必要なPR本文更新前は100%にしない)

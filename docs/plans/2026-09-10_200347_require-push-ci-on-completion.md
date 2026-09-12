@@ -4,19 +4,19 @@
 
 - 依頼内容: 実装タスクについて、ローカル検証後のcommit、push、PR head確認、最新headの必須CI確認を完了工程へ追加する。
 - 背景: ローカル検証だけで完了報告すると、remoteとGitHub Actionsでの検証状態が未確認のまま残る。
-- 期待成果: `AGENTS.md`と`.codex/templates/TASKS.md`が、実装タスクとreview-only／plan-only／GitHub metadataのみの変更を区別し、final commit前のRun Artifact確定、push後の必須CI確認、Progress算出を矛盾なく扱う。手動Runの`run.json`制約は既存collectorの制約として記録する。
+- 期待成果: `AGENTS.md`と`.codex/templates/TASKS.md`が、実装タスクとreview-only／plan-only／GitHub metadataのみの変更を区別し、final commit前のRun Artifact確定、push後の必須CI確認、必要なPR本文反映を含むProgress算出を矛盾なく扱う。手動Runの`run.json`制約はcollectorの機能差を分けて記録する。
 
 ## 1. ゴール / 完了条件
 
-- ゴール: ユーザーの明示的なGit操作禁止を尊重しつつ、通常の実装タスクを、final commit前にtracked Run Artifactを確定し、push後の最新headの必須CI成功を確認してから完了扱いにする。
+- ゴール: ユーザーの明示的なGit操作禁止を尊重しつつ、通常の実装タスクを、final commit前にtracked Run Artifactを確定し、push後の最新headの必須CI成功を確認し、必要なPR本文更新まで完了してから完了扱いにする。
 - 完了条件（DoD）:
   - `AGENTS.md`へ、実装タスクのfinal commit前Run Artifact確定、最新headの必須CI確認、PR本文／ユーザー報告へのCI結果記録を追加する。
   - `AGENTS.md §2`のRun完了checkpointは維持し、repository working tree変更をcommit・pushし、push後CI確認まで行うタスクだけはtracked Artifactをcommit前に確定する例外を明記する。
-  - repository working tree変更タスクのユーザー向けProgressへ必須CI確認1件を加算し、CI確認をTASKS checkboxへ追加しない。GitHub metadataのみの変更には加算しない。
+  - repository working tree変更タスクのユーザー向けProgressへ必須CI確認1件を加算し、最新headの両CI success確認と必要なPR本文更新まで完了した時点でその1件を数える。CI確認をTASKS checkboxへ追加しない。GitHub metadataのみの変更には加算しない。
   - `.codex/templates/TASKS.md`のcheckboxをfinal commit前に完了できるローカル作業までとし、commit・push・CI確認は説明として記載する。
   - final push後は、CI successを記録する目的だけでtracked fileを更新・再commit・再pushしない。CI結果の保存先はGitHub上のCI結果、PR本文、ユーザー向け最終報告とする。
   - 必須CI failureの判断は`AGENTS.md` §8「必須検証」へ委譲する。
-  - `.codex/runs/20260910-200347-JST/run.json`は既存collectorを1回確認し、`pending`／`not_run`が残る場合は手動Runを反映できない既知制約としてREPORTとPR本文へ記録する。`run.json`、collector、manifest仕様は手編集・変更しない。
+  - `.codex/runs/20260910-200347-JST/run.json`はmachine-managedのため手編集しない。現行collectorはREPORT本文からRun全体の完了状態、手動で実施したvalidation結果、branch/base branchを自動推論しない。`--refresh-git-changed-files`では実行時点のworking tree差分と未追跡ファイルを`changed_files`へ収集できるが、commit済みの過去差分をRun履歴として自動復元しない。今回の実値は`status=pending`、`validation.status=not_run`、`validation.commands=[]`、`branch=null`、`base_branch=null`、`changed_files=[]`であり、この機能差をREPORTとPR本文へ記録する。`run.json`、collector、manifest仕様は変更しない。
   - 通常PRの必須CIを`Web CI`と`Mobile App CI`と定義し、`Cross Browser Smoke`を通常PR必須CIに含めない。
   - auto-net、Hook、rules、CI workflow、branch safetyの正本を変更しない。
   - 指定ローカル検証がPASSする。
@@ -25,8 +25,8 @@
 
 ## 2. 現状理解と前提
 
-- Current understanding: 初回変更ではpush後のCI確認とRun Artifactへの結果記録を同じ完了工程として扱っており、tracked Artifactを後追いcommitする自己参照が残っていた。また、TASKS checkboxの完了値だけではCI未確認の実装タスクを100%と表現でき、repository file変更とGitHub metadataのみの変更の境界も明示されていなかった。手動Runの`run.json`はREPORTの検証結果を自動推論せず、`status=pending`／`validation.status=not_run`が残る。
-- Assumptions: 通常PRで確認する必須CIは`Web CI`と`Mobile App CI`とする。repository working treeのファイル変更を伴いcommit・push・CI確認を行うタスクだけ、ユーザー向けProgressの分母へ必須CI確認1件を加算する。`Cross Browser Smoke`はschedule／`workflow_dispatch`のみであり、通常PR必須CIには含めない。既存のbranch safety文書を具体手順の正本として再利用する。
+- Current understanding: 初回変更ではpush後のCI確認とRun Artifactへの結果記録を同じ完了工程として扱っており、tracked Artifactを後追いcommitする自己参照が残っていた。また、TASKS checkboxの完了値だけではCI未確認または必要なPR本文更新前の実装タスクを100%と表現でき、repository file変更とGitHub metadataのみの変更の境界も明示されていなかった。手動Runの`run.json`はREPORTの検証結果・完了状態・branch/base branchを自動推論しないが、`--refresh-git-changed-files`による実行時点の差分・未追跡ファイル収集は行える。commit済みの過去差分はRun履歴として自動復元しない。
+- Assumptions: 通常PRで確認する必須CIは`Web CI`と`Mobile App CI`とする。repository working treeのファイル変更を伴いcommit・push・CI確認を行うタスクだけ、ユーザー向けProgressの分母へ必須CI確認1件を加算し、両CI success確認と必要なPR本文更新まで完了した時点で数える。`Cross Browser Smoke`はschedule／`workflow_dispatch`のみであり、通常PR必須CIには含めない。既存のbranch safety文書を具体手順の正本として再利用する。
 - Non-goals: auto-net契約、`.codex/hooks/**`、`.codex/rules/**`、`.codex/config.toml`、`.codex/requirements.toml`、`.github/workflows/**`、`docs/reference/git-branch-safety.md`、collector、manifest schema、実装コードや依存を変更しない。`run.json`を手編集して状態を補正しない。
 
 ## 3. 質問 / 曖昧性
@@ -62,7 +62,7 @@
   - `git diff -- AGENTS.md .codex/templates/TASKS.md`、`git diff --name-status`
   - forbidden path、auto-net、Hook、rules、workflow、branch safety文書の差分監査
   - push後にPRの最新head SHA、`Web CI`、`Mobile App CI`を確認する
-- 成功判定: final commit前に指定検証・scope監査・sanitizerをPASSし、push後の同一PR headで両workflowがsuccessになること。CIがqueued／in_progressなら完了判定せず、failureなら`AGENTS.md` §8へ委譲する。CI成功結果はRun Artifactへ追記せず、PR本文とユーザー向け最終報告へ記録する。GitHub metadataのみの変更ではcommit・push・CI完了条件とProgressのCI加算を適用しない。
+  - 成功判定: final commit前に指定検証・scope監査・sanitizerをPASSし、push後の同一PR headで両workflowがsuccessになり、必要なPR本文更新まで完了すること。CIがqueued／in_progressなら完了判定せず、failureなら`AGENTS.md` §8へ委譲する。CI成功結果はRun Artifactへ追記せず、PR本文とユーザー向け最終報告へ記録する。GitHub metadataのみの変更ではcommit・push・CI完了条件とProgressのCI加算を適用しない。
 
 ## 7. リスクと未解決論点
 
@@ -77,4 +77,4 @@
 
 ## 9. 備考
 
-- 今回の変更自体も、追加する運用ルールに従い、Run Artifactをfinal commit前に確定してからcommit・通常pushし、最新headの必須CI success確認後にPR本文とユーザー向け最終報告へ結果を記録する。CI successの記録だけを目的とするtracked Artifactの再commitは行わない。
+- 今回の変更自体も、追加する運用ルールに従い、Run Artifactをfinal commit前に確定してからcommit・通常pushし、最新headの必須CI success確認と必要なPR本文更新後にユーザー向け最終報告へ結果を記録する。CI successの記録だけを目的とするtracked Artifactの再commitは行わない。
