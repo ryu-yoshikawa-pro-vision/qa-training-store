@@ -68,6 +68,8 @@ export interface OtelObservation {
     metric_names: readonly string[];
     invoke_types: readonly string[];
     plugin_ids: readonly string[];
+    skill_values: readonly string[];
+    status_values: readonly string[];
   }>;
 }
 
@@ -384,10 +386,14 @@ export function classifyOtelObservation(
   const pluginIds = uniqueSorted(
     summary.skill_points.flatMap((point) => (point.plugin_id ? [point.plugin_id] : [])),
   );
+  const skillValues = uniqueSorted(summary.skill_points.map((point) => point.skill));
+  const statusValues = uniqueSorted(summary.skill_points.map((point) => point.status));
   const diagnostic = {
     metric_names: uniqueSorted(payloads.flatMap((payload) => parsePayload(payload).metricNames)),
     invoke_types: invokeTypes,
     plugin_ids: pluginIds,
+    skill_values: skillValues,
+    status_values: statusValues,
   } as const;
   const base = {
     source: "otel" as const,

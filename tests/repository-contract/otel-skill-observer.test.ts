@@ -178,6 +178,62 @@ describe("OTel Skill observer contract", () => {
     ).toMatchObject({ reliable: false, unobservable_reason: "control_invalid" });
   });
 
+  it("stores only unique sorted parsed Skill and status values for diagnosis", () => {
+    const skillPoint = (skill: string, status = "ok") =>
+      point({ skill, status, invoke_type: "explicit", plugin_id: "unattributed" });
+
+    const canonical = classifyOtelObservation([payload([point()], [skillPoint("feature-plan")])]);
+    expect(canonical).toMatchObject({
+      reliable: true,
+      initial_skill: "feature-plan",
+      observed_skills: ["feature-plan"],
+      diagnostic: {
+        skill_values: ["feature-plan"],
+        status_values: ["ok"],
+      },
+    });
+
+    const unknown = classifyOtelObservation([payload([point()], [skillPoint("not-canonical")])]);
+    expect(unknown).toMatchObject({
+      reliable: false,
+      unobservable_reason: "unknown_skill",
+      diagnostic: {
+        skill_values: ["not-canonical"],
+        status_values: ["ok"],
+      },
+    });
+
+    const statusError = classifyOtelObservation([
+      payload([point()], [skillPoint("feature-plan", "error")]),
+    ]);
+    expect(statusError).toMatchObject({
+      reliable: false,
+      unobservable_reason: "skill_metric_invalid",
+      diagnostic: {
+        skill_values: ["feature-plan"],
+        status_values: ["error"],
+      },
+    });
+
+    const duplicate = classifyOtelObservation([
+      payload([point()], [skillPoint("feature-plan"), skillPoint("feature-plan")]),
+    ]);
+    expect(duplicate.diagnostic.skill_values).toEqual(["feature-plan"]);
+    expect(duplicate.diagnostic.status_values).toEqual(["ok"]);
+
+    const multipleValues = classifyOtelObservation([
+      payload([point()], [skillPoint("code-review", "ok"), skillPoint("feature-plan", "error")]),
+    ]);
+    expect(multipleValues).toMatchObject({
+      reliable: false,
+      unobservable_reason: "skill_metric_invalid",
+      diagnostic: {
+        skill_values: ["code-review", "feature-plan"],
+        status_values: ["error", "ok"],
+      },
+    });
+  });
+
   it("treats invoke_type and plugin_id as diagnostics, not routing identity", () => {
     const first = classifyOtelObservation([
       payload(
