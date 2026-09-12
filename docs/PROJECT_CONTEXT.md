@@ -570,3 +570,10 @@
 - missing sideの原因は一つのtimeoutではない。`exploratory-qa-train-001`とandroid ownerのexpected exploratory 2件はOTel `collection_state=completed`、control valid 1、Skill point 1、`unknown_skill`。`exploratory-qa-validation-001`はOTel `reliable=true`、control valid 1、Skill point 0、trusted absence候補だが、process lifecycle `timed_out`のためevaluatorは`unobservable/timeout`とする。
 - canonical OTel diagnosticはmetric名、invoke type、plugin id、件数を保存するが、observerが`unknown_skill`と判定した`skill`属性の実値とstatusを保存しない。既存observer/evaluator contract testはunknownをcanonical aliasせずfail-closeし、OTel failureをHook scoring fallbackへ変換しない。このため、実値がない状態でsource修正・alias追加・query変更・retryを行わない。
 - 次回別Runで診断契約を改善する場合も、redacted identity/statusの保存範囲と新Qualification条件を先に決める。既存canonical、dataset、query、Skill、Hook、timeout、Result schemaはこの調査結果を理由に変更しない。
+
+## PR #127 OTel diagnostic実値保存Run（2026-09-12）
+
+- `scripts/evals/otel-skill-observer.ts`のdiagnosticへ、`parseMetric()`で解析済みの`codex.skill.injected` `skill`／`status`だけを`skill_values`／`status_values`としてunique・sort済みで保存する契約を追加した。raw OTLP payload、prompt、環境変数、credential、absolute pathは保存しない。
+- routing判定、`unknown_skill`／`skill_metric_invalid`／`multiple_skills`、`reliable`、`initial_skill`、`observed_skills`、Result schema 2は維持し、observer contract testへcanonical／unknown／status error／duplicate／複数値の回帰を追加した。source/test commitは`a8f3b7118e304a18c185a475f2d2cdeae97d4799`。
+- focused 11 tests、repository 95 tests、format／lint／typecheck／Skill／dataset validation、diff checkはPASSした。`pnpm run verify`は今回差分外の`native-purchase-screens.test.tsx` 5,000ms timeout 1件で停止し、単独再実行はPASSしたが、既知Hook launcher timeout 2件以外の新規failureとして扱った。
+- 上記gate条件によりfresh Targetと対象3ケース（`exploratory-qa-train-001`、`android-native-local-validation-train-002`、`android-native-local-validation-validation-002`）の各1回診断は未実行であり、実値を推測していない。canonical／Qualification／valid baseline／mergeは未変更・未実行である。
