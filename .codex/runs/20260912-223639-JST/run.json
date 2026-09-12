@@ -6,15 +6,17 @@
   "preset": "safe",
   "runtime": "host",
   "repo": "qa-training-store",
-  "branch": null,
+  "branch": "refactor/test-automation-curriculum-learning-experience",
   "base_branch": null,
-  "codex_task_reports": [],
+  "codex_task_reports": [
+    ".codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json"
+  ],
   "changed_files": [
     ".codex/reports/codex-task-20260912-235604.report.json",
     "docs/plans/2026-09-12_223639_pr133-evidence-validator-path-guard.md"
   ],
   "validation": {
-    "status": "not_run",
+    "status": "failed",
     "commands": [],
     "warnings": []
   },
@@ -23,10 +25,10 @@
     "scope_violation": false
   },
   "artifact_summary": {
-    "codex_task_report_count": 0,
+    "codex_task_report_count": 1,
     "evaluation_present": true
   },
   "evaluation_path": ".codex/runs/20260912-223639-JST/evaluation.json",
-  "status": "pending",
+  "status": "failed",
   "primary_failure_category": null
 }

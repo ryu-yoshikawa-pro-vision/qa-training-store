@@ -1,13 +1,15 @@
 {
   "schema_version": 1,
   "run_id": "20260912-223639-JST",
-  "result": "pass",
-  "primary_failure_category": null,
-  "failure_categories": [],
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": [
+    "artifact_contract_gap"
+  ],
   "dimensions": {
     "task_completion": {
-      "rating": "pass",
-      "evidence": "Evidence validatorの残存回避を指定されたsource 2ファイルで修正し、回帰contract、標準検証、Training Copy、修正後HEADのRemote CI、PR本文同期まで完了した。",
+      "rating": "warn",
+      "evidence": "Evidence validatorの残存回避を指定されたsource 2ファイルで修正し、回帰contract、標準検証、Training Copy、修正後HEADのRemote CI、PR本文同期は完了した。一方、Strict Runのmachine-managed reportは指定成功条件を満たさず、Run Artifact同期の完了は確認できない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -25,6 +27,12 @@
           "kind": "validation_command",
           "path": ".artifacts/pr133-evidence-validator/after-reproduction-final.log",
           "summary": "修正後に指定された13系統の回避入力がすべて拒否された。"
+        },
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json",
+          "selector": "status / verify_exit_code",
+          "summary": "codex_exit_codeは0だが、verify_exit_codeが整数0ではなく379要素の配列として保存され、statusがverify_failedになった。"
         }
       ]
     },
@@ -47,8 +55,8 @@
       ]
     },
     "validation_confidence": {
-      "rating": "pass",
-      "evidence": "focused contract、curriculum validation、training typecheck、全contracts、verify、diff check、Training Copy prepare／validate、修正後HEADのWeb／Mobile／CodeQL CIがすべて成功した。",
+      "rating": "fail",
+      "evidence": "focused contract、curriculum validation、training typecheck、全contracts、Training Copy prepare／validate、修正後HEADのWeb／Mobile／CodeQL CIは成功した。pnpm run verify自体の出力末尾は0だったが、codex-taskのRun-local reportではverify_exit_codeが配列化され、status verify_failed、run.json validation failedとなったため、Strict Runの機械判定は失敗である。このharness不具合はIssue #145（https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/145）として分離している。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -77,6 +85,12 @@
           "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34698950183",
           "selector": "head_sha=4877747041049f5811e191d1c9cf8ab20bd14425",
           "summary": "CodeQLのactions、javascript-typescript、python解析がsuccessした。"
+        },
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json",
+          "selector": "verify_exit_code / status",
+          "summary": "verify出力は完走したが、Run-local reportの型とstatusが要求された成功条件に不一致だった。"
         }
       ]
     },
@@ -97,8 +111,8 @@
       ]
     },
     "reviewability": {
-      "rating": "pass",
-      "evidence": "修正前再現、test-first failure、修正、検証、Training Copy、CI、PR本文同期をPLAN／TASKS／REPORTとrelative evidence pathから追跡できる。",
+      "rating": "warn",
+      "evidence": "修正前再現、test-first failure、修正、検証、Training Copy、CI、PR本文同期はPLAN／TASKS／REPORTとrelative evidence pathから追跡できるが、Strict Runの最終機械判定はverify_exit_codeの配列化により失敗した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -132,8 +146,8 @@
       ]
     },
     "reproducibility": {
-      "rating": "pass",
-      "evidence": "Run ID、固定source SHA、再現fixture、各validation log、Training Copy結果、Remote CI URL、PR URLをrepository-relativeまたは公開URLで追跡できる。",
+      "rating": "fail",
+      "evidence": "Run ID、固定source SHA、再現fixture、各validation log、Training Copy結果、Remote CI URL、PR URLは追跡できるが、成功したverifyの整数exit codeをRun-local reportが再現可能なmachine factとして保持できず、run.jsonもfailedになった。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -155,6 +169,42 @@
       ]
     }
   },
-  "findings": [],
-  "improvement_candidates": []
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "`.codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json`の`codex_exit_code`は0だが、`verify_exit_code`は379要素の配列で、`status`は`verify_failed`。`run.json`も`status: failed`、`validation.status: failed`である。この不具合はIssue #145（https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/145）で追跡する。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json",
+          "selector": "codex_exit_code / verify_exit_code / status",
+          "summary": "verifyの標準出力がexit codeフィールドへ混入し、要求されたRun report契約を満たさない。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-223639-JST/run.json",
+          "selector": "status / validation",
+          "summary": "machine-managed manifestがfailedとして確定している。"
+        }
+      ],
+      "detail": "実行そのものは全verify工程を完走したが、ラッパーの出力捕捉結果が成功契約と一致しない。Issue #145で独立追跡し、ユーザー指定どおりラッパーsourceを変更せず、同じ条件の再実行も行わず停止する。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "scripts/codex-task.ps1 の Invoke-VerifyCommand 出力捕捉（Issue #145）",
+      "evidence": "pnpm run verifyの出力379要素と末尾の0がverify_exit_codeへ配列として保存され、比較によりverify_failedになった。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json",
+          "selector": "verify_exit_code",
+          "summary": "verify_exit_codeが整数ではなく配列になった機械的事実。"
+        }
+      ],
+      "expected_impact": "verify標準出力とexit codeを分離し、成功した検証をRun manifestへ正しく反映できる。",
+      "recommendation": "Issue #145の独立対応でverify subprocessのstdout/stderrを明示的に捨てるかログへ分離し、関数戻り値を整数exit codeだけに固定したうえで、wrapper contract testを追加する。"
+    }
+  ]
 }

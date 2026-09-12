@@ -13,14 +13,14 @@
 - [x] 9. branch safetyを確認してnon-force pushする
 - [x] 10. 新HEADのWeb／Mobile／CodeQL CIとrequired jobを確認する
 - [x] 11. PR本文をcurrent状態へ同期し、再確認する
-- [x] 12. Run evaluation／sanitizer、clean worktree、mergeなしを確認する
+- [ ] 12. Run evaluation／sanitizer、clean worktree、mergeなしを確認する（evaluation／sanitizerは確認済みだが、Strict Run machine statusはfailed）
 
 ## Discovered
 
-- 追加タスクなし。
+- [ ] 13. `codex-task.ps1`修正後に同一Strict Runのmachine-managed verifyを再評価し、`run.json` completed / validation passedを確認する（Blocked by #145）
 
 ## Blocked
 
-- なし。
+- Issue #145（https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/145）の`codex-task.ps1`不具合により、Run-local reportがverify標準出力を`verify_exit_code`へ配列として取り込み、要求されたcompleted／passed条件を満たさない。PR #133では修正せず、repair-loopを`stop_no_progress`で停止する。
 
-Progress: 100% (12/12)
+Progress: 85% (11/13)

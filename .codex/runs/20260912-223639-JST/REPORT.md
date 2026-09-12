@@ -102,5 +102,31 @@
 - Subagents:
   - Delegation: なし（No child subagent delegation）。
   - Result: 親agentがPR、CI、evaluation、sanitizer、collectorを最終確認した。
-  - Parent decision: source scopeとRemote CIのPASSを採用し、metadata commit／push後にcurrent PR HEADと本文だけを再確認して完了する。
+- Parent decision: source scopeとRemote CIのPASSを採用し、metadata commit／push後にcurrent PR HEADと本文だけを再確認して完了する。
 - Progress: 100% (12/12)
+
+## 2026-09-13 04:47 (JST)
+
+- Summary: 既存Strict Run `20260912-223639-JST`に対して、指定された実`codex-task.ps1`を1回実行した。`pnpm run verify`の全工程は完走したが、Run-local reportの機械判定は成功条件を満たさなかった。
+- Changes: `.codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json`とmachine-managed `run.json`を確認した。`codex_exit_code`は0だが、`verify_exit_code`は標準出力を含む379要素の配列で、report `status`は`verify_failed`、manifest `status`は`failed`、`validation.status`は`failed`になった。既存の`.codex/reports/codex-task-20260912-235604.report.json`（`invalid_args`）は保持し、成功証跡として扱わない。
+- Decision / Rationale: 実verifyの末尾exit codeだけを根拠に成功へ補正せず、`run.json`を直接編集しない。同一条件の再実行、wrapper source変更、collectorによる成功上書きは行わず、`artifact_contract_gap`としてevaluationを`partial`へ降格し、修復ループを`stop_no_progress`で停止する。wrapperの出力捕捉修正は別タスクのimprovement candidateとして記録する。
+- Validation: `pnpm run verify`はformat、lint、spec、curriculum、typecheck、security、unit／integration／repository／component／contract test、web／spec buildまで完走した。しかし指定されたRun成功条件（整数`verify_exit_code: 0`、report `status: ok`、manifest completed／validation passed）はFAIL。evaluation schema、sanitizer、PR本文の失敗状態同期はこのcheckpoint後に実行する。
+- Blocker / Remaining: `codex-task.ps1`のverify exit-code capture不整合が解消されていないため、Strict Run Artifactのcompleted／passedは未達。wrapper修正と同条件Runの再実行はユーザー判断を要する。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: 親agentがRun-local report、machine manifest、完全verifyログ、既存invalid_args reportを確認した。
+- Parent decision: 成功証跡と機械失敗を分離し、evaluation／PR／progressを未完了状態へ補正して停止する。
+- Progress: 85% (11/13)
+
+## 2026-09-13 08:56 (JST)
+
+- Summary: `codex-task.ps1`のverify出力捕捉不具合を [Issue #145](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/145) としてPR #133から分離し、Strict Runのpartial状態を確定した。
+- Changes: Run-local reportは`run_id = 20260912-223639-JST`、`codex_exit_code = 0`、`verify_exit_code`は整数ではなく379要素の配列、`status = verify_failed`であることを保持した。`pnpm run verify`自体は全工程を完走したが、machine-managed `run.json`は`status = failed`、`validation.status = failed`のままである。
+- Decision / Rationale: verify実処理の完走とcodex-taskによるmachine-managed記録の失敗を分離する。`verify_exit_code`末尾の`0`を整数成功へ読み替えず、`run.json`を直接編集せず、同じRunの再試行も行わない。Issue #145解消後に必要なら同じRunを再評価する。
+- Validation: `evaluation.json`は`result = partial`、`primary_failure_category = artifact_contract_gap`を維持する。Evidence validator source、focused contract、`validate:curriculum`、`typecheck:training`、`test:contracts`、verify実処理、Training Copy、Web／Mobile／CodeQL CIは成功済みで、未達はcodex-task reportのverify exit-code契約とmachine-managed Strict Run completionに限定される。
+- Blocker / Remaining: Issue #145がBlocker。PR #133ではharness修正を実装せず、Strict Runをpartialとして保存する。source変更、Issue #145修正、同じcodex-taskの再試行、新しいRun作成は行っていない。
+- Subagents:
+  - Delegation: なし（No child subagent delegation）。
+  - Result: 親agentがpartial判定、既存invalid_args reportの非採用、Run-local report、machine manifest、source差分なしを再確認した。
+  - Parent decision: Issue #145を独立追跡し、PR #133の実装品質／Remote CI成功とStrict Run Artifactのharness起因partialを分離して保存する。
+- Progress: 85% (11/13)
