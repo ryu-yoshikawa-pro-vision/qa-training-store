@@ -6,8 +6,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  buildCodexInvocationArgs,
   buildCodexOtelMetricsExporterConfig,
   quoteCodexShellArgument,
+  TRIGGER_EVAL_MODEL,
 } from "../../scripts/evals/run-skill-trigger-evals";
 
 const temporaryRoots: string[] = [];
@@ -26,6 +28,25 @@ afterEach(() => {
 });
 
 describe("Codex OTel argv contract", () => {
+  it("includes the fixed Trigger Eval model and preserves the process flags", () => {
+    const targetRoot = "C:\\routing-target";
+    const endpoint = "http://127.0.0.1:12345/v1/metrics";
+    expect(buildCodexInvocationArgs(targetRoot, endpoint)).toEqual([
+      "exec",
+      "--model",
+      TRIGGER_EVAL_MODEL,
+      "--json",
+      "--ephemeral",
+      "--sandbox",
+      "read-only",
+      "-C",
+      targetRoot,
+      "-c",
+      quoteCodexShellArgument(buildCodexOtelMetricsExporterConfig(endpoint)),
+      "-",
+    ]);
+  });
+
   it("uses TOML literal strings for values that must survive cmd.exe", () => {
     expect(buildCodexOtelMetricsExporterConfig("http://127.0.0.1:12345/v1/metrics")).toBe(
       "otel.metrics_exporter={otlp-http={endpoint='http://127.0.0.1:12345/v1/metrics',protocol='json'}}",

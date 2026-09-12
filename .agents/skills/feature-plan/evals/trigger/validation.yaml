@@ -5,6 +5,6 @@ cases:
     expected_skill: feature-plan
     boundary: feature-plan-vs-direct-implementation
   - id: feature-plan-validation-002
-    query: "既存のdocs/spec/features/orders.mdで見出し「## Purpose / Scope」を「## Purpose and Scope」に変更し、該当するMarkdown検査の結果だけを報告してください。"
+    query: "docs/spec/features/cart.mdのAC-CART-003の文章「承認または修正なしにCheckoutへ進みません。」を「承認または修正なしではCheckoutへ進みません。」へ修正し、pnpm run lint:markdownを実行して結果だけを報告してください。"
     expected_skill: null
     boundary: feature-plan-vs-direct-implementation

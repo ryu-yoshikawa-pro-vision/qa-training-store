@@ -824,7 +824,9 @@ export interface ComparisonResult {
   readonly baseline_evaluator_git_sha: string;
   readonly baseline_routing_source_git_sha: string;
   readonly baseline_codex_version: string;
+  readonly baseline_model: string;
   readonly codex_version_match: boolean;
+  readonly model_match: boolean;
   readonly counts: ComparisonCounts;
   readonly cases: readonly ComparisonCase[];
 }
@@ -836,6 +838,7 @@ export interface ComparableRun {
     readonly routing_source_git_sha: string;
     readonly dataset_sha256: string;
     readonly codex_version: string;
+    readonly model: string;
     readonly split: string;
   };
   readonly cases: readonly Pick<CaseResult, "id" | "outcome">[];
@@ -908,6 +911,9 @@ export function compareRuns(current: ComparableRun, baseline: ComparableRun): Co
   if (current.provenance.codex_version !== baseline.provenance.codex_version) {
     throw new Error("comparison requires an identical codex_version");
   }
+  if (current.provenance.model !== baseline.provenance.model) {
+    throw new Error("comparison requires an identical model");
+  }
   const ids = compareCaseIds(current.cases, baseline.cases);
   const currentById = new Map(current.cases.map((entry) => [entry.id, entry]));
   const baselineById = new Map(baseline.cases.map((entry) => [entry.id, entry]));
@@ -939,7 +945,9 @@ export function compareRuns(current: ComparableRun, baseline: ComparableRun): Co
     baseline_evaluator_git_sha: baseline.provenance.evaluator_git_sha,
     baseline_routing_source_git_sha: baseline.provenance.routing_source_git_sha,
     baseline_codex_version: baseline.provenance.codex_version,
+    baseline_model: baseline.provenance.model,
     codex_version_match: true,
+    model_match: true,
     counts,
     cases,
   };

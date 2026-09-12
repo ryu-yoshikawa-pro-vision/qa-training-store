@@ -7,6 +7,8 @@
 - 実装ブランチ: `refactor/117-pr2-trigger-eval-baseline`
 - 目的: PR3でSkill `description`を変更する前に、現状のSkill routingを再測定・比較できるbaselineとして固定する。
 
+> **現行契約に関する注記:** このPlan作成後、Trigger Evalのobservation contractはADR-0023およびADR-0024で更新された。現在の実装判断では、後続ADRを優先する。特に本PlanにあるHook中心のobservation、最終Skill集合による判定、expected + extra Skill = unexpected_trigger、8/8を満たさないrunはbaselineとして不成立という記述は、現行契約そのものではない。現在はOTel primary／Hook diagnostic-only、initial Skill routing、process lifecycleとrouting outcomeの分離、およびcoverageを後続ADRに従って扱う。以下の本文は過去の設計経緯として保持する。
+
 PR2はroutingを改善するPRではない。baselineでfailureが見つかっても、PR2内では以下を変更しない。
 
 ```text

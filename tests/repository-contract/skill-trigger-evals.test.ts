@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +15,8 @@ import {
   prepareSignals,
   selectInitialSkill,
   sourceStatusOutsideRunArtifacts,
+  TRIGGER_EVAL_MODEL,
+  writeQueryToStdin,
   type HookEvent,
 } from "../../scripts/evals/run-skill-trigger-evals";
 import {
@@ -153,6 +156,7 @@ function comparableRun(
       routing_source_git_sha: "routing-sha",
       dataset_sha256: "dataset-sha",
       codex_version: codexVersion,
+      model: TRIGGER_EVAL_MODEL,
       split: "all",
     },
     cases: outcomes,
@@ -566,6 +570,17 @@ describe("Skill Trigger Eval deterministic contract", () => {
     expect(new Set(dataset.cases.map((entry) => entry.source_path)).size).toBe(12);
   });
 
+  it("parses the canonical Result model provenance and rejects a missing model", () => {
+    const parsed = parseComparableRun(comparableRun([{ id: "01", outcome: "pass" }]));
+    expect(parsed.provenance.model).toBe(TRIGGER_EVAL_MODEL);
+    expect(() =>
+      parseComparableRun({
+        ...parsed,
+        provenance: { ...parsed.provenance, model: undefined },
+      }),
+    ).toThrow("provenance.model");
+  });
+
   it("accepts additional contract-valid cases", () => {
     const dataset = loadTriggerDatasets(repositoryRoot);
     const sources = modifySource(
@@ -747,6 +762,21 @@ describe("Skill Trigger Eval deterministic contract", () => {
     expect(
       deriveProcessLifecycle(baseSignals({ trusted_terminal: "turn.completed", exit_code: 1 })),
     ).toBe("unknown");
+  });
+
+  it("handles synchronous and event-based stdin failures once", () => {
+    class FailingStdin extends EventEmitter {
+      end(_chunk?: string, _encoding?: BufferEncoding): void {
+        this.emit("error", new Error("broken pipe"));
+        throw new Error("stdin closed");
+      }
+    }
+
+    const stdin = new FailingStdin();
+    let failureCount = 0;
+    expect(() => writeQueryToStdin(stdin, "query", () => (failureCount += 1))).not.toThrow();
+    expect(failureCount).toBe(1);
+    expect(deriveProcessLifecycle(baseSignals({ spawn_failed: true }))).toBe("spawn_failed");
   });
 
   it("trusts a positive candidate prefix but requires full reliable evidence for absence", () => {
@@ -951,6 +981,7 @@ describe("Skill Trigger Eval deterministic contract", () => {
 
     const comparison = compareRuns(current, baseline);
     expect(comparison.codex_version_match).toBe(true);
+    expect(comparison.model_match).toBe(true);
     expect(comparison.cases.map((entry) => entry.id)).toEqual([
       "01",
       "02",
@@ -985,6 +1016,15 @@ describe("Skill Trigger Eval deterministic contract", () => {
         baseline,
       ),
     ).toThrow("codex_version");
+    expect(() =>
+      compareRuns(
+        {
+          ...current,
+          provenance: { ...current.provenance, model: "gpt-5.5" },
+        },
+        baseline,
+      ),
+    ).toThrow("model");
   });
 
   it("rejects Result schema, fingerprint, case-set, split, and version mismatches", () => {
@@ -1001,6 +1041,12 @@ describe("Skill Trigger Eval deterministic contract", () => {
     expect(() => parseComparableRun({ ...baseline, schema_version: undefined })).toThrow(
       "schema_version must be 2",
     );
+    expect(() =>
+      parseComparableRun({
+        ...baseline,
+        provenance: { ...baseline.provenance, model: undefined },
+      }),
+    ).toThrow("provenance.model");
     expect(() =>
       compareRuns(
         { ...baseline, provenance: { ...baseline.provenance, dataset_sha256: "other" } },

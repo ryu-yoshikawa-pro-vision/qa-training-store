@@ -38,6 +38,7 @@ import {
 } from "./otel-skill-observer.js";
 
 const CASE_TIMEOUT_MS = 327_000;
+export const TRIGGER_EVAL_MODEL = "gpt-5.6-luna" as const;
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
 const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
 const HOOK_DIRECTORIES = [
@@ -52,6 +53,26 @@ export function buildCodexOtelMetricsExporterConfig(otelEndpoint: string): strin
 
 export function quoteCodexShellArgument(value: string): string {
   return process.platform === "win32" ? `"${value}"` : value;
+}
+
+export function buildCodexInvocationArgs(
+  targetRoot: string,
+  otelEndpoint: string,
+): readonly string[] {
+  return [
+    "exec",
+    "--model",
+    TRIGGER_EVAL_MODEL,
+    "--json",
+    "--ephemeral",
+    "--sandbox",
+    "read-only",
+    "-C",
+    targetRoot,
+    "-c",
+    quoteCodexShellArgument(buildCodexOtelMetricsExporterConfig(otelEndpoint)),
+    "-",
+  ];
 }
 
 interface CliOptions {
@@ -102,7 +123,7 @@ interface EvaluationResult {
     readonly routing_source_git_sha: string;
     readonly dataset_sha256: string;
     readonly codex_version: string;
-    readonly model: "unreported";
+    readonly model: typeof TRIGGER_EVAL_MODEL;
     readonly executed_at: string;
     readonly split: RunSplit;
   };
@@ -962,6 +983,28 @@ function terminateCodexProcessTree(child: ChildProcess): void {
   child.kill();
 }
 
+type QueryStdin = {
+  on(event: "error", listener: () => void): unknown;
+  end(chunk: string, encoding: BufferEncoding): unknown;
+};
+
+export function writeQueryToStdin(stdin: QueryStdin, query: string, onFailure: () => void): void {
+  let failureHandled = false;
+  const failOnce = (): void => {
+    if (failureHandled) {
+      return;
+    }
+    failureHandled = true;
+    onFailure();
+  };
+  stdin.on("error", failOnce);
+  try {
+    stdin.end(query, "utf8");
+  } catch {
+    failOnce();
+  }
+}
+
 function relativeRequestAt(closeAt: number | null, requestAt: number | null): number | null {
   if (closeAt === null || requestAt === null) {
     return null;
@@ -1002,27 +1045,12 @@ function executeCodex(
   return new Promise((resolveExecution) => {
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawn(
-        CODEX_COMMAND,
-        [
-          "exec",
-          "--json",
-          "--ephemeral",
-          "--sandbox",
-          "read-only",
-          "-C",
-          targetRoot,
-          "-c",
-          quoteCodexShellArgument(buildCodexOtelMetricsExporterConfig(otelEndpoint)),
-          "-",
-        ],
-        {
-          cwd: evaluatorRoot,
-          shell: CODEX_SHELL,
-          stdio: ["pipe", "pipe", "pipe"],
-          windowsHide: true,
-        },
-      );
+      child = spawn(CODEX_COMMAND, buildCodexInvocationArgs(targetRoot, otelEndpoint), {
+        cwd: evaluatorRoot,
+        shell: CODEX_SHELL,
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true,
+      });
     } catch {
       resolveExecution({
         execution: {
@@ -1041,6 +1069,7 @@ function executeCodex(
     let spawnFailed = false;
     let signaled = false;
     let settled = false;
+    let terminationRequested = false;
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => {
@@ -1050,31 +1079,63 @@ function executeCodex(
     child.on("error", () => {
       spawnFailed = true;
     });
-    const timer = setTimeout(() => {
-      timedOut = true;
-      terminateCodexProcessTree(child);
-    }, CASE_TIMEOUT_MS);
-    child.on("close", (code, signal) => {
+    const settle = (execution: CodexExecution): boolean => {
       if (settled) {
-        return;
+        return false;
       }
       settled = true;
       clearTimeout(timer);
+      resolveExecution({ execution, stdout });
+      return true;
+    };
+    const terminateOnce = (): void => {
+      if (terminationRequested) {
+        return;
+      }
+      terminationRequested = true;
+      try {
+        terminateCodexProcessTree(child);
+      } catch {
+        // The execution is already classified as a process failure.
+      }
+    };
+    const failFromStdin = (): void => {
+      if (settled || timedOut) {
+        return;
+      }
+      spawnFailed = true;
+      const childHasExited = child.exitCode !== null || child.signalCode !== null;
+      settle({
+        timed_out: false,
+        spawn_failed: true,
+        signaled: child.signalCode !== null,
+        exit_code: child.exitCode,
+        trusted_terminal: null,
+      });
+      if (!childHasExited) {
+        terminateOnce();
+      }
+    };
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      timedOut = true;
+      terminateOnce();
+    }, CASE_TIMEOUT_MS);
+    child.on("close", (code, signal) => {
       signaled = signal !== null;
       const terminal = parseCodexStdout(stdout).trusted_terminal;
-      resolveExecution({
-        execution: {
-          timed_out: timedOut,
-          spawn_failed: spawnFailed,
-          signaled,
-          exit_code: code,
-          trusted_terminal: terminal,
-          closed_at: performance.now(),
-        },
-        stdout,
+      settle({
+        timed_out: timedOut,
+        spawn_failed: spawnFailed,
+        signaled,
+        exit_code: code,
+        trusted_terminal: terminal,
+        closed_at: performance.now(),
       });
     });
-    child.stdin.end(query, "utf8");
+    writeQueryToStdin(child.stdin, query, failFromStdin);
   });
 }
 
@@ -1112,6 +1173,9 @@ export function parseComparableRun(value: unknown): Parameters<typeof compareRun
       fail(`baseline schema parse failure: provenance.${key} must be a string`);
     }
   }
+  if (typeof provenanceRecord.model !== "string" || provenanceRecord.model.trim().length === 0) {
+    fail("baseline schema parse failure: provenance.model must be a non-empty string");
+  }
   if (provenanceRecord.split !== "all") {
     fail("baseline schema parse failure: baseline split must be all");
   }
@@ -1148,6 +1212,7 @@ export function parseComparableRun(value: unknown): Parameters<typeof compareRun
       routing_source_git_sha: provenanceString("routing_source_git_sha"),
       dataset_sha256: provenanceString("dataset_sha256"),
       codex_version: provenanceString("codex_version"),
+      model: provenanceString("model"),
       split: provenanceString("split"),
     },
     cases,
@@ -1304,7 +1369,7 @@ async function runLive(options: CliOptions, evaluatorRoot: string): Promise<void
       routing_source_git_sha: preflight.routing_source_git_sha,
       dataset_sha256: datasets.dataset_sha256,
       codex_version: codexVersion,
-      model: "unreported",
+      model: TRIGGER_EVAL_MODEL,
       executed_at: new Date().toISOString(),
       split: options.split,
     },
