@@ -14,6 +14,8 @@ Issue #140の調査内容はIssue #142へ統合する。#140 branchと#140 Plan�
 
 調査自体を広げることを目的にしない。まず既存test構造だけで説明・修正できるかを確認し、それで閉じられない場合だけproduction Hookやprocess lifecycleへ進む。
 
+このPlanでは実装しない。実装開始時は最新`main`、対象branch HEAD、merge base、`main...branch`差分、Issue #142作成後のHook関連変更を再確認する。
+
 ## 1. ゴールと終了条件
 
 ### ゴール
@@ -46,9 +48,10 @@ Windowsで再現するHook contract timeoutについて、原因を実測で説�
 - Windowsで対象Hook contract fileを3回連続で成功させている。
 - Windowsで`pnpm run test:contracts`を3回連続で成功させている。
 - `pnpm run test`で再現した場合は、修正後に同じ経路を2回連続で成功させている。
-- `pnpm run verify`で再現した場合は、修正後にcontractまで到達する`pnpm run verify`を2回連続で成功させている。`verify`で再現しなかった場合でも、source / test / configを変更した場合は最終`pnpm run verify`を1回成功させている。
+- `pnpm run verify`で再現した場合は、修正後にcontractまで到達する`pnpm run verify`を2回連続で成功させている。
+- `verify`で再現しなかった場合でも、source / test / configを変更した場合は最終`pnpm run verify`を1回成功させている。
 - GitHub Actions Web CIの`Vitest (contracts)`が成功している。
-- Windows専用回帰を既存CIで検出できない状態が続く場合は、focused Windows CIを追加するか、追加しない根拠を記録している。
+- Windows専用回帰を既存CIで検出できない場合は、最終原因と修正内容を確定した後にfocused Windows CIの追加要否を判断し、追加しない場合も理由を記録している。
 - policy case、assertion、fail-closed、Windows transport契約を弱めていない。
 - 一時計測コード、raw timing output、調査用一時ファイルが最終source差分に残っていない。
 - #140 branchでは重複実装していない。
@@ -201,19 +204,27 @@ CRLF stdin
 
 ### Hook matrix
 
-現在のmatrix testでは、`context`付きcaseは既存`runNodeHookWithExplicitContexts()`で1つのNode subprocessへまとめている。一方、`context`なしcaseはcaseごとに`runNodeHook()`を起動している。
+現在のmatrix testでは、`context`付きcaseは既存`runNodeHookWithExplicitContexts()`で1つのNode subprocessへまとめている。一方、`context`なしcaseはcaseごとに`runNodeHook()`を起動し、実Hook entrypointを通している。
 
-matrix testの目的はpolicy matrix全件の意味確認である。CLI payload validation、structured deny、runtime entrypoint等は別testでも検証している。
+この違いは単なる実装詳細ではない。`runNodeHookWithExplicitContexts()`は`evaluateCommand()`を直接呼ぶため、matrix全体をbatch化すると、contextなしcaseが現在通っている`validatePayload()`、`decidePayload()`、CLI stdin / stdout経路を通らなくなる。
 
-そのため、15秒matrix timeoutの第一候補は新しいhelperやproduction Hook最適化ではなく、既存`runNodeHookWithExplicitContexts()`へmatrix全体を渡して1つのNode processで評価できるか確認することである。
+そのため、matrix timeoutの修正をbatch化ありきで決めない。
 
-`context === undefined`のcaseは`evaluateCommand(command, undefined)`へ渡されるため、必要なcontext-sensitive Git commandでは通常どおりruntime Git context解決が行われる。実装時にこの契約を確認してから採用する。
+まず次を確認する。
 
-batch化しても次の検証は既存の専用testで維持する。
+1. contextなしcaseの`runNodeHook()`各回が正常で、Node process反復の累積だけで15秒境界へ近づいているか。
+2. 現在matrixが担う実Hook entrypointの回帰検出を、他の既存testだけで十分に維持できるか。
+3. 実Hook entrypointを維持したままmatrix test固有timeoutを適正化する方が、保証範囲を変えず小さい変更にならないか。
+4. batch化しても保証範囲が落ちず、かつ変更理由を説明できる場合に限り、既存`runNodeHookWithExplicitContexts()`の再利用を採用する。
+
+matrix testのpolicy ID集合、allow / deny結果は維持する。
+
+既存の専用testで確認している代表的な契約は少なくとも次である。
 
 - malformed input
-- CLI entrypoint
+- safe command
 - structured deny shape
+- UTF-8 payload
 - runtime Git context
 - `git -C`
 - Windows launcher transport
@@ -221,7 +232,11 @@ batch化しても次の検証は既存の専用testで維持する。
 - unexpected Node exit
 - hung Node
 
-matrix全体のbatch化で15秒timeoutを解消できる場合、`.codex/hooks/pre_tool_use_policy.mjs`は変更しない。
+ただし、これらが現在matrixの全contextなしrepresentativeに対する実Hook entrypoint検証と完全に同等とは事前に仮定しない。
+
+matrix構造を変更しなくても、各`runNodeHook()`が正常で累積時間だけが問題なら、現在の保証範囲を維持したtest固有timeout調整を最小修正として選べる。
+
+matrix全体をbatch化する場合も、新しいhelper、worker pool、process manager、benchmark utilityは作らない。
 
 ### configured Windows経路
 
@@ -265,7 +280,7 @@ tests/contracts/codex-hook-contract.test.ts
 次で閉じられるかを最初に確認する。
 
 - #140の2 testへ根拠のある明示timeoutを設定する。
-- matrixを既存batch helperで処理し、不要なNode process反復を減らす。
+- matrixは、現在の実Hook entrypoint検証を維持したtimeout調整と既存batch helper再利用を比較し、保証範囲を落とさない最小変更を選ぶ。
 
 ### production異常を実測した場合だけ変更候補
 
@@ -277,13 +292,15 @@ tests/contracts/codex-hook-contract.test.ts
 
 単一launcher / Node invocationの異常待機、I/O待機、process残存、不要なproduction処理を実測できた場合だけ変更する。
 
-### 継続検出のため必要な場合
+### 継続検出が必要と判断した場合
 
 ```text
 .github/workflows/ci.yml
 ```
 
-既存CIにWindows Hook contract実行がない状態が続く場合は、対象contract fileだけをWindowsで実行するfocused jobを第一候補とする。
+最終原因と修正内容を確定した後、Windows固有回帰をCIで継続検出する価値と維持コストを比較して追加要否を決める。
+
+追加する場合も、フル`pnpm run verify`ではなく対象contract fileだけをWindowsで実行するfocused jobを第一候補とする。
 
 ### 原則として確認対象のみ
 
@@ -398,24 +415,42 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 
 単一の`runWindowsLauncher()`だけが他より明確に遅い、または1回の時間だけで通常期待値を説明できない場合だけ手順6のproduction調査へ進む。
 
-### 手順4: Hook matrixは既存batch helperで閉じられるか確認する
+### 手順4: Hook matrixの最小修正を選ぶ
 
-15秒matrix timeoutが再現した場合は、まず現在のmatrix実行構造を確認する。
+15秒matrix timeoutが再現した場合は、まず現在のmatrix実行構造と各`runNodeHook()`の所要時間を確認する。
 
 - `context`付きcase: `runNodeHookWithExplicitContexts()`でbatch
-- `context`なしcase: caseごとに`runNodeHook()`で別Node process
+- `context`なしcase: caseごとに`runNodeHook()`で実Hook entrypointを通る
 
-第一候補として、matrix全体を既存`runNodeHookWithExplicitContexts()`へ渡して評価できるか確認する。
+最初に確認すること:
 
-確認点:
+- 各`runNodeHook()`は単体で異常なく完了するか。
+- Node process反復の累積だけで15秒境界へ近づくか。
+- matrix testが現在持つ実Hook entrypoint検証を、他の既存testでどこまで維持しているか。
 
-- `context === undefined`のcaseでruntime Git contextが必要な場合、現行`evaluateCommand()`と同じ経路になること
-- allow / deny結果とpolicy ID集合が変わらないこと
-- CLI payload validation等をmatrix testへ集約せず、既存の専用testを維持できること
+修正候補は次の2つを比較する。
 
-これでmatrix timeoutを解消できる場合はproduction Hookへ進まない。
+#### 候補A: 現在の実Hook entrypoint検証を維持してtest固有timeoutを調整する
 
-新しいbatch helper、worker pool、process manager、benchmark utilityは作らない。
+採用条件:
+
+- 各`runNodeHook()`に異常がない。
+- 累積process時間だけで15秒超過を説明できる。
+- 現在のmatrix構造を維持する方が保証範囲を明確に保てる。
+- 標準計測分布からtimeout値と余裕幅を説明できる。
+
+#### 候補B: 既存`runNodeHookWithExplicitContexts()`でmatrix全体をbatch評価する
+
+採用条件:
+
+- contextなしcaseが現在通っている実Hook entrypointの回帰検出を、他の既存testで十分維持できると確認できる。
+- policy ID集合、allow / deny結果、runtime Git context契約を維持できる。
+- 単なる速度優先ではなく、matrix testの責務をpolicy semanticsへ限定してよい根拠がある。
+- 新しいhelperを追加せず既存helperだけで実装できる。
+
+どちらも要求を満たす場合は、保証範囲を変えない候補Aを優先する。
+
+batch化で既存contractの保証範囲を狭める可能性が残る場合は採用しない。
 
 ### 手順5: file / suite条件を確認する
 
@@ -446,7 +481,7 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 次のいずれかが確認できた場合だけ実施する。
 
 - 単一`runWindowsLauncher()`に異常な遅延がある。
-- matrixを既存batch helperで整理しても遅延を説明できない。
+- matrixのtest固有timeout調整でも保証範囲を保って解決できず、batch化も適切でない。
 - focusedでは安定するがsuiteでのみ悪化し、process lifecycleとの相関がある。
 - configured経路だけで再現する。
 
@@ -471,7 +506,7 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 - `git symbolic-ref --quiet refs/remotes/origin/HEAD`
 - `git remote`
 - `git branch --show-current`
-- `git rev-parse --abbrev-ref --symbolic-full-name @{upstream}`
+- `git rev-parse --abbrev-ref --symbol-full-name @{upstream}`
 
 #140の2件ではこの経路を調べない。
 
@@ -518,17 +553,11 @@ pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-paral
 
 #### B. matrixのNode process反復が主因
 
-第一候補:
+まず現在の実Hook entrypoint保証を維持したtest固有timeout調整を検討する。
 
-- 既存`runNodeHookWithExplicitContexts()`へmatrix全体を渡す。
+batch化は、§7 手順4の条件を満たす場合だけ既存`runNodeHookWithExplicitContexts()`を再利用する。
 
-条件:
-
-- policy ID集合とallow / deny結果を維持できる。
-- contextなしcaseのruntime Git context契約を維持できる。
-- CLI / payload / Windows transport等の実process契約は既存の別testで維持できる。
-
-この場合、production Hookは変更しない。
+どちらの場合もproduction Hookは変更しない。
 
 #### C. 単一launcher / Hookにproduction異常がある
 
@@ -591,15 +620,24 @@ a7632fad478ac5d28f53849ce950b1d205024f36
 
 現時点のWeb CI `Vitest (contracts)`はUbuntuであり、Windows専用launcher処理を実行しない。既存Windows runnerはCodex artifact sanitizerで、`test:contracts`を実行していない。
 
-今回のfailureは複数PRでWindowsローカルに再発しているため、実装時にも同等のCIが存在しなければ、focused Windows CIを追加する方向を基本とする。
+ただし、Windows CI追加を実装前から前提にしない。
 
-対象はフル`pnpm run verify`ではなく、まず次のcontract fileだけとする。
+最終原因と修正内容を確定した後、次を確認する。
+
+- 今回の回帰がWindowsでしか実行・検出できないか。
+- 既存Ubuntu CIまたは別の既存jobで同じ回帰を十分検出できるか。
+- 複数PRでの再発履歴に対して、Windows CI追加が手動確認より明確な再発防止効果を持つか。
+- focused jobの維持コストが効果に見合うか。
+
+追加する場合はフル`pnpm run verify`ではなく、まず次だけを実行するfocused jobを候補とする。
 
 ```text
 tests/contracts/codex-hook-contract.test.ts
 ```
 
-Windows CIを追加しないのは、実装時点で同等のWindows contract検出経路が既に存在する場合、または最終原因がOS非依存でUbuntu CIでも同じ回帰を十分検出できる場合に限る。
+最終修正がtest-onlyであってもWindows固有回帰を既存CIで検出できないなら追加候補になり得る。一方、最終原因がOS非依存でUbuntu CIが同じ回帰を十分検出できるなら追加しない。
+
+追加・非追加のどちらでも、Run Artifactへ判断根拠を残す。
 
 ## 9. 修正後の検証
 
@@ -695,7 +733,8 @@ git status --short
 次のいずれかで問題を説明・解消できる場合はproduction Hookを変更しない。
 
 - #140の2件が3回の正常なlauncher起動の累積だけで5秒を超える。
-- matrixが既存batch helperの再利用で安定する。
+- matrixが現在の実Hook entrypoint保証を維持したtest固有timeout調整で安定する。
+- matrixのbatch化が既存保証を落とさず、既存helperだけで安定化できる。
 - production processに異常な待機、I/O異常、process残存の証拠がない。
 
 ### production launcherを変更できる条件
@@ -735,7 +774,8 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 - 5秒launcher系と15秒matrix系を同一原因へまとめると、不要なproduction変更へ広がる。
 - #140の2件に`getGitCommandContext()`が関与すると誤認すると、実行されていない処理を最適化してしまう。
 - 3 launcherの累積で説明できるのにlauncher内部を細分化すると、調査・変更範囲を不必要に広げる。
-- matrixで既存batch helperを再利用できるのに新しいhelperやpoolを作ると不要な複雑性が増える。
+- matrix全体をbatch化すると、contextなしcaseが現在通っている実Hook entrypoint検証を失う可能性がある。
+- matrixの実Hook entrypoint保証を維持できるなら、test固有timeout調整の方がbatch化より小さい変更になり得る。
 - configured経路の二重Git root解決は今回の原因と確認するまで変更しない。
 - historical baselineを早く実施すると、現在コードだけで閉じられる問題に不要な調査コストを使う。
 - `--reporter=verbose`や一時計測自体がtimingへ影響するため標準計測と分離する。
@@ -743,7 +783,8 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 - `process.execPath`とPowerShell側Node pathが異なる場合は再現条件を分けて記録する。
 - process調査で全processの`CommandLine`を収集しない。
 - timeout延長だけでpolicy case、assertion、fail-closedの回帰を見落とさない。
-- Windows CIをフル`verify`にするとIssueに対して過大なCI負荷になる。focused contractを優先する。
+- Windows CIを実装前から前提化すると、最終原因がOS非依存だった場合に不要なCI負荷を増やす。
+- Windows CIを追加する場合もフル`verify`ではなくfocused contractを優先する。
 
 ## 12. 成果物
 
@@ -753,7 +794,7 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 - Windows / Node / pnpm / PowerShell / Git環境情報
 - 開始時branch / HEAD / merge base / working tree状態
 - #140のfocused / file / contracts計測結果
-- matrix timeoutが再現した場合の実行構造確認結果
+- matrix timeoutが再現した場合の実行構造と保証範囲の確認結果
 - 原因判定、または現在非再現・原因未特定という判断
 - 採用した最小修正と、production変更を避けた場合はその根拠
 - Windows CI追加要否と根拠
@@ -764,7 +805,8 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 ### 条件付き
 
 - #140で単一launcher異常がある場合のみ: launcher内部計測
-- matrix batch化だけで閉じない場合のみ: Hook内部Git context計測
+- matrixでtest固有timeout調整とbatch化の判断が必要な場合のみ: 実Hook entrypoint保証の比較結果
+- matrixをtest-onlyで閉じられない場合のみ: Hook内部Git context計測
 - suite限定で再現する場合のみ: 対象PID / 子孫processとの相関確認
 - configured経路だけ悪化する場合のみ: outer Git / PowerShell / inner Git等の分解
 - 現行コードで原因を閉じられない場合のみ: historical baseline比較
@@ -786,13 +828,13 @@ Issue #142との因果を確認できないfailureはこのIssueでsource修正�
 2. #140の2件を既定5秒・デフォルトreporterで2〜3回focused実行する。
 3. 再現したら、6個の`runWindowsLauncher()`総時間だけ測る。
 4. 3回の正常なlauncher累積で説明できれば、対象2 testの明示timeoutだけを第一候補にする。production内部調査へ進まない。
-5. matrix timeoutが再現したら、既存`runNodeHookWithExplicitContexts()`でmatrix全体をbatch評価できるか最初に確認する。
-6. 既存batch helperで閉じればproduction Hookへ進まない。
+5. matrix timeoutが再現したら、各`runNodeHook()`の時間と現在の実Hook entrypoint保証を確認する。
+6. matrixは、保証範囲を維持したtest固有timeout調整と既存batch helper再利用を比較し、小さいだけでなく既存contractを保てる方を選ぶ。
 7. file単体 → `test:contracts` → 必要な場合`pnpm run test` → `verify`で再現境界を確認する。
 8. test-onlyで説明できない異常がある場合だけ、単一launcher / Hook / suite process / configured経路を必要な範囲で調べる。
 9. 現行コードで因果を閉じられない場合だけhistorical baselineへ進む。
 10. 原因に対する必要最小限の変更だけ実装する。
-11. Windows専用回帰を既存CIで検出できなければ、対象contract fileだけのfocused Windows CIを追加する方向で対応する。
+11. 最終原因と修正内容を確定した後、Windows CIの再発防止効果と維持コストを比較して追加要否を決める。
 12. 一時計測を除去し、§9の検証、Run Artifact sanitizer、最終diff / statusを確認する。
 
 先に30秒timeoutへ広げる、caseを削る、skipする、policyを弱める、production Hookを一般最適化する対応は行わない。
