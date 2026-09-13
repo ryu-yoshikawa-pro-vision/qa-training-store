@@ -11,6 +11,8 @@
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "lint:markdown": "markdownlint-cli2",
     "validate:skills": "tsx scripts/validate-skills.ts",
+    "eval:skills:trigger:validate": "tsx scripts/evals/run-skill-trigger-evals.ts --validate-only",
+    "eval:skills:trigger": "tsx scripts/evals/run-skill-trigger-evals.ts",
     "eval:skills:semantic": "tsx scripts/evals/run-skill-semantic-output-evals.ts",
     "lint": "eslint .",
     "typecheck:app": "tsc --noEmit --project tsconfig.json",

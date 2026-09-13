@@ -549,6 +549,35 @@
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
 
+## PR #127 Trigger Eval blocker remediation（2026-09-07）
+
+- Trigger EvalのSkill read selectorは、current Hostで実測したcanonical repository pathの完全形だけを受理する。現在の許可形は、forward slash/unquoted、forward slash/single-quoted、backslash/unquoted、`-LiteralPath` + forward slash/single-quotedの4形である。外部絶対path、別file、path mention、search結果、複合commandはactual Skill readとしない。
+- Trigger Eval queryはrouting boundaryだけでなくexecution contractを満たす必要がある。24 caseは対象・入力・完了条件を明示し、full APK build/install/Maestro、購入フロー全体、repository全体レビュー、未提供のPR／error／Run文脈を要求しないboundedな依頼として監査する。query修正時も`expected_skill`と`boundary`は変更しない。
+- PR #127の旧canonical artifactは、Codex `0.153.4`で`pass=1`、`false_negative=1`、`unobservable=22`、8-side `2/8`のinvalid evidenceであり、新datasetとのcomparison sourceへ昇格しない。dataset fingerprint変更後は旧fingerprintと新fingerprintをprovenanceで分離する。
+
+## PR #127 Qualification blocker remediation（2026-09-10）
+
+- 現Hostで実測されたnegative command `$pkg = Get-Content -Raw -LiteralPath .\package.json | ConvertFrom-Json; $pkg.name`は、固定variable、固定reader/options、固定相対path、固定pipeline、固定property suffixのanchored exact-shapeだけを`safe_no_read`として扱う。pipe、semicolon、variable、pathの一般parserへは拡張しない。
+- compound内のcanonical Skill read、任意suffix、別path、variable path、別variable、追加reader、別operator、truncated、malformed inputは`unreliable`のまま維持する。`safe_no_read`はcanonical Skill direct readがないことの証明であり、全filesystem read不存在の意味ではない。
+- Trigger Eval runnerのRouting Target preflightは、既存のclean・Skill readable・dataset不存在・Evaluator分離・alternates・source status・output分離に加え、`git rev-parse --abbrev-ref HEAD`が`HEAD`となるdetached状態を必須にする。期待routing source SHAはTarget作成時のRun preflightとResult provenanceで確認し、新CLI optionは追加しない。
+- この補修後も、Qualificationは同一fresh Targetでnegative / positiveが両方PASSした場合だけcanonical `all`へ進み、FAILまたはunreliableならcanonicalとvalid baselineを実行しない。
+- Positive blocker remediationでは、preflightで解決したRouting Target rootをlive selectorへ渡し、Host由来absolute pathをuntrusted inputとして検証する。存在するregular fileのrealpathがTarget内にあり、6つのcanonical `SKILL.md`のresolved pathのいずれかと完全一致し、一意にSkillへmappingできる場合だけ`canonical_skill`とする。それ以外はrunnerを落とさず`unreliable`へfail-closeし、Target contextなしabsoluteや任意absolute pathを`safe_no_read`へ推測変換しない。
+- `realpathOrFail()`はpreflight必須path専用であり、Host candidateの失敗処理には使わない。absolute対応後もrelative recognition、exact negative compound、candidate prefix、compound非対応、Result schema 2を維持する。
+
+## PR #127 valid baseline remediation investigation（2026-09-12）
+
+- 直前のcanonical `all`は固定Evaluator SHA `4921023c7f6ad2f2c7f8b8041ec3b08bf707c51e`、Routing SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`、Codex `0.153.4`、dataset fingerprint `84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`で24 casesを実行した。結果は`pass=15`、`false_negative=1`、`unobservable=8`、lifecycleは`completed=4`、`timed_out=20`で、exploratory-qa-vs-android-native-local-validationのexploratory-qa sideは未達、valid baselineは未取得である。
+- missing sideの原因は一つのtimeoutではない。`exploratory-qa-train-001`とandroid ownerのexpected exploratory 2件はOTel `collection_state=completed`、control valid 1、Skill point 1、`unknown_skill`。`exploratory-qa-validation-001`はOTel `reliable=true`、control valid 1、Skill point 0、trusted absence候補だが、process lifecycle `timed_out`のためevaluatorは`unobservable/timeout`とする。
+- canonical OTel diagnosticはmetric名、invoke type、plugin id、件数を保存するが、observerが`unknown_skill`と判定した`skill`属性の実値とstatusを保存しない。既存observer/evaluator contract testはunknownをcanonical aliasせずfail-closeし、OTel failureをHook scoring fallbackへ変換しない。このため、実値がない状態でsource修正・alias追加・query変更・retryを行わない。
+- 次回別Runで診断契約を改善する場合も、redacted identity/statusの保存範囲と新Qualification条件を先に決める。既存canonical、dataset、query、Skill、Hook、timeout、Result schemaはこの調査結果を理由に変更しない。
+
+## PR #127 OTel diagnostic実値保存Run（2026-09-12）
+
+- `scripts/evals/otel-skill-observer.ts`のdiagnosticへ、`parseMetric()`で解析済みの`codex.skill.injected` `skill`／`status`だけを`skill_values`／`status_values`としてunique・sort済みで保存する契約を追加した。raw OTLP payload、prompt、環境変数、credential、absolute pathは保存しない。
+- routing判定、`unknown_skill`／`skill_metric_invalid`／`multiple_skills`、`reliable`、`initial_skill`、`observed_skills`、Result schema 2は維持し、observer contract testへcanonical／unknown／status error／duplicate／複数値の回帰を追加した。source/test commitは`a8f3b7118e304a18c185a475f2d2cdeae97d4799`。
+- focused 11 tests、repository 95 tests、format／lint／typecheck／Skill／dataset validation、diff checkはPASSした。`pnpm run verify`は今回差分外の`native-purchase-screens.test.tsx` 5,000ms timeout 1件で停止し、単独再実行はPASSしたが、既知Hook launcher timeout 2件以外の新規failureとして扱った。
+- 上記gate条件によりfresh Targetと対象3ケース（`exploratory-qa-train-001`、`android-native-local-validation-train-002`、`android-native-local-validation-validation-002`）の各1回診断は未実行であり、実値を推測していない。canonical／Qualification／valid baseline／mergeは未変更・未実行である。
+
 ## PR #133 Test Automation Curriculum 学習体験改善（2026-09-09）
 
 - `docs/curriculum/test-automation/**`は、P1-1から始まる受講者向け標準導線と、Common Web route / Native specializationの分岐・再joinを正本とする。P1-4でCLI / Node.js / pnpmの最低限を説明し、P1-5でDesktop / Mobile WebとScenario Resetを扱い、P1-7のMaestro詳細実行は概念とFlow下書きの後に置く。

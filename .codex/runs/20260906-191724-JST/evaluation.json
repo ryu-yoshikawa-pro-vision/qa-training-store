@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "run_id": "20260906-191724-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "selector修正、24 case dataset監査、4 validation、同一versionのProbe、canonical all 24/24 case完了、Artifact保存まで完了した。一方、fresh resultはobservable 4/24・8 side中3 sideであり、valid baseline条件を満たさない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-08 00:12", "summary": "fresh canonicalの24件結果、coverage不足、invalid判定を記録した。"},
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json", "summary": "fresh canonicalの24件結果とprovenanceを保存する。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更をselector、repository contract test、欠陥query、Plan/ADR/PROJECT_CONTEXT/Run Artifactに限定し、Skill description、AGENTS.md routing意味契約、Product code/test、training content、scoring、timeoutは変更していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-07 21:46", "summary": "4 validationとscope確認がPASSした。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "dataset validate、repository test、Skill validation、full verify、同一selectorのpositive/negative ProbeはPASSしたが、fresh canonicalは20件timeout・5 side欠落でvalid baselineにできない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-07 21:46", "summary": "source validation全件PASSを記録した。"},
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-08 00:12", "summary": "fresh canonicalの20 timeoutとcoverage不足を記録した。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branch上でのみ作業し、force push、main直接mutation、trust偽装、case retry、result捏造、旧invalid artifactの上書き、Product remediationを行っていない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-08 00:12", "summary": "旧artifactを保持し、fresh artifactを別pathへ保存した。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan、TASKS、REPORT、dataset audit、Probe evidence、旧invalid artifact、fresh invalid artifact、evaluationを同一Run Directoryで追跡できる。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260906-191724-JST/run.json", "summary": "Run manifestとRun Artifactを同一Runへ紐づける。"},
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json", "summary": "旧artifactと分離したfresh resultを保存する。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "deterministic module、side-effect runner、repository contract test、datasetを既存Node/TypeScript/tsx/yaml/Vitestの範囲で変更し、selectorは4実測shapeへ限定した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "scripts/evals/skill-trigger-evals.ts", "summary": "dataset/scoring/comparisonの決定論的処理を保持する。"},
+        {"kind": "changed_file", "path": "scripts/evals/run-skill-trigger-evals.ts", "summary": "限定canonical selectorとCLI/Hook preflightを保持する。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "fresh resultはevaluator SHA、routing source SHA、dataset fingerprint、Codex 0.153.4、timeout 327秒を保存し、24/24 caseを完了した。しかし8 side中3 sideしかobservableでなく、valid baselineとして再利用できない。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json", "summary": "fresh resultのprovenance、2 pass、2 false_negative、20 timeoutを保存する。"}
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "fresh canonicalはCodex 0.153.4・327秒timeoutで全24 caseを完了したが、20件がtimeoutとなり、8 boundary-side中5 sideがmissingだった。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json", "summary": "fresh canonicalのsummaryとprovenanceを保存する。"},
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-08 00:12", "summary": "fresh resultをinvalidと判定した根拠を記録した。"}
+      ],
+      "detail": "同一version条件とclean preflightは成立したが、Host latencyにより8-side DoDを満たさなかった。timeout変更やcase retryで結果を補完しない。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "旧invalid artifactは旧fingerprint・旧evaluator SHAで保持し、fresh artifactは新fingerprint・evaluator SHAへ分離した。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-08 00:12", "summary": "旧artifactとfresh artifactのprovenance分離を記録した。"}
+      ],
+      "detail": "同一versionでの再実行によりversion driftは解消したが、観測可能性の不足は残っている。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval canonical execution environment",
+      "evidence": "codex-cli 0.153.4の同一条件で24/24 caseは完了したものの、20件timeout・observable 4/24となった。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json", "summary": "fresh canonicalの観測結果を保存する。"}
+      ],
+      "expected_impact": "8 boundary-sideを観測できるvalid baselineを、datasetやrouting意味契約を変更せず取得できる。",
+      "recommendation": "Host execution latencyを327秒以内に安定化できる環境変更を別途承認・記録した後、Target/trust/Probe/validationを再確認してcanonical allを最初から実行する。"
+    }
+  ]
+}

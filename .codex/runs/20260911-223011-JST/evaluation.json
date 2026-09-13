@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-223011-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "保存済みraw evidenceの直接解析、正本Planのcollection window契約追記、Plan-only validation、PR本文追補まで完了した。実装・Qualification・canonical・baselineは今回の非対象として未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "7.2 / 11.5 / 11.6",
+          "summary": "raw timing、quiet/hard cap、completion algorithm、lifecycle別failureを記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更許可範囲は正本Plan、今回Run Artifact、PR本文の最小追記に限定しており、source、tests、ADR、既存Run、raw artifactは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-223011-JST/run.json",
+          "selector": "changed_files",
+          "summary": "strict Runの変更対象をcollectorで確定する。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Markdown lint、対象Prettier、git diff --check、evaluation schema、sanitizer Write/Check、strict collectorをPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260911-223011-JST/REPORT.md",
+          "selector": "2026-09-11 22:45",
+          "summary": "Plan-only validation全項目のPASS結果を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "保存済みrawのread-only解析のみを行い、probe再実行、Qualification、canonical、baseline、retry、rebase、merge、force push、source変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260911-223011-JST/PLAN.md",
+          "selector": "Scope",
+          "summary": "今回の禁止範囲と実行境界を記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Explicit 4 request、Negative 1 request、Implicit 7 requestの時系列とbody SHA一致、turn.completed timestamp欠落、child close基準をPlanで追跡可能にした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "7.2 保存済みraw evidenceのprocess / request時系列",
+          "summary": "全probeのrequest受信時刻、closeとの差、metric根拠を表にしている。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "collection lifecycleの責務をrunnerへ固定し、constantの配置、設定化禁止、dependency追加禁止、Result schema 2維持をPlanへ明記した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "11.5 固定collection window値とcompletion algorithm",
+          "summary": "実装者判断を残さないtimer・hard cap契約を記録している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "保存済みrequest bodyを直接JSON parseし、各receiver eventのbody SHA-256と一致することを確認した。Implicitはtrusted terminalなしとしてcompleted probeと分離した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-223011-JST/REPORT.md",
+          "selector": "2026-09-11 22:35",
+          "summary": "raw直接解析の対象数とprocess close差分を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

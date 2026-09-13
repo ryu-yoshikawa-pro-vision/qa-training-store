@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: repair-loop-validation-001
+    query: "このRepositoryのscripts/verifyがSummary: PASS/FAIL/SKIP判定で失敗した場合、上流原因と派生エラーを分け、変更範囲を越えない最小修正と同じvalidationを完了してください。"
+    expected_skill: repair-loop
+    boundary: repair-loop-vs-harness-improvement
+  - id: repair-loop-validation-002
+    query: "このRepositoryでpnpm run eval:skills:triggerがmissing sidesを返した実行結果を対象に、準備・判定の繰り返し不備を改善候補として整理し、対象path・厳格さ・owner判断を示してください。"
+    expected_skill: harness-improvement
+    boundary: repair-loop-vs-harness-improvement
