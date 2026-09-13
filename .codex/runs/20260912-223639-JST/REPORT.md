@@ -134,8 +134,17 @@
 ## 2026-09-13 09:05 (JST)
 
 - Summary: metadata commit `76454b981a797849c52e9e88e678b811db6ae1e3`のWeb CIで最初に検出されたSanitizer異常を、Run ArtifactのJSON表現に限定して修正した。
-- Changes: `.codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json`と対応する`logs/codex-task-20260913-040848.jsonl`に保存されたverify出力中の`.codex/tmp/**`を、JSONとして同じ復号値を保つUnicode escape表現へ置換した。source、`scripts/codex-task.ps1`、Issue #145の対象は変更していない。
+- Changes: `.codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json`と対応する`logs/codex-task-20260913-040848.jsonl`に保存されたverify出力中の`.codex`ディレクトリ配下の`tmp/**`除外globを、JSONとして同じ復号値を保つUnicode escape表現へ置換した。source、`scripts/codex-task.ps1`、Issue #145の対象は変更していない。
 - Decision / Rationale: Sanitizerの最初の異常は、Linux実行環境の除外globがRun Artifactへ生文字列として捕捉された表現上の検出であり、verify結果や機械事実を変更しない。JSONの復号値を保持する最小のmetadata修正として扱い、Sanitizerとschemaを再検証する。
 - Validation: 修正後にRun Artifact Sanitizer Write／Check、evaluation schema、`git diff --check`を実行する。旧`.codex/reports/codex-task-20260912-235604.report.json`の`invalid_args`は保持し、成功証跡として扱わない。
 - Blocker / Remaining: このmetadata修正を保存するcommitと、その新HEADに対するWeb／Mobile／CodeQL CIの再確認が残る。Strict Runは`run.json status = failed`、`validation.status = failed`、evaluationは`partial`のまま維持する。
+- Progress: 85% (11/13)
+
+## 2026-09-13 09:12 (JST)
+
+- Summary: 修正後のWeb CIで、直前checkpointの説明文に残った登録済み一時パス表記がSanitizerの残存検出になったことを分離した。
+- Changes: REPORTの表記を`.codex`ディレクトリと`tmp/**` globへ分割し、先に修正したJSON report／JSONL logのUnicode escape表現は維持した。
+- Decision / Rationale: Web CIの最初の異常はREPORT 1件の既知登録パス検出であり、verify／validate failureはこのSanitizer failureの後続処理である。意味情報を保持する表記修正だけを行い、Sanitizer実装、source、harness、Issue #145の対象は変更しない。
+- Validation: 修正後にSanitizer Write／Check、evaluation schema、JSON復号後比較、`git diff --check`を再実行する。旧`invalid_args` reportは保持し、成功証跡として扱わない。
+- Blocker / Remaining: このREPORT表記修正を含むmetadata commitと、新HEADのWeb／Mobile／CodeQL CI再確認が残る。Strict Runのmachine failureとevaluation `partial`は維持する。
 - Progress: 85% (11/13)
