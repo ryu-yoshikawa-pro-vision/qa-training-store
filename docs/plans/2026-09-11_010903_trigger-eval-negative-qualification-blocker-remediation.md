@@ -151,7 +151,7 @@ Trigger Eval dataset、answer key、canonical Skill treeをcommand pathとして
 
 - `scripts/evals/run-skill-trigger-evals.ts`: 固定expressionの全体一致を追加する。absolute Target-aware recognition、`realpathOrFail`、candidate prefix、generic tokenizerの一般性は変更しない。
 - `tests/repository-contract/skill-trigger-evals.test.ts`: 実測shape、space/tab境界、trusted absence、nearby negative、既存relative／absolute／compound／schema／lifecycleを検証する。
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`: 実装・validation後に固定expressionと拒否境界を追補する。
+- `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`: 実装・validation後に固定expressionと拒否境界を追補する。
 
 変更しないものは`skill-trigger-evals.ts`、dataset、query、`expected_skill`、`boundary`、Skill、Hook、timeout、dependency、Product code、AGENTS、PROJECT_CONTEXT、history、Result evaluatorである。
 

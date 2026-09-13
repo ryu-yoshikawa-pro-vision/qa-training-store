@@ -41,6 +41,7 @@
     "training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium",
     "training:web:mobile": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-mobile-chromium",
     "training:web:mobile:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-mobile-chromium",
+    "training:web:diagnostic": "playwright test training/playwright/diagnostic-exercises --config=playwright.training.config.ts --project=training-chromium",
     "training:web:expected-failure": "playwright test training/playwright/failure-exercises --config=playwright.training.config.ts --project=training-chromium",
     "training:web:check-expected-failure": "tsx scripts/training/run-expected-failure.ts",
     "training:native:baseline": "tsx scripts/training/run-maestro-baseline.ts",

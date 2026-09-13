@@ -23,7 +23,7 @@
   - `exploratory-qa-validation-001`はOTel `collection_state=completed`、control valid 1、Skill point 0、`reliable=true`、`observed_skills=[]`だが、process `timed_out`のためevaluator結果は`unobservable/timeout`である。
   - 対向ownerの`android-native-local-validation-train-002`と`validation-002`もexpected `exploratory-qa`で、両方ともOTel `unknown_skill`、process `timed_out`である。したがって、missing sideは単一ownerのqueryだけでは説明できない。
   - `unknown_skill`はobserverが`skill`属性をcanonical 6値へ完全一致できないときだけ返す。保存済み`.otel.jsonl`のdiagnosticはmetric名、invoke type、plugin id、件数だけで、unknown属性の実値を含まない。
-  - OTel pathはHookをscoring fallbackにせず、trusted Skill identityがある場合だけtimeout後もoutcomeを保持し、trusted absenceはcompleted lifecycleを要求する。これは既存testsとADR-0024で固定されている。
+  - OTel pathはHookをscoring fallbackにせず、trusted Skill identityがある場合だけtimeout後もoutcomeを保持し、trusted absenceはcompleted lifecycleを要求する。これは既存testsとADR-0025で固定されている。
 - Assumptions:
   - 既存canonical raw artifactとRun Artifactはimmutableな過去証拠として扱い、内容を補完・改変しない。
   - `unobservable`をobservableへ変換するためのquery変更、Skill alias追加、timeout延長、Hook fallbackは修正とはみなさない。
@@ -49,7 +49,7 @@
   - `tests/repository-contract/skill-trigger-evals.test.ts`
   - `.agents/skills/{exploratory-qa,android-native-local-validation}/evals/trigger/*.yaml`
   - `.artifacts/trigger-eval-qualification-20260912-02/canonical/`
-  - `docs/adr/0024-trigger-eval-otel-observation-contract.md`
+  - `docs/adr/0025-trigger-eval-otel-observation-contract.md`
 
 ## 5. 変更方針
 

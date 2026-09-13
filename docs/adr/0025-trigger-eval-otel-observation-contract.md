@@ -1,7 +1,9 @@
-# ADR-0024: Trigger EvalのOTel observation contract
+# ADR-0025: Trigger EvalのOTel observation contract
 
 - Status: Accepted
 - Date: 2026-09-11
+
+番号変更履歴: このADRはPR branch上ではADR-0024として作成したが、main統合時に既存ADR-0023との重複を避けるためADR-0025へ変更した。
 
 ## Context
 

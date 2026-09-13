@@ -16,7 +16,7 @@ Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です�
 - PlaywrightでWeb UIテストを設計・実装・実行できる。
 - 選択したNative specializationで、MaestroによるNative UIテストを設計・実装・実行できる。
 - Trace、Screenshot、Video、JUnitなどの実行結果から失敗原因を分析できる。
-- テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Automation Flow、Seed Scenarioなどを選択肢として使い分けられる。
+- テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Seed Scenarioなどを選択肢として使い分けられる。
 - テスト資産を整理し、Flaky Test、重複、実行時間、保守性を改善できる。
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
@@ -76,7 +76,7 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 3. テスト分析・設計はスプレッドシートを基本教材とします。
 4. PlaywrightのSyntax暗記ではなく、テスト条件からコードへ落とす流れを重視します。
 5. Native specializationを選択した場合は、Playwrightの後にMaestroを学び、WebとNativeの共通点・相違点を理解します。
-6. Helper、POM、Fixture、Automation Flow、Seed Scenarioは最初から正解として教えません。
+6. Helper、POM、Fixture、Seed Scenarioなどの共通化や初期状態管理は最初から正解として教えません。
 7. まず自動テストを複数実装し、運用上の問題を体験した後に保守・管理手法として学びます。
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
@@ -88,15 +88,9 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 
 ## 全体構成
 
-### 共通
+### 受講者向け標準導線
 
-1. [学習方針と進め方](./00_learning-design.md)
-2. [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md)
-3. [Competency Rubric（評価正本）](./02_competency-rubric.md)
-
-#### Repository-required support asset
-
-- [Instructor Reference（運営支援）](./03_instructor-reference.md) — Learner Required pathやcompletionの正本ではありません。
+受講者は、まずPart 1-1からScenario Shopとテスト自動化の目的を学びます。WorkbookはP1-2 / P1-3で使う段階に、Rubricは評価基準を確認する段階に参照します。
 
 ### Part 1: テスト自動化の基礎と実践
 
@@ -120,6 +114,13 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 6. [Native CIとMaestro](./part2/06_native-ci-maestro.md)
 7. [Quality GateとCI/CD](./part2/07_ci-cd-quality-gates.md)
 8. [Part 2 導入設計演習](./part2/08_integration-design-capstone.md)
+
+### 共通Referenceと運営支援
+
+- [学習方針と進め方](./00_learning-design.md)
+- [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md) — P1-2 / P1-3で必要な段階に参照します。
+- [Competency Rubric（評価正本）](./02_competency-rubric.md) — 評価基準を確認するときに参照します。
+- [Instructor Reference（運営支援）](./03_instructor-reference.md) — Learner Required pathやcompletionの正本ではありません。
 
 ## 学習経路と修了契約
 

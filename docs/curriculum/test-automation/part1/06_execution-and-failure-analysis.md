@@ -17,6 +17,7 @@
 - `playwright.training.config.ts`
 - `training/playwright/baseline/`
 - `training/playwright/failure-exercises/`
+- `training/playwright/diagnostic-exercises/`
 - `output/training/playwright/`
 - `playwright.config.ts` / `output/playwright/`（Formal比較教材）
 
@@ -40,6 +41,8 @@ pnpm run test:e2e:cross-role
 Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL`をTraining Runtimeへ向け、Desktopでは `pnpm run training:web:exercise`で実行します。Formal ScriptがTraining specを自動的に実行することはありません。
 
 意図的なexpected-failureの確認は `pnpm run training:web:check-expected-failure`を使います。
+
+C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実行します。初期状態では誤った期待値による決定的なFailureが起きるため、Evidenceを確認して原因を説明し、修正後に同じCommandが成功することを確認します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
 
 ## Lesson 1: テストを目的別に実行する
 
@@ -78,9 +81,9 @@ Failureの**発生源**と、報告上の**Outcome**は別に記録します。O
 - **Suggestion**: 現行仕様を満たしているが、新しい仕様や改善として提案する。
 - **未確定**: 再現条件、観測、またはEvidenceが不足し、上の分類を断定できない。
 
-### Security成立条件の最小確認
+### 発展リファレンス: Security成立条件の最小確認
 
-`<script>`のような文字列を入力・保存・表示できることだけでは、Security Bugとは断定しません。少なくとも、**入力 → 保存 → escapeされた表示か → HTMLとして解釈されたか → JavaScriptが実行されたか、または実行可能なsinkへ到達したか**を分けて記録します。ここでは誤分類を防ぐ最小確認だけを扱い、Security専門のLessonやProduct変更は行いません。
+`<script>`のような文字列を入力・保存・表示できることだけでは、Security Bugとは断定しません。少なくとも、**入力 → 保存 → escapeされた表示か → HTMLとして解釈されたか → JavaScriptが実行されたか、または実行可能なsinkへ到達したか**を分けて記録します。これは誤分類を防ぐ参考情報であり、C09の共通必須成果物や修了条件には含めません。Security専門のLessonやProduct変更は行いません。
 
 ## Lesson 3: Trace
 
@@ -172,7 +175,7 @@ Failure分類
 
 盲目的に同じコマンドを繰り返すことは分析ではありません。
 
-## ハンズオン1: 意図的に失敗させる
+## ハンズオン1: アーティファクト確認用の失敗
 
 Training用Playwright TestのAssertionを意図的に誤らせます。
 
@@ -185,15 +188,19 @@ Failure後に次を確認します。
 
 どのEvidenceが最も原因特定に役立ったか記録します。
 
-## ハンズオン2: Locator Failure
+## ハンズオン2: 原因を診断して修正する
+
+`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功したEvidenceを記録します。
+
+## ハンズオン3: Locator Failure
 
 Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改善します。
 
-## ハンズオン3: Timing Failure
+## ハンズオン4: Timing Failure
 
 固定待機を入れたテストとAuto-wait / Assertionを使ったテストを比較します。
 
-## ハンズオン4: Failure分析メモ
+## ハンズオン5: Failure分析メモ
 
 次の形式で1件以上記録します。
 
@@ -227,7 +234,6 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 - Trace、Screenshot、Video、Console Errorを、何を観測できるEvidenceかで使い分けている。
 - Retry / Timeoutを増やす前に、再現、同期、状態依存、Environmentを確認する理由を説明している。
 - OutcomeをBug / UX / Suggestion / 未確定へ分け、BugにはBR / ACと再現条件、未確定には不足Evidenceを示している。
-- Securityの回答で入力・保存・escape表示・HTML解釈・実行 / executable sinkを別段階として扱っている。
 - Failure報告の対象・操作・事象がScreenshot / TraceなどのEvidenceと一致し、不足時に断定を避けている。
 - 最小修正後の再実行結果を記録し、意図的Failureの練習と実際のmeaningful diagnosisを区別している。
 
@@ -240,10 +246,14 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 - 意図的または実際のFailureを1件分析し、Evidenceから発生源と原因仮説を分けて記録している。
 - Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・Evidenceの有無に応じて分類している。
 - 報告の対象・操作・事象がEvidenceと一致し、Evidence不足時は未確定としている。
-- 固定待機または不安定Locatorを1件以上改善している。
+- C09の診断演習で、Locator / Timing / Assertionなどの意味のあるFailureを1件分析し、Failure Evidence、cause、action、修正後のre-run Evidenceを`04_execution-improvement.csv`へ別の`run_context`で記録している。
+- 固定待機または不安定Locatorの改善は、診断結果へ適用するPracticeとして説明できる。
 - RetryとTimeoutの利用判断を説明できる。
 - Training用Testと既存正式Suiteの実行目的を区別できる。
 - Failure Evidenceを利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
+- 恒久的なアーティファクト確認用Failureと、原因確認・修正・再実行を行う診断用Failureを別の実行経路として扱っている。
+
+Securityの入力・保存・HTML解釈・実行確認は発展Referenceとして必要な場合だけ扱い、C09の完了条件へ混ぜません。
 
 ## 次の行動
 

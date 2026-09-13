@@ -478,7 +478,7 @@ Host由来absolute pathのTarget root外、path不存在、`stat`失敗、realpa
 
 - `scripts/evals/run-skill-trigger-evals.ts`: Target-aware bounded absolute canonical path recognitionとcontext threading。
 - `tests/repository-contract/skill-trigger-evals.test.ts`: absolute path、realpath、候補順序、拒否境界のcontract tests。
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`: 実装・validation完了後に、採用したabsolute observation contractを追記する場合のみ。
+- `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`: 実装・validation完了後に、採用したabsolute observation contractを追記する場合のみ。
 
 ### 14.2 今回変更しない
 

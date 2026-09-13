@@ -1,7 +1,9 @@
-# ADR-0023: Trigger Eval selectorとquery execution contractを固定する
+# ADR-0024: Trigger Eval selectorとquery execution contractを固定する
 
 - Status: Accepted
 - Date: 2026-09-07
+
+番号変更履歴: このADRはPR branch上ではADR-0023として作成したが、main統合時に既存ADR-0023との重複を避けるためADR-0024へ変更した。
 
 ## Context
 

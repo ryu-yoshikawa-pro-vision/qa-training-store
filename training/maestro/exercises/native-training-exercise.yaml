@@ -1,5 +1,4 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
-# Learners extend the baseline with one risk-based native assertion.
+# Learners extend the baseline with a risk-based native assertion. The starter file alone is not C08 evidence.
 - runFlow: ../baseline/native-training-baseline.yaml
-- assertVisible: "Scenario Shop"

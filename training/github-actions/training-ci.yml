@@ -54,6 +54,9 @@ jobs:
       - name: Run Training Web baseline
         if: github.event_name != 'workflow_dispatch' || inputs.mode == 'baseline'
         run: pnpm run training:web:baseline
+      - name: Run Training Web exercise
+        if: github.event_name == 'pull_request'
+        run: pnpm run training:web:exercise
       - name: Run Training Web expected-failure exercise
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'
         run: pnpm run training:web:check-expected-failure

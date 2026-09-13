@@ -320,7 +320,7 @@ collection完了時に必ずRun Artifactのdiagnostic evidenceへ残せるよう
   - observer parser/collectorのpure fixtureとfailure contract
 - `tests/repository-contract/skill-trigger-evals.test.ts`
   - OTel-derived signalsと既存outcome/lifecycle/comparisonの回帰
-- `docs/adr/0024-trigger-eval-otel-observation-contract.md`
+- `docs/adr/0025-trigger-eval-otel-observation-contract.md`
   - 実装が承認され、focused testsで契約が確定した後にContext / Decision / Consequencesを記録する。
 
 ### 14.2 変更しないfile

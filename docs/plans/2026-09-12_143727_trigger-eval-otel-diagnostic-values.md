@@ -39,8 +39,8 @@ PR #127の`unknown_skill`原因を特定するため、OTel `codex.skill.injecte
 - `scripts/evals/skill-trigger-evals.ts`
 - `.agents/skills/*/evals/trigger/{train,validation}.yaml`
 - 前回Run `.codex/runs/20260912-110511-JST/` とcanonical `.artifacts/trigger-eval-qualification-20260912-02/`
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
-- `docs/adr/0024-trigger-eval-otel-observation-contract.md`
+- `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`
+- `docs/adr/0025-trigger-eval-otel-observation-contract.md`
 
 ## Change strategy
 

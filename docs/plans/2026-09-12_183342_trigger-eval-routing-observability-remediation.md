@@ -18,7 +18,7 @@ Trigger Evalのrouting evidenceで、repository canonical Skillと環境側の�
 - `CODEX_HOME`未設定時のCodex user Skill rootにある`playwright/SKILL.md`で、確認できたscopeはuser-levelである。`plugin_id=unattributed`だけからplugin scopeとは判断しない。
 - descriptionはreal browserのnavigation、form filling、snapshot／screenshot、data extraction、UI-flow debuggingをterminalから自動化するSkillである。対象queryの一覧→詳細→カートというUI flowとは実行手段として整合するが、queryがPlaywrightを明示した事実はない。
 - raw stdoutでは同一turn内でrepository `exploratory-qa/SKILL.md` readの後にuser-level `playwright/SKILL.md`／`playwright-cli/SKILL.md` readがあり、OTelは両方を`status=ok`／`invoke_type=implicit`で観測した。
-- 現行observerはcanonical 6件との完全一致だけを受理するため、`[exploratory-qa, playwright]`は`playwright`をunknownとしてfail-closeする。これは現在のADR-0024に沿うが、正当な補助Skill併用と誤routing由来のunknownを区別できない。
+- 現行observerはcanonical 6件との完全一致だけを受理するため、`[exploratory-qa, playwright]`は`playwright`をunknownとしてfail-closeする。これは現在のADR-0025に沿うが、正当な補助Skill併用と誤routing由来のunknownを区別できない。
 
 ### B. AndroidのSkill point欠落（read事実は確認済み、emit原因は未確定）
 
@@ -56,7 +56,7 @@ Trigger Evalのrouting evidenceで、repository canonical Skillと環境側の�
 
 ### 必須
 
-- `docs/adr/0024-trigger-eval-otel-observation-contract.md`
+- `docs/adr/0025-trigger-eval-otel-observation-contract.md`
   - canonical／declared auxiliary／unexpected unknownのcontract、trusted identity、auxiliary-only、provenance欠落時のfail-closeを明文化する。
 - `scripts/evals/otel-skill-observer.ts`
   - provenance付きpointのparse、分類、diagnostic保存、canonical identityの受理条件を実装する。
@@ -83,11 +83,11 @@ Trigger Evalのrouting evidenceで、repository canonical Skillと環境側の�
 - Qualification、canonical all、8/8、valid baselineの判定ロジック。
 - 新dependency、merge conflict解消、PR merge。
 
-## ADR-0024／observer／runner／dataset判断
+## ADR-0025／observer／runner／dataset判断
 
 | 項目 | 判断 | 理由 |
 |---|---|---|
-| ADR-0024 | 実装時に変更 | 現行unknown fail-closeにprovenance付きauxiliaryの例外条件を追加する必要がある |
+| ADR-0025 | 実装時に変更 | 現行unknown fail-closeにprovenance付きauxiliaryの例外条件を追加する必要がある |
 | observer | 変更候補（必須） | canonical identityと環境補助Skillを分離してfail-close条件を具体化する |
 | runner | 現時点で変更不要 | 327秒はchild lifecycle hard capで、OTel collection待ちではない。routing-only変更は別契約 |
 | dataset/query | 変更不要 | queryはexploratory-qaのQA／UI／boundary triggerに整合し、query原因の証拠がない |

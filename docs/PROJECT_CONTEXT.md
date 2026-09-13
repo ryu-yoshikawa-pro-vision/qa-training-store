@@ -577,3 +577,41 @@
 - routing判定、`unknown_skill`／`skill_metric_invalid`／`multiple_skills`、`reliable`、`initial_skill`、`observed_skills`、Result schema 2は維持し、observer contract testへcanonical／unknown／status error／duplicate／複数値の回帰を追加した。source/test commitは`a8f3b7118e304a18c185a475f2d2cdeae97d4799`。
 - focused 11 tests、repository 95 tests、format／lint／typecheck／Skill／dataset validation、diff checkはPASSした。`pnpm run verify`は今回差分外の`native-purchase-screens.test.tsx` 5,000ms timeout 1件で停止し、単独再実行はPASSしたが、既知Hook launcher timeout 2件以外の新規failureとして扱った。
 - 上記gate条件によりfresh Targetと対象3ケース（`exploratory-qa-train-001`、`android-native-local-validation-train-002`、`android-native-local-validation-validation-002`）の各1回診断は未実行であり、実値を推測していない。canonical／Qualification／valid baseline／mergeは未変更・未実行である。
+
+## PR #133 Test Automation Curriculum 学習体験改善（2026-09-09）
+
+- `docs/curriculum/test-automation/**`は、P1-1から始まる受講者向け標準導線と、Common Web route / Native specializationの分岐・再joinを正本とする。P1-4でCLI / Node.js / pnpmの最低限を説明し、P1-5でDesktop / Mobile WebとScenario Resetを扱い、P1-7のMaestro詳細実行は概念とFlow下書きの後に置く。
+- Training WebはFormal Regressionから分離する。`training/playwright/support/reset-scenario.ts`は受講者向けテストから決定的なScenario Resetを再利用する入口であり、PlaywrightのBrowserContext分離とは別責務である。未編集のstarter / baselineはC07 / C08のlearner-authored evidenceの代替ではない。
+- `training/workbook/`は既存4 CSVの列を維持し、Cartの代表2ケースをBR / ACと分離して追跡する。`04_execution-improvement.csv`は非空の`run_context`、`Pass` / `Fail` / `Not run`、実行時Evidence参照、診断のFail行と再実行Pass行を契約とする。実行時Artifactの静的ファイル存在は要求しない。
+- Training Workflow Templateは`pull_request`でbaseline後に`training:web:exercise`を実行する。`training:copy:validate`は生成時のTemplate / allowlist検証であり、受講者Testを変更した後のGitHub Actions成功とは別に扱う。本番 / Preview Workflow、Product code、Formal Regressionが保証する製品機能のテスト対象はこの変更の対象外である。公開カリキュラムnavigation変更に対する`e2e/web/smoke.spec.ts`のdocs公開Smoke期待値は同期対象である。
+- `docs/spec/README.md`は機能の期待動作を読む順序を先に示し、仕様管理・変更手順を後段へ置く。認証の`validation-error`は`default` Scenario、状態文書のWeb Fixture参照は`e2e/web/fixtures.ts`へ揃える。`part1/10_part1-capstone.md`は`09_part1-capstone.md`へのLegacy Aliasとする。
+- Push後のWeb CIでは、上記導線変更に対して`e2e/web/smoke.spec.ts`の公開カリキュラムナビゲーション期待値だけを同期した。Scenario Shopの製品挙動、BR / AC、正式なテスト対象の意味は変更していない。
+- 同じWeb CIでNative変更検出が`package.json`のTraining script追加に反応し、既存のExpo SDK 57 patch差分（`expo` 57.0.20、`expo-router` 57.0.19）がNative Static / Expo Doctorで検出されたため、既存依存を57.0.21 / 57.0.20へ同期した。新規パッケージは追加していない。
+- 修復後のMobile App CI run `34347593657`では、APK起動前に`com.google.android.apps.nexuslauncher`を停止するNative Runtime安定化を通過し、Android Automation / Production Build、Android Runtime / Maestro、iOS Automation / Production Build、Production Bundle Guard、`native-ci / verify`が全てPASSした。Web CI run `34347593379`も全てPASSしている。これはAPI 34 fresh AVD上のPixel Launcher ANRダイアログがMaestro画面を覆うFailureに対するCI環境修復であり、Product CodeとMaestro Flowは変更していない。
+
+### PR #133 最終head前のiOS timeout再確認（2026-09-10）
+
+- 修復commit `f6c3ae4`のMobile App CI run `34367492136`では、Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildがPASSした。一方、iOS Production-validation Buildは`SwiftExplicitDependencyGeneratePcm`実行中にjobの`timeout-minutes: 40`へ到達し、40分35秒でcancelledとなった。後続のiOS Native CI Verifyと`native-ci / verify`はこの結果をfail-closeで反映した。
+- 直近3 runの同じiOS Production-validation Buildは約25分で成功している。今回のcancelはコンパイルエラーではなくrunner固有の一時遅延と仮説を置き、最終headのRemote runで再確認する。Product Code、BR / AC、Maestro Flowの意味は変更しない。
+
+## PR #133 iOS timeout / Android launcher最終修復（2026-09-10）
+
+- 修復commit `7b00ab6`で`.github/workflows/native-ios-ci.yml`のiOS Automation / Production-validation build timeoutを40分から60分へ延長し、`scripts/native/android-maestro-run.sh`は3回目のlauncher ANR dialog tap後にUI階層を再取得して、消失時だけ成功扱いにした。`tests/contracts/native-ci-workflow.test.ts`で修復の順序とfail-closed条件を固定した。
+- Remote Mobile App CI run `34419805406`はNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、Native iOS CI Verify、`native-ci / verify`を全てsuccessで完了した。iOS Production-validationは26分8秒、iOS Automationは26分52秒で、40分timeoutは再発しなかった。
+- 対応するRemote Web CI run `34419805168`もStyle / Code Quality、Vitest、Chromium E2E、UI Review、build、production-smoke、validate、verify、CodeQL / securityをsuccessで完了した。Extended E2Eとdeploy-productionは既存条件によりskipである。
+- Repository標準verify、Native workflow contract、Training Web / Native local検証、Training Copy、Run sanitizationの証跡はactive Runへ記録する。Product Code、BR / AC、Maestro Flow、iOS Build-only保証の意味は変更していない。
+
+## PR #133 複数モデルレビュー再評価・bounded repair（2026-09-11）
+
+- C09のCanonical Workbookに完成済みの診断回答を配布しないよう、`training/workbook/04_execution-improvement.csv`の診断2行を`Not run`・Evidence空欄へ戻した。受講者は`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`でFailure、原因、修正、再実行を記録する。Workbookの列と値の契約は維持する。
+- P1-6 / P1-9 / C12 / P2-8の学習導線は、意味のあるLocator・Timing・Assertionの診断と、Training Copy Pull Requestで受講者が作成したPlaywright Testの実成功run / Artifactを明示的なEvidenceとして扱う。`training:copy:validate`の成功は受講者TestのGitHub Actions成功とは別である。
+- Training Workflowの`training:web:exercise`は、そのStep自身に`if: github.event_name == 'pull_request'`を持つことを`workflow-contract.ts`で検証する。別Stepの条件や任意のworkflow条件では代用できない。
+- Workbook Evidence Validatorは説明文で囲まれたdrive / UNC / absolute / `file:` / traversal参照も拒否し、URL、Artifact、output、Runの追跡参照は許可する。静的検証はArtifactの実在を要求しない。
+- Android Native CIのlauncher package一覧は全出力を一度ファイルへ取得し、取得・正規化に失敗したらfail-closeしてから完全一致判定を行う。Android helperの関数定義とstandalone callの順序はNative contractで区別する。iOS timeout原因はrunner固有と断定せず、観測事実と仮説を分離する。ja-JP ANRとの因果関係は実UI証跡がない限り未確認とする。
+- `run.json`は引き続きmachine-managedであり、EvaluationのEvidenceは実際のRun manifest、`codex-task` report、validation command、GitHub runへ解決可能な参照を使う。Native限定修復例外のProduct / BR / AC / Seed / guarantee / runner / toolchain境界は変更しない。
+
+## PR #133 未対応3件の再対応（2026-09-12）
+
+- P1-2 / P1-3の標準学習導線は、`docs/spec/state-and-scenarios.md`、必要な`docs/07_testability/seed_catalog.md`、`/guide`、現在UIの観察を中心とし、`src/seeds/metadata.ts`の直接読解と実装IDの照合はPlaywright実装後へ送る。
+- Workbook Evidence Validatorは`Trace:`直後に空白がないdrive、relative drive、file URL、親参照、UNC参照も拒否し、`http` / `https`のschemeのcolonは許可する。危険Pathの負例とURL・Artifact・output・Runの正例をtraining curriculum contractで固定する。
+- 今回のbounded repairのsource差分は教材2ファイル、`scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`の4ファイルに限定し、Native CI、C09、C12、Training Workflow等の既修正領域は再設計しない。標準contractのWindows Hook timeoutはsourceと無関係な環境観測として扱う。

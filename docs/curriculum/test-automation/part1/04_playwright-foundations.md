@@ -1,5 +1,27 @@
 # Part 1-4: Playwright基礎
 
+## 演習コマンドを読むための最低限
+
+Playwrightを実行する前に、次のCLI / Node.jsの用語だけ確認します。一般的なCLI講座ではなく、Scenario Shopの演習を起動するための準備です。
+
+- **ターミナル**: コマンドを入力して実行する画面です。
+- **現在のディレクトリ**: コマンドを実行しているFolderです。相対Pathはここを起点に解決されます。
+- **File / Directory**: `training/playwright/exercises`のように、Fileをまとめる場所をDirectoryと呼びます。
+- **Node.js**: TypeScriptやPlaywrightを実行するRuntimeです。
+- **Package Manager / pnpm**: DependencyをInstallし、`package.json`のScriptを実行するToolです。
+- **`package.json` / `scripts`**: RepositoryのDependencyと、名前付きコマンドを定義するFile / 項目です。
+
+演習では、RepositoryのRoot Directoryで次を実行します。
+
+```bash
+pnpm install
+pnpm run training:web:baseline
+```
+
+`pnpm install`はDependencyを取得し、`pnpm run <script>`は`package.json`の`scripts`にある名前付きコマンドを実行します。成功したかどうかだけでなく、失敗時はError MessageのFile、行、Error Type、Expected / Receivedを確認します。`PLAYWRIGHT_BASE_URL`のようなEnvironment Variableは、Test対象の入口を指定する値です。
+
+この段階の開始Gateは、Desktopの`training:web:baseline`が動くことです。Mobile Webの`training:web:mobile`は、P1-5でViewportとMobile Projectを学んだ後に確認します。
+
 ## 学習目標
 
 - Playwrightを読み書きするために必要なJavaScript / TypeScriptの最小構文を理解できる。
@@ -44,7 +66,7 @@ Training用
 
 `playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
 
-受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`または `pnpm run training:web:mobile`で確認します。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。
+受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`でDesktopの基準確認を行います。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。Mobile Webの基準確認と`training:web:mobile`はP1-5で扱います。
 
 ## Lesson 0: Playwrightを書くためのJavaScript / TypeScript最小知識
 
@@ -70,24 +92,6 @@ const user = {
 ```
 
 PlaywrightのOptionやTest DataではObjectを頻繁に使います。
-
-### Array
-
-```ts
-const roles = ["guest", "customer", "admin"];
-```
-
-複数の値をまとめて扱うときに使用します。
-
-### 関数
-
-```ts
-function buildTitle(testCaseId: string, title: string) {
-  return `${testCaseId} ${title}`;
-}
-```
-
-共通処理をまとめる考え方は、後半のHelperやPOMへつながります。
 
 ### `async` / `await`
 
@@ -122,29 +126,17 @@ test("商品を確認する", async ({ page }) => {
 
 `{ page }` はObjectから `page` Propertyを取り出すDestructuringです。最初は「TestがBrowser操作用のPageを受け取っている」と理解できれば十分です。
 
-### 条件分岐
+### アロー関数とコールバック
+
+`test`の第2引数へ渡す`async ({ page }) => { ... }`は、テストが実行されたときに呼び出されるコールバックです。関数名を別に付けず、処理をその場へ書けます。
 
 ```ts
-if (isMobile) {
-  // Mobile向けの確認
-}
+test("商品を確認する", async ({ page }) => {
+  await page.goto("/products");
+});
 ```
 
-Platformや状態によって処理を分ける場合があります。
-
-### TypeScriptの型
-
-```ts
-function login(email: string) {
-  // ...
-}
-```
-
-`: string` は値の種類を表します。
-
-型を付ける目的はSyntaxを難しくすることではなく、誤った値や呼び出しを実行前に見つけやすくすることです。
-
-高度なGenericsや型レベルプログラミングは、このカリキュラムの必須範囲にしません。
+まずは「`test`へ、テスト本体を後で実行する関数を渡している」と理解すれば十分です。配列、条件分岐、汎用関数、型注釈などは、それらを使うLessonで必要な範囲だけ扱います。
 
 ### Error Messageを読む
 
@@ -211,13 +203,7 @@ Assertionは期待結果の確認です。
 
 Locatorは壊れにくさと意味の分かりやすさを重視します。
 
-優先候補として次を学びます。
-
-1. Role
-2. Label
-3. Text
-4. UI Test ID
-5. CSS Selectorなど
+候補は固定順位で暗記せず、対象の意味と安定性から選びます。ユーザーが認識するRole、Label、Text、明示されたUI Test IDを確認し、CSS Selectorなどはより意味のある契約がない場合に使います。
 
 例:
 
@@ -274,7 +260,7 @@ Training用specへ次を自分で実装します。
 
 この段階では既存コードを完全に模倣する必要はありません。
 
-## Lesson 7: Playwright Configを読む
+## Lesson 7: Playwright Configを読む（P1-6への導入）
 
 `playwright.config.ts` を読み、次を確認します。
 
@@ -282,13 +268,9 @@ Training用specへ次を自分で実装します。
 - `timeout`
 - `expect.timeout`
 - `retries`
-- `reporter`
-- `trace`
-- `screenshot`
-- `video`
 - `projects`
 
-設定値を暗記するのではなく、「なぜこのRepositoryではその設定が必要か」を考えます。
+設定値を暗記するのではなく、「なぜこのRepositoryではその設定が必要か」を考えます。`reporter`、`trace`、`screenshot`、`video`は、実行結果と失敗Evidenceを扱うP1-6で詳しく確認します。
 
 さらに、現行Projectの `testMatch` やPackage Scriptが既存Suiteを対象としていることを確認し、Training用実行境界を正式Regressionから分ける理由を理解します。
 
@@ -312,7 +294,7 @@ Test Case ID `TC-PRODUCT-001` を想定し、商品詳細表示を確認する�
 
 ## ハンズオン3: Cart追加
 
-Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加までを書きます。
+Workbookの代表Caseとは別の導入練習として、Variation選択からCart追加までを書きます。ここでは`TC-CART-001` / `TC-CART-002`を付けず、PlaywrightのActionとAssertionの読み書きに集中します。
 
 ## ハンズオン4: Locator改善
 
@@ -335,7 +317,7 @@ Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加まで�
 
 - `async` / `await`をBrowser操作の完了待ち、`{ page }`をTestが受け取るBrowser Pageとして説明している。
 - ActionとAssertionを「操作」と「何が正しければPassか」に分け、`toBeVisible`が対象の可視性だけを保証することを説明している。
-- Locatorの選択理由にRole / Label / UI Test IDの意味と、CSS構造依存の保守Riskを含めている。
+- Locatorの選択理由に、Role / Label / UI Test IDなど対象の意味と、CSS構造依存の保守Riskを含めている。
 - `waitForTimeout`ではなく意味のある状態を待つ理由を説明し、固定待機を使わない1例を書ける。
 - `retries`が根本原因の修正ではないこと、Syntax / Type、Runtime、AssertionのFailureを区別している。
 - Training specとFormal Regressionを分離する理由として、実行範囲と既存Suiteの品質境界を説明している。
@@ -348,7 +330,7 @@ Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加まで�
 
 - Playwright Test内の `import`、`async`、`await`、`page`、Locator、Assertionの役割を説明できる。
 - Scenario Shopを対象に、意味のあるlearner-authored Playwright TestをTraining境界へ書いている。
-- Role / Labelを使ったLocatorを利用している。
+- 対象の意味に合うRole / Label / UI Test IDなどのLocatorを利用している。
 - 固定待機に頼らずAssertionで状態を待てる。
 - Training用実行境界と既存Regressionの役割を説明できる。
 - 自分のコードと既存E2Eの違いを3点以上説明できる。

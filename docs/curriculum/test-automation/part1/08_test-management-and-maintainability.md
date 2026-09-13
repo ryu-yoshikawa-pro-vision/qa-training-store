@@ -4,7 +4,7 @@
 
 - 自動テストが増えた運用フェーズで起きる問題を整理できる。
 - テストケース、spec、Test Data、Seed Scenario、共通処理の管理方法を考えられる。
-- Helper、Page Object Model、Component Object、Fixture、Automation Flow、Seed Scenarioの役割を区別できる。
+- Helper、Page Object Model、Component Object、Fixture、Seed Scenarioなどの役割を区別できる。
 - POMを必須ルールではなく、保守上の課題を解決する選択肢として判断できる。
 - 仕様変更時にRisk、Test Case、自動化実装、Regression分類を同期して更新できる。
 - 重複、Flaky、実行時間、不要テスト、責務の混在を改善できる。
@@ -128,6 +128,8 @@ POMが不要または過剰になりやすい条件:
 - TestよりObjectの抽象化の方が複雑になる。
 - AssertionやBusiness Flowまで何でもPage Objectへ詰め込む。
 
+この例の`class`はPage Objectの型を定義し、`constructor`はPageを受け取って初期化します。`private readonly page`はそのPageをインスタンスのPropertyとして保持する書き方です。ここでの構文はPOMを選んだ場合に必要な範囲だけ確認し、POMの採用自体を修了条件にはしません。
+
 ## Lesson 6: Component Object
 
 Header、Navigation、Modal、Product Cardなど、Pageを跨いで再利用されるUIはComponent Objectとして扱う選択肢があります。
@@ -151,14 +153,14 @@ Fixtureへ何でも入れると、Testから前提処理が見えなくなるRis
 
 「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
 
-## Lesson 8: Automation Flow
+## Lesson 8: 複数画面の共通操作を切り出す場合
 
-複数Pageを跨ぐ業務操作はAutomation Flowとして切り出す選択肢があります。
+複数Pageを跨ぐ業務操作は、共通操作として切り出す選択肢があります。
 
 例:
 
 ```text
-Purchase Automation Flow
+Purchaseの共通操作
 Login
 ↓
 Cart
@@ -170,9 +172,9 @@ Payment
 Confirm
 ```
 
-Page ObjectはUI操作を表し、Automation Flowは複数Pageを跨ぐ業務操作を表す、と分離できます。
+Page ObjectはUI操作を表し、共通操作は複数Pageを跨ぐ業務操作を表す、と分離できます。
 
-ここでいうAutomation Flowは、MaestroのYAMLファイルを指すMaestro Flowとは別の概念です。
+これはMaestroのYAMLファイルを指すMaestro Flowとは別の概念です。
 
 ただし、小規模なケースではHelperだけで十分な場合もあります。
 
@@ -188,7 +190,7 @@ Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管�
 
 - POM: どう操作するか
 - Fixture: どんな実行環境を提供するか
-- Automation Flow: どんな業務操作を進めるか
+- 共通操作: どんな業務操作をまとめるか
 - Seed Scenario: どんな状態から開始するか
 - Test: 何を保証するか
 
@@ -305,15 +307,15 @@ Flakyが継続する場合は、Regression Gateへ残すRiskも判断します�
 - POM
 - Component Object
 - Fixture
-- Automation Flow
+- 複数画面の共通操作
 
 必ず選択理由を書きます。
 
 ## ハンズオン3: リファクタリング
 
-最低1つのPage Objectまたは同等の共通化を実装します。
+実在する保守問題に対して、Helper、POM、Component Object、Fixture、共通操作、または現状維持のいずれかを選び、最小の改善または選択理由を記録します。
 
-ただし、POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
+POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
 
 ## ハンズオン4: Seed Scenario整理
 
@@ -350,7 +352,7 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 ## ハンズオン6: Regression棚卸し（Practice Volume / 任意）
 
-追加演習として、スプレッドシートの `06_自動化対応表` と `08_改善管理` を更新します。
+追加演習として、Workbookの `03_automation-mapping.csv` と `04_execution-improvement.csv` を更新します。
 
 最低限次を分類します。
 
@@ -365,7 +367,7 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 1. POMを最初から必須にしない理由は何か。
 2. HelperとPOMはどう使い分けるか。
 3. Fixtureへ業務操作を大量に隠すと何が問題になるか。
-4. Automation FlowとPage Objectの責務をどう分けられるか。
+4. 複数画面の共通操作とPage Objectの責務をどう分けられるか。
 5. Seed ScenarioとFixtureは同じものか。
 6. `src/seeds/metadata.ts` だけをSeed Scenarioの全状態の定義と見なしてはいけない理由は何か。
 7. 仕様変更時にTest Codeだけを修正すると何がずれる可能性があるか。
@@ -377,7 +379,7 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 次を自分の変更Diff、Test Case、または短い説明で確認できれば、このモジュールの判断を説明できます。
 
 - 実在するPlaywright保守問題を1件、重複・Flaky・責務混在・実行時間などの観察事実から説明できる。
-- その問題に対してHelper、POM、Component Object、Fixture、Automation Flow、現状維持のいずれを選び、選択理由と副作用を説明できる。
+- その問題に対してHelper、POM、Component Object、Fixture、共通操作、現状維持のいずれを選び、選択理由と副作用を説明できる。
 - 最小改善のDiffがTest Caseの目的、Locator / Assertion、Test Data依存、既存Regressionとの関係を壊していないことを確認できる。
 - 仮想仕様変更では、Productを変更せず、Risk → Test Case → 自動化対象 → Regression分類の影響計画だけを作成している。
 - Native / Maestro / CIの比較はExtensionまたはReferenceであり、Playwright-onlyのCommon completionに混ぜていない。

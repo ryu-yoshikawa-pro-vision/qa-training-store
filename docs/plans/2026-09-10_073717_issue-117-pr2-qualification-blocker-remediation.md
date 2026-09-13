@@ -229,7 +229,7 @@ TargetをQualification後にre-clone、checkout変更、reset、交換した場�
   - 必要な場合のみEvaluator status parserのRun-only変更回帰を保つ最小修正
 - `tests/repository-contract/skill-trigger-evals.test.ts`
   - selector decision table、absence、preflight contractの回帰
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
+  - `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`
   - 実装完了時に、今回のexact-shape選択、detached / SHA責務、raw evidence境界を追補
 
 ### 6.2 変更しない対象
@@ -386,7 +386,7 @@ canonical valid baselineの必要条件:
 
 - `scripts/evals/run-skill-trigger-evals.ts`
 - `tests/repository-contract/skill-trigger-evals.test.ts`
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
+  - `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`
 - 実装RunのResult / `evaluation.json` / sanitizer / collector
 
 raw stdout、stderr、Hook JSONL、process logは`.artifacts/`へ保存し、Run Artifactには相対pathと意味要約だけを残す。Run Artifactはsanitizer Write/Check後にstrict collectorで更新する。

@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-232344-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "指定4 sourceファイルのbounded repair、focused validation、source commit `7180db69`、整形commit `d40b2e6`、Training Copy、machine-managed curriculum validationを完了した。d40b2e6のWeb CIはsuccess、Mobile App CIはNative Staticの既存Expo Doctor mismatchでpartialとなった。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/validate-curriculum.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Evidence validatorの局所修正を参照する。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-232344-JST/run.json",
+          "selector": "$.status",
+          "event_id": null,
+          "summary": "machine-managed Runの現在状態を参照する。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "BEFORE_SHAからHEADまでのsource差分は、指定された教材2ファイル、validator、training curriculum contractの4ファイルだけである。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md",
+          "selector": null,
+          "event_id": null,
+          "summary": "P1-2の標準導線修正を参照する。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md",
+          "selector": null,
+          "event_id": null,
+          "summary": "P1-3の標準導線修正を参照する。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/training-curriculum.test.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "危険Path負例と正当Evidence正例のcontractを参照する。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused validation、machine-managed curriculum validation、d40b2e6のWeb CI（Style Quality、Vitest contracts、verifyを含む）は成功した。標準contract suiteは既存Windows Hook timeoutで停止し、Mobile App CIのNative Staticは既存Expo Doctor mismatchで失敗した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260911-232344-focused/training-curriculum.log",
+          "selector": "Test Files 1 passed / Tests 19 passed",
+          "event_id": null,
+          "summary": "対象contractのfocused成功を参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260911-232344-machine/validate-curriculum.wrapper.log",
+          "selector": "Curriculum validation passed",
+          "event_id": null,
+          "summary": "wrapperが実行したcurriculum validationの成功を参照する。"
+        },
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260911-232344-JST/reports/codex-task-20260912-000655.report.json",
+          "selector": "$.verify_exit_code",
+          "event_id": null,
+          "summary": "machine-managed VerifyCommandのexit code 0を参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34615492117",
+          "selector": "head_sha=d40b2e6, conclusion=success",
+          "event_id": null,
+          "summary": "同一source SHAのWeb CI成功を参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34615492577",
+          "selector": "Native Static, head_sha=d40b2e6, conclusion=failure",
+          "event_id": null,
+          "summary": "同一source SHAのNative Static環境failureを参照する。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "source commitは指定branch上で作成され、削除、rename、force push、外部Full Review起動は行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-232344-JST/run.json",
+          "selector": "$.safety",
+          "event_id": null,
+          "summary": "Run safety summaryを参照する。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "bounded repairの対象、判断、再現、検証、残る環境failureをPlan / TASKS / REPORTへ記録している。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-232344-JST/PLAN.md",
+          "selector": "## Definition of Done",
+          "event_id": null,
+          "summary": "Runの完了条件を参照する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-232344-JST/REPORT.md",
+          "selector": "2026-09-11 23:49 (JST)",
+          "event_id": null,
+          "summary": "標準contract failureの切り分けを参照する。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存validatorの境界判定を局所修正し、新しいparserやdependencyを追加していない。教材導線は既存の仕様・seed catalog・guideを再利用している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/validate-curriculum.ts",
+          "selector": "assertEvidenceReference",
+          "event_id": null,
+          "summary": "既存validatorの局所修正を参照する。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Run ID、固定source SHA `d40b2e6`のTraining Copyログ、Run manifest、machine report、同一source SHAのWeb / Mobile Remote runを追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260911-232344-JST/run.json",
+          "selector": "$.run_id",
+          "event_id": null,
+          "summary": "再現対象のRun IDを参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260912-002300-training-copy/validate.log",
+          "selector": "Training Copy validation passed",
+          "event_id": null,
+          "summary": "source SHA固定Training Copyの成功を参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/133/checks",
+          "selector": "head_sha=d40b2e6",
+          "event_id": null,
+          "summary": "PRの同一source SHA check一覧を参照する。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "標準pnpm run test:contractsは既存codex-hook-contractのWindows subprocess timeoutを初回とbounded retryで検出した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260911-232344-focused/test-contracts-retry.log",
+          "selector": "Test Files 2 failed / timeout",
+          "event_id": null,
+          "summary": "標準contract retryのtimeoutを参照する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-232344-JST/REPORT.md",
+          "selector": "B1",
+          "event_id": null,
+          "summary": "同一failureの再試行停止判断を参照する。"
+        }
+      ],
+      "detail": "今回の4ファイル差分はHook実装とHook contractを変更していない。診断用のtestTimeout拡大では成功したが、同一failureを2回確認したためrepair-loopの停止条件として残す。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "初回machine wrapperはcurriculum validationのstdoutとexit codeを配列として扱いverify_failedになったが、出力を一時ログへリダイレクトした同一検証はverify_exit_code=0で完了した。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260911-232344-JST/reports/codex-task-20260912-000102.report.json",
+          "selector": "$.status",
+          "event_id": null,
+          "summary": "初回wrapper境界failureを参照する。"
+        },
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260911-232344-JST/reports/codex-task-20260912-000655.report.json",
+          "selector": "$.status",
+          "event_id": null,
+          "summary": "再試行wrapperの成功を参照する。"
+        }
+      ],
+      "detail": "source validatorのfailureへ読み替えず、Runのmachine evidence取得境界として記録する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "source SHA 7180db69と整形後のd40b2e6でMobile App CIのNative Staticが同じ8 packageのExpo Doctor patch mismatchで失敗した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260912-001500-native-static.log",
+          "selector": "expected ~57.0.22 / found 57.0.21",
+          "event_id": null,
+          "summary": "最初のNative Static failureを参照する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/pr133-three-repair/20260912-002600-native-static.log",
+          "selector": "8 packages out of date",
+          "event_id": null,
+          "summary": "同一Native Static failureの再現を参照する。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "package.json",
+          "selector": "unchanged in BEFORE_SHA..d40b2e6",
+          "event_id": null,
+          "summary": "今回のsource修正がNative dependencyを変更していないことを参照する。"
+        }
+      ],
+      "detail": "Native dependency更新はユーザー指定の3件と異なり、今回の4ファイルscope外である。旧SHAの同じ依存状態ではNative Staticがsuccessだったため、今回のbounded repairでは依存更新を行わず、別タスクの環境・依存調査へ分離する。"
+    }
+  ],
+  "improvement_candidates": []
+}

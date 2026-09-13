@@ -790,7 +790,7 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 3. `tests/repository-contract/skill-trigger-evals.test.ts`
    - selector 3状態、observation、lifecycle、summary、coverage、comparisonのregression contract
    - inline `comparableRun` fixtureをResult schema 2へ更新
-4. `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
+4. `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`
    - 実装完了時に、今回確定したselector / observation / Result schema / comparison判断を恒久記録へ反映する。今回のPlan修正ではADRを変更しない。
 
 ### 12.2 明示的に変更しないschema / fixture / docs
@@ -1049,7 +1049,7 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 - `scripts/evals/skill-trigger-evals.ts`
 - `scripts/evals/run-skill-trigger-evals.ts`
 - `tests/repository-contract/skill-trigger-evals.test.ts`
-- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`の恒久記録追補
+- `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`の恒久記録追補
 - 実装Run Artifact
 
 ### 17.3 今回および実装phaseで変更禁止
