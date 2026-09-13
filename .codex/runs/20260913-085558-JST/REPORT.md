@@ -135,3 +135,27 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-13 09:51 (JST)
+
+- Summary:
+  - PR #127のタイトル／本文をPR2全体の目的へ更新し、最新head `765fe81babf34df41334320cb7a2722b17efe63b` の必須CIを終端確認した。
+- Changes:
+  - PR titleを `refactor: Trigger Eval baselineを実装する` に設定した。
+  - PR本文冒頭を6 Skill／24 cases、train／validation、OTel primary、fixed model、Result schema 2、comparison、partial baselineの説明へ整理した。
+  - OTel live pathのHook snapshot I/O除去、保存済みbaselineの数値、dataset fingerprint、model、coverage 7/8、runner exit 1、Run evaluation partial、comparison利用可を本文へ反映した。
+  - `20260912-231826-JST/run.json` のmachine-managedな `pending`／`not_run` 状態と、retroactive finalize経路未確認の制約を本文へ明記した。
+- Decision / Rationale:
+  - 過去Runの `run.json` は直接編集せず、no-op Codex taskやfake verifierによる完了偽装も行っていない。
+  - PRはOPENのまま保持し、merge、close、branch削除、rebase、force pushは行っていない。
+- Validation:
+  - `gh pr checks 127 --watch --interval 30` がexit code 0で終了した。
+  - Web CI、Mobile App CIを含めてfailure／pending／cancelledなし。skippedはsuccessと区別して保持した。
+  - local／remote／PR head、branch、PR title、state、mergeableを照合した。
+- Blocker / Remaining:
+  - なし。残るのはユーザーによるPR #127の最終レビュー／merge判断のみ。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: task 9を完了し、Runを完了状態として扱う。
+- Progress: 100% (9/9)

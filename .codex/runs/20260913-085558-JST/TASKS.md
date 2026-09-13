@@ -10,7 +10,7 @@
 - [x] 6. 変更差分、禁止対象、PR本文要件、Run scopeを監査する
 - [x] 7. 新repair Runのevaluation／REPORT／TASKSをfinal commit前状態へ更新し、sanitizerを実行する
 - [x] 8. branch safety確認後にcommit・通常pushし、local／remote／PR headを照合する
-- [ ] 9. PRタイトル／本文を更新し、最新headの必須CIを終端確認する
+- [x] 9. PRタイトル／本文を更新し、最新headの必須CIを終端確認する
 
 ## 実装・変更タスクの完了処理
 
