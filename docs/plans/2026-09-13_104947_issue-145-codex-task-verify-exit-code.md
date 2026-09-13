@@ -34,10 +34,13 @@
 - `.ps1`、`.cmd`、`.bat`、`.sh`、拡張子で分岐しない実行ファイル、command text経路で同じexit code分離規則を使う。
 - 引数なしで実行するdefault経路のため、`Invoke-NativeCommand()`の`CommandArgs`が空配列を明示的に受け付ける。
 - command textの失敗fixtureはcommand text自身が`exit 7`し、EncodedCommand経由でも意図した非0exit codeを検証できる。
+- manifest付きfull-wrapper testは`-SkipPreflight`を指定し、`-SkipVerify`を指定せず、`-VerifyCommand`でfixture command textを渡してverify経路へ必ず到達する。
+- manifest付きfull-wrapper testは有効な固定`RunId`として`20990101-000000-JST`を使用する。
 - manifestを検証する一時fixtureは、`collect-run-artifacts.ps1`、`collect-run-artifacts.py`、`sanitize-codex-artifacts.ps1`、`codex-artifact-sanitizer.ps1`を含み、Git repositoryとして初期化された実行可能な最小構成を持つ。
 - manifest付きfull-wrapper testはWindowsで実行し、`powershell.exe`、Python、Gitが利用できる環境で成功・失敗の両方を確認する。
 - Windows環境で`.ps1`、`.cmd`、`.bat`、command textのtargeted runtime testを実行し、対象ケースがskipではなくPASSする。
-- 新しいwrapper、外部依存関係、Run Artifact schemaを追加しない。
+- 新しいproduction wrapper、外部依存関係、Run Artifact schemaを追加しない。
+- 新しいtest helper fileは追加しない。既存`runWrapper()` / fixtureのパラメータ化、または同一test file内の小さなhelper追加は許容する。
 - 回帰テストを既存の`codex-task` contract test体系へ追加する。
 - `pnpm run test:contracts`がPASSする。
 - `pnpm run verify`がPASSする。
@@ -58,6 +61,9 @@
 - 現在の`Invoke-NativeCommand()`の`CommandArgs`は`[Parameter(Mandatory = $true)][string[]]`で、空配列を許可する属性がない。default経路から引数なしで再利用するには、このparameter契約を明示的に補う必要がある。
 - `tests/contracts/codex-task-native-command.test.ts`には、`Invoke-NativeCommand()`が標準出力・標準エラーを可視化したまま、成功時`0`・失敗時`7`を`System.Int32`の単一値として返すcontract testがある。
 - 同testの既存wrapper testはreportだけでなく、wrapper processの終了値がnative commandのexit codeと一致することも確認している。
+- 既存`runWrapper()`は`-SkipPreflight`と`-SkipVerify`を固定で渡している。Issue #145のfull-wrapper回帰testでは`-SkipPreflight`は維持するが、`-SkipVerify`を外して`-VerifyCommand`を渡す必要がある。
+- `-SkipPreflight`を外すと`scripts/codex-safe.ps1`が必要になるが、Issue #145のfixtureへ同fileを追加する必要はない。preflightは今回の検証対象ではないため、full-wrapper testでは`-SkipPreflight`を明示する。
+- `RunId`は`^\d{8}-\d{6}-JST$`形式で検証される。無効な値ではverifyへ到達する前に`invalid_args`になるため、fixtureでは有効形式の固定値を使う。
 - 現在の`createWrapperFixture()`が一時repoへコピーしているのは`codex-task.ps1`と`codex-artifact-sanitizer.ps1`であり、`-RecordRunManifest`を実行するためのcollectorとsanitizer CLIはコピーしていない。
 - `Write-RunManifest()`は`-RecordRunManifest`使用時に同じrepo rootの`scripts/collect-run-artifacts.ps1`を必須で呼び出し、そのscriptは`scripts/collect-run-artifacts.py`を実行する。manifestのruntime検証には両ファイルとPython runtimeが必要になる。
 - `Write-RunManifest()`はcollector起動に`powershell.exe`を固定使用しているため、manifest付きfull-wrapper testは現在の実装上Windows依存である。
@@ -75,8 +81,12 @@
 - 拡張子で分岐しない実行ファイル経路も同じ原因を持つため、Issueに明記された4形式とcommand textに加えて修正対象へ含める。
 - command textの失敗fixtureでは、EncodedCommand外側からnative child processの終了コード伝播仕様を新たに変更しない。fixtureのcommand text自身に`exit 7`を含め、今回確認したい「verify出力とexit codeの分離」だけを検証する。
 - 6つのverify経路すべてにmanifest付きfull-wrapper testを重複させない。各経路はsource contractと対応runtimeでの起動確認を行い、実障害のcommand text経路だけ成功・失敗のfull-wrapper contractでreport、process exit、manifestまで通して確認する。
+- command textのfull-wrapper testでは既存`runWrapper()`をパラメータ化し、`-SkipPreflight`、`-VerifyCommand`、`-RecordRunManifest`、`-RunId`を選択して渡せるようにする。`-SkipVerify`はIssue #145の成功・失敗fixtureでは渡さない。
+- command textのfull-wrapper testではfake Codex自体は`exit 0`で正常完了させ、wrapperの最終終了値がverify結果だけで`0`または`7`になる状態を作る。
+- test用`RunId`は一時repoごとに`20990101-000000-JST`を使用する。一時repoが分離されるため固定値の重複は問題にならない。
 - manifest付きfull-wrapper fixtureでは、`codex-task.ps1`、`codex-artifact-sanitizer.ps1`、`collect-run-artifacts.ps1`、`collect-run-artifacts.py`、`sanitize-codex-artifacts.ps1`をproduction sourceから一時repoへコピーし、fixture rootで`git init`する。これらのproduction source自体は変更しない。
 - manifest付きfull-wrapper testはWindows + `powershell.exe` + Python + Gitが利用可能な環境で実行する。通常のLinux CIではこのtestをskipし、Linux上で実行可能なruntime testとsource contractを確認する。
+- Issueの「新しいwrapperを追加しない」はproduction wrapperを増やさないことを指す。既存test helperのパラメータ化や、同一test file内で責務が明確な小さなhelperを追加することは許容する。
 
 ### 対象外
 
@@ -93,7 +103,8 @@
 - command text内で起動した任意のnative child processの終了コードをEncodedCommand越しに透過伝播させる新仕様
 - `Write-RunManifest()`の`powershell.exe`固定起動をcross-platform化する変更
 - Windows用の新しいGitHub Actions job追加
-- 新しい共通wrapperや外部依存関係の追加
+- 新しいproduction wrapperや外部依存関係の追加
+- preflight自体のcontract test追加
 
 ## 3. 質問 / 曖昧性
 
@@ -104,6 +115,7 @@
   - 通常のLinux CIでWindows固有runtime testとmanifest付きfull-wrapper testはskipしてよい。ただし、実装完了条件としてWindows環境でtargeted testのPASSを確認する。
   - manifest付きfull-wrapper testはWindows、`powershell.exe`、Python、Gitの全条件が揃う場合だけ実行する。実装完了確認ではこれらが揃うWindows環境を使用し、成功・失敗の両contractをskipせず実行する。
   - 一時repoは`git init`まで行えばよく、fixture用commitやremote設定は作らない。
+  - test用`RunId`は`20990101-000000-JST`で固定する。
 - 未回答の重要質問: なし。
 
 ## 4. 影響範囲
@@ -156,6 +168,7 @@
   - 標準出力・標準エラーの可視性
   - wrapper reportへ`codex_exit_code`を単一数値として保存する契約
   - wrapper process exit codeがnative exit codeと一致する契約
+  - 既存`runWrapper()`は`-SkipPreflight`と`-SkipVerify`を固定で渡すため、Issue #145向けにパラメータ化が必要
 - `tests/contracts/codex-run-manifest-contract.test.ts`
   - Run manifest v2の既存契約。今回schema変更はしない。
 - `package.json`
@@ -219,6 +232,12 @@ manifest writer、schema、collector、sanitizer、CI workflow、教材、Traini
    - Windows固有の`.ps1`、`.cmd`、`.bat`、command textはWindowsで実行する。`.sh`は`bash`がある環境で実行する。defaultは実行可能なfixtureをOSに合わせて用意する。
    - 各6経路にmanifest付きfull-wrapper testを重複させない。
 6. 実障害と同じcommand text経路で、成功・失敗のfull-wrapper contractを追加する。
+   - 既存`runWrapper()`を、`skipVerify`、`verifyCommand`、`recordRunManifest`、`runId`等を選択して渡せるようにパラメータ化する。新しいtest helper fileは作らない。
+   - Issue #145の成功・失敗fixtureでは`-SkipPreflight`を指定する。
+   - Issue #145の成功・失敗fixtureでは`-SkipVerify`を指定しない。
+   - `-VerifyCommand <fixture command text>`を必ず指定する。
+   - `-RecordRunManifest`と`-RunId 20990101-000000-JST`を指定する。
+   - fake Codexは成功`0`で終了させ、output fileを生成する。verify前のCodex失敗でtestが終了しない状態に固定する。
    - 成功fixtureは複数行の標準出力を出して`exit 0`する。
    - 失敗fixtureは複数行の標準出力を出し、command text自身が`exit 7`する。EncodedCommand内部のnative child process終了コード伝播は今回の検証対象にしない。
    - 少なくとも一方のfixtureで標準エラーmarkerも出し、wrapper実行結果から可視であることを確認する。
@@ -232,7 +251,8 @@ manifest writer、schema、collector、sanitizer、CI workflow、教材、Traini
    - `scripts/sanitize-codex-artifacts.ps1`
    をproduction sourceから一時repoへコピーする。
    - fixture rootで`git init`し、sanitizerがrepository rootを解決できる状態にする。fixture用commitやremoteは作らない。
-   - test fixture内で`codex-task.ps1 -RecordRunManifest -RunId <test-run-id>`を実行し、生成された`run.json`を読み取る。
+   - test fixture内で`codex-task.ps1 -SkipPreflight -VerifyCommand <fixture command text> -RecordRunManifest -RunId 20990101-000000-JST ...`を実行し、生成された`.codex/runs/20990101-000000-JST/run.json`を読み取る。
+   - `-SkipVerify`は指定しない。
    - `run.json`、collector、sanitizer sourceをtest codeから書き換えない。
    - actual repository Runの`run.json`は編集しない。
 8. manifest付きfull-wrapper testはWindows + `powershell.exe` + Python + Gitが利用可能な場合だけ実行する。
@@ -242,7 +262,10 @@ manifest writer、schema、collector、sanitizer、CI workflow、教材、Traini
 9. Windows環境でtargeted contract testを実行し、`.ps1`、`.cmd`、`.bat`、command textのruntime testとmanifest付きfull-wrapper testがskipされずPASSすることを実装完了条件として確認する。
    - Linux CIのPASSだけをWindows固有経路の検証完了とは扱わない。
    - 今回はWindows用GitHub Actions jobを追加しない。
-10. 新しいtest helper file、wrapper、dependencyは追加しない。既存fixtureと`spawnSync`、`fs`、`os`、`path`を再利用する。
+10. 新しいproduction wrapper、新しいtest helper file、dependencyは追加しない。
+   - 既存`runWrapper()` / fixtureのパラメータ化を優先する。
+   - 重複を避けるために必要な場合は、`tests/contracts/codex-task-native-command.test.ts`内へ小さなhelperを追加してよい。
+   - helper追加を理由に新しいtest utility fileや共通frameworkへ広げない。
 
 ### 実行タスク
 
@@ -252,15 +275,17 @@ manifest writer、schema、collector、sanitizer、CI workflow、教材、Traini
 - [ ] 4. 6経路すべての共通helper利用をsource contractで確認する。
 - [ ] 5. 対応runtime上で6経路それぞれの成功fixtureを実行し、stdoutがあってもscalar `0`になることを確認する。
 - [ ] 6. default経路で空の`CommandArgs`を実際に渡し、scalar exit codeが返ることをruntime testで確認する。
-- [ ] 7. command text経路の成功full-wrapper fixtureを追加し、wrapper process exit `0`、report、validation、manifestの成功状態を確認する。
-- [ ] 8. command text経路の失敗full-wrapper fixtureを追加し、command text自身を`exit 7`させ、wrapper process exit `7`、report、validation、manifestの失敗状態を確認する。
-- [ ] 9. verify標準出力・標準エラーmarkerがwrapperの出力から確認できることを検証する。
-- [ ] 10. manifest付きfixtureへ`collect-run-artifacts.ps1`、`collect-run-artifacts.py`、`sanitize-codex-artifacts.ps1`、`codex-artifact-sanitizer.ps1`を含める。
-- [ ] 11. manifest付きfixture rootを`git init`し、sanitizerのrepository root解決を成立させる。
-- [ ] 12. Windows + `powershell.exe` + Python + Git環境でmanifest付きfull-wrapper成功・失敗testがskipされずPASSすることを確認する。
-- [ ] 13. Windows環境で`.ps1`、`.cmd`、`.bat`、command textのtargeted runtime testがskipされずPASSすることを確認する。
-- [ ] 14. `.sh`は`bash`が利用可能な環境でruntime testを実行する。
-- [ ] 15. targeted contract test、`pnpm run test:contracts`、`pnpm run verify`、`git diff --check`を実行する。
+- [ ] 7. 既存`runWrapper()`をverifyあり/なし、manifestあり/なしを切り替えられる形へパラメータ化する。
+- [ ] 8. command text経路の成功full-wrapper fixtureを`-SkipPreflight`、`-VerifyCommand`、`-RecordRunManifest`、`-RunId 20990101-000000-JST`で実行し、`-SkipVerify`を渡さない。
+- [ ] 9. command text経路の失敗full-wrapper fixtureも同じ起動条件で実行し、command text自身を`exit 7`させる。
+- [ ] 10. full-wrapper fixtureではfake Codexを`exit 0`に固定し、wrapper process exit `0` / `7`がverify結果だけで決まることを確認する。
+- [ ] 11. verify標準出力・標準エラーmarkerがwrapperの出力から確認できることを検証する。
+- [ ] 12. manifest付きfixtureへ`collect-run-artifacts.ps1`、`collect-run-artifacts.py`、`sanitize-codex-artifacts.ps1`、`codex-artifact-sanitizer.ps1`を含める。
+- [ ] 13. manifest付きfixture rootを`git init`し、sanitizerのrepository root解決を成立させる。
+- [ ] 14. Windows + `powershell.exe` + Python + Git環境でmanifest付きfull-wrapper成功・失敗testがskipされずPASSすることを確認する。
+- [ ] 15. Windows環境で`.ps1`、`.cmd`、`.bat`、command textのtargeted runtime testがskipされずPASSすることを確認する。
+- [ ] 16. `.sh`は`bash`が利用可能な環境でruntime testを実行する。
+- [ ] 17. targeted contract test、`pnpm run test:contracts`、`pnpm run verify`、`git diff --check`を実行する。
 
 ## 6. 検証方法
 
@@ -276,6 +301,7 @@ Windows環境ではこのcommandを必ず実行し、次を確認する。
 
 - `.ps1`、`.cmd`、`.bat`、command textのruntime testがskipされずPASSする。
 - PythonとGitも利用可能な環境では、manifest付きfull-wrapperの成功・失敗testもskipされずPASSする。
+- full-wrapper testが`-SkipVerify`でverifyを飛ばしていない。
 
 2. contract test全体
 
@@ -300,6 +326,10 @@ git diff --check
 command textの成功full-wrapper:
 
 ```text
+RunId === "20990101-000000-JST"
+SkipPreflight === true
+SkipVerify === false
+fake Codex exit code === 0
 result.status === 0
 typeof report.verify_exit_code === "number"
 Array.isArray(report.verify_exit_code) === false
@@ -312,6 +342,10 @@ run.json.validation.status === "passed"
 command textの失敗full-wrapper:
 
 ```text
+RunId === "20990101-000000-JST"
+SkipPreflight === true
+SkipVerify === false
+fake Codex exit code === 0
 result.status === 7
 typeof report.verify_exit_code === "number"
 Array.isArray(report.verify_exit_code) === false
@@ -365,7 +399,13 @@ manifest付きfull-wrapper fixture:
 一時repoにscripts/collect-run-artifacts.pyが存在する
 一時repoにscripts/sanitize-codex-artifacts.ps1が存在する
 fixture rootをgit initしている
--RecordRunManifest経由でrun.jsonを生成する
+RunIdは20990101-000000-JST
+-SkipPreflightを指定する
+-SkipVerifyを指定しない
+-VerifyCommandでfixture command textを渡す
+-RecordRunManifestを指定する
+fake Codexはexit 0する
+-RecordRunManifest経由で.codex/runs/20990101-000000-JST/run.jsonを生成する
 test codeがrun.jsonを直接生成・手編集しない
 ```
 
@@ -376,6 +416,9 @@ test codeがrun.jsonを直接生成・手編集しない
 - default経路を含め、全verify起動経路が同じ`Invoke-NativeCommand()` contractを使う。
 - 対応runtime上で各verify起動経路の成功fixtureがscalar `0`を返す。
 - 実障害のcommand text経路では成功・失敗のfull-wrapper testがあり、reportだけでなくwrapper process exit、validation、manifestまで確認している。
+- full-wrapper testは`-SkipPreflight`を指定し、`-SkipVerify`を指定せず、`-VerifyCommand`でfixtureを渡して実際のverify経路を通っている。
+- full-wrapper testは有効な固定`RunId` `20990101-000000-JST`で実行され、`invalid_args`へ逸れない。
+- fake Codexを成功`0`へ固定することで、wrapper process exit `0` / `7`がverify結果と一致することを確認できる。
 - command textの非0fixtureは`exit 7`を明示し、今回対象外のchild process exit code伝播仕様へ検証範囲を広げていない。
 - manifest testはcollectorとsanitizerを含み、Git repositoryとして初期化された一時fixture上でproductionと同じmachine-managed経路を使用する。
 - Windows + `powershell.exe` + Python + Git環境でmanifest付きfull-wrapper成功・失敗testがskipされずPASSしている。
@@ -391,6 +434,8 @@ test codeがrun.jsonを直接生成・手編集しない
 
 - `Invoke-NativeCommand()`へ統一すると、PowerShell 7系では`PSNativeCommandUseErrorActionPreference`を一時的に`false`へする既存挙動がverifyにも適用される。これは非0exitを例外化せず`verify_failed`判定へ渡す現在の期待と整合するが、成功・失敗runtime testで確認する。
 - default経路では空の`CommandArgs`を渡すため、`[AllowEmptyCollection()]`でparameter bindingを明示的に許可する。この変更は0引数native commandの既存helper利用に必要な範囲へ限定する。
+- 既存`runWrapper()`の`-SkipVerify`をIssue #145のfull-wrapper testへ残すと、回帰testが`Invoke-VerifyCommand()`を通らず誤ってPASSする。test helperのパラメータ化で起動引数を明示する。
+- `RunId`が形式違反だとverifyへ到達する前に`invalid_args`で終了する。fixtureでは`20990101-000000-JST`へ固定する。
 - `-RecordRunManifest`のfixtureはcollector、sanitizer CLI、Python、Gitを必要とする。必要ファイルや`git init`を省くとverify結果とは無関係なfixture不備で失敗するため、fixture構成をPlanどおり固定する。
 - `Write-RunManifest()`はcollectorを`powershell.exe`で起動するため、manifest付きfull-wrapper testはLinux CIで実行できない。今回はmanifest writerをcross-platform化せず、Windows環境でのtargeted testを完了条件とする。
 - Web CIのcontract testはLinuxで実行されるため、Windows固有runtime経路はCIだけでは保証できない。今回はCI workflowを広げず、Windows環境でのtargeted testを完了条件とする。
@@ -432,5 +477,6 @@ test codeがrun.jsonを直接生成・手編集しない
 - Issueの症状は後段status判定の欠陥ではなく、PowerShell関数のoutput streamとexit codeを分離していないverify起動境界にある。実装では後段へcastや配列判定を追加せず、原因箇所で修正する。
 - `Invoke-NativeCommand()`への変更は、default経路を再利用可能にする`[AllowEmptyCollection()]`の追加だけとする。
 - manifest付きfixtureへcollectorとsanitizerをコピーし`git init`することはtest fixtureの実行前提を満たすためであり、productionのcollectorやsanitizer sourceを変更する理由にはしない。
+- Issueの「新しいwrapperを追加しない」はproduction側の重複実装を増やさない意味として扱う。test codeは既存helperのパラメータ化を優先し、必要な小規模helperは同一test file内へ留める。
 - manifest付きfull-wrapper検証とWindows固有runtime検証は必須だが、Issue #145のために`Write-RunManifest()`やGitHub Actionsをcross-platform化しない。
 - 今回はPlan修正までとし、実装、PR作成、mergeは行わない。
