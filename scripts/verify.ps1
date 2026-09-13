@@ -112,6 +112,11 @@ function Test-TemplateContract {
         "tests/repository-contract/validate-skills.test.ts",
         "docs/reference/codex-safety-harness.md",
         "docs/reference/codex-implementation-harness.md",
+        "docs/reference/run-artifacts.md",
+        "docs/reference/repair-loop.md",
+        "docs/reference/harness-improvement-loop.md",
+        "docs/reference/git-branch-safety.md",
+        "docs/reference/agentic-qa-workflow.md",
         "docs/guides/consumer-update.md"
     )
     foreach ($path in $required) {
@@ -120,23 +125,50 @@ function Test-TemplateContract {
         }
     }
 
-    $agents = Get-Content -Raw AGENTS.md
+    $agents = Get-Content -Raw -Encoding UTF8 AGENTS.md
     $plans = Get-Content -Raw PLANS.md
     $review = Get-Content -Raw CODE_REVIEW.md
-    if ($agents -notmatch [regex]::Escape(".agents/skills/feature-plan/SKILL.md")) { throw "AGENTS.md missing feature-plan skill reference" }
-    if ($agents -notmatch [regex]::Escape(".agents/skills/code-review/SKILL.md")) { throw "AGENTS.md missing code-review skill reference" }
-    if ($agents -notmatch [regex]::Escape("docs/reference/codex-safety-harness.md")) { throw "AGENTS.md missing safety harness reference" }
-    if ($agents -notmatch [regex]::Escape("docs/reference/codex-implementation-harness.md")) { throw "AGENTS.md missing implementation harness reference" }
-    if ($agents -notmatch [regex]::Escape("scripts/new-run.sh")) { throw "AGENTS.md missing bash new-run reference" }
-    if ($agents -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "AGENTS.md missing PowerShell new-run reference" }
-    if ($agents -notmatch [regex]::Escape("Report file")) { throw "AGENTS.md missing report policy" }
-    if ($agents -notmatch [regex]::Escape("command-based deletion")) { throw "AGENTS.md missing deletion policy" }
-    if ($agents -notmatch [regex]::Escape("quality_gate_runner")) { throw "AGENTS.md missing quality_gate_runner routing" }
-    if ($agents -notmatch [regex]::Escape("Parent-defined validation")) { throw "AGENTS.md missing Parent-defined validation routing" }
-    if ($agents -notmatch [regex]::Escape("Codex native delegation")) { throw "AGENTS.md missing native delegation policy" }
-    if ($agents -notmatch [regex]::Escape("No child subagent delegation")) { throw "AGENTS.md missing recursive delegation prohibition" }
-    foreach ($researcher in @("code_researcher", "implementation_researcher", "test_investigator")) {
-        if ($agents -notmatch [regex]::Escape($researcher)) { throw "AGENTS.md missing $researcher routing" }
+    if ($agents -match [regex]::Escape("## 0.")) { throw "AGENTS.md still requires unconditional startup reading" }
+    if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
+    foreach ($rootReference in @(
+        ".agents/skills/feature-plan/SKILL.md",
+        ".agents/skills/code-review/SKILL.md",
+        ".agents/skills/repair-loop/SKILL.md",
+        ".agents/skills/harness-improvement/SKILL.md",
+        "docs/reference/repair-loop.md",
+        "docs/reference/harness-improvement-loop.md",
+        "docs/reference/codex-safety-harness.md",
+        "docs/reference/codex-implementation-harness.md",
+        "scripts/new-run.sh",
+        "scripts/new-run.ps1"
+    )) {
+        if ($agents -notmatch [regex]::Escape($rootReference)) { throw "AGENTS.md missing high-level reference: $rootReference" }
+    }
+    foreach ($rootContract in @(
+        "default branch",
+        "command-based deletion",
+        "failure",
+        "baseline",
+        "current diff",
+        "destructive operation",
+        "permission",
+        "credential",
+        "retry",
+        "file-changing task",
+        "Progress:",
+        "Summary",
+        "Evidence",
+        "Codex native delegation",
+        "No child subagent delegation",
+        "Android / Native validation",
+        "L1:",
+        "L2:",
+        "L3:"
+    )) {
+        if ($agents -notmatch [regex]::Escape($rootContract)) { throw "AGENTS.md missing root contract: $rootContract" }
+    }
+    foreach ($removedRootDetail in @("Web CI", "Mobile App CI", "Cross Browser Smoke", "quality_gate_runner", "code_researcher", "Parent-defined validation")) {
+        if ($agents -match [regex]::Escape($removedRootDetail)) { throw "AGENTS.md still contains moved detail: $removedRootDetail" }
     }
     foreach ($agentPath in @(
         ".codex/agents/code_researcher.toml",
@@ -187,7 +219,89 @@ function Test-TemplateContract {
     if ($reviewRef -notmatch [regex]::Escape("Open questions")) { throw "review workflow missing Open questions guidance" }
     if ($reviewRef -notmatch [regex]::Escape("Failure modes")) { throw "review workflow missing Failure modes" }
     if ($reviewRef -notmatch [regex]::Escape("Report file generation policy")) { throw "review workflow missing report file generation policy" }
-    $implementationHarness = Get-Content -Raw docs/reference/codex-implementation-harness.md
+    $implementationHarness = Get-Content -Raw -Encoding UTF8 docs/reference/codex-implementation-harness.md
+    $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
+    $repairPolicy = Get-Content -Raw -Encoding UTF8 docs/reference/repair-loop.md
+    $taskTemplate = Get-Content -Raw -Encoding UTF8 .codex/templates/TASKS.md
+    if ($runArtifacts -notmatch [regex]::Escape("## Progress calculation")) { throw "run-artifacts doc missing basic Progress section" }
+    foreach ($progressContract in @("## Now", "## Discovered", "## Blocked", "Progress: <NN>% (<done>/<total>)", "file-changing task", "### REPORT.md append-only contract")) {
+        if ($runArtifacts -notmatch [regex]::Escape($progressContract)) { throw "run-artifacts doc missing Progress contract: $progressContract" }
+    }
+    foreach ($runArtifactContract in @(
+        "## Run Artifact lifecycle",
+        "Run Directory",
+        "cleanup",
+        ".gitignore",
+        "### Standard and temporary artifacts",
+        "### Past Run changes",
+        "### Run Artifact Path Sanitization",
+        "scripts/sanitize-codex-artifacts.ps1",
+        "Write",
+        "Check",
+        "Unsanitized local absolute paths prevent Run completion",
+        "Credential Redaction"
+    )) {
+        if ($runArtifacts -notmatch [regex]::Escape($runArtifactContract)) { throw "run-artifacts doc missing lifecycle/sanitization contract: $runArtifactContract" }
+    }
+    if ($repairPolicy -match [regex]::Escape("scripts/sanitize-codex-artifacts.ps1")) { throw "repair policy duplicates Run Artifact sanitization implementation details" }
+    if ($repairPolicy -notmatch [regex]::Escape("run-artifacts.md")) { throw "repair policy missing Run Artifact reference" }
+    if ($repairPolicy -match [regex]::Escape("### REPORT.md append-only contract")) { throw "repair policy duplicates Run-local REPORT contract" }
+    foreach ($implementationContract in @(
+        "## Repository file-changing task",
+        "repository working tree",
+        "Git commit",
+        "GitHub metadata",
+        "review-only",
+        "plan-only",
+        "commit / push / PR / CI",
+        "Web CI",
+        "Mobile App CI",
+        "Cross Browser Smoke",
+        "branch protection",
+        "queued",
+        "in_progress",
+        "head",
+        "failure",
+        "polling",
+        "tracked Run Artifact",
+        "CI",
+        "Progress",
+        "manifest field",
+        "TASKS.md"
+    )) {
+        if ($implementationHarness -notmatch [regex]::Escape($implementationContract)) { throw "implementation harness missing file-changing contract: $implementationContract" }
+    }
+    foreach ($repairContract in @(
+        "baseline",
+        "current diff",
+        "shared dependency",
+        "test or CI contract",
+        "execution environment",
+        "safe minimal repair",
+        "current loop",
+        "unrelated status alone",
+        "unsafe",
+        "destructive",
+        "permission",
+        "credential",
+        "irreversible external side effect",
+        "requirement-dependent",
+        "retry stop condition",
+        "causal assessment",
+        "unexecuted checks",
+        "next action"
+    )) {
+        if ($repairPolicy -notmatch [regex]::Escape($repairContract)) { throw "repair policy missing quality-gate contract: $repairContract" }
+    }
+    if ($taskTemplate -match [regex]::Escape("AGENTS.md")) { throw "TASKS template still depends on AGENTS.md details" }
+    foreach ($templateReference in @(
+        "docs/reference/run-artifacts.md",
+        "docs/reference/codex-implementation-harness.md",
+        "docs/reference/repair-loop.md",
+        ".agents/skills/repair-loop/**"
+    )) {
+        if ($taskTemplate -notmatch [regex]::Escape($templateReference)) { throw "TASKS template missing reference: $templateReference" }
+    }
     if ($implementationHarness -notmatch [regex]::Escape("scripts/new-run.sh")) { throw "implementation harness doc missing bash new-run guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "implementation harness doc missing PowerShell new-run guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("--strict-harness")) { throw "implementation harness doc missing strict verify guidance" }
@@ -209,7 +323,7 @@ function Test-TemplateContract {
     if ($changeScope -notmatch [regex]::Escape("expected_missing")) { throw "change-scope doc missing expected_missing guidance" }
     if ($changeScope -notmatch [regex]::Escape("must_be_subset_of_allowed_scope")) { throw "change-scope doc missing allowed scope subset contract" }
     if ($changeScope -notmatch [regex]::Escape("--record-run-manifest")) { throw "change-scope doc missing record-run-manifest guidance" }
-    $runArtifacts = Get-Content -Raw docs/reference/run-artifacts.md
+    $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
     if ($runArtifacts -notmatch [regex]::Escape("run.json")) { throw "run-artifacts doc missing run.json guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("changed_files")) { throw "run-artifacts doc missing changed_files guidance" }
     if ($runArtifacts -notmatch [regex]::Escape(".codex/logs/hooks-")) { throw "run-artifacts doc missing Hook JSONL guidance" }
@@ -217,10 +331,8 @@ function Test-TemplateContract {
     if ($runArtifacts -notmatch [regex]::Escape("--max-iterations")) { throw "run-artifacts doc missing max-iterations guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("repair loop")) { throw "run-artifacts doc missing repair loop guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("collect-run-artifacts")) { throw "run-artifacts doc missing collector guidance" }
-    if ($agents -notmatch [regex]::Escape('actual `.codex/runs/<run_id>/run.json`')) { throw "AGENTS.md missing machine-managed run.json contract" }
-    if ($agents -notmatch [regex]::Escape("active Runに紐づくinteractive実行で")) { throw "AGENTS.md missing active RunId contract" }
     if ($runArtifacts -notmatch [regex]::Escape('### Interactive `codex-safe` manifest sync')) { throw "run-artifacts doc missing interactive sync guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape('process終了や `Stop` Hookだけを理由に')) { throw "run-artifacts doc missing Stop Hook boundary" }
+    if ($runArtifacts -notmatch [regex]::Escape('`Stop` Hook')) { throw "run-artifacts doc missing Stop Hook boundary" }
     $safePowerShell = Get-Content -Raw scripts/codex-safe.ps1
     $safeBash = Get-Content -Raw scripts/codex-safe.sh
     $collectorPython = Get-Content -Raw scripts/collect-run-artifacts.py

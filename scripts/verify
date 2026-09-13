@@ -176,6 +176,8 @@ check_template_contract() {
   [[ -f examples/harness-improvement/harness-improvement-candidates.json ]] || return 1
   [[ -f examples/harness-improvement/harness-improvement-review.md ]] || return 1
   has_change_scope_catalog || return 1
+  ! contains "## 0. 最初に必ず読むもの" AGENTS.md || return 1
+  contains "通常taskの開始時に、root以外の文書を一律で読み込まない。" AGENTS.md || return 1
   contains ".agents/skills/feature-plan/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/code-review/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/repair-loop/SKILL.md" AGENTS.md || return 1
@@ -186,20 +188,94 @@ check_template_contract() {
   contains "docs/reference/codex-implementation-harness.md" AGENTS.md || return 1
   contains "scripts/new-run.sh" AGENTS.md || return 1
   contains "scripts/new-run.ps1" AGENTS.md || return 1
-  contains "run.json" AGENTS.md || return 1
-  contains "Report file" AGENTS.md || return 1
+  contains "default branch" AGENTS.md || return 1
   contains "command-based deletion" AGENTS.md || return 1
-  contains "implementation_worker" AGENTS.md || return 1
-  contains "writable subagent" AGENTS.md || return 1
-  contains "親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後" AGENTS.md || return 1
-  contains "親 agent が明示した対象ファイルだけを最小差分で編集する" AGENTS.md || return 1
-  contains "ファイル削除、rename、移動" AGENTS.md || return 1
-  contains "迷ったら編集せず親 agentに確認事項を返す" AGENTS.md || return 1
-  contains "code_researcher" AGENTS.md || return 1
-  contains "implementation_researcher" AGENTS.md || return 1
-  contains "test_investigator" AGENTS.md || return 1
+  contains "品質ゲートFAIL" AGENTS.md || return 1
+  contains "安全な最小修正" AGENTS.md || return 1
+  contains "file-changing task" AGENTS.md || return 1
+  contains "Progress:" AGENTS.md || return 1
+  contains "Summary" AGENTS.md || return 1
+  contains "Evidence" AGENTS.md || return 1
   contains "Codex native delegation" AGENTS.md || return 1
   contains "No child subagent delegation" AGENTS.md || return 1
+  contains "Android / Native validation" AGENTS.md || return 1
+  contains "L1:" AGENTS.md || return 1
+  contains "L2:" AGENTS.md || return 1
+  contains "L3:" AGENTS.md || return 1
+  ! contains "Web CI" AGENTS.md || return 1
+  ! contains "Mobile App CI" AGENTS.md || return 1
+  ! contains "Cross Browser Smoke" AGENTS.md || return 1
+  ! contains "quality_gate_runner" AGENTS.md || return 1
+  ! contains "code_researcher" AGENTS.md || return 1
+  ! contains "Parent-defined validation" AGENTS.md || return 1
+  contains "## Progress calculation" docs/reference/run-artifacts.md || return 1
+  contains "## Now" docs/reference/run-artifacts.md || return 1
+  contains "## Discovered" docs/reference/run-artifacts.md || return 1
+  contains "## Blocked" docs/reference/run-artifacts.md || return 1
+  contains "Progress: <NN>% (<done>/<total>)" docs/reference/run-artifacts.md || return 1
+  contains "CI確認をProgressへ" docs/reference/run-artifacts.md || return 1
+  contains "file-changing task全体" docs/reference/run-artifacts.md || return 1
+  contains '### REPORT.md append-only contract' docs/reference/run-artifacts.md || return 1
+  contains "## Run Artifact lifecycle" docs/reference/run-artifacts.md || return 1
+  contains "作業完了後もRun Directoryを保存" docs/reference/run-artifacts.md || return 1
+  contains "通常のcleanupや成果物整理だけを理由に削除しません" docs/reference/run-artifacts.md || return 1
+  contains '.codex/runs/`を`.gitignore`へ追加しません' docs/reference/run-artifacts.md || return 1
+  contains "### Standard and temporary artifacts" docs/reference/run-artifacts.md || return 1
+  contains "### Past Run changes" docs/reference/run-artifacts.md || return 1
+  contains "### Run Artifact Path Sanitization" docs/reference/run-artifacts.md || return 1
+  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/run-artifacts.md || return 1
+  contains '`Write`' docs/reference/run-artifacts.md || return 1
+  contains '`Check`' docs/reference/run-artifacts.md || return 1
+  contains "未サニタイズのローカル絶対パス" docs/reference/run-artifacts.md || return 1
+  contains "完了扱いにしません" docs/reference/run-artifacts.md || return 1
+  contains "Credential Redaction" docs/reference/run-artifacts.md || return 1
+  ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  contains "run-artifacts.md" docs/reference/repair-loop.md || return 1
+  ! contains '### REPORT.md append-only contract' docs/reference/repair-loop.md || return 1
+  contains "## Repository file-changing task の完了契約" docs/reference/codex-implementation-harness.md || return 1
+  contains "repository working tree" docs/reference/codex-implementation-harness.md || return 1
+  contains "Git操作を明示的に禁止" docs/reference/codex-implementation-harness.md || return 1
+  contains "GitHub metadataのみ" docs/reference/codex-implementation-harness.md || return 1
+  contains "review-only" docs/reference/codex-implementation-harness.md || return 1
+  contains "plan-only" docs/reference/codex-implementation-harness.md || return 1
+  contains "調査のみ" docs/reference/codex-implementation-harness.md || return 1
+  contains "Web CI" docs/reference/codex-implementation-harness.md || return 1
+  contains "Mobile App CI" docs/reference/codex-implementation-harness.md || return 1
+  contains "Cross Browser Smoke" docs/reference/codex-implementation-harness.md || return 1
+  contains "branch protection" docs/reference/codex-implementation-harness.md || return 1
+  contains "queued" docs/reference/codex-implementation-harness.md || return 1
+  contains "in_progress" docs/reference/codex-implementation-harness.md || return 1
+  contains "最新commit" docs/reference/codex-implementation-harness.md || return 1
+  contains "失敗" docs/reference/codex-implementation-harness.md || return 1
+  contains "無制限polling" docs/reference/codex-implementation-harness.md || return 1
+  contains "tracked Run Artifact" docs/reference/codex-implementation-harness.md || return 1
+  contains "CI確認1件" docs/reference/codex-implementation-harness.md || return 1
+  contains "checkboxによるProgress" docs/reference/codex-implementation-harness.md || return 1
+  contains "manifest field" docs/reference/codex-implementation-harness.md || return 1
+  contains "再確認" docs/reference/codex-implementation-harness.md || return 1
+  contains "baseline" docs/reference/repair-loop.md || return 1
+  contains "current diff" docs/reference/repair-loop.md || return 1
+  contains "shared dependency" docs/reference/repair-loop.md || return 1
+  contains "test or CI contract" docs/reference/repair-loop.md || return 1
+  contains "execution environment" docs/reference/repair-loop.md || return 1
+  contains "safe minimal repair" docs/reference/repair-loop.md || return 1
+  contains "current loop" docs/reference/repair-loop.md || return 1
+  contains "unrelated status alone" docs/reference/repair-loop.md || return 1
+  contains "unsafe" docs/reference/repair-loop.md || return 1
+  contains "destructive" docs/reference/repair-loop.md || return 1
+  contains "permission" docs/reference/repair-loop.md || return 1
+  contains "credential" docs/reference/repair-loop.md || return 1
+  contains "irreversible external side effect" docs/reference/repair-loop.md || return 1
+  contains "requirement-dependent" docs/reference/repair-loop.md || return 1
+  contains "retry stop condition" docs/reference/repair-loop.md || return 1
+  contains "causal assessment" docs/reference/repair-loop.md || return 1
+  contains "unexecuted checks" docs/reference/repair-loop.md || return 1
+  contains "next action" docs/reference/repair-loop.md || return 1
+  ! contains "AGENTS.md" .codex/templates/TASKS.md || return 1
+  contains "docs/reference/run-artifacts.md" .codex/templates/TASKS.md || return 1
+  contains "docs/reference/codex-implementation-harness.md" .codex/templates/TASKS.md || return 1
+  contains "docs/reference/repair-loop.md" .codex/templates/TASKS.md || return 1
+  contains ".agents/skills/repair-loop/**" .codex/templates/TASKS.md || return 1
   contains ".agents/skills/feature-plan/assets/plan-template.md" PLANS.md || return 1
   contains "docs/plans/" PLANS.md || return 1
   contains "active Run" PLANS.md || return 1
@@ -287,9 +363,6 @@ check_template_contract() {
   contains "source code、test code、docsを修正しない" .codex/agents/quality_gate_runner.toml || return 1
   contains "Git mutation" .codex/agents/quality_gate_runner.toml || return 1
   contains "追加の subagent を起動しない" .codex/agents/quality_gate_runner.toml || return 1
-  contains "Parent-defined validation" AGENTS.md || return 1
-  contains "Codex native delegation" AGENTS.md || return 1
-  contains "quality_gate_runner" AGENTS.md || return 1
   contains "run.json" docs/reference/run-artifacts.md || return 1
   contains "evaluation.json" docs/reference/run-artifacts.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1
@@ -297,8 +370,6 @@ check_template_contract() {
   contains ".codex/logs/hooks-" docs/reference/run-artifacts.md || return 1
   contains "checkpoint" docs/reference/run-artifacts.md || return 1
   contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
-  contains 'actual `.codex/runs/<run_id>/run.json`' AGENTS.md || return 1
-  contains 'active Runに紐づくinteractive実行で' AGENTS.md || return 1
   contains '### Interactive `codex-safe` manifest sync' docs/reference/run-artifacts.md || return 1
   contains 'process終了や `Stop` Hookだけを理由に' docs/reference/run-artifacts.md || return 1
   contains 'Run directory not found' scripts/codex-safe.ps1 || return 1
@@ -397,15 +468,16 @@ check_template_contract() {
   contains "passed_with_warnings" docs/reference/codex-implementation-harness.md || return 1
   contains ".codex/logs/hooks-" docs/reference/codex-implementation-harness.md || return 1
   contains "REPORT" docs/reference/codex-implementation-harness.md || return 1
-  contains "Delegation" AGENTS.md || return 1
+  contains "delegation" AGENTS.md || return 1
   contains "stop_hook_active" .codex/hooks/log_event.mjs || return 1
   contains "evidence_refs" docs/reference/evaluation.md || return 1
   contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
   contains "Repository-side contracts" docs/reference/repair-loop.md || return 1
   contains "allowed_files" docs/reference/repair-loop.md || return 1
   contains "unsafe" docs/reference/repair-loop.md || return 1
-  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
-  contains "REPORT.md" docs/reference/repair-loop.md || return 1
+  ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  contains "run-artifacts.md" docs/reference/repair-loop.md || return 1
+  contains "REPORT.md" docs/reference/run-artifacts.md || return 1
   contains "failure taxonomy" docs/reference/repair-loop.md || return 1
   contains "target catalog" docs/reference/harness-improvement-loop.md || return 1
   contains "Strictness mapping" docs/reference/harness-improvement-loop.md || return 1
