@@ -95,6 +95,27 @@
   - Parent decision: scope／artifact gate PASSとしてcommit準備へ進む。
 - Progress: 78% (7/9)
 
+## 2026-09-13 09:31 (JST)
+
+- Summary:
+  - OTel修正と新repair Runをcommitし、対象PR branchへ通常pushした。
+- Changes:
+  - commit `46ce3b21e8237aba25f16f4122115d720023a3c9`（`fix: Trigger EvalのOTel評価をHook I/Oから分離する`）を作成した。
+  - `git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`でremote branchを更新した。
+- Decision / Rationale:
+  - commit／push直前のcurrent branchは`refactor/117-pr2-trigger-eval-baseline`で、PR #127のhead branchと一致していた。
+  - force push、rebase、merge、close、branch削除は行っていない。
+- Validation:
+  - push前にworking tree、branch -vv、PR head、staged diffを照合した。
+  - local source／Run Artifact gatesは前checkpointのとおりPASSした。
+- Blocker / Remaining:
+  - push後のlocal／remote／PR head照合、PRタイトル／本文更新、最新headのWeb CI／Mobile App CI終端確認が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: task 8を完了し、PR metadata／CI確認へ進む。
+- Progress: 89% (8/9)
+
 - Summary:
 - Changes:
 - Decision / Rationale:
