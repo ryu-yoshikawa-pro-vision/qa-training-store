@@ -14,12 +14,12 @@
 
 主に次を参照します。
 
-- `/guide`
-- [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / AC
-- `src/seeds/metadata.ts`
-- Storefront / Customer / Adminの各画面
-- `e2e/web/phase1-required.spec.ts`
-- `maestro/`
+- [`docs/spec/README.md`](../../spec/README.md)と対象FeatureのBR / AC
+- [`docs/spec/state-and-scenarios.md`](../../spec/state-and-scenarios.md)
+- 必要な節だけの[`docs/07_testability/seed_catalog.md`](../../07_testability/seed_catalog.md)
+- `/guide`とStorefront / Customer / Adminの各画面
+
+`src/seeds/metadata.ts`、`e2e/web/phase1-required.spec.ts`、`maestro/`は、仕様・状態・観察結果を整理した後に、実装上のIDや既存資産を照合するためのReferenceです。P1-2 / P1-3の最初の期待結果を実装から逆算しません。
 
 既存テストコードは、最初の分析・設計が終わるまでは正解として参照しません。
 
@@ -90,124 +90,20 @@ Test Case IDの形式は[Training Workbook README](../../../training/workbook/RE
 - どの程度重要か。
 - 自動化に向くか。
 
-## 設計ビュー（CSVへ記録する観点）
+## 4つのCSVへ記録する観点
 
-教材では次のSheet構成を基本とします。
+このWorkbookで作成・更新するCanonicalな成果物は4つのCSVです。画面分析、リスク、テスト観点、実装、実行、改善を別の必須シートへ分けません。各観点は次の列へ記録します。
 
-### `01_テスト対象分析`
+| 観点 | 記録先 | 主な内容 |
+| --- | --- | --- |
+| 対象・Risk | `01_target-risk.csv` | 対象、Spec、BR / AC、Risk、Impact、Likelihood、Priority |
+| 条件・設計 | `02_test-cases.csv` | Test Case、Risk、前提、条件、期待結果、設計技法 |
+| 自動化判断・実装 | `03_automation-mapping.csv` | Automate / Later / Do not automate、Layer、Tool、実装Path、理由 |
+| 実行・改善 | `04_execution-improvement.csv` | Run Context、Result、Evidence、Failure分類、原因、対応、改善 |
 
-| 項目 | 内容 |
-| --- | --- |
-| 対象領域 | Storefront / Cart / Checkoutなど |
-| 機能 | 商品追加、数量変更など |
-| Role | Guest / customer / operator / admin |
-| 状態 | 通常、在庫切れ、低在庫など |
-| 入力 | 商品、数量、支払方法など |
-| 出力 | UI表示、Order状態など |
-| 関連データ | Cart、Inventory、Orderなど |
-| 依存 | Login、Seed、Test Clockなど |
+Test Layerは「どの層でRiskを確認するか」、Toolは「その層を何で実行するか」を表します。Part 1では実行頻度の本格設計は行わず、Part 2でCIのTriggerとともに考えます。
 
-### `02_リスク分析`
-
-| 項目 | 内容 |
-| --- | --- |
-| Risk ID | 一意な識別子 |
-| 対象 | Cart / Paymentなど |
-| 失敗内容 | 何が壊れるか |
-| 影響 | User / Businessへの影響 |
-| 発生可能性 | High / Medium / Low |
-| 重要度 | High / Medium / Low |
-| 優先確認 | Yes / No |
-
-### `03_テスト観点`
-
-代表的な観点を整理します。
-
-- 正常系
-- 異常系
-- 境界値
-- 状態遷移
-- Role / 権限
-- 入力Validation
-- Error handling
-- Persistence
-- Responsive
-- Accessibility
-- Cross-browser
-
-「観点を列挙して終わり」ではなく、後述する設計技法を使って具体的な条件へ変換します。
-
-### `04_テストケース`
-
-| Column | 例 |
-| --- | --- |
-| Test Case ID | `TC-CART-001` |
-| 対象機能 | Cart追加 |
-| Risk ID | `RISK-CART-001` |
-| テスト条件 | 在庫あり商品をGuestが追加する |
-| 初期状態 | `default` |
-| 主操作 | 商品詳細からCart追加 |
-| 期待結果 | Cartへ1件追加される |
-| 設計技法 | 同値分割 / 境界値 / 状態遷移など |
-| 種別 | 正常系 |
-| 優先度 | High |
-| Regression | Yes |
-
-### `05_自動化候補`
-
-| Column | 内容 |
-| --- | --- |
-| Test Case ID | テストケースとの紐付け |
-| Test Layer | Unit / Integration / Repository Contract / Component / Web E2E / Native E2E |
-| 自動化 | Yes / No / Later |
-| Tool候補 | Vitest / Jest / Playwright / Maestroなど |
-| 理由 | 頻度、再現性、重要度など |
-| 実行頻度 | PR / main / Nightly / Manual候補 |
-| 備考 | 自動化上の制約 |
-
-Test Layerは「どの層でRiskを確認するか」、Tool候補は「その層をどのFramework / Toolで実行するか」を表します。例えばUnitをTool名として記録せず、UnitをTest Layer、VitestなどをTool候補として分けます。
-
-Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの本格設計はPart 2で学びます。
-
-### `06_自動化対応表`
-
-| Column | 内容 |
-| --- | --- |
-| Test Case ID | `TC-CART-001` |
-| Test Layer | Unit / Integration / Repository Contract / Component / Web E2E / Native E2E |
-| Platform | Shared / Web / Android / iOS |
-| Tool | Vitest / Jest / Playwright / Maestro / Other |
-| 実装 | spec / test / YAML path |
-| Status | Not Started / Automated / Needs Fix |
-| 備考 | 実装差分、制約など |
-
-`05_自動化候補`で選んだTest LayerとTool候補を、実装後もTest Case ID単位で追跡できるようにします。UI E2Eだけでなく、下位層へ配置したCaseも対応関係を失わないことが目的です。
-
-### `07_実行結果`
-
-学習用の簡易実行記録として使用します。
-
-- 実行日
-- Test Case ID
-- Platform
-- Result
-- Failure分類
-- Evidence
-- Issue / Memo
-
-CI導入後はGitHub Actionsが実行履歴の主要な正本になります。スプレッドシートへすべてのCI実行を手作業で転記する運用は推奨しません。
-
-### `08_改善管理`
-
-- Flaky
-- Locator変更頻発
-- 重複処理
-- Test Data依存
-- 実行時間
-- 不要テスト
-- Regression分類見直し
-
-など、運用フェーズの改善項目を管理します。
+観点を列挙しただけで終わらせず、同値分割、境界値、デシジョンテーブル、状態遷移などを使って、CSVのテスト条件と期待結果へ変換します。実行時のEvidenceは後から追える参照を記録し、未実行の行へ予定Pathを入れません。
 
 ## テスト条件を導出する技法
 
@@ -341,16 +237,16 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 
 | Test Case ID | 条件 | 初期状態 | 設計根拠 | 期待結果 |
 | --- | --- | --- | --- | --- |
-| TC-CART-001 | 在庫あり商品を追加 | default | 正常系 | Cartへ追加される |
-| TC-CART-002 | 在庫切れ商品を追加 | out-of-stock | 状態分割 | 追加できない |
-| TC-CART-003 | 購入上限を超える | default | 境界値 | 上限超過が拒否される |
-| TC-CART-004 | 商品を削除 | default | 状態遷移 | Empty Stateになる |
+| TC-CART-001 | 同一SKUを上限まで追加した後、さらに追加する | default | 境界値 / 状態遷移 | 追加が拒否され、既存数量が維持される |
+| TC-CART-002 | 購入不可明細を含むCartからCheckoutへ進む | cart-with-invalid-items + customer Login | 状態再検証 | 購入不可理由が表示され、Checkoutへ進めない |
 
 ケース数を増やすことより、なぜその条件が必要かを説明できることを重視します。
 
 ## 演習3: 自動化対象を選ぶ
 
 各ケースについて、次の観点から自動化可否を判断します。
+
+判断結果は `03_automation-mapping.csv` の `automation_decision` へ `Automate` / `Later` / `Do not automate` のいずれかで記録します。デシジョンテーブルやRole Matrixにある `Yes` / `No` は条件値の例であり、この列へ入力する値ではありません。
 
 - 繰り返し実行するか。
 - 結果が機械的に判定できるか。

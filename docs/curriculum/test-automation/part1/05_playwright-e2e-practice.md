@@ -5,7 +5,7 @@
 - スプレッドシートで設計したテスト条件をPlaywrightへ実装できる。
 - 正常系だけでなく、異常系、境界値、Role差分、状態遷移をE2Eへ落とせる。
 - Seed Scenario / Resetを利用して再現可能なテストを作れる。
-- UIだけでなく、必要に応じてTest APIや内部状態Inspectionを組み合わせて検証できる。
+- UIの期待結果と、必要な場合に内部状態を確認するExtensionの違いを説明できる。
 - Desktop / Mobile Web、Accessibilityなど異なる品質観点を理解できる。
 
 ## 教材
@@ -15,14 +15,14 @@
 主な参照先:
 
 - [`docs/spec/features/cart.md`](../../../spec/features/cart.md)
+- [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md)
 - `training/playwright/baseline/training-baseline.spec.ts`
 - `training/playwright/exercises/`
+- `training/playwright/support/reset-scenario.ts`
 - `e2e/web/phase1-required.spec.ts`（Formal比較教材）
 - `e2e/web/mobile-boundary.spec.ts`
 - `e2e/web/accessibility.spec.ts`
 - `e2e/web/cross-role-lifecycle.spec.ts`
-- `src/seeds/metadata.ts`
-- `window.__TEST_API__`
 
 `e2e/web/fixtures.ts` はこの段階では内部実装を読み解く教材にしません。Seed Scenario ResetやEvidence収集はTraining Test Harnessが提供する機能として利用し、Fixtureの責務・共通化・内部設計はPart 1-8で扱います。
 
@@ -36,7 +36,7 @@ Training環境には最低限、次が必要です。
 
 - Training用specを `training/playwright/`へ保存できる。
 - `training-chromium` / `training-mobile-chromium`を明示的に実行できる。
-- Scenario ShopのAutomation Build / Test APIを利用できる。
+- Scenario ShopのTraining Harnessを利用できる。
 - Seed ScenarioをResetできるTest Harnessを利用できる。
 - Failure時にTrace、Screenshot、Videoなどを確認できる。
 - Training用変更が正式Regressionの必須Suiteへ意図せず混入しない。
@@ -65,9 +65,9 @@ Test Case ID
 
 ```text
 TC-CART-002
-前提: out-of-stock Seed Scenario
-操作: 商品をCartへ追加
-期待: 追加が拒否される
+前提: cart-with-invalid-itemsへResetし、regular@example.comでLoginする
+操作: CartからCheckoutの入口を確認する
+期待: 購入不可明細の理由が表示され、Checkoutへ進めない
 ```
 
 ここからPlaywright Testを作成します。
@@ -87,7 +87,16 @@ Scenario Shopには、テスト開始状態を再現するためのSeed Scenario
 - `payment-declined`
 - `cart-version-invalidates-checkout`
 
-Training Testでは、教材側が提供するTest Harnessを使って必要なSeed ScenarioへResetします。
+Training Testでは、教材側が提供する`resetScenario(page, "<scenario>")`を使って必要なSeed ScenarioへResetします。受講者は`page.evaluate()`、`window.__TEST_API__`、正式RegressionのFixture内部を実装しません。
+
+### Testの分離と製品データのReset
+
+PlaywrightのBrowserContext分離とScenario Shop固有のResetは別の責務です。
+
+- **BrowserContext分離**: TestごとにCookie、`localStorage`、`sessionStorage`などのBrowser状態を分け、前のTestの認証やBrowser状態へ依存しないようにします。
+- **Scenario Reset**: 在庫、Cart、Account、Clockなどの製品データを指定Scenarioへ戻します。
+
+BrowserContextだけでは製品データの初期状態は作れず、Scenario ResetだけではBrowser状態の分離を代替できません。両方を使って再現可能なTestを作ります。
 
 この段階で重要なのは、Fixtureの実装方法ではなく次を理解することです。
 
@@ -204,8 +213,11 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 必須:
 
 - 正常追加
-- 在庫切れまたは購入上限
+- 購入上限の境界値（`TC-CART-001`）
+- 購入不可明細からのCheckout阻止（`TC-CART-002`）
 - 削除または数量変更
+
+在庫切れ（`out-of-stock`）を追加練習にする場合は、Workbookの`TC-CART-002`を流用せず、別のTest Case IDで記録します。
 
 各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
 

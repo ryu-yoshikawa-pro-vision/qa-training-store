@@ -61,7 +61,63 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
+dismiss_launcher_anr_dialog() {
+  local launcher_anr_text="Pixel Launcher isn't responding"
+  local close_bounds=""
+  local ui_dump=""
+
+  for attempt in $(seq 1 3); do
+    set +e
+    ui_dump="$(timeout 15 "$ADB_BIN" exec-out uiautomator dump /dev/tty 2>/dev/null)"
+    dump_status=$?
+    set -e
+    if [[ "$dump_status" -ne 0 ]]; then
+      echo "Unable to inspect Android UI hierarchy for launcher dialog (status=$dump_status)." >&2
+      return "$dump_status"
+    fi
+    if [[ "$ui_dump" != *"$launcher_anr_text"* ]]; then
+      echo "No Pixel Launcher ANR dialog is present before Maestro launch."
+      return 0
+    fi
+
+    close_bounds="$(
+      printf '%s\n' "$ui_dump" |
+        sed -n 's/.*text="Close app".*bounds="\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]".*/\1 \2 \3 \4/p' |
+        head -n 1
+    )"
+    if [[ -z "$close_bounds" ]]; then
+      echo "Pixel Launcher ANR dialog was detected, but its Close app bounds were not found." >&2
+      return 1
+    fi
+
+    read -r left top right bottom <<< "$close_bounds"
+    tap_x=$(( (left + right) / 2 ))
+    tap_y=$(( (top + bottom) / 2 ))
+    echo "Dismissing Pixel Launcher ANR dialog at ($tap_x,$tap_y), inspection $attempt/3."
+    timeout 15 "$ADB_BIN" shell input tap "$tap_x" "$tap_y"
+    sleep 1
+    if [[ "$attempt" -eq 3 ]]; then
+      set +e
+      ui_dump="$(timeout 15 "$ADB_BIN" exec-out uiautomator dump /dev/tty 2>/dev/null)"
+      dump_status=$?
+      set -e
+      if [[ "$dump_status" -ne 0 ]]; then
+        echo "Unable to verify Android UI hierarchy after final launcher dialog dismissal (status=$dump_status)." >&2
+        return "$dump_status"
+      fi
+      if [[ "$ui_dump" != *"$launcher_anr_text"* ]]; then
+        echo "Pixel Launcher ANR dialog dismissed after the final bounded attempt."
+        return 0
+      fi
+    fi
+  done
+
+  echo "Pixel Launcher ANR dialog remained after bounded dismissal attempts." >&2
+  return 1
+}
+
 echo "Preparing Android application state before Maestro launch."
+dismiss_launcher_anr_dialog
 timeout 30 "$ADB_BIN" shell am force-stop "$PACKAGE_ID"
 pm_clear_output="$(timeout 60 "$ADB_BIN" shell pm clear "$PACKAGE_ID" | tr -d '\r')"
 if [[ "$pm_clear_output" != *Success* ]]; then

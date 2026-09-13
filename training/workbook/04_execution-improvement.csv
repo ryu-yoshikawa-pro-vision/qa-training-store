@@ -1,2 +1,5 @@
 test_case_id,run_context,result,evidence,failure_category,cause,action,improvement
-TC-CART-001,Training Web baseline,Not run,,,,条件とEvidenceを追加して実行する,Failureを分類できるEvidenceを残す
+TC-CART-001,Training Web exercise,Not run,,,,,
+TC-CART-002,Training Web exercise,Not run,,,,,
+TC-CART-001,Training Web diagnostic initial,Not run,,,,,
+TC-CART-001,Training Web diagnostic repaired,Not run,,,,,

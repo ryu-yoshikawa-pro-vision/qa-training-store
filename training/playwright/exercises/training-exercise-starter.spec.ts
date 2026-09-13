@@ -1,7 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
+import { resetScenario } from "../support/reset-scenario";
 
-test("starter exercise: identify the catalog result", async ({ page }) => {
+test("starter exercise: implement a risk-based catalog check", async ({ page }) => {
+  await resetScenario(page, "default");
   await page.goto("/products");
-  // Learners add a risk-based assertion here after completing the Workbook.
-  await expect(page.locator('a[href^="/products/"]:visible').first()).toBeVisible();
+  // Learners add the Workbook condition, meaningful Locator, and Assertion here.
 });

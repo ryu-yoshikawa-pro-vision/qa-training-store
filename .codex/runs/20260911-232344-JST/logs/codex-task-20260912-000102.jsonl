@@ -1,0 +1,7 @@
+{"timestamp":"2026-09-12T00:01:06.8611374+09:00","event":"wrapper_start","runtime":"host","run_id":"20260911-232344-JST","preset":"safe"}
+{"timestamp":"2026-09-12T00:01:10.3531868+09:00","event":"preflight_start"}
+{"timestamp":"2026-09-12T00:01:15.6032140+09:00","event":"preflight_ok"}
+{"timestamp":"2026-09-12T00:01:15.6512172+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260911-232344-JST\\artifacts\\codex-task-20260912-000102.json"}
+{"timestamp":"2026-09-12T00:04:45.3697335+09:00","event":"codex_exec_exit","exit_code":0}
+{"timestamp":"2026-09-12T00:04:48.6247807+09:00","event":"verify_start","command":"node_modules/.bin/tsx.cmd scripts/validate-curriculum.ts"}
+{"timestamp":"2026-09-12T00:04:50.9237643+09:00","event":"verify_exit","exit_code":["Curriculum validation passed: 22 required documents, 4 workbook files, training-chromium / training-mobile-chromium.",0]}

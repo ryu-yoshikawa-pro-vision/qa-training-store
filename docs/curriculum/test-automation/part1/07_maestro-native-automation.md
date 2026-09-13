@@ -28,117 +28,15 @@
 - Native Stable UI Test ID
 - `scenario-shop://` Deep Link
 
-## Part 1での標準実行環境
+## 学習順序
 
-P1-6までのCommon学習を終え、Native specializationを選択した受講者を対象にします。ここで必要なNative環境条件は、Common completionの前提ではなく、このspecializationの具体的な開始条件です。
+このLessonは、概念とFlowの下書きを先に学び、端末準備が整った後に実行します。
 
-Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
-
-Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
-
-理由は次です。
-
-- iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
-- Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
-- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
-- Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
-
-Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
-
-### Android Physical Device Start Gate
-
-Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
-
-RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
-
-複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
-
-```powershell
-adb devices -l
-$serial = "<physical-device-serial>"
-$runId = "<run-id>"
-```
-
-出力が次のように`device`であることを確認します。
-
-```text
-<physical-device-serial>    device usb:... product:... model:...
-```
-
-`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
-
-Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
-
-```powershell
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Doctor `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -RunId $runId
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Prepare `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -RunId $runId
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Build `
-  -DeviceSerial $serial `
-  -Architecture Auto `
-  -RequirePhysicalDevice `
-  -RunId $runId
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Install `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -RunId $runId
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Smoke `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -RunId $runId
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Test `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -Flow "maestro/native-test-control.yaml" `
-  -RunId $runId
-
-$env:QA_TRAINING_ANDROID_SERIAL = $serial
-$env:TARGET_SERIAL = $serial
-$env:ANDROID_SERIAL = $serial
-$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
-pnpm run training:native:baseline
-
-$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-exercise"
-pnpm run training:native:exercise
-
-& .\scripts\native\windows\android-local.ps1 `
-  -Action Evidence `
-  -DeviceSerial $serial `
-  -RequirePhysicalDevice `
-  -RunId $runId
-```
-
-Native helperの全Action、Training Maestro baseline、exerciseは、同じ`$runId`と`$serial`を使用します。BaselineのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`、exerciseのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-exercise/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
-
-### Native learner exerciseのcanonical entry
-
-Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml` です。`pnpm run training:native:exercise`はこのentryを実行します。PR5ではCurrent YAMLのScreenshot action、baseline `runFlow`、starter assertionを変更しません。
-
-Training CopyでC08用の成果物を作るときは、canonical entry自体を直接extendするか、learner-authored subflowを追加してcanonical entryから`runFlow`等で到達させます。`training:native:exercise`から到達しないunreferenced sibling YAMLを追加しただけでは、C08 successful execution evidenceにはしません。
-
-この1回の実行は `1 runId = 1 baseline → exercise → Evidence attempt` として扱います。baseline、exercise、Evidenceでは同じ`$serial`と`$runId`を使い、exercise前にdevice discoveryをやり直しません。retryで新しいattemptを始める場合は、新しい`$runId`を採番してbaseline → exercise → Evidenceを揃えます。
-
-Localでsuccessful exercise evidenceと判定するには、同じattemptで `pnpm run training:native:exercise` がexit code `0`で終了し、`.artifacts/native-local/$runId/maestro/training-exercise/training-native-exercise.xml`が存在することを確認します。Failure時に残るpartial outputやdiagnostic Artifactの存在だけではcompletionのEvidenceにしません。
-
-`-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
-
-`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
+1. Maestro、YAML、Flow、Action、Assertionを理解する。
+2. `launchApp`、`tapOn`、`inputText`、安定したUI Test ID、待機、スクロール、`runFlow`を読む・下書きする。
+3. Deep Link、Test Control、Scenario Resetで初期状態を決める。
+4. Android実機、JDK、SDK、ADB、Maestroを準備し、基準確認を行う。
+5. 受講者が作成したFlowを正式な演習入口から実行し、Evidenceを確認する。
 
 ## Lesson 1: Maestroとは
 
@@ -289,6 +187,118 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分とBuild-only保証
 | 実行環境 | Browser | Physical Android device（Windows Local） / Emulator（GitHub Native CI） / Simulator（任意比較） |
 
 どちらかへ統一することではなく、対象に適したToolを選びます。
+
+## 実機 / ツールチェーン準備（概念を学んだ後）
+
+P1-6までのCommon学習を終え、Native specializationを選択した受講者を対象にします。ここで必要なNative環境条件は、Common completionの前提ではなく、このspecializationの具体的な開始条件です。
+
+Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
+
+Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
+
+理由は次です。
+
+- iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
+- Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
+- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
+- Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
+
+Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
+
+### Android Physical Device Start Gate
+
+Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
+
+RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
+
+複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
+
+```powershell
+adb devices -l
+$serial = "<physical-device-serial>"
+$runId = "<run-id>"
+```
+
+出力が次のように`device`であることを確認します。
+
+```text
+<physical-device-serial>    device usb:... product:... model:...
+```
+
+`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
+
+Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
+
+```powershell
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Doctor `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Prepare `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Build `
+  -DeviceSerial $serial `
+  -Architecture Auto `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Install `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Smoke `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Test `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -Flow "maestro/native-test-control.yaml" `
+  -RunId $runId
+
+$env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:TARGET_SERIAL = $serial
+$env:ANDROID_SERIAL = $serial
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
+pnpm run training:native:baseline
+
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-exercise"
+pnpm run training:native:exercise
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Evidence `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+```
+
+Native helperの全Action、Training Maestro baseline、exerciseは、同じ`$runId`と`$serial`を使用します。BaselineのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`、exerciseのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-exercise/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
+
+### Native learner exerciseのcanonical entry
+
+Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml` です。`pnpm run training:native:exercise`はこのentryを実行します。初期ファイルはbaselineへ到達する構成を保ち、受講者がテスト条件に対応するActionとAssertionを追加します。
+
+Training CopyでC08用の成果物を作るときは、canonical entry自体を直接extendするか、learner-authored subflowを追加してcanonical entryから`runFlow`等で到達させます。`training:native:exercise`から到達しないunreferenced sibling YAMLを追加しただけでは、C08 successful execution evidenceにはしません。
+
+この1回の実行は `1 runId = 1 baseline → exercise → Evidence attempt` として扱います。baseline、exercise、Evidenceでは同じ`$serial`と`$runId`を使い、exercise前にdevice discoveryをやり直しません。retryで新しいattemptを始める場合は、新しい`$runId`を採番してbaseline → exercise → Evidenceを揃えます。
+
+Localでsuccessful exercise evidenceと判定するには、同じattemptで `pnpm run training:native:exercise` がexit code `0`で終了し、`.artifacts/native-local/$runId/maestro/training-exercise/training-native-exercise.xml`が存在することを確認します。Failure時に残るpartial outputやdiagnostic Artifactの存在だけではcompletionのEvidenceにしません。
+
+`-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
+
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
 
 ## ハンズオン1: Native Cart Flow
 
