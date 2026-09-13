@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-083242-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "公式仕様確認、Codex 0.153.4でのOTel送信実測、最大3件の診断probe、A/B/C/Dの判断、新しい日本語Plan、実装範囲・tests・Qualification・停止条件の確定まで完了した。診断probeはQualificationやbaselineではないため、未実行のPositive、canonical、8/8、valid baselineは今回の未完了事項ではない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "21. 完了条件",
+          "summary": "OTel観測契約と次回実装・Qualificationの完了条件を記録している。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-083242-JST/probe-summary.md",
+          "selector": "## Probe結果",
+          "summary": "3件の診断probeの比較結果をsanitized summaryとして保存している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "tracked変更は新しいPlan、Run Artifact、evaluationに限定し、Trigger Eval source、tests、ADR、dataset、query、Skill、Hook、tracked config、timeout、dependencyを変更していない。OTel設定、receiver、Routing Targetは診断用の一時artifactに閉じた。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-083242-JST/probe-summary.md",
+          "selector": "## Data handling",
+          "summary": "raw OTLP bodyを.artifactsへ限定し、tracked Run Artifactへsanitized summaryだけを残した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "ExplicitとNegativeではprocess、collector、JSON parse、OTel payloadの相関が成立した。Implicitは固定CASE_TIMEOUT_MS超過後に停止し、graceful flushとtrusted terminalを確認できなかった。実装後のfocused test、full verify、Qualificationは今回のscope外で未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-otel-probe-20260911/implicit/meta.json",
+          "selector": "status / exit_code / duration_ms",
+          "summary": "Implicitは固定上限超過後の診断停止で、trusted terminalなしと記録している。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-083242-JST/probe-summary.md",
+          "selector": "## Probe結果",
+          "summary": "caseごとのOTel、process、receiver/flush判定を比較している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "診断query、dataset、Skill、Hook、Targetのtracked内容を変更せず、実行後のretry、query tuning、別Target交換、Qualification、canonical、baseline取得を行わなかった。raw telemetryをtrackedへ保存せず、認証情報の複製・変更も行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-083242-JST/probe-summary.md",
+          "selector": "## Data handling",
+          "summary": "raw telemetryの保存境界と機密情報を保存しない方針を記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "新Planに公式仕様、実測、属性、順序、failure semantics、Result schema、8/8、comparison、file scope、処理経路、tests、Qualification、停止条件を記録し、sanitized probe summaryからcase-local evidenceへ相対参照できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "11. 採用する観測契約",
+          "summary": "0 / 1 / 2以上のcanonical Skill集合とfail-close条件を定義している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "shell表記ごとのregex追加ではなく、case-local OTel observerと既存Result schema 2へのbounded mappingを次回実装範囲へ固定した。Hook parserは診断・旧artifact互換用に残し、security policy parserとの共通化や一般shell parserは対象外とした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-11_092746_trigger-eval-otel-observation-contract.md",
+          "selector": "14. 実装対象fileと非対象file",
+          "summary": "変更対象と変更しない対象を明示している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Codex version、Routing SHA、case-local endpoint、PID、query hash、receiver request、Target preflightを分離して保存した。一方、Implicitはtimeoutで完了証跡がなく、fresh Targetではproject trustが成立せずHook相関も再現できなかったため、3probe全てをtrusted routing outcomeへ昇格していない。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-otel-probe-20260911/target-preflight.json",
+          "selector": "routing_source_git_sha / hook_correlation",
+          "summary": "fresh TargetのidentityとHook capability limitationを記録している。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260911-083242-JST/probe-summary.md",
+          "selector": "## Probe結果",
+          "summary": "Implicitのunobservable判定とExplicit/Negativeの成立条件を分離している。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "Implicit probeは固定CASE_TIMEOUT_MS=327000を超過後に診断停止となり、exit 1でtrusted terminalとgraceful flushを確認できなかった。またfresh Targetではproject trustが永続化されず、3probeともHook recordが生成されなかった。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-otel-probe-20260911/implicit/meta.json",
+          "selector": "status / exit_code / duration_ms",
+          "summary": "Implicitの固定上限超過後停止を記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-otel-probe-20260911/hook-observation.jsonl",
+          "selector": "case=explicit|implicit|negative",
+          "summary": "全caseでHook correlation unavailableを記録している。"
+        }
+      ],
+      "detail": "OTel自体はExplicitでcanonical Skill identity、Negativeでparse成功を伴う0件候補を提供したため、OTel不適格とは結論しない。ただしprocess lifecycle、flush、Hook capability limitationはrouting evidenceの成立条件と分離し、ImplicitをQualification PASSやNegative absenceへ補完しない。"
+    }
+  ],
+  "improvement_candidates": []
+}

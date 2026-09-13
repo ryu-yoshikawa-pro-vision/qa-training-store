@@ -32,7 +32,7 @@ Native Customer Scenarioは `NATIVE_CUSTOMER_SCENARIOS` に限定します。Nat
 
 ## Canonical Sources
 
-State Typeは `src/domain/contracts/entities.ts`、遷移Policyは `src/domain/policies/state-transitions.ts`、Reset Protocolは `src/test-controls/`、Native Scenario Allowlistは `src/seeds/metadata.ts`、Web Test Controlは `src/test-controls/` と `e2e/fixtures/`を参照してください。
+State Typeは `src/domain/contracts/entities.ts`、遷移Policyは `src/domain/policies/state-transitions.ts`、Reset Protocolは `src/test-controls/`、Native Scenario Allowlistは `src/seeds/metadata.ts`、Web Test Controlは `src/test-controls/` と `e2e/web/fixtures.ts`を参照してください。
 
 ## Screen Contracts
 

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { parse as parseToml } from "smol-toml";
 import { describe, expect, it } from "vitest";
 
 type ProcessResult = {
@@ -11,6 +12,8 @@ type ProcessResult = {
   stdout: string;
   stderr: string;
 };
+
+type TomlRecord = Record<string, unknown>;
 
 type TextRule = {
   rule_id: string;
@@ -42,6 +45,51 @@ const rule: TextRule = {
   case_sensitive: false,
   normalization: "lowercase",
 };
+
+function asTomlRecord(value: unknown, context: string): TomlRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`expected TOML table: ${context}`);
+  }
+  return value as TomlRecord;
+}
+
+function asTomlRecords(value: unknown, context: string): TomlRecord[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`expected TOML array of tables: ${context}`);
+  }
+  return value.map((item, index) => asTomlRecord(item, `${context}[${index}]`));
+}
+
+function decodeWindowsPowerShellCommand(command: string, event: string) {
+  const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
+  const suffix = " 2>NUL";
+  if (!command.startsWith(prefix) || !command.endsWith(suffix)) {
+    throw new Error(`unexpected Windows command for ${event}`);
+  }
+  const encoded = command.slice(prefix.length, -suffix.length);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
+    throw new Error(`invalid Windows EncodedCommand for ${event}`);
+  }
+  return Buffer.from(encoded, "base64").toString("utf16le");
+}
+
+function readCodexConfig(): TomlRecord {
+  return asTomlRecord(
+    parseToml(fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8")),
+    "root",
+  );
+}
+
+function hookGroups(config: TomlRecord, event: string) {
+  const hooks = asTomlRecord(config.hooks, "hooks");
+  return asTomlRecords(hooks[event], `hooks.${event}`);
+}
+
+function hookEntries(config: TomlRecord, event: string) {
+  return hookGroups(config, event).flatMap((group, index) =>
+    asTomlRecords(group.hooks, `hooks.${event}[${index}].hooks`),
+  );
+}
 
 function runNode(
   script: string,
@@ -132,6 +180,8 @@ function runGate(
   root: string,
   event: "UserPromptSubmit" | "PostToolUse" | "Stop",
   payload: Record<string, unknown>,
+  rulesPath = path.join(root, "rules.json"),
+  sessionId = "contract-session",
 ) {
   return runNode(
     path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
@@ -139,11 +189,11 @@ function runGate(
     root,
     JSON.stringify({
       hook_event_name: event,
-      session_id: "contract-session",
+      session_id: sessionId,
       cwd: root,
       ...payload,
     }),
-    { ...process.env, CODEX_TEXT_QUALITY_RULES: path.join(root, "rules.json") },
+    { ...process.env, CODEX_TEXT_QUALITY_RULES: rulesPath },
   );
 }
 
@@ -153,22 +203,31 @@ function stateFiles(root: string) {
   return fs.readdirSync(directory).filter((fileName) => fileName.endsWith(".json"));
 }
 
+function readGateState(root: string) {
+  const files = stateFiles(root);
+  if (files.length !== 1) throw new Error(`expected one state file, got ${files.length}`);
+  const [stateFile] = files;
+  if (!stateFile) throw new Error("baseline state file was not created");
+  return JSON.parse(
+    fs.readFileSync(path.join(root, ".artifacts", "codex-text-quality", stateFile), "utf8"),
+  ) as Record<string, unknown>;
+}
+
 function qualityCommandFor(
   event: "UserPromptSubmit" | "PostToolUse" | "Stop",
   launcher: "unix" | "windows",
 ) {
-  const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-  const blocks = [
-    ...config.matchAll(
-      new RegExp(`\\[\\[hooks\\.${event}\\.hooks\\]\\](.*?)(?=\\r?\\n\\[\\[hooks\\.|$)`, "gs"),
-    ),
-  ].map((match) => match[0]);
-  const block = blocks.find((candidate) => candidate.includes("text_quality_gate.mjs"));
-  if (!block) throw new Error(`missing text quality block for ${event}`);
+  const config = readCodexConfig();
+  const entry = hookEntries(config, event).find(
+    (candidate) =>
+      candidate.type === "command" &&
+      typeof candidate.command === "string" &&
+      candidate.command.includes("text_quality_gate.mjs"),
+  );
+  if (!entry) throw new Error(`missing text quality block for ${event}`);
   const field = launcher === "unix" ? "command" : "command_windows";
-  const line = block.split(/\r?\n/).find((candidate) => candidate.startsWith(`${field} = `));
-  if (!line) throw new Error(`missing ${field} for ${event}`);
-  return JSON.parse(line.slice(`${field} = `.length).trim()) as string;
+  if (typeof entry[field] !== "string") throw new Error(`missing ${field} for ${event}`);
+  return entry[field] as string;
 }
 
 function runConfiguredQualityHook(
@@ -210,22 +269,43 @@ function runConfiguredQualityHook(
 
 describe("Codex deterministic text quality contracts", () => {
   it("registers a separate matcher-free text quality Hook for each supported event", () => {
-    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-    expect(config).not.toContain("SessionStart");
+    const config = readCodexConfig();
+    const hooks = asTomlRecord(config.hooks, "hooks");
+    expect(hooks.SessionStart).toBeUndefined();
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
-      const blocks = [
-        ...config.matchAll(
-          new RegExp(`\\[\\[hooks\\.${event}\\.hooks\\]\\](.*?)(?=\\r?\\n\\[\\[hooks\\.|$)`, "gs"),
-        ),
-      ].map((match) => match[0]);
-      const qualityBlock = blocks.find((block) => block.includes("text_quality_gate.mjs"));
-      expect(qualityBlock, event).toBeDefined();
-      expect(qualityBlock, event).not.toContain("matcher");
-      expect(qualityBlock, event).toContain("timeout = 10");
-      expect(qualityBlock, event).toContain("text_quality_gate.mjs");
-      expect(qualityBlock, event).toContain(event);
-      expect(qualityBlock, event).toContain("command_windows =");
-      expect(qualityBlock, event).toContain("cmd.exe /D /Q /S /C");
+      const groups = hookGroups(config, event);
+      const entries = hookEntries(config, event);
+      const qualityEntry = entries.find(
+        (candidate) =>
+          candidate.type === "command" &&
+          typeof candidate.command === "string" &&
+          candidate.command.includes("text_quality_gate.mjs"),
+      );
+      const loggingEntry = entries.find(
+        (candidate) =>
+          candidate.type === "command" &&
+          typeof candidate.command === "string" &&
+          candidate.command.includes("log_event.mjs"),
+      );
+      expect(groups, event).toHaveLength(1);
+      expect(entries, event).toHaveLength(2);
+      expect(qualityEntry, event).toBeDefined();
+      expect(loggingEntry, event).toBeDefined();
+      expect(qualityEntry).not.toBe(loggingEntry);
+      if (!qualityEntry || !loggingEntry) throw new Error(`missing Hook entry for ${event}`);
+      const qualityGroup = groups.find((group) =>
+        asTomlRecords(group.hooks, `hooks.${event}.hooks`).includes(qualityEntry),
+      );
+      expect(qualityGroup, event).toBeDefined();
+      if (!qualityGroup) throw new Error(`missing quality Hook group for ${event}`);
+      expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
+      expect(qualityEntry.type, event).toBe("command");
+      expect(qualityEntry.command, event).toContain("text_quality_gate.mjs");
+      expect(
+        decodeWindowsPowerShellCommand(qualityEntry.command_windows as string, event),
+        event,
+      ).toContain("text_quality_gate.mjs");
+      expect(qualityEntry.timeout, event).toBe(10);
     }
   });
 
@@ -564,6 +644,9 @@ describe("Codex deterministic text quality contracts", () => {
   it("keeps the session baseline tied to the start HEAD after a commit", () => {
     withFixture((root) => {
       expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const baseline = readGateState(root);
+      expect(baseline.status).toBe("ready");
+      expect(baseline.files).toEqual([]);
       writeFile(root, "docs/existing.md", "BAD\n");
       git(root, ["add", "docs/existing.md"]);
       git(root, ["commit", "--quiet", "-m", "committed violation"]);
@@ -581,6 +664,43 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stop.stdout).toBe("");
       expect(stateFiles(root)).toHaveLength(0);
     }, "GOOD\n");
+  }, 30_000);
+
+  it("lazily reads a clean tracked Markdown baseline from the start HEAD", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const baseline = readGateState(root);
+      expect(baseline.status).toBe("ready");
+      expect(baseline.files).toEqual([]);
+
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stderr).toBe("");
+    }, "GOOD\n");
+  }, 30_000);
+
+  it("does not treat an unchanged clean tracked pure move as a new violation", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      expect(readGateState(root).files).toEqual([]);
+
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "BAD\n");
   }, 30_000);
 
   it("creates a minimal session baseline once and applies PostToolUse and Stop contracts", () => {
@@ -622,6 +742,78 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stateFiles(root)).toHaveLength(0);
     });
   }, 30_000);
+
+  it("persists baseline unavailable and never recreates it for the same session", () => {
+    withFixture((root) => {
+      const missingRulesPath = path.join(root, "missing-rules.json");
+      const firstPrompt = runGate(
+        root,
+        "UserPromptSubmit",
+        { prompt: "first prompt" },
+        missingRulesPath,
+      );
+      expect(firstPrompt.status).toBe(0);
+      expect(firstPrompt.stdout).toBe("");
+      expect(firstPrompt.stderr).toContain("quality check unavailable");
+
+      const unavailableStateText = fs.readFileSync(
+        path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+        "utf8",
+      );
+      const unavailableState = JSON.parse(unavailableStateText) as Record<string, unknown>;
+      expect(unavailableState.status).toBe("baseline_unavailable");
+      expect(unavailableState.start_head).toMatch(/^[0-9a-f]{40}$/u);
+      expect(unavailableState.files).toBeUndefined();
+      expect(unavailableStateText).not.toContain("first prompt");
+
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const secondPrompt = runGate(root, "UserPromptSubmit", { prompt: "second prompt" });
+      expect(secondPrompt.status).toBe(0);
+      expect(secondPrompt.stdout).toBe("");
+      expect(secondPrompt.stderr).toBe("");
+      expect(
+        fs.readFileSync(
+          path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+          "utf8",
+        ),
+      ).toBe(unavailableStateText);
+
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toContain("baseline_unavailable");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expect(activeStop.status).toBe(0);
+      expect(activeStop.stdout).toBe("");
+      expect(activeStop.stderr).toContain("baseline_unavailable");
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 30_000);
+
+  it("fails closed when Stop state identity does not match the current session", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const stateFile = stateFiles(root)[0];
+      if (!stateFile) throw new Error("baseline state file was not created");
+      const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      state.root_id = "0".repeat(64);
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stdout).toContain("quality check unavailable");
+      expect(stateFiles(root)).toHaveLength(1);
+    });
+  });
 
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "run_id": "20260911-142800-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "正本Planへcontrol liveness、dynamic port、collection window、observer-common、Hook非scoring、outcome責務、diagnostic-only属性を反映し、PR2 runtime実装は開始していない。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "差分は正本Planと今回Run Artifactに限定され、source、tests、ADR、PROJECT_CONTEXT、dataset、query、Skill、Hook、config、timeout、既存Runに変更がない。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Markdown lint（398 files / 0 issues）、対象Prettier、git diff --check、evaluation schema、sanitizer Write/Check（5 files / residual 0）、strict collectorをPASSした。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "runtime probe、Qualification、Positive、canonical、baseline、retryを実行せず、既存Negative FAILとpartial / flaky_or_env_issueを変更していない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan内にformal metric fields、control欠落時のfail-close、Hook非依存信号、outcome regression、実装順、停止条件を明記した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "OTel observerはparse/validation/reliability、runnerはreceiver/process/correlation、evaluatorはlifecycle/outcome/schemaを担当する責務分離をPlanへ固定した。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "公式docs、既存raw probe、sourceのcurrent contractを根拠としてPlanへ反映し、sanitizer residual 0とstrict collector PASSを確認した。"
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

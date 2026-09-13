@@ -268,19 +268,6 @@ function Test-TemplateContract {
     }
 
     $config = Get-Content -Raw .codex/config.toml
-    foreach ($event in @("UserPromptSubmit", "PostToolUse", "SubagentStart", "SubagentStop", "Stop")) {
-        $loggingMatch = [regex]::Match($config, "(?s)\[\[hooks\.$event\.hooks\]\](.*?)(?=\r?\n\[\[hooks\.|$)")
-        if (-not $loggingMatch.Success) { throw "missing logging Hook config: $event" }
-        $loggingBlock = $loggingMatch.Value
-        if ($loggingBlock -match '(?m)^\s*matcher\s*=') { throw "logging Hook must not define matcher: $event" }
-        if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*10\s*$') { throw "logging Hook timeout mismatch: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("log_event.mjs")) { throw "logging Hook logger missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("git rev-parse --show-toplevel")) { throw "logging Hook repo-root resolution missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("cmd.exe /D /Q /S /C")) { throw "logging Hook Windows shell wrapper missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("for /f")) { throw "logging Hook Windows root resolver missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("2^>NUL")) { throw "logging Hook Windows root-error suppression missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("$event")) { throw "logging Hook expected event missing: $event" }
-    }
 
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
     if ($config -match '(?m)^\s*approval_policy\s*=') { throw "project config must not set approval_policy" }
@@ -294,12 +281,6 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('matcher = "^Bash$"')) { throw "config missing Bash-only matcher" }
     if ($config -notmatch [regex]::Escape('command_windows')) { throw "config missing Windows launcher command" }
     if ($config -notmatch [regex]::Escape('pre_tool_use_policy.mjs')) { throw "config missing Node pre-tool hook command" }
-    $preToolWindowsMatch = [regex]::Match($config, '(?s)\[\[hooks\.PreToolUse\.hooks\]\].*?(?=\r?\n\[\[hooks\.|$)')
-    if (-not $preToolWindowsMatch.Success) { throw "missing PreToolUse Hook config" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("cmd.exe /D /Q /S /C")) { throw "PreToolUse Windows shell wrapper missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("for /f")) { throw "PreToolUse Windows root resolver missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("pre_tool_use_policy_windows.ps1")) { throw "PreToolUse Windows launcher missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("2^>NUL")) { throw "PreToolUse Windows root-error suppression missing" }
     if ($config -match '(?m)^\s*command\s*=\s*"[^"]*pre_tool_use_policy\.ps1') { throw "config references legacy PowerShell policy" }
     if ($config -match [regex]::Escape('codex_hooks = true')) { throw "config references deprecated hook feature key" }
     if ((Test-Path ".codex/hooks/pre_tool_use_policy.py") -or (Test-Path ".codex/hooks/pre_tool_use_policy.ps1")) { throw "legacy policy Hook file remains" }

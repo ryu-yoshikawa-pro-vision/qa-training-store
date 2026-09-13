@@ -77,7 +77,7 @@ Common Coreが前提にできる既習知識は、上記entry profileと、そ�
 | Seed Scenario | Scenario Shopを決定的な初期状態へResetするためのScenario |
 | Test Scenario / User Journey | 複数の条件・画面を跨いで確認する業務上のテストシナリオ |
 | Maestro Flow | MaestroのYAMLで記述する実行単位 |
-| Automation Flow | 複数Pageを跨ぐ共通業務操作をコード上で表現する構造 |
+| 共通操作 / Helper | 複数Pageを跨ぐ操作を必要に応じてまとめるコード上の構造 |
 
 教材本文では原則として上記の正式な呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
 
@@ -85,7 +85,7 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 ただし、既存コードのAPI名や変数名、外部Tool固有の名称を引用するときは、その実装上の名称をそのまま使用します。その場合も、教材上どの概念に対応するかを区別します。
 
-特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro FlowとAutomation Flowは同じものではありません。**
+特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro Flowとコード上の共通操作は同じものではありません。**
 
 ### 安定表記ルール
 
@@ -110,7 +110,8 @@ Maestroへ進む時点ではNative実行環境が追加で必要です。開始�
 - DependencyをInstallできる。
 - Scenario Shop Webをこのworktree専用の `PLAYWRIGHT_BASE_URL` で起動できる。
 - `pnpm run training:web:baseline` が `training-chromium` で成功する。
-- `pnpm run training:web:mobile` が `training-mobile-chromium` で成功する。
+
+Mobile Webの基準確認は、P1-5でViewportと`training-mobile-chromium`を学んだ後に行います。P1-4の開始Gateではデスクトップの基準確認までを扱います。
 
 ### Native specialization / Maestro開始Gate
 
@@ -197,7 +198,7 @@ AutifyやMagicPodの経験は捨てず、共通概念へ置き換えます。
 | 要素指定 | Element指定 | Locator / UI Test ID |
 | 検証 | Assertion Step | `expect` / `assertVisible` |
 | 前提状態 | 初期化設定 | Seed / Seed Scenario / Reset |
-| 共通処理 | Group / Shared Step | Helper / POM / Fixture / Automation Flow |
+| 共通処理 | Group / Shared Step | Helper / POM / Fixture |
 | 実行結果 | Dashboard | Report / Trace / JUnit / Artifact |
 
 ツールが変わっても、テスト対象、前提条件、操作、期待結果、テストデータ、実行結果という基本構造は変わらないことを理解します。
@@ -208,7 +209,7 @@ AutifyやMagicPodの経験は捨てず、共通概念へ置き換えます。
 
 Part 1では、まずテスト自動化の一連の流れを最後まで体験します。
 
-POM、Fixture、Automation Flowなどの保守設計は後半に置きます。最初から高度な共通化を行うと、学習者が「なぜ必要なのか」を理解せずにパターンだけ模倣するためです。
+POM、Fixtureなどの保守設計は後半に置きます。最初から高度な共通化を行うと、学習者が「なぜ必要なのか」を理解せずにパターンだけ模倣するためです。
 
 次の順序を基本とします。
 
@@ -222,7 +223,7 @@ POM、Fixture、Automation Flowなどの保守設計は後半に置きます。�
 8. Native specializationを選択した場合は、P1-7でMaestroによるNative自動化を行う。
 9. Common learnerはP1-6完了後にP1-7をskipしてP1-8へ進み、Native specializationを選択したlearnerはP1-7完了後に同じP1-8へrejoinする。P1-8ではCommonとしてPlaywright Testの保守課題を扱い、Native選択時だけNative成果物が追加される。
 10. テスト管理と保守上の問題を洗い出す。
-11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
+11. Helper / POM / Fixture / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
 
 Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、P1-6までのCommon学習を完了し、P1-7をskipまたは完了してP1-8へ到達した後です。
@@ -288,7 +289,7 @@ Scenario Shopにはすでに高度な自動化実装があります。
 - POMを使うか
 - Helperで十分か
 - Fixtureへ前提処理を入れるか
-- Automation Flowを作るか
+- 複数画面の共通操作を切り出すか
 - UI Test IDを使うか
 - Retryを使うか
 - PRでどこまでテストするか

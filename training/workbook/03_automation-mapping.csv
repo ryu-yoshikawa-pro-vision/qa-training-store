@@ -1,2 +1,3 @@
 test_case_id,automation_decision,test_layer,tool,implementation_path,execution_timing,reason
-TC-CART-001,Later,Web E2E,Playwright,training/playwright/exercises/training-exercise-starter.spec.ts,PR baseline後,User Journeyの再現価値と保守Costを比較して決める
+TC-CART-001,Automate,Web E2E,Playwright,,Training Web exercise,購入上限の代表境界をBrowser UIで再現し、拒否と既存数量を確認する価値がある
+TC-CART-002,Automate,Web E2E,Playwright,,Training Web exercise,購入不可明細からCheckoutを阻止する状態再検証をBrowser UIで確認する価値がある

@@ -14,10 +14,12 @@ CoreはPlaywrightによるWeb Cart Journeyで完了します。Native specializa
 
 1. [`cart.md`](../../../spec/features/cart.md) のBR / ACを読み、Guest / Customer / State / Dataを整理する。
 2. `training/workbook/01_target-risk.csv` と `02_test-cases.csv`へRisk、条件、境界、期待結果を記録する。
-3. 既存Scenarioの意味を [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md) とExecutable Sourceで確認する。
+3. [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)で必要な初期状態を確認し、必要な節だけ[`seed_catalog.md`](../../../07_testability/seed_catalog.md)と`/guide`で観察する。実装時にだけExecutable Sourceで具体的なIDを照合する。
 4. `pnpm run training:web:baseline`でbaselineを実行し、必要なCart条件を`exercises/`へ実装した後、`pnpm run training:web:exercise`でDesktop learner exerciseを実行する。
 5. `training-mobile-chromium`でResponsive Riskを1件確認する。
 6. `03_automation-mapping.csv` と `04_execution-improvement.csv`へDecision、Evidence、Failure分類を追記する。
+
+P1-6のC09診断で作成したFailure Evidence、cause、action、修正後のre-run Evidenceは、同じ`test_case_id`の異なる`run_context`として再利用します。P1-9で診断Failureを新しく作り直す必要はありません。
 
 ## Native specialization（選択時）
 

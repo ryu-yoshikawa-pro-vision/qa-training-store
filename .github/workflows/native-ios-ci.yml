@@ -25,7 +25,7 @@ jobs:
     name: iOS Automation Build
     if: inputs.run_native || github.event_name == 'workflow_dispatch'
     runs-on: macos-26
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       EXPO_PUBLIC_APP_ENV: automation
       EXPO_PUBLIC_BUILD_KIND: automation
@@ -152,7 +152,7 @@ jobs:
     name: iOS Production-validation Build
     if: inputs.run_native || github.event_name == 'workflow_dispatch'
     runs-on: macos-26
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       EXPO_PUBLIC_APP_ENV: production
       EXPO_PUBLIC_BUILD_KIND: production

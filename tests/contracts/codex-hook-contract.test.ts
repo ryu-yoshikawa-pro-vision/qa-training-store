@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { parse as parseToml } from "smol-toml";
 import { describe, expect, it } from "vitest";
 
 type PolicyCase = {
@@ -40,11 +41,77 @@ const safePayload = JSON.stringify({
   tool_input: { command: "git status --short" },
 });
 
-function runNodeHook(payload: string, cwd = repoRoot): HookResult {
+type TomlRecord = Record<string, unknown>;
+
+function asTomlRecord(value: unknown, context: string): TomlRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`expected TOML table: ${context}`);
+  }
+  return value as TomlRecord;
+}
+
+function asTomlRecords(value: unknown, context: string): TomlRecord[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`expected TOML array of tables: ${context}`);
+  }
+  return value.map((item, index) => asTomlRecord(item, `${context}[${index}]`));
+}
+
+function readCodexConfig(): TomlRecord {
+  return asTomlRecord(
+    parseToml(fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8")),
+    "root",
+  );
+}
+
+function hookGroups(config: TomlRecord, event: string) {
+  const hooks = asTomlRecord(config.hooks, "hooks");
+  return asTomlRecords(hooks[event], `hooks.${event}`);
+}
+
+function hookEntries(config: TomlRecord, event: string) {
+  return hookGroups(config, event).flatMap((group, index) =>
+    asTomlRecords(group.hooks, `hooks.${event}[${index}].hooks`),
+  );
+}
+
+function commandForHook(entry: TomlRecord, field: "command" | "command_windows", event: string) {
+  if (entry.type !== "command" || typeof entry[field] !== "string") {
+    throw new Error(`missing ${field} command for ${event}`);
+  }
+  return entry[field] as string;
+}
+
+function decodeWindowsPowerShellCommand(command: string, event: string) {
+  const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
+  const suffix = " 2>NUL";
+  if (!command.startsWith(prefix) || !command.endsWith(suffix)) {
+    throw new Error(`unexpected Windows command for ${event}`);
+  }
+  const encoded = command.slice(prefix.length, -suffix.length);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
+    throw new Error(`invalid Windows EncodedCommand for ${event}`);
+  }
+  return Buffer.from(encoded, "base64").toString("utf16le");
+}
+
+function hookEntryForScript(config: TomlRecord, event: string, scriptName: string) {
+  const entry = hookEntries(config, event).find(
+    (candidate) =>
+      candidate.type === "command" &&
+      typeof candidate.command === "string" &&
+      candidate.command.includes(scriptName),
+  );
+  if (!entry) throw new Error(`missing ${scriptName} Hook for ${event}`);
+  return entry;
+}
+
+function runNodeHook(payload: string, cwd = repoRoot, timeout = 30_000): HookResult {
   const result = spawnSync(process.execPath, [hookPath], {
     cwd,
     encoding: "utf8",
     input: payload,
+    timeout,
   });
   return {
     status: result.status ?? -1,
@@ -142,19 +209,103 @@ function addGitC(command: string) {
 
 describe("Codex PreToolUse/Bash Node Hook contract", () => {
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
-    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
+    const config = readCodexConfig();
+    const features = asTomlRecord(config.features, "features");
+    const hooks = asTomlRecord(config.hooks, "hooks");
+    const safetyGroups = hookGroups(config, "PreToolUse");
+    const safetyGroup = safetyGroups.find((group) => group.matcher === "^Bash$");
 
-    expect(config).toContain("hooks = true");
-    expect(config).toContain('matcher = "^Bash$"');
-    expect(config).toContain("command_windows");
-    expect(config).toContain("text_quality_gate.mjs");
-    expect(config).toContain("UserPromptSubmit");
-    expect(config).toContain("PostToolUse");
-    expect(config).toContain("Stop");
-    expect(config).not.toContain("SessionStart");
-    expect(config).not.toContain("apply_patch");
-    expect(config).not.toContain("pre_tool_use_policy.ps1");
-    expect(config).not.toContain("pre_tool_use_policy.py");
+    expect(features.hooks).toBe(true);
+    expect(safetyGroups).toHaveLength(1);
+    expect(safetyGroup).toBeDefined();
+    if (!safetyGroup) throw new Error("missing Bash safety Hook group");
+    expect(safetyGroup.matcher).toBe("^Bash$");
+    const safetyEntries = asTomlRecords(safetyGroup.hooks, "hooks.PreToolUse[0].hooks");
+    expect(safetyEntries).toHaveLength(1);
+    const safetyEntry = safetyEntries[0];
+    if (!safetyEntry) throw new Error("missing Bash safety Hook entry");
+    expect(commandForHook(safetyEntry, "command", "PreToolUse")).toContain(
+      "pre_tool_use_policy.mjs",
+    );
+    const windowsSafetyCommand = commandForHook(safetyEntry, "command_windows", "PreToolUse");
+    const windowsSafetyScript = decodeWindowsPowerShellCommand(windowsSafetyCommand, "PreToolUse");
+    expect(windowsSafetyScript).toContain("pre_tool_use_policy_windows.ps1");
+    expect(windowsSafetyScript).toContain("git rev-parse --show-toplevel");
+    expect(windowsSafetyCommand).not.toContain('"');
+    expect(safetyEntry.timeout).toBe(30);
+    expect(hooks.SessionStart).toBeUndefined();
+
+    for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
+      expect(hookGroups(config, event), event).toHaveLength(1);
+      expect(hookEntries(config, event), event).toHaveLength(2);
+    }
+
+    const serializedConfig = JSON.stringify(config);
+    expect(serializedConfig).not.toContain("apply_patch");
+    expect(serializedConfig).not.toContain("pre_tool_use_policy.ps1");
+    expect(serializedConfig).not.toContain("pre_tool_use_policy.py");
+  });
+
+  it("validates text quality and logging Hook structure from parsed TOML", () => {
+    const config = readCodexConfig();
+    const qualityScript = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+    const loggingScript = path.join(repoRoot, ".codex", "hooks", "log_event.mjs");
+
+    expect(fs.existsSync(qualityScript)).toBe(true);
+    expect(fs.existsSync(loggingScript)).toBe(true);
+    expect(asTomlRecord(config.hooks, "hooks").SessionStart).toBeUndefined();
+
+    for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
+      const groups = hookGroups(config, event);
+      const entries = hookEntries(config, event);
+      const qualityEntry = hookEntryForScript(config, event, "text_quality_gate.mjs");
+      const loggingEntry = hookEntryForScript(config, event, "log_event.mjs");
+      const qualityGroup = groups.find((group) => {
+        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
+        return groupEntries.includes(qualityEntry);
+      });
+      const loggingGroup = groups.find((group) => {
+        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
+        return groupEntries.includes(loggingEntry);
+      });
+
+      expect(entries).toHaveLength(2);
+      expect(qualityEntry).not.toBe(loggingEntry);
+      expect(qualityGroup).toBeDefined();
+      expect(loggingGroup).toBeDefined();
+      if (!qualityGroup || !loggingGroup) throw new Error(`missing Hook group for ${event}`);
+      expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
+      expect(Object.hasOwn(loggingGroup, "matcher"), event).toBe(false);
+
+      for (const [entry, scriptName] of [
+        [qualityEntry, "text_quality_gate.mjs"],
+        [loggingEntry, "log_event.mjs"],
+      ] as const) {
+        expect(entry.type, event).toBe("command");
+        expect(commandForHook(entry, "command", event)).toContain(scriptName);
+        expect(
+          decodeWindowsPowerShellCommand(
+            commandForHook(entry, "command_windows", event),
+            `${event} ${scriptName}`,
+          ),
+        ).toContain(scriptName);
+        expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
+      }
+    }
+  });
+
+  it("accepts a large Bash command at the Node process boundary", () => {
+    const command = `echo ${"x".repeat(64 * 1024)}`;
+    const result = runNodeHook(
+      JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+      repoRoot,
+      30_000,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+    expect(result.stderr).not.toContain(command);
   });
 
   it.each([
@@ -667,6 +818,7 @@ function runLoggingHook(
     cwd,
     encoding: "utf8",
     input: payload,
+    timeout: 30_000,
   });
   return {
     status: result.status ?? -1,
@@ -713,45 +865,13 @@ function readLoggingRecords(logPath: string) {
     .map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 
-function loggingConfigBlock(marker: string) {
-  const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-  const start = config.indexOf(marker);
-  if (start < 0) {
-    throw new Error(`missing config marker: ${marker}`);
-  }
-  const remainder = config.slice(start + marker.length);
-  const next = remainder.search(/\n\[\[hooks\./);
-  return config.slice(start, next < 0 ? config.length : start + marker.length + next);
-}
-
 type LoggingLauncher = "unix" | "windows";
-
-function parseTomlString(value: string, field: string, event: string) {
-  if (value.startsWith("'") && value.endsWith("'")) {
-    return value.slice(1, -1);
-  }
-
-  if (value.startsWith('"') && value.endsWith('"')) {
-    return JSON.parse(value) as string;
-  }
-
-  throw new Error(`expected TOML string for ${field} ${event}`);
-}
 
 function hookCommandFor(event: "PreToolUse" | LoggingEvent, launcher: LoggingLauncher) {
   const field = launcher === "unix" ? "command" : "command_windows";
-  const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
-  const line = block.split(/\r?\n/).find((candidate) => candidate.startsWith(`${field} = `));
-  if (!line) {
-    throw new Error(`missing ${field} for ${event}`);
-  }
-
-  const value = line.slice(`${field} = `.length).trim();
-  if (launcher === "unix") {
-    return JSON.parse(value) as string;
-  }
-
-  return parseTomlString(value, field, event);
+  const config = readCodexConfig();
+  const scriptName = event === "PreToolUse" ? "pre_tool_use_policy.mjs" : "log_event.mjs";
+  return commandForHook(hookEntryForScript(config, event, scriptName), field, event);
 }
 
 function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
@@ -820,40 +940,45 @@ function makeLoggingPayload(event: LoggingEvent, sessionId: string) {
 
 describe("Codex logging Hook contract", () => {
   it("separates the Bash Safety Hook from five matcher-free logging Hooks", () => {
-    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-    const safetyStart = config.indexOf("[[hooks.PreToolUse]]");
-    const firstLoggingStart = config.indexOf("[[hooks.UserPromptSubmit]]");
-    const safetyBlock = config.slice(safetyStart, firstLoggingStart);
-
-    expect(safetyStart).toBeGreaterThanOrEqual(0);
-    expect(firstLoggingStart).toBeGreaterThan(safetyStart);
-    expect(safetyBlock).toContain('matcher = "^Bash$"');
-    expect(safetyBlock).toContain("timeout = 30");
-    expect(safetyBlock).toContain("pre_tool_use_policy.mjs");
+    const config = readCodexConfig();
+    const safetyGroup = hookGroups(config, "PreToolUse")[0];
+    if (!safetyGroup) throw new Error("missing Bash safety Hook group");
+    const safetyEntry = asTomlRecords(safetyGroup.hooks, "hooks.PreToolUse[0].hooks")[0];
+    if (!safetyEntry) throw new Error("missing Bash safety Hook entry");
+    expect(safetyGroup.matcher).toBe("^Bash$");
+    expect(safetyEntry.timeout).toBe(30);
+    expect(commandForHook(safetyEntry, "command", "PreToolUse")).toContain(
+      "pre_tool_use_policy.mjs",
+    );
 
     for (const event of loggingEvents) {
-      const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
-      expect(block).not.toContain("matcher");
-      expect(block).toContain("timeout = 10");
-      expect(block).toContain("git rev-parse --show-toplevel");
-      expect(block).toContain("log_event.mjs");
-      expect(block).toContain("command -v node");
-      expect(block).toContain("[ -f");
-      expect(block).toMatch(/\|\| (?:true|printf '\{\}')/);
-      expect(block).toContain("command_windows =");
-      expect(block).toContain("cmd.exe /D /Q /S /C");
-      expect(block).toContain("for /f");
-      expect(block).toContain("2^>NUL");
+      const groups = hookGroups(config, event);
+      const loggingEntry = hookEntryForScript(config, event, "log_event.mjs");
+      const loggingGroup = groups.find((group) =>
+        asTomlRecords(group.hooks, `hooks.${event}.hooks`).includes(loggingEntry),
+      );
+      if (!loggingGroup) throw new Error(`missing logging Hook group for ${event}`);
+      const command = commandForHook(loggingEntry, "command", event);
+      expect(Object.hasOwn(loggingGroup, "matcher")).toBe(false);
+      expect(loggingEntry.type).toBe("command");
+      expect(loggingEntry.timeout).toBe(10);
+      expect(command).toContain("git rev-parse --show-toplevel");
+      expect(command).toContain("log_event.mjs");
+      expect(command).toContain("command -v node");
+      expect(command).toContain("[ -f");
+      expect(command).toMatch(/\|\| (?:true|printf '\{\}')/);
       const windowsCommand = loggingCommandFor(event, "windows");
-      expect(windowsCommand).toContain("cmd.exe /D /Q /S /C");
-      expect(windowsCommand).toContain("for /f");
-      expect(windowsCommand).toContain("git rev-parse --show-toplevel 2^>NUL");
+      const windowsScript = decodeWindowsPowerShellCommand(windowsCommand, event);
+      expect(windowsScript).toContain("Join-Path");
+      expect(windowsScript).toContain("git rev-parse --show-toplevel");
+      expect(windowsCommand).not.toContain('"');
       if (event === "SubagentStop" || event === "Stop") {
-        expect(windowsCommand).toContain("-EncodedCommand");
+        expect(windowsScript).toContain("[Console]::Write('{}')");
       } else {
-        expect(windowsCommand).toContain("exit 0");
+        expect(windowsScript).toContain("Get-Command node");
       }
-      expect(windowsCommand).toContain(`log_event.mjs\" ${event}`);
+      expect(windowsScript).toContain("log_event.mjs");
+      expect(windowsScript).toContain(`node $p ${event}`);
     }
   });
 
@@ -863,10 +988,10 @@ describe("Codex logging Hook contract", () => {
     for (const event of loggingEvents) {
       const command = loggingCommandFor(event, "windows");
 
-      expect(command).toContain("cmd.exe /D /Q /S /C");
-      expect(command).toContain("for /f");
-      expect(command).toContain("2^>NUL");
-      expect(command).not.toContain("$(git rev-parse");
+      const script = decodeWindowsPowerShellCommand(command, event);
+      expect(script).toContain("Join-Path");
+      expect(script).toContain("git rev-parse --show-toplevel");
+      expect(command).not.toContain('"');
     }
   });
 
@@ -1035,7 +1160,7 @@ describe("Codex logging Hook contract", () => {
   it("truncates prompt, generic tool input, and final-message previews at 2000 characters", () => {
     withLoggingSession("truncation", (sessionId, logPath) => {
       const longText = "x".repeat(2100);
-      const cases: Array<[LoggingEvent, Record<string, unknown>]> = [
+      const cases: [LoggingEvent, Record<string, unknown>][] = [
         ["UserPromptSubmit", { prompt: longText }],
         [
           "PostToolUse",
@@ -1066,6 +1191,38 @@ describe("Codex logging Hook contract", () => {
       expect(records.every((record) => record.truncated === true)).toBe(true);
     });
   });
+
+  it("keeps large logging input bounded at the child-process boundary", () => {
+    withLoggingSession("large-input", (sessionId, logPath) => {
+      const tailMarker = "large-input-tail-marker-9f0c";
+      const longText = `${"x".repeat(64 * 1024)} ${tailMarker} token=large-token-secret secret=large-secret password=large-password`;
+      const cases: [LoggingEvent, Record<string, unknown>][] = [
+        ["UserPromptSubmit", { prompt: longText }],
+        ["PostToolUse", { tool_name: "Bash", tool_input: { command: longText } }],
+      ];
+
+      for (const [event, fields] of cases) {
+        const result = runLoggingHook(
+          event,
+          JSON.stringify({ ...makeLoggingPayload(event, sessionId), ...fields }),
+        );
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toBe(loggingOutputFor(event));
+        expect(result.stderr).toBe("");
+      }
+
+      const records = readLoggingRecords(logPath);
+      expect(records).toHaveLength(cases.length);
+      expect(records[0]?.prompt).toHaveLength(2000);
+      expect(records[1]?.tool_input_preview).toHaveLength(2000);
+      expect(records.every((record) => record.truncated === true)).toBe(true);
+      const serialized = fs.readFileSync(logPath, "utf8");
+      expect(serialized).not.toContain(tailMarker);
+      expect(serialized).not.toContain("large-token-secret");
+      expect(serialized).not.toContain("large-secret");
+      expect(serialized).not.toContain("large-password");
+    });
+  }, 30_000);
 
   it("resolves its output from the logger location when launched from a repository subdirectory", () => {
     withLoggingSession("subdirectory", (sessionId, logPath) => {
@@ -2657,9 +2814,10 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     if (process.platform !== "win32") return;
 
     const command = hookCommandFor("PreToolUse", "windows");
-    expect(command).toContain("cmd.exe /D /Q /S /C");
-    expect(command).toContain("pre_tool_use_policy_windows.ps1");
-    expect(command).toContain("git rev-parse --show-toplevel");
+    const script = decodeWindowsPowerShellCommand(command, "PreToolUse");
+    expect(script).toContain("pre_tool_use_policy_windows.ps1");
+    expect(script).toContain("git rev-parse --show-toplevel");
+    expect(command).not.toContain('"');
 
     for (const shell of ["cmd", "pwsh"] as const) {
       for (const cwd of [repoRoot, path.join(repoRoot, "docs")]) {

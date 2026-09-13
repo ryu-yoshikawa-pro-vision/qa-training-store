@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "20260908-004640-JST",
+  "result": "fail",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Environment Qualification、指定validation、negative/positive Probe、Gate判定まで完了したが、positive terminal durationが367.7009秒で240秒Gateを満たさず、canonical allは安全条件に従い未実行である。",
+      "evidence_refs": [
+        {"kind": "hook_observation", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "selector": "Gate判定", "summary": "positive Probeのduration超過とcanonical未実行を記録する。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source、dataset query、expected_skill、boundary、case ID、Skill description、selector、timeout、scoringを変更せず、ProbeとRun Artifactだけを追加した。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260908-004640-JST/REPORT.md", "selector": "Environment Qualification", "summary": "禁止事項を維持したGate判定を記録する。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "dataset validation、repository test、Skill validation、full verify、negative/positive Probeのterminal・exit/close・Hook correlation/parseを確認した。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260908-004640-JST/REPORT.md", "selector": "Validation", "summary": "指定validationのPASS結果を記録する。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Gate FAIL後にcanonicalを開始せず、追加Probe、retry、timeout変更、selector変更、main mutationを行っていない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "selector": "Decision", "summary": "停止条件と禁止事項の遵守を記録する。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Gate条件、Probe時刻、actual read shape、selector判定、version、Target/routing/evaluator SHA、未実行canonicalをRun Artifactから追跡できる。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "summary": "ProbeとGate判定の意味記録を保存する。"},
+        {"kind": "run_manifest", "path": ".codex/runs/20260908-004640-JST/run.json", "summary": "Run manifestへevaluationを紐づける。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "今回のsource変更はなく、既存runner、selector、dataset、timeoutをそのまま使用した。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260908-004640-JST/REPORT.md", "selector": "Scope", "summary": "source scope不変を記録する。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "fail",
+      "evidence": "Codex versionとTargetは固定できたが、positive terminalが367.7009秒で240秒Gateを超過し、現行selectorでもactual readを観測できなかったため、canonical開始条件を再現可能な形で満たせない。",
+      "evidence_refs": [
+        {"kind": "hook_observation", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "selector": "Positive control", "summary": "positive durationとselector結果を記録する。"}
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "positive Probeは`turn.completed`まで367.7009秒を要し、Environment Qualificationの240秒閾値と固定timeout327秒を超えた。",
+      "evidence_refs": [
+        {"kind": "hook_observation", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "selector": "Positive control", "summary": "positive terminal durationとexit/closeを記録する。"}
+      ],
+      "detail": "Host execution latencyがcanonical開始前Gateを満たさないため、canonical allを実行せず正式blockerとする。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "positive Hookには実際の`feature-plan/SKILL.md` readがあるが、command shape `Get-Content -LiteralPath '.agents\\\\skills\\\\feature-plan\\\\SKILL.md' -Raw`は現行selectorのaccepted shapesに一致せず、同selectorのobserved_skillsは空だった。",
+      "evidence_refs": [
+        {"kind": "hook_observation", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "selector": "Positive control", "summary": "actual readとselector observationの乖離を記録する。"}
+      ],
+      "detail": "今回の指示ではselector変更は禁止されているため、shape driftを未解決のobservation blockerとして保存する。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval canonical execution environment",
+      "evidence": "Codex 0.153.4、同一Targetでpositive terminal durationが367.7009秒となり、240秒Gateを満たさなかった。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260908-004640-JST/observation-probe.md", "summary": "Environment Qualification FAILを保存する。"}
+      ],
+      "expected_impact": "Probeとcanonicalの実行時間前提を安定させ、canonical開始可否を再現可能に判定できる。",
+      "recommendation": "今回のRun外でHost execution latencyを解消する環境変更またはPR2の評価方式を承認・設計し、現行timeoutを変更せずに再評価する。"
+    }
+  ]
+}

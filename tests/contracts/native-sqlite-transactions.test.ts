@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import type { SQLiteDatabase } from "expo-sqlite";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";

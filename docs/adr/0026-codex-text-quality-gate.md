@@ -1,4 +1,4 @@
-# ADR-0023: Codex文章品質Hookと変更差分gate
+# ADR-0026: Codex文章品質Hookと変更差分gate
 
 - Status: Accepted
 - Date: 2026-09-13
@@ -7,7 +7,7 @@
 
 ## Context
 
-Codexのsession中にMarkdownの文章品質を確認し、完了前とRepository品質ゲートの両方で新規違反を検出する必要がある。開始時点ですでに存在する違反を新規違反として扱わず、worktreeだけの移動やGitが確定したrenameも同じfile identityとして比較する必要がある。
+Codexのsession中にMarkdownの文章品質を確認し、完了前とRepository品質ゲートの両方で新規違反を検出する必要がある。開始時ですでに存在する違反を新規違反として扱わず、worktreeだけの移動やGitが確定したrenameも同じfile identityとして比較する必要がある。
 
 Issue #135は2026-09-13時点で未完了であるため、compact後のroot `AGENTS.md`再注入はこの変更の責務に含めない。
 
@@ -18,6 +18,7 @@ Issue #135は2026-09-13時点で未完了であるため、compact後のroot `AG
 3. 違反identityは`rule_id`とrule定義に従った正規化済みmatchのSHA-256であり、件数をmultisetとして比較する。file identityはGit rename mapping、exact content SHA-256の一意一致、対応付け不能の順で解決し、similarityやfilename推測は行わない。
 4. `PostToolUse`のquality failureはfail-openしてstderrへ診断し、`Stop`は`stop_hook_active=false`なら新規違反またはquality check不能をstructured blockとする。`true`なら診断付きallowとstate削除を行う。Repository-level gateの比較不能はfail-openせず非0終了とする。
 5. commit比較では`git merge-base <base-ref> HEAD`で確定した同じcomparison treeを、変更path、baseline本文、current本文、rename mappingのすべてへ使う。localは`HEAD -> current worktree`、PRはbase branchとcheckout済みmerge `HEAD`、pushはevent before、schedule／dispatchは`HEAD^`を使う。
+6. session baseline stateはschema v2の`ready`／`baseline_unavailable`を持つ。baseline作成後のstateには開始時に特別な状態を持つpathだけを保存し、作成不能時はprompt、payload、本文、長いエラーを含まない最小stateを一度だけ保存する。同一sessionの後続`UserPromptSubmit`では再作成せず、`PostToolUse`はfail-open、inactive `Stop`はblock、active `Stop`はallowしてstateを削除する。Stopを含むstate読込ではroot／session identityを照合する。
 
 ## Consequences
 

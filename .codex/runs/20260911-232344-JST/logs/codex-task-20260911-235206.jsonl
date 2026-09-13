@@ -1,0 +1,4 @@
+{"timestamp":"2026-09-11T23:52:10.7465841+09:00","event":"wrapper_start","runtime":"host","run_id":"20260911-232344-JST","preset":"safe"}
+{"timestamp":"2026-09-11T23:52:12.7615832+09:00","event":"preflight_start"}
+{"timestamp":"2026-09-11T23:52:16.8405833+09:00","event":"preflight_ok"}
+{"timestamp":"2026-09-11T23:52:16.8686067+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260911-232344-JST\\artifacts\\codex-task-20260911-235206.json"}

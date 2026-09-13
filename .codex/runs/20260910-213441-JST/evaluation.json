@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "run_id": "20260910-213441-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": [
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Target-aware absolute canonical Skill recognition、contract tests、static gate、Evaluator SHA固定、fresh Target preflight、Negative Qualificationまで完了した。NegativeはHostの未承認compound representationでFAILし、Planの停止条件によりPositive、canonical、8/8、valid baselineは実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260910-213441-JST/REPORT.md",
+          "selector": "2026-09-10 22:03 (JST)",
+          "summary": "Negative FAIL後にPositiveとcanonicalを実行しない判断を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はTarget-aware selector、contract tests、ADR、PROJECT_CONTEXT、history、Run Artifactに限定され、dataset、query、Skill、Hook、timeout、Result evaluator、Product codeは変更していない。Negative FAIL後のretry、selector拡張、query tuning、別Target交換、canonical実行も行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-trigger-evals.ts",
+          "selector": "Target-aware absolute recognition",
+          "summary": "absolute pathのbounded resolved identity判定とcontext threadingだけを追加した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused 35/35、dataset fingerprint、Skill/Markdown/Prettier/diff、pnpm run verify、Target preflightはPASSした。Negative processは正常終了したが、Host commandが固定exact compound外でselector_reliable=falseとなり、Environment QualificationをPASSへ昇格できない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260910-213441-JST/REPORT.md",
+          "selector": "2026-09-10 21:55 (JST)",
+          "summary": "static gateとfull verifyのPASSを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r3/negative/analysis.json",
+          "selector": "selector_reliable",
+          "summary": "Negativeのselector_reliable=false、initial_skill=null、observed_skills=nullを記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Hostの未承認compoundをsafe_no_readへ推測変換せず、Negative FAIL後にPositive、canonical、retry、別Target、selector変更を行わなかった。Host input failureとTarget preflight integrityを分離した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260910-213441-JST/REPORT.md",
+          "selector": "停止条件",
+          "summary": "固定exact contract外のHost shapeを理由に安全側で停止した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "実装commit、focused/static validation、fresh Target preflight、Negativeのstdout・stderr・Hook snapshot・delta・meta・analysis、停止判断を相対pathで追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r3/negative/hook-delta.jsonl",
+          "selector": "PostToolUse",
+          "summary": "Negative Hostの実測compound representationを保存している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "absolute判定はTarget-awareな小さなnon-throwing処理に閉じ、relative recognition、exact negative compound、candidate prefix、compound非対応、Result schema 2を維持した。一般parser、汎用filesystem abstraction、machine固有pathは追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md",
+          "selector": "Target-aware absolute canonical Skill recognition",
+          "summary": "実装したabsolute path observation contractを恒久文書化した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Evaluator SHA、Routing SHA、Codex version、dataset fingerprint、fresh Targetを固定してNegativeを一度実行したが、今回のHostが過去の固定exact compoundとは異なるshapeを返したため、trusted absenceを再現可能に確定できない。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r3/negative/hook-delta.jsonl",
+          "selector": "PostToolUse command",
+          "summary": "固定contract外のGet-Content/ConvertFrom-Json compoundを観測した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260910-213441-JST/REPORT.md",
+          "selector": "2026-09-10 21:59 (JST)",
+          "summary": "Evaluator/Target SHAとpreflight条件を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Negative Hook deltaのHost commandは`((Get-Content -Raw -LiteralPath 'package.json') | ConvertFrom-Json).name`であり、承認済み`$pkg = Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json; $pkg.name` exact compoundではなかった。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r3/negative/hook-delta.jsonl",
+          "selector": "PostToolUse",
+          "summary": "Hostが出力した固定contract外のcompound shapeを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r3/negative/analysis.json",
+          "selector": "selector_reliable",
+          "summary": "未承認shapeによりtrusted absenceを判定できなかった。"
+        }
+      ],
+      "detail": "Hook evidenceとprocess lifecycleは正常だったが、現在のbounded selectorはこのrepresentationをtrusted absenceとして証明できない。negative contractを一般化してfalse-passを作らないため、今回のEnvironment QualificationをNegative FAILとして停止した。"
+    }
+  ],
+  "improvement_candidates": []
+}

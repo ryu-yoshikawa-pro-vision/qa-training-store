@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-192528-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "既存canonical allの24ケースを手編集せずsnapshotし、指定のSHA256、schema、case set、parseComparableRun、compareRuns self-compareを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/REPORT.md",
+          "selector": "2026-09-12 19:38 (JST)",
+          "summary": "baseline snapshot、hash、parse、self-compareの検証記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更対象をclosure Run artifactとPR本文に限定し、canonical再実行、source／test／dataset／Skill／observer／evaluator／runner／ADR変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/PLAN.md",
+          "selector": "## Scope",
+          "summary": "今回の変更範囲と禁止範囲。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "dataset validationは12 files／24 cases／指定fingerprintでPASSし、baseline parserとself-compareは24 casesで期待値を返した。strict boundary observabilityは7/8として別の既知制約に記録した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "pnpm run eval:skills:trigger:validate が指定fingerprintでPASS。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "parseComparableRun と compareRuns self-compare が24 casesでPASS。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "canonical／qualification／diagnosticの再実行、3ケースretry、timeout変更、provenance実装、rebase、force push、PR merge／closeを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/PLAN.md",
+          "selector": "## Execution Decisions",
+          "summary": "再実行禁止と後続改善候補の扱い。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "baseline provenance、outcome／lifecycle集計、known constraints、保留Plan、strict gateとの区別をREPORTへ記録し、raw telemetryはGit管理下へコピーしていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/REPORT.md",
+          "selector": "PR2 closure evidence",
+          "summary": "PR2条件と既知制約の意味情報。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "現行のResult schema 2、parse／compare契約、ADR-0024のobserver契約、CASE_TIMEOUT_MSを変更せず、baselineを後続比較の入力として保存した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/PLAN.md",
+          "selector": "- Out:",
+          "summary": "契約変更を行わない範囲。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "raw baselineとtracked snapshotのSHA256が一致し、dataset fingerprint、Codex version、Evaluator SHA、Routing SHA、split、case countを記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-192528-JST/trigger-eval-baseline.json",
+          "summary": "保存したcanonical Result schema 2 snapshot。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "canonical resultは24 casesで比較可能だが、strict boundary observabilityは7/8で、exploratory-qaとandroid-native-local-validationの境界に未観測側が残る。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260912-192528-JST/trigger-eval-baseline.json",
+          "selector": "summary",
+          "summary": "canonical baselineのoutcomeとケース結果。"
+        }
+      ],
+      "detail": "これはPR2 baselineの存在・保存・比較可能性を否定しない。strict 8/8 observabilityは後続品質課題として扱う。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "canonicalのprocess lifecycleは24件中20件がtimed_outで、Android 2件はSkill readあり／OTel Skill point 0／process timeout、exploratory-qaの1件はuser-level playwright併用でunknown_skillとなった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/REPORT.md",
+          "selector": "既知制約",
+          "summary": "playwright、Android telemetry gap、timeoutの記録。"
+        }
+      ],
+      "detail": "いずれも今回のPR2 blockerからは外し、baseline測定結果として保存する。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval routing provenance",
+      "evidence": "docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md はuser-level Skill provenanceとCodex telemetry改善を扱う。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md",
+          "summary": "PR2後へ保留する既存Plan。"
+        }
+      ],
+      "expected_impact": "canonical Skillと補助Skillの同一turn併用、およびunknown Skillを安全に識別できる。",
+      "recommendation": "PR2では実装せず、後続PRで必要性とCodex telemetry契約を再評価する。"
+    },
+    {
+      "target": "Codex Android Skill read telemetry",
+      "evidence": "android-native-local-validation-train-002／validation-002はSkill readを確認できるがOTel Skill pointが0で、process timeoutとなった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-192528-JST/REPORT.md",
+          "selector": "Android telemetry gap",
+          "summary": "Skill readとOTel metric欠落の既知制約。"
+        }
+      ],
+      "expected_impact": "Skill readとCodex invocation metricの対応差を後続診断で確認できる。",
+      "recommendation": "PR2では修正せず、既存CASE_TIMEOUT_MSとbaseline結果を維持したまま後続調査へ送る。"
+    }
+  ]
+}

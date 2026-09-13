@@ -1,0 +1,25 @@
+## Summary
+
+- 今回の bounded repair は、実装とローカル検証まで完了した状態です。
+- Run の進捗は `Progress: 80% (12/15)`。最終完了ではありません。
+- `run.json` は `running` / `validation: not_run` / `evaluation_present: false` のままで、machine-managed Evidence が未確定です。
+- Worktree は未commitで、tracked変更16件・untracked 3件。`src/**` の変更、tracked削除・renameはありません。
+- 既存記録上、focused 42件、contract 508 passed / 3 skipped、`verify` exit 0です。ただし本ターンでは検証を再実行していません。
+
+## Next
+
+未完了は次の3項目です。
+
+- 最終SHAでの Training Copy、Sanitizer、必要なRemote CI
+- machine-managed Run manifest / evaluation とPR説明の同期
+- commit後のbranch、同一HEAD checks、clean worktree確認
+
+## Evidence
+
+- [TASKS.md](<REPO_ROOT>/.codex/runs/20260911-075512-JST/TASKS.md:17)：13–15が未完了。
+- [REPORT.md](<REPO_ROOT>/.codex/runs/20260911-075512-JST/REPORT.md:56)：標準検証成功を記録。ただし後続ブロックの時刻順が逆で、証跡の時系列に不整合があります。
+- [run.json](<REPO_ROOT>/.codex/runs/20260911-075512-JST/run.json:11)：changed files空、validation未実行、evaluationなし、status `running`。
+- [native-ci.yml](<REPO_ROOT>/.github/workflows/native-ci.yml:907)、[workflow-contract.ts](<REPO_ROOT>/scripts/training/workflow-contract.ts:135)、[validate-curriculum.ts](<REPO_ROOT>/scripts/validate-curriculum.ts:252)：fail-closed、step-local条件、Evidence境界の修正を確認。
+- [workbook](<REPO_ROOT>/training/workbook/04_execution-improvement.csv:1) と [ADR-0023](<REPO_ROOT>/docs/adr/0023-test-automation-curriculum-learning-experience.md:22)：受講者所有の診断Evidence・Training CI契約を確認。
+
+この確認では、ファイル変更・作成・削除・rename、Git mutation、外部システム操作、検証コマンド実行は行っていません。

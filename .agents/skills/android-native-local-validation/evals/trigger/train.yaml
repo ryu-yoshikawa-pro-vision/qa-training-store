@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: android-native-local-validation-train-001
+    query: "WindowsのAndroid SDKと接続中の端末を確認し、このRepositoryでRelease APKのbuild/installへ進める前提条件と、進めない場合の最初の理由だけを整理してください。"
+    expected_skill: android-native-local-validation
+    boundary: exploratory-qa-vs-android-native-local-validation
+  - id: android-native-local-validation-train-002
+    query: "Scenario ShopのGuideにある認証済み顧客シナリオで、商品詳細からカート投入・注文確定までを一度だけ確認し、入力エラーを1件試して再現手順と結果を記録してください。"
+    expected_skill: exploratory-qa
+    boundary: exploratory-qa-vs-android-native-local-validation

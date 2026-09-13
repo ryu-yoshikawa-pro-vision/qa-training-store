@@ -1,0 +1,18 @@
+## Summary
+
+- 現在のbranchは `refactor/test-automation-curriculum-learning-experience`、HEADは `7180db69`。
+- `BEFORE_SHA..HEAD` のsource差分は、指定どおり以下の4ファイルのみです。
+  - `docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`
+  - `docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md`
+  - `scripts/validate-curriculum.ts`
+  - `tests/contracts/training-curriculum.test.ts`
+- 差分は `4 files changed, 29 insertions, 12 deletions`。検証結果は判定していません。
+
+Progress: 100% (2/2)
+
+Next: Wrapperが指定のvalidation commandを実行し、実結果を記録します。
+
+## Evidence
+
+- `git status --short`: tracked変更なし。未追跡のRun artifact／planのみ存在。
+- Target run manifest: `status=running`, `validation.status=not_run`, `validation.commands=[]`。

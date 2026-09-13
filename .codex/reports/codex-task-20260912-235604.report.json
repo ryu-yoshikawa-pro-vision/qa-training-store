@@ -1,0 +1,16 @@
+{
+    "runtime":  "host",
+    "preset":  "safe",
+    "mode":  "safe",
+    "run_id":  null,
+    "cwd":  "\u003cREPO_ROOT\u003e",
+    "git_branch":  "refactor/test-automation-curriculum-learning-experience",
+    "git_dirty":  true,
+    "prompt_source":  "",
+    "output_file":  "\u003cREPO_ROOT\u003e/.codex\\\\artifacts\\codex-task-20260912-235604.json",
+    "output_schema":  null,
+    "log_path":  "\u003cREPO_ROOT\u003e/.codex\\\\logs\\codex-task-20260912-235604.jsonl",
+    "codex_exit_code":  null,
+    "verify_exit_code":  null,
+    "status":  "invalid_args"
+}

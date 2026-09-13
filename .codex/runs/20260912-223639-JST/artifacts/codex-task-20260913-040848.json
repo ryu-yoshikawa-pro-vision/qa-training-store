@@ -1,0 +1,32 @@
+## Summary
+
+- PR #133 の Run Artifact を読み取り専用で確認しました。
+- source／test／設定／文書の変更、`run.json` の直接編集、外部レビュー起動はありません。
+- `evaluation.json` のJSON構造・参照先・標準Artifactのsanitizer相当検査はPASS。
+- ただし、Run manifestと最終HEAD証跡に不整合があります。
+
+Progress: 100% (12/12)
+
+### Findings
+
+1. **Medium — Run manifestが完了状態と一致しない**
+
+   - Location: [`run.json`](<REPO_ROOT>/.codex/runs/20260912-223639-JST/run.json:9)
+   - Evidence: `TASKS.md` は12/12完了ですが、コミット済みmanifestは `branch: null`、`validation.status: not_run`、`status: pending`。現在の作業コピーもwrapper実行中の `running` です。
+   - Suggested fix: wrapper／collectorのmachine-managed完了処理で同期する。直接編集はしない。
+
+2. **Medium — 最終metadata HEADの証跡がevaluationへ反映されていない**
+
+   - Location: [`evaluation.json`](<REPO_ROOT>/.codex/runs/20260912-223639-JST/evaluation.json:33)
+   - Evidence: evaluationはsource HEAD `4877747`／CI `346989...`を参照する一方、最終PR本文はmetadata HEAD `2abca7a`／CI `347011...`を示します（[`pr-body-final.md`](<REPO_ROOT>/.artifacts/pr133-evidence-validator/pr-body-final.md:6)）。
+   - Suggested fix: 最終HEADとCIの対応関係をwrapper管理Artifactへ同期する。
+
+### Evidence
+
+- `git status --short --untracked-files=all`: `run.json` とwrapper生成ログのみ。source／test／設定／文書の差分なし。
+- `node` JSON／必須キー／enum／Evidence参照検査: PASS。
+- sanitizer相当検査: 標準5ファイルは0 findings。raw wrapper logには既知のローカルPathが1件あります。
+- 公式Python validatorとsanitizer再実行は、Python未導入およびGit所有者保護で実行不可でした。
+- `gh pr view/check` はネットワーク制限で未確認。外部レビューは起動していません。
+
+Next: wrapper終了後のmachine-managed `run.json` 最終状態確認が残ります。今回は修正せず終了します。

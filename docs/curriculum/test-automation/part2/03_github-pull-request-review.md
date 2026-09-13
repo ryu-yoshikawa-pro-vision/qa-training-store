@@ -204,7 +204,6 @@ PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権�
 - Pull Requestの役割を説明できる。
 - Test変更のmaterialなReview観点を、変更のRiskと理由付きで選べる。固定件数や第三者Reviewをcompletionの条件にしない。
 - PR本文へTest Designとの対応とValidationを記録できる。
-- 将来の任意Operational validationとしてDelivery Readinessを扱う場合、Web / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。
 
 ## 次の行動
 

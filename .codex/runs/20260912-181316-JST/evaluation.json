@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-181316-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation", "flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "playwrightの由来・同一turnのimplicit invocation、Android 2件のread／OTel 0件／lifecycle timeout、observer／runnerの判定経路を確定し、実装Planを保存した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/REPORT.md",
+          "selector": "2026-09-12 18:33 (JST)",
+          "summary": "Codex仕様、observer、runner、Android原因分類。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md",
+          "selector": "## 変更後の処理経路（提案）",
+          "summary": "実装Planを保存した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は今回Run Artifactと指定された実装Planに限定し、tracked source、test、Skill、dataset、query、timeout、observer／evaluator、raw evidenceを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/PLAN.md",
+          "selector": "## Scope",
+          "summary": "変更禁止対象と非対象。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "既存raw evidence、Codex tag source／tests、静的observer／runner契約は照合できたが、Qualification、canonical all、8/8、valid baselineと対象3ケースの再実行は依頼範囲外・禁止条件のため未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/REPORT.md",
+          "selector": "2026-09-12 18:34 (JST)",
+          "summary": "未実行項目と原因確度。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "対象3ケースの再実行・retry、source実装、alias／normalization、timeout変更、Qualification、baseline判定、merge conflict解消、rebase、force pushを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/PLAN.md",
+          "selector": "## Out",
+          "summary": "明示された禁止操作。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "原因をcanonical外Skill、metric欠落、child timeout、query／routingに分離し、確認済み・可能性・未確認をRun ReportとPlanへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/REPORT.md",
+          "selector": "2026-09-12 18:33 (JST)",
+          "summary": "原因分類と確度。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "現行ADR-0024のfail-close、OTel primary、Hook diagnostic-only、Result schema 2、lifecycle分離を保った実装方針とし、単純なplaywright除外やtimeout短縮を提案していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md",
+          "selector": "## 変更しないもの",
+          "summary": "不変契約と非対象。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "対象raw artifact、Run ID、base HEAD、Codex tag SHA、source／test参照、3ケースの既存event順を保存・相互参照できる。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/trigger-eval-unknown-skill-diagnostic-20260912-170130/",
+          "selector": "対象3ケースのstdout／stderr／process／otel",
+          "summary": "前回診断raw evidence。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "canonical `exploratory-qa`と正当なuser-level補助`playwright`が同一turnでimplicit invokeされ、OTelのSkill valuesがcanonical外を含むため現行observerは`unknown_skill`としてfail-closeする。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/REPORT.md",
+          "selector": "2026-09-12 18:33 (JST)",
+          "summary": "Skill provenanceとunknown判定。"
+        }
+      ],
+      "detail": "scope／provenanceを持たない現行metricでは、auxiliaryとunexpected unknownを安全に分離できない。無条件ignoreではなく、ADR・observer・contract testを一体で変更するPlanとした。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "Android 2件はOTel collection completed・control valid 1・Skill point 0だが、stdoutにterminal eventがなく、runnerの327秒child timeoutで終了した。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/trigger-eval-unknown-skill-diagnostic-20260912-170130/",
+          "selector": "android-native-local-validation-train-002 / android-native-local-validation-validation-002",
+          "summary": "既存raw process／stdout／OTel evidence。"
+        }
+      ],
+      "detail": "特定の長時間commandやserver待機は確認できず、確認済み範囲はterminal未出力のchild lifecycle timeoutである。Skill readはdiagnostic factだが、metric欠落をscoring fallbackには使わない。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "本Runは原因調査とPlan作成に限定され、Qualification、canonical all、8/8、valid baselineを実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/PLAN.md",
+          "selector": "## Qualification再実行条件",
+          "summary": "実装後の再実行条件。"
+        }
+      ],
+      "detail": "依頼の禁止事項と調査Runの目的に整合する未実行であり、次の実装Runでprovenance capabilityとcontract testを先に確認する。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval OTel Skill provenance contract",
+      "evidence": "現行`codex.skill.injected` pointには、今回の診断で確認できたscopeを安全に区別する属性がなく、`plugin_id=unattributed`もscope証拠にならない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md",
+          "selector": "## 変更後の処理経路（提案）",
+          "summary": "provenance付き分類の提案。"
+        }
+      ],
+      "expected_impact": "正当なenvironment auxiliary併用でcanonical routingがunobservableになる事象と、unexpected unknownを区別できる。",
+      "recommendation": "Codex／OTel側のprovenanceまたは明示manifestを前提に、ADR-0024、observer、evaluator contract testを同時に更新する。"
+    },
+    {
+      "target": "Codex composite PowerShell read observability",
+      "evidence": "Android stdoutのSkill readは複合PowerShell commandで、Codex tag testsは複合readを保守的に分類しない。OTel Skill pointは0件だった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-181316-JST/REPORT.md",
+          "selector": "2026-09-12 18:33 (JST)",
+          "summary": "read形式とmetric欠落の分離。"
+        }
+      ],
+      "expected_impact": "SKILL.md readという診断事実とCodex invocation metricの意味を混同せず、必要なCodex側改善箇所を特定できる。",
+      "recommendation": "実装後の専用diagnostic Runで、read command形式・indexed path・provenance付きmetricの対応を確認する。Hookをscoring fallbackにはしない。"
+    }
+  ]
+}

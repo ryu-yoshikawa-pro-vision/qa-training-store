@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "run_id": "20260910-204137-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "レビュー指摘2件を対象Planへ反映し、Host absolute pathのfail-close契約とQualificationの実行順を明記した。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は対象Planと今回Run Artifactに限定され、source、tests、ADR、PROJECT_CONTEXT、history、Qualification、canonical等は変更していない。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "自己レビュー、Plan-only validation、evaluation schema、sanitizer、strict collectorを実行し、最終状態ですべてPASSした。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Host input failureをrunner-level failureへ昇格させず、Target preflight integrity failureとの境界をPlanに固定した。禁止されたruntime実行は行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "must_fix分類、bounded scope、修正内容、追加test予定、Qualification順序、残存非目標をRun Artifactへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存Node APIとpath helperを使う小さなnon-throwing処理を指定し、汎用filesystem abstractionとgeneral PowerShell parserを追加しない。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "開始時のbranch、PR head、allowed scope、修正対象、validation commands、最終確認条件を固定した。"
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

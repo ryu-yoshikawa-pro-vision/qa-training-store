@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: repair-loop-train-001
+    query: "このRepositoryのscripts/verifyに対する確認済みblocking finding（失敗時も次の検証へ進む分岐）をscope内で最小修正し、関連テストで結果を確認してください。"
+    expected_skill: repair-loop
+    boundary: repair-loop-vs-harness-improvement
+  - id: repair-loop-train-002
+    query: "Trigger Evalのpositive実行が327秒でterminalに到達せずtimeoutになった記録とscripts/evals/run-skill-trigger-evals.tsを比較し、再発防止のharness改善候補を1件、対象・厳格さ・owner判断付きで提案してください。"
+    expected_skill: harness-improvement
+    boundary: repair-loop-vs-harness-improvement

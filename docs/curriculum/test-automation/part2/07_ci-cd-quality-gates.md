@@ -2,13 +2,15 @@
 
 ## 学習目標
 
-- CIとCDの違いを説明できる。
+- bounded Web CIのQuality Gate、Artifact、Failure Evidence、fail-closed条件を説明できる。
+- CIとCDの違いを説明できる（CDの詳細はAdvanced / Reference）。
 - Required Check / Quality Gateの役割を理解できる。
 - PR、main、Nightly、ManualへTest Suiteを配置できる。
-- Build Artifact、Preview Deploy、Production Deploy、Deploy後Smokeの関係を理解できる。
+- Web Build / Test ArtifactとFailure Evidenceの関係を理解できる。
+- Preview Deploy、Production Deploy、Deploy後SmokeはAdvanced / Referenceとして比較できる。
 - 「すべてのTestを毎回実行する」以外の設計を、Risk・Feedback速度・Costから考えられる。
 - Job並列化、Artifact再利用、変更判定などのCI最適化を品質Gateを弱めずに考えられる。
-- Scenario Shopの現在のCI/CD構成を設計判断として説明できる。
+- Scenario Shopのbounded Web CI構成を設計判断として説明できる。
 
 ## 教材
 
@@ -125,7 +127,7 @@ Pull RequestごとのPreviewは、Merge前に実際のDeploy環境で確認で�
 - Cleanup
 - Fork PRのSecurity
 
-Scenario ShopではCloudflare PreviewをRequired経路へ組み込んでいます。
+Scenario Shopの既存CIにはCloudflare Previewの経路がありますが、これはCommon Requiredの範囲ではなく、Preview環境を比較するAdvanced / Referenceの題材です。
 
 なぜLocal BuildのTestだけではなくPreview Smokeも実行するか考えます。
 
@@ -137,17 +139,17 @@ Deploy後Smokeでは最低限のCritical状態を確認します。
 
 SmokeへRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
 
-## Lesson 7: Artifactの一貫性（Common Required: Web Artifact）
+## Lesson 7: Web ArtifactとFailure Evidence（Common Required）
 
-「TestしたArtifact」と「DeployしたArtifact」が違うと、Test結果の意味が弱くなります。
+「TestしたWeb Artifact」と、後続工程で確認するArtifactの関係を明確にすると、Test結果の意味を追跡しやすくなります。
 
 Scenario ShopではBuildした`dist/`をArtifactとして後続Jobへ渡します。
 
 次を考えます。
 
 - E2EしたArtifactは何か。
-- PreviewへDeployしたArtifactは何か。
-- Production SmokeしたArtifactは何か。
+- E2E Failure時に確認するArtifactは何か。
+- Preview / ProductionへDeployするArtifactは何か（Advanced / Reference）。
 
 ## Lesson 8: Fail-closed
 
@@ -236,22 +238,22 @@ PR Merge前に必須とするJobを選びます。
 - Runner Cost
 - Failure時のActionability
 
-## ハンズオン3: CI/CD Diagram
+## ハンズオン3: bounded Web CI Diagram（Common）
 
-Scenario Shopの現在のWeb CI/CDを図示します。
+Scenario Shopの現在のWeb CIを、Common Requiredの範囲で図示します。Preview / Production / Smokeを含める場合はAdvanced / Referenceと明記します。
 
 最低限次を含めます。
 
 - Quality
 - Tests
 - Automation Build
-- Production Build
 - Playwright
 - verify
-- Preview
-- Smoke
 - validate
-- Production
+- Artifact
+- Final Gate
+
+Preview、Production、Deploy後Smokeは別のAdvanced / Reference図として比較できます。
 
 ## ハンズオン4: 改善案を考える
 

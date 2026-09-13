@@ -1,0 +1,19 @@
+{
+    "runtime":  "host",
+    "preset":  "safe",
+    "mode":  "safe",
+    "run_id":  "20260911-232344-JST",
+    "cwd":  "\u003cREPO_ROOT\u003e",
+    "git_branch":  "refactor/test-automation-curriculum-learning-experience",
+    "git_dirty":  true,
+    "prompt_source":  "\u003cREPO_ROOT\u003e/.artifacts\\pr133-three-repair\\20260911-232344-machine\\validation-prompt-ascii.txt",
+    "output_file":  "\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260911-232344-JST\\artifacts\\codex-task-20260912-000102.json",
+    "output_schema":  null,
+    "log_path":  "\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260911-232344-JST\\logs\\codex-task-20260912-000102.jsonl",
+    "codex_exit_code":  0,
+    "verify_exit_code":  [
+                             "Curriculum validation passed: 22 required documents, 4 workbook files, training-chromium / training-mobile-chromium.",
+                             0
+                         ],
+    "status":  "verify_failed"
+}

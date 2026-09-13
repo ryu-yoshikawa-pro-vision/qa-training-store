@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-110511-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": [
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "既存canonicalの4代表case、全timeout分類、OTel observer/evaluator/testsを照合したが、unknown Skillの実値が保存されておらず、source defectを安全に確定できないためsource修正とvalid baseline取得を開始しなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "cases and summary",
+          "summary": "24 casesのoutcome、lifecycle、8/8 coverageの根拠。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-110511-JST/REPORT.md",
+          "selector": "2026-09-12 11:14 (JST)",
+          "summary": "原因調査の停止条件と未実行後続を記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Plan、Run Artifact、既存raw evidenceの読み取りとfocused contract testだけを行い、source、tests、dataset、query、Skill、Hook、timeout、schema、Target、canonical結果を変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-110511-JST/run.json",
+          "selector": "changed_files",
+          "summary": "collectorが今回Runの変更範囲を確定する。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "OTel observer/evaluator focused testは2 files / 45 testsでPASSした。一方、canonicalのOTel diagnosticがunknown属性の実値を欠き、8/8とvalid baselineを判定する追加runtime evidenceは未取得である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-110511-JST/REPORT.md",
+          "selector": "focused contract test checkpoint",
+          "summary": "observer/evaluator契約テスト45件のPASS。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "case_id=exploratory-qa-train-001 and case_id=exploratory-qa-validation-001",
+          "summary": "unknown_skillとreliable absence + process timeoutの差異。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "unknown Skillを推測でcanonicalへaliasせず、同一canonical retry、query tuning、Target交換、Hook fallback、merge/rebase/force pushを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-110511-JST/PLAN.md",
+          "selector": "Scope / Risks / Unknowns",
+          "summary": "禁止した推測修正とruntime再実行境界。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "warn",
+      "evidence": "4代表caseのowner、expected、outcome、lifecycle、OTel state/reliability/reason/request/control/Skill countを追跡できるが、diagnosticは実Skill属性を保持せず、unknownの具体原因をレビューできない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "diagnostic.metric_names/invoke_types/plugin_ids and skill_point_count",
+          "summary": "件数と補助属性はあるがskill/status実値がない。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存observerはcontrol liveness、canonical exact identity、unknown/multiple/status invalidのfail-closeを担当し、evaluatorはprocess lifecycleとscoreInitialRoutingを担当する。focused testsは45件PASSで契約を支持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/otel-skill-observer.ts",
+          "selector": "classifyOtelObservation",
+          "summary": "OTel reliability分類とfail-close条件。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/skill-trigger-evals.ts",
+          "selector": "deriveRoutingObservation / scoreInitialRouting",
+          "summary": "OTel primaryとoutcome分類の責務分離。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "canonical provenance、dataset fingerprint、Codex version、Routing SHA、Evaluator SHAは固定されているが、unknown Skillの実値を再現するpayloadが既存artifactに保存されていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "provenance",
+          "summary": "固定実行条件の正本。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "unknown_skill diagnostics",
+          "summary": "実値欠落による再現性限界。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "canonicalの`unknown_skill`はcontrol valid 1、Skill point 1、collection completedとして記録されるが、diagnosticにはmetric名、invoke type、plugin id、件数しかなく、observerが拒否した`skill`属性の実値とstatusがない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "case_id=exploratory-qa-train-001; unobservable_reason=unknown_skill",
+          "summary": "unknownの分類はあるが、分類対象の実値はない。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-trigger-evals.ts",
+          "selector": "toOtelCaseDiagnostic",
+          "summary": "Resultへ出すOTel診断項目の責務。"
+        }
+      ],
+      "detail": "現存evidenceだけでは、actual Codex Skill名の表記差、外部/bundled Skillの混入、または別の属性不整合を区別できない。alias追加やHook fallbackは根因修正ではないため、今回source変更を行わず停止する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "canonical allは24 cases中20 casesが`timed_out`で、exploratory-qa-validation-001はOTel reliable absenceでもprocess lifecycleが`timed_out`のため`unobservable/timeout`になった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json",
+          "selector": "summary.by_process_lifecycle and cases[*]",
+          "summary": "timeout分布とcase結果。"
+        }
+      ],
+      "detail": "process timeoutはOTel観測のreliable/unreliableとは別軸であり、trusted absenceへ補完しない。現時点で再実行による環境差の証明はしていないため、timeout単独のsource修正は行わない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Trigger Eval OTel diagnostic contract",
+      "evidence": "unknown_skillを検出したcaseでも、実Skill/status属性が保存されず、root causeのレビューと安全な最小修正判断ができなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/trigger-eval-qualification-20260912-02/canonical/trigger-eval-baseline.json.otel.jsonl",
+          "selector": "unknown_skill cases",
+          "summary": "保存済み診断の情報限界。"
+        }
+      ],
+      "expected_impact": "次回の別Runでunknown/malformed/status異常を、raw secretを複製せず安全なredacted identity/statusとして判別できる。",
+      "recommendation": "ユーザー承認後の新規Runで、diagnosticに許可されたSkill identity/statusのredacted値または分類根拠を保存するsource/test変更を計画し、その後にのみ新しいQualification条件を確定する。今回のcanonicalをretryしない。"
+    }
+  ]
+}

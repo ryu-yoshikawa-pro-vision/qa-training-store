@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: code-review-train-001
+    query: "このRepositoryのscripts/verifyを読み、検証順序・失敗時の終了条件・入力検証について重大度と行位置を示すレビュー指摘と最終verdictを返してください。"
+    expected_skill: code-review
+    boundary: code-review-vs-repair-loop
+  - id: code-review-train-002
+    query: "このRepositoryのpnpm run lint:markdownがdocs/PROJECT_CONTEXT.mdのリンク切れで失敗した場合、最初の異常を特定し、許可された範囲の最小修正と同じgateの再実行まで進めてください。"
+    expected_skill: repair-loop
+    boundary: code-review-vs-repair-loop

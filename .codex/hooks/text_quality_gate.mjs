@@ -22,7 +22,11 @@ const READ_ONLY_TOOLS = new Set([
   "view_image",
 ]);
 const MARKDOWN_PATH_PATTERN = /\.md$/iu;
-const STATE_SCHEMA_VERSION = 1;
+const STATE_SCHEMA_VERSION = 2;
+const STATE_STATUS = Object.freeze({
+  READY: "ready",
+  UNAVAILABLE: "baseline_unavailable",
+});
 
 class QualityUnavailable extends Error {
   constructor(code) {
@@ -129,14 +133,6 @@ function getHead(root) {
   return head;
 }
 
-function listTreeMarkdownPaths(root, ref) {
-  return runGit(["ls-tree", "-r", "-z", "--name-only", ref, "--"], root)
-    .split("\0")
-    .filter(Boolean)
-    .map(normalizeGitPath)
-    .filter(isMarkdownPath);
-}
-
 function currentPathExists(root, filePath) {
   const absolutePath = path.resolve(root, filePath);
   const relativePath = path.relative(root, absolutePath);
@@ -149,6 +145,28 @@ function currentPathExists(root, filePath) {
   } catch (error) {
     if (error?.code === "ENOENT") return false;
     throw new QualityUnavailable("current_content");
+  }
+}
+
+function startHeadPathExists(root, startHead, filePath) {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${startHead}^{commit}`], {
+      cwd: root,
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+  } catch {
+    throw new QualityUnavailable("baseline_blob");
+  }
+
+  try {
+    execFileSync("git", ["cat-file", "-e", `${startHead}:${filePath}`], {
+      cwd: root,
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+    return true;
+  } catch (error) {
+    if (error?.status === 128) return false;
+    throw new QualityUnavailable("baseline_blob");
   }
 }
 
@@ -238,17 +256,20 @@ function getGitRenameMappings(records) {
   return mappings;
 }
 
-function baselineHash(root, startHead, entry) {
-  if (entry.source === "head_blob") {
+function baselineHash(root, startHead, entry, filePath = entry?.path) {
+  if (entry?.source === "head_blob") {
     return sha256(readBlob(root, startHead, entry.path));
   }
-  if (entry.source === "worktree") {
+  if (entry?.source === "worktree") {
     if (typeof entry.content_sha256 !== "string") {
       throw new QualityUnavailable("baseline_manifest");
     }
     return entry.content_sha256;
   }
-  throw new QualityUnavailable("baseline_manifest");
+  if (typeof filePath === "string" && startHeadPathExists(root, startHead, filePath)) {
+    return sha256(readBlob(root, startHead, filePath));
+  }
+  throw new QualityUnavailable("baseline_blob");
 }
 
 function resolveIdentity({ root, startHead, records, startEntries, currentPaths }) {
@@ -284,11 +305,8 @@ function resolveIdentity({ root, startHead, records, startEntries, currentPaths 
   }
   for (const deletedPath of deletedPaths) {
     const entry = entryByPath.get(deletedPath);
-    if (!entry) {
-      throw new QualityUnavailable("baseline_manifest");
-    }
     if (candidates.length === 0) continue;
-    const expectedHash = baselineHash(root, startHead, entry);
+    const expectedHash = baselineHash(root, startHead, entry, deletedPath);
     const matches = candidates.filter((candidate) => candidateHashes.get(candidate) === expectedHash);
     if (matches.length !== 1) {
       throw new QualityUnavailable("session_rename_mapping");
@@ -323,15 +341,18 @@ function getChangedCurrentPaths(records, mappings, currentPaths) {
 }
 
 function getBaselineViolations({ root, startHead, entry, filePath, rules }) {
-  if (!entry) return [];
-  if (entry.source === "head_blob") {
+  if (entry?.source === "head_blob") {
     return scanText(readBlob(root, startHead, entry.path), { path: filePath, rules });
   }
-  if (entry.source === "worktree") {
+  if (entry?.source === "worktree") {
     if (!Array.isArray(entry.violations)) throw new QualityUnavailable("baseline_manifest");
     return countsAsViolations(entry.violations, filePath);
   }
-  if (entry.source === "worktree_missing") return [];
+  if (entry?.source === "worktree_missing") return [];
+  if (!entry && startHeadPathExists(root, startHead, filePath)) {
+    return scanText(readBlob(root, startHead, filePath), { path: filePath, rules });
+  }
+  if (!entry) return [];
   throw new QualityUnavailable("baseline_manifest");
 }
 
@@ -381,9 +402,6 @@ function makePairs(root, state, rules, mappings, entryByPath, changedPaths) {
   for (const currentPath of [...changedPaths].sort()) {
     const baselinePath = mappings.get(currentPath) ?? currentPath;
     const entry = entryByPath.get(baselinePath);
-    if (mappings.has(currentPath) && !entry) {
-      throw new QualityUnavailable("baseline_manifest");
-    }
     const currentContent = readRegularFile(root, currentPath);
     const currentViolations = scanText(currentContent, { path: currentPath, rules });
     const baselineViolations = getBaselineViolations({
@@ -415,21 +433,59 @@ function readState(statePath, stateInfo) {
       !state ||
       typeof state !== "object" ||
       state.schema_version !== STATE_SCHEMA_VERSION ||
-      typeof state.start_head !== "string" ||
       typeof state.root_id !== "string" ||
       typeof state.session_id_hash !== "string" ||
-      !Array.isArray(state.files)
+      typeof state.status !== "string"
     ) {
       throw new Error("invalid state");
     }
     if (
-      !/^[0-9a-f]{40}$/iu.test(state.start_head) ||
+      (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
       !/^[0-9a-f]{64}$/iu.test(state.root_id) ||
       !/^[0-9a-f]{64}$/iu.test(state.session_id_hash) ||
       (stateInfo &&
         (state.root_id !== stateInfo.rootId || state.session_id_hash !== stateInfo.sessionIdHash))
     ) {
       throw new Error("invalid state identity");
+    }
+
+    if (state.status === STATE_STATUS.UNAVAILABLE) {
+      const allowedKeys = new Set([
+        "schema_version",
+        "root_id",
+        "session_id_hash",
+        "start_head",
+        "status",
+        "code",
+      ]);
+      if (
+        Object.keys(state).some((key) => !allowedKeys.has(key)) ||
+        (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
+        (state.code !== undefined &&
+          (typeof state.code !== "string" || !/^[a-z0-9_]{1,64}$/u.test(state.code)))
+      ) {
+        throw new Error("invalid unavailable state");
+      }
+      return state;
+    }
+
+    if (
+      state.status !== STATE_STATUS.READY ||
+      typeof state.start_head !== "string" ||
+      !Array.isArray(state.files)
+    ) {
+      throw new Error("invalid ready state");
+    }
+    const readyKeys = new Set([
+      "schema_version",
+      "root_id",
+      "session_id_hash",
+      "status",
+      "start_head",
+      "files",
+    ]);
+    if (Object.keys(state).some((key) => !readyKeys.has(key))) {
+      throw new Error("invalid ready state fields");
     }
     const paths = new Set();
     for (const entry of state.files) {
@@ -472,6 +528,26 @@ function readState(statePath, stateInfo) {
   }
 }
 
+function writeUnavailableState(stateInfo, startHead, error) {
+  const errorCode = error instanceof QualityUnavailable ? error.code : "baseline_creation";
+  const code = /^[a-z0-9_]{1,64}$/u.test(errorCode) ? errorCode : "baseline_creation";
+  const state = {
+    schema_version: STATE_SCHEMA_VERSION,
+    root_id: stateInfo.rootId,
+    session_id_hash: stateInfo.sessionIdHash,
+    ...(typeof startHead === "string" && /^[0-9a-f]{40}$/iu.test(startHead)
+      ? { start_head: startHead }
+      : {}),
+    status: STATE_STATUS.UNAVAILABLE,
+    code,
+  };
+  try {
+    writeState(stateInfo.path, state);
+  } catch {
+    // The root and state path are known, but a filesystem error can still prevent persistence.
+  }
+}
+
 function writeState(statePath, state) {
   try {
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
@@ -491,47 +567,35 @@ function deleteState(statePath) {
   }
 }
 
-function createBaseline({ root, rules, stateInfo }) {
-  const startHead = getHead(root);
-  const headPaths = listTreeMarkdownPaths(root, startHead);
+function createWorktreeEntry(root, filePath, rules) {
+  const content = readRegularFile(root, filePath);
+  return {
+    path: filePath,
+    source: "worktree",
+    content_sha256: sha256(content),
+    violations: persistCounts(scanText(content, { path: filePath, rules })),
+  };
+}
+
+function createBaseline({ root, rules, stateInfo, startHead }) {
   const dirtyPaths = getStartDirtyPaths(root);
-  const currentPaths = new Set(listCurrentMarkdownPaths(root));
   const files = [];
 
-  for (const filePath of headPaths) {
-    if (!dirtyPaths.has(filePath)) {
-      files.push({ path: filePath, source: "head_blob" });
-      continue;
-    }
-    if (!currentPaths.has(filePath)) {
+  for (const filePath of [...dirtyPaths].sort()) {
+    const existsInStartHead = startHeadPathExists(root, startHead, filePath);
+    const existsInCurrentWorktree = currentPathExists(root, filePath);
+    if (existsInStartHead && !existsInCurrentWorktree) {
       files.push({ path: filePath, source: "worktree_missing", violations: [] });
       continue;
     }
-    const content = readRegularFile(root, filePath);
-    files.push({
-      path: filePath,
-      source: "worktree",
-      content_sha256: sha256(content),
-      violations: persistCounts(scanText(content, { path: filePath, rules })),
-    });
-  }
-
-  const headPathSet = new Set(headPaths);
-  for (const filePath of currentPaths) {
-    if (headPathSet.has(filePath)) continue;
-    const content = readRegularFile(root, filePath);
-    files.push({
-      path: filePath,
-      source: "worktree",
-      content_sha256: sha256(content),
-      violations: persistCounts(scanText(content, { path: filePath, rules })),
-    });
+    if (existsInCurrentWorktree) files.push(createWorktreeEntry(root, filePath, rules));
   }
 
   writeState(stateInfo.path, {
     schema_version: STATE_SCHEMA_VERSION,
     root_id: stateInfo.rootId,
     session_id_hash: stateInfo.sessionIdHash,
+    status: STATE_STATUS.READY,
     start_head: startHead,
     files: files.sort((left, right) => left.path.localeCompare(right.path)),
   });
@@ -578,8 +642,15 @@ function processUserPrompt(payload) {
     readState(stateInfo.path, stateInfo);
     return;
   }
-  const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
-  createBaseline({ root, rules, stateInfo });
+  let startHead;
+  try {
+    startHead = getHead(root);
+    const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
+    createBaseline({ root, rules, stateInfo, startHead });
+  } catch (error) {
+    writeUnavailableState(stateInfo, startHead, error);
+    throw error;
+  }
 }
 
 function processPostToolUse(payload) {
@@ -587,6 +658,9 @@ function processPostToolUse(payload) {
   if (READ_ONLY_TOOLS.has(payload.tool_name)) return;
   const stateInfo = makeStatePath(root, payload.session_id);
   const state = readState(stateInfo.path, stateInfo);
+  if (state.status !== STATE_STATUS.READY) {
+    throw new QualityUnavailable("baseline_unavailable");
+  }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
   const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
   const { pairs } = buildPairs({ root, state, rules, targetPaths: explicitPaths });
@@ -599,7 +673,10 @@ function processPostToolUse(payload) {
 function processStop(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   const stateInfo = makeStatePath(root, payload.session_id);
-  const state = readState(stateInfo.path);
+  const state = readState(stateInfo.path, stateInfo);
+  if (state.status !== STATE_STATUS.READY) {
+    throw new QualityUnavailable("baseline_unavailable");
+  }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
   const { pairs } = buildPairs({ root, state, rules });
   const newViolations = pairs.flatMap((pair) => getNewViolations(pair.baselineViolations, pair.currentViolations));
@@ -617,7 +694,9 @@ function cleanupAllowedStop(payload) {
   if (payload?.stop_hook_active !== true || typeof payload.session_id !== "string") return;
   try {
     const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
-    deleteState(makeStatePath(root, payload.session_id).path);
+    const stateInfo = makeStatePath(root, payload.session_id);
+    readState(stateInfo.path, stateInfo);
+    deleteState(stateInfo.path);
   } catch {
     // The Stop hook must remain fail-open when Codex has already activated the stop hook.
   }

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "20260910-122601-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "exact-shape selector、detached Target preflight、focused/static/full validation、fresh Target preflight、negative/positive Qualificationまで完了した。positive Qualificationは未承認Host shapeによりFAILし、canonical all、8/8 side、valid baselineは停止条件どおり未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260910-122601-JST/REPORT.md",
+          "selector": "Qualification判定",
+          "summary": "Qualification FAIL後にcanonicalを開始しない判断を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は承認済みのselector、detached preflight、contract test、ADR、living documentationへ限定され、dataset、Skill、Hook、query、timeout、Result evaluator、Product codeは変更していない。Qualification FAIL後のselector拡張、retry、query tuning、別Target交換、canonical実行も行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-122601-JST/REPORT.md",
+          "selector": "Scope確認",
+          "summary": "実装scopeとruntime停止境界を記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused 31/31、dataset fingerprint、Skill/Markdown、Prettier、diff、pnpm run verifyはPASSした。negativeはtrusted absenceとしてPASSしたが、positiveはHostの未承認shapeを含むためselectorがunreliableとなり、routing QualificationをPASSへ昇格できない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260910-122601-JST/REPORT.md",
+          "selector": "2026-09-10 12:50",
+          "summary": "full verifyとdoc gateのPASSを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/positive/analysis.json",
+          "selector": "selector_reliable",
+          "summary": "positiveのselector_reliable=false、initial_skill=null、observed_skills=nullを記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "unapproved shapeをsafe_no_readへ推測変換せず、Qualification FAIL後に追加実行や実装拡張をせず、canonical allを開始しなかった。Target、SHA、dataset、Run条件の不一致を補完していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260910-122601-JST/TASKS.md",
+          "selector": "## Blocked",
+          "summary": "Qualification停止条件とcanonical未実行を記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "実装commit、静的検証、Target preflight、negative/positiveのstdout・stderr・Hook delta・analysis、Qualification判定を相対pathで追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/positive/hook-delta.jsonl",
+          "selector": "PostToolUse",
+          "summary": "positive Hostの実測Hook eventを保存している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-122601-JST/REPORT.md",
+          "selector": "Fresh Target / Qualification",
+          "summary": "Target条件とruntime判定を日本語Run reportへ集約している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "実測negativeの固定compoundだけをboundedに認識し、一般PowerShell parserやabsolute pathの推測許可を追加せず、Result schema 2・lifecycle・comparison契約を維持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md",
+          "selector": "Qualification blocker remediation",
+          "summary": "exact-shapeと未承認shape停止の恒久契約を記録している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "同一Target、Evaluator SHA、routing SHA、Codex version、dataset fingerprintを固定し、negative/positiveを各1回実行できた。しかしpositive Host outputが現行bounded selectorの許可shape外となり、同一条件でtrusted candidateを再現可能に確定できない。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/positive/hook-delta.jsonl",
+          "selector": "PostToolUse event index 6 and subsequent events",
+          "summary": "absolute Skill path readと未承認複合commandを含むHook deltaを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/negative/analysis.json",
+          "selector": "trusted absence",
+          "summary": "negativeは同じTargetでreliableなtrusted absenceとして成立している。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "positive queryのHook deltaでは、最初のcanonical候補より前にabsolute pathの`Get-Content`と、複数処理を含むPowerShell commandが観測され、`prepareSignals`は`selector_reliable=false`、`initial_skill=null`、`observed_skills=null`を返した。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/positive/hook-delta.jsonl",
+          "selector": "PostToolUse event index 6",
+          "summary": "Hostが出力したabsolute Skill path readを記録している。"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910-r2/positive/analysis.json",
+          "selector": "selector_reliable",
+          "summary": "未承認shapeのためselectorがreliableにならなかったことを記録している。"
+        }
+      ],
+      "detail": "現行契約はabsolute pathや未承認compoundを安全なcanonical候補へ推測変換しない。追加のraw evidenceと別判断なしにselectorを広げると、negative absence契約を弱めるため、今回のQualificationはFAILとしてcanonical allを停止した。"
+    }
+  ],
+  "improvement_candidates": []
+}

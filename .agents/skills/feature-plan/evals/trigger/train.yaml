@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: feature-plan-train-001
+    query: "このRepositoryのscripts/evals/run-skill-trigger-evals.tsとtests/repository-contract/skill-trigger-evals.test.tsにまたがるHook read shape対応について、現状理解・非目標・リスク・検証方法を含む実装計画を作成してください。"
+    expected_skill: feature-plan
+    boundary: feature-plan-vs-direct-implementation
+  - id: feature-plan-train-002
+    query: "このRepositoryのdocs/spec/features/orders.mdの見出し「## Purpose / Scope」を「## Purpose and Scope」に変更する小さな修正を適用し、pnpm run lint:markdownの結果だけを報告してください。"
+    expected_skill: null
+    boundary: feature-plan-vs-direct-implementation

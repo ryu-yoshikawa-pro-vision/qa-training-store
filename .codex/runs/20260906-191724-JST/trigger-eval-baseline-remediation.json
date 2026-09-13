@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "evaluator_git_sha": "918b23f4db1e89d2b0702efa9532a66a6434fdba",
+    "routing_source_git_sha": "856a14eb448a6ad6bf9722f623cf0d094b7a7d2a",
+    "dataset_sha256": "84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161",
+    "codex_version": "codex-cli 0.153.4",
+    "model": "unreported",
+    "executed_at": "2026-09-07T15:09:17.507Z",
+    "split": "all"
+  },
+  "cases": [
+    {
+      "id": "android-native-local-validation-train-001",
+      "owner_skill": "android-native-local-validation",
+      "split": "train",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "android-native-local-validation",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "android-native-local-validation-train-002",
+      "owner_skill": "android-native-local-validation",
+      "split": "train",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "exploratory-qa",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "android-native-local-validation-validation-001",
+      "owner_skill": "android-native-local-validation",
+      "split": "validation",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "android-native-local-validation",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "android-native-local-validation-validation-002",
+      "owner_skill": "android-native-local-validation",
+      "split": "validation",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "exploratory-qa",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "code-review-train-001",
+      "owner_skill": "code-review",
+      "split": "train",
+      "boundary": "code-review-vs-repair-loop",
+      "expected_skill": "code-review",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "code-review-train-002",
+      "owner_skill": "code-review",
+      "split": "train",
+      "boundary": "code-review-vs-repair-loop",
+      "expected_skill": "repair-loop",
+      "observed_skills": [],
+      "outcome": "false_negative",
+      "unobservable_reason": null
+    },
+    {
+      "id": "code-review-validation-001",
+      "owner_skill": "code-review",
+      "split": "validation",
+      "boundary": "code-review-vs-repair-loop",
+      "expected_skill": "code-review",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "code-review-validation-002",
+      "owner_skill": "code-review",
+      "split": "validation",
+      "boundary": "code-review-vs-repair-loop",
+      "expected_skill": "repair-loop",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "exploratory-qa-train-001",
+      "owner_skill": "exploratory-qa",
+      "split": "train",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "exploratory-qa",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "exploratory-qa-train-002",
+      "owner_skill": "exploratory-qa",
+      "split": "train",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "android-native-local-validation",
+      "observed_skills": [],
+      "outcome": "false_negative",
+      "unobservable_reason": null
+    },
+    {
+      "id": "exploratory-qa-validation-001",
+      "owner_skill": "exploratory-qa",
+      "split": "validation",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "exploratory-qa",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "exploratory-qa-validation-002",
+      "owner_skill": "exploratory-qa",
+      "split": "validation",
+      "boundary": "exploratory-qa-vs-android-native-local-validation",
+      "expected_skill": "android-native-local-validation",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "feature-plan-train-001",
+      "owner_skill": "feature-plan",
+      "split": "train",
+      "boundary": "feature-plan-vs-direct-implementation",
+      "expected_skill": "feature-plan",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "feature-plan-train-002",
+      "owner_skill": "feature-plan",
+      "split": "train",
+      "boundary": "feature-plan-vs-direct-implementation",
+      "expected_skill": null,
+      "observed_skills": [],
+      "outcome": "pass",
+      "unobservable_reason": null
+    },
+    {
+      "id": "feature-plan-validation-001",
+      "owner_skill": "feature-plan",
+      "split": "validation",
+      "boundary": "feature-plan-vs-direct-implementation",
+      "expected_skill": "feature-plan",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "feature-plan-validation-002",
+      "owner_skill": "feature-plan",
+      "split": "validation",
+      "boundary": "feature-plan-vs-direct-implementation",
+      "expected_skill": null,
+      "observed_skills": [],
+      "outcome": "pass",
+      "unobservable_reason": null
+    },
+    {
+      "id": "harness-improvement-train-001",
+      "owner_skill": "harness-improvement",
+      "split": "train",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "harness-improvement",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "harness-improvement-train-002",
+      "owner_skill": "harness-improvement",
+      "split": "train",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "repair-loop",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "harness-improvement-validation-001",
+      "owner_skill": "harness-improvement",
+      "split": "validation",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "harness-improvement",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "harness-improvement-validation-002",
+      "owner_skill": "harness-improvement",
+      "split": "validation",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "repair-loop",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "repair-loop-train-001",
+      "owner_skill": "repair-loop",
+      "split": "train",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "repair-loop",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "repair-loop-train-002",
+      "owner_skill": "repair-loop",
+      "split": "train",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "harness-improvement",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "repair-loop-validation-001",
+      "owner_skill": "repair-loop",
+      "split": "validation",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "repair-loop",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    },
+    {
+      "id": "repair-loop-validation-002",
+      "owner_skill": "repair-loop",
+      "split": "validation",
+      "boundary": "repair-loop-vs-harness-improvement",
+      "expected_skill": "harness-improvement",
+      "observed_skills": null,
+      "outcome": "unobservable",
+      "unobservable_reason": "timeout"
+    }
+  ],
+  "summary": {
+    "total": 24,
+    "by_outcome": {
+      "unobservable": 20,
+      "false_negative": 2,
+      "pass": 2
+    },
+    "by_owner_skill": {
+      "android-native-local-validation": 4,
+      "code-review": 4,
+      "exploratory-qa": 4,
+      "feature-plan": 4,
+      "harness-improvement": 4,
+      "repair-loop": 4
+    },
+    "by_split": {
+      "train": 12,
+      "validation": 12
+    },
+    "by_boundary": {
+      "exploratory-qa-vs-android-native-local-validation": 8,
+      "code-review-vs-repair-loop": 4,
+      "feature-plan-vs-direct-implementation": 4,
+      "repair-loop-vs-harness-improvement": 8
+    }
+  }
+}
