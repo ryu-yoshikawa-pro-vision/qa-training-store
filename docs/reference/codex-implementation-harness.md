@@ -51,6 +51,14 @@
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`
 - `--strict-harness` / `-StrictHarness` は source repo layout、spec/template/docs/version/CI 契約を前提にするため、consumer repo では通常 verify を使う。
 
+## 文章品質gateの検証
+
+- `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree`を呼び出し、現在のworktreeを開始時HEADと比較する。比較不能は失敗として扱う。
+- `scripts/verify` と `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存 `tests/contracts/codex-hook-contract.test.ts` と文章品質contractを追加実行するopt-inである。通常verifyのstrict意味や依存条件は変更しない。
+- `scripts/lint-text-quality.mjs` は本文の決定論的ruleだけを扱い、Markdown構造は `lint:markdown` に任せる。production ruleの正本は `.codex/text-quality-rules.json` で、未確定の禁止語・置換・allowlist・英語混在判定は追加しない。
+- pull requestでは `origin/${{ github.base_ref }}` とworkflowがcheckoutしたmerge `HEAD`のmerge-baseを比較baseにする。pushでは `github.event.before`、scheduleとworkflow dispatchでは `HEAD^`を使う。local以外ではclean checkoutの `HEAD -> worktree` 比較をCI gateとして使わない。
+- 変更path、baseline本文、current本文、rename mappingは同一comparison treeから取得する。Git rename mappingがなく、削除pathをcurrent Markdownへexact content SHA-256で一意に対応付けられない場合は、推測せず比較failureにする。
+
 ## Run 初期化
 
 - Bash:

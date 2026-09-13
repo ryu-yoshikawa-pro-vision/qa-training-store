@@ -548,3 +548,11 @@
 - `03_instructor-reference.md`はenvironment、account / permission、device、Training Copy、Infrastructure / Toolchainのsupport-only assetとし、学習内容・評価・Answer Key・個別判定の正本にしない。再利用可能なcriteria-only review checklistは`docs/reference/curriculum-self-study-review.md`に置く。
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
+
+## Issue #134 Codex Hook quality gate（2026-09-13）
+
+- 決定論的なMarkdown scannerは`scripts/lint-text-quality.mjs`、Repository-levelの差分gateは`scripts/check-text-quality-changes.mjs`を正本とする。scannerは明示されたliteral／regex ruleだけを扱い、Markdown構造の検査は既存`markdownlint`へ委譲する。
+- production文章品質ruleの具体値はRepository、Issue、Planから確定できなかったため、`.codex/text-quality-rules.json`は`not-configured`／空ruleのままである。禁止語、置換表、allowlist、英語混在判定、AIによる意味評価は追加しない。
+- `UserPromptSubmit`で作る文章品質baselineはraw本文、raw match、promptを保存せず、開始HEADのblobまたは開始時worktreeのfingerprint multisetだけを保持する。file identityはGit rename mapping、exact content SHA-256の一意一致、quality check不能の順で解決する。
+- 文章品質Hookは既存logging Hookと別責務で`UserPromptSubmit`／`PostToolUse`／`Stop`へ接続する。PostToolUseはfail-open、`Stop`は`stop_hook_active=false`のときだけ新規違反または確認不能を1回blockし、active再実行ではallowする。`SessionStart`のcompact後root `AGENTS.md`再注入は、Issue #135が未完了のため実装しない。
+- local gateは`HEAD -> current worktree`、commit／PR gateは確定した`comparison_base -> HEAD`を使い、PRでは現行workflow checkoutのmerge `HEAD`をcurrentとする。`bash scripts/verify --hook-contracts`／`scripts/verify.ps1 -HookContracts`は既存contractと文章品質contractのfocused入口である。

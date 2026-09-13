@@ -142,7 +142,7 @@ Plan更新時点でIssue #135はopenである。
 
 compact再注入は #135完了後まで実装しない。#134 branchを #135 branchへ直接依存させず、#135が `main` へ入った後に、このbranchへ最新 `main` をRepositoryのGit安全規約に従って取り込んでからTask 5へ進む。
 
-#135後のroot `AGENTS.md` を唯一の正本とする。compact専用コピー、marker領域、二重管理を追加しない。
+\#135後のroot `AGENTS.md` を唯一の正本とする。compact専用コピー、marker領域、二重管理を追加しない。
 
 Hook契約の不足分確認、文章lint scanner、baseline方式のテスト設計は #135前でも進められる。
 
@@ -360,7 +360,7 @@ Issue本文より現在実装を優先し、既に成立しているcontractを�
 - [ ] root `AGENTS.md` の実サイズを測る。
 - [ ] #134側でmarker分類やコピーを追加しない。
 
-#135未完了ならTask 5へ進まない。
+\#135未完了ならTask 5へ進まない。
 
 ### Task 5: compact時のroot `AGENTS.md` 再注入を実装する
 

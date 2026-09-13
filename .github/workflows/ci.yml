@@ -77,6 +77,25 @@ jobs:
       - name: Markdown lint
         run: pnpm run lint:markdown
 
+      - name: Text quality change gate
+        env:
+          TEXT_QUALITY_EVENT_NAME: ${{ github.event_name }}
+          TEXT_QUALITY_BASE_BRANCH: ${{ github.base_ref }}
+          TEXT_QUALITY_EVENT_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$TEXT_QUALITY_EVENT_NAME" == "pull_request" ]]; then
+            base_ref="origin/$TEXT_QUALITY_BASE_BRANCH"
+          else
+            base_ref="$TEXT_QUALITY_EVENT_BEFORE"
+            if [[ -z "$base_ref" || "$base_ref" =~ ^0+$ ]]; then
+              base_ref="HEAD^"
+            fi
+          fi
+
+          node scripts/check-text-quality-changes.mjs --base-ref "$base_ref"
+
       - name: Skill package validation
         run: pnpm run validate:skills
 
@@ -175,6 +194,30 @@ jobs:
           else {
             Write-Output "No changed Codex Run Artifact files to check."
           }
+
+  codex-hook-contract-windows:
+    name: Codex Hook contract (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run focused Hook contracts
+        run: pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
 
   vitest:
     name: Vitest (${{ matrix.suite }})
@@ -548,6 +591,7 @@ jobs:
       - build-automation
       - build-production
       - codex-artifact-sanitization
+      - codex-hook-contract-windows
       - e2e-chromium
       - ui-review
       - production-smoke
@@ -563,6 +607,7 @@ jobs:
           STYLE_QUALITY_RESULT: ${{ needs.style-quality.result }}
           CODE_QUALITY_RESULT: ${{ needs.code-quality.result }}
           CODEX_ARTIFACT_RESULT: ${{ needs.codex-artifact-sanitization.result }}
+          CODEX_HOOK_WINDOWS_RESULT: ${{ needs.codex-hook-contract-windows.result }}
           VITEST_RESULT: ${{ needs.vitest.result }}
           BUILD_AUTOMATION_RESULT: ${{ needs.build-automation.result }}
           BUILD_PRODUCTION_RESULT: ${{ needs.build-production.result }}
@@ -586,6 +631,7 @@ jobs:
           require_success "style-quality" "$STYLE_QUALITY_RESULT"
           require_success "code-quality" "$CODE_QUALITY_RESULT"
           require_success "codex-artifact-sanitization" "$CODEX_ARTIFACT_RESULT"
+          require_success "codex-hook-contract-windows" "$CODEX_HOOK_WINDOWS_RESULT"
           require_success "vitest" "$VITEST_RESULT"
           require_success "build-automation" "$BUILD_AUTOMATION_RESULT"
           require_success "build-production" "$BUILD_PRODUCTION_RESULT"

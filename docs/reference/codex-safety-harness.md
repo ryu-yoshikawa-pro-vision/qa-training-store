@@ -37,6 +37,11 @@
   - `auto-net` の network access は wrapper が `-c sandbox_workspace_write.network_access=true` を明示注入する
   - PreToolUse/Bash hook: `.codex/hooks/pre_tool_use_policy.mjs`
   - Windows native launcher: `.codex/hooks/pre_tool_use_policy_windows.ps1`
+  - 文章品質Hook: `.codex/hooks/text_quality_gate.mjs`
+- `.codex/text-quality-rules.json`
+  - 決定論的なproduction文章品質ruleの正本。具体的な根拠が確定したruleだけを置き、未確定の禁止語や自然さ判定は追加しない。
+- `scripts/lint-text-quality.mjs` / `scripts/check-text-quality-changes.mjs`
+  - 前者はMarkdown本文だけをscanし、後者はbaselineとcurrentのfingerprint multisetをGit tree単位で比較する。
 - `.codex/requirements.toml`
   - 管理配布/機能有効化時に使う補助的な最小要件定義
 - `scripts/verify`
@@ -159,6 +164,35 @@ bash scripts/codex-safe.sh --preset auto-net
 - Report file を生成してよいのは、ユーザーが保存を明示した場合、計画 DoD に report file がある場合、複数ソース調査・監査・検証結果を後で参照する必要がある場合のみ。
 - review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価では `docs/reports/` にファイルを作らない。
 - 判断に迷う場合は report file を作らず、チャット返答と `.codex/runs/<run_id>/REPORT.md` に留める。
+
+## 文章品質HookとRepository gate
+
+- `UserPromptSubmit` はsessionごとに開始時の `HEAD`、repository root識別hash、開始時にHEADと異なるMarkdownのworktree manifestだけを保存する。cleanなtracked Markdownは、変更時に開始時HEADのblobからbaselineを取得する。
+- baselineにはMarkdown本文、prompt全文、raw match、Hook payload、token、secret、credentialを保存しない。違反は `rule_id` と正規化済みmatchのSHA-256および件数だけをidentityとして保持する。
+- file identityは、Git rename mapping、exact content SHA-256の一意一致、対応付け不能の順で解決する。similarity、filename推測、edit distanceは使わない。
+- `PostToolUse` はMarkdown変更時の早期フィードバックであり、障害時はfail-openしてstderrへ診断する。既存のlogging Hookとは別責務である。
+- `Stop` は `stop_hook_active=false` のとき、新規違反またはquality check不能ならstructured `decision=block`を返す。`true` のときは診断付きでallowし、baseline stateを削除する。Hook failure契約とRepository gateのfailure契約は分離する。
+- 現在のIssue #135は未完了のため、compact後の `SessionStart` にroot `AGENTS.md`を再注入するHookはこのbranchでは設定しない。
+- production ruleは現在 `not-configured` であり、既存markdownlintの構造検査を重複実装しない。具体的なrule値が確定するまで、scanner／Hook／baseline／Git比較の契約だけを有効にする。
+
+Repository-level gateの比較基準は次のとおりです。
+
+- local `pnpm run lint:text`: `HEAD -> current worktree`。staged、unstaged、untracked Markdownを含む。
+- pull request: `origin/${{ github.base_ref }}` とcheckout済みworkflow `HEAD`のmerge-baseから `HEAD`までを比較する。raw PR headへcheckout方式は変更しない。
+- push: `github.event.before`を使い、空またはzero SHAなら `HEAD^`へfallbackする。
+- schedule / `workflow_dispatch`: `HEAD^`を使う。
+
+すべてのcommit比較で、変更path、baseline本文、current本文、rename mappingに同じmerge-base treeを使う。比較不能は違反0件のPASSへ落とさず、非0終了にする。
+
+focused Hook contractは既存 `tests/contracts/**` を正本として次でopt-in実行します。
+
+```bash
+bash scripts/verify --hook-contracts
+```
+
+```powershell
+./scripts/verify.ps1 -HookContracts
+```
 
 ## 運用メモ
 

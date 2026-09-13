@@ -40,12 +40,24 @@ command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" node \"%i\\.codex\\hooks\\log_event.mjs\" UserPromptSubmit\" || cmd.exe /D /Q /S /C exit 0"
 timeout = 10
 
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && [ -f \"$repo_root/.codex/hooks/text_quality_gate.mjs\" ] && node \"$repo_root/.codex/hooks/text_quality_gate.mjs\" UserPromptSubmit || true"
+command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\text_quality_gate.mjs\" node \"%i\\.codex\\hooks\\text_quality_gate.mjs\" UserPromptSubmit\" || cmd.exe /D /Q /S /C exit 0"
+timeout = 10
+
 [[hooks.PostToolUse]]
 
 [[hooks.PostToolUse.hooks]]
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" PostToolUse || true"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" node \"%i\\.codex\\hooks\\log_event.mjs\" PostToolUse\" || cmd.exe /D /Q /S /C exit 0"
+timeout = 10
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && [ -f \"$repo_root/.codex/hooks/text_quality_gate.mjs\" ] && node \"$repo_root/.codex/hooks/text_quality_gate.mjs\" PostToolUse || true"
+command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\text_quality_gate.mjs\" node \"%i\\.codex\\hooks\\text_quality_gate.mjs\" PostToolUse\" || cmd.exe /D /Q /S /C exit 0"
 timeout = 10
 
 [[hooks.SubagentStart]]
@@ -70,4 +82,10 @@ timeout = 10
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" Stop || printf '{}'"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" (node \"%i\\.codex\\hooks\\log_event.mjs\" Stop) else (powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA=)\" || powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA="
+timeout = 10
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && [ -f \"$repo_root/.codex/hooks/text_quality_gate.mjs\" ] && node \"$repo_root/.codex/hooks/text_quality_gate.mjs\" Stop || printf '%s\\n' '{\"decision\":\"block\",\"reason\":\"Text quality check unavailable; completion cannot be confirmed.\"}'"
+command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\text_quality_gate.mjs\" (node \"%i\\.codex\\hooks\\text_quality_gate.mjs\" Stop) else (powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewAiAGQAZQBjAGkAcwBpAG8AbgAiADoAIgBiAGwAbwBjAGsAIgAsACIAcgBlAGEAcwBvAG4AIgA6ACIAVABlAHgAdAAgAHEAdQBhAGwAaQB0AHkAIABjAGgAZQBjAGsAIAB1AG4AYQB2AGEAaQBsAGEAYgBsAGUAOwAgAGMAbwBtAHAAbABlAHQAaQBvAG4AIABjAGEAbgBuAG8AdAAgAGIAZQAgAGMAbwBuAGYAaQByAG0AZQBkAC4AIgB9ACcAKQA=)\" || powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewAiAGQAZQBjAGkAcwBpAG8AbgAiADoAIgBiAGwAbwBjAGsAIgAsACIAcgBlAGEAcwBvAG4AIgA6ACIAVABlAHgAdAAgAHEAdQBhAGwAaQB0AHkAIABjAGgAZQBjAGsAIAB1AG4AYQB2AGEAaQBsAGEAYgBsAGUAOwAgAGMAbwBtAHAAbABlAHQAaQBvAG4AIABjAGEAbgBuAG8AdAAgAGMAbwBuAGYAaQByAG0AZQBkAC4AIgB9ACcAKQA="
 timeout = 10

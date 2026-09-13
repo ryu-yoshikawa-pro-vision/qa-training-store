@@ -2,13 +2,15 @@
 set -u -o pipefail
 
 strict_harness=0
+hook_contracts=0
 
 usage() {
   cat <<'EOF'
-usage: bash scripts/verify [--strict-harness]
+usage: bash scripts/verify [--strict-harness] [--hook-contracts]
 
 Options:
   --strict-harness   Run source-repo maintainer checks in addition to the consumer-facing template contract.
+  --hook-contracts   Run the focused Codex Hook contract tests in addition to the harness checks.
   --help, -h         Show this help.
 EOF
 }
@@ -17,6 +19,10 @@ while (($#)); do
   case "$1" in
     --strict-harness)
       strict_harness=1
+      shift
+      ;;
+    --hook-contracts)
+      hook_contracts=1
       shift
       ;;
     --help|-h)
@@ -119,6 +125,10 @@ check_template_contract() {
   [[ -f .codex/hooks/pre_tool_use_policy.mjs ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy_windows.ps1 ]] || return 1
   [[ -f .codex/hooks/log_event.mjs ]] || return 1
+  [[ -f .codex/hooks/text_quality_gate.mjs ]] || return 1
+  [[ -f .codex/text-quality-rules.json ]] || return 1
+  [[ -f scripts/lint-text-quality.mjs ]] || return 1
+  [[ -f scripts/check-text-quality-changes.mjs ]] || return 1
   [[ ! -e .codex/hooks/pre_tool_use_policy.py ]] || return 1
   [[ ! -e .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
   [[ -f .codex/templates/PLAN.md ]] || return 1
@@ -513,10 +523,40 @@ check_powershell_wrapper_preflight() {
   powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly >/tmp/codex-safe-ps-preflight.log 2>&1
 }
 
+check_hook_contracts() {
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm exec vitest run \
+      tests/contracts/codex-hook-contract.test.ts \
+      tests/contracts/codex-text-quality.test.ts \
+      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+  elif command -v pnpm.cmd >/dev/null 2>&1; then
+    cmd.exe /D /C pnpm.cmd exec vitest run \
+      tests/contracts/codex-hook-contract.test.ts \
+      tests/contracts/codex-text-quality.test.ts \
+      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+  elif command -v corepack.cmd >/dev/null 2>&1; then
+    cmd.exe /D /C corepack.cmd pnpm exec vitest run \
+      tests/contracts/codex-hook-contract.test.ts \
+      tests/contracts/codex-text-quality.test.ts \
+      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+  elif command -v corepack >/dev/null 2>&1; then
+    corepack pnpm exec vitest run \
+      tests/contracts/codex-hook-contract.test.ts \
+      tests/contracts/codex-text-quality.test.ts \
+      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+  else
+    return 1
+  fi
+}
+
 run_check "template contract files" check_template_contract
 
 if (( strict_harness )); then
   run_check "strict harness source-repo contract" check_strict_harness_contract
+fi
+
+if (( hook_contracts )); then
+  run_check "Codex Hook contract tests" check_hook_contracts
 fi
 
 if ! check_codex_available; then

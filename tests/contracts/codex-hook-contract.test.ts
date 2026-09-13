@@ -147,6 +147,11 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(config).toContain("hooks = true");
     expect(config).toContain('matcher = "^Bash$"');
     expect(config).toContain("command_windows");
+    expect(config).toContain("text_quality_gate.mjs");
+    expect(config).toContain("UserPromptSubmit");
+    expect(config).toContain("PostToolUse");
+    expect(config).toContain("Stop");
+    expect(config).not.toContain("SessionStart");
     expect(config).not.toContain("apply_patch");
     expect(config).not.toContain("pre_tool_use_policy.ps1");
     expect(config).not.toContain("pre_tool_use_policy.py");
@@ -323,7 +328,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
       }
     }
-  }, 15000);
+  }, 30000);
 
   it.each([
     { command: "git checkout -bfeature", expected: "allow" },

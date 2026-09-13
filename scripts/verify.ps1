@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$StrictHarness
+    [switch]$StrictHarness,
+    [switch]$HookContracts
 )
 
 Set-StrictMode -Version Latest
@@ -81,6 +82,10 @@ function Test-TemplateContract {
         ".codex/hooks/pre_tool_use_policy.mjs",
         ".codex/hooks/pre_tool_use_policy_windows.ps1",
         ".codex/hooks/log_event.mjs",
+        ".codex/hooks/text_quality_gate.mjs",
+        ".codex/text-quality-rules.json",
+        "scripts/lint-text-quality.mjs",
+        "scripts/check-text-quality-changes.mjs",
         ".codex/templates/PLAN.md",
         ".codex/templates/REPORT.md",
         ".codex/templates/RUN_MANIFEST.json",
@@ -394,10 +399,28 @@ function Test-PowerShellHasCodex {
     return (($result | Out-String).Trim() -eq 'yes')
 }
 
+function Test-HookContracts {
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($null -ne $pnpm) {
+        & $pnpm.Source exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    }
+    else {
+        $corepack = Get-Command corepack -ErrorAction Stop
+        & $corepack.Source pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex Hook contract tests failed (exit=$LASTEXITCODE)"
+    }
+}
+
 Invoke-Check "template contract files" { Test-TemplateContract }
 
 if ($StrictHarness) {
     Invoke-Check "strict harness source-repo contract" { Test-StrictHarnessContract }
+}
+
+if ($HookContracts) {
+    Invoke-Check "Codex Hook contract tests" { Test-HookContracts }
 }
 
 if (Get-Command codex -ErrorAction SilentlyContinue) {
