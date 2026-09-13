@@ -250,6 +250,16 @@ function Test-TemplateContract {
     )) {
         if ($runArtifacts -notmatch [regex]::Escape($runArtifactContract)) { throw "run-artifacts doc missing lifecycle/sanitization contract: $runArtifactContract" }
     }
+    foreach ($runLifecycleContract in @(
+        '作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。',
+        '同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。',
+        '同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。',
+        '会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。',
+        '過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。',
+        '.codex/runs/`を`.gitignore`へ追加しません。'
+    )) {
+        if ($runArtifacts -notmatch [regex]::Escape($runLifecycleContract)) { throw "run-artifacts doc missing semantic lifecycle contract: $runLifecycleContract" }
+    }
     if ($repairPolicy -match [regex]::Escape("scripts/sanitize-codex-artifacts.ps1")) { throw "repair policy duplicates Run Artifact sanitization implementation details" }
     if ($repairPolicy -notmatch [regex]::Escape("run-artifacts.md")) { throw "repair policy missing Run Artifact reference" }
     if ($repairPolicy -match [regex]::Escape("### REPORT.md append-only contract")) { throw "repair policy duplicates Run-local REPORT contract" }
@@ -277,6 +287,26 @@ function Test-TemplateContract {
         "TASKS.md"
     )) {
         if ($implementationHarness -notmatch [regex]::Escape($implementationContract)) { throw "implementation harness missing file-changing contract: $implementationContract" }
+    }
+    foreach ($workflowContract in @(
+        'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。',
+        '`lightweight`でもRun Artifactを残します。',
+        '`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。',
+        'actual `run.json`は手動作成・直接編集しません。',
+        '迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。',
+        'Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。'
+    )) {
+        if ($implementationHarness -notmatch [regex]::Escape($workflowContract)) { throw "implementation harness missing Workflow Level contract: $workflowContract" }
+    }
+    foreach ($fileChangingContract in @(
+        'file-changing taskでは、push後の必須CI確認1件をユーザー向けProgressの分母・分子へ加算します。',
+        'CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。',
+        'tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。',
+        'push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。',
+        '`queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。',
+        '修正後の新しいcommitと最新PR headで必須CIを再確認します。'
+    )) {
+        if ($implementationHarness -notmatch [regex]::Escape($fileChangingContract)) { throw "implementation harness missing semantic file-changing contract: $fileChangingContract" }
     }
     foreach ($repairContract in @(
         "baseline",

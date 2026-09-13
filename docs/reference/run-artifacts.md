@@ -17,6 +17,8 @@ Codex harness で生成・参照される artifact の責務を分けるため�
 - `.codex/runs/<run_id>/` 配下の標準成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、未完了事項を引き継ぐための正式なRepository成果物です。
 - 作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。
 - 同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。`REPORT.md`はappend-onlyで追記し、Agent-managedな`PLAN.md`／`TASKS.md`等は履歴を失わない範囲で更新します。actual `run.json`はmachine-managed writer / collectorの経路だけで更新し、active Runがあるのに新しいRun Directoryを作成して履歴を分散させません。
+- 同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。
+- 会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。
 - 過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。既存のgenerated Run cleanup例外は、下記の`Cleanup workflow`にあるpreview、明示confirm、対象path制約に従います。
 - `.codex/runs/`を`.gitignore`へ追加しません。
 - 個別taskで「コードのみ変更する」「作業用ファイルを追加しない」「不要なドキュメントを削除する」と指定されても、標準Run Artifactの作成・更新・保存はその対象外です。

@@ -179,3 +179,45 @@
 - Scope: 最終変更は`AGENTS.md`、`scripts/verify`、`scripts/verify.ps1`、`.codex/runs/20260913-102228-JST/TASKS.md`、`.codex/runs/20260913-102228-JST/REPORT.md`、`.codex/runs/20260913-102228-JST/evaluation.json`の6ファイルだけ。Product code、Hook実装、config、rules、reference、template、Skill package、Run schema、Subagent runtimeは変更していない。
 - Repair loop: `iteration_number=1`、classification=`must_fix`、allowed_filesとchanged_filesは上記6ファイル、validationは全指定ローカル検証・schema・collector・SanitizerをPASS、remaining_deltaはなし。今回のlocal repairは`stop_success`とし、次の非checkbox完了処理としてcommit / push、最新PR head確認、`Web CI` / `Mobile App CI`、PR本文更新を行う。CI結果だけを理由にRun Artifactを再commitしない。
 - Progress: 100% (14/14)
+
+## 2026-09-13 21:44 (JST)
+
+- Summary: PR #147の全体レビューで残った2件を確認し、active Runを継続してboundedなrepair iteration 1を開始した。新しいRunは作成していない。
+- Findings / Cause: Run lifecycle移管時に、別task / 別会話でのRun切替条件、`lightweight`の手動Artifact作成許可、evidence command最低条件が移管先から欠落していた。Bash / PowerShell verifyは現行文書ではPASSするが、reference側の回帰検出の強さが一致していなかった。
+- Classification / Scope: 2件とも`must_fix`。要件と許可範囲は明確であり、allowed_filesは`docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`に限定する。root `AGENTS.md`、`.codex/templates/TASKS.md`、`run.json`、Hook、validator、Product codeは対象外とする。
+- Repair plan: `run-artifacts.md`へ同一会話・別taskおよび別会話のRun切替条件を追加する。implementation harnessへ`standard` / `strict`の`new-run`優先、`lightweight`のRun Artifact必須・Agent-managed Artifact手動作成可・actual `run.json`のmachine-managed境界・evidence command最低条件を追加する。Bash / PowerShell verifyは、Run保持、cleanup、`.gitignore`、Run切替、Workflow Level、CI確認1件、TASKS checkboxとの分離、tracked Run Artifact、polling、failure後の最新head再確認を同じ具体性で検出する。
+- Non-targets: 新規Hookなし、新規validatorなし、Run schema変更なし、Product code変更なし、Skill package変更なし、Issue #117 / #134への拡張なし。既存のREPORT.md append-only、Run retention、sanitization、actual `run.json` machine-managed契約は維持する。
+- Decision: destructive operation、permission不足、secret / credential操作、不可逆な外部副作用、要件判断、retry停止条件には該当しないため、安全な最小修正を1 iterationで継続する。修正後に指定検証、schema、collector、Sanitizer、scopeを確認し、task 17を完了する。commit / push後のCI確認1件はTASKS checkboxへ含めず、implementation harnessの別枠として扱う。
+- Progress: 88% (14/16)
+
+## 2026-09-13 22:02 (JST)
+
+- Validation: Bash / PowerShell verifyのsemantic assertionを全文契約へ揃えた最終状態で、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）と`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）を再実行してPASSした。Run保持、cleanup、`.gitignore`、同一task再利用、別task／別会話のRun切替、Workflow Level、lightweight、CI確認1件、TASKS checkboxとの分離、tracked Run Artifact、polling、failure後の最新head再確認を両方で具体的に検出する。
+- Scope: 最終的な変更は引き続き指定の7ファイルだけで、root `AGENTS.md`、`.codex/templates/TASKS.md`、`run.json`、新規validator、Hook、Product code、Skill packageへ広げていない。既存正本のpolicy意味、例外、停止条件、承認条件は変更していない。
+- Decision: 最終assertion検証もPASSし、remaining deltaなし、repair loopのdecisionは`stop_success`を維持する。commit / push、最新PR headの必須CI確認、PR本文更新はtracked task外の完了処理として続行する。
+- Progress: 100% (15/15)
+
+## 2026-09-13 21:59 (JST)
+
+- Summary: task 17のRun lifecycle契約復元、Bash / PowerShell verifyの意味合わせ、評価artifact更新、commit前検証、scope確認を完了した。active Runは継続利用し、新しいRunは作成していない。
+- Changes: `run-artifacts.md`へ同一会話・別taskおよび別会話のRun切替条件を追加した。implementation harnessへ`standard` / `strict`の`new-run`優先、`lightweight`のRun Artifact必須、Agent-managed Artifact手動作成可、actual `run.json`のmachine-managed境界、evidence command最低条件を追加した。Bash / PowerShell verifyへRun保持、cleanup、`.gitignore`、Run切替、Workflow Level、CI確認1件、TASKS checkboxとの分離、tracked Run Artifact、polling、failure後の最新head再確認のsemantic assertionを追加した。
+- Validation: evaluation schema validator、`pnpm run lint:markdown`、`pnpm run test:repository`、Bash verify、PowerShell verify、`pnpm run validate:skills`、`pnpm run verify`、collector strict、Sanitizer Write / Check、`git diff --check`をPASSした。Sanitizerは5 files scanned、0 changed、0 replacements、0 residual findings。collectorによる`run.json`差分はなく、`run.json`は直接編集していない。
+- Scope: 最終変更対象は`docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`の7ファイルだけ。root `AGENTS.md`、`.codex/templates/TASKS.md`、Hook、validator、Run schema、Product code、Skill package、Issue #117 / #134は変更していない。
+- Repair loop: iteration_number=1、classification=`must_fix`、changed_filesは上記7ファイル、remaining_deltaなし、decision=`stop_success`。polling assertionの表記不一致は同一iteration内に正本のコード表記へ補正し、再検証で解消した。
+- Progress: 100% (15/15)
+- Next: commit前にbranch safety、明示stage、差分、evaluation、collector、Sanitizer、clean treeを最終確認し、commit / push後に最新PR headのWeb CI / Mobile App CIとPR本文更新を行う。CI確認1件はTASKS checkboxへ追加しない。
+
+## 2026-09-13 21:58 (JST)
+
+- Validation: polling assertionの表記を修正後、`pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run test:repository`（7 files / 66 tests）、`pnpm run validate:skills`（6 packages / 15 Markdown files / 26 local links）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）、`git diff --check`をPASSした。
+- Validation: `pnpm run verify`はNode 24.20.0 / pnpm 9.10.0のCorepack shim経路で再実行し、format、Markdown、Skill、spec、curriculum、lint（0 errors / 65 existing warnings）、typecheck、security、unit 66、integration 111、repository 66、web component 102、native component 64、contract 504 PASS / 3 SKIP、web export、spec buildまで全工程PASSした。最初の起動はaggregate内部の`pnpm`子プロセスがPATHにない環境要因でFAILしたが、ソース変更によるFAILではない。
+- Scope: `docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`だけを変更した。root `AGENTS.md`、`.codex/templates/TASKS.md`、`run.json`、Hook、validator、Product code、Skill packageは変更していない。
+- Remaining delta: evaluation schema validation、collector strict、Sanitizer Write / Check、最終scope確認を実行し、問題がなければtask 17を完了する。
+- Progress: 88% (14/16)
+
+## 2026-09-13 21:46 (JST)
+
+- Validation: 追加したBash / PowerShellのsemantic file-changing assertionのうち、polling契約だけが現行referenceのコード表記（`` `queued` / `in_progress` ``）と一致せず、PowerShell verifyがFAILした。Bash側も同じ不一致となるため、同一契約の検出不一致を確認した。
+- Repair: `docs/reference/codex-implementation-harness.md`の正本は変更せず、`scripts/verify` / `scripts/verify.ps1`の期待文字列をコード表記へ合わせた。原因はassertionの表記不一致であり、policy意味の変更ではない。
+- Remaining delta: polling assertionの修正後にBash / PowerShell verifyおよび全指定検証を再実行する。
+- Progress: 88% (14/16)

@@ -40,6 +40,9 @@
 
 - `lightweight` は無制限 mode ではない。
 - 外部通信、削除、rename、移行、権限変更、セキュリティ影響、公開 contract 変更を含む場合は `standard` 以上へ引き上げる。
+- `standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。
+- `lightweight`でもRun Artifactを残します。`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。ただしactual `run.json`は手動作成・直接編集しません。迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。
+- Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。
 
 ## Verification tiers
 
