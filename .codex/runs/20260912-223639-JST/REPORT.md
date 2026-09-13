@@ -148,3 +148,12 @@
 - Validation: 修正後にSanitizer Write／Check、evaluation schema、JSON復号後比較、`git diff --check`を再実行する。旧`invalid_args` reportは保持し、成功証跡として扱わない。
 - Blocker / Remaining: このREPORT表記修正を含むmetadata commitと、新HEADのWeb／Mobile／CodeQL CI再確認が残る。Strict Runのmachine failureとevaluation `partial`は維持する。
 - Progress: 85% (11/13)
+
+## 2026-09-13 09:47 (JST)
+
+- Summary: metadata HEAD `2977ee27bb92fc480c68512b313f73ee39f7e6fc`のRemote CI再確認とPR本文同期を完了した。
+- Changes: Web CI `34727526232`、Mobile App CI `34727526478`、CodeQL `34727524364`が同一HEADでsuccessした。MobileはAndroid Automation／Production-validation、Android Runtime／Maestro、Production Bundle Guard、iOS Automation／Production-validation、iOS Native CI Verify、`native-ci / verify`を含む全jobがsuccessした。PR本文はcurrent HEAD、current run IDs、Issue #145、Strict Run partial状態へ同期した。
+- Decision / Rationale: 前HEADで発生したSanitizer failureは登録済み一時パス表記の残存1件で、後続`verify`／`validate` failureは派生だった。REPORT表記を分割した最新metadata HEADのWeb Sanitizer（Ubuntu／Windows）successを採用する。一方、Strict Runのmachine-managed `run.json`は`failed`、evaluationは`partial`のまま維持し、100%完了とは扱わない。
+- Validation: current-headのPR checksは42件中40 pass、2 skipping、pending 0、failure 0。Run Artifact Sanitizer Write／Check、evaluation schema、JSON復号後比較、`git diff --check`はPASS。sourceと`scripts/codex-task.ps1`のdiffはない。
+- Blocker / Remaining: Issue #145の`codex-task.ps1` verify exit-code capture不具合と、同Issue解消後に必要となる既存Run再評価が残る。今回のmetadata checkpointを保存した最終commitのRemote CI確認後にRunを引き渡す。
+- Progress: 85% (11/13)
