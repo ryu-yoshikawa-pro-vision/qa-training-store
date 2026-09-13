@@ -79,6 +79,32 @@
   - Parent decision: CI確認1件はcheckboxへ追加せず、push後の実結果とPR本文更新完了時にProgressへ加算する。
 - Progress: 80% (8/10)
 
+## 2026-09-13 19:50 (JST)
+
+- Summary: `markdownlint-cli2@0.23.2`のtransitive `smol-toml@1.7.0`も残ることを確認し、global pnpm overrideを追加した。lockfileとnode_modulesの全経路を1.7.1へ揃えた。
+- Changes: `package.json`の`pnpm.overrides.smol-toml`を`1.7.1`に追加し、`pnpm-lock.yaml`を再生成した。`corepack pnpm install --frozen-lockfile --ignore-scripts`後、`corepack pnpm why smol-toml`でmarkdownlint経路と直接経路がともに1.7.1であることを確認した。
+- Decision / Rationale: Dependency Reviewが直接package.jsonの1.7.0を検出したが、transitive lock entryを残したままでは同じ脆弱性を取りこぼすため、Planのtest-only devDependency方針を維持しつつ重複versionを許さない最小overrideとした。
+- Validation: 1.7.1更新後の全体`pnpm run verify`は終了コード0で完了済み。override追加後はfrozen install、`pnpm why`、依存経路のversion確認をPASS。残りのfocused／CIは新しいdependency commitのheadで確認する。
+- Blocker / Remaining: dependency overrideをcommit／pushし、新しいheadでDependency Reviewを含む`Web CI`、`Mobile App CI`、Windows Hook jobの全結果を確認する。runtime canary未確認は継続する。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがlock経路とtransitive vulnerabilityの残存有無を確認した。
+  - Parent decision: 脆弱versionをlockから除去するためglobal overrideを採用し、1.7.1へ統一する。
+- Progress: 80% (8/10)
+
+## 2026-09-13 19:48 (JST)
+
+- Summary: push後のWeb CI runで検出されたDependency Review failureを原因特定し、`smol-toml`を修正版へ更新した。修正後の全体verifyは終了コード0で完了した。
+- Changes: `package.json`／`pnpm-lock.yaml`の`smol-toml`を1.7.0から1.7.1へ更新した。GitHub Dependency Reviewの`GHSA-7w5x-hrqm-74c2`は1.7.0をhigh severityとして検出し、修正版1.7.1で解消するため、必要なTOML parserを安全側の最小patch versionへ固定した。
+- Decision / Rationale: CI failureは今回追加した直接devDependencyに起因するため、環境要因として保留しなかった。1.8.0への不要な追随はせず、修正を含む最小version 1.7.1を採用した。TOML parse API、Node `>=18`、BSD-3-Clause、既存lockのtransitive経路との共存を確認した。
+- Validation: 修正後`corepack pnpm install --frozen-lockfile --ignore-scripts`はPASS。focused Hook／文章品質contractは156/156、format、Markdown lint 421 files／0 issues、security static check、lint:textはPASS。Corepack shim経由の`pnpm run verify`は723.7秒で終了コード0、format／lint／text gate／skills／spec／visuals／curriculum／lint（0 error／64 warning）／3系統typecheck／image／security／unit 66／integration 111／repository 117／component web 102／component native 64／contracts 536 passed・3 skipped／build:web／build:specを通過した。NodeのSQLite experimental warning、native componentの既存act warningのみ。
+- Blocker / Remaining: 依存修正commitの作成・push後、修正版最新headの`Web CI`／`Mobile App CI`全体結果とWindows Hook jobを確認し、PR本文へ結果を追記する。Windows実Codex runtime canaryは未確認のまま維持する。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがCIログ、advisory、npm metadata、依存更新、全体verifyを確認した。
+  - Parent decision: Dependency Reviewのhigh failureを解消するため、1.7.1更新を追加の安全最小修正として採用する。
+- Progress: 80% (8/10)
+
 ## 2026-09-13 19:28 (JST)
 
 - Summary: merge commit後のclean treeで文章品質gate、verify相当の個別ゲート、buildを確認した。`git status --short`は空で、commit後の作業treeに生成物の差分は残っていない。
