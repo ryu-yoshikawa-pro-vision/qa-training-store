@@ -7,13 +7,13 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Issue #135のPlan指定範囲を実装済みで、今回の全体reviewで検出された必須2件（Run lifecycle詳細契約、Bash / PowerShell verifyの意味契約）もrepair済み。task 17を完了し、基本Progressは100% (15/15)。root / reference / template / verifyの責務はPlanと整合している。",
+      "evidence": "Issue #135のPlan指定範囲を実装済みで、今回の全体reviewで検出されたMedium 3件（同一会話・別taskの許可条件、lightweight手動初期化とtemplate利用、default branch直接反映の例外条件）もrepair済み。task 18を完了し、基本Progressは100% (16/16)。許可条件・例外条件はIssue #135開始前と一致し、root / reference / template / verifyの責務はPlanと整合している。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "docs/reference/run-artifacts.md",
           "selector": "## Run Artifact lifecycle",
-          "summary": "同一taskの継続、別task、別会話におけるRun切替条件を明示した。"
+          "summary": "同一taskの継続、明示された別task、別会話におけるRun切替条件を既存意味へ戻した。"
         },
         {
           "kind": "changed_file",
@@ -25,37 +25,43 @@
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:44 (JST)",
-          "summary": "今回の2件をmust_fixとしてbounded repairへ投入した。"
+          "summary": "今回のMedium 3件をmust_fixとしてbounded repairへ投入した。"
         },
         {
           "kind": "changed_file",
           "path": ".codex/runs/20260913-102228-JST/TASKS.md",
           "selector": "17.",
-          "summary": "修正とcommit前検証を完了したtask 17をチェックした。"
+          "summary": "3件の修正とcommit前検証を完了したtask 18をチェックした。"
         },
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:59 (JST)",
-          "summary": "task 17の修正、検証、scope確認を完了した。"
+          "summary": "task 18の修正、検証、scope確認を完了した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 23:15 (JST)",
+          "summary": "Medium 3件の原因、allowed scope、Progress区別、既存checkpoint保持方針を記録した。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "今回のrepairはIssue #135の範囲内に限定し、#117 / #134へ拡大していない。Product code、Hook実装、config、rules、Run schema、Subagent runtimeは変更していない。root、template、run.jsonも今回の指摘を理由に変更していない。",
+      "evidence": "今回のrepairはAGENTS.md、docs/reference/run-artifacts.md、docs/reference/codex-implementation-harness.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.jsonという必要範囲に限定し、#117 / #134へ拡大していない。docs/reference/git-branch-safety.mdは正本確認のみで変更せず、Product code、Product tests、Hook実装、config、rules、Run schema、Subagent runtime、TASKS templateも変更していない。run.jsonは直接編集していない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:44 (JST)",
-          "summary": "今回の7ファイルの許可範囲と非対象を確認した。"
+          "summary": "今回の8ファイルの許可範囲と非対象を確認した。"
         }
       ]
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "Node 24.20.0 / pnpm 9.10.0で指定されたlint、Skill検証、Repository test、Bash / PowerShell verify、標準verifyを実行し、FAILなく完了した。途中のaggregate起動時にshim PATH不足があったが、成功済みのNode 24 shim経路へ補正して再実行しPASSした。push後の新しいPR head CIは未実行のため、このevaluationへsuccessを先行記録していない。",
+      "evidence": "Node 24.20.0 / pnpm 9.10.0で指定されたlint、Skill検証、Repository test、Bash / PowerShell verify、標準verifyを実行し、最終結果はFAILなく完了した。pnpm PATH不足、Node 22子プロセス、Windows cleanup／Hook matrixのtransient failureは原因を切り分け、Repository外の一時shimと限定的な単独再確認で回復した。push後の新しいPR head CIは未実行のため、このcommit前evaluationへsuccessを先行記録していない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -80,12 +86,30 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 22:02 (JST)",
           "summary": "全文semantic assertionへ揃えた最終Bash / PowerShell verifyをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 23:25 (JST)",
+          "summary": "Node 24.20.0 PATHとpnpm shimの環境要因を切り分けた。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 23:44 (JST)",
+          "summary": "全体verify中のHook matrix timeoutを単独129 tests PASSで切り分けた。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 00:14 (JST)",
+          "summary": "最終working treeで指定検証とRun Artifact検証を再確認した。"
         }
       ]
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "対象feature branchを維持し、mainへの直接反映、force push、削除、secret操作、Run manifestの直接編集を行わず、既存のcollector / Sanitizer経路を使用する計画を維持した。",
+      "evidence": "対象feature branchを維持し、default branchへの直接commit / pushは原則禁止、ユーザーが対象branchへの直接反映を明示した場合だけGit safety referenceの確認条件を満たして実行対象にできるという例外をrootへ復元した。force push、削除、secret操作、Run manifestの直接編集は行わず、既存のcollector / Sanitizer経路を使用する計画を維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -97,7 +121,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "今回のreview finding、repair判断、repair scope、検証結果、Progress修正がPlan、reference、verify、append-onlyのRun report checkpointから追跡できる。",
+      "evidence": "今回のreview finding 3件、repair判断、repair scope、検証結果、Progress修正がPlan、reference、verify、append-onlyの新しいRun report checkpointから追跡できる。過去checkpointの時刻順やProgress値は書き換えていない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -109,7 +133,7 @@
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:44 (JST)",
-          "summary": "全体reviewの2件、修正範囲、非対象、Progressをcheckpointから追跡できる。"
+          "summary": "全体reviewの初回2件とその時点の修正範囲を履歴として追跡できる。"
         },
         {
           "kind": "evaluation_note",
@@ -121,19 +145,25 @@
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:59 (JST)",
-          "summary": "task 17の完了とremaining deltaなしのrepair結果を追跡できる。"
+          "summary": "task 17の完了とremaining deltaなしのrepair結果を履歴として追跡できる。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 23:15 (JST)",
+          "summary": "今回の3件、過去checkpoint保持、Progress区別を新checkpointで補足した。"
         }
       ]
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "Run詳細をrootへ戻さず、既存referenceへ復元した。Bash / PowerShell verifyは既存のcontains / regex assertion方式のまま意味契約を揃え、新しいvalidatorを追加していない。",
+      "evidence": "rootには高レベル契約だけを残し、Run詳細は既存のrun-artifactsとimplementation harness、Git詳細はgit-branch-safety.mdへ委譲した。lightweightの手動Artifactと既存template利用をreferenceへ戻し、Bash / PowerShell verifyは既存のcontains / regex assertion方式のまま意味契約を揃え、新しいvalidator等を追加していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "docs/reference/codex-implementation-harness.md",
           "selector": "## Workflow level の使い分け",
-          "summary": "standard / strictとlightweightのRun契約を既存referenceへ復元した。"
+          "summary": "standard / strict、lightweight手動初期化、既存templateのRun契約を既存referenceへ復元した。"
         },
         {
           "kind": "changed_file",
@@ -158,6 +188,12 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-13 21:58 (JST)",
           "summary": "検証コマンド、assertion対応、サイズ・無条件読み込み量の測定値を記録した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 00:14 (JST)",
+          "summary": "最終AGENTS.mdのbyte数・行数と通常task無条件読み込み量を記録した。"
         }
       ]
     }

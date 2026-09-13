@@ -6,7 +6,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 
 - 関係のない変更を行わない。ただし、品質ゲートfailureに対してRepository-wide repair policyが適用される場合は、その契約に従う。
 - Repositoryの既存Skill、Harness、validator、rules、Hookを優先し、同じ契約を別文書へコピーしてSSOTを増やさない。
-- default branch（`main` / `master`）へ直接commit / pushしない。force push、未承認の破壊的操作、command-based deletionは行わない。
+- default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。force push、未承認の破壊的操作、command-based deletionは行わない。
 - delete / rename / move、Git mutation、外部副作用、権限・credentialを伴う操作は、既存のSafety / Git safety契約と必要な承認に従う。
 - `apply_patch`は通常のファイル編集に使えるが、削除・rename・moveを許可するものではない。
 - 品質ゲートFAILを原因未確認のまま完了扱いにしない。
@@ -32,7 +32,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 - Safety Harness詳細、破壊的操作、`docs/reports/`作成判断が必要な場合: [`docs/reference/codex-safety-harness.md`](docs/reference/codex-safety-harness.md)。
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 
-このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Run作成の入口は `scripts/new-run.sh` または `scripts/new-run.ps1` とし、初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 

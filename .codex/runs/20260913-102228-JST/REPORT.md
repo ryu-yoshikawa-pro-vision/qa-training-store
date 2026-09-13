@@ -221,3 +221,64 @@
 - Repair: `docs/reference/codex-implementation-harness.md`の正本は変更せず、`scripts/verify` / `scripts/verify.ps1`の期待文字列をコード表記へ合わせた。原因はassertionの表記不一致であり、policy意味の変更ではない。
 - Remaining delta: polling assertionの修正後にBash / PowerShell verifyおよび全指定検証を再実行する。
 - Progress: 88% (14/16)
+
+## 2026-09-13 23:15 (JST)
+
+- Summary: PR #147の全体レビューで残ったMedium 3件を確認し、active Runを継続してboundedなrepair iteration 1を開始した。新しいRunは作成していない。
+- Findings / Cause: 同一会話・別taskのRun切替が「作成してよい」から「作成する」へ強化されていた。rootのnew-run表現がlightweightの手動Artifact初期化とtemplate利用を明示せず、default branch直接反映のユーザー明示・Git safety確認という例外もrootから欠落していた。Bash / PowerShell verifyにもこの3件を意味単位で検出するassertionが不足していた。
+- Classification / Scope: 3件とも`must_fix`。要件と許可範囲は明確であり、allowed_filesは`AGENTS.md`、`docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`に限定する。`docs/reference/git-branch-safety.md`は正本として確認するが変更しない。`run.json`、template、Hook、validator、Product codeは対象外とする。
+- Repair plan: `run-artifacts.md`の同一会話・別taskを「ユーザーが開始を明示した場合は新しいRunを作成してよい」へ戻し、別会話条件を維持する。rootへWorkflow Levelに応じた作成方法・標準new-run経路とdefault branch例外を高レベルで復元し、implementation harnessへlightweightの手動Artifact・対応template利用を追加する。Bash / PowerShell verifyは許可条件・例外条件と旧強化表現の不在を同じ意味で検出する。
+- Non-blocking record correction: 過去checkpointの`Progress: 88% (14/16)`はpush後CI確認1件を含むfile-changing task全体のProgress、`Progress: 100% (15/15)`はTASKS.md checkboxだけを対象にした基本Progressとして記録された値であり、現在の契約では両者を明示的に区別する。21:44、22:02、21:59、21:58、21:46の既存checkpointは履歴保持のため変更・削除・置換・並べ替えず、この新しいcheckpointで補足する。
+- Decision: destructive operation、permission不足、secret / credential操作、不可逆な外部副作用、要件判断、retry停止条件には該当しない。安全な最小修正を1 iterationで継続し、修正後に指定検証、schema、collector、Sanitizer、scopeを確認してtask 18を完了する。commit / push後のCI確認1件はTASKS checkboxへ含めず、implementation harnessの別枠として扱う。
+- Progress: 94% (15/16)
+
+## 2026-09-13 23:25 (JST)
+
+- Validation failure / cause: 変更後の最初の`pnpm run lint:markdown`／`pnpm run test:repository`起動は、通常PATHに`pnpm`が存在しないため実行前に失敗した。既知のNode 22環境へ無目的に戻らないよう、既存の成功済みNode 24.20.0 shim候補と子プロセスの`node`解決を確認した。
+- Validation failure / repair: Node 24.20.0のbinをPATH先頭へ明示する環境修正を行い、同条件の再試行を避けた。`corepack pnpm run lint:markdown`は389 files / 0 issues、`corepack pnpm run test:repository`は7 files / 66 testsでPASSした。`node:sqlite`のbundle failureはNode 22が子プロセスへ残っていたことによる実行環境要因であり、今回の文書・verify差分やProduct codeとは因果関係がない。
+- Repair loop: iteration_number=1、入力failureは環境依存の起動／Node解決異常、allowed_filesは既存のtask 18 scope内、changed_filesはなし、remaining_deltaはなし。安全な環境条件の補正で関連検証をPASSへ回復したため、decisionは`continue`として標準検証へ進む。
+- Progress: 94% (15/16)
+
+## 2026-09-13 23:26 (JST)
+
+- Validation failure / cause: Node 24.20.0のbinをPATH先頭に置いた`corepack pnpm run verify`でも、aggregate script内の再帰的な`pnpm` commandが実行できず、`'pnpm' is not recognized`で最初のformat gate前に停止した。直接のlint、Repository test、Bash / PowerShell verifyはこの失敗の影響を受けていない。
+- Repair plan: 既存Corepackの機能だけを使い、Repository外の一時shim directoryへ`pnpm` launcherを生成し、Node 24.20.0 binとともにPATHへ限定追加する。新しいvalidator、script、dependency、Repository fileは作成しない。
+- Decision: failureは実行環境のPATH解決に限定され、安全な一時環境補正が可能で要件判断・破壊的操作・権限／credential操作を伴わないため、同一iteration内で一度だけ再実行する。`pnpm run verify`のPASS確認まではtask 18を完了しない。
+- Progress: 94% (15/16)
+
+## 2026-09-13 23:34 (JST)
+
+- Validation failure / cause: Node 24.20.0と一時pnpm shimで`pnpm run verify`を実行したところ、format、Markdown、Skill、spec、curriculum、lint、typecheck、image manifest、security、unit、integration、Repository、web componentの各gateは通過したが、`tests/contracts/serve-web-dist.test.ts`の`afterAll` cleanupで一時directoryの`rmSync`が`EPERM`となった。native component testは通過し、変更対象に当該testまたはProduct codeは含まれていない。
+- Cause assessment: `git diff`の変更pathにtest差分はなく、失敗した一時directoryは`<TEMP_ROOT>\\serve-web-dist-test-*`配下に残り、確認時点でserverProcess等の残存processはなかった。baseline／current diff／test contract／execution environmentを照合し、今回の文書・verify変更とは因果関係のないWindows filesystem cleanupの環境・transient failureと分類する。残存temporary artifactはRepository外であり、command-based deletionは行わない。
+- Repair plan: 残存processがない状態を新しい環境事実として、Node 24.20.0＋pnpm shimで失敗したcontract testを一度だけ再実行する。新しいvalidator、test変更、Product code変更、無制限retryは行わない。
+- Decision: failureは安全な環境確認と限定的な再現確認で切り分け可能で、要件判断・破壊的操作・権限／credential操作を伴わないため、同一iteration内で一度だけ`serve-web-dist` contractを再確認する。再現する場合は同じstageの失敗回数と新情報を評価し、盲目的に`pnpm run verify`を繰り返さない。
+- Progress: 94% (15/16)
+
+## 2026-09-13 23:44 (JST)
+
+- Validation failure / cause: 全体verifyの次回実行では、`serve-web-dist` cleanupは通過したが、既存`tests/contracts/codex-hook-contract.test.ts`のHook matrix代表testが15秒timeoutでFAILした。現在branchのtimeoutは`15000`で、`origin/main`の同箇所は`30000`だが、今回指示の変更対象外であり、Product tests・Hook・configは変更しない。
+- Cause assessment: 今回のworking tree diffにtest差分はなく、変更対象は`AGENTS.md`、2つのreference、2つのverify、active Run Artifactだけである。native component testと他の503 contract testsは通過し、Hook matrix testは単独実行では129/129 PASSした。baseline／current diff／test contract／execution environmentを照合し、全体実行時の負荷を含む環境・transient failureと分類する。
+- Repair / validation: 新しい環境事実に基づき、Node 24.20.0＋pnpm shimでHook matrix testを単独実行し、129 tests PASSを確認した。Product testsやHook timeoutの修正は行わず、無制限retryもしない。
+- Repair loop: iteration_number=1、changed_filesはなし、remaining_deltaは`pnpm run verify`全体の最終PASS確認のみ。安全な範囲の単独再現確認でfailureを再現しなかったため、decisionは`continue`として最終一回の全体verifyへ進む。
+- Progress: 94% (15/16)
+
+## 2026-09-13 23:55 (JST)
+
+- Summary: PR #147全体レビューのMedium 3件を修正し、task 18を完了した。active Run `.codex/runs/20260913-102228-JST/`を継続利用し、新しいRunは作成していない。
+- Changes: 同一会話・別taskのRun切替をユーザー明示時の「作成してよい」へ復元し、別会話条件を維持した。rootのnew-run契約をWorkflow Level依存の標準経路へ戻し、implementation harnessへlightweightの手動Agent-managed Artifactと`.codex/templates/PLAN.md`、`.codex/templates/TASKS.md`、`.codex/templates/REPORT.md`の対応template利用を復元した。default branchは原則直接commit / pushしないが、ユーザー明示とGit safety確認条件がある場合の例外をrootへ復元した。Bash / PowerShell verifyはこれらの意味と旧強化表現の不在を同じ強さで検出する。
+- Run Artifact: `evaluation.json`はschema不変で`result=pass`、`findings=[]`。schema validator、collector strict（`run.json`差分なし）、Sanitizer Write / Check（`residual_findings=0`）をPASSした。REPORTの過去checkpointは変更・削除・置換・並べ替えず、Progressの14/16（file-changing task全体）と15/15（TASKS checkbox基本Progress）の意味を新checkpointで補足した。
+- Validation: `pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run test:repository`（7 files / 66 tests）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、PowerShell verify（PASS=3 / FAIL=0 / SKIP=0）、`pnpm run validate:skills`、最終`pnpm run verify`、evaluation schema validator、collector strict、Sanitizer、`git diff --check`をPASSした。最終`pnpm run verify`はNode 24.20.0 / pnpm 9.10.0で全aggregate gateを完了し、lintは0 errors / 65 existing warnings、contractsは504 PASS / 3 SKIPだった。
+- Scope / safety: 変更は`AGENTS.md`、`docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`の8ファイルのみ。`docs/reference/git-branch-safety.md`は確認のみで、`run.json`、Product code / tests、Hook、config、rules、Skill package、TASKS template、repair reference、schema、Issue #117 / #134は変更していない。新規validator、Hook、dependency、監視scriptは追加していない。
+- Repair loop: iteration_number=1、入力findingはMedium 3件、classification=`must_fix`、allowed_filesは上記8ファイル、changed_filesは上記8ファイル、最小検証と全標準検証はPASS、remaining_deltaはなし、decisionは`stop_success`。初期のpnpm PATH、Node 22子process、Windows cleanup／Hook matrixの一時的な検証異常は原因を切り分け、既存のProduct testsやHookを変更せず安全な環境補正と限定再確認で回復した。commit / push後の必須CI確認1件はTASKS checkboxへ含めず、次の完了処理とする。
+- Progress: 100% (16/16)
+- Next: final commit前に最新branch safety、明示stage、差分、clean treeを再確認し、commit、対象branchへの通常push、local / remote / PR head一致確認、最新headの`Web CI` / `Mobile App CI`確認、必要なPR本文更新を行う。CIが`queued` / `in_progress` / `failure`の間は完了扱いにしない。
+
+## 2026-09-14 00:14 (JST)
+
+- Summary: task 18の最終working treeで指定ローカル検証を再確認し、commit前のRun記録を実測値へ補足した。過去checkpointは変更・削除・置換・並べ替えていない。
+- Validation: `pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run validate:skills`（6 packages / 15 Markdown files / 26 local links）、`pnpm run test:repository`（7 files / 66 tests）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）、`pnpm run verify`（全aggregate gate PASS、lint 0 errors / 65 existing warnings、contract 504 PASS / 3 SKIP）、evaluation schema、collector strict、Sanitizer Write / Check、`git diff --check`をPASSした。`pnpm`実行はNode 24.20.0 / pnpm 9.10.0のCorepack・一時shim経路を使用した。
+- Size / unconditional loading: Issue #135開始時点の変更前`AGENTS.md`はUTF-8 35838 bytes、物理316行、非空247行。最終`AGENTS.md`はUTF-8 8298 bytes、物理69行、非空50行で、27540 bytes / 物理247行 / 非空197行を削減した。変更前の保守的な通常task無条件読み込み下限は191159 bytes / 物理1391行 / 非空1124行、最終の無条件対象はroot `AGENTS.md`だけの8298 bytes / 物理69行 / 非空50行で、182861 bytes / 物理1322行 / 非空1074行を削減した。ADR 1件 / Run 1件は旧契約の実読込量ではなくPlan指定の保守的下限として扱った。
+- Progress distinction: 過去checkpointの`Progress: 88% (14/16)`はpush後CI確認1件を含むfile-changing task全体、`Progress: 100% (15/15)`はTASKS.md checkboxだけの基本Progressを表す当時の記録であり、現在の契約では両者を区別する。current TASKSは16/16、push後CI確認1件は別枠で未完了である。
+- Scope / safety: 変更は8ファイルに限定し、`docs/reference/git-branch-safety.md`は正本確認のみ、`run.json`はcollector経路で差分なし。Product code / tests、Hook、config、rules、Skill package、template、schema、Issue #117 / #134は変更していない。
+- Progress: 100% (16/16)
+- Next: branch safetyと明示stageを再確認してcommit / pushし、local / remote / PR head一致確認、最新headの`Web CI` / `Mobile App CI`確認、必要なPR本文更新を行う。必須CIがsuccessになりPR本文更新が完了するまで、file-changing task全体のProgressは`100% (16/17)`として扱う。

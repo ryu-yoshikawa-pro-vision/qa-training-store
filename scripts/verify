@@ -181,6 +181,8 @@ check_template_contract() {
   ! contains "Runを使うtaskでは" AGENTS.md || return 1
   contains "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。" AGENTS.md || return 1
   contains "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。" AGENTS.md || return 1
+  contains 'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。' AGENTS.md || return 1
+  ! contains "Run作成の入口は" AGENTS.md || return 1
   contains ".agents/skills/feature-plan/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/code-review/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/repair-loop/SKILL.md" AGENTS.md || return 1
@@ -191,7 +193,10 @@ check_template_contract() {
   contains "docs/reference/codex-implementation-harness.md" AGENTS.md || return 1
   contains "scripts/new-run.sh" AGENTS.md || return 1
   contains "scripts/new-run.ps1" AGENTS.md || return 1
+  contains "docs/reference/git-branch-safety.md" AGENTS.md || return 1
   contains "default branch" AGENTS.md || return 1
+  contains 'default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。' AGENTS.md || return 1
+  ! contains 'default branch（`main` / `master`）へ直接commit / pushしない。' AGENTS.md || return 1
   contains "command-based deletion" AGENTS.md || return 1
   contains "品質ゲートFAIL" AGENTS.md || return 1
   contains "安全な最小修正" AGENTS.md || return 1
@@ -227,7 +232,8 @@ check_template_contract() {
   contains '過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。' docs/reference/run-artifacts.md || return 1
   contains '.codex/runs/`を`.gitignore`へ追加しません。' docs/reference/run-artifacts.md || return 1
   contains "同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。" docs/reference/run-artifacts.md || return 1
-  contains "同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
+  contains "同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。" docs/reference/run-artifacts.md || return 1
+  ! contains "同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
   contains "会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
   contains "### Standard and temporary artifacts" docs/reference/run-artifacts.md || return 1
   contains "### Past Run changes" docs/reference/run-artifacts.md || return 1
@@ -264,8 +270,12 @@ check_template_contract() {
   contains "再確認" docs/reference/codex-implementation-harness.md || return 1
   contains 'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。' docs/reference/codex-implementation-harness.md || return 1
   contains '`lightweight`でもRun Artifactを残します。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'actual `run.json`は手動作成・直接編集しません。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。' docs/reference/codex-implementation-harness.md || return 1
+  contains '.codex/templates/PLAN.md' docs/reference/codex-implementation-harness.md || return 1
+  contains '.codex/templates/TASKS.md' docs/reference/codex-implementation-harness.md || return 1
+  contains '.codex/templates/REPORT.md' docs/reference/codex-implementation-harness.md || return 1
+  contains 'actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。' docs/reference/codex-implementation-harness.md || return 1
   contains '迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。' docs/reference/codex-implementation-harness.md || return 1
   contains 'Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。' docs/reference/codex-implementation-harness.md || return 1
   contains 'file-changing taskでは、push後の必須CI確認1件をユーザー向けProgressの分母・分子へ加算します。' docs/reference/codex-implementation-harness.md || return 1

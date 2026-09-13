@@ -133,10 +133,12 @@ function Test-TemplateContract {
     if ($agents -match [regex]::Escape("Runを使うtaskでは")) { throw "AGENTS.md still makes Run Artifact conditional" }
     foreach ($runContract in @(
         "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。",
-        "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。"
+        "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。",
+        'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。'
     )) {
         if ($agents -notmatch [regex]::Escape($runContract)) { throw "AGENTS.md missing Run lifecycle contract: $runContract" }
     }
+    if ($agents -match [regex]::Escape("Run作成の入口は")) { throw "AGENTS.md still makes new-run the only Run creation path" }
     foreach ($rootReference in @(
         ".agents/skills/feature-plan/SKILL.md",
         ".agents/skills/code-review/SKILL.md",
@@ -146,6 +148,7 @@ function Test-TemplateContract {
         "docs/reference/harness-improvement-loop.md",
         "docs/reference/codex-safety-harness.md",
         "docs/reference/codex-implementation-harness.md",
+        "docs/reference/git-branch-safety.md",
         "scripts/new-run.sh",
         "scripts/new-run.ps1"
     )) {
@@ -153,6 +156,7 @@ function Test-TemplateContract {
     }
     foreach ($rootContract in @(
         "default branch",
+        'default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。',
         "command-based deletion",
         "failure",
         "baseline",
@@ -174,6 +178,7 @@ function Test-TemplateContract {
     )) {
         if ($agents -notmatch [regex]::Escape($rootContract)) { throw "AGENTS.md missing root contract: $rootContract" }
     }
+    if ($agents -match [regex]::Escape('default branch（`main` / `master`）へ直接commit / pushしない。')) { throw "AGENTS.md still makes default branch protection absolute" }
     foreach ($removedRootDetail in @("Web CI", "Mobile App CI", "Cross Browser Smoke", "quality_gate_runner", "code_researcher", "Parent-defined validation")) {
         if ($agents -match [regex]::Escape($removedRootDetail)) { throw "AGENTS.md still contains moved detail: $removedRootDetail" }
     }
@@ -253,13 +258,14 @@ function Test-TemplateContract {
     foreach ($runLifecycleContract in @(
         '作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。',
         '同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。',
-        '同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。',
+        '同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。',
         '会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。',
         '過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。',
         '.codex/runs/`を`.gitignore`へ追加しません。'
     )) {
         if ($runArtifacts -notmatch [regex]::Escape($runLifecycleContract)) { throw "run-artifacts doc missing semantic lifecycle contract: $runLifecycleContract" }
     }
+    if ($runArtifacts -match [regex]::Escape('同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。')) { throw "run-artifacts still strengthens same-conversation task switching" }
     if ($repairPolicy -match [regex]::Escape("scripts/sanitize-codex-artifacts.ps1")) { throw "repair policy duplicates Run Artifact sanitization implementation details" }
     if ($repairPolicy -notmatch [regex]::Escape("run-artifacts.md")) { throw "repair policy missing Run Artifact reference" }
     if ($repairPolicy -match [regex]::Escape("### REPORT.md append-only contract")) { throw "repair policy duplicates Run-local REPORT contract" }
@@ -291,8 +297,12 @@ function Test-TemplateContract {
     foreach ($workflowContract in @(
         'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。',
         '`lightweight`でもRun Artifactを残します。',
-        '`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。',
-        'actual `run.json`は手動作成・直接編集しません。',
+        '`lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。',
+        '`new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。',
+        '.codex/templates/PLAN.md',
+        '.codex/templates/TASKS.md',
+        '.codex/templates/REPORT.md',
+        'actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。',
         '迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。',
         'Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。'
     )) {
