@@ -12,6 +12,44 @@ Codex harness で生成・参照される artifact の責務を分けるため�
 - この基本Progressは、final commit前に完了できるtracked taskの進捗を表します。file-changing task全体の完了条件やpush後CIの完了判定とは分離します。
 - CI確認をProgressへ加算する条件、加算しないtask種別、CI状態の扱いは `docs/reference/codex-implementation-harness.md` を正本とします。この文書へCI加算条件を重複定義しません。
 
+## Run Artifact lifecycle
+
+- `.codex/runs/<run_id>/` 配下の標準成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、未完了事項を引き継ぐための正式なRepository成果物です。
+- 作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。
+- 同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。`REPORT.md`はappend-onlyで追記し、Agent-managedな`PLAN.md`／`TASKS.md`等は履歴を失わない範囲で更新します。actual `run.json`はmachine-managed writer / collectorの経路だけで更新し、active Runがあるのに新しいRun Directoryを作成して履歴を分散させません。
+- 過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。既存のgenerated Run cleanup例外は、下記の`Cleanup workflow`にあるpreview、明示confirm、対象path制約に従います。
+- `.codex/runs/`を`.gitignore`へ追加しません。
+- 個別taskで「コードのみ変更する」「作業用ファイルを追加しない」「不要なドキュメントを削除する」と指定されても、標準Run Artifactの作成・更新・保存はその対象外です。
+- Run Artifactの作成を省略、削除、移動してよいのは、ユーザーが`.codex/runs/`または対象Runを明示して指示した場合に限ります。既存の`cleanup-runs`例外を使う場合も、下記のcleanup契約を満たします。
+- Git操作が禁止されている場合でも、Agent-managedなRun Artifactの作成・更新は通常のファイル編集として実施します。ただしactual `run.json`の直接編集や禁止されたGit mutationは行いません。
+
+### Standard and temporary artifacts
+
+標準Run Artifactとして長期保存する対象は、`PLAN.md`、`TASKS.md`、`REPORT.md`、Workflow Levelで必要な`run.json`／`evaluation.json`、およびユーザーまたはDoDが保存を要求した補足資料です。標準Run Artifactは正式なRepository成果物として扱い、通常のcleanup、成果物整理、コード以外のファイル整理だけを理由に削除しません。
+
+次のものは標準Run Artifactに含めない一時生成物です。
+
+- `shims/`、cache、`node_modules`、browser binaries
+- 一時的なPATH設定用ファイル、OSや実行端末固有の絶対pathを含むファイル
+- 再生成可能な一時ログ、credential／token／secretを含む可能性があるファイル
+- 一時的なdownload、build、test output
+
+一時ファイルをRun Directory内に生成した場合は、作業完了前に標準Run Artifactと分離します。生のCLI log、MCP log、ADB logcat等は原則としてGit管理外の`.artifacts`配下へ保存し、Run Artifactには必要な要約とrepo-relativeな参照だけを記録します。
+
+### Past Run changes
+
+- 過去Runの標準Run Artifactは、事実誤認や形式破損の修正を除き、原則として上書きしません。
+- 過去Runの不足を補う必要がある場合は、履歴を失わない追記とし、今回の作業内容は新しいRunへ記録します。
+- 標準Run Artifactの削除、移動、置換は、ユーザーが対象Pathを明示した場合に限ります。
+
+### Run Artifact Path Sanitization
+
+- Repositoryへ追加するCodex Run Artifactは、作業完了前に`scripts/sanitize-codex-artifacts.ps1`の`Write`と`Check`を実行します。
+- 未サニタイズのローカル絶対パスを含むRun Artifactは完了扱いにしません。Unsanitized local absolute paths prevent Run completion. SanitizationはRun Artifactのcompletion gateです。
+- `REPORT.md`のAppend-only契約は、checkpoint単位の意味情報を削除、並べ替え、意味変更せずに保持することを指します。Hook JSONLで取得できるmachine factを`REPORT.md`へ逐次転記しません。
+- 既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の既定Tokenへ、記録の意味を変えずに置換する場合だけ、Append-only契約の安全性例外として許可します。
+- Credential Redactionや汎用的な機密情報マスキングはこの例外に含めません。それらが必要になった場合は、別途契約・実装・テスト・承認を行います。
+
 ## Source-of-Truth Rule
 
 ```text

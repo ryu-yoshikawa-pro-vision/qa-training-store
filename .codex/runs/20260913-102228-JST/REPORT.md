@@ -91,3 +91,40 @@
   - Result: 親agentが全変更、検証、scope、Run Artifactを確認した。
   - Parent decision: Plan外のpolicy再設計、新規Hook / validator / Workflow Engine、Product behavior、Run schema、Subagent runtime変更は行わない。
 - Progress: 78% (11/14)
+
+## 2026-09-13 15:48 (JST)
+
+- Summary: PR #147レビュー指摘3件を確認し、boundedなrepair iterationを開始した。既存active Run `20260913-102228-JST`を継続利用し、新しいRunは作成していない。
+- Findings / Cause: 指摘1は、Run Artifactの保存・保持・一時Artifact境界・Sanitization completion gateが`run-artifacts.md`へ十分移管されず、`repair-loop.md`にも一部詳細が残っていたことが原因。指摘2は、current Runの`TASKS.md`にcommit / push / PR / CIがcheckbox taskとして残り、Issue #135で確定した基本Progressとfile-changing task全体の完了契約を混在させていたことが原因。指摘3は、PR #147でHook matrixを`15000ms`から`30000ms`へ延長し、runtime Git config testへ`15000ms`を追加したが、レビュー前値での標準測定根拠がRunへ残っていなかったことが原因。
+- Repair: 指摘1は`docs/reference/run-artifacts.md`をRun Artifact lifecycle / retention / temporary boundary / past Run / Sanitizationの正本として補完し、`docs/reference/repair-loop.md`は同文書への短い導線へ整理した。sanitization testとBash / PowerShell verifyは移管先の具体契約を検証するよう更新した。指摘2は`TASKS.md`から12・13のcheckboxを外し、`Commit後の完了処理`の非checkbox項目へ移した。レビュー対応を新しいDiscovered task 15として追加した。指摘3はレビュー前値へ戻し、Hook production、config、rulesは変更していない。
+- Hook timeout measurement: Node `v22.20.0`、pnpm `9.10.0`、Vitest標準条件（`--testTimeout=30000`なし、`--no-file-parallelism`、`--maxWorkers=1`）で各3回連続PASS。Hook matrixは18,812 / 14,308 / 14,787ms（min 14,308・median 14,787・max 18,812、Vitest表示のtest本体は10.35 / 10.58 / 10.90秒）。runtime Git configは8,646 / 9,060 / 7,697ms（min 7,697・median 8,646・max 9,060）。元のtimeoutで再現しなかったため延長は採用しない。
+- Validation: focused Hook matrix 3/3 PASS、runtime Git config 3/3 PASS。Repository全体の検証とSanitizerは未実行であり、次のcheckpointへ残す。
+- Blocker / Remaining: sanitization contract test、全指定検証、参照整合、Run ArtifactのWrite / Check、final commit前のscope確認、commit / push、最新PR headの必須CI確認が残る。CIがqueued / in_progress / failureの間は完了扱いにしない。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentがレビュー前commitとの差分、既存Run Artifact／cleanup契約、focused testの標準実測を確認した。
+  - Parent decision: 3件をmust_fixとして、許可ファイル内の最小修正に限定する。新規Sanitizer、validator、Hook、Run schema、Subagent runtime、Product codeは追加しない。
+- Progress: 92% (12/13)
+
+## 2026-09-13 16:03 (JST)
+
+- Summary: PR #147レビュー指摘3件の修正と、commit前に必要な検証を完了した。既存active Runを継続利用し、レビュー対応をDiscovered task 15として完了にした。
+- Changes: `run-artifacts.md`へRun Artifactの保存・保持、active Run再利用、過去Run変更、cleanup例外との境界、一時Artifactとの分離、Sanitization completion gate、`REPORT.md` append-onlyと既存Path置換例外を集約した。`repair-loop.md`は同文書への導線に限定した。sanitization contract test、Bash / PowerShell verifyを移管後の正本配置へ更新した。`TASKS.md`のcommit / push / PR / CI checkboxを非checkboxの`Commit後の完了処理`へ移した。Hook timeoutはレビュー前値へ戻した。
+- Validation: `corepack pnpm exec vitest run tests/contracts/codex-artifact-sanitization.test.ts`は8/8 PASS、Hook contract全体は129/129 PASS。標準focused testは各3回連続PASS。`corepack pnpm run lint:markdown`、`corepack pnpm run validate:skills`、Node `v24.21.0` / pnpm `9.10.0`での`corepack pnpm run test:repository`（7 files / 66 tests）、`bash scripts/verify`（PASS 2 / FAIL 0 / SKIP 2）、PowerShell verify（PASS 3 / FAIL 0 / SKIP 0）、Node 24での`corepack pnpm run verify`（全工程PASS）を確認した。Node `v22.20.0`で先に発生した`node:sqlite`のVite bundle failureは環境差と分類し、前回成功条件のNode 24で同じ検証を再実行してPASSを確認した。Bashの一時FAILは旧repair-loop Sanitization assertionの残存であり、正本移管に合わせて修正後PASSとなった。
+- Scope: 変更は`docs/reference/run-artifacts.md`、`docs/reference/repair-loop.md`、`tests/contracts/codex-artifact-sanitization.test.ts`、`tests/contracts/codex-hook-contract.test.ts`、`scripts/verify`、`scripts/verify.ps1`、current Runの`TASKS.md` / `REPORT.md`に限定した。`.codex/config.toml`、`.codex/hooks/**`、`.codex/rules/**`、`.agents/skills/**`、Run schema、Subagent runtime、Product codeは変更していない。
+- Review decision: 指摘1は`run-artifacts.md`をSanitizationの唯一のRepository-wide正本とし、repair-loop referenceから実装詳細を除去した。指摘2はtracked checkboxを13件（1〜11、14、15）へ整理し、修正後の基本Progressを13/13とした。指摘3は標準測定で元のtimeout内に安定PASSしたため、timeout延長を採用しなかった。新規Sanitizer、validator、Hook、schemaは作成していない。
+- Blocker / Remaining: `git diff --check`、collector、Sanitizer Write / Check、commit前のbranch safety確認、commit / push、PR #147最新headのWeb CI / Mobile App CI確認とPR本文更新が残る。push後CI結果だけを記録するためにRun Artifactを再commitしない。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親agentが3件のreview finding、baselineとの差分、既存Run／cleanup／Sanitization契約、標準focused測定、全検証結果を確認した。
+  - Parent decision: 全findingを修正済みとして次のGit safety工程へ進む。Node 22の`node:sqlite`失敗は環境依存として記録し、Node 24の成功結果を採用する。
+- Progress: 100% (13/13)
+
+## 2026-09-13 16:04 (JST)
+
+- Summary: final commit前のRun Artifactと差分確認を完了した。
+- Validation: `git diff --check`はPASS。公式collectorを`-RefreshGitChangedFiles -Strict`で実行し、actual `run.json`をmachine-managed経路で再集約した。`sanitize-codex-artifacts.ps1 -Path .codex/runs/20260913-102228-JST -Write -Check`は`files_scanned=5`、`files_changed=0`、`replacements_total=0`、`residual_findings=0`でPASSした。
+- Scope: 最終working treeの変更対象はreview指示で許可した8ファイルだけであり、Hook本体、config、rules、Skill package、Run schema、Subagent runtime、Product codeへの差分はない。
+- Decision / Rationale: 過去checkpointのProgress値は当時のTASKS構造を示すため保持した。current TASKSのtracked checkboxは13件（1〜11、14、15）で全件完了、commit後のbranch / PR / CIは非checkboxの完了処理として扱う。
+- Blocker / Remaining: final commit、対象branchへの通常push、local / remote / PR head一致確認、最新headのWeb CI / Mobile App CI、PR本文更新が残る。これらが完了するまでユーザー向けProgressはCI確認分を含めて100%としない。
+- Progress: 100% (13/13)

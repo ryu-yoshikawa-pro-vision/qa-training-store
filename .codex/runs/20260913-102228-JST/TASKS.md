@@ -14,12 +14,18 @@
 - [x] 9. `scripts/verify` / `scripts/verify.ps1`を共通の移管後契約へ更新する。
 - [x] 10. 指定ローカル検証、参照整合、scope、差分、サイズ・無条件読み込み量を確認する。
 - [x] 11. Run Artifactをfinal commit前状態へ更新し、schema / sanitizer / clean treeを確認する。
-- [ ] 12. branch safetyを再確認し、対象branchへcommit / pushする。
-- [ ] 13. PR #147の最新head、`Web CI` / `Mobile App CI`、必要なPR本文記録を確認する。
+
+## Commit後の完了処理
+
+- branch safetyを確認して対象branchへcommit / pushする。
+- PR #147の最新headを確認する。
+- 最新headに対する`Web CI` / `Mobile App CI`を確認する。
+- 必要なPR本文更新を行う。
 
 ## Discovered
 
 - [x] 14. 品質ゲートで判明したPlanのMarkdown違反、移管後の既存assertion不整合、Windows Hook contractのtimeoutを最小修正し、関連検証を再実行する。
+- [x] 15. PR #147レビュー指摘3件を修正し、標準検証と最新headの必須CI確認まで完了する。
 
 ## Blocked
 

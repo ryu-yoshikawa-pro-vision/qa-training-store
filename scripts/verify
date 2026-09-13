@@ -216,6 +216,21 @@ check_template_contract() {
   contains "CI確認をProgressへ" docs/reference/run-artifacts.md || return 1
   contains "file-changing task全体" docs/reference/run-artifacts.md || return 1
   contains '### REPORT.md append-only contract' docs/reference/run-artifacts.md || return 1
+  contains "## Run Artifact lifecycle" docs/reference/run-artifacts.md || return 1
+  contains "作業完了後もRun Directoryを保存" docs/reference/run-artifacts.md || return 1
+  contains "通常のcleanupや成果物整理だけを理由に削除しません" docs/reference/run-artifacts.md || return 1
+  contains '.codex/runs/`を`.gitignore`へ追加しません' docs/reference/run-artifacts.md || return 1
+  contains "### Standard and temporary artifacts" docs/reference/run-artifacts.md || return 1
+  contains "### Past Run changes" docs/reference/run-artifacts.md || return 1
+  contains "### Run Artifact Path Sanitization" docs/reference/run-artifacts.md || return 1
+  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/run-artifacts.md || return 1
+  contains '`Write`' docs/reference/run-artifacts.md || return 1
+  contains '`Check`' docs/reference/run-artifacts.md || return 1
+  contains "未サニタイズのローカル絶対パス" docs/reference/run-artifacts.md || return 1
+  contains "完了扱いにしません" docs/reference/run-artifacts.md || return 1
+  contains "Credential Redaction" docs/reference/run-artifacts.md || return 1
+  ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  contains "run-artifacts.md" docs/reference/repair-loop.md || return 1
   ! contains '### REPORT.md append-only contract' docs/reference/repair-loop.md || return 1
   contains "## Repository file-changing task の完了契約" docs/reference/codex-implementation-harness.md || return 1
   contains "repository working tree" docs/reference/codex-implementation-harness.md || return 1
@@ -460,7 +475,8 @@ check_template_contract() {
   contains "Repository-side contracts" docs/reference/repair-loop.md || return 1
   contains "allowed_files" docs/reference/repair-loop.md || return 1
   contains "unsafe" docs/reference/repair-loop.md || return 1
-  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  contains "run-artifacts.md" docs/reference/repair-loop.md || return 1
   contains "REPORT.md" docs/reference/run-artifacts.md || return 1
   contains "failure taxonomy" docs/reference/repair-loop.md || return 1
   contains "target catalog" docs/reference/harness-improvement-loop.md || return 1

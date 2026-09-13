@@ -227,6 +227,24 @@ function Test-TemplateContract {
     foreach ($progressContract in @("## Now", "## Discovered", "## Blocked", "Progress: <NN>% (<done>/<total>)", "file-changing task", "### REPORT.md append-only contract")) {
         if ($runArtifacts -notmatch [regex]::Escape($progressContract)) { throw "run-artifacts doc missing Progress contract: $progressContract" }
     }
+    foreach ($runArtifactContract in @(
+        "## Run Artifact lifecycle",
+        "Run Directory",
+        "cleanup",
+        ".gitignore",
+        "### Standard and temporary artifacts",
+        "### Past Run changes",
+        "### Run Artifact Path Sanitization",
+        "scripts/sanitize-codex-artifacts.ps1",
+        "Write",
+        "Check",
+        "Unsanitized local absolute paths prevent Run completion",
+        "Credential Redaction"
+    )) {
+        if ($runArtifacts -notmatch [regex]::Escape($runArtifactContract)) { throw "run-artifacts doc missing lifecycle/sanitization contract: $runArtifactContract" }
+    }
+    if ($repairPolicy -match [regex]::Escape("scripts/sanitize-codex-artifacts.ps1")) { throw "repair policy duplicates Run Artifact sanitization implementation details" }
+    if ($repairPolicy -notmatch [regex]::Escape("run-artifacts.md")) { throw "repair policy missing Run Artifact reference" }
     if ($repairPolicy -match [regex]::Escape("### REPORT.md append-only contract")) { throw "repair policy duplicates Run-local REPORT contract" }
     foreach ($implementationContract in @(
         "## Repository file-changing task",
