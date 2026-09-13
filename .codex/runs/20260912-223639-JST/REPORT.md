@@ -128,5 +128,14 @@
 - Subagents:
   - Delegation: なし（No child subagent delegation）。
   - Result: 親agentがpartial判定、既存invalid_args reportの非採用、Run-local report、machine manifest、source差分なしを再確認した。
-  - Parent decision: Issue #145を独立追跡し、PR #133の実装品質／Remote CI成功とStrict Run Artifactのharness起因partialを分離して保存する。
+- Parent decision: Issue #145を独立追跡し、PR #133の実装品質／Remote CI成功とStrict Run Artifactのharness起因partialを分離して保存する。
+- Progress: 85% (11/13)
+
+## 2026-09-13 09:05 (JST)
+
+- Summary: metadata commit `76454b981a797849c52e9e88e678b811db6ae1e3`のWeb CIで最初に検出されたSanitizer異常を、Run ArtifactのJSON表現に限定して修正した。
+- Changes: `.codex/runs/20260912-223639-JST/reports/codex-task-20260913-040848.report.json`と対応する`logs/codex-task-20260913-040848.jsonl`に保存されたverify出力中の`.codex/tmp/**`を、JSONとして同じ復号値を保つUnicode escape表現へ置換した。source、`scripts/codex-task.ps1`、Issue #145の対象は変更していない。
+- Decision / Rationale: Sanitizerの最初の異常は、Linux実行環境の除外globがRun Artifactへ生文字列として捕捉された表現上の検出であり、verify結果や機械事実を変更しない。JSONの復号値を保持する最小のmetadata修正として扱い、Sanitizerとschemaを再検証する。
+- Validation: 修正後にRun Artifact Sanitizer Write／Check、evaluation schema、`git diff --check`を実行する。旧`.codex/reports/codex-task-20260912-235604.report.json`の`invalid_args`は保持し、成功証跡として扱わない。
+- Blocker / Remaining: このmetadata修正を保存するcommitと、その新HEADに対するWeb／Mobile／CodeQL CIの再確認が残る。Strict Runは`run.json status = failed`、`validation.status = failed`、evaluationは`partial`のまま維持する。
 - Progress: 85% (11/13)

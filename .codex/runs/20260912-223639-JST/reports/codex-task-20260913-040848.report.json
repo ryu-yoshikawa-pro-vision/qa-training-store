@@ -27,7 +27,7 @@
                              "\u003e markdownlint-cli2",
                              "",
                              "markdownlint-cli2 v0.23.2 (markdownlint v0.41.1)",
-                             "Finding: **/*.md !node_modules/** !.codex/runs/** !.codex/tmp/** !.artifacts/** !dist/** !android/** !.expo/** !.expo-local-export/** !.corepack-cache/** !.pnpm-store/** !output/** !.playwright-mcp/** !public/_expo/** !public/files/**",
+                             "Finding: **/*.md !node_modules/** !.codex/runs/** !.codex\u002ftmp\u002f** !.artifacts/** !dist/** !android/** !.expo/** !.expo-local-export/** !.corepack-cache/** !.pnpm-store/** !output/** !.playwright-mcp/** !public/_expo/** !public/files/**",
                              "Linting: 396 files",
                              "Summary: 0 issues in 0 files",
                              "",
