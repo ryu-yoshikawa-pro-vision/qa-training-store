@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$StrictHarness
 )
@@ -130,6 +130,13 @@ function Test-TemplateContract {
     $review = Get-Content -Raw CODE_REVIEW.md
     if ($agents -match [regex]::Escape("## 0.")) { throw "AGENTS.md still requires unconditional startup reading" }
     if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
+    if ($agents -match [regex]::Escape("Runを使うtaskでは")) { throw "AGENTS.md still makes Run Artifact conditional" }
+    foreach ($runContract in @(
+        "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。",
+        "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。"
+    )) {
+        if ($agents -notmatch [regex]::Escape($runContract)) { throw "AGENTS.md missing Run lifecycle contract: $runContract" }
+    }
     foreach ($rootReference in @(
         ".agents/skills/feature-plan/SKILL.md",
         ".agents/skills/code-review/SKILL.md",

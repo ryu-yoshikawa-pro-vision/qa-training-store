@@ -178,6 +178,9 @@ check_template_contract() {
   has_change_scope_catalog || return 1
   ! contains "## 0. 最初に必ず読むもの" AGENTS.md || return 1
   contains "通常taskの開始時に、root以外の文書を一律で読み込まない。" AGENTS.md || return 1
+  ! contains "Runを使うtaskでは" AGENTS.md || return 1
+  contains "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。" AGENTS.md || return 1
+  contains "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。" AGENTS.md || return 1
   contains ".agents/skills/feature-plan/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/code-review/SKILL.md" AGENTS.md || return 1
   contains ".agents/skills/repair-loop/SKILL.md" AGENTS.md || return 1

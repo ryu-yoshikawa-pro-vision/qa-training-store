@@ -146,3 +146,36 @@
 - Scope: 変更対象は`.codex/runs/20260913-102228-JST/TASKS.md`と`.codex/runs/20260913-102228-JST/REPORT.md`の2ファイルだけで、collectorによる`run.json`差分は発生していない。task 15はcommit前検証までのcheckboxとなり、`Commit後の完了処理`は非checkboxのまま維持されている。Issue #135の実装本体、reference、contract test、Hook、Product code等に差分はない。
 - Repair loop decision: iteration_number=1の`must_fix`修正は原因へ直接対応し、remaining_deltaはなし。ローカル修正と必要検証を完了したため`stop_success`とし、commit / push後はimplementation harnessの別枠CI確認1件として最新headの`Web CI` / `Mobile App CI`を確認する。
 - Progress: 100% (13/13)
+
+## 2026-09-13 19:48 (JST)
+
+- Summary: PR #147の現時点レビューで残っている3件を確認し、active Runを継続してboundedなrepair iteration 1を開始した。新しいRunは作成していない。
+- Findings / Cause: 指摘1はrootの`Runを使うtaskでは`という条件付き表現が、Run Artifactを任意化し得ることが原因。指摘2はstrict Runの`evaluation.json`が初回実装時点のevidenceのままで、review / repair後の状態と参照を反映していないことが原因。指摘3はPowerShell verifyの通常task起動時の一律読込禁止とRun lifecycle assertionがBashより弱く、同じ意味契約を検証できていないことが原因。
+- Repair plan: rootへRepository-wideなRun Artifact必須・active Run再利用の高レベル契約だけを復元し、詳細は既存referenceへ委譲する。`evaluation.json`はschemaを変えずreview / repair後のevidenceと`evidence_refs`へ更新する。Bash / PowerShell verifyへ通常taskの無条件読込禁止、Run Artifact必須、active Run再利用を同じ意味でassertする。既存policyの禁止・許可・例外・停止条件、無条件読み込み削減、Issue #117 / #134の境界は維持する。
+- Allowed files: `AGENTS.md`、`scripts/verify`、`scripts/verify.ps1`、`.codex/runs/20260913-102228-JST/TASKS.md`、`.codex/runs/20260913-102228-JST/REPORT.md`、`.codex/runs/20260913-102228-JST/evaluation.json`。machine-managedな`run.json`の更新が必要な場合は既存collector経路だけを使用し、直接編集しない。
+- Changed files: 開始時点ではなし。予定変更範囲は上記6ファイルと、collectorが必要時に更新するmachine-managed artifactに限定する。
+- Validation: 修正後にevaluation schema validation、指定されたlint / Skill validation / Repository test / Bash verify / PowerShell verify / `pnpm run verify` / `git diff --check`、collector strict、Sanitizer Write / Check、scope、サイズ・無条件読み込み量を実行する。
+- Remaining delta: 3件（Run lifecycle高レベル契約、evaluation evidence、Bash / PowerShell意味契約）。
+- Repair loop: `iteration_number=1`、classification=`must_fix`、decision=`continue`。destructive operation、permission不足、secret / credential操作、不可逆な外部副作用、要件判断、retry停止条件には該当しないため、許可範囲内の最小修正を進める。
+- Progress: 92% (13/14)
+
+## 2026-09-13 20:07 (JST)
+
+- Summary: root Run lifecycle契約、Bash / PowerShell verify assertion、strict Runのevaluation更新準備を完了し、commit前の主要検証を実行した。
+- Changes: `AGENTS.md`へRepository-wideなRun Artifact必須・active Run再利用・Run作成入口の高レベル契約だけを追加した。詳細な初期化、Workflow Level、manifest、checkpoint、sanitizationは既存referenceへ委譲した。`scripts/verify`と`scripts/verify.ps1`は、旧条件付きRun表現がないこと、Run Artifact必須、active Run再利用、通常task開始時のroot以外一律読込禁止を同じ意味でassertするよう更新した。PowerShell 5.1でも日本語assertionを読めるよう、scriptの既存内容を変えずUTF-8 BOMを付与した。
+- Validation: `pnpm run lint:markdown`は裸の`pnpm`がPATHにないため最初の起動は環境エラーだったが、`corepack pnpm`およびNode 24.20.0 runtimeの`pnpm` shim経路で389 files / 0 issuesを確認した。`pnpm run validate:skills`は6 Skill packages / 15 Markdown files / 26 local linksでPASS。Node 22.20.0での`pnpm run test:repository`はViteの`node:sqlite` bundle解決で1 fileが失敗したが、Node 24.20.0 / pnpm 9.10.0で7 files / 66 testsがPASSした。`bash scripts/verify`はPASS 2 / FAIL 0 / SKIP 2、PowerShell verifyはPASS 3 / FAIL 0 / SKIP 0。Node 24.20.0 / pnpm 9.10.0で`pnpm run verify`を実行し、format、lint、typecheck、security、unit 66、integration 111、repository 66、web component 102、native component 64、contract 504 PASS / 3 SKIP、web export、spec buildまで完了した。既存lint warning 65件以外にFAILはない。`git diff --check`もPASSした。
+- Size / unconditional loading: Issue #135開始時点の`origin/main:AGENTS.md`は、UTF-8 35838 bytes、物理316行、非空247行だった。変更前の保守的下限（`AGENTS.md`、`docs/PROJECT_CONTEXT.md`、ADR 1件、旧Run 1件の標準Artifact）は191159 bytes、物理1391行、非空1124行であり、ADR / Runは実読込量ではなくPlan指定どおり下限として計上した。修正後の`AGENTS.md`はUTF-8 8034 bytes、物理69行、非空50行。通常task開始時の無条件対象は`AGENTS.md`だけで、無条件読込量は8034 bytes / 物理69行 / 非空50行となり、下限から183125 bytes / 物理1322行 / 非空1074行減少した。測定はPowerShellの`[Text.Encoding]::UTF8.GetByteCount`、改行数による物理行数、空白行除外による非空行数で行った。
+- Scope: 許可範囲は`AGENTS.md`、`scripts/verify`、`scripts/verify.ps1`、`.codex/runs/20260913-102228-JST/TASKS.md`、`.codex/runs/20260913-102228-JST/REPORT.md`、`.codex/runs/20260913-102228-JST/evaluation.json`の6ファイル。現時点の差分はevaluation更新前の5ファイルだけで、Product code、Hook実装、config、rules、Skill package、reference、template、Run schema、Subagent runtimeへ拡張していない。`run.json`は直接編集していない。
+- Repair loop: `iteration_number=1`、classification=`must_fix`、changed_files=`AGENTS.md` / `scripts/verify` / `scripts/verify.ps1` / active Run `TASKS.md` / `REPORT.md`、remaining_deltaは`evaluation.json`のreview / repair後更新とschema・collector・Sanitizer確認。安全な最小修正と主要検証が完了したため、評価artifact更新へ進む。
+- Progress: 92% (13/14)
+
+## 2026-09-13 20:12 (JST)
+
+- Summary: PR #147の現時点レビュー指摘3件の修正、evaluation更新、commit前検証、Run Artifact最終確認を完了した。active Runは継続利用し、新しいRunは作成していない。
+- Changes: `AGENTS.md`へlightweightを含むRun Artifact必須、active Run再利用、Run作成入口の高レベル契約を復元し、詳細は`run-artifacts` / implementation harness / Safety referenceへ委譲した。Bash / PowerShell verifyは、旧条件付きRun表現がないこと、Run Artifact必須、active Run再利用、通常task開始時のroot以外一律読込禁止を同じ意味でassertする。strict Runの`evaluation.json`はschemaを変更せず、review / repair後のtask_completion、scope_control、validation_confidence、reviewability、maintainability、reproducibility、safety_compliance evidenceと`evidence_refs`へ更新した。
+- Evaluation: `result=pass`、`findings=[]`を維持した。今回のreview finding、repair判断、repair scope、Progress修正はこのREPORTのappend-only checkpointと`evaluation.json`の`evaluation_note` / `changed_file` / `validation_command`参照から追跡できる。`run.json`は直接編集していない。
+- Validation: `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260913-102228-JST/evaluation.json`はPASS。公式collectorの`-RefreshGitChangedFiles -Strict`はPASSで、collectorによる`run.json`差分はない。Sanitizer Write / Checkは`files_scanned: 5`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`でPASS。Node 24.20.0 / pnpm 9.10.0で`pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run validate:skills`（6 packages / 15 Markdown files / 26 links）、`pnpm run test:repository`（7 files / 66 tests）、`pnpm run verify`（全工程PASS、既存lint warning 65件、contract 504 PASS / 3 SKIP）を確認した。`bash scripts/verify`はPASS 2 / FAIL 0 / SKIP 2、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`はPASS 3 / FAIL 0 / SKIP 0、`git diff --check`はPASSした。
+- Size / unconditional loading: Issue #135開始時点の`origin/main:AGENTS.md`はUTF-8 35838 bytes、物理316行、非空247行。変更前の保守的下限は191159 bytes、物理1391行、非空1124行で、ADR 1件 / 旧Run 1件は実読込量ではなくPlan指定の下限として扱った。現在の`AGENTS.md`はUTF-8 8034 bytes、物理69行、非空50行。通常task開始時の無条件対象は`AGENTS.md`のみで、8034 bytes / 物理69行 / 非空50行となり、保守的下限から183125 bytes / 物理1322行 / 非空1074行削減した。測定方法はUTF-8 byte数、改行数による物理行数、空白行除外による非空行数である。
+- Scope: 最終変更は`AGENTS.md`、`scripts/verify`、`scripts/verify.ps1`、`.codex/runs/20260913-102228-JST/TASKS.md`、`.codex/runs/20260913-102228-JST/REPORT.md`、`.codex/runs/20260913-102228-JST/evaluation.json`の6ファイルだけ。Product code、Hook実装、config、rules、reference、template、Skill package、Run schema、Subagent runtimeは変更していない。
+- Repair loop: `iteration_number=1`、classification=`must_fix`、allowed_filesとchanged_filesは上記6ファイル、validationは全指定ローカル検証・schema・collector・SanitizerをPASS、remaining_deltaはなし。今回のlocal repairは`stop_success`とし、次の非checkbox完了処理としてcommit / push、最新PR head確認、`Web CI` / `Mobile App CI`、PR本文更新を行う。CI結果だけを理由にRun Artifactを再commitしない。
+- Progress: 100% (14/14)

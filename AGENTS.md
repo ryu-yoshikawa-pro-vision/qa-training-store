@@ -32,7 +32,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 - Safety Harness詳細、破壊的操作、`docs/reports/`作成判断が必要な場合: [`docs/reference/codex-safety-harness.md`](docs/reference/codex-safety-harness.md)。
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 
-Runを使うtaskでは `scripts/new-run.sh` または `scripts/new-run.ps1` を入口とし、同一会話・同一taskのactive Runを再利用する。Run Artifactの保存、machine-managed manifest、checkpoint、sanitizationの詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Run作成の入口は `scripts/new-run.sh` または `scripts/new-run.ps1` とし、初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 

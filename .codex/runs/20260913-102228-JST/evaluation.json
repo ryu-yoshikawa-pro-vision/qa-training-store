@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Issue #135のPlan指定範囲を実装し、root、reference、template、verify、既存contract testを責務分離後の契約へ更新した。",
+      "evidence": "Issue #135のPlan指定範囲を実装済みで、今回のreviewで検出された必須3件（Run lifecycle高レベル契約、review / repair後のevaluation evidence、Bash / PowerShell verifyの意味契約）もrepair済み。root / reference / template / verifyの責務はPlanと整合している。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -20,36 +20,42 @@
           "path": "docs/reference/codex-implementation-harness.md",
           "selector": "## Repository file-changing task の完了契約",
           "summary": "file-changing taskとCI lifecycleの詳細を正本へ移した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 19:48 (JST)",
+          "summary": "今回の3件をmust_fixとしてbounded repairへ投入した。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はPlan指定の文書・template・verifyと、移管後契約を追随させる既存contract test、Run Artifactに限定し、Product code、Hook、config、rules、Run schema、Subagent runtimeを変更していない。",
+      "evidence": "今回のrepairはIssue #135の範囲内に限定し、#117 / #134へ拡大していない。Product code、Hook実装、config、rules、Run schema、Subagent runtimeは変更していない。",
       "evidence_refs": [
         {
-          "kind": "validation_command",
+          "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-13 11:58",
-          "summary": "scopeと非対象の確認結果を記録した。"
+          "selector": "2026-09-13 20:07 (JST)",
+          "summary": "今回の6ファイルの許可範囲と非対象を確認した。"
         }
       ]
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "指定されたlint、Skill検証、Repository test、Bash / PowerShell verify、標準verifyをNode 24.21.0とpnpm 9.10.0で実行し、FAILなく完了した。",
+      "evidence": "Node 24.20.0 / pnpm 9.10.0で指定されたlint、Skill検証、Repository test、Bash / PowerShell verify、標準verifyを実行し、FAILなく完了した。push後の新しいPR head CIは未実行のため、このevaluationへsuccessを先行記録していない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "指定ローカル検証",
-          "summary": "指定コマンドと標準verifyの結果を記録した。"
+          "selector": "2026-09-13 20:07 (JST)",
+          "summary": "指定コマンド、環境差の切り分け、標準verifyの結果を記録した。"
         }
       ]
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "対象feature branchを維持し、mainへの直接反映、force push、削除、secret操作、Run manifestの直接編集を行わず、sanitizerと公式collectorを使用した。",
+      "evidence": "対象feature branchを維持し、mainへの直接反映、force push、削除、secret操作、Run manifestの直接編集を行わず、既存のcollector / Sanitizer経路を使用する計画を維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -61,37 +67,55 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "変更対象と責務移管がPlan、reference、verify、Run reportから追跡でき、Report checkpointはappend-onlyで保持している。",
+      "evidence": "review finding、repair判断、repair scope、検証結果、Progress修正がPlan、reference、verify、append-onlyのRun report checkpointから追跡できる。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "docs/plans/2026-09-12_215048_issue-135-agents-context-slimming.md",
           "selector": "## 2. 責務と正本",
           "summary": "責務配置の正本を確認できる。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 20:07 (JST)",
+          "summary": "review指摘、修正範囲、検証、Progressをcheckpointから追跡できる。"
         }
       ]
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "既存referenceとportable Skillを再利用し、rootやTASKS templateへ詳細契約を重複させず、Bash / PowerShellの意味契約を揃えた。",
+      "evidence": "rootへ高レベルRun契約だけを戻し、詳細は既存referenceへ残した。Bash / PowerShell verifyの意味契約を揃え、新しいvalidator、Hook、schema、Skill package変更は追加していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": ".codex/templates/TASKS.md",
           "selector": "完了処理の参照先",
           "summary": "templateを各正本への短い導線にした。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/verify.ps1",
+          "selector": "Test-TemplateContract",
+          "summary": "PowerShellでも無条件読込禁止、Run Artifact必須、active Run再利用をassertする。"
         }
       ]
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "Node 24.21.0、pnpm 9.10.0、指定コマンド、Run ID、変更前後のサイズ測定をrepository-relativeなRun Artifactへ記録した。",
+      "evidence": "既存Run ID、対象branch、Plan、Node 24.20.0 / pnpm 9.10.0、指定コマンド、変更前後のサイズ測定から再確認できる。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
           "path": ".codex/runs/20260913-102228-JST/run.json",
           "selector": "$.run_id",
           "summary": "Run IDとmanifestを公式collector経路で管理する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 20:07 (JST)",
+          "summary": "検証コマンドとサイズ・無条件読み込み量の測定値を記録した。"
         }
       ]
     }
