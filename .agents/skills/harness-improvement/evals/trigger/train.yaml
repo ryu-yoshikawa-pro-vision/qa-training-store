@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: harness-improvement-train-001
+    query: "Hook observationの同じ準備エラーが2回続き、1回目はSkill read commandのquote差、2回目はslash差をselectorが受理できなかった。この失敗を根拠にharnessの改善候補を1件、対象path・厳格さ・owner判断付きで提案してください。"
+    expected_skill: harness-improvement
+    boundary: repair-loop-vs-harness-improvement
+  - id: harness-improvement-train-002
+    query: "このRepositoryのscripts/evals/skill-trigger-evals.tsでdataset query重複検知のblocking failureが確定した場合、許可されたscope内で最小修正し、関連する検証結果を報告してください。"
+    expected_skill: repair-loop
+    boundary: repair-loop-vs-harness-improvement

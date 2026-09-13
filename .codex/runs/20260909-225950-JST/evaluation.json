@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "run_id": "20260909-225950-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Result schema 2、bounded selector、focused test、dataset validation、Skill/Markdown validation、full verify、fresh Target preflight、Qualification controlsまで完了したが、negative trusted absence不成立のためcanonical allとvalid baselineは未実行。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260909-225950-JST/REPORT.md",
+          "selector": "2026-09-10 00:17",
+          "summary": "Qualification FAILとcanonical停止を記録"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は承認済み実装scopeとactive Runに限定され、dataset、Skill、Hook、Product code、旧artifact、Target sourceは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260909-225950-JST/REPORT.md",
+          "selector": "2026-09-10 00:17",
+          "summary": "Target／Evaluator／dataset／Skill／Hook未変更を記録"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused 26/26、dataset 24 cases、Skill/Markdown、full verifyがPASS。runtimeではpositive candidate prefixは成立したが、negative selectorは安全側にunreliableとなりabsenceを確定できなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260909-225950-JST/REPORT.md",
+          "selector": "2026-09-09 23:53",
+          "summary": "full verify全gate PASSを記録"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910/negative-trusted/analysis.json",
+          "selector": "selector_reliable",
+          "summary": "negativeのselector_reliable=false"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "unreliable eventをsafe no-readへ推測変換せず、Qualification FAIL後のcanonical、query tuning、retry、別Target交換を行わなかった。長時間positive processは対象PIDだけを停止した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260909-225950-JST/TASKS.md",
+          "selector": "## Blocked",
+          "summary": "停止条件と禁止した補完操作を記録"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "契約変更、検証結果、Target条件、Qualificationの判定根拠を日本語のRun artifactへ保存し、raw evidenceはGit管理外artifactへ分離した。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910/positive/hook-delta.jsonl",
+          "selector": "PostToolUse",
+          "summary": "positive candidate Hook delta"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Result schema 2とdataset schema 1を分離し、routing outcomeとprocess lifecycle、canonical/safe_no_read/unreliableを独立契約として実装した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md",
+          "selector": "Result schema 2",
+          "summary": "Trigger Eval恒久契約の追補"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Target、Codex version、routing source SHA、dataset fingerprintは固定できたが、negativeはcompound PowerShellでselector不確実、positiveはcandidate後も長時間継続したためcanonical再現条件を満たさない。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910/negative-trusted/hook-delta.jsonl",
+          "selector": "PostToolUse",
+          "summary": "negative compound PowerShell event"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910/positive/analysis.json",
+          "selector": "process lifecycle inputs",
+          "summary": "positive candidateはsignaled後もroutingを保持"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "negativeの唯一のPostToolUse commandは`Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json; $pkg.name`で、bounded selectorはcompound commandをunreliableと判定した。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/trigger-eval-qualification-20260910/negative-trusted/hook-delta.jsonl",
+          "selector": "PostToolUse event index 2",
+          "summary": "negative controlの実測command"
+        }
+      ],
+      "detail": "これはselectorが安全にabsenceを証明できない入力を拒否した結果であり、safe no-readへの拡張やquery tuningで埋めると観測契約を弱める。Qualification FAILとしてcanonical allを停止した。"
+    }
+  ],
+  "improvement_candidates": []
+}

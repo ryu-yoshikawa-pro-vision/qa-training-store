@@ -1,0 +1,1353 @@
+import {
+  accessSync,
+  constants as fsConstants,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import {
+  execFileSync,
+  spawn,
+  spawnSync,
+  type ChildProcess,
+  type ChildProcessWithoutNullStreams,
+} from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+import {
+  CANONICAL_SKILLS,
+  RESULT_SCHEMA_VERSION,
+  type CaseResult,
+  compareRuns,
+  evaluateCase,
+  evaluateRunCoverage,
+  loadTriggerDatasets,
+  type ObservationSignals,
+  type Outcome,
+  type RunSplit,
+  type SkillName,
+} from "./skill-trigger-evals.js";
+import {
+  createFailedOtelObservation,
+  createOtelSkillObserver,
+  type OtelObservation,
+} from "./otel-skill-observer.js";
+
+const CASE_TIMEOUT_MS = 327_000;
+export const TRIGGER_EVAL_MODEL = "gpt-5.6-luna" as const;
+const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
+const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
+const KNOWN_SKILL_PATHS = CANONICAL_SKILLS.map((skill) => `.agents/skills/${skill}/SKILL.md`);
+
+export function buildCodexOtelMetricsExporterConfig(otelEndpoint: string): string {
+  return `otel.metrics_exporter={otlp-http={endpoint='${otelEndpoint}',protocol='json'}}`;
+}
+
+export function quoteCodexShellArgument(value: string): string {
+  return process.platform === "win32" ? `"${value}"` : value;
+}
+
+export function buildCodexInvocationArgs(
+  targetRoot: string,
+  otelEndpoint: string,
+): readonly string[] {
+  return [
+    "exec",
+    "--model",
+    TRIGGER_EVAL_MODEL,
+    "--json",
+    "--ephemeral",
+    "--sandbox",
+    "read-only",
+    "-C",
+    targetRoot,
+    "-c",
+    quoteCodexShellArgument(buildCodexOtelMetricsExporterConfig(otelEndpoint)),
+    "-",
+  ];
+}
+
+interface CliOptions {
+  readonly validate_only: boolean;
+  readonly target_root: string | null;
+  readonly split: RunSplit;
+  readonly output: string | null;
+  readonly compare: string | null;
+}
+
+export interface GitPreflight {
+  readonly evaluator_root: string;
+  readonly target_root: string;
+  readonly evaluator_git_sha: string;
+  readonly routing_source_git_sha: string;
+}
+
+export interface HookDelta {
+  readonly correlation_ok: boolean;
+  readonly raw: string;
+}
+
+export interface HookEvent {
+  readonly event?: unknown;
+  readonly tool_name?: unknown;
+  readonly tool_input_preview?: unknown;
+  readonly truncated?: unknown;
+}
+
+export interface CodexExecution {
+  readonly timed_out: boolean;
+  readonly spawn_failed: boolean;
+  readonly signaled: boolean;
+  readonly exit_code: number | null;
+  readonly trusted_terminal: "turn.completed" | "turn.failed" | null;
+  readonly closed_at?: number;
+}
+
+interface EvaluationResult {
+  readonly schema_version: typeof RESULT_SCHEMA_VERSION;
+  readonly provenance: {
+    readonly evaluator_git_sha: string;
+    readonly routing_source_git_sha: string;
+    readonly dataset_sha256: string;
+    readonly codex_version: string;
+    readonly model: typeof TRIGGER_EVAL_MODEL;
+    readonly executed_at: string;
+    readonly split: RunSplit;
+  };
+  readonly cases: readonly CaseResult[];
+  readonly summary: ReturnType<typeof import("./skill-trigger-evals.js").summarizeCaseResults>;
+  readonly comparison?: ReturnType<typeof compareRuns>;
+}
+
+function fail(message: string): never {
+  throw new Error(message);
+}
+
+function parseCli(argv: readonly string[]): CliOptions {
+  let validateOnly = false;
+  let targetRoot: string | null = null;
+  let split: RunSplit = "all";
+  let splitSpecified = false;
+  let output: string | null = null;
+  let compare: string | null = null;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const option = argv[index];
+    if (option === "--validate-only") {
+      if (validateOnly) {
+        fail("--validate-only may be specified only once");
+      }
+      validateOnly = true;
+      continue;
+    }
+    if (
+      option === "--target-root" ||
+      option === "--output" ||
+      option === "--compare" ||
+      option === "--split"
+    ) {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) {
+        fail(`${option} requires a value`);
+      }
+      index += 1;
+      if (option === "--target-root") {
+        if (targetRoot !== null) {
+          fail("--target-root may be specified only once");
+        }
+        targetRoot = value;
+      } else if (option === "--output") {
+        if (output !== null) {
+          fail("--output may be specified only once");
+        }
+        output = value;
+      } else if (option === "--compare") {
+        if (compare !== null) {
+          fail("--compare may be specified only once");
+        }
+        compare = value;
+      } else if (value === "train" || value === "validation" || value === "all") {
+        if (splitSpecified) {
+          fail("--split may be specified only once");
+        }
+        splitSpecified = true;
+        split = value;
+      } else {
+        fail(`invalid --split value: ${value}`);
+      }
+      continue;
+    }
+    fail(`unknown option: ${option}`);
+  }
+
+  if (
+    validateOnly &&
+    (targetRoot !== null || output !== null || compare !== null || splitSpecified)
+  ) {
+    fail("--validate-only cannot be combined with another option");
+  }
+  if (validateOnly) {
+    return { validate_only: true, target_root: null, split: "all", output: null, compare: null };
+  }
+  if (targetRoot === null) {
+    fail("--target-root is required for a live run");
+  }
+  if (output === null) {
+    fail("--output is required for a live run");
+  }
+  if (compare !== null && split !== "all") {
+    fail("--compare is supported only with --split all");
+  }
+  return { validate_only: false, target_root: targetRoot, split, output, compare };
+}
+
+function normalizeRealPath(path: string): string {
+  return path.replaceAll("\\", "/").replace(/\/$/u, "");
+}
+
+function comparablePath(path: string): string {
+  const normalized = normalizeRealPath(path);
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function isSameOrDescendant(path: string, parent: string): boolean {
+  const candidate = comparablePath(path);
+  const root = comparablePath(parent);
+  return candidate === root || candidate.startsWith(`${root}/`);
+}
+
+function realpathOrFail(path: string, label: string): string {
+  if (!existsSync(path)) {
+    fail(`${label} does not exist: ${path}`);
+  }
+  return normalizeRealPath(realpathSync(path));
+}
+
+function runGit(cwd: string, args: readonly string[]): string {
+  try {
+    return execFileSync("git", ["-C", cwd, ...args], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch (error) {
+    fail(`git ${args.join(" ")} failed in ${cwd}: ${String(error)}`);
+  }
+}
+
+function resolveGitPath(cwd: string, gitPath: string): string {
+  const absolutePath = resolve(cwd, gitPath);
+  return normalizeRealPath(existsSync(absolutePath) ? realpathSync(absolutePath) : absolutePath);
+}
+
+export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly string[] {
+  const output = runGit(evaluatorRoot, ["status", "--porcelain", "--untracked-files=all"]);
+  if (output.length === 0) {
+    return [];
+  }
+  return output
+    .split(/\r?\n/u)
+    .filter((line) => line.length > 0)
+    .filter((line) => {
+      const pathPart = line.slice(3).trim().replaceAll("\\", "/");
+      return !(pathPart === ".codex/runs" || pathPart.startsWith(".codex/runs/"));
+    });
+}
+
+function assertTargetHasNoTriggerDataset(targetRoot: string): void {
+  for (const skill of CANONICAL_SKILLS) {
+    const triggerDirectory = join(targetRoot, ".agents", "skills", skill, "evals", "trigger");
+    if (existsSync(triggerDirectory)) {
+      fail(`Routing Target contains Trigger Eval dataset: ${triggerDirectory}`);
+    }
+  }
+}
+
+function assertKnownSkillsReadable(targetRoot: string): void {
+  for (const relativePath of KNOWN_SKILL_PATHS) {
+    const absolutePath = join(targetRoot, ...relativePath.split("/"));
+    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) {
+      fail(`Routing Target canonical Skill file is missing or not a regular file: ${relativePath}`);
+    }
+    try {
+      accessSync(absolutePath, fsConstants.R_OK);
+    } catch {
+      fail(`Routing Target canonical Skill file is not readable: ${relativePath}`);
+    }
+  }
+}
+
+export function assertTargetPreflight(
+  evaluatorRoot: string,
+  targetRootArgument: string,
+): GitPreflight {
+  const evaluatorReal = realpathOrFail(evaluatorRoot, "Evaluator root");
+  const targetReal = realpathOrFail(
+    resolve(evaluatorRoot, targetRootArgument),
+    "Routing Target root",
+  );
+  if (evaluatorReal === targetReal) {
+    fail("Evaluator root and Routing Target root must be different");
+  }
+  if (isSameOrDescendant(targetReal, evaluatorReal)) {
+    fail("Routing Target must not be inside Evaluator root");
+  }
+  if (isSameOrDescendant(evaluatorReal, targetReal)) {
+    fail("Evaluator root must not be inside Routing Target root");
+  }
+
+  if (runGit(targetReal, ["rev-parse", "--is-inside-work-tree"]) !== "true") {
+    fail("Routing Target is not a Git working tree");
+  }
+  if (runGit(targetReal, ["rev-parse", "--abbrev-ref", "HEAD"]) !== "HEAD") {
+    fail("Routing Target must use a detached HEAD");
+  }
+  const targetStatus = runGit(targetReal, ["status", "--porcelain", "--untracked-files=all"]);
+  if (targetStatus.length > 0) {
+    fail("Routing Target working tree is not clean");
+  }
+  assertKnownSkillsReadable(targetReal);
+  assertTargetHasNoTriggerDataset(targetReal);
+
+  const evaluatorCommon = resolveGitPath(
+    evaluatorReal,
+    runGit(evaluatorReal, ["rev-parse", "--git-common-dir"]),
+  );
+  const targetCommon = resolveGitPath(
+    targetReal,
+    runGit(targetReal, ["rev-parse", "--git-common-dir"]),
+  );
+  if (comparablePath(evaluatorCommon) === comparablePath(targetCommon)) {
+    fail("Evaluator and Routing Target must not share Git common-dir");
+  }
+
+  const alternatesPath = runGit(targetReal, ["rev-parse", "--git-path", "objects/info/alternates"]);
+  const alternatesAbsolute = resolveGitPath(targetReal, alternatesPath);
+  if (
+    existsSync(alternatesAbsolute) &&
+    readFileSync(alternatesAbsolute, "utf8").trim().length > 0
+  ) {
+    fail("Routing Target Git objects/info/alternates must be absent or empty");
+  }
+
+  const sourceChanges = sourceStatusOutsideRunArtifacts(evaluatorReal);
+  if (sourceChanges.length > 0) {
+    fail(`Evaluator has source changes outside .codex/runs/**: ${sourceChanges.join(" | ")}`);
+  }
+
+  return {
+    evaluator_root: evaluatorReal,
+    target_root: targetReal,
+    evaluator_git_sha: runGit(evaluatorReal, ["rev-parse", "HEAD"]),
+    routing_source_git_sha: runGit(targetReal, ["rev-parse", "HEAD"]),
+  };
+}
+
+interface OtelCaseDiagnostic {
+  readonly case_id: string;
+  readonly collection_state: OtelObservation["collection_state"];
+  readonly reliable: boolean;
+  readonly unobservable_reason: OtelObservation["unobservable_reason"];
+  readonly request_count: number;
+  readonly post_close_request_count: number;
+  readonly response_error_count: number;
+  readonly parse_error_count: number;
+  readonly close_to_first_request_ms: number | null;
+  readonly close_to_last_request_ms: number | null;
+  readonly collection_elapsed_ms: number | null;
+  readonly control_valid_point_count: number;
+  readonly skill_point_count: number;
+  readonly initial_skill: SkillName | null;
+  readonly observed_skills: readonly SkillName[] | null;
+  readonly diagnostic: OtelObservation["diagnostic"];
+}
+
+interface CaseEvaluation {
+  readonly result: CaseResult;
+  readonly otel: OtelCaseDiagnostic;
+}
+
+function assertOutputOutsideTarget(outputPath: string, targetRoot: string): void {
+  const outputAbsolute = normalizeRealPath(resolve(outputPath));
+  if (isSameOrDescendant(outputAbsolute, targetRoot)) {
+    fail("--output must not be inside the Routing Target root");
+  }
+}
+
+function getCodexVersion(evaluatorRoot: string): string {
+  const result = spawnSync(CODEX_COMMAND, ["--version"], {
+    cwd: evaluatorRoot,
+    encoding: "utf8",
+    shell: CODEX_SHELL,
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  if (result.error || result.status !== 0) {
+    fail(`codex --version failed: ${String(result.error ?? result.stderr ?? result.status)}`);
+  }
+  const version = result.stdout.trim();
+  if (version.length === 0) {
+    fail("codex --version returned no version");
+  }
+  return version;
+}
+
+interface CommandToken {
+  readonly value: string;
+  readonly quoted: boolean;
+}
+
+export type SelectorClassification = "canonical_skill" | "safe_no_read" | "unreliable";
+
+export interface SelectorDecision {
+  readonly classification: SelectorClassification;
+  readonly selector_reliable: boolean;
+  readonly skill: SkillName | null;
+}
+
+interface ParsedCommand {
+  readonly tokens: readonly CommandToken[];
+}
+
+const APPROVED_PACKAGE_NAME_COMPOUND =
+  /^\$pkg[ \t]*=[ \t]*Get-Content[ \t]+-Raw[ \t]+-LiteralPath[ \t]+\.\\package\.json[ \t]+\|[ \t]+ConvertFrom-Json[ \t]*;[ \t]*\$pkg\.name$/u;
+
+function selectorDecision(
+  classification: SelectorClassification,
+  skill: SkillName | null = null,
+): SelectorDecision {
+  return {
+    classification,
+    selector_reliable: classification !== "unreliable",
+    skill,
+  };
+}
+
+function tokenizeBoundedCommand(command: string): ParsedCommand | null {
+  const tokens: CommandToken[] = [];
+  let index = 0;
+  while (index < command.length) {
+    while (index < command.length && /\s/u.test(command[index] ?? "")) {
+      index += 1;
+    }
+    if (index >= command.length) {
+      break;
+    }
+
+    const first = command[index];
+    if (first === "'" || first === '"') {
+      const quote = first;
+      index += 1;
+      const start = index;
+      while (index < command.length && command[index] !== quote) {
+        const character = command[index];
+        if (quote === '"' && (character === "$" || character === "`")) {
+          return null;
+        }
+        index += 1;
+      }
+      if (index >= command.length) {
+        return null;
+      }
+      const value = command.slice(start, index);
+      index += 1;
+      if (index < command.length && !/\s/u.test(command[index] ?? "")) {
+        return null;
+      }
+      tokens.push({ value, quoted: true });
+      continue;
+    }
+
+    const start = index;
+    while (index < command.length && !/\s/u.test(command[index] ?? "")) {
+      const character = command[index];
+      if (
+        character === "'" ||
+        character === '"' ||
+        character === "|" ||
+        character === ";" ||
+        character === "&" ||
+        character === "<" ||
+        character === ">" ||
+        character === "`" ||
+        character === "$" ||
+        character === "(" ||
+        character === ")"
+      ) {
+        return null;
+      }
+      index += 1;
+    }
+    const value = command.slice(start, index);
+    if (value.length === 0) {
+      return null;
+    }
+    tokens.push({ value, quoted: false });
+  }
+
+  return tokens.length > 0 ? { tokens } : null;
+}
+
+function normalizeBoundedRelativePath(value: string): string | null {
+  const normalized = value.replaceAll("\\", "/");
+  if (
+    normalized.length === 0 ||
+    normalized.startsWith("/") ||
+    normalized.startsWith("~") ||
+    /^[A-Za-z]:($|\/)/u.test(normalized) ||
+    normalized.includes("*") ||
+    normalized.includes("?") ||
+    normalized.includes("[") ||
+    normalized.includes("]")
+  ) {
+    return null;
+  }
+  const parts = normalized.split("/");
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part.length === 0 || part === ".") {
+      continue;
+    }
+    if (part === "..") {
+      return null;
+    }
+    result.push(part);
+  }
+  return result.length > 0 ? result.join("/") : ".";
+}
+
+function canonicalSkillForRelativePath(path: string): SkillName | null {
+  const normalized = path.toLowerCase();
+  for (const skill of CANONICAL_SKILLS) {
+    if (normalized === `.agents/skills/${skill}/skill.md`) {
+      return skill;
+    }
+  }
+  return null;
+}
+
+function classifyAbsoluteCanonicalPath(pathValue: string, targetRoot: string): SelectorDecision {
+  try {
+    if (!existsSync(pathValue) || !statSync(pathValue).isFile()) {
+      return selectorDecision("unreliable");
+    }
+
+    const resolvedHostPath = normalizeRealPath(realpathSync(pathValue));
+    if (!isSameOrDescendant(resolvedHostPath, targetRoot)) {
+      return selectorDecision("unreliable");
+    }
+
+    const matchingSkills = CANONICAL_SKILLS.filter((skill) => {
+      const canonicalPath = join(targetRoot, ...`.agents/skills/${skill}/SKILL.md`.split("/"));
+      if (!existsSync(canonicalPath) || !statSync(canonicalPath).isFile()) {
+        return false;
+      }
+      const resolvedCanonicalPath = normalizeRealPath(realpathSync(canonicalPath));
+      return (
+        isSameOrDescendant(resolvedCanonicalPath, targetRoot) &&
+        comparablePath(resolvedCanonicalPath) === comparablePath(resolvedHostPath)
+      );
+    });
+
+    return matchingSkills.length === 1
+      ? selectorDecision("canonical_skill", matchingSkills[0] ?? null)
+      : selectorDecision("unreliable");
+  } catch {
+    return selectorDecision("unreliable");
+  }
+}
+
+function isCanonicalSkillTree(path: string): boolean {
+  const normalized = path.toLowerCase();
+  return (
+    normalized === ".agents/skills" ||
+    normalized.startsWith(".agents/skills/") ||
+    CANONICAL_SKILLS.some((skill) => {
+      const root = `.agents/skills/${skill}`;
+      return normalized === root || normalized.startsWith(`${root}/`);
+    })
+  );
+}
+
+function classifyDirectPath(pathValue: string, targetRoot?: string): SelectorDecision {
+  if (isAbsolute(pathValue)) {
+    return targetRoot === undefined
+      ? selectorDecision("unreliable")
+      : classifyAbsoluteCanonicalPath(pathValue, targetRoot);
+  }
+  const path = normalizeBoundedRelativePath(pathValue);
+  if (path === null) {
+    return selectorDecision("unreliable");
+  }
+  const skill = canonicalSkillForRelativePath(path);
+  return skill === null
+    ? selectorDecision("safe_no_read")
+    : selectorDecision("canonical_skill", skill);
+}
+
+function classifyGetContent(
+  tokens: readonly CommandToken[],
+  targetRoot?: string,
+): SelectorDecision {
+  let pathValue: string | null = null;
+  let positionalPath: string | null = null;
+  let rawSeen = false;
+
+  for (let index = 1; index < tokens.length; index += 1) {
+    const value = tokens[index]?.value;
+    if (value === undefined) {
+      return selectorDecision("unreliable");
+    }
+    const option = value.toLowerCase();
+    if (option === "-raw") {
+      if (rawSeen) {
+        return selectorDecision("unreliable");
+      }
+      rawSeen = true;
+      continue;
+    }
+    if (option === "-path" || option === "-literalpath") {
+      if (pathValue !== null || index + 1 >= tokens.length) {
+        return selectorDecision("unreliable");
+      }
+      const next = tokens[index + 1]?.value;
+      if (!next || next.startsWith("-")) {
+        return selectorDecision("unreliable");
+      }
+      pathValue = next;
+      index += 1;
+      continue;
+    }
+    if (value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    if (positionalPath !== null) {
+      return selectorDecision("unreliable");
+    }
+    positionalPath = value;
+  }
+
+  if (pathValue !== null && positionalPath !== null) {
+    return selectorDecision("unreliable");
+  }
+  const path = pathValue ?? positionalPath;
+  return path === null ? selectorDecision("unreliable") : classifyDirectPath(path, targetRoot);
+}
+
+function classifySearchScope(scope: string): SelectorDecision {
+  const normalized = normalizeBoundedRelativePath(scope);
+  if (normalized === null || normalized === "." || isCanonicalSkillTree(normalized)) {
+    return selectorDecision("unreliable");
+  }
+  return selectorDecision("safe_no_read");
+}
+
+function classifySimpleSearch(tokens: readonly CommandToken[]): SelectorDecision {
+  const command = tokens[0]?.value.toLowerCase();
+  if (command === "rg" || command === "grep") {
+    if (tokens.length !== 3 || tokens[1]?.value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    const pattern = tokens[1]?.value;
+    const scope = tokens[2]?.value;
+    if (!pattern || !scope) {
+      return selectorDecision("unreliable");
+    }
+    return classifySearchScope(scope);
+  }
+
+  if (command !== "select-string") {
+    return selectorDecision("unreliable");
+  }
+
+  let path: string | null = null;
+  let pattern: string | null = null;
+  for (let index = 1; index < tokens.length; index += 1) {
+    const option = tokens[index]?.value.toLowerCase();
+    if (option !== "-path" && option !== "-pattern") {
+      return selectorDecision("unreliable");
+    }
+    const value = tokens[index + 1]?.value;
+    if (!value || value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    if (option === "-path") {
+      if (path !== null) {
+        return selectorDecision("unreliable");
+      }
+      path = value;
+    } else {
+      if (pattern !== null) {
+        return selectorDecision("unreliable");
+      }
+      pattern = value;
+    }
+    index += 1;
+  }
+  return path !== null && pattern !== null
+    ? classifySearchScope(path)
+    : selectorDecision("unreliable");
+}
+
+function isKnownSafeCommand(tokens: readonly CommandToken[]): boolean {
+  const command = tokens[0]?.value.toLowerCase();
+  if (command === "git") {
+    return (
+      tokens[1]?.value.toLowerCase() === "status" &&
+      tokens.slice(2).every((token) => token.value.startsWith("-"))
+    );
+  }
+  if (command === "pnpm") {
+    return tokens.length === 3 && tokens[1]?.value === "run" && tokens[2]?.value === "test";
+  }
+  if (command === "echo" || command === "write-output") {
+    return true;
+  }
+  if (command === "get-childitem") {
+    if (tokens.length > 2) {
+      return false;
+    }
+    if (tokens.length === 1) {
+      return true;
+    }
+    return normalizeBoundedRelativePath(tokens[1]?.value ?? "") !== null;
+  }
+  return false;
+}
+
+export function classifyCommand(command: string, targetRoot?: string): SelectorDecision {
+  if (APPROVED_PACKAGE_NAME_COMPOUND.test(command)) {
+    return selectorDecision("safe_no_read");
+  }
+  const parsed = tokenizeBoundedCommand(command);
+  if (!parsed) {
+    return selectorDecision("unreliable");
+  }
+  const name = parsed.tokens[0]?.value.toLowerCase();
+  if (name === "get-content") {
+    return classifyGetContent(parsed.tokens, targetRoot);
+  }
+  if (name === "rg" || name === "grep" || name === "select-string") {
+    return classifySimpleSearch(parsed.tokens);
+  }
+  return isKnownSafeCommand(parsed.tokens)
+    ? selectorDecision("safe_no_read")
+    : selectorDecision("unreliable");
+}
+
+export function canonicalSkillForCommand(command: string, targetRoot?: string): SkillName | null {
+  const decision = classifyCommand(command, targetRoot);
+  return decision.classification === "canonical_skill" ? decision.skill : null;
+}
+
+function parseToolInputPreview(event: HookEvent): Record<string, unknown> | null {
+  if (typeof event.tool_input_preview !== "string" || event.truncated !== false) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(event.tool_input_preview);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isKnownHistoryQuery(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value).sort();
+  if (
+    keys.join(",") !== "limit,max_chars_per_item,recent_first,role" ||
+    typeof value.limit !== "number" ||
+    typeof value.max_chars_per_item !== "number" ||
+    typeof value.recent_first !== "boolean" ||
+    typeof value.role !== "string"
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function classifyHookEvent(event: HookEvent, targetRoot?: string): SelectorDecision {
+  if (event.event !== "PostToolUse") {
+    return selectorDecision("safe_no_read");
+  }
+  const toolInput = parseToolInputPreview(event);
+  if (!toolInput || typeof event.tool_name !== "string") {
+    return selectorDecision("unreliable");
+  }
+  if (event.tool_name === "Bash") {
+    return typeof toolInput.command === "string"
+      ? classifyCommand(toolInput.command, targetRoot)
+      : selectorDecision("unreliable");
+  }
+  if (event.tool_name === "historylist_items" && isKnownHistoryQuery(toolInput)) {
+    return selectorDecision("safe_no_read");
+  }
+  return selectorDecision("unreliable");
+}
+
+export interface InitialSkillSelection {
+  readonly selector_reliable: boolean;
+  readonly initial_skill: SkillName | null;
+  readonly observed_skills: readonly string[] | null;
+  readonly candidate_index: number | null;
+}
+
+export function selectInitialSkill(
+  events: readonly HookEvent[],
+  targetRoot?: string,
+): InitialSkillSelection {
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    if (event?.event !== "PostToolUse") {
+      continue;
+    }
+    const decision = classifyHookEvent(event, targetRoot);
+    if (decision.classification === "unreliable") {
+      return {
+        selector_reliable: false,
+        initial_skill: null,
+        observed_skills: null,
+        candidate_index: null,
+      };
+    }
+    if (decision.classification === "canonical_skill") {
+      if (decision.skill === null) {
+        return {
+          selector_reliable: false,
+          initial_skill: null,
+          observed_skills: null,
+          candidate_index: null,
+        };
+      }
+      return {
+        selector_reliable: true,
+        initial_skill: decision.skill,
+        observed_skills: [decision.skill],
+        candidate_index: index,
+      };
+    }
+  }
+  return {
+    selector_reliable: true,
+    initial_skill: null,
+    observed_skills: [],
+    candidate_index: null,
+  };
+}
+
+function parseHookEvents(raw: string): {
+  readonly parse_ok: boolean;
+  readonly events: readonly HookEvent[];
+  readonly invalid_index: number | null;
+} {
+  const lines = raw.split(/\r?\n/u).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return { parse_ok: false, events: [], invalid_index: 0 };
+  }
+  const events: HookEvent[] = [];
+  for (const line of lines) {
+    try {
+      const parsed: unknown = JSON.parse(line);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { parse_ok: false, events, invalid_index: events.length };
+      }
+      events.push(parsed as HookEvent);
+    } catch {
+      return { parse_ok: false, events, invalid_index: events.length };
+    }
+  }
+  return { parse_ok: true, events, invalid_index: null };
+}
+
+function parseCodexStdout(stdout: string): {
+  readonly trusted_terminal: CodexExecution["trusted_terminal"];
+} {
+  const records: unknown[] = [];
+  for (const line of stdout.split(/\r?\n/u).filter((entry) => entry.trim().length > 0)) {
+    try {
+      records.push(JSON.parse(line) as unknown);
+    } catch {
+      continue;
+    }
+  }
+  const terminals = records
+    .filter(
+      (record): record is Record<string, unknown> =>
+        typeof record === "object" && record !== null && !Array.isArray(record),
+    )
+    .map((record) => record.type)
+    .filter(
+      (type): type is "turn.completed" | "turn.failed" =>
+        type === "turn.completed" || type === "turn.failed",
+    );
+  if (terminals.length !== 1) {
+    return { trusted_terminal: null };
+  }
+  const terminal = terminals[0];
+  return terminal ? { trusted_terminal: terminal } : { trusted_terminal: null };
+}
+
+function terminateCodexProcessTree(child: ChildProcess): void {
+  if (process.platform === "win32" && child.pid !== undefined) {
+    const result = spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    if (!result.error && result.status === 0) {
+      return;
+    }
+  }
+  child.kill();
+}
+
+type QueryStdin = {
+  on(event: "error", listener: () => void): unknown;
+  end(chunk: string, encoding: BufferEncoding): unknown;
+};
+
+export function writeQueryToStdin(stdin: QueryStdin, query: string, onFailure: () => void): void {
+  let failureHandled = false;
+  const failOnce = (): void => {
+    if (failureHandled) {
+      return;
+    }
+    failureHandled = true;
+    onFailure();
+  };
+  stdin.on("error", failOnce);
+  try {
+    stdin.end(query, "utf8");
+  } catch {
+    failOnce();
+  }
+}
+
+function relativeRequestAt(closeAt: number | null, requestAt: number | null): number | null {
+  if (closeAt === null || requestAt === null) {
+    return null;
+  }
+  return Number((requestAt - closeAt).toFixed(3));
+}
+
+function toOtelCaseDiagnostic(caseId: string, observation: OtelObservation): OtelCaseDiagnostic {
+  return {
+    case_id: caseId,
+    collection_state: observation.collection_state,
+    reliable: observation.reliable,
+    unobservable_reason: observation.unobservable_reason,
+    request_count: observation.request_count,
+    post_close_request_count: observation.post_close_request_count,
+    response_error_count: observation.response_error_count,
+    parse_error_count: observation.parse_error_count,
+    close_to_first_request_ms: relativeRequestAt(
+      observation.close_at,
+      observation.first_request_at,
+    ),
+    close_to_last_request_ms: relativeRequestAt(observation.close_at, observation.last_request_at),
+    collection_elapsed_ms: observation.collection_elapsed_ms,
+    control_valid_point_count: observation.control_valid_point_count,
+    skill_point_count: observation.skill_point_count,
+    initial_skill: observation.initial_skill,
+    observed_skills: observation.observed_skills,
+    diagnostic: observation.diagnostic,
+  };
+}
+
+function executeCodex(
+  evaluatorRoot: string,
+  targetRoot: string,
+  query: string,
+  otelEndpoint: string,
+): Promise<{ readonly execution: CodexExecution; readonly stdout: string }> {
+  return new Promise((resolveExecution) => {
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(CODEX_COMMAND, buildCodexInvocationArgs(targetRoot, otelEndpoint), {
+        cwd: evaluatorRoot,
+        shell: CODEX_SHELL,
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true,
+      });
+    } catch {
+      resolveExecution({
+        execution: {
+          timed_out: false,
+          spawn_failed: true,
+          signaled: false,
+          exit_code: null,
+          trusted_terminal: null,
+        },
+        stdout: "",
+      });
+      return;
+    }
+    let stdout = "";
+    let timedOut = false;
+    let spawnFailed = false;
+    let signaled = false;
+    let settled = false;
+    let terminationRequested = false;
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", () => undefined);
+    child.on("error", () => {
+      spawnFailed = true;
+    });
+    const settle = (execution: CodexExecution): boolean => {
+      if (settled) {
+        return false;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolveExecution({ execution, stdout });
+      return true;
+    };
+    const terminateOnce = (): void => {
+      if (terminationRequested) {
+        return;
+      }
+      terminationRequested = true;
+      try {
+        terminateCodexProcessTree(child);
+      } catch {
+        // The execution is already classified as a process failure.
+      }
+    };
+    const failFromStdin = (): void => {
+      if (settled || timedOut) {
+        return;
+      }
+      spawnFailed = true;
+      const childHasExited = child.exitCode !== null || child.signalCode !== null;
+      settle({
+        timed_out: false,
+        spawn_failed: true,
+        signaled: child.signalCode !== null,
+        exit_code: child.exitCode,
+        trusted_terminal: null,
+      });
+      if (!childHasExited) {
+        terminateOnce();
+      }
+    };
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      timedOut = true;
+      terminateOnce();
+    }, CASE_TIMEOUT_MS);
+    child.on("close", (code, signal) => {
+      signaled = signal !== null;
+      const terminal = parseCodexStdout(stdout).trusted_terminal;
+      settle({
+        timed_out: timedOut,
+        spawn_failed: spawnFailed,
+        signaled,
+        exit_code: code,
+        trusted_terminal: terminal,
+        closed_at: performance.now(),
+      });
+    });
+    writeQueryToStdin(child.stdin, query, failFromStdin);
+  });
+}
+
+function readOutcome(value: unknown): value is Outcome {
+  return (
+    value === "pass" ||
+    value === "false_negative" ||
+    value === "sibling_misroute" ||
+    value === "unexpected_trigger" ||
+    value === "unobservable"
+  );
+}
+
+export function parseComparableRun(value: unknown): Parameters<typeof compareRuns>[1] {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    fail("baseline schema parse failure: top-level result must be an object");
+  }
+  const record = value as Record<string, unknown>;
+  if (record.schema_version !== RESULT_SCHEMA_VERSION) {
+    fail("baseline schema parse failure: Result schema_version must be 2");
+  }
+  const provenance = record.provenance;
+  if (typeof provenance !== "object" || provenance === null || Array.isArray(provenance)) {
+    fail("baseline schema parse failure: provenance is missing");
+  }
+  const provenanceRecord = provenance as Record<string, unknown>;
+  for (const key of [
+    "evaluator_git_sha",
+    "routing_source_git_sha",
+    "dataset_sha256",
+    "codex_version",
+    "split",
+  ]) {
+    if (typeof provenanceRecord[key] !== "string") {
+      fail(`baseline schema parse failure: provenance.${key} must be a string`);
+    }
+  }
+  if (typeof provenanceRecord.model !== "string" || provenanceRecord.model.trim().length === 0) {
+    fail("baseline schema parse failure: provenance.model must be a non-empty string");
+  }
+  if (provenanceRecord.split !== "all") {
+    fail("baseline schema parse failure: baseline split must be all");
+  }
+  if (!Array.isArray(record.cases)) {
+    fail("baseline schema parse failure: cases must be an array");
+  }
+  const provenanceString = (key: string): string => {
+    const value = provenanceRecord[key];
+    if (typeof value !== "string") {
+      fail(`baseline schema parse failure: provenance.${key} must be a string`);
+    }
+    return value;
+  };
+  const cases: { id: string; outcome: Outcome }[] = [];
+  const ids = new Set<string>();
+  for (const entry of record.cases) {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      fail("baseline schema parse failure: case must be an object");
+    }
+    const caseRecord = entry as Record<string, unknown>;
+    if (typeof caseRecord.id !== "string" || !readOutcome(caseRecord.outcome)) {
+      fail("baseline schema parse failure: case id/outcome is invalid");
+    }
+    if (ids.has(caseRecord.id)) {
+      fail(`baseline schema parse failure: duplicate case id ${caseRecord.id}`);
+    }
+    ids.add(caseRecord.id);
+    cases.push({ id: caseRecord.id, outcome: caseRecord.outcome });
+  }
+  return {
+    schema_version: RESULT_SCHEMA_VERSION,
+    provenance: {
+      evaluator_git_sha: provenanceString("evaluator_git_sha"),
+      routing_source_git_sha: provenanceString("routing_source_git_sha"),
+      dataset_sha256: provenanceString("dataset_sha256"),
+      codex_version: provenanceString("codex_version"),
+      model: provenanceString("model"),
+      split: provenanceString("split"),
+    },
+    cases,
+  };
+}
+
+export function prepareSignals(
+  execution: CodexExecution,
+  hookDelta: HookDelta,
+  targetRoot?: string,
+): ObservationSignals {
+  if (!hookDelta.correlation_ok) {
+    return {
+      timed_out: execution.timed_out,
+      spawn_failed: execution.spawn_failed,
+      signaled: execution.signaled,
+      exit_code: execution.exit_code,
+      trusted_terminal: execution.trusted_terminal,
+      observation_source: "hook",
+      observation_reliable: false,
+      hook_correlation_ok: false,
+      hook_parse_ok: false,
+      selector_reliable: false,
+      initial_skill: null,
+      observed_skills: null,
+    };
+  }
+  const parsed = parseHookEvents(hookDelta.raw);
+  const selected = selectInitialSkill(parsed.events, targetRoot);
+  const candidatePrefixParseOk =
+    selected.initial_skill !== null &&
+    (parsed.invalid_index === null ||
+      (selected.candidate_index !== null && parsed.invalid_index > selected.candidate_index));
+  const hookParseOk = selected.initial_skill !== null ? candidatePrefixParseOk : parsed.parse_ok;
+  return {
+    timed_out: execution.timed_out,
+    spawn_failed: execution.spawn_failed,
+    signaled: execution.signaled,
+    exit_code: execution.exit_code,
+    trusted_terminal: execution.trusted_terminal,
+    observation_source: "hook",
+    observation_reliable: selected.selector_reliable,
+    hook_correlation_ok: true,
+    hook_parse_ok: hookParseOk,
+    selector_reliable: selected.selector_reliable,
+    initial_skill: selected.initial_skill,
+    observed_skills: selected.observed_skills,
+  };
+}
+
+export function prepareOtelSignals(
+  execution: CodexExecution,
+  otelObservation: OtelObservation,
+): ObservationSignals {
+  return {
+    timed_out: execution.timed_out,
+    spawn_failed: execution.spawn_failed,
+    signaled: execution.signaled,
+    exit_code: execution.exit_code,
+    trusted_terminal: execution.trusted_terminal,
+    observation_source: "otel",
+    observation_reliable: otelObservation.reliable,
+    otel_observation: otelObservation,
+    initial_skill: otelObservation.reliable ? otelObservation.initial_skill : null,
+    observed_skills: otelObservation.reliable ? otelObservation.observed_skills : null,
+  };
+}
+
+async function evaluateCases(
+  evaluatorRoot: string,
+  targetRoot: string,
+  cases: readonly import("./skill-trigger-evals.js").TriggerCase[],
+): Promise<readonly CaseEvaluation[]> {
+  const results: CaseEvaluation[] = [];
+  for (const triggerCase of cases) {
+    let observer;
+    try {
+      observer = await createOtelSkillObserver();
+    } catch {
+      const failedExecution: CodexExecution = {
+        timed_out: false,
+        spawn_failed: true,
+        signaled: false,
+        exit_code: null,
+        trusted_terminal: null,
+      };
+      const otelObservation = createFailedOtelObservation("bind_failed");
+      results.push({
+        result: evaluateCase(triggerCase, prepareOtelSignals(failedExecution, otelObservation)),
+        otel: toOtelCaseDiagnostic(triggerCase.id, otelObservation),
+      });
+      continue;
+    }
+    const executed = await executeCodex(
+      evaluatorRoot,
+      targetRoot,
+      triggerCase.query,
+      observer.endpoint,
+    );
+    let otelObservation: OtelObservation;
+    if (executed.execution.spawn_failed) {
+      await observer.close().catch(() => undefined);
+      otelObservation = createFailedOtelObservation("request_failed");
+    } else {
+      try {
+        otelObservation = await observer.waitForCollection(
+          executed.execution.closed_at ?? performance.now(),
+        );
+      } catch {
+        await observer.close().catch(() => undefined);
+        otelObservation = createFailedOtelObservation("request_failed");
+      }
+    }
+    const signals = prepareOtelSignals(executed.execution, otelObservation);
+    results.push({
+      result: evaluateCase(triggerCase, signals),
+      otel: toOtelCaseDiagnostic(triggerCase.id, otelObservation),
+    });
+  }
+  return results;
+}
+
+function resultForSplit(
+  allCases: readonly import("./skill-trigger-evals.js").TriggerCase[],
+  split: RunSplit,
+): readonly import("./skill-trigger-evals.js").TriggerCase[] {
+  if (split === "all") {
+    return allCases;
+  }
+  return allCases.filter((triggerCase) => triggerCase.split === split);
+}
+
+async function runLive(options: CliOptions, evaluatorRoot: string): Promise<void> {
+  if (!options.target_root || !options.output) {
+    fail("live run requires --target-root and --output");
+  }
+  const datasets = loadTriggerDatasets(evaluatorRoot);
+  const preflight = assertTargetPreflight(evaluatorRoot, options.target_root);
+  const outputPath = resolve(evaluatorRoot, options.output);
+  assertOutputOutsideTarget(outputPath, preflight.target_root);
+  const codexVersion = getCodexVersion(evaluatorRoot);
+  const selectedCases = resultForSplit(datasets.cases, options.split);
+  const caseEvaluations = await evaluateCases(evaluatorRoot, preflight.target_root, selectedCases);
+  const caseResults = caseEvaluations.map((entry) => entry.result);
+  const summary = (await import("./skill-trigger-evals.js")).summarizeCaseResults(caseResults);
+  const result: EvaluationResult = {
+    schema_version: RESULT_SCHEMA_VERSION,
+    provenance: {
+      evaluator_git_sha: preflight.evaluator_git_sha,
+      routing_source_git_sha: preflight.routing_source_git_sha,
+      dataset_sha256: datasets.dataset_sha256,
+      codex_version: codexVersion,
+      model: TRIGGER_EVAL_MODEL,
+      executed_at: new Date().toISOString(),
+      split: options.split,
+    },
+    cases: caseResults,
+    summary,
+  };
+
+  if (options.compare) {
+    let baselineRaw: unknown;
+    try {
+      baselineRaw = JSON.parse(
+        readFileSync(resolve(evaluatorRoot, options.compare), "utf8"),
+      ) as unknown;
+    } catch (error) {
+      fail(`baseline schema parse failure: ${String(error)}`);
+    }
+    const baseline = parseComparableRun(baselineRaw);
+    const current = parseComparableRun(result);
+    const comparison = compareRuns(current, baseline);
+    (result as { comparison?: ReturnType<typeof compareRuns> }).comparison = comparison;
+  }
+
+  mkdirSync(dirname(outputPath), { recursive: true });
+  const otelDiagnosticPath = `${outputPath}.otel.jsonl`;
+  assertOutputOutsideTarget(otelDiagnosticPath, preflight.target_root);
+  writeFileSync(
+    otelDiagnosticPath,
+    caseEvaluations.map((entry) => JSON.stringify(entry.otel)).join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  const coverage = evaluateRunCoverage(options.split, caseResults);
+  if (!coverage.success) {
+    fail(
+      `${options.split} run is not observable enough: ${coverage.missing_sides.length > 0 ? `missing sides ${coverage.missing_sides.join(", ")}` : "zero observable cases"}`,
+    );
+  }
+  console.log(
+    `Trigger Eval ${options.split} completed: ${summary.total} cases, ${coverage.observable_count} observable`,
+  );
+}
+
+async function main(): Promise<void> {
+  try {
+    const options = parseCli(process.argv.slice(2));
+    const evaluatorRoot = process.cwd();
+    if (options.validate_only) {
+      const datasets = loadTriggerDatasets(evaluatorRoot);
+      console.log(
+        `Validated Trigger Eval dataset: ${datasets.sources.length} files, ${datasets.cases.length} cases, ${datasets.dataset_sha256}`,
+      );
+      return;
+    }
+    await runLive(options, evaluatorRoot);
+  } catch (error) {
+    console.error(`Trigger Eval failed: ${String(error)}`);
+    process.exitCode = 1;
+  }
+}
+
+if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+  void main();
+}

@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: exploratory-qa-train-001
+    query: "Scenario ShopのGuideにある顧客シナリオで、商品一覧から商品詳細・カートまでを一度だけ通常操作し、境界入力を1つ確認して所見を記録してください。"
+    expected_skill: exploratory-qa
+    boundary: exploratory-qa-vs-android-native-local-validation
+  - id: exploratory-qa-train-002
+    query: "Windowsの接続済み物理Android端末について、Release APKをinstallする前提のDoctor結果と端末認識だけを確認し、Maestro suiteは実行せず最初の不足を記録してください。"
+    expected_skill: android-native-local-validation
+    boundary: exploratory-qa-vs-android-native-local-validation

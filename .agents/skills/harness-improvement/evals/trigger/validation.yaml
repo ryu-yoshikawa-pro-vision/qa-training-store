@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: harness-improvement-validation-001
+    query: "同じTrigger Evalで8 boundary sidesの一部がmissingになった失敗が2回続いた記録を比較し、根本原因・対象path・strictness・owner判断を含む改善提案を1件作成してください。"
+    expected_skill: harness-improvement
+    boundary: repair-loop-vs-harness-improvement
+  - id: harness-improvement-validation-002
+    query: "このRepositoryのtests/repository-contract/skill-trigger-evals.test.tsの失敗を再現する手順を確認し、変更範囲を越えない修正とfocused validationを実施してください。"
+    expected_skill: repair-loop
+    boundary: repair-loop-vs-harness-improvement

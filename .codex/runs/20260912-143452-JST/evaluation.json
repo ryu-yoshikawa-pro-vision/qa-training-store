@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "run_id": "20260912-143452-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "OTel diagnostic実値の保存実装と契約テスト、静的検証、source/test commitは完了したが、full verifyの新規Native timeoutによりfresh Targetと3ケース診断を開始できなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143452-JST/REPORT.md",
+          "selector": "2026-09-12 14:53 (JST)",
+          "summary": "実装・検証完了範囲とruntime停止条件。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/otel-skill-observer.ts",
+          "selector": "OtelObservation.diagnostic",
+          "summary": "解析済みskill/status値のdiagnostic保存実装。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はobserverのdiagnostic 2配列と対応する契約test、Run／plan記録に限定し、routing、Result schema 2、dataset、query、Skill、timeout、scoringを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/repository-contract/otel-skill-observer.test.ts",
+          "selector": "stores only unique sorted parsed Skill and status values for diagnosis",
+          "summary": "診断値の回帰テスト。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused、repository、format、lint、typecheck、Skill、dataset、diffはPASSした。pnpm run verifyは今回差分外のNative test timeoutで停止し、単独再実行はPASSしたがfull verify PASSとは扱えない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143452-JST/REPORT.md",
+          "selector": "2026-09-12 14:53 (JST)",
+          "summary": "全検証結果とverify停止理由。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "新規verify failureを理由にruntime診断へ進まず、canonical／Qualification／Target／retry／alias／query変更、merge、force pushを行っていない。diagnostic実装はparse済み文字列のunique sorted配列だけを保存する。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-143452-JST/PLAN.md",
+          "selector": "Non-goals and Risks / Unknowns",
+          "summary": "runtime境界と保存禁止情報。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "canonical／unknown／status error／duplicate／複数値のdiagnostic回帰を追加し、routing fieldsとfail-close reasonの不変性を確認できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/repository-contract/otel-skill-observer.test.ts",
+          "selector": "stores only unique sorted parsed Skill and status values for diagnosis",
+          "summary": "5条件の契約確認。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存のparseMetric、OtelSkillPoint、uniqueSortedを再利用し、observerのdiagnostic-only責務内に小さく閉じた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/otel-skill-observer.ts",
+          "selector": "classifyOtelObservation",
+          "summary": "既存解析結果から診断値を生成。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Evaluator source SHAはcommit `a8f3b7118e304a18c185a475f2d2cdeae97d4799`へ固定したが、verify gate停止によりRouting Target、Codex runtime、3ケースの実値は未取得である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143452-JST/REPORT.md",
+          "selector": "2026-09-12 14:53 (JST)",
+          "summary": "Evaluator SHA固定とruntime未実行の記録。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run verifyのNative component phaseでnative-purchase-screens.test.tsxの1 testが5,000ms timeoutしたが、変更差分に当該testはなく、同test単独再実行は23 tests PASSだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143452-JST/REPORT.md",
+          "selector": "2026-09-12 14:53 (JST)",
+          "summary": "最初の異常、差分非該当、単独再実行結果の分類。"
+        }
+      ],
+      "detail": "一過性の環境／負荷要因の可能性はあるが、ユーザー指定の既知failure集合には含まれないためfull verifyの新規failureとして扱い、後続のTrigger Eval runtimeを停止した。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "fresh Target preflightと、指定された3ケース各1回の診断を実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260912-143452-JST/TASKS.md",
+          "selector": "## Blocked / B1",
+          "summary": "verify新規failureによるruntime停止条件。"
+        }
+      ],
+      "detail": "したがって今回Runでは3ケースのskill_values、status_values、invoke_type、plugin_idを確定できない。次回Runでverify gateが許容条件を満たした後に、同じ固定caseを各1回だけ実行する必要がある。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Native component test timeout isolation",
+      "evidence": "full verifyではnative-purchase-screens.test.tsxがtimeoutした一方、同一test fileの単独runはPASSしたため、full-suite負荷または環境依存の切り分け余地がある。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260912-143452-JST/REPORT.md",
+          "selector": "2026-09-12 14:53 (JST)",
+          "summary": "full verify failureと単独再実行の差。"
+        }
+      ],
+      "expected_impact": "Trigger Eval runtime開始前のquality gateを安定して分類できる。",
+      "recommendation": "別Runでfull-suite実行条件、Jest worker／resource負荷、test isolationを調査し、根拠なしにtimeout値やNative testを変更しない。"
+    }
+  ]
+}
