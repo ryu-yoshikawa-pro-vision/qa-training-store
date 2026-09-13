@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "run_id": "20260913-102228-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Issue #135のPlan指定範囲を実装し、root、reference、template、verify、既存contract testを責務分離後の契約へ更新した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "AGENTS.md",
+          "selector": "## 1. 基本原則と常駐契約",
+          "summary": "rootを常駐契約と条件付きreference入口へ整理した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/codex-implementation-harness.md",
+          "selector": "## Repository file-changing task の完了契約",
+          "summary": "file-changing taskとCI lifecycleの詳細を正本へ移した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はPlan指定の文書・template・verifyと、移管後契約を追随させる既存contract test、Run Artifactに限定し、Product code、Hook、config、rules、Run schema、Subagent runtimeを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-13 11:58",
+          "summary": "scopeと非対象の確認結果を記録した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "指定されたlint、Skill検証、Repository test、Bash / PowerShell verify、標準verifyをNode 24.21.0とpnpm 9.10.0で実行し、FAILなく完了した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "指定ローカル検証",
+          "summary": "指定コマンドと標準verifyの結果を記録した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "対象feature branchを維持し、mainへの直接反映、force push、削除、secret操作、Run manifestの直接編集を行わず、sanitizerと公式collectorを使用した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/verify",
+          "selector": "template contract",
+          "summary": "移管後の安全・正本配置を既存assertion方式で検証する。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "変更対象と責務移管がPlan、reference、verify、Run reportから追跡でき、Report checkpointはappend-onlyで保持している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-12_215048_issue-135-agents-context-slimming.md",
+          "selector": "## 2. 責務と正本",
+          "summary": "責務配置の正本を確認できる。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存referenceとportable Skillを再利用し、rootやTASKS templateへ詳細契約を重複させず、Bash / PowerShellの意味契約を揃えた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/templates/TASKS.md",
+          "selector": "完了処理の参照先",
+          "summary": "templateを各正本への短い導線にした。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Node 24.21.0、pnpm 9.10.0、指定コマンド、Run ID、変更前後のサイズ測定をrepository-relativeなRun Artifactへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260913-102228-JST/run.json",
+          "selector": "$.run_id",
+          "summary": "Run IDとmanifestを公式collector経路で管理する。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

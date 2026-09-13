@@ -167,13 +167,13 @@ Hookやrulesが一部経路しか捕捉しない場合、その制約をrootか�
 
 同じ「Native」という語を含むが別概念として扱う。
 
-**Codex native delegation**
+#### Codex native delegation
 
 - Subagent運用の仕組み。
 - rootにはParent / childの高レベル責務とchildのrecursive delegation禁止を残す。
 - 詳細は `.codex/config.toml` の `max_depth = 1`、`.codex/agents/**`、`docs/reference/codex-implementation-harness.md` を正本とする。
 
-**Android / Native validation**
+#### Android / Native validation
 
 - Android実機・ローカル検証のWorkflow。
 - rootにはAndroid依頼時のSkill入口だけ残す。

@@ -4,6 +4,14 @@
 
 Codex harness で生成・参照される artifact の責務を分けるための契約です。実行事実、集約 manifest、評価判断、人間向け要約、低レベルログを混在させないことを目的にします。
 
+## Progress calculation
+
+- `TASKS.md` の `## Now` と `## Discovered` にある checkbox task の合計を基本Progressの分母とします。
+- `## Blocked` のcheckboxは基本Progressの分母に含めません。
+- 基本表記は `Progress: <NN>% (<done>/<total>)` とします。
+- この基本Progressは、final commit前に完了できるtracked taskの進捗を表します。file-changing task全体の完了条件やpush後CIの完了判定とは分離します。
+- CI確認をProgressへ加算する条件、加算しないtask種別、CI状態の扱いは `docs/reference/codex-implementation-harness.md` を正本とします。この文書へCI加算条件を重複定義しません。
+
 ## Source-of-Truth Rule
 
 ```text
@@ -184,6 +192,10 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 
 - 人間向けの実行 summary です。
 - 機械判定の正本にはしません。
+
+### REPORT.md append-only contract
+
+`REPORT.md`のAppend-only契約は、checkpointの意味を削除、並べ替え、意味変更せずに保持することを指します。既存記録のローカル絶対Pathを既定Tokenへ置換する安全性例外は、記録の意味を変えない場合に限ります。
 
 ### Normal / Gray-box Working Tree Snapshot
 
