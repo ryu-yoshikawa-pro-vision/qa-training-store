@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_id": "20260913-085558-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "OTel live pathからHook snapshot I/Oを除去し、PRタイトル・本文更新と最新head CI確認へ進める状態になった。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-trigger-evals.ts",
+          "selector": "evaluateCases",
+          "summary": "OTel live pathのsnapshotHookFiles／collectHookDelta呼び出しを除去した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source差分は指定runner 1ファイルに限定し、旧Run、dataset、query、Skill description、ADR、Plan、OTel contractを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git diff --check",
+          "summary": "差分構文と変更範囲を確認した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "focused 51 tests、repository 117 tests、dataset validation、format、lint、typecheck、full verifyがPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run verify",
+          "summary": "unit／integration／repository／component／contractsとweb／docs／spec buildを完了した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "baseline live run、PR merge、rebase、force pushを行わず、過去Runのrun.jsonを直接編集していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260912-231826-JST/run.json",
+          "selector": "status / validation",
+          "summary": "過去Runのmachine-managed pending／not_run状態を読み取り確認した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "live pathから診断専用Hook I/Oを除去し、維持したHook selector/parser範囲と検証結果をRun reportへ記録した。",
+      "evidence_refs": []
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "未使用になったsnapshot専用定義だけを削除し、legacy Hook contract用helperは残した。",
+      "evidence_refs": []
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "dataset fingerprintとbaseline SHA256を再実行なしで確認し、OTel contractとResult schemaを維持した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run eval:skills:trigger:validate / Get-FileHash",
+          "summary": "dataset／保存済みbaselineの不変条件を確認した。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [
+    {
+      "target": "Run Artifactのretroactive finalization経路",
+      "evidence": "collect-run-artifacts.pyは既存manifestのstatus／validationを保持し、過去RunをCodex再実行なしにcompletedへ変換する専用writer経路は確認できなかった。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/collect-run-artifacts.py",
+          "selector": "merge_manifests / merge_validation_status",
+          "summary": "collectorの保持・再集約動作を確認した。"
+        }
+      ],
+      "expected_impact": "過去Runの実行事実を偽装せず、machine-managed status／validationを正式にfinalizeできる。",
+      "recommendation": "将来のharness-improvementとして別タスクで設計・承認し、今回のPR #127には追加しない。"
+    }
+  ]
+}

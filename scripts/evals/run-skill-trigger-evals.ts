@@ -3,7 +3,6 @@ import {
   constants as fsConstants,
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   realpathSync,
   statSync,
@@ -41,10 +40,6 @@ const CASE_TIMEOUT_MS = 327_000;
 export const TRIGGER_EVAL_MODEL = "gpt-5.6-luna" as const;
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
 const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
-const HOOK_DIRECTORIES = [
-  [".codex", "logs"],
-  [".artifacts", "codex-hooks"],
-] as const;
 const KNOWN_SKILL_PATHS = CANONICAL_SKILLS.map((skill) => `.agents/skills/${skill}/SKILL.md`);
 
 export function buildCodexOtelMetricsExporterConfig(otelEndpoint: string): string {
@@ -88,11 +83,6 @@ export interface GitPreflight {
   readonly target_root: string;
   readonly evaluator_git_sha: string;
   readonly routing_source_git_sha: string;
-}
-
-interface HookSnapshotEntry {
-  readonly absolute_path: string;
-  readonly size: number;
 }
 
 export interface HookDelta {
@@ -403,74 +393,6 @@ function getCodexVersion(evaluatorRoot: string): string {
     fail("codex --version returned no version");
   }
   return version;
-}
-
-function snapshotHookFiles(targetRoot: string): readonly HookSnapshotEntry[] {
-  const entries: HookSnapshotEntry[] = [];
-  for (const directoryParts of HOOK_DIRECTORIES) {
-    const directory = join(targetRoot, ...directoryParts);
-    if (!existsSync(directory) || !statSync(directory).isDirectory()) {
-      continue;
-    }
-    for (const name of readdirSync(directory)) {
-      if (!/^hooks-.*\.jsonl$/u.test(name)) {
-        continue;
-      }
-      const absolutePath = join(directory, name);
-      if (!statSync(absolutePath).isFile()) {
-        continue;
-      }
-      entries.push({ absolute_path: absolutePath, size: statSync(absolutePath).size });
-    }
-  }
-  return entries;
-}
-
-function collectHookDelta(
-  before: readonly HookSnapshotEntry[],
-  after: readonly HookSnapshotEntry[],
-): HookDelta {
-  const beforeByPath = new Map(before.map((entry) => [entry.absolute_path, entry.size]));
-  const afterByPath = new Map(after.map((entry) => [entry.absolute_path, entry.size]));
-  const paths = new Set([...beforeByPath.keys(), ...afterByPath.keys()]);
-  const candidates: string[] = [];
-  let invalid = false;
-
-  for (const path of paths) {
-    const beforeSize = beforeByPath.get(path);
-    const afterSize = afterByPath.get(path);
-    if (beforeSize !== undefined && afterSize === undefined) {
-      invalid = true;
-      continue;
-    }
-    if (afterSize === undefined || beforeSize === afterSize) {
-      continue;
-    }
-    if (beforeSize !== undefined && afterSize < beforeSize) {
-      invalid = true;
-      continue;
-    }
-    if (afterSize > 0) {
-      candidates.push(path);
-    } else {
-      invalid = true;
-    }
-  }
-
-  if (invalid || candidates.length !== 1) {
-    return { correlation_ok: false, raw: "" };
-  }
-
-  const path = candidates[0];
-  if (!path) {
-    return { correlation_ok: false, raw: "" };
-  }
-  const beforeSize = beforeByPath.get(path) ?? 0;
-  const raw = readFileSync(path, "utf8").slice(beforeSize);
-  if (raw.length === 0) {
-    return { correlation_ok: false, raw: "" };
-  }
-  return { correlation_ok: true, raw };
 }
 
 interface CommandToken {
@@ -1306,16 +1228,12 @@ async function evaluateCases(
       });
       continue;
     }
-    const before = snapshotHookFiles(targetRoot);
     const executed = await executeCodex(
       evaluatorRoot,
       targetRoot,
       triggerCase.query,
       observer.endpoint,
     );
-    const after = snapshotHookFiles(targetRoot);
-    // Hook delta is retained only as a diagnostic boundary. It never feeds scoring in OTel mode.
-    void collectHookDelta(before, after);
     let otelObservation: OtelObservation;
     if (executed.execution.spawn_failed) {
       await observer.close().catch(() => undefined);
