@@ -283,12 +283,17 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       ] as const) {
         expect(entry.type, event).toBe("command");
         expect(commandForHook(entry, "command", event)).toContain(scriptName);
-        expect(
-          decodeWindowsPowerShellCommand(
-            commandForHook(entry, "command_windows", event),
-            `${event} ${scriptName}`,
-          ),
-        ).toContain(scriptName);
+        const windowsScript = decodeWindowsPowerShellCommand(
+          commandForHook(entry, "command_windows", event),
+          `${event} ${scriptName}`,
+        );
+        expect(windowsScript).toContain(scriptName);
+        if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
+          expect(windowsScript).toContain(
+            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
+          );
+          expect(windowsScript).toContain("[Console]::Write($fallback)");
+        }
         expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
       }
     }

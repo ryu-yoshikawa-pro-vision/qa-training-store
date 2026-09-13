@@ -388,6 +388,91 @@ describe("Codex deterministic text quality contracts", () => {
     );
   });
 
+  it("fails closed through the configured Windows Stop launcher when quality execution degrades", () => {
+    if (process.platform !== "win32") return;
+
+    withFixture(
+      (root) => {
+        const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+        const expected = {
+          decision: "block",
+          reason: "Text quality check unavailable; completion cannot be confirmed.",
+        };
+
+        fs.rmSync(hookFile, { force: true });
+        const missingHook = runConfiguredQualityHook(
+          root,
+          "Stop",
+          { stop_hook_active: false },
+          "windows",
+          path.join(root, "rules.json"),
+        );
+        expect(missingHook.status).toBe(0);
+        expect(JSON.parse(missingHook.stdout)).toEqual(expected);
+        expect(missingHook.stderr).toBe("");
+
+        const nonRepository = fs.mkdtempSync(
+          path.join(os.tmpdir(), "codex-text-quality-windows-nonrepo-"),
+        );
+        try {
+          const rootFailure = runConfiguredQualityHook(
+            nonRepository,
+            "Stop",
+            { stop_hook_active: false },
+            "windows",
+            path.join(root, "rules.json"),
+            nonRepository,
+          );
+          expect(rootFailure.status).toBe(0);
+          expect(JSON.parse(rootFailure.stdout)).toEqual(expected);
+          expect(rootFailure.stderr).toBe("");
+        } finally {
+          fs.rmSync(nonRepository, { force: true, recursive: true });
+        }
+
+        writeFile(root, ".codex/hooks/text_quality_gate.mjs", "process.exit(2);\n");
+        const failedHook = runConfiguredQualityHook(
+          root,
+          "Stop",
+          { stop_hook_active: false },
+          "windows",
+          path.join(root, "rules.json"),
+        );
+        expect(failedHook.status).toBe(0);
+        expect(JSON.parse(failedHook.stdout)).toEqual(expected);
+        expect(failedHook.stderr).toBe("");
+      },
+      "GOOD\n",
+      "codex-text-quality-windows-degraded-",
+    );
+  }, 30_000);
+
+  it("keeps the configured Unix Stop launcher fail-closed when the quality Hook is missing", () => {
+    if (process.platform === "win32") return;
+
+    withFixture(
+      (root) => {
+        fs.rmSync(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"), { force: true });
+        const result = runConfiguredQualityHook(
+          root,
+          "Stop",
+          { stop_hook_active: false },
+          "unix",
+          path.join(root, "rules.json"),
+        );
+
+        expect(result.status).toBe(0);
+        expect(JSON.parse(result.stdout)).toEqual({
+          decision: "block",
+          reason: "Text quality check unavailable; completion cannot be confirmed.",
+        });
+        expect(result.stderr).toBe("");
+      },
+      "GOOD\n",
+      "codex-text-quality-unix-degraded-",
+    );
+  });
+
   it("keeps production rules explicit and emits no raw match or full source line", () => {
     const productionRules = JSON.parse(
       fs.readFileSync(path.join(repoRoot, ".codex", "text-quality-rules.json"), "utf8"),
@@ -641,6 +726,57 @@ describe("Codex deterministic text quality contracts", () => {
     }, "GOOD\n");
   });
 
+  it("uses the session-start worktree baseline for a renamed and edited Markdown file", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\nBAD\n");
+      git(root, ["add", "--all"]);
+
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "GOOD\nKEEP\n");
+  }, 30_000);
+
+  it("detects a violation added after the renamed start worktree baseline", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\n");
+      git(root, ["add", "--all"]);
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\nBAD\n");
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+    }, "GOOD\nKEEP\n");
+  }, 30_000);
+
+  it("does not reuse a HEAD violation after it was fixed in the renamed start worktree", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\n");
+      git(root, ["add", "--all"]);
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/renamed.md", "BAD\nKEEP\n");
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+    }, "BAD\nKEEP\n");
+  }, 30_000);
+
   it("keeps the session baseline tied to the start HEAD after a commit", () => {
     withFixture((root) => {
       expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
@@ -797,23 +933,56 @@ describe("Codex deterministic text quality contracts", () => {
     });
   }, 30_000);
 
-  it("fails closed when Stop state identity does not match the current session", () => {
+  it("cleans up corrupt state only when Stop is active", () => {
     withFixture((root) => {
       expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
       const stateFile = stateFiles(root)[0];
       if (!stateFile) throw new Error("baseline state file was not created");
       const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
-      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
-      state.root_id = "0".repeat(64);
-      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      fs.writeFileSync(statePath, "{", "utf8");
 
-      const stop = runGate(root, "Stop", { stop_hook_active: false });
-      expect(stop.status).toBe(0);
-      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
-      expect(stop.stdout).toContain("quality check unavailable");
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expect(activeStop.status).toBe(0);
+      expect(activeStop.stdout).toBe("");
+      expect(activeStop.stderr).toContain("baseline_state");
+      expect(stateFiles(root)).toHaveLength(0);
     });
   });
+
+  it.each(["root_id", "session_id_hash"] as const)(
+    "cleans up Stop state with a mismatched %s only when Stop is active",
+    (identityField) => {
+      withFixture((root) => {
+        expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+        const stateFile = stateFiles(root)[0];
+        if (!stateFile) throw new Error("baseline state file was not created");
+        const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+        const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+        state[identityField] = "0".repeat(64);
+        fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+
+        const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+        expect(inactiveStop.status).toBe(0);
+        expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+        expect(inactiveStop.stdout).toContain("quality check unavailable");
+        expect(inactiveStop.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(1);
+
+        const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+        expect(activeStop.status).toBe(0);
+        expect(activeStop.stdout).toBe("");
+        expect(activeStop.stderr).toContain("baseline_state");
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    },
+    30_000,
+  );
 
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {

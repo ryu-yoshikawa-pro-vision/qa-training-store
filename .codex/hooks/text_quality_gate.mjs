@@ -400,8 +400,12 @@ function buildPairs({ root, state, rules, targetPaths }) {
 function makePairs(root, state, rules, mappings, entryByPath, changedPaths) {
   const pairs = [];
   for (const currentPath of [...changedPaths].sort()) {
-    const baselinePath = mappings.get(currentPath) ?? currentPath;
-    const entry = entryByPath.get(baselinePath);
+    const currentStartEntry = entryByPath.get(currentPath);
+    const hasWorktreeBaseline = currentStartEntry?.source === "worktree";
+    const baselinePath = hasWorktreeBaseline
+      ? currentPath
+      : (mappings.get(currentPath) ?? currentPath);
+    const entry = hasWorktreeBaseline ? currentStartEntry : entryByPath.get(baselinePath);
     const currentContent = readRegularFile(root, currentPath);
     const currentViolations = scanText(currentContent, { path: currentPath, rules });
     const baselineViolations = getBaselineViolations({
@@ -695,7 +699,6 @@ function cleanupAllowedStop(payload) {
   try {
     const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
     const stateInfo = makeStatePath(root, payload.session_id);
-    readState(stateInfo.path, stateInfo);
     deleteState(stateInfo.path);
   } catch {
     // The Stop hook must remain fail-open when Codex has already activated the stop hook.
