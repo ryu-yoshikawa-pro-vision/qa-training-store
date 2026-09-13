@@ -422,28 +422,23 @@ function Invoke-VerifyCommand {
         $extension = [System.IO.Path]::GetExtension($resolvedPath).ToLowerInvariant()
         switch ($extension) {
             '.ps1' {
-                & powershell.exe -ExecutionPolicy Bypass -File $resolvedPath
-                return $LASTEXITCODE
+                return (Invoke-NativeCommand -Command "powershell.exe" -CommandArgs @("-ExecutionPolicy", "Bypass", "-File", $resolvedPath))
             }
             '.cmd' { 
-                & cmd.exe /d /c $resolvedPath
-                return $LASTEXITCODE
+                return (Invoke-NativeCommand -Command "cmd.exe" -CommandArgs @("/d", "/c", $resolvedPath))
             }
             '.bat' {
-                & cmd.exe /d /c $resolvedPath
-                return $LASTEXITCODE
+                return (Invoke-NativeCommand -Command "cmd.exe" -CommandArgs @("/d", "/c", $resolvedPath))
             }
             '.sh' {
                 $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
                 if (-not $bashCmd) {
                     throw "bash command not found for verify script: $resolvedPath"
                 }
-                & $bashCmd.Source $resolvedPath
-                return $LASTEXITCODE
+                return (Invoke-NativeCommand -Command $bashCmd.Source -CommandArgs @($resolvedPath))
             }
             default {
-                & $resolvedPath
-                return $LASTEXITCODE
+                return (Invoke-NativeCommand -Command $resolvedPath -CommandArgs @())
             }
         }
     }
@@ -453,8 +448,7 @@ function Invoke-VerifyCommand {
         [System.Environment]::SetEnvironmentVariable('CODEX_VERIFY_COMMAND', $CommandText)
         $verifyRunner = '$script = [System.Environment]::GetEnvironmentVariable("CODEX_VERIFY_COMMAND"); & ([scriptblock]::Create($script))'
         $encodedRunner = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($verifyRunner))
-        & powershell.exe -NoProfile -EncodedCommand $encodedRunner
-        return $LASTEXITCODE
+        return (Invoke-NativeCommand -Command "powershell.exe" -CommandArgs @("-NoProfile", "-EncodedCommand", $encodedRunner))
     }
     finally {
         [System.Environment]::SetEnvironmentVariable('CODEX_VERIFY_COMMAND', $previous)
@@ -1730,7 +1724,7 @@ if ($state.output_schema) {
 function Invoke-NativeCommand {
     param(
         [Parameter(Mandatory = $true)][string]$Command,
-        [Parameter(Mandatory = $true)][string[]]$CommandArgs
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$CommandArgs
     )
 
     $prevNativeErr = $null

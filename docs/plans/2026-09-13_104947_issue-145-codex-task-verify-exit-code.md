@@ -262,10 +262,11 @@ manifest writer、schema、collector、sanitizer、CI workflow、教材、Traini
 9. Windows環境でtargeted contract testを実行し、`.ps1`、`.cmd`、`.bat`、command textのruntime testとmanifest付きfull-wrapper testがskipされずPASSすることを実装完了条件として確認する。
    - Linux CIのPASSだけをWindows固有経路の検証完了とは扱わない。
    - 今回はWindows用GitHub Actions jobを追加しない。
+
 10. 新しいproduction wrapper、新しいtest helper file、dependencyは追加しない。
-   - 既存`runWrapper()` / fixtureのパラメータ化を優先する。
-   - 重複を避けるために必要な場合は、`tests/contracts/codex-task-native-command.test.ts`内へ小さなhelperを追加してよい。
-   - helper追加を理由に新しいtest utility fileや共通frameworkへ広げない。
+    - 既存`runWrapper()` / fixtureのパラメータ化を優先する。
+    - 重複を避けるために必要な場合は、`tests/contracts/codex-task-native-command.test.ts`内へ小さなhelperを追加してよい。
+    - helper追加を理由に新しいtest utility fileや共通frameworkへ広げない。
 
 ### 実行タスク
 
@@ -303,19 +304,19 @@ Windows環境ではこのcommandを必ず実行し、次を確認する。
 - PythonとGitも利用可能な環境では、manifest付きfull-wrapperの成功・失敗testもskipされずPASSする。
 - full-wrapper testが`-SkipVerify`でverifyを飛ばしていない。
 
-2. contract test全体
+1. contract test全体
 
 ```text
 pnpm run test:contracts
 ```
 
-3. repository標準検証
+1. repository標準検証
 
 ```text
 pnpm run verify
 ```
 
-4. diff整合性
+1. diff整合性
 
 ```text
 git diff --check
