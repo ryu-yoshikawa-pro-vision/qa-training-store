@@ -128,3 +128,21 @@
 - Decision / Rationale: 過去checkpointのProgress値は当時のTASKS構造を示すため保持した。current TASKSのtracked checkboxは13件（1〜11、14、15）で全件完了、commit後のbranch / PR / CIは非checkboxの完了処理として扱う。
 - Blocker / Remaining: final commit、対象branchへの通常push、local / remote / PR head一致確認、最新headのWeb CI / Mobile App CI、PR本文更新が残る。これらが完了するまでユーザー向けProgressはCI確認分を含めて100%としない。
 - Progress: 100% (13/13)
+
+## 2026-09-13 16:29 (JST)
+
+- Summary: 再レビューでcurrent Runのtask 15にProgress契約上の不整合が残っていることを確認し、修正した。
+- Findings / Cause: task 15に「最新headの必須CI確認まで」を含めていたため、commit前tracked checkboxとpush後CI確認1件の責務が重複していた。レビュー時点のPR head `4427cf903a80b14f4ccea633dcbffed16ab08a16`、branch、PR状態、作業ツリーを再確認し、今回の指摘が未対応であることを確認した。
+- Changes: task 15を「PR #147レビュー指摘3件を修正し、標準検証とcommit前の差分・Run Artifact確認を完了する。」へ変更した。`Commit後の完了処理`は非checkboxのまま維持し、post-commitのbranch / push / PR head / CI / PR本文更新をtask 15へ含めていない。過去checkpointのProgress値は当時のTASKS構造に基づく履歴として保持し、削除・置換・並べ替え・意味変更を行っていない。
+- Decision / Rationale: TASKS checkboxはcommit前に完了できるtracked task、push後の最新PR headに対する必須CI確認はimplementation harnessが定義する別のCI確認1件として扱う。current Runのtracked checkboxは13件（1〜11、14、15）であり、基本Progressは13/13とする。file-changing taskのCI確認1件はTASKS checkboxへ追加しない。
+- Repair loop: iteration_number=1、classification=`must_fix`、allowed_files=`.codex/runs/20260913-102228-JST/TASKS.md` / `.codex/runs/20260913-102228-JST/REPORT.md`（必要なmachine-managed artifact更新は既存collector経路のみ）。changed_filesはこの2ファイル。今回の修正は指摘の原因に直接対応し、Issue #135の実装本体、reference、contract test、Hook、Product code等へ範囲を広げない。
+- Validation: task 15のcheckbox数を13件として再確認し、`Commit後の完了処理`が非checkboxであることを確認した。次にcollector strict、Sanitizer Write / Check、`pnpm run lint:markdown`、`git diff --check`、commit前scope確認を実行する。CI確認1件はcommit / push後に最新headで確認し、PR本文へ結果を記録するまで完了扱いにしない。
+- Progress: 100% (13/13)
+
+## 2026-09-13 16:32 (JST)
+
+- Summary: task 15の文言修正に対するcommit前検証とscope確認を完了した。
+- Validation: 公式collectorを`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260913-102228-JST -RefreshGitChangedFiles -Strict`で実行し、PASSした。`sanitize-codex-artifacts.ps1 -Path .codex/runs/20260913-102228-JST -Write -Check`は`files_scanned: 5`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`でPASSした。`corepack pnpm run lint:markdown`は389 files / 0 issues、`git diff --check`はPASSした。
+- Scope: 変更対象は`.codex/runs/20260913-102228-JST/TASKS.md`と`.codex/runs/20260913-102228-JST/REPORT.md`の2ファイルだけで、collectorによる`run.json`差分は発生していない。task 15はcommit前検証までのcheckboxとなり、`Commit後の完了処理`は非checkboxのまま維持されている。Issue #135の実装本体、reference、contract test、Hook、Product code等に差分はない。
+- Repair loop decision: iteration_number=1の`must_fix`修正は原因へ直接対応し、remaining_deltaはなし。ローカル修正と必要検証を完了したため`stop_success`とし、commit / push後はimplementation harnessの別枠CI確認1件として最新headの`Web CI` / `Mobile App CI`を確認する。
+- Progress: 100% (13/13)

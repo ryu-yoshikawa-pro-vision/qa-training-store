@@ -25,7 +25,7 @@
 ## Discovered
 
 - [x] 14. 品質ゲートで判明したPlanのMarkdown違反、移管後の既存assertion不整合、Windows Hook contractのtimeoutを最小修正し、関連検証を再実行する。
-- [x] 15. PR #147レビュー指摘3件を修正し、標準検証と最新headの必須CI確認まで完了する。
+- [x] 15. PR #147レビュー指摘3件を修正し、標準検証とcommit前の差分・Run Artifact確認を完了する。
 
 ## Blocked
 
