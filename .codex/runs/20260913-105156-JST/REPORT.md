@@ -50,6 +50,25 @@
   - Parent decision: 品質ゲートPASSとしてbranch safety確認後のcommitへ進む。
 - Progress: 70% (7/10)
 
+## 2026-09-13 11:09 (JST)
+
+- Summary:
+  - `origin/main`の通常mergeとconflict解消、ADR番号修正をmerge commitへ確定した。
+- Changes:
+  - merge commit `21022f6e58c566b107bc577339714c7d004eedff`を作成した。parentsはPR側`e23cd7d3ba7356ff0b7bbb70aec41e71e3700abd`とmain側`f6727303da97f3b4b81777472a305ed5c3860410`である。
+- Decision / Rationale:
+  - rebaseではなく通常mergeを使用し、main側のcurriculum／workflow／dependency／Run Artifact変更とPR #127側のTrigger Eval実装を同一履歴へ統合した。
+- Validation:
+  - commit直前のbranch／PR head／merge head一致、working tree clean、staged diff check PASS。
+  - `git merge-base --is-ancestor origin/main HEAD`はexit 0。
+- Blocker / Remaining:
+  - 通常push、PR本文の現状態更新、push後CI（Web／Mobile）確認が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: merge commitを保持して明示refspecの通常pushへ進む。
+- Progress: 80% (8/10)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

@@ -9,7 +9,7 @@
 - [x] 5. package script、ADR重複、禁止対象、baseline／dataset不変条件を検証する
 - [x] 6. focused tests、dataset validation、markdown／skills／repository／verifyを実行する
 - [x] 7. Run Artifactを日本語で更新し、sanitizer Write／Checkを実行する
-- [ ] 8. branch safetyを再確認してmerge commit／修正をcommitする
+- [x] 8. branch safetyを再確認してmerge commit／修正をcommitする
 - [ ] 9. 明示refspecで通常pushし、PR本文を現在の状態へ更新する
 - [ ] 10. push後の最新headでWeb CI／Mobile App CIを終端確認し、最終readbackする
 
