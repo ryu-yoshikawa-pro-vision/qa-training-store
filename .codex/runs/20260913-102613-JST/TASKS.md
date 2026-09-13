@@ -11,7 +11,7 @@
 - [x] 7. focused/文章品質/contract/lint/typecheck/verify/Windows検証を実行し、FAILを修正する
 - [x] 8. 変更範囲、Plan差異、#135/production rule状態、Run Artifact scopeを確認する
 - [x] 9. Run Artifactをfinal commit前状態へ更新し、schema/sanitizer/diff checkを通す
-- [ ] 10. branch safetyを再確認し、commit対象を確定してcommitする
+- [x] 10. branch safetyを再確認し、commit対象を確定してcommitする
 - [ ] 11. 対象branchへpushし、local/remote/PR head一致を確認する
 - [ ] 12. PR #146本文を日本語で現行実装へ更新し、最新headの必須CIを確認する
 
