@@ -115,7 +115,7 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 7. [Quality GateとCI/CD](./part2/07_ci-cd-quality-gates.md)
 8. [Part 2 導入設計演習](./part2/08_integration-design-capstone.md)
 
-### 共通の参考資料と運営支援
+### 共通Referenceと運営支援
 
 - [学習方針と進め方](./00_learning-design.md)
 - [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md) — P1-2 / P1-3で必要な段階で参照します。

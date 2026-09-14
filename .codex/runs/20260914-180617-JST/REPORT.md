@@ -115,3 +115,23 @@
   - Result: なし。
   - Parent decision: commit前のtracked Run Artifactをこの状態で凍結し、push後CIの記録だけを理由に再commitしない。
 - Progress: 86% (6/7)
+
+## 2026-09-14 19:51 (JST)
+
+- Summary:
+  - push後の最新headで`Web CI #983`の最初の異常を確認し、既存E2Eが契約するUI formal nameを復元した。
+  - `Mobile App CI #850`はsuccessのまま、Web CIは修正commitの再実行待ちである。
+- Changes:
+  - `docs/curriculum/test-automation/README.md`の見出しを`共通Referenceと運営支援`へ戻した。一般語の日本語化方針よりも、既存の`e2e/web/smoke.spec.ts`が直接検査するUI formal nameの保持を優先した。
+- Decision / Rationale:
+  - repair-loop iteration 2: input findingは`production-smoke`のUI期待値不一致、分類は`must_fix`。allowed fileはREADME 1件のみとし、テストや仕様の変更、一般語の再翻訳は行わない。
+  - CIログで失敗箇所が`published docs smoke`のナビゲーション配列4番目と特定でき、今回のREADME差分が直接原因だったため、原文の正式UI名を戻す判断を採用した。
+- Validation:
+  - 対象READMEのPrettier、`validate-curriculum`、`build:docs`、`training-curriculum` 19/19、READMEと`e2e/web/smoke.spec.ts`のUI固定値一致はPASSした。
+- Blocker / Remaining:
+  - blockerなし。修正commitのbranch safety、push、最新headの`Web CI` / `Mobile App CI`再確認、PR本文のCI実結果更新が残る。PRはmergeしない。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: CI failureを既存問題として保留せず、直接原因の1行だけを修正して関連ゲートを再実行する。
+- Progress: 86% (6/7)
