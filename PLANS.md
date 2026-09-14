@@ -4,17 +4,18 @@
 
 ## リポジトリの計画保存
 
-- 保存先は `docs/plans/` とする。
-- filenameは`docs/plans/{yyyy-mm-dd}_{HHMMSS}_{plan_name}.md`とする。
+- 保存先は`docs/plans/`とする。
+- ファイル名は`docs/plans/{yyyy-mm-dd}_{HHMMSS}_{plan_name}.md`とする。
 - timestampはJST（`Asia/Tokyo`）を使う。
-- 実装へ進む前に、合意したplanをRepositoryへ保存する。
+- 実装へ進む前に、合意した計画をRepositoryへ保存する。
 - 再利用可能な計画のひな形は[`feature-plan template`](.agents/skills/feature-plan/assets/plan-template.md)を使う。
 
 ## Active Runとの接続
 
-- 実行中のRunでは `.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md` を作業管理に使う。
+- 実行中のRunでは`.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`を作業管理に使う。
 - リポジトリ向けの保存計画とRun固有の作業artifactは別物として扱う。
-- 同一会話の同一taskはactive Runを再利用し、別taskまたは別会話では新しいRunを作成する。
+- 同一会話の同一taskではactive Runを再利用する。
+- 別task・別会話を含むRun切替条件は `docs/reference/run-artifacts.md` を正本とする。
 
 ## ライフサイクルと保持
 
