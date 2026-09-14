@@ -153,8 +153,6 @@ baseline取得後、`run-skill-trigger-evals.ts`からOTel primary live path上�
 
 ## 5. description変更要否の判定
 
-各failureについて、次の順序で判断する。
-
 ### 5.1 `code-review-train-002`
 
 確認対象:
@@ -235,24 +233,37 @@ train結果を受けて別candidateへ変更する場合も、新しい意味上
 
 ## 7. answer-key-free Routing Targetの作成
 
-EvaluatorとRouting Targetは別Git repositoryとし、Targetへ元repositoryの`.git`、remote ref、object database、alternatesを持ち込まない。
+baseline側とcurrent-main側では目的が異なるため、Target作成方式も分ける。
 
-単に最新repositoryをcloneしてdatasetをworking treeから消す方式は使わない。working treeにanswer keyがなくても、Git historyやremote refから取得できる状態を残さない。
+### 7.1 baseline側Target
 
-Target作成の共通条件:
+baselineとの因果比較では、PR2で使用した`routing_source_git_sha`そのものを親として維持する。
 
-1. Repository外に一時directoryを作る。
-2. 元treeのworking filesだけをexportする。元repositoryの`.git`はコピーしない。
-3. Trigger Eval datasetをTargetへ含めない。
-4. 評価結果を含む`.codex/runs/**`もTargetへ含めない。Run Artifactはrouting入力ではなく、過去のTrigger Eval結果をTargetへ渡す必要がない。
-5. 必要なcandidate description差分だけを適用する。
-6. export後のdirectoryで新しく`git init`する。
-7. filesをadd / commitし、`HEAD`をdetachする。
-8. remoteを設定しない。
+1. Repository外にEvaluatorとは別のGit repositoryを作る。
+2. baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`だけを取得する。`git fetch --depth=1 <source> 3c5e35e...`相当の方法を使用してよい。
+3. `3c5e35e...`をdetached HEADでcheckoutし、treeがbaseline sourceと一致していることを確認する。
+4. 後続の`main`、PR2 dataset commit、現在のbranch等へのrefをTargetへ残さない。取得後はremoteを削除する。
+5. `3c5e35e...`にTrigger Eval dataset、現在のcase ID、dataset fingerprint、PR2 baseline result等のanswer keyが存在しないことを確認する。
+6. baseline sourceに元から存在するファイルは、answer keyでない限り削除しない。`.codex/runs/**`も一律削除しない。
+7. 変更対象と判断したcandidate descriptionだけを適用してcommitする。このcandidate commitのparentが`3c5e35e...`であることを確認する。
+8. candidate commitをdetached HEADで評価する。
 9. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空、Trigger Eval datasetが存在しないことを確認する。
-10. Resultの`routing_source_git_sha`には、このfresh repositoryの実Target HEADを記録する。baseline SHAへ偽装しない。
+10. Resultの`routing_source_git_sha`にはcandidate commitの実SHAを記録し、baseline SHAへ偽装しない。
 
-exportは`git archive`等を使ってよいが、current `main`から作るTargetではTrigger Eval datasetと`.codex/runs/**`をexport時点で除外し、後から元cloneのGit履歴を残したまま削除する方式にしない。
+この方式により、baseline sourceから変わるrouting入力をcandidate descriptionだけに限定する。
+
+### 7.2 current-main側Target
+
+current-main側はbaselineとの因果比較ではなく、現在のrouting contextでの統合確認に使う。現在の`main`にはTrigger Eval datasetと過去の結果が存在するため、answer keyを持たないfresh repositoryを作る。
+
+1. 実装開始時のlatest `main`のworking filesをRepository外へexportする。
+2. export時点でTrigger Eval datasetと`.codex/runs/**`を除外する。
+3. 元repositoryの`.git`、remote ref、object database、alternatesをコピーしない。
+4. 必要なcandidate descriptionだけを適用する。
+5. export先で新しく`git init`し、filesをcommitする。
+6. remoteを設定せず、`HEAD`をdetachする。
+7. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空、Trigger Eval datasetと`.codex/runs/**`が存在しないことを確認する。
+8. Resultの`routing_source_git_sha`にはfresh repositoryの実Target HEADを記録する。
 
 PR3用のTarget generatorやrepository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
 
@@ -266,15 +277,14 @@ PR3では、次の2つを別の目的として評価する。
 
 目的:
 
-- baseline取得時のrouting contextを固定し、candidate description以外のrouting入力を変えず、description変更の影響をbaselineと比較する。
+- baseline取得時のrouting sourceを親として維持し、candidate description以外のrouting入力を変えず、description変更の影響をbaselineと比較する。
 
 baseline側Target:
 
-1. baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`のworking filesだけをexportする。
-2. Trigger Eval datasetと過去のTrigger Eval結果が含まれていないことを確認する。
-3. 変更対象と判断したdescription差分だけを適用する。
-4. fresh Git repositoryとしてcommitし、detached HEADにする。
-5. 対象外のSkill、`AGENTS.md`、scripts、references等をcurrent `main`から混ぜない。
+- 親commitはbaseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`とする。
+- candidate commitは`3c5e35e...`の直接の子とし、変更は根拠を確認したfrontmatter `description`だけにする。
+- 対象外のSkill、`AGENTS.md`、scripts、references等をcurrent `main`から混ぜない。
+- current `main`や後続PRへのref、Trigger Eval dataset、現在のbaseline artifactをTargetから参照できない状態にする。
 
 #### trainでのcandidate確認
 
@@ -321,12 +331,11 @@ baselineでobservableだったcaseが`newly_unobservable`になった場合、�
 
 current-main側Target:
 
-1. 実装開始時のlatest `main`のworking filesを基にする。
-2. Trigger Eval datasetと`.codex/runs/**`はexport時点で除外する。
-3. dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
-4. latest `main`側の対象Skillにmaterial driftがないことを確認してから、同じcandidate descriptionを適用する。
-5. fresh Git repositoryとしてcommitし、detached HEADにする。
-6. baseline側Targetとは別Target・別artifactとして扱う。
+- 実装開始時のlatest `main`のworking filesを基にする。
+- Trigger Eval datasetと`.codex/runs/**`はexport時点で除外する。
+- dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
+- latest `main`側の対象Skillにmaterial driftがないことを確認してから、同じcandidate descriptionを適用する。
+- baseline側Targetとは別Target・別artifactとして扱う。
 
 ```bash
 pnpm run eval:skills:trigger -- \
@@ -402,8 +411,12 @@ Plan、active Run Artifact、PR本文など、実装結果を記録する既存�
 - [ ] 変更した場合はfrontmatter `description`だけに限定し、Skill本文・references・dataset・runner・`AGENTS.md`を変更していない。
 - [ ] candidate wordingをtrain query固有の語彙へ過度に寄せていない。
 - [ ] live eval前にcandidateをcommitし、Evaluatorの`.codex/runs/**`以外がcleanである。
-- [ ] baseline側Targetとcurrent-main側Targetは元repositoryの`.git`、remote ref、object database、alternatesを共有していない。
-- [ ] 両TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
+- [ ] baseline側Targetは`3c5e35e...`を親として維持し、candidate commitのparentがbaseline `routing_source_git_sha`と一致している。
+- [ ] baseline側Targetにcurrent `main`や後続PRへのref、Trigger Eval dataset、現在のbaseline artifactへの取得経路がない。
+- [ ] baseline側Targetではbaseline sourceに元から存在する非answer-key fileを不必要に削除していない。
+- [ ] current-main側Targetは元repositoryの`.git`、remote ref、object database、alternatesを共有していない。
+- [ ] current-main側TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
+- [ ] 両TargetはEvaluatorとGit common-dirを共有せず、alternatesを使用せず、cleanなdetached HEADである。
 - [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
 - [ ] baseline側comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`である。
 - [ ] baseline側comparisonで`newly_unobservable`が発生した場合、routing regressionと断定せず、非回帰判定不能として完了扱いにしていない。
@@ -429,17 +442,18 @@ Plan、active Run Artifact、PR本文など、実装結果を記録する既存�
 - [ ] 6. gapが確認できたSkillだけcandidate descriptionを作成する。
 - [ ] 7. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
 - [ ] 8. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
-- [ ] 9. baseline sourceのworking filesからfresh Git repositoryとしてbaseline側Targetを準備し、candidate差分だけを適用する。
-- [ ] 10. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
-- [ ] 11. candidateを変更する場合は新しい仮説を明示し、commitとclean確認を行ってから再評価する。
-- [ ] 12. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行する。
-- [ ] 13. latest `main`のworking filesからanswer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
-- [ ] 14. current-main側Targetで`all`を実行し、current routing contextでの統合結果を確認する。
-- [ ] 15. deterministic validationとRepository標準検証を実行する。
-- [ ] 16. scope、Run Artifact、comparison結果を確認する。
-- [ ] 17. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
+- [ ] 9. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後にcandidate commitをその直接の子として作る。
+- [ ] 10. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
+- [ ] 11. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
+- [ ] 12. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
+- [ ] 13. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行する。
+- [ ] 14. latest `main`のworking filesからanswer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
+- [ ] 15. current-main側Targetで`all`を実行し、current routing contextでの統合結果を確認する。
+- [ ] 16. deterministic validationとRepository標準検証を実行する。
+- [ ] 17. scope、Run Artifact、comparison結果を確認する。
+- [ ] 18. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
 
-no-opの場合は6〜14のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
+no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
 
 ---
 
@@ -450,7 +464,9 @@ no-opの場合は6〜14のうちdescription変更とcandidate評価に不要な�
 - Issue #117のrouting方針自体がbaseline取得後に変更され、PR3の前提が成立しない。
 - baseline Evaluatorから実行時Evaluatorへの差分がobservation、scoring、outcome mapping、comparison、model、timeout、dataset読込の意味を変えている。
 - `codex-cli 0.153.4`が必要なbaseline comparisonを実行できず、comparison contractを維持できない。
-- answer-key-free Routing Targetを、元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
+- baseline `routing_source_git_sha`そのものを親として隔離Targetへ再現できない。
+- baseline側Targetからcurrent `main`、後続PR、Trigger Eval dataset、現在のbaseline artifact等のanswer keyへの取得経路を除去できない。
+- current-main側のanswer-key-free Targetを元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
 - candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
 - 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
@@ -468,7 +484,7 @@ no-opの場合は6〜14のうちdescription変更とcandidate評価に不要な�
 description変更要否の判断根拠
 変更した場合のdescription差分とcandidate commit SHA
 baseline evaluator / current evaluatorの差分確認
-baseline側Targetのprovenance
+baseline側Targetのprovenanceとparent SHA
 baseline側Trigger Eval結果とcomparison
 current-main側Targetのprovenance
 current-main側Trigger Eval結果
