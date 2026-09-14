@@ -23,6 +23,8 @@
 
 ## EvaluationとFailure Taxonomyの統合
 
+この文書の`failure taxonomy`（Failure Taxonomy）は、Repositoryの評価分類契約を指します。
+
 - Repositoryのevaluation artifactを、loopの結果、Finding、残差、改善候補の正本とします。
 - RepositoryのFailure Taxonomyを`failure_category`の正本とします。Native execution labelは補助Evidenceとして対応付け、新しいevaluation categoryとして追加しません。
 - loopが完了条件を満たさず停止した場合も、`partial`または`fail`の結果を見える状態で残します。

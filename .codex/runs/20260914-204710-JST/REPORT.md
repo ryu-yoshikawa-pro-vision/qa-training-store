@@ -63,5 +63,18 @@
 - Subagent:
   - Delegation: なし。
   - Result: 親Agentが件数、差分、固定文字列、Sanitizerを確認した。
-  - 親Agentの判断: 変更対象を人間向け文書とIssue form表示文に限定し、過去記録・固定入力・機械契約は保持する。
+- 親Agentの判断: 変更対象を人間向け文書とIssue form表示文に限定し、過去記録・固定入力・機械契約は保持する。
+- Progress: 100% (8/8)
+
+## 2026-09-14 23:10 (JST)
+
+- Summary: PR #151の競合状態を確認し、PRをmergeせず、同じ`fix/2026-09-14-2`へ既存`main`の#147・#152相当の変更をcherry-pickして同期した。競合した`AGENTS.md`、`PLANS.md`、`docs/reference/repair-loop.md`、`docs/reference/run-artifacts.md`、学習工数文書は、文章規約の導線・既存の日本語表現・新しいRun契約を合わせて解消した。
+- 変更内容: 同期後のPR差分に`app/`、`src/`、`tests/`、`e2e/`、`.github/workflows/`、`package.json`、`pnpm-lock.yaml`の変更がないことを確認した。Bash版契約確認で必要だった`failure taxonomy`の固定語を`repair-loop`へ追加した。
+- 判断 / 理由: `git merge`、PR merge、force push、新規branch、新規PRは行わない。main同期は、PRをopen・未mergeのまま最新headで必須CIを起動・確認できる状態にするため、通常push可能なcherry-pickで行った。`CHANGELOG.md`、過去Run / Plan / Report / history / ADR本文、生成・機械ファイル、固定入力は引き続き対象外とした。
+- 検証: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`はPASS 3 / FAIL 0 / SKIP 0、`bash scripts/verify`はPASS 2 / FAIL 0 / SKIP 2。Markdownlint（425 files、0 issues）、変更Markdown / YAMLのPrettier、`validate:skills`（6 Skill、15 Markdown、29 link）、`validate:spec`、`validate:spec-visuals:final`、`validate:curriculum`、`build:spec`、`build:docs`、`build:web`、`security:check`、`git diff --check`、`test:unit`（66/66）、`test:integration`（111/111）、`lint`（0 errors、既存warning 65）はPASSした。`test:repository`は8 suite・101 testsが通過し、Node 22.20.0 / Viteの`node:sqlite` bundling失敗1件と、Windows標準5秒timeout 1件を確認した。後者は対象テストを30秒で再実行して37/37 PASS。`test:contracts`は33/35 file、510 tests PASS・4 SKIPで、同じNode 22.20.0 / Viteの`node:sqlite` bundling失敗1件とWindows標準5秒timeout 1件を確認し、視覚契約fileは30秒で11/11 PASSした。全体`format:check`は変更していない`app/` TSX 78件、`typecheck`は変更していない6箇所の`/guide` route type errorでFAILした。いずれも今回の文書差分外であり、既知のローカル環境・baseline差分として記録する。
+- ブロッカー / 残作業: 現在の修復・再検証・Run Artifact更新後に、Sanitizer、commit、通常push、PR本文のCI結果更新、最新headの`Web CI` / `Mobile App CI`確認が残っている。CIが両方成功し、PR本文へ実結果を記録するまで完了扱いにしない。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親Agentが競合解消、契約検証、文書系検証、既知failureの切り分けを実施した。
+  - 親Agentの判断: 文書とRun契約の最小修復だけを採用し、Product Code・test code・workflow実装を変更しない。
 - Progress: 100% (8/8)
