@@ -1,0 +1,6 @@
+{
+  "name": "Scenario Shop",
+  "description": "QA Training Store (Scenario Shop) featuring product catalog, cart, checkout simulation, orders, and interactive QA test controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
