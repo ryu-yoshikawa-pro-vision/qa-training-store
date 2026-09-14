@@ -31,6 +31,7 @@
 - [x] 18. PR #147全体レビューで残った許可・例外条件の意味変更3件を修正し、commit前の必要な検証を完了する。
 - [x] 19. PR #147追加レビュー指摘3件の正本不整合、PowerShell verify、evaluation evidenceを修正し、commit前の必要な検証を完了する。
 - [x] 20. PR #147レビューで確認されたRun Artifactの証跡不一致を訂正し、Artifact検証を完了する。
+- [x] 21. REPORT.mdの14:17 checkpointにあるProgress説明の誤記をappend-onlyで訂正し、Run Artifactの整合を確認する。
 
 ## Blocked
 

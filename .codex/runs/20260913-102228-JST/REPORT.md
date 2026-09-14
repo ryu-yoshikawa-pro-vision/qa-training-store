@@ -401,3 +401,22 @@
 - Validation: `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260913-102228-JST/evaluation.json`、`pnpm run lint:markdown`（389 files / 0 issues）、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`、`sanitize-codex-artifacts.ps1 -Write -Check`（files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0）、`git diff --check`をPASSした。`evaluation.json`全体の矛盾語検索、selector / summaryの目視確認、変更範囲確認も完了した。今回の訂正だけを理由に`pnpm run verify`は再実行していない。
 - Decision: task 20をチェック済みとし、evaluationの`result=pass` / `findings=[]`を維持する。次はGit safetyに従うcommit / push、local / remote / PR head一致確認、新headの必須CI確認、PR本文更新であり、それらが完了するまでfile-changing task全体は未完了とする。
 - Progress: 100% (18/18)（TASKS基本Progress）、95% (18/19)（file-changing task全体。commit / push、最新head CI、PR本文更新が未完了）
+
+## 2026-09-14 14:51 (JST)
+
+- Summary: task 21として、14:17 checkpointのProgress状態説明の誤記訂正を開始する。既存active Runを継続利用し、過去checkpointは変更しない。
+- Correction: 14:17 checkpointの「TASKS基本Progressはtask 20追加前の17/18である」という説明は誤りである。task 20追加前は17/17、task 20追加後・task 20未完了時点は17/18、task 20完了後は18/18である。14:17 checkpointで示した17/18という数値自体は、task 20追加後・未完了時点のProgressとして正しい。誤りは「task 20追加前」という状態説明だけであり、過去checkpointはappend-only契約に従って変更しない。
+- Current state: task 21を追加した直後のTASKS基本Progressは18/19、file-changing task全体は18/20である。task 21の完了条件を満たすまで未完了として扱い、evaluation.jsonの現在状態更新とArtifact検証を継続する。
+- Scope / Decision: 変更対象はactive Runの`TASKS.md`、`REPORT.md`、`evaluation.json`だけとする。`AGENTS.md`、`PLANS.md`、reference、verify scripts、TASKS template、Product code / Product test、timeout、package.json、Hook、schema、Skillは変更しない。`run.json`はcollectorが必要と判断した場合のmachine-managed更新に限り、直接編集しない。
+- Progress: 94% (18/19)（TASKS基本Progress）、90% (18/20)（file-changing task全体。task 21の検証、commit / push、最新head CI、PR本文更新が未完了）
+
+## 2026-09-14 14:56 (JST)
+
+- Summary: task 21のProgress説明訂正とRun Artifact整合確認を完了した。既存active Runを継続利用し、14:17を含む過去checkpointは変更していない。
+- Changes:
+  - 14:17 checkpointの「task 20追加前」という状態説明の誤りを、REPORT末尾への訂正checkpoint追記で補正した。
+  - 17/18という数値自体はtask 20追加後・未完了時点として正しく、task 20追加前は17/17、task 20完了後は18/18であることを明確化した。
+  - task 21を完了し、`evaluation.json`を現在のTASKS基本Progress 19/19と証跡へ整合させた。
+- Scope: `AGENTS.md`、`PLANS.md`、reference、verify scripts、TASKS template、Product code / Product test、test timeout、package.json、Hook、schema、Skill、Planは変更していない。今回の変更はactive Runの`TASKS.md`、`REPORT.md`、`evaluation.json`だけであり、`run.json`の直接編集も行っていない。
+- Validation: `pnpm run lint:markdown`（389 files / 0 issues）、`python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260913-102228-JST/evaluation.json`、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`、`sanitize-codex-artifacts.ps1 -Write -Check`（files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0）、`git diff --check`をPASSした。14:17 checkpoint不変性、REPORTのappend-only、selector / summary、全変更範囲も確認した。今回の訂正だけを理由に`pnpm run verify`は再実行していない。
+- Decision: task 21をチェック済みとし、evaluationの`result=pass` / `findings=[]`を維持する。TASKS基本Progressは100% (19/19)、file-changing task全体は95% (19/20)であり、今回のcommit / push、新headの必須CI、PR本文更新を完了するまで後者は未完了とする。

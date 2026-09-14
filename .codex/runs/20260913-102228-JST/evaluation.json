@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "追加レビューの3件（PLANS.mdのRun lifecycle正本競合、PowerShell verifyの無条件読み込みassertion不足、evaluation evidenceの旧checkpoint参照）をtask 19のallowed scope内で修正し、残存差分がないことを確認した。さらにtask 20としてRun Artifactの証跡不一致を訂正し、対象component caseは変更なしで単独PASS、外側command timeoutを1200秒へ延長した同一通常設定の標準pnpm run verifyもexit code 0でPASSした。evaluation schema validation、collector strict、Sanitizer、git diff --checkもPASSし、TASKS基本Progressは100% (18/18)となった。commit / push / PR / CIはfile-changing task全体の別完了条件として後続確認する。",
+      "evidence": "追加レビューの3件（PLANS.mdのRun lifecycle正本競合、PowerShell verifyの無条件読み込みassertion不足、evaluation evidenceの旧checkpoint参照）をtask 19のallowed scope内で修正し、残存差分がないことを確認した。さらにtask 20としてRun Artifactの証跡不一致を訂正し、対象component caseは変更なしで単独PASS、外側command timeoutを1200秒へ延長した同一通常設定の標準pnpm run verifyもexit code 0でPASSした。続くtask 21として14:17 checkpointのProgress状態説明をappend-onlyで訂正し、evaluation schema validation、collector strict、Sanitizer、git diff --checkもPASSした。TASKS基本Progressは現在100% (19/19)であり、task 20完了時点の18/18とtask 21追加直後の18/19は過去状態として区別している。commit / push / PR / CIはfile-changing task全体の別完了条件として後続確認する。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -46,6 +46,12 @@
           "summary": "Run Artifactの証跡不一致を訂正し、必要なArtifact検証を完了してチェック済みであることを確認できる。"
         },
         {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260913-102228-JST/TASKS.md",
+          "selector": "21.",
+          "summary": "14:17 checkpointのProgress説明をappend-onlyで訂正し、task 21を完了してチェック済みであることを確認できる。task 21追加直後は18/19、完了後は19/19である。"
+        },
+        {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 12:28 (JST)",
@@ -74,12 +80,24 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 14:23 (JST)",
           "summary": "task 20の証跡訂正、Artifact検証、TASKS基本Progress 18/18を確認した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:51 (JST)",
+          "summary": "14:17の誤りは17/18という数値ではなく「task 20追加前」という状態説明であること、task 20追加前17/17・追加後未完了17/18・完了後18/18を記録し、task 21追加直後のProgress 18/19を示した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:56 (JST)",
+          "summary": "task 21を完了し、TASKS基本Progress 19/19、evaluation pass / findings=[]、指定Artifact検証のPASSを確認した。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "task 19のrepairはAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.jsonという7つのagent-managed fileに限定し、collectorがmachine-managed run.jsonを更新した。続くtask 20の証跡訂正はactive RunのTASKS.md / REPORT.md / evaluation.jsonだけに限定した。PR全体の変更範囲は許可された8ファイルで、#117 / #134へ拡大していない。単独component caseと標準verifyの実行中もProduct code / tests、timeout、config、Hookを変更していない。run-artifacts.md、implementation harness、repair-loop reference、TASKS template、Hook、config、rules、Skill、schemaは変更していない。",
+      "evidence": "task 19のrepairはAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.jsonという7つのagent-managed fileに限定し、collectorがmachine-managed run.jsonを更新した。続くtask 20の証跡訂正とtask 21のProgress説明訂正はactive RunのTASKS.md / REPORT.md / evaluation.jsonだけに限定した。PR全体の変更範囲は許可された8ファイルで、#117 / #134へ拡大していない。単独component caseと標準verifyの実行中もProduct code / tests、timeout、config、Hookを変更していない。run-artifacts.md、implementation harness、repair-loop reference、TASKS template、Hook、config、rules、Skill、schemaは変更していない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -116,6 +134,18 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 14:23 (JST)",
           "summary": "task 20の変更をactive Runの3ファイルに限定し、非対象範囲を変更していないことを確認した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:51 (JST)",
+          "summary": "task 21の変更範囲をactive RunのTASKS.md、REPORT.md、evaluation.jsonに限定し、非対象ファイルを変更しない方針を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:56 (JST)",
+          "summary": "task 21完了後も変更範囲がactive Runの3ファイルだけであることを確認した。"
         }
       ]
     },
@@ -176,6 +206,12 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 14:23 (JST)",
           "summary": "evaluation schema、Markdown lint、collector strict、Sanitizer、git diff --checkのPASSを記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:56 (JST)",
+          "summary": "task 21完了後のMarkdown lint、evaluation schema、collector strict、Sanitizer、git diff --checkのPASSを記録した。"
         }
       ]
     },
@@ -211,7 +247,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "今回の追加review finding 3件、repair判断、repair scope、検証結果、Progress状態が、Plan、変更ファイル、append-onlyのtask 19 / task 20 Run report checkpointから追跡できる。単独component caseのPASS、標準verifyの実行ラッパーtimeout、外側timeout延長後の標準verify完走PASS、task 19完了状態、10:20 / 10:25の証跡訂正を追跡でき、過去checkpointの時刻順や意味は書き換えていない。",
+      "evidence": "今回の追加review finding 3件、repair判断、repair scope、検証結果、Progress状態が、Plan、変更ファイル、append-onlyのtask 19 / task 20 / task 21 Run report checkpointから追跡できる。単独component caseのPASS、標準verifyの実行ラッパーtimeout、外側timeout延長後の標準verify完走PASS、task 19・task 20・task 21の完了状態、10:20 / 10:25の証跡訂正、14:17の17/18状態説明訂正を追跡でき、過去checkpointの時刻順や意味は書き換えていない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -254,6 +290,18 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 14:23 (JST)",
           "summary": "task 20の証跡訂正と、完了条件に含まれるArtifact検証のPASSを追跡できる。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:51 (JST)",
+          "summary": "14:17 checkpointを直接変更せず、17/17・17/18・18/18の状態関係を訂正checkpointで明確化し、task 21を開始したことを追跡できる。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:56 (JST)",
+          "summary": "task 21完了、TASKS基本Progress 19/19、evaluationとArtifact検証の整合を追跡できる。"
         }
       ]
     },
