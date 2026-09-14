@@ -12,11 +12,11 @@ Guest/Customer Cartの追加、数量変更、削除、再検証、Login時のGu
 
 ### BR-CART-002 — Login時はUser Cartを基準にGuest Cartを統合する
 
-SKU単位で合算し、許容上限を超える分、非公開、Rank不足、無効SKU、在庫0を除外して理由を示します。Guest Cartはabandonedに遷移します。
+SKU単位で合算し、許容上限を超える分、非公開、Rank不足、無効SKU、在庫0を除外して理由を示します。Guest Cartはabandonedへ遷移します。
 
 ### BR-CART-003 — Cart表示とCheckout開始で商品状態を再検証する
 
-公開、権限、価格、在庫を再検証し、価格変更はCustomer承認までCheckoutに進めません。
+公開、権限、価格、在庫を再検証し、価格変更はCustomer承認までCheckoutへ進めません。
 
 ## UI / Behavior Contract
 
@@ -83,7 +83,7 @@ Guest明細とUser明細の統合結果、除外理由、Cart Version、Guest Ca
 
 Related BR: `BR-CART-003`
 
-価格変更、在庫切れ、公開不可、Rank不足が再検証され、承認または修正なしにCheckoutに進みません。
+価格変更、在庫切れ、公開不可、Rank不足が再検証され、承認または修正なしにCheckoutへ進みません。
 
 ## Executable Canonical Sources
 

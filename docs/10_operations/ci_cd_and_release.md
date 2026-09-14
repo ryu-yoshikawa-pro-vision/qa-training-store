@@ -56,7 +56,7 @@ DB ExportやGateway LedgerはPhase 1で生成しません。
 | Schema | 1 |
 | Seed | Build Metadataの`SEED_VERSION` |
 
-Schema変更とSeed期待値変更をRelease Noteに記載します。Seedの数値は本書に重複記載せず、Seed Catalogから生成したBuild Metadataの`SEED_VERSION`をCI、Artifact、Deployed Smokeの正本として参照します。
+Schema変更とSeed期待値変更をRelease Noteへ記載します。Seedの数値は本書へ重複記載せず、Seed Catalogから生成したBuild Metadataの`SEED_VERSION`をCI、Artifact、Deployed Smokeの正本として参照します。
 
 ## 7. Release Gate
 
@@ -74,7 +74,7 @@ Schema変更とSeed期待値変更をRelease Noteに記載します。Seedの数
 
 ## 8. 障害対応
 
-- 配信障害: 直前DeployにRollback。
+- 配信障害: 直前DeployへRollback。
 - IndexedDB書込障害: 利用者向けErrorを表示し、Test環境ではReset案内。
 - Schema変更障害: 開発段階ではReset。正式MigrationはPhase 3。
 

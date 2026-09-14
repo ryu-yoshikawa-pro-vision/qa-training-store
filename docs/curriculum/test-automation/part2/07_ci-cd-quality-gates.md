@@ -2,21 +2,21 @@
 
 ## 学習目標
 
-- bounded Web CIのQuality Gate、Artifact、Failure Evidence、fail-closed条件を説明できる。
-- CIとCDの違いを説明できる（CDの詳細はAdvanced / Reference）。
-- Required Check / Quality Gateの役割を理解できる。
-- PR、main、Nightly、ManualにTest Suiteを配置できる。
-- Web Build / Test ArtifactとFailure Evidenceの関係を理解できる。
-- Preview Deploy、Production Deploy、Deploy後SmokeはAdvanced / Referenceとして比較できる。
+- 対象範囲を限定したWeb CIのQuality Gate、Artifact、失敗時の記録、fail-closed条件を説明できる。
+- CIとCDの違いを説明できる（CDの詳細は発展課題・参考資料）。
+- 必須Check / Quality Gateの役割を理解できる。
+- PR、main、Nightly、ManualへTest Suiteを配置できる。
+- Web Build / Test Artifactと失敗時の記録の関係を理解できる。
+- Preview Deploy、Production Deploy、Deploy後Smokeは発展課題・参考資料として比較できる。
 - 「すべてのTestを毎回実行する」以外の設計を、Risk・Feedback速度・Costから考えられる。
 - Job並列化、Artifact再利用、変更判定などのCI最適化を品質Gateを弱めずに考えられる。
-- Scenario Shopのbounded Web CI構成を設計判断として説明できる。
+- Scenario Shopの対象範囲を限定したWeb CI構成を設計判断として説明できる。
 
 ## 教材
 
 **このモジュールでは、このリポジトリのWeb / Native CI/CD構成を使用します。**
 
-主な参照先は次のとおりです。
+主な参照先:
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
@@ -27,9 +27,9 @@
 - `training/github-actions/`
 - Cloudflare Pages Preview / Production経路
 
-## Common Required boundary
+## 共通課程の必須範囲
 
-Common routeでは、bounded Web CIについて、Mergeを止めるQuality Gate、確認対象のBuild / Test Artifact、失敗または想定外SkipをSuccessにしないfail-closedの判断を行います。Preview / Production delivery、Native CI、vendor固有の運用、Level 3の改善設計はAdvanced / ReferenceまたはNative specializationです。
+共通経路では、対象範囲を限定したWeb CIについて、Mergeを止めるQuality Gate、確認対象のBuild / Test Artifact、失敗または想定外SkipをSuccessにしないfail-closedの判断を行います。Preview / Production delivery、Native CI、vendor固有の運用、Level 3の改善設計は発展課題・参考資料またはモバイルアプリ自動化の選択課程です。
 
 ## Lesson 1: Quality Gate
 
@@ -49,18 +49,18 @@ Merge可能
 
 Testを実行するだけではなく、Failure時に先へ進ませないことが重要です。
 
-## Lesson 2: Required Checkを選ぶ
+## Lesson 2: 必須Checkを選ぶ
 
-すべてのTestをRequiredにすれば安全とは限りません。
+すべてのTestを必須にすれば安全とは限りません。
 
-Requiredへ向くもの:
+必須に向くもの:
 
 - 高い信頼性がある。
 - 重要なRegressionを確認する。
 - 実行時間が許容できる。
 - Failure時に修正すべき対象が明確。
 
-Requiredへ置く前に改善すべきもの:
+必須にする前に改善すべきもの:
 
 - 頻繁にFlakyになる。
 - 外部依存で不安定。
@@ -91,7 +91,7 @@ Quality Gateは厳しさだけでなく信頼性が重要です。
 
 案件によって最適配置は異なります。
 
-## Lesson 4: CIとCD（Advanced / Reference）
+## Lesson 4: CIとCD（発展課題・参考資料）
 
 CIは変更統合時のBuild / Testなどの自動検証を中心に扱います。
 
@@ -115,7 +115,7 @@ mainではProduction Deploy
 Production Smoke
 ```
 
-## Lesson 5: Preview Environment（Advanced / Reference）
+## Lesson 5: Preview Environment（発展課題・参考資料）
 
 Pull RequestごとのPreviewは、Merge前に実際のDeploy環境で確認できる利点があります。
 
@@ -127,29 +127,29 @@ Pull RequestごとのPreviewは、Merge前に実際のDeploy環境で確認で�
 - Cleanup
 - Fork PRのSecurity
 
-Scenario Shopの既存CIにはCloudflare Previewの経路がありますが、これはCommon Requiredの範囲ではなく、Preview環境を比較するAdvanced / Referenceの題材です。
+Scenario Shopの既存CIにはCloudflare Previewの経路がありますが、これは共通課程の必須範囲ではなく、Preview環境を比較する発展課題・参考資料の題材です。
 
 なぜLocal BuildのTestだけではなくPreview Smokeも実行するか考えます。
 
-## Lesson 6: Deploy後Smoke（Advanced / Reference）
+## Lesson 6: Deploy後Smoke（発展課題・参考資料）
 
 Deploy Commandが成功しても、公開URLが正常に動作する保証にはなりません。
 
 Deploy後Smokeでは最低限のCritical状態を確認します。
 
-SmokeにRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
+SmokeへRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
 
-## Lesson 7: Web ArtifactとFailure Evidence（Common Required）
+## Lesson 7: Web Artifactと失敗時の記録（共通課程の必須範囲）
 
 「TestしたWeb Artifact」と、後続工程で確認するArtifactの関係を明確にすると、Test結果の意味を追跡しやすくなります。
 
 Scenario ShopではBuildした`dist/`をArtifactとして後続Jobへ渡します。
 
-次の項目を考えます。
+次を考えます。
 
 - E2EしたArtifactは何か。
 - E2E Failure時に確認するArtifactは何か。
-- Preview / ProductionへDeployするArtifactは何か（Advanced / Reference）。
+- Preview / ProductionへDeployするArtifactは何か（発展課題・参考資料）。
 
 ## Lesson 8: Fail-closed
 
@@ -159,9 +159,9 @@ Scenario Shopの`verify` / `validate`ではJob Resultを明示的に確認しま
 
 「Workflowが最後まで走った」ことと「必要条件がすべて成功した」ことを区別します。
 
-Curriculum側でも `validate:curriculum` とTraining Web baselineをCommonの確認対象へ接続します。Training Maestro baselineはNative specialization / Supportの確認対象であり、Common Requiredへ逆流させません。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常のRequired PASSへ混在させません。
+Curriculum側でも `validate:curriculum` とTraining Web baselineを共通課程の確認対象へ接続します。Training Maestro baselineはモバイルアプリ自動化の選択課程・支援の確認対象であり、共通課程の必須範囲へ逆流させません。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常の必須PASSへ混在させません。
 
-## Lesson 9: 並列化（Extension / Reference）
+## Lesson 9: 並列化（発展課題・参考資料）
 
 独立した処理は並列化するとWall-clockを短縮できます。
 
@@ -181,7 +181,7 @@ Curriculum側でも `validate:curriculum` とTraining Web baselineをCommonの�
 
 Job数を増やすこと自体を最適化と呼びません。
 
-## Lesson 10: Failure時の再実行Cost（Extension / Reference）
+## Lesson 10: Failure時の再実行Cost（発展課題・参考資料）
 
 大きな1Jobにすべて詰めると、後半だけ失敗しても最初から再実行する場合があります。
 
@@ -194,20 +194,20 @@ Scenario ShopのAndroid Build / Runtime分離は、この問題への一つの�
 CIを速くするために次を安易に行いません。
 
 - TestをSkipする。
-- `continue-on-error`にする。
-- Requiredを外す。
+- `continue-on-error`へする。
+- 必須指定を外す。
 - Assertionを弱くする。
 - Timeoutを無意味に伸ばす。
 
 最適化は「必要な保証を維持したまま」行います。
 
-## Lesson 12: Workflow自体をTestする（Advanced / Reference）
+## Lesson 12: Workflow自体をTestする（発展課題・参考資料）
 
 Scenario ShopにはCI WorkflowのContract Testがあります。
 
 WorkflowもCodeであり、変更によって次が壊れる可能性があります。
 
-- Required Job依存
+- 必須Job依存
 - Artifact Upload / Download
 - Skip条件
 - Fail-closed
@@ -217,7 +217,7 @@ WorkflowもCodeであり、変更によって次が壊れる可能性があり�
 
 ## ハンズオン1: Test実行タイミング設計
 
-Part 1で作成したTestを、次の実行タイミングに配置します。
+Part 1で作成したTestを次へ配置します。
 
 - PR
 - main
@@ -230,7 +230,7 @@ Part 1で作成したTestを、次の実行タイミングに配置します。
 
 PR Merge前に必須とするJobを選びます。
 
-次の項目のBalanceを取ります。
+次をBalanceします。
 
 - Risk
 - Execution Time
@@ -238,11 +238,11 @@ PR Merge前に必須とするJobを選びます。
 - Runner Cost
 - Failure時のActionability
 
-## ハンズオン3: bounded Web CI Diagram（Common）
+## ハンズオン3: 対象範囲を限定したWeb CIの図（共通課程）
 
-Scenario Shopの現在のWeb CIを、Common Requiredの範囲で図示します。Preview / Production / Smokeを含める場合はAdvanced / Referenceと明記します。
+Scenario Shopの現在のWeb CIを、共通課程の必須範囲で図示します。Preview / Production / Smokeを含める場合は発展課題・参考資料と明記します。
 
-最低限、次の項目を含めます。
+最低限次を含めます。
 
 - Quality
 - Tests
@@ -253,11 +253,11 @@ Scenario Shopの現在のWeb CIを、Common Requiredの範囲で図示します�
 - Artifact
 - Final Gate
 
-Preview、Production、Deploy後Smokeは別のAdvanced / Reference図として比較できます。
+Preview、Production、Deploy後Smokeは別の発展課題・参考資料の図として比較できます。
 
 ## ハンズオン4: 改善案を考える
 
-現在のCIに対して、品質を弱めずに改善可能な点を1件以上考えます。
+現在のCIへ対して、品質を弱めずに改善可能な点を1件以上考えます。
 
 実際に変更する必要はありません。
 
@@ -280,24 +280,24 @@ Preview、Production、Deploy後Smokeは別のAdvanced / Reference図として�
 
 ## 自己確認
 
-次を自分のbounded Web CI設計、Gate条件、Artifact、Failure記録で確認できれば、Common completionを自己判定できます。
+次を自分の対象範囲を限定したWeb CI設計、Gate条件、Artifact、失敗時の記録で確認できれば、共通課程の修了を自己判定できます。
 
-- どのWeb Build / TestをRequired Gateに置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
+- どのWeb Build / Testを必須Gateへ置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
 - TestしたArtifactと後続で確認するArtifactを対応付け、Failure時に確認するArtifactを説明できる。
 - 上流JobのFailureまたは想定外Skipを最終GateがSuccessにしない条件を説明できる。
-- `continue-on-error`、Required解除、Assertion弱体化でGateを通しやすくする設計を採用していない。
-- Preview / Production、Native、vendor detail、Level 3改善はAdvanced / Referenceまたはspecializationとして分類し、Common Requiredへ混ぜていない。
+- `continue-on-error`、必須指定の解除、Assertion弱体化でGateを通しやすくする設計を採用していない。
+- Preview / Production、Native、vendor detail、Level 3改善は発展課題・参考資料または選択課程として分類し、共通課程の必須範囲へ混ぜていない。
 
 ### Recovery
 
-Gate設計が曖昧な場合は、まず「止めるFailure」「残すArtifact」「失敗時の確認先」の3点へ戻します。CIが動かない場合はWorkflow、Job、Artifact、Environmentを切り分け、想定外Skipなら条件とJob Resultを確認します。Preview / ProductionやNativeの詳細へ進みすぎた場合は、bounded Web Gateへ戻ってCommonの最小条件を確定します。
+Gate設計が曖昧な場合は、まず「止めるFailure」「残すArtifact」「失敗時の確認先」の3点へ戻します。CIが動かない場合はWorkflow、Job、Artifact、Environmentを切り分け、想定外Skipなら条件とJob Resultを確認します。Preview / ProductionやNativeの詳細へ進みすぎた場合は、対象範囲を限定したWeb Gateへ戻って共通課程の最小条件を確定します。
 
 ## 完了条件
 
-- bounded Web CIについて、Required Quality Gate、Build / Test Artifact、Failure Evidence、fail-closed条件を理由付きで設計できる。
+- 対象範囲を限定したWeb CIについて、必須のQuality Gate、Build / Test Artifact、失敗時の記録、fail-closed条件を理由付きで設計できる。
 - Test配置やQuality Gateの判断をRisk、Feedback速度、Cost、Flakiness、Actionabilityで説明できる。
-- Preview / Production、Native、vendor固有の詳細、Level 3改善はCommon completionのRequired条件にしていない。
+- Preview / Production、Native、vendor固有の詳細、Level 3改善は共通課程の修了の必須条件にしていない。
 
 ## 次の行動
 
-bounded Web CIの設計を最終Integration設計へ接続するため、[P2-8: 導入設計演習](08_integration-design-capstone.md)へ進みます。Preview / Production deliveryやNative差分は必要な場合だけAdvanced / Referenceとして比較します。
+対象範囲を限定したWeb CIの設計を最終Integration設計へ接続するため、[P2-8: 導入設計演習](08_integration-design-capstone.md)へ進みます。Preview / Production deliveryやNative差分は必要な場合だけ発展課題・参考資料として比較します。

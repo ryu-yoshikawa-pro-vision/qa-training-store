@@ -26,7 +26,7 @@ Review / Merge
 
 ## Existing Spec Violation
 
-実装が既存Normative Specに違反する場合、Specを実装に合わせません。Defect修正、Regression更新、必要ならActive Known Deviationの削除を行い、Specの修正は誤記・説明補足に限ります。
+実装が既存の正式な仕様に違反する場合、仕様を実装へ合わせません。Defect修正、Regression更新、必要ならActive Known Deviationの削除を行い、仕様の修正は誤記・説明補足に限ります。
 
 ## Specification Change
 
@@ -34,13 +34,13 @@ Review / Merge
 
 ## Known Deviation and Unresolved
 
-Known DeviationはActive-onlyです。実装修正とRegression追加後にEntryを削除します。UnresolvedはProduct Decisionが完了したらNormative Spec、BR/AC、Testに移し、未確定中はFindingをDefect確定しません。
+Known DeviationはActive-onlyです。実装修正とRegression追加後にEntryを削除します。UnresolvedはProduct Decisionが完了したらNormative Spec、BR/AC、Testへ移し、未確定中はFindingをDefect確定しません。
 
 ## Review and CI
 
 BR/ACや直接参照Normative Fileが変わった場合、参照するChallengeのAffected Summaryを生成します。Generated HTMLはMarkdownから再生成し、HTMLを直接編集しません。AI Agentic QAは初期Required CI Gateにしません。
 
-影響サマリーは次のCLIで生成し、CIでは既存のStyle Quality JobのReview Summaryに出力します。
+影響サマリーは次のCLIで生成し、CIでは既存のStyle Quality JobのReview Summaryへ出力します。
 
 ```text
 pnpm run summarize:spec-impact

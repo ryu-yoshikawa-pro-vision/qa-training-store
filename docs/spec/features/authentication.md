@@ -12,11 +12,11 @@ activeなAccountだけがLoginできます。Signupで作成されたactiveなAc
 
 ### BR-AUTH-002 — Customer以外のCapabilityを購入導線へ渡さない
 
-CustomerだけがCheckoutとCustomer Dataを使い、operator/adminはStore管理だけを行います。Login成功時もRoleに応じたShellに遷移します。
+CustomerだけがCheckoutとCustomer Dataを使い、operator/adminはStore管理だけを行います。Login成功時もRoleに応じたShellへ遷移します。
 
 ## UI / Behavior Contract
 
-失敗理由は利用者向け文言で表示し、内部HashやActor IDを露出しません。Customer Login時は許可された内部Return先だけに戻り、外部・親相対Pathは受け付けません。
+失敗理由は利用者向け文言で表示し、内部HashやActor IDを露出しません。Customer Login時は許可された内部Return先だけへ戻り、外部・親相対Pathは受け付けません。
 
 ### SCREEN-AUTH-LOGIN — Login
 
@@ -59,7 +59,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - 新規Customerの表示名、Email、passwordを受け付ける。
-- Validationと重複を説明し、成功時に安全な購入入口に遷移する。
+- Validationと重複を説明し、成功時に安全な購入入口へ遷移する。
 
 #### Important UI States
 

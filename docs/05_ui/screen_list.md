@@ -76,9 +76,9 @@ Native NavigationはPhase 2で同じInformation Architectureを基に設計し�
 2. customer RouteはSession、active、role=customerを確認する。
 3. admin RouteはWebかつoperator/adminを確認する。
 4. admin-only Routeはrole=adminを確認する。
-5. address/payment/confirmはactive Checkout SessionとunlockedStepを確認し、未到達の後段に直接アクセスした場合は必要な前段に戻す。戻る操作でunlockedStepは減らさない。processing/complete/failedはorderId、所有権、Order/Payment状態を確認する。
+5. address/payment/confirmはactive Checkout SessionとunlockedStepを確認し、未到達の後段へ直接アクセスした場合は必要な前段へ戻す。戻る操作でunlockedStepは減らさない。processing/complete/failedはorderId、所有権、Order/Payment状態を確認する。
 6. 存在しないIDはNot Found、存在するが閲覧不可はForbiddenとする。
-7. operator/adminがStorefront購入Routeに直接Accessした場合はForbiddenとし、管理画面Linkを表示する。
+7. operator/adminがStorefront購入Routeへ直接Accessした場合はForbiddenとし、管理画面Linkを表示する。
 
 ## 6. Checkout直接Access
 
@@ -106,11 +106,11 @@ Native NavigationはPhase 2で同じInformation Architectureを基に設計し�
 
 `category`と`brand`は複数値をComma区切りで保持し、同一Facet内OR・Facet間ANDで解釈します。
 
-無効値は既定値に正規化し、URLをreplaceします。検索条件とPageはURL、Scroll位置はHistory StateまたはSession内UI Stateに保存します。
+無効値は既定値へ正規化し、URLをreplaceします。検索条件とPageはURL、Scroll位置はHistory StateまたはSession内UI Stateへ保存します。
 
 ### Admin
 
-`q,status,sort,page,pageSize`に対象固有Filterを追加します。SelectionはURLに保存せず、Page離脱時に破棄します。
+`q,status,sort,page,pageSize`へ対象固有Filterを追加します。SelectionはURLへ保存せず、Page離脱時に破棄します。
 
 商品Previewは独立Routeを持たず、`/admin/products/new`または`/admin/products/[productId]`内のDialog/Overlayとして表示します。
 

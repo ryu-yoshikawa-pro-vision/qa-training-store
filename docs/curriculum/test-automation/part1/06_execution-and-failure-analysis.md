@@ -12,7 +12,7 @@
 
 **このモジュールでは、このリポジトリのScenario ShopとPlaywright設定・既存E2Eを使用します。**
 
-主な参照先は次のとおりです。
+主な参照先:
 
 - `playwright.training.config.ts`
 - `training/playwright/baseline/`
@@ -21,11 +21,11 @@
 - `output/training/playwright/`
 - `playwright.config.ts` / `output/playwright/`（Formal比較教材）
 
-Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要なEvidence収集を提供することを前提に、まずFailureを観測・分類・改善することに集中します。
+Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要な実行記録の収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
 
 ## 実行コマンドの扱い
 
-現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptが用意されています。
+現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。
 
 例:
 
@@ -42,7 +42,7 @@ Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL
 
 意図的なexpected-failureの確認は `pnpm run training:web:check-expected-failure`を使います。
 
-C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実行します。初期状態では誤った期待値による決定的なFailureが起きるため、Evidenceを確認して原因を説明し、修正後に同じCommandが成功することを確認します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
+C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実行します。初期状態では誤った期待値による決定的なFailureが起きるため、実行記録を確認して原因を説明し、修正後に同じCommandが成功することを確認します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
 
 ## Lesson 1: テストを目的別に実行する
 
@@ -61,7 +61,7 @@ C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実�
 
 テストが赤くなったとき、すぐに「アプリのバグ」と判断しません。
 
-最低限、次のように分類します。
+最低限次に分類します。
 
 - Product Bug
 - Test Code Bug
@@ -76,10 +76,10 @@ Failure分類ができると、修正すべき対象を誤りにくくなりま�
 
 Failureの**発生源**と、報告上の**Outcome**は別に記録します。Outcomeは次のいずれかです。
 
-- **Bug**: Current Normative SpecificationのBR / ACに反することを、再現条件とEvidenceで確認できた。
+- **Bug**: 現在の正式な仕様のBR / ACに反することを、再現条件と実行記録で確認できた。
 - **UX**: 仕様違反とは断定できないが、利用者が迷う・誤操作しやすい観測上の問題がある。
 - **Suggestion**: 現行仕様を満たしているが、新しい仕様や改善として提案する。
-- **未確定**: 再現条件、観測、またはEvidenceが不足し、上の分類を断定できない。
+- **未確定**: 再現条件、観測、または実行記録が不足し、上の分類を断定できない。
 
 ### 発展リファレンス: Security成立条件の最小確認
 
@@ -91,7 +91,7 @@ Playwright Traceでは、Failure前後の操作やDOM状態などを確認でき
 
 Scenario Shopの設定ではFailure時のTraceを保持します。
 
-確認することは次のとおりです。
+確認すること:
 
 - どこまで操作が成功していたか。
 - 対象要素は存在していたか。
@@ -113,13 +113,13 @@ Trace、Screenshot、Videoは重複もあります。何でも永続保存すれ
 
 画面上の期待結果がPassしていても、Console ErrorやPage Errorが発生していれば品質上の問題が残る場合があります。
 
-Training Test Harnessでは、必要に応じてConsole ErrorをEvidenceとして確認できる構成を教材要件とします。
+Training Test Harnessでは、必要に応じてConsole Errorを実行記録として確認できる構成を教材要件とします。
 
 この時点では「Console ErrorもFailure分析の情報になる」ことを理解できれば十分です。現在のScenario Shopがその収集をどのようにFixtureへ組み込んでいるかは、Part 1-8で `e2e/web/fixtures.ts` を読みながら確認します。
 
 ## Lesson 6: Flaky Test
 
-Flaky Testは、同じコード・同じ前提でも成功したり失敗したりするテストです。
+Flaky Testは、同じコード・同じ前提でも成功と失敗が不安定に変わるテストです。
 
 よくある原因:
 
@@ -139,7 +139,7 @@ RetryはFailureを見えにくくする可能性があります。
 
 Timeoutを延ばすと一時的にPassする場合がありますが、根本原因が遅延なのか同期不足なのかを区別します。
 
-次の2つを比較します。
+次を比較します。
 
 ```ts
 await page.waitForTimeout(5000);
@@ -155,7 +155,7 @@ await expect(page.getByRole("status")).toContainText("完了");
 
 ## Lesson 8: 改善サイクル
 
-Failureは次の流れで改善します。
+Failureを次の流れで改善します。
 
 ```text
 再現
@@ -179,18 +179,18 @@ Failure分類
 
 Training用Playwright TestのAssertionを意図的に誤らせます。
 
-Failure後は、次の項目を確認します。
+Failure後に次を確認します。
 
 - Error message
 - Screenshot
 - Trace
 - Video
 
-どのEvidenceが最も原因特定に役立ったか記録します。
+どの実行記録が最も原因特定に役立ったか記録します。
 
 ## ハンズオン2: 原因を診断して修正する
 
-`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotをもとにExpectedとActualを区別し、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功したEvidenceを記録します。
+`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功した実行記録を残します。
 
 ## ハンズオン3: Locator Failure
 
@@ -198,7 +198,7 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 
 ## ハンズオン4: Timing Failure
 
-固定待機を入れたテストとAuto-wait / Assertionを使うテストを比較します。
+固定待機を入れたテストとAuto-wait / Assertionを使ったテストを比較します。
 
 ## ハンズオン5: Failure分析メモ
 
@@ -210,8 +210,8 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 | Failure | 発生内容 |
 | 分類 | Product / Test / Env / Flakyなど |
 | Outcome | Bug / UX / Suggestion / 未確定 |
-| Evidence | Trace / Screenshotなど |
-| 整合 | 対象・操作・観測事象がEvidenceと一致しているか |
+| 実行記録 | Trace / Screenshotなど |
+| 整合 | 対象・操作・観測事象が実行記録と一致しているか |
 | 原因 | 調査結果 |
 | 修正 | 実施内容 |
 | 再発防止 | 必要なら記載 |
@@ -231,30 +231,30 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 ### 回答の最低判定基準
 
 - Product / Test / Test Data / Locator / Timing / Environment / External / Flakyの発生源を区別し、発生源だけでProduct Bugと断定していない。
-- Trace、Screenshot、Video、Console Errorを、何を観測できるEvidenceかで使い分けている。
+- Trace、Screenshot、Video、Console Errorを、何を観測できる実行記録かに応じて使い分けている。
 - Retry / Timeoutを増やす前に、再現、同期、状態依存、Environmentを確認する理由を説明している。
-- OutcomeをBug / UX / Suggestion / 未確定へ分け、BugにはBR / ACと再現条件、未確定には不足Evidenceを示している。
-- Failure報告の対象・操作・事象がScreenshot / TraceなどのEvidenceと一致し、不足時に断定を避けている。
+- OutcomeをBug / UX / Suggestion / 未確定へ分け、BugにはBR / ACと再現条件、未確定には不足している記録を示している。
+- Failure報告の対象・操作・事象がScreenshot / Traceなどの実行記録と一致し、不足時に断定を避けている。
 - 最小修正後の再実行結果を記録し、意図的Failureの練習と実際のmeaningful diagnosisを区別している。
 
 ### Recovery
 
-分類が揺れる場合はLesson 2〜8を使い、最初の異常と派生エラーを分けて1件の分析表を書き直します。Commandが起動しない、Browser / Base URLがない、Artifactが生成されない場合はEnvironment blockとして記録し、実行できた後もExpected / Actual / Evidenceを説明できない場合だけ学習上のRecoveryとして再分析します。
+分類が揺れる場合はLesson 2〜8を使い、最初の異常と派生エラーを分けて1件の分析表を書き直します。Commandが起動しない、Browser / Base URLがない、Artifactが生成されない場合は環境上の問題として記録し、実行できた後もExpected / Actual / 実行記録を説明できない場合だけ学習上のRecoveryとして再分析します。
 
 ## 完了条件
 
-- 意図的または実際のFailureを1件分析し、Evidenceから発生源と原因仮説を分けて記録している。
-- Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・Evidenceの有無に応じて分類している。
-- 報告の対象・操作・事象がEvidenceと一致し、Evidence不足時は未確定としている。
-- C09の診断演習で、Locator / Timing / Assertionなどの意味のあるFailureを1件分析し、Failure Evidence、cause、action、修正後のre-run Evidenceを`04_execution-improvement.csv`へ別の`run_context`で記録している。
+- 意図的または実際のFailureを1件分析し、実行記録から発生源と原因仮説を分けて記録している。
+- Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・記録の有無に応じて分類している。
+- 報告の対象・操作・事象が実行記録と一致し、記録不足時は未確定としている。
+- C09の診断演習で、Locator / Timing / Assertionなどの意味のあるFailureを1件分析し、失敗時の記録、cause、action、修正後の再実行記録を`04_execution-improvement.csv`へ別の`run_context`で記録している。
 - 固定待機または不安定Locatorの改善は、診断結果へ適用するPracticeとして説明できる。
 - RetryとTimeoutの利用判断を説明できる。
 - Training用Testと既存正式Suiteの実行目的を区別できる。
-- Failure Evidenceを利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
+- 失敗時の記録を利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
 - 恒久的なアーティファクト確認用Failureと、原因確認・修正・再実行を行う診断用Failureを別の実行経路として扱っている。
 
-Securityの入力・保存・HTML解釈・実行確認は発展Referenceとして必要な場合だけ扱い、C09の完了条件へ混ぜません。
+Securityの入力・保存・HTML解釈・実行確認は発展の参考資料として必要な場合だけ扱い、C09の完了条件へ混ぜません。
 
 ## 次の行動
 
-Native specializationを選択する場合は[Part 1-7: MaestroによるNative UI自動化](./07_maestro-native-automation.md)へ、Common routeの場合は[Part 1-8: テスト管理と保守性改善](./08_test-management-and-maintainability.md)へ進みます。
+モバイルアプリ自動化の選択課程を選ぶ場合は[Part 1-7: MaestroによるNative UI自動化](./07_maestro-native-automation.md)へ、共通経路の場合は[Part 1-8: テスト管理と保守性改善](./08_test-management-and-maintainability.md)へ進みます。

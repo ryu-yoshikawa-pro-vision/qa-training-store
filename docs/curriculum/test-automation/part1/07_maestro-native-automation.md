@@ -1,6 +1,6 @@
 # Part 1-7: MaestroによるNative UI自動化
 
-> **Native specialization:** このLessonはPart 1 Commonの必須Lessonではありません。Common prerequisiteはP1-6までです。選択した受講者はP1-7から開始し、完了後にP1-8へrejoinします。選択しない受講者はP1-7をskipしてP1-8へ進みます。
+> **モバイルアプリ自動化の選択課程:** このLessonはPart 1の共通課程における必須Lessonではありません。共通課程の必須前提はP1-6までです。選択した受講者はP1-7から開始し、完了後にP1-8へ合流します。選択しない受講者はP1-7を飛ばしてP1-8へ進みます。
 
 ## 学習目標
 
@@ -8,14 +8,14 @@
 - MaestroのFlow、Action、Assertionの基本を理解できる。
 - Scenario Shop Nativeアプリを対象に最小のMaestro Flowを作成できる。
 - Stable UI Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
-- Native specializationとしてAndroidでRequired Flowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
+- モバイルアプリ自動化の選択課程としてAndroidで必須のFlowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
 - PlaywrightとMaestroを「どちらが優れているか」ではなく、対象Platformと目的から使い分けられる。
 
 ## 教材
 
 **このモジュールでは、このリポジトリのScenario Shop Nativeアプリと `maestro/` 配下の既存Flowを使用します。**
 
-主な参照先は次のとおりです。
+主な参照先:
 
 - `maestro/native-storefront.yaml`
 - `maestro/native-cart.yaml`
@@ -36,7 +36,7 @@
 2. `launchApp`、`tapOn`、`inputText`、安定したUI Test ID、待機、スクロール、`runFlow`を読む・下書きする。
 3. Deep Link、Test Control、Scenario Resetで初期状態を決める。
 4. Android実機、JDK、SDK、ADB、Maestroを準備し、基準確認を行う。
-5. 受講者が作成したFlowを正式な演習入口から実行し、Evidenceを確認する。
+5. 受講者が作成したFlowを正式な演習入口から実行し、実行記録を確認する。
 
 ## Lesson 1: Maestroとは
 
@@ -68,7 +68,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - `assertVisible`
 - `assertNotVisible`
 
-PlaywrightとはSyntaxが異なりますが、前提状態 → 操作 → 期待結果というテスト構造は同じです。
+PlaywrightとSyntaxは異なりますが、前提状態 → 操作 → 期待結果というテスト構造は同じです。
 
 ## Lesson 3: Nativeの要素識別
 
@@ -117,7 +117,7 @@ scenario-shop://test-control/reset?version=<protocol-version>&scenario=<seed-sce
 
 Native Testでも、前回実行の状態へ依存しないことが重要です。
 
-CurrentのProtocol Version、利用可能なScenario、固定Clock、遅延値は教材にコピーせず、[`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)、[`metadata.ts`](../../../../src/seeds/metadata.ts)、および `/guide` のTest Controlを参照します。このLessonでは、ProtocolやProduct Behavior自体の変更は行いません。
+現在のProtocol Version、利用可能なScenario、固定Clock、遅延値は教材へコピーせず、[`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)、[`metadata.ts`](../../../../src/seeds/metadata.ts)、および `/guide` のTest Controlを参照します。このLessonでは、ProtocolやProduct Behavior自体の変更は行いません。
 
 ## Lesson 6: 最初のMaestro Flow
 
@@ -135,15 +135,15 @@ Canonical physical Android device上で次を実装します。
 
 完成後に既存Flowと比較します。
 
-### Native specializationのEvidence
+### 選択課程の実行記録
 
-Native specializationのcompletionは、Baseline / stock PASSの再実行だけでは満たしません。次を自分の成果物として揃えます。
+選択課程の修了条件は、Baseline / stock PASSを再実行するだけでは満たしません。次を自分の成果物として揃えます。
 
-1. canonical `training/maestro/exercises/native-training-exercise.yaml`を直接extendするか、そこからreachableなlearner-authored subflowを追加したDiff
+1. canonical `training/maestro/exercises/native-training-exercise.yaml`を直接拡張するか、そこから到達できる受講者作成のsubflowを追加したDiff
 2. Stable UI Test IDとTest ControlまたはDeep Linkを使ったBusiness Conditionの記録
 3. 同じattemptの`training:native:exercise` exit code `0`と`training-native-exercise.xml`を含むPhysical Android deviceの実行Artifact
 
-Physical Android deviceで実行できない場合は、Environment blockとして端末、接続、権限、Ready Signalの状態を記録します。Baselineを実行できたことをNative completionの代替にはしません。
+Physical Android deviceで実行できない場合は、環境上の問題として端末、接続、権限、Ready Signalの状態を記録します。Baselineを実行できたことを選択課程の修了の代替にはしません。
 
 ## Lesson 7: ScrollとNative UI
 
@@ -183,33 +183,33 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分とBuild-only保証
 | 記述 | TypeScript | YAML |
 | 要素指定 | Role / Label / Locator / UI Test IDなど | Text / UI Test IDなど |
 | 初期化 | Test API / Fixture / Seed Scenario | Deep Link / Test Control / Seed Scenario |
-| Evidence | Trace / Screenshot / Video | Screenshot / JUnitなど |
+| 実行記録 | Trace / Screenshot / Video | Screenshot / JUnitなど |
 | 実行環境 | Browser | Physical Android device（Windows Local） / Emulator（GitHub Native CI） / Simulator（任意比較） |
 
 どちらかへ統一することではなく、対象に適したToolを選びます。
 
 ## 実機 / ツールチェーン準備（概念を学んだ後）
 
-P1-6までのCommon学習を終え、Native specializationを選択した受講者を対象にします。ここで必要なNative環境条件は、Common completionの前提ではなく、このspecializationの具体的な開始条件です。
+P1-6までの共通課程の学習を終え、モバイルアプリ自動化の選択課程を選んだ受講者を対象にします。ここで必要なNative環境条件は、共通課程の修了の前提ではなく、この選択課程の具体的な開始条件です。
 
-Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
+ Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、初学者やPart 1の完了条件ではありません。
 
-Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
+現在の正式な保証はAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
 
-理由は次のとおりです。
+理由は次です。
 
-- iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
+- iOS RuntimeにはmacOS / Xcode環境が必要だが、現在の正式なCIはBuild-onlyである。
 - Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
-- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別の責務である。
+- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
 - Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
 
-Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約に基づいて固定します。Formal NativeのFlowや第二Native基盤は作りません。
+Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、現在のNative CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
 
 ### Android Physical Device Start Gate
 
 Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
 
-Repositoryが対応するAndroidの最低APIは、`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材に固定しません。
+RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
 
 複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
 
@@ -219,13 +219,13 @@ $serial = "<physical-device-serial>"
 $runId = "<run-id>"
 ```
 
-出力が次のように表示され、`device`であることを確認します。
+出力が次のように`device`であることを確認します。
 
 ```text
 <physical-device-serial>    device usb:... product:... model:...
 ```
 
-`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降のすべてのコマンドに同じ`$serial`を渡します。
+`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
 
 Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
 
@@ -284,21 +284,27 @@ pnpm run training:native:exercise
   -RunId $runId
 ```
 
-Native helperの全Action、Training Maestro baseline、exerciseは、同じ`$runId`と`$serial`を使用します。BaselineのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`、exerciseのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-exercise/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
+Native helperの全Action、Training Maestro baseline、exerciseは、同じ`$runId`と`$serial`を使用します。BaselineのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`、exerciseのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-exercise/`へ保存し、Native helperの実行記録と同じRunへ紐付けます。
 
-### Native learner exerciseのcanonical entry
+### 受講者演習の正規の入口
 
-Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml` です。`pnpm run training:native:exercise`はこのentryを実行します。初期ファイルはbaselineへ到達する構成を保ち、受講者がテスト条件に対応するActionとAssertionを追加します。
+受講者演習の正規の入口は `training/maestro/exercises/native-training-exercise.yaml` です。`pnpm run training:native:exercise`はこのentryを実行します。初期ファイルはbaselineへ到達する構成を保ち、受講者がテスト条件に対応するActionとAssertionを追加します。
 
-Training CopyでC08用の成果物を作るときは、canonical entry自体を直接extendするか、learner-authored subflowを追加してcanonical entryから`runFlow`等で到達させます。`training:native:exercise`から到達しないunreferenced sibling YAMLを追加しただけでは、C08 successful execution evidenceにはしません。
+Training CopyでC08用の成果物を作るときは、canonical entry自体を直接拡張するか、受講者作成のsubflowを追加してcanonical entryから`runFlow`等で到達させます。`training:native:exercise`から到達しない未参照の兄弟YAMLを追加しただけでは、C08の成功実行記録にはしません。
 
-この1回の実行は `1 runId = 1 baseline → exercise → Evidence attempt` として扱います。baseline、exercise、Evidenceでは同じ`$serial`と`$runId`を使い、exercise前にdevice discoveryをやり直しません。retryで新しいattemptを始める場合は、新しい`$runId`を採番してbaseline → exercise → Evidenceを揃えます。
+<!-- 機械契約: tests/contracts/training-curriculum.test.ts が参照する固定文字列は変更しない。
+Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml`
+unreferenced sibling YAML
+1 runId = 1 baseline → exercise → Evidence attempt
+training-native-exercise.xml -->
 
-Localでsuccessful exercise evidenceと判定するには、同じattemptで `pnpm run training:native:exercise` がexit code `0`で終了し、`.artifacts/native-local/$runId/maestro/training-exercise/training-native-exercise.xml`が存在することを確認します。Failure時に残るpartial outputやdiagnostic Artifactの存在だけではcompletionのEvidenceにしません。
+この1回の実行は、1つの`runId`に対してbaseline → exercise → 実行記録を1組だけ作る試行として扱います。baseline、exercise、実行記録では同じ`$serial`と`$runId`を使い、exercise前にdevice discoveryをやり直しません。retryで新しい試行を始める場合は、新しい`$runId`を採番してbaseline → exercise → 実行記録を揃えます。
+
+Localでexerciseの成功を判定するには、同じattemptで `pnpm run training:native:exercise` がexit code `0`で終了し、`.artifacts/native-local/$runId/maestro/training-exercise/training-native-exercise.xml`が存在することを確認します。Failure時に残るpartial outputやdiagnostic Artifactの存在だけでは修了の実行記録にしません。
 
 `-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
 
-`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrityを確認してからInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、実行記録の取得へ進み、上流が失敗した場合は後続をPASS扱いにしません。
 
 ## ハンズオン1: Native Cart Flow
 
@@ -316,13 +322,13 @@ WebとNativeで、共通するテスト条件と異なる操作を記録しま�
 
 Cartへ商品を追加した後にAppを再起動し、状態復元を確認します。
 
-## 発展リファレンス: iOS Build-only（Reference）
+## 発展参考資料: iOS Build-only
 
-`native-ios-ci.yml`を読み、Runtimeを実行したと誤認せず、Build-only Evidenceとして次を記録します。
+`native-ios-ci.yml`を読み、Runtimeを実行したと誤認せず、Build-onlyの記録として次を残します。
 
 - Flowを共用できた箇所
 - Platform差が出た箇所
-- iOS RuntimeをRequiredにしない理由と、iOS固有Build差分
+- iOS Runtimeを必須にしない理由と、iOS固有Build差分
 
 ## 確認問題
 
@@ -336,34 +342,34 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 
 ## 自己確認
 
-次の項目を自分の言葉または自分のEvidenceで確認できれば、このLessonの判断を説明できます。
+次を自分の言葉または自分の実行記録で確認できれば、このLessonの判断を説明できます。
 
 - PlaywrightのLocatorとMaestroのNative UI操作の違いを説明できる。
 - UI Test IDとTest Case IDを区別し、Stable UI Test IDを使う理由と乱用Riskを説明できる。
 - Deep Link / Test Controlを初期化の補助に使い、検証対象のJourneyを飛ばしていないことを説明できる。
 - 自分のFlow Diff、UI Test ID、Test ControlまたはDeep Link、Business Condition、実行Artifactを対応付けられる。
-- canonical `native-training-exercise.yaml`を直接extendするか、そこからreachableなsubflowを作り、unreferenced sibling YAMLだけではC08 Evidenceにならないと説明できる。
-- same serial / same runIdのbaseline → exercise → Evidenceを実行し、retryではnew attempt = new runIdにできる。
+- canonical `native-training-exercise.yaml`を直接拡張するか、そこから到達できるsubflowを作り、未参照の兄弟YAMLだけではC08の実行記録にならないと説明できる。
+- same serial / same runIdのbaseline → exercise → 実行記録を実行し、retryではnew attempt = new runIdにできる。
 - successful exercise Artifactとfailure diagnostic Artifactを区別し、exit code `0`と同じattemptのexercise JUnitを確認できる。
 - Physical Android deviceのRuntimeとGitHub Emulatorの実行条件、iOS Build-onlyの保証範囲を混同していない。
-- 2本以上のFlow作成はPractice Volumeであり、Baseline / stock PASSをC08 Evidenceと扱っていない。
+- 2本以上のFlow作成は練習量の目安であり、Baseline / stock PASSをC08の実行記録とは扱っていない。
 
 ### Recovery
 
-Flowを実行できない場合は、まず `Toolchain Doctor` または `-Action Doctor`、`adb devices -l`、端末の`USB debugging`、`RequirePhysicalDevice`、`-DeviceSerial`、端末が`unlocked`か、Ready Signal、Build / Install状態を順に確認します。環境状態を直しても解決しない場合は、失敗した条件、期待した条件、取得できたEvidenceを記録し、Flowの設計判断へ戻ります。
+Flowを実行できない場合は、まず `Toolchain Doctor` または `-Action Doctor`、`adb devices -l`、端末の`USB debugging`、`RequirePhysicalDevice`、`-DeviceSerial`、端末が`unlocked`か、Ready Signal、Build / Install状態を順に確認します。環境状態を直しても解決しない場合は、失敗した条件、期待した条件、取得できた実行記録を残し、Flowの設計判断へ戻ります。
 
 ## 完了条件
 
-- C08 Minimum Evidenceは、learner-authored Native exercise diff + successful Maestro execution artifactです。詳細は [Competency Rubric](../02_competency-rubric.md) を参照します。
-- Baseline / stock PASSだけではC08 completionになりません。
-- Physical Android device上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
+- C08に最低限必要な成果物は、受講者が作成したNative exercise diffと、Maestroの成功実行Artifactです。詳細は [習熟度評価基準](../02_competency-rubric.md) を参照します。
+- Baseline / stock PASSだけではC08を修了できません。
+- Physical Android device上で意味のあるMaestro Flowの実行記録を最低1本作成している。2本以上は練習量の目安として推奨する。
 - UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
 - Test Case IDとUI Test IDを区別できる。
-- Android RuntimeとiOS Build-onlyの保証差を、Current ADR / Workflowに沿ったReference比較として誤記なく扱える。iOS RuntimeをCommon RequiredやC08 Evidenceの代替にはしない。
+- Android RuntimeとiOS Build-onlyの保証差を、現在のADR / workflowに沿った参考比較として誤記なく扱える。iOS Runtimeを共通課程の必須範囲やC08の実行記録の代替にはしない。
 
 ## 次の行動
 
-Common routeを進む場合は [P1-8: Test Management and Maintainability](08_test-management-and-maintainability.md) へ進みます。Native specializationを続ける場合も、CommonのP1-8を完了してから、Native成果物の整理とPart 2の選択課題へ進みます。
+共通経路を進む場合は [P1-8: テスト管理と保守性改善](08_test-management-and-maintainability.md) へ進みます。モバイルアプリ自動化の選択課程を続ける場合も、共通課程のP1-8を完了してから、Native成果物の整理とPart 2の選択課題へ進みます。

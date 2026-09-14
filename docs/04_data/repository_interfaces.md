@@ -140,7 +140,7 @@ interface ApplicationTransactionRunner {
 ### Runner規約
 
 - Scopeに必要なStoreだけを1つのDexie Transactionとして開く。
-- `work`には同じTransactionに束縛されたRepositoryだけを渡す。
+- `work`へは同じTransactionへ束縛されたRepositoryだけを渡す。
 - Scope外Repository呼出しはTypeScript型とRuntime Guardの両方で拒否する。
 - Payment Gateway、Address Lookup、Timerなどの外部非同期処理をTransaction内でawaitしない。画像PathはBuild生成ModuleからTransaction開始前に解決する。
 - nested Transactionは親ScopeのStore集合を超えない。
@@ -257,8 +257,8 @@ interface ReviewSummaryRepository extends VersionedRepository<ProductReviewSumma
 - Category状態変更Use CaseはProductRepositoryで公開商品参照を同一Transaction内に再確認し、参照があれば無効化を拒否する。
 - Category作成は`createAtEnd`で0件ならsortOrder=10、既存があればmax(sortOrder)+10を同一Category Store Transaction内で決定して保存する。
 - Brand状態変更Use CaseはProductRepositoryで対象Brandの公開商品参照を同一Transaction内に再確認する。
-- Storefront Category条件は指定した1階層Category IDをそのまま商品検索・Facet件数に適用する。
-- Bulk Use Caseは対象ごとに通常の単体Use Case/Transactionを呼び、`BulkActionResult`に成功・失敗を集約する。全対象を1つのTransactionにまとめない。
+- Storefront Category条件は指定した1階層Category IDをそのまま商品検索・Facet件数へ適用する。
+- Bulk Use Caseは対象ごとに通常の単体Use Case/Transactionを呼び、`BulkActionResult`へ成功・失敗を集約する。全対象を1つのTransactionへまとめない。
 - Review Summary更新では`publishedCount=0`なら`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を未丸めで保存し、Repositoryが表示用丸めを行わない。
 
 ## 5. Inventory・Cart・Checkout
@@ -301,12 +301,12 @@ interface CheckoutSessionRepository extends VersionedRepository<CheckoutSession>
 ### 原子契約
 
 - active Cart取得/作成は単一Storeの原子的Repository Methodで再取得と作成を行い、Unique競合時は既存Cartを再取得する。
-- Item追加は`addQuantityToActiveCart`でownerのactive Cartを取得または`newCartId`で作成し、既存SKUなら加算、新規なら`newItemId`で作成する。Cart取得/作成、数量検証、明細更新、親Cartの`updatedAt/version`更新を`cart-mutation` Scopeの同一Transactionで行う。初回追加ではCart Versionを要求しない。数量更新は`setQuantityAndTouchCart`で絶対数量に置換する。
-- 数量更新Inputが0の場合、Use Caseは`deleteItemAndTouchCart`に委譲し、Repositoryに0数量のCart Itemを保存しない。
+- Item追加は`addQuantityToActiveCart`でownerのactive Cartを取得または`newCartId`で作成し、既存SKUなら加算、新規なら`newItemId`で作成する。Cart取得/作成、数量検証、明細更新、親Cartの`updatedAt/version`更新を`cart-mutation` Scopeの同一Transactionで行う。初回追加ではCart Versionを要求しない。数量更新は`setQuantityAndTouchCart`で絶対数量へ置換する。
+- 数量更新Inputが0の場合、Use Caseは`deleteItemAndTouchCart`へ委譲し、Repositoryへ0数量のCart Itemを保存しない。
 - Login/Register時、Transaction内でUserがactiveであることを再確認する。customerはSession作成とGuest Cart統合を同じScopeで実行し、失敗時はSession・CartをすべてRollbackしてGuest Cartを保持する。operator/adminはSessionだけを作成し、Guest Cartを取得・変更しない。
 - 在庫調整は`adjust-inventory` Scopeで数量更新と履歴追加を行う。片方だけCommitしない。
 - Checkout開始は`start-checkout` Scope内でUser active/customer、Cart/Item/Product/Variantを再検証してからSessionを作成・再開する。
-- Checkout Session期限切れ判定はApp起動、Checkout Route Guard、StartCheckout実行時に行い、定期Timerに依存しない。
+- Checkout Session期限切れ判定はApp起動、Checkout Route Guard、StartCheckout実行時に行い、定期Timerへ依存しない。
 
 ## 6. Order・Payment・Shipment
 
@@ -382,4 +382,4 @@ Review初回作成時の`ReviewStatusHistory.fromStatus`は`null`、以後の状
 
 ## 9. 共通Error
 
-Repository/Adapter固有ExceptionはUse Case境界で`ApplicationError`に変換します。PresentationにDexie名、Store名、stack、内部Class名を露出しません。Error Code、messageKey、fieldErrors、retryableの正本は`application_contracts.md`です。Phase 1にReconciliation、Refund、Import、Migration Recovery固有Errorを定義しません。
+Repository/Adapter固有ExceptionはUse Case境界で`ApplicationError`へ変換します。PresentationへDexie名、Store名、stack、内部Class名を露出しません。Error Code、messageKey、fieldErrors、retryableの正本は`application_contracts.md`です。Phase 1にReconciliation、Refund、Import、Migration Recovery固有Errorを定義しません。

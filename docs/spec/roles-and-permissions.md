@@ -35,7 +35,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - RoleまたはPermissionにより利用できないRouteであることを説明する。
-- 利用者が安全なStorefrontまたは許可された入口に戻れるActionを表示する。
+- 利用者が安全なStorefrontまたは許可された入口へ戻れるActionを表示する。
 
 #### Important UI States
 

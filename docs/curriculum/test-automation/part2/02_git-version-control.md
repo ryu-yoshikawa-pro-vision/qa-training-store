@@ -15,15 +15,15 @@
 
 別の教材アプリや別コードベースへ切り替えません。Part 1で使用したScenario Shopと、Part 1で作成したPlaywright Testや学習成果物を引き続き使います。
 
-Forkや演習用Copyを利用する場合も、内容は同じ `qa-training-store` を基にします。
+Forkや演習用Copyを利用する場合も、中身は同じ `qa-training-store` を基にします。
 
 ## Part 1からの作業環境移行
 
 Part 1ではGitHubアカウントを必須にしていないため、配布ZIPなどGit Historyを持たないFolderで学習している場合があります。
 
-その場合、Part 2では最初に**Git Historyを持つ `qa-training-store` の演習用Copyに移行**します。
+その場合、Part 2では最初に**Git Historyを持つ `qa-training-store` の演習用Copyへ移行**します。
 
-標準的な流れは次のとおりです。
+標準的な流れ:
 
 ```text
 Part 1のZIP / Local Copy
@@ -38,13 +38,13 @@ Git管理されたqa-training-store
 └ 以降のGit演習
 ```
 
-### 移行時の安全な手順（Instructor support / Reference）
+### 移行時の安全な手順（講師支援・参考資料）
 
-Training Copyの準備と引継ぎはInstructor support / Referenceです。受講者のCommon completionは、準備済みのGit管理Copy上でBranch、Diff、Staging、Commitを扱うことに置き、Source SHA、allowlist、copy mechanicsの準備を自力で行うことは要求しません。
+Training Copyの準備と引継ぎは講師支援・参考資料の範囲です。受講者の共通課程の修了は、準備済みのGit管理Copy上でBranch、Diff、Staging、Commitを扱うことに置き、Source SHA、allowlist、Copyの準備作業を自力で行うことは要求しません。
 
-具体的な準備・検証、引継ぎ対象のallowlist、既存Workflowとの分離は [Instructor Reference](../03_instructor-reference.md) のsupport手順を使用します。受講者は、準備済みCopy上で自分のPart 1成果物とGit上の既存資産をDiffから区別し、必要な変更だけを作業Branchで扱います。
+具体的な準備・検証、引継ぎ対象のallowlist、既存Workflowとの分離は [講師向け資料](../03_instructor-reference.md) の支援手順を使用します。受講者は、準備済みCopy上で自分のPart 1成果物とGit上の既存資産をDiffから区別し、必要な変更だけを作業Branchへ扱います。
 
-作業Branchの作成、`git status`、`git diff`、`git diff --staged`などのLocal Git操作は、このモジュールのCommon学習対象として扱います。Copy準備の失敗や成果物不足は、Gitの理解不足ではなくEnvironment / provisioning blockとしてSupportへ戻します。
+作業Branchの作成、`git status`、`git diff`、`git diff --staged`などのLocal Git操作は、このモジュールの共通課程の学習対象として扱います。Copy準備の失敗や成果物不足は、Gitの理解不足ではなく環境・準備上の問題として講師支援へ戻します。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
@@ -54,7 +54,7 @@ Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状
 
 GitはSource Codeや文書などの変更履歴を管理する分散Version Control Systemです。
 
-主に次の点を追跡できます。
+主に次を追跡できます。
 
 - どのFileが変わったか。
 - どのLineが変わったか。
@@ -81,7 +81,7 @@ git diff
 
 ## Lesson 3: Staging
 
-Commitに含める変更を選びます。
+Commitへ含める変更を選びます。
 
 ```bash
 git add path/to/file
@@ -99,7 +99,7 @@ Commitは意味のある変更単位として作ります。
 test: add cart out-of-stock E2E
 ```
 
-次のようなCommit Messageを避けます。
+次を避けます。
 
 ```text
 fix
@@ -111,7 +111,7 @@ Commit Messageから変更目的がある程度分かる状態を目指します
 
 ## Lesson 5: Branch
 
-既存の`main`に直接変更を積み重ねるのではなく、作業Branchに分けます。
+既存の`main`へ直接変更を積み重ねるのではなく、作業Branchへ分けます。
 
 ```bash
 git switch -c training/cart-e2e
@@ -153,13 +153,13 @@ Part 1をZIPで進めていた受講者にとっては、ここで初めて「�
 
 ConflictはGitの不具合ではなく、「どちらの変更を採用するか人間の判断が必要」という状態です。
 
-自動テストFileは複数人が触る可能性があり、巨大な1ファイルに集約しすぎるとConflictが増えやすいことも考えます。
+自動テストFileは複数人が触る可能性があり、巨大な1ファイルへ集約しすぎるとConflictが増えやすいことも考えます。
 
 ## ハンズオン1: Part 1成果物をGit管理下で確認する
 
 Part 1から引き継いだTraining Testまたは学習成果物を1つ選びます。
 
-次の項目を確認します。
+次を確認します。
 
 - どのFileを自分が追加・変更したか。
 - `main` の状態との差分は何か。
@@ -197,7 +197,7 @@ Branchを作ること自体が目的ではなく、**変更とCommitをどの作
 - Locator改善
 - Assertion追加
 
-その後、次の順序で確認・Commitします。
+その後、次の順で確認・Commitします。
 
 ```text
 status
@@ -215,15 +215,15 @@ commit
 
 ## ハンズオン4: 意図しない変更を除外する
 
-演習用に別Fileへ無関係な変更を加えます。
+演習用に別Fileへ無関係な変更を作ります。
 
-`git status` と `git diff` で変更を確認した後、今回のCommitに必要なFileだけをStageします。
+`git status` と `git diff` で変更を確認した後、今回のCommitへ必要なFileだけをStageします。
 
 目的は「すべての変更を一括でCommitする」のではなく、意味のある変更単位を選べるようになることです。
 
 ## ハンズオン5: mainとの差分とHistoryを確認する
 
-作業BranchでCommitした後、次の項目を確認します。
+作業BranchでCommitした後、次を確認します。
 
 - `main` と作業Branchの差分
 - 作成したCommit
@@ -245,17 +245,17 @@ commit
 
 ## 自己確認
 
-次を自分のBranchとDiffを指しながら確認できれば、Common completionの判断材料になります。
+次を自分のBranchとDiffを指しながら確認できれば、共通課程の修了の判断材料になります。
 
 - Working Tree、Staging、Commitの差を説明できる。
 - Part 1成果物、教材元のHistory、自分の変更をDiffで区別できる。
 - 最初の演習変更・Commitを`main`へ作らず、先に作業Branchを選んだ理由を説明できる。
 - 意図したFileだけをStageし、Staged Diffと意味のあるCommit Messageを確認できる。
-- Training CopyのSource SHA / allowlist / copy mechanicsはSupport / Referenceであり、準備済みCopyを使うCommon completionの隠れた前提ではないと説明できる。
+- Training CopyのSource SHA / allowlist / Copyの準備作業は講師支援・参考資料の範囲であり、準備済みCopyを使う共通課程の修了の隠れた前提ではないと説明できる。
 
 ### Recovery
 
-BranchやDiffが分からない場合は、作業を止め、`git status` → `git branch --show-current` → `git diff` → `git diff --staged`の順に状態を確認します。準備済みCopyやPart 1成果物が手元にない場合はEnvironment / provisioning blockとしてInstructor supportに戻り、Gitの理解不足と決めつけません。
+BranchやDiffが分からない場合は、作業を止め、`git status` → `git branch --show-current` → `git diff` → `git diff --staged`の順に状態を確認します。準備済みCopyやPart 1成果物が手元にない場合は環境・準備上の問題として講師支援へ戻り、Gitの理解不足と決めつけません。
 
 ## 完了条件
 
@@ -270,4 +270,4 @@ BranchやDiffが分からない場合は、作業を止め、`git status` → `g
 
 ## 次の行動
 
-Branch・Diff・Commitの変更単位をGitHub上の共有に接続するため、[P2-3: GitHub・Pull Request・Review](03_github-pull-request-review.md)へ進みます。
+Branch・Diff・Commitの変更単位をGitHub上の共有へ接続するため、[P2-3: GitHub・Pull Request・Review](03_github-pull-request-review.md)へ進みます。

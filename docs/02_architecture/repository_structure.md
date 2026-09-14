@@ -91,8 +91,8 @@ Cancel/Return/Refund ModuleもPhase 2開始時に追加します。
 
 ## 4. 境界
 
-- Domainは他Layerに依存しない。
-- ApplicationはDomainとPortだけに依存する。
+- Domainは他Layerへ依存しない。
+- ApplicationはDomainとPortだけへ依存する。
 - InfrastructureはPortを実装する。
 - PresentationはUse Caseだけを呼ぶ。
 - Storefront ShellとAdmin Shellを混在させない。

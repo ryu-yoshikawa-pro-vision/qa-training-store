@@ -83,7 +83,7 @@ Build SHA、App/Schema/Seed Versionを含めます。秘密情報は置きませ
 
 ## 8. Rollback
 
-Schema変更を含まない場合は直前の成功DeployにRollback可能です。Schema変更後のRollbackはData互換性を確認し、安易に行いません。
+Schema変更を含まない場合は直前の成功DeployへRollback可能です。Schema変更後のRollbackはData互換性を確認し、安易に行いません。
 
 ## 9. Phase 3
 
@@ -91,4 +91,4 @@ Schema変更を含まない場合は直前の成功DeployにRollback可能です
 
 ## 商品画像配信
 
-`public/images/products/`と診断用`product-image-manifest.json`をExpo Exportに含めます。RuntimeはBuild生成済み`src/generated/product-image-manifest.ts`をBundleから使用します。`pnpm run build:web`の先頭でManifest生成と検証を必ず実行し、File不存在・Hash不一致・500KB超過をDeploy失敗とします。GitHub APIへのClient書込みは行いません。
+`public/images/products/`と診断用`product-image-manifest.json`をExpo Exportへ含めます。RuntimeはBuild生成済み`src/generated/product-image-manifest.ts`をBundleから使用します。`pnpm run build:web`の先頭でManifest生成と検証を必ず実行し、File不存在・Hash不一致・500KB超過をDeploy失敗とします。GitHub APIへのClient書込みは行いません。

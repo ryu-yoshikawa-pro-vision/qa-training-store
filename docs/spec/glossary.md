@@ -9,10 +9,10 @@
 | BR | Business Rule。安定IDを持つ業務ルール |
 | AC | Acceptance Criteria。BRへの参照を持つ受入条件 |
 | Executable Canonical Source | ID、型、Route、Tokenなど低レベル値のCode/Config正本 |
-| Normative | 現在の期待挙動を定義し、Expected Oracleに使える文書領域 |
+| Normative | 現在の期待挙動を定義し、期待動作の判断基準に使える文書領域 |
 | Supporting | 読み方・運用・差異・未確定事項を補助する文書領域 |
-| Known Deviation | Current Specとの差異として現在もActiveな実装状態。Expectedを変更しない |
-| Unresolved Specification | Product意図が確定しておらず、Defect Oracleにできない項目 |
+| Known Deviation | 現在の仕様との差異として現在もActiveな実装状態。期待動作を変更しない |
+| Unresolved Specification | 製品の意図が確定しておらず、不具合判定の判断基準にできない項目 |
 
 ## Agentic QA / 運用の参考用語
 

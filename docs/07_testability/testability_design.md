@@ -33,7 +33,7 @@ interface TestApi {
 
 Automation adminだけが利用できます。
 
-- Scenario選択とReset。ResetはDB、CurrentSessionStore、GuestIdentityStoreを消去し、Seed CatalogのGuest IDをGuestIdentityStoreに設定する
+- Scenario選択とReset。ResetはDB、CurrentSessionStore、GuestIdentityStoreを消去し、Seed CatalogのGuest IDをGuestIdentityStoreへ設定する
 - Clock固定・解除
 - Payment Delay
 - App/Schema/Seed/Build Version
@@ -52,7 +52,7 @@ Automation adminだけが利用できます。
 
 ## 7. 内部整合性検証
 
-原則としてApplication Integration TestとDexie Contract Testで次の項目を検証します。E2EではUI結果を優先し、必要な場合だけ固定Inspection APIを使用します。
+原則としてApplication Integration TestとDexie Contract Testで次を検証します。E2EではUI結果を優先し、必要な場合だけ固定Inspection APIを使用します。
 
 - Payment成功時の在庫1回減算
 - Order/Payment/Shipmentの対応

@@ -12,7 +12,7 @@ CustomerのAddress、Checkout Session、Cart Version、価格確認、Local Mock
 
 ### BR-CHECKOUT-002 — Cart Versionと価格をOrder作成直前に再検証する
 
-不一致または価格差異があればOrder/Paymentを作らずCartに戻します。直接URLは不足Stepに戻します。
+不一致または価格差異があればOrder/Paymentを作らずCartへ戻します。直接URLは不足Stepへ戻します。
 
 ### BR-CHECKOUT-003 — Mock Payment結果をOrder/Inventoryと一貫して確定する
 
@@ -28,8 +28,8 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Customer自身の配送先を一覧表示し、追加・編集・選択に進める。
-- 未登録時にCheckoutに進むための登録導線を表示する。
+- Customer自身の配送先を一覧表示し、追加・編集・選択へ進める。
+- 未登録時にCheckoutへ進むための登録導線を表示する。
 
 #### Important UI States
 
@@ -62,7 +62,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Checkout Sessionの配送先を選択し、Paymentに進める。
+- Checkout Sessionの配送先を選択し、Paymentへ進める。
 - Resume / replaced / stale状態のNoticeと次Actionを表示する。
 
 #### Important UI States
@@ -96,7 +96,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Mock Payment optionを選択し、Confirmに進める。
+- Mock Payment optionを選択し、Confirmへ進める。
 - 不完全なSessionやCart Version不一致を安全に扱う。
 
 #### Important UI States
@@ -131,7 +131,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
 | `default` | baseline | `customer` | `regular-member` | Order内容と確定Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
-| `stale-cart` | conflict | `customer` | `cart-version-invalidates-checkout` | 不一致を説明しCartまたは該当Stepに戻す。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
+| `stale-cart` | conflict | `customer` | `cart-version-invalidates-checkout` | 不一致を説明しCartまたは該当Stepへ戻す。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
 
 #### Visual References
 
@@ -211,7 +211,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - Payment拒否、再試行、Cart / Order確認への導線を表示する。
-- Payment失敗時に在庫やOrderを成功状態に変更しない。
+- Payment失敗時に在庫やOrderを成功状態へ変更しない。
 
 #### Important UI States
 
@@ -245,7 +245,7 @@ Related BR: `BR-CHECKOUT-001`
 
 Related BR: `BR-CHECKOUT-002`
 
-Cart Versionまたは価格が変わった状態で、Order/Paymentが作成されず、必要なStepまたはCartに戻ります。
+Cart Versionまたは価格が変わった状態で、Order/Paymentが作成されず、必要なStepまたはCartへ戻ります。
 
 #### AC-CHECKOUT-003 — Payment結果を一度だけ確定する
 

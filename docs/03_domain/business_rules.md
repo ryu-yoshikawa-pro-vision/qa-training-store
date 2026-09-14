@@ -19,7 +19,7 @@
 - 商品は1つのCategoryを直接参照する。CategoryはPhase 1で階層を持たない。
 - StorefrontでCategoryを選択した場合は、指定したactiveな1階層CategoryをOR条件として検索する。
 - Category・Brandは作成時にactiveとする。Category名称・表示順、Brand名称の通常更新で有効状態を変更せず、状態変更専用Use Caseを使用する。
-- 新規CategoryはCategoryが0件ならsortOrder=10、既存Categoryがある場合はmax(sortOrder)+10として末尾に追加する。最大値取得と作成は同一Transactionで実行し、任意位置への変更は作成後の並べ替えで行う。
+- 新規CategoryはCategoryが0件ならsortOrder=10、既存Categoryがある場合はmax(sortOrder)+10として末尾へ追加する。最大値取得と作成は同一Transactionで実行し、任意位置への変更は作成後の並べ替えで行う。
 
 ### 1.2 商品Aggregate編集
 
@@ -42,8 +42,8 @@
 - 画像Binaryの正本はGitHub Repository内`public/images/products/`とする。Cloudflare Pagesは同一Originの静的Assetとして配信する。
 - Build前に画像ManifestのTypeScript Moduleと診断用JSONを生成し、ApplicationはModuleを静的importして`assetId`からPath、形式、寸法、容量、有効状態を取得する。Runtime Fetchは行わない。
 - 管理UIはAsset Catalogから画像を選択し、商品との関連付け、解除、Primary、順序、Alt Textだけを変更する。最初の関連は自動的にPrimaryとし、Primaryを解除して画像が残る場合はsortOrder先頭を同一TxでPrimaryにする。Default Alt Textを初期値としてProduct固有Alt Textを編集できる。
-- BrowserからGitHub APIに書き込まない。GitHub TokenをFrontendに保存しない。
-- 新規Binary追加・差し替えはRepositoryに新しいContent Hash付きFileを追加し、PR/Commitと再Deployで反映する。既存Fileを上書きしない。
+- BrowserからGitHub APIへ書き込まない。GitHub TokenをFrontendへ保存しない。
+- 新規Binary追加・差し替えはRepositoryへ新しいContent Hash付きFileを追加し、PR/Commitと再Deployで反映する。既存Fileを上書きしない。
 - GitHub CIは各BrowserのIndexedDB参照を把握できないため、Release済みAssetは使用状態にかかわらずManifest/Fileから物理削除しない。選択候補から外す場合は`isActive=false`とし、既存商品では表示を継続する。
 - 新規関連付けはactive Assetだけを許可する。既存関連のinactive Assetは維持できるが、解除後は再関連付けできない。
 
@@ -179,7 +179,7 @@ Category名、Brand名、Variation選択肢の重複判定は、次の共通関�
 - 在庫はSKU単位の0以上整数。管理FilterとOverviewでは、`out=0`、`low=1～5`、`available=1以上`として扱い、在庫0を低在庫件数へ含めない。
 - Cart追加・Order作成では減算しない。
 - Payment成功確定Txで再検証・減算する。
-- Mockが成功候補を返しても、最終在庫再検証で不足した場合はPayment failed（errorCode=`OUT_OF_STOCK`）、Order payment_failedとして確定し、在庫とInventory Historyを変更しない。Local Mockのため実課金済みの不整合は発生しない。
+- Mockが成功候補を返しても、最終在庫再検証で不足した場合はPayment failed（errorCode=`OUT_OF_STOCK`）、Order payment_failedとして確定し、在庫とInventory Historyを変更しない。Local Mockのため実課金済み不整合は発生しない。
 - すべての管理調整と購入減算を履歴へ保存する。
 
 ## 6. 模擬Payment
@@ -238,7 +238,7 @@ pending_payment
 ## 10. Admin操作
 
 - operator/adminは購入不可。
-- adminだけがRank、Role、Account Statusを変更できる。Phase 1ではRankはcustomer内、Roleはoperator/admin間、Statusはactive/suspended間だけを許可し、変更理由を入力・保存しない。Role/Status変更時は対象Userの全Sessionを同一Txで無効化する。customerをsuspendedへ変更する場合はactive Checkoutもabandonedへ変更し、Cartは保持する。
+- adminだけRank、Role、Account Statusを変更できる。Phase 1ではRankはcustomer内、Roleはoperator/admin間、Statusはactive/suspended間だけを許可し、変更理由を入力・保存しない。Role/Status変更時は対象Userの全Sessionを同一Txで無効化する。customerをsuspendedへ変更する場合はactive Checkoutもabandonedへ変更し、Cartは保持する。
 - 最後のactive adminを停止・降格できない。
 - Overviewは発送準備待ち、低在庫、非公開Review、最近のOrderを表示する。売上集計は行わない。
 - Bulk Actionは商品公開/非公開、Review非公開/再公開だけ。
@@ -249,7 +249,7 @@ pending_payment
 
 - Reset、Seed、Clock、Payment Delayだけを提供する。
 - ResetはApp DBとSessionを削除し、指定Seedを投入する。
-- 任意DB書換え、Import/Export、任意Fault ScriptはPhase 1に含めない。
+- 任意DB書換え、Import/Export、任意Fault ScriptはPhase 1へ含めない。
 
 ## 12. 将来業務Rule
 

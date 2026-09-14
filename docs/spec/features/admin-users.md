@@ -12,7 +12,7 @@ Customer RankはCustomer内だけ、Roleはoperator/admin間だけ、Statusはac
 
 ## UI / Behavior Contract
 
-拒否理由を説明し、Customerの自分自身のRole/StatusやwithdrawnのMutationを操作可能に見せません。Status変更時は必要なSession/Checkoutの無効化を利用者に説明します。
+拒否理由を説明し、Customerの自分自身のRole/StatusやwithdrawnのMutationを操作可能に見せません。Status変更時は必要なSession/Checkoutの無効化を利用者へ説明します。
 
 ### SCREEN-ADMIN-USERS — Admin Users
 

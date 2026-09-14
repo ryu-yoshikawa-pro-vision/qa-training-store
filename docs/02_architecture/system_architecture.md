@@ -71,9 +71,9 @@ Phase 1はServer、API、Cloud Database、外部Paymentを持ちません。
 
 - 商品保存は`ProductAggregate`（Product、Variant、ProductImage関連）単位で行う。
 - 既存Variantの`stockQuantity`はAggregate更新対象外とし、在庫調整Use Caseだけが変更する。
-- ProductImageはGitHub Repository内の静的Assetを`assetId`で参照する。画像BinaryはIndexedDBに保存しない。
+- ProductImageはGitHub Repository内の静的Assetを`assetId`で参照する。画像BinaryはIndexedDBへ保存しない。
 - 管理UIはAsset Catalogから選択、関連解除、Primary変更、順序変更、Alt Text変更だけを行う。
-- BrowserからGitHub APIに書き込まず、画像Binary追加はCommit/PR、Manifest生成、Cloudflare再Deployで反映する。
+- BrowserからGitHub APIへ書き込まず、画像Binary追加はCommit/PR、Manifest生成、Cloudflare再Deployで反映する。
 - Release済みAssetはBrowser内の参照有無をGitHub CIから判定できないためappend-onlyとし、廃止は`isActive=false`で表す。
 - 新規関連付けはactive Assetだけを許可し、既存関連のinactive Assetは維持・表示できるが、解除後の再関連付けはできない。
 
@@ -99,14 +99,14 @@ sequenceDiagram
 ```
 
 - Gateway呼出し中にDB Txを保持しません。
-- Mock結果はMethod Codeだけで決まり、同じAttempt Keyは同じ結果になります。Mockは時刻を返さず、結果受領後にApplicationが`Clock.now()`を1回取得し、Payment processedAt・Order/Payment HistoryのcreatedAtに同じ値を使用します。
+- Mock結果はMethod Codeだけで決まり、同じAttempt Keyは同じ結果になります。Mockは時刻を返さず、結果受領後にApplicationが`Clock.now()`を1回取得し、Payment processedAt・Order/Payment HistoryのcreatedAtへ同じ値を使用します。
 - `processing`のまま再起動した場合や確定Txが失敗した場合、同じAttemptを再実行します。Local Mockなので二重課金概念はありません。既にsucceeded/failedなら既存結果を返し、確定競合時は最新状態を再取得して完了済み結果を返します。
 - timeout、unknown、独立台帳、ReconciliationはPhase 3です。
 
 ## 7. Transaction実装契約
 
 - Application層は`ApplicationTransactionRunner.run(scope, work)`を呼び、Runnerが必要なDexie Storeを1つのTransactionとして開く。
-- `work`に渡すRepository群は同じTransaction Contextに束縛され、Context外のRepositoryを混在させない。
+- `work`へ渡すRepository群は同じTransaction Contextへ束縛され、Context外のRepositoryを混在させない。
 - Gateway、Address LookupなどDB外I/OはTransactionの外で実行する。画像CatalogはBuild生成Moduleを静的importし、必要なPathをTransaction開始前に解決する。
 - 複数Storeをまたぐ書込みは`ApplicationTransactionRunner`から開始し、参加Repositoryはtop-level Transactionを開始しない。
 - 単一Storeで完結する単純作成・更新はRepository Method内の1 Transactionを許可する。
@@ -142,8 +142,8 @@ Phase 1はDexieだけを実装します。Repository InterfaceはPlatform非依�
 
 - Domain Error: Validation、Permission、Invalid State、Stock、Price
 - Repository Error: Read、Write、Conflict、Quota
-- Presentation: 利用者向けMessageに変換
-- 内部Exception、Stack、Password、住所全文を画面に出さない
+- Presentation: 利用者向けMessageへ変換
+- 内部Exception、Stack、Password、住所全文を画面へ出さない
 
 ## 11. Clock・ID・Test Control
 
@@ -157,11 +157,11 @@ Expo Web SPAをCloudflare Pages 1 Projectへ配信します。Bot Challenge、Tu
 
 - UIからDexieを直接呼ぶ
 - 複数Repository更新を別々のTransactionとして順番にCommitする
-- BrowserにGitHub Tokenを埋め込み、管理UIから画像BinaryをGitHubにUploadする
+- BrowserへGitHub Tokenを埋め込み、管理UIから画像BinaryをGitHubへUploadする
 - Payment Mock呼出し中にDB Txを保持する
-- 未使用のGateway Ledger、Refund、Migration Recovery TableをPhase 1に作る
-- StorefrontとAdminを同じPage Shellに詰め込む
-- Domain内部状態名をUIに直接表示する
+- 未使用のGateway Ledger、Refund、Migration Recovery TableをPhase 1へ作る
+- StorefrontとAdminを同じPage Shellへ詰め込む
+- Domain内部状態名をUIへ直接表示する
 - Role判定をメニュー非表示だけで済ませる
 - 固定sleepをE2Eの同期手段にする
 
@@ -170,5 +170,5 @@ Expo Web SPAをCloudflare Pages 1 Projectへ配信します。Bot Challenge、Tu
 - Presentationは`*Request`のみ生成し、ApplicationがSession、Clock、IdGenerator、GuestIdentity、Build生成Manifestから`*Command`を組み立てる。
 - FormはReact Hook Form、ValidationはZod。
 - Shared UIはReact Native StyleSheet、Web専用Admin/Layoutは`.web.tsx`＋CSS Modules。
-- Dialog/Combobox等はReact Aria Componentsに限定する。
+- Dialog/Combobox等はReact Aria Componentsへ限定する。
 - 実装開始後は`src/domain/contracts`、`src/application/contracts`、`src/application/errors.ts`、Dexie Schema実コードを型の正本とし、Markdownは意味・業務ルール・設計理由を正本とする。

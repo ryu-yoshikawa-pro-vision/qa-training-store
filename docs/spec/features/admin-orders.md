@@ -2,7 +2,7 @@
 
 ## Purpose / Scope
 
-Operator/AdminがOrderを準備、発送、配送完了に進める管理契約を定義します。
+Operator/AdminがOrderを準備、発送、配送完了へ進める管理契約を定義します。
 
 ## Business Rules
 
@@ -21,7 +21,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - Order一覧、Payment、Shipment Status、Filterを表示する。
-- Order DetailのVersion付きActionに進める。
+- Order DetailのVersion付きActionへ進める。
 
 #### Important UI States
 

@@ -16,7 +16,7 @@
 
 仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) と対象FeatureのBR / ACです。Formal TestとTraining Testの責務を分けたうえで、Risk、Workbook、実装、Regression分類を同期します。
 
-主な参照先は次のとおりです。
+主な参照先:
 
 - `e2e/web/phase1-required.spec.ts`
 - `e2e/web/fixtures.ts`
@@ -26,13 +26,13 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-Common routeでは、受講者自身が複数のPlaywright Testを作成していることを前提とします。Maestro Flowの作成経験はNative specializationを選択する場合の前提であり、Playwright-onlyのCommon completionには要求しません。
+共通経路では、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はモバイルアプリ自動化の選択課程を選ぶ場合の前提であり、Playwrightのみで進む共通課程の修了には要求しません。
 
-Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
+Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行記録の収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
 
 ## Lesson 1: 運用フェーズで当たる壁
 
-テストが数本しかない間は、1ファイルに直接書いても大きな問題になりません。
+テストが数本の間は、1ファイルへ直接書いても大きな問題になりません。
 
 しかし本数が増えると、次の問題が現れます。
 
@@ -54,7 +54,7 @@ Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence
 
 スプレッドシートのTest Case IDと実装を照合します。
 
-確認することは次のとおりです。
+確認すること:
 
 - 未自動化なのにAutomated扱いになっていないか。
 - 同じRiskを複数E2Eが重複して確認していないか。
@@ -132,13 +132,13 @@ POMが不要または過剰になりやすい条件:
 
 ## Lesson 6: Component Object
 
-Header、Navigation、Modal、Product Cardなど、Pageをまたいで再利用されるUIはComponent Objectとして扱う選択肢があります。
+Header、Navigation、Modal、Product Cardなど、Pageを跨いで再利用されるUIはComponent Objectとして扱う選択肢があります。
 
 Page Objectだけで全UIを表現しようとすると、Page間で共通Componentが重複する可能性があります。
 
 ## Lesson 7: Fixture
 
-Fixtureはテスト実行環境や前提状態を提供するために使います。
+Fixtureはテスト実行環境や前提状態を提供するために使えます。
 
 ここで初めて既存 `scenario` Fixtureの内部を教材として読み、次を確認します。
 
@@ -147,15 +147,15 @@ Fixtureはテスト実行環境や前提状態を提供するために使いま�
 - Metadata確認
 - Console Error収集
 
-Part 1前半で利用していた「Seed ScenarioをResetできる」「Console ErrorをEvidenceとして扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
+Part 1前半で利用していた「Seed ScenarioをResetできる」「Console Errorを実行記録として扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
 
-Fixtureに何でも入れると、Testから前提処理が見えなくなるRiskがあります。
+Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
 
 「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
 
 ## Lesson 8: 複数画面の共通操作を切り出す場合
 
-複数のPageをまたぐ業務操作は、共通操作として切り出す選択肢があります。
+複数Pageを跨ぐ業務操作は、共通操作として切り出す選択肢があります。
 
 例:
 
@@ -184,7 +184,7 @@ Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管�
 
 `src/seeds/metadata.ts` は、Scenario Shopで利用するSeed Scenarioの名称、用途、推奨Account、初期Session、関連Routeなどを定義する**Scenario Metadataの正本**として機能します。
 
-実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけで定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
+実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけが定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
 
 次を分離して考えます。
 
@@ -198,7 +198,7 @@ Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管�
 
 運用では、テストを追加するだけでなく、仕様変更に合わせて既存資産を更新・廃止する必要があります。
 
-基本の流れは次のとおりです。
+基本の流れは次です。
 
 ```text
 仕様変更
@@ -222,14 +222,14 @@ Product変更後にTestを実装・実行して整合を確認
 
 この場合、単にPlaywrightの期待値を `5` から `3` へ変えるだけでは不十分です。
 
-確認するものは次のとおりです。
+確認するもの:
 
 - 上限に関係するRiskは変わるか。
 - 同値分割はどう変わるか。
 - 境界値は `2 / 3 / 4` などへ変わるか。
 - 既存Test Case IDは同じ目的のままか。
 - 新しいCaseが必要か。
-- Web / Nativeの両方に影響するか。
+- Web / Native両方へ影響するか。
 - Unit / Integration Testにも変更が必要か。
 - Regression / Smoke分類を変える必要があるか。
 
@@ -279,20 +279,20 @@ Flakyを「たまに落ちるからRetryでよい」と扱いません。
 
 Flakyが継続する場合は、Regression Gateへ残すRiskも判断します。
 
-## Lesson 14: 実行時間とTest Suite（Extension / Reference comparison）
+## Lesson 14: 実行時間とTest Suite（発展課題・参考比較）
 
 テストが増えると実行時間が伸びます。
 
 ここではまだCI設計へ深入りせず、ローカルTest Suiteとして次を考えます。
 
 - Smoke
-- Required Regression
+- 必須Regression
 - Extended Regression
 - Accessibility
 - Mobile
-- Native（Native specialization / Extension）
+- Native（モバイルアプリ自動化の選択課程・発展課題）
 
-これらをPR / main / Nightlyへ配置する設計はPart 2のReference comparisonです。このLessonのCommon completionにNative実行やCI設定を要求しません。
+これらをPR / main / Nightlyへ配置する設計はPart 2の参考比較です。このLessonの共通課程の修了にNative実行やCI設定を要求しません。
 
 ## ハンズオン1: 重複を探す
 
@@ -325,7 +325,7 @@ POMを使うこと自体を完了条件にはしません。Helperの方が適�
 
 ## ハンズオン5: 仮想仕様変更の影響を追跡する
 
-「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として、次の項目を更新・整理します。
+「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として次を更新・整理します。
 
 1. Risk
 2. 同値分割 / 境界値
@@ -382,15 +382,15 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 - その問題に対してHelper、POM、Component Object、Fixture、共通操作、現状維持のいずれを選び、選択理由と副作用を説明できる。
 - 最小改善のDiffがTest Caseの目的、Locator / Assertion、Test Data依存、既存Regressionとの関係を壊していないことを確認できる。
 - 仮想仕様変更では、Productを変更せず、Risk → Test Case → 自動化対象 → Regression分類の影響計画だけを作成している。
-- Native / Maestro / CIの比較はExtensionまたはReferenceであり、Playwright-onlyのCommon completionに混ぜていない。
+- Native / Maestro / CIの比較は発展課題または参考資料であり、Playwrightのみで進む共通課程の修了に混ぜていない。
 
 ### Recovery
 
-保守問題の原因が分からない場合は、まず対象Testの目的、Failureの再現条件、Test Data / Seed、Locator / Assertion、既存Regressionとの重複を1つずつ確認します。実行環境が原因ならEnvironment blockとして記録し、設計上の未理解なら問題の最小再現とTest Caseへ戻ります。仮想仕様変更で迷った場合は、ProductやTest Codeを変更せず、現行Specを基準に影響先と未実装境界を整理します。
+保守問題の原因が分からない場合は、まず対象Testの目的、Failureの再現条件、Test Data / Seed、Locator / Assertion、既存Regressionとの重複を1つずつ確認します。実行環境が原因なら環境上の問題として記録し、設計上の未理解なら問題の最小再現とTest Caseへ戻ります。仮想仕様変更で迷った場合は、ProductやTest Codeを変更せず、現行Specを基準に影響先と未実装境界を整理します。
 
 ## 完了条件
 
-- 実在するPlaywright保守問題を1件以上診断し、原因・影響を説明したうえで、最小の改善を1件実装している。追加の棚卸しはPractice Volumeとして推奨するが、件数だけではcompletionとしない。
+- 実在するPlaywright保守問題を1件以上診断し、原因・影響を説明したうえで、最小の改善を1件実装している。追加の棚卸しは練習量の目安として推奨するが、件数だけでは修了としない。
 - 各問題について解決方法を選び、理由を説明している。
 - Test Case IDと自動化実装の対応を更新している。
 - 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。
@@ -398,4 +398,4 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 ## 次の行動
 
-Part 1 Commonを続ける場合は [P1-9: 総合演習](09_part1-capstone.md) へ進みます。Native / CIの追加比較は必要な受講者だけがExtension / Referenceとして行い、Common routeの完了やP1-9への移行を止めません。
+Part 1の共通課程を続ける場合は [P1-9: 総合演習](09_part1-capstone.md) へ進みます。Native / CIの追加比較は必要な受講者だけが発展課題・参考資料として行い、共通経路の完了やP1-9への移行を止めません。

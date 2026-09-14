@@ -12,7 +12,7 @@
 | Image Manifest Version | `1` |
 | Payment Delay | 500ms |
 
-Seed中の相対日時はClock基準で生成し、実行日に依存しません。
+Seed中の相対日時はClock基準で生成し、実行日へ依存しません。
 
 ## 2. 固定Account
 
@@ -81,7 +81,7 @@ Sale期間は基準時刻の1日前から1日後です。
 | product-discontinued | 2026-06-10T03:00:00.000Z |
 | product-draft | null |
 
-新着順はこの`publishedAt`降順、同値はproductCode昇順です。非公開・販売終了商品はStorefrontに表示しません。
+新着順はこの`publishedAt`降順、同値はproductCode昇順です。非公開・販売終了商品はStorefrontへ表示しません。
 
 ## 4.1 GitHub画像Asset
 
@@ -113,7 +113,7 @@ Home SectionはViewer条件を適用します。未Loginではgold/platinum限�
 | product-running-shoes | 4 | 18 | 4.5 | 2 | 2 | 0 | 0 | 0 |
 | Reviewなし商品 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-`publishedCount=0`では`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を丸めず保存します。表示時だけ小数第1位に丸め、Sort・Filterも保存済みの未丸め`ratingAverage`を使用します。JavaScript Numberの表現差を避けるため、Seed検証では`ratingTotal / publishedCount`との許容誤差`1e-12`以内を確認します。
+`publishedCount=0`では`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を丸めず保存します。表示時だけ小数第1位へ丸め、Sort・Filterも保存済みの未丸め`ratingAverage`を使用します。JavaScript Numberの表現差を避けるため、Seed検証では`ratingTotal / publishedCount`との許容誤差`1e-12`以内を確認します。
 
 ## 7. Search・Filter期待値
 
@@ -179,7 +179,7 @@ regularでTシャツ1件の場合、送料無料不足額は3,000円です。
 | out-of-stock | TシャツMを0 |
 | low-stock | TシャツMを3 |
 | sale-active | シューズ6,400円 |
-| expired-sale | ClockをSale終了後に固定し8,000円 |
+| expired-sale | ClockをSale終了後へ固定し8,000円 |
 | regular-member | regularでLogin済み、Tシャツ×2+マグ×1 Cart |
 | gold-member | goldでLogin済み、同一Cart、合計5,225円 |
 | platinum-member | platinumでLogin済み、同一Cart、合計4,950円 |
@@ -190,7 +190,7 @@ regularでTシャツ1件の場合、送料無料不足額は3,000円です。
 | orders-phase1-statuses | Phase 1の全Order状態を1件以上用意 |
 | reviewable-orders | delivered 2件、未Review Order Item 3件 |
 | hidden-reviews | published/hidden/deleted各1件、Summaryはpublishedだけ |
-| guest-cart-merge-overflow | 会員Cart3点、Guest Cart4点、購入上限5点。5点に統合し2点を超過として表示 |
+| guest-cart-merge-overflow | 会員Cart3点、Guest Cart4点、購入上限5点。5点へ統合し2点を超過として表示 |
 | checkout-resume | 同じCart ID/Versionのactive Sessionを用意し再開する |
 | checkout-replaced | 異なるCart Versionのactive Sessionをabandonedへ変更して新規作成 |
 | cart-version-invalidates-checkout | active Checkout作成後にCart Itemを変更し親Cart versionが増加。Checkout再開時にCartへ戻す |
@@ -217,5 +217,5 @@ Scenario Resetはdefaultへの差分Patchではなく、対象Scenarioの完全�
 ## 13. Seed変更Rule
 
 - 固定ID・期待金額・Home順・Facet期待を変更する場合はSeed Versionを上げる。
-- E2E参照値は本書、Seed Metadata JSON、Image Manifest参照に同時反映する。
-- Phase 2/3 ScenarioをPhase 1 Seedに混在させない。
+- E2E参照値は本書、Seed Metadata JSON、Image Manifest参照へ同時反映する。
+- Phase 2/3 ScenarioをPhase 1 Seedへ混在させない。

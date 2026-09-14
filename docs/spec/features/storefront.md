@@ -8,7 +8,7 @@ GuestとCustomerが公開商品を探索し、検索、Category/Brand、価格�
 
 ### BR-STOREFRONT-001 — Viewer条件を満たす公開商品だけを表示する
 
-公開状態、Rank制限、Viewer種別を適用し、見えない商品を一覧、Home、詳細、Facetに混ぜません。
+公開状態、Rank制限、Viewer種別を適用し、見えない商品を一覧、Home、詳細、Facetへ混ぜません。
 
 ### BR-STOREFRONT-002 — 検索とFacetは同じViewer条件で決定的に絞り込む
 
@@ -63,7 +63,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - 公開条件を満たす商品を一覧、ページング、Filter、Sortで探索する。
-- 商品カードに商品詳細と購入導線を提供する。
+- 商品カードへ商品詳細と購入導線を提供する。
 
 #### Important UI States
 
@@ -104,7 +104,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - 商品画像、価格、Sale、Review Summary、Variation、在庫、購入上限を表示する。
-- 選択可能なVariationだけをCart追加に進める。
+- 選択可能なVariationだけをCart追加へ進める。
 
 #### Important UI States
 
@@ -179,7 +179,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - Categoryに属する公開商品を一覧表示する。
-- Viewer条件に合わない商品を表示結果に混ぜない。
+- Viewer条件に合わない商品を表示結果へ混ぜない。
 
 #### Important UI States
 

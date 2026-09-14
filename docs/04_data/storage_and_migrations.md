@@ -11,28 +11,28 @@
 | 商品画像Manifest診断用 | `public/images/product-image-manifest.json` |
 | Test Clock/Delay | app_settings |
 
-Phase 1では画像Blob、別Gateway DB、GitHub書込みTokenをBrowserに保存しません。
+Phase 1では画像Blob、別Gateway DB、GitHub書込みTokenをBrowserへ保存しません。
 
 ## 2. GitHub画像運用
 
 - GitHub Repositoryを画像Binaryの正本とし、Cloudflare PagesのBuild成果物として同一Origin配信します。
 - File名は原則`<semantic-name>.<content-hash>.<ext>`とし、既存Fileを上書きしません。
 - `scripts/generate-image-manifest.ts`がAsset ID、Path、MIME、寸法、容量、SHA-256、Default Alt、Tag、有効状態を検証・生成します。
-- 管理UIはManifestのactive Assetを選択し、Productとの関連付けをIndexedDBに保存します。
+- 管理UIはManifestのactive Assetを選択し、Productとの関連付けをIndexedDBへ保存します。
 - 新規画像Binaryの追加・置換・廃止はGitHubのCommit/PRとCloudflare再Deployで行います。アプリ内の管理者操作ではGitHubを変更しません。
 - 使用中Assetは物理削除しません。候補から外す場合はManifest上でinactiveにし、既存参照は表示継続します。
 - GitHub Contents API、PAT、OAuth TokenをFrontendから利用しません。
 
 ## 3. 初期化と画像Manifest
 
-Build前に`scripts/generate-image-manifest.ts`を実行し、同じ内容から次のファイルを生成します。
+Build前に`scripts/generate-image-manifest.ts`を実行し、同じ内容から次を生成します。
 
 - `src/generated/product-image-manifest.ts`: Runtimeが静的importする正本
 - `public/images/product-image-manifest.json`: CI確認・人間の診断用
 
 Runtime Fetch、Runtime Cache、取得失敗時Fallbackは実装しません。生成物が欠落・不整合の場合はBuildを失敗させます。Release済み画像Pathはappend-onlyです。
 
-App起動時はDBをOpenし、Schema Versionを確認します。DBが空なら`default` Seedを投入し、無効なCurrent Sessionを削除し、guestIdがなければ生成してLocal Storageに保存します。
+App起動時はDBをOpenし、Schema Versionを確認します。DBが空なら`default` Seedを投入し、無効なCurrent Sessionを削除し、guestIdがなければ生成してLocal Storageへ保存します。
 
 ## 4. Reset
 
@@ -48,7 +48,7 @@ App起動時はDBをOpenし、Schema Versionを確認します。DBが空なら`
 
 Phase 1は新規Schema v1だけをRelease対象とします。開発中にSchemaを変更する場合は、正式Release前であればDB Resetを許可します。
 
-正式なUpgrade Migration、失敗Recovery、旧Version互換TestはPhase 3で追加します。Phase 1にMigration Frameworkを先行実装しません。
+正式なUpgrade Migration、失敗Recovery、旧Version互換TestはPhase 3で追加します。Phase 1へMigration Frameworkを先行実装しません。
 
 ## 6. 容量・画像品質
 
@@ -65,4 +65,4 @@ Phase 1は新規Schema v1だけをRelease対象とします。開発中にSchema
 
 ## Phase 2資料
 
-SQLite初期案は`future/phase2/sqlite_schema.md`に分離し、Phase 1の正本ではありません。
+SQLite初期案は`future/phase2/sqlite_schema.md`へ分離し、Phase 1の正本ではありません。

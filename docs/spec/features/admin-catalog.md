@@ -97,7 +97,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 #### Functions
 
 - Product Aggregateの新規入力、Validation、Previewを提供する。
-- 保存前PreviewがDBに書き込まれないことを表示上も区別する。
+- 保存前PreviewがDBへ書き込まれないことを表示上も区別する。
 
 #### Important UI States
 

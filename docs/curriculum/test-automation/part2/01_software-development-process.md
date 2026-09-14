@@ -12,7 +12,7 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` の開発・検証構成を使用します。**
 
-主に次の資料を参照します。
+主に次を参照します。
 
 - `README.md`
 - `CONTRIBUTING.md`
@@ -30,7 +30,7 @@ Part 2では、そのテストを「自分が必要なときに手動実行す�
 
 GitやGitHubを学ぶこと自体が目的ではありません。
 
-最終的な目的は、次のことを自分で考えられるようになることです。
+最終的な目的は、次を自分で考えられることです。
 
 ```text
 変更が入る
@@ -90,7 +90,7 @@ Monitoring / Improvement
 
 ## Lesson 3: なぜ変更履歴を管理するか
 
-変更履歴がなければ、次の点を追いにくくなります。
+変更履歴がなければ、次を追いにくくなります。
 
 - 何を変えたか。
 - なぜ変えたか。
@@ -118,7 +118,7 @@ Scenario Shopを例にすると、次もReview対象です。
 
 変更に応じて実行する仕組みが必要です。
 
-候補は次のとおりです。
+候補:
 
 - 開発中のローカル実行
 - Pull Request作成時
@@ -137,7 +137,7 @@ Scenario Shopでは次があります。
 
 - Web `dist/`
 - Android APK
-- iOS `iphonesimulator` Build Artifact（Current formal guaranteeはBuild-only）
+- iOS `iphonesimulator` Build Artifact（現在の正式な保証はBuild-only）
 
 Source TestがPassしても、Buildに失敗したりBuild Artifactで問題が起きる可能性があります。
 
@@ -153,7 +153,7 @@ Scenario ShopではCloudflare PagesへのDeploy後にSmoke Testを実行する�
 
 ## ハンズオン1: 変更からReleaseまでを図にする
 
-Scenario Shopへ「Cart画面のUI変更」が入る想定で、次の項目を図示します。
+Scenario Shopへ「Cart画面のUI変更」が入る想定で、次を図示します。
 
 - 実装
 - Local Test
@@ -189,7 +189,7 @@ Part 1で作成したTestを一覧化し、「開発プロセスのどこで実�
 
 ### Recovery
 
-回答がつながらない場合は、まず「変更」「確認対象」「失敗時に戻る工程」の3列へ分けて、Cart UI変更などの具体例を1つ書きます。CommandやBuildが実行できない場合はEnvironment blockとして分離し、開発プロセスの理解不足とは混同しません。区別できたら、Lesson 1の流れとPart 1の自分のTestへ戻って対応付けます。
+回答がつながらない場合は、まず「変更」「確認対象」「失敗時に戻る工程」の3列へ分けて、Cart UI変更などの具体例を1つ書きます。CommandやBuildが実行できない場合は環境上の問題として分離し、開発プロセスの理解不足とは混同しません。区別できたら、Lesson 1の流れとPart 1の自分のTestへ戻って対応付けます。
 
 ## 完了条件
 
@@ -200,4 +200,4 @@ Part 1で作成したTestを一覧化し、「開発プロセスのどこで実�
 
 ## 次の行動
 
-変更管理の流れをGitに接続するため、[P2-2: Gitによるバージョン管理](02_git-version-control.md)へ進みます。
+変更管理の流れをGitへ接続するため、[P2-2: Gitによるバージョン管理](02_git-version-control.md)へ進みます。

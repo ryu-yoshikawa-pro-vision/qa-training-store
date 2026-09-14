@@ -2,7 +2,7 @@
 
 ## 1. 方針
 
-設計全体を一括実装しません。学習価値と依存関係に基づき、各Phaseの完了条件を満たしてから次に進みます。将来Phaseの仕様は方向性だけを保持し、Phase開始時に詳細を再レビューします。`future/phase2`配下は参考資料でありPhase 1の正本ではありません。
+設計全体を一括実装しません。学習価値と依存関係に基づき、各Phaseの完了条件を満たしてから次へ進みます。将来Phaseの仕様は方向性だけを保持し、Phase開始時に詳細を再レビューします。`future/phase2`配下は参考資料でありPhase 1の正本ではありません。
 
 ## 2. Phase 1: 洗練されたWeb ECとPlaywright
 
@@ -23,7 +23,7 @@
 
 - Home、検索候補、Filter、Sort、Pagination、商品詳細、Cart、購入を自動化できる。
 - 正常購入、明確なPayment失敗・再試行、Rank別価格、在庫不足、権限、管理Order処理を自動化できる。
-- Admin Overviewから対象一覧・詳細へ遷移し、商品本体・SKU・画像参照の追加・変更・削除を含む主要管理操作を完了できる。
+- Admin Overviewから対象一覧・詳細へ遷移し、商品本体・SKU・画像参照の追加変更削除を含む主要管理操作を完了できる。
 - Guest Cart統合、Cart数量境界、Checkout Session再開・破棄が決定的に動作する。
 - Seed/Reset/ClockによりTest前提が決定的である。
 - Critical/Highの既知不具合がない。
@@ -58,11 +58,11 @@ Phase 1のRepository Interface、Page Pattern、業務ルールが安定し、We
 
 ### 開始条件
 
-高度機能が具体的な学習カリキュラムまたはTest課題として必要になったことを確認します。単に実ECへ近づけるためだけには追加しません。
+高度機能が具体的な学習カリキュラムまたはTest課題として必要になったことを確認すること。単に実ECへ近づけるためだけには追加しません。
 
 ## 5. Scope変更Rule
 
-- Phase 1に項目を追加する場合、商品探索・購入判断・管理効率・Accessibilityのどれを改善するか説明する。
+- Phase 1へ項目を追加する場合、商品探索・購入判断・管理効率・Accessibilityのどれを改善するか説明する。
 - 見た目だけの装飾、行動履歴Personalization、分析ChartはPhase 1へ追加しない。
-- 将来Phaseの詳細実装をPhase 1コードに先回りして作らない。
+- 将来Phaseの詳細実装をPhase 1コードへ先回りして作らない。
 - Interfaceは将来拡張を妨げない範囲で設計するが、未使用の抽象化やTableを追加しない。

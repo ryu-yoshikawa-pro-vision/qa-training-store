@@ -1,6 +1,6 @@
 # Unresolved Specifications
 
-このファイルはProduct意図が未確定の項目だけを記録します。記載項目はExpected Oracle、Defect判定、Scored Answer Keyに使用してはいけません。
+このファイルは製品の意図が未確定の項目だけを記録します。記載項目は期待動作の判断基準、不具合判定、Scored Answer Keyへ使用してはいけません。
 
 ## Active Questions
 
@@ -8,4 +8,4 @@
 
 ## Resolution
 
-Product Decisionが確定した項目は、Normative Feature Specに移し、必要なBR/AC、Automation、Charterを更新した後にこの一覧から削除します。
+Product Decisionが確定した項目は、Normative Feature Specへ移し、必要なBR/AC、Automation、Charterを更新した後にこの一覧から削除します。

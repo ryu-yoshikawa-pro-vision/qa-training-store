@@ -15,7 +15,7 @@
 
 - Searchは全Storefrontで利用可能。
 - operator/adminがLogin中の場合は購入Navigationを出さず、「管理画面へ」を表示する。
-- HeaderはScrollしても主要Navigationを見失わない範囲でStickyとする。
+- HeaderはScrollしても主要Navigationが見失われない範囲でStickyとする。
 
 ### Mobile
 
@@ -222,7 +222,7 @@ Rule:
 
 - Breadcrumb、Page Title、Status、Primary Action。
 - Main 2/3に主要情報、Aside 1/3に状態・分類・Meta情報。
-- 危険操作はPage末尾のDanger Zoneに分離する。
+- 危険操作はPage末尾のDanger Zoneへ分離する。
 
 ### Product Edit
 

@@ -8,11 +8,11 @@ Delivered注文のCustomer Review eligibility、投稿・編集・削除、公�
 
 ### BR-REVIEW-001 — Delivered注文の本人明細だけがReview対象になる
 
-Customer本人のdelivered Order Itemに対して1件だけ作成でき、削除後も同じOrder Itemに再投稿できません。
+Customer本人のdelivered Order Itemに対して1件だけ作成でき、削除後も同じOrder Itemへ再投稿できません。
 
 ### BR-REVIEW-002 — Review状態とProduct Summaryを一貫して更新する
 
-publishedだけを商品表示に集計し、hiddenは再公開操作まで非表示、deletedは終端とします。編集は状態を自動変更しません。
+publishedだけを商品表示へ集計し、hiddenは再公開操作まで非表示、deletedは終端とします。編集は状態を自動変更しません。
 
 ## UI / Behavior Contract
 

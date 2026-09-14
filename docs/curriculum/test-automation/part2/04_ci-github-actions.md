@@ -19,17 +19,17 @@
 
 受講者が最初からこれを直接編集・複製して実行することは前提にしません。共通範囲では、準備済みのTraining Workflowを読み、実行対象の`.github/workflows/**`を編集しません。
 
-## Common Required
+## 共通課程の必須範囲
 
-Common completionでは、Training環境のTrigger、Job / Step、Failure工程、least privilege（必要最小限のPermission）を説明できることを求めます。TrainingとProduction / Deployの責務を分け、失敗や想定外SkipをSuccessとして扱わない理由も説明します。
+共通課程の修了では、Training環境のTrigger、Job / Step、Failure工程、least privilege（必要最小限のPermission）を説明できることを求めます。TrainingとProduction / Deployの責務を分け、失敗や想定外SkipをSuccessとして扱わない理由も説明します。
 
-## 演習Workflowの境界（Support / Reference）
+## 演習Workflowの境界（支援・参考資料）
 
 Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、講師または組織が用意した準備済みTraining環境で行います。
 
-演習開始時に、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、本体RepositoryのRequired Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、[Instructor Reference](../03_instructor-reference.md)のsupport手順へ戻ります。
+演習開始時に、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、本体Repositoryの必須Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、[講師向け資料](../03_instructor-reference.md)の支援手順へ戻ります。
 
-Training Copyの準備、active Workflow allowlist、Action pin、Current topology、Native実行環境などのRepository固有詳細はこの文書に複製せず、Instructor support / Referenceで確認します。受講者はこれらの値の暗記やprovisioningをCommon completionの条件にしません。
+Training Copyの準備、実行対象workflowのallowlist、Action pin、現在の構成、Native実行環境などのリポジトリ固有の詳細はこの文書へ複製せず、講師支援・参考資料で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -57,11 +57,11 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) をReferenceとして読みます。Actionのfull commit SHA、exact allowlist、現在のWorkflow topologyはCurrent assetとInstructor supportで確認し、日本語の暗記やRepository provisioningをcompletionの条件にはしません。
+Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) を参考資料として読みます。Actionのfull commit SHA、exact allowlist、現在のworkflow構成は現在の資材と講師支援で確認し、日本語の暗記やリポジトリの準備作業を修了条件にはしません。
 
 概念としては、Event → least-privilege Permission → Job / Runner → Dependency Setup → Test Command → Artifact / Resultの関係を読み分けます。remote ActionのpinやVersionを更新する場合は、official sourceとSecurity Advisoryを確認します。
 
-ここでは次の項目を読み分けます。
+ここから次を読み分けます。
 
 - Workflow
 - Event
@@ -81,7 +81,7 @@ YAMLの`key: value`、リスト、インデントによる入れ子を確認し�
 | `runs-on` | Jobを動かすRunner |
 | `steps` | Job内の処理順序 |
 | `uses` | 再利用するAction |
-| `with` | Actionに渡す設定 |
+| `with` | Actionへ渡す設定 |
 | `run` | Runner上で実行するCommand |
 | `env` | Workflow / Job / Stepへ渡すEnvironment Variable |
 | `if` | StepやJobを実行する条件 |
@@ -90,7 +90,7 @@ YAMLの`key: value`、リスト、インデントによる入れ子を確認し�
 
 ## Lesson 3: Trigger
 
-代表的なTriggerは次のとおりです。
+代表的なTrigger:
 
 - `pull_request`
 - `push`
@@ -169,7 +169,7 @@ Matrixは重複YAMLを減らせますが、何でもMatrixへ入れるのでは�
 
 ## Lesson 9: CI Failure分析
 
-Failure時は最低限、次の項目を確認します。
+Failure時は最低限次を確認します。
 
 1. どのWorkflowが起動したか。
 2. Training Workflowか、意図しない既存Workflowか。
@@ -237,17 +237,17 @@ Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build
 
 ## 自己確認
 
-次の項目をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
+次をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
 
 - Trigger、Job、Step、Runnerの関係を説明できる。
 - TrainingとProduction / Deployの境界、`permissions: contents: read`などleast privilegeの意味を説明できる。
 - FailureがSetup、Build、Test、Environment / Secret、Permissionのどの工程かをLogから切り分けられる。
 - 失敗または想定外Skipを最終GateでSuccessにしない理由を説明できる。
-- Action pin、allowlist、現在のWorkflow topologyはRepository固有のSupport / Referenceであり、Core概念と区別できる。
+- Action pin、allowlist、現在のworkflow構成はリポジトリ固有の支援・参考資料であり、共通課程の概念と区別できる。
 
 ### Recovery
 
-Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界のEnvironment / provisioning blockとしてInstructor supportへ戻ります。
+Workflowが動かない場合は、最初に起動workflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界の環境・準備上の問題として講師支援へ戻ります。
 
 ## 完了条件
 
@@ -259,4 +259,4 @@ Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunne
 
 ## 次の行動
 
-CoreのCI構造とFailure切り分けをWeb Testの実行へ接続するため、[P2-5: PlaywrightをCIで実行する](05_playwright-ci.md)へ進みます。Action pinやTraining Copyの詳細確認は必要な場合だけReferenceとして行います。
+共通課程のCI構造とFailure切り分けをWeb Testの実行へ接続するため、[P2-5: PlaywrightをCIで実行する](05_playwright-ci.md)へ進みます。Action pinやTraining Copyの詳細確認は必要な場合だけ参考資料として行います。
