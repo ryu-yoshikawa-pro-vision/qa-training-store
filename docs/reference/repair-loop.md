@@ -17,7 +17,7 @@
 
 ## 共通の品質gate方針
 
-品質gateのfailureは、保留する前にbaseline、current diff、shared dependency、test or CI contract、execution environmentに照らして調査します。現在の変更またはその検証に必要なsafe minimal repairは、current loopで扱います。baseline、既存問題、unrelated status aloneだけを理由に保留しません。
+品質gateのfailureは、保留する前にbaseline、current diff、shared dependency、test or CI contract、execution environmentに照らして調査します。原因が現在の変更、現在の変更を検証するために必要なもの、または独立した既存問題のいずれであっても、現在の権限内で安全な最小修正が可能ならcurrent loopで扱います。baseline、既存問題、unrelated statusだけを理由に保留しません。
 
 安全な修復が、unsafe、destructive、permissionまたはcredentialに依存する、irreversible external side effectを伴う、requirement-dependentである、またはRepositoryのretry stop conditionに達したため実行できない場合は、causal assessment、unexecuted checks、next actionを記録し、bounded workflowに従って停止します。
 
@@ -32,8 +32,9 @@
 ## 対象範囲とartifactの統合
 
 - `allowed_files`と`expected_changed_files`はRepositoryの変更範囲ポリシーに照らして確認します。
-- Run reportとRun Artifactのsanitizationは[`docs/reference/run-artifacts.md`](run-artifacts.md)のappend-only／completion gate契約に従います。
+- Run reportはappend-only契約に従い、checkpointの意味を保持します。
 - Hook JSONL、Run manifest、evaluation file、Subagent recordはEvidenceの源です。最終判断はevaluation artifactと記録したdecisionに残します。
+- Repository artifactのsanitizationは完了ゲートです。サニタイズされていないローカル絶対パスがある場合、Runを完了扱いにしません。
 
 ## Subagent Evidenceの境界
 

@@ -1,4 +1,4 @@
-# Codex作業規約
+# Codex Working Agreement
 
 Codex は、このリポジトリで作業するとき、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。
 
@@ -35,8 +35,6 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 
 このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
-README、仕様書、設計文書、カリキュラム、Plan、Run Artifact、Issue / Pull Request本文、Skill、referenceなど、人間が読む文章を作成・修正するときは [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md) に従う。文章表現の詳細は同文書を正本とし、ここでは作業手順とRun運用の責務だけを定める。
-
 ## 4. 品質ゲートとrepairの高レベル契約
 
 - failureは最初の異常と派生エラーを分け、baseline、current diff、shared dependency、test / CI contract、実行環境を確認して原因を分類する。
@@ -66,7 +64,6 @@ README、仕様書、設計文書、カリキュラム、Plan、Run Artifact、I
 - Codex native delegationとAndroid / Native validationは別の責務として扱う。
 
 ## 8. 改善ガバナンス
-
 - L1: wordingのみの文書改善は、`REPORT.md`に記録すれば自己承認でよい。
 - L2: workflowやtemplate構造の変更は、実装前にユーザー承認が必要。
 - L3: permission / sandbox / approval / wrapper behaviorの変更は、実装前に明示承認とrollback planが必要。
