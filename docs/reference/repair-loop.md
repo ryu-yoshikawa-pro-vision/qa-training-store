@@ -11,13 +11,13 @@ This document defines the Scenario Shop Repository-side contracts that are suppl
 - Evaluation artifact and finding schema from the Repository evaluation contract.
 - Failure categories from `spec/failure-taxonomy.json`.
 - Run manifest, run report, hook-observation, and Subagent record locations from the active Run contract.
-- Sanitization command and check contract from `scripts/sanitize-codex-artifacts.ps1`.
+- Run Artifact lifecycle and path sanitization from [`docs/reference/run-artifacts.md`](run-artifacts.md). Repair workflowはこのRepository-wide契約を利用し、ここでは重複定義しません。
 
 `AGENTS.md` maps these Repository inputs to the package. The package must not assume these paths, schemas, or commands when used in another Repository.
 
 ## Shared quality-gate policy
 
-A quality-gate failure is investigated against the baseline, current diff, shared dependency, test or CI contract, and execution environment before it is deferred. A safe, minimal repair that is required by the current change or by its verification is handled in the current loop. An unrelated, unsafe, destructive, environment-only, or requirement-dependent issue is recorded for later handling with its causal assessment, unexecuted checks, and next action.
+A quality-gate failure is investigated against the baseline, current diff, shared dependency, test or CI contract, and execution environment before it is deferred. Whether the cause is in the current change, required to verify the current change, or an independent existing issue, a safe minimal repair within current authority is handled in the current loop; baseline, existing, or unrelated status alone is not a reason to defer it. If no safe repair is available because the action is unsafe, destructive, permission- or credential-dependent, an irreversible external side effect, requirement-dependent, or the Repository retry stop condition has been reached, record the causal assessment, unexecuted checks, and next action and stop according to the bounded workflow.
 
 ## Evaluation and failure taxonomy integration
 
@@ -28,13 +28,8 @@ A quality-gate failure is investigated against the baseline, current diff, share
 ## Scope and artifact integration
 
 - `allowed_files` and `expected_changed_files` are checked against the Repository change-scope policy.
-- Run reports preserve checkpoint meaning under their append-only contract.
+- Run reports and Run Artifact sanitizationは[`docs/reference/run-artifacts.md`](run-artifacts.md)のappend-only／completion gate契約に従います。
 - Hook JSONL, run manifests, evaluation files, and Subagent records are evidence sources; the evaluation artifact and recorded decision remain the final judgment.
-- Repository artifact sanitization is a completion gate. Unsanitized local absolute paths prevent Run completion.
-
-### REPORT.md append-only contract
-
-`REPORT.md`のAppend-only契約は、checkpointの意味を削除、並べ替え、意味変更せずに保持することを指します。既存記録のローカル絶対Pathを既定Tokenへ置換する安全性例外は、記録の意味を変えない場合に限ります。
 
 ## Subagent evidence boundary
 

@@ -40,6 +40,15 @@
 
 - `lightweight` は無制限 mode ではない。
 - 外部通信、削除、rename、移行、権限変更、セキュリティ影響、公開 contract 変更を含む場合は `standard` 以上へ引き上げる。
+- `standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。
+- `lightweight`でもRun Artifactを残します。
+- `lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。
+- `new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。
+  - `.codex/templates/PLAN.md`
+  - `.codex/templates/TASKS.md`
+  - `.codex/templates/REPORT.md`
+- actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。
+- Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。
 
 ## Verification tiers
 
@@ -50,6 +59,35 @@
   - `bash template/scripts/verify --strict-harness`
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`
 - `--strict-harness` / `-StrictHarness` は source repo layout、spec/template/docs/version/CI 契約を前提にするため、consumer repo では通常 verify を使う。
+
+## Repository file-changing task の完了契約
+
+次の契約は、repository working tree のファイルを実際に変更し、Git commit対象となる差分を作る実装・変更taskへ適用します。ユーザーがそのtaskでGit操作を明示的に禁止した場合は、禁止された工程を実行せず、その理由と残作業を報告します。
+
+### 適用対象と除外
+
+- 適用対象は、コード、test、設定、文書、Run Artifact等のrepository fileを変更し、commit対象差分を作る実装・変更taskです。
+- GitHub metadataのみ（PR / Issue本文、label、review comment、reviewer設定等）、review-only、plan-only、調査のみ、質問、状態確認、repository file変更を伴わない分析には、このcommit / push / PR / CI完了契約を適用しません。
+- repository file変更とGitHub metadata変更を同時に行う場合は、通常のfile-changing taskとして扱います。
+
+### Commit / push / PR / CI lifecycle
+
+- ローカル検証、tracked Run Artifactのfinal commit前状態への更新・検証、scope確認の後にcommitします。
+- 既存PRがある場合はそのPRを使用します。PRがなく、対象CIが`pull_request`を契機として実行される場合だけ、CI確認に必要なPRを作成します。CI確認のために`main`へ直接pushしません。
+- commit後は対象branchへ通常pushし、local HEAD / remote HEAD、PRの最新headを確認します。branch、refspec、復旧手順の詳細は `docs/reference/git-branch-safety.md` を参照します。
+- 通常PRで確認する必須CIは `Web CI` と `Mobile App CI` です。`Cross Browser Smoke` はscheduleと`workflow_dispatch`で起動する通常PR外のworkflowであり、通常PRの必須CIには含めません。必須CIの列挙はこのRepository契約を正本とし、branch protectionから自動推測しません。
+- push後は、pushした最新commitをheadとするPRのGitHub Actionsを確認します。以前のcommitの結果を最新headの結果として流用しません。
+- `Web CI` / `Mobile App CI` がともに`success`となり、必要なCI結果をPR本文へ記録した時点まで、file-changing taskを完了扱いにしません。`queued` / `in_progress`、未確認、failureは完了扱いにしません。
+- 必須CIがfailureの場合は、`docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` のbounded repair workflowに従い、修正後の新しいcommitと最新PR headで必須CIを再確認します。
+- `queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。
+- tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。push後のCI結果はGitHub Actions、PR本文、ユーザー向け報告へ記録します。
+
+### Progressとの責務分離
+
+- `TASKS.md`のcheckboxによるProgressは `docs/reference/run-artifacts.md` の基本計算に従うtracked taskの進捗であり、file-changing task全体の完了判定とは同一ではありません。
+- file-changing taskでは、push後の必須CI確認1件をユーザー向けProgressの分母・分子へ加算します。分母は`TASKS.md`の`## Now`＋`## Discovered`のcheckbox総数＋1、分子は完了checkbox数＋条件を満たして完了した必須CI確認1件です。CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。
+- CI確認1件の加算は、最新PR headで`Web CI`と`Mobile App CI`がともに`success`となり、必要なPR本文更新まで完了した時点に限ります。CI success確認済みでも必要なPR本文更新前、queued / in_progress、未確認、failureの間は加算しません。
+- review-only、plan-only、調査、質問、状態確認、repository file変更を伴わない分析、GitHub metadataのみ、またはGit操作禁止のtaskではCI確認1件を加算しません。これらはcheckboxの基本Progressだけを適用します。
 
 ## Run 初期化
 
