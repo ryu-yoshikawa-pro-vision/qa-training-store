@@ -1,149 +1,91 @@
 # Issue #117 PR3 Trigger description最適化 実装計画
 
-## 0. 依頼概要
+## 1. 目的
 
 - 対象Issue: [#117](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/117)
 - 対象フェーズ: PR3「Trigger description最適化」
 - 実装ブランチ: `refactor/117-pr3-trigger-description-optimization`
 - branch作成元: `main` `2afae5cb6562aa94b46ecc4f31a245d85ae48eda`
-- 目的: PR2で保存したTrigger Eval baselineのobservableなfailureを根拠に、Skill frontmatterの`description`だけを必要最小限調整し、同一dataset・同一Codex version・同一model条件で改善と非回帰を確認する。
-- baseline:
-  - `.codex/runs/20260912-231826-JST/trigger-eval-baseline.json`
-  - Result schema: `2`
-  - `routing_source_git_sha`: `3c5e35ed42712574eb9d89051820c9e27f137a16`
-  - `dataset_sha256`: `89e15bc1a36ea6b7e769f8f84d1f56c99f331acbf2ccd1d2cbf3d5405ee7b267`
-  - Codex: `codex-cli 0.153.4`
-  - model: `gpt-5.6-luna`
-  - 24 cases: `pass=15`、`false_negative=2`、`sibling_misroute=0`、`unexpected_trigger=0`、`unobservable=7`
 
-PR3ではTrigger Evalの観測方式、dataset、scoring、timeout、routing engineを変更しない。description改善と、その比較検証だけを扱う。
+PR2で保存したTrigger Eval baselineのobservableなfailureを確認し、Skill frontmatter `description`に一般化可能なrouting上の欠落がある場合だけ必要最小限修正する。
+
+PR3の目的は、baseline failureを必ずdescription変更で消すことではない。failure query、対応するvalidation case、現行Skill boundary、`AGENTS.md`のroutingを照合し、descriptionとの因果を説明できる場合だけ変更する。descriptionに不足が確認できなければ、source変更なしを有効な結論として扱う。
+
+baseline:
+
+- `.codex/runs/20260912-231826-JST/trigger-eval-baseline.json`
+- Result schema: `2`
+- `routing_source_git_sha`: `3c5e35ed42712574eb9d89051820c9e27f137a16`
+- `dataset_sha256`: `89e15bc1a36ea6b7e769f8f84d1f56c99f331acbf2ccd1d2cbf3d5405ee7b267`
+- Codex: `codex-cli 0.153.4`
+- model: `gpt-5.6-luna`
+- 24 cases: `pass=15`、`false_negative=2`、`sibling_misroute=0`、`unexpected_trigger=0`、`unobservable=7`
+
+PR3ではTrigger Evalのdataset、観測方式、scoring、comparison、timeout、routing engineを変更しない。
 
 ---
 
-## 1. ゴール / 完了条件
+## 2. 対象となるbaseline failure
 
-### 1.1 ゴール
+PR2 baselineでdescriptionとの関係を確認する対象は次の2件である。
 
-baselineで確認された次の2件の`false_negative`を、expected Skillの`description`を狭く具体化することで解消する。
-
-| Case ID | Expected Skill | Baseline | 対象 |
+| Case ID | Expected Skill | Baseline | 対応するvalidation case |
 | --- | --- | --- | --- |
-| `code-review-train-002` | `repair-loop` | `false_negative` | `.agents/skills/repair-loop/SKILL.md` のfrontmatter `description` |
-| `exploratory-qa-train-002` | `android-native-local-validation` | `false_negative` | `.agents/skills/android-native-local-validation/SKILL.md` のfrontmatter `description` |
+| `code-review-train-002` | `repair-loop` | `false_negative` | `code-review-validation-002` は `pass` |
+| `exploratory-qa-train-002` | `android-native-local-validation` | `false_negative` | `exploratory-qa-validation-002` は `pass` |
 
-caseのownerはそれぞれ`code-review`、`exploratory-qa`だが、negative caseで期待されているSkillは`repair-loop`と`android-native-local-validation`である。owner側Skillのdescriptionを調整対象にしない。
+同じexpected Skillを持つvalidation caseがbaselineでpassしているため、2件のtrain failureだけからdescription defectとは断定しない。
 
-### 1.2 完了条件（DoD）
+現行契約も次の内容を既に持っている。
 
-- [ ] 実装開始時のlatest `main`とこのPlanの前提差分を確認している。
-- [ ] baseline artifact、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認している。
-- [ ] baseline `routing_source_git_sha`と実装開始時`main`の間で、対象boundaryのrouting意味が変わっていないことを確認している。
-- [ ] `repair-loop`のfrontmatter `description`だけを、validation/test/lint/CI failureのtriage、最小修正、同じvalidationの再実行が対象だと分かる表現へ調整している。
-- [ ] `android-native-local-validation`のfrontmatter `description`だけを、build/install前のDoctor/preflight、SDK/toolchain、physical-device readiness確認も対象だと分かる表現へ調整している。
-- [ ] `code-review`、`exploratory-qa`、`feature-plan`、`harness-improvement`のdescriptionを変更していない。
-- [ ] 6 Skillの本文、references、assets、scripts、Trigger Eval datasetを変更していない。
-- [ ] `AGENTS.md`のrouting意味契約を変更していない。
-- [ ] Trigger Eval runner、OTel observer、scoring、comparison、timeout、Result schemaを変更していない。
-- [ ] `dataset_sha256`がbaselineと同じである。
-- [ ] PR3 tuningでは`train` splitだけを使い、candidate wordingを決めるために`validation`結果を利用していない。
-- [ ] 最終candidate確定後に`all`を1回実行し、baselineとの`--compare`が成立している。
-- [ ] `code-review-train-002`と`exploratory-qa-train-002`が最終comparisonで`fixed`になっている。
-- [ ] 最終comparisonで`regressed=0`である。
-- [ ] baselineでobservableだったcaseが`newly_unobservable`になっていない。発生した場合はdescription非回帰を証明できないため完了扱いにしない。
-- [ ] `recovered_observable`が発生した場合、current outcomeを確認し、observable failureを見落としていない。
-- [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
-- [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
-- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価frameworkを追加していない。
+- `repair-loop` frontmatterは`fixing validation failures`を対象に含む。
+- `repair-loop`本文はactionableなvalidation failureのtriage、repair、validationを定義している。
+- `android-native-local-validation` frontmatterはWindows Android tooling、local Release APK、physical device、Maestro、Native physical-device failureを対象に含む。
+- `android-native-local-validation`本文はDoctor/preflightをBuild / Install / Test / Maestroより前に実行する手順を持つ。
+- `AGENTS.md`はreview findingまたはvalidation failureの修正を`repair-loop`へ、Windows Android tooling / Release APK / physical device / Maestro / Native failureを`android-native-local-validation`へroutingしている。
+
+このため、実装開始時に「現行descriptionへ何を追加すれば一般的なrouting境界が改善するのか」を説明できなければ変更しない。
 
 ---
 
-## 2. 現状理解と前提
+## 3. 対象範囲
 
-### 2.1 Current understanding
+### 3.1 変更候補
 
-baselineでは24件中2件だけがobservableなrouting failureで、どちらも`false_negative`である。`sibling_misroute`と`unexpected_trigger`は0件である。
-
-`code-review-train-002`は、`pnpm run lint:markdown`のfailureについて最初の異常を特定し、許可範囲の最小修正と同じgateの再実行まで求めるqueryで、expected Skillは`repair-loop`である。現行`repair-loop` descriptionはvalidation failureの修正を含むが、triage、lint/test/CI failure、同一validation再実行までをfrontmatterでは明示していない。
-
-`exploratory-qa-train-002`は、Windowsの接続済みphysical Android deviceについてDoctor結果と端末認識を確認し、Maestroを実行せず最初の不足を記録するqueryで、expected Skillは`android-native-local-validation`である。現行descriptionはWindows Android tooling、Release APK、physical device、Maestroを含むが、build/install前のDoctor/preflightやdevice readinessだけを確認する依頼をfrontmatterでは明示していない。
-
-一方で、baselineでは同じexpected Skillを持つ他caseにpassがある。したがってSkill全体のrouting定義を広く書き換えず、2件のmissing intentを補う範囲に限定する。
-
-Trigger Evalの現行comparisonは次を必須とする。
-
-- Result `schema_version=2`
-- `split=all`
-- 同一`dataset_sha256`
-- 同一case ID set
-- 同一`codex_version`
-- 同一model
-
-modelはrunnerで`gpt-5.6-luna`に固定されている。baselineのCodex versionは`codex-cli 0.153.4`であり、異なるversionではbaseline comparisonを成立させない。
-
-PR2 merge後の`main`には`.agents/skills/*/evals/trigger/**`が存在する。一方、current runnerのRouting Target preflightはTrigger Eval datasetが存在するTargetを拒否する。そのため、PR3 live evalで通常のlatest `main` cloneをそのままRouting Targetにできない。
-
-### 2.2 Assumptions
-
-- baselineの`routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`はPR2 datasetを含まないrouting subjectである。実装時にtreeを確認し、Trigger Eval datasetが存在する場合はこの前提を破棄する。
-- baseline sourceと実装開始時`main`の間で、対象2 boundaryのrouting意味にmaterialな変更がないことを実装前に確認する。materialな変更があれば、description-only comparisonとして旧routing sourceを使う前提を見直し、このPlanのまま実装へ進まない。
-- `codex-cli 0.153.4`を実行できる環境をPR3 comparisonの前提とする。利用できない場合、runnerのversion比較を弱めたりbaselineを偽装したりしない。
-- live eval用Routing TargetはRepository外の一時directoryに作成し、Git管理対象へ追加しない。
-
-### 2.3 Non-goals
-
-- Trigger Eval datasetのquery、expected Skill、boundary、case ID変更
-- unobservable 7件の解消
-- OTel observationの改善
-- Hook fallbackの追加
-- timeout変更
-- comparison/scoring contract変更
-- `AGENTS.md` routingの再設計
-- Skill本文やworkflow semanticsの変更
-- PR4 / PR5の再実装
-- PR6 Workflow E2E Evalの先取り
-- 新しいSkill、Subagent、Agent Runtime、Workflow Engineの追加
-
----
-
-## 3. 質問 / 曖昧性
-
-### 3.1 必ず質問する不透明点
-
-現時点でユーザー判断が必要な不透明点はない。
-
-### 3.2 仮定してよい細部
-
-- 一時Routing Targetのdirectory名や配置先は、Evaluator rootの内外関係を満たすRepository外pathであれば実装環境に合わせて決めてよい。
-- live evalのoutput pathはactive Run配下のGit管理対象artifactとし、RepositoryのRun Artifact契約に従う。
-
-### 3.3 未回答の重要質問
-
-なし。
-
-実装時に`codex-cli 0.153.4`が利用できない、baseline sourceにdatasetが存在する、対象routing意味にmaterial driftがある、のいずれかが確認された場合は質問ではなくStop条件として扱う。
-
----
-
-## 4. 影響範囲
-
-### 4.1 Impacted areas
-
-実装変更候補は次の2ファイルに限定する。
+意味上の欠落が確認できた場合だけ、次のfrontmatter `description`を変更候補とする。
 
 ```text
 .agents/skills/repair-loop/SKILL.md
 .agents/skills/android-native-local-validation/SKILL.md
 ```
 
-各ファイルともfrontmatter `description`だけを変更する。
+2ファイルを必ず両方変更する必要はない。各failureを独立して判定し、根拠があるSkillだけ変更する。
 
-live evalの結果と通常のRun ArtifactはRepository既存契約に従ってactive Runへ保存するが、PR3固有の新しいartifact schemaは作らない。
+### 3.2 対象外
 
-### 4.2 Files to inspect
+- `code-review`、`exploratory-qa`、`feature-plan`、`harness-improvement`のdescription変更
+- 6 Skillの本文、references、assetsの変更
+- Trigger Eval datasetのquery、expected Skill、boundary、case ID変更
+- `AGENTS.md` routingの変更
+- Trigger Eval runner、OTel observer、scoring、comparison、timeout、Result schemaの変更
+- `unobservable` 7件の解消
+- Hook fallback、retry framework、統計評価frameworkの追加
+- PR4 / PR5の再実装
+- PR6 Workflow E2E Evalの先取り
+- Product code、Product test、Training、dependency、workflow、`.codex/agents/**`の変更
+- 新しいSkill、Subagent、Agent Runtime、Workflow Engineの追加
 
-実装開始時に最低限次を再確認する。
+既存のTrigger Eval契約は `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`、`docs/adr/0025-trigger-eval-otel-observation-contract.md`、現行runner / evaluatorを正本として参照し、このPlanへ再定義しない。
+
+---
+
+## 4. 実装前に確認する内容
+
+最低限、次を確認する。
 
 ```text
+Issue #117
+PR #127
 AGENTS.md
 .agents/skills/repair-loop/SKILL.md
 .agents/skills/android-native-local-validation/SKILL.md
@@ -159,50 +101,12 @@ AGENTS.md
 .agents/skills/repair-loop/evals/trigger/validation.yaml
 scripts/evals/skill-trigger-evals.ts
 scripts/evals/run-skill-trigger-evals.ts
-scripts/evals/otel-skill-observer.ts
-tests/repository-contract/skill-trigger-evals.test.ts
-tests/repository-contract/otel-skill-observer.test.ts
-tests/repository-contract/windows-codex-argv.test.ts
 docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md
 docs/adr/0025-trigger-eval-otel-observation-contract.md
 .codex/runs/20260912-231826-JST/trigger-eval-baseline.json
 ```
 
----
-
-## 5. 変更方針
-
-### 5.1 Candidate description
-
-train failureと現行Skill boundaryから、最初のcandidateは次の方向とする。最終的な変更はfrontmatterの1行だけとし、Skill本文へ同じ説明を重複追加しない。
-
-`repair-loop`:
-
-```yaml
-description: Use when triaging and minimally fixing review findings or validation, test, lint, or CI failures, then rerunning the same validation in a bounded Review -> Repair -> Validate loop.
-```
-
-意図:
-
-- `code-review`との境界を「指摘を返すreview」対「failureをtriageし、実際に最小修正して再検証するrepair」で明確にする。
-- `lint`を含むvalidation failureをrouting対象としてfrontmatterから判断できるようにする。
-- 単なる分析やreview全般へ広げない。
-
-`android-native-local-validation`:
-
-```yaml
-description: Use when checking Windows Android Doctor/preflight, SDK/toolchain or physical-device readiness, building or installing a local Release APK, running Maestro flows, or investigating a Native physical-device failure.
-```
-
-意図:
-
-- build/install/Maestroを実行しないDoctor/preflightやdevice recognitionだけの依頼もrouting対象だと明確にする。
-- Scenario Shop上の通常Android user journeyや探索的QA全般へ広げず、Windows local tooling / physical-device validationに限定する。
-
-### 5.2 実装開始前のrebaseline
-
-1. latest `main`をfetchし、branch baseとの差分を確認する。
-2. 次にmaterial changeがある場合は取り込み前に内容を確認する。
+実装開始時のlatest `main`とbranch baseとの差分も確認する。特に次が変わっている場合は、baseline取得時と現在のrouting contextが同じではないことを明示して扱う。
 
 ```text
 AGENTS.md
@@ -213,129 +117,178 @@ docs/adr/0024-*
 docs/adr/0025-*
 ```
 
-3. baseline artifactのprovenanceとsummaryを再確認する。
-4. `codex --version`が`codex-cli 0.153.4`であることを確認する。
-5. baseline sourceとlatest `main`の対象routing差分を確認する。
+`AGENTS.md`等に差分があっても、PR2 baselineとの因果比較と現在の`main`上の統合確認を分離するため、差分があることだけを理由にbaseline比較を中止しない。ただしIssue #117のrouting方針自体が変わっている場合は、このPlanの前提が成立しないため再計画する。
 
-```bash
-git diff 3c5e35ed42712574eb9d89051820c9e27f137a16..<branch-base> -- \
-  AGENTS.md \
-  .agents/skills/repair-loop/SKILL.md \
-  .agents/skills/android-native-local-validation/SKILL.md
-```
+---
 
-`AGENTS.md`に構造整理があっても、対象2 boundaryのrouting意味が維持されていればbaseline sourceをdescription-only比較のrouting subjectとして利用できる。意味が変わっている場合はStopする。
+## 5. description変更要否の判定
 
-### 5.3 description変更
+各failureについて、次の順序で判断する。
 
-1. `repair-loop/SKILL.md`のfrontmatter `description`だけを変更する。
-2. `android-native-local-validation/SKILL.md`のfrontmatter `description`だけを変更する。
-3. Skill本文、reference、datasetは変更しない。
-4. `git diff`で2ファイル・2 frontmatter行以外のsource差分がないことを確認する。
-5. live eval前にcandidate sourceをcommitし、Evaluator rootをcleanにする。runnerの`sourceStatusOutsideRunArtifacts()`を回避するために検証契約を弱めない。
+### 5.1 `code-review-train-002`
 
-### 5.4 answer-key-free Routing Targetの準備
+確認対象:
 
-PR2 merge後のlatest `main`を直接cloneするとTrigger Eval datasetを含むため、PR3ではbaseline routing sourceを元に一時Targetを作る。
+- failure queryは、既に発生したvalidation failureの原因を特定し、許可範囲の最小修正を行い、同じvalidationを再実行する依頼である。
+- `code-review`本文はreview findingを出力とし、repairが必要ならbounded repair workflowへ切り替える契約を持つ。
+- `repair-loop` frontmatterは既に`fixing validation failures`を含む。
+- `repair-loop`本文はtriage、repair、validationを既に定義する。
+- 対応する`code-review-validation-002`はbaselineで`repair-loop`へroutingできている。
 
-新しいcommitted helperやrepository generatorは追加せず、実装Run内の明示手順として行う。
+変更条件:
 
-1. Repository外に一時source directoryとRouting Target directoryを用意する。
-2. remoteからbaseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`を取得する。
-3. baseline treeに`.agents/skills/*/evals/trigger/**`が存在しないことを確認する。
-4. `git archive`等でbaseline treeのworking filesだけをRouting Target directoryへ展開する。source cloneの`.git`は持ち込まない。
-5. PR3 branchのbranch-baseからcandidate commitまでの**2つの`SKILL.md` frontmatter差分だけ**をpatchとして生成し、Routing Targetへ適用する。
-6. patch適用後、変更が2 descriptionだけであることを確認する。
-7. Routing Target directoryで新しく`git init`し、展開済みfilesだけをadd/commitする。
-8. `HEAD`をdetachする。
-9. working treeがcleanで、EvaluatorとGit common-dirを共有せず、`objects/info/alternates`が空で、Trigger Eval datasetが存在しないことを確認する。
-10. current Codexの通常のuser-consented project / Hook trust手順が必要なら、人間が通常手順で確認する。runnerやscriptからtrust stateを変更しない。
+- frontmatterだけを見たときに、既に観測されたfailureに対して「実際に修正して再検証する」依頼が`repair-loop`対象だと判断しにくい、という一般化可能な欠落を具体的に説明できる場合だけ変更する。
 
-この方式では、Routing TargetのGit object databaseをbaseline tree + candidate descriptionから新規生成し、PR2 merge後のTrigger Eval answer keyをTarget historyへ持ち込まない。
+変更する場合の方針:
 
-Targetのsynthetic commit SHAはbaseline `routing_source_git_sha`とは異なる。Resultの`routing_source_git_sha`には実Target HEADをそのまま記録し、Run Artifactには「base routing source SHA」と「candidate Target SHA」を両方残す。comparisonはrouting source SHA一致を要求しないため、値を偽装しない。
+- `lint`、`test`、`CI`などtrain query由来のfailure種別を列挙することを目的にしない。
+- 「review / validationの結果を受けて、許可範囲のrepairと再validationを行う」という既存workflow境界をfrontmatterで必要な範囲だけ明確にする。
+- `code-review`との境界を広げない。
 
-### 5.5 train splitでcandidateを確認
+### 5.2 `exploratory-qa-train-002`
 
-candidate wordingの調整には`train`だけを使用する。
+確認対象:
+
+- failure queryはWindowsの接続済みphysical Android deviceについて、Release APK install前提のDoctor結果と端末認識だけを確認する依頼である。
+- `android-native-local-validation` frontmatterは既にWindows Android toolingとphysical deviceを含む。
+- 本文はDoctor/preflightを明示している。
+- `exploratory-qa`はAndroid QAやruntime探索も対象に含むため、Androidという語だけではSkill境界にならない。
+- 対応する`exploratory-qa-validation-002`はbaselineで`android-native-local-validation`へroutingできている。
+
+変更条件:
+
+- build / install / Maestroの実行を伴わない「Windows local Android環境またはphysical-deviceのreadiness確認」もこのSkillの入口であることがfrontmatterから十分に読み取れない、と一般化して説明できる場合だけ変更する。
+
+変更する場合の方針:
+
+- `Doctor`というtrain query固有の語を通すことを目的にしない。
+- Windows local tooling / physical-device readinessという責務境界を必要な範囲だけ明確にする。
+- Scenario Shop上の通常Android user journeyや探索的QAを吸収しない。
+
+### 5.3 変更しない場合
+
+意味上の欠落を説明できないSkillは変更しない。
+
+2件とも変更不要と判断した場合は、PR3を無理にsource変更へ変換しない。baseline failureがdescription defectと確定できなかった根拠をRun Artifactへ残し、PR3のdescription変更はno-opとして扱う。
+
+---
+
+## 6. candidateの作り方
+
+変更が必要と判断したSkillだけcandidate descriptionを作る。
+
+candidateは次を満たすこと。
+
+1. 現行Skill本文と`AGENTS.md`の意味を変えず、frontmatterへ既存責務を必要な範囲だけ表す。
+2. train queryの具体的な単語を追加すること自体を目的にしない。
+3. sibling Skillとの境界を広げない。
+4. 将来の可能性を理由に新しい責務を追加しない。
+5. candidate採用理由を評価結果より先に説明できる。
+
+candidateを複数回作り直す場合も、train結果だけに合わせて語句を増やさない。意味上の仮説がなくなった時点で調整を止める。
+
+---
+
+## 7. Trigger Evalの評価方針
+
+PR3では、次の2つを別の目的として評価する。
+
+### 7.1 PR2 baselineとの因果比較
+
+目的:
+
+- baseline取得時のrouting contextを固定し、candidate description以外の差を入れずに、description変更の影響だけを比較する。
+
+Routing Target:
+
+- baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`を基にする。
+- Trigger Eval datasetをTargetへ含めない。
+- 変更対象と判断したdescription差分だけを適用する。
+- 対象外のSkill、`AGENTS.md`、scripts、references等をcurrent `main`から混ぜない。
+- 一時TargetはRepository外に作り、Git管理対象へ追加しない。
+- Targetの実SHAをResultへそのまま記録し、baseline SHAへ偽装しない。
+
+一時Targetの具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。PR3用のTarget generatorや新しいrepository helperは追加しない。
+
+#### trainでのcandidate確認
+
+candidate wordingの調整には`train` splitだけを使う。
 
 ```bash
 pnpm run eval:skills:trigger -- \
-  --target-root <routing-target> \
+  --target-root <baseline-context-target> \
   --split train \
   --output <active-run>/trigger-eval-pr3-train.json
 ```
 
-確認条件:
+確認内容:
 
-- `code-review-train-002`が`pass`。
-- `exploratory-qa-train-002`が`pass`。
-- baselineでobservableだったtrain pass caseをobservable failureへ変えていない。
-- `sibling_misroute` / `unexpected_trigger`を新規に発生させていない。
+- 変更したSkillに対応するtrain failureが改善しているか。
+- baselineでobservableだったtrain pass caseをobservable failureへ変えていないか。
+- `sibling_misroute` / `unexpected_trigger`を新規に発生させていないか。
 
-`train`でcandidateを再調整する必要がある場合も、根拠はtrain結果とSkill boundaryに限定する。変更範囲を他4 Skillやdatasetへ広げない。環境・観測failureで`unobservable`になったcaseをdescriptionの語句追加だけで追いかけない。無制限にcandidateを作り直さない。
+train runの結果だけを理由に、意味上の根拠がない追加語句をcandidateへ足さない。
 
-candidateをfreezeした後は、最終`all`結果を見てvalidation wordingへ追加tuningしない。
+#### 最終all comparison
 
-### 5.6 最終all runとbaseline comparison
-
-candidate確定後、同じcandidate Targetを使って`all`を1回実行する。
+candidateを確定した後に`all`を実行する。
 
 ```bash
 pnpm run eval:skills:trigger -- \
-  --target-root <routing-target> \
+  --target-root <baseline-context-target> \
   --split all \
-  --output <active-run>/trigger-eval-pr3-final.json \
+  --output <active-run>/trigger-eval-pr3-final-baseline-context.json \
   --compare .codex/runs/20260912-231826-JST/trigger-eval-baseline.json
 ```
 
-比較時に次が同じであることをrunnerへ強制させる。
+比較時は現行runnerが要求するResult schema、`split=all`、`dataset_sha256`、case ID set、Codex version、modelの一致を維持する。comparison contractをPR3都合で弱めない。
 
-```text
-Result schema_version
-split=all
-dataset_sha256
-case ID set
-codex_version
-model
+変更したdescriptionについては、対応するbaseline failureが`fixed`になり、`regressed=0`であることを採用条件とする。変更しなかったfailureは`fixed`を完了条件にしない。
+
+baselineでobservableだったcaseが`newly_unobservable`になった場合は非回帰を証明できないため完了扱いにしない。`recovered_observable`はcurrent outcomeを確認する。
+
+### 7.2 現在の`main`相当での統合確認
+
+目的:
+
+- PR2 baselineとの因果比較とは別に、candidate descriptionが現在のrepository routing contextで境界を壊していないことを確認する。
+
+Routing Target:
+
+- 実装開始時のlatest `main`へPR3 candidate descriptionを反映した状態を基にする。
+- Trigger Eval datasetはanswer key leakageを避けるためTargetへ含めない。
+- dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
+- baseline-context Targetとは別の一時Targetとして扱い、結果も別artifactへ保存する。
+
+```bash
+pnpm run eval:skills:trigger -- \
+  --target-root <current-main-context-target> \
+  --split all \
+  --output <active-run>/trigger-eval-pr3-final-current-context.json
 ```
 
-最終判定:
+この結果をPR2 baselineに対するdescription-only comparisonとは呼ばない。目的はcurrent contextでの統合確認であり、baseline sourceとの因果比較とは分けて報告する。
 
-```text
-code-review-train-002 = fixed
-exploratory-qa-train-002 = fixed
-counts.regressed = 0
-counts.newly_unobservable = 0
-```
+確認内容:
 
-`recovered_observable`がある場合はcurrent outcomeを個別確認する。baselineでunobservableだったcaseがobservable failureとして復帰した場合は、単にcoverageが増えたとは扱わない。対象descriptionとの因果を確認し、今回scopeで安全に解決できなければ未解決としてStopする。
+- 変更対象boundaryが意図したSkillへroutingできるか。
+- sibling Skillへの新しいmisrouteがないか。
+- observableだったcurrent pass caseに明確な回帰がないか。
+- runtime由来の`unobservable`をdescription failureへ読み替えていないか。
 
-canonical `all`が8 boundary side未達でexit 1になっても、coverage不足だけをrouting regressionへ変換しない。ただしcomparison artifactが保存され、上記完了条件を満たすことは必要とする。runnerのexit codeを無視してPASSと記録せず、coverageとcomparisonを別々に記録する。
+### 7.3 no-opの場合
 
-### 5.7 実行タスク
+source descriptionを変更しない場合はcandidate tuningを行わない。
 
-- [ ] 1. latest `main`、Issue #117、PR2 baseline、ADR-0024 / ADR-0025を再確認する。
-- [ ] 2. baseline sourceとlatest `main`の対象routing意味にmaterial driftがないことを確認する。
-- [ ] 3. `codex-cli 0.153.4`が利用可能であることを確認する。
-- [ ] 4. `repair-loop` descriptionをfrontmatter 1行だけ調整する。
-- [ ] 5. `android-native-local-validation` descriptionをfrontmatter 1行だけ調整する。
-- [ ] 6. candidateをcommitし、Evaluator rootをcleanにする。
-- [ ] 7. baseline sourceからanswer-key-freeな一時Routing Targetを作成し、candidate description差分だけを適用する。
-- [ ] 8. Target preflightとtrust条件を確認する。
-- [ ] 9. `train` splitを実行し、2件のbaseline false negativeとtrain非回帰を確認する。
-- [ ] 10. candidateをfreezeし、必要なdeterministic validationを実行する。
-- [ ] 11. `all`を1回実行してbaseline comparisonを保存する。
-- [ ] 12. targeted 2件が`fixed`、`regressed=0`、`newly_unobservable=0`であることを確認する。
-- [ ] 13. `recovered_observable`があればcurrent outcomeを個別確認する。
-- [ ] 14. Repository標準検証とscope auditを完了する。
-- [ ] 15. Run Artifact、PR本文、Issue #117の進捗情報を実装結果に合わせて整理する。
+必要に応じて、baseline failureの再現性を補助的に確認するtrain runは実行できるが、その1回の結果だけでdescription defectまたはdescription健全性を確定しない。新しい統計評価frameworkや無制限retryは追加しない。
+
+no-opの場合もdataset、現行routing contract、関連validatorが維持されていることを通常の検証で確認し、変更不要と判断した根拠を記録する。
 
 ---
 
-## 6. 検証方法
+## 8. 検証
 
-### 6.1 Deterministic validation
+### 8.1 既存契約の確認
 
 ```bash
 pnpm run eval:skills:trigger:validate
@@ -355,159 +308,91 @@ pnpm run test:repository
 - evaluator / OTel / Windows argv contractが既存どおりPASSする。
 - Skill package validationがPASSする。
 
-### 6.2 Live Trigger Eval
-
-Tuning:
-
-```bash
-pnpm run eval:skills:trigger -- \
-  --target-root <routing-target> \
-  --split train \
-  --output <active-run>/trigger-eval-pr3-train.json
-```
-
-Final:
-
-```bash
-pnpm run eval:skills:trigger -- \
-  --target-root <routing-target> \
-  --split all \
-  --output <active-run>/trigger-eval-pr3-final.json \
-  --compare .codex/runs/20260912-231826-JST/trigger-eval-baseline.json
-```
-
-live evalは`pnpm run verify`のhard gateへ追加しない。
-
-### 6.3 Repository標準検証
+### 8.2 Repository標準検証
 
 ```bash
 pnpm run verify
 git diff --check <implementation-base>...HEAD
 ```
 
-必要に応じて変更ファイルのformat / Markdown lintを個別確認するが、description変更のために新しいlint ruleやtestを追加しない。
+source変更がある場合は、最終diffで変更が根拠を確認したfrontmatter `description`だけであることを確認する。
 
-### 6.4 Scope audit
-
-最終diffでsource変更が次の2 frontmatter descriptionに限定されていることを確認する。
-
-```text
-.agents/skills/repair-loop/SKILL.md
-.agents/skills/android-native-local-validation/SKILL.md
-```
-
-Plan、active Run Artifact、実装結果を説明する既存Repository文書の必要な更新は別に確認し、Product code / test / dependency / workflow / dataset / evaluatorへ意図しない差分がないことを確認する。
+Plan、active Run Artifact、PR本文など、実装結果を記録する既存文書の更新はsource scopeとは分けて確認する。
 
 ---
 
-## 7. リスクと未解決論点
+## 9. 完了条件
 
-### 7.1 リスク
+- [ ] 実装開始時のlatest `main`とPlan作成時branch baseの差分を確認している。
+- [ ] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認している。
+- [ ] 2件それぞれについて、train query、対応validation case、expected Skill、sibling Skill、`AGENTS.md` routingを比較している。
+- [ ] description変更の有無を各Skillごとに独立して判断し、理由をRun Artifactへ記録している。
+- [ ] descriptionに一般化可能な欠落がないSkillを、failureを消す目的だけで変更していない。
+- [ ] 変更した場合はfrontmatter `description`だけに限定し、Skill本文・references・dataset・runner・`AGENTS.md`を変更していない。
+- [ ] candidate wordingをtrain query固有の語彙へ過度に寄せていない。
+- [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
+- [ ] baseline-context comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`、`newly_unobservable=0`である。
+- [ ] 変更しなかったbaseline failureを、無理に`fixed`へすることを完了条件にしていない。
+- [ ] current-main-context runで新しいsibling misrouteなどの明確なrouting回帰がない。
+- [ ] `recovered_observable`がある場合はcurrent outcomeを確認している。
+- [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
+- [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
+- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価frameworkを追加していない。
 
-#### Codex version drift
-
-baseline comparisonはCodex version完全一致が必須である。`codex-cli 0.153.4`を用意できない場合、PR3の「baselineと比較したdescription改善」を証明できない。
-
-対応:
-
-- comparison contractを弱めない。
-- model/version metadataを偽装しない。
-- 利用可能になるまでStopする。
-
-#### descriptionの過剰拡張
-
-`repair-loop`を「failure全般」、`android-native-local-validation`を「Android QA全般」と広げると、`code-review`、`harness-improvement`、`exploratory-qa`との境界が崩れる。
-
-対応:
-
-- 実際のrepair実行とsame-validation rerunを`repair-loop`の中心にする。
-- Windows local tooling / Doctor / physical-device validationをAndroid Skillの中心にする。
-- sibling Skillのdescriptionを同時に広げない。
-
-#### baseline sourceとcurrent mainのdrift
-
-PR2 baseline後に`main`は進んでいる。旧routing sourceだけで評価するとcurrent repositoryと乖離する可能性がある。
-
-対応:
-
-- 実装前に関連routing semanticsの差分を確認する。
-- material driftがあれば旧sourceでのdescription-only比較を続けずStopする。
-- material driftがない場合だけ、baseline source + candidate descriptionを因果分離用Targetとして使う。
-
-#### answer-key leakage
-
-PR2 merge後のmain cloneにはTrigger Eval datasetが存在し、current runnerもそのTargetを拒否する。
-
-対応:
-
-- baseline treeのworking filesだけを新しいGit repositoryへ展開する。
-- dataset不存在を確認してからcandidate description patchを適用する。
-- `.git` historyをbaseline source cloneからTargetへコピーしない。
-- generic sanitizerやtarget generatorをRepositoryへ追加しない。
-
-#### runtimeのunobservable
-
-baseline自体に7件の`unobservable`があり、process timeoutはdescription qualityと同一ではない。
-
-対応:
-
-- unobservableをfalse negativeへ読み替えない。
-- baseline passが`newly_unobservable`になったrunでは非回帰を証明できないため完了扱いにしない。
-- case retryで都合のよい結果だけを採用しない。
-
-### 7.2 Open questions
-
-実装前に追加の設計判断を必要とするOpen questionはない。
-
-実測でStop条件に該当した場合は、その事実をRun Artifactへ残してから再計画する。
+2件ともdescription変更不要と判断した場合は、上記の変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。
 
 ---
 
-## 8. 成果物
+## 10. 実行手順
 
-### 8.1 実装変更
+- [ ] 1. Issue #117、PR #127、最終baseline、現行routing契約を再確認する。
+- [ ] 2. latest `main`との差分を確認し、baseline contextとcurrent contextを分けて扱う前提を確定する。
+- [ ] 3. `code-review-train-002`についてdescription gapの有無を判定する。
+- [ ] 4. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
+- [ ] 5. gapが確認できたSkillだけcandidate descriptionを作成する。
+- [ ] 6. source変更がある場合は対象frontmatterだけ変更し、diffを確認する。
+- [ ] 7. baseline-contextのanswer-key-free Routing Targetを準備する。
+- [ ] 8. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
+- [ ] 9. candidateを確定後、baseline-contextで`all` + baseline comparisonを実行する。
+- [ ] 10. current-main-contextのanswer-key-free Routing Targetを別に準備し、`all`で統合確認する。
+- [ ] 11. deterministic validationとRepository標準検証を実行する。
+- [ ] 12. scope、Run Artifact、comparison結果を確認する。
+- [ ] 13. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
 
-想定source変更:
+no-opの場合は5〜10のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
+
+---
+
+## 11. 停止条件
+
+次の場合はPR3 scopeを広げず停止し、必要なら再計画する。
+
+- Issue #117のrouting方針自体がbaseline取得後に変更され、PR3の前提が成立しない。
+- `codex-cli 0.153.4`が必要なbaseline comparisonを実行できず、comparison contractを維持できない。
+- answer-key-free Routing Targetを現行runnerの契約どおり準備できない。
+- candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
+- description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
+- 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
+
+`unobservable`だけを理由にdescriptionを変更しない。case retryで都合のよい結果だけを採用しない。
+
+---
+
+## 12. 成果物
+
+実装結果に応じてactive Runへ最低限次を残す。
 
 ```text
-.agents/skills/repair-loop/SKILL.md
-.agents/skills/android-native-local-validation/SKILL.md
-```
-
-### 8.2 評価Evidence
-
-active Runに最低限次を残す。
-
-```text
-train Trigger Eval result
-final all Trigger Eval result + baseline comparison
-baseline source / candidate Target provenance
+description変更要否の判断根拠
+変更した場合のdescription差分
+baseline-context Trigger Eval結果とcomparison
+current-main-context Trigger Eval結果
 validation結果
-scope audit
+scope確認
 ```
 
 既存Run Artifact schemaを利用し、PR3専用schemaは作らない。
 
-### 8.3 PR / Issue
-
-実装完了時はPR3のPR本文に次を記載する。
-
-- 変更した2 description
-- baseline 2 false negativeとの対応
-- dataset不変
-- answer-key-free Target preparation
-- train tuning結果
-- final comparison counts
-- `regressed` / `newly_unobservable` / `recovered_observable`の扱い
-- standard validation / CI結果
+PR3のPR本文には、実際に変更したdescriptionだけを記載する。変更しなかったSkillを変更済みとして扱わない。no-opの場合は、baseline failureをdescription defectと確定できなかった根拠と検証結果を明記する。
 
 Issue #117はPR3完了後もPR6が残るため、PR3完了だけを理由にcloseしない。
-
----
-
-## 9. 備考
-
-- descriptionの改善量ではなく、baseline failureが解消し既存routingを悪化させていないことを完了基準とする。
-- unobservableの削減はPR3の目的に含めない。
-- 2件のfalse negativeを理由に6 Skill全体のdescriptionを書き換えない。
-- Trigger Evalの比較契約や観測基盤を変更しないと進められない状況になった場合は、PR3 scopeを拡張せずStopして再計画する。
