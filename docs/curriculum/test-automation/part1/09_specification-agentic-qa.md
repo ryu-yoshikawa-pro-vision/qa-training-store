@@ -19,7 +19,7 @@ Isolation Verification、Artifact Integrity、Evaluation、Scoringを支えるHa
 
 ## 1. Specificationを読む
 
-最初に `docs/spec/README.md` から対象Featureへ進み、Normativeな Product Scope、Roles、State、UI/UX、Feature Specificationを確認します。Feature文書は次の5節を固定順で持ちます。
+最初に `docs/spec/README.md` から対象Featureに進み、Normativeな Product Scope、Roles、State、UI/UX、Feature Specificationを確認します。Feature文書は次の5節を固定順で持ちます。
 
 1. Purpose / Scope
 2. Business Rules
@@ -47,15 +47,15 @@ Playwright MCPまたは同等の狭いBrowser Toolでは、Target OriginへのNa
 
 ## 3. Charter、Oracle、Evidence
 
-Charterは `spec_refs[]`、Mission、Risk、Role、Seed、Platform、Viewport / Device、Runtime Controls、Budget、Stop Condition、Required Coverageを固定します。OracleはBR / ACを優先し、参照のOwner Normative FileをLearner-safe Bundleへ決定的に含めます。
+Charterは `spec_refs[]`、Mission、Risk、Role、Seed、Platform、Viewport / Device、Runtime Controls、Budget、Stop Condition、Required Coverageを固定します。OracleはBR / ACを優先し、参照先のOwner Normative FileをLearner-safe Bundleへ決定的に含めます。
 
-Evidenceはスクリーンショット、Accessibility、DOM、URL/Screen、Narrow Logなどの相対参照です。直接観測したExpected / Actualと推測を分離します。Findingが0件でも、Coverageの `completed` / `not_completed` / `blocked_environment`、Evidence、終了理由を残します。
+Evidenceはスクリーンショット、Accessibility、DOM、URL/Screen、Narrow Logなどの相対参照です。直接観測したExpected / Actualと推測を分離します。Findingが0件の場合でも、Coverageの `completed` / `not_completed` / `blocked_environment`、Evidence、終了理由を残します。
 
 Atomic Findingは一つのProduct Behaviorだけを持ちます。複数Defectを一つへ束ねた提出は `invalid_non_atomic`、同じDefectへの重複は `duplicate` です。正常なBehaviorを誤って報告するFalse Positiveは、Item-specific Observation Evidenceがある場合 `FP_non_defect` として分類します。未探索またはObservation不足はTNではなくNEです。確定Findingは対応するUnit / Integration / Component / E2E / Native Regressionの最小層へ還元します。
 
 ## 4. Learner-safe Challenge演習
 
-Machine ContractはJSON + Zodです。ChallengeのLearner-safe JSONにはDefect / Non-defect分類、Answer Item ID、Patch意図、秘密のMappingを入れません。Answer KeyとUnified Diff PatchはInstructor-onlyです。Patchを使う場合の準備順序は次です。
+Machine ContractはJSON + Zodです。ChallengeのLearner-safe JSONにはDefect / Non-defect分類、Answer Item ID、Patch意図、秘密のMappingを入れません。Answer KeyとUnified Diff PatchはInstructor-onlyです。Patchを使う場合の準備順序は次のとおりです。
 
 ```text
 Baseline Build / Serve / Install
@@ -69,7 +69,7 @@ Baseline Build / Serve / Install
 → Fresh Coding Agent Session (Agent Runtime / Host provided)
 ```
 
-Pre-patchで対象Defectが存在する、`git apply --check`が失敗する、Post-patchで再現条件を満たさない場合はScored Runを始めません。PatchはApplication Branchへ適用してCommitせず、Runner Rootへコピーしません。
+Pre-patchで対象Defectが存在する、`git apply --check`が失敗する、Post-patchで再現条件を満たさない場合はScored Runを開始しません。PatchはApplication Branchへ適用してCommitせず、Runner Rootへコピーしません。
 
 Black-box ScoredのCoverage SSOTは `challenge.required_coverage` のみです。Normal / Gray-boxはCharterから導出します。RunnerはRequired IDを縮小・追加・並べ替えません。`challenge_id + benchmark_revision + runtime_variant_id` がBenchmark Identityで、同じ条件のRunner比較にはRunner Profileも完全一致させます。Clean committed inputは `git:<40 lowercase hex>`、未Commit / mixed inputはCanonical Manifest SHA-256の `sha256:<64 lowercase hex>`です。
 

@@ -2,25 +2,25 @@
 
 ## 演習コマンドを読むための最低限
 
-Playwrightを実行する前に、次のCLI / Node.jsの用語だけ確認します。一般的なCLI講座ではなく、Scenario Shopの演習を起動するための準備です。
+Playwrightを実行する前に、次のCLI / Node.jsに関する用語だけを確認します。一般的なCLI講座ではなく、Scenario Shopの演習を起動するための準備です。
 
 - **ターミナル**: コマンドを入力して実行する画面です。
 - **現在のディレクトリ**: コマンドを実行しているFolderです。相対Pathはここを起点に解決されます。
-- **File / Directory**: `training/playwright/exercises`のように、Fileをまとめる場所をDirectoryと呼びます。
+- **File / Directory**: `training/playwright/exercises`のように、Fileをまとめて置く場所をDirectoryと呼びます。
 - **Node.js**: TypeScriptやPlaywrightを実行するRuntimeです。
-- **Package Manager / pnpm**: DependencyをInstallし、`package.json`のScriptを実行するToolです。
+- **Package Manager / pnpm**: Dependencyをインストールし、`package.json`のScriptを実行するToolです。
 - **`package.json` / `scripts`**: RepositoryのDependencyと、名前付きコマンドを定義するFile / 項目です。
 
-演習では、RepositoryのRoot Directoryで次を実行します。
+演習では、RepositoryのRoot Directoryで次のコマンドを実行します。
 
 ```bash
 pnpm install
 pnpm run training:web:baseline
 ```
 
-`pnpm install`はDependencyを取得し、`pnpm run <script>`は`package.json`の`scripts`にある名前付きコマンドを実行します。成功したかどうかだけでなく、失敗時はError MessageのFile、行、Error Type、Expected / Receivedを確認します。`PLAYWRIGHT_BASE_URL`のようなEnvironment Variableは、Test対象の入口を指定する値です。
+`pnpm install`はDependencyを取得し、`pnpm run <script>`は`package.json`の`scripts`にある名前付きコマンドを実行します。成功したかどうかだけでなく、失敗時にはError MessageにあるFile、行、Error Type、Expected / Receivedを確認します。`PLAYWRIGHT_BASE_URL`のようなEnvironment Variableは、Test対象の入口を指定する値です。
 
-この段階の開始Gateは、Desktopの`training:web:baseline`が動くことです。Mobile Webの`training:web:mobile`は、P1-5でViewportとMobile Projectを学んだ後に確認します。
+この段階の開始Gateは、Desktopの`training:web:baseline`が動作することです。Mobile Webの`training:web:mobile`は、P1-5でViewportとMobile Projectを学んだ後に確認します。
 
 ## 学習目標
 
@@ -50,9 +50,9 @@ Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習
 
 Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise` です。
 
-このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
+このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionに追記することを前提にしません。
 
-受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、ScriptはCurrent Repositoryで固定されています。
+受講者用Playwright Testは、実装済みのTraining境界に保存・実行します。具体的なPath、Project、Scriptは現行Repositoryで固定されています。
 
 ```text
 既存Regression
@@ -64,7 +64,7 @@ Training用
 └ training/playwright/failure-exercises/
 ```
 
-`playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
+`playwright.config.ts` はFormal Regression専用です。Trainingでは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
 
 受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`でDesktopの基準確認を行います。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。Mobile Webの基準確認と`training:web:mobile`はP1-5で扱います。
 
@@ -104,7 +104,7 @@ await page.getByRole("button", { name: "対象操作" }).click();
 
 最初はPromiseの内部実装を理解する必要はありません。
 
-**「Browser操作の完了を待ってから次へ進めるために `await` を付ける」**ところから理解します。
+**「Browser操作が完了してから次へ進めるために `await` を付ける」**ところから理解します。
 
 ### `import`
 
@@ -112,7 +112,7 @@ await page.getByRole("button", { name: "対象操作" }).click();
 import { test, expect } from "@playwright/test";
 ```
 
-別Moduleが提供している機能を現在のFileで利用します。
+別Moduleが提供する機能を現在のFileで利用します。
 
 ### `{ page }` の意味
 
@@ -128,7 +128,7 @@ test("商品を確認する", async ({ page }) => {
 
 ### アロー関数とコールバック
 
-`test`の第2引数へ渡す`async ({ page }) => { ... }`は、テストが実行されたときに呼び出されるコールバックです。関数名を別に付けず、処理をその場へ書けます。
+`test`の第2引数に渡す`async ({ page }) => { ... }`は、テストが実行されたときに呼び出されるコールバックです。関数名を別に付けず、処理をその場に書けます。
 
 ```ts
 test("商品を確認する", async ({ page }) => {
@@ -136,7 +136,7 @@ test("商品を確認する", async ({ page }) => {
 });
 ```
 
-まずは「`test`へ、テスト本体を後で実行する関数を渡している」と理解すれば十分です。配列、条件分岐、汎用関数、型注釈などは、それらを使うLessonで必要な範囲だけ扱います。
+まずは「`test`に、テスト本体を後で実行する関数を渡している」と理解すれば十分です。配列、条件分岐、汎用関数、型注釈などは、それらを使うLessonで必要な範囲だけ扱います。
 
 ### Error Messageを読む
 
@@ -165,7 +165,7 @@ test("商品詳細を表示できる", async ({ page }) => {
 });
 ```
 
-このSnippetの具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前にNormative Specificationと対象Scenarioを確認し、WorkbookへTraceします。
+このSnippetにある具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前にNormative Specificationと対象Scenarioを確認し、WorkbookにTraceします。
 
 このコードには次の要素があります。
 
@@ -203,7 +203,7 @@ Assertionは期待結果の確認です。
 
 Locatorは壊れにくさと意味の分かりやすさを重視します。
 
-候補は固定順位で暗記せず、対象の意味と安定性から選びます。ユーザーが認識するRole、Label、Text、明示されたUI Test IDを確認し、CSS Selectorなどはより意味のある契約がない場合に使います。
+候補を固定の順位で暗記せず、対象の意味と安定性から選びます。ユーザーが認識しやすいRole、Label、Text、明示されたUI Test IDを確認し、CSS Selectorなどはより意味のある契約がない場合に使います。
 
 例:
 

@@ -16,7 +16,7 @@
 - 背景はWhiteを基本とし、Sectionの区切りに`surface-subtle`を使用する。
 - 商品画像は1:1、明るい無地または簡潔な生活背景で統一する。
 - Accent Colorは主要CTA、選択状態、Linkだけに使う。
-- Product Cardへ不要なBorderやShadowを重ねず、画像・商品名・価格の順を明確にする。
+- Product Cardに不要なBorderやShadowを重ねず、画像・商品名・価格の順を明確にする。
 
 ### Admin
 
@@ -129,8 +129,8 @@ StorefrontHeader、StorefrontFooter、MobileBottomNavigation、AdminShell、Admi
 
 - Label、必須/任意Text、補足、Control、Errorの順。
 - Checkoutは原則1列Form。管理商品編集のみSection化した2列Pageを許可する。
-- Error SummaryはForm先頭に置き、Submit Error時はSummaryへFocusする。
-- Summary内Linkから該当Fieldへ移動する。
+- Error SummaryはForm先頭に置き、Submit Error時はSummaryにFocusする。
+- Summary内Linkから該当Fieldに移動する。
 - Focus Ringは2px、focus Token、2px Offset。
 - Numberは単位を視覚・Accessible Nameで明示。
 - 任意Fieldは「任意」とText表示し、必須だけをAsteriskにしない。

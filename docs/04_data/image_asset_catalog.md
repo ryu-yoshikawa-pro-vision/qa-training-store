@@ -46,7 +46,7 @@ type ProductImageAssetManifest = {
 - `config/product-image-assets.json`にassetId、path、defaultAltText、tags、isActiveを記述し、生成ScriptがFileからMIME、寸法、容量、SHA-256を補完する。
 - `assetId`と`path`はunique。
 - Pathは`/images/products/`配下だけを許可する。
-- active Assetだけを新規選択候補へ表示する。
+- active Assetだけを新規選択候補に表示する。
 - inactive Assetも既存商品が参照している場合は表示できる。
 
 ## 4. 管理画面操作
@@ -77,11 +77,11 @@ type ProductImageAssetManifest = {
 - ProductImage関連削除やProduct削除ではAsset Binaryを削除しない。
 - 廃止は`isActive=false`だけで表し、Path/File/Manifest Entryは保持する。
 
-これにより、Order履歴やSeed Screenshotが後から別画像へ変わることを防ぎます。
+これにより、Order履歴やSeed Screenshotが後から別の画像に変わることを防ぎます。
 
 ## 6. Build Validation
 
-CIで次を検証します。
+CIで次の項目を検証します。
 
 1. Manifest Schema
 2. Asset File存在

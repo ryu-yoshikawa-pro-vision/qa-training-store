@@ -34,7 +34,7 @@ erDiagram
 ## 2. 共通規約
 
 - IDはUUID文字列。Seedだけ可読固定IDを使用する。
-- 日時はUTC ISO 8601文字列で保存し、表示時にAsia/Tokyoへ変換する。
+- 日時はUTC ISO 8601文字列で保存し、表示時にAsia/Tokyoに変換する。
 - 金額・数量・在庫は整数。
 - 更新対象に`version`を持たせ、更新時に一致を確認する。
 - Phase 1で未使用の将来EntityはTable化しない。
@@ -62,13 +62,13 @@ id、userId、label、recipientName、postalCode、prefecture、city、addressLi
 
 ### sessions
 
-id、userId、createdAt。Current Session IDだけLocal Storageへ保存します。
+id、userId、createdAt。Current Session IDだけLocal Storageに保存します。
 
 ## 4. 商品Master
 
 ### categories
 
-id、name、nameNormalized unique、sortOrder、isActive、createdAt、updatedAt、version。Phase 1は1階層Categoryだけを扱い、商品は1つのCategoryを直接参照します。新規作成時は0件ならsortOrder=10、既存時はmax(sortOrder)+10として末尾へ追加します。公開商品が参照するCategoryは無効化できません。Web Recordは`isActiveKey: 0 | 1`を派生保持します。
+id、name、nameNormalized unique、sortOrder、isActive、createdAt、updatedAt、version。Phase 1は1階層Categoryだけを扱い、商品は1つのCategoryを直接参照します。新規作成時は0件ならsortOrder=10、既存時はmax(sortOrder)+10として末尾に追加します。公開商品が参照するCategoryは無効化できません。Web Recordは`isActiveKey: 0 | 1`を派生保持します。
 
 ### brands
 
@@ -84,11 +84,11 @@ id、productId、sku unique、optionValue nullable、optionValueNormalized nulla
 
 ### product_images
 
-id、productId、assetId、altText、sortOrder、isPrimary、createdAt。`assetId`はGitHub管理の静的Manifestを参照し、Productあたり最大3件。同一Product内のassetIdとsortOrderは一意。画像0件はdraftだけ許可し、画像1件以上ならPrimaryをちょうど1件持つ。BinaryはDBへ保存しない。
+id、productId、assetId、altText、sortOrder、isPrimary、createdAt。`assetId`はGitHub管理の静的Manifestを参照し、Productあたり最大3件。同一Product内のassetIdとsortOrderは一意。画像0件はdraftだけ許可し、画像1件以上ならPrimaryをちょうど1件持つ。BinaryはDBに保存しない。
 
 ### image_asset_catalog（Build生成TypeScript Module、DB Tableではない）
 
-`assetId` unique、path、mimeType、width、height、bytes、sha256、defaultAltText、tags、isActive。GitHub Repository内の画像からBuild時にTypeScript Moduleを生成してBundleへ含めます。画像BinaryはCloudflareから同一Originで配信し、既存商品参照中のAssetは`isActive=false`でも表示可能です。
+`assetId` unique、path、mimeType、width、height、bytes、sha256、defaultAltText、tags、isActive。GitHub Repository内の画像からBuild時にTypeScript Moduleを生成してBundleに含めます。画像BinaryはCloudflareから同一Originで配信し、既存商品参照中のAssetは`isActive=false`でも表示可能です。
 
 ### ProductListItem（Read DTO）
 
@@ -98,7 +98,7 @@ productId、productCode、name、brandName、primaryImage、minimumViewerUnitPri
 
 ### product_review_summaries
 
-productId PK、publishedCount、ratingTotal、ratingAverage、rating1Count、rating2Count、rating3Count、rating4Count、rating5Count、updatedAt、version。各Countは0以上で、合計がpublishedCountと一致する。`publishedCount=0`では`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を丸めず保存し、表示時だけ小数第1位へ丸める。Sort・Filterも未丸め値を使用する。
+productId PK、publishedCount、ratingTotal、ratingAverage、rating1Count、rating2Count、rating3Count、rating4Count、rating5Count、updatedAt、version。各Countは0以上で、合計がpublishedCountと一致する。`publishedCount=0`では`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を丸めず保存し、表示時だけ小数第1位に丸める。Sort・Filterも未丸め値を使用する。
 
 ## 5. 在庫
 

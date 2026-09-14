@@ -16,7 +16,7 @@
 
 仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) と対象FeatureのBR / ACです。Formal TestとTraining Testの責務を分けたうえで、Risk、Workbook、実装、Regression分類を同期します。
 
-主な参照先:
+主な参照先は次のとおりです。
 
 - `e2e/web/phase1-required.spec.ts`
 - `e2e/web/fixtures.ts`
@@ -26,13 +26,13 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-Common routeでは、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はNative specializationを選択する場合の前提であり、Playwright-onlyのCommon completionには要求しません。
+Common routeでは、受講者自身が複数のPlaywright Testを作成していることを前提とします。Maestro Flowの作成経験はNative specializationを選択する場合の前提であり、Playwright-onlyのCommon completionには要求しません。
 
 Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
 
 ## Lesson 1: 運用フェーズで当たる壁
 
-テストが数本の間は、1ファイルへ直接書いても大きな問題になりません。
+テストが数本しかない間は、1ファイルに直接書いても大きな問題になりません。
 
 しかし本数が増えると、次の問題が現れます。
 
@@ -54,7 +54,7 @@ Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence
 
 スプレッドシートのTest Case IDと実装を照合します。
 
-確認すること:
+確認することは次のとおりです。
 
 - 未自動化なのにAutomated扱いになっていないか。
 - 同じRiskを複数E2Eが重複して確認していないか。
@@ -132,13 +132,13 @@ POMが不要または過剰になりやすい条件:
 
 ## Lesson 6: Component Object
 
-Header、Navigation、Modal、Product Cardなど、Pageを跨いで再利用されるUIはComponent Objectとして扱う選択肢があります。
+Header、Navigation、Modal、Product Cardなど、Pageをまたいで再利用されるUIはComponent Objectとして扱う選択肢があります。
 
 Page Objectだけで全UIを表現しようとすると、Page間で共通Componentが重複する可能性があります。
 
 ## Lesson 7: Fixture
 
-Fixtureはテスト実行環境や前提状態を提供するために使えます。
+Fixtureはテスト実行環境や前提状態を提供するために使います。
 
 ここで初めて既存 `scenario` Fixtureの内部を教材として読み、次を確認します。
 
@@ -149,13 +149,13 @@ Fixtureはテスト実行環境や前提状態を提供するために使えま�
 
 Part 1前半で利用していた「Seed ScenarioをResetできる」「Console ErrorをEvidenceとして扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
 
-Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
+Fixtureに何でも入れると、Testから前提処理が見えなくなるRiskがあります。
 
 「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
 
 ## Lesson 8: 複数画面の共通操作を切り出す場合
 
-複数Pageを跨ぐ業務操作は、共通操作として切り出す選択肢があります。
+複数のPageをまたぐ業務操作は、共通操作として切り出す選択肢があります。
 
 例:
 
@@ -184,7 +184,7 @@ Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管�
 
 `src/seeds/metadata.ts` は、Scenario Shopで利用するSeed Scenarioの名称、用途、推奨Account、初期Session、関連Routeなどを定義する**Scenario Metadataの正本**として機能します。
 
-実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけが定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
+実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけで定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
 
 次を分離して考えます。
 
@@ -198,7 +198,7 @@ Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管�
 
 運用では、テストを追加するだけでなく、仕様変更に合わせて既存資産を更新・廃止する必要があります。
 
-基本の流れは次です。
+基本の流れは次のとおりです。
 
 ```text
 仕様変更
@@ -222,14 +222,14 @@ Product変更後にTestを実装・実行して整合を確認
 
 この場合、単にPlaywrightの期待値を `5` から `3` へ変えるだけでは不十分です。
 
-確認するもの:
+確認するものは次のとおりです。
 
 - 上限に関係するRiskは変わるか。
 - 同値分割はどう変わるか。
 - 境界値は `2 / 3 / 4` などへ変わるか。
 - 既存Test Case IDは同じ目的のままか。
 - 新しいCaseが必要か。
-- Web / Native両方へ影響するか。
+- Web / Nativeの両方に影響するか。
 - Unit / Integration Testにも変更が必要か。
 - Regression / Smoke分類を変える必要があるか。
 
@@ -325,7 +325,7 @@ POMを使うこと自体を完了条件にはしません。Helperの方が適�
 
 ## ハンズオン5: 仮想仕様変更の影響を追跡する
 
-「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として次を更新・整理します。
+「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として、次の項目を更新・整理します。
 
 1. Risk
 2. 同値分割 / 境界値

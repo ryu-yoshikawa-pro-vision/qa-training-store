@@ -12,7 +12,7 @@
 
 **このモジュールでは、このリポジトリのScenario ShopとPlaywright設定・既存E2Eを使用します。**
 
-主な参照先:
+主な参照先は次のとおりです。
 
 - `playwright.training.config.ts`
 - `training/playwright/baseline/`
@@ -21,11 +21,11 @@
 - `output/training/playwright/`
 - `playwright.config.ts` / `output/playwright/`（Formal比較教材）
 
-Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要なEvidence収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
+Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要なEvidence収集を提供することを前提に、まずFailureを観測・分類・改善することに集中します。
 
 ## 実行コマンドの扱い
 
-現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。
+現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptが用意されています。
 
 例:
 
@@ -61,7 +61,7 @@ C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実�
 
 テストが赤くなったとき、すぐに「アプリのバグ」と判断しません。
 
-最低限次に分類します。
+最低限、次のように分類します。
 
 - Product Bug
 - Test Code Bug
@@ -91,7 +91,7 @@ Playwright Traceでは、Failure前後の操作やDOM状態などを確認でき
 
 Scenario Shopの設定ではFailure時のTraceを保持します。
 
-確認すること:
+確認することは次のとおりです。
 
 - どこまで操作が成功していたか。
 - 対象要素は存在していたか。
@@ -119,7 +119,7 @@ Training Test Harnessでは、必要に応じてConsole ErrorをEvidenceとし�
 
 ## Lesson 6: Flaky Test
 
-Flaky Testは、同じコード・同じ前提でも成功と失敗が不安定に変わるテストです。
+Flaky Testは、同じコード・同じ前提でも成功したり失敗したりするテストです。
 
 よくある原因:
 
@@ -139,7 +139,7 @@ RetryはFailureを見えにくくする可能性があります。
 
 Timeoutを延ばすと一時的にPassする場合がありますが、根本原因が遅延なのか同期不足なのかを区別します。
 
-次を比較します。
+次の2つを比較します。
 
 ```ts
 await page.waitForTimeout(5000);
@@ -155,7 +155,7 @@ await expect(page.getByRole("status")).toContainText("完了");
 
 ## Lesson 8: 改善サイクル
 
-Failureを次の流れで改善します。
+Failureは次の流れで改善します。
 
 ```text
 再現
@@ -179,7 +179,7 @@ Failure分類
 
 Training用Playwright TestのAssertionを意図的に誤らせます。
 
-Failure後に次を確認します。
+Failure後は、次の項目を確認します。
 
 - Error message
 - Screenshot
@@ -190,7 +190,7 @@ Failure後に次を確認します。
 
 ## ハンズオン2: 原因を診断して修正する
 
-`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功したEvidenceを記録します。
+`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotをもとにExpectedとActualを区別し、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功したEvidenceを記録します。
 
 ## ハンズオン3: Locator Failure
 
@@ -198,7 +198,7 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 
 ## ハンズオン4: Timing Failure
 
-固定待機を入れたテストとAuto-wait / Assertionを使ったテストを比較します。
+固定待機を入れたテストとAuto-wait / Assertionを使うテストを比較します。
 
 ## ハンズオン5: Failure分析メモ
 

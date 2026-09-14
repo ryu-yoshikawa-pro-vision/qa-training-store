@@ -39,17 +39,17 @@ sequenceDiagram
 ## 1.1 Cart変更
 
 1. guest/customerとactive Cart、Cart expectedVersionを確認する。
-2. Addは追加数量、Updateは変更後絶対数量としてSKU、在庫、購入上限を検証する。Update数量0はRemoveへ委譲する。
-3. Addは既存SKUへ加算または新規IDで作成し、Updateは絶対数量へ置換する。変更・削除・価格変更承認と親CartのupdatedAt/version更新を同一Txで確定する。
+2. Addは追加数量、Updateは変更後絶対数量としてSKU、在庫、購入上限を検証する。Update数量0はRemoveに委譲する。
+3. Addは既存SKUに加算または新規IDで作成し、Updateは絶対数量に置換する。変更・削除・価格変更承認と親CartのupdatedAt/version更新を同一Txで確定する。
 4. 既存Checkout SessionはこのTransactionで更新しない。親Cart Versionの変更を、Checkout Route Guard・確認画面取得・注文確定時の不一致検出に使用する。
 5. 競合時はItemもCartも変更せずConflictを返す。
 
 ## 2. Checkout開始
 
-1. Clockで期限切れactive Checkout Sessionをexpiredへ変更する。
+1. Clockで期限切れactive Checkout Sessionをexpiredに変更する。
 2. active customerとactive Cartを確認する。
 3. 商品公開、Rank、価格、在庫を再検証する。
-4. 価格変更未承認ならCartへ戻す。
+4. 価格変更未承認ならCartに戻す。
 5. Userのactive Checkout Sessionを確認する。
 6. 同じCart ID/Versionなら再開し、異なる場合は既存をabandonedへ変更する。
 7. 必要ならCheckout Sessionをactive/addressで作成する。
@@ -63,7 +63,7 @@ sequenceDiagram
 4. 新規VariantのinitialStockQuantityからINITIAL_STOCK履歴を作成する。
 5. 削除指定Variantの参照を確認し、物理削除または無効化を決定する。
 6. Image Asset ManifestでassetIdを検証する。
-7. Product、Variant、ProductImage関連、必要なInventory Historyを同一Txで保存し、手順1で取得した同一時刻を各createdAt/updatedAtへ使用する。新規商品では0件Review Summaryも同一Tx・同一時刻で作成する。商品更新では既存Review Summaryを読み書きしない。既存inactive Asset関連は維持可能だが、新規関連付け・再関連付けはactive Assetだけとする。
+7. Product、Variant、ProductImage関連、必要なInventory Historyを同一Txで保存し、手順1で取得した同一時刻を各createdAt/updatedAtに使用する。新規商品では0件Review Summaryも同一Tx・同一時刻で作成する。商品更新では既存Review Summaryを読み書きしない。既存inactive Asset関連は維持可能だが、新規関連付け・再関連付けはactive Assetだけとする。
 
 GitHub画像BinaryはこのSequenceでは変更しません。
 
@@ -86,7 +86,7 @@ sequenceDiagram
 
 Payment GatewayはこのTx内で呼びません。画像PathはBuild生成ModuleからTransaction前に解決します。Transaction内ではPrimary assetIdと事前解決したPathを照合し、商品固有Alt Textは現在のProductImage関係から取得してOrder Itemへ保存します。
 
-Order作成Tx内で、Cart Itemの追加時単価と現在時刻に基づく現在単価を再計算して比較します。差異があれば`PRICE_CHANGED`として全体をRollbackし、Cart/Checkoutへ再確認を要求します。
+Order作成Tx内で、Cart Itemの追加時単価と現在時刻に基づく現在単価を再計算して比較します。差異があれば`PRICE_CHANGED`として全体をRollbackし、Cart/Checkoutに再確認を要求します。
 
 ## 4. Payment成功
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ## 6. processing再開
 
-`/checkout/processing?orderId=...`の表示時、App/Browser再起動後、またはPayment結果確定のDB書込みが失敗して最新Paymentがprocessingのまま残った場合、Order所有権、Order pending_payment、最新Payment processingを確認して`ResumeProcessingPaymentUseCase`を実行します。同じAttempt KeyとMethod CodeでLocal Mockを再実行し、成功または失敗へ確定します。
+`/checkout/processing?orderId=...`の表示時、App/Browser再起動後、またはPayment結果確定のDB書込みが失敗して最新Paymentがprocessingのまま残った場合、Order所有権、Order pending_payment、最新Payment processingを確認して`ResumeProcessingPaymentUseCase`を実行します。同じAttempt KeyとMethod CodeでLocal Mockを再実行し、成功または失敗に確定します。
 
 ## 7. Order処理
 

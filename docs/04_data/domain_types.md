@@ -243,7 +243,7 @@ type CheckoutSession = Versioned & {
 };
 ```
 
-IndexedDBでは`addressSnapshot`を構造化Objectとして保存します。Phase 2のSQLite Adapterだけが必要に応じてJSONへSerializeします。
+IndexedDBでは`addressSnapshot`を構造化Objectとして保存します。Phase 2のSQLite Adapterだけが必要に応じてJSONにSerializeします。
 
 ## 5. Order・Payment・Shipment
 
@@ -366,7 +366,7 @@ type SchemaMetadata = {
 
 ## 7. Persistence Projection
 
-Web Persistence Recordだけに次を追加します。Domain Entityへは露出しません。
+Web Persistence Recordだけに次の項目を追加します。Domain Entityには露出しません。
 
 ```typescript
 type BooleanKey = 0 | 1;

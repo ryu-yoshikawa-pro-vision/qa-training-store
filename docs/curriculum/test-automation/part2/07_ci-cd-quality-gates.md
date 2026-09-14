@@ -5,7 +5,7 @@
 - bounded Web CIのQuality Gate、Artifact、Failure Evidence、fail-closed条件を説明できる。
 - CIとCDの違いを説明できる（CDの詳細はAdvanced / Reference）。
 - Required Check / Quality Gateの役割を理解できる。
-- PR、main、Nightly、ManualへTest Suiteを配置できる。
+- PR、main、Nightly、ManualにTest Suiteを配置できる。
 - Web Build / Test ArtifactとFailure Evidenceの関係を理解できる。
 - Preview Deploy、Production Deploy、Deploy後SmokeはAdvanced / Referenceとして比較できる。
 - 「すべてのTestを毎回実行する」以外の設計を、Risk・Feedback速度・Costから考えられる。
@@ -16,7 +16,7 @@
 
 **このモジュールでは、このリポジトリのWeb / Native CI/CD構成を使用します。**
 
-主な参照先:
+主な参照先は次のとおりです。
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
@@ -137,7 +137,7 @@ Deploy Commandが成功しても、公開URLが正常に動作する保証には
 
 Deploy後Smokeでは最低限のCritical状態を確認します。
 
-SmokeへRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
+SmokeにRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
 
 ## Lesson 7: Web ArtifactとFailure Evidence（Common Required）
 
@@ -145,7 +145,7 @@ SmokeへRegression全件を入れるのではなく、公開成功を素早く�
 
 Scenario ShopではBuildした`dist/`をArtifactとして後続Jobへ渡します。
 
-次を考えます。
+次の項目を考えます。
 
 - E2EしたArtifactは何か。
 - E2E Failure時に確認するArtifactは何か。
@@ -194,7 +194,7 @@ Scenario ShopのAndroid Build / Runtime分離は、この問題への一つの�
 CIを速くするために次を安易に行いません。
 
 - TestをSkipする。
-- `continue-on-error`へする。
+- `continue-on-error`にする。
 - Requiredを外す。
 - Assertionを弱くする。
 - Timeoutを無意味に伸ばす。
@@ -217,7 +217,7 @@ WorkflowもCodeであり、変更によって次が壊れる可能性があり�
 
 ## ハンズオン1: Test実行タイミング設計
 
-Part 1で作成したTestを次へ配置します。
+Part 1で作成したTestを、次の実行タイミングに配置します。
 
 - PR
 - main
@@ -230,7 +230,7 @@ Part 1で作成したTestを次へ配置します。
 
 PR Merge前に必須とするJobを選びます。
 
-次をBalanceします。
+次の項目のBalanceを取ります。
 
 - Risk
 - Execution Time
@@ -242,7 +242,7 @@ PR Merge前に必須とするJobを選びます。
 
 Scenario Shopの現在のWeb CIを、Common Requiredの範囲で図示します。Preview / Production / Smokeを含める場合はAdvanced / Referenceと明記します。
 
-最低限次を含めます。
+最低限、次の項目を含めます。
 
 - Quality
 - Tests
@@ -257,7 +257,7 @@ Preview、Production、Deploy後Smokeは別のAdvanced / Reference図として�
 
 ## ハンズオン4: 改善案を考える
 
-現在のCIへ対して、品質を弱めずに改善可能な点を1件以上考えます。
+現在のCIに対して、品質を弱めずに改善可能な点を1件以上考えます。
 
 実際に変更する必要はありません。
 
@@ -282,7 +282,7 @@ Preview、Production、Deploy後Smokeは別のAdvanced / Reference図として�
 
 次を自分のbounded Web CI設計、Gate条件、Artifact、Failure記録で確認できれば、Common completionを自己判定できます。
 
-- どのWeb Build / TestをRequired Gateへ置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
+- どのWeb Build / TestをRequired Gateに置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
 - TestしたArtifactと後続で確認するArtifactを対応付け、Failure時に確認するArtifactを説明できる。
 - 上流JobのFailureまたは想定外Skipを最終GateがSuccessにしない条件を説明できる。
 - `continue-on-error`、Required解除、Assertion弱体化でGateを通しやすくする設計を採用していない。

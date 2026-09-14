@@ -34,11 +34,11 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 ## この文書群と教材実装の関係
 
-このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。Repositoryには、本文を実行可能にするTraining Web / Native入口、CSV Workbook、Validator、TypeScript gate、CI Templateも同じPlanで実装済みです。
+このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。Repositoryには、本文を実行可能にするTraining Web / Native入口、CSV Workbook、Validator、TypeScript gate、CI Templateも同じPlanのもとで実装済みです。
 
 各Lessonは、次の2種類を明示的に区別します。
 
-- **Normative Oracleを読む学習**: [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / ACを起点にする。
+- **Normative Oracleを読む学習**: [`docs/spec/README.md`](../../spec/README.md)から対象FeatureのBR / ACを読み始める。
 - **Training境界で行う演習**: `training/`と`playwright.training.config.ts`を使い、Formal RegressionやProduction Workflowへ変更を混在させない。
 
 既存の `e2e/web/`、`maestro/`、Formal CIは比較教材・正式Regressionであり、Learner Testの保存先ではありません。本番Secret、OIDC、Deploy権限はTrainingへ持ち込みません。
@@ -47,7 +47,7 @@ Repositoryに存在することを検証するassetと、受講者がLearner Req
 
 ## 対象者
 
-コース開始時のentry profileは、テスト自動化の目的・基本概念を理解しており、ノーコード / ローコード経験または概要理解があってもよい一方、Playwright等のコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。
+コース開始時のentry profileは、テスト自動化の目的・基本概念を理解し、ノーコード / ローコードの経験または概要理解があっても構いません。ただし、Playwright等のコードベース自動化は未経験で、プログラミング経験を必須としない受講者を想定します。
 
 主な対象は次の受講者です。
 
@@ -60,11 +60,11 @@ Repositoryに存在することを検証するassetと、受講者がLearner Req
 
 プログラミング経験は必須前提にしません。Playwrightへ進む前に、テストコードを読み書きするために必要なJavaScript / TypeScriptの最小知識をPart 1で扱います。
 
-フルの言語学習を目的にはせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
+言語全体を学ぶことを目的とせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
 
 ### Common prior-knowledge rule
 
-Common Coreが前提にできる既習知識は、上記entry profileと、その時点より前にLearner Required pathで明示的に学んだCommon Core内容だけです。Native specialization、Extension、Reference、教材外のPlaywright / TypeScript / Git / CI実務経験を隠れた前提にしません。
+Common Coreで前提にできる既習知識は、上記entry profileと、それまでにLearner Required pathで明示的に学んだCommon Core内容だけです。Native specialization、Extension、Reference、教材外のPlaywright / TypeScript / Git / CI実務経験を隠れた前提にしません。
 
 ## 用語の使い分け
 
@@ -75,13 +75,13 @@ Common Coreが前提にできる既習知識は、上記entry profileと、そ�
 | Test Case ID | `TC-CART-001` など、スプレッドシート上のテストケース識別子 |
 | UI Test ID / `testId` | PlaywrightやMaestroからUI要素を安定して特定する識別子 |
 | Seed Scenario | Scenario Shopを決定的な初期状態へResetするためのScenario |
-| Test Scenario / User Journey | 複数の条件・画面を跨いで確認する業務上のテストシナリオ |
+| Test Scenario / User Journey | 複数の条件や画面をまたいで確認する業務上のテストシナリオ |
 | Maestro Flow | MaestroのYAMLで記述する実行単位 |
 | 共通操作 / Helper | 複数Pageを跨ぐ操作を必要に応じてまとめるコード上の構造 |
 
 教材本文では原則として上記の正式な呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
 
-Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../../../training/workbook/README.md)を正本として参照します。
+Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../../../training/workbook/README.md)を正本として確認します。
 
 ただし、既存コードのAPI名や変数名、外部Tool固有の名称を引用するときは、その実装上の名称をそのまま使用します。その場合も、教材上どの概念に対応するかを区別します。
 
@@ -89,7 +89,7 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 ### 安定表記ルール
 
-- 一般のlearner-facing説明は日本語中心で記述する。
+- 一般のlearner-facing説明は日本語を中心に記述する。
 - Tool、Product、API、command、path、identifierは公式のliteralを維持する。
 - `Locator`、`Fixture`などの公式用語は、必要な場合だけ初出で日本語の意味を添える。
 - `Common Core`、`Native specialization`、`Extension`、`Reference`はclassification tokenとして維持し、本文で責務を説明する。
@@ -100,9 +100,9 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 Part 1ではGitHubアカウントを必須にしません。
 
-受講者が必要なのは、Scenario ShopとPlaywrightをローカルで扱える環境です。Repository取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
+受講者には、Scenario ShopとPlaywrightをローカルで扱える環境が必要です。Repositoryの取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
 
-Maestroへ進む時点ではNative実行環境が追加で必要です。開始確認は、Current RepositoryのAndroid runbook、Training baseline、Native CI contractで行います。
+Maestroへ進むにはNative実行環境が追加で必要です。開始条件は、RepositoryのAndroid runbook、Training baseline、Native CI contractで確認します。
 
 ### Web / Playwright開始Gate
 

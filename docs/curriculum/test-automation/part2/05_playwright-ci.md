@@ -14,7 +14,7 @@
 
 **このモジュールでは、このリポジトリのPlaywright E2E、`playwright.config.ts`、`.github/workflows/ci.yml` を使用します。**
 
-主な参照先:
+主な参照先は次のとおりです。
 
 - `playwright.config.ts`
 - `e2e/web/`
@@ -40,7 +40,7 @@ CurrentのWorkflow topology、PR / main / Nightlyの配置、Production Artifact
 
 Playwright TestだけをRunnerへ置いても実行できません。
 
-最低限次が必要です。
+最低限、次の要素が必要です。
 
 ```text
 Source Code
@@ -100,7 +100,7 @@ E2E Job
 
 Scenario Shopでは `PLAYWRIGHT_USE_PREBUILT_DIST=true` を利用し、Download済みArtifactを配信します。
 
-この設計の利点:
+この設計の利点は次のとおりです。
 
 - Build回数を減らす。
 - 同じArtifactへ複数Testを実行できる。
@@ -117,7 +117,7 @@ Trade-off:
 
 Retryが存在する理由を考える一方で、Flakyを放置する免罪符にしないことを再確認します。
 
-次を区別します。
+次の3つを区別します。
 
 - 一時的なRunner / Browser揺らぎ
 - Test自体の同期不足
@@ -168,7 +168,7 @@ Cross-browser品質を考えるとChromium、Firefox、WebKitを確認したく�
 
 しかし全Browserで全E2EをPRごとに回すとCostが増えます。
 
-次を考えます。
+次の観点を考えます。
 
 - Browser固有Risk
 - Application利用者のBrowser比率
@@ -207,7 +207,7 @@ Training Workflowでは本番Deployや本番Secretを扱わず、Production Arti
 3. `training:web:baseline`による基準確認
 4. `training:web:exercise`による受講者向けPlaywright E2E
 
-ローカルで`pnpm run training:web:exercise`を成功させた自分の変更を、演習用CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じExerciseが実行され、成功した実行結果 / ArtifactをP2-8のCI設計Evidenceへ再利用します。
+ローカルで`pnpm run training:web:exercise`を成功させた自分の変更を、演習用CopyのPull Requestに送ります。Pull Requestでは基準確認後に同じExerciseが実行され、成功した実行結果 / ArtifactをP2-8のCI設計Evidenceへ再利用します。
 
 ## ハンズオン2: Failure Artifact
 
@@ -230,7 +230,7 @@ Part 1で作成したTestを次へ仮分類します。
 
 現在の `.github/workflows/ci.yml` を読み、自分のTraining構成と比較します。
 
-最低限次を説明します。
+最低限、次の項目を説明します。
 
 - Buildを別Jobにしている理由
 - Artifact再利用の理由
@@ -250,7 +250,7 @@ Part 1で作成したTestを次へ仮分類します。
 
 ## 自己確認
 
-次をTraining Workflowの実行結果またはArtifactを指しながら確認できれば、P2-5 Commonの判断を自己判定できます。
+次の項目をTraining Workflowの実行結果またはArtifactを指しながら確認できれば、P2-5 Commonの判断を自己判定できます。
 
 - Browser Install、Application Build / Serve、Base URL、Playwright Testの関係を説明できる。
 - BuildしたArtifactを再利用する理由と、Failure工程に応じて必要なTrace / Screenshot / Reportを選べる。

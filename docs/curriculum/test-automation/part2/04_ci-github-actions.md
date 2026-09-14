@@ -29,7 +29,7 @@ Git / GitHubの基本演習ではForkも利用できますが、CIハンズオ�
 
 演習開始時に、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、本体RepositoryのRequired Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、[Instructor Reference](../03_instructor-reference.md)のsupport手順へ戻ります。
 
-Training Copyの準備、active Workflow allowlist、Action pin、Current topology、Native実行環境などのRepository固有詳細はこの文書へ複製せず、Instructor support / Referenceで確認します。受講者はこれらの値の暗記やprovisioningをCommon completionの条件にしません。
+Training Copyの準備、active Workflow allowlist、Action pin、Current topology、Native実行環境などのRepository固有詳細はこの文書に複製せず、Instructor support / Referenceで確認します。受講者はこれらの値の暗記やprovisioningをCommon completionの条件にしません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -61,7 +61,7 @@ Training用の最小例は [`training-ci.yml`](../../../../training/github-actio
 
 概念としては、Event → least-privilege Permission → Job / Runner → Dependency Setup → Test Command → Artifact / Resultの関係を読み分けます。remote ActionのpinやVersionを更新する場合は、official sourceとSecurity Advisoryを確認します。
 
-ここから次を読み分けます。
+ここでは次の項目を読み分けます。
 
 - Workflow
 - Event
@@ -81,7 +81,7 @@ YAMLの`key: value`、リスト、インデントによる入れ子を確認し�
 | `runs-on` | Jobを動かすRunner |
 | `steps` | Job内の処理順序 |
 | `uses` | 再利用するAction |
-| `with` | Actionへ渡す設定 |
+| `with` | Actionに渡す設定 |
 | `run` | Runner上で実行するCommand |
 | `env` | Workflow / Job / Stepへ渡すEnvironment Variable |
 | `if` | StepやJobを実行する条件 |
@@ -90,7 +90,7 @@ YAMLの`key: value`、リスト、インデントによる入れ子を確認し�
 
 ## Lesson 3: Trigger
 
-代表的なTrigger:
+代表的なTriggerは次のとおりです。
 
 - `pull_request`
 - `push`
@@ -169,7 +169,7 @@ Matrixは重複YAMLを減らせますが、何でもMatrixへ入れるのでは�
 
 ## Lesson 9: CI Failure分析
 
-Failure時は最低限次を確認します。
+Failure時は最低限、次の項目を確認します。
 
 1. どのWorkflowが起動したか。
 2. Training Workflowか、意図しない既存Workflowか。
@@ -237,7 +237,7 @@ Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build
 
 ## 自己確認
 
-次をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
+次の項目をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
 
 - Trigger、Job、Step、Runnerの関係を説明できる。
 - TrainingとProduction / Deployの境界、`permissions: contents: read`などleast privilegeの意味を説明できる。

@@ -11,7 +11,7 @@
 
 ## 2. 目的
 
-ECサイトに多い画面・権限・価格・在庫・注文状態を、決定的なデータで再現できる学習用SUTを提供します。最優先は、PlaywrightでWeb E2Eを設計・実装・失敗分析できる状態を早期に完成させることです。
+ECサイトに多い画面・権限・価格・在庫・注文状態を、決定的なデータで再現できる学習用SUTを提供します。最優先は、PlaywrightでWeb E2Eを設計・実装・失敗分析できる状態を早期に整えることです。
 
 - PlaywrightによるWeb E2E学習
 - テスト設計、状態遷移、境界値、権限、価格・在庫整合性の学習
@@ -20,7 +20,7 @@ ECサイトに多い画面・権限・価格・在庫・注文状態を、決定
 - AIエージェントによる仕様理解・テスト実装
 - 後続PhaseでMaestroによるNative E2Eと高度な障害シナリオを追加
 
-本アプリは実ECではなく、実際の販売・決済・配送・契約締結を行いません。
+本アプリは実ECではなく、実際の販売・決済・配送・契約締結は行いません。
 
 ## 3. 対象Platform
 
@@ -90,7 +90,7 @@ ECサイトに多い画面・権限・価格・在庫・注文状態を、決定
 - Phase 1は認証・Cart統合の学習を優先するため会員Checkoutのみとする。一般ECのConversion最適化とは異なる意図的な制約である。
 - 郵便番号補完は外部APIを使わず、Seedで使用する限定的な学習用住所辞書だけを利用する。未一致時は手入力できる。
 - 商品画像BinaryはGitHub Repositoryの`public/images/products/`を正本とし、Cloudflare Pagesから同一Originで配信する。アプリは画像Assetの関連付けだけをIndexedDBへ保存する。したがって、管理UIで新規商品を作成する際は、Deploy済みAsset Catalog内の画像から選択する。管理画面単独では新規画像Binaryを追加できず、RepositoryへのCommit/PRと再Deployが必要である。Release済みAssetはappend-onlyとする。
-- BrowserへGitHub Tokenを保持せず、管理UIからGitHub APIへのUpload・削除は行わない。新規画像Binaryの追加はRepositoryへのCommit/PRと再Deployで行う。
+- BrowserにGitHub Tokenを保持せず、管理UIからGitHub APIへのUpload・削除は行わない。新規画像Binaryの追加はRepositoryへのCommit/PRと再Deployで行う。
 
 ## 8. Phase 1環境
 
@@ -103,7 +103,7 @@ ECサイトに多い画面・権限・価格・在庫・注文状態を、決定
 
 ## 9. Phase 1成功条件
 
-- Homeから商品を探し、検索・Filter・カテゴリ・商品詳細を経てCartへ追加できる。
+- Homeから商品を探し、検索・Filter・カテゴリ・商品詳細を経てCartに追加できる。
 - 管理者が商品本体、SKU、画像参照を登録・変更・削除し、公開条件を満たす商品を公開できる。
 - customerがCartへの追加、数量変更、明細削除、Checkout、Payment成功、Order確認を完了できる。
 - 明確なPayment失敗後、同じOrderから再試行できる。
@@ -118,4 +118,4 @@ ECサイトに多い画面・権限・価格・在庫・注文状態を、決定
 
 Phase 1実装は`04_data/domain_types.md`、`04_data/application_contracts.md`、`04_data/repository_interfaces.md`、`04_data/indexeddb_schema.md`の型・Transaction・Index契約に従います。実装者が別DTO、別Password Hash、別Admin Query方式を独自採用しません。`future/phase2`配下はPhase 1の正本ではありません。
 
-- 商品画像はGitHubへ事前登録し、Build生成Manifest Moduleから参照します。管理画面は画像の関連付けだけを行い、画像Uploadは行いません。
+- 商品画像はGitHubに事前登録し、Build生成Manifest Moduleから参照します。管理画面は画像の関連付けだけを行い、画像Uploadは行いません。

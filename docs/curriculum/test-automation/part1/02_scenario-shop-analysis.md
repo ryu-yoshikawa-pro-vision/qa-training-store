@@ -11,9 +11,9 @@
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
-分析のOracleは [`docs/spec/README.md`](../../../spec/README.md) から辿るNormative Specificationです。Current UI、README、既存Testは探索・実装比較のEvidenceとして扱い、未定義の期待動作を教材へ追加しません。
+分析時のOracleは [`docs/spec/README.md`](../../../spec/README.md) から参照するNormative Specificationです。現行UI、README、既存Testは探索・実装比較のEvidenceとして扱い、未定義の期待動作を教材へ追加しません。
 
-主に次を使います。
+主に次を参照します。
 
 - [`docs/spec/product-scope.md`](../../../spec/product-scope.md)
 - [`docs/spec/roles-and-permissions.md`](../../../spec/roles-and-permissions.md)
@@ -24,11 +24,11 @@
 - `/guide`
 - Storefront / Customer / AdminのRole差分
 
-この段階では、既存E2Eを先に読んで分析結果をコピーしないようにします。
+この段階では、既存E2Eを先に読んで分析結果を写さないようにします。
 
 ## Lesson 1: テスト対象を触る
 
-最初にScenario Shopを実際に操作します。
+最初に、Scenario Shopを実際に操作します。
 
 最低限、次を確認します。
 
@@ -70,7 +70,7 @@ Scenario Shopには次のRoleがあります。
 - operator
 - admin
 
-Roleによってできることが異なるため、同じURLへアクセスした場合でも期待結果が異なる可能性があります。
+Roleによって可能な操作が異なるため、同じURLへアクセスした場合でも期待結果が異なる可能性があります。
 
 スプレッドシートへ次を整理します。
 
@@ -83,7 +83,7 @@ Roleによってできることが異なるため、同じURLへアクセスし�
 
 ## Lesson 3: 状態を整理する
 
-UIテストは画面だけ見ても十分に設計できません。
+UIテストは画面だけを見ていては十分に設計できません。
 
 例えば同じ商品詳細でも、状態によって期待結果が変わります。
 
@@ -94,7 +94,7 @@ UIテストは画面だけ見ても十分に設計できません。
 - Sale終了
 - 購入上限
 
-同じCheckoutでも、次があります。
+同じCheckoutにも、次のような状態があります。
 
 - 通常
 - Cart Version不一致
@@ -104,11 +104,11 @@ UIテストは画面だけ見ても十分に設計できません。
 - Payment拒否
 - Payment処理中
 
-状態と期待結果を仕様から整理した後、`docs/spec/state-and-scenarios.md` と `docs/07_testability/seed_catalog.md` の必要な節でScenarioの目的と初期状態を確認します。続けて`/guide`で現在の画面・入口・観察状態を確認します。このLessonではTypeScript実装を読みません。
+状態と期待結果を仕様から整理した後、`docs/spec/state-and-scenarios.md` と `docs/07_testability/seed_catalog.md` の必要な節でScenarioの目的と初期状態を確認します。その後、`/guide`で現在の画面・入口・観察状態を確認します。このLessonではTypeScript実装を読みません。
 
 ## Lesson 4: User Journeyで見る
 
-画面一覧だけでなく、業務の流れとして整理します。
+画面一覧だけでなく、業務の流れとしても整理します。
 
 例:
 
@@ -136,7 +136,7 @@ Delivery
 Review
 ```
 
-このJourneyから、単画面のテストだけでは見つけにくい連携リスクを考えます。
+このJourneyをもとに、単画面のテストだけでは見つけにくい連携リスクを考えます。
 
 ## Lesson 5: データと状態遷移を見る
 
@@ -158,7 +158,7 @@ Scenario ShopではUI操作によって内部状態が変化します。
 
 `/guide` では固定Account、Role、Scenario、確認画面、安全なReset先などを確認できます。
 
-仕様と状態を分析した後に`docs/spec/state-and-scenarios.md`と`docs/07_testability/seed_catalog.md`の必要な節を読み、`/guide`で現在の画面を観察して、次を人間向け資料として整理します。
+仕様と状態を分析した後に`docs/spec/state-and-scenarios.md`と`docs/07_testability/seed_catalog.md`の必要な節を読み、`/guide`で現在の画面を観察して、次の項目を人間向け資料として整理します。
 
 - Scenarioの目的は何か。
 - 初期状態は何か。
@@ -167,11 +167,11 @@ Scenario ShopではUI操作によって内部状態が変化します。
 - どのRouteを確認するか。
 - Reset先はどこか。
 
-ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。具体的なScenario ID、seed value、固定ClockなどのExecutable Sourceの値は、このLessonでは確認しません。Playwright実装へ進んだ後に必要な値だけをExecutable Sourceで確認します。
+ここでは、「Seed Scenarioは便利なテストデータ」というだけでなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。具体的なScenario ID、seed value、固定ClockなどのExecutable Sourceの値は、このLessonでは確認しません。Playwright実装へ進んだ後に必要な値だけをExecutable Sourceで確認します。
 
 ### 既存SSOTへ戻る経路
 
-値をこの教材へ転記せず、P1-2では次の順に人間向け資料を参照します。
+値を教材へ転記せず、P1-2では次の順に人間向け資料を参照します。
 
 1. State、Scenario、Clock、Reset、Test Controlの意味: [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md)
 2. Scenarioの目的、初期状態、初期Login状態、推奨Account、確認Route、Reset先: [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節
@@ -199,7 +199,7 @@ Cartについて次を洗い出します。
 
 ## ハンズオン2: Checkout Journey分析
 
-Guestから購入完了までを図にします。
+Guestから購入完了までの流れを図にします。
 
 次を明示します。
 
@@ -233,7 +233,7 @@ Guestから購入完了までを図にします。
 
 ### Recovery
 
-Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を再読し、CartまたはCheckoutの1条件を「Role → 初期State → Action → Expected → 変化する内部State」で書き直します。固定値が見つからない場合は上記SSOTへ戻り、参照先が起動できない・権限がない場合だけEnvironment blockとして分けて記録します。
+Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を再読し、CartまたはCheckoutの1条件を「Role → 初期State → Action → Expected → 変化する内部State」で書き直します。固定値が見つからない場合は上記のSSOTへ戻り、参照先を起動できない・権限がない場合だけEnvironment blockとして分けて記録します。
 
 ## 完了条件
 

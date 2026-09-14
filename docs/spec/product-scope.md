@@ -67,7 +67,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - 利用規約を閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- Storefrontに戻るNavigationを提供する。
 
 #### Important UI States
 
@@ -94,7 +94,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - プライバシーポリシーを閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- Storefrontに戻るNavigationを提供する。
 
 #### Important UI States
 
@@ -121,7 +121,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - 模擬取引表示と外部決済・配送を行わない範囲を閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- Storefrontに戻るNavigationを提供する。
 
 #### Important UI States
 

@@ -7,7 +7,7 @@
 - Unit、Integration、Repository Contract、Component、Web E2E、Native E2Eの役割を最低限説明できる。
 - すべてをUI E2Eにせず、どの確認をどのテスト層へ置くか考えられる。
 - 自動化対象を頻度、Risk、再現性、判定可能性、保守コストから選定できる。
-- スプレッドシートのTest Case IDと後続のPlaywright / Maestro実装を紐付ける準備ができる。
+- スプレッドシートのTest Case IDと後続のPlaywright / Maestro実装を対応付ける準備ができる。
 
 ## 教材
 
@@ -15,13 +15,13 @@
 
 まず [`docs/spec/README.md`](../../../spec/README.md) から対象FeatureのBR / ACを読み、Workbookへ `spec_ref`、`br_ids`、`ac_ids`を記録します。既存TestのAssertionを期待結果のOracleへ逆変換しません。
 
-主にCart、Checkout、Payment、Role制御を題材にします。State / Scenarioの意味は、P1-2で確認した [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節から確認します。この段階では具体的なScenario IDや実装上の値を確認せず、仕様・Risk・Test Case・`automation_decision`の設計に集中します。Executable Sourceの具体的なIDは、Playwright実装へ進んだ後に参照します。
+主にCart、Checkout、Payment、Role制御を題材にします。State / Scenarioの意味は、P1-2で確認した [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節で確認します。この段階では具体的なScenario IDや実装上の値を確認せず、仕様・Risk・Test Case・`automation_decision`の設計に集中します。Executable Sourceの具体的なIDは、Playwright実装へ進んだ後に参照します。
 
-Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
+Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして参照します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態に適用してテストケースへ変換することを中心にします。
 
 ## Lesson 1: 分析結果をテスト条件へ変換する
 
-テスト対象分析では「何があるか」を整理しました。ここでは「何をどの条件で確認するか」へ変換します。
+テスト対象分析では「何があるか」を整理しました。ここでは「何をどの条件で確認するか」に変換します。
 
 例としてCartを考えます。
 
@@ -39,7 +39,7 @@ Role: Guest
 
 ## Lesson 2: 同値分割と境界値を適用する
 
-Cart数量や購入上限を題材に、入力範囲を同じ結果になるグループへ分けます。
+Cartの数量や購入上限を題材に、入力範囲を同じ結果になるグループに分けます。
 
 購入上限が5なら、例えば次を考えます。
 
@@ -57,7 +57,7 @@ Cart数量や購入上限を題材に、入力範囲を同じ結果になるグ�
 
 購入可否、Login、Role制御など、複数条件の組み合わせで結果が変わるものを表にします。
 
-このとき、「active customerか」のように複数の意味を1条件へまとめすぎないことが重要です。Guest、suspended customer、operator、adminでは拒否理由や期待結果が異なるため、Login、Role、Account状態を分けます。
+このとき、「active customerか」のように複数の意味を1つの条件にまとめすぎないことが重要です。Guest、suspended customer、operator、adminでは拒否理由や期待結果が異なるため、Login、Role、Account状態を分けます。
 
 例:
 
@@ -70,7 +70,7 @@ Cart数量や購入上限を題材に、入力範囲を同じ結果になるグ�
 | Yes | Yes | Yes | No | Yes | 在庫理由で拒否 |
 | Yes | Yes | Yes | Yes | No | 上限理由で拒否 |
 
-`-` は、そのRuleでは結果へ影響しない条件です。
+`-` は、そのRuleでは結果に影響しない条件です。
 
 目的は組み合わせを全部E2E化することではありません。Ruleを可視化し、欠けている条件、重複したCase、条件をまとめすぎて隠れている期待結果を見つけます。
 
@@ -115,7 +115,7 @@ Role × 操作のMatrixを作り、すべての組み合わせではなく、権
 
 ## Lesson 6: Test Scenario / User Journeyを設計する
 
-複数画面を跨ぐ重要なBusiness Flowは、単画面Testとは別にTest Scenario / User Journeyとして考えます。
+複数画面をまたぐ重要なBusiness Flowは、単画面Testとは別にTest Scenario / User Journeyとして考えます。
 
 例:
 
@@ -133,7 +133,7 @@ Payment
 Order
 ```
 
-個々のValidationを全て1本へ詰め込むのではなく、「複数機能の連携が成立すること」を確認するJourneyとして設計します。
+個々のValidationをすべて1本に詰め込むのではなく、「複数機能の連携が成立すること」を確認するJourneyとして設計します。
 
 ここでいうTest Scenario / User Journeyは、`default` や `out-of-stock` のようなSeed Scenarioとは別の概念です。
 
@@ -230,7 +230,7 @@ Part 1後半ではPlaywrightとMaestroを使いますが、この段階では次
 - Native固有UIとして確認すべきものは何か。
 - 同じ業務契約を両Platformで確認すべきものは何か。
 
-すべてのケースをWeb / Android / iOSへ機械的に複製しないことも重要です。
+すべてのケースをWeb / Android / iOSに機械的に複製しないことも重要です。
 
 ## ハンズオン1: Cartのテスト条件を体系的に導出する
 
@@ -276,7 +276,7 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 少なくとも1件はUI E2E以外の層を選び、次を説明します。
 
 - なぜその層が適切か。
-- UI E2Eへ同じ条件を重複して持たせる必要があるか。
+- UI E2Eに同じ条件を重複して持たせる必要があるか。
 - E2Eで追加確認するとしたら何を確認するか。
 
 「重要だから全部E2E」「高速だから全部Unit」のどちらにも寄せず、Riskと確認範囲から判断します。
@@ -322,4 +322,4 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 
 ## 次の行動
 
-[Part 1-4: Playwright基礎](./04_playwright-foundations.md)へ進み、選定したWeb CaseをTraining用Playwright Testへ落とします。
+[Part 1-4: Playwright基礎](./04_playwright-foundations.md)へ進み、選定したWeb CaseをTraining用Playwright Testに落とし込みます。

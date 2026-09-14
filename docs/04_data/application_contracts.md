@@ -104,7 +104,7 @@ const INPUT_LIMITS = {
 
 金額、数量、在庫、Page、VersionはApplication入口で整数検証します。EmailはTrim、Unicode NFKC、Locale非依存小文字化の順で正規化し、保存・検索・一意判定に同じ値を使用します。productCode/SKUはTrim、NFKC、ASCII大文字化後に`[A-Z0-9_-]+`で検証し、正規化値をそのまま保存します。UI、Zod、Use Caseは`INPUT_LIMITS`を共用します。
 
-Query共通規約: Pageは1始まり、空の配列Filterは「全件」、`null` Keywordは未指定、日時範囲は`from`を含み`to`を含まない、Sort同値時は各正本で定義した安定Keyを追加します。検索文字列はTrim、Unicode NFKC、Locale非依存小文字化、連続空白の1文字化を同じ`SearchTextNormalizer`で行い、空文字は`null`へ変換します。
+Query共通規約: Pageは1始まり、空の配列Filterは「全件」、`null` Keywordは未指定、日時範囲は`from`を含み`to`を含まない、Sort同値時は各正本で定義した安定Keyを追加します。検索文字列はTrim、Unicode NFKC、Locale非依存小文字化、連続空白の1文字化を同じ`SearchTextNormalizer`で行い、空文字は`null`に変換します。
 
 ## 2. 認証契約
 
@@ -222,7 +222,7 @@ interface PasswordHasher {
 }
 ```
 
-保存形式は次へ固定します。
+保存形式は次のとおり固定します。
 
 ```text
 pbkdf2-sha256$210000$<saltBase64>$<hashBase64>
@@ -644,13 +644,13 @@ type VariantDeletionBlockers = {
 
 - Image 0件はdraftだけ許可する。
 - Image 1～3件の場合はPrimaryちょうど1件とする。
-- 同一Productへ同じ`assetId`を複数関連付けない。
+- 同一Productに同じ`assetId`を複数関連付けない。
 - active Variantの`optionScopeKey`はVariationなし`__SINGLE_ACTIVE__`または正規化済optionValue、inactive Variantは`__INACTIVE__:<variantId>`とし、旧SKUを無効化して同じ選択肢の新SKUを追加できるようにする。
 - `deleteDraftAggregate()`は削除Transaction内で参照条件を再確認する。事前の`hasBlockingReference()`はUI案内専用である。
-- PreviewはDBへ保存せず、未保存Aggregateと指定Rankから`ProductPreviewDto`を生成する。画像0件ではPlaceholderを表示するため`primaryImage`はnullを許可する。
+- PreviewはDBに保存せず、未保存Aggregateと指定Rankから`ProductPreviewDto`を生成する。画像0件ではPlaceholderを表示するため`primaryImage`はnullを許可する。
 - CreateはUse Caseが`productId`を生成し、`status=draft`、`publishedAt=null`で保存する。Create/Update Aggregateは`status`と`publishedAt`を受け取らず、公開状態の変更は`ChangeProductStatusUseCase`またはBulk版だけが行う。
 - Updateは`productExpectedVersion`でProduct本体を楽観Lockし、SKU・画像関連と同一Transactionで更新する。
-- Create/Update Use Caseは`Clock.now()`を1回だけ取得し、Commandの`now`をProduct、Variant、ProductImage、INITIAL_STOCK履歴の作成・更新時刻へ共通使用する。Create時は0件Review Summaryの作成にも同じ`now`を使用するが、Update時は既存Review Summaryを取得・更新しない。Repositoryは実時計を直接参照しない。
+- Create/Update Use Caseは`Clock.now()`を1回だけ取得し、Commandの`now`をProduct、Variant、ProductImage、INITIAL_STOCK履歴の作成・更新時刻に共通使用する。Create時は0件Review Summaryの作成にも同じ`now`を使用するが、Update時は既存Review Summaryを取得・更新しない。Repositoryは実時計を直接参照しない。
 
 ## 6. Inventory・Cart・Checkout契約
 
@@ -1058,13 +1058,13 @@ type AdminOrderDetailDto = OrderDetailDto & {
 };
 ```
 
-送料はOrderの`shippingAmount`へ保存します。会員割引はSKU単価ごとに切り捨て、Order Itemへ`unitDiscountAmount`・`lineDiscountAmount`をSnapshot保存し、Orderの`discountAmount`は全Order Itemの`lineDiscountAmount`合計と一致させます。
+送料はOrderの`shippingAmount`に保存します。会員割引はSKU単価ごとに切り捨て、Order Itemに`unitDiscountAmount`・`lineDiscountAmount`をSnapshot保存し、Orderの`discountAmount`は全Order Itemの`lineDiscountAmount`合計と一致させます。
 
 `CreateOrderForPaymentUseCase`はOrder作成Transaction内で、Cart Itemの`unitEffectivePriceAtAdd`と現在時刻・現在の商品/SKUから再計算したSale適用後・会員割引前単価を比較します。1件でも異なる場合は`PRICE_CHANGED`を返し、Order/Paymentを作成せずCartをactiveのまま保持します。価格確定時はSKU単価ごとに割引額を切り捨て、明細割引合計をOrderの割引額とします。
 
-`PaymentGateway.charge()`は成功・失敗だけを返します。Gateway結果受領後、Applicationが`Clock.now()`を1回取得して`FinalizePaymentResultCommand.now`へ設定し、その値をPaymentの`processedAt`、Order/Payment Historyの`createdAt`へ共通使用します。
+`PaymentGateway.charge()`は成功・失敗だけを返します。Gateway結果受領後、Applicationが`Clock.now()`を1回取得して`FinalizePaymentResultCommand.now`に設定し、その値をPaymentの`processedAt`、Order/Payment Historyの`createdAt`に共通使用します。
 
-注文作成前にApplicationはBuild生成Manifest Moduleから各Primary画像のPathだけを解決し、`assetPathByAssetId`として内部Commandへ設定します。`create-order` Transaction内では現在のProductImageの`assetId`とPath Mapを照合し、Alt TextはProductImage関係から取得してOrder ItemへSnapshotします。
+注文作成前にApplicationはBuild生成Manifest Moduleから各Primary画像のPathだけを解決し、`assetPathByAssetId`として内部Commandに設定します。`create-order` Transaction内では現在のProductImageの`assetId`とPath Mapを照合し、Alt TextはProductImage関係から取得してOrder ItemにSnapshotします。
 
 ## 8. Review・Test契約
 
@@ -1350,4 +1350,4 @@ Homeは主要Category最大6件、新着最大8件、Sale最大8件を返しま�
 | GetTestMetadata | なし | TestMetadata | PERMISSION_DENIED | Test ControlまたはE2E |
 | InspectOrder/Variant/ReviewSummary | 固定Entity ID | OrderInspection / VariantInspection / ReviewSummaryInspection | PERMISSION_DENIED、NOT_FOUND | E2EのRead-only確認 |
 
-すべてのUse Caseは失敗時に`ApplicationError`へ変換し、内部ExceptionをPresentationへ渡しません。成功後のRouteは`screen_list.md`と`user_flows.md`を最終正本とします。
+すべてのUse Caseは失敗時に`ApplicationError`に変換し、内部ExceptionをPresentationに渡しません。成功後のRouteは`screen_list.md`と`user_flows.md`を最終正本とします。

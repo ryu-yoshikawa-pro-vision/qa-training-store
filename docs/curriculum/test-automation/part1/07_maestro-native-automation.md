@@ -15,7 +15,7 @@
 
 **このモジュールでは、このリポジトリのScenario Shop Nativeアプリと `maestro/` 配下の既存Flowを使用します。**
 
-主な参照先:
+主な参照先は次のとおりです。
 
 - `maestro/native-storefront.yaml`
 - `maestro/native-cart.yaml`
@@ -68,7 +68,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - `assertVisible`
 - `assertNotVisible`
 
-PlaywrightとSyntaxは異なりますが、前提状態 → 操作 → 期待結果というテスト構造は同じです。
+PlaywrightとはSyntaxが異なりますが、前提状態 → 操作 → 期待結果というテスト構造は同じです。
 
 ## Lesson 3: Nativeの要素識別
 
@@ -117,7 +117,7 @@ scenario-shop://test-control/reset?version=<protocol-version>&scenario=<seed-sce
 
 Native Testでも、前回実行の状態へ依存しないことが重要です。
 
-CurrentのProtocol Version、利用可能なScenario、固定Clock、遅延値は教材へコピーせず、[`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)、[`metadata.ts`](../../../../src/seeds/metadata.ts)、および `/guide` のTest Controlを参照します。このLessonでは、ProtocolやProduct Behavior自体の変更は行いません。
+CurrentのProtocol Version、利用可能なScenario、固定Clock、遅延値は教材にコピーせず、[`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)、[`metadata.ts`](../../../../src/seeds/metadata.ts)、および `/guide` のTest Controlを参照します。このLessonでは、ProtocolやProduct Behavior自体の変更は行いません。
 
 ## Lesson 6: 最初のMaestro Flow
 
@@ -196,20 +196,20 @@ Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、US
 
 Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
 
-理由は次です。
+理由は次のとおりです。
 
 - iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
 - Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
-- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
+- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別の責務である。
 - Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
 
-Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
+Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約に基づいて固定します。Formal NativeのFlowや第二Native基盤は作りません。
 
 ### Android Physical Device Start Gate
 
 Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
 
-RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
+Repositoryが対応するAndroidの最低APIは、`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材に固定しません。
 
 複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
 
@@ -219,13 +219,13 @@ $serial = "<physical-device-serial>"
 $runId = "<run-id>"
 ```
 
-出力が次のように`device`であることを確認します。
+出力が次のように表示され、`device`であることを確認します。
 
 ```text
 <physical-device-serial>    device usb:... product:... model:...
 ```
 
-`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
+`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降のすべてのコマンドに同じ`$serial`を渡します。
 
 Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
 
@@ -298,7 +298,7 @@ Localでsuccessful exercise evidenceと判定するには、同じattemptで `pn
 
 `-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
 
-`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrityを確認してからInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
 
 ## ハンズオン1: Native Cart Flow
 
@@ -336,7 +336,7 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 
 ## 自己確認
 
-次を自分の言葉または自分のEvidenceで確認できれば、このLessonの判断を説明できます。
+次の項目を自分の言葉または自分のEvidenceで確認できれば、このLessonの判断を説明できます。
 
 - PlaywrightのLocatorとMaestroのNative UI操作の違いを説明できる。
 - UI Test IDとTest Case IDを区別し、Stable UI Test IDを使う理由と乱用Riskを説明できる。

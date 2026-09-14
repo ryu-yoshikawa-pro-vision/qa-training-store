@@ -6,15 +6,15 @@
 
 ## Public Reference
 
-公開されたNormative Specification、Current ADR、Current Workflow、Training validatorへの到達を支援します。学習内容と自己判定は各Learner Required Lessonおよび [Competency Rubric](02_competency-rubric.md) を参照し、この文書へ解答を追加しません。
+公開されたNormative Specification、Current ADR、Current Workflow、Training validatorへの到達を支援します。学習内容と自己判定は各Learner Required Lessonおよび [Competency Rubric](02_competency-rubric.md) を参照し、この文書には解答を追加しません。
 
 ## Expected Contract
 
 - Expected Product Behaviorの正本は [`docs/spec/README.md`](../../spec/README.md) とNormative Feature文書です。
 - `docs/spec/features/*.md`、Current ADR、Executable Sourceの役割を混同せず、mutableな値をこの文書へ複製しません。
-- Training Webの既存入口は `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`、Training Nativeの開始点は `training/maestro/baseline/` です。環境支援ではRepositoryの現在のScriptとWorkflowを優先します。
+- Training Webの既存入口は `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`、Training Nativeの開始点は `training/maestro/baseline/` です。環境支援では、Repositoryの現在のScriptとWorkflowを優先します。
 - Formal Web `e2e/web/`、Formal Native `maestro/`へLearner Testを混ぜず、Trainingの変更面と分離します。
-- AndroidはBuild + Runtime E2E、iOSはBuild-onlyというCurrent保証を運用上の前提として扱います。iOS Simulator / Maestro / Runtimeを未確認のまま成功と記録しません。
+- AndroidはBuild + Runtime E2E、iOSはBuild-onlyというCurrent保証を運用上の前提として扱います。iOS Simulator / Maestro / Runtimeが未確認のまま、成功と記録しません。
 - Training Copyではactive Workflowを `training-ci.yml` と `training-native-ci.yml` の2件へ限定し、`permissions: contents: read`、Secret不要、Deployなしの境界を確認します。
 
 ## Alternative Design
@@ -47,7 +47,7 @@
 
 ### Training Copy / Repository provisioning
 
-Training Copyを運営が準備する場合は、次の既存Scriptと境界を使います。
+Training Copyを運営が準備する場合は、次に示す既存Scriptと境界を使います。
 
 ```bash
 pnpm run training:copy:prepare -- --source-sha <full-sha> --target <disposable-folder>

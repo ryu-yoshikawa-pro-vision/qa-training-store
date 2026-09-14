@@ -20,7 +20,7 @@
 
 固定Scenarioは `src/seeds/metadata.ts` の `SCENARIO_METADATA` と `src/seeds/scenarios.ts` の変換処理を正本とします。代表的な用途は `default`、`empty-catalog`、`out-of-stock`、`low-stock`、`regular-member`、`cart-with-invalid-items`、`payment-declined`、`checkout-resume`、`reviewable-orders`です。
 
-ResetはDatabase、Session、Guest Identity、Clock、Payment Delayを指定状態へ戻します。UI Test ControlだけがReset後のNoticeと安全な画面遷移を所有し、Test API ResetはReset結果とMetadataを返すだけです。
+ResetはDatabase、Session、Guest Identity、Clock、Payment Delayを指定状態に戻します。UI Test ControlだけがReset後のNoticeと安全な画面遷移を所有し、Test API ResetはReset結果とMetadataを返すだけです。
 
 ## Error and Boundary States
 

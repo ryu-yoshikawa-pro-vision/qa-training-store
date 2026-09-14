@@ -36,17 +36,17 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、�
 
 ## 4. Test ID / Mapping label taxonomy
 
-この文書の命名規則は、今回新しいIDを作るための制度ではなく、既存文書で使われているTest / Mapping labelの意味を区別するための説明です。`WE-*`というprefixだけではexecutable test IDを意味しません。CurrentのTest codeはこれらのlabelをtest titleへ埋め込んでいないため、code referenceはrepository-relative file pathとexact test title、または明確なsuite-level referenceで示します。
+この文書の命名規則は、今回新しいIDを作るための制度ではなく、既存文書で使われているTest / Mapping labelの意味を区別するための説明です。`WE-*`というprefixだけではexecutable test IDを意味しません。CurrentのTest codeはこれらのlabelをtest titleに埋め込んでいないため、code referenceはrepository-relative file pathとexact test title、または明確なsuite-level referenceで示します。
 
 - Executable / verification namespaceとして文書化されている形式: Unit=`UT-<domain>-NNN`、Repository=`RC-dexie-NNN`、Web E2E=`WE-<flow>-NNN`、Accessibility=`AX-<screen>-NNN`、UX Pattern=`UX-<pattern>-NNN`、Benchmark=`BM-<target>-NNN`。
-- `WE-CORE-001`〜`WE-CORE-012`はexecutable test IDではなく、Requirement / business-flow Mapping IDです。表のMappingをCurrent executable testの件数やtest titleへ読み替えません。
+- `WE-CORE-001`〜`WE-CORE-012`はexecutable test IDではなく、Requirement / business-flow Mapping IDです。表のMappingをCurrent executable testの件数やtest titleに読み替えません。
 - Current test titleには`WE-CORE-*` IDを埋め込んでいません。`WE-CORE-*`の参照先はMappingの代表E2E codeであり、executable test IDの一覧ではありません。
 - §6の`UT-*`、`CT-*`、`CP-*`、`WE-TEST-INSP-*`等は、Current code側の正式IDの存在を主張しない既存の下位Traceability代表labelです。`CT-*`や`CP-*`を理由に新しいID制度、Test codeの埋込み、renameは行いません。
 - この文書で説明するlabelのprefixと、実際のcode / suiteの分類（Unit、Contract、Component、E2E等）は同じものとは限りません。分類はCurrentのtest fileとworkflowで確認します。
 
 ## 5. Phase 1 Web E2E対応
 
-`WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのE2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixとして扱います。Requirementの全組合せをE2Eへ展開せず、各Flowで代表的な業務結果を確認します。
+`WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのE2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixとして扱います。Requirementの全組合せをE2Eに展開せず、各Flowで代表的な業務結果を確認します。
 
 | WE-CORE Mapping ID | 主なRequirement | Flow | Current E2E representative code |
 |---|---|---|---|
@@ -69,10 +69,10 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、�
 
 - `exact-title`: 1つのexisting test titleで対象labelの責務を代表できる。
 - `suite-level`: 1つのtest file / suiteで対象labelの責務を代表できる。
-- `bounded-multi-ref`: legacy labelが複数の独立Requirement / 観点を含み、Current Formal evidenceが複数suiteへ合理的に分散している場合に、必要最小限の複数referenceで担当範囲を明示する。
+- `bounded-multi-ref`: legacy labelが複数の独立Requirement / 観点を含み、Current Formal evidenceが複数suiteに合理的に分散している場合に、必要最小限の複数referenceで担当範囲を明示する。
 - `stop`: 上記いずれでもRequirementの一部をCurrent Formal evidenceで説明できない。
 
-Current codeは下表のlabel自体をtest titleへ埋め込んでいないため、labelをexecutable test IDとは扱わず、実在するcode / suiteへ参照を接続します。
+Current codeは下表のlabel自体をtest titleに埋め込んでいないため、labelをexecutable test IDとは扱わず、実在するcode / suiteに参照を接続します。
 
 | Lower Traceability label | Requirement | Disposition | Current code / suite | 主な確認 |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@ Current codeは下表のlabel自体をtest titleへ埋め込んでいないた�
 | CT-ORDER-SNAP-001 | FR-MO-006 | exact-title | `tests/integration/checkout-order-use-cases.test.ts` — `creates consistent snapshots and decrements stock exactly once after success` | Order Item画像とOrder金額Snapshot |
 | CT-PAY-IDEMP-001 | FR-PY-010/013、NFR-RL-012 | suite-level | `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration | Payment再開・競合後の完了結果返却 |
 | UT-REVIEW-SUM-001 | FR-PR-017、FR-RV-006/007 | bounded-multi-ref | `tests/unit/reviews.test.ts` — 未丸め平均、表示丸め、rating distribution delta; `tests/repository-contract/storefront-catalog.test.ts` — Review平均によるSort / Filter境界; `tests/contracts/transactions.test.ts` — ReviewとSummaryのRollback | Review平均の未丸め保存、表示丸め、Sort・Filter境界 |
-| CP-FORM-001 | NFR-AX-001/007、NFR-MA-012 | bounded-multi-ref | `tests/component/presentation-foundation.test.tsx` — `focuses an error summary and links each message to its field`（NFR-AX-001 / NFR-AX-007のError relationship、Error Summary focus、Summary linkから対象fieldへの移動）；`tests/unit/normalization-cart-catalog.test.ts` — `uses the shared NFKC, case, and whitespace rules`（NFR-MA-012のEmail normalizationを含むshared normalization）；`tests/integration/auth-account.test.ts` — `enforces shared input limits at Registration and Profile application boundaries`（NFR-MA-012のshared input limitsとApplication ErrorのVALIDATION / fieldErrors contract）；`tests/component/auth-account-pages.test.tsx` — `uses shared Signup limits for controls and rejects an over-limit display name`（NFR-MA-012のshared INPUT_LIMITS、signup control maxlength、over-limit rejection） | 共有入力上限、Error Summary、fieldErrors |
+| CP-FORM-001 | NFR-AX-001/007、NFR-MA-012 | bounded-multi-ref | `tests/component/presentation-foundation.test.tsx` — `focuses an error summary and links each message to its field`（NFR-AX-001 / NFR-AX-007のError relationship、Error Summary focus、Summary linkから対象fieldに移動）；`tests/unit/normalization-cart-catalog.test.ts` — `uses the shared NFKC, case, and whitespace rules`（NFR-MA-012のEmail normalizationを含むshared normalization）；`tests/integration/auth-account.test.ts` — `enforces shared input limits at Registration and Profile application boundaries`（NFR-MA-012のshared input limitsとApplication ErrorのVALIDATION / fieldErrors contract）；`tests/component/auth-account-pages.test.tsx` — `uses shared Signup limits for controls and rejects an over-limit display name`（NFR-MA-012のshared INPUT_LIMITS、signup control maxlength、over-limit rejection） | 共有入力上限、Error Summary、fieldErrors |
 | WE-TEST-INSP-001 | FR-TC-008、NFR-TS-007 | exact-title | `tests/integration/seeds.test.ts` — `limits mutable controls and returns fixed inspection DTOs` | 固定Read-only Inspectionのみ公開 |
 | CT-ADDRESS-001 | FR-AU-006/010/016 | exact-title | `tests/integration/auth-account.test.ts` — `keeps exactly one default address and deterministically reassigns it` | 初回Default、Default切替、削除時後継選択 |
 | CT-RESET-001 | FR-TC-001/006/009 | exact-title | `tests/integration/seeds.test.ts` — `resets the database and restores only the seed identities` | DB、Session、Guest IdentityとSeed Guest IDを一連のReset手順で決定的に初期化 |
@@ -103,6 +103,6 @@ Current codeは下表のlabel自体をtest titleへ埋め込んでいないた�
 
 ## 7. 更新Rule
 
-- Requirement Groupを追加・変更した場合、少なくとも1つのTest Levelへ割り当てる。
-- E2E追加は既存12 Flowへ統合できない理由を説明する。
-- 内部整合性や組合せをE2Eへ移さず、Unit/Application/Contractを優先する。
+- Requirement Groupを追加・変更した場合、少なくとも1つのTest Levelに割り当てる。
+- E2E追加は既存12 Flowに統合できない理由を説明する。
+- 内部整合性や組合せをE2Eに移さず、Unit/Application/Contractを優先する。

@@ -1,6 +1,6 @@
 # Screen Catalog
 
-この文書は、Current Route SurfaceをScreen IDとPrimary specificationへ結び付けるSupporting indexです。Product Behavior、Important UI State、Expected UIは各Primary specificationが所有し、このCatalogへ複製しません。
+この文書は、Current Route SurfaceをScreen IDとPrimary specificationに結び付けるSupporting indexです。Product Behavior、Important UI State、Expected UIは各Primary specificationが所有し、このCatalogに複製しません。
 
 ## Catalog contract
 

@@ -4,9 +4,9 @@
 
 ## 評価の前提
 
-- Expected Product Behaviorは [`docs/spec/README.md`](../../spec/README.md) のNormative Product BehaviorとFeatureのBR / ACから判断する。
+- Expected Product Behaviorは [`docs/spec/README.md`](../../spec/README.md) のNormative Product BehaviorとFeatureのBR / ACに基づいて判断する。
 - Application、既存Test、README、実行結果はImplementation / Regression / Supporting / Observed Evidenceであり、Normative Oracleへ昇格させない。
-- Seed Scenario ID、Route、UI Test ID、Build値はSpecが指定するExecutable Canonical Sourceから確認する。
+- Seed Scenario ID、Route、UI Test ID、Build値はSpecが指定するExecutable Canonical Sourceを参照する。
 - `br_ids` / `ac_ids`など複数IDは`;`区切りで記録する。
 - iOS Runtimeを実行したことは修了条件にしない。Current GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyである。
 
@@ -27,7 +27,7 @@
 | C11 | Change Management | Common | learner-authored Git / PR changeをreviewable diff、rationale、review recordで説明する | [Part 2-3](./part2/03_github-pull-request-review.md) + [Part 2-8](./part2/08_integration-design-capstone.md) | learner-authored Git / PR change + reviewable diff + change rationale + learner-facing review criteriaに基づくreview record（自分のDiffまたは教材用Diffで成立し、第三者ReviewはRequiredではない） |
 | C12 | Continuous Execution Design | Common | bounded Web CIのTrigger / Gate / Artifact / Failure Evidenceを設計・説明する | [Part 2-5](./part2/05_playwright-ci.md) + [Part 2-8](./part2/08_integration-design-capstone.md) | Training Copy Pull Request上で受講者が作成したPlaywright Testのsuccessful run / Artifact、Trigger / Gate / Failure Evidence |
 
-`Common`はLearner Required Commonを示し、`Native specialization`はC08だけに使用します。`Advanced`はbounded Level 2外のscopeを説明する語であり、C01〜C12の新しいclassificationではありません。
+`Common`はLearner Required Commonを示し、`Native specialization`はC08にのみ使用します。`Advanced`はbounded Level 2外のscopeを説明する語であり、C01〜C12の新しいclassificationではありません。
 
 ## Completion contract
 
@@ -51,13 +51,13 @@ Level 3はCommon Requiredではなく、bounded Level 2を超えるchallenge / A
 
 ## Part 1修了基準
 
-Part 1 Common: C01〜C07 + C09〜C10 bounded Level 2。各Competencyの評価詳細とMinimum Evidenceは、上記の`Competency一覧`を参照します。C08、Physical Android、Native evidenceはCommon completionに要求しません。
+Part 1 Common: C01〜C07 + C09〜C10 bounded Level 2。各Competencyの評価詳細とMinimum Evidenceは、上記の`Competency一覧`で確認します。C08、Physical Android、Native evidenceはCommon completionに要求しません。
 
 Baseline / stock PASSはenvironment / harness evidenceであり、learner-authored competency evidenceの代替にはなりません。Native specializationを選択する場合のC08 evidenceは、上記の`Competency一覧`を参照します。外部提出はRequiredではありません。
 
 ## Part 2修了基準
 
-Part 2 / Final Common: C01〜C07 + C09〜C12 bounded Level 2。各Competencyの評価詳細とMinimum Evidenceは、上記の`Competency一覧`を参照します。
+Part 2 / Final Common: C01〜C07 + C09〜C12 bounded Level 2。各Competencyの評価詳細とMinimum Evidenceは、上記の`Competency一覧`で確認します。
 
 C12 Commonはbounded Web CIのTrigger / Gate / Artifact / Failure Evidenceに限定します。Native / multi-platform / preview-prod delivery、Training Copyの運用詳細、Android baseline、Delivery SHAはCommon completionへ再列挙しません。C08はCommon completionに要求せず、Level 3相当の比較・提案もCommon Requiredではありません。
 

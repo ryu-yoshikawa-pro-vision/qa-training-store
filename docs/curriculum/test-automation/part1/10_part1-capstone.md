@@ -5,5 +5,5 @@
 ## 案内
 
 - 現在のPart 1 Commonは、Webを中心とする [`09_part1-capstone.md`](./09_part1-capstone.md) で完了します。
-- Native specializationを選択する場合は、P1-7の成果物を追加経路として扱います。
+- Native specializationを選択する場合は、P1-7の成果物を追加の経路として扱います。
 - このLegacy Aliasに書かれた過去の課題手順を、現在の修了条件として使用しません。

@@ -6,9 +6,9 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 
 - UIで即時Validationし、Use Caseで同じ業務Ruleを再検証する。
 - Error Summaryと項目Errorを関連付ける。
-- Submit Error時は最初のFieldではなくError SummaryへFocusする。
-- Summary内Linkで該当Fieldへ移動できる。
-- 内部ExceptionやDB名を利用者へ表示しない。
+- Submit Error時は最初のFieldではなくError SummaryにFocusする。
+- Summary内Linkで該当Fieldに移動できる。
+- 内部ExceptionやDB名を利用者に表示しない。
 - Messageは状態、原因、次の操作を可能な範囲で示す。
 - UIは日本語を基本とし、Domain内部値をそのまま表示しない。
 
@@ -81,7 +81,7 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 - 0件: 「条件に一致する商品がありません」。検索語変更、Filter全解除、全商品へのActionを表示する。
 - Suggestion 0件: 「候補がありません。Enterでこのキーワードを検索できます」。
 - Filter 0件候補: 件数`0`を表示し、Checkbox/Optionを選択不可にする。
-- URLの無効Query: 既定値へ正規化し、利用者へ技術Errorを表示しない。
+- URLの無効Query: 既定値に正規化し、利用者に技術Errorを表示しない。
 
 ## 5. Form Error Summary
 
@@ -91,21 +91,21 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 - 電話番号を10～11桁で入力してください
 ```
 
-各項目をLinkとし、選択するとFieldへFocusします。
+各項目をLinkとし、選択するとFieldにFocusします。
 
 ## 6. Success・Result Message
 
 - Cart追加: 「商品をカートに追加しました」＋「カートを見る」。
 - 保存: 「変更を保存しました」。重要な更新内容はPage内Statusにも反映する。
 - Bulk: 「8件を公開しました。2件は更新できませんでした」＋失敗対象Link。
-- 注文完了: 注文番号、合計、注文詳細へのLinkを画面内へ表示する。
+- 注文完了: 注文番号、合計、注文詳細へのLinkを画面内に表示する。
 - Toastは補助通知であり、重要結果の唯一の表示にしない。
 
 ## 7. Unsaved・Destructive Message
 
 - 未保存離脱: 「保存していない変更があります」＋「保存して移動」「破棄して移動」「編集に戻る」。
 - 商品状態一括変更: 対象件数、変更後状態、実行後の影響を確認する。
-- Danger操作は対象名をMessageへ含める。
+- Danger操作は対象名をMessageに含める。
 
 ## 検索文字列の正規化
 

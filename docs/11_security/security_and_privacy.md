@@ -6,7 +6,7 @@ Authentication、Authorization、Paymentは学習用疑似実装です。Browser
 
 ## 2. 利用者表示
 
-全画面ではHeaderの「テスト環境」Badgeで環境を明示します。Login、Signup、Cart、Checkoutでは次の注意を本文内へ再掲します。
+全画面ではHeaderの「テスト環境」Badgeで環境を明示します。Login、Signup、Cart、Checkoutでは次の注意を本文内に再掲します。
 
 - 実取引なし
 - 実在氏名・住所・電話・Card情報を入力しない
@@ -15,7 +15,7 @@ Authentication、Authorization、Paymentは学習用疑似実装です。Browser
 ## 3. Authentication・Authorization
 
 - Passwordを平文保存しない。
-- Current Session IDだけをLocal Storageへ保存する。
+- Current Session IDだけをLocal Storageに保存する。
 - Use CaseでRole、Account Status、Ownership、Membership Rankを確認する。
 - operator/adminは購入不可。
 - 最後のactive adminを保護する。
@@ -25,9 +25,9 @@ Authentication、Authorization、Paymentは学習用疑似実装です。Browser
 
 - `PasswordHasher` Portを経由し、Web Crypto APIのPBKDF2-SHA-256を使用する。
 - 反復回数210,000、Salt 16byte、派生Key 32byteとする。
-- 保存形式は`pbkdf2-sha256$210000$saltBase64$hashBase64`へ固定する。
+- 保存形式は`pbkdf2-sha256$210000$saltBase64$hashBase64`に固定する。
 - Seed Hashも同じFormatでBuild時に生成する。
-- Password、Salt生成前の平文、PasswordHashをLog・Artifactへ出力しない。
+- Password、Salt生成前の平文、PasswordHashをLog・Artifactに出力しない。
 - Local疑似認証であり、本物のServer認証・Credential保護を再現するものではない。
 
 ## 4. 入力・XSS
@@ -52,11 +52,11 @@ Authentication、Authorization、Paymentは学習用疑似実装です。Browser
 - 読取り可能操作はMetadataと、Entity IDを1件指定して固定形式DTOを返すOrder、Variant、Review Summary Inspectionだけとする。
 - 任意Table、任意Query、任意条件、任意Entity書換え、任意File Path、任意Script、外部URL Fetchを提供しない。
 - Inspection DTOにはPassword Hash、Session ID、住所全文、電話番号全文、内部Repository Objectを含めない。
-- 全画面へ小さなTEST MODE Badgeを表示し、入力・購入画面では詳細注意を再掲する。
+- 全画面に小さなTEST MODE Badgeを表示し、入力・購入画面では詳細注意を再掲する。
 
 ## 7. Log Mask
 
-Password、PasswordHash、Session ID、住所全文、電話番号全文をConsoleやArtifactへ出力しません。Order Number、User ID、Error Codeを使用します。
+Password、PasswordHash、Session ID、住所全文、電話番号全文をConsoleやArtifactに出力しません。Order Number、User ID、Error Codeを使用します。
 
 Phase 1では永続Runtime Ring Bufferと詳細Audit Logを作りません。
 

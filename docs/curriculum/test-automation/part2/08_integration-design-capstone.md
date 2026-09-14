@@ -48,7 +48,7 @@ standaloneの手動入口、Native変更時のRequired Build-only経路、iOS Ru
 
 ## Phase 1: 現状把握
 
-Repositoryを確認し、次を一覧化します。
+Repositoryを確認し、次の項目を一覧化します。
 
 ### Test（Commonの設計対象はWeb範囲を選ぶ）
 
@@ -90,7 +90,7 @@ Repositoryを確認し、次を一覧化します。
 
 ## Phase 2: Riskを整理する
 
-最低限次を考えます。
+最低限、次の項目を考えます。
 
 - PR Merge前に絶対検出したいFailureは何か。
 - mainへ統合された後に確認すればよいものは何か。
@@ -123,7 +123,7 @@ Merge前の短時間Feedbackとして必要なもの。
 
 ## Phase 4: Web CIを設計する
 
-最低限次を決めます。
+最低限、次の項目を決めます。
 
 - Trigger
 - Quality Check
@@ -146,7 +146,7 @@ Merge前の短時間Feedbackとして必要なもの。
 
 ## Phase 5: Native specializationのCIを設計する（選択時）
 
-AndroidとiOSについて、現在のRepository Triggerを正解としてコピーせず、ゼロから次を決めます。
+AndroidとiOSについて、現在のRepository Triggerを正解としてコピーせず、ゼロから次の項目を決めます。
 
 - Build Trigger
 - Native変更判定
@@ -171,7 +171,7 @@ AndroidとiOSについて、現在のRepository Triggerを正解としてコピ�
 
 Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を使い、Build / Emulator / MaestroのCostを具体的に考えます。
 
-Native specializationを選択しない場合は、このPhaseをskipしてPhase 6へ進みます。Nativeを選択した場合だけ、Android / iOSの設計成果物とCost判断を追加し、Common completionの必須条件へ戻しません。
+Native specializationを選択しない場合は、このPhaseをskipしてPhase 6へ進みます。Nativeを選択した場合だけ、Android / iOSの設計成果物とCost判断を追加し、Common completionの必須条件には戻しません。
 
 ## Phase 6: Failure時の調査経路を設計する
 
@@ -191,13 +191,13 @@ Native specializationを選択しない場合は、このPhaseをskipしてPhase
 | Deploy | Deploy Log / URL |
 | Deploy後Smoke | Playwright Evidence |
 
-「失敗したら担当者が頑張って調べる」ではなく、調査可能なEvidenceを設計へ含めます。
+「失敗したら担当者が頑張って調べる」ではなく、調査可能なEvidenceを設計に含めます。
 
 ## Phase 7: Quality Gateを設計する（Common Web / Native選択時）
 
 Mergeを止めるRequired条件を定義します。
 
-次を考えます。
+次の項目を考えます。
 
 - Required Test
 - Required Build
@@ -223,7 +223,7 @@ Nativeについては「両PlatformをRequiredにすれば品質が高い」と�
 
 Webについて、Build後のDelivery / Deployまで設計します。Preview / Production / Deploy後SmokeはCommon completionの前提ではありません。
 
-候補:
+候補は次のとおりです。
 
 ```text
 Pull Request
@@ -241,7 +241,7 @@ Production Deploy
 Production Smoke
 ```
 
-次を決めます。
+次の項目を決めます。
 
 - PreviewをRequiredにするか。
 - Productionへ何のArtifactをDeployするか。
@@ -280,7 +280,7 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - `tests/contracts/ci-workflow.test.ts`
 - `tests/contracts/native-ci-workflow.test.ts`
 
-次を比較します。
+次の項目を比較します。
 
 1. Trigger
 2. Job構成
@@ -312,7 +312,7 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 ## 記録する成果物
 
-次の成果物はRepository内へ保存・記録します。外部提出をCommon completionの必須条件にしません。
+次の成果物はRepository内に保存・記録します。外部提出をCommon completionの必須条件にしません。
 
 ### Common Required
 
@@ -376,7 +376,7 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 ## 自己確認
 
-次を自分の最終設計、Job Graph、Gate条件、Failure Evidenceで確認できれば、Part 2 Commonの完了を自己判定できます。
+次の項目を自分の最終設計、Job Graph、Gate条件、Failure Evidenceで確認できれば、Part 2 Commonの完了を自己判定できます。
 
 - Common RequiredとしてWeb CIのTrigger、Required Gate、Artifact、Failure reasoningを一つの設計へ接続できる。
 - P2-5で受講者が作成したPlaywright TestのTraining Copy Pull Request上のsuccessful run / Artifactを、Trigger、Gate、判定条件のEvidenceとして再利用できる。
@@ -387,13 +387,13 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 ### Recovery
 
-設計が広がりすぎた場合は、まずWeb Trigger、Gate、Artifact、Failure reasoningの4点へ戻します。Failureの調査先が決まらない場合は、Jobごとに最初に確認するLog / Artifactを1つ定義します。NativeやDeliveryを選択しない場合はskipを記録してCommon設計へ戻り、環境実行の問題はEnvironment blockとして分離します。
+設計が広がりすぎた場合は、まずWeb Trigger、Gate、Artifact、Failure reasoningの4点に戻します。Failureの調査先が決まらない場合は、Jobごとに最初に確認するLog / Artifactを1つ定義します。NativeやDeliveryを選択しない場合はskipを記録してCommon設計に戻り、環境実行の問題はEnvironment blockとして分離します。
 
 ## Part 2完了条件
 
 Part 2 / Final Common: C01〜C07 + C09〜C12 bounded Level 2。各CompetencyのMinimum Evidenceは [Competency Rubric](../02_competency-rubric.md) を参照します。C12 Commonはbounded Web CIのTrigger / Gate / Artifact / Failure Evidenceに限定します。
 
-受講者がCommon routeで次を自力で設計・説明できればPart 2完了とします。
+受講者がCommon routeで次の項目を自力で設計・説明できればPart 2完了とします。
 
 - 一般的な開発プロセスとテストの関係
 - Git / GitHubによる変更管理

@@ -12,7 +12,7 @@ Phase 1では、学習用アプリであることを説明する静的ページ�
 
 ## 2. 共通注意
 
-- 本アプリはSoftware TestとTest Automation学習用の模擬ECです。
+- 本アプリはSoftware TestとTest Automationを学ぶための模擬ECです。
 - 実際の商品販売、Payment、配送、契約締結は行いません。
 - 実在する氏名、住所、電話番号、Password、Card情報を入力しないでください。
 - DataはBrowserまたは端末内に保存され、ResetやData削除で消失します。

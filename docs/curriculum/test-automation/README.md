@@ -11,7 +11,7 @@ Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です�
 ### Part 1: テスト自動化の基礎と実践
 
 - テスト自動化の目的、適用範囲、限界を説明できる。
-- テスト対象を調査し、Google Sheetsなどのスプレッドシートでテスト分析・設計を行える。
+- テスト対象を調査し、Google Sheetsなどのスプレッドシートでテストを分析・設計できる。
 - 自動化に向くテストと向かないテストを判断できる。
 - PlaywrightでWeb UIテストを設計・実装・実行できる。
 - 選択したNative specializationで、MaestroによるNative UIテストを設計・実装・実行できる。
@@ -28,11 +28,11 @@ Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です�
 - bounded Web CIへPlaywrightを組み込み、Trigger、Gate、Artifact、Failure Evidenceを説明できる。
 - PR、main、Nightly、Manualなどの実行タイミングを目的に応じて設計できる。
 - Quality Gate、Build、Preview、Production、Deploy後Smokeまで含むCI/CDの構成を比較教材として理解できる。
-- Scenario Shopを題材に、案件へテスト自動化を導入するための実行基盤を設計できる。
+- Scenario Shopを題材に、案件にテスト自動化を導入するための実行基盤を設計できる。
 
 ## この文書群のスコープ
 
-このディレクトリは、テスト自動化学習の**カリキュラム本文と提供時の実行契約**を定義するものです。本文、Competency Rubric、Instructor Reference、CSV Workbook、Training Web / Native入口、検証Script、CI Templateを同じCurrent Repositoryで管理します。
+このディレクトリは、テスト自動化学習の**カリキュラム本文と提供時の実行契約**を定義するものです。本文、Competency Rubric、Instructor Reference、CSV Workbook、Training Web / Native入口、検証Script、CI Templateを同じRepositoryで管理します。
 
 Expected Product Behaviorは [`docs/spec/README.md`](../../spec/README.md) を入口とするNormative SpecificationをOracleにします。既存UI、既存Test、README、Observed Behaviorから教材用の期待動作を逆算して固定しません。
 
@@ -52,7 +52,7 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 
 **すべての教材・演習では、このリポジトリ `qa-training-store` のScenario Shopを使用します。**
 
-架空のTodoアプリや別のサンプルプロジェクトへ切り替えず、同じテスト対象を継続して利用します。学習が進むにつれて、同じ機能を異なる観点から分析し、実装し、改善することで、知識のつながりを理解できる構成とします。
+架空のTodoアプリや別のサンプルプロジェクトへ切り替えず、同じテスト対象を継続して使います。学習が進むにつれて、同じ機能を異なる観点から分析・実装・改善し、知識のつながりを理解できる構成とします。
 
 主に次の実装を教材として利用します。
 
@@ -81,16 +81,16 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
 10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のRepositoryと比較します。
-11. Training実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を使用します。
+11. Training実装では、学習用の変更が現行のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を使用します。
 12. 学習者がRepositoryへ直接Pushできることを前提にせず、Part 2ではForkや演習用Copyを利用できる構成にします。
 13. Part 1をZIPなどGit管理されていないCopyで進めた受講者は、Part 2開始時にGit Historyを持つ同じ `qa-training-store` の演習用Copyへ成果物を引き継ぎます。
-14. CIハンズオンでは、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件とし、本番Secretを配布して既存Workflowを通す方法は採用しません。
+14. CIハンズオンでは、Training Workflowと教材元のProduction / Deploy Workflowが同時に起動しないことを開始条件にし、本番Secretを配布して既存Workflowを通す方法は採用しません。
 
 ## 全体構成
 
 ### 受講者向け標準導線
 
-受講者は、まずPart 1-1からScenario Shopとテスト自動化の目的を学びます。WorkbookはP1-2 / P1-3で使う段階に、Rubricは評価基準を確認する段階に参照します。
+受講者は、まずPart 1-1からScenario Shopとテスト自動化の目的を学びます。WorkbookはP1-2 / P1-3で使う段階で、Rubricは評価基準を確認する段階で参照します。
 
 ### Part 1: テスト自動化の基礎と実践
 
@@ -126,7 +126,7 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 
 ### Entry / graduation
 
-コース開始時の対象者は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコード経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。Common Coreは、このentry profileと、それ以前にLearner Required pathで明示的に学んだCommon内容だけを前提にします。
+コース開始時の対象者は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコードの経験または概要理解があっても構いません。ただし、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない受講者を想定します。Common Coreは、このentry profileと、それまでにLearner Required pathで明示的に学んだCommon内容だけを前提にします。
 
 Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です。修了集合は次のとおりです。
 
@@ -143,7 +143,7 @@ Native specializationは選択式のbranchであり、Top-level Lesson番号・�
 - Part 2 Common: P2-5 → P2-7 → P2-8
 - Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8
 
-Nativeを選択しない場合はP1-7 / P2-6をskipしてCommon routeを進みます。P1-7の完了後はP1-8、P2-6の完了後はP2-7へrejoinします。P2-6を選択する場合、P1 Native specialization由来のMaestro実行能力をNative内部prerequisiteとして先に満たします。
+Nativeを選択しない場合はP1-7 / P2-6をskipしてCommon routeを進みます。P1-7の完了後はP1-8、P2-6の完了後はP2-7へrejoinします。P2-6を選択する場合は、P1 Native specializationで身につけたMaestro実行能力をNative内部prerequisiteとして先に満たします。
 
 ### 教材分類と支援境界
 
@@ -167,7 +167,7 @@ Git / GitHubの基本操作ではForkも利用できますが、CIハンズオ�
 
 ## 学習成果物
 
-Common routeで、受講者は最低限次の成果物を作成・記録します。
+Common routeでは、受講者は最低限、次の成果物を作成・記録します。
 
 - Scenario Shopのテスト対象分析表
 - リスク・テスト観点整理
@@ -186,7 +186,7 @@ Native specializationを選択した受講者は、P1-7 / P2-6のlearner-authore
 
 ## 提供済みのTraining入口
 
-本Planの実装対象として、次の入口をCurrent Repositoryへ接続しています。
+このPlanの実装対象として、次の入口をRepositoryへ接続しています。
 
 1. `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`。
 2. `training/playwright/baseline/`、`exercises/`、`failure-exercises/`。

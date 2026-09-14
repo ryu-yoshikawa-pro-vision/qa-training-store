@@ -43,7 +43,7 @@ type AccountStatus = "active" | "suspended" | "withdrawn";
 | 在庫調整 | × | × | ○ | ○ |
 | レビュー非公開 | × | × | ○ | ○ |
 | ユーザー一覧・ランク・状態・ロール変更 | × | × | × | ○ |
-| 監査ログ閲覧 | × | × | × | Phase 2でadminへ追加 |
+| 監査ログ閲覧 | × | × | × | Phase 2でadminに追加 |
 | DB Reset/Seed | × | × | × | Automation Buildのadmin |
 
 ## 4. 会員ランク特典
@@ -73,7 +73,7 @@ regular < gold < platinum
 | 状況 | 挙動 |
 |---|---|
 | 未ログインで保護画面 | ログインへ遷移し元URLを保持 |
-| customer以外がCheckoutへアクセス | Forbidden |
+| customer以外がCheckoutにアクセス | Forbidden |
 | 商品ランク不足 | 一覧非表示、直接URLはForbidden |
 | 利用停止・退会を検知 | Session削除後、理由付きログイン画面 |
 | 存在しないID | Not Found |

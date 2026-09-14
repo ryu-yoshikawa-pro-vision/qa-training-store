@@ -14,7 +14,7 @@ Mobileは767px以下、Tabletは768〜1023px、Desktopは1024px以上を基本�
 
 ## Boundary UX
 
-Loading、Empty、Error、Conflict、Not Foundを同じ表示へ潰しません。未選択Variation、在庫切れ、価格変更、Login拒否、Checkout Version不一致、Payment失敗、権限拒否には利用者が次に取れるActionを表示します。内部Enum、Repository Version、Actor ID、Gateway KeyをCustomer UIへ露出しません。
+Loading、Empty、Error、Conflict、Not Foundを同じ表示に潰しません。未選択Variation、在庫切れ、価格変更、Login拒否、Checkout Version不一致、Payment失敗、権限拒否には利用者が次に取れるActionを表示します。内部Enum、Repository Version、Actor ID、Gateway KeyをCustomer UIに露出しません。
 
 ## Canonical Sources
 
@@ -28,7 +28,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 #### Functions
 
-- 存在しないRouteを明示し、利用者がStorefrontへ戻れるActionを表示する。
+- 存在しないRouteを明示し、利用者がStorefrontに戻れるActionを表示する。
 - Framework internal entryではなく、ユーザーが観測できるBoundary surfaceとして扱う。
 
 #### Important UI States

@@ -8,7 +8,7 @@
 
 ## 2. IndexedDB Key制約
 
-IndexedDBのIndex Keyにはboolean、null、undefinedを使用しません。Domainのboolean/null値は、Web Persistence Recordで次へ投影します。
+IndexedDBのIndex Keyにはboolean、null、undefinedを使用しません。Domainのboolean/null値は、Web Persistence Recordで次のように投影します。
 
 ```typescript
 type BooleanKey = 0 | 1;
@@ -61,7 +61,7 @@ db.version(1).stores({
 
 ## 4. Dexieだけでは表せない制約
 
-Application/Repository Contractで次を検証します。
+Application/Repository Contractで次の項目を検証します。
 
 - active CartはUser/Guestごとに1件
 - default AddressはUserごとに最大1件
@@ -104,13 +104,13 @@ Application/Repository Contractで次を検証します。
 | complete-delivery | orders, order_status_histories, shipments |
 | review-change | reviews, review_status_histories, product_review_summaries |
 
-複数Store Scopeは`ApplicationTransactionRunner`からだけ開始します。Use Caseが上表のStoreへ個別Transactionを順番にCommitしてはいけません。Address保存/削除、active Cart取得/作成など単一Storeの原子的CommandはRepository Method内の1 Transactionを許可します。
+複数Store Scopeは`ApplicationTransactionRunner`からだけ開始します。Use Caseが上表のStoreごとに個別Transactionを順番にCommitしてはいけません。Address保存/削除、active Cart取得/作成など単一Storeの原子的CommandはRepository Method内の1 Transactionを許可します。
 
 ### Dexie実装規約
 
 - Transaction内でPayment Gateway、Address Lookup、Timerなどの外部非同期処理をawaitしない。画像PathはBuild生成ModuleからTransaction開始前に解決する。
 - tx-bound Repositoryはtop-level Transactionを開始しない。
-- Scope外StoreへAccessした場合は即時失敗する。
+- Scope外StoreにAccessした場合は即時失敗する。
 - nested Transactionは親ScopeのStore集合を超えない。
 - Callback内で互換性のないPromise Libraryを使用しない。
 

@@ -29,7 +29,7 @@
 11. 在庫調整・Order準備開始・発送・配送完了
 12. User停止・Login拒否・最後のadmin保護
 
-各Flowは複数の見た目確認を詰め込まず、業務結果と主要Page Patternだけを確認します。Filter全組合せ、文字数境界、状態遷移の細部、Facet計算、Bulk各失敗理由はUnit/Application/Component/Repository Contractへ下げます。
+各Flowは複数の見た目確認を詰め込まず、業務結果と主要Page Patternだけを確認します。Filter全組合せ、文字数境界、状態遷移の細部、Facet計算、Bulk各失敗理由はUnit/Application/Component/Repository Contractに下げます。
 
 ## 3. Cross-role Lifecycle
 

@@ -13,7 +13,7 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` と、その実際のPull Request構成を使用します。**
 
-レビューのOracleは [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、Competency Rubricです。Training変更は `training/`とTraining Configへ置き、Formal Regressionへ混在させません。
+レビューのOracleは [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、Competency Rubricです。Training変更は `training/`とTraining Configに置き、Formal Regressionへ混在させません。
 
 教材用に別のテスト対象へ切り替えません。
 
@@ -23,7 +23,7 @@
 
 GitHub演習では、次のいずれかを使用します。
 
-1. `qa-training-store` を自分のGitHub AccountへForkする。
+1. `qa-training-store` を自分のGitHub AccountにForkする。
 2. 講師または組織が用意した `qa-training-store` の演習用Copyを使用する。
 
 どちらの場合もテスト対象・コードベースはScenario Shopのままです。
@@ -39,7 +39,7 @@ training/* branch
 Pull Request
 ```
 
-本体Repositoryへ直接Pushできることを学習要件にしません。
+本体Repositoryに直接Pushできることを学習要件にしません。
 
 ## Lesson 1: GitとGitHub
 
@@ -53,18 +53,18 @@ GitHubはGit RepositoryをHostingし、Pull Request、Review、Issues、Actions�
 
 Local RepositoryとGitHub上のRepositoryは別の状態を持ちます。
 
-代表的な確認:
+代表的な確認方法は次のとおりです。
 
 ```bash
 git remote -v
 ```
 
-Forkを使う場合は、概念的に次を区別します。
+Forkを使う場合は、概念的に次の2つを区別します。
 
 - `origin`: 自分がPushできるFork
 - `upstream`: 教材元のRepository
 
-受講者の権限や教材配布方法によってRemote構成は異なるため、名前の暗記より「どこへPushし、どこを参照元にするか」を理解します。
+受講者の権限や教材配布方法によってRemote構成は異なるため、名前の暗記より「どこにPushし、どこを参照元にするか」を理解します。
 
 Branchを共有するには、自分が書き込めるRemoteへPushします。
 
@@ -76,7 +76,7 @@ git push -u origin training/cart-e2e
 
 Pull Requestでは、作業BranchをBase Branchへ統合する前に変更内容を確認します。
 
-PRで最低限伝える内容:
+PRで最低限伝える内容は次のとおりです。
 
 - 何を変更したか。
 - なぜ変更したか。
@@ -116,7 +116,7 @@ Reviewでは「コードが動くか」だけを見ません。
 
 ## Lesson 6: PRとChecks
 
-GitHub Actionsを設定すると、PRへChecksが表示されます。
+GitHub Actionsを設定すると、PRにChecksが表示されます。
 
 Scenario Shop本体では、現在のCIで次のような検証があります。
 
@@ -135,7 +135,7 @@ Scenario Shop本体では、現在のCIで次のような検証があります�
 
 ## Lesson 7: Merge判断
 
-Merge判断では次を組み合わせます。
+Merge判断では次の項目を組み合わせます。
 
 - Review内容
 - Required Checks
@@ -149,7 +149,7 @@ Merge判断では次を組み合わせます。
 
 自分が書き込める演習Repositoryで `training/*` Branchを作成し、GitHubへPushします。
 
-次を確認します。
+次の項目を確認します。
 
 - Local Branch
 - Remote Branch
@@ -160,7 +160,7 @@ Merge判断では次を組み合わせます。
 
 Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します。
 
-最低限次を含めます。
+最低限、次の項目を含めます。
 
 - Background
 - Changes
@@ -185,10 +185,10 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 
 ## 自己確認
 
-次を自分のPR説明またはReviewメモで確認できれば、このLessonの判断を自己判定できます。
+次の項目を自分のPR説明またはReviewメモで確認できれば、このLessonの判断を自己判定できます。
 
 - Fork / Remote / Push / Pull Requestの役割と、自分が書き込める場所を説明できる。
-- PR本文へ変更内容、理由、Test Designとの対応、Validation、Remaining Riskを記録できる。
+- PR本文に変更内容、理由、Test Designとの対応、Validation、Remaining Riskを記録できる。
 - material diffについて、Test目的、Assertion、Locator、Data依存、Regression重複、Product条件の観点から必要な確認を選べる。
 - Review観点を好みではなく、正確性・安定性・保守性への影響として説明できる。
 - Training Copyのprovisioningや第三者ReviewはCommon completionの前提ではなく、件数quotaなしで自分のself-reviewを完了できる。
@@ -207,4 +207,4 @@ PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権�
 
 ## 次の行動
 
-PRとself-reviewをCIの実行契約へ接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md)へ進みます。
+PRとself-reviewをCIの実行契約に接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md)へ進みます。

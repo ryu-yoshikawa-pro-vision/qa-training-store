@@ -12,7 +12,7 @@
 6. 必要な画面状態を[UI and UX Contract](./ui-ux-contract.md)で確認する。
 7. 実装するときだけ、Feature文書のExecutable Canonical SourcesにあるCode / Configを参照する。
 
-現在のUIや`/guide`は対象を観察する入口として使えますが、期待動作を決める正本ではありません。初期データやSeed IDなどの具体値は、必要になった段階で文書が示す実装上の参照先へ進みます。
+現行UIや`/guide`は対象を観察する入口として使えますが、期待動作を決める正本ではありません。初期データやSeed IDなどの具体値は、必要になった段階で文書が示す実装上の参照先に進みます。
 
 ## Navigation
 
