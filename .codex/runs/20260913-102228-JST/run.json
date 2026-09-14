@@ -19,7 +19,8 @@
     "scripts/verify",
     "scripts/verify.ps1",
     "tests/contracts/codex-artifact-sanitization.test.ts",
-    "tests/contracts/codex-hook-contract.test.ts"
+    "tests/contracts/codex-hook-contract.test.ts",
+    "PLANS.md"
   ],
   "validation": {
     "status": "not_run",

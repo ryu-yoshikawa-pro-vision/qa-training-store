@@ -216,6 +216,8 @@ check_template_contract() {
   ! contains "quality_gate_runner" AGENTS.md || return 1
   ! contains "code_researcher" AGENTS.md || return 1
   ! contains "Parent-defined validation" AGENTS.md || return 1
+  contains "Repository固有のPlan保存先・filenameは [\`PLANS.md\`](PLANS.md)、active Run lifecycleは [\`docs/reference/run-artifacts.md\`](docs/reference/run-artifacts.md) を参照する。" AGENTS.md || return 1
+  ! contains "Repository固有の保存先、filename、active Run lifecycleは [\`PLANS.md\`](PLANS.md) を参照する。" AGENTS.md || return 1
   contains "## Progress calculation" docs/reference/run-artifacts.md || return 1
   contains "## Now" docs/reference/run-artifacts.md || return 1
   contains "## Discovered" docs/reference/run-artifacts.md || return 1
@@ -311,6 +313,9 @@ check_template_contract() {
   contains "docs/plans/" PLANS.md || return 1
   contains "active Run" PLANS.md || return 1
   contains "retention" PLANS.md || return 1
+  contains "同一会話の同一taskではactive Runを再利用する。" PLANS.md || return 1
+  contains "別task・別会話を含むRun切替条件は \`docs/reference/run-artifacts.md\` を正本とする。" PLANS.md || return 1
+  ! contains "別taskまたは別会話では新しいRunを作成する。" PLANS.md || return 1
   contains ".agents/skills/code-review/SKILL.md" CODE_REVIEW.md || return 1
   contains "Repository Coding Standards" CODE_REVIEW.md || return 1
   contains "Review persistence policy" CODE_REVIEW.md || return 1

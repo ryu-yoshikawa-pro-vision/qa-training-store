@@ -282,3 +282,105 @@
 - Scope / safety: 変更は8ファイルに限定し、`docs/reference/git-branch-safety.md`は正本確認のみ、`run.json`はcollector経路で差分なし。Product code / tests、Hook、config、rules、Skill package、template、schema、Issue #117 / #134は変更していない。
 - Progress: 100% (16/16)
 - Next: branch safetyと明示stageを再確認してcommit / pushし、local / remote / PR head一致確認、最新headの`Web CI` / `Mobile App CI`確認、必要なPR本文更新を行う。必須CIがsuccessになりPR本文更新が完了するまで、file-changing task全体のProgressは`100% (16/17)`として扱う。
+
+## 2026-09-14 09:54 (JST)
+
+- Summary: PR #147追加レビューで確認された3件を、同じactive Runのtask 19としてbounded repairの入力にした。新しいRunは作成していない。
+- Findings / Cause: `PLANS.md`がRun lifecycleを独自に強制し、rootのPlan routingもactive Run lifecycleを`PLANS.md`へ一括委譲していた。`scripts/verify.ps1`には通常task開始時のroot以外一律読込禁止を直接検出するassertionがなく、`evaluation.json`の`evidence_refs`にはtask 18以前のcheckpointが残っていた。
+- Classification / Scope: 3件とも`must_fix`。allowed filesは`AGENTS.md`、`PLANS.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`に限定する。`docs/reference/run-artifacts.md`、`docs/reference/codex-implementation-harness.md`、`docs/reference/repair-loop.md`、`.codex/templates/TASKS.md`、`run.json`、Hook、validator、schema、Skill、Product code / testsは変更しない。
+- Repair decision: `docs/reference/run-artifacts.md`をRun lifecycleの正本として`PLANS.md`から参照し、rootはPlan保存責務とactive Run lifecycle責務を分離する。PowerShell verifyへBash版と同じroot以外一律読込禁止の意味assertionを追加し、Bash / PowerShell双方へPLANS routingの肯定・旧強制表現の否定assertionを追加する。`evaluation.json`はschemaを変えず、task 19の新checkpointだけを現在のrepairの主要evidenceとして再構成する。安全な最小修正であり、要件判断、破壊的操作、権限・credential、不可逆な外部副作用、retry停止条件には該当しない。
+- Progress: 94% (16/17)
+
+## 2026-09-14 10:05 (JST)
+
+- Validation failure / cause: `scripts/verify.ps1`の新しい`PLANS.md`日本語assertionが、既存の`Get-Content -Raw PLANS.md`をWindows PowerShellで通した際の既定encodingによる文字化けでFAILした。Bash版は同じ契約をPASSしており、契約内容や正本の不整合ではない。
+- Repair: `Test-TemplateContract`内の`PLANS.md`読込だけを`Get-Content -Raw -Encoding UTF8`へ変更し、既存のroot / PLANS routing assertionを正しく比較できるようにする。変更はallowed_files内で、安全な最小修正である。
+- Decision: permission不足、secret / credential操作、破壊的操作、不可逆な外部副作用、要件判断、retry停止条件には該当しないため、PowerShell verifyを修正後に一度再実行してから残りの検証へ進む。
+- Progress: 94% (16/17)
+
+## 2026-09-14 10:16 (JST)
+
+- Validation failure / cause: Node 24.20.0＋Repository外のpnpm shimで`pnpm run verify`を実行したところ、format、Markdown、Skill、spec、curriculum、lint（0 errors / 65 warnings）、typecheck、image manifest、security、unitはPASSしたが、既存`tests/integration/seeds.test.ts`の`loads a complete, referentially valid many-products dataset`が10秒timeoutとなりintegration stageで停止した。
+- Cause assessment: current diffは`AGENTS.md`、`PLANS.md`、`scripts/verify`、`scripts/verify.ps1`、active Run Artifactだけで、Product code / tests、Hook、configは変更していない。今回の3件の文書・assertion・evidence修正との因果関係は確認できず、既存integration testの環境・transient failure候補と分類する。
+- Repair plan / decision: 上流stage停止を守り、後続aggregate gateをこの試行では実行しない。同じ全体verifyを繰り返さず、失敗したintegration testを単独で一度だけ再確認する。安全な限定検証であり、要件判断、破壊的操作、permission / credential、不可逆な外部副作用、retry停止条件には該当しない。
+- Progress: 94% (16/17)
+
+## 2026-09-14 10:20 (JST)
+
+- Validation isolation: `tests/integration/seeds.test.ts`をsource変更なしで`pnpm exec vitest run tests/integration/seeds.test.ts --testTimeout=30000`として単独実行し、43 tests / 43 passed（tests 5.28s）を確認した。10秒既定境界付近のmany-products処理が、全体実行時の環境負荷で揺らいだものと判断する。
+- Decision: 既存Product testのtimeoutは変更せず、上記の新しい実行環境事実を根拠に、標準コマンドそのものの最終`pnpm run verify`を一度だけ再確認する。再度同じ異常が発生した場合はretry停止条件を適用する。
+- Progress: 94% (16/17)
+
+## 2026-09-14 10:25 (JST)
+
+- Validation stop: 最終標準`pnpm run verify`でも、format、Markdown、Skill、spec、curriculum、lint（0 errors / 65 warnings）、typecheck、image manifest、security、unitまではPASSしたが、`tests/integration/seeds.test.ts`のmany-products 1件が10.043秒で既定10秒timeoutとなり、integration stageで停止した。
+- Failure classification: 同じmany-products timeoutは、標準aggregate、既定timeoutの単独再確認、標準aggregateの3回で発生した。test source確認では当該timeoutが明示され、current working diffにProduct code / test差分はない。CLIの`--testTimeout=30000`を使った診断では同test fileの43 testsが5.28秒で全PASSしたため、既存testの10秒境界と実行環境負荷のtransient failureと分類する。
+- Stop decision: user指示のとおり既存Product testやtimeoutを変更せず、同じ標準検証の追加retryを停止する。安全な最小修正をallowed_files内に適用できる failure ではなく、後続のaggregate gate、commit、push、PR、CIはこの時点では未実行とする。
+- Remaining: task 19のevaluation evidence更新、schema / collector / Sanitizer / diffの確認は、標準aggregate failureを未解消のまま成功扱いにしない範囲で実施可否を判断する。`pnpm run verify`のPASS、commit / push、最新head CI、PR本文更新が未完了である。
+- Progress: 94% (16/17)
+
+## 2026-09-14 10:32 (JST)
+
+- Final local state: task 19の変更は`AGENTS.md`、`PLANS.md`、`scripts/verify`、`scripts/verify.ps1`、active Runの`TASKS.md` / `REPORT.md` / `evaluation.json`の7ファイルに限定した。collectorがmachine-managedな`run.json`へ現在の`PLANS.md`と`flaky_or_env_issue`を反映したため、tracked差分は許可された8ファイルとなっている。`docs/reference/run-artifacts.md`、implementation harness、repair-loop reference、template、Hook、validator、schema、Skill、Product code / testsは変更していない。
+- Validation: `scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、`lint:markdown`（389 files / 0 issues）、`validate:skills`（6 packages / 15 Markdown / 27 links）、`test:repository`（7 files / 66 tests）、evaluation schema、collector strict、Sanitizer Write / Check（5 files / 0 residual findings）、`git diff --check`をPASSした。標準`pnpm run verify`だけは既存`seeds.test.ts`のmany-products 10秒timeoutで停止し、30秒上限の単独診断43/43 PASSを根拠に環境・既存test境界のfailureとして未解消のまま扱った。
+- Evaluation: `evaluation.json`はschema不変で、task 19の現在checkpointだけを`evidence_refs`に使用し、`result=partial`、`primary_failure_category=flaky_or_env_issue`として標準verify未達を隠していない。TASKS checkboxのProgressは94% (16/17)、file-changing task全体は必須CI未実行のため89% (16/18)である。task 19は未チェックのままとする。
+- Stop / Remaining: 同一integration timeoutの停止条件に達したため、Product test / timeoutを変更せず、commit、push、PR head確認、必須CI、PR本文更新は未実行である。標準`pnpm run verify`を再開するには、既存testを変更しない実行環境の解消またはユーザー判断が必要である。
+- Progress: 89% (16/18)
+
+## 2026-09-14 10:39 (JST)
+
+- Size evidence: current`AGENTS.md`はUTF-8 8374 bytes、物理69行、非空50行。Issue #135開始時点の35838 bytes / 316物理行 / 247非空行から、27464 bytes / 247物理行 / 197非空行を削減した。通常task開始時の無条件対象はroot`AGENTS.md`だけで、変更前の保守的下限191159 bytes / 1391物理行 / 1124非空行から、現在8374 bytes / 69物理行 / 50非空行へ182785 bytes / 1322物理行 / 1074非空行を削減している。ADR 1件 / Run 1件は実読込量ではなく保守的下限である。
+- Final decision: これ以上の標準verify retry、Product test / timeout変更、commit / push / CI実行は行わない。task 19は標準verifyの既存integration timeoutにより未完了であり、ユーザー向けProgressは89% (16/18)を維持する。
+
+## 2026-09-14 12:28 (JST)
+
+- Validation retry: 前回の停止後、ユーザー指示どおり標準`pnpm run verify`をtimeout変更なしで1回だけ再確認した。Node 24.20.0 / pnpm 9.10.0、Repository外の既存一時shim経路を使用し、環境変数やCLI optionによるtimeout延長は行っていない。
+- Result: format、Markdown、Skill、spec、spec visuals、curriculum、lint（0 errors / 65 warnings）、typecheck、image manifest、security、unit（66 tests）、integration（111 tests）、Repository（66 tests）はPASSした。続くweb component stageで`tests/component/admin-product-pages.test.tsx`の`exposes all filters and reports Bulk partial success by reason`が、`下書き商品を選択`のlabelを見つけられずFAILした（101/102 tests PASS）。native component、contracts、build、後続aggregate gateは未実行である。
+- Cause assessment: current working diffに当該Product test、Product code、Hook、configの変更はなく、task 19差分との因果関係は確認できない。前回の`seeds.test.ts` many-products既定10秒timeoutは今回再現せず、別の既存component test failureが発生したため、既定の標準verifyはPASS扱いにしない。
+- Stop decision: user指示の標準verify再確認1回制限とbounded repair-loopの新規failure停止条件に従い、追加の`pnpm run verify`、Product test / timeout変更、commit、push、PR本文更新、最新head CI確認は行わない。task 19は未完了のまま、evaluationは`partial` / `flaky_or_env_issue`を維持し、decisionは`stop_no_progress`とする。
+- Progress: 89% (16/18)
+
+## 2026-09-14 13:09 (JST)
+
+- Component diagnosis: 前回の標準`pnpm run verify`では`tests/component/admin-product-pages.test.tsx`の`exposes all filters and reports Bulk partial success by reason`が、`下書き商品を選択`のlabelを検出できずFAILした。対象test sourceは`main`、PR head、作業ツリーで同一であり、task 19差分はProduct code / Product testを変更していない。
+- Cause assessment: `AdminProductsPage`の見出しとFilter UIは`adminProducts.search()`完了前にも描画される一方、checkboxは`useAsyncValue`のloaded stateを経てResourceTableが描画された後に出現する。既存testはheadingだけをawaitし、checkboxを同期`getByLabelText`で取得しているため、非同期待機不足によるフレークの可能性が高い。ただし今回「フレーク確定」とは断定しない。
+- Validation isolation: Node 24.20.0 / pnpm 9.10.0、Repository外の既存一時shim経路を使用し、Product code / test / timeoutを変更せず、指定された対象1ケースを`pnpm exec vitest run tests/component/admin-product-pages.test.tsx -t "exposes all filters and reports Bulk partial success by reason"`で1回だけ単独実行した。結果は1 passed / 4 skippedでPASSした。timeout変更、mock変更、Vitest config変更、test source変更は行っていない。
+- Scope decision: Product testはIssue #135の範囲外であり変更しない。単独PASSという新しい環境事実を根拠に、同一通常条件の標準`pnpm run verify`を1回だけ再実行する。過去のpartial記録は変更せず、同じaggregateをこれ以上繰り返さない。
+- Progress: 89% (16/18)
+
+## 2026-09-14 13:17 (JST)
+
+- Aggregate validation: 直前の単独診断PASSを受け、Node 24.20.0 / pnpm 9.10.0、Repository外の既存一時shim経路、通常のtest timeoutで標準`pnpm run verify`を1回だけ実行した。Product code / Product test / timeout / Vitest config / worker設定は変更していない。
+- Result: 実行環境側のshell commandが約364秒（exit code 124）でtimeoutとなり、`pnpm run verify`の完了結果を取得できなかった。今回の実行では、前回のintegration／web component failureとは異なる実行ラッパーtimeoutでaggregateが停止し、native component、contracts、build、後続aggregate gateの結果は未確認である。終了後に当該verifyプロセスの残存は確認されなかった。
+- Cause assessment: current working diffは引き続きIssue #135の文書・verify・active Run Artifactだけで、Product code / Product test / timeoutとの差分はない。単独component caseは変更なしでPASSしたが、標準aggregateの完了PASSは得られていないため、すべてのfailureを環境要因と断定しない。
+- Stop decision: 単独testと標準aggregateの各1回という今回のbounded scopeを使い切り、repair-loopの新しい実行停止条件に従って追加の`pnpm run verify`、Product test / timeout変更、commit、push、PR更新、最新head CI確認は行わない。task 19は未チェック、evaluationは`partial` / `flaky_or_env_issue`を維持し、decisionは`stop_no_progress`とする。Repository標準verifyの安定性は必要に応じて別Issueで調査する。
+- Progress: 89% (16/18)
+
+## 2026-09-14 13:25 (JST)
+
+- Post-stop validation: aggregateの追加retryは行わず、Node 24.20.0 / pnpm 9.10.0で`pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run validate:skills`（6 packages / 15 Markdown files / 27 local links）、`pnpm run test:repository`（7 files / 66 tests）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）を実行し、すべてPASSした。
+- Artifact validation: evaluation schema、collector strict、Sanitizer Write / Check（5 files / 0 residual findings）、`git diff --check`もPASSしている。collector以外で`run.json`を直接編集していない。
+- Final state: TASKS checkboxは17件中16件でtask 19未チェック、evaluationは`partial` / `flaky_or_env_issue`、変更範囲は許可された8ファイルのままである。標準`pnpm run verify`の完了PASSが得られていないため、commit、push、PR本文更新、最新head CI確認は未実施である。
+- Progress: 89% (16/18)
+
+## 2026-09-14 13:34 (JST)
+
+- Preflight: task 19の既存差分を保持し、`issue-135-agents-context-slimming` / `origin/issue-135-agents-context-slimming`、HEAD `fdf433b4c53604a26875d5a2becf0938329711ff`、Node 24.20.0 / pnpm 9.10.0を確認した。Repository外の既存一時shimだけを使用し、timeout関連のRepository設定・test source・Product codeは変更していない。
+- Validation plan: 前回の実行ラッパーtimeoutを受け、今回のコマンド実行側timeoutだけを1200秒に設定して、通常の`pnpm run verify`を1回だけ実行する。完走結果に応じてtask 19の完了条件を判定し、追加retryは行わない。
+- Scope: Product code / Product test / test timeout / Vitest config / package.json / Hook / schema / Skill packageは変更しない。既存active Runを継続し、REPORTはappend-onlyで記録する。
+
+## 2026-09-14 13:43 (JST)
+
+- Aggregate validation: 直前の標準verifyは外側の実行ラッパーtimeoutによりexit code 124、約364秒で終了していたため、今回は外側のcommand timeoutだけを1200秒へ変更した。Node 24.20.0 / pnpm 9.10.0、Repository外の既存一時shimを使用し、同じ`pnpm run verify`を通常のRepository設定のまま1回実行した。
+- Result: `pnpm run verify`はexit code 0でPASSした。format、Markdown、Skill、spec、spec visuals、curriculum、lint（既存warningのみ）、typecheck、image manifest、security、unit、integration、web component、native component、contracts、web build、spec buildの全stageが完走した。
+- Scope confirmation: Product code / Product test / test timeout / Vitest config / worker設定 / package.jsonは変更していない。task 19の3件（PLANS.mdのRun lifecycle正本競合、PowerShell verifyの無条件読み込みassertion、evaluation evidenceの旧checkpoint参照）に残存差分はない。
+- Stop decision: 標準verifyの完走PASSにより、repair decision = `stop_success`。task 19を完了し、evaluationを`pass`へ更新する。Run Artifact検証後、Git safetyに従ってcommit / pushし、新headのPR・必須CI確認へ進む。`pnpm run verify`は再実行しない。
+- Progress: 100% (17/17)（TASKS基本Progress。file-changing task全体のcommit / push / PR / CI完了判定とは分離）
+
+## 2026-09-14 13:47 (JST)
+
+- Post-artifact validation: `pnpm run lint:markdown`（389 files / 0 issues）、`pnpm run validate:skills`（6 packages / 15 Markdown files / 27 local links）、`pnpm run test:repository`（7 files / 66 tests）、`bash scripts/verify`（PASS=2 / FAIL=0 / SKIP=2）、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（PASS=3 / FAIL=0 / SKIP=0）を実行し、すべてPASSした。
+- Artifact validation: evaluation schema、collector strict、Sanitizer Write / Check（5 files / 0 residual findings）、`git diff --check`をPASSした。`run.json`はcollector経路だけで更新し、直接編集していない。
+- Scope confirmation: `git diff --name-only`はAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.json / run.jsonの8ファイルに限定され、Product code / Product test / timeout / package.json / Hook / schema / Skill packageに差分はない。
+- Completion state: TASKSの全17 checkboxを完了し、evaluationは`pass` / `findings: []`へ更新した。標準verifyはPASS済みのため再実行していない。Git safetyのcommit前確認を行い、commit後は対象branchへのpush、PR #147の最新head、`Web CI` / `Mobile App CI`を確認する。
+- Progress: 100% (17/17)（TASKS基本Progress）、94% (17/18)（file-changing task全体。必須CI確認とPR本文更新は未完了）

@@ -14,7 +14,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 
 ## 2. Skill / Workflow routing
 
-- 複雑なtask、明示的な計画、Plan Modeでは [`feature-plan Skill`](.agents/skills/feature-plan/SKILL.md) を使う。Repository固有の保存先、filename、active Run lifecycleは [`PLANS.md`](PLANS.md) を参照する。
+- 複雑なtask、明示的な計画、Plan Modeでは [`feature-plan Skill`](.agents/skills/feature-plan/SKILL.md) を使う。Repository固有のPlan保存先・filenameは [`PLANS.md`](PLANS.md)、active Run lifecycleは [`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md) を参照する。
 - reviewまたは`/review`では [`code-review Skill`](.agents/skills/code-review/SKILL.md) を使い、Repository固有のcoding / review persistenceは [`CODE_REVIEW.md`](CODE_REVIEW.md) を参照する。
 - review findingまたはvalidation failureの修正では [`repair-loop Skill`](.agents/skills/repair-loop/SKILL.md) と [`docs/reference/repair-loop.md`](docs/reference/repair-loop.md) を使う。bounded workflowを無制限に再試行しない。
 - harness自体の改善候補では [`harness-improvement Skill`](.agents/skills/harness-improvement/SKILL.md) と [`docs/reference/harness-improvement-loop.md`](docs/reference/harness-improvement-loop.md) を使い、実装修正と分離する。

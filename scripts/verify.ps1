@@ -126,9 +126,10 @@ function Test-TemplateContract {
     }
 
     $agents = Get-Content -Raw -Encoding UTF8 AGENTS.md
-    $plans = Get-Content -Raw PLANS.md
+    $plans = Get-Content -Raw -Encoding UTF8 PLANS.md
     $review = Get-Content -Raw CODE_REVIEW.md
     if ($agents -match [regex]::Escape("## 0.")) { throw "AGENTS.md still requires unconditional startup reading" }
+    if ($agents -notmatch [regex]::Escape("通常taskの開始時に、root以外の文書を一律で読み込まない。")) { throw "AGENTS.md missing unconditional loading reduction contract" }
     if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
     if ($agents -match [regex]::Escape("Runを使うtaskでは")) { throw "AGENTS.md still makes Run Artifact conditional" }
     foreach ($runContract in @(
@@ -154,6 +155,8 @@ function Test-TemplateContract {
     )) {
         if ($agents -notmatch [regex]::Escape($rootReference)) { throw "AGENTS.md missing high-level reference: $rootReference" }
     }
+    if ($agents -notmatch [regex]::Escape('Repository固有のPlan保存先・filenameは [`PLANS.md`](PLANS.md)、active Run lifecycleは [`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md) を参照する。')) { throw "AGENTS.md missing split Plan / Run lifecycle routing" }
+    if ($agents -match [regex]::Escape('Repository固有の保存先、filename、active Run lifecycleは [`PLANS.md`](PLANS.md) を参照する。')) { throw "AGENTS.md still routes Run lifecycle through PLANS.md" }
     foreach ($rootContract in @(
         "default branch",
         'default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。',
@@ -208,6 +211,10 @@ function Test-TemplateContract {
     if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/assets/plan-template.md")) { throw "PLANS.md missing package template reference" }
     if ($plans -notmatch [regex]::Escape("docs/plans/")) { throw "PLANS.md missing plan storage reference" }
     if ($plans -notmatch [regex]::Escape("active Run")) { throw "PLANS.md missing active Run lifecycle" }
+    if ($plans -notmatch [regex]::Escape('同一会話の同一taskではactive Runを再利用する。')) { throw "PLANS.md missing same-task Run reuse contract" }
+    if ($plans -notmatch [regex]::Escape('別task・別会話を含むRun切替条件は `docs/reference/run-artifacts.md` を正本とする。')) { throw "PLANS.md missing Run lifecycle source-of-truth routing" }
+    if ($plans -match [regex]::Escape('別taskまたは別会話では新しいRunを作成する。')) { throw "PLANS.md still strengthens Run task switching" }
+    if ($plans -match [regex]::Escape('別taskなら必ず新しいRunを作る')) { throw "PLANS.md still makes new Run mandatory for another task" }
     if ($plans -notmatch [regex]::Escape("retention")) { throw "PLANS.md missing plan retention contract" }
     if ($review -notmatch [regex]::Escape(".agents/skills/code-review/SKILL.md")) { throw "CODE_REVIEW.md missing code-review skill reference" }
     if ($review -notmatch [regex]::Escape("Repository Coding Standards")) { throw "CODE_REVIEW.md missing Repository coding policy" }

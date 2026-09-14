@@ -14,7 +14,8 @@
 
 - 実行中のRunでは `.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md` を作業管理に使う。
 - Repository向けの保存planとRun-localのworking artifactは別物として扱う。
-- 同一会話の同一taskはactive Runを再利用し、別taskまたは別会話では新しいRunを作成する。
+- 同一会話の同一taskではactive Runを再利用する。
+- 別task・別会話を含むRun切替条件は `docs/reference/run-artifacts.md` を正本とする。
 
 ## Lifecycle and retention
 
