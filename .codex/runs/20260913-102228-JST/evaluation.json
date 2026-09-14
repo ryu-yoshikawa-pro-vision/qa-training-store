@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "追加レビューの3件（PLANS.mdのRun lifecycle正本競合、PowerShell verifyの無条件読み込みassertion不足、evaluation evidenceの旧checkpoint参照）をtask 19のallowed scope内で修正し、残存差分がないことを確認した。対象component caseは変更なしで単独PASSし、外側command timeoutを1200秒へ延長した同一通常設定の標準pnpm run verifyもexit code 0でPASSした。evaluation schema validation、collector strict、Sanitizer、git diff --checkもPASSし、TASKS基本Progressは100% (17/17)となった。commit / push / PR / CIはfile-changing task全体の別完了条件として後続確認する。",
+      "evidence": "追加レビューの3件（PLANS.mdのRun lifecycle正本競合、PowerShell verifyの無条件読み込みassertion不足、evaluation evidenceの旧checkpoint参照）をtask 19のallowed scope内で修正し、残存差分がないことを確認した。さらにtask 20としてRun Artifactの証跡不一致を訂正し、対象component caseは変更なしで単独PASS、外側command timeoutを1200秒へ延長した同一通常設定の標準pnpm run verifyもexit code 0でPASSした。evaluation schema validation、collector strict、Sanitizer、git diff --checkもPASSし、TASKS基本Progressは100% (18/18)となった。commit / push / PR / CIはfile-changing task全体の別完了条件として後続確認する。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -37,49 +37,55 @@
           "kind": "changed_file",
           "path": ".codex/runs/20260913-102228-JST/TASKS.md",
           "selector": "19.",
-          "summary": "追加レビュー対応をtask 19として登録し、標準verifyの環境failure解消待ちで未チェックであることを確認できる。"
+          "summary": "追加レビュー対応をtask 19として実施し、3件の修正と必要なローカル検証を完了してチェック済みであることを確認できる。"
         },
         {
-          "kind": "evaluation_note",
-          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-14 10:25 (JST)",
-          "summary": "標準verifyの失敗とretry停止条件、commit前の残存作業を記録した。"
+          "kind": "changed_file",
+          "path": ".codex/runs/20260913-102228-JST/TASKS.md",
+          "selector": "20.",
+          "summary": "Run Artifactの証跡不一致を訂正し、必要なArtifact検証を完了してチェック済みであることを確認できる。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 12:28 (JST)",
-          "summary": "標準verifyを既定timeoutで1回再確認し、既存web component test failureによりtask 19が未完了であることを記録した。"
+          "summary": "12:28時点の標準verifyを既定timeoutで再確認し、既存web component test failureと後続gate未実行の経緯を記録した。後続13:43 checkpointで標準verify完走PASSを確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:17 (JST)",
-          "summary": "単独component caseはPASSしたが、続く標準verifyが実行ラッパーtimeoutで完了せず、task 19を未完了のまま停止したことを記録した。"
+          "summary": "13:17時点で単独component case後の標準verifyが実行ラッパーtimeoutで停止した経緯を記録した。後続13:43 checkpointで標準verify完走PASSを確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:43 (JST)",
           "summary": "外側command timeoutを1200秒へ延長した標準pnpm run verifyがexit code 0で完走し、task 19を完了できる状態になったことを記録した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:17 (JST)",
+          "summary": "task 19の現在のチェック済み状態と、10:20単独診断・10:25 checkpointの説明訂正を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:23 (JST)",
+          "summary": "task 20の証跡訂正、Artifact検証、TASKS基本Progress 18/18を確認した。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "今回のrepairはAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.jsonという7つのagent-managed fileに限定し、collectorがmachine-managed run.jsonを更新した。最終変更範囲は許可された8ファイルで、#117 / #134へ拡大していない。単独component caseと標準verifyの実行中もProduct code / tests、timeout、config、Hookを変更していない。run-artifacts.md、implementation harness、repair-loop reference、TASKS template、Hook、config、rules、Skill、schemaは変更していない。",
+      "evidence": "task 19のrepairはAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.jsonという7つのagent-managed fileに限定し、collectorがmachine-managed run.jsonを更新した。続くtask 20の証跡訂正はactive RunのTASKS.md / REPORT.md / evaluation.jsonだけに限定した。PR全体の変更範囲は許可された8ファイルで、#117 / #134へ拡大していない。単独component caseと標準verifyの実行中もProduct code / tests、timeout、config、Hookを変更していない。run-artifacts.md、implementation harness、repair-loop reference、TASKS template、Hook、config、rules、Skill、schemaは変更していない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 09:54 (JST)",
           "summary": "今回の7ファイルのallowed scopeと変更しない範囲を確認した。"
-        },
-        {
-          "kind": "evaluation_note",
-          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-14 10:25 (JST)",
-          "summary": "current working diffにProduct code / test差分がなく、指定scope外を変更していないことを記録した。"
         },
         {
           "kind": "evaluation_note",
@@ -104,6 +110,12 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:43 (JST)",
           "summary": "標準verify完走後もProduct code / test等の非対象範囲を変更せず、許可された8ファイルのscopeを維持したことを記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:23 (JST)",
+          "summary": "task 20の変更をactive Runの3ファイルに限定し、非対象範囲を変更していないことを確認した。"
         }
       ]
     },
@@ -127,13 +139,7 @@
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 10:20 (JST)",
-          "summary": "timeout上限を変更しない単独診断でseeds.test.tsの43 tests / 43 passedを確認した。"
-        },
-        {
-          "kind": "validation_command",
-          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-14 10:25 (JST)",
-          "summary": "標準verifyの再発とretry停止条件、後続ゲート未実行を記録した。"
+          "summary": "`--testTimeout=30000`を指定した切り分け用単独診断でseeds.test.tsの43 tests / 43 passedを確認した。既定10秒timeoutのPASS根拠としては扱っていない。"
         },
         {
           "kind": "validation_command",
@@ -145,19 +151,31 @@
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 12:28 (JST)",
-          "summary": "既定timeoutの標準verify再確認でweb component testがFAILし、後続gateを実行していないことを記録した。"
+          "summary": "12:28時点の既定timeoutによる標準verify再確認でweb component testがFAILし、後続gateを実行していなかった経緯を記録した。後続13:43 checkpointで標準verify完走PASSを確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:17 (JST)",
-          "summary": "対象component caseの単独PASS後に標準verifyを1回実行したが、実行ラッパーtimeoutで完了せず、後続gate未確認となったことを記録した。"
+          "summary": "13:17時点の対象component case単独PASS後、標準verifyが実行ラッパーtimeoutで完了しなかった経緯を記録した。後続13:43 checkpointで標準verify完走PASSを確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:43 (JST)",
           "summary": "外側command timeoutだけを1200秒へ延長し、Repository設定を変更せず標準pnpm run verifyを完走してexit code 0でPASSしたことを記録した。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:17 (JST)",
+          "summary": "10:20は30秒指定の切り分け用診断、13:43は標準verify PASSであることを明確化した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:23 (JST)",
+          "summary": "evaluation schema、Markdown lint、collector strict、Sanitizer、git diff --checkのPASSを記録した。"
         }
       ]
     },
@@ -170,12 +188,6 @@
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 09:54 (JST)",
           "summary": "allowed files、非対象、repairの安全性判断を記録した。"
-        },
-        {
-          "kind": "evaluation_note",
-          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-14 10:25 (JST)",
-          "summary": "Product test / timeoutを変更せずretry停止条件に従ったことを記録した。"
         },
         {
           "kind": "evaluation_note",
@@ -199,7 +211,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "今回の追加review finding 3件、repair判断、repair scope、検証結果、Progress状態が、Plan、変更ファイル、append-onlyのtask 19 Run report checkpointから追跡できる。単独component caseのPASS、標準verifyの実行ラッパーtimeout、外側timeout延長後の標準verify完走PASS、task 19完了状態を追跡でき、過去checkpointの時刻順や意味は書き換えていない。",
+      "evidence": "今回の追加review finding 3件、repair判断、repair scope、検証結果、Progress状態が、Plan、変更ファイル、append-onlyのtask 19 / task 20 Run report checkpointから追跡できる。単独component caseのPASS、標準verifyの実行ラッパーtimeout、外側timeout延長後の標準verify完走PASS、task 19完了状態、10:20 / 10:25の証跡訂正を追跡でき、過去checkpointの時刻順や意味は書き換えていない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -214,28 +226,34 @@
           "summary": "追加reviewの3件、原因、allowed scope、修正判断を追跡できる。"
         },
         {
-          "kind": "evaluation_note",
-          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
-          "selector": "2026-09-14 10:25 (JST)",
-          "summary": "標準verify failureと未完了状態を含む現在のreview追跡結果を記録した。"
-        },
-        {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 12:28 (JST)",
-          "summary": "標準verifyの今回のfailure、未実行の後続gate、commit / push未実施を追跡できる。"
+          "summary": "12:28時点の標準verify failure、後続gate未実行、commit / push未実施という途中状態を追跡できる。後続checkpointで完了状態を確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:17 (JST)",
-          "summary": "単独component caseのPASS後に標準verifyが実行ラッパーtimeoutで停止し、task 19が未完了であることを追跡できる。"
+          "summary": "13:17時点で単独component case後の標準verifyが実行ラッパーtimeoutで停止した経緯を追跡できる。後続13:43 checkpointで完走PASSを確認している。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 13:43 (JST)",
           "summary": "外側timeout延長後の標準verify完走PASSとtask 19完了判断を追跡できる。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:17 (JST)",
+          "summary": "過去checkpointを変更せず、10:20 / 10:25の実行条件説明を訂正したことを追跡できる。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260913-102228-JST/REPORT.md",
+          "selector": "2026-09-14 14:23 (JST)",
+          "summary": "task 20の証跡訂正と、完了条件に含まれるArtifact検証のPASSを追跡できる。"
         }
       ]
     },
@@ -277,7 +295,7 @@
           "kind": "evaluation_note",
           "path": ".codex/runs/20260913-102228-JST/REPORT.md",
           "selector": "2026-09-14 10:39 (JST)",
-          "summary": "最終AGENTS.mdのbyte数・行数、無条件読み込み量、標準verify未達と未実行のcommit / CIを記録した。"
+          "summary": "10:39時点の最終AGENTS.mdのbyte数・行数、無条件読み込み量、標準verify未達とcommit / CI未実施という途中状態を記録した。後続checkpointで完了状態を確認している。"
         },
         {
           "kind": "validation_command",

@@ -384,3 +384,20 @@
 - Scope confirmation: `git diff --name-only`はAGENTS.md、PLANS.md、scripts/verify、scripts/verify.ps1、active RunのTASKS.md / REPORT.md / evaluation.json / run.jsonの8ファイルに限定され、Product code / Product test / timeout / package.json / Hook / schema / Skill packageに差分はない。
 - Completion state: TASKSの全17 checkboxを完了し、evaluationは`pass` / `findings: []`へ更新した。標準verifyはPASS済みのため再実行していない。Git safetyのcommit前確認を行い、commit後は対象branchへのpush、PR #147の最新head、`Web CI` / `Mobile App CI`を確認する。
 - Progress: 100% (17/17)（TASKS基本Progress）、94% (17/18)（file-changing task全体。必須CI確認とPR本文更新は未完了）
+
+## 2026-09-14 14:17 (JST)
+
+- Summary: PR #147のRun Artifact証跡不一致をtask 20として訂正する。既存active Runを継続利用し、過去checkpointは変更しない。
+- Correction: 2026-09-14 10:25 (JST) checkpointの「既定timeoutの単独再確認」という記述は誤り。2026-09-14 10:20 (JST)の単独診断では、`pnpm exec vitest run tests/integration/seeds.test.ts --testTimeout=30000`を実行した。したがって、この単独診断は30秒timeoutを指定した切り分け用実行であり、既定10秒timeoutでの単独再確認ではない。既定10秒条件で確認したのは標準`pnpm run verify`の実行である。この訂正は過去checkpointを削除・変更せず、append-only契約に従って追記する。
+- Current state: task 19は現在完了済み。TASKS基本Progressはtask 20追加前の17/18である。2026-09-14 13:43 (JST)の標準`pnpm run verify`はRepository設定を変更せずPASSした。直前headのWeb CI / Mobile App CIもsuccessだった。今回は過去の実行条件の説明を訂正するだけで、Product code / Product test / timeout設定は変更しない。
+- Scope / Decision: `TASKS.md`、`REPORT.md`、`evaluation.json`だけをagent-managedな変更対象とし、collectorが必要な場合のみ`run.json`をmachine-managed経路で更新する。`AGENTS.md`、`PLANS.md`、reference、verify scripts、Product code / Product test、schemaは変更しない。10:20の30秒指定診断と13:43の標準verify PASSを混同せず、10:25の過去checkpointはそのまま保持する。
+- Progress: 94% (17/18)（TASKS基本Progress）、89% (17/19)（file-changing task全体。task 20の検証、commit / push、最新head CI、PR本文更新が未完了）
+
+## 2026-09-14 14:23 (JST)
+
+- Summary: task 20のRun Artifact証跡訂正と必要なArtifact検証を完了した。REPORTの過去checkpointは変更せず、訂正checkpointをappend-onlyで追記した。
+- Changes: task 19の`evidence_refs` summaryを現在のチェック済み状態へ修正した。10:20の単独診断を`--testTimeout=30000`指定の切り分け用診断として正しく反映した。10:25の誤記は過去checkpointを変更せず、訂正checkpointで補正した。`evaluation.json`のselector / summaryを全件見直し、現在の証跡と一致することを確認した。
+- Scope: Product code変更なし、Product test変更なし、timeout設定変更なし、`AGENTS.md`変更なし、`PLANS.md`変更なし、verify scripts変更なし、reference変更なし。今回のagent-managed変更はactive Runの`TASKS.md`、`REPORT.md`、`evaluation.json`だけであり、`run.json`の直接編集は行っていない。
+- Validation: `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260913-102228-JST/evaluation.json`、`pnpm run lint:markdown`（389 files / 0 issues）、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`、`sanitize-codex-artifacts.ps1 -Write -Check`（files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0）、`git diff --check`をPASSした。`evaluation.json`全体の矛盾語検索、selector / summaryの目視確認、変更範囲確認も完了した。今回の訂正だけを理由に`pnpm run verify`は再実行していない。
+- Decision: task 20をチェック済みとし、evaluationの`result=pass` / `findings=[]`を維持する。次はGit safetyに従うcommit / push、local / remote / PR head一致確認、新headの必須CI確認、PR本文更新であり、それらが完了するまでfile-changing task全体は未完了とする。
+- Progress: 100% (18/18)（TASKS基本Progress）、95% (18/19)（file-changing task全体。commit / push、最新head CI、PR本文更新が未完了）
