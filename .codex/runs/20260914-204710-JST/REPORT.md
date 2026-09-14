@@ -78,3 +78,23 @@
   - Result: 親Agentが競合解消、契約検証、文書系検証、既知failureの切り分けを実施した。
   - 親Agentの判断: 文書とRun契約の最小修復だけを採用し、Product Code・test code・workflow実装を変更しない。
 - Progress: 100% (8/8)
+
+## 2026-09-14 23:20 (JST)
+
+- Summary: push後もPR #151のmergeabilityが`dirty`のままで、`bef3cd4`に対する`Web CI`と`Mobile App CI`のPR実行が作成されなかった。
+- 判断 / 理由: 依頼の「Merge禁止」はPRをmainへ反映するPR mergeの禁止と解釈し、PRをopen・未mergeのまま維持する。一方、最新headで必須CIを確認するため、同一feature branchへ`origin/main`を統合するmerge commitを作成する。これはPR merge、force push、新規branch、新規PRではない。競合時は今回の日本語表現と文章規約への導線を保持する。
+- ブロッカー / 残作業: ブランチ統合、競合解消、統合後のローカル検証、通常push、最新headの必須CI確認、CI結果のPR本文への記録が残っている。
+- Progress: 100% (8/8)
+
+## 2026-09-14 23:25 (JST)
+
+- Summary: 同一feature branchへの`origin/main`統合を試行したが、実行環境の承認ポリシーにより変更前に拒否された。統合・競合解消のmutationは発生していない。
+- 変更内容: `git merge --no-ff --no-edit origin/main`の実行拒否を確認し、作業ツリーに追加の変更がないことを確認した。PR #151の本文は`bef3cd4`を対象headとして更新済みで、PRはopen・未mergeのまま維持している。
+- 判断 / 理由: PR merge、force push、新規branch、新規PRは行わない。利用可能なGitHub操作にはworkflow dispatch経路がなく、現環境ではbranch統合も承認不可のため、最新headの`Web CI` / `Mobile App CI`を生成・確認できない状態をブロッカーとして確定した。
+- 検証: `git merge-tree --write-tree origin/main HEAD`で`AGENTS.md`、`PLANS.md`、`docs/curriculum/test-automation/04_learning-effort-reference.md`、`docs/reference/repair-loop.md`の競合を確認した。`/actions/runs?head_sha=bef3cd4`にはCodeQLの`success`のみがあり、必須2 workflowは未実行だった。
+- ブロッカー / 残作業: ユーザーの明示承認を得た安全なbranch統合、または権限のあるworkflow dispatch経路が必要。これらがない限り、最新headの必須CI成功確認を完了できない。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親Agentが実行環境の拒否、競合、GitHub workflow状態を確認した。
+  - 親Agentの判断: 未承認の回避手段は使わず、PR mergeを行わずに停止条件を記録する。
+- Progress: 100% (8/8)
