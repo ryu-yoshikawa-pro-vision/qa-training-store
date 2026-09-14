@@ -60,7 +60,7 @@ Phase 1のRepository Interface、Page Pattern、業務ルールが安定し、We
 
 高度機能が具体的な学習カリキュラムまたはTest課題として必要になったことを確認すること。単に実ECへ近づけるためだけには追加しません。
 
-## 5. Scope変更Rule
+## 5. 対象範囲の変更ルール
 
 - Phase 1へ項目を追加する場合、商品探索・購入判断・管理効率・Accessibilityのどれを改善するか説明する。
 - 見た目だけの装飾、行動履歴Personalization、分析ChartはPhase 1へ追加しない。

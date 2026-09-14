@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Report a security vulnerability
+  - name: セキュリティ脆弱性を報告する
     url: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security
-    about: Do not report security vulnerabilities in a public issue. Open Security, then Advisories, then Report a vulnerability.
+    about: セキュリティ脆弱性をPublic Issueへ投稿しないでください。Security、Advisories、Report a vulnerabilityの順に開いてください。

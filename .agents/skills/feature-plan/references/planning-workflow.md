@@ -1,4 +1,10 @@
-# Planning Workflow
+# 計画Workflow
+
+## 既存validatorが参照する固定section名
+
+次の英語名は既存validatorとの互換性のため保持します。本文では対応する日本語見出しを使用します。
+
+`repo mapping`、`Do not use`、`Main flow`、`Key abstractions`、`Safe change surface`、`Validation candidates`、`Failure modes`、`Ambiguity handling`、`mandatory-question`、`Report file generation policy`
 
 ## 使う場面
 
@@ -7,26 +13,26 @@
 - Plan Mode
 - 実装前に変更範囲、検証、移行を固める必要がある依頼
 
-## Do not use
+## 使わない場面
 
 - 変更対象が 1 ファイルで明確な軽微修正
-- typo 修正や wording-only 修正
+- typo修正や文章だけの修正
 - 既に計画と safe change surface が確定している追従実装
 
-## Phase 1: repo mapping
+## Phase 1: リポジトリ調査
 
-### Goal
+### Goal（目的）
 
 - 関連コード、実行経路、既存テスト、設定の地図を作り、どこまで安全に変更できるかを見極める。
 
-### Checklist
+### Checklist（確認項目）
 
-1. 関連 code / test / config / docs を探索する。
-2. `Entry points` を列挙する。
-3. `Main flow` を短く説明する。
-4. `Key abstractions` を整理する。
-5. `Existing tests` を確認する。
-6. `Safe change surface` と `Unknowns` を分ける。
+1. 関連するcode / test / config / docsを探索する。
+2. `Entry points`を列挙する。
+3. `Main flow`を短く説明する。
+4. `Key abstractions`を整理する。
+5. `Existing tests`を確認する。
+6. `Safe change surface`と`Unknowns`を分ける。
 
 ### 出力セクション
 
@@ -37,13 +43,13 @@
 - Safe change surface
 - Unknowns
 
-## Phase 2: change planning
+## Phase 2: 変更計画
 
-### Goal
+### Goal（目的）
 
 - repo mapping の結果を、実装者が追加判断なしで進められる計画へ変換する。
 
-### Checklist
+### Checklist（確認項目）
 
 1. `Goal` を短く言い換える。
 2. `Current understanding` と `Assumptions` を分ける。
@@ -60,7 +66,7 @@
 - 失敗すると何が壊れるか
 - rollback や feature flag で退避できるか
 
-### Validation candidates
+### 検証候補
 
 - unit test
 - integration test
@@ -69,7 +75,7 @@
 - log / metrics confirmation
 - rollback confirmation
 
-## Ambiguity handling
+## 曖昧性の扱い
 
 - Contract marker: `mandatory-question`
 - Plan Mode では、AI が判断し切れない不透明点を推測で埋めてはいけない。
@@ -89,14 +95,14 @@
 - 必要なら、Repositoryから供給されたactive Runのworking artifactへも落とし込む。
 - plan-onlyではRepositoryのreport persistence policyに従い、不要なdurable report fileを作らない。必要な記録はチャット返答とactive Run reportに留める。
 
-## Report file generation policy
+## レポートファイルの作成方針
 
 - Allowed: ユーザーが保存を明示した場合、計画 DoD に report file が明記されている場合、複数ソース調査・監査・検証結果を後で参照する durable artifact として残す必要がある場合。
 - Not allowed: plan-only、review-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価。
-- review-only and plan-only do not create a durable report file unless the supplied Repository policy requires it.
+- review-onlyとplan-onlyでは、提供されたRepositoryの規約が要求しない限りdurableなレポートファイルを作成しない。
 - 判断に迷う場合は report file を作らず、チャット返答とactive Run reportに留める。
 
-## Failure modes
+## 失敗モード
 
 - code を読む前に設計を閉じてしまう
 - `Current understanding` に推測を混ぜる

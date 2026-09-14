@@ -3,29 +3,29 @@ name: code-review
 description: Use when reviewing changes, handling /review, or doing self-review in this repository.
 ---
 
-# Code Review Skill
+# コードレビューSkill
 
-## Purpose and boundary
+## 目的と適用範囲
 
-Use this Skill for review requests, `/review`, and self-review before implementation is considered complete. Review findings are the normal output. This workflow does not implement fixes; when a finding or validation failure requires repair, switch explicitly to the bounded repair workflow.
+このSkillは、レビュー依頼、`/review`、実装完了前の自己レビューに使います。通常の出力はレビューの指摘です。このworkflowは修正を実装しません。指摘や検証失敗の修復が必要になった場合は、対象範囲を限定したrepair workflowへ明示的に切り替えます。
 
-## Inputs
+## 入力
 
-- The requested review scope and the current change set.
-- The package-local [review workflow](references/review-workflow.md).
-- Repository coding policy, supplied by the Repository mapping as a logical external input.
-- Repository review persistence policy, supplied by the Repository mapping as a logical external input.
-- Approved external review results, when the user explicitly authorizes that review service.
+- 依頼されたレビューの対象範囲と現在の変更内容。
+- package-localの[review workflow](references/review-workflow.md)。
+- Repository mappingからlogical external inputとして提供されるリポジトリのコーディング方針。
+- Repository mappingからlogical external inputとして提供されるリポジトリのレビュー結果保存方針。
+- ユーザーがレビューサービスを明示的に許可した場合の、承認済み外部レビュー結果。
 
-## Execution outline
+## 実行の概要
 
-1. Follow the package-local review workflow's diff triage and deep-review order.
-2. Prioritize correctness, security, behavioral regression, missing tests, and maintainability.
-3. Report findings with the required severity, evidence, location, impact, and suggested direction. If there are no findings, state residual risk and unvalidated areas.
-4. Generate a durable review report only when the user explicitly requests one or the supplied Repository review persistence policy requires it. The concrete destination, naming, and retention rules come from that external input.
+1. package-localのreview workflowが定めるdiffの仕分けと深掘りの順序に従う。
+2. 正しさ、セキュリティ、動作回帰、テスト不足、保守性を優先する。
+3. 必須のseverity、Evidence、場所、影響、対応の方向性を添えて指摘を報告する。指摘がない場合も、残るリスクと未検証領域を記載する。
+4. ユーザーが明示的に依頼した場合、または提供されたリポジトリのレビュー結果保存方針が要求する場合だけ、永続的なレビュー報告を作成する。具体的な保存先、命名、保持ルールはその外部入力に従う。
 
-## Guardrails
+## ガードレール
 
-- Do not weaken an existing contract to make a finding disappear.
-- Do not start an external full review or re-review without explicit approval.
-- Review-only work returns findings and does not silently switch into implementation or repair.
+- 指摘を消すために既存契約を弱めない。
+- 明示的な承認なしに外部サービスのfull reviewや再レビューを開始しない。
+- レビューのみの作業は指摘を返し、実装や修復へ暗黙に切り替えない。

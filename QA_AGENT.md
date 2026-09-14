@@ -1,20 +1,20 @@
-# Agentic QA Operating Contract
+# Agentic QA運用規約
 
-この文書は、Scenario Shop における Agentic QA の Repository-specific execution ownership、Machine Contract、artifact binding、Harness integration を定義します。PortableなMode選択、Charter、Coverage、Budget、Stop、Evidence、Finding、finalizationの意味は [`exploratory-qa` Skill](.agents/skills/exploratory-qa/SKILL.md) と package-local referencesを正本とします。
+この文書は、Scenario ShopにおけるAgentic QAのリポジトリ固有の実行責任、Machine Contract、artifactの紐付け、Harness統合を定義します。PortableなMode選択、Charter、Coverage、Budget、Stop、Evidence、Finding、finalizationの意味は[`exploratory-qa` Skill](.agents/skills/exploratory-qa/SKILL.md)とpackage-local referencesを正本とします。
 
 Normative Product Specification は `docs/spec/`、Machine Contract の実装正本は `scripts/agentic-qa/contracts.ts` です。
 
-## Execution Ownership
+## 実行責任
 
-- Primary QA Executor: Coding Agent + Exploratory QA Skill。
-- Runtime Interaction: Coding Agent runtimeが提供する Playwright-MCP / Maestro-MCP または同等Capability。
+- 主担当QA実行者: Coding Agent + Exploratory QA Skill。
+- Runtimeとの対話: Coding Agent runtimeが提供するPlaywright-MCP / Maestro-MCPまたは同等Capability。
 - Supporting Harness: `scripts/agentic-qa/**`。
-- Harness responsibility: Preparation、validation、isolation verification、artifact integrity、evaluation、scoring。
-- Harness does not launch、wrap、orchestrate、retry、manage the Coding Agent。
+- Harnessの責務: Preparation、validation、isolation verification、artifact integrity、evaluation、scoring。
+- HarnessはCoding Agentをlaunch、wrap、orchestrate、retry、manageしない。
 
 実行の方向は `Coding Agent + Skill → Runtime → qa-findings.json → Supporting Harness` です。QA中はProduct Codeを変更せず、Finding確定後にのみRepair workflowへ明示的に切り替えます。
 
-## Repository Mode Contract
+## リポジトリのMode契約
 
 - Normal: current Runの`.codex/runs/<run_id>/qa-charter.json`を入力とし、Source Working TreeはReadonlyで扱います。Evidenceは`.codex/runs/<run_id>/`と`.artifacts/`へ保存します。
 - Gray-box Scenario Shop mapping: Scenario / Seedのallowlistは `src/seeds/metadata.ts`（`default`、`empty-catalog`、`out-of-stock`、`low-stock`、`regular-member`、`cart-with-invalid-items`、`payment-declined`、`checkout-resume`、`reviewable-orders`）と `src/seeds/scenarios.ts`、Reset / Test Controlは `src/test-controls/` が具体実装です。Machine Contractの`allowed_runtime_controls`は `seed_reset`、`clock`、`payment_delay`、`deep_link`、`app_restart` を受け、DOM、Accessibility、Console、Narrow Log等のObservation Evidenceは`evidenceTypeSchema`へbindingします。Runtime capabilityはこのRepositoryのPlaywright-MCP / Maestro-MCPまたは同等Capability mappingを使用します。
@@ -36,13 +36,13 @@ Static serverの`Sec-Fetch-Dest`は偽装可能なbrowser UX情報でありSecur
 - FindingはMachine Contractに従うAtomic Findingです。Expected、Actual、Reproduction Steps、Oracle、Role/Seed、Evidence、Reproduction Count、Severity、Confidence、Known Deviation、Suggested Regression Layerを記録します。複数問題をまとめた提出は`invalid_non_atomic`です。
 - Evidenceは`.artifacts/`のraw artifactを相対参照します。未探索はTNにせず、Observation EvidenceがないNon-defectは確定しません。Coverage未完了またはObservation Evidence不足はNEです。
 
-## Normal / Gray-box artifact binding
+## Normal / Gray-boxのartifact紐付け
 
 Charterは`spec_refs`、Role、Seed、Platform、Viewport/Device、Risk、Mission、Required Coverage、Runtime Controls、`exploration_budget`、Stop Conditionを固定します。過去RunのCharterは暗黙再利用せず、現行仕様、User Scope、Platform、Role、Seedを再検証します。
 
 最初のRuntime interaction前に`working-tree-snapshot.ts`でBEFORE Snapshotを取得し、QA後にAFTER Snapshotを取得します。同じRun / Modeで比較し、`passed: true`かつ`additional_source_diff_count: 0`を確認してからFindingsをfinalizeします。Finding確定後のBEFORE Snapshotは許可しません。
 
-## Black-box Scored contract
+## Black-box Scored契約
 
 PreparationはCoding Agentを起動せず、Challenge validation、Answer Key validation、learner-safe Bundle、disposable source、protected patch、baseline / patched sanity、Canonical Artifact Manifest、Source-free Prepared Target、Runner Input、isolated root、Tool Profile、Forbidden Probe、output import、Evidence Mapping、Freeze、Evaluationを担当します。Agent Session生成、Tool routing、retry、lifecycle managementはHostが担当します。
 
@@ -56,7 +56,7 @@ EvaluatorはFrozen Findingを書き換えず、別SessionでEvaluationを生成�
 
 `invalid_non_atomic`、Duplicate、`TN` / `FP_non_defect` / `NE`、Unexpected Valid Findingを個別に分類し、`invalid_reasons[]`はenum・unique・辞書順で保存します。`FP_non_defect`はPrecisionのFPへ一度だけ加算し、Environment / Harness blockerは`valid_for_scoring=false`とします。
 
-## Repository Harness mapping
+## リポジトリのHarness対応表
 
 - Contract validation / cross-file validation: `scripts/agentic-qa/validate-contracts.ts`。
 - Learner-safe Bundle: `scripts/agentic-qa/build-learner-bundle.ts`。

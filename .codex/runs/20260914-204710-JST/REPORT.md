@@ -1,0 +1,67 @@
+# Report（追記のみ）
+
+- TASK完了、blocker、重要判断、計画変更、Run完了のcheckpointだけ追記する。
+- 過去checkpointは削除・置換・並べ替えず、Summary / Progressも新checkpointとして追記する。
+- Hook JSONLやrunnerが取得するmachine factをREPORTへ逐次転記しない。
+- REPORTにはAIが残す意味情報だけを記録する。
+
+## YYYY-MM-DD HH:MM（JST）
+
+- Summary:
+- 変更内容:
+- 判断 / 理由:
+- 検証:
+- ブロッカー / 残作業:
+- Subagent:
+  - Delegation:
+  - Result:
+  - 親Agentの判断:
+- Progress: NN% (done/total)
+
+## 2026-09-14 20:47 (JST)
+
+- Summary: PR #151を同一branchで拡張し、リポジトリ全体の文章規約と現行人間向け文書の日本語表現を統一する計画を確定した。
+- Changes: `docs/plans/2026-09-14_204710_repository-wide-writing-standards.md`を保存し、run-local PLAN / TASKSを今回の作業へ更新した。
+- Decision / Rationale: 過去のRun、Plan、Report、history、ADR本文、機械ファイルは一括修正対象から除外し、root 9、現行`docs/` 111、Skill関連14、`.codex/templates/` 4、`.codex/rules/README.md` 1、`.github` Markdown 1、`training/` 7、`examples/` 4のMarkdown 151件とIssue form 3件を監査候補とする。一般語は文脈単位で日本語化し、正式名称・識別子・validator / E2E / contract固定文字列は保持する。
+- Validation: branch `fix/2026-09-14-2`、PR #151のopen・未merge、HEAD `a21ab02f73f511e9213becb07aafb5be47e19400`を確認した。`package.json`、Markdown設定、関連validator / contract、最近のADR、`.github` template、Skill構成を確認した。
+- Blocker / Remaining: 文章規約の追加、入口参照、現行文書監査、品質検証、commit / push / PR更新 / 必須CI確認が残っている。
+- Subagents:
+  - Delegation: なし（リポジトリ規約によりchild subagentを使用しない）。
+  - Result: 親Agentが調査・計画を実施した。
+  - Parent decision: 文書のみの最小差分として実装を進める。
+- Progress: 38% (3/8)
+
+## 削除候補
+
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| パス | 理由 | 推奨対応 |
+|---|---|---|
+|  |  |  |
+
+## 2026-09-14 22:25 (JST)
+
+- Summary: `docs/WRITING_STANDARDS.md`を新設し、PR #151の対象をリポジトリ全体の人間向け文書の文章規約整備と日本語表現統一へ拡張した。入口文書、現行`docs/`、Skill / reference、Issue / Pull Request template、training、examplesを監査し、一般的な説明を自然な日本語へ統一した。
+- 変更内容: 既存tracked差分はMarkdown 88件、Issue formを含むYAML 3件、合計91件（`git diff --stat`: 1,043 additions / 1,005 deletions）。新規に規約、PROJECT_CONTEXTの履歴、計画、Run Artifactを追加した。`app/`、`src/`、`tests/`、`e2e/`、`.github/workflows/`の変更は0件。
+- 判断 / 理由: 監査候補はroot 9件、現行`docs/` 111件、Skill関連14件、`.codex/templates/` 4件、`.codex/rules/README.md` 1件、`.github` Markdown 1件、`training/` 7件、`examples/` 4件のMarkdown 151件とIssue form 3件。過去のRun / Plan / Report / history / ADR本文、生成・機械管理ファイル、trainingの固定入力4件は一括翻訳対象から除外した。formal specのH2、table schema、contract ID、validator / E2E固定文字列、path、command、URL、UI正式名称、GitHub job名、Skill frontmatter / enumは保持し、必要な固定英語名には日本語説明を併記した。
+- 検証: `git diff --check`、変更Markdown / YAMLのPrettier確認、`corepack pnpm run lint:markdown`、`validate:skills`、`validate:spec`、`validate:spec-visuals:final`、`validate:curriculum`、`build:spec`、`build:docs`、`build:web`、`security:check`、`bash scripts/verify`、`pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`、関連contract test、`test:unit`、`test:integration`、`lint`はPASS。`test:contracts`は34/35 suite・511 tests PASS・4 skippedで、残る1 suiteはNode 22.20.0環境で`node:sqlite`をViteがbundleできない既知のNode 24契約差分。`test:repository`も同じ原因で1 suiteがFAILした。全体`format:check`は変更していないapp TSX 78件の既存整形差分でFAILし、`typecheck`は変更していない6箇所の`/guide` route type errorでFAILした。`pnpm run verify`は先頭の同じ`format:check`で停止した。
+- ブロッカー / 残作業: Run ArtifactのSanitizer実行後、同一branchへのcommit・push、PR #151のtitle / body更新、push後の最新headに対する`Web CI` / `Mobile App CI`確認とPR本文への結果記録が残っている。CIが成功するまで作業全体は未完了とする。
+- Subagent:
+  - Delegation: なし（リポジトリ規約によりchild subagentを使用しない）。
+  - Result: 親Agentが監査、変更、検証、差分確認を実施した。
+  - 親Agentの判断: docs-onlyの最小範囲を維持し、契約保護と既存のNode / app baseline failureを明示してcommit対象を確定する。
+- Progress: 100% (8/8)
+
+## 2026-09-14 22:30 (JST)
+
+- Summary: 監査件数とcommit前の対象範囲を確定した。151件の現行Markdown候補のうち、固定入力4件を除く147件を文章規約に照らして確認し、Markdown 88件を修正、59件を修正不要と判断した。Issue form 3件は表示文を確認して修正した。
+- 変更内容: `git diff --name-only`で確認した91件は、Markdown 88件とIssue form YAML 3件だけである。新規Run Artifactを含む未追跡ファイルは意図した成果物だけで、source、test、E2E、workflow実装は差分に含まれない。
+- 判断 / 理由: `CHANGELOG.md`はリリース履歴として扱い、履歴本文を変更しなかった。英語のまま残した`Purpose / Scope`、`Business Rules`、`Important UI States`などはvalidator / contractの固定見出し、表の列名、UI・QA・評価の正式概念、識別子、またはコード・path・enumに該当する。一般語の見出し・説明は可能な範囲で日本語化し、正本規約へ残置理由を記載した。
+- 検証: Run Artifact Sanitizer Write / Checkはfiles_scanned 4、files_changed 0、residual_findings 0。Sanitizer後も`git diff --check`、Markdownlint（424 files、0 issues）、変更対象98ファイルのPrettierがPASSした。固定文字列の検索、不変条件、PR全体の`origin/main...HEAD`差分の確認を完了した。
+- ブロッカー / 残作業: commit対象をstageしてcommit・pushし、PR #151の本文を最終範囲へ更新する。push後に最新headの`Web CI`と`Mobile App CI`を確認し、結果をPR本文へ記録する。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親Agentが件数、差分、固定文字列、Sanitizerを確認した。
+  - 親Agentの判断: 変更対象を人間向け文書とIssue form表示文に限定し、過去記録・固定入力・機械契約は保持する。
+- Progress: 100% (8/8)

@@ -105,6 +105,6 @@ Cancel/Return/Refund ModuleもPhase 2開始時に追加します。
 - 商品画像Binaryは`public/images/products/`へCommitし、ApplicationはManifest経由のAsset IDだけを扱う。
 - GitHub書込みCredentialをFrontendへ置かない。
 
-## 5. Naming
+## 5. 命名
 
 EntityはPascalCase、Use Caseは`<Verb><Target>UseCase`、ErrorはSCREAMING_SNAKE、DBはsnake_case plural、Test IDはkebab-caseとします。

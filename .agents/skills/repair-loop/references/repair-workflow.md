@@ -1,56 +1,62 @@
-# Repair Workflow
+# 修復Workflow
 
-## When to use
+## 既存validatorが参照する固定section名
 
-- Apply a review finding.
-- Repair a validation failure through a bounded loop.
-- Decide whether an evaluation result of `partial` or `fail` is actionable.
+次の英語名は既存validatorとの互換性のため保持します。本文では対応する日本語見出しを使用します。
 
-## Do not use
+`When to use`、`Do not use`、`Inputs`、`Entry conditions`、`Iteration model`、`Finding triage`、`Repair planning and scope`、`Validation per iteration`、`Stop conditions`、`Evaluation and failure taxonomy`、`Evidence and report`
 
-- Requirement discovery or plan creation is the primary task.
-- The user requested review-only output.
-- The root cause is environmental and no repair is required.
-- An unsafe action or destructive operation would be needed.
+## 使う場面
 
-## Inputs
+- レビュー指摘を適用するとき。
+- 対象範囲を限定したloopで検証失敗を修復するとき。
+- `partial`または`fail`のevaluation resultに対応が必要か判断するとき。
 
-- Review findings.
-- Evaluation result and findings.
-- Validation failure.
-- Scope report and the declared `allowed_files` / `expected_changed_files`.
-- Observation artifacts and Subagent records.
-- Repository-supplied artifact, scope, taxonomy, evaluation, and sanitization contracts.
+## 使わない場面
 
-## Entry conditions
+- 要件の発見や計画作成が主なタスクである場合。
+- ユーザーがレビューのみの出力を依頼した場合。
+- 根本原因が環境にあり、修復が不要な場合。
+- 安全でない操作や破壊的操作が必要になる場合。
 
-Start a repair loop only when both an actionable repair signal and an explicit bounded scope are present.
+## 入力
 
-### A. Actionable repair signal
+- レビュー指摘。
+- evaluation resultとFinding。
+- 検証失敗。
+- 対象範囲の報告と、宣言した`allowed_files` / `expected_changed_files`。
+- 観測artifactとSubagent record。
+- リポジトリから提供されるartifact、対象範囲、taxonomy、evaluation、sanitizationの各契約。
 
-At least one of the following must be true:
+## 開始条件
 
-- there is an actionable review finding;
-- there is a validation failure;
-- the evaluation result is `partial` or `fail`;
-- an evaluation finding is actionable.
+対応可能な修復シグナルと、明示的に限定された対象範囲の両方がある場合だけ、repair loopを開始します。
 
-### B. Explicit bounded scope
+### A. 対応可能な修復シグナル
 
-All of the following must be true:
+次のいずれか1つ以上を満たす必要があります。
 
-- the requirement is sufficiently clear;
-- the scope is clear;
-- `allowed_files` can be declared;
-- there is no unsafe, destructive, permission, credential, or policy ambiguity.
+- 対応可能なレビュー指摘がある。
+- 検証失敗がある。
+- evaluation resultが`partial`または`fail`である。
+- evaluation findingに対応が必要である。
 
-Scope clarity or an allowed file set by itself is not a repair trigger.
+### B. 明示的に限定された対象範囲
 
-Do not start when the requirement or scope is unclear, an unsafe or destructive action is needed, a credential or permission decision is required, the user requested review-only output, or the root cause is environmental with no repair required.
+次のすべてを満たす必要があります。
 
-## Iteration model
+- 要件が十分に明確である。
+- 対象範囲が明確である。
+- `allowed_files`を宣言できる。
+- 安全性、破壊的操作、権限、credential、policyに関する曖昧さがない。
 
-Record these fields for every iteration:
+対象範囲の明確さやallowed file setだけでは、修復を開始する条件になりません。
+
+要件または対象範囲が不明確、安全でない操作や破壊的操作が必要、credentialや権限の判断が必要、ユーザーがレビューのみの出力を依頼、または根本原因が環境で修復不要の場合は開始しません。
+
+## 反復モデル
+
+各iterationについて次のfieldを記録します。
 
 - `iteration_number`
 - `input_findings`
@@ -62,7 +68,7 @@ Record these fields for every iteration:
 - `remaining_delta`
 - `decision`
 
-The decision is one of:
+decisionは次のいずれかです。
 
 ```text
 continue
@@ -74,9 +80,9 @@ stop_max_iterations
 stop_needs_human
 ```
 
-## Finding triage
+## Findingの仕分け
 
-Use exactly these classifications:
+次の分類だけを使用します。
 
 ```text
 must_fix
@@ -86,67 +92,67 @@ reject
 needs_human
 ```
 
-- `must_fix`: correctness, safety, contract, CI, or data integrity.
-- `should_fix`: maintainability, clarity, or test confidence.
-- `defer`: outside the current scope and suitable for later work.
-- `reject`: false positive, already addressed, or unsupported by evidence.
-- `needs_human`: requirement judgment, destructive-change judgment, permission judgment, credential judgment, policy-boundary judgment, or a user/reviewer decision.
+- `must_fix`: 正しさ、安全性、契約、CI、データ整合性に関わるもの。
+- `should_fix`: 保守性、明確さ、テストの信頼性に関わるもの。
+- `defer`: 現在の対象範囲外で、後続作業に適するもの。
+- `reject`: false positive、対応済み、またはEvidenceで裏付けられないもの。
+- `needs_human`: 要件、破壊的変更、権限、credential、policy境界の判断、またはユーザー・レビュアーの判断が必要なもの。
 
-Prioritize `must_fix`. Handle `should_fix` only when it does not block the required repair. Record the reason for every `defer`, `reject`, or `needs_human` classification.
+`must_fix`を優先します。`should_fix`は必須の修復を妨げない場合だけ扱います。`defer`、`reject`、`needs_human`に分類した場合は、それぞれの理由を記録します。
 
-When a finding is classified as `needs_human`, set `decision = stop_needs_human` immediately. `needs_human` is an escalation condition, not a loop continuation condition. Until the human decision is returned, do not continue repair, expand scope, perform an unsafe or destructive operation, or guess a policy judgment.
+Findingを`needs_human`に分類したら、直ちに`decision = stop_needs_human`を設定します。`needs_human`はエスカレーション条件であり、loop継続条件ではありません。人の判断が返るまで、修復の継続、対象範囲の拡大、安全でない操作や破壊的操作、policy判断の推測を行いません。
 
-## Repair planning and scope
+## 修復計画と対象範囲
 
-- Explain why each repair addresses the root cause.
-- Declare the allowed files and expected scope before editing.
-- Confirm that changed files remain inside the declared scope after each iteration.
-- If scope is ambiguous or a scope violation appears, stop and escalate rather than expanding the loop.
+- 各修復が根本原因にどう対応するかを説明します。
+- 編集前に、許可されたファイルと想定対象範囲を宣言します。
+- 各反復後に、変更ファイルが宣言した対象範囲内に収まっていることを確認します。
+- 対象範囲が曖昧または範囲外の変更が見つかった場合は、loopを拡大せず停止してエスカレーションします。
 
-## Validation per iteration
+## 反復ごとの検証
 
-Run the minimum validation set that is sufficient for the changed contract, without omitting required checks. Record commands, results, remaining delta, and the next decision. Do not call a repair successful based only on an assumed result.
+変更した契約に十分な最小検証を、必須チェックを省略せずに実行します。command、結果、残差、次の判断を記録します。想定した結果だけを根拠に修復成功と判断しません。
 
-`--max-iterations` is a reserved or validated runner option that documents the bound. The workflow does not automatically rerun the agent; stop at the configured maximum and record `stop_max_iterations`.
+`--max-iterations`は、上限を記録するための予約または検証済みのrunner optionです。このworkflowはagentを自動再実行せず、設定した上限で停止して`stop_max_iterations`を記録します。
 
-## Stop conditions
+## 停止条件
 
-Stop the loop when any of the following occurs:
+次のいずれかに該当したらloopを停止します。
 
-- the configured maximum iteration count is reached;
-- the same failure category repeats;
-- the same stage fails three times, or the first error remains unchanged after different responses;
-- no new log, environment fact, or hypothesis is added;
-- the allowed scope is exceeded;
-- unsafe or destructive action is required;
-- validation is not reproducible because of the environment;
-- the root cause is unknown while repairs continue;
-- the repair introduces a new failure; or
-- requirement ambiguity requires a human decision.
+- 設定した最大iteration数に達した。
+- 同じfailure categoryが繰り返された。
+- 同じstageが3回失敗した、または異なる対応をしても最初のエラーが変わらない。
+- 新しいlog、環境上の事実、仮説が追加されない。
+- 許可された対象範囲を超えた。
+- 安全でない操作または破壊的操作が必要になった。
+- 環境上の理由で検証を再現できない。
+- 修復を続けているが根本原因が不明である。
+- 修復によって新しいfailureが発生した。
+- 要件の曖昧さについて人の判断が必要になった。
 
-Repeated failure is evidence, not a reason to retry blindly. A stop condition is recorded as `stop_*` and the loop is not continued.
+繰り返す失敗はEvidenceであり、盲目的なretryの理由ではありません。停止条件は`stop_*`として記録し、loopを継続しません。
 
-## Evaluation and failure taxonomy
+## Evaluationと失敗taxonomy
 
-- Summarize each iteration so it can be connected to the supplied evaluation artifact, findings, and improvement candidates.
-- A successful repair may still leave a documented residual; represent that state as `partial` when the Repository evaluation contract requires it.
-- Use the Repository-supplied failure taxonomy rather than inventing categories.
-- The Native execution labels `ENVIRONMENT_FAILURE`, `DEPENDENCY_FAILURE`, `CONFIGURATION_FAILURE`, `SOURCE_FAILURE`, `BUILD_CACHE_FAILURE`, `DEVICE_FAILURE`, `TEST_FAILURE`, `TRANSIENT_FAILURE`, and `UNKNOWN` are auxiliary execution classifications; map them to the supplied evaluation taxonomy when needed.
+- 各反復を要約し、提供されたevaluation artifact、Finding、改善候補へ対応付けられるようにします。
+- 修復に成功しても文書化すべき残差が残る場合、リポジトリのevaluation契約が求めるときはその状態を`partial`で表します。
+- 分類を創作せず、リポジトリから提供された失敗taxonomyを使います。
+- Native実行のラベル`ENVIRONMENT_FAILURE`、`DEPENDENCY_FAILURE`、`CONFIGURATION_FAILURE`、`SOURCE_FAILURE`、`BUILD_CACHE_FAILURE`、`DEVICE_FAILURE`、`TEST_FAILURE`、`TRANSIENT_FAILURE`、`UNKNOWN`は補助的な実行分類です。必要に応じて提供されたevaluation taxonomyへ対応付けます。
 
-## Evidence and report
+## Evidenceと報告
 
-- Use observation and Subagent evidence to explain what happened, not as the final source of truth.
-- Preserve the existing meaning of Subagent-generated records and observations without importing their contracts into this Skill.
-- Record the loop in the Repository-supplied run report and evaluation artifacts according to their append-only and sanitization rules.
-- A durable report is created only when the user, the completion criteria, or an audit requirement calls for it.
+- 観測とSubagentのEvidenceは何が起きたかの説明に使い、最終的な正本とはみなしません。
+- Subagentが生成したrecordと観測の既存の意味を保ち、その契約をこのSkillへ持ち込みません。
+- append-onlyとsanitizationのルールに従い、リポジトリから提供されたRun reportとevaluation artifactへloopを記録します。
+- 永続的なレポートは、ユーザー、完了条件、監査要件が求める場合だけ作成します。
 
-## External review boundary
+## 外部レビューの境界
 
-An external full review or re-review requires explicit user instruction or approval. After reporting its result, stop and wait for the user's decision before repairing findings or manipulating review threads.
+外部サービスのfull reviewや再レビューには、ユーザーの明示的な指示または承認が必要です。結果を報告したら停止し、指摘の修復やreview threadの操作はユーザーの判断を待ちます。
 
-## Non-goals
+## 対象外
 
-- Unlimited self-healing.
-- A runner-level automatic repair loop.
-- Exceptions that bypass safety or scope controls.
-- Automatic integration of a repair summary into a run manifest.
+- 無制限の自己修復。
+- runnerレベルの自動修復loop。
+- 安全性または対象範囲の制御を迂回する例外。
+- repair summaryのrun manifestへの自動統合。

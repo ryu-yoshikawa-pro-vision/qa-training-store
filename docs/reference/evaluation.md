@@ -1,4 +1,4 @@
-# Evaluation Contract
+# Evaluation契約
 
 ## 目的
 
@@ -14,7 +14,7 @@
 - agent が exit code、changed files、executed commands などの実行事実を後書きしません。
 - `evidence` は人間向け短文、`evidence_refs` は machine-readable な artifact 参照として使います。
 
-## Rating Enum
+## Rating Enum（評価値）
 
 dimension ごとの rating enum は以下に固定します。
 
@@ -22,7 +22,7 @@ dimension ごとの rating enum は以下に固定します。
 pass | warn | fail | not_evaluated
 ```
 
-## Evaluation Result Enum
+## Evaluation Result Enum（評価結果）
 
 run 全体の `evaluation.result` は以下に固定します。
 
@@ -111,7 +111,7 @@ pass | partial | fail | not_evaluated
   - `warn`: 一部環境依存が強いが、未再現要因が明記されている。
   - `fail`: 再現に必要な前提や証跡が欠けている。
 
-## Failure Taxonomy との接続
+## Failure Taxonomyとの接続
 
 - `primary_failure_category` は `spec/failure-taxonomy.json` の category から選びます。
 - `failure_categories` も taxonomy と整合する必要があります。
@@ -120,7 +120,7 @@ pass | partial | fail | not_evaluated
 - evidence のない finding / rating は後続 validator で warning または failure にするべきです。
 - `evidence_refs` は optional ですが、`run.json` / report / log / subagent / validation command への参照があると reviewability が上がります。
 
-## Improvement Candidates
+## 改善候補
 
 `improvement_candidates` は、少なくとも以下を持つべきです。
 
@@ -142,7 +142,7 @@ pass | partial | fail | not_evaluated
 - `scripts/codex-task.*`
 - `spec/`
 
-## Contract Example
+## 契約の例
 
 以下は Initial implementation A の説明用 example です。schema 実装ではありません。
 

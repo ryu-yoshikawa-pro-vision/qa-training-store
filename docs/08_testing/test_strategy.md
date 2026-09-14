@@ -1,4 +1,4 @@
-# Test戦略
+# テスト戦略
 
 ## 1. Phase 1最重要Risk
 
@@ -52,7 +52,7 @@ Test Perspectiveは、同じTest Levelで確認するRiskの見方です。現�
 | Security / Authorization | Password Hash、Authorization、Test API境界 |
 | UX / Visual acceptance | Storefront/Admin分離、CTA、Empty / Error、Screenshot review |
 
-## 4. Execution / Platform / CI Gate
+## 4. 実行 / Platform / CI Gate
 
 Execution / Platform / CI Gateは、どの入口・環境・workflow jobで実行し、何を必須とするかを示します。同時に実行されることだけを理由に、同じcoverage分類とは扱いません。
 

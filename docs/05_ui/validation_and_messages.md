@@ -1,8 +1,8 @@
-# Validation・Message設計
+# 検証・メッセージ設計
 
 UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは入力Ruleと動的Message構造を定義します。
 
-## 1. 基本Rule
+## 1. 基本ルール
 
 - UIで即時Validationし、Use Caseで同じ業務Ruleを再検証する。
 - Error Summaryと項目Errorを関連付ける。
@@ -51,7 +51,7 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 | Tracking Number | 発送時必須、1～100文字 |
 | 商品画像Asset | Manifestに存在するassetId、最大3件、同一商品内assetId重複不可。0件はdraftだけ可、1件以上はPrimaryちょうど1件。Alt Text 1～120文字。新規関連付けはactiveのみ、既存inactive関連は維持のみ可 |
 
-## 3. Error CodeとMessage例
+## 3. Error Codeとメッセージ例
 
 `ApplicationError.messageKey`は原則`error.<Code>`（例: `error.AUTHENTICATION_FAILED`）を使用します。以下の表が標準日本語Messageです。
 
@@ -76,14 +76,14 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 | VARIANT_HAS_REFERENCE | このSKUは利用履歴があるため削除できません。無効化してください。 |
 | QUANTITY_LIMIT_EXCEEDED | 選択した数量は在庫または購入上限を超えています。 |
 
-## 4. Search・Filter Message
+## 4. Search・Filterメッセージ
 
 - 0件: 「条件に一致する商品がありません」。検索語変更、Filter全解除、全商品へのActionを表示する。
 - Suggestion 0件: 「候補がありません。Enterでこのキーワードを検索できます」。
 - Filter 0件候補: 件数`0`を表示し、Checkbox/Optionを選択不可にする。
 - URLの無効Query: 既定値へ正規化し、利用者へ技術Errorを表示しない。
 
-## 5. Form Error Summary
+## 5. フォームエラー概要
 
 ```text
 入力内容を確認してください
@@ -93,7 +93,7 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 
 各項目をLinkとし、選択するとFieldへFocusします。
 
-## 6. Success・Result Message
+## 6. 成功・結果メッセージ
 
 - Cart追加: 「商品をカートに追加しました」＋「カートを見る」。
 - 保存: 「変更を保存しました」。重要な更新内容はPage内Statusにも反映する。
@@ -101,7 +101,7 @@ UI表示文言の正本は`ui_content_dictionary.md`です。本ファイルは�
 - 注文完了: 注文番号、合計、注文詳細へのLinkを画面内へ表示する。
 - Toastは補助通知であり、重要結果の唯一の表示にしない。
 
-## 7. Unsaved・Destructive Message
+## 7. 未保存・破壊的操作のメッセージ
 
 - 未保存離脱: 「保存していない変更があります」＋「保存して移動」「破棄して移動」「編集に戻る」。
 - 商品状態一括変更: 対象件数、変更後状態、実行後の影響を確認する。

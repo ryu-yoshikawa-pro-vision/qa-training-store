@@ -1,10 +1,10 @@
-# Glossary
+# 用語集
 
 この用語集は、Scenario Shopの機能・QA・テスト自動化を読むときに必要な語から確認します。Agentic QAや採点用の語は後段の参考用で、標準カリキュラムの最初の前提にはしません。
 
 ## 機能とテストを読むための用語
 
-| Term | Meaning |
+| 用語 | 意味 |
 |---|---|
 | BR | Business Rule。安定IDを持つ業務ルール |
 | AC | Acceptance Criteria。BRへの参照を持つ受入条件 |
@@ -18,7 +18,7 @@
 
 次の語はAgentic QA、Challenge、または採点担当向けの資料で使います。通常の機能仕様を読む前提にはしません。
 
-| Term | Meaning |
+| 用語 | 意味 |
 |---|---|
 | Atomic Finding | 1つのExpectedと1つのActual Deviationに対応するQA Finding |
 | Learner-safe | ChallengeのLearnerへ公開してよい情報だけを含む入力 |

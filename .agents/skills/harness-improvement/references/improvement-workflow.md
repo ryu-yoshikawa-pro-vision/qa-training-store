@@ -1,28 +1,34 @@
-# Harness Improvement Workflow
+# Harness改善Workflow
 
-## When to use
+## 既存validatorが参照する固定section名
 
-- Convert run results or evaluation findings into a harness-improvement candidate.
-- Convert a repair-loop repeated failure into a follow-up improvement.
-- Convert a review comment or recurring failure into a safe, reviewable proposal.
+次の英語名は既存validatorとの互換性のため保持します。本文では対応する日本語見出しを使用します。
 
-## Do not use
+`When to use`、`Do not use`、`Inputs`、`Candidate model`、`Evidence requirements`、`Classification and prioritization`、`Safety and separation`、`Output format`、`Non-goals`
 
-- The task is to fix product implementation itself.
-- A one-off bug has no harness-level prevention candidate.
-- There is no evidence for the proposed improvement.
+## 使う場面
 
-## Inputs
+- Run結果またはevaluation findingをHarness改善候補へ変換するとき。
+- repair-loopで繰り返した失敗を後続改善へ変換するとき。
+- レビューコメントまたは再発する失敗を、安全でレビュー可能な提案へ変換するとき。
 
-- Evaluation results and findings.
-- Run manifests and validation results.
-- Hook observations and Subagent records.
-- Review comments and repeated failures across runs.
-- Repository-supplied target catalog, strictness mapping, failure taxonomy, and artifact contract.
+## 使わない場面
 
-## Candidate model
+- タスクがProduct実装そのものの修正である場合。
+- 単発のbugで、Harnessレベルの再発防止候補がない場合。
+- 提案する改善を裏付けるEvidenceがない場合。
 
-A candidate has these fields:
+## 入力
+
+- evaluation resultとFinding。
+- Run manifestと検証結果。
+- Hookの観測とSubagent record。
+- レビューコメントと、複数Runにわたる繰り返しの失敗。
+- リポジトリから提供されるtarget catalog、strictness mapping、失敗taxonomy、artifact契約。
+
+## 候補モデル
+
+候補は次のfieldを持ちます。
 
 ```text
 candidate_id
@@ -40,7 +46,7 @@ owner_decision
 
 ### target
 
-`target` identifies the harness component or layer that should be improved. Use the concrete Repository target catalog for the actual path or layer; do not invent a new catalog or registry in the Skill.
+`target`は改善対象のHarness componentまたはlayerを識別します。実際のpathまたはlayerには、具体的なRepository target catalogを使い、このSkillに新しいcatalogやregistryを作りません。
 
 ### strictness
 
@@ -50,11 +56,11 @@ strict
 blocked
 ```
 
-- `normal`: documentation, examples, or non-safety behavior.
-- `strict`: a change that requires review of safety, execution, schema, policy, or contract behavior.
-- `blocked`: destructive operation, credential handling, external permission, or policy bypass would be needed.
+- `normal`: 文書、例、安全性に関わらない動作。
+- `strict`: 安全性、実行、schema、policy、契約の動作をレビューする必要がある変更。
+- `blocked`: 破壊的操作、credentialの取り扱い、外部権限、policy bypassが必要になる変更。
 
-The Repository mapping decides which concrete target paths or layers receive each classification.
+どの具体的なtarget pathまたはlayerに各分類を適用するかは、Repository mappingで決めます。
 
 ### status
 
@@ -75,41 +81,41 @@ rejected
 needs_more_evidence
 ```
 
-## Evidence requirements
+## Evidenceの要件
 
-Each candidate must include concrete evidence. At least one of the following is required:
+各候補には具体的なEvidenceを含めます。次のいずれかを少なくとも1つ必須とします。
 
-- an evaluation finding;
-- an existing improvement candidate;
-- a validation command recorded by the active Run;
-- a hook observation;
-- a Subagent record;
-- a review comment; or
-- a repeated failure across runs.
+- evaluation finding
+- 既存の改善候補
+- active Runに記録された検証command
+- Hookの観測
+- Subagent record
+- レビューコメント
+- 複数Runにわたる繰り返しの失敗
 
-Evidence-free candidates are prohibited.
+Evidenceのない候補は禁止します。
 
-## Classification and prioritization
+## 分類と優先順位
 
-- Use the supplied Repository failure taxonomy and do not add categories.
-- Separate failure type, improvement target, and strictness.
-- Prioritize correctness, safety, contract ambiguity, and repeated failure.
-- Explain review cost and risk for `strict` and `blocked` candidates.
+- 提供されたRepository failure taxonomyを使い、分類を追加しない。
+- 失敗の種類、改善対象、strictnessを分ける。
+- 正しさ、安全性、契約の曖昧さ、繰り返しの失敗を優先する。
+- `strict`と`blocked`の候補について、レビューコストとリスクを説明する。
 
-## Safety and separation
+## 安全性と分離
 
-- A `strict` candidate requires the Repository strict workflow review.
-- A `blocked` candidate is not handled in the current task without explicit permission and a separate scope.
-- Implementation fixes and harness improvements remain separate unless the user explicitly scopes both.
-- A candidate is never auto-applied; send it to a plan, document, issue, or follow-up change for review.
+- `strict`候補にはRepository strict workflowのレビューが必要です。
+- `blocked`候補は、明示的な許可と別の対象範囲なしに現在のtaskで扱いません。
+- ユーザーが両方を明示的に対象にしない限り、実装修正とHarness改善を分けます。
+- 候補を自動適用せず、レビューのため計画、文書、Issue、後続変更へ送ります。
 
-## Output format
+## 出力形式
 
-Include candidate summary, evidence, expected impact, risk, recommended change, strictness, owner decision, and follow-up scope. Rejected and deferred candidates retain their evidence and reason.
+候補の概要、Evidence、期待する影響、リスク、推奨する変更、strictness、担当者の判断、後続作業の対象範囲を含めます。却下または保留した候補も、Evidenceと理由を保持します。
 
-## Non-goals
+## 対象外
 
-- Automatic application.
-- Immediate safety-layer changes.
-- Product implementation mixed into a harness proposal.
-- Failure-category inference or new taxonomy creation.
+- 自動適用。
+- 安全性レイヤーの即時変更。
+- Harness改善の提案へのProduct実装の混在。
+- 失敗分類の推測や新しいtaxonomyの作成。

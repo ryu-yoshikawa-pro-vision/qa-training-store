@@ -1,42 +1,42 @@
 # Black-box Scored Mode
 
-## Selection
+## 選択
 
-Select Black-box Scored mode only to evaluate an Agent's unknown defect-finding ability. Its Required Coverage comes only from the supplied challenge input. Do not select it automatically for an ordinary QA request, and do not use a Repository-level read-only boundary as a substitute for isolation.
+Black-box Scored modeは、Agentの未知の不具合を見つける能力を評価するときだけ選択します。Required Coverageは提供されたchallenge inputだけから取得します。通常のQA依頼で自動選択せず、リポジトリレベルのread-only境界を隔離の代わりに使いません。
 
-## Isolation boundary
+## 隔離の境界
 
-The evaluated Coding Agent receives only the learner-safe normative input, the challenge mission or runbook, the scored Skill input, and the constrained output contract supplied by the preparation workflow. Source, version-control metadata, tests, patches, answer keys, build artifacts, prior runs, generic shell, arbitrary browser evaluation, network response bodies, and native package files remain outside the learner boundary unless the trusted contract explicitly permits them.
+評価対象のCoding Agentには、preparation workflowが提供するlearner-safeの規範入力、challenge missionまたはrunbook、採点用Skill input、制約付きoutput contractだけを渡します。Source、version-control metadata、tests、patches、answer keys、build artifacts、過去Run、一般的なShell、任意のbrowser evaluation、network response body、native package fileは、trusted contractが明示的に許可しない限り受講者境界の外に置きます。
 
-The Runner is the Fresh Coding Agent Session being evaluated. It is not a Repository-specific Node.js runner, LLM API wrapper, CLI wrapper, or orchestration process.
+Runnerは評価対象となるFresh Coding Agent Sessionです。Repository固有のNode.js runner、LLM API wrapper、CLI wrapper、orchestration processではありません。
 
-## Trusted capability
+## 信頼済みCapability
 
-An Official Scored Run requires a Fresh Session, trusted session identity, Tool Isolation, a trusted Actual Tool Scope inventory, a source-free Prepared Target, and trusted host capability evidence. These are Host or preparation receipts, not claims inferred from the Repository.
+Official Scored Runには、Fresh Session、trusted session identity、Tool Isolation、trusted Actual Tool Scope inventory、source-free Prepared Target、trusted host capability evidenceが必要です。これらはHostまたはpreparationのreceiptであり、Repositoryから推測した主張ではありません。
 
-`Sec-Fetch-Dest` or similar browser UX information is defense-in-depth only and is not a security boundary. The trusted isolation and actual resource negative probe are authoritative.
+`Sec-Fetch-Dest`などのbrowser UX情報は多層防御にすぎず、security boundaryではありません。trusted isolationと実際のresource negative probeを正本とします。
 
-## Preparation boundary
+## Preparationの境界
 
-Preparation validates the machine contract and challenge, checks the protected patch and baseline or patched sanity, creates the learner-safe specification input and source-free target, freezes the canonical input and artifact identities, performs forbidden-boundary checks, and hands the prepared runtime capability to the Host. It does not start the Coding Agent Session, route its tools, retry it, or manage its lifecycle.
+Preparationはmachine contractとChallengeを検証し、protected patchとbaselineまたはpatched sanityを確認し、learner-safeな仕様入力とSource-free targetを作成し、canonical inputとartifact identityをfreezeし、Forbidden Boundaryを確認して、準備済みRuntime capabilityをHostへ渡します。Coding Agent Sessionの起動、tool routing、retry、lifecycle管理は行いません。
 
-The protected patch is applied only to a disposable target for the scored preparation. It is not committed to the application branch or copied into the Runner-visible input. The preparation does not start the run when the precondition, patch check, postcondition, or deterministic reset sanity fails.
+protected patchは採点用preparationの使い捨てtargetにだけ適用します。application branchへcommitせず、Runner-visible inputへcopyしません。precondition、patch check、postcondition、deterministic reset sanityのいずれかが失敗した場合、preparationはRunを開始しません。
 
-## Blocked and stop semantics
+## Blockedと停止の意味
 
-Record the Official Scored Run as `BLOCKED`, `DEFERRED`, or `NOT EXECUTED` when required Host capability, trusted proof, source-free target, or isolation is missing. Do not infer missing receipts, promote a deterministic fixture to an Official Run, or repair the blocker with a custom Runner or wrapper.
+必要なHost capability、trusted proof、source-free target、isolationのいずれかが欠ける場合、Official Scored Runを`BLOCKED`、`DEFERRED`、または`NOT EXECUTED`として記録します。欠落したreceiptを推測で補わず、決定的なfixtureをOfficial Runへ昇格させず、custom Runnerやwrapperでblockerを修復しません。
 
-Stop rather than score when the target is not in the required initial state, the protected patch does not apply, the reproduction condition is absent after preparation, the output is not constrained or frozen, the benchmark identity is inconsistent, or the isolation or Tool Scope proof is invalid.
+targetが必要な初期状態でない、protected patchを適用できない、preparation後に再現条件がない、outputが制約またはfreezeされていない、benchmark identityが不整合、またはisolation・Tool Scopeのproofが無効な場合は、採点せず停止します。
 
-## Findings and evaluation boundary
+## Findingsとevaluationの境界
 
-The Runner's findings are frozen before evaluation. The separate Evaluator may read the protected answer material only after the run and records matches, atomicity, duplicates, non-defects, environment blockers, isolation or Tool Scope failures, and unexpected valid findings according to the supplied Repository contract. A ground-truth change requires a new revision and Fresh Run rather than rewriting the original result.
+RunnerのFindingはevaluation前にfreezeします。分離されたEvaluatorはRun後だけprotected answer materialを読み、提供されたRepository contractに従って一致、atomicity、重複、non-defect、environment blocker、isolationまたはTool Scope failure、予期しない有効Findingを記録します。ground-truthの変更には、元の結果を書き換えず、新しいrevisionとFresh Runを使います。
 
-Metrics apply only to a valid Official Scored Run; undefined zero denominators remain null according to the supplied contract.
+Metricは有効なOfficial Scored Runだけに適用し、定義できない0除算の分母は提供された契約に従ってnullのままにします。
 
-## Non-goals
+## 対象外
 
-- Treating Normal or Gray-box QA as Black-box isolation.
-- Running a hidden or repository-specific agent orchestrator.
-- Passing an invalid or untrusted run by filling in missing Host evidence.
-- Rewriting Frozen Findings or changing benchmark identity after execution.
+- NormalまたはGray-box QAをBlack-box isolationとして扱うこと。
+- 非公開またはリポジトリ固有のagent orchestratorを実行すること。
+- 欠落したHost Evidenceを補完して、無効または信頼できないRunを通すこと。
+- 実行後にFrozen Findingsを書き換えること、またはbenchmark identityを変更すること。

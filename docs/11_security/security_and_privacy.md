@@ -1,4 +1,4 @@
-# Security・Privacy設計
+# セキュリティ・プライバシー設計
 
 ## 1. 前提
 
@@ -64,7 +64,7 @@ Phase 1では永続Runtime Ring Bufferと詳細Audit Logを作りません。
 
 RuntimeでAnalytics、Error SaaS、外部CDN、外部Payment、外部業務API、GitHub APIを使用しません。Cloudflare PagesからAppと商品画像Assetを取得する通信だけが発生します。
 
-## 9. Phase 1 Threat Scenario
+## 9. Phase 1の脅威シナリオ
 
 - Route直接AccessによるRole/Ownership違反
 - Rank不足商品への直接Access

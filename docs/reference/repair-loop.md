@@ -1,49 +1,51 @@
-# Repair Loop Repository Reference
+# 修復ループのリポジトリReference
 
-## Purpose
+## 目的
 
-This document defines the Scenario Shop Repository-side contracts that are supplied to the portable `repair-loop` Skill. The package-local Skill and workflow define the generic bounded loop, finding triage, iteration record, validation, and stop semantics.
+この文書は、portableな`repair-loop` Skillへ提供するScenario Shopのリポジトリ側契約を定義します。package-localのSkillとworkflowは、一般的な対象範囲を限定したloop、Findingの仕分け、反復記録、検証、停止の意味を定義します。
 
-## Repository inputs
+この文書のRepository-side contractsには、`failure taxonomy`、artifact、対象範囲、evaluation、sanitizationの各契約を含めます。
 
-- Repository coding and review policy from `CODE_REVIEW.md`.
-- Scope policy from `docs/reference/change-scope-policy.md`.
-- Evaluation artifact and finding schema from the Repository evaluation contract.
-- Failure categories from `spec/failure-taxonomy.json`.
-- Run manifest, run report, hook-observation, and Subagent record locations from the active Run contract.
-- Sanitization command and check contract from `scripts/sanitize-codex-artifacts.ps1`.
+## リポジトリの入力
 
-`AGENTS.md` maps these Repository inputs to the package. The package must not assume these paths, schemas, or commands when used in another Repository.
+- `CODE_REVIEW.md`のRepository coding and review policy。
+- `docs/reference/change-scope-policy.md`の対象範囲ポリシー。
+- Repositoryのevaluation契約にあるevaluation artifactとFinding schema。
+- `spec/failure-taxonomy.json`にあるfailure category。
+- active Run契約で定義されたRun manifest、run report、hook observation、Subagent recordの保存先。
+- `scripts/sanitize-codex-artifacts.ps1`のsanitization commandとcheck契約。
 
-## Shared quality-gate policy
+`AGENTS.md`はこれらのRepository inputをpackageへ対応付けます。別のRepositoryで使うとき、このpackageはこれらのpath、schema、commandを前提にしてはいけません。
 
-A quality-gate failure is investigated against the baseline, current diff, shared dependency, test or CI contract, and execution environment before it is deferred. A safe, minimal repair that is required by the current change or by its verification is handled in the current loop. An unrelated, unsafe, destructive, environment-only, or requirement-dependent issue is recorded for later handling with its causal assessment, unexecuted checks, and next action.
+## 共通の品質gate方針
 
-## Evaluation and failure taxonomy integration
+品質gateの失敗は、保留する前にbaseline、現在のdiff、共有依存関係、testまたはCI契約、実行環境に照らして調査します。現在の変更またはその検証に必要な安全で最小の修復は、現在のloopで扱います。無関係、unsafe（安全でない）、破壊的、環境だけに起因する、または要件判断を要する問題は、因果関係の評価、未実行チェック、次の対応とともに後続対応として記録します。
 
-- The Repository evaluation artifact is the source of truth for loop outcome, findings, residuals, and improvement candidates.
-- The Repository failure taxonomy is the source of truth for `failure_category`; Native execution labels are auxiliary evidence and must be mapped rather than added as new evaluation categories.
-- `partial` or `fail` results remain visible when the loop stops without satisfying its completion condition.
+## EvaluationとFailure Taxonomyの統合
 
-## Scope and artifact integration
+- Repositoryのevaluation artifactを、loopの結果、Finding、残差、改善候補の正本とします。
+- RepositoryのFailure Taxonomyを`failure_category`の正本とします。Native実行ラベルは補助Evidenceとして対応付け、新しいevaluation categoryとして追加しません。
+- loopが完了条件を満たさず停止した場合も、`partial`または`fail`の結果を見える状態で残します。
 
-- `allowed_files` and `expected_changed_files` are checked against the Repository change-scope policy.
-- Run reports preserve checkpoint meaning under their append-only contract.
-- Hook JSONL, run manifests, evaluation files, and Subagent records are evidence sources; the evaluation artifact and recorded decision remain the final judgment.
-- Repository artifact sanitization is a completion gate. Unsanitized local absolute paths prevent Run completion.
+## 対象範囲とartifactの統合
 
-### REPORT.md append-only contract
+- `allowed_files`と`expected_changed_files`はRepositoryの変更範囲ポリシーに照らして確認します。
+- Run reportはappend-only契約のもとでcheckpointの意味を保持します。
+- Hook JSONL、Run manifest、evaluation file、Subagent recordはEvidenceの源です。最終判断はevaluation artifactと記録したdecisionに残します。
+- Repository artifactのsanitizationは完了gateです。sanitizationされていないlocal absolute pathがある場合、Runは完了できません。
+
+### REPORT.mdのappend-only契約
 
 `REPORT.md`のAppend-only契約は、checkpointの意味を削除、並べ替え、意味変更せずに保持することを指します。既存記録のローカル絶対Pathを既定Tokenへ置換する安全性例外は、記録の意味を変えない場合に限ります。
 
-## Subagent evidence boundary
+## Subagent Evidenceの境界
 
-Existing Subagent-generated records and observations may be consumed as evidence for scope compliance and parent decisions. This Repository reference does not define or duplicate Subagent roles, tools, permissions, sandbox settings, or delegation rules.
+既存のSubagent生成recordと観測は、対象範囲への適合や親の判断のEvidenceとして利用できます。このRepository referenceは、Subagentのrole、tool、permission、sandbox設定、delegationルールを定義・複製しません。
 
-## External review policy
+## 外部レビューの方針
 
-External full review or re-review is started only after explicit user instruction or approval. After the result is reported, repair, thread operations, and another review require the user's decision.
+外部サービスのfull reviewや再レビューは、ユーザーの明示的な指示または承認後だけ開始します。結果を報告した後の修復、thread操作、別レビューにはユーザーの判断が必要です。
 
-## Durable reporting
+## 永続的な報告
 
-Run progress belongs in the active Run report. A durable report file is created only when the user or completion criteria explicitly require a later audit reference. Review-only and light confirmation do not by themselves create a durable report.
+Runの進捗はactive Run reportに記録します。永続的なレポートファイルは、ユーザーまたは完了条件が後日の監査参照を明示的に求める場合だけ作成します。レビューのみや軽い確認だけを理由に永続的なレポートを作成しません。

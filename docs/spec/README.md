@@ -4,38 +4,38 @@
 
 ## 学習者向けの読み始め
 
-1. [Product Scope](./product-scope.md)で対象範囲を確認する。
-2. [Roles and Permissions](./roles-and-permissions.md)でRoleと権限を確認する。
+1. [製品の対象範囲](./product-scope.md)で対象範囲を確認する。
+2. [役割と権限](./roles-and-permissions.md)でRoleと権限を確認する。
 3. 対象FeatureのPurpose / Scopeを読む。
 4. 同じFeatureのBusiness RulesとAcceptance Criteria（BR / AC）を読む。
-5. 必要な状態とScenarioを[State and Scenarios](./state-and-scenarios.md)で確認する。
-6. 必要な画面状態を[UI and UX Contract](./ui-ux-contract.md)で確認する。
+5. 必要な状態とScenarioを[状態とシナリオ](./state-and-scenarios.md)で確認する。
+6. 必要な画面状態を[UI/UX契約](./ui-ux-contract.md)で確認する。
 7. 実装するときだけ、Feature文書のExecutable Canonical Sources（実行可能な正本ソース）にあるCode / Configを参照する。
 
 現在のUIや`/guide`は対象を観察する入口として使えますが、期待動作を決める正本ではありません。初期データやSeed IDなどの具体値は、必要になった段階で文書が示す実装上の参照先へ進みます。
 
 ## Navigation
 
-- [Product Scope](./product-scope.md)
-- [Roles and Permissions](./roles-and-permissions.md)
+- [製品の対象範囲](./product-scope.md)
+- [役割と権限](./roles-and-permissions.md)
 - [Storefront](./features/storefront.md)
 - [Authentication](./features/authentication.md)
 - [Cart](./features/cart.md)
-- [Checkout and Payment](./features/checkout-and-payment.md)
-- [Orders](./features/orders.md)
+- [CheckoutとPayment](./features/checkout-and-payment.md)
+- [注文](./features/orders.md)
 - [Reviews](./features/reviews.md)
 - [Admin Catalog](./features/admin-catalog.md)
 - [Admin Inventory](./features/admin-inventory.md)
 - [Admin Orders](./features/admin-orders.md)
 - [Admin Users](./features/admin-users.md)
 - [Native Customer](./features/native-customer.md)
-- [State and Scenarios](./state-and-scenarios.md)
-- [UI and UX Contract](./ui-ux-contract.md)
-- [Screen Catalog](./screen-catalog.md)
+- [状態とシナリオ](./state-and-scenarios.md)
+- [UI/UX契約](./ui-ux-contract.md)
+- [画面カタログ](./screen-catalog.md)
 
 ## 仕様を管理・変更するときのルール
 
-### Responsibility
+### 責任分担
 
 #### 正式な製品動作
 
@@ -55,7 +55,7 @@ README、[`glossary.md`](./glossary.md)、[`change-process.md`](./change-process
 
 Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App ID、Test ID、Accessibility Labelなどの低レベル値は、各文書の「実行可能な正本ソース」に記載したCode/Configを正本とします。
 
-### Oracle Priority（正本の優先順位）
+### Oracleの優先順位
 
 1. 正式な製品動作
 2. 同じFeatureのBR / AC

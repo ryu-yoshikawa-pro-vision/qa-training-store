@@ -1,4 +1,4 @@
-# Codex Working Agreement
+# Codex作業規約
 
 Codex は、このリポジトリで作業を始める前にこの文書へ従うこと。
 
@@ -8,6 +8,7 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 2) `docs/adr/`（最近の ADR を確認する）
 3) `.codex/runs/`（最近の run があれば確認する）
 4) この `AGENTS.md`
+5) [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)
 
 > `docs/PROJECT_CONTEXT.md` は living document として保つこと。  
 > 重要な設計判断は ADR として記録すること。
@@ -23,6 +24,8 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 - `scripts/agentic-qa/**` はCoding Agentを起動・制御するものではなく、Deterministic Preparation / Validation / Isolation Verification / Evaluationの補助として使用する。QA探索中はProduct Codeを修正しない。修正依頼へ進む場合はQA Findingを確定した後、Repair Workflowへ明示的に切り替える。
 - Windows AndroidのTooling、Release APK、physical device、Maestro、Native failureを確認する依頼では [`android-native-local-validation Skill`](.agents/skills/android-native-local-validation/SKILL.md) を使う。Repositoryの具体的command、version、path、setup、troubleshootingは [`docs/native/windows-android-local-validation.md`](docs/native/windows-android-local-validation.md) と [`docs/native/windows-android-troubleshooting.md`](docs/native/windows-android-troubleshooting.md) からlogical external inputとしてmappingする。
 - チャットで合意した計画を実装に移す前に、`docs/plans/` 配下へ保存する。
+
+README、仕様書、設計文書、カリキュラム、Plan、Run Artifact、Issue / Pull Request本文、Skill、referenceなど、人間が読む文章を作成・修正するときは [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md) に従う。文章表現の詳細ルールは同文書を正本とし、ここでは作業手順やRun運用など既存の責務だけを定める。
 
 ## 1. Run 初期化
 
@@ -87,7 +90,7 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 - 過去Runの不足を補う必要がある場合は、履歴を失わない追記とし、今回の作業内容は新規Runへ記録する。
 - 標準Run Artifactの削除、移動、置換は、ユーザーが対象Pathを明示した場合に限る。
 
-### Run Artifact Path Sanitization
+### Run Artifactのパスサニタイズ
 
 Repositoryへ追加するCodex Run Artifactは、作業完了前に
 scripts/sanitize-codex-artifacts.ps1のWriteとCheckを実行する。
@@ -143,13 +146,13 @@ repository working tree上のファイルを変更する実装・変更タスク
 3) 完了していない場合は `Next`
 4) 実行コマンド/結果と主要ファイルを含む `Evidence`
 
-## 5. Living Documentation
+## 5. Living Documentation（継続的な文書更新）
 
 - プロジェクト理解が変わったら `docs/PROJECT_CONTEXT.md` を更新する。
 - PROJECT_CONTEXT の履歴は `docs/history/YYYY-MM-DD_HHMMSS_<summary>.md` に残す。
 - 重要な設計判断は `docs/adr/` に記録する。
 
-## 6. Plan と Report の保存先
+## 6. PlanとReportの保存先
 
 - Plans: `docs/plans/{yyyy-mm-dd}_{HHMMSS}_{plan_name}.md`
 - Reports: `docs/reports/{yyyy-mm-dd}_{HHMMSS}_{report_name}.md`
@@ -159,7 +162,7 @@ repository working tree上のファイルを変更する実装・変更タスク
 - review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価では `docs/reports/` にファイルを作らない。
 - 判断に迷う場合は report file を作らず、チャット返答と `.codex/runs/<run_id>/REPORT.md` に留める。
 
-## 7. 安全性 / スコープ
+## 7. 安全性 / 対象範囲
 
 - 関連のないファイルは変更しない。ただし、品質ゲートFAILへの対応として§8に従い修正が必要と判断されたファイルは、ゲート回復に必要な最小範囲で変更対象とする。
 - `.codex/runs/`配下の標準Run Artifactは削除候補として扱わない。一時ファイルと標準Run Artifactを区別し、標準Run Artifactをcleanup対象に含めない。
@@ -171,7 +174,7 @@ repository working tree上のファイルを変更する実装・変更タスク
 - 明示的な依頼と外部 sandbox がない限り、`--dangerously-bypass-approvals-and-sandbox` は使わない。
 - repository の execpolicy ルールは `.codex/rules/*.rules` 配下で管理する。
 
-## 7.1 Git Branch Safety / Protected Branch Safety
+## 7.1 Git branchの安全性 / 保護branchの安全性
 
 Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む）が許可されたタスクでも、現在いるbranchへ無条件にmutationしてよいとは解釈しない。詳細な復旧手順は [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md) を正本とする。
 
@@ -232,6 +235,7 @@ repository working tree上のコード、テスト、設定、文書、Run Artif
 - 内部思考: English
 - ユーザー向け出力と run artifact: 日本語
 - `AGENTS.md`: 日本語
+- 人間向け文章の言語・表現判断: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)
 
 ## 10. 自律的な調査ループ
 
@@ -241,7 +245,7 @@ repository working tree上のコード、テスト、設定、文書、Run Artif
 - 長い task-specific workflow は `AGENTS.md` に直接書き込まず、repo-local skill を使う。
 - plan の詳細形式は `PLANS.md` と planning reference、review の詳細形式は `CODE_REVIEW.md` と review reference に委譲する。
 
-## 10.1 Subagent 運用
+## 10.1 Subagentの運用
 
 - Native delegation marker: No child subagent delegation.
 
@@ -268,7 +272,7 @@ repository working tree上のコード、テスト、設定、文書、Run Artif
 - L2: workflow や template 構造の変更は、実装前にユーザー承認が必要。
 - L3: permission / sandbox / approval / wrapper behavior の変更は、実装前に明示承認と rollback plan が必要。
 
-## 12. Safety Harness
+## 12. Safety Harness（安全性の実行基盤）
 
 - 手動実行は `scripts/codex-safe.ps1` または `scripts/codex-safe.sh` を優先する。
 - output/report を残す非対話実行は `scripts/codex-task.ps1` または `scripts/codex-task.sh` を優先する。
@@ -277,7 +281,7 @@ repository working tree上のコード、テスト、設定、文書、Run Artif
 - manual / task / Docker runtime の使い分けは `docs/reference/codex-implementation-harness.md` を参照する。
 - 既定の project config は `repo_safe` 相当の workspace-write + untrusted approval とし、live web search と追加 writable root は明示 opt-in にする。
 
-## 12.1 Auto-net execution policy
+## 12.1 Auto-net実行ポリシー
 
 - このリポジトリは、明示指定時のみ `auto-net` execution mode をサポートする。
 - `auto-net` では、Codex は承認なしで workspace 内のファイル作成・編集、tests / linters / formatters / build、必要な依存解決、ドキュメント確認や API check のための network access を実行してよい。
@@ -286,14 +290,14 @@ repository working tree上のコード、テスト、設定、文書、Run Artif
 - 依存 install は可能な限り lifecycle scripts を抑制し、`npm ci` / `npm install` ではまず `--ignore-scripts` を検討する。lifecycle scripts が必要な場合は理由、対象 package、実行コマンド、結果を `REPORT.md` に記録する。
 - `npm publish`、`npm unpublish`、`pip uninstall`、`python -c` など、test/build/dependency resolution を超える外部副作用や任意コード実行は auto-net でも行わない。
 
-## 13. Lightweight Mode
+## 13. Lightweight Mode（軽量モード）
 
 - 狭く低リスクなタスクでのみ許可する。
 - その場合でも run artifact と 1 件以上の evidence command は残す。
 - `lightweight` は削除、rename、移行、外部通信、セキュリティ影響、権限変更、公開契約変更には使わない。
 - それらを含む場合は `standard` 以上へ引き上げる。
 
-## 14. Workflow Level
+## 14. Workflow Level（作業レベル）
 
 - Lightweight:
   - PLAN は任意。

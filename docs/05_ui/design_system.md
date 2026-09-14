@@ -9,7 +9,7 @@
 - WebとNativeでTokenと意味を共通化し、操作ComponentはPlatform固有実装を許可する。
 - 外部Web Font・大規模UI Framework・外部画像CDNを使用しない。
 
-## 2. Visual Language
+## 2. 視覚表現
 
 ### Storefront
 
@@ -36,7 +36,7 @@
 | Placeholder | Image Icon＋「画像を表示できません」 |
 | Test Mode | Header内の小さな環境Badge。重要NoticeはLogin/Signup/Checkoutで再掲 |
 
-## 4. Layout Token
+## 4. レイアウトToken
 
 | Token | 値 |
 |---|---:|
@@ -135,7 +135,7 @@ StorefrontHeader、StorefrontFooter、MobileBottomNavigation、AdminShell、Admi
 - Numberは単位を視覚・Accessible Nameで明示。
 - 任意Fieldは「任意」とText表示し、必須だけをAsteriskにしない。
 
-## 11. Responsive Breakpoint
+## 11. レスポンシブブレークポイント
 
 | 区分 | 幅 | Layout |
 |---|---:|---|

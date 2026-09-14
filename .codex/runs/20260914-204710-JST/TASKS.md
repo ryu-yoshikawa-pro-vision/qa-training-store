@@ -1,16 +1,16 @@
-# Tasks（タスク）
+# Tasks
 
-## Now（現在）
+## Now
 
 - 実行順に並べる（上から順に処理）
-- [ ] 1. PLANを確定する
-- [ ] 2. 必要な調査を行い、証跡を run-local REPORT に残す
-- [ ] 3. 実行タスクへ落とし込む
-- [ ] 4. 実装・変更する
-- [ ] 5. ローカル検証する
-- [ ] 6. 変更範囲を確認する
-- [ ] 7. Run Artifactをfinal commit前状態まで更新・検証する
-- [ ] 8. commit対象を確定する
+- [x] 1. PLANを確定する
+- [x] 2. 必要な調査を行い、証跡を run-local REPORT に残す
+- [x] 3. 実行タスクへ落とし込む
+- [x] 4. 実装・変更する
+- [x] 5. ローカル検証する
+- [x] 6. 変更範囲を確認する
+- [x] 7. Run Artifactをfinal commit前状態まで更新・検証する
+- [x] 8. commit対象を確定する
 
 ## 実装・変更タスクの完了処理
 
@@ -26,11 +26,11 @@
 - PR／Issue本文、label、review comment等のGitHub metadataのみを変更するタスクではcommit・push・PR・CI完了条件とProgressのCI加算を適用しない。repository file変更を同時に行う場合は通常の完了条件を適用する。
 - ユーザーがcommit、push、PR作成、Git操作を明示的に禁止した場合は、その指示を優先し、禁止された工程を実行しない。
 
-## Discovered（発見事項）
+## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - D1. （必要になったら追記）
 
-## Blocked（ブロック中）
+## Blocked
 
 - B1. （ブロック時のみ記載）

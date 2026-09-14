@@ -12,7 +12,7 @@
 
 `pnpm run test:e2e:chromium`は`e2e-chromium` matrixの`required` leg commandで、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのWeb E2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixであり、このcommandだけを唯一の必須Gateとは扱いません。`ui-review-*` projectはUI Review用の別責務です。
 
-## 2. Phase 1 Web業務Flow mapping（WE-CORE 12件）
+## 2. Phase 1 Web業務フローの対応（WE-CORE 12件）
 
 以下の12件は要件と業務フローの対応付けであり、現在、実行可能なTest定義が12個あることを示すものではありません。
 
@@ -31,7 +31,7 @@
 
 各Flowは複数の見た目確認を詰め込まず、業務結果と主要Page Patternだけを確認します。Filter全組合せ、文字数境界、状態遷移の細部、Facet計算、Bulk各失敗理由はUnit/Application/Component/Repository Contractへ下げます。
 
-## 3. Cross-role Lifecycle
+## 3. Cross-roleライフサイクル
 
 admin商品登録・公開 → customer購入 → admin発送・配送完了 → customer Review投稿の長大Lifecycleは、WE-CORE 12件のmappingとは分離します。
 
@@ -57,7 +57,7 @@ Home新着への在庫切れ商品包含、管理商品一覧のactive SKU合計
 
 失敗時にTrace、Screenshot、必要なVideo、Console、Scenario、Clock、Payment Delay、App/Schema/Seed/Build Versionを保存します。
 
-## 8. Deployed Smoke
+## 8. デプロイ後のSmoke
 
 Cloudflare Automation URLでBuild Metadata、代表画像の正常表示と個別画像読込失敗時のPlaceholder、Reset/default Seed、Home、検索、Login、TEST-SUCCESS購入、注文詳細、Admin Overviewを確認します。Manifest全体の不整合はBuild Gateで検出するため、Runtime Recovery E2Eは作成しません。
 

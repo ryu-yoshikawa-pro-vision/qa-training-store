@@ -1,4 +1,10 @@
-# Review Workflow
+# レビューWorkflow
+
+## 既存validatorが参照する固定section名
+
+次の英語名は既存validatorとの互換性のため保持します。本文では対応する日本語見出しを使用します。
+
+`diff triage`、`Diff classification`、`High-risk areas`、`Potential missing tests`、`Open questions`、`Failure modes`、`Report file generation policy`
 
 ## 使う場面
 
@@ -6,19 +12,19 @@
 - ユーザーからのレビュー依頼
 - 実装完了前の自己レビュー
 
-## Do not use
+## 使わない場面
 
 - 実装前の設計相談
 - 要件整理やタスク分解が主目的のとき
 - 差分がなく、単にコード説明だけが必要なとき
 
-## Phase 1: diff triage
+## Phase 1: diffの仕分け
 
-### Goal
+### Goal（目的）
 
 - 差分のどこに本当の危険があるかを仕分けし、深掘り対象を絞る。
 
-### Diff classification
+### Diffの分類
 
 - 仕様変更
 - バグ修正
@@ -28,7 +34,7 @@
 - 依存更新
 - ドキュメント変更
 
-### High-risk areas
+### 高リスク領域
 
 - auth / permission
 - persistence / migration
@@ -38,16 +44,16 @@
 - cache / state
 - feature flag branches
 
-Review dimensions also include performance and developer experience when they are relevant to the requested change.
+依頼された変更に関係する場合は、performanceとdeveloper experienceもレビュー観点に含めます。
 
-### What needs deep review
+### 深いレビューが必要なもの
 
 - correctness high risk
 - security high risk
 - regression high risk
 - test gap risk
 
-### Potential missing tests
+### 不足する可能性があるテスト
 
 - failure paths
 - boundary values
@@ -55,9 +61,9 @@ Review dimensions also include performance and developer experience when they ar
 - flag on/off
 - call-site contract changes
 
-## Phase 2: deep review
+## Phase 2: 深いレビュー
 
-### correctness
+### 正しさ
 
 - 条件分岐の抜け
 - null / undefined / empty の扱い漏れ
@@ -66,7 +72,7 @@ Review dimensions also include performance and developer experience when they ar
 - 例外時の契約不一致
 - 変更前後で戻り値や副作用が変わっていないか
 
-### security
+### セキュリティ
 
 - 権限チェックの抜け
 - 機密情報の露出
@@ -74,20 +80,20 @@ Review dimensions also include performance and developer experience when they ar
 - インジェクションや XSS / CSRF 相当経路
 - 安全でないログ出力
 
-### behavioral regression
+### 動作回帰
 
 - 既存フローの前提を壊していないか
 - 呼び出し元の期待契約が変わっていないか
 - feature flag の ON/OFF 両方で成立するか
 - cache や state の整合性が保たれるか
 
-### missing tests
+### テスト不足
 
 - 変更内容に対して必要なテストが足りているか
 - 失敗系、境界値、権限差分が未検証ではないか
 - 既存テストの意図が変更で崩れていないか
 
-### maintainability
+### 保守性
 
 - 責務混在
 - 副作用の散乱
@@ -105,9 +111,9 @@ Review dimensions also include performance and developer experience when they ar
 - 問題がない場合も残余リスクと未実施検証を明記する。
 - review-onlyでは、supplied Repository review persistence policyが要求しない限りdurable report fileを作らない。
 
-## Required review output
+## 必須のレビュー出力（Required review output）
 
-Each finding uses the following fields so that the normal output remains reviewable:
+各findingには次の項目を使い、通常の出力をレビュー可能な状態に保ちます。
 
 - Severity
 - Title
@@ -119,17 +125,17 @@ Each finding uses the following fields so that the normal output remains reviewa
 - Verdict
 - confidence
 
-The normal review output is findings. A no-findings review still states residual risk and unvalidated areas. A durable report is conditional on an explicit request or the Repository review persistence policy; its concrete destination is an external Repository input, not part of this package workflow.
+通常のレビュー出力はfindingsです。findingsがないレビューでも、残るリスクと未検証領域を記載します。永続的なレポートは明示的な依頼またはRepository review persistence policyが求める場合だけ作成し、具体的な保存先は外部のRepository inputから取得します。このpackage workflowには含めません。
 
-## Report file generation policy
+## レポートファイルの作成方針
 
 - Allowed: ユーザーが「レポートとして保存」「調査レポートを作成」など保存を明示した場合、計画 DoD に report file が明記されている場合、複数ソース調査・監査・検証結果を後で参照する durable artifact として残す必要がある場合。
 - Not allowed: review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価。
-- review-only and plan-only do not create a durable report file unless the supplied Repository policy requires it.
+- レビューのみと計画のみでは、提供されたRepository policyが求めない限り永続的なレポートファイルを作成しません。
 - 具体的な保存先、命名、retention、active Run reportの扱いはRepository review persistence policyから供給する。
 - 判断に迷う場合は report file を作らず、チャット返答とactive Run reportに留める。
 
-## Failure modes
+## 失敗モード
 
 - triage を飛ばして変更量だけで優先順位を決める
 - 差分起因でない既存問題を findings に混ぜる

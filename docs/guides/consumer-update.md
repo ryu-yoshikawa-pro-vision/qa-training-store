@@ -44,9 +44,9 @@ powershell -ExecutionPolicy Bypass -File path\to\codex-templates\tools\plan-cons
 
 - source / consumer の `template_version`
 - protected path
-- candidate updates
-- manual review required
-- 推奨 sync / verify command
+- 更新候補
+- 手動レビューが必要
+- 推奨するsync / verify command
 
 ## 一時ディレクトリ同期の例
 
@@ -136,6 +136,6 @@ powershell -ExecutionPolicy Bypass -File path\to\codex-templates\tools\sync-temp
 - consumer 固有ファイルが削除・上書きされていないか。
 - `template_version` と `CHANGELOG.md` の内容が一致しているか。
 
-## Rollback
+## ロールバック
 
 更新後に問題があれば、consumer repo 側の更新PRを閉じるか、更新ブランチを破棄する。既存mainへ直接同期しない運用にしておけば、rollback はブランチ削除で済む。

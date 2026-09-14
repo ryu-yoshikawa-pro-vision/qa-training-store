@@ -2,20 +2,20 @@
 
 ## 目的
 
-この文書は、source repo の static catalog `spec/failure-taxonomy.json` を人間向けに説明するための reference です。failure taxonomy の目的は、run の失敗原因を再発防止につながる形で揃えて記録し、`evaluation.json` の category 名が毎回ぶれないようにすることです。
+この文書は、source repoのstatic catalog `spec/failure-taxonomy.json`を人間向けに説明するReferenceです。Failure Taxonomyの目的は、Runの失敗原因を再発防止につながる形で揃えて記録し、`evaluation.json`のcategory名が毎回ぶれないようにすることです。
 
 ## 基本ルール
 
-- `primary_failure_category` は run の主たる失敗原因を 1 つ選びます。
+- `primary_failure_category`はRunの主たる失敗原因を1つ選びます。
 - `failure_categories` は複合要因を表す配列です。
 - `failure_categories` は `primary_failure_category` を必ず含みます。
 - `findings[].category` は taxonomy と整合する必要があります。
 - taxonomy 外の category を agent が作ってはいけません。
-- evidence のない分類は、後続 validator で warning または failure にするべきです。
+- Evidenceのない分類は、後続validatorでwarningまたはfailureにするべきです。
 
-## Category 一覧
+## Category一覧
 
-| Category | 意味 | Improvement target |
+| Category | 意味 | 改善対象 |
 | --- | --- | --- |
 | `instruction_gap` | 指示が曖昧で Codex が迷った | `AGENTS.md`, skills |
 | `scope_creep` | 余計な変更をした | worker policy, allowed files |
@@ -28,16 +28,16 @@
 | `repair_loop_stalled` | 修正ループが収束しない | stop condition, repair skill |
 | `artifact_contract_gap` | artifact の責務・構造・正本関係が不明確で run を評価できない | run artifact docs, schema |
 
-## Runner Candidate と Agent Judgement
+## Runner CandidateとAgentの判断
 
 - runner candidate:
-  - exit code、verify status、hook block、changed file などの観測事実から候補を提案してよい分類です。
+  - exit code、verify status、hook block、changed fileなどの観測事実から候補を提案してよい分類です。
   - 例: `missing_validation`, `unsafe_action_blocked`, `scope_creep`, `flaky_or_env_issue`
 - agent judgement:
-  - instruction quality、読み漏れ、review 観点、subagent 委譲の適否のように文脈判断が必要な分類です。
+  - instruction quality、読み漏れ、review観点、subagent委譲の適否のように文脈判断が必要な分類です。
   - 例: `instruction_gap`, `missing_context`, `bad_subagent_delegation`, `review_gap`, `repair_loop_stalled`, `artifact_contract_gap`
 
-最終的な `primary_failure_category` は、runner が決めるのではなく、agent / reviewer が taxonomy から選びます。
+最終的な`primary_failure_category`は、runnerが決めるのではなく、agent / reviewerがtaxonomyから選びます。
 
 ## `primary_failure_category` と `failure_categories`
 
@@ -70,7 +70,7 @@
 - verify 失敗、実装漏れ、単純な bug、テスト失敗を理由に `artifact_contract_gap` を付けてはいけません。
 - その場合は通常、`missing_validation`、`scope_creep`、`instruction_gap` など別 category を選びます。
 
-## Example
+## 例
 
 ```json
 {

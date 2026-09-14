@@ -30,7 +30,7 @@
   - `codex-task --runtime docker-sandbox` の薄い互換 wrapper。
   - Docker image と認証が明示設定されている場合だけ使う experimental path。
 
-## Workflow level の使い分け
+## Workflow levelの使い分け
 
 | workflow level | PLAN | TASKS | REPORT | run.json | evaluation | scope 指定 | 想定用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -41,7 +41,7 @@
 - `lightweight` は無制限 mode ではない。
 - 外部通信、削除、rename、移行、権限変更、セキュリティ影響、公開 contract 変更を含む場合は `standard` 以上へ引き上げる。
 
-## Verification tiers
+## 検証tier
 
 - consumer repo の通常確認:
   - `bash scripts/verify`

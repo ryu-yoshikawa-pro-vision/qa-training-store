@@ -71,7 +71,7 @@ Benchmarkでは端末、OS、Browser、Data件数、Cold/Warm、計測範囲を�
 | NFR-TS-006 | Goal | Firefox/WebKit、Accessibility、NativeをPhaseごとに段階追加する |
 | NFR-TS-007 | Gate | 内部整合性はApplication Integration/Dexie Contractで検証し、E2EのInspectionは固定Read-only DTOへ限定する |
 
-## 6. Accessibility
+## 6. アクセシビリティ
 
 | ID | 区分 | 要件 |
 |---|---|---|
@@ -98,7 +98,7 @@ Benchmarkでは端末、OS、Browser、Data件数、Cold/Warm、計測範囲を�
 | NFR-UX-007 | Gate | Toastだけで重要な結果を伝えず、画面内へ結果と次のActionを残す |
 | NFR-UX-008 | Goal | Home・商品一覧・商品詳細の主要画像でLayout Shiftを抑える |
 
-## 8. セキュリティ・Privacy
+## 8. セキュリティ・プライバシー
 
 | ID | 区分 | 要件 |
 |---|---|---|

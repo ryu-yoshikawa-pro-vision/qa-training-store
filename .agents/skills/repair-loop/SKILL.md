@@ -3,43 +3,43 @@ name: repair-loop
 description: Use when applying review findings, fixing validation failures, or running a bounded Review -> Repair -> Validate loop.
 ---
 
-# Repair Loop Skill
+# 修復ループSkill
 
-## Purpose and boundary
+## 目的と適用範囲
 
-Use this Skill to triage actionable review findings or validation failures and run a bounded Review -> Repair -> Validate loop. It is not an instruction to keep retrying indefinitely, and it does not authorize unsafe, destructive, or scope-violating action. A `needs_human` finding is an immediate escalation and stop condition, not a reason to continue the loop.
+このSkillは、対応可能なレビュー指摘や検証失敗を仕分けし、対象範囲を限定したReview → Repair → Validate loopを実行するときに使います。無期限にretryを続ける指示ではなく、安全でない操作、破壊的操作、対象範囲違反を許可するものでもありません。`needs_human`の指摘は直ちにエスカレーションして停止する条件であり、loopを続ける理由ではありません。
 
-## Inputs
+## 入力
 
-- Review findings, evaluation results, validation failures, scope reports, and observation evidence.
-- The package-local [repair workflow](references/repair-workflow.md), which defines triage, iteration, validation, and stop semantics.
-- Repository-supplied inputs for artifact persistence, evaluation integration, failure taxonomy, scope policy, and sanitization.
-- Subagent-generated records and observations when they are available as evidence; this Skill does not import a Subagent role, tool, permission, sandbox, or delegation contract.
+- レビュー指摘、evaluation result、検証失敗、対象範囲の報告、観測Evidence。
+- 仕分け、反復、検証、停止の意味を定義するpackage-localの[repair workflow](references/repair-workflow.md)。
+- artifact保存、evaluation統合、Failure Taxonomy、対象範囲ポリシー、sanitizationに関するRepository提供の入力。
+- Evidenceとして利用できる場合のSubagent生成recordと観測。このSkillはSubagentのrole、tool、permission、sandbox、delegation契約を取り込みません。
 
-## Execution outline
+## 実行の概要
 
-1. Read the Repository mapping and the package-local repair workflow.
-2. Confirm that both an actionable repair signal and an explicit bounded allowed scope exist; scope clarity alone does not start the loop.
-3. Classify findings as `must_fix`, `should_fix`, `defer`, `reject`, or `needs_human`.
-4. Define one bounded iteration with its allowed files, repair plan, and minimum validation.
-5. Apply the repair, record the changed files and validation result, and compare the remaining delta.
-6. Stop on success or any defined stop condition; do not start an automatic runner-level loop.
-7. Connect the result to the Repository-supplied evaluation and run-artifact contract.
+1. Repository mappingとpackage-localのrepair workflowを読む。
+2. 対応可能な修復シグナルと、明示的に限定されたallowed scopeの両方があることを確認する。対象範囲が明確なだけではloopを開始しない。
+3. Findingを`must_fix`、`should_fix`、`defer`、`reject`、`needs_human`のいずれかに分類する。
+4. 許可ファイル、修復計画、最小検証を含む1回分の限定された反復を定義する。
+5. 修復を適用し、変更ファイルと検証結果を記録して残差を比較する。
+6. 成功または定義済みの停止条件で停止し、runnerレベルの自動loopを開始しない。
+7. 結果をRepository提供のevaluationとrun-artifact契約へ接続する。
 
-## Outputs
+## 出力
 
-- Per-iteration input findings, repair plan, allowed scope, changed files, validation, remaining delta, and decision.
-- A final stop reason and follow-up state that can be represented by the supplied evaluation and report artifacts.
+- 反復ごとの入力Finding、修復計画、許可範囲、変更ファイル、検証、残差、decision。
+- 提供されたevaluationとreport artifactで表現できる最終停止理由と後続状態。
 
-## Immediate human escalation
+## 直ちに人へエスカレーションする場合
 
-Classify a finding as `needs_human` when it requires requirement judgment, destructive-change judgment, permission judgment, credential judgment, policy-boundary judgment, or a user/reviewer decision. Set `decision = stop_needs_human` as soon as such a finding is detected.
+要件、破壊的変更、権限、credential、policy境界の判断、またはユーザー・レビュアーの判断が必要なFindingは`needs_human`に分類します。そのFindingを検出したら、直ちに`decision = stop_needs_human`を設定します。
 
-After `needs_human` is detected, stop the loop and wait for the human decision. Do not continue repair, expand the scope, perform an unsafe or destructive operation, or fill a policy judgment by assumption.
+`needs_human`を検出したらloopを停止し、人の判断を待ちます。修復の継続、対象範囲の拡大、安全でない操作や破壊的操作、policy判断の推測による補完を行いません。
 
-## Guardrails
+## ガードレール
 
-- Preserve bounded iteration, repeated-failure, unsafe-action, scope, and human-escalation semantics from the package-local workflow.
-- Keep Repository paths, artifact locations, taxonomy files, and sanitization commands in the Repository mapping.
-- Do not change Subagent contracts or remove existing use of Subagent-generated evidence.
-- Do not begin an external full review or re-review without explicit user instruction or approval.
+- package-local workflowの限定された反復、繰り返し失敗、安全でない操作、対象範囲、人へのエスカレーションの意味を保持する。
+- Repositoryのpath、artifact保存先、taxonomy file、sanitization commandはRepository mappingに保持する。
+- Subagent契約を変更せず、Subagent生成Evidenceの既存利用を削除しない。
+- ユーザーの明示的な指示または承認なしに外部サービスのfull reviewや再レビューを開始しない。
