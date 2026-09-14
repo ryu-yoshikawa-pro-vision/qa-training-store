@@ -15,6 +15,7 @@ baseline:
 
 - `.codex/runs/20260912-231826-JST/trigger-eval-baseline.json`
 - Result schema: `2`
+- `evaluator_git_sha`: `d15d1d10189e9b97a7a1ae43ec70e478f78ce7e5`
 - `routing_source_git_sha`: `3c5e35ed42712574eb9d89051820c9e27f137a16`
 - `dataset_sha256`: `89e15bc1a36ea6b7e769f8f84d1f56c99f331acbf2ccd1d2cbf3d5405ee7b267`
 - Codex: `codex-cli 0.153.4`
@@ -101,12 +102,15 @@ AGENTS.md
 .agents/skills/repair-loop/evals/trigger/validation.yaml
 scripts/evals/skill-trigger-evals.ts
 scripts/evals/run-skill-trigger-evals.ts
+scripts/evals/otel-skill-observer.ts
 docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md
 docs/adr/0025-trigger-eval-otel-observation-contract.md
 .codex/runs/20260912-231826-JST/trigger-eval-baseline.json
 ```
 
-実装開始時のlatest `main`とbranch baseとの差分も確認する。特に次が変わっている場合は、baseline取得時と現在のrouting contextが同じではないことを明示して扱う。
+実装開始時のlatest `main`とbranch baseとの差分も確認する。Plan再レビュー時点のlatest `main`は`7a80e0598180cdc2f8f8538fbfbc903cd55e82ac`で、branch baseからの追加変更は`docs/curriculum/test-automation/04_learning-effort-reference.md`だけであり、routing前提には影響しない。実装開始時には改めて最新状態を確認する。
+
+特に次が変わっている場合は、baseline取得時と現在のrouting contextが同じではないことを明示して扱う。
 
 ```text
 AGENTS.md
@@ -117,7 +121,33 @@ docs/adr/0024-*
 docs/adr/0025-*
 ```
 
-`AGENTS.md`等に差分があっても、PR2 baselineとの因果比較と現在の`main`上の統合確認を分離するため、差分があることだけを理由にbaseline比較を中止しない。ただしIssue #117のrouting方針自体が変わっている場合は、このPlanの前提が成立しないため再計画する。
+Issue #117のrouting方針自体が変わっている場合は、このPlanの前提が成立しないため再計画する。
+
+### 4.1 Evaluator差分の確認
+
+baselineの`evaluator_git_sha`は`d15d1d10189e9b97a7a1ae43ec70e478f78ce7e5`である。実装時のEvaluator HEADが異なる場合は、少なくとも次の差分を確認する。
+
+```text
+scripts/evals/skill-trigger-evals.ts
+scripts/evals/run-skill-trigger-evals.ts
+scripts/evals/otel-skill-observer.ts
+tests/repository-contract/skill-trigger-evals.test.ts
+tests/repository-contract/otel-skill-observer.test.ts
+tests/repository-contract/windows-codex-argv.test.ts
+docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md
+docs/adr/0025-trigger-eval-otel-observation-contract.md
+```
+
+確認条件:
+
+- observationの意味が変わっていない。
+- scoring / outcome mappingが変わっていない。
+- comparison contractが変わっていない。
+- model、timeout、dataset読込契約が変わっていない。
+
+baseline取得後、`run-skill-trigger-evals.ts`からOTel primary live path上の不要なHook snapshot filesystem I/Oが削除されているが、既存記録上はOTel observer、scoring、model、timeout、Result schema、datasetを変更していない。実装時にもこの前提を差分で再確認する。
+
+上記の意味契約にmaterialな変更がある場合は、旧baselineとの結果を「description変更だけの比較」と扱わず停止する。comparison実装が`evaluator_git_sha`一致を要求しないことだけを根拠に続行しない。
 
 ---
 
@@ -187,28 +217,64 @@ candidateは次を満たすこと。
 
 candidateを複数回作り直す場合も、train結果だけに合わせて語句を増やさない。意味上の仮説がなくなった時点で調整を止める。
 
+### 6.1 live eval前のEvaluator clean条件
+
+現行runnerはEvaluatorの`.codex/runs/**`以外に未commit source差分がある場合、live evalを拒否する。
+
+そのためsource変更がある場合は、各candidateをlive evalする前に次を行う。
+
+1. 対象frontmatterだけを変更する。
+2. diffが意図したdescriptionだけであることを確認する。
+3. candidateをcommitする。
+4. `.codex/runs/**`を除きEvaluator working treeがcleanであることを確認する。
+5. そのcommitを評価対象candidateとして記録する。
+
+train結果を受けて別candidateへ変更する場合も、新しい意味上の仮説を説明したうえで同じ手順を繰り返す。未commitのsource差分を残したままrunnerのpreflightを回避しない。
+
 ---
 
-## 7. Trigger Evalの評価方針
+## 7. answer-key-free Routing Targetの作成
+
+EvaluatorとRouting Targetは別Git repositoryとし、Targetへ元repositoryの`.git`、remote ref、object database、alternatesを持ち込まない。
+
+単に最新repositoryをcloneしてdatasetをworking treeから消す方式は使わない。working treeにanswer keyがなくても、Git historyやremote refから取得できる状態を残さない。
+
+Target作成の共通条件:
+
+1. Repository外に一時directoryを作る。
+2. 元treeのworking filesだけをexportする。元repositoryの`.git`はコピーしない。
+3. Trigger Eval datasetをTargetへ含めない。
+4. 評価結果を含む`.codex/runs/**`もTargetへ含めない。Run Artifactはrouting入力ではなく、過去のTrigger Eval結果をTargetへ渡す必要がない。
+5. 必要なcandidate description差分だけを適用する。
+6. export後のdirectoryで新しく`git init`する。
+7. filesをadd / commitし、`HEAD`をdetachする。
+8. remoteを設定しない。
+9. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空、Trigger Eval datasetが存在しないことを確認する。
+10. Resultの`routing_source_git_sha`には、このfresh repositoryの実Target HEADを記録する。baseline SHAへ偽装しない。
+
+exportは`git archive`等を使ってよいが、current `main`から作るTargetではTrigger Eval datasetと`.codex/runs/**`をexport時点で除外し、後から元cloneのGit履歴を残したまま削除する方式にしない。
+
+PR3用のTarget generatorやrepository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
+
+---
+
+## 8. Trigger Evalの評価方針
 
 PR3では、次の2つを別の目的として評価する。
 
-### 7.1 PR2 baselineとの因果比較
+### 8.1 PR2 baselineとの因果比較
 
 目的:
 
-- baseline取得時のrouting contextを固定し、candidate description以外の差を入れずに、description変更の影響だけを比較する。
+- baseline取得時のrouting contextを固定し、candidate description以外のrouting入力を変えず、description変更の影響をbaselineと比較する。
 
-Routing Target:
+baseline側Target:
 
-- baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`を基にする。
-- Trigger Eval datasetをTargetへ含めない。
-- 変更対象と判断したdescription差分だけを適用する。
-- 対象外のSkill、`AGENTS.md`、scripts、references等をcurrent `main`から混ぜない。
-- 一時TargetはRepository外に作り、Git管理対象へ追加しない。
-- Targetの実SHAをResultへそのまま記録し、baseline SHAへ偽装しない。
-
-一時Targetの具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。PR3用のTarget generatorや新しいrepository helperは追加しない。
+1. baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`のworking filesだけをexportする。
+2. Trigger Eval datasetと過去のTrigger Eval結果が含まれていないことを確認する。
+3. 変更対象と判断したdescription差分だけを適用する。
+4. fresh Git repositoryとしてcommitし、detached HEADにする。
+5. 対象外のSkill、`AGENTS.md`、scripts、references等をcurrent `main`から混ぜない。
 
 #### trainでのcandidate確認
 
@@ -245,20 +311,22 @@ pnpm run eval:skills:trigger -- \
 
 変更したdescriptionについては、対応するbaseline failureが`fixed`になり、`regressed=0`であることを採用条件とする。変更しなかったfailureは`fixed`を完了条件にしない。
 
-baselineでobservableだったcaseが`newly_unobservable`になった場合は非回帰を証明できないため完了扱いにしない。`recovered_observable`はcurrent outcomeを確認する。
+baselineでobservableだったcaseが`newly_unobservable`になった場合、それ自体をrouting regressionとは扱わない。ただし今回のrunでは非回帰を判定できないため完了扱いにせず停止する。case単位で都合のよい結果が出るまでretryしない。`recovered_observable`はcurrent outcomeを確認する。
 
-### 7.2 現在の`main`相当での統合確認
+### 8.2 現在の`main`相当での統合確認
 
 目的:
 
-- PR2 baselineとの因果比較とは別に、candidate descriptionが現在のrepository routing contextで境界を壊していないことを確認する。
+- PR2 baselineとの因果比較とは別に、candidate descriptionを現在のrepository routing contextへ置いたとき、期待するroutingが成立するかを確認する。
 
-Routing Target:
+current-main側Target:
 
-- 実装開始時のlatest `main`へPR3 candidate descriptionを反映した状態を基にする。
-- Trigger Eval datasetはanswer key leakageを避けるためTargetへ含めない。
-- dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
-- baseline-context Targetとは別の一時Targetとして扱い、結果も別artifactへ保存する。
+1. 実装開始時のlatest `main`のworking filesを基にする。
+2. Trigger Eval datasetと`.codex/runs/**`はexport時点で除外する。
+3. dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
+4. latest `main`側の対象Skillにmaterial driftがないことを確認してから、同じcandidate descriptionを適用する。
+5. fresh Git repositoryとしてcommitし、detached HEADにする。
+6. baseline側Targetとは別Target・別artifactとして扱う。
 
 ```bash
 pnpm run eval:skills:trigger -- \
@@ -267,28 +335,30 @@ pnpm run eval:skills:trigger -- \
   --output <active-run>/trigger-eval-pr3-final-current-context.json
 ```
 
-この結果をPR2 baselineに対するdescription-only comparisonとは呼ばない。目的はcurrent contextでの統合確認であり、baseline sourceとの因果比較とは分けて報告する。
+このrunにはcandidateなしのcurrent-main control runがないため、「candidateによる新規回帰」を因果判定しない。PR2 baselineとのcomparisonにも使わない。
 
 確認内容:
 
-- 変更対象boundaryが意図したSkillへroutingできるか。
-- sibling Skillへの新しいmisrouteがないか。
-- observableだったcurrent pass caseに明確な回帰がないか。
-- runtime由来の`unobservable`をdescription failureへ読み替えていないか。
+- 変更対象case / boundaryがexpected Skillへroutingできるか。
+- observableな`sibling_misroute` / `unexpected_trigger`が発生していないか。
+- observable failureが出た場合、その事実を統合確認のfailureとして扱い、candidateが原因だと推測で断定しない。
+- runtime由来の`unobservable`をdescription failureへ読み替えない。
 
-### 7.3 no-opの場合
+current-main側でcandidateによる回帰まで因果判定するためだけに、追加のcontrol runや新しい評価frameworkを導入しない。PR3のdescription変更に対する非回帰判定はbaseline側comparisonを正本とする。
+
+### 8.3 no-opの場合
 
 source descriptionを変更しない場合はcandidate tuningを行わない。
 
-必要に応じて、baseline failureの再現性を補助的に確認するtrain runは実行できるが、その1回の結果だけでdescription defectまたはdescription健全性を確定しない。新しい統計評価frameworkや無制限retryは追加しない。
+必要に応じてbaseline failureの再現性を補助的に確認するtrain runは実行できるが、その1回の結果だけでdescription defectまたはdescription健全性を確定しない。新しい統計評価frameworkや無制限retryは追加しない。
 
 no-opの場合もdataset、現行routing contract、関連validatorが維持されていることを通常の検証で確認し、変更不要と判断した根拠を記録する。
 
 ---
 
-## 8. 検証
+## 9. 検証
 
-### 8.1 既存契約の確認
+### 9.1 既存契約の確認
 
 ```bash
 pnpm run eval:skills:trigger:validate
@@ -308,85 +378,100 @@ pnpm run test:repository
 - evaluator / OTel / Windows argv contractが既存どおりPASSする。
 - Skill package validationがPASSする。
 
-### 8.2 Repository標準検証
+### 9.2 Repository標準検証
 
 ```bash
 pnpm run verify
 git diff --check <implementation-base>...HEAD
 ```
 
-source変更がある場合は、最終diffで変更が根拠を確認したfrontmatter `description`だけであることを確認する。
+source変更がある場合は、最終diffでSkill source変更が根拠を確認したfrontmatter `description`だけであることを確認する。
 
 Plan、active Run Artifact、PR本文など、実装結果を記録する既存文書の更新はsource scopeとは分けて確認する。
 
 ---
 
-## 9. 完了条件
+## 10. 完了条件
 
 - [ ] 実装開始時のlatest `main`とPlan作成時branch baseの差分を確認している。
 - [ ] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認している。
+- [ ] baseline `evaluator_git_sha`と実行時Evaluatorの差分を確認し、observation / scoring / outcome mapping / comparison / model / timeout / dataset読込の意味が変わっていないことを確認している。
 - [ ] 2件それぞれについて、train query、対応validation case、expected Skill、sibling Skill、`AGENTS.md` routingを比較している。
 - [ ] description変更の有無を各Skillごとに独立して判断し、理由をRun Artifactへ記録している。
 - [ ] descriptionに一般化可能な欠落がないSkillを、failureを消す目的だけで変更していない。
 - [ ] 変更した場合はfrontmatter `description`だけに限定し、Skill本文・references・dataset・runner・`AGENTS.md`を変更していない。
 - [ ] candidate wordingをtrain query固有の語彙へ過度に寄せていない。
+- [ ] live eval前にcandidateをcommitし、Evaluatorの`.codex/runs/**`以外がcleanである。
+- [ ] baseline側Targetとcurrent-main側Targetは元repositoryの`.git`、remote ref、object database、alternatesを共有していない。
+- [ ] 両TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
 - [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
-- [ ] baseline-context comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`、`newly_unobservable=0`である。
+- [ ] baseline側comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`である。
+- [ ] baseline側comparisonで`newly_unobservable`が発生した場合、routing regressionと断定せず、非回帰判定不能として完了扱いにしていない。
 - [ ] 変更しなかったbaseline failureを、無理に`fixed`へすることを完了条件にしていない。
-- [ ] current-main-context runで新しいsibling misrouteなどの明確なrouting回帰がない。
+- [ ] current-main側runをcandidateによる回帰の因果比較として扱っていない。
+- [ ] current-main側runでobservableな`sibling_misroute` / `unexpected_trigger`がない。
 - [ ] `recovered_observable`がある場合はcurrent outcomeを確認している。
 - [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
 - [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
 - [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価frameworkを追加していない。
 
-2件ともdescription変更不要と判断した場合は、上記の変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。
+2件ともdescription変更不要と判断した場合は、変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。
 
 ---
 
-## 10. 実行手順
+## 11. 実行手順
 
 - [ ] 1. Issue #117、PR #127、最終baseline、現行routing契約を再確認する。
-- [ ] 2. latest `main`との差分を確認し、baseline contextとcurrent contextを分けて扱う前提を確定する。
-- [ ] 3. `code-review-train-002`についてdescription gapの有無を判定する。
-- [ ] 4. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
-- [ ] 5. gapが確認できたSkillだけcandidate descriptionを作成する。
-- [ ] 6. source変更がある場合は対象frontmatterだけ変更し、diffを確認する。
-- [ ] 7. baseline-contextのanswer-key-free Routing Targetを準備する。
-- [ ] 8. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
-- [ ] 9. candidateを確定後、baseline-contextで`all` + baseline comparisonを実行する。
-- [ ] 10. current-main-contextのanswer-key-free Routing Targetを別に準備し、`all`で統合確認する。
-- [ ] 11. deterministic validationとRepository標準検証を実行する。
-- [ ] 12. scope、Run Artifact、comparison結果を確認する。
-- [ ] 13. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
+- [ ] 2. latest `main`との差分を確認し、baseline時とcurrentのrouting contextを分けて扱う前提を確定する。
+- [ ] 3. baseline `evaluator_git_sha`と実行時Evaluatorの意味契約差分を確認する。
+- [ ] 4. `code-review-train-002`についてdescription gapの有無を判定する。
+- [ ] 5. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
+- [ ] 6. gapが確認できたSkillだけcandidate descriptionを作成する。
+- [ ] 7. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
+- [ ] 8. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
+- [ ] 9. baseline sourceのworking filesからfresh Git repositoryとしてbaseline側Targetを準備し、candidate差分だけを適用する。
+- [ ] 10. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
+- [ ] 11. candidateを変更する場合は新しい仮説を明示し、commitとclean確認を行ってから再評価する。
+- [ ] 12. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行する。
+- [ ] 13. latest `main`のworking filesからanswer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
+- [ ] 14. current-main側Targetで`all`を実行し、current routing contextでの統合結果を確認する。
+- [ ] 15. deterministic validationとRepository標準検証を実行する。
+- [ ] 16. scope、Run Artifact、comparison結果を確認する。
+- [ ] 17. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
 
-no-opの場合は5〜10のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
+no-opの場合は6〜14のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
 
 ---
 
-## 11. 停止条件
+## 12. 停止条件
 
 次の場合はPR3 scopeを広げず停止し、必要なら再計画する。
 
 - Issue #117のrouting方針自体がbaseline取得後に変更され、PR3の前提が成立しない。
+- baseline Evaluatorから実行時Evaluatorへの差分がobservation、scoring、outcome mapping、comparison、model、timeout、dataset読込の意味を変えている。
 - `codex-cli 0.153.4`が必要なbaseline comparisonを実行できず、comparison contractを維持できない。
-- answer-key-free Routing Targetを現行runnerの契約どおり準備できない。
+- answer-key-free Routing Targetを、元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
 - candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
 - 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
+- baseline側final comparisonで`newly_unobservable`が発生し、非回帰を判定できない。
 
 `unobservable`だけを理由にdescriptionを変更しない。case retryで都合のよい結果だけを採用しない。
 
 ---
 
-## 12. 成果物
+## 13. 成果物
 
 実装結果に応じてactive Runへ最低限次を残す。
 
 ```text
 description変更要否の判断根拠
-変更した場合のdescription差分
-baseline-context Trigger Eval結果とcomparison
-current-main-context Trigger Eval結果
+変更した場合のdescription差分とcandidate commit SHA
+baseline evaluator / current evaluatorの差分確認
+baseline側Targetのprovenance
+baseline側Trigger Eval結果とcomparison
+current-main側Targetのprovenance
+current-main側Trigger Eval結果
 validation結果
 scope確認
 ```
