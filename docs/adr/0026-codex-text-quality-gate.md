@@ -13,7 +13,7 @@ Issue #135は2026-09-13時点で未完了であるため、compact後のroot `AG
 
 ## Decision
 
-1. `scripts/lint-text-quality.mjs`はMarkdown本文だけをscanする純粋な決定論的scannerとし、ruleの正本を`.codex/text-quality-rules.json`へ置く。Markdown構造は既存`markdownlint`へ任せる。具体的な根拠が確定していないため、production ruleは`not-configured`かつ空配列で開始する。
+1. `scripts/lint-text-quality.mjs`はMarkdown本文だけをscanする決定論的scannerとし、Repository固有のliteral／regex ruleは`.codex/text-quality-rules.json`、一般日本語production ruleは`.textlintrc.json`の5個のtextlint個別ruleを正本とする。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。Markdown構造は既存`markdownlint`へ任せ、preset、AI Judge、broad dictionary、独自の形態素解析・文法parserは追加しない。custom rule fileの`not-configured`はcustom rule未設定を意味する。
 2. `UserPromptSubmit`では開始`HEAD`、repository root識別hash、開始時にHEADと異なるMarkdownのworktree manifestだけを保存する。cleanなtracked Markdownの本文は保存せず、必要時に開始HEADのblobから読み取る。本文、prompt、raw match、Hook payload、credentialは保存しない。
 3. 違反identityは`rule_id`とrule定義に従った正規化済みmatchのSHA-256であり、件数をmultisetとして比較する。file identityはGit rename mapping、exact content SHA-256の一意一致、対応付け不能の順で解決し、similarityやfilename推測は行わない。
 4. `PostToolUse`のquality failureはfail-openしてstderrへ診断し、`Stop`は`stop_hook_active=false`なら新規違反またはquality check不能をstructured blockとする。`true`なら診断付きallowとstate削除を行う。Repository-level gateの比較不能はfail-openせず非0終了とする。
@@ -23,5 +23,5 @@ Issue #135は2026-09-13時点で未完了であるため、compact後のroot `AG
 ## Consequences
 
 - 既存logging Hookと文章品質Hookは別commandとして共存し、`PreToolUse/Bash`のmatcherや`--strict-harness`の責務は変更しない。
-- rule値が確定するまでは、scanner、Hook契約、baseline、Git比較、CI経路は成立するが、productionの意味的な文章違反をblockするruleは存在しない。この状態をPRとRun Artifactへ明示する。
+- 一般日本語の明確な入力不正・誤記を検出する5個のtextlint ruleはproduction block対象であり、`no-unmatched-pair`は技術文書のinline code等の誤検知を理由に対象外とした。Repository固有custom literal／regex ruleは未設定である。主観的な自然さ、禁止語、表記辞書、AIによる意味評価はblock対象にしない。
 - comparison不能を空baselineへ落とさないため、削除と追加を安全に区別できない変更はRepository gateでは失敗し、HookではPlanのfail-open／fail-close境界に従う。

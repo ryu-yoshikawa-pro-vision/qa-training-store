@@ -3,7 +3,13 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DEFAULT_RULES_PATH, loadRules, scanText } from "../../scripts/lint-text-quality.mjs";
+import {
+  DEFAULT_RULES_PATH,
+  TextQualityConfigurationError,
+  ensureTextlintConfiguration,
+  loadRules,
+  scanTextQuality,
+} from "../../scripts/lint-text-quality.mjs";
 
 const EXPECTED_EVENTS = new Set(["UserPromptSubmit", "PostToolUse", "Stop"]);
 const READ_ONLY_TOOLS = new Set([
@@ -340,9 +346,9 @@ function getChangedCurrentPaths(records, mappings, currentPaths) {
   return paths;
 }
 
-function getBaselineViolations({ root, startHead, entry, filePath, rules }) {
+async function getBaselineViolations({ root, startHead, entry, filePath, rules }) {
   if (entry?.source === "head_blob") {
-    return scanText(readBlob(root, startHead, entry.path), { path: filePath, rules });
+    return scanTextQuality(readBlob(root, startHead, entry.path), { path: filePath, rules });
   }
   if (entry?.source === "worktree") {
     if (!Array.isArray(entry.violations)) throw new QualityUnavailable("baseline_manifest");
@@ -350,7 +356,7 @@ function getBaselineViolations({ root, startHead, entry, filePath, rules }) {
   }
   if (entry?.source === "worktree_missing") return [];
   if (!entry && startHeadPathExists(root, startHead, filePath)) {
-    return scanText(readBlob(root, startHead, filePath), { path: filePath, rules });
+    return scanTextQuality(readBlob(root, startHead, filePath), { path: filePath, rules });
   }
   if (!entry) return [];
   throw new QualityUnavailable("baseline_manifest");
@@ -377,7 +383,7 @@ function extractMarkdownPaths(value, root, paths = new Set(), key = "") {
   return paths;
 }
 
-function buildPairs({ root, state, rules, targetPaths }) {
+async function buildPairs({ root, state, rules, targetPaths }) {
   const records = getWorkingTreeRecords(root, state.start_head);
   const currentPaths = listCurrentMarkdownPaths(root);
   const { mappings, entryByPath } = resolveIdentity({
@@ -388,16 +394,22 @@ function buildPairs({ root, state, rules, targetPaths }) {
     currentPaths,
   });
   const changedPaths = getChangedCurrentPaths(records, mappings, currentPaths);
+  let pathsToScan = changedPaths;
   if (targetPaths && targetPaths.size > 0) {
     const targeted = new Set([...changedPaths].filter((filePath) => targetPaths.has(filePath)));
     if (targeted.size > 0) {
-      return { records, pairs: makePairs(root, state, rules, mappings, entryByPath, targeted) };
+      pathsToScan = targeted;
     }
   }
-  return { records, pairs: makePairs(root, state, rules, mappings, entryByPath, changedPaths) };
+  if (pathsToScan.size === 0) return { records, pairs: [] };
+  await ensureTextlintConfiguration();
+  return {
+    records,
+    pairs: await makePairs(root, state, rules, mappings, entryByPath, pathsToScan),
+  };
 }
 
-function makePairs(root, state, rules, mappings, entryByPath, changedPaths) {
+async function makePairs(root, state, rules, mappings, entryByPath, changedPaths) {
   const pairs = [];
   for (const currentPath of [...changedPaths].sort()) {
     const currentStartEntry = entryByPath.get(currentPath);
@@ -407,8 +419,11 @@ function makePairs(root, state, rules, mappings, entryByPath, changedPaths) {
       : (mappings.get(currentPath) ?? currentPath);
     const entry = hasWorktreeBaseline ? currentStartEntry : entryByPath.get(baselinePath);
     const currentContent = readRegularFile(root, currentPath);
-    const currentViolations = scanText(currentContent, { path: currentPath, rules });
-    const baselineViolations = getBaselineViolations({
+    const currentViolations = await scanTextQuality(currentContent, {
+      path: currentPath,
+      rules,
+    });
+    const baselineViolations = await getBaselineViolations({
       root,
       startHead: state.start_head,
       entry,
@@ -571,17 +586,17 @@ function deleteState(statePath) {
   }
 }
 
-function createWorktreeEntry(root, filePath, rules) {
+async function createWorktreeEntry(root, filePath, rules) {
   const content = readRegularFile(root, filePath);
   return {
     path: filePath,
     source: "worktree",
     content_sha256: sha256(content),
-    violations: persistCounts(scanText(content, { path: filePath, rules })),
+    violations: persistCounts(await scanTextQuality(content, { path: filePath, rules })),
   };
 }
 
-function createBaseline({ root, rules, stateInfo, startHead }) {
+async function createBaseline({ root, rules, stateInfo, startHead }) {
   const dirtyPaths = getStartDirtyPaths(root);
   const files = [];
 
@@ -592,7 +607,7 @@ function createBaseline({ root, rules, stateInfo, startHead }) {
       files.push({ path: filePath, source: "worktree_missing", violations: [] });
       continue;
     }
-    if (existsInCurrentWorktree) files.push(createWorktreeEntry(root, filePath, rules));
+    if (existsInCurrentWorktree) files.push(await createWorktreeEntry(root, filePath, rules));
   }
 
   writeState(stateInfo.path, {
@@ -639,7 +654,7 @@ function diagnostics(code) {
   process.stderr.write(`Codex text quality hook: quality check unavailable (${code})\n`);
 }
 
-function processUserPrompt(payload) {
+async function processUserPrompt(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   const stateInfo = makeStatePath(root, payload.session_id);
   if (fs.existsSync(stateInfo.path)) {
@@ -649,15 +664,16 @@ function processUserPrompt(payload) {
   let startHead;
   try {
     startHead = getHead(root);
+    await ensureTextlintConfiguration();
     const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
-    createBaseline({ root, rules, stateInfo, startHead });
+    await createBaseline({ root, rules, stateInfo, startHead });
   } catch (error) {
     writeUnavailableState(stateInfo, startHead, error);
     throw error;
   }
 }
 
-function processPostToolUse(payload) {
+async function processPostToolUse(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   if (READ_ONLY_TOOLS.has(payload.tool_name)) return;
   const stateInfo = makeStatePath(root, payload.session_id);
@@ -667,22 +683,23 @@ function processPostToolUse(payload) {
   }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
   const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
-  const { pairs } = buildPairs({ root, state, rules, targetPaths: explicitPaths });
+  const { pairs } = await buildPairs({ root, state, rules, targetPaths: explicitPaths });
   const newViolations = pairs.flatMap((pair) => getNewViolations(pair.baselineViolations, pair.currentViolations));
   if (newViolations.length > 0) {
     outputBlock(`Text quality violation detected: ${formatViolation(newViolations[0])}`);
   }
 }
 
-function processStop(payload) {
+async function processStop(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   const stateInfo = makeStatePath(root, payload.session_id);
   const state = readState(stateInfo.path, stateInfo);
   if (state.status !== STATE_STATUS.READY) {
     throw new QualityUnavailable("baseline_unavailable");
   }
+  await ensureTextlintConfiguration();
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
-  const { pairs } = buildPairs({ root, state, rules });
+  const { pairs } = await buildPairs({ root, state, rules });
   const newViolations = pairs.flatMap((pair) => getNewViolations(pair.baselineViolations, pair.currentViolations));
   if (newViolations.length > 0 && payload.stop_hook_active === false) {
     outputBlock(`Text quality violation detected: ${formatViolation(newViolations[0])}`);
@@ -705,7 +722,7 @@ function cleanupAllowedStop(payload) {
   }
 }
 
-function main() {
+async function main() {
   const expectedEvent = process.argv[2];
   if (!EXPECTED_EVENTS.has(expectedEvent)) {
     process.stderr.write("Codex text quality hook: unknown event\n");
@@ -716,15 +733,18 @@ function main() {
   try {
     payload = readPayload(expectedEvent);
     if (expectedEvent === "UserPromptSubmit") {
-      processUserPrompt(payload);
+      await processUserPrompt(payload);
     } else if (expectedEvent === "PostToolUse") {
-      processPostToolUse(payload);
+      await processPostToolUse(payload);
     } else {
-      processStop(payload);
+      await processStop(payload);
     }
     return 0;
   } catch (error) {
-    const code = error instanceof QualityUnavailable ? error.code : "internal";
+    const code =
+      error instanceof QualityUnavailable || error instanceof TextQualityConfigurationError
+        ? error.code
+        : "internal";
     if (expectedEvent === "Stop" && payload?.stop_hook_active !== true) {
       outputBlock("Text quality check unavailable; completion cannot be confirmed.");
     } else {
@@ -735,4 +755,4 @@ function main() {
   }
 }
 
-process.exitCode = main();
+process.exitCode = await main();

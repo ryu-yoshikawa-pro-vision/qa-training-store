@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createLinter, loadTextlintrc } from "textlint";
+
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_RULES_PATH = path.resolve(
   scriptDirectory,
@@ -10,10 +12,28 @@ export const DEFAULT_RULES_PATH = path.resolve(
   ".codex",
   "text-quality-rules.json",
 );
+export const DEFAULT_TEXTLINT_CONFIG_PATH = path.resolve(scriptDirectory, "..", ".textlintrc.json");
+export const TEXTLINT_RULE_IDS = Object.freeze([
+  "@textlint-rule/no-invalid-control-character",
+  "no-zero-width-spaces",
+  "no-nfd",
+  "no-kangxi-radicals",
+  "no-hankaku-kana",
+]);
+
+const textlintLinterPromises = new Map();
 
 const RULE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 const NORMALIZATIONS = new Set(["none", "trim", "lowercase", "lowercase-trim"]);
 const REGEXP_FLAG_PATTERN = /^[dgimsuvy]*$/;
+
+export class TextQualityConfigurationError extends Error {
+  constructor(code) {
+    super(code);
+    this.name = "TextQualityConfigurationError";
+    this.code = code;
+  }
+}
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
@@ -272,6 +292,15 @@ function collectMatches(text, maskedText, rule) {
   return matches;
 }
 
+function sortViolations(violations) {
+  return violations.sort((left, right) => {
+    const pathOrder = left.path.localeCompare(right.path);
+    if (pathOrder !== 0) return pathOrder;
+    if (left.line !== right.line) return left.line - right.line;
+    return left.rule_id.localeCompare(right.rule_id);
+  });
+}
+
 function publicViolation(violation) {
   return {
     path: violation.path,
@@ -307,16 +336,207 @@ export function scanText(text, { path: filePath = "<text>", rules = [] } = {}) {
     }
   }
 
-  return violations.sort((left, right) => {
-    const pathOrder = left.path.localeCompare(right.path);
-    if (pathOrder !== 0) return pathOrder;
-    if (left.line !== right.line) return left.line - right.line;
-    return left.rule_id.localeCompare(right.rule_id);
-  });
+  return sortViolations(violations);
 }
 
 export function scanFile(filePath, rules) {
   return scanText(fs.readFileSync(filePath, "utf8"), { path: filePath, rules });
+}
+
+function readTextlintConfig(configPath) {
+  let stats;
+  try {
+    stats = fs.lstatSync(configPath);
+    if (!stats.isFile() || stats.isSymbolicLink()) {
+      throw new Error("not a regular file");
+    }
+  } catch {
+    throw new TextQualityConfigurationError("textlint_config_unavailable");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    throw new TextQualityConfigurationError("textlint_config_invalid");
+  }
+
+  if (
+    parsed === null ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    Object.keys(parsed).some((key) => key !== "rules") ||
+    parsed.rules === null ||
+    typeof parsed.rules !== "object" ||
+    Array.isArray(parsed.rules)
+  ) {
+    throw new TextQualityConfigurationError("textlint_config_invalid");
+  }
+
+  const configuredRuleIds = Object.keys(parsed.rules).sort();
+  const expectedRuleIds = [...TEXTLINT_RULE_IDS].sort();
+  if (
+    configuredRuleIds.length !== expectedRuleIds.length ||
+    configuredRuleIds.some((ruleId, index) => ruleId !== expectedRuleIds[index])
+  ) {
+    throw new TextQualityConfigurationError("textlint_rule_set_invalid");
+  }
+
+  const invalidControlConfig = parsed.rules["@textlint-rule/no-invalid-control-character"];
+  if (
+    invalidControlConfig === null ||
+    typeof invalidControlConfig !== "object" ||
+    Array.isArray(invalidControlConfig) ||
+    Object.keys(invalidControlConfig).length !== 1 ||
+    invalidControlConfig.checkCode !== false
+  ) {
+    throw new TextQualityConfigurationError("textlint_config_invalid");
+  }
+  for (const ruleId of expectedRuleIds) {
+    if (ruleId !== "@textlint-rule/no-invalid-control-character" && parsed.rules[ruleId] !== true) {
+      throw new TextQualityConfigurationError("textlint_config_invalid");
+    }
+  }
+
+  return parsed;
+}
+
+async function getTextlintLinter(configPath) {
+  const absoluteConfigPath = path.resolve(configPath);
+  const cached = textlintLinterPromises.get(absoluteConfigPath);
+  if (cached) return cached;
+
+  const linterPromise = (async () => {
+    readTextlintConfig(absoluteConfigPath);
+    let descriptor;
+    try {
+      descriptor = await loadTextlintrc({
+        configFilePath: absoluteConfigPath,
+        node_modulesDir: path.resolve(path.dirname(absoluteConfigPath), "node_modules"),
+      });
+    } catch {
+      throw new TextQualityConfigurationError("textlint_config_load");
+    }
+
+    const descriptorRuleIds = descriptor
+      .toJSON()
+      .rule.map((rule) => rule.id)
+      .sort();
+    const expectedRuleIds = [...TEXTLINT_RULE_IDS].sort();
+    if (
+      descriptorRuleIds.length !== expectedRuleIds.length ||
+      descriptorRuleIds.some((ruleId, index) => ruleId !== expectedRuleIds[index])
+    ) {
+      throw new TextQualityConfigurationError("textlint_rule_load");
+    }
+
+    return createLinter({ descriptor, cwd: path.dirname(absoluteConfigPath) });
+  })();
+  textlintLinterPromises.set(absoluteConfigPath, linterPromise);
+  return linterPromise;
+}
+
+export async function ensureTextlintConfiguration(
+  textlintConfigPath = DEFAULT_TEXTLINT_CONFIG_PATH,
+) {
+  await getTextlintLinter(textlintConfigPath);
+}
+
+function textlintMessageRange(text, message) {
+  const range = message?.range;
+  if (
+    !Array.isArray(range) ||
+    range.length !== 2 ||
+    !Number.isInteger(range[0]) ||
+    !Number.isInteger(range[1]) ||
+    range[0] < 0 ||
+    range[1] <= range[0] ||
+    range[1] > text.length ||
+    (range[0] > 0 &&
+      text.charCodeAt(range[0]) >= 0xdc00 &&
+      text.charCodeAt(range[0]) <= 0xdfff &&
+      text.charCodeAt(range[0] - 1) >= 0xd800 &&
+      text.charCodeAt(range[0] - 1) <= 0xdbff) ||
+    (range[1] < text.length &&
+      text.charCodeAt(range[1] - 1) >= 0xd800 &&
+      text.charCodeAt(range[1] - 1) <= 0xdbff &&
+      text.charCodeAt(range[1]) >= 0xdc00 &&
+      text.charCodeAt(range[1]) <= 0xdfff)
+  ) {
+    throw new TextQualityConfigurationError("textlint_message_range");
+  }
+  return range;
+}
+
+function convertTextlintMessage(text, filePath, message) {
+  if (
+    !message ||
+    typeof message.ruleId !== "string" ||
+    !TEXTLINT_RULE_IDS.includes(message.ruleId) ||
+    typeof message.message !== "string" ||
+    !Number.isInteger(message.line) ||
+    message.line < 1
+  ) {
+    throw new TextQualityConfigurationError("textlint_message_shape");
+  }
+
+  const [start, end] = textlintMessageRange(text, message);
+  const match = text.slice(start, end);
+  if (match.length === 0) {
+    throw new TextQualityConfigurationError("textlint_message_match");
+  }
+
+  return {
+    path: filePath,
+    line: message.line,
+    rule_id: message.ruleId,
+    message: message.message,
+    ...(typeof message.fix?.text === "string" ? { replacement: message.fix.text } : {}),
+    fingerprint: `${message.ruleId}:${sha256(normalizeMatch(match, "none"))}`,
+  };
+}
+
+export async function scanTextWithTextlint(
+  text,
+  { path: filePath = "<text>", textlintConfigPath = DEFAULT_TEXTLINT_CONFIG_PATH } = {},
+) {
+  if (typeof text !== "string") {
+    throw new Error("Markdown text must be a string");
+  }
+  const linter = await getTextlintLinter(textlintConfigPath);
+  let result;
+  try {
+    const lintFilePath = /\.md$/iu.test(filePath) ? filePath : `${filePath}.md`;
+    result = await linter.lintText(text, lintFilePath);
+  } catch {
+    throw new TextQualityConfigurationError("textlint_scan");
+  }
+  if (!Array.isArray(result?.messages)) {
+    throw new TextQualityConfigurationError("textlint_result");
+  }
+  return sortViolations(
+    result.messages.map((message) => convertTextlintMessage(text, filePath, message)),
+  );
+}
+
+export async function scanTextQuality(
+  text,
+  { path: filePath = "<text>", rules = [], textlintConfigPath = DEFAULT_TEXTLINT_CONFIG_PATH } = {},
+) {
+  if (!Array.isArray(rules)) {
+    throw new Error("scanTextQuality rules must be an array");
+  }
+  const customRuleIds = new Set(rules.map((rule) => rule.rule_id));
+  const collision = TEXTLINT_RULE_IDS.find((ruleId) => customRuleIds.has(ruleId));
+  if (collision) {
+    throw new TextQualityConfigurationError("rule_id_collision");
+  }
+  const customViolations = scanText(text, { path: filePath, rules });
+  const textlintViolations = await scanTextWithTextlint(text, {
+    path: filePath,
+    textlintConfigPath,
+  });
+  return sortViolations([...customViolations, ...textlintViolations]);
 }
 
 export { publicViolation };
@@ -370,7 +590,7 @@ function printUsage() {
   );
 }
 
-function runCli() {
+async function runCli() {
   let options;
   try {
     options = parseArguments(process.argv.slice(2));
@@ -385,12 +605,19 @@ function runCli() {
     const { rules } = loadRules(options.rulesPath);
     const violations = [];
     if (options.stdin) {
-      violations.push(...scanText(fs.readFileSync(0, "utf8"), { path: "<stdin>", rules }));
+      violations.push(
+        ...(await scanTextQuality(fs.readFileSync(0, "utf8"), { path: "<stdin>", rules })),
+      );
     } else if (options.text !== null) {
-      violations.push(...scanText(options.text, { path: "<text>", rules }));
+      violations.push(...(await scanTextQuality(options.text, { path: "<text>", rules })));
     } else {
       for (const filePath of options.files) {
-        violations.push(...scanFile(filePath, rules));
+        violations.push(
+          ...(await scanTextQuality(fs.readFileSync(filePath, "utf8"), {
+            path: filePath,
+            rules,
+          })),
+        );
       }
     }
 
@@ -418,5 +645,5 @@ function runCli() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = runCli();
+  process.exitCode = await runCli();
 }

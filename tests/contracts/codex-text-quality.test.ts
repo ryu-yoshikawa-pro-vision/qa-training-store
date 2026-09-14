@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -35,6 +35,7 @@ const repoRoot = path.resolve(process.cwd());
 const scannerPath = path.join(repoRoot, "scripts", "lint-text-quality.mjs");
 const comparisonPath = path.join(repoRoot, "scripts", "check-text-quality-changes.mjs");
 const gatePath = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+const textlintConfigPath = path.join(repoRoot, ".textlintrc.json");
 
 const rule: TextRule = {
   rule_id: "TEST-BANNED",
@@ -121,6 +122,36 @@ function writeFile(root: string, relativePath: string, content: string) {
   fs.writeFileSync(absolutePath, content, "utf8");
 }
 
+function fingerprint(ruleId: string, match: string) {
+  return `${ruleId}:${createHash("sha256").update(match, "utf8").digest("hex")}`;
+}
+
+function linkTextlintDependencies(root: string) {
+  const nodeModulesPath = path.join(root, "node_modules");
+  const scopedPath = path.join(nodeModulesPath, "@textlint-rule");
+  fs.mkdirSync(scopedPath, { recursive: true });
+  for (const packageName of [
+    "textlint",
+    "textlint-rule-no-zero-width-spaces",
+    "textlint-rule-no-nfd",
+    "textlint-rule-no-kangxi-radicals",
+    "textlint-rule-no-hankaku-kana",
+  ]) {
+    fs.symlinkSync(
+      path.join(repoRoot, "node_modules", packageName),
+      path.join(nodeModulesPath, packageName),
+      "junction",
+    );
+  }
+  for (const packageName of ["textlint-rule-no-invalid-control-character"]) {
+    fs.symlinkSync(
+      path.join(repoRoot, "node_modules", "@textlint-rule", packageName),
+      path.join(scopedPath, packageName),
+      "junction",
+    );
+  }
+}
+
 function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 空白-") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), tempPrefix));
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
@@ -128,11 +159,13 @@ function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 
   fs.copyFileSync(scannerPath, path.join(root, "scripts", "lint-text-quality.mjs"));
   fs.copyFileSync(comparisonPath, path.join(root, "scripts", "check-text-quality-changes.mjs"));
   fs.copyFileSync(gatePath, path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+  fs.copyFileSync(textlintConfigPath, path.join(root, ".textlintrc.json"));
   writeFile(
     root,
     "rules.json",
     JSON.stringify({ version: 1, status: "configured", rules: [rule] }, null, 2),
   );
+  writeFile(root, ".gitignore", "node_modules/\n");
   writeFile(root, "docs/existing.md", initialText);
 
   git(root, ["init", "--quiet"]);
@@ -140,11 +173,37 @@ function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 
   git(root, ["config", "user.name", "Codex Contract"]);
   git(root, ["add", "."]);
   git(root, ["commit", "--quiet", "-m", "fixture"]);
+  linkTextlintDependencies(root);
   return root;
 }
 
 function removeFixture(root: string) {
-  fs.rmSync(root, { recursive: true, force: true });
+  process.chdir(repoRoot);
+  if (!fs.existsSync(root)) return;
+
+  // Windows can keep the fixture root busy when fs.rmSync recursively walks
+  // a directory that contained a junction. Remove each child first, then the
+  // now-empty root, so cleanup does not depend on that recursive walk.
+  for (const entry of fs.readdirSync(root)) {
+    const entryPath = path.join(root, entry);
+    if (entry === "node_modules") {
+      const nodeModulesStats = fs.lstatSync(entryPath);
+      if (nodeModulesStats.isSymbolicLink()) {
+        fs.unlinkSync(entryPath);
+      } else {
+        fs.rmSync(entryPath, {
+          recursive: true,
+          force: true,
+          maxRetries: 10,
+          retryDelay: 200,
+        });
+      }
+      continue;
+    }
+    fs.rmSync(entryPath, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  }
+
+  fs.rmdirSync(root);
 }
 
 function withFixture(
@@ -504,6 +563,190 @@ describe("Codex deterministic text quality contracts", () => {
       expect(result.stdout).not.toContain("BAD");
     });
   });
+
+  it("loads exactly the five adopted production textlint rules and preserves stable fingerprints", () => {
+    const textlintConfig = JSON.parse(fs.readFileSync(textlintConfigPath, "utf8")) as {
+      rules: Record<string, unknown>;
+    };
+    expect(textlintConfig).toEqual({
+      rules: {
+        "@textlint-rule/no-invalid-control-character": { checkCode: false },
+        "no-zero-width-spaces": true,
+        "no-nfd": true,
+        "no-kangxi-radicals": true,
+        "no-hankaku-kana": true,
+      },
+    });
+
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+    ) as {
+      devDependencies: Record<string, string>;
+    };
+    expect(packageJson.devDependencies.textlint).toBeDefined();
+    expect(
+      Object.keys(packageJson.devDependencies).filter((packageName) =>
+        packageName.includes("textlint-rule-preset"),
+      ),
+    ).toEqual([]);
+
+    const cases = [
+      {
+        name: "control",
+        text: "prefix\u0001suffix\n",
+        ruleId: "@textlint-rule/no-invalid-control-character",
+        match: "\u0001",
+        replacement: "",
+      },
+      {
+        name: "zero-width",
+        text: "prefix\u200b suffix\n",
+        ruleId: "no-zero-width-spaces",
+        match: "\u200b",
+        replacement: "",
+      },
+      {
+        name: "nfd",
+        text: "か\u3099\n",
+        ruleId: "no-nfd",
+        match: "\u3099",
+        replacement: "が",
+      },
+      {
+        name: "kangxi",
+        text: "⼀\n",
+        ruleId: "no-kangxi-radicals",
+        match: "⼀",
+        replacement: "一",
+      },
+      {
+        name: "hankaku-kana",
+        text: "ｶﾀｶﾅ\n",
+        ruleId: "no-hankaku-kana",
+        match: "ｶﾀｶﾅ",
+        replacement: "カタカナ",
+      },
+    ] as const;
+
+    withFixture((root) => {
+      const paths = cases.map(({ name, text }) => {
+        const filePath = `docs/${name}.md`;
+        writeFile(root, filePath, text);
+        return filePath;
+      });
+      const normalPath = "docs/markdown-syntax.md";
+      writeFile(
+        root,
+        normalPath,
+        "# 見出し\n本文: `ｶﾀｶﾅ` [link](https://example.test/ｶﾀｶﾅ)\n```text\nｶﾀｶﾅ\n```\nidentifier: API_URL\n",
+      );
+
+      const result = runNode(
+        path.join(root, "scripts", "lint-text-quality.mjs"),
+        ["--rules", path.join(root, "rules.json"), "--json", ...paths, normalPath],
+        root,
+      );
+      expect(result.status).toBe(1);
+      const violations = JSON.parse(result.stdout) as Record<string, unknown>[];
+      expect(violations.filter((violation) => violation.path === normalPath)).toEqual([]);
+      for (const expected of cases) {
+        expect(violations).toContainEqual({
+          path: `docs/${expected.name}.md`,
+          line: 1,
+          rule_id: expected.ruleId,
+          message: expect.any(String),
+          ...(expected.replacement === undefined ? {} : { replacement: expected.replacement }),
+        });
+      }
+
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      const baseline = readGateState(root);
+      const baselineEntries = baseline.files as {
+        path: string;
+        violations: { fingerprint: string; count: number }[];
+      }[];
+      for (const expected of cases) {
+        const entry = baselineEntries.find(
+          (candidate) => candidate.path === `docs/${expected.name}.md`,
+        );
+        expect(entry).toBeDefined();
+        expect(entry?.violations).toEqual([
+          { fingerprint: fingerprint(expected.ruleId, expected.match), count: 1 },
+        ]);
+      }
+    });
+  }, 60_000);
+
+  it("applies textlint fingerprints to the existing baseline and exact rename mapping", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/existing.md", "ｶﾀｶﾅ\nｶﾀｶﾅ\n");
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stdout).toContain("[no-hankaku-kana]");
+      expect(post.stderr).toBe("");
+    }, "ｶﾀｶﾅ\n");
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+    }, "ｶﾀｶﾅ\n");
+  }, 60_000);
+
+  it("does not silently pass missing, invalid, or unloadable textlint configuration", () => {
+    withFixture((root) => {
+      fs.rmSync(path.join(root, ".textlintrc.json"), { force: true });
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      expect(prompt.stdout).toBe("");
+      expect(prompt.stderr).toContain("textlint_config_unavailable");
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      writeFile(root, ".textlintrc.json", "{\n");
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      expect(prompt.stdout).toBe("");
+      expect(prompt.stderr).toContain("textlint_config_invalid");
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      fs.unlinkSync(path.join(root, "node_modules", "textlint-rule-no-nfd"));
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      expect(prompt.stdout).toBe("");
+      expect(prompt.stderr).toMatch(/textlint_(config_load|rule_load)/u);
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, ".textlintrc.json", "{\n");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expect(activeStop.status).toBe(0);
+      expect(activeStop.stdout).toBe("");
+      expect(activeStop.stderr).toContain("textlint_config_invalid");
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 90_000);
 
   it("applies only explicitly configured scope exclusions", () => {
     withFixture((root) => {

@@ -4,7 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { DEFAULT_RULES_PATH, loadRules, publicViolation, scanText } from "./lint-text-quality.mjs";
+import {
+  DEFAULT_RULES_PATH,
+  loadRules,
+  publicViolation,
+  scanTextQuality,
+} from "./lint-text-quality.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDirectory = path.dirname(scriptPath);
@@ -286,7 +291,7 @@ function getNewViolations(baselineViolations, currentViolations) {
   });
 }
 
-function buildChangedFilePairs({ root, baseRef, workingTree, rules }) {
+async function buildChangedFilePairs({ root, baseRef, workingTree, rules }) {
   const baselineRef = workingTree ? baseRef : runGit(["merge-base", baseRef, "HEAD"], root).trim();
   if (baselineRef.length === 0) {
     throw new ComparisonError("Git merge-base did not return a comparison base");
@@ -326,15 +331,20 @@ function buildChangedFilePairs({ root, baseRef, workingTree, rules }) {
     const baselineContent =
       baselinePath === null ? null : readBlobContent(root, baselineRef, baselinePath);
     const baselineViolations =
-      baselineContent === null ? [] : scanText(baselineContent, { path: baselinePath, rules });
-    const currentViolations = scanText(currentContent, { path: currentPath, rules });
+      baselineContent === null
+        ? []
+        : await scanTextQuality(baselineContent, { path: baselinePath, rules });
+    const currentViolations = await scanTextQuality(currentContent, {
+      path: currentPath,
+      rules,
+    });
     pairs.push({ currentPath, baselinePath, baselineViolations, currentViolations });
   }
 
   return { baselineRef, pairs };
 }
 
-export function compareTextQualityChanges({
+export async function compareTextQualityChanges({
   root = repositoryRoot,
   baseRef,
   workingTree = false,
@@ -343,7 +353,7 @@ export function compareTextQualityChanges({
   if (typeof baseRef !== "string" || baseRef.trim() === "") {
     throw new ComparisonError("--base-ref requires a Git ref");
   }
-  const { baselineRef, pairs } = buildChangedFilePairs({
+  const { baselineRef, pairs } = await buildChangedFilePairs({
     root,
     baseRef: baseRef.trim(),
     workingTree,
@@ -398,7 +408,7 @@ function printUsage() {
   );
 }
 
-function runCli() {
+async function runCli() {
   let options;
   try {
     options = parseArguments(process.argv.slice(2));
@@ -407,7 +417,7 @@ function runCli() {
       return 0;
     }
     const { rules } = loadRules(options.rulesPath);
-    const result = compareTextQualityChanges({
+    const result = await compareTextQualityChanges({
       root: repositoryRoot,
       baseRef: options.baseRef,
       workingTree: options.workingTree,
@@ -447,5 +457,5 @@ function runCli() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {
-  process.exitCode = runCli();
+  process.exitCode = await runCli();
 }

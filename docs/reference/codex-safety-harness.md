@@ -39,9 +39,11 @@
   - Windows native launcher: `.codex/hooks/pre_tool_use_policy_windows.ps1`
   - 文章品質Hook: `.codex/hooks/text_quality_gate.mjs`
 - `.codex/text-quality-rules.json`
-  - 決定論的なproduction文章品質ruleの正本。具体的な根拠が確定したruleだけを置き、未確定の禁止語や自然さ判定は追加しない。
+  - Repository固有のliteral／regex ruleの正本。現在は`not-configured`／空配列で、一般日本語ruleはここへ複製しない。
+- `.textlintrc.json`
+  - 一般日本語production ruleの正本。dry-runで採用した5個の個別ruleだけを有効化し、preset、AI Judge、broad dictionary、独自の自然さ判定は追加しない。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。
 - `scripts/lint-text-quality.mjs` / `scripts/check-text-quality-changes.mjs`
-  - 前者はMarkdown本文だけをscanし、後者はbaselineとcurrentのfingerprint multisetをGit tree単位で比較する。
+  - 前者はcustom literal／regexとtextlintのstandard ruleをMarkdown本文へ適用し、後者はbaselineとcurrentのfingerprint multisetをGit tree単位で比較する。
 - `.codex/requirements.toml`
   - 管理配布/機能有効化時に使う補助的な最小要件定義
 - `scripts/verify`
@@ -299,7 +301,7 @@ Hookが動かなければ、まず `/hooks` とproject／Hookのtrust状態、`C
 - `PostToolUse` はMarkdown変更時の早期フィードバックであり、障害時はfail-openしてstderrへ診断する。既存のlogging Hookとは別責務である。
 - `Stop` は `stop_hook_active=false` のとき、新規違反またはquality check不能ならstructured `decision=block`を返す。`true` のときは診断付きでallowし、baseline stateを削除する。Hook failure契約とRepository gateのfailure契約は分離する。
 - Issue #135がmainへ取り込まれた現在のbranchでは、`SessionStart` の `matcher = "^compact$"` に限ってroot `AGENTS.md`全文を `hookSpecificOutput.additionalContext` へ再注入する。`startup`／`resume`／`clear`では出力せず、root解決、`AGENTS.md`読込、structured output生成に失敗した場合は、入力本文やpathを含めない `continue=false`／`stopReason` でfail-closeする。設定値の `additionalContextLimit = 4096` はCLIのapproximate token spill thresholdとして扱い、stdout文字数制限とは扱わない。
-- production ruleは現在 `not-configured` であり、既存markdownlintの構造検査を重複実装しない。具体的なrule値が確定するまで、scanner／Hook／baseline／Git比較の契約だけを有効にする。
+- 一般日本語production ruleは`.textlintrc.json`の5個のtextlint ruleでconfiguredであり、既存markdownlintの構造検査を重複実装しない。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。`.codex/text-quality-rules.json`の`not-configured`はRepository固有custom literal／regex rule未設定を示す。
 
 Repository-level gateの比較基準は次のとおりです。
 

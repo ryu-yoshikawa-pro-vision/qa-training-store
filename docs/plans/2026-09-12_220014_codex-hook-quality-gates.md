@@ -223,32 +223,17 @@ M --- B
 
 ### 3.2 production文章品質rule表
 
-Issue #134は「禁止語」「表記揺れ」「定義済み置換」「全角/半角」「allowlist付き英語混在」を候補として示しているが、具体的な禁止語や置換表までは定義していない。
+一般的な日本語文章品質はtextlint v15の個別ruleで検査し、Markdown構造は既存の`markdownlint`へ委譲する。初期候補6件をdry-runし、inline code内の正常なPowerShell quoteや技術文書の括弧を誤検知した`@textlint-rule/no-unmatched-pair`はproductionから外した。採用するproduction blockは次の5件に限定する。
 
-Task 6へ入る前に、採用するproduction ruleごとに次を確定する。
+| package | textlint rule ID | 用途 |
+| --- | --- | --- |
+| `@textlint-rule/textlint-rule-no-invalid-control-character` | `@textlint-rule/no-invalid-control-character` | 不正な制御文字 |
+| `textlint-rule-no-zero-width-spaces` | `no-zero-width-spaces` | ゼロ幅スペース |
+| `textlint-rule-no-nfd` | `no-nfd` | NFD文字 |
+| `textlint-rule-no-kangxi-radicals` | `no-kangxi-radicals` | 康煕部首 |
+| `textlint-rule-no-hankaku-kana` | `no-hankaku-kana` | 半角カナ |
 
-| 項目 | 内容 |
-| --- | --- |
-| `rule_id` | 安定した識別子 |
-| 対象 | 対象Markdown |
-| 検出条件 | literalまたはregex |
-| 除外条件 | 必要な場合のみ |
-| `replacement` | 明示置換がある場合のみ |
-| allowlist | 必要な場合のみ |
-| 大文字小文字 | 区別するか |
-| fenced code block | 対象か |
-| inline code | 対象か |
-| URL | 対象か |
-| identifier | 対象か |
-| match正規化 | fingerprint比較で必要な場合のみ |
-
-具体値は次の順で確定する。
-
-1. Repository内で既に明文化されている表記規約。
-2. Issue #134または関連Issueで明示されたrule。
-3. それでも具体値が無いcategoryはproduction block ruleへ追加しない。
-
-実装者が独自判断で禁止語、置換、allowlist、英語検出条件を作らない。
+`.textlintrc.json`をstandard日本語ruleの正本とし、preset全体、`prh`、AI Judge、broad dictionary、独自の形態素解析・文法parserは追加しない。Repository固有のliteral / regex ruleは`.codex/text-quality-rules.json`だけで管理し、同ファイルの`not-configured`はcustom rule未設定を意味する。実装者が独自に禁止語、置換表、allowlist、英語混在判定、自然さ判定を追加しない。
 
 次はblock条件に含めない。
 
@@ -407,16 +392,17 @@ Codex compact
 
 ### Task 6: 決定論的な文章品質scannerを成立させる
 
-Task 6へ入る前に「3.2 production文章品質rule表」を確定する。
-
 `scripts/lint-text-quality.mjs` 等のscannerは次に限定する。
 
 - 指定されたMarkdown fileまたは明示された本文をscanする。
-- production ruleは `.codex/text-quality-rules.json` 等の1か所を正本にする。
+- Repository固有のliteral / regex ruleは`.codex/text-quality-rules.json`、一般日本語ruleは`.textlintrc.json`を正本にする。
+- textlint v15の`loadTextlintrc`、`createLinter`、`lintText`をNode APIとして使用し、process内でlinterをlazy cacheする。
+- 採用した5 ruleのtextlint findingを既存の`path`、`line`、`rule_id`、`message`、`replacement`形式へ変換する。除外した`no-unmatched-pair`はproduction findingへ流さない。
+- fingerprintはruleのofficial rangeから取得したmatchのSHA-256とし、message全文・line・columnをidentityへ使わない。安全なrangeを取得できないruleはproductionへ上げない。
 - session baseline、Git、GitHub Actions eventを知らない。
 - Markdown構造は既存markdownlintへ任せる。
 - fenced code、inline code、URL、identifier等の除外はrule表で明示された場合だけ実装する。
-- broad dictionary、AI Judge、形態素解析を追加しない。
+- preset、broad dictionary、AI Judge、独自の形態素解析・文法parserを追加しない。
 
 出力は少なくとも次を持つ。
 
@@ -603,6 +589,7 @@ PostToolUseは早期フィードバックであり完了判定ではない。
 - session rename mapping不能
 - Git差分取得失敗
 - rule file読込失敗
+- `.textlintrc.json`の欠落・破損・rule load失敗・textlint scan失敗
 - scanner失敗
 - temp state読込失敗
 
