@@ -270,8 +270,6 @@ function runConfiguredQualityHook(
 describe("Codex deterministic text quality contracts", () => {
   it("registers a separate matcher-free text quality Hook for each supported event", () => {
     const config = readCodexConfig();
-    const hooks = asTomlRecord(config.hooks, "hooks");
-    expect(hooks.SessionStart).toBeUndefined();
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       const groups = hookGroups(config, event);
       const entries = hookEntries(config, event);

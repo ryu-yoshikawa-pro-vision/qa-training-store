@@ -36,6 +36,7 @@ type ContextualEvaluation = {
 const repoRoot = path.resolve(process.cwd());
 const hookPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs");
 const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy_windows.ps1");
+const sessionStartHookPath = path.join(repoRoot, ".codex", "hooks", "session_start_context.mjs");
 const safePayload = JSON.stringify({
   tool_name: "Bash",
   tool_input: { command: "git status --short" },
@@ -120,6 +121,25 @@ function runNodeHook(payload: string, cwd = repoRoot, timeout = 30_000): HookRes
   };
 }
 
+function runSessionStartHook(
+  payload: string,
+  cwd = repoRoot,
+  hook = sessionStartHookPath,
+  timeout = 30_000,
+): HookResult {
+  const result = spawnSync(process.execPath, [hook], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+    timeout,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
 function runWindowsLauncher(
   cwd: string,
   payload: string,
@@ -179,6 +199,18 @@ function makeGitFixture(copyHook = true) {
   return root;
 }
 
+function makeSessionFixture(agents = "# Fixture AGENTS\n日本語\n") {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex session hook 空白-"));
+  fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
+  fs.copyFileSync(
+    sessionStartHookPath,
+    path.join(root, ".codex", "hooks", "session_start_context.mjs"),
+  );
+  fs.writeFileSync(path.join(root, "AGENTS.md"), agents, "utf8");
+  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe" });
+  return root;
+}
+
 function removeFixture(root: string) {
   fs.rmSync(root, { force: true, recursive: true });
 }
@@ -211,7 +243,6 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
     const config = readCodexConfig();
     const features = asTomlRecord(config.features, "features");
-    const hooks = asTomlRecord(config.hooks, "hooks");
     const safetyGroups = hookGroups(config, "PreToolUse");
     const safetyGroup = safetyGroups.find((group) => group.matcher === "^Bash$");
 
@@ -233,7 +264,27 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(windowsSafetyScript).toContain("git rev-parse --show-toplevel");
     expect(windowsSafetyCommand).not.toContain('"');
     expect(safetyEntry.timeout).toBe(30);
-    expect(hooks.SessionStart).toBeUndefined();
+    expect(fs.existsSync(sessionStartHookPath)).toBe(true);
+    const sessionGroups = hookGroups(config, "SessionStart");
+    expect(sessionGroups).toHaveLength(1);
+    const sessionGroup = sessionGroups[0];
+    if (!sessionGroup) throw new Error("missing SessionStart matcher group");
+    expect(sessionGroup.matcher).toBe("^compact$");
+    const sessionEntries = asTomlRecords(sessionGroup.hooks, "hooks.SessionStart[0].hooks");
+    expect(sessionEntries).toHaveLength(1);
+    const sessionEntry = sessionEntries[0];
+    if (!sessionEntry) throw new Error("missing SessionStart Hook entry");
+    expect(sessionEntry.type).toBe("command");
+    expect(commandForHook(sessionEntry, "command", "SessionStart")).toContain(
+      "session_start_context.mjs",
+    );
+    expect(sessionEntry.additionalContextLimit).toBe(4096);
+    expect(sessionEntry.timeout).toBe(10);
+    const sessionWindowsCommand = commandForHook(sessionEntry, "command_windows", "SessionStart");
+    expect(decodeWindowsPowerShellCommand(sessionWindowsCommand, "SessionStart")).toContain(
+      "session_start_context.mjs",
+    );
+    expect(sessionWindowsCommand).not.toContain('"');
 
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       expect(hookGroups(config, event), event).toHaveLength(1);
@@ -253,8 +304,6 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
 
     expect(fs.existsSync(qualityScript)).toBe(true);
     expect(fs.existsSync(loggingScript)).toBe(true);
-    expect(asTomlRecord(config.hooks, "hooks").SessionStart).toBeUndefined();
-
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       const groups = hookGroups(config, event);
       const entries = hookEntries(config, event);
@@ -910,6 +959,257 @@ function runConfiguredWindowsCommand(
     stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
   };
 }
+
+function sessionStartCommandFor(launcher: LoggingLauncher) {
+  const field = launcher === "unix" ? "command" : "command_windows";
+  const config = readCodexConfig();
+  return commandForHook(
+    hookEntryForScript(config, "SessionStart", "session_start_context.mjs"),
+    field,
+    "SessionStart",
+  );
+}
+
+function sessionStartPayload(source = "compact") {
+  return JSON.stringify({
+    session_id: "contract-session-start",
+    transcript_path: null,
+    cwd: repoRoot,
+    hook_event_name: "SessionStart",
+    model: "contract-model",
+    permission_mode: "default",
+    source,
+  });
+}
+
+function runConfiguredSessionStartHook(
+  payload: string,
+  launcher: LoggingLauncher,
+  cwd: string,
+): HookResult {
+  const command = sessionStartCommandFor(launcher);
+  if (launcher === "windows") {
+    return runConfiguredWindowsCommand(command, payload, cwd);
+  }
+
+  const result = spawnSync("sh", ["-c", command], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+describe("Codex SessionStart compact context Hook contract", () => {
+  it("returns the complete root AGENTS.md with the SessionStart structured shape", () => {
+    const agentsPath = path.join(repoRoot, "AGENTS.md");
+    const expectedContext = fs.readFileSync(agentsPath, "utf8");
+    const result = runSessionStartHook(sessionStartPayload(), path.join(repoRoot, "docs"));
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const output = JSON.parse(result.stdout) as {
+      hookSpecificOutput?: {
+        hookEventName?: string;
+        additionalContext?: string;
+      };
+    };
+    expect(output).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: expectedContext,
+      },
+    });
+    expect(Buffer.byteLength(output.hookSpecificOutput?.additionalContext ?? "", "utf8")).toBe(
+      fs.statSync(agentsPath).size,
+    );
+  });
+
+  it.each(["startup", "resume", "clear"])(
+    "does not emit context for non-compact source %s",
+    (source) => {
+      const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-noncompact-"));
+      try {
+        const result = runSessionStartHook(sessionStartPayload(source), nonRepository);
+
+        expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
+      } finally {
+        removeFixture(nonRepository);
+      }
+    },
+  );
+
+  it("preserves UTF-8, quotes, backslashes, and newlines through JSON output", () => {
+    const agents = '# "quoted"\n\\backslash\n日本語の指示\n改行\n';
+    const fixture = makeSessionFixture(agents);
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runSessionStartHook(sessionStartPayload(), nested);
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("uses the explicit context limit with a margin over the actual root file estimate", () => {
+    const entry = hookEntryForScript(
+      readCodexConfig(),
+      "SessionStart",
+      "session_start_context.mjs",
+    );
+    const agentsBytes = fs.statSync(path.join(repoRoot, "AGENTS.md")).size;
+    const limit = entry.additionalContextLimit;
+
+    expect(typeof limit).toBe("number");
+    expect(Number.isInteger(limit)).toBe(true);
+    expect(limit).toBe(4096);
+    expect(limit as number).toBeGreaterThanOrEqual(Math.ceil(agentsBytes / 4));
+  });
+
+  it.each([
+    "",
+    "{",
+    "null",
+    "[]",
+    "{}",
+    '{"hook_event_name":"SessionStart"}',
+    '{"hook_event_name":"Other","source":"compact","token":"super-secret-token","cwd":"C:\\\\secret\\\\path"}',
+  ])("fails closed with structured output for malformed input: %j", (payload) => {
+    const result = runSessionStartHook(payload);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const output = JSON.parse(result.stdout) as {
+      continue?: boolean;
+      stopReason?: string;
+      hookSpecificOutput?: unknown;
+    };
+    expect(output.continue).toBe(false);
+    expect(output.hookSpecificOutput).toBeUndefined();
+    expect(output.stopReason).toMatch(/^compact後の必須指示を再注入できませんでした:/);
+    expect(output.stopReason).not.toContain("super-secret-token");
+    expect(output.stopReason).not.toContain(repoRoot);
+  });
+
+  it("fails closed without exposing the cwd when repository root resolution fails", () => {
+    const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-not-repo-"));
+    try {
+      const result = runSessionStartHook(sessionStartPayload(), nonRepository);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("repository root解決失敗");
+      expect(output.stopReason).not.toContain(nonRepository);
+    } finally {
+      removeFixture(nonRepository);
+    }
+  });
+
+  it("fails closed when root AGENTS.md is missing", () => {
+    const fixture = makeSessionFixture();
+    const agentsPath = path.join(fixture, "AGENTS.md");
+    try {
+      fs.rmSync(agentsPath, { force: true });
+      const result = runSessionStartHook(sessionStartPayload(), fixture);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("root AGENTS.md欠落");
+      expect(output.stopReason).not.toContain(fixture);
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("fails closed when root AGENTS.md cannot be read", () => {
+    const fixture = makeSessionFixture();
+    const agentsPath = path.join(fixture, "AGENTS.md");
+    try {
+      fs.rmSync(agentsPath, { force: true });
+      fs.mkdirSync(agentsPath);
+      const result = runSessionStartHook(sessionStartPayload(), fixture);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("root AGENTS.md read失敗");
+      expect(output.stopReason).not.toContain(fixture);
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("contains a safe structured-output fallback for output generation failure", () => {
+    const source = fs.readFileSync(sessionStartHookPath, "utf8");
+
+    expect(source).toContain("structured output生成失敗");
+    expect(source).toContain("continue: false");
+  });
+
+  it("executes the configured Unix launcher from a nested cwd", () => {
+    if (process.platform === "win32") return;
+
+    const agents = "# Unix launcher fixture\n日本語\n";
+    const fixture = makeSessionFixture(agents);
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runConfiguredSessionStartHook(sessionStartPayload(), "unix", nested);
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("executes the configured Windows launcher from a nested cwd", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = fs.mkdtempSync(path.join(repoRoot, "codex session Windows 空白-"));
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runConfiguredSessionStartHook(sessionStartPayload(), "windows", nested);
+      const agents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 10_000);
+});
 
 function runConfiguredLoggingHook(
   event: LoggingEvent,

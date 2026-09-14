@@ -298,7 +298,7 @@ Hookが動かなければ、まず `/hooks` とproject／Hookのtrust状態、`C
 - file identityは、Git rename mapping、exact content SHA-256の一意一致、対応付け不能の順で解決する。similarity、filename推測、edit distanceは使わない。
 - `PostToolUse` はMarkdown変更時の早期フィードバックであり、障害時はfail-openしてstderrへ診断する。既存のlogging Hookとは別責務である。
 - `Stop` は `stop_hook_active=false` のとき、新規違反またはquality check不能ならstructured `decision=block`を返す。`true` のときは診断付きでallowし、baseline stateを削除する。Hook failure契約とRepository gateのfailure契約は分離する。
-- 現在のIssue #135は未完了のため、compact後の `SessionStart` にroot `AGENTS.md`を再注入するHookはこのbranchでは設定しない。
+- Issue #135がmainへ取り込まれた現在のbranchでは、`SessionStart` の `matcher = "^compact$"` に限ってroot `AGENTS.md`全文を `hookSpecificOutput.additionalContext` へ再注入する。`startup`／`resume`／`clear`では出力せず、root解決、`AGENTS.md`読込、structured output生成に失敗した場合は、入力本文やpathを含めない `continue=false`／`stopReason` でfail-closeする。設定値の `additionalContextLimit = 4096` はCLIのapproximate token spill thresholdとして扱い、stdout文字数制限とは扱わない。
 - production ruleは現在 `not-configured` であり、既存markdownlintの構造検査を重複実装しない。具体的なrule値が確定するまで、scanner／Hook／baseline／Git比較の契約だけを有効にする。
 
 Repository-level gateの比較基準は次のとおりです。
