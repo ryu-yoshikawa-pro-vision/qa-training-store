@@ -65,3 +65,29 @@
   - Result: 親Agentが文書差分、固定契約、既存評価、指定gateを確認した。
   - 親Agentの判断: source、dependency、test、validator、PR #146実装を追加せず、レビュー指摘に対応する文書差分だけを継続する。
 - Progress: 64% (7/11)
+
+## 2026-09-15 15:16 (JST)
+
+- Summary: 既存Skillのsemantic output evalを完了し、PR #146が引き続き未mergeであることをpush前に再確認した。
+- Changes: semantic evalの結果を`.codex/runs/20260915-131743-JST/semantic-result.json`へ保存した。source、dependency、test、validator、Hook、textlint実装は追加していない。
+- 判断 / 理由: `pnpm run eval:skills:semantic --model gpt-5.6-luna --output .codex/runs/20260915-131743-JST/semantic-result.json`はexit 0で完了し、`code-review`、`exploratory-qa`、`feature-plan`、`harness-improvement`の8ケース（各3試行、計24試行）は全件で期待判定と一致した。4件は`stable_pass`、4件は想定された失敗条件を満たす`stable_fail`で、全ケースの`calibration_match`がtrueだった。ライブtrigger evalはcleanな一時Targetを用いてall splitを1回試行したが、35分の実行上限でexit 124となり結果artifactを生成しなかったため、PASSとは扱わずUnavailableとして記録する。PR #146は再確認時点で`open`・`merged:false`・`mergeable:true`、headは`1382f41d73c675a352dd4a9fea5598d6eb3c4a8c`のままであり、同PRのtextlint実装を取り込まない判断を維持する。
+- Validation: semantic evalはPASS（schema version 1、evaluator SHA `3bfd2c7a09b06e95ae2466a5afd40df581b2ff6d`、dataset SHA `129f3fd85f211eae794b959087e48866e2490ed9a7f26ba07630bef643b395f1`、`codex-cli 0.154.0`、model `gpt-5.6-luna`）。trigger evalの実行コマンドは`pnpm run eval:skills:trigger --target-root <clean target> --split all --output .codex/runs/20260915-131743-JST/trigger-eval.json`で、exit 124・artifactなし。代替証跡として`eval:skills:trigger:validate`、`validate:skills`、関連contract 6 files（85/85）は既にPASSしている。Sanitizerと最終Run状態の確認、commit / push、最新CI、PR本文更新は続行する。
+- ブロッカー / 残作業: live trigger evalのartifact未生成、全体`format:check`の既存app TSX 78 files、全`test:contracts`と全`test:repository`に残る既存`node:sqlite`のVite bundling failure、Windows PowerShell 5.1直実行時の既存UTF-8読込差異は未解消のまま記録する。これらは今回の文書差分と無関係なため、対象外ファイルを広げない。残りはRun Artifact Sanitizer、最終差分・commit、push後のSHA一致、Web CI / Mobile App CI、PR本文更新である。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親Agentが既存CLIでsemantic evalを実行し、PR #146 / #151の最新metadataを再確認した。
+  - 親Agentの判断: semantic evalは期待判定一致として採用し、live triggerは実行上限によるUnavailableとして明示する。PR #146未mergeのため`lint:text`は実行しない。
+- Progress: 82% (9/11)
+
+## 2026-09-15 15:17 (JST)
+
+- Summary: Run Artifactをfinal commit前の状態へ確定し、commit対象をRun-localの3ファイルに限定した。
+- Changes: `.codex/runs/20260915-131743-JST/REPORT.md`、`TASKS.md`、`semantic-result.json`を最終証跡として更新・追加した。実装commit`3bfd2c7a09b06e95ae2466a5afd40df581b2ff6d`以外のsource、dependency、test、workflow、設定ファイルは変更対象に含めない。
+- 判断 / 理由: `sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-131743-JST -Write -Check`は5 files scanned、0 changes、0 replacements、residual findings 0で完了した。Run Artifactの内容をこれ以上変更せず、明示した3ファイルだけを次のcommit対象とする。
+- Validation: Run全ファイルのPrettier checkはPASS、`git diff --check`もPASS。`TASKS.md`のNow 8件とDiscovered 3件はすべて完了した。commit前にbranch、stage、recovery、PR headを再確認し、同一branchへ通常pushする。push後に最終headのWeb CI / Mobile App CIを確認してからPR本文を更新する。
+- ブロッカー / 残作業: commit、push、local / remote / PR SHA一致確認、最新CI確認、PR #151本文更新が残っている。PR #151はmergeせずopen・未mergeを維持する。ライブtrigger evalは前checkpointのUnavailable記録を維持する。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親AgentがRun Artifactのsanitization、format、diff、commit対象を最終確認した。
+  - 親Agentの判断: 変更責務と証跡を確定し、次はGit safety確認後の通常commit / pushへ進む。
+- Progress: 100% (11/11)

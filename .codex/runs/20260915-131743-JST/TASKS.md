@@ -7,10 +7,10 @@
 - [x] 2. 必要な調査を行い、証跡をrun-local REPORTへ残す。
 - [x] 3. 実行タスクへ落とし込む。
 - [x] 4. 実装・変更する。
-- [ ] 5. ローカル検証する。
+- [x] 5. ローカル検証する。
 - [x] 6. 変更範囲を確認する。
-- [ ] 7. Run Artifactをfinal commit前状態まで更新・検証する。
-- [ ] 8. commit対象を確定する。
+- [x] 7. Run Artifactをfinal commit前状態まで更新・検証する。
+- [x] 8. commit対象を確定する。
 
 ## 完了処理の参照先
 
@@ -28,7 +28,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 - [x] A1. 最新Skillの一般英語混在を、固定契約・正式名称・技術用語と分離して再監査する。
 - [x] A2. 固定section名が実見出しに残っていることをvalidator / contract testで確認する。
-- [ ] A3. PR #146の状態が変わっていないことをpush前に再確認する。
+- [x] A3. PR #146の状態が変わっていないことをpush前に再確認する。
 
 ## Blocked（ブロック中）
 
