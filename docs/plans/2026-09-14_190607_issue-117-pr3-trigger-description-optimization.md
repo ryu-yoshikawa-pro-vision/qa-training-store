@@ -23,9 +23,9 @@ PR2 baseline:
 - model: `gpt-5.6-luna`
 - 24 cases: `pass=15`、`false_negative=2`、`sibling_misroute=0`、`unexpected_trigger=0`、`unobservable=7`
 
-PR2 baselineはPR3で調査するfailureの根拠と履歴として使用する。ただし、baseline取得後に公開`main`へTrigger Eval datasetとbaseline Resultが入っており、Routing Targetのproject configは`web_search = "cached"`である。`codex-cli 0.153.4`では`cached`でもWeb検索toolがmodelへ公開されるため、PR3のdescription変更をPR2保存baselineへ直接比較して因果を主張しない。
+PR2 baselineはPR3で調査するfailureの根拠と履歴として使用する。ただし、baseline取得後に公開`main`へTrigger Eval datasetとbaseline Resultが入っており、Routing Targetのproject configは`web_search = "cached"`である。PR3ではRouting Targetからcase固有answer keyを除外し、評価用Target内だけ`web_search = "disabled"`へ変更する。
 
-PR3のlive evalでは、評価用Routing Target内だけで`web_search = "disabled"`へ変更し、さらにeffective config / tool catalogを確認して公開Repository上のanswer keyへ到達できる外部toolがmodelへ公開されていない状態にする。baseline source `3c5e35e...`から同じ外部tool隔離条件のcontrolを新しく取得し、そのcontrolとcandidateを比較する。Repository本体の`.codex/config.toml`、Trigger Eval runner、dataset、観測方式、scoring、comparison、timeout、routing engineは変更しない。
+PR2保存baselineとPR3 candidateではWeb検索条件が異なるため、description変更の直接比較にはbaseline source `3c5e35e...`から同じWeb無効条件のcontrolを新しく取得し、そのcontrolとcandidateを比較する。Repository本体の`.codex/config.toml`、Trigger Eval runner、dataset、観測方式、scoring、comparison、timeout、routing engineは変更しない。
 
 ---
 
@@ -79,6 +79,7 @@ PR2 baselineでdescriptionとの関係を確認する対象は次の2件であ�
 - PR6 Workflow E2E Evalの先取り
 - Product code、Product test、Training、dependency、workflow、`.codex/agents/**`の変更
 - 新しいSkill、Subagent、Agent Runtime、Workflow Engineの追加
+- PR3専用のsandbox、外部tool監視、Target管理frameworkの追加
 
 既存のTrigger Eval契約は `docs/adr/0024-trigger-eval-selector-and-query-execution-contract.md`、`docs/adr/0025-trigger-eval-otel-observation-contract.md`、現行runner / evaluatorを正本として参照し、このPlanへ再定義しない。
 
@@ -239,7 +240,7 @@ candidateは次を満たすこと。
 
 candidateを複数回作り直す場合も、train結果だけに合わせて語句を増やさない。意味上の仮説がなくなった時点で調整を止める。
 
-すでにEvaluator側へcandidateをcommitした後で、そのSkillの全candidateを不採用と判断した場合は、対象Skillのfrontmatter `description`を`implementation_base_sha`時点の内容へ戻す通常commitを追加する。`reset`、`rebase`、force pushで履歴を書き換えない。2 Skillのうち片方だけ不採用の場合は不採用側だけ戻し、最終diffでそのSkillのsource差分が0であることを確認してno-opとして扱う。
+candidateをRepository branchへcommitした後で不採用と判断したSkillは、対象Skillのfrontmatter `description`を`implementation_base_sha`時点の内容へ戻す通常commitを追加する。`reset`、`rebase`、force pushで履歴を書き換えない。2 Skillのうち片方だけ不採用の場合は不採用側だけ戻し、最終diffでそのSkillのsource差分が0であることを確認してno-opとして扱う。
 
 ### 6.1 live eval前のEvaluator clean条件
 
@@ -253,23 +254,25 @@ candidateを複数回作り直す場合も、train結果だけに合わせて語
 4. `.codex/runs/**`を除きEvaluator working treeがcleanであることを確認する。
 5. そのcommitを評価対象candidateとして記録する。
 
-train結果を受けて別candidateへ変更する場合も、新しい意味上の仮説を説明したうえで同じ手順を繰り返す。未commitのsource差分を残したままrunnerのpreflightを回避しない。全candidateを不採用にしたSkillは上記の通常commitで`implementation_base_sha`時点のdescriptionへ戻し、その後にEvaluator clean条件を再確認する。
+train結果を受けて別candidateへ変更する場合も、新しい意味上の仮説を説明したうえで同じ手順を繰り返す。未commitのsource差分を残したままrunnerのpreflightを回避しない。
 
 ---
 
 ## 7. answer-key-free Routing Targetの作成
 
-baseline source側とcurrent-main側では目的が異なるため、Target作成方式も分ける。両方ともlocal filesystem上のanswer keyだけでなく、Web検索や外部toolから公開Repository上のanswer keyへ到達する経路も閉じる。
+PR3で必要なのは、routing対象Agentへcase固有answer keyを直接与えないことである。Routing Targetからdataset、baseline Result、case固有の評価資料を除外し、評価用TargetだけWeb検索を無効化する。
+
+ホストfilesystem全体やCodex Runtimeの全外部機能をPR3独自に隔離・監査する仕組みは追加しない。既存runnerのsandbox、Project trust、Hook、OTel契約はそのまま使用する。
 
 ### 7.1 baseline source側Target
 
-PR2 baselineはfailure選定の履歴として維持する。description変更の因果比較には、baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`を起点に、外部tool経路を閉じた新しいcontrolを使用する。
+PR2 baselineはfailure選定の履歴として維持する。description変更の因果比較には、baseline `routing_source_git_sha` `3c5e35ed42712574eb9d89051820c9e27f137a16`を起点に、Web検索条件をcandidateと揃えた新しいcontrolを使用する。
 
 1. Repository外にEvaluatorとは別のGit repositoryを作る。
 2. baseline `routing_source_git_sha` `3c5e35e...`だけを取得する。`git fetch --depth=1 <source> 3c5e35e...`相当の方法を使用してよい。
 3. `3c5e35e...`をdetached HEADでcheckoutし、treeがbaseline sourceと一致していることを確認する。
 4. 後続の`main`、PR2 dataset commit、現在のbranch等へのrefをTargetへ残さない。取得後はremoteを削除する。
-5. `3c5e35e...`にTrigger Eval dataset、現在のcase ID、dataset fingerprint、PR2 baseline result等のanswer keyが存在しないことを確認する。
+5. `3c5e35e...`にTrigger Eval dataset、現在のcase ID、dataset fingerprint、PR2 baseline Result等のanswer keyが存在しないことを確認する。
 6. baseline sourceに元から存在する非answer-key fileは削除しない。
 7. `.codex/config.toml`の`web_search = "cached"`だけを`web_search = "disabled"`へ変更してcommitし、このcommitを`control_target_sha`として記録する。親は正確に`3c5e35e...`とし、他のfileを変更しない。
 8. control Targetをdetached HEADにし、clean、EvaluatorとのGit common-dir非共有、`objects/info/alternates`なし、Trigger Eval dataset不存在、remoteなしを確認する。
@@ -278,7 +281,7 @@ PR2 baselineはfailure選定の履歴として維持する。description変更�
 11. candidate Targetをdetached HEADで評価し、preflight条件を再確認する。
 12. Resultの`routing_source_git_sha`にはcontrol / candidateそれぞれの実Target HEADを記録し、PR2 baseline SHAへ偽装しない。
 
-この構成では、PR3の直接比較対象は次となる。
+直接比較対象は次となる。
 
 ```text
 3c5e35e... baseline source
@@ -286,11 +289,11 @@ PR2 baselineはfailure選定の履歴として維持する。description変更�
        └─ candidate_target_sha: candidate descriptionだけ変更
 ```
 
-controlとcandidateのTarget file差分はcandidate descriptionだけに限定する。Web検索無効化によってPR2保存baselineとの条件が変わるため、PR2 baselineをcandidateの直接comparison baselineにはしない。
+controlとcandidateのTarget file差分はcandidate descriptionだけに限定する。
 
 ### 7.2 current-main側Target
 
-current-main側は因果比較ではなく、現在のrouting contextでの統合確認に使う。現在の`main`にはTrigger Eval dataset、過去の結果、case固有の評価設計を記載した文書が存在するため、これらのanswer keyを持たず、外部tool経路も閉じたfresh repositoryを作る。
+current-main側は因果比較ではなく、現在のrouting contextでの統合確認に使う。現在の`main`にはTrigger Eval dataset、過去の結果、case固有の評価設計を記載した文書が存在するため、これらを持たないfresh repositoryを作る。
 
 1. Target作成直前にlatest `main`を再確認し、使用するsource SHAを確定する。
 2. 確定したlatest `main`のworking filesをRepository外へexportする。
@@ -311,27 +314,15 @@ current-main側は因果比較ではなく、現在のrouting contextでの統�
 7. ADR-0024 / ADR-0025やEvaluatorの一般契約など、個別caseの正解を含まない評価方式の文書は、answer key隔離だけを理由に削除しない。
 8. 元repositoryの`.git`、remote ref、object database、alternatesをコピーしない。
 9. exportした`.codex/config.toml`の`web_search`だけを`disabled`へ変更する。その他のproject config / hooks設定はlatest `main`の値を維持する。
-10. 必要なcandidate descriptionだけを適用する。
+10. 最終採用candidate descriptionだけを適用する。
 11. export先で新しく`git init`し、filesをcommitする。
 12. remoteを設定せず、`HEAD`をdetachする。
 13. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空であることを確認する。
 14. Resultの`routing_source_git_sha`にはfresh repositoryの実Target HEADを記録する。
 
-### 7.3 外部tool経路の遮断
+### 7.3 Web検索とProject trust
 
-`codex-cli 0.153.4`の`WebSearchMode`には`disabled`があり、Web検索toolは`Disabled`または未設定の場合に生成されない。さらにCodexのeffective configにはProject config以外のlayerからMCP server等の外部toolが入る可能性があるため、Target内の`.codex/config.toml`だけを見てanswer-key-freeと判定しない。
-
-各live eval対象Targetをtrustした後、Codex 0.153.4が提供する通常のconfig / tool確認手段でeffective configとmodel-facing tool catalogを確認し、次を満たすことを確認する。
-
-- effectiveな`web_search`が`disabled`である。
-- GitHub、Web、公開Repository、外部検索へ到達できるenabled MCP server、connector等の外部toolがmodelへ公開されていない。
-- `cached` / `indexed` / `live`へ戻すSessionFlags、managed config等の上位layerが有効になっていない。
-- Repository本体、Evaluator root、`~/.codex/config.toml`は外部tool隔離のために変更していない。
-- runnerの`--sandbox read-only`によるshell側network制限を維持し、外部tool隔離のためにsandboxを緩めていない。
-
-外部toolが有効な場合は、Codex 0.153.4の既存設定でそのtoolを評価中だけ無効化できることを確認した場合に限り、一時Targetまたは評価sessionの範囲で無効化し、effective config / tool catalogを再確認する。確実に無効化できない場合はlive evalを実行せずenvironment preparation failureとして停止する。runnerへ新しいMCP監視、connector filter、tool proxyは実装しない。
-
-### 7.4 Project trust / hook trust
+live evalするTargetでは、Target内の`.codex/config.toml`が`web_search = "disabled"`であることを確認する。Repository本体の`.codex/config.toml`は変更しない。
 
 baseline source側・current-main側のTargetは新しいrepository pathで作成するため、live eval前にそのexact Target pathをcurrent Codexの通常のuser-consented project trust手順でtrustedにする。Repository-owned hookに追加trustが必要な場合も通常手順で承認する。
 
@@ -344,19 +335,15 @@ baseline source側・current-main側のTargetは新しいrepository pathで作�
 
 Project trustまたは必要なhook trustを確立できない場合はenvironment preparation failureとして停止する。description failure、routing regression、`unobservable`改善対象へ読み替えない。
 
-answer key確認のための検索とeffective tool確認は実行時の一時確認に限定し、PR3専用のTarget generator、scanner、repository helper、tool inspectorは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
+answer key確認のための検索は実行時の一時確認に限定し、PR3専用のTarget generator、scanner、repository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
 
 ---
 
 ## 8. Trigger Evalの評価方針
 
-PR3では、PR2 baselineをfailure選定の履歴として扱い、外部tool経路を閉じたbaseline source controlとcandidateの比較をdescription変更の因果評価に使う。current-main側runは現在のrouting contextでの統合確認として分離する。
+PR3では、PR2 baselineをfailure選定の履歴として扱い、Web検索条件を揃えたbaseline source controlとcandidateの比較をdescription変更の因果評価に使う。current-main側runは現在のrouting contextでの統合確認として分離する。
 
 ### 8.1 Web無効controlとの因果比較
-
-目的:
-
-- baseline取得時のrouting source `3c5e35e...`を起点に、controlとcandidateで外部tool条件を同一にし、candidate description以外のTarget差分をなくしてdescription変更の影響を比較する。
 
 #### control `all`
 
@@ -374,10 +361,9 @@ controlは次を満たすこと。
 - Target HEADは`control_target_sha`である。
 - `control_target_sha`の親は`3c5e35e...`である。
 - `3c5e35e...`からのTarget file差分は`.codex/config.toml`の`web_search: cached -> disabled`だけである。
-- effective config / tool catalog上で公開Repositoryのanswer keyへ到達できる外部toolがmodelへ公開されていない。
 - Codex version、model、dataset fingerprint、Result schema、case ID setはcandidate評価と同一条件である。
 
-PR2保存baselineとのoutcome差は環境・外部tool条件変更の診断情報として記録できるが、description変更の因果判定には使用しない。
+PR2保存baselineとのoutcome差はWeb検索条件等の差を含む診断情報として記録できるが、description変更の因果判定には使用しない。
 
 PR2 baselineで`false_negative`だった対象caseについて、control結果を次のように扱う。
 
@@ -406,7 +392,7 @@ pnpm run eval:skills:trigger -- \
 
 train runの結果だけを理由に、意味上の根拠がない追加語句をcandidateへ足さない。candidateを作り直す場合は新しい意味上の仮説を先に説明し、Target側では同じ`control_target_sha`を親として新candidate commitを作る。
 
-意味上妥当で採用可能なcandidateがなくなったSkillは、Evaluator側descriptionを`implementation_base_sha`時点へ通常commitで戻してno-opとする。別Skillのcandidateを採用する場合は、そのSkillだけ評価を継続する。
+意味上妥当で採用可能なcandidateがなくなったSkillは、Repository branch側descriptionを`implementation_base_sha`時点へ通常commitで戻してno-opとする。別Skillのcandidateを採用する場合は、そのSkillだけ評価を継続する。
 
 #### 最終`all` comparison
 
@@ -430,11 +416,22 @@ coverage改善だけを目的としたcase retry、Target交換、timeout変更�
 
 controlでobservableだったcaseがcandidateで`newly_unobservable`になった場合、それ自体をrouting regressionとは扱わない。ただし今回のrunでは非回帰を判定できないため完了扱いにせず停止する。case単位で都合のよい結果が出るまでretryしない。`recovered_observable`はcurrent outcomeを確認する。
 
+##### final `all`後にcandidateを不採用とする場合
+
+最終`all`で初めてcandidateの不採用が確定した場合、最終sourceと評価artifactを不一致のままcurrent-main側確認へ進めない。
+
+- 対応するcontrol failureが`fixed`にならなかったSkillは不採用とし、Repository branch側descriptionを`implementation_base_sha`時点へ通常commitで戻す。
+- 一部Skillだけ不採用とし、他のcandidateを残す場合は、`control_target_sha`を親として最終採用candidateだけを含む新しいTarget commitを作り、final `all` comparisonを再実行する。
+- 再実行はwordingの追加調整ではなく、最終sourceと評価対象を一致させるために限る。同じ最終candidate setで都合のよい結果を得るためのretryはしない。
+- `regressed>0`が発生した場合はcandidate setを採用しない。原因切り分けのために組合せを総当たりする評価は追加せず、対象candidateを戻してno-opとする。
+- 最終採用candidateが0件になった場合はPR3 source変更をno-opとし、current-main側candidate live evalは行わない。
+- current-main側Targetには、最後にcontrol comparisonを通過したcandidate setだけを適用する。
+
 ### 8.2 現在の`main`相当での統合確認
 
 目的:
 
-- controlとの因果比較とは別に、candidate descriptionを現在のrepository routing contextへ置いたとき、期待するroutingが成立するかを確認する。
+- controlとの因果比較とは別に、最終採用candidate descriptionを現在のrepository routing contextへ置いたとき、期待するroutingが成立するかを確認する。
 
 current-main側Target:
 
@@ -442,9 +439,9 @@ current-main側Target:
 - Trigger Eval dataset、`.codex/runs/**`、case固有answer keyを含む文書・評価artifactをexport時点で除外する。
 - `.codex/config.toml`はlatest `main`の内容を基にし、評価用Target内だけ`web_search = "disabled"`へ変更する。
 - 個別caseの正解を含まないcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
-- latest `main`側の対象Skillにmaterial driftがないことを確認してから、同じcandidate descriptionを適用する。
+- latest `main`側の対象Skillにmaterial driftがないことを確認してから、最終採用candidate descriptionだけを適用する。
 - baseline source側Targetとは別Target・別artifactとして扱う。
-- Target作成後にcase ID / raw query / expected Skill等のanswer keyが残っていないことと、effective config / tool catalogで外部tool経路が閉じていることを確認してからlive evalへ進む。
+- Target作成後にcase ID / raw query / expected Skill等のanswer keyが残っていないことを確認してからlive evalへ進む。
 
 ```bash
 pnpm run eval:skills:trigger -- \
@@ -470,7 +467,7 @@ current-main側でcandidateによる回帰まで因果判定するためだけ�
 
 source descriptionを変更しない場合はcandidate tuningを行わない。
 
-意味上のgap自体が確認できない場合は、外部tool経路を閉じたcontrol runをdescription健全性の証明として追加実行する必要はない。意味上のgapがあるもののcontrolでPR2の対象failureが既に`pass`だった場合も、そのfailureに対するsource変更はno-opとし、過去baselineと現在controlの差を記録する。
+意味上のgap自体が確認できない場合はcontrol runをdescription健全性の証明として追加実行する必要はない。意味上のgapがあるもののcontrolでPR2の対象failureが既に`pass`だった場合も、そのfailureに対するsource変更はno-opとし、過去baselineと現在controlの差を記録する。
 
 candidateを一度以上commitした後で全candidateを不採用としたSkillも、`implementation_base_sha`時点のdescriptionへ戻す通常commitを追加し、最終source差分が0であることを確認したうえでno-opとして扱う。
 
@@ -513,7 +510,7 @@ git diff <implementation_base_sha>...HEAD -- .agents/skills .codex/config.toml
 
 `implementation_base_sha`は、source変更へ進む直前に実装branchへ取り込んだlatest `main` SHAとする。current-main側Target作成直前の再確認で`main`を追加取り込みした場合は、その取り込み後のlatest `main` SHAへ更新する。
 
-source変更がある場合は、最終diffでSkill source変更が根拠を確認したfrontmatter `description`だけであり、Repository本体の`.codex/config.toml`に差分がないことを確認する。評価用Targetで作成した外部tool隔離用の一時変更は実装branchへ持ち込まない。不採用Skillは最終diffでsource差分が0であることを確認する。
+source変更がある場合は、最終diffでSkill source変更が根拠を確認したfrontmatter `description`だけであり、Repository本体の`.codex/config.toml`に差分がないことを確認する。評価用Targetで作成した`web_search = "disabled"`の一時変更は実装branchへ持ち込まない。不採用Skillは最終diffでsource差分が0であることを確認する。
 
 Plan、active Run Artifact、PR本文など、実装結果を記録する既存文書の更新はsource scopeとは分けて確認する。
 
@@ -538,7 +535,6 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] 実装開始時のlatest `main`を確認し、source変更前に実装branchへ必要な`main`変更を取り込んでいる。
 - [ ] source変更へ進む直前のlatest `main` SHAを`implementation_base_sha`として記録し、後で`main`を追加取り込みした場合は基準SHAも更新している。
 - [ ] current-main側Target作成直前にもlatest `main`を再確認し、使用した`main` SHAを記録している。
-- [ ] latest `main`にrouting / Evaluator / `.codex/config.toml`関連変更が入った場合、取り込み後の`SKILL.md`、`AGENTS.md`、project config、Evaluator契約でdescription gapと評価前提を再確認している。
 - [ ] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認し、PR2 baselineはfailure選定の履歴であってcandidateの直接controlではないことを明示している。
 - [ ] baseline `evaluator_git_sha`と実行時Evaluatorの差分を確認し、observation / scoring / outcome mapping / comparison / model / timeout / dataset読込 / project configの意味が変わっていないことを確認している。
 - [ ] 2件それぞれについて、train query、対応validation case、expected Skill、sibling Skill、`AGENTS.md` routingを比較している。
@@ -547,16 +543,13 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] baseline source側control Targetは`3c5e35e...`を親とし、差分が`.codex/config.toml`の`web_search: cached -> disabled`だけである。
 - [ ] candidate Targetは`control_target_sha`を直接の親とし、Target差分が採用候補のfrontmatter `description`だけである。
 - [ ] candidateを作り直した場合も各candidate Targetを同じ`control_target_sha`から作り、候補間の差分を累積していない。
-- [ ] live evalする各Targetをtrustした後、effective configで`web_search = "disabled"`を確認している。
-- [ ] live evalする各Targetで、GitHub / Web / 公開Repository等へ到達できるenabled MCP server、connector等の外部toolがmodel-facing tool catalogへ公開されていないことを確認している。
-- [ ] 外部tool隔離のためにRepository本体、Evaluator root、`~/.codex/config.toml`、runner、sandbox契約を変更していない。
+- [ ] live evalする各Targetの`.codex/config.toml`で`web_search = "disabled"`を確認している。
 - [ ] 変更した場合はRepository sourceのfrontmatter `description`だけに限定し、Skill本文・references・dataset・runner・`AGENTS.md`・Repository本体の`.codex/config.toml`を変更していない。
 - [ ] candidate wordingをtrain query固有の語彙へ過度に寄せていない。
 - [ ] 変更後descriptionが一文の入口契約として簡潔で、Skill本文の責務やquery固有条件の列挙によって過度に長文化していない。
 - [ ] candidate live eval前にcandidateをcommitし、Evaluatorの`.codex/runs/**`以外がcleanである。
-- [ ] 全candidateを不採用としたSkillは`implementation_base_sha`時点のdescriptionへ通常commitで戻し、最終source差分が0である。
-- [ ] baseline source側Targetにcurrent `main`や後続PRへのref、Trigger Eval dataset、現在のbaseline artifactへの取得経路がない。
-- [ ] baseline source側Targetでは外部tool隔離に必要な一時設定以外の非answer-key fileを不必要に変更・削除していない。
+- [ ] 不採用candidateは`implementation_base_sha`時点のdescriptionへ通常commitで戻し、最終source差分が0である。
+- [ ] baseline source側Targetにcurrent `main`や後続PRへのref、Trigger Eval dataset、現在のbaseline artifactが含まれていない。
 - [ ] current-main側Targetは元repositoryの`.git`、remote ref、object database、alternatesを共有していない。
 - [ ] current-main側TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
 - [ ] current-main側Targetからcase固有answer keyを含む既知文書・評価artifactを除外している。
@@ -565,12 +558,14 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] 各TargetはEvaluatorとGit common-dirを共有せず、alternatesを使用せず、cleanなdetached HEADである。
 - [ ] live evalする各Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認している。
 - [ ] trust確立のためにrunnerや補助scriptから`~/.codex/config.toml`、trust state、hook trust keyを変更していない。
-- [ ] description変更を評価するSkillについて、外部tool隔離済みcontrol `all`で対象caseがobservable failureであることを確認してからcandidate評価へ進んでいる。
+- [ ] description変更を評価するSkillについて、control `all`で対象caseがobservable failureであることを確認してからcandidate評価へ進んでいる。
 - [ ] controlで対象caseが既に`pass`の場合、PR2の過去failureだけを理由にそのSkillのdescriptionを変更していない。
 - [ ] controlで対象caseが`unobservable`の場合、candidate評価を進めず、都合のよいcontrol結果を得るためのretryをしていない。
 - [ ] candidate final `all`は同一条件のcontrol artifactを`--compare`へ指定している。
 - [ ] control / candidateの`all`がcoverage不足で`exit 1`でも、comparison可能なpartial resultが保存されている場合は`exit 1`だけをdescription failureとせず、Result内容で判定している。
-- [ ] control comparisonでは、変更したdescriptionに対応するcontrol failureが`fixed`、`regressed=0`である。
+- [ ] 最終採用candidateについて、対応するcontrol failureが`fixed`、comparison全体で`regressed=0`である。
+- [ ] final `all`後にcandidateを不採用とした場合、Repository sourceを戻し、残すcandidate setだけでfinal `all`を再実行して最終sourceと評価artifactを一致させている。
+- [ ] `regressed>0`のcandidate setを、追加の組合せ総当たりで都合よく採用していない。
 - [ ] controlでobservableだったcaseがcandidateで`newly_unobservable`になった場合、routing regressionと断定せず、非回帰判定不能として完了扱いにしていない。
 - [ ] 変更しなかったPR2 baseline failureを、無理に`fixed`へすることを完了条件にしていない。
 - [ ] current-main側runをcandidateによる回帰の因果比較として扱っていない。
@@ -581,7 +576,7 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] `implementation_base_sha`基準の最終diffで、採用Skillのsource変更が根拠を確認したfrontmatter `description`だけで、不採用Skillのsource差分が0、Repository本体の`.codex/config.toml`に差分がないことを確認している。
 - [ ] repository fileを変更した場合は、final commit、通常push、PR最新head確認、`Web CI` / `Mobile App CI`の`success`確認まで現行implementation harnessの完了契約を満たしている。
 - [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
-- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価framework、Target generator、answer-key scanner、外部tool inspectorを追加していない。
+- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価framework、Target generator、answer-key scanner、sandbox / 外部tool監視frameworkを追加していない。
 
 2件ともdescription変更不要と判断した場合は、description変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。意味上のgapがない場合はcontrol run自体を必須にしない。active Run Artifact等のrepository fileを変更した場合のGit / PR / CI完了契約はN/Aにしない。
 
@@ -599,30 +594,32 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] 8. 2件ともgapがなければsource変更no-opとして通常検証へ進む。gapがあるSkillがあればbaseline source側control評価へ進む。
 - [ ] 9. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後、`.codex/config.toml`の`web_search`だけを`disabled`へ変更した`control_target_sha`を`3c5e35e...`の直接の子として作る。
 - [ ] 10. control Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
-- [ ] 11. control Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。その後effective config / tool catalogを確認し、Web検索と公開Repositoryへ到達できる外部toolがmodelへ公開されていないことを確認する。
+- [ ] 11. control Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。Target内の`web_search = "disabled"`を確認する。
 - [ ] 12. control Targetで`all`を1回実行し、対象caseのobservable outcomeとcomparison利用可否を確認する。
 - [ ] 13. controlで対象caseが`pass`のSkillはsource変更no-opとする。`unobservable`のSkillはcandidate評価を停止する。observable failureが残るSkillだけcandidate作成へ進める。
 - [ ] 14. gapがありcontrol failureも残るSkillだけcandidate descriptionを作成する。
 - [ ] 15. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
 - [ ] 16. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
 - [ ] 17. `control_target_sha`を親としてcandidate descriptionだけを変更したbaseline source側candidate Target commitを作り、detached / clean / Git isolationを確認する。
-- [ ] 18. candidate Targetのexact pathでProject trust / 必要なhook trustを確認する。同じpathでcontrolからcandidateへcheckoutした場合も、effective config / tool catalogを再確認し、外部tool隔離条件がcontrolと同じであることを確認する。
+- [ ] 18. candidate Targetのexact pathでProject trust / 必要なhook trustを確認し、Target内の`web_search = "disabled"`が維持されていることを確認する。
 - [ ] 19. candidate `train`でcandidateを確認し、意味上の根拠とcontrol train outcomeの両方を満たすcandidateだけ採用する。
-- [ ] 20. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitを更新し、Target側では同じ`control_target_sha`を親とする新candidate commitを作ってclean確認後に再評価する。全candidateを不採用にしたSkillはEvaluator側descriptionを`implementation_base_sha`時点へ通常commitで戻し、そのSkillをno-opとする。
-- [ ] 21. candidate確定後、candidate Targetで`all`を実行し、外部tool隔離条件が同一のcontrol artifactとのcomparisonを確認する。coverage不足の`exit 1`とcomparison結果を分けて判定する。
-- [ ] 22. current-main側Target作成直前にlatest `main`を再確認する。routing / Evaluator / `.codex/config.toml`関連のincoming diffがあればbranchへ取り込み、必要な前提・評価を再確認し、取り込み後のlatest `main` SHAへ`implementation_base_sha`を更新する。
-- [ ] 23. 確定したlatest `main`のworking filesからTrigger Eval dataset、`.codex/runs/**`、case固有answer keyを除外し、`.codex/config.toml`の`web_search`だけを`disabled`へ変更したfresh Git repositoryとしてcurrent-main側Targetを準備する。
-- [ ] 24. current-main側Targetでcase ID、raw query、dataset fingerprint、baseline参照、caseとexpected Skill等の対応が残っていないことを一時確認する。
-- [ ] 25. current-main側Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。その後effective config / tool catalogを確認し、Web検索と公開Repositoryへ到達できる外部toolがmodelへ公開されていないことを確認する。
-- [ ] 26. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
-- [ ] 27. deterministic validationとRepository標準検証を実行する。
-- [ ] 28. `implementation_base_sha`基準でscope、Run Artifact、control / candidate comparison結果を確認し、採用Skillだけdescription差分が残り、不採用Skillはsource差分0であることを確認してtracked Run Artifactをfinal commit前の状態へ確定する。
-- [ ] 29. 最終差分をcommitし、対象branchへ通常pushする。
-- [ ] 30. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
-- [ ] 31. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
-- [ ] 32. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
+- [ ] 20. candidateを変更する場合は新しい仮説を明示し、Repository branch側candidate commitを更新し、Target側では同じ`control_target_sha`を親とする新candidate commitを作ってclean確認後に再評価する。全candidateを不採用にしたSkillはRepository branch側descriptionを`implementation_base_sha`時点へ通常commitで戻し、そのSkillをno-opとする。
+- [ ] 21. candidate確定後、candidate Targetで`all`を実行し、control artifactとのcomparisonを確認する。coverage不足の`exit 1`とcomparison結果を分けて判定する。
+- [ ] 22. final `all`でcandidateを不採用とした場合はRepository branch側descriptionを戻す。一部candidateを残す場合は、残すcandidateだけを含むTargetを`control_target_sha`から作り直してfinal `all`を再実行し、最終sourceとcomparison artifactを一致させる。`regressed>0`ならcandidate setを採用せずno-opへ戻す。
+- [ ] 23. 最終採用candidateが0件ならcurrent-main側candidate live evalをN/Aとし、通常検証へ進む。
+- [ ] 24. 最終採用candidateがある場合、current-main側Target作成直前にlatest `main`を再確認する。routing / Evaluator / `.codex/config.toml`関連のincoming diffがあればbranchへ取り込み、必要な前提・評価を再確認し、取り込み後のlatest `main` SHAへ`implementation_base_sha`を更新する。
+- [ ] 25. 確定したlatest `main`のworking filesからTrigger Eval dataset、`.codex/runs/**`、case固有answer keyを除外し、`.codex/config.toml`の`web_search`だけを`disabled`へ変更したfresh Git repositoryとしてcurrent-main側Targetを準備する。
+- [ ] 26. current-main側Targetでcase ID、raw query、dataset fingerprint、baseline参照、caseとexpected Skill等の対応が残っていないことを一時確認する。
+- [ ] 27. current-main側Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。Target内の`web_search = "disabled"`を確認する。
+- [ ] 28. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
+- [ ] 29. deterministic validationとRepository標準検証を実行する。
+- [ ] 30. `implementation_base_sha`基準でscope、Run Artifact、control / candidate comparison結果を確認し、採用Skillだけdescription差分が残り、不採用Skillはsource差分0であることを確認してtracked Run Artifactをfinal commit前の状態へ確定する。
+- [ ] 31. 最終差分をcommitし、対象branchへ通常pushする。
+- [ ] 32. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
+- [ ] 33. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
+- [ ] 34. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
 
-no-opの場合は理由に応じて不要なcontrol / candidate / current-main live eval手順をN/Aとし、変更不要の根拠と通常検証を残す。candidateを一度commitした後でno-opへ戻したSkillは通常commitによる復帰と最終source差分0を記録する。active Run Artifact等のrepository fileを変更した場合は28〜32を通常どおり実行する。
+no-opの場合は理由に応じて不要なcontrol / candidate / current-main live eval手順をN/Aとし、変更不要の根拠と通常検証を残す。candidateを一度commitした後でno-opへ戻したSkillは通常commitによる復帰と最終source差分0を記録する。active Run Artifact等のrepository fileを変更した場合は30〜34を通常どおり実行する。
 
 ---
 
@@ -635,15 +632,14 @@ no-opの場合は理由に応じて不要なcontrol / candidate / current-main l
 - baseline Evaluatorから実行時Evaluatorへの差分がobservation、scoring、outcome mapping、comparison、model、timeout、dataset読込、project configの意味を変えている。
 - `codex-cli 0.153.4`を使用できず、control / candidateのCodex version一致条件を維持できない。
 - baseline `routing_source_git_sha`そのものを起点として隔離Targetを再現できない。
-- baseline source側Targetからcurrent `main`、後続PR、Trigger Eval dataset、現在のbaseline artifact等のlocal answer key取得経路を除去できない。
-- live eval対象Targetのeffective configで`web_search = "disabled"`を確認できない、または公開Repositoryへ到達できるenabled MCP server、connector等の外部toolをmodel-facing tool catalogから確実に除外できない。
-- 外部toolを無効化するためにRepository本体、runner、sandbox契約、恒久的なuser config変更が必要になる。
+- baseline source側TargetにTrigger Eval dataset、現在のbaseline artifact等のanswer keyが含まれる。
 - control Targetで`.codex/config.toml`のWeb検索設定以外にも`3c5e35e...`からTarget file差分が入る。
 - candidate Targetを`control_target_sha`の直接の子としてdescription変更だけに限定できない。
 - current-main側のanswer-key-free Targetを元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
 - current-main側Targetからcurrent case ID、raw query、dataset fingerprint、baseline artifact参照、caseとexpected Skill / boundary / outcomeの対応を除去できない。
 - answer keyを除くためにroutingへ必要なcurrent repository contextまで大きく削る必要が生じる。
 - live eval対象TargetのProject trust、または必要なRepository-owned hook trustを通常手順で確立できない。
+- 評価用Targetで`web_search = "disabled"`を維持できない。
 - controlで変更対象caseが`unobservable`となり、candidateによる改善を判定できない。
 - candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
@@ -662,23 +658,22 @@ no-opの場合は理由に応じて不要なcontrol / candidate / current-main l
 
 ```text
 description変更要否の判断根拠
-変更した場合のdescription差分とEvaluator側candidate commit SHA
+変更した場合のdescription差分とRepository branch側candidate commit SHA
 candidate不採用時の復帰commitと最終source差分確認
 PR2 baselineをfailure選定の履歴として扱い、直接controlにしなかった理由
 baseline evaluator / current evaluatorの差分確認
 実装開始時とcurrent-main Target作成直前のlatest main SHA / drift確認
 implementation_base_sha
 control Targetのprovenance / control_target_sha / parent SHA
-control Targetの外部tool隔離確認
+control Targetのanswer-key / web_search確認
 control TargetのProject trust / hook trust確認
 control Trigger Eval結果
 candidate Targetのprovenance / candidate_target_sha / parent SHA
-candidate Targetの外部tool隔離確認
 candidate TargetのProject trust / hook trust確認
 candidate Trigger Eval結果とcontrol comparison
+final all後にcandidate setを変更した場合の再comparison結果
 current-main側Targetのsource main SHAとprovenance
 current-main側Targetのanswer key除外・検索結果
-current-main側Targetの外部tool隔離確認
 current-main側TargetのProject trust / hook trust確認
 current-main側Trigger Eval結果
 validation結果
