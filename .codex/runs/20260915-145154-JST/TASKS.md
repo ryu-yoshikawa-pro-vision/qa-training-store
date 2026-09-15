@@ -12,6 +12,15 @@
 - [x] 7. branch安全確認後にcommit／pushし、local／remote／PR headを一致させる（実装head `357767d...`まで確認済み。最終Run Artifact commit後に再確認する）。
 - [ ] 8. 最新PR headのrequired CIを確認し、PR本文を更新する。
 
+## Continuation: PR #146 UserPromptSubmit baseline launcher repair
+
+- [x] 9. configured `UserPromptSubmit`のsilent no-opをUnix／Windows fixtureで再現し、Hook本体到達前またはHook process failure時に診断が失われることを原因候補として確定する。
+- [x] 10. Unix／Windows launcherをfail-open・固定bounded stderrへ最小修正し、baseline生成責務をHook本体へ維持する。
+- [x] 11. configured正常系、root／Hook欠落、Hook non-zero、module load failure、short／64 KiB promptの回帰契約を追加する。
+- [x] 12. focused Hook contract、PowerShell Harness、標準lint／typecheck／contract／build／verifyを実行し、今回差分由来のfailureがないことを確認する。
+- [x] 13. 実Codex executable可用性、current session state、最新`main`祖先性、PR／Issue open状態を確認する。compact runtimeはexecutable欠落のため未確認として記録する。
+- [ ] 14. Run Artifactを最終化し、commit／通常push、最新head CI、PR本文、local／remote／PR head一致を確認する。
+
 ## 完了処理の参照先
 
 - 基本Progressの分母・表記: `docs/reference/run-artifacts.md`

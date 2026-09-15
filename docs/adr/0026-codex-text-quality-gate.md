@@ -19,6 +19,7 @@ ADR作成時点の2026-09-13にはIssue #135が未完了だったため、compac
 4. `PostToolUse`のquality failureはfail-openしてstderrへ診断し、`Stop`は`stop_hook_active=false`なら新規違反またはquality check不能をstructured blockとする。`true`なら診断付きallowとstate削除を行う。Repository-level gateの比較不能はfail-openせず非0終了とする。
 5. commit比較では`git merge-base <base-ref> HEAD`で確定した同じcomparison treeを、変更path、baseline本文、current本文、rename mappingのすべてへ使う。localは`HEAD -> current worktree`、PRはbase branchとcheckout済みmerge `HEAD`、pushはevent before、schedule／dispatchは`HEAD^`を使う。
 6. session baseline stateはschema v2の`ready`／`baseline_unavailable`を持つ。baseline作成後のstateには開始時に特別な状態を持つpathだけを保存し、作成不能時はprompt、payload、本文、長いエラーを含まない最小stateを一度だけ保存する。同一sessionの後続`UserPromptSubmit`では再作成せず、`PostToolUse`はfail-open、inactive `Stop`はblock、active `Stop`はallowしてstateを削除する。Stopを含むstate読込ではroot／session identityを照合する。
+7. configured `UserPromptSubmit` launcherは、Unix／Windowsともroot、Node、Hook file、Hook processのfailureを固定bounded diagnosticのstderrとexit 0へ収束させる。Hookが正常終了した場合だけstdout／stderrを透過し、failure時のprompt、session ID、token、secret、absolute path、内部exceptionは出力しない。baseline生成の責務は引き続き`text_quality_gate.mjs`に置く。
 
 ## Consequences
 

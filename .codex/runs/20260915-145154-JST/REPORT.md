@@ -98,5 +98,14 @@
 - Subagents:
   - Delegation: なし。
   - Result: なし。
-  - Parent decision: runtimeの未確認理由を保持したまま、ローカル実装・契約・標準検証を完了し、外部状態の確認へ進む。
+- Parent decision: runtimeの未確認理由を保持したまま、ローカル実装・契約・標準検証を完了し、外部状態の確認へ進む。
 - Progress: 80% (8/10)
+
+## 2026-09-15 22:08 (JST)
+
+- Summary: PR #146の`UserPromptSubmit` baseline未生成に対して、configured launcherのfailureをsilent no-opにしない最小修正と回帰契約を追加した。
+- Changes: `.codex/config.toml`のUnix／Windows quality launcherを、root／Node／Hook／Hook process failure時に固定diagnosticをstderrへ出し、exit 0でfail-openする実装へ変更した。正常終了時だけHook出力を透過する。`tests/contracts/codex-text-quality.test.ts`へconfigured UserPromptSubmit正常系・failure系・short／64 KiB入力を追加し、`tests/contracts/codex-hook-contract.test.ts`とADR-0026を更新した。baseline schema、Hook本体、Stop／PostToolUse／SessionStart実装、timeout=10は変更していない。
+- Decision / Rationale: 元launcherはUnixの`|| true`、Windowsの条件分岐・stderr redirectにより、Hook未到達／process non-zero／module load failureを`stdout空・stderr空・stateなし`として隠していた。fixtureでroot／Hook欠落とHook failureを再現し、最初に失われる診断経路を確定した。Hook本体のbaseline責務は複製せず、Node process failureの子出力も固定diagnosticへ収束させる。short／64 KiB入力は正常処理10秒未満で、timeout変更は不要と判断した。
+- Validation: `corepack pnpm install --frozen-lockfile`、Node `v24.12.0`、`textlint v15.8.0`、Node import、focused text-quality `37 passed`、combined contract `190 passed`、`scripts/verify.ps1 -HookContracts`（PASS=4 FAIL=0 SKIP=0）、`lint:text`、`lint:markdown`、`lint`（error 0）、`typecheck`、`test:contracts`（578 passed / 4 skipped）、`git diff --check`、`corepack pnpm run verify`（exit 0、buildを含む）がPASSした。`bash scripts/verify --hook-contracts`はWSLにNodeがないため`node: not found`で起動前FAIL。実Codexのmanaged standalone executableは存在せず、`/hooks`／`/compact`／実Stop再入は未確認。自動lifecycleでcurrent sessionの`ready` state（開始HEAD `fd821219...`）は生成され、別sessionのstateは手動変更していない。
+- Blocker / Remaining: commit／通常push、最新head CI、PR本文更新、最終head一致確認が残る。PR #146とIssue #134はOPEN、対象branchは最新`main` `22f73a98...`を祖先に持つ。
+- Progress: 90% (9/10)

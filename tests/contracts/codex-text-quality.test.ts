@@ -63,11 +63,11 @@ function asTomlRecords(value: unknown, context: string): TomlRecord[] {
 
 function decodeWindowsPowerShellCommand(command: string, event: string) {
   const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
-  const suffix = " 2>NUL";
-  if (!command.startsWith(prefix) || !command.endsWith(suffix)) {
+  const suffix = command.endsWith(" 2>NUL") ? " 2>NUL" : "";
+  if (!command.startsWith(prefix)) {
     throw new Error(`unexpected Windows command for ${event}`);
   }
-  const encoded = command.slice(prefix.length, -suffix.length);
+  const encoded = command.slice(prefix.length, command.length - suffix.length);
   if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
     throw new Error(`invalid Windows EncodedCommand for ${event}`);
   }
@@ -330,6 +330,82 @@ function runConfiguredQualityHook(
   };
 }
 
+const USER_PROMPT_LAUNCHER_DIAGNOSTIC =
+  "Codex text quality hook: UserPromptSubmit launcher unavailable";
+
+function expectConfiguredUserPromptBaseline(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(result.stdout, `${label} stdout`).toBe("");
+  expect(result.stderr, `${label} stderr`).toBe("");
+  expect(stateFiles(root), `${label} state count`).toHaveLength(1);
+  const state = readGateState(root);
+  expect(state.status, `${label} state status`).toBe("ready");
+  expect(state.root_id, `${label} root identity`).toBe(
+    createHash("sha256").update(path.resolve(root), "utf8").digest("hex"),
+  );
+  expect(state.session_id_hash, `${label} session identity`).toBe(
+    createHash("sha256").update(sessionId, "utf8").digest("hex"),
+  );
+  expect(state.start_head, `${label} start HEAD`).toBe(git(root, ["rev-parse", "HEAD"]));
+  return state;
+}
+
+function expectConfiguredUserPromptLauncherFailure(
+  result: ProcessResult,
+  label: string,
+  root: string,
+) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(result.stdout, `${label} stdout`).toBe("");
+  expect(result.stderr.trimEnd(), `${label} stderr`).toBe(USER_PROMPT_LAUNCHER_DIAGNOSTIC);
+  expect(stateFiles(root), `${label} state count`).toHaveLength(0);
+}
+
+function runConfiguredUserPromptLauncherFailureCases(root: string, launcher: "unix" | "windows") {
+  const rulesPath = path.join(root, "rules.json");
+  const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+  const runFailure = (label: string, commandCwd = root) => {
+    const result = runConfiguredQualityHook(
+      root,
+      "UserPromptSubmit",
+      {
+        prompt: `${label} prompt secret=launcher-secret token=launcher-token`,
+      },
+      launcher,
+      rulesPath,
+      commandCwd,
+    );
+    expectConfiguredUserPromptLauncherFailure(result, label, root);
+  };
+
+  removeFixtureFile(hookFile);
+  runFailure("missing Hook");
+
+  const nonRepository = fs.mkdtempSync(
+    path.join(os.tmpdir(), `codex-text-quality-${launcher}-nonrepo-`),
+  );
+  try {
+    runFailure("repository root failure", nonRepository);
+  } finally {
+    removeFixture(nonRepository);
+  }
+
+  writeFile(
+    root,
+    ".codex/hooks/text_quality_gate.mjs",
+    'process.stdout.write("prompt-leak"); process.stderr.write("launcher-secret"); process.exit(2);\n',
+  );
+  runFailure("non-zero Hook");
+
+  writeFile(root, ".codex/hooks/text_quality_gate.mjs", 'import "missing-launcher-module";\n');
+  runFailure("module load failure");
+}
+
 function expectConfiguredStopBlock(result: ProcessResult, label: string, root: string) {
   expect(result.status, `${label} status`).toBe(0);
   expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
@@ -375,10 +451,17 @@ describe("Codex deterministic text quality contracts", () => {
       expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
       expect(qualityEntry.type, event).toBe("command");
       expect(qualityEntry.command, event).toContain("text_quality_gate.mjs");
-      expect(
-        decodeWindowsPowerShellCommand(qualityEntry.command_windows as string, event),
+      const windowsScript = decodeWindowsPowerShellCommand(
+        qualityEntry.command_windows as string,
         event,
-      ).toContain("text_quality_gate.mjs");
+      );
+      expect(windowsScript, event).toContain("text_quality_gate.mjs");
+      if (event === "UserPromptSubmit") {
+        expect(qualityEntry.command, event).toContain("UserPromptSubmit launcher unavailable");
+        expect(qualityEntry.command, event).not.toContain("|| true");
+        expect(qualityEntry.command_windows, event).not.toContain(" 2>NUL");
+        expect(windowsScript, event).toContain("UserPromptSubmit launcher unavailable");
+      }
       expect(qualityEntry.timeout, event).toBe(10);
     }
   });
@@ -387,20 +470,14 @@ describe("Codex deterministic text quality contracts", () => {
     if (process.platform === "win32") return;
     withFixture((root) => {
       const sessionId = `configured-unix-${randomUUID()}`;
-      const prompt = runNode(
-        path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
-        ["UserPromptSubmit"],
+      const prompt = runConfiguredQualityHook(
         root,
-        JSON.stringify({
-          hook_event_name: "UserPromptSubmit",
-          session_id: sessionId,
-          cwd: root,
-          prompt: "start",
-        }),
-        { ...process.env, CODEX_TEXT_QUALITY_RULES: path.join(root, "rules.json") },
+        "UserPromptSubmit",
+        { session_id: sessionId, cwd: root, prompt: "start" },
+        "unix",
+        path.join(root, "rules.json"),
       );
-      expect(prompt.status).toBe(0);
-      expect(stateFiles(root)).toHaveLength(1);
+      expectConfiguredUserPromptBaseline(prompt, "Unix UserPromptSubmit", root, sessionId);
 
       const nested = path.join(root, "nested", "日本語 path");
       fs.mkdirSync(nested, { recursive: true });
@@ -427,22 +504,15 @@ describe("Codex deterministic text quality contracts", () => {
         const sessionId = `configured-windows-${randomUUID()}`;
         const nested = path.join(root, "nested", "日本語 path");
         fs.mkdirSync(nested, { recursive: true });
-        const prompt = runNode(
-          path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
-          ["UserPromptSubmit"],
+        const prompt = runConfiguredQualityHook(
+          root,
+          "UserPromptSubmit",
+          { session_id: sessionId, cwd: nested, prompt: "日本語の開始" },
+          "windows",
+          path.join(root, "rules.json"),
           nested,
-          JSON.stringify({
-            hook_event_name: "UserPromptSubmit",
-            session_id: sessionId,
-            cwd: nested,
-            prompt: "日本語の開始",
-          }),
-          { ...process.env, CODEX_TEXT_QUALITY_RULES: path.join(root, "rules.json") },
         );
-        expect(prompt.status).toBe(0);
-        expect(prompt.stdout).toBe("");
-        expect(prompt.stderr).toBe("");
-        expect(stateFiles(root)).toHaveLength(1);
+        expectConfiguredUserPromptBaseline(prompt, "Windows UserPromptSubmit", root, sessionId);
 
         const stop = runConfiguredQualityHook(
           root,
@@ -461,6 +531,39 @@ describe("Codex deterministic text quality contracts", () => {
       "codex-text-quality-",
     );
   });
+
+  it("generates a configured UserPromptSubmit baseline for short and 64 KiB prompts", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    for (const [label, prompt] of [
+      ["short", "short prompt"],
+      ["large", "x".repeat(64 * 1024)],
+    ] as const) {
+      withFixture(
+        (root) => {
+          const sessionId = `configured-${launcher}-${label}-${randomUUID()}`;
+          const result = runConfiguredQualityHook(
+            root,
+            "UserPromptSubmit",
+            { session_id: sessionId, cwd: root, prompt },
+            launcher,
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredUserPromptBaseline(result, `${launcher} ${label}`, root, sessionId);
+        },
+        "GOOD\n",
+        `codex-text-quality-${launcher}-${label}-`,
+      );
+    }
+  }, 60_000);
+
+  it("reports configured UserPromptSubmit launcher failures without leaking payloads", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => runConfiguredUserPromptLauncherFailureCases(root, launcher),
+      "GOOD\n",
+      `codex-text-quality-${launcher}-launcher-failure-`,
+    );
+  }, 60_000);
 
   it("uses the configured Windows Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform !== "win32") return;

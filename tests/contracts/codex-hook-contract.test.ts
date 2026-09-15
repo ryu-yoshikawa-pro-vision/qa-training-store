@@ -85,11 +85,11 @@ function commandForHook(entry: TomlRecord, field: "command" | "command_windows",
 
 function decodeWindowsPowerShellCommand(command: string, event: string) {
   const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
-  const suffix = " 2>NUL";
-  if (!command.startsWith(prefix) || !command.endsWith(suffix)) {
+  const suffix = command.endsWith(" 2>NUL") ? " 2>NUL" : "";
+  if (!command.startsWith(prefix)) {
     throw new Error(`unexpected Windows command for ${event}`);
   }
-  const encoded = command.slice(prefix.length, -suffix.length);
+  const encoded = command.slice(prefix.length, command.length - suffix.length);
   if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
     throw new Error(`invalid Windows EncodedCommand for ${event}`);
   }
@@ -354,6 +354,9 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(windowsScript).toContain("ConvertFrom-Json");
           expect(windowsScript).toContain("stop_hook_active");
           expect(windowsScript).toContain("[Console]::Write($fallback)");
+        }
+        if (event === "UserPromptSubmit" && scriptName === "text_quality_gate.mjs") {
+          expect(windowsScript).toContain("UserPromptSubmit launcher unavailable");
         }
         expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
       }
