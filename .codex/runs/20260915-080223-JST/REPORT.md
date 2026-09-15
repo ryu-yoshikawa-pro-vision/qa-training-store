@@ -79,6 +79,19 @@
   - 親Agentの判断: final commit前のtracked artifactをここで確定し、push後のCI記録用変更は行わない。
 - Progress: 63% (5/8)
 
+## 2026-09-15 09:27 (JST)
+
+- Summary: push後の最新`Web CI`で`AGENTS.md`のMarkdownlint failureを確認し、原因を特定した。
+- Changes: `AGENTS.md`の`## 8. 改善ガバナンス`直後に、Markdownlintの`MD022` / `MD032`が要求する空行を1行復元した。`docs/reference/repair-loop.md`の修正とRun Artifactの追記は前回commitに含まれており、今回のCI修正では他ファイルを変更していない。
+- 判断 / 理由: CIログは`AGENTS.md:66`の見出し直後と`AGENTS.md:67`のリスト前の空行不足を直接報告した。`origin/main`の構造を維持する方針は変えず、Markdownの既存品質契約に必要な最小修正として空行だけを戻す。repair-loopのdecisionは`must_fix`、許可ファイルは`AGENTS.md`のみとする。
+- Validation: 最新head `0b6c2f0b667a7ea823903fcf3398848bf02eb0e2`の`Web CI` `Style Quality`（run `34912941230`、job `104204259876`）は`Format check`成功後、`Markdown lint`で`MD022` / `MD032`によりfailure。`Mobile App CI`は継続中。失敗ログを取得し、今回の空行削除が直接原因であることを確認した。
+- ブロッカー / 残作業: 空行復元後の`lint:markdown`、Sanitizer、repair commit、通常push、local / remote / PR head一致、新しいheadのWeb CI / Mobile App CI、PR本文更新が残っている。前回headのCI結果は完了根拠に再利用しない。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親AgentがCI失敗jobのログと今回差分を照合した。
+  - 親Agentの判断: CI failureを既存問題として保留せず、Markdown契約に対する安全な最小修正を行う。
+- Progress: 63% (5/8)
+
 ## 2026-09-15 09:15 (JST)
 
 - Summary: `build:web`をmerge後の状態で再実行し、Web exportとdocs生成が完了した。

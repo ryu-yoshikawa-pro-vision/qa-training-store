@@ -64,6 +64,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 - Codex native delegationとAndroid / Native validationは別の責務として扱う。
 
 ## 8. 改善ガバナンス
+
 - L1: wordingのみの文書改善は、`REPORT.md`に記録すれば自己承認でよい。
 - L2: workflowやtemplate構造の変更は、実装前にユーザー承認が必要。
 - L3: permission / sandbox / approval / wrapper behaviorの変更は、実装前に明示承認とrollback planが必要。
