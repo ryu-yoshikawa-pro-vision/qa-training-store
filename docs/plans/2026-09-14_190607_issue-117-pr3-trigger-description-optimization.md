@@ -212,6 +212,7 @@ candidateは次を満たすこと。
 3. sibling Skillとの境界を広げない。
 4. 将来の可能性を理由に新しい責務を追加しない。
 5. candidate採用理由を評価結果より先に説明できる。
+6. 変更後も一文の入口契約として簡潔に保ち、Skill本文の責務やquery固有条件を列挙して過度に長文化しない。
 
 candidateを複数回作り直す場合も、train結果だけに合わせて語句を増やさない。意味上の仮説がなくなった時点で調整を止める。
 
@@ -319,6 +320,10 @@ pnpm run eval:skills:trigger -- \
 
 比較時は現行runnerが要求するResult schema、`split=all`、`dataset_sha256`、case ID set、Codex version、modelの一致を維持する。comparison contractをPR3都合で弱めない。
 
+PR2 baseline自体は8 boundary sides中7 observedのpartial baselineであり、runnerはResult artifactを書き出した後にcoverage不足で`exit 1`を返した。PR3のfinal `all`でも同じく8/8 coverage未達で`exit 1`になった場合、`exit 1`だけをdescription failureやrouting regressionとは扱わない。全selected casesがResultへ保存され、Result schema、provenance、case ID set、dataset fingerprint、Codex version、model等のcomparison contractを満たし、comparisonを評価できる場合はpartial resultとして判定を継続する。
+
+coverage改善だけを目的としたcase retry、Target交換、timeout変更、dataset変更、description追加変更は行わない。Result artifact自体が生成されない、comparison contractを満たさない、またはcomparisonを評価できない場合は停止する。
+
 変更したdescriptionについては、対応するbaseline failureが`fixed`になり、`regressed=0`であることを採用条件とする。変更しなかったfailureは`fixed`を完了条件にしない。
 
 baselineでobservableだったcaseが`newly_unobservable`になった場合、それ自体をrouting regressionとは扱わない。ただし今回のrunでは非回帰を判定できないため完了扱いにせず停止する。case単位で都合のよい結果が出るまでretryしない。`recovered_observable`はcurrent outcomeを確認する。
@@ -348,10 +353,12 @@ pnpm run eval:skills:trigger -- \
 
 確認内容:
 
-- 変更対象case / boundaryがexpected Skillへroutingできるか。
-- observableな`sibling_misroute` / `unexpected_trigger`が発生していないか。
-- observable failureが出た場合、その事実を統合確認のfailureとして扱い、candidateが原因だと推測で断定しない。
+- 変更したdescriptionに対応する対象case / boundaryがobservableな場合、expected Skillへroutingできていることを確認する。対象caseがobservableな`false_negative`、`sibling_misroute`、`unexpected_trigger`になった場合は統合確認をPASSとしない。
+- 変更していないSkillの既知failureまで修正することは完了条件にしない。
+- 対象外caseでobservable failureが出た場合は、その事実を統合確認のfailureとして記録するが、candidateが原因だとcontrol runなしに断定しない。
 - runtime由来の`unobservable`をdescription failureへ読み替えない。
+
+current-main側でもcoverage不足による`exit 1`だけをdescription failureとは扱わない。全selected casesのResultが保存されている場合は内容を確認し、runtime由来のcoverage不足を直すためのretry、timeout変更、Target交換、評価framework追加へ進まない。ただし変更対象case自体が`unobservable`で期待routingを確認できない場合は、統合確認を完了扱いにせず停止する。
 
 current-main側でcandidateによる回帰まで因果判定するためだけに、追加のcontrol runや新しい評価frameworkを導入しない。PR3のdescription変更に対する非回帰判定はbaseline側comparisonを正本とする。
 
@@ -398,6 +405,20 @@ source変更がある場合は、最終diffでSkill source変更が根拠を確�
 
 Plan、active Run Artifact、PR本文など、実装結果を記録する既存文書の更新はsource scopeとは分けて確認する。
 
+### 9.3 Git / PR / CI完了契約
+
+repository fileを変更した実装では、`docs/reference/codex-implementation-harness.md`のRepository file-changing task完了契約を正本として適用する。
+
+- tracked Run Artifactをfinal commit前の状態へ確定する。
+- 最終差分をcommitし、対象branchへ通常pushする。
+- local HEAD、remote HEAD、PRの最新headが一致していることを確認する。
+- 既存PRがあれば使用し、必要な場合だけPRを作成する。
+- 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認する。
+- CI failureではbounded repair workflowに従い、修正後の新しいcommitと最新PR headで再確認する。
+- push後のCI結果だけを記録する目的でtracked Run Artifactを再commitしない。
+
+no-opでSkill sourceを変更しない場合でも、active Run Artifact等のrepository fileを変更した場合はこの完了契約を適用する。
+
 ---
 
 ## 10. 完了条件
@@ -410,6 +431,7 @@ Plan、active Run Artifact、PR本文など、実装結果を記録する既存�
 - [ ] descriptionに一般化可能な欠落がないSkillを、failureを消す目的だけで変更していない。
 - [ ] 変更した場合はfrontmatter `description`だけに限定し、Skill本文・references・dataset・runner・`AGENTS.md`を変更していない。
 - [ ] candidate wordingをtrain query固有の語彙へ過度に寄せていない。
+- [ ] 変更後descriptionが一文の入口契約として簡潔で、Skill本文の責務やquery固有条件の列挙によって過度に長文化していない。
 - [ ] live eval前にcandidateをcommitし、Evaluatorの`.codex/runs/**`以外がcleanである。
 - [ ] baseline側Targetは`3c5e35e...`を親として維持し、candidate commitのparentがbaseline `routing_source_git_sha`と一致している。
 - [ ] baseline側Targetにcurrent `main`や後続PRへのref、Trigger Eval dataset、現在のbaseline artifactへの取得経路がない。
@@ -418,17 +440,20 @@ Plan、active Run Artifact、PR本文など、実装結果を記録する既存�
 - [ ] current-main側TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
 - [ ] 両TargetはEvaluatorとGit common-dirを共有せず、alternatesを使用せず、cleanなdetached HEADである。
 - [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
+- [ ] baseline側final `all`がcoverage不足で`exit 1`でも、comparison可能なpartial resultが保存されている場合は`exit 1`だけをdescription failureとせず、Result内容で判定している。
 - [ ] baseline側comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`である。
 - [ ] baseline側comparisonで`newly_unobservable`が発生した場合、routing regressionと断定せず、非回帰判定不能として完了扱いにしていない。
 - [ ] 変更しなかったbaseline failureを、無理に`fixed`へすることを完了条件にしていない。
 - [ ] current-main側runをcandidateによる回帰の因果比較として扱っていない。
-- [ ] current-main側runでobservableな`sibling_misroute` / `unexpected_trigger`がない。
+- [ ] current-main側で、変更したdescriptionに対応する対象case / boundaryがobservableな場合はexpected Skillへroutingできており、対象caseの`false_negative` / `sibling_misroute` / `unexpected_trigger`をPASS扱いしていない。
+- [ ] current-main側で変更対象caseが`unobservable`の場合は、description failureと断定せず、統合確認未完了としている。
 - [ ] `recovered_observable`がある場合はcurrent outcomeを確認している。
 - [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
+- [ ] repository fileを変更した場合は、final commit、通常push、PR最新head確認、`Web CI` / `Mobile App CI`の`success`確認まで現行implementation harnessの完了契約を満たしている。
 - [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
 - [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価frameworkを追加していない。
 
-2件ともdescription変更不要と判断した場合は、変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。
+2件ともdescription変更不要と判断した場合は、description変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。ただしactive Run Artifact等のrepository fileを変更した場合のGit / PR / CI完了契約はN/Aにしない。
 
 ---
 
@@ -446,14 +471,17 @@ Plan、active Run Artifact、PR本文など、実装結果を記録する既存�
 - [ ] 10. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
 - [ ] 11. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
 - [ ] 12. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
-- [ ] 13. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行する。
+- [ ] 13. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行し、coverage不足の`exit 1`とcomparison結果を分けて判定する。
 - [ ] 14. latest `main`のworking filesからanswer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
-- [ ] 15. current-main側Targetで`all`を実行し、current routing contextでの統合結果を確認する。
+- [ ] 15. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
 - [ ] 16. deterministic validationとRepository標準検証を実行する。
-- [ ] 17. scope、Run Artifact、comparison結果を確認する。
-- [ ] 18. PR本文とIssue #117の進捗情報を実装結果に合わせて整理する。
+- [ ] 17. scope、Run Artifact、comparison結果を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
+- [ ] 18. 最終差分をcommitし、対象branchへ通常pushする。
+- [ ] 19. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
+- [ ] 20. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
+- [ ] 21. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
 
-no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。
+no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。active Run Artifact等のrepository fileを変更した場合は17〜21を通常どおり実行する。
 
 ---
 
@@ -471,8 +499,10 @@ no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な�
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
 - 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
 - baseline側final comparisonで`newly_unobservable`が発生し、非回帰を判定できない。
+- baseline側でResult artifactが生成されない、comparison contractを満たさない、またはcomparison結果を評価できない。
+- current-main側で変更対象caseが`unobservable`となり、expected routingを確認できない。
 
-`unobservable`だけを理由にdescriptionを変更しない。case retryで都合のよい結果だけを採用しない。
+`unobservable`やcoverage不足による`exit 1`だけを理由にdescriptionを変更しない。case retryで都合のよい結果だけを採用しない。
 
 ---
 
