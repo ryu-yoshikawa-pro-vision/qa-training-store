@@ -7,13 +7,13 @@ description: Use when setting up Windows Android tooling, building a local Relea
 
 ## 目的と適用範囲
 
-このSkillは、Windows + PowerShellで物理Android device上のローカルRelease APKを検証するときに使います。ツールのセットアップ、Build、Install、Maestro Flow、Native物理deviceの失敗調査を対象にします。リポジトリ固有のrunbookやコマンド補助ツールを置き換えるものではありません。
+このSkillは、Windows + PowerShellでAndroid実機上のローカルRelease APKを検証するときに使います。ツールのセットアップ、Build、Install、Maestro Flow、Native実機の失敗調査を対象にします。リポジトリ固有のrunbookやコマンド補助ツールを置き換えるものではありません。
 
 ## 入力
 
 - retry、停止、失敗、Evidence、完了の意味を定義する、このSkillの[Windows Android Workflow](references/windows-android-workflow.md)。
 - リポジトリのNative runbookとトラブルシューティングガイドを、リポジトリから提供される情報として扱います。
-- リポジトリのコマンド補助ツール、固定toolchain契約、device / app契約、Run artifact契約、現在の変更内容とdiffの状況。
+- リポジトリのコマンド補助ツール、固定toolchain契約、端末 / アプリ契約、Run Artifactの契約、現在の変更内容とdiffの状況。
 
 ## 実行の概要
 
@@ -28,8 +28,8 @@ description: Use when setting up Windows Android tooling, building a local Relea
 
 ## ガードレール
 
-- リポジトリの指示なしにコマンド補助ツールを独自実装し直したり、固定versionを更新したりしない。
+- リポジトリの指示なしにコマンド補助ツールを独自実装し直したり、固定バージョンを更新したりしない。
 - 上流の失敗後に後続段階を実行しない。未実行の段階をPASSと記録せず、新しい仮説やEvidenceなしにretryしない。
 - Assertionの削除、Flowのskip、timeoutだけの延長によって失敗したFlowを回避しない。
 - cacheの自動削除、ファイル移動、任意の依存関係のInstall、Git操作を行わない。
-- 生成されたNative directory、APK、未加工の証跡、local設定、個人のdevice pathをリポジトリへ追加しない。
+- 生成されたNativeディレクトリ、APK、未加工の証跡、ローカル設定、端末固有のpathをリポジトリへ追加しない。

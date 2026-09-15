@@ -29,6 +29,8 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - [x] A1. 最新Skillの一般英語混在を、固定契約・正式名称・技術用語と分離して再監査する。
 - [x] A2. 固定section名が実見出しに残っていることをvalidator / contract testで確認する。
 - [x] A3. PR #146の状態が変わっていないことをpush前に再確認する。
+- [x] A4. code-review referenceのレビュー結果保存方針表現を既存の日本語へ統一する。
+- [x] A5. Androidローカル検証Skillの一般説明を必要最小限修正し、固定契約を維持する。
 
 ## Blocked（ブロック中）
 

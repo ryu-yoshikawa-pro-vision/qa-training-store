@@ -2,16 +2,16 @@
 
 ## 対象範囲と入力
 
-このWorkflowは、Windowsホスト上でPowerShellとUSB接続した物理Android deviceを使い、ローカルRelease APKを検証する手順を扱います。ツールのバージョン、device / applicationの識別情報、コマンドの実行順序、path、トラブルシューティングの対応は、リポジトリから提供されるrunbookとコマンド補助ツールから取得します。
+このWorkflowは、Windowsホスト上でPowerShellとUSB接続したAndroid実機を使い、ローカルRelease APKを検証する手順を扱います。ツールのバージョン、端末 / アプリの識別情報、コマンドの実行順序、path、トラブルシューティングの対応は、リポジトリから提供されるrunbookとコマンド補助ツールから取得します。
 
 ## Preflightと段階ごとのgate
 
 Prepare、新しいBuild、Install、Test、Maestroを実行する前に、次を行います。
 
-1. 最新のRun report、関係する過去の実行のEvidence、現在のdiff / status、shellとversionの条件、直前の成功または失敗条件を読む。
-2. Doctorを実行し、固定toolchain契約、Android SDK、ADB deviceの状態、host / deviceの容量、APK identity、CI / localの差異を確認する。
+1. 最新のRun report、関係する過去の実行のEvidence、現在のdiff / status、shellとバージョンの条件、直前の成功または失敗条件を読む。
+2. Doctorを実行し、固定toolchain契約、Android SDK、ADB deviceの状態、ホスト / 端末の容量、APK identity、CI / ローカルの差異を確認する。
 3. retry前に、観測結果、原因仮説、最有力仮説、Evidence、変更する条件、成功条件、次に得る情報を記録する。
-4. preflightが未完了、上流段階が失敗、または必要なdevice状態が利用できない場合は、Prepare、Build、後続段階を開始しない。
+4. preflightが未完了、上流段階が失敗、または必要な端末状態が利用できない場合は、Prepare、Build、後続段階を開始しない。
 
 ## 条件付きPrepareとAPKの確立
 
@@ -47,7 +47,7 @@ Doctor / preflight
 
 実行ごとに一意な実行識別子を使い、Gradle、ADB、Maestro、JUnit、hierarchy、screenshot、APKの未加工の証跡をリポジトリ指定のartifact rootへ保存します。後続の実行で失敗した実行を上書きしません。active Runには、command、結果、最初の異常、派生エラー、分類、次の対応を含む簡潔なリポジトリ相対の概要を記録します。
 
-Build、Install、Smoke、各Flow、各Suiteは個別に報告します。対象Flowまたはdeviceの状態を確認できていない場合、スクリーンショットや最後のログ行だけでは意味上の成功を証明できません。
+Build、Install、Smoke、各Flow、各Suiteは個別に報告します。対象Flowまたは端末の状態を確認できていない場合、スクリーンショットや最後のログ行だけでは意味上の成功を証明できません。
 
 ## 失敗の分類
 
@@ -65,13 +65,13 @@ TRANSIENT_FAILURE
 UNKNOWN
 ```
 
-Evidenceなしに`TRANSIENT_FAILURE`と推測しません。環境、依存関係、設定、source、cache、device、testの原因を区別します。
+Evidenceなしに`TRANSIENT_FAILURE`と推測しません。環境、依存関係、設定、source、cache、端末、testの原因を区別します。
 
 ## Retryと停止
 
 retryは、再現性の確認、追加Evidenceの取得、仮説検証、確認済みの外部一時障害からの復旧という目的を明示できる場合だけ行います。可能な限り一度に1つの条件だけを変更します。
 
-同じエラーが2回連続で発生した、同じ段階が3回失敗した、異なる対応をしても最初の異常が変わらない、新しいEvidenceまたは仮説が追加されない、上流の失敗後に下流段階を実行することになる、または必要な環境・device・APK条件を理解できていない場合は、停止して調査へ戻ります。
+同じエラーが2回連続で発生した、同じ段階が3回失敗した、異なる対応をしても最初の異常が変わらない、新しいEvidenceまたは仮説が追加されない、上流の失敗後に下流段階を実行することになる、または必要な環境・端末・APK条件を理解できていない場合は、停止して調査へ戻ります。
 
 cache削除、daemon停止、依存関係の再Install、clean build、timeout延長、Assertion削除、Flowのskipは、それだけでは説明になりません。盲目的なretryや成功の主張に使ってはいけません。容量不足は、容量を改善して変更条件を記録した後だけretryできます。
 
@@ -81,13 +81,13 @@ ProductまたはFlowの修復が明示的に許可された場合は、対象範
 
 ## 完了
 
-Native検証は、toolchain / preflight、必要時のPrepare、現在のRelease APKの確立と検査、物理deviceへのInstallと起動、control Flow、必須のRuntime / Boundary Suite、Evidenceの保存という、リポジトリが要求する全gateを通過した場合だけ完了です。毎回PrepareやBuildを実行する必要はなく、Build成功だけではNative検証の完了になりません。
+Native検証は、toolchain / preflight、必要時のPrepare、現在のRelease APKの確立と検査、実機へのInstallと起動、control Flow、必須のRuntime / Boundary Suite、Evidenceの保存という、リポジトリが要求する全gateを通過した場合だけ完了です。毎回PrepareやBuildを実行する必要はなく、Build成功だけではNative検証の完了になりません。
 
-未実行またはblockedの段階をPASSと報告しません。必要な物理deviceやCapabilityを利用できない場合は、Evidence付きでblockedまたはnot-executedの結果を記録し、リポジトリ契約に従って停止します。
+未実行またはblockedの段階をPASSと報告しません。必要な実機やCapabilityを利用できない場合は、Evidence付きでblockedまたはnot-executedの結果を記録し、リポジトリ契約に従って停止します。
 
 ## 安全性と対象外
 
 - Gitの状態を保持し、明示的な許可なしにGit操作を行わない。
-- ユーザーデータ、cache、生成ファイル、APK、deviceデータを自動的に削除・移動しない。
+- ユーザーデータ、cache、生成ファイル、APK、端末データを自動的に削除・移動しない。
 - Assertionを回避せず、失敗したFlowをskipせず、変更したtimeoutの背後へ失敗を隠さない。
 - 固定toolchainを更新せず、このworkflowに新しいcommand runnerを作らない。

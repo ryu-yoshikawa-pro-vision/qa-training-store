@@ -91,3 +91,24 @@
   - Result: 親AgentがRun Artifactのsanitization、format、diff、commit対象を最終確認した。
   - 親Agentの判断: 変更責務と証跡を確定し、次はGit safety確認後の通常commit / pushへ進む。
 - Progress: 100% (11/11)
+
+## 2026-09-15 16:53 (JST)
+
+- Summary: PR #151の最終レビュー残存指摘に対する局所修正を完了した。対象はcode-review referenceとAndroidローカル検証Skillの3ファイル、およびこのRunのTASKS / REPORTだけである。
+- Changes: `Review persistence policy`の一般文章2箇所を、既存表現の`リポジトリのレビュー結果保存方針`へ統一した。Android Skillでは`物理Android device`を`Android実機`、`Native物理device`を`Native実機`、`device / app契約`を`端末 / アプリ契約`、`固定version`を`固定バージョン`、`local設定`を`ローカル設定`、`device path`を`端末固有のpath`へ修正した。一般説明の`device / application`、`host / device`、`CI / local`、`物理device`、`deviceデータ`も文脈に合わせて日本語化した。frontmatterのtrigger description、`ADB device`、`APK identity`、分類値、固定契約文言、path・toolchain等の技術用語は維持した。
+- 判断 / 理由: `device / app契約`等は対象Skill内に同一の固定名称がない一般説明だったため日本語化し、`ADB device`、`APK identity`、分類値、frontmatterは技術契約またはtrigger条件として変更しなかった。固定section名、Android検証WorkflowのPrepare / Build / gate順序 / retry / stop / Evidence / 完了条件、code-review Skillの保存条件の意味は変更していない。`WRITING_STANDARDS.md`、source、dependency、test、validator、Hook、workflow、PR #146の実装は変更していない。
+- Validation: `git diff --check`、対象3ファイルとRun TASKSのPrettier check、`corepack pnpm run lint:markdown`（426 files、0 issues）、`corepack pnpm run validate:skills`（6 packages、15 Markdown、28 links）、`corepack pnpm run eval:skills:trigger:validate`（12 files、24 cases）、関連contract 6 files（85/85）、`bash scripts/verify`（PASS 2 / FAIL 0 / SKIP 2）、`pwsh scripts/verify.ps1`（PASS 3 / FAIL 0 / SKIP 0）がPASSした。最初の並列contract実行では環境負荷により2件が各5秒timeoutとなったが、同じcommandを単独で再実行して85/85を確認した。`pnpm`単体はこのPowerShellのPATHに存在しなかったため、packageManager指定の`pnpm@9.10.0`を`corepack pnpm`経由で実行した。
+- 検索: 現行の対象Skill / referenceでは`Review persistence policy`、`Repository review persistence policy`、`物理Android device`、`Native物理device`、`固定version`、`local設定`、`device path`、`device / app契約`、`device / application`、`host / device`の残存なしを確認した。`CODE_REVIEW.md`の既存バイリンガル見出しや過去Run / Plan / 履歴文書は今回の許可範囲外のため変更していない。
+- PR状態: 作業開始時のPR #151は`open`・`merged:false`・`mergeable:true`、headは`2fe27d4f992cba46ae226e6da073374ee7d68fba`だった。PR #146は`open`・`merged:false`・`mergeable:true`、baseは`main`、headは`2b05dd6ef3242382bde014ef82b0dfd15d60fc52`であり、textlint実装や`lint:text`は取り込んでいない。
+- ブロッカー / 残作業: Run Artifact Sanitizer、最終Run / scope確認、commit / push、push後のlocal / remote / PR head SHA一致、最新headのWeb CI / Mobile App CI確認、PR本文更新が残っている。semantic evalは再実行せず、前回の8 cases × 3 trialsの結果を維持する。live trigger evalも前回の35分timeout・artifactなしを維持する。
+- Progress: 100% (13/13)
+
+## 2026-09-15 16:56 (JST)
+
+- Summary: commit前の最終確認を完了した。`git fetch origin`後も作業branchは`fix/2026-09-14-2`で、upstreamは`origin/fix/2026-09-14-2`を指している。
+- Scope: commit対象は`.agents/skills/code-review/references/review-workflow.md`、`.agents/skills/android-native-local-validation/SKILL.md`、`.agents/skills/android-native-local-validation/references/windows-android-workflow.md`、および今回のRunの`REPORT.md` / `TASKS.md`だけである。source、dependency、test、validator、Hook、workflow、`WRITING_STANDARDS.md`、PR #146の実装は含まれない。
+- Validation: Run Artifact Sanitizerは`files_scanned: 5`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`。Run内全標準ファイルと今回の3対象文書のPrettier check、`git diff --check`はPASSした。`lint:markdown`、`validate:skills`、`eval:skills:trigger:validate`、関連contract 85/85、`bash scripts/verify`、`pwsh scripts/verify.ps1`のPASS結果は直前checkpointに記録済みである。
+- GitHub状態: PR #151は`open`・`merged:false`・`mergeable:true`、baseは`main`、headは`2fe27d4f992cba46ae226e6da073374ee7d68fba`。PR #146は`open`・`merged:false`・`mergeable:true`、baseは`main`、headは`2b05dd6ef3242382bde014ef82b0dfd15d60fc52`。main取り込み、merge、force pushは行わない。
+- 判断 / 理由: `Review persistence policy`の対象Skill referenceからの除去とAndroid一般説明の局所的な語句修正だけであり、固定契約・意味・対象範囲に残差はない。次は明示した5ファイルを通常commitし、同一branchへ通常pushする。
+- ブロッカー / 残作業: commit、push後のlocal / remote / PR head SHA一致、最新headのWeb CI / Mobile App CI確認、PR本文更新が残っている。
+- Progress: 100% (13/13)
