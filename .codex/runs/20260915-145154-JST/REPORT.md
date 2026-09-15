@@ -70,3 +70,16 @@
 - Validation: `corepack pnpm run build:web`と`corepack pnpm run build:spec`はPASS。生成物は既存ignore対象で、tracked差分は増えていない。最終`git diff --check`もPASS。
 - Blocker / Remaining: commit前の最終format／markdown／text確認とstage差分確認後、対象branchへcommit／pushする。CIとPR本文更新はpush後に実施する。
 - Progress: 80% (8/10)
+
+## 2026-09-15 19:23 (JST)
+
+- Summary: GitHub `main`の最新確認値を対象branchへ取り込み、PR #146固有のHook／launcher／baseline／SessionStart実装を保持した。merge conflictは1ファイルで解消し、修正後の複数違反通知とactive Stop再入契約を確認した。
+- Changes: `905d837...`をmerge commitとして作成し、第2親に`22f73a98...`を持たせた。`docs/reference/codex-safety-harness.md`ではbranch側のHook trust運用を保持し、#151側の日本語見出しを採用した。inactive Stopは同一blockへ全新規違反を連結し、state cleanupはWindows日本語一時パスで再現した`rmSync`問題を避ける`unlinkSync`へ変更した。複数違反とactive Stopの回帰テストを追加し、PowerShell validatorのUTF-8読込も修正した。
+- Decision / Rationale: 修正前focused contractの`175 passed / 12 failed`は、active Stop後のstate file残存に限定され、ASCIIパスでは再現せず日本語親ディレクトリで再現したため、Hook本体のcleanupを最小修正した。Stop出力は既存のpath／line／rule形式を維持し、PostToolUseやbaseline判定は変更していない。
+- Validation: `scripts/verify.ps1 -HookContracts`は`PASS=4 FAIL=0 SKIP=0`、focused Hook contractは`188 passed`、`corepack pnpm run verify`は全工程exit 0（contracts `576 passed / 4 skipped`、既存ESLint warning 64件・error 0件）だった。`format:check`、`lint:markdown`、`lint:text`、skills／spec／curriculum、lint、typecheck、image manifest、security、unit／integration／repository／component、web build、spec build、`git diff --check`を確認した。
+- Runtime / Blocker / Remaining: state directoryには既存session由来の`ready` state（`start_head=1382f41...`、root／session hash形式OK、files 1、codeなし）が残っており、今回のmerge後HEAD用の新規stateとは扱っていない。実Codex interactive `/hooks`／`/compact`／Stop再入は、管理対象のstandalone `codex.exe`が環境に存在せず、このAPIから起動できないため未確認。stateの手動再生成・上書きは行っていない。commit／push、最新headのCI、PR本文更新が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: runtimeの未確認理由を保持したまま、ローカル実装・契約・標準検証を完了し、外部状態の確認へ進む。
+- Progress: 80% (8/10)

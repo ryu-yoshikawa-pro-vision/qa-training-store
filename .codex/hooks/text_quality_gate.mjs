@@ -580,8 +580,9 @@ function writeState(statePath, state) {
 
 function deleteState(statePath) {
   try {
-    fs.rmSync(statePath, { force: true });
-  } catch {
+    fs.unlinkSync(statePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
     throw new QualityUnavailable("baseline_cleanup");
   }
 }
@@ -650,6 +651,10 @@ function formatViolation(violation) {
   return `${violation.path}:${violation.line} [${violation.rule_id}] ${violation.message}`;
 }
 
+function formatViolations(violations) {
+  return violations.map(formatViolation).join("; ");
+}
+
 function diagnostics(code) {
   process.stderr.write(`Codex text quality hook: quality check unavailable (${code})\n`);
 }
@@ -702,7 +707,7 @@ async function processStop(payload) {
   const { pairs } = await buildPairs({ root, state, rules });
   const newViolations = pairs.flatMap((pair) => getNewViolations(pair.baselineViolations, pair.currentViolations));
   if (newViolations.length > 0 && payload.stop_hook_active === false) {
-    outputBlock(`Text quality violation detected: ${formatViolation(newViolations[0])}`);
+    outputBlock(`Text quality violation detected: ${formatViolations(newViolations)}`);
     return;
   }
   if (newViolations.length > 0 && payload.stop_hook_active === true) {

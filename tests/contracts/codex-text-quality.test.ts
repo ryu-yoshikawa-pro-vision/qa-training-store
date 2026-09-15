@@ -1233,6 +1233,41 @@ describe("Codex deterministic text quality contracts", () => {
     });
   }, 30_000);
 
+  it("reports every new violation from one inactive Stop block", () => {
+    withFixture((root) => {
+      writeFile(
+        root,
+        "rules.json",
+        JSON.stringify({
+          version: 1,
+          status: "configured",
+          rules: [
+            { ...rule, rule_id: "TEST-BANNED-A", pattern: "BAD" },
+            { ...rule, rule_id: "TEST-BANNED-B", pattern: "WORSE" },
+          ],
+        }),
+      );
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/first.md", "BAD\n");
+      writeFile(root, "docs/second.md", "WORSE\n");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      const block = JSON.parse(inactiveStop.stdout) as { decision: string; reason: string };
+      expect(block.decision).toBe("block");
+      expect(block.reason).toContain("docs/first.md:1 [TEST-BANNED-A]");
+      expect(block.reason).toContain("docs/second.md:1 [TEST-BANNED-B]");
+      expect(inactiveStop.stderr).toBe("");
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expect(activeStop.status).toBe(0);
+      expect(activeStop.stdout).toBe("");
+      expect(activeStop.stderr).toContain("stop_hook_active");
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 30_000);
+
   it("persists baseline unavailable and never recreates it for the same session", () => {
     withFixture((root) => {
       const missingRulesPath = path.join(root, "missing-rules.json");

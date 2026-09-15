@@ -132,7 +132,7 @@ function Test-TemplateContract {
 
     $agents = Get-Content -Raw -Encoding UTF8 AGENTS.md
     $plans = Get-Content -Raw -Encoding UTF8 PLANS.md
-    $review = Get-Content -Raw CODE_REVIEW.md
+    $review = Get-Content -Raw -Encoding UTF8 CODE_REVIEW.md
     if ($agents -match [regex]::Escape("## 0.")) { throw "AGENTS.md still requires unconditional startup reading" }
     if ($agents -notmatch [regex]::Escape("通常taskの開始時に、root以外の文書を一律で読み込まない。")) { throw "AGENTS.md missing unconditional loading reduction contract" }
     if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
