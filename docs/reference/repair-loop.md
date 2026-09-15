@@ -17,7 +17,7 @@
 
 ## 共通の品質gate方針
 
-品質gateのfailureは、保留する前にbaseline、current diff、shared dependency、test or CI contract、execution environmentに照らして調査します。原因が現在の変更、現在の変更を検証するために必要なもの、または独立した既存問題のいずれであっても、現在の権限内で安全な最小修正が可能ならcurrent loopで扱います。baseline、既存問題、unrelated statusだけを理由に保留しません。
+品質gateのfailureは、保留する前にbaseline、current diff、shared dependency、test or CI contract、execution environmentに照らして調査します。原因が現在の変更、現在の変更を検証するために必要なもの、または独立した既存問題のいずれであっても、現在の権限内でsafe minimal repair（安全な最小修正）が可能ならcurrent loopで扱います。baseline、既存問題、unrelated status aloneだけを理由に保留しません。
 
 安全な修復が、unsafe、destructive、permissionまたはcredentialに依存する、irreversible external side effectを伴う、requirement-dependentである、またはRepositoryのretry stop conditionに達したため実行できない場合は、causal assessment、unexecuted checks、next actionを記録し、bounded workflowに従って停止します。
 
