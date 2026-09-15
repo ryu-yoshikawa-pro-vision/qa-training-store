@@ -6,6 +6,7 @@
 - 対象フェーズ: PR3「Trigger description最適化」
 - 実装ブランチ: `refactor/117-pr3-trigger-description-optimization`
 - branch作成元: `main` `2afae5cb6562aa94b46ecc4f31a245d85ae48eda`
+- Plan修正時点で取り込み済みの`main`: `22f73a98e5e11c9ee622512345b17e85694537e9`
 
 PR2で保存したTrigger Eval baselineのobservableなfailureを確認し、Skill frontmatter `description`に一般化可能なrouting上の欠落がある場合だけ必要最小限修正する。
 
@@ -108,7 +109,9 @@ docs/adr/0025-trigger-eval-otel-observation-contract.md
 .codex/runs/20260912-231826-JST/trigger-eval-baseline.json
 ```
 
-実装開始時のlatest `main`とbranch baseとの差分も確認する。Plan再レビュー時点のlatest `main`は`7a80e0598180cdc2f8f8538fbfbc903cd55e82ac`で、branch baseからの追加変更は`docs/curriculum/test-automation/04_learning-effort-reference.md`だけであり、routing前提には影響しない。実装開始時には改めて最新状態を確認する。
+Plan再修正時点のlatest `main`は`22f73a98e5e11c9ee622512345b17e85694537e9`で、実装ブランチへ取り込み済みである。`7a80e059...`以降のPR #151では6 Skillの`SKILL.md`、references、`AGENTS.md`等が更新されたが、PR本文と実際のfrontmatterを確認した範囲ではTrigger `description`は維持され、対象2 Skillのrouting意味契約も維持されている。
+
+ただし、実装開始時にはlatest `main`を再確認する。source変更またはcandidate作成へ進む前にbranchが`main`よりbehindしている場合はincoming diffを確認し、latest `main`を実装branchへ取り込んでから次へ進む。取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約を基準にdescription gapを再判定する。
 
 特に次が変わっている場合は、baseline取得時と現在のrouting contextが同じではないことを明示して扱う。
 
@@ -123,7 +126,18 @@ docs/adr/0025-*
 
 Issue #117のrouting方針自体が変わっている場合は、このPlanの前提が成立しないため再計画する。
 
-### 4.1 Evaluator差分の確認
+### 4.1 latest `main`の再確認
+
+latest `main`は実装開始時だけでなく、current-main側Targetを作成する直前にも再確認する。
+
+- `main`が進んでいなければ、そのSHAをcurrent-main側Targetのsource revisionとして記録する。
+- `main`が進んでいる場合はincoming diffを確認する。
+- `AGENTS.md`、対象Skill、Evaluator、ADR等に関係する変更がある場合は、latest `main`を実装branchへ取り込み、description gap、candidate、Evaluator差分の前提を再確認する。必要な評価は新しい前提でやり直す。
+- routing / Evaluatorに無関係な変更だけでも、最終PRを古い`main`前提のまま完了扱いにしない。branch同期の要否をGit safety契約に従って判断し、使用した`main` SHAをRun Artifactへ残す。
+
+latest `main`確認を自動化する専用frameworkは追加しない。
+
+### 4.2 Evaluator差分の確認
 
 baselineの`evaluator_git_sha`は`d15d1d10189e9b97a7a1ae43ec70e478f78ce7e5`である。実装時のEvaluator HEADが異なる場合は、少なくとも次の差分を確認する。
 
@@ -255,18 +269,33 @@ baselineとの因果比較では、PR2で使用した`routing_source_git_sha`そ
 
 ### 7.2 current-main側Target
 
-current-main側はbaselineとの因果比較ではなく、現在のrouting contextでの統合確認に使う。現在の`main`にはTrigger Eval datasetと過去の結果が存在するため、answer keyを持たないfresh repositoryを作る。
+current-main側はbaselineとの因果比較ではなく、現在のrouting contextでの統合確認に使う。現在の`main`にはTrigger Eval dataset、過去の結果、case固有の評価設計を記載した文書が存在するため、これらのanswer keyを持たないfresh repositoryを作る。
 
-1. 実装開始時のlatest `main`のworking filesをRepository外へexportする。
-2. export時点でTrigger Eval datasetと`.codex/runs/**`を除外する。
-3. 元repositoryの`.git`、remote ref、object database、alternatesをコピーしない。
-4. 必要なcandidate descriptionだけを適用する。
-5. export先で新しく`git init`し、filesをcommitする。
-6. remoteを設定せず、`HEAD`をdetachする。
-7. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空、Trigger Eval datasetと`.codex/runs/**`が存在しないことを確認する。
-8. Resultの`routing_source_git_sha`にはfresh repositoryの実Target HEADを記録する。
+1. Target作成直前にlatest `main`を再確認し、使用するsource SHAを確定する。
+2. 確定したlatest `main`のworking filesをRepository外へexportする。
+3. export時点で少なくとも次を除外する。
+   - `.agents/skills/*/evals/trigger/**`
+   - `.codex/runs/**`
+   - Trigger Evalの個別case ID、raw query、`expected_skill`、boundary、baseline outcome等のcase固有answer keyを記載した文書・評価artifact
+4. 現時点でcase固有answer keyを含む既知文書として、少なくとも次を除外対象として確認する。
+   - `docs/plans/2026-09-06_125922_issue-117-pr2-trigger-eval-baseline.md`
+   - `docs/plans/2026-09-12_183342_trigger-eval-routing-observability-remediation.md`
+5. `docs/plans/**`や`docs/history/**`をディレクトリ単位で無条件削除しない。case固有answer keyを含むファイルだけを除外し、routingに必要なcurrent repository contextを不必要に減らさない。
+6. export後、Target内に次が残っていないことを一時的な検索で確認する。
+   - current 24 case ID
+   - current raw query
+   - dataset fingerprint `89e15bc1a36ea6b7e769f8f84d1f56c99f331acbf2ccd1d2cbf3d5405ee7b267`
+   - `.codex/runs/20260912-231826-JST/trigger-eval-baseline.json`等のbaseline artifact参照
+   - case IDと`expected_skill` / boundary / outcomeを対応付ける記述
+7. ADR-0024 / ADR-0025やEvaluatorの一般契約など、個別caseの正解を含まない評価方式の文書は、answer key隔離だけを理由に削除しない。
+8. 元repositoryの`.git`、remote ref、object database、alternatesをコピーしない。
+9. 必要なcandidate descriptionだけを適用する。
+10. export先で新しく`git init`し、filesをcommitする。
+11. remoteを設定せず、`HEAD`をdetachする。
+12. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空であることを確認する。
+13. Resultの`routing_source_git_sha`にはfresh repositoryの実Target HEADを記録する。
 
-PR3用のTarget generatorやrepository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
+answer key確認のための検索は実行時の一時確認に限定し、PR3専用のTarget generator、scanner、repository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
 
 ---
 
@@ -336,11 +365,12 @@ baselineでobservableだったcaseが`newly_unobservable`になった場合、�
 
 current-main側Target:
 
-- 実装開始時のlatest `main`のworking filesを基にする。
-- Trigger Eval datasetと`.codex/runs/**`はexport時点で除外する。
-- dataset以外のcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
+- Target作成直前に確認したlatest `main`のworking filesを基にする。
+- Trigger Eval dataset、`.codex/runs/**`、case固有answer keyを含む文書・評価artifactをexport時点で除外する。
+- 個別caseの正解を含まないcurrent routing context、特に現在の`AGENTS.md`とSkill packageを維持する。
 - latest `main`側の対象Skillにmaterial driftがないことを確認してから、同じcandidate descriptionを適用する。
 - baseline側Targetとは別Target・別artifactとして扱う。
+- Target作成後にcase ID / raw query / expected Skill等のanswer keyが残っていないことを確認してからlive evalへ進む。
 
 ```bash
 pnpm run eval:skills:trigger -- \
@@ -423,7 +453,9 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 
 ## 10. 完了条件
 
-- [ ] 実装開始時のlatest `main`とPlan作成時branch baseの差分を確認している。
+- [ ] 実装開始時のlatest `main`を確認し、source変更前に実装branchへ必要な`main`変更を取り込んでいる。
+- [ ] current-main側Target作成直前にもlatest `main`を再確認し、使用した`main` SHAを記録している。
+- [ ] latest `main`にrouting / Evaluator関連変更が入った場合、取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約でdescription gapと評価前提を再確認している。
 - [ ] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認している。
 - [ ] baseline `evaluator_git_sha`と実行時Evaluatorの差分を確認し、observation / scoring / outcome mapping / comparison / model / timeout / dataset読込の意味が変わっていないことを確認している。
 - [ ] 2件それぞれについて、train query、対応validation case、expected Skill、sibling Skill、`AGENTS.md` routingを比較している。
@@ -438,6 +470,9 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] baseline側Targetではbaseline sourceに元から存在する非answer-key fileを不必要に削除していない。
 - [ ] current-main側Targetは元repositoryの`.git`、remote ref、object database、alternatesを共有していない。
 - [ ] current-main側TargetにTrigger Eval datasetと`.codex/runs/**`が存在しない。
+- [ ] current-main側Targetからcase固有answer keyを含む既知文書・評価artifactを除外している。
+- [ ] current-main側Target内にcurrent case ID、raw query、dataset fingerprint、baseline artifact参照、caseとexpected Skill / boundary / outcomeの対応が残っていないことを一時検索で確認している。
+- [ ] ADR等の一般評価契約をanswer key隔離だけを理由に不必要に削除していない。
 - [ ] 両TargetはEvaluatorとGit common-dirを共有せず、alternatesを使用せず、cleanなdetached HEADである。
 - [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
 - [ ] baseline側final `all`がcoverage不足で`exit 1`でも、comparison可能なpartial resultが保存されている場合は`exit 1`だけをdescription failureとせず、Result内容で判定している。
@@ -451,7 +486,7 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
 - [ ] repository fileを変更した場合は、final commit、通常push、PR最新head確認、`Web CI` / `Mobile App CI`の`success`確認まで現行implementation harnessの完了契約を満たしている。
 - [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
-- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価frameworkを追加していない。
+- [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価framework、Target generator、answer-key scannerを追加していない。
 
 2件ともdescription変更不要と判断した場合は、description変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。ただしactive Run Artifact等のrepository fileを変更した場合のGit / PR / CI完了契約はN/Aにしない。
 
@@ -460,28 +495,31 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 ## 11. 実行手順
 
 - [ ] 1. Issue #117、PR #127、最終baseline、現行routing契約を再確認する。
-- [ ] 2. latest `main`との差分を確認し、baseline時とcurrentのrouting contextを分けて扱う前提を確定する。
-- [ ] 3. baseline `evaluator_git_sha`と実行時Evaluatorの意味契約差分を確認する。
-- [ ] 4. `code-review-train-002`についてdescription gapの有無を判定する。
-- [ ] 5. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
-- [ ] 6. gapが確認できたSkillだけcandidate descriptionを作成する。
-- [ ] 7. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
-- [ ] 8. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
-- [ ] 9. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後にcandidate commitをその直接の子として作る。
-- [ ] 10. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
-- [ ] 11. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
-- [ ] 12. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
-- [ ] 13. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行し、coverage不足の`exit 1`とcomparison結果を分けて判定する。
-- [ ] 14. latest `main`のworking filesからanswer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
-- [ ] 15. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
-- [ ] 16. deterministic validationとRepository標準検証を実行する。
-- [ ] 17. scope、Run Artifact、comparison結果を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
-- [ ] 18. 最終差分をcommitし、対象branchへ通常pushする。
-- [ ] 19. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
-- [ ] 20. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
-- [ ] 21. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
+- [ ] 2. latest `main`を確認し、branchがbehindならincoming diffを確認して実装branchへ取り込む。
+- [ ] 3. 取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約でbaseline時とcurrentのrouting contextを分けて扱う前提を確定する。
+- [ ] 4. baseline `evaluator_git_sha`と実行時Evaluatorの意味契約差分を確認する。
+- [ ] 5. `code-review-train-002`についてdescription gapの有無を判定する。
+- [ ] 6. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
+- [ ] 7. gapが確認できたSkillだけcandidate descriptionを作成する。
+- [ ] 8. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
+- [ ] 9. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
+- [ ] 10. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後にcandidate commitをその直接の子として作る。
+- [ ] 11. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
+- [ ] 12. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
+- [ ] 13. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
+- [ ] 14. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行し、coverage不足の`exit 1`とcomparison結果を分けて判定する。
+- [ ] 15. current-main側Target作成直前にlatest `main`を再確認する。routing / Evaluator関連のincoming diffがあればbranchへ取り込み、必要な前提・評価を再確認する。
+- [ ] 16. 確定したlatest `main`のworking filesからTrigger Eval dataset、`.codex/runs/**`、case固有answer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
+- [ ] 17. current-main側Targetでcase ID、raw query、dataset fingerprint、baseline参照、caseとexpected Skill等の対応が残っていないことを一時検索で確認する。
+- [ ] 18. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
+- [ ] 19. deterministic validationとRepository標準検証を実行する。
+- [ ] 20. scope、Run Artifact、comparison結果を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
+- [ ] 21. 最終差分をcommitし、対象branchへ通常pushする。
+- [ ] 22. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
+- [ ] 23. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
+- [ ] 24. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
 
-no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。active Run Artifact等のrepository fileを変更した場合は17〜21を通常どおり実行する。
+no-opの場合は7〜18のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。active Run Artifact等のrepository fileを変更した場合は20〜24を通常どおり実行する。
 
 ---
 
@@ -490,11 +528,14 @@ no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な�
 次の場合はPR3 scopeを広げず停止し、必要なら再計画する。
 
 - Issue #117のrouting方針自体がbaseline取得後に変更され、PR3の前提が成立しない。
+- latest `main`のrouting / Evaluator関連変更を実装branchへ安全に取り込めず、current前提でcandidateを評価できない。
 - baseline Evaluatorから実行時Evaluatorへの差分がobservation、scoring、outcome mapping、comparison、model、timeout、dataset読込の意味を変えている。
 - `codex-cli 0.153.4`が必要なbaseline comparisonを実行できず、comparison contractを維持できない。
 - baseline `routing_source_git_sha`そのものを親として隔離Targetへ再現できない。
 - baseline側Targetからcurrent `main`、後続PR、Trigger Eval dataset、現在のbaseline artifact等のanswer keyへの取得経路を除去できない。
 - current-main側のanswer-key-free Targetを元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
+- current-main側Targetからcurrent case ID、raw query、dataset fingerprint、baseline artifact参照、caseとexpected Skill / boundary / outcomeの対応を除去できない。
+- answer keyを除くためにroutingへ必要なcurrent repository contextまで大きく削る必要が生じる。
 - candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
 - 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
@@ -514,9 +555,11 @@ no-opの場合は6〜15のうちdescription変更とcandidate評価に不要な�
 description変更要否の判断根拠
 変更した場合のdescription差分とcandidate commit SHA
 baseline evaluator / current evaluatorの差分確認
+実装開始時とcurrent-main Target作成直前のlatest main SHA / drift確認
 baseline側Targetのprovenanceとparent SHA
 baseline側Trigger Eval結果とcomparison
-current-main側Targetのprovenance
+current-main側Targetのsource main SHAとprovenance
+current-main側Targetのanswer key除外・検索結果
 current-main側Trigger Eval結果
 validation結果
 scope確認
