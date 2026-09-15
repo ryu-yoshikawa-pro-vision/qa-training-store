@@ -40,6 +40,32 @@
   - 親Agentの判断: main未取り込みのため、文章・差分・契約を変更せず停止する。
 - Progress: 13% (1/8)
 
+## 2026-09-15 09:38 (JST)
+
+- Summary: 正式名復元の修正後、文書lintと仕様・docs生成を再実行し、すべて成功した。
+- Changes: `docs/spec/README.md`だけを修正対象とし、生成物は検証のため再生成した。trackedな生成物の追加差分は発生していない。
+- 判断 / 理由: `scripts/spec/build-spec.ts`はREADMEの`Navigation`リンクラベルを公開HTMLのdesktop / mobile navigationへ利用するため、修正後の生成HTMLに`Product Scope` / `Roles and Permissions`が出力されることを確認した。
+- Validation: `corepack pnpm run lint:markdown`は425 files・0 issues、`corepack pnpm run build:spec`は22 specification pages、`corepack pnpm run build:docs`はspec 22 / curriculum 25 pagesでexit 0。`git diff --check`もexit 0。
+- ブロッカー / 残作業: Run ArtifactのSanitizer、branch safety確認、修正commit / push、最新headの`Web CI`・`Mobile App CI`確認、必要なPR本文更新が残っている。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親Agentがローカル生成物とtracked statusを確認した。
+  - 親Agentの判断: 正式名復元はCI failureに直接対応する最小修正として採用する。
+- Progress: 63% (5/8)
+
+## 2026-09-15 09:36 (JST)
+
+- Summary: 最新headの`Web CI #991`が`production-smoke`で失敗した原因を、公開仕様ドキュメントのナビゲーション表示名と既存E2E契約の不一致として特定した。
+- Changes: `docs/spec/README.md`の学習者向け入口と`Navigation`にある4つの正式リンク名を`Product Scope` / `Roles and Permissions`へ戻す。本文の日本語表現と、その他のPR #151の文章変更は維持する。E2Eや実装コードは変更しない。
+- 判断 / 理由: CIログでは`e2e/web/smoke.spec.ts:74`の`Product Scope`完全一致リンクが公開docs上で見つからず、3回連続で90秒timeoutした。正式なUI / navigation名と既存の機械的契約を優先し、失敗原因に直接対応する最小修正とする。
+- Validation: `Web CI #991`はStyle Quality、Code Quality、unit / integration / repository / component、Chromium E2E、UI reviewが成功し、`production-smoke`のみ失敗した。`Mobile App CI #857`はこの時点で実行中である。修正後にローカル文書ゲート、build、Sanitizer、commit / push、最新headの必須CIを再実行する。
+- ブロッカー / 残作業: `docs/spec/README.md`の修正、関連ローカル検証、修正commit / push、最新headの`Web CI`・`Mobile App CI`成功確認、必要なPR本文更新が残っている。旧headのCI結果は最終headの根拠には用いない。
+- Subagent:
+  - Delegation: なし。
+  - Result: 親AgentがCIジョブログ、`origin/main...HEAD`差分、公開仕様README、既存E2Eを照合した。
+  - 親Agentの判断: 日本語化した正式ナビゲーション名だけを復元し、他の文章改善は保持する。
+- Progress: 63% (5/8)
+
 ## 2026-09-15 08:32 (JST)
 
 - Summary: 現在進行中のmain mergeを、競合解消内容を含むmerge commit `4799093b457b67b686e6c788f8b284ece45ccf1b`で完了した。

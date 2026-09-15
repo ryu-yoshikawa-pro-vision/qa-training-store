@@ -4,8 +4,8 @@
 
 ## 学習者向けの読み始め
 
-1. [製品の対象範囲](./product-scope.md)で対象範囲を確認する。
-2. [役割と権限](./roles-and-permissions.md)でRoleと権限を確認する。
+1. [Product Scope](./product-scope.md)で対象範囲を確認する。
+2. [Roles and Permissions](./roles-and-permissions.md)でRoleと権限を確認する。
 3. 対象FeatureのPurpose / Scopeを読む。
 4. 同じFeatureのBusiness RulesとAcceptance Criteria（BR / AC）を読む。
 5. 必要な状態とScenarioを[状態とシナリオ](./state-and-scenarios.md)で確認する。
@@ -16,8 +16,8 @@
 
 ## Navigation
 
-- [製品の対象範囲](./product-scope.md)
-- [役割と権限](./roles-and-permissions.md)
+- [Product Scope](./product-scope.md)
+- [Roles and Permissions](./roles-and-permissions.md)
 - [Storefront](./features/storefront.md)
 - [Authentication](./features/authentication.md)
 - [Cart](./features/cart.md)
