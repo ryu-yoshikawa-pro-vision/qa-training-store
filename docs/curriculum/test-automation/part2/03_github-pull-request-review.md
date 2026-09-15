@@ -13,7 +13,7 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` と、その実際のPull Request構成を使用します。**
 
-レビューのOracleは [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、Competency Rubricです。Training変更は `training/`とTraining Configへ置き、Formal Regressionへ混在させません。
+レビューの判断基準は [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、習熟度評価基準です。Training変更は `training/`とTraining Configへ置き、Formal Regressionへ混在させません。
 
 教材用に別のテスト対象へ切り替えません。
 
@@ -131,14 +131,14 @@ Scenario Shop本体では、現在のCIで次のような検証があります�
 
 ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
 
-重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。Training Copy、active Workflow、SecretsやDeployの分離は [Instructor Reference](../03_instructor-reference.md) のsupport範囲です。Common completionでは、準備済みの演習環境でPRとTest変更をReviewします。
+重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。Training Copy、実行対象workflow、SecretsやDeployの分離は [講師向け資料](../03_instructor-reference.md) の支援範囲です。共通課程の修了では、準備済みの演習環境でPRとTest変更をレビューします。
 
 ## Lesson 7: Merge判断
 
 Merge判断では次を組み合わせます。
 
 - Review内容
-- Required Checks
+- 必須Checks
 - Test結果
 - 未解決Risk
 - Scope
@@ -191,18 +191,18 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 - PR本文へ変更内容、理由、Test Designとの対応、Validation、Remaining Riskを記録できる。
 - material diffについて、Test目的、Assertion、Locator、Data依存、Regression重複、Product条件の観点から必要な確認を選べる。
 - Review観点を好みではなく、正確性・安定性・保守性への影響として説明できる。
-- Training Copyのprovisioningや第三者ReviewはCommon completionの前提ではなく、件数quotaなしで自分のself-reviewを完了できる。
+- Training Copyの準備や第三者Reviewは共通課程の修了の前提ではなく、件数quotaなしで自分のレビューを完了できる。
 
 ### Recovery
 
-PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権限、Base Branchを確認し、Environment / account blockとして切り分けます。Reviewの判断が曖昧な場合は、変更の目的、期待するAssertion、失敗時のEvidence、既存Regressionとの重複へ戻り、materialな観点を1つずつ記録します。
+PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権限、Base Branchを確認し、環境・アカウント上の問題として切り分けます。レビューの判断が曖昧な場合は、変更の目的、期待するAssertion、失敗時の記録、既存Regressionとの重複へ戻り、重要な観点を1つずつ記録します。
 
 ## 完了条件
 
 - Forkまたは演習用Copyと本体Repositoryの役割を説明できる。
 - 自分が書き込めるRemoteへLocal BranchをPushできる。
 - Pull Requestの役割を説明できる。
-- Test変更のmaterialなReview観点を、変更のRiskと理由付きで選べる。固定件数や第三者Reviewをcompletionの条件にしない。
+- Test変更の重要なレビュー観点を、変更のRiskと理由付きで選べる。固定件数や第三者Reviewを修了条件にしない。
 - PR本文へTest Designとの対応とValidationを記録できる。
 
 ## 次の行動

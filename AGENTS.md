@@ -31,6 +31,7 @@ Codex は、このリポジトリで作業するとき、ユーザーの明示�
 - active Runの継続、過去Runのevidence、Run運用やProgress詳細が必要な場合: `.codex/runs/`、[`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md)、[`docs/reference/codex-implementation-harness.md`](docs/reference/codex-implementation-harness.md)。
 - Safety Harness詳細、破壊的操作、`docs/reports/`作成判断が必要な場合: [`docs/reference/codex-safety-harness.md`](docs/reference/codex-safety-harness.md)。
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
+- 人間向け文章の言語・表現を判断する場合: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)。
 
 このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 

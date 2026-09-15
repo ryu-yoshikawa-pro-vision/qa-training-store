@@ -18,7 +18,7 @@ Phase 1では、学習用アプリであることを説明する静的ページ�
 - DataはBrowserまたは端末内に保存され、ResetやData削除で消失します。
 - 認証・権限は疑似実装であり、本番Service相当のSecurityを提供しません。
 
-## 3. Privacy表示
+## 3. プライバシー表示
 
 - Analytics、外部Error Tracking、外部Payment、外部業務APIを使用しません。
 - Web業務DataはIndexedDB、Session IDはLocal Storageへ保存します。

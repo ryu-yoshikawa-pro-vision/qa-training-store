@@ -13,9 +13,9 @@
 
 ## 2. 現状理解と前提
 
-- Current understanding:
-- Assumptions:
-- Non-goals:
+- 現状理解:
+- 前提:
+- 対象外:
 
 ## 3. 質問 / 曖昧性
 
@@ -25,12 +25,12 @@
 
 ## 4. 影響範囲
 
-- Impacted areas:
-- Files to inspect:
+- 影響範囲:
+- 確認対象ファイル:
 
 ## 5. 変更方針
 
-- Change strategy:
+- 変更方針:
 - 実行タスク:
   - [ ] 1.
   - [ ] 2.
@@ -38,13 +38,13 @@
 
 ## 6. 検証方法
 
-- Validation plan:
+- 検証計画:
 - 成功判定:
 
 ## 7. リスクと未解決論点
 
-- Risks:
-- Open questions:
+- リスク:
+- 未解決の質問:
 
 ## 8. 成果物
 

@@ -1,4 +1,4 @@
-# Quickstart
+# クイックスタート
 
 ## 新規 consumer repo への導入
 
@@ -35,7 +35,7 @@
 7. `bash scripts/verify` または PowerShell 版 verify を実行する。
 8. PR で差分を確認し、プロジェクト固有の運用・品質ゲート・安全制約が失われていないことをレビューする。
 
-## mode 選択の目安
+## mode選択の目安
 
 | 作業 | 推奨 mode |
 | --- | --- |

@@ -1,4 +1,4 @@
-# Seed Catalog
+# Seedカタログ
 
 ## 1. 共通基準
 
@@ -26,7 +26,7 @@ Seed中の相対日時はClock基準で生成し、実行日へ依存しませ�
 | user-operator | <operator@example.com> | operator/-/active |
 | user-admin | <admin@example.com> | admin/-/active |
 
-### 2.1 Seed Password Hash
+### 2.1 Seedのパスワードハッシュ
 
 - 固定Passwordは`testpass1`。
 - Seed生成ScriptはUserごとに`SHA-256("scenario-shop-seed:" + userId)`の先頭16byteをSaltとして使用する。
@@ -104,7 +104,7 @@ Sale期間は基準時刻の1日前から1日後です。
 
 Home SectionはViewer条件を適用します。未Loginではgold/platinum限定商品を表示しません。Sale Sectionは未Loginでも12色カラーポーチを表示し、gold Login時はランニングシューズも追加します。platinum Login時は限定商品の閲覧範囲がさらに広がります。 在庫切れはStorefrontから除外せず、購入不可状態を表示するため、`product-out-of-stock`も新着上限8件に含みます。
 
-## 6. Review Summary期待値
+## 6. Review集計の期待値
 
 | Product | publishedCount | ratingTotal | average | 5★ | 4★ | 3★ | 2★ | 1★ |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -170,7 +170,7 @@ regularでTシャツ1件の場合、送料無料不足額は3,000円です。
 - Review Summaryは本書6章の期待値に一致する。
 - Admin Overviewは発送準備待ち1件、低在庫SKUは在庫1～5のSKU件数、非公開Review1件、最近のOrder最大5件。
 
-## 11. Phase 1 Scenario
+## 11. Phase 1のシナリオ
 
 | Scenario | 差分・期待 |
 |---|---|
@@ -214,7 +214,7 @@ Scenario Resetはdefaultへの差分Patchではなく、対象Scenarioの完全�
 - 10件ごとにSale SKUを1件設定する。
 - 同時刻時はproductCodeでSortを確定する。
 
-## 13. Seed変更Rule
+## 13. Seed変更ルール
 
 - 固定ID・期待金額・Home順・Facet期待を変更する場合はSeed Versionを上げる。
 - E2E参照値は本書、Seed Metadata JSON、Image Manifest参照へ同時反映する。

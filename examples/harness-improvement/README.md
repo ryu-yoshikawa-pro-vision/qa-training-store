@@ -1,18 +1,18 @@
-# Harness Improvement Example
+# Harness改善の例
 
-この例は evaluation findings から harness improvement candidate へ変換する方法を示す。
+この例はevaluationのFindingからHarness改善候補へ変換する方法を示す。
 
-- product implementation と harness improvement を分離する。
-- strict workflow が必要な target を分けて扱う。
-- rejected / deferred candidate も evidence と owner decision を残す。
+- Product実装とHarness改善を分離する。
+- strict workflowが必要なtargetを分けて扱う。
+- rejected / deferred candidateもEvidenceとowner decisionを残す。
 
-## Included examples
+## 含まれる例
 
 - docs / skill improvement: `strictness = normal`
 - validator / schema improvement: `strictness = strict`
 - unsafe or policy-bypass candidate: `strictness = blocked`
 
-## Files
+## ファイル一覧
 
 - `harness-improvement-candidates.json`
 - `harness-improvement-review.md`

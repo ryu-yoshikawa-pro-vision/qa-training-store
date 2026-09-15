@@ -11,7 +11,7 @@
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
-分析のOracleは [`docs/spec/README.md`](../../../spec/README.md) から辿るNormative Specificationです。Current UI、README、既存Testは探索・実装比較のEvidenceとして扱い、未定義の期待動作を教材へ追加しません。
+分析の判断基準は [`docs/spec/README.md`](../../../spec/README.md) から辿る正式な仕様です。現在のUI、README、既存Testは探索・実装比較の材料として扱い、未定義の期待動作を教材へ追加しません。
 
 主に次を使います。
 
@@ -167,7 +167,7 @@ Scenario ShopではUI操作によって内部状態が変化します。
 - どのRouteを確認するか。
 - Reset先はどこか。
 
-ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。具体的なScenario ID、seed value、固定ClockなどのExecutable Sourceの値は、このLessonでは確認しません。Playwright実装へ進んだ後に必要な値だけをExecutable Sourceで確認します。
+ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。具体的なScenario ID、seed value、固定Clockなど、実行可能なソースにある値は、このLessonでは確認しません。Playwright実装へ進んだ後に必要な値だけを実行可能なソースで確認します。
 
 ### 既存SSOTへ戻る経路
 
@@ -177,7 +177,7 @@ Scenario ShopではUI操作によって内部状態が変化します。
 2. Scenarioの目的、初期状態、初期Login状態、推奨Account、確認Route、Reset先: [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節
 3. 郵便番号からの住所候補の扱い: [`docs/05_ui/ui_specifications.md`](../../../05_ui/ui_specifications.md)
 4. 実際の画面・安全な入口: Scenario Shopの`/guide`とTest Control
-5. 具体的な実装上のIDは、Playwright実装へ進んだ後にExecutable Sourceで確認します。
+5. 具体的な実装上のIDは、Playwright実装へ進んだ後に実行可能なソースで確認します。
 
 教材本文の一覧やサンプル値とSSOTが異なる場合は、SSOTの値を採用し、差異をProduct仕様の変更として扱いません。
 
@@ -233,7 +233,7 @@ Guestから購入完了までを図にします。
 
 ### Recovery
 
-Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を再読し、CartまたはCheckoutの1条件を「Role → 初期State → Action → Expected → 変化する内部State」で書き直します。固定値が見つからない場合は上記SSOTへ戻り、参照先が起動できない・権限がない場合だけEnvironment blockとして分けて記録します。
+Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を再読し、CartまたはCheckoutの1条件を「Role → 初期State → Action → Expected → 変化する内部State」で書き直します。固定値が見つからない場合は上記SSOTへ戻り、参照先が起動できない・権限がない場合だけ環境上の問題として分けて記録します。
 
 ## 完了条件
 

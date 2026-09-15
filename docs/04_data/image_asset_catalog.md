@@ -1,4 +1,4 @@
-# GitHub商品画像Asset Catalog設計
+# GitHub商品画像Assetカタログ設計
 
 ## 1. 目的
 
@@ -69,7 +69,7 @@ type ProductImageAssetManifest = {
 
 新しい画像を利用する場合は、Repository管理者がFile追加、Manifest Metadata追加/生成、PR Review、Cloudflare Deployを行います。
 
-## 5. Immutable Rule
+## 5. 不変ルール
 
 - 公開済みAssetのBinaryを同一Pathで上書きしない。
 - 変更画像は新Hash File・新assetIdとして追加する。
@@ -79,7 +79,7 @@ type ProductImageAssetManifest = {
 
 これにより、Order履歴やSeed Screenshotが後から別画像へ変わることを防ぎます。
 
-## 6. Build Validation
+## 6. Build検証
 
 CIで次を検証します。
 

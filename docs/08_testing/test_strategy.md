@@ -1,4 +1,4 @@
-# Test戦略
+# テスト戦略
 
 ## 1. Phase 1最重要Risk
 
@@ -38,7 +38,7 @@ Test Level / Test Typeは、どの層で何を検証するかを示します。T
 
 ## 3. Test Perspective
 
-Test Perspectiveは、同じTest Levelで確認するRiskの見方です。Current Risk / testで説明できるPerspectiveだけを使い、PerspectiveをTest Levelとして数えません。
+Test Perspectiveは、同じTest Levelで確認するRiskの見方です。現在のRisk / testで説明できるPerspectiveだけを使い、PerspectiveをTest Levelとして数えません。
 
 | Perspective | 主な適用 |
 |---|---|
@@ -52,26 +52,26 @@ Test Perspectiveは、同じTest Levelで確認するRiskの見方です。Curre
 | Security / Authorization | Password Hash、Authorization、Test API境界 |
 | UX / Visual acceptance | Storefront/Admin分離、CTA、Empty / Error、Screenshot review |
 
-## 4. Execution / Platform / CI Gate
+## 4. 実行 / Platform / CI Gate
 
-Execution / Platform / CI Gateは、どの入口・環境・workflow jobで実行し、何をRequiredとするかを示します。同時に実行されることだけを理由に、同じcoverage分類とは扱いません。
+Execution / Platform / CI Gateは、どの入口・環境・workflow jobで実行し、何を必須とするかを示します。同時に実行されることだけを理由に、同じcoverage分類とは扱いません。
 
-| Execution / Platform | Current entrypoint / CI Gate | Coverage boundary |
+| Execution / Platform | 現在のentrypoint / CI Gate | Coverage boundary |
 |---|---|---|
-| Web PR / main / schedule / manual | Web CI（PR、push、schedule、`workflow_dispatch`） | Webのstyle、code、Vitest、build、E2E、UI Review、SmokeをCurrent workflowで判定 |
+| Web PR / main / schedule / manual | Web CI（PR、push、schedule、`workflow_dispatch`） | Webのstyle、code、Vitest、build、E2E、UI Review、Smokeを現在のworkflowで判定 |
 | `e2e-chromium` matrix | `required`=`pnpm run test:e2e:chromium`、`accessibility`=`pnpm run test:a11y`、`mobile-boundary`、`cross-role`、`training-web-baseline` | `required`を含む5 leg。`training-web-baseline`はTrainingでありFormal Regression coverageへ昇格しない |
 | UI Review | `ui-review` job / `ui-review-desktop`、`ui-review-tablet`、`ui-review-mobile`、`ui-review-small-mobile` project | ScreenshotによるUI Reviewの別責務。Formal RegressionのTest Levelやcoverage countへ合算しない |
 | Production Smoke / Preview Deployed Smoke | `production-smoke`、Preview / Production deployed smoke | Build済みartifactまたはdeployed URLの配信・代表Flow確認 |
-| non-PR Extended E2E | `extended-e2e`（non-PR） / `mobile-chromium` | PR required E2Eとは別のMobile extended coverage |
-| weekly / manual Cross-browser Smoke | `Cross Browser Smoke` workflow / `firefox-smoke`、`webkit-smoke` | weeklyまたは`workflow_dispatch`の互換性確認。PR required gateではない |
+| non-PR Extended E2E | `extended-e2e`（non-PR） / `mobile-chromium` | PRで必須のE2Eとは別のMobile extended coverage |
+| weekly / manual Cross-browser Smoke | `Cross Browser Smoke` workflow / `firefox-smoke`、`webkit-smoke` | weeklyまたは`workflow_dispatch`の互換性確認。PRの必須gateではない |
 | Native PR conditional / Native manual | `native-ci`のNative change検出または`workflow_dispatch` | Native変更時だけNative gateを要求し、Web Phase 1のPlaywright coverageへ混在させない |
-| Android Build + Runtime / Maestro | `native-ci / verify`が`android-automation-build`、`android-production-build`、`android-runtime`等を要求 | AndroidはBuild、SQLite / Contract、Emulator Runtime / MaestroをRequiredとする |
-| iOS Build-only reusable gate | `native-ios` reusable workflowの`ios-automation-build`、`ios-production-build`、`ios-verify` | iOSはAutomation / Production-validation Simulator Build-only。iOS Runtime / Maestro PASSはRequired guaranteeではない |
+| Android Build + Runtime / Maestro | `native-ci / verify`が`android-automation-build`、`android-production-build`、`android-runtime`等を要求 | AndroidはBuild、SQLite / Contract、Emulator Runtime / Maestroを必須とする |
+| iOS Build-only reusable gate | `native-ios` reusable workflowの`ios-automation-build`、`ios-production-build`、`ios-verify` | iOSはAutomation / Production-validation Simulator Build-only。iOS Runtime / Maestro PASSは必須保証ではない |
 | Formal / Training boundary | `playwright.config.ts`のFormal E2E / Smoke、`playwright.training.config.ts`のTraining | `ui-review-*`はUI Review、`training-web-baseline`はTrainingとして責務を分離する |
 
 ### Phase 1 Risk mapping
 
-Risk mappingは既存のPhase 1重要Riskを1 Risk = 1 rowで表し、Representative Formal Test / suiteは安定した代表実行単位、CI Gateはそのsuiteに最も近いCurrent workflow job / matrix legを示します。
+Risk mappingは既存のPhase 1重要Riskを1 Risk = 1 rowで表し、Representative Formal Test / suiteは安定した代表実行単位、CI Gateはそのsuiteに最も近い現在のworkflow job / matrix legを示します。
 
 | Risk / Risk label | Representative Requirement / AC | Representative Technique | Representative Perspective | Primary Test Level | Representative Formal Test / suite | CI Gate |
 |---|---|---|---|---|---|---|
@@ -125,7 +125,7 @@ PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Rem
 
 ## 7. E2E Release Gate
 
-`e2e_design.md`のWE-CORE-001〜WE-CORE-012はPhase 1のRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのWeb E2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixであり、12件のmappingやrequired leg commandと同一視しません。次はE2Eへ重複展開せず、下位Testへ割り当てます。
+`e2e_design.md`のWE-CORE-001〜WE-CORE-012はPhase 1の要件と業務フローの対応付けです。現在の実行対象となる必須legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのWeb E2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixであり、12件の対応付けや必須legのcommandと同一視しません。次はE2Eへ重複展開せず、下位Testへ割り当てます。
 
 - Filter全組合せ、Sort tie-break、Facet件数: Unit/Application
 - 全入力文字数境界、Error Summary詳細: Component/Application
@@ -133,9 +133,9 @@ PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Rem
 - Review評価分布Delta、平均未丸め保存・表示丸め、価格/送料全組合せ: Unit/Application
 - Bulk各対象の失敗理由: Application Integration
 
-### Current Native CIとの境界
+### 現在のNative CIとの境界
 
-Web Phase 1のE2E Release GateへNative / Maestro Flowを混在させません。Native変更時のCurrent Native contractは、AndroidがBuild + Runtime / Maestro、iOSがBuild-onlyです。iOSのSimulator Runtime / Maestro PASSは保証せず、standalone `workflow_dispatch`とNative変更時のtop-level `native-ci`からのiOS reusable workflow呼出しを区別します。Native変更時は`native-ci / verify`がiOS成功を要求します。
+Web Phase 1のE2E Release GateへNative / Maestro Flowを混在させません。Native変更時の現在のNative contractは、AndroidがBuild + Runtime / Maestro、iOSがBuild-onlyです。iOSのSimulator Runtime / Maestro PASSは保証せず、standalone `workflow_dispatch`とNative変更時のtop-level `native-ci`からのiOS reusable workflow呼出しを区別します。Native変更時は`native-ci / verify`がiOS成功を必須とします。
 
 ## 8. Data方針
 

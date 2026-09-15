@@ -1,6 +1,6 @@
-# User Flow
+# ユーザーフロー
 
-## 1. 商品探索Flow
+## 1. 商品探索フロー
 
 ```mermaid
 flowchart TD
@@ -23,7 +23,7 @@ flowchart TD
 
 検索結果へ戻った場合はQuery、Page、Scroll位置を復元します。
 
-## 2. 購入Flow
+## 2. 購入フロー
 
 ### 2.1 商品詳細からの初回Cart追加
 
@@ -55,7 +55,7 @@ flowchart TD
   N --> P[注文詳細から再支払い]
 ```
 
-## 2.2 Cart変更・統合Flow
+## 2.2 Cart変更・統合フロー
 
 - 追加・数量変更で上限を超えた場合は自動補正せず、元の数量を維持する。
 - 数量0または削除Buttonで明細を削除する。
@@ -63,7 +63,7 @@ flowchart TD
 - Guest Cartは統合Transactionでabandonedへ変更する。
 - Cart Item変更時は親Cart versionだけを同一Transactionで更新し、進行中Checkout Sessionはその場で変更しない。Route Guard・確認・注文確定で不一致を検出してCartへ戻し、次回Checkout開始時に旧Sessionをabandonedへ変更する。
 
-## 3. 管理Overview・Order Flow
+## 3. 管理の概要・Orderフロー
 
 ```mermaid
 flowchart TD
@@ -75,7 +75,7 @@ flowchart TD
   F -->|配送完了| G[delivered]
 ```
 
-## 4. Review Flow
+## 4. Reviewフロー
 
 ```mermaid
 flowchart LR
@@ -87,7 +87,7 @@ flowchart LR
   F --> E
 ```
 
-## 5. 商品管理Flow
+## 5. 商品管理フロー
 
 Admin Overviewまたは商品一覧 → 新規登録/編集 → 商品本体入力 → SKU追加/変更/無効化 → GitHub画像Asset選択/関連解除/並べ替え → 編集画面内Dialogで未保存Preview → Contextual Save BarでAggregate保存 → 公開条件確認 → Publish。
 
@@ -96,7 +96,7 @@ Admin Overviewまたは商品一覧 → 新規登録/編集 → 商品本体入�
 - draftかつ参照なしの場合だけDanger Zoneから商品Aggregateを物理削除する。
 - 新規画像Binaryはアプリ外でGitHubへCommitし、再Deploy後にAsset Catalogから選択する。
 
-## 5.1 管理者登録商品を消費者が購入するFlow
+## 5.1 管理者登録商品を消費者が購入するフロー
 
 1. adminが商品一覧からdraft商品を新規登録する。
 2. Product Code、商品情報、SKU、初期在庫、GitHub画像Assetを設定し保存する。
@@ -109,19 +109,19 @@ Admin Overviewまたは商品一覧 → 新規登録/編集 → 商品本体入�
 
 このFlowはBackendなしで同じIndexedDBを共有する教材Scenarioです。別Browser Context・別端末とはDataを共有しません。
 
-## 6. Category並べ替えFlow
+## 6. Category並べ替えフロー
 
 Category一覧 → 並べ替えMode → Dragまたは上下移動Button → 未保存状態 → Save Barで保存。Keyboard利用者は上下Buttonだけで完了できます。Brandは名称順固定で、並べ替え機能を持ちません。
 
-## 7. 在庫管理Flow
+## 7. 在庫管理フロー
 
 Overviewまたは在庫一覧 → SKU選択 → 調整量・理由入力 → 変更前後確認 → 保存 → Inventory History。
 
-## 8. Test Flow
+## 8. Testフロー
 
 Scenario選択 → Reset → Clock/Delay設定 → 対象画面へ移動 → Test → Trace/Screenshot/Metadata保存。
 
-## 9. 将来Flow
+## 9. 将来フロー
 
 - Phase 2: Native、Cancel、Return、Refund、Guest Checkout再評価。
 - Phase 3: Payment Unknown/Reconciliation、Recovery、Import/Export。

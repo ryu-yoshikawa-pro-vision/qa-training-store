@@ -64,7 +64,7 @@ id、userId、label、recipientName、postalCode、prefecture、city、addressLi
 
 id、userId、createdAt。Current Session IDだけLocal Storageへ保存します。
 
-## 4. 商品Master
+## 4. 商品マスタ
 
 ### categories
 

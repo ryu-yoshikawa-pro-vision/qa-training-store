@@ -1,4 +1,4 @@
-# Contributing
+# コントリビュート
 
 Scenario Shopへ変更を加えるときの最小限の入口をまとめる。
 
@@ -7,10 +7,11 @@ Scenario Shopへ変更を加えるときの最小限の入口をまとめる。
 1. [`AGENTS.md`](./AGENTS.md)
 2. [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md)
 3. [`docs/CODING_STANDARDS.md`](./docs/CODING_STANDARDS.md)
-4. 変更領域に関係する[`docs/adr/`](./docs/adr/)
-5. Review時は[`CODE_REVIEW.md`](./CODE_REVIEW.md)
+4. [`docs/WRITING_STANDARDS.md`](./docs/WRITING_STANDARDS.md)
+5. 変更領域に関係する[`docs/adr/`](./docs/adr/)
+6. Review時は[`CODE_REVIEW.md`](./CODE_REVIEW.md)
 
-`AGENTS.md`は作業手順、`PROJECT_CONTEXT.md`は現在の設計と運用前提、`CODING_STANDARDS.md`はコードの判断基準を扱う。内容が重複する場合は、より具体的な領域の文書を優先する。
+`AGENTS.md`は作業手順、`PROJECT_CONTEXT.md`は現在の設計と運用前提、`CODING_STANDARDS.md`はコードの判断基準、`WRITING_STANDARDS.md`は人間向け文書の言語と表現の基準を扱う。内容が重複する場合は、より具体的な領域の文書を優先する。
 
 ## 基本方針
 
@@ -20,27 +21,27 @@ Scenario Shopへ変更を加えるときの最小限の入口をまとめる。
 - 既存のArchitecture ContractとPlatform Dependency Checkを維持する。
 - 実行していない検証を成功と記録しない。
 
-## Issue / Pull Request / Security
+## Issue / Pull Request / セキュリティ
 
-- Bug report は [Bug report Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml) を使用する。
-- Feature request は [Feature request Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml) を使用する。
-- Pull Request は [Pull Request Template](./.github/pull_request_template.md) を使用し、検証結果と Scope / Non-goals を記載する。
-- Security vulnerability は Public Issue / Pull Request に投稿せず、[`SECURITY.md`](./SECURITY.md) の GitHub Private Vulnerability Reporting を使用する。
+- 不具合報告は [不具合報告 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml) を使用する。
+- 機能要望は [機能要望 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml) を使用する。
+- Pull Requestは [Pull Request用テンプレート](./.github/pull_request_template.md) を使用し、検証結果と対象範囲・対象外を記載する。
+- セキュリティ脆弱性はPublic Issue / Pull Requestに投稿せず、[`SECURITY.md`](./SECURITY.md)のGitHub Private Vulnerability Reportingを使用する。
 
-## Dependency / Workflow Changes
+## 依存関係・Workflowの変更
 
-- Dependency version update には、既知脆弱性、EOL / Support 終了、互換性問題、計画済み基盤更新、新機能のいずれかの理由を記載する。新しいという理由だけで更新しない。
-- GitHub Actions の remote `uses:` は full-length commit SHA へ pin し、変更時に official source、release tag、Security Advisory を確認する。
+- 依存関係のバージョン更新には、既知の脆弱性、EOL / Support終了、互換性問題、計画済みの基盤更新、新機能のいずれかの理由を記載する。新しいという理由だけで更新しない。
+- GitHub Actionsのremote `uses:`はfull-length commit SHAへpinし、変更時に公式source、release tag、Security Advisoryを確認する。
 - Dependabot Version UpdatesやRenovateなど、通常の自動バージョン更新は有効化しない。
 - Dependabot Security Updatesは通常のVersion Updatesとは別に扱い、Public Repository Hardeningのpost-merge taskとして有効化・検証する。
 - Fork PRではCloudflare Preview Deploymentを実行しない。
 
 ## 実装前
 
-- 変更対象のEntry Point、依存方向、既存Testを確認する。
+- 変更対象のエントリポイント、依存方向、既存Testを確認する。
 - 外部値、Storage、SQLite、Deep Link、環境変数を扱う場合は、検証境界を先に決める。
 - WebとNativeのどちらへ影響するかを明確にする。
-- 複雑な変更では、`PLANS.md`とrepo-local planning skillに従って計画を保存する。
+- 複雑な変更では、`PLANS.md`とrepo-local planning Skillに従って計画を保存する。
 
 ## 実装時
 
@@ -82,7 +83,7 @@ Platform固有変更では、対象に応じてWeb E2E、Accessibility、Native 
 
 環境上実行できない検証がある場合は、未実行項目、理由、残るRiskを報告する。
 
-## Review
+## レビュー
 
 Reviewは[`CODE_REVIEW.md`](./CODE_REVIEW.md)へ従う。
 

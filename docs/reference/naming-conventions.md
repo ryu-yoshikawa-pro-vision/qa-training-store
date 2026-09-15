@@ -1,4 +1,4 @@
-# Naming Conventions
+# 命名規約
 
 - run ID: `YYYYMMDD-HHMMSS-JST`
 - 計画書: `docs/plans/{yyyy-mm-dd}_{HHMMSS}_{plan_name}.md`

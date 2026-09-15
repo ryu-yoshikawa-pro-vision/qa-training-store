@@ -1,8 +1,8 @@
-# Known Deviations
+# 既知の差異
 
 このファイルは現在ActiveなImplementation Deviationだけを記載します。ここにあるEntryは差異を説明しますが、Normative SpecのExpected Behaviorを変更しません。
 
-## Active Entries
+## 有効な項目
 
 現在、Active Known Deviationはありません。
 

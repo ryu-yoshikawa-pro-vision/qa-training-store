@@ -1,25 +1,25 @@
-# Security Policy
+# セキュリティポリシー
 
-## Scope
+## 対象範囲
 
-Scenario Shop is a simulated e-commerce application for learning and testing. It does not perform real sales or payments and does not handle production user data.
+Scenario Shopは学習とテストのための模擬ECアプリケーションです。実際の販売や決済は行わず、本番のユーザーデータも扱いません。
 
-The supported security scope is the current `main` branch, its repository configuration and workflows, and the latest deployment produced from this repository.
+セキュリティ報告の対象は、現在の`main` branch、そのリポジトリ設定とworkflow、およびこのリポジトリから生成した最新のデプロイです。
 
-## Reporting a vulnerability
+## 脆弱性の報告
 
-Do not report a suspected security vulnerability in a public Issue or Pull Request.
+セキュリティ脆弱性の疑いをPublic IssueやPull Requestへ投稿しないでください。
 
-Use GitHub Private Vulnerability Reporting:
+GitHub Private Vulnerability Reportingを使用してください。
 
-1. Open the [Security page](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security).
-2. Open **Advisories**.
-3. Select **Report a vulnerability**.
+1. [Security page](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security)を開きます。
+2. **Advisories**を開きます。
+3. **Report a vulnerability**を選択します。
 
-Please include a summary, reproduction steps, impact, environment, and supporting evidence. This repository does not publish a separate email reporting address.
+概要、再現手順、影響、環境、補足となる根拠を記載してください。このリポジトリでは、別のメール報告先は公開していません。
 
-## Response and disclosure
+## 対応と公開
 
-Reports are reviewed through GitHub's private advisory process. We will coordinate remediation and public disclosure through that advisory when appropriate. No fixed response or remediation SLA is promised.
+報告はGitHubの非公開advisoryプロセスで確認します。必要に応じて、そのadvisoryを通じて修正と公開を調整します。対応または修正の固定SLAは定めていません。
 
-Issues that only concern the intentionally simulated behavior or the documented limitations of this learning application are outside the security reporting scope.
+意図的に模擬している動作や、この学習アプリケーションに文書化された制限だけに関する問題は、セキュリティ報告の対象外です。
