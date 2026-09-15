@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import { DatabaseSync } from "node:sqlite";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { createScenarioDataset } from "@/seeds/scenarios";

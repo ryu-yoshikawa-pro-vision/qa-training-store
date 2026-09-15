@@ -1,6 +1,7 @@
 ﻿[CmdletBinding()]
 param(
-    [switch]$StrictHarness
+    [switch]$StrictHarness,
+    [switch]$HookContracts
 )
 
 Set-StrictMode -Version Latest
@@ -81,6 +82,10 @@ function Test-TemplateContract {
         ".codex/hooks/pre_tool_use_policy.mjs",
         ".codex/hooks/pre_tool_use_policy_windows.ps1",
         ".codex/hooks/log_event.mjs",
+        ".codex/hooks/text_quality_gate.mjs",
+        ".codex/text-quality-rules.json",
+        "scripts/lint-text-quality.mjs",
+        "scripts/check-text-quality-changes.mjs",
         ".codex/templates/PLAN.md",
         ".codex/templates/REPORT.md",
         ".codex/templates/RUN_MANIFEST.json",
@@ -127,7 +132,7 @@ function Test-TemplateContract {
 
     $agents = Get-Content -Raw -Encoding UTF8 AGENTS.md
     $plans = Get-Content -Raw -Encoding UTF8 PLANS.md
-    $review = Get-Content -Raw CODE_REVIEW.md
+    $review = Get-Content -Raw -Encoding UTF8 CODE_REVIEW.md
     if ($agents -match [regex]::Escape("## 0.")) { throw "AGENTS.md still requires unconditional startup reading" }
     if ($agents -notmatch [regex]::Escape("通常taskの開始時に、root以外の文書を一律で読み込まない。")) { throw "AGENTS.md missing unconditional loading reduction contract" }
     if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
@@ -429,19 +434,6 @@ function Test-TemplateContract {
     }
 
     $config = Get-Content -Raw .codex/config.toml
-    foreach ($event in @("UserPromptSubmit", "PostToolUse", "SubagentStart", "SubagentStop", "Stop")) {
-        $loggingMatch = [regex]::Match($config, "(?s)\[\[hooks\.$event\.hooks\]\](.*?)(?=\r?\n\[\[hooks\.|$)")
-        if (-not $loggingMatch.Success) { throw "missing logging Hook config: $event" }
-        $loggingBlock = $loggingMatch.Value
-        if ($loggingBlock -match '(?m)^\s*matcher\s*=') { throw "logging Hook must not define matcher: $event" }
-        if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*10\s*$') { throw "logging Hook timeout mismatch: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("log_event.mjs")) { throw "logging Hook logger missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("git rev-parse --show-toplevel")) { throw "logging Hook repo-root resolution missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("cmd.exe /D /Q /S /C")) { throw "logging Hook Windows shell wrapper missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("for /f")) { throw "logging Hook Windows root resolver missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("2^>NUL")) { throw "logging Hook Windows root-error suppression missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("$event")) { throw "logging Hook expected event missing: $event" }
-    }
 
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
     if ($config -match '(?m)^\s*approval_policy\s*=') { throw "project config must not set approval_policy" }
@@ -455,12 +447,6 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('matcher = "^Bash$"')) { throw "config missing Bash-only matcher" }
     if ($config -notmatch [regex]::Escape('command_windows')) { throw "config missing Windows launcher command" }
     if ($config -notmatch [regex]::Escape('pre_tool_use_policy.mjs')) { throw "config missing Node pre-tool hook command" }
-    $preToolWindowsMatch = [regex]::Match($config, '(?s)\[\[hooks\.PreToolUse\.hooks\]\].*?(?=\r?\n\[\[hooks\.|$)')
-    if (-not $preToolWindowsMatch.Success) { throw "missing PreToolUse Hook config" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("cmd.exe /D /Q /S /C")) { throw "PreToolUse Windows shell wrapper missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("for /f")) { throw "PreToolUse Windows root resolver missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("pre_tool_use_policy_windows.ps1")) { throw "PreToolUse Windows launcher missing" }
-    if ($preToolWindowsMatch.Value -notmatch [regex]::Escape("2^>NUL")) { throw "PreToolUse Windows root-error suppression missing" }
     if ($config -match '(?m)^\s*command\s*=\s*"[^"]*pre_tool_use_policy\.ps1') { throw "config references legacy PowerShell policy" }
     if ($config -match [regex]::Escape('codex_hooks = true')) { throw "config references deprecated hook feature key" }
     if ((Test-Path ".codex/hooks/pre_tool_use_policy.py") -or (Test-Path ".codex/hooks/pre_tool_use_policy.ps1")) { throw "legacy policy Hook file remains" }
@@ -560,10 +546,28 @@ function Test-PowerShellHasCodex {
     return (($result | Out-String).Trim() -eq 'yes')
 }
 
+function Test-HookContracts {
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($null -ne $pnpm) {
+        & $pnpm.Source exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    }
+    else {
+        $corepack = Get-Command corepack -ErrorAction Stop
+        & $corepack.Source pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex Hook contract tests failed (exit=$LASTEXITCODE)"
+    }
+}
+
 Invoke-Check "template contract files" { Test-TemplateContract }
 
 if ($StrictHarness) {
     Invoke-Check "strict harness source-repo contract" { Test-StrictHarnessContract }
+}
+
+if ($HookContracts) {
+    Invoke-Check "Codex Hook contract tests" { Test-HookContracts }
 }
 
 if (Get-Command codex -ErrorAction SilentlyContinue) {

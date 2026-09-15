@@ -1,0 +1,1739 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { parse as parseToml } from "smol-toml";
+import { describe, expect, it } from "vitest";
+
+type ProcessResult = {
+  status: number;
+  stdout: string;
+  stderr: string;
+};
+
+type TomlRecord = Record<string, unknown>;
+
+type TextRule = {
+  rule_id: string;
+  pattern: string;
+  match_type: "literal" | "regex";
+  message: string;
+  replacement?: string;
+  case_sensitive?: boolean;
+  normalization?: "none" | "trim" | "lowercase" | "lowercase-trim";
+  ignore?: {
+    fenced_code?: boolean;
+    inline_code?: boolean;
+    urls?: boolean;
+    identifiers?: boolean;
+  };
+};
+
+const repoRoot = path.resolve(process.cwd());
+const scannerPath = path.join(repoRoot, "scripts", "lint-text-quality.mjs");
+const comparisonPath = path.join(repoRoot, "scripts", "check-text-quality-changes.mjs");
+const gatePath = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+const textlintConfigPath = path.join(repoRoot, ".textlintrc.json");
+
+const rule: TextRule = {
+  rule_id: "TEST-BANNED",
+  pattern: "BAD",
+  match_type: "literal",
+  message: "文章品質ルール違反",
+  replacement: "GOOD",
+  case_sensitive: false,
+  normalization: "lowercase",
+};
+
+function asTomlRecord(value: unknown, context: string): TomlRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`expected TOML table: ${context}`);
+  }
+  return value as TomlRecord;
+}
+
+function asTomlRecords(value: unknown, context: string): TomlRecord[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`expected TOML array of tables: ${context}`);
+  }
+  return value.map((item, index) => asTomlRecord(item, `${context}[${index}]`));
+}
+
+function decodeWindowsPowerShellCommand(command: string, event: string) {
+  const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
+  const suffix = command.endsWith(" 2>NUL") ? " 2>NUL" : "";
+  if (!command.startsWith(prefix)) {
+    throw new Error(`unexpected Windows command for ${event}`);
+  }
+  const encoded = command.slice(prefix.length, command.length - suffix.length);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
+    throw new Error(`invalid Windows EncodedCommand for ${event}`);
+  }
+  return Buffer.from(encoded, "base64").toString("utf16le");
+}
+
+function readCodexConfig(): TomlRecord {
+  return asTomlRecord(
+    parseToml(fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8")),
+    "root",
+  );
+}
+
+function hookGroups(config: TomlRecord, event: string) {
+  const hooks = asTomlRecord(config.hooks, "hooks");
+  return asTomlRecords(hooks[event], `hooks.${event}`);
+}
+
+function hookEntries(config: TomlRecord, event: string) {
+  return hookGroups(config, event).flatMap((group, index) =>
+    asTomlRecords(group.hooks, `hooks.${event}[${index}].hooks`),
+  );
+}
+
+function runNode(
+  script: string,
+  args: string[],
+  cwd: string,
+  input = "",
+  env: NodeJS.ProcessEnv = process.env,
+): ProcessResult {
+  const result = spawnSync(process.execPath, [script, ...args], {
+    cwd,
+    encoding: "utf8",
+    env,
+    input,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+function git(root: string, args: string[]) {
+  return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: "pipe" }).trim();
+}
+
+function writeFile(root: string, relativePath: string, content: string) {
+  const absolutePath = path.join(root, relativePath);
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+  fs.writeFileSync(absolutePath, content, "utf8");
+}
+
+function fingerprint(ruleId: string, match: string) {
+  return `${ruleId}:${createHash("sha256").update(match, "utf8").digest("hex")}`;
+}
+
+function linkTextlintDependencies(root: string) {
+  const nodeModulesPath = path.join(root, "node_modules");
+  const scopedPath = path.join(nodeModulesPath, "@textlint-rule");
+  fs.mkdirSync(scopedPath, { recursive: true });
+  for (const packageName of [
+    "textlint",
+    "textlint-rule-no-zero-width-spaces",
+    "textlint-rule-no-nfd",
+    "textlint-rule-no-kangxi-radicals",
+    "textlint-rule-no-hankaku-kana",
+  ]) {
+    fs.symlinkSync(
+      path.join(repoRoot, "node_modules", packageName),
+      path.join(nodeModulesPath, packageName),
+      "junction",
+    );
+  }
+  for (const packageName of ["textlint-rule-no-invalid-control-character"]) {
+    fs.symlinkSync(
+      path.join(repoRoot, "node_modules", "@textlint-rule", packageName),
+      path.join(scopedPath, packageName),
+      "junction",
+    );
+  }
+}
+
+function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 空白-") {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), tempPrefix));
+  fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
+  fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+  fs.copyFileSync(scannerPath, path.join(root, "scripts", "lint-text-quality.mjs"));
+  fs.copyFileSync(comparisonPath, path.join(root, "scripts", "check-text-quality-changes.mjs"));
+  fs.copyFileSync(gatePath, path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+  fs.copyFileSync(textlintConfigPath, path.join(root, ".textlintrc.json"));
+  writeFile(
+    root,
+    "rules.json",
+    JSON.stringify({ version: 1, status: "configured", rules: [rule] }, null, 2),
+  );
+  writeFile(root, ".gitignore", "node_modules/\n");
+  writeFile(root, "docs/existing.md", initialText);
+
+  git(root, ["init", "--quiet"]);
+  git(root, ["config", "user.email", "codex-contract@example.invalid"]);
+  git(root, ["config", "user.name", "Codex Contract"]);
+  git(root, ["add", "."]);
+  git(root, ["commit", "--quiet", "-m", "fixture"]);
+  linkTextlintDependencies(root);
+  return root;
+}
+
+function removeFixtureEntry(entryPath: string) {
+  const stats = fs.lstatSync(entryPath);
+  if (stats.isSymbolicLink()) {
+    fs.unlinkSync(entryPath);
+    return;
+  }
+  if (stats.isDirectory()) {
+    for (const entry of fs.readdirSync(entryPath)) {
+      removeFixtureEntry(path.join(entryPath, entry));
+    }
+    fs.rmdirSync(entryPath);
+    return;
+  }
+  fs.unlinkSync(entryPath);
+}
+
+function removeFixture(root: string) {
+  process.chdir(repoRoot);
+  if (!fs.existsSync(root)) return;
+
+  // Remove children explicitly so Windows cleanup is stable for non-ASCII
+  // fixture paths and junctions under the local Node runtime.
+  for (const entry of fs.readdirSync(root)) {
+    removeFixtureEntry(path.join(root, entry));
+  }
+  fs.rmdirSync(root);
+}
+
+function removeFixtureFile(filePath: string) {
+  fs.rmSync(filePath, { force: true });
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+function withFixture(
+  test: (root: string) => void,
+  initialText = "GOOD\n",
+  tempPrefix = "codex text quality 空白-",
+) {
+  const root = createFixture(initialText, tempPrefix);
+  try {
+    test(root);
+  } finally {
+    removeFixture(root);
+  }
+}
+
+function runComparison(root: string, extraArgs: string[] = [], workingTree = true) {
+  return runNode(
+    path.join(root, "scripts", "check-text-quality-changes.mjs"),
+    [
+      "--base-ref",
+      "HEAD",
+      ...(workingTree ? ["--working-tree"] : []),
+      "--rules",
+      path.join(root, "rules.json"),
+      "--json",
+      ...extraArgs,
+    ],
+    root,
+  );
+}
+
+function runGate(
+  root: string,
+  event: "UserPromptSubmit" | "PostToolUse" | "Stop",
+  payload: Record<string, unknown>,
+  rulesPath = path.join(root, "rules.json"),
+  sessionId = "contract-session",
+) {
+  return runNode(
+    path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
+    [event],
+    root,
+    JSON.stringify({
+      hook_event_name: event,
+      session_id: sessionId,
+      cwd: root,
+      ...payload,
+    }),
+    { ...process.env, CODEX_TEXT_QUALITY_RULES: rulesPath },
+  );
+}
+
+function stateFiles(root: string) {
+  const directory = path.join(root, ".artifacts", "codex-text-quality");
+  if (!fs.existsSync(directory)) return [];
+  return fs.readdirSync(directory).filter((fileName) => fileName.endsWith(".json"));
+}
+
+function readGateState(root: string) {
+  const files = stateFiles(root);
+  if (files.length !== 1) throw new Error(`expected one state file, got ${files.length}`);
+  const [stateFile] = files;
+  if (!stateFile) throw new Error("baseline state file was not created");
+  return JSON.parse(
+    fs.readFileSync(path.join(root, ".artifacts", "codex-text-quality", stateFile), "utf8"),
+  ) as Record<string, unknown>;
+}
+
+function qualityCommandFor(
+  event: "UserPromptSubmit" | "PostToolUse" | "Stop",
+  launcher: "unix" | "windows",
+) {
+  const config = readCodexConfig();
+  const entry = hookEntries(config, event).find(
+    (candidate) =>
+      candidate.type === "command" &&
+      typeof candidate.command === "string" &&
+      candidate.command.includes("text_quality_gate.mjs"),
+  );
+  if (!entry) throw new Error(`missing text quality block for ${event}`);
+  const field = launcher === "unix" ? "command" : "command_windows";
+  if (typeof entry[field] !== "string") throw new Error(`missing ${field} for ${event}`);
+  return entry[field] as string;
+}
+
+function runConfiguredQualityHook(
+  root: string,
+  event: "UserPromptSubmit" | "PostToolUse" | "Stop",
+  payload: Record<string, unknown>,
+  launcher: "unix" | "windows",
+  rulesPath: string,
+  commandCwd = root,
+) {
+  const command = qualityCommandFor(event, launcher);
+  const input = JSON.stringify({
+    hook_event_name: event,
+    session_id: `configured-${randomUUID()}`,
+    cwd: root,
+    ...payload,
+  });
+  const env = { ...process.env, CODEX_TEXT_QUALITY_RULES: rulesPath };
+  const result =
+    launcher === "unix"
+      ? spawnSync("sh", ["-c", command], { cwd: commandCwd, encoding: "utf8", env, input })
+      : spawnSync(
+          process.env.ComSpec ?? process.env.COMSPEC ?? "cmd.exe",
+          ["/C", `${String.fromCharCode(34)}${command}${String.fromCharCode(34)}`],
+          {
+            cwd: commandCwd,
+            encoding: "utf8",
+            env,
+            input,
+            windowsVerbatimArguments: true,
+          },
+        );
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+const USER_PROMPT_LAUNCHER_DIAGNOSTIC =
+  "Codex text quality hook: UserPromptSubmit launcher unavailable";
+const POST_TOOL_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: PostToolUse launcher unavailable";
+
+function expectStructuredSystemMessage(
+  result: ProcessResult,
+  label: string,
+  systemMessage: string,
+  leakValues: string[] = [],
+) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
+    continue: true,
+    systemMessage,
+  });
+  expect(result.stderr, `${label} stderr`).toBe("");
+  for (const value of ["contract-session", "raw-hook-exception", "stack trace", ...leakValues]) {
+    expect(result.stdout, `${label} stdout leak`).not.toContain(value);
+    expect(result.stderr, `${label} stderr leak`).not.toContain(value);
+  }
+}
+
+function expectConfiguredUserPromptBaseline(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(result.stdout, `${label} stdout`).toBe("");
+  expect(result.stderr, `${label} stderr`).toBe("");
+  expect(stateFiles(root), `${label} state count`).toHaveLength(1);
+  const state = readGateState(root);
+  expect(state.status, `${label} state status`).toBe("ready");
+  expect(state.root_id, `${label} root identity`).toBe(
+    createHash("sha256")
+      .update(path.resolve(git(root, ["rev-parse", "--show-toplevel"])), "utf8")
+      .digest("hex"),
+  );
+  expect(state.session_id_hash, `${label} session identity`).toBe(
+    createHash("sha256").update(sessionId, "utf8").digest("hex"),
+  );
+  expect(state.start_head, `${label} start HEAD`).toBe(git(root, ["rev-parse", "HEAD"]));
+  return state;
+}
+
+function expectConfiguredUserPromptLauncherFailure(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expectStructuredSystemMessage(result, label, USER_PROMPT_LAUNCHER_DIAGNOSTIC, [
+    "prompt",
+    "launcher-secret",
+    "launcher-token",
+    "raw-hook-exception",
+    "stack trace",
+    sessionId,
+    root,
+  ]);
+  expect(stateFiles(root), `${label} state count`).toHaveLength(0);
+}
+
+function runConfiguredUserPromptLauncherFailureCases(root: string, launcher: "unix" | "windows") {
+  const rulesPath = path.join(root, "rules.json");
+  const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+  const sessionId = `configured-${launcher}-user-failure-${randomUUID()}`;
+  const runFailure = (label: string, commandCwd = root) => {
+    const result = runConfiguredQualityHook(
+      root,
+      "UserPromptSubmit",
+      {
+        session_id: sessionId,
+        prompt: `${label} prompt secret=launcher-secret token=launcher-token`,
+      },
+      launcher,
+      rulesPath,
+      commandCwd,
+    );
+    expectConfiguredUserPromptLauncherFailure(result, label, root, sessionId);
+  };
+
+  removeFixtureFile(hookFile);
+  runFailure("missing Hook");
+
+  const nonRepository = fs.mkdtempSync(
+    path.join(os.tmpdir(), `codex-text-quality-${launcher}-nonrepo-`),
+  );
+  try {
+    runFailure("repository root failure", nonRepository);
+  } finally {
+    removeFixture(nonRepository);
+  }
+
+  writeFile(
+    root,
+    ".codex/hooks/text_quality_gate.mjs",
+    'process.stdout.write("prompt-leak"); process.stderr.write("Error: raw-hook-exception\\nstack trace launcher-secret"); process.exit(2);\n',
+  );
+  runFailure("non-zero Hook");
+
+  writeFile(root, ".codex/hooks/text_quality_gate.mjs", 'import "missing-launcher-module";\n');
+  runFailure("module load failure");
+}
+
+function expectConfiguredPostToolLauncherFailure(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expectStructuredSystemMessage(result, label, POST_TOOL_LAUNCHER_DIAGNOSTIC, [
+    "prompt",
+    "launcher-secret",
+    "launcher-token",
+    "raw-hook-exception",
+    "stack trace",
+    sessionId,
+    root,
+  ]);
+  expect(stateFiles(root), `${label} state count`).toHaveLength(1);
+  expect(readGateState(root).status, `${label} state status`).toBe("ready");
+}
+
+function runConfiguredPostToolLauncherFailureCases(root: string, launcher: "unix" | "windows") {
+  const rulesPath = path.join(root, "rules.json");
+  const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+  const sessionId = `configured-${launcher}-post-${randomUUID()}`;
+  const baseline = runConfiguredQualityHook(
+    root,
+    "UserPromptSubmit",
+    {
+      session_id: sessionId,
+      cwd: root,
+      prompt: "start",
+    },
+    launcher,
+    rulesPath,
+  );
+  expectConfiguredUserPromptBaseline(baseline, `${launcher} PostToolUse baseline`, root, sessionId);
+
+  const runFailure = (label: string, commandCwd = root) => {
+    const result = runConfiguredQualityHook(
+      root,
+      "PostToolUse",
+      {
+        session_id: sessionId,
+        cwd: root,
+        tool_name: "Bash",
+        tool_input: {
+          prompt: `${label} prompt secret=launcher-secret token=launcher-token`,
+        },
+      },
+      launcher,
+      rulesPath,
+      commandCwd,
+    );
+    expectConfiguredPostToolLauncherFailure(result, label, root, sessionId);
+  };
+
+  removeFixtureFile(hookFile);
+  runFailure("missing Hook");
+  fs.copyFileSync(gatePath, hookFile);
+
+  const nonRepository = fs.mkdtempSync(
+    path.join(os.tmpdir(), `codex-text-quality-${launcher}-post-nonrepo-`),
+  );
+  try {
+    runFailure("repository root failure", nonRepository);
+  } finally {
+    removeFixture(nonRepository);
+  }
+
+  writeFile(
+    root,
+    ".codex/hooks/text_quality_gate.mjs",
+    'process.stdout.write("prompt-leak"); process.stderr.write("Error: raw-hook-exception\\nstack trace launcher-secret"); process.exit(2);\n',
+  );
+  runFailure("non-zero Hook");
+
+  writeFile(root, ".codex/hooks/text_quality_gate.mjs", 'import "missing-launcher-module";\n');
+  runFailure("module load failure");
+}
+
+function expectConfiguredStopBlock(result: ProcessResult, label: string, root: string) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
+    decision: "block",
+    reason: "Text quality check unavailable; completion cannot be confirmed.",
+  });
+  expect(result.stderr, `${label} stderr`).toBe("");
+  for (const value of ["prompt", "stop-secret", "stop-token", root]) {
+    expect(result.stdout, `${label} stdout leak`).not.toContain(value);
+    expect(result.stderr, `${label} stderr leak`).not.toContain(value);
+  }
+}
+
+describe("Codex deterministic text quality contracts", () => {
+  it("registers a separate matcher-free text quality Hook for each supported event", () => {
+    const config = readCodexConfig();
+    for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
+      const groups = hookGroups(config, event);
+      const entries = hookEntries(config, event);
+      const qualityEntry = entries.find(
+        (candidate) =>
+          candidate.type === "command" &&
+          typeof candidate.command === "string" &&
+          candidate.command.includes("text_quality_gate.mjs"),
+      );
+      const loggingEntry = entries.find(
+        (candidate) =>
+          candidate.type === "command" &&
+          typeof candidate.command === "string" &&
+          candidate.command.includes("log_event.mjs"),
+      );
+      expect(groups, event).toHaveLength(1);
+      expect(entries, event).toHaveLength(2);
+      expect(qualityEntry, event).toBeDefined();
+      expect(loggingEntry, event).toBeDefined();
+      expect(qualityEntry).not.toBe(loggingEntry);
+      if (!qualityEntry || !loggingEntry) throw new Error(`missing Hook entry for ${event}`);
+      const qualityGroup = groups.find((group) =>
+        asTomlRecords(group.hooks, `hooks.${event}.hooks`).includes(qualityEntry),
+      );
+      expect(qualityGroup, event).toBeDefined();
+      if (!qualityGroup) throw new Error(`missing quality Hook group for ${event}`);
+      expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
+      expect(qualityEntry.type, event).toBe("command");
+      expect(qualityEntry.command, event).toContain("text_quality_gate.mjs");
+      const windowsScript = decodeWindowsPowerShellCommand(
+        qualityEntry.command_windows as string,
+        event,
+      );
+      expect(windowsScript, event).toContain("text_quality_gate.mjs");
+      if (event === "UserPromptSubmit" || event === "PostToolUse") {
+        expect(qualityEntry.command, event).toContain(`${event} launcher unavailable`);
+        expect(qualityEntry.command, event).not.toContain("|| true");
+        expect(qualityEntry.command_windows, event).not.toContain(" 2>NUL");
+        expect(windowsScript, event).toContain(`${event} launcher unavailable`);
+      }
+      expect(qualityEntry.timeout, event).toBe(10);
+    }
+  });
+
+  it("executes the configured Unix launcher contract from a nested Japanese cwd", () => {
+    if (process.platform === "win32") return;
+    withFixture((root) => {
+      const sessionId = `configured-unix-${randomUUID()}`;
+      const prompt = runConfiguredQualityHook(
+        root,
+        "UserPromptSubmit",
+        { session_id: sessionId, cwd: root, prompt: "start" },
+        "unix",
+        path.join(root, "rules.json"),
+      );
+      expectConfiguredUserPromptBaseline(prompt, "Unix UserPromptSubmit", root, sessionId);
+
+      const nested = path.join(root, "nested", "日本語 path");
+      fs.mkdirSync(nested, { recursive: true });
+      const stop = runConfiguredQualityHook(
+        root,
+        "Stop",
+        { session_id: sessionId, cwd: nested, stop_hook_active: true },
+        "unix",
+        path.join(root, "rules.json"),
+        nested,
+      );
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+      expect(fs.existsSync(nested)).toBe(true);
+    });
+  });
+
+  it("executes the text quality Hook with UTF-8 from a Windows nested cwd", () => {
+    if (process.platform !== "win32") return;
+    withFixture(
+      (root) => {
+        const sessionId = `configured-windows-${randomUUID()}`;
+        const nested = path.join(root, "nested", "日本語 path");
+        fs.mkdirSync(nested, { recursive: true });
+        const prompt = runConfiguredQualityHook(
+          root,
+          "UserPromptSubmit",
+          { session_id: sessionId, cwd: nested, prompt: "日本語の開始" },
+          "windows",
+          path.join(root, "rules.json"),
+          nested,
+        );
+        expectConfiguredUserPromptBaseline(prompt, "Windows UserPromptSubmit", root, sessionId);
+
+        const stop = runConfiguredQualityHook(
+          root,
+          "Stop",
+          { session_id: sessionId, cwd: nested, stop_hook_active: true },
+          "windows",
+          path.join(root, "rules.json"),
+          nested,
+        );
+        expect(stop.status).toBe(0);
+        expect(stop.stdout, `stderr=${stop.stderr}`).toBe("");
+        expect(stop.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(0);
+      },
+      "GOOD\n",
+      "codex-text-quality-",
+    );
+  });
+
+  it("generates a configured UserPromptSubmit baseline for short and 64 KiB prompts", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    for (const [label, prompt] of [
+      ["short", "short prompt"],
+      ["large", "x".repeat(64 * 1024)],
+    ] as const) {
+      withFixture(
+        (root) => {
+          const sessionId = `configured-${launcher}-${label}-${randomUUID()}`;
+          const result = runConfiguredQualityHook(
+            root,
+            "UserPromptSubmit",
+            { session_id: sessionId, cwd: root, prompt },
+            launcher,
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredUserPromptBaseline(result, `${launcher} ${label}`, root, sessionId);
+        },
+        "GOOD\n",
+        `codex-text-quality-${launcher}-${label}-`,
+      );
+    }
+  }, 60_000);
+
+  it("reports configured UserPromptSubmit launcher failures without leaking payloads", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => runConfiguredUserPromptLauncherFailureCases(root, launcher),
+      "GOOD\n",
+      `codex-text-quality-${launcher}-launcher-failure-`,
+    );
+  }, 60_000);
+
+  it("reports configured PostToolUse launcher failures without leaking payloads", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => runConfiguredPostToolLauncherFailureCases(root, launcher),
+      "GOOD\n",
+      `codex-text-quality-${launcher}-post-launcher-failure-`,
+    );
+  }, 60_000);
+
+  it("executes the configured PostToolUse launcher normally without diagnostics", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture((root) => {
+      const sessionId = `configured-${launcher}-post-normal-${randomUUID()}`;
+      const rulesPath = path.join(root, "rules.json");
+      const prompt = runConfiguredQualityHook(
+        root,
+        "UserPromptSubmit",
+        { session_id: sessionId, cwd: root, prompt: "start" },
+        launcher,
+        rulesPath,
+      );
+      expectConfiguredUserPromptBaseline(
+        prompt,
+        `${launcher} normal PostToolUse baseline`,
+        root,
+        sessionId,
+      );
+
+      const post = runConfiguredQualityHook(
+        root,
+        "PostToolUse",
+        { session_id: sessionId, cwd: root, tool_name: "Bash", tool_input: { command: "true" } },
+        launcher,
+        rulesPath,
+      );
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+      expect(readGateState(root).status).toBe("ready");
+    });
+  });
+
+  it("passes successful structured Hook output through configured quality launchers", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    for (const event of ["UserPromptSubmit", "PostToolUse"] as const) {
+      withFixture((root) => {
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stdout.write(JSON.stringify({ continue: true, systemMessage: "fixture system message" }));\n',
+        );
+        const result = runConfiguredQualityHook(
+          root,
+          event,
+          event === "UserPromptSubmit"
+            ? { prompt: "fixture prompt" }
+            : { tool_name: "Bash", tool_input: { command: "true" } },
+          launcher,
+          path.join(root, "rules.json"),
+        );
+        expectStructuredSystemMessage(
+          result,
+          `${launcher} ${event} structured passthrough`,
+          "fixture system message",
+          ["fixture prompt", root],
+        );
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    }
+  });
+
+  it("uses the configured Windows Stop launcher fallback according to parsed stop_hook_active", () => {
+    if (process.platform !== "win32") return;
+
+    withFixture(
+      (root) => {
+        const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+        const runFailureCases = (label: string) => {
+          const inactive = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: false,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "windows",
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredStopBlock(inactive, `${label} inactive`, root);
+
+          for (const [stateLabel, stateValue] of [
+            ["missing", undefined],
+            ["string true", "true"],
+          ] as const) {
+            const invalidState = runConfiguredQualityHook(
+              root,
+              "Stop",
+              {
+                ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
+                prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
+              },
+              "windows",
+              path.join(root, "rules.json"),
+            );
+            expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
+          }
+
+          const active = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: true,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "windows",
+            path.join(root, "rules.json"),
+          );
+          expect(active.status, `${label} active status`).toBe(0);
+          expect(active.stdout, `${label} active stdout`).toBe("");
+          expect(active.stdout).not.toContain('"decision":"block"');
+          expect(active.stderr, `${label} active stderr`).toBe("");
+          expect(active.stderr).not.toContain("stop-secret");
+          expect(active.stderr).not.toContain(root);
+        };
+
+        removeFixtureFile(hookFile);
+        runFailureCases("missing Hook");
+
+        const nonRepository = fs.mkdtempSync(
+          path.join(os.tmpdir(), "codex-text-quality-windows-nonrepo-"),
+        );
+        try {
+          const rootFailure = runConfiguredQualityHook(
+            nonRepository,
+            "Stop",
+            { stop_hook_active: false, prompt: "root secret=stop-secret" },
+            "windows",
+            path.join(root, "rules.json"),
+            nonRepository,
+          );
+          expectConfiguredStopBlock(rootFailure, "root failure inactive", nonRepository);
+
+          const activeRootFailure = runConfiguredQualityHook(
+            nonRepository,
+            "Stop",
+            { stop_hook_active: true, prompt: "root secret=stop-secret" },
+            "windows",
+            path.join(root, "rules.json"),
+            nonRepository,
+          );
+          expect(activeRootFailure.status).toBe(0);
+          expect(activeRootFailure.stdout).toBe("");
+          expect(activeRootFailure.stdout).not.toContain('"decision":"block"');
+          expect(activeRootFailure.stderr).toBe("");
+        } finally {
+          fs.rmSync(nonRepository, { force: true, recursive: true });
+        }
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stderr.write("launcher-secret"); process.exit(2);\n',
+        );
+        runFailureCases("non-zero Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'import "missing-launcher-module";\n',
+        );
+        runFailureCases("module load failure");
+      },
+      "GOOD\n",
+      "codex-text-quality-windows-degraded-",
+    );
+  }, 30_000);
+
+  it("uses the configured Unix Stop launcher fallback according to parsed stop_hook_active", () => {
+    if (process.platform === "win32") return;
+
+    withFixture(
+      (root) => {
+        const runFailureCases = (label: string) => {
+          const inactive = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: false,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "unix",
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredStopBlock(inactive, `${label} inactive`, root);
+
+          for (const [stateLabel, stateValue] of [
+            ["missing", undefined],
+            ["string true", "true"],
+          ] as const) {
+            const invalidState = runConfiguredQualityHook(
+              root,
+              "Stop",
+              {
+                ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
+                prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
+              },
+              "unix",
+              path.join(root, "rules.json"),
+            );
+            expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
+          }
+
+          const active = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: true,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "unix",
+            path.join(root, "rules.json"),
+          );
+          expect(active.status, `${label} active status`).toBe(0);
+          expect(active.stdout, `${label} active stdout`).toBe("");
+          expect(active.stdout).not.toContain('"decision":"block"');
+          expect(active.stderr, `${label} active stderr`).toBe("");
+          expect(active.stderr).not.toContain("stop-secret");
+          expect(active.stderr).not.toContain(root);
+        };
+
+        removeFixtureFile(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+        runFailureCases("missing Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stderr.write("launcher-secret"); process.exit(2);\n',
+        );
+        runFailureCases("non-zero Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'import "missing-launcher-module";\n',
+        );
+        runFailureCases("module load failure");
+      },
+      "GOOD\n",
+      "codex-text-quality-unix-degraded-",
+    );
+  });
+
+  it("keeps production rules explicit and emits no raw match or full source line", () => {
+    const productionRules = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, ".codex", "text-quality-rules.json"), "utf8"),
+    ) as {
+      version: number;
+      status: string;
+      rules: unknown[];
+    };
+    expect(productionRules.version).toBe(1);
+    expect(productionRules.status).toBe("not-configured");
+    expect(productionRules.rules).toEqual([]);
+
+    withFixture((root) => {
+      const result = runNode(
+        path.join(root, "scripts", "lint-text-quality.mjs"),
+        ["--rules", path.join(root, "rules.json"), "--json", "--text", "GOOD\nBAD\n"],
+        root,
+      );
+      expect(result.status).toBe(1);
+      const violations = JSON.parse(result.stdout) as Record<string, unknown>[];
+      expect(violations).toEqual([
+        {
+          path: "<text>",
+          line: 2,
+          rule_id: "TEST-BANNED",
+          message: "文章品質ルール違反",
+          replacement: "GOOD",
+        },
+      ]);
+      expect(result.stdout).not.toContain('"match"');
+      expect(result.stdout).not.toContain("BAD");
+    });
+  });
+
+  it("loads exactly the five adopted production textlint rules and preserves stable fingerprints", () => {
+    const textlintConfig = JSON.parse(fs.readFileSync(textlintConfigPath, "utf8")) as {
+      rules: Record<string, unknown>;
+    };
+    expect(textlintConfig).toEqual({
+      rules: {
+        "@textlint-rule/no-invalid-control-character": { checkCode: false },
+        "no-zero-width-spaces": true,
+        "no-nfd": true,
+        "no-kangxi-radicals": true,
+        "no-hankaku-kana": true,
+      },
+    });
+
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+    ) as {
+      devDependencies: Record<string, string>;
+    };
+    expect(packageJson.devDependencies.textlint).toBeDefined();
+    expect(
+      Object.keys(packageJson.devDependencies).filter((packageName) =>
+        packageName.includes("textlint-rule-preset"),
+      ),
+    ).toEqual([]);
+
+    const cases = [
+      {
+        name: "control",
+        text: "prefix\u0001suffix\n",
+        ruleId: "@textlint-rule/no-invalid-control-character",
+        match: "\u0001",
+        replacement: "",
+      },
+      {
+        name: "zero-width",
+        text: "prefix\u200b suffix\n",
+        ruleId: "no-zero-width-spaces",
+        match: "\u200b",
+        replacement: "",
+      },
+      {
+        name: "nfd",
+        text: "か\u3099\n",
+        ruleId: "no-nfd",
+        match: "\u3099",
+        replacement: "が",
+      },
+      {
+        name: "kangxi",
+        text: "⼀\n",
+        ruleId: "no-kangxi-radicals",
+        match: "⼀",
+        replacement: "一",
+      },
+      {
+        name: "hankaku-kana",
+        text: "ｶﾀｶﾅ\n",
+        ruleId: "no-hankaku-kana",
+        match: "ｶﾀｶﾅ",
+        replacement: "カタカナ",
+      },
+    ] as const;
+
+    withFixture((root) => {
+      const paths = cases.map(({ name, text }) => {
+        const filePath = `docs/${name}.md`;
+        writeFile(root, filePath, text);
+        return filePath;
+      });
+      const normalPath = "docs/markdown-syntax.md";
+      writeFile(
+        root,
+        normalPath,
+        "# 見出し\n本文: `ｶﾀｶﾅ` [link](https://example.test/ｶﾀｶﾅ)\n```text\nｶﾀｶﾅ\n```\nidentifier: API_URL\n",
+      );
+
+      const result = runNode(
+        path.join(root, "scripts", "lint-text-quality.mjs"),
+        ["--rules", path.join(root, "rules.json"), "--json", ...paths, normalPath],
+        root,
+      );
+      expect(result.status).toBe(1);
+      const violations = JSON.parse(result.stdout) as Record<string, unknown>[];
+      expect(violations.filter((violation) => violation.path === normalPath)).toEqual([]);
+      for (const expected of cases) {
+        expect(violations).toContainEqual({
+          path: `docs/${expected.name}.md`,
+          line: 1,
+          rule_id: expected.ruleId,
+          message: expect.any(String),
+          ...(expected.replacement === undefined ? {} : { replacement: expected.replacement }),
+        });
+      }
+
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      const baseline = readGateState(root);
+      const baselineEntries = baseline.files as {
+        path: string;
+        violations: { fingerprint: string; count: number }[];
+      }[];
+      for (const expected of cases) {
+        const entry = baselineEntries.find(
+          (candidate) => candidate.path === `docs/${expected.name}.md`,
+        );
+        expect(entry).toBeDefined();
+        expect(entry?.violations).toEqual([
+          { fingerprint: fingerprint(expected.ruleId, expected.match), count: 1 },
+        ]);
+      }
+    });
+  }, 60_000);
+
+  it("applies textlint fingerprints to the existing baseline and exact rename mapping", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/existing.md", "ｶﾀｶﾅ\nｶﾀｶﾅ\n");
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stdout).toContain("[no-hankaku-kana]");
+      expect(post.stderr).toBe("");
+    }, "ｶﾀｶﾅ\n");
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+    }, "ｶﾀｶﾅ\n");
+  }, 60_000);
+
+  it("does not silently pass missing, invalid, or unloadable textlint configuration", () => {
+    withFixture((root) => {
+      removeFixtureFile(path.join(root, ".textlintrc.json"));
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expectStructuredSystemMessage(
+        prompt,
+        "missing textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_unavailable)",
+        ["start", root],
+      );
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      writeFile(root, ".textlintrc.json", "{\n");
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expectStructuredSystemMessage(
+        prompt,
+        "invalid textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+        ["start", root],
+      );
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      fs.unlinkSync(path.join(root, "node_modules", "textlint-rule-no-nfd"));
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      expect(prompt.stderr).toBe("");
+      expect(JSON.parse(prompt.stdout)).toMatchObject({ continue: true });
+      expect(JSON.parse(prompt.stdout).systemMessage).toMatch(
+        /^Codex text quality hook: quality check unavailable \(textlint_(config_load|rule_load)\)$/u,
+      );
+      for (const value of ["start", root]) {
+        expect(prompt.stdout).not.toContain(value);
+        expect(prompt.stderr).not.toContain(value);
+      }
+      expect(readGateState(root).status).toBe("baseline_unavailable");
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, ".textlintrc.json", "{\n");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop invalid textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 90_000);
+
+  it("applies only explicitly configured scope exclusions", () => {
+    withFixture((root) => {
+      writeFile(
+        root,
+        "scope-rules.json",
+        JSON.stringify({
+          version: 1,
+          rules: [
+            {
+              ...rule,
+              pattern: "禁止語",
+              replacement: "良い",
+              ignore: { fenced_code: true, inline_code: true, urls: true, identifiers: true },
+            },
+          ],
+        }),
+      );
+      const text =
+        "禁止語\n`禁止語` https://example.test/禁止語\n```text\n禁止語\n```\nidentifier BAD\n";
+      const result = runNode(
+        path.join(root, "scripts", "lint-text-quality.mjs"),
+        ["--rules", path.join(root, "scope-rules.json"), "--json", "--text", text],
+        root,
+      );
+      expect(result.status).toBe(1);
+      expect(JSON.parse(result.stdout)).toHaveLength(1);
+    });
+  });
+
+  it("distinguishes new fingerprint counts from pre-existing violations", () => {
+    withFixture((root) => {
+      writeFile(root, "docs/existing.md", "BAD\nGOOD\nCHANGED\n");
+      const result = runComparison(root);
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        status: "pass",
+        changed_files: 1,
+        violations: [],
+      });
+
+      writeFile(root, "docs/existing.md", "BAD\nBAD\n");
+      const changed = runComparison(root);
+      expect(changed.status).toBe(1);
+      const report = JSON.parse(changed.stdout) as {
+        violations: { path: string; line: number }[];
+      };
+      expect(report.violations).toEqual([
+        {
+          path: "docs/existing.md",
+          line: 1,
+          rule_id: "TEST-BANNED",
+          message: "文章品質ルール違反",
+          replacement: "GOOD",
+        },
+      ]);
+    }, "BAD\nGOOD\n");
+  }, 30_000);
+
+  it("includes staged, unstaged, and untracked Markdown in the working-tree comparison", () => {
+    withFixture((root) => {
+      writeFile(root, "docs/existing.md", "BAD\nBAD\n");
+      writeFile(root, "docs/staged.md", "BAD\n");
+      git(root, ["add", "docs/staged.md"]);
+      writeFile(root, "docs/untracked.md", "BAD\n");
+
+      const result = runComparison(root);
+      expect(result.status).toBe(1);
+      const report = JSON.parse(result.stdout) as { violations: { path: string }[] };
+      expect(report.violations.map((violation) => violation.path)).toEqual([
+        "docs/existing.md",
+        "docs/staged.md",
+        "docs/untracked.md",
+      ]);
+    }, "BAD\n");
+  });
+
+  it("uses an exact-content fallback for a worktree-only pure move", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      const result = runComparison(root);
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({ status: "pass", changed_files: 1 });
+    }, "BAD\n");
+  });
+
+  it("prefers Git rename mapping for a staged pure move", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "staged.md"));
+      git(root, ["add", "--all"]);
+      const result = runComparison(root);
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({ status: "pass", changed_files: 1 });
+    }, "BAD\n");
+  });
+
+  it.each([
+    [
+      "move plus content change",
+      (root: string) => {
+        fs.renameSync(
+          path.join(root, "docs", "existing.md"),
+          path.join(root, "docs", "renamed.md"),
+        );
+        writeFile(root, "docs/renamed.md", "BAD\nCHANGED\n");
+      },
+    ],
+    [
+      "ambiguous exact move",
+      (root: string) => {
+        fs.renameSync(
+          path.join(root, "docs", "existing.md"),
+          path.join(root, "docs", "renamed-a.md"),
+        );
+        writeFile(root, "docs/renamed-b.md", "BAD\n");
+      },
+    ],
+  ] as const)(
+    "fails closed when %s cannot be mapped safely",
+    (_name, mutate) => {
+      withFixture((root) => {
+        mutate(root);
+        const result = runComparison(root);
+        expect(result.status).toBe(2);
+        expect(result.stderr).toContain("comparison unavailable");
+        expect(JSON.parse(result.stdout)).toMatchObject({ status: "comparison-error" });
+      }, "BAD\n");
+    },
+    30_000,
+  );
+
+  it("uses merge-base and the same comparison tree for commit mode", () => {
+    withFixture((root) => {
+      const baseRef = git(root, ["rev-parse", "HEAD"]);
+      writeFile(root, "docs/existing.md", "BAD\n");
+      git(root, ["add", "docs/existing.md"]);
+      git(root, ["commit", "--quiet", "-m", "introduce violation"]);
+      const result = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--base-ref", baseRef, "--rules", path.join(root, "rules.json"), "--json"],
+        root,
+      );
+      expect(result.status).toBe(1);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        mode: "commit",
+        comparison_base: baseRef,
+        status: "violations",
+      });
+    });
+  }, 30_000);
+
+  it("uses the workflow merge tree as the commit comparison current", () => {
+    withFixture((root) => {
+      const forkPoint = git(root, ["rev-parse", "HEAD"]);
+      git(root, ["switch", "-c", "base"]);
+      writeFile(root, "docs/base.md", "BAD\n");
+      git(root, ["add", "docs/base.md"]);
+      git(root, ["commit", "--quiet", "-m", "base change"]);
+      const baseTip = git(root, ["rev-parse", "HEAD"]);
+
+      git(root, ["switch", "--create", "pr", forkPoint]);
+      writeFile(root, "docs/pr.md", "BAD\n");
+      git(root, ["add", "docs/pr.md"]);
+      git(root, ["commit", "--quiet", "-m", "pr change"]);
+      git(root, ["switch", "base"]);
+      git(root, ["merge", "--quiet", "--no-ff", "pr", "-m", "workflow merge"]);
+
+      const result = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--base-ref", baseTip, "--rules", path.join(root, "rules.json"), "--json"],
+        root,
+      );
+      expect(result.status).toBe(1);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        mode: "commit",
+        comparison_base: baseTip,
+        status: "violations",
+        violations: [{ path: "docs/pr.md" }],
+      });
+    });
+  }, 30_000);
+
+  it.each([
+    ["dirty tracked", (_root: string): string => "docs/existing.md"],
+    [
+      "staged add",
+      (root: string): string => {
+        writeFile(root, "docs/staged.md", "BAD\n");
+        git(root, ["add", "docs/staged.md"]);
+        return "docs/staged.md";
+      },
+    ],
+    [
+      "untracked",
+      (root: string): string => {
+        writeFile(root, "docs/untracked.md", "BAD\n");
+        return "docs/untracked.md";
+      },
+    ],
+  ] as const)("maps %s pure moves from the session baseline", (_name, preparePath) => {
+    withFixture((root) => {
+      const originalPath = preparePath(root);
+      if (originalPath === "docs/existing.md") writeFile(root, originalPath, "BAD\n");
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      const movedPath = originalPath.replace(/\.md$/u, "-renamed.md");
+      fs.renameSync(path.join(root, originalPath), path.join(root, movedPath));
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "GOOD\n");
+  });
+
+  it("uses the session-start worktree baseline for a renamed and edited Markdown file", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\nBAD\n");
+      git(root, ["add", "--all"]);
+
+      const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(prompt.status).toBe(0);
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "GOOD\nKEEP\n");
+  }, 30_000);
+
+  it("detects a violation added after the renamed start worktree baseline", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\n");
+      git(root, ["add", "--all"]);
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\nBAD\n");
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+    }, "GOOD\nKEEP\n");
+  }, 30_000);
+
+  it("does not reuse a HEAD violation after it was fixed in the renamed start worktree", () => {
+    withFixture((root) => {
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      writeFile(root, "docs/renamed.md", "GOOD\nKEEP\n");
+      git(root, ["add", "--all"]);
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/renamed.md", "BAD\nKEEP\n");
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+    }, "BAD\nKEEP\n");
+  }, 30_000);
+
+  it("keeps the session baseline tied to the start HEAD after a commit", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const baseline = readGateState(root);
+      expect(baseline.status).toBe("ready");
+      expect(baseline.files).toEqual([]);
+      writeFile(root, "docs/existing.md", "BAD\n");
+      git(root, ["add", "docs/existing.md"]);
+      git(root, ["commit", "--quiet", "-m", "committed violation"]);
+
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stdout).not.toContain("BAD");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        stop,
+        "active Stop after commit",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["docs/existing.md", "BAD", root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "GOOD\n");
+  }, 30_000);
+
+  it("lazily reads a clean tracked Markdown baseline from the start HEAD", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const baseline = readGateState(root);
+      expect(baseline.status).toBe("ready");
+      expect(baseline.files).toEqual([]);
+
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stderr).toBe("");
+    }, "GOOD\n");
+  }, 30_000);
+
+  it("does not treat an unchanged clean tracked pure move as a new violation", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      expect(readGateState(root).files).toEqual([]);
+
+      fs.renameSync(path.join(root, "docs", "existing.md"), path.join(root, "docs", "renamed.md"));
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "BAD\n");
+  }, 30_000);
+
+  it("creates a minimal session baseline once and applies PostToolUse and Stop contracts", () => {
+    withFixture((root) => {
+      const prompt = runGate(root, "UserPromptSubmit", {
+        prompt: "秘密のprompt token=do-not-store",
+      });
+      expect(prompt.status).toBe(0);
+      expect(prompt.stdout).toBe("");
+      expect(prompt.stderr).toBe("");
+      const [stateFile] = stateFiles(root);
+      expect(stateFile).toBeDefined();
+      if (!stateFile) throw new Error("baseline state file was not created");
+      const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+      const stateText = fs.readFileSync(statePath, "utf8");
+      expect(stateText).toContain("start_head");
+      expect(stateText).not.toContain("秘密のprompt");
+      expect(stateText).not.toContain("token=do-not-store");
+
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(JSON.parse(post.stdout)).toMatchObject({ decision: "block" });
+      expect(post.stdout).not.toContain("BAD");
+      expect(post.stderr).toBe("");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["秘密のprompt", "do-not-store", root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 30_000);
+
+  it("reports every new violation from one inactive Stop block", () => {
+    withFixture((root) => {
+      writeFile(
+        root,
+        "rules.json",
+        JSON.stringify({
+          version: 1,
+          status: "configured",
+          rules: [
+            { ...rule, rule_id: "TEST-BANNED-A", pattern: "BAD" },
+            { ...rule, rule_id: "TEST-BANNED-B", pattern: "WORSE" },
+          ],
+        }),
+      );
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+
+      writeFile(root, "docs/first.md", "BAD\n");
+      writeFile(root, "docs/second.md", "WORSE\n");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      const block = JSON.parse(inactiveStop.stdout) as { decision: string; reason: string };
+      expect(block.decision).toBe("block");
+      expect(block.reason).toContain("docs/first.md:1 [TEST-BANNED-A]");
+      expect(block.reason).toContain("docs/second.md:1 [TEST-BANNED-B]");
+      expect(inactiveStop.stderr).toBe("");
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop with violations",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["docs/first.md", "docs/second.md", root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 30_000);
+
+  it("persists baseline unavailable and never recreates it for the same session", () => {
+    withFixture((root) => {
+      const missingRulesPath = path.join(root, "missing-rules.json");
+      const firstPrompt = runGate(
+        root,
+        "UserPromptSubmit",
+        { prompt: "first prompt" },
+        missingRulesPath,
+      );
+      expect(firstPrompt.status).toBe(0);
+      expectStructuredSystemMessage(
+        firstPrompt,
+        "first UserPromptSubmit",
+        "Codex text quality hook: quality check unavailable (internal)",
+        ["first prompt", root],
+      );
+
+      const unavailableStateText = fs.readFileSync(
+        path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+        "utf8",
+      );
+      const unavailableState = JSON.parse(unavailableStateText) as Record<string, unknown>;
+      expect(unavailableState.status).toBe("baseline_unavailable");
+      expect(unavailableState.start_head).toMatch(/^[0-9a-f]{40}$/u);
+      expect(unavailableState.files).toBeUndefined();
+      expect(unavailableStateText).not.toContain("first prompt");
+
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const secondPrompt = runGate(root, "UserPromptSubmit", { prompt: "second prompt" });
+      expect(secondPrompt.status).toBe(0);
+      expect(secondPrompt.stdout).toBe("");
+      expect(secondPrompt.stderr).toBe("");
+      expect(
+        fs.readFileSync(
+          path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+          "utf8",
+        ),
+      ).toBe(unavailableStateText);
+
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse baseline unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        ["second prompt", root],
+      );
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop baseline unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        ["second prompt", root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 30_000);
+
+  it("cleans up corrupt state only when Stop is active", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const stateFile = stateFiles(root)[0];
+      if (!stateFile) throw new Error("baseline state file was not created");
+      const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+      fs.writeFileSync(statePath, "{", "utf8");
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop corrupt state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+  });
+
+  it.each(["root_id", "session_id_hash"] as const)(
+    "cleans up Stop state with a mismatched %s only when Stop is active",
+    (identityField) => {
+      withFixture((root) => {
+        expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+        const stateFile = stateFiles(root)[0];
+        if (!stateFile) throw new Error("baseline state file was not created");
+        const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+        const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+        state[identityField] = "0".repeat(64);
+        fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+
+        const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+        expect(inactiveStop.status).toBe(0);
+        expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+        expect(inactiveStop.stdout).toContain("quality check unavailable");
+        expect(inactiveStop.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(1);
+
+        const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+        expectStructuredSystemMessage(
+          activeStop,
+          `active Stop ${identityField}`,
+          "Codex text quality hook: quality check unavailable (baseline_state)",
+          [root],
+        );
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    },
+    30_000,
+  );
+
+  it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
+    withFixture((root) => {
+      const missingPost = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        missingPost,
+        "missing PostToolUse state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
+
+      const missingStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(missingStop.status).toBe(0);
+      expect(JSON.parse(missingStop.stdout)).toMatchObject({ decision: "block" });
+      expect(missingStop.stderr).toBe("");
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop missing state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
+    });
+  });
+
+  it("early-returns for a known read-only PostToolUse tool", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const result = runGate(root, "PostToolUse", {
+        tool_name: "Read",
+        tool_input: { path: "docs/existing.md" },
+      });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+    });
+  }, 30_000);
+});
