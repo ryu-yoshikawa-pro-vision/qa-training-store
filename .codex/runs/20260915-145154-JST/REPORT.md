@@ -65,6 +65,15 @@
 - Blocker / Remaining: Git mutation前の最終diff／stage確認、commit／push、修正後headのCI、PR本文更新が残る。
 - Progress: 80% (8/10)
 
+## 2026-09-15 19:32 (JST)
+
+- Summary: push後のWeb CIで、既存のWindows `SessionStart` configured launcher正常系テストだけがfailureになった。
+- Validation: Web CI `34957842259`の最初のエラーは、`tests/contracts/codex-hook-contract.test.ts`の該当テストがGitHub Windows runner上で約19.6秒かかり、テスト固有の`10_000ms`制限を超えたことだった。Hookのassertion failure、出力漏えい、launcher failureは発生していない。ローカルの同一テストは修正後`1 passed`（実行3.15秒）で確認した。
+- Changes: 該当テストのtimeoutを`30_000ms`へ変更した。これは既存のconfigured launcher failureテストと同じ上限であり、Hook本体のtimeoutやStop／SessionStart契約は変更していない。
+- Decision / Rationale: CIで観測された実行時間を収容するテスト境界の修正とし、assertionを弱めず、固定待機やHook timeoutの延長は行わない。修正後は新しいheadでWeb／Mobile CIを再実行して確認する。
+- Blocker / Remaining: Web CI `34957842259`はこのfailureを含むため無効。Mobile CI `34957842338`は継続中。timeout修正のcommit／push、再CI、PR本文更新、最終Run status更新が残る。
+- Progress: 85% (8/10)
+
 ## 2026-09-15 16:40 (JST)
 
 - Validation: `corepack pnpm run build:web`と`corepack pnpm run build:spec`はPASS。生成物は既存ignore対象で、tracked差分は増えていない。最終`git diff --check`もPASS。

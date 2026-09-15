@@ -1239,7 +1239,7 @@ describe("Codex SessionStart compact context Hook contract", () => {
     } finally {
       removeFixture(fixture);
     }
-  }, 10_000);
+  }, 30_000);
 
   it("converges configured Unix launcher failures to structured fail-close output", () => {
     if (process.platform === "win32") return;
