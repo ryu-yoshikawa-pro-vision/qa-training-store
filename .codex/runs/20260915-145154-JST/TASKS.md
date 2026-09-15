@@ -21,6 +21,12 @@
 - [x] 13. 実Codex executable可用性、current session state、最新`main`祖先性、PR／Issue open状態を確認する。compact runtimeはexecutable欠落のため未確認として記録する。
 - [ ] 14. Run Artifactを最終化し、commit／通常push、最新head CI、PR本文、local／remote／PR head一致を確認する。
 
+## Repair iteration: latest-head CI feedback
+
+- [x] 15. 最新headのWeb CIで最初に失敗したWindows contract assertionを確認し、Hook実装ではなくpath separator表現の期待値差であることを切り分ける。
+- [x] 16. `git rev-parse --show-toplevel`出力を基準にroot identity期待値を作る最小テスト修正を行い、該当Windows testsを再PASSさせる。
+- [ ] 17. 修正headをcommit／通常pushし、Web／Mobile CI、PR本文、最終head一致を再確認する。
+
 ## 完了処理の参照先
 
 - 基本Progressの分母・表記: `docs/reference/run-artifacts.md`

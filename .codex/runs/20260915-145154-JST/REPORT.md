@@ -109,3 +109,12 @@
 - Validation: `corepack pnpm install --frozen-lockfile`、Node `v24.12.0`、`textlint v15.8.0`、Node import、focused text-quality `37 passed`、combined contract `190 passed`、`scripts/verify.ps1 -HookContracts`（PASS=4 FAIL=0 SKIP=0）、`lint:text`、`lint:markdown`、`lint`（error 0）、`typecheck`、`test:contracts`（578 passed / 4 skipped）、`git diff --check`、`corepack pnpm run verify`（exit 0、buildを含む）がPASSした。`bash scripts/verify --hook-contracts`はWSLにNodeがないため`node: not found`で起動前FAIL。実Codexのmanaged standalone executableは存在せず、`/hooks`／`/compact`／実Stop再入は未確認。自動lifecycleでcurrent sessionの`ready` state（開始HEAD `fd821219...`）は生成され、別sessionのstateは手動変更していない。
 - Blocker / Remaining: commit／通常push、最新head CI、PR本文更新、最終head一致確認が残る。PR #146とIssue #134はOPEN、対象branchは最新`main` `22f73a98...`を祖先に持つ。
 - Progress: 90% (9/10)
+
+## 2026-09-15 22:15 (JST)
+
+- Summary: push後の最新Web CIで、今回追加したWindows configured UserPromptSubmit正常系のroot identity assertionだけがpath separator差で失敗した。
+- Validation: Web CI `34972985348`の最初の失敗は`tests/contracts/codex-text-quality.test.ts`のroot identity比較で、Hookの`git rev-parse --show-toplevel`由来の正規化path hashと、テストのfixture path hashが一致しなかったことだった。Hook本体のbaseline生成、state status、session identity、failure診断契約は通過していた。依存する`verify`／`validate` jobのfailureはこのfocused test failureの派生。ローカルで該当2 testsを修正後`2 passed / 35 skipped`（9.57秒）で確認した。
+- Changes: test期待値をHookと同じ`git rev-parse --show-toplevel`出力の`path.resolve`から計算するよう修正した。Hook本体、config launcher、state schemaは変更していない。
+- Decision / Rationale: これは実装のroot identity不整合ではなく、Windows runnerのpath表現をテストが直接fixture引数へ依存した検証欠陥である。修正headを通常pushし、Web／Mobile CIを再実行する。
+- Blocker / Remaining: 修正headのcommit／push、CI再確認、PR本文更新、最終head一致確認が残る。
+- Progress: 90% (9/10)

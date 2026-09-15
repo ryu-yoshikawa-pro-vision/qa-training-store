@@ -346,7 +346,9 @@ function expectConfiguredUserPromptBaseline(
   const state = readGateState(root);
   expect(state.status, `${label} state status`).toBe("ready");
   expect(state.root_id, `${label} root identity`).toBe(
-    createHash("sha256").update(path.resolve(root), "utf8").digest("hex"),
+    createHash("sha256")
+      .update(path.resolve(git(root, ["rev-parse", "--show-toplevel"])), "utf8")
+      .digest("hex"),
   );
   expect(state.session_id_hash, `${label} session identity`).toBe(
     createHash("sha256").update(sessionId, "utf8").digest("hex"),
