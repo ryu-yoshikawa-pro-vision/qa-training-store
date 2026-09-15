@@ -9,7 +9,7 @@
 - [x] 4. Unix／Windows configured launcher contractとADR-0026を更新する。
 - [x] 5. focused contract、Harness、標準関連検証、diff checkを実行する（修正前のstate cleanup failureを再現・原因切り分けし、修正後はfocused／aggregateともPASS）。
 - [x] 6. 非対象差分、security出力、Run Artifactを確認・sanitizeする（非対象source差分なし、sanitize residual 0）。
-- [ ] 7. branch安全確認後にcommit／pushし、local／remote／PR headを一致させる。
+- [x] 7. branch安全確認後にcommit／pushし、local／remote／PR headを一致させる（実装head `357767d...`まで確認済み。最終Run Artifact commit後に再確認する）。
 - [ ] 8. 最新PR headのrequired CIを確認し、PR本文を更新する。
 
 ## 完了処理の参照先
@@ -31,6 +31,9 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - [x] D4. inactive Stopが複数の新規違反を1回のblockで報告する回帰テストと実装を追加した。active Stopの再入allow契約も同じfixtureで確認した。
 - [x] D5. Windows Node 24.12.0で日本語を含む一時パス下の`fs.rmSync(..., { force: true })`がstateを残すfailureを再現し、Hookのstate cleanupを`unlinkSync`へ限定修正した。
 - [x] D6. Windows PowerShell 5.1のBOMなしUTF-8読込で`CODE_REVIEW.md`の契約検査が誤検知するため、`scripts/verify.ps1`の読込encodingをUTF-8へ修正した。
+- [x] D7. `357767d...`を通常pushし、local／remote／PR headを一致させた。GitHub PRは`OPEN`かつ`MERGEABLE`、baseは`22f73a98...`だった。
+- [x] D8. `357767d...`のWeb CI run `34958815515`とMobile App CI run `34958815683`がともにsuccessになった。
+- [x] D9. Web CIで観測したWindows launcher契約テストのrunner時間超過を、テスト固有timeoutだけ`10_000ms`から`30_000ms`へ調整して解消した。
 
 ## Blocked
 

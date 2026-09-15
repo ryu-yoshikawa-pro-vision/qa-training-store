@@ -74,6 +74,14 @@
 - Blocker / Remaining: Web CI `34957842259`はこのfailureを含むため無効。Mobile CI `34957842338`は継続中。timeout修正のcommit／push、再CI、PR本文更新、最終Run status更新が残る。
 - Progress: 85% (8/10)
 
+## 2026-09-15 20:08 (JST)
+
+- Summary: timeout修正を含む`357767d...`を通常pushし、GitHub上でPRの競合解消とrequired CI successを確認した。
+- Validation: Web CI run `34958815515`は`357767d...`に対してsuccess（Codex Hook contract、contracts、Style、Code、build、E2E、verifyを含む）。Mobile App CI run `34958815683`も同headでsuccess（Android／iOS build、Native Static、Native CI Verify、Android Runtime/Maestroを含む）。PR #146は`OPEN`かつ`MERGEABLE`、Issue #134は`OPEN`のまま。
+- Decision / Rationale: #151のGitHub `main` `22f73a98...`はmerge commit `905d837...`の第2親として保持され、PR #146固有のHook実装と契約テストもsuccess結果で確認できた。現時点でsource／testの追加修正は不要。
+- Runtime / Blocker / Remaining: interactive Codexの`/hooks`／`/compact`／実Stop再入は、管理対象standalone `codex.exe`が環境に存在せず未確認。既存stateの手動再生成・上書きはしていない。Run Artifact最終更新、最終commit／push後のhead／CI再確認、PR本文更新、最終working tree確認が残る。
+- Progress: 95% (9/10)
+
 ## 2026-09-15 16:40 (JST)
 
 - Validation: `corepack pnpm run build:web`と`corepack pnpm run build:spec`はPASS。生成物は既存ignore対象で、tracked差分は増えていない。最終`git diff --check`もPASS。

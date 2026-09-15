@@ -35,7 +35,7 @@
   - [x] 1. merge conflictを解消し、最新`main`とPR #146実装の差分を確認する。
   - [x] 2. inactive／active Stopと複数違反の現行挙動を再現し、必要な最小修正と回帰テストを適用する。
   - [x] 3. focused Hook contract、`lint:text`、`lint:markdown`、`git diff --check`、関連標準検証を実行する。
-  - [ ] 4. compact runtimeまたは実行不能理由を確認し、commit／通常push後にheadとCIを確認する。
+  - [x] 4. compact runtimeまたは実行不能理由を確認し、commit／通常push後にheadとCIを確認する。
   - [ ] 5. PR本文、PR／Issue open、最終working treeを確認して完了報告する。
 
 ## 6. 検証方法

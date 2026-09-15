@@ -14,7 +14,8 @@
     "docs/adr/0026-codex-text-quality-gate.md",
     "tests/contracts/codex-hook-contract.test.ts",
     "tests/contracts/codex-text-quality.test.ts",
-    "docs/plans/2026-09-15_145022_pr146-launcher-failure-repair.md"
+    "docs/plans/2026-09-15_145022_pr146-launcher-failure-repair.md",
+    "docs/plans/2026-09-15_183000_pr146-main-sync-runtime-completion.md"
   ],
   "validation": {
     "status": "not_run",
