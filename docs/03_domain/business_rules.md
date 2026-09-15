@@ -2,7 +2,7 @@
 
 本ファイルはPhase 1の正本です。Cancel/Return/Refundと高度なPayment復旧はPhase 2以降で再詳細化します。
 
-## 1. 商品・Master
+## 1. 商品・マスタ
 
 ### 1.1 商品状態
 
@@ -149,7 +149,7 @@
 - Login時はUser Cartを基準にGuest CartをSKU単位で統合する。合算数量は許容上限まで取り込み、超過分を除外して件数を表示する。非公開、Rank不足、無効SKU、在庫0の明細は除外し理由を表示する。Guest Cartは同一Txでabandonedへ変更する。
 - Payment失敗後に元Cartは復活させず、Order詳細から再試行する。
 
-### 3.1 名称Normalization
+### 3.1 名称の正規化
 
 Category名、Brand名、Variation選択肢の重複判定は、次の共通関数で比較Keyを生成します。
 
@@ -208,7 +208,7 @@ Category名、Brand名、Variation選択肢の重複判定は、次の共通関�
 - Order ItemはCart Itemの`createdAt`昇順、同値はitemId昇順でlineNumberを1から採番する。注文詳細はlineNumber順、注文一覧の代表画像はlineNumber=1を使用する。
 - Orderは物理削除しない。
 
-### Phase 1状態
+### Phase 1の状態
 
 ```text
 pending_payment
@@ -251,7 +251,7 @@ pending_payment
 - ResetはApp DBとSessionを削除し、指定Seedを投入する。
 - 任意DB書換え、Import/Export、任意Fault ScriptはPhase 1へ含めない。
 
-## 12. 将来業務Rule
+## 12. 将来の業務ルール
 
 - Phase 2: Guest Checkout再評価、未発送Cancel、Cancel申請、Return、全額Refund、退会。
 - Phase 3: Payment Unknown、Gateway Ledger、Reconciliation、Migration/Import/Export。

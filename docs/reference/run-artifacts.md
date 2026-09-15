@@ -1,6 +1,8 @@
-# Run Artifacts
+# Run Artifact
 
 ## 目的
+
+この文書でいう `Source-of-Truth` は、各契約における正本を指します。
 
 Codex harness で生成・参照される artifact の責務を分けるための契約です。実行事実、集約 manifest、評価判断、人間向け要約、低レベルログを混在させないことを目的にします。
 
@@ -62,14 +64,14 @@ Both are validated by schema / validator.
 
 - 実行事実の正本は runner / wrapper / hooks が生成します。
 - 失敗解釈の正本は `evaluation.json` です。
-- Generic run evaluationを使う場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる summary field です。Agentic QAの評価は `valid_for_scoring` と `invalid_reasons[]` を正本とし、このgeneric fieldへ読み替えません。
+- 汎用Run評価を使う場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされるsummary fieldです。Agentic QAの評価は `valid_for_scoring` と `invalid_reasons[]` を正本とし、この汎用fieldへ読み替えません。
 - `evaluation.json` 生成前の `run.json.primary_failure_category` は `null` です。
 - `run.json.evaluation_path` は評価の正本となる `evaluation.json` を指します。
 - `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` が食い違う場合、後続 validator は warning または failure にするべきです。
 - `changed_files`、exit code、log path、report path、executed commands は agent が手書きしません。
 - agent は観測事実を `run.json` / `codex-task` report JSON / logs から参照して評価します。
 
-## Artifact Responsibility
+## Artifactの責任分担
 
 ### `codex-task` report JSON
 
@@ -110,14 +112,14 @@ Both are validated by schema / validator.
 - runner は evaluation result を自動判断しません。
 - runner が行うのは `evaluation.json` の template 作成、存在確認、JSON / schema validation、`run_id` 一致確認、manifest summary field 更新だけです。
 - `evidence` 文字列は required のまま維持し、必要に応じて `evidence_refs` で `run.json` / report / Hook JSONL / validation command などへの structured reference を追加できます。
-- Strict Codex Runのgeneric `evaluation.json`は既存toolingどおり
+- Strict Codex Runの汎用`evaluation.json`は既存toolingどおり
   `.codex/runs/<run_id>/evaluation.json`へ保存します。`run.json.evaluation_path`はこの相対path、
   `artifact_summary.evaluation_present`はこの実体の存在を示し、`primary_failure_category`は
-  generic evaluationの値からだけ転記します。未実行の評価をこのfieldへ手書きしません。
+  汎用evaluationの値からだけ転記します。未実行の評価をこのfieldへ手書きしません。
 - Agentic QAのScored evaluationは別のAgentic契約として、同じOfficial Run Rootの
   `.artifacts/agentic-qa/<run_id>/evaluation/evaluation.json`へCanonical JSONで保存します。
   これは`scripts/agentic-qa/contracts.ts`の`valid_for_scoring`／`invalid_reasons[]`が正本であり、
-  generic Codex Runの`primary_failure_category`へ読み替えません。
+  汎用Codex Runの`primary_failure_category`へ読み替えません。
 
 ### Agentic QA evaluation boundary
 
@@ -193,7 +195,7 @@ preflight rootの完全なfile setをfreezeします。trusted evidence_refはcu
 Official verifierへ渡すartifact pathもCanonical Run Root内に限定し、required artifactや
 evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 
-## Runner Completion Options
+## Runnerの完了オプション
 
 ### `--evaluation-template`
 
@@ -252,7 +254,7 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
   `passed: true` と `additional_source_diff_count: 0` を確認してからFindingsをfinalizeします。
 - `.codex/runs/`、`.artifacts/`、その他のRuntime生成物はSnapshotのSource差分比較から除外します。Snapshot自体はRun Artifactとして保存します。
 
-## Cleanup workflow
+## クリーンアップworkflow
 
 - `scripts/cleanup-runs.sh` / `scripts/cleanup-runs.ps1` は generated run artifact の整理候補を一覧化する maintainer / operator 補助 command です。
 - 既定動作は preview-only です。`--dry-run` / `-DryRun` を省略しても削除は行いません。
@@ -263,7 +265,7 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 - symlink / reparse point や repo root 外へ逃げる candidate は拒否します。
 - cleanup 実行後も summary を stdout に表示します。
 
-### JSONL logs
+### JSONLログ
 
 - runner / Codex / hooks による低レベルイベントログです。
 - 集計の正本というより、追跡・デバッグ用です。
@@ -271,7 +273,7 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`のmachine factを保持します。`SubagentStop` / `Stop`から最終終了を推測しません。
 - `Stop` / `SubagentStop` Hookはsession観測用であり、run manifestの更新triggerではありません。
 - Hook JSONLは`run.json`へ新規集約せず、collectorもHook JSONLやSubagent専用JSONを再走査しません。
-- `.codex/logs/*.jsonl`と`.artifacts/codex-hooks/*.jsonl`はGit管理外です。前者は既存のgeneric cleanup対象、後者は`.artifacts/`のephemeral raw evidenceとして扱い、いずれもRun manifestへ自動集約しません。
+- `.codex/logs/*.jsonl`と`.artifacts/codex-hooks/*.jsonl`はGit管理外です。前者は既存の汎用cleanup対象、後者は`.artifacts/`のephemeral raw evidenceとして扱い、いずれもRun manifestへ自動集約しません。
 
 ### Subagentの意味情報
 
@@ -316,7 +318,7 @@ evaluation.result = partial
 
 これは、runner は完了し、検証は失敗したが、成果物の一部は有効で追加修正可能、という状態を表します。
 
-## Practical Notes
+## 実務上の注意
 
 - `run.json` は aggregate manifest であり、単発の `codex-task` report JSON を上書きしません。
 - `evaluation.json` は実行結果の説明責任を持ちますが、実行事実を再生成しません。

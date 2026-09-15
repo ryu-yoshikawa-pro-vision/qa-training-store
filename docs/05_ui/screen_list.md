@@ -54,7 +54,7 @@ Search Suggestionは独立RouteではなくStorefront Headerと検索画面のCo
 | AD-12 | `/admin/users/[userId]` | User詳細 | × | ○ |
 | AD-13 | `/admin/test-control` | Test Control | × | Automation admin |
 
-## 4. Phase 1 Navigation
+## 4. Phase 1のナビゲーション
 
 ### Desktop Storefront
 

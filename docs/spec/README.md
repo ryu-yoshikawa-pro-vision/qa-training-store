@@ -1,6 +1,6 @@
 # Scenario Shop Specification System
 
-このディレクトリは、Scenario Shopの現在のProduct Behaviorを定義するSpecification Systemです。機能を学ぶときは、まず次の順で対象の期待動作を読みます。
+このディレクトリは、Scenario Shopの現在の製品動作を定義する仕様システムです。機能を学ぶときは、まず次の順で対象の期待動作を読みます。
 
 ## 学習者向けの読み始め
 
@@ -8,9 +8,9 @@
 2. [Roles and Permissions](./roles-and-permissions.md)でRoleと権限を確認する。
 3. 対象FeatureのPurpose / Scopeを読む。
 4. 同じFeatureのBusiness RulesとAcceptance Criteria（BR / AC）を読む。
-5. 必要な状態とScenarioを[State and Scenarios](./state-and-scenarios.md)で確認する。
-6. 必要な画面状態を[UI and UX Contract](./ui-ux-contract.md)で確認する。
-7. 実装するときだけ、Feature文書のExecutable Canonical SourcesにあるCode / Configを参照する。
+5. 必要な状態とScenarioを[状態とシナリオ](./state-and-scenarios.md)で確認する。
+6. 必要な画面状態を[UI/UX契約](./ui-ux-contract.md)で確認する。
+7. 実装するときだけ、Feature文書のExecutable Canonical Sources（実行可能な正本ソース）にあるCode / Configを参照する。
 
 現在のUIや`/guide`は対象を観察する入口として使えますが、期待動作を決める正本ではありません。初期データやSeed IDなどの具体値は、必要になった段階で文書が示す実装上の参照先へ進みます。
 
@@ -21,23 +21,23 @@
 - [Storefront](./features/storefront.md)
 - [Authentication](./features/authentication.md)
 - [Cart](./features/cart.md)
-- [Checkout and Payment](./features/checkout-and-payment.md)
-- [Orders](./features/orders.md)
+- [CheckoutとPayment](./features/checkout-and-payment.md)
+- [注文](./features/orders.md)
 - [Reviews](./features/reviews.md)
 - [Admin Catalog](./features/admin-catalog.md)
 - [Admin Inventory](./features/admin-inventory.md)
 - [Admin Orders](./features/admin-orders.md)
 - [Admin Users](./features/admin-users.md)
 - [Native Customer](./features/native-customer.md)
-- [State and Scenarios](./state-and-scenarios.md)
-- [UI and UX Contract](./ui-ux-contract.md)
-- [Screen Catalog](./screen-catalog.md)
+- [状態とシナリオ](./state-and-scenarios.md)
+- [UI/UX契約](./ui-ux-contract.md)
+- [画面カタログ](./screen-catalog.md)
 
 ## 仕様を管理・変更するときのルール
 
-### Responsibility
+### 責任分担
 
-#### Normative Product Behavior
+#### 正式な製品動作
 
 次のファイルだけが、現在の期待挙動を定義します。
 
@@ -47,26 +47,26 @@
 - [`ui-ux-contract.md`](./ui-ux-contract.md)
 - `features/**/*.md`
 
-#### Supporting / Operational
+#### 補助・運用文書
 
-README、[`glossary.md`](./glossary.md)、[`change-process.md`](./change-process.md)、[`known-deviations.md`](./known-deviations.md)、[`unresolved-specifications.md`](./unresolved-specifications.md)、[`_templates/`](./_templates/feature-spec.md) は、読み方・運用・履歴・未確定事項を補助します。Supporting文書はNormative Oracleではありません。
+README、[`glossary.md`](./glossary.md)、[`change-process.md`](./change-process.md)、[`known-deviations.md`](./known-deviations.md)、[`unresolved-specifications.md`](./unresolved-specifications.md)、[`_templates/`](./_templates/feature-spec.md) は、読み方・運用・履歴・未確定事項を補助します。補助文書は正式な仕様の正本ではありません。
 
-#### Executable Canonical Sources
+#### 実行可能な正本ソース
 
-Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App ID、Test ID、Accessibility Labelなどの低レベル値は、各文書のExecutable Canonical Sourcesに記載したCode/Configを正本とします。
+Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App ID、Test ID、Accessibility Labelなどの低レベル値は、各文書の「実行可能な正本ソース」に記載したCode/Configを正本とします。
 
-### Oracle Priority
+### Oracleの優先順位
 
-1. Normative Product Behavior
+1. 正式な製品動作
 2. 同じFeatureのBR / AC
 3. Active Known Deviation（差異の説明のみ）
 4. ADRによるDecision History
-5. Application / Seed / Test / README / Guide（Evidenceまたは実装参照）
+5. Application / Seed / Test / README / Guide（観測記録または実装参照）
 
-ただし、各Featureの`Executable Canonical Sources`で明示された低レベル値については、Code / Configを正本とします。対象はRoute、App ID、Test ID、Accessibility label、Seed ID、Design token、Build configなどです。この例外は値の解決に限り、Application / Seed / Test / README / Guide全般をExpected Product Behaviorの上位Oracleへ昇格させるものではありません。
+ただし、各Featureの`Executable Canonical Sources`で明示された低レベル値については、Code / Configを正本とします。対象はRoute、App ID、Test ID、Accessibility label、Seed ID、Design token、Build configなどです。この例外は値の解決に限り、Application / Seed / Test / README / Guide全般を期待される製品動作より上位の正本へ昇格させるものではありません。
 
-Known DeviationはExpected Behaviorを書き換えません。Unresolvedの項目は、Product Decisionが完了するまでDefect Oracleにしません。
+Known Deviationは期待動作を書き換えません。Unresolvedの項目は、Product Decisionが完了するまで不具合判定の正本にはしません。
 
-### Change entry point
+### 変更の入口
 
 仕様変更は [`change-process.md`](./change-process.md) の順序に従います。Generated HTMLは `pnpm run build:spec` で再生成する成果物であり、編集対象ではありません。

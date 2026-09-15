@@ -1,8 +1,8 @@
-# 主要Wireframe
+# 主要ワイヤーフレーム
 
 低精度Wireframeです。正確なSpacing、Typography、状態は`design_system.md`と`page_patterns.md`を参照します。
 
-## 1. Home Desktop
+## 1. Home（Desktop）
 
 ```text
 ┌ Scenario Shop ───────────────── Search ───── 商品  注文履歴  アカウント  カート(2) ┐
@@ -24,7 +24,7 @@
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 2. 商品一覧 Desktop
+## 2. 商品一覧（Desktop）
 
 ```text
 商品 > すべての商品                                               123件
@@ -39,7 +39,7 @@
 └────────────────┘
 ```
 
-## 3. 商品一覧 Mobile
+## 3. 商品一覧（Mobile）
 
 ```text
 [Scenario Shop] [Search] [Cart 2]
@@ -53,7 +53,7 @@
 [Home] [Search] [Cart] [Orders] [Account]
 ```
 
-## 4. Search Suggestion
+## 4. 検索候補
 
 ```text
 [商品名、カテゴリ、ブランドで検索________]
@@ -67,7 +67,7 @@
 └────────────────────────────────────┘
 ```
 
-## 5. 商品詳細 Desktop
+## 5. 商品詳細（Desktop）
 
 ```text
 商品 > スポーツ > ランニングシューズ
@@ -95,7 +95,7 @@
 [Review]
 ```
 
-## 6. Checkout Desktop
+## 6. Checkout（Desktop）
 
 ```text
 配送先 > 支払方法 > 注文確認
@@ -124,7 +124,7 @@
 [注文詳細を見る] [商品一覧へ]
 ```
 
-## 8. Admin Overview
+## 8. Adminの概要
 
 ```text
 ┌ Scenario Shop Admin ┐  概要
@@ -140,7 +140,7 @@
 └─────────────────────┘
 ```
 
-## 9. Admin Resource Index
+## 9. Adminのリソース一覧
 
 ```text
 商品                                                         [商品を登録]
@@ -154,7 +154,7 @@
 [Prev] 1 2 3 [Next]
 ```
 
-## 10. Admin Product Edit
+## 10. Adminの商品編集
 
 ```text
 商品 > ランニングシューズ                                   [Preview]
@@ -177,7 +177,7 @@
 Danger Zone: [下書き商品を削除]
 ```
 
-## 11. Mobile Product Sticky CTA
+## 11. Mobile商品詳細の固定CTA
 
 ```text
 [Product content]

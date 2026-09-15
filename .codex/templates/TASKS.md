@@ -1,6 +1,6 @@
-# Tasks
+# Tasks（タスク）
 
-## Now
+## Now（現在）
 
 - 実行順に並べる（上から順に処理）。
 - [ ] 1. PLANを確定する。
@@ -22,10 +22,10 @@
 
 checkbox taskの完了はfinal commit前のtracked task進捗であり、task全体の完了を意味しない。詳細契約は上記の正本へ従う。
 
-## Discovered
+## Discovered（発見事項）
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 
-## Blocked
+## Blocked（ブロック中）
 
 - ブロック時のみ記載する。

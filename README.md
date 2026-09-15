@@ -96,7 +96,7 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 - Cloudflare Pages
 - pnpm
 
-## Specification と Agentic QA
+## 仕様とAgentic QA
 
 - Normative Product Specification: [`docs/spec/README.md`](docs/spec/README.md)
 - Production Specification: [https://ec-test-automation-store.pages.dev/docs/spec/](https://ec-test-automation-store.pages.dev/docs/spec/)
@@ -104,23 +104,24 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 - Agentic QA Workflow: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
 - Learner-safe Challenge: [`training/agentic-qa/`](training/agentic-qa/)
 
-## Contribution / Security
+## 貢献 / セキュリティ
 
-- Bug report: [Bug report Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml)
-- Feature request: [Feature request Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml)
-- Pull Request: [`CONTRIBUTING.md`](CONTRIBUTING.md) と Pull Request Template を確認してください。
-- Security vulnerability: Public Issue / Pull Request には投稿せず、[`SECURITY.md`](SECURITY.md) の GitHub Private Vulnerability Reporting を使用してください。
+- 不具合報告: [不具合報告 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml)
+- 機能要望: [機能要望 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml)
+- Pull Request: [`CONTRIBUTING.md`](CONTRIBUTING.md)とPull Request用テンプレートを確認してください。
+- 文章表現: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md) を確認してください。
+- セキュリティ脆弱性: 公開Issue / Pull Requestには投稿せず、[`SECURITY.md`](SECURITY.md)のGitHub Private Vulnerability Reportingを使用してください。
 
-## Test Automation Curriculum / Training
+## テスト自動化カリキュラム / Training
 
 - Curriculum入口: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)
 - Production Curriculum: [https://ec-test-automation-store.pages.dev/docs/curriculum/](https://ec-test-automation-store.pages.dev/docs/curriculum/)
-- Required Curriculum validator: `pnpm run validate:curriculum`
+- 必須のCurriculum validator: `pnpm run validate:curriculum`
 - Training Web baseline: `pnpm run training:web:baseline`（`PLAYWRIGHT_BASE_URL`で専用Runtimeを指定）
 - Training Web projects: `training-chromium` / `training-mobile-chromium`
 - Training Native baseline: `pnpm run training:native:baseline`（Android Runtimeのみ）
 
-Formal RegressionとTraining Testは別のConfig / Directoryで管理します。Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Runtime / Maestro PASSを正式保証として扱いません。
+Formal RegressionとTraining Testは別のConfig / Directoryで管理します。現行Native保証はAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Runtime / Maestro PASSを正式保証として扱いません。
 
 依存PackageのVersion指定は[`package.json`](./package.json)、実際に解決されるVersionは[`pnpm-lock.yaml`](./pnpm-lock.yaml)を参照してください。
 
@@ -131,7 +132,7 @@ Formal RegressionとTraining Testは別のConfig / Directoryで管理します�
 - Node.js 24
 - pnpm 9.10.0
 
-### Install
+### インストール
 
 ```bash
 corepack enable
@@ -146,7 +147,7 @@ pnpm run start:web
 
 Expoが表示するURLをブラウザで開いてください。
 
-### Web Build
+### WebのBuild
 
 現在のRuntime Environment設定でWeb Buildを生成します。
 
@@ -158,7 +159,7 @@ Font Asset準備、商品画像Manifest生成・検証、Expo Web Exportを順�
 
 Production Buildは、CI/CDでProduction用の環境変数を設定して実行します。
 
-### Native local Build
+### NativeのローカルBuild
 
 Native BuildはローカルWindows／macOS経路を正式な主経路とします。EAS Cloud Build／Workflowは日常のBuild・検証・Submitには使いません。`expo prebuild`で生成される`android/`と`ios/`、APK／Simulator App／署名鍵などの成果物・CredentialはRepositoryへ追加しません。
 
@@ -263,7 +264,7 @@ testpass1
 
 `suspended`と`withdrawn`のcustomerは、Login拒否のテストに使用します。
 
-## Seed Scenario
+## Seedのシナリオ
 
 Test ControlまたはPlaywright Fixtureから、目的に応じた初期状態へDatabaseをResetできます。
 

@@ -1,4 +1,4 @@
-# Git Branch Safety
+# Git branchの安全性
 
 ## 目的
 
@@ -6,7 +6,7 @@ Git mutationが許可された作業でも、Codexが作業対象branchを外れ
 
 この文書は、PR番号、commit SHA、特定の依存修正に依存しない。リポジトリの通常のGit作業と、branch mismatchからのboundedな復旧に適用する。
 
-## Protected/default branch policy
+## 保護branch・default branchの方針
 
 - main、master、repository default branchへCodexが直接commit/pushしない。
 - ユーザーの「commitして」「pushして」という指示だけでは、default branchへの直接反映許可とは解釈しない。
@@ -125,7 +125,7 @@ remote mainへ誤commitが入っている場合は、この文書の自動復旧
 - 誤branchで作成された対象commitがrescue branchから参照できる。
 - commitのparent、message、変更ファイルを確認できる。
 
-### Case 1: 正しいbranchのfast-forward continuation
+### Case 1: 正しいbranchでのfast-forward継続
 
 正しいPR branchがrescue branchのancestorである場合、履歴は次の形である。
 

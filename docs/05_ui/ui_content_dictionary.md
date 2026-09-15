@@ -1,4 +1,4 @@
-# UI Content Dictionary
+# UI文言集
 
 本ファイルは利用者へ表示する日本語文言とStatus名の正本です。Domain値、Route名、Repository名を画面へ直接表示しません。
 
@@ -12,7 +12,7 @@
 | notice.training | このサイトはテスト自動化学習用です。実際の注文・決済・配送は行われません。 |
 | notice.personalData | 実在する氏名・住所・電話番号・カード情報を入力しないでください。 |
 
-## 2. Navigation
+## 2. ナビゲーション
 
 | Key | 表示 |
 |---|---|
@@ -31,7 +31,7 @@
 | nav.users | ユーザー |
 | nav.testControl | テスト制御 |
 
-## 3. Role・Rank・Account Status
+## 3. Role・Rank・Accountの状態
 
 | Domain値 | 表示 |
 |---|---|
@@ -45,7 +45,7 @@
 | suspended | 利用停止中 |
 | withdrawn | 退会済み |
 
-## 4. Product Status
+## 4. Productの状態
 
 | Domain値 | 表示 |
 |---|---|
@@ -54,7 +54,7 @@
 | unpublished | 非公開 |
 | discontinued | 販売終了 |
 
-## 5. Order・Payment・Shipment Status
+## 5. Order・Payment・Shipmentの状態
 
 | Domain値 | 表示 |
 |---|---|
@@ -69,7 +69,7 @@
 | failed | 支払い失敗 |
 | pending | 発送準備前 |
 
-## 6. Review Status
+## 6. Reviewの状態
 
 | Domain値 | 表示 |
 |---|---|
@@ -77,7 +77,7 @@
 | hidden | 非公開 |
 | deleted | 削除済み |
 
-## 7. Primary Action
+## 7. 主な操作
 
 | Key | 表示 |
 |---|---|
@@ -157,7 +157,7 @@
 | cart.mergeSummary | ゲストカートを統合しました。追加{added}件、上限超過{overflow}件、除外{excluded}件。 |
 | checkout.resumed | 前回の購入手続きを再開しました。 |
 
-## 11. Empty State
+## 11. 空の状態
 
 | Key | 表示 |
 |---|---|
@@ -167,7 +167,7 @@
 | empty.adminResourceTitle | まだ{resource}がありません |
 | empty.filteredTitle | 条件に一致する{resource}がありません |
 
-## 12. Message Style
+## 12. メッセージの文体
 
 - Titleは結果を簡潔に断定する: 「商品をカートに追加しました」。
 - Bodyは必要な場合だけ次の操作を示す。

@@ -1,17 +1,17 @@
-# Experiment Records
+# 実験記録
 
 このディレクトリは、Test Target、Curriculum、QA Systemの継続改善で正式なExperimentを
 実施するときに、既存のRun Artifact／Evidenceへ参照接続するためのCanonical Locationです。
 Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありません。
 
-## ID Convention
+## IDの規約
 
 - 形式は `EXP-YYYYMMDD-NNN`（JST日付、同日内の3桁連番）です。
 - File nameは `<experiment_id>-<短いslug>.yaml` とし、1 Experimentを1 Fileへ保存します。
 - `experiment_id` は別のRun IDやKnowledge IDと兼用しません。
 - 1 Experiment = 1 YAMLを維持し、不要な空Recordや複数Experimentの混在を作りません。
 
-## Reference Convention
+## Referenceの規約
 
 - `target_revision_ref` は、QA対象の不変Revisionを示します。Clean committed inputは
   `git:<40桁の小文字SHA>` を使い、作業ツリー混在時は既存のCanonical Manifest等の
@@ -38,7 +38,7 @@ Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありま�
 - Formal Experimentは、対象Planに沿ったQA／Training Questionについて、通常変更だけでは答えられず、
   Experimentが必要だと判断した時点で初めて作成します。
 
-## Record rules
+## 記録のルール
 
 - Standardは `study_intent: exploratory`、必要最小限の `design_type` です。
 - `results` は対象PlanのLightweight Experiment Record Schemaに従う観測・計測された事実で、

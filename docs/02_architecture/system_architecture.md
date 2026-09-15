@@ -1,6 +1,6 @@
 # システムアーキテクチャ
 
-## 1. Phase 1全体構成
+## 1. Phase 1の全体構成
 
 ```mermaid
 flowchart LR

@@ -78,7 +78,7 @@ Application/Repository Contractで次を検証します。
 - `isDefaultKey/isActiveKey`とDomain booleanを一致させる
 - Existing Variant stockQuantityをAggregate更新で変更しない
 
-## 5. Transaction Scope
+## 5. Transactionの対象範囲
 
 | Scope | Store |
 |---|---|

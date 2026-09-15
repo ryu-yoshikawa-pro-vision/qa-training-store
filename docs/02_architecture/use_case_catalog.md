@@ -1,4 +1,4 @@
-# Use Case一覧
+# ユースケース一覧
 
 ## 1. Phase 1
 
@@ -14,7 +14,7 @@
 | List/Create/Update/DeleteAddressUseCase | 最大5件。Default削除時は次Default再割当を同一Txで実行 |
 | SuggestAddressByPostalCodeUseCase | 同梱した学習用住所辞書から候補取得。未一致は空結果 |
 
-### Storefront・Catalog・Master
+### Storefront・Catalog・マスタ
 
 | Use Case | 主な処理 |
 |---|---|
@@ -70,7 +70,7 @@
 | ShipOrderUseCase | Order/Shipmentをshippedへ同時更新 |
 | CompleteDeliveryUseCase | Order/Shipmentをdeliveredへ同時更新 |
 
-### Review・Administration
+### Review・管理
 
 | Use Case | 主な処理 |
 |---|---|

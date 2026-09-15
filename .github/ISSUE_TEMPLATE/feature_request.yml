@@ -1,48 +1,48 @@
-name: Feature request
-description: Suggest a product, documentation, or training improvement. Do not use this form for security vulnerabilities.
+name: 機能要望
+description: 製品、文書、またはトレーニングの改善を提案します。セキュリティ脆弱性にはこのフォームを使用しないでください。
 title: "[Feature]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
+        セキュリティ脆弱性をPublic Issueへ投稿しないでください。[SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md)を確認し、GitHub Private Vulnerability Reportingを使用してください。
   - type: textarea
     id: problem-background
     attributes:
-      label: Problem / Background
-      description: Describe the problem, background, and who is affected.
+      label: 問題 / 背景
+      description: 問題、その背景、影響を受ける対象を記載してください。
     validations:
       required: true
   - type: textarea
     id: expected-behavior
     attributes:
-      label: Expected Behavior
-      description: Describe the behavior or outcome you would like.
+      label: 期待する動作
+      description: 希望する動作または結果を記載してください。
     validations:
       required: true
   - type: textarea
     id: qa-training-value
     attributes:
-      label: QA / Training Value
-      description: Explain the QA, learning, or training value.
+      label: QA / 学習上の価値
+      description: QA、学習、またはトレーニング上の価値を説明してください。
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives
-      description: Describe alternatives or workarounds considered.
+      label: 代替案
+      description: 検討した代替案や回避策を記載してください。
     validations:
       required: true
   - type: textarea
     id: scope-constraints
     attributes:
-      label: Scope / Constraints
-      description: Note affected areas, non-goals, compatibility, or implementation constraints.
+      label: 対象範囲 / 制約
+      description: 影響範囲、対象外、互換性、または実装上の制約を記載してください。
     validations:
       required: true
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional Context
-      description: Add examples, links, screenshots, or other context that is safe to share publicly.
+      label: 補足
+      description: 公開して安全な例、リンク、スクリーンショット、その他の情報を追加してください。

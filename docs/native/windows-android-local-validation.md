@@ -262,7 +262,7 @@ preflightで未確認・不一致・上流失敗があれば、Buildや後続Flo
 
 #### 再実行・失敗・停止の共通契約
 
-Retry、failure classification、evidence、stop、completionのgeneric decision ruleは package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とする。以下の節はこのRepository固有のtoolchain、path、command、device、Flow、artifact mappingだけを定義する。
+Retry、失敗分類、証跡、停止、完了の一般的な判断ルールは package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とする。以下の節はこのRepository固有のtoolchain、path、command、device、Flow、artifact mappingだけを定義する。
 
 ### 5.2 依存関係・Prebuild
 
@@ -469,7 +469,7 @@ foreach ($flow in @(
 }
 ```
 
-`native-purchase.yaml` は regular customer のLogin、Cart確認、Address／Payment、Order成功、Orders一覧を確認する。`native-review.yaml` は `reviewable-orders` Scenarioで delivered Order ItemのReview投稿を確認する。購入Flowが失敗した場合はReview Flowへ進まず、最初のFailure Evidenceを調査する。
+`native-purchase.yaml` は regular customer のLogin、Cart確認、Address／Payment、Order成功、Orders一覧を確認する。`native-review.yaml` は `reviewable-orders` Scenarioで delivered Order ItemのReview投稿を確認する。購入Flowが失敗した場合はReview Flowへ進まず、最初の失敗の証跡を調査する。
 
 Node `node:sqlite`のRepository／Application ContractがPASSしていても、Androidの実`expo-sqlite`、端末Install、Maestro操作をPASS扱いにしない。iOSはこのWindows Runbookの対象外であり、macOS Reusable WorkflowのBuild／Runtime結果を別に記録する。
 
@@ -537,7 +537,7 @@ output/mobile-native/native-storefront-cart-added.png
 
 ## 8. AI エージェント実行判断の参照
 
-GenericなRetry、Failure、Evidence、Stop、Completion判断は package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) に従う。このRunbookは、Gate 1〜4、検索入力専用Flow、5 Flow＋5 Flowの具体的な実行順、Windows toolchain、physical device、artifact pathをRepository固有の入力として定義する。
+一般的なRetry、失敗、証跡、停止、完了の判断は package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) に従う。このRunbookは、Gate 1〜4、検索入力専用Flow、5 Flow＋5 Flowの具体的な実行順、Windows toolchain、physical device、artifact pathをRepository固有の入力として定義する。
 
 `All` はGate 1で停止し、Gate 1成功後だけRuntimeSuite、BoundarySuite、必要なPurchase／Review Flowへ進む。未実行をPASSとせず、Git操作はユーザーの明示依頼なしに行わない。
 

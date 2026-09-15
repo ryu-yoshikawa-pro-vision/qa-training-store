@@ -16,7 +16,7 @@ Automation/DevelopmentだけがTest Control、Harness、Automation Bridgeを持�
 
 ## UI / Behavior Contract
 
-Androidは標準Native Runtime対象で、Maestroはユーザー操作、Observation、Evidence、Atomic Findingへ接続します。iOSは独立BuildとBuild-time guard/artifactを検証し、Simulator Runtime/Maestroは正式Gateにしません。
+Androidは標準Native Runtime対象で、Maestroはユーザー操作、観測、実行記録、個別の指摘（Atomic Finding）へ接続します。iOSは独立BuildとBuild-time guard/artifactを検証し、Simulator Runtime/Maestroは正式Gateにしません。
 
 ## Acceptance Criteria
 

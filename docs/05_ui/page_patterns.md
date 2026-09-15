@@ -1,4 +1,4 @@
-# Page Pattern設計
+# ページパターン設計
 
 本ファイルは画面の構造とInteractionの正本です。各Route固有のData項目は`ui_specifications.md`、文言は`ui_content_dictionary.md`を参照します。
 
@@ -27,7 +27,7 @@
 
 Bottom Navigationは現在地をTextとIconで示します。
 
-## 2. Home Pattern
+## 2. Homeパターン
 
 表示順:
 
@@ -40,7 +40,7 @@ Bottom Navigationは現在地をTextとIconで示します。
 
 Recommendationや閲覧履歴によるPersonalizationは行いません。
 
-## 3. Product List・Search・Category Pattern
+## 3. Product List・Search・Categoryパターン
 
 ### Desktop
 
@@ -75,7 +75,7 @@ Rule:
 - Search結果0件では、検索語修正、Filter解除、全商品、主要Categoryへの導線を表示する。
 - 詳細から戻った場合、Query、Page、Scroll位置を復元する。
 
-## 4. Search Suggestion Pattern
+## 4. Search Suggestionパターン
 
 - 2文字以上入力し、150ms Debounce後に最大8件を表示する。
 - Group順は商品、Category、Brand。
@@ -85,7 +85,7 @@ Rule:
 - 候補外の文字列でEnterした場合は`/search?q=...`へ移動する。
 - 検索中、0件、読込ErrorをCombobox内で明示する。
 
-## 5. Product Detail Pattern
+## 5. Product Detailパターン
 
 ### Desktop
 
@@ -117,7 +117,7 @@ Rule:
 - RatingはReview SectionへのAnchor Link。
 - 送料は「あと¥1,200で送料無料」または「送料無料」と表示する。
 
-## 6. Cart Pattern
+## 6. Cartパターン
 
 ### Desktop
 
@@ -134,7 +134,7 @@ Rule:
 
 Item一覧の下へSummaryを置き、Checkout CTAを画面下部にSticky表示してもよい。ただしItem Errorがある場合はCTAを無効化し、理由へ移動できるLinkを表示します。
 
-## 7. Checkout Pattern
+## 7. Checkoutパターン
 
 ### Desktop
 
@@ -158,7 +158,7 @@ Rule:
 - 注文確認CTAは「注文を確定する（合計金額）」とする。
 - 会員Checkoutのみである理由をLogin誘導時に簡潔に示す。
 
-## 8. Order・Self-Service Pattern
+## 8. Order・Self-Serviceパターン
 
 Order一覧:
 
@@ -173,7 +173,7 @@ Order詳細:
 - `payment_failed`だけ再Payment CTAを表示する。
 - `delivered`のeligible ItemへReview CTAを表示する。
 
-## 9. Admin Shell・Overview Pattern
+## 9. Admin Shell・Overviewパターン
 
 ```text
 [Side Navigation] [Breadcrumb]
@@ -198,7 +198,7 @@ Overview:
 - Quick Action: 商品登録、在庫調整、注文確認
 - 売上、Conversion、Chart、前年対比は表示しない
 
-## 10. Resource Index Pattern
+## 10. Resource Indexパターン
 
 ```text
 [Page Title]                                      [Primary Action]
@@ -216,7 +216,7 @@ Rule:
 - Bulk Actionは商品公開/非公開、Review非公開/再公開だけ。
 - Bulk処理前に対象件数を確認し、結果は成功件数と失敗件数を表示する。
 
-## 11. Resource Details・Form Pattern
+## 11. Resource Details・Formパターン
 
 ### Detail
 
@@ -243,7 +243,7 @@ GitHub Image Assets                会員制限
 - GitHub Image Asset Catalogから関連付ける。Binary Uploadは行わない。
 - 並べ替えはDragと上下移動Buttonの両方を提供する。
 
-## 12. Loading・Empty・Error Pattern
+## 12. Loading・Empty・Errorパターン
 
 ### Loading
 

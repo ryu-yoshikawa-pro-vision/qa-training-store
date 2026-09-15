@@ -1,42 +1,42 @@
-# Harness Improvement Review
+# Harness改善のレビュー
 
-## Candidate summary
+## 候補の概要
 
 - `hic-001`: normal docs improvement
 - `hic-002`: strict schema / validator follow-up
 - `hic-003`: blocked policy-bypass proposal
 
-## Evidence review
+## 根拠の確認
 
-- `hic-001` is supported by `evaluation.findings[]` from the repair-loop example.
-- `hic-002` is supported by repeated review comments across runs.
-- `hic-003` is supported by a blocked safety-layer suggestion and should not be auto-applied.
+- `hic-001`はrepair-loop例の`evaluation.findings[]`で裏付けられる。
+- `hic-002`は複数Runにわたる繰り返しのレビューコメントで裏付けられる。
+- `hic-003`はblockedのSafety layer提案であり、自動適用してはならない。
 
-## Risk review
+## リスクの確認
 
-- normal candidate: low risk
-- strict candidate: contract and CI risk, needs separate review
-- blocked candidate: policy and safety risk, reject in the current scope
+- normal candidate: 低リスク
+- strict candidate: contractとCIのリスクがあるため、別途レビューが必要
+- blocked candidate: policyと安全性のリスクがあるため、現在の対象範囲では却下
 
-## Owner decision
+## 担当者の判断
 
-- `hic-001`: approved for a follow-up docs PR
-- `hic-002`: needs more evidence before acceptance
+- `hic-001`: 後続のdocs PRで対応することを承認
+- `hic-002`: 受け入れ前に追加のEvidenceが必要
 - `hic-003`: rejected
 
-## Accepted candidates
+## 採用した候補
 
 - `hic-001`
 
-## Rejected candidates
+## 却下した候補
 
 - `hic-003`
 
-## Deferred candidates
+## 保留した候補
 
 - `hic-002`
 
-## Follow-up PR scope
+## 後続PRの対象範囲
 
-- docs / examples updates can proceed separately from runner or safety changes
-- strict follow-up must not be bundled into unrelated implementation work
+- docs / examplesの更新はrunnerまたはSafety変更と分けて進められる。
+- strictの後続対応を無関係な実装作業へまとめてはならない。

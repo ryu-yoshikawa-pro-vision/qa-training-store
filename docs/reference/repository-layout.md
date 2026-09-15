@@ -1,4 +1,4 @@
-# Repository Layout
+# リポジトリ構成
 
 ```text
 .

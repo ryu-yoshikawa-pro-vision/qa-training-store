@@ -52,7 +52,7 @@ Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise`
 
 このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
 
-受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、ScriptはCurrent Repositoryで固定されています。
+受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、Scriptは現在のリポジトリで固定されています。
 
 ```text
 既存Regression
@@ -165,7 +165,7 @@ test("商品詳細を表示できる", async ({ page }) => {
 });
 ```
 
-このSnippetの具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前にNormative Specificationと対象Scenarioを確認し、WorkbookへTraceします。
+このSnippetの具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前に正式な仕様と対象Scenarioを確認し、Workbookへ対応付けます。
 
 このコードには次の要素があります。
 
@@ -270,7 +270,7 @@ Training用specへ次を自分で実装します。
 - `retries`
 - `projects`
 
-設定値を暗記するのではなく、「なぜこのRepositoryではその設定が必要か」を考えます。`reporter`、`trace`、`screenshot`、`video`は、実行結果と失敗Evidenceを扱うP1-6で詳しく確認します。
+設定値を暗記するのではなく、「なぜこのリポジトリではその設定が必要か」を考えます。`reporter`、`trace`、`screenshot`、`video`は、実行結果と失敗時の記録を扱うP1-6で詳しく確認します。
 
 さらに、現行Projectの `testMatch` やPackage Scriptが既存Suiteを対象としていることを確認し、Training用実行境界を正式Regressionから分ける理由を理解します。
 
@@ -324,7 +324,7 @@ Workbookの代表Caseとは別の導入練習として、Variation選択からCa
 
 ### Recovery
 
-構文が読めない場合は該当するLesson 0の小節へ戻り、`import` → `test` → `page` → Locator → Assertionの役割を指差し確認します。Testが起動しない場合はSyntax / Type Error、実行中の失敗はRuntime、期待不一致はAssertionとしてエラー全文を分類し、Browser / Base URLの問題はEnvironment blockへ分けます。
+構文が読めない場合は該当するLesson 0の小節へ戻り、`import` → `test` → `page` → Locator → Assertionの役割を指差し確認します。Testが起動しない場合はSyntax / Type Error、実行中の失敗はRuntime、期待不一致はAssertionとしてエラー全文を分類し、Browser / Base URLの問題は環境上の問題として分けます。
 
 ## 完了条件
 
@@ -335,7 +335,7 @@ Workbookの代表Caseとは別の導入練習として、Variation選択からCa
 - Training用実行境界と既存Regressionの役割を説明できる。
 - 自分のコードと既存E2Eの違いを3点以上説明できる。
 
-練習量の目安として2本以上のTestを書いてもよいが、本数だけではcompletionとしません。
+練習量の目安として2本以上のTestを書いてもよいが、本数だけでは修了としません。
 
 ## 次の行動
 

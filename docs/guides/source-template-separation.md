@@ -1,4 +1,4 @@
-# Template Boundaries
+# Templateの境界
 
 この template は consumer repo の土台です。以下は repo を使う側で維持してください。
 

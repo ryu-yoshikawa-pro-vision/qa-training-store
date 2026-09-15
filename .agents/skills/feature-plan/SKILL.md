@@ -3,35 +3,35 @@ name: feature-plan
 description: Use when a task needs planning, an explicit plan, or Plan Mode in this repository.
 ---
 
-# Feature Planning Skill
+# 機能計画Skill
 
-## Purpose and boundary
+## 目的と適用範囲
 
-Use this Skill for complex or multi-stage work, explicit planning requests, migration or side-effect boundaries, public contracts, and Plan Mode. Do not use it for a clear one-file typo or wording-only change. Planning must finish before implementation begins.
+このSkillは、複雑または複数段階の作業、明示的な計画依頼、移行や副作用の境界、公開契約、Plan Modeに使います。1ファイルの明確なtypoや文章だけの軽微な変更には使いません。実装を始める前に計画を完了させます。
 
-## Inputs
+## 入力
 
-- The user request and the existing repository code, tests, configuration, and documentation.
-- The package-local [planning workflow](references/planning-workflow.md), including repo mapping and ambiguity handling.
-- The package-local [plan template](assets/plan-template.md) as the reusable output skeleton.
-- Repository plan storage convention, filename convention, active Run connection, and lifecycle supplied as a logical external input.
+- ユーザーの依頼と、既存のリポジトリのコード、テスト、設定、文書。
+- リポジトリ調査と曖昧性の扱いを含む、このSkillの[計画Workflow](references/planning-workflow.md)。
+- 再利用可能な出力のひな形としての、このSkillの[計画テンプレート](assets/plan-template.md)。
+- Repositoryから提供される計画保存規約、ファイル名規約、active Runへの接続、ライフサイクル。
 
-## Execution outline
+## 実行の概要
 
-1. Read the package-local planning workflow before fixing the design.
-2. Map entry points, main flow, abstractions, tests, safe change surface, and unknowns from the existing repository.
-3. Separate confirmed facts, assumptions, non-goals, open questions, pure logic, side-effect boundaries, and consumer-facing impact.
-4. Resolve blocking ambiguity explicitly; do not guess when purpose, scope, safety, migration, completion, or validation would change.
-5. Save the completed plan using the Repository plan storage convention and the package-local template before implementing any change.
-6. Hand implementation back only after the plan has a concrete validation plan and unambiguous completion criteria.
+1. 設計を固める前に、このSkillの計画Workflowを読む。
+2. 既存リポジトリから、エントリポイント、主な流れ、抽象化、テスト、安全に変更できる範囲、未知点を整理する。
+3. 確認済みの事実、仮定、対象外、未解決の質問、純粋なロジック、副作用の境界、利用者向けの影響を分ける。
+4. 目的、対象範囲、安全性、移行、完了、検証が変わる可能性のある曖昧さは明示的に解消し、推測で埋めない。
+5. 変更を実装する前に、リポジトリの計画保存規約と、このSkillのテンプレートを使って完了した計画を保存する。
+6. 具体的な検証計画と曖昧さのない完了条件が計画に含まれてから、実装へ引き継ぐ。
 
-## Outputs
+## 出力
 
-- A plan containing Goal, Current understanding, Assumptions, Non-goals, Impacted areas, Files to inspect, Change strategy, Validation plan, Risks, Open questions, and Follow-up notes.
-- A Repository-persisted plan artifact whose path and naming come from the supplied Repository input.
+- `Goal`、`Current understanding`、`Assumptions`、`Non-goals`、`Impacted areas`、`Files to inspect`、`Change strategy`、`Validation plan`、`Risks`、`Open questions`、`Follow-up notes`を含む計画。
+- Repositoryから提供された情報に基づく保存先と命名で、Repositoryに保存する計画成果物。
 
-## Guardrails
+## ガードレール
 
-- Keep generic planning workflow and template content in this package.
-- Keep Repository save paths, filename rules, active Run lifecycle, and retention rules in the Repository mapping.
-- Do not start implementation while a blocking question remains unanswered.
+- 一般的な計画workflowとtemplateの内容はこのpackageに保持する。
+- リポジトリの保存先、filename規則、active Runのライフサイクル、保持ルールはRepository mappingに保持する。
+- 未回答のblocking questionがある間は実装を開始しない。

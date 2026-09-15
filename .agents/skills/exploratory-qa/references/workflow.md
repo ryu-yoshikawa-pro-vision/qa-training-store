@@ -1,47 +1,47 @@
-# Exploratory QA Workflow
+# 探索的QA Workflow
 
-## Scope and separation
+## 対象範囲と分離
 
-Exploratory QA compares Runtime behavior with the Normative Specification through bounded, risk-based exploration. The Coding Agent performs the observations and interactions. Deterministic supporting tools may validate or preserve results, but they do not launch, wrap, retry, or manage the Agent Session.
+探索的QAは、対象範囲を限定したリスクベースの探索によってRuntimeの動作をNormative Specificationと比較します。観測と操作はCoding Agentが行います。決定的なSupporting toolは結果の検証や保存を行えますが、Agent Sessionのlaunch、wrap、retry、管理は行いません。
 
-Do not modify Product Code during QA. If a product change is required, finalize the Finding first and switch explicitly to the Repair workflow.
+QA中はProduct Codeを変更しません。Product変更が必要な場合は、先にFindingを確定し、Repair workflowへ明示的に切り替えます。
 
-## Mode selection
+## Modeの選択
 
-- **Normal** is the default for ordinary QA requests. Use a current Charter as the Coverage source and explore the Runtime against the Normative Specification.
-- **Gray-box** preserves the Normal read-only boundary and adds only explicitly authorized supporting controls such as seed reset, test control, clock or payment delay, deep link, application restart, narrow console or log, DOM inspection, or accessibility inspection.
-- **Black-box Scored** is selected only when unknown defect-finding ability is explicitly being evaluated. Its isolation and trusted-capability requirements are defined in [scored mode](scored-mode.md); it is not an automatic fallback for ordinary QA.
+- **Normal**は通常のQA依頼で使う既定Modeです。固定契約文言は `**Normal** is the default Mode for ordinary QA requests` です。現在のCharterをCoverageのsourceとして、Normative Specificationに照らしてRuntimeを探索します。
+- **Gray-box**はNormalのread-only境界を保ち、seed reset、test control、clockまたはpayment delay、deep link、application restart、限定的なconsoleまたはlog、DOM検査、アクセシビリティ検査など、明示的に許可されたSupporting controlだけを追加します。
+- **Black-box Scored**は、未知の不具合を見つける能力を明示的に評価するときだけ選択します。隔離とtrusted capabilityの要件は[scored mode](scored-mode.md)で定義し、通常のQAの自動的な代替にはしません。
 
-Choose the mode before Runtime interaction. If the requested mode cannot satisfy its boundary, stop or record the run as blocked according to the applicable contract.
+Runtimeとの対話の前にModeを選択します。依頼されたModeがその境界を満たせない場合は、適用される契約に従って停止するか、Runをblockedとして記録します。
 
-## Gray-box boundary
+## Gray-boxの境界
 
-Gray-box keeps the Normal readonly boundary. The Coding Agent may observe and control the Runtime only through capabilities that the current Charter and Repository contract explicitly allow, including the listed seed/reset, test, clock, payment-delay, deep-link, restart, narrow console/log, DOM, or accessibility support.
+Gray-boxはNormalのread-only境界を保ちます。Coding Agentは、現在のCharterとRepository contractが明示的に許可するcapabilityだけを通じてRuntimeを観測・操作できます。対象には、列挙されたseed/reset、test、clock、payment-delay、deep-link、restart、限定的なconsole/log、DOM、アクセシビリティ支援が含まれます。
 
-Gray-box must not use Product Source, Test Source, a defect patch, an answer key, or instructor-only ground truth to construct the oracle. Expected behavior still comes from the Normative Specification. Repository-supported Gray-box capabilities may be used as supporting controls, unlike Black-box Scored's source-free isolation, but they do not authorize access to those forbidden sources or replace the Specification as the oracle.
+Gray-boxでは、Product Source、Test Source、defect patch、answer key、Instructor専用のground truthをoracleの構築に使いません。Expected behaviorは引き続きNormative Specificationから取得します。Repositoryが提供するGray-box capabilityはSupporting controlとして使えますが、Black-box Scoredのsource-free isolationとは異なり、それらの禁止されたsourceへのアクセスやSpecificationのoracleとしての置換を許可するものではありません。
 
-## Charter, Coverage, Budget, and Stop
+## Charter、Coverage、Budget、Stop
 
-For Normal and Gray-box, the Charter fixes the mission, Normative references, risk, role or seed, platform or device, allowed Runtime controls, Required Coverage, exploration Budget, and Stop Condition. Create or revalidate it for the current work before interacting with the Runtime; do not silently reuse a prior Charter.
+NormalとGray-boxでは、Charterがmission、Normative reference、risk、roleまたはseed、platformまたはdevice、許可されたRuntime control、Required Coverage、探索Budget、Stop Conditionを固定します。Runtimeと対話する前に現在の作業用に作成または再検証し、過去のCharterを暗黙に再利用しません。
 
-Required Coverage is the bounded set of missions that the current QA must answer. One Coverage Item is one clearly bounded mission. Treat the current Charter or scored challenge as the Coverage source of truth: do not add, remove, or reorder items while exploring.
+Required Coverageは、現在のQAで回答すべき対象範囲を限定したmissionの集合です。1つのCoverage Itemは、1つの明確に限定されたmissionです。現在のCharterまたは採点challengeをCoverageの正本として扱い、探索中に項目を追加、削除、並べ替えしません。
 
-The Budget bounds exploration effort and the Stop Condition bounds completion. A fixed Runtime limit must be recorded as measured; use the supplied contract's null or unbounded representation only when the Runtime cannot fix the limit. A single happy path or a single Finding does not by itself complete the work.
+Budgetは探索量を限定し、Stop Conditionは完了の境界を定めます。固定したRuntime limitは実測値として記録します。Runtimeでlimitを固定できない場合だけ、提供された契約のnullまたはunbounded表現を使います。単一のhappy pathや単一のFindingだけで作業を完了したことにはしません。
 
-## Oracle and risk analysis
+## Oracleとリスク分析
 
-Read the Normative Specification and confirm the target Feature's Business Rules, Acceptance Criteria, and normative feature contract before interacting. Expected Behavior comes from the Normative Specification, not Application Source or Existing Tests.
+対話する前にNormative Specificationを読み、対象FeatureのBusiness Rules、Acceptance Criteria、規範feature契約を確認します。Expected BehaviorはApplication SourceやExisting Testsではなく、Normative Specificationから取得します。
 
-Prioritize risks relevant to the requested scope: primary journey, role or permission, state transition, validation, boundary, error handling, empty or loading state, persistence, session, cross-screen consistency, accessibility, responsive behavior, native behavior, recovery or retry, and data integrity. Choose priorities from the Specification, Charter, or challenge risk rather than executing an exhaustive checklist.
+依頼された対象範囲に関係するriskを優先します。primary journey、roleまたはpermission、state transition、validation、boundary、error handling、emptyまたはloading state、persistence、session、画面間の整合性、アクセシビリティ、responsive behavior、native behavior、recoveryまたはretry、data integrityなどです。網羅的なchecklistを実行するのではなく、Specification、Charter、challengeのriskから優先順位を決めます。
 
-## Normal and Gray-box bootstrap
+## Normal and Gray-box bootstrap（NormalとGray-boxの起動）
 
-1. Confirm or create the current Charter and validate its references, bounded coverage, Budget, and Stop Condition.
-2. Complete risk analysis.
-3. Capture the BEFORE Working Tree Snapshot before the first Runtime interaction.
-4. Interact with the Runtime and collect observations.
+1. 現在のCharterを確認または作成し、参照、対象範囲を限定したCoverage、Budget、Stop Conditionを検証する。現在の作業用に作成または再検証する固定契約は `Create or revalidate it for the current work` です。
+2. リスク分析を完了する。
+3. 最初のRuntime interaction前にBEFORE Working Tree Snapshotを取得する。
+4. Runtimeと対話し、観測結果を収集する。
 
-The required order is:
+必須の順序は次のとおりです。固定Runtime limitは `A fixed Runtime limit must be recorded as measured data` として記録します。
 
 ```text
 Charter creation / validation
@@ -49,35 +49,35 @@ Charter creation / validation
 → first Runtime interaction
 ```
 
-An implicit prior-run Charter or a BEFORE Snapshot captured after exploration is invalid.
+暗黙の過去RunのCharterや、探索後に取得したBEFORE Snapshotは無効です。
 
-## Runtime exploration
+## Runtime exploration（Runtime探索）
 
-Use the Browser or Native Runtime capability provided by the Coding Agent. Observe and operate the Runtime itself:
+Coding Agentが提供するBrowserまたはNative Runtime capabilityを使い、Runtimeそのものを観測・操作します。
 
 ```text
-navigate → observe → interact → observe state transition
-→ compare against Specification → collect Evidence → choose next exploration
+移動 → 観察 → 操作 → 状態遷移を観察
+→ Specificationと比較 → Evidenceを収集 → 次の探索を選択
 ```
 
-After the primary journey, use prioritized risks to consider alternate paths, invalid input, boundaries, repeated actions, back or reload, session transitions, role differences, and recovery. Do not explore without a bounded Budget and Stop Condition.
+primary journeyの後は、優先したriskに基づいてalternate path、invalid input、boundary、繰り返し操作、backまたはreload、session遷移、role差分、recoveryを検討します。対象範囲を限定したBudgetとStop Conditionなしに探索しません。
 
-For Native QA, an unavailable capability is recorded as blocked or not executed with evidence. A passing regression suite is not, by itself, completion of Agentic QA.
+Native QAでcapabilityを利用できない場合は、Evidence付きでblockedまたはnot executedとして記録します。regression suiteの成功だけでは、Agentic QAの完了とはみなしません。
 
-## Evidence and Findings
+## EvidenceとFindings
 
-Collect the Runtime-visible Evidence available for the current capability, such as URL or screen, DOM, accessibility tree, screenshot, narrow console or log, and visible state. A screenshot alone is not machine-semantic proof when the contract requires a semantic observation; free-form notes or descriptions alone do not prove an Observation.
+現在のcapabilityで取得できるRuntime上のEvidenceを集めます。URLまたはscreen、DOM、アクセシビリティツリー、screenshot、限定的なconsoleまたはlog、表示状態などです。契約が意味的な観測を要求する場合、screenshotだけではmachine-semantic proofになりません。自由記述のメモや説明だけでもObservationの証明にはなりません。
 
-Maintain `1 Finding = 1 distinct product deviation`. Each Finding explains:
+`1 Finding = 1 distinct product deviation`を維持します。各Findingには次を記載します。
 
 - Expected behavior and Actual behavior.
 - Reproduction steps, Oracle, Role or Seed, and reproduction count.
 - Evidence that supports the deviation.
 - Severity and Confidence.
 
-Do not merge multiple deviations into one Finding, and do not repair Product Code while Findings are being explored.
+複数のdeviationを1つのFindingへまとめず、Findingを探索している間はProduct Codeを修復しません。
 
-For each Coverage Item, use this bounded loop:
+各Coverage Itemでは、次の対象範囲を限定したloopを使います。
 
 ```text
 Coverage Itemを選ぶ
@@ -92,11 +92,11 @@ Coverage Itemを選ぶ
 ↓ 次Coverageへ
 ```
 
-## Finalization
+## 確定処理
 
-When exploration is complete, produce the Repository-defined candidate findings artifact. For Normal and Gray-box, capture the AFTER Working Tree Snapshot, compare it with the BEFORE Snapshot from the same Run and Mode, and confirm zero additional Source diff before finalizing Findings. Use the deterministic supporting tools for the Repository's schema, Coverage, Evidence, and scoring checks.
+探索が完了したら、Repositoryが定義するcandidate findings artifactを作成します。NormalとGray-boxではAFTER Working Tree Snapshotを取得し、同じRunとModeのBEFORE Snapshotと比較して、追加Source diffが0であることを確認してからFindingsを確定します。Repositoryのschema、Coverage、Evidence、scoringの確認には決定的なSupporting toolを使います。
 
-The required Normal and Gray-box finalization order is:
+NormalとGray-boxで必須の確定順序は次のとおりです。
 
 ```text
 Charter creation / validation
@@ -109,13 +109,13 @@ Charter creation / validation
 → Findings finalization
 ```
 
-## Stop conditions
+## 停止条件
 
-Stop when Required Coverage is complete, the Budget is exhausted, the explicit Stop Condition is satisfied, an Environment blocker prevents valid exploration, the user scope is complete, or the mode's isolation or trusted-capability requirement fails. Record the reason and unfinished Coverage rather than treating an invalid run as a successful completion.
+Required Coverageが完了した、Budgetを使い切った、明示されたStop Conditionを満たした、Environment blockerによって有効な探索ができない、ユーザーの対象範囲が完了した、またはModeの隔離・trusted capability要件が失敗した場合に停止します。無効なRunを成功と扱わず、理由と未完了のCoverageを記録します。
 
-## Non-goals
+## 対象外
 
-- Unbounded exploratory testing.
-- Checklist completion without risk or information gain.
-- Product repair during QA.
-- A custom Agent Runner, LLM wrapper, or session manager to bypass a missing Runtime capability.
+- 対象範囲を限定しない探索的テスト。
+- リスクや情報の増加を伴わないチェックリスト消化。
+- QA中のProduct修復。
+- 不足しているRuntime capabilityを迂回するための独自Agent Runner、LLM wrapper、session manager。

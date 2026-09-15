@@ -1,8 +1,8 @@
-# Training Workbook
+# トレーニング用Workbook
 
 このWorkbookは、Google SheetsへCSVをImportして使うCanonical Templateです。Google Sheetsの機能や書式は正本にせず、4つのCSVをRepository上の入力形式として扱います。
 
-## Traceability
+## トレーサビリティ
 
 標準の流れは `spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → `implementation_path` → `evidence` です。BR / ACなど複数IDは`;`で区切り、区切り前後の空白と同一Field内の重複を禁止します。`spec_ref`、`risk_id`、`test_case_id`などTraceをつなぐIDは、対応する対象がある行では必須です。BR / ACのように直接対応しないIDだけは空欄を許可します。
 
@@ -21,7 +21,7 @@ P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追�
 
 この形式は`test_case_id`の識別子にだけ適用します。Risk ID、AC ID、UI Test ID / `testId`の形式とは別の契約です。ValidatorのCanonical patternは`^TC-[A-Z0-9]+-\d{3}$`です。
 
-## Progressive disclosure
+## 段階的な情報開示
 
 最初から全列を埋めません。
 
@@ -39,4 +39,4 @@ P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追�
 - `cause`、`action`、`improvement` は、結果と調査の進捗に応じて後から追加します。空欄を埋めるための架空の原因、Action、改善、Path、Evidenceは作成しません。
 - `04_execution-improvement.csv`の`run_context`は前後空白を除いて空にせず、同じ`test_case_id`でも異なる実行Contextなら複数行で記録できます。同じIDとContextの組み合わせは重複させません。`result`は`Pass`、`Fail`、`Not run`のいずれかだけを使います。
 
-Sample rowは完成答案ではありません。Normative Specificationを読み、理由とEvidenceを自分で追加します。
+サンプル行は完成答案ではありません。Normative Specificationを読み、理由とEvidenceを自分で追加します。
