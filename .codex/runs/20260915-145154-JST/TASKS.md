@@ -27,6 +27,18 @@
 - [x] 16. `git rev-parse --show-toplevel`出力を基準にroot identity期待値を作る最小テスト修正を行い、該当Windows testsを再PASSさせる。
 - [ ] 17. 修正headをcommit／通常pushし、Web／Mobile CI、PR本文、最終head一致を再確認する。
 
+## Repair iteration: Codex 0.154.0 structured fail-open diagnostics
+
+- [x] 18. `rust-v0.154.0` source、Issue／PR／current diff／CI、対象config／Hook／contract／Planを確認し、exit 0 stdout／systemMessage契約を確定する。
+- [x] 19. 2件の`must_fix`、allowed files、非目標、実装順、検証・停止条件をRun PLANへ追記する。
+- [x] 20. `text_quality_gate.mjs`のfail-open診断を固定structured stdoutへ変更し、Stop(false)／Stop(true)／state cleanup契約を維持する。
+- [x] 21. configured UserPromptSubmit／PostToolUseのUnix launcherをfailure時structured stdout・exit 0・raw output非公開へ修正する。
+- [x] 22. configured UserPromptSubmit／PostToolUseのWindows EncodedCommandを可読PowerShellからUTF-16LEで再生成し、Unixとの契約を揃える。
+- [x] 23. Hook本体とconfigured launcherのprocess-boundary／正常系／failure／漏えい回帰テストを更新・追加する。
+- [x] 24. Plan／ADR／safety reference、Run Artifactを現契約へ更新・sanitizeし、非対象差分を確認する。
+- [x] 25. focused contract、`verify.ps1 -HookContracts`、標準verify、文章lint、diff checkを実行し、原因別に修正をboundedに停止する。
+- [ ] 26. branch safety確認後にcommit／通常pushし、最新PR headのCI、PR本文、local／remote／PR head一致、runtime未確認範囲を確定する。
+
 ## 完了処理の参照先
 
 - 基本Progressの分母・表記: `docs/reference/run-artifacts.md`

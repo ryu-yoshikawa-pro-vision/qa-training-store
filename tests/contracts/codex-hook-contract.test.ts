@@ -355,8 +355,16 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(windowsScript).toContain("stop_hook_active");
           expect(windowsScript).toContain("[Console]::Write($fallback)");
         }
-        if (event === "UserPromptSubmit" && scriptName === "text_quality_gate.mjs") {
-          expect(windowsScript).toContain("UserPromptSubmit launcher unavailable");
+        if (
+          (event === "UserPromptSubmit" || event === "PostToolUse") &&
+          scriptName === "text_quality_gate.mjs"
+        ) {
+          expect(commandForHook(entry, "command", event)).toContain(
+            `${event} launcher unavailable`,
+          );
+          expect(commandForHook(entry, "command", event)).not.toContain("|| true");
+          expect(commandForHook(entry, "command_windows", event)).not.toContain(" 2>NUL");
+          expect(windowsScript).toContain(`${event} launcher unavailable`);
         }
         expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
       }

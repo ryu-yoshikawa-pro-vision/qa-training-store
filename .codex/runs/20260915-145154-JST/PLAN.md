@@ -77,3 +77,33 @@
 
 - 2026-09-15 JST: 現行PR headはレビュー時点の指定SHAと一致し、launcher failure semanticsだけが残存差分であることを確認した。
 - 2026-09-15 JST: Hook本体はactive Stopをallowし、SessionStart内部failureをstructured fail-closeするため、変更点はlauncher境界とcontract／ADRに限定する。
+
+## Continuation: PR #146 Codex 0.154.0 Hook failure diagnostic repair
+
+### Finding triage
+
+- `must_fix`: `text_quality_gate.mjs`のfail-open診断がexit 0 + stderrであり、Codex `0.154.0`のHook resultへ診断として取り込まれない。
+- `must_fix`: configured `PostToolUse` quality launcherがroot／Node／Hook file／Hook process failureをsilentに通過し、診断を失う。
+- `defer`: Stopの通知件数、CIのbefore fallback、textlint／quality state／fingerprint／baseline／timeout／compact実装、依存追加、launcher framework新設。
+
+### Current understanding and assumptions
+
+- 使用Codex CLI sourceは`rust-v0.154.0`（tag commit `36eab01061df3cde5f95ec20a526777b430091ba`）。exit 0 stdoutを`UserPromptSubmit`／`PostToolUse`／`Stop`がparseし、top-level `systemMessage`をWarningとして扱う。exit 0 raw stderrは診断経路ではなく、UserPromptSubmitのplain stdoutはadditional contextになり得る。
+- Hook本体のfailure診断は固定文言とbounded internal codeだけにし、既存state／Stop fail-close／active Stop cleanupを維持する。
+- configured launcherは正常終了時にHook stdoutを透過し、既存の正常終了時stderr扱いを維持する。failure時はraw stdout／stderrを捨てて固定structured diagnosticをexit 0で返す。Unix／Windowsの既存inline patternを使う。
+
+### Allowed files and change strategy
+
+- Allowed source／test／docs: `.codex/hooks/text_quality_gate.mjs`、`.codex/config.toml`、`tests/contracts/codex-text-quality.test.ts`、`tests/contracts/codex-hook-contract.test.ts`、`docs/plans/2026-09-12_220014_codex-hook-quality-gates.md`、`docs/reference/codex-safety-harness.md`、`docs/adr/0026-codex-text-quality-gate.md`。
+- Run ArtifactはこのRunの`PLAN.md`／`TASKS.md`／`REPORT.md`だけを更新する。PR本文は検証確定後にGitHub metadataとして更新する。
+- 変更順は、Hook本体の診断helper、Unix／Windows configured quality launcher、process-boundary／leakage contract、関連文書、focused／aggregate validation、sanitize、commit／push、最新PR CI／本文の順とする。
+
+### Validation and exit criteria
+
+- Hook本体のPostToolUse、UserPromptSubmit baseline failure、Stop active failure／violationは`status=0`、stderr空、parse可能な`{continue:true,systemMessage}`を返す。Stop inactiveのquality unavailableは従来のstructured blockを返す。
+- UserPromptSubmit／PostToolUse configured launcherのUnix／Windows failure fixture（root、Hook欠落、non-zero、module load）と正常stdout透過を確認する。failure時にprompt／secret／token／session ID／absolute path／raw exceptionがstdout／stderrへ出ないことを確認する。
+- 指定focused contract、`verify.ps1 -HookContracts`、`pnpm run verify`、`lint:text`、`lint:markdown`、`git diff --check`を実行し、push後は最新headのWeb CI／Mobile App CIとrequired jobsを確認する。実Codex interactive runtimeは実行できた場合だけ報告する。
+
+### Open questions
+
+- なし。ユーザー指定の契約と既存fixtureで実装・検証を進める。

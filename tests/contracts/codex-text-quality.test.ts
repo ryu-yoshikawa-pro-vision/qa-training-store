@@ -332,6 +332,25 @@ function runConfiguredQualityHook(
 
 const USER_PROMPT_LAUNCHER_DIAGNOSTIC =
   "Codex text quality hook: UserPromptSubmit launcher unavailable";
+const POST_TOOL_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: PostToolUse launcher unavailable";
+
+function expectStructuredSystemMessage(
+  result: ProcessResult,
+  label: string,
+  systemMessage: string,
+  leakValues: string[] = [],
+) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
+    continue: true,
+    systemMessage,
+  });
+  expect(result.stderr, `${label} stderr`).toBe("");
+  for (const value of ["contract-session", "raw-hook-exception", "stack trace", ...leakValues]) {
+    expect(result.stdout, `${label} stdout leak`).not.toContain(value);
+    expect(result.stderr, `${label} stderr leak`).not.toContain(value);
+  }
+}
 
 function expectConfiguredUserPromptBaseline(
   result: ProcessResult,
@@ -361,28 +380,37 @@ function expectConfiguredUserPromptLauncherFailure(
   result: ProcessResult,
   label: string,
   root: string,
+  sessionId: string,
 ) {
-  expect(result.status, `${label} status`).toBe(0);
-  expect(result.stdout, `${label} stdout`).toBe("");
-  expect(result.stderr.trimEnd(), `${label} stderr`).toBe(USER_PROMPT_LAUNCHER_DIAGNOSTIC);
+  expectStructuredSystemMessage(result, label, USER_PROMPT_LAUNCHER_DIAGNOSTIC, [
+    "prompt",
+    "launcher-secret",
+    "launcher-token",
+    "raw-hook-exception",
+    "stack trace",
+    sessionId,
+    root,
+  ]);
   expect(stateFiles(root), `${label} state count`).toHaveLength(0);
 }
 
 function runConfiguredUserPromptLauncherFailureCases(root: string, launcher: "unix" | "windows") {
   const rulesPath = path.join(root, "rules.json");
   const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+  const sessionId = `configured-${launcher}-user-failure-${randomUUID()}`;
   const runFailure = (label: string, commandCwd = root) => {
     const result = runConfiguredQualityHook(
       root,
       "UserPromptSubmit",
       {
+        session_id: sessionId,
         prompt: `${label} prompt secret=launcher-secret token=launcher-token`,
       },
       launcher,
       rulesPath,
       commandCwd,
     );
-    expectConfiguredUserPromptLauncherFailure(result, label, root);
+    expectConfiguredUserPromptLauncherFailure(result, label, root, sessionId);
   };
 
   removeFixtureFile(hookFile);
@@ -400,7 +428,86 @@ function runConfiguredUserPromptLauncherFailureCases(root: string, launcher: "un
   writeFile(
     root,
     ".codex/hooks/text_quality_gate.mjs",
-    'process.stdout.write("prompt-leak"); process.stderr.write("launcher-secret"); process.exit(2);\n',
+    'process.stdout.write("prompt-leak"); process.stderr.write("Error: raw-hook-exception\\nstack trace launcher-secret"); process.exit(2);\n',
+  );
+  runFailure("non-zero Hook");
+
+  writeFile(root, ".codex/hooks/text_quality_gate.mjs", 'import "missing-launcher-module";\n');
+  runFailure("module load failure");
+}
+
+function expectConfiguredPostToolLauncherFailure(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expectStructuredSystemMessage(result, label, POST_TOOL_LAUNCHER_DIAGNOSTIC, [
+    "prompt",
+    "launcher-secret",
+    "launcher-token",
+    "raw-hook-exception",
+    "stack trace",
+    sessionId,
+    root,
+  ]);
+  expect(stateFiles(root), `${label} state count`).toHaveLength(1);
+  expect(readGateState(root).status, `${label} state status`).toBe("ready");
+}
+
+function runConfiguredPostToolLauncherFailureCases(root: string, launcher: "unix" | "windows") {
+  const rulesPath = path.join(root, "rules.json");
+  const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+  const sessionId = `configured-${launcher}-post-${randomUUID()}`;
+  const baseline = runConfiguredQualityHook(
+    root,
+    "UserPromptSubmit",
+    {
+      session_id: sessionId,
+      cwd: root,
+      prompt: "start",
+    },
+    launcher,
+    rulesPath,
+  );
+  expectConfiguredUserPromptBaseline(baseline, `${launcher} PostToolUse baseline`, root, sessionId);
+
+  const runFailure = (label: string, commandCwd = root) => {
+    const result = runConfiguredQualityHook(
+      root,
+      "PostToolUse",
+      {
+        session_id: sessionId,
+        cwd: root,
+        tool_name: "Bash",
+        tool_input: {
+          prompt: `${label} prompt secret=launcher-secret token=launcher-token`,
+        },
+      },
+      launcher,
+      rulesPath,
+      commandCwd,
+    );
+    expectConfiguredPostToolLauncherFailure(result, label, root, sessionId);
+  };
+
+  removeFixtureFile(hookFile);
+  runFailure("missing Hook");
+  fs.copyFileSync(gatePath, hookFile);
+
+  const nonRepository = fs.mkdtempSync(
+    path.join(os.tmpdir(), `codex-text-quality-${launcher}-post-nonrepo-`),
+  );
+  try {
+    runFailure("repository root failure", nonRepository);
+  } finally {
+    removeFixture(nonRepository);
+  }
+
+  writeFile(
+    root,
+    ".codex/hooks/text_quality_gate.mjs",
+    'process.stdout.write("prompt-leak"); process.stderr.write("Error: raw-hook-exception\\nstack trace launcher-secret"); process.exit(2);\n',
   );
   runFailure("non-zero Hook");
 
@@ -458,11 +565,11 @@ describe("Codex deterministic text quality contracts", () => {
         event,
       );
       expect(windowsScript, event).toContain("text_quality_gate.mjs");
-      if (event === "UserPromptSubmit") {
-        expect(qualityEntry.command, event).toContain("UserPromptSubmit launcher unavailable");
+      if (event === "UserPromptSubmit" || event === "PostToolUse") {
+        expect(qualityEntry.command, event).toContain(`${event} launcher unavailable`);
         expect(qualityEntry.command, event).not.toContain("|| true");
         expect(qualityEntry.command_windows, event).not.toContain(" 2>NUL");
-        expect(windowsScript, event).toContain("UserPromptSubmit launcher unavailable");
+        expect(windowsScript, event).toContain(`${event} launcher unavailable`);
       }
       expect(qualityEntry.timeout, event).toBe(10);
     }
@@ -566,6 +673,77 @@ describe("Codex deterministic text quality contracts", () => {
       `codex-text-quality-${launcher}-launcher-failure-`,
     );
   }, 60_000);
+
+  it("reports configured PostToolUse launcher failures without leaking payloads", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => runConfiguredPostToolLauncherFailureCases(root, launcher),
+      "GOOD\n",
+      `codex-text-quality-${launcher}-post-launcher-failure-`,
+    );
+  }, 60_000);
+
+  it("executes the configured PostToolUse launcher normally without diagnostics", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture((root) => {
+      const sessionId = `configured-${launcher}-post-normal-${randomUUID()}`;
+      const rulesPath = path.join(root, "rules.json");
+      const prompt = runConfiguredQualityHook(
+        root,
+        "UserPromptSubmit",
+        { session_id: sessionId, cwd: root, prompt: "start" },
+        launcher,
+        rulesPath,
+      );
+      expectConfiguredUserPromptBaseline(
+        prompt,
+        `${launcher} normal PostToolUse baseline`,
+        root,
+        sessionId,
+      );
+
+      const post = runConfiguredQualityHook(
+        root,
+        "PostToolUse",
+        { session_id: sessionId, cwd: root, tool_name: "Bash", tool_input: { command: "true" } },
+        launcher,
+        rulesPath,
+      );
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+      expect(readGateState(root).status).toBe("ready");
+    });
+  });
+
+  it("passes successful structured Hook output through configured quality launchers", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    for (const event of ["UserPromptSubmit", "PostToolUse"] as const) {
+      withFixture((root) => {
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stdout.write(JSON.stringify({ continue: true, systemMessage: "fixture system message" }));\n',
+        );
+        const result = runConfiguredQualityHook(
+          root,
+          event,
+          event === "UserPromptSubmit"
+            ? { prompt: "fixture prompt" }
+            : { tool_name: "Bash", tool_input: { command: "true" } },
+          launcher,
+          path.join(root, "rules.json"),
+        );
+        expectStructuredSystemMessage(
+          result,
+          `${launcher} ${event} structured passthrough`,
+          "fixture system message",
+          ["fixture prompt", root],
+        );
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    }
+  });
 
   it("uses the configured Windows Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform !== "win32") return;
@@ -924,18 +1102,24 @@ describe("Codex deterministic text quality contracts", () => {
     withFixture((root) => {
       removeFixtureFile(path.join(root, ".textlintrc.json"));
       const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
-      expect(prompt.status).toBe(0);
-      expect(prompt.stdout).toBe("");
-      expect(prompt.stderr).toContain("textlint_config_unavailable");
+      expectStructuredSystemMessage(
+        prompt,
+        "missing textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_unavailable)",
+        ["start", root],
+      );
       expect(readGateState(root).status).toBe("baseline_unavailable");
     });
 
     withFixture((root) => {
       writeFile(root, ".textlintrc.json", "{\n");
       const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
-      expect(prompt.status).toBe(0);
-      expect(prompt.stdout).toBe("");
-      expect(prompt.stderr).toContain("textlint_config_invalid");
+      expectStructuredSystemMessage(
+        prompt,
+        "invalid textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+        ["start", root],
+      );
       expect(readGateState(root).status).toBe("baseline_unavailable");
     });
 
@@ -943,8 +1127,15 @@ describe("Codex deterministic text quality contracts", () => {
       fs.unlinkSync(path.join(root, "node_modules", "textlint-rule-no-nfd"));
       const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
       expect(prompt.status).toBe(0);
-      expect(prompt.stdout).toBe("");
-      expect(prompt.stderr).toMatch(/textlint_(config_load|rule_load)/u);
+      expect(prompt.stderr).toBe("");
+      expect(JSON.parse(prompt.stdout)).toMatchObject({ continue: true });
+      expect(JSON.parse(prompt.stdout).systemMessage).toMatch(
+        /^Codex text quality hook: quality check unavailable \(textlint_(config_load|rule_load)\)$/u,
+      );
+      for (const value of ["start", root]) {
+        expect(prompt.stdout).not.toContain(value);
+        expect(prompt.stderr).not.toContain(value);
+      }
       expect(readGateState(root).status).toBe("baseline_unavailable");
     });
 
@@ -959,9 +1150,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stateFiles(root)).toHaveLength(1);
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("textlint_config_invalid");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop invalid textlint config",
+        "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+        [root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     });
   }, 90_000);
@@ -1255,8 +1449,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(post.stdout).not.toContain("BAD");
 
       const stop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(stop.status).toBe(0);
-      expect(stop.stdout).toBe("");
+      expectStructuredSystemMessage(
+        stop,
+        "active Stop after commit",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["docs/existing.md", "BAD", root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     }, "GOOD\n");
   }, 30_000);
@@ -1331,9 +1529,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stateFiles(root)).toHaveLength(1);
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("stop_hook_active");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["秘密のprompt", "do-not-store", root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     });
   }, 30_000);
@@ -1366,9 +1567,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(inactiveStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("stop_hook_active");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop with violations",
+        "Codex text quality hook: quality check unavailable (stop_hook_active)",
+        ["docs/first.md", "docs/second.md", root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     });
   }, 30_000);
@@ -1383,8 +1587,12 @@ describe("Codex deterministic text quality contracts", () => {
         missingRulesPath,
       );
       expect(firstPrompt.status).toBe(0);
-      expect(firstPrompt.stdout).toBe("");
-      expect(firstPrompt.stderr).toContain("quality check unavailable");
+      expectStructuredSystemMessage(
+        firstPrompt,
+        "first UserPromptSubmit",
+        "Codex text quality hook: quality check unavailable (internal)",
+        ["first prompt", root],
+      );
 
       const unavailableStateText = fs.readFileSync(
         path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
@@ -1409,9 +1617,12 @@ describe("Codex deterministic text quality contracts", () => {
       ).toBe(unavailableStateText);
 
       const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
-      expect(post.status).toBe(0);
-      expect(post.stdout).toBe("");
-      expect(post.stderr).toContain("baseline_unavailable");
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse baseline unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        ["second prompt", root],
+      );
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
@@ -1420,9 +1631,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stateFiles(root)).toHaveLength(1);
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("baseline_unavailable");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop baseline unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        ["second prompt", root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     });
   }, 30_000);
@@ -1442,9 +1656,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(stateFiles(root)).toHaveLength(1);
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("baseline_state");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop corrupt state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
       expect(stateFiles(root)).toHaveLength(0);
     });
   });
@@ -1469,9 +1686,12 @@ describe("Codex deterministic text quality contracts", () => {
         expect(stateFiles(root)).toHaveLength(1);
 
         const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-        expect(activeStop.status).toBe(0);
-        expect(activeStop.stdout).toBe("");
-        expect(activeStop.stderr).toContain("baseline_state");
+        expectStructuredSystemMessage(
+          activeStop,
+          `active Stop ${identityField}`,
+          "Codex text quality hook: quality check unavailable (baseline_state)",
+          [root],
+        );
         expect(stateFiles(root)).toHaveLength(0);
       });
     },
@@ -1481,9 +1701,12 @@ describe("Codex deterministic text quality contracts", () => {
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {
       const missingPost = runGate(root, "PostToolUse", { tool_name: "Bash" });
-      expect(missingPost.status).toBe(0);
-      expect(missingPost.stdout).toBe("");
-      expect(missingPost.stderr).toContain("baseline_state");
+      expectStructuredSystemMessage(
+        missingPost,
+        "missing PostToolUse state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
 
       const missingStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(missingStop.status).toBe(0);
@@ -1491,9 +1714,12 @@ describe("Codex deterministic text quality contracts", () => {
       expect(missingStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expect(activeStop.status).toBe(0);
-      expect(activeStop.stdout).toBe("");
-      expect(activeStop.stderr).toContain("baseline_state");
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop missing state",
+        "Codex text quality hook: quality check unavailable (baseline_state)",
+        [root],
+      );
     });
   });
 

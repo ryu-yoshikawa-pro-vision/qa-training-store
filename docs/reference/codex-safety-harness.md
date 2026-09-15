@@ -298,7 +298,7 @@ Hookが動かなければ、まず `/hooks` とproject／Hookのtrust状態、`C
 - `UserPromptSubmit` はsessionごとに開始時の `HEAD`、repository root識別hash、開始時にHEADと異なるMarkdownのworktree manifestだけを保存する。cleanなtracked Markdownは、変更時に開始時HEADのblobからbaselineを取得する。
 - baselineにはMarkdown本文、prompt全文、raw match、Hook payload、token、secret、credentialを保存しない。違反は `rule_id` と正規化済みmatchのSHA-256および件数だけをidentityとして保持する。
 - file identityは、Git rename mapping、exact content SHA-256の一意一致、対応付け不能の順で解決する。similarity、filename推測、edit distanceは使わない。
-- `PostToolUse` はMarkdown変更時の早期フィードバックであり、障害時はfail-openしてstderrへ診断する。既存のlogging Hookとは別責務である。
+- `PostToolUse` はMarkdown変更時の早期フィードバックであり、障害時はfail-openしてtop-level `systemMessage`を持つstructured stdoutで診断する。exit 0のraw stderrはCodexのHook result診断経路として扱わない。既存のlogging Hookとは別責務である。
 - `Stop` は `stop_hook_active=false` のとき、新規違反またはquality check不能ならstructured `decision=block`を返す。`true` のときは診断付きでallowし、baseline stateを削除する。Hook failure契約とRepository gateのfailure契約は分離する。
 - Issue #135がmainへ取り込まれた現在のbranchでは、`SessionStart` の `matcher = "^compact$"` に限ってroot `AGENTS.md`全文を `hookSpecificOutput.additionalContext` へ再注入する。`startup`／`resume`／`clear`では出力せず、root解決、`AGENTS.md`読込、structured output生成に失敗した場合は、入力本文やpathを含めない `continue=false`／`stopReason` でfail-closeする。設定値の `additionalContextLimit = 4096` はCLIのapproximate token spill thresholdとして扱い、stdout文字数制限とは扱わない。
 - 一般日本語production ruleは`.textlintrc.json`の5個のtextlint ruleでconfiguredであり、既存markdownlintの構造検査を重複実装しない。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。`.codex/text-quality-rules.json`の`not-configured`はRepository固有custom literal／regex rule未設定を示す。

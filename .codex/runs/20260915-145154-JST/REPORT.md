@@ -110,6 +110,16 @@
 - Blocker / Remaining: commit／通常push、最新head CI、PR本文更新、最終head一致確認が残る。PR #146とIssue #134はOPEN、対象branchは最新`main` `22f73a98...`を祖先に持つ。
 - Progress: 90% (9/10)
 
+## 2026-09-16 (JST)
+
+- Summary: PR #146のHook failure診断について、対応可能な`must_fix`を2件に限定して継続修復へ入った。
+- Changes: 実装前にactive Runへ今回の計画・許可ファイル・検証条件を追記した。source／product fileの修正はこのcheckpointでは未実施。
+- Decision / Rationale: `rust-v0.154.0`（tag commit `36eab01061df3cde5f95ec20a526777b430091ba`）の`user_prompt_submit.rs`／`post_tool_use.rs`／`stop.rs`／`schema.rs`／`dispatcher.rs`／`command_runner.rs`を確認し、exit 0 stdoutがparse対象、top-level `systemMessage`がWarning、exit 0 raw stderrはdiagnostic result経路でないことを確定した。UserPromptSubmitのplain stdoutはadditional contextになり得るため、固定JSONへ限定する。PostToolUseはlauncher failureでもfail-openを維持する。Stop(false)のstructured block、Stop(true)のallow／cleanup、state／fingerprint／baseline／timeout／CI fallbackは変更対象外とした。
+- Validation: branch／HEAD／working treeは指定値どおりclean。PR #146／Issue #134はOPEN、PR headは`ff42215e1dc43c46192e8c904737528655c4c62f`。現headのWeb CI `34975719066`／Mobile App CI `34975719270`はsuccessだが、今回の修正前headの結果として扱う。
+- Blocker / Remaining: Hook／launcher実装、契約更新、focused／標準検証、sanitize、commit／push、修正後head CI、PR本文更新、最終runtime確認が未実施。
+- Subagents: なし。
+- Progress: 77% (27/35)
+
 ## 2026-09-15 22:15 (JST)
 
 - Summary: push後の最新Web CIで、今回追加したWindows configured UserPromptSubmit正常系のroot identity assertionだけがpath separator差で失敗した。
@@ -118,3 +128,14 @@
 - Decision / Rationale: これは実装のroot identity不整合ではなく、Windows runnerのpath表現をテストが直接fixture引数へ依存した検証欠陥である。修正headを通常pushし、Web／Mobile CIを再実行する。
 - Blocker / Remaining: 修正headのcommit／push、CI再確認、PR本文更新、最終head一致確認が残る。
 - Progress: 90% (9/10)
+
+## 2026-09-16 02:25 (JST)
+
+- Summary: PR #146の今回の2件の`must_fix`を実装した。`text_quality_gate.mjs`のfail-open診断をexit 0のstructured stdout（`continue=true`、top-level `systemMessage`）へ変更し、configured `UserPromptSubmit`／`PostToolUse` launcherのroot／Node／Hook／temp／Hook process failureを固定structured diagnosticへ収束させた。PostToolUseのfail-open、Stop(false)のblock、Stop(true)のallow／state cleanupは維持した。
+- Source contract: `openai/codex` tag `rust-v0.154.0`（tag commit `36eab01061df3cde5f95ec20a526777b430091ba`）の`user_prompt_submit.rs`／`post_tool_use.rs`／`stop.rs`／`schema.rs`／`dispatcher.rs`／`command_runner.rs`を確認した。3 eventともexit 0 stdoutをparseし、top-level `systemMessage`をWarningとして扱う。exit 0 raw stderrは診断result経路ではなく、UserPromptSubmitのplain stdoutはadditional contextになり得るため固定JSONを使った。
+- Changes: `.codex/config.toml`のUnix／Windows quality launcherは正常終了時のHook stdout（および既存の正常stderr扱い）を透過し、launcher／Hook failure時はraw stdout／stderrを公開せずexit 0で固定structured diagnosticをstdoutへ返す。Windowsは可読PowerShellをUTF-16LEへ変換してEncodedCommandを再生成し、PostToolUseの`|| true`／`2>NUL`によるsilent failureを除去した。関連Plan／ADR／safety referenceを現契約へ揃えた。
+- Tests: configured UserPromptSubmit／PostToolUseのroot解決不能、Hook欠落、Hook non-zero、module load failure、正常structured stdout透過をprocess境界で確認した。Hook本体はPostToolUse failure、UserPromptSubmit baseline failure、Stop active failure／violationのstructured診断、Stop inactiveのstructured block、normal pathのstdout／stderr空を確認した。failure outputにはprompt、fixture secret／token、raw session ID、absolute fixture root、raw exception／stack traceを含まないことをstdout／stderr両方で検査した。
+- Validation: 指定focused contractは`2 files / 193 passed`、`scripts/verify.ps1 -HookContracts`は`PASS=4 FAIL=0 SKIP=0`、`corepack pnpm run verify`はexit 0（contracts `581 passed / 4 skipped`、ESLintは既存warning 64件・error 0件、Web／docs／spec buildを含む）。`corepack pnpm run lint:text`、`corepack pnpm run lint:markdown`（0 issues）、`git diff --check`もPASSした。Windows configured commandのdecode／実行はfocused contractで確認し、Unix root-failure fallbackはGit Bashでstructured stdout／stderr空を追加確認した。
+- Runtime / CI: 修正前HEAD `ff42215e1dc43c46192e8c904737528655c4c62f`では、ユーザー実施の新規Codex sessionで`/hooks`のUserPromptSubmit 1／2、PostToolUse 3回、Stop(false)がfailed／blockedなし、loggerも確認済み。正常Stop後のstate cleanupも実装と整合する。今回の修正後HEADの実Codex failure diagnostic runtimeは、管理対象standalone `codex.exe`が環境にないため未確認。修正前HEADのWeb CI `34975719066`／Mobile App CI `34975719270` successは今回の修正後CIとは扱わない。
+- Blocker / Remaining: Run Artifactのsanitize、branch safety再確認、commit／push、修正後HEADのWeb／Mobile CI、PR本文更新、最終head一致確認が残る。PR #146／Issue #134はOPENのまま維持する。
+- Progress: 86% (30/35)

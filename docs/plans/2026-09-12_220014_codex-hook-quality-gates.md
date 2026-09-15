@@ -148,19 +148,26 @@ Hook契約の不足分確認、文章lint scanner、baseline方式のテスト�
 
 ### 2.6 Codex Hook正式仕様
 
-2026-09-12にOpenAI Codex sourceを確認した時点では少なくとも次が存在する。
+使用Codex CLI `0.154.0`に対応するOpenAI Codex source（tag `rust-v0.154.0`、確認commit `36eab01061df3cde5f95ec20a526777b430091ba`）を確認したところ、少なくとも次が成立する。
 
 - `SessionStart` inputの `source` に `compact`
 - `SessionStart` outputの `hookSpecificOutput.additionalContext`
 - universal outputの `continue` / `stopReason`
 - `Stop` inputの `stop_hook_active`
 - command Hook設定の `additionalContextLimit`
+- `UserPromptSubmit` / `PostToolUse` / `Stop`はexit code 0のstdoutをeventごとのHook outputとしてparseする。
+- top-level `systemMessage`はuniversal Hook outputのWarningとして扱われる。
+- exit 0のraw stderrはこれらのevent parserがHook resultの診断へ取り込む経路ではない。
+- `UserPromptSubmit`のplain text stdoutはadditional contextとして扱われ得るため、fail-open診断には使わない。
 
 参照:
 
-- `https://github.com/openai/codex/blob/main/codex-rs/hooks/src/schema.rs`
-- `https://github.com/openai/codex/blob/main/codex-rs/hooks/src/events/session_start.rs`
-- `https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/schema.rs`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/events/user_prompt_submit.rs`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/events/post_tool_use.rs`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/events/stop.rs`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/engine/dispatcher.rs`
+- `https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/hooks/src/engine/command_runner.rs`
 
 現行OpenAI sourceの `SessionStart` では、exit code 0のstructured outputで `continue:false` を返した場合に `should_stop=true` となる。一方、非0終了やinvalid JSON-like stdoutはHookを `Failed` にするだけで、停止とはならない。
 
@@ -523,9 +530,9 @@ Git rename mappingが得られず、開始時pathが現在worktreeから消え�
 
 対応付け不能fileはbaseline空へ落とさず `quality check不能` とする。
 
-- PostToolUse: fail-open + stderr診断
+- PostToolUse: fail-open + Codexが認識可能なstructured `systemMessage`
 - Stop + `stop_hook_active=false`: 1回block
-- Stop + `stop_hook_active=true`: allow
+- Stop + `stop_hook_active=true`: allow + structured `systemMessage`
 
 similarity、filename推測、edit distance、独自rename engineは追加しない。
 
@@ -566,7 +573,7 @@ similarity、filename推測、edit distance、独自rename engineは追加しな
 - scanner失敗
 - temp state読込失敗
 
-ではfail-open + stderr診断とする。
+ではfail-open + top-level `systemMessage`を持つstructured stdoutとする。
 
 PostToolUseは早期フィードバックであり完了判定ではない。
 
@@ -1028,17 +1035,17 @@ contract:
 - Markdown変更0件 -> lintしない
 - target path特定可能 -> 対象pathだけ評価
 - path不明 -> Git差分へfallback
-- baseline unavailable -> fail-open + stderr
-- session rename mapping不能 -> fail-open + stderr
-- scanner / rule / Git failure -> fail-open + stderr
+- baseline unavailable -> fail-open + structured `systemMessage`
+- session rename mapping不能 -> fail-open + structured `systemMessage`
+- scanner / rule / Git failure -> fail-open + structured `systemMessage`
 
 ### 6.7 Stop contract
 
 - `stop_hook_active=false` + 新規違反なし -> allow
 - `false` + 新規違反あり -> block
-- `true` + 同一違反あり -> allow
+- `true` + 同一違反あり -> allow + structured `systemMessage`
 - quality check不能 + `false` -> 1回block
-- quality check不能 + `true` -> allow
+- quality check不能 + `true` -> allow + structured `systemMessage`
 - allow時baseline cleanup
 - block時baseline維持
 

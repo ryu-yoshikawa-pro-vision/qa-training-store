@@ -656,7 +656,12 @@ function formatViolations(violations) {
 }
 
 function diagnostics(code) {
-  process.stderr.write(`Codex text quality hook: quality check unavailable (${code})\n`);
+  process.stdout.write(
+    `${JSON.stringify({
+      continue: true,
+      systemMessage: `Codex text quality hook: quality check unavailable (${code})`,
+    })}\n`,
+  );
 }
 
 async function processUserPrompt(payload) {
