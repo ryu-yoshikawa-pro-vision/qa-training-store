@@ -18,7 +18,7 @@ Loading、Empty、Error、Conflict、Not Foundを同じ表示へ潰しません�
 
 ## Canonical Sources
 
-具体的なLabel、Test ID、Route、Token、Component構造は `src/presentation/`、`app/`、`src/presentation/design/tokens.ts`、`docs/05_ui/` を参照してください。既存TestはRegression Evidenceであり、Normative Oracleではありません。
+具体的なLabel、Test ID、Route、Token、Component構造は `src/presentation/`、`app/`、`src/presentation/design/tokens.ts`、`docs/05_ui/` を参照してください。既存Testは回帰確認の記録であり、正式な仕様の判断基準ではありません。
 
 ## Screen Contracts
 

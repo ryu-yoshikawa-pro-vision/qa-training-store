@@ -137,7 +137,7 @@ Scenario Shopでは次があります。
 
 - Web `dist/`
 - Android APK
-- iOS `iphonesimulator` Build Artifact（Current formal guaranteeはBuild-only）
+- iOS `iphonesimulator` Build Artifact（現在の正式な保証はBuild-only）
 
 Source TestがPassしても、Buildに失敗したりBuild Artifactで問題が起きる可能性があります。
 
@@ -189,7 +189,7 @@ Part 1で作成したTestを一覧化し、「開発プロセスのどこで実�
 
 ### Recovery
 
-回答がつながらない場合は、まず「変更」「確認対象」「失敗時に戻る工程」の3列へ分けて、Cart UI変更などの具体例を1つ書きます。CommandやBuildが実行できない場合はEnvironment blockとして分離し、開発プロセスの理解不足とは混同しません。区別できたら、Lesson 1の流れとPart 1の自分のTestへ戻って対応付けます。
+回答がつながらない場合は、まず「変更」「確認対象」「失敗時に戻る工程」の3列へ分けて、Cart UI変更などの具体例を1つ書きます。CommandやBuildが実行できない場合は環境上の問題として分離し、開発プロセスの理解不足とは混同しません。区別できたら、Lesson 1の流れとPart 1の自分のTestへ戻って対応付けます。
 
 ## 完了条件
 

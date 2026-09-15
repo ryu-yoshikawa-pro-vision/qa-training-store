@@ -1,8 +1,8 @@
-# 要件Traceability
+# 要件トレーサビリティ
 
 ## 1. 方針
 
-Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、代表Verificationを追跡します。個別Requirement 1件ごとの巨大Matrixは作りません。Traceabilityは、Requirement Group → representative Current verification、WE-CORE Mapping → representative E2E code、Current下位Traceability代表label → representative lower-level code / suiteの3層をこの文書内で閉じます。
+Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、代表Verificationを追跡します。個別Requirement 1件ごとの巨大Matrixは作りません。Traceabilityは、Requirement Group → 現在の代表Verification、WE-CORE Mapping → 代表E2E code、現在の下位Traceability代表label → 代表lower-level code / suiteの3層をこの文書内で閉じます。
 
 ## 2. Group Matrix
 
@@ -36,19 +36,19 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、�
 
 ## 4. Test ID / Mapping label taxonomy
 
-この文書の命名規則は、今回新しいIDを作るための制度ではなく、既存文書で使われているTest / Mapping labelの意味を区別するための説明です。`WE-*`というprefixだけではexecutable test IDを意味しません。CurrentのTest codeはこれらのlabelをtest titleへ埋め込んでいないため、code referenceはrepository-relative file pathとexact test title、または明確なsuite-level referenceで示します。
+この文書の命名規則は、今回新しいIDを作るための制度ではなく、既存文書で使われているTest / Mapping labelの意味を区別するための説明です。`WE-*`というprefixだけではexecutable test IDを意味しません。現在のTest codeはこれらのlabelをtest titleへ埋め込んでいないため、code referenceはrepository-relative file pathとexact test title、または明確なsuite-level referenceで示します。
 
 - Executable / verification namespaceとして文書化されている形式: Unit=`UT-<domain>-NNN`、Repository=`RC-dexie-NNN`、Web E2E=`WE-<flow>-NNN`、Accessibility=`AX-<screen>-NNN`、UX Pattern=`UX-<pattern>-NNN`、Benchmark=`BM-<target>-NNN`。
-- `WE-CORE-001`〜`WE-CORE-012`はexecutable test IDではなく、Requirement / business-flow Mapping IDです。表のMappingをCurrent executable testの件数やtest titleへ読み替えません。
-- Current test titleには`WE-CORE-*` IDを埋め込んでいません。`WE-CORE-*`の参照先はMappingの代表E2E codeであり、executable test IDの一覧ではありません。
-- §6の`UT-*`、`CT-*`、`CP-*`、`WE-TEST-INSP-*`等は、Current code側の正式IDの存在を主張しない既存の下位Traceability代表labelです。`CT-*`や`CP-*`を理由に新しいID制度、Test codeの埋込み、renameは行いません。
-- この文書で説明するlabelのprefixと、実際のcode / suiteの分類（Unit、Contract、Component、E2E等）は同じものとは限りません。分類はCurrentのtest fileとworkflowで確認します。
+- `WE-CORE-001`〜`WE-CORE-012`はexecutable test IDではなく、Requirement / business-flow Mapping IDです。表のMappingを現在のexecutable testの件数やtest titleへ読み替えません。
+- 現在のtest titleには`WE-CORE-*` IDを埋め込んでいません。`WE-CORE-*`の参照先はMappingの代表E2E codeであり、executable test IDの一覧ではありません。
+- §6の`UT-*`、`CT-*`、`CP-*`、`WE-TEST-INSP-*`等は、現在のcode側の正式IDの存在を主張しない既存の下位Traceability代表labelです。`CT-*`や`CP-*`を理由に新しいID制度、Test codeの埋込み、renameは行いません。
+- この文書で説明するlabelのprefixと、実際のcode / suiteの分類（Unit、Contract、Component、E2E等）は同じものとは限りません。分類は現在のtest fileとworkflowで確認します。
 
 ## 5. Phase 1 Web E2E対応
 
-`WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのE2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixとして扱います。Requirementの全組合せをE2Eへ展開せず、各Flowで代表的な業務結果を確認します。
+`WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingです。現在の実行対象となる必須legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのE2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixとして扱います。Requirementの全組合せをE2Eへ展開せず、各Flowで代表的な業務結果を確認します。
 
-| WE-CORE Mapping ID | 主なRequirement | Flow | Current E2E representative code |
+| WE-CORE Mapping ID | 主なRequirement | Flow | 現在の代表E2E code |
 |---|---|---|---|
 | WE-CORE-001 | FR-PR-001～027/044～052、NFR-AX-006 | Guest検索・Filter・商品詳細・Cart追加 | `e2e/web/phase1-required.spec.ts` — `01 Guestの商品検索・Filter・商品詳細・Cart追加` |
 | WE-CORE-002 | FR-CA-001～006/011～017 | Guest Cart数量変更・削除・上限拒否 | `e2e/web/phase1-required.spec.ts` — `02 Guest Cartの数量変更・削除・上限拒否` |
@@ -69,12 +69,12 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、�
 
 - `exact-title`: 1つのexisting test titleで対象labelの責務を代表できる。
 - `suite-level`: 1つのtest file / suiteで対象labelの責務を代表できる。
-- `bounded-multi-ref`: legacy labelが複数の独立Requirement / 観点を含み、Current Formal evidenceが複数suiteへ合理的に分散している場合に、必要最小限の複数referenceで担当範囲を明示する。
-- `stop`: 上記いずれでもRequirementの一部をCurrent Formal evidenceで説明できない。
+- `bounded-multi-ref`: legacy labelが複数の独立Requirement / 観点を含み、現在の正式な確認記録が複数suiteへ合理的に分散している場合に、必要最小限の複数referenceで担当範囲を明示する。
+- `stop`: 上記いずれでもRequirementの一部を現在の正式な確認記録で説明できない。
 
-Current codeは下表のlabel自体をtest titleへ埋め込んでいないため、labelをexecutable test IDとは扱わず、実在するcode / suiteへ参照を接続します。
+現在のcodeは下表のlabel自体をtest titleへ埋め込んでいないため、labelをexecutable test IDとは扱わず、実在するcode / suiteへ参照を接続します。
 
-| Lower Traceability label | Requirement | Disposition | Current code / suite | 主な確認 |
+| Lower Traceability label | Requirement | Disposition | 現在のcode / suite | 主な確認 |
 |---|---|---|---|---|
 | UT-CATALOG-001 | FR-PR-002～005/018/034/044～055 | suite-level | `tests/repository-contract/storefront-catalog.test.ts` — storefront catalog repository contract | Viewer価格、Facet、Sort tie-break、新着順、在庫切れ公開商品のHome包含 |
 | CT-PRODUCT-002 | FR-PR-054 | exact-title | `tests/integration/admin-product-use-cases.test.ts` — `creates a draft aggregate, zero summary, and INITIAL_STOCK in one clock` | 商品Aggregate内の単一Clock時刻伝播 |

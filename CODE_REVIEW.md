@@ -1,18 +1,19 @@
-# Repository Code Review Contract
+# リポジトリのコードレビュー規約
 
-この文書は、Scenario Shop Repositoryに固有のレビュー入力、Coding Standards、外部レビュー承認、review成果物の保存契約を定義します。genericなreview workflow、findingの意味、出力形式、severity順は `code-review` Skill packageを正本とします。
+この文書は、Scenario Shopリポジトリに固有のレビュー入力、コーディング規約、外部レビュー承認、レビュー成果物の保存契約を定義します。一般的なレビューの流れ、指摘の意味、出力形式、severity順は`code-review` Skill packageを正本とします。
 
-## Repository inputs
+## リポジトリの入力文書
 
-- Coding policy: [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)
-- Review persistence policy: 通常のreview結果はchatまたはcurrent Runの `REPORT.md` に記録し、durable reportが必要な条件・保存先・命名・保持はRepositoryの依頼条件とRun運用へ従います。
+- コーディング方針: [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)
+- レビュー結果の保存方針: 通常のレビュー結果はchatまたはcurrent Runの`REPORT.md`に記録し、永続的なレポートが必要な条件・保存先・命名・保持はリポジトリの依頼条件とRun運用に従います。
+- 文章表現の方針: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)
 - Skill package: [`code-review`](.agents/skills/code-review/SKILL.md)
 
 ## 外部レビューサービスの実行承認
 
 CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得てから起動する。レビュー完了後は結果を報告して停止し、指摘の修正、thread操作、再レビューはユーザーの判断を受けるまで実行しない。既存レビューの取得、reviewDecisionの確認、inline thread状態の参照は、レビュー起動とは別のread-only確認として扱う。
 
-## Repository Coding Standards
+## リポジトリのコーディング規約（Repository Coding Standards）
 
 変更差分について、特に次を確認する。
 
@@ -28,10 +29,10 @@ CodeRabbit など外部レビューサービスの full review / 再レビュー
 - 今回の変更に必要のない抽象化や規約対応を追加していないか
 - Markdown変更がある場合、`pnpm run lint:markdown`を実行し、`pnpm run verify`へ接続された品質ゲートを壊していないか
 
-規約違反であっても、変更と無関係な既存問題や実害のない表現差は、今回の必須Findingとして扱わない。
+規約違反であっても、変更と無関係な既存問題や実害のない表現差は、今回の必須の指摘として扱わない。
 
-## Review persistence policy
+## レビュー結果の保存方針（Review persistence policy）
 
-- Review-only、plan-only、status update、軽い確認、通常のevidence command結果、Run progress記録、chatで完結する評価は `docs/reports/` へ保存しない。
-- ユーザーが保存を明示した場合、計画DoDにreport fileがある場合、または複数ソースの調査・監査・検証結果を後で参照する必要がある場合だけ、Repositoryのdurable report保存先を使う。
-- `.codex/runs/<run_id>/REPORT.md` はRun-localの意味記録であり、durable reportとは別扱いとする。
+- レビューのみ、計画のみ、状態更新、軽い確認、通常の検証コマンド結果、Runの進捗記録、chatで完結する評価は`docs/reports/`へ保存しない。
+- ユーザーが保存を明示した場合、計画のDoDにレポートファイルがある場合、または複数ソースの調査・監査・検証結果を後で参照する必要がある場合だけ、リポジトリの永続的なレポート保存先を使う。
+- `.codex/runs/<run_id>/REPORT.md`はRun固有の意味記録であり、永続的なレポートとは別に扱う。

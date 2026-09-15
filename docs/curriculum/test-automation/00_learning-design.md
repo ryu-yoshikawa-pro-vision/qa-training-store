@@ -34,37 +34,37 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 ## この文書群と教材実装の関係
 
-このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。Repositoryには、本文を実行可能にするTraining Web / Native入口、CSV Workbook、Validator、TypeScript gate、CI Templateも同じPlanで実装済みです。
+このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。リポジトリには、本文を実行可能にするTraining Web / Nativeの入口、CSV Workbook、Validator、TypeScript gate、CI Templateも同じ計画のもとで実装済みです。
 
 各Lessonは、次の2種類を明示的に区別します。
 
-- **Normative Oracleを読む学習**: [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / ACを起点にする。
+- **正式な仕様を読む学習**: [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / ACを起点にする。
 - **Training境界で行う演習**: `training/`と`playwright.training.config.ts`を使い、Formal RegressionやProduction Workflowへ変更を混在させない。
 
-既存の `e2e/web/`、`maestro/`、Formal CIは比較教材・正式Regressionであり、Learner Testの保存先ではありません。本番Secret、OIDC、Deploy権限はTrainingへ持ち込みません。
+既存の `e2e/web/`、`maestro/`、Formal CIは比較教材・正式Regressionであり、受講者用Testの保存先ではありません。本番Secret、OIDC、Deploy権限はTrainingへ持ち込みません。
 
-Repositoryに存在することを検証するassetと、受講者がLearner Required pathで学ぶ内容・演習・自己確認・完了条件・評価Evidenceは別の契約です。`03_instructor-reference.md`はRepository-requiredなsupport assetですが、Learner Required pathやCommon completionの正本ではありません。
+リポジトリに存在することを検証する資材と、受講者が必ず学ぶ経路で扱う内容・演習・自己確認・修了条件・評価成果物は別の契約です。`03_instructor-reference.md`はリポジトリ上で必要な支援資料ですが、受講者が必ず学ぶ経路や共通課程の修了条件の正本ではありません。
 
 ## 対象者
 
-コース開始時のentry profileは、テスト自動化の目的・基本概念を理解しており、ノーコード / ローコード経験または概要理解があってもよい一方、Playwright等のコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。
+コース開始時の受講者像は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコードの経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない人です。
 
 主な対象は次の受講者です。
 
 - 手動テストを経験しており、自動化へ進みたい人
 - Autify、MagicPodなどのノーコード・ローコード自動化経験者
 - コードベースのPlaywright等は未経験だが、テスト設計や運用を学びたい人
-- Native specializationを選択してWeb自動化からNative自動化へ広げたい人
+- モバイルアプリのUIテスト自動化を選択して学び、Web自動化からNative自動化へ広げたい人
 - Part 2でCI上の自動テスト実行を学びたい人
 - 修了後に実案件で自動化基盤を設計したい人
 
 プログラミング経験は必須前提にしません。Playwrightへ進む前に、テストコードを読み書きするために必要なJavaScript / TypeScriptの最小知識をPart 1で扱います。
 
-フルの言語学習を目的にはせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
+プログラミング言語全体を学ぶことを目的とせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
 
-### Common prior-knowledge rule
+### 共通課程の既習知識に関するルール
 
-Common Coreが前提にできる既習知識は、上記entry profileと、その時点より前にLearner Required pathで明示的に学んだCommon Core内容だけです。Native specialization、Extension、Reference、教材外のPlaywright / TypeScript / Git / CI実務経験を隠れた前提にしません。
+共通課程で前提にできる既習知識は、上記の受講者像と、それ以前に受講者必須の学習経路で明示的に学んだ共通課程の内容だけです。モバイルアプリ自動化の選択課程、発展課題、参考資料、教材外のPlaywright / TypeScript / Git / CI実務経験を隠れた前提にしません。
 
 ## 用語の使い分け
 
@@ -75,13 +75,13 @@ Common Coreが前提にできる既習知識は、上記entry profileと、そ�
 | Test Case ID | `TC-CART-001` など、スプレッドシート上のテストケース識別子 |
 | UI Test ID / `testId` | PlaywrightやMaestroからUI要素を安定して特定する識別子 |
 | Seed Scenario | Scenario Shopを決定的な初期状態へResetするためのScenario |
-| Test Scenario / User Journey | 複数の条件・画面を跨いで確認する業務上のテストシナリオ |
+| テストシナリオ / 利用者の操作経路 | 複数の条件や画面をまたいで確認する業務上のテストシナリオ |
 | Maestro Flow | MaestroのYAMLで記述する実行単位 |
-| 共通操作 / Helper | 複数Pageを跨ぐ操作を必要に応じてまとめるコード上の構造 |
+| 共通操作 / Helper | 複数Pageにまたがる操作を必要に応じてまとめるコード上の構造 |
 
-教材本文では原則として上記の正式な呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
+教材本文では原則として上記の呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
 
-Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../../../training/workbook/README.md)を正本として参照します。
+Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../../../training/workbook/README.md)を正本として確認します。
 
 ただし、既存コードのAPI名や変数名、外部Tool固有の名称を引用するときは、その実装上の名称をそのまま使用します。その場合も、教材上どの概念に対応するかを区別します。
 
@@ -89,10 +89,10 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 ### 安定表記ルール
 
-- 一般のlearner-facing説明は日本語中心で記述する。
+- 受講者向けの一般的な説明は、日本語を中心に記述する。
 - Tool、Product、API、command、path、identifierは公式のliteralを維持する。
 - `Locator`、`Fixture`などの公式用語は、必要な場合だけ初出で日本語の意味を添える。
-- `Common Core`、`Native specialization`、`Extension`、`Reference`はclassification tokenとして維持し、本文で責務を説明する。
+- 共通課程、モバイルアプリ自動化の選択課程、発展課題、参考資料は、本文でそれぞれの役割を説明する。
 - `BR`、`AC`、ID grammar、machine-consumed headingはcanonical literalを変更しない。
 - Product上の判断に必要なUI copyは、表示されるliteralをそのまま扱う。
 
@@ -100,9 +100,9 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 Part 1ではGitHubアカウントを必須にしません。
 
-受講者が必要なのは、Scenario ShopとPlaywrightをローカルで扱える環境です。Repository取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
+受講者が必要なのは、Scenario ShopとPlaywrightをローカルで扱える環境です。リポジトリの取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
 
-Maestroへ進む時点ではNative実行環境が追加で必要です。開始確認は、Current RepositoryのAndroid runbook、Training baseline、Native CI contractで行います。
+Maestroへ進む時点ではNative実行環境が追加で必要です。開始確認は、現在のリポジトリにあるAndroid runbook、Training baseline、Native CI contractで行います。
 
 ### Web / Playwright開始Gate
 
@@ -113,9 +113,9 @@ Maestroへ進む時点ではNative実行環境が追加で必要です。開始�
 
 Mobile Webの基準確認は、P1-5でViewportと`training-mobile-chromium`を学んだ後に行います。P1-4の開始Gateではデスクトップの基準確認までを扱います。
 
-### Native specialization / Maestro開始Gate
+### モバイルアプリ自動化の選択課程 / Maestro開始条件
 
-Native / MaestroはPart 1 Commonの必須前提ではありません。P1-6までをCommon prerequisiteとし、Native specializationを選択した受講者だけが次のNative開始Gateを満たします。選択しない受講者はP1-7をskipしてP1-8へ進みます。P1-7を完了した受講者はP1-8へrejoinします。
+Native / MaestroはPart 1の共通課程の必須前提ではありません。P1-6までを共通課程の必須前提とし、モバイルアプリ自動化の選択課程を選んだ受講者だけが次のMaestro開始条件を満たします。選択しない受講者はP1-7を飛ばしてP1-8へ進みます。P1-7を完了した受講者はP1-8へ合流します。
 
 Windows Localの標準ハンズオンは、USB接続されたPhysical Android Deviceを基準とします。Android Emulator / AVDは任意の補助経路であり、Part 1完了条件ではありません。
 
@@ -126,7 +126,7 @@ Windows Localの標準ハンズオンは、USB接続されたPhysical Android De
 - Scenario Shop NativeアプリをBuild / Installできる。
 - Maestroから最小Flowを実行できる。
 
-Android Runtimeを標準のNative learner pathとします。iOSはCurrent formal guaranteeがBuild-onlyのため、Part 1 / Part 2のRuntime完了条件にしません。iOS Simulatorを説明・比較に使う場合も、Runtime PASSとして記録しません。
+Android Runtimeを標準のNative受講者向け経路とします。iOSは現在の正式な保証がBuild-onlyのため、Part 1 / Part 2のRuntime完了条件にしません。iOS Simulatorを説明・比較に使う場合も、Runtime PASSとして記録しません。
 
 Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
 
@@ -134,7 +134,7 @@ Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
 
 Part 2ではGitHubを扱うため、GitHubアカウントを利用できることを前提とします。
 
-P2 Native specializationを開始する前のCommon prerequisiteはP2-5までであり、P2-6 Native CIとMaestroは選択式のNative specializationです。P2-6を選択しない受講者はP2-6をskipしてP2-7へ進み、完了した受講者はP2-7へrejoinします。P2-6を選択する場合は、P1 Native specializationで得るMaestro実行能力をNative内部prerequisiteとして先に満たします。P1 Native specialization未修了でP2 Nativeを選ぶ場合も、同じNative内部prerequisiteを先に満たします。
+P2の選択課程を開始する前の共通課程の必須前提はP2-5までであり、P2-6のNative CIとMaestroは選択式の課程です。P2-6を選択しない受講者はP2-6を飛ばしてP2-7へ進み、完了した受講者はP2-7へ合流します。P2-6を選択する場合は、P1の選択課程で身につけるMaestro実行能力を、選択課程内の必須前提として先に満たします。P1の選択課程を修了せずにP2のNative課程を選ぶ場合も、同じ選択課程内の必須前提を先に満たします。
 
 ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
 
@@ -149,19 +149,19 @@ Git / GitHubの基本演習では、次の標準経路を利用できます。
 
 本番Secretを受講者へ配布し、既存Production Workflowを無理に成功させる方法は採用しません。
 
-## Common completion contract
+## 共通課程の修了条件
 
-Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です。評価詳細とMinimum Evidenceは [Competency Rubric](./02_competency-rubric.md) を正本とし、Common修了にNative環境の実行結果を要求しません。
+共通課程の卒業像は、実務に入りたての汎用テスト自動化エンジニアです。評価詳細と最低限必要な成果物は[習熟度評価基準](./02_competency-rubric.md)を正本とし、共通課程の修了にNative環境の実行結果を要求しません。
 
-- Part 1 Common: `C01〜C07 + C09〜C10` bounded Level 2
-- Part 2 / Final Common: `C01〜C07 + C09〜C12` bounded Level 2
-- `C08`はNative specializationであり、Common completionには要求しません。
+- Part 1の共通課程: `C01〜C07 + C09〜C10`、対象範囲を限定したレベル2
+- Part 2 / 最終共通課程: `C01〜C07 + C09〜C12`、対象範囲を限定したレベル2
+- `C08`はモバイルアプリ自動化の選択課程であり、共通課程の修了条件には含めません。
 
-成果物やEvidenceはRepository内へ保存・記録すれば成立し、外部提出をCommon completionの必須条件にしません。
+成果物や実行記録はリポジトリ内へ保存・記録すれば成立し、外部提出を共通課程の修了条件にはしません。
 
-### Self-study / Instructor support boundary
+### 自習と講師支援の境界
 
-学習内容、演習で判断すること、自己確認、学習上のRecovery、完了条件、評価観点はlearner-facing materialを正本とします。Instructor / 運営は環境準備、アカウント・権限、端末、演習Repository / Training Copy、Infrastructure / Toolchainの準備・障害対応を支援できますが、非公開情報や個別判断をRequired completionの前提にしません。
+学習内容、演習で判断すること、自己確認、学習上のRecovery、完了条件、評価観点は受講者向け教材を正本とします。講師・運営は環境準備、アカウント・権限、端末、演習Repository / Training Copy、Infrastructure / Toolchainの準備・障害対応を支援できますが、非公開情報や個別判断を必須の修了条件にはしません。
 
 ### Part 1からPart 2への移行
 
@@ -185,7 +185,7 @@ GitHub Remote / Fork / Pull Requestへ進む
 
 ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
 
-Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は[Instructor Reference](./03_instructor-reference.md)のsupport手順を使用し、Learner Requiredの隠れた前提にはしません。
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は[講師向け資料](./03_instructor-reference.md)の支援手順を使用し、受講者必須の学習内容に隠れた前提として加えません。
 
 ## ノーコード・ローコード経験との接続
 
@@ -220,13 +220,13 @@ POM、Fixtureなどの保守設計は後半に置きます。最初から高度�
 5. Playwrightで必要なJavaScript / TypeScriptの最小知識を学ぶ。
 6. Playwrightで実装する。
 7. 実行結果を分析する。
-8. Native specializationを選択した場合は、P1-7でMaestroによるNative自動化を行う。
-9. Common learnerはP1-6完了後にP1-7をskipしてP1-8へ進み、Native specializationを選択したlearnerはP1-7完了後に同じP1-8へrejoinする。P1-8ではCommonとしてPlaywright Testの保守課題を扱い、Native選択時だけNative成果物が追加される。
+8. モバイルアプリ自動化の選択課程を選んだ場合は、P1-7でMaestroによるNative自動化を行う。
+9. 共通課程の受講者はP1-6完了後にP1-7を飛ばしてP1-8へ進み、選択課程を選んだ受講者はP1-7完了後に同じP1-8へ合流する。P1-8では共通課程としてPlaywright Testの保守課題を扱い、選択時だけNative成果物が追加される。
 10. テスト管理と保守上の問題を洗い出す。
 11. Helper / POM / Fixture / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
 
-Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、P1-6までのCommon学習を完了し、P1-7をskipまたは完了してP1-8へ到達した後です。
+Part 1前半では、Seed Scenario Resetや実行記録の収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、P1-6までの共通課程の学習を完了し、P1-7を飛ばすか完了してP1-8へ到達した後です。
 
 ### Part 2
 
@@ -238,8 +238,8 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 4. CIの必要性を理解する。
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
-7. Native specializationを選択した場合は、P2-6でAndroid Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
-8. Common routeではP2-6をskipし、P2-7でWeb Quality Gate、Build / Test Artifact、Failure Evidence、fail-closed条件を設計する。Deploy / Smoke等はAdvanced / Referenceとして比較する。
+7. モバイルアプリ自動化の選択課程を選んだ場合は、P2-6でAndroid Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
+8. 共通経路ではP2-6を飛ばし、P2-7でWeb Quality Gate、Build / Test Artifact、失敗時の記録、fail-closed条件を設計する。Deploy / Smokeなどは発展課題・参考資料として比較する。
 9. Scenario Shopを題材に導入設計演習を行う。
 
 ## 教材の進め方
@@ -307,7 +307,7 @@ Scenario Shopの具体的な条件を使い、メリット、デメリット、�
 - なぜそのテストを自動化したか。
 - なぜその初期状態を使ったか。
 - なぜそのLocatorを選んだか。
-- 失敗時にどのEvidenceを確認したか。
+- 失敗時にどの実行記録を確認したか。
 - なぜその共通化方法を選んだか。
 - なぜそのテストをPR / main / Nightlyのどこで回すか。
 - なぜそのJobをQuality Gateに含めるか。

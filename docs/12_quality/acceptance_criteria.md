@@ -117,7 +117,7 @@
 - Category/Imageの並べ替えをDragなしでも完了できる。Categoryは全件を並べ替えModeで表示し、orderedIds不足を拒否して10刻みで再採番する。Brandは名称順固定である。
 - 新規Categoryは0件時sortOrder=10、既存時max(sortOrder)+10で末尾へ追加され、最大値取得と保存が同一Transactionで行われる。
 
-## 8.1 Cross-role Scenario
+## 8.1 Cross-roleシナリオ
 
 - 同一Browser Contextでadminが商品を登録・公開し、customerが検索・Cart変更・購入できる。
 - adminが当該Orderを配送完了へ進め、customerがReviewを投稿できる。

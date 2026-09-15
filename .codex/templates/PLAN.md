@@ -1,30 +1,30 @@
-# Plan
+# Plan（計画）
 
-## Objective
+## Objective（目的）
 
 - （今回の指示を達成する）
 
-## Scope
+## Scope（対象範囲）
 
 - In:
 - Out:
 
-## Assumptions
+## Assumptions（仮定）
 
 - （不明点があれば明示）
 
-## Questions / Ambiguity
+## Questions / Ambiguity（質問・曖昧性）
 
 - 必ず質問する不透明点:
 - 仮定してよい細部:
 - 未回答の重要質問:
 
-## Hypotheses
+## Hypotheses（仮説）
 
 - H1:
 - H2:
 
-## Research Plan
+## Research Plan（調査計画）
 
 - Round 1 Query:
 - Round 2 Query:
@@ -32,20 +32,20 @@
   - 主要仮説ごとに支持/反証の根拠がある
   - 未解決論点に次アクションがある
 
-## Approach
+## Approach（進め方）
 
 - どう進めるか（高レベル手順）
 - 標準フロー: `PLAN -> Web検索(不足知識) -> TASKS -> 実行 -> REPORT`
 
-## Definition of Done
+## Definition of Done（完了条件）
 
 - 満たしたら完了とする条件
 
-## Risks / Unknowns
+## Risks / Unknowns（リスク・未知点）
 
 - リスクと対策
 
-## Thinking Log
+## Thinking Log（判断記録）
 
 - 思考や判断の理由はここに逐次追記する（作業中に更新）。
 - 不明点の整理、選択肢比較、決定理由を簡潔に記録する。

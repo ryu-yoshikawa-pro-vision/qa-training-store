@@ -13,11 +13,11 @@
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
-まず [`docs/spec/README.md`](../../../spec/README.md) から対象FeatureのBR / ACを読み、Workbookへ `spec_ref`、`br_ids`、`ac_ids`を記録します。既存TestのAssertionを期待結果のOracleへ逆変換しません。
+まず [`docs/spec/README.md`](../../../spec/README.md) から対象FeatureのBR / ACを読み、Workbookへ `spec_ref`、`br_ids`、`ac_ids`を記録します。既存TestのAssertionを期待結果の判断基準へ逆変換しません。
 
-主にCart、Checkout、Payment、Role制御を題材にします。State / Scenarioの意味は、P1-2で確認した [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節から確認します。この段階では具体的なScenario IDや実装上の値を確認せず、仕様・Risk・Test Case・`automation_decision`の設計に集中します。Executable Sourceの具体的なIDは、Playwright実装へ進んだ後に参照します。
+主にCart、Checkout、Payment、Role制御を題材にします。State / Scenarioの意味は、P1-2で確認した [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md) の必要な節から確認します。この段階では具体的なScenario IDや実装上の値を確認せず、仕様・Risk・Test Case・`automation_decision`の設計に集中します。実行可能なソースにある具体的なIDは、Playwright実装へ進んだ後に参照します。
 
-Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
+Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` を参考資料として使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
 
 ## Lesson 1: 分析結果をテスト条件へ変換する
 
@@ -234,7 +234,7 @@ Part 1後半ではPlaywrightとMaestroを使いますが、この段階では次
 
 ## ハンズオン1: Cartのテスト条件を体系的に導出する
 
-練習量の目安として、スプレッドシートへ10件程度のCaseを作成してもよいですが、件数はcompletionの単独条件ではありません。
+練習量の目安として、スプレッドシートへ10件程度のCaseを作成してもよいですが、件数は修了の単独条件ではありません。
 
 作成したCaseには、次の観点を必要な範囲で含めます。
 
@@ -300,14 +300,14 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 - 同値分割と境界値を、代表値と境界付近の違いで説明している。
 - デシジョンテーブルが複数条件でExpectedが変わるときに有効であり、独立した条件を潰さない理由を説明している。
 - Login / Role / Account状態を分ける理由と、異なる拒否理由を別Caseにする理由を示している。
-- Unit / Component / Web E2E / Native E2Eなどの説明で、対象Layer、追加で得られるEvidence、CostまたはFailure要因を区別している。
+- Unit / Component / Web E2E / Native E2Eなどの説明で、対象Layer、追加で得られる実行記録、CostまたはFailure要因を区別している。
 - 正常系だけでなく、異常・境界・Role・Journeyのうち対象Riskに必要な観点を選び、選ばない観点にも理由がある。
 - 自動化判断に、Risk、Spec / BR / AC、再現性、Layer / Tool、Costのうち必要な根拠が記録されている。
 - Web / Android / iOSを機械的に複製せず、共有条件とPlatform固有Riskを分離している。
 
 ### Recovery
 
-技法の名前や件数だけで判断していた場合は、[Part 1-2](./02_scenario-shop-analysis.md)のRole / State / Seed整理へ戻り、1つのRiskを代表条件へ分解します。Layer / Toolを選べない場合は「そのLayerで何を保証し、UI E2Eで何を追加確認するか」を1行ずつ書き、実行環境の失敗はEnvironment blockとして学習判断と分けます。
+技法の名前や件数だけで判断していた場合は、[Part 1-2](./02_scenario-shop-analysis.md)のRole / State / Seed整理へ戻り、1つのRiskを代表条件へ分解します。Layer / Toolを選べない場合は「そのLayerで何を保証し、UI E2Eで何を追加確認するか」を1行ずつ書き、実行環境の失敗は環境上の問題として学習判断と分けます。
 
 ## 完了条件
 
@@ -318,7 +318,7 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 - 各ケースのRisk / 設計根拠、自動化判断、理由を記録している。
 - 少なくとも1件についてUI E2Eではなく別テスト層を選び、その層で何を保証するか説明できる。
 
-練習量の目安として10件程度・複数技法を扱ってもよいが、件数や技法数だけではcompletionとしません。
+練習量の目安として10件程度・複数技法を扱ってもよいが、件数や技法数だけでは修了としません。
 
 ## 次の行動
 

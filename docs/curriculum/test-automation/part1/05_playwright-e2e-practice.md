@@ -5,7 +5,7 @@
 - スプレッドシートで設計したテスト条件をPlaywrightへ実装できる。
 - 正常系だけでなく、異常系、境界値、Role差分、状態遷移をE2Eへ落とせる。
 - Seed Scenario / Resetを利用して再現可能なテストを作れる。
-- UIの期待結果と、必要な場合に内部状態を確認するExtensionの違いを説明できる。
+- UIの期待結果と、必要な場合に内部状態を確認する発展課題の違いを説明できる。
 - Desktop / Mobile Web、Accessibilityなど異なる品質観点を理解できる。
 
 ## 教材
@@ -24,7 +24,7 @@
 - `e2e/web/accessibility.spec.ts`
 - `e2e/web/cross-role-lifecycle.spec.ts`
 
-`e2e/web/fixtures.ts` はこの段階では内部実装を読み解く教材にしません。Seed Scenario ResetやEvidence収集はTraining Test Harnessが提供する機能として利用し、Fixtureの責務・共通化・内部設計はPart 1-8で扱います。
+`e2e/web/fixtures.ts` はこの段階では内部実装を読み解く教材にしません。Seed Scenario Resetや実行記録の収集はTraining Test Harnessが提供する機能として利用し、Fixtureの責務・共通化・内部設計はPart 1-8で扱います。
 
 ## 演習実装の前提
 
@@ -120,7 +120,7 @@ BrowserContextだけでは製品データの初期状態は作れず、Scenario 
 
 境界値の全組み合わせをE2Eへ持ち込まず、UI Journeyとして価値の高い代表条件を選びます。
 
-## Lesson 4: 状態遷移をE2Eにする（Extension）
+## Lesson 4: 状態遷移をE2Eにする（発展）
 
 Paymentを例にします。
 
@@ -142,7 +142,7 @@ Complete
 
 既存のPayment失敗・再試行E2Eと比較します。
 
-## Lesson 5: Role横断テスト（Extension）
+## Lesson 5: Role横断テスト（発展）
 
 Scenario ShopではAdminが作成・変更した状態がCustomer側へ影響します。
 
@@ -164,7 +164,7 @@ CustomerがReview
 
 どこまでを1本のE2Eに含めるかは、Risk、失敗原因の特定性、実行時間から判断します。
 
-## Lesson 6: UIと内部状態を組み合わせる（Extension）
+## Lesson 6: UIと内部状態を組み合わせる（発展）
 
 購入完了画面が表示されても、内部状態が完全に正しいとは限りません。
 
@@ -200,7 +200,7 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 `pnpm run training:web:mobile:exercise` を使用します。この入口は
 `training/playwright/exercises`だけを `training-mobile-chromium` で実行し、Formal E2Eを実行しません。
 
-## Lesson 8: Accessibility（Extension）
+## Lesson 8: Accessibility（発展）
 
 `@axe-core/playwright` を利用した自動Accessibility Testと、Keyboard操作などの確認を学びます。
 
@@ -208,7 +208,7 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 
 ## ハンズオン1: Cart Regression
 
-スプレッドシートのCart Test Caseから、Common Coreとして次の代表条件を実装します。3件程度は練習量の目安であり、件数だけをcompletion条件にはしません。
+スプレッドシートのCart Test Caseから、共通課程の中核として次の代表条件を実装します。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
 
 必須:
 
@@ -221,7 +221,7 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 
 各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
 
-## ハンズオン2: Payment Failure（Extension）
+## ハンズオン2: Payment Failure（発展）
 
 Payment拒否からRetry成功までを実装します。
 
@@ -230,7 +230,7 @@ Payment拒否からRetry成功までを実装します。
 まず `pnpm run training:web:mobile` でTraining baselineを確認します。その後、作成したテストのうち1件以上を
 `pnpm run training:web:mobile:exercise` でMobile向けTraining実行環境へ実行し、Desktopとの差を記録します。
 
-## ハンズオン4: 既存E2Eとの差分分析（Extension / Reference comparison）
+## ハンズオン4: 既存E2Eとの差分分析（発展課題・参考資料との比較）
 
 `phase1-required.spec.ts` と自分の実装を比較し、次を記録します。
 
@@ -258,24 +258,24 @@ Payment拒否からRetry成功までを実装します。
 - Seed Scenario / Resetについて、各Testが明示的な初期状態から始まり、前のTestの状態へ依存しないことを説明している。
 - UI表示だけでなく、必要なCaseでは状態遷移や内部状態を確認し、Test API / Inspectionを使う場合のTraining / Production境界を説明している。
 - CoreとしてCartの正常追加、削除または数量変更、在庫切れまたは購入上限の代表Boundary、Mobile baselineとExerciseを選んでいる。
-- Payment、Cross-role、Internal Inspection、Accessibility executionはExtensionであり、Common completionに不要だと説明できる。
-- DesktopとMobileの差をViewport / Navigation / Touch Targetなど観測可能な観点で記録し、EvidenceとTest Case IDを結び付けている。
+- Payment、Cross-role、Internal Inspection、Accessibilityの実行は発展課題であり、共通課程の修了には不要だと説明できる。
+- DesktopとMobileの差をViewport / Navigation / Touch Targetなど観測可能な観点で記録し、実行記録とTest Case IDを結び付けている。
 - Failure時に期待状態と実際の状態を分け、Training specをFormal Regressionへ混在させていない。
 
 ### Recovery
 
-CoreとExtensionを混同した場合はLesson 3とLesson 7、ハンズオン1と3へ戻り、Cartの代表Boundaryを1件だけResetから再実行します。実行できない場合はBase URL / Browser / Training HarnessをEnvironment blockとして記録し、Caseの選択理由と分けて復帰します。
+共通課程の中核と発展課題を混同した場合はLesson 3とLesson 7、ハンズオン1と3へ戻り、Cartの代表Boundaryを1件だけResetから再実行します。実行できない場合はBase URL / Browser / Training Harnessを環境上の問題として記録し、Caseの選択理由と分けて復帰します。
 
 ## 完了条件
 
-- Common Coreとして、Cartの正常追加、明示的なSeed Scenario / Reset、代表Boundary、Mobile baselineと作成したExerciseのMobile実行をTraceできる。
-- 各TestのTest Case ID、Risk / BR / AC、期待結果、Layer / Tool、Evidenceを対応付けている。
-- Payment、Cross-role、Internal Inspection、Accessibility executionはExtensionとして扱い、Common completionの前提にしていない。
+- 共通課程の中核として、Cartの正常追加、明示的なSeed Scenario / Reset、代表Boundary、Mobile baselineと作成したExerciseのMobile実行を対応付けて確認できる。
+- 各TestのTest Case ID、Risk / BR / AC、期待結果、Layer / Tool、実行記録を対応付けている。
+- Payment、Cross-role、Internal Inspection、Accessibilityの実行は発展課題として扱い、共通課程の修了の前提にしていない。
 - Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
 - Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。
 
-練習量の目安として5件以上のPlaywright E2Eを作成してもよいが、件数やExtensionの実施だけではcompletionとしません。
+練習量の目安として5件以上のPlaywright E2Eを作成してもよいが、件数や発展課題の実施だけでは修了としません。
 
 ## 次の行動
 
-[Part 1-6: テスト実行・結果分析・改善](./06_execution-and-failure-analysis.md)へ進み、CoreまたはExtensionで得たFailure / Evidenceを原因分析へ接続します。
+[Part 1-6: テスト実行・結果分析・改善](./06_execution-and-failure-analysis.md)へ進み、共通課程の中核または発展課題で得たFailure / 実行記録を原因分析へ接続します。

@@ -19,13 +19,13 @@
 - 必要な節だけの[`docs/07_testability/seed_catalog.md`](../../07_testability/seed_catalog.md)
 - `/guide`とStorefront / Customer / Adminの各画面
 
-`src/seeds/metadata.ts`、`e2e/web/phase1-required.spec.ts`、`maestro/`は、仕様・状態・観察結果を整理した後に、実装上のIDや既存資産を照合するためのReferenceです。P1-2 / P1-3の最初の期待結果を実装から逆算しません。
+`src/seeds/metadata.ts`、`e2e/web/phase1-required.spec.ts`、`maestro/`は、仕様・状態・観察結果を整理した後に、実装上のIDや既存資産を照合するための参考資料です。P1-2 / P1-3の最初の期待結果を実装から逆算しません。
 
 既存テストコードは、最初の分析・設計が終わるまでは正解として参照しません。
 
 ## この文書の位置づけ
 
-この文書は、Part 1で繰り返し利用する**Workbookの使い方とテスト設計技法のReference**です。Product Behaviorの期待結果はWorkbookから作らず、必ずNormative Specificationへ戻って確認します。
+この文書は、Part 1で繰り返し利用する**Workbookの使い方とテスト設計技法の参考資料**です。製品の期待動作はWorkbookから作らず、必ず正式な仕様へ戻って確認します。
 
 実際の学習Lessonでは、`part1/02_scenario-shop-analysis.md` と `part1/03_test-design-and-automation-selection.md` の演習に沿ってこのWorkbookを更新します。
 
@@ -40,9 +40,9 @@ Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.cs
 | `01_target-risk.csv` | 対象、Spec参照、Risk | `target_id` → `spec_ref` / `br_ids` / `ac_ids` → `risk_id` |
 | `02_test-cases.csv` | 条件、前提、期待、設計技法 | `risk_id` → `test_case_id` |
 | `03_automation-mapping.csv` | Automate / Later / Do not automateとLayer | `test_case_id` → `implementation_path` |
-| `04_execution-improvement.csv` | 結果、Evidence、Failure分類、改善 | `test_case_id` → `evidence` |
+| `04_execution-improvement.csv` | 結果、実行記録、Failure分類、改善 | `test_case_id` → `evidence` |
 
-複数のBR / ACは `;` で区切ります。対象・Risk・Test Caseをつなぐ主IDは空欄にせず、BR / ACなど直接対応するIDがない列だけ空欄を許容します。`implementation_path`は未実装またはDo not automateで実装Pathが存在しない場合、`evidence`は未実行の場合、`failure_category`はPass / Not runの場合に空欄にできます。`cause` / `action` / `improvement`は調査の進捗に応じて追加します。未実在のPathやEvidenceでセルを埋めません。
+複数のBR / ACは `;` で区切ります。対象・Risk・Test Caseをつなぐ主IDは空欄にせず、BR / ACなど直接対応するIDがない列だけ空欄を許容します。`implementation_path`は未実装またはDo not automateで実装Pathが存在しない場合、`evidence`は未実行の場合、`failure_category`はPass / Not runの場合に空欄にできます。`cause` / `action` / `improvement`は調査の進捗に応じて追加します。未実在のPathや実行記録でセルを埋めません。
 
 Test Case IDの形式は[Training Workbook README](../../../training/workbook/README.md)を参照し、以下では具体例だけを示します。
 
@@ -99,11 +99,11 @@ Test Case IDの形式は[Training Workbook README](../../../training/workbook/RE
 | 対象・Risk | `01_target-risk.csv` | 対象、Spec、BR / AC、Risk、Impact、Likelihood、Priority |
 | 条件・設計 | `02_test-cases.csv` | Test Case、Risk、前提、条件、期待結果、設計技法 |
 | 自動化判断・実装 | `03_automation-mapping.csv` | Automate / Later / Do not automate、Layer、Tool、実装Path、理由 |
-| 実行・改善 | `04_execution-improvement.csv` | Run Context、Result、Evidence、Failure分類、原因、対応、改善 |
+| 実行・改善 | `04_execution-improvement.csv` | Run Context、Result、実行記録、Failure分類、原因、対応、改善 |
 
 Test Layerは「どの層でRiskを確認するか」、Toolは「その層を何で実行するか」を表します。Part 1では実行頻度の本格設計は行わず、Part 2でCIのTriggerとともに考えます。
 
-観点を列挙しただけで終わらせず、同値分割、境界値、デシジョンテーブル、状態遷移などを使って、CSVのテスト条件と期待結果へ変換します。実行時のEvidenceは後から追える参照を記録し、未実行の行へ予定Pathを入れません。
+観点を列挙しただけで終わらせず、同値分割、境界値、デシジョンテーブル、状態遷移などを使って、CSVのテスト条件と期待結果へ変換します。実行時の記録は後から追える参照として残し、未実行の行へ予定Pathを入れません。
 
 ## テスト条件を導出する技法
 
@@ -296,24 +296,24 @@ Test Case IDをコードへ埋め込む方式、Test titleへ含める方式、A
 - 手順を増やすことのRisk、同値分割と境界値の違い、デシジョンテーブルの有効条件を、具体的なCartまたはCheckout条件と結び付けている。
 - Login / Role / Account状態を分離する理由と、異なる拒否理由を別Caseにする理由を説明している。
 - `out-of-stock` が初期状態を再現するSeed Scenarioであること、UI E2Eへ置かない判断にLayer / Cost / 再現性の理由があることを説明している。
-- Test Case ID、Risk、BR / AC、Layer / Tool、実装Path、Evidenceの対応を1行追跡できる。
+- Test Case ID、Risk、BR / AC、Layer / Tool、実装Path、実行記録の対応を1行で追跡できる。
 
 ### Recovery
 
 - 回答の「なぜ」が不足する場合は、対象FeatureのBR / ACと[State and Scenarios](../../spec/state-and-scenarios.md)へ戻り、1つのCaseをRisk → 条件 → Expected → Layer / Toolの順に書き直す。
-- CSVの列やIDが分からない場合は、[Training Workbook README](../../../training/workbook/README.md)とcanonical CSVのHeaderを確認する。CSVが開けないことは学習上のFailではなくEnvironment blockとして分けて記録する。
+- CSVの列やIDが分からない場合は、[Training Workbook README](../../../training/workbook/README.md)とcanonical CSVのHeaderを確認する。CSVが開けないことは学習上のFailではなく、環境上の問題として分けて記録する。
 
 ## 完了条件
 
 - Scenario Shopの1機能以上についてテスト対象分析を作成している。
 - リスクとテスト観点を整理している。
 - 選択したテスト設計技法をScenario ShopのRisk / BR / ACへ適用し、技法を選んだ理由を説明できる。
-- Test Case ID、Risk、Spec参照、条件、期待結果、Layer / Tool、EvidenceのTraceabilityを説明できる。
+- Test Case ID、Risk、Spec参照、条件、期待結果、Layer / Tool、実行記録の対応関係を説明できる。
 - 複数条件のRuleをデシジョンテーブルで分離して説明できる。
 - 各ケースについて自動化可否と理由を書いている。
 - 少なくとも1件についてPlaywrightまたはMaestroへ落とす前提を説明できる。
 
-練習量の目安として5件以上のTest Case、複数のテスト設計技法を作成・適用してもよいが、件数や技法数だけではcompletionとしません。
+練習量の目安として5件以上のTest Case、複数のテスト設計技法を作成・適用してもよいが、件数や技法数だけでは修了としません。
 
 ## 次の行動
 

@@ -1,57 +1,57 @@
-# Windows Android Validation Workflow
+# Windows Android検証Workflow
 
-## Scope and inputs
+## 対象範囲と入力
 
-This workflow covers local Release APK validation on a Windows host, using PowerShell and a USB-connected physical Android device. Tool versions, device identity, application identity, command sequence, paths, and troubleshooting actions come from the Repository runbook and helper supplied as external inputs.
+このWorkflowは、Windowsホスト上でPowerShellとUSB接続したAndroid実機を使い、ローカルRelease APKを検証する手順を扱います。ツールのバージョン、端末 / アプリの識別情報、コマンドの実行順序、path、トラブルシューティングの対応は、リポジトリから提供されるrunbookとコマンド補助ツールから取得します。
 
-## Preflight and stage gates
+## Preflightと段階ごとのgate
 
-Before Prepare, a new Build, Install, Test, or Maestro execution:
+Prepare、新しいBuild、Install、Test、Maestroを実行する前に、次を行います。
 
-1. Read the latest Run report, relevant prior attempt evidence, current diff/status, shell and version conditions, and the previous success or failure condition.
-2. Run Doctor and confirm the fixed toolchain contract, Android SDK, ADB device state, host/device capacity, APK identity, and CI/local differences.
-3. Record the observation, cause hypotheses, strongest hypothesis, evidence, condition to change, success condition, and next information before a retry.
-4. Do not start Prepare, Build, or a downstream stage when preflight is incomplete, an upstream stage failed, or the required device state is unavailable.
+1. 最新のRun report、関係する過去の実行のEvidence、現在のdiff / status、shellとバージョンの条件、直前の成功または失敗条件を読む。
+2. Doctorを実行し、固定toolchain契約、Android SDK、ADB deviceの状態、ホスト / 端末の容量、APK identity、CI / ローカルの差異を確認する。
+3. retry前に、観測結果、原因仮説、最有力仮説、Evidence、変更する条件、成功条件、次に得る情報を記録する。
+4. preflightが未完了、上流段階が失敗、または必要な端末状態が利用できない場合は、Prepare、Build、後続段階を開始しない。
 
-## Conditional preparation and APK establishment
+## 条件付きPrepareとAPKの確立
 
-Prepare is required only for the first setup or when Native Project regeneration is required. A valid prepared project may be reused when neither condition applies.
+Prepareが必要なのは、初回セットアップまたはNative Projectの再生成が必要な場合だけです。どちらにも該当しない場合は、有効な準備済みprojectを再利用できます。
 
-After preflight, establish a current Release APK:
+preflight後、現在のRelease APKを次のいずれかで確立します。
 
-- Reuse the current valid Release APK when it is available, passes the Repository identity and inspection checks, and represents the current changes.
-- Run Release Build only when no current valid APK exists or the current changes are not represented by the available APK.
+- 現在の有効なRelease APKがあり、リポジトリのidentity・検査チェックに合格し、現在の変更を含む場合は再利用する。
+- 現在の有効なAPKがない、または利用可能なAPKが現在の変更を含まない場合だけRelease Buildを実行する。
 
-The gate is the establishment and verification of a current Release APK, not the unconditional execution of Prepare or Build.
+gateの条件は現在のRelease APKの確立と検証であり、PrepareやBuildの無条件実行ではありません。
 
-The normal gate order is:
+通常のgate順序は次のとおりです。
 
 ```text
 Doctor / preflight
-→ Prepare if required
-→ establish a current Release APK
-  ├─ reuse current valid APK when appropriate
-  └─ Release Build when no current APK exists or current changes are not represented
-→ APK inspection
-→ Install
-→ Smoke
-→ single control Flow
-→ Runtime Suite
-→ Boundary Suite
-→ evidence / completion
+  → 必要に応じたPrepare
+  → 現在のRelease APKを確立
+    ├─ 適切な場合は現在の有効なAPKを再利用
+    └─ 現在のAPKがない、または現在の変更を含まない場合にRelease Buildを実行
+  → APK検査
+  → Install
+  → Smoke
+  → 単一のcontrol Flow
+  → Runtime Suite
+  → Boundary Suite
+  → 証跡／完了
 ```
 
-The Repository may define additional concrete Flow gates. A later gate runs only after its upstream gate passes.
+リポジトリが追加の具体的なFlow gateを定義する場合があります。後続gateは上流gateが成功した後だけ実行します。固定契約文言は `A later gate runs only after its upstream gate passes` です。
 
-## Evidence and attempt identity
+## Evidenceと実行識別子
 
-Use a unique attempt identity for every execution and keep complete raw Gradle, ADB, Maestro, JUnit, hierarchy, screenshot, and APK evidence in the Repository-supplied artifact root. Do not overwrite a failed attempt with a later attempt. The active Run stores a concise, repo-relative summary with command, result, first anomaly, derived errors, classification, and next action.
+実行ごとに一意な実行識別子を使い、Gradle、ADB、Maestro、JUnit、hierarchy、screenshot、APKの未加工の証跡をリポジトリ指定のartifact rootへ保存します。後続の実行で失敗した実行を上書きしません。active Runには、command、結果、最初の異常、派生エラー、分類、次の対応を含む簡潔なリポジトリ相対の概要を記録します。
 
-Build, Install, Smoke, each Flow, and each Suite are reported separately. A screenshot or final log line alone does not prove a semantic pass when the underlying Flow or device state is not confirmed.
+Build、Install、Smoke、各Flow、各Suiteは個別に報告します。対象Flowまたは端末の状態を確認できていない場合、スクリーンショットや最後のログ行だけでは意味上の成功を証明できません。
 
-## Failure classification
+## 失敗の分類
 
-Separate the first anomaly from derived errors such as `BUILD FAILED`, missing APK, Install failure, or Maestro startup failure. Use the Repository-compatible execution classification:
+`BUILD FAILED`、APK欠落、Install失敗、Maestro起動失敗などの派生エラーと、最初の異常を分けます。リポジトリ互換の実行分類を使います。
 
 ```text
 ENVIRONMENT_FAILURE
@@ -65,29 +65,29 @@ TRANSIENT_FAILURE
 UNKNOWN
 ```
 
-Do not infer `TRANSIENT_FAILURE` without evidence. Keep environment, dependency, configuration, source, cache, device, and test causes distinct.
+Evidenceなしに`TRANSIENT_FAILURE`と推測しません。環境、依存関係、設定、source、cache、端末、testの原因を区別します。
 
-## Retry and stop
+## Retryと停止
 
-Retry only for a stated purpose: reproducibility, additional evidence, hypothesis testing, or recovery from a confirmed external transient. Change one condition at a time where practical.
+retryは、再現性の確認、追加Evidenceの取得、仮説検証、確認済みの外部一時障害からの復旧という目的を明示できる場合だけ行います。可能な限り一度に1つの条件だけを変更します。
 
-Stop and return to investigation when the same error occurs twice consecutively, the same stage fails three times, the first anomaly remains unchanged after different responses, no new evidence or hypothesis is added, a downstream stage would run after an upstream failure, or the required environment/device/APK condition is not understood.
+同じエラーが2回連続で発生した、同じ段階が3回失敗した、異なる対応をしても最初の異常が変わらない、新しいEvidenceまたは仮説が追加されない、上流の失敗後に下流段階を実行することになる、または必要な環境・端末・APK条件を理解できていない場合は、停止して調査へ戻ります。
 
-Cache deletion, daemon stopping, dependency reinstall, clean build, timeout increase, assertion removal, and Flow skipping are not explanations by themselves and must not be used as blind retries or as a way to claim success. A capacity failure may be retried only after capacity is corrected and the changed condition is recorded.
+cache削除、daemon停止、依存関係の再Install、clean build、timeout延長、Assertion削除、Flowのskipは、それだけでは説明になりません。盲目的なretryや成功の主張に使ってはいけません。容量不足は、容量を改善して変更条件を記録した後だけretryできます。
 
-## Repair boundary
+## 修復の境界
 
-When a Product or Flow repair is explicitly authorized, apply the smallest in-scope repair, rerun the same failing unit, and proceed to later Suites only after that unit passes. Do not mix unrelated product changes, dependency upgrades, or environment cleanup into the validation loop.
+ProductまたはFlowの修復が明示的に許可された場合は、対象範囲内で最小の修復を適用し、同じ失敗単位を再実行します。その単位が成功するまで後続Suiteへ進みません。無関係なProduct変更、依存関係更新、環境cleanupを検証loopへ混ぜません。
 
-## Completion
+## 完了
 
-Native validation is complete only when every Repository-required gate passes: toolchain/preflight, preparation when required, establishment and inspection of a current Release APK, physical-device Install and startup, the control Flow, required Runtime and Boundary Suites, and evidence persistence. Running Prepare or Build on every attempt is not required, and Build success alone is not Native validation completion.
+Native検証は、toolchain / preflight、必要時のPrepare、現在のRelease APKの確立と検査、実機へのInstallと起動、control Flow、必須のRuntime / Boundary Suite、Evidenceの保存という、リポジトリが要求する全gateを通過した場合だけ完了です。毎回PrepareやBuildを実行する必要はなく、Build成功だけではNative検証の完了になりません。
 
-Never report an unexecuted or blocked stage as PASS. If a required physical device or capability is unavailable, record a blocked or not-executed result with evidence and stop according to the Repository contract.
+未実行またはblockedの段階をPASSと報告しません。必要な実機やCapabilityを利用できない場合は、Evidence付きでblockedまたはnot-executedの結果を記録し、リポジトリ契約に従って停止します。
 
-## Safety and non-goals
+## 安全性と対象外
 
-- Preserve Git state; do not perform Git operations without explicit authorization.
-- Do not delete or move user data, caches, generated files, APKs, or device data automatically.
-- Do not bypass assertions, skip a failing Flow, or hide a failure behind a changed timeout.
-- Do not upgrade the fixed toolchain or invent a new command runner in this workflow.
+- Gitの状態を保持し、明示的な許可なしにGit操作を行わない。
+- ユーザーデータ、cache、生成ファイル、APK、端末データを自動的に削除・移動しない。
+- Assertionを回避せず、失敗したFlowをskipせず、変更したtimeoutの背後へ失敗を隠さない。
+- 固定toolchainを更新せず、このworkflowに新しいcommand runnerを作らない。

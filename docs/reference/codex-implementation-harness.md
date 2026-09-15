@@ -30,7 +30,7 @@
   - `codex-task --runtime docker-sandbox` の薄い互換 wrapper。
   - Docker image と認証が明示設定されている場合だけ使う experimental path。
 
-## Workflow level の使い分け
+## Workflow levelの使い分け
 
 | workflow level | PLAN | TASKS | REPORT | run.json | evaluation | scope 指定 | 想定用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -50,7 +50,7 @@
 - actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。
 - Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。
 
-## Verification tiers
+## 検証tier
 
 - consumer repo の通常確認:
   - `bash scripts/verify`

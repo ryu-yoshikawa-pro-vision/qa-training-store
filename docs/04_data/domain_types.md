@@ -364,7 +364,7 @@ type SchemaMetadata = {
 };
 ```
 
-## 7. Persistence Projection
+## 7. 永続化Projection
 
 Web Persistence Recordだけに次を追加します。Domain Entityへは露出しません。
 

@@ -3,33 +3,33 @@ name: harness-improvement
 description: Use when converting run results, evaluation findings, repair-loop outcomes, or repeated failures into harness improvement candidates.
 ---
 
-# Harness Improvement Skill
+# Harness改善Skill
 
-## Purpose and boundary
+## 目的と適用範囲
 
-Use this Skill to turn evidence from runs, evaluations, repair loops, reviews, or repeated failures into reviewable harness-improvement candidates. A candidate is a proposal, not an automatic change, and must remain separate from unrelated product implementation.
+このSkillは、Run、評価、修復ループ、レビュー、繰り返し発生する失敗のEvidenceを、レビュー可能なHarness改善候補へ変換するときに使います。候補は提案であり自動変更ではありません。無関係なProduct実装とは分離します。
 
-## Inputs
+## 入力
 
-- Evaluation results, run manifests, validation results, hook observations, Subagent records, review comments, and repeated failures.
-- The package-local [improvement workflow](references/improvement-workflow.md), which defines the candidate model, evidence, classification, and review boundary.
-- Repository-supplied target catalog, strictness mapping, failure taxonomy, and artifact/evaluation contract.
+- evaluation result、Run manifest、検証結果、Hook観測、Subagent record、レビューコメント、繰り返しの失敗。
+- 候補モデル、Evidence、分類、レビュー境界を定義する、このSkillの[改善Workflow](references/improvement-workflow.md)。
+- リポジトリから提供されるtarget catalog、strictness mapping、Failure Taxonomy、artifact / evaluation契約。
 
-## Execution outline
+## 実行の概要
 
-1. Collect concrete evidence and identify the failure or recurrence it supports.
-2. Create a candidate with `target`, `failure_category`, `evidence`, `expected_impact`, `risk`, `recommended_change`, and `strictness`.
-3. Keep product implementation fixes and harness improvement proposals separate.
-4. Use the Repository target catalog and strictness mapping for concrete paths and Repository-layer applicability.
-5. Mark the candidate as reviewable and do not auto-apply it.
+1. 具体的なEvidenceを集め、それが裏付ける失敗または再発を特定する。
+2. `target`、`failure_category`、`evidence`、`expected_impact`、`risk`、`recommended_change`、`strictness`を持つ候補を作成する。
+3. Product実装の修正とHarness改善の提案を分ける。
+4. 具体的なpathとRepository layerへの適用可否には、リポジトリのtarget catalogとstrictness mappingを使う。
+5. 候補をレビュー可能な状態にし、自動適用しない。
 
-## Candidate and output boundary
+## 候補と出力の境界
 
-The candidate model and the meaning of the `target` field are defined by the package-local workflow. Repository paths, path-based strictness, taxonomy categories, and artifact locations are supplied by the Repository mapping. Output includes the candidate summary, evidence, impact, risk, recommendation, strictness, owner decision, and follow-up scope.
+候補モデルと`target`項目の意味は、このSkillの改善Workflowが定義します。Repository mappingは、リポジトリのpath、pathベースのstrictness、taxonomy category、artifact保存先を提供します。出力には候補の概要、Evidence、影響、リスク、推奨案、strictness、担当者の判断、後続作業の対象範囲を含めます。
 
-## Guardrails
+## ガードレール
 
-- Reject evidence-free proposals and do not invent failure categories.
-- Keep `normal`, `strict`, and `blocked` decisions explicit.
-- Treat safety, runner, schema, policy, destructive, credential, permission, and bypass implications according to the supplied Repository mapping.
-- Do not auto-apply candidates or bundle them into unrelated implementation work.
+- Evidenceのない提案は却下し、失敗分類を創作しない。
+- `normal`、`strict`、`blocked`の判断を明示する。
+- 安全性、runner、schema、policy、破壊的操作、credential、permission、bypassへの影響は、提供されたRepository mappingに従って扱う。
+- 候補を自動適用せず、無関係な実装作業へまとめない。

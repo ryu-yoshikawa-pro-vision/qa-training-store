@@ -1,4 +1,4 @@
-# Sequence Flow
+# シーケンスフロー
 
 ## 1. LoginとGuest Cart統合
 

@@ -120,7 +120,7 @@ bash scripts/codex-safe.sh --preset auto-net
 - `implementation_worker` も削除、rename、移動、git mutation、delete / rename を含む patch operation を行わない。
 - 追跡済み runtime artifact を配布対象から外す migration では、明示された対象に限って `git rm --cached -- <path>` を使ってよい。物理ファイルは削除しない。
 
-## apply_patch operation policy
+## apply_patch operationの方針
 
 `apply_patch` は通常のファイル編集には使ってよい。ただし delete / rename / move は、意図が見えづらく影響が大きいため、通常編集とは分けて扱う。
 
@@ -153,7 +153,7 @@ bash scripts/codex-safe.sh --preset auto-net
 - `.codex/rules/**` はstatic prefixだけのdefense-in-depthであり、common policyの正本ではない。`auto-net` のshell wrapper禁止などpreset固有のrulesは別契約として維持する。
 - Phase 1 では shell wrapper 系の `bash -lc`, `sh -c`, `pwsh -Command`, `cmd /c` は auto-net rules 側で forbidden 寄りに扱う。
 
-## Report file generation policy
+## レポートファイルの作成方針
 
 - `docs/reports/` は durable な調査・監査・検証結果の置き場であり、通常のレビュー返答、進捗報告、軽い確認結果、run 内ログの既定保存先ではない。
 - Report file を生成してよいのは、ユーザーが保存を明示した場合、計画 DoD に report file がある場合、複数ソース調査・監査・検証結果を後で参照する必要がある場合のみ。

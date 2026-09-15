@@ -1,70 +1,70 @@
-# Agentic QA Scenario Shop Integration
+# Agentic QAとScenario Shopの統合
 
-## Purpose and ownership
+## 目的と責任分担
 
-This document supplies the Scenario Shop-specific artifact layout, concrete schema binding, validator and preparation mapping, and scoring integration for the portable [`exploratory-qa` Skill](../../.agents/skills/exploratory-qa/SKILL.md).
+この文書は、portableな[`exploratory-qa` Skill](../../.agents/skills/exploratory-qa/SKILL.md)に対するScenario Shop固有のartifact構成、具体的なschemaの紐付け、validatorと準備処理の対応、採点統合を定義します。
 
-- Portable Mode selection, Charter, Coverage, Budget, Stop, Evidence, Finding, and finalization semantics live in the package-local references.
-- `QA_AGENT.md` owns the Repository execution ownership and Machine Contract boundary.
-- `scripts/agentic-qa/**` owns deterministic preparation, validation, isolation verification, artifact integrity, evaluation, and scoring. It does not launch, wrap, orchestrate, retry, or manage the Coding Agent.
-- Normative Product Specification is `docs/spec/`.
+- PortableなMode選択、Charter、Coverage、Budget、Stop、Evidence、Finding、finalizationの意味はpackage-local referencesに定義します。
+- `QA_AGENT.md`はリポジトリの実行責任とMachine Contractの境界を管理します。
+- `scripts/agentic-qa/**`は決定的な準備、検証、隔離検証、artifact整合性確認、evaluation、scoringを担当します。Coding Agentのlaunch、wrap、orchestrate、retry、管理は行いません。
+- Normative Product Specificationは`docs/spec/`です。
 
-## Repository artifact layout
+## リポジトリのartifact構成
 
 ```text
-docs/spec/                         Normative and supporting documentation
-training/agentic-qa/challenges/   Learner-safe Challenge + Runbook
-training/agentic-qa/instructor/   Answer Key + Patch (Instructor-only)
-training/agentic-qa/skills/        Hash-verified scored Skill snapshot
-training/agentic-qa/tool-profiles/ Scored Tool Profile
-.codex/runs/<run_id>/              Durable Charter, Findings, Evaluation
-.artifacts/                        Raw evidence and disposable runtime data
+docs/spec/                         規範仕様と補助文書
+training/agentic-qa/challenges/   受講者向け安全なChallenge + Runbook
+training/agentic-qa/instructor/   Answer Key + Patch（Instructor専用）
+training/agentic-qa/skills/        hash検証済みの採点用Skill snapshot
+training/agentic-qa/tool-profiles/ 採点用Tool Profile
+.codex/runs/<run_id>/              永続的なCharter、Findings、Evaluation
+.artifacts/                        raw evidenceと使い捨てruntimeデータ
 ```
 
-Normal / Gray-box uses `.codex/runs/<run_id>/qa-charter.json`, candidate and final `qa-findings.json`, and same-Run working-tree snapshots. Black-box input uses the Challenge directory, learner-safe Bundle, Runbook, hash-verified `training/agentic-qa/skills/scored-v1.md` snapshot, Canonical Runner Input, and Source-free Prepared Target under the isolated artifact chain.
+Normal / Gray-boxでは`.codex/runs/<run_id>/qa-charter.json`、candidateとfinalの`qa-findings.json`、同一Runのworking-tree snapshotを使います。Black-box inputでは、隔離されたartifact chainのChallenge directory、learner-safe Bundle、Runbook、hash検証済みの`training/agentic-qa/skills/scored-v1.md` snapshot、Canonical Runner Input、Source-free Prepared Targetを使います。
 
-Raw screenshot, trace, ADB log, and MCP log files belong under `.artifacts/`. Durable Run Artifacts contain repo-relative summaries only.
+rawのscreenshot、trace、ADB log、MCP logは`.artifacts/`配下に保存します。永続的なRun Artifactにはリポジトリ相対の概要だけを含めます。
 
-## Machine Contract and validation mapping
+## Machine Contractと検証の対応
 
-- JSON + Zod schemas: `scripts/agentic-qa/contracts.ts`.
-- Cross-file and Run Artifact validation: `scripts/agentic-qa/validate-contracts.ts`.
-- Normative reference grammar and owner resolution: `scripts/agentic-qa/spec-refs.ts`.
-- Coverage integrity: `scripts/agentic-qa/coverage.ts`.
-- Learner-safe Bundle: `scripts/agentic-qa/build-learner-bundle.ts`.
-- Canonical JSON and artifact identity: `canonical-json.ts` and `canonical-artifact-manifest.ts`.
-- Working Tree Snapshot and source-diff comparison: `working-tree-snapshot.ts`.
-- Runtime and resource boundary: `resource-boundary-probe.ts` and `isolation.ts`.
-- Host evidence gate: `host-capability-gate.ts`.
+- JSON + Zod schema: `scripts/agentic-qa/contracts.ts`。
+- ファイル間とRun Artifactの検証: `scripts/agentic-qa/validate-contracts.ts`。
+- 規範参照の文法とowner解決: `scripts/agentic-qa/spec-refs.ts`。
+- Coverageの整合性: `scripts/agentic-qa/coverage.ts`。
+- Learner-safe Bundle: `scripts/agentic-qa/build-learner-bundle.ts`。
+- Canonical JSONとartifact identity: `canonical-json.ts`と`canonical-artifact-manifest.ts`。
+- Working Tree Snapshotとsource diffの比較: `working-tree-snapshot.ts`。
+- Runtimeとresourceの境界: `resource-boundary-probe.ts`と`isolation.ts`。
+- Host Evidenceのgate: `host-capability-gate.ts`。
 
-Each JSON has `schema_version: 1`. Normal / Gray-box `spec_refs[]` accepts `BR-<AREA>-NNN`, `AC-<AREA>-NNN`, or `docs/spec/<normative-file>.md#<slug-heading>`. Invalid references or failed cross-file validation are pre-execution failures.
+各JSONは`schema_version: 1`を持ちます。Normal / Gray-boxの`spec_refs[]`は`BR-<AREA>-NNN`、`AC-<AREA>-NNN`、または`docs/spec/<normative-file>.md#<slug-heading>`を受け付けます。無効な参照やファイル間検証の失敗は、実行前の失敗です。
 
-## Normal / Gray-box concrete binding
+## Normal / Gray-boxの具体的な紐付け
 
-For the current Run, create or validate `.codex/runs/<run_id>/qa-charter.json` with the existing Zod contract. It binds `spec_refs[]`, mission, risk, role, seed, platform, viewport or device, required coverage, allowed controls, `exploration_budget`, and Stop Condition.
+現在のRunでは、既存のZod契約に従って`.codex/runs/<run_id>/qa-charter.json`を作成または検証します。`spec_refs[]`、mission、risk、role、seed、platform、viewportまたはdevice、required coverage、allowed controls、`exploration_budget`、Stop Conditionを紐付けます。
 
-Before the first Runtime interaction, capture the BEFORE Snapshot:
+最初のRuntime interaction前にBEFORE Snapshotを取得します。
 
 ```text
 pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase before
 ```
 
-After Runtime QA, create the candidate `qa-findings.json`, capture the AFTER Snapshot, and compare the same Run / Mode:
+Runtime QA後にcandidate `qa-findings.json`を作成し、AFTER Snapshotを取得して、同じRun / Modeで比較します。
 
 ```text
 pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase after
 pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --before .codex/runs/<run_id>/working-tree-snapshot-normal-before.json --after .codex/runs/<run_id>/working-tree-snapshot-normal-after.json
 ```
 
-Findings are finalized only when comparison `passed` is true and `additional_source_diff_count` is zero. Normal / Gray-box output sets `charter_id` and `working_tree_snapshot`; Challenge, Benchmark Revision, Runtime Variant, and Runner Profile are null.
+比較の`passed`がtrueで、`additional_source_diff_count`が0の場合だけFindingsを確定します。Normal / Gray-boxの出力では`charter_id`と`working_tree_snapshot`を設定し、Challenge、Benchmark Revision、Runtime Variant、Runner Profileはnullにします。
 
-## Black-box preparation mapping
+## Black-boxの準備対応
 
-`prepare-challenge.ts` validates the machine contract, Challenge, protected Patch, learner-safe specification Bundle, disposable source, baseline and patched sanity, deterministic reset, Source-free Prepared Target, Canonical Artifact Manifest, Runner Input, isolated root, Tool Profile, Forbidden Probe, and Host handoff. It does not start the Agent Session.
+`prepare-challenge.ts`はmachine contract、Challenge、protected Patch、learner-safe specification Bundle、disposable source、baselineとpatched sanity、deterministic reset、Source-free Prepared Target、Canonical Artifact Manifest、Runner Input、isolated root、Tool Profile、Forbidden Probe、Host handoffを検証します。Agent Sessionは開始しません。
 
-The protected Patch is Instructor-only, applied to a disposable copy with `git apply --check` followed by `git apply`, and never committed to the application branch or copied into the Runner-visible input.
+protected PatchはInstructor専用です。使い捨てcopyへ`git apply --check`の後に`git apply`で適用し、application branchへcommitせず、Runner-visible inputへcopyしません。
 
-The preparation sequence is fixed by the contract tests:
+準備の順序はcontract testで固定されています。
 
 ```text
 machine_contract_challenge_spec_validation
@@ -83,20 +83,20 @@ machine_contract_challenge_spec_validation
 → host_trusted_runtime_capability_handoff
 ```
 
-Missing Host Capability Receipt, unproven required evidence, missing trusted URL, failed precondition, failed Patch check, or absent post-patch reproduction blocks the Official Scored Run. It is recorded as `BLOCKED / DEFERRED / NOT EXECUTED`; Repository-side deterministic preparation is not promoted to an Official Run.
+Host Capability Receiptの欠落、証明されていないrequired evidence、trusted URLの欠落、preconditionの失敗、Patch checkの失敗、post-patch reproductionの欠落がある場合は、Official Scored Runを開始しません。`BLOCKED / DEFERRED / NOT EXECUTED`として記録し、リポジトリ側の決定的な準備をOfficial Runへ昇格させません。
 
-## Runner, evaluator, and identity mapping
+## Runner、evaluator、identityの対応
 
-- Runner lifecycle and constrained output: `runner-input.ts`, `prepared-runtime-lifecycle.ts`, `runner-output-import.ts`.
-- Official verification and trust boundary: `official-verification.ts`, `host-capability-gate.ts`, and `resource-boundary-probe.ts`.
-- Separate evaluation and scoring: `evaluate.ts`.
-- Benchmark revision and identity: `benchmark-revision.ts` and `canonical-artifact-manifest.ts`.
+- Runnerのライフサイクルと制約付き出力: `runner-input.ts`、`prepared-runtime-lifecycle.ts`、`runner-output-import.ts`。
+- 正式な検証とtrust boundary: `official-verification.ts`、`host-capability-gate.ts`、`resource-boundary-probe.ts`。
+- 分離されたevaluationとscoring: `evaluate.ts`。
+- Benchmark revisionとidentity: `benchmark-revision.ts`、`canonical-artifact-manifest.ts`。
 
-The Runner and Evaluator are separate Sessions. The Evaluator freezes Runner Findings, reads the Answer Key only on the evaluator side, and writes `evaluation.json`. `blocked_environment`, Isolation / Tool Scope failure, and Benchmark Identity mismatch set `valid_for_scoring=false`. Ground Truth changes require a new Benchmark Revision and Fresh Re-run.
+RunnerとEvaluatorは別Sessionです。EvaluatorはRunner Findingsをfreezeし、Answer Keyをevaluator側だけで読み、`evaluation.json`を書き込みます。`blocked_environment`、Isolation / Tool Scope failure、Benchmark Identity mismatchがある場合は`valid_for_scoring=false`にします。Ground Truthの変更には新しいBenchmark RevisionとFresh Re-runが必要です。
 
-`invalid_non_atomic`、Duplicate、`TN` / `FP_non_defect` / `NE`、Unexpected Valid Finding are distinct evaluation classifications. `invalid_reasons[]` is enum-only, unique, and dictionary ordered. `FP_non_defect` is counted once for Precision, and Environment / Harness blockers keep `valid_for_scoring=false`.
+`invalid_non_atomic`、Duplicate、`TN` / `FP_non_defect` / `NE`、Unexpected Valid Findingは、それぞれ異なるevaluation分類です。`invalid_reasons[]`はenumのみ、重複なし、辞書順で保存します。`FP_non_defect`はPrecisionへ1回だけ加算し、Environment / Harness blockerがある場合は`valid_for_scoring=false`を維持します。
 
-Clean committed input uses `git:<40 lowercase hex>`. Uncommitted or mixed input uses `sha256:<64 lowercase hex>` over the Canonical Benchmark Manifest Input, excluding Runtime Variant and Runner Profile. Benchmark Identity is `challenge_id + benchmark_revision + runtime_variant_id`; same-condition comparison also requires Prepared Target hash, Runner Input hash, and Runner Profile.
+Clean committed inputには`git:<40 lowercase hex>`を使います。未commitまたは混在したinputには、Runtime VariantとRunner Profileを除くCanonical Benchmark Manifest Inputの`sha256:<64 lowercase hex>`を使います。Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`です。同条件の比較にはPrepared Target hash、Runner Input hash、Runner Profileも必要です。
 
 Metrics apply only to valid Scored Runs:
 
@@ -107,12 +107,12 @@ False Positive Rate = FP_non_defect / (FP_non_defect + TN)
 Coverage = completed_required_coverage_items / required_coverage_items
 ```
 
-Zero denominators are `null`. Frozen Findings are not rewritten for adjudication or Ground Truth changes.
+分母が0の場合は`null`です。adjudicationやGround Truthの変更のためにFrozen Findingsを書き換えません。
 
-Static server `Sec-Fetch-Dest` is defense-in-depth browser UX information and is not a Security Boundary; Host-trusted Tool Isolation and the actual Runtime Resource Negative Probe are authoritative.
+Static serverの`Sec-Fetch-Dest`は多層防御のbrowser UX情報であり、Security Boundaryではありません。Host-trusted Tool Isolationと実際のRuntime Resource Negative Probeを正本とします。
 
-## CI and repository references
+## CIとリポジトリの参照
 
-The `style-quality` CI job runs `pnpm run validate:spec` and the repository contract tests. The final `pnpm run verify` includes the full unit, integration, repository, component, contract, build, and security gates. Specification impact summaries use `scripts/spec/summarize-impact.ts` and are emitted to the existing CI step summary.
+`style-quality` CI jobは`pnpm run validate:spec`とリポジトリのcontract testを実行します。最終的な`pnpm run verify`にはunit、integration、repository、component、contract、build、securityの全gateが含まれます。仕様の影響概要は`scripts/spec/summarize-impact.ts`を使い、既存のCI step summaryへ出力します。
 
-The supporting reference [`run-artifacts.md`](run-artifacts.md) defines the broader Run artifact layout. The package-local workflow remains the only portable semantic source for exploratory QA behavior.
+補助Referenceの[`run-artifacts.md`](run-artifacts.md)は、より広いRun artifact構成を定義します。探索的QAの動作に関するportableな意味の正本は、引き続きpackage-local workflowだけです。

@@ -1,74 +1,74 @@
-name: Bug report
-description: Report a reproducible product or documentation bug. Do not use this form for security vulnerabilities.
+name: 不具合報告
+description: 再現可能な製品または文書の不具合を報告します。セキュリティ脆弱性にはこのフォームを使用しないでください。
 title: "[Bug]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
+        セキュリティ脆弱性をPublic Issueへ投稿しないでください。[SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md)を確認し、GitHub Private Vulnerability Reportingを使用してください。
   - type: textarea
     id: summary
     attributes:
-      label: Summary
-      description: Summarize the problem.
+      label: 概要
+      description: 問題の概要を記載してください。
     validations:
       required: true
   - type: textarea
     id: platform
     attributes:
-      label: Platform
-      description: Identify the affected platform, device, or operating system.
+      label: 対象環境
+      description: 影響を受ける環境、端末、またはOSを記載してください。
     validations:
       required: true
   - type: textarea
     id: environment-browser
     attributes:
-      label: Environment / Browser
-      description: Include browser, browser version, app version, or relevant runtime details.
+      label: 環境 / ブラウザ
+      description: ブラウザとそのバージョン、アプリのバージョン、または関連するruntimeの情報を記載してください。
     validations:
       required: true
   - type: textarea
     id: preconditions
     attributes:
-      label: Preconditions
-      description: State any setup or data required before reproducing the issue.
+      label: 前提条件
+      description: 再現前に必要な設定やデータを記載してください。
     validations:
       required: true
   - type: textarea
     id: reproduction-steps
     attributes:
-      label: Reproduction Steps
-      description: List the smallest reliable reproduction steps.
+      label: 再現手順
+      description: 確実に再現できる最小限の手順を列挙してください。
     validations:
       required: true
   - type: textarea
     id: expected-result
     attributes:
-      label: Expected Result
+      label: 期待結果
     validations:
       required: true
   - type: textarea
     id: actual-result
     attributes:
-      label: Actual Result
+      label: 実際の結果
     validations:
       required: true
   - type: textarea
     id: reproducibility
     attributes:
-      label: Reproducibility
-      description: State how often the issue occurs and under what conditions.
+      label: 再現性
+      description: どの程度の頻度で、どの条件で発生するかを記載してください。
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: Evidence
-      description: Add logs, screenshots, links, or other evidence safe to share publicly.
+      label: 根拠・確認材料
+      description: 公開して安全なログ、スクリーンショット、リンク、その他の確認材料を追加してください。
     validations:
       required: true
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional Context
-      description: Add any other context that is safe to share publicly.
+      label: 補足
+      description: 公開して安全なその他の情報を追加してください。
