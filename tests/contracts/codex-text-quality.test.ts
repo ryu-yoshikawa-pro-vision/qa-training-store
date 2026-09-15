@@ -177,33 +177,37 @@ function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 
   return root;
 }
 
+function removeFixtureEntry(entryPath: string) {
+  const stats = fs.lstatSync(entryPath);
+  if (stats.isSymbolicLink()) {
+    fs.unlinkSync(entryPath);
+    return;
+  }
+  if (stats.isDirectory()) {
+    for (const entry of fs.readdirSync(entryPath)) {
+      removeFixtureEntry(path.join(entryPath, entry));
+    }
+    fs.rmdirSync(entryPath);
+    return;
+  }
+  fs.unlinkSync(entryPath);
+}
+
 function removeFixture(root: string) {
   process.chdir(repoRoot);
   if (!fs.existsSync(root)) return;
 
-  // Windows can keep the fixture root busy when fs.rmSync recursively walks
-  // a directory that contained a junction. Remove each child first, then the
-  // now-empty root, so cleanup does not depend on that recursive walk.
+  // Remove children explicitly so Windows cleanup is stable for non-ASCII
+  // fixture paths and junctions under the local Node runtime.
   for (const entry of fs.readdirSync(root)) {
-    const entryPath = path.join(root, entry);
-    if (entry === "node_modules") {
-      const nodeModulesStats = fs.lstatSync(entryPath);
-      if (nodeModulesStats.isSymbolicLink()) {
-        fs.unlinkSync(entryPath);
-      } else {
-        fs.rmSync(entryPath, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 200,
-        });
-      }
-      continue;
-    }
-    fs.rmSync(entryPath, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    removeFixtureEntry(path.join(root, entry));
   }
-
   fs.rmdirSync(root);
+}
+
+function removeFixtureFile(filePath: string) {
+  fs.rmSync(filePath, { force: true });
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
 function withFixture(
@@ -326,6 +330,19 @@ function runConfiguredQualityHook(
   };
 }
 
+function expectConfiguredStopBlock(result: ProcessResult, label: string, root: string) {
+  expect(result.status, `${label} status`).toBe(0);
+  expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
+    decision: "block",
+    reason: "Text quality check unavailable; completion cannot be confirmed.",
+  });
+  expect(result.stderr, `${label} stderr`).toBe("");
+  for (const value of ["prompt", "stop-secret", "stop-token", root]) {
+    expect(result.stdout, `${label} stdout leak`).not.toContain(value);
+    expect(result.stderr, `${label} stderr leak`).not.toContain(value);
+  }
+}
+
 describe("Codex deterministic text quality contracts", () => {
   it("registers a separate matcher-free text quality Hook for each supported event", () => {
     const config = readCodexConfig();
@@ -445,28 +462,62 @@ describe("Codex deterministic text quality contracts", () => {
     );
   });
 
-  it("fails closed through the configured Windows Stop launcher when quality execution degrades", () => {
+  it("uses the configured Windows Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform !== "win32") return;
 
     withFixture(
       (root) => {
         const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
-        const expected = {
-          decision: "block",
-          reason: "Text quality check unavailable; completion cannot be confirmed.",
+        const runFailureCases = (label: string) => {
+          const inactive = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: false,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "windows",
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredStopBlock(inactive, `${label} inactive`, root);
+
+          for (const [stateLabel, stateValue] of [
+            ["missing", undefined],
+            ["string true", "true"],
+          ] as const) {
+            const invalidState = runConfiguredQualityHook(
+              root,
+              "Stop",
+              {
+                ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
+                prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
+              },
+              "windows",
+              path.join(root, "rules.json"),
+            );
+            expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
+          }
+
+          const active = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: true,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "windows",
+            path.join(root, "rules.json"),
+          );
+          expect(active.status, `${label} active status`).toBe(0);
+          expect(active.stdout, `${label} active stdout`).toBe("");
+          expect(active.stdout).not.toContain('"decision":"block"');
+          expect(active.stderr, `${label} active stderr`).toBe("");
+          expect(active.stderr).not.toContain("stop-secret");
+          expect(active.stderr).not.toContain(root);
         };
 
-        fs.rmSync(hookFile, { force: true });
-        const missingHook = runConfiguredQualityHook(
-          root,
-          "Stop",
-          { stop_hook_active: false },
-          "windows",
-          path.join(root, "rules.json"),
-        );
-        expect(missingHook.status).toBe(0);
-        expect(JSON.parse(missingHook.stdout)).toEqual(expected);
-        expect(missingHook.stderr).toBe("");
+        removeFixtureFile(hookFile);
+        runFailureCases("missing Hook");
 
         const nonRepository = fs.mkdtempSync(
           path.join(os.tmpdir(), "codex-text-quality-windows-nonrepo-"),
@@ -475,55 +526,117 @@ describe("Codex deterministic text quality contracts", () => {
           const rootFailure = runConfiguredQualityHook(
             nonRepository,
             "Stop",
-            { stop_hook_active: false },
+            { stop_hook_active: false, prompt: "root secret=stop-secret" },
             "windows",
             path.join(root, "rules.json"),
             nonRepository,
           );
-          expect(rootFailure.status).toBe(0);
-          expect(JSON.parse(rootFailure.stdout)).toEqual(expected);
-          expect(rootFailure.stderr).toBe("");
+          expectConfiguredStopBlock(rootFailure, "root failure inactive", nonRepository);
+
+          const activeRootFailure = runConfiguredQualityHook(
+            nonRepository,
+            "Stop",
+            { stop_hook_active: true, prompt: "root secret=stop-secret" },
+            "windows",
+            path.join(root, "rules.json"),
+            nonRepository,
+          );
+          expect(activeRootFailure.status).toBe(0);
+          expect(activeRootFailure.stdout).toBe("");
+          expect(activeRootFailure.stdout).not.toContain('"decision":"block"');
+          expect(activeRootFailure.stderr).toBe("");
         } finally {
           fs.rmSync(nonRepository, { force: true, recursive: true });
         }
 
-        writeFile(root, ".codex/hooks/text_quality_gate.mjs", "process.exit(2);\n");
-        const failedHook = runConfiguredQualityHook(
+        writeFile(
           root,
-          "Stop",
-          { stop_hook_active: false },
-          "windows",
-          path.join(root, "rules.json"),
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stderr.write("launcher-secret"); process.exit(2);\n',
         );
-        expect(failedHook.status).toBe(0);
-        expect(JSON.parse(failedHook.stdout)).toEqual(expected);
-        expect(failedHook.stderr).toBe("");
+        runFailureCases("non-zero Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'import "missing-launcher-module";\n',
+        );
+        runFailureCases("module load failure");
       },
       "GOOD\n",
       "codex-text-quality-windows-degraded-",
     );
   }, 30_000);
 
-  it("keeps the configured Unix Stop launcher fail-closed when the quality Hook is missing", () => {
+  it("uses the configured Unix Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform === "win32") return;
 
     withFixture(
       (root) => {
-        fs.rmSync(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"), { force: true });
-        const result = runConfiguredQualityHook(
-          root,
-          "Stop",
-          { stop_hook_active: false },
-          "unix",
-          path.join(root, "rules.json"),
-        );
+        const runFailureCases = (label: string) => {
+          const inactive = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: false,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "unix",
+            path.join(root, "rules.json"),
+          );
+          expectConfiguredStopBlock(inactive, `${label} inactive`, root);
 
-        expect(result.status).toBe(0);
-        expect(JSON.parse(result.stdout)).toEqual({
-          decision: "block",
-          reason: "Text quality check unavailable; completion cannot be confirmed.",
-        });
-        expect(result.stderr).toBe("");
+          for (const [stateLabel, stateValue] of [
+            ["missing", undefined],
+            ["string true", "true"],
+          ] as const) {
+            const invalidState = runConfiguredQualityHook(
+              root,
+              "Stop",
+              {
+                ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
+                prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
+              },
+              "unix",
+              path.join(root, "rules.json"),
+            );
+            expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
+          }
+
+          const active = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              stop_hook_active: true,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            "unix",
+            path.join(root, "rules.json"),
+          );
+          expect(active.status, `${label} active status`).toBe(0);
+          expect(active.stdout, `${label} active stdout`).toBe("");
+          expect(active.stdout).not.toContain('"decision":"block"');
+          expect(active.stderr, `${label} active stderr`).toBe("");
+          expect(active.stderr).not.toContain("stop-secret");
+          expect(active.stderr).not.toContain(root);
+        };
+
+        removeFixtureFile(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+        runFailureCases("missing Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'process.stderr.write("launcher-secret"); process.exit(2);\n',
+        );
+        runFailureCases("non-zero Hook");
+
+        writeFile(
+          root,
+          ".codex/hooks/text_quality_gate.mjs",
+          'import "missing-launcher-module";\n',
+        );
+        runFailureCases("module load failure");
       },
       "GOOD\n",
       "codex-text-quality-unix-degraded-",
@@ -704,7 +817,7 @@ describe("Codex deterministic text quality contracts", () => {
 
   it("does not silently pass missing, invalid, or unloadable textlint configuration", () => {
     withFixture((root) => {
-      fs.rmSync(path.join(root, ".textlintrc.json"), { force: true });
+      removeFixtureFile(path.join(root, ".textlintrc.json"));
       const prompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
       expect(prompt.status).toBe(0);
       expect(prompt.stdout).toBe("");

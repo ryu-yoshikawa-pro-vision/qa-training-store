@@ -9,7 +9,7 @@
 
 Codexのsession中にMarkdownの文章品質を確認し、完了前とRepository品質ゲートの両方で新規違反を検出する必要がある。開始時ですでに存在する違反を新規違反として扱わず、worktreeだけの移動やGitが確定したrenameも同じfile identityとして比較する必要がある。
 
-Issue #135は2026-09-13時点で未完了であるため、compact後のroot `AGENTS.md`再注入はこの変更の責務に含めない。
+ADR作成時点の2026-09-13にはIssue #135が未完了だったため、compact後のroot `AGENTS.md`再注入はこの変更の責務に含めないと判断した。その後#135が完了してmainへ取り込まれ、Planの条件を満たしたため、`SessionStart(source=compact)`による再注入を追加した。現在の再注入内容の正本はroot `AGENTS.md`全文である。
 
 ## Decision
 

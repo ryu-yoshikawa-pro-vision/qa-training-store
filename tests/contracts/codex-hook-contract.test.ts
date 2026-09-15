@@ -215,6 +215,11 @@ function removeFixture(root: string) {
   fs.rmSync(root, { force: true, recursive: true });
 }
 
+function removeFixtureFile(filePath: string) {
+  fs.rmSync(filePath, { force: true });
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
 function setFixtureBranch(root: string, branch: string) {
   execFileSync("git", ["symbolic-ref", "HEAD", `refs/heads/${branch}`], {
     cwd: root,
@@ -281,9 +286,14 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(sessionEntry.additionalContextLimit).toBe(4096);
     expect(sessionEntry.timeout).toBe(10);
     const sessionWindowsCommand = commandForHook(sessionEntry, "command_windows", "SessionStart");
-    expect(decodeWindowsPowerShellCommand(sessionWindowsCommand, "SessionStart")).toContain(
-      "session_start_context.mjs",
+    const sessionWindowsScript = decodeWindowsPowerShellCommand(
+      sessionWindowsCommand,
+      "SessionStart",
     );
+    expect(sessionWindowsScript).toContain("session_start_context.mjs");
+    expect(sessionWindowsScript).toContain('"continue":false');
+    expect(sessionWindowsScript).toContain("Hook launcher failure");
+    expect(sessionWindowsScript).not.toContain("exit 2");
     expect(sessionWindowsCommand).not.toContain('"');
 
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
@@ -341,6 +351,8 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(windowsScript).toContain(
             `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
           );
+          expect(windowsScript).toContain("ConvertFrom-Json");
+          expect(windowsScript).toContain("stop_hook_active");
           expect(windowsScript).toContain("[Console]::Write($fallback)");
         }
         expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
@@ -970,7 +982,7 @@ function sessionStartCommandFor(launcher: LoggingLauncher) {
   );
 }
 
-function sessionStartPayload(source = "compact") {
+function sessionStartPayload(source = "compact", extra: Record<string, unknown> = {}) {
   return JSON.stringify({
     session_id: "contract-session-start",
     transcript_path: null,
@@ -979,6 +991,7 @@ function sessionStartPayload(source = "compact") {
     model: "contract-model",
     permission_mode: "default",
     source,
+    ...extra,
   });
 }
 
@@ -1002,6 +1015,24 @@ function runConfiguredSessionStartHook(
     stdout: result.stdout ?? "",
     stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
   };
+}
+
+function expectSessionStartLauncherFailure(result: HookResult, forbidden: string[]) {
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  const output = JSON.parse(result.stdout) as {
+    continue?: boolean;
+    stopReason?: string;
+  };
+  expect(output).toEqual({
+    continue: false,
+    stopReason: "compact後の必須指示を再注入できませんでした: Hook launcher failure",
+  });
+  for (const value of forbidden) {
+    expect(result.stdout).not.toContain(value);
+    expect(result.stderr).not.toContain(value);
+    expect(output.stopReason).not.toContain(value);
+  }
 }
 
 describe("Codex SessionStart compact context Hook contract", () => {
@@ -1124,7 +1155,7 @@ describe("Codex SessionStart compact context Hook contract", () => {
     const fixture = makeSessionFixture();
     const agentsPath = path.join(fixture, "AGENTS.md");
     try {
-      fs.rmSync(agentsPath, { force: true });
+      removeFixtureFile(agentsPath);
       const result = runSessionStartHook(sessionStartPayload(), fixture);
       const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
 
@@ -1142,7 +1173,7 @@ describe("Codex SessionStart compact context Hook contract", () => {
     const fixture = makeSessionFixture();
     const agentsPath = path.join(fixture, "AGENTS.md");
     try {
-      fs.rmSync(agentsPath, { force: true });
+      removeFixtureFile(agentsPath);
       fs.mkdirSync(agentsPath);
       const result = runSessionStartHook(sessionStartPayload(), fixture);
       const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
@@ -1209,6 +1240,104 @@ describe("Codex SessionStart compact context Hook contract", () => {
       removeFixture(fixture);
     }
   }, 10_000);
+
+  it("converges configured Unix launcher failures to structured fail-close output", () => {
+    if (process.platform === "win32") return;
+
+    const fixture = makeSessionFixture("# Unix launcher failure fixture\n日本語\n");
+    const secretPayload = sessionStartPayload("compact", {
+      prompt: "session launcher prompt",
+      token: "session-token",
+      secret: "session-secret",
+    });
+    try {
+      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
+      removeFixtureFile(hookPath);
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
+        [fixture, "session launcher prompt", "session-token", "session-secret"],
+      );
+
+      fs.writeFileSync(
+        hookPath,
+        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
+        "utf8",
+      );
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
+        [fixture, "session-path", "session-token", "session-secret"],
+      );
+
+      const nonRepository = fs.mkdtempSync(
+        path.join(os.tmpdir(), "codex-session-unix-launcher-failure-"),
+      );
+      try {
+        const rootFailurePayload = sessionStartPayload("compact", {
+          cwd: nonRepository,
+          prompt: "root failure prompt",
+          token: "root-failure-token",
+          secret: "root-failure-secret",
+        });
+        expectSessionStartLauncherFailure(
+          runConfiguredSessionStartHook(rootFailurePayload, "unix", nonRepository),
+          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
+        );
+      } finally {
+        removeFixture(nonRepository);
+      }
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 30_000);
+
+  it("converges configured Windows launcher failures to structured fail-close output", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = makeSessionFixture("# Windows launcher failure fixture\n日本語\n");
+    const secretPayload = sessionStartPayload("compact", {
+      prompt: "session launcher prompt",
+      token: "session-token",
+      secret: "session-secret",
+    });
+    try {
+      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
+      removeFixtureFile(hookPath);
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
+        [fixture, "session launcher prompt", "session-token", "session-secret"],
+      );
+
+      fs.writeFileSync(
+        hookPath,
+        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
+        "utf8",
+      );
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
+        [fixture, "session-path", "session-token", "session-secret"],
+      );
+
+      const nonRepository = fs.mkdtempSync(
+        path.join(os.tmpdir(), "codex-session-windows-launcher-failure-"),
+      );
+      try {
+        const rootFailurePayload = sessionStartPayload("compact", {
+          cwd: nonRepository,
+          prompt: "root failure prompt",
+          token: "root-failure-token",
+          secret: "root-failure-secret",
+        });
+        expectSessionStartLauncherFailure(
+          runConfiguredSessionStartHook(rootFailurePayload, "windows", nonRepository),
+          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
+        );
+      } finally {
+        removeFixture(nonRepository);
+      }
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 30_000);
 });
 
 function runConfiguredLoggingHook(
