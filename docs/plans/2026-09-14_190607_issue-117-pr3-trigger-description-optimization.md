@@ -135,6 +135,8 @@ latest `main`は実装開始時だけでなく、current-main側Targetを作成�
 - `AGENTS.md`、対象Skill、Evaluator、ADR等に関係する変更がある場合は、latest `main`を実装branchへ取り込み、description gap、candidate、Evaluator差分の前提を再確認する。必要な評価は新しい前提でやり直す。
 - routing / Evaluatorに無関係な変更だけでも、最終PRを古い`main`前提のまま完了扱いにしない。branch同期の要否をGit safety契約に従って判断し、使用した`main` SHAをRun Artifactへ残す。
 
+source変更へ進む直前に、実装branchへ取り込んだlatest `main` SHAを`implementation_base_sha`として記録する。最終scope確認ではこのSHAを基準にする。current-main側Target作成直前の再確認で`main`を追加取り込みした場合は、その取り込み後のlatest `main` SHAへ`implementation_base_sha`を更新し、以後のscope確認も同じSHAを使用する。
+
 latest `main`確認を自動化する専用frameworkは追加しない。
 
 ### 4.2 Evaluator差分の確認
@@ -295,6 +297,19 @@ current-main側はbaselineとの因果比較ではなく、現在のrouting cont
 12. working treeがclean、EvaluatorとGit common-dirを共有しない、`objects/info/alternates`が空であることを確認する。
 13. Resultの`routing_source_git_sha`にはfresh repositoryの実Target HEADを記録する。
 
+### 7.3 Project trust / hook trust
+
+baseline側・current-main側の両Targetは新しいrepository pathで作成するため、live eval前にそのexact Target pathをcurrent Codexの通常のuser-consented project trust手順でtrustedにする。Repository-owned hookに追加trustが必要な場合も通常手順で承認する。
+
+確認内容:
+
+- Targetのproject-scoped Codex configが通常のtrust契約に従って読み込まれる状態である。
+- Repository-owned hooksが存在する場合、通常のhook trust契約に従って実行可能な状態である。
+- runnerや補助scriptから`~/.codex/config.toml`、trust state file、hook trust keyを変更しない。
+- trustを回避するためのunsafe flag、一時`CODEX_HOME`、trust state偽装を使用しない。
+
+Project trustまたは必要なhook trustを確立できない場合はenvironment preparation failureとして停止する。description failure、routing regression、`unobservable`改善対象へ読み替えない。
+
 answer key確認のための検索は実行時の一時確認に限定し、PR3専用のTarget generator、scanner、repository helperは追加しない。具体的なpreflight、selector、OTel観測条件はADR-0024 / ADR-0025と現行runnerへ従う。
 
 ---
@@ -428,8 +443,11 @@ pnpm run test:repository
 
 ```bash
 pnpm run verify
-git diff --check <implementation-base>...HEAD
+git diff --check <implementation_base_sha>...HEAD
+git diff <implementation_base_sha>...HEAD -- .agents/skills
 ```
+
+`implementation_base_sha`は、source変更へ進む直前に実装branchへ取り込んだlatest `main` SHAとする。current-main側Target作成直前の再確認で`main`を追加取り込みした場合は、その取り込み後のlatest `main` SHAへ更新する。
 
 source変更がある場合は、最終diffでSkill source変更が根拠を確認したfrontmatter `description`だけであることを確認する。
 
@@ -454,6 +472,7 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 ## 10. 完了条件
 
 - [ ] 実装開始時のlatest `main`を確認し、source変更前に実装branchへ必要な`main`変更を取り込んでいる。
+- [ ] source変更へ進む直前のlatest `main` SHAを`implementation_base_sha`として記録し、後で`main`を追加取り込みした場合は基準SHAも更新している。
 - [ ] current-main側Target作成直前にもlatest `main`を再確認し、使用した`main` SHAを記録している。
 - [ ] latest `main`にrouting / Evaluator関連変更が入った場合、取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約でdescription gapと評価前提を再確認している。
 - [ ] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認している。
@@ -474,6 +493,8 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] current-main側Target内にcurrent case ID、raw query、dataset fingerprint、baseline artifact参照、caseとexpected Skill / boundary / outcomeの対応が残っていないことを一時検索で確認している。
 - [ ] ADR等の一般評価契約をanswer key隔離だけを理由に不必要に削除していない。
 - [ ] 両TargetはEvaluatorとGit common-dirを共有せず、alternatesを使用せず、cleanなdetached HEADである。
+- [ ] 両Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認している。
+- [ ] trust確立のためにrunnerや補助scriptから`~/.codex/config.toml`、trust state、hook trust keyを変更していない。
 - [ ] PR2 baselineとの因果比較と、現在の`main`相当での統合確認を別のTarget・別の結果として扱っている。
 - [ ] baseline側final `all`がcoverage不足で`exit 1`でも、comparison可能なpartial resultが保存されている場合は`exit 1`だけをdescription failureとせず、Result内容で判定している。
 - [ ] baseline側comparisonでは、変更したdescriptionに対応するfailureが`fixed`、`regressed=0`である。
@@ -484,6 +505,7 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [ ] current-main側で変更対象caseが`unobservable`の場合は、description failureと断定せず、統合確認未完了としている。
 - [ ] `recovered_observable`がある場合はcurrent outcomeを確認している。
 - [ ] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
+- [ ] `implementation_base_sha`基準の最終diffで、Skill source変更が根拠を確認したfrontmatter `description`だけであることを確認している。
 - [ ] repository fileを変更した場合は、final commit、通常push、PR最新head確認、`Web CI` / `Mobile App CI`の`success`確認まで現行implementation harnessの完了契約を満たしている。
 - [ ] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
 - [ ] Repository独自Agent Runtime、routing classifier、retry framework、統計評価framework、Target generator、answer-key scannerを追加していない。
@@ -496,30 +518,33 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 
 - [ ] 1. Issue #117、PR #127、最終baseline、現行routing契約を再確認する。
 - [ ] 2. latest `main`を確認し、branchがbehindならincoming diffを確認して実装branchへ取り込む。
-- [ ] 3. 取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約でbaseline時とcurrentのrouting contextを分けて扱う前提を確定する。
-- [ ] 4. baseline `evaluator_git_sha`と実行時Evaluatorの意味契約差分を確認する。
-- [ ] 5. `code-review-train-002`についてdescription gapの有無を判定する。
-- [ ] 6. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
-- [ ] 7. gapが確認できたSkillだけcandidate descriptionを作成する。
-- [ ] 8. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
-- [ ] 9. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
-- [ ] 10. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後にcandidate commitをその直接の子として作る。
-- [ ] 11. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
-- [ ] 12. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
-- [ ] 13. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
-- [ ] 14. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行し、coverage不足の`exit 1`とcomparison結果を分けて判定する。
-- [ ] 15. current-main側Target作成直前にlatest `main`を再確認する。routing / Evaluator関連のincoming diffがあればbranchへ取り込み、必要な前提・評価を再確認する。
-- [ ] 16. 確定したlatest `main`のworking filesからTrigger Eval dataset、`.codex/runs/**`、case固有answer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
-- [ ] 17. current-main側Targetでcase ID、raw query、dataset fingerprint、baseline参照、caseとexpected Skill等の対応が残っていないことを一時検索で確認する。
-- [ ] 18. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
-- [ ] 19. deterministic validationとRepository標準検証を実行する。
-- [ ] 20. scope、Run Artifact、comparison結果を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
-- [ ] 21. 最終差分をcommitし、対象branchへ通常pushする。
-- [ ] 22. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
-- [ ] 23. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
-- [ ] 24. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
+- [ ] 3. source変更へ進む直前のlatest `main` SHAを`implementation_base_sha`として記録する。
+- [ ] 4. 取り込み後の`SKILL.md`、`AGENTS.md`、Evaluator契約でbaseline時とcurrentのrouting contextを分けて扱う前提を確定する。
+- [ ] 5. baseline `evaluator_git_sha`と実行時Evaluatorの意味契約差分を確認する。
+- [ ] 6. `code-review-train-002`についてdescription gapの有無を判定する。
+- [ ] 7. `exploratory-qa-train-002`についてdescription gapの有無を判定する。
+- [ ] 8. gapが確認できたSkillだけcandidate descriptionを作成する。
+- [ ] 9. source変更がある場合は対象frontmatterだけ変更し、diffを確認してcandidateをcommitする。
+- [ ] 10. Evaluatorの`.codex/runs/**`以外がcleanであることを確認する。
+- [ ] 11. baseline `routing_source_git_sha`だけを隔離repositoryへ取得し、remote削除後にcandidate commitをその直接の子として作る。
+- [ ] 12. baseline側Targetのparent SHA、answer-key不存在、detached / clean / Git isolation / alternatesなしを確認する。
+- [ ] 13. baseline側Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。
+- [ ] 14. source変更がある場合は`train`でcandidateを確認し、意味上の根拠と結果の両方を満たすcandidateだけ採用する。
+- [ ] 15. candidateを変更する場合は新しい仮説を明示し、Evaluator側candidate commitとbaseline側candidate commitを更新してclean確認後に再評価する。
+- [ ] 16. candidate確定後、baseline側Targetで`all` + baseline comparisonを実行し、coverage不足の`exit 1`とcomparison結果を分けて判定する。
+- [ ] 17. current-main側Target作成直前にlatest `main`を再確認する。routing / Evaluator関連のincoming diffがあればbranchへ取り込み、必要な前提・評価を再確認し、取り込み後のlatest `main` SHAへ`implementation_base_sha`を更新する。
+- [ ] 18. 確定したlatest `main`のworking filesからTrigger Eval dataset、`.codex/runs/**`、case固有answer keyを除外したfresh Git repositoryとしてcurrent-main側Targetを準備する。
+- [ ] 19. current-main側Targetでcase ID、raw query、dataset fingerprint、baseline参照、caseとexpected Skill等の対応が残っていないことを一時検索で確認する。
+- [ ] 20. current-main側Targetのexact pathを通常のuser-consented project trust手順でtrustedにし、必要なRepository-owned hook trustを通常手順で確認する。
+- [ ] 21. current-main側Targetで`all`を実行し、変更対象caseのexpected routingとcurrent routing contextでの統合結果を確認する。
+- [ ] 22. deterministic validationとRepository標準検証を実行する。
+- [ ] 23. `implementation_base_sha`基準でscope、Run Artifact、comparison結果を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
+- [ ] 24. 最終差分をcommitし、対象branchへ通常pushする。
+- [ ] 25. local HEAD、remote HEAD、PRの最新headを確認し、既存PRを使用するか必要な場合だけPRを作成する。
+- [ ] 26. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認し、failureならbounded repair workflowに従う。
+- [ ] 27. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
 
-no-opの場合は7〜18のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。active Run Artifact等のrepository fileを変更した場合は20〜24を通常どおり実行する。
+no-opの場合は8〜21のうちdescription変更とcandidate評価に不要な手順をN/Aとし、変更不要の根拠と通常検証を残す。active Run Artifact等のrepository fileを変更した場合は23〜27を通常どおり実行する。
 
 ---
 
@@ -536,6 +561,7 @@ no-opの場合は7〜18のうちdescription変更とcandidate評価に不要な�
 - current-main側のanswer-key-free Targetを元repositoryのGit history / remote ref / object databaseを持ち込まず準備できない。
 - current-main側Targetからcurrent case ID、raw query、dataset fingerprint、baseline artifact参照、caseとexpected Skill / boundary / outcomeの対応を除去できない。
 - answer keyを除くためにroutingへ必要なcurrent repository contextまで大きく削る必要が生じる。
+- baseline側またはcurrent-main側TargetのProject trust、または必要なRepository-owned hook trustを通常手順で確立できない。
 - candidate descriptionを正当化する意味上の根拠がなく、評価結果だけを見て語句を追加する状態になる。
 - description変更では解決できないHarness / OTel / runtime問題が主因と確認される。
 - 修正にSkill本文、dataset、runner、scoring、timeout等の変更が必要になる。
@@ -556,10 +582,13 @@ description変更要否の判断根拠
 変更した場合のdescription差分とcandidate commit SHA
 baseline evaluator / current evaluatorの差分確認
 実装開始時とcurrent-main Target作成直前のlatest main SHA / drift確認
+implementation_base_sha
 baseline側Targetのprovenanceとparent SHA
+baseline側TargetのProject trust / hook trust確認
 baseline側Trigger Eval結果とcomparison
 current-main側Targetのsource main SHAとprovenance
 current-main側Targetのanswer key除外・検索結果
+current-main側TargetのProject trust / hook trust確認
 current-main側Trigger Eval結果
 validation結果
 scope確認
