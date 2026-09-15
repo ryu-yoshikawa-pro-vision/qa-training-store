@@ -12,14 +12,14 @@ description: Use when reviewing changes, handling /review, or doing self-review 
 ## 入力
 
 - 依頼されたレビューの対象範囲と現在の変更内容。
-- package-localの[review workflow](references/review-workflow.md)。
-- Repository mappingからlogical external inputとして提供されるリポジトリのコーディング方針。
-- Repository mappingからlogical external inputとして提供されるリポジトリのレビュー結果保存方針。
+- このSkillの[レビューWorkflow](references/review-workflow.md)。
+- Repository mappingから提供されるリポジトリのコーディング方針。
+- Repository mappingから提供されるリポジトリのレビュー結果保存方針。
 - ユーザーがレビューサービスを明示的に許可した場合の、承認済み外部レビュー結果。
 
 ## 実行の概要
 
-1. package-localのreview workflowが定めるdiffの仕分けと深掘りの順序に従う。
+1. このSkillのレビューWorkflowが定めるdiffの仕分けと深掘りの順序に従う。
 2. 正しさ、セキュリティ、動作回帰、テスト不足、保守性を優先する。
 3. 必須のseverity、Evidence、場所、影響、対応の方向性を添えて指摘を報告する。指摘がない場合も、残るリスクと未検証領域を記載する。
 4. ユーザーが明示的に依頼した場合、または提供されたリポジトリのレビュー結果保存方針が要求する場合だけ、永続的なレビュー報告を作成する。具体的な保存先、命名、保持ルールはその外部入力に従う。

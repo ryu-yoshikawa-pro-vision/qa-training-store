@@ -56,8 +56,8 @@ Charter creation / validation
 Coding Agentが提供するBrowserまたはNative Runtime capabilityを使い、Runtimeそのものを観測・操作します。
 
 ```text
-navigate → observe → interact → observe state transition
-→ compare against Specification → collect Evidence → choose next exploration
+移動 → 観察 → 操作 → 状態遷移を観察
+→ Specificationと比較 → Evidenceを収集 → 次の探索を選択
 ```
 
 primary journeyの後は、優先したriskに基づいてalternate path、invalid input、boundary、繰り返し操作、backまたはreload、session遷移、role差分、recoveryを検討します。対象範囲を限定したBudgetとStop Conditionなしに探索しません。

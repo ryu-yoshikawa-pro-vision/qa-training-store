@@ -1,24 +1,18 @@
-# Harness改善Workflow
+# Harness Improvement Workflow（Harness改善Workflow）
 
-## 既存validatorが参照する固定section名
-
-次の英語名は既存validatorとの互換性のため保持します。本文では対応する日本語見出しを使用します。
-
-`When to use`、`Do not use`、`Inputs`、`Candidate model`、`Evidence requirements`、`Classification and prioritization`、`Safety and separation`、`Output format`、`Non-goals`
-
-## 使う場面
+## When to use（使う場面）
 
 - Run結果またはevaluation findingをHarness改善候補へ変換するとき。
 - repair-loopで繰り返した失敗を後続改善へ変換するとき。
 - レビューコメントまたは再発する失敗を、安全でレビュー可能な提案へ変換するとき。
 
-## 使わない場面
+## Do not use（使わない場面）
 
 - タスクがProduct実装そのものの修正である場合。
 - 単発のbugで、Harnessレベルの再発防止候補がない場合。
 - 提案する改善を裏付けるEvidenceがない場合。
 
-## 入力
+## Inputs（入力）
 
 - evaluation resultとFinding。
 - Run manifestと検証結果。
@@ -26,7 +20,7 @@
 - レビューコメントと、複数Runにわたる繰り返しの失敗。
 - リポジトリから提供されるtarget catalog、strictness mapping、失敗taxonomy、artifact契約。
 
-## 候補モデル
+## Candidate model（候補モデル）
 
 候補は次のfieldを持ちます。
 
@@ -81,7 +75,7 @@ rejected
 needs_more_evidence
 ```
 
-## Evidenceの要件
+## Evidence requirements（Evidenceの要件）
 
 各候補には具体的なEvidenceを含めます。次のいずれかを少なくとも1つ必須とします。
 
@@ -95,25 +89,25 @@ needs_more_evidence
 
 Evidenceのない候補は禁止します。
 
-## 分類と優先順位
+## Classification and prioritization（分類と優先順位）
 
 - 提供されたRepository failure taxonomyを使い、分類を追加しない。
 - 失敗の種類、改善対象、strictnessを分ける。
 - 正しさ、安全性、契約の曖昧さ、繰り返しの失敗を優先する。
 - `strict`と`blocked`の候補について、レビューコストとリスクを説明する。
 
-## 安全性と分離
+## Safety and separation（安全性と分離）
 
 - `strict`候補にはRepository strict workflowのレビューが必要です。
 - `blocked`候補は、明示的な許可と別の対象範囲なしに現在のtaskで扱いません。
 - ユーザーが両方を明示的に対象にしない限り、実装修正とHarness改善を分けます。
 - 候補を自動適用せず、レビューのため計画、文書、Issue、後続変更へ送ります。
 
-## 出力形式
+## Output format（出力形式）
 
 候補の概要、Evidence、期待する影響、リスク、推奨する変更、strictness、担当者の判断、後続作業の対象範囲を含めます。却下または保留した候補も、Evidenceと理由を保持します。
 
-## 対象外
+## Non-goals（対象外）
 
 - 自動適用。
 - 安全性レイヤーの即時変更。

@@ -15,20 +15,20 @@ description: Execute specification-driven Normal, Gray-box, and isolated Black-b
 
 ## 実行責任
 
-Coding Agentは、環境から提供されたruntime capabilityを使ってQA workflowを実行します。Supporting harness toolは準備、検証、隔離、artifact保存、評価、採点を行えますが、Coding Agent Sessionのlaunch、wrap、retry、管理は行いません。リポジトリ固有の責任分担とmachine contractはexternal inputとして提供されます。
+Coding Agentは、環境から提供されたruntime capabilityを使ってQA workflowを実行します。Supporting harness toolは準備、検証、隔離、artifact保存、評価、採点を行えますが、Coding Agent Sessionのlaunch、wrap、retry、管理は行いません。リポジトリ固有の責任分担とmachine contractは、リポジトリから提供される情報です。
 
 ## 入力
 
 - ユーザーの対象範囲、Normative Specification、Repository QA契約。
-- package-localの[Normal and Gray-box workflow](references/workflow.md)。
-- 採点評価が明示的に依頼された場合のpackage-localの[Black-box Scored workflow](references/scored-mode.md)。
+- このSkillの[Normal and Gray-box Workflow](references/workflow.md)。
+- 採点評価が明示的に依頼された場合の、このSkillの[Black-box Scored Workflow](references/scored-mode.md)。
 - active workflowが提供するCharterまたはchallenge inputと、利用可能なBrowserまたはNative Runtime capability。
 - リポジトリが提供するschema、artifact、validator、準備、evaluation、scoringの対応。package側でpathやfield nameを前提にしません。
 
 ## 実行の概要
 
-1. Runtimeと対話する前にportable workflowとRepository QA input mappingを読む。
-2. 探索前にNormal、Gray-box、または明示されたBlack-box Scored modeを選び、選択したModeのpackage-local境界を適用する。
+1. Runtimeと対話する前に、このSkillのWorkflowとリポジトリのQA入力との対応を読む。
+2. 探索前にNormal、Gray-box、または明示されたBlack-box Scored modeを選び、選択したModeのこのSkill固有の境界を適用する。
 3. Charterまたは採点Coverage、riskの優先順位、対象範囲を限定したBudget、Stop Conditionを確認する。
 4. Normative Specificationに照らしてRuntimeを探索し、意味のあるEvidenceとAtomic Findingを集める。
 5. 必須Coverage、snapshotまたはisolation Evidence、source diff条件、Repository output contractを満たしてから確定する。

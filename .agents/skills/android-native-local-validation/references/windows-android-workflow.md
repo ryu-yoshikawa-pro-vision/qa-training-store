@@ -2,13 +2,13 @@
 
 ## 対象範囲と入力
 
-このworkflowは、Windows host上でPowerShellとUSB接続した物理Android deviceを使い、ローカルRelease APKを検証する手順を扱います。tool version、device identity、application identity、command sequence、path、トラブルシューティングの対応は、external inputとして提供されるリポジトリのrunbookとhelperから取得します。
+このWorkflowは、Windowsホスト上でPowerShellとUSB接続した物理Android deviceを使い、ローカルRelease APKを検証する手順を扱います。ツールのバージョン、device / applicationの識別情報、コマンドの実行順序、path、トラブルシューティングの対応は、リポジトリから提供されるrunbookとコマンド補助ツールから取得します。
 
 ## Preflightと段階ごとのgate
 
 Prepare、新しいBuild、Install、Test、Maestroを実行する前に、次を行います。
 
-1. 最新のRun report、関係する過去attemptのEvidence、現在のdiff / status、shellとversionの条件、直前の成功または失敗条件を読む。
+1. 最新のRun report、関係する過去の実行のEvidence、現在のdiff / status、shellとversionの条件、直前の成功または失敗条件を読む。
 2. Doctorを実行し、固定toolchain契約、Android SDK、ADB deviceの状態、host / deviceの容量、APK identity、CI / localの差異を確認する。
 3. retry前に、観測結果、原因仮説、最有力仮説、Evidence、変更する条件、成功条件、次に得る情報を記録する。
 4. preflightが未完了、上流段階が失敗、または必要なdevice状態が利用できない場合は、Prepare、Build、後続段階を開始しない。
@@ -28,26 +28,26 @@ gateの条件は現在のRelease APKの確立と検証であり、PrepareやBuil
 
 ```text
 Doctor / preflight
-→ Prepare if required
-→ establish a current Release APK
-  ├─ reuse current valid APK when appropriate
-  └─ Release Build when no current APK exists or current changes are not represented
-→ APK inspection
-→ Install
-→ Smoke
-→ single control Flow
-→ Runtime Suite
-→ Boundary Suite
-→ evidence / completion
+  → 必要に応じたPrepare
+  → 現在のRelease APKを確立
+    ├─ 適切な場合は現在の有効なAPKを再利用
+    └─ 現在のAPKがない、または現在の変更を含まない場合にRelease Buildを実行
+  → APK検査
+  → Install
+  → Smoke
+  → 単一のcontrol Flow
+  → Runtime Suite
+  → Boundary Suite
+  → 証跡／完了
 ```
 
 リポジトリが追加の具体的なFlow gateを定義する場合があります。後続gateは上流gateが成功した後だけ実行します。固定契約文言は `A later gate runs only after its upstream gate passes` です。
 
-## Evidenceとattempt identity
+## Evidenceと実行識別子
 
-実行ごとに一意なattempt identityを使い、完全なraw Gradle、ADB、Maestro、JUnit、hierarchy、screenshot、APK Evidenceをリポジトリ指定のartifact rootへ保存します。後続attemptで失敗したattemptを上書きしません。active Runには、command、結果、最初の異常、派生エラー、分類、次の対応を含む簡潔なリポジトリ相対の概要を記録します。
+実行ごとに一意な実行識別子を使い、Gradle、ADB、Maestro、JUnit、hierarchy、screenshot、APKの未加工の証跡をリポジトリ指定のartifact rootへ保存します。後続の実行で失敗した実行を上書きしません。active Runには、command、結果、最初の異常、派生エラー、分類、次の対応を含む簡潔なリポジトリ相対の概要を記録します。
 
-Build、Install、Smoke、各Flow、各Suiteは個別に報告します。対象Flowまたはdeviceの状態を確認できていない場合、スクリーンショットや最後のlog行だけでは意味上の成功を証明できません。
+Build、Install、Smoke、各Flow、各Suiteは個別に報告します。対象Flowまたはdeviceの状態を確認できていない場合、スクリーンショットや最後のログ行だけでは意味上の成功を証明できません。
 
 ## 失敗の分類
 
@@ -71,7 +71,7 @@ Evidenceなしに`TRANSIENT_FAILURE`と推測しません。環境、依存関�
 
 retryは、再現性の確認、追加Evidenceの取得、仮説検証、確認済みの外部一時障害からの復旧という目的を明示できる場合だけ行います。可能な限り一度に1つの条件だけを変更します。
 
-同じエラーが2回連続で発生した、同じstageが3回失敗した、異なる対応をしても最初の異常が変わらない、新しいEvidenceまたは仮説が追加されない、上流の失敗後に下流stageを実行することになる、または必要な環境・device・APK条件を理解できていない場合は、停止して調査へ戻ります。
+同じエラーが2回連続で発生した、同じ段階が3回失敗した、異なる対応をしても最初の異常が変わらない、新しいEvidenceまたは仮説が追加されない、上流の失敗後に下流段階を実行することになる、または必要な環境・device・APK条件を理解できていない場合は、停止して調査へ戻ります。
 
 cache削除、daemon停止、依存関係の再Install、clean build、timeout延長、Assertion削除、Flowのskipは、それだけでは説明になりません。盲目的なretryや成功の主張に使ってはいけません。容量不足は、容量を改善して変更条件を記録した後だけretryできます。
 

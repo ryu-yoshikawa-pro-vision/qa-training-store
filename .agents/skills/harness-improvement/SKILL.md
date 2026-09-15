@@ -12,7 +12,7 @@ description: Use when converting run results, evaluation findings, repair-loop o
 ## 入力
 
 - evaluation result、Run manifest、検証結果、Hook観測、Subagent record、レビューコメント、繰り返しの失敗。
-- 候補モデル、Evidence、分類、レビュー境界を定義するpackage-localの[improvement workflow](references/improvement-workflow.md)。
+- 候補モデル、Evidence、分類、レビュー境界を定義する、このSkillの[改善Workflow](references/improvement-workflow.md)。
 - リポジトリから提供されるtarget catalog、strictness mapping、Failure Taxonomy、artifact / evaluation契約。
 
 ## 実行の概要
@@ -25,7 +25,7 @@ description: Use when converting run results, evaluation findings, repair-loop o
 
 ## 候補と出力の境界
 
-候補モデルと`target`項目の意味はpackage-local workflowが定義します。Repository mappingは、リポジトリのpath、pathベースのstrictness、taxonomy category、artifact保存先を提供します。出力には候補の概要、Evidence、影響、リスク、推奨案、strictness、担当者の判断、後続作業の対象範囲を含めます。
+候補モデルと`target`項目の意味は、このSkillの改善Workflowが定義します。Repository mappingは、リポジトリのpath、pathベースのstrictness、taxonomy category、artifact保存先を提供します。出力には候補の概要、Evidence、影響、リスク、推奨案、strictness、担当者の判断、後続作業の対象範囲を含めます。
 
 ## ガードレール
 
