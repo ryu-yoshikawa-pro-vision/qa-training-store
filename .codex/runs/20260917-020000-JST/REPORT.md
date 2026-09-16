@@ -116,3 +116,13 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-17 08:25 (JST)
+
+- Summary: PR #161のレビュー指摘に対応し、観測されたrepeated Stopと恒久実装するHook契約を分離して記録した。PR #161のbaseは引き続き`issue-159-windows-launcher-contract-timeout`、#160のtimeout変更はこのbranchへ重複実装していない。
+- Changes: 観測された事象は、同一sessionで`Stop(false)`が正常cleanupした後に`Stop(true)`が再度届き、missing stateが`baseline_state`診断になったこと。採用する一般契約は、特定のrepeated Stop履歴を検証するものではなく、`stop_hook_active=true`かつsession state pathが存在しないactive Stopを、既存のfail-open契約に従うidempotentなstructured `{"continue":true}`へ収束させることである。
+- Changes: `.codex/hooks/text_quality_gate.mjs`の実装は`QualityUnavailable("baseline_state")`、active Stop、state path不存在の組み合わせだけをdiagnosticなしallowへ分岐する。state fileが存在するmalformed JSON、root/session identity不一致、schema/status不正は従来の`baseline_state`診断とcleanup境界を維持する。inactive Stop、PostToolUse、UserPromptSubmit、launcher failure、`baseline_unavailable`も変更していない。
+- Changes: `docs/adr/0026-codex-text-quality-gate.md`のDecisionへ、active Stop + state不存在のstructured allow契約を最小追記した。「正常cleanup済みであることを確認する」とは記載していない。実装はcleanup履歴ではなくstate pathの不存在だけを判定するためである。
+- Validation: 既存のgeneric missing-state active Stop test（allow）、inactive Stop missing state（block）、corrupt state、root/session identity mismatch、baseline_unavailable、PostToolUse failureを維持している。configured launcher経由の`baseline作成 -> clean inactive Stop -> state cleanup -> repeated active Stop -> structured allow`回帰testも維持している。PR #161の変更ファイルはHook、text-quality contract test、ADR、既存Run Artifactに限定した。
+- ブロッカー / 残作業: ADRとRun Artifactの追加変更をcommit／pushし、PR #161本文を同じ契約表現へ更新する。最新head CI確認後に最終判断する。実Codex sandboxのfocused testは過去checkpoint記載どおり、Git ownership／pnpm PATH制約により未実行であり、PASS扱いしない。
+- Progress: 100% (8/8)
