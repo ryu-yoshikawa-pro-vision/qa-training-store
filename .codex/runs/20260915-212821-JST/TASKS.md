@@ -13,9 +13,21 @@
 - [x] 8. 長文Planを既存パスのインデックスと5つの詳細ファイルへ分割し、内容保持とリンクを検証する。
 - [x] 9. Agentの待機・timeout・助言・追加派遣・close方針をPlanとactive Run計画へ反映する。
 
+## 今回のPR #157再監査・修正（2026-09-16）
+
+- [x] R1. 指示書、最新PR base／head、origin/main、対象branch、既存Runを再確認する。
+- [x] R2. Plan 6ファイルを横断監査し、P1-6の失敗契約とP1-5の学習範囲を修正する。
+- [x] R3. Part 1のZIP／`source_sha`とPart 2 Training CopyのSHA契約を分離する。
+- [x] R4. 自動確認の構造境界、Receiptの責務、意味理解の自己確認境界を修正する。
+- [x] R5. V1とAgent運用（AG1／AG2／AG3、Hook側G1／G2／G3）の依存・名称・停止条件を分離する。
+- [x] R6. 最新baseのHook／Harness／文章品質ゲート／verify変更を重複実装しない方針へ反映する。
+- [x] R7. Plan分割後のリンク、正本Workbook境界、実装write set、Part 2 materialize経路を再監査する。
+- [x] R8. Plan validator、lint、curriculum／Training確認、関連Contract Test、diff、Run collector／sanitizerを実行し、PASS／FAIL／未実行を分類する。
+- [x] R9. 検証結果と未確定事項をREPORTへ追記し、今回の変更範囲を最終確認する。
+
 ## 次の実装taskで行うこと
 
-- [ ] 10. Owner判断を確定し、Wave 0の再Baselineを行う。
+- [ ] 10. Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う。
 - [ ] 11. Lesson共通契約とP1-2〜P1-6縦断パイロットを実装する。
 - [ ] 12. 受講者向け修了確認とPart 2自走導線を実装する。
 - [ ] 13. 全Lesson、ACテスト、Traceability、Agent routingへ展開する。
@@ -36,7 +48,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - 現行の`AGENTS.md`にはParent / child責務はあるが、タスク規模別のdelegation条件・join・close閾値はない。
 - `.codex/config.toml`は5つのAgent定義に対して`max_threads = 4`であり、上限の実効解釈は実Runで確認する。
 - `docs/reference/subagent-observation.md`は存在せず、既存のHook / Run契約へ新しいsubagent manifestを追加しない方針を維持する。
-- Plan Round 1で、17 Lesson監査表、exact write set、Wave gate / rollback、checker status / Receipt、Part 2 self-service Copy経路、AC matrixを追加した。
+- Plan Round 1で、17 Lesson監査表、exact write set、Wave gate / rollback、受講者向け修了確認の状態／Receipt、Part 2 self-service Copy経路、AC matrixを追加した。
 - Plan Round 2の3つのread-only委譲はbounded wait内に結果を返さず、interrupt / closeした。結果未取得をPASS扱いせず、親Agentの静的監査で補完した。
 - `corepack pnpm run test:contracts`は300秒でtimeoutしたが、`tests/contracts/training-curriculum.test.ts`の限定実行は19 tests PASS。全体timeoutの原因は未分類の既存環境／テスト実行問題として実装前に再確認する。
 - 今回のPlan分割では、code_researcher / implementation_researcher / test_investigatorの3体と、explorer 3体をread-onlyで起動した。いずれもbounded wait内に結果を返さなかったため、結果をPASSや「指摘なし」として採用せずcloseした。

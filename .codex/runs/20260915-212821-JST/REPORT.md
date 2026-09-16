@@ -236,6 +236,122 @@
   - Wave 0で、commandごとの具体的timeout値・process tree停止方法、watchdogの実装主体・発火条件・証跡保存先、同時実行枠が満杯のときの追加派遣方法を実測して確定する。
 - Progress: 100% (9/9)
 
+## 2026-09-16 20:00 JST — W0反映後の通常verify再確認
+
+- `corepack pnpm install --frozen-lockfile`で本体worktreeの不足していた検証依存（`textlint`を含む）を復元した。tracked fileの追加変更はない。
+- PowerShell通常verifyはexit 0、`PASS=3 FAIL=0 SKIP=0`だった。
+- Bash通常verifyは`PASS=2 FAIL=0 SKIP=2`を出力したが、終了せず実行制限でexit 124となった。FAILは出ていないが、終了コードをPASSへ変換せず、Bash／Windows実行環境の終了待ち問題として未解決に分類する。PowerShell版と、既に完了しているA／B比較の通常verify結果を正本とする。
+- 3体のread-only subagentは全て完了し、Receipt方式、Training Copy SHA、GitHub Actions権限の根拠を返した。結果はW0の既定方針・Owner質問条件・T1／T2停止条件へ反映した。
+- Progress: 100% (9/9)
+
+## 2026-09-16 18:43 JST — 最新main統合状態の再検証・Plan最終調整
+
+### 1. 確認した参照と統合状態
+
+- 最新main: b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d。
+- feature branchのローカルHEAD: 30649cad318fd6486572de0046f602f7d02fa342。
+- PR #157のorigin head: 6f8f004c6409acc8423609ab252eeeab3cf8f506。
+- 30649caは、最新mainを取り込んだローカルのmerge commitであり、PR head 6f8f004と同じtreeである。mainはfeature側へ既に取り込まれているため、一時worktreeでも追加のmerge／rebaseは行わず、30649caへ今回の未commit Plan差分を適用してBを作った。
+- Aはmain-onlyのb9087bd、Bは30649ca＋今回のPlan 6ファイル差分である。
+- A／Bの作成・Plan差分適用でconflictは発生しなかった。feature branch本体へのmerge／rebaseは行っていない。
+
+### 2. 最新mainで確認した正式な入口
+
+- package.jsonのlint:text: node scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree。
+- 通常のverify: corepack pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec。
+- scripts/verify.ps1の引数: StrictHarness、HookContracts。scripts/verifyの引数: --strict-harness、--hook-contracts。
+- Hook Contractの正式入口: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -HookContracts、または bash scripts/verify --hook-contracts。
+- 通常verifyの正式入口: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1、または bash scripts/verify。
+- 最新mainの .codex/config.toml、.codex/hooks、AGENTS.md、implementation harness、safety harness、関連Contract Testも確認した。Hook／compact後の指示再注入／文章品質／verify入口はmain既存契約である。
+
+### 3. A/B検証の比較
+
+| 検証 | A: main-only | B: main＋PR相当＋最終Plan | 分類 |
+| --- | --- | --- | --- |
+| lint:text | exit 0、変更Markdown 0件 | exit 0、変更Markdown 6件 | Bの6件はPlan差分。FAILなし |
+| lint:markdown | exit 0、435 files、0 issues | exit 0、441 files、0 issues | FAILなし |
+| validate:curriculum | exit 0、22 required documents、4 workbook files、training-chromium / training-mobile-chromium | 同じ | FAILなし |
+| typecheck:training | exit 0 | exit 0 | FAILなし |
+| 関連Contract Test 3 files | exit 0、59 tests passed | exit 0、59 tests passed | FAILなし |
+| git diff --check | exit 0 | exit 0 | FAILなし |
+| powershell scripts/verify.ps1 | exit 0、PASS=3 FAIL=0 SKIP=0 | 同じ | FAILなし |
+| bash scripts/verify | exit 0、PASS=2 FAIL=0 SKIP=2 | 同じ | FAILなし |
+
+関連Contract Testの正式実行内容は、training-curriculum.test.ts、ci-workflow.test.ts、native-ci-workflow.test.tsを、no-file-parallelism、maxWorkers=1、testTimeout=30000で実行したものとする。
+
+### 4. Hook Contractと文章品質の結果
+
+- Aの powershell scripts/verify.ps1 -HookContracts はexit 1、テンプレート契約はPASS、Codex Hook contract testsはFAIL、execpolicy baselineとPowerShell wrapper preflightはPASSだった。
+- Bの同じPowerShell入口もexit 1で、Aと同じ TypeError ERR_PACKAGE_IMPORT_NOT_DEFINED、package import specifier #module-evaluator がvitest起動時に解決できないエラーだった。
+- A／Bの bash scripts/verify --hook-contracts も同じHook起動エラーでexit 1となった。Bash環境ではcodex executableがないためexecpolicy checksとbash wrapper preflightはSKIP、PowerShell wrapper preflightはPASSだった。
+- A／Bで同じ起動エラーが再現し、Plan差分だけのFAILではない。検証回避のためHook／Contract Test／文章品質ルールは変更していない。
+- Bの直接下位テスト（rootのVitest実行ファイルを使用）は、codex-hook-contract.test.tsが153 tests passed。codex-text-quality.test.tsは42 tests中41 passed、1 failedだった。2ファイル同時実行では1 file pass、合計195 tests中194 passed、1 failedだった。
+- 文章品質の1件は tests/contracts/codex-text-quality.test.ts の「cleans the current session baseline for configured Stop process failures」で、stateFiles(root)が0件を期待したのに1件だった。これはA側でも同じテスト・同じ失敗を再現済みであり、最新main単体でも発生する今回範囲外の既存baseline／一時実行環境問題として分類する。
+- したがって、Hook入口はFAILのまま記録する。直接Hook契約153/153 PASSを理由に正式入口のFAILをPASSへ変換しない。
+
+### 5. G1／G2／G3の再監査
+
+- Agent運用側はAG1／AG2／AG3の名前空間へ分離した。AG1は起動判断、AG2は既存契約との整合確認、AG3は隔離したRuntime／ライフサイクル不正系検証であり、ファイル数だけでAgent利用を決めない。
+- 最新mainのAGENTS／implementation harness／safety harness／Hook／config／verifyを突合し、compact後の指示再注入、Hook契約、文章品質、既存の権限・sandbox・wrapperをAG2で再実装しないPlanへ修正した。
+- AG3は正常系、禁止された書き込み、対象範囲外、childからの再帰起動、親join timeout、child command timeout、自然終了、close、agent枠不足を分離して、実作業ツリー外で検証する。既存HookのGit安全ポリシーG1／G2／G3をAG3の証拠として流用しない。
+- V1はL3／T2のカリキュラム／Training受入判定だけを行い、AG3のFAIL／BLOCKED／NOT_RUNはAgent運用の判定として別に報告する。AG3のPASSをV1の必須依存にしていない。
+
+### 6. 最新mainで既に解決済みだったため重複実装しない事項
+
+- Hook、compact後のSessionStart指示再注入、Hookイベント記録、文章品質ゲート、scripts/verifyとverify.ps1のHook Contract入口は最新mainに存在するため、Planから新規実装対象として扱う記述を削除または整合確認へ変更した。
+- 最新mainのmax_threads／max_depth、既存AGENTS／Harness／Safety契約を前提にし、Agentを常に最大数起動する要件や、子Agentからの再帰委譲を許す要件を追加していない。
+- 監査時点のmain／PR SHAを将来のTraining Copy source SHAへ固定せず、実装時W0／T2で配布可能な正式SHAを確定する記述へ変更した。
+- Common／Part 1でGit metadataやsource_shaを必須にせず、Part 2のTraining Copyだけで40文字の正式SHAとtraining-copy-source.jsonを要求するよう変更した。
+- P1-5をTC-CART-101一件へ縮小する記述、P1-6で正しいテストを強制的に壊す記述、Completion Receiptだけで理解を証明する記述を削除した。
+
+### 7. ADR-0023との最終判断
+
+- 継続可能な範囲は、既存のJSON、既存filesystem、既存Training script／validator、既存Runner／Reporter、既存source metadataを組み合わせる範囲である。handoff.jsonは相対パスを持つ一時的な搬送Envelope、case_code_mapはそのEnvelope内の追跡情報、training-copy-source.jsonは既存のsource metadataとして扱う。
+- Execution Receiptは既存Runner／Reporterまたは既存Playwrightを呼ぶ薄いadapterが生成する実行事実とし、producer、code digest、attempt、実際のexit code、Artifact参照を記録する。署名のない提出JSONや手書きReceiptを実行証明にしない。
+- Completion Receiptはschema_version 1の構造・実行条件の確認結果であり、completion-receipt.json自身をexecution_receipt_pathsへ含めない。required_competencies／checked_competenciesは既存評価基準への追跡情報であり、成績・理解度・能力合否を保存しない。複数caseのFAIL／BLOCKED／NOT_RUNを他caseのPASSや後付けEvidenceで上書きしない。
+- 独立Manifest、付随／sidecar Manifest、採点用Manifest、独自Evidence URI、新しい永続化方式、独立Runner基盤、受講者状態DB、署名／信頼基盤、受講者の意味理解自動採点が必要になった場合は、ADR改訂または責任者の明示承認までT1／T2を停止する。
+- training:completion:checkは既定ではローカル専用で、validate:curriculumや既存workflow allowlistへ自動追加しない。CIから呼ぶ必要が判明した場合だけ、T2でworkflow、allowlist、validator、Contract Testを同時に更新し、L2の構造判断を通す。既存Guardrails内で説明できなければ停止する。
+
+### 8. 修正したPlan 6ファイル
+
+- インデックス: 17レッスンの入力／実施／出力／自己確認／完了／復旧／引き渡しの要求、P1-5全範囲、P1-6の診断教材経路、V1／AG3の分離、正式な検証command、A/B比較を追加した。
+- 詳細1: 各Lessonの9項目共通契約、支援コメントの役割、P1-5の複数ケース／正常・境界・異常／Seed・Reset／Desktop・受講者作成Mobile／Workbook対応、P1-6の3系統、SHA任意性、case_code_mapとManifest境界を追加した。
+- 詳細2: Waveの唯一の正本、T1／T2の対象、既存training-copy-source.jsonの再利用、prepare／materialize差分の三分類、case_code_mapをhandoff.json内へ限定、AG1／AG2／AG3とHook G1／G2／G3の分離を明記した。
+- 詳細3: Completion／Execution Receiptの生成者・入力・出力・状態の分離、schema／出力先／自己参照禁止、case全体の状態優先順、実行真正性の限界、training:completion:checkのローカル既定とCI接続条件、ADR停止条件を明記した。
+- 詳細4: 17レッスン×9項目の構造確認、意味理解を自動採点しない境界、C1 read-only、AG3の隔離不正系、Hook／verify／lint／collectorの検証入口を追加した。
+- 詳細5: リスク、停止条件、ADR判断、source SHAの段階分離、13項目の最終報告契約を更新した。case_code_mapの説明から独立Manifestを許容し得る「付随マニフェストの候補」表現も削除した。
+
+### 9. 実行した全検証commandと結果
+
+- Plan validator: exit 0、valid true、missingHeadings []。
+- corepack pnpm run lint:markdown: Aは435 files／0 issues、B最終版は441 files／0 issues、いずれもexit 0。
+- corepack pnpm run lint:text: Aはchanged Markdown 0件でexit 0、B最終版は6件でexit 0。
+- corepack pnpm run validate:curriculum: A／Bともexit 0、22 required documents、4 workbook files、training-chromium／training-mobile-chromium。
+- corepack pnpm run typecheck:training: A／Bともexit 0。
+- 関連Contract Test: A／Bとも3 files、59 tests passed、exit 0。
+- powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1: A／Bともexit 0、PASS=3 FAIL=0 SKIP=0。
+- bash scripts/verify: A／Bともexit 0、PASS=2 FAIL=0 SKIP=2。codex command未実行のためexecpolicy／bash wrapperはSKIP。
+- powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -HookContracts: A／Bともexit 1、#module-evaluator起動エラー。
+- bash scripts/verify --hook-contracts: A／Bともexit 1、同じ#module-evaluator起動エラー。
+- 直接下位テスト: codex-hook-contract.test.tsは153/153 PASS。codex-text-quality.test.tsは41/42 PASS、同じbaseline failureが1件。
+- Plan専用横断監査: 22項目相当を読み取り専用で確認し、最終結果PASS。
+- Run collector: この追記後に scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict を実行する。
+- Run sanitizer: collector後に scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check を実行する。
+
+### 10. 残っているFAIL／未確定事項
+
+- 残存FAILはHook Contract正式入口の起動環境（#module-evaluator）と、A／B双方に再現したcodex-text-qualityの既存baseline 1件である。今回のPlan差分が原因のB-only failureではないため、Hook／Test／text quality ruleは今回変更しない。
+- Bash版のcodex executable不在による2項目SKIPはA／B同一であり、今回のPlan回帰ではない。Codex実行環境がある環境で再確認する。
+- T1／T2の実装前には、実際のRunner／ReporterからReceiptを生成できるか、Training Copyの正式source SHA、materialize対象、GitHub ActionsのRun／Check／Artifactと権限、CI接続のallowlistをW0で実測する。手書きReceipt、独立Manifest、独自URI、新Runner、意味理解自動採点が必要ならT1／T2を停止する。
+
+### 11. Git状態と変更範囲
+
+- 最終確認したfeature branchはfeat/self-study-curriculum-test-coverage、HEADは30649ca。
+- tracked変更は、Planインデックス、詳細1〜5、active RunのREPORT.md／TASKS.mdだけである。
+- 未追跡のcoverage/と別Run 20260915-191711-JST/は既存のため保持した。今回新たに教材本文、Training script、Test、workflow、Hook、AGENTS、Harness、config、package、scripts/verify*を変更していない。
+- git diff --checkはexit 0。今回、commit、push、PR更新、merge、rebase、reset、clean、stashは実行していない。
+- Progress: 100% (9/9)
+
 ## 2026-09-16 14:56 JST
 
 - 最終検証: PASS。Plan validator、Markdown lint、カリキュラム検証、Trainingの型チェック、対象Contract Test（3ファイル・59テスト）、`git diff --check`、意味監査をすべて完了した。
@@ -338,4 +454,149 @@
   - 未実行: なし。Run collector / sanitizerはこの追記後に実行する。
 - Correction:
   - 09:36 JST以前の、commit・push・PR作成を次工程とする記録は、現在のユーザー指示により無効。今回のRunではGit mutationを行わず、対象branchの未commit Plan差分をそのまま保持する。
+- Progress: 100% (9/9)
+
+## 2026-09-16 16:36 JST
+
+- Summary:
+  - PR #157の指示書に従い、対象Plan 6ファイルの修正と検証だけを完了した。教材本文、Training code、Test code、Workflow、Product、Spec、Agent設定、GitHub metadataは変更していない。
+  - commit、push、PR本文更新、mergeは実行していない。指示書の「今回はPlan修正・検証のみ」を優先した。
+- Current refs:
+  - GitHub APIと`git ls-remote`で、PR #157はbase `main` / `b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`、head `feat/self-study-curriculum-test-coverage` / `6f8f004c6409acc8423609ab252eeeab3cf8f506`を確認した。
+  - 現チェックアウトのHEADは`826656195ef78dabf72f79e3485b666e9b3921e8`で、`origin/main`の先行変更を含まない。最新baseの変更をPlanへ混ぜず、実装時のW0で再取得する契約を維持した。
+- Subagent integration:
+  - Curriculum観点はP1-5の正常／境界／異常／Seed／Reset／状態変更／Desktop／Mobile／Workbook対応の範囲を維持し、TC-CART-101を代表縦断ケースに限定した。
+  - Completion／CI観点はPart 1のZIP利用とPart 2 Training Copyの正式SHA、prepare／materialize差分、Execution Receipt／Completion Receiptの責務分離を確認した。
+  - Agent運用観点は、Agent波を`AG1`／`AG2`／`AG3`と呼び、既存HookのGit安全ポリシー`G1`／`G2`／`G3`と分離した。親のjoin timeout、子のcommand timeout、自然終了、助言、追加派遣、close、不正系の隔離を維持した。
+- Plan changes:
+  - P1-6を意図的失敗教材／決定的な診断教材／受講者ケースの自然なFailureへ分離し、正しいTC-CART-101を意図的に壊す契約を削除した。
+  - P1-5を代表ケース1件へ縮小せず、複数ケースを材料に現在の学習範囲を維持する契約を、インデックス、詳細1、詳細2、詳細3、詳細4へ接続した。
+  - Common／Part 1の`source_sha`を任意（ZIPでは省略可）とし、Part 2だけ`training:copy:prepare`／`training-copy-source.json`／`training:copy:validate`の正式な40文字SHAを要求するよう分離した。
+  - `training:completion:check`はパス、スキーマ、ケース対応、Reset、Assertion存在、既知の禁止パターン、実行事実、Evidence、追跡などの安定した構造だけを確認し、自然言語と任意コードの意味を完全判定しないよう明記した。C07の意味のあるAssertion、自己確認、V1は維持した。
+  - Completion ReceiptのPASSを機械確認可能なPASSに限定し、受講者の理解／Common修了／V1と分離した。V1は開発時受入検証、AG3は独立したAgent運用判定とした。
+  - `training:copy:validate`について、prepare直後・materialize後の実行、既知のprovisioning差分・学習者差分・予期しないsource差分、commit後の提出SHAを別々に記録する計画へ修正した。
+  - 最新baseのCodex Hook、SessionStart再注入、Hookイベント、文章品質ゲート、Hook契約入口を既存解決済み事項としてAG2へ重複実装しない方針へ修正した。
+- Validation:
+  - PASS: Plan validator（`valid: true`, `missingHeadings: []`）。
+  - PASS: `corepack pnpm run lint:markdown`（432 files、0 issues）。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`。
+  - PASS: 対象Contract Test（`training-curriculum`／`ci-workflow`／`native-ci-workflow`、3 files、59 tests）。
+  - PASS: `git diff --check`。
+  - PASS: Plan専用横断再監査（6 files、17 checks、indexからのMarkdown link 7件、forced initial FAIL／単一ケース縮小／旧SHA／意味完全判定の禁止条件、Workbook境界、Part 2差分、V1／AG3分離を確認）。
+  - 未実行: `corepack pnpm run lint:text`。現HEADの`package.json`にscriptがなく、最新`origin/main`側に追加されているため、代替実行せずW0再取得後に実行する。
+  - 未実行: `scripts/verify.ps1 -HookContracts`。現HEADのPowerShell入口にparameterがなく、最新`origin/main`側で追加されているため、代替実行しない。
+  - FAIL（既存baseline／今回のPlan差分起因ではない）: 現HEADの`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`は`template contract files`の`CODE_REVIEW.md missing Repository coding policy`で終了した。最新baseとの差を解消する実装変更は今回の対象外とし、W0で最新正式入口を再実行する未解決ゲートとして記録する。
+  - 既知の全体`test:contracts` timeoutは過去Runの記録どおりPASSへ変換せず、今回の対象Contract Testの限定PASSと分離した。
+- Unresolved:
+  - ADR-0023のGuardrailsと`handoff.json`／Receipt／構造確認の境界は、搬送Envelope・既存Runnerの実行事実・機械的構造確認に限定できるかをOwnerがW0で確定する。独自Manifest／新しいRunner／受講者専用の意味理解自動採点に当たる場合は、ADR改訂または責任者の明示承認までT1／T2を開始しない。
+  - Part 2の正式な`training_copy_source_sha`、GitHub ActionsのRun／Check／Artifactを実際に一巡できる環境、Receipt生成方式は実装時W0で実測して決める。Commonの完了はこれらの不足で停止させない。
+- Progress: 100% (9/9)
+
+## 2026-09-16 16:40 JST
+
+- Final scope check:
+  - 変更対象はPlanインデックス、詳細1〜5、active Runの`TASKS.md`／`REPORT.md`だけである。既存の未追跡`coverage/`と別Run `20260915-191711-JST`は保持した。
+  - 今回のPlan修正に残る未確定事項は詳細5と上記Unresolvedへ記録し、ADR-0023の確認なしにT1／T2へ進まない停止条件を維持した。
+- Final artifact validation:
+  - `collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`を、今回のRun記録追記後に実行する。
+  - `sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`を同じ状態で実行し、残存検出0を確認する。
+- Progress: 100% (9/9)
+
+## 2026-09-16 16:40 JST
+
+- Final artifact validation result:
+  - collector: exit 0。
+- sanitizer: exit 0、`files_scanned: 4`、`files_changed: 0`、`residual_findings: 0`。
+- Progress: 100% (9/9)
+
+## 2026-09-16 18:44 JST — Run Artifact最終確認
+
+- 上記の最新main統合再検証記録の追記後に、`scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`を実行し、exit 0を確認した。collectorの標準出力はなく、Runの`run.json`を更新した。
+- 続けて、`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`を実行し、exit 0、`files_scanned: 4`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`を確認した。
+- 最新main単体Aと最終Planを適用した統合状態Bの比較、Plan 6ファイルの内容、Hook／Harness／文章品質のFAIL分類、ADR-0023の継続／停止境界は、2026-09-16 18:43 JSTの記録を正とする。
+- Progress: 100% (9/9)
+
+## 2026-09-16 18:51 JST — 表記修正後の最終再検証
+
+- Plan内に残っていた英語の`checker` 8箇所を「受講者向け修了確認」または「受講者向け修了確認処理」へ置換した。`Execution Receipt`、`Completion Receipt`、`case_code_map`、コマンド、パス等の技術識別子は原表記を維持した。
+- 最終統合worktreeは、30649caへ最新のPlan 6ファイル差分を適用した状態である。Plan validatorはexit 0、`valid: true`、`missingHeadings: []`。Markdown lintは441 files／0 issues、lint:textは変更Markdown 6件でexit 0、validate:curriculumは22 required documents・4 workbook filesでexit 0、typecheck:trainingはexit 0だった。
+- 関連Contract Testは3 files／59 tests passed、通常のPowerShell verifyはPASS=3 FAIL=0 SKIP=0、Bash verifyはPASS=2 FAIL=0 SKIP=2、git diff --checkはexit 0だった。
+- 最終統合状態のHook Contract正式入口は、PowerShell／Bashともexit 1で、Aと同じ`#module-evaluator`の`ERR_PACKAGE_IMPORT_NOT_DEFINED`起動エラーだった。直前の同一コード状態で直接実行した下位テストはHook 153/153 PASS、文章品質41/42 PASSであり、失敗1件はA／B同じ既存baselineである。
+- `rg -i checker`によるPlan 6ファイルの表記確認は該当なし。受講者向け文書上の「completion checker」未翻訳表記は解消した。
+- Progress: 100% (9/9)
+
+## 2026-09-16 19:40 JST — W0 3論点の調査優先ルール反映
+
+- Summary:
+  - 実装開始前W0について、まず既存実装・教材・既存契約・ADRを調査し、既存契約で一意に決まる事項は採用し、複数案が残って影響がある場合だけOwnerへ質問するルールをPlanへ追加した。
+  - 対象はExecution Receiptの生成方式、Part 2 Training Copyの正式な`source_sha`、GitHub Actionsの学習者環境・権限・操作範囲の3点である。
+  - Plan、Run Artifact以外のソース・テスト・workflow・設定は変更していない。commit、push、PR更新、merge、rebaseも行っていない。
+- Subagent:
+  - Execution Receipt調査では、現行`training:web:*`が直接Playwrightを実行し、Reporterは`list`／`html`中心で、Training Web用Receipt Writerは未実装であることを確認した。`.last-run.json`も必要な実行事実を全て持つ正本ではないため、Reporter単独か薄いwrapper／adapterか、ケース対応を既存タイトル・注釈／メタデータ・`handoff.json`内の`case_code_map`のどれで結ぶかはW0で確定する。
+  - Execution Receiptの`exit_code`、実行時刻、証跡パス、実行command等は自動生成し、学習者に機械事実を手入力させない。一方、`04_execution-improvement.csv`の`evidence`、原因、改善内容、自己確認、必要な`case_code_map`は学習者の成果・説明として許容するが、Receiptや実行証明とは分離する。
+  - Training Copy調査では、`training:copy:prepare`／既存の`training-copy-source.json`／`training:copy:validate`が40文字の小文字full SHA、HEAD、`sourceSha`／`resolvedSourceSha`を一意に検証することを確認した。Part 1の`handoff.json.source_sha`省略可否、ZIP元revision、Part 1とPart 2の同一revision保証は現行受入済み契約だけでは決まらない。
+  - GitHub Actions調査では、Training workflowの`pull_request`／`workflow_dispatch`、`contents: read`、Secret／OIDC／Deploy／write権限なし、Artifact保存の安全境界と、branch／commit／push／PR／Run／Check／Artifact確認の基本操作は既存契約から採用できることを確認した。Forkか組織管理Training Copyか、具体的Role・Remote provisioning・Fork時のProduction／Deploy workflow分離担当は一意でない。
+- Plan changes:
+  - 詳細5に「W0の調査優先ルール」「Execution Receipt」「Part 2の正式`source_sha`」「GitHub Actions権限・操作」「その他のW0確認」を追加し、確認ファイル、事実、既定方針、Owner質問条件、回答待ちの停止条件、Run記録項目を明記した。
+  - 詳細3のW0記録境界から詳細5を正本として参照し、Receipt／SHA／GitHub環境の決定と、self-check・Native／iOS・CI後処理の記録責務を分離した。
+  - 詳細2とインデックスに、3論点をW0で先に調査し、影響するT1／T2はOwner回答まで開始しないことを接続した。
+- Validation:
+  - PASS: Plan validator（`valid: true`、`missingHeadings: []`）。
+  - PASS: `corepack pnpm run lint:markdown`（441 files、0 issues）。
+  - PASS: `corepack pnpm run lint:text`（変更Markdown 11件、exit 0）。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 workbook files、training-chromium／training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`。
+  - PASS: 関連Contract Test（3 files、59 tests passed）。
+  - PASS: `git diff --check`。
+  - PASS: Plan専用横断監査（W0優先ルール、Receipt調査対象、自動生成と学習者入力の分離、SHA形式／不明扱い、GitHub候補／安全境界、Owner質問条件、停止条件、ADR境界、英語`checker`表記なし）。
+- Unresolved:
+  - 現行実装ではReceipt方式とケース対応方式が未実装／未固定のため、W0で既存出力だけで必須項目を満たせるかを確認する。満たせない場合に独立Manifest、独自Evidence URI、新しい汎用Runner、手書きReceiptが必要になるなら、ADR-0023の確認または明示承認までT1／T2を停止する。
+  - Part 1のSHA省略契約とZIP／Part 2間の同一revision保証は、現行実装から一意に決まらない。保証を完了条件にするか、配布物へrevision情報を追加するかが必要になった場合はOwner判断までT2を開始しない。保証しない場合は、Part 1は実SHAが取れるときだけ記録し、Part 2開始時に別途正式full SHAを確定する。
+  - GitHubのFork／組織管理Copyの標準経路、具体的Role、Remote provisioning、Fork時のworkflow分離担当は現行教材・workflowだけでは一意でない。既存の安全権限を越える設定変更、Secrets／OIDC／追加Token、workflow編集を学習者へ要求する場合はT2を停止し、Commonは完了可能なままPart 2をBLOCKED／NOT_RUNとする。
+- Progress: 100% (9/9)
+
+## 2026-09-16 21:14 JST — Owner回答反映・W0確定後の最終監査
+
+- Scope / repair-loop:
+  - Owner回答を「質問」から「確定契約」へ反映するmust-fixとして扱い、変更対象をPlanインデックス、詳細1〜5、active Runの`TASKS.md`／`REPORT.md`に限定した。教材本文、Workbook CSV、Training実装／テスト、workflow、Hook、Agent設定、Harness、package、script、verify、Product／Spec、GitHubメタデータは変更していない。commit、push、PR更新、merge、rebaseも行っていない。
+  - Schrodinger、Rawls、Anscombeのread-only監査を統合した。主な指摘は、Plan内の旧Owner質問、Part 1／Part 2 revision扱いの曖昧さ、Training Copy／Forkの優先順位不足、active Runの古い未解決記録、最終Plan変更後のmachine-managed検証不足、`training:web:exercise`のstarter-only誤判定リスクだった。
+
+- Owner回答の最終反映:
+  1. Execution Receiptは、実際のPlaywright実行後に既存Runner／Reporter／実行結果と既存ケース対応情報を結合して自動生成する。`exit_code`、時刻、command、Evidence参照などを手書きにせず、Workbookの原因・Evidence確認・修正理由・改善・解釈とは分離する。独立Runner、状態DB、独立Manifest、独自Evidence URI、未実行Receipt、意味理解の自動採点を追加しない。
+  2. Part 1／Commonの`source_sha`は任意で、実在する40文字SHAを取得できる場合だけ記録し、ZIP等で不明でも完了できる。架空値・推測値・固定値・ダミー値は作らない。Part 2は既存の`training:copy:prepare`、`training-copy-source.json`、`training:copy:validate`で正式な40文字の小文字完全SHAを独立して確定する。Part 1／Part 2のrevision不一致はFAIL条件、開始停止条件、移行拒否にしない。
+  3. Part 2は準備済みで書き込み可能なTraining Copyを標準経路とし、利用できない場合は学習者自身のForkを代替経路とする。両経路でbranch、commit、push、PR、GitHub ActionsのRun／Check／Artifact確認という同じ学習成果を求める。Organization／repository管理者権限、Secrets、branch protection変更、GitHub App、workflow権限変更、workflow編集は必須にしない。
+  - 上記3事項は未解決事項として残っていない。W0は最新実装・教材・既存契約・ADR-0023との具体的な矛盾、既存経路での最小接続可否、影響ウェーブを確認するだけであり、回答済みの選択肢を再質問しない。矛盾がある場合のみ、事実・衝突理由・最小修正範囲・影響ウェーブを添えて再確認する。
+
+- Plan changes:
+  - インデックスと詳細1〜5で、Part 1 SHA任意／Part 2正式SHA、revision不一致非FAIL、Training Copy標準／Fork代替、通常権限の境界、ReceiptとWorkbookの責務分離を統一した。旧来の「どちらを選ぶか」「回答待ち」の質問文は削除し、テンプレート互換の質問節には「未回答質問なし」と明記した。
+  - materialize後にWorkbook構造、Test Case ID、`case_code_map`、現在のCopy／Forkで解決できるPlaywrightコード、必須command、Receipt／Evidence、型／契約、サンプルと学習者成果の分離を確認する契約を追加した。同一revision保証だけの独立Manifestや自動変換frameworkは追加しない。
+  - 現行`training:web:exercise`／`training:web:mobile:exercise`が`training/playwright/exercises`全体を対象とし、開始用コードにはAssertionがない事実を反映した。`case_code_map`に対応する学習者コードの個別実行結果がない場合は、starter／基準実装／suite全体のPASSで修了にしない。不正系フィクスチャとContract Testでこの誤判定を検出する。
+  - active RunのTask 10を「Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う」へ修正した。過去の調査時点の未確定記録は履歴として保持し、本追記で終了状態を明示した。
+
+- Validation after the final Plan edits:
+  - PASS: Plan validator（`corepack pnpm exec tsx -e ...validatePlanOutput...`、`valid: true`、`missingHeadings: []`）。テンプレート互換の`## 3. 質問 / 曖昧性`は保持し、内容は未回答質問なしとした。
+  - PASS: `corepack pnpm run lint:markdown`（441 files、0 issues）。
+  - PASS: `corepack pnpm run lint:text`（working-tree、changed Markdown files=11、exit 0）。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 workbook files、training-chromium／training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`（exit 0）。
+  - PASS: 関連Contract Test（`training-curriculum.test.ts`、`ci-workflow.test.ts`、`native-ci-workflow.test.ts`、3 files／59 tests passed）。
+  - PASS: `git diff --check`（exit 0）。
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（`PASS=3 FAIL=0 SKIP=0`、正常終了）。
+  - TIMEOUT／PASS扱いしない: `bash scripts/verify`は約240秒で正常終了せずexit 124。途中の`PASS=2 FAIL=0 SKIP=2`だけを最終PASSへ変換しない。
+  - Hook formal entry: `powershell ... scripts/verify.ps1 -HookContracts`と`bash scripts/verify --hook-contracts`の今回の再実行は子プロセスが正常終了せず、いずれもツール制限でexit 124となった。先行するA／B同条件の正式入口結果は両方exit 1、`#module-evaluator`の`ERR_PACKAGE_IMPORT_NOT_DEFINED`起動エラーで一致している。直接下位テストはHook 153/153 PASS、文章品質41/42 PASS（1件はA／B共通の既存baseline）であり、今回のPlan差分による回帰とは分類しない。Hook／module resolver／Harnessは変更しない。
+  - Plan横断監査: Owner回答済み3事項の未解決質問・英語`completion checker`表記・revision一致要求の残存なしを確認した。意図した「質問しない」「不一致自体はFAILにしない」の文言は除外判定に誤検出されないことも確認した。
+
+- Run / scope status:
+  - 本追記後にRun collectorを実行し、machine-managedな`run.json`を更新する。その後sanitizerのWrite／Checkを実行し、残存検出0を確認する。
+  - `git status --short`で確認するtracked差分はPlan 6ファイルとactive Runの`TASKS.md`／`REPORT.md`だけである。既存の未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`は対象外として保持し、今回のcommit対象へ含めない。
+  - 変更は計画とRun記録だけであり、実装開始前の状態を維持する。Owner回答済み3事項を未解決として再掲せず、未実装のReceipt／completion処理、materialize、Fork経路は次の実装taskのW0／T1／T2へ引き継ぐ。
+- Progress: 100% (9/9)
+
+## 2026-09-16 21:15 JST — Run Artifact最終確定
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`: exit 0。collectorのmachine-managed経路で`run.json`を更新した。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`: exit 0、`files_scanned: 4`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`。
+- collector後のtracked差分はactive Runの`REPORT.md`／`TASKS.md`とPlan 6ファイルだけで、`.codex/runs/20260915-212821-JST/run.json`は機械管理対象として直接編集していない。`run.json`の`validation.status: not_run`は、このRun manifestへ検証commandを手書きで注入していないことを示すため、REPORTの実測結果とは別に扱う。
+- `git status --short --branch`: `feat/self-study-curriculum-test-coverage`上で、上記8 tracked filesの変更と、今回触れていない既存未追跡`.codex/runs/20260915-191711-JST/`／`coverage/`を確認した。`git diff --stat`: 8 files、675 insertions、209 deletions。`git diff --check`: exit 0。
 - Progress: 100% (9/9)
