@@ -1,172 +1,235 @@
-# 詳細4：テスト実装・Agent実Run・最終検証
+# 詳細4：テスト不足・失敗分析・一巡確認・最終検証
 
 [← インデックスへ戻る](../2026-09-15_213247_self-study-agent-orchestration.md)
 
-> このファイルは、インデックスから参照するPlan詳細です。収録した既存節の本文は、分割前Planの内容を維持しています。
+> このファイルは、C1のテスト不足調査、受講者の失敗学習、講師向け資料なしの受講者一巡確認、G3の安全検証、計画／実装後の検証方法を定義する。ウェーブの順序は詳細2、記録は詳細3を参照する。
 
-## 収録範囲
+## 5. C1：仕様ACと既存テストの読み取り専用の不足調査
 
-### 5.9 Wave C1 — 仕様ACとテスト実装の不足を埋める
+C1の主目的は、既存の仕様（Spec）、既存テスト、Trainingケース、カリキュラムで利用するACの対応を棚卸しすることである。製品統合テスト（Product Integration Test）を追加するウェーブにはしない。
 
-**Owner**: Parent + test owner。**Dependency**: W0でSpec / existing testを突合し、L2でCase IDと期待結果を固定すること。**Write set**: `tests/integration/cart-use-cases.test.ts`、`tests/integration/review-user-use-cases.test.ts`、`tests/contracts/training-curriculum.test.ts`、必要な`tests/contracts/ci-workflow.test.ts` / `native-ci-workflow.test.ts`の不足箇所だけ。`src/**`、Spec本文、Formal E2Eはwrite set外。
+### 5.1 調査範囲
 
-- Cartの`RANK_REQUIRED`、`INSUFFICIENT_STOCK`、Reviewの`NOT_OWNER`など、仕様にある重要分岐をCase単位で整理する。
-- 直接テストが必要なものはIntegration testへ追加し、仕様上の意図をTest titleまたは構造化metadataで追えるようにする。
-- `spec_ref → br_ids / ac_ids → risk_id → test_case_id → implementation_path → evidence`の各段階を、ID存在だけでなく対応関係まで確認する。
-- Global coverage thresholdは今回の既定gateに追加しない。Branchの重要度、既存CI時間、対象ACの直接Evidenceを測定した結果、閾値が必要とOwnerが判断した場合だけ、別L2変更として数字・対象範囲・実行時間・rollbackを承認する。
-- コメントは、Seed・Clock・Reset・非自明な期待値・仕様上の理由に限定して追加する。一般的な操作の説明はTest title / metadataで表現する。
+- 仕様（Spec）のBR／ACと、既存の単体（Unit）／統合（Integration）／リポジトリ契約（Repository Contract）／コンポーネント（Component）／E2Eの対応を読む。
+- Trainingで使うケースの期待結果、ワークブックの追跡情報、既存テストの検証が対応するかを確認する。
+- カート（Cart）の在庫・購入上限・購入不可明細、レビュー（Review）の所有者・配達・公開状態など、重要条件を「既存テストで確認済み」「別テストレイヤーで確認」「カリキュラム対象外の理由あり」へ分類する。
+- カバレッジ（Coverage）の数字だけで十分性を判定しない。リスク、AC、テストレイヤー、期待結果、証跡の対応を基準にする。
+- コメントは、初期データ、時刻制御（Clock）、リセット、明らかでない期待結果、仕様上の理由が必要な箇所だけを候補にする。通常操作の説明をコメントで水増ししない。
 
-#### 先に固定するAC / Test target matrix
+### 5.2 AC／テスト対象対応表
 
-| AC | 最低限確認する境界 | 主なTest target | 完了Evidence |
+| AC | 最低限棚卸しする境界 | 主な既存テスト対象 | 記録する結果 |
 | --- | --- | --- | --- |
-| `AC-CART-001` | 在庫・購入上限・99の境界、超過拒否、既存数量維持 | `tests/integration/cart-use-cases.test.ts` | 仕様ID、Case ID、期待結果、Pass result |
-| `AC-CART-002` | Guest CartからCustomer Cartへの統合と再計算 | `tests/integration/cart-use-cases.test.ts` | Guest / Customerの状態と統合後の結果 |
-| `AC-CART-003` | 価格変更、在庫0、非公開、Rank不足、無効SKUの再検証とCheckout阻止 | `tests/integration/cart-use-cases.test.ts` | 各理由または対象外理由をCase単位で記録 |
-| `AC-REVIEW-001` | delivered本人の一度だけの投稿、未配達・他人・既存・削除済みの拒否 | `tests/integration/review-user-use-cases.test.ts` | eligibilityの各分類と`NOT_OWNER`等の対応 |
-| `AC-REVIEW-002` | published / hidden / deleted、編集、Admin操作、summary集計 | `tests/integration/review-user-use-cases.test.ts` | state transitionと表示集計の結果 |
+| AC-CART-001 | 在庫、購入上限、境界、超過拒否、既存数量 | tests/integration/cart-use-cases.test.ts | ケース、検証、PASSまたは不足理由 |
+| AC-CART-002 | ゲストカート（Guest Cart）と顧客カート（Customer Cart）の統合、再計算 | tests/integration/cart-use-cases.test.ts | 状態、ケース、既存テストまたは未検証理由 |
+| AC-CART-003 | 価格・在庫・公開・順位不足（Rank不足）・無効SKUの再検証 | tests/integration/cart-use-cases.test.ts | 既存テスト、別レイヤー、対象外理由 |
+| AC-REVIEW-001 | 配達済み（delivered）本人の一度だけの投稿、未配達・他人・既存・削除済みの拒否 | tests/integration/review-user-use-cases.test.ts | 適格性（eligibility）の分類と既存の検証 |
+| AC-REVIEW-002 | 公開（published）／非表示（hidden）／削除済み（deleted）、編集、管理者（Admin）操作、集計 | tests/integration/review-user-use-cases.test.ts | 状態遷移と集計の対応 |
 
-上表は「全実装を同じTest layerへ置く」指定ではない。既存のContract / Integration / E2Eの責務をW0で確認し、直接テストが不要な分岐は理由付きで`covered by ...`または`out of scope`としてTraceへ残す。`out of scope`は未検証のままではなく、別課程・別Test layer・仕様対象外のいずれかを明記する。
+この表は全ケースを同じレイヤーへ置く指示ではない。既存テストが十分であれば重複追加せず、別レイヤーで確認している場合はその参照を残す。
 
-完了条件:
+### 5.3 C1の完了と分離条件
 
-- 重要ACの未検証条件が、テスト済み・対象外・別課程のいずれかに分類される。
-- 学習者が自分のCaseにどのAssertionが必要か説明できる。
-- コメントを増やすだけでなく、Case IDと期待結果を構造化して追跡できる。
-- 上表の5 ACについて、既存Testの重複、first failure、追加／対象外判断がRun evidence付きで確認できる。
+- 未検証条件ごとに、既存テスト、別レイヤー、カリキュラム対象外理由、または別タスク候補が記録される。
+- 仕様の期待結果を保証するために製品統合テスト（Product Integration Test）が必要だと具体的に確認できた場合だけ、別計画・別承認・別の変更対象へ切り出す。
+- C1の調査結果は、今回のカリキュラム／修了確認／エージェントの主要経路を妨げない。
+- C1の既定の変更対象はなし。判断、最初の失敗、参照、コメント候補は進行中のRunのREPORTへ記録し、製品コード、仕様、正式な回帰テスト、Trainingソースを変更しない。
 
-**停止条件**: Specの意味変更が必要、既存Formal RegressionとTraining exerciseを混在させないと検証できない、またはcoverage数字だけで十分性を判定する要求が出た場合。**Rollback**: 追加Testとcontract assertionだけを戻し、既存テストの削除・弱体化は行わない。
+## 6. P1-6 失敗分析の検証
 
-### 5.10 Wave G3 — Agent利用の実Run検証
+教材が用意した失敗と、受講者自身のテストで起きた失敗を別の学習対象にする。
 
-**Owner**: Parent。**Dependency**: G1 / G2の文書契約、実装後のsafe diff。**Write set**: なし（active Runのmachine-managed artifactとREPORT追記を除く）。実装後に、Repositoryの現在のAgent設定を前提として読み取り専用の実Runを行う。
+### 6.1 二つの失敗系統
 
-- 2〜3の独立read-only Agentが重複なく並列実行される。
-- 各Agentが許可されたroleで起動し、read-only Agentの変更がない。
-- Parentはspawn後も非重複の作業を継続し、completion notificationまたは非ブロッキングjoinで結果を受け取る。
-- 調査・レビューAgentは、指定scopeの確認項目と出力契約を満たして自然終了するまで継続する。
-- テスト・ビルド・lint等のコマンド実行Agentは、自身のコマンド単位timeoutで終了し、status、command、exit code、timeout理由を返す。
-- childが追加Agentを起動しない。
-- Agentが不要な軽微なtaskでは、delegationなしで進められる。
-- Parallel writeは、分離とattributionを実証できない限り実施しない。
-- Parentは子Agentが困っている場合に助言し、独立した未確認観点がある場合だけ異なるscopeの追加Agentを派遣する。
-- 正常終了または明示中止のAgentをParentがcloseする。経過時間だけで調査Agentをcloseしない。
+| 系統 | 目的 | 完了根拠 |
+| --- | --- | --- |
+| 意図的失敗教材 | トレース、スクリーンショット、動画、レポートの見方を安全に練習する | 教材用の実行記録／証跡。学習者ケースの完了根拠に流用しない |
+| 学習者の診断 | 自分のケースで失敗を観測し、原因を切り分け、修正し、再実行する | 同じ`case_id`の初回／修正後の記録、失敗分析、修正差分、別の証跡 |
 
-実Runでは、各Work Packageのread setと禁止範囲を事前に記録する。`wait_agent(timeout_ms)`のtimeoutは親のjoin呼び出しの終了として扱い、子Agentのtimeout、partial、closeとは区別する。Parentは非重複の作業を継続し、調査Agentは自然終了まで待つ。read-onlyの変更なしは開始前後の`git diff --name-only`、Run collector、必要なhook evidenceの三者で確認する。子Agentの自己申告だけを証拠にしない。
+学習者の診断では、次の対応を追跡可能にする。
 
-テスト・ビルド・lint等のコマンド実行Agentは、子Agent自身がコマンド単位timeoutを設定する。実際のtimeout、interrupted、errored、またはRunのwatchdog / 終了時点で結果がない場合は、Parentが`TIMEOUT`、`BLOCKED`、`partial`または`NOT_RUN`として記録し、PASSへ変換しない。子Agentが困っている場合はParentが助言し、必要なら異なるscopeの追加Agentを派遣する。
+    初回の実行記録
+      → failure_category
+      → cause
+      → action
+      → improvement
+      → 修正後の実行記録
 
-観測はAgent数そのものではなく、wall-clock、重複作業、Parentのcontext負荷、Evidence品質、scope違反、retry回数、助言・追加派遣の妥当性で評価する。成功条件は「2〜3体起動した」だけでなく、Parentが非重複作業とAgent管理を継続し、各findingにline evidenceがあり、調査Agentを経過時間だけで打ち切らず、実際のpartial / timeout / interrupted / erroredがあればPASSではなく記録されることである。
+初回証跡と修正後証跡は別参照にし、同じケースIDでも`run_context`は別にする。意図的失敗教材が非0で終了すること自体を、受講者のテスト修了FAILと誤分類しない。
 
-**停止条件**: read-onlyのSource Integrity、child recursive delegation禁止、scope attribution、またはclose lifecycleを証明できない場合。**Rollback**: G3は検証だけでSourceを戻す必要はない。Agent設定の変更が必要と判明した場合は、変更せずL3別Planへ移す。
+### 6.2 失敗分析で必須とする説明
 
-#### G3 lifecycle validation cases
+受講者は次を分けて記録する。
 
-実Runでは、次の順序と境界を、成功ケースだけでなく負のケースでも確認する。
+- Playwrightのエラー、検証失敗、要素特定失敗、タイミング／同期、トレース、スクリーンショット、動画、コンソール／ログ。
+- 期待結果と実際の結果。
+- 製品の不具合、テストコードの不具合、テストデータ／初期状態、要素特定、タイミング、環境、外部依存、不安定なテスト（Flaky）の発生源。
+- 不具合（Bug）、UX、提案（Suggestion）、未確定の結果。不具合と断定する場合はBR／ACと再現条件を添える。
+- なぜその原因と判断したか。
+- なぜその修正が最小で妥当か。
+- 修正後に同じケースを再実行した結果と、どの証跡が裏付けるか。
 
-- 調査Agent: Parentの`wait_agent`呼び出しだけがtimeoutした後もParentが非重複作業を継続し、調査Agentの自然終了通知を受け、結果を一度だけjoinしてからcloseする。
-- コマンド実行Agent: child自身のcommand単位timeoutを`TIMEOUT`として返し、Parentのjoin timeoutをcommand timeoutへ誤対応付けしない。command、exit code、elapsed、timeout理由が欠ける場合はPASSにしない。
-- 助言・追加派遣: 子Agentが詰まった場合にParentが助言し、助言で解消しない独立観点だけを別scopeの追加Agentへ派遣する。同じ問いの重複派遣、無制限retry、同時実行枠超過がない。
-- 遅延・重複通知: 追加Agentの結果や遅れて届いた結果を二重集計せず、closeを一度だけ行う。必要Evidenceのない遅延結果をPASSの根拠にしない。
-- 境界のnegative check: read-only AgentのSource変更、childからのrecursive delegation、Parent指定外のcommand / write、またはscopeを越えた結果は検出され、該当RunをFAIL / BLOCKEDとして扱う。
+再試行（Retry）やタイムアウト（Timeout）の延長だけでPASSした場合は、根本原因が未確認なら完了にしない。
 
-### 5.11 Wave V1 — 最終検証と既存Failureの扱い
+## 7. 受講者向け修了確認の契約テスト
 
-**Owner**: Parent + quality gate runner（検証のみ）。**Dependency**: すべての実装Wave、G3のSource Integrity確認。**Write set**: なし。formatterは`format:check`だけを使い、`format`のようなwrite commandをquality gateへ渡さない。
+契約テストは、詳細3の修了確認記録契約と、詳細1の引き渡し／パス契約をフィクスチャで検証する。
 
-Parentはcommand set・順序の指定、非ブロッキング管理、助言、必要時の追加派遣、結果統合、最終判断を担う。`quality_gate_runner`はParent指定commandの実行と子Agent側のcommand単位timeout管理、結果返却を担う。調査Agentやquality gate runnerはWave / Runの完了判定を代行しない。
+### 7.1 正常系フィクスチャ
 
-変更後の検証順序は次とする。各項目は`PASS`、`FAIL`、`TIMEOUT`、`BLOCKED`、`SKIPPED`、`NOT_RUN`を観測statusとして記録し、結果なしの`partial`を含め、非PASS状態をPASSへ集約しない。ここでの`TIMEOUT`は子Agentまたはcommandの観測statusであり、Run manifestの正式enumではない。Runへ保存するときは、既存の`validation.status` / `evaluation.result`の契約へ、原因を失わない形で`blocked`、`not_run`、`partial`等に対応付ける。`run.json`やHook JSONLを手編集して対応付けない。
+詳細3の修了確認記録／Playwright契約を満たす正常系フィクスチャを1つ以上用意する。フィクスチャは、複数ケースと代表ケースの対応、ケースのリスク／仕様（Spec）／BR／AC／前提条件／役割／アカウント／初期データ／リセット／操作／期待結果／レイヤー／ツール、学習者作成コード、実在する実行記録／証跡、初回／修正後のトレースを持つ。正確な必須条件と不正系一覧は詳細3の正本を参照し、ここで再定義しない。
 
-1. Markdown / Curriculum static validation。
-2. Training typecheck、Web baseline、Web exercise、diagnostic、expected-failure contract。
-3. Native runtime（選択課程かつ環境が利用可能な場合のみ）とTraining Copy validation。
-4. 受講者向け修了確認のpositive / negative contract tests。
-5. Cart / Reviewの追加Integration test。
-6. `typecheck:app`、Cross-role E2E、format / lint、Repository / Contract全体をNode 24相当で再確認する。
-7. `corepack pnpm run verify`、`git diff --check`、Run Artifact collector / sanitizer。
+- フィクスチャは`tests/fixtures`または一時ディレクトリで生成し、正本ワークブックを変更しない。
+- 意味のある操作／要素特定／検証は複数の書き方を含め、特定の要素特定名、検証構文、ファイル名への完全一致を要求しない。
 
-既存Failureは、今回の変更との因果関係をParentが分類し、未確認のFAILを完了扱いにしない。安全な最小修正が可能で今回の品質ゲートに影響する場合は、repair-loopへ接続する。
+### 7.2 不正系フィクスチャ
 
-全child結果、追加派遣結果、validation statusをParentが統合し、Wave / Runの最終statusと完了可否をParentだけが判断する。調査Agentと`quality_gate_runner`は判定を代行しない。
+詳細3の不正系フィクスチャ一覧を、各欠陥が一つだけ現れる専用フィクスチャとして実行し、いずれもPASSにならないことを確認する。対象は詳細3のリセット／検証／意味のある検証／ケース対応／開始用コード・基準実装／証跡／NOT_RUN／引き渡しのパス・スキーマ／修了確認記録の自己参照の各契約である。ASTに`expect`があるだけのフィクスチャを正常系にしない。
 
-#### V1の期待コマンドと証跡
+このファイルで確認するのは、フィクスチャの隔離、期待状態、実在する成果物（Artifact）、ケース追跡情報、正本ワークブック非変更である。契約項目の追加・削除は詳細3だけを修正する。
 
-| 順 | Command / 手順 | 期待結果 | 必須Evidence / Block扱い |
+## 8. G3：エージェントのライフサイクルの安全な実行（Run）検証
+
+G3のソース変更対象はなしである。実際の作業ツリー、製品、仕様、正本ワークブック、既存Runへ意図的な変更を行って不正系ケースを再現しない。
+
+### 8.1 安全な実行環境
+
+- 一時ディレクトリ、使い捨て作業ツリー、フィクスチャ、模擬Runのいずれかを使う。
+- 読み取り専用違反、対象範囲外の書き込み、子エージェントの再帰的な委譲は、隔離した対象と模擬コマンド（mock）／契約テストで再現する。
+- 実際の作業ツリーでは、通常の読み取り専用エージェント実行前後にソース完全性を確認するだけにする。
+- G3で生成した一時的な失敗ログや成果物（Artifact）はリポジトリ成果物にしない。必要な要約とリポジトリ相対参照だけをRunへ残す。
+
+### 8.2 ライフサイクル検証
+
+- 複数の重複しない対象範囲を持つ読み取り専用エージェントを並列起動する。
+- 親エージェントはspawn後も重複しない作業を行う。
+- 親のjoin呼び出しがタイムアウトしても、それを子エージェントのタイムアウトや終了（close）と解釈しない。調査エージェントは自然終了通知まで維持する。
+- テスト／ビルド／lintを実行する子エージェントは、自分のコマンド単位のタイムアウトで終了し、コマンド、終了コード（exit code）、経過時間、タイムアウト理由を返す。
+- 親エージェントは困っている子エージェントへ助言し、解消しない独立観点だけを追加派遣する。同じ問いを無制限に再投入しない。
+- 遅れて届いた結果を二重集約せず、正常終了または明示中止したエージェントだけを一度終了（close）する。
+- 子エージェントからの再帰的な委譲、親指定外のコマンド／書き込み、読み取り専用エージェントのソース書き込み、対象範囲の帰属不明を検出したら、該当RunをFAIL／BLOCKEDとしてPASSにしない。
+- changed_filesは自己申告でなくcollector／Git diff／hookの証跡で確認する。
+- 各不正系ケースは、実リポジトリとは別の分離ルートで、Windowsではscripts/codex-task.ps1、POSIXではscripts/codex-task.shと既存の対象範囲オプション（allowed_files／allowed_dirs／expected_changed_files／require-clean-git／run-id／record-run-manifest）を使って実行する。模擬コマンド（mock command）／フィクスチャ（fixture）が必要な場合も、フィクスチャは一時生成し、実装後に再現したコマンド、許可リスト、期待変更ファイル、実際の差分、codex-taskレポートJSON、終了（close）記録を同じRunへ紐付ける。
+- `TIMEOUT`は子コマンドの観測値としてのみ扱い、実行成果物（Run Artifact）の正式な状態へ保存するときは既存enumのFAIL／BLOCKED等へ契約に従って対応付ける。新しい状態をこの計画で増やさない。
+
+### 8.3 G3の不正系ケース
+
+| ケース | 分離ルート／実行コマンド | 許可リスト／期待する変更ファイル | 期待する扱いと証跡 |
 | --- | --- | --- | --- |
+| 読み取り専用エージェントがソースを変更しようとする | 使い捨て作業ツリー。codex-task.ps1／.sh + 読み取り専用の模擬コマンド（mock command） | ソースの許可リスト外への書き込み、期待する変更ファイルは空。開始前後のソース差分も空であることを期待 | 書き込みを検出し、ソース完全性違反としてFAIL／BLOCKED。対象範囲レポート、差分、hook／終了（close）の証跡 |
+| 子エージェントがエージェントを追加起動する | 模擬Run／契約フィクスチャ。再帰的な委譲イベントを発生させる | ソース変更ファイルは空。エージェント起動イベントは許可しない | 再帰的な委譲違反としてFAIL。イベントログ、codex-taskレポートJSON、親子関係の終了（close）記録 |
+| 親エージェント指定外のパスへ書き込む | 一時ディレクトリ／対象範囲フィクスチャ。codex-taskの対象範囲オプションを指定 | allowed_files／allowed_dirsの外への書き込み、expected_changed_filesと一致しない差分を期待 | 対象範囲違反としてFAIL。許可リスト、実差分、レポートJSON |
+| 親のjoinだけがタイムアウトする | 自然終了する調査フィクスチャ。親の非ブロッキングjoin | ソース変更ファイルは空。子は自然終了するため、最終差分は空 | 子を中断せず、後の結果を一度だけjoin。joinのタイムアウトと子のタイムアウトを分けた時系列／終了（close）の証跡 |
+| 子のコマンドがタイムアウトする | コマンドタイムアウト用フィクスチャ。子自身が管理するコマンド単位のタイムアウト（bounded command timeout） | ソース変更ファイルは空。プロセスツリー停止の結果を記録 | 子の観測値TIMEOUTとして記録し、親のjoinのタイムアウトと混同しない。停止確認、経過時間、正式なRun状態への対応付けを記録 |
+| エージェント枠が満杯で追加観点がある | 模擬スケジューラー。max_threadsを変更しない | ソース変更ファイルは空。既存エージェントを強制終了しない | 空き後に別範囲を派遣するか、優先順位と保留理由を記録。スケジューラーイベント／最終終了（close）の証跡 |
 
-この表の各commandはParentが指定し、`quality_gate_runner`または対象の子Agentが実行する。必須Evidenceには実行Agent、command、exit code、elapsed、timeout理由、結果なし時のstatusを含める。`wait_agent`のtimeoutはcommand timeoutとはみなさない。commandごとの具体的timeout値とprocess tree停止方法はWave 0で確認し、既存wrapper / Hookの変更が必要ならL3別Planへ分離する。
-| Plan | `corepack pnpm exec tsx -e "import fs from 'node:fs'; import { validatePlanOutput } from './.agents/skills/feature-plan/scripts/validate-plan-output.ts'; const result = validatePlanOutput(fs.readFileSync('.agents/skills/feature-plan/assets/plan-template.md', 'utf8'), fs.readFileSync('docs/plans/2026-09-15_213247_self-study-agent-orchestration.md', 'utf8')); console.log(JSON.stringify(result)); if (!result.valid) process.exit(1);"` | `valid: true` | templateと対象Planを実際に読み込んだstdout。単一Pathを渡すだけのCLI表記は採用しない |
-| Curriculum | `corepack pnpm run validate:curriculum`、`corepack pnpm run lint:markdown` | exit 0 | 22 required documents、4 Workbook、Training workflow、markdown 0 issues |
-| Training | `corepack pnpm run typecheck:training`、`corepack pnpm run training:web:baseline`、`corepack pnpm run training:web:exercise`、`corepack pnpm run training:web:diagnostic` | exit 0 | baselineとlearner exerciseを別結果で保存。starter / baselineだけを修了Evidenceにしない |
-| Failure | `corepack pnpm run training:web:check-expected-failure` | wrapper exit 0。内部のfailure exerciseは非0、`.zip` / `.png` / `.webm` / `.html`を生成 | `output/training/playwright/`の期待Failure Artifact。`training:web:expected-failure`単独の非0を品質ゲートFAILと誤分類しない |
-| Copy | `corepack pnpm run training:copy:prepare -- --source-sha <40-char-sha> --target <new-dir>`、続けて`corepack pnpm run training:copy:validate -- --root <training-copy>` | 生成とvalidationがexit 0 | manifest SHA、active allowlist 2ファイル、template byte equality、least privilege。target既存時の上書き拒否も確認 |
-| Tests | `corepack pnpm run test:contracts`、`corepack pnpm run test:integration` | exit 0 | checker、Trace、Training / Formal境界、AC targetの結果 |
-| Type / quality | `corepack pnpm run typecheck:app`、`corepack pnpm run typecheck:native-tests`、`corepack pnpm run format:check`、`corepack pnpm run lint`、必要なE2E（Cross-roleを含む） | exit 0 | Node 24相当、first failureと対象Waveを記録 |
-| Full | `corepack pnpm run verify`、`git diff --check` | exit 0 | full gateのstdout、FAIL時はfirst failure分類。verifyが環境依存で実行不能ならBLOCKEDとして理由と代替Evidenceを記録 |
-| Run | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check` | exit 0、residual findings 0 | collector由来のchanged files、sanitized Run Artifact。run.json / Hook JSONLは手編集しない |
+各行の「期待する変更ファイル」はフィクスチャのルート内のリポジトリ相対集合として明記し、実際の作業ツリーの変更を期待値にしない。不正系ケースでFAILを期待することと、実際の検証RunをFAILのまま放置することを混同せず、検出結果を記録した後にフィクスチャ／使い捨て作業ツリーを破棄し、親Runは結果を正式な状態へ対応付けて完了させる。
 
-Nativeを選択しない場合は`SKIPPED`を記録し、Common / Web Part 2のPASSへ影響させない。Nativeを選択したのにAndroid runtimeが使えない場合は`BLOCKED`であり、C08の完了へ進めない。GitHub Actionsの実Runを取得できない場合もPart 2をPASSにせず、Copy準備／Account／Permission／runnerのどこで止まったかを記録する。
+## 9. V1：講師向け資料なしの受講者一巡確認を最重要ゲートにする
 
-## 6. 検証方法
+検証器（validator）、契約テスト、自動確認がPASSしても、受講者が教材を読んで進められなければ目的未達である。V1では、講師向け資料を開かないクリーンな学習者用コピーを使い、Common課程の経路を実際に一巡する。
 
-### 6.1 Plan検証
+### 9.1 一巡確認の経路
 
-- templateと対象Planの両方を読み込む`corepack pnpm exec tsx -e ...validatePlanOutput...`（5.11の表に記載した完全なCommand）を実行する。`node --import tsx ... <plan-file>`のように、CLI実装がないpure functionへ単一Pathを渡すだけの表記は検証とみなさない。
-- 主要セクション（Goal、Current understanding、Assumptions、Non-goals、Impacted areas、Files、Change strategy、Validation、Risks、Open questions）が存在する。
-- 実装前の未解決質問と停止条件が、推測で埋められていない。
-- 既存PR 4A / PR 5 / Agent orchestration Planとの重複が、参照または境界として整理されている。
-- 17行監査表、今回確定した方針、Wave dependency、exact write set、rollback、status / exit codeが互いに矛盾しない。
+    P1-1
+      ↓
+    P1-2
+      ↓
+    P1-3
+      ↓
+    P1-4
+      ↓
+    P1-5
+      ↓
+    P1-6
+      ↓
+    P1-8
+      ↓
+    P1-9
 
-### 6.2 Curriculum / Workbook
+P1-7を選択しない場合のP1-6 → P1-8の復帰を確認する。Nativeを選択する場合は、別途P1-7 → P1-8の選択経路を確認する。
 
-- `corepack pnpm run validate:curriculum`
-- `corepack pnpm run lint:markdown`
-- 全17 Lessonについて、`docs/reference/curriculum-self-study-review.md`の既存checklistと17行監査表を突合し、Input / Output / DoD / Feedback / Handoffの各欄を埋める。
-- P1-2〜P1-6の各Handoffを、ファイル・列・Case ID（`TARGET-CART-101` / `RISK-CART-101` / `TC-CART-101`）・Commandまで手動確認する。
-- clean learner copyで、講師向け資料を開かずにCommon routeをP1-1からP1-9まで通読し、P1-2〜P1-6を実施する。P1-7を選択しない場合のP1-8 rejoinも確認する。
-- clean learner walkthroughの記録には、Lesson ID、Inputの入手元、実施Command、Output / Handoff参照、Self-check回答の最低要素、Recovery結果を含める。これは理解の手動確認であり、checkerの自動PASSと混同しない。
+### 9.2 実施すること
 
-### 6.3 Training / 受講者向け修了確認
+P1-2〜P1-6はリンク確認ではなく実演する。
 
-- `corepack pnpm run typecheck:training`
-- `corepack pnpm run training:web:baseline`
-- `corepack pnpm run training:web:exercise`
-- `corepack pnpm run training:web:diagnostic`
-- `corepack pnpm run training:web:check-expected-failure`
-- `corepack pnpm run training:copy:prepare -- --source-sha <40-char-sha> --target <new-dir>` → `corepack pnpm run training:copy:validate -- --root <training-copy>`
-- Nativeを選択した場合だけ、`corepack pnpm run training:native:baseline` → `corepack pnpm run training:native:exercise`とJUnit / Evidenceを同じattemptで確認する。未選択はSKIPPED、選択したがruntime不可はBLOCKEDとする。
-- positive fixture（有意なAssertion / Evidenceあり）とnegative fixture（starterのみ、Not run、unreachable Flow、架空Evidence、baselineのみ、Case不一致）を受講者向け修了確認で比較する。
-- Part 2では、実際のGitHub PR / Checks / Workflow Run / Artifactを取得できた場合だけPASSとし、取得できない場合はBLOCKEDまたはNOT_RUNのままにする。
+- 入力の出所、準備済みのもの、受講者が作るものを本文だけで見つける。
+- P1-2で複数のリスク／条件を整理し、P1-3で複数ケースを作り、TC-CART-101を代表ケースとして選ぶ。
+- 単体（Unit）／統合（Integration）／コンポーネント（Component）などUI E2E以外のレイヤーを少なくとも1件選び、理由を説明する。
+- P1-4でtest、page、要素特定、操作、検証、getByRole、実行コマンド、レポートの読み方を学ぶ。高度なPOM／フィクスチャ（Fixture）を先に要求しない。
+- P1-5でP1-3のケースをコードへ変換し、ケースID、仕様（Spec）／リスク、初期データ／リセット、前提条件、役割／アカウント、操作、要素特定、検証、テスト分離、デスクトップWeb、必要範囲のモバイルWeb、実行記録、証跡を揃える。
+- P1-6でPlaywrightのエラー、検証／要素特定／タイミングの失敗、トレース、スクリーンショット、動画、コンソール／ログ、期待結果／実際の結果、原因、最小修正、再実行を確認する。
+- P1-8では、P1-4〜P1-6で実際に観察した重複、不安定なテスト（Flaky）、変更影響などから必要なPOM／ヘルパー（Helper）／フィクスチャ（Fixture）の改善を選ぶ。抽象化そのものを正解にしない。
+- 次レッスンの引き渡しを作成し、受講者が次の開始条件を言葉で説明する。
 
-### 6.4 Product test / CI
+### 9.3 一巡確認でPASSとなる条件
 
-- Cart / Review追加Integration test。
-- AC / Case / Assertion / EvidenceのTraceability contract test。
-- `tests/contracts/training-curriculum.test.ts`でbaseline非代替、Training / Formal分離、workflow safetyを確認する。
-- Training workflowとProduct Formal workflowに、不要なlearner exerciseが混在していない。
-- CI Artifactの成功EvidenceとFailure diagnostic Artifactを区別する。
-- `corepack pnpm run test:contracts`と`corepack pnpm run test:integration`で、上記AC target・checker status・Traceabilityの期待結果を確認する。
+- 各レッスンで、入力を見つけ、実施内容を行い、出力と証跡を作り、自己確認の最低回答要素を埋め、完了条件を自分の言葉で確認できる。
+- P1-5開始時に、実装するケース、開始状態、操作、検証が本文と引き渡しだけで決まる。
+- P1-5の学習者作成コードが明示的なリセットとケース対応を持ち、開始用コード／基準実装／別ケースの証跡に依存しない。
+- P1-6の初回失敗と修正後PASSが同一ケースIDで追跡でき、原因・修正理由・別の証跡を説明できる。
+- P1-7をスキップした場合もP1-8、P1-9へ迷わず進める。
+- P1-2〜P1-6で講師向け資料や暗黙の口頭説明を必要とした場合はFAILとし、本文へ不足する入力／説明／復旧方法を戻してから再実行する。
 
-### 6.5 Agent運用
+## 10. P1-4〜P1-6のPlaywright学習監査
 
-- read-only researcherの2〜3並列Run。
-- Parentがspawn後も非重複作業を継続し、completion notificationまたは非ブロッキングjoinで結果を管理することを確認する。
-- 変更ファイルがないこと、scopeが重複しないこと、正常終了または明示中止後にcloseされることを確認する。
-- child recursive delegationのnegative check。
-- 調査・レビューAgentは自然終了まで継続し、経過時間だけを理由にcloseしないことを確認する。
-- workerはParent指定scopeだけを変更するスコープ限定Runとし、テスト・ビルド等のコマンドtimeoutはworker / quality gate runner自身が管理する。
-- quality_gate_runnerはParent指定commandだけを実行し、Sourceを変更しない。
-- `scripts/verify` / `scripts/verify.ps1`、Run Artifact sanitizer、必要なHook / collectorを確認する。
-- `wait_agent`のtimeoutだけでは子Agentのtimeoutと判定しない。実際のtimeout / interrupted / errored、またはwatchdog / Run終了までに結果がない場合をpartial / BLOCKED / NOT_RUNとして記録し、結果なしをPASSへ変換しない。軽微な1ファイルtaskではdelegationなしのnegative caseも確認する。
-- 子Agentが困っている場合のParentの助言と、独立した未確認観点に対する追加Agent派遣が、同じ問いの無制限な再投入になっていないことを確認する。
+### P1-4：最小基礎
 
-### 6.6 成功判定
+必須: test、page、要素特定、操作、検証、getByRole等、実行コマンド、レポートの見方。高度なフィクスチャ（Fixture）／POMは先送りする。提供サンプルで学ぶが、完了成果には学習者作成ケースを混ぜない。
 
-- curriculum static validationがPASSするだけでなく、学習者がInputからOutputまで進め、Self-checkの最低回答要素とHandoffを説明できる。
-- stock baselineのみでは修了にならない。
-- 失敗を経験し、修正理由を説明して再実行できる。
-- CaseとEvidenceのTraceが途中で切れた場合にFAILまたは未完了として判定される。
-- Agent利用の有無がタスク規模とリスクに対応し、過剰起動・重複・recursive delegationがない。
-- Quality gateのFAIL / 未実行 / Environment blockが、PASSや完了へ誤変換されない。
-- 自動checkerのPASSは成果物・実行Evidenceの判定であり、理解の完全な証明ではない。理解はLessonのSelf-checkとclean learner walkthroughで別に確認する。
+### P1-5：ケースの自動化
+
+P1-3で設計したケースを中心に、ケースID、仕様（Spec）／リスク、初期データ／リセット、前提条件、役割／アカウント、操作、要素特定、検証、テスト分離、実行、証跡、デスクトップWeb、必要範囲のモバイルWebを段階的に扱う。サンプルコードのコピーで終えない。
+
+### P1-6：失敗分析
+
+Playwrightのエラー、検証／要素特定／タイミング、トレース、スクリーンショット、動画、コンソール／ログ、期待結果／実際の結果、原因、最小修正、再実行を段階的に扱う。失敗が直った事実だけでなく、なぜ失敗し、なぜ修正が妥当かを説明させる。
+
+この監査は教材実装後の一巡確認で行う。今回の計画修正では、監査内容が計画へ含まれていることだけを確認し、実習済みとは報告しない。
+
+## 11. V1の検証コマンドと証跡
+
+### 11.1 計画修正時に実行するコマンド
+
+| 順 | コマンド | 期待結果 | 証跡 |
+| --- | --- | --- | --- |
+| 1 | corepack pnpm exec tsx -e "import fs from 'node:fs'; import { validatePlanOutput } from './.agents/skills/feature-plan/scripts/validate-plan-output.ts'; const result = validatePlanOutput(fs.readFileSync('.agents/skills/feature-plan/assets/plan-template.md', 'utf8'), fs.readFileSync('docs/plans/2026-09-15_213247_self-study-agent-orchestration.md', 'utf8')); console.log(JSON.stringify(result)); if (!result.valid) process.exit(1);" | valid: true | テンプレート／インデックスを読み込んだstdout |
+| 2 | corepack pnpm run lint:markdown | exit 0、問題なし | lintの標準出力 |
+| 3 | corepack pnpm run validate:curriculum | exit 0 | 必須文書、ワークブック、Training資材の検証結果 |
+| 4 | corepack pnpm run typecheck:training | exit 0 | TypeScriptの標準出力 |
+| 5 | corepack pnpm exec vitest run tests/contracts/training-curriculum.test.ts tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1 | exit 0 | 関連契約テストの結果 |
+| 6 | git diff --check | exit 0 | 空白エラーなし |
+| 7 | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict | exit 0 | 機械管理マニフェストの更新 |
+| 8 | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check | exit 0、残存検出0 | サニタイズ済みRun成果物 |
+
+このターンでは、教材本文・Trainingテスト・受講者向け修了確認の実装を行わないため、実装後のtraining:web実行や修了確認コマンドのPASSを計画修正の証跡に数えない。既存の契約全体実行がタイムアウトした場合はPASSとせず、最初の失敗、実行時間、限定実行による代替証跡、次の再確認条件をRunへ記録する。
+
+### 11.2 実装後V1で追加する検証
+
+- 講師向け資料なしの受講者一巡確認の実記録。
+- 受講者向け修了確認の正常系／不正系契約テスト。
+- Training Webの基準実装、学習者演習、診断、意図的失敗の分離実行。
+- デスクトップWebと必要範囲のモバイルWebの実行。
+- 教材用コピー（Training Copy）のprepare／validateと第2部（Part 2）の実GitHub Actions実行（Run）／確認（Check）／成果物（Artifact）。
+- C1のAC／テスト不足調査結果と、別タスクへ分離した追加テストがある場合の専用検証。
+- G3の安全な不正系テスト、ソース完全性、対象範囲、ライフサイクル、終了（close）の証跡。
+- 最後にリポジトリ標準verify、`git diff --check`、Runの収集／サニタイズ。FAIL、BLOCKED、NOT_RUNをPASSへ変換しない。
+
+## 12. 計画修正後の読み取り専用再監査
+
+計画を保存した後、次を目視と検索で再監査する。
+
+- P1-3のケース数を固定する記述がなく、複数ケース・複数レイヤー・代表ケースの関係が書かれている。
+- TC-CART-101、TARGET-CART-101、RISK-CART-101を正本ワークブックへ完成行として追加する記述がない。
+- 提供サンプル、学習者作成成果物、検証用フィクスチャが別物として扱われている。
+- P1-3の必須引き渡し項目とP1-5の同一値参照、初期データ／リセット、役割／アカウント、操作、期待結果が切れていない。
+- 実行記録と修了確認記録の生成者、責務、入力、出力が混在していない。
+- 初期データ／リセット、意味のある検証、証跡、ケース追跡情報がPlaywright修了条件に含まれている。
+- 不正系フィクスチャの一覧が、リセットなし、検証なし、弱い検証、無関係要素、固定URL、ケース不一致、開始用コード／基準実装のみ、証跡欠損、NOT_RUN、架空パス、別ケース流用を覆っている。
+- 自動確認のPASSを能力項目の理解の完全証明と扱っていない。
+- 第1部（Part 1）成果物を教材用コピー（Training Copy）へ移す入力／出力／移行対象／移行しないもの／検証／復旧方法がある。
+- ワークフロー前・中・後のデータフローが分かれ、ワークフロー自身の未確定Run結果を事前条件にしていない。
+- ウェーブ依存関係は詳細2だけにあり、C1とG1／G2がカリキュラムの妨げになっていない。
+- G3の不正系テストは一時ディレクトリ、使い捨て作業ツリー、フィクスチャ、模擬Runで行い、実際の作業ツリーを汚さない。
+- 最新mainのSHA再確認、Expo更新の関連影響なし記録、講師向け資料なしの受講者一巡確認の最重要ゲートがある。
+- P1-4、P1-5、P1-6、P1-8の学習目的が、最小基礎 → ケース自動化 → 失敗分析 → 問題起点の保守性改善として段階的になっている。

@@ -236,6 +236,52 @@
   - Wave 0で、commandごとの具体的timeout値・process tree停止方法、watchdogの実装主体・発火条件・証跡保存先、同時実行枠が満杯のときの追加派遣方法を実測して確定する。
 - Progress: 100% (9/9)
 
+## 2026-09-16 14:56 JST
+
+- 最終検証: PASS。Plan validator、Markdown lint、カリキュラム検証、Trainingの型チェック、対象Contract Test（3ファイル・59テスト）、`git diff --check`、意味監査をすべて完了した。
+- 意味監査: Planインデックスと詳細1〜5の6ファイルについて、必須ケース／成果物／状態／ゲート識別子、P1-3の複数ケース契約、G3の不正系6ケース、日本語化対象の旧表現除去を確認した。Playwright、GitHub Actions、コマンド、パス、キー、状態値などの技術識別子は契約維持のため原表記を残した。
+- Run成果物: `collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict` は終了コード0、`sanitize-codex-artifacts.ps1 -Write -Check` は終了コード0、残存検出0だった。
+- 範囲確認: 変更対象はPlanインデックス、詳細1〜5、active RunのREPORTだけである。教材本文、Trainingコード、テスト実装、Workflow、Agent設定、Product、Spec、GitHub metadata、未追跡の`coverage/`および別Runには変更を加えていない。
+- Git操作: commit、push、PR作成／更新、mergeは実行していない。今回の成果物は実装前のPlanレビュー用である。
+- Progress: 100% (9/9)
+
+## 2026-09-16 14:41 JST
+
+- Language audit: ユーザー向けの見出し、表の項目名、一般的な説明を日本語へ統一した。`Playwright`、`GitHub Actions`、コマンド、パス、JSON／CSVキー、正式な成果物名、状態値、エージェント設定識別子など、実装上の識別子は原表記を維持し、日本語の補足を添えた。
+- Translation scope: インデックス、詳細1〜5の6ファイルを対象に、`Product Test`、`Not run`、`Common mode`、`Desktop`、`Mobile Web`、`runner`、`wrapper`、`Reporter`、`bounded command timeout`などの一般説明を日本語化した。既存の契約内容、ケース数の扱い、Common／第2部／Native・iOSの境界、ワークブックと引き渡しの責務は変更していない。
+- Subagent: Lorentzが読み取り専用の言語監査を完了し、英語の一般語と技術識別子の切り分けを報告した。追加のファイル変更やGit操作は行っていない。
+- Scope confirmation: 今回の変更対象はPlanインデックス、詳細1〜5、active Run REPORTだけである。教材本文、Trainingコード、テスト実装、ワークフロー、エージェント設定、製品、仕様、GitHubメタデータ、未追跡の`coverage/`および別Runは変更していない。
+- Progress: 100% (9/9)
+
+## 2026-09-16 12:31 JST
+
+- Validation final:
+  - PASS: Run Artifact collector（exit 0）。
+  - PASS: Run Artifact sanitizer（files_scanned 4、files_changed 0、residual_findings 0）。
+  - PASS: git diff --check（collector / sanitizer後も問題なし）。
+- Scope confirmation: Plan index、詳細1〜5、active Run REPORT以外のtracked sourceは今回変更していない。未追跡のcoverage/と別Runは既存状態のまま保持した。
+- Progress: 100% (9/9)
+
+## 2026-09-16 12:30 JST
+
+- Plan final read-throughで、既存training:copy:prepareが生成するprovisioning差分と受講者成果の区別を詳細3へ追加した。これにより、materialize後のgit diffを「受講者成果だけ」と誤認しない契約になった。
+- Validation:
+  - PASS: Plan validator（valid: true、missingHeadings: []）。
+  - PASS: Plan専用read-only semantic audit（6 files、Wave canonical heading 1、formal command 3、legacy fixed-count / English completion-checker 0、required contract tokens present、G3 matrix present）。
+  - PASS: corepack pnpm run lint:markdown（432 files、0 issues）。
+  - PASS: git diff --check。
+  - collector / sanitizerはこのcheckpoint後に最終実行する。
+- Progress: 100% (9/9)
+
+## 2026-09-16 12:20 JST
+
+- Correction: 12:16 JSTの「未実行: なし」はcollector / sanitizer実行前の記載であり、時点表現として訂正する。直後に両方を実行し、次の結果を得た。
+- Validation:
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`（exit 0）。
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`（files_scanned 4、files_changed 0、residual_findings 0）。
+  - active Run manifestの既存coverage/coverage-summary.jsonと、別Run 20260915-191711-JSTは今回の対象外として変更・削除していない。
+- Progress: 100% (9/9)
+
 ## 2026-09-16 09:33 JST
 
 - Validation:
@@ -265,3 +311,31 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-16 12:16 JST
+
+- Summary:
+  - 今回の範囲を、PR #157の既存Planインデックス・詳細5ファイルの修正と検証だけに固定した。カリキュラム本文、Training code、Test、Workflow、Agent設定、Product、Spec、GitHub metadata、commit、push、PR本文更新、mergeは行っていない。
+  - 分割後の詳細1〜5は、Lesson / Workbook / Handoff、Wave / write set、Completion / Receipt / CI、Test / walkthrough / G3、Risk / Owner判断の各責務を分離した。
+- Subagent:
+  - Curriculum観点から、P1-3の複数Case / Layerを保持し、既存sampleとlearner artifactを分離する必要を確認した。P1-5の既存Case参照とP1-8の改善Evidenceが切れないようPlanへ反映した。
+  - Completion / CI観点から、現行Repositoryには正式なtraining:completion:check、Completion Receipt、Handoff import実装がないこと、training:web:exerciseがPlaywright直接実行であることを確認した。T1 / T2の実装前Owner判断へ反映した。
+  - Agent lifecycle観点から、T1 / T2のOwner・read / write set・entry / exit gate、G3のisolated negative case、W0のbranch / SHA / dirty set記録、C1のread-only境界が不足していたため追記した。過去のC1実装解釈は訂正記録を追加する対象とした。
+- Plan changes:
+  - P1-3のCase数固定を撤廃し、TC-CART-101をP1-2 → P1-3 → P1-5 → P1-6の代表縦断Caseとして整理した。P1-3の複数Case、複数設計技法、非UI E2E Layerと理由を維持した。
+  - Canonical WorkbookへTARGET-CART-101 / RISK-CART-101 / TC-CART-101を事前投入せず、Provided sample、Learner-created artifact、Validation fixtureを分離した。
+  - P1-3 → P1-5のhandoff fields、Seed / Reset、meaningful Assertion、initial / repaired Failure、Self-check、case_code_map、Part 1 → Training Copy materializeを定義した。
+  - Execution Receipt（runner / wrapper / Reporterの実行事実）とCompletion Receipt（training:completion:checkの判定結果）を分離し、Workflow前・中・完了後の循環しないdata flowを定義した。
+  - Wave dependencyを詳細2だけへ集約し、T1 / T2の具体的write set・gate、G1 / G2の非block、C1の独立性、G3 → V1の関係を明記した。G3は実working treeを使わない。
+- Validation:
+  - PASS: Plan validator（valid: true、missingHeadings: []）。
+  - PASS: Plan専用read-only semantic audit（6 files、Wave canonical heading 1、formal command 3、legacy fixed-count / English completion-checker 0、required contract tokens present、G3 matrix present）。
+  - PASS: corepack pnpm run lint:markdown（432 files、0 issues）。
+  - PASS: corepack pnpm run validate:curriculum（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+  - PASS: corepack pnpm run typecheck:training。
+  - PASS: 対象Contract Test（3 files、59 tests）。
+  - PASS: git diff --check。
+  - 未実行: なし。Run collector / sanitizerはこの追記後に実行する。
+- Correction:
+  - 09:36 JST以前の、commit・push・PR作成を次工程とする記録は、現在のユーザー指示により無効。今回のRunではGit mutationを行わず、対象branchの未commit Plan差分をそのまま保持する。
+- Progress: 100% (9/9)

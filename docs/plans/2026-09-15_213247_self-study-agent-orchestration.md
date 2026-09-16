@@ -1,201 +1,169 @@
-# 講師なし自己学習化とAgent協働運用の統合計画
+# 講師なし自己学習化とエージェント協働運用の統合計画
 
-## Status
+## 状態
 
-- 状態: **Plan only / implementation not started**
-- 作成日: 2026-09-15 JST
-- このPlanは、直前の自己学習レビューで確定した課題と、今後の複数Agent活用をRepositoryの標準運用へ組み込むための統合Planである。
-- 既存の`2026-09-05_pr4a_curriculum_self_study_remediation.md`は完了済みの履歴として維持する。
-- `2026-09-05_pr5_training_baseline_exercise_artifact_evidence.md`はTraining実行入口・Artifact境界の詳細な子Planとして再利用し、本Planで同じ仕様を重複定義しない。
-- 本Planの作成では、製品コード、テストコード、カリキュラム本文、Agent設定を変更しない。
-
-- 分割後の正本はこのファイルをインデックスとし、本文契約は下表の詳細ファイルに分散して保持する。
-- 分割前基準: 824行、SHA-256 `5B52C08A3453E44D73C7F14A0EF02B930BFD29AAF59716BECC314B6A8DBFCCF8`。分割後の内容保持検証にのみ使用する。
-- 今回はPlan文書だけを変更し、製品コード、テストコード、カリキュラム本文、Agent設定、GitHub metadataは変更しない。
+- 状態: **計画のみ／実装未着手**
+- この計画は、講師の判断や暗黙知に依存せず、Playwright初心者が仕様分析からテスト設計・実装・失敗分析・証跡・次レッスンへの引き渡しまで進められる教材へ改修するための計画である。
+- エージェント協働運用はカリキュラムの学習要件ではなく、このリポジトリを変更・検証するときの親エージェント／子エージェント運用として分離する。
+- 本計画の今回の作業範囲は計画修正と計画検証だけであり、教材本文、Trainingのコード、テスト、CI、エージェント設定、製品（Product）、仕様（Spec）、GitHubメタデータを変更しない。
+- 本文は日本語で記述し、製品名、コマンド、パス、JSONキー、正式な成果物名、固有IDなどの技術識別子だけは原表記を残す。
 
 ## 0. 依頼概要
 
-### 依頼内容
+### 目的
 
-- このPlanの目的は、講師なしで受講者がInput確認、実施、結果解釈、Failureからの復帰、完了判定、次LessonへのHandoffまで進められる状態を設計することである。
-- Test Caseが前Lessonで作成される場合は、次LessonのInputとして作成元・識別子・完成状態を表示する。Playwright実装には、提供Caseまたは前Lessonで作成した学習者Caseを明示的なInputとして渡す。
-- 複数Agentは、タスクの性質に応じて独立した調査・検証を並列化するために活用し、Parentが結果を統合して最終判断する。
+- 受講者が次の流れを自分で説明・実践できるようにする。
+
+  仕様確認 → リスク／条件整理 → テストケース設計 → テストレイヤー／自動化判断 → Playwright実装 → 初期データ／リセット → 操作／要素特定／検証 → 実行 → 失敗の観測 → 証跡調査 → 最小修正 → 再実行 → 追跡可能性の確認 → 引き渡し
+
+- 「テストがPASSした」「既存コードをコピーした」だけを修了にせず、判断理由、期待結果、原因、修正、証跡を説明できる状態を目標にする。
+- Common課程はローカルで完了可能にし、第2部（Part 2）は受講者がGitHub Actionsを準備・実行する課程にする。Native／iOSは選択課程としてCommonから分離する。
 
 ### 分割後の読み方
 
-- 17 LessonのInput / Activity / Output / Self-check / DoD / Feedback / Recovery / Handoff、Workbookと評価intake、確定方針は[詳細1](2026-09-15_213247_self-study-agent-orchestration/01-context-and-lesson-contract.md)に収録する。
-- 影響範囲、保護対象、Waveの依存関係とwrite setは[詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md)に収録する。
-- 受講者向け修了確認、Local / GitHub ActionsのReceipt、Part 2自走導線は[詳細3](2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md)に収録する。
-- AC / Test target matrix、Agent実Run、最終検証コマンドは[詳細4](2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md)に収録する。
-- リスク、停止条件、成果物、実装時のWave別成果物、備考は[詳細5](2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md)に収録する。
-- 詳細ファイルは独立したPlanではなく、このインデックスから参照される分割本文である。詳細側からもこのファイルへ戻れる。
+詳細契約の正本を重複させないため、次の役割で読む。
+
+- [詳細1：前提・レッスン共通契約](2026-09-15_213247_self-study-agent-orchestration/01-context-and-lesson-contract.md): 学習者作成／提供／検証用フィクスチャ、P1-2〜P1-6の縦断引き渡し、17レッスンの入力／出力／完了条件、ワークブック、引き渡し一式、パス安全。
+- [詳細2：影響範囲・ウェーブ](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md): ウェーブ依存関係の唯一の正本、厳密な変更対象、開始／終了条件、C1とエージェント系統の分離。
+- [詳細3：修了確認・記録・GitHub Actions](2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md): 実行記録（Execution Receipt）、修了確認記録（Completion Receipt）、受講者向け修了確認、能力項目対応、第1部（Part 1）→第2部（Part 2）の引き渡し、CIデータフロー。
+- [詳細4：テスト・一巡確認・最終検証](2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md): C1の読み取り専用の不足調査、自動確認用フィクスチャ、失敗分析、講師向け資料なしの受講者一巡確認、G3安全検証、検証コマンド。
+- [詳細5：リスク・成果物・担当者判断](2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md): リスク、残る技術的な未確定事項、別タスクへ分離する条件、ウェーブ別成果物。
+
+詳細ファイルは独立Planではなく、このインデックスから到達する一つのPlan本文である。
 
 ## 1. ゴール / 完了条件
 
-### 1.1 ゴール
+### ゴール
 
-- 受講者が「何を準備し、何を作り、何を見て、何ができれば完了か」をLessonごとに判断できる学習ループを完成させる。
-- Common課程はローカルで完了可能にし、Part 2ではGitHub Actionsを準備されたWorkflowと手順で利用可能にする。Native / iOSは選択課程として分離する。
+- 初学者が、講師向け資料や個別判断に頼らず、Common経路をP1-1からP1-9まで進められる。
+- P1-2で整理したリスクから複数のテストケースとテストレイヤーを考え、P1-3で選んだ代表ケースをP1-5のPlaywright実装、P1-6の失敗分析へ引き渡せる。
+- 機械的な修了確認、実行時の証跡、自己確認、講師向け資料なしの受講者一巡確認を組み合わせ、理解と単なる実行成功を分離する。
+- 第2部（Part 2）では、第1部（Part 1）の成果物を履歴がクリーンな学習用コピーへ移し、ブランチ作成 → コミット → プッシュ → PR → GitHub Actions → 成果物確認まで進められる。
 
-### 1.2 実装完了時のDoD
+### 計画／実装完了時の完了条件
 
-- 17 LessonのInput / Activity / Output / DoD / Feedback / Recovery / Handoffが、監査表と各本文の対応付きで読める。
-- `TC-CART-101`を中心に、Test Case、Playwright実装、Failure / Recovery、Workbook、Local receipt、必要なCI receiptを縦断追跡できる。
-- Stock / baseline PASSと学習者所有のAssertion・差分・Evidenceを分離し、修了状態をPASS / INCOMPLETE / BLOCKED / FAIL / NOT_RUNで扱える。
-- GitHub Actionsを使うPart 2はAccount、Fork / Training Copy、Permission、Actions実行、Artifact確認まで自己開始できる。
-- Agent routing、出力契約、並列化、親の非ブロッキング管理、調査Agentの自然終了、子Agentのコマンド単位timeout、助言・追加派遣、join / close、Run記録が既存のRepository契約へ接続される。
+- 17レッスンの入力／実施内容／出力／自己確認／完了条件／フィードバック／復旧方法／引き渡しが各本文で読める。
+- TC-CART-101は複数ケースのうち、P1-2 → P1-3 → P1-5 → P1-6を追跡する代表ケースとして扱われる。P1-3のケース数を1件に固定しない。
+- 正本ワークブックは提供サンプルとテンプレートだけを保持し、TARGET-CART-101、RISK-CART-101、TC-CART-101などの完成行は受講者の作業用コピーまたは引き渡し一式だけに作られる。
+- Playwrightの修了条件に、学習者が作成したコード、ケース対応、明示的な初期データ／リセット、意味のある操作／要素特定／検証、実行成功、証跡、ワークブックとの追跡情報を含める。
+- 失敗について、意図的な失敗教材と受講者自身の失敗分析を分離し、初回 → 原因 → 対応 → 修正後 → 証跡を追跡できる。
+- 実行記録と修了確認記録の生成者・入力・出力・状態が分離され、受講者向け修了確認が理解の完全な証明と誤認されない。
+- 第1部（Part 1）の成果物を第2部（Part 2）の履歴がクリーンな学習用コピーへ取り込む入力／出力／移行対象／移行しないもの／検証／復旧方法が定義される。
+- GitHub Actionsは自分自身の未確定の最終実行結果を事前条件にせず、ワークフロー前・実行中・完了後のデータフローが分離される。
+- ウェーブ依存関係、厳密な変更対象、C1／エージェントの独立性、G3の安全な不正系テスト、講師向け資料なしの受講者一巡確認が詳細2・4の正本どおりに検証される。
+- 既存評価基準のCommon／Native境界、製品コード、仕様、正式な回帰テスト、エージェントの権限／サンドボックス／ラッパーを今回の計画修正で変更しない。
 
-### 1.3 Plan自体の完了条件
+### 計画修正自体の完了条件
 
-- 実装Wave、対象ファイル、検証、停止条件、Owner判断、17 Lesson監査表、exact write set、rollback境界が相互に矛盾しない。
-- 分割後に、分割前本文の全セクションが詳細ファイルへ保持され、リンクと既存Plan validatorが通る。
+- 本インデックスと5詳細ファイルの相互リンクが解決する。
+- 計画検証、Markdownのlint、カリキュラム検証、Trainingの型確認、関連する契約テスト、`git diff --check`、実行（Run）の収集／サニタイズが実行され、結果が進行中のRunへ記録される。
+- 今回はコミット、プッシュ、PR本文更新、マージ、実装を行わない。
 
 ## 2. 現状理解と前提
 
-### 2.1 確認済みの事実
+### 確認済みの事実
 
-- 既存のcanonical Lesson、Workbook、Rubric、Training入口、既存Test / CI / Agent契約を基準にする。
-- 現状はLessonごとのInput / Output / Handoff、学習者Caseとstock PASSの分離、Part 2の講師なし開始導線、Agentの標準routingが不足している。
-- 用語の定義、Repository mapping、17 Lesson監査表、Workbookスキーマ境界は詳細1を正本とする。
+- origin/mainは計画再監査時点で 084835559ba284c6fb6c5122bdb19140a57d64c6（Expo推奨依存への同期）である。実装開始時のW0では必ず再取得する。
+- 正本ワークブックには提供サンプル TC-CART-001/002があり、TC-CART-101等の学習者完成行はない。
+- 現在のTraining Web演習は既存の `training:web:exercise` から直接Playwrightを実行し、`training/playwright/support/reset-scenario.ts`を提供している。明示的な実行記録の生成方式はW0で確定する。
+- `validate:curriculum`、`typecheck:training`、Trainingワークフロー検証、既存の契約テストはリポジトリ側資材の整合性を確認する。受講者の理解や学習者差分を完全には確認しない。
+- 現在のmainの保護対象（製品、仕様、正式な回帰テスト、既存CI、エージェント設定）に今回の計画修正差分はない。無関係なExpo更新は「確認済み・関連影響なし」として扱う。
+- リポジトリ固有の実行／安全／エージェント契約は、詳細ファイルから参照し、同じ契約を新しい別文書へ複製しない。
 
-### 2.2 分割構造と正本関係
+### 仮定
 
-- 既存のPlanファイル名と保存場所は変更しないため、`PLANS.md`、active Run、既存参照はインデックスを指し続ける。
-- 詳細ファイルはこのPlanの一部であり、新しい独立Planや新しいSSOTを作らない。
-- 既存PR 4A / Master Plan / Rubric、PR 5 Plan、Workbook、Spec、Run / Safety契約の正本関係は変更しない。
+- CommonはWeb中心でローカル完了可能、Native／iOSは選択課程、第2部（Part 2）はGitHub Actions課程というユーザー合意を維持する。
+- ワークブックの編集場所は縛らず、評価時だけ引き渡し一式へ書き出す。
+- エージェントは既存5役と既存設定を引き継ぎ、必要な独立観点がある場合に親エージェントが2〜3体を並列化する。毎回最大数を起動することは要件にしない。
 
-### 2.3 確定方針の要約
+### 対象外
 
-- 正式名称は「受講者向け修了確認」とする。GitHub Actionsはそれ自体ではなく、テストや修了確認をGitHub上で実行するCI基盤である。
-- 非コード成果物は既存WorkbookのCSV（Test Case、Target / Risk、Automation Mapping、Execution / Improvement）等とし、既存Workbookを成果物の正本にする。
-- Workbookの編集場所は一律に縛らない。ただし評価時のExport / Handoff intakeは一つの契約へ集約し、コード・CIが直接読むものの保存場所は既存契約に従う。
-- Agentはカリキュラム上の学習者設定ではなく、Codex側の開発・運用Agentを指す。既存の`AGENTS.md`、`.codex/agents/`、`.codex/config.toml`、Harness契約を継承し、Agent設定変更や学習者へのAgent設定要求は行わない。
+- 今回のターンでの教材本文、Trainingのコード、テスト、ワークフロー、エージェント設定、製品コード、仕様の実装・変更。
+- コミット、プッシュ、PR本文更新、マージ。
+- LMS、学習者状態データベース、AI採点、巨大な実行基盤。
+- 正本ワークブックへの学習者完成答案の追加。
+- C1を理由にした製品統合テストの無条件追加。
+- エージェントの権限／サンドボックス／ラッパー／モデル／スレッドの変更。
 
 ## 3. 質問 / 曖昧性
 
-### 3.1 今回確定した方針
+### 今回確定した方針
 
-- Common課程はローカル完了、Part 2はGitHub Actionsを利用可能にする、Native / iOSは選択課程とする。
-- 受講者向け修了確認とGitHub Actionsの責務を分離する。
-- Workbookは自由なworking locationを許容し、評価時のHandoff bundle / intakeで受け取る。格納先を一律に縛らない。
-- AgentはCodex側の既存Agentを必要な作業で引き継ぎ、permission / sandbox / wrapper / model / threadを変更しない。
+- Commonはローカルで完了可能、第2部（Part 2）はGitHub Actions、Native／iOSは選択課程。
+- 正式な日本語名称は「受講者向け修了確認」。GitHub Actionsは確認そのものではなく、テストや確認を実行するCI基盤である。
+- ワークブックは編集場所自由、評価時の引き渡し一式を固定境界とする。
+- TC-CART-101は代表縦断ケースであって唯一のケースではない。P1-3では複数ケースと複数レイヤーを設計し、少なくとも1つはUI E2E以外のレイヤーと理由を含める。
+- TC-CART-101等は学習者作成成果物であり、正本ワークブックへ事前投入しない。
+- エージェントはカリキュラム学習者に設定させず、リポジトリ開発時の既存エージェントを継承する。
 
-### 3.2 分割に関する扱い
+### 実装前に技術的に解消する不透明点
 
-- 重要な仕様の本文は詳細ファイルへ移したが、要約だけで置き換えていない。分割前の各セクションをそのまま保持し、インデックスは探索入口とする。
-- 実装開始前に詳細ファイルを個別に読み、必要な範囲だけをWork Packageへ割り当てる。
+- 現行Playwright出力を再利用して実行記録を生成できるか。できなければ、既存コマンドを置き換えない薄いレポーター（Reporter）またはラッパー（wrapper）のどちらが最小か。
+- 引き渡し一式の学習者コードを、既存Trainingワークフローが実行できるコピー内のパスへ安全に配置する最小方式。
+- GitHub Actions完了後の実行（Run）／確認（Check）／成果物（Artifact）の参照を、追加Token・追加Permissionなしで受講者が記録へ取り込む方法。
+- エージェントの自然終了、子コマンドのタイムアウト、読み取り専用／対象範囲／再帰的な委譲違反を、実際の作業ツリーを汚さず証明する方法。
+- コマンドのタイムアウト、プロセスツリー停止、watchdogの実装主体と証跡保存先。
+
+未回答の阻害要因となる質問はない。上記は実装開始前のW0で実測し、解消できないウェーブだけを停止する。
 
 ## 4. 影響範囲
 
-### 4.0 確認対象ファイル
-
-- 実装対象の一覧、保護対象、既存正本との関係は[詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md)に集約する。
-- 今回の分割で変更するファイルは、このインデックスと5つの詳細ファイルだけである。
-
-### 4.1 学習・成果物
-
-- 対象は17 canonical Lesson、Workbook、Training専用資材、受講者向け修了確認、評価intakeである。
-- LessonごとにInputの出所（provided / previous lesson / learner-created / environment）、Output、Evidence、Handoff、自由なworking locationと固定intakeを区別する。
-
-### 4.2 Training / Test / CI
-
-- Training baseline / exercise / diagnostic / expected-failure、Workbook Trace、Local receipt、Part 2のCopy / GitHub Actions、AC target testを対象にする。
-- Product code、Formal Regression、Production Workflowは、必要性・承認・rollbackが別途ない限り保護する。
-
-### 4.3 Agent協働運用
-
-- G1 / G2で標準routingとRun接続を設計し、G3で実Runを検証する。既存のAgent設定そのものは変更しない。
+- レッスン共通契約、P1縦断、ワークブック／引き渡し、修了確認、教材用コピー（Training Copy）、第2部（Part 2）、AC不足調査、エージェントの経路指定を対象とする。
+- 製品コード、仕様、正式な回帰テスト、既存の本番ワークフロー、既存エージェント設定は保護する。
+- 変更候補、確認のみの対象、厳密な変更対象は[詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md)に集約する。
+- 今回の作業で実際に変更するのは計画本文と、検証記録のための進行中の実行成果物（Run Artifact）だけである。
 
 ## 5. 変更方針
 
-### 5.0 Wave構成
+### 高レベルの実装順
 
-| Wave | 目的 | 詳細 |
-| --- | --- | --- |
-| W0 / Wave 0 | 再Baseline、既存Plan統合、保護Path固定 | [詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md) |
-| G1 / G2 | Agent routing、Work Package、Run接続 | [詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md) |
-| L1 / L2 / L3 | Lesson共通契約、P1縦断、全17 Lesson展開 | [詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md) |
-| T1 / T2 | 受講者向け修了確認、Part 2のGitHub Actions自走 | [詳細3](2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md) |
-| C1 | ACとテスト実装の不足を埋める | [詳細4](2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md) |
-| G3 / V1 | Agent実Run、最終検証、既存Failure分類 | [詳細4](2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md) |
+正式なウェーブ依存関係の唯一の正本は[詳細2](2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md)とする。ここでは探索入口だけを示す。
 
-### 5.1 Wave共通の実行契約
+1. W0で最新main、SSOT、保護パス、既存コマンド、Trainingワークフロー、エージェント契約を再確認する。
+2. カリキュラム系統でレッスン共通契約とP1-2〜P1-6の縦断を整える。
+3. 修了確認系統で受講者向け修了確認、記録、第2部（Part 2）の引き渡しを整える。
+4. エージェント系統で既存エージェントの経路指定／ライフサイクルを文書と実行（Run）へ接続する。
+5. C1は製品変更を伴わない読み取り専用の不足調査として扱い、不足が明確な場合だけ別タスクへ分離する。
+6. 講師向け資料なしの受講者一巡確認と最終品質ゲートで、教材を実際に一巡できることを確認する。
 
-- 各WaveのOwner、Dependency、read set、exact write set、禁止範囲、entry / exit gate、Evidence、Rollback、停止条件を詳細2〜4で維持する。
-- WaveはW0 → G1 / G2 → L1 / L2 / L3 → T1 / T2 / C1 → G3 / V1の依存順で進め、技術的な安全確認が未実施のまま実装を開始しない。
+### ウェーブ共通方針
 
-### 5.2 完了確認・テスト・Agentの関係
-
-- 受講者向け修了確認は、必須成果物・実行結果・Evidenceに対象を限定した確認であり、理解そのものを自動保証しない。
-- C1はACとTest targetの対応、重要な未検証条件、コメントの必要性、既存Formal / Training境界を扱う。
-- G3は複数Agentの起動数ではなく、親の非ブロッキング管理、調査Agentの自然終了、コマンドAgentのtimeout報告、助言・追加派遣、独立性、scope attribution、結果Evidence、close lifecycle、Parent統合を検証する。
+- 各ウェーブの担当者、参照対象、厳密な変更対象、開始／終了条件、証跡、ロールバック、停止条件は詳細2〜5の担当箇所を正本とする。
+- 詳細3は記録／引き渡し／CIデータ契約、詳細4は検証手順を定義するが、ウェーブ順序を再定義しない。
+- 実装は今回開始せず、担当者判断とW0の結果を受けて別の実装タスクとして開始する。
 
 ## 6. 検証方法
 
-### 6.1 分割後に追加した確認
+### 計画修正後に実行する検証
 
-1. 分割前Planの実ファイルを行範囲で取得し、SHA-256、行数、見出し数、17 Lesson行、Wave数を基準化する。
-2. 詳細ファイルに分割前の各セクションブロックが存在することを比較する。特に17 Lesson監査表、確定方針、`TC-CART-101`、`TARGET-CART-101`、`RISK-CART-101`、AC matrix、全Wave、検証コマンド、停止条件を確認する。
-3. インデックスと詳細ファイルの相対リンクの実在性を確認し、各詳細からインデックスへ戻れることを確認する。
-4. Plan validator、Markdown lint、既存のカリキュラムvalidator、必要なContract testを実行し、今回の分割で実装未着手の状態が変わっていないことを確認する。
+- 計画検証（テンプレートとインデックスを読み込む正式コマンド）
+- corepack pnpm run lint:markdown
+- corepack pnpm run validate:curriculum
+- corepack pnpm run typecheck:training
+- 関連する契約テスト（Trainingカリキュラム、CIワークフロー、Nativeワークフロー）
+- git diff --check
+- 進行中のRunの収集処理とサニタイズ処理
+- 詳細4に定義する読み取り専用の再監査（禁止表現、リンク、ウェーブ正本、記録の分離、P1の引き渡し、不正系条件）。
 
-### 6.2 既存Planの検証
-
-- Plan validatorの対象は既存パスのインデックスである。詳細ファイルはインデックスから到達できる本文としてリンク検査する。
-- 検証結果の詳細と実行時刻はactive Run REPORTへ追記する。
-
-### 6.3 成功判定
-
-- 内容保持比較が全セクションでPASS、リンク切れ0件、Plan validator `valid: true`、Markdown lint 0 issuesであること。
-- 既存のカリキュラム・Training・Contractの検証は、今回のPlan分割自体が実装を開始していないことを前提に、既存baselineと同じ結果または既知の環境状態として記録する。
-- Agent運用では、`wait_agent`のtimeoutを子Agentのtimeoutと誤分類せず、親の非ブロッキング管理、自然終了、子Agentのコマンドtimeout、助言・追加派遣、closeを確認する。
-- 子Agent / commandの`TIMEOUT`等の観測statusは、Run manifestの正式enumへ原因を失わず対応付け、遅延結果の二重集約や結果なしのPASS化を許さない。G3の自然終了、追加派遣、close一回性、read-only / scope / recursive delegationのnegative caseを実Runで検証する。
+今回の検証では教材やTrainingを実行して修了判定するのではなく、Planがその実装・一巡確認・判定を要求できる状態かを確認する。
 
 ## 7. リスクと未解決論点
 
-### リスク
-
-- 詳細ファイルの一部だけが読まれ、依存関係や停止条件が見落とされる可能性がある。インデックスの章別リンクと実装前の読み合わせで防ぐ。
-- 詳細ファイルを独立Planと誤認する可能性がある。冒頭の戻りリンクと「分割本文」の明記、既存Planパス維持で防ぐ。
-- 分割時の手動コピーで行・表・コマンドが欠落する可能性がある。分割前基準とのセクション比較を必須にする。
-
-### 停止条件
-
-- 分割前の本文ブロックを再現できない、リンクが解決できない、Plan validatorの必須見出しが失われる場合は、Plan分割を完了扱いにしない。
-- 今回は製品コード、テストコード、カリキュラム、Agent設定の実装へ進まない。
+- 詳細を増やしても、学習者が次に何を入力し、何を作り、何を確認するかが曖昧なら目的を達成しない。講師向け資料なしの受講者一巡確認を厳格なゲートにする。
+- 固定パスを強制しすぎると自由な学習を阻害し、自由にしすぎるとCI／自動確認が再現できない。作業場所自由、引き渡し／CI境界固定の二層に分ける。
+- 静的な自動確認を強くしすぎると自由なPlaywright実装を拒否し、弱くしすぎると開始用コード／基準実装を成果と誤認する。構造条件・実行記録・証跡・自己確認を分担させる。
+- 第2部（Part 2）のGitHub環境、Native実行環境、エージェントの実行（Run）は外部環境に依存する。環境BLOCKEDを学習未達やPASSへ変換しない。
+- 現在のmainの将来変更により基準SHAが古くなる。W0で再取得し、関連影響なしの変更は記録だけ残す。
 
 ## 8. 成果物
 
-### 今回作成するもの
-
-- このインデックスファイル（既存パスを維持）。
-- 5つの詳細ファイル（前提・契約、影響範囲・Wave、修了確認・GitHub Actions、テスト・検証、リスク・成果物）。
-- active Run REPORTへの分割前基準、Agent監査結果、分割後比較、validator / lintのEvidence。
-
-### 実装時に引き継ぐもの
-
-- 詳細ファイルに保持した既存のWave別成果物、exact write set、テスト対象、コマンド、期待結果、rollback、停止条件。
-- 実装開始時はこのPlanを読み取り、必要な詳細ファイルをWork Packageへ明示的に割り当てる。
+- 計画インデックス（本ファイル）
+- 詳細1〜5
+- 進行中の実行（Run）の計画／タスク／レポート／機械管理マニフェスト
+- 実装開始時に引き継ぐレッスン契約、引き渡し、記録、検証、ロールバック、停止条件
 
 ## 9. 備考
 
-- この分割は内容を短縮して破棄するためではなく、探索入口と領域別本文を分けるための構造変更である。
-- Planの合意内容、特にCommon / Part 2 / Native・iOS、Workbook intake、修了確認、Agentの扱いは維持する。
-- 今回の作業完了後も、実装の承認は別途必要であり、この変更だけでカリキュラムやテストが十分になったとは判定しない。
-
-## 分割ファイル構成
-
-| ファイル | 収録範囲 |
-| --- | --- |
-| `2026-09-15_213247_self-study-agent-orchestration.md` | Planのインデックス、要約、保存規約上の正本パス |
-| `2026-09-15_213247_self-study-agent-orchestration/01-context-and-lesson-contract.md` | 依頼、ゴール、現状理解、Lesson共通契約、17 Lesson監査表、Workbook、確定方針 |
-| `2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md` | 影響範囲、保護対象、Wave共通契約、W0、G1 / G2、L1 / L2 / L3 |
-| `2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md` | T1受講者向け修了確認、T2 Part 2自走導線 |
-| `2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md` | C1 AC / Test target、G3 Agent実Run、V1最終検証、コマンド |
-| `2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md` | リスク、停止条件、成果物、備考 |
-
-## 分割後の内容保持チェック
-
-- 原文の全H2セクション（Status、0〜9）、17 Lesson行、全Wave（5.0〜5.11）、重要ID、検証コマンド、Rollback / 停止条件を、詳細ファイルへ移して保持する。
-- 詳細ファイルは原文の節を意味変更なしで収録し、追加した見出し・戻りリンク・インデックス要約はナビゲーション情報として扱う。
-- 検証完了条件は、セクション比較PASS、相対リンク0件、Plan validator `valid: true`、Markdown lint 0 issues、既存検証結果の記録である。
+- これは計画修正のPRであり、このターンで実装を開始しない。
+- 計画の承認後、別タスクで詳細2のウェーブ正本に従って実装する。
+- 本計画のPASSは「計画が検証可能になった」ことを意味し、カリキュラムが既に自己学習可能になったことや、テスト実装が既に十分であることを意味しない。

@@ -1,218 +1,290 @@
-# 詳細1：前提・Lesson共通契約・監査対象
+# 詳細1：前提・レッスン共通契約・成果物境界
 
 [← インデックスへ戻る](../2026-09-15_213247_self-study-agent-orchestration.md)
 
-> このファイルは、インデックスから参照するPlan詳細です。収録した既存節の本文は、分割前Planの内容を維持しています。
+> このファイルは、インデックスから参照する計画の詳細である。ここで定義するレッスン、ワークブック、引き渡しの意味を、他の詳細ファイルで再定義しない。
 
 ## 0. 依頼概要
 
-### 依頼内容
+この計画は、Playwrightやコードベースのテスト自動化を初めて学ぶ受講者が、講師の判断や暗黙知なしに次の一連の流れを実践できるよう、教材の入力、実施内容、出力、自己確認、修了条件、復旧方法、引き渡しを設計する。
 
-- 講師がいなくても、受講者がカリキュラムを開始し、必要なInputを確認し、実施し、結果を解釈し、失敗から復帰し、完了を自己判定し、次Lessonへ成果物を引き渡せる状態にする。
-- Test Caseが前Lessonで作られる場合は、その成果物を次LessonのInputとして明示する。ただし、全LessonでTest Caseを事前配布する設計にはしない。
-- Playwright / Maestro / Workbook / CIのTraining資材が、受講者の実装成果を評価できるようにする。
-- ユーザーが明示しなくても、複数Agentをタスクの性質に応じて自律的に活用できるよう、役割・起動条件・結果統合・終了手順を整備する。
+仕様確認 → リスク／テスト条件整理 → テストケース設計 → テストレイヤー／自動化判断 → Playwright実装 → 初期データ／リセット → 操作／要素特定／検証 → 実行 → 失敗の観測 → トレース／スクリーンショット／ログ調査 → 最小修正 → 再実行 → ケース／コード／証跡／結果の追跡 → 次レッスンへの引き渡し
 
-### 背景
-
-- 現在のカリキュラムは17 canonical Lesson、Workbook、Rubric、Training入口を持ち、概念の順序とRecoveryの骨格はある。
-- 一方、Lesson単位のInput / Output / Handoffが標準化されておらず、P1-2の分析結果をP1-3、P1-4、P1-5へ渡す際に、学習者が複数資料から前提を推測する必要がある。
-- 現行TrainingのPASSは、starter / baselineが動いたことと、学習者が有意なAssertionや差分を作ったことを分離して判定できない。
-- Part 2はTraining Copy、GitHub Actions、権限、Artifactを前提にするが、講師なしで準備・復旧する一連の入口が不足している。
-- Repositoryには5種類のcustom Agentがあるが、タスク規模・リスクに応じた標準routingは明文化されていない。
-
-### 期待成果
-
-- 受講者が「何を準備し、何を作り、何を見て、何ができれば完了か」をLessonごとに判断できる。
-- Test Case、実装、実行結果、失敗回復、Evidenceを同じIDで追跡できる。
-- `stock PASS`を学習成果と誤認しない。
-- Parent Agentが必要なときに複数の読み取り専用Agentを並列起動し、実装・検証・最終判断を安全に分担できる。
+「既存テストをコピーした」「テストがPASSした」だけは学習成果としない。受講者が、なぜそのケース、レイヤー、検証、リセット、修正、証跡を選んだか説明できることを、自己確認と講師向け資料なしの受講者一巡確認で確認する。
 
 ## 1. ゴール / 完了条件
 
-### 1.1 ゴール
+### 1.1 レッスン共通のゴール
 
-次の学習ループを、講師の判断なしで完結できる状態にする。
+各レッスンを読んだ受講者が、本文だけで次を判断できる状態にする。
 
-```text
-開始条件(Input)
-  → なぜ学ぶか
-  → 完成例
-  → 実施(Activity)
-  → 期待する観測
-  → 失敗時Feedback / Recovery
-  → 修正・再実行
-  → Output / Evidence
-  → DoD
-  → 次LessonへのHandoff
-```
+- 開始前に何が準備済みで、何を自分で作るか。
+- なぜその学習を行うか。
+- どの順で観察・設計・実装・実行するか。
+- 途中で何を観測し、どの結果を期待するか。
+- 失敗や未理解をどう切り分け、どこへ戻るか。
+- 何を成果物として残し、次レッスンへ何を渡すか。
+- 件数ではなく、判断と証跡をもとに何をもって完了とするか。
 
-### 1.2 実装完了時のDoD
+### 1.2 実装後のレッスン完了条件
 
-- 17 canonical Lessonすべてが、共通のInput / Activity / Output / DoD / Feedback / Recovery / Handoff形式で読め、17行のLesson監査表と各本文の対応が取れている。
-- P1-2 → P1-3 → P1-4 → P1-5 → P1-6を、学習者所有の1件 `TC-CART-101` を使った縦断例で実行できる。既存の `TC-CART-001/002` は提供される参照例であり、学習者の完了成果には数えない。
-- P1-3が学習者作成CaseのLesson、P1-4が導入用の提供Case `TC-PRODUCT-001`、P1-5がP1-3の `TC-CART-101` を実装するLessonであることを入口に表示する。
-- 各LessonのOutputに、ファイル名または既存の構造化記録、形式、保存先または参照方法、後続Lessonでの使用方法がある。コード・CIが直接読むものを除き、学習者の物理的な保存場所は一律固定しない。
-- Trainingのbaseline / stock PASSとlearner-ownedの差分・Assertion・Evidenceを別々に判定できる。
-- Failure演習で、初回Failure、原因、修正、再実行成功、Evidenceの組を確認できる。
-- Part 2を、提供された安全なWorkflowと準備手順を使い、GitHub Account、Fork / Training Copy、Permission、Actions実行、Artifact確認まで学習者自身で開始・完了できる。Common課程の完了にはGitHub Actionsを要求しない。
-- Cartの`RANK_REQUIRED`、Reviewの`NOT_OWNER`など、仕様上重要な未検証条件を追加テストまたは明示的な対象外判断で扱う。
-- Agent利用の標準routing、出力契約、並列化条件、close lifecycle、Run記録方法がRepositoryの正本にある。
-- 既存のCommon / Native specialization、Product / Formal Regression、Run / Safety契約を不用意に変更していない。
-- 修了確認がPASS / INCOMPLETE / BLOCKED / FAIL / NOT_RUNを区別し、環境ブロックや静的validatorのPASSを学習完了へ誤変換しない。
-
-### 1.3 Plan自体の完了条件
-
-- 本Planが`docs/plans/`へ保存されている。
-- 既存Planとの重複・依存・保護対象が整理されている。
-- 実装Wave、対象ファイル、検証、停止条件、Owner判断が明記されている。
-- 未回答の重要質問が、実装開始前に判断できる形で列挙されている。
-- 17 Lessonの監査表、Wave間のentry / exit gate、exact write set、rollback境界、検証の期待結果が相互に矛盾しない。
+- 17件の正本レッスンすべてに、目的、入力、実施内容、期待する観測、出力、自己確認、完了条件、フィードバック／復旧方法、引き渡しがある。
+- 入力には出所と所有者を付ける。作成元を「前レッスン」とだけ書かず、レッスンID、ファイル、列または参照ID、完成状態を示す。
+- 出力には最低限の内容、形式、作業場所の自由度、評価時の引き渡し参照、後続レッスンの利用方法を示す。
+- 自己確認には質問と回答の最低要素を示す。自動確認は理解の意味を採点しない。
+- 完了条件は観測可能な品質条件と、任意の練習量を分ける。ケース数、技法数、実行回数だけを単独の修了条件にしない。
+- 復旧方法は学習上の未理解、テスト／製品の問題、環境による停止を分け、再読・再設計・再実行の戻り先を示す。
+- 引き渡しは次レッスンの受け手、参照するID／ファイル／証跡、開始条件を示す。
 
 ## 2. 現状理解と前提
 
 ### 2.1 確認済みの事実
 
-- canonical LessonはP1-01〜P1-09、P2-01〜P2-08の17件である。任意参考資料と過去参照用別名は必須経路と分離されている。
-- `corepack pnpm run validate:curriculum`は、22 required documents、4 workbook files、Training projectを検証するが、受講者の理解・差分・Evidence・Handoffの達成は判定しない。
-- `corepack pnpm run typecheck:training`は成功している。
-- `training/playwright/exercises/training-exercise-starter.spec.ts`は現状、Resetと画面遷移中心で、学習者必須の有意なAssertionを機械的に要求しない。
-- `training/maestro/exercises/native-training-exercise.yaml`はbaseline到達を含むstarterであり、学習者の追加差分と成功Artifactの対応を単独では判定しない。
-- `training/workbook/README.md`にはTraceability、Case例、空欄条件があるが、Lesson本文から直接たどるInput / Output契約ではない。
-- `scripts/verify` / `scripts/verify.ps1`は、Agentファイル、権限、Run / Hookの一部を静的検証するが、タスクごとのAgent選択条件や結果統合手順は検証しない。
-- `.codex/config.toml`は`max_threads = 4`、`max_depth = 1`、`default_subagent_model = "gpt-5.6-luna"`、`default_subagent_reasoning_effort = "max"`を持つ。
-- `.codex/agents/`には`code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner`がある。
-- Parentが要件解釈、Plan、scope、validation、failure interpretation、completion decisionを担い、childは追加Agentを起動しないという安全契約は既にある。
+- 正本レッスンはP1-01〜P1-09、P2-01〜P2-08の17件である。P1-10の旧別名、仕様書／Agentic QA参考資料、講師向け参考資料は必須レッスンと分離されている。
+- 正本ワークブックの4つのCSVには、現行基準で提供サンプルのCartケースがあり、学習者完成用の TARGET-CART-101、RISK-CART-101、TC-CART-101 は入っていない。
+- 既存の `training/playwright/exercises/training-exercise-starter.spec.ts` は、受講者が埋めるための提供開始用コードであり、完成答案ではない。
+- `training/playwright/support/reset-scenario.ts` は、Training Webで決定的なシナリオリセットを使うための提供入口である。PlaywrightのBrowserContext分離と製品データのリセットは別責務である。
+- 現在の `training:web:exercise` はPlaywrightを直接実行する。明示的な実行記録を誰が生成するかは、詳細3の実装前判断ゲートで確定する。
+- `validate:curriculum`、`typecheck:training`、既存の契約テストはリポジトリ側の資材・構造・実行契約を確認するが、受講者の理解を完全には証明しない。
 
-#### 用語の整理
+### 2.2 用語と所有者
 
-| 用語 | このPlanでの意味 |
-| --- | --- |
-| 受講者向け修了確認 | 学習者がLesson / Trainingの完了条件を満たしたかを、成果物・実行結果・Evidenceから確認する仕組み。ローカルで実行でき、同じ確認をGitHub Actionsでも実行する。 |
-| GitHub Actions | テストや受講者向け修了確認をGitHub上で実行するCIの実行基盤。修了確認そのものではない。 |
-| `validate:curriculum` | Lesson、Workbook、Training資材などRepository側の静的な整合性を確認する既存validator。学習者の理解や成果物の修了判定は行わない。 |
-| 非コード成果物 | Test Case、Target / Risk、Automation Mapping、Execution / Improvementなどを記録する既存WorkbookのCSV、および必要に応じた分析メモや図。 |
+| 種別 | 例 | 所有者／役割 | 正本ワークブックへの扱い |
+| --- | --- | --- | --- |
+| 提供サンプル | 既存の TC-CART-001 / 002、P1-4の TC-PRODUCT-001、開始用コード、基準実装 | リポジトリが学習材料として提供 | サンプル・テンプレートとして保持。学習者答案にはしない |
+| 学習者作成成果物 | TARGET-CART-101、RISK-CART-101、TC-CART-101、学習者のケース行、Playwrightコード、自己確認、証跡、実行記録 | 受講者が自分の作業用コピーまたは引き渡し一式で作成 | 正本ワークブックへ完成行を追加しない |
+| 検証用フィクスチャ | 正常系／不正系用の一時CSV、`tests/fixtures`、一時ディレクトリ、模擬Run | 契約テストが再現用に生成・破棄 | 学習教材・受講者成果物・正本ワークブックと混同しない |
+| 実行時証跡 | トレース、スクリーンショット、動画、HTMLレポート、コンソール／ログ、GitHub成果物（Artifact） | 実行時に実行ランナー（runner）／ワークフローが生成 | 静的な正本ワークブックへ架空パスを追加しない |
 
-このPlanでは、原則「受講者向け修了確認」と記載し、GitHub Actionsとは別の仕組みとして扱う。
+P1-4の提供サンプルはPlaywrightの最小構文を教えるための材料である。P1-5以降の完了根拠は、P1-3で受講者が選んだケースと、その受講者自身のコード／記録／証跡である。
 
-### 2.2 Repository mappingとBaseline evidence
+### 2.3 保存場所の二層
 
-- Baseline refは、Plan作成時点の`main`上の`22f73a98e5e11c9ee622512345b17e85694537e9`とする。対象PlanとRun Artifactは未追跡の今回作業であり、既存の`coverage/`および他のRun Directoryを今回の変更対象へ取り込まない。
-- Entry pointsは、`docs/curriculum/test-automation/README.md`、`docs/curriculum/test-automation/00_learning-design.md`、`package.json`、`training/README.md`である。実行入口は`training:web:baseline` / `training:web:exercise` / `training:web:check-expected-failure`、`training:copy:prepare` / `training:copy:validate`、`training:native:baseline` / `training:native:exercise`である。
-- Main learning flowは、P1-1〜P1-9のCommon route、P1-7のNative opt-in、P2-1〜P2-8のGitHub Actions routeである。既存READMEのroute記載を変更する場合は、Canonical LessonのID・skip / rejoinを同時に更新する。
-- Key abstractionsは、`test_case_id`によるWorkbook Trace、`resetScenario` / Test Controlによる再現可能な状態、Training baselineとlearner exerciseの分離、Training Copyのactive workflow allowlist、Run ContextとEvidenceである。
-- Existing testsは、`tests/contracts/training-curriculum.test.ts`、`tests/contracts/ci-workflow.test.ts`、`tests/contracts/native-ci-workflow.test.ts`、`tests/integration/cart-use-cases.test.ts`、`tests/integration/review-user-use-cases.test.ts`である。追加対象は既存ACとTest Caseの対応が確認できたものに限定する。
-- Safe change surfaceは、Lesson本文・Workbook案内・Training専用資材・既存のtraining contract testである。`src/`、`docs/spec/`、Formal E2E、Production Workflow、`.codex/config.toml`、既存のRun / coverage成果物は、別途必要性と承認を確認するまで保護する。
-- Plan作成時の証跡はactive Run `.codex/runs/20260915-212821-JST/`に残す。Baselineの再確認、変更後のdiff、validator、lint、collector、sanitizerは同じRunへ追記し、machine-managedな`run.json`を手編集しない。
+- 受講者の編集場所は、ローカル作業領域、Google Sheets、教材用コピー（Training Copy）などから選べる。レッスン本文は一律の作業パスを要求しない。
+- 評価・次レッスンへの受け渡し時は、自由な場所から既存4 CSV、コード、証跡参照、実行記録を引き渡し一式へ書き出す。引き渡し一式は評価境界であり、学習管理システム（LMS）や学習者状態データベースではない。
+- GitHub Actionsが直接実行するコードのパスとワークフローの許可リストは、教材用コピー（Training Copy）の実行契約として別途固定する。自由な作業場所と、再現可能な評価入口を同一視しない。
 
-### 2.3 既存正本との関係
+## 3. P1-2 → P1-3 → P1-5 → P1-6の縦断契約
 
-- カリキュラムのCommon / Native route、C01〜C12、C07 / C08 Minimum Evidenceは、既存のPR 4A / Master Plan / Rubricを正本として再設計しない。
-- TrainingのWeb / Native direct entry、Artifact、Native opt-in、baseline / exercise境界は、既存PR 5 Planを実装の詳細入力として再利用する。
-- Agentのpermission / sandbox / wrapper / config変更は、文書routingの改善と分離する。L3相当の変更は、別途明示承認とrollback planを必要とする。
-- 既存の`docs/reports/`へ新しいレビュー報告を作成しない。調査判断は本Planとactive Run Artifactへ記録する。
+### 3.1 縦断の位置付け
 
-### 2.4 前提
+P1-3では、P1-2の複数のリスクから必要な複数のテストケースを設計する。その中から TC-CART-101 を、P1-5まで追跡する代表ケースとして受講者が選ぶ。
 
-- P1-3は学習者が正式なTest Caseをちょうど1件作成し、縦断対象IDを`TC-CART-101`とする。`TC-CART-101`が既存Workbookへ存在しないことをWave 0で確認し、衝突していた場合は自動的に別IDへ置換せず、Planを停止してOwner判断を求める。
-- P1-4は、構文とPlaywrightの最初の成功体験のために提供Case `TC-PRODUCT-001`を使う。これは導入演習の識別子であり、既存Workbookの4 CSVへ新しい行を追加する根拠にはしない。
-- P1-5は、P1-3で作った`TC-CART-101`を実装する。Workbookの`TC-CART-001/002`は提供参照例、`TC-PRODUCT-001`はTraining-onlyの提供Caseであり、学習者の差分・完了確認の対象とは分離する。
-- Common課程はWeb中心で成立し、C08 / Physical Android / Native CIは選択課程として扱う既存契約を維持する。
-- 受講者の構造化成果物は既存Workbook、学習用コードは`training/`、実行時Evidenceは既存の`output/` / `.artifacts/`を基本とする。編集場所は自由にするが、評価時のExport / Handoff intakeは一つの契約へ集約し、新しいDBやLMSは作らない。
-- Agent数を増やすことではなく、独立した作業を並列化してParentの判断材料を増やすことを「フル活用」と定義する。
+- TC-CART-101: Web E2E／Playwrightへ進む代表ケース。P1-2のリスク、仕様条件、前提、初期データ／リセット、P1-3の判断、P1-5のコード、P1-6の失敗／復旧方法を同一IDで結ぶ。
+- 別ケース: 単体（Unit）、統合（Integration）、コンポーネント（Component）、リポジトリ契約（Repository Contract）など、UI E2E以外のテストレイヤーを最低1件選び、なぜUI E2Eに置かないかを説明する。
+- 他のケース: 同値分割、境界値、判定表（Decision Table）、状態遷移、役割差分など、必要な技法を複数の条件へ適用する。
+- P1-3のケース数、技法数、実行本数は練習量の目安であり、完了基準そのものではない。
 
-### 2.5 対象外
+### 3.2 P1-2の出力
 
-- Product behavior、Normative Specification、Formal Regressionの広範な再設計。
-- learner-state DB、scoring engine、AI grader、LMS、Evidence DBの追加。
-- 全Lessonの全面rewriteや、説明文を増やすだけの変更。
-- GitHub metadata、commit、push、PR作成。
-- Agentのmodel、permission、sandbox、wrapper挙動を、実測なしに変更すること。
-- すべての作業で最大数のAgentを起動すること。
+受講者はP1-2で、少なくとも次を自分のワークブック用コピーへ記録する。
 
-### 2.6 Lesson共通契約と監査単位
+- 対象／リスク、`spec_ref`、`br_ids`、`ac_ids`、リスクの説明、影響度／発生可能性／優先度。
+- 役割／アカウント、初期状態、初期シナリオ、リセット方法、操作経路、関連画面。
+- なぜそのリスクを選び、何が壊れると影響が大きいか。
+- P1-3で設計する複数のテスト条件への参照。
 
-各Canonical Lessonは、本文のどこかに次の意味項目を持つ。見出し名は既存の`## 完了条件`、`## Part 1完了条件`、`## Part 2完了条件`、`## 自己確認`などを尊重し、機械的な見出し統一ではなく、監査表で意味項目へ対応付ける。
+TARGET-CART-101 と RISK-CART-101 はこの作業で作る受講者成果物であり、リポジトリ側の正本ワークブックには追加しない。P1-3開始条件は、リスクと仕様条件、初期データ／リセットの参照を受講者が説明できることと、作業用コピー／引き渡し一式に対応する記録があることである。
 
-| 必須項目 | 実装時に明示する内容 |
-| --- | --- |
-| 目的 / Why | このLessonで判断・理解すること、前後のLessonとつながる理由 |
-| Input | 名前、入手元、所有者、状態、形式、開始前Preflight。`[provided]` / `[previous lesson]` / `[learner-created]` / `[environment]`を付け、準備済みか作成するものかを区別する |
-| Activity | 学習者が行う観察・設計・実装・実行を、入力から成果物まで順序付きで示す |
-| 期待する観測 | 画面、Log、Diff、Test Result、Artifactなど、途中で確認する事実と判断ポイント |
-| Output | 成果物名、最低内容、形式、working location、評価時のintake、後続Lessonのconsumerを分けて示す |
-| Self-check | 質問、最低限含める回答要素、回答を裏付ける成果物またはEvidence。理解の自己確認であり、機械checkerが理解を保証するとは書かない |
-| DoD | 観測可能な必須条件、任意の発展条件、PASSできない状態。量的Practiceと品質条件を分離する |
-| Feedback / Recovery | 失敗シグナル、学習上の原因／環境原因の切り分け、戻り先、再実行Command、有限回数の復帰手順 |
-| Handoff | 次Lessonへ渡すID / File / Link / Export、受け手、次の開始Gate、Optional routeのskip / rejoin |
+### 3.3 P1-3の実施内容と出力
 
-Inputに「前Lessonで作成」とだけ書くことを禁止し、作成元Lesson・ファイル・行／ID・完成状態を示す。Outputに「保存する」とだけ書くことを禁止し、working locationの自由度と評価intakeの固定点を分ける。
+P1-3では、リスクから複数のテスト条件を導出し、複数の設計技法を適用し、各ケースのテストレイヤーと自動化判断を選ぶ。最低1件はUI E2E以外のレイヤーに置き、その理由を文章で残す。
 
-#### 17 Lesson監査表（実装前の対象固定）
+TC-CART-101を代表ケースとして選択するが、P1-3のケース数は固定しない。既存の TC-CART-001 / 002 を編集して完了にすることも認めない。
 
-| ID | Canonical file | Route | 主なInput | 主なOutput / Evidence | Handoff |
-| --- | --- | --- | --- | --- | --- |
-| P1-01 | `part1/01_test-automation-foundations.md` | Common | `[provided]` 学習目的、Scenario Shop観察 | 自動化する／しない判断メモと自己説明 | P1-02へ観察観点 |
-| P1-02 | `part1/02_scenario-shop-analysis.md` | Common | `[previous lesson]` 観察、`[provided]` Spec / Role / State / Seed参照 | `01_target-risk.csv`のTarget / Risk、Role / State / Seed / Reset / Account参照 | P1-03へRiskと仕様条件 |
-| P1-03 | `part1/03_test-design-and-automation-selection.md` | Common | `[previous lesson]` Target / Risk、`[provided]` BR / AC | `02_test-cases.csv`の学習者行`TC-CART-101`、`03_automation-mapping.csv`の対応行 | P1-04 / P1-05へCaseカード |
-| P1-04 | `part1/04_playwright-foundations.md` | Common | `[provided]` `TC-PRODUCT-001`、JS / TS / Playwrightの導入資材 | `training/playwright/exercises/training-exercise-starter.spec.ts`の有意なAction / Locator / Assertionを含む導入spec | P1-05へ実装パターン |
-| P1-05 | `part1/05_playwright-e2e-practice.md` | Common | `[previous lesson]` `TC-CART-101`とWorkbook行、`[provided]` Reset / Seed support | `training/playwright/exercises/learner-cart.spec.ts`の`TC-CART-101`対応spec、local receipt、Evidence | P1-06へ実行対象 |
-| P1-06 | `part1/06_execution-and-failure-analysis.md` | Common | `[previous lesson]` learner spec、`[provided]` failure / diagnostic harness | 同一Caseのinitial Failとrepaired Pass、`04_execution-improvement.csv`の2 Context、Evidence | P1-07 opt-inまたはP1-08 |
-| P1-07 | `part1/07_maestro-native-automation.md` | Native opt-in | `[previous lesson]` Nativeを選ぶ場合のP1成果、`[environment]` Android | learner-authored Maestro exercise diff、JUnit / Screenshot / log evidence | P1-08へskip / rejoin |
-| P1-08 | `part1/08_test-management-and-maintainability.md` | Common / Native rejoin | `[previous lesson]` spec / failure記録、`[provided]`既存資産 | Trace更新、原因に対応する最小改善、`04` improvement行 | P1-09へ改善理由 |
-| P1-09 | `part1/09_part1-capstone.md` | Common capstone | `[previous lesson]` P1成果一式、`[provided]` Rubric | Part 1 Common capstoneのTrace / receipt / self-check | P2-01へ移行Gate |
-| P2-01 | `part2/01_software-development-process.md` | Part 2 | `[previous lesson]` P1成果、`[provided]` README / process資料 | 変更から検証までのプロセス記録 | P2-02へ変更対象 |
-| P2-02 | `part2/02_git-version-control.md` | Part 2 | `[previous lesson]` P1成果、`[environment]` self-service Training Copy | Branch / Diff / CommitとCopy manifestの確認 | P2-03へPush可能なBranch |
-| P2-03 | `part2/03_github-pull-request-review.md` | Part 2 | `[previous lesson]` Branch / Remote、`[environment]` GitHub Account / Permission | Training Copy上のPR、Review記録、Checks参照 | P2-04へCI対象PR |
-| P2-04 | `part2/04_ci-github-actions.md` | Part 2 | `[previous lesson]` PR、`[provided]`安全なTraining Workflow | Event / Job / Step / Permissionの診断記録 | P2-05へWorkflow実行 |
-| P2-05 | `part2/05_playwright-ci.md` | Part 2 | `[previous lesson]` `TC-CART-101` learner spec、`[provided]` Workflow / Copy runbook | PR、Workflow run、Check、Playwright Artifact、CI receipt | P2-07へWeb CI evidence |
-| P2-06 | `part2/06_native-ci-maestro.md` | Native opt-in | `[previous lesson]` Native exercise、`[environment]` Android runner | Android Build / Emulator / Maestro Artifact | P2-07へskip / rejoin |
-| P2-07 | `part2/07_ci-cd-quality-gates.md` | Part 2 | `[previous lesson]` Web CI evidence、`[provided]` gate contract | Web CIの必須Check / fail-closed / Artifact設計 | P2-08へGate design |
-| P2-08 | `part2/08_integration-design-capstone.md` | Part 2 capstone | `[previous lesson]` P2 evidence一式 | Web CI → Gate → Artifact → Failure reasoningの統合設計 | 完了 |
+P1-3の出力は、既存ワークブックの列へ記録する次のケース引き渡し情報である。
 
-この表は「本文を短くするための新しい正本」ではなく、17本文へ不足項目がないことを確認する監査indexである。実装時は各行の主なInput / Output / Handoffを本文の該当箇所へリンクし、表だけ読んでも実施手順が完了したと扱わない。
-
-### 2.7 Workbookのスキーマ境界と評価intake
-
-既存Workbookを正本として利用し、Caseカードの概念項目を新しい列へ暗黙に追加しない。実装時の対応は次のとおり固定する。
-
-| Caseカードの項目 | 正本となる既存ファイル / 列 | 扱い |
+| 必須の引き渡し項目 | 参照元 | P1-5での利用 |
 | --- | --- | --- |
-| `test_case_id`、`risk_id`、`spec_ref`、`br_ids`、`ac_ids`、`test_condition`、`precondition`、`expected_result`、`design_technique` | `training/workbook/02_test-cases.csv`の同名列 | `TC-CART-101`の学習者行を作る。ID形式は既存validatorに従う |
-| Target / Risk、Impact、Likelihood、Priority | `training/workbook/01_target-risk.csv`の同名列 | P1-2の分析結果を参照する |
-| `automation_decision`、`test_layer`、`tool`、`implementation_path`、`execution_timing`、`reason` | `training/workbook/03_automation-mapping.csv`の同名列 | P1-3でCase IDと対応付ける |
-| `execution result`、`run_context`、`evidence`、`failure_category`、`cause`、`action`、`improvement` | `training/workbook/04_execution-improvement.csv`の同名列 | P1-6のinitial Failとrepaired Passを異なるContextで記録する |
-| Role、Account、Seed、Reset、対象SKU | 現行schemaでは独立列を追加せず、`02_test-cases.csv`の`precondition` / `test_condition`と、リンク先のSpec / Seed Catalog / Test Controlで表す | 機械判定で独立値が必要と判明した場合は、schema変更を別L2判断として止める |
+| `test_case_id` | `02_test-cases.csv` / `test_case_id` | 実装対象ケースとコード／記録の識別子 |
+| `risk_id` | `02_test-cases.csv` / `risk_id`、`01_target-risk.csv` | なぜ実装するか |
+| `spec_ref` | `02_test-cases.csv` / `spec_ref` | 期待動作の正本 |
+| `br_ids` | `02_test-cases.csv` / `br_ids` | ビジネスルール（Business Rule）の根拠 |
+| `ac_ids` | `02_test-cases.csv` / `ac_ids` | 検証／期待結果の根拠 |
+| `test_condition` | `02_test-cases.csv` / `test_condition` | 何を確認するか、役割／操作／状態の条件 |
+| `precondition` | `02_test-cases.csv` / `precondition` | アカウント、初期データ、リセット、開始状態 |
+| `expected_result` | `02_test-cases.csv` / `expected_result` | 検証が対応する状態・結果 |
+| `design_technique` | `02_test-cases.csv` / `design_technique` | 条件を選んだ理由 |
+| `automation_decision` | `03_automation-mapping.csv` / `automation_decision` | 自動化するか、後回しにするか |
+| `test_layer` | `03_automation-mapping.csv` / `test_layer` | Web E2E、単体（Unit）、統合（Integration）等の配置 |
+| `tool` | `03_automation-mapping.csv` / `tool` | Playwright等の実行手段 |
 
-編集場所はGoogle Sheets、ローカル作業領域、Training Copyなどから選べる。ただし評価時のintakeは自由形式にせず、次のどちらかを実装前に選ぶ。
+役割、アカウント、初期シナリオ、リセット方法、操作は、現行CSVスキーマへ独立列を追加せず、`precondition`／`test_condition`と、そこから辿る既存の仕様（Spec）／初期データカタログ（Seed Catalog）／テスト制御（Test Control）の参照として記録する。P1-3でこの対応が読めない場合は未完了であり、新列を黙って追加しない。スキーマ変更が必要と判明した場合は、実装を止めて担当者判断へ戻す。
 
-- 推奨案A: `--root <handoff-root> --mode common|part2|native`で、`handoff-root/workbook/`に既存4 CSVをExportし、`handoff-root/handoff.json`から`workbook_dir`、`code_paths`、`evidence_dir`、`receipt_paths`を相対Pathで参照する。編集場所は自由だが、評価時にこのbundleへExportする。
-今回は推奨案Aを採用する。`--root <handoff-root> --mode common|part2|native`で、`handoff-root/workbook/`に既存4 CSVをExportし、`handoff-root/handoff.json`から`workbook_dir`、`code_paths`、`evidence_dir`、`receipt_paths`を相対Pathで参照する。編集場所は自由だが、評価時にこのbundleへExportする。複数Path引数方式は今回の主経路にしない。
+P1-3の完了条件は、件数ではなく次の判断を説明できることである。
 
-`handoff.json`最低schemaは、`version`、`workbook_dir`、非空の`code_paths`、`evidence_dir`、非空の`receipt_paths`とし、すべてbundle rootからの相対Path、`.`または`..`を含まないPathとする。`workbook_dir`には既存4 CSVを各1件だけ置き、Handoffの生成時点とsource SHAをreceiptへ残す。これは保存場所を縛るためではなく、受け手が同じ入力を再現できる境界である。
+リスク → テスト条件 → テストケース → テストレイヤー → 自動化判断
 
-入力Pathが存在しない、絶対Pathやbundle外参照がある、CSVの列／ID／Traceが不正、参照先が読めない場合は`INCOMPLETE`または`BLOCKED`とし、保存場所が自由であることを理由にPASSへ補正しない。
+### 3.4 P1-4の役割
 
-## 3. 質問 / 曖昧性
+P1-4は、P1-3のケース設計とは別に、提供サンプル TC-PRODUCT-001でPlaywrightの最小基礎を学ぶ。
 
-### 3.1 今回確定した方針
+- test、page、要素特定、操作、検証、getByRole等、実行コマンド、レポートの見方を順に学ぶ。
+- 開始用コードへ完成答案を配布せず、受講者がP1-5のケースをコピーする前に、最小の提供演習で成功体験を得る。
+- P1-4で確認した実装パターンは、P1-5の入力として参照するが、P1-4のPASSをP1-5の成果やCommon修了へ流用しない。
+- P1-4では高度なフィクスチャ、POM、共通化を先取りしない。保守性の判断はP1-8で扱う。
 
-1. **Part 2の位置付け（今回確認済み）**: Common課程はローカルで完了可能にする。Part 2はGitHub Actionsを使う必須課程とし、Repository側が安全なWorkflow templateとrunbookを提供し、学習者が自分のGitHub Account上でTraining Copyを準備し、Permission、Actions実行、Artifact確認まで自力で行う。主経路は`training:copy:prepare`であり、ForkはそのSourceをGitHubへ置くための搬送手段として説明する。講師が各人のCopyを手作業で準備することは前提にしない。GitHubが使えない場合はPart 2を完了扱いにせず、`BLOCKED`としてCommonへ戻れる境界を表示する。代替課程は今回の実装対象に含めない。
-2. **Native / iOSの扱い（今回確認済み）**: 既存契約どおり選択課程とし、Commonの完了に実機やmacOSを要求しない。Nativeを選択しない場合はP1-7 / P2-6をskipしてP1-8 / P2-7へrejoinする。iOS Build-onlyの成功はC08のAndroid exercise成功の代替にしない。
-3. **受講者向け修了確認（今回確定）**: 新規予定Commandを`corepack pnpm run training:completion:check -- --mode <common|part2|native> --root <handoff-root>`とする。判定対象は差分、必須Assertion、Case対応、実行Receipt、Evidence参照とし、答案の完全一致比較やAI採点は行わない。ローカルとCIのReceiptは同じJSON形式とし、PR / Run ID / Artifact URLなどのCI固有情報は`environment_evidence`へ分離する。
-4. **非コード成果物の保存方針（今回確定）**: 既存Workbookの4 CSVを正本とし、Test Case CSVなどをそこへ整える。保存先はLessonごとに一律固定せず、学習者がGoogle Sheetsや自身の作業領域で編集できるようにする。一方で、評価intakeとしてのExport形式、列、ID、Handoff方法は2.7のHandoff bundleへ固定する。図・メモは必須成果物にせず、必要な場合だけ参照先と最低内容を定める。
-5. **Agent協働の扱い（今回確定）**: ここでいうAgentは学習者がカリキュラム上で設定するものではなく、このリポジトリを開発・改善するときのCodex側の作業Agentである。既存の`AGENTS.md`、`.codex/agents/*.toml`、`.codex/config.toml`、Harnessを引き継いで利用し、学習者へAgent設定を要求しない。Agentの権限・sandbox・wrapper・model・thread設定は変更しない。必要な補足は運用文書の説明に限定する。
+### 3.5 P1-5の開始条件と実施内容
 
-### 3.2 実装時に解消する技術的な不透明点
+P1-5開始時に、本文と受講者の引き渡しから次を直接判断できることを開始条件にする。
 
-- 現行Codex CLIで、child側のrecursive delegation禁止を`max_depth`に依存せず実証できるか。
-- `max_threads = 4`がParentを除くchild枠として扱われるか。実測前に上限を変更しない。
-- read-only Agentの変更ファイルを、Run / working treeで安定して`[]`と確認できるか。
-- quality gate runnerで、Parent指定外のwriteをtool levelで止められるか。できない場合は、既存のbehavioral prohibitionとnet diff検査を使う。
-- GitHub-hosted Android runner、KVM、quota、Local Physical Androidが実行環境で利用可能か。
-- GitHub Training Copyを、学習者が`training:copy:prepare`からPush可能なCopyへ変換するrunbookを講師なしで完遂できるか。
-- test / build / lint等の各コマンドで設定すべき具体的timeout値と、timeout時のprocess tree停止方法を既存runnerごとに確定できるか。
-- watchdogの実装主体、発火条件、結果なしを`partial` / `BLOCKED` / `NOT_RUN`へ分類する証跡保存先を確定できるか。
-- 同時実行枠が満杯のとき、追加Agentを待機させるか、既存Agentの完了後に派遣するかを、重複なしで確定できるか。
+| P1-5が必要とする入力 | P1-3から受け取る値 |
+| --- | --- |
+| どのケースを実装するか | `test_case_id = TC-CART-101`（代表ケース。別ケースは別レイヤーとして残る） |
+| なぜ実装するか | `risk_id`、`spec_ref`、`br_ids`、`ac_ids`、`design_technique`、`automation_decision`、`test_layer`、`tool` |
+| どの状態から始めるか | `precondition`、役割／アカウント、初期シナリオ、リセット方法 |
+| 何を操作するか | `test_condition`内の操作／操作経路 |
+| 何を検証するか | `expected_result`と、確認すべき状態変化 |
+| どのコードを作るか | 学習者が作成したPlaywright spec。開始用コードは構文参照であり完成答案ではない |
+| 何を証跡として残すか | 実行記録、トレース／スクリーンショット／レポート等、ケースIDとの参照 |
 
-`TC-CART-101`、`TARGET-CART-101`、`RISK-CART-101`の衝突は現Baselineで確認済みである。残る技術的な不透明点はWave 0で実測し、recursive delegation、read-only変更検知、Training Copy runbookの安全性、コマンドtimeout、watchdog、追加派遣枠の扱いを証明できない場合は該当Waveを止める。Part 2のGitHub Actions必須方針、Commonのローカル完了、Native / iOSの選択課程、Handoff bundle、共通Receipt、既存Agent設定の継承は今回の確認済み方針として扱う。
+受講者は、P1-3の同じ値を別の推測で書き直さず、ワークブック行と既存SSOT参照から実装する。必要な値が欠けている場合はP1-3へ戻り、勝手なシナリオ、アカウント、SKU、期待結果を補わない。
+
+P1-5の最低成果は、TC-CART-101に対応する学習者が作成したコードである。
+
+- 明示的な初期シナリオ／リセット。提供される `resetScenario` など、現行Harnessの正規入口を使う。BrowserContext分離だけをリセットとみなさない。
+- 意味のある操作、意味のある要素特定、`expected_result`またはケースで確認すべき状態変化に対応する検証。
+- デスクトップWeb実行（Desktop Web）と、Commonで必要と定めた範囲のモバイルWeb実行（Mobile Web）。
+- 実行結果、証跡参照、ワークブックとの追跡情報。開始用コード、基準実装、別ケースの証跡を代用しない。
+
+### 3.6 P1-6の開始条件と引き渡し
+
+P1-6は、意図的な失敗教材の観察と、受講者自身のケースの失敗分析を別系統として扱う。
+
+- 教材系統: 意図的に失敗するspecを実行し、トレース／スクリーンショット／動画／レポートの取得方法を学ぶ。これは教材が用意した失敗であり、受講者の診断能力や修了成果の代替ではない。
+- 学習者系統: TC-CART-101の学習者作成テストを実行し、失敗を観測し、証跡を読み、原因を切り分け、最小修正を行い、再実行してPASSする。
+- 記録する関係: 初回の実行記録 → `failure_category`／`cause` → `action`／`improvement` → 修正後の実行記録。初回証跡と修正後証跡は別参照にする。
+- P1-6の引き渡しは、P1-8またはP1-7へ、同じケースIDのコード、ワークブック、失敗分析、修正差分、2つの実行記録、証跡参照を渡す。
+
+## 4. 17レッスン監査表
+
+各行は本文へ追加する契約の監査用索引であり、表だけでレッスン完了としない。正本となるウェーブ順序は詳細2、記録は詳細3、検証手順は詳細4を参照する。
+
+| ID | 正本ファイル | 経路 | 入力（出所） | 実施内容／出力／証跡 | 引き渡し／開始条件 |
+| --- | --- | --- | --- | --- | --- |
+| P1-01 | part1/01_test-automation-foundations.md | Common（共通課程） | ［提供］学習目的、Scenario Shop観察、仕様の読み方 | 自動化する／しない判断メモ、リスク仮説、自己確認 | P1-02へ観察観点 |
+| P1-02 | part1/02_scenario-shop-analysis.md | Common（共通課程） | ［前レッスン］観察、［提供］仕様（Spec）／役割／状態／初期データ参照 | 学習者が作成した対象／リスク、役割／状態／初期データ／リセット／アカウント参照 | P1-03へ複数リスクと条件 |
+| P1-03 | part1/03_test-design-and-automation-selection.md | Common（共通課程） | ［前レッスン］対象／リスク、［提供］BR／AC | 複数のテストケース、技法、レイヤー、自動化判断。TC-CART-101を代表ケースとして選ぶ | P1-05へケース引き渡し。P1-4は提供サンプルを先に行う |
+| P1-04 | part1/04_playwright-foundations.md | Common（共通課程） | ［提供］TC-PRODUCT-001、JS／TS／Playwright基礎 | test／page／要素特定／操作／検証／getByRole／実行／レポートの導入成果 | P1-5へ実装パターン |
+| P1-05 | part1/05_playwright-e2e-practice.md | Common（共通課程） | ［前レッスン］ケース引き渡し、［提供］リセット／初期データ支援 | 学習者作成のPlaywrightコード、初期データ／リセット、操作／要素特定／検証、デスクトップWeb／必要なモバイルWeb、実行記録／証跡 | P1-06へ同一ケースの実行対象 |
+| P1-06 | part1/06_execution-and-failure-analysis.md | Common（共通課程） | ［前レッスン］学習者コード／ケース、［提供］失敗証跡用Harness | 初回失敗、失敗分析、最小修正、修正後PASS、2つの記録、証跡 | P1-7を選択またはP1-8へ |
+| P1-07 | part1/07_maestro-native-automation.md | Native（選択課程） | ［前レッスン］P1成果、［環境］Android／端末 | 学習者作成のNative差分、JUnit／スクリーンショット／ログ | P1-8へスキップ／復帰 |
+| P1-08 | part1/08_test-management-and-maintainability.md | Common／Native復帰 | ［前レッスン］コード／失敗記録、［提供］既存資産 | 実際の重複・不安定さ（Flaky）・保守問題に対する最小改善、追跡情報更新、04_execution-improvement.csvの改善内容／再実行証跡 | P1-09へ改善理由と更新済み追跡情報 |
+| P1-09 | part1/09_part1-capstone.md | Common総合課題 | ［前レッスン］P1成果一式、［提供］評価基準 | 第1部（Part 1）のCommon成果、自己確認、引き渡し一式 | P2-01へ移行条件 |
+| P2-01 | part2/01_software-development-process.md | 第2部（Part 2） | ［前レッスン］Commonの引き渡し、［提供］プロセス資料 | 変更・検証・証跡のプロセス記録 | P2-02へ変更対象 |
+| P2-02 | part2/02_git-version-control.md | 第2部（Part 2） | ［前レッスン］P1引き渡し、［環境］履歴がクリーンな教材用コピー（Training Copy） | ブランチ／差分／コミット、コピーのマニフェスト確認 | P2-03へプッシュ可能なブランチ |
+| P2-03 | part2/03_github-pull-request-review.md | 第2部（Part 2） | ［前レッスン］ブランチ／リモート、［環境］GitHubアカウント／権限 | 教材用コピー（Training Copy）のPR、レビュー、確認（Check）参照 | P2-04へCI対象PR |
+| P2-04 | part2/04_ci-github-actions.md | 第2部（Part 2） | ［前レッスン］PR、［提供］Trainingワークフローのテンプレート | イベント／ジョブ／ステップ／権限の診断 | P2-05へワークフロー実行 |
+| P2-05 | part2/05_playwright-ci.md | 第2部（Part 2） | ［前レッスン］学習者spec／引き渡し、［提供］ワークフロー／コピー手順書 | PR、実行（Run）、確認（Check）、Playwright成果物（Artifact）、CI実行記録 | P2-07へWeb CI証跡 |
+| P2-06 | part2/06_native-ci-maestro.md | Native（選択課程） | ［前レッスン］Native演習、［環境］Android実行環境（runner） | Androidビルド／エミュレーター／Maestro成果物（Artifact） | P2-07へスキップ／復帰 |
+| P2-07 | part2/07_ci-cd-quality-gates.md | 第2部（Part 2） | ［前レッスン］Web CI証跡、［提供］ゲート契約 | Web CIの必須確認（Check）、失敗時に通さない仕組み、成果物（Artifact）の読み方 | P2-08へゲート判断 |
+| P2-08 | part2/08_integration-design-capstone.md | 第2部総合課題 | ［前レッスン］P2証跡一式 | Web CI → ゲート → 成果物（Artifact） → 失敗理由の統合設計 | 完了記録／次の実務行動 |
+
+## 5. ワークブック契約
+
+### 5.1 正本ワークブック
+
+正本ワークブックは、次の4つのCSVを提供テンプレート／サンプルとして保持する。
+
+- training/workbook/01_target-risk.csv
+- training/workbook/02_test-cases.csv
+- training/workbook/03_automation-mapping.csv
+- training/workbook/04_execution-improvement.csv
+
+これらには既存の提供例と列定義を保持する。TARGET-CART-101、RISK-CART-101、TC-CART-101、学習者の完成コードに対応する完成行をリポジトリへ事前投入しない。L1／L2の実装でCSVへ行を追加する計画も置かない。
+
+### 5.2 学習者用コピー／引き渡し
+
+受講者は正本ワークブックを複製し、自分のケース行を追加する。作業場所は自由だが、評価時には4つのCSVを引き渡し一式へ書き出す。
+
+- 提供サンプルは変更せず、学習者行と区別する。
+- 学習者が作成する行のIDは、P1-2／P1-3で受講者が作る。
+- P1-5／P1-6はその行を入力として使い、別IDへの置換や別ケースの証跡流用をしない。
+- 既存列を維持し、役割／アカウント／初期データ／リセット／操作は`precondition`／`test_condition`とSSOT参照で表現する。
+- 実行結果、`run_context`、証跡、`failure_category`、`cause`、`action`、`improvement`は実行事実と診断の進捗に応じて記録する。NOT_RUNの予定パスを証跡へ書かない。
+
+### 5.3 検証用フィクスチャ
+
+受講者向け修了確認の契約テストでTC-CART-101等を必要とする場合、正本ワークブックを変更せず、`tests/fixtures`、一時ディレクトリ、一時引き渡し一式の専用フィクスチャを使う。
+
+- 正常系フィクスチャは、学習者成果を模した明示的な入力をテスト専用に生成する。
+- 不正系フィクスチャは、リセットなし、検証なし、ケースID不一致、NOT_RUN、架空証跡など一つの欠陥を隔離して生成する。
+- フィクスチャのIDや行は、受講者へ配布するサンプルや答えではない。
+
+## 6. 引き渡し一式の契約
+
+引き渡し一式は、学習者の成果物を次レッスンまたは評価処理へ渡す境界である。LMS、学習者状態データベース、巨大な実行ランナー（runner）の代替にはしない。
+
+最低構成:
+
+    handoff-root/
+      handoff.json
+      workbook/
+        01_target-risk.csv
+        02_test-cases.csv
+        03_automation-mapping.csv
+        04_execution-improvement.csv
+      code/
+      evidence/
+      receipts/
+      self-check/
+
+`handoff.json`の必須項目は次である。
+
+- version
+- workbook_dir
+- code_paths
+- evidence_dir
+- execution_receipt_paths
+- self_check_paths
+- case_code_map
+
+追加の元ソースSHA、project、browser、viewport、seed、attemptは、必要な記録や配置マニフェストへ記録する。修了確認記録（Completion Receipt）は自動確認の必須入力ではなく、自動確認が判定後に生成する出力である。
+
+- `workbook_dir`は4つのCSVを参照する相対ディレクトリ。
+- `code_paths`は受講者のコードを参照する相対ファイルの配列。
+- `evidence_dir`は実際の証跡を参照する相対ディレクトリ。
+- `execution_receipt_paths`は実行済みの記録を参照する相対ファイルの配列。
+- `self_check_paths`は受講者が記述した自己確認を参照する相対ファイルの配列。機械確認は存在・パス・ファイル種別だけを扱い、理解の意味を自動採点しない。
+- `case_code_map`は評価対象ケースと学習者作成コード内の安定したテスト参照を結ぶ配列。各項目は少なくとも`case_id`、`code_path`、`test_ref`を持ち、`test_ref`をテストタイトル（title）、注釈／メタデータ（annotation／metadata）、付随マニフェストのどれで表すかはW0で選ぶ。ファイル名や検証構文をケースIDの代わりに強制しない。
+- 引き渡し一式に完成答案の正本行を持ち込むのではなく、受講者が作った書き出しを評価境界として受け取る。
+
+## 7. 引き渡しパスの安全条件
+
+受講者が入力する引き渡し一式は信頼できない入力として扱う。拡張子に含まれるドットをパス逸脱攻撃と誤認しない。
+
+すべての参照パスについて、次を満たさなければINCOMPLETEまたはBLOCKEDとする。
+
+- 絶対パスを禁止する。Windowsドライブ、UNC、POSIXの絶対パス、file URLも拒否する。
+- 引き渡し一式のルートから相対パスとして正規化し、解決結果がルート外へ出ない。
+- パス要素が完全一致で "." または ".." でないことを確認する。foo.spec.ts、data.csvのドットは許可する。
+- シンボリックリンクを解決した実体パスも一式のルート内にあり、ルート外へ向くシンボリックリンクを拒否する。
+- 参照先が存在し、期待するファイル／ディレクトリ種別であることを確認する。
+- `workbook_dir`配下に必要な4つのCSVが存在し、見出し、列、ID、追跡スキーマを検証する。
+- `code_paths`は想定するコード種別、`evidence_dir`はディレクトリ、`execution_receipt_paths`はJSONファイルとしてスキーマを検証する。
+- NULバイト、空パス、重複パス、引き渡し一式のルート自体をファイルとして渡す入力など、曖昧なパスを拒否する。
+
+実装時はパスを文字列の部分一致で安全判定せず、ルートと候補のrealpathを比較する。存在しないパスのrealpath失敗、シンボリックリンク解決失敗、スキーマ不一致をPASSへ補正しない。
+
+## 8. 学習成果と既存評価基準
+
+- 既存のCommon／Native経路と評価基準を変更せず、レッスン本文と成果物を既存の能力項目へ対応付ける。
+- C01〜C07、C09〜C10の機械確認と自己確認の分担は、詳細3の能力項目対応表を正本とする。
+- Commonのローカル完了、Native／iOSの選択、第2部（Part 2）のGitHub Actions必須という境界を、受講者がレッスン開始時に読めるようにする。
+- P1-8ではPOM／Helper／Fixtureを「使うのが正しいから」追加せず、P1-4〜P1-6で観察した重複・変更影響・Flakyなどの問題から必要最小限の改善を選ぶ。
+
+## 9. 質問 / 曖昧性
+
+### 今回確定した方針
+
+- 作業場所は自由、評価時の引き渡し一式は固定境界。
+- 正本ワークブックは提供サンプル／テンプレートのみ。学習者完成行は学習者用コピー／引き渡しだけに置く。
+- TC-CART-101は代表縦断ケースで、P1-3の唯一のケースではない。
+- P1-3は複数のリスク／条件／技法／レイヤーを扱い、UI E2E以外のレイヤーと理由を最低1件残す。
+- Commonはローカル、第2部（Part 2）はGitHub Actions、Native／iOSは選択課程。
+
+### 実装前に確定する技術的事項
+
+- 現行ワークブックの列だけで役割／アカウント／初期データ／リセット／操作を十分に追跡できるか。不足なら新列を追加せず、既存SSOT参照または別途担当者判断へ戻す。
+- 引き渡し一式のパス検証が、Windows／POSIXの絶対パス、シンボリックリンク、スキーマ、ファイル種別を同じ失敗分類で扱えるか。
+- 第2部（Part 2）への配置後のコードパスを、既存Trainingワークフローが実行できる最小配置は何か。詳細3の移行判断で確定する。

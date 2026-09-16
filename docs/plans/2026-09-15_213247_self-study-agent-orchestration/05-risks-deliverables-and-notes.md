@@ -1,56 +1,102 @@
-# 詳細5：リスク・成果物・備考
+# 詳細5：リスク・成果物・担当者判断
 
 [← インデックスへ戻る](../2026-09-15_213247_self-study-agent-orchestration.md)
 
-> このファイルは、インデックスから参照するPlan詳細です。収録した既存節の本文は、分割前Planの内容を維持しています。
+> ウェーブの順序と厳密な変更対象は詳細2、レッスン／ワークブック／引き渡しは詳細1、記録／CIデータフローは詳細3、検証は詳細4を正本とする。このファイルでは同じ契約を再定義せず、リスクと引き継ぎ事項を整理する。
 
 ## 7. リスクと未解決論点
 
 ### リスク
 
-- **教材全面rewrite化**: 既存Lessonへ共通枠を追加する際、すべての説明を書き換えず、既存本文の責務をInput / Output / DoDへ接続する。
-- **新しいSSOTの増殖**: Case / Seed / Account / workflow literalをコピーせず、Workbook・Spec・既存metadataへリンクする。
-- **受講者向け修了確認の誤検出**: 完全一致ではなく、必須Caseとの対応、意味のあるAssertion、実行Receipt、Evidenceの実在性に対象を限定して検査する。
-- **外部環境依存**: GitHub ActionsはPart 2の必須環境として準備手順とPermissionを明示し、Commonのローカル完了を阻害しない。Android実機、iOS/macOSは選択課程として分離する。
-- **Artifactの期限切れ**: CI ArtifactのRetentionだけに依存せず、Run IDと必要なreceiptをローカル保存する。
-- **Agentの過剰利用**: Agent数をKPIにせず、独立作業・時間短縮・Evidence品質で評価する。
-- **並列writeの競合**: isolationと変更 attributionを実証できるまでworkerは直列にする。
-- **L3変更の混入**: Agent permission、sandbox、wrapper、config変更は文書routingと別Plan / explicit approvalにする。
-- **既存Failureの見落とし**: Cross-role、`typecheck:app`、format / lint、Node version差、Contract timeoutを最終検証で再確認する。
+- 教材を説明文の追加だけで膨らませると、受講者が次の行動を判断できないままになる。各レッスンの目的、入力、実施内容、観測、出力、自己確認、完了条件、復旧方法、引き渡しを実演可能な契約として書き、講師向け資料なしの受講者一巡確認を最重要ゲートにする。
+- TC-CART-101を唯一の答えとして配布すると、リスクから複数のケースとレイヤーを選ぶ学習が失われる。TC-CART-101は受講者が選ぶ代表縦断ケースであり、別ケースの非UI E2Eレイヤーと理由も残す。
+- 正本ワークブックへ学習者答案を入れると、提供サンプルと学習者作成成果物が混ざる。正本はテンプレート／サンプルに限定し、学習者行は作業用コピー／引き渡しだけに置く。
+- 編集場所を自由にすると、評価時にコードや証跡を見つけられない可能性がある。作業場所は自由にし、引き渡し一式と教材用コピー（Training Copy）の実行パスを評価境界として固定する。
+- 引き渡しパスを文字列のドット有無で判定すると、spec.tsやcsvを誤拒否したり、親参照を見逃したりする。絶対パス、正規化後のルート外、要素完全一致の親参照、ルート外シンボリックリンク、存在性、ファイル種別、スキーマを別々に検証する。
+- 自動確認を強くしすぎると自由なPlaywright実装を拒否し、弱くしすぎると開始用コード／基準実装を成果と誤認する。ケースの期待結果／状態変化、リセット、意味のある検証、記録、証跡を機械確認し、理解は自己確認／一巡確認へ分ける。
+- 実行記録と修了確認記録を同じ記録として扱うと、実行事実を自動確認が後付けする循環になる。実行記録は実行ランナー（runner）／ラッパー（wrapper）／レポーター（Reporter）、判定記録はtraining:completion:checkと責務を分ける。
+- GitHub Actionsの実行（Run）／確認（Check）／成果物（Artifact）を同じワークフロー内の事前条件にすると循環依存になる。ワークフロー前・中・完了後のデータフローを分け、最終の修了確認記録は実行（Run）完了後に生成する。
+- 第2部（Part 2）のGitHubアカウント、権限、実行環境（Runner）、成果物（Artifact）の保存期間に依存すると、Commonまで進められなくなる。Commonはローカルで完了し、第2部の環境による停止を別の状態にする。
+- C1で製品統合テストを増やしすぎると、自己学習化の目的から外れ、仕様や製品の変更判断を巻き込む。まず読み取り専用の不足調査に限定し、必要性が具体化したテスト追加は別タスクにする。
+- エージェントを常に最大数起動すると親エージェントの判断負荷、重複、待ち時間が増える。独立した不確実性、責務不明、失敗切り分け、重複しない並列化を起動条件にし、軽微なタスクは委譲なしとする。
+- G3の不正系テストを現在の作業ツリーで行うと、読み取り専用検証自体がソースを汚す。一時ディレクトリ、使い捨て作業ツリー、フィクスチャ、模擬Runだけで再現する。
+- エージェントのjoinのタイムアウトを子のコマンドタイムアウトと混同すると、自然終了すべき調査を途中で破棄する。親の非ブロッキングjoin、子自身のコマンドタイムアウト、自然終了、終了（close）を分離して記録する。
+- 現在のmainが変わると古い基準に依存する。W0でSHAを再取得し、Expo依存更新のように関連影響がない差分は確認済みとして記録する。
+- goal.txt等にある管理画面、フォームのUX、状態表現、ナビゲーション、アクセシビリティ、画面文言の改善要求は、この自己学習計画の製品／仕様の変更範囲には含めない。必要になった場合は、UI専用の担当者、ウェーブ、回帰ゲートを持つ別計画として起票し、この計画のC1やT1／T2へ混ぜない。
 
 ### 停止条件
 
-- Product behaviorまたはNormative Specificationの判断が必要になった。
-- C07 / C08、Common / Native route、既存Assessment contractを変更しないと成立しない。
-- learner成果の判定にDB、AI grader、完全一致答案が必要になった。
-- Training exerciseをProduct Formal Regressionへ混在させる必要が出た。
-- GitHub / Native環境の問題をSource defectと区別できない。
-- Agentのrecursive delegation、read-only、scope、Source Integrityを信頼できるEvidenceで確認できない。
-- 既存required validationを弱めないと通らない。
+- 製品の振る舞い、規範仕様、既存評価基準、Common／Native境界の意味変更が必要になった。
+- 正本ワークブックへ学習者答案を事前投入しないと成立しない。
+- 引き渡しの安全なルート内解決、ファイル種別、スキーマ、シンボリックリンク境界を検証できない。
+- 実行記録を実際の実行ランナー（runner）／ラッパー（wrapper）／レポーター（Reporter）から生成できず、自動確認の後付けや架空証跡が必要になる。
+- 自由なPlaywright実装を一つのAST構文へ強制しないと自動確認が成立しない。
+- GitHub Actionsの`contents: read`、機密情報なし、既存の成果物順序を守れず、追加Permission／Tokenが必要になる。
+- 第2部（Part 2）の成果物をワークフロー完了後に確定できず、未確定の実行（Run）自身を事前入力にする必要が出た。
+- エージェントの読み取り専用、対象範囲、再帰的な委譲、ソース完全性、終了（close）のライフサイクルを隔離環境で証明できない。
+- 既存の必須検証のFAILを原因未確認のままPASSへ変換する必要が出た。
 
-## 8. 成果物
+## 8. 成果物と引き継ぎ
 
-### 今回作成したもの
+### 8.1 今回の計画修正で作成するもの
 
-- `docs/plans/2026-09-15_213247_self-study-agent-orchestration.md`
+- インデックス1ファイル。
+- 詳細1〜5。
+- 進行中の実行（Run）のREPORTへの調査・修正・検証結果の追記。run.jsonはcollectorの機械管理経路だけで更新する。
+- 今回は教材本文、Trainingのコード、テスト、ワークフロー、エージェント設定、製品、仕様、GitHubメタデータを変更しない。
 
-### 実装時のWave別成果物
+### 8.2 実装タスクへ引き継ぐ成果物
 
-| Wave | 作成／更新するexact file | 成果物の完了条件 |
+| 系統 | 引き継ぐ成果 | 正本 |
 | --- | --- | --- |
-| L1 | `docs/curriculum/test-automation/00_learning-design.md`、`docs/curriculum/test-automation/README.md`、`training/workbook/README.md` | 共通Lesson契約、route、Workbook schema、編集場所と評価intakeの境界 |
-| L2 | P1-2〜P1-6の5本文、`training/workbook/01_target-risk.csv`〜`04_execution-improvement.csv`、`training/playwright/exercises/training-exercise-starter.spec.ts`、新規`training/playwright/exercises/learner-cart.spec.ts`、`training/playwright/failure-exercises/expected-failure.spec.ts`、`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts` | `TC-CART-101`のCase → 実装 → Failure → 修正 → Evidenceの縦断 |
-| L3 | 17行表のL3-A / L3-Bに列挙した残り12本文 | 全17 LessonのInput / Output / DoD / Recovery / Handoffとroute境界 |
-| T1 | `package.json`、`scripts/training/check-completion.ts`、`tests/contracts/training-completion.test.ts`、`training/github-actions/README.md`、`training/github-actions/training-ci.yml`（Native接続時のみ`training-native-ci.yml`） | local / CIのcompletion contract、Receipt、Status、positive / negative fixture |
-| T2 | `part2/02_git-version-control.md`〜`part2/05_playwright-ci.md`の4本文、`training/github-actions/README.md`。既存scriptの修正はWave 0で欠陥が確認されOwner承認された場合だけ | Copy準備 → PR → Checks → Artifact → 修了確認の講師なし導線 |
-| C1 | `tests/integration/cart-use-cases.test.ts`、`tests/integration/review-user-use-cases.test.ts`、`tests/contracts/training-curriculum.test.ts`、必要なCI contract test | AC matrix、Case、Assertion、Evidenceの対応と既存回帰の維持 |
-| G2 | `AGENTS.md`、`docs/reference/codex-implementation-harness.md`、`.codex/templates/PLAN.md`、`scripts/verify` / `scripts/verify.ps1`（Agent設定変更なし。文書変更は既存L2契約に従う） | routing、Work Package、非ブロッキングjoin、子Agentのコマンドtimeout、watchdog、close、Run接続 |
+| カリキュラム | 17レッスンの共通契約、P1-2〜P1-6のケース引き渡し、P1-4〜P1-6の学習段階 | 詳細1 |
+| ワークブック／引き渡し | 提供サンプルと学習者作成成果物の分離、4つのCSV、一式、パス安全 | 詳細1 |
+| 修了確認 | 実行記録、修了確認記録、状態、能力項目の分担 | 詳細3 |
+| 第2部（Part 2） | 引き渡し配置、履歴がクリーンな教材用コピー（Training Copy）、ワークフロー前・中・後のデータフロー | 詳細3 |
+| テスト／検証 | C1不足調査、正常系／不正系フィクスチャ、失敗分析、一巡確認、G3、V1 | 詳細4 |
+| エージェント | 起動判断、親エージェント管理、子のタイムアウト、助言、追加派遣、終了（close）、実行（Run）への接続 | 詳細2 |
 
-今回のRunで実際に作成した成果物は本Planとactive Run Artifactだけであり、上表の実装成果物はまだ作成しない。`.codex/config.toml`、permission / sandbox / wrapperの変更は上表に含めず、必要なら別L3 Planとする。
+詳細2のウェーブ表が、各系統の正式な変更対象、開始／終了条件、ロールバック、停止条件を保持する。ここではその順序を再掲しない。
 
-## 9. 備考
+### 8.3 C1を別タスクへ分離する条件
 
-- 「明示的に複数Agentを使って」と毎回依頼しなくてもよい状態にするには、Agent数を常に最大化するのではなく、Repositoryの`AGENTS.md`にdelegationを判断する既定契約を置き、詳細をHarnessへ集約する必要がある。
-- Parentは、要件解釈、作業分解、scope、最終検証、Failure解釈、完了判断を保持する。Agentへ最終責任を移さない。
-- 既存5役で当面の要求を満たせるため、最初から新しいAgent roleを追加しない。新roleは既存役割で解けない具体的な反復作業とEvidence契約が確認できた場合だけ追加する。
-- 実装は、まずWave W0でSSOTと保護Pathを固定し、G1〜G2のrouting契約、L1〜L2のP1縦断パイロット、L3の全Lesson契約を確定する。その後にT1の受講者向け修了確認、T2のPart 2自走導線、C1のACテスト、G3 / V1へ進む。技術的な安全確認が未実施のまま実装を開始しない。Agent設定は既存リポジトリから継承し、学習者へ要求しない。
+次の全てを具体的に確認できた場合だけ、製品統合テストの追加を別タスクとして起票する。
+
+- 既存仕様（Spec）のBR／ACがカリキュラムの期待結果に直接必要である。
+- 既存テスト／別テストレイヤーではその条件を保証できない。
+- 追加テストが製品の振る舞いや仕様の意味を変更せず、対象ACとケースを明確にする。
+- 追加テストの変更対象、担当者、検証、ロールバック、実行時間、CI影響が別計画で合意される。
+- その別タスクを入れても、今回の自己学習／修了確認／引き渡しの主要経路を不必要に妨げない。
+
+## 9. 実装開始前に担当者判断が必要な項目
+
+W0の実測結果と次の判断を進行中のRunへ記録し、未決定のまま実装ウェーブへ進めない。
+
+1. 実行記録を既存Playwrightレポーター（Reporter）の薄い拡張で生成するか、既存コマンドを呼び出す薄いラッパー（wrapper）にするか。
+2. 引き渡し一式の学習者コードを教材用コピー（Training Copy）のtraining/playwright/exercises/learnerへ配置する方式と、既存Trainingワークフローの実行対象を確認するか。
+3. 第2部（Part 2）の実行ID（Run ID）、確認（Check）、成果物（Artifact）を受講者が完了後に手動転記するか、追加権限（Permission）／Tokenなしの読み取り専用補助を使うか。
+4. Trainingワークフローのテンプレートを記録出力・成果物アップロードへ接続する最小差分と、`contents: read`／機密情報なしを維持できるか。
+5. Native／iOS選択時の記録／成果物（Artifact）を既存Native契約へ接続する範囲。CommonのWeb課程の完了条件へ混ぜない。
+6. C1の不足調査で発見した不足を別の製品テストタスクとして起票するか。起票しない場合は対象外理由または別レイヤー参照を残す。
+7. エージェント運用文書のL2変更が必要か。権限／サンドボックス／ラッパー（wrapper）／設定（config）の挙動変更が必要なら、この計画では開始しない。
+
+## 10. 最終報告の必須項目
+
+実装タスクを開始する前に、次を報告できる状態にする。
+
+1. 修正した計画ファイル。
+2. 添付された前回指摘ごとの対応結果。
+3. P1-2〜P1-6の学習フローの変更。
+4. TC-CART-101の代表縦断ケースとしての位置付け。
+5. 実行記録／修了確認記録の最終契約。
+6. 第1部（Part 1）から第2部（Part 2）への引き渡し方法。
+7. 詳細2にある最終ウェーブ依存関係。
+8. 実行した検証と結果。
+9. 残っている技術的な未確定事項。
+10. 実装開始前に担当者判断が必要な項目。
+
+## 11. 備考
+
+- この計画のPASSは、実装可能な契約と検証方法が整ったことを意味する。教材が既に自己学習可能になったこと、テスト実装が既に十分であること、受講者の理解が既に証明されたことを意味しない。
+- 今回は計画修正と計画検証だけを行う。コミット、プッシュ、PR本文更新、マージは行わない。
+- 計画承認後は、詳細2のウェーブ正本を読み、必要な対象範囲ごとに別の実装タスク／実行（Run）を開始する。
