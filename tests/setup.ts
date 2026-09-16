@@ -11,4 +11,6 @@ class TestResizeObserver implements ResizeObserver {
 }
 
 globalThis.ResizeObserver = TestResizeObserver;
-HTMLElement.prototype.scrollIntoView = () => {};
+if (typeof HTMLElement !== "undefined") {
+  HTMLElement.prototype.scrollIntoView = () => {};
+}

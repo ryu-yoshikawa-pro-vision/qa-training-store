@@ -21,6 +21,7 @@
   - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode loggerへ接続する。
   - Logging Hookはmatcherなし、timeout 10秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。10秒は5秒の2倍のbounded headroomであり、無制限timeoutではない。
   - 既存のSafety `PreToolUse` / Bash matcherは独立したblocking経路として維持する。
+- project-local Hookを追加・変更した場合は、interactive／non-interactiveの実行経路に関わらず、同じ `CODEX_HOME` で [codex-safety-harness.md](codex-safety-harness.md) のHook trust手順を確認してから使用する。Hook trustの定義元、`/hooks`、再レビュー、runtime境界などの詳細は同文書へ集約し、ここでは重複記載しない。
 - `scripts/codex-task.ps1|sh`
   - 非対話 `codex exec` 用 wrapper。
   - 実行順は `preflight -> codex exec -> output/schema check -> verify -> report`。
@@ -59,6 +60,14 @@
   - `bash template/scripts/verify --strict-harness`
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`
 - `--strict-harness` / `-StrictHarness` は source repo layout、spec/template/docs/version/CI 契約を前提にするため、consumer repo では通常 verify を使う。
+
+## 文章品質gateの検証
+
+- `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree`を呼び出し、現在のworktreeを開始時HEADと比較する。比較不能は失敗として扱う。
+- `scripts/verify` と `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存 `tests/contracts/codex-hook-contract.test.ts` と文章品質contractを追加実行するopt-inである。通常verifyのstrict意味や依存条件は変更しない。
+- `scripts/lint-text-quality.mjs` はRepository固有custom literal／regexと`.textlintrc.json`の5個のtextlint ruleだけを本文へ適用し、Markdown構造は `lint:markdown` に任せる。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。未確定の禁止語・置換・allowlist・英語混在判定は追加しない。
+- pull requestでは `origin/${{ github.base_ref }}` とworkflowがcheckoutしたmerge `HEAD`のmerge-baseを比較baseにする。pushでは `github.event.before`、scheduleとworkflow dispatchでは `HEAD^`を使う。local以外ではclean checkoutの `HEAD -> worktree` 比較をCI gateとして使わない。
+- 変更path、baseline本文、current本文、rename mappingは同一comparison treeから取得する。Git rename mappingがなく、削除pathをcurrent Markdownへexact content SHA-256で一意に対応付けられない場合は、推測せず比較failureにする。
 
 ## Repository file-changing task の完了契約
 
