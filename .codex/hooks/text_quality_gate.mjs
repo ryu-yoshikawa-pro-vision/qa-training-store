@@ -664,6 +664,10 @@ function diagnostics(code) {
   );
 }
 
+function outputAllow() {
+  process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
+}
+
 async function processUserPrompt(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   const stateInfo = makeStatePath(root, payload.session_id);
@@ -703,7 +707,21 @@ async function processPostToolUse(payload) {
 async function processStop(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   const stateInfo = makeStatePath(root, payload.session_id);
-  const state = readState(stateInfo.path, stateInfo);
+  let state;
+  try {
+    state = readState(stateInfo.path, stateInfo);
+  } catch (error) {
+    if (
+      payload.stop_hook_active === true &&
+      error instanceof QualityUnavailable &&
+      error.code === "baseline_state" &&
+      !fs.existsSync(stateInfo.path)
+    ) {
+      outputAllow();
+      return;
+    }
+    throw error;
+  }
   if (state.status !== STATE_STATUS.READY) {
     throw new QualityUnavailable("baseline_unavailable");
   }
