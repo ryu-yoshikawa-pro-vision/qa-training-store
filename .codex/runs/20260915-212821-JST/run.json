@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "run_id": "20260915-212821-JST",
+  "task_type": "plan",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "coverage/coverage-summary.json",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration.md",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/01-context-and-lesson-contract.md",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md",
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": false
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}
