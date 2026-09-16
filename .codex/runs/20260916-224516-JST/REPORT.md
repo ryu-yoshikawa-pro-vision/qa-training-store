@@ -90,3 +90,17 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-17 08:22 (JST)
+
+- Summary: レビュー指摘に対応し、#160 branch（`1fb11de25e45cd5bd3371b7c894ece0e518ea561`）と、過去に約64秒を観測した`refactor/117-pr3-trigger-description-optimization`（`e05863d430f4132abca9fb743f32b1d870226d50`）を同一Windows host・同一依存条件で追加計測した。両checkoutの計測後working treeはcleanである。
+- Changes: 計測中だけtest helperの外側へscenario／duration／status／signal／spawn errorの出力を追加し、Vitestのconsole interceptionを無効化した。payload、secret、token、session ID、stdout/stderr本文、absolute pathは出力していない。timing helperと診断用変更は全て除去し、恒久差分はtimeout 2箇所だけに復元した。
+- 判断 / 理由: #160 branchのlogging 3回は、`UserPromptSubmit/PostToolUse/SubagentStart/SubagentStop/Stop`がそれぞれ`354.213/350.151/349.113/378.422/357.077ms`、`355.928/351.965/361.512/366.052/351.252ms`、`357.503/360.296/354.609/373.034/352.148ms`で、5 invocation合計は`1788.976/1786.709/1797.590ms`だった。各statusは0、signalなし、spawn errorなし。outer wallは`6270.852/6020.132/6048.609ms`だった。
+- 判断 / 理由: 遅延観測checkoutのlogging 3回は、5 invocation合計`2123.996/2152.065/2186.730ms`、outer wall`6824.510/6930.287/6995.346ms`、全invocation status 0／signalなし／spawn errorなしだった。#160 branchよりlauncher合計は約0.34–0.39秒長いが、単一processの異常はない。
+- 判断 / 理由: 遅延観測checkoutのStop fallback 3回は、failure condition別合計が`missing Hook 2349.498/2310.886/2338.431ms`、`repository root failure 2138.596/2110.479/2108.359ms`、`non-zero Hook 3112.622/3111.688/3119.322ms`、`module load failure 3118.674/3142.758/3115.265ms`で、24 invocation合計は`10719.390/10675.811/10681.377ms`だった。個別最大は約`554.179ms`、statusは全て0、signalなし、spawn errorなし。fixture createは`277.553–303.511ms`、Git fixture準備は`266.880–293.101ms`、cleanupは`20.491–20.850ms`だった。
+- 判断 / 理由: 同じ遅延観測checkoutで、旧local timeout `30000ms`へ復元した対象Stop testもPASSし、Vitestのfile durationは`13.76s`（tests `11.04s`）だった。今回の追加計測では過去の`63663ms`を再現できず、約64秒になった下位原因（Defender、scheduler、filesystem、PowerShell、Git、Node、runner等）は特定していない。これらを原因として断定しない。
+- 判断 / 理由: 現時点で確認できるfailure boundaryは、Issue記録時のtest file wall `63663ms`が旧aggregate ceiling `30000ms`を超えたこと、およびloggingの`22444ms`が旧`15000ms`を超えたことである。個別launcherのhangやproduction Hookの10秒runtime timeout超過は確認していない。したがって`30000ms`／`90000ms`は、観測された過去の最大wallとcontract testの同期処理量に対するtest-local headroomとして維持するが、過去の遅延checkoutを現在のprocess計測で完全説明したとは扱わない。
+- Environment: 両checkoutで`pnpm install --frozen-lockfile --ignore-scripts`を実行し、lockfile変更なし、working tree cleanを確認した。計測は同一Windows host・Node `v24.12.0`・pnpm `9.10.0`・Git `2.44.0.windows.1`・Windows PowerShell `5.1.19041.7725`・PowerShell `7.6.6`条件で行った。
+- Validation: #160 source差分はtimeout 2箇所以外なし。遅延checkoutへ恒久変更・commitは行っていない。今回の計測により、launcher単位異常なしと現在時点の再現不能は確認できたが、CIと過去の約64秒観測との差をprocess境界まで説明する証拠は未取得である。
+- ブロッカー / 残作業: 最新headでCIのprocess単位時間を未取得のため、Issue #159の「CIとaffected localの結果差を下位process境界まで説明する」完了条件は未充足として扱う。PR本文をこの確認済み／未確認の境界へ更新し、必要な最新head検証を継続する。`Defender`等の外部要因を推測で追加修正しない。
+- Progress: 88% (7/8)
