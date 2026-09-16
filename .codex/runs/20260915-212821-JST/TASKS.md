@@ -12,12 +12,21 @@
 - [x] 7. Run Artifactを更新・sanitizer確認する。
 - [x] 8. 長文Planを既存パスのインデックスと5つの詳細ファイルへ分割し、内容保持とリンクを検証する。
 - [x] 9. Agentの待機・timeout・助言・追加派遣・close方針をPlanとactive Run計画へ反映する。
+- [x] R16. 最終指示、最新main／PR／branch、許可されたPlan／Run差分を再baselineする。
+- [x] R17. GitHub上の事前準備済みTraining Copy、学習者権限、ForkをP2-01〜P2-03へ限定する境界を全Planへ同期する。
+- [x] R18. 固定`handoff-root/`を評価正本として維持し、Repository相対コード、materialize対象、Git／ローカルEvidence境界を同期する。
+- [x] R19. Execution Receiptのrun／case／Retry、SHA分離、正式なReceipt付き実行入口、Evidence保持を全Planへ同期する。
+- [x] R20. `training:copy:validate`の適用段階、C09期待Failure、Completion状態、Completion Receipt出力先を同期する。
+- [x] R21. Lesson ID別self-check、CI機械情報と人間可読Evidenceの境界、Reset確認範囲、Gitless診断教材Recoveryを同期する。
+- [x] R22. T1／T2の責務、W0の再質問禁止事項、Contract Test正常系／不正系、active Run保護境界を再監査する。
+- [x] R23. active RunのPLAN／TASKS／REPORTを最新Planへ同期し、REPORTはappend-onlyの訂正checkpointで記録する。
+- [x] R24. 必須validation、collector／sanitizer、差分／branch safety、commit／push前のPR状態を確認し、push可能な状態へ整える。push後のPR head／必須CI確認はfile-changing taskの後続完了条件とし、このcheckboxでは完了扱いにしない。
 
 ## 今回のPR #157再監査・修正（2026-09-16）
 
 - [x] R1. 指示書、最新PR base／head、origin/main、対象branch、既存Runを再確認する。
 - [x] R2. Plan 6ファイルを横断監査し、P1-6の失敗契約とP1-5の学習範囲を修正する。
-- [x] R3. Part 1のZIP／`source_sha`とPart 2 Training CopyのSHA契約を分離する。
+- [x] R3. Part 1のZIP／任意`part1_distribution_sha`（既存入力名が`source_sha`の場合を含む）とPart 2 Training Copyの正式な`training_copy_source_sha`契約を分離する。
 - [x] R4. 自動確認の構造境界、Receiptの責務、意味理解の自己確認境界を修正する。
 - [x] R5. V1とAgent運用（AG1／AG2／AG3、Hook側G1／G2／G3）の依存・名称・停止条件を分離する。
 - [x] R6. 最新baseのHook／Harness／文章品質ゲート／verify変更を重複実装しない方針へ反映する。
@@ -33,10 +42,10 @@
 
 ## 次の実装taskで行うこと
 
-- [ ] 10. Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う。
-- [ ] 11. Lesson共通契約とP1-2〜P1-6縦断パイロットを実装する。
-- [ ] 12. 受講者向け修了確認とPart 2自走導線を実装する。
-- [ ] 13. 全Lesson、ACテスト、Traceability、Agent routingへ展開する。
+- [ ] I1. Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う。確定済み事項を再質問しない。
+- [ ] I2. Lesson共通契約とP1-2〜P1-6縦断パイロットを実装する。
+- [ ] I3. 受講者向け修了確認とPart 2自走導線を実装する。
+- [ ] I4. 全Lesson、ACテスト、Traceability、Agent routingへ展開する。
 
 ## 完了処理の参照先
 
@@ -68,9 +77,9 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## 追加確認（ユーザー決定）
 
-- [x] Part 2はGitHub Actionsを受講者が自力で準備・実行する課程とし、Common課程はローカルで完了可能とする。
-- [x] 「受講者向け修了確認」はGitHub Actionsと責務を分離し、GitHub Actionsはその確認を実行するCI基盤として区別する。
-- [x] Test Case CSVなどの非コード成果物は既存Workbookの4 CSVを正本として整える。物理的な保存先の一律固定は保留し、形式・ID・Export・Handoffを固定する方向とする。
-- [x] Workbookの評価時は、編集場所を自由にしたうえでHandoff bundleへ4 CSV、コード参照、Evidence参照、実行記録をまとめる。
-- [x] ローカルとGitHub Actionsの受講者向け修了確認は共通JSON形式の実行記録を使い、CI固有情報は別欄へ分ける。
+- [x] Common課程はローカルで完了可能とし、Part 2のC12／Training CI／最終修了は自己学習開始前に準備されたGitHub上のTraining Copyでbranch／commit／push／PR／Run／Check／Artifact確認まで行う。ForkはP2-01〜P2-03の基礎学習に限る。
+- [x] 「受講者向け修了確認」はGitHub Actionsと責務を分離し、GitHub ActionsはTraining Copy上の実行基盤、`training:completion:check`は固定Handoff rootの構造確認とする。
+- [x] Test Case CSVなどの非コード成果物は既存Workbookの4 CSVを正本とし、編集場所は自由だが、Part 1からPart 2最終確認まで固定`handoff-root/`へ集約する。新しいManifestや固定の学習者作業場所は追加しない。
+- [x] Workbookの評価時は固定`handoff-root/`へ4 CSV、Repository相対コード、Evidence参照、Execution Receipt、Lesson ID別self-checkをまとめる。Training CopyへPart 1のEvidence／Receipt／self-checkを複製しない。
+- [x] ローカルとGitHub ActionsのExecution Receiptはrun全体／case／Retryを分けた共通JSON形式とし、`training_copy_source_sha`／`submission_sha`／`ci_sha`／`execution_sha`を分離する。Completion Receiptは`receipts/`外へ出す。
 - [x] Agentは学習者向けカリキュラムの必須設定ではなく、既存リポジトリのAgent定義・設定を引き継ぐ。権限・sandbox・wrapper・model・threadは変更しない。

@@ -649,3 +649,51 @@
 - collector後のtracked差分はactive Runの`REPORT.md`／`TASKS.md`とPlan 6ファイルだけで、`.codex/runs/20260915-212821-JST/run.json`は機械管理対象として直接編集していない。`run.json`の`validation.status: not_run`は、このRun manifestへ検証commandを手書きで注入していないことを示すため、REPORTの実測結果とは別に扱う。
 - `git status --short --branch`: `feat/self-study-curriculum-test-coverage`上で、上記8 tracked filesの変更と、今回触れていない既存未追跡`.codex/runs/20260915-191711-JST/`／`coverage/`を確認した。`git diff --stat`: 8 files、675 insertions、209 deletions。`git diff --check`: exit 0。
 - Progress: 100% (9/9)
+
+## 2026-09-17 02:24 JST — PR #157 実装開始前の最終Plan修正・再監査
+
+- Summary:
+  - 今回の変更対象は、Planインデックスと詳細1〜5、およびactive Runの`PLAN.md`／`TASKS.md`／`REPORT.md`だけである。`training/**`、`scripts/training/**`、`tests/**`、`package.json`、workflow、AGENTS／Agent設定、ADR、Harness、製品／仕様は変更していない。`run.json`は直接編集していない。
+  - Part 2のGitHub上Training Copyは、自己学習開始前に運営側または既存の教材提供手順が準備する。学習者へURL、通常の書き込み、branch／push／PR／Run／Check／Artifact確認を渡し、repository作成・管理者権限・Secrets・branch protection／workflow権限変更・GitHub App設定を要求しない。ForkはP2-01〜P2-03のGit／GitHub基礎学習だけで利用でき、C12／Training CI／Part 2最終修了の代替にはしない。
+  - Part 1からPart 2最終確認まで固定`handoff-root/`を評価用正本とし、Training Copyは実行環境に限定する。materializeはWorkbook、Repository相対パスを保った学習者コード、必要なテキスト成果だけを配置し、Part 1のTrace／Video／Screenshot／HTML Report／Receipt／self-checkを複製しない。Gitへcommitする成果物と、ローカルHandoff／GitHub Artifactへ保持するEvidenceを分離し、`.gitignore`はT2で既存状態を確認して最小手段を選ぶ。
+  - Execution Receiptはrun全体（command、process `exit_code`、時刻、環境、`run_context`、該当するSHA）、case（`case_id`、title／track、result／status、`code_digest`、Evidence参照）、Retry（index、Playwright status、duration、error、Evidence参照）に分け、case／Retryへ架空のprocess exit codeを置かない。Part 1の任意`part1_distribution_sha`（既存入力名`source_sha`を含む）、Training Copy作成元の`training_copy_source_sha`、提出`submission_sha`、実評価対象`ci_sha`／`execution_sha`を分離した。
+  - 正式なReceipt生成入口は`training:web:exercise:with-receipt`の1つとし、`--suite exercise|diagnostic`、`--project`、`--root`、`--run-context`を受ける薄いadapterとして固定した。Playwright実行、Receipt生成、Evidenceの固定rootへの保存を一度で行い、`training:completion:check`は再実行・Receipt生成を行わない。Training CIの既存exercise stepは、この入口を一度だけ呼ぶ計画とし、直接exerciseを重ねない。
+  - `training:copy:validate`はprepare直後と、HEADが`training_copy_source_sha`のままのmaterialize直後だけに限定する。学習者commit後／CI後は`submission_sha`／`ci_sha`／`execution_sha`、変更範囲、Run／Check／Artifactを別に確認する。C09はdiagnostic initialの期待Failureとdiagnostic repairedのPassを別`run_context`／別Evidenceで揃え、expected-failure教材の期待された非0終了を通常の学習者Failureへ変換しない。
+  - Completion Receiptは`<handoff-root>/completion-receipt.json`へ出力し、`receipts/`のExecution Receipt入力へ混入させない。状態は、契約違反等をFAIL、成果不足をINCOMPLETE、環境は利用可能だが必要実行がない場合をNOT_RUN、Training Copy／権限／Runner／Browser／Base URL等の環境不足をBLOCKED、機械確認対象の契約充足をPASSとする。self-checkは`self-check/<既存Lesson ID>.md`で固定し、P1-07／P2-06のNativeは必須にしない。
+  - GitHub CIの機械情報（`GITHUB_RUN_ID`、`GITHUB_RUN_ATTEMPT`、`GITHUB_SHA`、repository、workflow／job、Artifact名）と、受講者がブラウザーで確認して固定rootへ残す人間可読Evidenceを分離する。ローカルcheckerはAPIなしにRunの実在、最終success、Check結論、Artifactの現存を独立証明したとは扱わない。ResetはW0で確認する既存の安定シグナルまで、意味的妥当性はWorkbook／self-check／V1までに限定する。C09診断はGit操作なしのasset再配置／演習用コピー復元を最小Recovery候補とし、完成回答を正本へ追加しない。
+
+- Subagent:
+  - McClintock
+    - Delegation: Plan残存契約のread-only監査。root／target境界、SHAキー、状態分類、self-check表現、active Runの進捗、Training Copy／Fork境界を確認した。
+    - Result: `--root`／`--target`は境界ロケーターとして絶対物理パスを許容し、提出物参照だけをroot内相対に制限する必要、Part 1任意SHAの正式キー名、環境不足と未実行の状態分離、T1のファイル名固定表現、R24のpush前後混同を指摘した。初回監査にあったForkをC12代替とする提案は、最新Owner回答と矛盾するため採用しなかった。
+    - Parent decision: root例外は詳細1へ既に反映済みであることを確認し、`part1_distribution_sha`／`training_copy_source_sha`をPlanとactive Runへ同期、状態をBLOCKED／NOT_RUNへ決定的に分離、T1の「ファイル名・Assertion構文は固定しないが明示契約は守る」表現へ修正、R24をpush可能状態までの完了へ限定した。ForkはP2-01〜P2-03だけに維持した。
+  - Linnaeus
+    - Delegation: Training実行／CI／Completion契約のread-only監査。Receiptの正式入口、C09、Handoff座標、materialize、validate段階、focused Contract Test境界を確認した。
+    - Result: CIの直接exercise二重実行を避ける必要、C09 initial／repairedの別runとEvidence保持、固定Handoff rootと既存`validate:curriculum`の座標分離、materialize直後のvalidate、実装後focused commandを明文化すべきと報告した。
+    - Parent decision: `training:web:exercise:with-receipt`、`--suite`／`--run-context`、materialize command、既存validatorとの座標分離、CI step一回化、C09別Evidence、focused Contract TestをPlanへ反映した。新Runner、Manifest、Evidence URIは追加しない。
+
+- Validation:
+  - PASS: Plan validator（`valid: true`、`missingHeadings: []`）。
+  - PASS: `corepack pnpm run lint:markdown`（441 files、0 issues）。
+  - PASS: `corepack pnpm run lint:text`（working-tree、changed Markdown files=11、exit 0）。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 workbook files、training-chromium／training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`（exit 0）。
+  - PASS: 関連Contract Test（3 files、59 tests passed）。
+  - PASS: Windows通常verify（`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`、PASS=3／FAIL=0／SKIP=0、exit 0）。
+  - TIMEOUT／PASS扱いしない: POSIX通常verify（`bash scripts/verify`）は個別実行でも600秒以内に正常終了せず、exit 124。並列実行時の先行試行もツール上限でexit 124であり、途中出力をPASSへ変換しない。
+  - FAIL（既存Harness／環境）: Windows Hook正式入口（`scripts/verify.ps1 -HookContracts`）はexit 1、`codex-text-quality.test.ts`のStop時session baseline掃除1件が失敗（195 tests中194 passed）。POSIX Hook正式入口（`bash scripts/verify --hook-contracts`）もexit 1、5 failures／190 passes。Windows launcherのUTF-8出力、fail-close期待値、text-quality launcher unavailable、session baseline掃除に関する既存問題であり、Plan差分による回帰とは分類せず、Hook／module resolver／Harnessは変更しない。
+  - PASS: `git diff --check`（exit 0）。
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`（exit 0、`run.json`はcollector経由のみ）。sanitizerはこのcheckpoint追記後に実行する。
+
+- Scope / active Run:
+  - active Runの`PLAN.md`／`TASKS.md`は最新契約へ同期し、`REPORT.md`は過去記録を削除せず訂正checkpointを末尾へ追記した。過去／非active Run、Hook JSONL、collector管理情報は変更していない。
+  - `TASKS.md`のNowは、今回のPlan／Run同期とpush前検証までを18／18完了として扱う。commit／push、最新PR head、Web CI／Mobile App CIは後続のfile-changing完了条件であり、今回のR24 checkboxで先取りしていない。
+  - 現在のlocal HEADは`9194bd13bfbf48244f745be437b459ee7d9ecbf9`、branchは`feat/self-study-curriculum-test-coverage`、確認済み`origin/main`は`b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`である。push直前にlocal／remote／PR／baseを再取得する。
+- 既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`は今回のcommit対象外として保持する。
+- Progress: 100% (18/18)
+
+## 2026-09-17 02:30 JST — Run Artifact sanitizer最終確認
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`: exit 0。`files_scanned: 4`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`。
+- 上記結果を含め、active Runのmachine-managed `run.json`は直接編集していない。Plan／Runの許可対象以外の未追跡ファイルはcommit対象外のまま保持する。
+- Progress: 100% (18/18)

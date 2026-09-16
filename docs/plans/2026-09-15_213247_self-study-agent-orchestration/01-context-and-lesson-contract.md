@@ -82,7 +82,7 @@ P1-4の提供サンプルはPlaywrightの最小構文を教えるための材料
 
 - 受講者の編集場所は、ローカル作業領域、Google Sheets、教材用コピー（Training Copy）などから選べる。レッスン本文は一律の作業パスを要求しない。
 - 評価・次レッスンへの受け渡し時は、自由な場所から既存4 CSV、コード、証跡参照、実行記録を引き渡し一式へ書き出す。引き渡し一式は評価境界であり、学習管理システム（LMS）や学習者状態データベースではない。
-- GitHub Actionsが直接実行するコードのパスとワークフローの許可リストは、教材用コピー（Training Copy）の実行契約として別途固定する。自由な作業場所と、再現可能な評価入口を同一視しない。
+- GitHub Actionsが直接実行するコードのパスとワークフローの許可リストは、事前準備済みのGitHub上のTraining Copyの実行契約として別途固定する。Training Copyは実行環境であり、固定Handoff rootに代わる評価正本ではない。自由な作業場所と、再現可能な評価入口を同一視しない。
 
 ## 3. P1-2 → P1-3 → P1-5 → P1-6の縦断契約
 
@@ -162,7 +162,7 @@ P1-5開始時に、本文と受講者の引き渡しから次を直接判断で�
 
 P1-5の成果は、TC-CART-101を含むP1-3の複数ケースを材料に、現在の教材が要求する学習経験を実施した学習者作成コードと実行記録である。件数を固定せず、次の範囲を欠落させない。TC-CART-101はこのうちP1-2 → P1-3 → P1-5 → P1-6を通して追跡する代表ケースであり、P1-5全体を代表ケース1件へ縮小する根拠にはしない。
 
-- 明示的な初期シナリオ／リセット。提供される `resetScenario` など、現行Harnessの正規入口を使う。BrowserContext分離だけをリセットとみなさない。
+- 明示的な初期シナリオ／リセット。W0で現行教材／Harnessが`resetScenario(page, "<scenario>")`等の既知の入口を正式契約として要求していることを確認できた場合は、その入口の利用という安定した機械シグナルを使う。BrowserContext分離だけをリセットとみなさない。既知の機械シグナルがない場合、Resetの意味的妥当性はWorkbook／self-check／V1で扱い、高度なAST解析や新しいannotation規約を追加しない。
 - 正常系の操作、境界または異常系の代表条件、操作による状態変更を含むケース経験。既存の`TC-CART-001`／`TC-CART-002`は提供サンプルとして扱い、学習者の回答行へ昇格させない。
 - 意味のある操作、意味のある要素特定、`expected_result`またはケースで確認すべき状態変化に対応する検証。
 - デスクトップWeb実行（Desktop Web）と、受講者自身が作成したExerciseを対象とするモバイルWeb実行（Mobile Web）。モバイル実行はDesktopの結果や開始用コードの実行で代用しない。
@@ -173,7 +173,7 @@ P1-5の成果は、TC-CART-101を含むP1-3の複数ケースを材料に、現�
 P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身のケースを3系統として扱う。C09は「意味のあるFailureを観測する → Evidenceを確認する → 原因を分類・特定する → 必要な修正を行う → 同じ対象を再実行する → 修正理由と結果を説明する」ことを学習成果とし、受講者の代表ケースを必ず失敗させることは完了条件にしない。
 
 - 教材系統: 意図的に失敗するspecを実行し、トレース／スクリーンショット／動画／レポートの取得方法を学ぶ。これは教材が用意した失敗であり、受講者の診断能力や修了成果の代替ではない。
-- 診断教材系統: `training:web:diagnostic`等で決定的に発生する意味のあるFailureを分析し、原因、証跡、対応、修正、再実行を記録する。受講者自身のケースが最初からPASSした場合のC09の標準経路はこの診断教材であり、正しいテストを意図的に壊すことは要求しない。
+- 診断教材系統: 既存の診断対象を、教材上の正式な`training:web:exercise:with-receipt`へ`--suite diagnostic`と`--run-context diagnostic-initial`／`diagnostic-repaired`を渡して1回ずつ実行し、決定的に発生する意味のあるFailureを分析し、原因、証跡、対応、修正、再実行を記録する。受講者自身のケースが最初からPASSした場合のC09の標準経路はこの診断教材であり、正しいテストを意図的に壊すことは要求しない。既存の`training:web:diagnostic`は実行対象を再利用する互換経路として残してよいが、教材上のReceipt生成は正式入口へ統一する。
 - 学習者系統: TC-CART-101等で自然なFailureが発生した場合は、その同じケースを診断対象にしてよい。必要な学習成果を満たす場合は診断教材の記録と組み合わせてもよい。自然なFailureがない場合も、受講者ケースを壊さず診断教材へ進む。
 - 記録する関係: 診断対象として選んだ実行の初回記録 → `failure_category`／`cause` → `action`／`improvement` → 修正後の実行記録。初回証跡と修正後証跡は別参照にする。意図的失敗教材の記録はこのC09の2記録へ流用しない。
 - P1-6の引き渡しは、P1-8またはP1-7へ、対象ケースのコード、ワークブック、失敗分析、修正差分、診断対象の初回／修正後の実行記録、証跡参照を渡す。受講者ケースがPASSした場合は診断教材の同じ2記録を渡す。
@@ -194,10 +194,10 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
 | P1-08 | part1/08_test-management-and-maintainability.md | Common／Native復帰 | ［前レッスン］コード／失敗記録、［提供］既存資産 | 実際の重複・不安定さ（Flaky）・保守問題に対する最小改善、追跡情報更新、04_execution-improvement.csvの改善内容／再実行証跡 | P1-09へ改善理由と更新済み追跡情報 |
 | P1-09 | part1/09_part1-capstone.md | Common総合課題 | ［前レッスン］P1成果一式、［提供］評価基準 | 第1部（Part 1）のCommon成果、自己確認、引き渡し一式 | P2-01へ移行条件 |
 | P2-01 | part2/01_software-development-process.md | 第2部（Part 2） | ［前レッスン］Commonの引き渡し、［提供］プロセス資料 | 変更・検証・証跡のプロセス記録 | P2-02へ変更対象 |
-| P2-02 | part2/02_git-version-control.md | 第2部（Part 2） | ［前レッスン］P1引き渡し、［環境］Git／GitHubの基礎学習では、学習者が書き込み可能なTraining Copyまたは自身のForkを利用できる。C12へ進む正式なTraining Copyのsource SHA確認は、この基礎学習用Forkへ要求しない | ブランチ／差分／コミット、利用した環境の記録 | P2-03へプッシュ可能なブランチ |
-| P2-03 | part2/03_github-pull-request-review.md | 第2部（Part 2） | ［前レッスン］ブランチ／リモート、［環境］Git／GitHub基礎学習では学習者が書き込み可能なTraining Copyまたは自身のFork、GitHubアカウント／通常権限。C12のCI対象PRへ進むときはTraining Copyへ切り替える | Git／GitHub基礎としてのPR、レビュー、確認（Check）参照。Fork上のこの成果をC12のTraining Copy証跡へ読み替えない | P2-04へ進むTraining CopyとCI対象PR |
-| P2-04 | part2/04_ci-github-actions.md | 第2部（Part 2） | ［前レッスン］Training Copy上のPR、［提供］Trainingワークフローのテンプレート、GitHub通常権限 | イベント／ジョブ／ステップ／権限の診断 | P2-05へTraining Copy上のワークフロー実行 |
-| P2-05 | part2/05_playwright-ci.md | 第2部（Part 2） | ［前レッスン］学習者spec／引き渡し、［提供］Training Copy上のワークフロー／コピー手順書 | Training Copy上のPR、実行（Run）、確認（Check）、Playwright成果物（Artifact）、CI実行記録 | P2-07へTraining Copy上のWeb CI証跡 |
+| P2-02 | part2/02_git-version-control.md | 第2部（Part 2） | ［前レッスン］P1引き渡し、［環境］Git／GitHub基礎学習では、学習者が書き込み可能な事前準備済みTraining Copyまたは自身のForkを利用できる。C12へ進む正式なTraining Copyのsource SHA確認は、この基礎学習用Forkへ要求しない | ブランチ／差分／コミット、利用した環境の記録 | P2-03へプッシュ可能なブランチ |
+| P2-03 | part2/03_github-pull-request-review.md | 第2部（Part 2） | ［前レッスン］ブランチ／リモート、［環境］Git／GitHub基礎学習では学習者が書き込み可能な事前準備済みTraining Copyまたは自身のFork、GitHubアカウント／通常権限。C12のCI対象PRへ進むときは、自己学習開始前から用意されたTraining Copyへ切り替える | Git／GitHub基礎としてのPR、レビュー、確認（Check）参照。Fork上のこの成果をC12のTraining Copy証跡へ読み替えない | P2-04へ進む事前準備済みTraining CopyとCI対象PR |
+| P2-04 | part2/04_ci-github-actions.md | 第2部（Part 2） | ［前レッスン］事前準備済みTraining Copy上のPR、［提供］Trainingワークフローのテンプレート、GitHub通常権限 | イベント／ジョブ／ステップ／権限の診断 | P2-05へTraining Copy上のワークフロー実行 |
+| P2-05 | part2/05_playwright-ci.md | 第2部（Part 2） | ［前レッスン］学習者spec／引き渡し、［提供］事前準備済みTraining Copy上のワークフロー／コピー手順書 | Training Copy上のPR、実行（Run）、確認（Check）、Playwright成果物（Artifact）、CI実行記録 | P2-07へTraining Copy上のWeb CI証跡 |
 | P2-06 | part2/06_native-ci-maestro.md | Native（選択課程） | ［前レッスン］Native演習、［環境］Android実行環境（runner） | Androidビルド／エミュレーター／Maestro成果物（Artifact） | P2-07へスキップ／復帰 |
 | P2-07 | part2/07_ci-cd-quality-gates.md | 第2部（Part 2） | ［前レッスン］Training Copy上のWeb CI証跡、［提供］ゲート契約 | Training Copy上のWeb CIの必須確認（Check）、失敗時に通さない仕組み、成果物（Artifact）の読み方 | P2-08へTraining Copy上のゲート判断 |
 | P2-08 | part2/08_integration-design-capstone.md | 第2部総合課題 | ［前レッスン］Training Copy上のP2証跡一式 | Training Copy上のWeb CI → ゲート → 成果物（Artifact） → 失敗理由の統合設計 | 完了記録／次の実務行動 |
@@ -250,23 +250,37 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
       receipts/
       self-check/
 
+`code/`はRepository相対パスを保つ鏡像として扱う。例えば`training/playwright/exercises/my-cart.spec.ts`を実装した場合は、次のように保持する。
+
+    handoff-root/
+      code/
+        training/playwright/exercises/my-cart.spec.ts
+
+materialize時は`handoff-root/code/`以下の相対パスをTraining CopyのRepository rootからそのまま復元する。学習者専用の別階層へ移動せず、相対import、Workbookの`implementation_path`、既存のCase対応を変更しない。`code/`直下の任意パスやRepository root外の参照は許可しない。
+
 固定構造の各ディレクトリは、次の既存成果物を受け取るための評価境界である。
 
 - `workbook/`は受講者が書き出した既存4 CSVを置く。正本CSVへ完成答案を追加しない。
 - `code/`は受講者が作成したコードを置く。
 - `evidence/`は実際の実行結果を参照する人間可読な証跡を置く。
-- `receipts/`は実際に実行したExecution Receiptを置く。Completion Receiptは受講者向け修了確認が判定後に生成する出力である。
-- `self-check/`は受講者の自己確認を置き、機械確認は存在・安全な参照・ファイル種別までに限定する。
+- `receipts/`は実際に実行したExecution Receiptだけを置く。Completion Receiptは受講者向け修了確認が判定後に`<handoff-root>/completion-receipt.json`へ出力するものであり、`receipts/`へ置かない。
+- `self-check/`は受講者の自己確認を置き、`self-check/<既存Lesson ID>.md`で対象Lessonを識別する。機械確認は必要Lessonのファイル存在、root内の安全な参照、許可されたファイル種別までに限定する。
+
+Commonの必須self-checkは、P1-01〜P1-06、P1-08、P1-09とする。P1-07／NativeはCommon必須へ混ぜない。Part 2ではP2-01〜P2-05、P2-07、P2-08を同じ規則で識別し、P2-06／Nativeは選択課程として扱う。新しいLesson IDやManifestは作らない。Part 2のCI実行後に取得したCI Execution Receipt／CI Evidenceも、この同じ固定Handoff rootへ追加する。
 
 ケース → 学習者コード → Execution Receiptの対応は、新しい対応表を作らず、W0で確認した既存の`Test Case ID`、Workbookに既にある`implementation_path`、Playwrightのテストタイトル（title）／注釈・メタデータ（annotation／metadata）、Receiptの`case_id`や既存参照を使って解決する。どの既存情報を正式に採用できるかは実装時W0で確認し、ファイル名や検証構文だけをケースIDの代わりに強制しない。既存情報だけでは安定した対応を作れない場合は、新しいManifestや対応表を追加せず、詳細5の停止条件へ戻る。
 
-`source_sha`の扱いは課程で分ける。Part 1／Commonでは任意項目とし、Git管理されたコピーで実際の40文字完全SHAを取得できる場合だけ記録する。ZIP等で`.git`がない場合は未設定のまま完了してよく、取得できないことをC01〜C07／C09〜C10の未達にせず、架空SHA、推測SHA、固定SHA、ダミーSHAを生成しない。Part 2では`training:copy:prepare`が要求する40文字の小文字完全SHAをTraining Copyの正式値とし、`training-copy-source.json`／`training:copy:validate`へ接続する。Part 1の元ソースSHAとPart 2 Training Copyのsource SHAは独立した追跡値であり、同一revisionを要求しない。Part 1で判明しているSHAは既存の実行記録等へ追跡情報として利用してよいが、異なること自体をFAILにしない。`project`、`browser`、`viewport`、`seed`、`attempt`は既存の実行記録または既存のsource metadataへ必要な範囲で記録する。新しい配置・採点用Manifestやrevision専用Manifestは追加しない。
+既存の`validate:curriculum`はリポジトリ側の`training/workbook/`を検証する入口であり、固定Handoff rootをリポジトリrootとして渡す入口ではない。受講者向け修了確認は`<handoff-root>/workbook/`を直接読み、既存のCSV／Workbookスキーマ検証を再利用できる場合は再利用する。学習者の`automation_decision`がAutomateである行に`implementation_path`がない、またはその相対パスのコードが`handoff-root/code/`にない場合は、提供サンプルが残っているだけとしてPASSにせずINCOMPLETEまたは対応不能として扱う。正本サンプルの空欄を埋めるために正本CSVや新しい座標変換Manifestを変更しない。
+
+SHAの扱いは課程で分ける。Part 1／Commonでは、配布元を識別する任意の`part1_distribution_sha`として、Git管理されたコピーで実際の40文字完全SHAを取得できる場合だけ記録する。既存入力に`source_sha`という呼称があっても、Completion Receiptでは`part1_distribution_sha`へ対応する任意参照として扱い、ZIP等で`.git`がない場合は未設定のまま完了してよい。取得できないことをC01〜C07／C09〜C10の未達にせず、架空SHA、推測SHA、固定SHA、ダミーSHAを生成しない。Part 2では`training:copy:prepare`が要求する40文字の小文字完全SHAを`training_copy_source_sha`としてTraining Copyの正式値とし、`training-copy-source.json`／`training:copy:validate`へ接続する。Part 1の配布元SHAとPart 2 Training Copyのsource SHAは独立した追跡値であり、同一revisionを要求しない。Part 1で判明しているSHAは既存の実行記録等へ追跡情報として利用してよいが、異なること自体をFAILにしない。`project`、`browser`、`viewport`、`seed`、`attempt`は既存の実行記録または既存のsource metadataへ必要な範囲で記録する。新しい配置・採点用Manifestやrevision専用Manifestは追加しない。
 
 ## 7. 引き渡しパスの安全条件
 
 受講者が入力する引き渡し一式は信頼できない入力として扱う。拡張子に含まれるドットをパス逸脱攻撃と誤認しない。
 
-すべての参照パスについて、次を満たさなければINCOMPLETEまたはBLOCKEDとする。
+すべての参照パスについて、次を満たさなければ入力契約違反としてFAILとする。必要な成果物そのものの欠落はINCOMPLETE、必要な実行がまだない場合はNOT_RUN、Browser／Runner／Base URLなど外部環境の利用不能はBLOCKEDとし、Path安全性の失敗を環境状態へ変換しない。
+
+ただし、CLIの`--root`は固定Handoff root、`--target`はmaterialize先を指定する境界ロケーターであるため、これら自身は解決済みの絶対物理パスを許可する。絶対パス禁止はroot配下のWorkbook、code、Evidence、Receipt、self-check等の提出物参照へ適用し、提出物の参照は既知ディレクトリからの相対パスだけに制限する。`--root`は既存のディレクトリ、`--target`は新規のディレクトリとして、targetがrootと同一、rootを内包、またはrootの外部評価正本を上書きする指定はFAILとして拒否する。
 
 - 絶対パスを禁止する。Windowsドライブ、UNC、POSIXの絶対パス、file URLも拒否する。
 - `handoff-root/`直下の既知ディレクトリ（`workbook/`、`code/`、`evidence/`、`receipts/`、`self-check/`）だけを評価対象とし、ルートから相対パスとして正規化した解決結果がルート外へ出ない。
@@ -300,4 +314,6 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
 
 - 現行ワークブックの列だけで役割／アカウント／初期データ／リセット／操作を十分に追跡できるか。不足なら新列を追加せず、既存SSOT参照または別途担当者判断へ戻す。
 - 引き渡し一式のパス検証が、Windows／POSIXの絶対パス、シンボリックリンク、スキーマ、ファイル種別を同じ失敗分類で扱えるか。
-- 第2部（Part 2）への配置後のコードパスを、既存Trainingワークフローが実行できる最小配置は何か。詳細3の移行判断で確定する。
+- 第2部（Part 2）への配置後もRepository相対コードパスと相対importを維持し、既存Trainingワークフローが実行できる最小配置は何か。詳細3の移行判断で確定する。
+- `training:web:exercise:with-receipt`を、既存の`training:web:exercise`／`training:web:mobile:exercise`を薄く呼び出す正式なReceipt付き実行入口として接続できるか。Receipt生成とEvidence保存を完了確認から分離する。
+- C09の`diagnostic-cart.spec.ts`を、Git操作なしで初期Failure状態へ戻すために、提供元の不変assetを演習用コピーへ再配置できるか。既存方法がなければ、教材提供資材から再配置する最小手段だけを追加対象とする。
