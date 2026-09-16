@@ -348,11 +348,21 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
         expect(windowsScript).toContain(scriptName);
         if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
+          expect(commandForHook(entry, "command", event)).toContain(
+            `active_diagnostic='{\"continue\":true,\"systemMessage\":\"Codex text quality hook: Stop launcher unavailable\"}'`,
+          );
+          expect(commandForHook(entry, "command", event)).toContain(
+            `printf '%s\\n' \"$active_diagnostic\"`,
+          );
           expect(windowsScript).toContain(
             `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
           );
+          expect(windowsScript).toContain(
+            `$activeDiagnostic = '{"continue":true,"systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
+          );
           expect(windowsScript).toContain("ConvertFrom-Json");
           expect(windowsScript).toContain("stop_hook_active");
+          expect(windowsScript).toContain("[Console]::Write($activeDiagnostic)");
           expect(windowsScript).toContain("[Console]::Write($fallback)");
         }
         if (
@@ -1199,11 +1209,13 @@ describe("Codex SessionStart compact context Hook contract", () => {
     }
   });
 
-  it("contains a safe structured-output fallback for output generation failure", () => {
+  it("fails non-zero if both SessionStart structured output writes fail", () => {
     const source = fs.readFileSync(sessionStartHookPath, "utf8");
 
     expect(source).toContain("structured output生成失敗");
     expect(source).toContain("continue: false");
+    expect(source).toContain("process.exitCode = 2;");
+    expect(source).not.toContain("process.exitCode = 0;");
   });
 
   it("executes the configured Unix launcher from a nested cwd", () => {

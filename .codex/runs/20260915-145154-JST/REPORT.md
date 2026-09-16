@@ -139,3 +139,44 @@
 - Runtime / CI: 修正前HEAD `ff42215e1dc43c46192e8c904737528655c4c62f`では、ユーザー実施の新規Codex sessionで`/hooks`のUserPromptSubmit 1／2、PostToolUse 3回、Stop(false)がfailed／blockedなし、loggerも確認済み。正常Stop後のstate cleanupも実装と整合する。今回の修正後HEADの実Codex failure diagnostic runtimeは、管理対象standalone `codex.exe`が環境にないため未確認。修正前HEADのWeb CI `34975719066`／Mobile App CI `34975719270` successは今回の修正後CIとは扱わない。
 - Blocker / Remaining: Run Artifactのsanitize、branch safety再確認、commit／push、修正後HEADのWeb／Mobile CI、PR本文更新、最終head一致確認が残る。PR #146／Issue #134はOPENのまま維持する。
 - Progress: 86% (30/35)
+
+## 2026-09-16 (JST) — 次回レビュー指摘の修復開始
+
+- Summary: 前回実装レビューで残った2件を`must_fix`として分類し、configured Stop launcherのactive=true診断とSessionStart structured output二重失敗だけを対象にbounded repair iterationを開始した。
+- Changes: 実装前にRun PLANへ現状理解・allowed files・検証条件を追記し、TASKSへ今回の7項目を追加した。source／config／testはこのcheckpointでは未変更である。
+- Decision / Rationale: Stopは既存のNode／Python JSON判定とPowerShell `ConvertFrom-Json`の厳密boolean判定を維持し、active=trueだけ固定structured `systemMessage`へ変更する。SessionStartは内側catchのexit 0を非0へ変更し、configured launcherの既存固定`continue:false` fallbackへ通知する。Expo Doctor／依存／Native、UserPromptSubmit／PostToolUse、Hook本体の既存cleanup、timeout、Plan本文は対象外とする。
+- Validation: 開始時のbranch／HEAD／working treeは指定値どおり（`issue-134-codex-hook-quality-gates`／`93e21725f0c19ca7ab88c39d3881c467c00adc6d`／clean）。現行configではStop active failureがUnix／Windowsとも空stdout、SessionStart sourceでは`process.exitCode = 0`が確認された。PR #146／Issue #134はOPENで、前回HEADからのExpo依存変更はローカル差分にない。
+- Blocker / Remaining: Stop Unix／Windows command修正、Windows EncodedCommand再生成、SessionStart exit code修正、回帰テスト、focused／標準検証、sanitize、commit／push、最新CI／PR本文更新が未実施。実Codex interactive failure runtimeはmanaged standalone executableの可用性を確認してから報告する。
+- Subagents: なし。
+- Parent decision: 指摘された2件のみを修復し、別対応中のExpo Doctorを混在させない。
+- Progress: 74% (31/42)
+
+## 2026-09-16 (JST) — 実装とfocused contract
+
+- Summary: configured Stop launcherのactive=true failureを固定structured diagnosticへ変更し、SessionStart structured output二重失敗を非0終了へ変更した。
+- Changes: `.codex/config.toml`のUnix Stop commandは既存Node→Pythonの厳密boolean判定を維持したまま`active_diagnostic`をstdoutへ出力し、Windows Stop commandは既存decoded PowerShellへ`$activeDiagnostic`出力を追加してUTF-16LE EncodedCommandを再生成した。`.codex/hooks/session_start_context.mjs`の内側catchを`process.exitCode = 2`へ変更した。既存2 contract testへactive diagnostic、malformed／non-object、漏えい、source exit code assertionsを追加した。
+- Decision / Rationale: Stop failureではactive=trueだけallow＋structured `systemMessage`、それ以外は従来のstructured blockとした。Hook processが正常終了する既存Stop pathとHook本体のactive Stop cleanupは変更していない。SessionStartの非0終了はconfigured launcherへfailureを通知する内部手段であり、Codexへ返す最終停止契約は既存launcherのexit 0＋`continue:false` fallbackのままとした。
+- Validation: 指定focused contractは`2 files / 193 passed`。Windows configured commandのdecoded script assertionsとprocess-boundaryはPASSし、Git BashはPATHを補正してUnix root failureのfalse／trueをそれぞれstructured block／`continue:true`＋`systemMessage`、stderr空で確認した。PATH補正前の`cat: command not found`は実行環境差として破棄した。
+- Blocker / Remaining: focused contract後の標準verify、文章lint、diff／scope確認、Run Artifact sanitize、commit／push、最新CI／PR本文更新が残る。Unixのmissing／non-zero／module-load fixtureはUbuntu CIで確認する。
+- Subagents: なし。
+- Parent decision: focused contractで2 findingの修復を継続し、標準検証と外部CIへ進む。
+- Progress: 83% (35/42)
+
+## 2026-09-16 (JST) — ローカル検証完了
+
+- Summary: typecheckで検出したroot failure fixtureの引数不足をUnix／Windows両方のfixture関数へ最小修正し、全ローカル検証を完了した。
+- Changes: `runFailureCases(label, commandCwd = root)`を追加し、各failure入力へcommand cwdを正しく渡した。テスト／Hook／config以外のproduct、Expo依存、workflow、Plan本文、ADR、safety referenceは変更していない。
+- Decision / Rationale: 最初の標準verifyでは2箇所のTS2554が発生したため、root解決不能ケースが実際に指定cwdで実行されるよう修正した。修正後はassertionを弱めず、別のtimeoutや依存変更を行わずに再実行した。
+- Validation: focused contract `2 files / 193 passed`、`verify.ps1 -HookContracts` `PASS=4 FAIL=0 SKIP=0`、`corepack pnpm run verify` exit 0（contracts `581 passed | 4 skipped`、lint 0 errors、全build PASS）、`lint:text` PASS、`lint:markdown` 0 issues、`git diff --check` PASS。Prettier／typecheckもPASSした。
+- Blocker / Remaining: Run Artifact sanitize、final scope／branch safety確認、commit／通常push、最新PR関連CI／PR本文更新、local／remote／PR head一致確認が残る。実Codex interactive runtimeはmanaged standalone executableの可用性次第で未確認とする。
+- Subagents: なし。
+- Parent decision: ローカルの必須検証をPASSとして、artifact finalizeとGitHub lifecycleへ進む。
+- Progress: 90% (36/42)
+
+## 2026-09-16 (JST) — remote先行Expo変更の検出
+
+- Summary: commit／push直前の`git fetch origin`で、別対応のExpo依存同期がPR branchへ先行反映され、remote headが`6bd91278c1c7e60a1a537739c2914c48c62e2819`へ進んでいることを確認した。
+- Evidence: `6bd9127`は`0848355`（origin/mainのExpo SDK推奨依存同期）を`93e21725`へmergeしたcommitで、`93e21725..6bd91278`の差分は`package.json`と`pnpm-lock.yaml`だけ。今回のworking tree差分は`.codex/config.toml`、SessionStart Hook、既存2 contract test、Run Artifactだけで、Expo依存・Native・workflowと重ならない。
+- Decision / Rationale: ローカル修正を対象branch上で通常commitした後、`origin/issue-134-codex-hook-quality-gates`を通常mergeしてremoteのExpo変更を保持し、統合headを明示refspecでpushする。rebase／reset／force push、Expo依存のrevert／上書きは行わない。
+- Blocker / Remaining: 最終Run Artifact sanitize、stage／commit、remote先行commitのmerge、統合headのpush、最新PR関連CI／本文更新、local／remote／PR head一致確認が残る。
+- Progress: 86% (36/42)

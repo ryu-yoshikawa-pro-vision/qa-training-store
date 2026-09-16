@@ -65,3 +65,13 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 ## Blocked
 
 - ブロック時のみ記載する。
+
+## Repair iteration: Stop active fallback / SessionStart double-failure repair
+
+- [x] 27. 現行Stop／SessionStart実装、decoded Windows command、既存fixture、PR headを確認し、今回の2 findingの差分を確定する。
+- [x] 28. Unix／Windows Stop launcherのactive=true failure fallbackを固定structured systemMessageへ変更し、false／missing／malformed／wrong typeのblock契約を維持する。
+- [x] 29. SessionStart structured output二重失敗を非0終了へ変更し、configured launcherの固定`continue:false` fallbackへ接続する。
+- [x] 30. 既存process-boundary／source contractを更新し、Stop active diagnostic、漏えい防止、SessionStart二重failureの回帰を確認する。
+- [x] 31. focused contract、Harness、標準verify、文章lint、diff checkを実行し、今回の差分由来failureを修復する。
+- [ ] 32. Run Artifactをsanitizeし、非対象差分とbranch安全性を確認してcommit／通常pushする。
+- [ ] 33. 最新PR headの関連CI、PR本文、local／remote／PR head一致、runtime未確認範囲を確定する。

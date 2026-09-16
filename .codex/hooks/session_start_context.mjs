@@ -19,7 +19,7 @@ function writeJson(value) {
         }),
       );
     } catch {
-      process.exitCode = 0;
+      process.exitCode = 2;
     }
   }
 }

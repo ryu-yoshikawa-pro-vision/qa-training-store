@@ -296,18 +296,21 @@ function qualityCommandFor(
 function runConfiguredQualityHook(
   root: string,
   event: "UserPromptSubmit" | "PostToolUse" | "Stop",
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown> | string,
   launcher: "unix" | "windows",
   rulesPath: string,
   commandCwd = root,
 ) {
   const command = qualityCommandFor(event, launcher);
-  const input = JSON.stringify({
-    hook_event_name: event,
-    session_id: `configured-${randomUUID()}`,
-    cwd: root,
-    ...payload,
-  });
+  const input =
+    typeof payload === "string"
+      ? payload
+      : JSON.stringify({
+          hook_event_name: event,
+          session_id: `configured-${randomUUID()}`,
+          cwd: root,
+          ...payload,
+        });
   const env = { ...process.env, CODEX_TEXT_QUALITY_RULES: rulesPath };
   const result =
     launcher === "unix"
@@ -333,6 +336,7 @@ function runConfiguredQualityHook(
 const USER_PROMPT_LAUNCHER_DIAGNOSTIC =
   "Codex text quality hook: UserPromptSubmit launcher unavailable";
 const POST_TOOL_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: PostToolUse launcher unavailable";
+const STOP_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: Stop launcher unavailable";
 
 function expectStructuredSystemMessage(
   result: ProcessResult,
@@ -526,6 +530,21 @@ function expectConfiguredStopBlock(result: ProcessResult, label: string, root: s
     expect(result.stdout, `${label} stdout leak`).not.toContain(value);
     expect(result.stderr, `${label} stderr leak`).not.toContain(value);
   }
+}
+
+function expectConfiguredStopActive(
+  result: ProcessResult,
+  label: string,
+  root: string,
+  sessionId: string,
+) {
+  expectStructuredSystemMessage(result, label, STOP_LAUNCHER_DIAGNOSTIC, [
+    "prompt",
+    "stop-secret",
+    "stop-token",
+    sessionId,
+    root,
+  ]);
 }
 
 describe("Codex deterministic text quality contracts", () => {
@@ -751,16 +770,19 @@ describe("Codex deterministic text quality contracts", () => {
     withFixture(
       (root) => {
         const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
-        const runFailureCases = (label: string) => {
+        const sessionId = `configured-windows-stop-${randomUUID()}`;
+        const runFailureCases = (label: string, commandCwd = root) => {
           const inactive = runConfiguredQualityHook(
             root,
             "Stop",
             {
+              session_id: sessionId,
               stop_hook_active: false,
               prompt: `${label} prompt secret=stop-secret token=stop-token`,
             },
             "windows",
             path.join(root, "rules.json"),
+            commandCwd,
           );
           expectConfiguredStopBlock(inactive, `${label} inactive`, root);
 
@@ -772,11 +794,13 @@ describe("Codex deterministic text quality contracts", () => {
               root,
               "Stop",
               {
+                session_id: sessionId,
                 ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
                 prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
               },
               "windows",
               path.join(root, "rules.json"),
+              commandCwd,
             );
             expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
           }
@@ -785,18 +809,30 @@ describe("Codex deterministic text quality contracts", () => {
             root,
             "Stop",
             {
+              session_id: sessionId,
               stop_hook_active: true,
               prompt: `${label} prompt secret=stop-secret token=stop-token`,
             },
             "windows",
             path.join(root, "rules.json"),
+            commandCwd,
           );
-          expect(active.status, `${label} active status`).toBe(0);
-          expect(active.stdout, `${label} active stdout`).toBe("");
-          expect(active.stdout).not.toContain('"decision":"block"');
-          expect(active.stderr, `${label} active stderr`).toBe("");
-          expect(active.stderr).not.toContain("stop-secret");
-          expect(active.stderr).not.toContain(root);
+          expectConfiguredStopActive(active, `${label} active`, root, sessionId);
+
+          for (const [stateLabel, malformedPayload] of [
+            ["malformed JSON", "{"],
+            ["non-object JSON", "[]"],
+          ] as const) {
+            const malformed = runConfiguredQualityHook(
+              root,
+              "Stop",
+              malformedPayload,
+              "windows",
+              path.join(root, "rules.json"),
+              commandCwd,
+            );
+            expectConfiguredStopBlock(malformed, `${label} ${stateLabel}`, root);
+          }
         };
 
         removeFixtureFile(hookFile);
@@ -806,28 +842,7 @@ describe("Codex deterministic text quality contracts", () => {
           path.join(os.tmpdir(), "codex-text-quality-windows-nonrepo-"),
         );
         try {
-          const rootFailure = runConfiguredQualityHook(
-            nonRepository,
-            "Stop",
-            { stop_hook_active: false, prompt: "root secret=stop-secret" },
-            "windows",
-            path.join(root, "rules.json"),
-            nonRepository,
-          );
-          expectConfiguredStopBlock(rootFailure, "root failure inactive", nonRepository);
-
-          const activeRootFailure = runConfiguredQualityHook(
-            nonRepository,
-            "Stop",
-            { stop_hook_active: true, prompt: "root secret=stop-secret" },
-            "windows",
-            path.join(root, "rules.json"),
-            nonRepository,
-          );
-          expect(activeRootFailure.status).toBe(0);
-          expect(activeRootFailure.stdout).toBe("");
-          expect(activeRootFailure.stdout).not.toContain('"decision":"block"');
-          expect(activeRootFailure.stderr).toBe("");
+          runFailureCases("repository root failure", nonRepository);
         } finally {
           fs.rmSync(nonRepository, { force: true, recursive: true });
         }
@@ -856,16 +871,19 @@ describe("Codex deterministic text quality contracts", () => {
 
     withFixture(
       (root) => {
-        const runFailureCases = (label: string) => {
+        const sessionId = `configured-unix-stop-${randomUUID()}`;
+        const runFailureCases = (label: string, commandCwd = root) => {
           const inactive = runConfiguredQualityHook(
             root,
             "Stop",
             {
+              session_id: sessionId,
               stop_hook_active: false,
               prompt: `${label} prompt secret=stop-secret token=stop-token`,
             },
             "unix",
             path.join(root, "rules.json"),
+            commandCwd,
           );
           expectConfiguredStopBlock(inactive, `${label} inactive`, root);
 
@@ -877,11 +895,13 @@ describe("Codex deterministic text quality contracts", () => {
               root,
               "Stop",
               {
+                session_id: sessionId,
                 ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
                 prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
               },
               "unix",
               path.join(root, "rules.json"),
+              commandCwd,
             );
             expectConfiguredStopBlock(invalidState, `${label} ${stateLabel}`, root);
           }
@@ -890,22 +910,43 @@ describe("Codex deterministic text quality contracts", () => {
             root,
             "Stop",
             {
+              session_id: sessionId,
               stop_hook_active: true,
               prompt: `${label} prompt secret=stop-secret token=stop-token`,
             },
             "unix",
             path.join(root, "rules.json"),
+            commandCwd,
           );
-          expect(active.status, `${label} active status`).toBe(0);
-          expect(active.stdout, `${label} active stdout`).toBe("");
-          expect(active.stdout).not.toContain('"decision":"block"');
-          expect(active.stderr, `${label} active stderr`).toBe("");
-          expect(active.stderr).not.toContain("stop-secret");
-          expect(active.stderr).not.toContain(root);
+          expectConfiguredStopActive(active, `${label} active`, root, sessionId);
+
+          for (const [stateLabel, malformedPayload] of [
+            ["malformed JSON", "{"],
+            ["non-object JSON", "[]"],
+          ] as const) {
+            const malformed = runConfiguredQualityHook(
+              root,
+              "Stop",
+              malformedPayload,
+              "unix",
+              path.join(root, "rules.json"),
+              commandCwd,
+            );
+            expectConfiguredStopBlock(malformed, `${label} ${stateLabel}`, root);
+          }
         };
 
         removeFixtureFile(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
         runFailureCases("missing Hook");
+
+        const nonRepository = fs.mkdtempSync(
+          path.join(os.tmpdir(), "codex-text-quality-unix-nonrepo-"),
+        );
+        try {
+          runFailureCases("repository root failure", nonRepository);
+        } finally {
+          removeFixture(nonRepository);
+        }
 
         writeFile(
           root,

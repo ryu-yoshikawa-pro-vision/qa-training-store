@@ -107,3 +107,33 @@
 ### Open questions
 
 - なし。ユーザー指定の契約と既存fixtureで実装・検証を進める。
+
+## Repair iteration: Stop active fallback / SessionStart double-failure repair
+
+### Finding triage
+
+- `must_fix`: configured Stop launcher failureが、厳密なboolean `stop_hook_active=true`でもstdout空のままallowしている。
+- `must_fix`: `session_start_context.mjs`のstructured outputとそのfail-close fallbackの二重書込失敗がexit 0へ落ちる。
+- `defer`: UserPromptSubmit／PostToolUse、Hook本体の既存Stop cleanup、SessionStartの正常compact／非compact、Expo Doctor／依存／Native、timeout、既存Plan本文。
+
+### Current understanding and assumptions
+
+- Stop launcherのUnix判定はNode標準JSON.parseを優先し、Node不在時だけPython標準jsonへfallbackする。Windowsは既存のPowerShell `ConvertFrom-Json`で、propertyの値がJSON boolean `true`のときだけactiveと判定する。
+- launcher failure時のStop inactive／missing／malformed／wrong typeは既存の固定block JSONを維持し、activeだけ固定structured `continue:true`／top-level `systemMessage`をstdoutへ返す。
+- SessionStartの内側catchは、fallback JSONの書込を試みた後も書込不能なら非0終了し、configured launcherの既存固定`continue:false` fallbackへ通知する。非0終了自体をCodexの停止結果とは扱わない。
+
+### Allowed files and change strategy
+
+- Allowed source／test／docs: `.codex/config.toml`、`.codex/hooks/session_start_context.mjs`、`tests/contracts/codex-text-quality.test.ts`、`tests/contracts/codex-hook-contract.test.ts`。Plan／ADR／safety referenceは現記述が契約と一致する場合は変更しない。
+- Run ArtifactはこのRunのPLAN／TASKS／REPORTだけを更新する。PR本文は検証確定後にGitHub metadataとして更新する。
+- 変更順は、readableなWindows Stop scriptの修正とUTF-16LE EncodedCommand再生成、Unix Stop fallback、SessionStart exit code、process-boundary／source contract、focused／aggregate validation、sanitize、commit／push、最新CI／PR確認の順とする。
+
+### Validation and exit criteria
+
+- Unix／Windows configured Stop failure fixtureで、false／missing／malformed／wrong typeは固定block、厳密なboolean trueはexit 0＋stderr空＋固定structured systemMessageとなる。failure時のraw stdout／stderrとprompt／secret／token／session ID／absolute pathは公開しない。
+- Hook本体のStop true／false cleanup、SessionStart正常compact／非compact／内部fail-close、およびconfigured SessionStart failureの固定`continue:false`収束を維持する。
+- 指定focused contract、`verify.ps1 -HookContracts`、`pnpm run verify`、文章lint、diff checkを実行し、修正後headの関連CIとPR本文を確認する。実Codex interactive runtimeは実行できた場合だけ報告する。
+
+### Open questions
+
+- なし。今回の2 findingはユーザー指定の契約と既存fixtureで実装可能である。
