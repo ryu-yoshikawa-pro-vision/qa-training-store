@@ -354,6 +354,11 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(commandForHook(entry, "command", event)).toContain(
             `printf '%s\\n' \"$active_diagnostic\"`,
           );
+          expect(commandForHook(entry, "command", event)).toContain("CODEX_QUALITY_REPO_ROOT");
+          expect(commandForHook(entry, "command", event)).toContain("fs.readdirSync");
+          expect(commandForHook(entry, "command", event)).toContain("fs.unlinkSync");
+          expect(commandForHook(entry, "command", event)).toContain("hashlib.sha256");
+          expect(commandForHook(entry, "command", event)).toContain("os.listdir");
           expect(windowsScript).toContain(
             `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
           );
@@ -364,6 +369,12 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(windowsScript).toContain("stop_hook_active");
           expect(windowsScript).toContain("[Console]::Write($activeDiagnostic)");
           expect(windowsScript).toContain("[Console]::Write($fallback)");
+          expect(windowsScript).toContain("[System.Security.Cryptography.SHA256]::Create()");
+          expect(windowsScript).toContain("Get-ChildItem -LiteralPath $stateDirectory -File");
+          expect(windowsScript).toContain("-LiteralPath $_.FullName -Force -ErrorAction Stop");
+          expect(windowsScript).toContain(
+            'EndsWith("-$sessionHash.json", [StringComparison]::OrdinalIgnoreCase)',
+          );
         }
         if (
           (event === "UserPromptSubmit" || event === "PostToolUse") &&

@@ -266,6 +266,23 @@ function stateFiles(root: string) {
   return fs.readdirSync(directory).filter((fileName) => fileName.endsWith(".json"));
 }
 
+function stateFileNameForSession(root: string, sessionId: string) {
+  const rootId = createHash("sha256")
+    .update(path.resolve(git(root, ["rev-parse", "--show-toplevel"])), "utf8")
+    .digest("hex");
+  const sessionIdHash = createHash("sha256").update(sessionId, "utf8").digest("hex");
+  return `${rootId}-${sessionIdHash}.json`;
+}
+
+function readStateForSession(root: string, sessionId: string) {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(root, ".artifacts", "codex-text-quality", stateFileNameForSession(root, sessionId)),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+}
+
 function readGateState(root: string) {
   const files = stateFiles(root);
   if (files.length !== 1) throw new Error(`expected one state file, got ${files.length}`);
@@ -542,6 +559,8 @@ function expectConfiguredStopActive(
     "prompt",
     "stop-secret",
     "stop-token",
+    "launcher-secret",
+    "launcher-token",
     sessionId,
     root,
   ]);
@@ -966,6 +985,276 @@ describe("Codex deterministic text quality contracts", () => {
       "codex-text-quality-unix-degraded-",
     );
   });
+
+  it("cleans only the active session baseline and allows the next baseline to be rebuilt", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => {
+        const rulesPath = path.join(root, "rules.json");
+        const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+        const sessionA = `configured-${launcher}-cleanup-a-${randomUUID()}`;
+        const sessionB = `configured-${launcher}-cleanup-b-${randomUUID()}`;
+        const baseline = (sessionId: string, label: string, expectSingleState: boolean) => {
+          const result = runConfiguredQualityHook(
+            root,
+            "UserPromptSubmit",
+            { session_id: sessionId, cwd: root, prompt: `${label} prompt` },
+            launcher,
+            rulesPath,
+          );
+          if (expectSingleState) {
+            expectConfiguredUserPromptBaseline(result, label, root, sessionId);
+          } else {
+            expect(result.status, `${label} status`).toBe(0);
+            expect(result.stdout, `${label} stdout`).toBe("");
+            expect(result.stderr, `${label} stderr`).toBe("");
+            expect(readStateForSession(root, sessionId).status, `${label} state status`).toBe(
+              "ready",
+            );
+          }
+        };
+
+        baseline(sessionA, `${launcher} cleanup session A`, true);
+        const sessionAState = stateFileNameForSession(root, sessionA);
+        baseline(sessionB, `${launcher} cleanup session B`, false);
+        const sessionBState = stateFileNameForSession(root, sessionB);
+        expect(stateFiles(root)).toHaveLength(2);
+        expect(stateFiles(root)).toEqual(expect.arrayContaining([sessionAState, sessionBState]));
+
+        removeFixtureFile(hookFile);
+        const inactive = runConfiguredQualityHook(
+          root,
+          "Stop",
+          {
+            session_id: sessionA,
+            cwd: root,
+            stop_hook_active: false,
+            prompt: "inactive prompt secret=stop-secret token=stop-token",
+          },
+          launcher,
+          rulesPath,
+        );
+        expectConfiguredStopBlock(inactive, `${launcher} cleanup inactive`, root);
+        expect(stateFiles(root)).toHaveLength(2);
+
+        for (const [label, payload] of [
+          [
+            "missing active flag",
+            {
+              session_id: sessionA,
+              cwd: root,
+              prompt: "missing active prompt secret=stop-secret token=stop-token",
+            },
+          ],
+          [
+            "string active flag",
+            {
+              session_id: sessionA,
+              cwd: root,
+              stop_hook_active: "true",
+              prompt: "string active prompt secret=stop-secret token=stop-token",
+            },
+          ],
+          [
+            "number active flag",
+            {
+              session_id: sessionA,
+              cwd: root,
+              stop_hook_active: 1,
+              prompt: "number active prompt secret=stop-secret token=stop-token",
+            },
+          ],
+        ] as const) {
+          const invalid = runConfiguredQualityHook(root, "Stop", payload, launcher, rulesPath);
+          expectConfiguredStopBlock(invalid, `${launcher} cleanup ${label}`, root);
+          expect(stateFiles(root)).toHaveLength(2);
+        }
+
+        for (const [label, malformedPayload] of [
+          ["malformed JSON", "{"],
+          ["non-object JSON", "[]"],
+        ] as const) {
+          const invalid = runConfiguredQualityHook(
+            root,
+            "Stop",
+            malformedPayload,
+            launcher,
+            rulesPath,
+          );
+          expectConfiguredStopBlock(invalid, `${launcher} cleanup ${label}`, root);
+          expect(stateFiles(root)).toHaveLength(2);
+        }
+
+        const active = runConfiguredQualityHook(
+          root,
+          "Stop",
+          {
+            session_id: sessionA,
+            cwd: root,
+            stop_hook_active: true,
+            prompt: "active prompt secret=stop-secret token=stop-token",
+          },
+          launcher,
+          rulesPath,
+        );
+        expectConfiguredStopActive(active, `${launcher} cleanup active`, root, sessionA);
+        expect(stateFiles(root)).toHaveLength(1);
+        expect(stateFiles(root)).not.toContain(sessionAState);
+        expect(stateFiles(root)).toContain(sessionBState);
+
+        fs.copyFileSync(gatePath, hookFile);
+        writeFile(root, "docs/existing.md", "GOOD\nBAD\n");
+        const rebuilt = runConfiguredQualityHook(
+          root,
+          "UserPromptSubmit",
+          { session_id: sessionA, cwd: root, prompt: "next turn prompt" },
+          launcher,
+          rulesPath,
+        );
+        expect(rebuilt.status).toBe(0);
+        expect(rebuilt.stdout).toBe("");
+        expect(rebuilt.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(2);
+        const rebuiltState = readStateForSession(root, sessionA);
+        const rebuiltFiles = rebuiltState.files as Array<Record<string, unknown>>;
+        const rebuiltEntry = rebuiltFiles.find((entry) => entry.path === "docs/existing.md");
+        expect(rebuiltEntry).toMatchObject({
+          path: "docs/existing.md",
+          source: "worktree",
+          content_sha256: createHash("sha256").update("GOOD\nBAD\n", "utf8").digest("hex"),
+        });
+        expect(rebuiltEntry?.violations).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              count: 1,
+              fingerprint: expect.stringMatching(/^TEST-BANNED:/u),
+            }),
+          ]),
+        );
+        expect(stateFiles(root)).toContain(sessionBState);
+      },
+      "GOOD\n",
+      `codex-text-quality-${launcher}-stop-cleanup-`,
+    );
+  }, 60_000);
+
+  it("cleans the current session baseline for configured Stop process failures", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture(
+      (root) => {
+        const rulesPath = path.join(root, "rules.json");
+        const hookFile = path.join(root, ".codex", "hooks", "text_quality_gate.mjs");
+        const sessionId = `configured-${launcher}-cleanup-failure-${randomUUID()}`;
+        const failureCases: Array<[string, () => void]> = [
+          ["missing Hook", () => removeFixtureFile(hookFile)],
+          [
+            "non-zero Hook",
+            () =>
+              writeFile(
+                root,
+                ".codex/hooks/text_quality_gate.mjs",
+                'process.stdout.write("raw-hook-output"); process.stderr.write("launcher-secret"); process.exit(2);\n',
+              ),
+          ],
+          [
+            "module load failure",
+            () =>
+              writeFile(
+                root,
+                ".codex/hooks/text_quality_gate.mjs",
+                'import "missing-launcher-module";\n',
+              ),
+          ],
+        ];
+
+        for (const [label, failHook] of failureCases) {
+          fs.copyFileSync(gatePath, hookFile);
+          const baseline = runConfiguredQualityHook(
+            root,
+            "UserPromptSubmit",
+            { session_id: sessionId, cwd: root, prompt: `${label} baseline` },
+            launcher,
+            rulesPath,
+          );
+          expectConfiguredUserPromptBaseline(
+            baseline,
+            `${launcher} ${label} baseline`,
+            root,
+            sessionId,
+          );
+
+          failHook();
+          const inactive = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              session_id: sessionId,
+              cwd: root,
+              stop_hook_active: false,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            launcher,
+            rulesPath,
+          );
+          expectConfiguredStopBlock(inactive, `${launcher} ${label} inactive`, root);
+          expect(stateFiles(root)).toHaveLength(1);
+
+          for (const [stateLabel, stateValue] of [
+            ["missing", undefined],
+            ["string true", "true"],
+            ["number one", 1],
+          ] as const) {
+            const invalid = runConfiguredQualityHook(
+              root,
+              "Stop",
+              {
+                session_id: sessionId,
+                cwd: root,
+                ...(stateValue === undefined ? {} : { stop_hook_active: stateValue }),
+                prompt: `${label} ${stateLabel} prompt secret=stop-secret token=stop-token`,
+              },
+              launcher,
+              rulesPath,
+            );
+            expectConfiguredStopBlock(invalid, `${launcher} ${label} ${stateLabel}`, root);
+            expect(stateFiles(root)).toHaveLength(1);
+          }
+
+          for (const [stateLabel, malformedPayload] of [
+            ["malformed JSON", "{"],
+            ["non-object JSON", "[]"],
+          ] as const) {
+            const invalid = runConfiguredQualityHook(
+              root,
+              "Stop",
+              malformedPayload,
+              launcher,
+              rulesPath,
+            );
+            expectConfiguredStopBlock(invalid, `${launcher} ${label} ${stateLabel}`, root);
+            expect(stateFiles(root)).toHaveLength(1);
+          }
+
+          const active = runConfiguredQualityHook(
+            root,
+            "Stop",
+            {
+              session_id: sessionId,
+              cwd: root,
+              stop_hook_active: true,
+              prompt: `${label} prompt secret=stop-secret token=stop-token`,
+            },
+            launcher,
+            rulesPath,
+          );
+          expectConfiguredStopActive(active, `${launcher} ${label} active`, root, sessionId);
+          expect(stateFiles(root)).toHaveLength(0);
+        }
+      },
+      "GOOD\n",
+      `codex-text-quality-${launcher}-stop-cleanup-failures-`,
+    );
+  }, 90_000);
 
   it("keeps production rules explicit and emits no raw match or full source line", () => {
     const productionRules = JSON.parse(
