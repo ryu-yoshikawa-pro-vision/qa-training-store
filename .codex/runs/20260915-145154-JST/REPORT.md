@@ -180,3 +180,13 @@
 - Decision / Rationale: ローカル修正を対象branch上で通常commitした後、`origin/issue-134-codex-hook-quality-gates`を通常mergeしてremoteのExpo変更を保持し、統合headを明示refspecでpushする。rebase／reset／force push、Expo依存のrevert／上書きは行わない。
 - Blocker / Remaining: 最終Run Artifact sanitize、stage／commit、remote先行commitのmerge、統合headのpush、最新PR関連CI／本文更新、local／remote／PR head一致確認が残る。
 - Progress: 86% (36/42)
+
+## 2026-09-16 (JST) — main取り込み後の再検証
+
+- Summary: ユーザーによる`main`取り込み後の統合local HEAD `ce9df986...`を確認し、今回のStop launcher／SessionStart修正を含む状態で必須ローカル検証を再実行した。
+- Changes: `origin/issue-134-codex-hook-quality-gates`のExpo依存同期（`6bd91278...`）と`origin/main`（`084835559...`）を保持したまま、今回の追加差分はStop／SessionStart、既存contract test、Run Artifactの範囲に限定されていることを確認した。Expo依存、Native code、workflowは変更していない。
+- Validation: focused contractは`2 files / 193 passed`、`verify.ps1 -HookContracts`は`PASS=4 FAIL=0 SKIP=0`。`corepack pnpm run verify`は初回に既存logging契約のPowerShell processが`3221225477 (0xC0000005)`で一度失敗したが、該当テスト単独は`1 passed / 152 skipped`、全verify再実行は`581 passed / 4 skipped`でexit 0となった。`lint:text`、`lint:markdown`（0 issues）、`git diff --check`もPASSした。
+- Decision / Rationale: 初回の`0xC0000005`は今回のStop／SessionStart変更箇所を通らない既存loggingテストで、単独再実行と全verify再実行で再現しなかったため、実装不具合とは分類しない。対象Hookのactive=true／false／malformed契約とSessionStart source契約はfocused／Hook入口でPASSしている。
+- Runtime / Remaining: 修正後HEADでの実Codex interactive failure diagnosticは、管理対象standalone `codex.exe`が利用できないため未確認。commit／通常push、最新PR headのCI、PR本文更新、local／remote／PR head一致確認が残る。PR merge／close、Issue close、force pushは行わない。
+- Parent decision: ローカルの実装・contract・標準verifyをPASSとして、Run Artifactをsanitizeし、対象branchへ通常pushしてGitHub側の最新head検証へ進む。
+- Progress: 86% (36/42)
