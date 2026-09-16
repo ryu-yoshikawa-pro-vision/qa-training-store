@@ -15,7 +15,7 @@
 - Out:
   - Product behavior、Normative Specification、LMS、learner-state DB、AI grader。
   - Product Formal RegressionへのTraining test混在。
-  - 実装、Git mutation、Agent permission / sandbox / wrapperのL3変更。
+  - 実装、merge、Agent permission / sandbox / wrapperのL3変更。なお、本Runで許可されたPlan／Run Artifact差分のcommit／pushは、検証後に実施する。
 
 ## Assumptions（仮定）
 
@@ -111,3 +111,11 @@
 - Round 1で検出されたPlan契約不足を修正し、Round 2の委譲timeoutは成功扱いにせず、親Agentの静的監査と個別validatorで補完する方針を採用した。
 - 今回のOwner確認により、Workbook評価intakeはHandoff bundle、local / CI Receiptは共通JSON、Agentは既存リポジトリから継承して設定変更なしとした。
 - 今後のAgent運用では、親Agentは要件・scope・結果統合・完了判定を保持し、実作業は子Agentへ委譲する。調査の経過時間で打ち切らず、子Agentのコマンドtimeout、Parentの助言・追加派遣、正常終了後のcloseを標準とする。
+
+## 2026-09-16 PR #157残存指摘対応
+
+- 今回の対象は、Planインデックスと詳細1〜5、および本Runの`PLAN.md`／`TASKS.md`／`REPORT.md`に限定する。教材本文、Workbook、Training実装・テスト・workflow、Hook、Agent設定、Harness、package、script、Product／Specは変更しない。
+- ForkはGit／GitHub基礎学習（P2-01〜P2-03）に限って利用できる。C12を含むTraining CIとPart 2最終修了は、正式なsource SHAをHEADへ固定したTraining Copyを正式経路とし、Fork上のRun／Check／Artifactを同等の修了証跡へ読み替えない。Training Copyが用意できない場合は、該当するC12／Training CI以降をBLOCKED／NOT_RUNとする。
+- 引き渡しは固定`handoff-root/`と既存4 CSV、学習者コード、Evidence、Execution Receipt、self-checkで成立させる。新しいJSON Manifest、対応表、sidecar metadata、独自Evidence URI、採点用Manifestは追加しない。ケース対応は既存のTest Case ID、Workbookの`implementation_path`、Playwrightのtitle／annotation／metadata、Receiptの`case_id`等から解決し、安定した対応が作れない場合は新基盤を追加せずT1／T2を停止する。
+- ローカルの受講者向け修了確認は、構造・成果物・実行記録・Evidence参照・記録したGitHub参照の形式／対応を確認する。GitHub API／Tokenなしでは、Runの実在、最終`success`、Check結論、Artifactの現在の存在、別Runでないことを独立証明したとは扱わない。
+- 実装は開始せず、既存契約と矛盾しないことを検証した後、許可されたPlan／Run差分のみcommit／pushする。既存PR #157の最新headと必須CIを確認する。

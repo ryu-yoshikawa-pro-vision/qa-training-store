@@ -78,16 +78,16 @@ C1の主目的は、既存の仕様（Spec）、既存テスト、Trainingケー
 
 ### 7.1 正常系フィクスチャ
 
-詳細3の修了確認記録／Playwright契約を満たす正常系フィクスチャを1つ以上用意する。フィクスチャは、複数ケースと代表ケースの対応、ケースのリスク／仕様（Spec）／BR／AC／前提条件／役割／アカウント／初期データ／リセット／操作／期待結果／レイヤー／ツール、学習者作成コード、実在する実行記録／証跡を持つ。提供開始用コードだけがPASSするケース、suite全体はPASSだが`case_code_map`に対応する学習者テスト結果がないケースを不正系フィクスチャとして含め、誤った修了判定を検出する。C09用には、診断教材または自然な学習者Failureの初回／修正後のトレースを別`run_context`で持たせる。正確な必須条件と不正系一覧は詳細3の正本を参照し、ここで再定義しない。
+詳細3の修了確認記録／Playwright契約を満たす正常系フィクスチャを1つ以上用意する。フィクスチャは、固定Handoff root内の既存4 CSV、複数ケースと代表ケースの対応、ケースのリスク／仕様（Spec）／BR／AC／前提条件／役割／アカウント／初期データ／リセット／操作／期待結果／レイヤー／ツール、学習者作成コード、既存情報から解決できるケース対応、実在する実行記録／証跡を持つ。提供開始用コードだけがPASSするケース、suite全体はPASSだが既存情報から対応する学習者テスト結果がないケースを不正系フィクスチャとして含め、誤った修了判定を検出する。C09用には、診断教材または自然な学習者Failureの初回／修正後のトレースを別`run_context`で持たせる。正確な必須条件と不正系一覧は詳細3の正本を参照し、ここで再定義しない。
 
 - フィクスチャは`tests/fixtures`または一時ディレクトリで生成し、正本ワークブックを変更しない。
 - 意味のある操作／要素特定／検証は複数の書き方を含め、特定の要素特定名、検証構文、ファイル名への完全一致を要求しない。
 
 ### 7.2 不正系フィクスチャ
 
-詳細3の不正系フィクスチャ一覧を、各欠陥が一つだけ現れる専用フィクスチャとして実行し、いずれもPASSにならないことを確認する。対象は詳細3が機械的に安定して判定できるリセット／Assertion欠落または既知の無意味パターン／ケース対応／開始用コード・基準実装／実行記録／証跡／NOT_RUN／引き渡しのパス・スキーマ／修了確認記録の自己参照の各契約である。無関係なDOM要素、固定URLだけ、期待結果と対応しない検証など意味の一般判定を要する条件は、契約テストではなく自己確認／V1で扱う。ASTに`expect`があるだけのフィクスチャを正常系にしない。
+詳細3の不正系フィクスチャ一覧を、各欠陥が一つだけ現れる専用フィクスチャとして実行し、いずれもPASSにならないことを確認する。対象は、固定Handoff rootのroot外パス、絶対パス、シンボリックリンクによるroot外参照、欠損ファイル、別CaseのReceipt、NOT_RUN、学習者コードなし、Evidence参照なし、開始用コードだけ、基準実装だけ、リセット／Assertion欠落または既知の無意味パターン、ケース対応、実行記録、引き渡しのスキーマ、修了確認記録の自己参照の各契約である。無関係なDOM要素、固定URLだけ、期待結果と対応しない検証など意味の一般判定を要する条件は、契約テストではなく自己確認／V1で扱う。ASTに`expect`があるだけのフィクスチャを正常系にしない。
 
-このファイルで確認するのは、フィクスチャの隔離、期待状態、実在する成果物（Artifact）、ケース追跡情報、正本ワークブック非変更である。契約項目の追加・削除は詳細3だけを修正する。
+このファイルで確認するのは、フィクスチャの隔離、期待状態、実在する成果物（Artifact）、既存情報によるケース追跡、正本ワークブック非変更である。GitHub外部状態については、Run ID／Check／Artifact参照の形式とローカルに保存された記録の対応だけを確認し、GitHub上の実在性・最終結論・Artifactの現在の存在を確認したとは扱わない。契約項目の追加・削除は詳細3だけを修正する。
 
 ### 7.3 17レッスン共通契約の構造確認
 
@@ -138,7 +138,7 @@ AG3の親子join、子コマンドのtimeout、自然終了、close、再帰的�
 
 ## 9. V1：講師向け資料なしの受講者一巡確認を最重要ゲートにする
 
-検証器（validator）、契約テスト、自動確認がPASSしても、受講者が教材を読んで進められなければ目的未達である。V1は、教材実装側が自己学習可能性を確認する開発時の受入検証であり、各受講者が毎回実行する修了処理ではない。V1では、講師向け資料を開かないクリーンな学習者用コピーを使い、Common課程の経路を実際に一巡する。Part 2を提供範囲に含める場合は、同じ受入検証の中でP2-01 → P2-08のTraining Copy（標準）またはFork（代替）／GitHub Actions経路も別記録として一巡し、CI環境がない場合はPart 2側だけをBLOCKED／NOT_RUNとしてCommonの判定と分離する。
+検証器（validator）、契約テスト、自動確認がPASSしても、受講者が教材を読んで進められなければ目的未達である。V1は、教材実装側が自己学習可能性を確認する開発時の受入検証であり、各受講者が毎回実行する修了処理ではない。V1では、講師向け資料を開かないクリーンな学習者用コピーを使い、Common課程の経路を実際に一巡する。Part 2を提供範囲に含める場合は、P2-01〜P2-03のGit／GitHub基礎学習ではForkを利用できることを確認してよいが、C12を含むP2-04〜P2-08のTraining CI経路はTraining Copyで一巡する。Fork上のRun／Check／ArtifactをC12の成功証跡へ読み替えず、Training Copyがない場合はPart 2側だけをBLOCKED／NOT_RUNとしてCommonの判定と分離する。
 
 ### 9.1 一巡確認の経路
 
@@ -160,7 +160,7 @@ AG3の親子join、子コマンドのtimeout、自然終了、close、再帰的�
 
 P1-7を選択しない場合のP1-6 → P1-8の復帰を確認する。Nativeを選択する場合は、別途P1-7 → P1-8の選択経路を確認する。
 
-Part 2を提供範囲に含める場合は、Commonの一巡とは別に、P2-01 → P2-08で「Training Copy準備（標準）またはFork利用（代替） → ブランチ／差分 → PR → GitHub ActionsのRun／Check／Artifact → 失敗時の確認 → 最終引き渡し」を講師向け資料なしで一巡する。Training CopyとForkで学習成果を変えない。GitHubアカウント、権限、Runnerなどが利用できない場合は、Part 2の受入検証だけをBLOCKED／NOT_RUNとして記録し、Commonのローカル判定やPart 1の完了と混同しない。
+Part 2を提供範囲に含める場合は、Commonの一巡とは別に、P2-01 → P2-03のGit／GitHub基礎学習ではForkを利用でき、P2-04 → P2-08のC12／Training CI経路ではTraining Copyを使うことを、講師向け資料なしで確認する。Training Copyでブランチ／差分 → PR → GitHub ActionsのRun／Check／Artifact → 失敗時の確認 → 最終引き渡しを一巡し、Fork上のRun／Check／ArtifactはC12のTraining Copy成功証跡へ読み替えない。GitHubアカウント、権限、Runner、Training Copyなどが利用できない場合は、Part 2の受入検証だけをBLOCKED／NOT_RUNとして記録し、Commonのローカル判定やPart 1の完了と混同しない。
 
 ### 9.2 実施すること
 
@@ -227,11 +227,11 @@ Playwrightのエラー、検証／要素特定／タイミング、トレース�
 
 ### 11.2 実装後V1で追加する検証
 
-- 講師向け資料なしの受講者一巡確認の実記録（Common。Part 2を提供範囲に含める場合はTraining Copyを標準経路、Forkを代替経路としたGitHub Actionsの一巡を別記録で追加）。
+- 講師向け資料なしの受講者一巡確認の実記録（Common。Part 2を提供範囲に含める場合は、Git／GitHub基礎学習のFork利用と、C12／Training CIのTraining Copy経路を分けた一巡記録を追加）。
 - 受講者向け修了確認の正常系／不正系契約テスト。
 - Training Webの基準実装、学習者演習、診断、意図的失敗の分離実行。
 - デスクトップWebと必要範囲のモバイルWebの実行。
-- 教材用コピー（Training Copy）のprepare／validateと第2部（Part 2）の実GitHub Actions実行（Run）／確認（Check）／成果物（Artifact）。Training Copyが利用できない場合はForkで同じ学習成果を確認する。
+- 教材用コピー（Training Copy）のprepare／validateと第2部（Part 2）の実GitHub Actions実行（Run）／確認（Check）／成果物（Artifact）。Training Copyが利用できない場合は、ForkでGit／GitHub基礎学習までを確認し、C12／Training CIの受入検証をBLOCKED／NOT_RUNとする。
 - C1のAC／テスト不足調査結果と、別タスクへ分離した追加テストがある場合の専用検証。
 - AG3の安全な不正系テスト、ソース完全性、対象範囲、ライフサイクル、終了（close）の証跡。既存HookのG3契約テストは別の検証結果として記録する。
 - 最後に、POSIXでは`bash scripts/verify`、Windowsでは`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`を正式入口として実行し、必要時はそれぞれ`--hook-contracts`／`-HookContracts`を付ける。`git diff --check`、Runの収集／サニタイズも実施する。FAIL、BLOCKED、NOT_RUN、timeoutをPASSへ変換しない。
@@ -246,15 +246,15 @@ Playwrightのエラー、検証／要素特定／タイミング、トレース�
 - TC-CART-101、TARGET-CART-101、RISK-CART-101を正本ワークブックへ完成行として追加する記述がなく、提供サンプル、学習者作成成果物、検証用フィクスチャを分離している。
 - P1-3の必須引き渡し項目とP1-5の同一値参照、初期データ／リセット、役割／アカウント、操作、期待結果が切れていない。
 - 実行記録と修了確認記録の生成者、責務、入力、出力が混在していない。Retryと受講者修正後の再実行も区別している。
-- 受講者向け修了確認はパス、必須ファイル、Workbookスキーマ、Case ID／`case_code_map`、コード存在、Reset契約、Assertion存在、既知の無意味パターン、実行事実、Evidence、追跡、NOT_RUNを確認し、Assertionや`expected_result`の意味を完全判定していない。
+- 受講者向け修了確認はパス、必須ファイル、Workbookスキーマ、Case ID、既存情報によるコード追跡、コード存在、Reset契約、Assertion存在、既知の無意味パターン、実行事実、Evidence、追跡、NOT_RUNを確認し、Assertionや`expected_result`の意味を完全判定していない。
 - C07の「意味のあるAssertion」は学習目標としてWorkbook、自己確認、Lesson基準、V1に残し、無関係DOM、固定URL、期待結果との意味的不一致は受講者向け修了確認の契約テストから外している。
 - Completion ReceiptのPASSを機械確認可能なPASSに限定し、受講者の理解・Common修了・V1と同一視していない。Common修了はReceipt、各Lesson自己確認、公開最低回答基準による本人確認の組合せである。
-- Part 1成果物をTraining Copy（標準）またはFork（代替）へ移す入力／出力／移行対象／移行しないもの／検証／復旧方法があり、prepare直後とmaterialize後に`training:copy:validate`を行う。既知のprovisioning差分、学習者差分、予期しないsource差分を区別している。materialize後にWorkbook、Test Case ID、`case_code_map`、Playwrightコード、必須Training command、Receipt／Evidence、型／契約テスト、サンプルと学習者成果の整合を確認する。
+- Part 1成果物をTraining Copyへ移す入力／出力／移行対象／移行しないもの／検証／復旧方法があり、prepare直後とmaterialize後に`training:copy:validate`を行う。Git／GitHub基礎学習のFork利用はこのTraining Copy移行・検証とは別経路として扱う。既知のprovisioning差分、学習者差分、予期しないsource差分を区別している。materialize後に固定Handoff root、Workbook、Test Case ID、既存情報によるケース対応、Playwrightコード、必須Training command、Receipt／Evidence、型／契約テスト、サンプルと学習者成果の整合を確認する。
 - ワークフロー前・中・後のデータフローが分かれ、ワークフロー自身の未確定Run結果を事前条件にしていない。
-- `case_code_map`が`handoff.json`内の搬送情報に限定され、独立Manifest／採点Manifest／独自Evidence URIを追加する計画になっていない。Completion Receiptのスキーマ、出力先、自己参照禁止、状態集約、producer／真正性の限界が明記されている。
+- 固定Handoff rootと既存成果物だけで引き渡しを成立させ、新しいJSON Manifest、対応表、独自Evidence URIを追加する計画になっていない。Completion Receiptのスキーマ、出力先、自己参照禁止、状態集約、producer／真正性の限界、GitHub外部状態を独立再検証しない境界が明記されている。
 - 17レッスンすべてについて、§1.3の9項目を本文の明示ラベルまたは参照先で確認し、自己確認・完了条件・フィードバック／復旧・引き渡しが表の要約だけに隠れていない。
 - main単体とPlan統合状態の同一command比較、通常verifyとHook Contractの別結果、各FAILの分類（main単体再現／統合時のみ／Plan差分／範囲外既存問題）が最終報告へ残る。
 - ウェーブ依存関係は詳細2だけにあり、L3／T2 → V1とAG1／AG2 → AG3が独立している。V1は開発時受入検証であり、各受講者の毎回の修了処理ではない。
 - AG3の不正系テストは一時ディレクトリ、使い捨て作業ツリー、フィクスチャ、模擬Runで行い、既存HookのGit安全ポリシーG3と名称・責務を混同しない。
 - 最新baseのbase／head、Codex Hook／Harness／文章品質ゲート／`scripts/verify`変更を再確認し、既に解決済みの内容をAG2の新規実装へ重複追加していない。P1-4、P1-5、P1-6、P1-8の学習目的も段階的である。
-- Owner回答済みの3事項（Part 1 `source_sha`任意、revision完全一致不要、Training Copy標準／Fork代替）が質問や未確定事項として残っておらず、W0は最新実装との具体的な矛盾確認だけを行う。Bash通常verifyの`exit 124`はPASS扱いせず、Hook正式入口FAILと直接下位テストPASSを別結果として記録している。
+- Owner回答済みの3事項（Part 1 `source_sha`任意、revision完全一致不要、Git／GitHub基礎学習のFork利用可／C12・Part 2最終CI修了はTraining Copy必須）が質問や未確定事項として残っておらず、W0は最新実装との具体的な矛盾確認だけを行う。Bash通常verifyの`exit 124`はPASS扱いせず、Hook正式入口FAILと直接下位テストPASSを別結果として記録している。

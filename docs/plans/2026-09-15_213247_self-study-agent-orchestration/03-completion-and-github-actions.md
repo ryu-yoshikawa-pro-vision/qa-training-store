@@ -8,7 +8,7 @@
 
 「受講者向け修了確認」は、受講者がレッスン／Trainingの完了条件を満たしたかを、受講者成果物・実行結果・証跡から確認する仕組みである。GitHub Actionsはテストやこの確認を実行するCI基盤であり、確認そのものではない。
 
-ADR-0023のGuardrailsを優先する。`handoff.json`は成果物を安全に搬送・配置するための一時的な相対パスEnvelopeであり、正本Workbookを置き換える独自ManifestやEvidence URIではない。`case_code_map`はこのEnvelope内のケース追跡情報に限定し、独立Manifest、採点用Manifest、独自Evidence URIは追加しない。既存の`training-copy-source.json`はTraining Copyの既存source metadataとして再利用し、新しい正本Manifestへ拡張しない。Execution Receiptは既存Runner／Reporterまたは既存Playwright実行経路へ接続した薄いadapterが生成する実行事実、Completion Receiptは構造・実行条件の確認結果として扱い、`required_competencies`／`checked_competencies`は既存評価基準への追跡情報であって成績・理解度・能力合格の自動採点ではない。受講者状態DB、新しい汎用Runner、署名／信頼基盤を追加しない。この解釈で実装できない場合は、ADR改訂または責任者の明示承認なしにT1／T2を開始しない。
+ADR-0023のGuardrailsを優先する。引き渡しは固定された`handoff-root/`配下の既存成果物で成立させ、成果物の位置・対応・versionを列挙する新しいJSON Manifest、sidecar metadata、独自Evidence URI、採点用Manifestは追加しない。既存の`training-copy-source.json`はTraining Copyのsource SHA確認用の既存metadataとして再利用し、新しい正本Manifestへ拡張しない。ケースと学習者コードと実行記録の対応は、既存のTest Case ID、Workbookの既存`implementation_path`、Playwrightのテストタイトル／注釈・メタデータ、Receiptの`case_id`等から解決する。Execution Receiptは既存Runner／Reporterまたは既存Playwright実行経路へ接続した薄いadapterが生成する実行事実、Completion Receiptは構造・実行条件・記録参照の確認結果として扱い、`required_competencies`／`checked_competencies`は既存評価基準への追跡情報であって成績・理解度・能力合格の自動採点ではない。受講者状態DB、新しい汎用Runner、署名／信頼基盤を追加しない。この解釈で実装できない場合は、ADR改訂または責任者の明示承認なしにT1／T2を開始しない。
 
 正式なローカル入口は次で固定する。現在のリポジトリにはこのコマンドと実装ファイルはまだ存在しないため、T1で追加する。既定ではローカル専用の入口とし、`validate:curriculum`や既存Training workflowのallowlistへ自動的に追加しない。CIから呼ぶ必要がW0で判明した場合は、T2の変更対象へworkflow、allowlist、validator、関連Contract Testを明示的に追加し、L2の構造変更確認を経てから進める。
 
@@ -19,10 +19,10 @@ ADR-0023のGuardrailsを優先する。`handoff.json`は成果物を安全に搬
 | 仕組み | 確認するもの | 確認しないもの |
 | --- | --- | --- |
 | validate:curriculum | リポジトリ側のレッスン、ワークブック、Training資材、構造 | 受講者の理解、学習者作成の差分、実行時の証跡 |
-| 受講者向け修了確認 | 引き渡し、ケース対応、コード、記録、証跡、必要なCI結果 | 文章の意味理解、答案の完全一致 |
+| 受講者向け修了確認 | 固定Handoff root、既存成果物、ケース対応、コード、実行記録、ローカルに存在するEvidence参照、CI参照の形式・対応 | 文章の意味理解、答案の完全一致、GitHub上のRun／Check／Artifactの実在性・最終状態 |
 | 自己確認／講師向け資料なしの受講者一巡確認 | 判断理由、期待結果と実際の結果、原因、修正理由、次レッスンへの説明 | 機械的なパス／スキーマ検査の代替 |
 
-受講者向け修了確認はローカルで実行できる。第2部（Part 2）でGitHub Actionsを使う場合も、CIの実行結果を別の環境証跡として取り込み、CI自身の未確定な最終結果を事前入力にはしない。
+受講者向け修了確認はローカルで実行できる。第2部（Part 2）でGitHub Actionsを使う場合も、CIの実行結果を受講者がブラウザーで確認した環境証跡として取り込み、CI自身の未確定な最終結果を事前入力にはしない。ローカルの確認処理は、その記録の形式・固定Handoff root内の配置・Receiptとの対応・参照の存在を確認するが、GitHub APIを使わずにRunの実在、最終`success`、Checkの結論、Artifactの現在の存在や別Runでないことを独立証明しない。
 
 ## 6. 実行記録（Execution Receipt）の契約
 
@@ -30,7 +30,7 @@ ADR-0023のGuardrailsを優先する。`handoff.json`は成果物を安全に搬
 
 実行記録（Execution Receipt）は、テストを実際に実行した時点で、実行ランナー（runner）／ラッパー（wrapper）／Playwrightレポーター（Reporter）が生成する実行記録である。自動確認がテストを実行したことにして生成してはならない。
 
-現在の `training:web:exercise` はPlaywrightを直接実行しており、`training/playwright/exercises`全体を対象にする。提供開始用コード（`training-exercise-starter.spec.ts`）にはAssertionがないため、明示的な記録生成は、開始用コードだけ、基準実装だけ、またはsuite全体のPASSを学習者テストの成功として記録するものにしてはならない。実装開始時のW0では、現行のPlaywrightレポーター（Reporter）、出力配置、既存の実行経路、CIのアップロード順、既存のケース対応情報を再確認し、`case_code_map`に対応する学習者コードのテスト結果を個別に識別・追跡できることを確認する。Owner回答済みの方式を再選択するのではなく、既存Runner／Reporter／実行結果を正本として、実行後に機械的事実を自動生成できる最小の接続を確定する。既存経路だけでは不足する機械情報を結合する薄いadapterが必要な場合も、既存コマンドを置き換えず、独立した新しい実行Runner、状態DB、手書きReceiptを追加しない。既存経路と最小接続で成立しない場合は、具体的な不足と既存契約で解決できない理由を記録してT2を停止する。
+現在の `training:web:exercise` はPlaywrightを直接実行しており、`training/playwright/exercises`全体を対象にする。提供開始用コード（`training-exercise-starter.spec.ts`）にはAssertionがないため、明示的な記録生成は、開始用コードだけ、基準実装だけ、またはsuite全体のPASSを学習者テストの成功として記録するものにしてはならない。実装開始時のW0では、現行のPlaywrightレポーター（Reporter）、出力配置、既存の実行経路、CIのアップロード順、既存のケース対応情報を再確認し、既存のTest Case ID、Workbookの既存`implementation_path`、テストタイトル／注釈・メタデータ、Receiptの`case_id`等から学習者コードのテスト結果を個別に識別・追跡できることを確認する。Owner回答済みの方式を再選択するのではなく、既存Runner／Reporter／実行結果を正本として、実行後に機械的事実を自動生成できる最小の接続を確定する。既存経路だけでは不足する機械情報を結合する薄いadapterが必要な場合も、既存コマンドを置き換えず、独立した新しい実行Runner、状態DB、手書きReceiptを追加しない。既存経路と最小接続で成立しない場合は、具体的な不足と既存契約で解決できない理由を記録してT2を停止する。
 
 ### 6.2 必須項目
 
@@ -54,7 +54,7 @@ ADR-0023のGuardrailsを優先する。`handoff.json`は成果物を安全に搬
 - C09の診断対象に初回（initial）と修正後（repaired）の記録を作る場合は、必ず異なる`run_context`にし、同じ記録を上書きしない。受講者ケースが最初からPASSした場合は、正しいテストを意図的に壊してinitialを作らず、診断教材の初回／修正後記録をC09の標準経路として使う。
 - 意図的な失敗教材の記録は、学習者ケースの記録とは別のケース／コンテキストとして扱う。
 - NOT_RUNの記録を作る場合も、実行されていないことを明示し、架空の成果物（Artifact）を添付しない。
-- `case_id`を実行結果だけから推測できない場合は、引き渡しの`case_code_map`にある`test_ref`との対応を実行記録へ記録する。テストタイトル（title）、注釈／メタデータ（annotation／metadata）、またはEnvelope内の`case_code_map`など、既存の実行情報を実装時W0で確認して結合する。独立Manifestを追加せず、既存情報でも対応を成立させられない場合はT2の停止条件へ戻す。ファイル名や検証構文を識別規則にしない。
+- `case_id`を実行結果だけから推測できない場合は、既存のTest Case ID、Workbookの既存`implementation_path`、テストタイトル（title）、注釈／メタデータ（annotation／metadata）、Receiptの既存参照などを実装時W0で確認して結合する。新しい対応表や独立Manifestを追加せず、既存情報でも対応を成立させられない場合はT2の停止条件へ戻す。ファイル名や検証構文を識別規則にしない。
 
 Execution Receiptが保証するのは、既存Runner／Reporterまたはそれを呼び出す薄いadapterが生成した実行事実と、記録内の構造・追跡整合性である。Receiptにはproducer／生成元情報、対象コードの`code_digest`、各試行、実際の終了コード、Artifact参照を可能な範囲で記録するが、署名のない提出JSONだけで受講者が実行したことや外部環境を含む完全な実行真正性を保証しない。`training:completion:check`は提出されたReceipt／Evidenceの構造を確認し、確認できない真正性をPASSへ補正しない。既存Runner／Reporterで実行事実を出せず、後付けの手書きReceiptを信頼する必要がある場合はT2を停止する。
 
@@ -82,11 +82,11 @@ Execution Receiptが保証するのは、既存Runner／Reporterまたはそれ�
 | `semantic_understanding` | 常に`NOT_EVALUATED`。自己確認・Workbook・V1で扱う意味理解を機械確認へ混ぜない |
 | `checked_at` | 判定時刻とタイムゾーン |
 
-Completion Receiptのスキーマ版は`schema_version: 1`とする。出力先は`<handoff-root>/learner-handoff/completion-receipt.json`とし、入力の`execution_receipt_paths`にはExecution Receiptだけを列挙してこのCompletion Receipt自身を含めない。Completion Receiptは実行記録やEvidenceを集約する独立の採点Manifestではなく、受講者向け修了確認処理が既存の入力を構造的に確認した結果である。`required_competencies`は`mode`に対応する既存評価基準の参照、`checked_competencies`は構造確認を行った項目の一覧に限定し、個別の合否点数、理解度、受講者状態を保存しない。
+Completion Receiptのスキーマ版は`schema_version: 1`とする。出力先は`<handoff-root>/receipts/completion-receipt.json`とし、入力の`receipts/`には実行済みのExecution Receiptだけを置いてこのCompletion Receipt自身を含めない。Completion Receiptは実行記録やEvidenceを集約する独立の採点Manifestではなく、受講者向け修了確認処理が固定Handoff root内の既存入力を構造的に確認した結果である。`required_competencies`は`mode`に対応する既存評価基準の参照、`checked_competencies`は構造確認を行った項目の一覧に限定し、個別の合否点数、理解度、受講者状態を保存しない。
 
 状態の意味を固定する。
 
-- PASS: その`mode`の機械確認対象である全必須成果物、ケース対応、必要な実行、証跡、環境条件が確認できた。受講者が全ての判断理由を理解したこと、Level 2の理解が完全に証明されたこと、カリキュラム全体の受講者修了を意味しない。
+- PASS: その`mode`で自動確認対象として定義した構造・成果物・実行記録・ローカルに存在するEvidence参照・記録されたCI参照の形式と対応が揃い、検出可能な契約違反がない。GitHub上のRun／Check／Artifactの実在性・最終状態を独立再検証したこと、受講者が全ての判断理由を理解したこと、Level 2の理解が完全に証明されたこと、カリキュラム全体の受講者修了を意味しない。
 - INCOMPLETE: ワークブック／コード／ケース対応／自己確認の存在確認／証跡参照など学習成果の一部が不足している。
 - FAIL: 実行が失敗した、契約違反がある、証跡とケースが対応しないなど、成果物または実行が要求に反する。
 - BLOCKED: アカウント、権限、実行環境（Runner）、基底URL（Base URL）、ブラウザー（Browser）など環境要因で評価を完了できない。未確認の学習成果をPASSへ変換しない。
@@ -96,9 +96,9 @@ Completion Receiptのスキーマ版は`schema_version: 1`とする。出力先�
 
 複数ケースの全体`status`は、次の順序で決定する。①契約違反、ケース不一致、実行失敗などが1件でもあれば`FAIL`、②①がなく環境要因で必要な確認を完了できなければ`BLOCKED`、③必要な実行が未実施なら`NOT_RUN`、④必要ファイル・自己確認・追跡情報などが不足すれば`INCOMPLETE`、⑤それ以外を`PASS`とする。`FAIL`／`BLOCKED`／`NOT_RUN`を、別のケースのPASSや後付けEvidenceで上書きしない。
 
-`Completion Receipt`のPASSは「機械確認可能な必須成果物・実行・Evidence・追跡条件を満たした」という意味だけである。`source_sha`をCompletion Receiptへ持たせる場合も、Part 1／Commonでは任意・省略可能、Part 2ではTraining Copyの正式な40文字SHAとの一致が必須という条件付きスキーマにする。受講者のCommon修了は、`Completion Receipt`の機械確認PASS、各Lessonの自己確認、公開された最低回答基準に基づく受講者自身の確認を組み合わせて成立する。講師の個別採点は必須に戻さない。講師向け資料なしの受講者一巡確認（V1）は、教材実装側の開発時受入検証であり、各受講者が毎回実行する修了処理ではない。
+`Completion Receipt`のPASSは「そのmodeで自動確認対象として定義した構造・成果物・実行記録・Evidence参照・CI参照の形式と追跡条件を満たし、検出可能な契約違反がない」という意味だけである。ローカル確認はGitHub API等を使わない限り、Run IDがGitHub上に実在すること、そのRunが最終的に`success`であること、Checkの結論が`success`であること、Artifactが現在も存在すること、Artifact URLが別Runのものでないことを証明したとは扱わない。`source_sha`をCompletion Receiptへ持たせる場合も、Part 1／Commonでは任意・省略可能、Part 2ではTraining Copyの正式な40文字SHAとの一致が必須という条件付きスキーマにする。受講者のCommon修了は、`Completion Receipt`の機械確認PASS、各Lessonの自己確認、公開された最低回答基準に基づく受講者自身の確認を組み合わせて成立する。Part 2／C12最終修了は、Training Copy上の受講者作成Testに対するGitHubブラウザー確認のEvidenceを別途満たす。講師の個別採点は必須に戻さない。講師向け資料なしの受講者一巡確認（V1）は、教材実装側の開発時受入検証であり、各受講者が毎回実行する修了処理ではない。
 
-`mode`ごとの必須能力範囲は既存評価基準に合わせる。`common`はPart 1のC01〜C07／C09〜C10でGitHub Actionsを必須にせず、`part2`はCommonの成果を引き継いだC01〜C07／C09〜C12としてGitHub ActionsのRun／Check／Artifactを必須にする。Native／iOSの選択課程は既存Native契約とC08の成果物で扱い、この受講者向け修了確認の新しいPlaywright中心の`mode`へ混ぜない。これらはReceiptの機械確認範囲を定めるものであり、意味理解の自動採点ではない。
+`mode`ごとの必須能力範囲は既存評価基準に合わせる。`common`はPart 1のC01〜C07／C09〜C10でGitHub Actionsを必須にせず、`part2`はCommonの成果を引き継いだC01〜C07／C09〜C12として、Training Copy上のGitHub ActionsのRun／Check／Artifactに関する受講者確認と記録を必須にする。ローカルの受講者向け修了確認は、これらのCI参照が必要な形式で記録されていることと他成果物との対応を確認するが、GitHub外部状態の実在性・最終結論を独立再検証しない。Native／iOSの選択課程は既存Native契約とC08の成果物で扱い、この受講者向け修了確認の新しいPlaywright中心の`mode`へ混ぜない。これらはReceiptの機械確認範囲を定めるものであり、意味理解の自動採点ではない。
 
 ### 7.2 Playwrightの必須成果
 
@@ -114,7 +114,7 @@ CommonのWeb課程における最低成果は次の全てである。これはC0
 - 実行記録、証跡、ワークブックとの追跡情報。
 - 開始用コードをそのまま実行しただけではない学習者作成の差分。
 
-`training:web:exercise`／`training:web:mobile:exercise`が提供開始用コードを含むディレクトリ全体を実行する場合も、`case_code_map`に記録した学習者コードのテスト結果がExecution Receiptへ個別に現れなければ、開始用コード、基準実装、suite全体のPASSをC07の実行成功とみなさない。学習者テストが実行されていない場合は`NOT_RUN`、コードまたは対応が不足する場合は`INCOMPLETE`、実行が失敗した場合は`FAIL`という既存の状態契約へ従い、別テストのPASSで上書きしない。
+`training:web:exercise`／`training:web:mobile:exercise`が提供開始用コードを含むディレクトリ全体を実行する場合も、既存情報から対応付けた学習者コードのテスト結果がExecution Receiptへ個別に現れなければ、開始用コード、基準実装、suite全体のPASSをC07の実行成功とみなさない。学習者テストが実行されていない場合は`NOT_RUN`、コードまたは対応が不足する場合は`INCOMPLETE`、実行が失敗した場合は`FAIL`という既存の状態契約へ従い、別テストのPASSで上書きしない。
 
 C07の学習成果の最低条件として、初期データ／リセット、意味のある操作／要素特定／検証、実行記録、証跡を含める。受講者向け修了確認処理がこのうち機械的に確認するのは、明示的なReset契約、Assertionの存在と既知の無意味パターン、実行事実、Evidence、追跡など安定した条件だけであり、意味の妥当性は自己確認／Workbook／V1で確認する。BrowserContext分離だけ、基準実装だけ、開始用コードだけではリセットや学習者成果の代替にならない。
 
@@ -138,7 +138,7 @@ C07の学習成果の最低条件として、初期データ／リセット、�
 - ケースIDがワークブックと一致しないコード。
 - 開始用コードをコピーして変更していないコード、基準実装だけのPASS、証跡がない実行。
 
-自動確認はAST上の`expect`の存在だけで理解を採点せず、任意コードと自然言語の`expected_result`の意味的一致を完全判定しない。機械確認は、ケースID／`case_code_map`、コードの存在、既知の開始用コード境界、明示的なReset契約、Assertionの存在と既知の禁止パターン、実行記録、終了コード／result、Evidence、追跡可能性、NOT_RUNでないことを安定して確認する。ケースと関係ないDOM要素、固定URLだけ、期待結果と対応しない検証、Locatorの適切さ、設計／Risk／Layerの理由、修正理由の技術的妥当性は、自己確認／Workbook／各Lessonの最低回答基準／V1で確認する。
+自動確認はAST上の`expect`の存在だけで理解を採点せず、任意コードと自然言語の`expected_result`の意味的一致を完全判定しない。機械確認は、既存情報から解決したCase IDとコードとReceiptの追跡、コードの存在、既知の開始用コード境界、明示的なReset契約、Assertionの存在と既知の禁止パターン、実行記録、終了コード／result、Evidence、記録されたCI参照の形式・対応、NOT_RUNでないことを安定して確認する。GitHub API等を使わない限り、Run IDの実在、最終`success`、Checkの結論、Artifactの現在の存在や別Runでないことは機械確認の対象外とする。ケースと関係ないDOM要素、固定URLだけ、期待結果と対応しない検証、Locatorの適切さ、設計／Risk／Layerの理由、修正理由の技術的妥当性は、自己確認／Workbook／各Lessonの最低回答基準／V1で確認する。
 
 ### 7.4 必須の不正系フィクスチャ
 
@@ -182,26 +182,35 @@ C07の学習成果の最低条件として、初期データ／リセット、�
 
 ### 9.1 引き渡しの入力
 
-第1部（Part 1）完了後、受講者は次を一つの外部引き渡し一式として用意する。Part 1／CommonではGit repositoryや完全な`source_sha`を必須の入力にしない。
+第1部（Part 1）完了後、受講者は次の固定ディレクトリ構造を一つの外部引き渡し一式として用意する。Part 1／CommonではGit repositoryや完全な`source_sha`を必須の入力にしない。
 
-- 引き渡し一式の`handoff.json`。
-- 受講者が書き出した4つのワークブックCSV。
-- 学習者作成のPlaywrightコード。
-- 実際の証跡参照または証跡。
-- 第1部（Part 1）の実行記録。
-- 自己確認本文と`case_code_map`。自己確認は受講者の説明材料、`case_code_map`はケースとコードの追跡材料であり、両方を修了確認記録の代わりにしない。
-- Part 1で元ソースSHAを確認できた場合の実値と、必要なケース／トレース参照。ZIP等でGit metadataがない場合はSHA不明のまま引き渡してよく、架空値を補わない。Part 2の正式なsource SHAはTraining Copy作成時に別途確定する。
+    handoff-root/
+      workbook/
+        01_target-risk.csv
+        02_test-cases.csv
+        03_automation-mapping.csv
+        04_execution-improvement.csv
+      code/
+      evidence/
+      receipts/
+      self-check/
+
+- `workbook/`には受講者が書き出した既存4つのワークブックCSVを置く。
+- `code/`には学習者作成のPlaywrightコードを置く。
+- `evidence/`には実際の証跡または人間可読な証跡参照を置く。
+- `receipts/`には第1部（Part 1）の実行記録を置く。修了確認記録は入力に含めず、判定後に生成する。
+- `self-check/`には受講者の自己確認本文を置く。
+- ケースとコードと実行記録の対応は、新しい対応表を追加せず、既存のTest Case ID、Workbookの`implementation_path`、Playwrightのテストタイトル／注釈・メタデータ、Execution Receiptの`case_id`等から解決する。Part 1で元ソースSHAを確認できた場合は既存の実行記録等へ実値を記録し、ZIP等でGit metadataがない場合はSHA不明のまま引き渡してよく、架空値を補わない。Part 2の正式なsource SHAはTraining Copy作成時に別途確定する。
 
 受講者の作業場所は自由でよい。ZIPを使う場合も、ZIPを直接Git履歴へ持ち込むのではなく、展開して引き渡し一式のパス／スキーマ検証を行う。
 
 ### 9.2 配置の出力と移行対象
 
-`training:copy:prepare` は、Git repositoryから指定した40文字の完全SHAをcheckoutした新しい使い捨ての教材用コピー（Training Copy）を作るが、第1部（Part 1）の成果物を自動的には取り込まない。prepareは元のworkflowをarchiveし、activeなTraining workflowと`training-copy-source.json`を配置する既知のprovisioning差分を作る。そこで、既存の同等処理がない場合は、最小の引き渡し配置手順または薄いコマンドを用意する。Part 1の元ソースSHAが不明でも、Part 2側で正式SHAを確定してから進める。Training Copyを標準経路とし、利用できない場合は学習者自身のForkを代替経路として使う。Forkでも同じ配置・実行・確認・引き渡し契約を適用し、Fork専用の別カリキュラムは作らない。
+`training:copy:prepare` は、Git repositoryから指定した40文字の完全SHAをcheckoutした新しい使い捨ての教材用コピー（Training Copy）を作るが、第1部（Part 1）の成果物を自動的には取り込まない。prepareは元のworkflowをarchiveし、activeなTraining workflowと`training-copy-source.json`を配置する既知のprovisioning差分を作る。そこで、既存の同等処理がない場合は、最小の引き渡し配置手順または薄いコマンドを用意する。Part 1の元ソースSHAが不明でも、Part 2側で正式SHAを確定してから進める。Training CopyをC12／Training CIとPart 2最終修了の正式経路とし、Git／GitHub基礎学習でForkを使った場合は、CIへ進む前にTraining Copyへ切り替える。Fork上のRun／Check／ArtifactをC12のTraining Copy成功証跡へ読み替えず、Fork専用のC12経路も作らない。
 
-配置の出力は、指定ソースSHAをHEADに固定し、prepareの既知のprovisioning差分を持つ教材用コピー（Training Copy）またはその代替Forkと、そこへ受講者成果を配置した第2部（Part 2）用の引き渡し一式である。materialize後のworking treeには学習者成果の差分が生じるため、「履歴／HEADが指定SHAであること」と「working treeが無変更であること」を同一視しない。コピーまたはForkのルートを第2部（Part 2）の評価境界として使う場合は、次のパスを生成する。
+配置の出力は、指定ソースSHAをHEADに固定し、prepareの既知のprovisioning差分を持つ教材用コピー（Training Copy）と、そこへ受講者成果を配置した第2部（Part 2）用の引き渡し一式である。materialize後のworking treeには学習者成果の差分が生じるため、「履歴／HEADが指定SHAであること」と「working treeが無変更であること」を同一視しない。ForkはGit／GitHub基礎学習の作業環境としては利用できるが、C12／Training CIの評価境界やPart 2最終修了の正式経路にはしない。Training Copyのルートを第2部（Part 2）の評価境界として使う場合は、次のパスを生成する。
 
     <training-copy>/
-      handoff.json
       training/workbook/01_target-risk.csv
       training/workbook/02_test-cases.csv
       training/workbook/03_automation-mapping.csv
@@ -211,14 +220,14 @@ C07の学習成果の最低条件として、初期データ／リセット、�
       learner-handoff/receipts/
       learner-handoff/self-check/
 
-`handoff.json`の`workbook_dir`はtraining/workbook、`code_paths`はtraining/playwright/exercises/learner配下の実在ファイル、`evidence_dir`はlearner-handoff/evidence、`execution_receipt_paths`はlearner-handoff/receipts配下の実在JSON、`self_check_paths`はlearner-handoff/self-check配下の実在ファイルを指す。`case_code_map`の`code_path`と`test_ref`も配置後の相対パスへ正規化する。元の一式の相対パスをそのまま使い回さず、配置後の一式のルートから再生成する。
+固定Handoff rootの`workbook/`、`code/`、`evidence/`、`receipts/`、`self-check/`を、それぞれTraining Copyの`training/workbook`、`training/playwright/exercises/learner`、`learner-handoff/evidence`、`learner-handoff/receipts`、`learner-handoff/self-check`へ配置する。各ディレクトリ内の相対参照は配置後の既知のルートから解決し、元の作業場所の絶対パスや任意の外部参照を持ち込まない。ケース対応は既存のTest Case ID、Workbookの`implementation_path`、テストタイトル／注釈・メタデータ、Receiptの`case_id`等から解決し、新しい対応表やManifestを追加しない。
 
 移行するもの:
 
 - 4つの学習者ワークブックCSV（提供サンプルを含む受講者の作業用コピー）。
 - 学習者作成のPlaywrightコード。既存Trainingコマンドが実行できるtraining/playwright/exercises/learner配下へ配置する。
 - 第1部（Part 1）の実行記録と証跡参照。必要な証跡ファイルだけをlearner-handoff配下へ取り込む。
-- 第1部（Part 1）の自己確認と`case_code_map`。受講者の説明を保持するが、機械確認は自己確認の存在・パスだけを検査する。
+- 第1部（Part 1）の自己確認。受講者の説明を保持するが、機械確認は自己確認の存在・安全な参照・ファイル種別だけを検査する。
 - ケースID、Part 1で確認できた場合の元ソースSHA、配置結果など、次レッスンが必要とする参照情報。Part 2の`training_copy_source_sha`は`training:copy:prepare`側で別に確定する。
 
 移行しないもの:
@@ -242,10 +251,10 @@ C07の学習成果の最低条件として、初期データ／リセット、�
 
 1. `training:copy:prepare` で指定SHAをHEADにした新規コピーを作る。対象が既に存在する場合は上書きせず停止する。
 2. prepare直後に`training:copy:validate`を実行し、有効なworkflowの許可リスト、既存の`training-copy-source.json`の完全SHA、resolved SHA、HEAD、templateとのバイト単位の一致、最小権限を確認する。検証は既知のprovisioning差分（archive済み元workflow、activeなTraining workflow、既存のsource metadata）を前提にし、clean working treeを要求しない。
-3. 検証済みコピーへmaterializeし、`handoff.json`のパス、4つのCSVスキーマ、コード種別、記録スキーマ、ケース追跡情報を確認する。Part 1とPart 2のrevisionが異なること自体はFAILにしない。materializeが作る4つのCSV、learner code、handoff／evidence／receipts／self-checkは学習者差分として記録する。
+3. 検証済みTraining Copyへmaterializeし、固定Handoff rootの既知ディレクトリ、4つのCSVスキーマ、コード種別、記録スキーマ、既存情報によるケース追跡を確認する。Part 1とPart 2のrevisionが異なること自体はFAILにしない。materializeが作る4つのCSV、learner code、Evidence／Receipt／self-checkは学習者差分として記録する。
 4. materialize後に`training:copy:validate`を再実行し、HEAD／既存の`training-copy-source.json`／workflow契約を再確認する。`git status`／`git diff`では、prepareの既知のprovisioning差分、materializeの学習者差分、その他の予期しないsource差分を三分類し、unexpected source差分があれば停止する。学習者差分があること自体は失敗理由にしない。
-5. materialize後に、Workbookの構造、Test Case ID、`case_code_map`の参照先、現在のTraining CopyまたはFork上で解決できるPlaywrightコード、必須Training command、Receipt／Evidence参照、必要な型確認／契約テスト、提供サンプルと学習者成果の分離を確認する。互換性問題が出た場合は、壊れた成果物、Part 1／Part 2のどの変更が原因か、既存形式で最小修正できるかを確認し、自動変換frameworkを新設しない。
-6. Common課程モードの受講者向け修了確認を実行し、第1部（Part 1）成果の引き継ぎが切れていないことを確認する。その後、Part 2のTraining Copy（標準）またはFork（代替）でブランチ、コミット、プッシュ、PRを行い、workflowへ進む。
+5. materialize後に、Workbookの構造、Test Case ID、既存情報によるケース対応、現在のTraining Copy上で解決できるPlaywrightコード、必須Training command、Receipt／Evidence参照、必要な型確認／契約テスト、提供サンプルと学習者成果の分離を確認する。互換性問題が出た場合は、壊れた成果物、Part 1／Part 2のどの変更が原因か、既存形式で最小修正できるかを確認し、自動変換frameworkを新設しない。
+6. Common課程モードの受講者向け修了確認を実行し、第1部（Part 1）成果の引き継ぎが切れていないことを確認する。その後、Part 2のTraining Copyでブランチ、コミット、プッシュ、PRを行い、Training workflowへ進む。Forkを使っていた場合は、この時点までにTraining Copyへ切り替える。Training Copyが用意できない場合は、Git／GitHub基礎学習までを継続し、C12／Training CI以降をBLOCKEDまたはNOT_RUNとする。
 
 materializeは、検証済みの新規Training Copyの評価境界へ成果を配置するだけで、元のPart 1作業場所、外部Handoff、正本Repository、既存の別Training Copyを自動削除・上書きしない。対象パスの衝突や途中失敗は停止し、部分的な配置を次工程の入力にしない。
 
@@ -289,11 +298,11 @@ materializeは、検証済みの新規Training Copyの評価境界へ成果を�
 
 ### ワークフロー完了後に確定するもの
 
-- GitHubワークフローの実行ID（Run ID）、確認（Check）の結論、成果物（Artifact）のURL／識別子。ReceiptからArtifact内の相対パスまで追跡できるようにする。
-- それらを受講者が環境証跡として引き渡しへ追記した記録。`04_execution-improvement.csv`の`evidence`は、ローカルでは引き渡し内の相対パス、CIではRun／Artifactの人間可読な参照として記録し、独自Evidence URIを追加しない。
-- 上記を参照して、受講者向け修了確認が生成する修了確認記録。
+- GitHubワークフローの実行ID（Run ID）、確認（Check）の結論、成果物（Artifact）のURL／識別子。受講者がブラウザーで確認した人間可読な参照として、ReceiptからArtifact内の相対パスまで追跡できるようにする。
+- それらを受講者が環境証跡として`handoff-root/evidence/`または既存Workbookの`evidence`へ記録したもの。`04_execution-improvement.csv`の`evidence`は、ローカルでは固定Handoff root内の相対パス、CIではRun／Check／Artifactの人間可読な参照として記録し、独自Evidence URIを追加しない。
+- 上記のローカル記録を参照して、受講者向け修了確認が生成する修了確認記録。記録の存在・形式・対応は機械確認するが、GitHub上の外部状態を独立再検証した結果ではない。
 
-第2部（Part 2）の受講者向け修了確認は、ワークフロー内で自分自身の最終実行ID（Run ID）、確認（Check）、成果物（Artifact）が確定する前にそれらを必須入力にしない。既定経路では、ワークフロー完了後に受講者がRun／Check／ArtifactとArtifact内のReceiptをブラウザーから確認し、必要なArtifactを取得または参照して、次の正式コマンドをローカルで再実行して修了確認記録を生成する。GitHub API呼び出しや追加Tokenは必須にしない。
+第2部（Part 2）の受講者向け修了確認は、ワークフロー内で自分自身の最終実行ID（Run ID）、確認（Check）、成果物（Artifact）が確定する前にそれらを必須入力にしない。既定経路では、ワークフロー完了後に受講者がTraining Copy上のRun／Check／ArtifactとArtifact内のReceiptをブラウザーから確認し、必要なArtifactを取得または参照して、Run ID／Check／Artifactの人間可読な参照を固定Handoff rootへ記録し、次の正式コマンドをローカルで再実行して修了確認記録を生成する。GitHub API呼び出しや追加Tokenは必須にしない。ローカル処理が確認できるのは記録の形式・存在・Receiptとの対応までであり、GitHub上のRun実在性、最終success、Check結論、Artifactの現在の存在や別Runでないことではない。
 
     corepack pnpm run training:completion:check -- --mode part2 --root <handoff-root>
 
@@ -302,7 +311,7 @@ materializeは、検証済みの新規Training Copyの評価境界へ成果を�
 ## 11. 第2部（Part 2）の修了境界
 
 - Commonは、機械確認可能なCompletion ReceiptのPASS、各Lessonの自己確認、公開された最低回答基準に基づく受講者自身の確認が揃えば、GitHub Actionsがなくても完了できる。Completion ReceiptのPASSだけではCommon修了とはしない。
-- 第2部（Part 2）はGitHubアカウント、教材用コピー（Training Copy）を標準経路とし、利用できない場合は学習者自身のForkを代替経路として、ブランチ／PR、ワークフローの実行（Run）、確認（Check）、成果物（Artifact）、CI実行記録を必要とする。Training CopyとForkで学習成果を変えない。本体Repositoryへの直接push、Organization／repository管理者権限、Secrets管理、branch protection変更、GitHub App設定、workflow権限設定変更は必須にしない。
+- 第2部（Part 2）のGit／GitHub基礎学習では学習者自身のForkを利用できる。C12を含むTraining CIとPart 2最終修了は、GitHubアカウント、Training Copy、ブランチ／PR、ワークフローの実行（Run）、確認（Check）、成果物（Artifact）、CI実行記録を必要とする。Fork上のRun／Check／ArtifactをTraining CopyのC12成功証跡へ読み替えない。Training Copyが利用できない場合は、Forkで基礎学習まで継続し、C12／Part 2最終修了はBLOCKEDまたはNOT_RUNとする。本体Repositoryへの直接push、Organization／repository管理者権限、Secrets管理、branch protection変更、GitHub App設定、workflow権限設定変更は必須にしない。
 - ローカルで同じテストがPASSしただけでは第2部（Part 2）完了へ変換しない。
 - Native／iOSは選択課程であり、Nativeを選択しない場合はP2-6をスキップしてP2-7へ復帰する。iOSのビルドだけをCommonのWeb課程や第2部（Part 2）のWeb CIの代替にしない。
 - CIがNOT_RUN、成果物（Artifact）が取得不能、確認（Check）が失敗、引き渡しが不完全な場合はPASSにしない。原因に応じてINCOMPLETE、FAIL、BLOCKED、NOT_RUNを出す。
@@ -311,7 +320,7 @@ materializeは、検証済みの新規Training Copyの評価境界へ成果を�
 
 3つの主要論点に関するOwner回答は確定事項であり、実装開始時に同じ質問を再度行わない。W0では、最新main、既存実装、教材、既存契約、ADR-0023、GitHub Actions設定を読み取り専用で確認し、決定と矛盾しないこと、既存実装で既に満たされているものを再実装しないことをRunへ記録する。具体的な矛盾が見つかった場合だけ、詳細5の停止条件に従って事実・衝突理由・影響範囲・推奨する最小修正を再確認する。
 
-- Execution Receiptは、Playwright等のテストを実際に実行した後、可能な限り既存Runner／Reporter／実行結果から、既存のテストタイトル、注釈／メタデータ、`handoff.json`内の`case_code_map`等の追跡情報と結合して自動生成する。`exit_code`、実行時刻、command、Evidence参照、実行環境等の機械的事実を学習者に手書きさせない。WorkbookにはFailureの原因、Evidenceの確認、修正理由、改善内容、再実行結果の解釈を記録するが、Receiptの代わりにしない。未実行Receipt、意味理解の自動採点、独立Manifest、Receipt状態DB、新しい独立Runnerは追加しない。既存経路と最小の結合で成立しない場合だけ、詳細5の具体的停止条件へ進む。
+- Execution Receiptは、Playwright等のテストを実際に実行した後、可能な限り既存Runner／Reporter／実行結果から、既存のTest Case ID、Workbookの`implementation_path`、テストタイトル、注釈／メタデータ、Receiptの`case_id`等の追跡情報と結合して自動生成する。`exit_code`、実行時刻、command、Evidence参照、実行環境等の機械的事実を学習者に手書きさせない。WorkbookにはFailureの原因、Evidenceの確認、修正理由、改善内容、再実行結果の解釈を記録するが、Receiptの代わりにしない。未実行Receipt、意味理解の自動採点、独立Manifest、Receipt状態DB、新しい独立Runnerは追加しない。既存経路と最小の結合で成立しない場合だけ、詳細5の具体的停止条件へ進む。
 - Part 1／Commonの`source_sha`は任意とする。Git metadataから実際の40文字SHAを取得できる場合だけ記録し、ZIP等で取得できない場合は未設定のまま完了できる。Part 1のHandoff／Execution Receipt／Completion Receiptに`source_sha`を持たせる場合も任意・省略可能とする。Part 2開始時は正式な40文字の小文字完全SHAを独立して確定し、`training:copy:prepare` → `training-copy-source.json` → `training:copy:validate`を正本としてTraining CopyのHEADとsource SHAを確認する。Part 1とPart 2のrevision一致は要求せず、不一致自体をFAILにしない。
-- Part 2のGitHub環境はTraining Copyを標準経路とし、利用できない場合は学習者自身のForkを代替経路として許可する。両経路でbranch作成、commit、push、PR作成、GitHub Actionsの実行または結果確認、Check確認、Artifact確認を共通の学習成果とする。学習者へ要求するのは対象repositoryへの通常の書き込みと必要な閲覧操作までであり、Organization／repository管理者権限、Secrets管理、branch protection変更、GitHub App設定、workflow権限設定変更、workflow編集は必須にしない。
-- Part 1成果物をPart 2へmaterializeした後は、Workbook構造、Test Case ID、`case_code_map`参照先、現在のTraining Copy／Forkで解決できるPlaywrightコード、必須Training command、Receipt／Evidence参照、必要な型確認／契約テスト、提供サンプルと学習者成果の分離を確認する。revision差だけを理由に停止せず、互換性問題がある場合は壊れた成果物、原因となる変更、既存形式での最小修正可否を確認し、自動変換frameworkを新設しない。
+- Part 2のGitHub環境はTraining Copyを正式経路とする。Git／GitHub基礎学習に限りForkを利用できるが、Fork上の成果はC12／Part 2最終修了のTraining Copy成功証跡へ読み替えない。Training Copyでbranch作成、commit、push、PR作成、GitHub Actionsの実行、ブラウザーでのRun／Check／Artifact確認を行う。学習者へ要求するのは対象repositoryへの通常の書き込みと必要な閲覧操作までであり、Organization／repository管理者権限、Secrets管理、branch protection変更、GitHub App設定、workflow権限設定変更、workflow編集は必須にしない。
+- Part 1成果物をPart 2へmaterializeした後は、固定Handoff rootの既知ディレクトリ、Workbook構造、Test Case ID、既存情報によるケース対応、現在のTraining Copyで解決できるPlaywrightコード、必須Training command、Receipt／Evidence参照、必要な型確認／契約テスト、提供サンプルと学習者成果の分離を確認する。revision差だけを理由に停止せず、互換性問題がある場合は壊れた成果物、原因となる変更、既存形式での最小修正可否を確認し、自動変換frameworkを新設しない。

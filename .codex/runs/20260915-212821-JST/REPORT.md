@@ -236,6 +236,55 @@
   - Wave 0で、commandごとの具体的timeout値・process tree停止方法、watchdogの実装主体・発火条件・証跡保存先、同時実行枠が満杯のときの追加派遣方法を実測して確定する。
 - Progress: 100% (9/9)
 
+## 2026-09-16 23:00 JST — PR #157残存指摘対応
+
+- Summary:
+  - 今回の残存指摘を、Forkの適用範囲、引き渡し構造／ケース対応、ローカルの受講者向け修了確認が証明できる範囲の3点に限定して修正した。
+  - ForkはGit／GitHub基礎学習（P2-01〜P2-03）に限って利用できる。C12を含むTraining CIとPart 2最終修了は、正式なsource SHAをHEADへ固定したTraining Copyのみを正式経路とし、Fork上のRun／Check／Artifactを同等の修了証跡へ読み替えない。
+  - 固定`handoff-root/`と既存4 CSV、学習者コード、Evidence、Execution Receipt、self-checkを引き渡しの評価境界とし、新しいJSON Manifest、対応表、sidecar metadata、独自Evidence URI、採点用Manifestは追加しない。
+  - ローカルの受講者向け修了確認は、構造、成果物、実行記録、ローカルEvidence、記録したGitHub参照の形式・対応を確認する。GitHub API／Tokenなしでは、Runの実在、最終`success`、Check結論、Artifactの現在の存在、別Runでないことを独立証明したとは扱わない。
+- Subagent結果とParent判断:
+  - Halleyは、既存Training Copy／`training-copy-source.json`／`training:copy:validate`、C12のTraining Copy要件、既存workflowの最小権限、ローカル確認とGitHub外部状態の境界を読み取り専用で確認した。子Agentによるファイル変更はない。
+  - Feynmanは、旧来のFork代替記述、旧JSONコンテナ／対応表参照、外部状態の過大な証明表現を横断監査した。Parentは提案された残存箇所をPlanへ反映し、既存のOwner回答を再質問しないと決定した。
+  - 過去のREPORTにある調査途中のOwner選択肢・旧構造名はappend-only履歴として保持し、今回の最新追記を現在の確定契約とする。
+- Plan changes:
+  - インデックスで、Part 2のC12／Training CI／最終修了はTraining Copyを正式経路とし、Forkを同等経路へ読み替えないことを明記した。
+  - 詳細1の17レッスン表で、P2-04〜P2-08のCI／ゲート／総合課題の入力・成果物をTraining Copyへ明示的に接続した。引き渡しは固定`handoff-root/`の既知ディレクトリと既存成果物に整理し、既存のTest Case ID、Workbookの`implementation_path`、Playwrightのtitle／annotation／metadata、Receiptの`case_id`等をケース対応の候補とした。安定対応が成立しない場合は新しい追跡基盤を追加せず停止する。
+  - 詳細2〜5で、T1／T2／V1のTraining Copy境界、Part 1の任意`source_sha`とPart 2の正式SHAの分離、Receiptの自動生成とCompletion Receiptの構造確認責務、GitHub外部状態の非証明範囲を統一した。
+  - 最新の修正開始時点として、PR #157のbase `main`は`b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`、head branchのcommitは`bbba1de2ebbdc0be990bc241c985e087ebcbc30d`であることをPlanへ記録した。push前後に再取得する。
+- Validation:
+  - PASS: Plan validator（`valid: true`、`missingHeadings: []`）。
+  - PASS: `corepack pnpm run lint:markdown`（441 files、0 issues）。
+  - PASS: `corepack pnpm run lint:text`（変更Markdown 11件、exit 0）。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 workbook files、training-chromium／training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`（exit 0）。
+  - PASS: 関連Contract Test（`training-curriculum.test.ts`、`ci-workflow.test.ts`、`native-ci-workflow.test.ts`、3 files／59 tests passed）。
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`（`PASS=3 FAIL=0 SKIP=0`）。
+  - PASS: `git diff --check`（exit 0）。
+  - PASS: Plan 6ファイルの相対リンク監査（6 files、broken 0）。固定Handoff root、既存ケース対応、Training Copy／Fork境界、GitHub外部状態の証明範囲、旧`handoff.json`／`case_code_map`表記の横断監査も条件を満たした。
+  - PASS: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`（exit 0、最終REPORT追記前のmachine-managed更新）。
+- Scope / status:
+  - 実装、教材本文、Workbook、Trainingテスト／workflow、Hook、Agent設定、Harness、package、script、Product／Specは変更していない。既存の未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`はcommit対象外として保持する。
+  - R10〜R14を完了し、R15（commit／push前の許可差分・branch safety・既存PR lifecycle確認）はpush前に完了させる。実装は開始していない。
+- Progress: 96% (23/24)
+- Next: 最終REPORT追記後にcollector／sanitizerを再実行し、許可されたファイルだけを明示stageしてbranch safetyを確認し、commit／pushする。push後は既存PR #157のheadとWeb CI／Mobile App CIの最新結果を確認する。
+
+## 2026-09-16 23:02 JST — Run Artifact最終化前確認
+
+- 最新REPORT追記後の`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260915-212821-JST -RefreshGitChangedFiles -Strict`はexit 0だった。
+- 続けて`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`を実行し、`files_scanned: 4`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`だった。
+- R10〜R14は完了。R15は、commit／push前のbranch safetyと許可差分確認を残している。
+- Progress: 96% (23/24)
+
+## 2026-09-16 23:08 JST — commit／push前のscope確定
+
+- `git fetch origin main feat/self-study-curriculum-test-coverage`はexit 0。現在branchは`feat/self-study-curriculum-test-coverage`で、upstreamは同名origin branchである。
+- PR #157はopen、baseは`main`、PR headは`bbba1de2ebbdc0be990bc241c985e087ebcbc30d`、mergeableはtrueである。push前の既存headとして記録した。
+- `git diff --name-only`は、Planインデックス／詳細1〜5とactive Runの`PLAN.md`／`TASKS.md`／`REPORT.md`の9 tracked filesだけである。未追跡の`.codex/runs/20260915-191711-JST/`と`coverage/`は対象外である。
+- R15（commit／push前の許可差分、branch safety、既存PR状態の確認）を完了した。Plan／Runのtracked taskは24件中24件が完了している。
+- Progress: 100% (24/24)
+- Next: 上記9ファイルだけを明示stageし、差分をcommitして`origin/feat/self-study-curriculum-test-coverage`へpushする。push後のPR headと必須CI確認はGitHub上のfile-changing lifecycleとして実施する。
+
 ## 2026-09-16 20:00 JST — W0反映後の通常verify再確認
 
 - `corepack pnpm install --frozen-lockfile`で本体worktreeの不足していた検証依存（`textlint`を含む）を復元した。tracked fileの追加変更はない。

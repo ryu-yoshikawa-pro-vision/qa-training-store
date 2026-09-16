@@ -38,7 +38,7 @@
 - 初学者が、講師向け資料や個別判断に頼らず、Common経路をP1-1からP1-9まで進められる。
 - P1-2で整理したリスクから複数のテストケースとテストレイヤーを考え、P1-3で選んだ代表ケースをP1-5のPlaywright実装、P1-6の失敗分析へ引き渡せる。P1-5では正常系、境界／異常系、明示的なSeed Scenario／Reset、状態変更、Desktop Web、受講者作成ExerciseのMobile Web実行、Workbookと実行結果の対応を維持し、代表ケース1件へ縮小しない。
 - 機械的な修了確認、実行時の証跡、自己確認、講師向け資料なしの受講者一巡確認を組み合わせ、理解と単なる実行成功を分離する。
-- 第2部（Part 2）では、第1部（Part 1）の成果物を正式なsource SHAをHEADに固定した教材用コピー（Training Copy）へ移し、prepareの既知の差分とmaterialize後の学習者差分を区別しながら、ブランチ作成 → コミット → プッシュ → PR → GitHub Actions → 成果物確認まで進められる。Training Copyを標準経路とし、利用できない場合は学習者自身のForkを代替経路として、同じ学習成果を求める。
+- 第2部（Part 2）では、第1部（Part 1）の成果物を正式なsource SHAをHEADに固定した教材用コピー（Training Copy）へ移し、prepareの既知の差分とmaterialize後の学習者差分を区別しながら、ブランチ作成 → コミット → プッシュ → PR → GitHub Actions → 成果物確認まで進められる。Git／GitHub基礎のブランチ・差分・PR学習では学習者自身のForkを利用できるが、C12を含むTraining CIとPart 2の最終修了はTraining Copyを正式経路とし、Forkを同等の修了経路へ読み替えない。
 
 ### 計画／実装完了時の完了条件
 
@@ -58,13 +58,13 @@
 
 - 本インデックスと5詳細ファイルの相互リンクが解決する。
 - 計画検証、Markdownのlint、カリキュラム検証、Trainingの型確認、関連する契約テスト、`git diff --check`、実行（Run）の収集／サニタイズが実行され、結果が進行中のRunへ記録される。
-- 今回はコミット、プッシュ、PR本文更新、マージ、実装を行わない。
+- 今回は実装、マージを行わない。Plan修正とactive Runの更新後、許可された差分だけをcommit／pushし、既存PR #157の最新headと必須CIを確認する。
 
 ## 2. 現状理解と前提
 
 ### 確認済みの事実
 
-- PR #157の再監査時点で、baseは`main` / `b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`、headは`feat/self-study-curriculum-test-coverage` / `6f8f004c6409acc8423609ab252eeeab3cf8f506`である。これは観測値であり、実装開始時のW0ではbase／headとorigin/mainを必ず再取得する。
+- 今回の修正開始時点で、baseは`main` / `b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`、headは`feat/self-study-curriculum-test-coverage` / `bbba1de2ebbdc0be990bc241c985e087ebcbc30d`である。これは観測値であり、実装開始時のW0とcommit／push前後にもbase／headとorigin/mainを再取得する。
 - 正本ワークブックには提供サンプル TC-CART-001/002があり、TC-CART-101等の学習者完成行はない。
 - 現在のTraining Web演習は既存の `training:web:exercise` から `training/playwright/exercises` 全体を対象にPlaywrightを実行し、`training/playwright/support/reset-scenario.ts`を提供している。提供開始用コードにはAssertionがないため、開始用コードだけ、基準実装だけ、またはsuite全体のPASSを学習者テストの実行成功とみなさない。明示的な実行記録はOwner回答済みの自動生成契約に従い、W0で既存経路から学習者作成コードの実行結果を識別・追跡できるかだけを確認する。
 - `validate:curriculum`、`typecheck:training`、Trainingワークフロー検証、既存の契約テストはリポジトリ側資材の整合性を確認する。受講者の理解や学習者差分を完全には確認しない。
@@ -98,13 +98,13 @@
 - TC-CART-101は代表縦断ケースであって唯一のケースではない。P1-3では複数ケースと複数レイヤーを設計し、少なくとも1つはUI E2E以外のレイヤーと理由を含める。
 - TC-CART-101等は学習者作成成果物であり、正本ワークブックへ事前投入しない。
 - エージェントはカリキュラム学習者に設定させず、リポジトリ開発時の既存エージェントを継承する。
-- Owner回答済みのW0確定事項は、Part 1の`source_sha`を任意とすること、Part 1とPart 2のrevision完全一致を要求しないこと、Training Copyを標準経路としForkを代替経路として同じ学習成果を求めること、学習者へ通常の書き込み・branch／push／PR／Run／Check／Artifact確認以上の管理権限を要求しないことである。実装開始時のW0ではこれらを再質問せず、最新実装・教材・ADR-0023が決定と矛盾しないことだけを確認する。詳細な契約と具体的な衝突時の停止条件は[詳細5](2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md)を正本とする。
+- Owner回答済みのW0確定事項は、Part 1の`source_sha`を任意とすること、Part 1とPart 2のrevision完全一致を要求しないこと、Git／GitHub基礎学習ではForkを利用できること、C12を含むTraining CIとPart 2最終修了ではTraining Copyを正式経路とすること、学習者へ通常の書き込み・branch／push／PR／Run／Check／Artifact確認以上の管理権限を要求しないことである。実装開始時のW0ではこれらを再質問せず、最新実装・教材・ADR-0023が決定と矛盾しないことだけを確認する。詳細な契約と具体的な衝突時の停止条件は[詳細5](2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md)を正本とする。
 
 ### 実装開始時のW0で確認する実装事項
 
 - 現行Playwright出力、既存Runner／Reporter、既存のケース対応情報を組み合わせて、実行後にExecution Receiptの機械的事実を自動生成できること。既存経路で成立せず、独立Runner、手書きReceipt、独自Manifest／Evidence URI、状態DBが必要になる場合は、詳細5の具体的な停止条件に従う。
 - 引き渡し一式の学習者コードを、既存Trainingワークフローが実行できるコピー内のパスへ安全に配置する最小方式。
-- GitHub Actions完了後の実行（Run）／確認（Check）／成果物（Artifact）の参照を、追加Token・追加Permissionなしで受講者が記録へ取り込む方法。Training Copyを標準経路、Forkを代替経路とし、両経路で成果と操作を揃える。
+- GitHub Actions完了後に受講者がブラウザーで確認した実行（Run）／確認（Check）／成果物（Artifact）の参照を、追加Token・追加Permissionなしで記録へ取り込む方法。ローカルの受講者向け修了確認は、記録された参照の形式・対応・存在を確認するが、GitHub上の最終状態や実在性をAPIなしで独立証明しない。C12／Part 2最終修了の正式経路はTraining Copyとする。
 - エージェントの自然終了、子コマンドのタイムアウト、読み取り専用／対象範囲／再帰的な委譲違反を、実際の作業ツリーを汚さず証明する方法。
 - コマンドのタイムアウト、プロセスツリー停止、watchdogの実装主体と証跡保存先。
 

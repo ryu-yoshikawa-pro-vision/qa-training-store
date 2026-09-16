@@ -194,13 +194,13 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
 | P1-08 | part1/08_test-management-and-maintainability.md | Common／Native復帰 | ［前レッスン］コード／失敗記録、［提供］既存資産 | 実際の重複・不安定さ（Flaky）・保守問題に対する最小改善、追跡情報更新、04_execution-improvement.csvの改善内容／再実行証跡 | P1-09へ改善理由と更新済み追跡情報 |
 | P1-09 | part1/09_part1-capstone.md | Common総合課題 | ［前レッスン］P1成果一式、［提供］評価基準 | 第1部（Part 1）のCommon成果、自己確認、引き渡し一式 | P2-01へ移行条件 |
 | P2-01 | part2/01_software-development-process.md | 第2部（Part 2） | ［前レッスン］Commonの引き渡し、［提供］プロセス資料 | 変更・検証・証跡のプロセス記録 | P2-02へ変更対象 |
-| P2-02 | part2/02_git-version-control.md | 第2部（Part 2） | ［前レッスン］P1引き渡し、［環境］正式なsource SHAをHEADにしたTraining Copy（標準）または学習者自身のFork（代替）。prepareの既知のprovisioning差分とmaterialize後の学習者差分は許容し、予期しないsource差分は除く | ブランチ／差分／コミット、既存の`training-copy-source.json`の確認 | P2-03へプッシュ可能なブランチ |
-| P2-03 | part2/03_github-pull-request-review.md | 第2部（Part 2） | ［前レッスン］ブランチ／リモート、［環境］学習者が書き込み可能なTraining Copy（標準）またはFork（代替）、GitHubアカウント／通常権限 | Training CopyまたはForkのPR、レビュー、確認（Check）参照 | P2-04へCI対象PR |
-| P2-04 | part2/04_ci-github-actions.md | 第2部（Part 2） | ［前レッスン］PR、［提供］Trainingワークフローのテンプレート | イベント／ジョブ／ステップ／権限の診断 | P2-05へワークフロー実行 |
-| P2-05 | part2/05_playwright-ci.md | 第2部（Part 2） | ［前レッスン］学習者spec／引き渡し、［提供］ワークフロー／コピー手順書 | PR、実行（Run）、確認（Check）、Playwright成果物（Artifact）、CI実行記録 | P2-07へWeb CI証跡 |
+| P2-02 | part2/02_git-version-control.md | 第2部（Part 2） | ［前レッスン］P1引き渡し、［環境］Git／GitHubの基礎学習では、学習者が書き込み可能なTraining Copyまたは自身のForkを利用できる。C12へ進む正式なTraining Copyのsource SHA確認は、この基礎学習用Forkへ要求しない | ブランチ／差分／コミット、利用した環境の記録 | P2-03へプッシュ可能なブランチ |
+| P2-03 | part2/03_github-pull-request-review.md | 第2部（Part 2） | ［前レッスン］ブランチ／リモート、［環境］Git／GitHub基礎学習では学習者が書き込み可能なTraining Copyまたは自身のFork、GitHubアカウント／通常権限。C12のCI対象PRへ進むときはTraining Copyへ切り替える | Git／GitHub基礎としてのPR、レビュー、確認（Check）参照。Fork上のこの成果をC12のTraining Copy証跡へ読み替えない | P2-04へ進むTraining CopyとCI対象PR |
+| P2-04 | part2/04_ci-github-actions.md | 第2部（Part 2） | ［前レッスン］Training Copy上のPR、［提供］Trainingワークフローのテンプレート、GitHub通常権限 | イベント／ジョブ／ステップ／権限の診断 | P2-05へTraining Copy上のワークフロー実行 |
+| P2-05 | part2/05_playwright-ci.md | 第2部（Part 2） | ［前レッスン］学習者spec／引き渡し、［提供］Training Copy上のワークフロー／コピー手順書 | Training Copy上のPR、実行（Run）、確認（Check）、Playwright成果物（Artifact）、CI実行記録 | P2-07へTraining Copy上のWeb CI証跡 |
 | P2-06 | part2/06_native-ci-maestro.md | Native（選択課程） | ［前レッスン］Native演習、［環境］Android実行環境（runner） | Androidビルド／エミュレーター／Maestro成果物（Artifact） | P2-07へスキップ／復帰 |
-| P2-07 | part2/07_ci-cd-quality-gates.md | 第2部（Part 2） | ［前レッスン］Web CI証跡、［提供］ゲート契約 | Web CIの必須確認（Check）、失敗時に通さない仕組み、成果物（Artifact）の読み方 | P2-08へゲート判断 |
-| P2-08 | part2/08_integration-design-capstone.md | 第2部総合課題 | ［前レッスン］P2証跡一式 | Web CI → ゲート → 成果物（Artifact） → 失敗理由の統合設計 | 完了記録／次の実務行動 |
+| P2-07 | part2/07_ci-cd-quality-gates.md | 第2部（Part 2） | ［前レッスン］Training Copy上のWeb CI証跡、［提供］ゲート契約 | Training Copy上のWeb CIの必須確認（Check）、失敗時に通さない仕組み、成果物（Artifact）の読み方 | P2-08へTraining Copy上のゲート判断 |
+| P2-08 | part2/08_integration-design-capstone.md | 第2部総合課題 | ［前レッスン］Training Copy上のP2証跡一式 | Training Copy上のWeb CI → ゲート → 成果物（Artifact） → 失敗理由の統合設計 | 完了記録／次の実務行動 |
 
 ## 5. ワークブック契約
 
@@ -235,12 +235,11 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
 
 ## 6. 引き渡し一式の契約
 
-引き渡し一式は、学習者の成果物を次レッスンまたは評価処理へ渡す境界である。LMS、学習者状態データベース、巨大な実行ランナー（runner）の代替にはしない。`handoff.json`は搬送・配置のための相対パスと対応情報を持つ一時的な入力Envelopeとして扱い、正本Workbook、独自Evidence URI／採点用Manifest、学習者専用の自動採点を追加する根拠にはしない。ADR-0023のGuardrailsに抵触する実装が必要になった場合は、詳細5の停止条件に従う。
+引き渡し一式は、学習者の成果物を次レッスンまたは評価処理へ渡す境界である。LMS、学習者状態データベース、巨大な実行ランナー（runner）の代替にはしない。評価時に受け取る`handoff-root/`の固定ディレクトリ構造と、既存Workbook／実行記録／証跡を使って成立させる。固定構造を補足する新しいJSON Manifest、sidecar metadata、独自Evidence URI、採点用Manifestは追加しない。ADR-0023のGuardrailsに抵触する実装が必要になった場合は、詳細5の停止条件に従う。
 
 最低構成:
 
     handoff-root/
-      handoff.json
       workbook/
         01_target-risk.csv
         02_test-cases.csv
@@ -251,27 +250,17 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
       receipts/
       self-check/
 
-`handoff.json`の必須項目は次である。
+固定構造の各ディレクトリは、次の既存成果物を受け取るための評価境界である。
 
-ここに`source_sha`は含めない。Part 1／CommonのHandoff、Execution Receipt、Completion Receiptへ`source_sha`を持たせる場合も、取得できた実値だけを保持する任意項目として扱う。
+- `workbook/`は受講者が書き出した既存4 CSVを置く。正本CSVへ完成答案を追加しない。
+- `code/`は受講者が作成したコードを置く。
+- `evidence/`は実際の実行結果を参照する人間可読な証跡を置く。
+- `receipts/`は実際に実行したExecution Receiptを置く。Completion Receiptは受講者向け修了確認が判定後に生成する出力である。
+- `self-check/`は受講者の自己確認を置き、機械確認は存在・安全な参照・ファイル種別までに限定する。
 
-- version
-- workbook_dir
-- code_paths
-- evidence_dir
-- execution_receipt_paths
-- self_check_paths
-- case_code_map
+ケース → 学習者コード → Execution Receiptの対応は、新しい対応表を作らず、W0で確認した既存の`Test Case ID`、Workbookに既にある`implementation_path`、Playwrightのテストタイトル（title）／注釈・メタデータ（annotation／metadata）、Receiptの`case_id`や既存参照を使って解決する。どの既存情報を正式に採用できるかは実装時W0で確認し、ファイル名や検証構文だけをケースIDの代わりに強制しない。既存情報だけでは安定した対応を作れない場合は、新しいManifestや対応表を追加せず、詳細5の停止条件へ戻る。
 
-`source_sha`の扱いは課程で分ける。Part 1／Commonでは任意項目とし、Git管理されたコピーで実際の40文字完全SHAを取得できる場合だけ記録する。ZIP等で`.git`がない場合は未設定のまま完了してよく、取得できないことをC01〜C07／C09〜C10の未達にせず、架空SHA、推測SHA、固定SHA、ダミーSHAを生成しない。この任意性は、Execution Receipt、Completion Receipt、`handoff.json`等に`source_sha`を持たせる場合も同じであり、Part 1／Commonのスキーマで必須にしない。Part 2では`training:copy:prepare`が要求する40文字の小文字完全SHAを正式値とし、`training-copy-source.json`／`training:copy:validate`へ接続する。Part 1の元ソースSHAとPart 2 Training Copyのsource SHAは独立した追跡値であり、同一revisionを要求しない。Part 1で判明しているSHAは追跡情報として利用してよいが、異なること自体をFAILにしない。`project`、`browser`、`viewport`、`seed`、`attempt`は既存の実行記録、`handoff.json`、または既存のsource metadataへ必要な範囲で記録する。新しい配置・採点用Manifestやrevision専用Manifestは追加しない。修了確認記録（Completion Receipt）は自動確認の必須入力ではなく、自動確認が判定後に生成する出力である。
-
-- `workbook_dir`は4つのCSVを参照する相対ディレクトリ。
-- `code_paths`は受講者のコードを参照する相対ファイルの配列。
-- `evidence_dir`は実際の証跡を参照する相対ディレクトリ。
-- `execution_receipt_paths`は実行済みの記録を参照する相対ファイルの配列。
-- `self_check_paths`は受講者が記述した自己確認を参照する相対ファイルの配列。機械確認は存在・パス・ファイル種別だけを扱い、理解の意味を自動採点しない。
-- `case_code_map`は評価対象ケースと学習者作成コード内の安定したテスト参照を結ぶ配列。各項目は少なくとも`case_id`、`code_path`、`test_ref`を持ち、`test_ref`は既存のテストタイトル（title）、注釈／メタデータ（annotation／metadata）、または`handoff.json`内の対応情報で表す。実装時W0では、既存の対応情報を利用できるかだけを確認し、独立・付随・採点用Manifestを追加しない。既存情報の結合でも対応を成立させられず、新しい追跡基盤が必要になる場合は詳細5の停止条件へ戻す。ファイル名や検証構文をケースIDの代わりに強制しない。
-- 引き渡し一式に完成答案の正本行を持ち込むのではなく、受講者が作った書き出しを評価境界として受け取る。
+`source_sha`の扱いは課程で分ける。Part 1／Commonでは任意項目とし、Git管理されたコピーで実際の40文字完全SHAを取得できる場合だけ記録する。ZIP等で`.git`がない場合は未設定のまま完了してよく、取得できないことをC01〜C07／C09〜C10の未達にせず、架空SHA、推測SHA、固定SHA、ダミーSHAを生成しない。Part 2では`training:copy:prepare`が要求する40文字の小文字完全SHAをTraining Copyの正式値とし、`training-copy-source.json`／`training:copy:validate`へ接続する。Part 1の元ソースSHAとPart 2 Training Copyのsource SHAは独立した追跡値であり、同一revisionを要求しない。Part 1で判明しているSHAは既存の実行記録等へ追跡情報として利用してよいが、異なること自体をFAILにしない。`project`、`browser`、`viewport`、`seed`、`attempt`は既存の実行記録または既存のsource metadataへ必要な範囲で記録する。新しい配置・採点用Manifestやrevision専用Manifestは追加しない。
 
 ## 7. 引き渡しパスの安全条件
 
@@ -280,12 +269,12 @@ P1-6は、意図的な失敗教材、決定的な診断教材、受講者自身�
 すべての参照パスについて、次を満たさなければINCOMPLETEまたはBLOCKEDとする。
 
 - 絶対パスを禁止する。Windowsドライブ、UNC、POSIXの絶対パス、file URLも拒否する。
-- 引き渡し一式のルートから相対パスとして正規化し、解決結果がルート外へ出ない。
+- `handoff-root/`直下の既知ディレクトリ（`workbook/`、`code/`、`evidence/`、`receipts/`、`self-check/`）だけを評価対象とし、ルートから相対パスとして正規化した解決結果がルート外へ出ない。
 - パス要素が完全一致で "." または ".." でないことを確認する。foo.spec.ts、data.csvのドットは許可する。
 - シンボリックリンクを解決した実体パスも一式のルート内にあり、ルート外へ向くシンボリックリンクを拒否する。
 - 参照先が存在し、期待するファイル／ディレクトリ種別であることを確認する。
-- `workbook_dir`配下に必要な4つのCSVが存在し、見出し、列、ID、追跡スキーマを検証する。
-- `code_paths`は想定するコード種別、`evidence_dir`はディレクトリ、`execution_receipt_paths`はJSONファイルとしてスキーマを検証する。
+- `workbook/`配下に必要な4つのCSVが存在し、見出し、列、ID、既存の追跡情報を検証する。
+- `code/`は想定する学習者コード、`evidence/`と`self-check/`はディレクトリ、`receipts/`配下のExecution ReceiptはJSONファイルとして検証する。Completion Receipt自身は入力に含めず、判定後の出力とする。
 - NULバイト、空パス、重複パス、引き渡し一式のルート自体をファイルとして渡す入力など、曖昧なパスを拒否する。
 
 実装時はパスを文字列の部分一致で安全判定せず、ルートと候補のrealpathを比較する。存在しないパスのrealpath失敗、シンボリックリンク解決失敗、スキーマ不一致をPASSへ補正しない。

@@ -24,6 +24,12 @@
 - [x] R7. Plan分割後のリンク、正本Workbook境界、実装write set、Part 2 materialize経路を再監査する。
 - [x] R8. Plan validator、lint、curriculum／Training確認、関連Contract Test、diff、Run collector／sanitizerを実行し、PASS／FAIL／未実行を分類する。
 - [x] R9. 検証結果と未確定事項をREPORTへ追記し、今回の変更範囲を最終確認する。
+- [x] R10. 最新main／PR headと既存契約を再確認し、残存3点の修正境界を確定する。
+- [x] R11. ForkをGit／GitHub基礎学習に限定し、C12／Training CI／Part 2最終修了をTraining Copyへ固定する。
+- [x] R12. 固定Handoff root、既存成果物、既存ケース対応を採用し、新しいManifest／対応表を計画から除去する。
+- [x] R13. ローカル修了確認の責務を構造・記録確認へ限定し、GitHub外部状態の独立証明を行わない境界を明記する。
+- [x] R14. Plan横断監査、必須validation、Run collector／sanitizerを実行し、結果をREPORTへ記録する。
+- [x] R15. commit／push前の許可差分、branch safety、既存PR #157の状態を確認し、push対象を確定する。
 
 ## 次の実装taskで行うこと
 
