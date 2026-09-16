@@ -1,0 +1,7 @@
+{"timestamp":"2026-09-14T21:37:58.6870392+09:00","event":"wrapper_start","run_id":"20260914-211509-JST","allow_search":false,"preset":"safe","codex_args":{"count":0,"preview":[]},"print_command":false,"rules":["10-readonly-allow.rules","20-risky-prompt.rules","30-destructive-forbidden.rules"],"skip_preflight":false,"preflight_only":false}
+{"timestamp":"2026-09-14T21:37:58.8010132+09:00","event":"preflight_start"}
+{"timestamp":"2026-09-14T21:38:02.3552046+09:00","event":"preflight_ok"}
+{"timestamp":"2026-09-14T21:38:02.3748276+09:00","event":"codex_exec_start","network_access_override":false,"final_args":{"count":0,"preview":[]},"cwd":"<REPO_ROOT>"}
+{"timestamp":"2026-09-14T21:38:04.8875789+09:00","event":"codex_exec_exit","exit_code":1}
+{"timestamp":"2026-09-14T21:38:04.8937249+09:00","event":"manifest_sync_start","run_id":"20260914-211509-JST"}
+{"timestamp":"2026-09-14T21:38:07.5026898+09:00","event":"manifest_sync_success","run_id":"20260914-211509-JST"}

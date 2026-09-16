@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { parse as parseToml } from "smol-toml";
 import { describe, expect, it } from "vitest";
 
 type PolicyCase = {
@@ -35,16 +36,102 @@ type ContextualEvaluation = {
 const repoRoot = path.resolve(process.cwd());
 const hookPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs");
 const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy_windows.ps1");
+const sessionStartHookPath = path.join(repoRoot, ".codex", "hooks", "session_start_context.mjs");
 const safePayload = JSON.stringify({
   tool_name: "Bash",
   tool_input: { command: "git status --short" },
 });
 
-function runNodeHook(payload: string, cwd = repoRoot): HookResult {
+type TomlRecord = Record<string, unknown>;
+
+function asTomlRecord(value: unknown, context: string): TomlRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`expected TOML table: ${context}`);
+  }
+  return value as TomlRecord;
+}
+
+function asTomlRecords(value: unknown, context: string): TomlRecord[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`expected TOML array of tables: ${context}`);
+  }
+  return value.map((item, index) => asTomlRecord(item, `${context}[${index}]`));
+}
+
+function readCodexConfig(): TomlRecord {
+  return asTomlRecord(
+    parseToml(fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8")),
+    "root",
+  );
+}
+
+function hookGroups(config: TomlRecord, event: string) {
+  const hooks = asTomlRecord(config.hooks, "hooks");
+  return asTomlRecords(hooks[event], `hooks.${event}`);
+}
+
+function hookEntries(config: TomlRecord, event: string) {
+  return hookGroups(config, event).flatMap((group, index) =>
+    asTomlRecords(group.hooks, `hooks.${event}[${index}].hooks`),
+  );
+}
+
+function commandForHook(entry: TomlRecord, field: "command" | "command_windows", event: string) {
+  if (entry.type !== "command" || typeof entry[field] !== "string") {
+    throw new Error(`missing ${field} command for ${event}`);
+  }
+  return entry[field] as string;
+}
+
+function decodeWindowsPowerShellCommand(command: string, event: string) {
+  const prefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ";
+  const suffix = command.endsWith(" 2>NUL") ? " 2>NUL" : "";
+  if (!command.startsWith(prefix)) {
+    throw new Error(`unexpected Windows command for ${event}`);
+  }
+  const encoded = command.slice(prefix.length, command.length - suffix.length);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) {
+    throw new Error(`invalid Windows EncodedCommand for ${event}`);
+  }
+  return Buffer.from(encoded, "base64").toString("utf16le");
+}
+
+function hookEntryForScript(config: TomlRecord, event: string, scriptName: string) {
+  const entry = hookEntries(config, event).find(
+    (candidate) =>
+      candidate.type === "command" &&
+      typeof candidate.command === "string" &&
+      candidate.command.includes(scriptName),
+  );
+  if (!entry) throw new Error(`missing ${scriptName} Hook for ${event}`);
+  return entry;
+}
+
+function runNodeHook(payload: string, cwd = repoRoot, timeout = 30_000): HookResult {
   const result = spawnSync(process.execPath, [hookPath], {
     cwd,
     encoding: "utf8",
     input: payload,
+    timeout,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+function runSessionStartHook(
+  payload: string,
+  cwd = repoRoot,
+  hook = sessionStartHookPath,
+  timeout = 30_000,
+): HookResult {
+  const result = spawnSync(process.execPath, [hook], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+    timeout,
   });
   return {
     status: result.status ?? -1,
@@ -112,8 +199,25 @@ function makeGitFixture(copyHook = true) {
   return root;
 }
 
+function makeSessionFixture(agents = "# Fixture AGENTS\n日本語\n") {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex session hook 空白-"));
+  fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
+  fs.copyFileSync(
+    sessionStartHookPath,
+    path.join(root, ".codex", "hooks", "session_start_context.mjs"),
+  );
+  fs.writeFileSync(path.join(root, "AGENTS.md"), agents, "utf8");
+  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe" });
+  return root;
+}
+
 function removeFixture(root: string) {
   fs.rmSync(root, { force: true, recursive: true });
+}
+
+function removeFixtureFile(filePath: string) {
+  fs.rmSync(filePath, { force: true });
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
 function setFixtureBranch(root: string, branch: string) {
@@ -142,14 +246,164 @@ function addGitC(command: string) {
 
 describe("Codex PreToolUse/Bash Node Hook contract", () => {
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
-    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
+    const config = readCodexConfig();
+    const features = asTomlRecord(config.features, "features");
+    const safetyGroups = hookGroups(config, "PreToolUse");
+    const safetyGroup = safetyGroups.find((group) => group.matcher === "^Bash$");
 
-    expect(config).toContain("hooks = true");
-    expect(config).toContain('matcher = "^Bash$"');
-    expect(config).toContain("command_windows");
-    expect(config).not.toContain("apply_patch");
-    expect(config).not.toContain("pre_tool_use_policy.ps1");
-    expect(config).not.toContain("pre_tool_use_policy.py");
+    expect(features.hooks).toBe(true);
+    expect(safetyGroups).toHaveLength(1);
+    expect(safetyGroup).toBeDefined();
+    if (!safetyGroup) throw new Error("missing Bash safety Hook group");
+    expect(safetyGroup.matcher).toBe("^Bash$");
+    const safetyEntries = asTomlRecords(safetyGroup.hooks, "hooks.PreToolUse[0].hooks");
+    expect(safetyEntries).toHaveLength(1);
+    const safetyEntry = safetyEntries[0];
+    if (!safetyEntry) throw new Error("missing Bash safety Hook entry");
+    expect(commandForHook(safetyEntry, "command", "PreToolUse")).toContain(
+      "pre_tool_use_policy.mjs",
+    );
+    const windowsSafetyCommand = commandForHook(safetyEntry, "command_windows", "PreToolUse");
+    const windowsSafetyScript = decodeWindowsPowerShellCommand(windowsSafetyCommand, "PreToolUse");
+    expect(windowsSafetyScript).toContain("pre_tool_use_policy_windows.ps1");
+    expect(windowsSafetyScript).toContain("git rev-parse --show-toplevel");
+    expect(windowsSafetyCommand).not.toContain('"');
+    expect(safetyEntry.timeout).toBe(30);
+    expect(fs.existsSync(sessionStartHookPath)).toBe(true);
+    const sessionGroups = hookGroups(config, "SessionStart");
+    expect(sessionGroups).toHaveLength(1);
+    const sessionGroup = sessionGroups[0];
+    if (!sessionGroup) throw new Error("missing SessionStart matcher group");
+    expect(sessionGroup.matcher).toBe("^compact$");
+    const sessionEntries = asTomlRecords(sessionGroup.hooks, "hooks.SessionStart[0].hooks");
+    expect(sessionEntries).toHaveLength(1);
+    const sessionEntry = sessionEntries[0];
+    if (!sessionEntry) throw new Error("missing SessionStart Hook entry");
+    expect(sessionEntry.type).toBe("command");
+    expect(commandForHook(sessionEntry, "command", "SessionStart")).toContain(
+      "session_start_context.mjs",
+    );
+    expect(sessionEntry.additionalContextLimit).toBe(4096);
+    expect(sessionEntry.timeout).toBe(10);
+    const sessionWindowsCommand = commandForHook(sessionEntry, "command_windows", "SessionStart");
+    const sessionWindowsScript = decodeWindowsPowerShellCommand(
+      sessionWindowsCommand,
+      "SessionStart",
+    );
+    expect(sessionWindowsScript).toContain("session_start_context.mjs");
+    expect(sessionWindowsScript).toContain('"continue":false');
+    expect(sessionWindowsScript).toContain("Hook launcher failure");
+    expect(sessionWindowsScript).not.toContain("exit 2");
+    expect(sessionWindowsCommand).not.toContain('"');
+
+    for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
+      expect(hookGroups(config, event), event).toHaveLength(1);
+      expect(hookEntries(config, event), event).toHaveLength(2);
+    }
+
+    const serializedConfig = JSON.stringify(config);
+    expect(serializedConfig).not.toContain("apply_patch");
+    expect(serializedConfig).not.toContain("pre_tool_use_policy.ps1");
+    expect(serializedConfig).not.toContain("pre_tool_use_policy.py");
+  });
+
+  it("validates text quality and logging Hook structure from parsed TOML", () => {
+    const config = readCodexConfig();
+    const qualityScript = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+    const loggingScript = path.join(repoRoot, ".codex", "hooks", "log_event.mjs");
+
+    expect(fs.existsSync(qualityScript)).toBe(true);
+    expect(fs.existsSync(loggingScript)).toBe(true);
+    for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
+      const groups = hookGroups(config, event);
+      const entries = hookEntries(config, event);
+      const qualityEntry = hookEntryForScript(config, event, "text_quality_gate.mjs");
+      const loggingEntry = hookEntryForScript(config, event, "log_event.mjs");
+      const qualityGroup = groups.find((group) => {
+        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
+        return groupEntries.includes(qualityEntry);
+      });
+      const loggingGroup = groups.find((group) => {
+        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
+        return groupEntries.includes(loggingEntry);
+      });
+
+      expect(entries).toHaveLength(2);
+      expect(qualityEntry).not.toBe(loggingEntry);
+      expect(qualityGroup).toBeDefined();
+      expect(loggingGroup).toBeDefined();
+      if (!qualityGroup || !loggingGroup) throw new Error(`missing Hook group for ${event}`);
+      expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
+      expect(Object.hasOwn(loggingGroup, "matcher"), event).toBe(false);
+
+      for (const [entry, scriptName] of [
+        [qualityEntry, "text_quality_gate.mjs"],
+        [loggingEntry, "log_event.mjs"],
+      ] as const) {
+        expect(entry.type, event).toBe("command");
+        expect(commandForHook(entry, "command", event)).toContain(scriptName);
+        const windowsScript = decodeWindowsPowerShellCommand(
+          commandForHook(entry, "command_windows", event),
+          `${event} ${scriptName}`,
+        );
+        expect(windowsScript).toContain(scriptName);
+        if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
+          expect(commandForHook(entry, "command", event)).toContain(
+            `active_diagnostic='{\"continue\":true,\"systemMessage\":\"Codex text quality hook: Stop launcher unavailable\"}'`,
+          );
+          expect(commandForHook(entry, "command", event)).toContain(
+            `printf '%s\\n' \"$active_diagnostic\"`,
+          );
+          expect(commandForHook(entry, "command", event)).toContain("CODEX_QUALITY_REPO_ROOT");
+          expect(commandForHook(entry, "command", event)).toContain("fs.readdirSync");
+          expect(commandForHook(entry, "command", event)).toContain("fs.unlinkSync");
+          expect(commandForHook(entry, "command", event)).toContain("hashlib.sha256");
+          expect(commandForHook(entry, "command", event)).toContain("os.listdir");
+          expect(windowsScript).toContain(
+            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
+          );
+          expect(windowsScript).toContain(
+            `$activeDiagnostic = '{"continue":true,"systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
+          );
+          expect(windowsScript).toContain("ConvertFrom-Json");
+          expect(windowsScript).toContain("stop_hook_active");
+          expect(windowsScript).toContain("[Console]::Write($activeDiagnostic)");
+          expect(windowsScript).toContain("[Console]::Write($fallback)");
+          expect(windowsScript).toContain("[System.Security.Cryptography.SHA256]::Create()");
+          expect(windowsScript).toContain("Get-ChildItem -LiteralPath $stateDirectory -File");
+          expect(windowsScript).toContain("-LiteralPath $_.FullName -Force -ErrorAction Stop");
+          expect(windowsScript).toContain(
+            'EndsWith("-$sessionHash.json", [StringComparison]::OrdinalIgnoreCase)',
+          );
+        }
+        if (
+          (event === "UserPromptSubmit" || event === "PostToolUse") &&
+          scriptName === "text_quality_gate.mjs"
+        ) {
+          expect(commandForHook(entry, "command", event)).toContain(
+            `${event} launcher unavailable`,
+          );
+          expect(commandForHook(entry, "command", event)).not.toContain("|| true");
+          expect(commandForHook(entry, "command_windows", event)).not.toContain(" 2>NUL");
+          expect(windowsScript).toContain(`${event} launcher unavailable`);
+        }
+        expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
+      }
+    }
+  });
+
+  it("accepts a large Bash command at the Node process boundary", () => {
+    const command = `echo ${"x".repeat(64 * 1024)}`;
+    const result = runNodeHook(
+      JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+      repoRoot,
+      30_000,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+    expect(result.stderr).not.toContain(command);
   });
 
   it.each([
@@ -662,6 +916,7 @@ function runLoggingHook(
     cwd,
     encoding: "utf8",
     input: payload,
+    timeout: 30_000,
   });
   return {
     status: result.status ?? -1,
@@ -708,45 +963,13 @@ function readLoggingRecords(logPath: string) {
     .map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 
-function loggingConfigBlock(marker: string) {
-  const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-  const start = config.indexOf(marker);
-  if (start < 0) {
-    throw new Error(`missing config marker: ${marker}`);
-  }
-  const remainder = config.slice(start + marker.length);
-  const next = remainder.search(/\n\[\[hooks\./);
-  return config.slice(start, next < 0 ? config.length : start + marker.length + next);
-}
-
 type LoggingLauncher = "unix" | "windows";
-
-function parseTomlString(value: string, field: string, event: string) {
-  if (value.startsWith("'") && value.endsWith("'")) {
-    return value.slice(1, -1);
-  }
-
-  if (value.startsWith('"') && value.endsWith('"')) {
-    return JSON.parse(value) as string;
-  }
-
-  throw new Error(`expected TOML string for ${field} ${event}`);
-}
 
 function hookCommandFor(event: "PreToolUse" | LoggingEvent, launcher: LoggingLauncher) {
   const field = launcher === "unix" ? "command" : "command_windows";
-  const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
-  const line = block.split(/\r?\n/).find((candidate) => candidate.startsWith(`${field} = `));
-  if (!line) {
-    throw new Error(`missing ${field} for ${event}`);
-  }
-
-  const value = line.slice(`${field} = `.length).trim();
-  if (launcher === "unix") {
-    return JSON.parse(value) as string;
-  }
-
-  return parseTomlString(value, field, event);
+  const config = readCodexConfig();
+  const scriptName = event === "PreToolUse" ? "pre_tool_use_policy.mjs" : "log_event.mjs";
+  return commandForHook(hookEntryForScript(config, event, scriptName), field, event);
 }
 
 function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
@@ -780,6 +1003,376 @@ function runConfiguredWindowsCommand(
     stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
   };
 }
+
+function sessionStartCommandFor(launcher: LoggingLauncher) {
+  const field = launcher === "unix" ? "command" : "command_windows";
+  const config = readCodexConfig();
+  return commandForHook(
+    hookEntryForScript(config, "SessionStart", "session_start_context.mjs"),
+    field,
+    "SessionStart",
+  );
+}
+
+function sessionStartPayload(source = "compact", extra: Record<string, unknown> = {}) {
+  return JSON.stringify({
+    session_id: "contract-session-start",
+    transcript_path: null,
+    cwd: repoRoot,
+    hook_event_name: "SessionStart",
+    model: "contract-model",
+    permission_mode: "default",
+    source,
+    ...extra,
+  });
+}
+
+function runConfiguredSessionStartHook(
+  payload: string,
+  launcher: LoggingLauncher,
+  cwd: string,
+): HookResult {
+  const command = sessionStartCommandFor(launcher);
+  if (launcher === "windows") {
+    return runConfiguredWindowsCommand(command, payload, cwd);
+  }
+
+  const result = spawnSync("sh", ["-c", command], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+function expectSessionStartLauncherFailure(result: HookResult, forbidden: string[]) {
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  const output = JSON.parse(result.stdout) as {
+    continue?: boolean;
+    stopReason?: string;
+  };
+  expect(output).toEqual({
+    continue: false,
+    stopReason: "compact後の必須指示を再注入できませんでした: Hook launcher failure",
+  });
+  for (const value of forbidden) {
+    expect(result.stdout).not.toContain(value);
+    expect(result.stderr).not.toContain(value);
+    expect(output.stopReason).not.toContain(value);
+  }
+}
+
+describe("Codex SessionStart compact context Hook contract", () => {
+  it("returns the complete root AGENTS.md with the SessionStart structured shape", () => {
+    const agentsPath = path.join(repoRoot, "AGENTS.md");
+    const expectedContext = fs.readFileSync(agentsPath, "utf8");
+    const result = runSessionStartHook(sessionStartPayload(), path.join(repoRoot, "docs"));
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const output = JSON.parse(result.stdout) as {
+      hookSpecificOutput?: {
+        hookEventName?: string;
+        additionalContext?: string;
+      };
+    };
+    expect(output).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: expectedContext,
+      },
+    });
+    expect(Buffer.byteLength(output.hookSpecificOutput?.additionalContext ?? "", "utf8")).toBe(
+      fs.statSync(agentsPath).size,
+    );
+  });
+
+  it.each(["startup", "resume", "clear"])(
+    "does not emit context for non-compact source %s",
+    (source) => {
+      const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-noncompact-"));
+      try {
+        const result = runSessionStartHook(sessionStartPayload(source), nonRepository);
+
+        expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
+      } finally {
+        removeFixture(nonRepository);
+      }
+    },
+  );
+
+  it("preserves UTF-8, quotes, backslashes, and newlines through JSON output", () => {
+    const agents = '# "quoted"\n\\backslash\n日本語の指示\n改行\n';
+    const fixture = makeSessionFixture(agents);
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runSessionStartHook(sessionStartPayload(), nested);
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("uses the explicit context limit with a margin over the actual root file estimate", () => {
+    const entry = hookEntryForScript(
+      readCodexConfig(),
+      "SessionStart",
+      "session_start_context.mjs",
+    );
+    const agentsBytes = fs.statSync(path.join(repoRoot, "AGENTS.md")).size;
+    const limit = entry.additionalContextLimit;
+
+    expect(typeof limit).toBe("number");
+    expect(Number.isInteger(limit)).toBe(true);
+    expect(limit).toBe(4096);
+    expect(limit as number).toBeGreaterThanOrEqual(Math.ceil(agentsBytes / 4));
+  });
+
+  it.each([
+    "",
+    "{",
+    "null",
+    "[]",
+    "{}",
+    '{"hook_event_name":"SessionStart"}',
+    '{"hook_event_name":"Other","source":"compact","token":"super-secret-token","cwd":"C:\\\\secret\\\\path"}',
+  ])("fails closed with structured output for malformed input: %j", (payload) => {
+    const result = runSessionStartHook(payload);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const output = JSON.parse(result.stdout) as {
+      continue?: boolean;
+      stopReason?: string;
+      hookSpecificOutput?: unknown;
+    };
+    expect(output.continue).toBe(false);
+    expect(output.hookSpecificOutput).toBeUndefined();
+    expect(output.stopReason).toMatch(/^compact後の必須指示を再注入できませんでした:/);
+    expect(output.stopReason).not.toContain("super-secret-token");
+    expect(output.stopReason).not.toContain(repoRoot);
+  });
+
+  it("fails closed without exposing the cwd when repository root resolution fails", () => {
+    const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-not-repo-"));
+    try {
+      const result = runSessionStartHook(sessionStartPayload(), nonRepository);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("repository root解決失敗");
+      expect(output.stopReason).not.toContain(nonRepository);
+    } finally {
+      removeFixture(nonRepository);
+    }
+  });
+
+  it("fails closed when root AGENTS.md is missing", () => {
+    const fixture = makeSessionFixture();
+    const agentsPath = path.join(fixture, "AGENTS.md");
+    try {
+      removeFixtureFile(agentsPath);
+      const result = runSessionStartHook(sessionStartPayload(), fixture);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("root AGENTS.md欠落");
+      expect(output.stopReason).not.toContain(fixture);
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("fails closed when root AGENTS.md cannot be read", () => {
+    const fixture = makeSessionFixture();
+    const agentsPath = path.join(fixture, "AGENTS.md");
+    try {
+      removeFixtureFile(agentsPath);
+      fs.mkdirSync(agentsPath);
+      const result = runSessionStartHook(sessionStartPayload(), fixture);
+      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(output.continue).toBe(false);
+      expect(output.stopReason).toContain("root AGENTS.md read失敗");
+      expect(output.stopReason).not.toContain(fixture);
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("fails non-zero if both SessionStart structured output writes fail", () => {
+    const source = fs.readFileSync(sessionStartHookPath, "utf8");
+
+    expect(source).toContain("structured output生成失敗");
+    expect(source).toContain("continue: false");
+    expect(source).toContain("process.exitCode = 2;");
+    expect(source).not.toContain("process.exitCode = 0;");
+  });
+
+  it("executes the configured Unix launcher from a nested cwd", () => {
+    if (process.platform === "win32") return;
+
+    const agents = "# Unix launcher fixture\n日本語\n";
+    const fixture = makeSessionFixture(agents);
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runConfiguredSessionStartHook(sessionStartPayload(), "unix", nested);
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("executes the configured Windows launcher from a nested cwd", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = fs.mkdtempSync(path.join(repoRoot, "codex session Windows 空白-"));
+    const nested = path.join(fixture, "nested", "working directory");
+    fs.mkdirSync(nested, { recursive: true });
+    try {
+      const result = runConfiguredSessionStartHook(sessionStartPayload(), "windows", nested);
+      const agents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(JSON.parse(result.stdout)).toEqual({
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: agents,
+        },
+      });
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 30_000);
+
+  it("converges configured Unix launcher failures to structured fail-close output", () => {
+    if (process.platform === "win32") return;
+
+    const fixture = makeSessionFixture("# Unix launcher failure fixture\n日本語\n");
+    const secretPayload = sessionStartPayload("compact", {
+      prompt: "session launcher prompt",
+      token: "session-token",
+      secret: "session-secret",
+    });
+    try {
+      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
+      removeFixtureFile(hookPath);
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
+        [fixture, "session launcher prompt", "session-token", "session-secret"],
+      );
+
+      fs.writeFileSync(
+        hookPath,
+        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
+        "utf8",
+      );
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
+        [fixture, "session-path", "session-token", "session-secret"],
+      );
+
+      const nonRepository = fs.mkdtempSync(
+        path.join(os.tmpdir(), "codex-session-unix-launcher-failure-"),
+      );
+      try {
+        const rootFailurePayload = sessionStartPayload("compact", {
+          cwd: nonRepository,
+          prompt: "root failure prompt",
+          token: "root-failure-token",
+          secret: "root-failure-secret",
+        });
+        expectSessionStartLauncherFailure(
+          runConfiguredSessionStartHook(rootFailurePayload, "unix", nonRepository),
+          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
+        );
+      } finally {
+        removeFixture(nonRepository);
+      }
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 30_000);
+
+  it("converges configured Windows launcher failures to structured fail-close output", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = makeSessionFixture("# Windows launcher failure fixture\n日本語\n");
+    const secretPayload = sessionStartPayload("compact", {
+      prompt: "session launcher prompt",
+      token: "session-token",
+      secret: "session-secret",
+    });
+    try {
+      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
+      removeFixtureFile(hookPath);
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
+        [fixture, "session launcher prompt", "session-token", "session-secret"],
+      );
+
+      fs.writeFileSync(
+        hookPath,
+        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
+        "utf8",
+      );
+      expectSessionStartLauncherFailure(
+        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
+        [fixture, "session-path", "session-token", "session-secret"],
+      );
+
+      const nonRepository = fs.mkdtempSync(
+        path.join(os.tmpdir(), "codex-session-windows-launcher-failure-"),
+      );
+      try {
+        const rootFailurePayload = sessionStartPayload("compact", {
+          cwd: nonRepository,
+          prompt: "root failure prompt",
+          token: "root-failure-token",
+          secret: "root-failure-secret",
+        });
+        expectSessionStartLauncherFailure(
+          runConfiguredSessionStartHook(rootFailurePayload, "windows", nonRepository),
+          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
+        );
+      } finally {
+        removeFixture(nonRepository);
+      }
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 30_000);
+});
 
 function runConfiguredLoggingHook(
   event: LoggingEvent,
@@ -815,40 +1408,45 @@ function makeLoggingPayload(event: LoggingEvent, sessionId: string) {
 
 describe("Codex logging Hook contract", () => {
   it("separates the Bash Safety Hook from five matcher-free logging Hooks", () => {
-    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-    const safetyStart = config.indexOf("[[hooks.PreToolUse]]");
-    const firstLoggingStart = config.indexOf("[[hooks.UserPromptSubmit]]");
-    const safetyBlock = config.slice(safetyStart, firstLoggingStart);
-
-    expect(safetyStart).toBeGreaterThanOrEqual(0);
-    expect(firstLoggingStart).toBeGreaterThan(safetyStart);
-    expect(safetyBlock).toContain('matcher = "^Bash$"');
-    expect(safetyBlock).toContain("timeout = 30");
-    expect(safetyBlock).toContain("pre_tool_use_policy.mjs");
+    const config = readCodexConfig();
+    const safetyGroup = hookGroups(config, "PreToolUse")[0];
+    if (!safetyGroup) throw new Error("missing Bash safety Hook group");
+    const safetyEntry = asTomlRecords(safetyGroup.hooks, "hooks.PreToolUse[0].hooks")[0];
+    if (!safetyEntry) throw new Error("missing Bash safety Hook entry");
+    expect(safetyGroup.matcher).toBe("^Bash$");
+    expect(safetyEntry.timeout).toBe(30);
+    expect(commandForHook(safetyEntry, "command", "PreToolUse")).toContain(
+      "pre_tool_use_policy.mjs",
+    );
 
     for (const event of loggingEvents) {
-      const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
-      expect(block).not.toContain("matcher");
-      expect(block).toContain("timeout = 10");
-      expect(block).toContain("git rev-parse --show-toplevel");
-      expect(block).toContain("log_event.mjs");
-      expect(block).toContain("command -v node");
-      expect(block).toContain("[ -f");
-      expect(block).toMatch(/\|\| (?:true|printf '\{\}')/);
-      expect(block).toContain("command_windows =");
-      expect(block).toContain("cmd.exe /D /Q /S /C");
-      expect(block).toContain("for /f");
-      expect(block).toContain("2^>NUL");
+      const groups = hookGroups(config, event);
+      const loggingEntry = hookEntryForScript(config, event, "log_event.mjs");
+      const loggingGroup = groups.find((group) =>
+        asTomlRecords(group.hooks, `hooks.${event}.hooks`).includes(loggingEntry),
+      );
+      if (!loggingGroup) throw new Error(`missing logging Hook group for ${event}`);
+      const command = commandForHook(loggingEntry, "command", event);
+      expect(Object.hasOwn(loggingGroup, "matcher")).toBe(false);
+      expect(loggingEntry.type).toBe("command");
+      expect(loggingEntry.timeout).toBe(10);
+      expect(command).toContain("git rev-parse --show-toplevel");
+      expect(command).toContain("log_event.mjs");
+      expect(command).toContain("command -v node");
+      expect(command).toContain("[ -f");
+      expect(command).toMatch(/\|\| (?:true|printf '\{\}')/);
       const windowsCommand = loggingCommandFor(event, "windows");
-      expect(windowsCommand).toContain("cmd.exe /D /Q /S /C");
-      expect(windowsCommand).toContain("for /f");
-      expect(windowsCommand).toContain("git rev-parse --show-toplevel 2^>NUL");
+      const windowsScript = decodeWindowsPowerShellCommand(windowsCommand, event);
+      expect(windowsScript).toContain("Join-Path");
+      expect(windowsScript).toContain("git rev-parse --show-toplevel");
+      expect(windowsCommand).not.toContain('"');
       if (event === "SubagentStop" || event === "Stop") {
-        expect(windowsCommand).toContain("-EncodedCommand");
+        expect(windowsScript).toContain("[Console]::Write('{}')");
       } else {
-        expect(windowsCommand).toContain("exit 0");
+        expect(windowsScript).toContain("Get-Command node");
       }
-      expect(windowsCommand).toContain(`log_event.mjs\" ${event}`);
+      expect(windowsScript).toContain("log_event.mjs");
+      expect(windowsScript).toContain(`node $p ${event}`);
     }
   });
 
@@ -858,10 +1456,10 @@ describe("Codex logging Hook contract", () => {
     for (const event of loggingEvents) {
       const command = loggingCommandFor(event, "windows");
 
-      expect(command).toContain("cmd.exe /D /Q /S /C");
-      expect(command).toContain("for /f");
-      expect(command).toContain("2^>NUL");
-      expect(command).not.toContain("$(git rev-parse");
+      const script = decodeWindowsPowerShellCommand(command, event);
+      expect(script).toContain("Join-Path");
+      expect(script).toContain("git rev-parse --show-toplevel");
+      expect(command).not.toContain('"');
     }
   });
 
@@ -1030,7 +1628,7 @@ describe("Codex logging Hook contract", () => {
   it("truncates prompt, generic tool input, and final-message previews at 2000 characters", () => {
     withLoggingSession("truncation", (sessionId, logPath) => {
       const longText = "x".repeat(2100);
-      const cases: Array<[LoggingEvent, Record<string, unknown>]> = [
+      const cases: [LoggingEvent, Record<string, unknown>][] = [
         ["UserPromptSubmit", { prompt: longText }],
         [
           "PostToolUse",
@@ -1061,6 +1659,38 @@ describe("Codex logging Hook contract", () => {
       expect(records.every((record) => record.truncated === true)).toBe(true);
     });
   });
+
+  it("keeps large logging input bounded at the child-process boundary", () => {
+    withLoggingSession("large-input", (sessionId, logPath) => {
+      const tailMarker = "large-input-tail-marker-9f0c";
+      const longText = `${"x".repeat(64 * 1024)} ${tailMarker} token=large-token-secret secret=large-secret password=large-password`;
+      const cases: [LoggingEvent, Record<string, unknown>][] = [
+        ["UserPromptSubmit", { prompt: longText }],
+        ["PostToolUse", { tool_name: "Bash", tool_input: { command: longText } }],
+      ];
+
+      for (const [event, fields] of cases) {
+        const result = runLoggingHook(
+          event,
+          JSON.stringify({ ...makeLoggingPayload(event, sessionId), ...fields }),
+        );
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toBe(loggingOutputFor(event));
+        expect(result.stderr).toBe("");
+      }
+
+      const records = readLoggingRecords(logPath);
+      expect(records).toHaveLength(cases.length);
+      expect(records[0]?.prompt).toHaveLength(2000);
+      expect(records[1]?.tool_input_preview).toHaveLength(2000);
+      expect(records.every((record) => record.truncated === true)).toBe(true);
+      const serialized = fs.readFileSync(logPath, "utf8");
+      expect(serialized).not.toContain(tailMarker);
+      expect(serialized).not.toContain("large-token-secret");
+      expect(serialized).not.toContain("large-secret");
+      expect(serialized).not.toContain("large-password");
+    });
+  }, 30_000);
 
   it("resolves its output from the logger location when launched from a repository subdirectory", () => {
     withLoggingSession("subdirectory", (sessionId, logPath) => {
@@ -2652,9 +3282,10 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     if (process.platform !== "win32") return;
 
     const command = hookCommandFor("PreToolUse", "windows");
-    expect(command).toContain("cmd.exe /D /Q /S /C");
-    expect(command).toContain("pre_tool_use_policy_windows.ps1");
-    expect(command).toContain("git rev-parse --show-toplevel");
+    const script = decodeWindowsPowerShellCommand(command, "PreToolUse");
+    expect(script).toContain("pre_tool_use_policy_windows.ps1");
+    expect(script).toContain("git rev-parse --show-toplevel");
+    expect(command).not.toContain('"');
 
     for (const shell of ["cmd", "pwsh"] as const) {
       for (const cwd of [repoRoot, path.join(repoRoot, "docs")]) {

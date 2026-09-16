@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "run_id": "20260914-184603-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "auto-net",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/config.toml",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/reference/codex-safety-harness.md",
+    "tests/contracts/codex-hook-contract.test.ts",
+    "tests/contracts/codex-text-quality.test.ts",
+    ".codex/hooks/session_start_context.mjs",
+    "docs/history/2026-09-14_190256_issue-134-compact-session-start.md"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": false
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}
