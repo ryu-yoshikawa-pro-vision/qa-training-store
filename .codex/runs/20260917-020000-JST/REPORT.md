@@ -152,3 +152,14 @@
 - 判断 / 理由: `inactive Stop + missing state -> block`、stateが存在するcorrupt JSON / root-session identity mismatch / schema-status不正のdiagnostic境界、PostToolUse、UserPromptSubmit、launcher failureを変更していない。観測された`Stop(false) -> cleanup -> Stop(true)`と、履歴を検証しない一般契約であるactive Stop + state不存在を区別して記録した。
 - ブロッカー / 残作業: repository側の契約修正と必要な回帰test、ADR、既存検証、最新CIは完了した。PR #161はOPEN、base変更・rebase・force push・merge・Issue close・PR close・branch削除は行っていない。
 - Progress: 100% (8/8)
+
+## 2026-09-17 13:57 (JST)
+
+- Summary: PR #160がsquash mergeされた後に履歴が分岐し、PR #161で発生していた競合を解消した。`origin/main`を`fix/codex-text-quality-duplicate-stop`へ通常mergeし、merge commit `4482d74296a8091aa19915112c7e1621d88c7e83`を作成した。
+- Changes: 競合は`.codex/runs/20260916-224516-JST/REPORT.md`だけだったため、#160最終checkpointを含む`origin/main`側の内容を維持した。#160由来のRun/Plan、`docs/plans/2026-09-16_224856_issue-159-windows-launcher-contract-timeout.md`、`tests/contracts/codex-hook-contract.test.ts`は`origin/main...HEAD`のPR #161差分から消え、timeout `30000ms`／`90000ms`の巻き戻しもない。
+- 判断 / 理由: merge後のPR #161固有差分は`.codex/hooks/text_quality_gate.mjs`、`.codex/runs/20260917-020000-JST/REPORT.md`、`.codex/runs/20260917-020000-JST/TASKS.md`、`.codex/runs/20260917-020000-JST/run.json`、`docs/adr/0026-codex-text-quality-gate.md`、`tests/contracts/codex-text-quality.test.ts`の6項目だけである。active Stop + state path不存在のstructured allow、inactive Stop、stateが存在する異常、PostToolUse／UserPromptSubmit／launcher failureの境界は維持した。
+- Validation: focusedは`4 passed / 39 skipped`（58.27s）、text-quality全体は`43 passed`（251.37s）、関連2 fileは`196 passed`（240.59s）、`pnpm run test:contracts`は`36 files / 584 passed / 4 skipped`（486.57s）でPASSした。`pnpm run lint:text`、`pnpm run lint:markdown`（436 files / 0 issues）、`git diff --check origin/main...HEAD`、`pnpm run verify`（contract、全test、build/spec生成を含む）もPASSした。生成物による未意図差分はない。
+- Validation: 最新head `4482d74296a8091aa19915112c7e1621d88c7e83`のWeb CI run `35183470012`、Mobile App CI run `35183470357`、CodeQL run `35183466740`がSUCCESS。Windows Hook contract、Vitest contracts、Style／Code Quality、Web verify、Mobile `native-ci / verify`、E2E／UI reviewを含むcheckは全てPASSまたは契約上のskippingだった。
+- Changes: PR本文のstacked状態の古い説明を、`#160`がmainへsquash merge済みであり、#161がmainをbaseとしてmerge後のmainを通常mergeしたこと、#160 timeout修正を重複実装していないことへ更新した。PR #161はOPEN、baseは`main`、mergeableは`MERGEABLE`である。
+- ブロッカー / 残作業: 実Codex runtimeで任意のrepeated Stopを再現したものではなく、既存の実ログ、controlled replay、contract testを証拠とする境界は維持する。PR merge、Issue close、PR close、branch削除、force pushは行っていない。
+- Progress: 100% (8/8)
