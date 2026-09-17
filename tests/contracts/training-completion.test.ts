@@ -28,6 +28,7 @@ type ReceiptContext =
   | "local-exercise"
   | "diagnostic-initial"
   | "diagnostic-repaired"
+  | "c10-improved"
   | "ci-exercise";
 
 type FixtureOptions = {
@@ -79,6 +80,7 @@ function writeExecutionReceipt(
 ): void {
   const isInitial = context === "diagnostic-initial";
   const isCi = context === "ci-exercise";
+  const isDiagnostic = context === "diagnostic-initial" || context === "diagnostic-repaired";
   const cases = options.omitCases
     ? []
     : CASES.map((entry) => {
@@ -96,11 +98,7 @@ function writeExecutionReceipt(
           : options.omitCaseIds
             ? null
             : entry.caseId;
-        const status = isInitial
-          ? "failed"
-          : context === "diagnostic-repaired"
-            ? "passed"
-            : "passed";
+        const status = isInitial ? "failed" : "passed";
         return {
           case_id: caseId,
           title: `${caseId ?? "learner"} fixture result`,
@@ -123,7 +121,7 @@ function writeExecutionReceipt(
       });
   const run: Record<string, unknown> = {
     producer: "training:web:exercise:with-receipt",
-    command: `pnpm run training:web:exercise:with-receipt -- --suite ${isInitial ? "diagnostic" : "exercise"} --project training-chromium --root ${root} --run-context ${context}`,
+    command: `pnpm run training:web:exercise:with-receipt -- --suite ${isDiagnostic ? "diagnostic" : "exercise"} --project training-chromium --root ${root} --run-context ${context}`,
     exit_code: isInitial ? 1 : 0,
     started_at: "2026-09-17T00:00:00.000Z",
     finished_at: "2026-09-17T00:00:01.000Z",
@@ -135,6 +133,7 @@ function writeExecutionReceipt(
     },
     run_context: context,
     project: "training-chromium",
+    part1_distribution_sha: SOURCE_SHA,
     training_copy_source_sha: SOURCE_SHA,
     submission_sha: SUBMISSION_SHA,
     execution_sha: EXECUTION_SHA,
@@ -255,7 +254,12 @@ function createHandoff(options: FixtureOptions = {}): string {
       ]),
     ]),
   );
-  const contexts = options.contexts ?? ["local-exercise"];
+  const contexts = options.contexts ?? [
+    "local-exercise",
+    "diagnostic-initial",
+    "diagnostic-repaired",
+    "c10-improved",
+  ];
   writeText(
     root,
     "workbook/04_execution-improvement.csv",
@@ -275,11 +279,17 @@ function createHandoff(options: FixtureOptions = {}): string {
           entry.caseId,
           context,
           context === "diagnostic-initial" ? "Fail" : "Pass",
-          `evidence/${context}-${entry.caseId}.md`,
-          context === "diagnostic-initial" ? "Assertion" : "",
-          context === "diagnostic-initial" ? "fixture mismatch" : "",
-          context === "diagnostic-initial" ? "inspect and repair" : "",
-          context === "diagnostic-initial" ? "record repaired run" : "",
+          context === "ci-exercise"
+            ? `evidence/ci-exercise-${entry.caseId}.md`
+            : `evidence/${context}-${entry.caseId}.md`,
+          context === "diagnostic-initial" || context === "c10-improved" ? "Assertion" : "",
+          context === "diagnostic-initial" || context === "c10-improved" ? "fixture mismatch" : "",
+          context === "diagnostic-initial" || context === "c10-improved"
+            ? "inspect and repair"
+            : "",
+          context === "diagnostic-initial" || context === "c10-improved"
+            ? "record repaired run"
+            : "",
         ]),
       ),
     ]),
@@ -292,9 +302,11 @@ function createHandoff(options: FixtureOptions = {}): string {
     );
     for (const context of contexts) {
       const evidencePath =
-        options.sharedDiagnosticEvidence && context.startsWith("diagnostic")
-          ? "evidence/diagnostic-shared.md"
-          : `evidence/${context}-${entry.caseId}.md`;
+        context === "ci-exercise"
+          ? `evidence/ci-exercise-${entry.caseId}.md`
+          : options.sharedDiagnosticEvidence && context.startsWith("diagnostic")
+            ? "evidence/diagnostic-shared.md"
+            : `evidence/${context}-${entry.caseId}.md`;
       writeText(root, evidencePath, `Evidence for ${entry.caseId} / ${context}\n`);
     }
   }
@@ -305,10 +317,20 @@ function createHandoff(options: FixtureOptions = {}): string {
       "Run ID: 12345\nRun attempt: 1\nCheck: Scenario Shop Training Web / training-web\nArtifact: training-web-12345-1\n",
     );
     for (const entry of CASES)
-      writeText(root, `evidence/ci-exercise-${entry.caseId}.md`, "CI case evidence\n");
+      writeText(
+        root,
+        `evidence/ci-exercise-${entry.caseId}.md`,
+        `Run ID: 12345\nRun attempt: 1\nCheck: Scenario Shop Training Web / training-web\nArtifact: training-web-12345-1\nResult: success\nCase: ${entry.caseId}\n`,
+      );
   }
   if (options.sharedDiagnosticEvidence)
     writeText(root, "evidence/diagnostic-shared.md", "shared diagnostic evidence\n");
+  if (options.mode === "part2")
+    writeText(
+      root,
+      "evidence/change-management.md",
+      "Branch: training/learner\nCommit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\nDiff: training/playwright/exercises/cart-101.spec.ts\nPull Request: https://github.com/example/training/pull/1\nReview: self-review completed\n",
+    );
   const selfChecks = [
     "P1-01",
     "P1-02",
@@ -346,6 +368,23 @@ function updateReceipt(
   fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
 }
 
+function refreshReceiptDigests(root: string): void {
+  for (const entry of fs.readdirSync(path.join(root, "receipts"))) {
+    if (!entry.endsWith(".json")) continue;
+    const receiptPath = path.join(root, "receipts", entry);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8")) as {
+      cases: Record<string, unknown>[];
+    };
+    for (const executionCase of receipt.cases) {
+      const implementationPath = executionCase.implementation_path;
+      if (typeof implementationPath !== "string") continue;
+      const sourcePath = path.join(root, "code", implementationPath);
+      executionCase.code_digest = digest(fs.readFileSync(sourcePath, "utf8"));
+    }
+    fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+  }
+}
+
 describe("受講者向け修了確認契約", () => {
   it("passes a multi-case Common handoff and writes Completion Receipt outside receipts/", () => {
     const root = createHandoff();
@@ -356,11 +395,12 @@ describe("受講者向け修了確認契約", () => {
       expect(result.receipt.status).toBe("PASS");
       expect(result.receipt.exit_code).toBe(0);
       expect(result.receipt.checked_case_ids).toEqual(["TC-CART-101", "TC-CART-102"]);
-      expect(result.receipt.execution_receipt_refs).toHaveLength(1);
+      expect(result.receipt.execution_receipt_refs).toHaveLength(4);
       expect(result.receipt.semantic_understanding).toBe("NOT_EVALUATED");
-      expect(result.receipt.training_copy_source_sha).toBe(SOURCE_SHA);
+      expect(result.receipt.part1_distribution_sha).toBe(SOURCE_SHA);
       expect(result.receipt.submission_sha).toBe(SUBMISSION_SHA);
       expect(result.receipt.execution_sha).toBe(EXECUTION_SHA);
+      expect(result.receipt.machine_checked_competencies).toEqual(["C07", "C09", "C10"]);
       expect(fs.existsSync(path.join(root, "completion-receipt.json"))).toBe(true);
       expect(fs.existsSync(path.join(root, "receipts", "completion-receipt.json"))).toBe(false);
     } finally {
@@ -441,7 +481,9 @@ describe("受講者向け修了確認契約", () => {
   });
 
   it("accepts diagnostic initial Failure only with a separate repaired Pass and Evidence", () => {
-    const root = createHandoff({ contexts: ["diagnostic-initial", "diagnostic-repaired"] });
+    const root = createHandoff({
+      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired", "c10-improved"],
+    });
     try {
       expect(checkCompletion(root, "common").status).toBe("PASS");
     } finally {
@@ -466,7 +508,16 @@ describe("受講者向け修了確認契約", () => {
   });
 
   it("requires CI references for Part 2 but keeps source, submission, and CI SHA fields separate", () => {
-    const root = createHandoff({ mode: "part2", contexts: ["ci-exercise"] });
+    const root = createHandoff({
+      mode: "part2",
+      contexts: [
+        "local-exercise",
+        "diagnostic-initial",
+        "diagnostic-repaired",
+        "c10-improved",
+        "ci-exercise",
+      ],
+    });
     try {
       const result = checkCompletion(root, "part2");
 
@@ -476,6 +527,13 @@ describe("受講者向け修了確認契約", () => {
       expect(result.receipt.training_copy_source_sha).toBe(SOURCE_SHA);
       expect(result.receipt.execution_sha).toBe(EXECUTION_SHA);
       expect(result.receipt.evidence_refs).toContain("evidence/ci.md");
+      expect(result.receipt.machine_checked_competencies).toEqual([
+        "C07",
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+      ]);
     } finally {
       removeFixture(root);
     }
@@ -494,18 +552,25 @@ describe("受講者向け修了確認契約", () => {
   });
 
   it("does not use CI Evidence from a different Receipt", () => {
-    const root = createHandoff({ mode: "part2", contexts: ["ci-exercise"] });
+    const root = createHandoff({
+      mode: "part2",
+      contexts: [
+        "local-exercise",
+        "diagnostic-initial",
+        "diagnostic-repaired",
+        "c10-improved",
+        "ci-exercise",
+      ],
+    });
     try {
       updateReceipt(root, "ci-exercise", (receipt) => {
-        for (const executionCase of receipt.cases) {
-          const evidence = executionCase.evidence as string[];
-          executionCase.evidence = evidence.filter((reference) => reference !== "evidence/ci.md");
-        }
+        const ci = receipt.run.ci as Record<string, unknown>;
+        ci.github_run_id = "99999";
       });
       writeText(
         root,
         "evidence/unrelated-ci.md",
-        "Run ID: 12345\nRun attempt: 1\nCheck: Scenario Shop Training Web / training-web\nArtifact: training-web-12345-1\n",
+        "Run ID: 12345\nRun attempt: 1\nCheck: Scenario Shop Training Web / training-web\nArtifact: training-web-12345-1\nResult: success\nCase: TC-CART-101\n",
       );
       expect(checkCompletion(root, "part2").status).not.toBe("PASS");
     } finally {
@@ -571,6 +636,171 @@ describe("受講者向け修了確認契約", () => {
     } finally {
       removeFixture(root);
       removeFixture(outside);
+    }
+  });
+
+  it("does not count a starter or baseline path as learner-owned code", () => {
+    const root = createHandoff();
+    try {
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      const mapping = fs
+        .readFileSync(mappingPath, "utf8")
+        .replace(
+          CASES[0].implementationPath,
+          "training/playwright/baseline/training-baseline.spec.ts",
+        );
+      fs.writeFileSync(mappingPath, mapping, "utf8");
+      writeText(
+        root,
+        "code/training/playwright/baseline/training-baseline.spec.ts",
+        learnerCode(CASES[0].caseId, "valid"),
+      );
+      refreshReceiptDigests(root);
+      expect(checkCompletion(root, "common").status).toBe("FAIL");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not satisfy C07 with reset or Assertion text in comments and strings", () => {
+    const root = createHandoff();
+    try {
+      for (const entry of CASES) {
+        writeText(
+          root,
+          `code/${entry.implementationPath}`,
+          `import { test } from "@playwright/test";\n\nconst text = "resetScenario(page); expect(true)";\n// resetScenario(page); expect(page);\ntest("${entry.caseId} learner cart case", async ({ page }) => {\n  await page.goto("/products");\n});\n`,
+        );
+      }
+      refreshReceiptDigests(root);
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.reasons.join("\n")).toContain("has no explicit resetScenario call");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not accept a duplicate mapping row", () => {
+    const root = createHandoff();
+    try {
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      const lines = fs.readFileSync(mappingPath, "utf8").trimEnd().split("\n");
+      fs.writeFileSync(mappingPath, `${lines.join("\n")}\n${lines[1]}\n`, "utf8");
+      expect(checkCompletion(root, "common").status).toBe("FAIL");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("selects the newest valid run while retaining an older failed Receipt", () => {
+    const root = createHandoff();
+    try {
+      const currentPath = path.join(root, "receipts", "execution-receipt-local-exercise.json");
+      const oldPath = path.join(root, "receipts", "execution-receipt-local-exercise-old.json");
+      const oldReceipt = JSON.parse(fs.readFileSync(currentPath, "utf8")) as {
+        run: Record<string, unknown>;
+        cases: Record<string, unknown>[];
+      };
+      oldReceipt.run.started_at = "2025-09-17T00:00:00.000Z";
+      oldReceipt.run.finished_at = "2025-09-17T00:00:01.000Z";
+      oldReceipt.run.exit_code = 1;
+      oldReceipt.cases.forEach((entry) => {
+        entry.status = "failed";
+        entry.result = "failed";
+      });
+      fs.writeFileSync(oldPath, `${JSON.stringify(oldReceipt, null, 2)}\n`, "utf8");
+      expect(checkCompletion(root, "common").status).toBe("PASS");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires C10 to contain an actual improvement record and a clean rerun", () => {
+    const root = createHandoff({
+      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired"],
+    });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("INCOMPLETE");
+      expect(result.receipt.reasons.join("\n")).toContain("C10 requires");
+      expect(result.receipt.checked_competencies).not.toContain("C10");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not treat a retry Failure followed by Pass as a clean C10 rerun", () => {
+    const root = createHandoff();
+    try {
+      updateReceipt(root, "c10-improved", (receipt) => {
+        for (const executionCase of receipt.cases) {
+          executionCase.retries = [
+            { retry_index: 0, status: "failed", duration_ms: 10, evidence: executionCase.evidence },
+            { retry_index: 1, status: "passed", duration_ms: 10, evidence: executionCase.evidence },
+          ];
+        }
+      });
+      expect(checkCompletion(root, "common").status).toBe("INCOMPLETE");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires C11 change-management fields and human CI Evidence for Part 2", () => {
+    const root = createHandoff({
+      mode: "part2",
+      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired", "c10-improved"],
+    });
+    try {
+      expect(checkCompletion(root, "part2").status).toBe("INCOMPLETE");
+      fs.rmSync(path.join(root, "evidence", "change-management.md"));
+      const withoutC11 = checkCompletion(root, "part2");
+      expect(withoutC11.receipt.reasons.join("\n")).toContain("C11");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not accept machine-generated CI metadata as human Evidence", () => {
+    const root = createHandoff({
+      mode: "part2",
+      contexts: [
+        "local-exercise",
+        "diagnostic-initial",
+        "diagnostic-repaired",
+        "c10-improved",
+        "ci-exercise",
+      ],
+    });
+    try {
+      for (const entry of CASES)
+        writeText(
+          root,
+          `evidence/ci-exercise-${entry.caseId}.md`,
+          `Generated by Training Receipt producer; machine metadata only.\nRun ID: 12345\nRun attempt: 1\nCheck: Scenario Shop Training Web / training-web\nArtifact: training-web-12345-1\nResult: success\nCase: ${entry.caseId}\n`,
+        );
+      expect(checkCompletion(root, "part2").status).toBe("INCOMPLETE");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("stops safely on an Evidence symlink cycle when the host permits symlinks", () => {
+    const root = createHandoff();
+    try {
+      try {
+        fs.symlinkSync(
+          path.join(root, "evidence"),
+          path.join(root, "evidence", "cycle"),
+          "junction",
+        );
+      } catch {
+        return;
+      }
+      expect(checkCompletion(root, "common").status).toBe("FAIL");
+    } finally {
+      removeFixture(root);
     }
   });
 });

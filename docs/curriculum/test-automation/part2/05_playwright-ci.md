@@ -43,9 +43,9 @@ Part 1で作成したTraining用Playwright Testは `playwright.training.config.t
 | Input | P2-4で確認したTraining CopyのPR／Runと、P1-5／P1-6のCase ID、Repository相対コード、Local Receipt／Evidence。Secret不要・Deployなし・`contents: read`のTraining Workflowを前提にする |
 | Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、受講者CodeをTraining CopyのPRからCIへ接続する |
 | Observation | LocalとCIの差、実行したCase、Run／Check／Artifact、失敗Step、Retry、Execution Receiptのrun／case／attempt、Artifactへの人間可読参照 |
-| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
+| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。CI Receiptの機械メタデータとは別に、GitHub画面で確認したRun／Check／Artifact／結果／対象Caseを人間可読Evidenceへ記録する。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
 | Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
-| Completion | Training CopyのPRで受講者Caseを実行し、ReceiptとFailure Artifact、Run／Check／Artifactを確認してP2-7へ渡せる。Fork上のCI結果をC12の証跡へ読み替えない |
+| Completion | Training CopyのPRで受講者Caseを実行し、ReceiptとFailure Artifact、Run／Check／Artifactを確認して、Caseごとの人間可読EvidenceとともにP2-7へ渡せる。CI自身が生成した`ci.md`だけではC12完了としない。Fork上のCI結果をC12の証跡へ読み替えない |
 | Recovery | Build／Browser／Base URL／権限／Runnerの問題は環境として分ける。TestやWorkflowのFailureは最初の異常へ戻り、完成済みFormal CIやWorkflow権限変更で解決しない |
 | Handoff | P2-7へTraining Copy URL、PR／Branch、Run／Job／Check、Artifact名、Case ID、code Path、Receipt／Evidence、Failure分類を渡す |
 
@@ -222,6 +222,17 @@ Training Workflowでは本番Deployや本番Secretを扱わず、Production Arti
 
 ローカルで`pnpm run training:web:exercise:with-receipt`を成功させた自分の変更を、準備済みTraining CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
 
+Run完了後は、CIが自動生成した`ci.md`を人間確認の証拠にしません。GitHubのRun／Check／Artifactを自分で確認し、対象Caseごとに`handoff-root/evidence/`へ次の項目を含む記録を作成します。`Result`は実際に確認した結論を記録し、機械ReceiptのRun ID・Artifact名を単に転記しただけのFileにはしません。
+
+```text
+Run ID: <Run ID>
+Run attempt: <Attempt>
+Check: <Workflow> / <Job>
+Artifact: <Artifact name or URL>
+Result: success
+Case: <Test Case ID>
+```
+
 ## ハンズオン2: Failure Artifact
 
 `training:web:check-expected-failure`でTraining用Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。Expected Failureは通常baselineへ含めません。
@@ -274,7 +285,7 @@ Part 1で作成したTestを次へ仮分類します。
 
 ### Recovery
 
-CIで失敗した場合は、Browser / Dependency Setup、Application Build / Serve、Base URL、Playwright Assertion、Artifact Uploadの順にFailure stageを確認します。Artifactが残らない場合はまずWorkflow設定と環境上の問題を切り分け、Testの理解不足と決めつけません。Production環境やSecretが必要になった場合はTraining Workflowへ追加せず、参考資料・講師支援へ戻ります。
+CIで失敗した場合は、Browser / Dependency Setup、Application Build / Serve、Base URL、Playwright Assertion、Artifact Uploadの順にFailure stageを確認します。Artifactが残らない場合はまずWorkflow設定と環境上の問題を切り分け、Testの理解不足と決めつけません。Production環境やSecretが必要になった場合はTraining Workflowへ追加せず、発展課題の条件として切り分けます。
 
 ## 完了条件
 

@@ -55,7 +55,7 @@ Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL
 
 意図的なexpected-failureの確認は `pnpm run training:web:check-expected-failure`を使います。
 
-C09の診断演習は、Receipt付きの `pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --root <handoff-root> --run-context diagnostic-initial` で初期Failureを1ケース実行します。初期状態では誤った期待値による決定的なFailureが起きるため、Evidenceを確認して原因を説明し、学習者コピーを修正した後、`--run-context diagnostic-repaired`で別run・別Evidenceとして再実行します。既存の `pnpm run training:web:diagnostic` は互換的な直接実行入口として残します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
+C09の診断演習は、まず正本Repository外の`<exercise-copy>`へ診断specを置き、Receipt付きの `pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --test-root <exercise-copy> --root <handoff-root> --run-context diagnostic-initial` で初期Failureを1ケース実行します。`--test-root`は実際に実行する演習コピー、`--root`はReceipt／Evidenceを保存する固定Handoff rootです。初期状態では誤った期待値による決定的なFailureが起きるため、Evidenceを確認して原因を説明し、学習者コピーを修正した後、同じ`--test-root`を使って`--run-context diagnostic-repaired`で別run・別Evidenceとして再実行します。既存の `pnpm run training:web:diagnostic` は互換的な直接実行入口として残します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
 
 initialの期待Failure、expected-failure教材の期待された非0終了、受講者Caseの自然なFailureは別の意味です。Playwrightの自動Retryは修正後の再実行ではありません。診断の初期Failureを確認するために、完成答案を正本fixtureへ書き戻さず、GitlessのRecoveryで演習用コピーを初期状態へ戻します。
 

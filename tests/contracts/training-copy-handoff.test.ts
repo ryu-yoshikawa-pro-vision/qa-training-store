@@ -137,11 +137,15 @@ describe("Training Copy handoff contract", () => {
     const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-"));
     const target = path.join(targetParent, "copy");
     const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const remote = "https://example.test/training-copy.git";
     try {
-      const result = materializeTrainingHandoff({ root, target, sourceSha });
+      const result = materializeTrainingHandoff({ root, target, sourceSha, remote });
 
       expect(result.sourceSha).toBe(sourceSha);
       expect(result.files).toEqual([IMPLEMENTATION_PATH]);
+      expect(
+        execFileSync("git", ["remote", "get-url", "origin"], { cwd: target, encoding: "utf8" }),
+      ).toBe(`${remote}\n`);
       expect(
         fs.readFileSync(
           path.join(target, "training", "workbook", "03_automation-mapping.csv"),
@@ -163,19 +167,22 @@ describe("Training Copy handoff contract", () => {
     }
   });
 
-  it("refuses an existing target and unsafe or unreferenced code", () => {
+  it("refuses an existing target but materializes learner helper code", () => {
     const root = createHandoff();
     const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-existing-"));
     const target = path.join(targetParent, "copy");
     fs.mkdirSync(target, { recursive: true });
+    const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     try {
-      expect(() => materializeTrainingHandoff({ root, target, sourceSha: "a".repeat(40) })).toThrow(
+      expect(() => materializeTrainingHandoff({ root, target, sourceSha })).toThrow(
         /Target already exists/,
       );
       fs.rmSync(target, { recursive: true, force: true });
-      writeText(root, "code/training/playwright/exercises/extra.ts", "export {};\n");
-      expect(() => materializeTrainingHandoff({ root, target, sourceSha: "a".repeat(40) })).toThrow(
-        /not referenced/,
+      writeText(root, "code/training/playwright/support/cart-helper.ts", "export {};\n");
+      const result = materializeTrainingHandoff({ root, target, sourceSha });
+      expect(result.files).toContain("training/playwright/support/cart-helper.ts");
+      expect(fs.existsSync(path.join(target, "training/playwright/support/cart-helper.ts"))).toBe(
+        true,
       );
     } finally {
       removeFixture(root);

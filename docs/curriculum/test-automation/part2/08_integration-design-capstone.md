@@ -39,7 +39,7 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 | Observation | どのRiskをどのLayer／Triggerで守るか、受講者CaseとCIの対応、最小権限、Artifactの追跡、Common／Native／CDの境界、設計と現行実装の差 |
 | Output | 対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failure対応表、Run／Check／Artifact参照、最終self-check。編集場所は自由で、Part 1／2の成果物を固定`handoff-root/`へ集約する |
 | Self-check | 「何を、いつ、どこで、どの条件で実行し、Failure時に何を見るか」をCase／Risk／Workflow／Evidenceを指して説明する。GitHub外部状態をAPIなしで証明したとは書かない |
-| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。Native／iOS Runtimeは必須にしない |
+| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。C09はinitial Failure→同じ対象のrepaired Pass、C10は実改善→別run、C11はBranch／Commit／Diff／Pull Request／Review記録、C12はRun／Check／Artifact確認をそれぞれ満たす。Native／iOS Runtimeは必須にしない |
 | Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
 | Handoff | 最終確認へ固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと設計資料を渡す。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
 

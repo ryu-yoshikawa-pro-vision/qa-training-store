@@ -116,6 +116,13 @@ function numberValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function normalizePlaywrightStatus(value: unknown): string {
+  const status = stringValue(value);
+  return status && ["passed", "failed", "timedOut", "skipped", "interrupted"].includes(status)
+    ? status
+    : "not-run";
+}
+
 function caseIdFromText(value: unknown): string | undefined {
   return typeof value === "string" ? value.match(CASE_ID)?.[0] : undefined;
 }
@@ -170,6 +177,39 @@ function safeRoot(rootOption: string): string {
   return fs.realpathSync(root);
 }
 
+function safeExecutionRoot(rootOption: string): string {
+  const root = path.resolve(rootOption);
+  if (!fs.existsSync(root)) throw new Error(`--test-root does not exist: ${root}`);
+  if (!fs.statSync(root).isDirectory()) throw new Error(`--test-root is not a directory: ${root}`);
+  return fs.realpathSync(root);
+}
+
+function resolveExecutionRoot(handoffRoot: string, testRootOption?: string): string {
+  if (testRootOption) return safeExecutionRoot(testRootOption);
+  const handoffCodeRoot = path.resolve(handoffRoot, "code");
+  if (fs.existsSync(path.join(handoffCodeRoot, "training", "playwright")))
+    return fs.realpathSync(handoffCodeRoot);
+  const handoffTrainingRoot = path.resolve(handoffRoot, "training", "playwright");
+  if (fs.existsSync(handoffTrainingRoot)) return fs.realpathSync(handoffRoot);
+  return path.resolve(process.cwd());
+}
+
+function suiteTarget(executionRoot: string, suite: TrainingSuite): string {
+  const directSuite = path.join(
+    executionRoot,
+    suite === "exercise" ? "exercises" : "diagnostic-exercises",
+  );
+  if (fs.existsSync(directSuite)) return directSuite;
+  const repositorySuite = path.join(executionRoot, SUITES[suite]);
+  if (fs.existsSync(repositorySuite)) return repositorySuite;
+  return path.join(
+    executionRoot,
+    "training",
+    "playwright",
+    suite === "exercise" ? "exercises" : "diagnostic-exercises",
+  );
+}
+
 function safeContext(value: string): string {
   const normalized = value.trim();
   if (!normalized || normalized.includes("\0") || normalized.includes(".."))
@@ -196,6 +236,26 @@ function runGitHead(): string | undefined {
   }
 }
 
+function readSubmissionSha(): string | undefined {
+  const explicit = process.env.SUBMISSION_SHA?.trim();
+  if (explicit && FULL_SHA.test(explicit)) return explicit;
+  const eventPath = process.env.GITHUB_EVENT_PATH?.trim();
+  if (eventPath && fs.existsSync(eventPath)) {
+    try {
+      const value: unknown = JSON.parse(fs.readFileSync(eventPath, "utf8"));
+      if (isRecord(value) && isRecord(value.pull_request) && isRecord(value.pull_request.head)) {
+        const sha = stringValue(value.pull_request.head.sha);
+        if (sha && FULL_SHA.test(sha)) return sha;
+      }
+    } catch {
+      // The CI fallback below is only allowed for non-pull-request runs.
+    }
+  }
+  if (process.env.GITHUB_EVENT_NAME === "pull_request") return undefined;
+  const githubSha = process.env.GITHUB_SHA?.trim();
+  return githubSha && FULL_SHA.test(githubSha) ? githubSha : undefined;
+}
+
 function readTrainingCopySourceSha(): string | undefined {
   const manifestPath = path.resolve(process.cwd(), "training-copy-source.json");
   if (!fs.existsSync(manifestPath)) return undefined;
@@ -213,8 +273,17 @@ function readTrainingCopySourceSha(): string | undefined {
 }
 
 function readImplementationCaseMap(root: string): Map<string, string[]> {
-  const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
-  if (!fs.existsSync(mappingPath)) return new Map();
+  const candidates = [
+    path.join(root, "workbook", "03_automation-mapping.csv"),
+    path.join(root, "training", "workbook", "03_automation-mapping.csv"),
+  ].filter((candidate) => fs.existsSync(candidate));
+  if (candidates.length === 0) return new Map();
+  if (candidates.length > 1) {
+    const first = fs.readFileSync(candidates[0]!, "utf8");
+    const second = fs.readFileSync(candidates[1]!, "utf8");
+    if (first !== second) throw new Error("Ambiguous Workbook automation mapping roots");
+  }
+  const mappingPath = candidates[0]!;
   try {
     const rows = parseCsv(fs.readFileSync(mappingPath, "utf8"), "03_automation-mapping.csv");
     const header = rows[0] ?? [];
@@ -234,8 +303,8 @@ function readImplementationCaseMap(root: string): Map<string, string[]> {
       result.set(normalizedPath, caseIds);
     }
     return result;
-  } catch {
-    return new Map();
+  } catch (error) {
+    throw new Error(`Could not read Workbook automation mapping: ${String(error)}`);
   }
 }
 
@@ -255,7 +324,7 @@ function parseResult(value: unknown): DiscoveredResult {
     ? value.attachments.map(parseAttachment).filter((entry): entry is string => entry !== undefined)
     : [];
   return {
-    status: stringValue(value.status) ?? "not-run",
+    status: normalizePlaywrightStatus(value.status),
     duration: numberValue(value.duration) ?? 0,
     ...(error ? { error } : {}),
     attachments,
@@ -296,7 +365,7 @@ function collectSpecs(
           results.push(...test.results.map(parseResult));
         } else {
           results.push({
-            status: stringValue(test.status) ?? "not-run",
+            status: normalizePlaywrightStatus(test.status),
             duration: 0,
             attachments: [],
           });
@@ -304,7 +373,7 @@ function collectSpecs(
       }
       if (results.length === 0 && stringValue(spec.status)) {
         results.push({
-          status: stringValue(spec.status) ?? "not-run",
+          status: normalizePlaywrightStatus(spec.status),
           duration: 0,
           attachments: [],
         });
@@ -333,27 +402,41 @@ export function parseJsonReport(text: string): DiscoveredSpec[] {
   return specs;
 }
 
-function digestForSource(file: string | undefined): {
+function digestForSource(
+  file: string | undefined,
+  executionRoot: string,
+): {
   digest: string | null;
   implementationPath?: string;
 } {
   if (!file) return { digest: null };
   const repositoryRoot = path.resolve(process.cwd());
   const candidates = [
+    path.isAbsolute(file) ? path.resolve(file) : path.resolve(executionRoot, file),
     path.resolve(repositoryRoot, file),
     path.resolve(repositoryRoot, "training", "playwright", file),
   ];
   const absolute = candidates.find((candidate) => {
     try {
-      return isWithin(repositoryRoot, candidate) && fs.statSync(candidate).isFile();
+      return fs.statSync(candidate).isFile();
     } catch {
       return false;
     }
   });
   if (!absolute) return { digest: null };
+  const relativeToExecutionRoot = normalizeRelative(path.relative(executionRoot, absolute));
+  const implementationPath = relativeToExecutionRoot.startsWith("training/playwright/")
+    ? relativeToExecutionRoot
+    : ["exercises/", "diagnostic-exercises/", "baseline/", "failure-exercises/"].some((prefix) =>
+          relativeToExecutionRoot.startsWith(prefix),
+        )
+      ? `training/playwright/${relativeToExecutionRoot}`
+      : isWithin(repositoryRoot, absolute)
+        ? normalizeRelative(path.relative(repositoryRoot, absolute))
+        : undefined;
   return {
     digest: crypto.createHash("sha256").update(fs.readFileSync(absolute)).digest("hex"),
-    implementationPath: normalizeRelative(path.relative(repositoryRoot, absolute)),
+    ...(implementationPath ? { implementationPath } : {}),
   };
 }
 
@@ -381,10 +464,15 @@ function buildCases(
   evidenceDirectory: string,
   reportReference: string,
   implementationCaseMap: Map<string, string[]>,
+  executionRoot: string,
 ): ReceiptCase[] {
   return specs.map((spec) => {
-    const last = spec.results.at(-1) ?? { status: "not-run", duration: 0, attachments: [] };
-    const digest = digestForSource(spec.file);
+    const last = spec.results.at(-1) ?? {
+      status: "not-run",
+      duration: 0,
+      attachments: [] as string[],
+    };
+    const digest = digestForSource(spec.file, executionRoot);
     const evidence = new Set<string>([reportReference]);
     for (const attachment of last.attachments) {
       evidence.add(
@@ -393,7 +481,7 @@ function buildCases(
     }
     const retries = spec.results.map((entry, index) => ({
       retry_index: index,
-      status: entry.status,
+      status: normalizePlaywrightStatus(entry.status),
       duration_ms: entry.duration,
       ...(entry.error ? { error: entry.error } : {}),
       evidence: entry.attachments.map((attachment) =>
@@ -409,8 +497,8 @@ function buildCases(
       case_id: idMatch,
       title: spec.title,
       track: "web",
-      status: last.status,
-      result: last.status,
+      status: normalizePlaywrightStatus(last.status),
+      result: normalizePlaywrightStatus(last.status),
       code_digest: digest.digest,
       ...(digest.implementationPath ? { implementation_path: digest.implementationPath } : {}),
       evidence: [...evidence],
@@ -449,6 +537,34 @@ export function buildExecutionReceipt(input: BuildReceiptInput): ExecutionReceip
   };
 }
 
+function knownEnvironmentFailure(output: string, resultError?: Error): string | undefined {
+  if (resultError) return `Playwright process could not start: ${resultError.message}`;
+  const patterns: [RegExp, string][] = [
+    [
+      /Executable doesn't exist|executable doesn't exist|playwright install/i,
+      "Playwright browser is not installed",
+    ],
+    [
+      /ERR_CONNECTION_REFUSED|ECONNREFUSED|Base URL.*(?:unreachable|refused)/i,
+      "Training Base URL is unreachable",
+    ],
+    [
+      /webServer.*failed|Error.*starting web server|Timed out waiting .*webServer|EADDRINUSE/i,
+      "Training web server could not start",
+    ],
+    [
+      /Cannot find module|Cannot find package|module not found/i,
+      "Training runtime dependency is unavailable",
+    ],
+  ];
+  const match = patterns.find(([pattern]) => pattern.test(output));
+  return match?.[1];
+}
+
+function outputRootPath(): string {
+  return path.resolve(process.cwd(), "output/training/playwright");
+}
+
 function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
@@ -458,10 +574,12 @@ export function runPlaywrightWithReceipt(options: {
   project: string;
   rootOption: string;
   runContext: string;
+  testRootOption?: string;
 }): { receiptPath: string; exitCode: number } {
   if (!PROJECTS.has(options.project))
     throw new Error(`Unsupported Training Playwright project: ${options.project}`);
   const root = safeRoot(options.rootOption);
+  const executionRoot = resolveExecutionRoot(root, options.testRootOption);
   const runContext = safeContext(options.runContext);
   const evidenceRoot = path.join(root, "evidence");
   const receiptsRoot = path.join(root, "receipts");
@@ -479,12 +597,25 @@ export function runPlaywrightWithReceipt(options: {
   const packageManagerShimRoot = fs.mkdtempSync(path.join(os.tmpdir(), "training-pnpm-shim-"));
   const jsonReportPath = path.join(temporaryRoot, "report.json");
   try {
-    const args = playwrightArguments(options.suite, options.project);
+    const usesCustomExecutionRoot = executionRoot !== path.resolve(process.cwd());
+    const args =
+      options.testRootOption || usesCustomExecutionRoot
+        ? [
+            "exec",
+            "playwright",
+            "test",
+            normalizeRelative(suiteTarget(executionRoot, options.suite)),
+            "--config=playwright.training.config.ts",
+            `--project=${options.project}`,
+            "--reporter=json,html",
+          ]
+        : playwrightArguments(options.suite, options.project);
     const childCommand = `pnpm ${args.join(" ")}`;
     const command = [
       "pnpm run training:web:exercise:with-receipt --",
       `--suite ${commandArgument(options.suite)}`,
       `--project ${commandArgument(options.project)}`,
+      ...(options.testRootOption ? [`--test-root ${commandArgument(options.testRootOption)}`] : []),
       `--root ${commandArgument(options.rootOption)}`,
       `--run-context ${commandArgument(runContext)}`,
     ].join(" ");
@@ -500,7 +631,11 @@ export function runPlaywrightWithReceipt(options: {
       PLAYWRIGHT_JSON_OUTPUT_FILE: jsonReportPath,
       PLAYWRIGHT_HTML_OUTPUT_DIR: path.resolve("output/training/playwright/report"),
       PLAYWRIGHT_HTML_OPEN: "never",
+      NODE_PATH: [path.resolve(process.cwd(), "node_modules"), process.env.NODE_PATH]
+        .filter(Boolean)
+        .join(path.delimiter),
     };
+    if (usesCustomExecutionRoot) childEnvironment.PLAYWRIGHT_TEST_ROOT = executionRoot;
     if (process.platform === "win32") {
       fs.writeFileSync(
         path.join(packageManagerShimRoot, "pnpm.cmd"),
@@ -512,6 +647,10 @@ export function runPlaywrightWithReceipt(options: {
         .join(path.delimiter);
     }
     const packageManager = process.platform === "win32" ? "corepack.cmd" : "corepack";
+    const outputRoot = outputRootPath();
+    for (const generatedDirectory of ["test-results", "report"]) {
+      fs.rmSync(path.join(outputRoot, generatedDirectory), { recursive: true, force: true });
+    }
     const result = spawnSync(packageManager, ["pnpm", ...args], {
       cwd: process.cwd(),
       env: childEnvironment,
@@ -522,12 +661,18 @@ export function runPlaywrightWithReceipt(options: {
     const finishedAt = new Date().toISOString();
     const exitCode = result.error ? 1 : result.status;
     const normalizedExitCode = typeof exitCode === "number" ? exitCode : 1;
-    const outputRoot = path.resolve("output/training/playwright");
     const evidencePlaywright = path.join(evidenceDirectory, "playwright");
     if (fs.existsSync(outputRoot))
       fs.cpSync(outputRoot, evidencePlaywright, { recursive: true, force: true });
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
     const stderr = typeof result.stderr === "string" ? result.stderr : "";
+    const environmentFailure =
+      result.status === null
+        ? "Playwright process did not return an exit status"
+        : knownEnvironmentFailure(
+            `${stdout}\n${stderr}`,
+            result.error instanceof Error ? result.error : undefined,
+          );
     const logReference = normalizeRelative(
       path.relative(root, path.join(evidenceDirectory, "run.log")),
     );
@@ -571,10 +716,12 @@ export function runPlaywrightWithReceipt(options: {
       evidenceDirectory,
       reportReference || logReference,
       readImplementationCaseMap(root),
+      executionRoot,
     );
-    const githubSha = process.env.GITHUB_SHA;
+    const githubSha = process.env.GITHUB_SHA?.trim();
     const ci =
       githubSha &&
+      FULL_SHA.test(githubSha) &&
       process.env.GITHUB_RUN_ID &&
       process.env.GITHUB_RUN_ATTEMPT &&
       process.env.GITHUB_REPOSITORY
@@ -593,6 +740,7 @@ export function runPlaywrightWithReceipt(options: {
       fs.writeFileSync(
         ciEvidencePath,
         [
+          "Generated by Training Receipt producer; machine metadata only.",
           `Run ID: ${ci.github_run_id}`,
           `Run attempt: ${ci.github_run_attempt}`,
           `Check: ${ci.workflow} / ${ci.job}`,
@@ -616,10 +764,8 @@ export function runPlaywrightWithReceipt(options: {
       runContext,
       project: options.project,
       cases,
-      environmentStatus: result.error ? "blocked" : "available",
-      ...(result.error
-        ? { blockedReason: `Playwright process could not start: ${result.error.message}` }
-        : {}),
+      environmentStatus: environmentFailure ? "blocked" : "available",
+      ...(environmentFailure ? { blockedReason: environmentFailure } : {}),
     };
     const executionSha = runGitHead();
     if (executionSha) receiptInput.executionSha = executionSha;
@@ -628,7 +774,7 @@ export function runPlaywrightWithReceipt(options: {
     const part1DistributionSha = process.env.PART1_DISTRIBUTION_SHA;
     if (part1DistributionSha && FULL_SHA.test(part1DistributionSha))
       receiptInput.part1DistributionSha = part1DistributionSha;
-    const submissionSha = process.env.SUBMISSION_SHA;
+    const submissionSha = readSubmissionSha();
     if (submissionSha && FULL_SHA.test(submissionSha)) receiptInput.submissionSha = submissionSha;
     if (githubSha && FULL_SHA.test(githubSha)) receiptInput.ciSha = githubSha;
     if (ci) receiptInput.ci = ci;
@@ -672,11 +818,18 @@ if (isMainModule()) {
   const project = option("--project");
   const root = option("--root");
   const runContext = option("--run-context");
+  const testRoot = option("--test-root");
   if (suite !== "exercise" && suite !== "diagnostic")
     throw new Error("--suite must be exercise or diagnostic");
   if (!project) throw new Error("--project is required");
   if (!root) throw new Error("--root is required");
   if (!runContext) throw new Error("--run-context is required");
-  const result = runPlaywrightWithReceipt({ suite, project, rootOption: root, runContext });
+  const result = runPlaywrightWithReceipt({
+    suite,
+    project,
+    rootOption: root,
+    runContext,
+    ...(testRoot ? { testRootOption: testRoot } : {}),
+  });
   if (result.exitCode !== 0) process.exitCode = result.exitCode;
 }

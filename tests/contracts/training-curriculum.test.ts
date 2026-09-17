@@ -6,7 +6,10 @@ import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
 import { resolveTrainingAndroidSerial } from "../../scripts/training/serial-resolution";
-import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
+import {
+  TRAINING_WEB_CI_EXERCISE_COMMAND,
+  validateTrainingWorkflow,
+} from "../../scripts/training/workflow-contract";
 
 const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
@@ -60,28 +63,16 @@ describe("Training curriculum contracts", () => {
     }
   });
 
-  it("allows learner-authored Playwright assertions in the editable starter", () => {
+  it("keeps the distributed starter as an uncompleted scaffold", () => {
     const starterPath = resolve(
       process.cwd(),
       "training/playwright/exercises/training-exercise-starter.spec.ts",
     );
     const source = readFileSync(starterPath, "utf8");
-    try {
-      const learnerEdited = source
-        .replace(
-          'import { test } from "@playwright/test";',
-          'import { expect, test } from "@playwright/test";',
-        )
-        .replace('  await resetScenario(page, "default");\n', "")
-        .replace(
-          "  // Learners add the Workbook condition, meaningful Locator, and Assertion here.",
-          '  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();',
-        );
-      writeFileSync(starterPath, learnerEdited, "utf8");
-      expect(() => validateCurriculum(process.cwd())).not.toThrow();
-    } finally {
-      writeFileSync(starterPath, source, "utf8");
-    }
+    expect(source).toContain('import { test } from "@playwright/test";');
+    expect(source).not.toMatch(/\bexpect\s*\(/);
+    expect(source).toContain('resetScenario(page, "default")');
+    expect(() => validateCurriculum(process.cwd())).not.toThrow();
   });
 
   it("keeps the Common competency and Native specialization contract", () => {
@@ -165,13 +156,14 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain("PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082");
     expect(trainingWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
     expect(trainingWorkflow).toContain("pnpm run training:web:baseline");
-    expect(trainingWorkflow).toContain("pnpm run training:web:exercise");
+    expect(trainingWorkflow).toContain(TRAINING_WEB_CI_EXERCISE_COMMAND);
+    expect(trainingWorkflow).not.toContain("run: pnpm run training:web:exercise\n");
     expect(trainingWorkflow).toContain("pnpm run training:web:exercise:with-receipt");
     expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
     expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
     expect(trainingWorkflow).not.toContain("e2e/web/");
     const baselineStep = trainingWorkflow.indexOf("run: pnpm run training:web:baseline");
-    const exerciseStep = trainingWorkflow.indexOf("run: pnpm run training:web:exercise");
+    const exerciseStep = trainingWorkflow.indexOf(`run: ${TRAINING_WEB_CI_EXERCISE_COMMAND}`);
     expect(exerciseStep).toBeGreaterThan(baselineStep);
     expect(trainingWorkflow).toContain("if: github.event_name == 'pull_request'");
     expect(phaseOneWorkflow).toContain(

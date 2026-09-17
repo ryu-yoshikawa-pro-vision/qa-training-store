@@ -11,7 +11,7 @@
 | Observation | Caseとコードの対応、baseline／exerciseの違い、実行ExitとCase結果、Evidence、Failure分類、CommonとNative選択課程の境界 |
 | Output | Part 1の成果物一式、Repository相対コード、Execution Receipt／Evidence、Lesson ID別self-check、C09のinitial／repaired記録。編集場所は自由で、完了時に固定`handoff-root/`へ集約する。Repositoryのcanonical CSVへ完成回答を追記しない |
 | Self-check | C01〜C07、C09〜C10の対応を自分の成果物を指して説明し、Nativeを選択しなくてもCommonが成立する理由と、baseline／意図的Failureだけでは修了にならない理由を書く |
-| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、Failure分析、改善、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
+| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、C09のinitial Failure→repaired Pass、C10の実在する保守問題→最小改善→別run、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
 | Recovery | 欠けた最初の成果物へ戻る。実行環境の不足はBrowser／Reset／Artifactの環境問題として記録し、Nativeを選択しないCommonの完了と混同しない |
 | Handoff | P2-1へ固定rootのWorkbook、code、Evidence、Receipt、self-checkと、Git管理Copyへ移行する際の対象Path／Case IDを渡す。Part 2正式CIへ進む時点でTraining Copyへmaterializeする |
 

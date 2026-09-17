@@ -26,6 +26,7 @@ env:
   EXPO_PUBLIC_DEFAULT_SEED: default
   PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
   PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+  SUBMISSION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   training-web:

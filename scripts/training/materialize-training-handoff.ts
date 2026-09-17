@@ -4,60 +4,21 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { parseCsv } from "../validate-curriculum";
+import { WORKBOOK_HEADERS, type WorkbookFilename } from "./workbook-schema";
 
 const require = createRequire(import.meta.url);
 const TSX_CLI = require.resolve("tsx/cli");
 
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const LEARNER_CODE_PREFIX = "training/playwright/";
-const CSV_HEADERS: Record<string, readonly string[]> = {
-  "01_target-risk.csv": [
-    "target_id",
-    "spec_ref",
-    "br_ids",
-    "ac_ids",
-    "risk_id",
-    "risk_description",
-    "impact",
-    "likelihood",
-    "priority",
-  ],
-  "02_test-cases.csv": [
-    "test_case_id",
-    "risk_id",
-    "spec_ref",
-    "br_ids",
-    "ac_ids",
-    "test_condition",
-    "precondition",
-    "expected_result",
-    "design_technique",
-  ],
-  "03_automation-mapping.csv": [
-    "test_case_id",
-    "automation_decision",
-    "test_layer",
-    "tool",
-    "implementation_path",
-    "execution_timing",
-    "reason",
-  ],
-  "04_execution-improvement.csv": [
-    "test_case_id",
-    "run_context",
-    "result",
-    "evidence",
-    "failure_category",
-    "cause",
-    "action",
-    "improvement",
-  ],
-};
+const CSV_HEADERS = WORKBOOK_HEADERS;
+const WORKBOOK_FILENAMES = Object.keys(CSV_HEADERS) as WorkbookFilename[];
 
 type HandoffOptions = {
   root: string;
   target: string;
   sourceSha?: string;
+  remote?: string;
 };
 
 function isWithin(root: string, candidate: string): boolean {
@@ -114,7 +75,7 @@ function pathEntryExists(target: string): boolean {
   }
 }
 
-function readHandoffCsv(root: string, filename: string): string {
+function readHandoffCsv(root: string, filename: WorkbookFilename): string {
   const file = path.resolve(root, "workbook", filename);
   if (!isWithin(root, file) || !fs.existsSync(file) || !fs.lstatSync(file).isFile())
     throw new Error(`Handoff Workbook file is missing: ${filename}`);
@@ -140,14 +101,10 @@ function implementationPaths(root: string): string[] {
     "03_automation-mapping.csv",
   );
   const header = rows[0] ?? [];
-  const decisionIndex = header.indexOf("automation_decision");
   const pathIndex = header.indexOf("implementation_path");
   const result = new Set<string>();
   for (const row of rows.slice(1)) {
-    const decision = row[decisionIndex] ?? "";
     const implementationPath = row[pathIndex] ?? "";
-    if (decision === "Automate" && !implementationPath)
-      throw new Error("Automate mapping has an empty implementation_path");
     if (implementationPath) {
       if (!safeRelative(implementationPath))
         throw new Error(`Unsafe implementation_path: ${implementationPath}`);
@@ -304,15 +261,9 @@ export function materializeTrainingHandoff(options: HandoffOptions): {
   ensureDirectory(root, "evidence");
   ensureDirectory(root, "receipts");
   ensureDirectory(root, "self-check");
-  for (const filename of Object.keys(CSV_HEADERS)) readHandoffCsv(root, filename);
+  for (const filename of WORKBOOK_FILENAMES) readHandoffCsv(root, filename);
   const mappedPaths = implementationPaths(root);
   const codeFiles = listCodeFiles(root);
-  const mappedSet = new Set(mappedPaths.map((file) => file.split(path.sep).join("/")));
-  for (const file of codeFiles) {
-    const normalized = file.split(path.sep).join("/");
-    if (!mappedSet.has(normalized))
-      throw new Error(`Code file is not referenced by Workbook implementation_path: ${normalized}`);
-  }
   for (const mapped of mappedPaths) {
     const source = path.resolve(root, "code", mapped);
     if (!isWithin(root, source) || !fs.existsSync(source) || !fs.statSync(source).isFile())
@@ -321,6 +272,9 @@ export function materializeTrainingHandoff(options: HandoffOptions): {
 
   const target = path.resolve(options.target);
   const sourceSha = readSourceSha(root, options.sourceSha);
+  const remote = options.remote ?? process.env.TRAINING_COPY_REMOTE;
+  if (remote !== undefined && (!remote.trim() || remote.includes("\0") || /[\r\n]/.test(remote)))
+    throw new Error("--remote must be a non-empty remote URL without control characters");
   if (pathEntryExists(target))
     throw new Error(`Target already exists; refusing to overwrite: ${target}`);
   if (isWithin(root, target)) throw new Error(`Target must be outside handoff root: ${target}`);
@@ -333,9 +287,23 @@ export function materializeTrainingHandoff(options: HandoffOptions): {
   const targetReal = fs.realpathSync(target);
   if (!fs.statSync(targetReal).isDirectory())
     throw new Error(`Prepared Training Copy is not a directory: ${target}`);
+  if (remote !== undefined) {
+    execFileSync("git", ["remote", "set-url", "origin", remote], {
+      cwd: targetReal,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const configuredRemote = execFileSync("git", ["remote", "get-url", "origin"], {
+      cwd: targetReal,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    if (configuredRemote !== remote)
+      throw new Error("Training Copy origin remote was not configured as requested");
+  }
   runValidate(targetReal);
 
-  for (const filename of Object.keys(CSV_HEADERS)) {
+  for (const filename of WORKBOOK_FILENAMES) {
     const destination = path.resolve(targetReal, "training", "workbook", filename);
     if (!isWithin(targetReal, destination))
       throw new Error(`Workbook destination escaped Training Copy: ${filename}`);
@@ -347,7 +315,7 @@ export function materializeTrainingHandoff(options: HandoffOptions): {
     fs.copyFileSync(path.resolve(root, "workbook", filename), destination);
   }
   const materialized: string[] = [];
-  for (const relative of mappedPaths) {
+  for (const relative of codeFiles) {
     copyFile(root, targetReal, relative);
     materialized.push(relative);
   }
@@ -393,5 +361,11 @@ if (isMainModule()) {
   if (!root) throw new Error("--root is required");
   if (!target) throw new Error("--target is required");
   const sourceSha = option("--source-sha");
-  materializeTrainingHandoff({ root, target, ...(sourceSha ? { sourceSha } : {}) });
+  const remote = option("--remote") ?? process.env.TRAINING_COPY_REMOTE;
+  materializeTrainingHandoff({
+    root,
+    target,
+    ...(sourceSha ? { sourceSha } : {}),
+    ...(remote ? { remote } : {}),
+  });
 }

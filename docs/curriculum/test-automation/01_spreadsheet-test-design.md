@@ -33,7 +33,7 @@ Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.cs
 
 ## Canonical CSVと段階的な入力
 
-4つのCSVを次の順に使います。最初から全列を埋めず、講師は受講者の判断が必要になった列だけを開示します。
+4つのCSVを次の順に使います。最初から全列を埋めず、各Lessonで必要になった列だけを確認して順に記録します。
 
 | CSV | 役割 | 必須Trace |
 | --- | --- | --- |

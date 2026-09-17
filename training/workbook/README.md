@@ -8,6 +8,8 @@
 
 LessonでWorkbookを使うときは、本文に示された前の成果物、仕様・BR・AC、Risk、Test Case IDをInputとして準備します。P1-2では対象とRisk、P1-3ではTest Caseと自動化対象を作り、P1-4以降では対応するTest Caseをコードと実行結果へ結び付けます。Playwrightを実装する前にTest Caseが必要な場合は、`test_condition`、`precondition`、`expected_result`、Reset方法、対象のTest Case IDを準備済みInputとして扱います。
 
+配布される`Automate`のsample行は、`implementation_path`が空欄でも不備ではありません。受講者が自分のCaseを実装したときだけ、別のspecのRepository相対Pathを入力します。Starter、baseline、expected-failure用specは完成答案として記録せず、受講者が作成した代表specと区別します。Helper、POM、Component Object、Fixtureなどの受講者support codeは`training/playwright/`配下へ置けばmaterializeできますが、Workbookの`implementation_path`へすべてを列挙する必要はありません。
+
 Part 1からPart 2の最終確認へ渡すときは、編集場所に関係なく次の固定rootへ集約します。
 
 ```text
@@ -20,6 +22,8 @@ handoff-root/
 ```
 
 `implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
+
+P1-8のC10では、実在する保守上の問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
 
 各LessonのOutputには、作成したCSV行、コード、Evidence、自己確認のどれを残すかと、次のLessonへどのID・ファイル・実行記録を渡すかを記載します。意味のあるRiskやAssertionかどうかは、機械的なCSV検証だけで採点せず、本文のSelf-checkと評価基準に沿って自分の理由を説明します。
 
@@ -54,7 +58,7 @@ P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追�
 ## 空欄の条件
 
 - ID列は、対応する対象IDがない場合だけ空欄にします。対象、Risk、Test Caseの主IDは空欄にしません。
-- `implementation_path` は未実装、または `Do not automate` と判断して実装Pathが存在しない場合に空欄にします。入力するPathはRepository上に実在するものだけにします。`Later`では空欄にし、`Automate`でも受講者がまだ実装していない段階で配布元の演習Fileを完成答案として記録しません。
+- `implementation_path` は未実装、または `Do not automate` と判断して実装Pathが存在しない場合に空欄にします。入力するPathはRepository上に実在するものだけにします。`Later`では空欄にし、`Automate`でも受講者がまだ実装していない段階で配布元の演習Fileを完成答案として記録しません。`Automate`のsample行も未実装段階では空欄のままです。
 - `evidence` は未実行（`result=Not run`）の間は空欄にします。予定する出力先を実Evidenceとして記録しません。実行後はTrace、Screenshot、Video、Report、GitHub Actions Artifactなど、人が後から追える参照を記録します。これらの実行時Artifactは静的ValidatorがGit管理対象Fileとして存在することを要求しません。
 - `failure_category` は `Pass` / `Not run` では空欄にできます。Failureが発生した場合は、観測できたFailure分類を段階的に追加します。
 - `cause`、`action`、`improvement` は、結果と調査の進捗に応じて後から追加します。空欄を埋めるための架空の原因、Action、改善、Path、Evidenceは作成しません。

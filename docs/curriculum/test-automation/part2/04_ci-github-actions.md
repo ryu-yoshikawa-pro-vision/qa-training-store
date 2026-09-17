@@ -23,13 +23,13 @@
 
 共通課程の修了では、Training環境のTrigger、Job / Step、Failure工程、least privilege（必要最小限のPermission）を説明できることを求めます。TrainingとProduction / Deployの責務を分け、失敗や想定外SkipをSuccessとして扱わない理由も説明します。
 
-## 演習Workflowの境界（支援・参考資料）
+## 演習Workflowの境界（開始前に確認する条件）
 
-Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、講師または組織が用意した準備済みTraining環境で行います。
+Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、運営者が開始前に用意した準備済みTraining環境で行います。
 
 演習開始時に、自己学習開始前に準備された学習者書き込み可能なTraining Copyで、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、教材元Repositoryの必須Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、環境の準備問題として提供手順へ戻ります。
 
-Training Copyの準備、実行対象workflowのallowlist、Action pin、現在の構成、Native実行環境などのリポジトリ固有の詳細はこの文書へ複製せず、講師支援・参考資料で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
+Training Copyの準備、実行対象Workflowのallowlist、Action pin、現在の構成、Native実行環境などのRepository固有の詳細は、開始前に提供された準備情報と、このRepositoryの実資材で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -40,9 +40,9 @@ Training Copyの準備、実行対象workflowのallowlist、Action pin、現在�
 | Input | P2-3のPRと、P1／P2-3で作成したTest Case・Training code・実行記録。C12へ進むための、事前準備済みTraining CopyのURLと学習者書き込み権限 |
 | Activity | Training WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、PRからActionsを実行してRun／Job／Check／Artifactを確認する |
 | Observation | どのEventでWorkflowが動いたか、各Stepの入力・出力、baselineとexercise、失敗段階、最小権限、Artifact、想定外Skipの扱い |
-| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
+| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。CIが自動生成したReceipt／`ci.md`は機械メタデータであり、GitHub画面を確認したEvidenceの代わりにしない。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
 | Self-check | CIの価値、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
-| Completion | 準備済みTraining CopyでTraining Workflowを実行し、Run／Check／Artifactを確認してP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
+| Completion | 準備済みTraining CopyでTraining Workflowを実行し、GitHub画面でRun／Check／Artifactと結果を確認して、対象Caseごとの人間可読Evidenceへ記録しP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
 | Recovery | Workflowが動かない場合はCopyの権限、Actions有効化、Trigger、Runner、Browser／Buildの順で環境問題を切り分ける。YAMLの理解不足は該当Lessonへ戻り、Production Workflowを直接変更しない |
 | Handoff | P2-5へTraining Copy URL、PR／Branch、Run ID、Job／Check、Artifact名、実行したCase／code Path、Evidenceを渡す |
 
@@ -70,7 +70,7 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) を参考資料として読みます。Actionのfull commit SHA、exact allowlist、現在のworkflow構成は現在の資材と講師支援で確認し、日本語の暗記やリポジトリの準備作業を修了条件にはしません。
+Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) を参考資料として読みます。Actionのfull commit SHA、exact allowlist、現在のWorkflow構成は現在の資材と開始前の準備情報で確認し、日本語の暗記やRepositoryの準備作業を修了条件にはしません。
 
 概念としては、Event → least-privilege Permission → Job / Runner → Dependency Setup → Test Command → Artifact / Resultの関係を読み分けます。remote ActionのpinやVersionを更新する場合は、official sourceとSecurity Advisoryを確認します。
 
@@ -210,6 +210,17 @@ P2-01〜P2-03でForkを利用していた場合は、ここへ進む前に自己
 
 このGateを満たしていない状態ではCIハンズオンへ進みません。共通範囲では、Workflowを新規作成・編集するのではなく、準備済みのWorkflowを読むことから始めます。
 
+Runが完了したら、CIが生成した`ci.md`をそのまま確認Evidenceにはしません。GitHubのRun画面、Check、Artifactを自分で開いて確認し、Caseごとに次のような人間可読Fileを`handoff-root/evidence/`へ残します。`Result`は画面で確認した実際の結論に合わせます。
+
+```text
+Run ID: <Run ID>
+Run attempt: <Attempt>
+Check: <Workflow> / <Job>
+Artifact: <Artifact name or URL>
+Result: success
+Case: <Test Case ID>
+```
+
 ## ハンズオン1: 準備済みTraining Workflowを読む
 
 リポジトリ管理の[`training-ci.yml`](../../../../training/github-actions/training-ci.yml)を開き、`on`、`permissions`、`jobs`、`runs-on`、`steps`、`uses`、`with`、`run`、`env`、`if`を1つずつ指し示します。基準確認のStepと失敗確認のStepが、どの条件で実行されるかを書きます。
@@ -256,11 +267,11 @@ Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build
 - TrainingとProduction / Deployの境界、`permissions: contents: read`などleast privilegeの意味を説明できる。
 - FailureがSetup、Build、Test、Environment / Secret、Permissionのどの工程かをLogから切り分けられる。
 - 失敗または想定外Skipを最終GateでSuccessにしない理由を説明できる。
-- Action pin、allowlist、現在のworkflow構成はリポジトリ固有の支援・参考資料であり、共通課程の概念と区別できる。
+- Action pin、allowlist、現在のWorkflow構成はRepository固有の準備情報・参考資料であり、共通課程の概念と区別できる。
 
 ### Recovery
 
-Workflowが動かない場合は、最初に起動workflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界の環境・準備上の問題として講師支援へ戻ります。
+Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界の環境・準備上の問題として記録し、準備条件へ戻ります。
 
 ## 完了条件
 

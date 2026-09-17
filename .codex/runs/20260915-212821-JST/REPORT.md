@@ -759,3 +759,29 @@
 - Scope check: 修復対象のsource差分は`package.json`と`pnpm-lock.yaml`だけで、active Runの`REPORT.md`／collector更新済み`run.json`を記録として含める。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`はcommit対象外のまま保持し、`pnpm-lock.yaml`に対象外の依存更新を残していない。
 - Decision: `continue`。修正は安全な依存patch同期として成立したため、明示stage・commit・push後に、最新headだけを対象として`Web CI`／`Mobile App CI`を再確認する。新headのCIが別failureになった場合は、原因を再分類し、同じ修正を無制限に反復しない。
 - Progress: 98% (51/52)。VF（最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認）は、修正commitと最新CI確認まで未完了。
+
+## 2026-09-17 20:12 JST — 実装レビュー指摘の統合対応・push前最終検証
+
+- 対応範囲: PR #157の承認済みPlanに定義された自己学習カリキュラム、Workbook／Test Case／Learner Code／Execution Receipt／Evidence／Completion、Training Copy、Training CIの契約だけを更新した。`src/**`、製品仕様、Formal Regression、Native product、Agent／Hook／Harness／権限設定は変更していない。
+- 根本原因と修正:
+  - 実Playwright統合契約で、親プロセスがfixture HTTP serverのイベントループを塞いでいたため、fixture serverを子プロセス化し、実Runner／Reporter／Receipt／Completionを同一経路で検証できるようにした。
+  - 実アプリの実画面見出しは`すべての商品`であり、fixture／Learner specの誤った期待値`商品一覧`を実アプリ契約へ合わせた。
+  - C10改善後に過去Receiptのコードdigestだけが古くなるため、履歴Receiptを保持し、同一Case／Contextの最新Receiptで現行digestを確認する方式へ整理した。
+  - `--test-root`、`PLAYWRIGHT_TEST_ROOT`、webServer skip、Windows child process型を整え、local／handoff／Training Copyで同じformal実行経路を利用できるようにした。
+  - Training Copyのremote値を対象作成前に検証し、prepare後の`origin`設定・確認を追加した。教材文書は講師依存表現を除き、Input／Output／Completionと自己学習の開始条件を明記した。
+- PASS:
+  - 変更対象Prettier、`git diff --check`。
+  - `corepack pnpm run lint:text`（変更Markdown 16 files）、`corepack pnpm run lint`（0 errors、既存warningのみ）、`corepack pnpm run validate:curriculum`。
+  - `corepack pnpm run security:check`（runtime 233 files、credential scan 370 files）。
+  - `tsc --noEmit --project tsconfig.training.json`、`tsconfig.native-tests.json`。
+  - 関連Contract Test 4 files／57 tests。標準Fixtureの実Runtime統合、実アプリを使うRuntime統合もPASS。
+  - buildのmanual equivalent（font assets、image manifest、Expo web export、docs build）。
+- 非PASSの記録:
+  - 全体`test:contracts`は360秒でtimeout（exit 124）のためPASS扱いしない。
+  - 全体`format:check`は既存`app/**`と未追跡`coverage/`を含む環境差分でFAIL。変更対象のPrettierはPASS。
+  - `typecheck:app`は既存`/guide` route type error 6件のみ。今回の`src/**`差分はない。
+  - `serve-web-dist`関連テストはassertion PASS後のWindows temp directory cleanupで`EBUSY`が発生した既知の環境cleanup flake。
+- 実行経路の受入確認: Common V1は実アプリ統合テストで、複数Learner Case、Receipt、C09の初回Failure→同一target修正→別run Pass、C10の実issue→改善→別runを含めPASSした。Part 2の実GitHub Training Copy／PR／Actions実行はこの環境では未実行であり、未実行をPASSへ変換しない。
+- Git状態: local HEADは`bbf77b2148174df61f05707215e216727c1e4e76`、branchは`feat/self-study-curriculum-test-coverage`。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`はcommit対象外として保持する。次はcollector／sanitizer、意図したファイルだけのstage、commit／push、既存PR #157のheadと新headの必須CI確認を行う。
+- Decision: `continue`。実装とpush前検証に残る未完了作業はGit／PR／CIの最終反映だけであり、追加の要件判断は不要。
+- Progress: 98% (51/52)。

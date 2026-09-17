@@ -178,7 +178,7 @@ P2の選択課程を開始する前の共通課程の必須前提はP2-5まで�
 Git / GitHubの基本演習では、次の標準経路を利用できます。
 
 - 自分のGitHub AccountへForkする。
-- 講師または組織が自己学習開始前に用意したTraining Copyを使用する。
+- 運営者が自己学習開始前に用意したTraining Copyを使用する。
 
 既存Repositoryの本番向けCI/CDやCloudflare Secretsを直接利用することは演習の前提にしません。既存Workflowは完成例として読み、演習用Workflowは安全に分離された環境で扱います。
 

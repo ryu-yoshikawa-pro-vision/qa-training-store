@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { isNormativeSpecPath } from "./spec/build-spec";
 import { collectNormativeSpecReferences } from "./spec/validate-spec";
 import { validateTrainingWorkflow } from "./training/workflow-contract";
+import { WORKBOOK_HEADERS } from "./training/workbook-schema";
 
 const REQUIRED_CURRICULUM_FILES = [
   "docs/curriculum/test-automation/README.md",
@@ -39,50 +40,6 @@ const REQUIRED_CURRICULUM_FILES = [
     return `docs/curriculum/test-automation/part2/${String(index + 1).padStart(2, "0")}_${names[index]}.md`;
   }),
 ] as const;
-
-const WORKBOOK_HEADERS: Record<string, readonly string[]> = {
-  "01_target-risk.csv": [
-    "target_id",
-    "spec_ref",
-    "br_ids",
-    "ac_ids",
-    "risk_id",
-    "risk_description",
-    "impact",
-    "likelihood",
-    "priority",
-  ],
-  "02_test-cases.csv": [
-    "test_case_id",
-    "risk_id",
-    "spec_ref",
-    "br_ids",
-    "ac_ids",
-    "test_condition",
-    "precondition",
-    "expected_result",
-    "design_technique",
-  ],
-  "03_automation-mapping.csv": [
-    "test_case_id",
-    "automation_decision",
-    "test_layer",
-    "tool",
-    "implementation_path",
-    "execution_timing",
-    "reason",
-  ],
-  "04_execution-improvement.csv": [
-    "test_case_id",
-    "run_context",
-    "result",
-    "evidence",
-    "failure_category",
-    "cause",
-    "action",
-    "improvement",
-  ],
-};
 
 export type CurriculumSummary = {
   documents: number;

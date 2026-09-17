@@ -15,6 +15,8 @@ export const APPROVED_TRAINING_RUNNERS = new Set(["ubuntu-24.04"]);
 
 export const TRAINING_WEB_EXERCISE_WITH_RECEIPT_COMMAND =
   "pnpm run training:web:exercise:with-receipt";
+export const TRAINING_WEB_CI_EXERCISE_COMMAND =
+  "pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise";
 
 const REPOSITORY_TRAINING_COMMANDS = new Set([
   "pnpm run validate:curriculum",
@@ -162,6 +164,15 @@ function assertTrainingWebExerciseCondition(
     fail(
       workflowName,
       "the receipt-enabled Training Web exercise step must set if: github.event_name == 'pull_request'",
+    );
+  }
+  if (
+    typeof exerciseStep.run !== "string" ||
+    normalizeCommand(exerciseStep.run) !== TRAINING_WEB_CI_EXERCISE_COMMAND
+  ) {
+    fail(
+      workflowName,
+      `the receipt-enabled Training Web exercise step must use the exact command: ${TRAINING_WEB_CI_EXERCISE_COMMAND}`,
     );
   }
 }

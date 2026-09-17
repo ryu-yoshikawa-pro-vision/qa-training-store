@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 export const INITIAL_DIAGNOSTIC_EXERCISE = `import { expect, test } from "@playwright/test";
 import { resetScenario } from "../support/reset-scenario";
 
-test("TC-CART-002 diagnostic exercise: identify and repair the incorrect cart expectation", async ({
+test("TC-CART-001 diagnostic exercise: identify and repair the incorrect cart expectation", async ({
   page,
 }) => {
   // C09のinitial runでは、決定的に誤った期待値を観測し、Evidenceから原因を分析します。
@@ -19,7 +19,7 @@ test("TC-CART-002 diagnostic exercise: identify and repair the incorrect cart ex
   await page.goto("/products/product-mug");
   await page.getByRole("button", { name: "カートに追加" }).click();
   await expect(page.getByRole("status")).toContainText("カートへ追加しました");
-  await page.getByLabel("数量").selectOption("5");
+  await page.getByLabel("数量").selectOption("4");
   await page.getByRole("button", { name: "カートに追加" }).click();
 
   // 受講者はFailure Evidenceを確認し、仕様の条件に合わせてこの期待値を修正します。

@@ -43,18 +43,31 @@ Training環境には最低限、次が必要です。
 
 `playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
+## 実装を始める前に準備するもの
+
+P1-3の設計が未完了なら、先に戻ってから実装します。Playwrightのコードだけを先に書くと、何を確認するTestなのか、どの結果をWorkbookへ記録するのかが決まりません。最低限、次のInputを1つのCaseごとに揃えます。
+
+| 準備するもの | 例 | 使う場所 |
+| --- | --- | --- |
+| Test Case ID | P1-3で作った`TC-CART-101`など。配布sampleの`TC-CART-001`／`TC-CART-002`を完成Caseとして流用しない | Test titleまたはannotation、Workbookの全行 |
+| 条件・前提・期待結果 | 対象商品、Seed Scenario、操作、確認する画面状態 | `02_test-cases.csv`、Test本文 |
+| Reset方法 | `resetScenario(page, "default")`など | Testの最初 |
+| 代表specのPath | `training/playwright/exercises/my-cart.spec.ts` | `03_automation-mapping.csv`の`implementation_path` |
+
+Starterは完成答案ではありません。内容を直接完成させず、`training/playwright/exercises/`へ自分のCase用の新しい`.spec.ts`を作成し、そこへStarterのimportと最小構造を参考に書きます。Helper／POMを作る場合も同じ`training/playwright/`配下へ置き、代表specからimportします。まずは1つのspecへ素直に書き、P1-8で共通化の要否を判断します。
+
 Desktop learner exerciseの互換commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。実行結果を評価へ渡す場合は、P1-6で扱う`training:web:exercise:with-receipt`を使い、実行したCaseとEvidenceを記録します。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-3で設計した複数のTest Case、特に`TC-CART-101`を代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool、P1-4で確認したAction／Locator／Assertionの基礎、既存`resetScenario` |
+| Input | P1-3で設計した複数のTest Case、特に自分が作成した`TC-CART-101`などを代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool、P1-4で確認したAction／Locator／Assertionの基礎、既存`resetScenario`。実装前にCase ID、Reset方法、代表specの保存先を準備する |
 | Activity | CaseをTraining specへ実装し、各Testの開始時に明示的なSeed ScenarioへResetする。正常、境界／異常、状態変化、Desktop、受講者が作成したMobile Web exerciseを必要な範囲で実行する |
 | Observation | Reset後のScenario、画面上の状態変化、期待結果と実際の結果、Desktop／Mobileの差、Trace／Screenshot／Video／Reportの生成、WorkbookのCaseとコードの対応 |
 | Output | 受講者が作成したTraining spec、対応するWorkbookの`implementation_path`、実行ごとのReceipt／Evidence参照、Desktop／Mobileで観察した差分。各Test Case IDはWorkbookの`implementation_path`、テストタイトル、注釈、または既存metadataのいずれかでコードと実行結果へ追跡できるようにする。編集場所は自由で、評価時はRepository相対Pathを保って`handoff-root/code/`と各rootへ集約する |
 | Self-check | P1-3のCaseとコードの条件・期待結果が対応し、Reset、正常・境界／異常、状態変化、Desktop、Learner-authored Mobileの各観点を必要な理由とともに説明する。意味の妥当性は自動判定へ委ねない |
-| Completion | 少なくとも複数の受講者CaseをTraining境界へ実装し、`TC-CART-101`を代表Caseとして、明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
+| Completion | 少なくとも複数の受講者CaseをTraining境界へ実装し、各Caseについて明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
 | Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
 | Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
 

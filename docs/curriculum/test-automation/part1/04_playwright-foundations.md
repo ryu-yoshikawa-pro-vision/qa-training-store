@@ -79,6 +79,12 @@ Training用
 
 `playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
 
+### 最初のLearner specを作る場所
+
+Starterの`training/playwright/exercises/training-exercise-starter.spec.ts`は、Resetとページ遷移の構造を読むための足場です。P1-3で作ったCaseを実装するときは、Starterを完成答案に書き換えず、`training/playwright/exercises/<自分のCaseを表す名前>.spec.ts`という新しいFileを作ります。Test titleまたは既存annotation／metadataへ自分のTest Case IDを残し、`03_automation-mapping.csv`の`implementation_path`へ同じRepository相対Pathを記録します。
+
+実装の順番は、`resetScenario` → 対象画面を開く → 操作する → 期待結果をAssertionする、です。最初の実行は `pnpm run training:web:exercise -- --project=training-chromium` で行い、Browser未InstallやBase URL不通ならコードのFailureと混同せず、P1-4の開始環境を直します。実行結果を正式な学習記録へ渡す方法はP1-6のReceipt付きcommandで扱います。
+
 受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`でDesktopの基準確認を行います。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。Mobile Webの基準確認と`training:web:mobile`はP1-5で扱います。
 
 ## Lesson 0: Playwrightを書くためのJavaScript / TypeScript最小知識

@@ -24,7 +24,7 @@
 GitHub演習では、次のいずれかを使用します。
 
 1. `qa-training-store` を自分のGitHub AccountへForkする。
-2. 講師または組織が用意した `qa-training-store` の演習用Copyを使用する。
+2. 運営者が開始前に用意した `qa-training-store` の演習用Copyを使用する。
 
 どちらの場合もテスト対象・コードベースはScenario Shopのままです。
 
@@ -35,9 +35,9 @@ GitHub演習では、次のいずれかを使用します。
 | Input | P2-2のBranch／Commit／Diff、P1成果物のCase IDとコードPath、Pull Requestで説明するTest結果。GitHubアカウントと、基礎学習に使うForkまたはTraining Copy |
 | Activity | Remote、Fork、Push、Pull Request、Review、Checksの関係を確認し、Test Codeの変更・理由・実行記録をPR単位で共有する |
 | Observation | Base／Headの差分、変更対象、Reviewコメント、Checkの状態、Test Case／Receipt／Artifact参照、学習者が書き込みできるRemoteかどうか |
-| Output | Branch／Commit／Pull Request、PR説明、Review記録、Check参照、P2-4へ渡すTest Case・コードPath・実行記録。形式と編集場所は自由で、self-checkは`handoff-root/self-check/P2-03.md`へ残す |
+| Output | Branch／Commit／Pull Request、PR説明、Review記録、Check参照、P2-4へ渡すTest Case・コードPath・実行記録。C11の機械確認へ渡す記録には、少なくとも`Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`を記載する。形式と編集場所は自由で、self-checkは`handoff-root/self-check/P2-03.md`へ残す |
 | Self-check | GitとGitHub、ForkとUpstream、PRとMerge、ReviewとChecksの役割を分け、Test CodeもReview対象にする理由を説明する |
-| Completion | P2-2の変更をPRで共有し、レビューとCheckの結果を説明できる。Forkを使った場合はP2-3までの基礎学習として完了し、C12／Training CIの正式経路はTraining Copyだと確認できる |
+| Completion | P2-2の変更をPRで共有し、レビューとCheckの結果を説明できる。`Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`を含む自分の変更管理記録を残す。Forkを使った場合はP2-3までの基礎学習として完了し、C12／Training CIの正式経路はTraining Copyだと確認できる |
 | Recovery | Remote／権限の問題はForkまたは準備済みTraining Copyの開始条件を確認する。Reviewの理解不足はDiffとPR本文へ戻り、管理者権限・Secrets・Workflow設定変更で解決しない |
 | Handoff | P2-4へTraining CopyのURL、Branch／PR、Case ID、コードPath、Check／Review記録を渡す。ForkのPRは基礎学習の記録として扱い、C12の証跡と混同しない |
 
@@ -144,7 +144,7 @@ Scenario Shop本体では、現在のCIで次のような検証があります�
 
 ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
 
-重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。Training Copy、実行対象workflow、SecretsやDeployの分離は [講師向け資料](../03_instructor-reference.md) の支援範囲です。共通課程の修了では、準備済みの演習環境でPRとTest変更をレビューします。
+重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。受講開始前にTraining Copy、実行対象Workflow、SecretsやDeployの分離を確認します。共通課程の修了では、準備済みの演習環境でPRとTest変更をレビューします。
 
 ## Lesson 7: Merge判断
 

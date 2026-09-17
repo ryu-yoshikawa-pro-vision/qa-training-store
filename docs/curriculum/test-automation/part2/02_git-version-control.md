@@ -38,13 +38,13 @@ Git管理されたqa-training-store
 └ 以降のGit演習
 ```
 
-### 移行時の安全な手順（講師支援・参考資料）
+### 移行時の安全な手順（開始前の準備）
 
-Training Copyの準備と引継ぎは講師支援・参考資料の範囲です。受講者の共通課程の修了は、準備済みのGit管理Copy上でBranch、Diff、Staging、Commitを扱うことに置き、Source SHA、allowlist、Copyの準備作業を自力で行うことは要求しません。
+Training Copyの準備と引継ぎは受講開始前に完了している環境準備です。受講者の共通課程の修了は、準備済みのGit管理Copy上でBranch、Diff、Staging、Commitを扱うことに置き、Source SHA、allowlist、Copyの準備作業を自力で行うことは要求しません。
 
-具体的な準備・検証、引継ぎ対象のallowlist、既存Workflowとの分離は [講師向け資料](../03_instructor-reference.md) の支援手順を使用します。受講者は、準備済みCopy上で自分のPart 1成果物とGit上の既存資産をDiffから区別し、必要な変更だけを作業Branchへ扱います。
+開始時に、Git管理されたCopy、Part 1の成果物、教材元のHistory、既存Workflowと分離されたTraining Workflowがそろっていることを確認します。受講者は、準備済みCopy上で自分のPart 1成果物とGit上の既存資産をDiffから区別し、必要な変更だけを作業Branchへ扱います。
 
-作業Branchの作成、`git status`、`git diff`、`git diff --staged`などのLocal Git操作は、このモジュールの共通課程の学習対象として扱います。Copy準備の失敗や成果物不足は、Gitの理解不足ではなく環境・準備上の問題として講師支援へ戻します。
+作業Branchの作成、`git status`、`git diff`、`git diff --staged`などのLocal Git操作は、このモジュールの共通課程の学習対象として扱います。Copy準備の失敗や成果物不足は、Gitの理解不足ではなく環境・準備上の問題として記録し、準備手順を確認してから再開します。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
@@ -264,11 +264,11 @@ commit
 - Part 1成果物、教材元のHistory、自分の変更をDiffで区別できる。
 - 最初の演習変更・Commitを`main`へ作らず、先に作業Branchを選んだ理由を説明できる。
 - 意図したFileだけをStageし、Staged Diffと意味のあるCommit Messageを確認できる。
-- Training CopyのSource SHA / allowlist / Copyの準備作業は講師支援・参考資料の範囲であり、準備済みCopyを使う共通課程の修了の隠れた前提ではないと説明できる。
+- Training CopyのSource SHA / allowlist / Copyの準備作業は開始前の環境準備であり、準備済みCopyを使う共通課程の修了の隠れた学習課題ではないと説明できる。
 
 ### Recovery
 
-BranchやDiffが分からない場合は、作業を止め、`git status` → `git branch --show-current` → `git diff` → `git diff --staged`の順に状態を確認します。準備済みCopyやPart 1成果物が手元にない場合は環境・準備上の問題として講師支援へ戻り、Gitの理解不足と決めつけません。
+BranchやDiffが分からない場合は、作業を止め、`git status` → `git branch --show-current` → `git diff` → `git diff --staged`の順に状態を確認します。準備済みCopyやPart 1成果物が手元にない場合は環境・準備上の問題として記録し、準備手順を確認してから再開します。Gitの理解不足と決めつけません。
 
 ## 完了条件
 
