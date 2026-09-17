@@ -135,3 +135,11 @@
 - 判断 / 理由: 観測された事象は`Stop(false) -> cleanup -> Stop(true)`だが、恒久契約はrepeated Stop履歴の確認ではなく、active Stopでstate pathが存在しない場合のidempotentなfail-open allowである。stateが存在する破損JSON、root/session identity mismatch、schema/status不正、inactive Stop、PostToolUse、UserPromptSubmit、baseline unavailable、launcher failureの境界は変更していない。
 - ブロッカー / 残作業: repository側の実装・回帰test・ADR・ローカル検証・最新CIは完了した。実Codex runtimeで任意にrepeated Stopを再発生させることはできておらず、過去の実ログ、controlled replay、contract testを証拠として扱う。この制約を隠して実runtime再現PASSとは報告しない。merge、Issue close、PR close、branch削除、force pushは行っていない。
 - Progress: 100% (8/8)
+
+## 2026-09-17 09:32 (JST)
+
+- Summary: Run Artifact最終更新を#161 branchへpushし、最新head`341ec10c9cc7ecddad3c403a8b84c351e3a64ad4`に対するCIを再確認した。PR #161はOPEN、base refは引き続き`issue-159-windows-launcher-contract-timeout`、merge stateは`CLEAN`である。
+- Validation: Web CI run `35166491264`、Mobile App CI run `35166491433`が全てSUCCESS。Windows Hook contract、Vitest contracts、Style/Code Quality、Web verify、Mobile verifyを含むrequired checkが最新headで完了した。working treeとorigin branchはhead一致、`git diff --check`もPASSである。
+- 判断 / 理由: 追加pushはRun Artifactの追記だけで、active Stop + state不存在のHook契約、回帰test、ADR-0026、#160のtimeout差分境界は変更していない。repeated Stopを実runtimeで任意再現できていない点は未確認事項として維持する。
+- ブロッカー / 残作業: repository修正、ローカル検証、最新CIは完了。実Codex runtimeの任意repeated Stop再現だけは未確認であり、実ログ・controlled replay・contract testを証拠とする。merge、Issue close、PR close、branch削除、force pushは行っていない。
+- Progress: 100% (8/8)
