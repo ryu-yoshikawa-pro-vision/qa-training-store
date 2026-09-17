@@ -178,7 +178,7 @@
   - 実装は開始していない。ユーザーから実装開始の指示があるまで、Planに列挙したSource変更へ進まない。
   - 実装開始後は、全`test:contracts` timeoutのfirst failure / 実行環境を先に切り分ける。
 - Subagent:
-- 今回はOwner確認の反映であり、新規Agentは起動していない。既存のRunで複数Agentレビューと結果未取得の扱いを記録済みである。
+  - Result: 今回はOwner確認の反映であり、新規Agentは起動していない。既存のRunで複数Agentレビューと結果未取得の扱いを記録済みである。
 - Progress: 100% (7/7)
 
 
