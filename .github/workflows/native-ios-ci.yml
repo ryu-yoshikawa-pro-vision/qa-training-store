@@ -19,6 +19,7 @@ concurrency:
 env:
   NODE_VERSION: 24
   PNPM_VERSION: 9.10.0
+  HUSKY: "0"
 
 jobs:
   ios-automation-build:

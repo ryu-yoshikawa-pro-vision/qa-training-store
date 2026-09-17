@@ -32,6 +32,10 @@ const steps = workflowSteps(workflow);
 const updateGuard = "if: steps.expo_check.outputs.needs_fix == 'true'";
 
 describe("Expo dependency maintenance workflow contracts", () => {
+  it("disables Husky for the install and automation commit path", () => {
+    expect(topLevelBlockLines(workflow, "env")).toContain('HUSKY: "0"');
+  });
+
   it("runs on the planned triggers with bounded permissions and main safety guards", () => {
     expect(workflow).toContain('cron: "0 0 * * 1"');
     expect(workflow).toContain("workflow_dispatch:");
