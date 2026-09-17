@@ -104,3 +104,12 @@
 - Validation: #160 source差分はtimeout 2箇所以外なし。遅延checkoutへ恒久変更・commitは行っていない。今回の計測により、launcher単位異常なしと現在時点の再現不能は確認できたが、CIと過去の約64秒観測との差をprocess境界まで説明する証拠は未取得である。
 - ブロッカー / 残作業: 最新headでCIのprocess単位時間を未取得のため、Issue #159の「CIとaffected localの結果差を下位process境界まで説明する」完了条件は未充足として扱う。PR本文をこの確認済み／未確認の境界へ更新し、必要な最新head検証を継続する。`Defender`等の外部要因を推測で追加修正しない。
 - Progress: 88% (7/8)
+
+## 2026-09-17 09:19 (JST)
+
+- Summary: #160のレビュー対応後の恒久差分、ローカル検証、最新headのCIを再確認した。現在のheadは`cb7b03ae7acfb264725ebf238d72a2aeab55ca6c`で、PR #160はOPENかつGitHubのmerge stateは`CLEAN`である。
+- Changes: 恒久的なsource変更は引き続き`tests/contracts/codex-hook-contract.test.ts`のlogging `15000ms -> 30000ms`と、`tests/contracts/codex-text-quality.test.ts`のStop fallback `30000ms -> 90000ms`だけである。追加計測コードは残っておらず、production Hook/config、launcher、PreToolUse、CIは変更していない。
+- Validation: combined focused、logging/Stop個別、対象2 file全体、`./scripts/verify.ps1 -HookContracts`（`PASS=4 FAIL=0 SKIP=0`）、`pnpm run test:contracts`（36 files / 583 passed / 4 skipped）、`pnpm run verify`、`pnpm run lint:text`、`pnpm run lint:markdown`、`git diff --check`をPASSした。#160の最新headに対するWeb CI run `35162272632`、Mobile App CI run `35162272817`、CodeQLもSUCCESSで、Windows Hook contract、Vitest contracts、Web verify、Mobile verifyを含む全required checkが完了している。
+- 判断 / 理由: #160の30秒/90秒変更は、過去に記録されたfile wall `22444ms`/`63663ms`が旧aggregate ceilingを超えたfailure boundaryと、今回の5/24回同期invocation計測に基づくtest-local変更として維持する。ただし、affected checkoutでは今回約64秒を再現できず、CI側のinvocation単位timingも取得していないため、launcher duration差のさらに下位原因およびCIと過去観測値のprocess境界差は未確認のままである。Defender等の外部要因は断定していない。
+- ブロッカー / 残作業: source修正・ローカル検証・最新CIは完了したが、Issue #159が要求する「CIとaffected localの差を下位process境界まで説明する」証拠は未充足である。そのため、このRunでは#160を原因全体まで完全確定した／merge-readyとは扱わない。merge、Issue close、PR close、branch削除、force pushは行っていない。
+- Progress: 88% (7/8)
