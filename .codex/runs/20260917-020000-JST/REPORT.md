@@ -126,3 +126,12 @@
 - Validation: 既存のgeneric missing-state active Stop test（allow）、inactive Stop missing state（block）、corrupt state、root/session identity mismatch、baseline_unavailable、PostToolUse failureを維持している。configured launcher経由の`baseline作成 -> clean inactive Stop -> state cleanup -> repeated active Stop -> structured allow`回帰testも維持している。PR #161の変更ファイルはHook、text-quality contract test、ADR、既存Run Artifactに限定した。
 - ブロッカー / 残作業: ADRとRun Artifactの追加変更をcommit／pushし、PR #161本文を同じ契約表現へ更新する。最新head CI確認後に最終判断する。実Codex sandboxのfocused testは過去checkpoint記載どおり、Git ownership／pnpm PATH制約により未実行であり、PASS扱いしない。
 - Progress: 100% (8/8)
+
+## 2026-09-17 09:20 (JST)
+
+- Summary: PR #161の最新headで、契約修正、ADR、回帰test、ローカル検証、最新headのCIを再確認した。現在のheadは`67ca9f254a745ccad9ea6fd3fb65f08553920968`で、PR #161はOPEN、baseは引き続き`issue-159-windows-launcher-contract-timeout`、GitHubのmerge stateは`CLEAN`である。
+- Changes: `active Stop + state path不存在`だけをdiagnosticなしstructured `{"continue":true}`へ収束させるHook実装、既存generic missing-state契約とrepeated active Stop回帰test、ADR-0026の最小追記を維持した。#160のtimeout差分をこのbranchへ重複実装していない。
+- Validation: state boundary focused（5 passed / 38 skipped）、text-quality full（43 passed）、関連2 file、`pnpm run test:contracts`（36 files / 584 passed / 4 skipped、Vitest `421.22s`）、`pnpm run lint:text`、`pnpm run lint:markdown`、`git diff --check`をPASSした。`pnpm run verify`もcontracts（36 files / 584 passed / 4 skipped）、build、spec生成を含めfailureなく完走した。既存Native testの`act(...)`警告はあるがfailureではない。#161の最新headに対するWeb CI run `35162288137`、Mobile App CI run `35162288370`はSUCCESSで、Windows Hook contract、Vitest contracts、Style/Code Quality、Web verify、Mobile verifyを含むrequired checkが完了している。
+- 判断 / 理由: 観測された事象は`Stop(false) -> cleanup -> Stop(true)`だが、恒久契約はrepeated Stop履歴の確認ではなく、active Stopでstate pathが存在しない場合のidempotentなfail-open allowである。stateが存在する破損JSON、root/session identity mismatch、schema/status不正、inactive Stop、PostToolUse、UserPromptSubmit、baseline unavailable、launcher failureの境界は変更していない。
+- ブロッカー / 残作業: repository側の実装・回帰test・ADR・ローカル検証・最新CIは完了した。実Codex runtimeで任意にrepeated Stopを再発生させることはできておらず、過去の実ログ、controlled replay、contract testを証拠として扱う。この制約を隠して実runtime再現PASSとは報告しない。merge、Issue close、PR close、branch削除、force pushは行っていない。
+- Progress: 100% (8/8)
