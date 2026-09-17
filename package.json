@@ -93,7 +93,7 @@
     "@hookform/resolvers": "5.5.7",
     "dexie": "4.4.4",
     "expo": "57.0.23",
-    "expo-build-properties": "57.0.19",
+    "expo-build-properties": "57.0.20",
     "expo-constants": "57.0.18",
     "expo-crypto": "57.0.3",
     "expo-dev-client": "57.0.19",

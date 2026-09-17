@@ -11,8 +11,8 @@
 - [x] 6. diff、改行、lockfile、EAS/対象外workflow境界を確認する。
 - [x] 7. 一時cloneで通常install、Hook path、正常commit、異常commit停止を検証する。
 - [x] 8. 関連contract、標準品質gate、`pnpm run verify`を検証する。
-- [ ] 9. Run Artifactをfinal commit前状態まで更新・検証する。
-- [ ] 10. branch safetyを再確認し、commit対象を確定してcommitする。
+- [x] 9. Run Artifactをfinal commit前状態まで更新・検証する。
+- [x] 10. branch safetyを再確認し、commit対象を確定してcommitする。
 - [ ] 11. 明示refspecでpushし、最新PR CIとPR状態を確認する。
 
 ## 完了処理の参照先

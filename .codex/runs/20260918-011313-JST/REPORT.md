@@ -26,6 +26,22 @@
 - ブロッカー / 残作業: branch safety再確認、Run Artifactのmachine manifest同期、明示refspecでcommit/push、最新PR CI（Web CI / Mobile App CI）確認が残っている。
 - Progress: 73% (8/11)
 
+## 2026-09-18 02:24 (JST)
+
+- Repair iteration: #1。入力はPR #164の最初のhead `c6a524ff5d3e80c28eb164cab13cfebb8406c58d`に対するMobile App CI `Native Static / Run Expo Doctor` failure（run `35249887472`）。`pnpm dlx expo-doctor@1.17.6`を同じ環境で再現し、`expo-build-properties`の期待値`~57.0.20`に対して`57.0.19`だったことが唯一の17 checks中のfailureと確認した。
+- 分類 / 判断: `must_fix`、`flaky_or_env_issue`（Expoの互換性メタデータと既存patch versionのdrift）。Husky設定、workflow、EAS設定が原因ではないため、それらは変更せず、修正許可範囲を`package.json`と`pnpm-lock.yaml`に限定した。
+- Changes: `expo-build-properties`を`57.0.19`から`57.0.20`へ同期し、lockfileの関連resolution・snapshotだけを更新した。install時に再正規化された無関係なESLint peer snapshotはHEAD版へ戻し、差分を限定した。
+- Validation: 通常`pnpm install --frozen-lockfile`（prepare実行）成功、`pnpm dlx expo-doctor@1.17.6` 17/17 checks passed、`pnpm exec expo install --check`成功。関連contract 3 files / 34 tests、format、lint（error 0・既存warning 66）、typecheck、security成功。`pnpm run verify`はexit 0で、unit 66、integration 111、repository 117、component web 102/native 64、contract 37 files / 589 passed / 4 skipped、web/docs/spec buildまで完了した。
+- 残作業: 修正内容をRun Artifactのmachine manifestへ反映し、branch safety確認後に通常pre-commitでcommit・pushし、修正後headのPR CIを再確認する。
+- Progress: 82% (9/11)
+
+## 2026-09-18 02:29 (JST)
+
+- Summary: branch safetyを再確認した。current branchは`issue-162-husky-local-quality-gate`、upstreamは同名の`origin`、current headとremote headは修正前commit `c6a524ff5d3e80c28eb164cab13cfebb8406c58d`で一致し、`origin/main`は`bd31452d5b69169bee0016afcec6bc8b5d83318a`だった。default branchへの操作、force push、stage済みの想定外差分はない。
+- Scope / commit target: `package.json`、`pnpm-lock.yaml`、および今回のrepair判断を記録するRun Artifact 2 filesだけをcommit対象とする。対象外workflow、EAS設定、既存品質scriptには追加変更を行わない。
+- Validation: `git diff --check`は問題なし。Run ArtifactのsanitizationをWrite/Checkで実行し、残存findingなし。
+- Progress: 91% (10/11)
+
 ## 削除候補
 
 - Codex はファイルやディレクトリを削除しない。
