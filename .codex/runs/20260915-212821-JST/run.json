@@ -16,7 +16,9 @@
     "docs/plans/2026-09-15_213247_self-study-agent-orchestration/02-scope-and-waves.md",
     "docs/plans/2026-09-15_213247_self-study-agent-orchestration/03-completion-and-github-actions.md",
     "docs/plans/2026-09-15_213247_self-study-agent-orchestration/04-tests-and-validation.md",
-    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md"
+    "docs/plans/2026-09-15_213247_self-study-agent-orchestration/05-risks-deliverables-and-notes.md",
+    "package.json",
+    "pnpm-lock.yaml"
   ],
   "validation": {
     "status": "not_run",

@@ -746,3 +746,16 @@
 - 実行済みの受入確認: formal Receipt入口のlocal exercise smokeはexit 0、diagnostic initialは期待どおりexit 1でReceipt／failed caseを生成、Gitless restore helperはexit 0。producer／implementation pathの最終確認とmaterialize成功経路はcommit後に再実行する。
 - Decision: `continue`。commit前の残差は既知のHEAD依存テスト1経路であり、実装契約の追加曖昧さではない。次は実装差分を明示的にstageしてcommitし、commit後のmaterialize／focused Contract Testとformal smokeを再実行する。
 - Progress: 98% (51/52)。VF（最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認）のみ未完了。
+
+## 2026-09-17 Repair iteration 2 — Mobile App CIのNative Static failureへの最小修正
+
+- Input finding: 実装commit `240981d43a201c53966a6bcd220a000d3f8b59c0` の最新PR headで、`Web CI`はsuccessだった一方、`Mobile App CI`の`Native Static`がExpo Doctorの依存版数検査でfailureになった。ログは`expo-build-properties expected ~57.0.20 found 57.0.19`であり、別のNative source／workflow failureは確認されなかった。
+- Classification: `must_fix`。現在のpackage.jsonへ追加したTraining commandによりNative workflowの変更検知対象へ入るため、PRの必須CIをsuccessにするための安全な最小修正として扱う。許可範囲は`package.json`と`pnpm-lock.yaml`だけとし、Native workflow、Native source、Training実装、既存Hook／Harnessは変更しない。
+- Repair: `expo-build-properties`を`57.0.19`からExpo Doctorが要求する`57.0.20`へ更新し、lockfileも同じpackageのspecifier／resolution／snapshotだけを同期した。更新時にpnpmが生成した無関係なtransitive dependency差分は除外した。
+- Local validation:
+  - PASS: `corepack pnpm install --frozen-lockfile --ignore-scripts`（lockfileは最新、対象packageのみ57.0.20へ更新）。
+  - PASS: `corepack pnpm dlx expo-doctor@1.17.6`（17/17 checks passed）。
+  - PASS: 6 contract files／88 tests、`typecheck:training`、`typecheck:native-tests`、`validate:curriculum`、`lint:markdown`（441 files／0 issues）、`lint:text`、`git diff --check`。
+- Scope check: 修復対象のsource差分は`package.json`と`pnpm-lock.yaml`だけで、active Runの`REPORT.md`／collector更新済み`run.json`を記録として含める。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`はcommit対象外のまま保持し、`pnpm-lock.yaml`に対象外の依存更新を残していない。
+- Decision: `continue`。修正は安全な依存patch同期として成立したため、明示stage・commit・push後に、最新headだけを対象として`Web CI`／`Mobile App CI`を再確認する。新headのCIが別failureになった場合は、原因を再分類し、同じ修正を無制限に反復しない。
+- Progress: 98% (51/52)。VF（最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認）は、修正commitと最新CI確認まで未完了。
