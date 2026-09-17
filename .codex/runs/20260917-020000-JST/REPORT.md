@@ -163,3 +163,46 @@
 - Changes: PR本文のstacked状態の古い説明を、`#160`がmainへsquash merge済みであり、#161がmainをbaseとしてmerge後のmainを通常mergeしたこと、#160 timeout修正を重複実装していないことへ更新した。PR #161はOPEN、baseは`main`、mergeableは`MERGEABLE`である。
 - ブロッカー / 残作業: 実Codex runtimeで任意のrepeated Stopを再現したものではなく、既存の実ログ、controlled replay、contract testを証拠とする境界は維持する。PR merge、Issue close、PR close、branch削除、force pushは行っていない。
 - Progress: 100% (8/8)
+
+## 2026-09-17 19:35 (JST)
+
+- Summary: Codex再起動後の新sessionで、`UserPromptSubmit`から最初の`PostToolUse`までのstate lifecycleをread-only観測した。現時点で新sessionの`baseline_state`またはcompletion blockは再発していない。
+- 再起動前session: 現在の`.codex/logs/`と`.artifacts/codex-hooks/`には前sessionのraw Hook JSONLがなく、event順は確定できない。ユーザー提示の`Text quality check unavailable; completion cannot be confirmed.`と`quality check unavailable (baseline_state)`は同一Hook呼び出しとは扱わず、少なくとも別eventの出力として分離した。保存済みRunにある`UserPromptSubmit -> Stop(false) -> Stop(true)`はcontrolled replayの証拠であり、前sessionのnative event順そのものではない。
+- 再起動前sessionの異常: 最初にstateが不正になったnative event、stateが存在したか／missingだったか、`baseline_state` diagnosticが`Stop(true)`か`PostToolUse`かは、保存済み証拠だけでは未確定である。現行実装上は、inactive `Stop`の読込失敗がcompletion block、`PostToolUse`またはactive `Stop`の読込失敗が`baseline_state` diagnosticへ到達し得るため、出力文だけではeventを識別できない。
+- 新sessionの`UserPromptSubmit`: 同一sessionのloggerに3件の`UserPromptSubmit`が時系列で記録され、最新が今回の指示に対応するeventである。state候補は1件に絞られ、JSON parseに成功した。`schema_version=2`、`status=ready`、`start_head`は40桁commit SHA、`root_id`と`session_id_hash`は各64桁hex、`files`はarray（0件）で、filename identityおよび開始HEADとの整合も確認した。
+- 新sessionのbaseline state: stateは`UserPromptSubmit`後に作成され、作成・最終更新時刻は最初の`PostToolUse`より前である。診断のためのstate修正、手動削除、全削除は行っていない。
+- 新sessionの最初の`PostToolUse`: 最新`UserPromptSubmit`の後、最初の`PostToolUse`はlogger上で`Bash`として記録された。Hookのblock／quality-unavailable出力は観測されず、その後の複数`PostToolUse`を含めstateは`ready`のまま存在した。利用可能なlocal tool境界ではread-only専用tool名を使えず、内部観測はBash経由になった。
+- 通常作業中のstate: 最新観測までstateの消失、JSON parse failure、schema／identity／status／`start_head`／files entryのvalidation failureは確認していない。PostToolUseによるstateの書換え・削除も確認していない。
+- 最初の`Stop(false)`直前: このcheckpoint作成時点の最後のstate観測は正常な`ready`である。ただし、このassistant turnではnative `Stop(false)` event自体はまだloggerへ記録されていない。
+- baseline_state再発: 新sessionの観測済み`UserPromptSubmit`／`PostToolUse`ではなし。completion block再発もなし。native Stopの結果は未観測である。
+- 原因判断: 再起動後のstate作成・identity validation・通常PostToolUseは正常で、PR #161のHook lifecycle不具合はこの新sessionでは再現していない。再起動前の問題をsession固有のstate lifecycle不整合であった可能性として扱うことはできるが、native event順の欠落により根本原因の確定や再起動による恒久修正の断定はしない。
+- 変更: source、test、config、ADRは変更なし。既存RunのこのREPORTだけへcheckpointを追記した。原因特定前のHook実装変更、state修復・削除、新Issue／branch／PR、merge、force pushは行っていない。
+- Validation: 初期Git確認はclean worktree、対象branch、`HEAD`、`origin/main`を確認した。PR #161はOPEN、baseは`main`、headは現在のlocal／origin branchと一致し、merge stateは`CLEAN`。既存最新headのrequired CI成功結果は`gh pr checks`で再確認した。source変更がないためfocused／text-quality全体／contracts／verifyの再実行はしていない。Run ArtifactのMarkdown／text lintと`git diff --check`はcheckpoint追記後に実行する。
+- ブロッカー / 残作業: 前sessionの最初のinvalid eventと`baseline_state` diagnostic eventの特定、および新sessionのnative first Stop結果が未確認である。したがって、この時点ではPR #161をmerge-readyへ戻さない。
+- Progress: 100% (8/8)
+
+## 2026-09-17 19:38 (JST)
+
+- Summary: checkpoint追記後もHook source／test／ADRは変更せず、Run ArtifactだけのMarkdown差分を検証した。新sessionの最後の観測時点でもstateは正常で、`Stop` eventはまだ発生していない。
+- Validation: `pnpm run lint:text`（changed Markdown 1 file）、`pnpm run lint:markdown`（436 files / 0 issues）、`git diff --check`はすべてexit code 0。最新headのPR #161はOPEN／base `main`／merge state `CLEAN`で、`gh pr checks`のrequired checkは成功または契約上のskippingだった。source変更がないためfocused、text-quality全体、contracts、verifyは再実行していない。
+- 新session最終snapshot: stateは存在し、`schema_version=2`、`status=ready`、`files`はarray（0件）。logger event countは`UserPromptSubmit=3`、`PostToolUse=34`、`Stop=0`であり、観測済みPostToolUse中にstate missing／validation failure／`baseline_state`／completion blockはない。
+- Stop: 最初のnative `Stop(false)`直前に相当する最後の観測でもstateはreadyだったが、このcheckpointまでにnative `Stop(false)`の出力、cleanup後のstate消失、後続active Stopの挙動は確認できていない。推測でPASSとは扱わない。
+- 判断 / 理由: 新sessionでfailure順序を再現しておらず、現行Hookのどの処理を修正すべきかを示す新証拠もないため、Hook実装変更は不要と判断する。ただし前sessionのevent mappingとnative first Stopが未確認なので、PR #161のmerge-ready判断は保留する。
+- ブロッカー / 残作業: 前sessionのraw Hook logがないため、最初のinvalid eventと`baseline_state` diagnosticのevent種別は確定不能。native Stopの実runtime結果もこのturnでは観測不能である。
+- Progress: 100% (8/8)
+
+## 2026-09-17 22:35 (JST)
+
+- Summary: Codex再起動後の新sessionで、`UserPromptSubmit → ready state作成 → PostToolUse → state維持 → native Stop(false)`の正常経路を実runtimeで確認した。native `Stop(false)`はblockせず、PR #161をmerge-readyへ戻す。
+- 新sessionのUserPromptSubmit: 最新の`UserPromptSubmit`をcurrent sessionとして特定した。前ターン末尾の`Stop`が今回の`UserPromptSubmit`より前にtimestamp順で記録され、eventの対応付けを確認できた。
+- baseline state: 今回の`UserPromptSubmit`後に作成されたstateはJSON parse可能で、`schema_version=2`、`status="ready"`、`start_head`は40桁commit SHA、`root_id`と`session_id_hash`はvalid、`files`はarray（1件）だった。current sessionとのidentityも一致した。今回のstateは前ターンcleanupの証拠として扱っていない。
+- PostToolUse: 今回の`UserPromptSubmit`後の`PostToolUse`を確認し、直近までstateが`ready`で維持された。state missing／JSON不正／schema・identity・status不正、`baseline_state` diagnostic、completion blockは観測していない。
+- native Stop(false): 前ターン末尾の`Stop` eventは今回の`UserPromptSubmit`直前に記録され、`stop_hook_active=false`だった。native `Stop(false)`はblockせず、CodexがHookによって継続させられないまま今回の`UserPromptSubmit`へ進んだ。
+- baseline_state再発 / completion block再発: 新sessionの`UserPromptSubmit`、`PostToolUse`、native `Stop(false)`の経路で再発なし。`Text quality check unavailable; completion cannot be confirmed.`も発生していない。
+- Stop(true)実runtime観測: このruntimeでは自然発生しなかった。`Stop(true)`の人工発生も行わず、既存contract testの証拠を維持する。
+- 再起動前session: raw Hook evidence不足により、最初にstateが不正になったevent、当時のstate exists／missing、`baseline_state` diagnosticを出したeventは確定不能である。追加調査は行わず、この証拠不足をPR #161のmerge阻害条件には残さない。
+- 追加source変更の要否: source、test、ADR、configの変更は不要。今回の新sessionで正常経路を確認でき、追加修正を示す証拠はない。
+- 変更: 既存RunのREPORTだけに今回の最終checkpointを追記した。新しいRun Artifact、新Issue、branch、PRは作成していない。PR merge、Issue close、PR close、branch削除、force pushも行っていない。
+- PR #161: baseは`main`、headは`fix/codex-text-quality-duplicate-stop`、PRはOPEN、merge stateは`MERGEABLE`。最終判断は`merge-ready = yes`。
+- Validation: source／test／ADR変更なしのためfocused test、contract全体、`pnpm run verify`は既存の最新成功結果を再利用する。REPORT追記後に`pnpm run lint:text`、`pnpm run lint:markdown`、`git diff --check`を実行し、commit／push後は最新headのWeb CI、Mobile App CI、Windows Hook contract、Vitest contracts、Style / Code Qualityを確認する。
+- Progress: 100% (8/8)
