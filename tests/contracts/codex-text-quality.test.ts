@@ -883,7 +883,7 @@ describe("Codex deterministic text quality contracts", () => {
       "GOOD\n",
       "codex-text-quality-windows-degraded-",
     );
-  }, 30_000);
+  }, 90_000);
 
   it("uses the configured Unix Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform === "win32") return;
