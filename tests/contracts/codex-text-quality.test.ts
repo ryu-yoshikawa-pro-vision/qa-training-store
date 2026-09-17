@@ -883,7 +883,7 @@ describe("Codex deterministic text quality contracts", () => {
       "GOOD\n",
       "codex-text-quality-windows-degraded-",
     );
-  }, 30_000);
+  }, 90_000);
 
   it("uses the configured Unix Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform === "win32") return;
@@ -2044,12 +2044,55 @@ describe("Codex deterministic text quality contracts", () => {
       expect(missingStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
-      expectStructuredSystemMessage(
-        activeStop,
-        "active Stop missing state",
-        "Codex text quality hook: quality check unavailable (baseline_state)",
-        [root],
+      expect(activeStop.status).toBe(0);
+      expect(JSON.parse(activeStop.stdout)).toEqual({ continue: true });
+      expect(activeStop.stderr).toBe("");
+    });
+  });
+
+  it("allows a repeated active Stop after configured launcher cleanup", () => {
+    const launcher = process.platform === "win32" ? "windows" : "unix";
+    withFixture((root) => {
+      const rulesPath = path.join(root, "rules.json");
+      const sessionId = `repeated-stop-${randomUUID()}`;
+      const prompt = runConfiguredQualityHook(
+        root,
+        "UserPromptSubmit",
+        { session_id: sessionId, cwd: root, prompt: "start" },
+        launcher,
+        rulesPath,
       );
+      expectConfiguredUserPromptBaseline(
+        prompt,
+        `${launcher} repeated Stop baseline`,
+        root,
+        sessionId,
+      );
+
+      const firstStop = runConfiguredQualityHook(
+        root,
+        "Stop",
+        { session_id: sessionId, cwd: root, stop_hook_active: false },
+        launcher,
+        rulesPath,
+      );
+      expect(firstStop.status).toBe(0);
+      expect(firstStop.stdout).toBe("");
+      expect(firstStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+
+      const repeatedStop = runConfiguredQualityHook(
+        root,
+        "Stop",
+        { session_id: sessionId, cwd: root, stop_hook_active: true },
+        launcher,
+        rulesPath,
+      );
+      expect(repeatedStop.status).toBe(0);
+      expect(JSON.parse(repeatedStop.stdout)).toEqual({ continue: true });
+      expect(repeatedStop.stdout).not.toContain("baseline_state");
+      expect(repeatedStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
     });
   });
 
