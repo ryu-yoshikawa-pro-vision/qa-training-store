@@ -143,3 +143,12 @@
 - 判断 / 理由: 追加pushはRun Artifactの追記だけで、active Stop + state不存在のHook契約、回帰test、ADR-0026、#160のtimeout差分境界は変更していない。repeated Stopを実runtimeで任意再現できていない点は未確認事項として維持する。
 - ブロッカー / 残作業: repository修正、ローカル検証、最新CIは完了。実Codex runtimeの任意repeated Stop再現だけは未確認であり、実ログ・controlled replay・contract testを証拠とする。merge、Issue close、PR close、branch削除、force pushは行っていない。
 - Progress: 100% (8/8)
+
+## 2026-09-17 10:00 (JST)
+
+- Summary: PR #161の実装、ADR-0026、contract test、PR本文が、active Stop + state path不存在だけをstructured `{"continue":true}`へ収束させる契約で一致していることを最終確認した。PR #161はmerge-readyと判断した。
+- Changes: 新しいsource変更は行っていない。`fix/codex-text-quality-duplicate-stop`のhead `7d17390be2c6f6c5e56d3b27a470527d31f1b55f`、base `issue-159-windows-launcher-contract-timeout`、#160のtimeout差分を重複実装していない状態を維持した。PR本文へ最終判断を追記した。
+- Validation: 既存のstate boundary focused、text-quality全体、関連contract、`pnpm run test:contracts`、`pnpm run verify`、lint、`git diff --check`、およびhead `7d17390be2c6f6c5e56d3b27a470527d31f1b55f`のWeb CI / Mobile App CI / Windows Hook contract / Vitest contractsの成功結果を再利用した。実Codex runtimeで任意のrepeated Stopを再現できていない点は未確認事項として維持し、runtime再現PASSとは扱わない。
+- 判断 / 理由: `inactive Stop + missing state -> block`、stateが存在するcorrupt JSON / root-session identity mismatch / schema-status不正のdiagnostic境界、PostToolUse、UserPromptSubmit、launcher failureを変更していない。観測された`Stop(false) -> cleanup -> Stop(true)`と、履歴を検証しない一般契約であるactive Stop + state不存在を区別して記録した。
+- ブロッカー / 残作業: repository側の契約修正と必要な回帰test、ADR、既存検証、最新CIは完了した。PR #161はOPEN、base変更・rebase・force push・merge・Issue close・PR close・branch削除は行っていない。
+- Progress: 100% (8/8)
