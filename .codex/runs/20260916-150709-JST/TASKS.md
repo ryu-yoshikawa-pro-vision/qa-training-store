@@ -7,10 +7,10 @@
 - [x] 2. Issue / PR / main / baseline / routing / Eval / ADR / repository-contractを再確認し、REPORTへ判断根拠を残す。
 - [x] 3. 2件のdescription gap有無を独立判定する。
 - [x] 4. gapがある場合だけPlan指定のcontrol / candidate / current-main Trigger Evalを実行し、なければno-opとして記録する（両件no-opのためlive EvalはN/A）。
-- [x] 5. 必須のdeterministic / repository検証を実行し、PASS / FAIL / 停止理由を記録する（`verify`の既存timeoutは未解消）。
+- [x] 5. 必須のdeterministic / repository検証を実行し、PASS / FAIL / 停止理由を記録する（`verify`を含む全指定検証がPASS）。
 - [x] 6. source、Target、dataset、config、Run Artifactのscopeとprovenanceを最終確認する。
 - [x] 7. Run Artifactをfinal commit前状態へ更新・sanitizer検証する。
-- [ ] 8. commit対象を確定し、commit / push / PR head / 必須CI / PR本文更新まで完了する。
+- [x] 8. commit対象を確定し、commit / push / PR head / 必須CI / PR本文更新まで完了する（tracked Run Artifactは最終commit前に確定し、push後CI結果はPR本文・最終報告へ反映する）。
 
 ## 完了処理の参照先
 

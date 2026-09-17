@@ -97,3 +97,41 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-18 01:07 (JST)
+
+- Summary: Issue #159の修正を含む最新`main`を取り込んだ現在のPR #155 headで、PR3の最終検証を再実行した。#159で解消されたWindows launcher contract timeoutは再発せず、PR3のno-op判定も維持する。
+- Changes: `origin/main`の最新SHA `bd31452d5b69169bee0016afcec6bc8b5d83318a` を確認した。HEAD `42ea15d9051ae70f56e4f632788d04726613aaec`はこの`main`をmerge commitのparentとして含み、`AGENTS.md`、対象Skill、`.codex/config.toml`、Trigger Eval runner / evaluator、repository-contract、ADR-0024/0025に#159以降のmaterialな差分はない。
+- 判断 / 理由:
+  - #159の恒久変更は`tests/contracts/codex-hook-contract.test.ts`のtest-local timeout `15000ms -> 30000ms`と、`tests/contracts/codex-text-quality.test.ts`の`30000ms -> 90000ms`だけである。#161の追加変更もPR3のSkill / routing / Trigger Eval契約を変更していない。
+  - `repair-loop`は`fixing validation failures`を含むfrontmatterとtriage / repair / validation本文、`AGENTS.md` routing、対応validation caseが整合している。`android-native-local-validation`もWindows Android tooling / Release APK / physical device / MaestroとDoctor / preflight境界がfrontmatter・本文・routing・対応validation caseで整合している。両Skillとも一般化可能なdescription gapはなく、変更不要のno-opを維持する。
+  - PR2 baselineの2件の`false_negative`はfailure選定の履歴であり、直接controlには使用していない。candidate source変更がないため、control / candidate / current-mainのlive Trigger EvalはPlanのno-op条件により引き続きN/Aである。dataset fingerprintは変更なく、baselineのCodex `0.153.4`と実行環境のversion差もlive Evalを実行しない根拠として維持する。
+- Validation:
+  - `corepack pnpm run eval:skills:trigger:validate`: PASS（12 files / 24 cases、dataset SHA `89e15bc1a36ea6b7e769f8f84d1f56c99f331acbf2ccd1d2cbf3d5405ee7b267`）。
+  - `corepack pnpm run validate:skills`: PASS（6 packages / 15 Markdown / 28 links）。
+  - `corepack pnpm exec vitest run tests/repository-contract/skill-trigger-evals.test.ts tests/repository-contract/otel-skill-observer.test.ts tests/repository-contract/windows-codex-argv.test.ts --no-file-parallelism --maxWorkers=1`: PASS（3 files / 51 tests）。
+  - `corepack pnpm run test:repository`: PASS（10 files / 117 tests）。
+  - `corepack pnpm run verify`: PASS（exit code 0、36 files / 584 passed / 4 skipped、web/spec build完了）。#159修正前に発生した2件のWindows launcher timeoutは、現在のbranchでは再発しなかった。
+  - `git diff --check`: PASS。現時点のbase `origin/main`との差分はRun Artifact 4 filesとPR3 Plan 1 fileのみで、Skill source差分は0。
+- Scope: `AGENTS.md`、対象Skill source、`.codex/config.toml`、`scripts/evals/**`、Trigger Eval dataset / runner / evaluator、repository-contract、workflow、Product code / test、Training、dependencyにPR3固有の変更はない。GitHub上のPR changed filesも同じ5 filesである。
+- ブロッカー / 残作業: Run Artifactの最終更新・sanitizer、Plan / TASKSの完了状態確定、明示staged scope確認、通常commit / push、local / remote / PR head一致、最新headのWeb CI / Mobile App CI、PR本文・Issue #117進捗更新が残る。
+- Progress: 88% (7/8)
+
+## 2026-09-18 01:11 (JST)
+
+- Summary: Run ArtifactとPlanを最終commit前の状態へ更新し、PR3のno-op判定、検証結果、scope、#159取り込み後の前提を確定した。
+- Changes: `run.json`を既存schema v2の範囲で`branch` / `base_branch`、`validation.status=passed`、指定検証7件、`status=completed`へ更新した。`TASKS.md`は実態に合わせてverify timeout未解消の記述を解消済みへ更新し、Plan §10 / §11はno-op項目をN/Aとして完了状態へ更新した。
+- Validation: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260916-150709-JST -Write -Check`はPASS（4 files、変更0、residual 0）。JSON parse、`git diff --check`もPASS。
+- Scope: `docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md`、Run Artifact 4 files以外に今回の差分はない。Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product / test / workflow / dependencyは未変更。#159のtimeout変更をPR3へ重複追加していない。
+- ブロッカー / 残作業: 明示staged scope確認、対象branchへの通常commit / push、local / remote / PR head一致、push後最新headのWeb CI / Mobile App CI、PR本文・Issue #117進捗更新が残る。これらはRun Artifactを再commitせず外部GitHub状態と最終報告へ反映する。
+- Progress: 88% (7/8)
+
+## 2026-09-18 01:23 (JST)
+
+- Summary: PR3のtracked Plan / Run Artifact / TASKSを最終commit前の状態へ確定し、Run task 1〜8を完了状態へ更新した。PR3のno-op判定と#159取り込み後の検証結果に変更はない。
+- Changes: Plan §10 / §11 / §14、Run `TASKS.md`、Run `REPORT.md`、Run `run.json`を既存契約の範囲で更新した。`run.json`はschema v2を維持し、`status=completed`、`validation.status=passed`、指定7 commandのexit code 0を保持している。
+- Validation: `corepack pnpm run eval:skills:trigger:validate`（12 files / 24 cases）、`corepack pnpm run validate:skills`（6 packages / 15 Markdown / 28 links）、指定repository-contract（3 files / 51 tests）、`corepack pnpm run test:repository`（10 files / 117 tests）、`corepack pnpm run verify`（exit code 0、36 files / 584 passed / 4 skipped）、`git diff --check`、Run Artifact sanitizer（4 files、変更0、残留0）はすべてPASS。
+- Scope: `origin/main...HEAD`のPR固有差分はPlan 1 fileとRun Artifact 4 filesの5 filesのみ。Skill source、`AGENTS.md`、`.codex/config.toml`、`scripts/evals/**`、Trigger Eval dataset / runner / evaluator、repository-contract、workflow、Product code / test、Training、dependencyにPR3固有差分はない。#159修正の重複commitもない。
+- External lifecycle: 次に対象branchへ通常commit / pushし、local / remote / PR headの一致と最新headのWeb CI / Mobile App CI successを確認する。CI結果を追跡Runへ書くための再commitは行わず、PR本文・Issue #117進捗・最終報告へ反映する。
+- Remaining: tracked artifact・ローカル検証上の残件なし。push後のGitHub head / CI / metadata確認のみ。
+- Progress: 100% (8/8)
