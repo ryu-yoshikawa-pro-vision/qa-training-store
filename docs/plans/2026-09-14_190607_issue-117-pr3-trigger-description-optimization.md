@@ -532,9 +532,9 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 
 ## 10. 完了条件
 
-- [x] 実装開始時のlatest `main`を確認し、source変更前に実装branchへ必要な`main`変更を取り込んでいる。
+- [x] 実装開始時点のlatest `main`とincoming diffを確認し、PR3前提に関係する必要な`main`変更をsource変更前に実装branchへ取り込んでいる。
 - [x] source変更へ進む直前のlatest `main` SHAを`implementation_base_sha`として記録し、後で`main`を追加取り込みした場合は基準SHAも更新している。
-- [x] current-main側Target作成直前にもlatest `main`を再確認し、使用した`main` SHAを記録している（採用candidateなしのためTarget作成はN/A）。
+- [x] current-main側Target作成直前にも当時のlatest `main`を再確認し、使用した`main` SHAを記録している（採用candidateなしのためTarget作成はN/A）。
 - [x] PR2 baseline、dataset fingerprint、Codex version、model、2件の`false_negative`を再確認し、PR2 baselineはfailure選定の履歴であってcandidateの直接controlではないことを明示している。
 - [x] baseline `evaluator_git_sha`と実行時Evaluatorの差分を確認し、observation / scoring / outcome mapping / comparison / model / timeout / dataset読込 / project configの意味が変わっていないことを確認している。
 - [x] 2件それぞれについて、train query、対応validation case、expected Skill、sibling Skill、`AGENTS.md` routingを比較している。
@@ -574,11 +574,13 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [x] `recovered_observable`のcurrent outcome確認はcandidateなしのためN/Aである。
 - [x] `pnpm run eval:skills:trigger:validate`、対象repository-contract test、`pnpm run validate:skills`、`pnpm run test:repository`、`pnpm run verify`、`git diff --check`が成功している。
 - [x] `implementation_base_sha`基準の最終diffでSkill source差分0、Repository本体の`.codex/config.toml`差分0を確認している。
-- [x] repository file変更に対するfinal commit、通常push、PR最新head、`Web CI` / `Mobile App CI`確認までの完了契約を今回の最終処理対象としている。
+- [x] repository file変更に対するtracked Run Artifactとcommit対象scopeをfinal commit前に確定する。
 - [x] Product code、Product test、Training、dependency、workflow、`.codex/agents/**`を変更していない。
 - [x] Repository独自Agent Runtime、routing classifier、retry framework、統計評価framework、Target generator、answer-key scanner、sandbox / 外部tool監視frameworkを追加していない。
 
 2件ともdescription変更不要と判断した場合は、description変更時専用条件をN/Aとし、根拠付きno-opをPR3の結論としてよい。意味上のgapがない場合はcontrol run自体を必須にしない。active Run Artifact等のrepository fileを変更した場合のGit / PR / CI完了契約はN/Aにしない。
+
+上記tracked完了checkboxはfinal commit前に確定できる範囲を示す。通常commit / push、push後のlocal HEAD・remote HEAD・PR head一致、最新headの`Web CI` / `Mobile App CI` success、PR本文・Issue更新はtracked checkboxへ含めず、commit後の外部完了条件としてGitHub、PR本文、Issue進捗、最終報告で確認・記録する。
 
 ---
 
@@ -614,12 +616,13 @@ no-opでSkill sourceを変更しない場合でも、active Run Artifact等のre
 - [x] 28. current-main側Targetの統合`all`はcandidateなしのためN/Aである。
 - [x] 29. deterministic validationとRepository標準検証を実行した。
 - [x] 30. `implementation_base_sha`基準でscope、Run Artifact、comparisonのN/A理由を確認し、tracked Run Artifactをfinal commit前の状態へ確定する。
-- [x] 31. 最終差分をcommitし、対象branchへ通常pushする。
-- [x] 32. local HEAD、remote HEAD、PRの最新headを確認し、既存PR #155を使用する。
-- [x] 33. 最新PR headの`Web CI`と`Mobile App CI`が`success`であることを確認する。
-- [x] 34. PR本文とIssue #117の進捗情報を実装結果とCI結果に合わせて整理する。
+- [x] 31. commit対象と最終scopeを確定し、tracked Run Artifactをfinal commit前の状態へ確定する。
+- push後の外部完了条件（旧手順32〜34、tracked checkboxではない）：
+  - 最終差分を通常commitし、対象branchへ通常pushする。
+  - local HEAD、remote HEAD、PRの最新headを確認し、既存PR #155を使用する。
+  - 最新PR headの`Web CI` / `Mobile App CI` successを確認し、PR本文とIssue #117の進捗を更新する。
 
-no-opの場合は理由に応じて不要なcontrol / candidate / current-main live eval手順をN/Aとし、変更不要の根拠と通常検証を残す。candidateを一度commitした後でno-opへ戻したSkillは通常commitによる復帰と最終source差分0を記録する。active Run Artifact等のrepository fileを変更した場合は30〜34を通常どおり実行する。
+no-opの場合は理由に応じて不要なcontrol / candidate / current-main live eval手順をN/Aとし、変更不要の根拠と通常検証を残す。candidateを一度commitした後でno-opへ戻したSkillは通常commitによる復帰と最終source差分0を記録する。active Run Artifact等のrepository fileを変更した場合は30〜31をtracked完了条件として確定し、32〜34はcommit後の外部完了条件として実行する。
 
 ---
 
@@ -695,4 +698,5 @@ Issue #117はPR3完了後もPR6が残るため、PR3完了だけを理由にclos
 - Trigger Eval datasetは12 files / 24 cases、fingerprintはbaselineから不変。PR2 baselineを直接controlとして扱わず、candidate source変更がないためcontrol / candidate / current-mainのlive Trigger Evalはno-op条件によりN/A。
 - `eval:skills:trigger:validate`、`validate:skills`、指定repository-contract、`test:repository`、`verify`、`git diff --check`、Run Artifact sanitizerはすべてPASS。`verify`はexit code 0で完走し、contractは36 files / 584 passed / 4 skipped。
 - PR固有差分はPlan 1 fileと既存Run Artifact 4 filesのみ。Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product code / test、workflow、dependencyにPR3固有の変更はない。
-- tracked Run Artifactは最終commit前に確定し、push後のcommit SHA・PR head・Web CI / Mobile App CI結果はPR #155本文、Issue #117進捗、最終報告へ反映する。残件は外部GitHub反映の確認のみで、PR3のPlan完了条件上の機能残件はない。
+- 今回の確認開始時点の最新`origin/main`は`0af177828a058e118285a2ee3a01262aa7da6b2e`。`bd31452d...`以降のincoming diffは#164のHusky / CI関連変更であり、PR3のSkill、routing、Trigger Eval前提にmaterialな変更がないため、対象branchへ追加mergeしていない。
+- tracked Run Artifactは最終commit前に確定する。push後の最新commit SHA・PR head・Web CI / Mobile App CI・PR metadataはtracked checkboxの事実として固定せず、PR #155本文、Issue #117進捗、GitHub上、最終報告で確認・記録する。PR3の機能判断に残件はない。

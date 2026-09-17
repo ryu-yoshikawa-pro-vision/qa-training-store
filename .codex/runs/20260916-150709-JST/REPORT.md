@@ -135,3 +135,45 @@
 - External lifecycle: 次に対象branchへ通常commit / pushし、local / remote / PR headの一致と最新headのWeb CI / Mobile App CI successを確認する。CI結果を追跡Runへ書くための再commitは行わず、PR本文・Issue #117進捗・最終報告へ反映する。
 - Remaining: tracked artifact・ローカル検証上の残件なし。push後のGitHub head / CI / metadata確認のみ。
 - Progress: 100% (8/8)
+
+## 2026-09-18 07:50 (JST)
+
+- Summary: PR #155のレビューで確認されたstrict Run Artifact契約の不整合を、PR3のno-op判定へ触れずに修正するbounded repairを開始した。
+- Changes: `evaluation.json`をRepository共通の`.codex/templates/evaluation.schema.json`に従って追加した。`TASKS.md`のtask 8をfinal commit前のtracked scope確定へ限定し、Plan §10 / §11 / §14でtracked completionとpush後の外部GitHub lifecycleを分離する。
+- 判断 / 理由:
+  - Finding 1（`must_fix` / `artifact_contract_gap`）は、strict workflowなのにevaluationが存在しないこと。今回の評価対象Runについて、既存REPORT、TASKS、run manifest、PR3 Plan、既存検証evidenceを確認し、7 dimensionをすべて`pass`、`result=pass`、failure categoryなし、findingsなしと判断した。これはレビュー指摘が修正後の最終状態で解消されることを表し、実行事実をevaluationへ再生成していない。
+  - Finding 2（`must_fix` / `artifact_contract_gap`）は、final commit後にしか確定しないpush / PR head / CI / PR本文更新をtracked checkboxのtask 8とPlan §10 / §11で完了済みとして扱っていたこと。checkboxはfinal commit前に確定できるRun Artifact / scopeへ限定し、post-push lifecycleは外部完了条件として分離した。
+  - 今回の開始時点で`origin/main`は`0af1778...`へ進んでいた。`bd31452d...`以降は#164のHusky / CI関連incoming diffで、`AGENTS.md`、対象Skill、`.codex/config.toml`、Trigger Eval、ADR等のPR3前提にmaterialな変更がないため、無条件mergeは行わない。
+- Validation: schema validator、collector strict、対象Run全体sanitizer、`corepack pnpm run verify`、`git diff --check`をこの修正後に実行する。既存のno-op条件によりlive Trigger Evalは再実行しない。
+- ブロッカー / 残作業: `evaluation.json`のschema適合確認、既存collectorによる`run.json`同期、Run Artifact再sanitizer、verify、scope確認、final commit前のGit確認、通常push、最新headのCI / PR / Issue metadata確認が残る。`run.json`は直接編集しない。
+- Repair loop:
+  - iteration_number: 1
+  - input_findings: strict Runのevaluation欠落、tracked checkboxとpost-push lifecycleの時系列不整合
+  - repair_plan: 共通evaluationを作成し、agent-managedなTASKS / Plan / REPORTをfinal commit前の責務へ修正した後、collectorでmanifestを同期してschema・sanitizer・verify・scopeを検証する
+  - allowed_files: `.codex/runs/20260916-150709-JST/evaluation.json`、`.codex/runs/20260916-150709-JST/TASKS.md`、`.codex/runs/20260916-150709-JST/REPORT.md`、`docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md`、collectorが更新する同Runの`run.json`
+  - changed_files: evaluation、TASKS、REPORT、Plan（`run.json`はcollector経由で更新予定）
+  - validation_result: 修正後検証を実施中
+  - remaining_delta: strict manifest同期と最終検証
+  - decision: `continue`
+- Progress: 100% (8/8)（tracked checkbox。push後のCI確認は別の外部完了条件）
+
+## 2026-09-18 08:07 (JST)
+
+- Summary: strict Run Artifactの評価・manifest契約とtracked lifecycleのレビュー指摘を、PR3のno-op判定を変更せず修正し、commit前の検証を完了した。
+- Changes: `evaluation.json`を共通schemaに従って作成し、`TASKS.md` task 8をfinal commit前のtracked scope確定へ限定した。Plan §10 / §11 / §14では、push後のremote HEAD、PR head、必須CI、PR本文・Issue更新をtracked checkboxから分離した。`REPORT.md`は過去checkpointを変更せず本checkpointを追記した。
+- Validation:
+  - `evaluation.json`のJSON parseと`python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260916-150709-JST/evaluation.json`はPASS。評価は`result=pass`、7 dimensionすべて`pass`、`findings=[]`、failure categoryなしである。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260916-150709-JST -RefreshGitChangedFiles -Strict`はexit 0。collector経由で`run.json`を同期し、`evaluation_path`、`artifact_summary.evaluation_present=true`、`run_id`一致、strict validation=passedを確認した。`run.json`はAgentが直接編集していない。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260916-150709-JST -Write -Check`はPASS（5 files、変更0、residual 0）。
+  - `corepack pnpm run verify`は初回、今回のPlan編集に由来するMD029 3件で停止した。post-push条件を番号付きordered listから非checkboxの外部条件サブリストへ変更し、同じcommandを再実行した結果はexit code 0で完走した。contractsは36 files / 584 passed / 4 skipped、web export / docs buildもPASSした。
+  - `git diff --check`はPASS。変更は指定Planと既存Run Artifact（`evaluation.json`を含む）に限定され、Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product、workflow、dependencyに差分はない。
+- Repair loop:
+  - iteration_number: 1（review finding修正と検証時のMD029修正を同一bounded loopで処理）
+  - input_findings: `artifact_contract_gap` 2件、Plan list formattingのMD029 3件
+  - repair_plan: 共通evaluation作成、collector同期、tracked / external lifecycle分離、最小のMarkdown構造修正、schema・sanitizer・verify・diff検証
+  - changed_files: `.codex/runs/20260916-150709-JST/evaluation.json`、`TASKS.md`、`REPORT.md`、指定Plan、`run.json`（collector更新）
+  - validation_result: schema、collector strict、sanitizer、verify、diff checkはPASS
+  - remaining_delta: final commit後のremote HEAD / PR head一致、最新headのWeb CI・Mobile App CI、PR本文・Issue #117 metadata確認
+  - decision: `stop_success`（tracked artifactのfinal commit前確定。post-pushは外部完了条件として継続）
+- External lifecycle: final commit後は、pushした新しいPR headだけを対象にlocal / remote / PR head一致、Web CI / Mobile App CI success、PR本文更新、Issue #117がOPENのままであることをGitHub上で確認する。これらの事実を記録するためにtracked Run Artifactを再commitしない。
+- Progress: 100% (8/8)（tracked checkbox。push後のCI確認はfile-changing task全体の外部完了条件）

@@ -10,7 +10,7 @@
 - [x] 5. 必須のdeterministic / repository検証を実行し、PASS / FAIL / 停止理由を記録する（`verify`を含む全指定検証がPASS）。
 - [x] 6. source、Target、dataset、config、Run Artifactのscopeとprovenanceを最終確認する。
 - [x] 7. Run Artifactをfinal commit前状態へ更新・sanitizer検証する。
-- [x] 8. commit対象を確定し、commit / push / PR head / 必須CI / PR本文更新まで完了する（tracked Run Artifactは最終commit前に確定し、push後CI結果はPR本文・最終報告へ反映する）。
+- [x] 8. commit対象と最終scopeを確定し、tracked Run Artifactをfinal commit前の状態へ確定する。
 
 ## 完了処理の参照先
 
@@ -21,6 +21,8 @@
 - Git branch / refspec / recoveryの詳細: `docs/reference/git-branch-safety.md`
 
 checkbox taskの完了はfinal commit前のtracked task進捗であり、task全体の完了を意味しない。詳細契約は上記の正本へ従う。
+
+push後のremote HEAD、PR head、必須CI、PR本文更新はこのtracked checkboxへ含めず、file-changing task全体の外部完了条件として扱う。
 
 ## Discovered（発見事項）
 
