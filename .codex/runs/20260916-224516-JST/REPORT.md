@@ -113,3 +113,11 @@
 - 判断 / 理由: #160の30秒/90秒変更は、過去に記録されたfile wall `22444ms`/`63663ms`が旧aggregate ceilingを超えたfailure boundaryと、今回の5/24回同期invocation計測に基づくtest-local変更として維持する。ただし、affected checkoutでは今回約64秒を再現できず、CI側のinvocation単位timingも取得していないため、launcher duration差のさらに下位原因およびCIと過去観測値のprocess境界差は未確認のままである。Defender等の外部要因は断定していない。
 - ブロッカー / 残作業: source修正・ローカル検証・最新CIは完了したが、Issue #159が要求する「CIとaffected localの差を下位process境界まで説明する」証拠は未充足である。そのため、このRunでは#160を原因全体まで完全確定した／merge-readyとは扱わない。merge、Issue close、PR close、branch削除、force pushは行っていない。
 - Progress: 88% (7/8)
+
+## 2026-09-17 09:32 (JST)
+
+- Summary: Run Artifact最終更新を#160 branchへpushし、最新head`edfe64bcd94d5d421603a67c1d91e27d25890afd`に対するCIを再確認した。PR #160はOPEN、merge stateは`CLEAN`である。
+- Validation: Web CI run `35166448420`、Mobile App CI run `35166448569`、CodeQL run `35166445625`が全てSUCCESS。Windows Hook contract、Vitest contracts、Web verify、Mobile verifyを含むrequired checkが最新headで完了した。working treeとorigin branchはhead一致、`git diff --check`もPASSである。
+- 判断 / 理由: 追加pushはRun Artifactの追記だけで、sourceのtimeout 2箇所、追加計測結果、#160の未確認事項は変更していない。過去の約64秒の下位原因とCI側invocation単位timingは未確認のままであり、外部要因を断定しない。
+- ブロッカー / 残作業: ローカルと最新CIは成功しているが、Issue #159の下位process境界差分の未確認事項が残るため、#160を原因全体まで完全確定した／merge-readyとは扱わない。merge、Issue close、PR close、branch削除、force pushは行っていない。
+- Progress: 88% (7/8)
