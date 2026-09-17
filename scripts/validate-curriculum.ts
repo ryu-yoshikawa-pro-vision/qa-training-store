@@ -421,6 +421,10 @@ function validateTrainingAssets(rootDir: string): string[] {
     "training/github-actions/training-ci.yml",
     "training/github-actions/training-native-ci.yml",
     "scripts/training/prepare-training-copy.ts",
+    "scripts/training/check-completion.ts",
+    "scripts/training/run-playwright-with-receipt.ts",
+    "scripts/training/materialize-training-handoff.ts",
+    "scripts/training/restore-diagnostic-exercise.ts",
     "scripts/training/validate-training-copy.ts",
     "scripts/training/workflow-contract.ts",
     "scripts/training/maestro-runner.ts",
@@ -529,7 +533,11 @@ function validateTrainingAssets(rootDir: string): string[] {
     "Training Web Workflow",
   );
   assertContains(webWorkflow, 'PLAYWRIGHT_USE_PREBUILT_DIST: "true"', "Training Web Workflow");
-  assertContains(webWorkflow, "run: pnpm run training:web:exercise", "Training Web Workflow");
+  assertContains(
+    webWorkflow,
+    "run: pnpm run training:web:exercise:with-receipt",
+    "Training Web Workflow",
+  );
   assertContains(webWorkflow, "if: github.event_name == 'pull_request'", "Training Web Workflow");
   for (const [name, workflow] of [
     ["training-ci.yml", webWorkflow],
@@ -626,6 +634,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
     "typecheck:training",
     "training:web:baseline",
     "training:web:exercise",
+    "training:web:exercise:with-receipt",
     "training:web:diagnostic",
     "training:web:mobile",
     "training:web:mobile:exercise",
@@ -634,6 +643,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
     "training:native:baseline",
     "training:native:exercise",
     "training:copy:prepare",
+    "training:copy:materialize",
     "training:copy:validate",
   ]) {
     if (!scripts[scriptName]) fail(`package script is missing: ${scriptName}`);

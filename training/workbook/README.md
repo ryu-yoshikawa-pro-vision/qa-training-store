@@ -2,6 +2,27 @@
 
 このWorkbookは、Google SheetsへCSVをImportして使うCanonical Templateです。Google Sheetsの機能や書式は正本にせず、4つのCSVをRepository上の入力形式として扱います。
 
+## 学習時のInput / Outputと評価への引き渡し
+
+この4 CSVは、受講者が考えた内容を記録するための既存の正本形式です。RepositoryのCSVはsample／templateとして配布され、受講者の完成回答をあらかじめ入れません。受講者はGoogle Sheets、ローカルの表計算ソフト、テキストエディタなど任意の場所で編集できます。
+
+LessonでWorkbookを使うときは、本文に示された前の成果物、仕様・BR・AC、Risk、Test Case IDをInputとして準備します。P1-2では対象とRisk、P1-3ではTest Caseと自動化対象を作り、P1-4以降では対応するTest Caseをコードと実行結果へ結び付けます。Playwrightを実装する前にTest Caseが必要な場合は、`test_condition`、`precondition`、`expected_result`、Reset方法、対象のTest Case IDを準備済みInputとして扱います。
+
+Part 1からPart 2の最終確認へ渡すときは、編集場所に関係なく次の固定rootへ集約します。
+
+```text
+handoff-root/
+  workbook/       # このREADMEで説明する4 CSV
+  code/            # Repository相対Pathを保った受講者コード
+  evidence/        # Trace、Screenshot、Video、HTML Reportなど
+  receipts/        # 実行ごとのExecution Receipt
+  self-check/      # 既存Lesson IDごとの自己確認
+```
+
+`implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
+
+各LessonのOutputには、作成したCSV行、コード、Evidence、自己確認のどれを残すかと、次のLessonへどのID・ファイル・実行記録を渡すかを記載します。意味のあるRiskやAssertionかどうかは、機械的なCSV検証だけで採点せず、本文のSelf-checkと評価基準に沿って自分の理由を説明します。
+
 ## トレーサビリティ
 
 標準の流れは `spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → `implementation_path` → `evidence` です。BR / ACなど複数IDは`;`で区切り、区切り前後の空白と同一Field内の重複を禁止します。`spec_ref`、`risk_id`、`test_case_id`などTraceをつなぐIDは、対応する対象がある行では必須です。BR / ACのように直接対応しないIDだけは空欄を許可します。

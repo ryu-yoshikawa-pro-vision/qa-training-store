@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { resetScenario } from "../support/reset-scenario";
 
-test("diagnostic exercise: identify and repair the incorrect cart expectation", async ({
+test("TC-CART-002 diagnostic exercise: identify and repair the incorrect cart expectation", async ({
   page,
 }) => {
+  // C09のinitial runでは、決定的に誤った期待値を観測し、Evidenceから原因を分析します。
+  // 修正は学習者の演習用コピーで行い、diagnostic-repairedとして別run／別Evidenceを残します。
   await resetScenario(page, "default");
   await page.goto("/products/product-mug");
   await page.getByRole("button", { name: "カートに追加" }).click();

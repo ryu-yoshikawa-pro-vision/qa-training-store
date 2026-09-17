@@ -692,8 +692,57 @@
 - 既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`は今回のcommit対象外として保持する。
 - Progress: 100% (18/18)
 
+## 2026-09-17 実装開始時W0再Baseline
+
+- 依頼: PR #157で承認済みのPlanを再設計せず、講師なし自己学習カリキュラム、修了確認、Receipt、Training Copy、Training CIをPlanのウェーブ順で実装する。
+- Git／PR事実:
+  - current branch: `feat/self-study-curriculum-test-coverage`
+  - local HEAD: `5881f2ae58abbe51896f9b4a89d5ab67d64c62f0`
+  - `origin/feat/self-study-curriculum-test-coverage`: `5881f2ae58abbe51896f9b4a89d5ab67d64c62f0`
+  - `origin/main`: `b9087bd93df12a26e7a28a6bd3fe0aebc77acf3d`
+  - PR #157: OPEN、base `main`、head branch `feat/self-study-curriculum-test-coverage`、PR headはlocal／remote feature HEADと一致。
+  - `git status --short --branch`: tracked worktreeはclean。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`だけを確認し、今回のscopeから除外する。
+- 最新実装との突合:
+  - `package.json`には既存の`training:web:baseline`、直接`training:web:exercise`、mobile／diagnostic／expected-failure、`training:copy:prepare`／`validate`、curriculum／training typecheckが存在する。既存の直接commandは互換性維持のため変更しない。
+  - `playwright.training.config.ts`は`training/playwright`をtestDirとし、Desktop／Mobile project、HTML report、test-results、trace／screenshot／video、CI retryを既に提供する。`reset-scenario.ts`の`__TEST_API__` readiness、reset、reload、metadata確認を学習者TestのReset入口として再利用する。
+  - Exercise starterはresetと遷移だけでAssertionを持たない。starter／baseline／suite全体のPASSを学習者成果と誤認しない契約が必要である。Diagnosticは決定的な誤期待値を持ち、Expected-failureは専用の期待非0経路である。
+  - Workbookの正本4 CSVはsample／templateで、`implementation_path`は現状空欄、`04_execution-improvement.csv`は`Not run`でEvidence空欄。完成答案・学習者回答を正本へ追加しない。
+  - `training:copy:prepare`は指定full SHAでdetached copyを作り、`training-copy-source.json`へ`sourceSha`／`resolvedSourceSha`を記録する。`training:copy:validate`はactive workflow allowlist、manifest、HEAD一致、template一致、workflow契約を検証する。Part 1任意SHAとPart 2正式SHAを混同しない。
+  - `training-ci.yml`はroot `contents: read`、pinned action、Training Web baseline、直接exercise、expected-failure、Playwright artifact uploadを持つ。`workflow-contract.ts`は現在直接exerciseの一回性を検証するため、T2でReceipt付きformal commandへ最小変更する。Secrets、管理者権限、追加Token、workflow権限変更は不要である。
+  - `AGENTS.md`、`.codex/config.toml`、既存Hook／Harness／verify、ADR-0023は既存契約を確認済み。Agent設定、permission、sandbox、wrapper、model、thread、Hook／Harness自体は変更しない。C1／AG1〜AG3は読み取り専用確認として扱う。
+- W0判断:
+  - Planの既存Runner／Reporter／reset／copy／workflow契約で、Receipt adapter、Completion checker、materialize、教材契約の実装へ進める。新Runner、DB、handoff／case mapping Manifest、独自Evidence URI、GitHub API依存は追加しない。
+  - 既存Workbookの`implementation_path`が空欄のため、受講者が作成するRepository相対Pathと既存Test Case ID／title等の対応を教材へ明示する。対応情報が既存経路で解決できない場合はT1／T2を停止し、架空のManifestを追加しない。
+  - Part 1のZIP等では`part1_distribution_sha`を取得できる場合だけ記録し、Part 2のTraining Copy作成時に`training_copy_source_sha`を既存prepare／validateで確定する。同一revision保証を追加しない。
+  - ForkはP2-01〜P2-03のGit／GitHub基礎だけに限定し、C12／Training CI／Part 2最終修了は事前準備済みで学習者が書き込めるTraining Copyを正式経路とする。
+  - Diagnosticのtracked fixtureには既存のGitless復元helperがないことを確認した。L2で既存の誤期待値fixtureを保ったまま、学習者コピーを初期状態へ戻す最小Recoveryを実装要否判定する。完成答案をfixtureへ追加しない。
+- Validation / evidence:
+  - PASS: `git fetch origin main feat/self-study-curriculum-test-coverage`。
+  - PASS: branch／HEAD／remote／PR／working treeの再取得。既存PR headとlocal／remote feature HEADが一致。
+  - PASS（Plan-only時点の既存CI、実装前HEAD）: Web CI run `35128313253`、Mobile App CI run `35128313499`はいずれも対象HEAD `5881f2a...`でcompleted／success。実装後HEADのCI結果には流用しない。
+  - 実装後にPlan指定の関連Contract Test、curriculum／training typecheck、workflow contract、verify、collector／sanitizerを再実行する。過去に確認したPOSIX verify timeoutとHook Harness既存failureは、新HEADで再発した場合に原因と回帰を分離する。
+- Delegation:
+  - Darwin、Lagrange、Parfitへcurriculum、Training／Receipt／CI、Agent／Harnessのread-only W0確認を並列依頼済み。各Agentはsource変更・child delegationを行わない契約で管理し、結果は受領後にこのRunへ追記する。ParentはW0判断、scope、実装、検証、完了判定を保持する。
+- Result: W0の開始条件と既存契約の再突合を完了。停止条件に該当する実装上の矛盾は現時点で確認されないため、L1へ進む。
+- Progress: 21% (4/19 tracked implementation checkpoints; W0完了、残りL1〜VF)。
+
 ## 2026-09-17 02:30 JST — Run Artifact sanitizer最終確認
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260915-212821-JST -Write -Check`: exit 0。`files_scanned: 4`、`files_changed: 0`、`replacements_total: 0`、`residual_findings: 0`。
 - 上記結果を含め、active Runのmachine-managed `run.json`は直接編集していない。Plan／Runの許可対象以外の未追跡ファイルはcommit対象外のまま保持する。
 - Progress: 100% (18/18)
+
+## 2026-09-17 実装差分の修復・commit前再検証
+
+- 実装対象は承認済みPlanのL1／L2／L3／T1／T2と関連Contract Testに限定した。既存の製品コード、正本Workbookの既存行、Agent設定、Hook／Harness、ADRは変更していない。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`もcommit対象外として保持する。
+- Repair iteration 1（`must_fix` 5件）を完了した。
+  - `04_execution-improvement.csv`を同一Receiptのcontext／result／evidenceへ結び付け、未実行・不一致・架空EvidenceをPASSにしない。
+  - Receiptの`case_id`が空でも、既存Workbookの`implementation_path`から一意に解決できる場合だけ対応付ける。曖昧な対応はFAILとする。
+  - 正式なReceipt producer、実行command、Playwright result／statusを要求し、手書きReceiptや別commandの結果を受け付けない。
+  - materializeの学習者コードを`training/playwright/`配下のTS／JSへ限定し、symlink／既存target／衝突／workflow・製品パスの混入を拒否する。
+  - Part 2のCI Receiptについて、同一runの`training_copy_source_sha`、`ci.sha`／`github_sha`、case Evidence内のRun／Check／Artifactを検証する。
+- 修復後の関連Contract Testは、`training-completion`／`training-execution-receipt`の23 tests、curriculum／CI／Nativeの60 testsがPASSした。6ファイル一括実行では85 testsがPASSしたが、`training-copy-handoff`の成功ケースでVitestがsource-map解析中にUnhandled Errorを報告した。実際の失敗原因は、テストが`git rev-parse HEAD`でcommit前の古いHEADを取得し、古いworkflow contractをcloneして`training:copy:validate`が失敗することと特定済みである。source-mapの文字化けエラー自体はVitest／環境側の表示問題であり、commit後HEADで成功ケースを再実行する。
+- 既にPASSしている検証: `corepack pnpm run typecheck:training`、`corepack pnpm run typecheck:native-tests`、`corepack pnpm run validate:curriculum`、`corepack pnpm run lint:markdown`、変更TSのESLint、変更対象のPrettier、`git diff --check`。`typecheck:app`を含む全体typecheckは既存`src/**`の`/guide` route type error 6件でFAILし、今回の差分起因ではない。POSIX verify timeoutと既存Hook contract failureは、今回の実装変更とは別の既知状態として引き続き分離する。
+- 実行済みの受入確認: formal Receipt入口のlocal exercise smokeはexit 0、diagnostic initialは期待どおりexit 1でReceipt／failed caseを生成、Gitless restore helperはexit 0。producer／implementation pathの最終確認とmaterialize成功経路はcommit後に再実行する。
+- Decision: `continue`。commit前の残差は既知のHEAD依存テスト1経路であり、実装契約の追加曖昧さではない。次は実装差分を明示的にstageしてcommitし、commit後のmaterialize／focused Contract Testとformal smokeを再実行する。
+- Progress: 98% (51/52)。VF（最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認）のみ未完了。

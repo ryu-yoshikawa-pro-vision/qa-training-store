@@ -27,11 +27,24 @@
 
 Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、講師または組織が用意した準備済みTraining環境で行います。
 
-演習開始時に、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、本体Repositoryの必須Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、[講師向け資料](../03_instructor-reference.md)の支援手順へ戻ります。
+演習開始時に、自己学習開始前に準備された学習者書き込み可能なTraining Copyで、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、教材元Repositoryの必須Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、環境の準備問題として提供手順へ戻ります。
 
 Training Copyの準備、実行対象workflowのallowlist、Action pin、現在の構成、Native実行環境などのリポジトリ固有の詳細はこの文書へ複製せず、講師支援・参考資料で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
+
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-3のPRと、P1／P2-3で作成したTest Case・Training code・実行記録。C12へ進むための、事前準備済みTraining CopyのURLと学習者書き込み権限 |
+| Activity | Training WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、PRからActionsを実行してRun／Job／Check／Artifactを確認する |
+| Observation | どのEventでWorkflowが動いたか、各Stepの入力・出力、baselineとexercise、失敗段階、最小権限、Artifact、想定外Skipの扱い |
+| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
+| Self-check | CIの価値、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
+| Completion | 準備済みTraining CopyでTraining Workflowを実行し、Run／Check／Artifactを確認してP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
+| Recovery | Workflowが動かない場合はCopyの権限、Actions有効化、Trigger、Runner、Browser／Buildの順で環境問題を切り分ける。YAMLの理解不足は該当Lessonへ戻り、Production Workflowを直接変更しない |
+| Handoff | P2-5へTraining Copy URL、PR／Branch、Run ID、Job／Check、Artifact名、実行したCase／code Path、Evidenceを渡す |
 
 ## Lesson 1: CIとは
 
@@ -193,7 +206,7 @@ Training Workflowを書く前に、演習Repositoryで次を確認します。
 - Training Workflow用に本番Secretを追加する必要がない。
 - Training Branch / PRの変更が本体Repositoryへ影響しない。
 
-Forkを利用する場合は、教材で指定された方法で既存Production Workflowを無効化したことも確認します。
+P2-01〜P2-03でForkを利用していた場合は、ここへ進む前に自己学習開始前から用意されているTraining Copyへ切り替えます。Fork上でProduction Workflowを無効化する操作を受講者へ要求せず、Training CopyでTraining Workflowだけが動くことを確認します。Training Copyまたは必要な権限がない場合は、CIの実行を始めずPart 2をBLOCKEDとして記録します。
 
 このGateを満たしていない状態ではCIハンズオンへ進みません。共通範囲では、Workflowを新規作成・編集するのではなく、準備済みのWorkflowを読むことから始めます。
 

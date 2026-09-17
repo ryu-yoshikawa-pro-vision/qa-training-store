@@ -43,7 +43,20 @@ Training環境には最低限、次が必要です。
 
 `playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
-Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。
+Desktop learner exerciseの互換commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。実行結果を評価へ渡す場合は、P1-6で扱う`training:web:exercise:with-receipt`を使い、実行したCaseとEvidenceを記録します。
+
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-3で設計した複数のTest Case、特に`TC-CART-101`を代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool、P1-4で確認したAction／Locator／Assertionの基礎、既存`resetScenario` |
+| Activity | CaseをTraining specへ実装し、各Testの開始時に明示的なSeed ScenarioへResetする。正常、境界／異常、状態変化、Desktop、受講者が作成したMobile Web exerciseを必要な範囲で実行する |
+| Observation | Reset後のScenario、画面上の状態変化、期待結果と実際の結果、Desktop／Mobileの差、Trace／Screenshot／Video／Reportの生成、WorkbookのCaseとコードの対応 |
+| Output | 受講者が作成したTraining spec、対応するWorkbookの`implementation_path`、実行ごとのReceipt／Evidence参照、Desktop／Mobileで観察した差分。各Test Case IDはWorkbookの`implementation_path`、テストタイトル、注釈、または既存metadataのいずれかでコードと実行結果へ追跡できるようにする。編集場所は自由で、評価時はRepository相対Pathを保って`handoff-root/code/`と各rootへ集約する |
+| Self-check | P1-3のCaseとコードの条件・期待結果が対応し、Reset、正常・境界／異常、状態変化、Desktop、Learner-authored Mobileの各観点を必要な理由とともに説明する。意味の妥当性は自動判定へ委ねない |
+| Completion | 少なくとも複数の受講者CaseをTraining境界へ実装し、`TC-CART-101`を代表Caseとして、明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
+| Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
+| Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
 
 ## Lesson 1: テスト設計からコードへ落とす
 
@@ -208,16 +221,16 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 
 ## ハンズオン1: Cart Regression
 
-スプレッドシートのCart Test Caseから、共通課程の中核として次の代表条件を実装します。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
+P1-3で作成した複数のCart Test Caseから、共通課程の中核として代表条件を実装します。`TC-CART-101`はP1-2からP1-6へ渡す縦断Caseの1つであり、これだけで全ての観点を満たしたことにはしません。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
 
 必須:
 
 - 正常追加
-- 購入上限の境界値（`TC-CART-001`）
-- 購入不可明細からのCheckout阻止（`TC-CART-002`）
+- 購入上限または別の対象Riskの境界値（受講者のCase ID。`TC-CART-101`を代表例にする）
+- 購入不可明細からのCheckout阻止など、別のRiskを表すCase
 - 削除または数量変更
 
-在庫切れ（`out-of-stock`）を追加練習にする場合は、Workbookの`TC-CART-002`を流用せず、別のTest Case IDで記録します。
+在庫切れ（`out-of-stock`）を追加練習にする場合は、Workbookの`TC-CART-001`／`TC-CART-002`を流用せず、別のTest Case IDで記録します。配布sampleのIDを使う場合でも、受講者が作成したコードと実行結果が対応していることを記録します。
 
 各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
 

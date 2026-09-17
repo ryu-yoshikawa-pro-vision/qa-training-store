@@ -50,6 +50,19 @@ Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状
 
 このモジュールではまずLocal Gitを学びます。GitHub上のFork、Remote、Push、Pull Requestは次のPart 2-3で扱います。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-1のプロセス図と、Part 1から固定`handoff-root/`へ集約したWorkbook、Repository相対コード、Evidence／Receipt、self-check。P2-1の成果物を受け取った後、準備済みGit管理Training Copyで作業する |
+| Activity | `git status`、`diff`、Branch、Staging、Commit、Historyを順に操作し、Part 1成果物と教材元の既存資産を区別する。ForkはこのLessonではGitHub操作の準備として扱ってもよい |
+| Observation | Working Tree／Staging／Commitの差、mainとの境界、意図した変更Path、無関係な生成物、Commit後に追跡できる履歴 |
+| Output | 作業Branch、確認したDiff、意味のあるCommit、変更対象の一覧、P2-3へ渡すRepository／Branch／Commit参照。編集場所は自由で、self-checkは`handoff-root/self-check/P2-02.md`へ残す |
+| Self-check | 保存とCommit、Branchの役割、mainへ直接変更しない理由、意図したFileだけをStageする理由、Training Copy準備を隠れた学習前提にしない境界を説明する |
+| Completion | 準備済みGit管理Copy上でPart 1成果物と自分の変更をDiffから区別し、main以外のBranchで意図した変更をCommitできる。Copy準備失敗はGitの理解不足としない |
+| Recovery | 状態が不明なら`status`→`branch`→`diff`→`diff --staged`へ戻る。Copyや成果物がない場合は環境・準備問題として止め、無差別な`git init`や上書きをしない |
+| Handoff | P2-3へBranch、Commit、Diff、Part 1のCase／code Path、self-checkを渡す。P2-3でForkを使った場合も、C12へ進む前に準備済みTraining Copyへ切り替える |
+
 ## Lesson 1: Gitとは
 
 GitはSource Codeや文書などの変更履歴を管理する分散Version Control Systemです。

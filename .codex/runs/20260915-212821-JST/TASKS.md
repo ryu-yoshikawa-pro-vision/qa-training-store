@@ -42,10 +42,22 @@
 
 ## 次の実装taskで行うこと
 
-- [ ] I1. Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う。確定済み事項を再質問しない。
-- [ ] I2. Lesson共通契約とP1-2〜P1-6縦断パイロットを実装する。
-- [ ] I3. 受講者向け修了確認とPart 2自走導線を実装する。
-- [ ] I4. 全Lesson、ACテスト、Traceability、Agent routingへ展開する。
+- [x] I1. Owner回答済みの3契約を実装時W0で最新実装へ突合し、Wave 0の再Baselineを行う。確定済み事項を再質問しない。
+- [x] I2. Lesson共通契約とP1-2〜P1-6縦断パイロットを実装する。
+- [x] I3. 受講者向け修了確認とPart 2自走導線を実装する。
+- [x] I4. 全Lesson、ACテスト、Traceability、Agent routingへ展開する。
+
+## 実装Run（2026-09-17開始）
+
+- [x] W0. 実装開始時点のbranch／HEAD／PR／main／CI／working treeと、Playwright・Workbook・Training Copy・workflow・Harnessの既存契約を再確認する。
+- [x] L1. Lesson共通契約、Workbookのhandoff説明、17 Lessonの正本導線を更新する。
+- [x] L2. P1-02〜P1-06とPlaywright教材fixtureへ縦断パイロットを反映する。
+- [x] L3. 残りのLesson、Part 2導線、必要なcurriculum Contract Testを反映する。
+- [x] T1. `training:completion:check`、Completion Receipt、Completion Contract Testを実装する。
+- [x] T2. Receipt付き実行、Training Copy materialize、Training workflow、関連Contract Testを実装する。
+- [x] AG1/AG2/AG3/C1. Agent運用と既存main契約を読み取り専用で確認し、実装へ混入させない。
+- [x] V1. CommonとPart 2の講師なし一巡を、環境状態を分離して受入確認する。
+- [ ] VF. 最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認を完了する。
 
 ## 完了処理の参照先
 

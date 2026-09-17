@@ -19,6 +19,19 @@
 
 Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` を参考資料として使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-02の対象・Risk分析（`TARGET-CART-101`／`RISK-CART-101`を含む）、仕様のBR / AC、Seed ScenarioとRole／Stateの観察。受講者が作成した分析メモをInputとし、Repositoryのsample CSVを完成回答とはみなさない |
+| Activity | Riskを同値分割、境界値、状態遷移、Role差分などから複数のTest Caseへ分解し、各Caseの条件・前提・期待結果・設計根拠・Layer / Toolを決める |
+| Observation | どの条件でExpectedが変わるか、UI E2Eでしか確認できないことと下位Layerで確認できること、ケースを分けたことでFailureの原因を絞れるか |
+| Output | 既存Workbookの4 CSVへ対応する受講者作成行（少なくとも複数Case、`TC-CART-101`を代表Caseとして含める）。編集場所は自由で、評価時は`handoff-root/workbook/`へ集約する。自動化対象の`implementation_path`はP1-5でコードを作るまで空欄でもよい |
+| Self-check | 各CaseについてRisk／Spec、条件・前提・期待結果、技法、Layer / Tool、選定理由を説明する。少なくとも1件はUI E2E以外のLayerを選び、UIへ重複させる理由または重複させない理由を書く |
+| Completion | 正常・異常・境界・Role／Journeyを対象Riskに応じて複数Caseへ分解し、`TC-CART-101`を含むCase IDと対応根拠をP1-4／P1-5へ渡せる。Case数や「10件程度」は練習量の目安で、単独の合格条件にはしない |
+| Recovery | 技法を選べない場合はP1-2のRisk・Stateへ戻り、1つのRiskを条件へ分解する。実行環境が必要になった場合は未実行のまま架空の結果を記録せず、環境問題として分離する |
+| Handoff | P1-4には実装しない導入Caseと、P1-5には実装対象の複数Case・`TC-CART-101`・Reset／Role／State・期待結果・Layer / Toolを渡す。P1-5開始時にこれらが読めることが開始条件 |
+
 ## Lesson 1: 分析結果をテスト条件へ変換する
 
 テスト対象分析では「何があるか」を整理しました。ここでは「何をどの条件で確認するか」へ変換します。

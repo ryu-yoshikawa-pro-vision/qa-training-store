@@ -30,11 +30,24 @@
 
 Part 1で作成したTraining用Playwright Testは `playwright.training.config.ts` と `training-ci.yml`から明示的に実行します。現行 `playwright.config.ts` / `package.json` のFormal Suiteへ演習specを混在させません。
 
-リポジトリ管理のTraining Workflowには、`pull_request`で基準確認を行った後に`pnpm run training:web:exercise`を実行するStepがあらかじめ接続されています。受講者は実行用`.github/workflows/**`へStepを追加するのではなく、Part 1で作成した`training/playwright/exercises/`の変更を演習用CopyのPull Requestへ送り、同じTestがCIで実行されることを確認します。`training:copy:validate`はWorkflowの配布元とactive allowlistを確認する生成時検証であり、受講者TestのCI成功とは別です。
+準備済みTraining CopyのTraining Workflowには、`pull_request`で基準確認を行った後にReceipt付きの`training:web:exercise:with-receipt`を実行するStepがあらかじめ接続されています。受講者は実行用`.github/workflows/**`へStepを追加するのではなく、Part 1で作成した`training/playwright/exercises/`の変更をTraining CopyのPull Requestへ送り、同じTest、Execution Receipt、Failure ArtifactがCIで生成されることを確認します。`training:copy:validate`はWorkflowの配布元とactive allowlistを確認する生成時検証であり、受講者TestのCI成功とは別です。
 
 現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
 
 現在のworkflow構成、PR / main / Nightlyの配置、Production Artifact Smokeは参考・発展比較の範囲です。P2-5の共通課程の修了は、準備済みTraining WorkflowのWeb Build、Playwright実行、Failure Artifactで成立します。
+
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-4で確認したTraining CopyのPR／Runと、P1-5／P1-6のCase ID、Repository相対コード、Local Receipt／Evidence。Secret不要・Deployなし・`contents: read`のTraining Workflowを前提にする |
+| Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、受講者CodeをTraining CopyのPRからCIへ接続する |
+| Observation | LocalとCIの差、実行したCase、Run／Check／Artifact、失敗Step、Retry、Execution Receiptのrun／case／attempt、Artifactへの人間可読参照 |
+| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
+| Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
+| Completion | Training CopyのPRで受講者Caseを実行し、ReceiptとFailure Artifact、Run／Check／Artifactを確認してP2-7へ渡せる。Fork上のCI結果をC12の証跡へ読み替えない |
+| Recovery | Build／Browser／Base URL／権限／Runnerの問題は環境として分ける。TestやWorkflowのFailureは最初の異常へ戻り、完成済みFormal CIやWorkflow権限変更で解決しない |
+| Handoff | P2-7へTraining Copy URL、PR／Branch、Run／Job／Check、Artifact名、Case ID、code Path、Receipt／Evidence、Failure分類を渡す |
 
 ## Lesson 1: CIでPlaywrightを動かすために必要なもの
 
@@ -205,9 +218,9 @@ Training Workflowでは本番Deployや本番Secretを扱わず、Production Arti
 1. Build
 2. Chromium Install
 3. `training:web:baseline`による基準確認
-4. `training:web:exercise`による受講者向けPlaywright E2E
+4. `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context ci-exercise`による受講者向けPlaywright E2EとExecution Receipt生成
 
-ローカルで`pnpm run training:web:exercise`を成功させた自分の変更を、演習用CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じExerciseが実行され、成功した実行結果 / ArtifactをP2-8のCI設計の根拠へ再利用します。
+ローカルで`pnpm run training:web:exercise:with-receipt`を成功させた自分の変更を、準備済みTraining CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
 
 ## ハンズオン2: Failure Artifact
 

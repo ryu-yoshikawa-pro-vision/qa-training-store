@@ -45,6 +45,43 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 リポジトリに存在することを検証する資材と、受講者が必ず学ぶ経路で扱う内容・演習・自己確認・修了条件・評価成果物は別の契約です。`03_instructor-reference.md`はリポジトリ上で必要な支援資料ですが、受講者が必ず学ぶ経路や共通課程の修了条件の正本ではありません。
 
+## Lesson共通契約
+
+このカリキュラムは講師の口頭説明を前提にしません。17個のCanonical Lesson（`P1-01`〜`P1-09`、`P2-01`〜`P2-08`）は、本文を読んだ受講者が次の情報だけで一巡できるようにします。`P1-07`（Native）と`P2-06`（Native CI）は選択課程です。
+
+| 項目 | Lesson本文で明示する内容 |
+| --- | --- |
+| 目的 | 何を理解し、どの判断ができるようになるか |
+| Input | 配布済みの資材、前のLessonの成果物、受講者が準備するものを分け、出所・参照先・準備完了の確認方法を書く |
+| Activity | 読む、観察する、設計する、実装する、実行する、比較するなど、受講者が行う順番 |
+| Observation | 画面、ログ、差分、実行結果、Artifactなど、活動後に何を見て理由を説明するか |
+| Output | 何を残すか、形式の自由度、評価へ渡す場所、次のLessonでの用途 |
+| Self-check | 質問と、回答に最低限含める要素。意味の理解は受講者自身の説明で確認する |
+| Completion | ファイル、実行記録、自己確認など、第三者が観測できる完了条件。単なる操作回数やsuite全体のPASSとは分ける |
+| Recovery | 学習上のつまずき、テスト／製品のFailure、環境不足を分け、それぞれの戻り方を書く |
+| Handoff | 次の受け手、Test Case IDやLesson ID、ファイル、Evidence、次へ進む開始条件 |
+
+### InputとOutputの受け渡し場所
+
+受講者は、WorkbookやメモをGoogle Sheets、ローカルFolderなど任意の場所で編集できます。編集場所を固定することは学習目標にしません。ただし、Part 1からPart 2の最終確認へ渡す評価用の正本は、次の`handoff-root/`へ集約します。
+
+```text
+handoff-root/
+  workbook/
+    01_target-risk.csv
+    02_test-cases.csv
+    03_automation-mapping.csv
+    04_execution-improvement.csv
+  code/
+  evidence/
+  receipts/
+  self-check/
+```
+
+`code/`にはRepository相対Pathを保った受講者コードを置きます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。`evidence/`はTrace、Screenshot、Video、HTML Reportなど、`receipts/`は実行の事実を記録したExecution Receipt、`self-check/`は既存Lesson IDごとの自己確認を置く場所です。評価用のCompletion Receiptはこのroot直下に出力し、`receipts/`のExecution Receiptと混ぜません。
+
+Lesson本文が示すInputは「前のLessonで作成済み」とだけ書かず、どのファイル・列・ID・実行結果が準備済みであるべきかを示します。例えばPlaywrightを実装するLessonでは、実装対象のTest Case ID、条件、前提、期待結果、Reset方法が先に準備されていることをInputに含めます。Outputは、受講者が編集した場所ではなく、上記rootへどのように集約すれば評価へ渡せるかを示します。
+
 ## 対象者
 
 コース開始時の受講者像は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコードの経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない人です。
@@ -136,16 +173,16 @@ Part 2ではGitHubを扱うため、GitHubアカウントを利用できるこ�
 
 P2の選択課程を開始する前の共通課程の必須前提はP2-5までであり、P2-6のNative CIとMaestroは選択式の課程です。P2-6を選択しない受講者はP2-6を飛ばしてP2-7へ進み、完了した受講者はP2-7へ合流します。P2-6を選択する場合は、P1の選択課程で身につけるMaestro実行能力を、選択課程内の必須前提として先に満たします。P1の選択課程を修了せずにP2のNative課程を選ぶ場合も、同じ選択課程内の必須前提を先に満たします。
 
-ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
+ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。Part 2のGitHub操作では、受講開始前に利用可能になった学習者書き込み可能なTraining Copyを使います。
 
 Git / GitHubの基本演習では、次の標準経路を利用できます。
 
 - 自分のGitHub AccountへForkする。
-- 講師または組織が用意した演習用Copyを使用する。
+- 講師または組織が自己学習開始前に用意したTraining Copyを使用する。
 
 既存Repositoryの本番向けCI/CDやCloudflare Secretsを直接利用することは演習の前提にしません。既存Workflowは完成例として読み、演習用Workflowは安全に分離された環境で扱います。
 
-**CIハンズオンでは、Production Workflowとの競合を避けるため、演習用Copyを標準経路とします。** Forkを使用してCIを学ぶ場合は、GitHub Actionsを利用可能にしたうえで、教材元から継承したProduction / Deploy Workflowが演習PRで同時起動しないように設定し、Training Workflowだけを意図どおり実行できることを開始Gateとします。
+**CIハンズオン、C12、Part 2の最終確認では、事前準備済みTraining Copyを正式経路とします。** ForkはP2-01〜P2-03のGit／GitHub基礎でのみ利用できます。Fork上のRun、Check、ArtifactはC12やPart 2最終修了の証跡へ読み替えません。Training Copyでは、受講者がBranch作成、Commit、Push、Pull Request、GitHub ActionsのRun／Check／Artifact確認まで行いますが、管理者権限、Secrets管理、Branch protection変更、Workflow権限変更、GitHub App設定は要求しません。
 
 本番Secretを受講者へ配布し、既存Production Workflowを無理に成功させる方法は採用しません。
 
@@ -180,12 +217,12 @@ Part 1で作成したTraining Testや学習成果物を引き継ぐ
 ↓
 Gitで変更履歴を管理する
 ↓
-GitHub Remote / Fork / Pull Requestへ進む
+準備済みTraining CopyのRemote / Pull Requestへ進む
 ```
 
 ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
 
-Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は[講師向け資料](./03_instructor-reference.md)の支援手順を使用し、受講者必須の学習内容に隠れた前提として加えません。
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は既存の提供手順で行い、受講者必須の学習内容に隠れた前提として加えません。受講者は渡されたTraining CopyでBranch、Commit、Push、Pull Request、Run／Check／Artifact確認を行います。
 
 ## ノーコード・ローコード経験との接続
 

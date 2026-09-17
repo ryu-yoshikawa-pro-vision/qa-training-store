@@ -17,7 +17,7 @@
 
 教材用に別のテスト対象へ切り替えません。
 
-ただし、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体へのPush権限を持つことは前提にしません。
+ただし、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体へのPush権限を持つことは前提にしません。P2-01〜P2-03ではForkまたは準備済みTraining Copyを使えますが、C12／Training CIへ進む前に、自己学習開始前に用意された学習者書き込み可能なTraining Copyへ切り替えます。
 
 ## 演習Repositoryの標準形
 
@@ -27,6 +27,19 @@ GitHub演習では、次のいずれかを使用します。
 2. 講師または組織が用意した `qa-training-store` の演習用Copyを使用する。
 
 どちらの場合もテスト対象・コードベースはScenario Shopのままです。
+
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-2のBranch／Commit／Diff、P1成果物のCase IDとコードPath、Pull Requestで説明するTest結果。GitHubアカウントと、基礎学習に使うForkまたはTraining Copy |
+| Activity | Remote、Fork、Push、Pull Request、Review、Checksの関係を確認し、Test Codeの変更・理由・実行記録をPR単位で共有する |
+| Observation | Base／Headの差分、変更対象、Reviewコメント、Checkの状態、Test Case／Receipt／Artifact参照、学習者が書き込みできるRemoteかどうか |
+| Output | Branch／Commit／Pull Request、PR説明、Review記録、Check参照、P2-4へ渡すTest Case・コードPath・実行記録。形式と編集場所は自由で、self-checkは`handoff-root/self-check/P2-03.md`へ残す |
+| Self-check | GitとGitHub、ForkとUpstream、PRとMerge、ReviewとChecksの役割を分け、Test CodeもReview対象にする理由を説明する |
+| Completion | P2-2の変更をPRで共有し、レビューとCheckの結果を説明できる。Forkを使った場合はP2-3までの基礎学習として完了し、C12／Training CIの正式経路はTraining Copyだと確認できる |
+| Recovery | Remote／権限の問題はForkまたは準備済みTraining Copyの開始条件を確認する。Reviewの理解不足はDiffとPR本文へ戻り、管理者権限・Secrets・Workflow設定変更で解決しない |
+| Handoff | P2-4へTraining CopyのURL、Branch／PR、Case ID、コードPath、Check／Review記録を渡す。ForkのPRは基礎学習の記録として扱い、C12の証跡と混同しない |
 
 ```text
 Upstream / 教材元

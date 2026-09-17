@@ -30,6 +30,19 @@
 
 Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行記録の収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する |
+| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。仮想仕様変更の影響範囲を追跡する |
+| Observation | 同じ変更で直す箇所、Failureを隠す共通化、Test Caseとコードの対応、Reset／Fixtureの責務、改善前後の差分と再実行結果 |
+| Output | 保守性の課題、選択した改善、差分、影響を受けるTest Case／Path、改善後の実行結果を記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
+| Self-check | POM等を採用する理由と採用しない理由、Fixture／Resetの責務、仕様変更からRisk→Case→コード→Regressionを追跡する方法を説明する |
+| Completion | 少なくとも1つの保守上の問題を特定し、過剰な共通化を避けた改善案を実装または設計し、差分と再実行記録を残す。Native成果物は選択時だけ追加し、baselineだけを成果としない |
+| Recovery | 問題が見つからない場合はP1-5／P1-6のコードと記録へ戻り、同一操作・同一Caseの重複を探す。実行できない場合は環境問題として記録し、保守判断と分ける |
+| Handoff | P1-9へ改善前後のコードPath、Case ID、差分、再実行結果、`04_execution-improvement.csv`のContextを渡す。選択課程ではNative成果物も別枠で渡す |
+
 ## Lesson 1: 運用フェーズで当たる壁
 
 テストが数本の間は、1ファイルへ直接書いても大きな問題になりません。

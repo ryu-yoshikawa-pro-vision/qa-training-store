@@ -30,6 +30,19 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 
 まず「CIがまだ存在しないScenario Shop」という前提で自分の設計を作り、その後で現在の実装と比較します。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-1〜P2-7のプロセス図、Git／PR記録、Training Copy上のWeb CI Run／Check／Artifact、Part 1のCase／コード／Failure分析、必要ならNative選択課程の別記録 |
+| Activity | Scenario Shopの対象範囲を決め、Trigger、Build、Playwright、Quality Gate、Artifact、Failure時の戻り先を設計した後、現在のWorkflow・仕様・Contract Testと比較する |
+| Observation | どのRiskをどのLayer／Triggerで守るか、受講者CaseとCIの対応、最小権限、Artifactの追跡、Common／Native／CDの境界、設計と現行実装の差 |
+| Output | 対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failure対応表、Run／Check／Artifact参照、最終self-check。編集場所は自由で、Part 1／2の成果物を固定`handoff-root/`へ集約する |
+| Self-check | 「何を、いつ、どこで、どの条件で実行し、Failure時に何を見るか」をCase／Risk／Workflow／Evidenceを指して説明する。GitHub外部状態をAPIなしで証明したとは書かない |
+| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。Native／iOS Runtimeは必須にしない |
+| Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
+| Handoff | 最終確認へ固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと設計資料を渡す。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
+
 ## 演習シナリオ
 
 次の状態を想定します。

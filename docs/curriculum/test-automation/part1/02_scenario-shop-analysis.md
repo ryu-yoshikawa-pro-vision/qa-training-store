@@ -26,6 +26,19 @@
 
 この段階では、既存E2Eを先に読んで分析結果をコピーしないようにします。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-01で確認したテスト自動化の目的、`docs/spec`の対象Feature、`/guide`、必要なSeed Scenario。仕様のBR / ACは仕様側を正本とし、画面観察は補助情報として扱う |
+| Activity | Scenario ShopをRole・State・Dataの組み合わせで操作し、CartとCheckoutの正常・異常・境界を観察する。観察した事実と仕様上の判断を分けて記録する |
+| Observation | Roleによる表示・操作差、Reset後の初期状態、Cart数量・在庫・Checkout状態の変化、拒否理由と次に進めない条件 |
+| Output | 4 CSVへ入れる前の分析メモと、少なくとも`TARGET-CART-101`／`RISK-CART-101`を含む受講者作成の対象・Risk行。編集場所は自由で、完了時は`handoff-root/workbook/`へ集約する。既存CSVへ回答を追記しない |
+| Self-check | 「画面一覧だけでなく何を分析したか」「RoleとStateを分ける理由」「どの観察をどのBR / ACへ戻せるか」に答え、初期状態・操作・変化・Riskの最低要素を含める |
+| Completion | CartまたはCheckoutの1つのJourneyを図示し、正常・異常・境界を含む複数のRisk候補を、仕様参照と観察事実を分けて説明できる。P1-03へ渡す対象・RiskのIDとメモが揃っている |
+| Recovery | 理解不足はLesson 1〜6と`docs/spec`へ戻る。画面やTest Controlが使えない場合は環境問題として記録し、期待動作の判断と混ぜない。状態が再現しない場合はSeed ScenarioとReset条件を再確認する |
+| Handoff | P1-03の受講者自身へ、対象・RiskのID、分析メモ、参照したBR / AC、Reset／Role／State条件を渡す。P1-03開始時にこれらを読み返せればよい |
+
 ## Lesson 1: テスト対象を触る
 
 最初にScenario Shopを実際に操作します。
@@ -196,6 +209,8 @@ Cartについて次を洗い出します。
 - 関連画面
 
 最低限、在庫切れと購入上限を含めます。
+
+分析を終えたら、受講者自身の作業表へ次の2つの識別子を作ります。`TARGET-CART-101`は調査対象、`RISK-CART-101`はその対象で起こる影響の大きいRiskです。既存の`TARGET-CART-001`や`RISK-CART-001`を上書き・完成答案としてコピーせず、自分が観察した条件と、根拠にしたSpec / BR / ACを記録します。後続のP1-3では、このRiskだけに限定せず、少なくとも別のRiskも追加してTest Caseへ分解します。
 
 ## ハンズオン2: Checkout Journey分析
 

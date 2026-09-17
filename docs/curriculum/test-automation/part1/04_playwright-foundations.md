@@ -46,9 +46,22 @@ pnpm run training:web:baseline
 
 Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習後に設計を比較するためのFormal Regression教材です。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-3で作ったCaseの一覧と、P1-5で実装するCaseの条件・前提・期待結果。`TC-PRODUCT-001`や単純なCart追加は、構文を練習するために提供する別のSampleであり、P1-5のLearner Caseの完成答案ではない |
+| Activity | JavaScript / TypeScriptの最小構文を読み、`test`、`page`、Locator、Action、Assertionの役割を小さな商品・Cart練習へ置き換える。Baselineを実行してTraining境界とErrorの読み方を確認する |
+| Observation | Actionの後に画面がどう変わるか、Locatorがどの意味を対象にしているか、Assertionが何を保証するか、Syntax／Type／Runtime／Assertion Failureのどこで止まったか |
+| Output | 自分で説明できる最小Test、Locator選択理由のメモ、P1-5へ渡すCase IDと実装方針。編集場所は自由で、受講者コードは完了時に`handoff-root/code/`へRepository相対Pathで集約する |
+| Self-check | `import`、`async`／`await`、`page`、Locator、Assertionの役割を自分のコードで説明し、固定待機を避ける理由とTraining／Formalの境界を含める |
+| Completion | Scenario Shopを対象に、starterをそのままPASS扱いせず、意味のあるLearner Testを1本以上書いて、P1-3のCaseをP1-5で実装するための条件とAssertion方針を説明できる。Test本数は単独条件にしない |
+| Recovery | 構文・型の問題は該当Lesson 0へ戻り、実行中のFailureはRuntime、期待不一致はAssertionとして分類する。Browser／Base URL問題は環境として記録し、既存Formal Testへ直接追記して解決しない |
+| Handoff | P1-5へ実装対象CaseのID、条件、前提、期待結果、Reset方法、Locator／Assertionの仮説を渡す。P1-5開始時にP1-3の複数Caseが残っていることを確認する |
+
 ## 演習コードの扱い
 
-Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise` です。
+Desktop learner exerciseの互換commandは `pnpm run training:web:exercise` です。実行事実を評価へ渡すときのReceipt付き入口はP1-6で扱う `training:web:exercise:with-receipt` です。
 
 このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
 

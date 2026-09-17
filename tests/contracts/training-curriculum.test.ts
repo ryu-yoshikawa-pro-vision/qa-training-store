@@ -20,6 +20,46 @@ describe("Training curriculum contracts", () => {
     expect(summary.trainingProjects).toEqual(["training-chromium", "training-mobile-chromium"]);
   });
 
+  it("exposes the self-study contract in every canonical lesson", () => {
+    const lessons = [
+      ["P1-01", "part1/01_test-automation-foundations.md"],
+      ["P1-02", "part1/02_scenario-shop-analysis.md"],
+      ["P1-03", "part1/03_test-design-and-automation-selection.md"],
+      ["P1-04", "part1/04_playwright-foundations.md"],
+      ["P1-05", "part1/05_playwright-e2e-practice.md"],
+      ["P1-06", "part1/06_execution-and-failure-analysis.md"],
+      ["P1-07", "part1/07_maestro-native-automation.md"],
+      ["P1-08", "part1/08_test-management-and-maintainability.md"],
+      ["P1-09", "part1/09_part1-capstone.md"],
+      ["P2-01", "part2/01_software-development-process.md"],
+      ["P2-02", "part2/02_git-version-control.md"],
+      ["P2-03", "part2/03_github-pull-request-review.md"],
+      ["P2-04", "part2/04_ci-github-actions.md"],
+      ["P2-05", "part2/05_playwright-ci.md"],
+      ["P2-06", "part2/06_native-ci-maestro.md"],
+      ["P2-07", "part2/07_ci-cd-quality-gates.md"],
+      ["P2-08", "part2/08_integration-design-capstone.md"],
+    ] as const;
+    const requiredLabels = [
+      "Input",
+      "Activity",
+      "Observation",
+      "Output",
+      "Self-check",
+      "Completion",
+      "Recovery",
+      "Handoff",
+    ];
+    for (const [, relativePath] of lessons) {
+      const lesson = readFileSync(
+        resolve(process.cwd(), "docs/curriculum/test-automation", relativePath),
+        "utf8",
+      );
+      expect(lesson).toContain("## このLessonのInput / Output");
+      for (const label of requiredLabels) expect(lesson).toContain(`| ${label} |`);
+    }
+  });
+
   it("allows learner-authored Playwright assertions in the editable starter", () => {
     const starterPath = resolve(
       process.cwd(),
@@ -126,6 +166,7 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
     expect(trainingWorkflow).toContain("pnpm run training:web:baseline");
     expect(trainingWorkflow).toContain("pnpm run training:web:exercise");
+    expect(trainingWorkflow).toContain("pnpm run training:web:exercise:with-receipt");
     expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
     expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
     expect(trainingWorkflow).not.toContain("e2e/web/");
@@ -147,10 +188,10 @@ describe("Training curriculum contracts", () => {
       "utf8",
     );
     const exerciseCondition =
-      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:exercise";
+      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise";
     const exerciseWithoutCondition = trainingWorkflow.replace(
       exerciseCondition,
-      "        run: pnpm run training:web:exercise",
+      "        run: pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise",
     );
     expect(() => validateTrainingWorkflow("training-ci.yml", trainingWorkflow)).not.toThrow();
     expect(() => validateTrainingWorkflow("training-ci.yml", exerciseWithoutCondition)).toThrow(
