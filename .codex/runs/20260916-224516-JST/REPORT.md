@@ -121,3 +121,12 @@
 - 判断 / 理由: 追加pushはRun Artifactの追記だけで、sourceのtimeout 2箇所、追加計測結果、#160の未確認事項は変更していない。過去の約64秒の下位原因とCI側invocation単位timingは未確認のままであり、外部要因を断定しない。
 - ブロッカー / 残作業: ローカルと最新CIは成功しているが、Issue #159の下位process境界差分の未確認事項が残るため、#160を原因全体まで完全確定した／merge-readyとは扱わない。merge、Issue close、PR close、branch削除、force pushは行っていない。
 - Progress: 88% (7/8)
+
+## 2026-09-17 10:00 (JST)
+
+- Summary: Issue #159の完了条件を、CIとWindowsローカルの実行結果・実行時間を比較し、production Hookの異常ではなくtest-local timeout境界で失敗していたこと、および再現しないhost / OS内部要因は未特定であることを記録する内容へ整理した。PR #160は既存の実測範囲と恒久差分に基づきmerge-readyと判断した。
+- Changes: Issue #159の完了条件と残る未特定事項、PR #160本文を更新した。恒久的なsource変更は引き続き`tests/contracts/codex-hook-contract.test.ts`のlogging `15000ms -> 30000ms`と、`tests/contracts/codex-text-quality.test.ts`のStop fallback `30000ms -> 90000ms`だけである。追加のCI invocation単位計測、diagnostic code、production Hook / launcher / config変更は行っていない。
+- Validation: 既存のWindowsローカル実測、3回連続`pnpm run test:contracts`、`pnpm run verify`、lint、`git diff --check`、およびhead `4dc70b3b8d063d41040624ed278b75fdfe5d816f`のWeb CI / Mobile App CI / Windows Hook contract / Vitest contractsの成功結果を再利用した。過去の約22秒 / 約64秒のhost / OS内部遅延と、過去の遅延状態におけるinvocation単位timingは未確認のまま残した。
+- 判断 / 理由: 確認済みの直接failure boundaryは、過去のlogging `22444ms`とStop `63663ms`が旧test-local aggregate ceilingを超えたことである。現在の両checkoutでは全invocationがstatus 0、signalなし、spawn errorなし、個別最大約`554ms`で、affected checkoutでも旧`30000ms`条件でPASSした。production Hook異常や単一launcher hangは確認されていないため、30秒 / 90秒のtest-local timeoutだけを維持し、再現しないhost内部原因はこれ以上追跡しない。
+- ブロッカー / 残作業: 今回のIssue実装判断に必要な未確認事項は残さない。Issue #159はOPENのまま、merge・Issue close・PR close・branch削除・force pushは行っていない。
+- Progress: 100% (8/8)
