@@ -1,9 +1,10 @@
-import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { execFileSync, spawn, type ChildProcessByStdio } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { checkCompletion } from "../../scripts/training/check-completion";
+import { materializeTrainingHandoff } from "../../scripts/training/materialize-training-handoff";
 import { restoreDiagnosticExercise } from "../../scripts/training/restore-diagnostic-exercise";
 import {
   runPlaywrightWithReceipt,
@@ -42,10 +43,11 @@ function writeText(root: string, relativePath: string, value: string): void {
 
 function learnerSpec(caseId: string, variableAssertion: boolean): string {
   const assertion = variableAssertion
-    ? `  const productsHeading = page.getByRole("heading", { name: "すべての商品" }).first();\n  await expect(productsHeading).toBeVisible();`
-    : `  await expect(page.getByRole("heading", { name: "すべての商品" }).first()).toBeVisible();`;
+    ? `  const productsHeading = productsHeadingFor(page);\n  await expect(productsHeading).toBeVisible();`
+    : `  await expect(productsHeadingFor(page)).toBeVisible();`;
   return `import { expect, test } from "@playwright/test";
 import { resetScenario } from "../support/reset-scenario";
+import { productsHeadingFor } from "../support/learner-helper";
 
 test("${caseId} learner cart check", async ({ page }) => {
   await resetScenario(page, "default");
@@ -180,10 +182,10 @@ function createHandoff(root: string): void {
   );
   for (const entry of CASES)
     writeText(root, `code/${entry.implementationPath}`, learnerSpec(entry.caseId, false));
-  fs.mkdirSync(path.join(root, "code/training/playwright/support"), { recursive: true });
-  fs.copyFileSync(
-    path.resolve("training/playwright/support/reset-scenario.ts"),
-    path.join(root, "code/training/playwright/support/reset-scenario.ts"),
+  writeText(
+    root,
+    "code/training/playwright/support/learner-helper.ts",
+    `import type { Page, Locator } from "@playwright/test";\n\nexport function productsHeadingFor(page: Page): Locator {\n  return page.getByRole("heading", { name: "すべての商品" }).first();\n}\n`,
   );
   for (const lessonId of ["P1-01", "P1-02", "P1-03", "P1-04", "P1-05", "P1-06", "P1-08", "P1-09"])
     writeText(root, `self-check/${lessonId}.md`, `${lessonId} self-check\n`);
@@ -381,6 +383,33 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
       let serverProcess: FixtureServerProcess | undefined;
       try {
         createHandoff(handoffRoot);
+        const runtimeRoot = path.join(fixtureParent, "runtime-code");
+        fs.mkdirSync(path.join(runtimeRoot, "support"), { recursive: true });
+        fs.copyFileSync(
+          path.resolve("training/playwright/support/reset-scenario.ts"),
+          path.join(runtimeRoot, "support/reset-scenario.ts"),
+        );
+        fs.copyFileSync(
+          path.join(handoffRoot, "code/training/playwright/support/learner-helper.ts"),
+          path.join(runtimeRoot, "support/learner-helper.ts"),
+        );
+        for (const entry of CASES) {
+          const runtimeSpecPath = path.join(
+            runtimeRoot,
+            "exercises",
+            path.basename(entry.implementationPath),
+          );
+          fs.mkdirSync(path.dirname(runtimeSpecPath), { recursive: true });
+          fs.copyFileSync(
+            path.join(handoffRoot, "code", entry.implementationPath),
+            runtimeSpecPath,
+          );
+        }
+        expect(
+          fs.existsSync(
+            path.join(handoffRoot, "code/training/playwright/support/reset-scenario.ts"),
+          ),
+        ).toBe(false);
         fs.mkdirSync(path.join(diagnosticRoot, "support"), { recursive: true });
         fs.copyFileSync(
           path.resolve("training/playwright/support/reset-scenario.ts"),
@@ -406,7 +435,7 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
         const commonOptions = {
           project: "training-chromium",
           rootOption: handoffRoot,
-          testRootOption: path.join(handoffRoot, "code", "training", "playwright"),
+          testRootOption: runtimeRoot,
         } as const;
         const localReceipt = runReceipt(
           handoffRoot,
@@ -463,7 +492,13 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
 
         const learnerPath = path.join(handoffRoot, "code", CASES[0].implementationPath);
         const beforeImprovement = fs.readFileSync(learnerPath, "utf8");
-        fs.writeFileSync(learnerPath, learnerSpec(CASES[0].caseId, true), "utf8");
+        const improvedSource = learnerSpec(CASES[0].caseId, true);
+        fs.writeFileSync(learnerPath, improvedSource, "utf8");
+        fs.writeFileSync(
+          path.join(runtimeRoot, "exercises", path.basename(CASES[0].implementationPath)),
+          improvedSource,
+          "utf8",
+        );
         expect(fs.readFileSync(learnerPath, "utf8")).not.toBe(beforeImprovement);
         const improvedReceipt = runReceipt(
           handoffRoot,
@@ -510,6 +545,46 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
         expect(completion.receipt.checked_case_ids).toEqual(["TC-CART-101", "TC-CART-102"]);
         expect(completion.receipt.checked_outputs.c09_diagnostic).toBe(true);
         expect(completion.receipt.checked_outputs.c10_improvement).toBe(true);
+
+        const trainingCopyParent = path.join(fixtureParent, "training-copy");
+        const trainingCopy = path.join(trainingCopyParent, "copy");
+        const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], {
+          encoding: "utf8",
+        }).trim();
+        const sourceHarness = fs.readFileSync(
+          path.resolve("training/playwright/support/reset-scenario.ts"),
+          "utf8",
+        );
+        const materialized = materializeTrainingHandoff({
+          root: handoffRoot,
+          target: trainingCopy,
+          sourceSha,
+        });
+        expect(materialized.files).toEqual(
+          expect.arrayContaining([
+            CASES[0].implementationPath,
+            CASES[1].implementationPath,
+            "training/playwright/support/learner-helper.ts",
+          ]),
+        );
+        expect(
+          fs.readFileSync(
+            path.join(trainingCopy, "training/playwright/support/reset-scenario.ts"),
+            "utf8",
+          ),
+        ).toBe(sourceHarness);
+        expect(
+          fs.readFileSync(
+            path.join(trainingCopy, "training/playwright/support/learner-helper.ts"),
+            "utf8",
+          ),
+        ).toContain("productsHeadingFor");
+        expect(
+          fs.readFileSync(
+            path.join(trainingCopy, "training/workbook/03_automation-mapping.csv"),
+            "utf8",
+          ),
+        ).toContain(CASES[0].implementationPath);
       } finally {
         if (serverProcess) await closeFixtureServer(serverProcess);
         if (previousBaseUrl === undefined) delete process.env.PLAYWRIGHT_BASE_URL;

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { materializeTrainingHandoff } from "../../scripts/training/materialize-training-handoff";
+import { describe, expect, it } from "vitest";
 
 const CASE_ID = "TC-CART-101";
 const IMPLEMENTATION_PATH = "training/playwright/exercises/cart-101.spec.ts";
@@ -121,7 +122,7 @@ function createHandoff(): string {
   writeText(
     root,
     `code/${IMPLEMENTATION_PATH}`,
-    `import { expect, test } from "@playwright/test";\nimport { resetScenario } from "../../support/reset-scenario";\n\ntest("${CASE_ID} learner case", async ({ page }) => {\n  await resetScenario(page, "default");\n  await expect(page.getByRole("heading").first()).toBeVisible();\n});\n`,
+    `import { expect, test } from "@playwright/test";\nimport { resetScenario } from "../support/reset-scenario";\n\ntest("${CASE_ID} learner case", async ({ page }) => {\n  await resetScenario(page, "default");\n  await expect(page.getByRole("heading").first()).toBeVisible();\n});\n`,
   );
   writeText(root, "evidence/learner.md", "learner evidence\n");
   return root;
@@ -132,63 +133,81 @@ function removeFixture(root: string): void {
 }
 
 describe("Training Copy handoff contract", () => {
-  it("prepares, validates, and materializes Workbook/code without copying Evidence", () => {
-    const root = createHandoff();
-    const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-"));
-    const target = path.join(targetParent, "copy");
-    const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    const remote = "https://example.test/training-copy.git";
-    try {
-      const result = materializeTrainingHandoff({ root, target, sourceSha, remote });
-
-      expect(result.sourceSha).toBe(sourceSha);
-      expect(result.files).toEqual([IMPLEMENTATION_PATH]);
-      expect(
-        execFileSync("git", ["remote", "get-url", "origin"], { cwd: target, encoding: "utf8" }),
-      ).toBe(`${remote}\n`);
-      expect(
-        fs.readFileSync(
-          path.join(target, "training", "workbook", "03_automation-mapping.csv"),
+  it(
+    "prepares, validates, and materializes Workbook/code without copying Evidence",
+    { timeout: 120_000 },
+    () => {
+      const root = createHandoff();
+      const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-"));
+      const target = path.join(targetParent, "copy");
+      const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+      const remote = "https://example.test/training-copy.git";
+      try {
+        const sourceHarness = fs.readFileSync(
+          path.resolve("training/playwright/support/reset-scenario.ts"),
           "utf8",
-        ),
-      ).toContain(IMPLEMENTATION_PATH);
-      expect(fs.existsSync(path.join(target, IMPLEMENTATION_PATH))).toBe(true);
-      expect(fs.existsSync(path.join(target, "evidence"))).toBe(false);
-      expect(fs.existsSync(path.join(target, "receipts"))).toBe(false);
-      expect(
-        JSON.parse(fs.readFileSync(path.join(target, "training-copy-source.json"), "utf8")),
-      ).toMatchObject({
-        sourceSha,
-        resolvedSourceSha: sourceSha,
-      });
-    } finally {
-      removeFixture(root);
-      removeFixture(targetParent);
-    }
-  });
+        );
+        const result = materializeTrainingHandoff({ root, target, sourceSha, remote });
 
-  it("refuses an existing target but materializes learner helper code", () => {
-    const root = createHandoff();
-    const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-existing-"));
-    const target = path.join(targetParent, "copy");
-    fs.mkdirSync(target, { recursive: true });
-    const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    try {
-      expect(() => materializeTrainingHandoff({ root, target, sourceSha })).toThrow(
-        /Target already exists/,
-      );
-      fs.rmSync(target, { recursive: true, force: true });
-      writeText(root, "code/training/playwright/support/cart-helper.ts", "export {};\n");
-      const result = materializeTrainingHandoff({ root, target, sourceSha });
-      expect(result.files).toContain("training/playwright/support/cart-helper.ts");
-      expect(fs.existsSync(path.join(target, "training/playwright/support/cart-helper.ts"))).toBe(
-        true,
-      );
-    } finally {
-      removeFixture(root);
-      removeFixture(targetParent);
-    }
-  });
+        expect(result.sourceSha).toBe(sourceSha);
+        expect(result.files).toEqual([IMPLEMENTATION_PATH]);
+        expect(
+          execFileSync("git", ["remote", "get-url", "origin"], { cwd: target, encoding: "utf8" }),
+        ).toBe(`${remote}\n`);
+        expect(
+          fs.readFileSync(
+            path.join(target, "training", "workbook", "03_automation-mapping.csv"),
+            "utf8",
+          ),
+        ).toContain(IMPLEMENTATION_PATH);
+        expect(fs.existsSync(path.join(target, IMPLEMENTATION_PATH))).toBe(true);
+        expect(
+          fs.readFileSync(
+            path.join(target, "training", "playwright", "support", "reset-scenario.ts"),
+            "utf8",
+          ),
+        ).toBe(sourceHarness);
+        expect(fs.existsSync(path.join(target, "evidence"))).toBe(false);
+        expect(fs.existsSync(path.join(target, "receipts"))).toBe(false);
+        expect(
+          JSON.parse(fs.readFileSync(path.join(target, "training-copy-source.json"), "utf8")),
+        ).toMatchObject({
+          sourceSha,
+          resolvedSourceSha: sourceSha,
+        });
+      } finally {
+        removeFixture(root);
+        removeFixture(targetParent);
+      }
+    },
+  );
+
+  it(
+    "refuses an existing target but materializes learner helper code",
+    { timeout: 120_000 },
+    () => {
+      const root = createHandoff();
+      const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-existing-"));
+      const target = path.join(targetParent, "copy");
+      fs.mkdirSync(target, { recursive: true });
+      const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+      try {
+        expect(() => materializeTrainingHandoff({ root, target, sourceSha })).toThrow(
+          /Target already exists/,
+        );
+        fs.rmSync(target, { recursive: true, force: true });
+        writeText(root, "code/training/playwright/support/cart-helper.ts", "export {};\n");
+        const result = materializeTrainingHandoff({ root, target, sourceSha });
+        expect(result.files).toContain("training/playwright/support/cart-helper.ts");
+        expect(fs.existsSync(path.join(target, "training/playwright/support/cart-helper.ts"))).toBe(
+          true,
+        );
+      } finally {
+        removeFixture(root);
+        removeFixture(targetParent);
+      }
+    },
+  );
 
   it("requires a resolvable source SHA when it is not passed explicitly", () => {
     const root = createHandoff();

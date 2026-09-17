@@ -8,6 +8,9 @@ const SOURCE_SHA = "a".repeat(40);
 const SUBMISSION_SHA = "b".repeat(40);
 const EXECUTION_SHA = "c".repeat(40);
 const CI_SHA = "d".repeat(40);
+const CI_SOURCE_SHA = "e".repeat(40);
+const CI_SUBMISSION_SHA = "f".repeat(40);
+const CI_EXECUTION_SHA = "1".repeat(40);
 
 const CASES = [
   {
@@ -28,6 +31,8 @@ type ReceiptContext =
   | "local-exercise"
   | "diagnostic-initial"
   | "diagnostic-repaired"
+  | "learner-failure"
+  | "learner-repaired"
   | "c10-improved"
   | "ci-exercise";
 
@@ -42,6 +47,7 @@ type FixtureOptions = {
   sharedDiagnosticEvidence?: boolean;
   invalidReceipt?: boolean;
   blocked?: boolean;
+  diagnosticSameDigest?: boolean;
 };
 
 function csvCell(value: string): string {
@@ -79,8 +85,19 @@ function writeExecutionReceipt(
   options: FixtureOptions,
 ): void {
   const isInitial = context === "diagnostic-initial";
+  const isNaturalFailure = context === "learner-failure";
   const isCi = context === "ci-exercise";
   const isDiagnostic = context === "diagnostic-initial" || context === "diagnostic-repaired";
+  const receiptTimes: Record<ReceiptContext, [string, string]> = {
+    "local-exercise": ["2026-09-17T00:00:00.000Z", "2026-09-17T00:00:01.000Z"],
+    "diagnostic-initial": ["2026-09-17T00:00:02.000Z", "2026-09-17T00:00:03.000Z"],
+    "diagnostic-repaired": ["2026-09-17T00:00:04.000Z", "2026-09-17T00:00:05.000Z"],
+    "learner-failure": ["2026-09-17T00:00:02.000Z", "2026-09-17T00:00:03.000Z"],
+    "learner-repaired": ["2026-09-17T00:00:04.000Z", "2026-09-17T00:00:05.000Z"],
+    "c10-improved": ["2026-09-17T00:00:06.000Z", "2026-09-17T00:00:07.000Z"],
+    "ci-exercise": ["2026-09-17T00:00:08.000Z", "2026-09-17T00:00:09.000Z"],
+  };
+  const [startedAt, finishedAt] = receiptTimes[context];
   const cases = options.omitCases
     ? []
     : CASES.map((entry) => {
@@ -98,14 +115,17 @@ function writeExecutionReceipt(
           : options.omitCaseIds
             ? null
             : entry.caseId;
-        const status = isInitial ? "failed" : "passed";
+        const status = isInitial || isNaturalFailure ? "failed" : "passed";
         return {
           case_id: caseId,
           title: `${caseId ?? "learner"} fixture result`,
           track: "web",
           status,
           result: status,
-          code_digest: digest(source),
+          code_digest:
+            isDiagnostic && !options.diagnosticSameDigest
+              ? digest(`${source}\n${context}`)
+              : digest(source),
           implementation_path: entry.implementationPath,
           evidence,
           retries: [
@@ -122,9 +142,9 @@ function writeExecutionReceipt(
   const run: Record<string, unknown> = {
     producer: "training:web:exercise:with-receipt",
     command: `pnpm run training:web:exercise:with-receipt -- --suite ${isDiagnostic ? "diagnostic" : "exercise"} --project training-chromium --root ${root} --run-context ${context}`,
-    exit_code: isInitial ? 1 : 0,
-    started_at: "2026-09-17T00:00:00.000Z",
-    finished_at: "2026-09-17T00:00:01.000Z",
+    exit_code: isInitial || isNaturalFailure ? 1 : 0,
+    started_at: startedAt,
+    finished_at: finishedAt,
     environment: {
       platform: "win32",
       runtime: "Playwright Training",
@@ -134,9 +154,9 @@ function writeExecutionReceipt(
     run_context: context,
     project: "training-chromium",
     part1_distribution_sha: SOURCE_SHA,
-    training_copy_source_sha: SOURCE_SHA,
-    submission_sha: SUBMISSION_SHA,
-    execution_sha: EXECUTION_SHA,
+    training_copy_source_sha: isCi ? CI_SOURCE_SHA : SOURCE_SHA,
+    submission_sha: isCi ? CI_SUBMISSION_SHA : SUBMISSION_SHA,
+    execution_sha: isCi ? CI_EXECUTION_SHA : EXECUTION_SHA,
     ...(isCi
       ? {
           ci_sha: CI_SHA,
@@ -152,13 +172,17 @@ function writeExecutionReceipt(
         }
       : {}),
     ...(options.blocked
-      ? { environment_status: "blocked", blocked_reason: "Training Copy is unavailable" }
+      ? {
+          blocked: true,
+          environment_status: "blocked",
+          blocked_reason: "Training Copy is unavailable",
+        }
       : {}),
   };
   const receipt = {
     schema_version: options.invalidReceipt ? 2 : 1,
     kind: "execution-receipt",
-    generated_at: "2026-09-17T00:00:01.000Z",
+    generated_at: finishedAt,
     run,
     cases,
   };
@@ -278,16 +302,28 @@ function createHandoff(options: FixtureOptions = {}): string {
         contexts.map((context) => [
           entry.caseId,
           context,
-          context === "diagnostic-initial" ? "Fail" : "Pass",
+          context === "diagnostic-initial" || context === "learner-failure" ? "Fail" : "Pass",
           context === "ci-exercise"
             ? `evidence/ci-exercise-${entry.caseId}.md`
             : `evidence/${context}-${entry.caseId}.md`,
-          context === "diagnostic-initial" || context === "c10-improved" ? "Assertion" : "",
-          context === "diagnostic-initial" || context === "c10-improved" ? "fixture mismatch" : "",
-          context === "diagnostic-initial" || context === "c10-improved"
+          context === "diagnostic-initial" ||
+          context === "learner-failure" ||
+          context === "c10-improved"
+            ? "Assertion"
+            : "",
+          context === "diagnostic-initial" ||
+          context === "learner-failure" ||
+          context === "c10-improved"
+            ? "fixture mismatch"
+            : "",
+          context === "diagnostic-initial" ||
+          context === "learner-failure" ||
+          context === "c10-improved"
             ? "inspect and repair"
             : "",
-          context === "diagnostic-initial" || context === "c10-improved"
+          context === "diagnostic-initial" ||
+          context === "learner-failure" ||
+          context === "c10-improved"
             ? "record repaired run"
             : "",
         ]),
@@ -346,7 +382,18 @@ function createHandoff(options: FixtureOptions = {}): string {
   ];
   for (const lessonId of selfChecks)
     writeText(root, `self-check/${lessonId}.md`, `${lessonId} self-check\n`);
-  for (const context of contexts) writeExecutionReceipt(root, context, options);
+  for (const context of contexts) {
+    if (context === "c10-improved") {
+      for (const entry of CASES) {
+        writeText(
+          root,
+          `code/${entry.implementationPath}`,
+          `${learnerCode(entry.caseId, options.codeStyle ?? "valid")}\n// C10 minimal maintainability improvement\n`,
+        );
+      }
+    }
+    writeExecutionReceipt(root, context, options);
+  }
   return root;
 }
 
@@ -357,15 +404,109 @@ function removeFixture(root: string): void {
 function updateReceipt(
   root: string,
   context: ReceiptContext,
-  update: (receipt: { run: Record<string, unknown>; cases: Record<string, unknown>[] }) => void,
+  update: (receipt: {
+    generated_at?: string;
+    run: Record<string, unknown>;
+    cases: Record<string, unknown>[];
+  }) => void,
 ): void {
   const receiptPath = path.join(root, "receipts", `execution-receipt-${context}.json`);
   const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8")) as {
+    generated_at?: string;
     run: Record<string, unknown>;
     cases: Record<string, unknown>[];
   };
   update(receipt);
   fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+}
+
+function receiptAt(receiptPath: string): {
+  generated_at?: string;
+  run: Record<string, unknown>;
+  cases: Record<string, unknown>[];
+} {
+  return JSON.parse(fs.readFileSync(receiptPath, "utf8")) as {
+    generated_at?: string;
+    run: Record<string, unknown>;
+    cases: Record<string, unknown>[];
+  };
+}
+
+type ExecutionRowChanges = Partial<
+  Record<"result" | "evidence" | "failure_category" | "cause" | "action" | "improvement", string>
+>;
+
+function updateExecutionRow(
+  root: string,
+  caseId: string,
+  context: string,
+  changes: ExecutionRowChanges,
+): void {
+  const workbookPath = path.join(root, "workbook", "04_execution-improvement.csv");
+  const lines = fs.readFileSync(workbookPath, "utf8").trimEnd().split(/\r?\n/);
+  const headers = lines[0]?.split(",") ?? [];
+  const rowIndex = lines.findIndex((line) => line.startsWith(`${caseId},${context},`));
+  if (rowIndex < 0) throw new Error(`Execution row not found: ${caseId}/${context}`);
+  const cells = lines[rowIndex]?.split(",") ?? [];
+  for (const [field, value] of Object.entries(changes)) {
+    const column = headers.indexOf(field);
+    if (column < 0) throw new Error(`Execution field not found: ${field}`);
+    cells[column] = value ?? "";
+  }
+  lines[rowIndex] = cells.map((value) => csvCell(value)).join(",");
+  fs.writeFileSync(workbookPath, `${lines.join("\n")}\n`, "utf8");
+}
+
+function removeExecutionRow(root: string, caseId: string, context: string): void {
+  const workbookPath = path.join(root, "workbook", "04_execution-improvement.csv");
+  const lines = fs.readFileSync(workbookPath, "utf8").trimEnd().split(/\r?\n/);
+  const rowIndex = lines.findIndex((line) => line.startsWith(`${caseId},${context},`));
+  if (rowIndex < 0) throw new Error(`Execution row not found: ${caseId}/${context}`);
+  lines.splice(rowIndex, 1);
+  fs.writeFileSync(workbookPath, `${lines.join("\n")}\n`, "utf8");
+}
+
+function addEmptyLearnerCase(root: string): void {
+  const rows = {
+    target: [
+      "TARGET-CART-103",
+      "docs/spec/features/cart.md",
+      "BR-CART-001",
+      "AC-CART-001",
+      "RISK-CART-103",
+      "cart state can be lost",
+      "High",
+      "Medium",
+      "High",
+    ],
+    testCase: [
+      "TC-CART-103",
+      "RISK-CART-103",
+      "docs/spec/features/cart.md",
+      "BR-CART-001",
+      "AC-CART-001",
+      "add a product",
+      "default scenario",
+      "product is in cart",
+      "equivalence partitioning",
+    ],
+    mapping: ["TC-CART-103", "Automate", "Web E2E", "Playwright", "", "PR", "new learner case"],
+  };
+  fs.appendFileSync(
+    path.join(root, "workbook", "01_target-risk.csv"),
+    `${csv([rows.target])}`,
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "02_test-cases.csv"),
+    `${csv([rows.testCase])}`,
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "03_automation-mapping.csv"),
+    `${csv([rows.mapping])}`,
+    "utf8",
+  );
 }
 
 function refreshReceiptDigests(root: string): void {
@@ -491,6 +632,108 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
+  it("applies the same Workbook Failure analysis contract to a natural learner Failure", () => {
+    const root = createHandoff({ contexts: ["learner-failure", "learner-repaired"] });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.receipt.checked_outputs.c09_diagnostic).toBe(true);
+      expect(result.receipt.reasons.join("\n")).not.toContain("C09 requires");
+
+      for (const entry of CASES)
+        updateExecutionRow(root, entry.caseId, "learner-failure", { cause: "" });
+      const incomplete = checkCompletion(root, "common");
+      expect(incomplete.receipt.checked_outputs.c09_diagnostic).toBe(false);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it.each(["failure_category", "cause", "action"] as const)(
+    "requires %s in every selected C09 initial Workbook row",
+    (field) => {
+      const root = createHandoff();
+      try {
+        for (const entry of CASES)
+          updateExecutionRow(root, entry.caseId, "diagnostic-initial", { [field]: "" });
+        const result = checkCompletion(root, "common");
+        expect(result.status).not.toBe("PASS");
+        expect(result.receipt.checked_outputs.c09_diagnostic).toBe(false);
+      } finally {
+        removeFixture(root);
+      }
+    },
+  );
+
+  it.each(["initial Workbook row", "repaired Workbook row"] as const)(
+    "requires the selected C09 %s",
+    (missing) => {
+      const root = createHandoff();
+      try {
+        for (const entry of CASES)
+          removeExecutionRow(
+            root,
+            entry.caseId,
+            missing === "initial Workbook row" ? "diagnostic-initial" : "diagnostic-repaired",
+          );
+        const result = checkCompletion(root, "common");
+        expect(result.status).not.toBe("PASS");
+        expect(result.receipt.checked_outputs.c09_diagnostic).toBe(false);
+      } finally {
+        removeFixture(root);
+      }
+    },
+  );
+
+  it("requires C09 Workbook Evidence to point to the selected initial Receipt", () => {
+    const root = createHandoff();
+    try {
+      for (const entry of CASES)
+        updateExecutionRow(root, entry.caseId, "diagnostic-initial", {
+          evidence: `evidence/local-exercise-${entry.caseId}.md`,
+        });
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c09_diagnostic).toBe(false);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires diagnostic initial and repaired Receipts to have different code_digest values", () => {
+    const root = createHandoff({ diagnosticSameDigest: true });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c09_diagnostic).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("different code_digest");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires a later diagnostic Receipt", () => {
+    const root = createHandoff();
+    try {
+      const initial = receiptAt(
+        path.join(root, "receipts", "execution-receipt-diagnostic-initial.json"),
+      );
+      updateReceipt(root, "diagnostic-repaired", (receipt) => {
+        if (initial.generated_at !== undefined) receipt.generated_at = initial.generated_at;
+        receipt.run.started_at = initial.run.started_at;
+        receipt.run.finished_at = initial.run.finished_at;
+        receipt.cases.forEach((executionCase, index) => {
+          executionCase.code_digest = initial.cases[index]?.code_digest ?? null;
+        });
+      });
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c09_diagnostic).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("must be later than initial");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
   it.each([
     ["diagnostic repaired run is missing", ["diagnostic-initial" as const]],
     [
@@ -524,8 +767,9 @@ describe("受講者向け修了確認契約", () => {
       expect(result.status).toBe("PASS");
       expect(result.receipt.required_competencies).toContain("C12");
       expect(result.receipt.ci_sha).toBe(CI_SHA);
-      expect(result.receipt.training_copy_source_sha).toBe(SOURCE_SHA);
-      expect(result.receipt.execution_sha).toBe(EXECUTION_SHA);
+      expect(result.receipt.training_copy_source_sha).toBe(CI_SOURCE_SHA);
+      expect(result.receipt.submission_sha).toBe(CI_SUBMISSION_SHA);
+      expect(result.receipt.execution_sha).toBe(CI_EXECUTION_SHA);
       expect(result.receipt.evidence_refs).toContain("evidence/ci.md");
       expect(result.receipt.machine_checked_competencies).toEqual([
         "C07",
@@ -584,6 +828,49 @@ describe("受講者向け修了確認契約", () => {
       const result = checkCompletion(root, "common");
       expect(result.status).toBe("BLOCKED");
       expect(result.receipt.blocked_reason).toContain("blocked");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("classifies a blocked run with zero cases as BLOCKED before case-level NOT_RUN", () => {
+    const root = createHandoff({ contexts: ["local-exercise"], omitCases: true, blocked: true });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("BLOCKED");
+      expect(result.receipt.blocked_reason).toContain("blocked");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("classifies an available run with zero cases as NOT_RUN", () => {
+    const root = createHandoff({ contexts: ["local-exercise"], omitCases: true });
+    try {
+      expect(checkCompletion(root, "common").status).toBe("NOT_RUN");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not let an older blocked Receipt override a newer available Receipt", () => {
+    const root = createHandoff();
+    try {
+      const history = receiptAt(
+        path.join(root, "receipts", "execution-receipt-local-exercise.json"),
+      );
+      history.generated_at = "2025-09-17T00:00:01.000Z";
+      history.run.started_at = "2025-09-17T00:00:00.000Z";
+      history.run.finished_at = "2025-09-17T00:00:01.000Z";
+      history.run.blocked = true;
+      history.run.environment_status = "blocked";
+      history.run.blocked_reason = "historical environment outage";
+      writeText(
+        root,
+        "receipts/execution-receipt-local-exercise-history.json",
+        `${JSON.stringify(history, null, 2)}\n`,
+      );
+      expect(checkCompletion(root, "common").status).toBe("PASS");
     } finally {
       removeFixture(root);
     }
@@ -662,6 +949,72 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
+  it("keeps a newly added Automate Case with an empty implementation_path in the learner set", () => {
+    const root = createHandoff();
+    try {
+      addEmptyLearnerCase(root);
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("INCOMPLETE");
+      expect(result.receipt.checked_case_ids).toContain("TC-CART-103");
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "TC-CART-103 learner Case has no implementation_path",
+      );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("permits canonical sample and non-automated rows to keep an empty implementation_path", () => {
+    const root = createHandoff({ contexts: [] });
+    try {
+      const casesPath = path.join(root, "workbook", "02_test-cases.csv");
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      const cases = fs
+        .readFileSync(casesPath, "utf8")
+        .replaceAll("TC-CART-101", "TC-CART-001")
+        .replaceAll("TC-CART-102", "TC-CART-002");
+      const mapping = fs
+        .readFileSync(mappingPath, "utf8")
+        .replace(
+          "TC-CART-101,Automate,Web E2E,Playwright,training/playwright/exercises/cart-101.spec.ts",
+          "TC-CART-001,Automate,Web E2E,Playwright,",
+        )
+        .replace(
+          "TC-CART-102,Automate,Web E2E,Playwright,training/playwright/exercises/cart-102.spec.ts",
+          "TC-CART-002,Automate,Web E2E,Playwright,",
+        );
+      fs.writeFileSync(casesPath, cases, "utf8");
+      fs.writeFileSync(mappingPath, mapping, "utf8");
+      const result = checkCompletion(root, "common");
+      expect(result.receipt.reasons.join("\n")).not.toContain(
+        "TC-CART-001 learner Case has no implementation_path",
+      );
+      expect(result.receipt.reasons.join("\n")).not.toContain(
+        "TC-CART-002 learner Case has no implementation_path",
+      );
+
+      const laterRoot = createHandoff({ contexts: [] });
+      try {
+        const laterMappingPath = path.join(laterRoot, "workbook", "03_automation-mapping.csv");
+        const laterMapping = fs
+          .readFileSync(laterMappingPath, "utf8")
+          .replace(
+            "TC-CART-101,Automate,Web E2E,Playwright,training/playwright/exercises/cart-101.spec.ts",
+            "TC-CART-101,Later,Web E2E,Playwright,,",
+          );
+        fs.writeFileSync(laterMappingPath, laterMapping, "utf8");
+        const laterResult = checkCompletion(laterRoot, "common");
+        expect(laterResult.receipt.reasons.join("\n")).not.toContain(
+          "TC-CART-101 learner Case has no implementation_path",
+        );
+      } finally {
+        removeFixture(laterRoot);
+      }
+    } finally {
+      removeFixture(root);
+    }
+  });
+
   it("does not satisfy C07 with reset or Assertion text in comments and strings", () => {
     const root = createHandoff();
     try {
@@ -729,6 +1082,81 @@ describe("受講者向け修了確認契約", () => {
       removeFixture(root);
     }
   });
+
+  it("requires a valid before Receipt for C10", () => {
+    const root = createHandoff({
+      contexts: ["diagnostic-initial", "diagnostic-repaired", "c10-improved"],
+    });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "C10 improvement before Receipt is missing",
+      );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not accept a C10 improvement record when the code digest is unchanged", () => {
+    const root = createHandoff();
+    try {
+      const localReceipt = receiptAt(
+        path.join(root, "receipts", "execution-receipt-local-exercise.json"),
+      );
+      const originalSources = CASES.map((entry) => learnerCode(entry.caseId, "valid"));
+      CASES.forEach((entry, index) =>
+        writeText(root, `code/${entry.implementationPath}`, originalSources[index] ?? ""),
+      );
+      updateReceipt(root, "c10-improved", (receipt) => {
+        receipt.cases.forEach((executionCase, index) => {
+          executionCase.code_digest = localReceipt.cases[index]?.code_digest ?? null;
+        });
+      });
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not accept a C10 improvement Receipt that is older than its before Receipt", () => {
+    const root = createHandoff();
+    try {
+      updateReceipt(root, "c10-improved", (receipt) => {
+        receipt.generated_at = "2025-09-17T00:00:01.000Z";
+        receipt.run.started_at = "2025-09-17T00:00:00.000Z";
+        receipt.run.finished_at = "2025-09-17T00:00:01.000Z";
+      });
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it.each(["case_id", "implementation_path"] as const)(
+    "does not accept a C10 Receipt that tracks a different %s",
+    (field) => {
+      const root = createHandoff();
+      try {
+        updateReceipt(root, "c10-improved", (receipt) => {
+          receipt.cases.forEach((executionCase) => {
+            if (field === "case_id") executionCase.case_id = "TC-CART-999";
+            else executionCase.implementation_path = "training/playwright/exercises/other.spec.ts";
+          });
+        });
+        const result = checkCompletion(root, "common");
+        expect(result.status).not.toBe("PASS");
+        expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+      } finally {
+        removeFixture(root);
+      }
+    },
+  );
 
   it("does not treat a retry Failure followed by Pass as a clean C10 rerun", () => {
     const root = createHandoff();

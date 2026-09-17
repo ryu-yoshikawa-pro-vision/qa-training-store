@@ -1,5 +1,6 @@
 import {
   buildExecutionReceipt,
+  knownEnvironmentFailure,
   parseJsonReport,
   runPlaywrightWithReceipt,
 } from "../../scripts/training/run-playwright-with-receipt";
@@ -91,5 +92,31 @@ describe("Execution Receipt contract", () => {
     );
 
     expect(specs[0]?.caseId).toBe("TC-CART-101");
+  });
+
+  it.each([
+    ["browser executable missing", "Executable doesn't exist at /browsers/chromium", true],
+    ["base URL refused", "page.goto: ERR_CONNECTION_REFUSED", true],
+    ["webServer startup failure", "Error starting web server: EADDRINUSE", true],
+    ["learner import failure", "Error: Cannot find module './missing-helper'", false],
+    ["learner syntax failure", "SyntaxError: Unexpected token in learner spec", false],
+  ])("classifies only stable environment failures as BLOCKED: %s", (_label, output, blocked) => {
+    expect(Boolean(knownEnvironmentFailure(output))).toBe(blocked);
+  });
+
+  it("does not build a blocked Receipt without a reason", () => {
+    expect(() =>
+      buildExecutionReceipt({
+        command: "pnpm run training:web:exercise:with-receipt",
+        exitCode: 1,
+        startedAt: "2026-09-17T00:00:00.000Z",
+        finishedAt: "2026-09-17T00:00:01.000Z",
+        environment: { platform: "win32" },
+        runContext: "local-exercise",
+        project: "training-chromium",
+        cases: [],
+        environmentStatus: "blocked",
+      }),
+    ).toThrow(/blockedReason/);
   });
 });

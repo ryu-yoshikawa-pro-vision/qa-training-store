@@ -59,6 +59,7 @@ export type ReceiptRun = {
     job: string;
     artifact_name: string;
   };
+  blocked?: boolean;
   environment_status?: "available" | "blocked";
   blocked_reason?: string;
 };
@@ -508,6 +509,8 @@ function buildCases(
 }
 
 export function buildExecutionReceipt(input: BuildReceiptInput): ExecutionReceipt {
+  if (input.environmentStatus === "blocked" && !input.blockedReason?.trim())
+    throw new Error("A blocked Execution Receipt requires blockedReason");
   const run: ReceiptRun = {
     producer: "training:web:exercise:with-receipt",
     command: input.command,
@@ -525,6 +528,7 @@ export function buildExecutionReceipt(input: BuildReceiptInput): ExecutionReceip
     ...(input.executionSha ? { execution_sha: input.executionSha } : {}),
     ...(input.ciSha ? { ci_sha: input.ciSha } : {}),
     ...(input.ci ? { ci: input.ci } : {}),
+    ...(input.environmentStatus === "blocked" ? { blocked: true } : {}),
     ...(input.environmentStatus ? { environment_status: input.environmentStatus } : {}),
     ...(input.blockedReason ? { blocked_reason: input.blockedReason } : {}),
   };
@@ -537,11 +541,11 @@ export function buildExecutionReceipt(input: BuildReceiptInput): ExecutionReceip
   };
 }
 
-function knownEnvironmentFailure(output: string, resultError?: Error): string | undefined {
+export function knownEnvironmentFailure(output: string, resultError?: Error): string | undefined {
   if (resultError) return `Playwright process could not start: ${resultError.message}`;
   const patterns: [RegExp, string][] = [
     [
-      /Executable doesn't exist|executable doesn't exist|playwright install/i,
+      /Executable doesn't exist|executable doesn't exist|browser(?:s)?[^\n]*(?:not installed|missing)|Please run[^\n]*playwright install/i,
       "Playwright browser is not installed",
     ],
     [
@@ -551,10 +555,6 @@ function knownEnvironmentFailure(output: string, resultError?: Error): string | 
     [
       /webServer.*failed|Error.*starting web server|Timed out waiting .*webServer|EADDRINUSE/i,
       "Training web server could not start",
-    ],
-    [
-      /Cannot find module|Cannot find package|module not found/i,
-      "Training runtime dependency is unavailable",
     ],
   ];
   const match = patterns.find(([pattern]) => pattern.test(output));
@@ -666,13 +666,10 @@ export function runPlaywrightWithReceipt(options: {
       fs.cpSync(outputRoot, evidencePlaywright, { recursive: true, force: true });
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
     const stderr = typeof result.stderr === "string" ? result.stderr : "";
-    const environmentFailure =
-      result.status === null
-        ? "Playwright process did not return an exit status"
-        : knownEnvironmentFailure(
-            `${stdout}\n${stderr}`,
-            result.error instanceof Error ? result.error : undefined,
-          );
+    const environmentFailure = knownEnvironmentFailure(
+      `${stdout}\n${stderr}`,
+      result.error instanceof Error ? result.error : undefined,
+    );
     const logReference = normalizeRelative(
       path.relative(root, path.join(evidenceDirectory, "run.log")),
     );

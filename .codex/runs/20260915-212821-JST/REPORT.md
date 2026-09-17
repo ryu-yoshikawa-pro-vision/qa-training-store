@@ -785,3 +785,37 @@
 - Git状態: local HEADは`bbf77b2148174df61f05707215e216727c1e4e76`、branchは`feat/self-study-curriculum-test-coverage`。既存未追跡`.codex/runs/20260915-191711-JST/`と`coverage/`はcommit対象外として保持する。次はcollector／sanitizer、意図したファイルだけのstage、commit／push、既存PR #157のheadと新headの必須CI確認を行う。
 - Decision: `continue`。実装とpush前検証に残る未完了作業はGit／PR／CIの最終反映だけであり、追加の要件判断は不要。
 - Progress: 98% (51/52)。
+
+## 2026-09-17 22:55 JST — PR #157 最新レビュー残存指摘の修復・最終commit前確認
+
+- 対応範囲: レビュー基準head `8d6a6de0ec302c7a99fdd0f210df7286ddd24f68`以降の、C09／C10／Learner Case抽出／Part 2 provenance／Receipt状態分類／Common RuntimeとTraining Copy境界に限定した。`src/**`、製品仕様、Formal Regression、Native実装、Agent／Hook／Harness設定、permission、Manifest／DB／新しい対応表は変更していない。
+- Subagent delegation:
+  - Kuhn: C09 Workbook行、C10時系列／digest、Learner `Automate + empty implementation_path`のread-only監査。Receiptだけで完了できる残差を確認した。
+  - Hooke: Part 2 SHA provenance、run-level BLOCKED、Learner import error、Completion Receipt fieldのread-only監査。selected CI Receiptへの4 SHA束縛と広すぎるimport-error判定の修正対象を確認した。
+  - Poincare: Runtime fixture／formal handoff／materialize境界のread-only監査。formal `code/`へ既存Harnessをコピーしないこと、Training Copy側の既存resetを保持すること、Training Copy fixtureの相対import誤りを確認した。
+  - Heisenberg: PR／最新main／既存CIのread-only監査。PR #157はOPEN、今回開始時のheadは `8d6a6de`、最新 `origin/main`は `fa6963e`で、push前の既存CIを新headへ流用しないことを確認した。
+  - Parent decision: 4 Agentともsource変更・commit・push・child delegationを行っていない。明示された残存指摘だけをmust-fixとして実装し、Poincareが指摘した既存 `restore` の強制上書き／materialize失敗時の原子性は今回の指定範囲を超えるため、別対応へ広げなかった。
+- Root Cause / 修正:
+  - C09はReceiptのinitial Failure／repaired Passだけを見ており、selected Workbook行の `result`、Failure分析3項目、Evidence対応、Receipt時系列を拘束していなかった。Diagnosticではinitial／repairedの実コードdigest差分も要求し、自然なLearner Failureではdigest変更を要求せず、両経路でrepairedがinitialより後であること、別Evidence、同一Case／Pathを確認するようにした。
+  - C10は改善記録とPass Receiptだけで成立し得たため、同一Case／同一代表Pathの改善前通常Receiptを時系列で選択し、改善後 `c10-improved` Receiptが後続、clean Pass、Evidence対応、digest変更であることを確認するようにした。
+  - Canonical WorkbookのAutomate sample IDだけは空Pathを許容し、Workbookへ新規追加されたAutomate Caseの空PathはLearner集合へ残してINCOMPLETEにした。Later／Do not automateの空Pathは強制しない。
+  - Part 2の `training_copy_source_sha`、`submission_sha`、`ci_sha`、`execution_sha`を、最新selected CI Receiptの同一 `run` からだけ出力するようにした。CommonのSHA取得契約は変更していない。
+  - BLOCKEDはcase loopの内側だけでなく、最新Receiptをrun_context単位で選択してrun単位に分類し、zero-caseでもBLOCKEDにした。利用可能runのzero-caseはNOT_RUNとし、古いBLOCKED Receiptが新しい同一Contextのavailable runを汚染しないようにした。blocked markerには非空 `blocked_reason`を要求し、producerも理由なしblocked Receiptを生成しない。
+  - `knownEnvironmentFailure`から `Cannot find module`等の広い判定を除去し、browser executable未導入、Base URL到達不能、webServer起動失敗、process起動失敗など安定した環境要因だけをBLOCKEDへ分類するようにした。
+  - Runtime integrationではformal handoffの`code/`へ既存 `reset-scenario.ts`を入れず、実行専用fixtureへHarnessを注入した。Learner helperはformal handoffへ置き、`materializeTrainingHandoff`後にLearner spec／helper／Workbookが配置され、既存Training Copy側resetが上書きされないことを確認した。Training Copy handoff fixtureのLearner spec importも `../support/reset-scenario`へ是正した。
+  - `checked_outputs.execution_receipts`は全Learner Caseの実行有無を確認し、C07のmachine checked表示もLearner code、Workbook binding、Receipt、Evidenceが揃った場合だけに限定した。意味的なテスト妥当性は自動判定していない。
+- 変更ファイル: `scripts/training/check-completion.ts`、`scripts/training/run-playwright-with-receipt.ts`、`tests/contracts/training-completion.test.ts`、`tests/contracts/training-execution-receipt.test.ts`、`tests/contracts/training-copy-handoff.test.ts`、`tests/contracts/training-runtime-integration.test.ts`。既存未追跡 `.codex/runs/20260915-191711-JST/` と `coverage/`はcommit対象外として保持した。
+- Contract Test:
+  - PASS: 対象6 files／122 tests。C09のFailure分析3項目、Workbook initial／repaired行、Evidence対応、時系列、Diagnostic digest差分、自然Failure経路、C10 before／after／Case／Path／clean rerun、空PathLearner、Canonical／Later空Path、selected CI SHA、zero-case BLOCKED／NOT_RUN、environment failure分類、Training Copy境界を含む。
+  - PASS: `RUN_TRAINING_RUNTIME_CONTRACT=1 corepack pnpm run test:contracts:training-runtime`相当のPowerShell実行、1 test。実Playwright／JSON Reporter／Execution Receipt、Diagnostic initial Failure、実ファイル修正、Diagnostic repaired Pass、C10実コード変更とdigest差分、Common Completion、materializeまでPASS。実アプリmodeは `127.0.0.1:8082`が接続拒否で未実行。
+  - PASS: `corepack pnpm exec vitest run tests/contracts/training-copy-handoff.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000`、5 tests。prepare／validate／materialize、Learner helper、origin、既存reset非上書きを確認した。materializeの2ケースは実測で30秒を超えるため、test単位timeoutを120秒へ設定した。
+- Validation:
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 Workbook、training-chromium／training-mobile-chromium）。
+  - PASS: `corepack pnpm run typecheck:training`、`corepack pnpm run typecheck:native-tests`。
+  - PASS: `corepack pnpm run lint`（0 errors、既存warning 66件のみ）、`corepack pnpm run lint:markdown`（441 files／0 issues）、`corepack pnpm run lint:text`、`corepack pnpm run security:check`、変更対象Prettier、`git diff --check`。
+  - FAIL（今回差分外）: `corepack pnpm run typecheck:app`は `src/**`の`/guide` route type error 6件のみ。今回変更したtest／script由来の追加エラーはない。
+  - FAIL（今回差分外・branchが最新mainの修正を未包含）: `corepack pnpm run test:contracts`は約511.7秒後に `tests/contracts/codex-text-quality.test.ts`の「configured Stop process failures」1件でexit 1。単独再実行でも同じstate file残存を再現した。38 files passed、1 skipped、645 tests passed、5 skipped、1 failed。現在branchの旧Stop test timeoutは30秒で、最新 `origin/main`側の `34958b6`ではこの領域が90秒へ調整済みだが、今回のscopeにHook／Harness変更やmain取り込みを追加していない。今回の6対象fileは別focusedで122／122 PASSしている。
+- Part 2 V1: `BLOCKED`。ローカルのprepare／validate／materializeはPASSしたが、学習者書き込み可能なGitHub Training Copy、権限、branch／push／PR、Training CI Run／Check／Artifact、人間Evidenceを実施できる環境がこのRunへ提供されていない。Source repository自身やlocal disposable copyをPart 2 V1の実GitHub経路へ読み替えない。repository provisioningやGitHub API必須化も今回追加しない。
+- Common V1: `PASS`（local fixture Runtime経路）。複数Learner Case、Sample／Later共存、Reset、Assertion、実Receipt、C09 Failure分析と実修正、C10 actual code changeとclean rerun、Common Completion、formal handoffからTraining Copy materialize境界を確認した。実アプリmodeは環境なしとして別記録。
+- Decision: `continue`。ローカル実装・対象focused・Runtime・Common V1は完了。次は既存Run collector／sanitizer、最終scope／branch／PR確認、明示pathだけのcommit・通常push、最新headのWeb CI／Mobile App CI確認、既存PR #157本文更新を行う。merge、force push、Part 2 remote provisioningは行わない。
+- Progress: 98% (51/52)。

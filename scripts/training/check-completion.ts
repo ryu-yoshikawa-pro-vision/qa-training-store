@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import * as ts from "typescript";
 import { parseCsv } from "../validate-curriculum";
 import { WORKBOOK_HEADERS, type WorkbookFilename } from "./workbook-schema";
@@ -92,6 +92,7 @@ type WorkbookData = {
   tables: Record<string, WorkbookRow[]>;
   testCases: Map<string, WorkbookRow>;
   mappings: Map<string, WorkbookRow>;
+  sampleCaseIds: Set<string>;
   learnerCaseIds: string[];
   executionRows: WorkbookRow[];
   implementationToCaseIds: Map<string, string[]>;
@@ -193,6 +194,31 @@ function normalizedRepositoryPath(value: string): string {
   return value.replace(/\\/g, "/");
 }
 
+function canonicalSampleCaseIds(): Set<string> {
+  const mappingPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../training/workbook/03_automation-mapping.csv",
+  );
+  try {
+    const rows = parseCsv(fs.readFileSync(mappingPath, "utf8"), "03_automation-mapping.csv");
+    const header = rows[0] ?? [];
+    const caseIndex = header.indexOf("test_case_id");
+    const decisionIndex = header.indexOf("automation_decision");
+    if (caseIndex < 0 || decisionIndex < 0) return new Set();
+    return new Set(
+      rows
+        .slice(1)
+        .filter((row) => row[decisionIndex] === "Automate" && row[caseIndex])
+        .map((row) => row[caseIndex] ?? "")
+        .filter((caseId) => caseId.length > 0),
+    );
+  } catch {
+    // If the canonical sample is unavailable, treating every Automate row as
+    // learner-owned is the conservative outcome for completion checking.
+    return new Set();
+  }
+}
+
 function parseFormalReceiptCommand(
   value: string,
 ): { suite: "exercise" | "diagnostic"; project: string; runContext: string } | null {
@@ -281,6 +307,15 @@ function receiptTimestamp(receipt: ExecutionReceipt): number {
     .map((value) => (typeof value === "string" ? Date.parse(value) : Number.NaN))
     .filter((value) => Number.isFinite(value));
   return candidates.length > 0 ? Math.max(...candidates) : 0;
+}
+
+function isBlockedRun(run: Record<string, unknown>): boolean {
+  const hasBlockedMarker = run.environment_status === "blocked" || run.blocked === true;
+  return (
+    hasBlockedMarker &&
+    typeof run.blocked_reason === "string" &&
+    run.blocked_reason.trim().length > 0
+  );
 }
 
 function relativeEvidencePath(root: string, value: string): string | null {
@@ -502,6 +537,7 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
   }
 
   const mappings = new Map<string, WorkbookRow>();
+  const sampleCaseIds = canonicalSampleCaseIds();
   const learnerCaseIds: string[] = [];
   for (const row of tables["03_automation-mapping.csv"] ?? []) {
     const testCaseId = row.test_case_id ?? "";
@@ -524,10 +560,10 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
         `implementation_path must be empty for ${testCaseId}: ${decision}`,
       );
     if (decision === "Automate") {
-      // Canonical Workbook rows are distributed samples. An empty path means
-      // "not implemented yet", not an invalid sample. A non-empty path is the
-      // smallest existing signal that the learner has claimed this Case.
-      if (implementationPath !== "") {
+      // Canonical sample IDs are the only existing signal that permits an
+      // empty implementation path. A newly added learner Case remains in the
+      // completion set even before its implementation path is filled in.
+      if (implementationPath !== "" || !sampleCaseIds.has(testCaseId)) {
         learnerCaseIds.push(testCaseId);
         if (isProvidedImplementationPath(implementationPath))
           addIssue(
@@ -598,6 +634,7 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
     tables,
     testCases,
     mappings,
+    sampleCaseIds,
     learnerCaseIds,
     executionRows: tables["04_execution-improvement.csv"] ?? [],
     implementationToCaseIds,
@@ -727,7 +764,11 @@ function validateReceipt(
   for (const field of ["started_at", "finished_at", "run_context"] as const) {
     if (typeof run[field] !== "string" || !run[field].trim())
       addIssue(issues, "failure", `${relativePath}.run.${field} is required`);
+    else if (field !== "run_context" && !Number.isFinite(Date.parse(run[field])))
+      addIssue(issues, "failure", `${relativePath}.run.${field} must be a valid timestamp`);
   }
+  if (run.blocked !== undefined && typeof run.blocked !== "boolean")
+    addIssue(issues, "failure", `${relativePath}.run.blocked must be a boolean`);
   if (typeof run.project !== "string" || !run.project.trim())
     addIssue(issues, "failure", `${relativePath}.run.project is required`);
   else if (!FORMAL_PROJECTS.has(run.project))
@@ -755,6 +796,11 @@ function validateReceipt(
     addIssue(issues, "failure", `${relativePath}.run.environment_status is invalid`);
   if (run.blocked_reason !== undefined && typeof run.blocked_reason !== "string")
     addIssue(issues, "failure", `${relativePath}.run.blocked_reason must be a string`);
+  if (
+    (run.environment_status === "blocked" || run.blocked === true) &&
+    (typeof run.blocked_reason !== "string" || !run.blocked_reason.trim())
+  )
+    addIssue(issues, "failure", `${relativePath}.run.blocked_reason is required for a blocked run`);
   validateShaFields(run, issues, `${relativePath}.run`);
   if (!Array.isArray(value.cases)) {
     addIssue(issues, "failure", `${relativePath}.cases must be an array`);
@@ -960,7 +1006,10 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
   for (const caseId of workbook.learnerCaseIds) {
     const mapping = workbook.mappings.get(caseId);
     const implementationPath = mapping?.implementation_path ?? "";
-    if (!implementationPath) continue;
+    if (!implementationPath) {
+      addIssue(issues, "incomplete", `${caseId} learner Case has no implementation_path`);
+      continue;
+    }
     const source = readRegularFile(
       root,
       path.join("code", implementationPath),
@@ -1043,6 +1092,114 @@ function setLatestReceiptMatch(
 ): void {
   const current = matches.get(key);
   if (!current || isLaterReceiptMatch(candidate, current)) matches.set(key, candidate);
+}
+
+function executionRowForReceipt(
+  workbook: WorkbookData,
+  caseId: string,
+  receipt: ExecutionReceipt,
+): WorkbookRow | undefined {
+  const context = valueString(receipt.run.run_context) ?? "";
+  return workbook.executionRows.find(
+    (row) => row.test_case_id === caseId && executionContextMatches(row.run_context ?? "", context),
+  );
+}
+
+function receiptContainsEvidence(
+  root: string,
+  executionCase: ExecutionCase,
+  evidence: string,
+): boolean {
+  const canonical = canonicalEvidenceReference(root, evidence);
+  if (!canonical) return false;
+  return executionCase.evidence
+    .map((reference) => canonicalEvidenceReference(root, reference))
+    .some((reference) => reference === canonical);
+}
+
+function validateC09WorkbookPair(
+  root: string,
+  workbook: WorkbookData,
+  initial: ReceiptCaseMatch,
+  repaired: ReceiptCaseMatch,
+  label: string,
+  issues: Issue[],
+): boolean {
+  let valid = true;
+  const initialRow = executionRowForReceipt(
+    workbook,
+    initial.executionCase.case_id ?? "",
+    initial.receipt,
+  );
+  if (!initialRow) {
+    addIssue(
+      issues,
+      "incomplete",
+      `${label} initial Workbook row is missing: ${initial.executionCase.case_id}`,
+    );
+    valid = false;
+  } else {
+    if ((initialRow.result ?? "").trim() !== "Fail") {
+      addIssue(
+        issues,
+        "failure",
+        `${label} initial Workbook row must be Fail: ${initial.executionCase.case_id}`,
+      );
+      valid = false;
+    }
+    for (const field of ["failure_category", "cause", "action"] as const) {
+      if (!(initialRow[field] ?? "").trim()) {
+        addIssue(
+          issues,
+          "incomplete",
+          `${label} initial Workbook row is missing ${field}: ${initial.executionCase.case_id}`,
+        );
+        valid = false;
+      }
+    }
+    const evidence = (initialRow.evidence ?? "").trim();
+    if (!evidence || !receiptContainsEvidence(root, initial.executionCase, evidence)) {
+      addIssue(
+        issues,
+        "failure",
+        `${label} initial Workbook Evidence is not linked to its Receipt: ${initial.executionCase.case_id}`,
+      );
+      valid = false;
+    }
+  }
+
+  const repairedRow = executionRowForReceipt(
+    workbook,
+    repaired.executionCase.case_id ?? "",
+    repaired.receipt,
+  );
+  if (!repairedRow) {
+    addIssue(
+      issues,
+      "incomplete",
+      `${label} repaired Workbook row is missing: ${repaired.executionCase.case_id}`,
+    );
+    valid = false;
+  } else {
+    if ((repairedRow.result ?? "").trim() !== "Pass") {
+      addIssue(
+        issues,
+        "failure",
+        `${label} repaired Workbook row must be Pass: ${repaired.executionCase.case_id}`,
+      );
+      valid = false;
+    }
+    const evidence = (repairedRow.evidence ?? "").trim();
+    if (!evidence || !receiptContainsEvidence(root, repaired.executionCase, evidence)) {
+      addIssue(
+        issues,
+        "failure",
+        `${label} repaired Workbook Evidence is not linked to its Receipt: ${repaired.executionCase.case_id}`,
+      );
+      valid = false;
+    }
+  }
+  return valid;
 }
 
 function isMachineCiEvidence(content: string): boolean {
@@ -1189,6 +1346,10 @@ function validatePart2CiReferences(
       "incomplete",
       "Part 2 requires training_copy_source_sha from the prepared Training Copy",
     );
+    complete = false;
+  }
+  if (typeof run.execution_sha !== "string" || !FULL_SHA.test(run.execution_sha)) {
+    addIssue(issues, "incomplete", "Part 2 requires execution_sha from the selected CI Receipt");
     complete = false;
   }
 
@@ -1362,10 +1523,15 @@ function validateExecutionTableBinding(
       continue;
     }
     if (!match) {
+      const matchingRunExists = receipts.some((receipt) =>
+        executionContextMatches(context, valueString(receipt.run.run_context) ?? ""),
+      );
       addIssue(
         issues,
-        "failure",
-        `Execution table result has no matching Receipt: ${caseId}/${context}`,
+        matchingRunExists ? "not-run" : "failure",
+        matchingRunExists
+          ? `Execution table Case was not present in the matching Receipt: ${caseId}/${context}`
+          : `Execution table result has no matching Receipt: ${caseId}/${context}`,
       );
       complete = false;
       continue;
@@ -1466,12 +1632,20 @@ function validateC10Improvement(
         valid = false;
       }
       const mappedPath = workbook.mappings.get(caseId)?.implementation_path ?? "";
-      if (!mappedPath || match.executionCase.implementation_path !== mappedPath) {
+      if (
+        !mappedPath ||
+        normalizedRepositoryPath(match.executionCase.implementation_path ?? "") !==
+          normalizedRepositoryPath(mappedPath)
+      ) {
         addIssue(
           issues,
           "failure",
           `C10 improvement target does not match Workbook mapping: ${caseId}`,
         );
+        valid = false;
+      }
+      if (typeof match.executionCase.code_digest !== "string") {
+        addIssue(issues, "incomplete", `C10 improvement code_digest is missing: ${caseId}`);
         valid = false;
       }
       if (evidence) {
@@ -1486,6 +1660,53 @@ function validateC10Improvement(
           );
           valid = false;
         }
+      }
+
+      const afterTimestamp = receiptTimestamp(match.receipt);
+      const beforeCandidates: ReceiptCaseMatch[] = [];
+      for (const [receiptIndex, receipt] of receipts.entries()) {
+        const context = valueString(receipt.run.run_context) ?? "";
+        if (
+          isC10Context(context) ||
+          isDiagnosticInitialContext(context) ||
+          isDiagnosticRepairedContext(context) ||
+          isNaturalC09FailureContext(context) ||
+          isNaturalC09RepairedContext(context) ||
+          isExpectedFailureContext(context) ||
+          isBlockedRun(receipt.run)
+        )
+          continue;
+        if (receipt.run.exit_code !== 0) continue;
+        for (const [caseIndex, executionCase] of receipt.cases.entries()) {
+          if (
+            executionCase.case_id !== caseId ||
+            executionCase.status !== "passed" ||
+            executionCase.evidence.length === 0 ||
+            executionCase.retries.some((retry) => isRetryFailure(retry.status)) ||
+            normalizedRepositoryPath(executionCase.implementation_path ?? "") !==
+              normalizedRepositoryPath(mappedPath) ||
+            typeof executionCase.code_digest !== "string" ||
+            receiptTimestamp(receipt) >= afterTimestamp
+          )
+            continue;
+          beforeCandidates.push({ receipt, executionCase, receiptIndex, caseIndex });
+        }
+      }
+      beforeCandidates.sort((left, right) => {
+        const byTime = receiptTimestamp(left.receipt) - receiptTimestamp(right.receipt);
+        return byTime !== 0 ? byTime : left.receiptIndex - right.receiptIndex;
+      });
+      const before = beforeCandidates.at(-1);
+      if (!before) {
+        addIssue(issues, "incomplete", `C10 improvement before Receipt is missing: ${caseId}`);
+        valid = false;
+      } else if (before.executionCase.code_digest === match.executionCase.code_digest) {
+        addIssue(
+          issues,
+          "incomplete",
+          `C10 improvement did not change code_digest from its before Receipt: ${caseId}`,
+        );
+        valid = false;
       }
     }
     if (valid) return true;
@@ -1537,6 +1758,26 @@ function classifyExecution(
   let evidenceComplete = true;
   const replaceIfNewer = (key: string, match: ReceiptCaseMatch): void =>
     setLatestReceiptMatch(latestExecutions, key, match);
+  const latestRuns = new Map<string, { receipt: ExecutionReceipt; receiptIndex: number }>();
+  for (const [receiptIndex, receipt] of receipts.entries()) {
+    const context = normalizedExecutionContext(valueString(receipt.run.run_context) ?? "");
+    const current = latestRuns.get(context);
+    if (
+      !current ||
+      receiptTimestamp(receipt) > receiptTimestamp(current.receipt) ||
+      (receiptTimestamp(receipt) === receiptTimestamp(current.receipt) &&
+        receiptIndex > current.receiptIndex)
+    )
+      latestRuns.set(context, { receipt, receiptIndex });
+  }
+  for (const { receipt } of latestRuns.values()) {
+    if (isBlockedRun(receipt.run))
+      addIssue(
+        issues,
+        "blocked",
+        `Execution environment is blocked: ${valueString(receipt.run.run_context) ?? "unknown"} (${valueString(receipt.run.blocked_reason) ?? "reason unavailable"})`,
+      );
+  }
   for (const [receiptIndex, receipt] of receipts.entries()) {
     const runContext = typeof receipt.run.run_context === "string" ? receipt.run.run_context : "";
     for (const [caseIndex, executionCase] of receipt.cases.entries()) {
@@ -1585,16 +1826,8 @@ function classifyExecution(
     const isNaturalRepair = isNaturalC09RepairedContext(runContext);
     const isC09Initial = isDiagnosticInitial || isNaturalFailure;
     const isC09Repair = isDiagnosticRepaired || isNaturalRepair;
-    const isBlocked =
-      receipt.run.environment_status === "blocked" ||
-      receipt.run.blocked === true ||
-      (typeof receipt.run.blocked_reason === "string" &&
-        receipt.run.blocked_reason.trim().length > 0);
     const exitCode = receipt.run.exit_code;
-    if (isBlocked) {
-      addIssue(issues, "blocked", `Execution environment is blocked: ${runContext}`);
-      continue;
-    }
+    if (isBlockedRun(receipt.run)) continue;
     if (exitCode === null) addIssue(issues, "not-run", `Execution was not run: ${runContext}`);
     if (executionCase.evidence.length === 0) {
       addIssue(
@@ -1641,13 +1874,15 @@ function classifyExecution(
   }
 
   for (const caseId of learnerCaseIds) {
-    if (!matched.has(caseId))
+    const implementationPath = workbook.mappings.get(caseId)?.implementation_path?.trim() ?? "";
+    if (!matched.has(caseId) && implementationPath)
       addIssue(issues, "not-run", `No Execution Receipt for learner Case: ${caseId}`);
   }
   const validatePairs = (
     initial: Map<string, ReceiptCaseMatch>,
     repaired: Map<string, ReceiptCaseMatch>,
     label: string,
+    requireCodeChange: boolean,
   ): boolean => {
     let validPair = false;
     for (const [caseId, initialMatch] of initial) {
@@ -1662,6 +1897,14 @@ function classifyExecution(
           issues,
           "failure",
           `${label} initial and repaired must be separate Receipts: ${caseId}`,
+        );
+        pairValid = false;
+      }
+      if (receiptTimestamp(repairedMatch.receipt) <= receiptTimestamp(initialMatch.receipt)) {
+        addIssue(
+          issues,
+          "failure",
+          `${label} repaired Receipt must be later than initial Receipt: ${caseId}`,
         );
         pairValid = false;
       }
@@ -1687,6 +1930,22 @@ function classifyExecution(
         addIssue(issues, "failure", `${label} initial and repaired share Evidence: ${caseId}`);
         pairValid = false;
       }
+      if (requireCodeChange) {
+        if (
+          typeof initialMatch.executionCase.code_digest !== "string" ||
+          typeof repairedMatch.executionCase.code_digest !== "string" ||
+          initialMatch.executionCase.code_digest === repairedMatch.executionCase.code_digest
+        ) {
+          addIssue(
+            issues,
+            "failure",
+            `${label} initial and repaired must have different code_digest values: ${caseId}`,
+          );
+          pairValid = false;
+        }
+      }
+      if (!validateC09WorkbookPair(root, workbook, initialMatch, repairedMatch, label, issues))
+        pairValid = false;
       if (
         pairValid &&
         initialMatch.executionCase.status === "failed" &&
@@ -1704,8 +1963,8 @@ function classifyExecution(
     }
     return validPair;
   };
-  const diagnosticPair = validatePairs(diagnosticInitial, diagnosticRepaired, "Diagnostic");
-  const naturalPair = validatePairs(naturalFailure, naturalRepaired, "Learner C09");
+  const diagnosticPair = validatePairs(diagnosticInitial, diagnosticRepaired, "Diagnostic", true);
+  const naturalPair = validatePairs(naturalFailure, naturalRepaired, "Learner C09", false);
   const c09Complete = diagnosticPair || naturalPair;
   if (!c09Complete)
     addIssue(
@@ -1812,15 +2071,28 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     receipts
       .map((executionReceipt) => executionReceipt.run[field])
       .find((value): value is string => typeof value === "string" && FULL_SHA.test(value));
+  const shaFromRun = (
+    run: Record<string, unknown> | undefined,
+    field: string,
+  ): string | undefined => {
+    const value = run?.[field];
+    return typeof value === "string" && FULL_SHA.test(value) ? value : undefined;
+  };
   const ciReceipt =
     ciValidation.receiptIndex === undefined ? undefined : receipts[ciValidation.receiptIndex];
   const part1DistributionSha =
     mode === "common" ? shaFromReceipts("part1_distribution_sha") : undefined;
   const trainingCopySourceSha =
-    mode === "part2" ? valueString(ciReceipt?.run.training_copy_source_sha) : undefined;
-  const submissionSha = shaFromReceipts("submission_sha");
-  const ciSha = mode === "part2" ? valueString(ciReceipt?.run.ci_sha) : shaFromReceipts("ci_sha");
-  const executionSha = shaFromReceipts("execution_sha");
+    mode === "part2" ? shaFromRun(ciReceipt?.run, "training_copy_source_sha") : undefined;
+  const submissionSha =
+    mode === "part2"
+      ? shaFromRun(ciReceipt?.run, "submission_sha")
+      : shaFromReceipts("submission_sha");
+  const ciSha = mode === "part2" ? shaFromRun(ciReceipt?.run, "ci_sha") : shaFromReceipts("ci_sha");
+  const executionSha =
+    mode === "part2"
+      ? shaFromRun(ciReceipt?.run, "execution_sha")
+      : shaFromReceipts("execution_sha");
   const missingRequirements = issues
     .filter((issue) => issue.kind !== "failure")
     .map((issue) => issue.message);
@@ -1838,7 +2110,9 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     execution_table_binding: executionTableComplete,
     learner_code:
       learnerCodeIds.size === workbook.learnerCaseIds.length && workbook.learnerCaseIds.length >= 2,
-    execution_receipts: receipts.length > 0 && executedCaseIds.length > 0,
+    execution_receipts:
+      workbook.learnerCaseIds.length > 0 &&
+      workbook.learnerCaseIds.every((caseId) => executedCaseIds.includes(caseId)),
     evidence: evidenceComplete,
     self_check: selfCheckComplete,
     part2_ci_references: ciComplete,
@@ -1847,7 +2121,12 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     c11_change_management: c11Complete,
   };
   const machineCheckedCompetencies = [
-    ...(checkedOutputs.learner_code ? ["C07"] : []),
+    ...(checkedOutputs.learner_code &&
+    checkedOutputs.execution_table_binding &&
+    checkedOutputs.execution_receipts &&
+    checkedOutputs.evidence
+      ? ["C07"]
+      : []),
     ...(checkedOutputs.c09_diagnostic ? ["C09"] : []),
     ...(checkedOutputs.c10_improvement ? ["C10"] : []),
     ...(mode === "part2" && checkedOutputs.c11_change_management ? ["C11"] : []),

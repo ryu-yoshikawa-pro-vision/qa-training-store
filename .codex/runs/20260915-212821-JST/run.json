@@ -45,7 +45,8 @@
     "training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts",
     "training/workbook/README.md",
     "scripts/training/workbook-schema.ts",
-    "tests/contracts/training-runtime-integration.test.ts"
+    "tests/contracts/training-runtime-integration.test.ts",
+    "tests/contracts/training-execution-receipt.test.ts"
   ],
   "validation": {
     "status": "not_run",
