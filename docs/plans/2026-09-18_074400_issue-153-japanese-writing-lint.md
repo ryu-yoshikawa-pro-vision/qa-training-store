@@ -154,7 +154,7 @@ Issue #153、PR #146、PR #151、現在のmain実装から、次の方針をPlan
 9. 全件scanは実装PRで対象範囲の既存違反を0件にするためのgateとし、Hookは従来どおり差分検出だけを行う。
 10. Issue #153本文は変更しない。Issueで未確定としている実装詳細だけをこのPlanで具体化する。
 
-## 4. 影響範囲## 4. 影響範囲
+## 4. 影響範囲
 
 ### 主な変更対象
 
@@ -218,7 +218,7 @@ fixture / snapshot / eval datasetについては、Plan作成時のGitHub code s
 - `examples/**/*.md`
 - `training/**/*.md`
 
-## 5. 変更方針## 5. 変更方針
+## 5. 変更方針
 
 ### Task 1: preset dependencyを追加する
 
@@ -281,7 +281,7 @@ no-kangxi-radicals
 
 特に`max-ten`、`sentence-length`、`no-mix-dearu-desumasu`はstyle制約を含むため、最初から採用確定にはしない。実測は行うが、既存文章規約で根拠を説明できなければ非採用とする。
 
-### Task 3: textlint rule集合検証をpreset対応にする### Task 3: textlint rule集合検証をpreset対応にする
+### Task 3: textlint rule集合検証をpreset対応にする
 
 現在の`scripts/lint-text-quality.mjs`は単一の`TEXTLINT_RULE_IDS`を、設定load時のrule集合確認とruntime message validationの両方に使っている。
 
@@ -457,7 +457,7 @@ Hook:
 - [ ] 現在仕様を説明するreferenceに「5 ruleのみ」「custom rule未設定」が残る場合だけ更新する。
 - [ ] 過去Plan、過去Run、ADR-0026のDecision本文を文章統一のために修正しない。
 
-## 6. 検証方法## 6. 検証方法
+## 6. 検証方法
 
 ### 6.1 dependency / config
 
@@ -600,7 +600,7 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 - 新規・更新した履歴文書は既存差分gateで検査する。
 - 既存履歴を通すための大量disable commentを追加しない。
 
-### 7.5 CI時間### 7.5 CI時間
+### 7.5 CI時間
 
 全件scan追加で`Style Quality`と`verify`の時間が増える。
 
@@ -621,7 +621,7 @@ ADR-0026を完全に変更しないままADR-0027を追加すると、相反す�
 - status / superseded参照だけを最小限更新する。
 - 現行判断はADR-0027へ集約する。
 
-## 8. 成果物## 8. 成果物
+## 8. 成果物
 
 想定変更ファイル:
 
@@ -671,7 +671,7 @@ docs/reference/codex-implementation-harness.md
 - [ ] 新しいlint framework、dictionary framework、AI Judgeを追加していない。
 - [ ] ADR-0026とADR-0027が同時に現行判断として読めない状態にする。
 
-## 10. 備考## 10. 備考
+## 10. 備考
 
 - branchは最新`main`の`0af177828a058e118285a2ee3a01262aa7da6b2e`から作成する。
 - Plan作成時点でIssue #153はopen。
