@@ -53,6 +53,7 @@
     "training:native:exercise": "tsx scripts/training/run-maestro-exercise.ts",
     "training:copy:prepare": "tsx scripts/training/prepare-training-copy.ts",
     "training:copy:materialize": "tsx scripts/training/materialize-training-handoff.ts",
+    "training:copy:sync-handoff": "tsx scripts/training/materialize-training-handoff.ts --sync",
     "training:copy:validate": "tsx scripts/training/validate-training-copy.ts",
     "security:check": "tsx scripts/security-static-check.ts",
     "validate:spec": "tsx scripts/spec/validate-all.ts",

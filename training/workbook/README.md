@@ -23,12 +23,16 @@ handoff-root/
 
 `implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
 
-P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)を決定的な教材演習として使います。Locator重複はTest Codeの保守問題であり、新しい製品Riskへ変換しません。正式な製品Risk／Test Caseへ結び付け、問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
+P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)をLearner Caseとは別の`TC-CART-900`として決定的な教材演習に使います。提供元FileをそのままLearner codeへ登録せず、`training/playwright/exercises/`へコピーしてから改善します。Locator重複はTest Codeの保守問題であり、新しい製品Riskへ変換しません。正式な製品Risk／Test Caseへ結び付ける実在問題の経路、または`TC-CART-900`の提供演習経路で、問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
 
-C10でspecではなくHelper／POM等を改善する場合は、既存の`improvement`欄へ次の3項目を同じ記録として残します。新しいManifestや依存関係表は作りません。
+C10でspecではなくHelper／POM等を改善する場合も、既存の`improvement`欄へ次の学習者記録を残します。新しいManifestや依存関係表は作りません。Before／AfterのDigestはRunnerがReceiptへ記録し、受講者へ手入力を求めません。
 
 ```text
-Improvement Target: training/playwright/support/<learner-owned-helper>.ts; Before Digest: <64桁のSHA-256>; After Digest: <64桁のSHA-256>
+Improvement Target: training/playwright/support/<learner-owned-helper>.ts
+Problem: <何が保守上の問題か>
+Why: <なぜ問題か>
+Action: <選択した改善>
+Improvement: <実施した最小変更と再実行結果>
 ```
 
 `Improvement Target`はLearner-owned codeだけを指定し、提供済みの`training/playwright/support/reset-scenario.ts`は指定しません。

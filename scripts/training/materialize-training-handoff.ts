@@ -42,7 +42,15 @@ function isAllowedLearnerCodePath(value: string): boolean {
 }
 
 function isProvidedTrainingCodePath(value: string): boolean {
-  return PROVIDED_TRAINING_CODE_PATHS.has(value.replace(/\\/g, "/"));
+  const normalized = value.replace(/\\/g, "/");
+  return (
+    PROVIDED_TRAINING_CODE_PATHS.has(normalized) ||
+    normalized === "training/playwright/exercises/training-exercise-starter.spec.ts" ||
+    normalized.startsWith("training/playwright/baseline/") ||
+    normalized.startsWith("training/playwright/diagnostic-exercises/") ||
+    normalized.startsWith("training/playwright/failure-exercises/") ||
+    normalized.startsWith("training/playwright/maintenance-exercises/")
+  );
 }
 
 function isAllowedLearnerCodeDirectory(value: string): boolean {
@@ -138,7 +146,9 @@ function listCodeFiles(root: string): string[] {
       const repositoryRelative = relative.replace(/^code[\\/]/, "").replace(/\\/g, "/");
       if (isProvidedTrainingCodePath(repositoryRelative))
         throw new Error(
-          `Provided Training harness must not be copied into handoff-root/code: ${repositoryRelative}`,
+          repositoryRelative === "training/playwright/support/reset-scenario.ts"
+            ? `Provided Training harness must not be copied into handoff-root/code: ${repositoryRelative}`
+            : `Provided Training code must not be copied into handoff-root/code: ${repositoryRelative}`,
         );
       if (entry.isSymbolicLink()) {
         const real = fs.realpathSync(file);
@@ -259,6 +269,66 @@ function ensureTargetParent(target: string, destination: string): void {
     throw new Error(`Materialize parent symlink escaped Training Copy: ${parent}`);
 }
 
+function listTrainingCopyLearnerFiles(source: string): string[] {
+  const trainingRoot = path.resolve(source, "training", "playwright");
+  if (!isWithin(source, trainingRoot) || !fs.existsSync(trainingRoot))
+    throw new Error("Training Copy training/playwright directory is missing");
+  if (!fs.statSync(trainingRoot).isDirectory())
+    throw new Error("Training Copy training/playwright is not a directory");
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const candidate = path.join(directory, entry.name);
+      const relative = path.relative(source, candidate).replace(/\\/g, "/");
+      if (!safeRelative(relative) || !relative.startsWith(LEARNER_CODE_PREFIX))
+        throw new Error(`Training Copy learner code path is not allowed: ${relative}`);
+      if (entry.isSymbolicLink())
+        throw new Error(`Training Copy learner code must not use a symlink: ${relative}`);
+      if (entry.isDirectory()) visit(candidate);
+      else if (entry.isFile() && isAllowedLearnerCodePath(relative)) {
+        if (!isProvidedTrainingCodePath(relative)) files.push(relative);
+      } else if (!entry.isDirectory()) {
+        throw new Error(`Unsupported Training Copy learner code file type: ${relative}`);
+      }
+    }
+  };
+  visit(trainingRoot);
+  return files.sort();
+}
+
+export function syncTrainingCopyToHandoff(options: { root: string; source: string }): {
+  root: string;
+  source: string;
+  files: string[];
+} {
+  const root = realRoot(options.root);
+  ensureDirectory(root, "code");
+  const source = realRoot(options.source);
+  if (isWithin(root, source) || isWithin(source, root))
+    throw new Error("Training Copy source and handoff root must be separate directories");
+  const files = listTrainingCopyLearnerFiles(source);
+  const synced: string[] = [];
+  for (const relativePath of files) {
+    const sourceFile = path.resolve(source, relativePath);
+    const sourceReal = fs.realpathSync(sourceFile);
+    if (!isWithin(source, sourceReal) || !fs.statSync(sourceReal).isFile())
+      throw new Error(`Training Copy learner code file is unsafe: ${relativePath}`);
+    const destination = path.resolve(root, "code", relativePath);
+    if (!isWithin(root, destination))
+      throw new Error(`Handoff destination escaped root: ${relativePath}`);
+    ensureTargetParent(root, destination);
+    if (pathEntryExists(destination)) {
+      const stat = fs.lstatSync(destination);
+      if (stat.isSymbolicLink() || !stat.isFile())
+        throw new Error(`Handoff learner code destination is not a regular file: ${relativePath}`);
+    }
+    fs.copyFileSync(sourceReal, destination);
+    synced.push(relativePath);
+  }
+  console.log(JSON.stringify({ root, source, synced }, null, 2));
+  return { root, source, files: synced };
+}
+
 export function materializeTrainingHandoff(options: HandoffOptions): {
   target: string;
   sourceSha: string;
@@ -366,15 +436,21 @@ function isMainModule(): boolean {
 
 if (isMainModule()) {
   const root = option("--root");
-  const target = option("--target");
   if (!root) throw new Error("--root is required");
-  if (!target) throw new Error("--target is required");
-  const sourceSha = option("--source-sha");
-  const remote = option("--remote") ?? process.env.TRAINING_COPY_REMOTE;
-  materializeTrainingHandoff({
-    root,
-    target,
-    ...(sourceSha ? { sourceSha } : {}),
-    ...(remote ? { remote } : {}),
-  });
+  if (process.argv.includes("--sync")) {
+    const source = option("--source");
+    if (!source) throw new Error("--source is required with --sync");
+    syncTrainingCopyToHandoff({ root, source });
+  } else {
+    const target = option("--target");
+    if (!target) throw new Error("--target is required");
+    const sourceSha = option("--source-sha");
+    const remote = option("--remote") ?? process.env.TRAINING_COPY_REMOTE;
+    materializeTrainingHandoff({
+      root,
+      target,
+      ...(sourceSha ? { sourceSha } : {}),
+      ...(remote ? { remote } : {}),
+    });
+  }
 }

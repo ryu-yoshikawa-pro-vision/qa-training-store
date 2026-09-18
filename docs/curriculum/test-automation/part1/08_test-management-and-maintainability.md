@@ -34,14 +34,14 @@ Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行�
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する。実在する問題がない場合は`training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts`を使う |
-| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。実在する問題がなければ、決定的なC10演習を受講者用specへコピーし、同じTest目的を保った最小改善と別runを行う。仮想仕様変更の影響範囲を追跡する |
+| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する。実在する問題がない場合は提供元の`training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts`を、Learner Caseとは別の`TC-CART-900`演習として受け取る |
+| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。実在する問題がなければ、決定的なC10演習を受講者用`training/playwright/exercises/`へコピーし、`TC-CART-900`として同じTest目的を保った最小改善と別runを行う。仮想仕様変更の影響範囲を追跡する |
 | Observation | 同じ変更で直す箇所、Failureを隠す共通化、Test Caseとコードの対応、Reset／Fixtureの責務、改善前後の差分と再実行結果。決定的演習では、同じLocator式が複数箇所にあることと、変数へ切り出してもTest目的が変わらないことを確認する |
-| Output | 保守性の課題、選択した改善、差分、影響を受けるTest Case／Path、改善前後の実行結果を記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
+| Output | `Improvement Target`、問題、なぜ問題か、`Action`、改善内容、再実行結果、影響を受けるTest Case／Pathを記録する。`Before Digest`／`After Digest`は受講者が計算・転記せず、RunnerがExecution Receiptへ記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
 | Self-check | POM等を採用する理由と採用しない理由、Fixture／Resetの責務、仕様変更からRisk→Case→コード→Regressionを追跡する方法を説明する。決定的演習を使った場合は、問題、改善を選んだ理由、実コードの差分、別run、Test目的を維持した確認を順に示す |
 | Completion | 少なくとも1つの実在する保守上の問題を特定するか、問題が見つからない場合は決定的なC10演習を使い、原因・影響を記録したうえで最小改善を実装し、`c10-improved`として別のExecution ReceiptとEvidenceを残す。設計だけではC10完了としない。Native成果物は選択時だけ追加し、baselineだけを成果としない |
 | Recovery | 問題が見つからない場合は、まずP1-5／P1-6のコードと記録を確認し、それでも保守問題がなければ決定的なC10演習へ進む。実行できない場合は環境問題として記録し、保守判断と分ける |
-| Handoff | P1-9へ改善前後のコードPath、Case ID、差分、再実行結果、`04_execution-improvement.csv`のContextを渡す。選択課程ではNative成果物も別枠で渡す |
+| Handoff | P1-9へ改善前後のコードPath、Case ID（提供演習の場合は`TC-CART-900`）、差分、再実行結果、`04_execution-improvement.csv`のContextを渡す。選択課程ではNative成果物も別枠で渡す |
 
 ## Lesson 1: 運用フェーズで当たる壁
 
@@ -381,7 +381,7 @@ P1-5で作成したTestを読み、実在する保守上の問題を1件見つ�
    pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-before
    ```
 
-   `c10-before`のReceiptとEvidenceで、対象CaseがPassしたこと、実装Pathがコピー先であること、改善前のコードが記録されたことを確認します。
+   `c10-before`のReceiptとEvidenceで、対象CaseがPassしたこと、実装Pathがコピー先であること、改善前のコードとLearner-owned codeのDigest mapがRunnerによって記録されたことを確認します。
 
 3. コピーしたTestを読み、同じ`getByRole("heading", { name: "すべての商品" })`が2つのAssertionへ繰り返し書かれていることを確認します。ここでの問題は、将来Locatorを変更するときに同じ修正を複数箇所へ行う必要があることです。Test目的やAssertionの強さが問題なのではありません。
 
@@ -393,21 +393,25 @@ P1-5で作成したTestを読み、実在する保守上の問題を1件見つ�
    pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-improved
    ```
 
-   改善後のReceiptがPassし、`c10-before`とは同じCase ID・同じコードPathで、別のEvidenceを持ち、コードの実際のDigestが変わり、改善後の時刻が改善前より後で、Test Caseの目的が維持されていることを確認します。`c10-before`はRetry Failureを含まないclean Passでなければなりません。initialのEvidenceを上書きしたり、同じRunを修正後の結果として再利用したり、別Case・別PathのReceiptで置き換えたりしません。
+   改善後のReceiptがPassし、`c10-before`とは同じCase ID・同じコードPathで、別のEvidenceを持ち、対象PathのDigestがRunnerによって変化として記録され、改善後の時刻が改善前より後で、Test Caseの目的が維持されていることを確認します。`c10-before`はRetry Failureを含まないclean Passでなければなりません。initialのEvidenceを上書きしたり、同じRunを修正後の結果として再利用したり、別Case・別PathのReceiptで置き換えたりしません。
 
 ### Output
 
-`04_execution-improvement.csv`へ、少なくとも同じCaseの`c10-before`と`c10-improved`を記録します。Evidenceは実際に生成されたReceipt、Report、Screenshot、Traceなど後から追えるものを指定します。`c10-improved`には、問題、原因または保守上の懸念、選んだAction、改善内容を自分の言葉で記録します。さらに既存の`improvement`欄へ、実際に変更したLearner-owned codeのPathと前後Digestを次の形式で記録します。これにより、spec自身ではなくHelper／POM等だけを改善した場合も対象を機械確認できます。
+`04_execution-improvement.csv`へ、少なくとも同じCaseの`c10-before`と`c10-improved`を記録します。Evidenceは実際に生成されたReceipt、Report、Screenshot、Traceなど後から追えるものを指定します。`c10-improved`には、問題、原因または保守上の懸念、選んだAction、改善内容を自分の言葉で記録します。さらに既存の`improvement`欄へ、実際に変更したLearner-owned codeのPathを記録します。前後DigestはRunnerがReceiptの`code_digests`へ記録し、受講者は計算・転記しません。これにより、spec自身ではなくHelper／POM等だけを改善した場合も対象を機械確認できます。
 
 ```text
-Improvement Target: training/playwright/support/cart-helper.ts; Before Digest: <64桁のSHA-256>; After Digest: <64桁のSHA-256>
+Improvement Target: training/playwright/support/cart-helper.ts
+Problem: 同じLocator変更を複数箇所へ反映する必要がある
+Why: Locator変更時の保守漏れが起きやすい
+Action: Helperへ責務を分離する
+Improvement: Helperを追加し、再実行がPassした
 ```
 
-`Improvement Target`は`training/playwright/`配下のLearner-owned codeだけを指定します。提供済みの`support/reset-scenario.ts`は対象にせず、前後Digestを同じ値にしません。
+`Improvement Target`は`training/playwright/`配下のLearner-owned codeだけを指定します。提供済みの`support/reset-scenario.ts`や`maintenance-exercises/`は対象にせず、前後Digestの比較はReceiptに任せます。
 
 ```text
 TC-CART-101,c10-before,Pass,<改善前の実Evidence>,,,,
-TC-CART-101,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,Improvement Target: training/playwright/exercises/c10-cart-101.spec.ts; Before Digest: <改善前Digest>; After Digest: <改善後Digest>
+TC-CART-101,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,Improvement Target: training/playwright/exercises/c10-cart-101.spec.ts; Problem: 同じLocator変更を複数箇所へ反映する必要がある; Why: 保守漏れが起きやすい; Action: Locatorを変数へ切り出す; Improvement: 再実行がPassした
 ```
 
 上の値は記入形式の例です。存在しないPath、Receipt、原因を作らず、実行結果に合わせて置き換えます。実在する保守問題を使った場合は、対象Caseと改善前後の実Diffが分かるように同じ項目を記録します。

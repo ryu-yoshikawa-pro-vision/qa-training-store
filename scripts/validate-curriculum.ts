@@ -601,6 +601,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
     "training:native:exercise",
     "training:copy:prepare",
     "training:copy:materialize",
+    "training:copy:sync-handoff",
     "training:copy:validate",
   ]) {
     if (!scripts[scriptName]) fail(`package script is missing: ${scriptName}`);

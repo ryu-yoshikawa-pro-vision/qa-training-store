@@ -263,11 +263,39 @@ Result: success
 Case: <Test Case ID>
 ```
 
-## ハンズオン2: Failure Artifact
+## ハンズオン2: GitHub ActionsのExpected Failure Artifact
 
-`training:web:check-expected-failure`でTraining用Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。Expected Failureは通常baselineへ含めません。
+P2-5の正式なFailure Artifact学習は、ローカルcommandだけで完了させず、準備済みTraining CopyのGitHub Actions Runで行います。受講者自身が次の順序を実施します。
 
-Artifactだけから原因を説明します。
+```text
+GitHub
+↓
+Actions
+↓
+Scenario Shop Training Web
+↓
+Run workflow
+↓
+mode = expected-failure
+↓
+Run
+↓
+Failureを確認
+↓
+Run Summary
+↓
+Artifacts
+↓
+training-web-<run_id>-<run_attempt>
+↓
+Trace / Screenshot / Video / HTML Report
+↓
+原因を説明
+```
+
+Expected Failureは通常baselineへ含めません。Run Summaryで最初のFailureを確認し、Artifactを開いてTrace、Screenshot、Video、HTML Reportから原因を説明します。確認したRun ID、Attempt、Check、Artifact名、Result、対象Caseを人間可読Evidenceへ記録してください。
+
+`training:web:check-expected-failure`はCI前の確認や、手元でEvidence構造を確認する補助入口として残します。ただし、GitHub ActionsのRun／Check／Artifactを確認した正式な学習成果には読み替えません。
 
 ## ハンズオン3: Test Suiteを分ける
 

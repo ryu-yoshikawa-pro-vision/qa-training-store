@@ -69,9 +69,9 @@ P1-3のWorkbookをまだ完成していなくても、次のCaseだけでこのL
 | 対象 | Scenario Shopの商品詳細画面 |
 | 前提 | `default` ScenarioをResetし、商品一覧を表示できる状態にする |
 | 操作 | 商品一覧から最初に表示される商品カードを開く |
-| 期待結果 | 商品詳細画面へ遷移し、対象商品の見出しが表示される |
+| 期待結果 | `product-basic-shirt`（ベーシックTシャツ）の商品詳細画面へ遷移し、正式Seedで定義された商品名「ベーシックTシャツ」が見出しとして表示される |
 
-これはPlaywrightの書き方を練習するためにP1-4本文が定義する導入Caseです。P1-3のLearner Case、`03_automation-mapping.csv`の正式な`implementation_path`、Common CompletionのCaseへ流用しません。P1-5では、P1-3で自分が設計したCaseを別の正式実装として作成します。
+これはPlaywrightの書き方を練習するためにP1-4本文が定義する導入Caseです。商品IDと商品名の出所は[Seedカタログ](../../../07_testability/seed_catalog.md)の`product-basic-shirt`です。P1-3のLearner Case、`03_automation-mapping.csv`の正式な`implementation_path`、Common CompletionのCaseへ流用しません。P1-5では、P1-3で自分が設計したCaseを別の正式実装として作成します。
 
 ## 演習コードの扱い
 

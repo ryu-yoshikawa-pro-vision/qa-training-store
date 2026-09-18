@@ -77,6 +77,20 @@ pnpm run training:web:exercise:with-receipt -- --suite exercise --project traini
 | Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
 | Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
 
+### Caseの分類と実行範囲
+
+`Automate`を選んだCaseがすべてWeb E2Eになるわけではありません。P1-3で記録した値が次の3つに一致するCaseだけを、Playwright Learner Caseとして扱います。
+
+```text
+automation_decision = Automate
+test_layer = Web E2E
+tool = Playwright
+```
+
+`Automate / Unit / Vitest`などの非UI Layerは、Layerを選んだ理由と保証範囲をWorkbookへ記録しますが、このLessonではPlaywright code、`resetScenario`、Desktop／Mobile Web実行を要求しません。`Later`と`Do not automate`はimplementation pathを持たず、今は自動化しない理由と将来の再判断条件を残します。P1-4の導入練習用`TC-PRODUCT-001`、配布sampleの`TC-CART-001`／`TC-CART-002`は正式なLearner Caseへ流用しません。
+
+実行範囲は、DesktopではすべてのPlaywright Learner Caseを成功させ、Mobile Webではそのうち1件以上を成功させます。Mobileで全Caseを繰り返すことはCommonの条件ではありません。Unit／Integration等の実装自体をCommonの必須条件へ追加せず、P1-3の設計判断として説明します。
+
 ## Lesson 1: テスト設計からコードへ落とす
 
 スプレッドシートのTest Caseを、次の順序でコードへ変換します。

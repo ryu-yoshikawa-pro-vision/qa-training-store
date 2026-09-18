@@ -12,6 +12,8 @@ const FORMAL_PROJECTS = new Set(["training-chromium", "training-mobile-chromium"
 const C10_BEFORE_CONTEXT = "c10-before";
 const C10_IMPROVEMENT_CONTEXT = "c10-improved";
 const PROVIDED_TRAINING_CODE_PATHS = new Set(["training/playwright/support/reset-scenario.ts"]);
+const PROVIDED_TRAINING_CASE_IDS = new Set(["TC-PRODUCT-001"]);
+export const PROVIDED_C10_CASE_ID = "TC-CART-900";
 const CODE_DIGEST = /^[0-9a-f]{64}$/;
 
 export const HANDOFF_DIRECTORIES = [
@@ -97,6 +99,8 @@ type WorkbookData = {
   mappings: Map<string, WorkbookRow>;
   sampleCaseIds: Set<string>;
   learnerCaseIds: string[];
+  playwrightLearnerCaseIds: string[];
+  nonUiAutomateCaseIds: string[];
   executionRows: WorkbookRow[];
   implementationToCaseIds: Map<string, string[]>;
 };
@@ -108,6 +112,7 @@ type ExecutionCase = {
   status: string;
   result?: string;
   code_digest: string | null;
+  code_digests?: Record<string, string>;
   implementation_path?: string;
   evidence: string[];
   retries: {
@@ -295,8 +300,22 @@ function isProvidedImplementationPath(value: string): boolean {
     PROVIDED_TRAINING_CODE_PATHS.has(implementationPath) ||
     implementationPath === "training/playwright/exercises/training-exercise-starter.spec.ts" ||
     implementationPath.startsWith("training/playwright/baseline/") ||
-    implementationPath.startsWith("training/playwright/failure-exercises/")
+    implementationPath.startsWith("training/playwright/failure-exercises/") ||
+    implementationPath.startsWith("training/playwright/diagnostic-exercises/") ||
+    implementationPath.startsWith("training/playwright/maintenance-exercises/")
   );
+}
+
+function isPlaywrightLearnerMapping(row: WorkbookRow): boolean {
+  return (
+    row.automation_decision === "Automate" &&
+    row.test_layer === "Web E2E" &&
+    row.tool === "Playwright"
+  );
+}
+
+function isProvidedCaseId(caseId: string): boolean {
+  return PROVIDED_TRAINING_CASE_IDS.has(caseId) || caseId === PROVIDED_C10_CASE_ID;
 }
 
 function isProvidedAssetCase(executionCase: ExecutionCase): boolean {
@@ -543,7 +562,14 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
 
   const mappings = new Map<string, WorkbookRow>();
   const sampleCaseIds = canonicalSampleCaseIds();
+  const providedCaseIds = new Set([
+    ...sampleCaseIds,
+    ...PROVIDED_TRAINING_CASE_IDS,
+    PROVIDED_C10_CASE_ID,
+  ]);
   const learnerCaseIds: string[] = [];
+  const playwrightLearnerCaseIds: string[] = [];
+  const nonUiAutomateCaseIds: string[] = [];
   for (const row of tables["03_automation-mapping.csv"] ?? []) {
     const testCaseId = row.test_case_id ?? "";
     const decision = row.automation_decision ?? "";
@@ -570,15 +596,19 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
       // an implementation path to one is an explicit ID-boundary error. A
       // newly added learner Case remains in the completion set even before its
       // implementation path is filled in.
-      if (sampleCaseIds.has(testCaseId)) {
+      if (providedCaseIds.has(testCaseId)) {
         if (implementationPath !== "")
           addIssue(
             issues,
             "failure",
-            `Canonical sample Case must keep implementation_path empty; use a learner ID instead: ${testCaseId}`,
+            sampleCaseIds.has(testCaseId)
+              ? `Canonical sample Case must keep implementation_path empty; use a learner ID instead: ${testCaseId}`
+              : `Provided Training Case must keep implementation_path empty; use a learner ID instead: ${testCaseId}`,
           );
       } else {
         learnerCaseIds.push(testCaseId);
+        if (isPlaywrightLearnerMapping(row)) playwrightLearnerCaseIds.push(testCaseId);
+        else nonUiAutomateCaseIds.push(testCaseId);
         if (isProvidedImplementationPath(implementationPath))
           addIssue(
             issues,
@@ -598,7 +628,7 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
     const context = (row.run_context ?? "").trim();
     const result = row.result ?? "";
     const key = `${testCaseId}\u0000${context}`;
-    if (!testCases.has(testCaseId))
+    if (!testCases.has(testCaseId) && testCaseId !== PROVIDED_C10_CASE_ID)
       addIssue(issues, "failure", `Unknown test_case_id in execution table: ${testCaseId}`);
     if (!context) addIssue(issues, "incomplete", `run_context is empty for ${testCaseId}`);
     if (contexts.has(key))
@@ -637,7 +667,8 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
 
   const implementationToCaseIds = new Map<string, string[]>();
   for (const [caseId, row] of mappings.entries()) {
-    if (row.automation_decision !== "Automate" || !row.implementation_path) continue;
+    if (!isPlaywrightLearnerMapping(row) || !playwrightLearnerCaseIds.includes(caseId)) continue;
+    if (!row.implementation_path) continue;
     const implementationPath = normalizedRepositoryPath(row.implementation_path);
     const caseIds = implementationToCaseIds.get(implementationPath) ?? [];
     caseIds.push(caseId);
@@ -650,6 +681,8 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
     mappings,
     sampleCaseIds,
     learnerCaseIds,
+    playwrightLearnerCaseIds,
+    nonUiAutomateCaseIds,
     executionRows: tables["04_execution-improvement.csv"] ?? [],
     implementationToCaseIds,
   };
@@ -851,6 +884,28 @@ function validateReceipt(
       (typeof implementationPath !== "string" || !safeRelativePath(implementationPath))
     )
       addIssue(issues, "failure", `${prefix}.implementation_path is unsafe`);
+    let codeDigests: Record<string, string> | undefined;
+    if (rawCase.code_digests !== undefined) {
+      if (!isRecord(rawCase.code_digests)) {
+        addIssue(issues, "failure", `${prefix}.code_digests must be an object`);
+      } else {
+        codeDigests = {};
+        for (const [codePath, codeDigest] of Object.entries(rawCase.code_digests)) {
+          const normalizedPath = normalizedRepositoryPath(codePath);
+          if (
+            !safeRelativePath(normalizedPath) ||
+            !normalizedPath.startsWith("training/playwright/") ||
+            isProvidedImplementationPath(normalizedPath) ||
+            typeof codeDigest !== "string" ||
+            !CODE_DIGEST.test(codeDigest)
+          ) {
+            addIssue(issues, "failure", `${prefix}.code_digests contains an unsafe entry`);
+            continue;
+          }
+          codeDigests[normalizedPath] = codeDigest;
+        }
+      }
+    }
     if (caseId === null && typeof implementationPath === "string") {
       const mappedCaseIds = workbook.implementationToCaseIds.get(
         normalizedRepositoryPath(implementationPath),
@@ -902,7 +957,7 @@ function validateReceipt(
           );
       }
     }
-    if (typeof caseId === "string" && workbook.learnerCaseIds.includes(caseId)) {
+    if (typeof caseId === "string" && workbook.playwrightLearnerCaseIds.includes(caseId)) {
       if (typeof implementationPath !== "string" || !implementationPath)
         addIssue(
           issues,
@@ -920,7 +975,7 @@ function validateReceipt(
       typeof digest === "string" &&
       typeof implementationPath === "string" &&
       typeof caseId === "string" &&
-      workbook.learnerCaseIds.includes(caseId) &&
+      workbook.playwrightLearnerCaseIds.includes(caseId) &&
       !diagnosticReceipt
     ) {
       const codePath = path.resolve(root, "code", implementationPath);
@@ -943,6 +998,7 @@ function validateReceipt(
       status: typeof status === "string" ? status : "not-run",
       ...(typeof result === "string" ? { result } : {}),
       code_digest: typeof digest === "string" ? digest : null,
+      ...(codeDigests ? { code_digests: codeDigests } : {}),
       ...(typeof implementationPath === "string"
         ? { implementation_path: implementationPath }
         : {}),
@@ -1083,7 +1139,13 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
       "incomplete",
       "Common Completion requires learner-owned TC-CART-101 as the vertical Case",
     );
-  for (const caseId of workbook.learnerCaseIds) {
+  if (workbook.playwrightLearnerCaseIds.length === 0)
+    addIssue(
+      issues,
+      "incomplete",
+      "Common Completion requires at least one Web E2E Playwright Case",
+    );
+  for (const caseId of workbook.playwrightLearnerCaseIds) {
     const mapping = workbook.mappings.get(caseId);
     const implementationPath = mapping?.implementation_path ?? "";
     if (!implementationPath) {
@@ -1117,11 +1179,11 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
 function validateProvidedCodeBoundary(root: string, issues: Issue[]): void {
   for (const relativePath of listFiles(root, "code", issues)) {
     const repositoryPath = normalizedRepositoryPath(relativePath).replace(/^code\//, "");
-    if (PROVIDED_TRAINING_CODE_PATHS.has(repositoryPath))
+    if (isProvidedImplementationPath(repositoryPath))
       addIssue(
         issues,
         "failure",
-        `Provided Training harness must not be learner-owned code: ${repositoryPath}`,
+        `Provided Training code must not be learner-owned code: ${repositoryPath}`,
       );
   }
 }
@@ -1132,7 +1194,7 @@ function validateLearnerWebProjects(
   receipts: ExecutionReceipt[],
   issues: Issue[],
 ): boolean {
-  const learnerCaseIds = new Set(workbook.learnerCaseIds);
+  const learnerCaseIds = new Set(workbook.playwrightLearnerCaseIds);
   const latest = new Map<string, ReceiptCaseMatch>();
   for (const [receiptIndex, receipt] of receipts.entries()) {
     const runContext = valueString(receipt.run.run_context) ?? "";
@@ -1164,7 +1226,23 @@ function validateLearnerWebProjects(
   }
 
   let complete = true;
-  for (const caseId of workbook.learnerCaseIds) {
+  if (workbook.playwrightLearnerCaseIds.length === 0) {
+    addIssue(issues, "not-run", "C07 requires at least one learner Web E2E Playwright Case");
+    return false;
+  }
+
+  const isCleanMatch = (match: ReceiptCaseMatch | undefined, mappedPath: string): boolean => {
+    if (!match || !mappedPath) return false;
+    return (
+      match.executionCase.status === "passed" &&
+      match.receipt.run.exit_code === 0 &&
+      match.executionCase.retries.every((retry) => !isRetryFailure(retry.status)) &&
+      match.executionCase.evidence.length > 0 &&
+      normalizedRepositoryPath(match.executionCase.implementation_path ?? "") === mappedPath
+    );
+  };
+
+  for (const caseId of workbook.playwrightLearnerCaseIds) {
     const mappedPath = normalizedRepositoryPath(
       workbook.mappings.get(caseId)?.implementation_path ?? "",
     );
@@ -1172,32 +1250,47 @@ function validateLearnerWebProjects(
       complete = false;
       continue;
     }
-    for (const project of ["training-chromium", "training-mobile-chromium"] as const) {
-      const match = latest.get(`${caseId}\u0000${project}`);
-      if (!match) {
-        addIssue(issues, "not-run", `C07 requires a successful ${project} execution for ${caseId}`);
-        complete = false;
-        continue;
-      }
-      const pathMatches =
-        mappedPath.length > 0 &&
-        normalizedRepositoryPath(match.executionCase.implementation_path ?? "") === mappedPath;
-      const successful =
-        match.executionCase.status === "passed" &&
-        match.receipt.run.exit_code === 0 &&
-        match.executionCase.retries.every((retry) => !isRetryFailure(retry.status)) &&
-        match.executionCase.evidence.length > 0 &&
-        pathMatches;
-      if (successful) continue;
+    const desktopMatch = latest.get(`${caseId}\u0000training-chromium`);
+    if (!desktopMatch) {
       addIssue(
         issues,
-        match.executionCase.status === "failed" || match.receipt.run.exit_code !== 0
+        "not-run",
+        `C07 requires a successful training-chromium execution for ${caseId}`,
+      );
+      complete = false;
+    } else if (!isCleanMatch(desktopMatch, mappedPath)) {
+      addIssue(
+        issues,
+        desktopMatch.executionCase.status === "failed" || desktopMatch.receipt.run.exit_code !== 0
           ? "failure"
           : "incomplete",
-        `C07 ${project} execution is not a clean learner run for ${caseId}`,
+        `C07 training-chromium execution is not a clean learner run for ${caseId}`,
       );
       complete = false;
     }
+  }
+
+  const mobileMatches = workbook.playwrightLearnerCaseIds
+    .map((caseId) => latest.get(`${caseId}\u0000training-mobile-chromium`))
+    .filter((match): match is ReceiptCaseMatch => match !== undefined);
+  const mobileSuccessful = mobileMatches.some((match) => {
+    const caseId = match.executionCase.case_id ?? "";
+    const mappedPath = normalizedRepositoryPath(
+      workbook.mappings.get(caseId)?.implementation_path ?? "",
+    );
+    return isCleanMatch(match, mappedPath);
+  });
+  if (!mobileSuccessful) {
+    addIssue(
+      issues,
+      mobileMatches.some(
+        (match) => match.executionCase.status === "failed" || match.receipt.run.exit_code !== 0,
+      )
+        ? "failure"
+        : "not-run",
+      "C07 requires at least one successful training-mobile-chromium execution for a learner Playwright Case",
+    );
+    complete = false;
   }
   return complete;
 }
@@ -1384,7 +1477,7 @@ function validateLatestLearnerCodeDigests(
   receiptFiles: string[],
   issues: Issue[],
 ): void {
-  const learnerCaseIds = new Set(workbook.learnerCaseIds);
+  const learnerCaseIds = new Set(workbook.playwrightLearnerCaseIds);
   const allMatchesByCase = new Map<string, ReceiptCaseMatch[]>();
   const matchesByCaseAndContext = new Map<string, ReceiptCaseMatch[]>();
   for (const [receiptIndex, receipt] of receipts.entries()) {
@@ -1548,8 +1641,10 @@ function validatePart2CiReferences(
       .map((executionCase) => executionCase.case_id)
       .filter((caseId): caseId is string => caseId !== null),
   );
-  const learnerCiCaseIds = workbook.learnerCaseIds.filter((caseId) => ciCaseIds.has(caseId));
-  if (learnerCiCaseIds.length !== workbook.learnerCaseIds.length) {
+  const learnerCiCaseIds = workbook.playwrightLearnerCaseIds.filter((caseId) =>
+    ciCaseIds.has(caseId),
+  );
+  if (learnerCiCaseIds.length !== workbook.playwrightLearnerCaseIds.length) {
     addIssue(issues, "incomplete", "Part 2 CI Receipt does not contain every learner Case");
     complete = false;
   }
@@ -1664,7 +1759,7 @@ function validateExecutionTableBinding(
   receipts: ExecutionReceipt[],
   issues: Issue[],
 ): boolean {
-  const learnerCaseIds = new Set(workbook.learnerCaseIds);
+  const learnerCaseIds = new Set(workbook.playwrightLearnerCaseIds);
   const rowsByCase = new Map<string, WorkbookRow[]>();
   for (const row of workbook.executionRows) {
     const caseId = row.test_case_id ?? "";
@@ -1674,7 +1769,11 @@ function validateExecutionTableBinding(
       isDiagnosticRepairedContext(context) ||
       isNaturalC09FailureContext(context) ||
       isNaturalC09RepairedContext(context);
-    if (!learnerCaseIds.has(caseId) && !(isDiagnosticRow && workbook.testCases.has(caseId)))
+    if (
+      !learnerCaseIds.has(caseId) &&
+      caseId !== PROVIDED_C10_CASE_ID &&
+      !(isDiagnosticRow && workbook.testCases.has(caseId))
+    )
       continue;
     const rows = rowsByCase.get(caseId) ?? [];
     rows.push(row);
@@ -1696,7 +1795,11 @@ function validateExecutionTableBinding(
       isDiagnosticRepairedContext(context) ||
       isNaturalC09FailureContext(context) ||
       isNaturalC09RepairedContext(context);
-    if (!learnerCaseIds.has(caseId) && !(isDiagnosticRow && workbook.testCases.has(caseId)))
+    if (
+      !learnerCaseIds.has(caseId) &&
+      caseId !== PROVIDED_C10_CASE_ID &&
+      !(isDiagnosticRow && workbook.testCases.has(caseId))
+    )
       continue;
     const result = (row.result ?? "").trim();
     const rowEvidence = (row.evidence ?? "").trim();
@@ -1773,16 +1876,24 @@ function isC10BeforeContext(value: string): boolean {
 
 type C10ImprovementRecord = {
   targetPath: string;
-  beforeDigest: string;
-  afterDigest: string;
 };
 
 function parseC10ImprovementRecord(value: string): C10ImprovementRecord | null {
   const targetPath = value.match(/Improvement\s+Target\s*:\s*([^;\r\n]+)/i)?.[1]?.trim();
-  const beforeDigest = value.match(/Before\s+Digest\s*:\s*([0-9a-f]{64})/i)?.[1];
-  const afterDigest = value.match(/After\s+Digest\s*:\s*([0-9a-f]{64})/i)?.[1];
-  if (!targetPath || !beforeDigest || !afterDigest) return null;
-  return { targetPath: normalizedRepositoryPath(targetPath), beforeDigest, afterDigest };
+  if (!targetPath) return null;
+  return { targetPath: normalizedRepositoryPath(targetPath) };
+}
+
+function receiptDigestForPath(match: ReceiptCaseMatch, targetPath: string): string | undefined {
+  const normalizedTarget = normalizedRepositoryPath(targetPath);
+  const recorded = match.executionCase.code_digests?.[normalizedTarget];
+  if (typeof recorded === "string") return recorded;
+  if (
+    normalizedRepositoryPath(match.executionCase.implementation_path ?? "") === normalizedTarget &&
+    typeof match.executionCase.code_digest === "string"
+  )
+    return match.executionCase.code_digest;
+  return undefined;
 }
 
 function validateC10Improvement(
@@ -1791,9 +1902,10 @@ function validateC10Improvement(
   receipts: ExecutionReceipt[],
   issues: Issue[],
 ): boolean {
-  const learnerCaseIds = new Set(workbook.learnerCaseIds);
+  const learnerCaseIds = new Set(workbook.playwrightLearnerCaseIds);
+  const eligibleCaseIds = new Set([...learnerCaseIds, PROVIDED_C10_CASE_ID]);
   const rows = workbook.executionRows.filter(
-    (row) => learnerCaseIds.has(row.test_case_id ?? "") && isC10Context(row.run_context ?? ""),
+    (row) => eligibleCaseIds.has(row.test_case_id ?? "") && isC10Context(row.run_context ?? ""),
   );
   if (rows.length === 0) {
     addIssue(
@@ -1832,14 +1944,12 @@ function validateC10Improvement(
       addIssue(
         issues,
         "incomplete",
-        `C10 improvement must state Improvement Target, Before Digest, and After Digest: ${caseId}`,
+        `C10 improvement must state Improvement Target; Before/After Digest is generated by the Receipt: ${caseId}`,
       );
       valid = false;
     } else if (
       !safeRelativePath(improvementRecord.targetPath) ||
-      !improvementRecord.targetPath.startsWith("training/playwright/") ||
-      !CODE_DIGEST.test(improvementRecord.beforeDigest) ||
-      !CODE_DIGEST.test(improvementRecord.afterDigest)
+      !improvementRecord.targetPath.startsWith("training/playwright/")
     ) {
       addIssue(issues, "failure", `C10 improvement target metadata is unsafe: ${caseId}`);
       valid = false;
@@ -1860,16 +1970,6 @@ function validateC10Improvement(
           `C10 improvement target must be learner-owned code: ${improvementRecord.targetPath}`,
         );
         valid = false;
-      } else if (sha256(targetPath) !== improvementRecord.afterDigest) {
-        addIssue(issues, "failure", `C10 improvement After Digest does not match code: ${caseId}`);
-        valid = false;
-      } else if (improvementRecord.beforeDigest === improvementRecord.afterDigest) {
-        addIssue(
-          issues,
-          "incomplete",
-          `C10 improvement Before/After Digest is unchanged: ${caseId}`,
-        );
-        valid = false;
       }
     }
     if (!match) {
@@ -1885,36 +1985,39 @@ function validateC10Improvement(
         valid = false;
       }
       const mappedPath = workbook.mappings.get(caseId)?.implementation_path ?? "";
-      const targetIsMappedSpec =
-        improvementRecord !== null &&
-        normalizedRepositoryPath(improvementRecord.targetPath) ===
-          normalizedRepositoryPath(mappedPath);
+      const isProvidedExercise = caseId === PROVIDED_C10_CASE_ID;
       if (
-        !mappedPath ||
-        normalizedRepositoryPath(match.executionCase.implementation_path ?? "") !==
-          normalizedRepositoryPath(mappedPath)
+        !isProvidedExercise &&
+        (!mappedPath ||
+          normalizedRepositoryPath(match.executionCase.implementation_path ?? "") !==
+            normalizedRepositoryPath(mappedPath))
       ) {
         addIssue(
           issues,
           "failure",
-          `C10 improvement target does not match Workbook mapping: ${caseId}`,
+          `C10 improvement rerun does not match the learner Workbook mapping: ${caseId}`,
         );
         valid = false;
       }
-      if (
+      const afterDigest = improvementRecord
+        ? receiptDigestForPath(match, improvementRecord.targetPath)
+        : undefined;
+      if (!afterDigest) {
+        addIssue(
+          issues,
+          "incomplete",
+          `C10 improved Receipt has no machine digest for the target: ${caseId}`,
+        );
+        valid = false;
+      } else if (
         improvementRecord &&
-        targetIsMappedSpec &&
-        match.executionCase.code_digest !== improvementRecord.afterDigest
+        sha256(path.resolve(root, "code", improvementRecord.targetPath)) !== afterDigest
       ) {
         addIssue(
           issues,
           "failure",
-          `C10 improved Receipt digest does not match the target code: ${caseId}`,
+          `C10 improved Receipt target digest does not match current code: ${caseId}`,
         );
-        valid = false;
-      }
-      if (typeof match.executionCase.code_digest !== "string") {
-        addIssue(issues, "incomplete", `C10 improvement code_digest is missing: ${caseId}`);
         valid = false;
       }
       if (evidence) {
@@ -1964,10 +2067,21 @@ function validateC10Improvement(
             executionCase.status !== "passed" ||
             executionCase.evidence.length === 0 ||
             executionCase.retries.some((retry) => isRetryFailure(retry.status)) ||
-            normalizedRepositoryPath(executionCase.implementation_path ?? "") !==
-              normalizedRepositoryPath(mappedPath) ||
-            typeof executionCase.code_digest !== "string" ||
             receiptTimestamp(receipt) >= afterTimestamp
+          )
+            continue;
+          if (
+            !isProvidedExercise &&
+            normalizedRepositoryPath(executionCase.implementation_path ?? "") !==
+              normalizedRepositoryPath(mappedPath)
+          )
+            continue;
+          if (
+            !improvementRecord ||
+            !receiptDigestForPath(
+              { receipt, executionCase, receiptIndex, caseIndex },
+              improvementRecord.targetPath,
+            )
           )
             continue;
           beforeCandidates.push({ receipt, executionCase, receiptIndex, caseIndex });
@@ -2000,17 +2114,17 @@ function validateC10Improvement(
           );
           valid = false;
         }
-        if (
-          improvementRecord &&
-          normalizedRepositoryPath(improvementRecord.targetPath) ===
-            normalizedRepositoryPath(mappedPath) &&
-          (before.executionCase.code_digest === match.executionCase.code_digest ||
-            improvementRecord.beforeDigest !== before.executionCase.code_digest)
-        ) {
+        const beforeDigest = improvementRecord
+          ? receiptDigestForPath(before, improvementRecord.targetPath)
+          : undefined;
+        const afterDigest = improvementRecord
+          ? receiptDigestForPath(match, improvementRecord.targetPath)
+          : undefined;
+        if (!beforeDigest || !afterDigest || beforeDigest === afterDigest) {
           addIssue(
             issues,
             "incomplete",
-            `C10 improvement did not prove a changed mapped spec digest: ${caseId}`,
+            `C10 improvement did not prove a changed machine-tracked target: ${caseId}`,
           );
           valid = false;
         }
@@ -2056,7 +2170,7 @@ function classifyExecution(
   receipts: ExecutionReceipt[],
   issues: Issue[],
 ): { executedCaseIds: string[]; evidenceComplete: boolean; c09Complete: boolean } {
-  const learnerCaseIds = new Set(workbook.learnerCaseIds);
+  const learnerCaseIds = new Set(workbook.playwrightLearnerCaseIds);
   const matched = new Set<string>();
   const latestExecutions = new Map<string, ReceiptCaseMatch>();
   const diagnosticInitial = new Map<string, ReceiptCaseMatch>();
@@ -2105,10 +2219,13 @@ function classifyExecution(
       }
       const knownWorkbookCase = workbook.testCases.has(caseId);
       const isLearnerCase = learnerCaseIds.has(caseId);
-      if (!knownWorkbookCase && !isLearnerCase) {
+      const isProvidedCase =
+        isProvidedCaseId(caseId) || (isProvidedAssetCase(executionCase) && !isDiagnostic);
+      if (!knownWorkbookCase && !isLearnerCase && !isProvidedCase) {
         addIssue(issues, "failure", `Receipt refers to an unknown Workbook Case: ${caseId}`);
         continue;
       }
+      if (isProvidedCase) continue;
       if (!isLearnerCase && !isDiagnostic) {
         if (!isProvidedAssetCase(executionCase))
           addIssue(issues, "failure", `Receipt refers to a non-learner Case: ${caseId}`);
@@ -2419,11 +2536,12 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     ),
     execution_table_binding: executionTableComplete,
     learner_code:
-      learnerCodeIds.size === workbook.learnerCaseIds.length && workbook.learnerCaseIds.length >= 2,
+      learnerCodeIds.size === workbook.playwrightLearnerCaseIds.length &&
+      workbook.learnerCaseIds.length >= 2,
     c07_web_projects: c07WebProjectsComplete,
     execution_receipts:
-      workbook.learnerCaseIds.length > 0 &&
-      workbook.learnerCaseIds.every((caseId) => executedCaseIds.includes(caseId)),
+      workbook.playwrightLearnerCaseIds.length > 0 &&
+      workbook.playwrightLearnerCaseIds.every((caseId) => executedCaseIds.includes(caseId)),
     evidence: evidenceComplete,
     self_check: selfCheckComplete,
     part2_ci_references: ciComplete,

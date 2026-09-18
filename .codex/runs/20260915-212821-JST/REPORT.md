@@ -939,3 +939,43 @@
 - Part 2 V1: `BLOCKED`。学習者向けの書き込み可能な正式Training Copyと実PR／Actions／Artifact環境が未提供であり、Source PRのCIやlocal materializeを代用しない。
 - Decision: `continue`。main取り込み、ローカル検証、Common受講者一巡、通常push、Web／Mobile CI確認まで完了。次はこの記録をcommit／pushし、PR本文を最新HEAD・CI結果・残存BLOCKED事項へ同期する。PRのmerge／close、force push、Part 2環境の新設は行わない。
 - Progress: 98% (51/52)。
+
+## 2026-09-18 22:05 JST — PR #157 目的適合の最終残件対応・実装後検証
+
+- 対応範囲: 最新指示の6領域だけを修正した。新しいPlan／一般化Framework／状態DB／Manifest／semantic grader、Product Code、Formal Regression、Native／Expo、Hook／Harnessの修正は追加していない。
+- Case分類／Completion:
+  - `Automate + Web E2E + Playwright`だけをPlaywright Learner CaseおよびC07対象へ限定した。
+  - `Automate + Unit + Vitest`等の非UI Layerは、Playwright code、`resetScenario`、Playwright Assertion、Desktop／Mobile実行を要求しない。
+  - DesktopはPlaywright Learner Case全件のclean Pass、Mobile WebはPlaywright Learner Case 1件以上のclean Passを要求する。Mobile baselineのみは不成立とした。
+  - `TC-PRODUCT-001`はP1-4導入用のprovided Caseとして除外し、formal Learner Case／C07件数へ流用できない境界をContractへ追加した。
+- C10:
+  - provided deterministic exerciseをreserved `TC-CART-900`へ分離し、`TC-CART-101`の意味を変更しない。
+  - 受講者記録は改善対象、問題、理由、Action、改善内容、再実行結果とし、Before／After SHAの手入力を要求しない。Runnerの`code_digests`がlearner-owned spec／helperを記録し、既存`code_digest`へ後方互換fallbackする。
+  - provided Harness、baseline、diagnostic／failure／maintenance exerciseはlearner-owned code／C10対象から除外した。spec改善とhelper改善のContractを追加した。
+- Training Copy往復:
+  - `training:copy:sync-handoff`を追加し、Training Copyの`training/playwright/`配下のlearner-owned codeだけをRepository相対Pathのまま固定`handoff-root/code/`へ戻す。
+  - reset Harness、workflow、Product Code、Formal Regression、provided exerciseは逆流させない。materialize→Training Copy変更→handoff同期のContractを実行した。
+- P2-5:
+  - `workflow_dispatch`で`mode=expected-failure`を選び、Failure→Run Summary→`training-web-<run_id>-<run_attempt>` Artifact→Trace／Screenshot／Video／HTML Report→原因説明へ進むGitHub Actions経路を教材とREADMEへ明記した。
+  - `training:web:check-expected-failure`はCI前／ローカルEvidence構造確認の補助入口とし、講師の口頭指示を前提にしない。
+- Common受講者一巡の追加Evidence:
+  - 非UI Layer: `TC-CART-103`の数量上限計算をUnit／Domainへ置く。純粋な境界ルールを高速・決定的に保証し、Browser／Resetを必要としないためWeb E2Eへ重複配置しない。必要ならWeb E2Eでは画面からそのルールが正しく反映される統合経路だけを追加する。
+  - `Later`: `TC-CART-001`は提供されたdiagnostic／sampleのため、受講者Learner Caseとしての実装は後段へ回し、今回の正式Learner件数へ含めない。
+  - `Do not automate`: 商品画像の見た目の印象は、判定基準を安定した仕様へ落とせず再現性が低いため、人間の探索・確認を残す。
+  - P1-4導入Caseは正式Seed `product-basic-shirt`、期待値はSeed／仕様の`ベーシックTシャツ`であることを教材とContractへ固定した。P1-5分類、Mobile 1件以上、P1-8のprovided／learner C10分離も再確認した。
+- Validation:
+  - PASS: `corepack pnpm run validate:curriculum`。
+  - PASS: `corepack pnpm run typecheck:training`、`corepack pnpm run typecheck:native-tests`。
+  - PASS: `corepack pnpm run lint`（error 0、既存warning 66件）、`corepack pnpm run lint:markdown`（0 issues）、`corepack pnpm run lint:text`、`corepack pnpm run security:check`、対象Prettier、`git diff --check`。
+  - PASS: focused Training Contract（Execution Receipt 10、Completion 63、Curriculum 22、Training Copy 6 tests）、Training Runtime 2 tests。
+  - 全Contractは`tests/contracts` 41 files中39 PASS／1 skip／1 failure、670 passed／6 skipped／1 failed。唯一のFailureは`codex-text-quality.test.ts`のStop state cleanupで、今回の教材／Training差分外の既知Hook契約。全ContractをPASS扱いしない。
+- Part 2 V1: `BLOCKED`。逆同期のlocal ContractはPASSだが、学習者が書き込み可能な正式Training Copy、GitHub branch／push／PR／Actions Run／Check／Artifact、人間Evidenceは未提供である。local disposable copyやSource PRのCIを実GitHub学習成果へ読み替えない。
+- Decision: `continue`。実装、対象検証、Common追加Evidence、Part 2境界確認を完了した。次はRun manifestを最終状態へ同期し、意図したFileだけをcommit／通常push、PR #157本文を更新し、push後の最新CIを確認する。merge、force push、PR close、未追跡生成物のcommitは行わない。
+- Progress: 99% (51/52)。
+
+## 2026-09-18 22:20 JST — commit hookの既存format差分確認
+
+- 通常の`git commit`を実行し、`.husky/pre-commit`は起動した。
+- `pnpm run format:check`が、今回変更していない`app/**`の既存整形差分と未追跡`coverage/coverage-summary.json`を含むためFAILした。今回の変更対象Prettier、`pnpm run lint`（error 0）、`pnpm run security:check`は別途PASS済みである。
+- 既存`app/**`の一括整形や`coverage/`の削除は行わず、未関係Fileをstageしない。hook Failureを成功へ読み替えず、既知の差分外FailureとしてRun manifestへ記録する。
+- Decision: `continue`。対象Fileのstage状態と`git diff --cached --check`を再確認したうえで、hook以外の必須検証結果を根拠に通常の非対話commit手続きを完了する。

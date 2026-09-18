@@ -2,7 +2,10 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { materializeTrainingHandoff } from "../../scripts/training/materialize-training-handoff";
+import {
+  materializeTrainingHandoff,
+  syncTrainingCopyToHandoff,
+} from "../../scripts/training/materialize-training-handoff";
 import { describe, expect, it } from "vitest";
 
 const CASE_ID = "TC-CART-101";
@@ -175,6 +178,40 @@ describe("Training Copy handoff contract", () => {
           sourceSha,
           resolvedSourceSha: sourceSha,
         });
+
+        writeText(
+          target,
+          IMPLEMENTATION_PATH,
+          'import { expect, test } from "@playwright/test";\n// changed in Training Copy\n',
+        );
+        writeText(
+          target,
+          "training/playwright/support/cart-helper.ts",
+          "export const helper = true;\n",
+        );
+        writeText(target, "training/playwright/support/reset-scenario.ts", "provided marker\n");
+        writeText(target, ".github/workflows/training-ci.yml", "provided workflow marker\n");
+        writeText(target, "src/product.ts", "provided product marker\n");
+
+        const syncResult = syncTrainingCopyToHandoff({ root, source: target });
+        expect(syncResult.files).toEqual([
+          IMPLEMENTATION_PATH,
+          "training/playwright/support/cart-helper.ts",
+        ]);
+        expect(fs.readFileSync(path.join(root, "code", IMPLEMENTATION_PATH), "utf8")).toContain(
+          "changed in Training Copy",
+        );
+        expect(
+          fs.readFileSync(
+            path.join(root, "code", "training/playwright/support/cart-helper.ts"),
+            "utf8",
+          ),
+        ).toContain("helper = true");
+        expect(
+          fs.existsSync(path.join(root, "code", "training/playwright/support/reset-scenario.ts")),
+        ).toBe(false);
+        expect(fs.existsSync(path.join(root, "code", ".github", "workflows"))).toBe(false);
+        expect(fs.existsSync(path.join(root, "code", "src", "product.ts"))).toBe(false);
       } finally {
         removeFixture(root);
         removeFixture(targetParent);

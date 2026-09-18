@@ -1,9 +1,13 @@
 import {
   buildExecutionReceipt,
+  collectLearnerCodeDigests,
   knownEnvironmentFailure,
   parseJsonReport,
   runPlaywrightWithReceipt,
 } from "../../scripts/training/run-playwright-with-receipt";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 describe("Execution Receipt contract", () => {
   it("keeps run exit_code separate from case and Retry status", () => {
@@ -92,6 +96,39 @@ describe("Execution Receipt contract", () => {
     );
 
     expect(specs[0]?.caseId).toBe("TC-CART-101");
+  });
+
+  it("collects learner-owned spec and helper digests but excludes provided code", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "training-receipt-digests-"));
+    const write = (relativePath: string, value: string): void => {
+      const target = path.join(root, relativePath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, value, "utf8");
+    };
+    try {
+      write("training/playwright/exercises/cart-101.spec.ts", "learner spec\n");
+      write("training/playwright/support/cart-helper.ts", "learner helper\n");
+      write("training/playwright/support/reset-scenario.ts", "provided harness\n");
+      write(
+        "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts",
+        "provided exercise\n",
+      );
+
+      const digests = collectLearnerCodeDigests(root);
+
+      expect(Object.keys(digests)).toEqual([
+        "training/playwright/exercises/cart-101.spec.ts",
+        "training/playwright/support/cart-helper.ts",
+      ]);
+      expect(digests["training/playwright/exercises/cart-101.spec.ts"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(digests["training/playwright/support/cart-helper.ts"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(digests).not.toHaveProperty("training/playwright/support/reset-scenario.ts");
+      expect(digests).not.toHaveProperty(
+        "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts",
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it.each([

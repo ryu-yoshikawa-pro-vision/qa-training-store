@@ -94,6 +94,9 @@ describe("Training curriculum contracts", () => {
 
     expect(foundationsLesson).toContain("このLessonで読む範囲");
     expect(foundationsLesson).toContain("TC-PRODUCT-001");
+    expect(foundationsLesson).toContain("product-basic-shirt");
+    expect(foundationsLesson).toContain("ベーシックTシャツ");
+    expect(foundationsLesson).toContain("Seedカタログ");
     expect(foundationsLesson).toContain("このLessonだけで始められる導入Case");
     expect(foundationsLesson).toContain("Common CompletionのCaseへ流用しません");
     expect(foundationsLesson).toContain("test(...)");
@@ -107,6 +110,11 @@ describe("Training curriculum contracts", () => {
     expect(practiceLesson).toContain("`TC-CART-102`");
     expect(practiceLesson).toContain("--project training-mobile-chromium");
     expect(practiceLesson).toContain("--run-context mobile-exercise");
+    expect(practiceLesson).toContain("automation_decision = Automate");
+    expect(practiceLesson).toContain("test_layer = Web E2E");
+    expect(practiceLesson).toContain("tool = Playwright");
+    expect(practiceLesson).toContain("そのうち1件以上");
+    expect(practiceLesson).toContain("Automate / Unit / Vitest");
     expect(practiceLesson).not.toContain("配布sampleのIDを使う場合でも");
 
     for (const term of [
@@ -142,6 +150,8 @@ describe("Training curriculum contracts", () => {
     expect(maintenanceLesson).toContain("reset-scenario.ts");
     expect(maintenanceLesson).toContain("新しい製品Riskを追加する理由にはしません");
     expect(maintenanceLesson).toContain("Improvement Target");
+    expect(maintenanceLesson).toContain("TC-CART-900");
+    expect(maintenanceLesson).toContain("受講者が計算・転記せず");
     expect(maintenanceLesson).not.toContain("RISK-CART-103");
     expect(maintenanceLesson).toContain("e2e/web/fixtures.ts");
     const maintenanceExercise = readFileSync(
@@ -151,6 +161,7 @@ describe("Training curriculum contracts", () => {
     const repeatedLocator = 'page.getByRole("heading", { name: "すべての商品" })';
     expect(maintenanceExercise.split(repeatedLocator).length - 1).toBe(2);
     expect(maintenanceExercise).toContain("repeats the same Locator");
+    expect(maintenanceExercise).toContain("TC-CART-900");
     expect(maintenanceExercise).not.toContain("const productsHeading");
 
     for (const term of [
@@ -189,6 +200,9 @@ describe("Training curriculum contracts", () => {
       "Artifact: <Artifact name>",
       "output/training/playwright",
       "PR → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts",
+      "mode = expected-failure",
+      "Run workflow",
+      "原因を説明",
     ]) {
       expect(playwrightCiLesson).toContain(term);
     }
@@ -307,6 +321,9 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflowReadme).toContain("output/training/playwright");
     expect(trainingWorkflowReadme).toContain("receipts");
     expect(trainingWorkflowReadme).toContain("evidence");
+    expect(trainingWorkflowReadme).toContain("workflow_dispatch");
+    expect(trainingWorkflowReadme).toContain("mode = expected-failure");
+    expect(trainingWorkflowReadme).not.toContain("講師が明示する");
     expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
     expect(trainingWorkflow).not.toContain("e2e/web/");
     const baselineStep = trainingWorkflow.indexOf("run: pnpm run training:web:baseline");
@@ -344,6 +361,30 @@ describe("Training curriculum contracts", () => {
     expect(() => validateTrainingWorkflow("training-ci.yml", movedCondition)).toThrow(
       /exercise step must set/,
     );
+  });
+
+  it("keeps Expected Failure as a self-directed GitHub Actions Artifact lesson", () => {
+    const root = process.cwd();
+    const workflow = readFileSync(resolve(root, "training/github-actions/training-ci.yml"), "utf8");
+    const lesson = readFileSync(
+      resolve(root, "docs/curriculum/test-automation/part2/05_playwright-ci.md"),
+      "utf8",
+    );
+    const readme = readFileSync(resolve(root, "training/github-actions/README.md"), "utf8");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("- expected-failure");
+    expect(workflow).toContain(
+      "if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'",
+    );
+    expect(workflow).toContain("run: pnpm run training:web:check-expected-failure");
+    expect(workflow).toContain("if: always()");
+    expect(workflow).toContain("output/training/playwright");
+    expect(lesson).toContain("Run workflow");
+    expect(lesson).toContain("mode = expected-failure");
+    expect(lesson).toContain("training-web-<run_id>-<run_attempt>");
+    expect(lesson).toContain("Trace / Screenshot / Video / HTML Report");
+    expect(readme).toContain("受講者が`workflow_dispatch`で選択するexpected-failure entry");
+    expect(readme).not.toContain("講師が明示する");
   });
 
   it("accepts the current Training workflow templates through the structural boundary", () => {

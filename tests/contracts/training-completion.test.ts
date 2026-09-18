@@ -87,9 +87,7 @@ function c10ImprovementRecord(
   implementationPath: string,
   style: "valid" | "starter",
 ): string {
-  const before = learnerCode(caseId, style);
-  const after = `${before}\n// C10 minimal maintainability improvement\n`;
-  return `Improvement Target: ${implementationPath}; Before Digest: ${digest(before)}; After Digest: ${digest(after)}`;
+  return `Improvement Target: ${implementationPath}; Problem: repeated maintenance concern; Why: the same change would need multiple edits; Action: make the smallest maintainable improvement; Improvement: rerun passed`;
 }
 
 function writeExecutionReceipt(
@@ -216,6 +214,56 @@ function writeExecutionReceipt(
   writeText(
     root,
     `receipts/execution-receipt-${context}.json`,
+    `${JSON.stringify(receipt, null, 2)}\n`,
+  );
+}
+
+function writeProvidedC10Receipt(
+  root: string,
+  context: "c10-before" | "c10-improved",
+  implementationPath: string,
+  codeDigest: string,
+  evidence: string,
+): void {
+  const start = context === "c10-before" ? "2026-09-17T00:00:01.000Z" : "2026-09-17T00:00:06.000Z";
+  const finish = context === "c10-before" ? "2026-09-17T00:00:02.000Z" : "2026-09-17T00:00:07.000Z";
+  const receipt = {
+    schema_version: 1,
+    kind: "execution-receipt",
+    generated_at: finish,
+    run: {
+      producer: "training:web:exercise:with-receipt",
+      command: `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root ${root} --run-context ${context}`,
+      exit_code: 0,
+      started_at: start,
+      finished_at: finish,
+      environment: {
+        platform: "win32",
+        runtime: "Playwright Training",
+        browser: "training-chromium",
+        execution: "local",
+      },
+      run_context: context,
+      project: "training-chromium",
+    },
+    cases: [
+      {
+        case_id: "TC-CART-900",
+        title: "TC-CART-900 provided C10 maintenance exercise",
+        track: "web",
+        status: "passed",
+        result: "passed",
+        code_digest: codeDigest,
+        code_digests: { [implementationPath]: codeDigest },
+        implementation_path: implementationPath,
+        evidence: [evidence],
+        retries: [{ retry_index: 0, status: "passed", duration_ms: 25, evidence: [evidence] }],
+      },
+    ],
+  };
+  writeText(
+    root,
+    `receipts/execution-receipt-${context}-provided.json`,
     `${JSON.stringify(receipt, null, 2)}\n`,
   );
 }
@@ -563,6 +611,138 @@ function addEmptyLearnerCase(root: string): void {
   );
 }
 
+function addUnitLearnerCase(root: string): void {
+  fs.appendFileSync(
+    path.join(root, "workbook", "01_target-risk.csv"),
+    csv([
+      [
+        "TARGET-CART-103",
+        "docs/spec/features/cart.md",
+        "BR-CART-001",
+        "AC-CART-001",
+        "RISK-CART-103",
+        "cart quantity calculation can be wrong",
+        "High",
+        "Medium",
+        "High",
+      ],
+    ]),
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "02_test-cases.csv"),
+    csv([
+      [
+        "TC-CART-103",
+        "RISK-CART-103",
+        "docs/spec/features/cart.md",
+        "BR-CART-001",
+        "AC-CART-001",
+        "calculate the quantity upper bound",
+        "domain input is normalized",
+        "the quantity rule returns the expected limit",
+        "boundary value analysis",
+      ],
+    ]),
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "03_automation-mapping.csv"),
+    csv([["TC-CART-103", "Automate", "Unit", "Vitest", "", "PR", "domain rule is deterministic"]]),
+    "utf8",
+  );
+}
+
+function addProvidedProductCase(root: string, implementationPath = ""): void {
+  fs.appendFileSync(
+    path.join(root, "workbook", "01_target-risk.csv"),
+    csv([
+      [
+        "TARGET-PRODUCT-001",
+        "docs/spec/features/product.md",
+        "BR-PRODUCT-001",
+        "AC-PRODUCT-001",
+        "RISK-PRODUCT-001",
+        "product details can be unclear",
+        "Medium",
+        "Low",
+        "Medium",
+      ],
+    ]),
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "02_test-cases.csv"),
+    csv([
+      [
+        "TC-PRODUCT-001",
+        "RISK-PRODUCT-001",
+        "docs/spec/features/product.md",
+        "BR-PRODUCT-001",
+        "AC-PRODUCT-001",
+        "open the seeded basic shirt",
+        "default scenario is reset",
+        "ベーシックTシャツ is shown as the heading",
+        "equivalence partitioning",
+      ],
+    ]),
+    "utf8",
+  );
+  fs.appendFileSync(
+    path.join(root, "workbook", "03_automation-mapping.csv"),
+    csv([
+      [
+        "TC-PRODUCT-001",
+        "Automate",
+        "Web E2E",
+        "Playwright",
+        implementationPath,
+        "PR",
+        "provided intro case",
+      ],
+    ]),
+    "utf8",
+  );
+}
+
+function removeCaseFromFixture(root: string, caseId: string, targetId: string): void {
+  for (const [filename, prefix] of [
+    ["01_target-risk.csv", targetId],
+    ["02_test-cases.csv", caseId],
+    ["03_automation-mapping.csv", caseId],
+    ["04_execution-improvement.csv", caseId],
+  ] as const) {
+    const file = path.join(root, "workbook", filename);
+    const lines = fs.readFileSync(file, "utf8").trimEnd().split(/\r?\n/);
+    fs.writeFileSync(
+      file,
+      `${lines.filter((line, index) => index === 0 || !line.startsWith(`${prefix},`)).join("\n")}\n`,
+      "utf8",
+    );
+  }
+  for (const entry of fs.readdirSync(path.join(root, "receipts"))) {
+    if (!entry.endsWith(".json")) continue;
+    const receiptPath = path.join(root, "receipts", entry);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8")) as {
+      cases: Record<string, unknown>[];
+    };
+    receipt.cases = receipt.cases.filter((executionCase) => executionCase.case_id !== caseId);
+    fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+  }
+  fs.rmSync(path.join(root, "code", "training/playwright/exercises/cart-102.spec.ts"), {
+    force: true,
+  });
+  for (const entry of fs.readdirSync(path.join(root, "evidence"))) {
+    if (entry.includes(caseId)) fs.rmSync(path.join(root, "evidence", entry), { force: true });
+  }
+}
+
+function removeCaseFromReceipt(root: string, context: ReceiptContext, caseId: string): void {
+  updateReceipt(root, context, (receipt) => {
+    receipt.cases = receipt.cases.filter((executionCase) => executionCase.case_id !== caseId);
+  });
+}
+
 function refreshReceiptDigests(root: string): void {
   for (const entry of fs.readdirSync(path.join(root, "receipts"))) {
     if (!entry.endsWith(".json")) continue;
@@ -611,6 +791,48 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
+  it("does not require Playwright work for a non-UI Automate Case", () => {
+    const root = createHandoff();
+    try {
+      addUnitLearnerCase(root);
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("PASS");
+      expect(result.receipt.checked_case_ids).toContain("TC-CART-103");
+      expect(result.receipt.checked_outputs.learner_code).toBe(true);
+      expect(result.receipt.checked_outputs.c07_web_projects).toBe(true);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not count the provided TC-PRODUCT-001 intro as a second learner Case", () => {
+    const root = createHandoff();
+    try {
+      removeCaseFromFixture(root, "TC-CART-102", "TARGET-CART-102");
+      addProvidedProductCase(root);
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_case_ids).toEqual(["TC-CART-101"]);
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "at least two learner-owned Automate Cases",
+      );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("rejects using TC-PRODUCT-001 as a formal learner implementation", () => {
+    const root = createHandoff();
+    try {
+      addProvidedProductCase(root, CASES[0].implementationPath);
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("FAIL");
+      expect(result.receipt.reasons.join("\n")).toContain("Provided Training Case");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
   it("does not complete a handoff that includes the provided Canonical Helper", () => {
     const root = createHandoff();
     try {
@@ -642,6 +864,18 @@ describe("受講者向け修了確認契約", () => {
       expect(result.status).not.toBe("PASS");
       expect(result.receipt.checked_outputs.c07_web_projects).toBe(false);
       expect(result.receipt.reasons.join("\n")).toContain("training-mobile-chromium");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("accepts one successful Mobile Web execution for multiple Playwright learner Cases", () => {
+    const root = createHandoff();
+    try {
+      removeCaseFromReceipt(root, "mobile-exercise", CASES[1].caseId);
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("PASS");
+      expect(result.receipt.checked_outputs.c07_web_projects).toBe(true);
     } finally {
       removeFixture(root);
     }
@@ -1356,14 +1590,74 @@ test("TC-CART-102 shared Case", async ({ page }) => {
       const afterHelper = "export const productsHeading = 'new';\n";
       writeText(root, `code/${helperPath}`, afterHelper);
       const beforeSource = learnerCode(CASES[0].caseId, "valid");
+      updateReceipt(root, "c10-before", (receipt) => {
+        const executionCase = receipt.cases.find((entry) => entry.case_id === CASES[0].caseId);
+        if (!executionCase) throw new Error("C10 before case is missing");
+        executionCase.code_digests = { [helperPath]: digest(beforeHelper) };
+      });
       updateReceipt(root, "c10-improved", (receipt) => {
         const executionCase = receipt.cases.find((entry) => entry.case_id === CASES[0].caseId);
         if (!executionCase) throw new Error("C10 case is missing");
-        executionCase.code_digest = digest(beforeSource);
+        executionCase.code_digest = digest(
+          `${beforeSource}\n// C10 minimal maintainability improvement\n`,
+        );
+        executionCase.code_digests = { [helperPath]: digest(afterHelper) };
       });
       updateExecutionRow(root, CASES[0].caseId, "c10-improved", {
-        improvement: `Improvement Target: ${helperPath}; Before Digest: ${digest(beforeHelper)}; After Digest: ${digest(afterHelper)}`,
+        improvement: `Improvement Target: ${helperPath}; Problem: repeated Locator maintenance; Why: changes would be duplicated; Action: centralize the helper; Improvement: rerun passed`,
       });
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("PASS");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(true);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("accepts the provided deterministic C10 exercise under its reserved Case ID", () => {
+    const root = createHandoff({
+      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired"],
+    });
+    const implementationPath = "training/playwright/exercises/c10-provided.spec.ts";
+    const beforeSource = `import { expect, test } from "@playwright/test";\nimport { resetScenario } from "../support/reset-scenario";\n\ntest("TC-CART-900 provided C10 exercise", async ({ page }) => {\n  await resetScenario(page, "default");\n  await expect(page.getByRole("heading", { name: "すべての商品" })).toBeVisible();\n});\n`;
+    const afterSource = `${beforeSource}\n// learner-owned maintenance improvement\n`;
+    try {
+      writeText(root, `code/${implementationPath}`, afterSource);
+      writeText(root, "evidence/c10-provided-before.md", "provided C10 before evidence\n");
+      writeText(root, "evidence/c10-provided-improved.md", "provided C10 improved evidence\n");
+      fs.appendFileSync(
+        path.join(root, "workbook", "04_execution-improvement.csv"),
+        csv([
+          ["TC-CART-900", "c10-before", "Pass", "evidence/c10-provided-before.md", "", "", "", ""],
+          [
+            "TC-CART-900",
+            "c10-improved",
+            "Pass",
+            "evidence/c10-provided-improved.md",
+            "Maintainability",
+            "repeated Locator",
+            "centralize the Locator",
+            `Improvement Target: ${implementationPath}; Problem: repeated Locator; Why: maintenance changes would be duplicated; Action: centralize the Locator; Improvement: rerun passed`,
+          ],
+        ]),
+        "utf8",
+      );
+      writeText(root, `code/${implementationPath}`, beforeSource);
+      writeProvidedC10Receipt(
+        root,
+        "c10-before",
+        implementationPath,
+        digest(beforeSource),
+        "evidence/c10-provided-before.md",
+      );
+      writeText(root, `code/${implementationPath}`, afterSource);
+      writeProvidedC10Receipt(
+        root,
+        "c10-improved",
+        implementationPath,
+        digest(afterSource),
+        "evidence/c10-provided-improved.md",
+      );
       const result = checkCompletion(root, "common");
       expect(result.status).toBe("PASS");
       expect(result.receipt.checked_outputs.c10_improvement).toBe(true);

@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { resetScenario } from "../support/reset-scenario";
 
-// C10の決定的な練習素材です。正式なTC-CART-101の製品目的を保ったまま、
-// Test Codeの保守上の問題だけを最小限改善します。
-test("TC-CART-101 C10 maintenance exercise: repeated product heading Locator", async ({ page }) => {
+// C10の決定的な練習素材です。これはLearner Caseではなく、
+// TC-CART-900として扱う独立した保守演習です。
+test("TC-CART-900 C10 maintenance exercise: repeated product heading Locator", async ({ page }) => {
   await resetScenario(page, "default");
   await page.goto("/products");
 

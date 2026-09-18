@@ -9,6 +9,7 @@ import { parseCsv } from "../validate-curriculum";
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const CASE_ID = /TC-[A-Z0-9]+-\d{3}/;
 const PROJECTS = new Set(["training-chromium", "training-mobile-chromium"]);
+const PROVIDED_TRAINING_CODE_PATHS = new Set(["training/playwright/support/reset-scenario.ts"]);
 const SUITES = {
   exercise: "training/playwright/exercises",
   diagnostic: "training/playwright/diagnostic-exercises",
@@ -25,6 +26,7 @@ export type ReceiptCase = {
   status: string;
   result: string;
   code_digest: string | null;
+  code_digests?: Record<string, string>;
   implementation_path?: string;
   evidence: string[];
   retries: {
@@ -171,6 +173,51 @@ function isWithin(root: string, candidate: string): boolean {
   return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`));
 }
 
+function isProvidedTrainingCodePath(value: string): boolean {
+  const normalized = value.replace(/\\/g, "/");
+  return (
+    PROVIDED_TRAINING_CODE_PATHS.has(normalized) ||
+    normalized === "training/playwright/exercises/training-exercise-starter.spec.ts" ||
+    normalized.startsWith("training/playwright/baseline/") ||
+    normalized.startsWith("training/playwright/diagnostic-exercises/") ||
+    normalized.startsWith("training/playwright/failure-exercises/") ||
+    normalized.startsWith("training/playwright/maintenance-exercises/")
+  );
+}
+
+export function collectLearnerCodeDigests(executionRoot: string): Record<string, string> {
+  const trainingRoot = path.resolve(executionRoot, "training", "playwright");
+  if (!fs.existsSync(trainingRoot)) return {};
+  const result: Record<string, string> = {};
+  const visit = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const candidate = path.join(directory, entry.name);
+      const relative = normalizeRelative(path.relative(executionRoot, candidate));
+      if (!relative.startsWith("training/playwright/")) continue;
+      if (entry.isSymbolicLink()) {
+        const real = fs.realpathSync(candidate);
+        if (!isWithin(executionRoot, real))
+          throw new Error(`Learner code symlink escaped execution root: ${relative}`);
+        if (fs.statSync(real).isDirectory()) visit(real);
+        else if (!isProvidedTrainingCodePath(relative))
+          result[relative] = crypto
+            .createHash("sha256")
+            .update(fs.readFileSync(real))
+            .digest("hex");
+      } else if (entry.isDirectory()) {
+        visit(candidate);
+      } else if (entry.isFile() && !isProvidedTrainingCodePath(relative)) {
+        result[relative] = crypto
+          .createHash("sha256")
+          .update(fs.readFileSync(candidate))
+          .digest("hex");
+      }
+    }
+  };
+  visit(trainingRoot);
+  return result;
+}
+
 function safeRoot(rootOption: string): string {
   const root = path.resolve(rootOption);
   fs.mkdirSync(root, { recursive: true });
@@ -290,14 +337,26 @@ function readImplementationCaseMap(root: string): Map<string, string[]> {
     const header = rows[0] ?? [];
     const caseIndex = header.indexOf("test_case_id");
     const decisionIndex = header.indexOf("automation_decision");
+    const layerIndex = header.indexOf("test_layer");
+    const toolIndex = header.indexOf("tool");
     const pathIndex = header.indexOf("implementation_path");
-    if (caseIndex < 0 || decisionIndex < 0 || pathIndex < 0) return new Map();
+    if (caseIndex < 0 || decisionIndex < 0 || layerIndex < 0 || toolIndex < 0 || pathIndex < 0)
+      return new Map();
     const result = new Map<string, string[]>();
     for (const row of rows.slice(1)) {
       const caseId = row[caseIndex] ?? "";
       const decision = row[decisionIndex] ?? "";
+      const layer = row[layerIndex] ?? "";
+      const tool = row[toolIndex] ?? "";
       const implementationPath = row[pathIndex] ?? "";
-      if (decision !== "Automate" || !caseId || !implementationPath) continue;
+      if (
+        decision !== "Automate" ||
+        layer !== "Web E2E" ||
+        tool !== "Playwright" ||
+        !caseId ||
+        !implementationPath
+      )
+        continue;
       const normalizedPath = implementationPath.replace(/\\/g, "/");
       const caseIds = result.get(normalizedPath) ?? [];
       caseIds.push(caseId);
@@ -466,6 +525,7 @@ function buildCases(
   reportReference: string,
   implementationCaseMap: Map<string, string[]>,
   executionRoot: string,
+  learnerCodeDigests: Record<string, string>,
 ): ReceiptCase[] {
   return specs.map((spec) => {
     const last = spec.results.at(-1) ?? {
@@ -501,6 +561,7 @@ function buildCases(
       status: normalizePlaywrightStatus(last.status),
       result: normalizePlaywrightStatus(last.status),
       code_digest: digest.digest,
+      code_digests: { ...learnerCodeDigests },
       ...(digest.implementationPath ? { implementation_path: digest.implementationPath } : {}),
       evidence: [...evidence],
       retries,
@@ -714,6 +775,7 @@ export function runPlaywrightWithReceipt(options: {
       reportReference || logReference,
       readImplementationCaseMap(root),
       executionRoot,
+      collectLearnerCodeDigests(executionRoot),
     );
     const githubSha = process.env.GITHUB_SHA?.trim();
     const ci =
