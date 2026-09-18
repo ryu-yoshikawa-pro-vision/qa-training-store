@@ -1,0 +1,52 @@
+# Plan（計画）
+
+## Objective（目的）
+
+- Issue #163の保存Planへ最終レビュー指摘を反映し、実装時に追加判断が必要な箇所を解消する。
+- 今回はPlanとRepository契約上必要なRun Artifactだけを変更し、workflow、設定、依存関係、外部Appは実装しない。
+
+## Scope（対象範囲）
+
+- In:
+  - `docs/plans/2026-09-19_033900_issue-163-renovate-opencode-security-fallback.md`
+  - `.codex/runs/20260919-051528-JST/PLAN.md`
+  - `.codex/runs/20260919-051528-JST/TASKS.md`
+  - `.codex/runs/20260919-051528-JST/REPORT.md`
+- Out:
+  - `renovate.json`
+  - `.github/workflows/**`
+  - `.github/opencode/**`
+  - `package.json` / `pnpm-lock.yaml`
+  - 外部App installation、GitHub Settings、Secret変更、PR作成
+
+## Assumptions（仮定）
+
+- 対象branchは`issue-163-renovate-opencode-security-fallback`で、修正開始時HEADは`f96c48b1e273305eb701a80510ec5746f495d01f`。
+- Dependabot Alertsのopen件数は現在のGitHub connectorでは取得できないため、初期`prConcurrentLimit`はblast radiusを最小化する`1`へ固定する。
+- pnpm `v9.10.0`ではpackage selectorなしの`pnpm list --json --depth Infinity`が10 end leavesのtruncate経路を通らないことを固定実装で確認済み。
+- PR #58は同じtarget dependencyに複数parent-scoped overrideが必要な実例として扱う。
+
+## Questions / Ambiguity（質問・曖昧性）
+
+- 必ず質問する不透明点: なし。ユーザーからレビュー指摘の必要修正をPlanへ反映するよう指示済み。
+- 未回答の重要質問: 外部Appの実権限、Production trust、Zen/OIDC疎通はPlan上のactivation gateとして残す。
+
+## Approach（進め方）
+
+1. Issue #163、PR #58、固定pnpm/OpenCode実装、Renovate現行設定を再確認する。
+2. pnpm graph、複数override、specifier、parent candidate、Renovate公開metadata、permission順序、重複PR判定、`prConcurrentLimit`をPlanへ固定する。
+3. 今回taskのRun ArtifactをRepository契約に合わせて保存する。
+4. branch差分がPlanと今回Run Artifactだけであることを確認し、1 commitで保存する。
+
+## Definition of Done（完了条件）
+
+- 最終レビューのmust_fix / should_fixがPlanのDoD、変更方針、実行タスク、検証、リスクへ一貫して反映される。
+- `prConcurrentLimit`やrepair methodなどを実装者判断に残さない。
+- 今回taskの変更はPlanとRun Artifact 3 filesだけで、実装ファイルへ進まない。
+- branchへ通常のfast-forward commitとして保存する。
+
+## Risks / Unknowns（リスク・未知点）
+
+- Planだけを修正するtaskで実装ファイルへ範囲を広げない。
+- Security境界を簡略化するために必要なfail-close検証を削らない。
+- 外部サービスの実権限・疎通はRepository内Planだけでは確定できないため、activation gateとして明示的に残す。
