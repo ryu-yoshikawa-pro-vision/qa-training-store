@@ -174,7 +174,10 @@ function createHandoff(root: string): void {
         "action",
         "improvement",
       ],
-      ...CASES.map((entry) => [entry.caseId, "local-exercise", "Not run", "", "", "", "", ""]),
+      ...CASES.flatMap((entry) => [
+        [entry.caseId, "local-exercise", "Not run", "", "", "", "", ""],
+        [entry.caseId, "c10-before", "Not run", "", "", "", "", ""],
+      ]),
       ["TC-CART-001", "diagnostic-initial", "Not run", "", "", "", "", ""],
       ["TC-CART-001", "diagnostic-repaired", "Not run", "", "", "", "", ""],
       ["TC-CART-101", "c10-improved", "Not run", "", "", "", "", ""],
@@ -187,6 +190,123 @@ function createHandoff(root: string): void {
     "code/training/playwright/support/learner-helper.ts",
     `import type { Page, Locator } from "@playwright/test";\n\nexport function productsHeadingFor(page: Page): Locator {\n  return page.getByRole("heading", { name: "すべての商品" }).first();\n}\n`,
   );
+  for (const lessonId of ["P1-01", "P1-02", "P1-03", "P1-04", "P1-05", "P1-06", "P1-08", "P1-09"])
+    writeText(root, `self-check/${lessonId}.md`, `${lessonId} self-check\n`);
+}
+
+function createC10Handoff(root: string): void {
+  for (const directory of ["workbook", "code", "evidence", "receipts", "self-check"])
+    fs.mkdirSync(path.join(root, directory), { recursive: true });
+  writeText(
+    root,
+    "workbook/01_target-risk.csv",
+    csv([
+      [
+        "target_id",
+        "spec_ref",
+        "br_ids",
+        "ac_ids",
+        "risk_id",
+        "risk_description",
+        "impact",
+        "likelihood",
+        "priority",
+      ],
+      [
+        "TARGET-CART-103",
+        "docs/spec/features/cart.md",
+        "BR-CART-001",
+        "AC-CART-001",
+        "RISK-CART-103",
+        "重複Locatorを放置すると仕様変更時の修正漏れが起きる",
+        "Medium",
+        "Medium",
+        "Medium",
+      ],
+    ]),
+  );
+  writeText(
+    root,
+    "workbook/02_test-cases.csv",
+    csv([
+      [
+        "test_case_id",
+        "risk_id",
+        "spec_ref",
+        "br_ids",
+        "ac_ids",
+        "test_condition",
+        "precondition",
+        "expected_result",
+        "design_technique",
+      ],
+      [
+        "TC-CART-103",
+        "RISK-CART-103",
+        "docs/spec/features/cart.md",
+        "BR-CART-001",
+        "AC-CART-001",
+        "商品一覧見出しを確認する",
+        "default ScenarioをResetする",
+        "見出しが表示され商品という文言を含む",
+        "保守性;同値分割",
+      ],
+    ]),
+  );
+  writeText(
+    root,
+    "workbook/03_automation-mapping.csv",
+    csv([
+      [
+        "test_case_id",
+        "automation_decision",
+        "test_layer",
+        "tool",
+        "implementation_path",
+        "execution_timing",
+        "reason",
+      ],
+      [
+        "TC-CART-103",
+        "Automate",
+        "Web E2E",
+        "Playwright",
+        "training/playwright/exercises/c10-cart-103.spec.ts",
+        "Local",
+        "同じLocatorの変更箇所を減らす改善を確認する",
+      ],
+    ]),
+  );
+  writeText(
+    root,
+    "workbook/04_execution-improvement.csv",
+    csv([
+      [
+        "test_case_id",
+        "run_context",
+        "result",
+        "evidence",
+        "failure_category",
+        "cause",
+        "action",
+        "improvement",
+      ],
+      ["TC-CART-103", "c10-before", "Not run", "", "", "", "", ""],
+      ["TC-CART-103", "c10-improved", "Not run", "", "", "", "", ""],
+    ]),
+  );
+  const learnerSpecPath = path.join(
+    root,
+    "code/training/playwright/exercises/c10-cart-103.spec.ts",
+  );
+  const resetHelperPath = path.join(root, "code/training/playwright/support/reset-scenario.ts");
+  fs.mkdirSync(path.dirname(learnerSpecPath), { recursive: true });
+  fs.mkdirSync(path.dirname(resetHelperPath), { recursive: true });
+  fs.copyFileSync(
+    path.resolve("training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
+    learnerSpecPath,
+  );
+  fs.copyFileSync(path.resolve("training/playwright/support/reset-scenario.ts"), resetHelperPath);
   for (const lessonId of ["P1-01", "P1-02", "P1-03", "P1-04", "P1-05", "P1-06", "P1-08", "P1-09"])
     writeText(root, `self-check/${lessonId}.md`, `${lessonId} self-check\n`);
 }
@@ -449,6 +569,17 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
           result: "Pass" as const,
           evidence: executionCase.evidence[0]!,
         }));
+        const beforeReceipt = runReceipt(
+          handoffRoot,
+          { suite: "exercise", runContext: "c10-before", ...commonOptions },
+          0,
+        );
+        const beforeResults = beforeReceipt.cases.map((executionCase) => ({
+          caseId: executionCase.case_id!,
+          context: "c10-before",
+          result: "Pass" as const,
+          evidence: executionCase.evidence[0]!,
+        }));
 
         const diagnosticInitial = runReceipt(
           handoffRoot,
@@ -508,11 +639,12 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
         const improvedCase = caseIn(improvedReceipt, CASES[0].caseId);
         expect(improvedCase.status).toBe("passed");
         expect(improvedCase.code_digest).not.toBe(
-          caseIn(localReceipt, CASES[0].caseId).code_digest,
+          caseIn(beforeReceipt, CASES[0].caseId).code_digest,
         );
 
         updateExecutionTable(handoffRoot, [
           ...localResults,
+          ...beforeResults,
           {
             caseId: "TC-CART-001",
             context: "diagnostic-initial",
@@ -585,6 +717,130 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
             "utf8",
           ),
         ).toContain(CASES[0].implementationPath);
+      } finally {
+        if (serverProcess) await closeFixtureServer(serverProcess);
+        if (previousBaseUrl === undefined) delete process.env.PLAYWRIGHT_BASE_URL;
+        else process.env.PLAYWRIGHT_BASE_URL = previousBaseUrl;
+        if (previousUsePrebuilt === undefined) delete process.env.PLAYWRIGHT_USE_PREBUILT_DIST;
+        else process.env.PLAYWRIGHT_USE_PREBUILT_DIST = previousUsePrebuilt;
+        if (previousSkipWebServer === undefined) delete process.env.PLAYWRIGHT_SKIP_WEB_SERVER;
+        else process.env.PLAYWRIGHT_SKIP_WEB_SERVER = previousSkipWebServer;
+        if (previousCi === undefined) delete process.env.CI;
+        else process.env.CI = previousCi;
+        fs.rmSync(fixtureParent, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it(
+    "executes the distributed deterministic C10 maintenance exercise before and after its learner change",
+    { timeout: 180_000 },
+    async () => {
+      fs.mkdirSync(path.join(process.cwd(), "output"), { recursive: true });
+      const fixtureParent = fs.mkdtempSync(path.join(process.cwd(), "output", "training-c10-"));
+      const handoffRoot = path.join(fixtureParent, "handoff");
+      const exerciseRoot = path.join(fixtureParent, "exercise-copy");
+      const exercisePath = path.join(exerciseRoot, "exercises", "c10-cart-103.spec.ts");
+      const previousBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+      const previousUsePrebuilt = process.env.PLAYWRIGHT_USE_PREBUILT_DIST;
+      const previousSkipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER;
+      const previousCi = process.env.CI;
+      const externalBaseUrl = process.env.TRAINING_RUNTIME_BASE_URL?.trim();
+      let serverProcess: FixtureServerProcess | undefined;
+      try {
+        createC10Handoff(handoffRoot);
+        fs.mkdirSync(path.join(exerciseRoot, "support"), { recursive: true });
+        fs.mkdirSync(path.dirname(exercisePath), { recursive: true });
+        fs.copyFileSync(
+          path.resolve("training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
+          exercisePath,
+        );
+        fs.copyFileSync(
+          path.resolve("training/playwright/support/reset-scenario.ts"),
+          path.join(exerciseRoot, "support/reset-scenario.ts"),
+        );
+
+        if (externalBaseUrl) {
+          process.env.PLAYWRIGHT_BASE_URL = externalBaseUrl;
+          delete process.env.PLAYWRIGHT_SKIP_WEB_SERVER;
+        } else {
+          const started = await startFixtureServer();
+          serverProcess = started.serverProcess;
+          process.env.PLAYWRIGHT_BASE_URL = started.baseUrl;
+          process.env.PLAYWRIGHT_SKIP_WEB_SERVER = "true";
+        }
+        process.env.PLAYWRIGHT_USE_PREBUILT_DIST = "true";
+        delete process.env.CI;
+
+        const options = {
+          project: "training-chromium",
+          rootOption: handoffRoot,
+          testRootOption: exerciseRoot,
+        } as const;
+        const before = runReceipt(
+          handoffRoot,
+          { suite: "exercise", runContext: "c10-before", ...options },
+          0,
+        );
+        const beforeCase = caseIn(before, "TC-CART-103");
+        expect(beforeCase.status).toBe("passed");
+        expect(beforeCase.implementation_path).toBe(
+          "training/playwright/exercises/c10-cart-103.spec.ts",
+        );
+
+        const beforeSource = fs.readFileSync(exercisePath, "utf8");
+        const afterSource = beforeSource.replace(
+          '  await expect(page.getByRole("heading", { name: "すべての商品" })).toBeVisible();\n  await expect(page.getByRole("heading", { name: "すべての商品" })).toContainText("商品");',
+          '  const productsHeading = page.getByRole("heading", { name: "すべての商品" });\n  await expect(productsHeading).toBeVisible();\n  await expect(productsHeading).toContainText("商品");',
+        );
+        expect(afterSource).not.toBe(beforeSource);
+        fs.writeFileSync(exercisePath, afterSource, "utf8");
+
+        const after = runReceipt(
+          handoffRoot,
+          { suite: "exercise", runContext: "c10-improved", ...options },
+          0,
+        );
+        const afterCase = caseIn(after, "TC-CART-103");
+        expect(afterCase.status).toBe("passed");
+        expect(afterCase.implementation_path).toBe(beforeCase.implementation_path);
+        expect(afterCase.code_digest).not.toBe(beforeCase.code_digest);
+        expect(afterCase.evidence).not.toEqual(expect.arrayContaining(beforeCase.evidence));
+
+        fs.copyFileSync(
+          exercisePath,
+          path.join(handoffRoot, "code/training/playwright/exercises/c10-cart-103.spec.ts"),
+        );
+        writeText(
+          handoffRoot,
+          "workbook/04_execution-improvement.csv",
+          csv([
+            [
+              "test_case_id",
+              "run_context",
+              "result",
+              "evidence",
+              "failure_category",
+              "cause",
+              "action",
+              "improvement",
+            ],
+            ["TC-CART-103", "c10-before", "Pass", beforeCase.evidence[0]!, "", "", "", ""],
+            [
+              "TC-CART-103",
+              "c10-improved",
+              "Pass",
+              afterCase.evidence[0]!,
+              "Maintainability",
+              "同じLocator式が複数Assertionに重複していた",
+              "Locatorを変数へ抽出した",
+              "同じLocatorの修正箇所を1か所に減らした",
+            ],
+          ]),
+        );
+        const completion = checkCompletion(handoffRoot, "common");
+        expect(completion.receipt.checked_outputs.c10_improvement).toBe(true);
+        expect(completion.receipt.machine_checked_competencies).toContain("C10");
       } finally {
         if (serverProcess) await closeFixtureServer(serverProcess);
         if (previousBaseUrl === undefined) delete process.env.PLAYWRIGHT_BASE_URL;

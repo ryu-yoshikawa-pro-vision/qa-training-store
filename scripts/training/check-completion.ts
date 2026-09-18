@@ -9,6 +9,7 @@ import { WORKBOOK_HEADERS, type WorkbookFilename } from "./workbook-schema";
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const FORMAL_RECEIPT_PRODUCER = "training:web:exercise:with-receipt";
 const FORMAL_PROJECTS = new Set(["training-chromium", "training-mobile-chromium"]);
+const C10_BEFORE_CONTEXT = "c10-before";
 const C10_IMPROVEMENT_CONTEXT = "c10-improved";
 
 export const HANDOFF_DIRECTORIES = [
@@ -560,10 +561,19 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
         `implementation_path must be empty for ${testCaseId}: ${decision}`,
       );
     if (decision === "Automate") {
-      // Canonical sample IDs are the only existing signal that permits an
-      // empty implementation path. A newly added learner Case remains in the
-      // completion set even before its implementation path is filled in.
-      if (implementationPath !== "" || !sampleCaseIds.has(testCaseId)) {
+      // Canonical sample IDs are distributed reference rows, not learner-owned
+      // Cases. They may remain Automate rows with an empty path, but assigning
+      // an implementation path to one is an explicit ID-boundary error. A
+      // newly added learner Case remains in the completion set even before its
+      // implementation path is filled in.
+      if (sampleCaseIds.has(testCaseId)) {
+        if (implementationPath !== "")
+          addIssue(
+            issues,
+            "failure",
+            `Canonical sample Case must keep implementation_path empty; use a learner ID instead: ${testCaseId}`,
+          );
+      } else {
         learnerCaseIds.push(testCaseId);
         if (isProvidedImplementationPath(implementationPath))
           addIssue(
@@ -1002,6 +1012,12 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
       issues,
       "incomplete",
       "Common Completion requires at least two learner-owned Automate Cases",
+    );
+  if (!workbook.learnerCaseIds.includes("TC-CART-101"))
+    addIssue(
+      issues,
+      "incomplete",
+      "Common Completion requires learner-owned TC-CART-101 as the vertical Case",
     );
   for (const caseId of workbook.learnerCaseIds) {
     const mapping = workbook.mappings.get(caseId);
@@ -1577,6 +1593,10 @@ function isC10Context(value: string): boolean {
   return normalizedExecutionContext(value) === C10_IMPROVEMENT_CONTEXT.replaceAll("-", "");
 }
 
+function isC10BeforeContext(value: string): boolean {
+  return normalizedExecutionContext(value) === C10_BEFORE_CONTEXT.replaceAll("-", "");
+}
+
 function validateC10Improvement(
   root: string,
   workbook: WorkbookData,
@@ -1664,10 +1684,21 @@ function validateC10Improvement(
 
       const afterTimestamp = receiptTimestamp(match.receipt);
       const beforeCandidates: ReceiptCaseMatch[] = [];
+      const beforeWorkbookRows = workbook.executionRows.filter(
+        (row) =>
+          row.test_case_id === caseId &&
+          isC10BeforeContext(row.run_context ?? "") &&
+          (row.result ?? "").trim() === "Pass" &&
+          (row.evidence ?? "").trim() !== "",
+      );
+      if (beforeWorkbookRows.length === 0) {
+        addIssue(issues, "incomplete", `C10 improvement before Workbook row is missing: ${caseId}`);
+      }
       for (const [receiptIndex, receipt] of receipts.entries()) {
         const context = valueString(receipt.run.run_context) ?? "";
         if (
           isC10Context(context) ||
+          !isC10BeforeContext(context) ||
           isDiagnosticInitialContext(context) ||
           isDiagnosticRepairedContext(context) ||
           isNaturalC09FailureContext(context) ||
@@ -1700,13 +1731,33 @@ function validateC10Improvement(
       if (!before) {
         addIssue(issues, "incomplete", `C10 improvement before Receipt is missing: ${caseId}`);
         valid = false;
-      } else if (before.executionCase.code_digest === match.executionCase.code_digest) {
-        addIssue(
-          issues,
-          "incomplete",
-          `C10 improvement did not change code_digest from its before Receipt: ${caseId}`,
+      } else {
+        const beforeEvidence = new Set(
+          before.executionCase.evidence
+            .map((reference) => canonicalEvidenceReference(root, reference))
+            .filter((reference): reference is string => reference !== null),
         );
-        valid = false;
+        const improvedEvidence = new Set(
+          match.executionCase.evidence
+            .map((reference) => canonicalEvidenceReference(root, reference))
+            .filter((reference): reference is string => reference !== null),
+        );
+        if ([...beforeEvidence].some((reference) => improvedEvidence.has(reference))) {
+          addIssue(
+            issues,
+            "failure",
+            `C10 improvement before and improved share Evidence: ${caseId}`,
+          );
+          valid = false;
+        }
+        if (before.executionCase.code_digest === match.executionCase.code_digest) {
+          addIssue(
+            issues,
+            "incomplete",
+            `C10 improvement did not change code_digest from its before Receipt: ${caseId}`,
+          );
+          valid = false;
+        }
       }
     }
     if (valid) return true;

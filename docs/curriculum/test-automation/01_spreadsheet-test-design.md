@@ -240,6 +240,8 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 | TC-CART-001 | 同一SKUを上限まで追加した後、さらに追加する | default | 境界値 / 状態遷移 | 追加が拒否され、既存数量が維持される |
 | TC-CART-002 | 購入不可明細を含むCartからCheckoutへ進む | cart-with-invalid-items + customer Login | 状態再検証 | 購入不可理由が表示され、Checkoutへ進めない |
 
+上の`TC-CART-001`／`TC-CART-002`は、考え方を示す配布sampleです。完成した受講者Caseとして流用せず、受講者自身のCaseには`TC-CART-101`、`TC-CART-102`など別のIDを付けます。sampleの条件を参考にしても、対象Risk、前提、期待結果、選定理由は自分の観察と仕様から書き直してください。
+
 ケース数を増やすことより、なぜその条件が必要かを説明できることを重視します。
 
 ## 演習3: 自動化対象を選ぶ

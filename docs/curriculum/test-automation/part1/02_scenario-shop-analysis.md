@@ -4,6 +4,7 @@
 
 - 自動化コードを書く前にテスト対象を調査できる。
 - 画面、Role、状態、データ、業務ルール、境界条件を整理できる。
+- RiskのImpact、Likelihood、Priorityを、ラベルだけでなく判断理由とともに説明できる。
 - `/guide` やSeed Scenarioを、仕様と観察結果を結び付ける補助情報として利用できる。
 - 画面単位だけでなくUser Journeyと状態遷移からテスト対象を捉えられる。
 
@@ -31,11 +32,11 @@
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
 | Input | P1-01で確認したテスト自動化の目的、`docs/spec`の対象Feature、`/guide`、必要なSeed Scenario。仕様のBR / ACは仕様側を正本とし、画面観察は補助情報として扱う |
-| Activity | Scenario ShopをRole・State・Dataの組み合わせで操作し、CartとCheckoutの正常・異常・境界を観察する。観察した事実と仕様上の判断を分けて記録する |
-| Observation | Roleによる表示・操作差、Reset後の初期状態、Cart数量・在庫・Checkout状態の変化、拒否理由と次に進めない条件 |
-| Output | 4 CSVへ入れる前の分析メモと、少なくとも`TARGET-CART-101`／`RISK-CART-101`を含む受講者作成の対象・Risk行。編集場所は自由で、完了時は`handoff-root/workbook/`へ集約する。既存CSVへ回答を追記しない |
-| Self-check | 「画面一覧だけでなく何を分析したか」「RoleとStateを分ける理由」「どの観察をどのBR / ACへ戻せるか」に答え、初期状態・操作・変化・Riskの最低要素を含める |
-| Completion | CartまたはCheckoutの1つのJourneyを図示し、正常・異常・境界を含む複数のRisk候補を、仕様参照と観察事実を分けて説明できる。P1-03へ渡す対象・RiskのIDとメモが揃っている |
+| Activity | Scenario ShopをRole・State・Dataの組み合わせで操作し、CartとCheckoutの正常・異常・境界を観察する。各Risk候補についてImpact、Likelihood、Priorityを考え、観察した事実と仕様上の判断を分けて記録する |
+| Observation | Roleによる表示・操作差、Reset後の初期状態、Cart数量・在庫・Checkout状態の変化、拒否理由と次に進めない条件、Risk評価の根拠になる影響範囲と到達しやすさ |
+| Output | 4 CSVへ入れる前の分析メモと、少なくとも`TARGET-CART-101`／`RISK-CART-101`を含む受講者作成の対象・Risk行。Risk行には`impact`、`likelihood`、`priority`とそれぞれの判断理由を残す。編集場所は自由で、完了時は`handoff-root/workbook/`へ集約する。既存CSVへ回答を追記しない |
+| Self-check | 「画面一覧だけでなく何を分析したか」「RoleとStateを分ける理由」「どの観察をどのBR / ACへ戻せるか」「Impact、Likelihood、Priorityをなぜその値にしたか」に答え、初期状態・操作・変化・Risk評価の最低要素を含める |
+| Completion | CartまたはCheckoutの1つのJourneyを図示し、正常・異常・境界を含む複数のRisk候補を、仕様参照と観察事実を分けて説明できる。少なくとも1つのRiskについて、Impact、Likelihood、Priorityを機械的な計算ではなく理由付きで評価できる。P1-03へ渡す対象・RiskのIDとメモが揃っている |
 | Recovery | 理解不足はLesson 1〜6と`docs/spec`へ戻る。画面やTest Controlが使えない場合は環境問題として記録し、期待動作の判断と混ぜない。状態が再現しない場合はSeed ScenarioとReset条件を再確認する |
 | Handoff | P1-03の受講者自身へ、対象・RiskのID、分析メモ、参照したBR / AC、Reset／Role／State条件を渡す。P1-03開始時にこれらを読み返せればよい |
 
@@ -116,6 +117,24 @@ UIテストは画面だけ見ても十分に設計できません。
 - Payment成功
 - Payment拒否
 - Payment処理中
+
+## Lesson 3.5: Riskの優先度を考える
+
+Riskは「何かが起きるかもしれない」という不確実さだけではなく、起きたときにどんな影響があり、どの程度起こりやすいかを表します。次の3つを別々に考えます。
+
+- **Impact**: そのRiskが起きたとき、誰にどのような不利益が出るかを見ます。金額、在庫、購入処理、利用者の操作継続などへの影響を考えます。
+- **Likelihood**: そのRiskへどの程度到達しやすいかを見ます。通常操作で起きるのか、特別な状態や複数の条件が必要なのかを確認します。
+- **Priority**: どのRiskから先に確認・対応するかを決めるために付けます。ImpactとLikelihoodを機械的に掛け合わせて答えを出すことが目的ではなく、判断理由を他の人へ説明できることが重要です。
+
+### Cartの例
+
+「購入上限を超えたCartが成立する」というRiskを考えます。
+
+1. **Impact**: 購入者だけでなく、注文金額、在庫数、購入処理の正しさに影響する可能性があります。成立した場合にどの業務が壊れるかを書きます。
+2. **Likelihood**: 通常の追加操作で上限を超えられるのか、在庫や特別なSeed Scenarioなどの条件が必要なのかを確認します。
+3. **Priority**: 影響の大きさと到達条件を踏まえ、先に確認すべきかを決め、その理由を書きます。例えば「影響は大きいが、上限を超える状態は境界操作で確認するため、`高 / 中 / 高`とする」といった説明は可能です。
+
+これは評価値の正解を暗記する例ではありません。自分が観察したCartまたはCheckoutのRiskについて、誰にどの影響があり、どの条件で起き、なぜそのPriorityで確認するのかを説明してください。
 
 状態と期待結果を仕様から整理した後、`docs/spec/state-and-scenarios.md` と `docs/07_testability/seed_catalog.md` の必要な節でScenarioの目的と初期状態を確認します。続けて`/guide`で現在の画面・入口・観察状態を確認します。このLessonではTypeScript実装を読みません。
 
@@ -212,6 +231,8 @@ Cartについて次を洗い出します。
 
 分析を終えたら、受講者自身の作業表へ次の2つの識別子を作ります。`TARGET-CART-101`は調査対象、`RISK-CART-101`はその対象で起こる影響の大きいRiskです。既存の`TARGET-CART-001`や`RISK-CART-001`を上書き・完成答案としてコピーせず、自分が観察した条件と、根拠にしたSpec / BR / ACを記録します。後続のP1-3では、このRiskだけに限定せず、少なくとも別のRiskも追加してTest Caseへ分解します。
 
+`RISK-CART-101`には、Impact、Likelihood、Priorityのラベルと、それぞれの理由を記録します。値を決められない場合は、影響を受ける利用者・業務、通常操作での到達条件、追加で確認したい情報を書いてから評価します。
+
 ## ハンズオン2: Checkout Journey分析
 
 Guestから購入完了までを図にします。
@@ -235,6 +256,8 @@ Guestから購入完了までを図にします。
 3. `out-of-stock` のようなScenarioが自動化へ与える価値は何か。
 4. Payment成功だけを確認しても十分でない理由は何か。
 5. UI操作後の内部状態を考える必要があるのはなぜか。
+6. ImpactとLikelihoodを別々に考えるのはなぜか。
+7. Priorityを単純な計算結果として埋めてはいけないのはなぜか。
 
 ## 自己確認
 
@@ -245,6 +268,7 @@ Guestから購入完了までを図にします。
 - `out-of-stock` を決定的な初期状態へ戻すSeed Scenarioとして説明し、Test Dataを手作業で作り続ける問題と結び付けている。
 - Payment成功以外に拒否・processing・Retryまたは在庫 / Cart Versionの状態を挙げ、Journey上の影響を説明している。
 - UI操作後に確認する内部状態を1つ挙げ、`docs/spec`のBR / ACまたはState / Scenarioへ参照を戻している。
+- 「購入上限を超えたCartが成立する」など1つのRiskについて、Impact、Likelihood、Priorityを、影響範囲・到達条件・確認順の理由とともに説明している。単純な掛け算だけを根拠にしていない。
 
 ### Recovery
 
@@ -255,6 +279,7 @@ Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を�
 - Scenario Shopの主要Roleを説明できる。
 - 1つ以上のUser Journeyを図示できる。
 - CartまたはCheckoutについて正常・異常・境界条件を整理できる。
+- 少なくとも1つのRiskについて、Impact、Likelihood、Priorityと判断理由を記録できる。
 - Seed Scenarioがテスト自動化へ必要な理由を説明できる。
 
 ## 次の行動

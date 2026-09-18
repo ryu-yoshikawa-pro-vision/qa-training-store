@@ -2,10 +2,10 @@
 
 ## 学習目標
 
-- Localで動くPlaywright TestをGitHub Actions上で実行できる。
-- Part 1で作成した受講者向けPlaywright Testを、演習用CopyのPull Requestから継続実行へ接続できる。
+- Localで動くPlaywright Testが、準備済みTraining WorkflowからCI上でどのように実行されるか説明できる。
+- Part 1で作成した受講者向けPlaywright Testが、準備済みTraining WorkflowのPull Requestから継続実行される流れを説明できる。
 - Browser Install、Application Build / Serve、Base URL、Environmentの関係を理解できる。
-- HTML Report、Trace、Screenshot、VideoをCI Artifactとして残せる。
+- HTML Report、Trace、Screenshot、VideoがCI Artifactとして生成・保存されたことを確認し、Failure分析に利用できる。
 - Smoke、必須Regression、拡張RegressionなどのTest Suiteを実行タイミングに応じて分けられる。
 - Browser / Viewport Matrixと実行時間のTrade-offを理解できる。
 - Scenario Shopの既存Playwright CI構成を読み、その設計理由を説明できる。
@@ -36,16 +36,37 @@ Part 1で作成したTraining用Playwright Testは `playwright.training.config.t
 
 現在のworkflow構成、PR / main / Nightlyの配置、Production Artifact Smokeは参考・発展比較の範囲です。P2-5の共通課程の修了は、準備済みTraining WorkflowのWeb Build、Playwright実行、Failure Artifactで成立します。
 
+## 出力場所の役割
+
+同じTest結果でも、保存場所によって役割が違います。
+
+| 場所 | 役割 |
+| --- | --- |
+| Localの`handoff-root/` | Workbook、受講者Code、Evidence、Execution Receipt、self-checkを集約する学習成果物の正本。Local実行時は`--root <handoff-root>`を指定する |
+| CI Runner上の`.` | GitHub Actionsが一時的にCheckoutしたRepository root。Training Workflowではこの一時DirectoryをReceipt出力rootとして`--root .`で使う。Run終了後もLocalの正本にはならない |
+| GitHub Actions Artifact | CI Runの後から確認できるようにUploadされた保存物。Run／Checkと結び付いたCI側のEvidenceであり、Localの`handoff-root/`へ自動的に昇格しない |
+
+Training Workflowの受講者Exercise Artifactは、ActionsのRun Summaryから次の名前で開きます。
+
+| Artifact | 主な内容 | 学習者が確認する場所 |
+| --- | --- | --- |
+| `training-web-<run_id>-<run_attempt>` | `output/training/playwright`（HTML Report、Screenshot、Trace、Video）、`receipts`、`evidence` | PR → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts |
+| `web-dist-automation` | Production／既存CIのBuild再利用用Artifact。Training ExerciseのReceiptとは別物 | Production Workflowの該当Run。Commonの完了証跡へ読み替えない |
+
+Artifact名の`<run_id>`と`<run_attempt>`は実際のRun画面の値へ置き換えます。Workflowの説明とArtifact境界は [`training/github-actions/README.md`](../../../../training/github-actions/README.md) と突き合わせます。
+
+したがって、Localの正式入口では`--root <handoff-root>`、CIのStepでは`--root .`となります。値が違うのは環境が違うためで、Receiptの役割が違うわけではありません。受講者はCI Artifactを開いて結果を確認し、その確認内容を人間可読EvidenceとしてLocalの`handoff-root/evidence/`へ記録します。CI出力をコピーしただけの`ci.md`や、Artifactを見ていない記録をCompletionの根拠にはしません。
+
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
 | Input | P2-4で確認したTraining CopyのPR／Runと、P1-5／P1-6のCase ID、Repository相対コード、Local Receipt／Evidence。Secret不要・Deployなし・`contents: read`のTraining Workflowを前提にする |
-| Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、受講者CodeをTraining CopyのPRからCIへ接続する |
+| Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、準備済みTraining Workflowが受講者CodeをどのStepでCI実行するか確認する。WorkflowへStepを追加・編集しない |
 | Observation | LocalとCIの差、実行したCase、Run／Check／Artifact、失敗Step、Retry、Execution Receiptのrun／case／attempt、Artifactへの人間可読参照 |
 | Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。CI Receiptの機械メタデータとは別に、GitHub画面で確認したRun／Check／Artifact／結果／対象Caseを人間可読Evidenceへ記録する。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
-| Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
-| Completion | Training CopyのPRで受講者Caseを実行し、ReceiptとFailure Artifact、Run／Check／Artifactを確認して、Caseごとの人間可読EvidenceとともにP2-7へ渡せる。CI自身が生成した`ci.md`だけではC12完了としない。Fork上のCI結果をC12の証跡へ読み替えない |
+| Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Localの`handoff-root`・CI Runnerの`.`・GitHub Artifactの役割、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
+| Completion | Training CopyのPRに紐付く準備済みWorkflowのRunを開き、受講者CaseのReceiptとFailure Artifact、Run／Check／Artifactを確認して、Caseごとの人間可読EvidenceとともにP2-7へ渡せる。CI自身が生成した`ci.md`だけではC12完了としない。Fork上のCI結果をC12の証跡へ読み替えない |
 | Recovery | Build／Browser／Base URL／権限／Runnerの問題は環境として分ける。TestやWorkflowのFailureは最初の異常へ戻り、完成済みFormal CIやWorkflow権限変更で解決しない |
 | Handoff | P2-7へTraining Copy URL、PR／Branch、Run／Job／Check、Artifact名、Case ID、code Path、Receipt／Evidence、Failure分類を渡す |
 
@@ -218,9 +239,17 @@ Training Workflowでは本番Deployや本番Secretを扱わず、Production Arti
 1. Build
 2. Chromium Install
 3. `training:web:baseline`による基準確認
-4. `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context ci-exercise`による受講者向けPlaywright E2EとExecution Receipt生成
+4. `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise`による受講者向けPlaywright E2EとExecution Receipt生成。ここでの`.`はCI Runner上の一時的なRepository rootです
 
-ローカルで`pnpm run training:web:exercise:with-receipt`を成功させた自分の変更を、準備済みTraining CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
+ローカルで次の正式入口を成功させた自分の変更を、準備済みTraining CopyのPull Requestへ送ります。
+
+```text
+pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context local-exercise
+```
+
+`<handoff-root>`にはP1-6で受講者Codeを集約した固定rootを指定します。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
+
+このLocal入口で受講者specが`../support/reset-scenario`などをimportする場合、P1-6で説明したとおり、同じRepository相対PathのCanonical Helperを`<handoff-root>/code/training/playwright/support/`へコピーしてから実行します。P1-5で追加した受講者Helperも同じ`code/training/playwright/`配下へ集約します。別の一時Directoryへ暗黙に依存したり、CI Runner上の`.`をLocalの正本として扱ったりしません。
 
 Run完了後は、CIが自動生成した`ci.md`を人間確認の証拠にしません。GitHubのRun／Check／Artifactを自分で確認し、対象Caseごとに`handoff-root/evidence/`へ次の項目を含む記録を作成します。`Result`は実際に確認した結論を記録し、機械ReceiptのRun ID・Artifact名を単に転記しただけのFileにはしません。
 

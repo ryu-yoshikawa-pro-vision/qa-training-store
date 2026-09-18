@@ -46,7 +46,13 @@
     "training/workbook/README.md",
     "scripts/training/workbook-schema.ts",
     "tests/contracts/training-runtime-integration.test.ts",
-    "tests/contracts/training-execution-receipt.test.ts"
+    "tests/contracts/training-execution-receipt.test.ts",
+    "docs/curriculum/test-automation/02_competency-rubric.md",
+    "docs/curriculum/test-automation/04_learning-effort-reference.md",
+    "docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md",
+    "docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md",
+    "training/github-actions/README.md",
+    "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"
   ],
   "validation": {
     "status": "not_run",

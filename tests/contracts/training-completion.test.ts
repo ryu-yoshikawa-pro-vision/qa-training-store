@@ -29,6 +29,7 @@ const CASES = [
 
 type ReceiptContext =
   | "local-exercise"
+  | "c10-before"
   | "diagnostic-initial"
   | "diagnostic-repaired"
   | "learner-failure"
@@ -90,6 +91,7 @@ function writeExecutionReceipt(
   const isDiagnostic = context === "diagnostic-initial" || context === "diagnostic-repaired";
   const receiptTimes: Record<ReceiptContext, [string, string]> = {
     "local-exercise": ["2026-09-17T00:00:00.000Z", "2026-09-17T00:00:01.000Z"],
+    "c10-before": ["2026-09-17T00:00:01.000Z", "2026-09-17T00:00:02.000Z"],
     "diagnostic-initial": ["2026-09-17T00:00:02.000Z", "2026-09-17T00:00:03.000Z"],
     "diagnostic-repaired": ["2026-09-17T00:00:04.000Z", "2026-09-17T00:00:05.000Z"],
     "learner-failure": ["2026-09-17T00:00:02.000Z", "2026-09-17T00:00:03.000Z"],
@@ -280,6 +282,7 @@ function createHandoff(options: FixtureOptions = {}): string {
   );
   const contexts = options.contexts ?? [
     "local-exercise",
+    "c10-before",
     "diagnostic-initial",
     "diagnostic-repaired",
     "c10-improved",
@@ -536,7 +539,7 @@ describe("受講者向け修了確認契約", () => {
       expect(result.receipt.status).toBe("PASS");
       expect(result.receipt.exit_code).toBe(0);
       expect(result.receipt.checked_case_ids).toEqual(["TC-CART-101", "TC-CART-102"]);
-      expect(result.receipt.execution_receipt_refs).toHaveLength(4);
+      expect(result.receipt.execution_receipt_refs).toHaveLength(5);
       expect(result.receipt.semantic_understanding).toBe("NOT_EVALUATED");
       expect(result.receipt.part1_distribution_sha).toBe(SOURCE_SHA);
       expect(result.receipt.submission_sha).toBe(SUBMISSION_SHA);
@@ -623,7 +626,13 @@ describe("受講者向け修了確認契約", () => {
 
   it("accepts diagnostic initial Failure only with a separate repaired Pass and Evidence", () => {
     const root = createHandoff({
-      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired", "c10-improved"],
+      contexts: [
+        "local-exercise",
+        "c10-before",
+        "diagnostic-initial",
+        "diagnostic-repaired",
+        "c10-improved",
+      ],
     });
     try {
       expect(checkCompletion(root, "common").status).toBe("PASS");
@@ -755,6 +764,7 @@ describe("受講者向け修了確認契約", () => {
       mode: "part2",
       contexts: [
         "local-exercise",
+        "c10-before",
         "diagnostic-initial",
         "diagnostic-repaired",
         "c10-improved",
@@ -1015,6 +1025,38 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
+  it("rejects a distributed canonical sample ID when a learner implementation path is assigned", () => {
+    const root = createHandoff({ contexts: [] });
+    try {
+      const casesPath = path.join(root, "workbook", "02_test-cases.csv");
+      const cases = fs
+        .readFileSync(casesPath, "utf8")
+        .replace("TC-CART-101,RISK-CART-101", "TC-CART-001,RISK-CART-101")
+        .replace("TC-CART-102,RISK-CART-102", "TC-CART-002,RISK-CART-102");
+      fs.writeFileSync(casesPath, cases, "utf8");
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      const mapping = fs
+        .readFileSync(mappingPath, "utf8")
+        .replace(
+          "TC-CART-101,Automate,Web E2E,Playwright,training/playwright/exercises/cart-101.spec.ts",
+          "TC-CART-001,Automate,Web E2E,Playwright,training/playwright/exercises/cart-101.spec.ts",
+        )
+        .replace(
+          "TC-CART-102,Automate,Web E2E,Playwright,training/playwright/exercises/cart-102.spec.ts",
+          "TC-CART-002,Automate,Web E2E,Playwright,training/playwright/exercises/cart-102.spec.ts",
+        );
+      fs.writeFileSync(mappingPath, mapping, "utf8");
+
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("FAIL");
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "Canonical sample Case must keep implementation_path empty",
+      );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
   it("does not satisfy C07 with reset or Assertion text in comments and strings", () => {
     const root = createHandoff();
     try {
@@ -1085,7 +1127,7 @@ describe("受講者向け修了確認契約", () => {
 
   it("requires a valid before Receipt for C10", () => {
     const root = createHandoff({
-      contexts: ["diagnostic-initial", "diagnostic-repaired", "c10-improved"],
+      contexts: ["local-exercise", "diagnostic-initial", "diagnostic-repaired", "c10-improved"],
     });
     try {
       const result = checkCompletion(root, "common");
@@ -1094,6 +1136,37 @@ describe("受講者向け修了確認契約", () => {
       expect(result.receipt.reasons.join("\n")).toContain(
         "C10 improvement before Receipt is missing",
       );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires the learner-owned TC-CART-101 vertical Case", () => {
+    const root = createHandoff();
+    try {
+      for (const relativePath of [
+        "workbook/02_test-cases.csv",
+        "workbook/03_automation-mapping.csv",
+        "workbook/04_execution-improvement.csv",
+      ]) {
+        const file = path.join(root, relativePath);
+        fs.writeFileSync(
+          file,
+          fs.readFileSync(file, "utf8").replaceAll("TC-CART-101", "TC-CART-103"),
+          "utf8",
+        );
+      }
+      for (const entry of fs.readdirSync(path.join(root, "receipts"))) {
+        if (!entry.endsWith(".json")) continue;
+        const file = path.join(root, "receipts", entry);
+        const receipt = fs
+          .readFileSync(file, "utf8")
+          .replaceAll('"case_id": "TC-CART-101"', '"case_id": "TC-CART-103"');
+        fs.writeFileSync(file, receipt, "utf8");
+      }
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.reasons.join("\n")).toContain("requires learner-owned TC-CART-101");
     } finally {
       removeFixture(root);
     }
@@ -1133,6 +1206,26 @@ describe("受講者向け修了確認契約", () => {
       const result = checkCompletion(root, "common");
       expect(result.status).not.toBe("PASS");
       expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not accept a C10 improvement that reuses before Evidence", () => {
+    const root = createHandoff();
+    try {
+      updateReceipt(root, "c10-improved", (receipt) => {
+        receipt.cases.forEach((executionCase) => {
+          executionCase.evidence = [`evidence/c10-before-${String(executionCase.case_id)}.md`];
+        });
+      });
+      for (const entry of CASES)
+        updateExecutionRow(root, entry.caseId, "c10-improved", {
+          evidence: `evidence/c10-before-${entry.caseId}.md`,
+        });
+      const result = checkCompletion(root, "common");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("before and improved share Evidence");
     } finally {
       removeFixture(root);
     }

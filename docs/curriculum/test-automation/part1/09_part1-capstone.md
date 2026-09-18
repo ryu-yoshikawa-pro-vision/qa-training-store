@@ -10,8 +10,8 @@
 | Activity | Cartの最小Riskを仕様→Workbook→Case→Training code→Reset／実行→Failure分類→改善の順に一巡し、既存Formal Regressionと設計理由を比較する |
 | Observation | Caseとコードの対応、baseline／exerciseの違い、実行ExitとCase結果、Evidence、Failure分類、CommonとNative選択課程の境界 |
 | Output | Part 1の成果物一式、Repository相対コード、Execution Receipt／Evidence、Lesson ID別self-check、C09のinitial／repaired記録。編集場所は自由で、完了時に固定`handoff-root/`へ集約する。Repositoryのcanonical CSVへ完成回答を追記しない |
-| Self-check | C01〜C07、C09〜C10の対応を自分の成果物を指して説明し、Nativeを選択しなくてもCommonが成立する理由と、baseline／意図的Failureだけでは修了にならない理由を書く |
-| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、C09のinitial Failure→repaired Pass、C10の実在する保守問題→最小改善→別run、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
+| Self-check | C01〜C07、C09〜C10の対応を自分の成果物を指して説明し、Nativeを選択しなくてもCommonが成立する理由と、baseline／意図的Failureだけでは修了にならない理由を書く。C10で実在問題を使ったか、決定的教材演習へ切り替えたかも記録する |
+| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、C09のinitial Failure→repaired Pass、C10の実在する保守問題または決定的な教材演習→最小改善→別run、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
 | Recovery | 欠けた最初の成果物へ戻る。実行環境の不足はBrowser／Reset／Artifactの環境問題として記録し、Nativeを選択しないCommonの完了と混同しない |
 | Handoff | P2-1へ固定rootのWorkbook、code、Evidence、Receipt、self-checkと、Git管理Copyへ移行する際の対象Path／Case IDを渡す。Part 2正式CIへ進む時点でTraining Copyへmaterializeする |
 
@@ -59,6 +59,7 @@ Nativeを選択する場合だけ、P1-7で作成した受講者作成のNative 
 - `cart.md`のBR / ACから選んだRisk、Test Case、Layer、Tool、実行記録の対応を説明できる。
 - Guest / Customer、State / Data、Scenario / Resetの境界を既存SSOTへ戻って確認できる。
 - Web baselineと自分のFailure Exerciseを分離し、Failure分類、原因仮説、実行記録、未確定範囲を説明できる。
+- C10では、実在する保守問題を使ったか、問題がなければ決定的な教材演習を使ったかを明示し、改善前後の別runとTest目的を維持した確認を示せる。
 - 自動化しないまたはLaterとした条件を、Riskと理由付きで説明できる。
 - Nativeを選択しない共通経路でも修了でき、選択時だけNative成果物を別判定できる。
 

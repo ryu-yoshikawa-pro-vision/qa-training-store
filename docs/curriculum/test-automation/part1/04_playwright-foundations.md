@@ -277,7 +277,28 @@ Training用specへ次を自分で実装します。
 - Seed Scenario Resetがあるのはなぜか。
 - 自分のテストと比べて何が不足しているか。
 
-この段階では既存コードを完全に模倣する必要はありません。
+### このLessonで読む範囲
+
+比較対象は、まず`phase1-required.spec.ts`の「01 Guestの商品検索・Filter・商品詳細・Cart追加」テスト1件（必要な場合だけ「02 Guest Cartの数量変更・削除・上限拒否」テスト）に限定します。既存File全体を読んで理解する必要はありません。次の役割を追えれば、このLessonの目的を満たします。
+
+- `test(...)`: どのTestを定義しているか
+- `page`: Browser Pageをどこで操作しているか
+- `goto`: どの画面へ移動しているか
+- Locator: どの意味のある要素を対象にしているか
+- Action: `click`や`fill`など何を操作しているか
+- Assertion: 何が正しければPassなのか
+- Scenario Resetの呼び出し: Testをどの初期状態から始めているか
+
+次の構文や処理は、見かけてもこのLessonの修了条件にしません。必要になったLessonで扱います。
+
+- `async function`の定義方法そのもの
+- 配列、`for...of`、`if`などの制御構文
+- `page.evaluate`、`evaluateAll`、Requestや画像の詳細確認
+- TypeScriptの型注釈、`type`、`interface`、generics
+- nested arrow function、callbackの細かな型や高度な共通化
+- `test.describe`、`test.beforeEach`、`.first()`、正規表現やCSS Locatorの細かな書き方、helper function内部
+
+この段階では、上記の構文を一語ずつ説明できなくても、Testの目的・操作・検証・Resetの流れを指し示せれば十分です。既存コードを完成答案としてコピーせず、自分のCaseを実装する判断材料として比較します。
 
 ## Lesson 7: Playwright Configを読む（P1-6への導入）
 

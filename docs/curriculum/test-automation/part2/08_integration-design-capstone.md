@@ -39,7 +39,7 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 | Observation | どのRiskをどのLayer／Triggerで守るか、受講者CaseとCIの対応、最小権限、Artifactの追跡、Common／Native／CDの境界、設計と現行実装の差 |
 | Output | 対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failure対応表、Run／Check／Artifact参照、最終self-check。編集場所は自由で、Part 1／2の成果物を固定`handoff-root/`へ集約する |
 | Self-check | 「何を、いつ、どこで、どの条件で実行し、Failure時に何を見るか」をCase／Risk／Workflow／Evidenceを指して説明する。GitHub外部状態をAPIなしで証明したとは書かない |
-| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。C09はinitial Failure→同じ対象のrepaired Pass、C10は実改善→別run、C11はBranch／Commit／Diff／Pull Request／Review記録、C12はRun／Check／Artifact確認をそれぞれ満たす。Native／iOS Runtimeは必須にしない |
+| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。C09はinitial Failure→同じ対象のrepaired Pass、C10は実在または決定的教材演習の改善→別run、C11はBranch／Commit／Diff／Pull Request／Review記録、C12はRun／Check／Artifact確認をそれぞれ満たす。Native／iOS Runtimeは必須にしない |
 | Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
 | Handoff | 最終確認へ固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと設計資料を渡す。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
 
@@ -47,17 +47,18 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 
 次の状態を想定します。
 
-> Scenario ShopではWebとNativeの機能開発が進んでいる。
+> 共通シナリオ: Scenario ShopのWeb自動テストはローカルでは実行できるが、Merge前に継続実行される保証がない。
 >
-> Unit / Integration / Component Test、Playwright、Maestroのテストはローカルで実行できる。
+> Unit / Integration / Component / Playwrightの確認はローカルで実行でき、開発者はGitとPull Requestで変更を管理している。
 >
-> 開発者はGitとPull Requestを使って変更を管理している。
+> この共通シナリオでは、対象範囲を限定したWeb CIについて、何をいつ実行し、どのQuality GateとArtifactでFailureを調べるかを設計する。
 >
-> しかし、自動テストの実行は担当者が必要に応じて手動で行っており、Merge前に必ず実行される保証はない。
+> Nativeを選択する受講者は、別の選択課程としてAndroid / iOSの保証を追加検討できる。これはCommonの必須条件ではない。
 >
-> WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。
 
-この状態からCI/CD設計を作成します。
+この状態から、まず共通課程のWeb CI設計を作成します。
+
+Phase 1〜4、Phase 6のWeb項目、Phase 7の共通Web項目がCommonの必須範囲です。Phase 5のNative項目、Phase 6のNative／Deploy項目、Phase 7のNative／Preview／Production項目は、見出しまたは表に`Native選択時`／`発展課題`と記載された追加範囲です。Commonだけで進む受講者は、追加範囲を設計せず「未選択」と記録して次へ進みます。
 
 ## Phase 1: 現状把握
 
@@ -81,8 +82,8 @@ Repositoryを確認し、次を一覧化します。
 
 - Web Automation Build
 - Web Production Build
-- Android Build（モバイルアプリ自動化の選択課程）
-- iOS `iphonesimulator` Build Artifact（モバイルアプリ自動化の選択課程）
+- Android Build（Native選択時）
+- iOS `iphonesimulator` Build Artifact（Native選択時）
 
 ### Deploy（発展課題・参考資料）
 
@@ -96,21 +97,21 @@ Repositoryを確認し、次を一覧化します。
 - Video
 - HTML Report
 - JUnit
-- Maestro Artifact（モバイルアプリ自動化の選択課程）
-- Native Log（モバイルアプリ自動化の選択課程）
+- Maestro Artifact（Native選択時）
+- Native Log（Native選択時）
 
 この段階では現在のWorkflow Job構成をコピーしません。
 
 ## Phase 2: Riskを整理する
 
-最低限次を考えます。
+共通Webでは最低限次を考えます。
 
 - PR Merge前に絶対検出したいFailureは何か。
 - mainへ統合された後に確認すればよいものは何か。
 - Nightlyで十分なものは何か。
-- 高コストなNative Testをどの頻度で回すか。
-- Deploy Failureをどう検出するか。
 - FlakyなTestを必須にしてよいか。
+
+Nativeを選択する場合だけ、高コストなNative Testをどの頻度で回すかを追加します。Deployを発展課題として扱う場合だけ、Deploy Failureをどう検出するかを追加します。これらをCommon Webの回答へ混ぜません。
 
 ## Phase 3: Test Suiteを分類する
 
@@ -197,12 +198,12 @@ Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を�
 | Lint | GitHub Actions Log |
 | Playwright Assertion | Trace / Screenshot |
 | Browser起動 | Setup Log |
-| Gradle Build | Gradle Log |
-| APK Install | adb / Runtime Log |
-| Maestro Assertion | JUnit / Screenshot |
-| iOS Build | Xcode Build Log / Build Artifact |
-| Deploy | Deploy Log / URL |
-| Deploy後Smoke | Playwrightの実行記録 |
+| Gradle Build（Native選択時） | Gradle Log |
+| APK Install（Native選択時） | adb / Runtime Log |
+| Maestro Assertion（Native選択時） | JUnit / Screenshot |
+| iOS Build（Native選択時） | Xcode Build Log / Build Artifact |
+| Deploy（発展課題） | Deploy Log / URL |
+| Deploy後Smoke（発展課題） | Playwrightの実行記録 |
 
 「失敗したら担当者が頑張って調べる」ではなく、調査可能な実行記録を設計へ含めます。
 
@@ -337,6 +338,19 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - 必要最小限の対象範囲を限定したWeb CI Diagram
 - 最終設計判断と理由
 - P2-5で受講者が作成したPlaywright TestをTraining Copy Pull Requestで成功させたrun結果 / Artifact
+
+### 最終成果物の照合
+
+外部へのレポート提出はCommonの修了条件にしません。ただし、準備済みTraining Copy上で作成したPRのCI実行証跡は、Part 2の正式な学習成果です。完了前に次の対応を一つずつ照合します。
+
+| 習熟項目 | 最終確認する対応関係 |
+| --- | --- |
+| C09 | 同じCase／コードPathの`diagnostic-initial` Failure → `diagnostic-repaired` Pass、別Receipt／別Evidence |
+| C10 | 同じCase／コードPathの`c10-before` Pass → `c10-improved` Pass、別Evidence、Digest変更 |
+| C11 | Branch、Commit、Diff、Training Copy上のPull Request、Review記録 |
+| C12 | Training Copy上のRun、Check、Artifact、画面確認に基づく人間可読Evidence |
+
+ローカルの`handoff-root`だけでC12のRun／Check／Artifactを作ったことにはしません。Training Copyまたは必要なGitHub権限がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録します。
 
 ### 練習・参考資料
 

@@ -23,7 +23,7 @@ handoff-root/
 
 `implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
 
-P1-8のC10では、実在する保守上の問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
+P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)を決定的な教材演習として使います。問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
 
 各LessonのOutputには、作成したCSV行、コード、Evidence、自己確認のどれを残すかと、次のLessonへどのID・ファイル・実行記録を渡すかを記載します。意味のあるRiskやAssertionかどうかは、機械的なCSV検証だけで採点せず、本文のSelf-checkと評価基準に沿って自分の理由を説明します。
 
@@ -39,6 +39,8 @@ P1-8のC10では、実在する保守上の問題、原因、Action、最小改�
 | `TC-CART-002` | `BR-CART-003` / `AC-CART-003` / `RISK-CART-002` | `cart-with-invalid-items`へResetし`regular@example.com`でLoginした後、購入不可明細がCheckoutを阻止することを確認する |
 
 P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追加練習であり、上記のTest Case IDを流用しません。
+
+上の`TC-CART-001`／`TC-CART-002`は配布されるsampleの説明用IDであり、受講者の完成Caseではありません。受講者は`TC-CART-101`／`TC-CART-102`など自分で作った未使用IDを付け、Workbook、Test title、実行結果を同じIDへ対応付けます。
 
 ## Test Case IDの形式
 

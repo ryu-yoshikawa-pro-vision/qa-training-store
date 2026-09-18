@@ -26,7 +26,7 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-共通経路では、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はモバイルアプリ自動化の選択課程を選ぶ場合の前提であり、Playwrightのみで進む共通課程の修了には要求しません。
+共通経路では、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はモバイルアプリ自動化の選択課程を選ぶ場合の前提であり、Playwrightのみで進む共通課程の修了には要求しません。自分のTestに実在する保守上の問題が見つからない場合は、教材が用意した決定的なC10演習を使います。
 
 Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行記録の収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
 
@@ -34,13 +34,13 @@ Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行�
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する |
-| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。仮想仕様変更の影響範囲を追跡する |
-| Observation | 同じ変更で直す箇所、Failureを隠す共通化、Test Caseとコードの対応、Reset／Fixtureの責務、改善前後の差分と再実行結果 |
-| Output | 保守性の課題、選択した改善、差分、影響を受けるTest Case／Path、改善後の実行結果を記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
-| Self-check | POM等を採用する理由と採用しない理由、Fixture／Resetの責務、仕様変更からRisk→Case→コード→Regressionを追跡する方法を説明する |
-| Completion | 少なくとも1つの実在する保守上の問題を特定し、原因・影響を記録したうえで最小改善を実装し、`c10-improved`として別のExecution ReceiptとEvidenceを残す。設計だけではC10完了としない。Native成果物は選択時だけ追加し、baselineだけを成果としない |
-| Recovery | 問題が見つからない場合はP1-5／P1-6のコードと記録へ戻り、同一操作・同一Caseの重複を探す。実行できない場合は環境問題として記録し、保守判断と分ける |
+| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する。実在する問題がない場合は`training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts`を使う |
+| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。実在する問題がなければ、決定的なC10演習を受講者用specへコピーし、同じTest目的を保った最小改善と別runを行う。仮想仕様変更の影響範囲を追跡する |
+| Observation | 同じ変更で直す箇所、Failureを隠す共通化、Test Caseとコードの対応、Reset／Fixtureの責務、改善前後の差分と再実行結果。決定的演習では、同じLocator式が複数箇所にあることと、変数へ切り出してもTest目的が変わらないことを確認する |
+| Output | 保守性の課題、選択した改善、差分、影響を受けるTest Case／Path、改善前後の実行結果を記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
+| Self-check | POM等を採用する理由と採用しない理由、Fixture／Resetの責務、仕様変更からRisk→Case→コード→Regressionを追跡する方法を説明する。決定的演習を使った場合は、問題、改善を選んだ理由、実コードの差分、別run、Test目的を維持した確認を順に示す |
+| Completion | 少なくとも1つの実在する保守上の問題を特定するか、問題が見つからない場合は決定的なC10演習を使い、原因・影響を記録したうえで最小改善を実装し、`c10-improved`として別のExecution ReceiptとEvidenceを残す。設計だけではC10完了としない。Native成果物は選択時だけ追加し、baselineだけを成果としない |
+| Recovery | 問題が見つからない場合は、まずP1-5／P1-6のコードと記録を確認し、それでも保守問題がなければ決定的なC10演習へ進む。実行できない場合は環境問題として記録し、保守判断と分ける |
 | Handoff | P1-9へ改善前後のコードPath、Case ID、差分、再実行結果、`04_execution-improvement.csv`のContextを渡す。選択課程ではNative成果物も別枠で渡す |
 
 ## Lesson 1: 運用フェーズで当たる壁
@@ -165,6 +165,17 @@ Part 1前半で利用していた「Seed ScenarioをResetできる」「Console 
 Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
 
 「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
+
+### このLessonで読む`fixtures.ts`の範囲
+
+対象は`e2e/web/fixtures.ts`の次の流れに限定します。File全体のTypeScriptを理解したり、Fixture frameworkを実装したりする必要はありません。
+
+1. `scenario` FixtureがTestへ何を提供するか。
+2. Test開始時にScenario Resetを呼び、決めた初期状態を作る箇所。
+3. Console Errorと`pageerror`などのPage Errorを収集する箇所。
+4. Test終了時に収集結果を確認・記録する箇所。
+
+`type`、`interface`、generic、callback、`base.extend<Fixtures>`などの構文の詳細理解は今回不要です。受講者は「Fixtureが何を提供し、Resetとエラー収集をいつ行い、Test終了時に何を確認するか」を、呼び出し元のTestと対応付けて説明できれば十分です。
 
 ## Lesson 8: 複数画面の共通操作を切り出す場合
 
@@ -330,6 +341,73 @@ Flakyが継続する場合は、Regression Gateへ残すRiskも判断します�
 
 POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
 
+## 決定的なC10演習: 同じLocatorの重複を小さく改善する
+
+P1-5で作成したTestを読み、実在する保守上の問題を1件見つけた場合は、まずその問題を使います。適切に作れていて現状維持が正しい場合だけ、次の教材演習へ進みます。C10を完了するためだけに、自分の良いコードへ不要なPOMやHelperを追加しません。
+
+### Input
+
+教材が配布する [`c10-locator-maintenance.spec.ts`](../../../../training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts) と、P1-3で作った自分のTest Case、`04_execution-improvement.csv`です。配布Fileは問題を含む練習素材であり、完成答案ではありません。Product Code、Formal Regression、`e2e/`は変更しません。
+
+### Activity
+
+1. まだ使っていなければ、教材Fileを自分のExerciseへコピーします。正式なReceipt実行では、Repository相対Pathを保ったまま`<handoff-root>/code/`へ置きます。既存のP1-5コードを別Directoryで編集していた場合も、実行前にこのcode配下へ集約します。
+
+   ```bash
+   mkdir -p <handoff-root>/code/training/playwright/exercises <handoff-root>/code/training/playwright/support
+   cp training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-103.spec.ts
+   cp training/playwright/support/reset-scenario.ts <handoff-root>/code/training/playwright/support/reset-scenario.ts
+   ```
+
+   PowerShellの場合は次を使います。
+
+   ```powershell
+   New-Item -ItemType Directory -Force <handoff-root>/code/training/playwright/exercises, <handoff-root>/code/training/playwright/support | Out-Null
+   Copy-Item training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-103.spec.ts
+   Copy-Item training/playwright/support/reset-scenario.ts <handoff-root>/code/training/playwright/support/reset-scenario.ts
+   ```
+
+   コピー先のTest titleにある`TC-CART-103`を自分のCaseとして使う場合は、まず`01_target-risk.csv`へRiskを追加し、次にWorkbookの`02_test-cases.csv`と`03_automation-mapping.csv`へ同じIDと`training/playwright/exercises/c10-cart-103.spec.ts`を記録します。例えば次のように、Risk→Case→実装Pathを同じIDで結びます。
+
+   ```text
+   TARGET-CART-103,...,RISK-CART-103,商品一覧のLocator重複を放置すると仕様変更時の修正漏れが起きる,中,中,中
+   TC-CART-103,RISK-CART-103,...
+   TC-CART-103,Automate,Web E2E,Playwright,training/playwright/exercises/c10-cart-103.spec.ts,...
+   ```
+
+   別の未使用IDを選ぶ場合は、Test title、`01_target-risk.csv`、`02_test-cases.csv`、`03_automation-mapping.csv`、Evidenceのすべてを同じIDへ変更します。`TC-CART-001`／`TC-CART-002`は配布sampleなので、完成Caseとして使いません。
+
+2. 変更前に、Repository rootで次の正式入口を1回実行します。`<handoff-root>`は自分の作業成果物を集約するDirectoryへ置き換えます。`--suite`とTest Caseは変えず、`--project`、`--root`、`--run-context`だけを自分の環境に合わせます。
+
+   ```bash
+   pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-before
+   ```
+
+   `c10-before`のReceiptとEvidenceで、対象CaseがPassしたこと、実装Pathがコピー先であること、改善前のコードが記録されたことを確認します。
+
+3. コピーしたTestを読み、同じ`getByRole("heading", { name: "すべての商品" })`が2つのAssertionへ繰り返し書かれていることを確認します。ここでの問題は、将来Locatorを変更するときに同じ修正を複数箇所へ行う必要があることです。Test目的やAssertionの強さが問題なのではありません。
+
+4. `<handoff-root>/code/training/playwright/exercises/`内のコピーだけを最小限修正します。例えばLocatorを`const productsHeading = ...`へ1回だけ切り出し、2つのAssertionがその変数を使うようにします。POMを作る必要はなく、Assertionを削除・弱体化したり、Product Codeを変更したりしません。
+
+5. 同じTest Case、同じコードPathで、別のContextを指定して再実行します。
+
+   ```bash
+   pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-improved
+   ```
+
+   改善後のReceiptがPassし、`c10-before`とは同じCase ID・同じコードPathで、別のEvidenceを持ち、コードの実際のDigestが変わり、改善後の時刻が改善前より後で、Test Caseの目的が維持されていることを確認します。`c10-before`はRetry Failureを含まないclean Passでなければなりません。initialのEvidenceを上書きしたり、同じRunを修正後の結果として再利用したり、別Case・別PathのReceiptで置き換えたりしません。
+
+### Output
+
+`04_execution-improvement.csv`へ、少なくとも同じCaseの`c10-before`と`c10-improved`を記録します。Evidenceは実際に生成されたReceipt、Report、Screenshot、Traceなど後から追えるものを指定します。`c10-improved`には、問題、原因または保守上の懸念、選んだAction、改善内容を自分の言葉で記録します。
+
+```text
+TC-CART-103,c10-before,Pass,<改善前の実Evidence>,,,,
+TC-CART-103,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,<Test目的を保ったまま重複を減らす>
+```
+
+上の値は記入形式の例です。存在しないPath、Receipt、原因を作らず、実行結果に合わせて置き換えます。実在する保守問題を使った場合は、対象Caseと改善前後の実Diffが分かるように同じ項目を記録します。
+
 ## ハンズオン4: Seed Scenario整理
 
 自分のTest Data Setupを既存Seed Scenarioと比較し、重複したUI SetupをSeed Scenario Resetへ置き換えられないか検討します。
@@ -392,8 +470,11 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 次を自分の変更Diff、Test Case、または短い説明で確認できれば、このモジュールの判断を説明できます。
 
 - 実在するPlaywright保守問題を1件、重複・Flaky・責務混在・実行時間などの観察事実から説明できる。
+- 実在する問題がない場合は、決定的なC10演習の同じLocator重複を問題として説明できる。
 - その問題に対してHelper、POM、Component Object、Fixture、共通操作、現状維持のいずれを選び、選択理由と副作用を説明できる。
 - 最小改善のDiffがTest Caseの目的、Locator / Assertion、Test Data依存、既存Regressionとの関係を壊していないことを確認できる。
+- `e2e/web/fixtures.ts`では、Fixtureの提供物、Scenario Reset、Console / Page Error収集、Test終了時の確認だけをTestの呼び出しと対応付けて説明できる。未学習のTypeScript構文の説明は不要である。
+- C10では改善前と`c10-improved`を別Runとして残し、同じCaseのPass、別Evidence、実コードの変更Digest、目的維持を確認できる。
 - 仮想仕様変更では、Productを変更せず、Risk → Test Case → 自動化対象 → Regression分類の影響計画だけを作成している。
 - Native / Maestro / CIの比較は発展課題または参考資料であり、Playwrightのみで進む共通課程の修了に混ぜていない。
 
@@ -403,7 +484,7 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 ## 完了条件
 
-- 実在するPlaywright保守問題を1件以上診断し、原因・影響を説明したうえで、最小の改善を1件実装している。追加の棚卸しは練習量の目安として推奨するが、件数だけでは修了としない。
+- 実在するPlaywright保守問題を1件以上診断するか、実在する問題がない場合は決定的なC10演習を使い、原因・影響を説明したうえで、最小の改善を1件実装している。改善前と`c10-improved`の別Run、別Evidence、実コード変更、Test目的を維持した確認が揃っていることを求める。追加の棚卸しは練習量の目安として推奨するが、件数だけでは修了としない。
 - 各問題について解決方法を選び、理由を説明している。
 - Test Case IDと自動化実装の対応を更新している。
 - 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。

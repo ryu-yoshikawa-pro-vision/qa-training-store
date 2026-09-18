@@ -6,8 +6,8 @@
 - GitHub Actions Workflowの基本構造を読める。
 - YAMLのインデントと、演習用Workflowに現れるGitHub Actionsの主要なKeyを対応付けられる。
 - Trigger、Job、Step、Runnerの関係を理解できる。
-- Localで実行していたTest CommandをCIへ載せられる。
-- PR、main、schedule、manual実行の違いを理解できる。
+- Localで実行していたTest CommandとCI Stepを対応付けて説明できる。
+- 準備済みTraining Workflowで使うPR／manual実行の違いを説明でき、main／scheduleはProduction比較の参考情報として区別できる。
 - Training CIと教材元のProduction Workflowを安全に分離できる理由を説明できる。
 - CI Failureを「Workflowが悪い」「Testが悪い」「Environmentが悪い」に切り分ける観点を持てる。
 
@@ -31,6 +31,17 @@ Git / GitHubの基本演習ではForkも利用できますが、CIハンズオ�
 
 Training Copyの準備、実行対象Workflowのallowlist、Action pin、現在の構成、Native実行環境などのRepository固有の詳細は、開始前に提供された準備情報と、このRepositoryの実資材で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
 
+講師がいない自己学習では、開始前に次の「環境配布カード」を受け取っていることを前提にします。これはcredentialを記載する場所ではなく、学習者が接続先と完了判定の境界を確認するための情報です。カードがない、または値が空欄の場合は、推測でRepositoryやWorkflowを選ばずPart 2を`BLOCKED`として記録します。
+
+```text
+Training Copy URL: <学習者が書き込み可能なURL>
+Base branch: <Training Copyの指定Branch>
+Writable remote: <git remote -vで確認するPush先のRemote名>
+Active workflows: <Training Web workflow名と、Nativeを選択した場合だけ追加するworkflow名>
+Actions enabled: <yes / no>
+Expected PR / Artifact: <Training Copy上のPRとtraining-web-<run_id>-<run_attempt>>
+```
+
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
 ## このLessonのInput / Output
@@ -38,10 +49,10 @@ Training Copyの準備、実行対象Workflowのallowlist、Action pin、現在�
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
 | Input | P2-3のPRと、P1／P2-3で作成したTest Case・Training code・実行記録。C12へ進むための、事前準備済みTraining CopyのURLと学習者書き込み権限 |
-| Activity | Training WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、PRからActionsを実行してRun／Job／Check／Artifactを確認する |
+| Activity | 準備済みTraining WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、Workflowを編集せずにPRからActionsを実行してRun／Job／Check／Artifactを確認する |
 | Observation | どのEventでWorkflowが動いたか、各Stepの入力・出力、baselineとexercise、失敗段階、最小権限、Artifact、想定外Skipの扱い |
 | Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。CIが自動生成したReceipt／`ci.md`は機械メタデータであり、GitHub画面を確認したEvidenceの代わりにしない。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
-| Self-check | CIの価値、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
+| Self-check | CIの価値、Local CommandとCI Stepの対応、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
 | Completion | 準備済みTraining CopyでTraining Workflowを実行し、GitHub画面でRun／Check／Artifactと結果を確認して、対象Caseごとの人間可読Evidenceへ記録しP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
 | Recovery | Workflowが動かない場合はCopyの権限、Actions有効化、Trigger、Runner、Browser／Buildの順で環境問題を切り分ける。YAMLの理解不足は該当Lessonへ戻り、Production Workflowを直接変更しない |
 | Handoff | P2-5へTraining Copy URL、PR／Branch、Run ID、Job／Check、Artifact名、実行したCase／code Path、Evidenceを渡す |
@@ -227,7 +238,16 @@ Case: <Test Case ID>
 
 ## ハンズオン2: Local CommandとCI Stepを対応付ける
 
-Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run training:web:baseline`などを、Part 1で使ったLocal Commandと対応付けます。共通範囲ではWorkflowへ新しいCommandを追加せず、既存の許可されたStepを読んで説明します。
+Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run training:web:baseline`などを、Part 1で使ったLocal Commandと対応付けます。共通範囲ではWorkflowへ新しいCommandを追加・編集せず、既存の許可されたStepを読んで「Localの何がCIのどのStepで実行されるか」を説明します。
+
+少なくとも次の対応表を自分のEvidenceへ残します。Commandの細部を暗記するのではなく、同じ目的のLocal操作がCIのどのStepへ移ったかを確認します。
+
+| Localで確認したCommand | Training WorkflowのStep | CIで確認する結果 |
+| --- | --- | --- |
+| `pnpm run validate:curriculum` | `Validate curriculum contract` | Contract validationの終了状態 |
+| `pnpm run build:web` | `Build automation web` | Web buildの終了状態 |
+| `pnpm run training:web:baseline` | `Run Training Web baseline` | baseline Testの終了状態 |
+| `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context learner-exercise` | `Run Training Web exercise with receipt` | 受講者CaseのReceipt／Artifact |
 
 ## ハンズオン3: TriggerとContextを比較する
 
@@ -277,7 +297,7 @@ Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunne
 
 - GitHub Actionsの基本構造、Trigger、Job、Failure工程、least privilegeを説明できる。
 - 準備済みのTraining Workflowを読み、Trigger、Job、Step、Command、Contextの関係を説明できる。
-- PR / Push / Manual / Scheduleの違いを説明できる。
+- Training Workflowで実際に確認したPR／manualの違いを説明でき、Push／main／scheduleはProduction比較の参考情報として、共通課程の実行条件と混同しない。
 - CI Failure時に、意図したWorkflowかどうかを含めて発生工程をLogから特定できる。
 - Training Workflowと本体の実運用Workflowを分ける理由を説明できる。
 

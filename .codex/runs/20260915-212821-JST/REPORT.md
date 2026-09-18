@@ -819,3 +819,35 @@
 - Common V1: `PASS`（local fixture Runtime経路）。複数Learner Case、Sample／Later共存、Reset、Assertion、実Receipt、C09 Failure分析と実修正、C10 actual code changeとclean rerun、Common Completion、formal handoffからTraining Copy materialize境界を確認した。実アプリmodeは環境なしとして別記録。
 - Decision: `continue`。ローカル実装・対象focused・Runtime・Common V1は完了。次は既存Run collector／sanitizer、最終scope／branch／PR確認、明示pathだけのcommit・通常push、最新headのWeb CI／Mobile App CI確認、既存PR #157本文更新を行う。merge、force push、Part 2 remote provisioningは行わない。
 - Progress: 98% (51/52)。
+
+## 2026-09-18 10:53 JST — 最終是正・C10契約再監査・V1判定分離
+
+- 監査結果:
+  - Kuhn: C10の改善前Receiptが任意の過去Passへ緩く結び付く残差、`TC-CART-101`必須性、Mobile Web Receipt、環境BLOCKED記録の不足を指摘した。
+  - Hooke: C10の改善前Contextと実C10 fixtureからCompletionまでの統合を確認した。Evidence共有の負例とSample／Learner境界は現行差分で確認した。
+  - Poincare: Local正式入口のCanonical Helper供給元とTraining Copy環境配布カードを確認した。P1-6の`handoff-root/code/training/playwright/support/reset-scenario.ts`配置手順とP2-4の配布カードを教材へ反映済みである。
+  - Heisenberg: Fixture Runtime、実アプリ、Common V1人手一巡、Mobile Web、Part 2 V1、Source PRのCIを分離して判定すべきと確認した。Source PRのCI成功をTraining CopyのC12証跡へ読み替えない。
+  - 子Agentは読み取り専用監査のみを行い、source変更、commit、push、child delegationは行っていない。
+- 是正内容:
+  - `training:completion:check`のC10改善前候補を`run_context=c10-before`へ限定し、同じCaseのPass Workbook行と別Evidenceを要求するようにした。改善後は同じCase／Path、clean Pass、別Evidence、実コードdigest差を確認する。
+  - Common Completionで受講者所有の`TC-CART-101`を縦断Caseとして要求し、Canonical sampleの`TC-CART-001`／`TC-CART-002`へ実装Pathを付けた場合は不合格とする境界を維持した。
+  - P1-5へMobile WebのReceipt付き正式入口（`training-mobile-chromium`／`mobile-exercise`）を追加し、Native Android／iOSとは別経路であることを明記した。P1-6へ環境利用不能時の`BLOCKED`・理由・Workbook `Not run`記録を追加した。
+  - P2-5へLocalのCanonical Helper配置とCI Runner上の一時rootの関係を追加した。C10の実fixtureをbefore／improved／Completionまで通すRuntime Contractを追加した。
+- Contract / validation:
+  - PASS: `corepack pnpm exec vitest run tests/contracts/training-completion.test.ts tests/contracts/training-curriculum.test.ts tests/contracts/training-execution-receipt.test.ts tests/contracts/training-copy-handoff.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000`（4 files／86 tests）。
+  - PASS: `$env:RUN_TRAINING_RUNTIME_CONTRACT='1'; corepack pnpm run test:contracts:training-runtime`（2 tests）。実Playwright、Receipt、C09、C10、Completion、materialize経路を確認した。
+  - PASS: `corepack pnpm run validate:curriculum`、`typecheck:training`、`typecheck:native-tests`、`lint`（0 errors／既存warning 66件）、`lint:markdown`（441 files／0 issues）、`lint:text`、`security:check`、変更対象Prettier、`git diff --check`。
+  - TIMEOUT／PASS扱いしない: `corepack pnpm run test:contracts`は約604秒で完了せず、実行中の当該Vitestプロセスだけを停止した。Training対象は上記focused／Runtimeで確認し、全体Contractの完了とは分ける。`typecheck:app`の既知`/guide` route error 6件と、全体formatの既存app／coverage差分も今回の成功結果へ混ぜない。
+- V1判定:
+  - 制御Fixtureによる受講者に近いCommon経路は、Desktop／Mobile Web learner Case、C09 initial／repaired、C10 before／improved、CompletionまでPASSした。ただしこれはRuntime Contract／制御Fixture受入であり、Common V1の手人手一巡PASSとは扱わない。
+  - 実Scenario Shop（`127.0.0.1:8082`）は接続不能だったため、実アプリCommon V1は環境`BLOCKED`／実行`NOT_RUN`、講師資料なしの正式V1受入判定は`NOT_RUN/UNVERIFIED`として記録する。P1-1→P1-2→P1-3→P1-4→P1-5→P1-6→P1-8→P1-9の制御Fixture証跡と混同しない。
+  - Part 2 V1は、学習者書き込み可能なGitHub Training Copy、権限、実PR／Run／Check／Artifact／人間Evidenceが未提供のため`BLOCKED`。Localのprepare／validate／materialize PASSやSource PRのCI成功をC12 PASSへ読み替えない。
+- Decision: `continue`。対象修正と検証は完了。次はactive Runのcollector／sanitizer、明示したFileだけのcommit、通常push、既存PR #157本文更新、push後の最新CI確認を行う。merge、force push、Part 2環境の新設は行わない。
+- Progress: 98% (51/52)。
+
+## 2026-09-18 10:55 JST — 実アプリTraining入口の再確認
+
+- `corepack pnpm run training:web:baseline`を実行したが、`playwright.training.config.ts`のwebServer commandが内部で呼ぶ`pnpm`をWindows環境で解決できず、`'pnpm' is not recognized as an internal or external command`で終了した。
+- `corepack pnpm run build:web`でも同じ理由で、script内の`pnpm run prepare:font-assets`を開始できなかった。
+- これは教材理解や今回の差分によるTest Failureではなく、実アプリを起動するためのLocal Toolchain／PATH不足である。制御FixtureのRuntime PASSと混同せず、実Scenario Shop Common V1は環境`BLOCKED`／実行`NOT_RUN`のまま記録する。Repositoryのglobal PATHやHook／Harnessを今回のscopeで変更しない。
+- Progress: 98% (51/52)。
