@@ -14,6 +14,13 @@ import {
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDirectory = path.dirname(scriptPath);
 const repositoryRoot = path.resolve(scriptDirectory, "..");
+const FULL_SCAN_EXCLUDED_PREFIXES = Object.freeze([
+  ".codex/runs/",
+  "docs/plans/",
+  "docs/reports/",
+  "docs/history/",
+  "docs/adr/",
+]);
 
 export class ComparisonError extends Error {
   constructor(message) {
@@ -114,6 +121,17 @@ function getWorkingTreeMarkdownPaths(root) {
     .map(normalizeGitPath)
     .filter(isMarkdownPath)
     .filter((filePath) => currentPathExists(root, filePath));
+}
+
+function isFullScanPath(filePath) {
+  return (
+    filePath !== "CHANGELOG.md" &&
+    !FULL_SCAN_EXCLUDED_PREFIXES.some((prefix) => filePath.startsWith(prefix))
+  );
+}
+
+function getFullScanMarkdownPaths(root) {
+  return getWorkingTreeMarkdownPaths(root).filter(isFullScanPath);
 }
 
 function ensureRepositoryFile(root, filePath) {
@@ -372,10 +390,34 @@ export async function compareTextQualityChanges({
   };
 }
 
+export async function scanAllTextQuality({ root = repositoryRoot, rules }) {
+  if (!Array.isArray(rules)) {
+    throw new ComparisonError("Full scan rules must be an array");
+  }
+
+  const violations = [];
+  const paths = getFullScanMarkdownPaths(root);
+  for (const filePath of paths) {
+    const currentViolations = await scanTextQuality(readCurrentContent(root, filePath), {
+      path: filePath,
+      rules,
+    });
+    violations.push(...currentViolations);
+  }
+
+  return {
+    status: violations.length === 0 ? "pass" : "violations",
+    mode: "all",
+    scanned_files: paths.length,
+    violations: violations.map(publicViolation),
+  };
+}
+
 function parseArguments(argv) {
   const options = {
     baseRef: null,
     workingTree: false,
+    all: false,
     rulesPath: process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH,
     json: false,
   };
@@ -385,6 +427,8 @@ function parseArguments(argv) {
       options.baseRef = argv[++index];
     } else if (argument === "--working-tree") {
       options.workingTree = true;
+    } else if (argument === "--all") {
+      options.all = true;
     } else if (argument === "--rules") {
       options.rulesPath = argv[++index];
     } else if (argument === "--json") {
@@ -396,7 +440,13 @@ function parseArguments(argv) {
     }
   }
   if (options.help) return options;
-  if (options.baseRef === null || options.baseRef === undefined || options.baseRef === "") {
+  if (options.all && (options.baseRef !== null || options.workingTree)) {
+    throw new Error("--all cannot be combined with --base-ref or --working-tree");
+  }
+  if (
+    !options.all &&
+    (options.baseRef === null || options.baseRef === undefined || options.baseRef === "")
+  ) {
     throw new Error("--base-ref is required");
   }
   return options;
@@ -404,7 +454,8 @@ function parseArguments(argv) {
 
 function printUsage() {
   process.stderr.write(
-    "Usage: node scripts/check-text-quality-changes.mjs --base-ref <ref> [--working-tree] [--rules path] [--json]\n",
+    "Usage: node scripts/check-text-quality-changes.mjs --base-ref <ref> [--working-tree] [--rules path] [--json]\n" +
+      "       node scripts/check-text-quality-changes.mjs --all [--rules path] [--json]\n",
   );
 }
 
@@ -417,17 +468,22 @@ async function runCli() {
       return 0;
     }
     const { rules } = loadRules(options.rulesPath);
-    const result = await compareTextQualityChanges({
-      root: repositoryRoot,
-      baseRef: options.baseRef,
-      workingTree: options.workingTree,
-      rules,
-    });
+    const result = options.all
+      ? await scanAllTextQuality({ root: repositoryRoot, rules })
+      : await compareTextQualityChanges({
+          root: repositoryRoot,
+          baseRef: options.baseRef,
+          workingTree: options.workingTree,
+          rules,
+        });
     if (options.json) {
       process.stdout.write(`${JSON.stringify(result)}\n`);
     } else if (result.status === "pass") {
+      const countLabel = options.all
+        ? `scanned Markdown files=${result.scanned_files}`
+        : `changed Markdown files=${result.changed_files}`;
       process.stdout.write(
-        `PASS: text quality comparison (${result.mode}, changed Markdown files=${result.changed_files})\n`,
+        `PASS: text quality ${options.all ? "full scan" : "comparison"} (${result.mode}, ${countLabel})\n`,
       );
     } else {
       process.stdout.write(`FAIL: ${result.violations.length} new text quality violation(s)\n`);

@@ -37,19 +37,29 @@ describe("Phase 1 CI deployment boundaries", () => {
     const style = jobBlock("style-quality", "code-quality");
     const format = stepBlock(style, "Format check");
     const markdown = stepBlock(style, "Markdown lint");
+    const textQualityChange = stepBlock(style, "Text quality change gate");
+    const textQualityFull = stepBlock(style, "Text quality full scan");
     const skills = stepBlock(style, "Skill package validation");
     const specification = stepBlock(style, "Specification and Agentic QA validation");
     const impact = stepBlock(style, "Specification impact summary");
 
     expect(format).toContain("pnpm run format:check");
     expect(markdown).toContain("pnpm run lint:markdown");
+    expect(textQualityFull).toContain("pnpm run lint:text:all");
+    expect(textQualityChange).toContain("check-text-quality-changes.mjs --base-ref");
     expect(skills).toContain("pnpm run validate:skills");
     expect(specification).toContain("pnpm run validate:spec");
     expect(impact).toContain("pnpm run summarize:spec-impact");
     expect(impact).toContain("SPEC_IMPACT_EVENT_NAME");
     expect(style.indexOf("Markdown lint")).toBeGreaterThan(style.indexOf("Format check"));
-    expect(style.indexOf("Skill package validation")).toBeGreaterThan(
+    expect(style.indexOf("Text quality change gate")).toBeGreaterThan(
       style.indexOf("Markdown lint"),
+    );
+    expect(style.indexOf("Text quality full scan")).toBeGreaterThan(
+      style.indexOf("Text quality change gate"),
+    );
+    expect(style.indexOf("Skill package validation")).toBeGreaterThan(
+      style.indexOf("Text quality full scan"),
     );
     expect(style.indexOf("Specification and Agentic QA validation")).toBeGreaterThan(
       style.indexOf("Skill package validation"),

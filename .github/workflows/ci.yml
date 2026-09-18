@@ -96,6 +96,9 @@ jobs:
 
           node scripts/check-text-quality-changes.mjs --base-ref "$base_ref"
 
+      - name: Text quality full scan
+        run: pnpm run lint:text:all
+
       - name: Skill package validation
         run: pnpm run validate:skills
 
