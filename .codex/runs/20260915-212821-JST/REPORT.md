@@ -921,3 +921,21 @@
   - Result: `BLOCKED`。学習者が書き込み可能な正式Training Copy、Branch／Push／PR／GitHub Actions Run／Check／Artifactをこの環境で提供できないため。Local disposable copyのmaterialize PASSやSource PRのCIをPart 2／C12の証跡へ読み替えていない。
 - Decision: `continue`。main取り込み後のローカル検証とCommon受講者一巡は完了。残りはこのRunの最終反映、merge commitの通常push、push後最新HEADのWeb／Mobile CI確認、PR本文同期である。全ContractのHook failureは今回対象外、Part 2は外部環境BLOCKEDとして残す。
 - Progress: 98% (51/52)。
+
+## 2026-09-18 19:02 JST — push後CI最終結果・PR同期前確認
+
+- Push後の対象HEAD:
+  - Branch: `feat/self-study-curriculum-test-coverage`
+  - HEAD: `b7105242e69e30f529dd9506f6eed78e57a1528a`
+  - `origin/main`: `0af177828a058e118285a2ee3a01262aa7da6b2e`
+  - PR #157: OPEN・未マージ
+- GitHub Actions:
+  - **PASS**: [Web CI #1053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/35330159363)。Codex Hook、Build、Code Quality、全Contract、Integration、Component、Chromium E2E、Artifact sanitization、Training Web、Preview verifyを含む。
+  - **FAIL（今回のCommon／Training変更外）**: [Mobile App CI #911](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/35330159580)。`Native Static`の`Run Expo Doctor`が失敗し、集約ジョブ`native-ci / verify`がNative CI結果をFAILとした。
+  - Mobile App CIの個別結果: **PASS** Android Production-validation Build、Android Automation Build、Android Runtime／Maestro、iOS Automation Build、iOS Production-validation Build、iOS Native CI Verify、Production Bundle Guard。**FAIL**は上記Native Staticのみ。
+- ローカル検証との関係:
+  - 新HEADの全Contractは、`tests/contracts/codex-text-quality.test.ts`のStop state cleanup 1件のみFAIL。GitHub Web CIの全Contract jobはPASSしているため、Windowsローカルのstate cleanup差分は再現環境差として残し、今回のTraining変更へHook修正を混入しない。
+  - focused Training Contract 4 files／94 tests、Training Runtime 2 tests、Common受講者一巡、curriculum／typecheck／lint／securityは前項のとおりPASS。
+- Part 2 V1: `BLOCKED`。学習者向けの書き込み可能な正式Training Copyと実PR／Actions／Artifact環境が未提供であり、Source PRのCIやlocal materializeを代用しない。
+- Decision: `continue`。main取り込み、ローカル検証、Common受講者一巡、通常push、Web／Mobile CI確認まで完了。次はこの記録をcommit／pushし、PR本文を最新HEAD・CI結果・残存BLOCKED事項へ同期する。PRのmerge／close、force push、Part 2環境の新設は行わない。
+- Progress: 98% (51/52)。
