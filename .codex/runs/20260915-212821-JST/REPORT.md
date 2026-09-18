@@ -866,3 +866,24 @@
 - `corepack pnpm run build:web`でも同じ理由で、script内の`pnpm run prepare:font-assets`を開始できなかった。
 - これは教材理解や今回の差分によるTest Failureではなく、実アプリを起動するためのLocal Toolchain／PATH不足である。制御FixtureのRuntime PASSと混同せず、実Scenario Shop Common V1は環境`BLOCKED`／実行`NOT_RUN`のまま記録する。Repositoryのglobal PATHやHook／Harnessを今回のscopeで変更しない。
 - Progress: 98% (51/52)。
+
+## 2026-09-18 16:48 JST — 実アプリ受講者一巡の再実施と全体契約確認
+
+- Summary:
+  - ユーザー領域へCorepack shimを用意し、受講者が教材に記載された`pnpm`入口をそのまま実行できる条件を整えた。Program Filesへの`corepack enable`は権限不足で失敗したが、Repositoryやglobal PATHを変更せずに解消した。
+  - 実Scenario Shopで`build:web`、Desktop／Mobile baseline、Desktop／Mobile exercise、受講者Case`TC-PRODUCT-001`のReceipt付き実行を確認した。
+  - P1-6のDiagnosticは初回Failure（期待値1、実値5）をEvidence付きで取得し、誤った中間修正を別Contextへ残した後、正しい期待値5へ修正した`diagnostic-repaired-final`がPassした。
+- Validation:
+  - PASS: `pnpm install --frozen-lockfile`、`pnpm run build:web`、`pnpm run training:web:baseline`、`pnpm run training:web:mobile`、`pnpm run training:web:exercise`、`pnpm run training:web:mobile:exercise`。
+  - PASS: Receipt付き`learner-desktop`（`training-chromium`）と`learner-mobile`（`training-mobile-chromium`）。両方とも`TC-PRODUCT-001`がPassし、Evidenceと実装Pathを生成した。
+  - PASS: Receipt付き`diagnostic-repaired-final`。初回`diagnostic-initial`と別Receipt／別Evidenceで、`TC-CART-001`の期待値Failureから実値5への修正を確認した。`diagnostic-repaired`という中間誤修正Failureも上書きせず保持した。
+  - FAIL（今回差分外・最新main未統合の影響を含む）: `pnpm run test:contracts`は約516秒後に`tests/contracts/codex-text-quality.test.ts`のStop cleanup 1件で失敗。38 files passed、1 skipped、657 tests passed、6 skipped、1 failed。現在branchのHookは`origin/main`のStop state収束修正を未包含で、今回のカリキュラム／Training変更とは因果関係がない。
+  - PASS: `validate:curriculum`、focused Training contracts（4 files／94 tests）、Training Runtime（2 tests）、`typecheck:app`、`typecheck:training`、`typecheck:native-tests`、`lint:markdown`、`lint:text`、`security:check`、`lint`（0 errors／既存warning 66件）、対象Prettier、`git diff --check`。
+- Main / Git:
+  - `origin/main=0af177828a058e118285a2ee3a01262aa7da6b2e`、作業HEADは`5336708f828f17410ab2a1a4c5ad5bb392405b29`。`git merge-tree`では競合なしを確認した。
+  - 通常の`git merge --no-edit origin/main`は、実行環境のApproval policy（`AskForApproval=Never`）によりツール側で拒否された。force pushや別経路のGit mutationで回避せず、最新mainの取り込み、commit、push、PR／最新CI確認は未完了として扱う。
+- V1判定:
+  - 実アプリのWeb受講者一巡は、CommonのDesktop／Mobile Web入口とReceipt／Evidence、Failure→修正→別runまで実行可能であることを確認した。これはWorkbook全項目を受講者が完成させたという意味のCompletion PASSではない。
+  - Part 2の実GitHub Training Copy経路は、書き込み可能なCopyが未提供のため`BLOCKED`のまま。Source PRのCIをPart 2受講者成果物へ読み替えない。
+- Decision: `continue`。次は通常のGit mutationが許可される環境で最新mainをmergeし、差分を再検証してcommit／push／PR #157更新／最新必須CI確認を行う。今回の対象外Hook修正をこの差分へ独自に混入させない。
+- Progress: 98% (51/52)。

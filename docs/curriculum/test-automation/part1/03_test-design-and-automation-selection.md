@@ -27,7 +27,7 @@ Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-desig
 | Input | P1-02の対象・Risk分析（`TARGET-CART-101`／`RISK-CART-101`を含む）、仕様のBR / AC、Seed ScenarioとRole／Stateの観察。Impact、Likelihood、Priorityと判断理由が記録された受講者のRisk分析メモを使う。Repositoryのsample CSVを完成回答とはみなさない |
 | Activity | Riskを同値分割、境界値、状態遷移、Role差分などから複数のTest Caseへ分解し、各Caseの条件・前提・期待結果・設計根拠・Layer / Toolを決める。RiskのPriorityをそのまま写すのではなく、どのCaseを先に確認するかを理由付きで決める |
 | Observation | どの条件でExpectedが変わるか、UI E2Eでしか確認できないことと下位Layerで確認できること、ケースを分けたことでFailureの原因を絞れるか、Risk評価の理由が各Caseの選定へつながっているか |
-| Output | 既存Workbookの4 CSVへ対応する受講者作成行（少なくとも複数Case、`TC-CART-101`を代表Caseとして含める）。RiskのImpact、Likelihood、Priority、Test Caseの設計根拠を追跡できるようにする。編集場所は自由で、評価時は`handoff-root/workbook/`へ集約する。自動化対象の`implementation_path`はP1-5でコードを作るまで空欄でもよい |
+| Output | `01_target-risk.csv`はP1-2で作成したRiskを参照し、P1-3では`02_test-cases.csv`と`03_automation-mapping.csv`へ少なくとも複数Case（`TC-CART-101`を代表Caseとして含む）を作成する。RiskのImpact、Likelihood、PriorityとTest Caseの設計根拠を分析メモから追跡できるようにする。`04_execution-improvement.csv`は未実行のP1-3では使用せず、P1-6以降の実行後に使う。編集場所は自由で、評価時は`handoff-root/workbook/`へ集約する。自動化対象の`implementation_path`はP1-5でコードを作るまで空欄でもよい |
 | Self-check | 各CaseについてRisk／Spec、Impact・Likelihood・Priority、条件・前提・期待結果、技法、Layer / Tool、選定理由を説明する。少なくとも1件はUI E2E以外のLayerを選び、UIへ重複させる理由または重複させない理由を書く |
 | Completion | 正常・異常・境界・Role／Journeyを対象Riskに応じて複数Caseへ分解し、`TC-CART-101`を含むCase IDと対応根拠をP1-4／P1-5へ渡せる。Risk評価とCaseの優先順位を理由付きで説明できる。Case数や「10件程度」は練習量の目安で、単独の合格条件にはしない |
 | Recovery | 技法を選べない場合はP1-2のRisk・Stateへ戻り、1つのRiskを条件へ分解する。実行環境が必要になった場合は未実行のまま架空の結果を記録せず、環境問題として分離する |

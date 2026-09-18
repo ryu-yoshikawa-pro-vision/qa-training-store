@@ -50,14 +50,28 @@ Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-3で作ったCaseの一覧と、P1-5で実装するCaseの条件・前提・期待結果。`TC-PRODUCT-001`や単純なCart追加は、構文を練習するために提供する別のSampleであり、P1-5のLearner Caseの完成答案ではない |
+| Input | このLesson本文の導入用`TC-PRODUCT-001`と、Repository rootで実行できるTraining環境。P1-3のLearner Case一覧は参照してもよいが、このLessonを開始・完了するための実装Inputではない。P1-3のCaseを正式に実装するInputはP1-5で受け取る |
 | Activity | JavaScript / TypeScriptの最小構文を読み、`test`、`page`、Locator、Action、Assertionの役割を小さな商品・Cart練習へ置き換える。Baselineを実行してTraining境界とErrorの読み方を確認する |
 | Observation | Actionの後に画面がどう変わるか、Locatorがどの意味を対象にしているか、Assertionが何を保証するか、Syntax／Type／Runtime／Assertion Failureのどこで止まったか |
-| Output | 自分で説明できる最小Test、Locator選択理由のメモ、P1-5へ渡すCase IDと実装方針。編集場所は自由で、受講者コードは完了時に`handoff-root/code/`へRepository相対Pathで集約する |
+| Output | 本文の導入Caseを使った自分で説明できる最小Test、Locator選択理由のメモ、P1-5へ渡すPlaywright構文・実行・Failure分類の学習メモ。これはP1-3のLearner Case実装やCommon Completionのhandoffではない |
 | Self-check | `import`、`async`／`await`、`page`、Locator、Assertionの役割を自分のコードで説明し、固定待機を避ける理由とTraining／Formalの境界を含める |
-| Completion | Scenario Shopを対象に、starterをそのままPASS扱いせず、意味のあるLearner Testを1本以上書いて、P1-3のCaseをP1-5で実装するための条件とAssertion方針を説明できる。Test本数は単独条件にしない |
+| Completion | 本文の`TC-PRODUCT-001`を使った導入Testを自分で書き、`test`、`page`、Locator、Action、Assertion、Reset、最小実行、Errorの読み方を説明できる。P1-3のLearner Caseを完成実装したことや、P1-5のCommon CompletionをこのLessonの完了条件へ含めない。Test本数は単独条件にしない |
 | Recovery | 構文・型の問題は該当Lesson 0へ戻り、実行中のFailureはRuntime、期待不一致はAssertionとして分類する。Browser／Base URL問題は環境として記録し、既存Formal Testへ直接追記して解決しない |
-| Handoff | P1-5へ実装対象CaseのID、条件、前提、期待結果、Reset方法、Locator／Assertionの仮説を渡す。P1-5開始時にP1-3の複数Caseが残っていることを確認する |
+| Handoff | P1-5へ導入Testから得た`test`／Locator／Action／Assertion／ResetのパターンとFailure分類を渡す。P1-3の複数Case、条件、前提、期待結果はP1-5の正式Inputとして別に読み直す |
+
+## このLessonだけで始められる導入Case
+
+P1-3のWorkbookをまだ完成していなくても、次のCaseだけでこのLessonの構文練習を開始できます。
+
+| 項目 | 導入Caseの内容 |
+| --- | --- |
+| Case ID | `TC-PRODUCT-001` |
+| 対象 | Scenario Shopの商品詳細画面 |
+| 前提 | `default` ScenarioをResetし、商品一覧を表示できる状態にする |
+| 操作 | 商品一覧から最初に表示される商品カードを開く |
+| 期待結果 | 商品詳細画面へ遷移し、対象商品の見出しが表示される |
+
+これはPlaywrightの書き方を練習するためにP1-4本文が定義する導入Caseです。P1-3のLearner Case、`03_automation-mapping.csv`の正式な`implementation_path`、Common CompletionのCaseへ流用しません。P1-5では、P1-3で自分が設計したCaseを別の正式実装として作成します。
 
 ## 演習コードの扱い
 
@@ -79,9 +93,9 @@ Training用
 
 `playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
 
-### 最初のLearner specを作る場所
+### P1-5で最初のLearner specを作る場所
 
-Starterの`training/playwright/exercises/training-exercise-starter.spec.ts`は、Resetとページ遷移の構造を読むための足場です。P1-3で作ったCaseを実装するときは、Starterを完成答案に書き換えず、`training/playwright/exercises/<自分のCaseを表す名前>.spec.ts`という新しいFileを作ります。Test titleまたは既存annotation／metadataへ自分のTest Case IDを残し、`03_automation-mapping.csv`の`implementation_path`へ同じRepository相対Pathを記録します。
+P1-4では本文の導入Caseを練習用Fileへ書きます。P1-5で初めて、Starterの`training/playwright/exercises/training-exercise-starter.spec.ts`をResetとページ遷移の構造を読むための足場として使い、P1-3で作ったCaseを実装します。Starterを完成答案に書き換えず、`training/playwright/exercises/<自分のCaseを表す名前>.spec.ts`という新しいFileを作ります。Test titleまたは既存annotation／metadataへ自分のTest Case IDを残し、`03_automation-mapping.csv`の`implementation_path`へ同じRepository相対Pathを記録します。
 
 実装の順番は、`resetScenario` → 対象画面を開く → 操作する → 期待結果をAssertionする、です。最初の実行は `pnpm run training:web:exercise -- --project=training-chromium` で行い、Browser未InstallやBase URL不通ならコードのFailureと混同せず、P1-4の開始環境を直します。実行結果を正式な学習記録へ渡す方法はP1-6のReceipt付きcommandで扱います。
 

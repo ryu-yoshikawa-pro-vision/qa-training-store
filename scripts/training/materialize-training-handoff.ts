@@ -11,6 +11,7 @@ const TSX_CLI = require.resolve("tsx/cli");
 
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const LEARNER_CODE_PREFIX = "training/playwright/";
+const PROVIDED_TRAINING_CODE_PATHS = new Set(["training/playwright/support/reset-scenario.ts"]);
 const CSV_HEADERS = WORKBOOK_HEADERS;
 const WORKBOOK_FILENAMES = Object.keys(CSV_HEADERS) as WorkbookFilename[];
 
@@ -38,6 +39,10 @@ function isAllowedLearnerCodePath(value: string): boolean {
   return (
     normalized.startsWith(LEARNER_CODE_PREFIX) && /\.(?:[cm]?tsx?|[cm]?jsx?)$/i.test(normalized)
   );
+}
+
+function isProvidedTrainingCodePath(value: string): boolean {
+  return PROVIDED_TRAINING_CODE_PATHS.has(value.replace(/\\/g, "/"));
 }
 
 function isAllowedLearnerCodeDirectory(value: string): boolean {
@@ -131,6 +136,10 @@ function listCodeFiles(root: string): string[] {
       const relative = path.relative(root, file);
       if (!safeRelative(relative)) throw new Error(`Unsafe code path: ${relative}`);
       const repositoryRelative = relative.replace(/^code[\\/]/, "").replace(/\\/g, "/");
+      if (isProvidedTrainingCodePath(repositoryRelative))
+        throw new Error(
+          `Provided Training harness must not be copied into handoff-root/code: ${repositoryRelative}`,
+        );
       if (entry.isSymbolicLink()) {
         const real = fs.realpathSync(file);
         if (!isWithin(root, real))

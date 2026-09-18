@@ -53,7 +53,6 @@ pnpm run training:web:exercise:with-receipt -- --suite exercise --project traini
 ```text
 <handoff-root>/
 ├ code/training/playwright/exercises/<learner-spec>.spec.ts
-├ code/training/playwright/support/reset-scenario.ts（P1-5と同じCanonical Helperを必ず置く）
 ├ code/training/playwright/support/<learner-helper>.ts（追加した場合）
 ├ workbook/
 ├ receipts/
@@ -82,7 +81,7 @@ Diagnosticは正本Repositoryを書き換えず、正本Repository外の`<exerci
 └ support/reset-scenario.ts
 ```
 
-`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`と`training/playwright/support/reset-scenario.ts`を、それぞれ上記の同じ相対位置へコピーします。`<exercise-copy>`は自分が書き込みできる一時Directoryであり、正本の`training/playwright/`ではありません。
+`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`と、Runnerが利用する提供済み`training/playwright/support/reset-scenario.ts`を、それぞれ`<exercise-copy>`の同じ相対位置へ配置します。Canonical Helperは受講者成果物ではないため、正式な`<handoff-root>/code/`へコピーしません。`<exercise-copy>`は自分が書き込みできる一時Directoryであり、正本の`training/playwright/`でもありません。
 
 初回は次の入口を実行します。
 

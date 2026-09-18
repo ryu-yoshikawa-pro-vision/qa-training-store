@@ -209,6 +209,32 @@ describe("Training Copy handoff contract", () => {
     },
   );
 
+  it(
+    "rejects a provided Canonical Helper copied into learner handoff code",
+    { timeout: 120_000 },
+    () => {
+      const root = createHandoff();
+      const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-provided-"));
+      try {
+        writeText(
+          root,
+          "code/training/playwright/support/reset-scenario.ts",
+          fs.readFileSync(path.resolve("training/playwright/support/reset-scenario.ts"), "utf8"),
+        );
+        expect(() =>
+          materializeTrainingHandoff({
+            root,
+            target: path.join(targetParent, "copy"),
+            sourceSha: "a".repeat(40),
+          }),
+        ).toThrow(/Provided Training harness/);
+      } finally {
+        removeFixture(root);
+        removeFixture(targetParent);
+      }
+    },
+  );
+
   it("requires a resolvable source SHA when it is not passed explicitly", () => {
     const root = createHandoff();
     const targetParent = fs.mkdtempSync(path.join(os.tmpdir(), "training-copy-target-sha-"));

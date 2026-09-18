@@ -35,7 +35,8 @@ type ReceiptContext =
   | "learner-failure"
   | "learner-repaired"
   | "c10-improved"
-  | "ci-exercise";
+  | "ci-exercise"
+  | "mobile-exercise";
 
 type FixtureOptions = {
   mode?: "common" | "part2";
@@ -49,6 +50,7 @@ type FixtureOptions = {
   invalidReceipt?: boolean;
   blocked?: boolean;
   diagnosticSameDigest?: boolean;
+  mobile?: "learner" | "baseline" | "none";
 };
 
 function csvCell(value: string): string {
@@ -80,10 +82,21 @@ function digest(value: string): string {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function c10ImprovementRecord(
+  caseId: string,
+  implementationPath: string,
+  style: "valid" | "starter",
+): string {
+  const before = learnerCode(caseId, style);
+  const after = `${before}\n// C10 minimal maintainability improvement\n`;
+  return `Improvement Target: ${implementationPath}; Before Digest: ${digest(before)}; After Digest: ${digest(after)}`;
+}
+
 function writeExecutionReceipt(
   root: string,
   context: ReceiptContext,
   options: FixtureOptions,
+  project = "training-chromium",
 ): void {
   const isInitial = context === "diagnostic-initial";
   const isNaturalFailure = context === "learner-failure";
@@ -98,12 +111,24 @@ function writeExecutionReceipt(
     "learner-repaired": ["2026-09-17T00:00:04.000Z", "2026-09-17T00:00:05.000Z"],
     "c10-improved": ["2026-09-17T00:00:06.000Z", "2026-09-17T00:00:07.000Z"],
     "ci-exercise": ["2026-09-17T00:00:08.000Z", "2026-09-17T00:00:09.000Z"],
+    "mobile-exercise": ["2026-09-17T00:00:10.000Z", "2026-09-17T00:00:11.000Z"],
   };
   const [startedAt, finishedAt] = receiptTimes[context];
+  const isMobileBaseline = context === "mobile-exercise" && options.mobile === "baseline";
+  const receiptCases = isMobileBaseline
+    ? CASES.map((entry, index) => ({
+        ...entry,
+        caseId: index === 0 ? "TC-CART-001" : "TC-CART-002",
+        implementationPath: "training/playwright/baseline/training-baseline.spec.ts",
+      }))
+    : CASES;
   const cases = options.omitCases
     ? []
-    : CASES.map((entry) => {
-        const source = fs.readFileSync(path.join(root, "code", entry.implementationPath), "utf8");
+    : receiptCases.map((entry) => {
+        const sourcePath = path.join(root, "code", entry.implementationPath);
+        const source = fs.existsSync(sourcePath)
+          ? fs.readFileSync(sourcePath, "utf8")
+          : `provided baseline for ${entry.caseId}`;
         const evidence = options.missingEvidence
           ? []
           : [
@@ -143,18 +168,18 @@ function writeExecutionReceipt(
       });
   const run: Record<string, unknown> = {
     producer: "training:web:exercise:with-receipt",
-    command: `pnpm run training:web:exercise:with-receipt -- --suite ${isDiagnostic ? "diagnostic" : "exercise"} --project training-chromium --root ${root} --run-context ${context}`,
+    command: `pnpm run training:web:exercise:with-receipt -- --suite ${isDiagnostic ? "diagnostic" : "exercise"} --project ${project} --root ${root} --run-context ${context}`,
     exit_code: isInitial || isNaturalFailure ? 1 : 0,
     started_at: startedAt,
     finished_at: finishedAt,
     environment: {
       platform: "win32",
       runtime: "Playwright Training",
-      browser: "training-chromium",
+      browser: project,
       execution: isCi ? "ci" : "local",
     },
     run_context: context,
-    project: "training-chromium",
+    project,
     part1_distribution_sha: SOURCE_SHA,
     training_copy_source_sha: isCi ? CI_SOURCE_SHA : SOURCE_SHA,
     submission_sha: isCi ? CI_SUBMISSION_SHA : SUBMISSION_SHA,
@@ -287,6 +312,7 @@ function createHandoff(options: FixtureOptions = {}): string {
     "diagnostic-repaired",
     "c10-improved",
   ];
+  const mobileMode = options.mobile ?? (options.contexts?.length === 0 ? "none" : "learner");
   writeText(
     root,
     "workbook/04_execution-improvement.csv",
@@ -327,7 +353,13 @@ function createHandoff(options: FixtureOptions = {}): string {
           context === "diagnostic-initial" ||
           context === "learner-failure" ||
           context === "c10-improved"
-            ? "record repaired run"
+            ? context === "c10-improved"
+              ? c10ImprovementRecord(
+                  entry.caseId,
+                  entry.implementationPath,
+                  options.codeStyle ?? "valid",
+                )
+              : "record repaired run"
             : "",
         ]),
       ),
@@ -349,6 +381,18 @@ function createHandoff(options: FixtureOptions = {}): string {
       writeText(root, evidencePath, `Evidence for ${entry.caseId} / ${context}\n`);
     }
   }
+  if (mobileMode !== "none") {
+    const mobileCaseIds =
+      mobileMode === "baseline"
+        ? ["TC-CART-001", "TC-CART-002"]
+        : CASES.map((entry) => entry.caseId);
+    for (const caseId of mobileCaseIds)
+      writeText(
+        root,
+        `evidence/mobile-exercise-${caseId}.md`,
+        `Evidence for ${caseId} / mobile-exercise\n`,
+      );
+  }
   if (options.contexts?.includes("ci-exercise")) {
     writeText(
       root,
@@ -368,7 +412,7 @@ function createHandoff(options: FixtureOptions = {}): string {
     writeText(
       root,
       "evidence/change-management.md",
-      "Branch: training/learner\nCommit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\nDiff: training/playwright/exercises/cart-101.spec.ts\nPull Request: https://github.com/example/training/pull/1\nReview: self-review completed\n",
+      "Branch: training/learner\nCommit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\nDiff: training/playwright/exercises/cart-101.spec.ts\nPull Request: https://github.com/example/training/pull/1\nReview: self-review completed\nReason: keep the learner Case traceable to the reviewed change\n",
     );
   const selfChecks = [
     "P1-01",
@@ -397,6 +441,13 @@ function createHandoff(options: FixtureOptions = {}): string {
     }
     writeExecutionReceipt(root, context, options);
   }
+  if (mobileMode !== "none")
+    writeExecutionReceipt(
+      root,
+      "mobile-exercise",
+      { ...options, mobile: mobileMode },
+      "training-mobile-chromium",
+    );
   return root;
 }
 
@@ -534,12 +585,11 @@ describe("受講者向け修了確認契約", () => {
     const root = createHandoff();
     try {
       const result = checkCompletion(root, "common");
-
       expect(result.status).toBe("PASS");
       expect(result.receipt.status).toBe("PASS");
       expect(result.receipt.exit_code).toBe(0);
       expect(result.receipt.checked_case_ids).toEqual(["TC-CART-101", "TC-CART-102"]);
-      expect(result.receipt.execution_receipt_refs).toHaveLength(5);
+      expect(result.receipt.execution_receipt_refs).toHaveLength(6);
       expect(result.receipt.semantic_understanding).toBe("NOT_EVALUATED");
       expect(result.receipt.part1_distribution_sha).toBe(SOURCE_SHA);
       expect(result.receipt.submission_sha).toBe(SUBMISSION_SHA);
@@ -556,6 +606,94 @@ describe("受講者向け修了確認契約", () => {
     const root = createHandoff({ omitCaseIds: true });
     try {
       expect(checkCompletion(root, "common").status).toBe("PASS");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not complete a handoff that includes the provided Canonical Helper", () => {
+    const root = createHandoff();
+    try {
+      writeText(root, "code/training/playwright/support/reset-scenario.ts", "export {}\n");
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("FAIL");
+      expect(result.receipt.reasons.join("\n")).toContain("must not be learner-owned code");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires both Desktop and learner-owned Mobile Web executions for C07", () => {
+    const root = createHandoff({ mobile: "none" });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c07_web_projects).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("training-mobile-chromium");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("does not count Mobile baseline cases as learner-owned C07 executions", () => {
+    const root = createHandoff({ mobile: "baseline" });
+    try {
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.checked_outputs.c07_web_projects).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("training-mobile-chromium");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires Reset and Assertion inside the matching Case when Cases share one spec", () => {
+    const root = createHandoff();
+    try {
+      const sharedPath = "training/playwright/exercises/shared.spec.ts";
+      const sharedSource = `import { expect, test } from "@playwright/test";
+import { resetScenario } from "../../support/reset-scenario";
+
+test("TC-CART-101 shared Case", async ({ page }) => {
+  await resetScenario(page, "default");
+  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();
+});
+
+test("TC-CART-102 shared Case", async ({ page }) => {
+  await page.goto("/products");
+});
+`;
+      const mappingPath = path.join(root, "workbook/03_automation-mapping.csv");
+      fs.writeFileSync(
+        mappingPath,
+        fs
+          .readFileSync(mappingPath, "utf8")
+          .replaceAll(CASES[0].implementationPath, sharedPath)
+          .replaceAll(CASES[1].implementationPath, sharedPath),
+        "utf8",
+      );
+      writeText(root, `code/${sharedPath}`, sharedSource);
+      for (const receiptFile of fs.readdirSync(path.join(root, "receipts"))) {
+        if (!receiptFile.endsWith(".json")) continue;
+        const receiptPath = path.join(root, "receipts", receiptFile);
+        const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8")) as {
+          cases: Record<string, unknown>[];
+        };
+        for (const executionCase of receipt.cases) {
+          if (
+            executionCase.case_id === CASES[0].caseId ||
+            executionCase.case_id === CASES[1].caseId
+          )
+            executionCase.implementation_path = sharedPath;
+        }
+        fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+      }
+      refreshReceiptDigests(root);
+      const result = checkCompletion(root, "common");
+      expect(result.receipt.checked_outputs.learner_code).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "TC-CART-102 learner code has no explicit resetScenario call",
+      );
     } finally {
       removeFixture(root);
     }
@@ -800,6 +938,21 @@ describe("受講者向け修了確認契約", () => {
         receipt.run.ci_sha = "e".repeat(40);
       });
       expect(checkCompletion(root, "part2").status).toBe("FAIL");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires the Artifact name to match GitHub Run ID and attempt", () => {
+    const root = createHandoff({ mode: "part2", contexts: ["ci-exercise"] });
+    try {
+      updateReceipt(root, "ci-exercise", (receipt) => {
+        const ci = receipt.run.ci as Record<string, unknown>;
+        ci.artifact_name = "artifact-url-only";
+      });
+      const result = checkCompletion(root, "part2");
+      expect(result.status).toBe("FAIL");
+      expect(result.receipt.reasons.join("\n")).toContain("artifact_name must match");
     } finally {
       removeFixture(root);
     }
@@ -1195,6 +1348,30 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
+  it("accepts a C10 improvement made only in learner-owned helper code", () => {
+    const root = createHandoff();
+    try {
+      const helperPath = "training/playwright/support/cart-helper.ts";
+      const beforeHelper = "export const productsHeading = 'old';\n";
+      const afterHelper = "export const productsHeading = 'new';\n";
+      writeText(root, `code/${helperPath}`, afterHelper);
+      const beforeSource = learnerCode(CASES[0].caseId, "valid");
+      updateReceipt(root, "c10-improved", (receipt) => {
+        const executionCase = receipt.cases.find((entry) => entry.case_id === CASES[0].caseId);
+        if (!executionCase) throw new Error("C10 case is missing");
+        executionCase.code_digest = digest(beforeSource);
+      });
+      updateExecutionRow(root, CASES[0].caseId, "c10-improved", {
+        improvement: `Improvement Target: ${helperPath}; Before Digest: ${digest(beforeHelper)}; After Digest: ${digest(afterHelper)}`,
+      });
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("PASS");
+      expect(result.receipt.checked_outputs.c10_improvement).toBe(true);
+    } finally {
+      removeFixture(root);
+    }
+  });
+
   it("does not accept a C10 improvement Receipt that is older than its before Receipt", () => {
     const root = createHandoff();
     try {
@@ -1278,6 +1455,23 @@ describe("受講者向け修了確認契約", () => {
       fs.rmSync(path.join(root, "evidence", "change-management.md"));
       const withoutC11 = checkCompletion(root, "part2");
       expect(withoutC11.receipt.reasons.join("\n")).toContain("C11");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires Reason in the C11 change-management record", () => {
+    const root = createHandoff({ mode: "part2", contexts: ["local-exercise"] });
+    try {
+      const evidencePath = path.join(root, "evidence/change-management.md");
+      fs.writeFileSync(
+        evidencePath,
+        fs.readFileSync(evidencePath, "utf8").replace(/\nReason:.*\n?$/, "\n"),
+        "utf8",
+      );
+      const result = checkCompletion(root, "part2");
+      expect(result.receipt.checked_outputs.c11_change_management).toBe(false);
+      expect(result.receipt.reasons.join("\n")).toContain("Reason");
     } finally {
       removeFixture(root);
     }

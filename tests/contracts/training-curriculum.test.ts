@@ -83,9 +83,19 @@ describe("Training curriculum contracts", () => {
       expect(riskLesson).toContain(term);
     }
     expect(riskLesson).toContain("機械的に掛け合わせて答えを出すことが目的ではなく");
+    expect(riskLesson).toContain("判断理由は分析メモまたはSelf-checkへ残す");
+    expect(riskLesson).not.toContain(
+      "Risk行には`impact`、`likelihood`、`priority`とそれぞれの判断理由を残す",
+    );
     expect(designLesson).toContain("Impact、Likelihood、Priorityは、Caseを作るときの判断材料です");
+    expect(designLesson).toContain("02_test-cases.csv");
+    expect(designLesson).toContain("03_automation-mapping.csv");
+    expect(designLesson).toContain("04_execution-improvement.csv");
 
     expect(foundationsLesson).toContain("このLessonで読む範囲");
+    expect(foundationsLesson).toContain("TC-PRODUCT-001");
+    expect(foundationsLesson).toContain("このLessonだけで始められる導入Case");
+    expect(foundationsLesson).toContain("Common CompletionのCaseへ流用しません");
     expect(foundationsLesson).toContain("test(...)");
     expect(foundationsLesson).toContain("Scenario Resetの呼び出し");
     expect(foundationsLesson).toContain("page.evaluate");
@@ -119,7 +129,10 @@ describe("Training curriculum contracts", () => {
     );
     expect(failureLesson).toContain("<handoff-root>/code/training/playwright/exercises/");
     expect(failureLesson).toContain("Runnerが読むローカルのコード実行root");
-    expect(failureLesson).toContain("reset-scenario.ts（P1-5と同じCanonical Helperを必ず置く）");
+    expect(failureLesson).toContain("Canonical Helperは受講者成果物ではない");
+    expect(failureLesson).not.toContain(
+      "reset-scenario.ts（P1-5と同じCanonical Helperを必ず置く）",
+    );
 
     expect(maintenanceLesson).toContain("決定的なC10演習");
     expect(maintenanceLesson).toContain("c10-improved");
@@ -127,6 +140,9 @@ describe("Training curriculum contracts", () => {
     expect(maintenanceLesson).toContain("01_target-risk.csv");
     expect(maintenanceLesson).toContain("<handoff-root>/code/training/playwright/exercises/");
     expect(maintenanceLesson).toContain("reset-scenario.ts");
+    expect(maintenanceLesson).toContain("新しい製品Riskを追加する理由にはしません");
+    expect(maintenanceLesson).toContain("Improvement Target");
+    expect(maintenanceLesson).not.toContain("RISK-CART-103");
     expect(maintenanceLesson).toContain("e2e/web/fixtures.ts");
     const maintenanceExercise = readFileSync(
       resolve(root, "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
@@ -151,6 +167,7 @@ describe("Training curriculum contracts", () => {
     ]) {
       expect(githubLesson).toContain(term);
     }
+    expect(githubLesson).toContain("`Reason:`");
     expect(actionsLesson).toContain(
       "Localで実行していたTest CommandとCI Stepを対応付けて説明できる",
     );
@@ -169,6 +186,7 @@ describe("Training curriculum contracts", () => {
       "GitHub Actions Artifact",
       "自動的に昇格しない",
       "training-web-<run_id>-<run_attempt>",
+      "Artifact: <Artifact name>",
       "output/training/playwright",
       "PR → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts",
     ]) {
@@ -178,6 +196,7 @@ describe("Training curriculum contracts", () => {
     expect(capstoneLesson).toContain("これはCommonの必須条件ではない");
     expect(capstoneLesson).toContain("最終成果物の照合");
     expect(capstoneLesson).toContain("Training Copy上のRun、Check、Artifact");
+    expect(capstoneLesson).toContain("handoff-root/self-check/P2-08.md");
     expect(capstoneLesson).not.toContain(
       "WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。",
     );

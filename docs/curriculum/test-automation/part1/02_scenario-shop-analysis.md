@@ -34,7 +34,7 @@
 | Input | P1-01で確認したテスト自動化の目的、`docs/spec`の対象Feature、`/guide`、必要なSeed Scenario。仕様のBR / ACは仕様側を正本とし、画面観察は補助情報として扱う |
 | Activity | Scenario ShopをRole・State・Dataの組み合わせで操作し、CartとCheckoutの正常・異常・境界を観察する。各Risk候補についてImpact、Likelihood、Priorityを考え、観察した事実と仕様上の判断を分けて記録する |
 | Observation | Roleによる表示・操作差、Reset後の初期状態、Cart数量・在庫・Checkout状態の変化、拒否理由と次に進めない条件、Risk評価の根拠になる影響範囲と到達しやすさ |
-| Output | 4 CSVへ入れる前の分析メモと、少なくとも`TARGET-CART-101`／`RISK-CART-101`を含む受講者作成の対象・Risk行。Risk行には`impact`、`likelihood`、`priority`とそれぞれの判断理由を残す。編集場所は自由で、完了時は`handoff-root/workbook/`へ集約する。既存CSVへ回答を追記しない |
+| Output | 4 CSVへ入れる前の分析メモと、少なくとも`TARGET-CART-101`／`RISK-CART-101`を含む受講者作成の対象・Risk行。`01_target-risk.csv`へは`impact`、`likelihood`、`priority`を記録し、それぞれの判断理由は分析メモまたはSelf-checkへ残す。編集場所は自由で、完了時は`handoff-root/workbook/`へ集約する。既存CSVへ回答を追記しない |
 | Self-check | 「画面一覧だけでなく何を分析したか」「RoleとStateを分ける理由」「どの観察をどのBR / ACへ戻せるか」「Impact、Likelihood、Priorityをなぜその値にしたか」に答え、初期状態・操作・変化・Risk評価の最低要素を含める |
 | Completion | CartまたはCheckoutの1つのJourneyを図示し、正常・異常・境界を含む複数のRisk候補を、仕様参照と観察事実を分けて説明できる。少なくとも1つのRiskについて、Impact、Likelihood、Priorityを機械的な計算ではなく理由付きで評価できる。P1-03へ渡す対象・RiskのIDとメモが揃っている |
 | Recovery | 理解不足はLesson 1〜6と`docs/spec`へ戻る。画面やTest Controlが使えない場合は環境問題として記録し、期待動作の判断と混ぜない。状態が再現しない場合はSeed ScenarioとReset条件を再確認する |

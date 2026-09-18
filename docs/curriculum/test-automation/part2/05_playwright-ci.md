@@ -64,7 +64,7 @@ Artifact名の`<run_id>`と`<run_attempt>`は実際のRun画面の値へ置き�
 | Input | P2-4で確認したTraining CopyのPR／Runと、P1-5／P1-6のCase ID、Repository相対コード、Local Receipt／Evidence。Secret不要・Deployなし・`contents: read`のTraining Workflowを前提にする |
 | Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、準備済みTraining Workflowが受講者CodeをどのStepでCI実行するか確認する。WorkflowへStepを追加・編集しない |
 | Observation | LocalとCIの差、実行したCase、Run／Check／Artifact、失敗Step、Retry、Execution Receiptのrun／case／attempt、Artifactへの人間可読参照 |
-| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。CI Receiptの機械メタデータとは別に、GitHub画面で確認したRun／Check／Artifact／結果／対象Caseを人間可読Evidenceへ記録する。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
+| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。CI Receiptの機械メタデータとは別に、GitHub画面で確認したRun／Check／Artifact／結果／対象Caseを人間可読Evidenceへ記録する。Evidenceの必須項目はArtifact名で、URLは任意の別項目です。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
 | Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Localの`handoff-root`・CI Runnerの`.`・GitHub Artifactの役割、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
 | Completion | Training CopyのPRに紐付く準備済みWorkflowのRunを開き、受講者CaseのReceiptとFailure Artifact、Run／Check／Artifactを確認して、Caseごとの人間可読EvidenceとともにP2-7へ渡せる。CI自身が生成した`ci.md`だけではC12完了としない。Fork上のCI結果をC12の証跡へ読み替えない |
 | Recovery | Build／Browser／Base URL／権限／Runnerの問題は環境として分ける。TestやWorkflowのFailureは最初の異常へ戻り、完成済みFormal CIやWorkflow権限変更で解決しない |
@@ -249,7 +249,7 @@ pnpm run training:web:exercise:with-receipt -- --suite exercise --project traini
 
 `<handoff-root>`にはP1-6で受講者Codeを集約した固定rootを指定します。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
 
-このLocal入口で受講者specが`../support/reset-scenario`などをimportする場合、P1-6で説明したとおり、同じRepository相対PathのCanonical Helperを`<handoff-root>/code/training/playwright/support/`へコピーしてから実行します。P1-5で追加した受講者Helperも同じ`code/training/playwright/`配下へ集約します。別の一時Directoryへ暗黙に依存したり、CI Runner上の`.`をLocalの正本として扱ったりしません。
+このLocal入口で受講者specが`../support/reset-scenario`などをimportする場合、Canonical HelperはTraining CopyまたはRunnerが提供するものを利用します。`reset-scenario.ts`を`<handoff-root>/code/`へコピーしません。P1-5で追加した受講者Helperも同じ`code/training/playwright/`配下へ集約します。別の一時Directoryへ暗黙に依存したり、CI Runner上の`.`をLocalの正本として扱ったりしません。
 
 Run完了後は、CIが自動生成した`ci.md`を人間確認の証拠にしません。GitHubのRun／Check／Artifactを自分で確認し、対象Caseごとに`handoff-root/evidence/`へ次の項目を含む記録を作成します。`Result`は実際に確認した結論を記録し、機械ReceiptのRun ID・Artifact名を単に転記しただけのFileにはしません。
 
@@ -257,7 +257,8 @@ Run完了後は、CIが自動生成した`ci.md`を人間確認の証拠にし�
 Run ID: <Run ID>
 Run attempt: <Attempt>
 Check: <Workflow> / <Job>
-Artifact: <Artifact name or URL>
+Artifact: <Artifact name>
+Artifact URL: <optional>
 Result: success
 Case: <Test Case ID>
 ```

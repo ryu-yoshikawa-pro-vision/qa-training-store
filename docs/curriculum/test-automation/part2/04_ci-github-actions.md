@@ -51,7 +51,7 @@ Expected PR / Artifact: <Training Copy上のPRとtraining-web-<run_id>-<run_atte
 | Input | P2-3のPRと、P1／P2-3で作成したTest Case・Training code・実行記録。C12へ進むための、事前準備済みTraining CopyのURLと学習者書き込み権限 |
 | Activity | 準備済みTraining WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、Workflowを編集せずにPRからActionsを実行してRun／Job／Check／Artifactを確認する |
 | Observation | どのEventでWorkflowが動いたか、各Stepの入力・出力、baselineとexercise、失敗段階、最小権限、Artifact、想定外Skipの扱い |
-| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。CIが自動生成したReceipt／`ci.md`は機械メタデータであり、GitHub画面を確認したEvidenceの代わりにしない。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
+| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。Evidenceの必須項目は実在するArtifact名であり、URLは任意の別項目です。CIが自動生成したReceipt／`ci.md`は機械メタデータであり、GitHub画面を確認したEvidenceの代わりにしない。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
 | Self-check | CIの価値、Local CommandとCI Stepの対応、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
 | Completion | 準備済みTraining CopyでTraining Workflowを実行し、GitHub画面でRun／Check／Artifactと結果を確認して、対象Caseごとの人間可読Evidenceへ記録しP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
 | Recovery | Workflowが動かない場合はCopyの権限、Actions有効化、Trigger、Runner、Browser／Buildの順で環境問題を切り分ける。YAMLの理解不足は該当Lessonへ戻り、Production Workflowを直接変更しない |
@@ -227,7 +227,8 @@ Runが完了したら、CIが生成した`ci.md`をそのまま確認Evidenceに
 Run ID: <Run ID>
 Run attempt: <Attempt>
 Check: <Workflow> / <Job>
-Artifact: <Artifact name or URL>
+Artifact: <Artifact name>
+Artifact URL: <optional>
 Result: success
 Case: <Test Case ID>
 ```

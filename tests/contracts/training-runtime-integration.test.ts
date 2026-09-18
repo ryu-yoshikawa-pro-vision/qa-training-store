@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { execFileSync, spawn, type ChildProcessByStdio } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -39,6 +40,10 @@ function writeText(root: string, relativePath: string, value: string): void {
   const target = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, value, "utf8");
+}
+
+function digest(value: string): string {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function learnerSpec(caseId: string, variableAssertion: boolean): string {
@@ -213,12 +218,12 @@ function createC10Handoff(root: string): void {
         "priority",
       ],
       [
-        "TARGET-CART-103",
+        "TARGET-CART-001",
         "docs/spec/features/cart.md",
         "BR-CART-001",
         "AC-CART-001",
-        "RISK-CART-103",
-        "重複Locatorを放置すると仕様変更時の修正漏れが起きる",
+        "RISK-CART-001",
+        "購入上限を超える数量がCartに成立すると購入金額と在庫が壊れる",
         "Medium",
         "Medium",
         "Medium",
@@ -241,8 +246,8 @@ function createC10Handoff(root: string): void {
         "design_technique",
       ],
       [
-        "TC-CART-103",
-        "RISK-CART-103",
+        "TC-CART-101",
+        "RISK-CART-001",
         "docs/spec/features/cart.md",
         "BR-CART-001",
         "AC-CART-001",
@@ -267,11 +272,11 @@ function createC10Handoff(root: string): void {
         "reason",
       ],
       [
-        "TC-CART-103",
+        "TC-CART-101",
         "Automate",
         "Web E2E",
         "Playwright",
-        "training/playwright/exercises/c10-cart-103.spec.ts",
+        "training/playwright/exercises/c10-cart-101.spec.ts",
         "Local",
         "同じLocatorの変更箇所を減らす改善を確認する",
       ],
@@ -291,22 +296,19 @@ function createC10Handoff(root: string): void {
         "action",
         "improvement",
       ],
-      ["TC-CART-103", "c10-before", "Not run", "", "", "", "", ""],
-      ["TC-CART-103", "c10-improved", "Not run", "", "", "", "", ""],
+      ["TC-CART-101", "c10-before", "Not run", "", "", "", "", ""],
+      ["TC-CART-101", "c10-improved", "Not run", "", "", "", "", ""],
     ]),
   );
   const learnerSpecPath = path.join(
     root,
-    "code/training/playwright/exercises/c10-cart-103.spec.ts",
+    "code/training/playwright/exercises/c10-cart-101.spec.ts",
   );
-  const resetHelperPath = path.join(root, "code/training/playwright/support/reset-scenario.ts");
   fs.mkdirSync(path.dirname(learnerSpecPath), { recursive: true });
-  fs.mkdirSync(path.dirname(resetHelperPath), { recursive: true });
   fs.copyFileSync(
     path.resolve("training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
     learnerSpecPath,
   );
-  fs.copyFileSync(path.resolve("training/playwright/support/reset-scenario.ts"), resetHelperPath);
   for (const lessonId of ["P1-01", "P1-02", "P1-03", "P1-04", "P1-05", "P1-06", "P1-08", "P1-09"])
     writeText(root, `self-check/${lessonId}.md`, `${lessonId} self-check\n`);
 }
@@ -642,6 +644,18 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
           caseIn(beforeReceipt, CASES[0].caseId).code_digest,
         );
 
+        const mobileReceipt = runReceipt(
+          handoffRoot,
+          {
+            suite: "exercise",
+            runContext: "mobile-exercise",
+            ...commonOptions,
+            project: "training-mobile-chromium",
+          },
+          0,
+        );
+        expect(mobileReceipt.cases).toHaveLength(2);
+
         updateExecutionTable(handoffRoot, [
           ...localResults,
           ...beforeResults,
@@ -668,7 +682,7 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
             failureCategory: "Maintainability",
             cause: "Locator式が長く、同じ対象の修正箇所が増える",
             action: "対象Locatorを変数へ切り出した",
-            improvement: "Assertionの対象を一箇所で変更できるようにした",
+            improvement: `Assertionの対象を一箇所で変更できるようにした; Improvement Target: ${CASES[0].implementationPath}; Before Digest: ${digest(beforeImprovement)}; After Digest: ${digest(improvedSource)}`,
           },
         ]);
 
@@ -740,7 +754,7 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
       const fixtureParent = fs.mkdtempSync(path.join(process.cwd(), "output", "training-c10-"));
       const handoffRoot = path.join(fixtureParent, "handoff");
       const exerciseRoot = path.join(fixtureParent, "exercise-copy");
-      const exercisePath = path.join(exerciseRoot, "exercises", "c10-cart-103.spec.ts");
+      const exercisePath = path.join(exerciseRoot, "exercises", "c10-cart-101.spec.ts");
       const previousBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
       const previousUsePrebuilt = process.env.PLAYWRIGHT_USE_PREBUILT_DIST;
       const previousSkipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER;
@@ -782,10 +796,10 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
           { suite: "exercise", runContext: "c10-before", ...options },
           0,
         );
-        const beforeCase = caseIn(before, "TC-CART-103");
+        const beforeCase = caseIn(before, "TC-CART-101");
         expect(beforeCase.status).toBe("passed");
         expect(beforeCase.implementation_path).toBe(
-          "training/playwright/exercises/c10-cart-103.spec.ts",
+          "training/playwright/exercises/c10-cart-101.spec.ts",
         );
 
         const beforeSource = fs.readFileSync(exercisePath, "utf8");
@@ -801,7 +815,7 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
           { suite: "exercise", runContext: "c10-improved", ...options },
           0,
         );
-        const afterCase = caseIn(after, "TC-CART-103");
+        const afterCase = caseIn(after, "TC-CART-101");
         expect(afterCase.status).toBe("passed");
         expect(afterCase.implementation_path).toBe(beforeCase.implementation_path);
         expect(afterCase.code_digest).not.toBe(beforeCase.code_digest);
@@ -809,7 +823,7 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
 
         fs.copyFileSync(
           exercisePath,
-          path.join(handoffRoot, "code/training/playwright/exercises/c10-cart-103.spec.ts"),
+          path.join(handoffRoot, "code/training/playwright/exercises/c10-cart-101.spec.ts"),
         );
         writeText(
           handoffRoot,
@@ -825,16 +839,16 @@ describe.skipIf(!RUN_RUNTIME_CONTRACT)("実Playwright Training経路", () => {
               "action",
               "improvement",
             ],
-            ["TC-CART-103", "c10-before", "Pass", beforeCase.evidence[0]!, "", "", "", ""],
+            ["TC-CART-101", "c10-before", "Pass", beforeCase.evidence[0]!, "", "", "", ""],
             [
-              "TC-CART-103",
+              "TC-CART-101",
               "c10-improved",
               "Pass",
               afterCase.evidence[0]!,
               "Maintainability",
               "同じLocator式が複数Assertionに重複していた",
               "Locatorを変数へ抽出した",
-              "同じLocatorの修正箇所を1か所に減らした",
+              `Improvement Target: training/playwright/exercises/c10-cart-101.spec.ts; Before Digest: ${digest(beforeSource)}; After Digest: ${digest(afterSource)}`,
             ],
           ]),
         );

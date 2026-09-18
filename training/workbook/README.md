@@ -8,7 +8,7 @@
 
 LessonでWorkbookを使うときは、本文に示された前の成果物、仕様・BR・AC、Risk、Test Case IDをInputとして準備します。P1-2では対象とRisk、P1-3ではTest Caseと自動化対象を作り、P1-4以降では対応するTest Caseをコードと実行結果へ結び付けます。Playwrightを実装する前にTest Caseが必要な場合は、`test_condition`、`precondition`、`expected_result`、Reset方法、対象のTest Case IDを準備済みInputとして扱います。
 
-配布される`Automate`のsample行は、`implementation_path`が空欄でも不備ではありません。受講者が自分のCaseを実装したときだけ、別のspecのRepository相対Pathを入力します。Starter、baseline、expected-failure用specは完成答案として記録せず、受講者が作成した代表specと区別します。Helper、POM、Component Object、Fixtureなどの受講者support codeは`training/playwright/`配下へ置けばmaterializeできますが、Workbookの`implementation_path`へすべてを列挙する必要はありません。
+配布される`Automate`のsample行は、`implementation_path`が空欄でも不備ではありません。受講者が自分のCaseを実装したときだけ、別のspecのRepository相対Pathを入力します。Starter、baseline、expected-failure用specは完成答案として記録せず、受講者が作成した代表specと区別します。Helper、POM、Component Object、Fixtureなどの受講者support codeは`training/playwright/`配下へ置けばmaterializeできますが、Workbookの`implementation_path`へすべてを列挙する必要はありません。提供済みの`training/playwright/support/reset-scenario.ts`はTraining Copy／実行時Harnessから利用するため、受講者の`handoff-root/code/`へコピーしません。
 
 Part 1からPart 2の最終確認へ渡すときは、編集場所に関係なく次の固定rootへ集約します。
 
@@ -23,7 +23,15 @@ handoff-root/
 
 `implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
 
-P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)を決定的な教材演習として使います。問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
+P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)を決定的な教材演習として使います。Locator重複はTest Codeの保守問題であり、新しい製品Riskへ変換しません。正式な製品Risk／Test Caseへ結び付け、問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
+
+C10でspecではなくHelper／POM等を改善する場合は、既存の`improvement`欄へ次の3項目を同じ記録として残します。新しいManifestや依存関係表は作りません。
+
+```text
+Improvement Target: training/playwright/support/<learner-owned-helper>.ts; Before Digest: <64桁のSHA-256>; After Digest: <64桁のSHA-256>
+```
+
+`Improvement Target`はLearner-owned codeだけを指定し、提供済みの`training/playwright/support/reset-scenario.ts`は指定しません。
 
 各LessonのOutputには、作成したCSV行、コード、Evidence、自己確認のどれを残すかと、次のLessonへどのID・ファイル・実行記録を渡すかを記載します。意味のあるRiskやAssertionかどうかは、機械的なCSV検証だけで採点せず、本文のSelf-checkと評価基準に沿って自分の理由を説明します。
 

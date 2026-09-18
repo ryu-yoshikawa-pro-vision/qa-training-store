@@ -52,7 +52,8 @@
     "docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md",
     "docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md",
     "training/github-actions/README.md",
-    "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"
+    "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts",
+    "docs/curriculum/test-automation/part2/07_ci-cd-quality-gates.md"
   ],
   "validation": {
     "status": "not_run",
