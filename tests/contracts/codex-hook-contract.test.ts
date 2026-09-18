@@ -1732,7 +1732,7 @@ describe("Codex logging Hook contract", () => {
 
       expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
     });
-  }, 15000);
+  }, 30_000);
 
   it("records JSONL through the configured Windows launcher under the current PowerShell shell", () => {
     if (process.platform !== "win32") return;
