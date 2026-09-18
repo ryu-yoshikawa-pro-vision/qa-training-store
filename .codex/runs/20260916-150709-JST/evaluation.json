@@ -12,8 +12,8 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "2026-09-18 01:23 (JST)",
-          "summary": "PR3のno-op判定、最終検証、scope、tracked artifactのcommit前確定を記録したcheckpoint。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "PR3のno-op判定と、strict Run評価・tracked lifecycle修正後のcommit前確定を記録したcheckpoint。"
         },
         {
           "kind": "changed_file",
@@ -42,8 +42,8 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "2026-09-18 01:23 (JST)",
-          "summary": "PR固有差分がPlanとRun Artifactに限定されることを記録した。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "review repair後もPR固有差分がPlanとRun Artifactに限定されることを記録した。"
         }
       ]
     },
@@ -60,8 +60,8 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "2026-09-18 01:23 (JST)",
-          "summary": "必須検証がPASSした最終checkpoint。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "schema、collector strict、sanitizer、verify、diff checkを含むreview repair後の検証がPASSしたcheckpoint。"
         }
       ]
     },
@@ -78,8 +78,8 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "2026-09-18 01:23 (JST)",
-          "summary": "禁止範囲を変更せずtracked artifactをcommit前に確定した記録。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "run.jsonを直接編集せず、禁止範囲を変更せずtracked artifactをcommit前に確定した記録。"
         }
       ]
     },
@@ -90,8 +90,8 @@
         {
           "kind": "changed_file",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "末尾の今回のreview repair checkpoint",
-          "summary": "過去記録を保持したappend-onlyの修復記録。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "過去記録を保持したappend-onlyのreview repair checkpoint。"
         },
         {
           "kind": "changed_file",
@@ -138,8 +138,8 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260916-150709-JST/REPORT.md",
-          "selector": "2026-09-18 01:23 (JST)",
-          "summary": "同一Runでの検証結果とscopeを参照できる。"
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "同一Runでのreview repair後の検証結果とscopeを参照できる。"
         }
       ]
     }

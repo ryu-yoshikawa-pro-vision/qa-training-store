@@ -177,3 +177,16 @@
   - decision: `stop_success`（tracked artifactのfinal commit前確定。post-pushは外部完了条件として継続）
 - External lifecycle: final commit後は、pushした新しいPR headだけを対象にlocal / remote / PR head一致、Web CI / Mobile App CI success、PR本文更新、Issue #117がOPENのままであることをGitHub上で確認する。これらの事実を記録するためにtracked Run Artifactを再commitしない。
 - Progress: 100% (8/8)（tracked checkbox。push後のCI確認はfile-changing task全体の外部完了条件）
+
+## 2026-09-18 09:53 (JST)
+
+- Summary: 最終レビューで残った記録上の不整合2件を修正した。PR3のno-op判定、Skill source、Trigger Eval関連の結論は変更していない。
+- Changes:
+  - Plan §14のPR固有差分を「Plan 1 fileとRun Artifact 5 files」へ修正した。
+  - `evaluation.json`のreview repair完了に関する`evidence_refs`を、修正前の01:23 checkpointではなく08:07 checkpointへ統一した。
+  - `run.json`に残る「4 Run Artifact files scanned」は過去時点の観測事実として保持した。
+- Manifest / sanitizer: `scripts/collect-run-artifacts.ps1` / `collect-run-artifacts.py`と`codex-task`の既存経路を確認した。単独sanitizer結果を`validation.commands`へ追記する正規経路はなく、collectorは既存commandを保持してmanifest summaryを同期するため、最新の5 files結果はREPORT 08:07 checkpointを正本参照とした。`run.json`は直接編集していない。
+- Validation: evaluation schema validation、collector strict、`sanitize-codex-artifacts.ps1 -Write -Check`（5 files / 0 changes / 0 residual）、`corepack pnpm run verify`（exit code 0、36 files / 584 passed / 4 skipped）、`git diff --check`はすべてPASSした。
+- Scope: 今回の変更は指定Plan、`evaluation.json`、本REPORTに限定され、Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product、workflow、dependencyは未変更である。
+- Remaining: このcheckpointを含むtracked artifactの通常commit / push後に、新しいPR headのWeb CI・Mobile App CI、PR本文、Issue #117のOPEN状態をGitHub上で再確認する。CI事実を記録するためのRun Artifact再commitは行わない。
+- Progress: 100% (8/8)（tracked checkbox。push後のCI確認はfile-changing task全体の外部完了条件）

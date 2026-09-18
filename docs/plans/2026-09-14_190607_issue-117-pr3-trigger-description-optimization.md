@@ -697,6 +697,6 @@ Issue #117はPR3完了後もPR6が残るため、PR3完了だけを理由にclos
 - Issue #159で修正されたWindows launcher contract timeoutを含む`main`（`bd31452d5b69169bee0016afcec6bc8b5d83318a`）をPR branchへ取り込み済み。#159および最新`main`の差分確認により、PR3のSkill / routing / Trigger Eval契約へのmaterialな変更はない。
 - Trigger Eval datasetは12 files / 24 cases、fingerprintはbaselineから不変。PR2 baselineを直接controlとして扱わず、candidate source変更がないためcontrol / candidate / current-mainのlive Trigger Evalはno-op条件によりN/A。
 - `eval:skills:trigger:validate`、`validate:skills`、指定repository-contract、`test:repository`、`verify`、`git diff --check`、Run Artifact sanitizerはすべてPASS。`verify`はexit code 0で完走し、contractは36 files / 584 passed / 4 skipped。
-- PR固有差分はPlan 1 fileと既存Run Artifact 4 filesのみ。Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product code / test、workflow、dependencyにPR3固有の変更はない。
+- PR固有差分はPlan 1 fileとRun Artifact 5 filesのみ。Skill source、`AGENTS.md`、`.codex/config.toml`、Trigger Eval関連、Product code / test、workflow、dependencyにPR3固有の変更はない。
 - 今回の確認開始時点の最新`origin/main`は`0af177828a058e118285a2ee3a01262aa7da6b2e`。`bd31452d...`以降のincoming diffは#164のHusky / CI関連変更であり、PR3のSkill、routing、Trigger Eval前提にmaterialな変更がないため、対象branchへ追加mergeしていない。
 - tracked Run Artifactは最終commit前に確定する。push後の最新commit SHA・PR head・Web CI / Mobile App CI・PR metadataはtracked checkboxの事実として固定せず、PR #155本文、Issue #117進捗、GitHub上、最終報告で確認・記録する。PR3の機能判断に残件はない。
