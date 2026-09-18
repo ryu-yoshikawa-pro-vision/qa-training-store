@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "run_id": "20260916-150709-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "PR3の評価対象である2 Skillのdescription変更要否は、既存routing契約とbaseline evidenceに基づきno-opとして確定している。レビューで判明したstrict Runのevaluation不足とtracked lifecycleの不整合も、今回の修正で解消した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "PR3のno-op判定と、strict Run評価・tracked lifecycle修正後のcommit前確定を記録したcheckpoint。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md",
+          "selector": "## 14. PR3最終状態（2026-09-18）",
+          "summary": "2 Skillのdescription変更不要とPR3 no-opの最終判断を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "修復対象を既存Runの評価・tracked lifecycle記録と指定Planへ限定し、Skill source、routing、Trigger Eval、Product、workflow、dependency等の非対象範囲を変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260916-150709-JST/TASKS.md",
+          "selector": "## Now（現在）",
+          "summary": "tracked taskの責務をfinal commit前の確定範囲へ限定する修正対象。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md",
+          "selector": "## 10. 完了条件 / ## 11. 実行手順",
+          "summary": "tracked completionとpush後の外部lifecycleを分離する修正対象。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "review repair後もPR固有差分がPlanとRun Artifactに限定されることを記録した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "既存Run manifestとREPORTに記録されたdeterministic validation、repository contract、verify、diff、sanitizerに加え、今回修正後のschema・collector strict・sanitizer・verify・diff checkの結果を確認した。live Trigger Evalはsource変更なしのno-op条件により対象外である。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260916-150709-JST/run.json",
+          "selector": "$.validation",
+          "summary": "既存の検証commandとstatusを保持するRun manifest。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "schema、collector strict、sanitizer、verify、diff checkを含むreview repair後の検証がPASSしたcheckpoint。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "今回のrepairではrun.jsonを直接編集せず、evaluation.jsonを正本として既存collectorでmanifestを同期した。対象branch・既存PR・no-op境界を維持し、force push、reset、rebase、timeout追加、test skip、scope拡張を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260916-150709-JST/evaluation.json",
+          "selector": "$.schema_version",
+          "summary": "Repository共通evaluation schemaに従う評価artifact。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "run.jsonを直接編集せず、禁止範囲を変更せずtracked artifactをcommit前に確定した記録。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "過去のREPORT checkpointを変更せず、今回のreview finding、修復判断、schema準拠evaluation、TASKS / Planの責務分離を追跡可能な形で追加した。push後のhead・CI・PR metadataはtracked checkboxへ混在させず、GitHub上とPR本文へ記録する。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "過去記録を保持したappend-onlyのreview repair checkpoint。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260916-150709-JST/TASKS.md",
+          "selector": "checkbox taskの完了はfinal commit前のtracked task進捗",
+          "summary": "tracked progressとtask全体の完了を分離する既存説明。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md",
+          "selector": "push後の外部完了条件",
+          "summary": "post-push lifecycleをtracked checkboxから分離する記録。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "PR3専用schemaや独自manifest更新経路を追加せず、Repository共通のevaluation schema、collector、Run Artifactの責務分離をそのまま利用する。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "共通evaluation schema、collector strict、sanitizerの検証と既存契約利用を記録した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "既存Run ID、Plan、TASKS、REPORT、run manifest、指定検証commandを同じRunで参照し、観測事実をmanifest側、評価判断をevaluation側へ分離する。dataset fingerprint不変とno-op理由によりlive Trigger Evalを再現条件へ持ち込まない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260916-150709-JST/run.json",
+          "selector": "$.run_id",
+          "summary": "既存Run IDとmachine-managed manifestを参照する。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-14_190607_issue-117-pr3-trigger-description-optimization.md",
+          "selector": "## 8.3 no-opの場合",
+          "summary": "live Trigger EvalをN/Aとする再現可能な判断条件。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260916-150709-JST/REPORT.md",
+          "selector": "2026-09-18 08:07 (JST)",
+          "summary": "同一Runでのreview repair後の検証結果とscopeを参照できる。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}
