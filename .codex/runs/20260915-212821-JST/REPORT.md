@@ -887,3 +887,37 @@
   - Part 2の実GitHub Training Copy経路は、書き込み可能なCopyが未提供のため`BLOCKED`のまま。Source PRのCIをPart 2受講者成果物へ読み替えない。
 - Decision: `continue`。次は通常のGit mutationが許可される環境で最新mainをmergeし、差分を再検証してcommit／push／PR #157更新／最新必須CI確認を行う。今回の対象外Hook修正をこの差分へ独自に混入させない。
 - Progress: 98% (51/52)。
+
+## 2026-09-18 18:30 JST — main取り込み後の最終検証・Common受講者一巡
+
+- Git状態:
+  - Branch: `feat/self-study-curriculum-test-coverage`
+  - HEAD: `653fb291141a71a1a1a3ab34433531b949c5899f`
+  - `origin/main`: `0af177828a058e118285a2ee3a01262aa7da6b2e`
+  - merge-base: `0af177828a058e118285a2ee3a01262aa7da6b2e`
+  - HEADの親はPR側`4a9836d`と`origin/main`で、未解決競合は0件。main取り込みでPR #157のcurriculum、Training script、Training Contract Testが失われていないことを確認した。
+  - 未追跡の`.codex/runs/20260915-191711-JST/`と`coverage/`は今回のcommit対象外として保持した。
+- main取り込み後重点検証:
+  - PASS: `corepack pnpm install --frozen-lockfile`、`corepack pnpm run build:web`。
+  - PASS: `corepack pnpm run validate:curriculum`（22 required documents、4 Workbook、Desktop/Mobile project）。
+  - PASS: Training Contract 4 files／94 tests（`training-execution-receipt`、`training-completion`、`training-copy-handoff`、`training-curriculum`。生成された`output/**`はtest discoveryから除外）。
+  - PASS: `RUN_TRAINING_RUNTIME_CONTRACT=1`の`training-runtime-integration` 2 tests。実Playwright、JSON Reporter、Receipt、C09 initial Failure→repaired Pass、C10改善、Mobile、materializeまで確認した。初回のWindows `EBUSY`は並列実行時の一時出力競合で、単独再実行では再現しなかった。
+  - PASS: `corepack pnpm run typecheck:app`、`typecheck:native-tests`、`typecheck:training`。
+  - PASS: `corepack pnpm run lint`（0 errors、既存warning 66件）、`lint:markdown`（443 files、0 issues）、`lint:text`、`security:check`、`git diff --check`。
+- 全Contract Test:
+  - `tests/contracts`を新HEADで再実行し、41 files中39 files PASS／1 skip／1 failure、670 tests中663 passed／6 skipped／1 failed。
+  - 唯一の失敗は`tests/contracts/codex-text-quality.test.ts`の`cleans the current session baseline for configured Stop process failures`で、Stop後のstate fileが1件残るmain側Codex Hook契約。PR #157の教材・Training変更範囲との因果関係はなく、Hook／Harness修正は今回へ混入していない。全体Contract TestはPASS扱いしない。
+- Common受講者一巡:
+  - Result: `PASS`。講師向け資料、過去の完成回答、Contract fixtureの回答を使わず、教材本文、正式仕様、Seedカタログ、Workbook README、正式Training入口だけで一時受講者rootを作成した。
+  - 経路: `P1-1 → P1-2 → P1-3 → P1-4 → P1-5 → P1-6 → P1-8 → P1-9`。P1-7 Nativeは選択課程のためCommonから除外した。
+  - P1-1〜P1-3: Cartの仕様・Role・State・Dataを読み、Impact／Likelihood／Priorityを理由付きで評価し、`TARGET-CART-101/102`、`RISK-CART-101/102`、`TC-CART-101/102`、Layer／Tool、設計理由を4 CSVと自己確認へ記録した。
+  - P1-4〜P1-5: 受講者作成の2 CaseをDesktop／Mobile Webへ実装。初回`TC-CART-102`のstrict mode FailureをEvidence付きで確認し、`exact=true`の最小修正後に別runでDesktop／MobileともPass。各Caseの明示Reset、meaningful Assertion、Workbook対応、Receipt／Evidenceを確認した。
+  - P1-6: Diagnostic initialは期待値1／実値5のFailure、Screenshot／Trace／Video／HTML Report／Receiptを確認し、演習コピーだけを修正して別Receipt／別Evidenceのrepaired Passを取得した。初期Evidenceは上書きしていない。
+  - P1-8: `TC-CART-101`の重複Locatorを変数へ切り出す実コード改善を行い、`c10-before`／`c10-improved`を別runでPass。Before／After digestと改善理由をWorkbookへ記録し、Test目的を維持した。
+  - P1-9: `training:completion:check --mode common`が`PASS`。Self-check 8件、Workbook、Learner code、Receipt、Evidence、C09、C10を確認し、`materialize-training-handoff`もsource SHA `653fb291...`でPASSした。
+  - Recovery: 実際のLocator Failureを最初の異常として分類し、修正→別runへ復帰できた。Reset、Browser、Evidence、ReceiptのRecoveryも教材記載どおりに分離した。
+  - Handoff: 固定`handoff-root`へ4 CSV、Repository相対Learner code、Evidence、Receipt、Lesson ID別Self-checkを集約し、Part 2開始時にTraining Copyへmaterializeする対象を確認した。
+- Part 2:
+  - Result: `BLOCKED`。学習者が書き込み可能な正式Training Copy、Branch／Push／PR／GitHub Actions Run／Check／Artifactをこの環境で提供できないため。Local disposable copyのmaterialize PASSやSource PRのCIをPart 2／C12の証跡へ読み替えていない。
+- Decision: `continue`。main取り込み後のローカル検証とCommon受講者一巡は完了。残りはこのRunの最終反映、merge commitの通常push、push後最新HEADのWeb／Mobile CI確認、PR本文同期である。全ContractのHook failureは今回対象外、Part 2は外部環境BLOCKEDとして残す。
+- Progress: 98% (51/52)。
