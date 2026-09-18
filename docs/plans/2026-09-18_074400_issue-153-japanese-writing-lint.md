@@ -3,7 +3,7 @@
 ## 0. 依頼概要
 
 - 依頼内容: Issue #153「chore: 日本語文章lintと表記ルールを一括導入する」を実装するためのPlanを作成する。
-- 対象Issue: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/153
+- 対象Issue: [Issue #153](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/153)
 - 実装branch: `issue-153-japanese-writing-lint`
 - 基準branch: `main`
 - Plan作成時の`main` HEAD: `0af177828a058e118285a2ee3a01262aa7da6b2e`
@@ -19,23 +19,6 @@
   - 現行の対象Markdownを同じ実装PR内で修正し、正式採用ruleの全件違反を0件にする。
   - PR #146の差分比較、Hook、fail-open / fail-close、fingerprint、rename対応を弱めない。
 
-### Issue #153の十分性
-
-Issue #153は、実装Issueとして十分な情報を持っている。Issue本文の追加修正は行わない。
-
-確認できた理由:
-
-- 目的が「日本語文章lint」と「Repository固有の表記rule」の導入に限定されている。
-- `textlint`、`.codex/text-quality-rules.json`、`docs/WRITING_STANDARDS.md` / レビューの責務分担が明記されている。
-- PR #146 / #151を前提として、既存scanner、Hook、contract、CIを再利用することが明記されている。
-- rule候補を実リポジトリで評価してから正式採用することが明記されている。
-- 現行Markdownの違反を同一PR内で0件にすることが完了条件になっている。
-- 過去記録、fixture、snapshot、生成済みartifact等を文章統一だけの理由で変更しないことが明記されている。
-- AI判定、未知語判定、別lint framework等が非目標として明記されている。
-- 具体的なrule設定、対象scope、全件scanの実行経路はPlanで決めると明示されている。
-
-したがって、Issueへ実装詳細を追加する必要はない。前版Planの問題は、Issueが不足していたことではなく、Issueが「実測して決める」としていたrule採否をPlan作成時点で確定してしまったことにある。
-
 ## 1. ゴール / 完了条件
 
 ### ゴール
@@ -44,7 +27,7 @@ Issue #153は、実装Issueとして十分な情報を持っている。Issue本
 
 ### 完了条件
 
-- `textlint-rule-preset-japanese`を実リポジトリで評価し、採用基準を満たしたruleだけを`.textlintrc.json`で明示する。
+- `textlint-rule-preset-japanese`を実装PR内で実測し、採用基準を満たしたruleだけを`.textlintrc.json`で明示する。採用ruleが0件なら評価用dependencyを最終成果物に残さない。
 - PR #146の既存5 ruleを直接設定として維持する。
 - preset内で既存ruleと重複するruleはpreset側を無効化し、同一違反を二重報告しない。
 - `.codex/text-quality-rules.json`へ、評価で採用した機械的に一意判定できる表記ruleだけを追加する。採用ruleが0件なら`not-configured`を維持する。
@@ -107,17 +90,20 @@ custom rule scanner自体は既に実装済みで、literal / regex、replacemen
 
 `docs/adr/0026-codex-text-quality-gate.md`はIssue #134時点の判断として「presetを追加しない」「5個のtextlint個別ruleをproduction ruleとする」と記録している。
 
-Issue #153はこのrule選定を意図的に更新するため、ADR-0026を履歴として書き換えない。新しいADRを追加し、ADR-0026のうちrule選定部分を後続判断で更新したことを明示する。
+Issue #153では、実装PR内の実測結果に基づいてrule選定を更新する可能性がある。ただし、ADR-0026のDecision本文は原則維持する。実装後にADR-0026のrule選定部分と現在仕様が明確に矛盾する場合だけ、Issue #153でrule選定が更新されたことを最小限追記する。ADR-0026全体をsupersedeしない。
+
+ADR-0027は新規作成しない。ADR lifecycleやsupersede管理をこのIssueで新設せず、現在仕様の説明に必要な最小限の追記だけを行う。
 
 ### 2.6 外部package
 
-2026-09-18時点の`textlint-rule-preset-japanese`安定版は`10.0.4`。一般文書向けで誤検知を抑える目的のpresetで、既存4 ruleと重複するruleを内包する。
+2026-09-18時点の`textlint-rule-preset-japanese`安定版は`10.0.4`。一般文書向けで誤検知を抑える目的のpresetで、既存4 ruleと重複するruleを内包する。実装PR内の評価ではこの候補を使用するが、preset由来ruleを1件以上正式採用する場合だけ最終dependencyとして維持する。1件も採用しない場合は`package.json`から削除し、`pnpm-lock.yaml`も最終状態に合わせて戻す。
 
-導入時は既存の依存関係指定方針に合わせて`^10.0.4`をdevDependencyへ追加し、`pnpm-lock.yaml`を更新する。
+評価開始時は既存の依存関係指定方針に合わせて`^10.0.4`を評価用devDependencyへ追加し、`pnpm-lock.yaml`を更新する。最終状態は採用ruleの件数に応じてTask 1のcleanup条件へ従う。
 
 公式:
-- https://github.com/textlint-ja/textlint-rule-preset-japanese
-- https://github.com/textlint-ja/textlint-rule-preset-japanese/blob/master/README.md
+
+- [repository](https://github.com/textlint-ja/textlint-rule-preset-japanese)
+- [README](https://github.com/textlint-ja/textlint-rule-preset-japanese/blob/master/README.md)
 
 ### 対象外
 
@@ -143,7 +129,7 @@ Issue #153、PR #146、PR #151、現在のmain実装から、次の方針をPlan
 
 ### Plan上の決定
 
-1. `textlint-rule-preset-japanese`は第一候補として導入評価するが、preset内の日本語ruleをPlan作成時点では正式採用しない。
+1. `textlint-rule-preset-japanese`は第一候補として実装PR内で評価する。preset内の日本語ruleは実測結果を得る前に正式採用しない。
 2. PR #146の既存5 ruleは維持する。preset側で同じruleが有効になる場合はpreset側を無効化し、二重実行しない。
 3. preset内の追加候補は、実リポジトリ全件scanの結果と誤検知を確認してから採否を決める。
 4. `docs/WRITING_STANDARDS.md`に存在しない新しいstyle制約を、このIssueだけでblocking契約として追加しない。
@@ -166,7 +152,6 @@ Issue #153、PR #146、PR #151、現在のmain実装から、次の方針をPlan
 - `scripts/check-text-quality-changes.mjs`
 - `tests/contracts/codex-text-quality.test.ts`
 - `.github/workflows/ci.yml`
-- `docs/adr/0027-japanese-text-quality-rules.md`（新規）
 - 正式採用ruleに違反する現行対象Markdown
 
 ### 条件付き変更対象
@@ -176,8 +161,10 @@ Issue #153、PR #146、PR #151、現在のmain実装から、次の方針をPlan
   - session baseline、PostToolUse、Stop、state schema、fail-open / fail-close semanticsは変更しない。
 - `scripts/verify` / `scripts/verify.ps1`
   - 新しいcontract suiteを追加せず、既存`-HookContracts` / `--hook-contracts`から現在の`codex-text-quality.test.ts`を実行できるなら変更しない。
+- `docs/adr/0026-codex-text-quality-gate.md`
+  - rule選定部分と現在仕様が明確に矛盾する場合だけ、Issue #153で更新されたことを最小限追記する。Decision本文全体の書き換えやsupersede管理は行わない。
 - `docs/reference/codex-safety-harness.md`等
-  - 「5 ruleのみ」「custom rule未設定」など、現在仕様として矛盾する記述がある場合だけ更新する。
+  - 「5 ruleのみ」「custom rule未設定」など、現在仕様と明確に矛盾する記述がある場合だけ更新する。
 
 ### 全件scanの対象
 
@@ -220,12 +207,14 @@ fixture / snapshot / eval datasetについては、Plan作成時のGitHub code s
 
 ## 5. 変更方針
 
-### Task 1: preset dependencyを追加する
+### Task 1: preset dependencyを評価用に追加する
 
-- [ ] `textlint-rule-preset-japanese@^10.0.4`をdevDependencyへ追加する。
-- [ ] `pnpm-lock.yaml`を更新する。
+- [ ] `textlint-rule-preset-japanese@^10.0.4`を評価用のdevDependencyへ追加する。
+- [ ] 評価用dependencyを解決するため`pnpm-lock.yaml`を更新する。
 - [ ] 既存の直接rule packageを削除しない。
 - [ ] presetが内包する重複dependencyを理由に既存ruleの設定契約を変更しない。
+- [ ] preset由来ruleを1件以上正式採用する場合は、`textlint-rule-preset-japanese`をdevDependencyとして維持する。
+- [ ] preset由来ruleを1件も正式採用しない場合は、`textlint-rule-preset-japanese`を`package.json`から削除し、`pnpm-lock.yaml`も最終状態に合わせて戻す。評価のためだけの未使用dependencyを残さない。
 
 ### Task 2: preset候補を実測し、正式採用ruleを決める
 
@@ -241,6 +230,8 @@ sentence-length
 no-dropping-the-ra
 no-mix-dearu-desumasu
 ```
+
+この評価は段階導入ではなく、同一実装PR内で最終設定を決めるために行う。評価結果を得る前にpreset由来ruleのproduction採用を確定しない。
 
 既存の次4 ruleはpreset側を無効化し、直接設定を維持する。
 
@@ -293,7 +284,7 @@ no-kangxi-radicals
 - [ ] preset名だけを許可して内部ruleを無検証にする実装にはしない。
 - [ ] fingerprintは引き続きruntime rule ID + normalized matchのSHA-256を使う。
 
-### Task 4: Repository固有の表記ruleを評価して追加する
+### Task 4: Repository固有の表記rule候補を評価する
 
 `docs/WRITING_STANDARDS.md`の「リポジトリ内で使われているだけの用語」から、一意置換できる次の8候補を評価する。
 
@@ -324,7 +315,7 @@ no-kangxi-radicals
 
 `ignore.identifiers: false`とする理由は、現在のscannerが`ignore.identifiers: true`の場合に英字列をmaskし、今回の検出語自体を消してしまうため。
 
-messageは、各ruleのreplacementを使用するよう明示する短い固定文にする。rule_idは上表の候補を採用し、fingerprintの安定性を保つ。
+messageは、各採用ruleのreplacementを使用するよう明示する短い固定文にする。rule_idは上表の候補から採用したものに付与し、fingerprintの安定性を保つ。
 
 #### 採用前確認
 
@@ -343,6 +334,8 @@ messageは、各ruleのreplacementを使用するよう明示する短い固定�
 
 `scripts/check-text-quality-changes.mjs`へ、差分比較とは別に現在の対象Markdownを全件検査するmodeを追加する。
 
+`--all`の候補Markdown列挙は、同じscriptに既にある`getWorkingTreeMarkdownPaths()`を再利用する。`git ls-files --cached --others --exclude-standard -- "*.md"`相当のMarkdown列挙処理やGit commandを`--all`用に別実装として二重管理しない。
+
 想定CLI:
 
 ```bash
@@ -352,9 +345,9 @@ node scripts/check-text-quality-changes.mjs --all
 要件:
 
 - `--all`と`--base-ref`は排他的にする。
-- localの`--all`はtracked + untrackedかつGit ignoreされていないMarkdownを対象にする。
-- CIのclean checkoutではtracked Markdownのみになる。
-- Section 4の履歴prefixだけを全件migration scopeから除外する。
+- localの`--all`は`getWorkingTreeMarkdownPaths()`が返すtracked + untrackedかつGit ignoreされていないMarkdownを候補にする。
+- CIのclean checkoutでは同じ候補集合が実質tracked Markdownになる。
+- その候補集合へ、Section 4の履歴prefixだけを全件migration scopeから追加filterする。
 - 各本文は既存`loadRules()` + `scanTextQuality()`へ渡す。
 - textlint / custom rule定義を全件scan用に複製しない。
 - 1件でも違反があればexit 1。
@@ -396,7 +389,7 @@ Task 2 / Task 4の評価を完了し、正式採用ruleを固定してから文�
 追加・更新する確認:
 
 - [ ] production configに既存5 direct ruleが残る。
-- [ ] `textlint-rule-preset-japanese`が依存関係に存在する。
+- [ ] preset由来ruleを1件以上正式採用する場合は`textlint-rule-preset-japanese`が依存関係に存在し、1件も採用しない場合は評価用dependencyが最終成果物に残っていない。
 - [ ] 評価で正式採用したpreset ruleだけがblockingになる。
 - [ ] preset内の既存重複4 ruleが無効で、直接ruleとの二重報告がない。
 - [ ] `no-hankaku-kana`が従来どおり動く。
@@ -424,6 +417,7 @@ fixtureのNode依存解決では、preset packageだけのlinkで解決できる
 - `lint:text`は変更差分gateとして維持する。
 - `lint:text:all`を追加する。
 - `verify`で`lint:text`の直後に`lint:text:all`を実行する。
+- rule定義の正本は`.textlintrc.json`と`.codex/text-quality-rules.json`に限定し、CI専用・verify専用・Hook専用のrule集合を作らない。
 
 `.github/workflows/ci.yml`:
 
@@ -444,17 +438,14 @@ Hook:
 - 全件gateを接続しない。
 - PostToolUse / Stopはsession差分のみを確認する。
 
-### Task 9: ADRと現在仕様の文書を更新する
+### Task 9: ADR-0026と現在仕様の整合を確認する
 
-現在のADR-0026は`Accepted`であり、「presetを追加しない」「5個のtextlint個別ruleを正本とする」と記録している。Issue #153でこの判断を変更する場合、ADR-0026と新しい判断を両方`Accepted`のまま残さない。
+現在のADR-0026は`Accepted`であり、「presetを追加しない」「5個のtextlint個別ruleを正本とする」と記録している。Issue #153の実装PRでrule選定を更新しても、Decision本文は原則維持する。
 
-- [ ] `docs/adr/0027-japanese-text-quality-rules.md`を新規追加する。
-- [ ] ADR-0027からADR-0026とIssue #153を参照する。
-- [ ] ADR-0026の本文の過去判断は書き換えない。
-- [ ] ADR-0026のstatusまたは先頭metadataだけを最小限更新し、ADR-0027によりsupersedeされたことを明示する。
-- [ ] ADR-0027には実測後に確定したpreset rule、設定値、custom rule、全件scan scopeを記録する。
-- [ ] 正式採用しなかったruleと、その判断理由も必要な範囲で記録する。
-- [ ] 現在仕様を説明するreferenceに「5 ruleのみ」「custom rule未設定」が残る場合だけ更新する。
+- [ ] 実装後にADR-0026のrule選定部分と現在仕様が明確に矛盾する場合だけ、Issue #153でrule選定が更新されたことを最小限追記する。
+- [ ] ADR-0026のDecision本文、過去判断、履歴部分を全面的に書き換えない。
+- [ ] ADR-0027を新規作成しない。ADR lifecycleやsupersede管理をこのIssueで新設しない。
+- [ ] 現在仕様を説明するreferenceに「5 ruleのみ」「custom rule未設定」が残り、実装後の仕様と明確に矛盾する場合だけ更新する。
 - [ ] 過去Plan、過去Run、ADR-0026のDecision本文を文章統一のために修正しない。
 
 ## 6. 検証方法
@@ -469,8 +460,9 @@ pnpm run lint:text:all
 
 確認:
 
-- preset packageが解決できる。
+- 評価時にpreset packageが解決でき、最終状態は採用ruleの件数に合わせてdependencyを整理できる。
 - direct 5 rule + preset採用rule + custom ruleが同じscanner経路で動く。
+- preset由来ruleが0件の場合は、評価用dependencyを削除した最終`package.json` / `pnpm-lock.yaml`になる。
 - missing / invalid configがPASSにならない。
 
 ### 6.2 focused contract
@@ -611,36 +603,37 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 - 同一CI job内で実行し、別jobやmatrixを追加しない。
 - 実測で問題がなければcacheや並列frameworkを追加しない。
 
-### 7.6 ADRの整合
+### 7.6 ADR-0026の整合
 
-ADR-0026を完全に変更しないままADR-0027を追加すると、相反するDecisionがどちらも現行に見える。
+Issue #153でrule選定が更新された場合、ADR-0026の過去Decision本文と現在仕様の関係が曖昧に見える可能性がある。
 
 対策:
 
-- ADR-0026の過去Decision本文は維持する。
-- status / superseded参照だけを最小限更新する。
-- 現行判断はADR-0027へ集約する。
+- ADR-0026のDecision本文は原則維持する。
+- rule選定部分と現在仕様が明確に矛盾する場合だけ、Issue #153でrule選定が更新されたことを最小限追記する。
+- ADR-0026全体をsupersedeせず、ADR-0027の新規作成やADR lifecycle / supersede管理の新設を行わない。
+- 現行仕様を説明するreferenceは、実装後の仕様と明確に矛盾する場合だけ更新する。
 
 ## 8. 成果物
 
 想定変更ファイル:
 
 ```text
-package.json
-pnpm-lock.yaml
+package.json（preset由来ruleを採用した場合だけ最終dependencyを維持する）
+pnpm-lock.yaml（最終dependency状態に合わせる）
 .textlintrc.json
 .codex/text-quality-rules.json
 scripts/lint-text-quality.mjs
 scripts/check-text-quality-changes.mjs
 tests/contracts/codex-text-quality.test.ts
 .github/workflows/ci.yml
-docs/adr/0027-japanese-text-quality-rules.md
 <正式採用ruleに違反する現行対象Markdown>
 ```
 
 条件付き:
 
 ```text
+docs/adr/0026-codex-text-quality-gate.md（rule選定部分と現在仕様が明確に矛盾する場合の最小限追記のみ）
 .codex/hooks/text_quality_gate.mjs
 scripts/verify
 scripts/verify.ps1
@@ -669,7 +662,7 @@ docs/reference/codex-implementation-harness.md
 - [ ] active Stop / duplicate Stopの既存契約を維持している。
 - [ ] Markdown構造lintをtextlintへ重複実装していない。
 - [ ] 新しいlint framework、dictionary framework、AI Judgeを追加していない。
-- [ ] ADR-0026とADR-0027が同時に現行判断として読めない状態にする。
+- [ ] ADR-0026のDecision本文を原則維持し、必要な場合だけrule選定の更新を最小限追記する。ADR-0027を新規作成せず、ADR lifecycle / supersede管理を新設しない。
 
 ## 10. 備考
 
