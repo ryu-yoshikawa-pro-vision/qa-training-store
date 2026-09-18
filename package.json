@@ -87,18 +87,18 @@
     "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
-    "@expo/metro-runtime": "57.0.15",
+    "@expo/metro-runtime": "57.0.16",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/noto-sans-jp": "^5.3.0",
     "@hookform/resolvers": "5.5.7",
     "dexie": "4.4.4",
-    "expo": "57.0.23",
-    "expo-build-properties": "57.0.20",
-    "expo-constants": "57.0.18",
+    "expo": "57.0.24",
+    "expo-build-properties": "57.0.21",
+    "expo-constants": "57.0.19",
     "expo-crypto": "57.0.3",
     "expo-dev-client": "57.0.19",
     "expo-linking": "57.0.10",
-    "expo-router": "57.0.21",
+    "expo-router": "57.0.22",
     "expo-sqlite": "57.0.3",
     "expo-system-ui": "~57.0.4",
     "react": "19.2.3",
@@ -152,7 +152,7 @@
   "pnpm": {
     "overrides": {
       "smol-toml": "1.7.1",
-      "expo-constants": "57.0.18",
+      "expo-constants": "57.0.19",
       "xcode@3.0.1>uuid": "11.1.1",
       "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
       "@expo/xcpretty@4.4.4>js-yaml": "4.3.1",
