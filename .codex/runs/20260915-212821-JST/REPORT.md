@@ -786,6 +786,21 @@
 - Decision: `continue`。実装とpush前検証に残る未完了作業はGit／PR／CIの最終反映だけであり、追加の要件判断は不要。
 - Progress: 98% (51/52)。
 
+## 2026-09-18 11:26 JST — push後CI・PR最終確認
+
+- Git:
+  - commit: `c4858b1acac3a94f987deeafa19bd978c812f6fc`（`fix: 自己学習カリキュラムの最終是正`）
+  - branch: `feat/self-study-curriculum-test-coverage`
+  - `origin/feat/self-study-curriculum-test-coverage`は同じcommitを指すことを確認した。
+  - `coverage/`と別Run `.codex/runs/20260915-191711-JST/`は未追跡のままcommit対象外である。
+- 最新commitのGitHub Actions:
+  - [Web CI #1049](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/35297325995): `success`
+  - [Mobile App CI #908](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/35297326126): `success`
+  - これらはSource PRのCI品質ゲートであり、学習者Training Copy上のPart 2 V1／C12証跡ではない。
+- PR #157はOPEN・未マージで、headは上記commitと一致している。merge、close、force pushは行っていない。
+- Decision: `complete`。実アプリCommon V1とPart 2 V1は、環境不足によりBLOCKED／NOT_RUN・UNVERIFIEDのまま正しく分離した。制御Fixture Runtime、Training Contract、教材品質ゲート、push後CI、PR本文、Run Artifactの最終記録が完了した。
+- Progress: 100% (52/52)。
+
 ## 2026-09-17 22:55 JST — PR #157 最新レビュー残存指摘の修復・最終commit前確認
 
 - 対応範囲: レビュー基準head `8d6a6de0ec302c7a99fdd0f210df7286ddd24f68`以降の、C09／C10／Learner Case抽出／Part 2 provenance／Receipt状態分類／Common RuntimeとTraining Copy境界に限定した。`src/**`、製品仕様、Formal Regression、Native実装、Agent／Hook／Harness設定、permission、Manifest／DB／新しい対応表は変更していない。

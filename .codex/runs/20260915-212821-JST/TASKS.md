@@ -57,7 +57,7 @@
 - [x] T2. Receipt付き実行、Training Copy materialize、Training workflow、関連Contract Testを実装する。
 - [x] AG1/AG2/AG3/C1. Agent運用と既存main契約を読み取り専用で確認し、実装へ混入させない。
 - [x] V1. CommonとPart 2の講師なし一巡を、環境状態を分離して受入確認する。
-- [ ] VF. 最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認を完了する。
+- [x] VF. 最終validation、Run collector／sanitizer、差分／branch確認、commit／push／PR #157／最新必須CI確認を完了する。
 
 ## 完了処理の参照先
 
