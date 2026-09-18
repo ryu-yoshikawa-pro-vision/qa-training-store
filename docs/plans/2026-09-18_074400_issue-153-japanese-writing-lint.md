@@ -14,8 +14,8 @@
   - 現在の`.codex/text-quality-rules.json`は`status: "not-configured"`かつ`rules: []`。
   - 現在の`Style Quality`は変更差分の文章品質gateを実行するが、対象Markdown全体を0違反で確認するgateはない。
 - 期待成果:
-  - 誤検知を抑えた日本語ruleをblocking gateへ追加する。
-  - `docs/WRITING_STANDARDS.md`のうち機械的に一意判定できる表記だけをRepository固有ruleとして追加する。
+  - 既存5 rule以外に、誤検知を抑えた一般日本語ruleを少なくとも1件blocking gateへ追加する。preset候補から安全なruleが見つからない場合は、既存5 rule以外に導入可能な一般日本語ruleがあるか再確認し、1件もない場合は完了扱いにせず対応方針を再確認する。
+  - `docs/WRITING_STANDARDS.md`のうち機械的に一意判定できる表記を少なくとも1件Repository固有ruleとして追加する。8候補すべてを安全にblockingできない場合は、その理由を明示してIssueの目的を満たせるか再確認し、`not-configured`のまま完了扱いにしない。
   - 現行の対象Markdownを同じ実装PR内で修正し、正式採用ruleの全件違反を0件にする。
   - PR #146の差分比較、Hook、fail-open / fail-close、fingerprint、rename対応を弱めない。
 
@@ -27,10 +27,10 @@
 
 ### 完了条件
 
-- `textlint-rule-preset-japanese`を実装PR内で実測し、採用基準を満たしたruleだけを`.textlintrc.json`で明示する。採用ruleが0件なら評価用dependencyを最終成果物に残さない。
+- `textlint-rule-preset-japanese`を実装PR内で実測し、採用基準を満たしたruleだけをproduction構成で明示する。preset由来ruleが0件の場合は、既存5 rule以外に導入可能な一般日本語ruleがあるか再確認する。安全に導入できる一般日本語ruleが1件もなければ、理由を明示して対応方針を再確認し、Issue #153を完了扱いにしない。
 - PR #146の既存5 ruleを直接設定として維持する。
-- preset内で既存ruleと重複するruleはpreset側を無効化し、同一違反を二重報告しない。
-- `.codex/text-quality-rules.json`へ、評価で採用した機械的に一意判定できる表記ruleだけを追加する。採用ruleが0件なら`not-configured`を維持する。
+- presetをproductionで使う場合は、preset内の非採用ruleを明示的に無効化し、実効rule集合を既存5 direct ruleと正式採用した日本語ruleだけにする。presetをproductionで使わない場合は、preset対応だけを目的としたscanner変更を残さない。
+- `.codex/text-quality-rules.json`へ、評価で安全性を確認した機械的に一意判定できる表記ruleを少なくとも1件追加する。8候補すべてが安全にblockingできない場合は、理由を明示して対応方針を再確認し、`not-configured`のまま完了扱いにしない。
 - `scripts/lint-text-quality.mjs`をscannerの正本として維持する。
 - Hookは従来どおりsession差分だけを検査し、全Repository scanを行わない。
 - Repository-level gateに対象Markdown全体を検査するmodeを追加し、CIと`pnpm run verify`で0違反を必須にする。
@@ -130,15 +130,16 @@ Issue #153、PR #146、PR #151、現在のmain実装から、次の方針をPlan
 ### Plan上の決定
 
 1. `textlint-rule-preset-japanese`は第一候補として実装PR内で評価する。preset内の日本語ruleは実測結果を得る前に正式採用しない。
-2. PR #146の既存5 ruleは維持する。preset側で同じruleが有効になる場合はpreset側を無効化し、二重実行しない。
-3. preset内の追加候補は、実リポジトリ全件scanの結果と誤検知を確認してから採否を決める。
+2. PR #146の既存5 ruleは維持する。presetをproductionで使う場合は、既存5 ruleと重複するruleだけでなく、正式採用しないpreset内部ruleも明示的に無効化し、二重実行や意図しない追加ruleを許可しない。
+3. preset内の追加候補は、production scannerへ組み込む前に一時configまたはtextlintのCLI / APIで実測し、実リポジトリの結果と誤検知を確認してから採否を決める。
 4. `docs/WRITING_STANDARDS.md`に存在しない新しいstyle制約を、このIssueだけでblocking契約として追加しない。
 5. Repository固有ruleは、`docs/WRITING_STANDARDS.md`の「リポジトリ内で使われているだけの用語」にある一意置換候補を評価対象とする。
 6. `Minimum Evidence`は置換先が2通りあるためcustom blocking ruleにしない。
 7. `Summary`、`Evidence`、`Scope`、`Build`、`Test`、`device`等の一般語は、文脈依存なので単純な禁止語にしない。
 8. custom ruleで`ignore.identifiers: true`を一律に設定しない。現在のscannerは英字列をidentifierとしてmaskするため、今回の英語表現そのものを検出できなくなる。
 9. 全件scanは実装PRで対象範囲の既存違反を0件にするためのgateとし、Hookは従来どおり差分検出だけを行う。
-10. Issue #153本文は変更しない。Issueで未確定としている実装詳細だけをこのPlanで具体化する。
+10. ruleの安全性、現在の違反件数、contract上の動作を別々に確認する。現在の違反が0件でも、将来の禁止ruleとして安全なら採用候補から外さない。
+11. Issue #153本文は変更しない。Issueで未確定としている実装詳細だけをこのPlanで具体化する。
 
 ## 4. 影響範囲
 
@@ -178,7 +179,7 @@ git ls-files --cached --others --exclude-standard -- '*.md'
 
 CIのclean checkoutではtracked Markdownだけになる。
 
-全件scanからは、文章表現の統一対象ではない履歴をpath prefixで除外する。
+全件scanからは、文章表現の統一対象ではない履歴をpath prefixで除外する。加えて、rootの`CHANGELOG.md`は既存履歴全体を文章統一だけの理由でmigrationしないため、`lint:text:all`の対象外とする。
 
 ```text
 .codex/runs/
@@ -186,9 +187,10 @@ docs/plans/
 docs/reports/
 docs/history/
 docs/adr/
+CHANGELOG.md
 ```
 
-この除外は「既存文書を全件migrationしない」ためのscopeであり、差分gateの除外ではない。今回新規作成・更新するPlan、ADR、Run Artifact等は、既存の差分gateで新規違反を検出する。
+この除外は「既存文書を全件migrationしない」ためのscopeであり、差分gateの除外ではない。`CHANGELOG.md`も、今後変更した差分は既存の`lint:text`で新規違反を検出する。今回新規作成・更新するPlan、ADR、Run Artifact等は、既存の差分gateで新規違反を検出する。
 
 生成物や依存関係は`git ls-files --others --exclude-standard`によりGit ignoreを尊重する。現在の`.markdownlint-cli2.jsonc`でignoreされている`node_modules/`、`.artifacts/`、`dist/`、`android/`、`.expo/`、`output/`等を文章品質gate向けに別一覧として重複管理しない。
 
@@ -214,7 +216,7 @@ fixture / snapshot / eval datasetについては、Plan作成時のGitHub code s
 - [ ] 既存の直接rule packageを削除しない。
 - [ ] presetが内包する重複dependencyを理由に既存ruleの設定契約を変更しない。
 - [ ] preset由来ruleを1件以上正式採用する場合は、`textlint-rule-preset-japanese`をdevDependencyとして維持する。
-- [ ] preset由来ruleを1件も正式採用しない場合は、`textlint-rule-preset-japanese`を`package.json`から削除し、`pnpm-lock.yaml`も最終状態に合わせて戻す。評価のためだけの未使用dependencyを残さない。
+- [ ] preset由来ruleを1件も正式採用しない場合は、既存5 rule以外に導入可能な一般日本語ruleがあるか再確認する。その確認で安全な一般日本語ruleが1件もない場合は、`textlint-rule-preset-japanese`を`package.json`から削除し、`pnpm-lock.yaml`も最終状態に合わせて戻すが、Issue #153を完了扱いにせず理由を明示して対応方針を再確認する。評価のためだけの未使用dependencyを残さない。
 
 ### Task 2: preset候補を実測し、正式採用ruleを決める
 
@@ -233,6 +235,8 @@ no-mix-dearu-desumasu
 
 この評価は段階導入ではなく、同一実装PR内で最終設定を決めるために行う。評価結果を得る前にpreset由来ruleのproduction採用を確定しない。
 
+評価用のpreset候補の評価はproduction scannerへ組み込む前に、一時textlint configまたはtextlintのCLI / APIを使用して行う。評価結果を得るまでproductionの`.textlintrc.json`と`scripts/lint-text-quality.mjs`を変更しない。一時的な評価のためだけに新しい恒久script、framework、toolはRepositoryへ残さない。
+
 既存の次4 ruleはpreset側を無効化し、直接設定を維持する。
 
 ```text
@@ -246,12 +250,14 @@ no-kangxi-radicals
 
 #### 評価手順
 
-- [ ] presetを一時的に有効化し、8候補それぞれの検出件数とpathを取得する。
+- [ ] production configへ組み込む前に、一時configまたはtextlintのCLI / APIでpresetを評価し、8候補それぞれの検出件数とpathを取得する。
 - [ ] 検出結果を実際のMarkdown文脈で確認する。
 - [ ] ruleごとに、実違反 / 誤検知 / 固定契約 / 対象外履歴を分類する。
 - [ ] 設定値を持つruleは、default値を基準に必要な比較だけを行う。
 - [ ] 実測結果をactive RunのREPORTまたは同等の作業記録へ残す。
-- [ ] 評価後に正式採用ruleと設定を`.textlintrc.json`へ固定する。
+- [ ] 評価後に正式採用ruleとproduction方式を決める。presetをproductionで維持するか、採用ruleの個別packageを直接追加するかを、scanner変更・設定・dependency・contract testがより小さくなる方から比較する。件数による固定基準は設けず、preset導入自体を目的にしない。
+- [ ] preset由来ruleを1件も採用しない場合は、既存5 rule以外に導入可能な一般日本語ruleが存在するか再確認する。安全なruleが1件もない場合は、目的未達として完了せず、理由と対応方針を再確認する。
+- [ ] productionでpresetを維持する場合だけ、Task 3で必要なproduction構成を実施する。個別packageを直接追加する場合はpreset対応を実施しない。
 
 #### 採用基準
 
@@ -272,17 +278,18 @@ no-kangxi-radicals
 
 特に`max-ten`、`sentence-length`、`no-mix-dearu-desumasu`はstyle制約を含むため、最初から採用確定にはしない。実測は行うが、既存文章規約で根拠を説明できなければ非採用とする。
 
-### Task 3: textlint rule集合検証をpreset対応にする
+### Task 3: productionでpresetを使う場合だけtextlint rule集合検証を対応する
 
-現在の`scripts/lint-text-quality.mjs`は単一の`TEXTLINT_RULE_IDS`を、設定load時のrule集合確認とruntime message validationの両方に使っている。
+Task 2でpresetをproduction dependencyとして維持すると決めた場合だけ、現在の`scripts/lint-text-quality.mjs`を必要最小限変更する。採用ruleの個別packageを直接追加する場合は、preset対応だけを目的とする変更を行わない。
 
-- [ ] `loadTextlintrc().toJSON()`がpreset導入後に返すrule IDを実測する。
+- [ ] `loadTextlintrc().toJSON()`がproduction preset構成で返すrule IDを実測する。
 - [ ] runtime violationの`message.ruleId`を実測する。
-- [ ] 両者が同じ集合で表現できる場合は単一定数を維持する。
-- [ ] preset展開により異なる場合だけ、設定検証用allowlistとruntime message用allowlistを分離する。
+- [ ] productionの実効rule集合が、既存5 direct ruleとTask 2で正式採用した日本語ruleだけになるよう、preset内の非採用ruleを明示的に無効化する。既存direct ruleと重複する4 ruleも含め、採用しないpreset内部ruleを無効化する。
+- [ ] 両者が同じ集合で表現できる場合は単一定数を維持し、preset展開により異なる場合だけ設定検証用allowlistとruntime message用allowlistを分離する。
 - [ ] unknown rule、missing rule、重複設定、load failureを従来どおりfail-close扱いにする。
 - [ ] preset名だけを許可して内部ruleを無検証にする実装にはしない。
 - [ ] fingerprintは引き続きruntime rule ID + normalized matchのSHA-256を使う。
+- [ ] productionでpresetを使わない場合は、preset対応allowlist、preset専用contract、preset対応だけを目的としたscanner変更を残さない。
 
 ### Task 4: Repository固有の表記rule候補を評価する
 
@@ -317,16 +324,42 @@ no-kangxi-radicals
 
 messageは、各採用ruleのreplacementを使用するよう明示する短い固定文にする。rule_idは上表の候補から採用したものに付与し、fingerprintの安定性を保つ。
 
-#### 採用前確認
+#### Step 1: ruleとして安全かを判断する
 
-- [ ] 各候補をRepository全体で検索する。
-- [ ] 現在の通常本文に残る出現を確認する。
-- [ ] identifier / schema / enum / config / validator固定文字列 / UI正式名称 / 外部仕様 / 過去記録ではないことを確認する。
-- [ ] inline code / fenced code / URLの出現がscannerで除外されることをcontract testで確認する。
-- [ ] 通常本文を検出できることを必ずpositive testで確認する。
-- [ ] path単位の例外追加が必要な候補は、このIssueでcustom rule schemaを拡張せず、blocking採用を見送る。
+各候補について、現在の出現件数とは別に次を確認する。
 
-採用する候補が1件以上ある場合だけ`.codex/text-quality-rules.json`を`status: "configured"`へ変更する。すべて非採用になった場合は、理由を作業記録へ残し、`not-configured`を維持する。
+- [ ] `docs/WRITING_STANDARDS.md`で置換先が一意に決まっている。
+- [ ] コード上のidentifier、schema / enum / config値、validator / contract testの固定文字列ではない。
+- [ ] UI正式名称、外部仕様の正式名称、ファイル名、pathとして維持すべき表現ではない。
+- [ ] 通常本文では常に置換してよく、仕様や要件の意味を変更しない。
+- [ ] relative pathやMarkdown link destinationを誤検知しないことを、小さいscanner変更とfixtureで安全に確認できる。大きなMarkdown parserやscope frameworkが必要なら、その候補はblocking採用しない。
+
+特に`learner-facing`については、少なくとも次をcontract testで確認する。
+
+```text
+通常本文の `learner-facing`                          -> violation
+inline code の `` `learner-facing` ``                 -> violationにならない
+HTTP URL の `https://example.test/learner-facing`      -> violationにならない
+Markdown relative link `[説明](docs/learner-facing.md)` -> link destinationを違反にしない
+relative path の `docs/learner-facing.md`              -> file pathとして使用される場合は違反にしない
+```
+
+この区別を既存scannerへの小さい変更で安全に実現できない場合は、`learner-facing`をcustom blocking ruleとして採用しない。同じ問題が他候補にある場合も同様に扱う。
+
+#### Step 2: 現在の違反件数を確認する
+
+- [ ] Step 1でruleとして安全と判断した候補だけをRepository全体で検索する。
+- [ ] 現在の違反件数と修正対象fileをruleごとに記録する。
+- [ ] 現在の違反件数が0件でも、将来その表現を禁止するruleとして安全なら、rule採用を否定する理由にしない。
+
+#### Step 3: contract testでrule自体を検証する
+
+- [ ] 通常本文の候補表現がviolationになることをfixtureで確認する。
+- [ ] identifier / schema / enum / config / validator固定文字列 / UI正式名称 / 外部仕様 / file path / relative link destinationなどの除外対象がviolationにならないことをfixtureで確認する。
+- [ ] inline code / fenced code / HTTP URLの出現がscannerで除外されることを確認する。
+- [ ] Step 1からStep 3までを満たした候補だけをblockingへ正式採用する。
+
+安全にblocking採用できる候補が1件以上ある場合だけ`.codex/text-quality-rules.json`を`status: "configured"`へ変更する。8候補すべてを安全にblockingできない場合は、理由を作業記録へ残し、`not-configured`のままIssueを完了扱いにせず、Repository固有rule導入で目的を満たせるか対応方針を再確認する。
 
 ### Task 5: 全件scan modeを既存Repository-level checkerへ追加する
 
@@ -348,6 +381,7 @@ node scripts/check-text-quality-changes.mjs --all
 - localの`--all`は`getWorkingTreeMarkdownPaths()`が返すtracked + untrackedかつGit ignoreされていないMarkdownを候補にする。
 - CIのclean checkoutでは同じ候補集合が実質tracked Markdownになる。
 - その候補集合へ、Section 4の履歴prefixだけを全件migration scopeから追加filterする。
+- rootの`CHANGELOG.md`は既存履歴のmigration対象から除外する。これは`--all`だけの除外であり、`lint:text`の差分gateでは除外しない。
 - 各本文は既存`loadRules()` + `scanTextQuality()`へ渡す。
 - textlint / custom rule定義を全件scan用に複製しない。
 - 1件でも違反があればexit 1。
@@ -376,6 +410,7 @@ Task 2 / Task 4の評価を完了し、正式採用ruleを固定してから文�
 - [ ] code / command / identifier / API / UI正式名称を変更しない。
 - [ ] 仕様変更に見える修正は実施せず、ruleの誤検知か固定文字列かを先に確認する。
 - [ ] 全件scan除外対象は、文章統一だけの理由で修正しない。
+- [ ] 既存`CHANGELOG.md`の履歴は`lint:text:all`でmigrationせず、`CHANGELOG.md`の今回以降の変更だけを`lint:text`で検査する。
 - [ ] 修正後に`lint:text:all`が0 violationになることを確認する。
 
 正式採用候補が正常文を誤検知する場合は、文章を無理に直さずTask 2 / Task 4へ戻り、そのruleの採否を再判断する。
@@ -389,22 +424,24 @@ Task 2 / Task 4の評価を完了し、正式採用ruleを固定してから文�
 追加・更新する確認:
 
 - [ ] production configに既存5 direct ruleが残る。
-- [ ] preset由来ruleを1件以上正式採用する場合は`textlint-rule-preset-japanese`が依存関係に存在し、1件も採用しない場合は評価用dependencyが最終成果物に残っていない。
+- [ ] preset由来ruleを1件以上正式採用してproductionでpresetを維持する場合だけ`textlint-rule-preset-japanese`が依存関係に存在する。1件も採用しない場合は、一般日本語ruleの再確認と対応方針の再確認を行ったうえで、評価用dependencyを最終成果物に残さない。
 - [ ] 評価で正式採用したpreset ruleだけがblockingになる。
-- [ ] preset内の既存重複4 ruleが無効で、直接ruleとの二重報告がない。
+- [ ] productionでpresetを使う場合、preset内の既存重複4 ruleとその他の非採用内部ruleが無効で、直接ruleとの二重報告や意図しない追加ruleがない。
 - [ ] `no-hankaku-kana`が従来どおり動く。
 - [ ] 正式採用したpreset ruleごとにpositive / non-violationの代表caseを確認する。
 - [ ] 非採用ruleをproduction blockingへ誤って含めていない。
 - [ ] custom ruleごとに通常本文のpositive caseを確認する。
 - [ ] custom ruleのinline code / fenced code / URL除外を確認する。
+- [ ] `learner-facing`の通常本文、inline code、HTTP URL、Markdown relative link destination、relative pathの扱いを確認し、安全に区別できない場合は採用しない。
 - [ ] `ignore.identifiers: true`によって検出語が消える設定を入れていない。
 - [ ] custom ruleのproduction集合が評価結果と一致する。
 - [ ] full scan対象に違反があれば失敗する。
 - [ ] local full scanがuntracked Markdownも検出する。
 - [ ] historical prefixの既存違反は全件migration対象にしない。
 - [ ] historical prefix内の今回変更分は既存差分gateで検出される。
+- [ ] 既存`CHANGELOG.md`の履歴は全件migrationせず、`CHANGELOG.md`の今回以降の変更は既存差分gateで検出される。
 - [ ] 差分gateは既存fingerprint countとrename semanticsを維持する。
-- [ ] missing / invalid / unloadable presetはquality unavailableとして従来契約へ収束する。
+- [ ] productionでpresetを使う場合のmissing / invalid / unloadable presetはquality unavailableとして従来契約へ収束する。presetを使わない場合はpreset依存の検証を追加しない。
 - [ ] UserPromptSubmit / PostToolUse / Stopのfail-open / fail-close契約を変更しない。
 - [ ] Issue #161で確定した`stop_hook_active=true`かつstateなしの重複Stop allow契約を維持する。
 
@@ -461,8 +498,10 @@ pnpm run lint:text:all
 確認:
 
 - 評価時にpreset packageが解決でき、最終状態は採用ruleの件数に合わせてdependencyを整理できる。
-- direct 5 rule + preset採用rule + custom ruleが同じscanner経路で動く。
-- preset由来ruleが0件の場合は、評価用dependencyを削除した最終`package.json` / `pnpm-lock.yaml`になる。
+- direct 5 rule + 採用した一般日本語rule + 1件以上のcustom ruleが同じscanner経路で動く。
+- preset由来ruleが0件の場合は一般日本語ruleの再確認を行い、安全なruleがないなら完了扱いにせず対応方針を再確認する。presetをproductionで使わない最終状態では、評価用dependencyを削除した`package.json` / `pnpm-lock.yaml`になる。
+- productionでpresetを使う場合は、非採用内部ruleが実効化されていない。
+- `lint:text:all`は既存`CHANGELOG.md`履歴を対象外とし、`lint:text`は変更された`CHANGELOG.md`を通常どおり検査する。
 - missing / invalid configがPASSにならない。
 
 ### 6.2 focused contract
@@ -514,8 +553,10 @@ pnpm run lint:text:all
 
 成功条件:
 
-- 正式採用ruleの全件違反0件。
+- 既存5 rule以外の一般日本語ruleと、1件以上のRepository固有ruleをblockingへ正式採用し、正式採用ruleの全件違反0件。
+- preset由来ruleが0件の場合に一般日本語ruleの再確認を行い、目的未達なら完了扱いにしていない。
 - excluded historical corpusを文章統一だけの理由で変更していない。
+- 既存`CHANGELOG.md`履歴を全件migrationしていない。
 - 差分gateは新規違反を検出する。
 
 ### 6.5 Repository標準検証
@@ -568,7 +609,7 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 
 - 8候補を同じ手順で実測する。
 - 採用基準を先に固定し、採用rule自体は実測後に決める。
-- 非採用を失敗扱いにしない。Repositoryに適さないruleを入れないことを優先する。
+- 個別ruleの非採用自体は許容するが、preset候補をすべて非採用にして既存5 rule以外の一般日本語ruleが0件になる場合は、成功条件にせず理由と対応方針を再確認する。
 
 ### 7.3 custom ruleの検出不能と固定文字列
 
@@ -579,9 +620,20 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 - custom wording ruleでは`ignore.identifiers: false`を基本とする。
 - inline code / fenced code / URLを除外する。
 - 固定文字列や外部契約として通常本文に残る候補はblocking採用しない。
+- relative pathやMarkdown relative link destinationを安全に区別できない候補はblocking採用しない。
 - path例外のためにcustom rule schemaを拡張しない。
 
-### 7.4 全件scanと履歴文書
+### 7.4 custom ruleを1件も導入できない場合
+
+8候補すべてがidentifier、schema / enum / config、validator固定文字列、UI正式名称、外部仕様、file path、relative link destinationなどとの衝突で安全にblockingできない可能性がある。
+
+対策:
+
+- 現在の違反件数とは分離して、rule自体の安全性を先に評価する。
+- 1件も安全に採用できない場合は、`not-configured`を正常完了条件にせず、理由を明示してIssue #153の目的を満たせるか対応方針を再確認する。
+- 無理な置換、広いpath除外、恒久的なdisable comment、大きなparser / framework追加で採用件数を作らない。
+
+### 7.5 全件scanと履歴文書
 
 全Markdownを無差別にscanすると、Issueが明示的に除外した過去記録までmigration対象になる。
 
@@ -589,10 +641,12 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 
 - local候補集合はtracked + untracked nonignored Markdownとする。
 - full scanだけ履歴prefixを除外する。
+- 既存`CHANGELOG.md`はfull scanのmigration対象から除外する。
+- `CHANGELOG.md`の今後の変更は差分gateで検査する。
 - 新規・更新した履歴文書は既存差分gateで検査する。
 - 既存履歴を通すための大量disable commentを追加しない。
 
-### 7.5 CI時間
+### 7.6 CI時間
 
 全件scan追加で`Style Quality`と`verify`の時間が増える。
 
@@ -603,7 +657,7 @@ Issue #153は実測後の採否決定を要求している。Planで候補を先
 - 同一CI job内で実行し、別jobやmatrixを追加しない。
 - 実測で問題がなければcacheや並列frameworkを追加しない。
 
-### 7.6 ADR-0026の整合
+### 7.7 ADR-0026の整合
 
 Issue #153でrule選定が更新された場合、ADR-0026の過去Decision本文と現在仕様の関係が曖昧に見える可能性がある。
 
@@ -619,7 +673,7 @@ Issue #153でrule選定が更新された場合、ADR-0026の過去Decision本�
 想定変更ファイル:
 
 ```text
-package.json（preset由来ruleを採用した場合だけ最終dependencyを維持する）
+package.json（production方式に応じた最終dependency状態。preset由来ruleを採用しない場合は評価用dependencyを残さない）
 pnpm-lock.yaml（最終dependency状態に合わせる）
 .textlintrc.json
 .codex/text-quality-rules.json
@@ -645,17 +699,25 @@ docs/reference/codex-implementation-harness.md
 
 - [ ] Issue #153本文を実装仕様で膨らませず、Planで必要な詳細だけを決めている。
 - [ ] preset ruleの採否を実測前に固定していない。
+- [ ] preset評価をproduction scanner変更前に一時configまたはCLI / APIで行っている。
+- [ ] presetをproductionで使うこと自体を目的にせず、個別package方式との比較を行っている。
+- [ ] presetをproductionで使う場合、非採用内部ruleが明示的に無効化され、実効rule集合が既存5 direct rule + 正式採用ruleだけになっている。
+- [ ] preset由来rule 0件を自動的な成功条件にせず、一般日本語ruleの再確認と目的未達時の再確認を定義している。
+- [ ] custom rule 0件を自動的な成功条件にせず、8候補を評価して目的未達時の再確認を定義している。
 - [ ] PR #146の既存5 ruleを削除していない。
-- [ ] preset内の重複4 ruleを二重実行しない。
+- [ ] preset内の重複4 ruleを含む非採用内部ruleを二重実行・意図せず実効化しない。
 - [ ] `docs/WRITING_STANDARDS.md`にないstyle制約を勝手に追加していない。
 - [ ] custom rule候補は一意置換できるRepository固有表現に限定している。
 - [ ] `Minimum Evidence`を一意replacement扱いしていない。
 - [ ] `Summary`、`Evidence`、`Build`、`Test`等をbroad禁止していない。
 - [ ] custom ruleに`ignore.identifiers: true`を一律設定していない。
+- [ ] ruleの安全性、現在違反件数、contract testを分離して確認している。
 - [ ] custom ruleの通常本文positive testを用意する。
+- [ ] `learner-facing`のinline code / HTTP URL / Markdown relative link / relative pathを誤検知せず、区別できない場合は採用しない。
 - [ ] scanner / rule definitionを二重管理していない。
 - [ ] local full scanがuntracked Markdownを取りこぼさない。
 - [ ] full scanの履歴除外と差分gateを混同していない。
+- [ ] 既存`CHANGELOG.md`履歴を全件migrationせず、変更差分は`lint:text`で検査する。
 - [ ] 全件gateをHookへ追加していない。
 - [ ] Husky pre-commitへ要求外の全件scanを追加していない。
 - [ ] 差分比較、fingerprint、rename、comparison failureの既存契約を弱めていない。
