@@ -1650,6 +1650,9 @@ describe("Codex deterministic text quality contracts", () => {
       writeFile(root, "docs/untracked.md", "BAD\n");
       writeFile(root, ".codex/runs/old.md", "BAD\n");
       writeFile(root, "docs/plans/old.md", "BAD\n");
+      writeFile(root, "docs/reports/old.md", "BAD\n");
+      writeFile(root, "docs/history/old.md", "BAD\n");
+      writeFile(root, "docs/adr/old.md", "BAD\n");
       writeFile(root, "CHANGELOG.md", "BAD\n");
 
       const result = runNode(
@@ -1683,6 +1686,19 @@ describe("Codex deterministic text quality contracts", () => {
         "FAIL: 1 text quality violation(s)\n" +
           'docs/untracked.md:1 [TEST-BANNED] 文章品質ルール違反 replacement="GOOD"\n',
       );
+    });
+  });
+
+  it("rejects --all combined with --base-ref", () => {
+    withFixture((root) => {
+      const result = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--all", "--base-ref", "HEAD", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("--all cannot be combined with --base-ref or --working-tree");
     });
   });
 

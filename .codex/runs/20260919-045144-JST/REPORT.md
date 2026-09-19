@@ -117,3 +117,10 @@
 ## 2026-09-19 15:58 (JST)
 
 - Correction: 11:05の`learner-facing`記述について、inline codeとHTTP URLも現行scannerで区別できないと読める記載を訂正する。評価fixtureで通常本文はviolation、inline codeは既存scope処理で除外、HTTP URLも既存scope処理で除外、Markdown relative link destinationは通常本文と安全に区別できずviolation、relative pathも通常本文と安全に区別できずviolationだった。path / link destinationを区別するためにscannerへ大きなMarkdown解析を追加しない方針のため、`learner-facing`はblocking ruleとして非採用とした。対象151 Markdownの現在違反は0件。
+
+## 2026-09-19 18:00 (JST)
+
+- Changes: `lint:text:all`の既存fixtureへ`docs/reports/old.md`、`docs/history/old.md`、`docs/adr/old.md`を追加し、`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md`の6種類を除外するcontractを固定した。既存の`scanned_files: 2`期待値は維持した。
+- Changes: `--all`と`--base-ref HEAD`の組み合わせがexit status 2となり、`--all cannot be combined with --base-ref or --working-tree`をstderrへ出すcontractを追加した。production実装、FULL_SCAN_EXCLUDED_PREFIXES、rule、dependency、Hook/Husky、CI構成は変更していない。
+- Validation: focused text-quality contractは`46 passed (46)`、`pnpm run lint:text`、`pnpm run lint:text:all`（151 Markdown / 0 violation）、`pnpm run lint:markdown`、Prettier、`git diff --check`がPASSした。`pnpm run verify`は`592 passed / 4 skipped`、Web/spec buildを含めてPASSした。
+- Validation: `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -HookContracts`は、Windows launcherの既存テストで`3221225477`のprocess exitが発生し、PASS=3、FAIL=1、SKIP=0となった。同一testの標準timeoutによる単独再実行でも別eventで同じ終了コードを再現した。今回の変更はtext-quality contract testだけでHook実装・launcher・timeoutを変更していないため、Hook側の修正はscope外として行っていない。最新PR CIでのHook contract結果を確認する。
