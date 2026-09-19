@@ -316,10 +316,10 @@ OpenCodeへSecretを渡す前に、workflow自身がrunner tempへ`fix-authoriza
 - normalized vulnerable range / first patched version
 - affected pathごとのbaseline resolved version、root dependency、immediate parent
 - 許可するstrategy
-- strategyごとのexactな許可変更
-  - direct: old / new specifier
-  - root parent: root dependency名、old specifier、許可candidate specifier一覧
-  - override: exact selectorと許可value
+- strategyごとのexactな許可変更とresolution期待値
+  - direct: old / new specifier、expected target resolved version（`first_patched_version`）
+  - root parent: root dependency名、old specifier、許可candidateごとのnew specifierとexpected exact root resolved version。OpenCode実行前には候補一覧として保持し、OpenCodeの`package.json`差分から選択candidateを一意に特定した後、そのcandidateに紐づくexpected exact root resolved versionをvalidatorが使う。
+  - override: exact selector、許可value、expected target resolved version（`first_patched_version`）、selectorに一致するbaseline全edge
 - authorization JSONには自己hashを含めない。file SHA-256はJSON生成後にworkflow側で計算し、OpenCode実行前後の不変確認とjob output / Artifact検証に使う。
 
 OpenCode promptへ渡すのはsanitized contextと`fix-authorization.json`の許可内容だけとする。OpenCodeはauthorizationを変更できず、許可された変更から1つだけ選んで`package.json`を編集する。
@@ -374,7 +374,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 - `security-context`と`security-candidate`を`artifact-ids`指定でdownloadし、file set、Artifact digest、個別SHA-256を確認する。
 - candidate `package.json`と`fix-authorization.json`を配置し、semantic diffがauthorization内の許可変更1件だけと一致することを検証する。
 - `scripts`、`packageManager`、metadata、`pnpm.packageExtensions`、無関係なdependency / override変更を拒否する。
-- workflowが固定pnpmで、authorizationが要求するexact resolved versionを得られる方法に限定して`pnpm-lock.yaml`を生成する。genericなrange解決の結果がauthorizationのexpected exact resolved versionと異なる場合は採用せず`needs_human`へ停止する。
+- workflowはOpenCodeの`package.json`差分からauthorization内の許可candidateを一意に特定し、そのcandidateに紐づくexpected exact resolved versionを正本にして固定pnpmで`pnpm-lock.yaml`を生成する。genericなrange解決を含め、生成結果がそのexpected exact resolved versionと異なる場合は別candidateを自動探索せず`needs_human`へ停止する。
 - `pnpm install --frozen-lockfile --ignore-scripts`を行い、package selectorなしの`pnpm list --json --depth Infinity`でinstalled graphを取得する。
 - direct dependencyではtargetのresolved version、root parent updateでは選択root dependencyのresolved version、parent-scoped overrideではtargetのresolved versionがauthorizationのexpected exact resolved versionと完全一致することを要求する。
 - parent-scoped overrideではbaseline上でselectorに一致する全edgeがauthorizationへ列挙され、prepared graphでそれら以外のedgeへ予期しない変更がないことを確認する。
@@ -627,7 +627,7 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 - read-alertの重複判定はtarget dependencyだけで、related root / override判定はgraph取得後へ分離されている。
 - baseline installed graphでtargetのvulnerable pathを`semver.satisfies`により抽出し、0件なら修正しない。
 - direct / overrideでversion downgradeを許可しない。
-- authorizationへstrategyごとのexpected exact resolved versionを保持し、prepared lockfile / installed graphと完全一致させる。
+- authorizationではdirect / overrideは1つのexpected exact resolved version、root parentは許可candidateごとのexpected exact resolved versionを保持する。OpenCode差分から選択candidateを一意に決め、そのcandidateの期待値とprepared lockfile / installed graphを完全一致させる。
 - parent-scoped override selectorに一致するbaseline上の全edgeをauthorizationへ列挙し、許可外edgeまで変更するselectorを拒否する。
 - prepared `pnpm-lock.yaml`のtarget package `packages` / `snapshots` entryにvulnerable range内versionが1件でも残れば拒否する。
 - `fix-authorization.json`がOpenCode実行前にworkflow自身によって生成され、OpenCode実行前後でSHA-256不変である。

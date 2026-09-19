@@ -132,3 +132,9 @@
   - `OPENCODE_DISABLE_DEFAULT_PLUGINS=1`を追加し、`OPENCODE_PURE=1`とは別に固定binary内のdefault pluginも無効化する。
 - 対象範囲: Plan、active Run Artifact、PR本文だけ。workflow、Renovate設定、OpenCode設定、validator、依存関係、GitHub Settings、Secret、App installationは変更していない。
 - Progress: 100% (11/11)
+
+## 2026-09-19 23:23 (JST) 追記
+
+- root parent updateではOpenCode実行前に選択candidateが未確定であるため、authorizationへ単一のexpected resolved versionを持たせる表現を修正した。
+- `fix-authorization.json`は許可candidateごとにnew specifierとexpected exact root resolved versionを対応付ける。OpenCodeの`package.json`差分からcandidateを一意に特定し、そのcandidateの期待値をvalidatorが使用する。
+- 生成されたlockfileが選択candidateのexpected exact resolved versionと異なる場合は、別candidateを自動探索せず`needs_human`へ停止する。
