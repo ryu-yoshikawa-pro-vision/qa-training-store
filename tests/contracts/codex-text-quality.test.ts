@@ -1616,6 +1616,14 @@ describe("Codex deterministic text quality contracts", () => {
           replacement: "GOOD",
         },
       ]);
+
+      const humanChanged = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--base-ref", "HEAD", "--working-tree", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+      expect(humanChanged.status).toBe(1);
+      expect(humanChanged.stdout).toContain("FAIL: 1 new text quality violation(s)\n");
     }, "BAD\nGOOD\n");
   }, 30_000);
 

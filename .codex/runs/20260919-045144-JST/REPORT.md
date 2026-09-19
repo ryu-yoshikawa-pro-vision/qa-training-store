@@ -84,3 +84,32 @@
 - Validation: 変更直後の既定Vitest呼び出しは、Repository標準の`--testTimeout=30000`等を付けない実行で既存の長時間ケース4件が5秒timeoutになった。標準`test:contracts`と同じ`--no-file-parallelism --maxWorkers=1 --testTimeout=30000`で再実行し、文章品質contractは45/45 PASSした。timeoutを隠すコード変更は行っていない。
 - Validation: `pnpm run verify`はformat、Markdown lint、`lint:text`、`lint:text:all`（151 Markdown / 0 violation）、skills/spec/curriculum、lint（0 errors / 66 warnings）、typecheck、security、unit 66、integration 111、repository 117、component 166、contract 591 passed / 4 skipped、Web build、spec buildまでPASSした。`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -HookContracts`もPASS=4、FAIL=0、SKIP=0（Hook contract 198/198）だった。
 - Decision: `stop_success`。残差はなく、次は差分最終確認、Run Artifactのcollector、commit、push、PR #166の最新head CI確認のみ。
+
+## 2026-09-19 11:05 (JST)
+
+- Review evidence: `.artifacts/issue-153-eval/evaluation-results.json`が残っているため、`textlint-rule-preset-japanese@10.0.4`、textlint `15.8.0`、lint:text:all対象151 Markdown、既存除外範囲、Plan記載の設定値で再評価せずに代表証拠を整理した。0件のruleには架空のpath:lineを付けていない。
+- 一般日本語ruleの採否根拠:
+  - `max-ten` — default `max=3`: 13件、比較 `max=4`: 6件。代表は`.agents/skills/android-native-local-validation/references/windows-android-workflow.md:74`。実機検証停止条件を列挙する正常な技術文であり、既存規約に句読点数のblocking根拠もないため非採用。
+  - `no-doubled-conjunctive-particle-ga` — `true`: 0件。対象Markdown上の現在検出は0件。評価fixtureでは二重の「が」を1件検出し、通常の技術文を0件としたため採用。
+  - `no-doubled-conjunction` — `true`: 9件。代表は`.agents/skills/android-native-local-validation/references/windows-android-workflow.md:86`。未実行段階を列挙する正常な技術文の「または」であり、既存規約のblocking根拠がないため非採用。
+  - `no-double-negative-ja` — `true`: 0件。対象Markdown上の現在検出は0件。評価fixtureで技術的に正当な慎重表現「可能性がないとは言い切れない」を1件検出したため非採用。
+  - `no-doubled-joshi` — `min_interval=1`: 52件。代表は`.agents/skills/code-review/references/review-workflow.md:122`。レビュー手順の自然な反復表現を検出しており、既存規約により厳しい助詞間隔の根拠がないため非採用。
+  - `sentence-length` — default `max=100`: 828件、比較 `max=120`: 500件。代表は`.agents/skills/android-native-local-validation/references/windows-android-workflow.md:48`（default）。Evidence保存とRun記録を説明する正常な技術文で、既存規約に文長上限のblocking根拠がないため非採用。
+  - `no-dropping-the-ra` — `true`: 0件。対象Markdown上の現在検出は0件。評価fixtureではら抜き表現を1件検出し、通常の技術文を0件としたため採用。
+  - `no-mix-dearu-desumasu` — `strict=false`、`preferInHeader` / `preferInBody` / `preferInList` は空文字: 15件。代表は`.agents/skills/repair-loop/references/repair-workflow.md:35`。既存の手順箇条書きの文体混在であり、Repository全体へ一方の文体を強制する契約がないため非採用。
+- Repository固有rule 8候補の安全性・migration・fixture整理:
+  - `Competency Rubric` — Repository全体の根拠は`scripts/validate-curriculum.ts:582` / `:585`のvalidator固定文字列。機械契約のため非採用。lint:text:all対象151 Markdownの現在違反は0件。
+  - `Common Core` — `docs/WRITING_STANDARDS.md:131`の表記対応を確認。identifier / schema / enum / validator固定値ではなく、対象151 Markdownの現在違反は0件。`tests/contracts/codex-text-quality.test.ts:1565`のpositive fixture 1行目で検出し、inline code / fenced codeでは検出しないため採用。
+  - `Native specialization` — Repository全体の根拠は`tests/contracts/training-curriculum.test.ts:55`のcurriculum固定契約。機械契約のため非採用。対象151 Markdownの現在違反は0件。
+  - `learner-facing` — `docs/WRITING_STANDARDS.md:39`の表記対応に加え、評価fixtureで通常本文は検出する一方、`[説明](docs/learner-facing.md)`、`docs/learner-facing.md`、HTTP URL、inline codeのscopeを現行scannerが安全に区別できないことを確認したため非採用。対象151 Markdownの現在違反は0件。今回のcontract testではこのscanner不足をproduction契約として固定しない。
+  - `Common route` — `docs/PROJECT_CONTEXT.md:593`のCommon Web route / Native specializationという分類文脈を確認。単純置換をblockingにする安全性を説明できないため非採用。対象151 Markdownの現在違反は0件。
+  - `Completion contract` — `docs/WRITING_STANDARDS.md:135`の表記対応を確認。固定契約との衝突は確認せず、対象151 Markdownの現在違反は0件。`tests/contracts/codex-text-quality.test.ts:1565`のpositive fixture 2行目で検出し、inline code / fenced codeでは検出しないため採用。
+  - `Common completion` — `docs/WRITING_STANDARDS.md:136`の表記対応を確認。固定契約との衝突は確認せず、対象151 Markdownの現在違反は0件。`tests/contracts/codex-text-quality.test.ts:1565`のpositive fixture 3行目で検出し、inline code / fenced codeでは検出しないため採用。
+  - `bounded Level 2` — `docs/WRITING_STANDARDS.md:137`の表記対応を確認。固定契約との衝突は確認せず、対象151 Markdownの現在違反は0件。`tests/contracts/codex-text-quality.test.ts:1565`のpositive fixture 4行目で検出し、inline code / fenced codeでは検出しないため採用。
+- Decision: 採用ruleは従来どおり一般2件（`no-doubled-conjunctive-particle-ga=true`、`no-dropping-the-ra=true`）とcustom 4件（`Common Core`、`Completion contract`、`Common completion`、`bounded Level 2`）。REPORT上で、一般8候補とcustom 8候補について設定・件数・代表path:lineまたは0件・分類・採否・fixture根拠を追跡できる状態にした。採用rule、dependency、production config、scanner設計、Hook/Husky、CI構成は変更していない。
+
+## 2026-09-19 11:29 (JST)
+
+- Validation: focused text-quality contractは45/45 PASS、`pnpm run lint:text`、`pnpm run lint:text:all`（151 Markdown / 0 violation）、`pnpm run lint:markdown`、Prettier、`git diff --check`がPASSした。
+- Validation: `pnpm run verify`はformat、Markdown lint、差分/全件text gate、skills/spec/curriculum、lint（0 errors / 66 warnings）、typecheck、security、unit 66、integration 111、repository 117、component 166、contract 591 passed / 4 skipped、Web build、spec buildまで完了した。`scripts/verify.ps1 -HookContracts`はHook contract 198/198、PASS=4、FAIL=0、SKIP=0だった。
+- Changes: `tests/contracts/codex-text-quality.test.ts`では差分modeの`FAIL: 1 new text quality violation(s)`表示を確認し、`--all`の`FAIL: 1 text quality violation(s)`表示確認を維持した。JSON / exit code / scanner architecture / adopted rules / dependency / Hook・Huskyは変更していない。
