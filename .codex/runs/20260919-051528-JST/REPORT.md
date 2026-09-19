@@ -94,3 +94,19 @@
 - Repository / dependency / OpenCode processは通常のGitHub Actions環境を継承せず、`env -i`相当のpublic-safe allowlistで起動する契約をPlanへ追加した。
 - `GITHUB_EVENT_PATH`、`GITHUB_TOKEN`、`GH_TOKEN`、OIDC request環境変数、credential / Secretをprocessへ渡さない。
 - Progress: 100% (13/13)
+
+
+## 2026-09-19 15:53 (JST)
+
+- 概要: これまでのレビュー結果を根本原因単位へ統合し、未解決の致命的事項とPR完了条件をPlanへ反映した。
+- 変更:
+  - Repository実装はPR #167を唯一の実装PRとして継続し、別PRを作らない契約を追加。
+  - fallbackを6 jobへ変更し、`validate-exec`で任意コードを実行したrunnerからpublish用Artifactを受け取らず、fresh runnerの`finalize`で差分を再構成する。
+  - OpenCode実行前にworkflow自身が`fix-authorization.json`を生成し、baseline vulnerable path、許可strategy、exact mutationを固定する。
+  - baseline targetがvulnerable range外なら修正せず停止し、direct / overrideのversion downgradeを拒否する。
+  - OpenCode permissionへtop-level `"*": "deny"`を追加し、main / small modelを同じFree modelへ固定、固定`--title`、`formatter: false`、`lsp: false`を追加。
+  - download Artifact inputを`artifact-ids`へ修正し、validated Artifactは`include-hidden-files: true`かつ6 file完全列挙へ変更。
+  - publish直前にAlert / Advisoryのdependency、ecosystem、GHSA、normalized vulnerable range、first patched versionをauthorizationと再照合する。
+  - PR #167 merge時点ではIssue #163をcloseせず、外部activationと実地確認後にcloseする契約へ変更。
+- 対象範囲: Plan、active Run Artifact、PR本文だけ。workflow、設定、依存関係、GitHub Settings、Secret、App installationは変更していない。
+- Progress: 100% (11/11)

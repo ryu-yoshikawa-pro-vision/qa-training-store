@@ -2,9 +2,9 @@
 
 ## 目的
 
-- Issue #163のPlanへ、これまでのレビュー結果を重複なく統合して反映する。
-- OpenCode fallbackの目的を維持しながら、Zen credential、raw Alert、OIDC、publish差分のSecurity境界を成立させる。
-- 今回はPlanとactive Run Artifactだけを変更し、workflow、設定、依存関係、外部Appは実装しない。
+- Issue #163のRepository実装をPR #167だけで完了するため、これまでのレビュー結果を最新Planへ統合する。
+- Dependabot Alerts → Renovate → 人間判断 → OpenCode fallbackという目的を維持し、OpenCode、validation、publishのSecurity境界を実装可能な粒度まで固定する。
+- 今回はPlan、active Run Artifact、PR本文だけを更新し、workflowや設定の実装には進まない。
 
 ## 対象範囲
 
@@ -13,46 +13,30 @@
   - `.codex/runs/20260919-051528-JST/PLAN.md`
   - `.codex/runs/20260919-051528-JST/TASKS.md`
   - `.codex/runs/20260919-051528-JST/REPORT.md`
+  - PR #167本文
 - 対象外:
   - `renovate.json`
   - `.github/workflows/**`
   - `.github/opencode/**`
   - `package.json` / `pnpm-lock.yaml`
   - GitHub Settings / Secret / App installation
-  - PR merge / close
+  - merge / Issue close / activation
 
-## 確認済み事項
+## 統合した修正
 
-- PR #167 headは修正開始時点で`0f47f5e05a55c7a18943fee4b6f3e7d21302061f`。
-- Web CI / Mobile App CIは同headで成功済み。
-- Issue #163の目的はRenovate Security修正を第一経路、人間起動のOpenCodeを限定fallbackとすること。
-- `OPENCODE_API_KEY`を使うOpenCodeとRepository / dependency codeの検証を同一runnerへ置くとfilesystem境界が成立しない。
-- `pnpm run verify`はbuild / generate処理を含むため、実行後にpublish対象差分を再検証する必要がある。
-- Repositoryのtracked Run Artifact契約はSecurity fallbackにも適用され、Planだけで省略例外を追加できない。
-- `pnpm list --json --depth Infinity`は現在runnerへinstallされたgraphの確認であり、lockfile内の全platform dependencyを表さない。
-- open Dependabot Alert件数は現在のGitHub connectorでは取得できない。
-
-## 変更方針
-
-1. fallbackを`preflight / read-alert / opencode-edit / validate / publish`の5 jobへ分離する。
-2. OpenCode runnerにはZen credentialだけを限定的に渡し、OpenCode終了後にRepository / dependency codeを実行しない。
-3. `validate`は別runnerでsemantic diff、lockfile、installed graph、`pnpm run verify`、tracked Run Artifact、最終guardを実行する。
-4. 最終guard通過後はRepository / dependency codeを実行せず、validated Artifactをそのままpublishへ渡す。
-5. root parent updateを`root -> target`の1 edgeへ限定し、深いpathはoverride条件を満たさなければ`needs_human`へ止める。
-6. OpenCodeのread / edit allowlist、parent-scoped override selector、Security branch命名を決定的に固定する。
-7. job間ArtifactはID指定、1日保持、overwrite禁止、file SHA-256検証を必須にする。
-8. RenovateのPR body / title / branch / commit messageの公開情報をconfigとcontract testで固定する。
-9. tracked Run Artifactの例外を撤回し、sanitized Artifactを作れない場合はpublishしない。
-10. `workflow_dispatch` inputを含む通常のGitHub Actions環境をRepository / dependency processへ渡さず、`env -i`相当のpublic-safe allowlistで実行する。
-11. 現行CI成功状態へPlanの現状記述を更新する。
+1. Repository実装はPR #167を唯一の実装PRとし、別PRを作らない。
+2. fallbackを6 jobへ分離し、任意コード実行済みrunnerからpublish Artifactを受け取らない。
+3. OpenCode実行前に`fix-authorization.json`をworkflow自身が確定し、後続validatorの正本にする。
+4. baseline targetが実際にvulnerable range内であることを開始条件とし、version downgradeを拒否する。
+5. OpenCode permissionをtop-level denyから組み立て、`formatter: false` / `lsp: false`、main / small modelのFree固定、固定titleを追加する。
+6. `validate-exec`は`pnpm run verify`を実行するだけでpublish用Artifactを生成せず、fresh runnerの`finalize`が差分を再構成する。
+7. Artifact input名を`artifact-ids`へ修正し、hiddenな`.codex/runs/**`を含むvalidated Artifactでは`include-hidden-files: true`とexact file listを必須にする。
+8. publish直前にAlertだけでなくAdvisoryのrange / first patched versionまでauthorizationと再照合する。
+9. PR #167の`Closes #163`を外し、merge後のactivation・実地確認完了後にIssue #163をcloseする。
 
 ## 完了条件
 
-- これまでの致命的・必須指摘がPlanへ統合される。
-- Issue #163の目的を広げず、必要なSecurity境界を削らない。
-- OpenCodeとvalidationのcredential / filesystem境界がjob単位で成立する。
-- publishされる内容が最終guard後に不変であることを機械検証できる。
-- 実装者がroot parent対象範囲、read allowlist、Artifact handoff、Renovate metadata、branch / override形式を追加判断しなくてよい。
-- Repositoryのtracked Run Artifact契約と矛盾しない。
-- `prConcurrentLimit`未確定の影響範囲が`renovate.json`とそのcontract testへ限定される。
-- 実装ファイル、外部App、Settingsへ進まない。
+- 最新Planに上記契約が一意に記載され、旧5 job契約や`artifact-id` download入力が残らない。
+- Security fallbackのauthorization、credential、任意コード実行、Artifact、OIDCの境界がjob単位で説明できる。
+- PR #167本文が「同じPRでRepository実装を完了」「merge後activation」「Issueはactivation後にclose」と一致する。
+- 実装ファイルへ進まない。
