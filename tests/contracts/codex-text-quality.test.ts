@@ -136,6 +136,8 @@ function linkTextlintDependencies(root: string) {
     "textlint-rule-no-nfd",
     "textlint-rule-no-kangxi-radicals",
     "textlint-rule-no-hankaku-kana",
+    "textlint-rule-no-doubled-conjunctive-particle-ga",
+    "textlint-rule-no-dropping-the-ra",
   ]) {
     fs.symlinkSync(
       path.join(repoRoot, "node_modules", packageName),
@@ -1265,8 +1267,17 @@ describe("Codex deterministic text quality contracts", () => {
       rules: unknown[];
     };
     expect(productionRules.version).toBe(1);
-    expect(productionRules.status).toBe("not-configured");
-    expect(productionRules.rules).toEqual([]);
+    expect(productionRules.status).toBe("configured");
+    expect(
+      (productionRules.rules as { rule_id?: unknown }[]).map(
+        (productionRule) => productionRule.rule_id,
+      ),
+    ).toEqual([
+      "wording-common-core",
+      "wording-completion-contract",
+      "wording-common-completion",
+      "wording-bounded-level-2",
+    ]);
 
     withFixture((root) => {
       const result = runNode(
@@ -1290,7 +1301,7 @@ describe("Codex deterministic text quality contracts", () => {
     });
   });
 
-  it("loads exactly the five adopted production textlint rules and preserves stable fingerprints", () => {
+  it("loads exactly the seven adopted production textlint rules and preserves stable fingerprints", () => {
     const textlintConfig = JSON.parse(fs.readFileSync(textlintConfigPath, "utf8")) as {
       rules: Record<string, unknown>;
     };
@@ -1301,6 +1312,8 @@ describe("Codex deterministic text quality contracts", () => {
         "no-nfd": true,
         "no-kangxi-radicals": true,
         "no-hankaku-kana": true,
+        "no-doubled-conjunctive-particle-ga": true,
+        "no-dropping-the-ra": true,
       },
     });
 
@@ -1315,6 +1328,13 @@ describe("Codex deterministic text quality contracts", () => {
         packageName.includes("textlint-rule-preset"),
       ),
     ).toEqual([]);
+    expect(packageJson.devDependencies["textlint-rule-no-doubled-conjunctive-particle-ga"]).toBe(
+      "3.0.0",
+    );
+    expect(packageJson.devDependencies["textlint-rule-no-dropping-the-ra"]).toBe("3.0.0");
+    expect(fs.readFileSync(path.join(repoRoot, "pnpm-lock.yaml"), "utf8")).not.toContain(
+      "textlint-rule-preset-japanese",
+    );
 
     const cases = [
       {
@@ -1351,6 +1371,20 @@ describe("Codex deterministic text quality contracts", () => {
         ruleId: "no-hankaku-kana",
         match: "ｶﾀｶﾅ",
         replacement: "カタカナ",
+      },
+      {
+        name: "doubled-ga",
+        text: "今日は早朝から出発したが、定刻には間に合わなかったが、会場に到着した。\n",
+        ruleId: "no-doubled-conjunctive-particle-ga",
+        match: "が",
+        replacement: undefined,
+      },
+      {
+        name: "dropping-ra",
+        text: "この機能は見れる。\n",
+        ruleId: "no-dropping-the-ra",
+        match: "れ",
+        replacement: undefined,
       },
     ] as const;
 
@@ -1519,6 +1553,43 @@ describe("Codex deterministic text quality contracts", () => {
     });
   });
 
+  it("blocks adopted repository wording rules while preserving Markdown code scopes", () => {
+    const productionRules = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, ".codex", "text-quality-rules.json"), "utf8"),
+    ) as { rules: TextRule[] };
+
+    withFixture((root) => {
+      const rulesPath = path.join(root, "adopted-rules.json");
+      writeFile(root, "adopted-rules.json", JSON.stringify(productionRules, null, 2));
+      const text =
+        "Common Core\nCompletion contract\nCommon completion\nbounded Level 2\n`Common Core`\n```text\nCommon Core\n```\n";
+      const result = runNode(
+        path.join(root, "scripts", "lint-text-quality.mjs"),
+        ["--rules", rulesPath, "--json", "--text", text],
+        root,
+      );
+      expect(result.status).toBe(1);
+      const violations = JSON.parse(result.stdout) as {
+        line: number;
+        rule_id: string;
+        replacement?: string;
+      }[];
+      expect(
+        violations.map(({ line, rule_id, replacement }) => ({ line, rule_id, replacement })),
+      ).toEqual([
+        { line: 1, rule_id: "wording-common-core", replacement: "共通課程" },
+        { line: 2, rule_id: "wording-completion-contract", replacement: "修了条件" },
+        { line: 3, rule_id: "wording-common-completion", replacement: "共通課程の修了" },
+        { line: 4, rule_id: "wording-bounded-level-2", replacement: "対象範囲を限定したレベル2" },
+      ]);
+      expect(
+        productionRules.rules.every(
+          (productionRule) => productionRule.ignore?.identifiers === false,
+        ),
+      ).toBe(true);
+    });
+  });
+
   it("distinguishes new fingerprint counts from pre-existing violations", () => {
     withFixture((root) => {
       writeFile(root, "docs/existing.md", "BAD\nGOOD\nCHANGED\n");
@@ -1545,6 +1616,14 @@ describe("Codex deterministic text quality contracts", () => {
           replacement: "GOOD",
         },
       ]);
+
+      const humanChanged = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--base-ref", "HEAD", "--working-tree", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+      expect(humanChanged.status).toBe(1);
+      expect(humanChanged.stdout).toContain("FAIL: 1 new text quality violation(s)\n");
     }, "BAD\nGOOD\n");
   }, 30_000);
 
@@ -1564,6 +1643,63 @@ describe("Codex deterministic text quality contracts", () => {
         "docs/untracked.md",
       ]);
     }, "BAD\n");
+  });
+
+  it("scans all current Markdown, including untracked files, while excluding historical prefixes", () => {
+    withFixture((root) => {
+      writeFile(root, "docs/untracked.md", "BAD\n");
+      writeFile(root, ".codex/runs/old.md", "BAD\n");
+      writeFile(root, "docs/plans/old.md", "BAD\n");
+      writeFile(root, "docs/reports/old.md", "BAD\n");
+      writeFile(root, "docs/history/old.md", "BAD\n");
+      writeFile(root, "docs/adr/old.md", "BAD\n");
+      writeFile(root, "CHANGELOG.md", "BAD\n");
+
+      const result = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--all", "--rules", path.join(root, "rules.json"), "--json"],
+        root,
+      );
+      expect(result.status).toBe(1);
+      expect(JSON.parse(result.stdout)).toEqual({
+        status: "violations",
+        mode: "all",
+        scanned_files: 2,
+        violations: [
+          {
+            path: "docs/untracked.md",
+            line: 1,
+            rule_id: "TEST-BANNED",
+            message: "文章品質ルール違反",
+            replacement: "GOOD",
+          },
+        ],
+      });
+
+      const humanResult = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--all", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+      expect(humanResult.status).toBe(1);
+      expect(humanResult.stdout).toBe(
+        "FAIL: 1 text quality violation(s)\n" +
+          'docs/untracked.md:1 [TEST-BANNED] 文章品質ルール違反 replacement="GOOD"\n',
+      );
+    });
+  });
+
+  it("rejects --all combined with --base-ref", () => {
+    withFixture((root) => {
+      const result = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--all", "--base-ref", "HEAD", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("--all cannot be combined with --base-ref or --working-tree");
+    });
   });
 
   it("uses an exact-content fallback for a worktree-only pure move", () => {

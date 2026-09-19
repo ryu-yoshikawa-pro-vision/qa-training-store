@@ -1,5 +1,66 @@
 {
   "version": 1,
-  "status": "not-configured",
-  "rules": []
+  "status": "configured",
+  "rules": [
+    {
+      "rule_id": "wording-common-core",
+      "pattern": "Common Core",
+      "match_type": "literal",
+      "message": "Common Coreは共通課程に置き換えてください。",
+      "replacement": "共通課程",
+      "case_sensitive": true,
+      "normalization": "none",
+      "ignore": {
+        "fenced_code": true,
+        "inline_code": true,
+        "urls": true,
+        "identifiers": false
+      }
+    },
+    {
+      "rule_id": "wording-completion-contract",
+      "pattern": "Completion contract",
+      "match_type": "literal",
+      "message": "Completion contractは修了条件に置き換えてください。",
+      "replacement": "修了条件",
+      "case_sensitive": true,
+      "normalization": "none",
+      "ignore": {
+        "fenced_code": true,
+        "inline_code": true,
+        "urls": true,
+        "identifiers": false
+      }
+    },
+    {
+      "rule_id": "wording-common-completion",
+      "pattern": "Common completion",
+      "match_type": "literal",
+      "message": "Common completionは共通課程の修了に置き換えてください。",
+      "replacement": "共通課程の修了",
+      "case_sensitive": true,
+      "normalization": "none",
+      "ignore": {
+        "fenced_code": true,
+        "inline_code": true,
+        "urls": true,
+        "identifiers": false
+      }
+    },
+    {
+      "rule_id": "wording-bounded-level-2",
+      "pattern": "bounded Level 2",
+      "match_type": "literal",
+      "message": "bounded Level 2は対象範囲を限定したレベル2に置き換えてください。",
+      "replacement": "対象範囲を限定したレベル2",
+      "case_sensitive": true,
+      "normalization": "none",
+      "ignore": {
+        "fenced_code": true,
+        "inline_code": true,
+        "urls": true,
+        "identifiers": false
+      }
+    }
+  ]
 }

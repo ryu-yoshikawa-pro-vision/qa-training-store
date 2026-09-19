@@ -12,6 +12,7 @@
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "lint:markdown": "markdownlint-cli2",
     "lint:text": "node scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree",
+    "lint:text:all": "node scripts/check-text-quality-changes.mjs --all",
     "validate:skills": "tsx scripts/validate-skills.ts",
     "eval:skills:trigger:validate": "tsx scripts/evals/run-skill-trigger-evals.ts --validate-only",
     "eval:skills:trigger": "tsx scripts/evals/run-skill-trigger-evals.ts",
@@ -84,7 +85,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run lint:text:all && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.16",
@@ -140,6 +141,8 @@
     "sharp": "0.35.4",
     "smol-toml": "1.7.1",
     "textlint": "^15.8.0",
+    "textlint-rule-no-doubled-conjunctive-particle-ga": "3.0.0",
+    "textlint-rule-no-dropping-the-ra": "3.0.0",
     "textlint-rule-no-hankaku-kana": "^2.0.1",
     "textlint-rule-no-kangxi-radicals": "^0.2.2",
     "textlint-rule-no-nfd": "^2.0.2",

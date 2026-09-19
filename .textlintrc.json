@@ -6,6 +6,8 @@
     "no-zero-width-spaces": true,
     "no-nfd": true,
     "no-kangxi-radicals": true,
-    "no-hankaku-kana": true
+    "no-hankaku-kana": true,
+    "no-doubled-conjunctive-particle-ga": true,
+    "no-dropping-the-ra": true
   }
 }
