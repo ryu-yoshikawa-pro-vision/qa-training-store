@@ -135,6 +135,18 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
    - 未確定の間は`renovate.json`と`tests/contracts/renovate-config.test.ts`だけ実装しない。
    - CI分類、OpenCode fallback、文書、validator等の他変更は先行できる。
 
+### pnpm 10.34.5更新直後の確認
+
+Repository全体を`pnpm@10.34.5`へ更新して標準検証を通した後、validator実装へ進む前に次を固定versionの実挙動で確認する。
+
+- parent-scoped overrideのselector semanticsがPlanで前提としている`<parent>@<exact-version>><target>`と一致する。
+- parent-scoped overrideが`dependencies` / `optionalDependencies` / `devDependencies` / `peerDependencies`へ作用する範囲を確認し、Planの全適用先列挙方針と一致する。
+- package selectorなしの`pnpm list --json --depth Infinity`の出力構造を確認し、installed graphの補助確認に使う解析方法を確定する。
+- 更新後の`pnpm-lock.yaml`で`packages` / `snapshots`の構造を確認し、baseline parent instance列挙とprepared target scanをPlanどおり実装できることを確認する。
+- 既存のparent-scoped overrideが更新前と同じtarget resolved versionを維持し、無関係なdependency解決を変えていないことを確認する。
+
+上記のいずれかがPlan前提と異なる場合は、互換性を推測で埋めずvalidator実装を開始しない。差異をPlanとcontract testへ反映してから続行する。独自resolverやpnpm内部実装の再現は追加しない。
+
 ### activation前blocker
 
 - Mend Renovate App / OpenCode Appの実際の要求権限とRepository scope。
@@ -541,7 +553,7 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 ### 実行タスク
 
 - [ ] 1. PR #167 branchへ最新`main`を取り込み、PR #166で変わった`package.json` / `pnpm-lock.yaml` / CI contract / text lintを再確認する。
-- [ ] 2. Repository全体のpackage managerを`pnpm@10.34.5`へ更新し、`packageManager`、GitHub Actionsの`PNPM_VERSION`、lockfileを同じversionへ揃える。Security fallback実装はこの更新と標準検証が通った後に進める。
+- [ ] 2. Repository全体のpackage managerを`pnpm@10.34.5`へ更新し、`packageManager`、GitHub Actionsの`PNPM_VERSION`、lockfileを同じversionへ揃える。標準検証を通した後、「pnpm 10.34.5更新直後の確認」の5項目を固定versionの実挙動で確認する。Plan前提との差異があればvalidator実装を開始せず、Planとcontract testを更新する。
 - [ ] 3. `semver@7.8.5`のversion、License、既知脆弱性を再確認し、validator用exact devDependencyとして追加する。
 - [ ] 4. `.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`を更新し、Dependabot / `renovate/` Bot / `security/` BotだけPreview skipにする。
 - [ ] 5. Owner権限でopen Dependabot Alert件数を取得し、`prConcurrentLimit`の具体値と根拠をPlanへ追記する。
@@ -739,11 +751,11 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
    - publish直前にauthorizationと再照合する。
    - 差異があればそのrun内で再計算せず`needs_human`へ停止する。
 
-10. **package manager自体がSecurity境界になる**
+1. **package manager自体がSecurity境界になる**
    - `pnpm@9.10.0`はSecurity Support対象外で、`--ignore-scripts`でもinstall時path traversal等の既知脆弱性があるため使用しない。
    - 初期実装は`pnpm@10.34.5`へ揃え、そのversionでlockfile生成、installed graph、CIを再検証する。Security workflowだけ別versionにして二重契約を作らない。
 
-11. **validatorの信頼依存をcandidateが更新する循環**
+1. **validatorの信頼依存をcandidateが更新する循環**
    - `semver` / `yaml`がtargetの場合は初期fallback対象外にする。
    - validator専用package managerやvendor copyは現段階では追加しない。必要性が実運用で確認された場合だけ別Issueで扱う。
 
