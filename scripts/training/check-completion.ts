@@ -180,7 +180,10 @@ function valueString(value: unknown): string | undefined {
 
 function isWithin(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
-  return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`));
+  return (
+    relative === "" ||
+    (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+  );
 }
 
 function safeRelativePath(value: string): boolean {

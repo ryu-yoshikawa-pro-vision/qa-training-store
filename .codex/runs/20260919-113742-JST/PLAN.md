@@ -82,3 +82,13 @@ PR #157の自己学習経路について、講師の口頭補足や暗黙知に�
 - 2026-09-19: 固定Case件数quotaは追加せず、`TC-CART-101`自体のAutomate / Web E2E / Playwright / learner-owned条件を検証するようにした。
 - 2026-09-19: `expect(1).toBe(1)`等は拒否し、`textContent()`等の実行時値比較は受け入れる回帰テストを追加した。`semantic_understanding`は`NOT_EVALUATED`のまま維持した。
 - 2026-09-19: 通常ContractのRuntime除外に加えて、ローカル生成物`output/**`を除外した。Runtime専用scriptは`2 passed (2)`を確認した。
+
+## 最新残存指示（2026-09-20）
+
+今回の最終残件は、次の範囲へ限定する。
+
+- Part 2-5／Part 2-8から既存`training:copy:sync-handoff`へ到達できる正式手順と、sync → CI Receipt／同一Run Evidence → 人間可読Evidence → Completionの順序を教材Contractへ接続する。
+- `run-playwright-with-receipt.ts`、`materialize-training-handoff.ts`、`check-completion.ts`の`isWithin()`で、Windows別ドライブの`path.relative()`が返す絶対Pathをroot外として拒否する。
+- 既存のsymlink／junction Contractを維持し、`path.win32`のsame-root、child、escape、sibling、different-driveを回帰固定する。
+- コード、関連Contract、必要なRun Artifactだけをcommit／pushし、push後の最新CIを確認してPR本文を最新HEADへ更新する。
+- 新しいLesson、Workbook、Receipt、Evidence形式、Manifest、Path utility、依存関係は追加しない。Part 2 V1は実Training Copy環境がないためBLOCKEDのまま扱う。

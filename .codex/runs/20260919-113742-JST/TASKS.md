@@ -33,3 +33,10 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 ## Blocked（ブロック中）
 
 - Part 2 V1: 学習者が書き込み可能なTraining Copy、branch / push / PR、GitHub Actions Run / Check / Artifactが未提供のためBLOCKED。架空のReceipt / Evidenceは作成しない。
+
+## Latest residual iteration（2026-09-20）
+
+- [x] Part 2-5／P2-8へ既存`training:copy:sync-handoff`の正式入口、提出Commit確認、同期対象・削除・rename、CI Receipt／Evidence／Completionの順序を接続した。
+- [x] 3つの`isWithin()`へWindows別ドライブの絶対relative拒否を追加し、既存symlink／junction契約と`path.win32`境界Contractを確認した。
+- [x] 関連Contract、標準static gate、Prettier、diff check、Run Artifact sanitization／collectorを実行した。
+- [ ] 新commitの通常push、push後CI確認、最新HEADへのPR本文更新。

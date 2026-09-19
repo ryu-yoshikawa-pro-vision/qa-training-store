@@ -57,6 +57,20 @@ Artifact名の`<run_id>`と`<run_attempt>`は実際のRun画面の値へ置き�
 
 したがって、Localの正式入口では`--root <handoff-root>`、CIのStepでは`--root .`となります。値が違うのは環境が違うためで、Receiptの役割が違うわけではありません。受講者はCI Artifactを開いて結果を確認し、その確認内容を人間可読EvidenceとしてLocalの`handoff-root/evidence/`へ記録します。CI出力をコピーしただけの`ci.md`や、Artifactを見ていない記録をCompletionの根拠にはしません。
 
+### Training CopyのLearner codeを固定Handoffへ戻す
+
+Training Copy上で編集・commitしたLearner codeは、CIで評価された内容を確認した後、CI Receipt／Evidenceを固定Handoffへ取り込む前に、Part 1から継続して使う固定`<handoff-root>`へ同期します。まずTraining Copyで、今回確認したPR／Runに対応する状態であることを確認してください。
+
+```bash
+git status --short --branch
+git rev-parse HEAD
+pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>
+```
+
+`--root`はPart 1から継続している固定Handoff root、`--source`はPart 2で実際に編集・commitしたTraining CopyのローカルDirectoryです。同期されるのはTraining Copy内のLearner-ownedな`training/playwright/` codeだけです。Workbook、Receipt、Evidence、self-check、Workflow、Product Code、Formal Regression、provided code、Canonical `reset-scenario.ts`は同期しません。
+
+Training Copyで削除したLearner fileはHandoffからも削除され、renameは旧Pathの削除と新Pathの追加として反映されます。CI実行後に未commit変更を追加してから同期すると、Receiptが評価したcodeとHandoffのcodeが一致しなくなるため、`git status --short --branch`と`git rev-parse HEAD`でRun／PRの`submission_sha`との一致を確認してから実行します。
+
 ### CI Receiptを固定Handoffへ戻す手順
 
 1. 対象PRの`Scenario Shop Training Web` Runを開き、Run IDとRun attemptが自分のPR／提出Commitのものか確認します。

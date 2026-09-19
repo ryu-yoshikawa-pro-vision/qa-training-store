@@ -45,17 +45,28 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 
 ## 修了確認とCI成果物の取り込み
 
-P2-8では、まずP2-5で確認したCI成果物を固定`<handoff-root>`へ戻し、その後に受講者向け修了確認を実行します。CI Artifactは自動的にLocalへ戻らないため、Run Summaryで対象RunとAttemptを確認してから、`training-web-<run_id>-<run_attempt>`をダウンロード・展開します。展開物の`receipts/`から選択したCI Execution Receiptを、同じ相対位置の`<handoff-root>/receipts/`へコピーします。Local ReceiptをCI Receiptで上書きしたり、Receiptを手入力で作ったりしません。
+P2-8では、P2-5で確認したCI成果物を固定`<handoff-root>`へ戻し、その後に受講者向け修了確認を実行します。Training Copy上でCIが実際に評価したLearner codeと、固定Handoffの`code/`を一致させることが先です。正式な処理順は次のとおりです。
+
+1. Training Copyで`git status --short --branch`と`git rev-parse HEAD`を実行し、今回確認したPR／Runの`submission_sha`に対応する提出Commitであることを確認する。
+2. 次の既存commandで、Training CopyのLearner codeを固定Handoffへ同期する。
+
+   ```bash
+   pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>
+   ```
+
+3. Run Summaryで対象Run／Attemptを確認し、`training-web-<run_id>-<run_attempt>`をダウンロード・展開する。
+4. CI Execution Receiptを`<handoff-root>/receipts/`へ戻し、Receiptが参照する同じRunのEvidenceを固定Handoffへ戻す。
+5. GitHub画面で確認したRun／Check／Artifact／Case／結果を、人間可読Evidenceとして追加する。
+6. Workbook、Learner code、self-checkを確認する。
+7. 固定Handoffを`training:completion:check --mode part2`へ渡す。
+
+`--root`はPart 1から継続している固定Handoff root、`--source`はPart 2で実際に編集・commitしたTraining CopyのローカルDirectoryです。同期対象はLearner-ownedな`training/playwright/` codeだけで、Workbook、Receipt、Evidence、self-check、Workflow、Product Code、Formal Regression、provided code、Canonical `reset-scenario.ts`は対象外です。Training Copyで削除したLearner fileはHandoffからも削除され、renameは旧Path削除＋新Path追加として反映されます。CI後に未commit変更を加えた状態で同期せず、Receiptが評価したCommitと`git rev-parse HEAD`の`submission_sha`が一致することを確認してください。
+
+CI Artifactは自動的にLocalへ戻らないため、展開物の`receipts/`から選択したCI Execution Receiptを、同じ相対位置の`<handoff-root>/receipts/`へコピーします。Local ReceiptをCI Receiptで上書きしたり、Receiptを手入力で作ったりしません。
 
 CI Receiptの`run`にある`ci.github_run_id`、`ci.github_run_attempt`、`ci.artifact_name`、`ci.workflow`、`ci.job`、`ci_sha`、`submission_sha`、`training_copy_source_sha`、`execution_sha`が、確認したRun／提出Commit／Training Copy／実行結果と一致するかを確認します。Receiptの`cases[].evidence`が参照するArtifact内の`evidence/`（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）は、Receiptと同じRunのものを同じ相対Pathで`<handoff-root>/evidence/`へ戻します。GitHub画面で確認したRun、Check、Artifact、対象Case、結果は、そこへ別の人間可読Evidenceとして追加します。`04_execution-improvement.csv`では既存の`ci-exercise`など認識済みのCI Contextを使い、ReceiptのCase結果、Evidence、Failure分類を対応付けます。
 
-最後は、次の順で成果物を確認してから修了コマンドを実行します。
-
-1. CI Execution Receiptを`<handoff-root>/receipts/`へ戻す。
-2. Receiptが参照する同じRunのArtifact内`evidence/`を、同じ相対Pathで`<handoff-root>/evidence/`へ戻す。
-3. GitHub画面で確認した内容を人間可読Evidenceとして`<handoff-root>/evidence/`へ追加する。
-4. Workbook、Learner code、self-checkをそろえる。
-5. そろえた固定rootを、次のコマンドへ渡す。
+上の順序で成果物を確認した後、そろえた固定rootを次のコマンドへ渡します。
 
 ```bash
 pnpm run training:completion:check -- --mode part2 --root <handoff-root>

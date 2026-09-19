@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import path, { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
@@ -211,6 +211,19 @@ describe("Training curriculum contracts", () => {
     ]) {
       expect(playwrightCiLesson).toContain(term);
     }
+    const syncHandoffCommand =
+      "pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>";
+    expect(playwrightCiLesson).toContain(syncHandoffCommand);
+    expect(playwrightCiLesson).toContain("git status");
+    expect(playwrightCiLesson).toContain("git rev-parse HEAD");
+    for (const term of [
+      "Learner-ownedな`training/playwright/` codeだけ",
+      "Workbook、Receipt、Evidence、self-check、Workflow、Product Code",
+      "削除したLearner fileはHandoffからも削除",
+      "renameは旧Pathの削除と新Pathの追加",
+    ]) {
+      expect(playwrightCiLesson).toContain(term);
+    }
     expect(capstoneLesson).toContain("共通シナリオ:");
     expect(capstoneLesson).toContain("これはCommonの必須条件ではない");
     expect(capstoneLesson).toContain("最終成果物の照合");
@@ -219,12 +232,55 @@ describe("Training curriculum contracts", () => {
     expect(capstoneLesson).toContain("training:completion:check -- --mode part2 --root");
     expect(capstoneLesson).toContain("ci.github_run_id");
     expect(capstoneLesson).toContain("semantic_understanding");
+    expect(capstoneLesson).toContain(syncHandoffCommand);
+    expect(capstoneLesson).toContain("Training Copy上でCIが実際に評価したLearner code");
+    const syncIndex = capstoneLesson.indexOf(syncHandoffCommand);
+    const receiptIndex = capstoneLesson.indexOf(
+      "CI Execution Receiptを`<handoff-root>/receipts/`へ戻し",
+    );
+    const completionIndex = capstoneLesson.indexOf(
+      "training:completion:check -- --mode part2 --root",
+    );
+    expect(syncIndex).toBeGreaterThan(-1);
+    expect(receiptIndex).toBeGreaterThan(syncIndex);
+    expect(completionIndex).toBeGreaterThan(receiptIndex);
     expect(readLesson("part1/09_part1-capstone.md")).toContain(
       "training:completion:check -- --mode common --root",
     );
     expect(capstoneLesson).not.toContain(
       "WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。",
     );
+  });
+
+  it("keeps the Windows root boundary contract for all training path guards", () => {
+    const root = "C:\\handoff";
+    const within = (candidate: string): boolean => {
+      const relative = path.win32.relative(root, candidate);
+      return (
+        relative === "" ||
+        (relative !== ".." &&
+          !relative.startsWith(`..${path.win32.sep}`) &&
+          !path.win32.isAbsolute(relative))
+      );
+    };
+
+    expect(within(root)).toBe(true);
+    expect(within("C:\\handoff\\code\\case.spec.ts")).toBe(true);
+    expect(within("C:\\outside\\case.spec.ts")).toBe(false);
+    expect(within("C:\\handoff-sibling\\case.spec.ts")).toBe(false);
+    const differentDrive = path.win32.relative(root, "D:\\outside\\case.spec.ts");
+    expect(path.win32.isAbsolute(differentDrive)).toBe(true);
+    expect(within("D:\\outside\\case.spec.ts")).toBe(false);
+
+    for (const relativePath of [
+      "scripts/training/run-playwright-with-receipt.ts",
+      "scripts/training/materialize-training-handoff.ts",
+      "scripts/training/check-completion.ts",
+      "scripts/training/restore-diagnostic-exercise.ts",
+    ]) {
+      const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
+      expect(source).toContain("!path.isAbsolute(relative)");
+    }
   });
 
   it("keeps the distributed starter as an uncompleted scaffold", () => {
