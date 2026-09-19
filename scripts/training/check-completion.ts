@@ -4,7 +4,13 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as ts from "typescript";
 import { parseCsv } from "../validate-curriculum";
-import { WORKBOOK_HEADERS, type WorkbookFilename } from "./workbook-schema";
+import {
+  WORKBOOK_AUTOMATION_DECISIONS,
+  WORKBOOK_HEADERS,
+  WORKBOOK_TEST_LAYERS,
+  WORKBOOK_TOOLS,
+  type WorkbookFilename,
+} from "./workbook-schema";
 
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const FORMAL_RECEIPT_PRODUCER = "training:web:exercise:with-receipt";
@@ -153,23 +159,8 @@ type CompletionReceipt = {
   execution_sha?: string;
   required_competencies: string[];
   checked_competencies: string[];
-  machine_checked_competencies: string[];
   semantic_understanding: "NOT_EVALUATED";
   checked_at: string;
-  checks: {
-    handoff_structure: boolean;
-    workbook_schema: boolean;
-    execution_table_binding: boolean;
-    learner_code: boolean;
-    c07_web_projects: boolean;
-    execution_receipts: boolean;
-    evidence: boolean;
-    self_check: boolean;
-    part2_ci_references: boolean;
-    c09_diagnostic: boolean;
-    c10_improvement: boolean;
-    c11_change_management: boolean;
-  };
 };
 
 export type CompletionCheckResult = {
@@ -311,6 +302,18 @@ function isPlaywrightLearnerMapping(row: WorkbookRow): boolean {
     row.automation_decision === "Automate" &&
     row.test_layer === "Web E2E" &&
     row.tool === "Playwright"
+  );
+}
+
+function isVerticalLearnerCase(workbook: WorkbookData): boolean {
+  const row = workbook.mappings.get("TC-CART-101");
+  const implementationPath = normalizedRepositoryPath(row?.implementation_path ?? "");
+  return (
+    row !== undefined &&
+    workbook.learnerCaseIds.includes("TC-CART-101") &&
+    workbook.playwrightLearnerCaseIds.includes("TC-CART-101") &&
+    implementationPath.startsWith("training/playwright/") &&
+    !isProvidedImplementationPath(implementationPath)
   );
 }
 
@@ -576,8 +579,20 @@ function validateWorkbook(root: string, issues: Issue[]): WorkbookData {
     const implementationPath = row.implementation_path ?? "";
     if (!testCases.has(testCaseId))
       addIssue(issues, "failure", `Unknown test_case_id in automation mapping: ${testCaseId}`);
-    if (!new Set(["Automate", "Later", "Do not automate"]).has(decision))
+    if (!(WORKBOOK_AUTOMATION_DECISIONS as readonly string[]).includes(decision))
       addIssue(issues, "failure", `Invalid automation_decision for ${testCaseId}: ${decision}`);
+    const testLayer = row.test_layer ?? "";
+    const tool = row.tool ?? "";
+    if (testLayer && !(WORKBOOK_TEST_LAYERS as readonly string[]).includes(testLayer))
+      addIssue(issues, "failure", `Invalid test_layer for ${testCaseId}: ${testLayer}`);
+    if (tool && !(WORKBOOK_TOOLS as readonly string[]).includes(tool))
+      addIssue(issues, "failure", `Invalid tool for ${testCaseId}: ${tool}`);
+    if (decision === "Automate" && (!testLayer || !tool))
+      addIssue(
+        issues,
+        "failure",
+        `Automate mapping requires test_layer and tool for ${testCaseId}`,
+      );
     if (!safeRelativePath(implementationPath) && implementationPath !== "")
       addIssue(
         issues,
@@ -1017,6 +1032,7 @@ function validateReceipt(
 
 function calledIdentifier(expression: ts.Expression): string | undefined {
   if (ts.isIdentifier(expression)) return expression.text;
+  if (ts.isCallExpression(expression)) return calledIdentifier(expression.expression);
   if (ts.isPropertyAccessExpression(expression)) return calledIdentifier(expression.expression);
   if (ts.isElementAccessExpression(expression)) return calledIdentifier(expression.expression);
   return undefined;
@@ -1127,17 +1143,11 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
   const executedCandidates = new Set<string>();
   if (workbook.learnerCaseIds.length === 0)
     addIssue(issues, "incomplete", "Workbook has no learner-owned Automate Case");
-  else if (workbook.learnerCaseIds.length < 2)
+  if (!isVerticalLearnerCase(workbook))
     addIssue(
       issues,
       "incomplete",
-      "Common Completion requires at least two learner-owned Automate Cases",
-    );
-  if (!workbook.learnerCaseIds.includes("TC-CART-101"))
-    addIssue(
-      issues,
-      "incomplete",
-      "Common Completion requires learner-owned TC-CART-101 as the vertical Case",
+      "TC-CART-101 must itself be an Automate/Web E2E/Playwright learner-owned Case",
     );
   if (workbook.playwrightLearnerCaseIds.length === 0)
     addIssue(
@@ -1170,7 +1180,7 @@ function checkLearnerCode(root: string, workbook: WorkbookData, issues: Issue[])
       addIssue(issues, "incomplete", `${caseId} learner code has no explicit resetScenario call`);
     if (!hasAssertion) addIssue(issues, "incomplete", `${caseId} learner code has no Assertion`);
     if (meaninglessAssertion)
-      addIssue(issues, "failure", `${caseId} learner code uses a meaningless boolean Assertion`);
+      addIssue(issues, "failure", `${caseId} learner code uses a meaningless literal Assertion`);
     if (hasReset && hasAssertion && !meaninglessAssertion) executedCandidates.add(caseId);
   }
   return executedCandidates;
@@ -2537,7 +2547,7 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     execution_table_binding: executionTableComplete,
     learner_code:
       learnerCodeIds.size === workbook.playwrightLearnerCaseIds.length &&
-      workbook.learnerCaseIds.length >= 2,
+      isVerticalLearnerCase(workbook),
     c07_web_projects: c07WebProjectsComplete,
     execution_receipts:
       workbook.playwrightLearnerCaseIds.length > 0 &&
@@ -2549,7 +2559,7 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     c10_improvement: c10Complete,
     c11_change_management: c11Complete,
   };
-  const machineCheckedCompetencies = [
+  const checkedCompetencies = [
     ...(checkedOutputs.learner_code &&
     checkedOutputs.c07_web_projects &&
     checkedOutputs.execution_table_binding &&
@@ -2582,13 +2592,9 @@ export function checkCompletion(rootOption: string, mode: CompletionMode): Compl
     ...(ciSha ? { ci_sha: ciSha } : {}),
     ...(executionSha ? { execution_sha: executionSha } : {}),
     required_competencies: requiredCompetencies,
-    checked_competencies: machineCheckedCompetencies,
-    machine_checked_competencies: machineCheckedCompetencies,
+    checked_competencies: checkedCompetencies,
     semantic_understanding: "NOT_EVALUATED",
     checked_at: checkedAt,
-    checks: {
-      ...checkedOutputs,
-    },
   };
   const receiptPath = writeCompletionReceipt(root, receipt);
   return { root, status, receiptPath, receipt };

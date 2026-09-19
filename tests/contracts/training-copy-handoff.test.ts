@@ -212,6 +212,37 @@ describe("Training Copy handoff contract", () => {
         ).toBe(false);
         expect(fs.existsSync(path.join(root, "code", ".github", "workflows"))).toBe(false);
         expect(fs.existsSync(path.join(root, "code", "src", "product.ts"))).toBe(false);
+
+        fs.rmSync(path.join(target, IMPLEMENTATION_PATH), { force: true });
+        fs.rmSync(path.join(target, "training/playwright/support/cart-helper.ts"), {
+          force: true,
+        });
+        writeText(
+          target,
+          "training/playwright/exercises/cart-101-renamed.spec.ts",
+          "renamed learner case\n",
+        );
+        writeText(root, "code/training/playwright/support/obsolete.ts", "stale learner code\n");
+
+        const renamedSync = syncTrainingCopyToHandoff({ root, source: target });
+        expect(renamedSync.files).toEqual([
+          "training/playwright/exercises/cart-101-renamed.spec.ts",
+        ]);
+        expect(fs.existsSync(path.join(root, "code", IMPLEMENTATION_PATH))).toBe(false);
+        expect(
+          fs.existsSync(path.join(root, "code", "training/playwright/support/cart-helper.ts")),
+        ).toBe(false);
+        expect(
+          fs.existsSync(
+            path.join(root, "code", "training/playwright/exercises/cart-101-renamed.spec.ts"),
+          ),
+        ).toBe(true);
+        expect(
+          fs.existsSync(path.join(root, "code", "training/playwright/support/obsolete.ts")),
+        ).toBe(false);
+        expect(
+          fs.existsSync(path.join(root, "code", "training/playwright/support/reset-scenario.ts")),
+        ).toBe(false);
       } finally {
         removeFixture(root);
         removeFixture(targetParent);

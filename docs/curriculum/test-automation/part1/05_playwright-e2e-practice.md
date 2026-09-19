@@ -73,7 +73,7 @@ pnpm run training:web:exercise:with-receipt -- --suite exercise --project traini
 | Observation | Reset後のScenario、画面上の状態変化、期待結果と実際の結果、Desktop／Mobileの差、Trace／Screenshot／Video／Reportの生成、WorkbookのCaseとコードの対応 |
 | Output | 受講者が作成したTraining spec、対応するWorkbookの`implementation_path`、実行ごとのReceipt／Evidence参照、Desktop／Mobileで観察した差分。各Test Case IDはWorkbookの`implementation_path`、テストタイトル、注釈、または既存metadataのいずれかでコードと実行結果へ追跡できるようにする。編集場所は自由で、評価時はRepository相対Pathを保って`handoff-root/code/`と各rootへ集約する |
 | Self-check | P1-3のCaseとコードの条件・期待結果が対応し、Reset、正常・境界／異常、状態変化、Desktop、Learner-authored Mobileの各観点を必要な理由とともに説明する。意味の妥当性は自動判定へ委ねない |
-| Completion | 少なくとも2件の受講者自身の`Automate` Case（`TC-CART-101`と別のCaseを含む）をTraining境界へ実装し、各Caseについて明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。実装したCaseではRepository相対`implementation_path`を記録する。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
+| Completion | Workbookで`Automate`／`Web E2E`／`Playwright`として選んだ受講者CaseをTraining境界へ実装し、各Caseについて明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。固定件数を完了条件にせず、`TC-CART-101`はこの経路の縦断確認Caseとして必須にする。実装したCaseではRepository相対`implementation_path`を記録する。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
 | Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
 | Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
 

@@ -597,6 +597,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
     "training:web:mobile:exercise",
     "training:web:expected-failure",
     "training:web:check-expected-failure",
+    "training:completion:check",
     "training:native:baseline",
     "training:native:exercise",
     "training:copy:prepare",

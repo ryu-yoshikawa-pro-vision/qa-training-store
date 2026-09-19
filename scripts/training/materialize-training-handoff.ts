@@ -307,6 +307,23 @@ export function syncTrainingCopyToHandoff(options: { root: string; source: strin
   if (isWithin(root, source) || isWithin(source, root))
     throw new Error("Training Copy source and handoff root must be separate directories");
   const files = listTrainingCopyLearnerFiles(source);
+  const sourceFiles = new Set(files);
+  // The handoff's code/ tree is learner-owned. Remove files that disappeared
+  // or were renamed in the current Training Copy before copying the current
+  // source list. Other handoff directories and provided Training assets are
+  // outside this sync contract and are never touched here.
+  for (const relativePath of listCodeFiles(root)) {
+    if (sourceFiles.has(relativePath)) continue;
+    const stalePath = path.resolve(root, "code", relativePath);
+    if (!isWithin(root, stalePath))
+      throw new Error(`Stale learner code path escaped handoff root: ${relativePath}`);
+    const stat = fs.lstatSync(stalePath);
+    if (stat.isSymbolicLink() || !stat.isFile())
+      throw new Error(`Stale learner code is not a regular file: ${relativePath}`);
+    if (!isWithin(root, fs.realpathSync(stalePath)))
+      throw new Error(`Stale learner code symlink escaped handoff root: ${relativePath}`);
+    fs.unlinkSync(stalePath);
+  }
   const synced: string[] = [];
   for (const relativePath of files) {
     const sourceFile = path.resolve(source, relativePath);

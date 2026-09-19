@@ -43,6 +43,26 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 | Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
 | Handoff | `handoff-root/self-check/P2-08.md`を最終設計とSelf-checkの正本として渡し、固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと結び付ける。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
 
+## 修了確認とCI成果物の取り込み
+
+P2-8では、まずP2-5で確認したCI成果物を固定`<handoff-root>`へ戻し、その後に受講者向け修了確認を実行します。CI Artifactは自動的にLocalへ戻らないため、Run Summaryで対象RunとAttemptを確認してから、`training-web-<run_id>-<run_attempt>`をダウンロード・展開します。展開物の`receipts/`から選択したCI Execution Receiptを、同じ相対位置の`<handoff-root>/receipts/`へコピーします。Local ReceiptをCI Receiptで上書きしたり、Receiptを手入力で作ったりしません。
+
+CI Receiptの`run`にある`ci.github_run_id`、`ci.github_run_attempt`、`ci.artifact_name`、`ci.workflow`、`ci.job`、`ci_sha`、`submission_sha`、`training_copy_source_sha`、`execution_sha`が、確認したRun／提出Commit／Training Copy／実行結果と一致するかを確認します。Receiptの`cases[].evidence`が参照するArtifact内の`evidence/`（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）は、Receiptと同じRunのものを同じ相対Pathで`<handoff-root>/evidence/`へ戻します。GitHub画面で確認したRun、Check、Artifact、対象Case、結果は、そこへ別の人間可読Evidenceとして追加します。`04_execution-improvement.csv`では既存の`ci-exercise`など認識済みのCI Contextを使い、ReceiptのCase結果、Evidence、Failure分類を対応付けます。
+
+最後は、次の順で成果物を確認してから修了コマンドを実行します。
+
+1. CI Execution Receiptを`<handoff-root>/receipts/`へ戻す。
+2. Receiptが参照する同じRunのArtifact内`evidence/`を、同じ相対Pathで`<handoff-root>/evidence/`へ戻す。
+3. GitHub画面で確認した内容を人間可読Evidenceとして`<handoff-root>/evidence/`へ追加する。
+4. Workbook、Learner code、self-checkをそろえる。
+5. そろえた固定rootを、次のコマンドへ渡す。
+
+```bash
+pnpm run training:completion:check -- --mode part2 --root <handoff-root>
+```
+
+`completion-receipt.json`の`status`、`missing_requirements`、`reasons`、`checked_outputs`、`semantic_understanding`を読み、`PASS`が意味の理解を自動採点した結果ではないことを確認します。Part 2の完了は、`PASS`、self-check、公開されている最低限の評価基準、CI Run／Check／Artifactを自分で確認したEvidenceのすべてで判定します。正式な書き込み可能Training CopyまたはGitHub実行環境がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録し、ローカルReceiptやForkの結果をCI完了へ読み替えません。
+
 ## 演習シナリオ
 
 次の状態を想定します。

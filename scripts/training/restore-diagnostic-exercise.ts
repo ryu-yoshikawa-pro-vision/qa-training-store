@@ -41,27 +41,74 @@ function isMainModule(): boolean {
   );
 }
 
-export function restoreDiagnosticExercise(targetOption: string, force: boolean): string {
+function isWithin(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+  );
+}
+
+function hasGitSegment(candidate: string): boolean {
+  return candidate.split(/[\\/]+/).some((part) => part === ".git");
+}
+
+function resolveThroughExistingAncestor(candidate: string): string {
+  let current = candidate;
+  const missing: string[] = [];
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) return candidate;
+    missing.unshift(path.basename(current));
+    current = parent;
+  }
+  return path.resolve(fs.realpathSync(current), ...missing);
+}
+
+export function restoreDiagnosticExercise(
+  rootOption: string,
+  targetOption: string,
+  force: boolean,
+): string {
+  if (!rootOption || rootOption.includes("\0")) throw new Error("--root must be a non-empty path");
   if (!targetOption || targetOption.includes("\0"))
     throw new Error("--target must be a non-empty path");
+  const root = path.resolve(rootOption);
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory())
+    throw new Error(`--root must be an existing directory: ${root}`);
+  const rootReal = fs.realpathSync(root);
+  const repositoryRoot = fs.realpathSync(process.cwd());
+  if (isWithin(repositoryRoot, rootReal) || isWithin(rootReal, repositoryRoot))
+    throw new Error("--root must be outside the canonical repository");
   const target = path.resolve(targetOption);
+  if (!isWithin(rootReal, resolveThroughExistingAncestor(target)))
+    throw new Error("--target must remain inside --root");
   if (!target.toLowerCase().endsWith(".spec.ts"))
     throw new Error("--target must point to a .spec.ts file");
-  const parts = target.split(path.sep);
-  if (parts.some((part) => part === ".git")) throw new Error("--target must not be inside .git");
+  if (hasGitSegment(target) || hasGitSegment(resolveThroughExistingAncestor(target)))
+    throw new Error("--target must not be inside .git");
+  const targetParent = path.dirname(target);
+  if (!isWithin(rootReal, resolveThroughExistingAncestor(targetParent)))
+    throw new Error("--target parent must remain inside --root");
   if (fs.existsSync(target)) {
+    const stat = fs.lstatSync(target);
+    if (stat.isSymbolicLink()) throw new Error(`Target must not be a symlink: ${target}`);
     if (!force)
       throw new Error("Target exists; pass --force only for an intentional diagnostic recovery");
-    if (!fs.lstatSync(target).isFile()) throw new Error(`Target is not a regular file: ${target}`);
+    if (!stat.isFile()) throw new Error(`Target is not a regular file: ${target}`);
   }
-  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.mkdirSync(targetParent, { recursive: true });
+  if (!isWithin(rootReal, fs.realpathSync(targetParent)))
+    throw new Error("--target parent symlink escaped --root");
   fs.writeFileSync(target, INITIAL_DIAGNOSTIC_EXERCISE, "utf8");
   return target;
 }
 
 if (isMainModule()) {
+  const root = option("--root");
   const target = option("--target");
+  if (!root) throw new Error("--root is required");
   if (!target) throw new Error("--target is required");
-  const restored = restoreDiagnosticExercise(target, process.argv.includes("--force"));
+  const restored = restoreDiagnosticExercise(root, target, process.argv.includes("--force"));
   console.log(JSON.stringify({ target: restored, context: "diagnostic-initial" }, null, 2));
 }

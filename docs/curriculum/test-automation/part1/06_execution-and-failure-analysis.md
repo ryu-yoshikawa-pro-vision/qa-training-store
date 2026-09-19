@@ -130,8 +130,10 @@ Error Messageで最初の異常を絞り、Screenshot／Video／Traceでその�
 initialの期待Failure、`training:web:check-expected-failure`が扱う期待された非0終了、受講者Caseの自然なFailureは別の意味です。Playwrightの自動Retryは修正後の再実行ではありません。診断の初期Failureを確認するために、完成答案を正本fixtureへ書き戻さず、必要なら次のGitless Recoveryで演習用コピーを初期状態へ戻します。
 
 ```bash
-corepack pnpm exec tsx scripts/training/restore-diagnostic-exercise.ts --target <exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts --force
+corepack pnpm exec tsx scripts/training/restore-diagnostic-exercise.ts --root <exercise-copy> --target <exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts --force
 ```
+
+`--root`はcanonical repositoryの外側にある演習コピーを明示し、`--target`はそのroot配下の`.spec.ts`だけを指定します。root外、`.git`配下、symlink経由のPathは復元対象にできません。`--force`は既存Fileを意図的に上書きする確認であり、root境界の代わりにはなりません。
 
 Receiptを生成したら、`04_execution-improvement.csv`の`run_context`にはcommandへ渡した同じContext、`result`にはReceiptのCase statusに対応する`Pass`または`Fail`、`evidence`にはそのCaseのReceiptが実際に参照している`evidence/...`を記録します。予定していたPathや、別Case・別ContextのEvidenceを先に記入しません。未実行なら`Not run`とし、Receiptだけを手作業で作って埋めないでください。
 

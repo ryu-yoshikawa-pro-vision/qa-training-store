@@ -57,6 +57,16 @@ Artifact名の`<run_id>`と`<run_attempt>`は実際のRun画面の値へ置き�
 
 したがって、Localの正式入口では`--root <handoff-root>`、CIのStepでは`--root .`となります。値が違うのは環境が違うためで、Receiptの役割が違うわけではありません。受講者はCI Artifactを開いて結果を確認し、その確認内容を人間可読EvidenceとしてLocalの`handoff-root/evidence/`へ記録します。CI出力をコピーしただけの`ci.md`や、Artifactを見ていない記録をCompletionの根拠にはしません。
 
+### CI Receiptを固定Handoffへ戻す手順
+
+1. 対象PRの`Scenario Shop Training Web` Runを開き、Run IDとRun attemptが自分のPR／提出Commitのものか確認します。
+2. Run Summaryから`training-web-<run_id>-<run_attempt>`をダウンロードし、展開した`receipts/`、`evidence/`、`output/training/playwright/`を確認します。
+3. 展開した`receipts/`から選択したCI Execution Receiptを`<handoff-root>/receipts/`へコピーし、そのReceiptが参照する同じ相対Pathの`evidence/`配下（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）も`<handoff-root>/evidence/`へコピーします。Local Execution Receiptを上書きせず、Receiptを手書きで作成・補正しません。Artifact内のEvidenceをReceiptなしで別Runのものへ置き換えてはいけません。
+4. `run.ci.github_run_id`、`run.ci.github_run_attempt`、`run.ci.artifact_name`、`run.ci.workflow`、`run.ci.job`、`run.ci_sha`、`run.submission_sha`、`run.training_copy_source_sha`、`run.execution_sha`をRun／Check／Artifactと照合します。
+5. GitHub画面で確認したRun、Check、Artifact、対象Case、結果、Failure調査内容を、`<handoff-root>/evidence/`へ人間可読に記録します。`04_execution-improvement.csv`では`ci-exercise`など既存のCI Contextを使い、ReceiptのCase結果とEvidenceを結び付けます。
+
+この順序で、P2-8へはCI Receipt、GitHub画面を確認した人間Evidence、Workbook、Learner code、self-checkを渡します。CIが実行できない場合は、実行したことにせず、権限・Training Copy・外部環境の問題として`BLOCKED`または`Not run`を記録します。
+
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |

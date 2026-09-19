@@ -355,25 +355,24 @@ P1-5で作成したTestを読み、実在する保守上の問題を1件見つ�
 
    ```bash
    mkdir -p <handoff-root>/code/training/playwright/exercises <handoff-root>/code/training/playwright/support
-   cp training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-101.spec.ts
+   cp training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-900.spec.ts
    ```
 
    PowerShellの場合は次を使います。
 
    ```powershell
    New-Item -ItemType Directory -Force <handoff-root>/code/training/playwright/exercises, <handoff-root>/code/training/playwright/support | Out-Null
-   Copy-Item training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-101.spec.ts
+   Copy-Item training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-900.spec.ts
    ```
 
-   コピー先は既存の正式な製品Risk／Test Caseへ結び付けます。提供素材のTest titleは`TC-CART-101`で、製品の期待動作を確認する既存Caseを使います。`01_target-risk.csv`へLocator重複用のRiskを追加せず、`02_test-cases.csv`の正式Caseと`03_automation-mapping.csv`の実装Pathを確認します。
+   決定的な教材演習として使う場合、コピー先のTest title／metadataは提供された`TC-CART-900`を使います。この提供演習は製品の`TARGET`／`RISK`や既存のLearner Caseへ結び付けず、`01_target-risk.csv`／`02_test-cases.csv`へ製品Riskを追加しません。`04_execution-improvement.csv`では`TC-CART-900`の前後Contextを記録し、実在のLearner Caseを保守する経路とは分けます。
 
    ```text
-   TARGET-CART-001,...,RISK-CART-001,（既存の正式な製品Risk）,高,中,高
-   TC-CART-101,RISK-CART-001,...（正式な製品期待結果）
-   TC-CART-101,Automate,Web E2E,Playwright,training/playwright/exercises/c10-cart-101.spec.ts,...
+   TC-CART-900,c10-before,Not run,,,,
+   TC-CART-900,c10-improved,Not run,,,,
    ```
 
-   別の正式なLearner Caseを使う場合も、Test title、Workbookの既存Risk／Case、実装Path、Evidenceを同じIDへ結びます。`TC-CART-001`／`TC-CART-002`を使う場合は、配布sampleをLearner Caseへ昇格させず、正式なLearner Caseとして許可された対応を確認します。
+   実在するLearner Caseの保守を選ぶ場合だけ、そのCaseのTest title、Workbookの既存Risk／Case、実装Path、Evidenceを同じIDへ結びます。提供素材の`TC-CART-900`経路を、別のLearner Caseの代用にはしません。
 
 2. 変更前に、Repository rootで次の正式入口を1回実行します。`<handoff-root>`は自分の作業成果物を集約するDirectoryへ置き換えます。`--suite`とTest Caseは変えず、`--project`、`--root`、`--run-context`だけを自分の環境に合わせます。
 
@@ -410,8 +409,8 @@ Improvement: Helperを追加し、再実行がPassした
 `Improvement Target`は`training/playwright/`配下のLearner-owned codeだけを指定します。提供済みの`support/reset-scenario.ts`や`maintenance-exercises/`は対象にせず、前後Digestの比較はReceiptに任せます。
 
 ```text
-TC-CART-101,c10-before,Pass,<改善前の実Evidence>,,,,
-TC-CART-101,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,Improvement Target: training/playwright/exercises/c10-cart-101.spec.ts; Problem: 同じLocator変更を複数箇所へ反映する必要がある; Why: 保守漏れが起きやすい; Action: Locatorを変数へ切り出す; Improvement: 再実行がPassした
+TC-CART-900,c10-before,Pass,<改善前の実Evidence>,,,,
+TC-CART-900,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,Improvement Target: training/playwright/exercises/c10-cart-900.spec.ts; Problem: 同じLocator変更を複数箇所へ反映する必要がある; Why: 保守漏れが起きやすい; Action: Locatorを変数へ切り出す; Improvement: 再実行がPassした
 ```
 
 上の値は記入形式の例です。存在しないPath、Receipt、原因を作らず、実行結果に合わせて置き換えます。実在する保守問題を使った場合は、対象Caseと改善前後の実Diffが分かるように同じ項目を記録します。

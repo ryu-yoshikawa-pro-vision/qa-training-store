@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { checkCompletion } from "../../scripts/training/check-completion";
+import { restoreDiagnosticExercise } from "../../scripts/training/restore-diagnostic-exercise";
 
 const SOURCE_SHA = "a".repeat(40);
 const SUBMISSION_SHA = "b".repeat(40);
@@ -774,7 +775,9 @@ describe("受講者向け修了確認契約", () => {
       expect(result.receipt.part1_distribution_sha).toBe(SOURCE_SHA);
       expect(result.receipt.submission_sha).toBe(SUBMISSION_SHA);
       expect(result.receipt.execution_sha).toBe(EXECUTION_SHA);
-      expect(result.receipt.machine_checked_competencies).toEqual(["C07", "C09", "C10"]);
+      expect(result.receipt.checked_competencies).toEqual(["C07", "C09", "C10"]);
+      expect("machine_checked_competencies" in result.receipt).toBe(false);
+      expect("checks" in result.receipt).toBe(false);
       expect(fs.existsSync(path.join(root, "completion-receipt.json"))).toBe(true);
       expect(fs.existsSync(path.join(root, "receipts", "completion-receipt.json"))).toBe(false);
     } finally {
@@ -805,17 +808,173 @@ describe("受講者向け修了確認契約", () => {
     }
   });
 
-  it("does not count the provided TC-PRODUCT-001 intro as a second learner Case", () => {
+  it("does not count the provided TC-PRODUCT-001 intro as a learner Case", () => {
     const root = createHandoff();
     try {
       removeCaseFromFixture(root, "TC-CART-102", "TARGET-CART-102");
       addProvidedProductCase(root);
       const result = checkCompletion(root, "common");
-      expect(result.status).not.toBe("PASS");
+      expect(result.status).toBe("PASS");
       expect(result.receipt.checked_case_ids).toEqual(["TC-CART-101"]);
-      expect(result.receipt.reasons.join("\n")).toContain(
-        "at least two learner-owned Automate Cases",
+      expect(result.receipt.reasons.join("\n")).not.toContain("at least two learner-owned");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("requires TC-CART-101 itself to be a learner-owned Web E2E Playwright Case", () => {
+    const root = createHandoff();
+    try {
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      fs.writeFileSync(
+        mappingPath,
+        fs
+          .readFileSync(mappingPath, "utf8")
+          .replace(
+            "TC-CART-101,Automate,Web E2E,Playwright,training/playwright/exercises/cart-101.spec.ts",
+            "TC-CART-101,Automate,Unit,Vitest,",
+          ),
+        "utf8",
       );
+      const result = checkCompletion(root, "common");
+      expect(result.status).not.toBe("PASS");
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "TC-CART-101 must itself be an Automate/Web E2E/Playwright learner-owned Case",
+      );
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("rejects unknown Workbook test_layer and tool values", () => {
+    const root = createHandoff();
+    try {
+      const mappingPath = path.join(root, "workbook", "03_automation-mapping.csv");
+      fs.writeFileSync(
+        mappingPath,
+        fs
+          .readFileSync(mappingPath, "utf8")
+          .replace(
+            "TC-CART-102,Automate,Web E2E,Playwright,",
+            "TC-CART-102,Automate,Web Browser,Playright,",
+          ),
+        "utf8",
+      );
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("FAIL");
+      expect(result.receipt.reasons.join("\n")).toContain("Invalid test_layer for TC-CART-102");
+      expect(result.receipt.reasons.join("\n")).toContain("Invalid tool for TC-CART-102");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it.each(["expect(1).toBe(1);", 'expect("x").toEqual("x");'])(
+    "rejects a meaningless literal assertion: %s",
+    (assertion) => {
+      const root = createHandoff();
+      try {
+        const implementationPath = path.join(root, "code", CASES[0].implementationPath);
+        const source = fs.readFileSync(implementationPath, "utf8");
+        fs.writeFileSync(
+          implementationPath,
+          source.replace(
+            '  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();\n',
+            `  ${assertion}\n`,
+          ),
+          "utf8",
+        );
+        refreshReceiptDigests(root);
+        for (const context of ["diagnostic-initial", "diagnostic-repaired"] as const) {
+          updateReceipt(root, context, (receipt) => {
+            for (const executionCase of receipt.cases) {
+              const implementationPath = executionCase.implementation_path;
+              if (typeof implementationPath === "string")
+                executionCase.code_digest = digest(
+                  `${fs.readFileSync(path.join(root, "code", implementationPath), "utf8")}\n${context}`,
+                );
+            }
+          });
+        }
+        const result = checkCompletion(root, "common");
+        expect(result.status).not.toBe("PASS");
+        expect(result.receipt.reasons.join("\n")).toContain("meaningless literal Assertion");
+      } finally {
+        removeFixture(root);
+      }
+    },
+  );
+
+  it("accepts an assertion against a runtime value", () => {
+    const root = createHandoff();
+    try {
+      const implementationPath = path.join(root, "code", CASES[0].implementationPath);
+      const source = fs.readFileSync(implementationPath, "utf8");
+      fs.writeFileSync(
+        implementationPath,
+        source.replace(
+          '  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();\n',
+          '  expect(await page.getByRole("heading", { name: "商品一覧" }).first().textContent()).toBe("商品一覧");\n',
+        ),
+        "utf8",
+      );
+      updateReceipt(root, "c10-improved", (receipt) => {
+        for (const executionCase of receipt.cases) {
+          const implementationPath = executionCase.implementation_path;
+          if (typeof implementationPath === "string")
+            executionCase.code_digest = digest(
+              fs.readFileSync(path.join(root, "code", implementationPath), "utf8"),
+            );
+        }
+      });
+      updateReceipt(root, "mobile-exercise", (receipt) => {
+        for (const executionCase of receipt.cases) {
+          const implementationPath = executionCase.implementation_path;
+          if (typeof implementationPath === "string")
+            executionCase.code_digest = digest(
+              fs.readFileSync(path.join(root, "code", implementationPath), "utf8"),
+            );
+        }
+      });
+      for (const context of ["diagnostic-initial", "diagnostic-repaired"] as const) {
+        updateReceipt(root, context, (receipt) => {
+          for (const executionCase of receipt.cases) {
+            const implementationPath = executionCase.implementation_path;
+            if (typeof implementationPath === "string")
+              executionCase.code_digest = digest(
+                `${fs.readFileSync(path.join(root, "code", implementationPath), "utf8")}\n${context}`,
+              );
+          }
+        });
+      }
+      const result = checkCompletion(root, "common");
+      expect(result.status).toBe("PASS");
+      expect(result.receipt.reasons).toEqual([]);
+      expect(result.receipt.reasons.join("\n")).not.toContain("meaningless literal Assertion");
+    } finally {
+      removeFixture(root);
+    }
+  });
+
+  it("restores the diagnostic exercise only inside an explicit external root", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "diagnostic-restore-contract-"));
+    try {
+      expect(() =>
+        restoreDiagnosticExercise(
+          process.cwd(),
+          path.join(process.cwd(), "output", "diagnostic-contract.spec.ts"),
+          false,
+        ),
+      ).toThrow("outside the canonical repository");
+      expect(() =>
+        restoreDiagnosticExercise(root, path.join(root, "..", "outside.spec.ts"), false),
+      ).toThrow("inside --root");
+
+      const target = path.join(root, "diagnostic-exercises", "diagnostic-cart.spec.ts");
+      expect(restoreDiagnosticExercise(root, target, false)).toBe(target);
+      expect(fs.readFileSync(target, "utf8")).toContain("TC-CART-001 diagnostic exercise");
+      expect(() => restoreDiagnosticExercise(root, target, false)).toThrow("pass --force");
+      expect(restoreDiagnosticExercise(root, target, true)).toBe(target);
     } finally {
       removeFixture(root);
     }
@@ -1153,13 +1312,7 @@ test("TC-CART-102 shared Case", async ({ page }) => {
       expect(result.receipt.submission_sha).toBe(CI_SUBMISSION_SHA);
       expect(result.receipt.execution_sha).toBe(CI_EXECUTION_SHA);
       expect(result.receipt.evidence_refs).toContain("evidence/ci.md");
-      expect(result.receipt.machine_checked_competencies).toEqual([
-        "C07",
-        "C09",
-        "C10",
-        "C11",
-        "C12",
-      ]);
+      expect(result.receipt.checked_competencies).toEqual(["C07", "C09", "C10", "C11", "C12"]);
     } finally {
       removeFixture(root);
     }
@@ -1553,7 +1706,9 @@ test("TC-CART-102 shared Case", async ({ page }) => {
       }
       const result = checkCompletion(root, "common");
       expect(result.status).not.toBe("PASS");
-      expect(result.receipt.reasons.join("\n")).toContain("requires learner-owned TC-CART-101");
+      expect(result.receipt.reasons.join("\n")).toContain(
+        "TC-CART-101 must itself be an Automate/Web E2E/Playwright learner-owned Case",
+      );
     } finally {
       removeFixture(root);
     }

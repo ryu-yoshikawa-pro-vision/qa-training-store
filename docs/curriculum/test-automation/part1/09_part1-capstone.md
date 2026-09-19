@@ -63,6 +63,23 @@ Nativeを選択する場合だけ、P1-7で作成した受講者作成のNative 
 - 自動化しないまたはLaterとした条件を、Riskと理由付きで説明できる。
 - Nativeを選択しない共通経路でも修了でき、選択時だけNative成果物を別判定できる。
 
+## 修了確認コマンド
+
+Part 1の成果物を`<handoff-root>`へ集約したら、受講者自身で次の正式な確認を実行します。`<handoff-root>`はWorkbook、受講者Code、Evidence、Receipt、self-checkを集約した固定Directoryへ置き換えます。
+
+```bash
+pnpm run training:completion:check -- --mode common --root <handoff-root>
+```
+
+生成された`<handoff-root>/completion-receipt.json`で、少なくとも次を確認します。
+
+- `status`: 完了条件の機械的な状態。
+- `missing_requirements`と`reasons`: 未達項目と、最初に戻るべき理由。
+- `checked_outputs`: Handoff、Workbook、実行記録、Learner code、Evidence、self-checkなどの確認結果。
+- `semantic_understanding`: 自動判定していない理解項目。通常は`NOT_EVALUATED`です。
+
+このReceiptの`PASS`は、成果物の構造・追跡・実行記録が契約を満たしたことを示すだけで、設計意図や説明の理解を自動採点した結果ではありません。Part 1の完了は、`PASS`、self-checkの記述、自分の成果物を指した公開されている最低限の評価基準の確認をそろえて自己判定します。`PASS`でない場合は、`reasons`または`missing_requirements`の最初の項目へ戻って修正し、確認コマンドを再実行します。
+
 ### Recovery
 
 対応関係やFailureの分析がつながらない場合は、まず対象BR / AC、Risk、Test Case、実行条件、実行記録を1つずつ確認し、抜けた最初の項目へ戻ります。実行できない場合はBrowser、Seed / Reset、Test Control、環境上の問題を分けて記録します。Native環境の不足は共通課程の修了未達とせず、Nativeを選択する場合だけP1-7のRecoveryへ戻ります。

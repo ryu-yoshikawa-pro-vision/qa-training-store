@@ -115,6 +115,8 @@ describe("Training curriculum contracts", () => {
     expect(practiceLesson).toContain("tool = Playwright");
     expect(practiceLesson).toContain("そのうち1件以上");
     expect(practiceLesson).toContain("Automate / Unit / Vitest");
+    expect(practiceLesson).toContain("固定件数を完了条件にせず");
+    expect(practiceLesson).not.toContain("少なくとも2件の受講者自身");
     expect(practiceLesson).not.toContain("配布sampleのIDを使う場合でも");
 
     for (const term of [
@@ -136,6 +138,7 @@ describe("Training curriculum contracts", () => {
       "Receiptの内部Schemaや全引数を理解することは学習目標ではありません",
     );
     expect(failureLesson).toContain("<handoff-root>/code/training/playwright/exercises/");
+    expect(failureLesson).toContain("--root <exercise-copy>");
     expect(failureLesson).toContain("Runnerが読むローカルのコード実行root");
     expect(failureLesson).toContain("Canonical Helperは受講者成果物ではない");
     expect(failureLesson).not.toContain(
@@ -153,6 +156,8 @@ describe("Training curriculum contracts", () => {
     expect(maintenanceLesson).toContain("TC-CART-900");
     expect(maintenanceLesson).toContain("受講者が計算・転記せず");
     expect(maintenanceLesson).not.toContain("RISK-CART-103");
+    expect(maintenanceLesson).not.toContain("c10-cart-101.spec.ts");
+    expect(maintenanceLesson).not.toContain("提供素材のTest titleは`TC-CART-101`");
     expect(maintenanceLesson).toContain("e2e/web/fixtures.ts");
     const maintenanceExercise = readFileSync(
       resolve(root, "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
@@ -211,6 +216,12 @@ describe("Training curriculum contracts", () => {
     expect(capstoneLesson).toContain("最終成果物の照合");
     expect(capstoneLesson).toContain("Training Copy上のRun、Check、Artifact");
     expect(capstoneLesson).toContain("handoff-root/self-check/P2-08.md");
+    expect(capstoneLesson).toContain("training:completion:check -- --mode part2 --root");
+    expect(capstoneLesson).toContain("ci.github_run_id");
+    expect(capstoneLesson).toContain("semantic_understanding");
+    expect(readLesson("part1/09_part1-capstone.md")).toContain(
+      "training:completion:check -- --mode common --root",
+    );
     expect(capstoneLesson).not.toContain(
       "WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。",
     );
@@ -318,9 +329,15 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain("pnpm run training:web:exercise:with-receipt");
     expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
     expect(trainingWorkflowReadme).toContain("training-web-<run_id>-<run_attempt>");
+    expect(trainingWorkflowReadme).toContain("<handoff-root>/receipts/");
+    expect(phaseOneWorkflow).toContain("training-runtime");
+    expect(packageManifest.scripts["test:contracts"]).toContain(
+      "--exclude tests/contracts/training-runtime-integration.test.ts",
+    );
     expect(trainingWorkflowReadme).toContain("output/training/playwright");
     expect(trainingWorkflowReadme).toContain("receipts");
     expect(trainingWorkflowReadme).toContain("evidence");
+    expect(trainingWorkflowReadme).toContain("Receiptが参照する同じ相対Pathの`evidence/`");
     expect(trainingWorkflowReadme).toContain("workflow_dispatch");
     expect(trainingWorkflowReadme).toContain("mode = expected-failure");
     expect(trainingWorkflowReadme).not.toContain("講師が明示する");

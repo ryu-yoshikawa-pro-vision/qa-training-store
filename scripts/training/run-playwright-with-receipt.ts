@@ -232,13 +232,57 @@ function safeExecutionRoot(rootOption: string): string {
   return fs.realpathSync(root);
 }
 
-function resolveExecutionRoot(handoffRoot: string, testRootOption?: string): string {
+function copyCommonRuntimeTree(handoffRoot: string, runtimeRoot: string): boolean {
+  const candidates = [path.resolve(handoffRoot, "code", "training", "playwright")];
+  if (path.resolve(handoffRoot) !== fs.realpathSync(process.cwd()))
+    candidates.push(path.resolve(handoffRoot, "training", "playwright"));
+  const sourceRoot = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!sourceRoot) return false;
+  const handoffReal = fs.realpathSync(handoffRoot);
+  const sourceReal = fs.realpathSync(sourceRoot);
+  if (!isWithin(handoffReal, sourceReal))
+    throw new Error("Common learner code escaped the handoff root");
+  const destinationRoot = path.join(runtimeRoot, "training", "playwright");
+  const visit = (sourceDirectory: string, destinationDirectory: string): void => {
+    fs.mkdirSync(destinationDirectory, { recursive: true });
+    for (const entry of fs.readdirSync(sourceDirectory, { withFileTypes: true })) {
+      const source = path.join(sourceDirectory, entry.name);
+      const destination = path.join(destinationDirectory, entry.name);
+      const relative = normalizeRelative(path.relative(sourceRoot, source));
+      if (entry.isSymbolicLink())
+        throw new Error(`Common learner code must not use a symlink: ${relative}`);
+      if (entry.isDirectory()) {
+        visit(source, destination);
+      } else if (entry.isFile()) {
+        const repositoryRelative = `training/playwright/${relative}`;
+        if (repositoryRelative === "training/playwright/support/reset-scenario.ts")
+          throw new Error("Common handoff must not contain the provided reset helper");
+        if (isProvidedTrainingCodePath(repositoryRelative)) continue;
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.copyFileSync(source, destination);
+      } else throw new Error(`Unsupported Common learner code entry: ${relative}`);
+    }
+  };
+  visit(sourceReal, destinationRoot);
+  const providedHelper = path.resolve(
+    process.cwd(),
+    "training/playwright/support/reset-scenario.ts",
+  );
+  if (!fs.existsSync(providedHelper)) throw new Error("Canonical reset helper is missing");
+  const runtimeHelper = path.join(destinationRoot, "support", "reset-scenario.ts");
+  fs.mkdirSync(path.dirname(runtimeHelper), { recursive: true });
+  fs.copyFileSync(providedHelper, runtimeHelper);
+  return true;
+}
+
+function resolveExecutionRoot(
+  handoffRoot: string,
+  testRootOption: string | undefined,
+  temporaryRoot: string,
+): string {
   if (testRootOption) return safeExecutionRoot(testRootOption);
-  const handoffCodeRoot = path.resolve(handoffRoot, "code");
-  if (fs.existsSync(path.join(handoffCodeRoot, "training", "playwright")))
-    return fs.realpathSync(handoffCodeRoot);
-  const handoffTrainingRoot = path.resolve(handoffRoot, "training", "playwright");
-  if (fs.existsSync(handoffTrainingRoot)) return fs.realpathSync(handoffRoot);
+  if (copyCommonRuntimeTree(handoffRoot, path.join(temporaryRoot, "runtime")))
+    return path.join(temporaryRoot, "runtime");
   return path.resolve(process.cwd());
 }
 
@@ -640,7 +684,6 @@ export function runPlaywrightWithReceipt(options: {
   if (!PROJECTS.has(options.project))
     throw new Error(`Unsupported Training Playwright project: ${options.project}`);
   const root = safeRoot(options.rootOption);
-  const executionRoot = resolveExecutionRoot(root, options.testRootOption);
   const runContext = safeContext(options.runContext);
   const evidenceRoot = path.join(root, "evidence");
   const receiptsRoot = path.join(root, "receipts");
@@ -657,7 +700,9 @@ export function runPlaywrightWithReceipt(options: {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "training-playwright-"));
   const packageManagerShimRoot = fs.mkdtempSync(path.join(os.tmpdir(), "training-pnpm-shim-"));
   const jsonReportPath = path.join(temporaryRoot, "report.json");
+  let executionRoot = path.resolve(process.cwd());
   try {
+    executionRoot = resolveExecutionRoot(root, options.testRootOption, temporaryRoot);
     const usesCustomExecutionRoot = executionRoot !== path.resolve(process.cwd());
     const args =
       options.testRootOption || usesCustomExecutionRoot

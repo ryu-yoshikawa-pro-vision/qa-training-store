@@ -11,6 +11,8 @@
 
 `training-ci.yml`のPull Request用Exerciseは、CI Runner上のCheckout済みRepository rootを`--root .`として使い、`training:web:exercise:with-receipt`、Receipt、PlaywrightのReport／Screenshot／Trace／Videoを実行結果としてArtifactへ保存します。UploadされるArtifact名は`training-web-<run_id>-<run_attempt>`で、主な保存Pathは`output/training/playwright`、`receipts`、`evidence`です。これはローカルの`handoff-root/`へ自動的に戻るものではありません。受講者は`PR → Checks → Scenario Shop Training Web → Run Summary → Artifacts`の順でGitHubのRun／Check／Artifactを確認し、確認内容を自分のEvidenceへ記録します。
 
+確認後は、対象Artifactをダウンロードして展開し、選択したCI Execution Receiptを`<handoff-root>/receipts/`へコピーします。Receiptが参照する同じ相対Pathの`evidence/`配下（`report.json`、`run.log`、PlaywrightのReport／Trace／Screenshot／Videoを含む）も、同じRunのものを`<handoff-root>/evidence/`へコピーします。Local Receiptを上書きしたり、Receiptを手入力で作ったりせず、`run.ci.github_run_id`、`run.ci.github_run_attempt`、`run.ci.artifact_name`、`run.ci.workflow`、`run.ci.job`、`run.ci_sha`、`run.submission_sha`、`run.training_copy_source_sha`、`run.execution_sha`をRun／Check／Artifactと照合します。GitHub画面で確認したRun／Check／Artifact／Case／結果は、別の人間可読Evidenceとして`<handoff-root>/evidence/`へ記録します。`04_execution-improvement.csv`では既存の`ci-exercise`などのContextを使い、CI Receiptと人間Evidenceを対応付けます。
+
 Failure Artifactを学ぶときは、GitHubの`Actions`から`Scenario Shop Training Web`を開き、`Run workflow`で`mode = expected-failure`を自分で選んで実行します。意図したFailure、Run Summary、`training-web-<run_id>-<run_attempt>` Artifact、Trace／Screenshot／Video／HTML Reportを順に確認し、原因を人間可読Evidenceへ記録します。`training:web:check-expected-failure`はCI前やローカルのEvidence構造確認を行う補助入口であり、このCI Artifact学習の代わりにはしません。
 
 両Workflowは `permissions: contents: read`、GitHub-hosted runner、Secretなし、Environmentなし、OIDCなし、Deployなしを守ります。Source RepositoryのFormal Phase 1 / Native / iOS / Deploy Workflowをこのディレクトリから直接実行しません。

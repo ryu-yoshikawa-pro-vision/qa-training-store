@@ -42,4 +42,19 @@ export const WORKBOOK_HEADERS = {
   ],
 } as const;
 
+// These values are the curriculum's existing vocabulary. Completion checking
+// must reject unknown values instead of silently treating them as non-UI work.
+export const WORKBOOK_AUTOMATION_DECISIONS = ["Automate", "Later", "Do not automate"] as const;
+
+export const WORKBOOK_TEST_LAYERS = [
+  "Unit",
+  "Integration",
+  "Repository Contract",
+  "Component",
+  "Web E2E",
+  "Native E2E",
+] as const;
+
+export const WORKBOOK_TOOLS = ["Vitest", "Playwright", "Maestro"] as const;
+
 export type WorkbookFilename = keyof typeof WORKBOOK_HEADERS;
