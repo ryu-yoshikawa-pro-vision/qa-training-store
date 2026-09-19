@@ -1,52 +1,51 @@
 # Plan（計画）
 
-## Objective（目的）
+## 目的
 
-- Issue #163の保存Planへ最終レビュー指摘を反映し、実装時に追加判断が必要な箇所を解消する。
-- 今回はPlanとRepository契約上必要なRun Artifactだけを変更し、workflow、設定、依存関係、外部Appは実装しない。
+- Issue #163のPlanへ、これまでのレビュー結果を重複なく統合して反映する。
+- OpenCode fallbackの目的を維持しながら、成立しないcandidate検証、過剰なlockfile比較、同一job内のraw Alert / OIDC境界を修正する。
+- 今回はPlanとactive Run Artifactだけを変更し、workflow、設定、依存関係、外部Appは実装しない。
 
-## Scope（対象範囲）
+## 対象範囲
 
-- In:
+- 対象:
   - `docs/plans/2026-09-19_033900_issue-163-renovate-opencode-security-fallback.md`
   - `.codex/runs/20260919-051528-JST/PLAN.md`
   - `.codex/runs/20260919-051528-JST/TASKS.md`
   - `.codex/runs/20260919-051528-JST/REPORT.md`
-- Out:
+- 対象外:
   - `renovate.json`
   - `.github/workflows/**`
   - `.github/opencode/**`
   - `package.json` / `pnpm-lock.yaml`
-  - 外部App installation、GitHub Settings、Secret変更、PR作成
+  - GitHub Settings / Secret / App installation
+  - PR merge / close
 
-## Assumptions（仮定）
+## 確認済み事項
 
-- 対象branchは`issue-163-renovate-opencode-security-fallback`で、修正開始時HEADは`f96c48b1e273305eb701a80510ec5746f495d01f`。
-- Dependabot Alertsのopen件数は現在のGitHub connectorでは取得できない。Issue #163の契約上、Owner権限で件数を確認して`prConcurrentLimit`の具体値をPlanへ追記するまでRenovate設定実装を開始しない。
-- pnpm `v9.10.0`ではpackage selectorなしの`pnpm list --json --depth Infinity`が10 end leavesのtruncate経路を通らないことを固定実装で確認済み。
-- PR #58は複数parent-scoped overrideの実例だが、初期fallbackは入力された1 Alertを正本にし、同じAlert range内の複数pathだけをまとめて扱う。
+- PR #167 headは修正開始時点で`c11e3fb8470ccf60edd3ad6f0992b856f79a4ce8`。
+- Issue #163の目的はRenovate Security修正を第一経路、人間起動のOpenCodeを限定fallbackとすること。
+- `pnpm install --lockfile-only`後の`pnpm list`だけではcandidate更新後のinstalled graphを検証できない。
+- 現Planのraw Alertを同一jobの`RUNNER_TEMP`へ保持したままdependency codeを実行する構成はfilesystem隔離にならない。
+- current Web CI failureはPlan参考リンクの`MD034/no-bare-urls`。
+- open Dependabot Alert件数は現在のGitHub connectorでは取得できない。
 
-## Questions / Ambiguity（質問・曖昧性）
+## 変更方針
 
-- 必ず質問する不透明点: なし。ユーザーから統合レビュー結果の必要修正をPlanへ反映するよう指示済み。
-- 未回答の重要事項: 現在のopen Dependabot Alert件数と`prConcurrentLimit`具体値はOwner権限が必要な実装前blocker。外部Appの実権限、Production trust、Zen/OIDC疎通はactivation gateとして残す。
+1. OpenCode前段の全version candidate総当たりを削除し、同一major・最大10件の候補提示 + OpenCode one-shot + validatorへ簡素化する。
+2. `preflight` / `read-alert` / `repair-and-validate` / `publish`へjobを分割し、repair jobからraw AlertとOIDC permissionを除外する。
+3. `pnpm list`をinstalled graphとして扱い、runnerで確認できないdependencyを`needs_human`へ止める。
+4. lockfile全field deep comparisonを削り、semantic diff、pnpm再生成、installed graph、既存CIへ寄せる。
+5. Cloudflare Preview除外をDependabot / `renovate/` Bot / `security/` Botへ限定し、Expo maintenanceの既存契約を維持する。
+6. publish直前のAlert再確認、base SHA、duplicate PR、orphan branch確認を追加する。
+7. `SECURITY.md`とRun Artifact契約の責務を整理する。
+8. bare URLをMarkdown linkへ修正する。
 
-## Approach（進め方）
+## 完了条件
 
-1. Issue #163、PR #58、固定pnpm/OpenCode実装、Renovate現行設定を再確認する。
-2. range正規化、最小の許可version、1 Alert境界、lockfile構造差分、credential-free検証、固定concurrency、permission、activation手順をPlanへ固定する。
-3. 今回taskのRun ArtifactをRepository契約に合わせて保存する。
-4. branch差分がPlanと今回Run Artifactだけであることを確認し、1 commitで保存する。
-
-## Definition of Done（完了条件）
-
-- 最終レビューのmust_fix / should_fixがPlanのDoD、変更方針、実行タスク、検証、リスクへ一貫して反映される。
-- `prConcurrentLimit`はOwner確認が必要なblockerとして明示し、それ以外のrepair methodやSecurity境界を実装者判断に残さない。
-- 今回taskの変更はPlanとRun Artifact 3 filesだけで、実装ファイルへ進まない。
-- branchへ通常のfast-forward commitとして保存する。
-
-## Risks / Unknowns（リスク・未知点）
-
-- Planだけを修正するtaskで実装ファイルへ範囲を広げない。
-- Security境界を簡略化するために必要なfail-close検証を削らない。
-- 外部サービスの実権限・疎通はRepository内Planだけでは確定できないため、activation gateとして明示的に残す。
+- これまでのレビュー指摘が重複なくPlanへ統合される。
+- Issue #163の目的を広げず、必要なSecurity境界を削らない。
+- Plan内部の旧方針が残らない。
+- `prConcurrentLimit`未確定の影響範囲が`renovate.json`とそのcontract testへ限定される。
+- Planの参考リンクがMarkdown Lintに適合する。
+- 実装ファイル、外部App、Settingsへ進まない。
