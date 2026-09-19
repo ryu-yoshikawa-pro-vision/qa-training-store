@@ -411,7 +411,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 - Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない。
 - exact `BASE_SHA`を`persist-credentials: false`でcheckoutする。
 - `security-context`と`validate-exec`が任意コード実行前に生成した`prepared-security-fix`を`artifact-ids`指定で取得する。`validate-exec`のworkspaceやverify後の生成fileは受け取らない。
-- prepared Artifactのfile set、Artifact digest、`package.json` / `pnpm-lock.yaml` / `fix-authorization.json`の個別SHA-256をjob outputと照合する。
+- prepared Artifactのartifact ID、file set、`package.json` / `pnpm-lock.yaml` / `fix-authorization.json`の個別SHA-256をjob outputと照合する。`artifact-digest`はSecurity判定へ使わない。
 - prepared `package.json` / `pnpm-lock.yaml`を配置し、以後lockfileを再生成・更新しない。
 - semantic diffとauthorizationを再照合する。
 - `pnpm install --frozen-lockfile --ignore-scripts`とpackage selectorなしの`pnpm list --json --depth Infinity`でprepared lockfileをそのままinstallできることとexpected exact resolved versionを再確認する。
@@ -431,7 +431,7 @@ tracked Run Artifactはこのjobで作成する。
 2. semantic validator、expected exact resolved version、parent-scoped override全edge、prepared lockfile target scanを再確認する。
 3. `git diff --name-only`と`git ls-files --others --exclude-standard`から最終file setを取得し、prepared `package.json`、prepared `pnpm-lock.yaml`、今回生成した`.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md`以外を拒否する。
 4. `git diff --check`を実行する。
-5. `validated-fix.json`へ`BASE_SHA`、dependency、ecosystem、GHSA ID、normalized vulnerable range、first patched version、選択strategy、prepared Artifact ID / digest、prepared 3 fileのSHA-256、publish対象5 fileのSHA-256、authorization SHA-256を記録する。`validated-fix.json`自体はGitへ追加しない。
+5. `validated-fix.json`へ`BASE_SHA`、dependency、ecosystem、GHSA ID、normalized vulnerable range、first patched version、選択strategy、prepared Artifact ID、prepared 3 fileのSHA-256、publish対象5 fileのSHA-256、authorization SHA-256を記録する。`artifact-digest`は監査用に別途記録してもよいがSecurity判定には使わない。`validated-fix.json`自体はGitへ追加しない。
 
 最終guard通過後はRepository script、package manager、Node dependency、test、buildを一切実行しない。残りは固定shellによるfile / hash確認とArtifact uploadだけに限定する。
 
@@ -453,7 +453,7 @@ tracked Run Artifactはこのjobで作成する。
 - job-level条件で`github.run_attempt == 1`を要求する。
 - `contents: read`、`pull-requests: read`、`vulnerability-alerts: read`、`id-token: write`だけを必要範囲で付与する。
 - dependency install、OpenCode、Repository script、package manager、test、buildを実行しない。
-- `validated-security-fix`を`artifact-ids`指定でdownloadし、期待する6 fileだけであること、Artifact digest、`validated-fix.json`に記録されたSHA-256を再確認する。
+- `validated-security-fix`を`artifact-ids`指定でdownloadし、期待するartifact IDと6 fileだけであること、`validated-fix.json`に記録された個別SHA-256を再確認する。`artifact-digest`はSecurity判定へ使わない。
 - exact `BASE_SHA`をcheckoutし、validated `package.json`、`pnpm-lock.yaml`、3つのRun Artifactだけを配置する。
 - Dependabot AlertとPublic Global Security Advisoryを再取得する。
 - Alertが`open`で、dependency / ecosystem / GHSA IDがauthorizationと一致することを確認する。
