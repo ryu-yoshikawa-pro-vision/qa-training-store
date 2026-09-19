@@ -61,3 +61,26 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-19 09:49 (JST)
+
+- Review finding: rule採否の実測根拠を、評価対象151 Markdownと`textlint-rule-preset-japanese@10.0.4`の実測結果へ分解して補完する。評価結果の本文全体は保存せず、件数・設定値・fixture結果だけを記録する。
+- 実測結果:
+  - `max-ten` (`textlint-rule-max-ten@5.0.0`): default `max=3` は13件、比較 `max=4` は6件。既存の`docs/WRITING_STANDARDS.md`に句読点数のblocking根拠がなく、緩和後も違反が残るため非採用。
+  - `no-doubled-conjunctive-particle-ga` (`textlint-rule-no-doubled-conjunctive-particle-ga@3.0.0`): `true`で0件。fixtureは二重の「が」を1件検出し、通常の技術文は0件だったため採用。
+  - `no-doubled-conjunction` (`textlint-rule-no-doubled-conjunction@3.0.1`): `true`で9件。既存規約に根拠がなく、通常文との区別をblocking契約として説明できないため非採用。
+  - `no-double-negative-ja` (`textlint-rule-no-double-negative-ja@2.0.1`): `true`で0件。fixtureは技術的に正当な慎重表現を1件検出し、単純な否定表現は0件だったため非採用。
+  - `no-doubled-joshi` (`textlint-rule-no-doubled-joshi@5.1.1`): `min_interval=1`で52件。既存規約にこれより厳しい助詞間隔の根拠がないため非採用。
+  - `sentence-length` (`textlint-rule-sentence-length@5.2.1`): default `max=100`は828件、比較 `max=120`でも500件。既存規約にblocking閾値の根拠がなく、正常な技術文を継続的に検出するため非採用。
+  - `no-dropping-the-ra` (`textlint-rule-no-dropping-the-ra@3.0.0`): `true`で0件。fixtureはら抜き表現を1件検出し、通常の技術文は0件だったため採用。
+  - `no-mix-dearu-desumasu` (`textlint-rule-no-mix-dearu-desumasu@6.0.4`): `strict=false`、`preferInHeader` / `preferInBody` / `preferInList` は空文字で15件。一方の文体を全体へ強制する既存契約がないため非採用。
+- 判断: 正式採用は`no-doubled-conjunctive-particle-ga=true`と`no-dropping-the-ra=true`の2 rule。非採用6 ruleは、検出件数だけでなく既存規約との不一致またはfixtureで確認した正常な技術文の検出を根拠とした。評価version、production resolve version、現在のmigration対象0件の関係は既存の採用判断と一致する。
+- Review repair scope: `REPORT.md`への根拠補完、`learner-facing`非採用テストの削除、全件scan失敗表示の`new`除去だけを行う。一般rule、custom rule、dependency、`.textlintrc.json`、`.codex/text-quality-rules.json`は変更しない。
+
+## 2026-09-19 10:18 (JST)
+
+- Repair iteration: PR #166の3件のレビュー指摘を`must_fix`として、許可範囲を`REPORT.md`、`tests/contracts/codex-text-quality.test.ts`、`scripts/check-text-quality-changes.mjs`へ限定した。
+- Changes: rule採否の8候補別実測根拠を追記した。`learner-facing`の非採用をproduction contractとして固定していたtestを削除した。`--all`の失敗表示は`FAIL: <件数> text quality violation(s)`へ変更し、差分比較の`new`表示は維持した。一般rule、custom rule、dependency、production config、Hook/Huskyは変更していない。
+- Validation: 変更直後の既定Vitest呼び出しは、Repository標準の`--testTimeout=30000`等を付けない実行で既存の長時間ケース4件が5秒timeoutになった。標準`test:contracts`と同じ`--no-file-parallelism --maxWorkers=1 --testTimeout=30000`で再実行し、文章品質contractは45/45 PASSした。timeoutを隠すコード変更は行っていない。
+- Validation: `pnpm run verify`はformat、Markdown lint、`lint:text`、`lint:text:all`（151 Markdown / 0 violation）、skills/spec/curriculum、lint（0 errors / 66 warnings）、typecheck、security、unit 66、integration 111、repository 117、component 166、contract 591 passed / 4 skipped、Web build、spec buildまでPASSした。`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -HookContracts`もPASS=4、FAIL=0、SKIP=0（Hook contract 198/198）だった。
+- Decision: `stop_success`。残差はなく、次は差分最終確認、Run Artifactのcollector、commit、push、PR #166の最新head CI確認のみ。

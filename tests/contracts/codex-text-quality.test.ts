@@ -1590,58 +1590,6 @@ describe("Codex deterministic text quality contracts", () => {
     });
   });
 
-  it("does not adopt learner-facing while the current scanner would flag link destinations and paths", () => {
-    const productionRules = JSON.parse(
-      fs.readFileSync(path.join(repoRoot, ".codex", "text-quality-rules.json"), "utf8"),
-    ) as { rules: TextRule[] };
-    expect(productionRules.rules.map((productionRule) => productionRule.rule_id)).not.toContain(
-      "wording-learner-facing",
-    );
-
-    withFixture((root) => {
-      writeFile(
-        root,
-        "unsafe-learner-facing-rules.json",
-        JSON.stringify({
-          version: 1,
-          status: "configured",
-          rules: [
-            {
-              rule_id: "wording-learner-facing",
-              pattern: "learner-facing",
-              match_type: "literal",
-              message: "learner-facingは受講者向けに置き換えてください。",
-              replacement: "受講者向け",
-              case_sensitive: true,
-              normalization: "none",
-              ignore: {
-                fenced_code: true,
-                inline_code: true,
-                urls: true,
-                identifiers: false,
-              },
-            },
-          ],
-        }),
-      );
-      const result = runNode(
-        path.join(root, "scripts", "lint-text-quality.mjs"),
-        [
-          "--rules",
-          path.join(root, "unsafe-learner-facing-rules.json"),
-          "--json",
-          "--text",
-          "learner-facing\n`learner-facing`\nhttps://example.test/learner-facing\n[説明](docs/learner-facing.md)\ndocs/learner-facing.md\n",
-        ],
-        root,
-      );
-      expect(result.status).toBe(1);
-      expect((JSON.parse(result.stdout) as { line: number }[]).map(({ line }) => line)).toEqual([
-        1, 4, 5,
-      ]);
-    });
-  });
-
   it("distinguishes new fingerprint counts from pre-existing violations", () => {
     withFixture((root) => {
       writeFile(root, "docs/existing.md", "BAD\nGOOD\nCHANGED\n");
@@ -1716,6 +1664,17 @@ describe("Codex deterministic text quality contracts", () => {
           },
         ],
       });
+
+      const humanResult = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--all", "--rules", path.join(root, "rules.json")],
+        root,
+      );
+      expect(humanResult.status).toBe(1);
+      expect(humanResult.stdout).toBe(
+        "FAIL: 1 text quality violation(s)\n" +
+          'docs/untracked.md:1 [TEST-BANNED] 文章品質ルール違反 replacement="GOOD"\n',
+      );
     });
   });
 

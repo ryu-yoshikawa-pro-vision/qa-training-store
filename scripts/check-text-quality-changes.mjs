@@ -486,7 +486,10 @@ async function runCli() {
         `PASS: text quality ${options.all ? "full scan" : "comparison"} (${result.mode}, ${countLabel})\n`,
       );
     } else {
-      process.stdout.write(`FAIL: ${result.violations.length} new text quality violation(s)\n`);
+      const violationLabel = options.all
+        ? "text quality violation(s)"
+        : "new text quality violation(s)";
+      process.stdout.write(`FAIL: ${result.violations.length} ${violationLabel}\n`);
       for (const violation of result.violations) {
         const replacement =
           violation.replacement === undefined
