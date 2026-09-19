@@ -116,3 +116,19 @@
 
 - `fix-authorization.json`へ自己SHA-256を埋め込む自己参照を削除した。authorization fileのSHA-256はJSON生成後にworkflow側で計算し、job output / Artifact検証へ使用する。
 - Plan本文の「現head」固定記述を削除し、Plan更新後は最新headのCIを再確認する契約へ変更した。
+
+
+## 2026-09-19 23:23 (JST)
+
+- 概要: これまでのレビュー結果を再統合し、実装開始を妨げていた残存4件とOpenCodeの不要なdefault plugin経路をPlanへ反映した。
+- 変更:
+  - 6 job構成は維持し、`validate-exec`が任意Repository / dependency code実行前に`package.json` / `pnpm-lock.yaml` / `fix-authorization.json`を`prepared-security-fix` Artifactへ確定する契約へ変更した。
+  - `finalize`はprepared Artifactをhash一致で再利用し、lockfileを再生成しない。これにより`pnpm run verify`で検証したpackage / lockfileとpublish対象を同一にする。
+  - authorizationへdirect target、選択root parent、override targetのexpected exact resolved versionを追加し、parent-scoped overrideはselectorに一致するbaseline全edgeを確認する契約へ変更した。
+  - installed graphに加え、既存`yaml@2.9.0`でprepared `pnpm-lock.yaml`のtarget packageを構造的に走査し、vulnerable range内versionが残る場合はfail-closedとした。
+  - `github.run_attempt == 1`を6 jobすべてのjob-level条件へ固定し、成功済みpreflightを再利用した個別job Re-runでもOpenCode / publishへ進めない契約にした。
+  - `.github/workflows/**`全体で`id-token: write`をSecurity fallbackの`publish`だけへ限定するcontractを追加した。
+  - OpenCode App OIDC exchangeをaudience `opencode-github-action`、`POST https://api.opencode.ai/exchange_github_app_token`、Bearer OIDC token、bodyなし、JSON `token` responseへ固定し、PAT / write-enabled `GITHUB_TOKEN` fallbackを禁止した。
+  - `OPENCODE_DISABLE_DEFAULT_PLUGINS=1`を追加し、`OPENCODE_PURE=1`とは別に固定binary内のdefault pluginも無効化する。
+- 対象範囲: Plan、active Run Artifact、PR本文だけ。workflow、Renovate設定、OpenCode設定、validator、依存関係、GitHub Settings、Secret、App installationは変更していない。
+- Progress: 100% (11/11)
