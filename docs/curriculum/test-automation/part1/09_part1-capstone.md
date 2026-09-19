@@ -2,6 +2,19 @@
 
 この総合演習では、既存Formal Regressionを答えとして写さず、現在の正式な仕様からCartの最小Riskを一巡します。Part 1の共通課程は共通経路で修了でき、モバイルアプリ自動化の選択課程は追加の選択経路です。発展課題は追加のChallengeです。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-1〜P1-8で作成した対象・Risk、Test Case、Layer / Tool、受講者コード、Failure分析、改善記録、必要ならNative成果物。`docs/spec`と既存のTraining入口を最後に再確認する |
+| Activity | Cartの最小Riskを仕様→Workbook→Case→Training code→Reset／実行→Failure分類→改善の順に一巡し、既存Formal Regressionと設計理由を比較する |
+| Observation | Caseとコードの対応、baseline／exerciseの違い、実行ExitとCase結果、Evidence、Failure分類、CommonとNative選択課程の境界 |
+| Output | Part 1の成果物一式、Repository相対コード、Execution Receipt／Evidence、Lesson ID別self-check、C09のinitial／repaired記録。編集場所は自由で、完了時に固定`handoff-root/`へ集約する。Repositoryのcanonical CSVへ完成回答を追記しない |
+| Self-check | C01〜C07、C09〜C10の対応を自分の成果物を指して説明し、Nativeを選択しなくてもCommonが成立する理由と、baseline／意図的Failureだけでは修了にならない理由を書く。C10で実在問題を使ったか、決定的教材演習へ切り替えたかも記録する |
+| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、C09のinitial Failure→repaired Pass、C10の実在する保守問題または決定的な教材演習→最小改善→別run、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
+| Recovery | 欠けた最初の成果物へ戻る。実行環境の不足はBrowser／Reset／Artifactの環境問題として記録し、Nativeを選択しないCommonの完了と混同しない |
+| Handoff | P2-1へ固定rootのWorkbook、code、Evidence、Receipt、self-checkと、Git管理Copyへ移行する際の対象Path／Case IDを渡す。Part 2正式CIへ進む時点でTraining Copyへmaterializeする |
+
 ## 学習目標
 
 - Part 1の共通課程のC01〜C07 + C09〜C10を一つの対応関係へ接続する。
@@ -13,11 +26,11 @@
 中核課題はPlaywrightによるWeb Cart Journeyで修了できます。モバイルアプリ自動化の選択やAndroid / iOS実行は、この共通経路の前提にしません。
 
 1. [`cart.md`](../../../spec/features/cart.md) のBR / ACを読み、Guest / Customer / State / Dataを整理する。
-2. `training/workbook/01_target-risk.csv` と `02_test-cases.csv`へRisk、条件、境界、期待結果を記録する。
+2. 受講者の作業表へRisk、条件、境界、期待結果を記録し、完了時に4 CSVを`handoff-root/workbook/`へ集約する。Repositoryのsample CSVへ回答を追記しない。
 3. [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)で必要な初期状態を確認し、必要な節だけ[`seed_catalog.md`](../../../07_testability/seed_catalog.md)と`/guide`で観察する。実装時にだけ実行可能なソースで具体的なIDを照合する。
-4. `pnpm run training:web:baseline`でbaselineを実行し、必要なCart条件を`exercises/`へ実装した後、`pnpm run training:web:exercise`でDesktop learner exerciseを実行する。
+4. `pnpm run training:web:baseline`でbaselineを実行し、必要なCart条件を`exercises/`へ実装した後、P1-6のReceipt付き入口でDesktop learner exerciseを実行する。
 5. `training-mobile-chromium`でResponsive Riskを1件確認する。
-6. `03_automation-mapping.csv` と `04_execution-improvement.csv`へDecision、実行記録、Failure分類を追記する。
+6. 受講者のWorkbookへDecision、実行記録、Failure分類を記録し、`03_automation-mapping.csv`と`04_execution-improvement.csv`を`handoff-root/workbook/`へ集約する。
 
 P1-6のC09診断で作成した失敗時の記録、cause、action、修正後の再実行記録は、同じ`test_case_id`の異なる`run_context`として再利用します。P1-9で診断Failureを新しく作り直す必要はありません。
 
@@ -46,8 +59,26 @@ Nativeを選択する場合だけ、P1-7で作成した受講者作成のNative 
 - `cart.md`のBR / ACから選んだRisk、Test Case、Layer、Tool、実行記録の対応を説明できる。
 - Guest / Customer、State / Data、Scenario / Resetの境界を既存SSOTへ戻って確認できる。
 - Web baselineと自分のFailure Exerciseを分離し、Failure分類、原因仮説、実行記録、未確定範囲を説明できる。
+- C10では、実在する保守問題を使ったか、問題がなければ決定的な教材演習を使ったかを明示し、改善前後の別runとTest目的を維持した確認を示せる。
 - 自動化しないまたはLaterとした条件を、Riskと理由付きで説明できる。
 - Nativeを選択しない共通経路でも修了でき、選択時だけNative成果物を別判定できる。
+
+## 修了確認コマンド
+
+Part 1の成果物を`<handoff-root>`へ集約したら、受講者自身で次の正式な確認を実行します。`<handoff-root>`はWorkbook、受講者Code、Evidence、Receipt、self-checkを集約した固定Directoryへ置き換えます。
+
+```bash
+pnpm run training:completion:check -- --mode common --root <handoff-root>
+```
+
+生成された`<handoff-root>/completion-receipt.json`で、少なくとも次を確認します。
+
+- `status`: 完了条件の機械的な状態。
+- `missing_requirements`と`reasons`: 未達項目と、最初に戻るべき理由。
+- `checked_outputs`: Handoff、Workbook、実行記録、Learner code、Evidence、self-checkなどの確認結果。
+- `semantic_understanding`: 自動判定していない理解項目。通常は`NOT_EVALUATED`です。
+
+このReceiptの`PASS`は、成果物の構造・追跡・実行記録が契約を満たしたことを示すだけで、設計意図や説明の理解を自動採点した結果ではありません。Part 1の完了は、`PASS`、self-checkの記述、自分の成果物を指した公開されている最低限の評価基準の確認をそろえて自己判定します。`PASS`でない場合は、`reasons`または`missing_requirements`の最初の項目へ戻って修正し、確認コマンドを再実行します。
 
 ### Recovery
 

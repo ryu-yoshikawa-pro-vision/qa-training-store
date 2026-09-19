@@ -36,6 +36,18 @@
 
 期待される製品動作は、[`docs/spec/README.md`](../../spec/README.md)を入口とする正式な仕様を判断の正本とします。既存UI、既存Test、README、観測した動作から教材用の期待動作を逆算して固定しません。
 
+## Lesson本文の共通契約
+
+講師の都度の説明がなくても進められるように、Canonicalな17 Lesson（`P1-01`〜`P1-09`、`P2-01`〜`P2-08`）は、各Lesson内で次を明示します。`P1-07`と`P2-06`はNativeの選択課程です。
+
+- **Input**: 配布物、前のLessonの成果物、受講者が作る準備物を区別し、出所、参照先、準備完了の確認方法を示す。
+- **Activity / Observation**: 何をどの順に行い、画面、ログ、差分、実行結果、Artifactの何を観察するかを示す。
+- **Output**: 何を残すか、編集場所の自由度、評価へ渡す形式、次のLessonでの使い方を示す。
+- **Self-check / Completion**: 自分で答える問いと最低限の要素、第三者が観測できる完了条件を分けて示す。用意されたbaselineやstarterのPASSだけを完了扱いにしない。
+- **Feedback / Recovery / Handoff**: 学習上のつまずき、テスト／製品のFailure、環境不足を区別し、復旧方法と次の受け手・ID・Evidence・開始条件を示す。
+
+受講者はGoogle Sheetsや任意のローカルFolderで作業できますが、Part 1からPart 2の最終確認へ渡す評価用正本は、固定`handoff-root/`へ集約します。4つのWorkbook CSVは`handoff-root/workbook/`、Repository相対の受講者コードは`handoff-root/code/`、実行Evidenceは`handoff-root/evidence/`、Execution Receiptは`handoff-root/receipts/`、Lesson ID別の自己確認は`handoff-root/self-check/`へ置きます。Completion Receiptはroot直下へ出力します。Training CopyはGitHub Actionsを動かす実行環境であり、評価用正本の代わりにはしません。
+
 現在の保証は次のとおりです。
 
 | Platform | 現在の保証範囲 | カリキュラムでの扱い |
@@ -82,15 +94,15 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
 10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のリポジトリと比較します。
 11. Training実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を使用します。
-12. 学習者がリポジトリへ直接Pushできることを前提にせず、Part 2ではForkや演習用コピーを利用できる構成にします。
-13. Part 1をZIPなどGit管理されていないコピーで進めた受講者は、Part 2開始時にGit履歴を持つ同じ `qa-training-store` の演習用コピーへ成果物を引き継ぎます。
-14. CIハンズオンでは、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件とし、本番Secretを配布して既存Workflowを通す方法は採用しません。
+12. 学習者が教材元Repositoryへ直接Pushできることを前提にせず、P2-01〜P2-03のGit／GitHub基礎ではForkを利用できます。
+13. Part 1をZIPなどGit管理されていないコピーで進めた受講者は、Part 2開始前に準備された、Git履歴を持つ学習者書き込み可能なTraining Copyへ成果物を引き継ぎます。
+14. CIハンズオン、C12、Part 2最終確認ではTraining Copyを正式経路とし、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件にします。本番Secret、管理者権限、Workflow権限変更、GitHub App設定は要求しません。
 
 ## 全体構成
 
 ### 受講者向け標準導線
 
-受講者は、まずPart 1-1でScenario Shopとテスト自動化の目的を学びます。WorkbookはP1-2 / P1-3で使い、評価基準は各課題の達成度を確認するときに参照します。
+受講者は、まずPart 1-1でScenario Shopとテスト自動化の目的を学びます。P1-2で対象とRisk、P1-3でTest Caseと自動化対象を作るため、Playwright実装を始める前に必要なTest Caseがどこから来るかを本文で確認できます。WorkbookはP1-2 / P1-3で使い、評価基準は各課題の達成度を確認するときに参照します。
 
 ### Part 1: テスト自動化の基礎と実践
 
@@ -161,7 +173,7 @@ Part 2では、Part 1で作成した自動テストを「どのように開発�
 
 Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り替えるわけではありません。Git履歴を持つ同じScenario Shopの演習用コピーへPart 1成果物を引き継いで続けます。
 
-Git / GitHubの基本操作ではForkも利用できますが、CIハンズオンはProduction Workflowとの競合を避けるため、安全に分離された演習用コピーを標準とします。`training:copy:prepare`と`training:copy:validate`で、教材元から継承したProduction / Deploy Workflowをactive allowlistから外し、Training Workflowだけを検証します。
+Git / GitHubの基本操作ではForkも利用できますが、ForkはP2-01〜P2-03に限ります。C12／Training CI／Part 2最終修了は、自己学習開始前に準備された学習者書き込み可能なTraining Copyを正式経路とします。`training:copy:prepare`と`training:copy:validate`で、教材元から継承したProduction / Deploy Workflowをactive allowlistから外し、Training Workflowだけを検証します。Fork上のRun／Check／ArtifactをC12の証跡へ読み替えません。
 
 `part1/09_specification-agentic-qa.md` は任意の参考資料、`part1/10_part1-capstone.md` は過去の参照先を保つ別名として保存しています。必須ナビゲーション、評価基準、Validatorはcanonical `part1/09_part1-capstone.md`だけを対象にします。
 
@@ -181,6 +193,8 @@ Git / GitHubの基本操作ではForkも利用できますが、CIハンズオ�
 - GitHub Actions Workflow演習
 - CI実行結果とArtifact分析
 - Scenario ShopへのCI導入設計
+
+これらは編集場所を指定することで学ぶものではありません。各LessonのInputとOutputに従って作業し、最終的に固定`handoff-root/`へ4 CSV、Repository相対コード、Evidence、Execution Receipt、Lesson ID別self-checkを集約します。CSVの空欄や`Not run`は、まだ実行・判断していないことを表すため、見栄えを整える目的で架空の結果を入力しません。
 
 モバイルアプリ自動化の選択課程を選んだ受講者は、P1-7 / P2-6で自分が作成した演習と、Native実行の成果物を追加で作成します。Nativeのbaseline / stock flowや、リポジトリ必須資材が存在するだけでは、共通課程または選択課程の習熟度達成とはみなしません。
 

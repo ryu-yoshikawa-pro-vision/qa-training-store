@@ -43,7 +43,53 @@ Training環境には最低限、次が必要です。
 
 `playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
-Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。
+## 実装を始める前に準備するもの
+
+P1-3の設計が未完了なら、先に戻ってから実装します。Playwrightのコードだけを先に書くと、何を確認するTestなのか、どの結果をWorkbookへ記録するのかが決まりません。最低限、次のInputを1つのCaseごとに揃えます。
+
+| 準備するもの | 例 | 使う場所 |
+| --- | --- | --- |
+| Test Case ID | P1-3で作った`TC-CART-101`など。配布sampleの`TC-CART-001`／`TC-CART-002`を完成Caseとして流用しない | Test titleまたはannotation、Workbookの全行 |
+| 条件・前提・期待結果 | 対象商品、Seed Scenario、操作、確認する画面状態 | `02_test-cases.csv`、Test本文 |
+| Reset方法 | `resetScenario(page, "default")`など | Testの最初 |
+| 代表specのPath | `training/playwright/exercises/my-cart.spec.ts` | `03_automation-mapping.csv`の`implementation_path` |
+
+Starterは完成答案ではありません。内容を直接完成させず、`training/playwright/exercises/`へ自分のCase用の新しい`.spec.ts`を作成し、そこへStarterのimportと最小構造を参考に書きます。Helper／POMを作る場合も同じ`training/playwright/`配下へ置き、代表specからimportします。まずは1つのspecへ素直に書き、P1-8で共通化の要否を判断します。
+
+Desktop learner exerciseの互換commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。画面の見え方だけを確認する観察ではこれらの互換commandを使えますが、実行結果を評価へ渡す場合は、P1-6で扱うReceipt付き入口を使います。Mobile Webの正式なCase記録は、次のように`--project`だけを変更し、Desktopとは別のContextで残します。
+
+```bash
+pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-mobile-chromium --root <handoff-root> --run-context mobile-exercise
+```
+
+この実行はNative Android／iOSではなく、同じWeb TestをMobile Web Projectで確認するものです。ReceiptのCase、実装Path、Evidenceを確認し、Desktopと異なる表示・操作上の観察があればWorkbookへ記録します。Browserや対象Applicationを利用できない場合は、実行結果を作ったことにせず、P1-6の`BLOCKED`／`Not run`の記録方法へ進みます。
+
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-3で設計した複数のTest Case、特に自分が作成した`TC-CART-101`などを代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool、P1-4で確認したAction／Locator／Assertionの基礎、既存`resetScenario`。実装前にCase ID、Reset方法、代表specの保存先を準備する |
+| Activity | CaseをTraining specへ実装し、各Testの開始時に明示的なSeed ScenarioへResetする。正常、境界／異常、状態変化、Desktop、受講者が作成したMobile Web exerciseを必要な範囲で実行する |
+| Observation | Reset後のScenario、画面上の状態変化、期待結果と実際の結果、Desktop／Mobileの差、Trace／Screenshot／Video／Reportの生成、WorkbookのCaseとコードの対応 |
+| Output | 受講者が作成したTraining spec、対応するWorkbookの`implementation_path`、実行ごとのReceipt／Evidence参照、Desktop／Mobileで観察した差分。各Test Case IDはWorkbookの`implementation_path`、テストタイトル、注釈、または既存metadataのいずれかでコードと実行結果へ追跡できるようにする。編集場所は自由で、評価時はRepository相対Pathを保って`handoff-root/code/`と各rootへ集約する |
+| Self-check | P1-3のCaseとコードの条件・期待結果が対応し、Reset、正常・境界／異常、状態変化、Desktop、Learner-authored Mobileの各観点を必要な理由とともに説明する。意味の妥当性は自動判定へ委ねない |
+| Completion | Workbookで`Automate`／`Web E2E`／`Playwright`として選んだ受講者CaseをTraining境界へ実装し、各Caseについて明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。固定件数を完了条件にせず、`TC-CART-101`はこの経路の縦断確認Caseとして必須にする。実装したCaseではRepository相対`implementation_path`を記録する。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
+| Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
+| Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
+
+### Caseの分類と実行範囲
+
+`Automate`を選んだCaseがすべてWeb E2Eになるわけではありません。P1-3で記録した値が次の3つに一致するCaseだけを、Playwright Learner Caseとして扱います。
+
+```text
+automation_decision = Automate
+test_layer = Web E2E
+tool = Playwright
+```
+
+`Automate / Unit / Vitest`などの非UI Layerは、Layerを選んだ理由と保証範囲をWorkbookへ記録しますが、このLessonではPlaywright code、`resetScenario`、Desktop／Mobile Web実行を要求しません。`Later`と`Do not automate`はimplementation pathを持たず、今は自動化しない理由と将来の再判断条件を残します。P1-4の導入練習用`TC-PRODUCT-001`、配布sampleの`TC-CART-001`／`TC-CART-002`は正式なLearner Caseへ流用しません。
+
+実行範囲は、DesktopではすべてのPlaywright Learner Caseを成功させ、Mobile Webではそのうち1件以上を成功させます。Mobileで全Caseを繰り返すことはCommonの条件ではありません。Unit／Integration等の実装自体をCommonの必須条件へ追加せず、P1-3の設計判断として説明します。
 
 ## Lesson 1: テスト設計からコードへ落とす
 
@@ -208,16 +254,16 @@ Baseline確認とは別に、受講者が作成したExerciseをMobile Project�
 
 ## ハンズオン1: Cart Regression
 
-スプレッドシートのCart Test Caseから、共通課程の中核として次の代表条件を実装します。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
+P1-3で作成した複数のCart Test Caseから、共通課程の中核として代表条件を実装します。`TC-CART-101`はP1-2からP1-6へ渡す縦断Caseの1つであり、これだけで全ての観点を満たしたことにはしません。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
 
 必須:
 
 - 正常追加
-- 購入上限の境界値（`TC-CART-001`）
-- 購入不可明細からのCheckout阻止（`TC-CART-002`）
+- 購入上限または別の対象Riskの境界値（受講者のCase ID。`TC-CART-101`を代表例にする）
+- 購入不可明細からのCheckout阻止など、別のRiskを表すCase
 - 削除または数量変更
 
-在庫切れ（`out-of-stock`）を追加練習にする場合は、Workbookの`TC-CART-002`を流用せず、別のTest Case IDで記録します。
+在庫切れ（`out-of-stock`）を追加練習にする場合も、Workbookの`TC-CART-001`／`TC-CART-002`は配布sampleとして扱い、完成Caseとして流用しません。受講者自身のCaseには`TC-CART-101`、`TC-CART-102`など別のTest Case IDを付け、コードと実行結果をそのIDへ対応付けます。
 
 各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
 

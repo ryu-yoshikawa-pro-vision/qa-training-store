@@ -62,6 +62,19 @@ Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Envi
 
 Training baselineは、環境と実行経路を確認するための開始点です。P2-6の選択課程の修了条件には、baselineの再実行ではなく、受講者が作成したNative exercise diff、Training Native CIで取得したMaestro exerciseの成功Artifact、Trigger / Failure stage / Artifact / CostのCI設計判断を使います。Failure時のArtifactはdiagnosis用であり、exercise stepのfailureやexercise JUnitを欠くArtifactだけでは成功実行の記録にはなりません。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-5までの共通課程、必要ならP1-7のNative Flow、P2-5のCI設計、準備済みTraining Copy、Android／Emulator／Maestro実行環境。P2-6を選択しない受講者はこのInputを準備せずP2-7へ進む |
+| Activity | Build、Emulator、Install、Maestro exercise、JUnit／Screenshot／logcat／Artifactの順を確認し、Web CIとのCost・Flakiness・Failure stageを比較する |
+| Observation | BuildとRuntimeの境界、baselineと受講者exercise、Trigger、Artifact受け渡し、iOS Build-only、同一attemptの成果、失敗時の診断記録 |
+| Output | Native exercise diff、Run／Job／Artifact参照、Trigger／Failure stage／Costの判断、P2-7へ渡すNative選択課程の記録。編集場所は自由で、self-checkは`handoff-root/self-check/P2-06.md`へ残す |
+| Self-check | WebとNativeのCI要件、Build／Runtime、成功Artifactとdiagnostic Artifact、Android EmulatorとWindows Physical Device、iOS Build-onlyの違いを説明する |
+| Completion | 選択課程として受講者Native exerciseと同一attemptの成功Artifactを確認できる。baseline／stock PASSだけでは完了としない。P2-6を選択しないCommonはこの成果物なしで進める |
+| Recovery | Toolchain／Emulator／ADB／Maestro／権限問題は環境として分ける。FlowやCI設計の理解不足はP1-7／P2-5へ戻り、iOS Runtimeを成功条件へ追加しない |
+| Handoff | P2-7へNativeを選択した場合だけ、Flow diff、Run／Job／Artifact、Failure stage、Cost判断を渡す。CommonではP2-5のWeb CI証跡を受け取る |
+
 ## Lesson 1: Native CIがWeb CIより重い理由
 
 PlaywrightのBrowser実行と比べ、Native CIでは追加で次が必要になります。

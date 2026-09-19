@@ -1,12 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import path, { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
 import { resolveTrainingAndroidSerial } from "../../scripts/training/serial-resolution";
-import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
+import {
+  TRAINING_WEB_CI_EXERCISE_COMMAND,
+  validateTrainingWorkflow,
+} from "../../scripts/training/workflow-contract";
 
 const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
@@ -20,28 +23,276 @@ describe("Training curriculum contracts", () => {
     expect(summary.trainingProjects).toEqual(["training-chromium", "training-mobile-chromium"]);
   });
 
-  it("allows learner-authored Playwright assertions in the editable starter", () => {
+  it("exposes the self-study contract in every canonical lesson", () => {
+    const lessons = [
+      ["P1-01", "part1/01_test-automation-foundations.md"],
+      ["P1-02", "part1/02_scenario-shop-analysis.md"],
+      ["P1-03", "part1/03_test-design-and-automation-selection.md"],
+      ["P1-04", "part1/04_playwright-foundations.md"],
+      ["P1-05", "part1/05_playwright-e2e-practice.md"],
+      ["P1-06", "part1/06_execution-and-failure-analysis.md"],
+      ["P1-07", "part1/07_maestro-native-automation.md"],
+      ["P1-08", "part1/08_test-management-and-maintainability.md"],
+      ["P1-09", "part1/09_part1-capstone.md"],
+      ["P2-01", "part2/01_software-development-process.md"],
+      ["P2-02", "part2/02_git-version-control.md"],
+      ["P2-03", "part2/03_github-pull-request-review.md"],
+      ["P2-04", "part2/04_ci-github-actions.md"],
+      ["P2-05", "part2/05_playwright-ci.md"],
+      ["P2-06", "part2/06_native-ci-maestro.md"],
+      ["P2-07", "part2/07_ci-cd-quality-gates.md"],
+      ["P2-08", "part2/08_integration-design-capstone.md"],
+    ] as const;
+    const requiredLabels = [
+      "Input",
+      "Activity",
+      "Observation",
+      "Output",
+      "Self-check",
+      "Completion",
+      "Recovery",
+      "Handoff",
+    ];
+    for (const [, relativePath] of lessons) {
+      const lesson = readFileSync(
+        resolve(process.cwd(), "docs/curriculum/test-automation", relativePath),
+        "utf8",
+      );
+      expect(lesson).toContain("## このLessonのInput / Output");
+      for (const label of requiredLabels) expect(lesson).toContain(`| ${label} |`);
+    }
+  });
+
+  it("keeps the learner-facing contracts for risk, diagnostics, maintenance, and GitHub", () => {
+    const root = process.cwd();
+    const readLesson = (relativePath: string) =>
+      readFileSync(resolve(root, "docs/curriculum/test-automation", relativePath), "utf8");
+    const riskLesson = readLesson("part1/02_scenario-shop-analysis.md");
+    const designLesson = readLesson("part1/03_test-design-and-automation-selection.md");
+    const foundationsLesson = readLesson("part1/04_playwright-foundations.md");
+    const practiceLesson = readLesson("part1/05_playwright-e2e-practice.md");
+    const failureLesson = readLesson("part1/06_execution-and-failure-analysis.md");
+    const maintenanceLesson = readLesson("part1/08_test-management-and-maintainability.md");
+    const githubLesson = readLesson("part2/03_github-pull-request-review.md");
+    const actionsLesson = readLesson("part2/04_ci-github-actions.md");
+    const playwrightCiLesson = readLesson("part2/05_playwright-ci.md");
+    const capstoneLesson = readLesson("part2/08_integration-design-capstone.md");
+
+    expect(riskLesson).toContain("Riskは「何かが起きるかもしれない」という不確実さ");
+    for (const term of ["Impact", "Likelihood", "Priority", "購入上限を超えたCartが成立する"]) {
+      expect(riskLesson).toContain(term);
+    }
+    expect(riskLesson).toContain("機械的に掛け合わせて答えを出すことが目的ではなく");
+    expect(riskLesson).toContain("判断理由は分析メモまたはSelf-checkへ残す");
+    expect(riskLesson).not.toContain(
+      "Risk行には`impact`、`likelihood`、`priority`とそれぞれの判断理由を残す",
+    );
+    expect(designLesson).toContain("Impact、Likelihood、Priorityは、Caseを作るときの判断材料です");
+    expect(designLesson).toContain("02_test-cases.csv");
+    expect(designLesson).toContain("03_automation-mapping.csv");
+    expect(designLesson).toContain("04_execution-improvement.csv");
+
+    expect(foundationsLesson).toContain("このLessonで読む範囲");
+    expect(foundationsLesson).toContain("TC-PRODUCT-001");
+    expect(foundationsLesson).toContain("product-basic-shirt");
+    expect(foundationsLesson).toContain("ベーシックTシャツ");
+    expect(foundationsLesson).toContain("Seedカタログ");
+    expect(foundationsLesson).toContain("このLessonだけで始められる導入Case");
+    expect(foundationsLesson).toContain("Common CompletionのCaseへ流用しません");
+    expect(foundationsLesson).toContain("test(...)");
+    expect(foundationsLesson).toContain("Scenario Resetの呼び出し");
+    expect(foundationsLesson).toContain("page.evaluate");
+    expect(foundationsLesson).toContain("この段階では、上記の構文を一語ずつ説明できなくても");
+
+    expect(practiceLesson).toContain("配布sampleとして扱い");
+    expect(practiceLesson).toContain("TC-CART-001");
+    expect(practiceLesson).toContain("`TC-CART-101`");
+    expect(practiceLesson).toContain("`TC-CART-102`");
+    expect(practiceLesson).toContain("--project training-mobile-chromium");
+    expect(practiceLesson).toContain("--run-context mobile-exercise");
+    expect(practiceLesson).toContain("automation_decision = Automate");
+    expect(practiceLesson).toContain("test_layer = Web E2E");
+    expect(practiceLesson).toContain("tool = Playwright");
+    expect(practiceLesson).toContain("そのうち1件以上");
+    expect(practiceLesson).toContain("Automate / Unit / Vitest");
+    expect(practiceLesson).toContain("固定件数を完了条件にせず");
+    expect(practiceLesson).not.toContain("少なくとも2件の受講者自身");
+    expect(practiceLesson).not.toContain("配布sampleのIDを使う場合でも");
+
+    for (const term of [
+      "通常Exerciseで使う固定入口",
+      "--suite exercise",
+      "--run-context diagnostic-initial",
+      "--run-context diagnostic-repaired",
+      "BLOCKED",
+      "Error Message",
+      "Screenshot",
+      "Video",
+      "Trace",
+      "HTML Report",
+      "別Receipt・別Evidence",
+    ]) {
+      expect(failureLesson).toContain(term);
+    }
+    expect(failureLesson).toContain(
+      "Receiptの内部Schemaや全引数を理解することは学習目標ではありません",
+    );
+    expect(failureLesson).toContain("<handoff-root>/code/training/playwright/exercises/");
+    expect(failureLesson).toContain("--root <exercise-copy>");
+    expect(failureLesson).toContain("Runnerが読むローカルのコード実行root");
+    expect(failureLesson).toContain("Canonical Helperは受講者成果物ではない");
+    expect(failureLesson).not.toContain(
+      "reset-scenario.ts（P1-5と同じCanonical Helperを必ず置く）",
+    );
+
+    expect(maintenanceLesson).toContain("決定的なC10演習");
+    expect(maintenanceLesson).toContain("c10-improved");
+    expect(maintenanceLesson).toContain("c10-before");
+    expect(maintenanceLesson).toContain("01_target-risk.csv");
+    expect(maintenanceLesson).toContain("<handoff-root>/code/training/playwright/exercises/");
+    expect(maintenanceLesson).toContain("reset-scenario.ts");
+    expect(maintenanceLesson).toContain("新しい製品Riskを追加する理由にはしません");
+    expect(maintenanceLesson).toContain("Improvement Target");
+    expect(maintenanceLesson).toContain("TC-CART-900");
+    expect(maintenanceLesson).toContain("受講者が計算・転記せず");
+    expect(maintenanceLesson).not.toContain("RISK-CART-103");
+    expect(maintenanceLesson).not.toContain("c10-cart-101.spec.ts");
+    expect(maintenanceLesson).not.toContain("提供素材のTest titleは`TC-CART-101`");
+    expect(maintenanceLesson).toContain("e2e/web/fixtures.ts");
+    const maintenanceExercise = readFileSync(
+      resolve(root, "training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts"),
+      "utf8",
+    );
+    const repeatedLocator = 'page.getByRole("heading", { name: "すべての商品" })';
+    expect(maintenanceExercise.split(repeatedLocator).length - 1).toBe(2);
+    expect(maintenanceExercise).toContain("repeats the same Locator");
+    expect(maintenanceExercise).toContain("TC-CART-900");
+    expect(maintenanceExercise).not.toContain("const productsHeading");
+
+    for (const term of [
+      "git remote -v",
+      "git branch --show-current",
+      "git push -u <writable-remote> <branch>",
+      "Base",
+      "Compare / Head",
+      "Files changed",
+      "Checks",
+      "Review",
+      "New pull request",
+      "Submit review",
+    ]) {
+      expect(githubLesson).toContain(term);
+    }
+    expect(githubLesson).toContain("`Reason:`");
+    expect(actionsLesson).toContain(
+      "Localで実行していたTest CommandとCI Stepを対応付けて説明できる",
+    );
+    expect(actionsLesson).toContain("main／scheduleはProduction比較の参考情報");
+    for (const term of [
+      "環境配布カード",
+      "Training Copy URL:",
+      "Writable remote:",
+      "Actions enabled:",
+    ]) {
+      expect(actionsLesson).toContain(term);
+    }
+    for (const term of [
+      "Localの`handoff-root/`",
+      "CI Runner上の`.`",
+      "GitHub Actions Artifact",
+      "自動的に昇格しない",
+      "training-web-<run_id>-<run_attempt>",
+      "Artifact: <Artifact name>",
+      "output/training/playwright",
+      "PR → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts",
+      "mode = expected-failure",
+      "Run workflow",
+      "原因を説明",
+    ]) {
+      expect(playwrightCiLesson).toContain(term);
+    }
+    const syncHandoffCommand =
+      "pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>";
+    expect(playwrightCiLesson).toContain(syncHandoffCommand);
+    expect(playwrightCiLesson).toContain("git status");
+    expect(playwrightCiLesson).toContain("git rev-parse HEAD");
+    for (const term of [
+      "Learner-ownedな`training/playwright/` codeだけ",
+      "Workbook、Receipt、Evidence、self-check、Workflow、Product Code",
+      "削除したLearner fileはHandoffからも削除",
+      "renameは旧Pathの削除と新Pathの追加",
+    ]) {
+      expect(playwrightCiLesson).toContain(term);
+    }
+    expect(capstoneLesson).toContain("共通シナリオ:");
+    expect(capstoneLesson).toContain("これはCommonの必須条件ではない");
+    expect(capstoneLesson).toContain("最終成果物の照合");
+    expect(capstoneLesson).toContain("Training Copy上のRun、Check、Artifact");
+    expect(capstoneLesson).toContain("handoff-root/self-check/P2-08.md");
+    expect(capstoneLesson).toContain("training:completion:check -- --mode part2 --root");
+    expect(capstoneLesson).toContain("ci.github_run_id");
+    expect(capstoneLesson).toContain("semantic_understanding");
+    expect(capstoneLesson).toContain(syncHandoffCommand);
+    expect(capstoneLesson).toContain("Training Copy上でCIが実際に評価したLearner code");
+    const syncIndex = capstoneLesson.indexOf(syncHandoffCommand);
+    const receiptIndex = capstoneLesson.indexOf(
+      "CI Execution Receiptを`<handoff-root>/receipts/`へ戻し",
+    );
+    const completionIndex = capstoneLesson.indexOf(
+      "training:completion:check -- --mode part2 --root",
+    );
+    expect(syncIndex).toBeGreaterThan(-1);
+    expect(receiptIndex).toBeGreaterThan(syncIndex);
+    expect(completionIndex).toBeGreaterThan(receiptIndex);
+    expect(readLesson("part1/09_part1-capstone.md")).toContain(
+      "training:completion:check -- --mode common --root",
+    );
+    expect(capstoneLesson).not.toContain(
+      "WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。",
+    );
+  });
+
+  it("keeps the Windows root boundary contract for all training path guards", () => {
+    const root = "C:\\handoff";
+    const within = (candidate: string): boolean => {
+      const relative = path.win32.relative(root, candidate);
+      return (
+        relative === "" ||
+        (relative !== ".." &&
+          !relative.startsWith(`..${path.win32.sep}`) &&
+          !path.win32.isAbsolute(relative))
+      );
+    };
+
+    expect(within(root)).toBe(true);
+    expect(within("C:\\handoff\\code\\case.spec.ts")).toBe(true);
+    expect(within("C:\\outside\\case.spec.ts")).toBe(false);
+    expect(within("C:\\handoff-sibling\\case.spec.ts")).toBe(false);
+    const differentDrive = path.win32.relative(root, "D:\\outside\\case.spec.ts");
+    expect(path.win32.isAbsolute(differentDrive)).toBe(true);
+    expect(within("D:\\outside\\case.spec.ts")).toBe(false);
+
+    for (const relativePath of [
+      "scripts/training/run-playwright-with-receipt.ts",
+      "scripts/training/materialize-training-handoff.ts",
+      "scripts/training/check-completion.ts",
+      "scripts/training/restore-diagnostic-exercise.ts",
+    ]) {
+      const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
+      expect(source).toContain("!path.isAbsolute(relative)");
+    }
+  });
+
+  it("keeps the distributed starter as an uncompleted scaffold", () => {
     const starterPath = resolve(
       process.cwd(),
       "training/playwright/exercises/training-exercise-starter.spec.ts",
     );
     const source = readFileSync(starterPath, "utf8");
-    try {
-      const learnerEdited = source
-        .replace(
-          'import { test } from "@playwright/test";',
-          'import { expect, test } from "@playwright/test";',
-        )
-        .replace('  await resetScenario(page, "default");\n', "")
-        .replace(
-          "  // Learners add the Workbook condition, meaningful Locator, and Assertion here.",
-          '  await expect(page.getByRole("heading", { name: "商品一覧" }).first()).toBeVisible();',
-        );
-      writeFileSync(starterPath, learnerEdited, "utf8");
-      expect(() => validateCurriculum(process.cwd())).not.toThrow();
-    } finally {
-      writeFileSync(starterPath, source, "utf8");
-    }
+    expect(source).toContain('import { test } from "@playwright/test";');
+    expect(source).not.toMatch(/\bexpect\s*\(/);
+    expect(source).toContain('resetScenario(page, "default")');
+    expect(() => validateCurriculum(process.cwd())).not.toThrow();
   });
 
   it("keeps the Common competency and Native specialization contract", () => {
@@ -109,6 +360,10 @@ describe("Training curriculum contracts", () => {
       resolve(process.cwd(), "training/github-actions/training-ci.yml"),
       "utf8",
     );
+    const trainingWorkflowReadme = readFileSync(
+      resolve(process.cwd(), "training/github-actions/README.md"),
+      "utf8",
+    );
     const phaseOneWorkflow = readFileSync(
       resolve(process.cwd(), ".github/workflows/ci.yml"),
       "utf8",
@@ -125,12 +380,27 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain("PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082");
     expect(trainingWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
     expect(trainingWorkflow).toContain("pnpm run training:web:baseline");
-    expect(trainingWorkflow).toContain("pnpm run training:web:exercise");
+    expect(trainingWorkflow).toContain(TRAINING_WEB_CI_EXERCISE_COMMAND);
+    expect(trainingWorkflow).not.toContain("run: pnpm run training:web:exercise\n");
+    expect(trainingWorkflow).toContain("pnpm run training:web:exercise:with-receipt");
     expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
+    expect(trainingWorkflowReadme).toContain("training-web-<run_id>-<run_attempt>");
+    expect(trainingWorkflowReadme).toContain("<handoff-root>/receipts/");
+    expect(phaseOneWorkflow).toContain("training-runtime");
+    expect(packageManifest.scripts["test:contracts"]).toContain(
+      "--exclude tests/contracts/training-runtime-integration.test.ts",
+    );
+    expect(trainingWorkflowReadme).toContain("output/training/playwright");
+    expect(trainingWorkflowReadme).toContain("receipts");
+    expect(trainingWorkflowReadme).toContain("evidence");
+    expect(trainingWorkflowReadme).toContain("Receiptが参照する同じ相対Pathの`evidence/`");
+    expect(trainingWorkflowReadme).toContain("workflow_dispatch");
+    expect(trainingWorkflowReadme).toContain("mode = expected-failure");
+    expect(trainingWorkflowReadme).not.toContain("講師が明示する");
     expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
     expect(trainingWorkflow).not.toContain("e2e/web/");
     const baselineStep = trainingWorkflow.indexOf("run: pnpm run training:web:baseline");
-    const exerciseStep = trainingWorkflow.indexOf("run: pnpm run training:web:exercise");
+    const exerciseStep = trainingWorkflow.indexOf(`run: ${TRAINING_WEB_CI_EXERCISE_COMMAND}`);
     expect(exerciseStep).toBeGreaterThan(baselineStep);
     expect(trainingWorkflow).toContain("if: github.event_name == 'pull_request'");
     expect(phaseOneWorkflow).toContain(
@@ -147,10 +417,10 @@ describe("Training curriculum contracts", () => {
       "utf8",
     );
     const exerciseCondition =
-      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:exercise";
+      "        if: github.event_name == 'pull_request'\n        run: pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise";
     const exerciseWithoutCondition = trainingWorkflow.replace(
       exerciseCondition,
-      "        run: pnpm run training:web:exercise",
+      "        run: pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise",
     );
     expect(() => validateTrainingWorkflow("training-ci.yml", trainingWorkflow)).not.toThrow();
     expect(() => validateTrainingWorkflow("training-ci.yml", exerciseWithoutCondition)).toThrow(
@@ -164,6 +434,30 @@ describe("Training curriculum contracts", () => {
     expect(() => validateTrainingWorkflow("training-ci.yml", movedCondition)).toThrow(
       /exercise step must set/,
     );
+  });
+
+  it("keeps Expected Failure as a self-directed GitHub Actions Artifact lesson", () => {
+    const root = process.cwd();
+    const workflow = readFileSync(resolve(root, "training/github-actions/training-ci.yml"), "utf8");
+    const lesson = readFileSync(
+      resolve(root, "docs/curriculum/test-automation/part2/05_playwright-ci.md"),
+      "utf8",
+    );
+    const readme = readFileSync(resolve(root, "training/github-actions/README.md"), "utf8");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("- expected-failure");
+    expect(workflow).toContain(
+      "if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'",
+    );
+    expect(workflow).toContain("run: pnpm run training:web:check-expected-failure");
+    expect(workflow).toContain("if: always()");
+    expect(workflow).toContain("output/training/playwright");
+    expect(lesson).toContain("Run workflow");
+    expect(lesson).toContain("mode = expected-failure");
+    expect(lesson).toContain("training-web-<run_id>-<run_attempt>");
+    expect(lesson).toContain("Trace / Screenshot / Video / HTML Report");
+    expect(readme).toContain("受講者が`workflow_dispatch`で選択するexpected-failure entry");
+    expect(readme).not.toContain("講師が明示する");
   });
 
   it("accepts the current Training workflow templates through the structural boundary", () => {
