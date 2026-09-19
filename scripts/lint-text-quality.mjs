@@ -19,6 +19,8 @@ export const TEXTLINT_RULE_IDS = Object.freeze([
   "no-nfd",
   "no-kangxi-radicals",
   "no-hankaku-kana",
+  "no-doubled-conjunctive-particle-ga",
+  "no-dropping-the-ra",
 ]);
 
 const textlintLinterPromises = new Map();

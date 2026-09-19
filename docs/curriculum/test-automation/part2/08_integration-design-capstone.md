@@ -30,21 +30,66 @@ standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runti
 
 まず「CIがまだ存在しないScenario Shop」という前提で自分の設計を作り、その後で現在の実装と比較します。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-1〜P2-7のプロセス図、Git／PR記録、Training Copy上のWeb CI Run／Check／Artifact、Part 1のCase／コード／Failure分析、必要ならNative選択課程の別記録 |
+| Activity | Scenario Shopの対象範囲を決め、Trigger、Build、Playwright、Quality Gate、Artifact、Failure時の戻り先を設計した後、現在のWorkflow・仕様・Contract Testと比較する |
+| Observation | どのRiskをどのLayer／Triggerで守るか、受講者CaseとCIの対応、最小権限、Artifactの追跡、Common／Native／CDの境界、設計と現行実装の差 |
+| Output | `handoff-root/self-check/P2-08.md`へ対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failure対応表、Run／Check／Artifact参照、最終self-checkを記録する。Mermaid等の図や補足Evidenceが必要なら既存`handoff-root/evidence/`へ置き、P2-08.mdから参照する。Part 1／2の成果物を固定`handoff-root/`へ集約する |
+| Self-check | 「何を、いつ、どこで、どの条件で実行し、Failure時に何を見るか」をCase／Risk／Workflow／Evidenceを指して説明する。GitHub外部状態をAPIなしで証明したとは書かない |
+| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。C09はinitial Failure→同じ対象のrepaired Pass、C10は実在または決定的教材演習の改善→別run、C11はBranch／Commit／Diff／Pull Request／Review記録、C12はRun／Check／Artifact確認をそれぞれ満たす。Native／iOS Runtimeは必須にしない |
+| Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
+| Handoff | `handoff-root/self-check/P2-08.md`を最終設計とSelf-checkの正本として渡し、固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと結び付ける。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
+
+## 修了確認とCI成果物の取り込み
+
+P2-8では、P2-5で確認したCI成果物を固定`<handoff-root>`へ戻し、その後に受講者向け修了確認を実行します。Training Copy上でCIが実際に評価したLearner codeと、固定Handoffの`code/`を一致させることが先です。正式な処理順は次のとおりです。
+
+1. Training Copyで`git status --short --branch`と`git rev-parse HEAD`を実行し、今回確認したPR／Runの`submission_sha`に対応する提出Commitであることを確認する。
+2. 次の既存commandで、Training CopyのLearner codeを固定Handoffへ同期する。
+
+   ```bash
+   pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>
+   ```
+
+3. Run Summaryで対象Run／Attemptを確認し、`training-web-<run_id>-<run_attempt>`をダウンロード・展開する。
+4. CI Execution Receiptを`<handoff-root>/receipts/`へ戻し、Receiptが参照する同じRunのEvidenceを固定Handoffへ戻す。
+5. GitHub画面で確認したRun／Check／Artifact／Case／結果を、人間可読Evidenceとして追加する。
+6. Workbook、Learner code、self-checkを確認する。
+7. 固定Handoffを`training:completion:check --mode part2`へ渡す。
+
+`--root`はPart 1から継続している固定Handoff root、`--source`はPart 2で実際に編集・commitしたTraining CopyのローカルDirectoryです。同期対象はLearner-ownedな`training/playwright/` codeだけで、Workbook、Receipt、Evidence、self-check、Workflow、Product Code、Formal Regression、provided code、Canonical `reset-scenario.ts`は対象外です。Training Copyで削除したLearner fileはHandoffからも削除され、renameは旧Path削除＋新Path追加として反映されます。CI後に未commit変更を加えた状態で同期せず、Receiptが評価したCommitと`git rev-parse HEAD`の`submission_sha`が一致することを確認してください。
+
+CI Artifactは自動的にLocalへ戻らないため、展開物の`receipts/`から選択したCI Execution Receiptを、同じ相対位置の`<handoff-root>/receipts/`へコピーします。Local ReceiptをCI Receiptで上書きしたり、Receiptを手入力で作ったりしません。
+
+CI Receiptの`run`にある`ci.github_run_id`、`ci.github_run_attempt`、`ci.artifact_name`、`ci.workflow`、`ci.job`、`ci_sha`、`submission_sha`、`training_copy_source_sha`、`execution_sha`が、確認したRun／提出Commit／Training Copy／実行結果と一致するかを確認します。Receiptの`cases[].evidence`が参照するArtifact内の`evidence/`（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）は、Receiptと同じRunのものを同じ相対Pathで`<handoff-root>/evidence/`へ戻します。GitHub画面で確認したRun、Check、Artifact、対象Case、結果は、そこへ別の人間可読Evidenceとして追加します。`04_execution-improvement.csv`では既存の`ci-exercise`など認識済みのCI Contextを使い、ReceiptのCase結果、Evidence、Failure分類を対応付けます。
+
+上の順序で成果物を確認した後、そろえた固定rootを次のコマンドへ渡します。
+
+```bash
+pnpm run training:completion:check -- --mode part2 --root <handoff-root>
+```
+
+`completion-receipt.json`の`status`、`missing_requirements`、`reasons`、`checked_outputs`、`semantic_understanding`を読み、`PASS`が意味の理解を自動採点した結果ではないことを確認します。Part 2の完了は、`PASS`、self-check、公開されている最低限の評価基準、CI Run／Check／Artifactを自分で確認したEvidenceのすべてで判定します。正式な書き込み可能Training CopyまたはGitHub実行環境がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録し、ローカルReceiptやForkの結果をCI完了へ読み替えません。
+
 ## 演習シナリオ
 
 次の状態を想定します。
 
-> Scenario ShopではWebとNativeの機能開発が進んでいる。
+> 共通シナリオ: Scenario ShopのWeb自動テストはローカルでは実行できるが、Merge前に継続実行される保証がない。
 >
-> Unit / Integration / Component Test、Playwright、Maestroのテストはローカルで実行できる。
+> Unit / Integration / Component / Playwrightの確認はローカルで実行でき、開発者はGitとPull Requestで変更を管理している。
 >
-> 開発者はGitとPull Requestを使って変更を管理している。
+> この共通シナリオでは、対象範囲を限定したWeb CIについて、何をいつ実行し、どのQuality GateとArtifactでFailureを調べるかを設計する。
 >
-> しかし、自動テストの実行は担当者が必要に応じて手動で行っており、Merge前に必ず実行される保証はない。
+> Nativeを選択する受講者は、別の選択課程としてAndroid / iOSの保証を追加検討できる。これはCommonの必須条件ではない。
 >
-> WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。
 
-この状態からCI/CD設計を作成します。
+この状態から、まず共通課程のWeb CI設計を作成します。
+
+Phase 1〜4、Phase 6のWeb項目、Phase 7の共通Web項目がCommonの必須範囲です。Phase 5のNative項目、Phase 6のNative／Deploy項目、Phase 7のNative／Preview／Production項目は、見出しまたは表に`Native選択時`／`発展課題`と記載された追加範囲です。Commonだけで進む受講者は、追加範囲を設計せず「未選択」と記録して次へ進みます。
 
 ## Phase 1: 現状把握
 
@@ -68,8 +113,8 @@ Repositoryを確認し、次を一覧化します。
 
 - Web Automation Build
 - Web Production Build
-- Android Build（モバイルアプリ自動化の選択課程）
-- iOS `iphonesimulator` Build Artifact（モバイルアプリ自動化の選択課程）
+- Android Build（Native選択時）
+- iOS `iphonesimulator` Build Artifact（Native選択時）
 
 ### Deploy（発展課題・参考資料）
 
@@ -83,21 +128,21 @@ Repositoryを確認し、次を一覧化します。
 - Video
 - HTML Report
 - JUnit
-- Maestro Artifact（モバイルアプリ自動化の選択課程）
-- Native Log（モバイルアプリ自動化の選択課程）
+- Maestro Artifact（Native選択時）
+- Native Log（Native選択時）
 
 この段階では現在のWorkflow Job構成をコピーしません。
 
 ## Phase 2: Riskを整理する
 
-最低限次を考えます。
+共通Webでは最低限次を考えます。
 
 - PR Merge前に絶対検出したいFailureは何か。
 - mainへ統合された後に確認すればよいものは何か。
 - Nightlyで十分なものは何か。
-- 高コストなNative Testをどの頻度で回すか。
-- Deploy Failureをどう検出するか。
 - FlakyなTestを必須にしてよいか。
+
+Nativeを選択する場合だけ、高コストなNative Testをどの頻度で回すかを追加します。Deployを発展課題として扱う場合だけ、Deploy Failureをどう検出するかを追加します。これらをCommon Webの回答へ混ぜません。
 
 ## Phase 3: Test Suiteを分類する
 
@@ -184,12 +229,12 @@ Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を�
 | Lint | GitHub Actions Log |
 | Playwright Assertion | Trace / Screenshot |
 | Browser起動 | Setup Log |
-| Gradle Build | Gradle Log |
-| APK Install | adb / Runtime Log |
-| Maestro Assertion | JUnit / Screenshot |
-| iOS Build | Xcode Build Log / Build Artifact |
-| Deploy | Deploy Log / URL |
-| Deploy後Smoke | Playwrightの実行記録 |
+| Gradle Build（Native選択時） | Gradle Log |
+| APK Install（Native選択時） | adb / Runtime Log |
+| Maestro Assertion（Native選択時） | JUnit / Screenshot |
+| iOS Build（Native選択時） | Xcode Build Log / Build Artifact |
+| Deploy（発展課題） | Deploy Log / URL |
+| Deploy後Smoke（発展課題） | Playwrightの実行記録 |
 
 「失敗したら担当者が頑張って調べる」ではなく、調査可能な実行記録を設計へ含めます。
 
@@ -324,6 +369,19 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - 必要最小限の対象範囲を限定したWeb CI Diagram
 - 最終設計判断と理由
 - P2-5で受講者が作成したPlaywright TestをTraining Copy Pull Requestで成功させたrun結果 / Artifact
+
+### 最終成果物の照合
+
+外部へのレポート提出はCommonの修了条件にしません。ただし、準備済みTraining Copy上で作成したPRのCI実行証跡は、Part 2の正式な学習成果です。完了前に次の対応を一つずつ照合します。
+
+| 習熟項目 | 最終確認する対応関係 |
+| --- | --- |
+| C09 | 同じCase／コードPathの`diagnostic-initial` Failure → `diagnostic-repaired` Pass、別Receipt／別Evidence |
+| C10 | 同じCase／コードPathの`c10-before` Pass → `c10-improved` Pass、別Evidence、Digest変更 |
+| C11 | Branch、Commit、Diff、Training Copy上のPull Request、Review記録 |
+| C12 | Training Copy上のRun、Check、Artifact、画面確認に基づく人間可読Evidence |
+
+ローカルの`handoff-root`だけでC12のRun／Check／Artifactを作ったことにはしません。Training Copyまたは必要なGitHub権限がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録します。
 
 ### 練習・参考資料
 

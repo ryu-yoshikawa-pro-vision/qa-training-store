@@ -22,8 +22,14 @@ ADR作成時点の2026-09-13にはIssue #135が未完了だったため、compac
 7. configured `UserPromptSubmit` launcherは、Unix／Windowsともroot、Node、Hook file、Hook processのfailureを固定bounded structured `systemMessage` stdoutとexit 0へ収束させる。Hookが正常終了した場合は既存のstdout／stderr透過を維持し、failure時のraw stdout／stderr、prompt、session ID、token、secret、absolute path、内部exceptionは出力しない。baseline生成の責務は引き続き`text_quality_gate.mjs`に置く。
 8. `stop_hook_active=true`のStopでsession stateが存在しない場合は、active Stopのfail-open契約に従い、再入可能な完了処理としてdiagnosticなしのstructured `{"continue":true}`を返す。stateが存在するが破損している場合、またはroot／session identity、schema、statusが不正な場合は、従来のdiagnosticとcleanup境界を維持する。
 
+## Issue #153による後続更新
+
+Issue #153の実装で、rule選定に関する現在仕様だけを次のとおり更新した。評価に使用した`textlint-rule-preset-japanese@10.0.4`はproductionへ残さず、`.textlintrc.json`では既存5個に`no-doubled-conjunctive-particle-ga`と`no-dropping-the-ra`を個別packageとして加えた7個を有効化する。`.codex/text-quality-rules.json`では、`Common Core`、`Completion contract`、`Common completion`、`bounded Level 2`の4個を明示的なRepository固有ruleとしてconfiguredにした。
+
+session baseline、fingerprint、rename mapping、`PostToolUse` / `Stop`、fail-open / fail-close、comparison tree、state schema、duplicate Stop allowの契約はこの後続更新でも維持する。
+
 ## Consequences
 
 - 既存logging Hookと文章品質Hookは別commandとして共存し、`PreToolUse/Bash`のmatcherや`--strict-harness`の責務は変更しない。
-- 一般日本語の明確な入力不正・誤記を検出する5個のtextlint ruleはproduction block対象であり、`no-unmatched-pair`は技術文書のinline code等の誤検知を理由に対象外とした。Repository固有custom literal／regex ruleは未設定である。主観的な自然さ、禁止語、表記辞書、AIによる意味評価はblock対象にしない。
+- 一般日本語の明確な入力不正・誤記を検出する7個のtextlint ruleはproduction block対象であり、`no-unmatched-pair`は技術文書のinline code等の誤検知を理由に対象外とした。Repository固有custom literal／regex ruleは4個をconfiguredにしている。主観的な自然さ、禁止語、表記辞書、AIによる意味評価はblock対象にしない。
 - comparison不能を空baselineへ落とさないため、削除と追加を安全に区別できない変更はRepository gateでは失敗し、HookではPlanのfail-open／fail-close境界に従う。

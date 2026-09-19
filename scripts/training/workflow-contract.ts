@@ -13,15 +13,32 @@ export const APPROVED_TRAINING_ACTIONS = new Set([
 
 export const APPROVED_TRAINING_RUNNERS = new Set(["ubuntu-24.04"]);
 
+export const TRAINING_WEB_EXERCISE_WITH_RECEIPT_COMMAND =
+  "pnpm run training:web:exercise:with-receipt";
+export const TRAINING_WEB_CI_EXERCISE_COMMAND =
+  "pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise";
+
 const REPOSITORY_TRAINING_COMMANDS = new Set([
   "pnpm run validate:curriculum",
   "pnpm run build:web",
   "pnpm run training:web:baseline",
   "pnpm run training:web:exercise",
+  TRAINING_WEB_EXERCISE_WITH_RECEIPT_COMMAND,
   "pnpm run training:web:check-expected-failure",
   "pnpm run training:native:baseline",
   "pnpm run training:native:exercise",
 ]);
+
+function isAllowedRepositoryCommand(command: string): boolean {
+  return REPOSITORY_TRAINING_COMMANDS.has(command) || isReceiptExerciseCommand(command);
+}
+
+function isReceiptExerciseCommand(command: string): boolean {
+  return (
+    command === TRAINING_WEB_EXERCISE_WITH_RECEIPT_COMMAND ||
+    command.startsWith(`${TRAINING_WEB_EXERCISE_WITH_RECEIPT_COMMAND} --`)
+  );
+}
 
 const ALLOWED_SETUP_COMMANDS = [
   /^pnpm install --frozen-lockfile --ignore-scripts$/,
@@ -105,7 +122,7 @@ function assertAllowedRun(workflowName: string, run: string): void {
     fail(workflowName, "remote script execution through a shell pipe is forbidden");
   }
   for (const command of commandCandidates(run)) {
-    if (REPOSITORY_TRAINING_COMMANDS.has(command)) continue;
+    if (isAllowedRepositoryCommand(command)) continue;
     if (ALLOWED_SETUP_COMMANDS.some((pattern) => pattern.test(command))) continue;
     if (/^pnpm exec\b/.test(command)) {
       fail(workflowName, `unapproved pnpm exec command: ${command}`);
@@ -138,12 +155,24 @@ function assertTrainingWebExerciseCondition(
 ): void {
   if (workflowName !== "training-ci.yml") return;
   if (exerciseSteps.length !== 1)
-    fail(workflowName, "training:web:exercise must have exactly one workflow step");
+    fail(
+      workflowName,
+      "the receipt-enabled Training Web exercise must have exactly one workflow step",
+    );
   const exerciseStep = exerciseSteps[0];
   if (exerciseStep?.if !== "github.event_name == 'pull_request'") {
     fail(
       workflowName,
-      "the training:web:exercise step must set if: github.event_name == 'pull_request'",
+      "the receipt-enabled Training Web exercise step must set if: github.event_name == 'pull_request'",
+    );
+  }
+  if (
+    typeof exerciseStep.run !== "string" ||
+    normalizeCommand(exerciseStep.run) !== TRAINING_WEB_CI_EXERCISE_COMMAND
+  ) {
+    fail(
+      workflowName,
+      `the receipt-enabled Training Web exercise step must use the exact command: ${TRAINING_WEB_CI_EXERCISE_COMMAND}`,
     );
   }
 }
@@ -190,7 +219,9 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
       if (step.run !== undefined) {
         if (typeof step.run !== "string") fail(workflowName, "step run must be a scalar string");
         assertAllowedRun(workflowName, step.run);
-        if (step.run === "pnpm run training:web:exercise") trainingWebExerciseSteps.push(step);
+        if (typeof step.run === "string" && isReceiptExerciseCommand(normalizeCommand(step.run))) {
+          trainingWebExerciseSteps.push(step);
+        }
       }
     }
   }

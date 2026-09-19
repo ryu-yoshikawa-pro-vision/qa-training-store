@@ -2,6 +2,43 @@
 
 このWorkbookは、Google SheetsへCSVをImportして使うCanonical Templateです。Google Sheetsの機能や書式は正本にせず、4つのCSVをRepository上の入力形式として扱います。
 
+## 学習時のInput / Outputと評価への引き渡し
+
+この4 CSVは、受講者が考えた内容を記録するための既存の正本形式です。RepositoryのCSVはsample／templateとして配布され、受講者の完成回答をあらかじめ入れません。受講者はGoogle Sheets、ローカルの表計算ソフト、テキストエディタなど任意の場所で編集できます。
+
+LessonでWorkbookを使うときは、本文に示された前の成果物、仕様・BR・AC、Risk、Test Case IDをInputとして準備します。P1-2では対象とRisk、P1-3ではTest Caseと自動化対象を作り、P1-4以降では対応するTest Caseをコードと実行結果へ結び付けます。Playwrightを実装する前にTest Caseが必要な場合は、`test_condition`、`precondition`、`expected_result`、Reset方法、対象のTest Case IDを準備済みInputとして扱います。
+
+配布される`Automate`のsample行は、`implementation_path`が空欄でも不備ではありません。受講者が自分のCaseを実装したときだけ、別のspecのRepository相対Pathを入力します。Starter、baseline、expected-failure用specは完成答案として記録せず、受講者が作成した代表specと区別します。Helper、POM、Component Object、Fixtureなどの受講者support codeは`training/playwright/`配下へ置けばmaterializeできますが、Workbookの`implementation_path`へすべてを列挙する必要はありません。提供済みの`training/playwright/support/reset-scenario.ts`はTraining Copy／実行時Harnessから利用するため、受講者の`handoff-root/code/`へコピーしません。
+
+Part 1からPart 2の最終確認へ渡すときは、編集場所に関係なく次の固定rootへ集約します。
+
+```text
+handoff-root/
+  workbook/       # このREADMEで説明する4 CSV
+  code/            # Repository相対Pathを保った受講者コード
+  evidence/        # Trace、Screenshot、Video、HTML Reportなど
+  receipts/        # 実行ごとのExecution Receipt
+  self-check/      # 既存Lesson IDごとの自己確認
+```
+
+`implementation_path`は`code/`の下でRepository相対Pathを保ちます。例えば`training/playwright/exercises/my-cart.spec.ts`は`code/training/playwright/exercises/my-cart.spec.ts`です。Completion Receiptは`handoff-root/completion-receipt.json`へ置き、Execution Receiptのある`receipts/`へは置きません。Training CopyへPart 1のEvidence、Receipt、self-checkを複製して、別の評価正本を作ることはしません。
+
+P1-8のC10では、実在する保守上の問題があればそれを使い、問題が見つからない場合は[`c10-locator-maintenance.spec.ts`](../playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)を`training/playwright/exercises/c10-cart-900.spec.ts`へコピーし、Learner Caseとは別の`TC-CART-900`として決定的な教材演習に使います。提供元FileをそのままLearner codeへ登録せず、`training/playwright/exercises/`へコピーしてから改善します。提供演習の`TC-CART-900`は製品のTARGET／RISKや既存Learner Caseへ結び付けません。Locator重複はTest Codeの保守問題であり、新しい製品Riskへ変換しません。正式な製品Risk／Test Caseへ結び付ける実在問題の経路、または`TC-CART-900`の提供演習経路で、問題、原因、Action、最小改善を記録し、改善後の別runを`run_context=c10-improved`として追加します。設計案だけ、または改善前のReceiptだけではC10完了になりません。Part 2のC12では、CI Receiptの自動`ci.md`とは別に、受講者がGitHub画面で確認したRun／Check／Artifact／Result／Caseを人間可読Evidenceへ残します。
+
+C10でspecではなくHelper／POM等を改善する場合も、既存の`improvement`欄へ次の学習者記録を残します。新しいManifestや依存関係表は作りません。Before／AfterのDigestはRunnerがReceiptへ記録し、受講者へ手入力を求めません。
+
+```text
+Improvement Target: training/playwright/support/<learner-owned-helper>.ts
+Problem: <何が保守上の問題か>
+Why: <なぜ問題か>
+Action: <選択した改善>
+Improvement: <実施した最小変更と再実行結果>
+```
+
+`Improvement Target`はLearner-owned codeだけを指定し、提供済みの`training/playwright/support/reset-scenario.ts`は指定しません。
+
+各LessonのOutputには、作成したCSV行、コード、Evidence、自己確認のどれを残すかと、次のLessonへどのID・ファイル・実行記録を渡すかを記載します。意味のあるRiskやAssertionかどうかは、機械的なCSV検証だけで採点せず、本文のSelf-checkと評価基準に沿って自分の理由を説明します。
+
 ## トレーサビリティ
 
 標準の流れは `spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → `implementation_path` → `evidence` です。BR / ACなど複数IDは`;`で区切り、区切り前後の空白と同一Field内の重複を禁止します。`spec_ref`、`risk_id`、`test_case_id`などTraceをつなぐIDは、対応する対象がある行では必須です。BR / ACのように直接対応しないIDだけは空欄を許可します。
@@ -14,6 +51,8 @@
 | `TC-CART-002` | `BR-CART-003` / `AC-CART-003` / `RISK-CART-002` | `cart-with-invalid-items`へResetし`regular@example.com`でLoginした後、購入不可明細がCheckoutを阻止することを確認する |
 
 P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追加練習であり、上記のTest Case IDを流用しません。
+
+上の`TC-CART-001`／`TC-CART-002`は配布されるsampleの説明用IDであり、受講者の完成Caseではありません。受講者は`TC-CART-101`／`TC-CART-102`など自分で作った未使用IDを付け、Workbook、Test title、実行結果を同じIDへ対応付けます。
 
 ## Test Case IDの形式
 
@@ -33,7 +72,7 @@ P1-4の単純なCart追加や`out-of-stock`の商品追加拒否は導入・追�
 ## 空欄の条件
 
 - ID列は、対応する対象IDがない場合だけ空欄にします。対象、Risk、Test Caseの主IDは空欄にしません。
-- `implementation_path` は未実装、または `Do not automate` と判断して実装Pathが存在しない場合に空欄にします。入力するPathはRepository上に実在するものだけにします。`Later`では空欄にし、`Automate`でも受講者がまだ実装していない段階で配布元の演習Fileを完成答案として記録しません。
+- `implementation_path` は未実装、または `Do not automate` と判断して実装Pathが存在しない場合に空欄にします。入力するPathはRepository上に実在するものだけにします。`Later`では空欄にし、`Automate`でも受講者がまだ実装していない段階で配布元の演習Fileを完成答案として記録しません。`Automate`のsample行も未実装段階では空欄のままです。
 - `evidence` は未実行（`result=Not run`）の間は空欄にします。予定する出力先を実Evidenceとして記録しません。実行後はTrace、Screenshot、Video、Report、GitHub Actions Artifactなど、人が後から追える参照を記録します。これらの実行時Artifactは静的ValidatorがGit管理対象Fileとして存在することを要求しません。
 - `failure_category` は `Pass` / `Not run` では空欄にできます。Failureが発生した場合は、観測できたFailure分類を段階的に追加します。
 - `cause`、`action`、`improvement` は、結果と調査の進捗に応じて後から追加します。空欄を埋めるための架空の原因、Action、改善、Path、Evidenceは作成しません。

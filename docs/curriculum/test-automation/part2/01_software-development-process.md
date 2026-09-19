@@ -22,6 +22,19 @@
 - `e2e/web/`
 - `maestro/`
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-9でまとめた固定`handoff-root/`の成果物と、`README.md`、`CONTRIBUTING.md`、Workflow、package script。P1の意味を作り直すのではなく、変更管理へ接続する |
+| Activity | Cart変更を例に、要求→設計→実装→Review→Test→Build→Deployの流れと、自動テストをどの工程で実行するかを図にする |
+| Observation | 変更の責任主体、各工程の入力・出力、Failure時に戻る工程、Local／PR／main／Manualの実行目的、TestとBuildの違い |
+| Output | 開発プロセス図、Part 1 Testをいつ実行するかの理由付き一覧、P2-2へ渡すGit作業対象。形式と編集場所は自由で、評価時に`handoff-root/self-check/P2-01.md`へ自己確認を残す |
+| Self-check | Regression、Build、Deploy後Smoke、Reviewの責務と、Localだけでなく変更へCIを接続する理由を説明する |
+| Completion | プロセスを図示し、Part 1 Testの実行タイミングを1つ以上理由付きで選び、P2-2開始時の成果物と次の操作を明示できる |
+| Recovery | 工程の理解不足は図を「変更／確認対象／失敗時の戻り先」の3列へ分けて書き直す。Command／Build環境の問題は学習理解と分離する |
+| Handoff | P2-2へプロセス図、実行タイミングの判断、Part 1 Case／Path、self-checkを渡す。GitHubアカウントやTraining Copyが未準備なら、Git操作を始めず環境問題として扱う |
+
 ## Part 2の位置づけ
 
 Part 1ではGitHubアカウントを前提にせず、ローカルでテスト自動化を一巡しました。

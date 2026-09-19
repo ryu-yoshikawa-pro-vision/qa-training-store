@@ -46,9 +46,36 @@ pnpm run training:web:baseline
 
 Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習後に設計を比較するためのFormal Regression教材です。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | このLesson本文の導入用`TC-PRODUCT-001`と、Repository rootで実行できるTraining環境。P1-3のLearner Case一覧は参照してもよいが、このLessonを開始・完了するための実装Inputではない。P1-3のCaseを正式に実装するInputはP1-5で受け取る |
+| Activity | JavaScript / TypeScriptの最小構文を読み、`test`、`page`、Locator、Action、Assertionの役割を小さな商品・Cart練習へ置き換える。Baselineを実行してTraining境界とErrorの読み方を確認する |
+| Observation | Actionの後に画面がどう変わるか、Locatorがどの意味を対象にしているか、Assertionが何を保証するか、Syntax／Type／Runtime／Assertion Failureのどこで止まったか |
+| Output | 本文の導入Caseを使った自分で説明できる最小Test、Locator選択理由のメモ、P1-5へ渡すPlaywright構文・実行・Failure分類の学習メモ。これはP1-3のLearner Case実装やCommon Completionのhandoffではない |
+| Self-check | `import`、`async`／`await`、`page`、Locator、Assertionの役割を自分のコードで説明し、固定待機を避ける理由とTraining／Formalの境界を含める |
+| Completion | 本文の`TC-PRODUCT-001`を使った導入Testを自分で書き、`test`、`page`、Locator、Action、Assertion、Reset、最小実行、Errorの読み方を説明できる。P1-3のLearner Caseを完成実装したことや、P1-5のCommon CompletionをこのLessonの完了条件へ含めない。Test本数は単独条件にしない |
+| Recovery | 構文・型の問題は該当Lesson 0へ戻り、実行中のFailureはRuntime、期待不一致はAssertionとして分類する。Browser／Base URL問題は環境として記録し、既存Formal Testへ直接追記して解決しない |
+| Handoff | P1-5へ導入Testから得た`test`／Locator／Action／Assertion／ResetのパターンとFailure分類を渡す。P1-3の複数Case、条件、前提、期待結果はP1-5の正式Inputとして別に読み直す |
+
+## このLessonだけで始められる導入Case
+
+P1-3のWorkbookをまだ完成していなくても、次のCaseだけでこのLessonの構文練習を開始できます。
+
+| 項目 | 導入Caseの内容 |
+| --- | --- |
+| Case ID | `TC-PRODUCT-001` |
+| 対象 | Scenario Shopの商品詳細画面 |
+| 前提 | `default` ScenarioをResetし、商品一覧を表示できる状態にする |
+| 操作 | 商品一覧から最初に表示される商品カードを開く |
+| 期待結果 | `product-basic-shirt`（ベーシックTシャツ）の商品詳細画面へ遷移し、正式Seedで定義された商品名「ベーシックTシャツ」が見出しとして表示される |
+
+これはPlaywrightの書き方を練習するためにP1-4本文が定義する導入Caseです。商品IDと商品名の出所は[Seedカタログ](../../../07_testability/seed_catalog.md)の`product-basic-shirt`です。P1-3のLearner Case、`03_automation-mapping.csv`の正式な`implementation_path`、Common CompletionのCaseへ流用しません。P1-5では、P1-3で自分が設計したCaseを別の正式実装として作成します。
+
 ## 演習コードの扱い
 
-Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise` です。
+Desktop learner exerciseの互換commandは `pnpm run training:web:exercise` です。実行事実を評価へ渡すときのReceipt付き入口はP1-6で扱う `training:web:exercise:with-receipt` です。
 
 このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
 
@@ -65,6 +92,12 @@ Training用
 ```
 
 `playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
+
+### P1-5で最初のLearner specを作る場所
+
+P1-4では本文の導入Caseを練習用Fileへ書きます。P1-5で初めて、Starterの`training/playwright/exercises/training-exercise-starter.spec.ts`をResetとページ遷移の構造を読むための足場として使い、P1-3で作ったCaseを実装します。Starterを完成答案に書き換えず、`training/playwright/exercises/<自分のCaseを表す名前>.spec.ts`という新しいFileを作ります。Test titleまたは既存annotation／metadataへ自分のTest Case IDを残し、`03_automation-mapping.csv`の`implementation_path`へ同じRepository相対Pathを記録します。
+
+実装の順番は、`resetScenario` → 対象画面を開く → 操作する → 期待結果をAssertionする、です。最初の実行は `pnpm run training:web:exercise -- --project=training-chromium` で行い、Browser未InstallやBase URL不通ならコードのFailureと混同せず、P1-4の開始環境を直します。実行結果を正式な学習記録へ渡す方法はP1-6のReceipt付きcommandで扱います。
 
 受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`でDesktopの基準確認を行います。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。Mobile Webの基準確認と`training:web:mobile`はP1-5で扱います。
 
@@ -258,7 +291,28 @@ Training用specへ次を自分で実装します。
 - Seed Scenario Resetがあるのはなぜか。
 - 自分のテストと比べて何が不足しているか。
 
-この段階では既存コードを完全に模倣する必要はありません。
+### このLessonで読む範囲
+
+比較対象は、まず`phase1-required.spec.ts`の「01 Guestの商品検索・Filter・商品詳細・Cart追加」テスト1件（必要な場合だけ「02 Guest Cartの数量変更・削除・上限拒否」テスト）に限定します。既存File全体を読んで理解する必要はありません。次の役割を追えれば、このLessonの目的を満たします。
+
+- `test(...)`: どのTestを定義しているか
+- `page`: Browser Pageをどこで操作しているか
+- `goto`: どの画面へ移動しているか
+- Locator: どの意味のある要素を対象にしているか
+- Action: `click`や`fill`など何を操作しているか
+- Assertion: 何が正しければPassなのか
+- Scenario Resetの呼び出し: Testをどの初期状態から始めているか
+
+次の構文や処理は、見かけてもこのLessonの修了条件にしません。必要になったLessonで扱います。
+
+- `async function`の定義方法そのもの
+- 配列、`for...of`、`if`などの制御構文
+- `page.evaluate`、`evaluateAll`、Requestや画像の詳細確認
+- TypeScriptの型注釈、`type`、`interface`、generics
+- nested arrow function、callbackの細かな型や高度な共通化
+- `test.describe`、`test.beforeEach`、`.first()`、正規表現やCSS Locatorの細かな書き方、helper function内部
+
+この段階では、上記の構文を一語ずつ説明できなくても、Testの目的・操作・検証・Resetの流れを指し示せれば十分です。既存コードを完成答案としてコピーせず、自分のCaseを実装する判断材料として比較します。
 
 ## Lesson 7: Playwright Configを読む（P1-6への導入）
 

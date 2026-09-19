@@ -28,6 +28,19 @@
 - Native Stable UI Test ID
 - `scenario-shop://` Deep Link
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-6までの共通課程の完了、Webで整理したBusiness ConditionとTest Case、Native開始条件、Android実機・JDK・SDK・ADB・Maestro。P1-7を選択しない受講者はこのInputを準備せずP1-8へ進む |
+| Activity | Playwrightとの共通点・相違点を読み、既存Flowを比較し、Stable UI Test ID・Deep Link・Test Control・Resetを使ってNative Flowを設計・実行する |
+| Observation | Native UIの識別、端末状態、同じserial／runIdでのbaseline→exercise、FlowのAction／Assertion、AndroidとiOSの保証差、JUnit／Screenshot／logcat等のArtifact |
+| Output | 受講者作成のNative exercise diff、Test Case IDとUI Test IDの対応メモ、成功exercise Artifact、Platform差分。編集場所は自由で、選択課程のEvidenceは既存Native実行記録の場所へ保存する |
+| Self-check | WebとNativeの対象境界、Test Case IDとUI Test ID、Deep Link／Test Controlの飛ばす範囲、Physical AndroidとiOS Build-onlyの差を説明する |
+| Completion | 選択課程として意味のあるNative Flowを作成し、同じattemptの成功exercise Artifactと実行条件を確認できる。baseline／stock PASSやiOS Build-onlyを代用しない。共通課程では未選択でも完了とする |
+| Recovery | 理解不足は既存FlowとP1-5／P1-6へ戻る。端末・ADB・Maestro・Build／Install問題は環境として分け、Flow判断と混同しない。GitHubやiOS Runtimeを必須にしない |
+| Handoff | P1-8へNativeを選択した場合だけ、Flow diff、Test Case ID、UI Test ID、runId／serial、Artifact、Platform差分を渡す。共通経路ではP1-6のWeb成果物をそのままP1-8へ渡す |
+
 ## 学習順序
 
 このLessonは、概念とFlowの下書きを先に学び、端末準備が整った後に実行します。
