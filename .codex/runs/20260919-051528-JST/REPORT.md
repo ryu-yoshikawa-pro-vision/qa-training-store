@@ -60,3 +60,22 @@
 - OpenCode processの環境変数allowlistを具体化し、専用`HOME` / `TMPDIR`、Security fallback専用config / permission以外のrunner環境とGitHub / OIDC / Cloudflare credentialを継承しない契約を追加した。
 - root parent candidateは同一majorだけでなく、candidate package metadata上のtarget dependency宣言rangeが`first_patched_version`を許容するものへ絞り、最大10件とした。candidateごとの事前install loopは追加しない。
 - Progress: 100% (9/9)
+
+
+## 2026-09-19 13:24 (JST)
+
+- 概要: これまでのレビュー結果を再統合し、実装開始を妨げるSecurity境界と実装時の曖昧さをPlanへ反映した。
+- 変更:
+  - fallbackを`preflight / read-alert / opencode-edit / validate / publish`の5 jobへ変更し、Zen credentialを持つrunnerとRepository / dependency validation runnerを分離した。
+  - `pnpm run verify`後にsemantic guard、lockfile no-op、installed graph、file allowlistを再確認し、最終guard後はRepository / dependency codeを実行しない契約へ変更した。
+  - root parent updateを`root -> target`の1 edgeへ限定し、深いtransitive pathはparent-scoped override条件を満たさなければ`needs_human`へ止める。
+  - parent-scoped overrideを`<parent>@<baseline-exact-version>><target>`形式へ固定した。
+  - OpenCode promptで`AGENTS.md`、repair-loop Skill / reference、Public Repository Hardening P-13を読む契約を復元し、read / edit pathをallowlistで具体化した。
+  - 重複PR判定をtarget dependencyの初期確認、graph取得後のroot / override確認、publish前のfinal diff確認へ分離した。
+  - job間Artifactを3種類へ固定し、Artifact ID指定、retention 1日、overwrite禁止、個別file SHA-256検証を追加した。
+  - Renovateの`prBodyTemplate`、`prBodyColumns`、Package definition、commit message、branch topicをPublic情報だけへ固定した。
+  - Security branchを`security/<dependency-key>/<github.run_id>`へ固定し、scoped packageを含むdependency-key生成規則を定義した。
+  - tracked Run Artifact例外を撤回した。自動fallbackでもstandard Runの`PLAN.md / TASKS.md / REPORT.md`を完全sanitizationし、作成できなければPRを作らない。
+  - PR #167 head `0f47f5e05a55c7a18943fee4b6f3e7d21302061f`のWeb CI / Mobile App CI成功を現状理解へ反映した。
+- 対象範囲: Planとactive Run Artifactだけを変更し、workflow、Renovate設定、package依存、GitHub Settings、Secret、外部Appは変更していない。
+- Progress: 100% (12/12)
