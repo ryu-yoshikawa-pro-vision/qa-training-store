@@ -138,3 +138,25 @@
 - root parent updateではOpenCode実行前に選択candidateが未確定であるため、authorizationへ単一のexpected resolved versionを持たせる表現を修正した。
 - `fix-authorization.json`は許可candidateごとにnew specifierとexpected exact root resolved versionを対応付ける。OpenCodeの`package.json`差分からcandidateを一意に特定し、そのcandidateの期待値をvalidatorが使用する。
 - 生成されたlockfileが選択candidateのexpected exact resolved versionと異なる場合は、別candidateを自動探索せず`needs_human`へ停止する。
+
+## 2026-09-20 (JST)
+
+- 概要: Issue #163 → Plan → Repository実装/CI → pnpm → OpenCode → Artifact → OIDC/App token → publish → PR CI → merge後activationまで再レビューし、実装前に必要な修正を統合した。
+- 反映:
+  - `read-alert`から`semver.validRange()`等の意味検証を外し、checkout + frozen install後かつ`OPENCODE_API_KEY`投入前の`opencode-edit`前半へ移した。
+  - parent-scoped overrideはbaseline lockfileから全parent instanceを列挙し、exact parent manifestの4 dependency fieldを確認して全適用先を証明する契約へ変更した。
+  - Repository全workflowで`permissions: write-all`を禁止し、workflow-level `id-token: write`を禁止、job-levelではSecurity fallback `publish`だけへ限定した。
+  - OIDC ID token / installation tokenを取得直後にmaskし、job output / Artifact / remote URL / `.git/config`へ残さない契約を追加した。
+  - Public Repository HardeningのP-01 / P-03 / P-12更新とP-05 / P-13継続を現Planへ明記し、過去Plan本体は変更しない。
+  - `BASE_SHA`をworkflow開始時の`${{ github.sha }}`として固定し、後続jobで再計算しない契約を追加した。
+  - validatorの信頼依存`semver` / `yaml`自体がtargetの場合は`needs_human`へ停止する契約を追加した。
+  - direct / root parentはexact SemVer specifierだけを初期fallback対象とし、`^` / `~`を外した。
+  - `pnpm@9.10.0`はSecurity Support対象外かつinstall時の既知脆弱性が今回のtrust boundaryと両立しないため、Issue #163とPlanを`pnpm@10.34.5`更新前提へ変更した。
+  - Actions Artifactはartifact ID、期待file set、個別SHA-256をSecurity判定の正本とし、`artifact-digest`は監査用に下げた。Artifact内のSecurity情報はPublic Advisoryから再構成できるfieldだけに限定した。
+  - PR #167 branchは現在の`main@c0dbf818d9431dcbd1e03cb76361e51913313af0`を含まないため、Repository実装前に最新mainを取り込むblockerを追加した。
+- 今回増やさなかったもの:
+  - 独自lockfile resolver、独自permission evaluator、validator専用package manager、暗号化Artifact、独自credential managerは追加しない。
+  - Renovateのmetadata差異、OpenCode external skills追加無効化、finalize後のverify再実行は今回のblockerにしない。
+- 対象範囲: Issue #163、Plan、active Run Artifact、PR本文のみ。workflow、Renovate設定、package / lockfile、GitHub Settings、Secret、App installationは変更していない。
+- 次: Repository実装前に最新mainを取り込み、`pnpm@10.34.5`更新を最初に実施してから残りの実装へ進む。
+
