@@ -79,3 +79,10 @@
   - PR #167 head `0f47f5e05a55c7a18943fee4b6f3e7d21302061f`のWeb CI / Mobile App CI成功を現状理解へ反映した。
 - 対象範囲: Planとactive Run Artifactだけを変更し、workflow、Renovate設定、package依存、GitHub Settings、Secret、外部Appは変更していない。
 - Progress: 100% (12/12)
+
+
+## 2026-09-19 13:24 (JST) 追記
+
+- 直前のPlan反映で残ったMarkdown escapeと、途中で切れた実行タスク / 検証セクションを修復した。
+- 設計内容は13:24 checkpointから変更せず、5 job、tracked Run Artifact、最終guard、Artifact handoffの契約を維持した。
+- Progress: 100% (12/12)
