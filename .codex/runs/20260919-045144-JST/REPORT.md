@@ -113,3 +113,7 @@
 - Validation: focused text-quality contractは45/45 PASS、`pnpm run lint:text`、`pnpm run lint:text:all`（151 Markdown / 0 violation）、`pnpm run lint:markdown`、Prettier、`git diff --check`がPASSした。
 - Validation: `pnpm run verify`はformat、Markdown lint、差分/全件text gate、skills/spec/curriculum、lint（0 errors / 66 warnings）、typecheck、security、unit 66、integration 111、repository 117、component 166、contract 591 passed / 4 skipped、Web build、spec buildまで完了した。`scripts/verify.ps1 -HookContracts`はHook contract 198/198、PASS=4、FAIL=0、SKIP=0だった。
 - Changes: `tests/contracts/codex-text-quality.test.ts`では差分modeの`FAIL: 1 new text quality violation(s)`表示を確認し、`--all`の`FAIL: 1 text quality violation(s)`表示確認を維持した。JSON / exit code / scanner architecture / adopted rules / dependency / Hook・Huskyは変更していない。
+
+## 2026-09-19 15:58 (JST)
+
+- Correction: 11:05の`learner-facing`記述について、inline codeとHTTP URLも現行scannerで区別できないと読める記載を訂正する。評価fixtureで通常本文はviolation、inline codeは既存scope処理で除外、HTTP URLも既存scope処理で除外、Markdown relative link destinationは通常本文と安全に区別できずviolation、relative pathも通常本文と安全に区別できずviolationだった。path / link destinationを区別するためにscannerへ大きなMarkdown解析を追加しない方針のため、`learner-facing`はblocking ruleとして非採用とした。対象151 Markdownの現在違反は0件。
