@@ -53,3 +53,10 @@
   - 09:00記録は途中で途切れているため、今回checkpointを現時点の判断として参照する。
 - 対象範囲: Planとactive Run Artifactだけを変更し、workflow、Renovate設定、package依存、GitHub Settings、Secret、外部Appは変更していない。
 - Progress: 100% (8/8)
+
+## 2026-09-19 12:21 (JST) 追記
+
+- job間で渡す`sanitized-security-context.json`と検証済みpackage / lockfile artifactは、publicに再構成できる情報だけへ限定し、retentionを1日に固定した。
+- OpenCode processの環境変数allowlistを具体化し、専用`HOME` / `TMPDIR`、Security fallback専用config / permission以外のrunner環境とGitHub / OIDC / Cloudflare credentialを継承しない契約を追加した。
+- root parent candidateは同一majorだけでなく、candidate package metadata上のtarget dependency宣言rangeが`first_patched_version`を許容するものへ絞り、最大10件とした。candidateごとの事前install loopは追加しない。
+- Progress: 100% (9/9)
