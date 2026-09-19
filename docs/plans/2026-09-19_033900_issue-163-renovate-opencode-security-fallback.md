@@ -222,6 +222,7 @@ PR title / body / branch / commit messageはdependency名、version差分、`Sec
 - raw responseはrunner tempへ一時保存し、sanitized context生成後に削除する。
 - Public Global Security Advisoryから`ecosystem == npm`かつ`package.name == dependency名`の`vulnerabilities[]` entryを1件だけ選ぶ。
 - public structured fieldだけから`sanitized-security-context.json`を生成する。
+- `sanitized-security-context.json`はpublicに再構成できる情報だけを含むjob artifactとして後続jobへ渡す。既存Repositoryで利用しているfull-SHA固定のupload / download artifact Actionを再利用し、retentionは1日に限定する。Alert番号、Alert state、raw JSON、private triageをartifactへ含めない。
 - 同じdependencyまたは関連root dependencyを修正するopen PRが明確に存在する場合は停止する。patchを取得できず判定不能な場合もfail-closedとする。
 - `timeout-minutes: 5`。
 - 後続jobへ渡すのはpublicに再構成できるsanitized contextだけとし、Alert番号、state、raw JSONを渡さない。
@@ -251,7 +252,8 @@ OpenCodeへ許可できる初期方式は次の3種類とする。
    - root dependencyの既存specifierがexact、`^`、`~`。
    - workflowは`pnpm view`からstable versionを取得し、currentより大きい同一majorだけを候補にする。
    - `^` / `~`では既存rangeを満たすversionだけ、exactでは同一majorのversionだけを候補にする。
-   - candidateは昇順の先頭10件までをOpenCodeへ渡す。
+   - 各candidateについて`pnpm view <root>@<candidate> dependencies --json`からtarget dependencyの宣言rangeを取得し、`first_patched_version`を許容するcandidateだけを残す。宣言rangeが取得できない、またはSemVerとして判定できないcandidateは使わない。
+   - 条件を満たすcandidateを昇順で最大10件までOpenCodeへ渡す。
    - workflowはcandidateごとのinstallを事前実行しない。OpenCodeは候補から1件だけ選び、後段validatorで実際にAlert解消を確認する。
    - 候補0件、10件以内で判断不能、major updateが必要な場合は`needs_human`。
 
@@ -275,6 +277,7 @@ OpenCode実行時は次を固定する。
 - `bash`、`grep`、外部web、skill、task、question、lspをdeny
 - readはRepository内の必要fileだけ、editは`package.json`だけ
 - stdout/stderrはrunner tempへredirectし、SummaryやArtifactへ転記しない
+- OpenCode processへ渡す環境変数は`PATH`、runner temp配下の専用`HOME` / `TMPDIR`、`CI=true`、`OPENCODE_API_KEY`、`OPENCODE_CONFIG`、`OPENCODE_PERMISSION`、上記`OPENCODE_DISABLE_*`だけを基本allowlistとする。`OPENCODE_CONFIG`はSecurity fallback専用configを指し、`OPENCODE_PERMISSION`でも同じdeny-by-default ruleを最終適用する。GitHub / OIDC / Cloudflare credentialと通常runnerの`HOME`を継承しない。
 
 OpenCode終了後は次を検証する。
 
@@ -291,7 +294,7 @@ OpenCode終了後は次を検証する。
 
 lockfile YAMLの全fieldを独自deep-equalする処理は追加しない。`pnpm`の再現性、installed graph、package.json semantic guard、Dependency Review、Repository標準CIを組み合わせる。
 
-検証成功後、公開予定の`package.json` / `pnpm-lock.yaml`とbase SHA、dependency名、GHSA ID、検証済みであることだけをjob artifactへ保存する。artifactへAlert番号、raw Alert、prompt、model response、private failure reasonを含めない。artifactはSecurity PRで公開予定の内容だけなのでjob間受け渡しに利用できる。
+検証成功後、公開予定の`package.json` / `pnpm-lock.yaml`とbase SHA、dependency名、GHSA ID、検証済みであることだけをjob artifactへ保存する。artifactへAlert番号、raw Alert、prompt、model response、private failure reasonを含めない。既存Repositoryで利用しているfull-SHA固定のupload / download artifact Actionを再利用し、retentionは1日に限定する。artifactはSecurity PRで公開予定の内容だけなのでjob間受け渡しに利用できる。
 
 `repair-and-validate` job全体は`timeout-minutes: 45`とする。
 
@@ -448,8 +451,9 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 - modelは`-free`だけで、有料fallbackがない。
 - OpenCode processがGitHub credential / OIDC envを継承しない。
 - bash全面deny、editは`package.json`だけ。
-- candidate parent versionは同一majorかつ最大10件。
+- candidate parent versionは同一majorで、candidate側のtarget dependency宣言rangeが`first_patched_version`を許容するものだけ、最大10件。
 - candidateごとの事前install loopがない。
+- read-alert / repair-to-publish artifactはpublic情報だけで、retention 1日、remote Actionはfull SHA固定。
 - OpenCode timeoutは10分。
 - job timeoutはpreflight 2分、read-alert 5分、repair 45分、publish 10分。
 - publish前にAlert state / GHSA / dependencyを再確認する。
