@@ -9,7 +9,8 @@
 - [x] 5. Cloudflare Preview除外をIssue #163の対象へ限定し、Expo maintenanceの既存契約を維持する。
 - [x] 6. Run Artifact例外と`SECURITY.md`の責務を整理する。
 - [x] 7. Plan末尾のbare URLをMarkdown linkへ修正する。
-- [x] 8. active Run Artifactを更新し、実装ファイルへ進んでいないことを確認する。
+- [x] 8. job間artifactをpublic情報だけ・retention 1日へ限定し、OpenCode processの環境変数allowlistを明文化する。
+- [x] 9. active Run Artifactを更新し、実装ファイルへ進んでいないことを確認する。
 
 ## Discovered（発見事項）
 
