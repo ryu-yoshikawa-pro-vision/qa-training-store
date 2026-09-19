@@ -89,7 +89,7 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - pnpm `v9.10.0`のpackage selector付き`pnpm why` / `pnpm list <package>`は結果をtruncateし得る。package selectorなしの`pnpm list --json --depth Infinity`は対象packageの全path確認に使えるが、現在runnerへinstallされたpackageが対象である。
 - GitHub Dependabot Alertのnpm `vulnerable_version_range`は`,`区切りを含み得るため、`semver`へ渡す前に限定的な正規化が必要である。
 - 現在のGitHub connectorではopen Dependabot Alert件数を取得できないため、`prConcurrentLimit`具体値は未確認である。
-- PR #167の現head `496e694ca8a4e3b0de2d49fb99b7ed2a38ce215c`では、Web CI / Mobile App CIはいずれも成功している。
+- 本Plan反映前にレビューしたPR #167 headではWeb CI / Mobile App CIはいずれも成功している。本Plan更新後は最新headのCIを再確認する。
 
 ### 前提
 
@@ -317,7 +317,7 @@ OpenCodeへSecretを渡す前に、workflow自身がrunner tempへ`fix-authoriza
   - direct: old / new specifier
   - root parent: root dependency名、old specifier、許可candidate specifier一覧
   - override: exact selectorと許可value
-- authorization JSON自体のSHA-256
+- authorization JSONには自己hashを含めない。file SHA-256はJSON生成後にworkflow側で計算し、OpenCode実行前後の不変確認とjob output / Artifact検証に使う。
 
 OpenCode promptへ渡すのはsanitized contextと`fix-authorization.json`の許可内容だけとする。OpenCodeはauthorizationを変更できず、許可された変更から1つだけ選んで`package.json`を編集する。
 
@@ -740,7 +740,7 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 - 既存open Dependabot Security PRがある場合は自動closeせずactivationを停止する。
 - Renovate / OpenCode App installとGitHub Secret登録はRepository実装と分離する。
 - 実装中に公式仕様、App権限、固定OpenCode Release契約がPlan前提と異なることを確認した場合は、互換性を推測で埋めずactivationを止めてPlanを更新する。
-- PR #167 head `496e694ca8a4e3b0de2d49fb99b7ed2a38ce215c`のWeb CI / Mobile App CIは成功済みである。
+- 本Plan反映前のPR #167ではWeb CI / Mobile App CI成功を確認済みである。Plan更新commit後のCIは最新headで再確認する。
 - Repository実装はPR #167へ継続してcommitし、別の実装PRを作成しない。PR #167 merge時点では外部activationが未完了のためIssue #163を自動closeせず、activation・実地確認完了後にcloseする。
 
 ### 実装時に再確認する公式資料

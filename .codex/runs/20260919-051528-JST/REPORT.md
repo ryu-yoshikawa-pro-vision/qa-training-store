@@ -110,3 +110,9 @@
   - PR #167 merge時点ではIssue #163をcloseせず、外部activationと実地確認後にcloseする契約へ変更。
 - 対象範囲: Plan、active Run Artifact、PR本文だけ。workflow、設定、依存関係、GitHub Settings、Secret、App installationは変更していない。
 - Progress: 100% (11/11)
+
+
+## 2026-09-19 15:53 (JST) 追記
+
+- `fix-authorization.json`へ自己SHA-256を埋め込む自己参照を削除した。authorization fileのSHA-256はJSON生成後にworkflow側で計算し、job output / Artifact検証へ使用する。
+- Plan本文の「現head」固定記述を削除し、Plan更新後は最新headのCIを再確認する契約へ変更した。
