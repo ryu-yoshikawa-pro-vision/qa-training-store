@@ -43,7 +43,8 @@
 7. job間ArtifactはID指定、1日保持、overwrite禁止、file SHA-256検証を必須にする。
 8. RenovateのPR body / title / branch / commit messageの公開情報をconfigとcontract testで固定する。
 9. tracked Run Artifactの例外を撤回し、sanitized Artifactを作れない場合はpublishしない。
-10. 現行CI成功状態へPlanの現状記述を更新する。
+10. `workflow_dispatch` inputを含む通常のGitHub Actions環境をRepository / dependency processへ渡さず、`env -i`相当のpublic-safe allowlistで実行する。
+11. 現行CI成功状態へPlanの現状記述を更新する。
 
 ## 完了条件
 

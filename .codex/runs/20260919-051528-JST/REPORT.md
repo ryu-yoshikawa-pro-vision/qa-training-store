@@ -86,3 +86,11 @@
 - 直前のPlan反映で残ったMarkdown escapeと、途中で切れた実行タスク / 検証セクションを修復した。
 - 設計内容は13:24 checkpointから変更せず、5 job、tracked Run Artifact、最終guard、Artifact handoffの契約を維持した。
 - Progress: 100% (12/12)
+
+
+## 2026-09-19 13:24 (JST) 追加確認
+
+- GitHub Actionsでは`workflow_dispatch` inputが`github.event.inputs`とevent payloadへ存在し、`GITHUB_EVENT_PATH`はそのpayload fileを指すことを公式仕様で確認した。
+- Repository / dependency / OpenCode processは通常のGitHub Actions環境を継承せず、`env -i`相当のpublic-safe allowlistで起動する契約をPlanへ追加した。
+- `GITHUB_EVENT_PATH`、`GITHUB_TOKEN`、`GH_TOKEN`、OIDC request環境変数、credential / Secretをprocessへ渡さない。
+- Progress: 100% (13/13)

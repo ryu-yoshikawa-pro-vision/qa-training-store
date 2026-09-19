@@ -35,6 +35,7 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - Humanの同一Repository PRは従来どおりCloudflare Preview必須とし、fork PRも従来どおりPreviewをskipする。
 - OpenCode fallbackは`workflow_dispatch`だけで起動し、`alert_number`を必須の`number` inputとして1件受け取る。`schedule`は追加しない。
 - `alert_number`はpublic出力へ転記しない運用識別子として扱う。GitHub Secret相当の機密値とは扱わないため、Issue #163の`workflow_dispatch`契約を維持する。
+- `workflow_dispatch` inputは`github.event.inputs`とイベントpayloadへ存在するため、Repository / dependency / OpenCode processへ通常のGitHub Actions環境を継承させない。これらのprocessは`env -i`相当で起動し、public-safe allowlistだけを渡す。`GITHUB_EVENT_PATH`、`GITHUB_TOKEN`、`GH_TOKEN`、OIDC request環境変数を渡さない。
 - main以外のref、`github.run_attempt != 1`、同一修正のopen PR、同じdependency用の残存`security/` branchがある場合は自動修正を開始しない。
 - fallback全体は固定`concurrency.group: security-dependency-fallback`で直列化し、`cancel-in-progress: false`とする。Alert番号はgroup名へ含めない。
 - GitHub Actionsは`preflight`、`read-alert`、`opencode-edit`、`validate`、`publish`の5 jobへ分離する。
@@ -261,6 +262,7 @@ related root dependencyやoverride selectorはこのjobではまだ確定して�
 - `security-context` ArtifactをID指定でdownloadし、file setとSHA-256を検証する。
 - Node 24、pnpm 9.10.0を使う。
 - OpenCodeへSecretを渡す前に`pnpm install --frozen-lockfile --ignore-scripts`と`pnpm list --json --depth Infinity`を実行し、現在runnerへinstallされたdependency graphを取得する。
+- 上記pnpm / Node処理は`env -i`相当のpublic-safe環境で起動する。基本allowlistは`PATH`、runner temp配下の専用`HOME` / `TMPDIR`、`CI=true`、`GITHUB_ACTIONS=true`、`RUNNER_OS`、`RUNNER_ARCH`、`BASE_SHA`、sanitized contextのpath / hashだけとする。`GITHUB_EVENT_PATH`を含むその他`GITHUB_*`、credential、Secretを継承しない。追加envが必要になった場合はpublic-safeであることをcontract testで固定する。
 - target dependencyが0件なら`needs_human`。
 - target pathからroot direct dependency、immediate parent、resolved versionを構造化する。
 - root dependency / parent-scoped override候補が確定した後、open PRのpatchを再確認する。target dependency、選択可能なroot dependency、または同じparent-scoped override selectorを変更するPRがあれば停止する。patchを取得できず判定不能な場合もfail-closedとする。
@@ -332,6 +334,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 #### `validate`
 
 - Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない別runnerで実行する。
+- Repository script、pnpm、Node dependency、test、buildは`env -i`相当のpublic-safe環境で実行する。基本allowlistは`PATH`、専用`HOME` / `TMPDIR`、`CI=true`、`GITHUB_ACTIONS=true`、`RUNNER_OS`、`RUNNER_ARCH`、`BASE_SHA`、sanitized context / candidateのpath・hashだけとし、`GITHUB_EVENT_PATH`を含むその他`GITHUB_*`とcredential / Secretを渡さない。
 - exact `BASE_SHA`を`persist-credentials: false`でcheckoutする。
 - `security-context`と`security-candidate`をArtifact ID指定でdownloadし、file setとSHA-256を確認する。
 - candidate `package.json`を配置し、最初にsemantic diffがallowed strategy 1件だけと一致することを検証する。
@@ -537,6 +540,7 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 - `opencode-edit` / `validate`に`id-token: write`と`vulnerability-alerts: read`がない。
 - `publish` jobだけに`id-token: write`がある。
 - raw Alertを`opencode-edit` / `validate` Artifactやjob outputへ渡さない。
+- Repository / dependency / OpenCode processが通常のGitHub Actions環境を継承せず、`GITHUB_EVENT_PATH`とworkflow_dispatch inputへ到達できない。
 - read-alertの重複判定はtarget dependencyだけで、related root / override判定はgraph取得後へ分離されている。
 - Advisory vulnerability entryをnpm + package名で一意選択する。
 - OpenCode binary version / asset / digestを固定する。

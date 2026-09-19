@@ -13,7 +13,8 @@
 - [x] 9. Security branchのdependency-key生成規則と`github.run_id`利用を固定する。
 - [x] 10. tracked Run Artifact例外を撤回し、sanitized standard Runを必須にする。
 - [x] 11. 最新head / CI状態へPlanの現状記述を更新する。
-- [x] 12. active Run Artifactを更新し、実装ファイルへ進んでいないことを確認する。
+- [x] 12. `workflow_dispatch` event payloadをRepository / dependency processへ渡さないpublic-safe環境契約を追加する。
+- [x] 13. active Run Artifactを更新し、実装ファイルへ進んでいないことを確認する。
 
 ## Discovered（発見事項）
 
