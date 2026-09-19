@@ -25,3 +25,8 @@
 - 概要: 直近の修正以降に出たレビュー結果を統合し、妥当と判断した必須対応8件・明確化2件をPlanへ反映した。
 - 変更:
   - GitHub形式のnpm vulnerable rangeを
+
+## 2026-09-19 09:05 (JST)
+
+- 最終確認でworkflow方針本文に旧`security-dependency-fallback-${{ inputs.alert_number }}`が1箇所残っていたため、固定`security-dependency-fallback`へ修正した。
+- DoD、workflow方針、contract testのconcurrency契約が一致したことを再確認する。

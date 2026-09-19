@@ -258,8 +258,8 @@ Repository側contract testでは上記template値そのものを固定し、allo
 - input名は`alert_number`。
 - `required: true`。
 - `type: number`。
-- `concurrency.group`は`security-dependency-fallback-${{ inputs.alert_number }}`。
-- `cancel-in-progress: false`。
+- `concurrency.group`は固定`security-dependency-fallback`。
+- `cancel-in-progress: false`。Alert番号をgroup名へ含めない。
 
 Secretを参照しない`preflight` jobを最初に置き、`github.ref == 'refs/heads/main'`を必須とする。main以外のrefならfailureとして終了し、checkout、dependency install、Dependabot Alert取得、OpenCode実行へ進めない。preflightは`id-token: write`やRepository write permissionを持たない。
 
