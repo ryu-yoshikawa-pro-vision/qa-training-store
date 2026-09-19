@@ -22,26 +22,26 @@
 ## Assumptions（仮定）
 
 - 対象branchは`issue-163-renovate-opencode-security-fallback`で、修正開始時HEADは`f96c48b1e273305eb701a80510ec5746f495d01f`。
-- Dependabot Alertsのopen件数は現在のGitHub connectorでは取得できないため、初期`prConcurrentLimit`はblast radiusを最小化する`1`へ固定する。
+- Dependabot Alertsのopen件数は現在のGitHub connectorでは取得できない。Issue #163の契約上、Owner権限で件数を確認して`prConcurrentLimit`の具体値をPlanへ追記するまでRenovate設定実装を開始しない。
 - pnpm `v9.10.0`ではpackage selectorなしの`pnpm list --json --depth Infinity`が10 end leavesのtruncate経路を通らないことを固定実装で確認済み。
-- PR #58は同じtarget dependencyに複数parent-scoped overrideが必要な実例として扱う。
+- PR #58は複数parent-scoped overrideの実例だが、初期fallbackは入力された1 Alertを正本にし、同じAlert range内の複数pathだけをまとめて扱う。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
-- 必ず質問する不透明点: なし。ユーザーからレビュー指摘の必要修正をPlanへ反映するよう指示済み。
-- 未回答の重要質問: 外部Appの実権限、Production trust、Zen/OIDC疎通はPlan上のactivation gateとして残す。
+- 必ず質問する不透明点: なし。ユーザーから統合レビュー結果の必要修正をPlanへ反映するよう指示済み。
+- 未回答の重要事項: 現在のopen Dependabot Alert件数と`prConcurrentLimit`具体値はOwner権限が必要な実装前blocker。外部Appの実権限、Production trust、Zen/OIDC疎通はactivation gateとして残す。
 
 ## Approach（進め方）
 
 1. Issue #163、PR #58、固定pnpm/OpenCode実装、Renovate現行設定を再確認する。
-2. pnpm graph、複数override、specifier、parent candidate、Renovate公開metadata、permission順序、重複PR判定、`prConcurrentLimit`をPlanへ固定する。
+2. range正規化、最小の許可version、1 Alert境界、lockfile構造差分、credential-free検証、固定concurrency、permission、activation手順をPlanへ固定する。
 3. 今回taskのRun ArtifactをRepository契約に合わせて保存する。
 4. branch差分がPlanと今回Run Artifactだけであることを確認し、1 commitで保存する。
 
 ## Definition of Done（完了条件）
 
 - 最終レビューのmust_fix / should_fixがPlanのDoD、変更方針、実行タスク、検証、リスクへ一貫して反映される。
-- `prConcurrentLimit`やrepair methodなどを実装者判断に残さない。
+- `prConcurrentLimit`はOwner確認が必要なblockerとして明示し、それ以外のrepair methodやSecurity境界を実装者判断に残さない。
 - 今回taskの変更はPlanとRun Artifact 3 filesだけで、実装ファイルへ進まない。
 - branchへ通常のfast-forward commitとして保存する。
 
