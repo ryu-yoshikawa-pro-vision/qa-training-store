@@ -237,3 +237,23 @@
   - PR本文更新。
   - Issue #117更新 / close。
 - Progress: 100% (21/21)
+
+
+## 2026-09-20 canonical Plan分割
+
+- 概要:
+  - canonical Planが995行・約6.3万文字まで増えたため、実装時の参照性を優先して分割した。
+- 分割:
+  - 親Plan: 目的、前提、影響範囲、実行タスク、成果物、実装時の判断順序。
+  - `_01_cases-and-handoff.md`: 5.1〜5.2。固定case、handoff、Case A〜E。
+  - `_02_runtime-and-contracts.md`: 5.3〜5.9。Skill観測、Target隔離、scope、Artifact reuse、result contract、Runtime。
+  - `_03_validation-and-risks.md`: 7〜8。検証方法、Risk 1〜25。
+- 方針:
+  - 子ファイルは独立Planではなく親Planの一部とし、同じ契約を親子へ重複記載しない。
+  - Plan Runの`PLAN.md` / `TASKS.md` / `REPORT.md`は現状のサイズでは分割しない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - PR本文更新。
+  - Issue #117更新 / close。
+- Progress: 100% (22/22)

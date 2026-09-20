@@ -23,6 +23,7 @@
 - [x] 19. Browser preflightへscreenshot / URLを追加し、official runner evidence prefix内のEvidence実体検証を追加する。
 - [x] 20. Case Bのground-truth sanity後に`suspended-user` / sessionなし / `/login`へ戻すinitial-state resetを既存helper再利用で固定する。
 - [x] 21. source-free QA promptへrunner-owned Harness境界を明示し、欠落している`scripts/agentic-qa/**`やProduct source探索を要求しない。
+- [x] 22. 約995行のcanonical Planを親Plan＋3詳細ファイルへ責務分割し、詳細契約の重複を避ける。
 
 ## Discovered（発見事項）
 
@@ -45,4 +46,4 @@
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。initial-state resetとrunner-owned Harness境界を反映した後に全体レビューで実装開始可否を再判定する。
+- なし。Evaluator実装はまだ開始しない。Plan分割後の参照切れ・契約重複・CIを確認して実装開始可否を再判定する。

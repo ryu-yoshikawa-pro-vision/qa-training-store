@@ -26,6 +26,12 @@
 - 既知の`MD012`を同時に修正する。
 - generic Workflow Engine、Session Manager、MCP Manager、Browser runner、Target Manager、provenance framework、Challenge→Charter converterは追加しない。
 
+## 文書構成
+
+- canonical Planは親Planを入口とし、詳細を`_01_cases-and-handoff.md`、`_02_runtime-and-contracts.md`、`_03_validation-and-risks.md`へ分割する。
+- 分割ファイルは独立Planではなく、親Planの一部として扱う。契約を重複記載しない。
+- Plan Runの`PLAN.md` / `TASKS.md` / `REPORT.md`は小さいため分割しない。
+
 ## 完了条件
 
 - canonical Planに上記6件とMD012修正が反映されている。
