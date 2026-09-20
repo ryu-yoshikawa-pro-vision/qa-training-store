@@ -87,3 +87,26 @@
   - Plan作成Runとして残作業なし。
 - Progress: 100% (9/9)
 
+## 2026-09-20 14:04 (JST)
+
+- 概要:
+  - これまでのPR6 Planレビューを再統合し、重複・撤回対象を除いた最終的な必要修正をcanonical Planへ反映した。
+  - fixed 5 case、Codex標準Runtime、既存OTel observer、既存Agentic QA / Native helperを維持し、独自Runtime基盤は追加しない。
+- 反映内容:
+  - repair `--output-schema`を4 fieldから既存Iteration Model 9 fieldへ変更し、既存7 decisionを共通schemaで許可。
+  - Case Aへ固定status fixture、trial回帰注入、code-review Required outputのstructured Finding、Finding prerequisiteを追加。
+  - Case Bをsource-free Gray-box QA rootとpatched source workspaceへ分離し、same-thread cwd切替を必須化。
+  - Case BのQA Runtime build / start / stop、repair後rebuild / 新Runtime validationを固定。
+  - Case Bの`not_executed`を外部Browser capability不足へ限定し、patch / build / sanity / answer key不整合をskipしない契約へ変更。
+  - Case Cへconfig / protected-data / validatorの固定fixtureと`CASE-C-001 -> CASE-C-002 -> stop_unsafe`の実観測条件を追加。
+  - Case Dへstate / validatorの固定fixtureとbounded repair後の同一`CASE-D-001 -> stop_no_progress`条件を追加。
+  - Case EのHost preflightをWindows / PowerShell / Native helperへ限定し、Doctorのtoolchain / device failureを実Workflowの停止として評価。
+  - Native EvidenceへCodex標準JSONL `command_execution`を使用し、Doctor失敗後のdownstream Native action未実行を確認する契約を追加。
+  - `multiple_skills`はADR-0025どおり`unobservable`とし、review / QAでもFAILへ再分類しないよう文言を統一。
+  - resultへrun-level `completed | blocked`を追加し、case status / Workflow decisionと分離。
+  - Plan内のbranch状態をahead 9 / behind 1へ更新。
+- 状態:
+  - canonical Plan更新commit: `07dc92fa42f7b3f7c5eafc3a3ff2fd70df4e290b`。
+  - 実装、PR作成、Issue更新は未実施。
+- Progress: 100% (10/10)
+
