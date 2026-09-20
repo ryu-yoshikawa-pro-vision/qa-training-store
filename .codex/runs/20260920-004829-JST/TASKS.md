@@ -21,6 +21,8 @@
 - [x] 17. Case Bのuser config有効probeを診断専用へ変更し、canonical runへHost MCP / tool設定を持ち込まない。
 - [x] 18. 非Gitのsource-free QA rootを`--skip-git-repo-check`で起動する契約へ固定する。
 - [x] 19. Browser preflightへscreenshot / URLを追加し、official runner evidence prefix内のEvidence実体検証を追加する。
+- [x] 20. Case Bのground-truth sanity後に`suspended-user` / sessionなし / `/login`へ戻すinitial-state resetを既存helper再利用で固定する。
+- [x] 21. source-free QA promptへrunner-owned Harness境界を明示し、欠落している`scripts/agentic-qa/**`やProduct source探索を要求しない。
 
 ## Discovered（発見事項）
 
@@ -37,8 +39,10 @@
 - Codex user configはMCP server等を持ち得る。Browser capabilityを得る目的でuser config全体をcanonical Case Bへ戻すとsource-free境界を測れないため、user config有効probeは診断専用にする。
 - Case B source-free rootはGit repositoryである必要がない。既存Semantic EvalでもCodex標準`--skip-git-repo-check`を使って一時directoryで実行しているため、PR6でも`git init`は不要。
 - `CHALLENGE-BASIC-001`のRequired Evidenceは`screenshot` / `url`。schemaはEvidence refのsyntaxを検証するがfile existenceまでは保証しないため、runnerがofficial runner evidence prefix内のregular file実体を確認する。
+- `runChallengeGroundTruthSanity()`は`suspended-user`でloginを実行し、patched phaseではsession作成後`/`へ遷移する。QAへ同じRuntimeを渡す前に再resetしないと初期状態が汚れる。
+- `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md`はsource-free rootに存在しないSupporting Harness pathを参照するため、QA promptでHarness lifecycleとvalidationはrunner-ownedと明示する。
 - latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。user config境界、非Gitroot、Evidence実体検証の反映後に全体レビューで実装開始可否を再判定する。
+- なし。Evaluator実装はまだ開始しない。initial-state resetとrunner-owned Harness境界を反映した後に全体レビューで実装開始可否を再判定する。

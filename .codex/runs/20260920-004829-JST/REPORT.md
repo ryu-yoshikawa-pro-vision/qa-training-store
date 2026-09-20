@@ -218,3 +218,22 @@
   - PR本文更新。
   - Issue #117更新 / close。
 - Progress: 100% (19/19)
+
+
+## 2026-09-20 Case B initial stateの追加レビュー
+
+- 概要:
+  - Case BのQA用Runtime lifecycleとsource-free QA rootのRepository adapter参照を再確認した。
+  - patched Runtimeのground-truth sanityは`suspended-user`でloginを実行し、defect状態ではsessionを作成して`/`へ遷移するため、そのままQAへ渡すと開始状態が汚れる。
+  - `QA_AGENT.md`と`docs/reference/agentic-qa-workflow.md`はsource-free rootに存在しない`scripts/agentic-qa/**`等を参照するため、runner-owned処理をpromptで明示しないと不要なpath探索へ進む余地がある。
+- 反映内容:
+  - QA用patched Runtimeでdefect sanityを確認した直後に既存`resetBrowserScenario(page, baseUrl, "suspended-user", true)`を再利用し、sessionなし、`/login`開始をrunnerが確認してからAgentへhandoffする契約へ修正した。
+  - private helperをrunnerから使えない場合は挙動変更なしのnarrow exportだけを許可し、新しいreset helperは作らない。
+  - QA promptへRuntime URL、prepared seed / route、Charter、learner-safe specification、runbook、Evidence prefixを渡し、snapshot、schema validation、build / start / reset / stopはrunner-ownedと明示する。
+  - QA開始状態のrunner観測をcase resultへ保存し、sanity後sessionが残っていないことを検証対象へ追加した。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - PR本文更新。
+  - Issue #117更新 / close。
+- Progress: 100% (21/21)

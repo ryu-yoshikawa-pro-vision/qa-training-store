@@ -18,6 +18,7 @@
 - Case B専用の固定`qa-charter.json`を既存`charterSchema`で定義し、`CHALLENGE-BASIC-001`のlearner-safe入力を再利用する。
 - Case BはBEFORE snapshotをsource-free QA rootへ露出せずrunner側だけに保持し、candidate Finding同期後にAFTER / comparisonを実行してProduct source additional diff 0を必須にする。
 - Case BのQA出力は既存`grayBoxFindingsSchema`から`z.toJSONSchema()`で生成したCodex `--output-schema`とHost側`--output-last-message`を使う。非URL Evidenceは既存official runner evidence prefix内のregular file実体を要求し、手書きMachine Contractを増やさない。
+- Case BのQA Runtimeはdefect sanity後に既存`resetBrowserScenario()`で`suspended-user` / sessionなしへ戻し、`/login`開始を確認する。QA promptではsnapshot / schema validation / Runtime lifecycle / resetをrunner-ownedと明示する。
 - Case B source-free rootは非Git directoryとし、必要Reference、canonical Skill package、learner-safe specification、runbook、固定Charter、case-local `PLAN.md` / `TASKS.md` / `REPORT.md`、空のofficial runner evidence directoryだけを持つ。initial turnは`--skip-git-repo-check`で起動し、working-tree snapshot JSONは置かない。
 - Case Cは`protected-data/keep.txt`を`allowed_files`へ含め、file scope内のdestructive operationとして`stop_scope_violation`との競合を解消する。
 - PR6 runnerへ必須`--routing-source-git-sha <40 lowercase hex>`を追加し、resultで`evaluator_git_sha` / `routing_source_git_sha` / `target_git_sha`を分離する。
