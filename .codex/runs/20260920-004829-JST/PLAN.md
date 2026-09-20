@@ -2,41 +2,33 @@
 
 ## 目的
 
-- Issue #117 PR6 Workflow E2E Evalの実装Planを、全体レビューで確定した必要修正まで統合する。
-- Issue #117、PR2 / PR4 / PR5、各Skill契約、Codex標準Runtime、Agentic QA、Native helperを確認し、実装者がfixtureや判定方法を追加設計せず着手できる状態へ確定する。
-- このRunでは実装、PR作成、Issue更新を行わない。
+- Issue #117 PR6 Workflow E2E Evalのcanonical Planへ、PR #168作成後の全体レビューで確定した必要修正を統合する。
+- 目的達成性、既存Skill契約、実行時capability、scope、Run Artifact、Codex設定隔離を揃え、実装者へ重要な設計判断を残さない。
+- このRunでは実装コード、latest main取り込み、merge、Issue更新を行わない。
 
 ## 対象範囲
 
-- 対象: 固定5 Workflow case、same-thread handoff、Artifact reuse、OTel観測、repair structured output、Case A/C/D固定fixture、Case B source-free QA / Runtime lifecycle、Case E Doctor gate。
-- 対象外: Skill semantics変更、Product codeの恒久変更、追加Workflow case、独自Agent Runtime / Session Manager / Workflow Engine / trust manager、Required CI化。
+- canonical Plan。
+- plan-only Run Artifact。
+- PR #168本文。
+- Plan変更起因のMarkdown lint修正。
 
-## 確定した設計
+## 確定した追加修正
 
-- handoffはCodex標準`codex exec resume <thread_id>`を使う。
-- Case Bではsame threadのままQA rootからsource workspaceへcwdを切り替える。installed Codexで成立しなければrunを`blocked`にする。
-- Artifact reuseはfresh session / fresh workspaceで必要Artifactだけを渡す。
-- `multiple_skills`はADR-0025どおり`unobservable`。single wrong canonical SkillだけFAIL。
-- repairは既存Iteration Model 9 fieldを共通`--output-schema`で取得し、期待decisionをschemaへ埋め込まない。
-- Case Aはstatus fixture、trial回帰、code-review Finding prerequisiteまで固定する。
-- Case Bは`CHALLENGE-BASIC-001`をdeterministic fixtureとして使い、QAはsource-free Gray-box、repairはpatched source workspaceで実行する。QA Runtimeとrepair後Runtimeはrunnerがbuild / start / stopする。
-- Case Bの`not_executed`は外部Browser capability不足だけに限定し、fixture / build / sanity不整合はFAILまたはrun `blocked`。
-- Case Cはconfig / protected-data / validatorを固定し、安全なconfig repair後にdestructive deletionだけが残る状態で`stop_unsafe`を評価する。
-- Case Dはstate / validatorを固定し、bounded repair後も同一failureが残る状態で`stop_no_progress`を評価する。
-- Case EはHost preflightをWindows / PowerShell / helper存在へ限定し、Node / Java / SDK / deviceは実際のDoctorへ判定させる。
-- Native command EvidenceはCodex標準JSONLの`command_execution`を使う。
-- run-level `completed | blocked`とcase / Workflow stateを分離する。
-
-## 実装前に確認する事項
-
-- latest `main`取り込み後のmaterial drift。
-- installed Codexでresume / cwd切替 / OTel / structured output / actual write / `command_execution`取得が成立すること。
-- Browser / Playwright localhost capability。
-- Windows / PowerShell Native helper起動能力。
+- Case Aはreview開始時に`status.mjs`自体の回帰diffを残す。
+- Case Bは実際のCodex sessionのBrowser capabilityを確認し、canonical 6 Skillを保持したsource-free QA rootを使う。
+- Case B固有capability不足とrun共通blocker、fixture / evaluator failureを分離する。
+- Case Cは`stop_unsafe` / `stop_needs_human`の優先順位をPR6で新設せず、unsafe / destructive operation未実行と停止を評価する。
+- Case Dは無意味な編集を強制せず、runnerが用意したbounded attempt / validation Evidenceから`stop_no_progress`を評価する。
+- Case EはDoctor-onlyとし、stage-specific structured output、`command_execution`、Native Artifactを照合する。
+- sanitized Targetはcallerが準備し、runnerは`--target-root`をpreflightする。
+- 各caseでRepository標準`scripts/new-run.*`からfresh active Runを1件だけ作り、same-case turnで再利用する。
+- canonical live turnでは`--ignore-user-config`、`--ignore-rules`、`-c features.hooks=false`を固定する。
+- Repository外Skillの混入はsmoke probeとOTelでfail-closeし、独自Skill Registry / isolation frameworkを追加しない。
 
 ## 完了条件
 
-- canonical Planへ上記設計が反映されている。
-- Plan-only `PLAN.md` / `TASKS.md` / `REPORT.md`がcanonical Planと整合している。
-- 旧4-field repair schema、Case Aの抽象的回帰、Case Bのsource-visible QA /曖昧Runtime lifecycle、Case C/Dの未確定fixture、広すぎるNative preflightが残っていない。
-- 実装、PR作成、Issue更新へ進んでいない。
+- canonical Planに上記修正が反映されている。
+- plan-only Run ArtifactとPR本文がcanonical Planと整合している。
+- 既知の`MD029`原因となるCase Bのordered list再開始が残っていない。
+- 実装コードやSkill semanticsは変更していない。
