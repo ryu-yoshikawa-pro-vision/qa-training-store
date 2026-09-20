@@ -61,3 +61,29 @@
   - 親Agentの判断: Issue / Repository / Codex Runtimeの正本を直接照合して修正範囲を確定した。
 - Progress: 100% (7/7)
 
+## 2026-09-20 09:32 (JST)
+
+- 概要:
+  - これまでのPR6 Planレビューを統合し、重複・過剰な指摘を除いたうえで必要な修正をcanonical Planへ反映した。
+  - fixed 5 case、Codex標準session継続、既存OTel observer、既存Agentic QA fixtureを維持し、新しいRuntime基盤は追加しない方針を確定した。
+- 反映内容:
+  - `multiple_skills`をADR-0025 / 既存observerどおり`unobservable`へ固定。
+  - repair stageで`--output-schema`を使い、`decision` / `changed_files` / `validation_result` / `remaining_delta`をrunner実観測と照合する契約を追加。
+  - Case Bを既存`CHALLENGE-BASIC-001` protected patchによるdeterministic defectへ固定し、`training/agentic-qa/instructor/**`をAgent-visible Targetから除外。
+  - Case Cをactionable repairから途中でunsafe requirementが判明するfixtureへ修正。現行契約で一意に`stop_unsafe`へ到達できない場合はBLOCKEDとする。
+  - Case Dをactionable repair → validation → same failure / no new evidence → `stop_no_progress`へ修正。
+  - Plan / implementation / repair / QAの必要writeを許可し、review / harnessはread-onlyとするstage別sandboxへ修正。
+  - Windowsではresume時の`workspace-write`指定だけで判断せず、initial / resumed actual fixture writeをsmoke probeする。
+  - Case A / C / Dを必須case、Case B / Eをcapability依存caseとしてrun-level判定へ明記。
+  - 独自trust manager、追加case、Workflow Engine、自然文decision parser、完全filesystem isolationは追加しない。
+- 確認結果:
+  - Codex 0.153.4 sourceでは`exec resume`と`--output-schema`の併用が確認できる。
+  - Windows resumeでは`workspace-write`指定がread-onlyへdowngradeされる条件があるためactual write probeが必要。
+  - Codexはproject未trustでもSkill自体はloadし、project-local config / hooks / exec policyは制限され得る。PR6必須制御はrunner側で固定する。
+  - 既存Agentic QA isolationは`challenge_patch` / `answer_key`をForbidden Capabilityとして扱っている。
+  - latest `main`はPlan branchより1 commit進んでおり、`.codex/config.toml`、`package.json`、CI等に変更がある。実装開始前に取り込んで再確認する。
+- 状態:
+  - 実装、PR作成、Issue更新は未実施。
+  - Plan作成Runとして残作業なし。
+- Progress: 100% (9/9)
+
