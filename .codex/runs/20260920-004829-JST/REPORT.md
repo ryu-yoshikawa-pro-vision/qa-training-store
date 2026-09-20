@@ -193,3 +193,28 @@
   - PR本文更新。
   - Issue #117更新 / close。
 - Progress: 100% (16/16)
+
+
+## 2026-09-20 Case B capability境界の追加レビュー
+
+- 概要:
+  - Host user configを有効化してBrowser capabilityを得るfallbackを再レビューした。
+  - Codex user configはMCP server / tool設定を含み得るため、Browserだけを目的にuser config全体をcanonical Case Bへ戻すとsource-free境界を保証できないと判断した。
+  - source-free QA rootが非Git directoryであること、Required Evidenceのscreenshot実体確認がPlanに未固定だったことも確認した。
+- 反映内容:
+  - user config有効probeは診断専用へ変更し、canonical turnは全caseで`--ignore-user-config`を固定した。
+  - diagnosticでBrowserが使える場合は`browser_capability_requires_user_config`、diagnosticでも使えない場合は`browser_capability_unavailable`としてCase Bを`not_executed`にする。
+  - Scored用`tool-profiles/scored-v1.json`はGray-box / workspace-write契約と異なるため流用しない。
+  - Case B source-free QA rootは非Git directoryのままCodex標準`--skip-git-repo-check`で起動し、`git init`やshared worktreeを追加しない。
+  - Browser preflightにscreenshot / URLを追加し、screenshotを`.artifacts/agentic-qa/<case-run-id>/runner/evidence/**`のcaller指定pathへ保存できることを要求した。
+  - candidate Findingの非URL Evidence refは既存official runner evidence prefix内のregular file実体へ解決できることをrunnerが確認する。
+- 根拠:
+  - `CHALLENGE-BASIC-001.required_coverage`は`screenshot`と`url`を要求する。
+  - `assertCoverageIntegrity()`はRequired Evidence typeとref syntaxを確認するが、artifact file存在自体は確認しない。
+  - `.artifacts/**`と`.codex/runs/**`は既存Working Tree Snapshotの除外対象なので、Evidence / Run Artifactはsource diff判定と分離できる。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - PR本文更新。
+  - Issue #117更新 / close。
+- Progress: 100% (19/19)

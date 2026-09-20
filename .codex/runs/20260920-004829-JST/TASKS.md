@@ -18,6 +18,9 @@
 - [x] 14. canonical Planとplan-only Run Artifactへ6件を反映し、既知の`MD012`を修正する。
 - [x] 15. Case BのArtifact経路を再レビューし、BEFORE snapshotのQA root露出を除去する。
 - [x] 16. Case BのQA出力を既存`grayBoxFindingsSchema`由来structured outputへ固定し、Machine ContractをAgentに推測させない。
+- [x] 17. Case Bのuser config有効probeを診断専用へ変更し、canonical runへHost MCP / tool設定を持ち込まない。
+- [x] 18. 非Gitのsource-free QA rootを`--skip-git-repo-check`で起動する契約へ固定する。
+- [x] 19. Browser preflightへscreenshot / URLを追加し、official runner evidence prefix内のEvidence実体検証を追加する。
 
 ## Discovered（発見事項）
 
@@ -31,8 +34,11 @@
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
 - BEFORE snapshotにはprotected patch適用後のworking tree path / digestが入り得るため、source-free QA rootへコピーするとFinding前に実装差分を漏らす。snapshotはsource workspaceだけに保持する。
 - `grayBoxFindingsSchema`は既存Machine Contractの正本としてexport済みで、Zod 4.4.3は`z.toJSONSchema()`を提供する。Case B QAのstructured output schemaはここから生成し、最終Zod / cross-file validationを別途行う。
+- Codex user configはMCP server等を持ち得る。Browser capabilityを得る目的でuser config全体をcanonical Case Bへ戻すとsource-free境界を測れないため、user config有効probeは診断専用にする。
+- Case B source-free rootはGit repositoryである必要がない。既存Semantic EvalでもCodex標準`--skip-git-repo-check`を使って一時directoryで実行しているため、PR6でも`git init`は不要。
+- `CHALLENGE-BASIC-001`のRequired Evidenceは`screenshot` / `url`。schemaはEvidence refのsyntaxを検証するがfile existenceまでは保証しないため、runnerがofficial runner evidence prefix内のregular file実体を確認する。
 - latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。snapshot非露出とstructured QA output反映後の全体レビューで実装開始可否を再判定する。
+- なし。Evaluator実装はまだ開始しない。user config境界、非Gitroot、Evidence実体検証の反映後に全体レビューで実装開始可否を再判定する。

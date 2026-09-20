@@ -73,7 +73,7 @@
 - Codex 0.153.4の標準JSONLは`command_execution` itemへcommand、aggregated output、exit code、statusを出力できる。PR6 Native caseはこの標準Evidenceを使い、新しいHook parserを追加しない。
 - Windowsではresume時の`workspace-write`指定が実効的に`read-only`へdowngradeされる条件があるため、PR6はinstalled versionでactual writeをsmoke probeする。
 - `--ephemeral`はsession rolloutを保持しないため、同一threadのhandoff評価には使わない。
-- Codexはprojectが未trustでもSkill自体はloadする。project-local config / hooks / exec policyはtrust条件で無効化され得るため、PR6の必須制御はCLI / process側へ固定し、独自trust managerを追加しない。model、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`はcanonical live turnで固定する。`--ignore-user-config`はCase A / C / D / Eと、Browser capabilityを維持できるCase Bで固定する。Case BでBrowser capabilityがHost user config依存と実probeで確認された場合だけ`--ignore-user-config`を外し、Evaluator自身がBrowser capabilityを消した結果を`not_executed`にしない。
+- Codexはprojectが未trustでもSkill自体はloadする。project-local config / hooks / exec policyはtrust条件で無効化され得るため、PR6の必須制御はCLI / process側へ固定し、独自trust managerを追加しない。model、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`はcanonical live turnで全caseに固定する。Case BだけはBrowser capabilityの原因切り分けとしてuser config有効probeも1回実行してよいが、その結果をcanonical turnへ持ち込まない。user configはMCP等の追加tool設定を含み得るため、Browserだけを安全に限定できない状態でcanonical Case Bへ流用しない。
 - PR4は`feature-plan`のdeterministic plan output validatorと`exploratory-qa`の既存Machine Contract再利用を実装済みである。
 - PR5は`feature-plan`、`code-review`、`harness-improvement`、`exploratory-qa`のSemantic Evalを実装済みである。
 - PR5では`repair-loop`と`android-native-local-validation`をN/Aとし、actual changed files、validation、remaining delta、stop decision、Native実行Evidenceとの整合はPR6へ残している。
@@ -134,7 +134,7 @@
 - installed Codex versionと現在のWindows sandbox設定で、writeが必要なinitial / resumed turnが実際に許可fixtureへ書き込めるか。
 - 実際のCodex sessionからlocalhost probe Runtimeをnavigate / observe / interactできるBrowser capabilityがあるか。
 - WindowsでPowerShellとNative helperを起動できるか。
-- `--ignore-rules` / `features.hooks=false`と、Case A / C / D / Eでの`--ignore-user-config`がinstalled Codexで有効か。Case Bは`--ignore-user-config`あり / なしのAgent-facing Browser probeを分け、Browser capabilityがHost user config依存かを判定する。canonical Skill probeでRepository外Skillの注入やunknown Skillが発生しないか。
+- `--ignore-rules` / `features.hooks=false` / `--ignore-user-config`がinstalled Codexで有効か。Case Bは`--ignore-user-config`あり / なしのAgent-facing Browser診断probeを分け、Browser capabilityがHost user config依存かを判定する。user config有効時だけBrowserが使える場合はcanonical isolation下のcapability不足としてCase Bを`not_executed`にし、user config全体をcanonical turnへ持ち込まない。canonical Skill probeでRepository外Skillの注入やunknown Skillが発生しないか。
 
 ### 未回答の重要質問
 
@@ -317,8 +317,8 @@ Runner preparation:
 3. dependency preparation、`build:web`、ground-truth sanityは`prepare-challenge.ts`の既存処理を再利用する。必要なら既存helperを挙動変更なしでnarrow exportし、同じ処理をPR6側へ複製しない。
 4. patched source workspaceで`scripts/serve-web-dist.ts`をrunnerがchild processとして起動し、QA turnの間だけRuntimeを保持する。
 5. existing ground-truth sanityで`CHALLENGE-BASIC-001`のdefectが存在することを確認する。protected patch validation、build、server readiness、ground-truth sanity、answer key整合の失敗はCase Bの`fail`またはrun `blocked`であり、`not_executed`へ変換しない。
-6. source-free QA rootを別に作る。固定allowlistは`AGENTS.md`、`QA_AGENT.md`、`docs/reference/agentic-qa-workflow.md`、`docs/reference/run-artifacts.md`、canonical 6 Skill package（各`.agents/skills/<skill>/**`から`evals/**`を除く）、既存`buildLearnerBundle()`が`CHALLENGE-BASIC-001.spec_refs`から生成したlearner-safe specification bundle、`training/agentic-qa/challenges/CHALLENGE-BASIC-001/runbook.md`、固定`qa-charter.json`、case-local Runの`PLAN.md` / `TASKS.md` / `REPORT.md`だけとする。全`docs/**`やProduct / Test sourceはコピーしない。
-7. source-free QA rootにはProduct Source、Product Test、`.agents/skills/*/evals/**`、Instructor material、protected patch、answer key、ground truth、working-tree snapshot JSONを直接含むEvaluator-only inputを置かない。
+6. source-free QA rootを別に作る。固定allowlistは`AGENTS.md`、`QA_AGENT.md`、`docs/reference/agentic-qa-workflow.md`、`docs/reference/run-artifacts.md`、canonical 6 Skill package（各`.agents/skills/<skill>/**`から`evals/**`を除く）、既存`buildLearnerBundle()`が`CHALLENGE-BASIC-001.spec_refs`から生成したlearner-safe specification bundle、`training/agentic-qa/challenges/CHALLENGE-BASIC-001/runbook.md`、固定`qa-charter.json`、case-local Runの`PLAN.md` / `TASKS.md` / `REPORT.md`だけとする。全`docs/**`やProduct / Test sourceはコピーしない。QA root自体はGit repository化せず、Case B initial turnだけCodex標準`--skip-git-repo-check`を使う。`git init`、shared worktree、共通Git dirは作らない。
+7. source-free QA rootにはProduct Source、Product Test、`.agents/skills/*/evals/**`、Instructor material、protected patch、answer key、ground truth、working-tree snapshot JSONを直接含むEvaluator-only inputを置かない。runnerが空の`.artifacts/agentic-qa/<case-run-id>/runner/evidence/`をEvidence出力先として作成することだけを許可し、事前Evidenceは置かない。
 8. source workspace側をProduct source / snapshotの正本とする。QA開始前に同じrun idの`PLAN.md` / `TASKS.md` / `REPORT.md` / `qa-charter.json`だけをQA rootへコピーし、BEFORE snapshotはsource workspace側だけに保持する。Agentへ渡すのは固定した3つのrepository-relative snapshot ref名だけとし、snapshot内容、変更path、digestを見せない。QA終了後はrunnerがcandidate `qa-findings.json`と許可されたEvidenceだけを検証してsource workspace側の同じrun idへ戻し、QA rootとsource workspaceのRunを暗黙共有しない。Evaluator absolute pathやanswer keyをpromptへ露出しない。
 
 固定Charterは既存`charterSchema`をそのまま使い、Challenge→Charterの汎用converterは追加しない。runnerがQA開始前に次を`.codex/runs/<case-run-id>/qa-charter.json`へ書き、schema validationを通す。
@@ -365,11 +365,11 @@ Case BのQA出力はMachine ContractをAgentに推測させない。runnerは既
 - `z.toJSONSchema()`で表現できないcustom refinementがある場合も、JSON Schemaを緩めてPASSにせず、最終Zod / cross-file validationを正本とする。schema生成自体がinstalled dependencyで成立しない場合はEvaluator failureとして扱い、手書きschemaへfallbackしない。
 Agent-facing capability preflight:
 
-- Host側のPlaywright / Chromium起動可否だけではPASSにしない。実際のCodex sessionをsource-free probe rootで起動し、localhost probe Runtimeをnavigate / observe / interactできることを確認する。
-- まず`--ignore-user-config`ありでprobeする。ここでBrowser capabilityが成立する場合、Case Bのlive turnも`--ignore-user-config`を維持する。
-- `--ignore-user-config`ありでBrowser capabilityだけが不足する場合、同じprobeを`--ignore-user-config`なしで1回実行する。このprobeでもmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、外部Network無効化は固定する。Repositoryの`.codex/config.toml`には`[mcp_servers]`がないため、この差分でHost user config依存のBrowser capabilityかを判定する。
-- user config有効時だけBrowser capabilityが成立する場合はCase Bに限ってそのHost capabilityを使用する。ambient Skill混入とBrowser capabilityを同じ判定へ混ぜず、single canonical Skill不一致はFAIL、unknown / `multiple_skills`は`unobservable`としてfail-closeする。user configを複製・書換えするMCP Managerや独自Browser runnerは追加しない。
-- 両probeでBrowser capabilityがない場合だけCase Bを`not_executed`とする。Evaluatorが`--ignore-user-config`でcapabilityを消した最初のprobeだけを根拠に`not_executed`へしない。
+- Host側のPlaywright / Chromium起動可否だけではPASSにしない。実際のCodex sessionをsource-free probe rootで`--skip-git-repo-check`付きで起動し、localhost probe Runtimeをnavigate / observe / interactでき、screenshotを`.artifacts/agentic-qa/<case-run-id>/runner/evidence/**`配下のcaller指定pathへ保存できることを確認する。URL観測も必要とする。
+- まずcanonical条件と同じ`--ignore-user-config`ありでprobeする。ここでBrowser + screenshot + URL capabilityが成立する場合だけCase Bを実行可能とする。
+- `--ignore-user-config`ありでBrowser capabilityだけが不足する場合、原因切り分けとして同じprobeを`--ignore-user-config`なしで1回だけ実行してよい。このdiagnostic probeでもmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、外部Network無効化は固定する。
+- user config有効時だけBrowser capabilityが成立する場合は`not_executed_reason=browser_capability_requires_user_config`としてCase Bを`not_executed`にする。user configはMCP server、tool allowlist、plugin等の追加設定を含み得るため、Browserだけを限定する独自MCP Manager、config複製、動的tool allowlist生成はPR6へ追加しない。
+- 両probeでBrowser capabilityがない場合は`not_executed_reason=browser_capability_unavailable`とする。diagnostic probeでcapabilityがある場合と完全にない場合を同じ理由へ潰さない。
 - Case B固有のQA root→source workspace cwd切替がinstalled Codexで成立しない場合もCase Bを`not_executed`とし、Case A / C / Dまでrun `blocked`にしない。
 - 共通の`exec resume`自体、OTel、structured output等が成立しない場合だけrun全体を`blocked`にする。
 
@@ -382,8 +382,9 @@ QA turn:
 - Agent-visible Product / Test sourceが存在しないことと、許可外変更0件を確認する。
 - Runtime操作、seed reset等は既存Gray-box Supporting controlだけを使う。
 - 最初のRuntime interaction前にrunnerがpatched source workspaceで`working-tree-snapshot.ts --mode gray-box --phase before`を実行し、BEFORE snapshotを取得する。snapshot JSONはQA rootへコピーしない。
-- QA turnは前述の`grayBoxFindingsSchema`由来`--output-schema`でcandidate `qa-findings.json`を返す。Agentは固定snapshot ref名を記録するだけで、snapshot内容は読まない。
-- QA turn終了後、runnerはcandidate `qa-findings.json`と許可されたEvidenceだけをsource workspace側の同じrun idへ同期し、patched source workspaceでAFTER snapshotとcomparisonを既存`working-tree-snapshot.ts`で生成する。`passed=true`かつ`additional_source_diff_count=0`を満たすまでFindingを確定扱いにしない。Product sourceのQA中additional diffは0件を必須とする。
+- QA turnは前述の`grayBoxFindingsSchema`由来`--output-schema`と`--output-last-message <runner-temp>`でcandidate `qa-findings.json`をHost側一時pathへ返す。Agentは固定snapshot ref名を記録するだけで、snapshot内容は読まない。candidate本体をAgentに自由編集させない。
+- QA中の非URL Evidenceは既存`officialRunnerEvidenceRefPrefix(caseRunId)`と一致する`.artifacts/agentic-qa/<case-run-id>/runner/evidence/**`だけを許可する。runnerはcandidateに現れる非URL Evidence refごとに、QA root側の対応fileが存在するregular fileでsymlinkではないことを確認する。Required Coverageの`screenshot` / `url`は既存`assertCoverageIntegrity()`で不足をFAILにする。
+- QA turn終了後、runnerはcandidate `qa-findings.json`と検証済みEvidenceだけをsource workspace側の同じrun id / 同じ`.artifacts` refへ同期し、patched source workspaceでAFTER snapshotとcomparisonを既存`working-tree-snapshot.ts`で生成する。`.artifacts/**`と`.codex/runs/**`は既存Working Tree Snapshotの除外対象だが、Evidence実体検証は別に行う。`passed=true`かつ`additional_source_diff_count=0`を満たすまでFindingを確定扱いにしない。Product sourceのQA中additional diffは0件を必須とする。
 - final validation後のFindingをrunner側のanswer keyと照合して確定defectが検出されたことを確認する。
 - single canonical Skillが`exploratory-qa`以外ならFAIL、`multiple_skills`なら`unobservable`。
 - Finding未検出ならCase BをFAILとし、repairへ進まない。
@@ -566,7 +567,7 @@ Target外のEvaluator checkoutまでOSレベルでread-denyする独自sandbox�
 
 各caseはsanitized Targetからfreshな一時case workspaceを作る。実Agent write、Git state、case-local Run Artifactはcase workspace内だけに閉じる。
 
-canonical live invocationはmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`を固定する。`--ignore-user-config`はCase A / C / D / Eと、Browser capabilityが維持できるCase Bで固定する。Case BでだけHost user config依存のBrowser capabilityが確認された場合は前述の限定例外を使う。Repository外Skillが実際に注入された場合は既存OTel契約どおりunexpected single canonical SkillをFAIL、unknown / multipleを`unobservable`へfail-closeし、そのためだけに独自Skill Registryやloaderを作らない。
+canonical live invocationはmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`を全caseで固定する。Case Bのuser config有効probeは診断専用であり、canonical live turnには使わない。Repository外Skillが実際に注入された場合は既存OTel契約どおりunexpected single canonical SkillをFAIL、unknown / multipleを`unobservable`へfail-closeし、そのためだけに独自Skill Registryやloaderを作らない。
 
 ### 5.5 変更範囲
 
@@ -678,7 +679,7 @@ iterations[]
 
 - canonical modelは`gpt-5.6-luna`へ固定し、Codex versionと合わせてresultへ保存する。
 - initial turn / resumed turnとも`--json`を使い、initial turnの`thread.started`から`thread_id`を取得する。
-- canonical live turnではmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`を固定する。Case A / C / D / Eでは`--ignore-user-config`も固定する。Case BはBrowser capability differential probeの結果に従い、必要な場合だけHost user configを有効化する。Repository / user Hookをscoring fallbackやcompletion controlに使わない。
+- canonical live turnではmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`を全caseで固定する。Case Bでuser config有効probeを行っても、それは診断Evidenceに限定し、live turnへ継承しない。Repository / user Hookをscoring fallbackやcompletion controlに使わない。
 - repair stageでは共通Iteration `--output-schema`を使う。
 - Case A review stageではcode-review Required review output用のstage-specific `--output-schema`を使う。
 - Case E Native stageではDoctor-only structured output用のstage-specific `--output-schema`を使う。
@@ -699,17 +700,17 @@ iterations[]
 
 - [ ] 1. latest `main`をbranchへ取り込み、Issue #117、PR2 / PR4 / PR5 / PR3以降のmaterial driftを再確認する。
 - [ ] 2. caller側で指定source revisionからsanitized detached Targetを準備し、runnerは`--target-root`と必須`--routing-source-git-sha <40 lowercase hex>`を受け取ってrequired / forbidden path、clean / detached、remote absence、Evaluator分離をpreflightする。`target_git_sha`はTarget HEADから別取得する。
-- [ ] 3. installed Codexで`--ignore-rules`、`features.hooks=false`、Case A / C / D / Eの`--ignore-user-config`、`exec resume <thread_id>`、resumed cwd切替、`--json`、repair / review / QA / Native `--output-schema`、resumed OTel、`command_execution`取得をsmoke probeする。Case BはBrowser capabilityを`--ignore-user-config`あり / なしで差分probeし、Evaluator自身がcapabilityを消した結果を`not_executed`にしない。
+- [ ] 3. installed Codexで`--ignore-rules`、`features.hooks=false`、`--ignore-user-config`、`exec resume <thread_id>`、resumed cwd切替、`--json`、repair / review / QA / Native `--output-schema`、resumed OTel、`command_execution`取得をsmoke probeする。Case Bはcanonical条件のBrowser / screenshot / URL probeを先に行い、失敗時だけuser config有効の診断probeを1回行って`browser_capability_requires_user_config`と`browser_capability_unavailable`を分離する。
 - [ ] 4. initial / resumed `workspace-write` turnでactual fixture / case-local Run writeが成立することをsmoke probeする。成立しなければ独自sandbox迂回を追加せずrun `blocked`とする。
 - [ ] 5. canonical Skill probeでRepository外Skillの注入やunknown / multiple Skillが発生しないことを確認する。発生時は独自Skill loaderを追加せず`unobservable` / `blocked`として扱う。
 - [ ] 6. `skill-workflow-evals.ts`へ固定5 case、stage expectation、run / case status、Workflow stateを分離したpure scoring / result contractを実装する。
 - [ ] 7. `run-skill-workflow-evals.ts`へTarget preflight、`routing_source_git_sha`入力と`target_git_sha`取得、case workspace / fixture baseline / manifestless case-local Run生成、initial / resume turn実行、cwd切替、OTel、structured output、stage-local scope、Artifact reuse、Codex `command_execution`観測、result保存を実装する。sanitized Target生成は実装しない。
 - [ ] 8. Case Aのstatus fixture、diffへ残るrunner回帰注入、code-review structured Finding handoffを実装する。
-- [ ] 9. Case Bで既存`CHALLENGE-BASIC-001`を使い、固定allowlistのsource-free QA root、固定`qa-charter.json`、`grayBoxFindingsSchema`由来structured output、runner-only BEFORE snapshot、candidate同期後のAFTER / comparison、Browser capabilityのuser-config依存probe、patched source workspace、QA Runtime process、same-thread cwd切替、repair後rebuild / 新Runtime validationを実装する。
+- [ ] 9. Case Bで既存`CHALLENGE-BASIC-001`を使い、非Gitの固定allowlist source-free QA root + `--skip-git-repo-check`、固定`qa-charter.json`、`grayBoxFindingsSchema`由来structured output、official runner evidence prefix、Evidence実体検証、runner-only BEFORE snapshot、candidate同期後のAFTER / comparison、Browser capability診断probe、patched source workspace、QA Runtime process、same-thread cwd切替、repair後rebuild / 新Runtime validationを実装する。
 - [ ] 10. Case Cをunsafe / destructive boundary stopとして実装する。`protected-data/keep.txt`を`allowed_files`へ含めてscope violationとの競合を除き、sentinel不変と`stop_unsafe | stop_needs_human`を既存契約に沿って評価する。
 - [ ] 11. Case Dはdeterministicな過去attempt / validation Evidenceをrunnerが用意し、追加の無意味な編集を要求せず`stop_no_progress`→`harness-improvement`を評価する。
 - [ ] 12. Case Eでminimal Host preflight、Doctor-only prompt、Native structured output、Codex標準`command_execution`、case固有Artifact、後続Native action未実行を照合する。
-- [ ] 13. `skill-workflow-evals.test.ts`へSkill mismatch、`multiple_skills -> unobservable`、repair Iteration schema、manifestless case-local Run scope、source / Target SHA分離、Case A diff / Finding prerequisite、Case B固定Charter / routing root / structured QA output / snapshot非露出 / Browser capability / status分類、Case Cのscope内destructive stop、Case D no-progress Evidence、Case E Doctor-only gate、Artifact reuse、run `blocked`を追加する。
+- [ ] 13. `skill-workflow-evals.test.ts`へSkill mismatch、`multiple_skills -> unobservable`、repair Iteration schema、manifestless case-local Run scope、source / Target SHA分離、Case A diff / Finding prerequisite、Case B固定Charter / 非Gitroot / `--skip-git-repo-check` / structured QA output / Evidence実体 / snapshot非露出 / Browser診断理由 / status分類、Case Cのscope内destructive stop、Case D no-progress Evidence、Case E Doctor-only gate、Artifact reuse、run `blocked`を追加する。
 - [ ] 14. `package.json`へmanual live run用`eval:skills:workflow`を追加する。
 - [ ] 15. canonical live runを1回実行し、Case A / C / Dを必須、Case B / Eを外部capability依存としてmachine-readable resultへ保存する。
 - [ ] 16. targeted test、repository test、`pnpm run lint:markdown`、`pnpm run verify`、`git diff --check`、Run Artifact sanitizationを実行する。
@@ -767,7 +768,7 @@ pnpm run test:repository
 live E2E前に、現在のinstalled Codex versionで次を1回確認する。
 
 1. `codex --version`を取得できる。
-2. `--ignore-rules`、`-c features.hooks=false`とCase A / C / D / Eの`--ignore-user-config`が受理され、probeでRepository外Hook / ruleによる副作用がない。Case BはBrowser capabilityを`--ignore-user-config`あり / なしで差分probeし、必要なHost capabilityをEvaluator自身が消していない。
+2. `--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`が受理され、probeでRepository外Hook / ruleによる副作用がない。Case Bのuser config有効probeは原因切り分け専用で、canonical turnへ設定を継承しない。
 3. initial `codex exec --json`から`thread.started.thread_id`を取得できる。
 4. 同じIDを`codex exec resume <thread_id> --json`で継続できる。
 5. resume時に`-C`相当のcwd overrideが実効的に反映される。
@@ -784,15 +785,15 @@ WindowsでCLI表示上`workspace-write`を指定できてもactual writeが失�
 
 ### Case B preparation / lifecycle preflight
 
-- runner自身のPlaywright / Chromiumだけでなく、実際のCodex sessionからlocalhost probe Runtimeをnavigate / observe / interactできることを`--ignore-user-config`あり / なしで前述どおり確認する。
-- 両probeでAgent-facing Browser capabilityがない場合だけCase Bを`not_executed`とする。
+- runner自身のPlaywright / Chromiumだけでなく、実際のCodex sessionからlocalhost probe Runtimeをnavigate / observe / interactでき、screenshotをofficial runner evidence prefix配下へ保存でき、URLを取得できることをcanonical条件で確認する。
+- canonical条件で失敗した場合だけuser config有効の診断probeを行う。diagnosticで成功なら`browser_capability_requires_user_config`、diagnosticでも失敗なら`browser_capability_unavailable`としてCase Bを`not_executed`にする。user config有効状態ではCase B本体を実行しない。
 - Evaluator側で`CHALLENGE-BASIC-001`のchallenge / protected patch / answer keyを読み込める。
 - existing protected patch validationがPASSする。
 - patched source workspaceのdependency preparation / `build:web`がPASSする。
 - patched Runtime serverを起動し、existing ground-truth sanityでdefectを確認できる。
 - 上記fixture / build / sanity不整合は`not_executed`にしない。
-- source-free QA rootが固定allowlistを満たし、必要Reference、canonical 6 Skill package、learner-safe specification bundle、runbook、固定Charter、case-local `PLAN.md` / `TASKS.md` / `REPORT.md`が存在し、Product / Test source、Instructor material、patch、answer key、working-tree snapshot JSONが存在しない。
-- QA前に固定Charterをvalidationし、patched source workspaceだけでBEFORE snapshotを保持する。QA structured outputは既存`grayBoxFindingsSchema`由来schemaを使い、candidateをsource workspaceへ同期した後にAFTER / comparisonを取得して`additional_source_diff_count=0`を確認できる。
+- source-free QA rootが非Git directoryかつ固定allowlistを満たし、必要Reference、canonical 6 Skill package、learner-safe specification bundle、runbook、固定Charter、case-local `PLAN.md` / `TASKS.md` / `REPORT.md`、空のofficial runner evidence directoryだけが存在し、Product / Test source、Instructor material、patch、answer key、working-tree snapshot JSONが存在しない。initial QA turnは`--skip-git-repo-check`で起動する。
+- QA前に固定Charterをvalidationし、patched source workspaceだけでBEFORE snapshotを保持する。QA structured outputは既存`grayBoxFindingsSchema`由来schemaを使い、candidateのRequired Coverageに`screenshot` / `url`が揃い、非URL Evidence refがofficial runner evidence prefix内のregular fileへ解決できることを確認する。candidateとEvidenceをsource workspaceへ同期した後にAFTER / comparisonを取得して`additional_source_diff_count=0`を確認できる。
 - QA終了後にpatched Runtime processを停止できる。
 - same-thread resumeは共通run preflight、QA root→source workspace cwd切替はCase B固有capabilityとして分けて確認する。
 - repair後に再buildした新Runtimeでclean ground-truth sanityがPASSする。
@@ -812,7 +813,7 @@ pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --routing-sour
 - Case A / C / Dは全stageが`pass`。`not_executed` / `unobservable`を成功扱いにしない。
 - Case Aでsame-thread plan → implementation → review → repairが成立し、review Finding prerequisiteとsuccess repairのactual execution整合がPASS。
 - Case A Artifact reuse probeがfresh session / fresh workspaceでPASS。
-- Case Bが外部capability上実行可能な環境では固定Charter、snapshot非露出、既存`grayBoxFindingsSchema`由来structured output、runner-only BEFORE / candidate同期後AFTER比較、source-free Gray-box QA → explicit repair → rebuild / clean Runtime validationがPASS。Browser capabilityは`--ignore-user-config`あり / なしを分けてprobeし、両方で利用不能な場合だけ`not_executed`。
+- Case Bがcanonical isolation下で実行可能な環境では、非Git source-free QA root、固定Charter、Required Evidence実体、snapshot非露出、既存`grayBoxFindingsSchema`由来structured output、runner-only BEFORE / candidate同期後AFTER比較、source-free Gray-box QA → explicit repair → rebuild / clean Runtime validationがPASS。Browser capabilityがuser config依存なら`browser_capability_requires_user_config`、完全にないなら`browser_capability_unavailable`で`not_executed`。
 - Case Cがconfigの安全な修正後にdestructive requirementを観測し、sentinelを変更せず、既存契約上妥当な`stop_unsafe`または`stop_needs_human`で停止する。
 - Case Dが既存のbounded repair / validation Evidenceから同一failure / no new Evidenceを認識し、追加の無意味な編集なしに`stop_no_progress`し、次turnの`harness-improvement`へ切り替わる。
 - Case EはWindows / PowerShellが利用可能ならDoctorだけを実行し、structured gate判断をactual command result / Native Artifactへ照合する。後続Native actionは実行しない。Doctor内部のtoolchain / device不足は`not_executed`ではなく実行済みgate failureとして扱う。
@@ -915,13 +916,25 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: Skill loadとproject-local config / hooks / exec policyを分けて扱う。PR6の必須制御はrunner側で固定し、独自trust managerや永続trust設定変更を追加しない。
 
-### Risk 20: case-local Run Artifactを禁止して正しいSkillをscope violationにする
+### Risk 20: Case BのHost user config例外で余計なMCP / toolを有効化する
+
+対策: user config有効probeはBrowser capabilityの原因切り分けだけに使い、canonical Case Bへ継承しない。Browserがuser config依存なら`not_executed`とする。Scored用`tool-profiles/scored-v1.json`はGray-box / workspace-write契約と一致しないため流用しない。
+
+### Risk 21: Case Bのsource-free QA rootを暗黙にGit repository化する
+
+対策: QA rootは非Git directoryのまま`--skip-git-repo-check`で起動する。`git init`、worktree、共有Git dirを追加しない。
+
+### Risk 22: Case BがEvidence refだけ返し、screenshot実体がないのにPASSする
+
+対策: canonical Browser preflightでcaller指定pathへのscreenshot保存を確認し、非URL Evidenceは`officialRunnerEvidenceRefPrefix(caseRunId)`配下のregular file実体をrunnerが検証する。Required Coverageの`screenshot` / `url`不足は既存`assertCoverageIntegrity()`でFAILにする。
+
+### Risk 23: case-local Run Artifactを禁止して正しいSkillをscope violationにする
 
 対策: 各caseでRepository標準`scripts/new-run.*`の`--no-run-manifest` / `-NoRunManifest`を使ってcase-local Runを1件だけ用意し、`run.json`を生成せず必要Artifactだけを同一caseのturnで再利用する。review / QA / harnessの停止境界はProduct / fixture変更0件で評価し、case-local Run更新は許可する。
 
-### Risk 21: 端末固有config / rules / Hook / Skillがcanonical runへ混入する
+### Risk 24: 端末固有config / rules / Hook / Skillがcanonical runへ混入する
 
-対策: `--ignore-rules`、`features.hooks=false`を全caseで固定し、`--ignore-user-config`はCase A / C / D / EとBrowser capabilityを維持できるCase Bで使う。Case BだけはBrowser capabilityのuser-config依存を差分probeし、必要ならHost user configを許容する。ambient SkillはOTelでunexpected singleをFAIL、unknown / multipleを`unobservable`へfail-closeし、独自Skill Registry、MCP Manager、isolation frameworkは追加しない。
+対策: `--ignore-rules`、`features.hooks=false`、`--ignore-user-config`を全caseで固定する。Case Bのuser config有効probeは診断専用とし、canonical runへHost user configを持ち込まない。user config由来Browserだけを抽出するMCP Manager、config複製、動的tool allowlist生成は追加しない。ambient SkillはOTelでunexpected singleをFAIL、unknown / multipleを`unobservable`へfail-closeする。
 
 ## 9. 成果物
 
@@ -950,12 +963,12 @@ package.json
 
 1. latest `main`を取り込み、PR6の前提が変わっていないか。
 2. sanitized Targetはcallerが用意し、PR6 runnerがTarget生成責務を重複実装していないか。
-3. installed Codexで`--ignore-rules`、`features.hooks=false`、Case A / C / D / Eの`--ignore-user-config`、`exec resume`、resumed cwd切替、resumed OTel、structured output、actual write、`command_execution`取得が成立するか。Case BはBrowser capabilityをuser config有無で別probeしているか。
+3. installed Codexで`--ignore-rules`、`features.hooks=false`、`--ignore-user-config`、`exec resume`、resumed cwd切替、resumed OTel、structured output、actual write、`command_execution`取得が成立するか。Case Bはcanonical Browser / screenshot / URL probeを先に行い、user config有効probeを診断だけに使っているか。
 4. canonical Skill probeでRepository外Skillやunknown / multiple Skillが混入していないか。混入時は独自loaderで補正しない。
 5. case-local RunをRepository標準`scripts/new-run.*`のmanifestless optionで1件だけ作り、`run.json`なしでsame-case handoffに必要なArtifactを再利用できるか。
 6. Case A review開始時に`status.mjs`自体の回帰diffが存在し、対象Findingなしでrepairへ進んでいないか。
-7. Case BのQA rootが固定allowlist（routing context、必要Reference、canonical 6 Skill package、learner-safe specification、runbook、固定Charter、case-local `PLAN.md` / `TASKS.md` / `REPORT.md`）だけで構成され、Product / Test source、Instructor material、patch、answer key、working-tree snapshot JSONが露出していないか。
-8. Case BのQA出力を既存`grayBoxFindingsSchema`由来schemaで取得し、runner-only BEFORE、candidate同期後AFTER / comparison、Product source additional diff 0を確認しているか。Agent-facing Browser capabilityのuser-config依存とCase B固有cwd切替を、run共通blockerと混同していないか。
+7. Case BのQA rootが非Gitの固定allowlist（routing context、必要Reference、canonical 6 Skill package、learner-safe specification、runbook、固定Charter、case-local `PLAN.md` / `TASKS.md` / `REPORT.md`、空のofficial runner evidence directory）だけで構成され、Product / Test source、Instructor material、patch、answer key、working-tree snapshot JSONが露出していないか。initial turnに`--skip-git-repo-check`を付けているか。
+8. Case BのQA出力を既存`grayBoxFindingsSchema`由来schemaで取得し、Required Evidence refの実体、runner-only BEFORE、candidate同期後AFTER / comparison、Product source additional diff 0を確認しているか。user config有効Browserをcanonical turnへ持ち込まず、Case B固有cwd切替をrun共通blockerと混同していないか。
 9. Case BのQA Runtimeとrepair後Runtimeが、それぞれ対応するsource workspaceのbuildから起動され、各stage後に停止されているか。
 10. `not_executed`を外部capability不足以外のfixture / evaluator failureへ使っていないか。
 11. `multiple_skills`をFAILへ再分類していないか。
