@@ -141,6 +141,14 @@ Ubuntu側の `test:contracts` にも既存contractが含まれる。
 
 今回、同じテストを別CI jobとして重複実行することは目的にしない。新しいcontract testを追加した場合は既存のHook focused jobと通常contractsのどちらへ含めるかを確認し、必要最小限の変更だけ行う。
 
+CIでの追加方針は次とする。
+
+- Ubuntu: 既存`Vitest (contracts)`がHook contract fileを含むため、Hook testを別jobで再実行しない。`matrix.suite == 'contracts'`のときだけ`pnpm run diagnose:hooks`を追加実行する。
+- Windows: 既存`Codex Hook contract (Windows)`のfocused commandを`pnpm run test:hooks`へ置き換え、続けて`pnpm run diagnose:hooks`を実行する。
+- `diagnose:hooks`はCI上でstate fileが存在しない場合も正常終了する。stateが存在する場合だけ構造を検証する。
+- `Host project binding`、Codex UI表示、実sessionで選択されたconfigはCIで検証不能なため、`未確認`表示をfailureにしない。
+- CI jobの新設や同じcontractの二重実行は行わない。
+
 ### 2.4 `baseline_state` の問題
 
 現行Hookでは複数のstate読込・整合性エラーが `baseline_state` に集約されるため、Codex UI上の次の表示だけでは原因を特定できない。
@@ -200,6 +208,7 @@ Host / session
 
 ```text
 package.json
+.github/workflows/ci.yml
 scripts/diagnose-codex-hooks.ts
 tests/contracts/codex-hook-diagnostics.test.ts
 tests/contracts/codex-hook-contract.test.ts
@@ -357,7 +366,64 @@ pnpm run test:hooks
   - Repository側を変更しない。
   - Host / session project binding問題として分離する。
 
-### Task 8: 運用ドキュメントを更新する
+### Task 8: CIへ組み込む
+
+`.github/workflows/ci.yml` の既存jobを最小変更する。
+
+#### Ubuntu
+
+既存 `Vitest (contracts)` は `pnpm run test:contracts` を実行し、Hook contract fileも含む。
+
+そのためHook test専用jobは追加しない。
+
+`matrix.suite == 'contracts'` の場合だけ、contract完了後に次を追加する。
+
+```bash
+pnpm run diagnose:hooks
+```
+
+これによりUbuntuでは次を検証する。
+
+- Hook contract全体
+- diagnostic commandのLinux実行可能性
+- Repository config / script path / state診断
+- diagnostic commandがCIのclean checkoutでstate 0件を正常扱いすること
+
+#### Windows
+
+既存 `Codex Hook contract (Windows)` jobを利用する。
+
+現在の直接Vitest commandを次へ置き換える。
+
+```bash
+pnpm run test:hooks
+```
+
+続けて次を実行する。
+
+```bash
+pnpm run diagnose:hooks
+```
+
+これによりWindowsでは次を検証する。
+
+- `test:hooks` entry point自体
+- Windows configured launcher
+- diagnostic commandのWindows実行可能性
+- Windows path / PowerShell環境でのRepository診断
+
+#### CI成功条件
+
+- `test:hooks` / Hook contractがexit 0。
+- `diagnose:hooks`がRepository側の異常を検出した場合は非0終了。
+- state fileが0件なら正常終了。
+- Host / session project bindingが確認不能でも正常終了。
+- OS非対応項目は`N/A`として正常扱いし、実際の異常と混同しない。
+- secret、payload、raw session ID、absolute user pathをCI logへ出さない。
+
+既存required job名は変更しない。新規job追加によってrequired check設定の変更を発生させない。
+
+### Task 9: 運用ドキュメントを更新する
 
 `docs/reference/codex-safety-harness.md` へ必要最小限を追記する。
 
@@ -399,6 +465,15 @@ git diff --check
 
 変更範囲に応じて `pnpm run verify` も実行する。
 
+### CI
+
+GitHub Actions上でも次を確認する。
+
+- Ubuntu `Vitest (contracts)`: Hook contractを既存`test:contracts`経路で実行し、その後`pnpm run diagnose:hooks`を実行する。
+- Windows `Codex Hook contract (Windows)`: `pnpm run test:hooks`と`pnpm run diagnose:hooks`を実行する。
+- 既存required job名とaggregate gateを維持する。
+- PR上の最新headで両jobが成功していることを確認する。
+
 ### Windows
 
 既存 `Codex Hook contract (Windows)` と同条件でfocused contractを確認する。
@@ -429,6 +504,10 @@ fixture Repositoryで `diagnose:hooks` 実行前後を比較し、少なくと�
 - diagnostic commandがRepositoryを変更しない。
 - secret / prompt / raw payload / raw session IDを診断出力へ出さない。
 - Ubuntu / Windowsの既存Hook contractが成功する。
+- GitHub Actions上でもHook contractと`diagnose:hooks`を実行し、ローカルだけで成立する検証にしない。
+- Ubuntuでは既存`Vitest (contracts)`経路でHook contractを維持し、contracts実行後に`pnpm run diagnose:hooks`を実行する。
+- Windowsでは既存`Codex Hook contract (Windows)` jobから`pnpm run test:hooks`と`pnpm run diagnose:hooks`を実行する。
+- CI上でtext quality state fileが0件であることは正常状態として扱う。
 - Host project bindingはRepository診断と分離されている。
 
 ## 7. リスクと未解決論点
