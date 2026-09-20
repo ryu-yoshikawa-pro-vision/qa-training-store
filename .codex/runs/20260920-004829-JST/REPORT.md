@@ -169,3 +169,27 @@
   - PR本文更新。
   - Issue #117更新 / close。
 - Progress: 100% (14/14)
+
+
+## 2026-09-20 Case B Artifact経路の追加レビュー
+
+- 概要:
+  - 前checkpoint後にCase Bのsource-free QA rootとWorking Tree Snapshot経路を再確認した。
+  - BEFORE snapshotをQA rootへコピーすると、protected patch適用後の変更path / digestをFinding確定前のAgentへ露出し得るため、source-free境界と矛盾すると判定した。
+  - QA rootから`scripts/agentic-qa/contracts.ts`を除外したまま`qa-findings.json`を自由生成させると、Repository固有Machine ContractをAgentに推測させることも確認した。
+- 反映内容:
+  - BEFORE snapshotをpatched source workspaceだけに保持し、QA rootへworking-tree snapshot JSONを置かない契約へ修正した。
+  - Agentへは3つの固定snapshot ref名だけを渡し、snapshot内容は見せない。
+  - Case B QA turnは既存`grayBoxFindingsSchema`を正本としてZod 4の`z.toJSONSchema()`から一時schemaを生成し、Codex `--output-schema`でcandidate `qa-findings.json`を取得する契約へ修正した。
+  - candidateは構造 / identityだけ先に検証し、source workspaceへ同期後にAFTER / comparisonを生成して既存Working Tree Snapshot validationを通した場合だけ確定Findingとする。
+  - 手書きのCase B専用Machine Contract、Supporting Harness sourceのAgent-visibleコピー、schema fallbackは追加しない。
+- 根拠:
+  - `working-tree-snapshot.ts`は`collectWorkingTreeEntries()`を使い、Product working treeのpathとdigestをsnapshotへ記録する。
+  - `.codex/runs/**`はWorking Tree Snapshotの除外prefixなので、candidate `qa-findings.json`追加自体はadditional source diffへ数えない。
+  - `validateWorkingTreeSnapshots()`はfinal validation時にsnapshot file existenceとidentityを確認するため、QA turn中にsnapshot JSONをAgentへ見せる必要はない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - PR本文更新。
+  - Issue #117更新 / close。
+- Progress: 100% (16/16)

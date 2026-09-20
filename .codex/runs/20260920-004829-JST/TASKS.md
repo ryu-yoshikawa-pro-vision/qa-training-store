@@ -16,6 +16,8 @@
 - [x] 12. PR #168 headとlatest `main`を再取得し、head不変・behind 1と最新差分のmaterial driftを確認する。
 - [x] 13. 最新レビュー6件をRepository契約へ照合し、Case B Browser / Charter / snapshot / allowlist、Case C scope、provenance、manifestless Runの修正方針を確定する。
 - [x] 14. canonical Planとplan-only Run Artifactへ6件を反映し、既知の`MD012`を修正する。
+- [x] 15. Case BのArtifact経路を再レビューし、BEFORE snapshotのQA root露出を除去する。
+- [x] 16. Case BのQA出力を既存`grayBoxFindingsSchema`由来structured outputへ固定し、Machine ContractをAgentに推測させない。
 
 ## Discovered（発見事項）
 
@@ -27,8 +29,10 @@
 - sanitized TargetのHEADはsynthetic revisionなので、original routing source SHAはCLI入力、Target SHAはTarget HEADから別取得する。
 - Case B source-free rootは`AGENTS.md` / `QA_AGENT.md`に加えて`docs/reference/agentic-qa-workflow.md` / `docs/reference/run-artifacts.md`を必要とする。
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
+- BEFORE snapshotにはprotected patch適用後のworking tree path / digestが入り得るため、source-free QA rootへコピーするとFinding前に実装差分を漏らす。snapshotはsource workspaceだけに保持する。
+- `grayBoxFindingsSchema`は既存Machine Contractの正本としてexport済みで、Zod 4.4.3は`z.toJSONSchema()`を提供する。Case B QAのstructured output schemaはここから生成し、最終Zod / cross-file validationを別途行う。
 - latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。Plan反映後の全体レビューで実装開始可否を再判定する。
+- なし。Evaluator実装はまだ開始しない。snapshot非露出とstructured QA output反映後の全体レビューで実装開始可否を再判定する。
