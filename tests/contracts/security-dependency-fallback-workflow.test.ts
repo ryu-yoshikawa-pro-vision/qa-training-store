@@ -1,0 +1,220 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { parse } from "yaml";
+import { describe, expect, it } from "vitest";
+
+const workflow = readFileSync(".github/workflows/security-dependency-fallback.yml", "utf8");
+const config = JSON.parse(readFileSync(".github/opencode/security-fallback.json", "utf8")) as {
+  model?: string;
+  small_model?: string;
+  formatter?: boolean;
+  lsp?: boolean;
+  permission?: Record<string, unknown>;
+};
+const allWorkflowSource = readdirSync(".github/workflows")
+  .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+  .map((file) => readFileSync(`.github/workflows/${file}`, "utf8"))
+  .join("\n");
+
+function jobBlock(jobName: string, nextJobName?: string) {
+  const start = workflow.indexOf(`  ${jobName}:`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  if (nextJobName === undefined) return workflow.slice(start);
+  const end = workflow.indexOf(`  ${nextJobName}:`, start + 1);
+  expect(end).toBeGreaterThan(start);
+  return workflow.slice(start, end);
+}
+
+function stepBlock(job: string, stepName: string) {
+  const start = job.indexOf(`      - name: ${stepName}`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const next = job.indexOf("\n      - name:", start + 1);
+  return job.slice(start, next === -1 ? undefined : next);
+}
+
+describe("Security dependency fallback workflow", () => {
+  it("uses only manual dispatch with a required numeric alert input and fixed serialization", () => {
+    const parsed = parse(workflow) as {
+      on?: {
+        workflow_dispatch?: { inputs?: Record<string, { required?: boolean; type?: string }> };
+        schedule?: unknown;
+      };
+      concurrency?: { group?: string; "cancel-in-progress"?: boolean };
+    };
+    expect(parsed.on?.workflow_dispatch?.inputs?.alert_number).toMatchObject({
+      required: true,
+      type: "number",
+    });
+    expect(parsed.on?.schedule).toBeUndefined();
+    expect(parsed.concurrency).toEqual({
+      group: "security-dependency-fallback",
+      "cancel-in-progress": false,
+    });
+    expect(workflow).toContain("permissions: {}");
+    expect(workflow).not.toContain("${{ inputs.alert_number }}" + "-${{");
+  });
+
+  it("keeps the six jobs and prevents every rerun from entering the fallback", () => {
+    const jobs = [
+      "preflight",
+      "read-alert",
+      "opencode-edit",
+      "validate-exec",
+      "finalize",
+      "publish",
+    ];
+    for (const [index, job] of jobs.entries()) {
+      const block = jobBlock(job, jobs[index + 1]);
+      expect(block).toContain("github.run_attempt == 1");
+    }
+    expect(workflow).toContain("base_sha: ${{ steps.preflight.outputs.base_sha }}");
+    expect(jobBlock("preflight", "read-alert")).toContain("BASE_SHA_INPUT: ${{ github.sha }}");
+    expect(jobBlock("opencode-edit", "validate-exec")).toContain(
+      "ref: ${{ needs.preflight.outputs.base_sha }}",
+    );
+    expect(jobBlock("validate-exec", "finalize")).toContain(
+      "ref: ${{ needs.preflight.outputs.base_sha }}",
+    );
+  });
+
+  it("uses the planned job permissions and reserves OIDC for publish", () => {
+    const readAlert = jobBlock("read-alert", "opencode-edit");
+    const opencode = jobBlock("opencode-edit", "validate-exec");
+    const validate = jobBlock("validate-exec", "finalize");
+    const finalize = jobBlock("finalize", "publish");
+    const publish = jobBlock("publish");
+
+    expect(readAlert).toContain("pull-requests: read");
+    expect(readAlert).toContain("vulnerability-alerts: read");
+    expect(readAlert).not.toContain("contents:");
+    expect(opencode).toContain("contents: read");
+    expect(opencode).toContain("pull-requests: read");
+    expect(opencode).not.toContain("id-token: write");
+    expect(opencode).not.toContain("vulnerability-alerts: read");
+    expect(validate).toContain("permissions: {}");
+    expect(validate).not.toContain("id-token: write");
+    expect(validate).not.toContain("vulnerability-alerts: read");
+    expect(finalize).toContain("permissions: {}");
+    expect(finalize).not.toContain("id-token: write");
+    expect(finalize).not.toContain("vulnerability-alerts: read");
+    expect(publish).toContain("contents: read");
+    expect(publish).toContain("pull-requests: read");
+    expect(publish).toContain("vulnerability-alerts: read");
+    expect(publish).toContain("id-token: write");
+    expect((allWorkflowSource.match(/id-token:\s*write/g) ?? []).length).toBe(1);
+    expect(allWorkflowSource).not.toMatch(/permissions:\s*write-all/);
+  });
+
+  it("keeps raw alerts and Zen credentials inside their intended boundaries", () => {
+    const readAlert = jobBlock("read-alert", "opencode-edit");
+    const opencode = jobBlock("opencode-edit", "validate-exec");
+    const validate = jobBlock("validate-exec", "finalize");
+    const finalize = jobBlock("finalize", "publish");
+    const publish = jobBlock("publish");
+
+    expect(readAlert).not.toContain("actions/checkout");
+    expect(readAlert).not.toContain("pnpm install");
+    expect(readAlert).toContain("raw-alert.json");
+    expect(readAlert).toContain("sanitized-security-context.json");
+    expect(opencode).toContain("OPENCODE_API_KEY");
+    expect(opencode).toContain("env -i");
+    expect(stepBlock(opencode, "Select a Free model without fallback")).not.toContain(
+      "GITHUB_TOKEN",
+    );
+    expect(stepBlock(opencode, "Select a Free model without fallback")).not.toContain("GH_TOKEN");
+    expect(stepBlock(opencode, "Run one constrained OpenCode edit")).not.toContain("GITHUB_TOKEN");
+    expect(stepBlock(opencode, "Run one constrained OpenCode edit")).not.toContain("GH_TOKEN");
+    expect(opencode).not.toContain("ACTIONS_ID_TOKEN");
+    expect(opencode).not.toContain("raw-alert");
+    expect(opencode).not.toContain("ALERT_NUMBER:");
+    expect(stepBlock(opencode, "Prepare constrained OpenCode prompt and config")).not.toContain(
+      "OPENCODE_API_KEY",
+    );
+    for (const block of [validate, finalize]) {
+      expect(block).not.toContain("OPENCODE_API_KEY");
+      expect(block).not.toContain("vulnerability-alerts: read");
+      expect(block).not.toContain("ACTIONS_ID_TOKEN");
+      expect(block).not.toContain("alert_number");
+    }
+    expect(publish).not.toContain("OPENCODE_API_KEY");
+    expect(publish).toContain("https://api.opencode.ai/exchange_github_app_token");
+    expect(publish).toContain("audience=opencode-github-action");
+    expect(publish).toContain("--request POST");
+    expect(publish).toContain("Authorization: Bearer $oidc_token");
+    expect(publish).not.toMatch(/--data(?:-raw|-binary)?\b/);
+    expect(publish).not.toContain("PAT");
+    expect(publish).not.toContain("write-enabled GITHUB_TOKEN");
+  });
+
+  it("pins pnpm, the OpenCode binary, and the fixed one-shot edit", () => {
+    expect(workflow).not.toContain("pnpm@9");
+    expect(workflow).toContain('PNPM_VERSION: "10.34.5"');
+    expect(workflow).toContain("corepack pnpm@10.34.5");
+    expect(workflow).toContain('OPENCODE_VERSION: "v1.18.31"');
+    expect(workflow).toContain("opencode-linux-x64.tar.gz");
+    expect(workflow).toContain("e9312be75ed803b7415fc2aeabda1f4fe938912a39673762dc0c38c0e11ebde4");
+    expect(workflow).toContain('test "$RUNNER_ARCH" = X64');
+    expect(workflow).toContain("timeout --signal=TERM --kill-after=30s 600");
+    expect(workflow).toContain("--title security-dependency-fallback");
+    expect(workflow).toContain("OPENCODE_DISABLE_DEFAULT_PLUGINS=1");
+    expect(workflow).toContain("OPENCODE_PURE=1");
+    expect(workflow).not.toContain("opencode github run");
+    expect(workflow).not.toContain("anomalyco/opencode/github");
+  });
+
+  it("uses artifact IDs, short retention, immutable hashes, and exact artifact boundaries", () => {
+    for (const artifactName of [
+      "security-context-${{ github.run_id }}",
+      "security-candidate-${{ github.run_id }}",
+      "prepared-security-fix-${{ github.run_id }}",
+      "validated-security-fix-${{ github.run_id }}",
+    ]) {
+      expect(workflow).toContain(`name: ${artifactName}`);
+    }
+    expect(workflow).not.toContain("artifact-digest");
+    expect(workflow).toContain("retention-days: 1");
+    expect(workflow).toContain("overwrite: false");
+    expect(workflow).toContain("include-hidden-files: true");
+    expect(workflow).toContain("steps.upload_context.outputs.artifact-id");
+    expect(workflow).toContain("steps.upload_candidate.outputs.artifact-id");
+    expect(workflow).toContain("steps.upload_prepared.outputs.artifact-id");
+    expect(workflow).toContain("steps.upload_validated.outputs.artifact-id");
+    expect((workflow.match(/artifact-ids:/g) ?? []).length).toBeGreaterThanOrEqual(6);
+    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/PLAN.md");
+    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/TASKS.md");
+    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md");
+    expect(workflow).toContain("validated-fix.json");
+    expect(workflow).toContain("conflict_terms");
+  });
+
+  it("keeps the OpenCode permission config deny-first and path-limited", () => {
+    expect(Object.keys(config.permission ?? {})[0]).toBe("*");
+    expect(config.permission?.["*"]).toBe("deny");
+    expect(config.model).toBe("opencode/__SELECTED_FREE_MODEL_ID__");
+    expect(config.small_model).toBe(config.model);
+    expect(config.formatter).toBe(false);
+    expect(config.lsp).toBe(false);
+    expect(config.permission?.["read"]).toEqual({
+      "package.json": "allow",
+      "AGENTS.md": "allow",
+      ".agents/skills/repair-loop/SKILL.md": "allow",
+      ".agents/skills/repair-loop/references/repair-workflow.md": "allow",
+      "docs/plans/2026-08-16_162000_public-repository-hardening.md": "allow",
+    });
+    expect(config.permission?.["edit"]).toEqual({ "package.json": "allow" });
+  });
+
+  it("does not run repository verification in finalize and never adds retry or auto-merge paths", () => {
+    const validate = jobBlock("validate-exec", "finalize");
+    const finalize = jobBlock("finalize", "publish");
+    expect(finalize).not.toContain("pnpm run verify");
+    expect(finalize).not.toContain("pnpm run test");
+    expect(finalize).not.toContain("pnpm run build");
+    expect(finalize).not.toContain("pnpm run lint");
+    expect(stepBlock(validate, "Run repository verification on the prepared workspace")).toContain(
+      "env -i",
+    );
+    expect(workflow).not.toMatch(/retry-on|max-attempts|automatic retry/i);
+    expect(workflow).not.toContain("auto-merge");
+    expect(workflow).toContain('git config user.name "github-actions[bot]"');
+  });
+});

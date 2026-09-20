@@ -15,7 +15,7 @@ permissions:
 env:
   CI: "true"
   NODE_VERSION: "24"
-  PNPM_VERSION: "9.10.0"
+  PNPM_VERSION: "10.34.5"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -698,6 +698,13 @@ jobs:
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]' &&
+      (
+        github.event.pull_request.user.type != 'Bot' ||
+        (
+          !startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+          !startsWith(github.event.pull_request.head.ref, 'security/')
+        )
+      ) &&
       needs.verify.result == 'success' &&
       needs.build-automation.result == 'success'
     needs:
@@ -796,7 +803,9 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REPOSITORY: ${{ github.repository }}
           PR_HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
           VERIFY_RESULT: ${{ needs.verify.result }}
           DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}
         run: |
@@ -825,12 +834,14 @@ jobs:
           }
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            if [[ "$PR_HEAD_REPO_FULL_NAME" == "$REPOSITORY" && "$PR_AUTHOR_LOGIN" != "dependabot[bot]" ]]; then
-              require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
+            if [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then
+              require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
             elif [[ "$PR_AUTHOR_LOGIN" == "dependabot[bot]" ]]; then
               require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
-            elif [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then
+            elif [[ "$PR_AUTHOR_TYPE" == "Bot" && ( "$PR_HEAD_REF" == renovate/* || "$PR_HEAD_REF" == security/* ) ]]; then
               require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
+            elif [[ "$PR_HEAD_REPO_FULL_NAME" == "$REPOSITORY" ]]; then
+              require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
             else
               echo "::error title=Unexpected Pull Request classification::Could not classify the pull_request Preview contract."
               exit 1
