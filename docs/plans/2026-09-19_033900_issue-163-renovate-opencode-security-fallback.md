@@ -8,7 +8,7 @@
 - 2026-09-20確認時の`main`: `1213adc9513409cc176c090f9df4c1c408142b9c`（PR #166 merge後）。PR #167 branchは`552c75f`でこのmainを取り込み、head `6b9c7e1`で最新mainを祖先に含むことを確認した。Repository実装開始前に`package.json` / `pnpm-lock.yaml` / CI contractの前提を再確認し、古いbase上のCI成功を最新`main`との統合結果として扱わない。
 - 依頼内容: Dependabot Alertsを脆弱性検知の正本として維持し、RenovateをSecurity修正の第一経路、OpenCodeを人間が起動する限定fallbackとして追加する。
 - 今回の作業範囲: PR #167 branch内のRepository実装、検証、commit、push、PR本文の現状反映。外部App導入、GitHub Settings変更、Secret変更、mergeは行わない。
-- Repository実装はPR #167を唯一の実装PRとして継続し、同じbranchへcommitを追加して完了させる。Issue #163のRepository変更用に別PRを作成しない。外部App installation、Secret登録、Repository Settings変更、activationはPRへ含められないためmerge後に実施する。
+- Repository実装はPR #167を唯一の実装PRとして継続し、同じbranchへcommitを追加する。Issue #163のRepository変更用に別PRを作成しない。`prConcurrentLimit`確定後に`renovate.json`と対応contract testをPR #167へ追加し、未確定の間は同PRのmerge blockerとして扱う。外部App installation、Secret登録、Repository Settings変更、activationはRepository変更をmergeした後に実施する。
 - 期待成果: Issue #163の目的から外れず、実装時に追加判断が必要な箇所を明示し、安全性に必要な境界だけを残した実装Planにする。
 
 ## 1. ゴール / 完了条件
@@ -30,7 +30,7 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - Public Repository Hardeningとの関係はこのPlanで更新する。P-01はSecurity Update用途に限ってRenovate導入を後続判断として更新し、P-03 / P-12はDependabot AlertsをONのまま維持しつつRenovate正常activation中だけDependabot Security UpdatesをOFF、rollback時はONへ戻す。P-05のCloudflare Deployment Credential trust判断とP-13のFinding Triage契約は継続する。過去のHardening Plan本体は書き換えない。
 - `renovate.json`はSecurity修正だけを有効化し、通常のdependency update、OSV vulnerability alerts、Dependency Dashboard、auto-mergeを無効化する。
 - Renovateの対象managerは`npm`に限定する。Repositoryのpackage managerは、Security fallbackの信頼側ツールとしてSecurity Support対象外かつ既知のinstall時path traversal等の影響を受ける`pnpm@9.10.0`を使わず、`pnpm@10.34.5`へ更新する。`packageManager`、CIの`PNPM_VERSION`、lockfileを同じversionへ揃え、更新後にRepository標準検証とCIを通す。
-- `vulnerabilityAlerts.prConcurrentLimit`はOwnerが現在のopen Dependabot Alert件数を確認し、具体的な正の有限整数を決めてPlanへ追記してから`renovate.json`へ実装する。この未確定値がblockするのは`renovate.json`と対応contract testだけとし、他のRepository変更は先行できる。
+- `vulnerabilityAlerts.prConcurrentLimit`はOwnerが現在のopen Dependabot Alert件数とRepository運用を確認し、具体的な正の有限整数を決めてPlanへ追記する。確定後に`renovate.json`と対応contract testをPR #167へ実装する。未確定の間はこの2ファイルを仮値・placeholder・省略設定で作成せず、PR #167のmerge blockerとして扱う。他のRepository変更は先行できる。
 - Renovate Security PRへ公開する情報は、dependency名、変更前後version、`Security Update`、CI確認に必要な最小情報だけにする。Alert番号、severity、actual exposure、private triage、Advisory本文は公開しない。
 - Renovateのbranch prefixを`renovate/`へ固定する。
 - OpenCode publish branchは`security/<dependency-key>/<github.run_id>`形式へ固定する。`dependency-key`はnpm package名を小文字化し、先頭`@`を除去、`/`を`--`へ変換、`[a-z0-9._-]`以外を`-`へ変換して連続`-`を1つへ畳み、末尾へ元package名のSHA-256先頭8桁を付与する。残存branch判定は`security/<dependency-key>/` prefixで行い、Alert番号を含めない。
@@ -61,12 +61,12 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - direct dependency、`root direct dependency -> vulnerable target`の1 edgeで表せるroot parent update、互換性を確認済みのparent-scoped overrideだけを初期fallback対象にする。`root -> A -> target`のような深いpathをroot parent updateとして自動探索せず、parent-scoped overrideの条件を満たさなければ`needs_human`へ停止する。
 - `read-alert`ではnpm vulnerable rangeの`,`区切りを空白へ置換する限定正規化までに留める。`semver.validRange()`、stable exact SemVer判定、`semver.satisfies()`等の意味検証はRepository checkoutとfrozen installが完了し、まだ`OPENCODE_API_KEY`を渡していない`opencode-edit`前半で`semver@7.8.5`へ委譲する。解釈不能なら`needs_human`へ停止する。
 - `pnpm list --json --depth Infinity`は「現在のrunnerへinstallされたdependency graph」の確認に使う。「lockfile内の全platformを含む完全なdependency graph」とは扱わない。Alert対象が現在runnerのinstall graphに存在しない場合は`needs_human`へ停止する。一方、修正後判定では既存`yaml@2.9.0`でprepared `pnpm-lock.yaml`を構造的に読み、target packageの`packages` / `snapshots` entryにnormalized vulnerable range内のversionが1件でも残る場合はfail-closedで`needs_human`へ停止する。
-- OpenCode実行前にworkflow自身が`fix-authorization.json`を確定し、OpenCodeには編集させない。authorizationにはmanifest上の許可変更だけでなく、direct target、選択root parent、parent-scoped override targetについて期待するexact resolved versionを保持する。parent-scoped overrideではselectorに一致するbaseline上の全edgeを列挙し、今回変更してよいedgeだけで構成できないselectorは許可しない。`validate-exec`はこのauthorizationに対してcandidate、prepared lockfile、installed graph、lockfile全体のtarget versionを検証し、任意コード実行前にprepared Artifactを確定してから同じworkspaceで`pnpm run verify`、`git diff --check`を実行する。成功後はfresh runnerの`finalize`が同じprepared Artifactを再利用し、lockfileを再生成せずtracked Run Artifactとhash manifestだけを追加してpublish対象を確定する。
+- OpenCode実行前にworkflow自身が`fix-authorization.json`を確定し、OpenCodeには編集させない。authorizationにはmanifest上の許可変更だけでなく、direct target、選択root parent、parent-scoped override targetについて期待するexact resolved versionを保持する。parent-scoped overrideではvalidatorがbaseline lockfileの`packages` / `snapshots`からexact selectorに一致する全parent instanceと、`dependencies` / `optionalDependencies` / `devDependencies` / `peerDependencies`のtarget edgeを再列挙し、`baseline_selector_edges`（parent name / version / section / key / dependency / baseline resolved version）としてauthorizationへ固定する。baseline全edgeがvulnerable range内で、installed graphのvulnerable pathとparent / target version関係が矛盾し、今回変更してよいedgeだけで構成できないselectorは許可しない。`validate-exec`はこのauthorizationに対してcandidate、prepared lockfile、installed graph、lockfile全体のtarget versionを検証し、任意コード実行前にprepared Artifactを確定してから同じworkspaceで`pnpm run verify`、`git diff --check`を実行する。成功後はfresh runnerの`finalize`が同じprepared Artifactを再利用し、lockfileを再生成せずtracked Run Artifactとhash manifestだけを追加してpublish対象を確定する。
 - lockfile内部fieldを独自に全面deep-equalするvalidatorは作らない。package.jsonの許可差分、authorizationに固定したexact resolved version、prepared lockfile内のtarget package version scan、installed graph、既存Dependency ReviewとRepository標準検証を組み合わせる。target package以外を汎用的に解析する独自lockfile resolverは作らない。
 - publish直前に対象Dependabot AlertとPublic Global Security Advisoryを再取得する。Alertが`open`で、開始時と同じdependency / ecosystem / GHSA IDを指し、Advisoryのnormalized vulnerable rangeと`first_patched_version`が`fix-authorization.json`と一致する場合だけpublishする。`fixed`、`dismissed`、`auto_dismissed`、別Alert、Advisory条件変更のいずれかなら再計算せず`needs_human`へ停止する。
-- publish直前に開始時の`BASE_SHA`と最新`origin/main`を比較し、異なる場合は自動rebaseせず`needs_human`へ停止する。
+- publish直前に開始時の`BASE_SHA`と最新`origin/main`を比較し、異なる場合は自動rebaseせず`needs_human`へ停止する。installation token取得後の実push直前にも同じ比較を行い、不一致ならpushしない。push成功後、PR作成直前にも再比較し、不一致ならremote Security branchを削除せず、rebase、force push、OpenCode再実行、PR作成を行わず`needs_human`へ停止する。
 - publish stepだけでOpenCode GitHub App installation tokenを取得し、workflow側が固定形式でbranch、commit、push、PR作成を行う。OIDC ID tokenのaudienceは`opencode-github-action`へ固定し、`POST https://api.opencode.ai/exchange_github_app_token`へ`Authorization: Bearer <OIDC ID token>`だけを付けて送信する。OIDC経路ではrequest bodyを送らず、2xxかつJSON responseの`token`が非空の場合だけinstallation tokenとして使う。PAT endpointやwrite-enabled `GITHUB_TOKEN`へfallbackしない。model出力をGit metadataへ使用しない。
-- Re-run jobsによる再修正を禁止する。push後にPR作成だけ失敗した場合はbranchを残して`needs_human`とし、新しいOpenCode実行を自動開始しない。
+- Re-run jobsによる再修正を禁止する。push後にPR作成だけ失敗した場合、またはpush後・PR作成前にmainが進んだ場合はbranchを残して`needs_human`とし、自動retry、rebase、force push、branch deleteや新しいOpenCode実行を行わない。
 - fallbackのpublic結果は成功時のPR URLまたは`needs_human`だけとし、private failure reason、Alert番号、prompt、model logをSummaryへ出さない。
 - `SECURITY.md`には公開可能情報の境界だけを追加する。fallbackの処理順序、Cloudflare Preview分類、activation手順などのworkflow詳細は他の正本へ置く。
 - 自動Security fallbackも既存Repository契約どおりtracked Run Artifactを残す。fresh runnerの`finalize` jobで`standard` Runを作成し、Public PRへ出してよい情報だけで`PLAN.md` / `TASKS.md` / `REPORT.md`を構成してsanitizationする。完全にsanitizationしたtracked Run Artifactを作成できない場合は例外を新設せず`needs_human`で停止し、Security PRを作成しない。
@@ -158,6 +158,8 @@ Repository全体を`pnpm@10.34.5`へ更新して標準検証を通した後、va
 ## 4. 影響範囲
 
 ### 変更予定ファイル
+
+注: `renovate.json`と`tests/contracts/renovate-config.test.ts`はOwnerが具体的な`prConcurrentLimit`を確定した後にPR #167へ追加する条件付き対象であり、現時点の変更には含めない。
 
 - `renovate.json`
   - Security-only Renovate設定。
@@ -323,7 +325,7 @@ OpenCodeへ許可する初期方式は次の3種類とする。
    - `first_patched_version`が各affected target resolved version以上であり、version downgradeにならない。
    - baseline `pnpm-lock.yaml`の`packages` / `snapshots`を構造的に読み、affected immediate parentと同じname / exact versionを持つparent instanceを全件列挙する。installed graphは補助確認に下げる。
    - 列挙した各exact parent versionについて`pnpm view <parent>@<baseline-resolved-version> dependencies optionalDependencies devDependencies peerDependencies --json`を取得し、pnpmのparent-scoped overrideが作用し得る4 fieldすべてでtarget宣言を確認する。`first_patched_version`が宣言rangeを満たす場合だけ候補にする。
-   - selectorに一致するbaseline parent instance / target宣言を全件authorizationへ記録し、その全適用先が今回許可するaffected edgeだけで構成できることを証明できない場合は`needs_human`へ停止する。
+   - validatorはbaseline `packages` / `snapshots`の各exact parent instanceについて4 fieldのtarget edgeを再計算し、`parent_name`、`parent_version`、`parent_section`、`parent_key`、`dependency`、`baseline_resolved_version`を持つ`baseline_selector_edges`としてauthorizationへ全件記録する。safe version、unknown / unparseable version、installed graphと矛盾するedge、または今回許可するaffected edgeだけで構成できないselectorは`needs_human`へ停止する。
    - parent version range、global override、別target dependency、別Alertだけが根拠のselectorは許可しない。
 
 上記いずれでも安全な候補を作れない場合は`needs_human`。
@@ -339,7 +341,7 @@ OpenCodeへSecretを渡す前に、workflow自身がrunner tempへ`fix-authoriza
 - strategyごとのexactな許可変更とresolution期待値
   - direct: old exact specifier、new exact specifier、expected target resolved version（`first_patched_version`）
   - root parent: root dependency名、old exact specifier、許可candidateごとのnew exact specifierとexpected exact root resolved version（candidate versionそのもの）。OpenCode実行前には候補一覧として保持し、OpenCodeの`package.json`差分から選択candidateを一意に特定した後、そのcandidateに紐づく期待値をvalidatorが使う。
-  - override: exact selector、許可value、expected target resolved version（`first_patched_version`）、selectorに一致するbaseline全parent instance / target declaration / field
+  - override: exact selector、許可value、expected target resolved version（`first_patched_version`）、selectorに一致するbaseline全parent instance、各instanceのsection / key、全target edgeの`baseline_selector_edges`、target declaration / field
 - authorization JSONには自己hashを含めない。file SHA-256はJSON生成後にworkflow側で計算し、OpenCode実行前後の不変確認とjob output / Artifact検証に使う。
 
 OpenCode promptへ渡すのはsanitized contextと`fix-authorization.json`の許可内容だけとする。OpenCodeはauthorizationを変更できず、許可された変更から1つだけ選んで`package.json`を編集する。
@@ -397,7 +399,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 - workflowはOpenCodeの`package.json`差分からauthorization内の許可candidateを一意に特定し、そのcandidateに紐づくexpected exact resolved versionを正本にして固定pnpmで`pnpm-lock.yaml`を生成する。genericなrange解決を含め、生成結果がそのexpected exact resolved versionと異なる場合は別candidateを自動探索せず`needs_human`へ停止する。
 - `pnpm install --frozen-lockfile --ignore-scripts`を行い、package selectorなしの`pnpm list --json --depth Infinity`でinstalled graphを取得する。
 - direct dependencyではtargetのresolved version、root parent updateでは選択root dependencyのresolved version、parent-scoped overrideではtargetのresolved versionがauthorizationのexpected exact resolved versionと完全一致することを要求する。
-- parent-scoped overrideではbaseline上でselectorに一致する全edgeがauthorizationへ列挙され、prepared graphでそれら以外のedgeへ予期しない変更がないことを確認する。
+- parent-scoped overrideではbaseline lockfile上のselectorに一致する全edgeがauthorizationへ列挙され、hidden / safe / unknown edgeを暗黙に無視しない。prepared graphでauthorization外のedgeへ予期しない変更がないこと、installed graphとのparent / target関係が矛盾しないことを確認する。
 - 既存`yaml@2.9.0`でprepared `pnpm-lock.yaml`を構造的に読み、target packageの`packages` / `snapshots` entryにnormalized vulnerable range内のversionが1件でも残る場合は`needs_human`へ停止する。target package以外のlockfile全体を独自resolverで再解釈しない。
 - root parent updateでは選択したroot dependency配下以外の予期しないdependency edge / resolved version変更を拒否する。
 - Repository / dependency processは`env -i`相当のpublic-safe環境で起動し、`GITHUB_EVENT_PATH`、credential、Secretを渡さない。
@@ -470,7 +472,7 @@ tracked Run Artifactはこのjobで作成する。
 - Alertが`open`で、dependency / ecosystem / GHSA IDがauthorizationと一致することを確認する。
 - Advisoryのnpm + package名entryを再度一意選択し、normalized vulnerable rangeと`first_patched_version`が`validated-fix.json` / authorizationと完全一致することを確認する。
 - 条件が変化していた場合は再計算やOpenCode再実行をせず`needs_human`へ停止する。
-- `origin/main`が`BASE_SHA`から進んでいないことを確認する。
+- `origin/main`が`BASE_SHA`から進んでいないことを確認する。installation token取得後、実際のpush直前にもう一度比較し、不一致ならpushしない。push成功後、PR作成直前にも比較し、不一致ならbranchを残して`needs_human`へ停止する。
 - final diffを基に、target dependency、選択root dependency / override selectorと競合するopen PRがないことを再確認する。
 - 同じdependency用の残存Security branchがないことを再確認する。
 - `git diff --check`とpublish file allowlistを固定shellだけで確認する。
@@ -488,7 +490,7 @@ OpenCode Security branchは次の決定的な規則で生成する。
 
 Security PRのsource changeは`package.json` / `pnpm-lock.yaml`だけとし、これにRepository契約上必須のsanitized `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md`を加える。その他のfileはpublishしない。
 
-push後にPR作成だけ失敗した場合はremote branchを残し、`needs_human`で停止する。自動retryやOpenCode再実行を行わない。
+push後にPR作成だけ失敗した場合、またはpush後・PR作成前にmainが進んだ場合はremote branchを残し、rebase、force push、branch delete、自動retry、OpenCode再実行、PR作成を行わず`needs_human`で停止する。
 
 `publish` job全体は`timeout-minutes: 10`とする。
 
@@ -530,14 +532,15 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 
 #### Renovate
 
-1. `prConcurrentLimit`具体値をPlan / config / contract testへ反映する。
-2. Mend Renovate Appの要求権限、Repository scope、rollback planをOwnerが確認する。
-3. P-05に従いProductionまでtrustedとするか判断する。
-4. trustedでなければactivationを止める。
-5. Dependabot Security UpdatesをOFFにする。
-6. Renovate Appを`qa-training-store`だけへ有効化する。
-7. 設定受理とSecurity Alert読取を確認する。
-8. 問題があればRenovateを停止し、Dependabot Security UpdatesをONへ戻す。
+1. `prConcurrentLimit`具体値をOwnerが確定し、Planへ追記する。未確定ならPR #167をmergeしない。
+2. 確定値を使った`renovate.json`と`tests/contracts/renovate-config.test.ts`をPR #167へ実装し、Repository CIを通してmergeする。
+3. Mend Renovate Appの要求権限、Repository scope、rollback planをOwnerが確認する。
+4. P-05に従いProductionまでtrustedとするか判断する。
+5. trustedでなければactivationを止める。
+6. Dependabot Security UpdatesをOFFにする。
+7. Renovate Appを`qa-training-store`だけへ有効化する。
+8. 設定受理とSecurity Alert読取を確認する。
+9. 問題があればRenovateを停止し、Dependabot Security UpdatesをONへ戻す。
 
 #### OpenCode
 
@@ -557,22 +560,32 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 - [x] 4. `.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`を更新し、Dependabot / `renovate/` Bot / `security/` BotだけPreview skipにする。
 - [ ] 5. Owner権限でopen Dependabot Alert件数を取得し、`prConcurrentLimit`の具体値と根拠をPlanへ追記する。
 - [ ] 6. 5完了後にPublic metadata契約を含む`renovate.json`と`tests/contracts/renovate-config.test.ts`を追加する。
-- [x] 7. `scripts/validate-security-dependency-fix.mjs`とvalidator contract testを追加し、authorization照合、baseline vulnerable確認、exact specifier限定、expected exact resolved version、parent-scoped override全適用先、prepared lockfile内target version scan、downgrade拒否、`semver` / `yaml` target拒否を実装する。
+- [x] 7. `scripts/validate-security-dependency-fix.mjs`とvalidator contract testを追加し、authorization照合、baseline vulnerable確認、exact specifier限定、expected exact resolved version、parent-scoped overrideのbaseline全selector edge証明、prepared lockfile内target version scan、downgrade拒否、`semver` / `yaml` target拒否を実装する。
 - [x] 8. `.github/opencode/security-fallback.json`を追加し、top-level deny、read / edit allowlist、`formatter: false`、`lsp: false`、main / small modelのFree固定を実装する。workflow側では`OPENCODE_DISABLE_DEFAULT_PLUGINS=1`も固定する。
 - [x] 9. `.github/workflows/security-dependency-fallback.yml`を6 job構成で追加する。workflow-level `permissions: {}`からjob単位で明示し、`permissions: write-all`を使わない。
 - [x] 10. `preflight`でmain ref、one-shot条件を検証し、workflow開始時の`${{ github.sha }}`を`BASE_SHA`として後続jobへ固定する。
 - [x] 11. `read-alert`でraw Alertを隔離し、Public Advisory field取得、限定文字列正規化、target dependencyだけの初期重複判定、sanitized context Artifactを実装する。SemVer意味検証は行わない。
-- [x] 12. `opencode-edit`前半でcheckout + frozen install後かつSecret投入前にSemVer意味検証、baseline vulnerable path抽出、parent-scoped override全適用先の証明、`fix-authorization.json`生成、related root / override重複判定を行う。その後OpenCode one-shot editとcandidate Artifactを実装する。
+- [x] 12. `opencode-edit`前半でcheckout + frozen install後かつSecret投入前にSemVer意味検証、installed graphとbaseline lockfileの全selector edge証明、`fix-authorization.json`生成、related root / override重複判定を行う。その後OpenCode one-shot editとcandidate Artifactを実装する。
 - [x] 13. `validate-exec`で別runner上のsemantic / exact resolution / lockfile全target検証を行い、任意コード実行前に`prepared-security-fix` Artifactを確定する。その同じworkspaceへ`pnpm run verify`と`git diff --check`を実行する。
 - [x] 14. `finalize`でfresh runnerから`prepared-security-fix`を再取得し、package / lockfileを再生成せず、sanitized tracked Run Artifactとvalidated Artifactを生成する。
-- [x] 15. `publish`でArtifact ID / file hash、Alert / Advisory条件、base SHA、duplicate / orphan branchを再確認する。OIDC ID tokenとinstallation tokenを取得直後にmaskし、job output / Artifact / remote URL / `.git/config`へ残さないstep-local credentialとして使ってから破棄する。
+- [x] 15. `publish`でArtifact ID / file hash、Alert / Advisory条件、base SHA、実push直前とpush後・PR作成直前のmain不変、duplicate / orphan branchを再確認する。OIDC ID tokenとinstallation tokenを取得直後にmaskし、job output / Artifact / remote URL / `.git/config`へ残さないstep-local credentialとして使ってから破棄する。
 - [x] 16. Repository全workflowのpermission contractを追加し、`permissions: write-all`を禁止し、実効的な`id-token: write`をSecurity fallback `publish`だけへ限定する。
 - [x] 17. `SECURITY.md`を公開情報境界だけ修正する。
 - [ ] 18. contract test、Repository標準検証、最新main取り込み後のPR CIを通す。
-- [x] 19. PR #167だけでRepository実装を完了し、別のRepository実装PRを作成しない。
+- [x] 19. PR #167だけでRepository変更を継続し、別のRepository実装PRを作成しない。
 - [ ] 20. PR #167 merge後にOwner承認を得てRenovate / OpenCodeを段階的にactivationし、実地確認完了後にIssue #163をcloseする。
 
-実行状況注記: 5–6は`prConcurrentLimit`のOwner確定値がないため未実装、18はlocal contract / standard validationまで完了しており、commit・push後にPR CIを確認する。20は今回の実装・検証範囲外である。
+実行状況注記: 5–6は`prConcurrentLimit`のOwner確定値がないため未実装、18は今回のレビュー修正を含むlocal contract / standard validation、commit・push後のPR CI確認までを完了条件とする。20は今回の実装・検証範囲外である。
+
+### PR #167 レビュー修正継続
+
+レビューで確認された残存問題に対し、次の修正をこのPlanの範囲内で実施する。
+
+- Renovateの`prConcurrentLimit`はIssue / PR / Owner回答で具体的な正の有限整数が確定していないため、`renovate.json`と対応contract testを追加せず、PR #167のmerge blockerとして維持する。
+- parent-scoped overrideはworkflowとvalidatorの共通proofでbaseline `packages` / `snapshots`全edgeを列挙し、safe、unknown、unparseable、installed graphとの矛盾をfail-closedにする。
+- publishは実push直前とpush後・PR作成直前に`BASE_SHA`と最新mainを比較し、stale時にbranchを残して自動rebase、force push、delete、retry、OpenCode再実行、PR作成を行わない。
+- strict active Runにはschema-validな`evaluation.json`を正規collector経由で反映し、`run.json`を直接編集しない。interactive Runのmachine-managed status / validationを正規経路で完了できない場合は未確定fieldを`needs_human`として報告する。
+- 2026-09-20 11:57のStop Hook調査は別Repository / 別session由来であり、Issue #163 / PR #167の実装品質・完了判定の根拠に使用しない。今回のRepository変更にStop Hook / Host設定変更を含めない。
 
 ## 6. 検証方法
 

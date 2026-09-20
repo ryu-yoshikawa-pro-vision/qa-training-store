@@ -230,7 +230,9 @@ function validateOverrideMutation(diff, authorization) {
         !isPlainObject(instance) ||
         instance.name !== selector.parentName ||
         instance.version !== selector.parentVersion ||
-        !isStableExactSemVer(instance.version),
+        !isStableExactSemVer(instance.version) ||
+        typeof instance.section !== "string" ||
+        typeof instance.key !== "string",
     )
   ) {
     needsHuman("override baseline instance is outside the exact selector");
@@ -238,24 +240,47 @@ function validateOverrideMutation(diff, authorization) {
   if (!Array.isArray(authorization.affected_paths) || authorization.affected_paths.length === 0) {
     needsHuman("override affected paths are missing");
   }
-  const expectedPaths = new Set(
-    authorization.affected_paths.map((entry) => JSON.stringify(entry?.path)),
+  const expectedAffectedEdges = authorization.affected_paths.map((entry) =>
+    affectedEdgeFromPath(entry, authorization.dependency),
   );
   if (
-    allowed.affected_edges.length !== expectedPaths.size ||
+    !sameRecordSet(allowed.affected_edges, expectedAffectedEdges) ||
     allowed.affected_edges.some(
       (edge) =>
         !isPlainObject(edge) ||
-        edge.dependency !== authorization.dependency ||
         edge.parent !== selector.parentName ||
         edge.parent_version !== selector.parentVersion ||
-        !Array.isArray(edge.path) ||
-        !expectedPaths.has(JSON.stringify(edge.path)) ||
-        typeof edge.baseline_resolved_version !== "string" ||
+        !isStableExactSemVer(edge.baseline_resolved_version) ||
         !semver.satisfies(edge.baseline_resolved_version, authorization.normalized_range),
     )
   ) {
     needsHuman("override affected edges are not fully proven");
+  }
+  if (
+    !Array.isArray(allowed.baseline_selector_edges) ||
+    allowed.baseline_selector_edges.length === 0
+  ) {
+    needsHuman("override baseline selector edges are not fully enumerated");
+  }
+  const baselineInstanceKeys = new Set(
+    allowed.baseline_instances.map((instance) => recordKey([instance.section, instance.key])),
+  );
+  if (
+    allowed.baseline_selector_edges.some(
+      (edge) =>
+        !isPlainObject(edge) ||
+        edge.parent_name !== selector.parentName ||
+        edge.parent_version !== selector.parentVersion ||
+        typeof edge.parent_section !== "string" ||
+        typeof edge.parent_key !== "string" ||
+        !baselineInstanceKeys.has(recordKey([edge.parent_section, edge.parent_key])) ||
+        edge.dependency !== authorization.dependency ||
+        !isStableExactSemVer(edge.baseline_resolved_version) ||
+        !semver.satisfies(edge.baseline_resolved_version, authorization.normalized_range) ||
+        !semver.gte(diff.after, edge.baseline_resolved_version),
+    )
+  ) {
+    needsHuman("override baseline selector edges are not vulnerable exact edges");
   }
   if (
     !isPlainObject(allowed.declaration_ranges) ||
@@ -282,26 +307,22 @@ function manifestEntry(manifest, packageName) {
 }
 
 function affectedGraphPaths(graph, dependency, vulnerableRange) {
-  return collectInstalledGraph(graph)
+  const entries = collectInstalledGraph(graph);
+  return entries
     .filter(
       (entry) => entry.name === dependency && semver.satisfies(entry.version, vulnerableRange),
     )
-    .map((entry) => ({
-      path: entry.path,
-      baseline_resolved_version: entry.version,
-      root_dependency: entry.path.length > 1 ? entry.path[1] : null,
-      immediate_parent: entry.path.length > 2 ? entry.path.at(-2) : null,
-    }));
-}
-
-function exactParentSelector(value) {
-  return parseExactParentSelector(value) !== null;
-}
-
-function samePathSet(left, right) {
-  const leftSet = new Set(left.map((path) => JSON.stringify(path)));
-  const rightSet = new Set(right.map((path) => JSON.stringify(path)));
-  return leftSet.size === rightSet.size && [...leftSet].every((path) => rightSet.has(path));
+    .map((entry) => {
+      const parentPath = entry.path.slice(0, -1);
+      const parent = entries.find((candidate) => pathMatches(candidate.path, parentPath));
+      return {
+        path: entry.path,
+        baseline_resolved_version: entry.version,
+        root_dependency: entry.path.length > 1 ? entry.path[1] : null,
+        immediate_parent: entry.path.length > 2 ? entry.path.at(-2) : null,
+        parent_version: entry.path.length > 2 ? (parent?.version ?? null) : null,
+      };
+    });
 }
 
 function parseExactParentSelector(value) {
@@ -323,6 +344,150 @@ function parseExactParentSelector(value) {
   };
 }
 
+const LOCKFILE_SECTIONS = ["packages", "snapshots"];
+const LOCKFILE_DEPENDENCY_FIELDS = [
+  "dependencies",
+  "optionalDependencies",
+  "devDependencies",
+  "peerDependencies",
+];
+
+function normalizeLockfileDependencyVersion(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.replace(/\([^)]*\)$/, "");
+  return isStableExactSemVer(normalized) ? normalized : null;
+}
+
+function recordKey(value) {
+  return JSON.stringify(value);
+}
+
+function sameRecordSet(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right)) {
+    return false;
+  }
+  const leftSet = new Set(left.map((value) => recordKey(value)));
+  const rightSet = new Set(right.map((value) => recordKey(value)));
+  return leftSet.size === rightSet.size && [...leftSet].every((value) => rightSet.has(value));
+}
+
+function affectedEdgeFromPath(entry, dependency) {
+  return {
+    path: entry.path,
+    parent: entry.immediate_parent,
+    parent_version: entry.parent_version,
+    dependency,
+    baseline_resolved_version: entry.baseline_resolved_version,
+  };
+}
+
+/**
+ * Reconstruct only the lockfile evidence needed for one exact parent-scoped selector.
+ * This is intentionally not a general pnpm lockfile resolver.
+ */
+export function collectBaselineSelectorProof(lockfileText, selectorValue) {
+  const selector = parseExactParentSelector(selectorValue);
+  if (!selector) {
+    needsHuman("override selector is not an exact parent selector");
+  }
+  assertStableExact(selector.parentVersion, "override parent version");
+  if (!isSafePackageName(selector.targetName)) {
+    needsHuman("override target dependency is invalid");
+  }
+
+  let lockfile;
+  try {
+    lockfile = parseYaml(lockfileText);
+  } catch {
+    needsHuman("baseline lockfile is not valid YAML");
+  }
+  if (!isPlainObject(lockfile)) {
+    needsHuman("baseline lockfile has an invalid root");
+  }
+
+  const baselineInstances = [];
+  const baselineSelectorEdges = [];
+  for (const sectionName of LOCKFILE_SECTIONS) {
+    const section = lockfile[sectionName];
+    if (section === undefined) {
+      continue;
+    }
+    if (!isPlainObject(section)) {
+      needsHuman(`baseline lockfile ${sectionName} section is invalid`);
+    }
+    for (const [key, value] of Object.entries(section)) {
+      const name = lockPackageName(key);
+      const version = lockVersion(key, value);
+      if (name !== selector.parentName || version !== selector.parentVersion) {
+        continue;
+      }
+      assertStableExact(version, "baseline parent version");
+      if (!isPlainObject(value)) {
+        needsHuman("baseline parent instance is invalid");
+      }
+      baselineInstances.push({ section: sectionName, key, name, version });
+      for (const field of LOCKFILE_DEPENDENCY_FIELDS) {
+        if (value[field] === undefined) {
+          continue;
+        }
+        if (!isPlainObject(value[field])) {
+          needsHuman("baseline parent dependency section is invalid");
+        }
+        if (!Object.prototype.hasOwnProperty.call(value[field], selector.targetName)) {
+          continue;
+        }
+        const resolvedVersion = normalizeLockfileDependencyVersion(
+          value[field][selector.targetName],
+        );
+        if (!resolvedVersion) {
+          needsHuman("baseline selector edge has no stable exact target version");
+        }
+        baselineSelectorEdges.push({
+          parent_name: selector.parentName,
+          parent_version: selector.parentVersion,
+          parent_section: sectionName,
+          parent_key: key,
+          dependency: selector.targetName,
+          baseline_resolved_version: resolvedVersion,
+          declaration_field: field,
+        });
+      }
+    }
+  }
+
+  if (baselineInstances.length === 0) {
+    needsHuman("baseline selector parent instance is missing");
+  }
+  if (baselineSelectorEdges.length === 0) {
+    needsHuman("baseline selector target edges are missing");
+  }
+
+  baselineInstances.sort((left, right) =>
+    recordKey([left.section, left.key]).localeCompare(recordKey([right.section, right.key])),
+  );
+  baselineSelectorEdges.sort((left, right) =>
+    recordKey([
+      left.parent_section,
+      left.parent_key,
+      left.declaration_field,
+      left.baseline_resolved_version,
+    ]).localeCompare(
+      recordKey([
+        right.parent_section,
+        right.parent_key,
+        right.declaration_field,
+        right.baseline_resolved_version,
+      ]),
+    ),
+  );
+  return {
+    baseline_instances: baselineInstances,
+    baseline_selector_edges: baselineSelectorEdges,
+  };
+}
+
 /**
  * @param {{
  *   context: Record<string, unknown>,
@@ -330,6 +495,7 @@ function parseExactParentSelector(value) {
  *   installedGraph: unknown,
  *   rootParentCandidates?: Array<Record<string, unknown>>,
  *   overrideCandidates?: Array<Record<string, unknown>>,
+ *   baselineLockfile?: string,
  * }} input
  */
 export function createAuthorization({
@@ -338,6 +504,7 @@ export function createAuthorization({
   installedGraph,
   rootParentCandidates = [],
   overrideCandidates = [],
+  baselineLockfile,
 }) {
   if (!isPlainObject(context)) {
     needsHuman("security context is invalid");
@@ -455,63 +622,91 @@ export function createAuthorization({
     }
   }
   if (result.allowed_strategies.length === 0 && Array.isArray(overrideCandidates)) {
-    const safeOverrides = overrideCandidates
-      .filter((candidate) => isPlainObject(candidate))
-      .filter((candidate) => exactParentSelector(candidate.selector))
-      .filter((candidate) => isStableExactSemVer(candidate.value))
-      .filter((candidate) => candidate.value === firstPatched)
-      .filter(
-        (candidate) =>
-          Array.isArray(candidate.affected_edges) && candidate.affected_edges.length > 0,
-      )
-      .filter(
-        (candidate) =>
-          Array.isArray(candidate.baseline_instances) && candidate.baseline_instances.length > 0,
-      )
-      .filter((candidate) => isPlainObject(candidate.declaration_ranges))
-      .filter((candidate) => Object.keys(candidate.declaration_ranges).length > 0)
-      .filter((candidate) =>
-        candidate.affected_edges.every(
+    const safeOverrides = [];
+    for (const candidate of overrideCandidates) {
+      if (!isPlainObject(candidate)) {
+        continue;
+      }
+      const selector = parseExactParentSelector(candidate.selector);
+      if (!selector || selector.targetName !== normalizedContext.dependency) {
+        continue;
+      }
+      if (!isStableExactSemVer(candidate.value) || candidate.value !== firstPatched) {
+        continue;
+      }
+      if (!baselineLockfile) {
+        needsHuman("override authorization requires the baseline lockfile");
+      }
+      const proof = collectBaselineSelectorProof(baselineLockfile, candidate.selector);
+      if (
+        !sameRecordSet(candidate.baseline_instances ?? [], proof.baseline_instances) ||
+        !sameRecordSet(candidate.baseline_selector_edges ?? [], proof.baseline_selector_edges)
+      ) {
+        needsHuman("override baseline proof is not complete");
+      }
+      const expectedAffectedEdges = affectedPaths.map((entry) =>
+        affectedEdgeFromPath(entry, normalizedContext.dependency),
+      );
+      if (!sameRecordSet(candidate.affected_edges ?? [], expectedAffectedEdges)) {
+        needsHuman("override installed affected edges are inconsistent");
+      }
+      if (
+        proof.baseline_selector_edges.some(
           (edge) =>
-            isPlainObject(edge) &&
-            edge.dependency === normalizedContext.dependency &&
-            Array.isArray(edge.path),
-        ),
-      )
-      .filter((candidate) =>
-        Object.values(candidate.declaration_ranges).every(
+            !semver.satisfies(edge.baseline_resolved_version, baseAuthorization.normalized_range) ||
+            !semver.gte(firstPatched, edge.baseline_resolved_version),
+        )
+      ) {
+        needsHuman("override selector includes a safe or newer baseline edge");
+      }
+      const baselineEdgeCounts = new Map();
+      for (const edge of proof.baseline_selector_edges) {
+        const key = recordKey([
+          edge.parent_name,
+          edge.parent_version,
+          edge.dependency,
+          edge.baseline_resolved_version,
+        ]);
+        baselineEdgeCounts.set(key, (baselineEdgeCounts.get(key) ?? 0) + 1);
+      }
+      for (const entry of affectedPaths) {
+        const key = recordKey([
+          entry.immediate_parent,
+          entry.parent_version,
+          normalizedContext.dependency,
+          entry.baseline_resolved_version,
+        ]);
+        const count = baselineEdgeCounts.get(key) ?? 0;
+        if (count === 0) {
+          needsHuman("installed graph contradicts the baseline selector edge");
+        }
+        baselineEdgeCounts.set(key, count - 1);
+      }
+      if (
+        !isPlainObject(candidate.declaration_ranges) ||
+        Object.keys(candidate.declaration_ranges).length === 0 ||
+        !Object.values(candidate.declaration_ranges).every(
           (range) =>
             typeof range === "string" &&
             semver.validRange(range) !== null &&
             semver.satisfies(firstPatched, range),
-        ),
-      )
-      .filter((candidate) => {
-        const selector = parseExactParentSelector(candidate.selector);
-        return (
-          selector?.targetName === normalizedContext.dependency &&
-          samePathSet(
-            candidate.affected_edges.map((edge) => edge.path),
-            affectedPaths.map((entry) => entry.path),
-          ) &&
-          candidate.baseline_instances.every(
-            (instance) =>
-              isPlainObject(instance) &&
-              instance.name === selector.parentName &&
-              instance.version === selector.parentVersion &&
-              isStableExactSemVer(instance.version),
-          )
-        );
-      });
+        )
+      ) {
+        continue;
+      }
+      safeOverrides.push({ candidate, proof });
+    }
     if (safeOverrides.length === 1) {
       result.allowed_strategies.push("override");
+      const { candidate, proof } = safeOverrides[0];
       result.override = {
-        selector: safeOverrides[0].selector,
-        value: safeOverrides[0].value,
+        selector: candidate.selector,
+        value: candidate.value,
         expected_resolved_version: firstPatched,
-        affected_edges: safeOverrides[0].affected_edges,
-        baseline_instances: safeOverrides[0].baseline_instances,
-        declaration_ranges: safeOverrides[0].declaration_ranges,
+        affected_edges: candidate.affected_edges,
+        baseline_instances: proof.baseline_instances,
+        baseline_selector_edges: proof.baseline_selector_edges,
+        declaration_ranges: candidate.declaration_ranges,
       };
     }
   }
@@ -834,6 +1029,9 @@ async function cli(argv) {
       overrideCandidates: args.has("--override-candidates")
         ? await readJson(args.get("--override-candidates"))
         : [],
+      baselineLockfile: args.has("--lockfile")
+        ? await readFile(args.get("--lockfile"), "utf8")
+        : undefined,
     });
     const { writeFile } = await import("node:fs/promises");
     await writeFile(outputPath, `${JSON.stringify(authorization, null, 2)}\n`, "utf8");

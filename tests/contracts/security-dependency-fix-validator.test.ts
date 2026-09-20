@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   collectInstalledGraph,
+  collectBaselineSelectorProof,
   createAuthorization,
   dependencyKey,
   isStableExactSemVer,
@@ -74,9 +75,82 @@ snapshots:
   demo-target@1.2.3: {}
 `;
 
+const parentScopedSelector = "demo-parent@1.0.0>demo-target";
+const parentScopedLockfile = `lockfileVersion: '9.0'
+packages:
+  demo-parent@1.0.0:
+    resolution: {}
+  'demo-parent@1.0.0(foo@1.0.0)':
+    resolution: {}
+snapshots:
+  demo-parent@1.0.0:
+    dependencies:
+      demo-target: 1.2.2
+  'demo-parent@1.0.0(foo@1.0.0)':
+    dependencies:
+      demo-target: 1.2.1
+`;
+
+function parentScopedGraph(parentVersion = "1.0.0", targetVersion = "1.2.2") {
+  return [
+    {
+      name: "fixture-root",
+      version: "0.1.0",
+      dependencies: {
+        "demo-parent": {
+          version: parentVersion,
+          dependencies: { "demo-target": { version: targetVersion } },
+        },
+      },
+    },
+  ];
+}
+
+function parentScopedOverrideCandidate(lockfileText: string) {
+  const proof = collectBaselineSelectorProof(lockfileText, parentScopedSelector);
+  return {
+    selector: parentScopedSelector,
+    value: "1.2.3",
+    affected_edges: [
+      {
+        path: ["fixture-root", "demo-parent", "demo-target"],
+        parent: "demo-parent",
+        parent_version: "1.0.0",
+        dependency: "demo-target",
+        baseline_resolved_version: "1.2.2",
+      },
+    ],
+    ...proof,
+    declaration_ranges: { dependencies: ">=1.0.0 <2.0.0" },
+  };
+}
+
+function parentScopedAuthorizationInput(
+  lockfileText = parentScopedLockfile,
+  installedGraph = parentScopedGraph(),
+) {
+  return {
+    context: {
+      dependency: "demo-target",
+      ecosystem: "npm",
+      ghsa_id: "GHSA-public-fixture",
+      vulnerable_range: "<1.2.3",
+      first_patched_version: "1.2.3",
+      base_sha: "base-sha",
+    },
+    rootPackage: {
+      name: "fixture-root",
+      dependencies: { "demo-parent": "1.0.0" },
+    },
+    installedGraph,
+    baselineLockfile: lockfileText,
+    overrideCandidates: [parentScopedOverrideCandidate(lockfileText)],
+  };
+}
+
 function expectNeedsHuman(action: () => unknown) {
   expect(action).toThrowError(
-    /needs|authorized|authorization|resolution|specifier|strategy|validator|target|vulnerable|major|downgrade/i,
+    /needs|authorized|authorization|resolution|specifier|strategy|validator|target|vulnerable|major|downgrade|selector|baseline|edge|installed|safe/i,
   );
 }
 
@@ -253,6 +327,7 @@ describe("Security dependency fix validator", () => {
           baseline_resolved_version: "1.2.2",
           root_dependency: "demo-parent",
           immediate_parent: "demo-parent",
+          parent_version: "1.0.0",
         },
       ],
       override: {
@@ -268,7 +343,35 @@ describe("Security dependency fix validator", () => {
             baseline_resolved_version: "1.2.2",
           },
         ],
-        baseline_instances: [{ name: "demo-parent", version: "1.0.0" }],
+        baseline_instances: [
+          { section: "snapshots", key: "demo-parent@1.0.0", name: "demo-parent", version: "1.0.0" },
+          {
+            section: "snapshots",
+            key: "demo-parent@1.0.0(foo@1.0.0)",
+            name: "demo-parent",
+            version: "1.0.0",
+          },
+        ],
+        baseline_selector_edges: [
+          {
+            parent_name: "demo-parent",
+            parent_version: "1.0.0",
+            parent_section: "snapshots",
+            parent_key: "demo-parent@1.0.0",
+            dependency: "demo-target",
+            baseline_resolved_version: "1.2.2",
+            declaration_field: "dependencies",
+          },
+          {
+            parent_name: "demo-parent",
+            parent_version: "1.0.0",
+            parent_section: "snapshots",
+            parent_key: "demo-parent@1.0.0(foo@1.0.0)",
+            dependency: "demo-target",
+            baseline_resolved_version: "1.2.1",
+            declaration_field: "dependencies",
+          },
+        ],
         declaration_ranges: { dependencies: ">=1.0.0 <2.0.0" },
       },
     };
@@ -289,50 +392,52 @@ describe("Security dependency fix validator", () => {
   });
 
   it("authorizes a parent-scoped override only when it covers every vulnerable edge", () => {
-    const authorization = createAuthorization({
-      context: {
-        dependency: "demo-target",
-        ecosystem: "npm",
-        ghsa_id: "GHSA-public-fixture",
-        vulnerable_range: "<1.2.3",
-        first_patched_version: "1.2.3",
-        base_sha: "base-sha",
+    const authorization = createAuthorization(parentScopedAuthorizationInput());
+    expect(authorization).toMatchObject({
+      allowed_strategies: ["override"],
+      override: {
+        baseline_instances: expect.arrayContaining([
+          expect.objectContaining({ key: "demo-parent@1.0.0" }),
+          expect.objectContaining({ key: "demo-parent@1.0.0(foo@1.0.0)" }),
+        ]),
+        baseline_selector_edges: expect.arrayContaining([
+          expect.objectContaining({ baseline_resolved_version: "1.2.2" }),
+          expect.objectContaining({ baseline_resolved_version: "1.2.1" }),
+        ]),
       },
-      rootPackage: {
-        name: "fixture-root",
-        dependencies: { "demo-parent": "1.0.0" },
-      },
-      installedGraph: [
-        {
-          name: "fixture-root",
-          version: "0.1.0",
-          dependencies: {
-            "demo-parent": {
-              version: "1.0.0",
-              dependencies: { "demo-target": { version: "1.2.2" } },
-            },
-          },
-        },
-      ],
-      overrideCandidates: [
-        {
-          selector: "demo-parent@1.0.0>demo-target",
-          value: "1.2.3",
-          affected_edges: [
-            {
-              path: ["fixture-root", "demo-parent", "demo-target"],
-              parent: "demo-parent",
-              parent_version: "1.0.0",
-              dependency: "demo-target",
-              baseline_resolved_version: "1.2.2",
-            },
-          ],
-          baseline_instances: [{ name: "demo-parent", version: "1.0.0" }],
-          declaration_ranges: { dependencies: ">=1.0.0 <2.0.0" },
-        },
-      ],
     });
-    expect(authorization).toMatchObject({ allowed_strategies: ["override"] });
+  });
+
+  it("rejects a selector that would also update a safe baseline edge", () => {
+    const safeBaseline = parentScopedLockfile.replace("demo-target: 1.2.1", "demo-target: 1.3.0");
+    expectNeedsHuman(() => createAuthorization(parentScopedAuthorizationInput(safeBaseline)));
+  });
+
+  it("rejects a selector with an unparseable baseline target version", () => {
+    const invalidBaseline = parentScopedLockfile.replace(
+      "demo-target: 1.2.1",
+      "demo-target: not-a-version",
+    );
+    expectNeedsHuman(() =>
+      createAuthorization({
+        ...parentScopedAuthorizationInput(),
+        baselineLockfile: invalidBaseline,
+        overrideCandidates: [
+          {
+            ...parentScopedOverrideCandidate(parentScopedLockfile),
+            baseline_selector_edges: [],
+          },
+        ],
+      }),
+    );
+  });
+
+  it("rejects a baseline selector that contradicts the installed parent version", () => {
+    expectNeedsHuman(() =>
+      createAuthorization(
+        parentScopedAuthorizationInput(parentScopedLockfile, parentScopedGraph("1.0.1")),
+      ),
+    );
   });
 
   it("generates a deterministic public branch key with an original-name digest", () => {

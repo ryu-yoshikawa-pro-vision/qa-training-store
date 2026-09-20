@@ -11,6 +11,12 @@
 - [x] 6. 関連contract / validator testとRepository標準検証を実行し、失敗を実装側で修正する。
 - [x] 7. diff scope、security boundary、未実装のOwner判断事項を確認する。
 - [x] 8. Run Artifactをsanitization / collector経由でfinal commit前状態へ更新・検証する。
+- [x] 9. レビュー指摘のparent-scoped overrideについてbaseline lockfile全selector edgeを列挙し、safe / unknown / 矛盾をfail-closedにする。
+- [x] 10. publishの実push直前とpush後・PR作成直前にmain不変確認を追加し、stale時のbranch保持契約を固定する。
+- [x] 11. PlanとREPORTへRenovate blocker、レビュー修正、Stop Hook別件の訂正を追記する。
+- [x] 12. strict Runへschema-validな`evaluation.json`を作成し、正規sanitizer / collectorで再集約する。
+- [x] 13. focused / standard validation、diff scope、Security境界確認を修正後状態で完了する。
+- [ ] 14. final commit前に差分を確認し、commit / push、PR本文更新、最新headのCI / CodeQLを確認する。
 
 ## 完了処理の参照先
 

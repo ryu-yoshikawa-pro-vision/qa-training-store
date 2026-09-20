@@ -273,13 +273,13 @@ jobs:
             node --input-type=module <<'NODE'
           import fs from "node:fs";
           import { execFileSync } from "node:child_process";
-          import { parse as parseYaml } from "yaml";
           import semver from "semver";
+          import { collectBaselineSelectorProof } from "./scripts/validate-security-dependency-fix.mjs";
 
           const context = JSON.parse(fs.readFileSync(process.env.CONTEXT_FILE, "utf8"));
           const rootPackage = JSON.parse(fs.readFileSync(process.env.PACKAGE_FILE, "utf8"));
           const graphValue = JSON.parse(fs.readFileSync(process.env.GRAPH_FILE, "utf8"));
-          const lockfile = parseYaml(fs.readFileSync(process.env.LOCKFILE_FILE, "utf8"));
+          const lockfileText = fs.readFileSync(process.env.LOCKFILE_FILE, "utf8");
           const roots = Array.isArray(graphValue) ? graphValue : [graphValue];
           const entries = [];
           const visit = (node, path = []) => {
@@ -344,34 +344,21 @@ jobs:
               rootCandidates.push({ version, dependencies });
             }
           }
-          const lockInstances = (sectionName) => Object.entries(lockfile?.[sectionName] ?? {}).flatMap(([key, value]) => {
-            const normalized = key.replace(/^\/+/, "").replace(/\([^)]*\)$/, "");
-            const versionAt = normalized.startsWith("@")
-              ? normalized.indexOf("@", normalized.indexOf("/") + 1)
-              : normalized.indexOf("@");
-            const name = versionAt > 0 ? normalized.slice(0, versionAt) : null;
-            const version = typeof value?.version === "string"
-              ? value.version
-              : versionAt > 0 && semver.valid(normalized.slice(versionAt + 1))
-                ? normalized.slice(versionAt + 1)
-                : null;
-            return version ? [{ section: sectionName, key, name, version }] : [];
-          });
-          const allLockInstances = ["packages", "snapshots"].flatMap(lockInstances);
           const overrideCandidates = [];
           for (const item of affectedParents.values()) {
             const declarations = ["dependencies", "optionalDependencies", "devDependencies", "peerDependencies"]
               .map((field) => [field, view(item.parentName, item.parentVersion, field)])
               .filter(([, value]) => typeof value?.[context.dependency] === "string");
             if (declarations.length === 0 || declarations.some(([, value]) => semver.validRange(value[context.dependency]) === null || !semver.satisfies(context.first_patched_version, value[context.dependency]))) continue;
-            const baselineInstances = allLockInstances.filter((instance) => instance.name === item.parentName && instance.version === item.parentVersion);
-            if (baselineInstances.length === 0) continue;
+            const selector = `${item.parentName}@${item.parentVersion}>${context.dependency}`;
+            const baselineProof = collectBaselineSelectorProof(lockfileText, selector);
             const declarationRanges = Object.fromEntries(declarations.map(([field, value]) => [field, value[context.dependency]]));
             overrideCandidates.push({
-              selector: `${item.parentName}@${item.parentVersion}>${context.dependency}`,
+              selector,
               value: context.first_patched_version,
               affected_edges: item.edges,
-              baseline_instances: baselineInstances,
+              baseline_instances: baselineProof.baseline_instances,
+              baseline_selector_edges: baselineProof.baseline_selector_edges,
               declaration_ranges: declarationRanges,
             });
           }
@@ -388,6 +375,7 @@ jobs:
               --graph "$graph" \
               --root-parent-candidates "$root_candidates" \
               --override-candidates "$override_candidates" \
+              --lockfile pnpm-lock.yaml \
               --output "$authorization"
           test -s "$authorization"
 
@@ -1200,6 +1188,11 @@ jobs:
 
       - name: Exchange OIDC token for scoped installation token and publish once
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
           artifact="$RUNNER_TEMP/validated-security-fix"
@@ -1229,12 +1222,32 @@ jobs:
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.extraheader
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: bearer $installation_token"
+          latest_main_before_push="$(curl --fail --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+          if [[ "$latest_main_before_push" != "$BASE_SHA" ]]; then
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 installation_token oidc_token
+            echo "needs_human: main advanced immediately before publish; no remote branch was pushed" >&2
+            exit 1
+          fi
           if ! git push origin "$branch"; then
             unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 installation_token oidc_token
             echo needs_human >&2
             exit 1
           fi
           unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+          latest_main_after_push="$(curl --fail --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+          if [[ "$latest_main_after_push" != "$BASE_SHA" ]]; then
+            unset installation_token oidc_token
+            echo "needs_human: main advanced after publish; remote security branch is retained and PR creation is stopped" >&2
+            exit 1
+          fi
           body="$RUNNER_TEMP/security-pr-body.md"
           cat > "$body" <<EOF
           Security dependency update

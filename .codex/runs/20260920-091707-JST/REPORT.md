@@ -117,3 +117,30 @@
   - Result: Parent agentのみで実施。
   - 親Agentの判断: checkout信頼境界を緩和せず、CodeQL failureを無視せず、workflow / contract testの最小修正へ限定した。
 - Progress: 89% (8/9)（tracked task 8/8、最新head CI確認 0/1）
+
+## 2026-09-20 14:20 (JST)
+
+- Summary: PR #167の実装レビュー残存5件を再確認し、Owner確定値に依存するRenovate設定を保留したまま、他4件の修正を実装した。
+- Changes: parent-scoped overrideについてbaseline `packages` / `snapshots`のexact selector全instanceと4 dependency fieldのtarget edgeを`baseline_selector_edges`へ列挙し、safe / unknown / unparseable / installed graph矛盾をfail-closedにした。`publish`では実push直前とpush後・PR作成直前に`BASE_SHA`と最新mainを比較し、stale時にbranchを残して停止する。Planへ同じ契約を反映した。
+- 判断 / 理由: `prConcurrentLimit`の具体的なOwner確定値はIssue #163、PR #167、Plan、既存Owner回答から確認できなかった。仮値・placeholder・省略設定で`renovate.json`を追加せず、PR #167のmerge blockerとして維持する。今回の修正は既存Security境界を弱めず、汎用lockfile resolverやretry / recoveryを追加していない。
+- Validation: focused validator / workflow contractは現時点でPASS（2 files / 26 tests）。標準検証、strict evaluation schema検証、collectorはこのcheckpoint後に実行する。
+- ブロッカー / 残作業: strict Runのschema-valid `evaluation.json`作成と正規collector、focusedを含む標準検証、diff / scope確認、commit / push、PR本文更新、push後最新headのWeb CI / Mobile App CI / CodeQL確認が残る。Ownerの`prConcurrentLimit`確定、外部activation、mergeは今回の範囲外であり、確定までmerge-readyとは扱わない。
+- Stop Hook訂正: 2026-09-20 11:57のStop Hook調査は別Repository / 別session由来である。Issue #163 / PR #167の実装品質・完了判定の根拠には使用しない。今回のPR #167修正対象にStop Hook / Host設定変更は含めない。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+  - 親Agentの判断: 別RepositoryのStop Hook問題を切り離し、Repository内のレビュー修正と通常検証を継続する。
+- Progress: 90% (10/11)（レビュー修正10項目のうち実装・記録を完了、検証・commit / push / 最新CI確認を残す）
+
+## 2026-09-20 17:12 (JST)
+
+- Summary: 修正後のfocused / standard validationとstrict Run Artifact評価を完了した。
+- Changes: schema-validな`evaluation.json`を追加し、既存sanitizerでPLAN / TASKS / REPORT / evaluationの4 filesを確認した。既存collectorを`-RefreshGitChangedFiles -Strict`で実行し、`evaluation_path`、`artifact_summary.evaluation_present`、`primary_failure_category`を正規経路で再集約した。
+- 判断 / 理由: `run.json`は直接編集していない。collector後もinteractive Runの`status=pending`、`validation.status=not_run`が維持されたため、machine-managed fieldを手書きで完了扱いにせず、evaluationのartifact_contract_gapとしてneeds_humanに残す。
+- Validation: focused 3 contract files（43 passed）、`corepack pnpm@10.34.5 run test:contracts`（42 files / 707 passed / 4 skipped）、`corepack pnpm@10.34.5 run verify`（lint 0 errors / 66 warnings、typecheck、security static check、unit 66、integration 111、repository 117、web component 102、native component 64、contract 707 passed / 4 skipped、web/spec build成功）、`git diff --check`（PASS）、evaluation schema validation（PASS）、sanitizer（4 files、residual 0）、collector strict（PASS）。
+- ブロッカー / 残作業: `prConcurrentLimit` Owner確定、interactive Runのmachine-managed status / validation完了確認、最終scope確認、commit / push、PR本文更新、最新headのWeb CI / Mobile App CI / CodeQL確認が残る。Renovate設定はOwner値確定まで追加しない。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+  - 親Agentの判断: 未実行・未確定のfieldを成功へ補完せず、正規collectorの結果をそのまま評価へ反映した。
+- Progress: 93% (12/13)（レビュー修正、検証、evaluation / collectorを完了。commit / push / 最新CI確認を残す）

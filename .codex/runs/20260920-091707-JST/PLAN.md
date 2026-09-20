@@ -66,3 +66,12 @@
 
 - 2026-09-20 JST: PR #167 head `6b9c7e1`は`origin/main` `1213adc`を祖先に持ち、`552c75f`のmain取り込みでPR #166 merge後の`c0dbf81`を含むことを確認した。Plan冒頭の「未取り込み」は履歴と不一致のため、実装開始条件は満たされたと判断した。
 - 2026-09-20 JST: `prConcurrentLimit`はOwner確認値がPlanにないため、設定と値依存contract testだけを保留し、他の実装は進める。
+
+## Review repair continuation（PR #167）
+
+- 対象: Issue #163 / PR #167の実装レビューで残ったbaseline edge証明、publish境界、strict Run Artifact、別Repository由来checkpointの訂正。
+- 実装制約: `renovate.json`と`tests/contracts/renovate-config.test.ts`はOwnerが具体的な正の有限`prConcurrentLimit`を確定するまで追加しない。Stop Hook / Host設定、外部App / Secret / Settings、merge、live workflow dispatchは変更しない。
+- 証明契約: exact parent selectorについてbaseline `packages` / `snapshots`の全instanceと4 dependency fieldのtarget edgeを`baseline_selector_edges`へ固定し、safe / hidden / unknown / unparseable edgeまたはinstalled graphとの矛盾を`needs_human`へ停止する。
+- publish契約: installation token取得後の実push直前と、push後・PR作成直前に`BASE_SHA`と最新mainを比較する。stale時はremote branchを削除・rebase・force push・retry・OpenCode再実行せずPRを作成しない。
+- Run契約: `evaluation.json`はschemaへ適合させ、既存sanitizer / collectorを通す。`run.json`は直接編集せず、interactive Runのmachine-managed status / validationを正規経路で完了できない場合は未確定として報告する。
+- 2026-09-20 JST: 11:57のStop Hook調査は別Repository / 別session由来であり、Issue #163 / PR #167の品質根拠には使用しない。今回の実装へStop Hook / Host設定変更を含めない。

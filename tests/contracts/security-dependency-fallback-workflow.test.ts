@@ -3,6 +3,7 @@ import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(".github/workflows/security-dependency-fallback.yml", "utf8");
+const validatorSource = readFileSync("scripts/validate-security-dependency-fix.mjs", "utf8");
 const config = JSON.parse(readFileSync(".github/opencode/security-fallback.json", "utf8")) as {
   model?: string;
   small_model?: string;
@@ -113,6 +114,28 @@ describe("Security dependency fallback workflow", () => {
     expect(allWorkflowSource).not.toMatch(/permissions:\s*write-all/);
   });
 
+  it("rechecks main at both publish boundaries and leaves stale branches for humans", () => {
+    const publish = jobBlock("publish");
+    const beforePush = publish.indexOf("latest_main_before_push");
+    const push = publish.indexOf('git push origin "$branch"');
+    const afterPush = publish.indexOf("latest_main_after_push");
+    const createPullRequest = publish.indexOf("gh pr create");
+
+    expect(beforePush).toBeGreaterThanOrEqual(0);
+    expect(beforePush).toBeLessThan(push);
+    expect(afterPush).toBeGreaterThan(push);
+    expect(afterPush).toBeLessThan(createPullRequest);
+    expect(publish).toContain('if [[ "$latest_main_before_push" != "$BASE_SHA" ]]');
+    expect(publish).toContain('if [[ "$latest_main_after_push" != "$BASE_SHA" ]]');
+    expect(publish).toContain("remote security branch is retained");
+    expect(publish).not.toContain("opencode run");
+    expect(publish).not.toMatch(/git\s+rebase/);
+    expect(publish).not.toMatch(/git\s+push[^\n]*--force/);
+    expect(publish).not.toMatch(/git\s+(?:branch\s+-D|push[^\n]*--delete)/);
+    expect(workflow).not.toMatch(/GITHUB_TOKEN:\s*write/);
+    expect(workflow).not.toMatch(/contents:\s*write/);
+  });
+
   it("keeps raw alerts and Zen credentials inside their intended boundaries", () => {
     const readAlert = jobBlock("read-alert", "opencode-edit");
     const opencode = jobBlock("opencode-edit", "validate-exec");
@@ -193,6 +216,14 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md");
     expect(workflow).toContain("validated-fix.json");
     expect(workflow).toContain("conflict_terms");
+  });
+
+  it("builds parent-scoped authorization from every baseline lockfile edge", () => {
+    expect(workflow).toContain("collectBaselineSelectorProof");
+    expect(workflow).toContain("baseline_selector_edges");
+    expect(workflow).toContain("--lockfile pnpm-lock.yaml");
+    expect(validatorSource).toContain('const LOCKFILE_SECTIONS = ["packages", "snapshots"]');
+    expect(validatorSource).toContain("baseline selector target edges are missing");
   });
 
   it("keeps the OpenCode permission config deny-first and path-limited", () => {
