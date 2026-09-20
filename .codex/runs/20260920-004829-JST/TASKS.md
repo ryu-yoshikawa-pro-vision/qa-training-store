@@ -9,28 +9,24 @@
 - [x] 5. handoff、answer-key isolation、Artifact reuse、stop境界、PR5持ち越し責務を全体レビューする。
 - [x] 6. fresh session列を廃止し、Codex標準`exec resume <thread_id>`へ修正する。
 - [x] 7. fixed 5 caseへ`stop_no_progress` / `stop_unsafe` / QA→repair handoffを統合する。
-- [x] 8. OTel `multiple_skills`、repair output schema、Case B/C/D fixture、stage sandbox、Windows actual write probeを統合レビューする。
-- [x] 9. 必要と判断した修正だけをcanonical Planとplan-only Run Artifactへ反映する。
-
-## 完了処理の参照先
-
-- 基本Progress: `docs/reference/run-artifacts.md`。
-- Plan保存: `PLANS.md`。
-- Git branch安全性: `docs/reference/git-branch-safety.md`。
+- [x] 8. OTel、repair output、Case B/C/D、stage sandbox、Windows actual writeを統合レビューする。
+- [x] 9. repair Iteration Model全体、Case A review Finding prerequisite、Case B source-free QA / Runtime lifecycle、Case C/D固定fixture、Case E Doctor gateを確定する。
+- [x] 10. 必要な修正だけをcanonical Planとplan-only Run Artifactへ反映する。
 
 ## Discovered（発見事項）
 
-- handoffはCodex標準`exec resume <thread_id>`による同一threadの複数ユーザーターンで評価する。
-- Artifact reuseはfresh session / fresh workspaceで別checkにする。
-- `multiple_skills`はADR-0025 / 既存observerどおり`unobservable`とする。
-- repair decision等は`--output-schema`で構造化し、runner実観測と照合する。
-- Case Bは既存`CHALLENGE-BASIC-001` protected patchでdeterministic defectを準備し、`training/agentic-qa/instructor/**`をAgentへ見せない。
-- Case C / Dは最初から停止理由を与えず、actionable repairからactual validationを経て`stop_unsafe` / `stop_no_progress`へ到達させる。
-- Plan / implementation / repair / QAは必要writeを許可し、review / harnessはread-onlyで足りる。
-- Windows resumeではsandbox optionだけでなくactual fixture writeをsmoke probeする。
-- 独自trust manager、Workflow Engine、Session Manager、追加caseは不要。
-- branchはlatest `main`に対してbehind 1であり、実装開始前に取り込む必要がある。
+- repair outputは既存Iteration Model 9 fieldを共通schema化し、Case別期待decisionはEvaluatorだけが保持する。
+- Case Aは`status.mjs` / `status.test.mjs`を使い、runnerがtrial回帰を注入する。対象Findingがなければrepairへ進まない。
+- Case Bはsource-free Gray-box QA rootとpatched source workspaceを分け、same-thread resumeでcwdを切り替える。
+- Case B Runtimeはpatched sourceからbuild / startしQA後停止、repair後は同じsourceから再buildした新Runtimeで検証する。
+- Case Bのfixture / build / sanity failureは`not_executed`ではない。
+- Case Cは`config.json`のsafe repair後にprotected-data削除だけが残る固定fixtureで`stop_unsafe`を評価する。
+- Case Dは`state.json`のbounded repair後も同一`CASE-D-001`が残る固定fixtureで`stop_no_progress`を評価する。
+- Case EはDoctor内部のtoolchain / device判定をpreflightで先取りせず、Codex標準`command_execution`でDoctorと後続actionの有無を確認する。
+- `multiple_skills`はFAILへ再分類せず`unobservable`のままPASSを防ぐ。
+- 独自Runtime基盤、追加case、trust managerは不要。
+- branchはlatest `main`に対してahead 9 / behind 1であり、実装開始前に取り込む必要がある。
 
 ## Blocked（ブロック中）
 
-- なし。実装開始時のHost capability / fixture contract preflightで不成立なら、その時点でBLOCKEDとする。
+- なし。実装開始時のCodex / Browser / Windows capability smoke probeで共通前提が不成立ならrun `blocked`とする。
