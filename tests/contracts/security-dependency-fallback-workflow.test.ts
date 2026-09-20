@@ -136,6 +136,43 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).not.toMatch(/contents:\s*write/);
   });
 
+  it("installs the immutable baseline before validate-exec imports the validator", () => {
+    const validate = jobBlock("validate-exec", "finalize");
+    const install = stepBlock(validate, "Install baseline dependencies before validator");
+    const inputValidation = stepBlock(
+      validate,
+      "Verify inputs and validate semantic package change",
+    );
+    const firstValidator = validate.indexOf("node scripts/validate-security-dependency-fix.mjs");
+    const installPosition = validate.indexOf("Install baseline dependencies before validator");
+    const candidateCopyPosition = validate.indexOf('cp "$candidate/package.json" package.json');
+
+    expect(install).toContain("corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts");
+    expect(install).toContain("env -i");
+    expect(install).toContain("baseline-install-home");
+    expect(install).toContain("baseline-install-tmp");
+    expect(install).not.toContain("OPENCODE_API_KEY");
+    expect(install).not.toContain("GITHUB_TOKEN");
+    expect(install).not.toContain("ACTIONS_ID_TOKEN");
+    expect(installPosition).toBeGreaterThanOrEqual(0);
+    expect(candidateCopyPosition).toBeGreaterThanOrEqual(0);
+    expect(installPosition).toBeLessThan(candidateCopyPosition);
+    expect(installPosition).toBeLessThan(firstValidator);
+    expect(inputValidation).toContain('cp pnpm-lock.yaml "$baseline_lockfile"');
+    expect(validate).toContain("--baseline-lockfile");
+  });
+
+  it("rejects validator trust dependencies before any fallback execution", () => {
+    const readAlert = jobBlock("read-alert", "opencode-edit");
+    const guard = readAlert.indexOf('dependency === "semver" || dependency === "yaml"');
+    const readAlertStart = workflow.indexOf("  read-alert:");
+    const opencode = workflow.indexOf("  opencode-edit:");
+    expect(guard).toBeGreaterThanOrEqual(0);
+    expect(readAlertStart + guard).toBeLessThan(opencode);
+    expect(validatorSource).toContain('authorization.dependency === "semver"');
+    expect(validatorSource).toContain('authorization.dependency === "yaml"');
+  });
+
   it("keeps raw alerts and Zen credentials inside their intended boundaries", () => {
     const readAlert = jobBlock("read-alert", "opencode-edit");
     const opencode = jobBlock("opencode-edit", "validate-exec");
@@ -175,6 +212,21 @@ describe("Security dependency fallback workflow", () => {
     expect(publish).not.toMatch(/--data(?:-raw|-binary)?\b/);
     expect(publish).not.toContain("PAT");
     expect(publish).not.toContain("write-enabled GITHUB_TOKEN");
+  });
+
+  it("uses masked Basic credentials for Git push and keeps the App token API-only afterward", () => {
+    const publish = jobBlock("publish");
+    expect(publish).toContain("printf 'x-access-token:%s' \"$installation_token\"");
+    expect(publish).toContain("base64 -w 0");
+    expect(publish).toContain('echo "::add-mask::$git_credential"');
+    expect(publish).toContain("AUTHORIZATION: basic $git_credential");
+    expect(publish).not.toContain("AUTHORIZATION: bearer $installation_token");
+    expect(publish).not.toContain("https://x-access-token:");
+    expect(publish).toContain(
+      "unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential",
+    );
+    expect(publish).toContain('GH_TOKEN="$installation_token" gh pr create');
+    expect(workflow).not.toMatch(/GITHUB_TOKEN:\s*write/);
   });
 
   it("pins pnpm, the OpenCode binary, and the fixed one-shot edit", () => {
@@ -224,6 +276,13 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain("--lockfile pnpm-lock.yaml");
     expect(validatorSource).toContain('const LOCKFILE_SECTIONS = ["packages", "snapshots"]');
     expect(validatorSource).toContain("baseline selector target edges are missing");
+    expect(validatorSource).toContain(
+      "prepared override selector edge is not the expected exact version",
+    );
+    expect(validatorSource).toContain(
+      "root parent update changed an unauthorized lockfile resolution",
+    );
+    expect(workflow).toContain("--baseline-lockfile");
   });
 
   it("keeps the OpenCode permission config deny-first and path-limited", () => {

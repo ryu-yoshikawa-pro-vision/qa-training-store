@@ -144,3 +144,16 @@
   - Result: Parent agentのみで実施。
   - 親Agentの判断: 未実行・未確定のfieldを成功へ補完せず、正規collectorの結果をそのまま評価へ反映した。
 - Progress: 93% (12/13)（レビュー修正、検証、evaluation / collectorを完了。commit / push / 最新CI確認を残す）
+
+## 2026-09-20 20:48 (JST)
+
+- Summary: PR #167の統合レビュー7項目を、Owner判断が必要なRenovate値を推測せず、既存Security境界を維持して修正した。
+- Changes: `validate-exec`へcandidate配置とvalidator importより前のbaseline `corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts`を追加した。prepared validationへbaseline lockfile比較を追加し、root parentはroot importerとroot parent由来の局所resolution以外を拒否し、parent-scoped overrideはselector instance / edge identityと全prepared edgeのexpected exact versionを再証明する。pnpm lockfile keyは複数・nested peer suffixを共通parserで解析し、対象parentの解析不能keyをfail-closedにした。`read-alert`で`semver` / `yaml`を依存import前に拒否し、publishのGit pushはmasked Basic credentialへ変更した。Issue #163のactivation手順の旧pnpm記述を`pnpm 10.34.5`へ更新した。
+- Validation: focused Security contract 3 files / 53 passed、`corepack pnpm@10.34.5 run test:contracts` 42 files / 717 passed / 4 skipped、`corepack pnpm@10.34.5 run verify`（lint 0 errors / 66 warnings、typecheck、security static check、unit / integration / repository / component / contract、web/spec build）成功、`git diff --check`成功。実lockfileの`packages` / `snapshots` 1460件はparserで未解析0件だった。
+- Repair loop: iteration 1、input findingsはfresh validator dependency、prepared authorization scope、peer suffix解析、trust dependency早期拒否、Git push credential、Issue activation記述。変更はworkflow、validator、Security contract、Plan、active Run Artifactに限定し、decisionはcommit / push / 最新head CI確認へcontinueとした。
+- Security / scope: `permissions: write-all`、`GITHUB_TOKEN` write fallback、追加OIDC権限、force push、retry、rebase、branch delete、Stop Hook / Host設定変更はない。外部App、Secret、Settings、merge、Issue close、実Alert dispatchは実施しない。
+- Blocker / remaining: `vulnerabilityAlerts.prConcurrentLimit`のOwner確定値が未確認のため`renovate.json`と値依存contract testは未追加であり、PR #167のmerge blockerとして維持する。strict Runのinteractive machine-managed `status` / `validation.status`は既知のartifact contract gapのため手編集しない。commit / push / push後CI確認が残る。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+- Progress: 93% (13/14)（統合レビュー修正、focused / standard validationを完了。final commit、push、最新head CI / CodeQL確認を残す）

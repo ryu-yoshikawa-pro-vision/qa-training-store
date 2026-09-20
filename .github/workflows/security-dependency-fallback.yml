@@ -110,6 +110,7 @@ jobs:
           if (!dependency || ecosystem !== "npm" || !["/package.json", "package.json"].includes(manifestPath)) {
             throw new Error("needs_human");
           }
+          if (dependency === "semver" || dependency === "yaml") throw new Error("needs_human");
           if (typeof ghsaId !== "string" || ghsaId !== advisory.ghsa_id) throw new Error("needs_human");
           const vulnerabilities = (advisory.vulnerabilities ?? []).filter(
             (entry) => entry.ecosystem === "npm" && entry.package?.name === dependency,
@@ -635,6 +636,20 @@ jobs:
           path: ${{ runner.temp }}/security-candidate
           merge-multiple: true
 
+      - name: Install baseline dependencies before validator
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          public_home="$RUNNER_TEMP/baseline-install-home"
+          public_tmp="$RUNNER_TEMP/baseline-install-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+
       - name: Verify inputs and validate semantic package change
         shell: bash
         env:
@@ -646,6 +661,7 @@ jobs:
           context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
           candidate="$RUNNER_TEMP/security-candidate"
           baseline_package="$RUNNER_TEMP/baseline-package.json"
+          baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
           auth="$candidate/fix-authorization.json"
           test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
           test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
@@ -653,6 +669,7 @@ jobs:
           test "$(sha256sum "$candidate/package.json" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_PACKAGE_SHA256"
           test "$(sha256sum "$auth" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256"
           cp package.json "$baseline_package"
+          cp pnpm-lock.yaml "$baseline_lockfile"
           cp "$candidate/package.json" package.json
           cp "$auth" "$RUNNER_TEMP/fix-authorization.json"
           public_home="$RUNNER_TEMP/public-home"
@@ -695,6 +712,7 @@ jobs:
             --candidate-package package.json \
             --authorization "$RUNNER_TEMP/fix-authorization.json" \
             --lockfile pnpm-lock.yaml \
+            --baseline-lockfile "$RUNNER_TEMP/baseline-lockfile.yaml" \
             --graph "$RUNNER_TEMP/prepared-graph.json" \
             > "$RUNNER_TEMP/prepared-validation.json"
 
@@ -818,6 +836,7 @@ jobs:
           context="$RUNNER_TEMP/security-context"
           prepared="$RUNNER_TEMP/prepared-security-fix"
           baseline_package="$RUNNER_TEMP/baseline-package.json"
+          baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
           test "$(find "$context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
           test "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
           test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
@@ -825,6 +844,7 @@ jobs:
           test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
           test "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json\npnpm-lock.yaml'
           cp package.json "$baseline_package"
+          cp pnpm-lock.yaml "$baseline_lockfile"
           cp "$prepared/package.json" package.json
           cp "$prepared/pnpm-lock.yaml" pnpm-lock.yaml
           public_home="$RUNNER_TEMP/finalize-home"
@@ -847,6 +867,7 @@ jobs:
               --candidate-package package.json \
               --authorization "$prepared/fix-authorization.json" \
               --lockfile pnpm-lock.yaml \
+              --baseline-lockfile "$baseline_lockfile" \
               --graph "$RUNNER_TEMP/finalize-graph.json" \
               > "$RUNNER_TEMP/finalize-validation.json"
           run_id="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST)"
@@ -1219,25 +1240,27 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-lock.yaml .codex/runs
           git commit -m "Security Update: dependency $dependency"
+          git_credential="$(printf 'x-access-token:%s' "$installation_token" | base64 -w 0)"
+          echo "::add-mask::$git_credential"
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.extraheader
-          export GIT_CONFIG_VALUE_0="AUTHORIZATION: bearer $installation_token"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $git_credential"
           latest_main_before_push="$(curl --fail --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
             node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
           if [[ "$latest_main_before_push" != "$BASE_SHA" ]]; then
-            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 installation_token oidc_token
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
             echo "needs_human: main advanced immediately before publish; no remote branch was pushed" >&2
             exit 1
           fi
           if ! git push origin "$branch"; then
-            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 installation_token oidc_token
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
             echo needs_human >&2
             exit 1
           fi
-          unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+          unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential
           latest_main_after_push="$(curl --fail --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \

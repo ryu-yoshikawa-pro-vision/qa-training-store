@@ -10,21 +10,21 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "PR #167のレビュー指摘のうち、baseline全edge証明、publish境界再確認、Plan整合、Stop Hook別件の訂正を実装した。Owner確定のprConcurrentLimitに依存するRenovate設定は意図的に保留している。",
+      "evidence": "PR #167の統合レビュー7項目のうち、validate-exec baseline install、prepared authorization scope、peer suffix parser、trust dependency早期拒否、Git push Basic認証、Issue activation記述、既存のbaseline edge / publish境界を実装した。Owner確定のprConcurrentLimitに依存するRenovate設定は意図的に保留している。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "scripts/validate-security-dependency-fix.mjs",
           "selector": null,
           "event_id": null,
-          "summary": "baseline selector proofとfail-closed authorizationを実装した。"
+          "summary": "baseline selector proof、prepared root / override scope、peer suffix parser、fail-closed authorizationを実装した。"
         },
         {
           "kind": "changed_file",
           "path": ".github/workflows/security-dependency-fallback.yml",
           "selector": null,
           "event_id": null,
-          "summary": "publish直前とpush後・PR作成直前のmain再確認を実装した。"
+          "summary": "validate-execのbaseline install、trust dependency早期拒否、Git push Basic認証、publish main再確認を実装した。"
         },
         {
           "kind": "changed_file",
@@ -50,28 +50,28 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "focused contract、Repository全体のtest:contracts、verify、git diff --checkが修正後状態で成功した。",
+      "evidence": "focused contract、Repository全体のtest:contracts、verify、git diff --checkが統合レビュー修正後状態で成功した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "focused 3 contract files: 43 tests passed。"
+          "summary": "focused 3 contract files: 53 tests passed。"
         },
         {
           "kind": "validation_command",
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "pnpm@10.34.5 test:contracts: 42 files、707 passed、4 skipped。"
+          "summary": "pnpm@10.34.5 test:contracts: 42 files、717 passed、4 skipped。"
         },
         {
           "kind": "validation_command",
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "pnpm@10.34.5 verify: lint、typecheck、security check、全test、web/spec buildが成功。"
+          "summary": "pnpm@10.34.5 verify: lint 0 errors / 66 warnings、typecheck、security check、全test、web/spec buildが成功。"
         }
       ]
     },

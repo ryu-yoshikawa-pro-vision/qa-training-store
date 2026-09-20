@@ -352,12 +352,41 @@ const LOCKFILE_DEPENDENCY_FIELDS = [
   "peerDependencies",
 ];
 
-function normalizeLockfileDependencyVersion(value) {
+function parsePeerSuffixedSemVer(value) {
   if (typeof value !== "string") {
     return null;
   }
-  const normalized = value.replace(/\([^)]*\)$/, "");
-  return isStableExactSemVer(normalized) ? normalized : null;
+  const suffixStart = value.indexOf("(");
+  const baseVersion = suffixStart === -1 ? value : value.slice(0, suffixStart);
+  if (suffixStart !== -1) {
+    let depth = 0;
+    for (let index = suffixStart; index < value.length; index += 1) {
+      const character = value[index];
+      if (character === "(") {
+        depth += 1;
+      } else if (character === ")") {
+        depth -= 1;
+        if (depth < 0) {
+          return null;
+        }
+      } else if (depth === 0) {
+        return null;
+      }
+    }
+    if (depth !== 0) {
+      return null;
+    }
+  }
+  return semver.valid(baseVersion) ?? null;
+}
+
+function parsePeerSuffixedVersion(value) {
+  const parsed = parsePeerSuffixedSemVer(value);
+  return parsed && isStableExactSemVer(parsed) ? parsed : null;
+}
+
+function normalizeLockfileDependencyVersion(value) {
+  return parsePeerSuffixedVersion(value);
 }
 
 function recordKey(value) {
@@ -419,7 +448,10 @@ export function collectBaselineSelectorProof(lockfileText, selectorValue) {
     }
     for (const [key, value] of Object.entries(section)) {
       const name = lockPackageName(key);
-      const version = lockVersion(key, value);
+      const version = lockVersion(key);
+      if (name === selector.parentName && !version) {
+        needsHuman("baseline parent key has no stable exact version");
+      }
       if (name !== selector.parentName || version !== selector.parentVersion) {
         continue;
       }
@@ -838,31 +870,30 @@ export function validateInstalledGraph(
   return entries;
 }
 
-function lockPackageName(key) {
+export function parseLockPackageKey(key) {
   if (typeof key !== "string") {
     return null;
   }
-  const normalized = key.replace(/^\/+/, "").replace(/\([^)]*\)$/, "");
-  if (normalized.startsWith("@")) {
-    const slash = normalized.indexOf("/");
-    const versionAt = normalized.indexOf("@", slash + 1);
-    return versionAt > 0 ? normalized.slice(0, versionAt) : null;
-  }
-  const versionAt = normalized.indexOf("@");
-  return versionAt > 0 ? normalized.slice(0, versionAt) : null;
-}
-
-function lockVersion(key, value) {
-  if (isPlainObject(value) && typeof value.version === "string") {
-    return value.version;
-  }
-  const normalized = key.replace(/^\/+/, "").replace(/\([^)]*\)$/, "");
-  const packageName = lockPackageName(key);
-  if (!packageName) {
+  const normalized = key.replace(/^\/+/, "");
+  const versionAt = normalized.startsWith("@")
+    ? normalized.indexOf("@", normalized.indexOf("/") + 1)
+    : normalized.indexOf("@");
+  if (versionAt <= 0) {
     return null;
   }
-  const version = normalized.slice(packageName.length + 1);
-  return semver.valid(version) ? version : null;
+  const name = normalized.slice(0, versionAt);
+  return {
+    name,
+    version: parsePeerSuffixedSemVer(normalized.slice(versionAt + 1)),
+  };
+}
+
+function lockPackageName(key) {
+  return parseLockPackageKey(key)?.name ?? null;
+}
+
+function lockVersion(key) {
+  return parseLockPackageKey(key)?.version ?? null;
 }
 
 export function scanPreparedLockfile(
@@ -892,14 +923,23 @@ export function scanPreparedLockfile(
     if (!isPlainObject(section)) {
       continue;
     }
-    for (const [key, value] of Object.entries(section)) {
+    for (const [key] of Object.entries(section)) {
       const name = lockPackageName(key);
       if (!name) {
         continue;
       }
-      const version = lockVersion(key, value);
+      const version = lockVersion(key);
       if (!version) {
-        if (name === authorization.dependency) {
+        const selectorParent =
+          authorization.allowed_strategies.includes("override") &&
+          typeof authorization.override?.selector === "string"
+            ? parseExactParentSelector(authorization.override.selector)?.parentName
+            : null;
+        if (
+          name === authorization.dependency ||
+          name === authorization.root_parent?.root_dependency ||
+          name === selectorParent
+        ) {
           needsHuman("target lockfile entry has no exact version");
         }
         continue;
@@ -938,11 +978,303 @@ export function scanPreparedLockfile(
   return targetEntries;
 }
 
+function parseLockfileDocument(lockfileText, label) {
+  let lockfile;
+  try {
+    lockfile = parseYaml(lockfileText);
+  } catch {
+    needsHuman(`${label} lockfile is not valid YAML`);
+  }
+  if (!isPlainObject(lockfile)) {
+    needsHuman(`${label} lockfile has an invalid root`);
+  }
+  return lockfile;
+}
+
+function lockfileSection(lockfile, sectionName, label) {
+  const section = lockfile[sectionName];
+  if (section === undefined) {
+    return {};
+  }
+  if (!isPlainObject(section)) {
+    needsHuman(`${label} lockfile ${sectionName} section is invalid`);
+  }
+  return section;
+}
+
+function jsonEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function sortedKeys(value) {
+  return Object.keys(value).sort();
+}
+
+function assertSameKeys(left, right, message) {
+  if (!jsonEqual(sortedKeys(left), sortedKeys(right))) {
+    needsHuman(message);
+  }
+}
+
+function importerWithoutSelectedResolution(importer, field, dependency) {
+  if (!isPlainObject(importer)) {
+    needsHuman("root importer is invalid");
+  }
+  const copy = JSON.parse(JSON.stringify(importer));
+  const fieldEntries = copy[field];
+  if (!isPlainObject(fieldEntries) || !isPlainObject(fieldEntries[dependency])) {
+    needsHuman("root parent importer entry is missing");
+  }
+  delete fieldEntries[dependency].specifier;
+  delete fieldEntries[dependency].version;
+  return copy;
+}
+
+function rootParentRecords(lockfile, rootDependency, versions, label) {
+  const records = [];
+  for (const sectionName of LOCKFILE_SECTIONS) {
+    const section = lockfileSection(lockfile, sectionName, label);
+    for (const [key, value] of Object.entries(section)) {
+      const parsed = parseLockPackageKey(key);
+      if (parsed?.name === rootDependency && !parsed.version) {
+        needsHuman(`${label} root parent key has no stable exact version`);
+      }
+      if (!parsed || parsed.name !== rootDependency || !versions.has(parsed.version)) {
+        continue;
+      }
+      if (!isPlainObject(value)) {
+        needsHuman(`${label} root parent lockfile entry is invalid`);
+      }
+      records.push({ section: sectionName, key, value });
+    }
+  }
+  if (records.length === 0 || !records.some((record) => record.section === "snapshots")) {
+    needsHuman(`${label} root parent lockfile resolution is not proven`);
+  }
+  return records;
+}
+
+function resolvedChildIdentities(records) {
+  const identities = new Set();
+  for (const record of records.filter((entry) => entry.section === "snapshots")) {
+    for (const field of LOCKFILE_DEPENDENCY_FIELDS) {
+      if (record.value[field] === undefined) {
+        continue;
+      }
+      if (!isPlainObject(record.value[field])) {
+        needsHuman("root parent snapshot dependency section is invalid");
+      }
+      for (const [dependency, rawVersion] of Object.entries(record.value[field])) {
+        const version = normalizeLockfileDependencyVersion(rawVersion);
+        if (!version) {
+          needsHuman("root parent snapshot dependency has no stable exact version");
+        }
+        identities.add(`${dependency}@${version}`);
+      }
+    }
+  }
+  return identities;
+}
+
+function recordsForIdentities(lockfile, identities, label) {
+  const keys = new Set();
+  for (const sectionName of LOCKFILE_SECTIONS) {
+    const section = lockfileSection(lockfile, sectionName, label);
+    for (const key of Object.keys(section)) {
+      const parsed = parseLockPackageKey(key);
+      if (parsed?.version && identities.has(`${parsed.name}@${parsed.version}`)) {
+        keys.add(recordKey([sectionName, key]));
+      }
+    }
+  }
+  return keys;
+}
+
+function validateRootParentPreparedLockfile(
+  baselineLockfileText,
+  preparedLockfileText,
+  authorization,
+  expectedResolvedVersion,
+) {
+  const allowed = authorization.root_parent;
+  if (!isPlainObject(allowed) || typeof baselineLockfileText !== "string") {
+    needsHuman("root parent prepared validation requires the baseline lockfile");
+  }
+  const baseline = parseLockfileDocument(baselineLockfileText, "baseline");
+  const prepared = parseLockfileDocument(preparedLockfileText, "prepared");
+  const baselineImporters = lockfileSection(baseline, "importers", "baseline");
+  const preparedImporters = lockfileSection(prepared, "importers", "prepared");
+  assertSameKeys(
+    baselineImporters,
+    preparedImporters,
+    "lockfile importer set changed unexpectedly",
+  );
+  const importerField = allowed.field;
+  const dependency = allowed.root_dependency;
+  const baselineImporter = baselineImporters["."];
+  const preparedImporter = preparedImporters["."];
+  const baselineEntry = baselineImporter?.[importerField]?.[dependency];
+  const preparedEntry = preparedImporter?.[importerField]?.[dependency];
+  if (!isPlainObject(baselineEntry) || !isPlainObject(preparedEntry)) {
+    needsHuman("root parent importer entry is missing");
+  }
+  if (
+    baselineEntry.specifier !== allowed.old_specifier ||
+    normalizeLockfileDependencyVersion(baselineEntry.version) !== allowed.old_specifier ||
+    preparedEntry.specifier !== expectedResolvedVersion ||
+    normalizeLockfileDependencyVersion(preparedEntry.version) !== expectedResolvedVersion
+  ) {
+    needsHuman("prepared root parent importer resolution is outside authorization");
+  }
+  for (const importerName of Object.keys(baselineImporters)) {
+    if (importerName !== ".") {
+      if (!jsonEqual(baselineImporters[importerName], preparedImporters[importerName])) {
+        needsHuman("unrelated lockfile importer changed");
+      }
+      continue;
+    }
+    if (
+      !jsonEqual(
+        importerWithoutSelectedResolution(baselineImporter, importerField, dependency),
+        importerWithoutSelectedResolution(preparedImporter, importerField, dependency),
+      )
+    ) {
+      needsHuman("unrelated root importer resolution changed");
+    }
+  }
+
+  const unchangedTopLevel = new Set(["importers", "packages", "snapshots"]);
+  const topLevelKeys = new Set([...Object.keys(baseline), ...Object.keys(prepared)]);
+  for (const key of topLevelKeys) {
+    if (unchangedTopLevel.has(key)) {
+      continue;
+    }
+    if (!jsonEqual(baseline[key], prepared[key])) {
+      needsHuman("unrelated lockfile top-level data changed");
+    }
+  }
+
+  const rootVersions = new Set([allowed.old_specifier, expectedResolvedVersion]);
+  const baselineRootRecords = rootParentRecords(baseline, dependency, rootVersions, "baseline");
+  const preparedRootRecords = rootParentRecords(prepared, dependency, rootVersions, "prepared");
+  const allowedIdentities = new Set([
+    `${dependency}@${allowed.old_specifier}`,
+    `${dependency}@${expectedResolvedVersion}`,
+  ]);
+  for (const identity of resolvedChildIdentities(baselineRootRecords)) {
+    allowedIdentities.add(identity);
+  }
+  for (const identity of resolvedChildIdentities(preparedRootRecords)) {
+    allowedIdentities.add(identity);
+  }
+  const allowedRecordKeys = new Set([
+    ...recordsForIdentities(baseline, allowedIdentities, "baseline"),
+    ...recordsForIdentities(prepared, allowedIdentities, "prepared"),
+  ]);
+  for (const sectionName of LOCKFILE_SECTIONS) {
+    const baselineSection = lockfileSection(baseline, sectionName, "baseline");
+    const preparedSection = lockfileSection(prepared, sectionName, "prepared");
+    const keys = new Set([...Object.keys(baselineSection), ...Object.keys(preparedSection)]);
+    for (const key of keys) {
+      if (jsonEqual(baselineSection[key], preparedSection[key])) {
+        continue;
+      }
+      if (!allowedRecordKeys.has(recordKey([sectionName, key]))) {
+        needsHuman("root parent update changed an unauthorized lockfile resolution");
+      }
+    }
+  }
+}
+
+function selectorEdgeIdentity(edge) {
+  return recordKey([
+    edge.parent_name,
+    edge.parent_version,
+    edge.parent_section,
+    edge.parent_key,
+    edge.dependency,
+    edge.declaration_field,
+  ]);
+}
+
+function validatePreparedOverrideLockfile(
+  baselineLockfileText,
+  preparedLockfileText,
+  installedGraph,
+  authorization,
+  expectedResolvedVersion,
+) {
+  const allowed = authorization.override;
+  if (!isPlainObject(allowed) || typeof baselineLockfileText !== "string") {
+    needsHuman("override prepared validation requires the baseline lockfile");
+  }
+  const baselineProof = collectBaselineSelectorProof(baselineLockfileText, allowed.selector);
+  if (
+    !sameRecordSet(allowed.baseline_instances, baselineProof.baseline_instances) ||
+    !sameRecordSet(allowed.baseline_selector_edges, baselineProof.baseline_selector_edges)
+  ) {
+    needsHuman("override authorization does not match the baseline lockfile");
+  }
+  const preparedProof = collectBaselineSelectorProof(preparedLockfileText, allowed.selector);
+  if (!sameRecordSet(preparedProof.baseline_instances, allowed.baseline_instances)) {
+    needsHuman("prepared override selector instances are outside authorization");
+  }
+  const expectedIdentities = new Set(
+    allowed.baseline_selector_edges.map((edge) => selectorEdgeIdentity(edge)),
+  );
+  const preparedIdentities = new Set(
+    preparedProof.baseline_selector_edges.map((edge) => selectorEdgeIdentity(edge)),
+  );
+  if (
+    expectedIdentities.size !== preparedIdentities.size ||
+    [...expectedIdentities].some((identity) => !preparedIdentities.has(identity))
+  ) {
+    needsHuman("prepared override selector edges are outside authorization");
+  }
+  if (
+    preparedProof.baseline_selector_edges.some(
+      (edge) => edge.baseline_resolved_version !== expectedResolvedVersion,
+    )
+  ) {
+    needsHuman("prepared override selector edge is not the expected exact version");
+  }
+  const selector = parseExactParentSelector(allowed.selector);
+  if (!selector) {
+    needsHuman("override selector is not an exact parent selector");
+  }
+  const entries = collectInstalledGraph(installedGraph);
+  for (const entry of entries) {
+    if (entry.name !== selector.targetName || entry.path.length < 2) {
+      continue;
+    }
+    const parentPath = entry.path.slice(0, -1);
+    const parent = entries.find((candidate) => pathMatches(candidate.path, parentPath));
+    if (
+      parent?.name === selector.parentName &&
+      parent.version === selector.parentVersion &&
+      entry.version !== expectedResolvedVersion
+    ) {
+      needsHuman("prepared installed graph has an unexpected override target version");
+    }
+  }
+}
+
+/**
+ * @param {{
+ *   baselinePackage: any,
+ *   candidatePackage: any,
+ *   authorization: any,
+ *   lockfileText: string,
+ *   baselineLockfileText?: string,
+ *   installedGraph?: unknown,
+ * }} input
+ */
 export function validatePreparedFix({
   baselinePackage,
   candidatePackage,
   authorization,
   lockfileText,
+  baselineLockfileText = undefined,
   installedGraph,
 }) {
   const mutation = validatePackageChange(baselinePackage, candidatePackage, authorization);
@@ -952,6 +1284,23 @@ export function validatePreparedFix({
     mutation.expectedResolvedVersion,
     mutation.strategy,
   );
+  if (mutation.strategy === "root_parent") {
+    validateRootParentPreparedLockfile(
+      baselineLockfileText,
+      lockfileText,
+      mutation.authorization,
+      mutation.expectedResolvedVersion,
+    );
+  }
+  if (mutation.strategy === "override") {
+    validatePreparedOverrideLockfile(
+      baselineLockfileText,
+      lockfileText,
+      installedGraph,
+      mutation.authorization,
+      mutation.expectedResolvedVersion,
+    );
+  }
   if (installedGraph === undefined) {
     needsHuman("prepared validation requires the installed graph");
   }
@@ -1055,6 +1404,9 @@ async function cli(argv) {
       candidatePackage,
       authorization,
       lockfileText: await readFile(lockfilePath, "utf8"),
+      baselineLockfileText: args.has("--baseline-lockfile")
+        ? await readFile(args.get("--baseline-lockfile"), "utf8")
+        : undefined,
       installedGraph: graphPath ? await readJson(graphPath) : undefined,
     });
     console.log(

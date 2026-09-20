@@ -7,6 +7,7 @@ import {
   dependencyKey,
   isStableExactSemVer,
   normalizeVulnerableRange,
+  parseLockPackageKey,
   scanPreparedLockfile,
   validateInstalledGraph,
   validatePackageChange,
@@ -82,6 +83,8 @@ packages:
     resolution: {}
   'demo-parent@1.0.0(foo@1.0.0)':
     resolution: {}
+  demo-target@1.2.2:
+    resolution: {}
 snapshots:
   demo-parent@1.0.0:
     dependencies:
@@ -89,6 +92,72 @@ snapshots:
   'demo-parent@1.0.0(foo@1.0.0)':
     dependencies:
       demo-target: 1.2.1
+  demo-target@1.2.2: {}
+`;
+
+const parentScopedNestedLockfile = `lockfileVersion: '9.0'
+packages:
+  demo-parent@1.0.0:
+    resolution: {}
+  'demo-parent@1.0.0(foo@1.0.0)(bar@2.0.0)':
+    resolution: {}
+snapshots:
+  demo-parent@1.0.0:
+    dependencies:
+      demo-target: 1.2.2
+  'demo-parent@1.0.0(foo@1.0.0)(bar@2.0.0)':
+    dependencies:
+      demo-target: 1.2.1
+`;
+
+const rootParentBaselineLockfile = `lockfileVersion: '9.0'
+importers:
+  .:
+    dependencies:
+      demo-parent:
+        specifier: 1.0.0
+        version: 1.0.0
+      unrelated:
+        specifier: 2.0.0
+        version: 2.0.0
+packages:
+  demo-parent@1.0.0:
+    resolution: {}
+  demo-target@1.2.2:
+    resolution: {}
+  unrelated@2.0.0:
+    resolution: {}
+snapshots:
+  demo-parent@1.0.0:
+    dependencies:
+      demo-target: 1.2.2
+  demo-target@1.2.2: {}
+  unrelated@2.0.0: {}
+`;
+
+const rootParentPreparedLockfile = `lockfileVersion: '9.0'
+importers:
+  .:
+    dependencies:
+      demo-parent:
+        specifier: 1.0.1
+        version: 1.0.1
+      unrelated:
+        specifier: 2.0.0
+        version: 2.0.0
+packages:
+  demo-parent@1.0.1:
+    resolution: {}
+  demo-target@1.2.3:
+    resolution: {}
+  unrelated@2.0.0:
+    resolution: {}
+snapshots:
+  demo-parent@1.0.1:
+    dependencies:
+      demo-target: 1.2.3
+  demo-target@1.2.3: {}
+  unrelated@2.0.0: {}
 `;
 
 function parentScopedGraph(parentVersion = "1.0.0", targetVersion = "1.2.2") {
@@ -148,6 +217,42 @@ function parentScopedAuthorizationInput(
   };
 }
 
+const rootParentAuthorization = {
+  ...directAuthorization,
+  affected_paths: [
+    {
+      path: ["fixture-root", "demo-parent", "demo-target"],
+      baseline_resolved_version: "1.2.2",
+      root_dependency: "demo-parent",
+      immediate_parent: "demo-parent",
+      parent_version: "1.0.0",
+    },
+  ],
+  allowed_strategies: ["root_parent"],
+  root_parent: {
+    field: "dependencies",
+    root_dependency: "demo-parent",
+    old_specifier: "1.0.0",
+    candidates: [{ new_specifier: "1.0.1", expected_resolved_version: "1.0.1" }],
+  },
+};
+
+const rootParentBaselinePackage = {
+  name: "fixture-root",
+  dependencies: {
+    "demo-parent": "1.0.0",
+  },
+};
+
+const rootParentCandidatePackage = {
+  name: "fixture-root",
+  dependencies: {
+    "demo-parent": "1.0.1",
+  },
+};
+
+const rootParentSafeGraph = parentScopedGraph("1.0.1", "1.2.3");
+
 function expectNeedsHuman(action: () => unknown) {
   expect(action).toThrowError(
     /needs|authorized|authorization|resolution|specifier|strategy|validator|target|vulnerable|major|downgrade|selector|baseline|edge|installed|safe/i,
@@ -168,6 +273,26 @@ describe("Security dependency fix validator", () => {
     expect(isStableExactSemVer("1.2.3")).toBe(true);
     expect(isStableExactSemVer("1.2.3-beta.1")).toBe(false);
     expect(isStableExactSemVer("^1.2.3")).toBe(false);
+  });
+
+  it("parses registry lockfile keys with one or more nested peer suffixes", () => {
+    expect(parseLockPackageKey("foo@1.2.3")).toEqual({ name: "foo", version: "1.2.3" });
+    expect(parseLockPackageKey("foo@1.2.3(peer@4.5.6)")).toEqual({
+      name: "foo",
+      version: "1.2.3",
+    });
+    expect(parseLockPackageKey("foo@1.2.3(peer@4.5.6)(bar@2.0.0)")).toEqual({
+      name: "foo",
+      version: "1.2.3",
+    });
+    expect(parseLockPackageKey("@scope/foo@1.2.3(peer@4.5.6)")).toEqual({
+      name: "@scope/foo",
+      version: "1.2.3",
+    });
+    expect(parseLockPackageKey("foo@not-a-version(peer@4.5.6)")).toEqual({
+      name: "foo",
+      version: null,
+    });
   });
 
   it("accepts one direct same-major first-patched exact update", () => {
@@ -274,6 +399,11 @@ describe("Security dependency fix validator", () => {
 
   it("scans packages and snapshots for vulnerable target entries", () => {
     expect(scanPreparedLockfile(safeLockfile, directAuthorization, "1.2.3")).toHaveLength(2);
+    const peerSuffixedTarget = safeLockfile.replaceAll(
+      "demo-target@1.2.3",
+      "'demo-target@1.2.3(peer@4.5.6)(bar@2.0.0)'",
+    );
+    expect(scanPreparedLockfile(peerSuffixedTarget, directAuthorization, "1.2.3")).toHaveLength(2);
     expectNeedsHuman(() =>
       scanPreparedLockfile(safeLockfile.replaceAll("1.2.3", "1.2.2"), directAuthorization, "1.2.3"),
     );
@@ -314,6 +444,35 @@ describe("Security dependency fix validator", () => {
         { name: "fixture-root", dependencies: { "demo-parent": "2.0.0" } },
         authorization,
       ),
+    );
+  });
+
+  it("accepts a root-parent prepared lockfile when only its allowed resolution changes", () => {
+    expect(
+      validatePreparedFix({
+        baselinePackage: rootParentBaselinePackage,
+        candidatePackage: rootParentCandidatePackage,
+        authorization: rootParentAuthorization,
+        baselineLockfileText: rootParentBaselineLockfile,
+        lockfileText: rootParentPreparedLockfile,
+        installedGraph: rootParentSafeGraph,
+      }),
+    ).toMatchObject({ strategy: "root_parent", expectedResolvedVersion: "1.0.1" });
+  });
+
+  it("rejects an unrelated top-level lockfile resolution during a root-parent update", () => {
+    const unrelatedChange = rootParentPreparedLockfile
+      .replace("version: 2.0.0", "version: 2.0.1")
+      .replace("unrelated@2.0.0", "unrelated@2.0.1");
+    expectNeedsHuman(() =>
+      validatePreparedFix({
+        baselinePackage: rootParentBaselinePackage,
+        candidatePackage: rootParentCandidatePackage,
+        authorization: rootParentAuthorization,
+        baselineLockfileText: rootParentBaselineLockfile,
+        lockfileText: unrelatedChange,
+        installedGraph: rootParentSafeGraph,
+      }),
     );
   });
 
@@ -408,6 +567,60 @@ describe("Security dependency fix validator", () => {
     });
   });
 
+  it("requires every prepared parent-scoped edge to resolve to the authorized exact version", () => {
+    const authorization = createAuthorization(parentScopedAuthorizationInput());
+    const before = { pnpm: { overrides: {} } };
+    const after = { pnpm: { overrides: { [parentScopedSelector]: "1.2.3" } } };
+    const prepared = parentScopedLockfile
+      .replaceAll("demo-target@1.2.2", "demo-target@1.2.3")
+      .replaceAll("demo-target: 1.2.2", "demo-target: 1.2.3")
+      .replaceAll("demo-target: 1.2.1", "demo-target: 1.2.3");
+    const safeGraph = parentScopedGraph("1.0.0", "1.2.3");
+    expect(
+      validatePreparedFix({
+        baselinePackage: before,
+        candidatePackage: after,
+        authorization,
+        baselineLockfileText: parentScopedLockfile,
+        lockfileText: prepared,
+        installedGraph: safeGraph,
+      }),
+    ).toMatchObject({ strategy: "override", expectedResolvedVersion: "1.2.3" });
+
+    expectNeedsHuman(() =>
+      validatePreparedFix({
+        baselinePackage: before,
+        candidatePackage: after,
+        authorization,
+        baselineLockfileText: parentScopedLockfile,
+        lockfileText: prepared.replace("demo-target: 1.2.3", "demo-target: 1.2.4"),
+        installedGraph: safeGraph,
+      }),
+    );
+  });
+
+  it("rejects a newly added prepared selector instance", () => {
+    const authorization = createAuthorization(parentScopedAuthorizationInput());
+    const prepared = parentScopedLockfile
+      .replaceAll("demo-target@1.2.2", "demo-target@1.2.3")
+      .replaceAll("demo-target: 1.2.2", "demo-target: 1.2.3")
+      .replaceAll("demo-target: 1.2.1", "demo-target: 1.2.3");
+    const addedInstance = prepared.replace(
+      "snapshots:\n  demo-parent@1.0.0:",
+      "snapshots:\n  'demo-parent@1.0.0(extra@3.0.0)':\n    dependencies:\n      demo-target: 1.2.3\n  demo-parent@1.0.0:",
+    );
+    expectNeedsHuman(() =>
+      validatePreparedFix({
+        baselinePackage: { pnpm: { overrides: {} } },
+        candidatePackage: { pnpm: { overrides: { [parentScopedSelector]: "1.2.3" } } },
+        authorization,
+        baselineLockfileText: parentScopedLockfile,
+        lockfileText: addedInstance,
+        installedGraph: parentScopedGraph("1.0.0", "1.2.3"),
+      }),
+    );
+  });
+
   it("rejects a selector that would also update a safe baseline edge", () => {
     const safeBaseline = parentScopedLockfile.replace("demo-target: 1.2.1", "demo-target: 1.3.0");
     expectNeedsHuman(() => createAuthorization(parentScopedAuthorizationInput(safeBaseline)));
@@ -430,6 +643,40 @@ describe("Security dependency fix validator", () => {
         ],
       }),
     );
+  });
+
+  it("includes multiple peer-suffix parent instances in baseline proof and fails closed for a safe hidden edge", () => {
+    const authorization = createAuthorization(
+      parentScopedAuthorizationInput(parentScopedNestedLockfile),
+    );
+    expect(authorization).toMatchObject({
+      override: {
+        baseline_instances: expect.arrayContaining([
+          expect.objectContaining({ key: "demo-parent@1.0.0" }),
+          expect.objectContaining({
+            key: "demo-parent@1.0.0(foo@1.0.0)(bar@2.0.0)",
+          }),
+        ]),
+        baseline_selector_edges: expect.arrayContaining([
+          expect.objectContaining({ baseline_resolved_version: "1.2.1" }),
+          expect.objectContaining({ baseline_resolved_version: "1.2.2" }),
+        ]),
+      },
+    });
+
+    const safeHiddenEdge = parentScopedNestedLockfile.replace(
+      "demo-target: 1.2.1",
+      "demo-target: 1.3.0",
+    );
+    expectNeedsHuman(() => createAuthorization(parentScopedAuthorizationInput(safeHiddenEdge)));
+  });
+
+  it("rejects a target parent key whose peer-suffixed version cannot be parsed", () => {
+    const invalidParentKey = parentScopedLockfile.replace(
+      "'demo-parent@1.0.0(foo@1.0.0)':",
+      "'demo-parent@not-a-version(foo@1.0.0)':",
+    );
+    expectNeedsHuman(() => collectBaselineSelectorProof(invalidParentKey, parentScopedSelector));
   });
 
   it("rejects a baseline selector that contradicts the installed parent version", () => {
