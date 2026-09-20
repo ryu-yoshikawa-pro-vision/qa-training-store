@@ -27,27 +27,32 @@
 - `pnpm run test:hooks` でHook contractをfocused実行できる。
 - `pnpm run diagnose:hooks` で現在RepositoryのHook設定と既存stateを読み取り専用で診断できる。
 - `.codex/config.toml` に登録されたRepository所有Hookをevent / handler / launcher単位で確認できる。
-- 現在Repositoryでは `.codex/hooks.json` を使用しない契約とし、存在した場合にdoctorが見落とさない。
+- 現在Repositoryでは `.codex/hooks.json` を使用していない。存在した場合はCodexとして不正とは扱わず、doctorの対応範囲外としてproject Hook診断を不完全扱いにする。
+- Git rootから現在のcwdまでにroot以外の `.codex/config.toml` が存在した場合も、doctorの対応範囲外としてproject config診断を不完全扱いにする。
+- Repository契約として `[features] hooks = true` を確認する。project trust、Hook trust、managed overrideはRepositoryだけでは確定できないため `未確認` として扱う。
 - `PreToolUse`、`SessionStart`、logging Hook、text quality Hookを対象にする。
 - 「全Hookエラー」は、Repositoryが所有し外部から観測可能なfailure契約を意味する。内部の全`throw`やHost / plugin / user / system Hookまでは対象にしない。
 - text quality Hookについて、`QualityUnavailable`、`TextQualityConfigurationError`、`internal`、configured launcher fallback、inactive Stopのgeneric blockを含む外部failure契約を棚卸しし、既存または追加contract testとの対応を明確にする。
 - `baseline_state` の詳細原因を安全なcodeへ分け、active Stopでstateがcleanupされた後でも再発時の原因分類がHook出力から分かる。
+- `baseline_unavailable` はstateへ保存済みの安全な `code` をHook診断へ含め、active Stop後にstateがcleanupされてもbaseline作成失敗の原因分類を残す。
 - 詳細codeにはstate本文、prompt、Hook payload、token、secret、raw session ID、absolute user pathを含めない。
 - state fileが存在しない場合のevent別挙動を維持する。
   - `UserPromptSubmit`: stateが無ければbaselineを作成する。
   - `PostToolUse`: state欠落はquality check不能としてfail-open診断になる。
   - inactive `Stop`: state欠落はcompletion確認不能としてblockする。
   - active `Stop`: state欠落は既存契約どおり正常allowとし、`baseline_state`診断を出さない。
-- `diagnose:hooks` は存在するstateだけを検査する。state 0件は正常であり、「特定sessionのstate欠落」と推測しない。
+- `diagnose:hooks` は存在するstateだけを検査する。`.artifacts/codex-text-quality` 自体が存在しない場合とstate 0件は正常であり、「特定sessionのstate欠落」と推測しない。
+- 既存runtime stateの異常は現在sessionとの関連を証明できないため `WARN` とし、静的なRepository設定不整合と混同しない。
 - `diagnose:hooks` はraw session IDやlogging recordとの照合を行わない。
 - Hookとdoctorが同じstate validationを使い、判定ずれを起こさない。
+- doctorはstate directory、state file、configured Repository scriptを `lstat` し、symlinkや期待する種類でないfilesystem entryを読み取らない。
 - diagnostic commandはworktree、Git index、`.codex/logs`、`.artifacts/codex-text-quality`を変更しない。
 - diagnostic commandは現在Repository上でHook / configured launcherを実行しない。
 - doctor CLI自体の正常state・異常stateをtemp fixtureのprocess contractで検証する。
 - Ubuntu / Windowsの既存Hook CI経路で `test:hooks` / `diagnose:hooks` を検証する。
 - Hostが実際にどのproject / `.codex/config.toml` をsessionへ紐付けたかはCodex実起動が必要な別境界として残す。
 - 新規runtime dependencyを追加しない。
-- 既存Hookのfail-open / fail-close、active Stop cleanup、文章品質rule、baseline生成方式、baseline schema v2、Git rename判定を今回の診断機能だけを理由に変更しない。
+- 既存Hookのfail-open / fail-close、active Stop cleanup、文章品質rule、baseline生成方式、baseline schema v2、Git rename判定を今回の診断機能だけを理由に変更しない。active Stopのcleanupは既存どおりbest-effortとし、cleanup失敗を理由にactive Stopをblockしない。
 
 ## 2. 現状理解
 
@@ -67,14 +72,14 @@
 
 現在の `main` には `.codex/hooks.json` は存在しない。
 
-Codex公式仕様では、同一project layerに `.codex/hooks.json` と `.codex/config.toml` のinline Hookが両方存在すると両方を読み込み、警告する。今回のRepository doctorは両形式を統合する汎用実装にはせず、現在契約どおり `config.toml` をRepository所有Hookの正本として扱う。`.codex/hooks.json` が追加された場合は、無視して成功せずRepository設定エラーとして扱う。
+Codex公式仕様では、同一project layerに `.codex/hooks.json` と `.codex/config.toml` のinline Hookが両方存在すると両方を読み込み、警告する。またproject rootから現在のcwdまでのproject configが適用対象になり得る。今回のRepository doctorはこれらを汎用mergeしない。現在のRepositoryはroot `.codex/config.toml` のみを使用している前提で診断し、`.codex/hooks.json` またはroot以外のproject `.codex/config.toml` を検出した場合は「設定不正」ではなく「doctorの診断範囲外でproject Hook / config全体を保証できない」としてexit 1にする。
 
 参照:
 
 - https://developers.openai.com/ja-JP/docs/hooks
 - https://developers.openai.com/ja-JP/docs/config-file/config-advanced
 
-user / system / plugin Hook、project trust、Hook trust、Host / session project bindingはRepository offline testの対象外とする。
+user / system / plugin Hook、project trust、Hook trust、managed override、Host / session project bindingはRepository offline testの対象外とする。doctorはこれらを推測せず `未確認` と表示する。
 
 ### 2.2 既存contract test
 
@@ -182,7 +187,198 @@ baseline_state_manifest
 
 既存のgeneric `baseline_state` は新規に生成せず、実装後は上記詳細codeへ置き換える。
 
-この変更はdiagnostic granularityだけを変える。inactive Stopのblock semantics、active Stopのfail-open、active Stop cleanup、state schema v2、baseline生成内容、saved state field、launcher fallbackは変更しない。
+この変更はdiagnostic granularityだけを変える。inactive Stopのblock semantics、active Stopのfail-open、state schema v2、baseline生成内容、saved state field、launcher fallbackは変更しない。active Stopでは既存どおりcleanupを試みるが、cleanup失敗は握りつぶしてblockしないbest-effort契約を維持する。
+
+`baseline_unavailable` stateについては既存の `code` fieldを追加保存しない。既にvalidatorが許可している `^[a-z0-9_]{1,64}# Codex Hookオフライン診断・契約テスト拡張 実装計画
+
+## 0. 依頼概要
+
+- 依頼内容: Codexを起動せずにHookを検証し、`Hook · Codex text quality hook: quality check unavailable (baseline_state)` を含むHookエラーを切り分けられるようにする。
+- 実装branch: `feat/codex-hook-offline-diagnostics`
+- Plan作成時base: `main` / `1213adc9513409cc176c090f9df4c1c408142b9c`
+- このPlanでは実装しない。実装、commit、push、PR作成は別タスクで行う。
+
+目的は、Repository側のHook本体・launcher・設定・状態ファイルの問題をCodex Hostから切り離して検証できるようにすることである。
+
+新しいHook frameworkや独自runtimeは作らない。既存の `tests/contracts/codex-hook-contract.test.ts`、`tests/contracts/codex-text-quality.test.ts`、Vitest、`smol-toml`、Node.js標準機能を再利用する。
+
+## 1. ゴール / 完了条件
+
+### ゴール
+
+次の2経路を用意する。
+
+1. `pnpm run test:hooks`
+   - Codexを起動せず、Repository所有Hookの外部から観測可能な正常系・異常系契約をtemp fixture上で検証する。
+2. `pnpm run diagnose:hooks`
+   - 現在のRepositoryを変更せず、project Hook設定と存在するtext quality stateを読み取り専用で診断する。
+
+### 完了条件
+
+- `pnpm run test:hooks` でHook contractをfocused実行できる。
+- `pnpm run diagnose:hooks` で現在RepositoryのHook設定と既存stateを読み取り専用で診断できる。
+- `.codex/config.toml` に登録されたRepository所有Hookをevent / handler / launcher単位で確認できる。
+- 現在Repositoryでは `.codex/hooks.json` を使用していない。存在した場合はCodexとして不正とは扱わず、doctorの対応範囲外としてproject Hook診断を不完全扱いにする。
+- Git rootから現在のcwdまでにroot以外の `.codex/config.toml` が存在した場合も、doctorの対応範囲外としてproject config診断を不完全扱いにする。
+- Repository契約として `[features] hooks = true` を確認する。project trust、Hook trust、managed overrideはRepositoryだけでは確定できないため `未確認` として扱う。
+- `PreToolUse`、`SessionStart`、logging Hook、text quality Hookを対象にする。
+- 「全Hookエラー」は、Repositoryが所有し外部から観測可能なfailure契約を意味する。内部の全`throw`やHost / plugin / user / system Hookまでは対象にしない。
+- text quality Hookについて、`QualityUnavailable`、`TextQualityConfigurationError`、`internal`、configured launcher fallback、inactive Stopのgeneric blockを含む外部failure契約を棚卸しし、既存または追加contract testとの対応を明確にする。
+- `baseline_state` の詳細原因を安全なcodeへ分け、active Stopでstateがcleanupされた後でも再発時の原因分類がHook出力から分かる。
+- `baseline_unavailable` はstateへ保存済みの安全な `code` をHook診断へ含め、active Stop後にstateがcleanupされてもbaseline作成失敗の原因分類を残す。
+- 詳細codeにはstate本文、prompt、Hook payload、token、secret、raw session ID、absolute user pathを含めない。
+- state fileが存在しない場合のevent別挙動を維持する。
+  - `UserPromptSubmit`: stateが無ければbaselineを作成する。
+  - `PostToolUse`: state欠落はquality check不能としてfail-open診断になる。
+  - inactive `Stop`: state欠落はcompletion確認不能としてblockする。
+  - active `Stop`: state欠落は既存契約どおり正常allowとし、`baseline_state`診断を出さない。
+- `diagnose:hooks` は存在するstateだけを検査する。`.artifacts/codex-text-quality` 自体が存在しない場合とstate 0件は正常であり、「特定sessionのstate欠落」と推測しない。
+- 既存runtime stateの異常は現在sessionとの関連を証明できないため `WARN` とし、静的なRepository設定不整合と混同しない。
+- `diagnose:hooks` はraw session IDやlogging recordとの照合を行わない。
+- Hookとdoctorが同じstate validationを使い、判定ずれを起こさない。
+- doctorはstate directory、state file、configured Repository scriptを `lstat` し、symlinkや期待する種類でないfilesystem entryを読み取らない。
+- diagnostic commandはworktree、Git index、`.codex/logs`、`.artifacts/codex-text-quality`を変更しない。
+- diagnostic commandは現在Repository上でHook / configured launcherを実行しない。
+- doctor CLI自体の正常state・異常stateをtemp fixtureのprocess contractで検証する。
+- Ubuntu / Windowsの既存Hook CI経路で `test:hooks` / `diagnose:hooks` を検証する。
+- Hostが実際にどのproject / `.codex/config.toml` をsessionへ紐付けたかはCodex実起動が必要な別境界として残す。
+- 新規runtime dependencyを追加しない。
+- 既存Hookのfail-open / fail-close、active Stop cleanup、文章品質rule、baseline生成方式、baseline schema v2、Git rename判定を今回の診断機能だけを理由に変更しない。active Stopのcleanupは既存どおりbest-effortとし、cleanup失敗を理由にactive Stopをblockしない。
+
+## 2. 現状理解
+
+### 2.1 現在のRepository所有Hook
+
+現在の `.codex/config.toml` には次がある。
+
+| event | Repository所有handler | matcher |
+| --- | --- | --- |
+| `PreToolUse` | `pre_tool_use_policy.mjs` | `^Bash$` |
+| `UserPromptSubmit` | `log_event.mjs`, `text_quality_gate.mjs` | なし |
+| `PostToolUse` | `log_event.mjs`, `text_quality_gate.mjs` | なし |
+| `SubagentStart` | `log_event.mjs` | なし |
+| `SubagentStop` | `log_event.mjs` | なし |
+| `Stop` | `log_event.mjs`, `text_quality_gate.mjs` | なし |
+| `SessionStart` | `session_start_context.mjs` | `^compact$` |
+
+現在の `main` には `.codex/hooks.json` は存在しない。
+
+Codex公式仕様では、同一project layerに `.codex/hooks.json` と `.codex/config.toml` のinline Hookが両方存在すると両方を読み込み、警告する。またproject rootから現在のcwdまでのproject configが適用対象になり得る。今回のRepository doctorはこれらを汎用mergeしない。現在のRepositoryはroot `.codex/config.toml` のみを使用している前提で診断し、`.codex/hooks.json` またはroot以外のproject `.codex/config.toml` を検出した場合は「設定不正」ではなく「doctorの診断範囲外でproject Hook / config全体を保証できない」としてexit 1にする。
+
+参照:
+
+- https://developers.openai.com/ja-JP/docs/hooks
+- https://developers.openai.com/ja-JP/docs/config-file/config-advanced
+
+user / system / plugin Hook、project trust、Hook trust、managed override、Host / session project bindingはRepository offline testの対象外とする。doctorはこれらを推測せず `未確認` と表示する。
+
+### 2.2 既存contract test
+
+`tests/contracts/codex-hook-contract.test.ts` は既に `PreToolUse`、`SessionStart`、logging Hookのstdin / stdout / stderr / exit code、主要なfail-open / fail-close、Unix / Windows configured launcherをprocess境界で検証している。
+
+`tests/contracts/codex-text-quality.test.ts` は既に `UserPromptSubmit`、`PostToolUse`、`Stop`、state lifecycle、corrupt state、root / session identity mismatch、baseline unavailable、missing state、active Stop cleanup、Unix / Windows configured launcher、secret非漏えいを検証している。
+
+既存testを別directoryへ複製しない。不足する外部failure契約だけを追加する。
+
+### 2.3 text qualityの現在のfailure契約
+
+`text_quality_gate.mjs` の `QualityUnavailable` には少なくとも次がある。
+
+```text
+baseline_blob
+baseline_cleanup
+baseline_manifest
+baseline_state
+baseline_unavailable
+baseline_write
+current_content
+event_mismatch
+git_changed_path
+git_rename_mapping
+git_unavailable
+input_json
+input_shape
+repository_root
+session_id
+session_rename_mapping
+start_head
+stop_hook_active
+unsafe_path
+```
+
+さらに `scripts/lint-text-quality.mjs` 由来の `TextQualityConfigurationError` がHookまで伝播する。少なくとも次を棚卸し対象とする。
+
+```text
+rule_id_collision
+textlint_config_invalid
+textlint_config_load
+textlint_config_unavailable
+textlint_message_match
+textlint_message_range
+textlint_message_shape
+textlint_result
+textlint_rule_load
+textlint_rule_set_invalid
+textlint_scan
+```
+
+加えて、unexpected exception時の `internal`、configured launcherの固定fallback、inactive `Stop` のgeneric block、他Hookの外部failure結果も対象にする。
+
+全ての内部例外やproduction inputから到達不能な分岐を、test-only APIで公開してまで網羅しない。
+
+### 2.4 `baseline_state` の現状
+
+現行 `readState()` は、state読込から構造検証までの異常を最終的に `QualityUnavailable("baseline_state")` へ集約する。
+
+現在少なくとも次が同じ `baseline_state` になり得る。
+
+- state file read失敗
+- JSON parse失敗
+- schema / required field不正
+- `root_id` / `session_id_hash` の形式不正
+- repository root identity不一致
+- session identity不一致
+- `status` 不正
+- statusごとの許可field不正
+- `start_head` 不正
+- `files` / entry不正
+- path不正・重複
+- `content_sha256` 不正
+- violation fingerprint / count不正
+
+active `Stop` でstate file自体が存在しない場合は、現行実装が明示的にallowするため `baseline_state`診断は出ない。
+
+一方、corrupt stateやidentity mismatchではactive `Stop`が `baseline_state` を出した後、既存cleanup契約によりstateを削除する。既存contract testもこの挙動を固定している。
+
+そのため、`diagnose:hooks` で後からstateを読むだけでは、実際に発生したactive Stopの `baseline_state` 原因を特定できない。
+
+### 2.5 `baseline_state` 詳細化方針
+
+新しいevidence fileは保存しない。既存stateをcleanupしないようにも変更しない。
+
+state validationで判明した安全な原因分類をHookのdiagnostic codeへ反映してから、既存どおりcleanupする。
+
+詳細codeは次の6種類に限定する。
+
+```text
+baseline_state_missing
+baseline_state_read
+baseline_state_json
+baseline_state_schema
+baseline_state_identity
+baseline_state_manifest
+```
+
+- `baseline_state_missing`: expected state pathにfileが存在しない。`PostToolUse`ではfail-open診断、inactive `Stop`ではgeneric block、active `Stop`では既存どおりallowする。
+- `baseline_state_read`: state fileは存在するがreadできない。
+- `baseline_state_json`: JSON parseできない。
+- `baseline_state_schema`: schema version、required field、status、`start_head`形式、status固有field集合などtop-level構造が不正。
+- `baseline_state_identity`: `root_id` / `session_id_hash` の形式または期待値との一致が不正。
+- `baseline_state_manifest`: `files`、path、source、SHA-256、violations、fingerprint、count等のmanifest entryが不正。
+
+既存のgeneric `baseline_state` は新規に生成せず、実装後は上記詳細codeへ置き換える。
+
+ の安全なcodeだけをHook診断へ含める。raw exception、state本文、path、session IDは出力しない。
 
 ### 2.6 state validation共有方針
 
@@ -191,6 +387,8 @@ doctor側でstate schemaを別実装しない。
 `readState()` のうちI/OとHook固有exception変換を除くpure validationを `.codex/hooks/text_quality_state.mjs` へ抽出し、Hookとdoctorの両方から使う。
 
 共有moduleはstate JSON値のschema / identity / manifest検証と安全な詳細reason codeだけを担当する。baseline生成、Git差分取得、file read / write / delete、Hook stdout、cleanup、textlint、launcher処理は移動しない。
+
+共有moduleとHook本体がNode ESMの `.mjs` であるため、doctorも `scripts/diagnose-codex-hooks.mjs` とし、型宣言やTypeScript wrapperを追加しない。既存の `scripts/lint-text-quality.mjs` 等と同じruntime境界に揃える。
 
 ### 2.7 CIの現状
 
@@ -207,7 +405,7 @@ package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs
 .codex/hooks/text_quality_state.mjs
-scripts/diagnose-codex-hooks.ts
+scripts/diagnose-codex-hooks.mjs
 scripts/verify
 scripts/verify.ps1
 tests/contracts/codex-hook-diagnostics.test.ts
@@ -250,7 +448,7 @@ docs/reference/codex-safety-harness.md
 
 ### Task 0: 実装開始時の状態を固定する
 
-実装開始時にlatest `origin/main`、branch HEAD / merge base / working tree、`package.json`、CI、`.codex/config.toml`、`.codex/hooks.json` の有無、Hook実装、contract test、`scripts/verify --hook-contracts`、`scripts/verify.ps1 -HookContracts`を再確認する。
+実装開始時にlatest `origin/main`、branch HEAD / merge base / working tree、`package.json`、CI、rootからcwdまでの `.codex/config.toml`、`.codex/hooks.json` の有無、`[features] hooks`、Hook実装、contract test、`scripts/verify --hook-contracts`、`scripts/verify.ps1 -HookContracts`を再確認する。
 
 Plan作成後にmainへHook / CI / package manager関連変更が入っていた場合は現行mainを優先して差分を確認する。ローカル作業を破棄するreset / restore / force pushは行わない。
 
@@ -262,7 +460,9 @@ Plan作成後にmainへHook / CI / package manager関連変更が入っていた
 
 棚卸し結果だけの新規文書は作らない。
 
-`.codex/hooks.json` が存在する場合は、今回のdoctorがproject Hook全体を正しく診断できないため実装を続行せず、現行Repository契約との不整合として扱う。汎用hooks.json parserを追加して範囲を広げない。
+`.codex/hooks.json` またはroot以外のproject `.codex/config.toml` が存在する場合は、今回のdoctorがCodexのproject Hook / config全体を正しく再現できない。これらを不正設定とは呼ばず、doctorの診断範囲外として検出する。汎用hooks.json parserやproject config merge処理を追加して範囲を広げない。
+
+configured commandの静的確認では一般的なshell / PowerShell parserを作らない。既存contractと同様にTOMLをparseし、Unix commandは現在Repositoryの既知handler参照を確認し、Windows `EncodedCommand` はBase64 / UTF-16LEでdecodeして既知handler参照を確認する。現在未対応のhandler typeが追加されていた場合は診断不完全として扱う。
 
 ### Task 2: state validationを共有する
 
@@ -287,10 +487,12 @@ Hookとdoctorで同じvalidatorを使う。共有化のためにbaseline生成�
 - manifest entry不正 -> `baseline_state_manifest`
 - existing state read failure -> `baseline_state_read`
 - missing stateのevent別挙動を維持する
-- active Stopで詳細codeを出した後もstateを既存どおりcleanupする
+- active Stopで詳細codeを出した後もstate cleanupを試みる。cleanup失敗を理由にactive Stopをblockしない
 - diagnosticへstate本文、path、session ID、secretを含めない
 
 inactive Stopは現在どおりgeneric blockを返す。詳細codeを出すためにblock semanticsを変更しない。
+
+`baseline_unavailable` stateを読む `PostToolUse` / active `Stop` では、validator済みのstate `code` が存在する場合だけ安全な原因codeとしてdiagnosticへ含める。active Stopはdiagnostic出力後に既存どおりcleanupを試みる。
 
 ### Task 4: `test:hooks` をHook contractの共通入口にする
 
@@ -310,6 +512,8 @@ inactive Stopは現在どおりgeneric blockを返す。詳細codeを出すた�
 
 同じtest file一覧を複数箇所で管理しない。
 
+ただし既存wrapperの実行環境互換性は維持する。`scripts/verify` は現在の `pnpm` / `pnpm.cmd` / `corepack.cmd` / `corepack` fallback、`scripts/verify.ps1` は `pnpm` / `corepack pnpm` fallbackを残し、それぞれの選択済み実行系から `run test:hooks` を呼ぶ。共通入口化を理由にwrapperのfallbackを削除しない。
+
 Issue #159で確認したWindows launcher累積時間を考慮し、contract削減、skip、global timeout短縮で通さない。
 
 ### Task 5: 外部failure contractの不足testを追加する
@@ -328,28 +532,34 @@ production codeへtest-only分岐を追加しない。外部から安定して�
 entry point:
 
 ```text
-scripts/diagnose-codex-hooks.ts
+scripts/diagnose-codex-hooks.mjs
+node scripts/diagnose-codex-hooks.mjs
 pnpm run diagnose:hooks
 ```
 
 現在Repository上では次だけ行う。
 
 1. Git repository root解決
-2. `.codex/config.toml` 読み取り・parse
-3. `.codex/hooks.json` 不在確認
-4. configured event / handler / script pathの静的確認
-5. current platformで必要なruntime / executableの存在確認
-6. `.artifacts/codex-text-quality` directoryの読み取り
-7. 存在するstate filename形式確認
-8. state file read / JSON parse
-9. shared validatorによるstate構造検証
-10. filenameのroot hashとstate `root_id` の整合確認
-11. filenameのsession hashとstate `session_id_hash` の整合確認
-12. current repository root hashとの一致確認
-13. `start_head` が存在する場合のGit commit object存在確認
-14. Host側でしか確認できない項目を `未確認` と表示
+2. Git rootから現在のcwdまでのproject `.codex/config.toml` を列挙し、root以外のconfigが無いことを確認
+3. root `.codex/config.toml` 読み取り・parse
+4. `[features] hooks = true` をRepository契約として確認
+5. `.codex/hooks.json` 不在確認
+6. configured event / handler / script pathの静的確認
+7. current platformで必要なruntime / executableの存在確認
+8. `.artifacts/codex-text-quality` directoryの存在確認。directory自体が無ければstate 0件として正常扱い
+9. state directoryを `lstat` し、実directoryかつ非symlinkであることを確認
+10. 存在するstate candidateを `lstat` し、expected directory直下のregular fileかつ非symlinkだけを読む
+11. state filename形式確認
+12. state file read / JSON parse
+13. shared validatorによるstate構造検証
+14. filenameのroot hashとstate `root_id` の整合確認
+15. filenameのsession hashとstate `session_id_hash` の整合確認
+16. current repository root hashとの一致確認
+17. `start_head` が存在する場合のGit commit object存在確認
+18. valid `baseline_unavailable` stateではvalidator済みの安全な `code` があれば表示
+19. project trust / Hook trust / managed override / Host project bindingを `未確認` と表示
 
-現在RepositoryではHook process、configured launcher、Hook payload投入、baseline生成、state変更、log追記、Git index変更、worktree変更、raw session ID取得、logging recordとの照合、Host / user / system / plugin Hook探索を行わない。
+現在RepositoryではHook process、configured launcher、Hook payload投入、baseline生成、state変更、log追記、Git index変更、worktree変更、raw session ID取得、logging recordとの照合、Host / user / system / plugin Hook探索を行わない。configured scriptの確認でもRepository外、symlink、非regular fileを読み込まない。
 
 state fileが0件の場合は正常終了し、「特定sessionにstateが存在すべきだった」と推測しない。
 
@@ -358,27 +568,29 @@ state fileが0件の場合は正常終了し、「特定sessionにstateが存在
 結果区分:
 
 - `OK`: Repository側の診断項目に異常なし。
-- `WARN`: Host / session等offlineでは確認できない項目。
+- `WARN`: Host / session等offlineでは確認できない項目、または現在sessionとの関連を証明できない既存runtime stateの異常。
 - `N/A`: current OSでは対象外のlauncher / runtime。
-- `ERROR`: Repository所有設定・script・stateの不整合。
+- `ERROR`: doctorが現在Repositoryのproject Hook設定を完全に診断できない静的不整合、または安全に読み取れないfilesystem境界。
 
 exit code:
 
 - `0`: `ERROR`なし。`WARN` / `N/A` / state 0件を含んでよい。
-- `1`: Repository所有設定・script・stateの `ERROR` を1件以上検出。
+- `1`: 静的なRepository設定・script・filesystem境界の `ERROR` を1件以上検出。
 - `2`: doctor自体がrepository contextを確立できず診断を開始できない。
 
 `ERROR` の例:
 
-- `.codex/config.toml` parse failure
-- configured Repository script欠落
-- `.codex/hooks.json` が存在する
-- state filename不正
-- state read / JSON / schema / identity / manifest不正
-- valid `baseline_unavailable` state
-- state `start_head` がcommit objectとして存在しない
+- root `.codex/config.toml` parse failure
+- `[features] hooks = true` を満たさない
+- configured Repository script欠落、Repository外、symlink、非regular file
+- `.codex/hooks.json` が存在し、doctorのproject Hook診断が不完全になる
+- root以外のproject `.codex/config.toml` が存在し、doctorのconfig診断が不完全になる
+- state directoryがsymlinkまたはdirectory以外
+- state candidateがsymlinkまたはregular file以外
 
-Host project binding未確認は `WARN` としexit 0を維持する。current OSで不要なlauncherは `N/A` とする。
+既存runtime stateについては、state filename不正、read / JSON / schema / identity / manifest不正、valid `baseline_unavailable`、`start_head` object欠落を検出して詳細を表示するが、現在sessionとの関連を証明できないため `WARN` / exit 0とする。
+
+project trust、Hook trust、managed override、Host project binding未確認は `WARN` としexit 0を維持する。current OSで不要なlauncherは `N/A` とする。
 
 stateが存在する場合もfile名そのものやabsolute pathを表示せず、件数や連番で結果を示す。
 
@@ -390,15 +602,19 @@ stateが存在する場合もfile名そのものやabsolute pathを表示せず�
 
 - clean fixture / state 0件 -> exit 0
 - valid ready state -> exit 0
-- valid `baseline_unavailable` state -> exit 1
-- JSON破損 -> exit 1
-- schema不一致 -> exit 1
-- root identity不一致 -> exit 1
-- filename session hashとstateの不一致 -> exit 1
-- invalid manifest -> exit 1
-- invalid / missing `start_head` commit object -> exit 1
-- configured script欠落 -> exit 1
-- `.codex/hooks.json` 存在 -> exit 1
+- valid `baseline_unavailable` state -> safe `code` を表示してWARN / exit 0
+- JSON破損 -> WARN / exit 0
+- schema不一致 -> WARN / exit 0
+- root identity不一致 -> WARN / exit 0
+- filename session hashとstateの不一致 -> WARN / exit 0
+- invalid manifest -> WARN / exit 0
+- invalid / missing `start_head` commit object -> WARN / exit 0
+- state directory symlink / 非directory -> exit 1、内容を読まない
+- state candidate symlink / 非regular file -> exit 1、内容を読まない
+- configured script欠落 / Repository外 / symlink / 非regular file -> exit 1
+- `[features] hooks = false` またはRepository契約を満たさない -> exit 1
+- `.codex/hooks.json` 存在 -> 診断不完全としてexit 1
+- root以外のproject `.codex/config.toml` 存在 -> 診断不完全としてexit 1
 - Git repository外 -> exit 2
 - outputへabsolute fixture path、raw session ID、state本文、secretを出さない
 
@@ -413,7 +629,7 @@ pnpm run diagnose:hooks
 pnpm run test:hooks
 ```
 
-- 既存stateに異常が残っている場合はdoctorの詳細結果を確認し、synthetic fixtureと同じ原因を再現できるか確認する。
+- 既存stateに異常が残っている場合はdoctorのWARN詳細を確認し、synthetic fixtureと同じ原因を再現できるか確認する。ただしそのstateが現在session由来とは断定しない。
 - state 0件かつ `test:hooks` PASSの場合、Repositoryの現在stateから過去active Stopの原因は断定しない。次回再発時はHookが出す `baseline_state_*` codeで原因分類する。
 - offline検証が全PASSし、Codex実行時だけ別Repository configを参照する場合はRepository側を変更せず、Host / session project binding問題として分離する。
 
@@ -488,16 +704,19 @@ Issue #159で確認済みのlauncher累積時間問題を再導入しない。ti
 
 - Codex未起動で `pnpm run test:hooks` がRepository所有Hookの外部failure契約を検証できる。
 - Codex未起動で `pnpm run diagnose:hooks` がRepository設定と存在するstateを読み取り専用で診断できる。
-- active Stopのcorrupt / identity / schema / manifest異常が安全な `baseline_state_*` codeとして残り、cleanup契約は維持される。
+- active Stopのcorrupt / identity / schema / manifest異常が安全な `baseline_state_*` codeとして残り、cleanupはbest-effortの既存契約を維持する。
+- active Stopの`baseline_unavailable`でも、stateに保存済みの安全な原因`code`がHook診断へ残る。
 - missing stateのevent別契約が維持される。
 - Hookとdoctorが同じstate validatorを使う。
 - doctorの主要正常・異常分岐がprocess contractで固定される。
 - doctorが現在RepositoryでHook / launcherを実行しない。
 - doctorがRepositoryを変更しない。
-- valid `baseline_unavailable` stateを診断エラーとして検出できる。
+- valid `baseline_unavailable` stateをWARNとして検出し、安全な`code`を表示できる。
 - state 0件を正常扱いし、特定sessionの欠落と推測しない。
 - raw session IDやloggingとの照合を行わない。
-- `.codex/hooks.json` を黙って無視しない。
+- `.codex/hooks.json` とroot以外のproject `.codex/config.toml` を黙って無視せず、doctorの診断範囲外として検出できる。
+- `[features] hooks = true` をRepository契約として検証し、project trust / Hook trust / managed overrideは `未確認` と区別できる。
+- state / configured scriptのsymlink・非regular fileを読み込まない。
 - Repository所有Hookの外部failure契約について既存 / 追加testの対応が確認できる。
 - `test:hooks` がverify wrapperとWindows CIの共通入口になる。
 - Ubuntu / Windowsの既存Hook CI経路が成功する。
@@ -534,6 +753,7 @@ Hook / launcherをcurrent Repositoryで実行するとbaselineやlogを変更し
 
 - doctor実装からHook実行経路を持たせない。
 - executable / scriptは静的確認だけにする。
+- state / scriptは `lstat` し、symlinkや期待するfilesystem typeでないentryを読まない。
 - process実行はtemp fixtureのcontract testだけで行う。
 
 ### Windows CI時間
@@ -553,6 +773,7 @@ Hook / launcherをcurrent Repositoryで実行するとbaselineやlogを変更し
 - user / system / plugin Hookのoffline再現
 - project trust / Hook trustの自動判定
 - `.codex/hooks.json` の汎用対応
+- 複数project `.codex/config.toml` のmerge実装
 - Hook UIの変更
 - Hook retry
 - state recovery
@@ -576,7 +797,7 @@ package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs
 .codex/hooks/text_quality_state.mjs
-scripts/diagnose-codex-hooks.ts
+scripts/diagnose-codex-hooks.mjs
 scripts/verify
 scripts/verify.ps1
 tests/contracts/codex-hook-diagnostics.test.ts
