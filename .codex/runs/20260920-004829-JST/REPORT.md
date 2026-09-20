@@ -110,3 +110,28 @@
   - 実装、PR作成、Issue更新は未実施。
 - Progress: 100% (10/10)
 
+## 2026-09-20 16:33 (JST)
+
+- 概要:
+  - PR #168作成後の全体レビューを統合し、実装前に必要な修正だけをcanonical Planへ反映した。
+  - 実装コード、Skill semantics、Product behavior、CI workflowは変更していない。
+- 反映内容:
+  - Case Aのreview回帰をbaselineへ戻す方式から、`status.mjs`自体へdiffが残る誤実装注入へ変更。
+  - Case BへAgent-facing Browser capability preflight、canonical 6 Skillを持つsource-free QA root、Case固有capability / run blocker / fixture failureの分類を追加。
+  - Case Cをunsafe / destructive boundary stopとして整理し、`stop_unsafe` / `stop_needs_human`の未定義優先順位をPR6で新設しない契約へ変更。
+  - Case Dを既存bounded attempt / validation Evidenceから`stop_no_progress`を判断する形へ変更し、無意味な編集の強制を削除。
+  - Case EをDoctor-onlyに固定し、Native stage-specific structured output、Codex `command_execution`、case固有Artifactの照合を追加。
+  - sanitized Target生成をcaller責務、runnerを`--target-root` preflight責務へ一本化。
+  - 各caseにRepository標準`scripts/new-run.ps1` / `scripts/new-run.sh`からcase-local active Runを1件作る契約を追加。
+  - canonical live turnへ`--ignore-user-config`、`--ignore-rules`、`-c features.hooks=false`を追加。
+  - Repository外Skillはunknown / multipleとしてfail-closeし、独自Skill Registry / isolation frameworkを追加しない方針を明記。
+  - Case Bのordered list再開始を除去し、既知のMarkdown `MD029`原因を修正。
+- commit:
+  - canonical Plan: `cfdbafffecabc99c0e5ac1a8ee9b1c9da1518ce6`
+- 未実施:
+  - latest `main`取り込み。
+  - PR6実装。
+  - live E2E。
+  - Issue #117更新 / close。
+- Progress: 100% (11/11)
+
