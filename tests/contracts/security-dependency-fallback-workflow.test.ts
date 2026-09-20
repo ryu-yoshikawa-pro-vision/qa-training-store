@@ -68,12 +68,21 @@ describe("Security dependency fallback workflow", () => {
     }
     expect(workflow).toContain("base_sha: ${{ steps.preflight.outputs.base_sha }}");
     expect(jobBlock("preflight", "read-alert")).toContain("BASE_SHA_INPUT: ${{ github.sha }}");
-    expect(jobBlock("opencode-edit", "validate-exec")).toContain(
-      "ref: ${{ needs.preflight.outputs.base_sha }}",
-    );
-    expect(jobBlock("validate-exec", "finalize")).toContain(
-      "ref: ${{ needs.preflight.outputs.base_sha }}",
-    );
+    for (const [job, nextJob] of [
+      ["opencode-edit", "validate-exec"],
+      ["validate-exec", "finalize"],
+      ["finalize", "publish"],
+      ["publish", undefined],
+    ] as const) {
+      const block = jobBlock(job, nextJob);
+      expect(stepBlock(block, "Checkout immutable base")).toContain("ref: main");
+      expect(stepBlock(block, "Verify checkout matches immutable base")).toContain(
+        "git rev-parse HEAD",
+      );
+      expect(stepBlock(block, "Verify checkout matches immutable base")).toContain(
+        "EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}",
+      );
+    }
   });
 
   it("uses the planned job permissions and reserves OIDC for publish", () => {

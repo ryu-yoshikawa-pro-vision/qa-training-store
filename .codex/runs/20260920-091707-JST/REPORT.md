@@ -104,3 +104,16 @@
   - Result: Parent agentのみで実施。
   - 親Agentの判断: global `pnpm` 9.10.0は変更せず、検証プロセス内だけCorepackの`pnpm@10.34.5`を使用した。品質gate・Security条件・re-run拒否・fail-closed境界を緩和していない。
 - Progress: 100% (8/8)（tracked task。push後必須CI確認はfile-changing taskの完了判定へ別管理）
+
+## 2026-09-20 13:55 (JST)
+
+- Summary: 最新head `939f43b`のCodeQL failureを確認し、untrusted checkout検出に対する限定repairを適用した。
+- Changes: `.github/workflows/security-dependency-fallback.yml`の全4 checkoutを固定`ref: main`へ変更し、直後にworkflow開始時に固定した`BASE_SHA`とのHEAD一致を検証するfail-closed stepを追加した。対応contract testとPlanも更新した。
+- 判断 / 理由: CodeQLは`needs.preflight.outputs.base_sha`を`actions/checkout`のrefへ直接渡す構造を「default branch contextでuntrusted codeをcheckoutする可能性」と判定した。mainを固定checkoutし、任意Repository codeの実行前にexact SHAを比較することで、CodeQLの静的契約とPlanの不変BASE_SHA境界を両立する。
+- Validation: CodeQL check run `106023260807`のannotation（workflow line 796-885、cache poisoning）を根拠に`must_fix`へ分類。focused contract test、標準verify、`git diff --check`、修正後のPR CI再確認が残る。
+- ブロッカー / 残作業: repair iteration 1の修正commit、push、最新headのCodeQLを含むPR CI確認、PR本文のDraft表記修正。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+  - 親Agentの判断: checkout信頼境界を緩和せず、CodeQL failureを無視せず、workflow / contract testの最小修正へ限定した。
+- Progress: 89% (8/9)（tracked task 8/8、最新head CI確認 0/1）

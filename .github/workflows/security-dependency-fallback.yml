@@ -190,8 +190,16 @@ jobs:
       - name: Checkout immutable base
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ needs.preflight.outputs.base_sha }}
+          ref: main
           persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -603,8 +611,16 @@ jobs:
       - name: Checkout immutable base
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ needs.preflight.outputs.base_sha }}
+          ref: main
           persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -765,8 +781,16 @@ jobs:
       - name: Checkout immutable base
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ needs.preflight.outputs.base_sha }}
+          ref: main
           persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
 
       - name: Download context by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -983,8 +1007,16 @@ jobs:
       - name: Checkout immutable base
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ needs.preflight.outputs.base_sha }}
+          ref: main
           persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
 
       - name: Download validated artifact by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

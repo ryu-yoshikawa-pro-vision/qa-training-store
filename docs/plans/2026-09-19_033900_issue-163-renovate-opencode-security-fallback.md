@@ -284,7 +284,7 @@ related root dependencyやoverride selectorはこのjobではまだ確定して�
 
 - job-level条件で`github.run_attempt == 1`を要求する。
 - `contents: read`と`pull-requests: read`だけを必要範囲で付与し、`id-token: write`と`vulnerability-alerts: read`を付けない。
-- exact `BASE_SHA`を`persist-credentials: false`でcheckoutする。
+- checkoutの`ref`はCodeQLが信頼済みと判定できる固定`main`とし、直後にworkflow開始時に固定したexact `BASE_SHA`とのHEAD一致を検証する。不一致なら任意Repository codeへ進まず停止する。checkoutは`persist-credentials: false`とする。
 - `security-context` Artifactを`artifact-ids`指定でdownloadし、file setとSHA-256を検証する。
 - Node 24、pnpm 10.34.5を使う。
 - OpenCodeへSecretを渡す前に`pnpm install --frozen-lockfile --ignore-scripts`を実行する。install後、Repository側で固定した`semver@7.8.5`を使ってnormalized vulnerable rangeへ`semver.validRange()`を適用し、`first_patched_version`が存在する場合はstable exact SemVerであることを確認する。いずれかを解釈できなければ`needs_human`へ停止する。その後`pnpm list --json --depth Infinity`で現在runnerへinstallされたdependency graphを取得する。
