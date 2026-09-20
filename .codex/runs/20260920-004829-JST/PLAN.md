@@ -2,33 +2,31 @@
 
 ## 目的
 
-- Issue #117 PR6 Workflow E2E Evalのcanonical Planへ、PR #168作成後の全体レビューで確定した必要修正を統合する。
-- 目的達成性、既存Skill契約、実行時capability、scope、Run Artifact、Codex設定隔離を揃え、実装者へ重要な設計判断を残さない。
-- このRunでは実装コード、latest main取り込み、merge、Issue更新を行わない。
+- Issue #117 PR6 Workflow E2E Evalのcanonical Planへ、最新レビューで確定した6件の実装前修正を反映する。
+- Case BのBrowser capability / Charter / source-free root、Case Cの停止条件、provenance、case-local Runを既存Repository契約と揃え、実装者へ重要な設計判断を残さない。
+- このRunではEvaluator実装、latest `main`取り込み、PR本文更新、Issue更新を行わない。
 
 ## 対象範囲
 
 - canonical Plan。
 - plan-only Run Artifact。
-- PR #168本文。
 - Plan変更起因のMarkdown lint修正。
 
 ## 確定した追加修正
 
-- Case Aはreview開始時に`status.mjs`自体の回帰diffを残す。
-- Case Bは実際のCodex sessionのBrowser capabilityを確認し、canonical 6 Skillを保持したsource-free QA rootを使う。
-- Case B固有capability不足とrun共通blocker、fixture / evaluator failureを分離する。
-- Case Cは`stop_unsafe` / `stop_needs_human`の優先順位をPR6で新設せず、unsafe / destructive operation未実行と停止を評価する。
-- Case Dは無意味な編集を強制せず、runnerが用意したbounded attempt / validation Evidenceから`stop_no_progress`を評価する。
-- Case EはDoctor-onlyとし、stage-specific structured output、`command_execution`、Native Artifactを照合する。
-- sanitized Targetはcallerが準備し、runnerは`--target-root`をpreflightする。
-- 各caseでRepository標準`scripts/new-run.*`からfresh active Runを1件だけ作り、same-case turnで再利用する。
-- canonical live turnでは`--ignore-user-config`、`--ignore-rules`、`-c features.hooks=false`を固定する。
-- Repository外Skillの混入はsmoke probeとOTelでfail-closeし、独自Skill Registry / isolation frameworkを追加しない。
+- Case BはBrowser capabilityを`--ignore-user-config`あり / なしで差分probeし、Evaluator自身が削除したcapabilityを`not_executed`扱いにしない。
+- Case B専用の固定`qa-charter.json`を既存`charterSchema`で定義し、`CHALLENGE-BASIC-001`のlearner-safe入力を再利用する。
+- Case Bは既存`working-tree-snapshot.ts`でBEFORE / QA / AFTER / comparisonを実行し、Product source additional diff 0を必須にする。
+- Case B source-free rootは必要Reference、canonical Skill package、learner-safe specification、runbook、固定Charterを固定allowlistで持つ。
+- Case Cは`protected-data/keep.txt`を`allowed_files`へ含め、file scope内のdestructive operationとして`stop_scope_violation`との競合を解消する。
+- PR6 runnerへ必須`--routing-source-git-sha <40 lowercase hex>`を追加し、resultで`evaluator_git_sha` / `routing_source_git_sha` / `target_git_sha`を分離する。
+- case-local Runは既存`--no-run-manifest` / `-NoRunManifest`を使い、`run.json`を作らない。
+- 既知の`MD012`を同時に修正する。
+- generic Workflow Engine、Session Manager、MCP Manager、Browser runner、Target Manager、provenance framework、Challenge→Charter converterは追加しない。
 
 ## 完了条件
 
-- canonical Planに上記修正が反映されている。
-- plan-only Run ArtifactとPR本文がcanonical Planと整合している。
-- 既知の`MD029`原因となるCase Bのordered list再開始が残っていない。
-- 実装コードやSkill semanticsは変更していない。
+- canonical Planに上記6件とMD012修正が反映されている。
+- `PLAN.md` / `TASKS.md` / `REPORT.md`がcanonical Planと整合している。
+- 実装コード、Skill semantics、Product behavior、PR本文、Issueは変更していない。
+- Plan反映後の全体レビューで新しい実装前blockerがないかを再確認する。

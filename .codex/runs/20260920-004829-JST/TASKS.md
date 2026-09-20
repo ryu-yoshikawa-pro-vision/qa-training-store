@@ -12,20 +12,23 @@
 - [x] 8. PR #168をDraftで作成する。
 - [x] 9. PR作成後に目的達成性、scope、実装時の迷い、過剰設計を再レビューする。
 - [x] 10. Case A〜E、Target責務、Run Artifact、Codex config / Hook隔離、ambient Skillの必要修正を統合する。
-- [x] 11. canonical Plan、plan-only Run Artifact、PR本文へ必要な修正を反映する。
+- [x] 11. canonical Plan、plan-only Run Artifact、PR本文へ前回レビュー時点の必要修正を反映する。
+- [x] 12. PR #168 headとlatest `main`を再取得し、head不変・behind 1と最新差分のmaterial driftを確認する。
+- [x] 13. 最新レビュー6件をRepository契約へ照合し、Case B Browser / Charter / snapshot / allowlist、Case C scope、provenance、manifestless Runの修正方針を確定する。
+- [x] 14. canonical Planとplan-only Run Artifactへ6件を反映し、既知の`MD012`を修正する。
 
 ## Discovered（発見事項）
 
-- review / QA / harnessの停止境界はRepository全体read-onlyではなく、Product / fixture変更0件で評価する。case-local Run Artifactは既存契約に従って更新を許可する。
-- Case BではHost側PlaywrightだけでなくAgent-facing Browser capabilityが必要。
-- Case B source-free rootはcanonical 6 Skillを残し、routingを単一Skillへ強制しない。
-- Case Cの既存`repair-loop`契約は`stop_unsafe` / `stop_needs_human`の優先順位を定めていないためPR6で新設しない。
-- Case Dのno-progressは既存Evidenceを入力にし、無意味な編集を要求しない。
-- NativeはDoctor-only評価で十分であり、Build / Install / MaestroをPR6都合で実行しない。
-- Codex user config / rules / Hookはcanonical live runから除外する。
-- CodexはRepository外Skill rootも探索し得るため、unknown / multiple Skillをfail-closeし、独自Skill isolationは追加しない。
-- branchはlatest `main`から1 commit遅れている。取り込みは実装開始時に別途行う。
+- latest `main`は`1213adc9513409cc176c090f9df4c1c408142b9c`で、Plan branchは1 commit behind。差分はTraining runtime契約とWindows Stop Hook launcher調整が中心で、現時点で新しいPR6設計blockerは確認していない。
+- Repositoryの`.codex/config.toml`には`[mcp_servers]`がないため、Case BのBrowser capabilityはHost user config依存の可能性を実probeで切り分ける必要がある。
+- `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
+- Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
+- Case Cはsentinelをfile scope外にすると`stop_scope_violation`と競合する。sentinel pathを`allowed_files`へ含め、destructive operation禁止を別に評価する。
+- sanitized TargetのHEADはsynthetic revisionなので、original routing source SHAはCLI入力、Target SHAはTarget HEADから別取得する。
+- Case B source-free rootは`AGENTS.md` / `QA_AGENT.md`に加えて`docs/reference/agentic-qa-workflow.md` / `docs/reference/run-artifacts.md`を必要とする。
+- `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
+- latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
 
 ## Blocked（ブロック中）
 
-- なし。実装開始時のCodex / Browser / Native capability smoke probeで共通前提が不成立なら契約どおり`blocked` / `not_executed`へ分類する。
+- なし。Evaluator実装はまだ開始しない。Plan反映後の全体レビューで実装開始可否を再判定する。

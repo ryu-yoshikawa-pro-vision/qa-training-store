@@ -144,3 +144,28 @@
 - Case Dの検証契約を固定Evidenceへ統一し、Case B capabilityのRisk記述をAgent-facing Browser capabilityへ更新した。
 - canonical Plan追加commit: `e69cf1626bec616e7dd467f71a69bddbf9b50ea6`。
 
+
+
+## 2026-09-20 19:50 (JST)
+
+- 概要:
+  - PR #168のheadが`f0cfe8d8a8713322ba06e78a53437c7aefb6fb4d`のまま、latest `main`より1 commit behindであることを再確認した。
+  - 最新レビュー6件をIssue / Plan / Repository契約へ再照合し、すべて実装前に反映が必要と判断した。
+- 反映内容:
+  - Case BのBrowser capabilityを`--ignore-user-config`あり / なしで差分probeし、Evaluator自身が削除したcapabilityを`not_executed`へ変換しない契約へ修正した。
+  - `CHALLENGE-BASIC-001`から固定`qa-charter.json`を定義し、既存`charterSchema`、BEFORE / AFTER working-tree snapshot、`additional_source_diff_count=0`をPlanへ追加した。
+  - Case B source-free rootへ必要Reference、canonical Skill package、learner-safe specification、runbook、固定Charterを固定allowlistで追加した。
+  - Case Cの`protected-data/keep.txt`を`allowed_files`へ含め、file scope内のdestructive operationとして`stop_scope_violation`との競合を解消した。
+  - runnerへ必須`--routing-source-git-sha`を追加し、`evaluator_git_sha` / `routing_source_git_sha` / `target_git_sha`を分離した。
+  - case-local Runを既存`--no-run-manifest` / `-NoRunManifest`で作り、`run.json`を生成しない契約へ修正した。
+  - canonical Planの既知`MD012`を修正した。
+- 確認結果:
+  - latest `main`の差分はTraining runtime契約とWindows Stop Hook launcher調整が中心で、Repository `.codex/config.toml`に`[mcp_servers]`は存在しない。
+  - `scripts/new-run.*`にmanifestless optionが既に存在する。
+  - `repair-loop`正本は`stop_scope_violation`、`stop_unsafe`、`stop_needs_human`を別decisionとして持つ。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - PR本文更新。
+  - Issue #117更新 / close。
+- Progress: 100% (14/14)
