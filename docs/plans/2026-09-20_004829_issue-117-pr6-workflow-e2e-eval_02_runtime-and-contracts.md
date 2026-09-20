@@ -133,7 +133,7 @@ iterations[]
 
 - repair decisionは既存7値すべてをschema上許可し、Case A/C/Dの期待decisionをAgentへ教えない。
 - schema不一致 / 不正JSON / 必須field欠落によりstructured resultを観測できない場合は自然文で補完せず`unobservable`。
-- Case A / B / Cでは固定validation commandのcompleted `command_execution`を確認し、structured `validation_commands` / `validation_result`と照合する。runner独立validationは別Evidenceとして必須にする。
+- Case A / B / Cでは固定validation commandの終端`item.completed`に含まれる`command_execution`を確認し、caseごとの期待exit code / outputとstructured `validation_commands` / `validation_result`を照合する。Case Cの意図的non-zeroを`status=completed`へ正規化しない。runner独立validationは別Evidenceとして必須にする。
 - code-review stageは既存Required review outputに対応するstage-specific structured resultを使うが、PR5 Semantic Evalを再実装しない。
 - Native stageはDoctor command / exit code / status / bounded output / Artifactを正本とする。`failure_classification`は記録値であり、PR6専用の自然文taxonomy parserを作らない。
 - 総合score、weight、severity、confidence集約は追加しない。

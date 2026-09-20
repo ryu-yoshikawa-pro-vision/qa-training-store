@@ -21,7 +21,7 @@ pnpm run test:repository
 - repair共通schemaが既存9 fieldのIteration Modelを持ち、decision 7値をcase別に狭めていない。
 - Case A implementation成功時の`status.test.mjs` digestをfreezeし、review / repairで変更されたらFAIL。
 - Case A reviewで対象Findingがない場合は`fail`、schema transport自体を観測不能なら`unobservable`。
-- Case A / B / CでAgent固定validation commandのcompleted `command_execution`とrunner独立validationの両方が必要。
+- Case A / B / CでAgent固定validation commandの終端`item.completed`に含まれる`command_execution`とrunner独立validationの両方が必要。Case Cはnon-zero exitを期待値として扱う。
 - Case Bはsource-free rootを作らず、patched sanitized source workspaceでGray-box QA → repairを実行する。
 - Case B fixed Charterが`charterSchema`を通り、`source_head_sha`がcase source workspace HEADと一致する。
 - Case B QA structured output schemaを既存`grayBoxFindingsSchema`から生成し、手書きfallbackを持たない。
@@ -138,7 +138,7 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 8: repairがvalidationを自己申告するだけでPASSする
 
-対策: Case A / B / Cは固定validation commandのCodex標準`command_execution`とrunner独立validationの両方を要求する。汎用shell parserは作らない。
+対策: Case A / B / Cは固定validation commandの終端`item.completed`に含まれるCodex標準`command_execution`とrunner独立validationの両方を要求する。caseごとのexit code / outputを直接照合し、汎用shell parserは作らない。
 
 ### Risk 9: Case BへBlack-box Scoredのsource-free構造を持ち込む
 

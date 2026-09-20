@@ -283,3 +283,9 @@
   - PR6 Evaluator実装。
   - Issue #117更新 / close。
 - Progress: 100% (30/30)
+
+
+### 2026-09-21 `command_execution`終端判定の補足
+
+- Case Cのvalidatorは`CASE-C-002`を返して意図的にnon-zero終了するため、`command_execution.status=completed`を要求しない。
+- Codex JSONLの`item.completed`に含まれる最終`command_execution` itemから、caseごとの期待exit code / outputを照合する契約へ明確化した。
