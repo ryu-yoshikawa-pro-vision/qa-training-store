@@ -257,3 +257,29 @@
   - PR本文更新。
   - Issue #117更新 / close。
 - Progress: 100% (22/22)
+
+
+## 2026-09-21 統合レビュー反映
+
+- 概要:
+  - PR #168の分割後PlanをIssue #117、PR3 / PR5、既存Skill / Agentic QA / Native契約、Codex Runtimeへ再照合し、過去の個別指摘を実装前の修正単位へ統合した。
+  - 個別指摘をそのまま積まず、Case B簡素化で同時に解消する問題をまとめた。
+- 反映内容:
+  - Case Bのsource-free QA root、非Git起動、Skill / Referenceコピー、QA root→source workspace cwd切替、Run Artifact同期を削除し、same-thread / same-cwdのpatched sanitized source workspaceでGray-box QA → explicit repairを行う契約へ変更。
+  - sanitized Case Bでfull `validateTrainingContracts()`を使わず、`grayBoxFindingsSchema`、`charterSchema`、`assertCoverageIntegrity()`、`validateWorkingTreeSnapshots()`等の必要契約だけを使う方針へ変更。
+  - Case B Finding照合は既存matcher semanticsのnarrow export、Gray-box seed mappingは`src/seeds/metadata.ts`を正本とする方針へ変更。
+  - Case Aはimplementation成功時の`status.test.mjs`をfreezeし、repairでtestを弱める偽PASS経路を閉じた。
+  - Case A / B / CはAgent自身の固定validation command実行をCodex標準`command_execution`で確認し、runner独立validationと分離。
+  - sanitized Targetの固定生成手順を追加し、`routing_source_git_sha`をTarget HEAD、`source_revision_git_sha`を生成元revisionへ整理。重複する`target_git_sha`を削除。
+  - canonical turnへ`shell_environment_policy.inherit=core`と`web_search=disabled`を固定。
+  - Case EはDoctor command / exit code / bounded output / Artifactを正本とし、failure taxonomyの自然文parserを追加しない方針へ変更。
+  - run `blocked` / case `not_executed` / `unobservable` / `fail`の分類を固定表へ統一。
+  - Case B QA timeoutはCharter 900秒をHost timeoutが先に切らないよう固定し、Case Dの`harness-improvement` Semantic品質再採点を削除。
+  - result contractは既存`ProcessLifecycle`と固定case checkへ限定し、汎用Rule Engine化を避ける。
+- 文書構成:
+  - 既存の親Plan + 3詳細ファイルで責務が収まるため追加分割は行わない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - Issue #117更新 / close。
+- Progress: 100% (30/30)

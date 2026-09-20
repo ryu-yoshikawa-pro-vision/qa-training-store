@@ -24,6 +24,14 @@
 - [x] 20. Case Bのground-truth sanity後に`suspended-user` / sessionなし / `/login`へ戻すinitial-state resetを既存helper再利用で固定する。
 - [x] 21. source-free QA promptへrunner-owned Harness境界を明示し、欠落している`scripts/agentic-qa/**`やProduct source探索を要求しない。
 - [x] 22. 約995行のcanonical Planを親Plan＋3詳細ファイルへ責務分割し、詳細契約の重複を避ける。
+- [x] 23. ここまでの全レビューを8修正単位へ統合し、重複指摘を整理する。
+- [x] 24. Case Bのsource-free QA root / cwd切替 / Artifact同期を撤回し、same-workspace Gray-boxへ簡素化する。
+- [x] 25. Case A test freezeとCase A / B / C actual validation `command_execution`をPlanへ追加する。
+- [x] 26. Case Bのvalidator composition、既存Finding matcher再利用、`QA_AGENT.md` seed正本化をPlanへ追加する。
+- [x] 27. sanitized Target生成手順、`source_revision_git_sha` / `routing_source_git_sha`、Web Search / shell env制御をPlanへ追加する。
+- [x] 28. Case EのDoctor採点をactual command / exit code / Artifactへ絞り、taxonomy parserを非目標化する。
+- [x] 29. status分類、Case B timeout、Case D Semantic重複削除、result contract最小化をPlanへ反映する。
+- [x] 30. 親Plan＋3詳細ファイルの参照・旧契約残存・Markdown構造を確認する。
 
 ## Discovered（発見事項）
 
@@ -32,18 +40,18 @@
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
 - Case Cはsentinelをfile scope外にすると`stop_scope_violation`と競合する。sentinel pathを`allowed_files`へ含め、destructive operation禁止を別に評価する。
-- sanitized TargetのHEADはsynthetic revisionなので、original routing source SHAはCLI入力、Target SHAはTarget HEADから別取得する。
-- Case B source-free rootは`AGENTS.md` / `QA_AGENT.md`に加えて`docs/reference/agentic-qa-workflow.md` / `docs/reference/run-artifacts.md`を必要とする。
+- 既存Trigger Evalとの整合上、`routing_source_git_sha`はAgentが実際に読むsanitized Target HEADを指す。生成元revisionは`source_revision_git_sha`へ分離し、重複する`target_git_sha`は作らない。
+- Gray-boxはBlack-box Scoredのsource-free isolationを要求しないため、Case B専用root / Skillコピー / Referenceコピーは不要。
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
-- BEFORE snapshotにはprotected patch適用後のworking tree path / digestが入り得るため、source-free QA rootへコピーするとFinding前に実装差分を漏らす。snapshotはsource workspaceだけに保持する。
+- Working Tree Snapshotはpatched source workspaceのMachine Contractとして保持し、promptへ内容 / digestを転記しない。別QA rootへの同期自体を廃止する。
 - `grayBoxFindingsSchema`は既存Machine Contractの正本としてexport済みで、Zod 4.4.3は`z.toJSONSchema()`を提供する。Case B QAのstructured output schemaはここから生成し、最終Zod / cross-file validationを別途行う。
 - Codex user configはMCP server等を持ち得る。Browser capabilityを得る目的でuser config全体をcanonical Case Bへ戻すとsource-free境界を測れないため、user config有効probeは診断専用にする。
-- Case B source-free rootはGit repositoryである必要がない。既存Semantic EvalでもCodex標準`--skip-git-repo-check`を使って一時directoryで実行しているため、PR6でも`git init`は不要。
+- Case Bはsanitized source workspace内の通常Git contextで実行するため、`--skip-git-repo-check`は不要。
 - `CHALLENGE-BASIC-001`のRequired Evidenceは`screenshot` / `url`。schemaはEvidence refのsyntaxを検証するがfile existenceまでは保証しないため、runnerがofficial runner evidence prefix内のregular file実体を確認する。
 - `runChallengeGroundTruthSanity()`は`suspended-user`でloginを実行し、patched phaseではsession作成後`/`へ遷移する。QAへ同じRuntimeを渡す前に再resetしないと初期状態が汚れる。
-- `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md`はsource-free rootに存在しないSupporting Harness pathを参照するため、QA promptでHarness lifecycleとvalidationはrunner-ownedと明示する。
+- `QA_AGENT.md`のGray-box seed列挙は実装正本`src/seeds/metadata.ts`とdriftしている。PR6専用例外を足さず正本参照へ修正する。
 - latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。Plan分割後の参照切れ・契約重複・CIを確認して実装開始可否を再判定する。
+- なし。Evaluator実装はまだ開始しない。今回反映した統合修正を再レビューして実装開始可否を判定する。
