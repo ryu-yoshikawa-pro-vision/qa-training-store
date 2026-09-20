@@ -1,66 +1,62 @@
 # Plan（計画）
 
-## Objective（目的）
+## 目的
 
-- Issue #117 PR6 Workflow E2E Evalの実装Planを`docs/plans/2026-09-20_004829_issue-117-pr6-workflow-e2e-eval.md`へ保存し、レビュー結果を反映して実装判断を確定する。
-- 現行`main`、PR2 / PR4 / PR5 / PR3、既存Eval Harness、Codex標準session継続機能を確認し、PR6の変更範囲と検証方法を確定する。
+- Issue #117 PR6 Workflow E2E Evalの実装Planをレビュー結果まで統合し、実装者が追加の設計判断なしで着手できる状態へ確定する。
+- Issue #117、PR2 / PR4 / PR5、既存Eval Harness、Agentic QA fixture、Codex標準`exec resume` / `--output-schema`を確認し、PR6の変更範囲と検証方法を確定する。
 - このRunでは実装、PR作成、Issue closeを行わない。
 
-## Scope（対象範囲）
+## 対象範囲
 
-- In: Issue #117 PR6、既存Trigger / Deterministic / Semantic Eval、同一threadのSkill handoff、stop / Blocked境界、Artifact reuse、answer-key isolationの設計。
-- Out: PR6実装、Skill semantics変更、Product code変更、PR作成、独自Agent Runtime / Session Managerの追加。
+- 対象: Issue #117 PR6、既存Trigger / Deterministic / Semantic Eval、同一threadのSkill handoff、stop / Blocked境界、Artifact reuse、answer-key isolation、repair outputの機械観測。
+- 対象外: PR6実装、Skill semantics変更、Product codeの恒久変更、PR作成、独自Agent Runtime / Session Manager / Workflow Engine / trust managerの追加。
 
-## Assumptions（仮定）
+## 前提
 
 - handoffはHost標準の`codex exec resume <thread_id>`を使った同一Codex thread上の複数ユーザーターンとして評価する。
 - Artifact reuseは会話履歴の影響を除くため、handoffとは別のfresh session / fresh workspaceで必要Artifactだけを渡して評価する。
+- `multiple_skills`は既存ADR / observer契約どおり`unobservable`とし、diagnosticで再分類しない。
+- repairのdecision / changed files / validation / remaining deltaは`--output-schema`で構造化し、runner実観測と照合する。
+- Case Bは既存`CHALLENGE-BASIC-001`のprotected patchをEvaluator側で使い、Instructor materialをAgentへ露出しない。
 - Native capability不足は`not_executed`として扱い、未実行をPASSにしない。
 
-## Questions / Ambiguity（質問・曖昧性）
+## 未確定事項
 
 - 必ず質問する不透明点: なし。
-- 仮定してよい細部: temporary path等、評価意味を変えない実装細部。
-- 未回答の重要質問: なし。
+- 実装時preflightで確定する事項:
+  - latest `main`取り込み後のmaterial drift。
+  - installed Codexでresume / OTel / output schema / actual writeが成立するか。
+  - Browser / Native capabilityの有無。
+  - Case C fixtureが現行repair契約で`stop_unsafe`へ一意に到達できるか。
 
-## Hypotheses（仮説）
+## 調査結果
 
-- H1: Host標準`exec resume`とstage単位の既存OTel observerを組み合わせれば、独自Session Managerを作らず実際のhandoffを評価できる。
-- H2: fixed representative casesとstage-local差分検証で、Workflow Engineを追加せずstop / scope / Artifact reuseを評価できる。
-- H3: Artifact reuseをfresh sessionへ分離すれば、会話履歴による偽陽性を避けられる。
-
-## Research Plan（調査計画）
-
-- Round 1: Issue #117、PR完了コメント、`AGENTS.md`、`PLANS.md`、対象Skillを確認。
-- Round 2: Trigger / Semantic / Deterministic Eval、OTel observer、PR3 / PR4 / PR5 Planを確認。
-- Round 3: レビューで指摘されたhandoff、answer-key isolation、Artifact reuse、stop境界、PR5持ち越し責務をCodex標準機能と既存契約に照合する。
-- Exit Criteria: PR6の必須case、session境界、変更対象、観測方法、非目標、検証、runtime不足時の判定が確定している。
-
-## Approach（進め方）
-
-- handoffは同一`thread_id`の`exec resume`、Artifact reuseはfresh sessionに分離する。
-- `stop_no_progress`と`stop_unsafe`をIssue記載どおり直接評価する。
-- Eval statusとWorkflow decision / blocked状態を分離する。
-- source diff、Artifact state、runner validationを優先し、文章の自己申告だけでPASSにしない。
-- generic Workflow DSL / Agent Runtime / Session Managerは作らない。
-
-## Definition of Done（完了条件）
-
-- canonical Planがレビュー結果を反映した状態で`docs/plans/`へ保存されている。
-- branchが確認済み`main`からのfast-forward可能な状態を維持している。
-- plan-only Run Artifactへレビュー反映checkpointが保存されている。
-- 実装やPR作成へ進んでいない。
-
-## Risks / Unknowns（リスク・未知点）
-
-- installed Codexでresumed turnのOTel observationが成立するかは実装開始時smoke probeで確認する。不成立なら独自fallbackを作らずBLOCKEDとする。
-- Native / QA runtime capabilityは実装Run時に確認する。
-- answer keyを除去したsanitized Targetはtracked sourceだけから作り、local untracked fileを持ち込まない。
-
-## Thinking Log（判断記録）
-
-- fresh `--ephemeral` sessionの列では実Workflowのhandoffを評価できないため採用しない。
+- fresh `--ephemeral` session列はhandoff評価として不十分なため採用しない。
 - Codex標準`exec resume`を利用し、runner自身は`thread_id`だけを保持する。
 - Artifact reuseはsame-session handoffとは証明条件が異なるためfresh sessionへ分離する。
-- fixed 5 casesを維持し、Case C / Dを`stop_unsafe`と`stop_no_progress → harness-improvement`へ組み替える。
-- PR5がPR6へ残したrepair / Nativeのactual execution整合をPlanへ明示する。
+- fixed 5 caseを維持する。
+- Case Bはdeterministic defectを準備し、Case C / Dはactionable repair entryから停止条件へ到達させる。
+- repair outputの自然文parserは作らず、Codex標準`--output-schema`を使う。
+- project trust専用実装、追加Workflow case、Workflow DSLは不要。
+
+## 進め方
+
+- canonical Planの5ケースとstage境界だけを実装対象にする。
+- Skill routingはturn単位の既存OTel observerで評価する。
+- `multiple_skills`、collector failure等は`unobservable`としてfail-closeする。
+- actual changed files、validation、BEFORE / AFTER snapshot、Machine Contractを優先し、Agent自己申告だけでPASSにしない。
+- TargetからSkill Eval data、過去Run / Plan、Agentic QA Instructor material、PR6 answer keyを除外する。
+- sandboxはstage責務に合わせ、必要writeまでread-onlyで塞がない。
+- WindowsではCLI optionではなくactual writeでcapabilityを確認する。
+
+## 完了条件
+
+- canonical Planへ統合レビュー結果が反映されている。
+- Plan-only `PLAN.md` / `TASKS.md` / `REPORT.md`へ統合判断が保存されている。
+- 実装、PR作成、Issue更新へ進んでいない。
+
+## リスク
+
+- Windows resumeで`workspace-write`が実効的でない可能性があるため、実装前actual write probeを必須にする。
+- Case Cで現行repair契約から`stop_unsafe`へ一意に到達できない場合は、PR6で意味を作らずBLOCKEDとする。
+- Case Bのanswer key / protected patchはEvaluator側だけで扱い、Agent-visible Targetへ持ち込まない。
