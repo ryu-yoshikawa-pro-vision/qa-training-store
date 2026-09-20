@@ -19,7 +19,7 @@
 - 同一Codex thread上で、明示的な後続ユーザーターンに対応してSkillが切り替わること。
 - 不要Skillの起動を、既存OTel契約で観測可能な範囲で検出すること。
 - review-only / QA-onlyの停止境界。
-- `repair-loop`の成功停止、`stop_no_progress`、`stop_unsafe`。
+- `repair-loop`の成功停止、`stop_no_progress`、unsafe / destructive境界での安全な停止。
 - 前段Artifactが会話履歴ではなくArtifact自体から後段へ再利用できること。
 - Runtime capability不足時の`not_executed` / 観測不能時の`unobservable`。
 - PR5でPR6へ残した`repair-loop`のactual changed files、validation、remaining delta、decisionとの整合。
@@ -33,14 +33,14 @@
 - [ ] 各ユーザーターンは別CLI processとして実行してよいが、handoffをfresh `--ephemeral` sessionの並びで代用しない。
 - [ ] 各stageのSkill identityは既存OTel observerをstage単位で使って判定し、1回のOTel集約結果からSkill順序を推測しない。
 - [ ] single canonical Skillが期待と異なる場合はFAILとし、OTelが`multiple_skills`を返した場合はADR-0025と既存observer契約どおり`unobservable`とする。diagnostic fieldからFAILへ再分類しない。
-- [ ] installed Codexで`exec resume`、resumed turnのcwd切替、resumed turnのOTel観測が成立しない場合、独自Session ManagerやHook fallbackを追加せずPR6 live E2EをBLOCKEDとする。
+- [ ] installed Codexで共通`exec resume`またはresumed turnのOTel観測が成立しない場合、独自Session ManagerやHook fallbackを追加せずrun全体を`blocked`とする。Case B固有のQA root→source workspace cwd切替だけが成立しない場合はCase Bを`not_executed`とし、他の必須caseを潰さない。
 - [ ] Windowsを含む実行Hostで、書込みが必要なinitial / resumed turnが実際に許可fixtureへwriteできることをsmoke probeし、CLI指定だけでwrite可能と判断しない。
 - [ ] review-only / QA-onlyではProduct / fixtureの許可外変更0件を要求する。case-local active Run Artifactの更新はRepository契約に従って許可し、unexpected single canonical SkillはFAIL、`multiple_skills`は`unobservable`としてPASSにしない。
 - [ ] `repair-loop` stageはCodex標準`--output-schema`で既存Iteration Model全体を構造化し、自然文の文字列検索をdecision判定に使わない。
 - [ ] repair schemaはcase共通とし、期待するdecisionをschemaへ埋め込まない。
 - [ ] explicit repair stageで`repair-loop`が選択され、許可されたfixtureだけが変更され、runner側validation、remaining delta、最終decisionがactual executionと整合していることを確認できる。
 - [ ] Case Aは固定fixtureへ既知の回帰をrunnerが注入し、`code-review`がその回帰に対応するactionable Findingを実際に返した場合だけrepairへ進む。
-- [ ] `stop_no_progress` caseは固定fixture上でactionableな修復から開始し、boundedな修正とvalidation後も同一failureが残り、新しいEvidenceまたは有効deltaが増えないことをrunnerが確認してから停止する。
+- [ ] `stop_no_progress` caseはrunnerがdeterministicに用意した複数bounded attempt / validation Evidenceから、同一failure、no new Evidence、no effective remaining deltaを確認し、追加の無意味な編集を行わず停止する。
 - [ ] unsafe / destructive stop caseはactionableな修復から開始し、安全な修正または既存Evidence確認の後に継続にはunsafe / destructive operationが必要だと判明し、その操作を実行せず停止する。最終decisionは現行`repair-loop`契約上妥当な`stop_unsafe`または`stop_needs_human`を許容し、PR6側で優先順位を新設しない。
 - [ ] Case Bは`CHALLENGE-BASIC-001`をdeterministic fixtureとして使い、QA turnをGray-boxかつProduct/Test source、protected patch、answer keyをoracleとして参照できないAgent-visible rootで実行する。
 - [ ] Case BのQA Runtimeはrunnerがpatched source workspaceからbuild / start / stopし、QA終了後のrepairは同じthreadをsource workspaceへcwd切替して実行する。
@@ -95,7 +95,7 @@
 - Artifact reuseの評価だけは会話履歴による偽陽性を避けるためhandoff caseと分離し、fresh session / fresh workspaceで必要Artifactだけを渡す。
 - Product repository本体をE2E fixtureとして直接汚さず、sanitized Targetから作った一時case workspaceでのみwriteを許可する。
 - canonical live runでは既存PR2 / PR5と同じく`gpt-5.6-luna`を使用する。実行時のCodex versionとmodelはresult provenanceへ保存し、自動fallbackしない。
-- Eval結果とWorkflow自身のdecisionは別概念として扱う。正しく`stop_unsafe`したstageはEvalとして`pass`になり得る。
+- Eval結果とWorkflow自身のdecisionは別概念として扱う。unsafe / destructive境界で既存契約上妥当なdecisionにより安全に停止したstageはEvalとして`pass`になり得る。
 - `not_executed`は外部Runtime capability不足を表す。fixture破損、Repository drift、Evaluator不整合、build / sanity失敗の代替には使わない。
 - Eval answer key、expected Skill、expected decision、OTel観測結果はEvaluator側だけに保持し、Agent-visible Targetへ保存しない。
 
@@ -138,7 +138,7 @@
 
 ### 未回答の重要質問
 
-- なし。Case A / C / Dのfixture内容、validator、allowed files、期待状態は本Planで固定し、実装者へ設計判断を残さない。
+- なし。Case A / Cのfixture、Case Dの固定Evidence、validator、allowed files、期待状態は本Planで固定し、実装者へ設計判断を残さない。
 
 ## 4. 影響範囲
 
@@ -678,7 +678,7 @@ pnpm run test:repository
 最低限次を検証する。
 
 - 固定case / stage IDの重複がない。
-- Case A / C / Dのfixture path、baseline content、allowed files、validator command、期待failure IDが固定されている。
+- Case A / Cのfixture path、baseline content、allowed files、validator command、期待failure IDと、Case Dのfixed attempt / validation Evidenceが固定されている。
 - 各caseでExpected Skillがcanonical 6 Skillまたは`null`に限定される。
 - single expected Skill一致。
 - expected `null`のtrusted absence。
@@ -716,7 +716,7 @@ live E2E前に、現在のinstalled Codex versionで次を1回確認する。
 
 1. `codex --version`を取得できる。
 2. `--ignore-user-config`、`--ignore-rules`、`-c features.hooks=false`が受理され、probeでRepository外Hook / ruleによる副作用がない。
-3. initial `codex exec --json`から`thread.started.thread_id`を取得できる.
+3. initial `codex exec --json`から`thread.started.thread_id`を取得できる。
 4. 同じIDを`codex exec resume <thread_id> --json`で継続できる。
 5. resume時に`-C`相当のcwd overrideが実効的に反映される。
 6. initial / resumed turnの両方で既存OTel observerのcontrolが成立する。
@@ -794,9 +794,9 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: runnerが保持するsession情報はHostから返された`thread_id`だけとし、resume、履歴、context復元はCodex Runtimeへ委譲する。固定5 case、固定stageだけを実装する。
 
-### Risk 3: resumed turnのcwd切替 / OTel / writeが成立しない
+### Risk 3: resumed turnの共通継続とCase B固有cwd切替を混同する
 
-対策: 実装前smoke probeで実際に確認する。不成立ならHook fallback、独自Session Manager、sandbox迂回を追加せずrun `blocked`とする。
+対策: 共通`exec resume` / OTel / write不成立はrun `blocked`。Case B固有のQA root→source workspace cwd切替だけが不成立ならCase B `not_executed`とする。Hook fallback、独自Session Manager、sandbox迂回は追加しない。
 
 ### Risk 4: OTel contractをPR6だけ変更する
 
@@ -820,7 +820,7 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 9: Case Bのfixture破損をcapability不足としてskipする
 
-対策: `not_executed`はPlaywright / Chromium等の外部capability不足だけに限定する。patch / build / sanity / answer key不整合はFAILまたはrun `blocked`。
+対策: `not_executed`は実際のCodex sessionで必要なBrowser Runtime capabilityやCase B固有cwd capability不足だけに限定する。patch / build / sanity / answer key不整合はFAILまたはrun `blocked`。
 
 ### Risk 10: Case Cが`stop_unsafe` / `stop_needs_human`の未定義優先順位をEvaluator側で作る
 
