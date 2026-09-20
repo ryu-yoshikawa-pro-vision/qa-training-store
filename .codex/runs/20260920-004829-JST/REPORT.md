@@ -135,3 +135,12 @@
   - Issue #117更新 / close。
 - Progress: 100% (11/11)
 
+### 2026-09-20 16:33 (JST) 追補
+
+- canonical Planの最終整合確認で残っていた旧契約を修正した。
+- `stop_no_progress`のDoDを固定fixtureでの強制編集から、runnerが用意したbounded attempt / validation Evidenceによる停止評価へ統一した。
+- 共通resume不能とCase B固有cwd切替不能のstatus境界を`blocked` / `not_executed`へ分離した。
+- unsafe / destructive stopのゴールとEval説明から`stop_unsafe`単独正解の残存表現を除去した。
+- Case Dの検証契約を固定Evidenceへ統一し、Case B capabilityのRisk記述をAgent-facing Browser capabilityへ更新した。
+- canonical Plan追加commit: `e69cf1626bec616e7dd467f71a69bddbf9b50ea6`。
+
