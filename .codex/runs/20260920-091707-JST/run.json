@@ -32,7 +32,9 @@
     ".github/workflows/security-dependency-fallback.yml",
     "scripts/validate-security-dependency-fix.mjs",
     "tests/contracts/security-dependency-fallback-workflow.test.ts",
-    "tests/contracts/security-dependency-fix-validator.test.ts"
+    "tests/contracts/security-dependency-fix-validator.test.ts",
+    "renovate.json",
+    "tests/contracts/renovate-config.test.ts"
   ],
   "validation": {
     "status": "not_run",
@@ -49,5 +51,5 @@
   },
   "evaluation_path": ".codex/runs/20260920-091707-JST/evaluation.json",
   "status": "pending",
-  "primary_failure_category": "missing_context"
+  "primary_failure_category": "artifact_contract_gap"
 }

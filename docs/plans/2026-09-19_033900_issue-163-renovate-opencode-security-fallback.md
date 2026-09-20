@@ -8,7 +8,7 @@
 - 2026-09-20確認時の`main`: `1213adc9513409cc176c090f9df4c1c408142b9c`（PR #166 merge後）。PR #167 branchは`552c75f`でこのmainを取り込み、head `6b9c7e1`で最新mainを祖先に含むことを確認した。Repository実装開始前に`package.json` / `pnpm-lock.yaml` / CI contractの前提を再確認し、古いbase上のCI成功を最新`main`との統合結果として扱わない。
 - 依頼内容: Dependabot Alertsを脆弱性検知の正本として維持し、RenovateをSecurity修正の第一経路、OpenCodeを人間が起動する限定fallbackとして追加する。
 - 今回の作業範囲: PR #167 branch内のRepository実装、検証、commit、push、PR本文の現状反映。外部App導入、GitHub Settings変更、Secret変更、mergeは行わない。
-- Repository実装はPR #167を唯一の実装PRとして継続し、同じbranchへcommitを追加する。Issue #163のRepository変更用に別PRを作成しない。`prConcurrentLimit`確定後に`renovate.json`と対応contract testをPR #167へ追加し、未確定の間は同PRのmerge blockerとして扱う。外部App installation、Secret登録、Repository Settings変更、activationはRepository変更をmergeした後に実施する。
+- Repository実装はPR #167を唯一の実装PRとして継続し、同じbranchへcommitを追加する。Issue #163のRepository変更用に別PRを作成しない。Owner確定値`vulnerabilityAlerts.prConcurrentLimit: 3`を`renovate.json`と対応contract testへ反映する。外部App installation、Secret登録、Repository Settings変更、activationはRepository変更をmergeした後に実施する。
 - 期待成果: Issue #163の目的から外れず、実装時に追加判断が必要な箇所を明示し、安全性に必要な境界だけを残した実装Planにする。
 
 ## 1. ゴール / 完了条件
@@ -30,7 +30,7 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - Public Repository Hardeningとの関係はこのPlanで更新する。P-01はSecurity Update用途に限ってRenovate導入を後続判断として更新し、P-03 / P-12はDependabot AlertsをONのまま維持しつつRenovate正常activation中だけDependabot Security UpdatesをOFF、rollback時はONへ戻す。P-05のCloudflare Deployment Credential trust判断とP-13のFinding Triage契約は継続する。過去のHardening Plan本体は書き換えない。
 - `renovate.json`はSecurity修正だけを有効化し、通常のdependency update、OSV vulnerability alerts、Dependency Dashboard、auto-mergeを無効化する。
 - Renovateの対象managerは`npm`に限定する。Repositoryのpackage managerは、Security fallbackの信頼側ツールとしてSecurity Support対象外かつ既知のinstall時path traversal等の影響を受ける`pnpm@9.10.0`を使わず、`pnpm@10.34.5`へ更新する。`packageManager`、CIの`PNPM_VERSION`、lockfileを同じversionへ揃え、更新後にRepository標準検証とCIを通す。
-- `vulnerabilityAlerts.prConcurrentLimit`はOwnerが現在のopen Dependabot Alert件数とRepository運用を確認し、具体的な正の有限整数を決めてPlanへ追記する。確定後に`renovate.json`と対応contract testをPR #167へ実装する。未確定の間はこの2ファイルを仮値・placeholder・省略設定で作成せず、PR #167のmerge blockerとして扱う。他のRepository変更は先行できる。
+- `vulnerabilityAlerts.prConcurrentLimit`はOwner判断で`3`とする。これはAlert総数から算出した値ではなく、初期運用のSecurity PR同時上限として、CI負荷と人間レビュー負荷を抑えつつ1件待ちで全体が停止しない並行性を確保するための値である。`renovate.json`と対応contract testへこの確定値を反映する。
 - Renovate Security PRへ公開する情報は、dependency名、変更前後version、`Security Update`、CI確認に必要な最小情報だけにする。Alert番号、severity、actual exposure、private triage、Advisory本文は公開しない。
 - Renovateのbranch prefixを`renovate/`へ固定する。
 - OpenCode publish branchは`security/<dependency-key>/<github.run_id>`形式へ固定する。`dependency-key`はnpm package名を小文字化し、先頭`@`を除去、`/`を`--`へ変換、`[a-z0-9._-]`以外を`-`へ変換して連続`-`を1つへ畳み、末尾へ元package名のSHA-256先頭8桁を付与する。残存branch判定は`security/<dependency-key>/` prefixで行い、Alert番号を含めない。
@@ -90,7 +90,7 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - OpenCode `v1.18.31`では`OPENCODE_PURE`とdefault plugin無効化は別設定である。Security fallbackではexternal pluginを`OPENCODE_PURE=1`で、固定binary内のdefault pluginを`OPENCODE_DISABLE_DEFAULT_PLUGINS=1`で無効化し、必要な実行経路をZen providerと明示allowしたtoolへ絞る。
 - pnpmのpackage selector付き`pnpm why` / `pnpm list <package>`は完全な認可根拠に使わない。固定`pnpm@10.34.5`でpackage selectorなしの`pnpm list --json --depth Infinity`をinstalled graphの補助確認に使うが、platform-specific / optional pathを含む完全なlockfile graphとは扱わない。
 - GitHub Dependabot Alertのnpm `vulnerable_version_range`は`,`区切りを含み得るため、`semver`へ渡す前に限定的な正規化が必要である。
-- 現在のGitHub connectorではopen Dependabot Alert件数を取得できないため、`prConcurrentLimit`具体値は未確認である。
+- `prConcurrentLimit`はOwner判断により`3`へ確定した。Alert総数から算出した値ではなく、初期運用のSecurity PR同時上限としてCI負荷と人間レビュー負荷を抑えつつ並行性を確保する値である。
 - 本Plan反映前にレビューしたPR #167 headではWeb CI / Mobile App CIはいずれも成功していた。実装開始前にPR #166 merge後の最新`main@1213adc9513409cc176c090f9df4c1c408142b9c`とPR #167 branchの`552c75f` mergeを確認し、`package.json` / `pnpm-lock.yaml` / CI contractの前提を再確認した。
 
 ### 前提
@@ -129,10 +129,9 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
     - `git merge-base --is-ancestor origin/main HEAD`とPR #166 merge commitの祖先確認を通過し、取り込み後の`package.json` / `pnpm-lock.yaml` / CI contract / text lint契約を再確認した。
 
 2. **`vulnerabilityAlerts.prConcurrentLimit`**
-   - Owner権限で現在のopen Dependabot Alert件数を確認する。
-   - 件数とRepository運用を根拠に具体的な正の有限整数を決め、このPlanへ記録する。
-   - 未確定の間は`renovate.json`と`tests/contracts/renovate-config.test.ts`だけ実装しない。
-   - CI分類、OpenCode fallback、文書、validator等の他変更は先行できる。
+   - Owner判断で初期運用のSecurity PR同時上限を`3`へ確定し、このPlanへ記録する。
+   - `3`はAlert総数から算出した値ではなく、CI負荷と人間レビュー負荷を抑えつつ、1件待ちで全体が停止しない並行性を確保するための値である。
+   - `renovate.json`と`tests/contracts/renovate-config.test.ts`へ確定値を反映する。
 
 ### pnpm 10.34.5更新直後の確認
 
@@ -159,13 +158,13 @@ Repository全体を`pnpm@10.34.5`へ更新して標準検証を通した後、va
 
 ### 変更予定ファイル
 
-注: `renovate.json`と`tests/contracts/renovate-config.test.ts`はOwnerが具体的な`prConcurrentLimit`を確定した後にPR #167へ追加する条件付き対象であり、現時点の変更には含めない。
+注: Owner確定値`vulnerabilityAlerts.prConcurrentLimit: 3`を反映した`renovate.json`と`tests/contracts/renovate-config.test.ts`をPR #167へ追加する。
 
 - `renovate.json`
   - Security-only Renovate設定。
   - `branchPrefix: "renovate/"`。
   - 公開PR metadata制限。
-  - `prConcurrentLimit`はOwner確定値。
+  - `vulnerabilityAlerts.prConcurrentLimit: 3`。
 - `.github/workflows/security-dependency-fallback.yml`
   - 6 job構成の手動fallback。
 - `.github/opencode/security-fallback.json`
@@ -207,9 +206,10 @@ Repository全体を`pnpm@10.34.5`へ更新して標準検証を通した後、va
 - `vulnerabilityAlerts.enabled: true`
 - `vulnerabilityAlerts.automerge: false`
 - `vulnerabilityAlerts.vulnerabilityFixStrategy: "lowest"`
-- `vulnerabilityAlerts.prConcurrentLimit: <OWNER_CONFIRMED_VALUE>`
+- `vulnerabilityAlerts.prConcurrentLimit: 3`
+- `vulnerabilityAlerts.branchConcurrentLimit`は追加しない。
 - `branchPrefix: "renovate/"`
-- `branchTopic: "{{{depNameSanitized}}}-security"`
+- `vulnerabilityAlerts.branchTopic: "{{{depNameSanitized}}}-security"`
 - `commitMessageAction: "Security Update"`
 - `commitMessageTopic: "dependency {{depName}}"`
 - `prBodyTemplate: "{{{header}}}{{{table}}}"`
@@ -532,7 +532,7 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 
 #### Renovate
 
-1. `prConcurrentLimit`具体値をOwnerが確定し、Planへ追記する。未確定ならPR #167をmergeしない。
+1. Owner確定値`vulnerabilityAlerts.prConcurrentLimit: 3`をPlanへ記録する。
 2. 確定値を使った`renovate.json`と`tests/contracts/renovate-config.test.ts`をPR #167へ実装し、Repository CIを通してmergeする。
 3. Mend Renovate Appの要求権限、Repository scope、rollback planをOwnerが確認する。
 4. P-05に従いProductionまでtrustedとするか判断する。
@@ -558,8 +558,8 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 - [x] 2. Repository全体のpackage managerを`pnpm@10.34.5`へ更新し、`packageManager`、GitHub Actionsの`PNPM_VERSION`、lockfileを同じversionへ揃える。標準検証を通した後、「pnpm 10.34.5更新直後の確認」の5項目を固定versionの実挙動で確認する。Plan前提との差異があればvalidator実装を開始せず、Planとcontract testを更新する。
 - [x] 3. `semver@7.8.5`のversion、License、既知脆弱性を再確認し、validator用exact devDependencyとして追加する。
 - [x] 4. `.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`を更新し、Dependabot / `renovate/` Bot / `security/` BotだけPreview skipにする。
-- [ ] 5. Owner権限でopen Dependabot Alert件数を取得し、`prConcurrentLimit`の具体値と根拠をPlanへ追記する。
-- [ ] 6. 5完了後にPublic metadata契約を含む`renovate.json`と`tests/contracts/renovate-config.test.ts`を追加する。
+- [x] 5. Owner判断で初期運用の`vulnerabilityAlerts.prConcurrentLimit`を`3`へ確定し、Alert総数から算出した値ではないことと運用上の根拠をPlanへ追記する。
+- [x] 6. `vulnerabilityAlerts.prConcurrentLimit: 3`とPublic metadata契約を含む`renovate.json`と`tests/contracts/renovate-config.test.ts`をPR #167へ追加する。
 - [x] 7. `scripts/validate-security-dependency-fix.mjs`とvalidator contract testを追加し、authorization照合、baseline vulnerable確認、exact specifier限定、expected exact resolved version、parent-scoped overrideのbaseline全selector edge証明、prepared lockfile内target version scan、downgrade拒否、`semver` / `yaml` target拒否を実装する。
 - [x] 8. `.github/opencode/security-fallback.json`を追加し、top-level deny、read / edit allowlist、`formatter: false`、`lsp: false`、main / small modelのFree固定を実装する。workflow側では`OPENCODE_DISABLE_DEFAULT_PLUGINS=1`も固定する。
 - [x] 9. `.github/workflows/security-dependency-fallback.yml`を6 job構成で追加する。workflow-level `permissions: {}`からjob単位で明示し、`permissions: write-all`を使わない。
@@ -575,13 +575,13 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 - [x] 19. PR #167だけでRepository変更を継続し、別のRepository実装PRを作成しない。
 - [ ] 20. PR #167 merge後にOwner承認を得てRenovate / OpenCodeを段階的にactivationし、実地確認完了後にIssue #163をcloseする。
 
-実行状況注記: 5–6は`prConcurrentLimit`のOwner確定値がないため未実装、18は今回のレビュー修正を含むlocal contract / standard validation、commit・push後のPR CI確認までを完了条件とする。20は今回の実装・検証範囲外である。
+実行状況注記: 5–6はOwner確定値`3`を反映して完了、18は今回のRenovate追加を含むlocal contract / standard validation、commit・push後のPR CI確認までを完了条件とする。20は今回の実装・検証範囲外である。
 
 ### PR #167 レビュー修正継続
 
 レビューで確認された残存問題に対し、次の修正をこのPlanの範囲内で実施する。
 
-- Renovateの`prConcurrentLimit`はIssue / PR / Owner回答で具体的な正の有限整数が確定していないため、`renovate.json`と対応contract testを追加せず、PR #167のmerge blockerとして維持する。
+- Renovateの`vulnerabilityAlerts.prConcurrentLimit`はOwner判断で`3`へ確定したため、`renovate.json`と対応contract testへ反映する。`3`はAlert総数から算出した値ではなく、初期運用のSecurity PR同時上限である。
 - parent-scoped overrideはworkflowとvalidatorの共通proofでbaseline `packages` / `snapshots`全edgeを列挙し、safe、unknown、unparseable、installed graphとの矛盾をfail-closedにする。
 - publishは実push直前とpush後・PR作成直前に`BASE_SHA`と最新mainを比較し、stale時にbranchを残して自動rebase、force push、delete、retry、OpenCode再実行、PR作成を行わない。
 - `validate-exec`はcandidate packageを配置する前にbaseline dependencyをpublic-safeな`env -i`環境で`corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts`し、validator importへ依存が存在することを固定する。publishのGit pushはinstallation tokenを`x-access-token:<token>`としてBase64化したBasic Authorizationへ限定し、credentialと一時Git設定をmask / unsetする。
@@ -616,13 +616,13 @@ Repository変更をmergeした後に、Owner承認のもとで段階的に有効
 - auto-merge無効。
 - `vulnerabilityFixStrategy == "lowest"`。
 - `branchPrefix == "renovate/"`。
-- `branchTopic == "{{{depNameSanitized}}}-security"`。
+- `vulnerabilityAlerts.branchTopic == "{{{depNameSanitized}}}-security"`。
 - `commitMessageAction == "Security Update"`。
 - `commitMessageTopic == "dependency {{depName}}"`。
 - `prBodyTemplate == "{{{header}}}{{{table}}}"`。
 - `prBodyColumns == ["Package", "Change"]`。
 - Package columnがplain dependency名だけで、default linkを使わない。
-- `prConcurrentLimit`がPlanのOwner確定値と一致する。
+- `vulnerabilityAlerts.prConcurrentLimit == 3`で、top-level `prConcurrentLimit`がない。
 - 公開templateへAlert番号、severity、Advisory本文、warnings / changelogs / controlsを含めない。
 
 ### validator
@@ -777,7 +777,6 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 
 ### 未解決事項
 
-- `prConcurrentLimit`具体値。
 - 外部Appの実権限とProduction trust。OpenCode AppではOIDC token exchangeがRepository claim単位のtrustであることを含めてOwnerが判断する。
 - Zen / OIDC実疎通。
 

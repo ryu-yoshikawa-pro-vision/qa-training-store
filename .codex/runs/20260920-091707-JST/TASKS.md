@@ -16,7 +16,7 @@
 - [x] 11. PlanとREPORTへRenovate blocker、レビュー修正、Stop Hook別件の訂正を追記する。
 - [x] 12. strict Runへschema-validな`evaluation.json`を作成し、正規sanitizer / collectorで再集約する。
 - [x] 13. focused / standard validation、diff scope、Security境界確認を修正後状態で完了する。
-- [ ] 14. final commit前に差分を確認し、commit / push、PR本文更新、最新headのCI / CodeQLを確認する。
+- [ ] 14. Owner確定値`vulnerabilityAlerts.prConcurrentLimit: 3`をRenovate設定・contract・Planへ反映し、公式validator、標準検証、Run Artifact更新、final commit / push、PR本文更新、最新headのCI / CodeQLを確認する。
 
 ## 完了処理の参照先
 
@@ -30,10 +30,10 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Discovered（発見事項）
 
-- `prConcurrentLimit`はPlanに具体値がなく、`renovate.json`と`tests/contracts/renovate-config.test.ts`だけを未実装で残す。
+- `vulnerabilityAlerts.prConcurrentLimit`はOwner判断で`3`に確定し、`renovate.json`と`tests/contracts/renovate-config.test.ts`へ反映する。
 - Plan冒頭のPR #167未取り込み記述は現行履歴と不一致だが、branchは`552c75f`でmainを取り込み済みである。
 
 ## Blocked（ブロック中）
 
-- `vulnerabilityAlerts.prConcurrentLimit`のOwner確定値がないため、Renovate設定と値依存contract testは保留。
 - Owner承認を要するApp / Secret / Settings / activationと、merge後の実runtime疎通は今回の指示範囲外。
+- strict interactive Runのmachine-managed `status` / `validation.status`は既知のartifact contract gapとして、`run.json`を手編集せずneeds_humanに残す。

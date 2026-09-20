@@ -8,26 +8,26 @@
 ## Scope（対象範囲）
 
 - In:
-  - PR #167既存branch上のpackage manager更新、Cloudflare Preview分類、Renovate設定（Owner未確定値を除く）、Security validator、OpenCode設定、6 job fallback workflow、Security公開境界、contract test。
+  - PR #167既存branch上のpackage manager更新、Cloudflare Preview分類、Owner確定値`3`を反映したRenovate設定、Security validator、OpenCode設定、6 job fallback workflow、Security公開境界、contract test。
   - `pnpm@10.34.5`へのRepository全体のactive toolchain同期と、更新単体での標準検証。
   - 関連Run Artifactの日本語記録・sanitization・検証。
   - PR #167への意味のあるcommit、対象branchへの通常push、実装状況に合わせたPR本文更新。
 - Out:
-  - `vulnerabilityAlerts.prConcurrentLimit`の仮値実装と、その値に依存する`renovate.json` / contract test。
+  - Owner確定値と異なる`vulnerabilityAlerts.prConcurrentLimit`の推測実装。確定値`3`は対象に含む。
   - App installation、Secret登録、GitHub Settings変更、merge、Issue close、activation。
   - auto-merge、schedule、自動retry、branch recovery、queue / lock service、既存CI gate緩和、別branch / 別PR。
 
 ## Assumptions（仮定）
 
 - GitHub APIで確認したPR #167 headは最新`origin/main`を祖先に含み、PR #166 merge後の変更を含むため、Repository実装へ進める。
-- `prConcurrentLimit`はOwner判断が必要な未確定値として、設定と対応contract testだけを未実装で残す。
+- `vulnerabilityAlerts.prConcurrentLimit`はOwner判断で`3`に確定し、設定と対応contract testへ反映する。`3`はAlert総数から算出した値ではなく、初期運用のSecurity PR同時上限である。
 - 過去Run、報告、Planの履歴事実は書き換えず、現行状態の誤記だけを最小修正する。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
 - 必ず質問する不透明点: なし。ユーザー指示とPlanにより実装境界が確定している。
 - 仮定してよい細部: 既存workflow / contractの構造、固定OpenCode release値、Plan記載のArtifact契約を正本として再利用する。
-- 未回答の重要質問: Ownerによる`prConcurrentLimit`具体値、App / OIDCのlive trust、Zen疎通。これらはRepository実装の未確定範囲外として保留する。
+- 未回答の重要質問: App / OIDCのlive trust、Zen疎通。これらはRepository実装の未確定範囲外として保留する。
 
 ## Research Plan（調査計画）
 
@@ -51,7 +51,7 @@
 ## Definition of Done（完了条件）
 
 - PlanのRepository変更DoDのうち、Owner判断・merge後activation・live疎通を除く項目を実装し、関連contract testが成立する。
-- `vulnerabilityAlerts.prConcurrentLimit`と専用config / contract testは未実装のまま、仮値を追加しない。
+- `vulnerabilityAlerts.prConcurrentLimit: 3`と専用config / contract testを実装し、仮値を追加しない。
 - `preflight`、`read-alert`、`opencode-edit`、`validate-exec`、`finalize`、`publish`のjob、credential、Artifact、re-run、OIDC境界が静的contractで固定される。
 - `pnpm run test:contracts`、`pnpm run verify`、`git diff --check`を実行し、失敗は未解消事項として残さない（環境依存の既存問題は根拠付きで分類する）。
 - 変更はPR #167 branch内に限定し、commit / push / PR本文更新まで実施する。mergeと外部activationは行わない。
@@ -70,8 +70,9 @@
 ## Review repair continuation（PR #167）
 
 - 対象: Issue #163 / PR #167の実装レビューで残ったbaseline edge証明、publish境界、strict Run Artifact、別Repository由来checkpointの訂正。
-- 実装制約: `renovate.json`と`tests/contracts/renovate-config.test.ts`はOwnerが具体的な正の有限`prConcurrentLimit`を確定するまで追加しない。Stop Hook / Host設定、外部App / Secret / Settings、merge、live workflow dispatchは変更しない。
+- 実装制約: `renovate.json`と`tests/contracts/renovate-config.test.ts`はOwner確定値`3`だけを反映する。Stop Hook / Host設定、外部App / Secret / Settings、merge、live workflow dispatchは変更しない。
 - 証明契約: exact parent selectorについてbaseline `packages` / `snapshots`の全instanceと4 dependency fieldのtarget edgeを`baseline_selector_edges`へ固定し、safe / hidden / unknown / unparseable edgeまたはinstalled graphとの矛盾を`needs_human`へ停止する。
 - publish契約: installation token取得後の実push直前と、push後・PR作成直前に`BASE_SHA`と最新mainを比較する。stale時はremote branchを削除・rebase・force push・retry・OpenCode再実行せずPRを作成しない。
 - Run契約: `evaluation.json`はschemaへ適合させ、既存sanitizer / collectorを通す。`run.json`は直接編集せず、interactive Runのmachine-managed status / validationを正規経路で完了できない場合は未確定として報告する。
 - 2026-09-20 JST: 11:57のStop Hook調査は別Repository / 別session由来であり、Issue #163 / PR #167の品質根拠には使用しない。今回の実装へStop Hook / Host設定変更を含めない。
+- 2026-09-21 JST: Ownerが`vulnerabilityAlerts.prConcurrentLimit: 3`を、Alert総数ではなく初期運用のSecurity PR同時上限として確定した。`renovate.json`、Renovate contract、Planを更新し、公式validatorとRepository標準検証を実行する。

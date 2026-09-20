@@ -157,3 +157,25 @@
   - Delegation: なし。
   - Result: Parent agentのみで実施。
 - Progress: 93% (13/14)（統合レビュー修正、focused / standard validationを完了。final commit、push、最新head CI / CodeQL確認を残す）
+
+## 2026-09-21 01:10 (JST)
+
+- Summary: Ownerが`vulnerabilityAlerts.prConcurrentLimit=3`を確定したため、Renovate第一経路のRepository実装を追加した。
+- Changes: `renovate.json`へSecurity-only preset、npm manager限定、OSV / Dependency Dashboard / normal update / automerge無効、`vulnerabilityAlerts.prConcurrentLimit: 3`、`vulnerabilityAlerts.branchTopic: "{{{depNameSanitized}}}-security"`、最小Public PR templateを追加した。`tests/contracts/renovate-config.test.ts`ではJSON parse後にnested limit、top-level limit不在、通常update禁止、公開metadata境界、automerge禁止を固定した。Planのplaceholder / blocker記述、active RunのOwner前提を現状態へ更新した。
+- 判断 / 理由: `3`はAlert総数から算出せず、初期運用のSecurity PR同時上限としてCI負荷と人間レビュー負荷を抑えつつ、1件待ちで全体が停止しない並行性を確保するOwner判断である。`vulnerabilityAlerts.branchConcurrentLimit`、global `prConcurrentLimit`、schedule、retry、auto-mergeは追加していない。Stop Hook / Host設定、外部App、Secret、Settings、merge、Issue close、実Alert dispatchは変更していない。
+- Validation: Renovate contract単体`3 passed`、Security/CI focused 4 files `56 passed`、`npx --yes --package renovate@44.103.6 -- renovate-config-validator --strict`終了コード0（npm deprecated warningのみ）、`corepack pnpm@10.34.5 run test:contracts` `43 files / 720 passed / 4 skipped`、`corepack pnpm@10.34.5 run verify`成功（lint `0 errors / 66 warnings`、typecheck、security check、全test、web/spec build）、`git diff --check`成功。
+- CI: 作業開始時のPR head`98b22ba`ではWeb CI / Mobile App CI / CodeQL / Dependency Review / Codex artifact sanitization / Codex Hook contract等がsuccess、CodeQL新規finding 0、unresolved review thread 0だった。今回の新commit push後は最新head CIを再確認する。
+- Run Artifact: `evaluation.json`をschema-validなOwner確定後の内容へ更新した。`run.json`は直接編集せず、interactive Runのmachine-managed `status=pending` / `validation.status=not_run`は既知のartifact contract gapとしてneeds_humanに残す。sanitizer / schema validator / collectorはfinal commit前に再実行する。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+  - 親Agentの判断: Owner確定値を正しく反映し、既存Security boundaryとactivation分離を維持する。
+- Progress: 93% (13/14)（Owner確定Renovate実装、focused / standard validationを完了。Run Artifact正規更新、final commit、push、PR本文、最新head CI / CodeQL確認を残す）
+
+## 2026-09-21 01:15 (JST)
+
+- Summary: Owner確定後のRun Artifactを正規経路で検証し、commit前差分を確認できる状態にした。
+- Validation: `evaluation.json`のschema validation、4ファイルのsanitizer Write / Check（各 residual 0）、`collect-run-artifacts.ps1 -RunId 20260920-091707-JST -RefreshGitChangedFiles -Strict`が成功した。collectorは`run.json`へ新規Renovate filesと`primary_failure_category=artifact_contract_gap`を正規集約した。
+- Run状態: `run.json`の`status=pending` / `validation.status=not_run`はinteractive Runのmachine-managed gapとして維持し、直接編集していない。`evaluation_path`と`artifact_summary.evaluation_present`は正規collectorで確認できる。
+- Scope: working treeはRun Artifact、Plan、`renovate.json`、Renovate contract testだけの変更で、OpenCode fallback、validator、workflow、package manager、Stop Hook / Host設定に追加変更はない。`git diff --check`は成功した。
+- Progress: 93% (13/14)（Run Artifact、Plan、Renovate設定、contract、全標準検証を完了。final commit、push、PR本文、最新head CI / CodeQL確認を残す）

@@ -2,15 +2,14 @@
   "schema_version": 1,
   "run_id": "20260920-091707-JST",
   "result": "partial",
-  "primary_failure_category": "missing_context",
+  "primary_failure_category": "artifact_contract_gap",
   "failure_categories": [
-    "missing_context",
     "artifact_contract_gap"
   ],
   "dimensions": {
     "task_completion": {
-      "rating": "warn",
-      "evidence": "PR #167の統合レビュー7項目のうち、validate-exec baseline install、prepared authorization scope、peer suffix parser、trust dependency早期拒否、Git push Basic認証、Issue activation記述、既存のbaseline edge / publish境界を実装した。Owner確定のprConcurrentLimitに依存するRenovate設定は意図的に保留している。",
+      "rating": "pass",
+      "evidence": "PR #167の統合レビュー修正に加え、Owner確定のvulnerabilityAlerts.prConcurrentLimit=3、Renovate Security-only設定、公開metadata境界、Renovate contract testを実装した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -31,7 +30,21 @@
           "path": "docs/plans/2026-09-19_033900_issue-163-renovate-opencode-security-fallback.md",
           "selector": null,
           "event_id": null,
-          "summary": "Owner blockerとレビュー修正契約をPlanへ反映した。"
+          "summary": "Owner確定値3、Renovate設定契約、nested branchTopicをPlanへ反映した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "renovate.json",
+          "selector": null,
+          "event_id": null,
+          "summary": "Security-only、npm限定、automerge無効、vulnerabilityAlerts.prConcurrentLimit=3、最小PR templateを設定した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/renovate-config.test.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "JSON parseによるRenovate設定、nested limit、branchTopic、通常update禁止、公開metadata境界を固定した。"
         }
       ]
     },
@@ -57,14 +70,14 @@
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "focused 3 contract files: 53 tests passed。"
+          "summary": "focused 4 contract files: 56 tests passed。"
         },
         {
           "kind": "validation_command",
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "pnpm@10.34.5 test:contracts: 42 files、717 passed、4 skipped。"
+          "summary": "pnpm@10.34.5 test:contracts: 43 files、720 passed、4 skipped。"
         },
         {
           "kind": "validation_command",
@@ -72,6 +85,13 @@
           "selector": null,
           "event_id": null,
           "summary": "pnpm@10.34.5 verify: lint 0 errors / 66 warnings、typecheck、security check、全test、web/spec buildが成功。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "npx --yes --package renovate@44.103.6 -- renovate-config-validator --strictが終了コード0。"
         }
       ]
     },
@@ -89,25 +109,10 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "固定pnpm@10.34.5によるlocal検証は成功したが、commit / push後の最新PR head CIはこの評価時点では未実行である。"
+      "evidence": "固定pnpm@10.34.5によるlocal検証とRenovate公式validatorは成功した。新しいcommitのpush後CIはこの評価時点では未実行である。"
     }
   },
   "findings": [
-    {
-      "category": "missing_context",
-      "severity": "high",
-      "evidence": "Issue、PR、Plan、既存Owner回答からvulnerabilityAlerts.prConcurrentLimitの具体的な正の有限整数を確認できなかった。",
-      "evidence_refs": [
-        {
-          "kind": "evaluation_note",
-          "path": "docs/plans/2026-09-19_033900_issue-163-renovate-opencode-security-fallback.md",
-          "selector": null,
-          "event_id": null,
-          "summary": "Owner確定値がない場合はrenovate.jsonと値依存contract testを作成せずmerge blockerとする契約。"
-        }
-      ],
-      "detail": "推測値、placeholder、省略設定をcommitせず、Ownerが値を確定するまでRenovate第一経路の設定を保留する。"
-    },
     {
       "category": "artifact_contract_gap",
       "severity": "medium",
