@@ -9,7 +9,7 @@ overrides:
   expo-constants: 57.0.19
   xcode@3.0.1>uuid: 11.1.1
   '@eslint/eslintrc@3.3.6>js-yaml': 4.3.1
-  '@expo/xcpretty@4.4.4>js-yaml': 4.3.1
+  '@expo/xcpretty@4.4.4>js-yaml': 4.3.2
   '@react-native/community-cli-plugin@0.86.2>metro': 0.84.5
   '@react-native/community-cli-plugin@0.86.2>metro-config': 0.84.5
   '@react-native/metro-config@0.86.1>metro-config': 0.84.5
@@ -4512,6 +4512,10 @@ packages:
     resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
     hasBin: true
 
+  js-yaml@4.3.2:
+    resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
+    hasBin: true
+
   js-yaml@5.2.2:
     resolution: {integrity: sha512-dayzUzKkJ1MkuUtZglSebU43utNXH0OWQByK9rKOOuYIO8M5TV1y+n8ALMdG0rdzBnfNkOmZEqrURepb0ejqBw==}
     hasBin: true
@@ -7952,7 +7956,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.29.7
       chalk: 4.1.2
-      js-yaml: 4.3.1
+      js-yaml: 4.3.2
 
   '@fontsource/inter@5.3.0': {}
 
@@ -8737,7 +8741,9 @@ snapshots:
       metro-runtime: 0.84.6
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 
@@ -11877,6 +11883,10 @@ snapshots:
       esprima: 4.0.1
 
   js-yaml@4.3.1:
+    dependencies:
+      argparse: 2.0.1
+
+  js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
 
