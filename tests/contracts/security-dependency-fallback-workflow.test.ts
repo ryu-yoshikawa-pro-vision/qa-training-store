@@ -100,12 +100,16 @@ describe("Security dependency fallback workflow", () => {
     expect(opencode).toContain("pull-requests: read");
     expect(opencode).not.toContain("id-token: write");
     expect(opencode).not.toContain("vulnerability-alerts: read");
-    expect(validate).toContain("permissions: {}");
+    expect(validate).toMatch(/\n    permissions:\n      contents: read\n/);
     expect(validate).not.toContain("id-token: write");
     expect(validate).not.toContain("vulnerability-alerts: read");
-    expect(finalize).toContain("permissions: {}");
+    expect(validate).not.toContain("contents: write");
+    expect(validate).not.toContain("pull-requests: write");
+    expect(finalize).toMatch(/\n    permissions:\n      contents: read\n/);
     expect(finalize).not.toContain("id-token: write");
     expect(finalize).not.toContain("vulnerability-alerts: read");
+    expect(finalize).not.toContain("contents: write");
+    expect(finalize).not.toContain("pull-requests: write");
     expect(publish).toContain("contents: read");
     expect(publish).toContain("pull-requests: read");
     expect(publish).toContain("vulnerability-alerts: read");
@@ -214,6 +218,29 @@ describe("Security dependency fallback workflow", () => {
     expect(publish).not.toContain("write-enabled GITHUB_TOKEN");
   });
 
+  it("keeps the model discovery output and error stream inside runner temp", () => {
+    const opencode = jobBlock("opencode-edit", "validate-exec");
+    const models = stepBlock(opencode, "Select a Free model without fallback");
+    const uploadCandidate = stepBlock(opencode, "Upload candidate artifact");
+
+    expect(models).toContain('model_json="$RUNNER_TEMP/opencode-models.json"');
+    expect(models).toContain('models_stderr="$RUNNER_TEMP/opencode-tmp/models-stderr.log"');
+    expect(models).toContain('> "$model_json" 2> "$models_stderr"');
+    expect(models).toContain('OPENCODE_API_KEY="$OPENCODE_API_KEY"');
+    for (const variable of [
+      "OPENCODE_DISABLE_PROJECT_CONFIG=1",
+      "OPENCODE_PURE=1",
+      "OPENCODE_DISABLE_DEFAULT_PLUGINS=1",
+      "OPENCODE_DISABLE_AUTOUPDATE=1",
+      "OPENCODE_DISABLE_LSP_DOWNLOAD=1",
+      "OPENCODE_DISABLE_SHARE=1",
+    ]) {
+      expect(models).toContain(variable);
+    }
+    expect(models).not.toContain('cat "$models_stderr"');
+    expect(uploadCandidate).not.toContain("models-stderr.log");
+  });
+
   it("uses masked Basic credentials for Git push and keeps the App token API-only afterward", () => {
     const publish = jobBlock("publish");
     expect(publish).toContain("printf 'x-access-token:%s' \"$installation_token\"");
@@ -268,6 +295,25 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md");
     expect(workflow).toContain("validated-fix.json");
     expect(workflow).toContain("conflict_terms");
+  });
+
+  it("records the selected strategy from final validation in Run Artifacts and the manifest", () => {
+    const finalize = jobBlock("finalize", "publish");
+    const createRun = stepBlock(finalize, "Verify prepared input and create public Run Artifact");
+    const finalizeHash = stepBlock(finalize, "Finalize fixed file and hash manifest");
+
+    expect(createRun).toContain('> "$RUNNER_TEMP/finalize-validation.json"');
+    expect(createRun).toContain("selected_strategy=");
+    expect(createRun).toContain("value.strategy");
+    expect(createRun).toContain("選択strategy: $selected_strategy");
+    expect(createRun).toContain("- strategy: $selected_strategy");
+    expect(finalizeHash).toContain(
+      "FINALIZE_VALIDATION_FILE: ${{ runner.temp }}/finalize-validation.json",
+    );
+    expect(finalizeHash).toContain("validation.strategy");
+    expect(finalizeHash).toContain("strategy: validation.strategy");
+    expect(workflow).not.toContain("allowed_strategies.join");
+    expect(workflow).not.toContain("strategy: authorization.allowed_strategies");
   });
 
   it("builds parent-scoped authorization from every baseline lockfile edge", () => {

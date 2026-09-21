@@ -450,13 +450,14 @@ jobs:
           set -euo pipefail
           opencode_bin="$(<"$RUNNER_TEMP/opencode-bin")"
           model_json="$RUNNER_TEMP/opencode-models.json"
+          models_stderr="$RUNNER_TEMP/opencode-tmp/models-stderr.log"
           mkdir -p "$RUNNER_TEMP/opencode-home" "$RUNNER_TEMP/opencode-tmp"
           env -i \
             PATH="$PATH" HOME="$RUNNER_TEMP/opencode-home" TMPDIR="$RUNNER_TEMP/opencode-tmp" \
             CI=true OPENCODE_API_KEY="$OPENCODE_API_KEY" \
             OPENCODE_DISABLE_PROJECT_CONFIG=1 OPENCODE_PURE=1 OPENCODE_DISABLE_DEFAULT_PLUGINS=1 \
             OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1 OPENCODE_DISABLE_SHARE=1 \
-            "$opencode_bin" models > "$model_json"
+            "$opencode_bin" models > "$model_json" 2> "$models_stderr"
 
       - name: Normalize selected Free model
         shell: bash
@@ -588,7 +589,8 @@ jobs:
       - preflight
       - read-alert
       - opencode-edit
-    permissions: {}
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     outputs:
@@ -778,7 +780,8 @@ jobs:
       - preflight
       - read-alert
       - validate-exec
-    permissions: {}
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
@@ -874,13 +877,18 @@ jobs:
           bash scripts/new-run.sh --run-id "$run_id" --task-type implementation --workflow-level standard --no-run-manifest
           run_dir=".codex/runs/$run_id"
           dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$prepared/fix-authorization.json")"
-          strategy="$(node --input-type=module -e 'import fs from "node:fs"; const a=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(a.allowed_strategies.join(","))' "$prepared/fix-authorization.json")"
+          selected_strategy="$(node --input-type=module -e '
+            import fs from "node:fs";
+            const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+            process.stdout.write(value.strategy);
+          ' "$RUNNER_TEMP/finalize-validation.json")"
           cat > "$run_dir/PLAN.md" <<EOF
           # Security dependency fallback
 
           - 対象: 公開Repositoryの依存関係修正候補
           - dependency: $dependency
-          - 許可strategy: $strategy
+          - 選択strategy: $selected_strategy
           - base SHA: 固定済みのworkflow開始時点
           - Alert番号、GHSA ID、raw Alert、private triage、prompt、model response、credentialは記録しない。
           EOF
@@ -897,7 +905,7 @@ jobs:
           # Report
 
           - dependency: $dependency
-          - strategy: $strategy
+          - strategy: $selected_strategy
           - package / lockfileのexact resolutionとRepository標準検証を確認した。
           - Security情報は公開可能な最小範囲に限定した。
           EOF
@@ -923,6 +931,7 @@ jobs:
           EXPECTED_LOCKFILE_SHA256: ${{ needs.validate-exec.outputs.lockfile_sha256 }}
           EXPECTED_AUTHORIZATION_SHA256: ${{ needs.validate-exec.outputs.authorization_sha256 }}
           AUTHORIZATION_FILE: ${{ runner.temp }}/prepared-security-fix/fix-authorization.json
+          FINALIZE_VALIDATION_FILE: ${{ runner.temp }}/finalize-validation.json
           MANIFEST_FILE: validated-fix.json
           PREPARED_ARTIFACT_ID: ${{ needs.validate-exec.outputs.prepared_artifact_id }}
           RUN_ID_FILE: ${{ runner.temp }}/security-run-id
@@ -935,7 +944,7 @@ jobs:
           mkdir -p "$public_home" "$public_tmp"
           env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
             CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
-            AUTHORIZATION_FILE="$AUTHORIZATION_FILE" RUN_ID_FILE="$RUN_ID_FILE" \
+            AUTHORIZATION_FILE="$AUTHORIZATION_FILE" FINALIZE_VALIDATION_FILE="$FINALIZE_VALIDATION_FILE" RUN_ID_FILE="$RUN_ID_FILE" \
             EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" \
             EXPECTED_AUTHORIZATION_SHA256="$EXPECTED_AUTHORIZATION_SHA256" PREPARED_ARTIFACT_ID="$PREPARED_ARTIFACT_ID" \
             MANIFEST_FILE="$MANIFEST_FILE" node --input-type=module <<'NODE'
@@ -943,6 +952,10 @@ jobs:
           import { createHash } from "node:crypto";
           const sha256 = async (file) => createHash("sha256").update(await fs.readFile(file)).digest("hex");
           const authorization = JSON.parse(await fs.readFile(process.env.AUTHORIZATION_FILE, "utf8"));
+          const validation = JSON.parse(await fs.readFile(process.env.FINALIZE_VALIDATION_FILE, "utf8"));
+          if (!["direct", "root_parent", "override"].includes(validation.strategy)) {
+            throw new Error("needs_human");
+          }
           const runId = (await fs.readFile(process.env.RUN_ID_FILE, "utf8")).trim();
           const conflictTerms = [
             authorization.dependency,
@@ -965,7 +978,7 @@ jobs:
             ghsa_id: authorization.ghsa_id,
             vulnerable_range: authorization.vulnerable_range,
             first_patched_version: authorization.first_patched_version,
-            strategy: authorization.allowed_strategies,
+            strategy: validation.strategy,
             conflict_terms: conflictTerms,
             prepared_artifact_id: process.env.PREPARED_ARTIFACT_ID,
             prepared_sha256: {

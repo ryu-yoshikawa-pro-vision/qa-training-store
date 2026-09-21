@@ -391,7 +391,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 #### `validate-exec`
 
 - job-level条件で`github.run_attempt == 1`を要求する。
-- Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない別runnerで実行する。
+- `contents: read`だけを付与し、Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない別runnerで実行する。
 - exact `BASE_SHA`を`persist-credentials: false`でcheckoutする。
 - `security-context`と`security-candidate`を`artifact-ids`指定でdownloadし、file set、artifact ID、個別SHA-256を確認する。
 - candidate `package.json`と`fix-authorization.json`を配置し、semantic diffがauthorization内の許可変更1件だけと一致することを検証する。
@@ -421,7 +421,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 
 - job-level条件で`github.run_attempt == 1`を要求する。
 - `validate-exec`成功後にfresh runnerで実行する。
-- Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない。
+- `contents: read`だけを付与し、Zen credential、GitHub App credential、OIDC、`vulnerability-alerts: read`を持たない。
 - exact `BASE_SHA`を`persist-credentials: false`でcheckoutする。
 - `security-context`と`validate-exec`が任意コード実行前に生成した`prepared-security-fix`を`artifact-ids`指定で取得する。`validate-exec`のworkspaceやverify後の生成fileは受け取らない。
 - prepared Artifactのartifact ID、file set、`package.json` / `pnpm-lock.yaml` / `fix-authorization.json`の個別SHA-256をjob outputと照合する。`artifact-digest`はSecurity判定へ使わない。

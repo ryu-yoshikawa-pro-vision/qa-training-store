@@ -179,3 +179,16 @@
 - Run状態: `run.json`の`status=pending` / `validation.status=not_run`はinteractive Runのmachine-managed gapとして維持し、直接編集していない。`evaluation_path`と`artifact_summary.evaluation_present`は正規collectorで確認できる。
 - Scope: working treeはRun Artifact、Plan、`renovate.json`、Renovate contract testだけの変更で、OpenCode fallback、validator、workflow、package manager、Stop Hook / Host設定に追加変更はない。`git diff --check`は成功した。
 - Progress: 93% (13/14)（Run Artifact、Plan、Renovate設定、contract、全標準検証を完了。final commit、push、PR本文、最新head CI / CodeQL確認を残す）
+
+## 2026-09-21 09:37 (JST)
+
+- Summary: PR #167最終レビューの3件を、既存Security境界を維持した最小差分で修正した。
+- Changes: `validate-exec` / `finalize`へcheckout用の`contents: read`だけを明示した。`Select a Free model without fallback`のstdout / stderrをrunner temp内の別fileへredirectし、stderrをPublic logやArtifactへ流さない契約を追加した。tracked Run Artifactの`strategy`と`validated-fix.json#strategy`は、許可候補一覧ではなくfresh runnerの`finalize-validation.json`が返した実選択strategyを記録するようにした。Planにもvalidate / finalizeの`contents: read`境界を反映した。
+- Validation: focused workflow contract（1 file / 15 passed）、`corepack pnpm@10.34.5 run test:contracts`（43 files / 722 passed / 4 skipped）、`corepack pnpm@10.34.5 run verify`（ESLint 0 errors / 66 warnings、typecheck、security static check、unit 66、integration 111、repository 117、web component 102、native component 64、contract 722 passed / 4 skipped、web/spec build成功）、`git diff --check`（PASS）。
+- Security / scope: validate / finalizeへwrite権限、OIDC、Dependabot Alert権限は追加していない。`OPENCODE_API_KEY`の利用範囲、OpenCodeの既存stdout / stderr隔離、Artifact allowlist、Renovate、pnpm、Cloudflare分類は変更していない。Stop Hook / Host設定、外部activation、merge、Issue closeは今回も対象外とした。
+- Run状態: `run.json`は直接編集していない。interactive Runのmachine-managed `status=pending` / `validation.status=not_run`は既知のartifact contract gapとして維持する。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+  - 親Agentの判断: `finalize-validation.json`を選択strategyの正本として再利用し、許可候補一覧の監査記録への混入を拒否する。
+- Progress: 93% (13/14)（最終レビュー修正とRepository標準検証を完了。commit、push、PR本文、最新head CI / CodeQL確認を残す）
