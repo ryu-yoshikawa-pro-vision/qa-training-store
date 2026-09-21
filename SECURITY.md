@@ -18,6 +18,12 @@ GitHub Private Vulnerability Reportingを使用してください。
 
 概要、再現手順、影響、環境、補足となる根拠を記載してください。このリポジトリでは、別のメール報告先は公開していません。
 
+## 公開情報の境界
+
+未修正Alert番号、raw payload、actual exposure、攻撃経路、private triageはPublic IssueやPull Requestへ記載しないでください。Security修正PRで公開してよい情報は、dependency名、変更前後のversion、Security Updateであること、およびCI・検証結果の最小限の情報です。
+
+Alertの自動dismissは行いません。
+
 ## 対応と公開
 
 報告はGitHubの非公開advisoryプロセスで確認します。必要に応じて、そのadvisoryを通じて修正と公開を調整します。対応または修正の固定SLAは定めていません。

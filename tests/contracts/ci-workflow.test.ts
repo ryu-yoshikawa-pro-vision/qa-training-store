@@ -172,15 +172,20 @@ describe("Phase 1 CI deployment boundaries", () => {
 
     expect(validate).toContain("VERIFY_RESULT: ${{ needs.verify.result }}");
     expect(validate).toContain("DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}");
+    expect(validate).toContain("PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}");
+    expect(validate).toContain("PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}");
     expect(validate).toContain('require_success "verify" "$VERIFY_RESULT"');
     expect(validate).toContain('if [[ "$EVENT_NAME" == "pull_request" ]]; then');
-    expect(validate).toContain(
-      'if [[ "$PR_HEAD_REPO_FULL_NAME" == "$REPOSITORY" && "$PR_AUTHOR_LOGIN" != "dependabot[bot]" ]]; then',
-    );
+    expect(validate).toContain('if [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then');
     expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
     expect(validate).toContain('elif [[ "$PR_AUTHOR_LOGIN" == "dependabot[bot]" ]]; then');
-    expect(validate).toContain('elif [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then');
+    expect(validate).toContain(
+      'elif [[ "$PR_AUTHOR_TYPE" == "Bot" && ( "$PR_HEAD_REF" == renovate/* || "$PR_HEAD_REF" == security/* ) ]]; then',
+    );
     expect(validate).toContain('require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(workflow).toContain("github.event.pull_request.user.type != 'Bot'");
+    expect(workflow).toContain("!startsWith(github.event.pull_request.head.ref, 'renovate/')");
+    expect(workflow).toContain("!startsWith(github.event.pull_request.head.ref, 'security/')");
     expect(validate).toContain(
       'elif [[ "$EVENT_NAME" == "push" || "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then',
     );

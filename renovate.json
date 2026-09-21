@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["security:only-security-updates"],
+  "enabledManagers": ["npm"],
+  "osvVulnerabilityAlerts": false,
+  "dependencyDashboard": false,
+  "automerge": false,
+  "semanticCommits": "disabled",
+  "branchPrefix": "renovate/",
+  "commitMessageAction": "Security Update",
+  "commitMessageTopic": "dependency {{depName}}",
+  "prBodyTemplate": "{{{header}}}{{{table}}}",
+  "prHeader": "Security Update\n\nCI and human review are required before merge.\n\n",
+  "prBodyColumns": ["Package", "Change"],
+  "prBodyDefinitions": {
+    "Package": "`{{{depName}}}`"
+  },
+  "packageRules": [
+    {
+      "description": "Disable non-security dependency updates",
+      "matchPackageNames": ["*"],
+      "enabled": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": false,
+    "vulnerabilityFixStrategy": "lowest",
+    "prConcurrentLimit": 3,
+    "branchTopic": "{{{depNameSanitized}}}-security"
+  }
+}

@@ -18,7 +18,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "9.10.0"
+  PNPM_VERSION: "10.34.5"
   CI: "true"
   EXPO_PUBLIC_APP_ENV: automation
   EXPO_PUBLIC_BUILD_KIND: automation
