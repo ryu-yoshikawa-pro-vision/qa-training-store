@@ -19,15 +19,21 @@
 
 - Case Bをpatched sanitized source workspace上のsame-thread / same-cwd Gray-box QA → repairへ簡素化し、source-free root、非Git起動、Skill / Referenceコピー、cwd切替、Run同期を削除する。
 - Case Bのfinal validationはInstructorを必要とするfull `validateTrainingContracts()`を使わず、既存Gray-box contract validatorだけを組み合わせる。
-- Case B Finding照合は既存matcher semanticsをnarrow exportして再利用し、`QA_AGENT.md`のseed mappingは`src/seeds/metadata.ts`を正本へ寄せる。
+- Case B Finding照合は既存`matchDefectFinding()`を流用せず、fixed Charter / Machine Contract / oracle refs / seed / role / platform / confirmed status / official Evidence / runner ground truthの固定条件で決定論的に行う。`QA_AGENT.md`のseed mappingは`src/seeds/metadata.ts`を正本へ寄せる。
 - Case Aはimplementation成功時のtest digestをfreezeし、repairでtest書換えによる偽PASSを防ぐ。
 - Case A / B / CのrepairでAgent自身の固定validation command実行をCodex標準`command_execution`から確認し、runner独立validationと分離する。
-- sanitized Targetの生成手順とprovenanceを固定し、`routing_source_git_sha`をTarget HEAD、`source_revision_git_sha`を生成元revisionとする。
+- sanitized Targetの生成手順とprovenanceを固定し、`source_revision_git_sha`を生成元revision、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`をAgent開始時HEADとする。
 - canonical invocationへ`shell_environment_policy.inherit=core`と`web_search=disabled`を追加する。
 - Case EはDoctor actual command / exit code / Artifactを正本とし、failure taxonomy parserを作らない。
 - status分類とCase B timeoutを一意にする。
-- Case Dの`harness-improvement` Semantic品質をPR6で再採点しない。
+- Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual outputをPR5 Semantic criteria / Judge protocol / 3 trialsで評価する。第2のSemantic frameworkは作らない。
 - result contractは既存`ProcessLifecycle`と固定case checkだけへ限定し、汎用Rule Engineへ広げない。
+- 全Agent turnのGit mutation禁止を共通promptへ固定し、runnerでHEAD / detached状態を照合する。
+- Git-visible scopeと`.codex/runs/**` / `.artifacts/**` inventoryを分け、ignored pathへの許可外writeを検出する。
+- repair / review / Nativeのstage-specific schemaを型・nullabilityまで固定する。
+- Case A review Findingはrunner注入diff line rangeとのoverlapを必須にする。
+- Case Eは標準PowerShell invocationを使い、`first_anomaly`はbounded output内のverbatim evidenceだけを確認する。
+- result JSON保存後、固定成功条件を満たす場合だけCLI exit 0とする。
 
 ## 文書構成
 
@@ -41,6 +47,6 @@
 
 - 統合レビューで確定した修正がcanonical Planへ反映されている。
 - 旧source-free / cwd切替 / `target_git_sha`契約が残っていない。
-- Case A偽PASS、Case B validator不成立、repair validation自己申告、Case E parser過剰実装の経路がPlan上で閉じている。
+- Case A無関係Finding / test書換え、Case B answer-key文言依存、repair validation自己申告、ignored-path scope見逃し、Semantic actual-output未評価、Case E parser過剰実装、CLI false-successの経路がPlan上で閉じている。
 - 新しいAgent Runtime / Session Manager / Workflow Engine / Target Manager / MCP Manager / Rule Engineを追加していない。
 - PR6 Evaluator実装はまだ開始していない。
