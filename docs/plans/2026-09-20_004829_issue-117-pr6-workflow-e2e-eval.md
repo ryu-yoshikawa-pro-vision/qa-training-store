@@ -201,7 +201,7 @@ training/**
 - [5.3〜5.9: Skill観測・Target隔離・scope・Artifact・result contract・Runtime](2026-09-20_004829_issue-117-pr6-workflow-e2e-eval_02_runtime-and-contracts.md)
 - [7〜8: 検証方法・リスク](2026-09-20_004829_issue-117-pr6-workflow-e2e-eval_03_validation-and-risks.md)
 
-統合レビューで確定した実装境界は次の5点とする。
+統合レビューで確定した実装境界は次の6点とする。
 
 1. 共通Runtime前提が成立しない場合だけrunを`blocked`とし、個別turnのprocess failureは`unobservable`、case-local preparation / fixture / validatorの観測可能な不整合はcase `fail`とする。`not_executed`はCase Bのcanonical Browser / screenshot / URL capability不足と、Case Eのnon-Windows / PowerShell unavailableだけに限定する。
 2. actual-output Semantic EvalはPR5 calibration経路と入力契約を分け、既存criteria / Judge / 3 trials / aggregationだけを再利用する。各対象stageのdeterministic validation後、依存する次stageへ進む前に実行する。
