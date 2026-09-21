@@ -125,7 +125,7 @@ function listRelativeFiles(root: string, directory: string) {
   try {
     fs.lstatSync(target);
   } catch (error) {
-    if (nodeErrorCode(error) === "ENOENT") return [];
+    if (["ENOENT", "ENOTDIR"].includes(String(nodeErrorCode(error)))) return [];
     throw error;
   }
   const result: { path: string; type: string; content?: string; target?: string }[] = [];
@@ -140,7 +140,15 @@ function listRelativeFiles(root: string, directory: string) {
       for (const entry of fs.readdirSync(current)) visit(path.join(current, entry));
       return;
     }
-    result.push({ path: relative, type: "file", content: fs.readFileSync(current, "utf8") });
+    try {
+      result.push({ path: relative, type: "file", content: fs.readFileSync(current, "utf8") });
+    } catch (error) {
+      if (["EACCES", "EPERM"].includes(String(nodeErrorCode(error)))) {
+        result.push({ path: relative, type: "unreadable" });
+        return;
+      }
+      throw error;
+    }
   };
   visit(target);
   return result.sort((left, right) => left.path.localeCompare(right.path));
@@ -157,7 +165,7 @@ function snapshot(root: string) {
       try {
         stats = fs.lstatSync(target);
       } catch (error) {
-        if (nodeErrorCode(error) === "ENOENT") {
+        if (["ENOENT", "ENOTDIR"].includes(String(nodeErrorCode(error)))) {
           return { path: relativePath, type: "missing" };
         }
         throw error;

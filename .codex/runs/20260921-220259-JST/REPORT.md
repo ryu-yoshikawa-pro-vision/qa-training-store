@@ -67,3 +67,16 @@
   - Result: Parent agentのみで実装・検証。
   - 親Agentの判断: Plan外のCI contract test変更は採用せず、既存CI/contract経路へ限定した。
 - Progress: 90% (9/10)
+
+## 2026-09-22 00:09 (JST)
+
+- Summary: push後の最新PR headでUbuntu `Vitest (contracts)`がfilesystem差異によりFAILしたため、repair-loopのbounded修正を開始した。
+- Evidence: GitHub Actions job `Vitest (contracts)`（run `35616272067`）は新規`codex-hook-diagnostics.test.ts`のLinux permission fixtureで、read-only snapshotがmode 000 state fileを直接読む`EACCES`、`.codex`をregular fileに置換するfixtureでtracked config pathを`lstat`する`ENOTDIR`を報告した。Windows `test:hooks`は214 tests PASSしていた。
+- Repair: diagnostic testのsnapshot helperだけを変更し、permission errorは内容を読まず`unreadable`種別として比較し、`ENOENT` / `ENOTDIR`をmissing boundaryとして扱うようにした。doctor本体、state validator、production Hook、CI契約は変更していない。
+- Validation: Windowsでdiagnostic contract 13/13 PASS、typecheck全3 project PASS、`git diff --check` PASS。Linux permission fixtureの再実行は次のPR head CIで確認する。
+- ブロッカー / 残作業: repair commit/push、修正後PR headの必須Ubuntu/Windows/aggregate CI、PR本文更新が残る。修正前のUbuntu contracts failureを完了扱いにしない。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで原因確認・修正。
+  - 親Agentの判断: failureは環境差異を隠すskipではなく、read-only snapshotのOS差異処理として修復する。
+- Progress: 90% (9/10)
