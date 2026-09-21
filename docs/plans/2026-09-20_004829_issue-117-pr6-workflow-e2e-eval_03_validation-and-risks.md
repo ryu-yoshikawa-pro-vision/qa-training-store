@@ -20,7 +20,7 @@ pnpm run test:repository
 - initial `thread_id`を後続resume turnへ渡し、Case Bもsame workspace / same cwdを維持する。
 - repair共通schemaが既存9 fieldのIteration Modelを持ち、decision 7値をcase別に狭めていない。
 - Case A implementation成功時の`status.test.mjs` digestをfreezeし、review / repairで変更されたらFAIL。
-- Case A reviewで対象Findingがない場合は`fail`、schema transport自体を観測不能なら`unobservable`。
+- Case A reviewでFindingの`location.path`とline rangeがrunner注入diffへoverlapしない場合は`fail`、schema transport自体を観測不能なら`unobservable`。
 - Case A / B / CでAgent固定validation commandの終端`item.completed`に含まれる`command_execution`とrunner独立validationの両方が必要。Case Cはnon-zero exitを期待値として扱う。
 - Case Bはsource-free rootを作らず、patched sanitized source workspaceでGray-box QA → repairを実行する。
 - Case B fixed Charterが`charterSchema`を通り、`source_head_sha`がcase source workspace HEADと一致する。
@@ -28,19 +28,24 @@ pnpm run test:repository
 - Case Bは`grayBoxFindingsSchema`、`charterSchema`、`assertCoverageIntegrity()`、`validateWorkingTreeSnapshots()`等の必要validatorを組み合わせ、Instructorを要求するfull `validateTrainingContracts()`をsanitized workspaceで呼ばない。
 - Case B Required Evidence refがofficial runner evidence prefix内のregular fileへ解決し、`screenshot` / `url`不足をFAILにする。
 - Case B BEFORE / AFTER / comparisonで`additional_source_diff_count=0`。
-- Case B Finding照合が既存matcher semanticsを再利用し、新規近似matcherを持たない。
+- Case B Finding照合がfixed Charter / schema / oracle refs / role / seed / platform / confirmed status / official Evidence / runner ground truthだけで決定論的に成立し、`matchDefectFinding()`の自然文exact match、近似matcher、LLM matcherを使わない。
 - Case Bの`QA_AGENT.md` seed mappingが`src/seeds/metadata.ts`を正本として参照する。
 - Case B protected patch / build / sanity / schema / Evidence / answer key不整合を`not_executed`にしない。
 - Case B repairでAgent `pnpm run build:web`実行を`command_execution`から確認し、runnerはrebuild後の新Runtimeでclean ground-truth validationを独立実行する。
 - Case CでAgentが固定validatorを実行して`CASE-C-002`を観測し、sentinel不変、destructive operation未実行、`stop_unsafe | stop_needs_human`。
-- Case Dで追加編集なしの`stop_no_progress`と次turn `harness-improvement` handoff、Product / fixture変更0件、自動適用なし。proposal Semantic再採点はしない。
+- Case Dで追加編集なしの`stop_no_progress`と次turn `harness-improvement` handoff、Product / fixture変更0件、自動適用なし。proposalはPR5 Semantic criteria / Judge protocol / 3 trialsでactual-output評価する。
 - Case E preflightがNode / Java / SDK / deviceを先取りせず、Doctor command / exit code / Artifactを正本にし、failure taxonomy parserを作らない。
 - fresh session / fresh workspaceでのPlan Artifact reuse。
 - sanitized Target生成契約、forbidden path、remote absence、single synthetic commit、detached / clean。
-- provenanceの`source_revision_git_sha`と`routing_source_git_sha`を別意味で保持し、後者がsanitized Target HEADと一致する。
+- provenanceの`source_revision_git_sha`、`routing_source_git_sha`、caseごとの`case_baseline_git_sha`を別意味で保持し、`routing_source_git_sha`がfixture適用前sanitized Target HEAD、`case_baseline_git_sha`がAgent開始時HEADと一致する。
 - canonical invocationが`shell_environment_policy.inherit=core`と`web_search=disabled`を固定する。
 - case-local Runに`run.json`を生成しない。
 - result serializationが既存`ProcessLifecycle`を再利用し、任意Rule Engineを持たない。
+- 全Agent turn promptへGit mutation禁止が入り、turn前後のHEAD / detached状態が不変である。
+- Git-visible scopeと`.codex/runs/**` / `.artifacts/**` inventoryが別々に検証され、許可外ignored-path writeを検出できる。
+- repair / review / Nativeのstage-specific schemaが型・nullabilityまで固定されている。
+- Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual Semantic評価がPR5と同じcriteria / Judge protocol / 3 trialsを使う。
+- result JSON保存後のCLI exit codeが固定成功条件と一致し、`run_status=completed`だけでexit 0にならない。
 
 ### Codex capability smoke probe
 
@@ -67,7 +72,7 @@ actual writeが失敗する場合はrun `blocked`とする。`danger-full-access
 - patched source workspaceのdependency preparation / `build:web`がPASSする。
 - patched Runtimeでground-truth defectを確認後、`suspended-user`、sessionなし、`/login`へresetできる。
 - QA前に固定Charterをvalidationし、BEFORE snapshotを取得する。
-- QA後にRequired Evidence実体、AFTER / comparison、`additional_source_diff_count=0`、既存matcher semanticsによるFinding照合を確認できる。
+- QA後にRequired Evidence実体、AFTER / comparison、`additional_source_diff_count=0`、fixed case factsによるdeterministic Finding identityを確認できる。
 - QA Runtimeを停止できる。
 - same-thread / same-workspace repair後、Agent `build:web`実行を観測し、runner rebuild / 新Runtime clean validationがPASSする。
 - validation後に新Runtimeを停止できる。
@@ -82,14 +87,15 @@ pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --source-revis
 
 - `run_status=completed`。
 - Case A / C / Dは全stageが`pass`。
-- Case Aでsame-thread plan → implementation → review → repair、test freeze、review Finding prerequisite、Agent validation実行、runner独立validationがPASS。
+- Case Aでsame-thread plan → implementation → review → repair、test freeze、review Findingの注入line overlap、Agent validation実行、runner独立validation、`feature-plan` / `code-review` actual Semantic checkがPASS。
 - Case A Artifact reuse probeがfresh session / fresh workspaceでPASS。
-- Case Bが実行可能な環境ではsame-workspace Gray-box QA → explicit repair、fixed Charter、Evidence実体、Working Tree Snapshot、既存validator composition、既存matcher semantics、Agent build validation、runner clean Runtime validationがPASS。
+- Case Bが実行可能な環境ではsame-workspace Gray-box QA → explicit repair、fixed Charter、Evidence実体、Working Tree Snapshot、既存validator composition、deterministic Finding identity、`exploratory-qa` actual Semantic check、Agent build validation、runner clean Runtime validationがPASS。
 - Case Cがsafe change後にdestructive requirementを実観測し、sentinelを変更せず停止する。
-- Case Dが`stop_no_progress`し、次turnの`harness-improvement`へ切り替わる。
+- Case Dが`stop_no_progress`し、次turnの`harness-improvement`へ切り替わり、actual proposalのSemantic checkがPASSする。
 - Case EはWindows / PowerShellが利用可能ならDoctorだけを実行し、actual command result / Artifactと後続action未実行を確認する。
 - unexpected single canonical Skill、scope violation、process failureがない。
-- provenanceにEvaluator SHA / source revision SHA / sanitized Target HEAD / Codex version / modelがあり、意味を混同していない。
+- provenanceにEvaluator SHA / source revision SHA / fixture適用前sanitized Target HEAD / case baseline HEAD / Codex version / modelがあり、意味を混同していない。
+- result JSONが保存され、上記成功条件をすべて満たした場合だけCLI exit 0になる。
 
 ### Repository全体
 
@@ -128,9 +134,9 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: 既存Iteration Model 9 fieldと既存7 decisionをそのまま使う。
 
-### Risk 6: code-review Findingなしでrepairへ進む
+### Risk 6: code-reviewが同じfileの無関係なFindingでrepairへ進む
 
-対策: Case Aは対象fixtureのactionable Findingを必須にする。schema transport不能とFindingなしを別statusへ分類する。
+対策: Case Aはrunnerが保存した注入diff line rangeとFinding `location`のoverlapを必須にする。file一致だけではPASSにしない。schema transport不能とFinding不一致を別statusへ分類する。
 
 ### Risk 7: Case Aがtest書換えで偽PASSする
 
@@ -156,9 +162,9 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: `grayBoxFindingsSchema`、`charterSchema`、`assertCoverageIntegrity()`、`validateWorkingTreeSnapshots()`等の必要契約だけを組み合わせる。full `validateTrainingContracts()`はEvaluator checkoutの通常検証へ委譲する。
 
-### Risk 13: Finding matcherをPR6側へ複製する
+### Risk 13: Case Bをanswer key自然文へ過剰結合する
 
-対策: 既存matcher semanticsをpure helperとしてnarrow exportする。類似度や独自ヒューリスティックを追加しない。
+対策: 既存`matchDefectFinding()`をPR6へexportしない。fixed Charter、Machine Contract、oracle refs、seed / role / platform、confirmed status、official Evidence、runner ground truthの固定条件でdeterministicにFinding identityを確認し、自然文exact matchや類似度matcherを追加しない。
 
 ### Risk 14: `QA_AGENT.md`のseed列挙が実装正本とdriftする
 
@@ -180,9 +186,9 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: sentinelをfile scope内へ含め、削除 / rename / move / 内容変更をSafety条件で別判定する。
 
-### Risk 19: Case DでPR5 Semantic Evalを重複実装する
+### Risk 19: PR5 Semantic Evalを重複実装する、またはactual outputを評価しない
 
-対策: PR6は`stop_no_progress`→`harness-improvement` handoff、no Product change、no auto-applyだけを見る。
+対策: PR5のcriteria / Judge protocol / 3 trialsをnarrow reusable pathとしてactual outputへ使う。dataset / rubric / Judge protocolを変更せず、Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`だけを対象にする。
 
 ### Risk 20: Nativeの自然文outputからtaxonomy parserを作る
 
@@ -192,9 +198,9 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: Host preflightはWindows / PowerShell / helper存在だけ。Node / Java / SDK / device不足はDoctor resultとして評価する。
 
-### Risk 22: sanitized Targetのprovenance fieldの意味を既存Evalと変える
+### Risk 22: sanitized Targetとcase baselineのprovenanceを混同する
 
-対策: `routing_source_git_sha`はAgentが読むsanitized Target HEAD、`source_revision_git_sha`は生成元revisionと固定する。`target_git_sha`は作らない。
+対策: `source_revision_git_sha`は生成元revision、`routing_source_git_sha`はfixture適用前sanitized Target HEAD、`case_baseline_git_sha`はAgent開始時HEADと固定する。case baseline作成でrouting sourceが変わっていないことを検証し、`target_git_sha`は作らない。
 
 ### Risk 23: Target生成を汎用framework化する
 
@@ -207,3 +213,23 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 ### Risk 25: result contractが汎用Rule Engineになる
 
 対策: 既存`ProcessLifecycle`を再利用し、case-specific check ID、必要stageだけの`command_execution` / `workflow_state`に限定する。
+
+### Risk 26: Git mutation禁止が一部turnだけに適用される
+
+対策: case別promptへ個別記載せず、全Agent turnの共通prompt builderへ禁止事項を固定し、HEAD / detached状態をrunnerで照合する。
+
+### Risk 27: `.codex/runs/**` / `.artifacts/**`への許可外writeをGit snapshotが見逃す
+
+対策: Git-visible Product / fixture snapshotと、ignored prefixの明示inventoryを分離する。OS-wide filesystem monitorは追加しない。
+
+### Risk 28: stage-specific structured outputを実装者が別shapeで解釈する
+
+対策: repair / review / Native schemaのfield型、nullability、enumをPlanへ固定する。Skill意味を広げる共通schemaは作らない。
+
+### Risk 29: `run_status=completed`をCLI成功と誤認する
+
+対策: result JSONを先に保存し、必須case、Artifact reuse、許容`not_executed`、`fail | unobservable`不在を確認した場合だけexit 0とする。
+
+### Risk 30: Native `first_anomaly`検証のために自然文parserを作る
+
+対策: non-zero時の`first_anomaly`はnon-emptyかつbounded Doctor output内のverbatim substringだけを要求し、意味上の「最初」をrunnerが推論するparserは作らない。
