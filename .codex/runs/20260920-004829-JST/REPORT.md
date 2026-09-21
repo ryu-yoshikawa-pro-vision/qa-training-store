@@ -289,3 +289,24 @@
 
 - Case Cのvalidatorは`CASE-C-002`を返して意図的にnon-zero終了するため、`command_execution.status=completed`を要求しない。
 - Codex JSONLの`item.completed`に含まれる最終`command_execution` itemから、caseごとの期待exit code / outputを照合する契約へ明確化した。
+
+
+### 2026-09-21 統合レビュー最終反映
+
+- 概要:
+  - ここまでのレビューをIssue #117 → PR5持ち越し責務 → PR6 fixed 5 case → Runtime / scope / provenance → result / CLI exitまで再統合した。
+  - 既存の親Plan + 3詳細ファイルで責務が分かれているため、追加分割は行わない。
+- 反映内容:
+  - Case Bで既存`matchDefectFinding()`を流用する方針を撤回し、fixed Charter / Machine Contract / oracle refs / seed / role / platform / confirmed status / official Evidence / runner ground truthの固定条件でFinding identityを判定する契約へ変更。
+  - PR5がcalibrationに留めたSemantic Evalを、Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual outputへ同じcriteria / Judge protocol / 3 trialsで適用する契約を追加。第2のrubric / frameworkは追加しない。
+  - Case A reviewはfile一致だけでなく、Finding locationとrunner注入diff line rangeのoverlapを必須化。
+  - `routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`をAgent開始時HEADへ分離。
+  - Product / fixtureのGit-visible snapshotと、`.codex/runs/**` / `.artifacts/**`のprefix inventoryを分離し、ignored pathへの許可外writeを検出する契約を追加。
+  - 全Agent turnへGit mutation / commit / push / branch / PR操作禁止を共通promptで注入し、HEAD / detached状態をrunnerでも確認する。
+  - repair / code-review / Nativeのstage-specific structured outputを型・nullabilityまで固定し、fixed validation commandはtrim + ASCII whitespace collapseのみで照合する。
+  - Case Eを`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Doctor -RunId <case-run-id>`へ統一し、`first_anomaly`はbounded output内のverbatim evidenceとしてだけ照合する。
+  - result JSONを先に保存し、必須case / Artifact reuse / 許容`not_executed` / fail・unobservable不在を満たす場合だけCLI exit 0とする契約を追加。
+- 対象外:
+  - Workflow DSL / Session Manager / Skill Registry / 汎用Rule Engine / provenance framework / generic Finding matcher / filesystem monitor / Native taxonomy parser / 第2Semantic Eval framework。
+  - PR6 Evaluator実装、latest `main`取り込み、Issue #117更新 / close、merge。
+- Progress: 100% (39/39)
