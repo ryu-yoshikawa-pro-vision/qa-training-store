@@ -229,7 +229,7 @@ function Doctor {
   $java = (Out "java" @("-version")) -join " "
   $maestro = ((Out "maestro" @("--version")) -join "").Trim()
   if ($node -notmatch '^v24\.') { throw "Node.js 24 required: $node" }
-  if ($pnpm -ne "9.10.0") { throw "pnpm 9.10.0 required: $pnpm" }
+  if ($pnpm -ne "10.34.5") { throw "pnpm 10.34.5 required: $pnpm" }
   if ($java -notmatch 'version "17\.') { throw "Java 17 required: $java" }
   if ($maestro -notmatch '2\.8\.0') { throw "Maestro 2.8.0 required: $maestro" }
 

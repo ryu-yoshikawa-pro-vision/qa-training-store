@@ -23,7 +23,7 @@ Store 公開、Production keystore、AAB、EAS Cloud、Android Emulator は対�
 | 項目 | 値 |
 |---|---|
 | Node.js | 24 |
-| pnpm | 9.10.0 |
+| pnpm | 10.34.5 |
 | Java | 17 |
 | Android compile API | 36 |
 | Android Build Tools | 36.0.0 |
@@ -175,7 +175,7 @@ pnpm run native:android:doctor
 確認対象:
 
 - Node 24
-- pnpm 9.10.0
+- pnpm 10.34.5
 - Java／javac 17
 - Android SDK Component
 - ADB

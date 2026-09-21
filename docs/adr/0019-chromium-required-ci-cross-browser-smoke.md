@@ -15,7 +15,7 @@ Firefox／WebKitのsmoke test自体はブラウザエンジン差分の確認に
 2. Firefox／WebKitのtest、Playwright project、既存script、smoke test bodyは削除せず、`Cross Browser Smoke`というnon-blocking workflowへ分離する。
 3. `Cross Browser Smoke`はweekly schedule + manual `workflow_dispatch` onlyとし、push／pull_request triggerを持たせない。browser別matrix、reusable workflow、追加artifact共有workflowは導入しない。
 4. official Playwright containerは`Cross Browser Smoke`だけで使用する。imageは`mcr.microsoft.com/playwright:v1.62.0-noble`に固定し、packageの`@playwright/test` versionと一致させる。Firefox／WebKitはcontainerに含まれるbrowserとOS dependenciesを使い、workflow内で`playwright install`や`--with-deps`を実行しない。
-5. Node／pnpmは既存Phase 1 CIのtoolchain正本値を再利用する。Nodeは24、pnpmは9.10.0とし、`package.json#packageManager`の`pnpm@9.10.0`とも一致させる。
+5. Node／pnpmは既存Phase 1 CIのtoolchain正本値を再利用する。Nodeは24、pnpmは10.34.5とし、`package.json#packageManager`の`pnpm@10.34.5`とも一致させる。
 6. build-time automation envとartifact-consumer envを分離する。Cross Browser Smokeはworkflow内でautomation buildを1回だけ行い、build時の`EXPO_PUBLIC_BUILD_SHA=${{ github.sha }}`をdistへ埋め込む。既存artifactを消費する`extended-e2e`は`PLAYWRIGHT_USE_PREBUILT_DIST=true`を使い、build SHAを再定義しない。
 7. Cross Browser SmokeのFirefox／WebKit smokeは、同じautomation build済みdistに対して1回のPlaywright invocationで実行する。
 8. 将来Firefox／WebKitを正式なrequired browserとしてPR単位で保証する要件、smoke範囲、実行時間、運用頻度が変わった場合は、required化とCI構成を再評価する。

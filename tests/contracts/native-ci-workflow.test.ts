@@ -88,8 +88,8 @@ const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
   it("disables Husky for Native CI and iOS CI installs", () => {
-    expect(nativeWorkflow).toContain('  PNPM_VERSION: 9.10.0\n  HUSKY: "0"\n');
-    expect(iosWorkflow).toContain('  PNPM_VERSION: 9.10.0\n  HUSKY: "0"\n');
+    expect(nativeWorkflow).toContain('  PNPM_VERSION: 10.34.5\n  HUSKY: "0"\n');
+    expect(iosWorkflow).toContain('  PNPM_VERSION: 10.34.5\n  HUSKY: "0"\n');
   });
 
   it("inspects Hermes bytecode through the shared decoded-artifact contract", () => {
