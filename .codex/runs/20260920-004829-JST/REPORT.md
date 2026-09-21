@@ -334,3 +334,30 @@
   - live E2E。
   - Issue #117更新 / close。
 - Progress: 100% (46/46)
+
+
+## 2026-09-21 20:18 (JST)
+
+- 概要:
+  - PR #168の最終全体レビュー指摘を「実装結果が変わるか」で再判定し、揚げ足取りに当たる実装細部を除外した。
+  - 実装前に必要な修正を5件に限定し、canonical Planへ反映した。
+- 反映内容:
+  - 親PlanのCase B / D / Eの低レベル重複を減らし、詳細Planを正本として参照する形へ整理した。Case Bのrepair後独立validationはfresh validation workspaceへ統一した。
+  - 共通smoke probeでresume / OTelが成立しない場合だけrun `blocked`、共通probe通過後の個別process / resume / OTel failureはstage / case `unobservable`へ固定した。
+  - Case Dの最初のユーザーturnを既存bounded `repair-loop`の継続可否判断へ固定し、`stop_no_progress`後の明示的な次turnだけでHarness改善候補を依頼する契約へ変更した。
+  - Case B dependency preparationを`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定し、直後の`git diff --exit-code HEAD --`を必須にした。
+  - Case Eの`not_executed`をnon-Windows / PowerShell unavailableだけへ限定した。WindowsではNative helper欠落または`--android-device-serial`未指定をCase E `fail`とし、serial指定後の実在性・認証・physical device判定は`Doctor -RequirePhysicalDevice`へ委ねる。
+  - Doctor non-zero時の`first_anomaly`は、`==> Validate toolchain`より後の最初の非空・非`PASS:`行とのverbatim一致へ固定した。markerなしはhelper未起動の`fail`、markerあり候補なしは`unobservable`とする。
+- latest main確認:
+  - latest `main`: `74f6952068ad9b990adbd6a256dd82aeed1d43a7`。
+  - Plan branchは2 commit behind。
+  - 最新差分にはWindows Android Runbook / helper更新が含まれるが、explicit physical device serialと`Doctor -RequirePhysicalDevice`の契約は維持されている。
+- 過剰設計確認:
+  - protected patch temporary file配置、Case D final message取得方式などの実装細部はPlanで固定しない。
+  - 追加case、Workflow Engine、Session Manager、Dependency Manager、Patch Manager、汎用Native log parser、追加Plan分割は行わない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - live E2E。
+  - Issue #117更新 / close。
+- Progress: 100% (53/53)

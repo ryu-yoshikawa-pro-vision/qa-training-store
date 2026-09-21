@@ -115,9 +115,9 @@ status分類は次へ固定する。
 | 条件 | 分類 |
 |---|---|
 | 共通Host preflight、共通resume、共通OTel、共通actual writeが成立せずcanonical run自体を安全に開始・継続できない | run `blocked` |
-| Case B Browser capabilityがcanonical configで利用不可、Case E Windows / PowerShell / caller physical-device serial入力が利用不可 | case `not_executed` |
+| Case B Browser / screenshot / URL capabilityがcanonical configで利用不可、Case Eがnon-WindowsまたはPowerShell unavailable | case `not_executed` |
 | 共通preflight通過後の個別turnで`turn_failed` / `timed_out` / `spawn_failed` / `signaled` / `unknown`、OTel identity、structured-output transportを安全に観測できない | stage / case `unobservable` |
-| case-local preparation / fixture / validator / dependency preparationが実行できたが契約不一致、またはExpected Skill、Finding、scope、Evidence、decision、actual executionが観測可能な状態で不一致 | stage / case `fail` |
+| case-local preparation / fixture / validator / dependency preparationが実行できたが契約不一致、Windows Case EでNative helper欠落または`--android-device-serial`未指定、またはExpected Skill、Finding、scope、Evidence、decision、actual executionが観測可能な状態で不一致 | stage / case `fail` |
 
 case-local `fail`ではそのcaseの後続stageを停止するが、runner / common Runtimeが健全なら後続の独立caseは継続する。case-local setup / Evaluator failureを`not_executed`やrun `blocked`へ曖昧に昇格させない。Case A / C / Dはrun共通blocker以外で`not_executed`にしない。
 
@@ -182,7 +182,7 @@ iterations: array<object>
 - approval policyは非対話実行の既存Harnessと同じく`never`へ固定する。
 - 外部NetworkとWeb Searchは無効化し、Case Bのlocalhost Runtimeだけを利用する。
 - temporary Targetをtrustさせる独自managerは作らない。
-- Case Bのdependency preparation / initial build / Runtime processはEvaluator側で管理する。dependency preparationはcase workspaceとfresh runner validation workspaceの両方で`pnpm install --offline --ignore-scripts --config.node-linker=hoisted`へ固定し、platform別fallbackやEvaluator checkoutの`node_modules`共有を追加しない。AgentへInstallやserver lifecycleを任せない。
+- Case Bのdependency preparation / initial build / Runtime processはEvaluator側で管理する。dependency preparationはcase workspaceとfresh runner validation workspaceの両方で`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定し、実行後に`git diff --exit-code HEAD --`でtracked content不変を確認する。platform別fallbackやEvaluator checkoutの`node_modules`共有を追加しない。AgentへInstallやserver lifecycleを任せない。
 - Case B QA turnのHost process timeoutはCharter `max_duration_seconds=900`より先に終了しない固定値（900秒 + 小さな終了猶予）にする。他turnは既存Trigger Evalと同程度の有限timeoutを使う。
 - `max_tool_actions=150`のためだけにBlack-box Runnerのaction counterを移植しない。既存Gray-box契約の入力値として保持し、PR6で新しいtool-count frameworkを作らない。
 - canonical live runは各turn 1回だけ実行する。

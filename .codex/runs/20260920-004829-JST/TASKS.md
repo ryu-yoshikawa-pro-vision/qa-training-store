@@ -50,9 +50,17 @@
 - [x] 45. Case Eをphysical device serial + `-RequirePhysicalDevice`のCanonical Doctorへ合わせ、first anomalyとserial redactionを固定する。
 - [x] 46. 親Plan・3詳細Plan・plan-only Run Artifact・PR本文を同期し、追加Plan分割が不要であることを確認する。
 
+- [x] 47. 最終全体レビューの指摘を揚げ足取り基準で再判定し、実装結果を変える5件だけを修正対象として確定する。
+- [x] 48. 親Planと詳細Planの重複を減らし、Case Bの独立validationをfresh validation workspaceへ統一する。
+- [x] 49. 共通resume / OTel failureのrun `blocked`と、共通probe通過後の個別turn `unobservable`を一意にする。
+- [x] 50. Case Dの最初のpromptを既存bounded `repair-loop`の継続可否判断へ固定し、次turnだけHarness改善依頼にする。
+- [x] 51. Case B dependency preparationへ`--frozen-lockfile`とtracked-clean確認を追加する。
+- [x] 52. Case Eの`not_executed`をnon-Windows / PowerShell unavailableへ限定し、Windowsでのhelper / serial必須条件とfirst anomaly抽出規則を固定する。
+- [x] 53. 親Plan・3詳細Plan・plan-only Run Artifact・PR本文を同期し、追加case / framework / Plan分割を行わない。
+
 ## Discovered（発見事項）
 
-- latest `main`は`1213adc9513409cc176c090f9df4c1c408142b9c`で、Plan branchは1 commit behind。差分はTraining runtime契約とWindows Stop Hook launcher調整が中心で、現時点で新しいPR6設計blockerは確認していない。
+- latest `main`は`74f6952068ad9b990adbd6a256dd82aeed1d43a7`で、Plan branchは2 commit behind。追加差分にはSecurity fallback / CI更新とWindows Android Runbook / `android-local.ps1`更新がある。explicit physical device serialと`Doctor -RequirePhysicalDevice`の契約は維持されており、現時点で新しいPR6設計blockerは確認していない。
 - Repositoryの`.codex/config.toml`には`[mcp_servers]`がない。canonical Case Bは`--ignore-user-config`を固定するため、Browser capabilityがその条件で利用できなければ`browser_capability_unavailable_under_canonical_config`として`not_executed`にする。user config有効の追加probeは行わない。
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。

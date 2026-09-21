@@ -28,7 +28,7 @@ handoff caseの実行方法は次へ固定する。
 2. stdout JSONLの最初の`thread.started`から`thread_id`を取得する。
 3. 後続turnは同じworkspaceで`codex exec resume <thread_id> --json <prompt>`を使う。
 4. 各turnでcase-local OTel observerを起動し、そのturnのSkill identityだけを評価する。
-5. `thread_id`取得不能、resume不能、resumed turnのOTel control取得不能なら推測補完せず`unobservable` / BLOCKEDへ倒す。
+5. 共通smoke probeで`thread_id`取得 / resume / resumed OTel controlが成立しない場合はrun `blocked`。共通smoke probe通過後、個別caseのinitial / resumed turnでprocess failure、resume failure、OTel identity観測不能が発生した場合はそのstage / caseを`unobservable`とし、run `blocked`へ昇格しない。
 
 `--ephemeral`はhandoff caseに使わない。Artifact reuse probeなど、継続sessionを必要としない独立実行だけで使用可とする。
 
@@ -36,7 +36,7 @@ handoff caseの実行方法は次へ固定する。
 
 #### 共通fixture / Run Artifact準備
 
-Case A / C / DのfixtureはProduct sourceへ追加しない。callerが用意したsanitized Targetからrunnerが各fresh case workspaceを作り、Agent turn開始前に次の固定pathをbaselineへ生成する。
+Case A / CのfixtureとCase Dのrunner-owned EvidenceはProduct sourceへ追加しない。callerが用意したsanitized Targetからrunnerが各fresh case workspaceを作り、Agent turn開始前にCase A / Cだけ次の固定pathをbaselineへ生成する。
 
 ```text
 workflow-e2e-fixtures/
@@ -140,7 +140,7 @@ Runner preparation:
 1. Evaluatorは`source_revision_git_sha`のGit objectから`CHALLENGE-BASIC-001/challenge.json`、protected patch、answer keyを読み、working tree上の同名fileを正本にしない。
 2. protected patchはEvaluator側で既存`validateProtectedPatch()`相当の検査を行い、patch SHA / touched paths / bytesを固定する。case workspaceへEvaluator checkoutのProduct fileをコピーせず、同一patch bytesだけを`git apply --check` → `git apply`する。
 3. Case BのAgent-visible workspaceから`training/agentic-qa/challenges/CHALLENGE-BASIC-001/challenge.json`と`runbook.md`、`training/agentic-qa/instructor/**`、protected patch、answer key、PR6 answer keyを除外する。Black-box用の`out_of_scope`や「source / testを見ない」指示をAgentへ露出せず、QA入力は固定CharterとNormative Specを正本にする。
-4. dependency preparationはcase workspaceで`pnpm install --offline --ignore-scripts --config.node-linker=hoisted`へ固定する。offline store不足やinstall失敗はcapability不足の`not_executed`ではなくcase-local preparation `fail`とする。汎用Dependency Managerやplatform別fallbackを追加しない。
+4. dependency preparationはcase workspaceで`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定する。完了後に`git diff --exit-code HEAD --`でtracked content不変を確認する。offline store不足、install失敗、tracked diff発生はcapability不足の`not_executed`ではなくcase-local preparation `fail`とする。汎用Dependency Managerやplatform別fallbackを追加しない。
 5. runnerがcase workspaceで`build:web`を実行し、ground-truth sanityでdefectを確認する。既存private helperが必要なら挙動変更なしのnarrow exportだけを追加し、Black-box preparation全体を再利用しない。
 6. patched source workspaceで`scripts/serve-web-dist.ts`をrunnerがchild processとして起動し、QA turnの間だけRuntimeを保持する。
 7. defect sanity直後に既存`resetBrowserScenario(page, baseUrl, "suspended-user", true)`を再利用して`/login`へ戻し、`scenario-shop.session-id`が存在しないことをrunnerが確認してからAgentへhandoffする。
@@ -228,7 +228,7 @@ Repair validation:
 
 - Agent source workspaceの`dist/**`、`node_modules/**`、その他ignored生成物をrunnerの独立validation入力にしない。
 - runnerはcase baselineからfresh validation workspaceを作り、Agentが変更を許可されたProduct pathの実diffだけを適用する。package / lockfile / dependency設定差分が含まれていればCase Bを`fail`にする。
-- fresh validation workspaceで同じ固定offline dependency preparationを行い、`build:web`を独立実行する。
+- fresh validation workspaceで同じ`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`を実行し、`git diff --exit-code HEAD --`でtracked content不変を確認してから`build:web`を独立実行する。
 - 新しいRuntime processを`scripts/serve-web-dist.ts`で起動し、同じchallengeのground-truth adapterをclean expectationで実行してsuspended-user sign-in defectが解消していることを確認する。
 - validation後にRuntimeを必ず停止する。
 - repair structured outputのchanged files / validation command / validation result / remaining delta / decisionをAgentの`command_execution`とrunner実観測へ照合し、最終decision `stop_success`を要求する。
@@ -305,6 +305,7 @@ remaining_harness_delta: repeated harness artifact-contract failure
 
 Repair no-progress turn:
 
+- ユーザーpromptは「これは既存のbounded `repair-loop`の継続判断である。添付された過去attempt / validation Evidenceを確認し、もう1 iteration進めるべきか、停止すべきかを判断する」と固定する。このturnではHarness改善候補の作成を依頼しない。
 - sandboxは`workspace-write`。
 - Expected Skill: `repair-loop`。
 - case-local Run以外のProduct / Test / fixture変更0件を要求する。
@@ -328,13 +329,11 @@ Harness improvement turn:
 
 Host / caller preflight:
 
-- OSがWindowsである。
-- Codexを起動できる。
-- PowerShellを起動できる。
-- `scripts/native/windows/android-local.ps1`が存在する。
-- callerがphysical Android device serialを`--android-device-serial <serial>`で渡している。
-
-Windows / PowerShell / physical device serial入力のいずれかがない場合だけCase Eを`not_executed`にできる。Node / pnpm / Java / Maestro / Android SDK component / serialの実在性・認証状態・physical device判定はHost preflightで先取りせず、`Doctor -RequirePhysicalDevice`自身のgateとして評価する。
+- 共通Codex preflightはrun共通契約で確認済みとする。
+- OSがnon-Windows、またはPowerShellを起動できない場合だけCase Eを`not_executed`にできる。
+- Windows + PowerShell環境で`scripts/native/windows/android-local.ps1`が存在しない場合はRepository / case-local preparation不整合としてCase E `fail`。
+- Windows + PowerShell環境ではcallerの`--android-device-serial <serial>`を必須入力とし、未指定ならCase E `fail`としてAgent turnを開始しない。
+- serialが指定された後のNode / pnpm / Java / Maestro / Android SDK component / serialの実在性・認証状態・physical device判定はHost preflightで先取りせず、`Doctor -RequirePhysicalDevice`自身のgateとして評価する。
 
 Native turn:
 
@@ -358,10 +357,12 @@ next_stage: Prepare | Build | Install | Smoke | Test | RuntimeSuite | BoundarySu
 unexecuted_stages[]
 ```
 
-- runnerはCodex標準JSONLの`command_execution`からDoctor command、exit code、status、bounded outputを取得する。raw Evidenceは評価中だけ保持し、tracked resultへ保存するcommand / bounded outputではcaller serialを`<DEVICE_SERIAL>`へ置換する。raw serialをRun Artifactへ永続化しない。
-- case固有`.artifacts/native-local/<case-run-id>/**`が作成されたことを確認し、PowerShell syntax errorやpath誤りによる「helper未起動」をDoctor gateとしてPASSにしない。
+- runnerはCodex標準JSONLの`command_execution`からDoctor command、exit code、status、bounded outputを取得する。raw Evidenceは評価中だけ保持する。
+- Doctorが実際に開始された証拠としてbounded output内に`==> Validate toolchain`を要求する。存在しない場合はPowerShell syntax error、path誤り等のhelper未起動としてCase E `fail`にする。
 - Doctor exit 0では`doctor_result=pass`、`first_anomaly=null`を要求する。Doctor-only評価では成功時`next_stage`の意味を採点せず、後続Native action未実行だけを確認する。
-- Doctor non-zeroでは`doctor_result=fail`、`next_stage=null`、後続stage未実行を要求する。`first_anomaly`はnon-emptyとし、Doctor専用の固定抽出規則でbounded outputから得た最初のterminating failure textと一致させる。taxonomyや任意commandへ使う汎用自然文parserは作らない。
+- Doctor non-zeroではbounded outputをCRLF / LFで行分割し、最初の`==> Validate toolchain`より後を先頭から走査する。空行と`PASS:`で始まる行だけを無視し、最初に残った行をraw `first_anomaly`の正本とする。Agent outputの`first_anomaly`はその行とverbatim一致を要求する。候補行を取得できない場合は意味を推測せずCase E `unobservable`とする。taxonomyや任意commandへ使う汎用自然文parserは作らない。
+- raw `first_anomaly`比較後、tracked resultへ保存するcommand / bounded output / `first_anomaly`ではcaller serialを`<DEVICE_SERIAL>`へ置換する。raw serialをRun Artifactへ永続化しない。
+- case固有`.artifacts/native-local/<case-run-id>/**`が作成されたことを確認する。
 - `failure_classification`は記録値として保存するが、Doctorがstructured taxonomyを出さない現状でPR6専用の分類parserを作って必須採点しない。
 - 同一turn内にPrepare / Build / Install / Smoke / Test / RuntimeSuite / BoundarySuite / Evidence / AllのNative actionが存在した場合はFAIL。
 - Doctor内部のNode / Java / SDK / device failureは実行済みgate resultであり`not_executed`へ変換しない。

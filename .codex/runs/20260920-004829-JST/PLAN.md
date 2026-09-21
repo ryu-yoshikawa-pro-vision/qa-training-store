@@ -4,7 +4,7 @@
 
 - Issue #117 PR6 Workflow E2E Evalのcanonical Planへ、ここまでの全体レビューを統合した実装前修正を反映する。
 - 目的達成を阻む契約不整合を直しつつ、特にCase Bの不要なsource-free構造を削って実装を単純化する。
-- このRunではEvaluator実装、latest `main`取り込み、Issue更新 / closeは行わない。ここまでの統合レビューで確定した5つの実装境界だけをPlanへ反映する。
+- このRunではEvaluator実装、latest `main`取り込み、Issue更新 / closeは行わない。最終全体レビューで実装結果を変えると再確認できた5件だけをPlanへ反映し、実装細部だった指摘は追加しない。
 
 ## 対象範囲
 
@@ -24,20 +24,21 @@
 - Case A / B / CのrepairでAgent自身の固定validation command実行をCodex標準`command_execution`から確認し、runner独立validationと分離する。Case Bのrunner独立validationはAgent workspaceの`dist/**` / `node_modules/**`を再利用せずfresh validation workspaceで行う。
 - sanitized Targetの生成手順とprovenanceを固定し、`source_revision_git_sha`を生成元revision、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`をAgent開始時HEADとする。
 - canonical invocationへ`shell_environment_policy.inherit=core`と`web_search=disabled`を追加する。
-- Case Eはphysical device serial + `-RequirePhysicalDevice`を含むCanonical Doctor actual command / exit code / Artifactを正本とし、first terminating failureだけDoctor専用固定規則で確認する。raw device serialはtracked resultへ保存しない。
-- status分類を一意にし、共通Runtime blockerだけrun `blocked`、個別process failureは`unobservable`、case-local preparation / fixture / dependency / validator不整合は`fail`、固定外部capability不足だけ`not_executed`とする。
+- Case Eはnon-Windows / PowerShell unavailableだけ`not_executed`を許容し、WindowsではNative helperと`--android-device-serial`を必須にする。`-RequirePhysicalDevice`付きCanonical Doctorのbounded outputは`==> Validate toolchain`を起点に最初の非空・非`PASS:`行だけをraw `first_anomaly`として照合し、raw device serialはtracked resultへ保存しない。
+- status分類を一意にし、共通Runtime blockerだけrun `blocked`、共通probe通過後の個別process / resume / OTel failureは`unobservable`、case-local preparation / fixture / dependency / validator不整合は`fail`とする。`not_executed`はCase B canonical Browser / screenshot / URL capability不足とCase E non-Windows / PowerShell unavailableだけに限定する。
 - Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual outputをPR5 Semantic criteria / Judge protocol / 3 trialsで評価する。actual candidateはcalibration用`expected` / `calibration_match`を使わず、対象stageのdeterministic validation後・後段handoff前に評価する。第2のSemantic frameworkは作らない。
 - result contractは既存`ProcessLifecycle`と固定case checkだけへ限定し、汎用Rule Engineへ広げない。
 - 全Agent turnのGit mutation禁止を共通promptへ固定し、runnerでHEAD / detached状態を照合する。
 - Git-visible scopeと`.codex/runs/**` / `.artifacts/**` inventoryを分け、ignored pathへの許可外writeを検出する。
 - repair / review / Nativeのstage-specific schemaを型・nullabilityまで固定する。
 - Case A review Findingはrunner注入diff line rangeとのoverlapを必須にする。
-- Case Eは標準PowerShell invocationを使い、`first_anomaly`はbounded output内のverbatim evidenceだけを確認する。
+- Case Eは標準PowerShell invocationを使い、Doctor non-zero時の`first_anomaly`は`==> Validate toolchain`より後の最初の非空・非`PASS:`行とのverbatim一致だけを確認する。
 - result JSON保存後、固定成功条件を満たす場合だけCLI exit 0とする。
 
 - Case BはBlack-box用Challenge / runbookをAgentへ露出せず、`source_revision_git_sha`のGit objectから取得したchallenge / patch / answer keyをEvaluatorだけが使用する。検証済みpatch bytesだけをcase workspaceへ適用し、Evaluator checkoutのProduct fileをコピーしない。
-- Case B dependency preparationは固定offline installへ一本化し、platform別fallbackやDependency Managerを作らない。
-- Case DはProduct fixtureを削除し、Product正常 / Harness反復failureを示すrunner-owned Evidenceだけで`stop_no_progress → harness-improvement`を評価する。
+- Case B dependency preparationは`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定し、直後のtracked diff 0件を必須にする。platform別fallbackやDependency Managerを作らない。
+- Case DはProduct fixtureを削除し、Product正常 / Harness反復failureを示すrunner-owned Evidenceだけを使う。最初のturnは既存bounded `repair-loop`の継続可否判断、次の明示的turnだけを`harness-improvement`依頼へ固定する。
+- 親PlanのDoDは結果と境界だけを保持し、Case B / D / Eの実装詳細は3詳細Planを正本にして重複契約を増やさない。
 
 ## 文書構成
 
