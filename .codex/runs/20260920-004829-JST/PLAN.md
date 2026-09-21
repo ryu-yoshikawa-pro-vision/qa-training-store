@@ -22,7 +22,7 @@
 - Case B Finding照合は既存`matchDefectFinding()`を流用せず、fixed Charter / Machine Contract / oracle refs / seed / role / platform / confirmed status / official Evidence / runner ground truthの固定条件で決定論的に行う。`QA_AGENT.md`のseed mappingは`src/seeds/metadata.ts`を正本へ寄せる。
 - Case Aはimplementation成功時のtest digestをfreezeし、repairでtest書換えによる偽PASSを防ぐ。
 - Case A / B / CのrepairでAgent自身の固定validation command実行をCodex標準`command_execution`から確認し、runner独立validationと分離する。Case Bのrunner独立validationはAgent workspaceの`dist/**` / `node_modules/**`を再利用せずfresh validation workspaceで行う。
-- sanitized Targetの生成手順とprovenanceを固定し、`source_revision_git_sha`を生成元revision、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`をAgent開始時HEADとする。
+- sanitized Targetの生成手順とprovenanceを固定し、canonical completion runでは`source_revision_git_sha == evaluator_git_sha`、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`を各caseのparentなしroot baseline HEADとする。
 - canonical completion runはcommit済みEvaluator自身を評価対象とし、Evaluator sourceを`.codex/runs/**`以外clean、`source_revision_git_sha == evaluator_git_sha`へ固定する。Agent-visible TargetからPR6 evaluator / repository-contractの固定pathを除外する。
 - 各case workspaceはsanitized Targetの`.git`を引き継がず、case固有runner state適用後にparentなしroot baseline commitを1件だけ作る。remote / alternates / parentなし / cleanをpreflightする。
 - Case BはBlack-box file / Instructor materialだけでなく、確認済みのchallenge-specific ground truthを含む`prepare-challenge.ts`、`run-contract-fixture.ts`、`spec-agentic-qa.test.ts`もAgent-visible workspaceから除外する。汎用answer-key scannerは作らない。

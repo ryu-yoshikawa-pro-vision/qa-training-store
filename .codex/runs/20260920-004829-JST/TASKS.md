@@ -71,7 +71,7 @@
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
 - Case Cはsentinelをfile scope外にすると`stop_scope_violation`と競合する。sentinel pathを`allowed_files`へ含め、destructive operation禁止を別に評価する。
-- `routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`はrunner-owned baseline commit後のAgent開始時HEADとして分ける必要がある。生成元revisionは`source_revision_git_sha`へ分離し、重複する`target_git_sha`は作らない。
+- `routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`はrunner-owned parentなしroot baseline commit後のAgent開始時HEADとして分ける。canonical completion runでは`source_revision_git_sha`を`evaluator_git_sha`と同じcommitへ固定し、重複する`target_git_sha`は作らない。
 - Gray-boxはBlack-box Scoredのsource-free isolationを要求しないため、Case B専用root / Skillコピー / Referenceコピーは不要。
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
 - Working Tree Snapshotはpatched source workspaceのMachine Contractとして保持し、promptへ内容 / digestを転記しない。別QA rootへの同期自体を廃止する。

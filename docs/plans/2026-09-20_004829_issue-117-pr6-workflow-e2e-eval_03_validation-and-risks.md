@@ -209,7 +209,7 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 22: sanitized Targetとcase baselineのprovenanceを混同する
 
-対策: `source_revision_git_sha`は生成元revision、`routing_source_git_sha`はfixture適用前sanitized Target HEAD、`case_baseline_git_sha`はAgent開始時HEADと固定する。case baseline作成でrouting sourceが変わっていないことを検証し、`target_git_sha`は作らない。
+対策: canonical completion runでは`source_revision_git_sha`を`evaluator_git_sha`と同じcommitへ固定し、`routing_source_git_sha`はfixture適用前sanitized Target HEAD、`case_baseline_git_sha`は各caseのparentなしroot baseline HEADとする。case baseline作成でrouting source内容が意図せず変わっていないことを検証し、`target_git_sha`は作らない。
 
 ### Risk 23: Target生成を汎用framework化する
 
