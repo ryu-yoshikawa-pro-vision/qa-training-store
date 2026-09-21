@@ -212,7 +212,30 @@ state validationでは`baseline_unavailable.code`を次のように扱う。
 - `code`あり、かつ`^[a-z0-9_]{1,64}$`に一致: stateとしてvalid。
 - `code`あり、かつregex不一致: valid stateとして扱わず`baseline_state_schema`。
 
-外部出力はstate validationと分ける。`cause=<code>`として出してよいのは、実装時点でproduction経路が生成することを確認した`QualityUnavailable.code`、`TextQualityConfigurationError.code`、`baseline_creation`の固定集合だけとする。regexに一致していてもこの集合に無いcodeはstateとしてはvalidのまま扱い、causeへ出力しない。未知codeを追加するときは、production生成元と非機密性を確認して出力許可集合へ明示追加する。
+外部出力はstate validationと分ける。`cause=<code>`として出してよいcodeは、現在の`UserPromptSubmit -> createBaseline() -> writeUnavailableState()`経路から到達できる次の固定集合に限定する。
+
+```text
+git_unavailable
+start_head
+unsafe_path
+baseline_blob
+current_content
+baseline_write
+textlint_config_unavailable
+textlint_config_invalid
+textlint_rule_set_invalid
+textlint_config_load
+textlint_rule_load
+textlint_message_range
+textlint_message_shape
+textlint_message_match
+textlint_scan
+textlint_result
+rule_id_collision
+baseline_creation
+```
+
+この集合は`scripts/lib/codex-text-quality-state.mjs`に1か所だけ定義し、Hookとdoctorが同じ判定を使う。regexに一致していてもこの集合に無いcodeはstateとしてはvalidのまま扱い、causeへ出力しない。新しいcodeを追加する場合は、`writeUnavailableState()`へ到達するproduction生成元と非機密性を確認したうえで、この集合へ明示追加する。
 
 後続の `PostToolUse` / active `Stop` では、valid `baseline_unavailable` stateに出力許可済みの`code`がある場合だけ次の形式で出力する。
 
@@ -243,7 +266,13 @@ pure validationは `scripts/lib/codex-text-quality-state.mjs` へ抽出し、Hoo
 
 共有moduleを診断対象の`.codex`配下へ置かない。doctorは起動時にこのRepository-owned moduleを通常のESM importで読み込んでよいが、診断対象の`.codex`配下からcodeをimport / executeしない。これにより、`.codex`がsymlinkまたは破損している場合でも、その安全性確認より前に診断対象側のmoduleを実行しない。
 
-共有moduleはschema / identity / manifest検証、state status、`baseline_unavailable.code`のregex validation、cause出力許可判定、必要なroot identity / state filename helperだけを担当する。baseline生成、Git差分取得、file write / delete、Hook stdout、cleanup、textlint、launcher処理は移動しない。
+共有moduleはschema / identity / manifest検証、state status、`baseline_unavailable.code`のregex validation、上記cause出力許可集合と判定、必要なroot identity / state filename helperだけを担当する。baseline生成、Git差分取得、file write / delete、Hook stdout、cleanup、textlint、launcher処理は移動しない。
+
+state fieldのidentity判定はshared validatorへ一本化する。validatorは任意のexpected identityとして`expectedRootId` / `expectedSessionIdHash`を受け取り、state内の`root_id` / `session_id_hash`の形式不正とexpected値との不一致を`baseline_state_identity`へ分類する。
+
+- Hook: 既存の`makeStatePath(root, sessionId)`で得る`rootId` / `sessionIdHash`をexpected identityとして渡す。
+- doctor: state filenameからroot hash / session hashをparseし、current repository rootから`currentRootId`を計算する。filenameのroot hashが`currentRootId`と異なる場合はdoctor固有のfilename所属不一致として`baseline_state_identity`のWARNにし、そのcandidateの内容に対する重複identity判定は行わない。filename root hashが一致した場合だけ、`expectedRootId=currentRootId`、`expectedSessionIdHash=<filename session hash>`としてshared validatorへ渡す。
+- doctor側でstate fieldのroot / session比較を再実装しない。filename形式・filenameがcurrent repositoryへ属するかの確認だけをdoctor固有責務とする。
 
 Hook本体と共有moduleがNode ESMの `.mjs` であるため、doctorも `scripts/diagnose-codex-hooks.mjs` とする。TypeScript wrapperや `.d.ts` は追加しない。
 
@@ -347,10 +376,10 @@ Windows configured commandの確認は既存contractの方式に合わせる。
    - parse failure -> `baseline_state_json`
 3. pure validator
    - required field欠落、field型不正、top-level schema / status / status固有field / `start_head` / ready stateの非array `files` / invalid `baseline_unavailable.code` -> `baseline_state_schema`
-   - `root_id` / `session_id_hash` がstringである前提を満たした後の形式不正、またはexpected identity不一致 -> `baseline_state_identity`
+   - `root_id` / `session_id_hash` がstringである前提を満たした後の形式不正、またはcallerから渡された`expectedRootId` / `expectedSessionIdHash`との不一致 -> `baseline_state_identity`
    - ready stateの`files` array内部にあるentry / Markdown relative path / path重複 / source / `content_sha256` / violations / fingerprint / count -> `baseline_state_manifest`
 
-pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`にも依存させず、成功時はvalidated state、失敗時は上記3種類のclassificationをcallerへ返す。Hook側だけがそのclassificationを`QualityUnavailable`へ変換し、doctorは同じclassificationをruntime stateの`WARN`表示へ使う。
+pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`にも依存させず、成功時はvalidated state、失敗時は上記3種類のclassificationをcallerへ返す。identity比較に必要なexpected値は引数で受け取る。Hook側だけがそのclassificationを`QualityUnavailable`へ変換し、doctorは同じclassificationをruntime stateの`WARN`表示へ使う。
 
 現行`normalizeGitPath()`等が別用途で投げる`unsafe_path`などをstate validationから外へ漏らさない。state内pathの不正は`baseline_state_manifest`へ分類する。既存のstate受理 / 拒否条件自体は変えない。
 
@@ -383,6 +412,8 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 ### Task 4: `baseline_unavailable.code` を保持・表示する
 
 `writeUnavailableState()` は `QualityUnavailable` と `TextQualityConfigurationError` のsafe `error.code` を既存 `code` fieldへ保存する。unknown exceptionは `baseline_creation` のままにする。
+
+cause出力許可集合は2.6で列挙した18 codeだけとし、`scripts/lib/codex-text-quality-state.mjs`を正本にする。Hookとdoctorで別のallowlistを持たない。
 
 `PostToolUse` / active Stopでは2.6で固定した `baseline_unavailable; cause=<code>` 形式を使う。
 
@@ -430,7 +461,7 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 - `baseline_state_missing` / `baseline_state_read` / `baseline_state_json` / `baseline_state_schema` / `baseline_state_identity` / `baseline_state_manifest` のprocess境界分類。
 - read-only `PostToolUse` のstate未読・無出力契約。
 - `TextQualityConfigurationError.code` の保存と`baseline_unavailable; cause=<code>`表示。
-- `baseline_unavailable.code`なし / regex-valid既知 / regex-valid未知 / regex-invalidのvalidation・出力契約。
+- `baseline_unavailable.code`なし / 2.6の出力許可集合に含まれるregex-valid code / regex-valid未知 / regex-invalidのvalidation・出力契約。出力許可集合はshared moduleの1定義を参照し、Hook / doctorに複製しない。
 - `.codex` / `.codex/hooks` ancestorが実directoryかつ非symlinkであり、configured Repository handlerがregular fileかつ非symlinkである静的contract。
 - shared state module追加後もUnix / Windows configured launcherとtemp fixtureが同じproduction経路を実行できること。
 
@@ -464,12 +495,11 @@ doctorの責務は次に限定する。
 11. `*.json` state candidateを `lstat` し、directory直下のregular fileかつ非symlinkだけを読む
 12. state filename形式確認
 13. state file read / JSON parse
-14. shared validatorによるstate構造検証
-15. filename root hash / session hashとstateの整合確認
-16. current repository root identityとの一致確認
-17. `start_head` が存在する場合、read-only Git commandでcommit object存在確認
-18. valid `baseline_unavailable` stateでは出力許可済みの`code`だけを表示し、regex-validでも未知のcodeは表示しない
-19. project trust、Hook trust、managed override、実Codex project root / cwd / config layering、Host bindingを`N/A`（offlineでは未確認）として表示
+14. state filenameからroot hash / session hashをparseし、current repository rootから`currentRootId`を計算する。filename root hashが`currentRootId`と異なる場合は`baseline_state_identity`のWARNとして扱い、そのcandidateではstate fieldの重複identity判定を行わない
+15. filename root hashが`currentRootId`と一致するcandidateは、`expectedRootId=currentRootId`、`expectedSessionIdHash=<filename session hash>`をshared validatorへ渡してstate構造とstate field identityを同時に検証する。doctor側でstate fieldのroot / session比較を再実装しない
+16. `start_head` が存在する場合、read-only Git commandでcommit object存在確認
+17. valid `baseline_unavailable` stateでは2.6の出力許可集合に含まれる`code`だけを表示し、regex-validでも未知のcodeは表示しない
+18. project trust、Hook trust、managed override、実Codex project root / cwd / config layering、Host bindingを`N/A`（offlineでは未確認）として表示
 
 handler要約では`command` / `command_windows`本文、EncodedCommand本文、absolute pathを出力しない。event、matcher、handler数、timeout等の静的概要だけを表示する。
 
@@ -531,8 +561,9 @@ testではdoctor scriptやshared module、dependencyをfixtureへコピーしな
 - valid `baseline_unavailable` + regex-valid未知code -> code本文を表示せずWARN / exit 0
 - JSON破損 -> WARN / exit 0
 - schema不一致 -> WARN / exit 0
-- root identity不一致 -> WARN / exit 0
-- filename session hashとstate不一致 -> WARN / exit 0
+- filename root hashとcurrent repository root identity不一致 -> WARN / exit 0。state fieldの重複identity判定は行わない
+- filename root hashはcurrent rootと一致するがstate.root_idがexpected root identityと不一致 -> shared validatorがWARN / exit 0
+- filename session hashとstate.session_id_hash不一致 -> shared validatorがWARN / exit 0
 - invalid manifest -> WARN / exit 0
 - invalid / missing `start_head` object -> WARN / exit 0
 - unreadable state candidate -> WARN / exit 0
@@ -655,10 +686,10 @@ required job名は変更しない。
 - `TextQualityConfigurationError.code` が既存 `baseline_unavailable.code` へ安全に保存される。
 - `PostToolUse` / active Stopが固定形式のsafe cause diagnosticを出せる。
 - inactive Stopのgeneric blockを維持する。
-- Hookとdoctorが`scripts/lib/codex-text-quality-state.mjs`の同じpure state validatorを使い、missing / read / JSONとschema / identity / manifestの責務境界が固定されている。
+- Hookとdoctorが`scripts/lib/codex-text-quality-state.mjs`の同じpure state validatorを使い、missing / read / JSONとschema / identity / manifestの責務境界が固定されている。state fieldのroot / session identity比較はshared validatorへ一本化され、doctorはfilename形式とfilename root hashのcurrent repository所属だけを確認する。
 - shared state moduleが診断対象の`.codex`配下に置かれておらず、text quality temp fixtureとverify wrapperの必須template file契約へ含まれている。
 - read-only `PostToolUse` の既存early return契約が維持される。
-- regex-invalidな`baseline_unavailable.code`をvalid stateとして扱わず、regex-validでも未知のcodeをcauseとして外部出力しない。
+- regex-invalidな`baseline_unavailable.code`をvalid stateとして扱わず、cause出力は2.6で固定した18 codeだけに限定し、regex-validでも未知のcodeを外部出力しない。
 - doctorが`.codex`、config、存在する`.artifacts`、state directory、state fileのancestor / target symlinkを追跡しない。
 - configured Repository handlerの`.codex` / `.codex/hooks` ancestorとhandler fileのregular file / 非symlink契約を`test:hooks`で確認し、doctorへinventoryを重複実装していない。
 - doctorがHook / launcherを実Repository上で実行しない。
@@ -690,7 +721,7 @@ required job名は変更しない。
 対策:
 
 - `baseline_unavailable.code` のstate validationは既存regexを維持する。
-- cause出力はproduction生成元と非機密性を確認した固定集合だけに限定する。regex-validでも未知のcodeは外へ出さない。
+- cause出力は2.6で列挙した現在のbaseline作成経路から到達可能な18 codeだけに限定し、shared moduleの1定義をHook / doctorで共有する。regex-validでも未知のcodeは外へ出さない。
 - regex不一致の既存stateは`baseline_state_schema`として扱う。
 - state本文、path、session ID、prompt、payload、secret、raw exceptionを出さない。
 
