@@ -18,7 +18,7 @@
 - [x] 14. canonical Planとplan-only Run Artifactへ6件を反映し、既知の`MD012`を修正する。
 - [x] 15. Case BのArtifact経路を再レビューし、BEFORE snapshotのQA root露出を除去する。
 - [x] 16. Case BのQA出力を既存`grayBoxFindingsSchema`由来structured outputへ固定し、Machine ContractをAgentに推測させない。
-- [x] 17. Case Bのuser config有効probeを診断専用へ変更し、canonical runへHost MCP / tool設定を持ち込まない。
+- [x] 17. Case B capability probeも`--ignore-user-config`へ固定し、Host user config / MCP / tool設定を評価経路へ持ち込まない。
 - [x] 18. 非Gitのsource-free QA rootを`--skip-git-repo-check`で起動する契約へ固定する。
 - [x] 19. Browser preflightへscreenshot / URLを追加し、official runner evidence prefix内のEvidence実体検証を追加する。
 - [x] 20. Case Bのground-truth sanity後に`suspended-user` / sessionなし / `/login`へ戻すinitial-state resetを既存helper再利用で固定する。
@@ -62,7 +62,7 @@
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
 - Working Tree Snapshotはpatched source workspaceのMachine Contractとして保持し、promptへ内容 / digestを転記しない。別QA rootへの同期自体を廃止する。
 - `grayBoxFindingsSchema`は既存Machine Contractの正本としてexport済みで、Zod 4.4.3は`z.toJSONSchema()`を提供する。Case B QAのstructured output schemaはここから生成し、最終Zod / cross-file validationを別途行う。
-- Codex user configはMCP server等を持ち得る。Browser capabilityを得る目的でuser config全体をcanonical Case Bへ戻すとsource-free境界を測れないため、user config有効probeは診断専用にする。
+- Codex user configはMCP server等を持ち得るため、Browser capability不足をuser config有効probeで迂回しない。Case B capability probeもcanonical configへ固定する。
 - Case Bはsanitized source workspace内の通常Git contextで実行するため、`--skip-git-repo-check`は不要。
 - `CHALLENGE-BASIC-001`のRequired Evidenceは`screenshot` / `url`。schemaはEvidence refのsyntaxを検証するがfile existenceまでは保証しないため、runnerがofficial runner evidence prefix内のregular file実体を確認する。
 - `runChallengeGroundTruthSanity()`は`suspended-user`でloginを実行し、patched phaseではsession作成後`/`へ遷移する。QAへ同じRuntimeを渡す前に再resetしないと初期状態が汚れる。

@@ -80,7 +80,7 @@
 - Codex 0.153.4の標準JSONLは`command_execution` itemへcommand、aggregated output、exit code、statusを出力できる。PR6 Native caseはこの標準Evidenceを使い、新しいHook parserを追加しない。
 - Windowsではresume時の`workspace-write`指定が実効的に`read-only`へdowngradeされる条件があるため、PR6はinstalled versionでactual writeをsmoke probeする。
 - `--ephemeral`はsession rolloutを保持しないため、同一threadのhandoff評価には使わない。
-- Codexはprojectが未trustでもSkill自体はloadする。project-local config / hooks / exec policyはtrust条件で無効化され得るため、PR6の必須制御はCLI / process側へ固定し、独自trust managerを追加しない。model、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`、`-c shell_environment_policy.inherit="core"`、`-c web_search="disabled"`はcanonical live turnで全caseに固定する。Case BだけはBrowser capabilityの原因切り分けとしてuser config有効probeも1回実行してよいが、その結果をcanonical turnへ持ち込まない。
+- Codexはprojectが未trustでもSkill自体はloadする。project-local config / hooks / exec policyはtrust条件で無効化され得るため、PR6の必須制御はCLI / process側へ固定し、独自trust managerを追加しない。model、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`、`-c shell_environment_policy.inherit="core"`、`-c web_search="disabled"`はcanonical live turnとCase B capability probeで共通固定する。Case Bでuser configを有効化する追加probeは行わない。
 - PR4は`feature-plan`のdeterministic plan output validatorと`exploratory-qa`の既存Machine Contract再利用を実装済みである。
 - PR5は`feature-plan`、`code-review`、`harness-improvement`、`exploratory-qa`のSemantic Evalを実装済みである。PR5はhand-authored known-good / known-bad candidateでgraderをcalibrationする責務までで、実Skillを実行して得たactual outputの品質評価はPR6へ残している。
 - PR5では`repair-loop`と`android-native-local-validation`をN/Aとし、actual changed files、validation、remaining delta、stop decision、Native実行Evidenceとの整合はPR6へ残している。
@@ -140,7 +140,7 @@
 - installed Codex versionと現在のWindows sandbox設定で、writeが必要なinitial / resumed turnが実際に許可fixtureへ書き込めるか。
 - 実際のCodex sessionからlocalhost probe Runtimeをnavigate / observe / interactできるBrowser capabilityがあるか。
 - WindowsでPowerShellとNative helperを起動できるか。
-- `--ignore-rules` / `features.hooks=false` / `--ignore-user-config` / `shell_environment_policy.inherit=core` / `web_search=disabled`がinstalled Codexで有効か。Case Bは`--ignore-user-config`あり / なしのAgent-facing Browser診断probeを分け、Browser capabilityがHost user config依存かを判定する。user config有効時だけBrowserが使える場合はcanonical capability不足としてCase Bを`not_executed`にし、user config全体をcanonical turnへ持ち込まない。canonical Skill probeでRepository外Skillの注入やunknown Skillが発生しないか。
+- `--ignore-rules` / `features.hooks=false` / `--ignore-user-config` / `shell_environment_policy.inherit=core` / `web_search=disabled`がinstalled Codexで有効か。Case Bはcanonical configだけでAgent-facing Browser / screenshot / URL capabilityを確認し、成立しなければ`not_executed`とする。canonical Skill probeでRepository外Skillの注入やunknown Skillが発生しないか。
 
 ### 未回答の重要質問
 

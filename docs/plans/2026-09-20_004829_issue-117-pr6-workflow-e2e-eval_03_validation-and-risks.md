@@ -175,11 +175,11 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 15: Case B fixture failureをcapability不足としてskipする
 
-対策: `not_executed`はBrowser capability不足だけ。patch / build / sanity / schema / Evidence / answer key不整合は`fail`またはrun `blocked`。
+対策: `not_executed`はcanonical configでのBrowser capability不足だけ。patch / dependency preparation / build / sanity / schema / Evidence / answer key不整合はCase B `fail`とする。run `blocked`へ昇格するのは共通Runtime前提が成立しない場合だけ。
 
-### Risk 16: Case BのHost user configで余計なtoolを有効化する
+### Risk 16: Case B capability不足をHost user configで迂回する
 
-対策: user config有効probeは診断専用。canonical Case Bへ継承しない。
+対策: capability probeもcanonical live turnと同じ`--ignore-user-config`を固定する。user config有効の追加probe、MCP Manager、動的tool allowlistは追加しない。
 
 ### Risk 17: Case B QA timeoutがCharter budgetより短い
 
@@ -191,7 +191,7 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 19: PR5 Semantic Evalを重複実装する、またはactual outputを評価しない
 
-対策: PR5のcriteria / Judge protocol / 3 trialsをnarrow reusable pathとしてactual outputへ使う。dataset / rubric / Judge protocolを変更せず、Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`だけを対象にする。
+対策: actual candidateはcalibration用`expected` / `calibration_match`を使わず、PR5のcriteria / Judge protocol / 3 trials / aggregationだけをnarrow reusable pathとして使う。対象stageのdeterministic validation後、後段handoff前に評価する。対象はCase A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`だけとする。
 
 ### Risk 20: Nativeの自然文outputからtaxonomy parserを作る
 
@@ -199,7 +199,7 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 ### Risk 21: Native preflightがDoctor failureを先に消す
 
-対策: Host preflightはWindows / PowerShell / helper存在だけ。Node / Java / SDK / device不足はDoctor resultとして評価する。
+対策: Host / caller preflightはWindows / PowerShell / helper存在 / physical-device serial入力だけに限定する。Node / Java / SDK / serialの実在性・認証状態・physical device判定は`Doctor -RequirePhysicalDevice`へ委ね、Doctor resultとして評価する。
 
 ### Risk 22: sanitized Targetとcase baselineのprovenanceを混同する
 
