@@ -166,6 +166,16 @@ describe("Security dependency fallback workflow", () => {
     expect(validate).toContain("--baseline-lockfile");
   });
 
+  it("uses the GitHub Global Security Advisory endpoint in read-alert and publish", () => {
+    const readAlert = jobBlock("read-alert", "opencode-edit");
+    const publish = jobBlock("publish");
+    const endpoint = "https://api.github.com/advisories/$ghsa_id";
+
+    expect(readAlert).toContain(endpoint);
+    expect(publish).toContain(endpoint);
+    expect(workflow).not.toContain("https://api.github.com/security-advisories/$ghsa_id");
+  });
+
   it("rejects validator trust dependencies before any fallback execution", () => {
     const readAlert = jobBlock("read-alert", "opencode-edit");
     const guard = readAlert.indexOf('dependency === "semver" || dependency === "yaml"');
