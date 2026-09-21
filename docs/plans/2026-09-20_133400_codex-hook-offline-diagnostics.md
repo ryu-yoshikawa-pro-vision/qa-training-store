@@ -431,7 +431,7 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 - read-only `PostToolUse` のstate未読・無出力契約。
 - `TextQualityConfigurationError.code` の保存と`baseline_unavailable; cause=<code>`表示。
 - `baseline_unavailable.code`なし / regex-valid既知 / regex-valid未知 / regex-invalidのvalidation・出力契約。
-- configured Repository handlerがregular fileかつ非symlinkである静的contract。
+- `.codex` / `.codex/hooks` ancestorが実directoryかつ非symlinkであり、configured Repository handlerがregular fileかつ非symlinkである静的contract。
 - shared state module追加後もUnix / Windows configured launcherとtemp fixtureが同じproduction経路を実行できること。
 
 `PreToolUse`、`SessionStart`、logging Hookについて、既存testで既に固定されているmalformed input、root / runtime / Hook解決失敗、timeout、secret redaction、structured output等は重複追加しない。実装中に具体的な未検証production経路が確認できた場合だけ、その経路のcontractを追加する。
@@ -502,7 +502,7 @@ exit code:
 - root `.codex/hooks.json` が存在し、doctor単独ではproject Hook全体を診断できない
 - Windowsで直接必要な`powershell.exe`が利用できない
 - 存在する`.artifacts`がsymlink / 非directory
-- state directoryがsymlink / 非directory / 列挙不能
+- `.artifacts/codex-text-quality` state directoryがsymlink / 非directory / 列挙不能
 - `.json` state candidateがsymlink / 非regular file
 
 既存runtime stateの次の異常は詳細を表示するが `WARN` / exit 0とする。
@@ -539,7 +539,7 @@ testではdoctor scriptやshared module、dependencyをfixtureへコピーしな
 - `.codex` directory symlink / 非directory -> exit 1、配下を読まない
 - config symlink / 非regular file -> exit 1、内容を読まない
 - `.artifacts` directory symlink / 非directory -> exit 1、配下を読まない
-- state directory symlink / 非directory -> exit 1、内容を読まない
+- `.artifacts/codex-text-quality` state directory symlink / 非directory -> exit 1、内容を読まない
 - `.json` state candidate symlink / 非regular file -> exit 1、内容を読まない
 - `[features] hooks = false` -> exit 1
 - root `.codex/hooks.json` 存在 -> 診断不完全としてexit 1
