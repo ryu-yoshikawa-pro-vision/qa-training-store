@@ -18,7 +18,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "9.10.0"
+  PNPM_VERSION: "10.34.5"
   CI: "true"
   EXPO_PUBLIC_APP_ENV: automation
   EXPO_PUBLIC_BUILD_KIND: automation
@@ -26,6 +26,7 @@ env:
   EXPO_PUBLIC_DEFAULT_SEED: default
   PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
   PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+  SUBMISSION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   training-web:
@@ -54,9 +55,9 @@ jobs:
       - name: Run Training Web baseline
         if: github.event_name != 'workflow_dispatch' || inputs.mode == 'baseline'
         run: pnpm run training:web:baseline
-      - name: Run Training Web exercise
+      - name: Run Training Web exercise with receipt
         if: github.event_name == 'pull_request'
-        run: pnpm run training:web:exercise
+        run: pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise
       - name: Run Training Web expected-failure exercise
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'
         run: pnpm run training:web:check-expected-failure
@@ -65,6 +66,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: training-web-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/training/playwright
+          path: |
+            output/training/playwright
+            receipts
+            evidence
           if-no-files-found: warn
           retention-days: 14

@@ -130,7 +130,7 @@ Formal RegressionとTraining Testは別のConfig / Directoryで管理します�
 ### 前提環境
 
 - Node.js 24
-- pnpm 9.10.0
+- pnpm 10.34.5
 
 ### インストール
 

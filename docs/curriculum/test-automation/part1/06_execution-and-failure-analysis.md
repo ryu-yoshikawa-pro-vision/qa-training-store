@@ -23,26 +23,119 @@
 
 Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要な実行記録の収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P1-5で実装した複数の受講者Case、Workbookの条件・期待結果・`implementation_path`、Reset方法、Playwrightの実行結果。Receiptを作る前に、対象Case ID、実行するProject、保存する`handoff-root`を決める。C09では既存の決定的なDiagnostic fixtureも使う |
+| Activity | 教材が用意した正式な入口で目的に応じたSuiteを実行し、run全体の終了結果とCaseごとの状態を分けて読む。Error、Trace、Screenshot、Video、HTML Report、Console Errorから最初の異常を探し、原因を仮説化して最小修正後に別runで再実行する |
+| Observation | Expected／Actual、FailureしたTest Case ID、Retryと受講者修正後の再実行の違い、Evidenceの差、Product／Test／Data／Locator／Timing／Environmentのどこで起きたか。Receiptの引数を暗記できたかではなく、どの記録から何を観測したかを確認する |
+| Output | `04_execution-improvement.csv`の実行Context別記録、Failure分析メモ、初期／修正後のExecution ReceiptとEvidence。編集場所は自由で、評価時は`handoff-root/workbook/`、`receipts/`、`evidence/`へ集約する |
+| Self-check | 最初の異常と派生エラー、Expected／Actual、原因分類、Evidence、修正、再実行結果を説明する。Retryを「受講者が修正した」と読み替えず、C09のinitial Failureとrepaired Passを別Contextで示す。Error、Screenshot、Video、Trace、HTML Reportをどこから確認したかも書く |
+| Completion | 意図的Failureまたは意味のあるDiagnostic／Learner Failureを1件以上分析し、対象・操作・事象がEvidenceと一致する。C09は`diagnostic-initial`の決定的Failure、原因説明、修正、`diagnostic-repaired`の別run／別Evidenceを記録する。initial Failureだけを通常の最終FAILへ集約しない |
+| Recovery | 学習不足はP1-3〜P1-5へ戻る。テスト／製品のFailureはExpected／Actualと仕様を再確認する。Browser、Base URL、Harness、Artifact不足は環境として分ける。Diagnostic初期状態はGit操作なしの復元手順で受講者コピーへ戻し、修正済みEvidenceを初期Evidenceへ上書きしない。Receiptの引数で止まったら、下記の固定入口と変更してよい引数だけを確認する |
+| Handoff | P1-8（共通経路）またはP1-7（Native選択）へ、改善前後のCase ID、実装Path、Failure分類、原因、Action、再実行結果、Receipt／Evidence、`04_execution-improvement.csv`のContextを渡す |
+
 ## 実行コマンドの扱い
 
-現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。
+現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。`pnpm run test:e2e:*`などのFormal入口は既存Suiteの構成を理解するための比較教材であり、受講者のTraining specを実行する入口ではありません。
 
-例:
+### 通常Exerciseで使う固定入口
+
+受講者が覚える実行入口は、次のReceipt付きcommandです。コマンドはRepositoryのRoot Directoryで実行します。
 
 ```bash
-pnpm run test:e2e:chromium
-pnpm run test:e2e:mobile
-pnpm run test:a11y
-pnpm run test:e2e:cross-role
+pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context learner-exercise
 ```
 
-これらは**既存Suiteの構成を理解するためのFormal比較教材**です。
+このコマンドで、`<handoff-root>/code/training/playwright/exercises/`へ集約した受講者specを実行し、Receiptとその実行に対応するEvidenceをまとめて保存します。`<handoff-root>/code/`はRunnerが読むローカルのコード実行root、`<handoff-root>/`はWorkbook・Code・Receipt・Evidenceを保存する固定rootです。P1-5で別の場所に作成したspecは、実行前にRepository相対Pathを保ったままこのcode配下へコピーします。
 
-Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL`をTraining Runtimeへ向け、Desktopでは `pnpm run training:web:exercise`で実行します。Formal ScriptがTraining specを自動的に実行することはありません。
+```text
+<handoff-root>/
+├ code/training/playwright/exercises/<learner-spec>.spec.ts
+├ code/training/playwright/support/<learner-helper>.ts（追加した場合）
+├ workbook/
+├ receipts/
+└ evidence/
+```
 
-意図的なexpected-failureの確認は `pnpm run training:web:check-expected-failure`を使います。
+変更してよい引数は次のとおりです。
 
-C09の診断演習は `pnpm run training:web:diagnostic`で1ケースずつ実行します。初期状態では誤った期待値による決定的なFailureが起きるため、実行記録を確認して原因を説明し、修正後に同じCommandが成功することを確認します。この診断用Directoryは恒久的なアーティファクト確認用の`failure-exercises/`とは分けています。
+- `--project`: Desktopなら`training-chromium`、Mobile Webなら`training-mobile-chromium`
+- `--root`: Receipt／Evidenceを保存する自分の固定`handoff-root`
+- `--run-context`: `learner-exercise`や`desktop-exercise`など、実行の目的を表す重複しない名前
+
+`--suite exercise`は変更しません。通常Exerciseでは`--test-root`を追加せず、上記の`<handoff-root>/code/`をRunnerの実行rootとして使います。`corepack pnpm exec tsx`や`--force`も追加しません。コマンドは常にRepository Rootから実行します。Mobile Webへ切り替える場合だけ`--project training-mobile-chromium`へ変更します。
+
+正常終了（exit code 0）の後は、`<handoff-root>/receipts/`のExecution Receiptを開き、対象Caseが`passed`であること、`implementation_path`が自分のspecを指すこと、CaseにEvidence参照があることを確認します。終了コードだけを見て完了にしません。失敗した場合は、ReceiptのCase／Retry状態と、同じContextのEvidenceから最初の異常を確認します。
+
+Browser、Base URL、Training Copy、権限など、教材理解とは独立した環境が利用できず実行できない場合は、成功したようにReceiptを作りません。正式入口の実行結果または環境確認メモへ、`BLOCKED`、具体的な理由、確認できなかった対象を記録し、Workbookの該当行は`Not run`とします。環境が復旧した後に実行できた場合は、別Context・別Evidenceとして追加し、以前の`Not run`やEvidenceを上書きしません。
+
+### C09 Diagnosticの手順
+
+Diagnosticは正本Repositoryを書き換えず、正本Repository外の`<exercise-copy>`で行います。開始前に次の形でコピーを作ります。
+
+```text
+<exercise-copy>/
+├ diagnostic-exercises/diagnostic-cart.spec.ts
+└ support/reset-scenario.ts
+```
+
+`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`と、Runnerが利用する提供済み`training/playwright/support/reset-scenario.ts`を、それぞれ`<exercise-copy>`の同じ相対位置へ配置します。Canonical Helperは受講者成果物ではないため、正式な`<handoff-root>/code/`へコピーしません。`<exercise-copy>`は自分が書き込みできる一時Directoryであり、正本の`training/playwright/`でもありません。
+
+初回は次の入口を実行します。
+
+```bash
+pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --test-root <exercise-copy> --root <handoff-root> --run-context diagnostic-initial
+```
+
+`--test-root`は実際にTestを読む演習コピー、`--root`はReceipt／Evidenceを保存する固定Handoff rootです。初回は決定的な期待値Failureになるため、Error Message、Screenshot、Trace、VideoまたはHTML Reportを確認し、ExpectedとActual、原因、最小修正を`04_execution-improvement.csv`へ記録します。修正するのは`<exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts`だけです。
+
+修正後は同じ`<exercise-copy>`を使い、次の別Contextで実行します。
+
+```bash
+pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --test-root <exercise-copy> --root <handoff-root> --run-context diagnostic-repaired
+```
+
+`diagnostic-initial`と`diagnostic-repaired`のReceipt／Evidenceは別のDirectoryとして残ります。初回Evidenceを削除、修正後Evidenceで上書き、またはRetryを修正後の実行として記録してはいけません。既存の`pnpm run training:web:diagnostic`は互換的な直接実行入口ですが、C09の正式な記録には上記のReceipt付き入口を使います。
+
+C09のWorkbookには、`diagnostic-initial`を`Fail`として、同じCase ID・同じ実装Pathの初期Evidence、`failure_category`、`cause`、`action`を記録します。`diagnostic-repaired`は同じCaseの`Pass`として別Receipt・別Evidenceへ記録します。修正後の実行が初回より後であること、実装の`code_digest`が変わっていることもReceiptで確認します。RetryだけでPassした結果や、別Case・別Pathの結果を修正後の記録へ置き換えません。
+
+### Artifactを開く順番
+
+Receipt付き実行後は、`<handoff-root>/evidence/<run-context>-<timestamp>/`を開きます。実行ごとにtimestampが変わるため、まず次のように一覧を確認します。
+
+```bash
+find <handoff-root>/evidence -type f
+```
+
+Windows PowerShellの場合は次を使えます。
+
+```powershell
+Get-ChildItem <handoff-root>/evidence -Recurse -File
+```
+
+確認対象ごとの場所と最初に見る点は次のとおりです。
+
+| 確認対象 | 生成場所・開き方 | 最初に見ること |
+| --- | --- | --- |
+| Error Message | `<handoff-root>/evidence/<context>-<timestamp>/run.log`、`report.json`、`<handoff-root>/receipts/`のReceiptをテキストエディタで開く | 最初に失敗したFile／行、Error Type、Expected／Actual、case／Retryのstatus |
+| Screenshot | 同じEvidence Directory内の`playwright/`配下にある画像を画像Viewerまたはファイル一覧から開く | Failure時点の画面、対象要素、表示された値やメッセージ |
+| Video | 同じ`playwright/`配下の動画FileをVideo Playerで開く | 操作がどこまで進み、いつ表示や状態が変わったか |
+| Trace | 同じ`playwright/`配下の`trace.zip`を次で開く: `pnpm exec playwright show-trace <trace.zip>` | 操作履歴、Failure直前のDOM／URL、Network／Consoleの異常 |
+| HTML Report | 同じ`playwright/`配下の`report/`を次で開く: `pnpm exec playwright show-report <report-directory>` | Test一覧、Failure箇所、各Attemptと添付Artifact |
+
+Error Messageで最初の異常を絞り、Screenshot／Video／Traceでその時点の事実を確かめ、HTML ReportとReceiptでCase・Attempt・Evidenceの対応を確認します。Receiptの内部Schemaや全引数を理解することは学習目標ではありません。
+
+initialの期待Failure、`training:web:check-expected-failure`が扱う期待された非0終了、受講者Caseの自然なFailureは別の意味です。Playwrightの自動Retryは修正後の再実行ではありません。診断の初期Failureを確認するために、完成答案を正本fixtureへ書き戻さず、必要なら次のGitless Recoveryで演習用コピーを初期状態へ戻します。
+
+```bash
+corepack pnpm exec tsx scripts/training/restore-diagnostic-exercise.ts --root <exercise-copy> --target <exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts --force
+```
+
+`--root`はcanonical repositoryの外側にある演習コピーを明示し、`--target`はそのroot配下の`.spec.ts`だけを指定します。root外、`.git`配下、symlink経由のPathは復元対象にできません。`--force`は既存Fileを意図的に上書きする確認であり、root境界の代わりにはなりません。
+
+Receiptを生成したら、`04_execution-improvement.csv`の`run_context`にはcommandへ渡した同じContext、`result`にはReceiptのCase statusに対応する`Pass`または`Fail`、`evidence`にはそのCaseのReceiptが実際に参照している`evidence/...`を記録します。予定していたPathや、別Case・別ContextのEvidenceを先に記入しません。未実行なら`Not run`とし、Receiptだけを手作業で作って埋めないでください。
 
 ## Lesson 1: テストを目的別に実行する
 
@@ -190,7 +283,7 @@ Failure後に次を確認します。
 
 ## ハンズオン2: 原因を診断して修正する
 
-`training/playwright/diagnostic-exercises/`の代表ケースを`pnpm run training:web:diagnostic`で実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて最小修正を行い、同じCommandを再実行して成功した実行記録を残します。
+`training/playwright/diagnostic-exercises/`の代表ケースを上記の`diagnostic-initial` Contextで実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて学習者コピーへ最小修正を行い、`diagnostic-repaired` Contextで別runとして再実行し、2つのEvidenceを残します。
 
 ## ハンズオン3: Locator Failure
 

@@ -31,6 +31,19 @@
 
 共通経路では、対象範囲を限定したWeb CIについて、Mergeを止めるQuality Gate、確認対象のBuild / Test Artifact、失敗または想定外SkipをSuccessにしないfail-closedの判断を行います。Preview / Production delivery、Native CI、vendor固有の運用、Level 3の改善設計は発展課題・参考資料またはモバイルアプリ自動化の選択課程です。
 
+## このLessonのInput / Output
+
+| 項目 | 受講者が確認・実施する内容 |
+| --- | --- |
+| Input | P2-5のTraining Copy上のWeb CI Run／Check／Artifact／Execution Receipt、P2-4のWorkflow境界、P1からのCase／コード／Evidence、Native選択時はP2-6の別枠記録 |
+| Activity | 必須Check、Gate、Artifact、Failure／Skip、PR／main／Nightly／Manualの配置を比較し、Risk・Feedback速度・CostからWeb CIの範囲を設計する |
+| Observation | どの条件でMergeを止めるか、Failureと想定外Skipをどう扱うか、Artifactが原因調査へどうつながるか、Web CommonとNative／CDの境界 |
+| Output | `handoff-root/self-check/P2-07.md`へQuality Gate設計、対象Test／Trigger／Artifact／Failure時の対応表、P2-8へ渡すRun／Check／Artifact／Case参照を記録する。Mermaid等の図や補足Evidenceが必要なら既存`handoff-root/evidence/`へ置き、P2-07.mdから参照する |
+| Self-check | GateとTest、BuildとArtifact、SkipとSuccess、PR／main／Nightly／Manualの違い、最小権限とfail-closedの理由を説明する |
+| Completion | 対象範囲を限定したWeb CIのGateを理由付きで設計し、P2-5の実行記録と対応付けられる。Native／Preview／ProductionをCommonの必須条件へ混ぜない |
+| Recovery | Gateの理解不足はP2-4／P2-5のRunとWorkflowへ戻る。GitHub外部状態を確認できない場合はEvidence不足／環境として記録し、APIや追加Tokenを前提にしない |
+| Handoff | `handoff-root/self-check/P2-07.md`を設計資料とSelf-checkの正本としてP2-8へ渡す。対象Case／code Path、Trigger、Run／Check／Artifact、Failure対応を含め、Native選択記録は別枠で示す |
+
 ## Lesson 1: Quality Gate
 
 Quality Gateは、次の工程へ進むために満たすべき条件です。

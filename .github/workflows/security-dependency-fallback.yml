@@ -1,0 +1,1351 @@
+name: Security Dependency Fallback
+
+on:
+  workflow_dispatch:
+    inputs:
+      alert_number:
+        description: Open Dependabot Alert number to inspect
+        required: true
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: security-dependency-fallback
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.34.5"
+  OPENCODE_VERSION: "v1.18.31"
+  OPENCODE_ASSET: opencode-linux-x64.tar.gz
+  OPENCODE_SHA256: e9312be75ed803b7415fc2aeabda1f4fe938912a39673762dc0c38c0e11ebde4
+
+jobs:
+  preflight:
+    if: ${{ github.run_attempt == 1 }}
+    permissions: {}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      base_sha: ${{ steps.preflight.outputs.base_sha }}
+    steps:
+      - name: Validate one-shot main ref
+        id: preflight
+        shell: bash
+        env:
+          BASE_SHA_INPUT: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          test "$EVENT_NAME" = workflow_dispatch
+          test "$REF_NAME" = refs/heads/main
+          test "$RUN_ATTEMPT" = 1
+          test -n "$BASE_SHA_INPUT"
+          printf 'base_sha=%s\n' "$BASE_SHA_INPUT" >> "$GITHUB_OUTPUT"
+
+  read-alert:
+    if: ${{ github.run_attempt == 1 && needs.preflight.result == 'success' }}
+    needs: preflight
+    permissions:
+      pull-requests: read
+      vulnerability-alerts: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      context_artifact_id: ${{ steps.upload_context.outputs.artifact-id }}
+      context_sha256: ${{ steps.context_hash.outputs.sha256 }}
+    steps:
+      - name: Read and sanitize public security context
+        id: read_alert
+        shell: bash
+        env:
+          ALERT_NUMBER: ${{ inputs.alert_number }}
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          raw_alert="$RUNNER_TEMP/raw-alert.json"
+          raw_advisory="$RUNNER_TEMP/raw-advisory.json"
+          context="$RUNNER_TEMP/sanitized-security-context.json"
+          open_prs="$RUNNER_TEMP/open-prs.json"
+          trap 'rm -f "$raw_alert" "$raw_advisory" "$open_prs"' EXIT
+
+          case "$ALERT_NUMBER" in
+            ''|*[!0-9]*) echo needs_human >&2; exit 1 ;;
+          esac
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" > "$raw_alert"
+
+          ghsa_id="$(node --input-type=module -e \
+            'import fs from "node:fs"; const alert=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(alert.security_advisory?.ghsa_id ?? "")' \
+            "$raw_alert")"
+          test -n "$ghsa_id"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/security-advisories/$ghsa_id" > "$raw_advisory"
+
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" > "$open_prs"
+
+          ALERT_FILE="$raw_alert" ADVISORY_FILE="$raw_advisory" CONTEXT_FILE="$context" OPEN_PRS_FILE="$open_prs" \
+            API_URL="$API_URL" REPOSITORY="$REPOSITORY" GITHUB_TOKEN="$GITHUB_TOKEN" \
+            node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+
+          const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
+          const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
+          if (alert.state !== "open") throw new Error("needs_human");
+          const dependency = alert.dependency?.package?.name;
+          const ecosystem = alert.dependency?.package?.ecosystem;
+          const manifestPath = alert.dependency?.manifest_path;
+          const ghsaId = alert.security_advisory?.ghsa_id;
+          if (!dependency || ecosystem !== "npm" || !["/package.json", "package.json"].includes(manifestPath)) {
+            throw new Error("needs_human");
+          }
+          if (dependency === "semver" || dependency === "yaml") throw new Error("needs_human");
+          if (typeof ghsaId !== "string" || ghsaId !== advisory.ghsa_id) throw new Error("needs_human");
+          const vulnerabilities = (advisory.vulnerabilities ?? []).filter(
+            (entry) => entry.ecosystem === "npm" && entry.package?.name === dependency,
+          );
+          if (vulnerabilities.length !== 1) throw new Error("needs_human");
+          const vulnerability = vulnerabilities[0];
+          const vulnerableRange = vulnerability.vulnerable_version_range;
+          const firstPatchedVersion = vulnerability.first_patched_version?.identifier ?? null;
+          if (typeof vulnerableRange !== "string" || vulnerableRange.length === 0) throw new Error("needs_human");
+          const context = {
+            schema_version: 1,
+            dependency,
+            ecosystem,
+            ghsa_id: ghsaId,
+            vulnerable_range: vulnerableRange.replaceAll(",", " ").replace(/\s+/g, " ").trim(),
+            first_patched_version: firstPatchedVersion,
+          };
+          await fs.writeFile(process.env.CONTEXT_FILE, `${JSON.stringify(context, null, 2)}\n`, "utf8");
+
+          const pulls = JSON.parse(await fs.readFile(process.env.OPEN_PRS_FILE, "utf8"));
+          if (!Array.isArray(pulls) || pulls.length >= 100) throw new Error("needs_human");
+          for (const pull of pulls) {
+            if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
+            const response = await fetch(pull.url + "/files?per_page=100", {
+              headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              },
+            });
+            if (!response.ok) throw new Error("needs_human");
+            const files = await response.json();
+            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            for (const file of files) {
+              if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
+              if (typeof file.patch !== "string") throw new Error("needs_human");
+              if (file.patch.includes(dependency)) throw new Error("needs_human");
+            }
+          }
+          NODE
+
+          test -s "$context"
+
+      - name: Hash sanitized context
+        id: context_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          context="$RUNNER_TEMP/sanitized-security-context.json"
+          test "$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'sanitized-security-context.json' | wc -l)" = 1
+          printf 'sha256=%s\n' "$(sha256sum "$context" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload sanitized context
+        id: upload_context
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: security-context-${{ github.run_id }}
+          path: ${{ runner.temp }}/sanitized-security-context.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+  opencode-edit:
+    if: ${{ github.run_attempt == 1 && needs.read-alert.result == 'success' }}
+    needs:
+      - preflight
+      - read-alert
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      candidate_artifact_id: ${{ steps.upload_candidate.outputs.artifact-id }}
+      candidate_package_sha256: ${{ steps.candidate_hash.outputs.package_sha256 }}
+      candidate_authorization_sha256: ${{ steps.candidate_hash.outputs.authorization_sha256 }}
+      authorization_sha256: ${{ steps.candidate_hash.outputs.authorization_sha256 }}
+    steps:
+      - name: Checkout immutable base
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Download sanitized context by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
+          path: ${{ runner.temp }}/security-context
+          merge-multiple: true
+
+      - name: Verify context artifact and install without secret
+        shell: bash
+        env:
+          EXPECTED_CONTEXT_SHA256: ${{ needs.read-alert.outputs.context_sha256 }}
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
+          test -f "$context"
+          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
+          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+
+      - name: Build baseline graph and authorization before secret
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
+          graph="$RUNNER_TEMP/baseline-graph.json"
+          auth_context="$RUNNER_TEMP/security-context-with-base.json"
+          authorization="$RUNNER_TEMP/fix-authorization.json"
+          root_candidates="$RUNNER_TEMP/root-parent-candidates.json"
+          override_candidates="$RUNNER_TEMP/override-candidates.json"
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$graph"
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            BASE_SHA="$BASE_SHA" CONTEXT_FILE="$context" OUTPUT_FILE="$auth_context" \
+            node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const context = JSON.parse(await fs.readFile(process.env.CONTEXT_FILE, "utf8"));
+          context.base_sha = process.env.BASE_SHA;
+          await fs.writeFile(process.env.OUTPUT_FILE, `${JSON.stringify(context, null, 2)}\n`, "utf8");
+          NODE
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            CONTEXT_FILE="$auth_context" GRAPH_FILE="$graph" PACKAGE_FILE=package.json LOCKFILE_FILE=pnpm-lock.yaml \
+            ROOT_CANDIDATES_FILE="$root_candidates" OVERRIDE_CANDIDATES_FILE="$override_candidates" \
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { execFileSync } from "node:child_process";
+          import semver from "semver";
+          import { collectBaselineSelectorProof } from "./scripts/validate-security-dependency-fix.mjs";
+
+          const context = JSON.parse(fs.readFileSync(process.env.CONTEXT_FILE, "utf8"));
+          const rootPackage = JSON.parse(fs.readFileSync(process.env.PACKAGE_FILE, "utf8"));
+          const graphValue = JSON.parse(fs.readFileSync(process.env.GRAPH_FILE, "utf8"));
+          const lockfileText = fs.readFileSync(process.env.LOCKFILE_FILE, "utf8");
+          const roots = Array.isArray(graphValue) ? graphValue : [graphValue];
+          const entries = [];
+          const visit = (node, path = []) => {
+            if (!node || typeof node !== "object") return;
+            const name = typeof node.name === "string" ? node.name : path.at(-1);
+            const version = typeof node.version === "string" ? node.version : node.resolved;
+            if (name && version) entries.push({ name, version, path });
+            for (const [nameKey, child] of Object.entries(node.dependencies ?? {})) {
+              visit(child && typeof child === "object" ? { name: nameKey, ...child } : null, [...path, nameKey]);
+            }
+          };
+          roots.forEach((root) => visit(root, root?.name ? [root.name] : []));
+          const vulnerable = entries.filter(
+            (entry) => entry.name === context.dependency && semver.satisfies(entry.version, context.vulnerable_range),
+          );
+          const view = (packageName, version, field) => {
+            try {
+              const output = execFileSync(
+                "corepack",
+                ["pnpm@10.34.5", "view", `${packageName}@${version}`, field, "--json"],
+                { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+              ).trim();
+              return output ? JSON.parse(output) : {};
+            } catch {
+              throw new Error("needs_human");
+            }
+          };
+          const rootCandidates = [];
+          const affectedParents = new Map();
+          for (const target of vulnerable) {
+            if (target.path.length !== 3) continue;
+            const parentName = target.path[1];
+            const parentPath = target.path.slice(0, -1).join("/");
+            const parent = entries.find((entry) => entry.path.join("/") === parentPath && entry.name === parentName);
+            const rootManifest = Object.entries(rootPackage).find(([field, values]) =>
+              ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"].includes(field) &&
+              values && Object.prototype.hasOwnProperty.call(values, parentName),
+            );
+            if (!parent || !rootManifest || !semver.valid(rootManifest[1][parentName])) continue;
+            const key = `${parentName}@${parent.version}`;
+            if (!affectedParents.has(key)) affectedParents.set(key, { parentName, parentVersion: parent.version, rootManifest, edges: [] });
+            affectedParents.get(key).edges.push({
+              path: target.path,
+              dependency: context.dependency,
+              parent: parentName,
+              parent_version: parent.version,
+              baseline_resolved_version: target.version,
+            });
+          }
+          for (const item of affectedParents.values()) {
+            const versionsRaw = view(item.parentName, item.parentVersion, "versions");
+            const versions = (Array.isArray(versionsRaw) ? versionsRaw : [])
+              .filter((version) => semver.valid(version))
+              .filter((version) => semver.major(version) === semver.major(item.parentVersion) && semver.gt(version, item.parentVersion))
+              .sort(semver.compare)
+              .slice(0, 10);
+            for (const version of versions) {
+              const dependencies = view(item.parentName, version, "dependencies");
+              if (!dependencies || typeof dependencies !== "object" || typeof dependencies[context.dependency] !== "string") continue;
+              if (semver.validRange(dependencies[context.dependency]) === null) continue;
+              if (!semver.satisfies(context.first_patched_version, dependencies[context.dependency])) continue;
+              rootCandidates.push({ version, dependencies });
+            }
+          }
+          const overrideCandidates = [];
+          for (const item of affectedParents.values()) {
+            const declarations = ["dependencies", "optionalDependencies", "devDependencies", "peerDependencies"]
+              .map((field) => [field, view(item.parentName, item.parentVersion, field)])
+              .filter(([, value]) => typeof value?.[context.dependency] === "string");
+            if (declarations.length === 0 || declarations.some(([, value]) => semver.validRange(value[context.dependency]) === null || !semver.satisfies(context.first_patched_version, value[context.dependency]))) continue;
+            const selector = `${item.parentName}@${item.parentVersion}>${context.dependency}`;
+            const baselineProof = collectBaselineSelectorProof(lockfileText, selector);
+            const declarationRanges = Object.fromEntries(declarations.map(([field, value]) => [field, value[context.dependency]]));
+            overrideCandidates.push({
+              selector,
+              value: context.first_patched_version,
+              affected_edges: item.edges,
+              baseline_instances: baselineProof.baseline_instances,
+              baseline_selector_edges: baselineProof.baseline_selector_edges,
+              declaration_ranges: declarationRanges,
+            });
+          }
+          fs.writeFileSync(process.env.ROOT_CANDIDATES_FILE, `${JSON.stringify(rootCandidates, null, 2)}\n`);
+          fs.writeFileSync(process.env.OVERRIDE_CANDIDATES_FILE, `${JSON.stringify(overrideCandidates, null, 2)}\n`);
+          NODE
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            node scripts/validate-security-dependency-fix.mjs \
+              --prepare-authorization \
+              --context "$auth_context" \
+              --root-package package.json \
+              --graph "$graph" \
+              --root-parent-candidates "$root_candidates" \
+              --override-candidates "$override_candidates" \
+              --lockfile pnpm-lock.yaml \
+              --output "$authorization"
+          test -s "$authorization"
+
+      - name: Recheck related open PRs after graph resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          authorization="$RUNNER_TEMP/fix-authorization.json"
+          pulls="$RUNNER_TEMP/related-open-prs.json"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" > "$pulls"
+          AUTHORIZATION_FILE="$authorization" PULLS_FILE="$pulls" API_URL="$API_URL" REPOSITORY="$REPOSITORY" GITHUB_TOKEN="$GITHUB_TOKEN" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const authorization = JSON.parse(await fs.readFile(process.env.AUTHORIZATION_FILE, "utf8"));
+          const pulls = JSON.parse(await fs.readFile(process.env.PULLS_FILE, "utf8"));
+          if (!Array.isArray(pulls)) throw new Error("needs_human");
+          if (pulls.length >= 100) throw new Error("needs_human");
+          const conflictTerms = [
+            authorization.dependency,
+            authorization.root_parent?.root_dependency,
+            authorization.override?.selector,
+          ].filter((term) => typeof term === "string" && term.length > 0);
+          for (const pull of pulls) {
+            if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
+            const response = await fetch(pull.url + "/files?per_page=100", {
+              headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              },
+            });
+            if (!response.ok) throw new Error("needs_human");
+            const files = await response.json();
+            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            for (const file of files) {
+              if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
+              if (typeof file.patch !== "string") throw new Error("needs_human");
+              if (conflictTerms.some((term) => file.patch.includes(term))) {
+                throw new Error("needs_human");
+              }
+            }
+          }
+          NODE
+
+      - name: Download and verify fixed OpenCode binary
+        shell: bash
+        env:
+          OPENCODE_URL: https://github.com/anomalyco/opencode/releases/download/${{ env.OPENCODE_VERSION }}/${{ env.OPENCODE_ASSET }}
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          archive="$RUNNER_TEMP/$OPENCODE_ASSET"
+          curl --fail-with-body --silent --show-error --location "$OPENCODE_URL" --output "$archive"
+          test "$(sha256sum "$archive" | awk '{print $1}')" = "$OPENCODE_SHA256"
+          mkdir -p "$RUNNER_TEMP/opencode"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/opencode"
+          opencode_bin="$(find "$RUNNER_TEMP/opencode" -type f -name opencode -print -quit)"
+          test -x "$opencode_bin"
+          printf '%s\n' "$opencode_bin" > "$RUNNER_TEMP/opencode-bin"
+
+      - name: Select a Free model without fallback
+        shell: bash
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          set -euo pipefail
+          opencode_bin="$(<"$RUNNER_TEMP/opencode-bin")"
+          model_json="$RUNNER_TEMP/opencode-models.json"
+          models_stderr="$RUNNER_TEMP/opencode-tmp/models-stderr.log"
+          mkdir -p "$RUNNER_TEMP/opencode-home" "$RUNNER_TEMP/opencode-tmp"
+          env -i \
+            PATH="$PATH" HOME="$RUNNER_TEMP/opencode-home" TMPDIR="$RUNNER_TEMP/opencode-tmp" \
+            CI=true OPENCODE_API_KEY="$OPENCODE_API_KEY" \
+            OPENCODE_DISABLE_PROJECT_CONFIG=1 OPENCODE_PURE=1 OPENCODE_DISABLE_DEFAULT_PLUGINS=1 \
+            OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1 OPENCODE_DISABLE_SHARE=1 \
+            "$opencode_bin" models > "$model_json" 2> "$models_stderr"
+
+      - name: Normalize selected Free model
+        shell: bash
+        run: |
+          set -euo pipefail
+          model_json="$RUNNER_TEMP/opencode-models.json"
+          MODEL_FILE="$model_json" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const models = (await fs.readFile(process.env.MODEL_FILE, "utf8"))
+            .split(/\r?\n/)
+            .map((entry) => entry.trim())
+            .filter((id) => id.startsWith("opencode/") && id.endsWith("-free"))
+            .map((id) => id.slice("opencode/".length))
+            .sort();
+          if (models.length === 0) throw new Error("needs_human");
+          await fs.writeFile(process.env.MODEL_FILE, `${models[0]}\n`, "utf8");
+          NODE
+          test -s "$model_json"
+
+      - name: Prepare constrained OpenCode prompt and config
+        shell: bash
+        run: |
+          set -euo pipefail
+          authorization="$RUNNER_TEMP/fix-authorization.json"
+          context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
+          prompt="$RUNNER_TEMP/opencode-prompt.txt"
+          config="$RUNNER_TEMP/opencode-config.json"
+          opencode_home="$RUNNER_TEMP/opencode-home"
+          opencode_tmp="$RUNNER_TEMP/opencode-tmp"
+          mkdir -p "$opencode_home" "$opencode_tmp"
+          model="$(<"$RUNNER_TEMP/opencode-models.json")"
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            SELECTED_MODEL="$model" CONFIG_FILE="$config" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const template = JSON.parse(await fs.readFile(".github/opencode/security-fallback.json", "utf8"));
+          template.model = `opencode/${process.env.SELECTED_MODEL}`;
+          template.small_model = `opencode/${process.env.SELECTED_MODEL}`;
+          await fs.writeFile(process.env.CONFIG_FILE, `${JSON.stringify(template, null, 2)}\n`, "utf8");
+          NODE
+          {
+            cat <<'EOF'
+          Apply exactly one authorized security dependency change. Read only package.json, AGENTS.md, .agents/skills/repair-loop/SKILL.md, .agents/skills/repair-loop/references/repair-workflow.md, and the P-13 section of docs/plans/2026-08-16_162000_public-repository-hardening.md. Do not use shell, Git, network, glob, list, grep, web, task, skill, question, or LSP tools. Do not edit the authorization or lockfile. Select exactly one allowed mutation and edit only package.json. Do not invent a version, retry, or explain private alert details.
+          Public security context:
+          EOF
+            cat "$context"
+            printf '\nAuthorized mutations:\n'
+            cat "$authorization"
+          } > "$prompt"
+
+      - name: Run one constrained OpenCode edit
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          authorization="$RUNNER_TEMP/fix-authorization.json"
+          prompt="$RUNNER_TEMP/opencode-prompt.txt"
+          config="$RUNNER_TEMP/opencode-config.json"
+          opencode_home="$RUNNER_TEMP/opencode-home"
+          opencode_tmp="$RUNNER_TEMP/opencode-tmp"
+          model="$(<"$RUNNER_TEMP/opencode-models.json")"
+          before_auth="$(sha256sum "$authorization" | awk '{print $1}')"
+          printf '%s\n' "$before_auth" > "$RUNNER_TEMP/authorization-before.sha256"
+          opencode_bin="$(<"$RUNNER_TEMP/opencode-bin")"
+          env -i \
+            PATH="$PATH" HOME="$opencode_home" TMPDIR="$opencode_tmp" \
+            CI=true \
+            OPENCODE_API_KEY="$OPENCODE_API_KEY" OPENCODE_CONFIG="$config" \
+            OPENCODE_DISABLE_PROJECT_CONFIG=1 OPENCODE_PURE=1 OPENCODE_DISABLE_DEFAULT_PLUGINS=1 \
+            OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1 OPENCODE_DISABLE_SHARE=1 \
+            timeout --signal=TERM --kill-after=30s 600 \
+            "$opencode_bin" run --title security-dependency-fallback --model "opencode/$model" "$(<"$prompt")" \
+            > "$opencode_tmp/stdout.log" 2> "$opencode_tmp/stderr.log"
+
+      - name: Verify constrained OpenCode edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          authorization="$RUNNER_TEMP/fix-authorization.json"
+          opencode_home="$RUNNER_TEMP/opencode-home"
+          opencode_tmp="$RUNNER_TEMP/opencode-tmp"
+          prompt="$RUNNER_TEMP/opencode-prompt.txt"
+          config="$RUNNER_TEMP/opencode-config.json"
+          before_auth="$(<"$RUNNER_TEMP/authorization-before.sha256")"
+          after_auth="$(sha256sum "$authorization" | awk '{print $1}')"
+          test "$before_auth" = "$after_auth"
+          test "$(git diff --name-only)" = package.json
+          rm -rf "$opencode_home" "$opencode_tmp" "$prompt" "$config"
+
+      - name: Prepare candidate artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/security-candidate"
+          rm -rf "$candidate"
+          mkdir -p "$candidate"
+          cp package.json "$candidate/package.json"
+          cp "$RUNNER_TEMP/fix-authorization.json" "$candidate/fix-authorization.json"
+          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
+
+      - name: Hash candidate files
+        id: candidate_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/security-candidate"
+          printf 'package_sha256=%s\n' "$(sha256sum "$candidate/package.json" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          printf 'authorization_sha256=%s\n' "$(sha256sum "$candidate/fix-authorization.json" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload candidate artifact
+        id: upload_candidate
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: security-candidate-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/security-candidate/package.json
+            ${{ runner.temp }}/security-candidate/fix-authorization.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+  validate-exec:
+    if: ${{ github.run_attempt == 1 && needs.opencode-edit.result == 'success' }}
+    needs:
+      - preflight
+      - read-alert
+      - opencode-edit
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      prepared_artifact_id: ${{ steps.upload_prepared.outputs.artifact-id }}
+      package_sha256: ${{ steps.prepared_hash.outputs.package_sha256 }}
+      lockfile_sha256: ${{ steps.prepared_hash.outputs.lockfile_sha256 }}
+      authorization_sha256: ${{ steps.prepared_hash.outputs.authorization_sha256 }}
+    steps:
+      - name: Checkout immutable base
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Download context by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
+          path: ${{ runner.temp }}/security-context
+          merge-multiple: true
+
+      - name: Download candidate by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.opencode-edit.outputs.candidate_artifact_id }}
+          path: ${{ runner.temp }}/security-candidate
+          merge-multiple: true
+
+      - name: Install baseline dependencies before validator
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          public_home="$RUNNER_TEMP/baseline-install-home"
+          public_tmp="$RUNNER_TEMP/baseline-install-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+
+      - name: Verify inputs and validate semantic package change
+        shell: bash
+        env:
+          EXPECTED_CONTEXT_SHA256: ${{ needs.read-alert.outputs.context_sha256 }}
+          EXPECTED_CANDIDATE_PACKAGE_SHA256: ${{ needs.opencode-edit.outputs.candidate_package_sha256 }}
+          EXPECTED_CANDIDATE_AUTHORIZATION_SHA256: ${{ needs.opencode-edit.outputs.candidate_authorization_sha256 }}
+        run: |
+          set -euo pipefail
+          context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
+          candidate="$RUNNER_TEMP/security-candidate"
+          baseline_package="$RUNNER_TEMP/baseline-package.json"
+          baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
+          auth="$candidate/fix-authorization.json"
+          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
+          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
+          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
+          test "$(sha256sum "$candidate/package.json" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_PACKAGE_SHA256"
+          test "$(sha256sum "$auth" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256"
+          cp package.json "$baseline_package"
+          cp pnpm-lock.yaml "$baseline_lockfile"
+          cp "$candidate/package.json" package.json
+          cp "$auth" "$RUNNER_TEMP/fix-authorization.json"
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+            --baseline-package "$baseline_package" \
+            --candidate-package package.json \
+            --authorization "$RUNNER_TEMP/fix-authorization.json" \
+            > "$RUNNER_TEMP/selected-mutation.json"
+
+      - name: Generate and freeze prepared lockfile
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 install --lockfile-only --ignore-scripts
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/prepared-graph.json"
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            node scripts/validate-security-dependency-fix.mjs \
+            --validate-prepared \
+            --baseline-package "$RUNNER_TEMP/baseline-package.json" \
+            --candidate-package package.json \
+            --authorization "$RUNNER_TEMP/fix-authorization.json" \
+            --lockfile pnpm-lock.yaml \
+            --baseline-lockfile "$RUNNER_TEMP/baseline-lockfile.yaml" \
+            --graph "$RUNNER_TEMP/prepared-graph.json" \
+            > "$RUNNER_TEMP/prepared-validation.json"
+
+      - name: Hash prepared files
+        id: prepared_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          prepared="$RUNNER_TEMP/prepared-security-fix"
+          rm -rf "$prepared"
+          mkdir -p "$prepared"
+          cp package.json "$prepared/package.json"
+          cp pnpm-lock.yaml "$prepared/pnpm-lock.yaml"
+          cp "$RUNNER_TEMP/fix-authorization.json" "$prepared/fix-authorization.json"
+          printf 'package_sha256=%s\n' "$(sha256sum "$prepared/package.json" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          printf 'lockfile_sha256=%s\n' "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          printf 'authorization_sha256=%s\n' "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload prepared artifact before arbitrary repository code
+        id: upload_prepared
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: prepared-security-fix-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/prepared-security-fix/package.json
+            ${{ runner.temp }}/prepared-security-fix/pnpm-lock.yaml
+            ${{ runner.temp }}/prepared-security-fix/fix-authorization.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+      - name: Recheck prepared hashes after upload staging
+        shell: bash
+        env:
+          EXPECTED_PACKAGE_SHA256: ${{ steps.prepared_hash.outputs.package_sha256 }}
+          EXPECTED_LOCKFILE_SHA256: ${{ steps.prepared_hash.outputs.lockfile_sha256 }}
+          EXPECTED_AUTHORIZATION_SHA256: ${{ steps.prepared_hash.outputs.authorization_sha256 }}
+        run: |
+          set -euo pipefail
+          prepared="$RUNNER_TEMP/prepared-security-fix"
+          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
+          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+
+      - name: Run repository verification on the prepared workspace
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          public_home="$RUNNER_TEMP/verify-home"
+          public_tmp="$RUNNER_TEMP/verify-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" BASE_SHA="$BASE_SHA" \
+            corepack pnpm@10.34.5 run verify
+          git diff --check
+
+  finalize:
+    if: ${{ github.run_attempt == 1 && needs.validate-exec.result == 'success' }}
+    needs:
+      - preflight
+      - read-alert
+      - validate-exec
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      validated_artifact_id: ${{ steps.upload_validated.outputs.artifact-id }}
+    steps:
+      - name: Checkout immutable base
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Download context by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
+          path: ${{ runner.temp }}/security-context
+          merge-multiple: true
+
+      - name: Download prepared fix by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.validate-exec.outputs.prepared_artifact_id }}
+          path: ${{ runner.temp }}/prepared-security-fix
+          merge-multiple: true
+
+      - name: Setup pnpm for final prepared validation
+        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node for final prepared validation
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Verify prepared input and create public Run Artifact
+        id: create_run
+        shell: bash
+        env:
+          EXPECTED_CONTEXT_SHA256: ${{ needs.read-alert.outputs.context_sha256 }}
+          EXPECTED_PACKAGE_SHA256: ${{ needs.validate-exec.outputs.package_sha256 }}
+          EXPECTED_LOCKFILE_SHA256: ${{ needs.validate-exec.outputs.lockfile_sha256 }}
+          EXPECTED_AUTHORIZATION_SHA256: ${{ needs.validate-exec.outputs.authorization_sha256 }}
+        run: |
+          set -euo pipefail
+          context="$RUNNER_TEMP/security-context"
+          prepared="$RUNNER_TEMP/prepared-security-fix"
+          pre_run_baseline_package="$RUNNER_TEMP/pre-run-baseline-package.json"
+          pre_run_baseline_lockfile="$RUNNER_TEMP/pre-run-baseline-lockfile.yaml"
+          test "$(find "$context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
+          test "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
+          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
+          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+          test "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json\npnpm-lock.yaml'
+          cp package.json "$pre_run_baseline_package"
+          cp pnpm-lock.yaml "$pre_run_baseline_lockfile"
+          cp "$prepared/package.json" package.json
+          cp "$prepared/pnpm-lock.yaml" pnpm-lock.yaml
+          public_home="$RUNNER_TEMP/finalize-home"
+          public_tmp="$RUNNER_TEMP/finalize-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/pre-run-graph.json"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+              --validate-prepared \
+              --baseline-package "$pre_run_baseline_package" \
+              --candidate-package package.json \
+              --authorization "$prepared/fix-authorization.json" \
+              --lockfile pnpm-lock.yaml \
+              --baseline-lockfile "$pre_run_baseline_lockfile" \
+              --graph "$RUNNER_TEMP/pre-run-graph.json" \
+              > "$RUNNER_TEMP/pre-run-validation.json"
+          run_id="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST)"
+          bash scripts/new-run.sh --run-id "$run_id" --task-type implementation --workflow-level standard --no-run-manifest
+          run_dir=".codex/runs/$run_id"
+          dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$prepared/fix-authorization.json")"
+          selected_strategy="$(node --input-type=module -e '
+            import fs from "node:fs";
+            const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+            process.stdout.write(value.strategy);
+          ' "$RUNNER_TEMP/pre-run-validation.json")"
+          cat > "$run_dir/PLAN.md" <<EOF
+          # Security dependency fallback
+
+          - 対象: 公開Repositoryの依存関係修正候補
+          - dependency: $dependency
+          - 選択strategy: $selected_strategy
+          - base SHA: 固定済みのworkflow開始時点
+          - Alert番号、GHSA ID、raw Alert、private triage、prompt、model response、credentialは記録しない。
+          EOF
+          cat > "$run_dir/TASKS.md" <<EOF
+          # Tasks
+
+          - [x] sanitized security contextを確認
+          - [x] authorizationに一致するpackage changeを検証
+          - [x] prepared package / lockfileを固定Artifact化
+          - [x] repository標準検証を実行
+          - [x] 公開可能なRun Artifactだけを生成
+          EOF
+          cat > "$run_dir/REPORT.md" <<EOF
+          # Report
+
+          - dependency: $dependency
+          - strategy: $selected_strategy
+          - package / lockfileのexact resolutionとRepository標準検証を確認した。
+          - Security情報は公開可能な最小範囲に限定した。
+          EOF
+          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Write
+          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Check
+          expected_changes=$(printf '%s\n' \
+            package.json \
+            pnpm-lock.yaml \
+            "$run_dir/PLAN.md" \
+            "$run_dir/TASKS.md" \
+            "$run_dir/REPORT.md" | sort)
+          actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          test "$actual_changes" = "$expected_changes"
+          git diff --check
+          printf '%s\n' "$run_id" > "$RUNNER_TEMP/security-run-id"
+          printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Run final guard and build validated manifest
+        id: finalize_hash
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          EXPECTED_PACKAGE_SHA256: ${{ needs.validate-exec.outputs.package_sha256 }}
+          EXPECTED_LOCKFILE_SHA256: ${{ needs.validate-exec.outputs.lockfile_sha256 }}
+          EXPECTED_AUTHORIZATION_SHA256: ${{ needs.validate-exec.outputs.authorization_sha256 }}
+          AUTHORIZATION_FILE: ${{ runner.temp }}/prepared-security-fix/fix-authorization.json
+          FINALIZE_VALIDATION_FILE: ${{ runner.temp }}/finalize-validation.json
+          PRE_RUN_VALIDATION_FILE: ${{ runner.temp }}/pre-run-validation.json
+          MANIFEST_FILE: validated-fix.json
+          PREPARED_ARTIFACT_ID: ${{ needs.validate-exec.outputs.prepared_artifact_id }}
+          RUN_ID_FILE: ${{ runner.temp }}/security-run-id
+        run: |
+          set -euo pipefail
+          test "$(sha256sum package.json | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
+          test "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          test "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+
+          final_baseline_package="$RUNNER_TEMP/final-baseline-package.json"
+          final_baseline_lockfile="$RUNNER_TEMP/final-baseline-lockfile.yaml"
+          git show "$BASE_SHA:package.json" > "$final_baseline_package"
+          git show "$BASE_SHA:pnpm-lock.yaml" > "$final_baseline_lockfile"
+
+          final_public_home="$RUNNER_TEMP/final-guard-home"
+          final_public_tmp="$RUNNER_TEMP/final-guard-tmp"
+          mkdir -p "$final_public_home" "$final_public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/finalize-graph.json"
+          env -i \
+            PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+              --validate-prepared \
+              --baseline-package "$final_baseline_package" \
+              --candidate-package package.json \
+              --authorization "$AUTHORIZATION_FILE" \
+              --lockfile pnpm-lock.yaml \
+              --baseline-lockfile "$final_baseline_lockfile" \
+              --graph "$RUNNER_TEMP/finalize-graph.json" \
+              > "$FINALIZE_VALIDATION_FILE"
+
+          read_strategy() {
+            node --input-type=module -e '
+              import fs from "node:fs";
+              const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+              process.stdout.write(value.strategy);
+            ' "$1"
+          }
+          pre_strategy="$(read_strategy "$PRE_RUN_VALIDATION_FILE")"
+          final_strategy="$(read_strategy "$FINALIZE_VALIDATION_FILE")"
+          test "$pre_strategy" = "$final_strategy"
+
+          run_id="$(<"$RUN_ID_FILE")"
+          run_dir=".codex/runs/$run_id"
+          grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"
+          grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"
+
+          expected_changes=$(printf '%s\n' \
+            package.json \
+            pnpm-lock.yaml \
+            "$run_dir/PLAN.md" \
+            "$run_dir/TASKS.md" \
+            "$run_dir/REPORT.md" | sort)
+          actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          test "$actual_changes" = "$expected_changes"
+          git diff --check
+
+          env -i PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            AUTHORIZATION_FILE="$AUTHORIZATION_FILE" FINALIZE_VALIDATION_FILE="$FINALIZE_VALIDATION_FILE" RUN_ID_FILE="$RUN_ID_FILE" \
+            EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" \
+            EXPECTED_AUTHORIZATION_SHA256="$EXPECTED_AUTHORIZATION_SHA256" PREPARED_ARTIFACT_ID="$PREPARED_ARTIFACT_ID" \
+            MANIFEST_FILE="$MANIFEST_FILE" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          import { createHash } from "node:crypto";
+          const sha256 = async (file) => createHash("sha256").update(await fs.readFile(file)).digest("hex");
+          const authorization = JSON.parse(await fs.readFile(process.env.AUTHORIZATION_FILE, "utf8"));
+          const validation = JSON.parse(await fs.readFile(process.env.FINALIZE_VALIDATION_FILE, "utf8"));
+          if (!["direct", "root_parent", "override"].includes(validation.strategy)) {
+            throw new Error("needs_human");
+          }
+          const runId = (await fs.readFile(process.env.RUN_ID_FILE, "utf8")).trim();
+          const conflictTerms = [
+            authorization.dependency,
+            authorization.root_parent?.root_dependency,
+            authorization.override?.selector,
+          ].filter((term) => typeof term === "string" && term.length > 0).sort();
+          const publishFiles = [
+            "package.json",
+            "pnpm-lock.yaml",
+            `.codex/runs/${runId}/PLAN.md`,
+            `.codex/runs/${runId}/TASKS.md`,
+            `.codex/runs/${runId}/REPORT.md`,
+          ];
+          const files = Object.fromEntries(await Promise.all(publishFiles.map(async (file) => [file, await sha256(file)])));
+          const manifest = {
+            schema_version: 1,
+            base_sha: authorization.base_sha,
+            dependency: authorization.dependency,
+            ecosystem: authorization.ecosystem,
+            ghsa_id: authorization.ghsa_id,
+            vulnerable_range: authorization.vulnerable_range,
+            first_patched_version: authorization.first_patched_version,
+            strategy: validation.strategy,
+            conflict_terms: conflictTerms,
+            prepared_artifact_id: process.env.PREPARED_ARTIFACT_ID,
+            prepared_sha256: {
+              package_json: process.env.EXPECTED_PACKAGE_SHA256,
+              pnpm_lock_yaml: process.env.EXPECTED_LOCKFILE_SHA256,
+              authorization: process.env.EXPECTED_AUTHORIZATION_SHA256,
+            },
+            publish_sha256: files,
+          };
+          await fs.writeFile(process.env.MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          NODE
+      - name: Upload validated artifact with exact six-file allowlist
+        id: upload_validated
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: validated-security-fix-${{ github.run_id }}
+          include-hidden-files: true
+          path: |
+            package.json
+            pnpm-lock.yaml
+            .codex/runs/${{ steps.create_run.outputs.run_id }}/PLAN.md
+            .codex/runs/${{ steps.create_run.outputs.run_id }}/TASKS.md
+            .codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md
+            validated-fix.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+      - name: Remove temporary validation manifest
+        shell: bash
+        run: rm -f validated-fix.json
+
+  publish:
+    if: ${{ github.run_attempt == 1 && needs.finalize.result == 'success' }}
+    needs:
+      - preflight
+      - read-alert
+      - validate-exec
+      - finalize
+    permissions:
+      contents: read
+      pull-requests: read
+      vulnerability-alerts: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable base
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify checkout matches immutable base
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Download validated artifact by artifact ID
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          artifact-ids: ${{ needs.finalize.outputs.validated_artifact_id }}
+          path: ${{ runner.temp }}/validated-security-fix
+          merge-multiple: true
+
+      - name: Verify publish inputs and immutable main
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          EXPECTED_PACKAGE_SHA256: ${{ needs.validate-exec.outputs.package_sha256 }}
+          EXPECTED_LOCKFILE_SHA256: ${{ needs.validate-exec.outputs.lockfile_sha256 }}
+          EXPECTED_AUTHORIZATION_SHA256: ${{ needs.validate-exec.outputs.authorization_sha256 }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/validated-security-fix"
+          test -f "$artifact/package.json"
+          test -f "$artifact/pnpm-lock.yaml"
+          test -f "$artifact/validated-fix.json"
+          test "$(sha256sum "$artifact/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
+          test "$(sha256sum "$artifact/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          ARTIFACT_DIR="$artifact" EXPECTED_BASE_SHA="$BASE_SHA" EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" \
+            EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" EXPECTED_AUTHORIZATION_SHA256="$EXPECTED_AUTHORIZATION_SHA256" \
+            node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          import { createHash } from "node:crypto";
+          import path from "node:path";
+          const root = process.env.ARTIFACT_DIR;
+          const manifest = JSON.parse(await fs.readFile(`${root}/validated-fix.json`, "utf8"));
+          if (manifest.schema_version !== 1 || manifest.base_sha !== process.env.EXPECTED_BASE_SHA) throw new Error("needs_human");
+          if (manifest.prepared_sha256?.package_json !== process.env.EXPECTED_PACKAGE_SHA256) throw new Error("needs_human");
+          if (manifest.prepared_sha256?.pnpm_lock_yaml !== process.env.EXPECTED_LOCKFILE_SHA256) throw new Error("needs_human");
+          if (manifest.prepared_sha256?.authorization !== process.env.EXPECTED_AUTHORIZATION_SHA256) throw new Error("needs_human");
+          if (!Array.isArray(manifest.conflict_terms) || !manifest.conflict_terms.includes(manifest.dependency)) throw new Error("needs_human");
+          const walk = async (directory) => {
+            const entries = [];
+            for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+              const fullPath = path.join(directory, entry.name);
+              if (entry.isDirectory()) entries.push(...(await walk(fullPath)));
+              else entries.push(path.relative(root, fullPath).replaceAll(path.sep, "/"));
+            }
+            return entries;
+          };
+          const publishFiles = Object.keys(manifest.publish_sha256 ?? {}).sort();
+          const runFiles = publishFiles.filter((file) => file.startsWith(".codex/runs/"));
+          if (
+            publishFiles.length !== 5 ||
+            !publishFiles.includes("package.json") ||
+            !publishFiles.includes("pnpm-lock.yaml") ||
+            runFiles.length !== 3 ||
+            runFiles.some((file) => !/^\.codex\/runs\/[^/]+\/(?:PLAN|TASKS|REPORT)\.md$/.test(file))
+          ) throw new Error("needs_human");
+          const runIds = new Set(runFiles.map((file) => file.split("/")[2]));
+          if (runIds.size !== 1) throw new Error("needs_human");
+          const expectedFiles = [...publishFiles, "validated-fix.json"].sort();
+          const actualFiles = (await walk(root)).sort();
+          if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) throw new Error("needs_human");
+          for (const [relativePath, expectedHash] of Object.entries(manifest.publish_sha256 ?? {})) {
+            const actualHash = createHash("sha256").update(await fs.readFile(`${root}/${relativePath}`)).digest("hex");
+            if (actualHash !== expectedHash) throw new Error("needs_human");
+          }
+          NODE
+          latest_main="$(curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+          test "$latest_main" = "$BASE_SHA"
+          cp "$artifact/package.json" package.json
+          cp "$artifact/pnpm-lock.yaml" pnpm-lock.yaml
+          run_dir="$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          test -n "$run_dir"
+          test "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" = 1
+          run_id="$(basename "$run_dir")"
+          mkdir -p .codex/runs
+          cp -R "$run_dir" .codex/runs/
+          expected_changes=$(printf '%s\n' \
+            package.json \
+            pnpm-lock.yaml \
+            ".codex/runs/$run_id/PLAN.md" \
+            ".codex/runs/$run_id/TASKS.md" \
+            ".codex/runs/$run_id/REPORT.md" | sort)
+          actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          test "$actual_changes" = "$expected_changes"
+          git diff --check
+
+      - name: Recheck alert advisory and duplicate branch conditions
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          ALERT_NUMBER: ${{ inputs.alert_number }}
+        run: |
+          set -euo pipefail
+          authorization="$RUNNER_TEMP/validated-security-fix/validated-fix.json"
+          dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$authorization")"
+          ghsa_id="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).ghsa_id)' "$authorization")"
+          case "$ALERT_NUMBER" in
+            ''|*[!0-9]*) echo needs_human >&2; exit 1 ;;
+          esac
+          alert="$RUNNER_TEMP/publish-alert.json"
+          advisory="$RUNNER_TEMP/publish-advisory.json"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" > "$alert"
+          AUTH_FILE="$authorization" ALERT_FILE="$alert" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
+          const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
+          if (alert.state !== "open") throw new Error("needs_human");
+          if (alert.dependency?.package?.name !== auth.dependency) throw new Error("needs_human");
+          if (alert.dependency?.package?.ecosystem !== auth.ecosystem) throw new Error("needs_human");
+          if (alert.security_advisory?.ghsa_id !== auth.ghsa_id) throw new Error("needs_human");
+          NODE
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/security-advisories/$ghsa_id" > "$advisory"
+          AUTH_FILE="$authorization" ADVISORY_FILE="$advisory" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
+          const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
+          if (advisory.ghsa_id !== auth.ghsa_id) throw new Error("needs_human");
+          const entries = (advisory.vulnerabilities ?? []).filter((entry) => entry.ecosystem === auth.ecosystem && entry.package?.name === auth.dependency);
+          if (entries.length !== 1) throw new Error("needs_human");
+          const range = entries[0].vulnerable_version_range.replaceAll(",", " ").replace(/\s+/g, " ").trim();
+          const first = entries[0].first_patched_version?.identifier ?? null;
+          if (range !== auth.vulnerable_range || first !== auth.first_patched_version) throw new Error("needs_human");
+          NODE
+          pulls="$RUNNER_TEMP/publish-open-prs.json"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" > "$pulls"
+          AUTH_FILE="$authorization" PULLS_FILE="$pulls" REPOSITORY="$REPOSITORY" GITHUB_TOKEN="$GITHUB_TOKEN" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
+          const pulls = JSON.parse(await fs.readFile(process.env.PULLS_FILE, "utf8"));
+          if (!Array.isArray(pulls) || pulls.length >= 100) throw new Error("needs_human");
+          const conflictTerms = Array.isArray(auth.conflict_terms) && auth.conflict_terms.length > 0
+            ? auth.conflict_terms
+            : [auth.dependency];
+          for (const pull of pulls) {
+            if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
+            const response = await fetch(pull.url + "/files?per_page=100", {
+              headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              },
+            });
+            if (!response.ok) throw new Error("needs_human");
+            const files = await response.json();
+            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            if (files.some((file) => ["package.json", "pnpm-lock.yaml"].includes(file.filename) && typeof file.patch !== "string")) {
+              throw new Error("needs_human");
+            }
+            if (files.some((file) => typeof file.patch === "string" && conflictTerms.some((term) => file.patch.includes(term)))) {
+              throw new Error("needs_human");
+            }
+          }
+          NODE
+          prefix="security/$(printf '%s' "$dependency" | tr '[:upper:]' '[:lower:]' | sed -E 's/^@//; s#/#--#g; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-//; s/-$//')"
+          digest="$(printf '%s' "$dependency" | sha256sum | awk '{print substr($1,1,8)}')"
+          branch_prefix="${prefix}-${digest}/"
+          existing="$RUNNER_TEMP/security-branches.json"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/branches?per_page=100" > "$existing"
+          BRANCH_PREFIX="$branch_prefix" BRANCHES_FILE="$existing" node --input-type=module <<'NODE'
+          import fs from "node:fs/promises";
+          const branches = JSON.parse(await fs.readFile(process.env.BRANCHES_FILE, "utf8"));
+          if (!Array.isArray(branches) || branches.length >= 100 || branches.some((branch) => branch.name.startsWith(process.env.BRANCH_PREFIX))) throw new Error("needs_human");
+          NODE
+
+      - name: Exchange OIDC token for scoped installation token and publish once
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/validated-security-fix"
+          authorization="$artifact/validated-fix.json"
+          dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$authorization")"
+          dependency_key="$(printf '%s' "$dependency" | tr '[:upper:]' '[:lower:]' | sed -E 's/^@//; s#/#--#g; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-//; s/-$//')"
+          dependency_digest="$(printf '%s' "$dependency" | sha256sum | awk '{print substr($1,1,8)}')"
+          branch="security/${dependency_key}-${dependency_digest}/${GITHUB_RUN_ID}"
+          oidc_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=opencode-github-action"
+          oidc_token="$(curl --fail-with-body --silent --show-error --location \
+            --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$oidc_url" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).value))')"
+          test -n "$oidc_token"
+          echo "::add-mask::$oidc_token"
+          installation_token="$(curl --fail-with-body --silent --show-error --location --request POST \
+            --header "Authorization: Bearer $oidc_token" \
+            --header "Accept: application/json" \
+            https://api.opencode.ai/exchange_github_app_token | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>{const token=JSON.parse(data).token;if(typeof token!=="string"||!token)process.exit(1);process.stdout.write(token)})')"
+          test -n "$installation_token"
+          echo "::add-mask::$installation_token"
+          git switch --create "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml .codex/runs
+          git commit -m "Security Update: dependency $dependency"
+          git_credential="$(printf 'x-access-token:%s' "$installation_token" | base64 -w 0)"
+          echo "::add-mask::$git_credential"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $git_credential"
+          latest_main_before_push="$(curl --fail --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+          if [[ "$latest_main_before_push" != "$BASE_SHA" ]]; then
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
+            echo "needs_human: main advanced immediately before publish; no remote branch was pushed" >&2
+            exit 1
+          fi
+          if ! git push origin "$branch"; then
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
+            echo needs_human >&2
+            exit 1
+          fi
+          unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential
+          latest_main_after_push="$(curl --fail --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+          if [[ "$latest_main_after_push" != "$BASE_SHA" ]]; then
+            unset installation_token oidc_token
+            echo "needs_human: main advanced after publish; remote security branch is retained and PR creation is stopped" >&2
+            exit 1
+          fi
+          body="$RUNNER_TEMP/security-pr-body.md"
+          cat > "$body" <<EOF
+          Security dependency update
+
+          This PR contains one validated package.json and pnpm-lock.yaml security update plus sanitized verification artifacts.
+          EOF
+          if ! GH_TOKEN="$installation_token" gh pr create --base main --head "$branch" --title "Security Update: dependency $dependency" --body-file "$body"; then
+            unset GH_TOKEN installation_token oidc_token
+            echo needs_human >&2
+            exit 1
+          fi
+          unset GH_TOKEN installation_token oidc_token

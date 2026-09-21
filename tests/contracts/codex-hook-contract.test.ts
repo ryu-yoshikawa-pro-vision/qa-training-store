@@ -371,7 +371,10 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(windowsScript).toContain("[Console]::Write($fallback)");
           expect(windowsScript).toContain("[System.Security.Cryptography.SHA256]::Create()");
           expect(windowsScript).toContain("Get-ChildItem -LiteralPath $stateDirectory -File");
-          expect(windowsScript).toContain("-LiteralPath $_.FullName -Force -ErrorAction Stop");
+          expect(windowsScript).toContain("Name -match '^[0-9a-fA-F]{64}-[0-9a-fA-F]{64}\\.json$'");
+          expect(windowsScript).toContain("$env:ComSpec /D /S /C");
+          expect(windowsScript).toContain("cd /D");
+          expect(windowsScript).toContain("del /F /Q");
           expect(windowsScript).toContain(
             'EndsWith("-$sessionHash.json", [StringComparison]::OrdinalIgnoreCase)',
           );

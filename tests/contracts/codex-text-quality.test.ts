@@ -1142,6 +1142,7 @@ describe("Codex deterministic text quality contracts", () => {
 
   it("cleans the current session baseline for configured Stop process failures", () => {
     const launcher = process.platform === "win32" ? "windows" : "unix";
+    // Keep the fixture prefix long enough to exercise Windows MAX_PATH cleanup.
     withFixture(
       (root) => {
         const rulesPath = path.join(root, "rules.json");
@@ -1256,7 +1257,7 @@ describe("Codex deterministic text quality contracts", () => {
       "GOOD\n",
       `codex-text-quality-${launcher}-stop-cleanup-failures-`,
     );
-  }, 90_000);
+  }, 180_000);
 
   it("keeps production rules explicit and emits no raw match or full source line", () => {
     const productionRules = JSON.parse(
