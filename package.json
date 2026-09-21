@@ -163,7 +163,7 @@
       "smol-toml": "1.7.1",
       "expo-constants": "57.0.19",
       "xcode@3.0.1>uuid": "11.1.1",
-      "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
+      "@eslint/eslintrc@3.3.6>js-yaml": "4.3.2",
       "@expo/xcpretty@4.4.4>js-yaml": "4.3.2",
       "@react-native/community-cli-plugin@0.86.2>metro": "0.84.5",
       "@react-native/community-cli-plugin@0.86.2>metro-config": "0.84.5",
