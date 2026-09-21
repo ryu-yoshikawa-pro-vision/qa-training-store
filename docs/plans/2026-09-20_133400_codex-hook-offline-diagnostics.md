@@ -33,7 +33,7 @@
 - `PreToolUse`、`SessionStart`、logging Hook、text quality Hookの外部failure契約を既存testと不足testで確認する。
 - 「全Hookエラー」は、Repositoryが所有し外部から観測可能なfailure契約を意味する。内部の全`throw`、user / system / plugin Hook、Host内部失敗までは対象にしない。
 - `baseline_state` の原因を安全な6種類のcodeへ分け、active Stopでstateがcleanupされた後でも再発時の原因分類がHook出力から分かる。
-- `baseline_unavailable` はstateへ保存済みの安全な `code` をHook診断へ含め、active Stop後にstateがcleanupされてもbaseline作成失敗の原因分類を残す。
+- `baseline_unavailable` はstateへ保存済みの`code`が既知の出力許可codeである場合だけHook診断へ`cause=<code>`として含める。regex上validでも未知のcodeはstateとして受理しても外部出力しない。
 - `TextQualityConfigurationError.code` も既存 `baseline_unavailable.code` へ保存し、`baseline_creation` に不必要に潰さない。
 - diagnosticへstate本文、prompt、Hook payload、token、secret、raw session ID、absolute user path、raw exceptionを含めない。
 - state fileが存在しない場合のevent別挙動を維持する。
@@ -48,8 +48,8 @@
 - state readの原因分類は、file I/O層でmissing / read、JSON parse層でJSON、pure validatorでschema / identity / manifestを担当する。state validation中のpath不正を`unsafe_path`等の別codeとして外へ漏らさない。
 - doctorは現在Repository上でHook / configured launcherを実行しない。
 - doctorはworktree、Git index、`.codex/logs`、`.artifacts/codex-text-quality`を変更しない。
-- doctorが読むconfig / stateはsymlinkを追跡せず、期待するfilesystem typeだけを扱う。
-- configured Repository handlerがRepository内のregular fileかつ非symlinkとして存在することは`test:hooks`の静的contractで確認し、doctorへ同じinventoryを持たせない。
+- doctorが読むconfig / stateは、対象fileだけでなくRepository rootから対象までの管理directoryを順に`lstat`し、symlinkを追跡しない。少なくとも`.codex`、存在する場合の`.artifacts`、`.artifacts/codex-text-quality`を実directoryかつ非symlinkとして確認してから配下を読む。
+- configured Repository handlerについても`test:hooks`で`.codex`、`.codex/hooks`、configured handlerの順にfilesystem typeを確認し、Repository内の実directory / regular fileかつ非symlinkであることを静的contractとして固定する。doctorへ同じinventoryを持たせない。
 - doctor CLIの正常系・異常系をtemp fixtureのprocess contractで検証する。
 - Ubuntu / Windowsの既存CI経路を利用し、新しいCI jobを追加しない。
 - 新規runtime dependencyを追加しない。
@@ -90,7 +90,7 @@ Windows:
 
 Codexは同じ有効レイヤーの `hooks.json` と `config.toml` inline Hookを両方読み込めるため、`hooks.json` 自体を不正設定とは扱わない。今回のdoctorはroot `config.toml`だけを対象にするため、root `hooks.json` が存在した場合は診断範囲外として検出する。
 
-Codexはproject設定をproject rootからcwdまで読み込めるが、実Codexのproject root / cwd / trust / managed overrideはRepository外の状態に依存する。今回のdoctorはその解決を再実装せず `未確認` とする。
+Codexはproject設定をproject rootからcwdまで読み込めるが、実Codexのproject root / cwd / trust / managed overrideはRepository外の状態に依存する。今回のdoctorはその解決を再実装せず `N/A`（offlineでは未確認）とする。
 
 参照:
 
@@ -189,9 +189,9 @@ baseline_state_manifest
 - `baseline_state_missing`: state fileが存在しない。
 - `baseline_state_read`: ENOENT以外のfile read失敗。
 - `baseline_state_json`: JSON parse失敗。
-- `baseline_state_schema`: schema version、required field、status、`start_head`形式、status固有field集合などtop-level構造不正。
-- `baseline_state_identity`: root / session identityの形式または期待値不一致。
-- `baseline_state_manifest`: `files`、path、source、SHA-256、violations、fingerprint、count等のmanifest不正。
+- `baseline_state_schema`: schema version、required field欠落、field型不正、status、`start_head`形式、status固有field集合、ready stateの`files`がarrayでない等のtop-level構造不正。
+- `baseline_state_identity`: `root_id` / `session_id_hash` がstringである前提を満たした後の形式不正、またはexpected root / session identityとの不一致。
+- `baseline_state_manifest`: ready stateの`files` array内部にあるentry、Markdown relative path、path重複、source、SHA-256、violations、fingerprint、count等のmanifest不正。
 
 active `Stop` のmissing-state特例は、generic `baseline_state` + `existsSync()` ではなく `baseline_state_missing` を基準に維持する。`PostToolUse`は既存のread-only tool早期returnを先に維持し、read-only以外でstateを読む場合だけ同じcodeをfail-open diagnosticとして扱う。inactive `Stop`は引き続きgeneric blockを返す。
 
@@ -209,17 +209,18 @@ active `Stop` のmissing-state特例は、generic `baseline_state` + `existsSync
 state validationでは`baseline_unavailable.code`を次のように扱う。
 
 - `code`なし: schema v2で既存どおりvalid。
-- `code`あり、かつ`^[a-z0-9_]{1,64}$`に一致: valid。
+- `code`あり、かつ`^[a-z0-9_]{1,64}$`に一致: stateとしてvalid。
 - `code`あり、かつregex不一致: valid stateとして扱わず`baseline_state_schema`。
-- 固定allowlistは追加しない。新しい正規code追加のたびにvalidator側の一覧更新を要求しない。
 
-後続の `PostToolUse` / active `Stop` では、valid `baseline_unavailable` stateにsafe `code` がある場合だけ次の形式で出力する。
+外部出力はstate validationと分ける。`cause=<code>`として出してよいのは、実装時点でproduction経路が生成することを確認した`QualityUnavailable.code`、`TextQualityConfigurationError.code`、`baseline_creation`の固定集合だけとする。regexに一致していてもこの集合に無いcodeはstateとしてはvalidのまま扱い、causeへ出力しない。未知codeを追加するときは、production生成元と非機密性を確認して出力許可集合へ明示追加する。
+
+後続の `PostToolUse` / active `Stop` では、valid `baseline_unavailable` stateに出力許可済みの`code`がある場合だけ次の形式で出力する。
 
 ```text
 Codex text quality hook: quality check unavailable (baseline_unavailable; cause=<code>)
 ```
 
-`code` が無い場合は従来形式を維持する。
+`code` が無い場合、またはregex上validでも出力許可集合に無い場合は従来形式を維持する。
 
 ```text
 Codex text quality hook: quality check unavailable (baseline_unavailable)
@@ -238,9 +239,11 @@ doctor側でstate schemaを別実装しない。
 3. pure state validation
 4. Hook用 `QualityUnavailable` 変換
 
-pure validationは `.codex/hooks/text_quality_state.mjs` へ抽出し、Hookとdoctorから使う。
+pure validationは `scripts/lib/codex-text-quality-state.mjs` へ抽出し、Hookとdoctorから使う。
 
-共有moduleはschema / identity / manifest検証、state status、safe `code` validation、必要なroot identity / state filename helperだけを担当する。baseline生成、Git差分取得、file write / delete、Hook stdout、cleanup、textlint、launcher処理は移動しない。
+共有moduleを診断対象の`.codex`配下へ置かない。doctorは起動時にこのRepository-owned moduleを通常のESM importで読み込んでよいが、診断対象の`.codex`配下からcodeをimport / executeしない。これにより、`.codex`がsymlinkまたは破損している場合でも、その安全性確認より前に診断対象側のmoduleを実行しない。
+
+共有moduleはschema / identity / manifest検証、state status、`baseline_unavailable.code`のregex validation、cause出力許可判定、必要なroot identity / state filename helperだけを担当する。baseline生成、Git差分取得、file write / delete、Hook stdout、cleanup、textlint、launcher処理は移動しない。
 
 Hook本体と共有moduleがNode ESMの `.mjs` であるため、doctorも `scripts/diagnose-codex-hooks.mjs` とする。TypeScript wrapperや `.d.ts` は追加しない。
 
@@ -258,7 +261,7 @@ Hook本体と共有moduleがNode ESMの `.mjs` であるため、doctorも `scri
 package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs
-.codex/hooks/text_quality_state.mjs
+scripts/lib/codex-text-quality-state.mjs
 scripts/diagnose-codex-hooks.mjs
 scripts/verify
 scripts/verify.ps1
@@ -318,7 +321,7 @@ Plan作成後にmainへHook / CI / package manager関連変更が入っていた
 - matcher / timeout
 - Unix / Windows launcher構造
 - `PreToolUse` Windows wrapper経路
-- configured handlerがRepository内のregular fileかつ非symlinkとして存在すること
+- `.codex` / `.codex/hooks` が実directoryかつ非symlinkであり、configured handlerがその配下のregular fileかつ非symlinkとして存在すること
 - stdin / stdout / stderr / exit code
 - fail-open / fail-close
 
@@ -333,7 +336,7 @@ Windows configured commandの確認は既存contractの方式に合わせる。
 
 ### Task 2: state validationを共有する
 
-`text_quality_gate.mjs` の現在の `readState()` からpure validationを `.codex/hooks/text_quality_state.mjs` へ抽出する。
+`text_quality_gate.mjs` の現在の `readState()` からpure validationを `scripts/lib/codex-text-quality-state.mjs` へ抽出する。
 
 責務境界を次で固定する。
 
@@ -343,9 +346,9 @@ Windows configured commandの確認は既存contractの方式に合わせる。
 2. JSON parse層
    - parse failure -> `baseline_state_json`
 3. pure validator
-   - top-level schema / status / status固有field / `start_head` / invalid `baseline_unavailable.code` -> `baseline_state_schema`
-   - `root_id` / `session_id_hash` の形式不正またはexpected identity不一致 -> `baseline_state_identity`
-   - `files` / Markdown relative path / path重複 / source / `content_sha256` / violations / fingerprint / count -> `baseline_state_manifest`
+   - required field欠落、field型不正、top-level schema / status / status固有field / `start_head` / ready stateの非array `files` / invalid `baseline_unavailable.code` -> `baseline_state_schema`
+   - `root_id` / `session_id_hash` がstringである前提を満たした後の形式不正、またはexpected identity不一致 -> `baseline_state_identity`
+   - ready stateの`files` array内部にあるentry / Markdown relative path / path重複 / source / `content_sha256` / violations / fingerprint / count -> `baseline_state_manifest`
 
 pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`にも依存させず、成功時はvalidated state、失敗時は上記3種類のclassificationをcallerへ返す。Hook側だけがそのclassificationを`QualityUnavailable`へ変換し、doctorは同じclassificationをruntime stateの`WARN`表示へ使う。
 
@@ -353,8 +356,8 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 
 共有module追加に伴い、次も同時に更新する。
 
-- `tests/contracts/codex-text-quality.test.ts` のtemp fixtureで`text_quality_gate.mjs`と一緒に`.codex/hooks/text_quality_state.mjs`をコピーする。
-- `scripts/verify` / `scripts/verify.ps1` の必須template file一覧へ`.codex/hooks/text_quality_state.mjs`を追加する。
+- `tests/contracts/codex-text-quality.test.ts` のtemp fixtureでは`scripts/lib`を作成し、`text_quality_gate.mjs`と一緒に`scripts/lib/codex-text-quality-state.mjs`をfixtureの同一relative pathへコピーする。
+- `scripts/verify` / `scripts/verify.ps1` の必須template file一覧へ`scripts/lib/codex-text-quality-state.mjs`を追加する。
 
 これにより、production Hookだけshared moduleを参照してfixture / template contractが欠落する状態を防ぐ。
 
@@ -391,6 +394,8 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 - inactive Stop -> generic block、stateは維持
 - active Stop -> safe cause付きallow diagnostic、cleanupはbest-effort
 - `code`なし -> causeなしの従来 `baseline_unavailable` diagnostic
+- regex一致かつ出力許可済みcode -> cause付きdiagnostic
+- regex一致だが未知のcode -> stateはvalidのまま、causeなしの従来diagnostic
 - regex不一致の`code`が存在 -> `baseline_state_schema`。causeなしのvalid stateとして扱わない
 
 ### Task 5: `test:hooks` を共通入口にする
@@ -425,7 +430,7 @@ pure validatorへfile I/OとJSON parseを入れない。`QualityUnavailable`に�
 - `baseline_state_missing` / `baseline_state_read` / `baseline_state_json` / `baseline_state_schema` / `baseline_state_identity` / `baseline_state_manifest` のprocess境界分類。
 - read-only `PostToolUse` のstate未読・無出力契約。
 - `TextQualityConfigurationError.code` の保存と`baseline_unavailable; cause=<code>`表示。
-- `baseline_unavailable.code`なし / valid / invalidのvalidation契約。
+- `baseline_unavailable.code`なし / regex-valid既知 / regex-valid未知 / regex-invalidのvalidation・出力契約。
 - configured Repository handlerがregular fileかつ非symlinkである静的contract。
 - shared state module追加後もUnix / Windows configured launcherとtemp fixtureが同じproduction経路を実行できること。
 
@@ -446,24 +451,25 @@ pnpm run diagnose:hooks
 
 doctorの責務は次に限定する。
 
-1. Git repository root解決
-2. root `.codex/config.toml` を `lstat` し、regular fileかつ非symlinkであることを確認
-3. root `.codex/config.toml` 読み取り・parse
-4. `[features] hooks = true` をRepository契約として確認
-5. root `.codex/hooks.json` の有無を `lstat` で確認。存在する場合はdoctorの診断範囲外として `ERROR`
-6. 現在設定されているevent / handlerを要約表示。期待する完全なHook inventory、configured handler path、launcher内容の判定は`test:hooks`に任せる
-7. current environmentの主要runtimeだけ確認する。`git`、実行中のNode、Windowsで直接必要な`powershell.exe`までに限定し、shell commandの推移的依存関係を解析しない
-8. `.artifacts/codex-text-quality` の存在確認。存在しなければstate 0件として正常
-9. state directoryを `lstat` し、実directoryかつ非symlinkであることを確認。列挙不能なら `ERROR`
-10. `*.json` state candidateを `lstat` し、directory直下のregular fileかつ非symlinkだけを読む
-11. state filename形式確認
-12. state file read / JSON parse
-13. shared validatorによるstate構造検証
-14. filename root hash / session hashとstateの整合確認
-15. current repository root identityとの一致確認
-16. `start_head` が存在する場合、read-only Git commandでcommit object存在確認
-17. valid `baseline_unavailable` stateではsafe `code` があれば表示
-18. project trust、Hook trust、managed override、実Codex project root / cwd / config layering、Host bindingを`N/A`（offlineでは未確認）として表示
+1. Git repository root解決。ここでGitの利用可否も確認済みとし、同じ確認を重複実装しない
+2. root `.codex` を `lstat` し、実directoryかつ非symlinkであることを確認
+3. root `.codex/config.toml` を `lstat` し、regular fileかつ非symlinkであることを確認
+4. root `.codex/config.toml` 読み取り・parse
+5. `[features] hooks = true` をRepository契約として確認
+6. root `.codex/hooks.json` の有無を `lstat` で確認。存在する場合はdoctorの診断範囲外として `ERROR`
+7. 現在設定されているevent / handlerを要約表示。期待する完全なHook inventory、configured handler path、launcher内容の判定は`test:hooks`に任せる
+8. Nodeはdoctor process自体が実行済みなので別checkを追加しない。Windowsでは現在のconfigured launcherが直接必要とする`powershell.exe`の利用可否だけを追加確認し、欠落時は`ERROR`とする。shell commandの推移的依存関係は解析しない
+9. root `.artifacts` の存在確認。存在しなければstate 0件として正常。存在する場合は`lstat`し、実directoryかつ非symlinkであることを確認
+10. `.artifacts/codex-text-quality` の存在確認。存在しなければstate 0件として正常。存在する場合は`lstat`し、実directoryかつ非symlinkであることを確認。列挙不能なら `ERROR`
+11. `*.json` state candidateを `lstat` し、directory直下のregular fileかつ非symlinkだけを読む
+12. state filename形式確認
+13. state file read / JSON parse
+14. shared validatorによるstate構造検証
+15. filename root hash / session hashとstateの整合確認
+16. current repository root identityとの一致確認
+17. `start_head` が存在する場合、read-only Git commandでcommit object存在確認
+18. valid `baseline_unavailable` stateでは出力許可済みの`code`だけを表示し、regex-validでも未知のcodeは表示しない
+19. project trust、Hook trust、managed override、実Codex project root / cwd / config layering、Host bindingを`N/A`（offlineでは未確認）として表示
 
 handler要約では`command` / `command_windows`本文、EncodedCommand本文、absolute pathを出力しない。event、matcher、handler数、timeout等の静的概要だけを表示する。
 
@@ -490,9 +496,12 @@ exit code:
 
 `ERROR` の例:
 
+- root `.codex` が欠落 / symlink / 非directory
 - root `.codex/config.toml` 欠落 / parse failure / symlink / 非regular file
 - `[features] hooks = true` を満たさない
 - root `.codex/hooks.json` が存在し、doctor単独ではproject Hook全体を診断できない
+- Windowsで直接必要な`powershell.exe`が利用できない
+- 存在する`.artifacts`がsymlink / 非directory
 - state directoryがsymlink / 非directory / 列挙不能
 - `.json` state candidateがsymlink / 非regular file
 
@@ -518,7 +527,8 @@ testではdoctor scriptやshared module、dependencyをfixtureへコピーしな
 - clean fixture / state 0件 -> exit 0
 - project trust等のHost側項目 -> `N/A`表示、exit 0、`WARN`件数へ含めない
 - valid ready state -> exit 0
-- valid `baseline_unavailable` -> safe `code` を表示してWARN / exit 0
+- valid `baseline_unavailable` + 出力許可済みcode -> safe `code` を表示してWARN / exit 0
+- valid `baseline_unavailable` + regex-valid未知code -> code本文を表示せずWARN / exit 0
 - JSON破損 -> WARN / exit 0
 - schema不一致 -> WARN / exit 0
 - root identity不一致 -> WARN / exit 0
@@ -526,7 +536,9 @@ testではdoctor scriptやshared module、dependencyをfixtureへコピーしな
 - invalid manifest -> WARN / exit 0
 - invalid / missing `start_head` object -> WARN / exit 0
 - unreadable state candidate -> WARN / exit 0
+- `.codex` directory symlink / 非directory -> exit 1、配下を読まない
 - config symlink / 非regular file -> exit 1、内容を読まない
+- `.artifacts` directory symlink / 非directory -> exit 1、配下を読まない
 - state directory symlink / 非directory -> exit 1、内容を読まない
 - `.json` state candidate symlink / 非regular file -> exit 1、内容を読まない
 - `[features] hooks = false` -> exit 1
@@ -643,12 +655,12 @@ required job名は変更しない。
 - `TextQualityConfigurationError.code` が既存 `baseline_unavailable.code` へ安全に保存される。
 - `PostToolUse` / active Stopが固定形式のsafe cause diagnosticを出せる。
 - inactive Stopのgeneric blockを維持する。
-- Hookとdoctorが同じpure state validatorを使い、missing / read / JSONとschema / identity / manifestの責務境界が固定されている。
-- shared state moduleがtext quality temp fixtureとverify wrapperの必須template file契約へ含まれている。
+- Hookとdoctorが`scripts/lib/codex-text-quality-state.mjs`の同じpure state validatorを使い、missing / read / JSONとschema / identity / manifestの責務境界が固定されている。
+- shared state moduleが診断対象の`.codex`配下に置かれておらず、text quality temp fixtureとverify wrapperの必須template file契約へ含まれている。
 - read-only `PostToolUse` の既存early return契約が維持される。
-- invalid `baseline_unavailable.code` をvalid stateとして扱わない。
-- doctorがconfig / stateのsymlinkを追跡しない。
-- configured Repository handlerのregular file / 非symlink契約を`test:hooks`で確認し、doctorへinventoryを重複実装していない。
+- regex-invalidな`baseline_unavailable.code`をvalid stateとして扱わず、regex-validでも未知のcodeをcauseとして外部出力しない。
+- doctorが`.codex`、config、存在する`.artifacts`、state directory、state fileのancestor / target symlinkを追跡しない。
+- configured Repository handlerの`.codex` / `.codex/hooks` ancestorとhandler fileのregular file / 非symlink契約を`test:hooks`で確認し、doctorへinventoryを重複実装していない。
 - doctorがHook / launcherを実Repository上で実行しない。
 - doctorがworktree、index、log、stateを変更しない。
 - state directoryなし / state 0件を正常扱いする。
@@ -677,8 +689,9 @@ required job名は変更しない。
 
 対策:
 
-- `baseline_unavailable.code` は既存regexを通した値だけを出力する。
-- 固定allowlistは追加せず、regex不一致の既存stateは`baseline_state_schema`として扱う。
+- `baseline_unavailable.code` のstate validationは既存regexを維持する。
+- cause出力はproduction生成元と非機密性を確認した固定集合だけに限定する。regex-validでも未知のcodeは外へ出さない。
+- regex不一致の既存stateは`baseline_state_schema`として扱う。
 - state本文、path、session ID、prompt、payload、secret、raw exceptionを出さない。
 
 ### doctorの副作用・外部file read
@@ -689,7 +702,8 @@ doctorがHook / launcher実行、Git index refresh、symlink追跡をすると�
 
 - current RepositoryではHook / launcherを実行しない。
 - Gitはread-only commandだけを使う。
-- config / stateは `lstat` しsymlinkを追跡しない。configured handlerのfilesystem契約は`test:hooks`へ任せる。
+- config / stateは最終fileだけでなく`.codex`、存在する`.artifacts`、state directoryまで各ancestorを順に`lstat`し、symlinkを追跡しない。configured handler側は`test:hooks`で`.codex`、`.codex/hooks`、handlerを同様に確認する。
+- doctorのshared validatorは`scripts/lib`からimportし、診断対象の`.codex`配下からcodeをimport / executeしない。
 - temp fixture contractで実行前後を比較する。
 
 ### Windows CI時間とfilesystem差異
@@ -735,7 +749,7 @@ doctorがHook / launcher実行、Git index refresh、symlink追跡をすると�
 package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs
-.codex/hooks/text_quality_state.mjs
+scripts/lib/codex-text-quality-state.mjs
 scripts/diagnose-codex-hooks.mjs
 scripts/verify
 scripts/verify.ps1
