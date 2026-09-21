@@ -35,6 +35,7 @@ const repoRoot = path.resolve(process.cwd());
 const scannerPath = path.join(repoRoot, "scripts", "lint-text-quality.mjs");
 const comparisonPath = path.join(repoRoot, "scripts", "check-text-quality-changes.mjs");
 const gatePath = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+const stateModulePath = path.join(repoRoot, "scripts", "lib", "codex-text-quality-state.mjs");
 const textlintConfigPath = path.join(repoRoot, ".textlintrc.json");
 
 const rule: TextRule = {
@@ -158,9 +159,14 @@ function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), tempPrefix));
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+  fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
   fs.copyFileSync(scannerPath, path.join(root, "scripts", "lint-text-quality.mjs"));
   fs.copyFileSync(comparisonPath, path.join(root, "scripts", "check-text-quality-changes.mjs"));
   fs.copyFileSync(gatePath, path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+  fs.copyFileSync(
+    stateModulePath,
+    path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
+  );
   fs.copyFileSync(textlintConfigPath, path.join(root, ".textlintrc.json"));
   writeFile(
     root,
@@ -1473,7 +1479,10 @@ describe("Codex deterministic text quality contracts", () => {
         "Codex text quality hook: quality check unavailable (textlint_config_unavailable)",
         ["start", root],
       );
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({
+        status: "baseline_unavailable",
+        code: "textlint_config_unavailable",
+      });
     });
 
     withFixture((root) => {
@@ -1485,7 +1494,10 @@ describe("Codex deterministic text quality contracts", () => {
         "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
         ["start", root],
       );
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({
+        status: "baseline_unavailable",
+        code: "textlint_config_invalid",
+      });
     });
 
     withFixture((root) => {
@@ -1501,7 +1513,8 @@ describe("Codex deterministic text quality contracts", () => {
         expect(prompt.stdout).not.toContain(value);
         expect(prompt.stderr).not.toContain(value);
       }
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({ status: "baseline_unavailable" });
+      expect(readGateState(root).code).toMatch(/^[a-z0-9_]{1,64}$/u);
     });
 
     withFixture((root) => {
@@ -1522,6 +1535,126 @@ describe("Codex deterministic text quality contracts", () => {
         [root],
       );
       expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 90_000);
+
+  it("keeps baseline_unavailable causes safe across PostToolUse and active Stop", () => {
+    withFixture((root) => {
+      removeFixtureFile(path.join(root, ".textlintrc.json"));
+      const firstPrompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(firstPrompt.status).toBe(0);
+      const unavailableStateText = fs.readFileSync(
+        path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+        "utf8",
+      );
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse safe unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+        [root],
+      );
+      expect(
+        fs.readFileSync(
+          path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+          "utf8",
+        ),
+      ).toBe(unavailableStateText);
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: "Text quality check unavailable; completion cannot be confirmed.",
+      });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop safe unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      delete state.code;
+      state.status = "baseline_unavailable";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse unavailable without cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop unavailable without cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      state.status = "baseline_unavailable";
+      state.code = "regex_valid_but_unknown";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse unknown unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      expect(post.stdout).not.toContain("regex_valid_but_unknown");
+      expect(stateFiles(root)).toHaveLength(1);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      state.status = "baseline_unavailable";
+      state.code = "INVALID-CODE";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse invalid unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_state_schema)",
+        [root],
+      );
+      expect(post.stdout).not.toContain("INVALID-CODE");
     });
   }, 90_000);
 
@@ -2087,7 +2220,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         post,
         "PostToolUse baseline unavailable",
-        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
         ["second prompt", root],
       );
 
@@ -2101,7 +2234,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         activeStop,
         "active Stop baseline unavailable",
-        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
         ["second prompt", root],
       );
       expect(stateFiles(root)).toHaveLength(0);
@@ -2126,7 +2259,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         activeStop,
         "active Stop corrupt state",
-        "Codex text quality hook: quality check unavailable (baseline_state)",
+        "Codex text quality hook: quality check unavailable (baseline_state_json)",
         [root],
       );
       expect(stateFiles(root)).toHaveLength(0);
@@ -2156,7 +2289,7 @@ describe("Codex deterministic text quality contracts", () => {
         expectStructuredSystemMessage(
           activeStop,
           `active Stop ${identityField}`,
-          "Codex text quality hook: quality check unavailable (baseline_state)",
+          "Codex text quality hook: quality check unavailable (baseline_state_identity)",
           [root],
         );
         expect(stateFiles(root)).toHaveLength(0);
@@ -2171,7 +2304,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         missingPost,
         "missing PostToolUse state",
-        "Codex text quality hook: quality check unavailable (baseline_state)",
+        "Codex text quality hook: quality check unavailable (baseline_state_missing)",
         [root],
       );
 

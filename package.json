@@ -29,6 +29,8 @@
     "test:component:native": "jest --config jest.config.cjs",
     "test:component": "pnpm run test:component:web && pnpm run test:component:native",
     "test:contracts": "vitest run tests/contracts --exclude tests/contracts/training-runtime-integration.test.ts --exclude \"output/**\" --no-file-parallelism --maxWorkers=1 --testTimeout=30000",
+    "test:hooks": "vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts tests/contracts/codex-hook-diagnostics.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000",
+    "diagnose:hooks": "node scripts/diagnose-codex-hooks.mjs",
     "test:contracts:training-runtime": "vitest run tests/contracts/training-runtime-integration.test.ts --exclude \"output/**\" --no-file-parallelism --maxWorkers=1 --testTimeout=180000",
     "test:agentic-qa:preparation": "vitest run tests/runtime/agentic-qa-preparation.test.ts --no-file-parallelism --maxWorkers=1",
     "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:repository && pnpm run test:component && pnpm run test:contracts",

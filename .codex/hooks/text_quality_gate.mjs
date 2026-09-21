@@ -10,6 +10,17 @@ import {
   loadRules,
   scanTextQuality,
 } from "../../scripts/lint-text-quality.mjs";
+import {
+  STATE_SCHEMA_VERSION,
+  STATE_STATUS,
+  StateValidationError,
+  diagnosticCauseFor,
+  isValidUnavailableCode,
+  rootIdForPath,
+  sessionIdHashFor,
+  stateFileName,
+  validateState,
+} from "../../scripts/lib/codex-text-quality-state.mjs";
 
 const EXPECTED_EVENTS = new Set(["UserPromptSubmit", "PostToolUse", "Stop"]);
 const READ_ONLY_TOOLS = new Set([
@@ -28,17 +39,12 @@ const READ_ONLY_TOOLS = new Set([
   "view_image",
 ]);
 const MARKDOWN_PATH_PATTERN = /\.md$/iu;
-const STATE_SCHEMA_VERSION = 2;
-const STATE_STATUS = Object.freeze({
-  READY: "ready",
-  UNAVAILABLE: "baseline_unavailable",
-});
-
 class QualityUnavailable extends Error {
-  constructor(code) {
+  constructor(code, diagnosticCause) {
     super(code);
     this.name = "QualityUnavailable";
     this.code = code;
+    this.diagnosticCause = diagnosticCause;
   }
 }
 
@@ -436,120 +442,54 @@ async function makePairs(root, state, rules, mappings, entryByPath, changedPaths
 }
 
 function makeStatePath(root, sessionId) {
-  const rootId = sha256(path.resolve(root));
-  const sessionIdHash = sha256(sessionId);
+  const rootId = rootIdForPath(root);
+  const sessionIdHash = sessionIdHashFor(sessionId);
   return {
     rootId,
     sessionIdHash,
-    path: path.join(root, ".artifacts", "codex-text-quality", `${rootId}-${sessionIdHash}.json`),
+    path: path.join(
+      root,
+      ".artifacts",
+      "codex-text-quality",
+      stateFileName(rootId, sessionIdHash),
+    ),
   };
 }
 
 function readState(statePath, stateInfo) {
+  let stateText;
   try {
-    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
-    if (
-      !state ||
-      typeof state !== "object" ||
-      state.schema_version !== STATE_SCHEMA_VERSION ||
-      typeof state.root_id !== "string" ||
-      typeof state.session_id_hash !== "string" ||
-      typeof state.status !== "string"
-    ) {
-      throw new Error("invalid state");
-    }
-    if (
-      (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
-      !/^[0-9a-f]{64}$/iu.test(state.root_id) ||
-      !/^[0-9a-f]{64}$/iu.test(state.session_id_hash) ||
-      (stateInfo &&
-        (state.root_id !== stateInfo.rootId || state.session_id_hash !== stateInfo.sessionIdHash))
-    ) {
-      throw new Error("invalid state identity");
-    }
+    stateText = fs.readFileSync(statePath, "utf8");
+  } catch (error) {
+    throw new QualityUnavailable(error?.code === "ENOENT" ? "baseline_state_missing" : "baseline_state_read");
+  }
 
-    if (state.status === STATE_STATUS.UNAVAILABLE) {
-      const allowedKeys = new Set([
-        "schema_version",
-        "root_id",
-        "session_id_hash",
-        "start_head",
-        "status",
-        "code",
-      ]);
-      if (
-        Object.keys(state).some((key) => !allowedKeys.has(key)) ||
-        (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
-        (state.code !== undefined &&
-          (typeof state.code !== "string" || !/^[a-z0-9_]{1,64}$/u.test(state.code)))
-      ) {
-        throw new Error("invalid unavailable state");
-      }
-      return state;
-    }
-
-    if (
-      state.status !== STATE_STATUS.READY ||
-      typeof state.start_head !== "string" ||
-      !Array.isArray(state.files)
-    ) {
-      throw new Error("invalid ready state");
-    }
-    const readyKeys = new Set([
-      "schema_version",
-      "root_id",
-      "session_id_hash",
-      "status",
-      "start_head",
-      "files",
-    ]);
-    if (Object.keys(state).some((key) => !readyKeys.has(key))) {
-      throw new Error("invalid ready state fields");
-    }
-    const paths = new Set();
-    for (const entry of state.files) {
-      if (
-        !entry ||
-        typeof entry.path !== "string" ||
-        !isMarkdownPath(entry.path) ||
-        normalizeGitPath(entry.path) !== entry.path ||
-        typeof entry.source !== "string" ||
-        !["head_blob", "worktree", "worktree_missing"].includes(entry.source) ||
-        paths.has(entry.path)
-      ) {
-        throw new Error("invalid state entry");
-      }
-      paths.add(entry.path);
-      if (entry.source === "worktree") {
-        if (
-          !/^[0-9a-f]{64}$/iu.test(entry.content_sha256) ||
-          !Array.isArray(entry.violations) ||
-          entry.violations.some(
-            (violation) =>
-              !violation ||
-              typeof violation.fingerprint !== "string" ||
-              !/^[A-Za-z0-9._:-]+:[0-9a-f]{64}$/iu.test(violation.fingerprint) ||
-              !Number.isInteger(violation.count) ||
-              violation.count < 1,
-          )
-        ) {
-          throw new Error("invalid worktree state entry");
-        }
-      } else if (entry.source === "worktree_missing") {
-        if (!Array.isArray(entry.violations) || entry.violations.length !== 0) {
-          throw new Error("invalid missing state entry");
-        }
-      }
-    }
-    return state;
+  let state;
+  try {
+    state = JSON.parse(stateText);
   } catch {
-    throw new QualityUnavailable("baseline_state");
+    throw new QualityUnavailable("baseline_state_json");
+  }
+
+  try {
+    return validateState(state, {
+      expectedRootId: stateInfo?.rootId,
+      expectedSessionIdHash: stateInfo?.sessionIdHash,
+    });
+  } catch (error) {
+    if (error instanceof StateValidationError) {
+      throw new QualityUnavailable(error.code);
+    }
+    throw new QualityUnavailable("baseline_state_schema");
   }
 }
 
 function writeUnavailableState(stateInfo, startHead, error) {
-  const errorCode = error instanceof QualityUnavailable ? error.code : "baseline_creation";
-  const code = /^[a-z0-9_]{1,64}$/u.test(errorCode) ? errorCode : "baseline_creation";
+  const errorCode =
+    error instanceof QualityUnavailable || error instanceof TextQualityConfigurationError
+      ? error.code
+      : "baseline_creation";
+  const code = isValidUnavailableCode(errorCode) ? errorCode : "baseline_creation";
   const state = {
     schema_version: STATE_SCHEMA_VERSION,
     root_id: stateInfo.rootId,
@@ -655,11 +595,15 @@ function formatViolations(violations) {
   return violations.map(formatViolation).join("; ");
 }
 
-function diagnostics(code) {
+function diagnostics(code, diagnosticCause) {
+  const safeCause = code === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+  const message = safeCause
+    ? `Codex text quality hook: quality check unavailable (baseline_unavailable; cause=${safeCause})`
+    : `Codex text quality hook: quality check unavailable (${code})`;
   process.stdout.write(
     `${JSON.stringify({
       continue: true,
-      systemMessage: `Codex text quality hook: quality check unavailable (${code})`,
+      systemMessage: message,
     })}\n`,
   );
 }
@@ -693,7 +637,7 @@ async function processPostToolUse(payload) {
   const stateInfo = makeStatePath(root, payload.session_id);
   const state = readState(stateInfo.path, stateInfo);
   if (state.status !== STATE_STATUS.READY) {
-    throw new QualityUnavailable("baseline_unavailable");
+    throw new QualityUnavailable("baseline_unavailable", state.code);
   }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
   const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
@@ -714,8 +658,7 @@ async function processStop(payload) {
     if (
       payload.stop_hook_active === true &&
       error instanceof QualityUnavailable &&
-      error.code === "baseline_state" &&
-      !fs.existsSync(stateInfo.path)
+      error.code === "baseline_state_missing"
     ) {
       outputAllow();
       return;
@@ -723,7 +666,7 @@ async function processStop(payload) {
     throw error;
   }
   if (state.status !== STATE_STATUS.READY) {
-    throw new QualityUnavailable("baseline_unavailable");
+    throw new QualityUnavailable("baseline_unavailable", state.code);
   }
   await ensureTextlintConfiguration();
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
@@ -776,7 +719,7 @@ async function main() {
     if (expectedEvent === "Stop" && payload?.stop_hook_active !== true) {
       outputBlock("Text quality check unavailable; completion cannot be confirmed.");
     } else {
-      diagnostics(code);
+      diagnostics(code, error?.diagnosticCause);
       cleanupAllowedStop(payload);
     }
     return 0;

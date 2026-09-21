@@ -395,6 +395,31 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     }
   });
 
+  it("keeps configured Repository Hook ancestors and handlers on real filesystem entries", () => {
+    const codexDirectory = path.join(repoRoot, ".codex");
+    const hooksDirectory = path.join(codexDirectory, "hooks");
+    const codexStats = fs.lstatSync(codexDirectory);
+    const hooksStats = fs.lstatSync(hooksDirectory);
+
+    expect(codexStats.isDirectory()).toBe(true);
+    expect(codexStats.isSymbolicLink()).toBe(false);
+    expect(hooksStats.isDirectory()).toBe(true);
+    expect(hooksStats.isSymbolicLink()).toBe(false);
+
+    const configuredHandlerNames = [
+      "pre_tool_use_policy.mjs",
+      "pre_tool_use_policy_windows.ps1",
+      "log_event.mjs",
+      "text_quality_gate.mjs",
+      "session_start_context.mjs",
+    ];
+    for (const handlerName of configuredHandlerNames) {
+      const handlerStats = fs.lstatSync(path.join(hooksDirectory, handlerName));
+      expect(handlerStats.isFile(), handlerName).toBe(true);
+      expect(handlerStats.isSymbolicLink(), handlerName).toBe(false);
+    }
+  });
+
   it("accepts a large Bash command at the Node process boundary", () => {
     const command = `echo ${"x".repeat(64 * 1024)}`;
     const result = runNodeHook(

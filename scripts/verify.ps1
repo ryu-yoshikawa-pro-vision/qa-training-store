@@ -85,6 +85,8 @@ function Test-TemplateContract {
         ".codex/hooks/text_quality_gate.mjs",
         ".codex/text-quality-rules.json",
         "scripts/lint-text-quality.mjs",
+        "scripts/lib/codex-text-quality-state.mjs",
+        "scripts/diagnose-codex-hooks.mjs",
         "scripts/check-text-quality-changes.mjs",
         ".codex/templates/PLAN.md",
         ".codex/templates/REPORT.md",
@@ -549,11 +551,11 @@ function Test-PowerShellHasCodex {
 function Test-HookContracts {
     $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
     if ($null -ne $pnpm) {
-        & $pnpm.Source exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+        & $pnpm.Source run test:hooks
     }
     else {
         $corepack = Get-Command corepack -ErrorAction Stop
-        & $corepack.Source pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts tests/contracts/codex-text-quality.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+        & $corepack.Source pnpm run test:hooks
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Codex Hook contract tests failed (exit=$LASTEXITCODE)"
