@@ -361,3 +361,28 @@
   - live E2E。
   - Issue #117更新 / close。
 - Progress: 100% (53/53)
+
+
+## 2026-09-21 23:09 (JST)
+
+- 概要:
+  - ここまでの全レビュー結果を根本原因で再統合し、実装開始前に未反映の必須修正を3件へ限定した。
+  - 新しい独立blockerは追加せず、既存trust boundaryを閉じる修正だけをcanonical Planへ反映した。
+- 反映内容:
+  - Case BのAgent-visible workspaceから、Black-box用Challenge / runbook、Instructor material、protected patch / answer keyに加え、現行sourceで`CHALLENGE-BASIC-001`のactual defect / expected behaviorを直接含む`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`を除外する契約へ変更した。汎用answer-key scannerは追加しない。
+  - 全case workspaceはsanitized Targetのtracked contentを`.git`なしで複製し、case固有runner stateを適用した後にfresh Git repositoryを作る。Agent開始時HEADはparentなしroot baseline commit 1件だけとし、detached、remote 0件、alternatesなし、tracked cleanをpreflightする。
+  - canonical completion runではEvaluator working treeを既存Trigger Evalと同じ境界で`.codex/runs/**`以外cleanに固定し、`source_revision_git_sha == evaluator_git_sha`を必須にした。historical revision評価はPR6成功条件へ含めない。
+  - sanitized Targetから`scripts/evals/skill-workflow-evals.ts`、`scripts/evals/run-skill-workflow-evals.ts`、`tests/repository-contract/skill-workflow-evals.test.ts`を明示的に除外する契約を追加した。
+- latest main確認:
+  - latest `main`: `fa930b81c891051335082174945f6d918c20722b`。
+  - Plan branchは3 commit behind。
+  - 最新1 commitは`@expo/xcpretty@4.4.4>js-yaml`のsecurity override / lockfile更新で、PR6設計を変えるmaterial driftは確認していない。
+- 過剰設計確認:
+  - 追加case、汎用answer-key scanner、Target Manager、Git履歴管理framework、Dependency Manager、Patch Manager、Workflow Engine、Native log parser frameworkは追加しない。
+  - 現在の親Plan + 3詳細Planで責務分離できているため、追加分割は行わない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - installed Codex smoke probe / live E2E。
+  - Issue #117更新 / close。
+- Progress: 100% (59/59)

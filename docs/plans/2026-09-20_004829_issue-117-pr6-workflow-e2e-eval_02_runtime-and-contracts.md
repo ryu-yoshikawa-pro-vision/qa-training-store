@@ -23,21 +23,21 @@ Evaluator rootとRouting / Workflow Targetを分離する。PR6 runner自身はT
 
 sanitized Target生成手順:
 
-1. 生成元の`source_revision_git_sha`を40桁SHAで確定する。
+1. canonical completion runではEvaluator checkoutのHEADを`evaluator_git_sha`として取得し、既存Trigger Evalの`sourceStatusOutsideRunArtifacts()`と同じ境界で`.codex/runs/**`以外のsource changeが0件であることをfail-close確認する。`source_revision_git_sha`はこの`evaluator_git_sha`と同値に固定し、historical revisionをcanonical PASS条件へ含めない。
 2. そのrevisionのtracked contentだけをGit objectからtemporary directoryへexportする。Evaluator checkoutのfilesystem copyやuntracked fileは入力にしない。
-3. Agentへ不要な`.agents/skills/*/evals/**`、過去`.codex/runs/**`、過去`docs/plans/**`、`training/agentic-qa/instructor/**`、PR6 evaluator / repository-contract / answer keyを除外する。
+3. Agentへ不要な`.agents/skills/*/evals/**`、過去`.codex/runs/**`、過去`docs/plans/**`、`training/agentic-qa/instructor/**`、PR6 answer keyを除外する。PR6 evaluator / repository-contractは曖昧なprefixではなく、少なくとも`scripts/evals/skill-workflow-evals.ts`、`scripts/evals/run-skill-workflow-evals.ts`、`tests/repository-contract/skill-workflow-evals.test.ts`を明示的に除外する。
 4. export先でfresh Git repositoryを作り、個人情報を使わない固定local identityで1 synthetic commitだけ作る。original history / remoteは引き継がない。
 5. HEADをdetachedにし、working tree clean、remote 0件を確認する。
-6. runnerへ`--target-root`と`--source-revision-git-sha <40 lowercase hex>`を渡す。runnerはfixture適用前のsanitized Target `git rev-parse HEAD`を`routing_source_git_sha`として記録する。`target_git_sha`という重複fieldは作らない。
-7. 各case workspaceでrunner-owned fixture / protected patchを適用し、Agent開始前状態をbaseline commitしたHEADを`case_baseline_git_sha`として記録する。case baseline commit作成前後で`.agents/skills/**`、`AGENTS.md`、Repository mapping等のrouting sourceが変わっていないことをhash / diffで確認する。
+6. runnerへ`--target-root`と`--source-revision-git-sha <40 lowercase hex>`を渡す。runnerは`source_revision_git_sha == evaluator_git_sha`を再確認し、fixture適用前のsanitized Target `git rev-parse HEAD`を`routing_source_git_sha`として記録する。`target_git_sha`という重複fieldは作らない。
+7. 各case workspaceはsanitized Targetのtracked contentを`.git`なしで複製し、runner-owned fixture / protected patch / case固有Agent-visible除外を適用した後にfresh `git init`する。固定local identityでparentなしroot baseline commitを1件だけ作り、HEADをdetachedにする。`case_baseline_git_sha`はこのAgent開始時root HEADとする。case preflightでparentなし、remote 0件、Git alternatesなし、tracked cleanを確認し、case baseline作成前後で`.agents/skills/**`、`AGENTS.md`、Repository mapping等のrouting source内容が意図せず変わっていないことをhash / path比較で確認する。
 
 Targetはcanonical 6 Skill、`AGENTS.md`、Repository adapter、Product / Test source等の通常contextを保持する。Case B Gray-boxでもProduct / Test sourceを物理的に削除せず、oracleとして使わない契約を評価する。
 
-runnerはTarget root、clean / detached、Evaluatorとのrealpath分離、required / forbidden path、remote absenceをfail-close preflightする。`source_revision_git_sha`はsanitized Target生成元、`routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`は各caseでAgentが実際に読むbaseline HEADであり意味を混同しない。provenance frameworkは追加しない。
+runnerはEvaluator source clean、`source_revision_git_sha == evaluator_git_sha`、Target rootのclean / detached、Evaluatorとのrealpath分離、required / forbidden path、remote absenceをfail-close preflightする。`source_revision_git_sha`はcanonical Evaluator revision、`routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`は各caseでAgentが実際に読むparentなしroot baseline HEADであり意味を混同しない。provenance frameworkは追加しない。
 
 Target外のEvaluator checkoutまでOSレベルでread-denyする独自sandboxは追加しない。Evaluator absolute path、answer key、expected値をprompt / environment / Agent-visible fileへ露出しない。Case Bのchallenge / protected patch / answer keyはEvaluator working treeではなく`source_revision_git_sha`のGit objectから読み、検証済みpatch bytesだけをcase workspaceへ適用する。Evaluator checkoutのProduct fileをcase workspaceへコピーしない。
 
-各caseはsanitized Targetからfreshな一時case workspaceを作る。実Agent write、Git state、case-local Run Artifactはcase workspace内だけに閉じる。
+各caseはsanitized Targetのtracked contentからfreshな一時case workspaceを作るが、sanitized Targetの`.git`、synthetic commit、remote、Git object historyはコピーしない。実Agent write、root baseline以降のGit state、case-local Run Artifactはcase workspace内だけに閉じる。
 
 canonical live invocationはmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`、`-c shell_environment_policy.inherit="core"`、`-c web_search="disabled"`を全caseとCase B capability probeで固定する。Case Bでuser configを有効化する追加probeは行わない。Repository外Skillが実際に注入された場合は既存OTel契約どおりunexpected single canonical SkillをFAIL、unknown / multipleを`unobservable`へfail-closeする。
 
@@ -51,7 +51,7 @@ stageごとにturn開始前snapshotを取得し、そのturnで増えた変更�
 - Case A implementation: `status.mjs`、`status.test.mjs`、case-local Runだけ変更可。
 - Case A review: Product / fixture変更0件。case-local Runだけ変更可。
 - Case A repair: `status.mjs`とcase-local Runだけ変更可。implementation成功時の`status.test.mjs` digestはfreezeし、変更をFAILにする。
-- Case B QA: Product / Test source変更0件。case-local Runとofficial QA Evidenceだけwrite可。SourceはGray-boxでread可能だがoracle利用を要求しない。Black-box用Challenge / runbookはAgent-visible workspaceへ置かない。
+- Case B QA: Product / Test source変更0件。case-local Runとofficial QA Evidenceだけwrite可。SourceはGray-boxでread可能だがoracle利用を要求しない。Black-box用Challenge / runbook、Instructor material、protected patch / answer keyに加え、`CHALLENGE-BASIC-001`のground truthを直接含む`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`はAgent-visible workspaceへ置かない。
 - Case B repair: protected patchが触れたProduct source pathとcase-local Runだけを修正対象とする。`dist/**`は固定`build:web`が生成する一時validation outputとして許容するがProduct `changed_files`には含めない。`node_modules/**`、package / lockfile、依存設定の変更はrepairとして許可しない。Evaluator answer key、protected patch file、Instructor materialをworkspaceへ持ち込まない。
 - Case B runner validation: Agent workspaceの`dist/**` / `node_modules/**`を再利用せず、case baseline + allowed Product diffだけからfresh validation workspaceを作り、固定offline dependency preparation、`build:web`、新Runtime ground-truth validationを実行する。
 - Case C repair: `config.json`、`protected-data/keep.txt`、case-local Runをfile scope内とする。ただし`keep.txt`の削除 / rename / move / 内容変更は禁止し、`validate.mjs`変更も禁止する。

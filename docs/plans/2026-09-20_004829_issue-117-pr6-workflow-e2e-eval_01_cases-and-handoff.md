@@ -36,7 +36,7 @@ handoff caseの実行方法は次へ固定する。
 
 #### 共通fixture / Run Artifact準備
 
-Case A / CのfixtureとCase Dのrunner-owned EvidenceはProduct sourceへ追加しない。callerが用意したsanitized Targetからrunnerが各fresh case workspaceを作り、Agent turn開始前にCase A / Cだけ次の固定pathをbaselineへ生成する。
+Case A / CのfixtureとCase Dのrunner-owned EvidenceはProduct sourceへ追加しない。runnerは各caseについてsanitized Targetのtracked contentだけを`.git`なしでfresh case workspaceへ複製し、case固有runner stateを適用してからfresh Git repositoryを作る。Agent開始時HEADはparentを持たないroot baseline commit 1件だけとし、detached HEAD、remote 0件、Git alternatesなし、tracked cleanを確認する。sanitized Targetのsynthetic commitやoriginal historyをcase workspaceへ引き継がない。Case A / Cだけ、root baseline commit前に次の固定pathを生成する。
 
 ```text
 workflow-e2e-fixtures/
@@ -139,13 +139,14 @@ Runner preparation:
 
 1. Evaluatorは`source_revision_git_sha`のGit objectから`CHALLENGE-BASIC-001/challenge.json`、protected patch、answer keyを読み、working tree上の同名fileを正本にしない。
 2. protected patchはEvaluator側で既存`validateProtectedPatch()`相当の検査を行い、patch SHA / touched paths / bytesを固定する。case workspaceへEvaluator checkoutのProduct fileをコピーせず、同一patch bytesだけを`git apply --check` → `git apply`する。
-3. Case BのAgent-visible workspaceから`training/agentic-qa/challenges/CHALLENGE-BASIC-001/challenge.json`と`runbook.md`、`training/agentic-qa/instructor/**`、protected patch、answer key、PR6 answer keyを除外する。Black-box用の`out_of_scope`や「source / testを見ない」指示をAgentへ露出せず、QA入力は固定CharterとNormative Specを正本にする。
-4. dependency preparationはcase workspaceで`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定する。完了後に`git diff --exit-code HEAD --`でtracked content不変を確認する。offline store不足、install失敗、tracked diff発生はcapability不足の`not_executed`ではなくcase-local preparation `fail`とする。汎用Dependency Managerやplatform別fallbackを追加しない。
-5. runnerがcase workspaceで`build:web`を実行し、ground-truth sanityでdefectを確認する。既存private helperが必要なら挙動変更なしのnarrow exportだけを追加し、Black-box preparation全体を再利用しない。
-6. patched source workspaceで`scripts/serve-web-dist.ts`をrunnerがchild processとして起動し、QA turnの間だけRuntimeを保持する。
-7. defect sanity直後に既存`resetBrowserScenario(page, baseUrl, "suspended-user", true)`を再利用して`/login`へ戻し、`scenario-shop.session-id`が存在しないことをrunnerが確認してからAgentへhandoffする。
-8. `QA_AGENT.md`のGray-box seed mappingはPR6専用例外を追加せず、実装正本`src/seeds/metadata.ts`を参照する形へ修正する。
-9. QA / repairとも同じAgent source workspaceを使う。非Git QA root、`--skip-git-repo-check`、Skill / Referenceコピー、Run Artifact同期、cwd切替は作らない。
+3. Case BのAgent-visible workspaceから`training/agentic-qa/challenges/CHALLENGE-BASIC-001/challenge.json`と`runbook.md`、`training/agentic-qa/instructor/**`、protected patch、answer key、PR6 answer keyを除外する。加えて、現行sourceで`CHALLENGE-BASIC-001`のactual defect / expected behaviorを直接含む`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`も除外する。Black-box用の`out_of_scope`や「source / testを見ない」指示をAgentへ露出せず、QA入力は固定CharterとNormative Specを正本にする。汎用answer-key scannerは追加せず、latest `main`取り込み後のmaterial drift確認でこのexplicit denylistを再確認する。
+4. 上記除外とprotected patch適用を終えた状態でfresh Git repositoryを作り、固定local identityでparentなしroot baseline commitを1件だけ作成する。HEADをdetachedにし、remote 0件、`.git/objects/info/alternates`なし、`git rev-list --parents -n 1 HEAD`にparentがないこと、tracked cleanを確認してからdependency preparationへ進む。
+5. dependency preparationはcase workspaceで`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定する。完了後に`git diff --exit-code HEAD --`でtracked content不変を確認する。offline store不足、install失敗、tracked diff発生はcapability不足の`not_executed`ではなくcase-local preparation `fail`とする。汎用Dependency Managerやplatform別fallbackを追加しない。
+6. runnerがcase workspaceで`build:web`を実行し、ground-truth sanityでdefectを確認する。既存private helperが必要ならEvaluator側からだけ使える挙動変更なしのnarrow exportに留め、Agent-visible workspaceへground-truth helperを戻さない。Black-box preparation全体を再利用しない。
+7. patched source workspaceで`scripts/serve-web-dist.ts`をrunnerがchild processとして起動し、QA turnの間だけRuntimeを保持する。
+8. defect sanity直後に既存`resetBrowserScenario(page, baseUrl, "suspended-user", true)`をEvaluator側から再利用して`/login`へ戻し、`scenario-shop.session-id`が存在しないことをrunnerが確認してからAgentへhandoffする。
+9. `QA_AGENT.md`のGray-box seed mappingはPR6専用例外を追加せず、実装正本`src/seeds/metadata.ts`を参照する形へ修正する。
+10. QA / repairとも同じAgent source workspaceを使う。非Git QA root、`--skip-git-repo-check`、Skill / Referenceコピー、Run Artifact同期、cwd切替は作らない。
 
 固定Charterは既存`charterSchema`をそのまま使い、Challenge→Charterの汎用converterは追加しない。runnerがQA開始前に次を`.codex/runs/<case-run-id>/qa-charter.json`へ書き、schema validationを通す。
 

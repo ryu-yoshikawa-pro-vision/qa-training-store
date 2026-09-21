@@ -40,6 +40,9 @@ pnpm run test:repository
 - fresh session / fresh workspaceでのPlan Artifact reuse。
 - sanitized Target生成契約、forbidden path、remote absence、single synthetic commit、detached / clean。
 - provenanceの`source_revision_git_sha`、`routing_source_git_sha`、caseごとの`case_baseline_git_sha`を別意味で保持し、`routing_source_git_sha`がfixture適用前sanitized Target HEAD、`case_baseline_git_sha`がAgent開始時HEADと一致する。
+- canonical completion runでEvaluator sourceが`.codex/runs/**`以外clean、`source_revision_git_sha == evaluator_git_sha`であり、sanitized TargetからPR6 evaluator / repository-contractの固定3 pathが除外される。
+- 各case workspaceのAgent開始時HEADはparentなしroot commitで、remote 0件、Git alternatesなし、tracked clean。sanitized TargetのGit履歴を継承しない。
+- Case B workspaceで`challenge.json` / `runbook.md` / Instructor materialに加え、`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`が存在しない。
 - canonical invocationが`shell_environment_policy.inherit=core`と`web_search=disabled`を固定する。
 - case-local Runに`run.json`を生成しない。
 - result serializationが既存`ProcessLifecycle`を再利用し、任意Rule Engineを持たない。
@@ -256,6 +259,18 @@ Run Artifactはimplementation Runの正規collector / sanitizer経路で検証�
 
 対策: Product validation PASS、Product / Test差分0件、複数bounded attemptで同一Harness artifact-contract failureが反復したrunner-owned Evidenceだけを入力にする。Case D専用Product fixtureを追加しない。
 
-### Risk 35: Native device serialがtracked Run Artifactへ残る
+### Risk 35: Case Bが通常source側のground truthから正解を読める
+
+対策: Black-box file / Instructor materialだけでなく、現行sourceで`CHALLENGE-BASIC-001`のactual defect / expected behaviorを直接含む`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`をCase BのAgent-visible workspaceから除外する。runtime汎用scannerは作らず、latest `main`取り込み時のmaterial drift確認でexplicit denylistを再確認する。
+
+### Risk 36: case baselineの親commitからrunner-owned patch / 除外前sourceを復元できる
+
+対策: すべてのcase workspaceはsanitized Targetのtracked contentを`.git`なしで複製し、case固有runner state適用後にfresh Git repositoryを作る。Agent開始時HEADはparentなしroot commit 1件だけとし、remote / alternates / parentがないことをpreflightする。sanitized Targetのsynthetic commitをparentとして継承しない。
+
+### Risk 37: canonical runが別revisionまたはdirty Evaluatorを評価してPASSする
+
+対策: canonical completion runでは既存Trigger Evalと同じEvaluator source clean guardを使い、`.codex/runs/**`以外のsource changeを拒否する。`source_revision_git_sha == evaluator_git_sha`を必須とし、そのcommitのGit objectからsanitized Targetを生成する。historical revision評価はPR6の成功条件に含めない。Agent-visible TargetからPR6 evaluator / repository-contractの固定pathも除外する。
+
+### Risk 38: Native device serialがtracked Run Artifactへ残る
 
 対策: raw command / bounded outputは評価中だけ保持し、tracked resultへ保存する前にcaller serialを`<DEVICE_SERIAL>`へ置換する。既存Run Artifact sanitizerは引き続きabsolute path等のcompletion gateとして実行する。

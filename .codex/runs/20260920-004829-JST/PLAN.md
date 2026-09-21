@@ -23,6 +23,9 @@
 - Case Aはimplementation成功時のtest digestをfreezeし、repairでtest書換えによる偽PASSを防ぐ。
 - Case A / B / CのrepairでAgent自身の固定validation command実行をCodex標準`command_execution`から確認し、runner独立validationと分離する。Case Bのrunner独立validationはAgent workspaceの`dist/**` / `node_modules/**`を再利用せずfresh validation workspaceで行う。
 - sanitized Targetの生成手順とprovenanceを固定し、`source_revision_git_sha`を生成元revision、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`をAgent開始時HEADとする。
+- canonical completion runはcommit済みEvaluator自身を評価対象とし、Evaluator sourceを`.codex/runs/**`以外clean、`source_revision_git_sha == evaluator_git_sha`へ固定する。Agent-visible TargetからPR6 evaluator / repository-contractの固定pathを除外する。
+- 各case workspaceはsanitized Targetの`.git`を引き継がず、case固有runner state適用後にparentなしroot baseline commitを1件だけ作る。remote / alternates / parentなし / cleanをpreflightする。
+- Case BはBlack-box file / Instructor materialだけでなく、確認済みのchallenge-specific ground truthを含む`prepare-challenge.ts`、`run-contract-fixture.ts`、`spec-agentic-qa.test.ts`もAgent-visible workspaceから除外する。汎用answer-key scannerは作らない。
 - canonical invocationへ`shell_environment_policy.inherit=core`と`web_search=disabled`を追加する。
 - Case Eはnon-Windows / PowerShell unavailableだけ`not_executed`を許容し、WindowsではNative helperと`--android-device-serial`を必須にする。`-RequirePhysicalDevice`付きCanonical Doctorのbounded outputは`==> Validate toolchain`を起点に最初の非空・非`PASS:`行だけをraw `first_anomaly`として照合し、raw device serialはtracked resultへ保存しない。
 - status分類を一意にし、共通Runtime blockerだけrun `blocked`、共通probe通過後の個別process / resume / OTel failureは`unobservable`、case-local preparation / fixture / dependency / validator不整合は`fail`とする。`not_executed`はCase B canonical Browser / screenshot / URL capability不足とCase E non-Windows / PowerShell unavailableだけに限定する。
@@ -35,7 +38,7 @@
 - Case Eは標準PowerShell invocationを使い、Doctor non-zero時の`first_anomaly`は`==> Validate toolchain`より後の最初の非空・非`PASS:`行とのverbatim一致だけを確認する。
 - result JSON保存後、固定成功条件を満たす場合だけCLI exit 0とする。
 
-- Case BはBlack-box用Challenge / runbookをAgentへ露出せず、`source_revision_git_sha`のGit objectから取得したchallenge / patch / answer keyをEvaluatorだけが使用する。検証済みpatch bytesだけをcase workspaceへ適用し、Evaluator checkoutのProduct fileをコピーしない。
+- Case BはBlack-box用Challenge / runbook、Instructor material、challenge-specific ground truthを含む既知Harness fixture / testをAgentへ露出せず、canonical `source_revision_git_sha`のGit objectから取得したchallenge / patch / answer keyをEvaluatorだけが使用する。検証済みpatch bytesだけを`.git`なしのcase workspaceへ適用し、その後にparentなしroot baseline commitを作る。Evaluator checkoutのProduct fileをコピーしない。
 - Case B dependency preparationは`pnpm install --offline --ignore-scripts --frozen-lockfile --config.node-linker=hoisted`へ固定し、直後のtracked diff 0件を必須にする。platform別fallbackやDependency Managerを作らない。
 - Case DはProduct fixtureを削除し、Product正常 / Harness反復failureを示すrunner-owned Evidenceだけを使う。最初のturnは既存bounded `repair-loop`の継続可否判断、次の明示的turnだけを`harness-improvement`依頼へ固定する。
 - 親PlanのDoDは結果と境界だけを保持し、Case B / D / Eの実装詳細は3詳細Planを正本にして重複契約を増やさない。

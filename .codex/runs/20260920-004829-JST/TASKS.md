@@ -58,9 +58,15 @@
 - [x] 52. Case Eの`not_executed`をnon-Windows / PowerShell unavailableへ限定し、Windowsでのhelper / serial必須条件とfirst anomaly抽出規則を固定する。
 - [x] 53. 親Plan・3詳細Plan・plan-only Run Artifact・PR本文を同期し、追加case / framework / Plan分割を行わない。
 
+- [x] 54. ここまでの全レビューを根本原因で再統合し、未反映の必須修正をCase B answer leak、case workspace Git履歴、canonical revision / Evaluator cleanの3件へ限定する。
+- [x] 55. Case BのAgent-visible denylistへ`scripts/agentic-qa/prepare-challenge.ts`、`scripts/agentic-qa/run-contract-fixture.ts`、`tests/contracts/spec-agentic-qa.test.ts`を追加し、汎用answer-key scannerを追加しない契約を固定する。
+- [x] 56. 全case workspaceをsanitized Targetのtracked contentの`.git`なし複製から作り、case固有runner state適用後のparentなしroot baseline commit 1件へ統一する。
+- [x] 57. canonical completion runでEvaluator source clean、`source_revision_git_sha == evaluator_git_sha`、PR6 evaluator / repository-contractの固定path除外を必須にする。
+- [x] 58. 親Plan・3詳細Plan・plan-only Run Artifactへ上記3件を同期し、新しいcase / framework / Plan分割を追加しない。
+- [x] 59. latest `main` `fa930b81c891051335082174945f6d918c20722b`の追加security dependency更新を確認し、PR6設計へのmaterial driftがないことを記録する。
 ## Discovered（発見事項）
 
-- latest `main`は`74f6952068ad9b990adbd6a256dd82aeed1d43a7`で、Plan branchは2 commit behind。追加差分にはSecurity fallback / CI更新とWindows Android Runbook / `android-local.ps1`更新がある。explicit physical device serialと`Doctor -RequirePhysicalDevice`の契約は維持されており、現時点で新しいPR6設計blockerは確認していない。
+- latest `main`は`fa930b81c891051335082174945f6d918c20722b`で、Plan branchは3 commit behind。最新1 commitは`@expo/xcpretty@4.4.4>js-yaml`のsecurity override / lockfile更新で、PR6設計を変えるmaterial driftは確認していない。それ以前のWindows Android契約もexplicit physical device serialと`Doctor -RequirePhysicalDevice`を維持している。
 - Repositoryの`.codex/config.toml`には`[mcp_servers]`がない。canonical Case Bは`--ignore-user-config`を固定するため、Browser capabilityがその条件で利用できなければ`browser_capability_unavailable_under_canonical_config`として`not_executed`にする。user config有効の追加probeは行わない。
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
