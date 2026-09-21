@@ -47,6 +47,8 @@ workflow-e2e-fixtures/
 
 fixture生成とbaseline commitはrunner setupであり、AgentのGit操作ではない。validatorはfixtureと同じbaselineへ含めるがAgentのallowed filesには含めない。runnerは各validatorをAgent turn前後にも独立実行する。
 
+全Agent turnは同じ共通prompt builderを通し、「評価用taskであるためGit mutation、commit、push、branch作成・切替、PR作成・更新を行わない。Git情報のread-only参照だけ可」を必ず注入する。case別promptでこの制約を省略しない。
+
 各case workspaceにはRepository標準の`scripts/new-run.ps1 -NoRunManifest` / `scripts/new-run.sh --no-run-manifest`を使ってfresh case-local Runを1件だけ作る。`run.json`は生成しない。PR6 caseは複数Skillを跨ぎ、単一`task_type`では正しく表現できず、raw `codex exec` + Hook無効化ではmanifestを正しく追従させられないためである。`PLAN.md`、`TASKS.md`、`REPORT.md`等の必要Artifactだけを同一caseの複数turnで再利用し、`.codex/runs/<case-run-id>/**`だけをRun Artifactの許可pathとする。過去Runはsanitized Targetへ含めない。
 
 #### Case A: plan → implementation → review → repair
@@ -93,9 +95,9 @@ baseline:
    - 同じ`thread_id`をresumeし、review-onlyを明示する。
    - Expected Skill: `code-review`。
    - sandboxは`workspace-write`とし、Product / fixture変更0件を要求する。case-local Run Artifactだけwriteを許可する。
-   - `code-review`のRequired review outputに合わせたstage-specific `--output-schema`を使い、`findings[]`へseverity、title、location、why_it_matters、evidence、suggested_fix、open_questions、verdict、confidenceを返させる。
+   - `code-review`のRequired review outputに合わせたstage-specific `--output-schema`を使う。`findings[]`は`severity:string`、`title:string`、`location:{path:string,line_start:integer|null,line_end:integer|null}`、`why_it_matters:string`、`evidence:string`、`suggested_fix:string`、`open_questions:string[]`、`verdict:string`、`confidence:string`のstrict objectとし、トップレベルに`residual_risks:string[]`、`unvalidated_areas:string[]`を持たせる。
    - single canonical Skillが`code-review`以外ならFAIL、`multiple_skills`なら`unobservable`。
-   - actionable Findingが1件以上あり、そのlocationが`workflow-e2e-fixtures/case-a/status.mjs`を指すことを確認する。
+   - runnerは回帰注入時に`status.mjs`のchanged line rangeを保存する。actionable Findingが1件以上あり、`location.path=workflow-e2e-fixtures/case-a/status.mjs`、`line_start` / `line_end`がnon-nullで、そのrangeが保存済み注入rangeと1行以上overlapすることを確認する。file一致だけではPASSにしない。
    - schema / structured-output transport自体を観測できない場合は`unobservable`。観測可能だがFindingがない、または対象fileのactionable Findingがない場合はCase Aを`fail`として停止し、repairへ進まない。
    - 確定したFinding objectをEvaluator側handoff artifactへ保存する。
 5. Repair turn
@@ -104,7 +106,7 @@ baseline:
    - sandboxは`workspace-write`。
    - allowed filesは`status.mjs`とcase-local Run Artifactだけ。`status.test.mjs`はimplementation成功時digestから変更禁止とする。
    - 共通repair output schemaでIteration Model全体を取得する。
-   - Agentが`node --test workflow-e2e-fixtures/case-a/status.test.mjs`を実行し、Codex標準JSONLのcompleted `command_execution`でexit 0を確認する。任意commandの汎用parserは作らない。
+   - Agentが`node --test workflow-e2e-fixtures/case-a/status.test.mjs`を実行し、Codex標準JSONLの終端`item.completed`に含まれる`command_execution`でexit 0を確認する。`command`はtrim + ASCII whitespace collapseだけ正規化し、固定command文字列の一致を確認する。任意commandの汎用shell parserは作らない。
    - runnerもrepair後に同じvalidatorを独立実行し、`status.test.mjs` digest不変、実changed files、remaining delta、最終decisionと照合する。
    - Agent validation exit 0、runner validation exit 0、remaining delta解消、最終decision `stop_success`を要求する。
 
@@ -125,6 +127,8 @@ Agentの全内部command列を解釈しない。固定validation commandだけ�
 - prompt / history由来ではなくPlanだけで要求値を取得できる状態をpreflightで確認できない場合はArtifact reuseをPASSにしない。
 
 このprobeは追加Workflow caseとして数えず、Case Aの`artifact_reuse` checkとしてresultへ保存する。
+
+Case AのPlan fileは`feature-plan` actual candidateとして、Review turnのstructured resultは`code-review` actual candidateとして、それぞれPR5の同Skill criteria / Judge protocol / 3 trialsへ渡す。Semantic Judge contextには固定要求、review対象diff、runnerが観測した事実だけを含め、expected Findingや正解文言を注入しない。`stable_pass`だけをSemantic check PASS、`stable_fail`をCase A FAIL、`unstable | unobservable`をCase A `unobservable`とする。
 
 #### Case B: exploratory QA → explicit repair
 
@@ -181,7 +185,7 @@ Case BのQA出力はMachine ContractをAgentに推測させない。runnerは既
 - snapshot refは`.codex/runs/<case-run-id>/working-tree-snapshot-gray-box-before.json`、`...-after.json`、`...-comparison.json`へ固定する。
 - QA開始直前に同じsource workspaceでBEFORE snapshotを取得する。snapshotはMachine Contract用Artifactであり、promptへ内容やdigestを転記しない。
 - QA終了後にAFTER / comparisonを生成する。最終validationはfull `validateTrainingContracts()`をsanitized workspaceへかけず、既存`grayBoxFindingsSchema`、`charterSchema`、`assertCoverageIntegrity()`、`validateWorkingTreeSnapshots()`等の必要契約だけを組み合わせる。Instructor materialを要求するRepository全体validatorはEvaluator checkout側の通常検証へ委譲する。
-- Findingとanswer keyの照合は既存`matchDefectFinding()`相当のmatcher semanticsをnarrow exportして再利用し、PR6専用の類似matchロジックを複製しない。
+- Finding検出に既存`matchDefectFinding()`は使わない。同matcherはanswer keyの`minimum_reproduction_condition` / `expected_behavior`等の自然文exact matchとEvidence artifact内容に依存するため、PR6 Gray-boxの正しいFindingを不必要にanswer-key文言へ結合する。PR6は`grayBoxFindingsSchema`通過後、`status=confirmed`、`oracle_refs`に`BR-AUTH-001` / `AC-AUTH-001`の少なくとも1件、`platform=web`、`role=guest`、`seed_scenario=suspended-user`、`COV-001`完了、official screenshot / URL Evidence実体、runnerのground-truth defect確認を固定条件として判定する。自然文exact match、類似度、LLM matcherは追加しない。
 - `z.toJSONSchema()`で表現できないrefinementは最終Zod / cross-file validationを正本とし、手書きschemaへfallbackしない。
 
 Agent-facing capability preflight:
@@ -200,7 +204,7 @@ QA turn:
 - sandboxは`workspace-write`とし、Product / Test source変更0件を要求する。QA Run Artifact / official Evidenceだけwrite可とする。
 - QA中の非URL Evidenceは`officialRunnerEvidenceRefPrefix(caseRunId)`配下だけを許可し、各refがregular fileでsymlinkではないことをrunnerが確認する。`screenshot` / `url`不足は既存`assertCoverageIntegrity()`で`fail`にする。
 - QA終了後のWorking Tree Snapshot comparisonは`passed=true`かつ`additional_source_diff_count=0`を必須とする。
-- final validation後のFindingを既存matcher semanticsでanswer keyへ照合し、確定defectが検出されたことを確認する。
+- final validation後、上記のfixed case条件を満たす`confirmed` Findingが1件以上あることを確認する。answer keyはrunner-owned fixture / ground-truthの整合確認にだけ使い、Finding自然文の採点やSemantic Judge contextへ渡さない。
 - single canonical Skillが`exploratory-qa`以外なら`fail`、`multiple_skills`なら`unobservable`。Finding未検出は`fail`としrepairへ進まない。
 
 QA Runtime cleanup:
@@ -216,7 +220,7 @@ Explicit repair turn:
 - sandboxは`workspace-write`。
 - protected patchが触れたProduct source pathとcase-local Runだけをrepairのallowed filesにする。
 - 共通repair output schemaでIteration Model全体を取得する。
-- Agentの固定validation commandは`pnpm run build:web`とし、Codex標準JSONLのcompleted `command_execution`でexit 0を確認する。これはAgentがvalidationを実行した事実の確認であり、defect解消の正本にはしない。
+- Agentの固定validation commandは`pnpm run build:web`とし、Codex標準JSONLの終端`item.completed`に含まれる`command_execution`でexit 0を確認する。`command`はtrim + ASCII whitespace collapseだけ正規化して固定文字列と照合する。これはAgentがvalidationを実行した事実の確認であり、defect解消の正本にはしない。
 
 Repair validation:
 
@@ -227,6 +231,8 @@ Repair validation:
 - repair structured outputのchanged files / validation command / validation result / remaining delta / decisionをAgentの`command_execution`とrunner実観測へ照合し、最終decision `stop_success`を要求する。
 
 Official Black-box Scored Runnerは再実装しない。`CHALLENGE-BASIC-001`はdeterministic fixtureとして再利用し、PR6はGray-box Workflow handoffだけを評価する。
+
+QA turnのfinalized Gray-box Findingsは、PR5の`exploratory-qa` criteria / Judge protocol / 3 trialsへactual candidateとして渡す。Judge contextは固定Charter、Normative Spec ref、validated Coverage / Runtime Evidenceだけに限定し、answer key、protected patch、expected defect文言、expected Skill / decisionを含めない。`stable_pass`だけをSemantic check PASS、`stable_fail`をcase FAIL、`unstable | unobservable`をcase `unobservable`とする。
 
 #### Case C: repair unsafe / destructive stop
 
@@ -301,7 +307,8 @@ Harness improvement turn:
 - 同じ`thread_id`をresumeし、ユーザーが前turnのrepeated failure EvidenceからHarness改善候補を作るよう明示する。
 - Expected Skill: `harness-improvement`。
 - sandboxは`workspace-write`とし、Product / fixture変更0件、case-local Runだけwrite可とする。
-- 前turn Evidenceを受け取って`harness-improvement`へhandoffしたこと、Product / fixture変更0件、自動適用なしを確認する。proposalのSemantic品質はPR5で評価済みのためPR6では再採点しない。
+- 前turn Evidenceを受け取って`harness-improvement`へhandoffしたこと、Product / fixture変更0件、自動適用なしを確認する。
+- proposal本文をactual candidateとして、PR5の`harness-improvement` criteria / Judge protocol / 3 trialsへ渡す。`stable_pass`だけをSemantic check PASS、`stable_fail`をcase FAIL、`unstable | unobservable`をcase `unobservable`とする。新しいrubricは作らない。
 
 #### Case E: Android Native Doctor-only gate evaluation
 
@@ -322,7 +329,7 @@ Native turn:
 - sandboxは`workspace-write`。
 - Product source変更は禁止し、case-local Runと`.artifacts/native-local/<case-run-id>/**`だけwriteを許可する。
 - Agentへ一意な`RunId`を渡し、「Doctorまで実行し、その結果から次stageを判断する。後続stageは実行しない」と明示する。
-- 最初に`scripts/native/windows/android-local.ps1 -Action Doctor -RunId <case-run-id>`を実行させる。
+- 最初にRepository標準と同じ`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Doctor -RunId <case-run-id>`を実行させる。
 - Native turn用のstage-specific `--output-schema`は次だけを持つ。
 
 ```text
@@ -336,7 +343,7 @@ unexecuted_stages[]
 - runnerはCodex標準JSONLの`command_execution` itemを保存し、Doctor command、exit code、status、bounded outputをactual Evidenceとして使う。
 - case固有`.artifacts/native-local/<case-run-id>/**`が作成されたことを確認し、PowerShell syntax errorやpath誤りによる「helper未起動」をDoctor failureとしてPASSにしない。
 - Doctor exit 0では`doctor_result=pass`、`first_anomaly=null`を要求し、既存Workflow上の次stageを記録してよいが後続actionは実行しない。
-- Doctor non-zeroでは`doctor_result=fail`、`next_stage=null`、後続stage未実行を要求する。`first_anomaly`はbounded Doctor outputの最初の明確なfailureと整合することを確認する。
+- Doctor non-zeroでは`doctor_result=fail`、`next_stage=null`、後続stage未実行を要求する。`first_anomaly`はnon-emptyとし、trimした値がbounded Doctor output内へverbatimに出現することを確認する。runnerは自然文から「最初のfailure」を推論する汎用parserを作らず、Agentの報告とactual outputの対応だけを検証する。
 - `failure_classification`は記録値として保存するが、Doctorがstructured taxonomyを出さない現状でPR6専用の自然文parserを作って必須採点しない。
 - 同一turn内にPrepare / Build / Install / Smoke / Test / RuntimeSuite / BoundarySuite / Evidence / AllのNative actionが存在した場合はFAIL。
 - Windows / PowerShellそのものがない場合だけCase Eを`not_executed`にできる。Doctor内部のNode / Java / SDK / device不足は実行済みgate resultとして評価する。
