@@ -42,10 +42,18 @@
 - [x] 38. Case Eを標準PowerShell invocationへ統一し、`first_anomaly`の検証をbounded output内verbatim evidenceへ限定する。
 - [x] 39. Workflow E2E CLIのexit code契約を固定し、canonical Plan / Run Artifact / PR本文を同期する。
 
+- [x] 40. ここまでのレビュー結果を根本原因で5項目へ統合し、重複指摘を除外する。
+- [x] 41. status分類を共通Runtime blocker / 個別process failure / case-local failure / 固定capability不足へ分離する。
+- [x] 42. PR5 Semantic Evalのactual candidate経路をcalibration用`expected` / `calibration_match`から分離し、stage内の実行タイミングとJudge contextを固定する。
+- [x] 43. Case BのBlack-box Challenge / runbook露出を除去し、source revision Git object由来patch bytes、固定offline dependency preparation、fresh runner validation workspaceへtrust boundaryを修正する。
+- [x] 44. Case DのProduct fixtureを撤回し、Product正常 / Harness反復failureのrunner-owned Evidenceだけへ簡素化する。
+- [x] 45. Case Eをphysical device serial + `-RequirePhysicalDevice`のCanonical Doctorへ合わせ、first anomalyとserial redactionを固定する。
+- [x] 46. 親Plan・3詳細Plan・plan-only Run Artifact・PR本文を同期し、追加Plan分割が不要であることを確認する。
+
 ## Discovered（発見事項）
 
 - latest `main`は`1213adc9513409cc176c090f9df4c1c408142b9c`で、Plan branchは1 commit behind。差分はTraining runtime契約とWindows Stop Hook launcher調整が中心で、現時点で新しいPR6設計blockerは確認していない。
-- Repositoryの`.codex/config.toml`には`[mcp_servers]`がないため、Case BのBrowser capabilityはHost user config依存の可能性を実probeで切り分ける必要がある。
+- Repositoryの`.codex/config.toml`には`[mcp_servers]`がない。canonical Case Bは`--ignore-user-config`を固定するため、Browser capabilityがその条件で利用できなければ`browser_capability_unavailable_under_canonical_config`として`not_executed`にする。user config有効の追加probeは行わない。
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
 - Case Cはsentinelをfile scope外にすると`stop_scope_violation`と競合する。sentinel pathを`allowed_files`へ含め、destructive operation禁止を別に評価する。
@@ -63,6 +71,12 @@
 - PR5 Semantic Evalはcalibrationだけでは現在のSkill実行品質を証明しない。PR6でactual outputへ同じcriteria / Judge protocol / 3 trialsを適用する必要がある。
 - `.codex/runs/**` / `.artifacts/**`は既存Git / Working Tree Snapshotだけでは観測できないため、明示的なprefix inventoryが必要。
 - 現行の親Plan + 3詳細ファイルで責務が分かれているため、追加分割は不要。
+
+- Case Bの既存`prepareDisposableDependencies()`はnon-Windowsでroot `node_modules`、Windowsでoffline pnpm storeを前提にするため、sanitized Targetへそのまま流用しない。PR6はcase workspaceの固定offline installへ一本化する。
+- 既存`applyPatchToDisposable()`はroot Product fileをdisposableへcopyしてからpatchを当てるため、PR6のsource revision provenanceには流用しない。同一patch bytesの`git apply`だけを使う。
+- Case BのAgent buildは`dist/**`を生成する。runner独立validationはAgent workspaceの`dist/**` / `node_modules/**`を信用せずfresh validation workspaceで行う。
+- Case Dの`harness-improvement`はPR5 `HI-SEPARATION`どおり単発Product bugをHarness問題へ再分類できないため、Product正常 / Harness反復failureを固定Evidenceへ含める。
+- Windows Android Canonical routeはexplicit serial + `-RequirePhysicalDevice`を要求するため、Case E Doctor commandも同契約へ合わせる。
 
 ## Blocked（ブロック中）
 

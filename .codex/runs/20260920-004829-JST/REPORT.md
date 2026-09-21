@@ -310,3 +310,27 @@
   - Workflow DSL / Session Manager / Skill Registry / 汎用Rule Engine / provenance framework / generic Finding matcher / filesystem monitor / Native taxonomy parser / 第2Semantic Eval framework。
   - PR6 Evaluator実装、latest `main`取り込み、Issue #117更新 / close、merge。
 - Progress: 100% (39/39)
+
+
+## 2026-09-21 15:19 (JST)
+
+- 概要:
+  - PR #168のPlan全体レビュー結果を重複排除し、実装前に必要な修正を5項目へ統合した。
+  - fixed 5 case、Codex標準Runtime、既存OTel / PR4 / PR5再利用は維持し、新しいWorkflow基盤は追加しない。
+- 反映内容:
+  - statusを共通Runtime blocker = run `blocked`、個別process failure = `unobservable`、case-local preparation / fixture / dependency / validator不整合 = `fail`、固定外部capability不足 = `not_executed`へ固定した。
+  - actual-output Semantic EvalをPR5 calibration用`expected` / `calibration_match`から分離し、既存criteria / Judge / 3 trials / aggregationだけを再利用するnarrow pathへ固定した。Semantic評価は対象stageのdeterministic validation後、後段handoff前に実行する。
+  - Case BでBlack-box用`challenge.json` / `runbook.md`をAgentへ露出しない契約へ変更した。challenge / protected patch / answer keyは`source_revision_git_sha`のGit objectからEvaluatorが取得し、検証済みpatch bytesだけをcase workspaceへ適用する。
+  - Case B dependency preparationを固定offline installへ一本化し、Agent workspaceの`dist/**` / `node_modules/**`をrunner独立validationへ再利用しない。case baseline + allowed Product diffだけからfresh validation workspaceを作る。
+  - Case DのProduct fixture / validatorを撤回し、Product validation PASS、Product / Test差分0件、同一Harness artifact-contract failureの反復を示すrunner-owned Evidenceだけで`stop_no_progress → harness-improvement`を評価する。
+  - Case Eをphysical device serial + `-RequirePhysicalDevice`を含むCanonical Doctor commandへ合わせ、first terminating failureと`first_anomaly`を照合する。raw device serialはtracked resultへ保存しない。
+  - Case Bのuser config有効診断probeを削除した。canonical configでBrowser capabilityが利用できなければCase Bを`not_executed`にする。
+- 過剰設計確認:
+  - 追加case、Workflow Engine、Session Manager、Dependency Manager、Patch Manager、MCP Manager、汎用filesystem monitor、汎用Native log parserは追加しない。
+  - 親Plan + 3詳細ファイルで責務が収まるため追加分割しない。
+- 未実施:
+  - latest `main`取り込み。
+  - PR6 Evaluator実装。
+  - live E2E。
+  - Issue #117更新 / close。
+- Progress: 100% (46/46)

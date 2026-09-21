@@ -35,7 +35,7 @@ Targetはcanonical 6 Skill、`AGENTS.md`、Repository adapter、Product / Test s
 
 runnerはTarget root、clean / detached、Evaluatorとのrealpath分離、required / forbidden path、remote absenceをfail-close preflightする。`source_revision_git_sha`はsanitized Target生成元、`routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`は各caseでAgentが実際に読むbaseline HEADであり意味を混同しない。provenance frameworkは追加しない。
 
-Target外のEvaluator checkoutまでOSレベルでread-denyする独自sandboxは追加しない。Evaluator absolute path、answer key、expected値をprompt / environment / Agent-visible fileへ露出しない。
+Target外のEvaluator checkoutまでOSレベルでread-denyする独自sandboxは追加しない。Evaluator absolute path、answer key、expected値をprompt / environment / Agent-visible fileへ露出しない。Case Bのchallenge / protected patch / answer keyはEvaluator working treeではなく`source_revision_git_sha`のGit objectから読み、検証済みpatch bytesだけをcase workspaceへ適用する。Evaluator checkoutのProduct fileをcase workspaceへコピーしない。
 
 各caseはsanitized Targetからfreshな一時case workspaceを作る。実Agent write、Git state、case-local Run Artifactはcase workspace内だけに閉じる。
 
@@ -51,8 +51,9 @@ stageごとにturn開始前snapshotを取得し、そのturnで増えた変更�
 - Case A implementation: `status.mjs`、`status.test.mjs`、case-local Runだけ変更可。
 - Case A review: Product / fixture変更0件。case-local Runだけ変更可。
 - Case A repair: `status.mjs`とcase-local Runだけ変更可。implementation成功時の`status.test.mjs` digestはfreezeし、変更をFAILにする。
-- Case B QA: Product / Test source変更0件。case-local Runとofficial QA Evidenceだけwrite可。SourceはGray-boxでread可能だがoracle利用を要求しない。
-- Case B repair: protected patchが触れたProduct source pathと同じcase-local Runだけ変更可。Evaluator answer key、protected patch file、Instructor materialをworkspaceへ持ち込まない。
+- Case B QA: Product / Test source変更0件。case-local Runとofficial QA Evidenceだけwrite可。SourceはGray-boxでread可能だがoracle利用を要求しない。Black-box用Challenge / runbookはAgent-visible workspaceへ置かない。
+- Case B repair: protected patchが触れたProduct source pathとcase-local Runだけを修正対象とする。`dist/**`は固定`build:web`が生成する一時validation outputとして許容するがProduct `changed_files`には含めない。`node_modules/**`、package / lockfile、依存設定の変更はrepairとして許可しない。Evaluator answer key、protected patch file、Instructor materialをworkspaceへ持ち込まない。
+- Case B runner validation: Agent workspaceの`dist/**` / `node_modules/**`を再利用せず、case baseline + allowed Product diffだけからfresh validation workspaceを作り、固定offline dependency preparation、`build:web`、新Runtime ground-truth validationを実行する。
 - Case C repair: `config.json`、`protected-data/keep.txt`、case-local Runをfile scope内とする。ただし`keep.txt`の削除 / rename / move / 内容変更は禁止し、`validate.mjs`変更も禁止する。
 - Case D repair / harness-improvement: Product / fixture変更0件。case-local Runだけ変更可。
 - Case E: Product source変更0件。case-local Runと`.artifacts/native-local/<case-run-id>/**`だけwrite可。
@@ -113,12 +114,12 @@ status分類は次へ固定する。
 
 | 条件 | 分類 |
 |---|---|
-| 共通Host preflight、共通resume、共通OTel、共通actual writeが成立せずcanonical run自体を評価不能 | run `blocked` |
-| Case B Browser capability不足、Case E Windows / PowerShell不足 | case `not_executed` |
-| OTel identityまたはstructured-output transport / schemaを安全に観測できない | stage / case `unobservable` |
-| 観測可能だがExpected Skill、Finding、scope、fixture、Evidence、decision、actual execution等が契約不一致 | stage / case `fail` |
+| 共通Host preflight、共通resume、共通OTel、共通actual writeが成立せずcanonical run自体を安全に開始・継続できない | run `blocked` |
+| Case B Browser capabilityがcanonical configで利用不可、Case E Windows / PowerShell / caller physical-device serial入力が利用不可 | case `not_executed` |
+| 共通preflight通過後の個別turnで`turn_failed` / `timed_out` / `spawn_failed` / `signaled` / `unknown`、OTel identity、structured-output transportを安全に観測できない | stage / case `unobservable` |
+| case-local preparation / fixture / validator / dependency preparationが実行できたが契約不一致、またはExpected Skill、Finding、scope、Evidence、decision、actual executionが観測可能な状態で不一致 | stage / case `fail` |
 
-fixture / setup / Evaluator failureを`not_executed`へ変換しない。Case A / C / Dはrun共通blocker以外で`not_executed`にしない。
+case-local `fail`ではそのcaseの後続stageを停止するが、runner / common Runtimeが健全なら後続の独立caseは継続する。case-local setup / Evaluator failureを`not_executed`やrun `blocked`へ曖昧に昇格させない。Case A / C / Dはrun共通blocker以外で`not_executed`にしない。
 
 repair stageの共通`--output-schema`は既存Iteration Modelの意味を変えない最小projectionへ固定する。
 
@@ -147,35 +148,41 @@ iterations: array<object>
 ### 5.8 deterministic / semanticとの境界
 
 - `feature-plan`生成物にはPR4の既存deterministic validatorを再利用する。
-- PR5 Semantic Evalはcalibration datasetの評価に加え、PR6で得たactual candidateを既存criteria / Judge prompt / response schema / `CANONICAL_TRIAL_COUNT=3` / aggregationへ通すためのnarrow reusable pathだけを追加する。dataset、criteria、rubric、Judge protocol、trial countは変更しない。
+- PR5 Semantic Evalはcalibration dataset用APIをactual candidateへそのまま流用しない。actual-output用narrow helperは`skill + criteria + context + candidate_output`だけを受け取り、既存criteria読込、Judge prompt / response schema、Judge process、`deriveTrialResult()`、`CANONICAL_TRIAL_COUNT=3`、aggregationを再利用する。
+- calibration datasetの`expected`、`calibration_match`、known-good / known-bad outcomeはactual-output評価へ渡さない。dataset、criteria、rubric、Judge protocol、trial countは変更しない。
 - actual Semantic対象はCase A `feature-plan` Plan file、Case A `code-review` structured result、Case B finalized `exploratory-qa` Gray-box Findings、Case D `harness-improvement` proposalの4つに限定する。
-- candidateは各actual Artifact / structured resultをUTF-8 textへ直列化して渡す。Judge contextはcaseで固定した要求、Normative Spec / Charter、runnerが検証済みのRuntime / diff Evidenceに限定し、expected Skill、expected decision、answer key、protected patch、正解文言を渡さない。
-- 3 trialのaggregateが`stable_pass`ならSemantic check PASS、`stable_fail`ならcase FAIL、`unstable | unobservable`ならcase `unobservable`とする。calibration用expected outcomeはactual candidateへ設定しない。
-- Case Bは既存Agentic QA challenge、Gray-box Machine Contract、Coverage / Evidence validator、Working Tree Snapshot、protected patch validationを再利用する。Black-box Scoredのsource-free isolationは再現しない。
-- Case Bのdependency preparation / `build:web` / ground-truth sanity / `scripts/serve-web-dist.ts`は既存経路を再利用する。必要なnarrow exportは挙動変更なしに限定する。
-- sanitized source workspaceではInstructor materialがないためfull `validateTrainingContracts()`を最終Finding validatorとして使わない。Gray-boxに必要な既存validatorだけを組み合わせる。
-- Case B Finding identityは`grayBoxFindingsSchema`、fixed Charter / Coverage、oracle refs、role / seed / platform、confirmed status、official Evidence実体、runner ground truthの固定条件で決定論的に確認する。`matchDefectFinding()`のanswer-key自然文exact match、類似度matcher、LLM matcherは使わない。
+- candidateは各actual Artifact / structured result / final assistant messageをUTF-8 textへ直列化して渡す。Case D proposalだけはCodex final assistant messageのtextを正本とし、取得不能時にrunnerが内容を推測再構成しない。
+- Semantic evaluationは対象stageのdeterministic / schema / Evidence validationが通った直後、依存する次stageへ進む前に実行する。`stable_fail`または`unstable | unobservable`のstageから後続handoffしない。
+- Judge contextは対象ごとに次へ固定する。
+  - Case A `feature-plan`: 固定要求、fixture baseline facts、allowed scope、validation facts。
+  - Case A `code-review`: actual injected diff text / line range、frozen test fact、runner validator failure。
+  - Case B `exploratory-qa`: 固定Charter、`BR-AUTH-001` / `AC-AUTH-001`のNormative Spec本文、validated Coverage / screenshot / URL、runner-observed Runtime facts。
+  - Case D `harness-improvement`: Product validation PASS、Product / Test差分0件、複数bounded attemptで反復したHarness artifact-contract failure、no new Evidence。
+- expected Skill、expected decision、answer key、protected patch、正解Finding文言はJudge contextへ渡さない。
+- 3 trialのaggregateが`stable_pass`ならSemantic check PASS、`stable_fail`ならcase FAIL、`unstable | unobservable`ならcase `unobservable`とする。
+- Case Bは既存Agentic QAのschema / Coverage / Working Tree Snapshot / reset / ground-truth adapterだけを必要範囲で再利用する。Black-box Scoredのsource-free isolation、Challenge runbook、preparation lifecycle全体は再利用しない。
+- Case B Finding identityは`grayBoxFindingsSchema`、fixed Charter / Coverage、oracle refs、role / seed / platform、confirmed status、official Evidence、runner ground truthの固定条件で決定論的に確認する。`matchDefectFinding()`のanswer-key自然文exact match、類似度matcher、LLM matcherは使わない。
 - `repair-loop`はPR5がPR6へ残したchanged files、actual validation execution、remaining delta、decisionを共通Iteration schemaとCodex標準`command_execution`で確認する。
 - `harness-improvement`はhandoff / no Product change / no auto-applyに加え、actual proposalを上記PR5 Semantic pathで評価する。
 - NativeはPR5がPR6へ残したactual command / gate / stop整合をDoctor-onlyで確認し、failure taxonomyの意味解析を追加しない。
-- PR5のSemantic Eval dataset、rubric、Judge protocolを変更しない。actual-output評価のための第2framework、追加rubric、Skill別の別Judgeは作らない。
+- actual-output評価のための第2framework、追加rubric、Skill別の別Judgeは作らない。
 
 ### 5.9 Runtime、sandbox、retry
 
 - canonical modelは`gpt-5.6-luna`へ固定し、Codex versionと合わせてresultへ保存する。
 - initial / resumed turnとも`--json`を使い、initial turnの`thread.started`から`thread_id`を取得する。
 - canonical live turnではmodel、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`、`-c shell_environment_policy.inherit="core"`、`-c web_search="disabled"`を全caseで固定する。
-- Case Bでuser config有効probeを行っても診断Evidenceに限定し、live turnへ継承しない。Repository / user Hookをscoring fallbackやcompletion controlに使わない。
+- Case Bもcanonical live turnと同じ`--ignore-user-config`条件だけでBrowser capabilityをprobeする。user config有効の追加診断probeは行わない。Repository / user Hookをscoring fallbackやcompletion controlに使わない。
 - repair stageでは共通Iteration `--output-schema`を使う。
 - Case A review stageではcode-review Required review output用のstage-specific `--output-schema`を使う。
 - Case B QA stageでは既存`grayBoxFindingsSchema`由来`--output-schema`を使う。
-- Case E Native stageではDoctor-only structured output用のstage-specific `--output-schema`を使い、固定commandは`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Doctor -RunId <case-run-id>`とする。
+- Case E Native stageではDoctor-only structured output用のstage-specific `--output-schema`を使い、固定commandは`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Doctor -DeviceSerial <physical-device-serial> -RequirePhysicalDevice -RunId <case-run-id>`とする。raw serialは評価中だけ保持し、tracked resultでは`<DEVICE_SERIAL>`へ置換する。
 - Plan / implementation / review / repair / QA / harness-improvement / Artifact reuse / Native Doctorは`workspace-write`を使い、stageごとのProduct / fixture許可pathとcase-local Run pathをscope checkする。
 - review / QA / harness-improvementの停止境界はsandboxのread-only性ではなく、Product / fixture変更0件とSkill / output / handoff結果で評価する。
 - approval policyは非対話実行の既存Harnessと同じく`never`へ固定する。
 - 外部NetworkとWeb Searchは無効化し、Case Bのlocalhost Runtimeだけを利用する。
 - temporary Targetをtrustさせる独自managerは作らない。
-- Case Bのdependency / build / Runtime processはAgent turnより前後にEvaluator側で管理し、AgentへInstallやserver lifecycleを任せない。
+- Case Bのdependency preparation / initial build / Runtime processはEvaluator側で管理する。dependency preparationはcase workspaceとfresh runner validation workspaceの両方で`pnpm install --offline --ignore-scripts --config.node-linker=hoisted`へ固定し、platform別fallbackやEvaluator checkoutの`node_modules`共有を追加しない。AgentへInstallやserver lifecycleを任せない。
 - Case B QA turnのHost process timeoutはCharter `max_duration_seconds=900`より先に終了しない固定値（900秒 + 小さな終了猶予）にする。他turnは既存Trigger Evalと同程度の有限timeoutを使う。
 - `max_tool_actions=150`のためだけにBlack-box Runnerのaction counterを移植しない。既存Gray-box契約の入力値として保持し、PR6で新しいtool-count frameworkを作らない。
 - canonical live runは各turn 1回だけ実行する。
