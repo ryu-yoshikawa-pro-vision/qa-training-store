@@ -192,3 +192,15 @@
   - Result: Parent agentのみで実施。
   - 親Agentの判断: `finalize-validation.json`を選択strategyの正本として再利用し、許可候補一覧の監査記録への混入を拒否する。
 - Progress: 93% (13/14)（最終レビュー修正とRepository標準検証を完了。commit、push、PR本文、最新head CI / CodeQL確認を残す）
+
+## 2026-09-21 12:04 (JST)
+
+- Summary: `finalize`の最終guardをRun Artifact生成・sanitization後へ移し、prepared入力と最終validation結果をpublish前に再確認する順序へ修正した。
+- Changes: 事前validationの出力を`pre-run-graph.json` / `pre-run-validation.json`へ分離した。Run Artifact生成とsanitization後の`Run final guard and build validated manifest`で、prepared `package.json` / `pnpm-lock.yaml` / `fix-authorization.json`の3 file hashを再照合し、immutable `BASE_SHA`からbaseline package / lockfileを`git show`で再取得し、`corepack pnpm@10.34.5 list --json --depth Infinity`でfinal graphを再取得した。既存validatorを`--validate-prepared`で再実行し、`finalize-validation.json`を生成したうえで、pre-run / final / Run Artifact記録strategyの一致、最終file set、`git diff --check`を確認し、`validated-fix.json#strategy`をfinal validation由来で生成するようにした。final guard後はvalidated Artifact uploadと固定cleanupだけを実行する。
+- 判断 / 理由: 事前validationはRun Artifactへ選択strategyを記録するために維持するが、publish判定の正本にはしない。sanitization後にprepared source、immutable baseline、installed graph、semantic validationを再確認し、不一致時はmanifest生成やuploadへ進まないfail-closed境界を維持する。新しいvalidator、依存関係、retry、queue、permissionは追加していない。
+- Validation: focused workflow contract `1 file / 15 passed`、`corepack pnpm@10.34.5 run test:contracts` `43 files / 722 passed / 4 skipped`、`corepack pnpm@10.34.5 run verify`成功（format、markdown / text quality、skills / spec / curriculum、ESLint `0 errors / 66 warnings`、typecheck、security static check、unit 66、integration 111、repository 117、web component 102、native component 64、contract 722 passed / 4 skipped、web/spec build）。初回verifyは新規contract testのPrettier整形だけで停止し、既存formatter適用後に再実行して成功した。
+- Security / scope: `validate-exec` / `finalize`の`contents: read`、publishだけの`id-token: write`、write-enabled `GITHUB_TOKEN`禁止、Artifact allowlist、OpenCode credential隔離、Renovate、pnpm、Cloudflare分類を維持した。final guard後にRepository script、package manager、Node dependency、test、buildを追加実行しない。Stop Hook / Host設定、外部activation、merge、Issue closeは変更していない。
+- Subagent:
+  - Delegation: なし。
+  - Result: Parent agentのみで実施。
+- Progress: 96% (14/15)（final guard実装、focused / standard validationを完了。Run Artifact正規検証、commit、push、PR本文、最新head CI / CodeQL確認を残す）

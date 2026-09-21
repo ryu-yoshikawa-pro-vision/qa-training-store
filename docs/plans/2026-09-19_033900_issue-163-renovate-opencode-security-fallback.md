@@ -427,7 +427,7 @@ OpenCode process終了後、このjobではRepository script、pnpm、Node depen
 - prepared Artifactのartifact ID、file set、`package.json` / `pnpm-lock.yaml` / `fix-authorization.json`の個別SHA-256をjob outputと照合する。`artifact-digest`はSecurity判定へ使わない。
 - prepared `package.json` / `pnpm-lock.yaml`を配置し、以後lockfileを再生成・更新しない。
 - semantic diffとauthorizationを再照合する。
-- `pnpm install --frozen-lockfile --ignore-scripts`とpackage selectorなしの`pnpm list --json --depth Infinity`でprepared lockfileをそのままinstallできることとexpected exact resolved versionを再確認する。
+- Run Artifact生成前の事前validationとして、`pnpm install --frozen-lockfile --ignore-scripts`とpackage selectorなしの`pnpm list --json --depth Infinity`を実行し、結果を`pre-run-graph.json` / `pre-run-validation.json`へ保存する。この結果はRun Artifactへ選択strategyを記録する入力に使うが、publish判定の最終正本にはしない。
 - 既存`yaml@2.9.0`でprepared lockfileのtarget packageを再走査し、normalized vulnerable range内のversionが残っていないことを再確認する。
 - package lifecycle script、test、build、`pnpm run verify`は実行しない。
 
@@ -441,10 +441,13 @@ tracked Run Artifactはこのjobで作成する。
 最終guardでは次を行う。
 
 1. prepared `package.json` / `pnpm-lock.yaml` / authorizationのSHA-256が`validate-exec`出力と一致することを確認する。
-2. semantic validator、expected exact resolved version、parent-scoped override全edge、prepared lockfile target scanを再確認する。
-3. `git diff --name-only`と`git ls-files --others --exclude-standard`から最終file setを取得し、prepared `package.json`、prepared `pnpm-lock.yaml`、今回生成した`.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md`以外を拒否する。
-4. `git diff --check`を実行する。
-5. `validated-fix.json`へ`BASE_SHA`、dependency、ecosystem、GHSA ID、normalized vulnerable range、first patched version、選択strategy、prepared Artifact ID、prepared 3 fileのSHA-256、publish対象5 fileのSHA-256、authorization SHA-256を記録する。`artifact-digest`は監査用に別途記録してもよいがSecurity判定には使わない。`validated-fix.json`自体はGitへ追加しない。
+2. immutable `BASE_SHA`からbaseline `package.json` / `pnpm-lock.yaml`を再取得する。
+3. 事前validationのgraphを流用せず、同じprepared workspaceでpackage selectorなしの`pnpm list --json --depth Infinity`を再実行して`finalize-graph.json`を作る。
+4. semantic validator、expected exact resolved version、parent-scoped override全edge、prepared lockfile target scanを再確認し、結果を`finalize-validation.json`へ保存する。
+5. `pre-run-validation.json`、`finalize-validation.json`、Run Artifactへ記録したstrategyが同じ`direct` / `root_parent` / `override`であることを確認する。不一致時はRun Artifactを書き直さず停止する。
+6. `git diff --name-only`と`git ls-files --others --exclude-standard`から最終file setを取得し、prepared `package.json`、prepared `pnpm-lock.yaml`、今回生成した`.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md`以外を拒否する。
+7. `git diff --check`を実行する。
+8. `finalize-validation.json`の選択strategyだけを正本として、`validated-fix.json`へ`BASE_SHA`、dependency、ecosystem、GHSA ID、normalized vulnerable range、first patched version、選択strategy、prepared Artifact ID、prepared 3 fileのSHA-256、publish対象5 fileのSHA-256、authorization SHA-256を記録する。`artifact-digest`は監査用に別途記録してもよいがSecurity判定には使わない。`validated-fix.json`自体はGitへ追加しない。
 
 最終guard通過後はRepository script、package manager、Node dependency、test、buildを一切実行しない。残りは固定shellによるfile / hash確認とArtifact uploadだけに限定する。
 

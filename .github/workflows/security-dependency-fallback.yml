@@ -838,16 +838,16 @@ jobs:
           set -euo pipefail
           context="$RUNNER_TEMP/security-context"
           prepared="$RUNNER_TEMP/prepared-security-fix"
-          baseline_package="$RUNNER_TEMP/baseline-package.json"
-          baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
+          pre_run_baseline_package="$RUNNER_TEMP/pre-run-baseline-package.json"
+          pre_run_baseline_lockfile="$RUNNER_TEMP/pre-run-baseline-lockfile.yaml"
           test "$(find "$context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
           test "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
           test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
           test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
           test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
           test "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json\npnpm-lock.yaml'
-          cp package.json "$baseline_package"
-          cp pnpm-lock.yaml "$baseline_lockfile"
+          cp package.json "$pre_run_baseline_package"
+          cp pnpm-lock.yaml "$pre_run_baseline_lockfile"
           cp "$prepared/package.json" package.json
           cp "$prepared/pnpm-lock.yaml" pnpm-lock.yaml
           public_home="$RUNNER_TEMP/finalize-home"
@@ -860,19 +860,19 @@ jobs:
           env -i \
             PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
             CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
-            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/finalize-graph.json"
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/pre-run-graph.json"
           env -i \
             PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
             CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
             node scripts/validate-security-dependency-fix.mjs \
               --validate-prepared \
-              --baseline-package "$baseline_package" \
+              --baseline-package "$pre_run_baseline_package" \
               --candidate-package package.json \
               --authorization "$prepared/fix-authorization.json" \
               --lockfile pnpm-lock.yaml \
-              --baseline-lockfile "$baseline_lockfile" \
-              --graph "$RUNNER_TEMP/finalize-graph.json" \
-              > "$RUNNER_TEMP/finalize-validation.json"
+              --baseline-lockfile "$pre_run_baseline_lockfile" \
+              --graph "$RUNNER_TEMP/pre-run-graph.json" \
+              > "$RUNNER_TEMP/pre-run-validation.json"
           run_id="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST)"
           bash scripts/new-run.sh --run-id "$run_id" --task-type implementation --workflow-level standard --no-run-manifest
           run_dir=".codex/runs/$run_id"
@@ -882,7 +882,7 @@ jobs:
             const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
             if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
             process.stdout.write(value.strategy);
-          ' "$RUNNER_TEMP/finalize-validation.json")"
+          ' "$RUNNER_TEMP/pre-run-validation.json")"
           cat > "$run_dir/PLAN.md" <<EOF
           # Security dependency fallback
 
@@ -923,26 +923,79 @@ jobs:
           printf '%s\n' "$run_id" > "$RUNNER_TEMP/security-run-id"
           printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
 
-      - name: Finalize fixed file and hash manifest
+      - name: Run final guard and build validated manifest
         id: finalize_hash
         shell: bash
         env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           EXPECTED_PACKAGE_SHA256: ${{ needs.validate-exec.outputs.package_sha256 }}
           EXPECTED_LOCKFILE_SHA256: ${{ needs.validate-exec.outputs.lockfile_sha256 }}
           EXPECTED_AUTHORIZATION_SHA256: ${{ needs.validate-exec.outputs.authorization_sha256 }}
           AUTHORIZATION_FILE: ${{ runner.temp }}/prepared-security-fix/fix-authorization.json
           FINALIZE_VALIDATION_FILE: ${{ runner.temp }}/finalize-validation.json
+          PRE_RUN_VALIDATION_FILE: ${{ runner.temp }}/pre-run-validation.json
           MANIFEST_FILE: validated-fix.json
           PREPARED_ARTIFACT_ID: ${{ needs.validate-exec.outputs.prepared_artifact_id }}
           RUN_ID_FILE: ${{ runner.temp }}/security-run-id
         run: |
           set -euo pipefail
-          run_id="$(<"$RUNNER_TEMP/security-run-id")"
+          test "$(sha256sum package.json | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
+          test "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          test "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+
+          final_baseline_package="$RUNNER_TEMP/final-baseline-package.json"
+          final_baseline_lockfile="$RUNNER_TEMP/final-baseline-lockfile.yaml"
+          git show "$BASE_SHA:package.json" > "$final_baseline_package"
+          git show "$BASE_SHA:pnpm-lock.yaml" > "$final_baseline_lockfile"
+
+          final_public_home="$RUNNER_TEMP/final-guard-home"
+          final_public_tmp="$RUNNER_TEMP/final-guard-tmp"
+          mkdir -p "$final_public_home" "$final_public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/finalize-graph.json"
+          env -i \
+            PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+              --validate-prepared \
+              --baseline-package "$final_baseline_package" \
+              --candidate-package package.json \
+              --authorization "$AUTHORIZATION_FILE" \
+              --lockfile pnpm-lock.yaml \
+              --baseline-lockfile "$final_baseline_lockfile" \
+              --graph "$RUNNER_TEMP/finalize-graph.json" \
+              > "$FINALIZE_VALIDATION_FILE"
+
+          read_strategy() {
+            node --input-type=module -e '
+              import fs from "node:fs";
+              const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+              process.stdout.write(value.strategy);
+            ' "$1"
+          }
+          pre_strategy="$(read_strategy "$PRE_RUN_VALIDATION_FILE")"
+          final_strategy="$(read_strategy "$FINALIZE_VALIDATION_FILE")"
+          test "$pre_strategy" = "$final_strategy"
+
+          run_id="$(<"$RUN_ID_FILE")"
           run_dir=".codex/runs/$run_id"
-          public_home="$RUNNER_TEMP/finalize-public-home"
-          public_tmp="$RUNNER_TEMP/finalize-public-tmp"
-          mkdir -p "$public_home" "$public_tmp"
-          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+          grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"
+          grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"
+
+          expected_changes=$(printf '%s\n' \
+            package.json \
+            pnpm-lock.yaml \
+            "$run_dir/PLAN.md" \
+            "$run_dir/TASKS.md" \
+            "$run_dir/REPORT.md" | sort)
+          actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          test "$actual_changes" = "$expected_changes"
+          git diff --check
+
+          env -i PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
             CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
             AUTHORIZATION_FILE="$AUTHORIZATION_FILE" FINALIZE_VALIDATION_FILE="$FINALIZE_VALIDATION_FILE" RUN_ID_FILE="$RUN_ID_FILE" \
             EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" \

@@ -297,21 +297,78 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain("conflict_terms");
   });
 
-  it("records the selected strategy from final validation in Run Artifacts and the manifest", () => {
+  it("runs the final guard after Run Artifact sanitization and before validated upload", () => {
     const finalize = jobBlock("finalize", "publish");
     const createRun = stepBlock(finalize, "Verify prepared input and create public Run Artifact");
-    const finalizeHash = stepBlock(finalize, "Finalize fixed file and hash manifest");
+    const finalGuard = stepBlock(finalize, "Run final guard and build validated manifest");
+    const upload = stepBlock(finalize, "Upload validated artifact with exact six-file allowlist");
+    const createRunIndex = finalize.indexOf(
+      "- name: Verify prepared input and create public Run Artifact",
+    );
+    const finalGuardIndex = finalize.indexOf(
+      "- name: Run final guard and build validated manifest",
+    );
+    const uploadIndex = finalize.indexOf(
+      "- name: Upload validated artifact with exact six-file allowlist",
+    );
 
-    expect(createRun).toContain('> "$RUNNER_TEMP/finalize-validation.json"');
+    expect(createRunIndex).toBeGreaterThanOrEqual(0);
+    expect(finalGuardIndex).toBeGreaterThan(createRunIndex);
+    expect(uploadIndex).toBeGreaterThan(finalGuardIndex);
+
+    expect(createRun).toContain('> "$RUNNER_TEMP/pre-run-validation.json"');
+    expect(createRun).toContain('> "$RUNNER_TEMP/pre-run-graph.json"');
+    expect(createRun).toContain("scripts/new-run.sh");
+    expect(createRun).toContain("sanitize-codex-artifacts.ps1");
+    expect(createRun).not.toContain("finalize-validation.json");
+
+    for (const file of ["package.json", "pnpm-lock.yaml"]) {
+      expect(finalGuard).toContain(`sha256sum ${file}`);
+    }
+    expect(finalGuard).toContain('sha256sum "$AUTHORIZATION_FILE"');
+    expect(finalGuard).toContain('git show "$BASE_SHA:package.json"');
+    expect(finalGuard).toContain('git show "$BASE_SHA:pnpm-lock.yaml"');
+    expect(finalGuard).toContain(
+      'corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/finalize-graph.json"',
+    );
+    expect(finalGuard).toContain("--validate-prepared");
+    expect(finalGuard).toContain('> "$FINALIZE_VALIDATION_FILE"');
+    expect(finalGuard).toContain('test "$pre_strategy" = "$final_strategy"');
+    expect(finalGuard).toContain('grep -Fqx -- "- 選択strategy: $pre_strategy"');
+    expect(finalGuard).toContain('grep -Fqx -- "- strategy: $pre_strategy"');
+    expect(finalGuard).toContain("git diff --name-only");
+    expect(finalGuard).toContain("git ls-files --others --exclude-standard");
+    expect(finalGuard).toContain("git diff --check");
+    expect(finalGuard).toContain("strategy: validation.strategy");
+
+    const finalValidationIndex = finalGuard.indexOf('> "$FINALIZE_VALIDATION_FILE"');
+    const fileSetIndex = finalGuard.indexOf("expected_changes=");
+    const manifestIndex = finalGuard.indexOf("const manifest =");
+    expect(finalValidationIndex).toBeGreaterThanOrEqual(0);
+    expect(fileSetIndex).toBeGreaterThan(finalValidationIndex);
+    expect(manifestIndex).toBeGreaterThan(fileSetIndex);
+
+    expect(upload).toContain("validated-fix.json");
+    const afterFinalGuard = finalize.slice(uploadIndex);
+    for (const forbidden of [
+      "scripts/new-run.sh",
+      "sanitize-codex-artifacts.ps1",
+      "pnpm run verify",
+      "pnpm run test",
+      "pnpm run build",
+      "pnpm install",
+      "validate-security-dependency-fix.mjs",
+    ]) {
+      expect(afterFinalGuard).not.toContain(forbidden);
+    }
+
     expect(createRun).toContain("selected_strategy=");
     expect(createRun).toContain("value.strategy");
     expect(createRun).toContain("選択strategy: $selected_strategy");
     expect(createRun).toContain("- strategy: $selected_strategy");
-    expect(finalizeHash).toContain(
+    expect(finalGuard).toContain(
       "FINALIZE_VALIDATION_FILE: ${{ runner.temp }}/finalize-validation.json",
     );
-    expect(finalizeHash).toContain("validation.strategy");
-    expect(finalizeHash).toContain("strategy: validation.strategy");
     expect(workflow).not.toContain("allowed_strategies.join");
     expect(workflow).not.toContain("strategy: authorization.allowed_strategies");
   });
