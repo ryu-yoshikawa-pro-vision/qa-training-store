@@ -32,6 +32,15 @@
 - [x] 28. Case EのDoctor採点をactual command / exit code / Artifactへ絞り、taxonomy parserを非目標化する。
 - [x] 29. status分類、Case B timeout、Case D Semantic重複削除、result contract最小化をPlanへ反映する。
 - [x] 30. 親Plan＋3詳細ファイルの参照・旧契約残存・Markdown構造を確認する。
+- [x] 31. ここまでの全レビューを再統合し、Case B matcher、Semantic actual-output責務、Case A Finding overlap、ignored path scope、provenance、Git mutation、structured schema、Native invocation、CLI exitの9点を必須修正として確定する。
+- [x] 32. Case Bから既存`matchDefectFinding()`再利用を撤回し、fixed case factsによるdeterministic Finding identityへ変更する。
+- [x] 33. PR5 Semantic EvalをCase A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual outputへ再利用する契約を追加する。
+- [x] 34. Case A review Findingにrunner注入diff line rangeとのoverlapを要求する。
+- [x] 35. `routing_source_git_sha` / `case_baseline_git_sha`を分離し、Git-visible scopeとignored-prefix inventoryを分ける。
+- [x] 36. 全Agent turnのGit mutation禁止を共通prompt builderへ固定する。
+- [x] 37. repair / review / Nativeのstage-specific schemaと固定command照合を明確化する。
+- [x] 38. Case Eを標準PowerShell invocationへ統一し、`first_anomaly`の検証をbounded output内verbatim evidenceへ限定する。
+- [x] 39. Workflow E2E CLIのexit code契約を固定し、canonical Plan / Run Artifact / PR本文を同期する。
 
 ## Discovered（発見事項）
 
@@ -40,7 +49,7 @@
 - `charterSchema`は固定Charterの全fieldを要求し、`CHALLENGE-BASIC-001/challenge.json`だけでは`charter_id` / `risk`を満たさない。PR6専用の固定CharterをPlanで定義する。
 - Normal / Gray-box契約は最初のRuntime interaction前のBEFORE、QA後のAFTER / comparisonと`additional_source_diff_count=0`を要求する。
 - Case Cはsentinelをfile scope外にすると`stop_scope_violation`と競合する。sentinel pathを`allowed_files`へ含め、destructive operation禁止を別に評価する。
-- 既存Trigger Evalとの整合上、`routing_source_git_sha`はAgentが実際に読むsanitized Target HEADを指す。生成元revisionは`source_revision_git_sha`へ分離し、重複する`target_git_sha`は作らない。
+- `routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`はrunner-owned baseline commit後のAgent開始時HEADとして分ける必要がある。生成元revisionは`source_revision_git_sha`へ分離し、重複する`target_git_sha`は作らない。
 - Gray-boxはBlack-box Scoredのsource-free isolationを要求しないため、Case B専用root / Skillコピー / Referenceコピーは不要。
 - `scripts/new-run.sh --no-run-manifest` / `scripts/new-run.ps1 -NoRunManifest`は既存機能であり、複数Skillを跨ぐcase-local Runに新しい`task_type`は不要。
 - Working Tree Snapshotはpatched source workspaceのMachine Contractとして保持し、promptへ内容 / digestを転記しない。別QA rootへの同期自体を廃止する。
@@ -51,7 +60,10 @@
 - `runChallengeGroundTruthSanity()`は`suspended-user`でloginを実行し、patched phaseではsession作成後`/`へ遷移する。QAへ同じRuntimeを渡す前に再resetしないと初期状態が汚れる。
 - `QA_AGENT.md`のGray-box seed列挙は実装正本`src/seeds/metadata.ts`とdriftしている。PR6専用例外を足さず正本参照へ修正する。
 - latest `main`取り込みはEvaluator実装開始前に行い、今回はPlan-onlyの範囲では実施しない。
+- PR5 Semantic Evalはcalibrationだけでは現在のSkill実行品質を証明しない。PR6でactual outputへ同じcriteria / Judge protocol / 3 trialsを適用する必要がある。
+- `.codex/runs/**` / `.artifacts/**`は既存Git / Working Tree Snapshotだけでは観測できないため、明示的なprefix inventoryが必要。
+- 現行の親Plan + 3詳細ファイルで責務が分かれているため、追加分割は不要。
 
 ## Blocked（ブロック中）
 
-- なし。Evaluator実装はまだ開始しない。今回反映した統合修正を再レビューして実装開始可否を判定する。
+- なし。Evaluator実装前にlatest `main`を取り込み、material driftとinstalled Codex smoke probeを実施する。
