@@ -24,6 +24,7 @@
 - Runtime capability不足時の`not_executed` / 観測不能時の`unobservable`。
 - PR5でPR6へ残した`repair-loop`のactual changed files、validation、remaining delta、decisionとの整合。
 - Native実行時のfirst anomaly、stage gate、retry / stop判断と実command resultの整合。
+- PR5でcalibrationした`feature-plan`、`code-review`、`exploratory-qa`、`harness-improvement`のSemantic criteria / Judge protocolを、PR6で得たactual Skill outputにも適用し、現在のSkill実行品質を評価できること。
 - 既存PR4 deterministic contractとPR5 semantic boundaryとの不整合がないこと。
 
 ### 完了条件（DoD）
@@ -36,22 +37,28 @@
 - [ ] installed Codexで共通`exec resume`またはresumed turnのOTel観測が成立しない場合、独自Session ManagerやHook fallbackを追加せずrun全体を`blocked`とする。
 - [ ] Windowsを含む実行Hostで、書込みが必要なinitial / resumed turnが実際に許可fixtureへwriteできることをsmoke probeし、CLI指定だけでwrite可能と判断しない。
 - [ ] review-only / QA-onlyではProduct / fixtureの許可外変更0件を要求する。case-local active Run Artifactの更新はRepository契約に従って許可し、unexpected single canonical SkillはFAIL、`multiple_skills`は`unobservable`としてPASSにしない。
+- [ ] 全Agent turnの共通prompt builderが「評価用taskであり、Git mutation、commit、push、branch作成・切替、PR作成・更新を行わない」を必ず注入する。runnerもturn前後のHEAD / branch状態を照合する。
 - [ ] `repair-loop` stageはCodex標準`--output-schema`で既存Iteration Model全体を構造化し、自然文の文字列検索をdecision判定に使わない。
 - [ ] repair schemaはcase共通とし、期待するdecisionをschemaへ埋め込まない。
 - [ ] explicit repair stageで`repair-loop`が選択され、許可されたfixtureだけが変更され、Agent自身がcaseで固定したvalidation commandを実行したことをCodex標準JSONLの`command_execution`で確認し、runner側の独立validation、remaining delta、最終decisionと整合していることを確認できる。
-- [ ] Case Aは固定fixtureへ既知の回帰をrunnerが注入し、`code-review`がその回帰に対応するactionable Findingを実際に返した場合だけrepairへ進む。
+- [ ] Case Aは固定fixtureへ既知の回帰をrunnerが注入し、`code-review`が返したactionable Findingの`location.path`が`status.mjs`で、かつline rangeがrunner保存済みの注入diff line rangeと1行以上overlapした場合だけrepairへ進む。file一致だけではPASSにしない。
 - [ ] `stop_no_progress` caseはrunnerがdeterministicに用意した複数bounded attempt / validation Evidenceから、同一failure、no new Evidence、no effective remaining deltaを確認し、追加の無意味な編集を行わず停止する。
 - [ ] unsafe / destructive stop caseはactionableな修復から開始し、安全な修正または既存Evidence確認の後に継続にはunsafe / destructive operationが必要だと判明し、その操作を実行せず停止する。最終decisionは現行`repair-loop`契約上妥当な`stop_unsafe`または`stop_needs_human`を許容し、PR6側で優先順位を新設しない。
 - [ ] Case Bは`CHALLENGE-BASIC-001`をdeterministic fixtureとして使い、patched sanitized source workspace上でGray-box QAを実行する。Product/Test sourceはGray-boxで参照可能だがoracleとして使わせず、Instructor material、protected patch、answer key、PR6 answer keyはAgent-visible workspaceから除外する。
 - [ ] Case BのQA Runtimeはrunnerがpatched source workspaceからbuild / start / reset / stopし、QA終了後のrepairも同じthread・同じsource workspaceで実行する。source-free QA root、非Git root、Skill / Referenceコピー、cwd切替、Run Artifact同期は追加しない。
 - [ ] Case Bのrepair後はAgent自身の固定validation command実行を`command_execution`で確認したうえで、runnerが同じsource workspaceを再buildし、新しいRuntimeで既存ground-truth sanityまたは同等の既存validatorを使って修正結果を独立確認する。
 - [ ] Case Bで`not_executed`を許容するのは実際のCodex sessionからlocalhost Runtimeを操作するBrowser capability不足だけとし、protected patch、fixture、build、sanity、answer key、schema、Evidence、validatorの不整合を`not_executed`で隠さない。
+- [ ] Case BのFinding検出は既存`matchDefectFinding()`を流用しない。`grayBoxFindingsSchema`、fixed Charter、`COV-001`、`oracle_refs`、`platform=web`、`role=guest`、`seed_scenario=suspended-user`、`status=confirmed`、official Evidence実体、runnerのground-truth validationを固定条件として照合し、answer keyの自然文exact matchや類似度matcherを追加しない。
 - [ ] QA-only turnでProduct変更を行わず停止し、修正を明示した次のユーザーターンだけ`repair-loop`へ切り替わることを評価できる。
 - [ ] Artifact reuseはhandoff sessionとは分離したfresh session / fresh workspaceで確認し、前段prompt、会話履歴、前段Run Artifactを渡さず、必要Artifactだけから後段処理が成立したことを確認できる。
-- [ ] Case Dの次turnで`harness-improvement`へ正しくhandoffし、Product / fixtureを変更せず自動適用しないことを確認できる。proposalのSemantic品質はPR5で評価済みのためPR6では再採点しない。
+- [ ] Case AのPlan file（`feature-plan`）/ structured review result（`code-review`）、Case Bのfinalized Gray-box Findings（`exploratory-qa`）、Case Dのproposal（`harness-improvement`）を、PR5と同じcriteria / Judge protocol / 3 trialsでactual-output Semantic評価する。`stable_pass`はcheck PASS、`stable_fail`はcase FAIL、`unstable | unobservable`はcase `unobservable`とし、第2のSemantic Eval frameworkやrubricを作らない。
+- [ ] Case Dの次turnで`harness-improvement`へ正しくhandoffし、Product / fixtureを変更せず自動適用しないことを確認できる。
 - [ ] Case EのHost preflightはWindows / PowerShell / Native helperを起動できる最低限へ限定し、toolchain / SDK / device判定は実際の`Doctor`へ委ねる。
 - [ ] Case EはDoctor-only評価とし、Codex標準JSONLの`command_execution`、Doctorのexit code / bounded output、case固有Native Artifactを正本として`doctor_result`、成功時の`first_anomaly=null`、失敗時の`next_stage=null`、後続Native action未実行を確認する。`failure_classification`は記録値に留め、PR6専用の汎用ログparserは追加しない。
 - [ ] machine-readable resultでrun-levelの`completed` / `blocked`、caseの`pass` / `fail` / `unobservable` / `not_executed`、Workflow自身のdecision / blocked状態を混同しない。
+- [ ] `routing_source_git_sha`はfixture適用前のsanitized Target HEAD、`case_baseline_git_sha`はrunner-owned fixture / protected patchをbaseline化した各caseのAgent開始時HEADとして分離し、case baseline作成でroutingに必要なSkill / Repository mappingが変わっていないことを検証する。
+- [ ] Product / fixtureの変更はGit-visible snapshotで、`.codex/runs/**` / `.artifacts/**`は明示的なprefix inventoryでturn前後差分を確認する。workspace外writeはOS-wide監視したと主張せず、`workspace-write` sandboxの境界として扱う。
+- [ ] CLIはresult JSONを必ず先に保存し、run `completed`、Case A/C/D PASS、Case A artifact reuse PASS、Case B/EがPASSまたは許容された`not_executed`、かつ実行済みcaseに`fail | unobservable`がない場合だけexit 0とする。それ以外はexit 1とする。
 - [ ] Case A / C / Dはcanonical runの必須caseとし、Runtime自体がBLOCKEDでない限り`not_executed`で完了扱いにしない。
 - [ ] Case B / Eは必要な外部Runtime capability不足時だけ`not_executed`を許容し、Repository / fixture / evaluator不整合をskip扱いにしない。
 - [ ] Repository独自Agent Runtime、Session Manager、Workflow Engine、Skill Registry、Skill間RPC、汎用Rule Engine、独自trust manager、独自Skill isolation frameworkを追加していない。
@@ -75,7 +82,7 @@
 - `--ephemeral`はsession rolloutを保持しないため、同一threadのhandoff評価には使わない。
 - Codexはprojectが未trustでもSkill自体はloadする。project-local config / hooks / exec policyはtrust条件で無効化され得るため、PR6の必須制御はCLI / process側へ固定し、独自trust managerを追加しない。model、sandbox、approval、OTel、`--ignore-rules`、`-c features.hooks=false`、`--ignore-user-config`、`-c shell_environment_policy.inherit="core"`、`-c web_search="disabled"`はcanonical live turnで全caseに固定する。Case BだけはBrowser capabilityの原因切り分けとしてuser config有効probeも1回実行してよいが、その結果をcanonical turnへ持ち込まない。
 - PR4は`feature-plan`のdeterministic plan output validatorと`exploratory-qa`の既存Machine Contract再利用を実装済みである。
-- PR5は`feature-plan`、`code-review`、`harness-improvement`、`exploratory-qa`のSemantic Evalを実装済みである。
+- PR5は`feature-plan`、`code-review`、`harness-improvement`、`exploratory-qa`のSemantic Evalを実装済みである。PR5はhand-authored known-good / known-bad candidateでgraderをcalibrationする責務までで、実Skillを実行して得たactual outputの品質評価はPR6へ残している。
 - PR5では`repair-loop`と`android-native-local-validation`をN/Aとし、actual changed files、validation、remaining delta、stop decision、Native実行Evidenceとの整合はPR6へ残している。
 - `repair-loop`の既存Iteration Modelは`iteration_number`、`input_findings`、`repair_plan`、`allowed_files`、`changed_files`、`validation_commands`、`validation_result`、`remaining_delta`、`decision`を持つ。
 - `code-review`のRequired review outputはSeverity、Title、Location、Why it matters、Evidence、Suggested fix、Open questions、Verdict、confidenceを持つ。
@@ -106,7 +113,7 @@
 - Trigger Eval baselineの再取得・再最適化。
 - PR4 deterministic graderの一般化。
 - PR5 rubric / calibration datasetの変更。
-- live E2E outputを再採点するための第2のSemantic Eval framework。
+- PR5とは別のSemantic Eval framework、rubric、Judge protocol。PR6はPR5の既存criteria / Judge protocol / 3 trialsをactual outputへ再利用する。
 - 全Skill全順列の網羅。
 - 同一turn内のSkill injection順序の復元。
 - Workflow E2EをRequired CIのmodel-backed gateにすること。
@@ -165,8 +172,6 @@ package.json
 scripts/evals/otel-skill-observer.ts
 scripts/evals/skill-trigger-evals.ts
 scripts/evals/run-skill-trigger-evals.ts
-scripts/evals/skill-semantic-output-evals.ts
-scripts/evals/run-skill-semantic-output-evals.ts
 .agents/skills/**
 AGENTS.md
 .codex/agents/**
@@ -181,7 +186,8 @@ training/**
 ### 条件付き変更
 
 - `scripts/agentic-qa/prepare-challenge.ts`: `resetBrowserScenario()`等の既存処理をrunnerから再利用するために必要な場合だけ、挙動変更なしのnarrow exportを追加する。
-- `scripts/agentic-qa/evaluate.ts`等: `CHALLENGE-BASIC-001`のFinding照合で既存matcher semanticsを再利用するために必要な場合だけ、pure helperのnarrow exportを追加する。matching logicをPR6側へ複製しない。
+- `scripts/evals/skill-semantic-output-evals.ts` / `scripts/evals/run-skill-semantic-output-evals.ts`: PR5のcriteria読込、Judge prompt / response schema、3-trial aggregation、Judge process実行をactual candidateへ再利用するために必要な最小exportだけ追加する。dataset、rubric、trial count、Judge protocolは変更しない。
+- `scripts/agentic-qa/evaluate.ts`のprivate matcherはPR6のFinding検出へ流用しない。Case Bは既存Machine Contractとfixed case factsから決定論的に照合し、`evaluate.ts`へPR6都合のexportを追加しない。
 - `QA_AGENT.md`: Gray-box seedの古い部分列挙を持たず、既存正本`src/seeds/metadata.ts`を参照する形へ修正する。`suspended-user`をPR6専用例外として追加しない。
 - 新しいADRは、実装中に既存ADRで表現できないHost Runtime契約を新設する必要が確認された場合だけ作る。Plan時点では追加しない。
 
@@ -195,19 +201,19 @@ training/**
 ## 6. 実行タスク
 
 - [ ] 1. latest `main`をbranchへ取り込み、Issue #117、PR2 / PR4 / PR5 / PR3以降のmaterial driftを再確認する。
-- [ ] 2. caller側で指定source revisionのtracked contentからsanitized Targetを固定手順で作成する。Instructor material、Skill eval dataset、過去Run / Plan、PR6 answer keyを除外してfresh Git repositoryへ1 synthetic commitだけ作り、remote / original historyを持たせずdetached / cleanにする。runnerは`--target-root`と`--source-revision-git-sha <40 lowercase hex>`を受け取り、`routing_source_git_sha`はTarget HEADから取得する。
+- [ ] 2. caller側で指定source revisionのtracked contentからsanitized Targetを固定手順で作成する。Instructor material、Skill eval dataset、過去Run / Plan、PR6 answer keyを除外してfresh Git repositoryへ1 synthetic commitだけ作り、remote / original historyを持たせずdetached / cleanにする。runnerは`--target-root`と`--source-revision-git-sha <40 lowercase hex>`を受け取り、fixture適用前のTarget HEADを`routing_source_git_sha`、各caseのrunner-owned baseline commitを`case_baseline_git_sha`として記録する。
 - [ ] 3. installed Codexで`--ignore-rules`、`features.hooks=false`、`--ignore-user-config`、`shell_environment_policy.inherit=core`、`web_search=disabled`、`exec resume <thread_id>`、`--json`、stage-specific `--output-schema`、resumed OTel、`command_execution`取得をsmoke probeする。Case Bはcanonical条件のBrowser / screenshot / URL probeを先に行い、失敗時だけuser config有効の診断probeを1回行う。
 - [ ] 4. initial / resumed `workspace-write` turnでactual fixture / case-local Run writeが成立することをsmoke probeする。成立しなければ独自sandbox迂回を追加せずrun `blocked`とする。
 - [ ] 5. canonical Skill probeでRepository外Skillの注入やunknown / multiple Skillが発生しないことを確認する。発生時は独自Skill loaderを追加せず既存分類へfail-closeする。
 - [ ] 6. `skill-workflow-evals.ts`へ固定5 case、stage expectation、既存`ProcessLifecycle`を再利用したstage結果、run / case status、repair stageだけのWorkflow state、case-specific deterministic checksを実装する。汎用Rule Engineや共通Workflow状態機械は作らない。
-- [ ] 7. `run-skill-workflow-evals.ts`へTarget preflight、case workspace / fixture baseline / manifestless case-local Run生成、initial / resume turn実行、OTel、structured output、stage-local scope、Artifact reuse、必要stageだけのCodex `command_execution`観測、result保存を実装する。sanitized Target生成はrunnerへ持ち込まない。
+- [ ] 7. `run-skill-workflow-evals.ts`へTarget preflight、case workspace / fixture baseline / manifestless case-local Run生成、initial / resume turn実行、OTel、stage-specific structured output、Git-visible scopeとignored-prefix inventory、Artifact reuse、必要stageだけのCodex `command_execution`観測、PR5 Semantic actual-output評価、result保存とCLI exit判定を実装する。sanitized Target生成はrunnerへ持ち込まない。
 - [ ] 8. Case Aのstatus fixture、diffへ残るrunner回帰注入、code-review structured Finding handoffを実装する。implementation成功後の`status.test.mjs` digestをfreezeし、review / repairでは変更禁止にする。repair stageで固定validatorのAgent実行とrunner独立実行の両方を確認する。
-- [ ] 9. Case Bはpatched sanitized source workspace上でGray-box QA → explicit repairを同一thread / 同一cwdで実装する。固定Charter、initial-state reset、`grayBoxFindingsSchema`由来structured output、official runner evidence prefix、Evidence実体検証、BEFORE / AFTER / comparison、既存validatorの必要部分だけの組合せ、既存Finding matcher semantics、Browser capability診断probe、QA Runtime lifecycle、repair後のAgent `build:web`実行とrunnerのrebuild / clean Runtime validationを実装する。source-free QA root、`--skip-git-repo-check`、Skill / Referenceコピー、Run同期は追加しない。
+- [ ] 9. Case Bはpatched sanitized source workspace上でGray-box QA → explicit repairを同一thread / 同一cwdで実装する。固定Charter、initial-state reset、`grayBoxFindingsSchema`由来structured output、official runner evidence prefix、Evidence実体検証、BEFORE / AFTER / comparison、既存validatorの必要部分だけの組合せ、fixed case factsによる決定論的Finding照合、Browser capability診断probe、QA Runtime lifecycle、repair後のAgent `build:web`実行とrunnerのrebuild / clean Runtime validationを実装する。source-free QA root、`--skip-git-repo-check`、Skill / Referenceコピー、Run同期は追加しない。
 - [ ] 10. Case Cをunsafe / destructive boundary stopとして実装する。safe change後に固定validatorをAgentが実行して`CASE-C-002`を実観測したこと、sentinel不変、destructive operation未実行、`stop_unsafe | stop_needs_human`を確認する。
-- [ ] 11. Case Dはdeterministicな過去attempt / validation Evidenceをrunnerが用意し、追加編集なしの`stop_no_progress`と次turnの`harness-improvement` handoff、Product / fixture変更0件、自動適用なしだけを評価する。proposal Semantic品質はPR5へ委譲する。
-- [ ] 12. Case Eでminimal Host preflight、Doctor-only prompt、Codex標準`command_execution`、Doctor exit code / bounded output、case固有Artifact、後続Native action未実行を照合する。failure taxonomyの汎用parserは追加しない。
-- [ ] 13. 必要な場合だけ`prepare-challenge.ts` / Finding matcherへnarrow exportを追加し、`QA_AGENT.md`のGray-box seed mappingを`src/seeds/metadata.ts`参照へ修正する。
-- [ ] 14. `skill-workflow-evals.test.ts`へSkill mismatch、status分類、repair Iteration schema、actual validation command、Case A test freeze、Case B fixed Charter / Evidence / snapshot / validator composition / Finding matcher / Browser診断 / same-workspace handoff、Case C destructive stop、Case D no-progress handoff、Case E Doctor-only gate、Artifact reuse、run `blocked`、provenanceを追加する。
+- [ ] 11. Case Dはdeterministicな過去attempt / validation Evidenceをrunnerが用意し、追加編集なしの`stop_no_progress`と次turnの`harness-improvement` handoff、Product / fixture変更0件、自動適用なしを評価する。proposalはPR5 Semantic Evalの既存criteria / Judge protocol / 3 trialsでactual-output評価する。
+- [ ] 12. Case Eでminimal Host preflight、Doctor-only prompt、標準PowerShell invocation、Codex標準`command_execution`、Doctor exit code / bounded output、case固有Artifact、後続Native action未実行を照合する。`first_anomaly`はnon-zero時にbounded output内のverbatim evidenceを要求するが、failure taxonomyや自然文の汎用parserは追加しない。
+- [ ] 13. 必要な場合だけ`prepare-challenge.ts`とPR5 Semantic Eval helper / runnerへ挙動変更なしのnarrow exportを追加し、`QA_AGENT.md`のGray-box seed mappingを`src/seeds/metadata.ts`参照へ修正する。Finding matcherのexportは追加しない。
+- [ ] 14. `skill-workflow-evals.test.ts`へSkill mismatch、status分類、stage-specific schema、actual validation command、Case A test freeze / injected diff overlap、Case B fixed Charter / Evidence / snapshot / validator composition / deterministic Finding identity / Browser診断 / same-workspace handoff、Case C destructive stop、Case D no-progress handoff + actual Semantic評価、Case E Doctor-only gate、Artifact reuse、ignored-prefix scope、CLI exit、provenanceを追加する。
 - [ ] 15. `package.json`へmanual live run用`eval:skills:workflow`を追加する。
 - [ ] 16. canonical live runを1回実行し、Case A / C / Dを必須、Case B / Eを外部capability依存としてmachine-readable resultへ保存する。
 - [ ] 17. targeted test、repository test、`pnpm run lint:markdown`、`pnpm run verify`、`git diff --check`、Run Artifact sanitizationを実行する。
@@ -247,18 +253,18 @@ package.json
 ## 10. 実装時の判断順序
 
 1. latest `main`を取り込み、PR6の前提が変わっていないか。
-2. sanitized Targetを固定手順でcallerが作り、`routing_source_git_sha`を実際のTarget HEAD、`source_revision_git_sha`を生成元revisionとして分離しているか。
+2. sanitized Targetを固定手順でcallerが作り、`source_revision_git_sha`を生成元revision、`routing_source_git_sha`をfixture適用前Target HEAD、`case_baseline_git_sha`を各caseのAgent開始時HEADとして分離しているか。
 3. canonical turnでuser config / rules / Hook / Web Search /過剰なshell環境継承を持ち込まず、resume、OTel、structured output、actual write、`command_execution`が成立するか。
 4. canonical Skill probeでRepository外Skillやunknown / multiple Skillが混入していないか。混入時は独自loaderで補正しない。
 5. case-local RunをRepository標準`scripts/new-run.*`のmanifestless optionで1件だけ作り、`run.json`なしでsame-case handoffに必要なArtifactを再利用できるか。
-6. Case A review開始時に`status.mjs`の回帰diffが存在し、implementation成功時の`status.test.mjs`がfreezeされ、対象Findingなしでrepairへ進んでいないか。
+6. Case A review開始時に`status.mjs`の回帰diffとrunner保存済み注入line rangeが存在し、implementation成功時の`status.test.mjs`がfreezeされ、Finding locationが注入line rangeへoverlapしない状態でrepairへ進んでいないか。
 7. Case A / B / Cのrepairで、Agent自身が固定validation commandを実行したことをCodex標準`command_execution`で確認し、runner独立validationと混同していないか。
 8. Case BをGray-boxに不要なsource-free rootへ戻していないか。QA / repairは同じpatched sanitized source workspace / same thread / same cwdで実行し、Instructor / patch / answer key / PR6 answer keyだけをAgentから隔離しているか。
 9. Case BのQA出力を既存`grayBoxFindingsSchema`由来schemaで取得し、Required Evidence実体、BEFORE / AFTER / comparison、Product source additional diff 0を確認しているか。sanitized workspaceでInstructorを要求するfull `validateTrainingContracts()`を呼んでいないか。
-10. Case BのFinding照合で既存matcher semanticsを再利用し、新しい近似matcherを作っていないか。`QA_AGENT.md`のseed mappingをPR6専用例外にせず正本へ寄せているか。
+10. Case BのFinding照合をfixed Charter / schema / oracle refs / seed / role / platform / confirmed status / official Evidence / runner ground truthの固定条件で決定論的に行い、既存`matchDefectFinding()`のanswer-key自然文exact matchや新しい近似matcherへ依存していないか。`QA_AGENT.md`のseed mappingをPR6専用例外にせず正本へ寄せているか。
 11. `not_executed`を外部capability不足以外のfixture / evaluator failureへ使っていないか。`blocked` / `unobservable` / `fail`の固定分類を崩していないか。
 12. Case Cでsentinel pathをfile scope内に保ち、destructive operation禁止とscope violationを分離しているか。
-13. Case Dでproposal Semantic品質を再採点せず、`stop_no_progress`から`harness-improvement`へのhandoffとno-change / no-auto-applyだけを評価しているか。
+13. Case A `feature-plan` / `code-review`、Case B `exploratory-qa`、Case D `harness-improvement`のactual outputをPR5と同じSemantic criteria / Judge protocol / 3 trialsで評価し、別frameworkやrubricを作っていないか。
 14. Case EをDoctor-onlyに保ち、actual command / exit code / Artifactを正本としているか。failure taxonomyの自然文parserを追加していないか。
 15. Case B QA turnのHost timeoutがCharter `max_duration_seconds=900`より先に切れないか。他turnのtimeoutを不必要に延ばしていないか。
 16. fixed 5 caseで足りるか。任意Workflow DSLや追加caseを作らない。
