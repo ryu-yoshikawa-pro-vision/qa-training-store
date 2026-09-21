@@ -88,7 +88,7 @@ jobs:
           test -n "$ghsa_id"
           curl --fail-with-body --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/security-advisories/$ghsa_id" > "$raw_advisory"
+            "https://api.github.com/advisories/$ghsa_id" > "$raw_advisory"
 
           curl --fail-with-body --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
@@ -1215,7 +1215,7 @@ jobs:
           NODE
           curl --fail-with-body --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/security-advisories/$ghsa_id" > "$advisory"
+            "https://api.github.com/advisories/$ghsa_id" > "$advisory"
           AUTH_FILE="$authorization" ADVISORY_FILE="$advisory" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
