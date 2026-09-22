@@ -48,9 +48,9 @@ OpenCodeは脆弱性scanner、Git操作主体、独自のdependency updaterと�
 - `opencode-edit` / `validate-exec` / `finalize`は`id-token: write`と`vulnerability-alerts: read`を持たず、raw Dependabot Alertを受け取らない。
 - `publish` jobだけが`id-token: write`を持ち、OpenCode GitHub App installation tokenを取得する。`.github/workflows/**`全体のcontract testで、`id-token: write`を持てる箇所を`security-dependency-fallback.yml`の`publish` job 1箇所だけへ固定する。
 - OpenCodeへ渡すSecurity情報は、公開Repositoryと公開Security Advisoryから再構成できる構造化情報だけにする。Alert番号、Alert state、actual exposure、private triage、raw Alert JSONを渡さない。
-- Public Global Security Advisoryの`vulnerabilities[]`は`ecosystem == npm`かつ`package.name == Alert dependency名`で一意に一致するentryだけを使用する。0件または複数件なら`needs_human`で停止する。
+- Dependabot Alertの`security_vulnerability`をAlert固有のvulnerable range / first patched versionの正本とする。Public Global Security Advisoryの`vulnerabilities[]`は`package.ecosystem` / `package.name` / normalized vulnerable range / `first_patched_version`が一致するentryを一意に照合する。同一packageに複数entryがあること自体は拒否せず、0件または複数一致なら`needs_human`で停止する。
 - `read-alert`が受け入れるnpm Alertの`manifest_path`はrootの`package.json`または`pnpm-lock.yaml`に限定し、先頭`/`の有無だけを許容する。transitive dependencyを記録するDependabot Alertでは`pnpm-lock.yaml`を正規入力として扱い、それ以外のmanifestは`needs_human`で停止する。
-- fail-closedで停止する箇所はActions logへ`needs_human:<固定理由コード>`を出し、外部API失敗では必要に応じてHTTP statusだけを付加する。Alert番号、GHSA ID、dependency名、raw response、credential、tokenを診断ログへ出さない。Job Summaryの公開結果は従来どおり成功時のPR URLまたは`needs_human`だけとする。
+- fail-closedで停止する箇所はActions logへ`needs_human:<固定理由コード>`を出し、外部API失敗では必要に応じてHTTP statusだけを付加する。Alert番号、GHSA ID、dependency名、raw response、credential、tokenを診断ログへ出さない。`workflow_dispatch`のAlert番号はstep `env`へ展開せず、`GITHUB_EVENT_PATH`から`read-alert` / `publish`内で読み取る。`validate-security-dependency-fix.mjs`のCLIは`NeedsHumanError.message`を出力せず、安全な固定理由コードだけを出す。安全な自動strategyを作れない場合は`needs_human:no_safe_automatic_strategy`、個別分類していないvalidator拒否は`needs_human:validator_rejected_input`とする。Job Summaryの公開結果は従来どおり成功時のPR URLまたは`needs_human`だけとする。
 - OpenCodeは固定Releaseの公式binaryをRepository側へ固定したSHA-256で検証してから実行する。stock `anomalyco/opencode/github` Actionと`opencode github run`は使わない。
 - OpenCode ZenはGitHub Secret `OPENCODE_API_KEY`を使い、実行時のmodel一覧からID末尾が`-free`のmodelだけを決定的に選ぶ。有料modelや匿名利用へfallbackしない。
 - `OPENCODE_API_KEY`はOpenCode processだけへ渡し、検証jobの他processとpublish jobへ渡さない。
@@ -678,7 +678,7 @@ synthetic fixtureは公開情報だけで構成し、実Alert payloadをcommit�
 - prepared `pnpm-lock.yaml`のtarget package `packages` / `snapshots` entryにvulnerable range内versionが1件でも残れば拒否する。
 - `fix-authorization.json`がOpenCode実行前にworkflow自身によって生成され、OpenCode実行前後でSHA-256不変である。
 - authorizationがdependency / ecosystem / GHSA / range / first patched / baseline path / allowed strategy / exact allowed mutationを保持する。
-- Advisory vulnerability entryをnpm + package名で一意選択する。
+- Alert固有条件はDependabot Alertの`security_vulnerability`から取得し、Global Security Advisoryでは`package.ecosystem` / `package.name` / normalized vulnerable range / `first_patched_version`の全条件が一致するentryを一意に照合する。
 - OpenCode binary version / asset / digestを固定する。
 - stock Action / `opencode github run`を使わない。
 - modelは`-free`だけを選び、`model`と`small_model`の両方へ同じFree modelを設定する。

@@ -74,7 +74,6 @@ jobs:
         id: read_alert
         shell: bash
         env:
-          ALERT_NUMBER: ${{ inputs.alert_number }}
           GITHUB_TOKEN: ${{ github.token }}
           API_URL: ${{ github.api_url }}
           REPOSITORY: ${{ github.repository }}
@@ -109,10 +108,14 @@ jobs:
           open_prs="$RUNNER_TEMP/open-prs.json"
           trap 'rm -f "$raw_alert" "$raw_advisory" "$open_prs"' EXIT
 
-          case "$ALERT_NUMBER" in
+          if ! alert_number="$(node --input-type=module -e 'import fs from "node:fs"; const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,"utf8")); const value=event.inputs?.alert_number; if(value===undefined||value===null)process.exit(1); process.stdout.write(String(value))')"; then
+            echo "needs_human:alert_input_read_failed" >&2
+            exit 1
+          fi
+          case "$alert_number" in
             ''|*[!0-9]*) echo "needs_human:invalid_alert_number" >&2; exit 1 ;;
           esac
-          fetch_json "read_alert" "$raw_alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" \
+          fetch_json "read_alert" "$raw_alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$alert_number" \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN"
 
@@ -138,11 +141,14 @@ jobs:
           const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
           const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
           const needsHuman = (code) => { throw new Error(`needs_human:${code}`); };
+          const normalizeRange = (value) =>
+            typeof value === "string" ? value.replaceAll(",", " ").replace(/\s+/g, " ").trim() : null;
           if (alert.state !== "open") needsHuman("alert_not_open");
           const dependency = alert.dependency?.package?.name;
           const ecosystem = alert.dependency?.package?.ecosystem;
           const manifestPath = alert.dependency?.manifest_path;
           const ghsaId = alert.security_advisory?.ghsa_id;
+          const alertVulnerability = alert.security_vulnerability;
           const supportedManifestPaths = new Set([
             "package.json",
             "/package.json",
@@ -153,15 +159,24 @@ jobs:
           if (ecosystem !== "npm") needsHuman("unsupported_ecosystem");
           if (!supportedManifestPaths.has(manifestPath)) needsHuman("unsupported_manifest");
           if (dependency === "semver" || dependency === "yaml") needsHuman("validator_trust_dependency");
+          if (!alertVulnerability || typeof alertVulnerability !== "object") needsHuman("alert_vulnerability_missing");
+          if (alertVulnerability.package?.name !== dependency) needsHuman("alert_vulnerability_dependency_mismatch");
+          if (alertVulnerability.package?.ecosystem !== ecosystem) needsHuman("alert_vulnerability_ecosystem_mismatch");
+          const vulnerableRange = normalizeRange(alertVulnerability.vulnerable_version_range);
+          const firstPatchedVersion = alertVulnerability.first_patched_version?.identifier ?? null;
+          if (!vulnerableRange) needsHuman("alert_vulnerable_range_missing");
+          if (firstPatchedVersion !== null && (typeof firstPatchedVersion !== "string" || firstPatchedVersion.length === 0)) {
+            needsHuman("alert_first_patched_version_invalid");
+          }
           if (typeof ghsaId !== "string" || ghsaId !== advisory.ghsa_id) needsHuman("advisory_identity_mismatch");
-          const vulnerabilities = (advisory.vulnerabilities ?? []).filter(
-            (entry) => entry.ecosystem === "npm" && entry.package?.name === dependency,
+          const vulnerabilities = (Array.isArray(advisory.vulnerabilities) ? advisory.vulnerabilities : []).filter(
+            (entry) =>
+              entry.package?.ecosystem === ecosystem &&
+              entry.package?.name === dependency &&
+              normalizeRange(entry.vulnerable_version_range) === vulnerableRange &&
+              (entry.first_patched_version ?? null) === firstPatchedVersion,
           );
           if (vulnerabilities.length !== 1) needsHuman("advisory_vulnerability_entry_ambiguous");
-          const vulnerability = vulnerabilities[0];
-          const vulnerableRange = vulnerability.vulnerable_version_range;
-          const firstPatchedVersion = vulnerability.first_patched_version?.identifier ?? null;
-          if (typeof vulnerableRange !== "string" || vulnerableRange.length === 0) needsHuman("advisory_vulnerable_range_missing");
           const context = {
             schema_version: 1,
             dependency,
@@ -1406,7 +1421,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           API_URL: ${{ github.api_url }}
           REPOSITORY: ${{ github.repository }}
-          ALERT_NUMBER: ${{ inputs.alert_number }}
         run: |
           set -euo pipefail
           fetch_json() {
@@ -1435,22 +1449,37 @@ jobs:
           authorization="$RUNNER_TEMP/validated-security-fix/validated-fix.json"
           dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$authorization")"
           ghsa_id="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).ghsa_id)' "$authorization")"
-          case "$ALERT_NUMBER" in
+          if ! alert_number="$(node --input-type=module -e 'import fs from "node:fs"; const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,"utf8")); const value=event.inputs?.alert_number; if(value===undefined||value===null)process.exit(1); process.stdout.write(String(value))')"; then
+            echo "needs_human:alert_input_read_failed" >&2
+            exit 1
+          fi
+          case "$alert_number" in
             ''|*[!0-9]*) echo "needs_human:invalid_alert_number" >&2; exit 1 ;;
           esac
           alert="$RUNNER_TEMP/publish-alert.json"
           advisory="$RUNNER_TEMP/publish-advisory.json"
-          fetch_json "publish_alert" "$alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" \
+          fetch_json "publish_alert" "$alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$alert_number" \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN"
           AUTH_FILE="$authorization" ALERT_FILE="$alert" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
           const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
+          const normalizeRange = (value) =>
+            typeof value === "string" ? value.replaceAll(",", " ").replace(/\s+/g, " ").trim() : null;
           if (alert.state !== "open") throw new Error("needs_human:publish_alert_not_open");
           if (alert.dependency?.package?.name !== auth.dependency) throw new Error("needs_human:publish_alert_dependency_changed");
           if (alert.dependency?.package?.ecosystem !== auth.ecosystem) throw new Error("needs_human:publish_alert_ecosystem_changed");
           if (alert.security_advisory?.ghsa_id !== auth.ghsa_id) throw new Error("needs_human:publish_alert_advisory_changed");
+          const vulnerability = alert.security_vulnerability;
+          const range = normalizeRange(vulnerability?.vulnerable_version_range);
+          const first = vulnerability?.first_patched_version?.identifier ?? null;
+          if (
+            vulnerability?.package?.name !== auth.dependency ||
+            vulnerability?.package?.ecosystem !== auth.ecosystem ||
+            range !== auth.vulnerable_range ||
+            first !== auth.first_patched_version
+          ) throw new Error("needs_human:publish_alert_vulnerability_changed");
           NODE
           fetch_json "publish_advisory" "$advisory" "https://api.github.com/advisories/$ghsa_id" \
             --header "Accept: application/vnd.github+json"
@@ -1458,12 +1487,17 @@ jobs:
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
           const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
+          const normalizeRange = (value) =>
+            typeof value === "string" ? value.replaceAll(",", " ").replace(/\s+/g, " ").trim() : null;
           if (advisory.ghsa_id !== auth.ghsa_id) throw new Error("needs_human:publish_advisory_identity_changed");
-          const entries = (advisory.vulnerabilities ?? []).filter((entry) => entry.ecosystem === auth.ecosystem && entry.package?.name === auth.dependency);
+          const entries = (Array.isArray(advisory.vulnerabilities) ? advisory.vulnerabilities : []).filter(
+            (entry) =>
+              entry.package?.ecosystem === auth.ecosystem &&
+              entry.package?.name === auth.dependency &&
+              normalizeRange(entry.vulnerable_version_range) === auth.vulnerable_range &&
+              (entry.first_patched_version ?? null) === auth.first_patched_version,
+          );
           if (entries.length !== 1) throw new Error("needs_human:publish_advisory_entry_ambiguous");
-          const range = entries[0].vulnerable_version_range.replaceAll(",", " ").replace(/\s+/g, " ").trim();
-          const first = entries[0].first_patched_version?.identifier ?? null;
-          if (range !== auth.vulnerable_range || first !== auth.first_patched_version) throw new Error("needs_human:publish_advisory_conditions_changed");
           NODE
           pulls="$RUNNER_TEMP/publish-open-prs.json"
           fetch_json "publish_open_prs" "$pulls" "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" \
