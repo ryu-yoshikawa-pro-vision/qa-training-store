@@ -204,10 +204,20 @@ describe("Security dependency fallback workflow", () => {
     const diagnosticLines = workflow
       .split(/\r?\n/)
       .filter((line) => line.includes("needs_human:"));
-    expect(diagnosticLines.length).toBeGreaterThan(20);
+    expect(diagnosticLines.length).toBeGreaterThan(0);
     for (const line of diagnosticLines) {
       expect(line).not.toMatch(
         /\$ALERT_NUMBER|\$ghsa_id|\$GITHUB_TOKEN|\$OPENCODE_API_KEY|\$oidc_token|\$installation_token/,
+      );
+    }
+
+    const helperCalls = [...workflow.matchAll(/needsHuman\(([^)]+)\)/g)].map(
+      (match) => match[1],
+    );
+    expect(helperCalls.length).toBeGreaterThan(0);
+    for (const codeExpression of helperCalls) {
+      expect(codeExpression).toMatch(
+        /^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/,
       );
     }
   });
