@@ -198,9 +198,7 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).not.toContain('throw new Error("needs_human")');
     expect(workflow).not.toMatch(/echo\s+needs_human\s+>&2/);
     expect(workflow).not.toMatch(/^\s*test\b/gm);
-    expect(workflow).toContain(
-      'needs_human:${diagnostic}_http_${http_status}',
-    );
+    expect(workflow).toContain('needs_human:${diagnostic}_http_${http_status}');
     expect(workflow).toContain("needs_human:invalid_diagnostic_code");
     expect(workflow).toContain('needsHuman("unsupported_manifest")');
     expect(workflow).toContain("needs_human:model_discovery_failed");
