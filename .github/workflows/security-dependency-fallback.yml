@@ -979,12 +979,107 @@ fix-authorization.json\npackage.json' ]]; then
           prepared="$RUNNER_TEMP/prepared-security-fix"
           pre_run_baseline_package="$RUNNER_TEMP/pre-run-baseline-package.json"
           pre_run_baseline_lockfile="$RUNNER_TEMP/pre-run-baseline-lockfile.yaml"
-          test "$(find "$context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
-          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
-          test "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json\npnpm-lock.yaml'
+          if [[ "$(find "$context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:finalize_context_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:finalize_context_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_authorization_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" != 
+          cp package.json "$pre_run_baseline_package"
+          cp pnpm-lock.yaml "$pre_run_baseline_lockfile"
+          cp "$prepared/package.json" package.json
+          cp "$prepared/pnpm-lock.yaml" pnpm-lock.yaml
+          public_home="$RUNNER_TEMP/finalize-home"
+          public_tmp="$RUNNER_TEMP/finalize-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 install --frozen-lockfile --ignore-scripts
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            corepack pnpm@10.34.5 list --json --depth Infinity > "$RUNNER_TEMP/pre-run-graph.json"
+          env -i \
+            PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+              --validate-prepared \
+              --baseline-package "$pre_run_baseline_package" \
+              --candidate-package package.json \
+              --authorization "$prepared/fix-authorization.json" \
+              --lockfile pnpm-lock.yaml \
+              --baseline-lockfile "$pre_run_baseline_lockfile" \
+              --graph "$RUNNER_TEMP/pre-run-graph.json" \
+              > "$RUNNER_TEMP/pre-run-validation.json"
+          run_id="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST)"
+          bash scripts/new-run.sh --run-id "$run_id" --task-type implementation --workflow-level standard --no-run-manifest
+          run_dir=".codex/runs/$run_id"
+          dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$prepared/fix-authorization.json")"
+          selected_strategy="$(node --input-type=module -e '
+            import fs from "node:fs";
+            const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+            process.stdout.write(value.strategy);
+          ' "$RUNNER_TEMP/pre-run-validation.json")"
+          cat > "$run_dir/PLAN.md" <<EOF
+          # Security dependency fallback
+
+          - 対象: 公開Repositoryの依存関係修正候補
+          - dependency: $dependency
+          - 選択strategy: $selected_strategy
+          - base SHA: 固定済みのworkflow開始時点
+          - Alert番号、GHSA ID、raw Alert、private triage、prompt、model response、credentialは記録しない。
+          EOF
+          cat > "$run_dir/TASKS.md" <<EOF
+          # Tasks
+
+          - [x] sanitized security contextを確認
+          - [x] authorizationに一致するpackage changeを検証
+          - [x] prepared package / lockfileを固定Artifact化
+          - [x] repository標準検証を実行
+          - [x] 公開可能なRun Artifactだけを生成
+          EOF
+          cat > "$run_dir/REPORT.md" <<EOF
+          # Report
+
+          - dependency: $dependency
+          - strategy: $selected_strategy
+          - package / lockfileのexact resolutionとRepository標準検証を確認した。
+          - Security情報は公開可能な最小範囲に限定した。
+          EOF
+          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Write
+          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Check
+          expected_changes=$(printf '%s\n' \
+            package.json \
+            pnpm-lock.yaml \
+            "$run_dir/PLAN.md" \
+            "$run_dir/TASKS.md" \
+            "$run_dir/REPORT.md" | sort)
+          actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          test "$actual_changes" = "$expected_changes"
+          git diff --check
+          printf '%s\n' "$run_id" > "$RUNNER_TEMP/security-run-id"
+          printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
+fix-authorization.json\npackage.json\npnpm-lock.yaml' ]]; then
+            echo "needs_human:finalize_prepared_file_set_invalid" >&2
+            exit 1
+          fi
           cp package.json "$pre_run_baseline_package"
           cp pnpm-lock.yaml "$pre_run_baseline_lockfile"
           cp "$prepared/package.json" package.json
@@ -1078,9 +1173,18 @@ fix-authorization.json\npackage.json' ]]; then
           RUN_ID_FILE: ${{ runner.temp }}/security-run-id
         run: |
           set -euo pipefail
-          test "$(sha256sum package.json | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+          if [[ "$(sha256sum package.json | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:final_guard_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:final_guard_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:final_guard_authorization_hash_mismatch" >&2
+            exit 1
+          fi
 
           final_baseline_package="$RUNNER_TEMP/final-baseline-package.json"
           final_baseline_lockfile="$RUNNER_TEMP/final-baseline-lockfile.yaml"
@@ -1117,12 +1221,21 @@ fix-authorization.json\npackage.json' ]]; then
           }
           pre_strategy="$(read_strategy "$PRE_RUN_VALIDATION_FILE")"
           final_strategy="$(read_strategy "$FINALIZE_VALIDATION_FILE")"
-          test "$pre_strategy" = "$final_strategy"
+          if [[ "$pre_strategy" != "$final_strategy" ]]; then
+            echo "needs_human:finalize_strategy_changed" >&2
+            exit 1
+          fi
 
           run_id="$(<"$RUN_ID_FILE")"
           run_dir=".codex/runs/$run_id"
-          grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"
-          grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"
+          if ! grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"; then
+            echo "needs_human:run_plan_strategy_mismatch" >&2
+            exit 1
+          fi
+          if ! grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"; then
+            echo "needs_human:run_report_strategy_mismatch" >&2
+            exit 1
+          fi
 
           expected_changes=$(printf '%s\n' \
             package.json \
@@ -1131,7 +1244,10 @@ fix-authorization.json\npackage.json' ]]; then
             "$run_dir/TASKS.md" \
             "$run_dir/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:finalize_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
 
           env -i PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
@@ -1252,11 +1368,26 @@ fix-authorization.json\npackage.json' ]]; then
         run: |
           set -euo pipefail
           artifact="$RUNNER_TEMP/validated-security-fix"
-          test -f "$artifact/package.json"
-          test -f "$artifact/pnpm-lock.yaml"
-          test -f "$artifact/validated-fix.json"
-          test "$(sha256sum "$artifact/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$artifact/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          if [[ ! -f "$artifact/package.json" ]]; then
+            echo "needs_human:validated_artifact_package_missing" >&2
+            exit 1
+          fi
+          if [[ ! -f "$artifact/pnpm-lock.yaml" ]]; then
+            echo "needs_human:validated_artifact_lockfile_missing" >&2
+            exit 1
+          fi
+          if [[ ! -f "$artifact/validated-fix.json" ]]; then
+            echo "needs_human:validated_artifact_manifest_missing" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$artifact/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:publish_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$artifact/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:publish_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
           ARTIFACT_DIR="$artifact" EXPECTED_BASE_SHA="$BASE_SHA" EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" \
             EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" EXPECTED_AUTHORIZATION_SHA256="$EXPECTED_AUTHORIZATION_SHA256" \
             node --input-type=module <<'NODE'
@@ -1313,8 +1444,14 @@ fix-authorization.json\npackage.json' ]]; then
           cp "$artifact/package.json" package.json
           cp "$artifact/pnpm-lock.yaml" pnpm-lock.yaml
           run_dir="$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
-          test -n "$run_dir"
-          test "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" = 1
+          if [[ -z "$run_dir" ]]; then
+            echo "needs_human:validated_artifact_run_missing" >&2
+            exit 1
+          fi
+          if [[ "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" != 1 ]]; then
+            echo "needs_human:validated_artifact_run_count_invalid" >&2
+            exit 1
+          fi
           run_id="$(basename "$run_dir")"
           mkdir -p .codex/runs
           cp -R "$run_dir" .codex/runs/
@@ -1325,7 +1462,10 @@ fix-authorization.json\npackage.json' ]]; then
             ".codex/runs/$run_id/TASKS.md" \
             ".codex/runs/$run_id/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:publish_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
 
       - name: Recheck alert advisory and duplicate branch conditions
