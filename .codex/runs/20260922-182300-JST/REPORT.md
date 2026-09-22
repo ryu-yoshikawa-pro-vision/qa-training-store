@@ -18,3 +18,21 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 | なし | - | - |
+
+## 2026-09-22 — 再レビュー反映
+
+- 概要: 保存PlanをIssue #130の目的から再レビューし、Current Evidenceと具体策の選定根拠を修正した。
+- 最新`main`: `8d73289350d45e28b4186c47caa32ad8d4809657`。branch作成時の`2a76df4`以降はIssue #163のSecurity fallback 3ファイルだけが変わっており、Native CI関連fileは不変。
+- 追加根拠: PR #133 / `f6727303`でlauncher stabilization、`android-maestro-run.sh`のANR dismissal、iOS build timeout修正が入っており、Phase 6後にも異なるNative CI repairが継続している。
+- 設計変更:
+  - Gradle commandだけのhelper化を取り下げ、Automation / Productionのjob IDを維持したReusable Workflow方式へ変更。
+  - `android-ci-production-bundle-guard.sh`案を取り下げ、Actual APK extractionを既存`validate-native-production-bundle.ts`へ寄せる。
+  - runtime helperを6本固定から4本へ削減。
+  - launcher stabilization、APK install / launch、Maestro stepはworkflowへ残す理由を明記。
+  - change detectionを通常PRとmanual visual pathで分離し、wildcard追加を取り下げ。
+  - 新規shellのexecutable bit必須条件を削除。
+- 外部仕様確認: Reusable Workflow caller jobで`name` / `uses` / `with` / `needs` / `if`等が利用可能で、caller workflow-level `env`はcalled workflowへ自動伝播しないことをGitHub Docsで確認した。
+- Repository設定確認: active ruleset `main-protection`のrequired status checkは`validate`のみ。Android build job名はrequired statusとして固定されていない。
+- 検証: Plan-only修正のためRepository runtime test / CIは未実行。GitHub上のIssue、Current workflow、関連script、contract test、PR #133差分、ruleset、GitHub Docsをread-onlyで確認した。
+- ブロッカー: なし。実装開始時にlatest `main`へNative CI関連変更が入っていないかだけ再確認する。
+- Progress: 100% (12/12)
