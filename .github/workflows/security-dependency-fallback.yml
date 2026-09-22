@@ -104,7 +104,10 @@ jobs:
           ghsa_id="$(node --input-type=module -e \
             'import fs from "node:fs"; const alert=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(alert.security_advisory?.ghsa_id ?? "")' \
             "$raw_alert")"
-          test -n "$ghsa_id"
+          if [[ -z "$ghsa_id" ]]; then
+            echo "needs_human:alert_advisory_id_missing" >&2
+            exit 1
+          fi
           fetch_json "read_advisory" "$raw_advisory" "https://api.github.com/advisories/$ghsa_id" \
             --header "Accept: application/vnd.github+json"
 
@@ -177,7 +180,10 @@ jobs:
           }
           NODE
 
-          test -s "$context"
+          if [[ ! -s "$context" ]]; then
+            echo "needs_human:sanitized_context_missing" >&2
+            exit 1
+          fi
 
       - name: Hash sanitized context
         id: context_hash
@@ -460,14 +466,29 @@ jobs:
           OPENCODE_URL: https://github.com/anomalyco/opencode/releases/download/${{ env.OPENCODE_VERSION }}/${{ env.OPENCODE_ASSET }}
         run: |
           set -euo pipefail
-          test "$RUNNER_ARCH" = X64
+          if [[ "$RUNNER_ARCH" != X64 ]]; then
+            echo "needs_human:unsupported_runner_arch" >&2
+            exit 1
+          fi
           archive="$RUNNER_TEMP/$OPENCODE_ASSET"
-          curl --fail-with-body --silent --show-error --location "$OPENCODE_URL" --output "$archive"
-          test "$(sha256sum "$archive" | awk '{print $1}')" = "$OPENCODE_SHA256"
+          if ! curl --fail-with-body --silent --show-error --location "$OPENCODE_URL" --output "$archive"; then
+            echo "needs_human:opencode_binary_download_failed" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$archive" | awk '{print $1}')" != "$OPENCODE_SHA256" ]]; then
+            echo "needs_human:opencode_binary_digest_mismatch" >&2
+            exit 1
+          fi
           mkdir -p "$RUNNER_TEMP/opencode"
-          tar -xzf "$archive" -C "$RUNNER_TEMP/opencode"
+          if ! tar -xzf "$archive" -C "$RUNNER_TEMP/opencode"; then
+            echo "needs_human:opencode_binary_extract_failed" >&2
+            exit 1
+          fi
           opencode_bin="$(find "$RUNNER_TEMP/opencode" -type f -name opencode -print -quit)"
-          test -x "$opencode_bin"
+          if [[ ! -x "$opencode_bin" ]]; then
+            echo "needs_human:opencode_binary_missing" >&2
+            exit 1
+          fi
           printf '%s\n' "$opencode_bin" > "$RUNNER_TEMP/opencode-bin"
 
       - name: Select a Free model without fallback
@@ -480,6 +501,10 @@ jobs:
           model_json="$RUNNER_TEMP/opencode-models.json"
           models_stderr="$RUNNER_TEMP/opencode-tmp/models-stderr.log"
           mkdir -p "$RUNNER_TEMP/opencode-home" "$RUNNER_TEMP/opencode-tmp"
+          if [[ -z "$OPENCODE_API_KEY" ]]; then
+            echo "needs_human:opencode_api_key_missing" >&2
+            exit 1
+          fi
           if env -i \
             PATH="$PATH" HOME="$RUNNER_TEMP/opencode-home" TMPDIR="$RUNNER_TEMP/opencode-tmp" \
             CI=true OPENCODE_API_KEY="$OPENCODE_API_KEY" \
@@ -1203,12 +1228,18 @@ jobs:
             if (actualHash !== expectedHash) throw new Error("needs_human:validated_manifest_publish_hash_mismatch");
           }
           NODE
-          latest_main="$(curl --fail-with-body --silent --show-error --location \
+          if ! latest_main="$(curl --fail-with-body --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
-          test "$latest_main" = "$BASE_SHA"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"; then
+            echo "needs_human:main_ref_fetch_before_publish_setup_failed" >&2
+            exit 1
+          fi
+          if [[ "$latest_main" != "$BASE_SHA" ]]; then
+            echo "needs_human:main_advanced_before_publish_setup" >&2
+            exit 1
+          fi
           cp "$artifact/package.json" package.json
           cp "$artifact/pnpm-lock.yaml" pnpm-lock.yaml
           run_dir="$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
