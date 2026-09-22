@@ -749,10 +749,7 @@ export function createAuthorization({
     }
   }
   if (result.allowed_strategies.length === 0) {
-    needsHuman(
-      "no safe automatic strategy was authorized",
-      "no_safe_automatic_strategy",
-    );
+    needsHuman("no safe automatic strategy was authorized", "no_safe_automatic_strategy");
   }
   return result;
 }
