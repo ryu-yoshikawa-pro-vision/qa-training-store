@@ -152,8 +152,8 @@ GitHub ActionsではReusable Workflowをjob単位で呼び出せ、caller jobに
 
 公式仕様:
 
-- https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations
-- https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+- [GitHub Docs: Reusing workflow configurations](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations)
+- [GitHub Docs: Workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)
 
 新規file:
 
@@ -217,6 +217,16 @@ called workflow内の対応表は次で固定する。
 `EXPO_PUBLIC_DEFAULT_SEED=default`と`ANDROID_COMPILE_API_LEVEL="36"`は両方で維持する。
 
 caller workflowのworkflow-level `env`はcalled workflowへ自動伝播しないため、`NODE_VERSION`、`PNPM_VERSION`、`HUSKY`等、buildで必要な定数はcalled workflow側へ明示する。
+
+この3値はRefactor前は親workflowの同じ`env`をAndroid buildも参照していたため、Refactor後も親workflowとcalled workflowで値を一致させる。
+
+| 定数 | 現在値 | 更新契約 |
+|---|---|---|
+| `NODE_VERSION` | `24` | 親`native-ci.yml`と`native-android-build.yml`を同じ変更で更新する |
+| `PNPM_VERSION` | `10.34.5` | 親`native-ci.yml`と`native-android-build.yml`を同じ変更で更新する |
+| `HUSKY` | `"0"` | 親`native-ci.yml`と`native-android-build.yml`を同じ変更で更新する |
+
+`tests/contracts/native-ci-workflow.test.ts`で親workflowとcalled workflowの3値が一致することを比較する。version共有のために新しいworkflow input、Repository `vars`、共通設定fileは追加しない。
 
 callerに現在ある`runs-on`、`timeout-minutes`、`env`、`steps`はReusable Workflow caller jobには残さず、called workflow内部のbuild jobが所有する。
 
@@ -687,6 +697,7 @@ scripts/spec/visual-registry.ts
 - `runs-on: ubuntu-24.04`
 - `timeout-minutes: 40`
 - workflow-level `concurrency`を持たないこと
+- called workflowの`NODE_VERSION` / `PNPM_VERSION` / `HUSKY`が親workflowの同名値と一致すること
 - checkoutの`persist-credentials: false`
 - pnpm setupの`version: ${{ env.PNPM_VERSION }}`
 - Node setupの`node-version: ${{ env.NODE_VERSION }}` / `cache: pnpm`
@@ -779,23 +790,24 @@ launcher stabilizationとAPK install / launch assertionもworkflow側へ残す�
 - [ ] 2. 現在のjob ID、Artifact名、Automation / Productionの非対称contract、Runtime部分実行条件、no-change skip、final verifyをcontract testで先に固定する。
 - [ ] 3. `.github/workflows/native-android-build.yml`を追加し、required inputを`build_kind`だけにする。
 - [ ] 4. called workflow内で`build_kind`から環境変数、Artifact名、filename、Evidence名を一意に決定し、workflow-level `concurrency`は追加しない。
-- [ ] 5. checkout、pnpm、Node、Java、Gradle cache、APK / Evidence uploadの既存Action SHAと重要な`with` / `if`設定をそのまま移す。
+- [ ] 5. called workflowへ`NODE_VERSION=24` / `PNPM_VERSION=10.34.5` / `HUSKY="0"`を明示し、親workflowとの一致をcontract testで固定する。
+- [ ] 6. checkout、pnpm、Node、Java、Gradle cache、APK / Evidence uploadの既存Action SHAと重要な`with` / `if`設定をそのまま移す。
 - [ ] 6. `android-automation-build` / `android-production-build`を別caller jobのままReusable Workflow呼び出しへ変更する。
-- [ ] 7. Automation / Productionの既存ABI検証、Save / Verify順序、Gradle log、Evidence差異を維持する。
-- [ ] 8. `scripts/native/android-ci-production-bundle-guard.sh`を追加し、workflowからAutomation / Production APK pathを明示的に渡す。既存validatorのCLI / policyは変更しない。
-- [ ] 9. `android-ci-emulator-start.sh`を追加し、Emulator起動 / readinessを移す。`ANDROID_AVD_HOME` / `EMULATOR_PID`の`GITHUB_ENV`契約と既存diagnostic fileを維持する。
-- [ ] 10. `Check Android adb root capability`はworkflowへ残し、`android-ci-visual-profile.sh`へNormalize本文だけを移す。`ADB_ROOT_AVAILABLE`入力と`ANDROID_OBSERVED_PROFILE_JSON`出力を維持する。
-- [ ] 11. `android-ci-visual-capture.sh`を追加し、`CAPTURE_CASE_SELECTION`をworkflow envから受けてmanual capture loop / manifest生成を移す。
-- [ ] 12. `android-ci-runtime-evidence.sh`を追加し、`NATIVE_ANDROID_JOB_STATUS`を明示的に渡す。前段失敗時のoptional env欠落を許容したままEvidence収集を移す。
-- [ ] 13. workflow側のstep名、ID、`if`、Artifact Action、Maestro step粒度、launcher stabilization、APK install / launchを維持する。
-- [ ] 14. 通常PR用change detectionへ`native-android-build.yml`、`android-maestro-run.sh`、Production Guard helper、通常runtime helper 2本をexact pathで追加する。
-- [ ] 15. manual visual専用fileは`native_changed`へ加えず、contract + manual dispatchで検証する。
-- [ ] 16. `native-ci-workflow.test.ts`等のassertion ownerをworkflow / Reusable Workflow / helperへ移し、Action設定とhelper入出力契約を固定する。
-- [ ] 17. `PROJECT_CONTEXT.md`とhistoryを同期する。
-- [ ] 18. local static / focused / full validationを実行する。
-- [ ] 19. PR Mobile App CIで`native_changed=true`の通常Native pathとfinal gateを確認する。
-- [ ] 20. branch `workflow_dispatch`でvisual 1 caseを実runtime確認する。
-- [ ] 21. Issue #130の成功状態に照らし、各責務のownerと局所変更時の検証範囲をPR本文へ記載できることを確認する。
+- [ ] 8. Automation / Productionの既存ABI検証、Save / Verify順序、Gradle log、Evidence差異を維持する。
+- [ ] 9. `scripts/native/android-ci-production-bundle-guard.sh`を追加し、workflowからAutomation / Production APK pathを明示的に渡す。既存validatorのCLI / policyは変更しない。
+- [ ] 10. `android-ci-emulator-start.sh`を追加し、Emulator起動 / readinessを移す。`ANDROID_AVD_HOME` / `EMULATOR_PID`の`GITHUB_ENV`契約と既存diagnostic fileを維持する。
+- [ ] 11. `Check Android adb root capability`はworkflowへ残し、`android-ci-visual-profile.sh`へNormalize本文だけを移す。`ADB_ROOT_AVAILABLE`入力と`ANDROID_OBSERVED_PROFILE_JSON`出力を維持する。
+- [ ] 12. `android-ci-visual-capture.sh`を追加し、`CAPTURE_CASE_SELECTION`をworkflow envから受けてmanual capture loop / manifest生成を移す。
+- [ ] 13. `android-ci-runtime-evidence.sh`を追加し、`NATIVE_ANDROID_JOB_STATUS`を明示的に渡す。前段失敗時のoptional env欠落を許容したままEvidence収集を移す。
+- [ ] 14. workflow側のstep名、ID、`if`、Artifact Action、Maestro step粒度、launcher stabilization、APK install / launchを維持する。
+- [ ] 15. 通常PR用change detectionへ`native-android-build.yml`、`android-maestro-run.sh`、Production Guard helper、通常runtime helper 2本をexact pathで追加する。
+- [ ] 16. manual visual専用fileは`native_changed`へ加えず、contract + manual dispatchで検証する。
+- [ ] 17. `native-ci-workflow.test.ts`等のassertion ownerをworkflow / Reusable Workflow / helperへ移し、Action設定とhelper入出力契約を固定する。
+- [ ] 18. `PROJECT_CONTEXT.md`とhistoryを同期する。
+- [ ] 19. local static / focused / full validationを実行する。
+- [ ] 20. PR Mobile App CIで`native_changed=true`の通常Native pathとfinal gateを確認する。
+- [ ] 21. branch `workflow_dispatch`でvisual 1 caseを実runtime確認する。
+- [ ] 22. Issue #130の成功状態に照らし、各責務のownerと局所変更時の検証範囲をPR本文へ記載できることを確認する。
 
 ## 10. 検証計画
 
@@ -833,6 +845,7 @@ pnpm exec vitest run \
 
 - 親caller job ID / `needs` / `if` / `build_kind`
 - called workflowの`build_kind` fail-closeとArtifact mapping
+- 親workflowとcalled workflowの`NODE_VERSION` / `PNPM_VERSION` / `HUSKY`一致
 - Automation / Productionの現行非対称contract
 - checkout / pnpm / Node / Java / Gradle setupの既存Action SHAと重要な`with`設定
 - APK / Evidence uploadのmissing-file / overwrite / retention設定
@@ -917,6 +930,7 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 - Android build Reusable Workflowの外部inputが`build_kind`だけで、Artifact名 / filename / Evidence名は内部で一意に決まる。
 - `native-android-build.yml`がworkflow-level `concurrency`を持たず、Automation / Productionを相互cancelしない。
 - Android build実装のownerが`native-android-build.yml`へ集約され、親workflowでbuild手順を重複保持していない。
+- 親workflowとcalled workflowの`NODE_VERSION` / `PNPM_VERSION` / `HUSKY`が一致し、version更新時の同期をcontract testで検出できる。
 - checkoutのcredential設定、Gradle PR cache、Node / Java setup、APK / Evidence Artifactのfailure / overwrite / retention契約を変更していない。
 - Automation / Productionの現在のABI検証、Save / Verify順、Gradle log、Evidence差異を変更していない。
 - Production Bundle GuardのAPK extraction ownerが`android-ci-production-bundle-guard.sh`で、Hermes marker policy ownerが既存`validate-native-production-bundle.ts`のまま。
@@ -945,6 +959,15 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 - callerはjob ID、`name`、`needs`、`if`、`uses`、`build_kind`だけを持つ。
 - `runs-on`、`timeout-minutes`、build用`env`、`steps`はcalled workflowへ置く。
 - Artifact名等をcaller inputにしない。
+
+### 親workflowとcalled workflowのtoolchain versionがずれる
+
+対策:
+
+- `NODE_VERSION` / `PNPM_VERSION` / `HUSKY`は両workflowへ現在値を明示する。
+- `native-ci-workflow.test.ts`で同名値を比較し、不一致をfail-closeする。
+- version更新は両workflowを同じ変更で更新する。
+- この同期のためだけに新しいinput、Repository `vars`、共通設定fileを追加しない。
 
 ### Action移動時にsecurity / cache / Artifact設定を落とす
 
@@ -1040,4 +1063,3 @@ Database、migration、external state変更はない。
 実装開始を止める未解決事項はない。
 
 実装開始時にlatest `main`のNative CI関連fileへ変更が入っていた場合は、このPlanをそのまま適用せず、変更箇所だけrebaselineする。
-

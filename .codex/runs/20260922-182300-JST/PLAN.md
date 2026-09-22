@@ -2,24 +2,18 @@
 
 ## 目的
 
-- Issue #130の保存Planへ最終レビュー2件を反映し、実装者が推測せずにhelper境界とReusable Workflowの移動契約を実装できる状態へする。
-
-## Current確認
-
-- 今回修正時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`。
-- 前回基準`8d73289350d45e28b4186c47caa32ad8d4809657`からの1 commitはIssue #163のSecurity fallback 3ファイルだけを変更し、Native CI関連fileは不変。
+- PR #176の最終レビューで確認した2件を修正し、Plan-only PRを品質ゲートに通せる状態へする。
 
 ## 修正内容
 
-- 5本のshell helperについて、必須 / optional環境変数、`GITHUB_ENV`出力、生成fileを明示する。
-- `CAPTURE_CASE_SELECTION`と`NATIVE_ANDROID_JOB_STATUS`はworkflow stepの`env:`から明示的に渡す。
-- Runtime Evidence helperは前段失敗時に`ADB` / APK path等が欠落してもEvidence生成を継続する。
-- Android build Reusable Workflowへ移すActionについて、固定SHAだけでなく`persist-credentials`、Gradle cache、Node cache、Java 17、Artifact missing-file / overwrite / retention設定を維持する。
+- 保存PlanのGitHub Docs 2 URLをMarkdown linkへ変更し、末尾の余分な空行を削除する。
+- Reusable Workflow化後も`NODE_VERSION` / `PNPM_VERSION` / `HUSKY`を親workflowとcalled workflowで一致させる契約を追加する。
+- `native-ci-workflow.test.ts`で3値の一致を比較する実装方針をPlanへ追加する。
+- PR本文の検証欄を初回Remote CIの実結果へ更新する。
 
 ## 対象外
 
 - Native CI実装
 - Product code変更
-- PR作成、merge、Issue close
-- version / Action更新
-- 新しいhelper interface framework
+- workflow実装変更
+- merge、Issue close

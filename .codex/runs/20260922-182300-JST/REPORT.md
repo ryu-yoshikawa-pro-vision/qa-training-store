@@ -77,3 +77,21 @@
 - 検証: Plan-only修正のためRepository runtime test / CIは未実行。Current workflowのinline stepとAction設定をread-onlyで再確認した。
 - ブロッカー: なし。latest `main`にNative CI driftが入らなければPlan上の実装開始条件は満たす。
 - Progress: 100% (10/10)
+
+## 2026-09-22 — PR #176 最終レビュー修正
+
+- 概要: PR #176の再レビューで確認した2件を修正した。
+- CI failure: 初回Web CI run `35725075877` の `Style Quality` で `pnpm run lint:markdown` が失敗した。
+  - `MD034/no-bare-urls`: 保存Plan 155行、156行。
+  - `MD012/no-multiple-blanks`: 保存Plan末尾。
+- 修正:
+  - GitHub Docsの2 URLをMarkdown linkへ変更。
+  - 保存Plan末尾を1 newlineへ正規化。
+  - Reusable Workflow化で複製される `NODE_VERSION=24` / `PNPM_VERSION=10.34.5` / `HUSKY="0"`について、親workflowとcalled workflowの一致をcontract testで比較する契約を追加。
+  - version同期のための新規input、Repository `vars`、共通設定fileは追加しない方針を明記。
+- 初回CI観測:
+  - Mobile App CI run `35725076127`: success。Plan-only差分のためNative-specific jobsはskipされ、`native-ci / verify`のno-change pathがsuccess。
+  - Web CI: Markdown lint以外に確認済みのVitest contracts / unit / integration / repository、Code Quality、build jobs等はsuccess。
+- Scope: Plan / Run Artifact / PR本文のみ。Native CI実装は未変更。
+- Progress: 100% (6/6)
+
