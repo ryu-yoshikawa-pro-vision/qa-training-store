@@ -40,10 +40,22 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          test "$EVENT_NAME" = workflow_dispatch
-          test "$REF_NAME" = refs/heads/main
-          test "$RUN_ATTEMPT" = 1
-          test -n "$BASE_SHA_INPUT"
+          if [[ "$EVENT_NAME" != workflow_dispatch ]]; then
+            echo "needs_human:unexpected_workflow_event" >&2
+            exit 1
+          fi
+          if [[ "$REF_NAME" != refs/heads/main ]]; then
+            echo "needs_human:unexpected_workflow_ref" >&2
+            exit 1
+          fi
+          if [[ "$RUN_ATTEMPT" != 1 ]]; then
+            echo "needs_human:workflow_rerun_forbidden" >&2
+            exit 1
+          fi
+          if [[ -z "$BASE_SHA_INPUT" ]]; then
+            echo "needs_human:base_sha_missing" >&2
+            exit 1
+          fi
           printf 'base_sha=%s\n' "$BASE_SHA_INPUT" >> "$GITHUB_OUTPUT"
 
   read-alert:
@@ -68,6 +80,29 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
+          fetch_json() {
+            local diagnostic="$1"
+            local output="$2"
+            local url="$3"
+            shift 3
+            case "$diagnostic" in
+              ''|*[!a-z0-9_]*) echo "needs_human:invalid_diagnostic_code" >&2; exit 1 ;;
+            esac
+            local http_status
+            local curl_status
+            set +e
+            http_status="$(curl --silent --show-error --location --output "$output" --write-out '%{http_code}' "$@" "$url")"
+            curl_status=$?
+            set -e
+            if [[ "$curl_status" -ne 0 ]]; then
+              echo "needs_human:${diagnostic}_transport" >&2
+              exit 1
+            fi
+            if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+              echo "needs_human:${diagnostic}_http_${http_status}" >&2
+              exit 1
+            fi
+          }
           raw_alert="$RUNNER_TEMP/raw-alert.json"
           raw_advisory="$RUNNER_TEMP/raw-advisory.json"
           context="$RUNNER_TEMP/sanitized-security-context.json"
@@ -75,25 +110,25 @@ jobs:
           trap 'rm -f "$raw_alert" "$raw_advisory" "$open_prs"' EXIT
 
           case "$ALERT_NUMBER" in
-            ''|*[!0-9]*) echo needs_human >&2; exit 1 ;;
+            ''|*[!0-9]*) echo "needs_human:invalid_alert_number" >&2; exit 1 ;;
           esac
-          curl --fail-with-body --silent --show-error --location \
+          fetch_json "read_alert" "$raw_alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" \
             --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" > "$raw_alert"
+            --header "Authorization: Bearer $GITHUB_TOKEN"
 
           ghsa_id="$(node --input-type=module -e \
             'import fs from "node:fs"; const alert=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(alert.security_advisory?.ghsa_id ?? "")' \
             "$raw_alert")"
-          test -n "$ghsa_id"
-          curl --fail-with-body --silent --show-error --location \
-            --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/advisories/$ghsa_id" > "$raw_advisory"
+          if [[ -z "$ghsa_id" ]]; then
+            echo "needs_human:alert_advisory_id_missing" >&2
+            exit 1
+          fi
+          fetch_json "read_advisory" "$raw_advisory" "https://api.github.com/advisories/$ghsa_id" \
+            --header "Accept: application/vnd.github+json"
 
-          curl --fail-with-body --silent --show-error --location \
+          fetch_json "read_open_prs" "$open_prs" "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" \
             --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" > "$open_prs"
+            --header "Authorization: Bearer $GITHUB_TOKEN"
 
           ALERT_FILE="$raw_alert" ADVISORY_FILE="$raw_advisory" CONTEXT_FILE="$context" OPEN_PRS_FILE="$open_prs" \
             API_URL="$API_URL" REPOSITORY="$REPOSITORY" GITHUB_TOKEN="$GITHUB_TOKEN" \
@@ -102,24 +137,31 @@ jobs:
 
           const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
           const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
-          if (alert.state !== "open") throw new Error("needs_human");
+          const needsHuman = (code) => { throw new Error(`needs_human:${code}`); };
+          if (alert.state !== "open") needsHuman("alert_not_open");
           const dependency = alert.dependency?.package?.name;
           const ecosystem = alert.dependency?.package?.ecosystem;
           const manifestPath = alert.dependency?.manifest_path;
           const ghsaId = alert.security_advisory?.ghsa_id;
-          if (!dependency || ecosystem !== "npm" || !["/package.json", "package.json"].includes(manifestPath)) {
-            throw new Error("needs_human");
-          }
-          if (dependency === "semver" || dependency === "yaml") throw new Error("needs_human");
-          if (typeof ghsaId !== "string" || ghsaId !== advisory.ghsa_id) throw new Error("needs_human");
+          const supportedManifestPaths = new Set([
+            "package.json",
+            "/package.json",
+            "pnpm-lock.yaml",
+            "/pnpm-lock.yaml",
+          ]);
+          if (!dependency) needsHuman("alert_dependency_missing");
+          if (ecosystem !== "npm") needsHuman("unsupported_ecosystem");
+          if (!supportedManifestPaths.has(manifestPath)) needsHuman("unsupported_manifest");
+          if (dependency === "semver" || dependency === "yaml") needsHuman("validator_trust_dependency");
+          if (typeof ghsaId !== "string" || ghsaId !== advisory.ghsa_id) needsHuman("advisory_identity_mismatch");
           const vulnerabilities = (advisory.vulnerabilities ?? []).filter(
             (entry) => entry.ecosystem === "npm" && entry.package?.name === dependency,
           );
-          if (vulnerabilities.length !== 1) throw new Error("needs_human");
+          if (vulnerabilities.length !== 1) needsHuman("advisory_vulnerability_entry_ambiguous");
           const vulnerability = vulnerabilities[0];
           const vulnerableRange = vulnerability.vulnerable_version_range;
           const firstPatchedVersion = vulnerability.first_patched_version?.identifier ?? null;
-          if (typeof vulnerableRange !== "string" || vulnerableRange.length === 0) throw new Error("needs_human");
+          if (typeof vulnerableRange !== "string" || vulnerableRange.length === 0) needsHuman("advisory_vulnerable_range_missing");
           const context = {
             schema_version: 1,
             dependency,
@@ -131,7 +173,8 @@ jobs:
           await fs.writeFile(process.env.CONTEXT_FILE, `${JSON.stringify(context, null, 2)}\n`, "utf8");
 
           const pulls = JSON.parse(await fs.readFile(process.env.OPEN_PRS_FILE, "utf8"));
-          if (!Array.isArray(pulls) || pulls.length >= 100) throw new Error("needs_human");
+          if (!Array.isArray(pulls)) needsHuman("open_pr_list_invalid");
+          if (pulls.length >= 100) needsHuman("open_pr_list_truncated");
           for (const pull of pulls) {
             if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
             const response = await fetch(pull.url + "/files?per_page=100", {
@@ -140,18 +183,22 @@ jobs:
                 Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
               },
             });
-            if (!response.ok) throw new Error("needs_human");
+            if (!response.ok) needsHuman(`open_pr_files_http_${response.status}`);
             const files = await response.json();
-            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            if (!Array.isArray(files)) needsHuman("open_pr_files_invalid");
+            if (files.length >= 100) needsHuman("open_pr_files_truncated");
             for (const file of files) {
               if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
-              if (typeof file.patch !== "string") throw new Error("needs_human");
-              if (file.patch.includes(dependency)) throw new Error("needs_human");
+              if (typeof file.patch !== "string") needsHuman("open_pr_patch_missing");
+              if (file.patch.includes(dependency)) needsHuman("target_dependency_open_pr_conflict");
             }
           }
           NODE
 
-          test -s "$context"
+          if [[ ! -s "$context" ]]; then
+            echo "needs_human:sanitized_context_missing" >&2
+            exit 1
+          fi
 
       - name: Hash sanitized context
         id: context_hash
@@ -159,7 +206,10 @@ jobs:
         run: |
           set -euo pipefail
           context="$RUNNER_TEMP/sanitized-security-context.json"
-          test "$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'sanitized-security-context.json' | wc -l)" = 1
+          if [[ "$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'sanitized-security-context.json' | wc -l)" != 1 ]]; then
+            echo "needs_human:sanitized_context_file_set_invalid" >&2
+            exit 1
+          fi
           printf 'sha256=%s\n' "$(sha256sum "$context" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Upload sanitized context
@@ -200,7 +250,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -228,9 +281,18 @@ jobs:
         run: |
           set -euo pipefail
           context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
-          test -f "$context"
-          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
+          if [[ ! -f "$context" ]]; then
+            echo "needs_human:context_artifact_missing" >&2
+            exit 1
+          fi
+          if [[ "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:context_artifact_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:context_artifact_hash_mismatch" >&2
+            exit 1
+          fi
           public_home="$RUNNER_TEMP/public-home"
           public_tmp="$RUNNER_TEMP/public-tmp"
           mkdir -p "$public_home" "$public_tmp"
@@ -305,7 +367,7 @@ jobs:
               ).trim();
               return output ? JSON.parse(output) : {};
             } catch {
-              throw new Error("needs_human");
+              throw new Error("needs_human:registry_metadata_lookup_failed");
             }
           };
           const rootCandidates = [];
@@ -378,7 +440,10 @@ jobs:
               --override-candidates "$override_candidates" \
               --lockfile pnpm-lock.yaml \
               --output "$authorization"
-          test -s "$authorization"
+          if [[ ! -s "$authorization" ]]; then
+            echo "needs_human:authorization_missing" >&2
+            exit 1
+          fi
 
       - name: Recheck related open PRs after graph resolution
         shell: bash
@@ -398,8 +463,9 @@ jobs:
           import fs from "node:fs/promises";
           const authorization = JSON.parse(await fs.readFile(process.env.AUTHORIZATION_FILE, "utf8"));
           const pulls = JSON.parse(await fs.readFile(process.env.PULLS_FILE, "utf8"));
-          if (!Array.isArray(pulls)) throw new Error("needs_human");
-          if (pulls.length >= 100) throw new Error("needs_human");
+          const needsHuman = (code) => { throw new Error(`needs_human:${code}`); };
+          if (!Array.isArray(pulls)) needsHuman("related_pr_list_invalid");
+          if (pulls.length >= 100) needsHuman("related_pr_list_truncated");
           const conflictTerms = [
             authorization.dependency,
             authorization.root_parent?.root_dependency,
@@ -413,14 +479,15 @@ jobs:
                 Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
               },
             });
-            if (!response.ok) throw new Error("needs_human");
+            if (!response.ok) needsHuman(`related_pr_files_http_${response.status}`);
             const files = await response.json();
-            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            if (!Array.isArray(files)) needsHuman("related_pr_files_invalid");
+            if (files.length >= 100) needsHuman("related_pr_files_truncated");
             for (const file of files) {
               if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
-              if (typeof file.patch !== "string") throw new Error("needs_human");
+              if (typeof file.patch !== "string") needsHuman("related_pr_patch_missing");
               if (conflictTerms.some((term) => file.patch.includes(term))) {
-                throw new Error("needs_human");
+                needsHuman("related_pr_conflict");
               }
             }
           }
@@ -432,14 +499,29 @@ jobs:
           OPENCODE_URL: https://github.com/anomalyco/opencode/releases/download/${{ env.OPENCODE_VERSION }}/${{ env.OPENCODE_ASSET }}
         run: |
           set -euo pipefail
-          test "$RUNNER_ARCH" = X64
+          if [[ "$RUNNER_ARCH" != X64 ]]; then
+            echo "needs_human:unsupported_runner_arch" >&2
+            exit 1
+          fi
           archive="$RUNNER_TEMP/$OPENCODE_ASSET"
-          curl --fail-with-body --silent --show-error --location "$OPENCODE_URL" --output "$archive"
-          test "$(sha256sum "$archive" | awk '{print $1}')" = "$OPENCODE_SHA256"
+          if ! curl --fail-with-body --silent --show-error --location "$OPENCODE_URL" --output "$archive"; then
+            echo "needs_human:opencode_binary_download_failed" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$archive" | awk '{print $1}')" != "$OPENCODE_SHA256" ]]; then
+            echo "needs_human:opencode_binary_digest_mismatch" >&2
+            exit 1
+          fi
           mkdir -p "$RUNNER_TEMP/opencode"
-          tar -xzf "$archive" -C "$RUNNER_TEMP/opencode"
+          if ! tar -xzf "$archive" -C "$RUNNER_TEMP/opencode"; then
+            echo "needs_human:opencode_binary_extract_failed" >&2
+            exit 1
+          fi
           opencode_bin="$(find "$RUNNER_TEMP/opencode" -type f -name opencode -print -quit)"
-          test -x "$opencode_bin"
+          if [[ ! -x "$opencode_bin" ]]; then
+            echo "needs_human:opencode_binary_missing" >&2
+            exit 1
+          fi
           printf '%s\n' "$opencode_bin" > "$RUNNER_TEMP/opencode-bin"
 
       - name: Select a Free model without fallback
@@ -452,12 +534,21 @@ jobs:
           model_json="$RUNNER_TEMP/opencode-models.json"
           models_stderr="$RUNNER_TEMP/opencode-tmp/models-stderr.log"
           mkdir -p "$RUNNER_TEMP/opencode-home" "$RUNNER_TEMP/opencode-tmp"
-          env -i \
+          if [[ -z "$OPENCODE_API_KEY" ]]; then
+            echo "needs_human:opencode_api_key_missing" >&2
+            exit 1
+          fi
+          if env -i \
             PATH="$PATH" HOME="$RUNNER_TEMP/opencode-home" TMPDIR="$RUNNER_TEMP/opencode-tmp" \
             CI=true OPENCODE_API_KEY="$OPENCODE_API_KEY" \
             OPENCODE_DISABLE_PROJECT_CONFIG=1 OPENCODE_PURE=1 OPENCODE_DISABLE_DEFAULT_PLUGINS=1 \
             OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1 OPENCODE_DISABLE_SHARE=1 \
-            "$opencode_bin" models > "$model_json" 2> "$models_stderr"
+            "$opencode_bin" models > "$model_json" 2> "$models_stderr"; then
+            :
+          else
+            echo "needs_human:model_discovery_failed" >&2
+            exit 1
+          fi
 
       - name: Normalize selected Free model
         shell: bash
@@ -472,10 +563,13 @@ jobs:
             .filter((id) => id.startsWith("opencode/") && id.endsWith("-free"))
             .map((id) => id.slice("opencode/".length))
             .sort();
-          if (models.length === 0) throw new Error("needs_human");
+          if (models.length === 0) throw new Error("needs_human:no_free_model");
           await fs.writeFile(process.env.MODEL_FILE, `${models[0]}\n`, "utf8");
           NODE
-          test -s "$model_json"
+          if [[ ! -s "$model_json" ]]; then
+            echo "needs_human:selected_model_missing" >&2
+            exit 1
+          fi
 
       - name: Prepare constrained OpenCode prompt and config
         shell: bash
@@ -526,7 +620,7 @@ jobs:
           before_auth="$(sha256sum "$authorization" | awk '{print $1}')"
           printf '%s\n' "$before_auth" > "$RUNNER_TEMP/authorization-before.sha256"
           opencode_bin="$(<"$RUNNER_TEMP/opencode-bin")"
-          env -i \
+          if env -i \
             PATH="$PATH" HOME="$opencode_home" TMPDIR="$opencode_tmp" \
             CI=true \
             OPENCODE_API_KEY="$OPENCODE_API_KEY" OPENCODE_CONFIG="$config" \
@@ -534,7 +628,12 @@ jobs:
             OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1 OPENCODE_DISABLE_SHARE=1 \
             timeout --signal=TERM --kill-after=30s 600 \
             "$opencode_bin" run --title security-dependency-fallback --model "opencode/$model" "$(<"$prompt")" \
-            > "$opencode_tmp/stdout.log" 2> "$opencode_tmp/stderr.log"
+            > "$opencode_tmp/stdout.log" 2> "$opencode_tmp/stderr.log"; then
+            :
+          else
+            echo "needs_human:opencode_run_failed" >&2
+            exit 1
+          fi
 
       - name: Verify constrained OpenCode edit
         shell: bash
@@ -547,8 +646,14 @@ jobs:
           config="$RUNNER_TEMP/opencode-config.json"
           before_auth="$(<"$RUNNER_TEMP/authorization-before.sha256")"
           after_auth="$(sha256sum "$authorization" | awk '{print $1}')"
-          test "$before_auth" = "$after_auth"
-          test "$(git diff --name-only)" = package.json
+          if [[ "$before_auth" != "$after_auth" ]]; then
+            echo "needs_human:authorization_changed_by_opencode" >&2
+            exit 1
+          fi
+          if [[ "$(git diff --name-only)" != package.json ]]; then
+            echo "needs_human:opencode_changed_unauthorized_files" >&2
+            exit 1
+          fi
           rm -rf "$opencode_home" "$opencode_tmp" "$prompt" "$config"
 
       - name: Prepare candidate artifact
@@ -560,7 +665,10 @@ jobs:
           mkdir -p "$candidate"
           cp package.json "$candidate/package.json"
           cp "$RUNNER_TEMP/fix-authorization.json" "$candidate/fix-authorization.json"
-          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
+          if [[ "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" != $'fix-authorization.json\npackage.json' ]]; then
+            echo "needs_human:candidate_artifact_file_set_invalid" >&2
+            exit 1
+          fi
 
       - name: Hash candidate files
         id: candidate_hash
@@ -611,7 +719,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -665,11 +776,26 @@ jobs:
           baseline_package="$RUNNER_TEMP/baseline-package.json"
           baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
           auth="$candidate/fix-authorization.json"
-          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
-          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
-          test "$(sha256sum "$candidate/package.json" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_PACKAGE_SHA256"
-          test "$(sha256sum "$auth" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256"
+          if [[ "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:validate_context_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" != $'fix-authorization.json\npackage.json' ]]; then
+            echo "needs_human:validate_candidate_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:validate_context_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$candidate/package.json" | awk '{print $1}')" != "$EXPECTED_CANDIDATE_PACKAGE_SHA256" ]]; then
+            echo "needs_human:validate_candidate_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$auth" | awk '{print $1}')" != "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:validate_candidate_authorization_hash_mismatch" >&2
+            exit 1
+          fi
           cp package.json "$baseline_package"
           cp pnpm-lock.yaml "$baseline_lockfile"
           cp "$candidate/package.json" package.json
@@ -755,9 +881,18 @@ jobs:
         run: |
           set -euo pipefail
           prepared="$RUNNER_TEMP/prepared-security-fix"
-          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+          if [[ "$(sha256sum "$prepared/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:prepared_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:prepared_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:prepared_authorization_hash_mismatch" >&2
+            exit 1
+          fi
 
       - name: Run repository verification on the prepared workspace
         shell: bash
@@ -799,7 +934,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Download context by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -840,12 +978,30 @@ jobs:
           prepared="$RUNNER_TEMP/prepared-security-fix"
           pre_run_baseline_package="$RUNNER_TEMP/pre-run-baseline-package.json"
           pre_run_baseline_lockfile="$RUNNER_TEMP/pre-run-baseline-lockfile.yaml"
-          test "$(find "$context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
-          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
-          test "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json\npnpm-lock.yaml'
+          if [[ "$(find "$context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:finalize_context_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context/sanitized-security-context.json" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:finalize_context_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:finalize_prepared_authorization_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(find "$prepared" -maxdepth 1 -type f -printf '%f\n' | sort)" != $'fix-authorization.json\npackage.json\npnpm-lock.yaml' ]]; then
+            echo "needs_human:finalize_prepared_file_set_invalid" >&2
+            exit 1
+          fi
           cp package.json "$pre_run_baseline_package"
           cp pnpm-lock.yaml "$pre_run_baseline_lockfile"
           cp "$prepared/package.json" package.json
@@ -880,7 +1036,9 @@ jobs:
           selected_strategy="$(node --input-type=module -e '
             import fs from "node:fs";
             const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-            if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+            if (!["direct", "root_parent", "override"].includes(value.strategy)) {
+              throw new Error("needs_human:run_strategy_invalid");
+            }
             process.stdout.write(value.strategy);
           ' "$RUNNER_TEMP/pre-run-validation.json")"
           cat > "$run_dir/PLAN.md" <<EOF
@@ -918,7 +1076,10 @@ jobs:
             "$run_dir/TASKS.md" \
             "$run_dir/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:run_artifact_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
           printf '%s\n' "$run_id" > "$RUNNER_TEMP/security-run-id"
           printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
@@ -939,9 +1100,18 @@ jobs:
           RUN_ID_FILE: ${{ runner.temp }}/security-run-id
         run: |
           set -euo pipefail
-          test "$(sha256sum package.json | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+          if [[ "$(sha256sum package.json | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:final_guard_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum pnpm-lock.yaml | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:final_guard_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$AUTHORIZATION_FILE" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:final_guard_authorization_hash_mismatch" >&2
+            exit 1
+          fi
 
           final_baseline_package="$RUNNER_TEMP/final-baseline-package.json"
           final_baseline_lockfile="$RUNNER_TEMP/final-baseline-lockfile.yaml"
@@ -972,18 +1142,29 @@ jobs:
             node --input-type=module -e '
               import fs from "node:fs";
               const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-              if (!["direct", "root_parent", "override"].includes(value.strategy)) process.exit(1);
+              if (!["direct", "root_parent", "override"].includes(value.strategy)) {
+                throw new Error("needs_human:final_strategy_invalid");
+              }
               process.stdout.write(value.strategy);
             ' "$1"
           }
           pre_strategy="$(read_strategy "$PRE_RUN_VALIDATION_FILE")"
           final_strategy="$(read_strategy "$FINALIZE_VALIDATION_FILE")"
-          test "$pre_strategy" = "$final_strategy"
+          if [[ "$pre_strategy" != "$final_strategy" ]]; then
+            echo "needs_human:finalize_strategy_changed" >&2
+            exit 1
+          fi
 
           run_id="$(<"$RUN_ID_FILE")"
           run_dir=".codex/runs/$run_id"
-          grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"
-          grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"
+          if ! grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"; then
+            echo "needs_human:run_plan_strategy_mismatch" >&2
+            exit 1
+          fi
+          if ! grep -Fqx -- "- strategy: $pre_strategy" "$run_dir/REPORT.md"; then
+            echo "needs_human:run_report_strategy_mismatch" >&2
+            exit 1
+          fi
 
           expected_changes=$(printf '%s\n' \
             package.json \
@@ -992,7 +1173,10 @@ jobs:
             "$run_dir/TASKS.md" \
             "$run_dir/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:finalize_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
 
           env -i PATH="$PATH" HOME="$final_public_home" TMPDIR="$final_public_tmp" \
@@ -1007,7 +1191,7 @@ jobs:
           const authorization = JSON.parse(await fs.readFile(process.env.AUTHORIZATION_FILE, "utf8"));
           const validation = JSON.parse(await fs.readFile(process.env.FINALIZE_VALIDATION_FILE, "utf8"));
           if (!["direct", "root_parent", "override"].includes(validation.strategy)) {
-            throw new Error("needs_human");
+            throw new Error("needs_human:final_validation_strategy_invalid");
           }
           const runId = (await fs.readFile(process.env.RUN_ID_FILE, "utf8")).trim();
           const conflictTerms = [
@@ -1091,7 +1275,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Download validated artifact by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -1113,11 +1300,26 @@ jobs:
         run: |
           set -euo pipefail
           artifact="$RUNNER_TEMP/validated-security-fix"
-          test -f "$artifact/package.json"
-          test -f "$artifact/pnpm-lock.yaml"
-          test -f "$artifact/validated-fix.json"
-          test "$(sha256sum "$artifact/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$artifact/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
+          if [[ ! -f "$artifact/package.json" ]]; then
+            echo "needs_human:validated_artifact_package_missing" >&2
+            exit 1
+          fi
+          if [[ ! -f "$artifact/pnpm-lock.yaml" ]]; then
+            echo "needs_human:validated_artifact_lockfile_missing" >&2
+            exit 1
+          fi
+          if [[ ! -f "$artifact/validated-fix.json" ]]; then
+            echo "needs_human:validated_artifact_manifest_missing" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$artifact/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:publish_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$artifact/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:publish_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
           ARTIFACT_DIR="$artifact" EXPECTED_BASE_SHA="$BASE_SHA" EXPECTED_PACKAGE_SHA256="$EXPECTED_PACKAGE_SHA256" \
             EXPECTED_LOCKFILE_SHA256="$EXPECTED_LOCKFILE_SHA256" EXPECTED_AUTHORIZATION_SHA256="$EXPECTED_AUTHORIZATION_SHA256" \
             node --input-type=module <<'NODE'
@@ -1126,11 +1328,11 @@ jobs:
           import path from "node:path";
           const root = process.env.ARTIFACT_DIR;
           const manifest = JSON.parse(await fs.readFile(`${root}/validated-fix.json`, "utf8"));
-          if (manifest.schema_version !== 1 || manifest.base_sha !== process.env.EXPECTED_BASE_SHA) throw new Error("needs_human");
-          if (manifest.prepared_sha256?.package_json !== process.env.EXPECTED_PACKAGE_SHA256) throw new Error("needs_human");
-          if (manifest.prepared_sha256?.pnpm_lock_yaml !== process.env.EXPECTED_LOCKFILE_SHA256) throw new Error("needs_human");
-          if (manifest.prepared_sha256?.authorization !== process.env.EXPECTED_AUTHORIZATION_SHA256) throw new Error("needs_human");
-          if (!Array.isArray(manifest.conflict_terms) || !manifest.conflict_terms.includes(manifest.dependency)) throw new Error("needs_human");
+          if (manifest.schema_version !== 1 || manifest.base_sha !== process.env.EXPECTED_BASE_SHA) throw new Error("needs_human:validated_manifest_identity_mismatch");
+          if (manifest.prepared_sha256?.package_json !== process.env.EXPECTED_PACKAGE_SHA256) throw new Error("needs_human:validated_manifest_package_hash_mismatch");
+          if (manifest.prepared_sha256?.pnpm_lock_yaml !== process.env.EXPECTED_LOCKFILE_SHA256) throw new Error("needs_human:validated_manifest_lockfile_hash_mismatch");
+          if (manifest.prepared_sha256?.authorization !== process.env.EXPECTED_AUTHORIZATION_SHA256) throw new Error("needs_human:validated_manifest_authorization_hash_mismatch");
+          if (!Array.isArray(manifest.conflict_terms) || !manifest.conflict_terms.includes(manifest.dependency)) throw new Error("needs_human:validated_manifest_conflict_terms_invalid");
           const walk = async (directory) => {
             const entries = [];
             for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
@@ -1148,28 +1350,40 @@ jobs:
             !publishFiles.includes("pnpm-lock.yaml") ||
             runFiles.length !== 3 ||
             runFiles.some((file) => !/^\.codex\/runs\/[^/]+\/(?:PLAN|TASKS|REPORT)\.md$/.test(file))
-          ) throw new Error("needs_human");
+          ) throw new Error("needs_human:validated_manifest_run_files_invalid");
           const runIds = new Set(runFiles.map((file) => file.split("/")[2]));
-          if (runIds.size !== 1) throw new Error("needs_human");
+          if (runIds.size !== 1) throw new Error("needs_human:validated_manifest_run_id_invalid");
           const expectedFiles = [...publishFiles, "validated-fix.json"].sort();
           const actualFiles = (await walk(root)).sort();
-          if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) throw new Error("needs_human");
+          if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) throw new Error("needs_human:validated_manifest_file_set_mismatch");
           for (const [relativePath, expectedHash] of Object.entries(manifest.publish_sha256 ?? {})) {
             const actualHash = createHash("sha256").update(await fs.readFile(`${root}/${relativePath}`)).digest("hex");
-            if (actualHash !== expectedHash) throw new Error("needs_human");
+            if (actualHash !== expectedHash) throw new Error("needs_human:validated_manifest_publish_hash_mismatch");
           }
           NODE
-          latest_main="$(curl --fail-with-body --silent --show-error --location \
+          if ! latest_main="$(curl --fail-with-body --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
-          test "$latest_main" = "$BASE_SHA"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"; then
+            echo "needs_human:main_ref_fetch_before_publish_setup_failed" >&2
+            exit 1
+          fi
+          if [[ "$latest_main" != "$BASE_SHA" ]]; then
+            echo "needs_human:main_advanced_before_publish_setup" >&2
+            exit 1
+          fi
           cp "$artifact/package.json" package.json
           cp "$artifact/pnpm-lock.yaml" pnpm-lock.yaml
           run_dir="$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
-          test -n "$run_dir"
-          test "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" = 1
+          if [[ -z "$run_dir" ]]; then
+            echo "needs_human:validated_artifact_run_missing" >&2
+            exit 1
+          fi
+          if [[ "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" != 1 ]]; then
+            echo "needs_human:validated_artifact_run_count_invalid" >&2
+            exit 1
+          fi
           run_id="$(basename "$run_dir")"
           mkdir -p .codex/runs
           cp -R "$run_dir" .codex/runs/
@@ -1180,7 +1394,10 @@ jobs:
             ".codex/runs/$run_id/TASKS.md" \
             ".codex/runs/$run_id/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:publish_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
 
       - name: Recheck alert advisory and duplicate branch conditions
@@ -1192,51 +1409,73 @@ jobs:
           ALERT_NUMBER: ${{ inputs.alert_number }}
         run: |
           set -euo pipefail
+          fetch_json() {
+            local diagnostic="$1"
+            local output="$2"
+            local url="$3"
+            shift 3
+            case "$diagnostic" in
+              ''|*[!a-z0-9_]*) echo "needs_human:invalid_diagnostic_code" >&2; exit 1 ;;
+            esac
+            local http_status
+            local curl_status
+            set +e
+            http_status="$(curl --silent --show-error --location --output "$output" --write-out '%{http_code}' "$@" "$url")"
+            curl_status=$?
+            set -e
+            if [[ "$curl_status" -ne 0 ]]; then
+              echo "needs_human:${diagnostic}_transport" >&2
+              exit 1
+            fi
+            if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+              echo "needs_human:${diagnostic}_http_${http_status}" >&2
+              exit 1
+            fi
+          }
           authorization="$RUNNER_TEMP/validated-security-fix/validated-fix.json"
           dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$authorization")"
           ghsa_id="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).ghsa_id)' "$authorization")"
           case "$ALERT_NUMBER" in
-            ''|*[!0-9]*) echo needs_human >&2; exit 1 ;;
+            ''|*[!0-9]*) echo "needs_human:invalid_alert_number" >&2; exit 1 ;;
           esac
           alert="$RUNNER_TEMP/publish-alert.json"
           advisory="$RUNNER_TEMP/publish-advisory.json"
-          curl --fail-with-body --silent --show-error --location \
+          fetch_json "publish_alert" "$alert" "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" \
             --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            "$API_URL/repos/$REPOSITORY/dependabot/alerts/$ALERT_NUMBER" > "$alert"
+            --header "Authorization: Bearer $GITHUB_TOKEN"
           AUTH_FILE="$authorization" ALERT_FILE="$alert" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
           const alert = JSON.parse(await fs.readFile(process.env.ALERT_FILE, "utf8"));
-          if (alert.state !== "open") throw new Error("needs_human");
-          if (alert.dependency?.package?.name !== auth.dependency) throw new Error("needs_human");
-          if (alert.dependency?.package?.ecosystem !== auth.ecosystem) throw new Error("needs_human");
-          if (alert.security_advisory?.ghsa_id !== auth.ghsa_id) throw new Error("needs_human");
+          if (alert.state !== "open") throw new Error("needs_human:publish_alert_not_open");
+          if (alert.dependency?.package?.name !== auth.dependency) throw new Error("needs_human:publish_alert_dependency_changed");
+          if (alert.dependency?.package?.ecosystem !== auth.ecosystem) throw new Error("needs_human:publish_alert_ecosystem_changed");
+          if (alert.security_advisory?.ghsa_id !== auth.ghsa_id) throw new Error("needs_human:publish_alert_advisory_changed");
           NODE
-          curl --fail-with-body --silent --show-error --location \
-            --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/advisories/$ghsa_id" > "$advisory"
+          fetch_json "publish_advisory" "$advisory" "https://api.github.com/advisories/$ghsa_id" \
+            --header "Accept: application/vnd.github+json"
           AUTH_FILE="$authorization" ADVISORY_FILE="$advisory" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
           const advisory = JSON.parse(await fs.readFile(process.env.ADVISORY_FILE, "utf8"));
-          if (advisory.ghsa_id !== auth.ghsa_id) throw new Error("needs_human");
+          if (advisory.ghsa_id !== auth.ghsa_id) throw new Error("needs_human:publish_advisory_identity_changed");
           const entries = (advisory.vulnerabilities ?? []).filter((entry) => entry.ecosystem === auth.ecosystem && entry.package?.name === auth.dependency);
-          if (entries.length !== 1) throw new Error("needs_human");
+          if (entries.length !== 1) throw new Error("needs_human:publish_advisory_entry_ambiguous");
           const range = entries[0].vulnerable_version_range.replaceAll(",", " ").replace(/\s+/g, " ").trim();
           const first = entries[0].first_patched_version?.identifier ?? null;
-          if (range !== auth.vulnerable_range || first !== auth.first_patched_version) throw new Error("needs_human");
+          if (range !== auth.vulnerable_range || first !== auth.first_patched_version) throw new Error("needs_human:publish_advisory_conditions_changed");
           NODE
           pulls="$RUNNER_TEMP/publish-open-prs.json"
-          curl --fail-with-body --silent --show-error --location \
+          fetch_json "publish_open_prs" "$pulls" "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" \
             --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            "$API_URL/repos/$REPOSITORY/pulls?state=open&per_page=100" > "$pulls"
+            --header "Authorization: Bearer $GITHUB_TOKEN"
           AUTH_FILE="$authorization" PULLS_FILE="$pulls" REPOSITORY="$REPOSITORY" GITHUB_TOKEN="$GITHUB_TOKEN" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const auth = JSON.parse(await fs.readFile(process.env.AUTH_FILE, "utf8"));
           const pulls = JSON.parse(await fs.readFile(process.env.PULLS_FILE, "utf8"));
-          if (!Array.isArray(pulls) || pulls.length >= 100) throw new Error("needs_human");
+          const needsHuman = (code) => { throw new Error(`needs_human:${code}`); };
+          if (!Array.isArray(pulls)) needsHuman("publish_pr_list_invalid");
+          if (pulls.length >= 100) needsHuman("publish_pr_list_truncated");
           const conflictTerms = Array.isArray(auth.conflict_terms) && auth.conflict_terms.length > 0
             ? auth.conflict_terms
             : [auth.dependency];
@@ -1248,14 +1487,15 @@ jobs:
                 Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
               },
             });
-            if (!response.ok) throw new Error("needs_human");
+            if (!response.ok) needsHuman(`publish_pr_files_http_${response.status}`);
             const files = await response.json();
-            if (!Array.isArray(files) || files.length >= 100) throw new Error("needs_human");
+            if (!Array.isArray(files)) needsHuman("publish_pr_files_invalid");
+            if (files.length >= 100) needsHuman("publish_pr_files_truncated");
             if (files.some((file) => ["package.json", "pnpm-lock.yaml"].includes(file.filename) && typeof file.patch !== "string")) {
-              throw new Error("needs_human");
+              needsHuman("publish_pr_patch_missing");
             }
             if (files.some((file) => typeof file.patch === "string" && conflictTerms.some((term) => file.patch.includes(term)))) {
-              throw new Error("needs_human");
+              needsHuman("publish_pr_conflict");
             }
           }
           NODE
@@ -1263,14 +1503,15 @@ jobs:
           digest="$(printf '%s' "$dependency" | sha256sum | awk '{print substr($1,1,8)}')"
           branch_prefix="${prefix}-${digest}/"
           existing="$RUNNER_TEMP/security-branches.json"
-          curl --fail-with-body --silent --show-error --location \
+          fetch_json "publish_branches" "$existing" "$API_URL/repos/$REPOSITORY/branches?per_page=100" \
             --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            "$API_URL/repos/$REPOSITORY/branches?per_page=100" > "$existing"
+            --header "Authorization: Bearer $GITHUB_TOKEN"
           BRANCH_PREFIX="$branch_prefix" BRANCHES_FILE="$existing" node --input-type=module <<'NODE'
           import fs from "node:fs/promises";
           const branches = JSON.parse(await fs.readFile(process.env.BRANCHES_FILE, "utf8"));
-          if (!Array.isArray(branches) || branches.length >= 100 || branches.some((branch) => branch.name.startsWith(process.env.BRANCH_PREFIX))) throw new Error("needs_human");
+          if (!Array.isArray(branches)) throw new Error("needs_human:publish_branch_list_invalid");
+          if (branches.length >= 100) throw new Error("needs_human:publish_branch_list_truncated");
+          if (branches.some((branch) => branch.name.startsWith(process.env.BRANCH_PREFIX))) throw new Error("needs_human:publish_orphan_branch_conflict");
           NODE
 
       - name: Exchange OIDC token for scoped installation token and publish once
@@ -1288,18 +1529,36 @@ jobs:
           dependency_key="$(printf '%s' "$dependency" | tr '[:upper:]' '[:lower:]' | sed -E 's/^@//; s#/#--#g; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-//; s/-$//')"
           dependency_digest="$(printf '%s' "$dependency" | sha256sum | awk '{print substr($1,1,8)}')"
           branch="security/${dependency_key}-${dependency_digest}/${GITHUB_RUN_ID}"
+          if [[ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" || -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]]; then
+            echo "needs_human:oidc_request_environment_missing" >&2
+            exit 1
+          fi
           oidc_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=opencode-github-action"
-          oidc_token="$(curl --fail-with-body --silent --show-error --location \
+          if ! oidc_token="$(curl --fail-with-body --silent --show-error --location \
             --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$oidc_url" | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).value))')"
-          test -n "$oidc_token"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).value))')"; then
+            echo "needs_human:oidc_token_request_failed" >&2
+            exit 1
+          fi
+          if [[ -z "$oidc_token" ]]; then
+            echo "needs_human:oidc_token_empty" >&2
+            exit 1
+          fi
           echo "::add-mask::$oidc_token"
-          installation_token="$(curl --fail-with-body --silent --show-error --location --request POST \
+          if ! installation_token="$(curl --fail-with-body --silent --show-error --location --request POST \
             --header "Authorization: Bearer $oidc_token" \
             --header "Accept: application/json" \
             https://api.opencode.ai/exchange_github_app_token | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>{const token=JSON.parse(data).token;if(typeof token!=="string"||!token)process.exit(1);process.stdout.write(token)})')"
-          test -n "$installation_token"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>{const token=JSON.parse(data).token;if(typeof token!=="string"||!token)process.exit(1);process.stdout.write(token)})')"; then
+            unset oidc_token
+            echo "needs_human:installation_token_exchange_failed" >&2
+            exit 1
+          fi
+          if [[ -z "$installation_token" ]]; then
+            unset oidc_token
+            echo "needs_human:installation_token_empty" >&2
+            exit 1
+          fi
           echo "::add-mask::$installation_token"
           git switch --create "$branch"
           git config user.name "github-actions[bot]"
@@ -1311,30 +1570,38 @@ jobs:
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.extraheader
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $git_credential"
-          latest_main_before_push="$(curl --fail --silent --show-error --location \
+          if ! latest_main_before_push="$(curl --fail --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"; then
+            unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
+            echo "needs_human:main_ref_fetch_before_push_failed" >&2
+            exit 1
+          fi
           if [[ "$latest_main_before_push" != "$BASE_SHA" ]]; then
             unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
-            echo "needs_human: main advanced immediately before publish; no remote branch was pushed" >&2
+            echo "needs_human:main_advanced_before_push" >&2
             exit 1
           fi
           if ! git push origin "$branch"; then
             unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential installation_token oidc_token
-            echo needs_human >&2
+            echo "needs_human:publish_git_push_failed" >&2
             exit 1
           fi
           unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 git_credential
-          latest_main_after_push="$(curl --fail --silent --show-error --location \
+          if ! latest_main_after_push="$(curl --fail --silent --show-error --location \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             "$API_URL/repos/$REPOSITORY/git/ref/heads/main" | \
-            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"
+            node --input-type=module -e 'let data=""; process.stdin.on("data",(chunk)=>data+=chunk).on("end",()=>process.stdout.write(JSON.parse(data).object.sha))')"; then
+            unset installation_token oidc_token
+            echo "needs_human:main_ref_fetch_after_push_failed" >&2
+            exit 1
+          fi
           if [[ "$latest_main_after_push" != "$BASE_SHA" ]]; then
             unset installation_token oidc_token
-            echo "needs_human: main advanced after publish; remote security branch is retained and PR creation is stopped" >&2
+            echo "needs_human:main_advanced_after_push" >&2
             exit 1
           fi
           body="$RUNNER_TEMP/security-pr-body.md"
@@ -1345,7 +1612,7 @@ jobs:
           EOF
           if ! GH_TOKEN="$installation_token" gh pr create --base main --head "$branch" --title "Security Update: dependency $dependency" --body-file "$body"; then
             unset GH_TOKEN installation_token oidc_token
-            echo needs_human >&2
+            echo "needs_human:publish_pr_create_failed" >&2
             exit 1
           fi
           unset GH_TOKEN installation_token oidc_token
