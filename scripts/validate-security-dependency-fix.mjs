@@ -12,16 +12,22 @@ const MANIFEST_FIELDS = [
 ];
 const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i;
 const MAX_CANDIDATES = 10;
+const DEFAULT_NEEDS_HUMAN_REASON_CODE = "validator_rejected_input";
+const NEEDS_HUMAN_REASON_CODE_PATTERN = /^[a-z0-9_]+$/;
 
 export class NeedsHumanError extends Error {
-  constructor(message) {
+  constructor(message, reasonCode = DEFAULT_NEEDS_HUMAN_REASON_CODE) {
     super(message);
     this.name = "NeedsHumanError";
+    this.reasonCode =
+      typeof reasonCode === "string" && NEEDS_HUMAN_REASON_CODE_PATTERN.test(reasonCode)
+        ? reasonCode
+        : DEFAULT_NEEDS_HUMAN_REASON_CODE;
   }
 }
 
-function needsHuman(message) {
-  throw new NeedsHumanError(message);
+function needsHuman(message, reasonCode) {
+  throw new NeedsHumanError(message, reasonCode);
 }
 
 function isPlainObject(value) {
@@ -743,7 +749,7 @@ export function createAuthorization({
     }
   }
   if (result.allowed_strategies.length === 0) {
-    needsHuman("no safe automatic strategy was authorized");
+    needsHuman("no safe automatic strategy was authorized", "no_safe_automatic_strategy");
   }
   return result;
 }
@@ -1429,7 +1435,7 @@ async function cli(argv) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   cli(process.argv.slice(2)).catch((error) => {
     if (error instanceof NeedsHumanError) {
-      console.error("needs_human");
+      console.error(`needs_human:${error.reasonCode}`);
     } else {
       console.error(error instanceof Error ? error.message : String(error));
     }
