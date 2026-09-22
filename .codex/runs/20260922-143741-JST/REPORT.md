@@ -82,3 +82,24 @@
   - Result: N/A。
   - 親Agentの判断: Parentがscope、failure分類、completionを維持する。
 - Progress: 56% (10/18)
+
+### 2026-09-22 16:10 (JST)
+
+- Summary:
+  - canonical live runの入口確認で、標準の`pnpm run ... -- --target-root ...`がrunnerへseparatorを渡し、`unknown argument: --`で開始前に停止した。
+- Changes:
+  - Findingを`must_fix`へ分類し、許可範囲を`run-skill-workflow-evals.ts`とそのrepository contract testに限定した。
+  - parserは先頭のpackage-script separatorだけを正規化し、重複・未知引数の拒否契約は維持した。対応testを追加した。
+- 判断 / 理由:
+  - package scriptの標準呼出し契約に対する現在実装の入口不整合であり、canonical runを回避せず最小修正した。
+  - 修復はrepair-loopの1 iterationとして扱い、runnerの自動retryや契約緩和は行わない。
+- Validation:
+  - `corepack pnpm exec vitest run tests/repository-contract/skill-workflow-evals.test.ts --no-file-parallelism --maxWorkers=1`: PASS (1 file / 8 tests)。
+  - 対象ESLint / TypeScript: PASS。
+- ブロッカー / 残作業:
+  - 修復commit後にcanonical live runを再実行する。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: Parentがfinding分類、allowed files、再検証と停止判断を担う。
+- Progress: 56% (10/18)

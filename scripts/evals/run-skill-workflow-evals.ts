@@ -191,6 +191,7 @@ function validateSha(value: string, option: string): string {
 }
 
 export function parseWorkflowEvalCliArguments(args: readonly string[]): WorkflowEvalCliOptions {
+  const normalizedArgs = args[0] === "--" ? args.slice(1) : args;
   let targetRoot: string | undefined;
   let sourceRevision: string | undefined;
   let routingSource: string | undefined;
@@ -198,34 +199,34 @@ export function parseWorkflowEvalCliArguments(args: readonly string[]): Workflow
   let output: string | undefined;
   let androidSerial: string | undefined;
 
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
+  for (let index = 0; index < normalizedArgs.length; index += 1) {
+    const argument = normalizedArgs[index];
     if (argument === "--target-root") {
       if (targetRoot !== undefined) usageError("--target-root may be specified only once");
-      targetRoot = nextArgument(args, index, argument);
+      targetRoot = nextArgument(normalizedArgs, index, argument);
       index += 1;
     } else if (argument === "--source-revision-git-sha") {
       if (sourceRevision !== undefined)
         usageError("--source-revision-git-sha may be specified only once");
-      sourceRevision = validateSha(nextArgument(args, index, argument), argument);
+      sourceRevision = validateSha(nextArgument(normalizedArgs, index, argument), argument);
       index += 1;
     } else if (argument === "--routing-source-git-sha") {
       if (routingSource !== undefined)
         usageError("--routing-source-git-sha may be specified only once");
-      routingSource = validateSha(nextArgument(args, index, argument), argument);
+      routingSource = validateSha(nextArgument(normalizedArgs, index, argument), argument);
       index += 1;
     } else if (argument === "--model") {
       if (model !== undefined) usageError("--model may be specified only once");
-      model = nextArgument(args, index, argument);
+      model = nextArgument(normalizedArgs, index, argument);
       index += 1;
     } else if (argument === "--output") {
       if (output !== undefined) usageError("--output may be specified only once");
-      output = nextArgument(args, index, argument);
+      output = nextArgument(normalizedArgs, index, argument);
       index += 1;
     } else if (argument === "--android-device-serial") {
       if (androidSerial !== undefined)
         usageError("--android-device-serial may be specified only once");
-      androidSerial = nextArgument(args, index, argument);
+      androidSerial = nextArgument(normalizedArgs, index, argument);
       index += 1;
     } else {
       usageError(`unknown argument: ${argument ?? "<missing>"}`);

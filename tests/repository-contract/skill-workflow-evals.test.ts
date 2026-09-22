@@ -192,6 +192,22 @@ describe("Workflow E2E Eval repository contract", () => {
     );
   });
 
+  it("accepts the standard package-script argument separator", () => {
+    const parsed = parseWorkflowEvalCliArguments([
+      "--",
+      "--target-root",
+      "target",
+      "--source-revision-git-sha",
+      "a".repeat(40),
+      "--routing-source-git-sha",
+      "b".repeat(40),
+      "--output",
+      "result.json",
+    ]);
+    expect(parsed.target_root).toBe("target");
+    expect(parsed.output).toBe("result.json");
+  });
+
   it("does not add a PR6 workflow script to CI and reuses the existing native helper", () => {
     const packageJson = JSON.parse(
       readFileSync(resolve(repositoryRoot, "package.json"), "utf8"),
