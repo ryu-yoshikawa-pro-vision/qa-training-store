@@ -17,6 +17,7 @@
     "eval:skills:trigger:validate": "tsx scripts/evals/run-skill-trigger-evals.ts --validate-only",
     "eval:skills:trigger": "tsx scripts/evals/run-skill-trigger-evals.ts",
     "eval:skills:semantic": "tsx scripts/evals/run-skill-semantic-output-evals.ts",
+    "eval:skills:workflow": "tsx scripts/evals/run-skill-workflow-evals.ts",
     "lint": "eslint .",
     "typecheck:app": "tsc --noEmit --project tsconfig.json",
     "typecheck:native-tests": "tsc --noEmit --project tsconfig.native-tests.json",
