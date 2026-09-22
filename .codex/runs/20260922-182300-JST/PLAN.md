@@ -11,7 +11,7 @@
   - `.github/workflows/native-ci.yml`
   - `.github/workflows/native-ios-ci.yml`
   - Native CI関連script / contract test / Project Context
-  - Phase 6 refactoring report / repair history
+  - Phase 6 refactoring report / 修正履歴
   - 保存Planと本Run Artifact
 - Out:
   - Native CI実装
@@ -24,7 +24,7 @@
 
 - 基準はbranch作成時の`main` `2a76df4e7c4efabfc1e50ce4a4b0d88c92ddabd3`。
 - 実装開始時にはlatest `main`へrebaselineする。
-- Currentのjob名、Artifact名、Automation / Production / Training / iOS Build-only保証は互換性契約として維持する。
+- 現在のjob名、Artifact名、Automation / Production / Training / iOS Build-only保証は互換性契約として維持する。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
@@ -36,7 +36,7 @@
 
 - H1: 問題の主因はjob数ではなく、高変更頻度のinline Bashがorchestration fileへ集中していること。
 - H2: job graphを維持し、複雑なinline実装だけを責務別Native helperへ移せば、保証意味を変えずblast radiusを下げられる。
-- H3: Reusable Workflow追加はCurrentの個別job result contractを複雑化するため、今回の最小解ではない。
+- H3: Reusable Workflow追加は現在の個別job result contractを複雑化するため、今回の最小解ではない。
 
 ## Research Plan（調査計画）
 
@@ -45,23 +45,23 @@
 - Round 2 Query:
   - cited repair commit、Native helper pattern、change detection、final verifyを確認。
 - Exit Criteria:
-  - Refactor要否をCurrent Evidenceで判定できる。
-  - ownership変更後のowner fileと保持する契約を具体化できる。
-  - 実装・validation・rollbackを追加判断なしで進められる。
+  - Refactor要否を現在の根拠で判定できる。
+  - 責務変更後の責務を持つfileと保持する契約を具体化できる。
+  - 実装・validation・ロールバックを追加判断なしで進められる。
 
 ## Approach（進め方）
 
 - Current job graphは維持する。
 - orchestrationと高変更頻度のinline implementationを分離する。
 - 既存`scripts/native/*.sh`を利用し、新しいCI abstractionを作らない。
-- Contract testでjob / artifact / final gateと新ownershipを固定する。
+- Contract testでjob / artifact / final gateと新責務を固定する。
 
 ## Definition of Done（完了条件）
 
 - branch作成済み。
-- Current mapping / history確認済み。
+- 現在の構成確認 / history確認済み。
 - Refactor要否の結論あり。
-- 保存Planに変更対象、非目標、実装順、validation、rollback、DoDが記載されている。
+- 保存Planに変更対象、非目標、実装順、validation、ロールバック、完了条件が記載されている。
 - Plan-only Run Artifactが保存されている。
 - 実装・PR作成へ進んでいない。
 

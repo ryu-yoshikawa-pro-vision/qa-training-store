@@ -5,12 +5,12 @@
 - 対象Issue: #130 `refactor: Native CI workflowの責務境界を整理する`
 - 基準commit: `2a76df4e7c4efabfc1e50ce4a4b0d88c92ddabd3`
 - 作業branch: `plan/issue-130-native-ci-responsibility-boundary`
-- 依頼内容: Current `main`へ対象boundaryを再mappingし、Refactorの必要性を再確認したうえで、実装時に迷わないPlanを保存する。
+- 依頼内容: 現在の`main`へ対象boundaryを再mappingし、Refactorの必要性を再確認したうえで、実装時に迷わないPlanを保存する。
 - このPlanでは実装、PR作成、merge、Issue closeを行わない。
 
 ## 1. 結論
 
-Current `main`でもIssue #130の問題は残っているため、Refactorは必要と判断する。
+現在の`main`でもIssue #130の問題は残っているため、Refactorは必要と判断する。
 
 ただし、`.github/workflows/native-ci.yml`を複数Reusable Workflowへ分割すること自体は採用しない。現在のjob graphは、Android Automation / Production buildの個別結果、Production Bundle Guard、Android Runtimeの部分実行、最終`native-ci / verify`のfail-closed判定を同一workflow上で明示しており、この関係を別workflowへ隠すと状態伝播が複雑になる。
 
@@ -21,11 +21,11 @@ Current `main`でもIssue #130の問題は残っているため、Refactorは必
 3. 新しい汎用CI framework、Composite Action、独自DSL、汎用step runnerは作らない。
 4. job名、Artifact名、runner、Action SHA、Automation / Productionの保証意味、Training / Formal Nativeの境界、visual captureの手動実行契約は変更しない。
 
-## 2. Current repo mapping
+## 2. 現状の構成
 
-### 2.1 Entry point
+### 2.1 入口
 
-Primary entry pointは`.github/workflows/native-ci.yml`で、workflow名は`Mobile App CI`。
+主な入口は`.github/workflows/native-ci.yml`で、workflow名は`Mobile App CI`。
 
 現在の主なjobは次のとおり。
 
@@ -40,7 +40,7 @@ Primary entry pointは`.github/workflows/native-ci.yml`で、workflow名は`Mobi
 
 `native-ios`は既に`.github/workflows/native-ios-ci.yml`をReusable Workflowとして呼び出している。
 
-### 2.2 Current flow
+### 2.2 現在の処理経路
 
 ```text
 detect
@@ -75,7 +75,7 @@ RuntimeはAutomation / Production buildの少なくとも一方が成功して�
 
 この「途中では可能な範囲を実行し、最終gateでは全保証をfail-closeする」意味は変更しない。
 
-### 2.3 Existing protection
+### 2.3 既存の保護
 
 主な保護は次。
 
@@ -87,7 +87,7 @@ RuntimeはAutomation / Production buildの少なくとも一方が成功して�
 - `.github/workflows/native-ios-ci.yml`
 - `docs/PROJECT_CONTEXT.md`
 
-## 3. Current EvidenceとRefactor要否
+## 3. 現在の根拠とRefactor要否
 
 Phase 6 reportで確認された問題はCurrentでも成立する。
 
@@ -107,7 +107,7 @@ Phase 6 reportで確認された問題はCurrentでも成立する。
 - iOS Gate接続
 - final fail-closed verification
 
-### 3.2 repair history
+### 3.2 修正履歴
 
 Phase 6でEvidenceとして確認済みの主な変更。
 
@@ -120,9 +120,9 @@ Phase 6でEvidenceとして確認済みの主な変更。
 
 変更理由が異なるにもかかわらず、同じ`native-ci.yml`の広い範囲を変更している。
 
-### 3.3 Currentで新たに確認したchange detection gap
+### 3.3 現在新たに確認したchange detectionの不足
 
-`android-runtime`がFormal / Training Maestroの共通runnerとして利用する`scripts/native/android-maestro-run.sh`は、Current `detect`のNative path listに明示されていない。
+`android-runtime`がFormal / Training Maestroの共通runnerとして利用する`scripts/native/android-maestro-run.sh`は、現在の`detect`のNative path listに明示されていない。
 
 今回新しいNative CI helperを追加する場合、この状態のままではhelperだけを変更したPRでNative-specific jobがskipされ得る。
 
@@ -138,7 +138,7 @@ Phase 6でEvidenceとして確認済みの主な変更。
 
 理由:
 
-- Current RuntimeはAutomation / Production buildの個別resultを参照して部分的に実行する。
+- 現在のRuntimeはAutomation / Production buildの個別resultを参照して部分的に実行する。
 - final verifyは各job resultを個別にfail-close判定する。
 - 複数jobを子workflowへ隠すと、result / outputの再公開契約が増える。
 - Issue #130の目的は責務境界を狭めることであり、新しい状態伝播層を作ることではない。
@@ -157,11 +157,11 @@ RepositoryにはNative処理を`scripts/native/**`へ置く既存パターンが
 
 workflowから別fileへ移すだけでは、Emulator、visual capture、evidence、Formal / Training実行の変更理由が再び同一fileへ集中し、Issue #130を解消しない。
 
-## 5. 実装後のownership
+## 5. 実装後の責務
 
 ### 5.1 `.github/workflows/native-ci.yml`
 
-次だけをPrimary ownershipとする。
+次だけを主な責務とする。
 
 - `pull_request` / `workflow_dispatch` entry
 - visual capture inputs
@@ -308,7 +308,7 @@ Contract testでこのpath契約を固定する。
 
 主に`tests/contracts/native-ci-workflow.test.ts`を更新する。
 
-### 7.1 workflow orchestration contract
+### 7.1 workflowの構成契約
 
 次を継続検証する。
 
@@ -323,7 +323,7 @@ Contract testでこのpath契約を固定する。
 - iOS reusable workflow呼び出し
 - final `verify`のNative変更あり / なしのfail-close契約
 
-### 7.2 helper ownership contract
+### 7.2 helperの責務契約
 
 テストから新規scriptを読み込み、現在workflow本文に対して行っている意味検証を責務ownerへ移す。
 
@@ -346,7 +346,7 @@ Contract testでこのpath契約を固定する。
 
 ## 8. Documentation
 
-ownership変更はProject Contextへ反映する。
+責務変更はProject Contextへ反映する。
 
 実装時に次を更新する。
 
@@ -357,7 +357,7 @@ ownership変更はProject Contextへ反映する。
 - `docs/history/<timestamp>_native-ci-responsibility-boundary.md`
   - 変更前後のownership
   - 採用しなかったReusable Workflow / Composite Action案
-  - compatibility / validation結果
+  - 互換性 / 検証結果
 
 既存ADRが保証するAndroid / iOSの品質意味は変更しないため、新しいADRは作らない。
 
@@ -379,7 +379,7 @@ ownership変更はProject Contextへ反映する。
 - [ ] 14. manual dispatchでvisual capture pathを1 caseだけ実行し、profile / capture / artifact / final gateを確認する。
 - [ ] 15. Issue #130の完了条件に照らし、局所変更時のownerと検証範囲をPR本文で説明できることを確認する。
 
-## 10. Validation plan
+## 10. 検証計画
 
 ### 10.1 静的確認
 
@@ -398,7 +398,7 @@ scripts/native/android-ci-runtime-evidence.sh
 
 新規scriptはLF、実行可能file modeを維持する。
 
-### 10.2 focused contract
+### 10.2 対象を絞ったcontract test
 
 ```bash
 pnpm exec vitest run   tests/contracts/native-ci-workflow.test.ts   tests/contracts/ci-workflow.test.ts   tests/contracts/native-test-control-maestro.test.ts   --no-file-parallelism   --maxWorkers=1   --testTimeout=30000
@@ -447,13 +447,13 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 
 全case captureは今回のRefactor検証には要求しない。
 
-## 11. Definition of Done
+## 11. 完了条件
 
 次をすべて満たしたらIssue #130の実装完了候補とする。
 
-- Currentのjob graphと保証意味を維持している。
+- 現在のjob graphと保証意味を維持している。
 - `native-ci.yml`がorchestration責務を中心とし、Gradle build command、Hermes extraction、Emulator startup、visual profile / capture、runtime evidenceの詳細実装を直接所有していない。
-- 各移動責務のowner fileを一意に説明できる。
+- 各移動責務の責務を持つfileを一意に説明できる。
 - Android build、Hermes guard、visual capture、runtime evidenceの局所修正で、無関係なfinal gateや他責務の実装本文を編集する必要がない。
 - Artifact名、download / upload経路、Automation / Production保証が不変。
 - Formal MaestroとTraining baselineの実行意味が不変。
@@ -471,7 +471,7 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 
 対策:
 
-- workflow step間で必要な値はCurrentどおり`$GITHUB_ENV` / `$GITHUB_OUTPUT`を使う。
+- workflow step間で必要な値は現在どおり`$GITHUB_ENV` / `$GITHUB_OUTPUT`を使う。
 - script process内だけで必要な値と後続stepへ渡す値を区別する。
 - helper化を理由に新しいJSON state fileや独自manifestを作らない。
 
@@ -497,11 +497,11 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 - GitHub Native CIが直接利用する`android-maestro-run.sh`と`android-ci-*.sh`を明示的にdetect対象へ追加する。
 - contract testでpathを固定する。
 
-## 13. Rollback
+## 13. ロールバック
 
 Database、migration、external state変更はない。
 
-問題が発生した場合は、このRefactor commit群をrevertしてinline実装へ戻せる。Artifact名、job名、workflow entryを変更しないため、rollback時に外部migrationは不要。
+問題が発生した場合は、このRefactor commit群をrevertしてinline実装へ戻せる。Artifact名、job名、workflow entryを変更しないため、ロールバック時に外部migrationは不要。
 
 ## 14. 対象外
 
