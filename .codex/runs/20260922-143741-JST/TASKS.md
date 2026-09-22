@@ -13,9 +13,9 @@
 - [x] 9. package scriptとrepository contract testを実装する。
 - [x] 10. targeted repository contractを実行し、必要なrepairを行う。
 - [x] 11. canonical live Workflow E2Eを1回実行し、blocked result JSONを保存する（共通actual-write blockerのためCase実行前に停止）。
-- [ ] 12. repository-wide test、markdown lint、verify、diff checkを実行する。
-- [ ] 13. Run Artifact sanitizationと最終scope / Plan照合を行う。
-- [ ] 14. code-review Skillで実装変更とPR全体を自己レビューする。
+- [x] 12. repository-wide test、markdown lint、verify、diff checkを実行する。
+- [x] 13. Run Artifact sanitizationと最終scope / Plan照合を行う。
+- [x] 14. code-review Skillで実装変更とPR全体を自己レビューする。
 - [ ] 15. commitし、通常pushする。
 - [ ] 16. PR #168本文を実装内容・検証・canonical結果・残存制約へ更新する。
 - [ ] 17. 最新headのWeb CI / Mobile App CIを確認し、Run Artifactへ記録する。
@@ -36,6 +36,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 - [x] D1. `origin/main`は`fcaf57f...`で、current HEADの祖先であることを確認した。
 - [x] D2. Plan-only Runは完了済みで、implementation Runを新規作成した。
+- [x] D3. 作業中に更新された`origin/main`（#172 / #173 / #169 / #174）を再確認し、PR6差分とのmaterial overlapを確認したうえで通常mergeした。
 
 ## Blocked（ブロック中）
 

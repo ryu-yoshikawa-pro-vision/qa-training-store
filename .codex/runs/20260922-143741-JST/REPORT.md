@@ -129,3 +129,54 @@
   - Result: N/A。
   - 親Agentの判断: Parentがfinding分類、allowed files、再検証と停止判断を担う。
 - Progress: 56% (10/18)
+
+### 2026-09-22 20:20 (JST) latest main / repository-wide validation checkpoint
+
+- Summary:
+  - 実装開始後に更新されたlatest `origin/main`を再確認し、PR6の最終Evaluator revisionへ取り込んだ。
+  - latest HEADでtargeted / repository-wide検証を完了した。PR6のcanonical live runも最終SHAで再実行し、Host Runtime契約に従って`blocked`を保存した。
+- Changes / main drift:
+  - `origin/main`は作業中に`36224f7`（Security fallback endpoint）、`7be0b96`（Alert入力 / 診断ログ）、`2a76df4`（Codex Hook offline diagnostics）、`8d73289`（Advisory照合）まで進んだ。
+  - `70d1213`で`2a76df4`まで、`6365a6a`で`8d73289`を通常mergeした。#174のmaterial changeは`.github/workflows/security-dependency-fallback.yml`、対応Plan、security contract testだけで、PR6のWorkflow E2E evaluator / Runtime / Agentic QA / Native helper / package scriptとのoverlapはなかった。
+  - 先行checkpointの「latest mainを既に含む」は作業開始時点の状態であり、上記merge後の状態へ訂正する。
+  - 先行checkpointの`QA_AGENT.md`に関する記録も訂正する。今回のbranchではseed listを複製せず、`src/seeds/metadata.ts`の`SCENARIO_METADATA`をSSOTとして参照する変更を含む。
+- Validation:
+  - `corepack pnpm exec vitest run tests/contracts/security-dependency-fallback-workflow.test.ts --no-file-parallelism --maxWorkers=1`: PASS（1 file / 21 tests）。
+  - `corepack pnpm run test:repository`: PASS（11 files / 125 tests）。
+  - `corepack pnpm run lint:markdown`: PASS（451 files / 0 issues）。
+  - `corepack pnpm run verify`: PASS（contract 44 files / 752 passed / 4 skipped、unit 66、integration 111、repository 125、component Web 102、component Native 64、build:web / docs / spec PASS）。ESLintは0 errors / 66 existing warnings。
+  - `git diff --check origin/main...HEAD`: PASS。
+  - 要求された`git diff --check main...HEAD`も実行したが、local `main`が古い`7a80e05`のままで、branch ancestry由来の既存`.codex/runs/20260919-051528-JST/REPORT.md:162`の末尾blank lineを検出した。これは今回のPR6変更ではなく、append-onlyの既存Run Artifactであるため改変していない。最新remoteとの差分判定は`origin/main...HEAD`でPASSしている。
+- Canonical live Workflow E2E:
+  - source / evaluator SHA: `6365a6ad37f10caf8077b8b0fc97c98d3a375d49`。
+  - sanitized Target routing SHA: `3e60bf4bc096badffa3580f90d465d7eb211ee55`。Targetはparentless / detached / clean / remoteなし、canonical Skill 6件あり、forbidden path 0件。
+  - `workflow-e2e-result.json`: `run_status=blocked`、`cases=[]`、reasonは`installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution`。provenanceのCodex versionは`codex-cli 0.155.1`、modelは`gpt-5.6-luna`。
+  - common smokeのrun-level blockのため、Case A / C / Dの必須live executionへ到達しておらず、Case B / Eも未到達である。Case B / Eをcase-levelの許容`not_executed`へ変換していない。Host Runtimeのread-only downgradeに対するbypass / custom fallbackは追加していない。
+- Review:
+  - `code-review` Skillに従い、PR6全体をPlanへ照合した。fixed 5 case、status分類、Case B trust boundary / Git provenance、Case A freeze / Artifact reuse、Case C destructive stop、Case D handoff、Case E Doctor、actual-output Semantic Eval、strict result-first exit gateを確認した。
+  - PR6によるSkill semantics、Skill frontmatter、Product behavior、Trigger Eval dataset、PR5 rubric / trial count、CI workflowの変更はない。main由来の#169 / #172 / #173 / #174変更はPR6設計変更として扱っていない。
+- ブロッカー / 残作業:
+  - `TASKS.md` task 13のRun Artifact sanitization、final artifact commit、push、PR本文更新、最新PR headのWeb CI / Mobile App CI確認が残っている。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: ParentがPlan照合、main drift、common blocker、case status、completionを判断した。
+- Progress: 78% (14/18)
+
+### 2026-09-22 20:22 (JST) artifact sanitization checkpoint
+
+- Validation:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260922-143741-JST -Write -Check`: PASS（5 files scanned / 0 replacements / 0 residual findings）。
+  - Run Artifactはcredential、device serial、local absolute pathを含まないことを再確認した。canonical resultのprovenanceはSHAとredacted capability情報だけを保持している。
+- 判断 / 理由:
+  - Planのtarget provenance、status分類、Artifact保存、sanitization、最終scope照合を完了した。Targetの絶対pathはtracked Artifactへ記録していない。
+- ブロッカー / 残作業:
+  - final artifact commit、通常push、PR本文更新、最新PR headのWeb CI / Mobile App CI確認、最終報告が残っている。
+- Progress: 83% (15/18)
+
+### 2026-09-22 20:23 (JST) final targeted contract checkpoint
+
+- Validation:
+  - `corepack pnpm exec vitest run tests/repository-contract/skill-workflow-evals.test.ts --no-file-parallelism --maxWorkers=1`: PASS（1 file / 8 tests）。
+  - PR6の最終Evaluator SHA、Run Artifact schema、fixed case / status / provenance / no-ephemeral-contractを最終HEADで再確認した。
+- Progress: 83% (15/18)
