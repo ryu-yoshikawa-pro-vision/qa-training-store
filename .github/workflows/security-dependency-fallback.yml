@@ -250,7 +250,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -437,7 +440,10 @@ jobs:
               --override-candidates "$override_candidates" \
               --lockfile pnpm-lock.yaml \
               --output "$authorization"
-          test -s "$authorization"
+          if [[ ! -s "$authorization" ]]; then
+            echo "needs_human:authorization_missing" >&2
+            exit 1
+          fi
 
       - name: Recheck related open PRs after graph resolution
         shell: bash
@@ -560,7 +566,10 @@ jobs:
           if (models.length === 0) throw new Error("needs_human:no_free_model");
           await fs.writeFile(process.env.MODEL_FILE, `${models[0]}\n`, "utf8");
           NODE
-          test -s "$model_json"
+          if [[ ! -s "$model_json" ]]; then
+            echo "needs_human:selected_model_missing" >&2
+            exit 1
+          fi
 
       - name: Prepare constrained OpenCode prompt and config
         shell: bash
@@ -710,7 +719,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
@@ -922,7 +934,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Download context by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -1256,7 +1271,10 @@ jobs:
           EXPECTED_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_BASE_SHA" ]]; then
+            echo "needs_human:checkout_base_mismatch" >&2
+            exit 1
+          fi
 
       - name: Download validated artifact by artifact ID
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
