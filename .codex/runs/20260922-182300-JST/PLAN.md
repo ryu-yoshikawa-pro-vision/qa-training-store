@@ -2,30 +2,24 @@
 
 ## 目的
 
-- Issue #130の保存Planへ再レビュー6件を反映し、実装時に判断が分かれない責務境界と検証条件へ確定する。
+- Issue #130の保存Planへ最終レビュー2件を反映し、実装者が推測せずにhelper境界とReusable Workflowの移動契約を実装できる状態へする。
 
-## 対象範囲
+## Current確認
 
-- 保存Planと本Run Artifact
-- Android build Reusable Workflow境界
-- Production Bundle Guard境界
-- visual profile step境界
-- change detection / contract test / Remote CI検証条件
+- 今回修正時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`。
+- 前回基準`8d73289350d45e28b4186c47caa32ad8d4809657`からの1 commitはIssue #163のSecurity fallback 3ファイルだけを変更し、Native CI関連fileは不変。
 
-Native CI実装、Product code、PR作成、merge、Issue closeは対象外。
+## 修正内容
 
-## 確定した修正
+- 5本のshell helperについて、必須 / optional環境変数、`GITHUB_ENV`出力、生成fileを明示する。
+- `CAPTURE_CASE_SELECTION`と`NATIVE_ANDROID_JOB_STATUS`はworkflow stepの`env:`から明示的に渡す。
+- Runtime Evidence helperは前段失敗時に`ADB` / APK path等が欠落してもEvidence生成を継続する。
+- Android build Reusable Workflowへ移すActionについて、固定SHAだけでなく`persist-credentials`、Gradle cache、Node cache、Java 17、Artifact missing-file / overwrite / retention設定を維持する。
 
-- Reusable Workflow inputを`build_kind`だけにする。
-- Artifact名 / filename / Evidence名はcalled workflowで`build_kind`から一意に決定する。
-- Automation / Production buildの現行非対称contractを表で固定し、今回統一しない。
-- `native-android-build.yml`にworkflow-level `concurrency`を追加しない。
-- Production Bundle GuardのAPK extractionは`android-ci-production-bundle-guard.sh`へ移し、既存validatorのCLI / policyは変更しない。
-- `android_adb_root`はworkflowへ残し、visual profile helperはNormalize step本文だけを所有する。
-- `native_changed=false`は静的contractで保証し、今回のPR Remote CIでは`native_changed=true`だけを実測する。
+## 対象外
 
-## 完了条件
-
-- 上記6点が保存Planへ反映されている。
-- 実装タスク、contract test、検証、完了条件、リスク記載が同じ方針へ同期している。
-- 実装・PR作成へ進んでいない。
+- Native CI実装
+- Product code変更
+- PR作成、merge、Issue close
+- version / Action更新
+- 新しいhelper interface framework

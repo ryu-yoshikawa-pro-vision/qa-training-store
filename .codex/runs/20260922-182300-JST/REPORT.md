@@ -60,3 +60,20 @@
 - Validation: Plan-only修正のためRepository runtime test / CIは未実行。Current workflow、contract test、package dependency、Project Context、GitHub Actions仕様を確認してPlanへ反映した。
 - ブロッカー: なし。実装開始時にlatest `main`へNative CI関連driftがないかだけ再確認する。
 - Progress: 100% (10/10)
+
+## 2026-09-22 — 最終レビュー指摘反映
+
+- 概要: 実装開始前の最終レビューで残った2件を保存Planへ反映した。
+- Current: `main`は`01cd8ab15078d479e821d373445af1e16a469519`。前回基準からの1 commitはIssue #163のSecurity fallback 3ファイルだけで、Native CI関連driftはなし。
+- helper境界:
+  - Production GuardへAutomation / Production APK pathをworkflow `env:`で明示。
+  - Emulator helperの必須env、`ANDROID_AVD_HOME` / `EMULATOR_PID`、既存diagnostic fileを固定。
+  - Visual Profile helperの`ADB_ROOT_AVAILABLE`入力と`ANDROID_OBSERVED_PROFILE_JSON`出力を固定。
+  - Visual Captureの`CAPTURE_CASE_SELECTION`、GitHub run / commit context、生成PNG / manifest / Maestro evidenceを固定。
+  - Runtime Evidenceの`NATIVE_ANDROID_JOB_STATUS`を明示し、前段失敗で欠落し得る`ADB` / APK path等はoptionalのままにした。
+- Android build Reusable Workflow:
+  - Action SHAだけでなくcheckout credential、pnpm / Node / Java setup、Gradle PR cache、APK / Evidence uploadのmissing-file / overwrite / retention設定を維持契約へ追加。
+  - `github.event_name` / `github.run_id`を新規inputへ変換しない。
+- 検証: Plan-only修正のためRepository runtime test / CIは未実行。Current workflowのinline stepとAction設定をread-onlyで再確認した。
+- ブロッカー: なし。latest `main`にNative CI driftが入らなければPlan上の実装開始条件は満たす。
+- Progress: 100% (10/10)

@@ -5,8 +5,9 @@
 - 対象Issue: #130 `refactor: Native CI workflowの責務境界を整理する`
 - 作業branch: `plan/issue-130-native-ci-responsibility-boundary`
 - branch作成時の`main`: `2a76df4e7c4efabfc1e50ce4a4b0d88c92ddabd3`
-- 再レビュー時の`main`: `8d73289350d45e28b4186c47caa32ad8d4809657`
-- `2a76df4`から`8d73289`までの`main`差分はIssue #163のSecurity fallback 3ファイルだけで、Native CI関連fileは変更されていない。
+- 今回修正時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`
+- 前回基準`8d73289350d45e28b4186c47caa32ad8d4809657`から現在`main`までの1 commitはIssue #163のSecurity fallback 3ファイルだけを変更し、Native CI関連fileは変更していない。
+- branch作成時の`main`から現在`main`までの差分もIssue #163のSecurity fallbackに限定され、Issue #130のCurrent mappingは変わっていない。
 - このPlanではNative CI実装、PR作成、merge、Issue closeを行わない。
 
 ## 1. 結論
@@ -240,6 +241,24 @@ callerに現在ある`runs-on`、`timeout-minutes`、`env`、`steps`はReusable 
 
 これらの非対称性が妥当かを改善することはIssue #130の対象外。今回のRefactorでは現在の保証を変えずにownerだけを移す。
 
+#### Reusable Workflowへ移すAction設定
+
+ActionはSHAだけでなく、現在の安全性・cache・Artifact契約に関わる`with`設定も維持する。
+
+| Action | 維持する設定 |
+|---|---|
+| `actions/checkout` | 現在の固定SHA、`persist-credentials: false` |
+| `pnpm/action-setup` | 現在の固定SHA、`version: ${{ env.PNPM_VERSION }}` |
+| `actions/setup-node` | 現在の固定SHA、`node-version: ${{ env.NODE_VERSION }}`、`cache: pnpm` |
+| `actions/setup-java` | 現在の固定SHA、`distribution: temurin`、`java-version: "17"` |
+| `gradle/actions/setup-gradle` | 現在の固定SHA、`cache-read-only: ${{ github.event_name == 'pull_request' }}` |
+| APK `actions/upload-artifact` | 現在の固定SHA、build kindごとのArtifact名 / path、`if-no-files-found: error`、`overwrite: true`、`retention-days: 3` |
+| Evidence `actions/upload-artifact` | 現在の固定SHA、`if: always()`、build kindごとのArtifact名 / path、`if-no-files-found: warn`、`retention-days: 7` |
+
+`github.event_name`と`github.run_id`はcalled workflowでもcaller workflowのcontextを利用する。これらを新しいinputへ変換しない。
+
+今回のRefactorでAction version、cache policy、credential persistence、Artifact retention / overwrite / missing-file policyを変更しない。
+
 ### 4.2 Android Runtime全体のReusable Workflow化
 
 採用しない。
@@ -445,6 +464,151 @@ canonical assetへのpromotionは行わない。
 
 Formal / Training / visual captureの共有startup helperとして維持し、今回意味変更しない。
 
+### 5.10 shell helperの入出力契約
+
+新しい設定objectや共通CLI frameworkは作らず、現在inline stepで使っている環境変数とGitHub runner環境をそのまま境界にする。
+
+必須値はhelper冒頭で空値をfail-closeする。`if: always()`で動くEvidence helperだけは、前段失敗で存在しない可能性がある値をoptionalとして扱う。
+
+#### `android-ci-production-bundle-guard.sh`
+
+workflowから明示する環境変数:
+
+```yaml
+env:
+  AUTOMATION_APK_PATH: ${{ runner.temp }}/native-bundle-guard/automation/native-automation.apk
+  PRODUCTION_APK_PATH: ${{ runner.temp }}/native-bundle-guard/production/native-production-validation.apk
+```
+
+必須:
+
+- `AUTOMATION_APK_PATH`
+- `PRODUCTION_APK_PATH`
+- `RUNNER_TEMP`
+
+後続stepへ永続化する`GITHUB_ENV` / `GITHUB_OUTPUT`はない。
+
+生成物:
+
+- `$RUNNER_TEMP/native-bundle-guard/automation-hbc/bundle-*.hbc`
+- `$RUNNER_TEMP/native-bundle-guard/production-hbc/bundle-*.hbc`
+
+helperの成否をProduction Bundle Guard jobの成否として扱う。
+
+#### `android-ci-emulator-start.sh`
+
+必須:
+
+- `ADB`
+- `AVDMANAGER`
+- `EMULATOR`
+- `ANDROID_API_LEVEL`
+- `RUNNER_TEMP`
+- `GITHUB_ENV`
+
+`HOME` / `ANDROID_PREFS_ROOT`は現在どおり診断表示に利用するが、未設定でもhelper開始自体を拒否しない。
+
+`GITHUB_ENV`へ維持する値:
+
+- `ANDROID_AVD_HOME`
+- `EMULATOR_PID`
+
+生成する既存diagnostic file:
+
+- `$RUNNER_TEMP/avd-files.txt`
+- `$RUNNER_TEMP/avd-list.txt`
+- `$RUNNER_TEMP/emulator-pid.txt`
+- `$RUNNER_TEMP/emulator.log`
+
+`id: android_emulator_ready`はworkflow step側へ残し、helperのexit codeをそのstep outcomeとして使う。
+
+#### `android-ci-visual-profile.sh`
+
+必須:
+
+- `ADB`
+- `MAESTRO_BIN`
+- `ADB_ROOT_AVAILABLE`
+- `RUNNER_TEMP`
+- `GITHUB_WORKSPACE`
+- `GITHUB_ENV`
+
+`ADB_ROOT_AVAILABLE`は直前の`android_adb_root` stepが`GITHUB_ENV`へ書いた値を利用する。
+
+`GITHUB_ENV`へ維持する値:
+
+- `ANDROID_OBSERVED_PROFILE_JSON=$RUNNER_TEMP/android-observed-profile.json`
+
+生成・更新する既存file:
+
+- `$RUNNER_TEMP/android-observed-profile.json`
+- `$RUNNER_TEMP/native-runtime-evidence/adb-root.txt`への観測結果追記
+- root不可時の`$RUNNER_TEMP/locale-provisioning/**`
+
+`id: android_profile_normalize`と現在の`if`条件はworkflow step側へ残す。
+
+#### `android-ci-visual-capture.sh`
+
+workflow stepで次を明示的に渡す。
+
+```yaml
+env:
+  CAPTURE_CASE_SELECTION: ${{ inputs.capture_case_key }}
+```
+
+必須:
+
+- `CAPTURE_CASE_SELECTION`
+- `ADB`
+- `MAESTRO_BIN`
+- `APK_PATH`
+- `ANDROID_OBSERVED_PROFILE_JSON`
+- `RUNNER_TEMP`
+- `GITHUB_WORKSPACE`
+- `GITHUB_SHA`
+- `GITHUB_RUN_ID`
+
+`android-maestro-run.sh`は同じ環境から`ADB` / `MAESTRO_BIN`を継承する。helper専用の追加CLI引数へ変換しない。
+
+生成物:
+
+- `$RUNNER_TEMP/spec-visuals/raw/**/android.png`
+- per-case `android.manifest.json`
+- `$RUNNER_TEMP/spec-visuals/batch.manifest.json`
+- `$RUNNER_TEMP/android-capture-case-*.json` / `.log`
+- `$RUNNER_TEMP/maestro-artifacts/visual-capture/**`
+- `$RUNNER_TEMP/maestro-visual-capture-*.xml`
+
+`GITHUB_ENV` / `GITHUB_OUTPUT`へ新しいstateは追加しない。
+
+#### `android-ci-runtime-evidence.sh`
+
+workflow stepで次を維持する。
+
+```yaml
+env:
+  NATIVE_ANDROID_JOB_STATUS: ${{ job.status }}
+```
+
+必須:
+
+- `NATIVE_ANDROID_JOB_STATUS`
+- `RUNNER_TEMP`
+
+前段失敗時に未設定・未生成でも動作を継続するoptional入力:
+
+- `ADB`
+- `ANDROID_AVD_HOME`
+- `ANDROID_PREFS_ROOT`
+- `HOME`
+- `APK_PATH`
+- `PRODUCTION_APK_PATH`
+- `EMULATOR_PID`および既存の`$RUNNER_TEMP` diagnostic files
+
+Evidence helperは`if: always()`で動くため、optional入力の欠落をhelper自体の初期化失敗に変えない。現在と同じstatus fileを`$RUNNER_TEMP/native-runtime-evidence`へ書く。
+
+後続stepへ永続化する`GITHUB_ENV` / `GITHUB_OUTPUT`はない。`actions/upload-artifact`はworkflow側へ残す。
+
 ## 6. change detection
 
 ### 6.1 通常PRで追加するpath
@@ -523,12 +687,19 @@ scripts/spec/visual-registry.ts
 - `runs-on: ubuntu-24.04`
 - `timeout-minutes: 40`
 - workflow-level `concurrency`を持たないこと
+- checkoutの`persist-credentials: false`
+- pnpm setupの`version: ${{ env.PNPM_VERSION }}`
+- Node setupの`node-version: ${{ env.NODE_VERSION }}` / `cache: pnpm`
+- Java setupの`distribution: temurin` / `java-version: "17"`
+- Gradle setupの`cache-read-only: ${{ github.event_name == 'pull_request' }}`
 - Expo prebuild
 - SDK build components
 - `assembleRelease`
 - `-Xmx4g -XX:MaxMetaspaceSize=1g`
 - `-PreactNativeArchitectures=x86_64`
 - Automation / ProductionのArtifact名と保存filename
+- APK uploadの`if-no-files-found: error` / `overwrite: true` / `retention-days: 3`
+- Evidence uploadの`if: always()` / `if-no-files-found: warn` / `retention-days: 7`
 - Automationだけが持つ現在のABI allow / deny検証
 - Automation / Productionの現在のSave / Verify順序
 - build kindごとのGradle log名とEvidence差異
@@ -560,6 +731,15 @@ scripts/spec/visual-registry.ts
 - failure-only diagnostics -> `android-ci-runtime-evidence.sh`
 
 `Check Android adb root capability`のcontractはworkflow側へ残す。`android_profile_normalize`の`if`が`steps.android_adb_root.outcome == 'success'`を維持し、helperが`ADB_ROOT_AVAILABLE`を利用することを確認する。
+
+helper境界について次も固定する。
+
+- Production Guard stepが`AUTOMATION_APK_PATH` / `PRODUCTION_APK_PATH`を明示的に渡す。
+- Emulator helperが`ANDROID_AVD_HOME` / `EMULATOR_PID`を`GITHUB_ENV`へ維持する。
+- Visual capture stepが`CAPTURE_CASE_SELECTION: ${{ inputs.capture_case_key }}`を維持する。
+- Visual profile helperが`ANDROID_OBSERVED_PROFILE_JSON`を`GITHUB_ENV`へ維持する。
+- Runtime Evidence stepが`NATIVE_ANDROID_JOB_STATUS: ${{ job.status }}`を維持する。
+- Runtime Evidence helperは`ADB` / APK path等のoptional値が未設定でもEvidence生成を継続する。
 
 launcher stabilizationとAPK install / launch assertionもworkflow側へ残す。
 
@@ -599,22 +779,23 @@ launcher stabilizationとAPK install / launch assertionもworkflow側へ残す�
 - [ ] 2. 現在のjob ID、Artifact名、Automation / Productionの非対称contract、Runtime部分実行条件、no-change skip、final verifyをcontract testで先に固定する。
 - [ ] 3. `.github/workflows/native-android-build.yml`を追加し、required inputを`build_kind`だけにする。
 - [ ] 4. called workflow内で`build_kind`から環境変数、Artifact名、filename、Evidence名を一意に決定し、workflow-level `concurrency`は追加しない。
-- [ ] 5. `android-automation-build` / `android-production-build`を別caller jobのままReusable Workflow呼び出しへ変更する。
-- [ ] 6. Automation / Productionの既存ABI検証、Save / Verify順序、Gradle log、Evidence差異を維持する。
-- [ ] 7. `scripts/native/android-ci-production-bundle-guard.sh`を追加し、Actual APK extractionとvalidator接続を移す。`validate-native-production-bundle.ts`のCLI / policyは変更しない。
-- [ ] 8. `android-ci-emulator-start.sh`を追加し、Emulator起動 / readinessを移す。
-- [ ] 9. `Check Android adb root capability`はworkflowへ残し、`android-ci-visual-profile.sh`へ`Normalize Android canonical visual profile`本文だけを移す。
-- [ ] 10. `android-ci-visual-capture.sh`を追加し、manual capture loop / manifest生成を移す。
-- [ ] 11. `android-ci-runtime-evidence.sh`を追加し、evidence収集を移す。
-- [ ] 12. workflow側のstep名、ID、`if`、Artifact Action、Maestro step粒度、launcher stabilization、APK install / launchを維持する。
-- [ ] 13. 通常PR用change detectionへ`native-android-build.yml`、`android-maestro-run.sh`、Production Guard helper、通常runtime helper 2本をexact pathで追加する。
-- [ ] 14. manual visual専用fileは`native_changed`へ加えず、contract + manual dispatchで検証する。
-- [ ] 15. `native-ci-workflow.test.ts`等のassertion ownerをworkflow / Reusable Workflow / helperへ移す。
-- [ ] 16. `PROJECT_CONTEXT.md`とhistoryを同期する。
-- [ ] 17. local static / focused / full validationを実行する。
-- [ ] 18. PR Mobile App CIで`native_changed=true`の通常Native pathとfinal gateを確認する。
-- [ ] 19. branch `workflow_dispatch`でvisual 1 caseを実runtime確認する。
-- [ ] 20. Issue #130の成功状態に照らし、各責務のownerと局所変更時の検証範囲をPR本文へ記載できることを確認する。
+- [ ] 5. checkout、pnpm、Node、Java、Gradle cache、APK / Evidence uploadの既存Action SHAと重要な`with` / `if`設定をそのまま移す。
+- [ ] 6. `android-automation-build` / `android-production-build`を別caller jobのままReusable Workflow呼び出しへ変更する。
+- [ ] 7. Automation / Productionの既存ABI検証、Save / Verify順序、Gradle log、Evidence差異を維持する。
+- [ ] 8. `scripts/native/android-ci-production-bundle-guard.sh`を追加し、workflowからAutomation / Production APK pathを明示的に渡す。既存validatorのCLI / policyは変更しない。
+- [ ] 9. `android-ci-emulator-start.sh`を追加し、Emulator起動 / readinessを移す。`ANDROID_AVD_HOME` / `EMULATOR_PID`の`GITHUB_ENV`契約と既存diagnostic fileを維持する。
+- [ ] 10. `Check Android adb root capability`はworkflowへ残し、`android-ci-visual-profile.sh`へNormalize本文だけを移す。`ADB_ROOT_AVAILABLE`入力と`ANDROID_OBSERVED_PROFILE_JSON`出力を維持する。
+- [ ] 11. `android-ci-visual-capture.sh`を追加し、`CAPTURE_CASE_SELECTION`をworkflow envから受けてmanual capture loop / manifest生成を移す。
+- [ ] 12. `android-ci-runtime-evidence.sh`を追加し、`NATIVE_ANDROID_JOB_STATUS`を明示的に渡す。前段失敗時のoptional env欠落を許容したままEvidence収集を移す。
+- [ ] 13. workflow側のstep名、ID、`if`、Artifact Action、Maestro step粒度、launcher stabilization、APK install / launchを維持する。
+- [ ] 14. 通常PR用change detectionへ`native-android-build.yml`、`android-maestro-run.sh`、Production Guard helper、通常runtime helper 2本をexact pathで追加する。
+- [ ] 15. manual visual専用fileは`native_changed`へ加えず、contract + manual dispatchで検証する。
+- [ ] 16. `native-ci-workflow.test.ts`等のassertion ownerをworkflow / Reusable Workflow / helperへ移し、Action設定とhelper入出力契約を固定する。
+- [ ] 17. `PROJECT_CONTEXT.md`とhistoryを同期する。
+- [ ] 18. local static / focused / full validationを実行する。
+- [ ] 19. PR Mobile App CIで`native_changed=true`の通常Native pathとfinal gateを確認する。
+- [ ] 20. branch `workflow_dispatch`でvisual 1 caseを実runtime確認する。
+- [ ] 21. Issue #130の成功状態に照らし、各責務のownerと局所変更時の検証範囲をPR本文へ記載できることを確認する。
 
 ## 10. 検証計画
 
@@ -624,6 +805,8 @@ launcher stabilizationとAPK install / launch assertionもworkflow側へ残す�
 - 新規shell 5本に`bash -n`。
 - 新規shellはLFを維持する。
 - 実行はworkflowから`bash <path>`で行い、executable bitは要求しない。
+- 各helperの必須環境変数は冒頭でfail-closeする。
+- Runtime Evidence helperのoptional環境変数は前段失敗時に未設定でも処理を継続する。
 
 対象:
 
@@ -651,9 +834,14 @@ pnpm exec vitest run \
 - 親caller job ID / `needs` / `if` / `build_kind`
 - called workflowの`build_kind` fail-closeとArtifact mapping
 - Automation / Productionの現行非対称contract
-- Production Guard helper接続
-- Runtime helper接続
+- checkout / pnpm / Node / Java / Gradle setupの既存Action SHAと重要な`with`設定
+- APK / Evidence uploadのmissing-file / overwrite / retention設定
+- Production Guard helperへのAPK path env
+- Emulator helperの`ANDROID_AVD_HOME` / `EMULATOR_PID`出力
 - `android_adb_root` -> `android_profile_normalize`境界
+- Visual profile helperの`ANDROID_OBSERVED_PROFILE_JSON`出力
+- Visual capture stepの`CAPTURE_CASE_SELECTION` env
+- Runtime Evidence stepの`NATIVE_ANDROID_JOB_STATUS` envとoptional input欠落時の継続契約
 - no-change skip contract
 - final verify
 
@@ -667,7 +855,7 @@ crossed bundle input => FAIL
 Production禁止marker => FAIL
 ```
 
-新規Production Guard helperはcontract testと`bash -n`で、Actual APK -> temporary `.hbc` -> existing validatorの接続を確認する。APK path用のvalidator APIは追加しない。
+新規Production Guard helperはcontract testと`bash -n`で、明示されたActual APK path -> temporary `.hbc` -> existing validatorの接続を確認する。APK path用のvalidator APIは追加しない。
 
 ### 10.4 Repository標準検証
 
@@ -710,6 +898,8 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 
 - `android_adb_root` step成功
 - `ADB_ROOT_AVAILABLE`をprofile helperが利用
+- `ANDROID_OBSERVED_PROFILE_JSON`が後続capture helperへ渡る
+- `CAPTURE_CASE_SELECTION`が指定case keyと一致する
 - canonical profile normalization
 - non-root effective profile確認
 - 1 case capture
@@ -722,15 +912,17 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 
 ## 11. 完了条件
 
-- Current EvidenceにPhase 6後のPR #133修正まで含まれている。
+- Current EvidenceにPhase 6後のPR #133修正まで含まれ、今回修正時の`main` `01cd8ab15078d479e821d373445af1e16a469519`までNative CI関連driftがないことを確認している。
 - `android-automation-build` / `android-production-build`のjob IDと個別resultが維持されている。
 - Android build Reusable Workflowの外部inputが`build_kind`だけで、Artifact名 / filename / Evidence名は内部で一意に決まる。
 - `native-android-build.yml`がworkflow-level `concurrency`を持たず、Automation / Productionを相互cancelしない。
 - Android build実装のownerが`native-android-build.yml`へ集約され、親workflowでbuild手順を重複保持していない。
+- checkoutのcredential設定、Gradle PR cache、Node / Java setup、APK / Evidence Artifactのfailure / overwrite / retention契約を変更していない。
 - Automation / Productionの現在のABI検証、Save / Verify順、Gradle log、Evidence差異を変更していない。
 - Production Bundle GuardのAPK extraction ownerが`android-ci-production-bundle-guard.sh`で、Hermes marker policy ownerが既存`validate-native-production-bundle.ts`のまま。
 - validatorへAPK path modeや新規ZIP dependencyを追加していない。
-- Emulator start、visual profile normalization、visual capture、runtime evidenceのownerを一意に説明できる。
+- 5本のshell helperについて必須入力、optional入力、`GITHUB_ENV`出力、生成fileがPlan §5.10の契約と一致する。
+- Runtime Evidence helperは前段失敗で`ADB` / APK path等が未設定でもEvidence生成を継続する。
 - `Check Android adb root capability`の独立step / ID / outcome dependencyを維持している。
 - launcher stabilization、APK install / launch、Formal / Training / Production-validation stepをworkflowへ残している。
 - Artifact名、filename、upload / download経路が不変。
@@ -754,6 +946,14 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 - `runs-on`、`timeout-minutes`、build用`env`、`steps`はcalled workflowへ置く。
 - Artifact名等をcaller inputにしない。
 
+### Action移動時にsecurity / cache / Artifact設定を落とす
+
+対策:
+
+- 固定SHAだけでなく§4.1のAction設定表をcontractとして移す。
+- `persist-credentials: false`、Gradle `cache-read-only`、Node cache、Java 17、Artifactのmissing-file / overwrite / retentionをtestで固定する。
+- version更新やcache policy変更を今回へ混在させない。
+
 ### Reusable Workflowの`concurrency`で片方のbuildをcancelする
 
 対策:
@@ -769,6 +969,16 @@ capture_case_key = SCREEN-STOREFRONT-HOME/default/android
 - §4.1の差分表を実装契約とする。
 - ABI検証、Save / Verify順、Gradle log、Evidence差異をcontract testで固定する。
 - 今回それらを統一する変更は行わない。
+
+### shell helper化で暗黙の環境変数・生成fileを失う
+
+対策:
+
+- §5.10をhelper境界の正本とする。
+- Production Guard / Visual Capture / Runtime Evidenceのworkflow `env:`を明示する。
+- Emulator / Visual Profileが現在`GITHUB_ENV`へ書く値を維持する。
+- helper冒頭で必須値をfail-closeする。
+- Evidence helperだけは前段失敗で欠落し得る値をoptionalとして扱う。
 
 ### Production Bundle Guardでvalidator責務を広げる
 
