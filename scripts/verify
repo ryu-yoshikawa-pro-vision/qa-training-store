@@ -128,6 +128,8 @@ check_template_contract() {
   [[ -f .codex/hooks/text_quality_gate.mjs ]] || return 1
   [[ -f .codex/text-quality-rules.json ]] || return 1
   [[ -f scripts/lint-text-quality.mjs ]] || return 1
+  [[ -f scripts/lib/codex-text-quality-state.mjs ]] || return 1
+  [[ -f scripts/diagnose-codex-hooks.mjs ]] || return 1
   [[ -f scripts/check-text-quality-changes.mjs ]] || return 1
   [[ ! -e .codex/hooks/pre_tool_use_policy.py ]] || return 1
   [[ ! -e .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
@@ -633,25 +635,13 @@ check_powershell_wrapper_preflight() {
 
 check_hook_contracts() {
   if command -v pnpm >/dev/null 2>&1; then
-    pnpm exec vitest run \
-      tests/contracts/codex-hook-contract.test.ts \
-      tests/contracts/codex-text-quality.test.ts \
-      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    pnpm run test:hooks
   elif command -v pnpm.cmd >/dev/null 2>&1; then
-    cmd.exe /D /C pnpm.cmd exec vitest run \
-      tests/contracts/codex-hook-contract.test.ts \
-      tests/contracts/codex-text-quality.test.ts \
-      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    cmd.exe /D /C pnpm.cmd run test:hooks
   elif command -v corepack.cmd >/dev/null 2>&1; then
-    cmd.exe /D /C corepack.cmd pnpm exec vitest run \
-      tests/contracts/codex-hook-contract.test.ts \
-      tests/contracts/codex-text-quality.test.ts \
-      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    cmd.exe /D /C corepack.cmd pnpm run test:hooks
   elif command -v corepack >/dev/null 2>&1; then
-    corepack pnpm exec vitest run \
-      tests/contracts/codex-hook-contract.test.ts \
-      tests/contracts/codex-text-quality.test.ts \
-      --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+    corepack pnpm run test:hooks
   else
     return 1
   fi
