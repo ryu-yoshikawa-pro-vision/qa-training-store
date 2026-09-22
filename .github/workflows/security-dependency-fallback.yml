@@ -656,7 +656,11 @@ jobs:
           mkdir -p "$candidate"
           cp package.json "$candidate/package.json"
           cp "$RUNNER_TEMP/fix-authorization.json" "$candidate/fix-authorization.json"
-          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
+          if [[ "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" != 
+fix-authorization.json\npackage.json' ]]; then
+            echo "needs_human:candidate_artifact_file_set_invalid" >&2
+            exit 1
+          fi
 
       - name: Hash candidate files
         id: candidate_hash
@@ -761,11 +765,41 @@ jobs:
           baseline_package="$RUNNER_TEMP/baseline-package.json"
           baseline_lockfile="$RUNNER_TEMP/baseline-lockfile.yaml"
           auth="$candidate/fix-authorization.json"
-          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" = $'fix-authorization.json\npackage.json'
-          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
-          test "$(sha256sum "$candidate/package.json" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_PACKAGE_SHA256"
-          test "$(sha256sum "$auth" | awk '{print $1}')" = "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256"
+          if [[ "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:validate_context_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(find "$candidate" -maxdepth 1 -type f -printf '%f\n' | sort)" != 
+          cp package.json "$baseline_package"
+          cp pnpm-lock.yaml "$baseline_lockfile"
+          cp "$candidate/package.json" package.json
+          cp "$auth" "$RUNNER_TEMP/fix-authorization.json"
+          public_home="$RUNNER_TEMP/public-home"
+          public_tmp="$RUNNER_TEMP/public-tmp"
+          mkdir -p "$public_home" "$public_tmp"
+          env -i PATH="$PATH" HOME="$public_home" TMPDIR="$public_tmp" \
+            CI=true GITHUB_ACTIONS=true RUNNER_OS="$RUNNER_OS" RUNNER_ARCH="$RUNNER_ARCH" \
+            node scripts/validate-security-dependency-fix.mjs \
+            --baseline-package "$baseline_package" \
+            --candidate-package package.json \
+            --authorization "$RUNNER_TEMP/fix-authorization.json" \
+            > "$RUNNER_TEMP/selected-mutation.json"
+fix-authorization.json\npackage.json' ]]; then
+            echo "needs_human:validate_candidate_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:validate_context_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$candidate/package.json" | awk '{print $1}')" != "$EXPECTED_CANDIDATE_PACKAGE_SHA256" ]]; then
+            echo "needs_human:validate_candidate_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$auth" | awk '{print $1}')" != "$EXPECTED_CANDIDATE_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:validate_candidate_authorization_hash_mismatch" >&2
+            exit 1
+          fi
           cp package.json "$baseline_package"
           cp pnpm-lock.yaml "$baseline_lockfile"
           cp "$candidate/package.json" package.json
@@ -851,9 +885,18 @@ jobs:
         run: |
           set -euo pipefail
           prepared="$RUNNER_TEMP/prepared-security-fix"
-          test "$(sha256sum "$prepared/package.json" | awk '{print $1}')" = "$EXPECTED_PACKAGE_SHA256"
-          test "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" = "$EXPECTED_LOCKFILE_SHA256"
-          test "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" = "$EXPECTED_AUTHORIZATION_SHA256"
+          if [[ "$(sha256sum "$prepared/package.json" | awk '{print $1}')" != "$EXPECTED_PACKAGE_SHA256" ]]; then
+            echo "needs_human:prepared_package_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/pnpm-lock.yaml" | awk '{print $1}')" != "$EXPECTED_LOCKFILE_SHA256" ]]; then
+            echo "needs_human:prepared_lockfile_hash_mismatch" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$prepared/fix-authorization.json" | awk '{print $1}')" != "$EXPECTED_AUTHORIZATION_SHA256" ]]; then
+            echo "needs_human:prepared_authorization_hash_mismatch" >&2
+            exit 1
+          fi
 
       - name: Run repository verification on the prepared workspace
         shell: bash
