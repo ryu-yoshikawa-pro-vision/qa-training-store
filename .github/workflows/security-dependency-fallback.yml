@@ -40,10 +40,22 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          test "$EVENT_NAME" = workflow_dispatch
-          test "$REF_NAME" = refs/heads/main
-          test "$RUN_ATTEMPT" = 1
-          test -n "$BASE_SHA_INPUT"
+          if [[ "$EVENT_NAME" != workflow_dispatch ]]; then
+            echo "needs_human:unexpected_workflow_event" >&2
+            exit 1
+          fi
+          if [[ "$REF_NAME" != refs/heads/main ]]; then
+            echo "needs_human:unexpected_workflow_ref" >&2
+            exit 1
+          fi
+          if [[ "$RUN_ATTEMPT" != 1 ]]; then
+            echo "needs_human:workflow_rerun_forbidden" >&2
+            exit 1
+          fi
+          if [[ -z "$BASE_SHA_INPUT" ]]; then
+            echo "needs_human:base_sha_missing" >&2
+            exit 1
+          fi
           printf 'base_sha=%s\n' "$BASE_SHA_INPUT" >> "$GITHUB_OUTPUT"
 
   read-alert:
@@ -73,6 +85,9 @@ jobs:
             local output="$2"
             local url="$3"
             shift 3
+            case "$diagnostic" in
+              ''|*[!a-z0-9_]*) echo "needs_human:invalid_diagnostic_code" >&2; exit 1 ;;
+            esac
             local http_status
             local curl_status
             set +e
@@ -191,7 +206,10 @@ jobs:
         run: |
           set -euo pipefail
           context="$RUNNER_TEMP/sanitized-security-context.json"
-          test "$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'sanitized-security-context.json' | wc -l)" = 1
+          if [[ "$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'sanitized-security-context.json' | wc -l)" != 1 ]]; then
+            echo "needs_human:sanitized_context_file_set_invalid" >&2
+            exit 1
+          fi
           printf 'sha256=%s\n' "$(sha256sum "$context" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Upload sanitized context
@@ -260,9 +278,18 @@ jobs:
         run: |
           set -euo pipefail
           context="$RUNNER_TEMP/security-context/sanitized-security-context.json"
-          test -f "$context"
-          test "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" = sanitized-security-context.json
-          test "$(sha256sum "$context" | awk '{print $1}')" = "$EXPECTED_CONTEXT_SHA256"
+          if [[ ! -f "$context" ]]; then
+            echo "needs_human:context_artifact_missing" >&2
+            exit 1
+          fi
+          if [[ "$(find "$RUNNER_TEMP/security-context" -type f -printf '%P\n' | sort)" != sanitized-security-context.json ]]; then
+            echo "needs_human:context_artifact_file_set_invalid" >&2
+            exit 1
+          fi
+          if [[ "$(sha256sum "$context" | awk '{print $1}')" != "$EXPECTED_CONTEXT_SHA256" ]]; then
+            echo "needs_human:context_artifact_hash_mismatch" >&2
+            exit 1
+          fi
           public_home="$RUNNER_TEMP/public-home"
           public_tmp="$RUNNER_TEMP/public-tmp"
           mkdir -p "$public_home" "$public_tmp"
@@ -1272,6 +1299,9 @@ jobs:
             local output="$2"
             local url="$3"
             shift 3
+            case "$diagnostic" in
+              ''|*[!a-z0-9_]*) echo "needs_human:invalid_diagnostic_code" >&2; exit 1 ;;
+            esac
             local http_status
             local curl_status
             set +e
