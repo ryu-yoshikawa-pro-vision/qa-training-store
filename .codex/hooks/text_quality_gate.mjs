@@ -39,6 +39,39 @@ const READ_ONLY_TOOLS = new Set([
   "view_image",
 ]);
 const MARKDOWN_PATH_PATTERN = /\.md$/iu;
+const GENERIC_STOP_BLOCK_REASON = "Text quality check unavailable; completion cannot be confirmed.";
+const STOP_DIAGNOSTIC_ACTION = "Run pnpm run diagnose:hooks before completion.";
+const STATE_FAILURE_CODES = new Set([
+  "baseline_state_missing",
+  "baseline_state_read",
+  "baseline_state_json",
+  "baseline_state_schema",
+  "baseline_state_identity",
+  "baseline_state_manifest",
+]);
+const OTHER_SAFE_DIAGNOSTIC_CODES = new Set([
+  "baseline_blob",
+  "baseline_cleanup",
+  "baseline_manifest",
+  "baseline_state",
+  "baseline_unavailable",
+  "baseline_write",
+  "current_content",
+  "event_mismatch",
+  "git_changed_path",
+  "git_rename_mapping",
+  "git_unavailable",
+  "input_json",
+  "input_shape",
+  "repository_root",
+  "session_id",
+  "session_rename_mapping",
+  "start_head",
+  "stop_hook_active",
+  "unsafe_path",
+  "internal",
+]);
+let stdoutJsonWritten = false;
 class QualityUnavailable extends Error {
   constructor(code, diagnosticCause) {
     super(code);
@@ -583,10 +616,76 @@ function readPayload(expectedEvent) {
   return payload;
 }
 
+function safeDiagnosticCode(code) {
+  if (STATE_FAILURE_CODES.has(code) || OTHER_SAFE_DIAGNOSTIC_CODES.has(code)) return code;
+  if (diagnosticCauseFor(code)) return code;
+  return "internal";
+}
+
+function safeDiagnosticLabel(code, diagnosticCause) {
+  const safeCode = safeDiagnosticCode(code);
+  const safeCause = safeCode === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+  return safeCause ? `${safeCode}; cause=${safeCause}` : safeCode;
+}
+
+function safeDiagnosticLogDirectory(root) {
+  let current = path.resolve(root);
+  for (const segment of [".artifacts", "codex-hooks"]) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error?.code !== "ENOENT") return null;
+      try {
+        fs.mkdirSync(current);
+        stats = fs.lstatSync(current);
+      } catch {
+        return null;
+      }
+    }
+    if (!stats.isDirectory() || stats.isSymbolicLink()) return null;
+  }
+  return current;
+}
+
+function appendSafeDiagnosticRecord(root, event, code, stopHookActive, diagnosticCause) {
+  try {
+    const directory = safeDiagnosticLogDirectory(root);
+    if (!directory) return;
+    const logPath = path.join(directory, "text-quality-diagnostics.jsonl");
+    try {
+      const stats = fs.lstatSync(logPath);
+      if (!stats.isFile() || stats.isSymbolicLink()) return;
+    } catch (error) {
+      if (error?.code !== "ENOENT") return;
+    }
+    const safeCode = safeDiagnosticCode(code);
+    const safeCause = safeCode === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+    const record = {
+      schema_version: 1,
+      timestamp: new Date().toISOString(),
+      event,
+      code: safeCode,
+      stop_hook_active: stopHookActive === true,
+      ...(safeCause ? { cause: safeCause } : {}),
+    };
+    fs.appendFileSync(logPath, `${JSON.stringify(record)}\n`, "utf8");
+  } catch {
+    // Diagnostic logging is best-effort and must not change the Hook outcome.
+  }
+}
+
+function writeJsonOnce(value) {
+  if (stdoutJsonWritten) return;
+  stdoutJsonWritten = true;
+  process.stdout.write(`${JSON.stringify(value)}\n`);
+}
+
 function outputBlock(reason, systemMessage) {
   const output = { decision: "block", reason };
   if (typeof systemMessage === "string") output.systemMessage = systemMessage;
-  process.stdout.write(`${JSON.stringify(output)}\n`);
+  writeJsonOnce(output);
 }
 
 function formatViolation(violation) {
@@ -598,24 +697,22 @@ function formatViolations(violations) {
 }
 
 function diagnostics(code, diagnosticCause) {
-  const message = formatDiagnosticMessage(code, diagnosticCause);
-  process.stdout.write(
-    `${JSON.stringify({
-      continue: true,
-      systemMessage: message,
-    })}\n`,
-  );
+  writeJsonOnce({
+    continue: true,
+    systemMessage: formatDiagnosticMessage(code, diagnosticCause),
+  });
 }
 
 function formatDiagnosticMessage(code, diagnosticCause) {
-  const safeCause = code === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
-  return safeCause
-    ? `Codex text quality hook: quality check unavailable (baseline_unavailable; cause=${safeCause})`
-    : `Codex text quality hook: quality check unavailable (${code})`;
+  return `Codex text quality hook: quality check unavailable (${safeDiagnosticLabel(code, diagnosticCause)})`;
+}
+
+function formatStopBlockReason(code, diagnosticCause) {
+  return `${GENERIC_STOP_BLOCK_REASON} Diagnostic: ${safeDiagnosticLabel(code, diagnosticCause)}. ${STOP_DIAGNOSTIC_ACTION}`;
 }
 
 function outputAllow() {
-  process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
+  writeJsonOnce({ continue: true });
 }
 
 async function processUserPrompt(payload) {
@@ -683,7 +780,9 @@ async function processStop(payload) {
     return;
   }
   if (newViolations.length > 0 && payload.stop_hook_active === true) {
+    deleteState(stateInfo.path);
     diagnostics("stop_hook_active");
+    return;
   }
   deleteState(stateInfo.path);
 }
@@ -722,13 +821,28 @@ async function main() {
       error instanceof QualityUnavailable || error instanceof TextQualityConfigurationError
         ? error.code
         : "internal";
+    const safeCode = safeDiagnosticCode(code);
+    if (payload) {
+      try {
+        const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
+        appendSafeDiagnosticRecord(
+          root,
+          expectedEvent,
+          safeCode,
+          payload.stop_hook_active,
+          error?.diagnosticCause,
+        );
+      } catch {
+        // Resolving the diagnostic log root is best-effort and must not change the Hook outcome.
+      }
+    }
     if (expectedEvent === "Stop" && payload?.stop_hook_active !== true) {
       outputBlock(
-        "Text quality check unavailable; completion cannot be confirmed.",
-        formatDiagnosticMessage(code, error?.diagnosticCause),
+        formatStopBlockReason(safeCode, error?.diagnosticCause),
+        formatDiagnosticMessage(safeCode, error?.diagnosticCause),
       );
     } else {
-      diagnostics(code, error?.diagnosticCause);
+      diagnostics(safeCode, error?.diagnosticCause);
       cleanupAllowedStop(payload);
     }
     return 0;

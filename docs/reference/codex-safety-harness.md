@@ -269,14 +269,41 @@ pnpm run diagnose:hooks
 ```
 
 - `test:hooks` は既存のHook contractを正本として、temp fixture上でHook構成、launcher、stdin／stdout／stderr／exit、text quality stateの外部failureをprocess境界で確認します。Codex Hostは起動せず、doctorのHook inventory期待値を別実装しません。
-- `diagnose:hooks` はroot `.codex/config.toml`、`[features] hooks = true`、root `.codex/hooks.json`の診断範囲、filesystemのsymlink境界、既存`.artifacts/codex-text-quality` stateを読み取り専用で確認します。Hook、launcher、payload、baseline生成、log追記は実行しません。
+- `diagnose:hooks` はroot `.codex/config.toml`、`[features] hooks = true`、root `.codex/hooks.json`の診断範囲、filesystemのsymlink境界、既存`.artifacts/codex-text-quality` stateを読み取り専用で確認します。Hook、launcher、payload、baseline生成、Hook内部failureのdiagnostic log追記は実行しません。
 - doctorの`baseline_state_missing`、`baseline_state_read`、`baseline_state_json`、`baseline_state_schema`、`baseline_state_identity`、`baseline_state_manifest`は、stateが現在sessionの障害だと断定するためのものではありません。stateが存在しない場合や既存stateが壊れている場合も、runtime stateのWARNとしてexit 0になる範囲があります。
 - `baseline_unavailable; cause=<code>` は、stateへ保存された出力許可済みのsafe codeだけを表示します。prompt、Hook payload、state本文、raw session ID、absolute path、secret、raw exceptionは表示しません。regexに一致する未知codeはstateとして検証できても外部causeへ出しません。
-- inactive `Stop` の `Text quality check unavailable; completion cannot be confirmed.` は制御用`reason`として維持され、同じblockの`systemMessage`に `Codex text quality hook: quality check unavailable (<code>)` またはallowlist済みcause付きの分類が表示されます。これはHook本体が起動して内部で失敗した経路です。
-- `systemMessage` の `Codex text quality hook: Stop launcher unavailable` は、Hook本体を起動する前のStop launcher fallback経路です。inactive `Stop` はgeneric block、active `Stop` は既存どおり`continue=true`のfail-openで、両方ともlauncher診断を表示します。通常のtext-quality violation blockには診断用`systemMessage`を追加しません。
+- inactive `Stop` のblock `reason`は従来文言のprefixを維持し、`Diagnostic: <code>`（`baseline_unavailable`のsafe causeを含む場合は`; cause=<code>`）と `Run pnpm run diagnose:hooks before completion.`を続けて表示します。同じblockの`systemMessage`には `Codex text quality hook: quality check unavailable (<code>)` またはallowlist済みcause付きの分類が表示されます。これはHook本体が起動して内部で失敗した経路で、AI agentはまずreasonの`Diagnostic:`を確認します。
+- `systemMessage` またはreasonの `Stop launcher unavailable` は、Hook本体を起動する前のStop launcher fallback経路です。inactive `Stop` はdiagnose command付きgeneric block、active `Stop` は既存どおり`continue=true`のfail-openで、両方ともlauncher診断を表示します。通常のtext-quality violation blockには診断用`systemMessage`や`Diagnostic` reasonを追加しません。
+- inactive `Stop`で`Text quality check unavailable`を受けたAI agentは、原因未確認のまま完了へ進まず、まずreasonの`Diagnostic:`を確認し、続けて`pnpm run diagnose:hooks`を実行します。Hook内部failureなら必要に応じて最新のsafe logを確認します。
+
+PowerShell:
+
+```powershell
+Get-Content .artifacts/codex-hooks/text-quality-diagnostics.jsonl -Tail 1
+```
+
+Bash:
+
+```bash
+tail -n 1 .artifacts/codex-hooks/text-quality-diagnostics.jsonl
+```
+
+このlogはHook内部failureだけを記録するfailure-only / ephemeral JSONLです。`schema_version`、timestamp、event、safe code、`stop_hook_active`、許可済みcauseだけを含み、log write failureはHookのfail-open / fail-closeを変更しません。logが無いこと自体はfailureではなく、Stop launcher failure、正常成功、通常violation、repeated active Stopでは作成されないことがあります。
+
+原因codeの意味は次のとおりです。
+
+- `baseline_state_missing`: expected state fileが存在しない。
+- `baseline_state_read`: state pathは存在するが読み取れない。
+- `baseline_state_json`: state本文をJSONとしてparseできない。
+- `baseline_state_schema`: JSONだがstate schemaに適合しない。
+- `baseline_state_identity`: repository root / session identityが一致しない。
+- `baseline_state_manifest`: state内manifestの安全性・整合性validationに失敗した。
+- `baseline_unavailable`: baseline作成時点で品質確認が利用不能だった。safe causeがある場合だけ`cause=<code>`を表示する。
+- `baseline_cleanup`: active Stop等のstate cleanupに失敗した。active Stopはfail-openで継続する。
+- `Stop launcher unavailable`: Hook本体の正常終了までlauncherが到達できなかった。Hook内部logが無いことがある。
 - active `Stop` の `baseline_state_missing` は、正常Stopでstateをcleanupした後のrepeated Stopと区別できないため、従来どおり `{ "continue": true }` の無診断allowです。原因観測は最初のinactive `Stop`で行います。
 - `.artifacts/codex-text-quality`が無い、またはstate 0件は正常です。`N/A`で表示されるproject trust、Hook trust、managed override、実Codexのproject root / cwd / config layering、Host / session bindingはWARNへ数えません。
-- `diagnose:hooks` が `WARN=0 ERROR=0` でも、過去のruntime failureが無かったことは証明しません。再発時はblockと同時に出る`systemMessage`を一次情報として原因を切り分け、offline確認後にHost / trust / config layeringを調査します。
+- `diagnose:hooks` が `WARN=0 ERROR=0` でも、過去のruntime failureが無かったことは証明しません。再発時はreasonの`Diagnostic:`、blockと同時に出る`systemMessage`、必要ならsafe diagnostic logを一次情報として原因を切り分け、offline確認後にHost / trust / config layeringを調査します。
 
 このoffline経路でRepository側がPASSした後もHookが実Codexで動かない場合は、`/hooks`の定義・trust、project trust、Hook trust、実行環境の`CODEX_HOME`一致、Codex Host側のproject root / cwd / config layeringを別に確認します。`/hooks`と`CODEX_HOME`の運用はこの文書の既存trust手順が正本であり、offline doctorはそれらを自動判定しません。
 
