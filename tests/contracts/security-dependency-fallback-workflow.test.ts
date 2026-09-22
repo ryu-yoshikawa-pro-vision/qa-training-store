@@ -1,11 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -299,9 +293,7 @@ describe("Security dependency fallback workflow", () => {
         CONTEXT_FILE: join(directory, "mismatch-context.json"),
       });
       expect(mismatch.status).not.toBe(0);
-      expect(mismatch.stderr).toContain(
-        "needs_human:advisory_vulnerability_entry_ambiguous",
-      );
+      expect(mismatch.stderr).toContain("needs_human:advisory_vulnerability_entry_ambiguous");
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -328,7 +320,7 @@ describe("Security dependency fallback workflow", () => {
     const readAlert = jobBlock("read-alert", "opencode-edit");
     const publish = jobBlock("publish");
 
-    expect(workflow).not.toContain('ALERT_NUMBER: ${{ inputs.alert_number }}');
+    expect(workflow).not.toContain("ALERT_NUMBER: ${{ inputs.alert_number }}");
     expect(readAlert).toContain("process.env.GITHUB_EVENT_PATH");
     expect(publish).toContain("process.env.GITHUB_EVENT_PATH");
     expect(workflow).toContain("needs_human:alert_input_read_failed");
