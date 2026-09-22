@@ -197,6 +197,7 @@ describe("Security dependency fallback workflow", () => {
   it("emits reason-coded diagnostics without exposing security identifiers or credentials", () => {
     expect(workflow).not.toContain('throw new Error("needs_human")');
     expect(workflow).not.toMatch(/echo\s+needs_human\s+>&2/);
+    expect(workflow).not.toMatch(/^\s*test\b/gm);
     expect(workflow).toContain(
       'needs_human:${diagnostic}_http_${http_status}',
     );
