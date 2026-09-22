@@ -207,7 +207,7 @@ describe("Security dependency fallback workflow", () => {
     expect(diagnosticLines.length).toBeGreaterThan(0);
     for (const line of diagnosticLines) {
       expect(line).not.toMatch(
-        /\$ALERT_NUMBER|\$ghsa_id|\$GITHUB_TOKEN|\$OPENCODE_API_KEY|\$oidc_token|\$installation_token/,
+        /\$ALERT_NUMBER|\$ghsa_id|\$dependency|\$\{dependency\}|\$GITHUB_TOKEN|\$OPENCODE_API_KEY|\$oidc_token|\$installation_token/,
       );
     }
 
@@ -415,6 +415,7 @@ describe("Security dependency fallback workflow", () => {
     expect(createRun).toContain("scripts/new-run.sh");
     expect(createRun).toContain("sanitize-codex-artifacts.ps1");
     expect(createRun).not.toContain("finalize-validation.json");
+    expect(createRun).toContain("needs_human:run_strategy_invalid");
 
     for (const file of ["package.json", "pnpm-lock.yaml"]) {
       expect(finalGuard).toContain(`sha256sum ${file}`);
@@ -427,6 +428,7 @@ describe("Security dependency fallback workflow", () => {
     );
     expect(finalGuard).toContain("--validate-prepared");
     expect(finalGuard).toContain('> "$FINALIZE_VALIDATION_FILE"');
+    expect(finalGuard).toContain("needs_human:final_strategy_invalid");
     expect(finalGuard).toContain("needs_human:finalize_strategy_changed");
     expect(finalGuard).toContain("needs_human:run_plan_strategy_mismatch");
     expect(finalGuard).toContain("needs_human:run_report_strategy_mismatch");
