@@ -1072,7 +1072,10 @@ fix-authorization.json\npackage.json' ]]; then
             "$run_dir/TASKS.md" \
             "$run_dir/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
-          test "$actual_changes" = "$expected_changes"
+          if [[ "$actual_changes" != "$expected_changes" ]]; then
+            echo "needs_human:run_artifact_change_set_invalid" >&2
+            exit 1
+          fi
           git diff --check
           printf '%s\n' "$run_id" > "$RUNNER_TEMP/security-run-id"
           printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
