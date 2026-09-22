@@ -189,7 +189,9 @@ describe("Security dependency fallback workflow", () => {
       expect(readAlert).toContain(manifestPath);
     }
     expect(readAlert).toContain('needsHuman("unsupported_manifest")');
-    expect(readAlert).not.toContain('!["/package.json", "package.json"].includes(manifestPath)');
+    expect(readAlert).not.toContain(
+      '!["/package.json", "package.json"].includes(manifestPath)',
+    );
   });
 
   it("emits reason-coded diagnostics without exposing security identifiers or credentials", () => {
@@ -203,7 +205,9 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain("needs_human:oidc_token_request_failed");
     expect(workflow).toContain("needs_human:publish_pr_create_failed");
 
-    const diagnosticLines = workflow.split(/\r?\n/).filter((line) => line.includes("needs_human:"));
+    const diagnosticLines = workflow
+      .split(/\r?\n/)
+      .filter((line) => line.includes("needs_human:"));
     expect(diagnosticLines.length).toBeGreaterThan(0);
     for (const line of diagnosticLines) {
       expect(line).not.toMatch(
@@ -211,10 +215,14 @@ describe("Security dependency fallback workflow", () => {
       );
     }
 
-    const helperCalls = [...workflow.matchAll(/needsHuman\(([^)]+)\)/g)].map((match) => match[1]);
+    const helperCalls = [...workflow.matchAll(/needsHuman\(([^)]+)\)/g)].map(
+      (match) => match[1],
+    );
     expect(helperCalls.length).toBeGreaterThan(0);
     for (const codeExpression of helperCalls) {
-      expect(codeExpression).toMatch(/^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/);
+      expect(codeExpression).toMatch(
+        /^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/,
+      );
     }
 
     const fetchJsonDiagnostics = [...workflow.matchAll(/^\s*fetch_json\s+([^\s]+)\s+/gm)].map(
