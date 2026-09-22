@@ -174,6 +174,30 @@
   - final artifact commit、通常push、PR本文更新、最新PR headのWeb CI / Mobile App CI確認、最終報告が残っている。
 - Progress: 83% (15/18)
 
+### 2026-09-22 21:27 (JST) final-head revalidation / canonical provenance checkpoint
+
+- Summary:
+  - `origin/main`更新後の#175（`01cd8ab15078d479e821d373445af1e16a469519`）を再確認し、PR6と重複しないSecurity fallbackの3ファイル変更だけであることを確認した。
+  - PR branchはGitHubの通常merge更新で#175を取り込み、localはfast-forwardした。最終Evaluator HEADは`fa3a78a0a1f55241727e602d2310f492390d1d55`。
+- Main drift / scope:
+  - #175の変更はsecurity fallback validator / security contract test / Issue #163 Planだけで、Workflow E2E evaluator、Runtime、Agentic QA、Native helper、package script、CI workflowとoverlapしない。PR6設計変更、Skill semantics変更、Product behavior変更はない。
+- Validation:
+  - `corepack pnpm exec vitest run tests/contracts/security-dependency-fallback-workflow.test.ts --no-file-parallelism --maxWorkers=1`: PASS（1 file / 21 tests）。
+  - `corepack pnpm exec vitest run tests/repository-contract/skill-workflow-evals.test.ts --no-file-parallelism --maxWorkers=1`: PASS（1 file / 8 tests）。
+  - `corepack pnpm run test:repository`: PASS（11 files / 125 tests）。
+  - `corepack pnpm run lint:markdown`: PASS（451 files / 0 issues）。
+  - `corepack pnpm run verify`: PASS（contract 44 files / 753 passed / 4 skipped、unit 66、integration 111、repository 125、Web component 102、Native component 64、build:web / docs / spec PASS、ESLint 0 errors / 66 existing warnings）。
+  - `git diff --check origin/main...HEAD`: PASS。
+  - 要求された`git diff --check main...HEAD`: local `main`が古い`7a80e05`のため、PR6と無関係な既存`.codex/runs/20260919-051528-JST/REPORT.md:162`の末尾blank lineだけを検出。改変せず、最新remote基準のcheckを正本evidenceとした。
+- Canonical live Workflow E2E:
+  - sanitized Target routing SHAは`574d468fd334d4294a0e46198be04e9a1445162b`。Targetはparentless / detached / clean / remoteなし、canonical Skill 6件あり、forbidden path 0件。
+  - `.codex/runs/20260922-143741-JST/workflow-e2e-result.json`を最終HEAD基準で再生成し、`run_status=blocked`、`cases=[]`、`evaluator_git_sha=fa3a78a0a1f55241727e602d2310f492390d1d55`、`routing_source_git_sha=574d468fd334d4294a0e46198be04e9a1445162b`を保存した。
+  - reasonは`installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution`。Codex versionは`codex-cli 0.155.1`、modelは`gpt-5.6-luna`。共通smokeのrun-level blockのためCase A〜Eへ到達せず、Case B / Eをcase-levelの許容`not_executed`へ変換していない。
+- Artifact / remaining:
+  - 最終canonical result後にsanitizationを再実行し、PASS（5 files / 0 replacements / 0 residual findings）。credential、device serial、local absolute pathはtracked Artifactへ残していない。
+  - 次はこのfinal-head Run Artifactをcommit / 通常pushし、PR本文を最終headの実装・canonical結果・CI状態へ更新する。push後CI結果はPR本文と最終報告へ記録し、Run ArtifactのCIだけを理由とする再commitは行わない。
+- Progress: 83% (15/18)
+
 ### 2026-09-22 20:23 (JST) final targeted contract checkpoint
 
 - Validation:

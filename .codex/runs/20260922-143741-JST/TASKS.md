@@ -36,7 +36,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 - [x] D1. `origin/main`は`fcaf57f...`で、current HEADの祖先であることを確認した。
 - [x] D2. Plan-only Runは完了済みで、implementation Runを新規作成した。
-- [x] D3. 作業中に更新された`origin/main`（#172 / #173 / #169 / #174）を再確認し、PR6差分とのmaterial overlapを確認したうえで通常mergeした。
+- [x] D3. 作業中に更新された`origin/main`（#172 / #173 / #169 / #174 / #175）を再確認し、PR6差分とのmaterial overlapを確認したうえで通常mergeした。
 
 ## Blocked（ブロック中）
 
