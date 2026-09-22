@@ -740,27 +740,40 @@ describe("Security dependency fix validator", () => {
         ]),
       );
 
-      const result = spawnSync(
-        process.execPath,
-        [
-          "scripts/validate-security-dependency-fix.mjs",
-          "--prepare-authorization",
-          "--context",
-          contextPath,
-          "--root-package",
-          packagePath,
-          "--graph",
-          graphPath,
-          "--output",
-          outputPath,
-        ],
-        { encoding: "utf8" },
-      );
+      const args = [
+        "scripts/validate-security-dependency-fix.mjs",
+        "--prepare-authorization",
+        "--context",
+        contextPath,
+        "--root-package",
+        packagePath,
+        "--graph",
+        graphPath,
+        "--output",
+        outputPath,
+      ];
+      const result = spawnSync(process.execPath, args, { encoding: "utf8" });
 
       expect(result.status).toBe(1);
       expect(result.stdout).toBe("");
       expect(result.stderr.trim()).toBe("needs_human:no_safe_automatic_strategy");
       expect(result.stderr).not.toContain("no safe automatic strategy was authorized");
+
+      writeFileSync(
+        contextPath,
+        JSON.stringify({
+          dependency: "demo-target",
+          ecosystem: "npm",
+          ghsa_id: "GHSA-public-fixture",
+          vulnerable_range: "",
+          first_patched_version: "1.2.3",
+          base_sha: "base-sha",
+        }),
+      );
+      const genericResult = spawnSync(process.execPath, args, { encoding: "utf8" });
+      expect(genericResult.status).toBe(1);
+      expect(genericResult.stderr.trim()).toBe("needs_human:validator_rejected_input");
+      expect(genericResult.stderr).not.toContain("invalid vulnerable range");
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

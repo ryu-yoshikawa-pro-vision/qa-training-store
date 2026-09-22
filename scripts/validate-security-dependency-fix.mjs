@@ -19,9 +19,10 @@ export class NeedsHumanError extends Error {
   constructor(message, reasonCode = DEFAULT_NEEDS_HUMAN_REASON_CODE) {
     super(message);
     this.name = "NeedsHumanError";
-    this.reasonCode = NEEDS_HUMAN_REASON_CODE_PATTERN.test(reasonCode)
-      ? reasonCode
-      : DEFAULT_NEEDS_HUMAN_REASON_CODE;
+    this.reasonCode =
+      typeof reasonCode === "string" && NEEDS_HUMAN_REASON_CODE_PATTERN.test(reasonCode)
+        ? reasonCode
+        : DEFAULT_NEEDS_HUMAN_REASON_CODE;
   }
 }
 
