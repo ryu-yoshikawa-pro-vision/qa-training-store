@@ -80,3 +80,21 @@
 - Validation: PowerShell Hook contract、focused / standard / full verify、security、typecheck、text/markdown lint、sanitizer Checkが成功。Bash wrapperの`node: not found`だけは環境制約として未解消で、Ubuntu CIの代替検証対象とする。
 - ブロッカー / 残作業: collector/sanitizerの最終再実行後、通常commit/push、PR metadata更新、最新head CI確認を行う。
 - Progress: 80% (8/10)
+
+## 2026-09-22 16:40 (JST)
+
+- Summary: 最終レビューで、strict Runの契約上必須である`evaluation.json`が未作成で、`run.json.artifact_summary.evaluation_present=false`および`evaluation_path=null`のままであることを確認した。
+- Changes: 今回はHook implementation、launcher、contract test、doctor、CI構成を変更しない。既存Runの`PLAN.md`へevaluationのDoDを追加し、`TASKS.md`へD4を追加した。`evaluation.json`の作成・検証はこれから行う。
+- 判断 / 理由: strict workflowの`requires_evaluation=true`を満たすため、別Runは作成せず、対象Runへ評価artifactを補完する。評価には既存のRun内evidenceと前回実装headで確認済みの検証結果だけを使用し、今回の新head CI結果としては扱わない。
+- Validation: このcheckpoint時点では`evaluation.json`のJSON/schema validation、collector、sanitizer、commit/push、最新head CIは未実行。
+- ブロッカー / 残作業: `evaluation.json`作成、schema validation、標準collector、sanitizer、Markdown lint、最終diff確認、commit/push、最新head CI確認が残る。
+- Progress: 92% (11/12)
+
+## 2026-09-22 16:50 (JST)
+
+- Summary: strict Runに不足していた評価artifactを補完し、Run manifestとの同期とsanitizationを完了した。
+- Changes: `.codex/runs/20260922-141602-JST/evaluation.json`をschemaに適合する形で追加した。`PLAN.md`のDoDへstrict evaluation条件を追加し、`TASKS.md`へD4を追加・完了した。Hook implementation、launcher、contract test、doctor、CI構成は今回変更していない。
+- 判断 / 理由: 評価は既存Runの実装・contract・検証証跡に基づき`result=pass`、7 dimensionをすべて`pass`、`primary_failure_category=null`、`findings=[]`、`improvement_candidates=[]`とした。Git Bashの`node: not found`は既記録のローカル環境制約であり、Windows/CIの代替証拠と併記した。
+- Validation: evaluation JSON parse PASS、標準schema validator PASS、collector `-Strict` PASS。collector後の`run.json`で`workflow_level=strict`、`evaluation_path=.codex/runs/20260922-141602-JST/evaluation.json`、`artifact_summary.evaluation_present=true`、`primary_failure_category=null`、warningsなしを確認した。sanitizer Write/Checkは`files_scanned=5`、`residual_findings=0`。`lint:markdown`、`lint:text`、`git diff --check`もPASS。
+- ブロッカー / 残作業: commit、通常push、push後の最新headでのWeb/Mobile/必須CI確認、PR本文への今回のRun補完結果追記が残る。このcheckpoint時点では未実施。
+- Progress: 100% (12/12)

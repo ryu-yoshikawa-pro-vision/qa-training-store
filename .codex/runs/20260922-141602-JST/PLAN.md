@@ -57,6 +57,7 @@
 - 6 state failureがinactive Stop process contractで分類され、reason/systemMessage/logが安全に伝達される。
 - launcher failure、通常violation、repeated active Stop、log write failureの既存境界が維持される。
 - focused、test:hooks、diagnose、contracts、verify/wrapper、sanitizer、最新PR CIが成功する。
+- strict Runの`evaluation.json`がschema validationを通り、collector後の`run.json`で`evaluation_present=true`になる。
 
 ## Risks / Unknowns（リスク・未知点）
 

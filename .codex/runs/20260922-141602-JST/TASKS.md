@@ -27,6 +27,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - [x] D1. active violation + cleanup failureの単一JSON contractを追加する。
 - [x] D2. 6 state failureのtable-driven process contractとsafe JSONL contractを追加する。
 - [x] D3. inactive reason/launcher fallback/Plan/docs/PR本文を新契約へ同期する。
+- [x] D4. strict Runに必須の`evaluation.json`を追加し、schema validation・collector・sanitizerで整合を確認する。
 
 ## Blocked（ブロック中）
 

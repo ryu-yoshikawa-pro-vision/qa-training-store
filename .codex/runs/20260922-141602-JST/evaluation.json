@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "run_id": "20260922-141602-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Planの完了条件に定義されたactive Stop cleanup failureの単一JSON化、6種類のstate failure process contract、inactive Stopのsafe diagnostic、failure-only JSONL、launcher fallback更新を実装し、REPORTの16:10 checkpointでfocused test・標準検証・verifyの成功を確認している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260922-141602-JST/PLAN.md",
+          "selector": "Definition of Done",
+          "summary": "Runで要求したHook診断強化の完了条件。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-text-quality.test.ts",
+          "selector": "state failure process contract",
+          "summary": "6分類と診断ログのprocess contract。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:10 (JST)",
+          "summary": "実装後の標準検証結果。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はHook本体、Unix/Windows launcher、Hook contract test、Plan、Safety Harness、Run Artifactに限定され、state schema・cause allowlist・doctor・dependency・CI job構成・session trackingは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260922-141602-JST/PLAN.md",
+          "selector": "Scope / Out",
+          "summary": "許可した対象と対象外の境界。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:25 (JST)",
+          "summary": "最終レビューで確認した変更範囲。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "REPORTの16:10 checkpointでfocused contract 223 tests、test:hooks 223 tests、diagnose:hooks WARN=0 ERROR=0、test:contracts 746 passed / 4 skipped、lint・typecheck・security check・full verify・PowerShell Hook contractの成功を記録している。Git Bash wrapperのnode: not foundはローカル環境制約であり、Windowsおよび前回実装headのCIでHook/aggregate/Web/Mobile検証が成功している。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:10 (JST)",
+          "summary": "ローカル標準検証とbounded verify rerunの結果。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:25 (JST)",
+          "summary": "Git Bash wrapper制約とCI代替確認の判断。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "safe diagnosticはallowlist済みのcode/causeに限定され、raw session ID・absolute path・prompt・payload・secret・token・exception・stack traceを保存しない。Run Artifact sanitizerはresidual_findings=0で、force push等の危険操作は行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:18 (JST)",
+          "summary": "Run Artifact sanitization Write/Checkの結果。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/text_quality_gate.mjs",
+          "selector": "safe diagnostic logging",
+          "summary": "failure-only safe JSONLの保存境界。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "6分類のprocess contract、cleanup failureの単一JSON contract、launcher fallback contract、情報漏えい検証がテストから追跡でき、Plan・Safety Harness・REPORT・PR本文に契約と検証結果を同期している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "selector": "Unix and Windows launcher fallback",
+          "summary": "configured launcherのactive/inactive fallback契約。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/codex-safety-harness.md",
+          "selector": "Stop Hook diagnostics",
+          "summary": "利用者・AI agent向けの切り分け手順。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:25 (JST)",
+          "summary": "最終レビュー判断の記録。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存diagnosticCauseFor(...)を再利用し、safe formatterとfailure-only JSONLに責務を限定した。新規dependency・framework・state manager・session tracking・launcher側logging framework・CI jobは追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/text_quality_gate.mjs",
+          "selector": "diagnostic formatting and logging",
+          "summary": "既存allowlist境界を再利用した最小実装。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260922-141602-JST/PLAN.md",
+          "selector": "Scope / Out",
+          "summary": "不要な抽象化・基盤追加を行わない境界。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Codex Hostを人工的に破壊せず、fixture-based process contractで6種類のstate failure、active/repeated Stop、cleanup/log write failureを再現できる。Windows Hook contractと前回実装headのCIでも同じcontract suiteを検証している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-text-quality.test.ts",
+          "selector": "table-driven state failure process contract",
+          "summary": "決定論的fixtureによる6分類の再現。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260922-141602-JST/REPORT.md",
+          "selector": "2026-09-22 16:10 (JST)",
+          "summary": "PowerShell Hook contractと標準verifyの成功。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}
