@@ -99,7 +99,11 @@ export const WORKFLOW_CASES: readonly WorkflowCaseDefinition[] = [
         expected_skill: "exploratory-qa",
         allowed_file_prefixes: [".artifacts/", ".codex/runs/"],
       },
-      { id: "repair", expected_skill: "repair-loop", allowed_file_prefixes: [".codex/runs/"] },
+      {
+        id: "repair",
+        expected_skill: "repair-loop",
+        allowed_file_prefixes: [".codex/runs/", "src/application/use-cases/auth-use-cases.ts"],
+      },
     ],
     allowed_not_executed_reason: "browser_capability_unavailable_under_canonical_config",
   },
@@ -109,7 +113,11 @@ export const WORKFLOW_CASES: readonly WorkflowCaseDefinition[] = [
       {
         id: "repair",
         expected_skill: "repair-loop",
-        allowed_file_prefixes: ["workflow-e2e-fixtures/case-c/", ".codex/runs/"],
+        allowed_file_prefixes: [
+          "workflow-e2e-fixtures/case-c/config.json",
+          "workflow-e2e-fixtures/case-c/protected-data/keep.txt",
+          ".codex/runs/",
+        ],
       },
     ],
   },
@@ -363,10 +371,7 @@ export function classifySkillObservation(
 }
 
 export function isAllowedNotExecuted(caseId: WorkflowCaseId, reason: string): boolean {
-  return (
-    (caseId === "B" && reason === "browser_capability_unavailable_under_canonical_config") ||
-    (caseId === "E" && reason === "host_capability_unavailable")
-  );
+  return workflowCase(caseId).allowed_not_executed_reason === reason;
 }
 
 export function caseStatusFromStages(
@@ -382,12 +387,20 @@ export function caseStatusFromStages(
 
 export function isWorkflowRunSuccessful(result: WorkflowEvalResult): boolean {
   if (result.run_status !== "completed") return false;
+  if (result.smoke_probe?.["status"] !== "pass") return false;
+  if (result.cases.length !== WORKFLOW_CASES.length) return false;
+  if (new Set(result.cases.map((candidate) => candidate.id)).size !== WORKFLOW_CASES.length)
+    return false;
   for (const definition of WORKFLOW_CASES) {
     const actual = result.cases.find((candidate) => candidate.id === definition.id);
     if (actual === undefined) return false;
     if (definition.id === "A" || definition.id === "C" || definition.id === "D") {
       if (actual.status !== "pass") return false;
-    } else if (actual.status !== "pass" && actual.status !== "not_executed") {
+    } else if (
+      actual.status !== "pass" &&
+      (actual.status !== "not_executed" ||
+        !isAllowedNotExecuted(definition.id, actual.reason ?? ""))
+    ) {
       return false;
     }
   }

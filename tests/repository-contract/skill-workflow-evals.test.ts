@@ -124,6 +124,7 @@ describe("Workflow E2E Eval repository contract", () => {
         model: "gpt-5.6-luna",
         executed_at: "2026-09-22T00:00:00.000Z",
       },
+      smoke_probe: { status: "pass" },
       cases: [
         {
           id: "A",
@@ -132,14 +133,34 @@ describe("Workflow E2E Eval repository contract", () => {
           stages: [],
           artifact_reuse: { status: "pass" },
         },
-        { id: "B", case_baseline_git_sha: "d".repeat(40), status: "not_executed", stages: [] },
+        {
+          id: "B",
+          case_baseline_git_sha: "d".repeat(40),
+          status: "not_executed",
+          reason: "browser_capability_unavailable_under_canonical_config",
+          stages: [],
+        },
         { id: "C", case_baseline_git_sha: "e".repeat(40), status: "pass", stages: [] },
         { id: "D", case_baseline_git_sha: "f".repeat(40), status: "pass", stages: [] },
-        { id: "E", case_baseline_git_sha: "0".repeat(40), status: "not_executed", stages: [] },
+        {
+          id: "E",
+          case_baseline_git_sha: "0".repeat(40),
+          status: "not_executed",
+          reason: "host_capability_unavailable",
+          stages: [],
+        },
       ],
     } as const;
     expect(workflowEvalResultSchema.safeParse(result).success).toBe(true);
     expect(isWorkflowRunSuccessful(result)).toBe(true);
+    expect(
+      isWorkflowRunSuccessful({
+        ...result,
+        cases: result.cases.map((candidate) =>
+          candidate.id === "B" ? { ...candidate, reason: "fixture_invalid" } : candidate,
+        ),
+      }),
+    ).toBe(false);
   });
 
   it("fixes the canonical Codex controls and same-thread resume shape", () => {
