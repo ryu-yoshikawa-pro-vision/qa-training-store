@@ -1542,8 +1542,13 @@ function gitPatch(root: string, args: readonly string[]): string {
   return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
 }
 
-function packageManagerCommand(): string {
-  return process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+function packageManagerInvocation(args: readonly string[]): {
+  readonly command: string;
+  readonly args: readonly string[];
+} {
+  return process.platform === "win32"
+    ? { command: "corepack.cmd", args: ["pnpm", ...args] }
+    : { command: "pnpm", args };
 }
 
 function runCaseCommand(
@@ -1551,7 +1556,8 @@ function runCaseCommand(
   args: readonly string[],
   timeoutMs: number,
 ): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
-  const result = spawnSync(packageManagerCommand(), [...args], {
+  const invocation = packageManagerInvocation(args);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: root,
     encoding: "utf8",
     timeout: timeoutMs,
@@ -1621,7 +1627,8 @@ interface WebRuntime {
 
 async function startCaseBWebRuntime(root: string): Promise<WebRuntime> {
   const port = await availablePort();
-  const child = spawn(packageManagerCommand(), ["exec", "tsx", "scripts/serve-web-dist.ts"], {
+  const invocation = packageManagerInvocation(["exec", "tsx", "scripts/serve-web-dist.ts"]);
+  const child = spawn(invocation.command, invocation.args, {
     cwd: root,
     env: {
       ...process.env,
@@ -1747,7 +1754,7 @@ async function runCaseBIndependentValidation(
     prepareCaseBDependencies(root);
     caseBBuild(root);
     runtime = await startCaseBWebRuntime(root);
-    await runCaseBGroundTruth(runtime, challenge, "baseline");
+    await runCaseBGroundTruth(runtime, challenge, "patched");
   } finally {
     if (runtime !== null) await runtime.stop().catch(() => undefined);
     fs.rmSync(patchRoot, { recursive: true, force: true });

@@ -6,13 +6,13 @@
 - [x] 2. material driftを確認し、不要なmerge/rebaseを行わない判断を記録する。
 - [x] 3. 既存Eval / OTel / Agentic QA / Native / package / CI契約を再照合する。
 - [x] 4. implementation Run Artifactを標準経路で作成し、Plan / TASKSを確定する。
-- [ ] 5. installed Codex共通smoke probe、Case B capability、Case E preflightを実施する。
+- [x] 5. installed Codex共通smoke probe、Case B capability、Case E preflightを実施する（共通smoke blockerによりCase B capabilityは未到達）。
 - [x] 6. fixed case定義、status分類、result型、pure evaluatorを実装する。
 - [x] 7. runnerのtarget/case workspace、provenance、Git scope、handoff、Artifact reuseを実装する。
 - [x] 8. Case A〜E、Semantic actual-output、既存helper再利用を実装する。
 - [x] 9. package scriptとrepository contract testを実装する。
 - [x] 10. targeted repository contractを実行し、必要なrepairを行う。
-- [ ] 11. canonical live Workflow E2Eを1回実行し、result JSONを保存する。
+- [x] 11. canonical live Workflow E2Eを1回実行し、blocked result JSONを保存する（共通actual-write blockerのためCase実行前に停止）。
 - [ ] 12. repository-wide test、markdown lint、verify、diff checkを実行する。
 - [ ] 13. Run Artifact sanitizationと最終scope / Plan照合を行う。
 - [ ] 14. code-review Skillで実装変更とPR全体を自己レビューする。
@@ -39,4 +39,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- ブロック時のみ記載する。
+- Host標準Codex Runtimeのcanonical `workspace-write`がread-onlyへdowngradeされ、共通smokeのactual write / command_executionを証明できないため、Case A/C/D必須live executionとCase B capability probeへ到達できない。Planどおりdangerous bypass / 独自fallbackは追加しない。

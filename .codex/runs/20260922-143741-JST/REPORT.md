@@ -83,6 +83,32 @@
   - 親Agentの判断: Parentがscope、failure分類、completionを維持する。
 - Progress: 56% (10/18)
 
+### 2026-09-22 16:28 (JST)
+
+- Summary:
+  - 正しいEvaluator SHAでcanonical live Workflow E2Eを実行したが、共通smokeのactual writeが成立せず、resultを先に保存したうえでrun `blocked`になった。
+  - Case EのHost preflightはWindows / PowerShellあり / ADB physical deviceなしを確認した。Windowsでserial未指定を`not_executed`へ変換しない実装境界は維持する。
+- Changes:
+  - blocked resultは`.codex/runs/20260922-143741-JST/workflow-e2e-result.json`へ保存した。Case実行前の共通blockerのため、Case A〜Eのstageは生成していない。
+  - smokeの実行観測ではCodex version取得、JSONL、structured last messageまでは成立したが、`workspace-write`のfixture writeがHost Runtimeによりread-onlyへ拒否され、command_execution / actual writeの証明が成立しなかった。
+  - Case Bの独立repair validationがpatched sourceへbaseline ground truthを適用していた差異を修正し、Windows dependency / web RuntimeをRepository指定版`corepack pnpm`へ固定した。
+- 判断 / 理由:
+  - Plan 5.9の「共通actual write不成立はrun blocked」「独自fallback / bypassを作らない」に従い、Caseを推測でPASS / skipせず停止した。
+  - Case Bの差異はPlanの意味を変えない実装不備であり、`run-skill-workflow-evals.ts`内の最小修正として扱った。
+- Validation:
+  - Workflow repository contract: PASS (1 file / 8 tests)。
+  - 対象ESLint / TypeScript: PASS。
+  - Case E preflight: PowerShell available、ADB command available、physical device serialなし。
+  - canonical result status: `blocked`、reason: common smoke actual write / resume / OTel / schema / command_execution contract未成立。
+- ブロッカー / 残作業:
+  - Host Runtimeがcanonical `workspace-write`をread-onlyへdowngradeするため、Case A/C/D必須live executionとCase B capability probeは未到達。dangerous bypassや独自fallbackは行わない。
+  - 修正commit後にrepository-wide gate、sanitization、self-review、通常push、PR本文更新、CI確認を継続する。canonical live runはこのRunで再選択しない。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: Parentがcommon blockerとcase-local failureを分離し、後続の安全な検証を継続する。
+- Progress: 61% (11/18)
+
 ### 2026-09-22 16:10 (JST)
 
 - Summary:

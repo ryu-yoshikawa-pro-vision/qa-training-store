@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "run_status": "blocked",
+  "provenance": {
+    "evaluator_git_sha": "05fe48e0031a2946b3c2c3a2236e258c4da335a4",
+    "source_revision_git_sha": "05fe48e0031a2946b3c2c3a2236e258c4da335a4",
+    "routing_source_git_sha": "951792fdce3be2c75c81f23a187caf5e857a6ed7",
+    "codex_version": "codex-cli 0.155.1",
+    "model": "gpt-5.6-luna",
+    "executed_at": "2026-09-22T07:13:22.540Z"
+  },
+  "cases": [],
+  "reason": "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution"
+}
