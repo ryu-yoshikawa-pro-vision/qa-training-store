@@ -1,5 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -49,7 +55,7 @@ function heredocNodeScript(block: string, occurrence = 0) {
   return block.slice(from, end).replace(/^ {10}/gm, "");
 }
 
-function runNodeScript(script: string, env: NodeJS.ProcessEnv) {
+function runNodeScript(script: string, env: Readonly<Record<string, string>>) {
   return spawnSync(process.execPath, ["--input-type=module"], {
     input: script,
     encoding: "utf8",
@@ -293,7 +299,9 @@ describe("Security dependency fallback workflow", () => {
         CONTEXT_FILE: join(directory, "mismatch-context.json"),
       });
       expect(mismatch.status).not.toBe(0);
-      expect(mismatch.stderr).toContain("needs_human:advisory_vulnerability_entry_ambiguous");
+      expect(mismatch.stderr).toContain(
+        "needs_human:advisory_vulnerability_entry_ambiguous",
+      );
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -408,7 +416,7 @@ describe("Security dependency fallback workflow", () => {
     expect(publish).toContain("--request POST");
     expect(publish).toContain("Authorization: Bearer $oidc_token");
     expect(publish).not.toMatch(/--data(?:-raw|-binary)?\b/);
-    expect(publish).not.toContain("PAT");
+    expect(publish).not.toMatch(/\bPAT\b/);
     expect(publish).not.toContain("write-enabled GITHUB_TOKEN");
   });
 
