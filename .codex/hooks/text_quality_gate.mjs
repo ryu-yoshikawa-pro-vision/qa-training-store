@@ -10,6 +10,17 @@ import {
   loadRules,
   scanTextQuality,
 } from "../../scripts/lint-text-quality.mjs";
+import {
+  STATE_SCHEMA_VERSION,
+  STATE_STATUS,
+  StateValidationError,
+  diagnosticCauseFor,
+  isValidUnavailableCode,
+  rootIdForPath,
+  sessionIdHashFor,
+  stateFileName,
+  validateState,
+} from "../../scripts/lib/codex-text-quality-state.mjs";
 
 const EXPECTED_EVENTS = new Set(["UserPromptSubmit", "PostToolUse", "Stop"]);
 const READ_ONLY_TOOLS = new Set([
@@ -28,17 +39,45 @@ const READ_ONLY_TOOLS = new Set([
   "view_image",
 ]);
 const MARKDOWN_PATH_PATTERN = /\.md$/iu;
-const STATE_SCHEMA_VERSION = 2;
-const STATE_STATUS = Object.freeze({
-  READY: "ready",
-  UNAVAILABLE: "baseline_unavailable",
-});
-
+const GENERIC_STOP_BLOCK_REASON = "Text quality check unavailable; completion cannot be confirmed.";
+const STOP_DIAGNOSTIC_ACTION = "Run pnpm run diagnose:hooks before completion.";
+const STATE_FAILURE_CODES = new Set([
+  "baseline_state_missing",
+  "baseline_state_read",
+  "baseline_state_json",
+  "baseline_state_schema",
+  "baseline_state_identity",
+  "baseline_state_manifest",
+]);
+const OTHER_SAFE_DIAGNOSTIC_CODES = new Set([
+  "baseline_blob",
+  "baseline_cleanup",
+  "baseline_manifest",
+  "baseline_state",
+  "baseline_unavailable",
+  "baseline_write",
+  "current_content",
+  "event_mismatch",
+  "git_changed_path",
+  "git_rename_mapping",
+  "git_unavailable",
+  "input_json",
+  "input_shape",
+  "repository_root",
+  "session_id",
+  "session_rename_mapping",
+  "start_head",
+  "stop_hook_active",
+  "unsafe_path",
+  "internal",
+]);
+let stdoutJsonWritten = false;
 class QualityUnavailable extends Error {
-  constructor(code) {
+  constructor(code, diagnosticCause) {
     super(code);
     this.name = "QualityUnavailable";
     this.code = code;
+    this.diagnosticCause = diagnosticCause;
   }
 }
 
@@ -436,120 +475,54 @@ async function makePairs(root, state, rules, mappings, entryByPath, changedPaths
 }
 
 function makeStatePath(root, sessionId) {
-  const rootId = sha256(path.resolve(root));
-  const sessionIdHash = sha256(sessionId);
+  const rootId = rootIdForPath(root);
+  const sessionIdHash = sessionIdHashFor(sessionId);
   return {
     rootId,
     sessionIdHash,
-    path: path.join(root, ".artifacts", "codex-text-quality", `${rootId}-${sessionIdHash}.json`),
+    path: path.join(
+      root,
+      ".artifacts",
+      "codex-text-quality",
+      stateFileName(rootId, sessionIdHash),
+    ),
   };
 }
 
 function readState(statePath, stateInfo) {
+  let stateText;
   try {
-    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
-    if (
-      !state ||
-      typeof state !== "object" ||
-      state.schema_version !== STATE_SCHEMA_VERSION ||
-      typeof state.root_id !== "string" ||
-      typeof state.session_id_hash !== "string" ||
-      typeof state.status !== "string"
-    ) {
-      throw new Error("invalid state");
-    }
-    if (
-      (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
-      !/^[0-9a-f]{64}$/iu.test(state.root_id) ||
-      !/^[0-9a-f]{64}$/iu.test(state.session_id_hash) ||
-      (stateInfo &&
-        (state.root_id !== stateInfo.rootId || state.session_id_hash !== stateInfo.sessionIdHash))
-    ) {
-      throw new Error("invalid state identity");
-    }
+    stateText = fs.readFileSync(statePath, "utf8");
+  } catch (error) {
+    throw new QualityUnavailable(error?.code === "ENOENT" ? "baseline_state_missing" : "baseline_state_read");
+  }
 
-    if (state.status === STATE_STATUS.UNAVAILABLE) {
-      const allowedKeys = new Set([
-        "schema_version",
-        "root_id",
-        "session_id_hash",
-        "start_head",
-        "status",
-        "code",
-      ]);
-      if (
-        Object.keys(state).some((key) => !allowedKeys.has(key)) ||
-        (state.start_head !== undefined && !/^[0-9a-f]{40}$/iu.test(state.start_head)) ||
-        (state.code !== undefined &&
-          (typeof state.code !== "string" || !/^[a-z0-9_]{1,64}$/u.test(state.code)))
-      ) {
-        throw new Error("invalid unavailable state");
-      }
-      return state;
-    }
-
-    if (
-      state.status !== STATE_STATUS.READY ||
-      typeof state.start_head !== "string" ||
-      !Array.isArray(state.files)
-    ) {
-      throw new Error("invalid ready state");
-    }
-    const readyKeys = new Set([
-      "schema_version",
-      "root_id",
-      "session_id_hash",
-      "status",
-      "start_head",
-      "files",
-    ]);
-    if (Object.keys(state).some((key) => !readyKeys.has(key))) {
-      throw new Error("invalid ready state fields");
-    }
-    const paths = new Set();
-    for (const entry of state.files) {
-      if (
-        !entry ||
-        typeof entry.path !== "string" ||
-        !isMarkdownPath(entry.path) ||
-        normalizeGitPath(entry.path) !== entry.path ||
-        typeof entry.source !== "string" ||
-        !["head_blob", "worktree", "worktree_missing"].includes(entry.source) ||
-        paths.has(entry.path)
-      ) {
-        throw new Error("invalid state entry");
-      }
-      paths.add(entry.path);
-      if (entry.source === "worktree") {
-        if (
-          !/^[0-9a-f]{64}$/iu.test(entry.content_sha256) ||
-          !Array.isArray(entry.violations) ||
-          entry.violations.some(
-            (violation) =>
-              !violation ||
-              typeof violation.fingerprint !== "string" ||
-              !/^[A-Za-z0-9._:-]+:[0-9a-f]{64}$/iu.test(violation.fingerprint) ||
-              !Number.isInteger(violation.count) ||
-              violation.count < 1,
-          )
-        ) {
-          throw new Error("invalid worktree state entry");
-        }
-      } else if (entry.source === "worktree_missing") {
-        if (!Array.isArray(entry.violations) || entry.violations.length !== 0) {
-          throw new Error("invalid missing state entry");
-        }
-      }
-    }
-    return state;
+  let state;
+  try {
+    state = JSON.parse(stateText);
   } catch {
-    throw new QualityUnavailable("baseline_state");
+    throw new QualityUnavailable("baseline_state_json");
+  }
+
+  try {
+    return validateState(state, {
+      expectedRootId: stateInfo?.rootId,
+      expectedSessionIdHash: stateInfo?.sessionIdHash,
+    });
+  } catch (error) {
+    if (error instanceof StateValidationError) {
+      throw new QualityUnavailable(error.code);
+    }
+    throw new QualityUnavailable("baseline_state_schema");
   }
 }
 
 function writeUnavailableState(stateInfo, startHead, error) {
-  const errorCode = error instanceof QualityUnavailable ? error.code : "baseline_creation";
-  const code = /^[a-z0-9_]{1,64}$/u.test(errorCode) ? errorCode : "baseline_creation";
+  const errorCode =
+    error instanceof QualityUnavailable || error instanceof TextQualityConfigurationError
+      ? error.code
+      : "baseline_creation";
+  const code = isValidUnavailableCode(errorCode) ? errorCode : "baseline_creation";
   const state = {
     schema_version: STATE_SCHEMA_VERSION,
     root_id: stateInfo.rootId,
@@ -643,8 +616,76 @@ function readPayload(expectedEvent) {
   return payload;
 }
 
-function outputBlock(reason) {
-  process.stdout.write(`${JSON.stringify({ decision: "block", reason })}\n`);
+function safeDiagnosticCode(code) {
+  if (STATE_FAILURE_CODES.has(code) || OTHER_SAFE_DIAGNOSTIC_CODES.has(code)) return code;
+  if (diagnosticCauseFor(code)) return code;
+  return "internal";
+}
+
+function safeDiagnosticLabel(code, diagnosticCause) {
+  const safeCode = safeDiagnosticCode(code);
+  const safeCause = safeCode === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+  return safeCause ? `${safeCode}; cause=${safeCause}` : safeCode;
+}
+
+function safeDiagnosticLogDirectory(root) {
+  let current = path.resolve(root);
+  for (const segment of [".artifacts", "codex-hooks"]) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error?.code !== "ENOENT") return null;
+      try {
+        fs.mkdirSync(current);
+        stats = fs.lstatSync(current);
+      } catch {
+        return null;
+      }
+    }
+    if (!stats.isDirectory() || stats.isSymbolicLink()) return null;
+  }
+  return current;
+}
+
+function appendSafeDiagnosticRecord(root, event, code, stopHookActive, diagnosticCause) {
+  try {
+    const directory = safeDiagnosticLogDirectory(root);
+    if (!directory) return;
+    const logPath = path.join(directory, "text-quality-diagnostics.jsonl");
+    try {
+      const stats = fs.lstatSync(logPath);
+      if (!stats.isFile() || stats.isSymbolicLink()) return;
+    } catch (error) {
+      if (error?.code !== "ENOENT") return;
+    }
+    const safeCode = safeDiagnosticCode(code);
+    const safeCause = safeCode === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+    const record = {
+      schema_version: 1,
+      timestamp: new Date().toISOString(),
+      event,
+      code: safeCode,
+      stop_hook_active: stopHookActive === true,
+      ...(safeCause ? { cause: safeCause } : {}),
+    };
+    fs.appendFileSync(logPath, `${JSON.stringify(record)}\n`, "utf8");
+  } catch {
+    // Diagnostic logging is best-effort and must not change the Hook outcome.
+  }
+}
+
+function writeJsonOnce(value) {
+  if (stdoutJsonWritten) return;
+  stdoutJsonWritten = true;
+  process.stdout.write(`${JSON.stringify(value)}\n`);
+}
+
+function outputBlock(reason, systemMessage) {
+  const output = { decision: "block", reason };
+  if (typeof systemMessage === "string") output.systemMessage = systemMessage;
+  writeJsonOnce(output);
 }
 
 function formatViolation(violation) {
@@ -655,17 +696,23 @@ function formatViolations(violations) {
   return violations.map(formatViolation).join("; ");
 }
 
-function diagnostics(code) {
-  process.stdout.write(
-    `${JSON.stringify({
-      continue: true,
-      systemMessage: `Codex text quality hook: quality check unavailable (${code})`,
-    })}\n`,
-  );
+function diagnostics(code, diagnosticCause) {
+  writeJsonOnce({
+    continue: true,
+    systemMessage: formatDiagnosticMessage(code, diagnosticCause),
+  });
+}
+
+function formatDiagnosticMessage(code, diagnosticCause) {
+  return `Codex text quality hook: quality check unavailable (${safeDiagnosticLabel(code, diagnosticCause)})`;
+}
+
+function formatStopBlockReason(code, diagnosticCause) {
+  return `${GENERIC_STOP_BLOCK_REASON} Diagnostic: ${safeDiagnosticLabel(code, diagnosticCause)}. ${STOP_DIAGNOSTIC_ACTION}`;
 }
 
 function outputAllow() {
-  process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
+  writeJsonOnce({ continue: true });
 }
 
 async function processUserPrompt(payload) {
@@ -693,7 +740,7 @@ async function processPostToolUse(payload) {
   const stateInfo = makeStatePath(root, payload.session_id);
   const state = readState(stateInfo.path, stateInfo);
   if (state.status !== STATE_STATUS.READY) {
-    throw new QualityUnavailable("baseline_unavailable");
+    throw new QualityUnavailable("baseline_unavailable", state.code);
   }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
   const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
@@ -714,8 +761,7 @@ async function processStop(payload) {
     if (
       payload.stop_hook_active === true &&
       error instanceof QualityUnavailable &&
-      error.code === "baseline_state" &&
-      !fs.existsSync(stateInfo.path)
+      error.code === "baseline_state_missing"
     ) {
       outputAllow();
       return;
@@ -723,7 +769,7 @@ async function processStop(payload) {
     throw error;
   }
   if (state.status !== STATE_STATUS.READY) {
-    throw new QualityUnavailable("baseline_unavailable");
+    throw new QualityUnavailable("baseline_unavailable", state.code);
   }
   await ensureTextlintConfiguration();
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
@@ -734,7 +780,9 @@ async function processStop(payload) {
     return;
   }
   if (newViolations.length > 0 && payload.stop_hook_active === true) {
+    deleteState(stateInfo.path);
     diagnostics("stop_hook_active");
+    return;
   }
   deleteState(stateInfo.path);
 }
@@ -773,10 +821,28 @@ async function main() {
       error instanceof QualityUnavailable || error instanceof TextQualityConfigurationError
         ? error.code
         : "internal";
+    const safeCode = safeDiagnosticCode(code);
+    if (payload) {
+      try {
+        const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
+        appendSafeDiagnosticRecord(
+          root,
+          expectedEvent,
+          safeCode,
+          payload.stop_hook_active,
+          error?.diagnosticCause,
+        );
+      } catch {
+        // Resolving the diagnostic log root is best-effort and must not change the Hook outcome.
+      }
+    }
     if (expectedEvent === "Stop" && payload?.stop_hook_active !== true) {
-      outputBlock("Text quality check unavailable; completion cannot be confirmed.");
+      outputBlock(
+        formatStopBlockReason(safeCode, error?.diagnosticCause),
+        formatDiagnosticMessage(safeCode, error?.diagnosticCause),
+      );
     } else {
-      diagnostics(code);
+      diagnostics(safeCode, error?.diagnosticCause);
       cleanupAllowedStop(payload);
     }
     return 0;

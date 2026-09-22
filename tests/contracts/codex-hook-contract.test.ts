@@ -349,6 +349,9 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         expect(windowsScript).toContain(scriptName);
         if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
           expect(commandForHook(entry, "command", event)).toContain(
+            'fallback=\'{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed. Diagnostic: Stop launcher unavailable. Run pnpm run diagnose:hooks before completion.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}\'',
+          );
+          expect(commandForHook(entry, "command", event)).toContain(
             `active_diagnostic='{\"continue\":true,\"systemMessage\":\"Codex text quality hook: Stop launcher unavailable\"}'`,
           );
           expect(commandForHook(entry, "command", event)).toContain(
@@ -360,7 +363,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(commandForHook(entry, "command", event)).toContain("hashlib.sha256");
           expect(commandForHook(entry, "command", event)).toContain("os.listdir");
           expect(windowsScript).toContain(
-            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
+            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed. Diagnostic: Stop launcher unavailable. Run pnpm run diagnose:hooks before completion.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
           );
           expect(windowsScript).toContain(
             `$activeDiagnostic = '{"continue":true,"systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
@@ -392,6 +395,31 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         }
         expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
       }
+    }
+  });
+
+  it("keeps configured Repository Hook ancestors and handlers on real filesystem entries", () => {
+    const codexDirectory = path.join(repoRoot, ".codex");
+    const hooksDirectory = path.join(codexDirectory, "hooks");
+    const codexStats = fs.lstatSync(codexDirectory);
+    const hooksStats = fs.lstatSync(hooksDirectory);
+
+    expect(codexStats.isDirectory()).toBe(true);
+    expect(codexStats.isSymbolicLink()).toBe(false);
+    expect(hooksStats.isDirectory()).toBe(true);
+    expect(hooksStats.isSymbolicLink()).toBe(false);
+
+    const configuredHandlerNames = [
+      "pre_tool_use_policy.mjs",
+      "pre_tool_use_policy_windows.ps1",
+      "log_event.mjs",
+      "text_quality_gate.mjs",
+      "session_start_context.mjs",
+    ];
+    for (const handlerName of configuredHandlerNames) {
+      const handlerStats = fs.lstatSync(path.join(hooksDirectory, handlerName));
+      expect(handlerStats.isFile(), handlerName).toBe(true);
+      expect(handlerStats.isSymbolicLink(), handlerName).toBe(false);
     }
   });
 

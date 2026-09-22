@@ -35,6 +35,7 @@ const repoRoot = path.resolve(process.cwd());
 const scannerPath = path.join(repoRoot, "scripts", "lint-text-quality.mjs");
 const comparisonPath = path.join(repoRoot, "scripts", "check-text-quality-changes.mjs");
 const gatePath = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
+const stateModulePath = path.join(repoRoot, "scripts", "lib", "codex-text-quality-state.mjs");
 const textlintConfigPath = path.join(repoRoot, ".textlintrc.json");
 
 const rule: TextRule = {
@@ -158,9 +159,14 @@ function createFixture(initialText = "GOOD\n", tempPrefix = "codex text quality 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), tempPrefix));
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+  fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
   fs.copyFileSync(scannerPath, path.join(root, "scripts", "lint-text-quality.mjs"));
   fs.copyFileSync(comparisonPath, path.join(root, "scripts", "check-text-quality-changes.mjs"));
   fs.copyFileSync(gatePath, path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+  fs.copyFileSync(
+    stateModulePath,
+    path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
+  );
   fs.copyFileSync(textlintConfigPath, path.join(root, ".textlintrc.json"));
   writeFile(
     root,
@@ -356,6 +362,28 @@ const USER_PROMPT_LAUNCHER_DIAGNOSTIC =
   "Codex text quality hook: UserPromptSubmit launcher unavailable";
 const POST_TOOL_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: PostToolUse launcher unavailable";
 const STOP_LAUNCHER_DIAGNOSTIC = "Codex text quality hook: Stop launcher unavailable";
+const GENERIC_STOP_BLOCK_REASON = "Text quality check unavailable; completion cannot be confirmed.";
+const STOP_DIAGNOSTIC_ACTION = "Run pnpm run diagnose:hooks before completion.";
+
+function inactiveStopReason(code: string, cause?: string) {
+  const diagnostic = cause ? `${code}; cause=${cause}` : code;
+  return `${GENERIC_STOP_BLOCK_REASON} Diagnostic: ${diagnostic}. ${STOP_DIAGNOSTIC_ACTION}`;
+}
+
+function diagnosticLogPath(root: string) {
+  return path.join(root, ".artifacts", "codex-hooks", "text-quality-diagnostics.jsonl");
+}
+
+function diagnosticLogRecords(root: string) {
+  const logPath = diagnosticLogPath(root);
+  if (!fs.existsSync(logPath)) return [] as Record<string, unknown>[];
+  return fs
+    .readFileSync(logPath, "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
 
 function expectStructuredSystemMessage(
   result: ProcessResult,
@@ -542,7 +570,8 @@ function expectConfiguredStopBlock(result: ProcessResult, label: string, root: s
   expect(result.status, `${label} status`).toBe(0);
   expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
     decision: "block",
-    reason: "Text quality check unavailable; completion cannot be confirmed.",
+    reason: inactiveStopReason("Stop launcher unavailable"),
+    systemMessage: STOP_LAUNCHER_DIAGNOSTIC,
   });
   expect(result.stderr, `${label} stderr`).toBe("");
   for (const value of ["prompt", "stop-secret", "stop-token", root]) {
@@ -1473,7 +1502,10 @@ describe("Codex deterministic text quality contracts", () => {
         "Codex text quality hook: quality check unavailable (textlint_config_unavailable)",
         ["start", root],
       );
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({
+        status: "baseline_unavailable",
+        code: "textlint_config_unavailable",
+      });
     });
 
     withFixture((root) => {
@@ -1485,7 +1517,10 @@ describe("Codex deterministic text quality contracts", () => {
         "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
         ["start", root],
       );
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({
+        status: "baseline_unavailable",
+        code: "textlint_config_invalid",
+      });
     });
 
     withFixture((root) => {
@@ -1501,7 +1536,8 @@ describe("Codex deterministic text quality contracts", () => {
         expect(prompt.stdout).not.toContain(value);
         expect(prompt.stderr).not.toContain(value);
       }
-      expect(readGateState(root).status).toBe("baseline_unavailable");
+      expect(readGateState(root)).toMatchObject({ status: "baseline_unavailable" });
+      expect(readGateState(root).code).toMatch(/^[a-z0-9_]{1,64}$/u);
     });
 
     withFixture((root) => {
@@ -1510,7 +1546,12 @@ describe("Codex deterministic text quality contracts", () => {
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("textlint_config_invalid"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -1522,6 +1563,128 @@ describe("Codex deterministic text quality contracts", () => {
         [root],
       );
       expect(stateFiles(root)).toHaveLength(0);
+    });
+  }, 90_000);
+
+  it("keeps baseline_unavailable causes safe across PostToolUse and active Stop", () => {
+    withFixture((root) => {
+      removeFixtureFile(path.join(root, ".textlintrc.json"));
+      const firstPrompt = runGate(root, "UserPromptSubmit", { prompt: "start" });
+      expect(firstPrompt.status).toBe(0);
+      const unavailableStateText = fs.readFileSync(
+        path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+        "utf8",
+      );
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse safe unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+        [root],
+      );
+      expect(
+        fs.readFileSync(
+          path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
+          "utf8",
+        ),
+      ).toBe(unavailableStateText);
+
+      const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_unavailable", "textlint_config_unavailable"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+      });
+      expect(inactiveStop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(1);
+
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop safe unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      delete state.code;
+      state.status = "baseline_unavailable";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse unavailable without cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      const activeStop = runGate(root, "Stop", { stop_hook_active: true });
+      expectStructuredSystemMessage(
+        activeStop,
+        "active Stop unavailable without cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      expect(stateFiles(root)).toHaveLength(0);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      state.status = "baseline_unavailable";
+      state.code = "regex_valid_but_unknown";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse unknown unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        [root],
+      );
+      expect(post.stdout).not.toContain("regex_valid_but_unknown");
+      expect(stateFiles(root)).toHaveLength(1);
+    });
+
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      const statePath = path.join(
+        root,
+        ".artifacts",
+        "codex-text-quality",
+        stateFiles(root)[0] ?? "",
+      );
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as Record<string, unknown>;
+      state.status = "baseline_unavailable";
+      state.code = "INVALID-CODE";
+      delete state.files;
+      fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      expectStructuredSystemMessage(
+        post,
+        "PostToolUse invalid unavailable cause",
+        "Codex text quality hook: quality check unavailable (baseline_state_schema)",
+        [root],
+      );
+      expect(post.stdout).not.toContain("INVALID-CODE");
     });
   }, 90_000);
 
@@ -2003,6 +2166,7 @@ describe("Codex deterministic text quality contracts", () => {
         ["秘密のprompt", "do-not-store", root],
       );
       expect(stateFiles(root)).toHaveLength(0);
+      expect(diagnosticLogRecords(root)).toHaveLength(0);
     });
   }, 30_000);
 
@@ -2031,6 +2195,7 @@ describe("Codex deterministic text quality contracts", () => {
       expect(block.decision).toBe("block");
       expect(block.reason).toContain("docs/first.md:1 [TEST-BANNED-A]");
       expect(block.reason).toContain("docs/second.md:1 [TEST-BANNED-B]");
+      expect(block).not.toHaveProperty("systemMessage");
       expect(inactiveStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
@@ -2041,6 +2206,7 @@ describe("Codex deterministic text quality contracts", () => {
         ["docs/first.md", "docs/second.md", root],
       );
       expect(stateFiles(root)).toHaveLength(0);
+      expect(diagnosticLogRecords(root)).toHaveLength(0);
     });
   }, 30_000);
 
@@ -2087,13 +2253,18 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         post,
         "PostToolUse baseline unavailable",
-        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
         ["second prompt", root],
       );
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_unavailable", "baseline_creation"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -2101,7 +2272,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         activeStop,
         "active Stop baseline unavailable",
-        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
         ["second prompt", root],
       );
       expect(stateFiles(root)).toHaveLength(0);
@@ -2118,7 +2289,11 @@ describe("Codex deterministic text quality contracts", () => {
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_state_json"),
+        systemMessage: "Codex text quality hook: quality check unavailable (baseline_state_json)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -2126,7 +2301,7 @@ describe("Codex deterministic text quality contracts", () => {
       expectStructuredSystemMessage(
         activeStop,
         "active Stop corrupt state",
-        "Codex text quality hook: quality check unavailable (baseline_state)",
+        "Codex text quality hook: quality check unavailable (baseline_state_json)",
         [root],
       );
       expect(stateFiles(root)).toHaveLength(0);
@@ -2147,8 +2322,12 @@ describe("Codex deterministic text quality contracts", () => {
 
         const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
         expect(inactiveStop.status).toBe(0);
-        expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
-        expect(inactiveStop.stdout).toContain("quality check unavailable");
+        expect(JSON.parse(inactiveStop.stdout)).toEqual({
+          decision: "block",
+          reason: inactiveStopReason("baseline_state_identity"),
+          systemMessage:
+            "Codex text quality hook: quality check unavailable (baseline_state_identity)",
+        });
         expect(inactiveStop.stderr).toBe("");
         expect(stateFiles(root)).toHaveLength(1);
 
@@ -2156,7 +2335,7 @@ describe("Codex deterministic text quality contracts", () => {
         expectStructuredSystemMessage(
           activeStop,
           `active Stop ${identityField}`,
-          "Codex text quality hook: quality check unavailable (baseline_state)",
+          "Codex text quality hook: quality check unavailable (baseline_state_identity)",
           [root],
         );
         expect(stateFiles(root)).toHaveLength(0);
@@ -2165,25 +2344,326 @@ describe("Codex deterministic text quality contracts", () => {
     30_000,
   );
 
+  it.each([
+    ["baseline_state_missing", "missing"],
+    ["baseline_state_read", "read"],
+    ["baseline_state_json", "json"],
+    ["baseline_state_schema", "schema"],
+    ["baseline_state_identity", "identity"],
+    ["baseline_state_manifest", "manifest"],
+  ] as const)(
+    "classifies %s at the inactive Stop process boundary",
+    (code, fixtureKind) => {
+      withFixture((root) => {
+        const sessionId = `state-failure-${fixtureKind}-${randomUUID()}`;
+        const stateFile = stateFileNameForSession(root, sessionId);
+        const statePath = path.join(root, ".artifacts", "codex-text-quality", stateFile);
+
+        if (fixtureKind !== "missing") {
+          const prompt = runGate(
+            root,
+            "UserPromptSubmit",
+            { prompt: `fixture prompt secret=state-secret token=state-token` },
+            path.join(root, "rules.json"),
+            sessionId,
+          );
+          expect(prompt.status).toBe(0);
+          expect(fs.existsSync(statePath)).toBe(true);
+          const state = readStateForSession(root, sessionId);
+
+          if (fixtureKind === "read") {
+            removeFixtureFile(statePath);
+            fs.mkdirSync(statePath, { recursive: true });
+          } else if (fixtureKind === "json") {
+            fs.writeFileSync(statePath, "{\n", "utf8");
+          } else if (fixtureKind === "schema") {
+            delete state.files;
+            fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+          } else if (fixtureKind === "identity") {
+            state.root_id = "0".repeat(64);
+            fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+          } else {
+            state.files = [{ path: "../outside.md", source: "worktree_missing", violations: [] }];
+            fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
+          }
+        }
+
+        const result = runGate(
+          root,
+          "Stop",
+          {
+            stop_hook_active: false,
+            prompt: "runtime prompt secret=runtime-secret token=runtime-token",
+            tool_input: { payload: "raw-hook-payload" },
+          },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+        expect(result.status, `${code} status`).toBe(0);
+        expect(result.stderr, `${code} stderr`).toBe("");
+        expect(result.stdout.trim().split(/\r?\n/u), `${code} JSON count`).toHaveLength(1);
+        expect(JSON.parse(result.stdout), `${code} stdout`).toEqual({
+          decision: "block",
+          reason: inactiveStopReason(code),
+          systemMessage: `Codex text quality hook: quality check unavailable (${code})`,
+        });
+        for (const leak of [
+          root,
+          stateFile,
+          sessionId,
+          "runtime prompt",
+          "runtime-secret",
+          "runtime-token",
+          "raw-hook-payload",
+          "raw-hook-exception",
+          "stack trace",
+        ]) {
+          expect(result.stdout, `${code} stdout leak`).not.toContain(leak);
+          expect(result.stderr, `${code} stderr leak`).not.toContain(leak);
+        }
+
+        if (fixtureKind === "missing") {
+          expect(fs.existsSync(statePath), `${code} state retention`).toBe(false);
+        } else {
+          expect(fs.existsSync(statePath), `${code} state retention`).toBe(true);
+        }
+
+        const records = diagnosticLogRecords(root);
+        expect(records, `${code} log count`).toHaveLength(1);
+        const record = records[0];
+        expect(record).toBeDefined();
+        if (!record) throw new Error(`${code} diagnostic record was not written`);
+        expect(Object.keys(record).sort()).toEqual([
+          "code",
+          "event",
+          "schema_version",
+          "stop_hook_active",
+          "timestamp",
+        ]);
+        expect(record.schema_version).toBe(1);
+        expect(record.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
+        expect(record.event).toBe("Stop");
+        expect(record.code).toBe(code);
+        expect(record.stop_hook_active).toBe(false);
+        expect(JSON.stringify(record)).not.toContain(root);
+        expect(JSON.stringify(record)).not.toContain(stateFile);
+        expect(JSON.stringify(record)).not.toContain(sessionId);
+        expect(JSON.stringify(record)).not.toContain("runtime-secret");
+        expect(JSON.stringify(record)).not.toContain("runtime-token");
+        expect(JSON.stringify(record)).not.toContain("raw-hook-payload");
+
+        if (fixtureKind !== "missing") {
+          const active = runGate(
+            root,
+            "Stop",
+            { stop_hook_active: true },
+            path.join(root, "rules.json"),
+            sessionId,
+          );
+          expect(active.status, `${code} active status`).toBe(0);
+          expect(active.stderr, `${code} active stderr`).toBe("");
+          expect(active.stdout.trim().split(/\r?\n/u), `${code} active JSON count`).toHaveLength(1);
+          expect(JSON.parse(active.stdout), `${code} active stdout`).toEqual({
+            continue: true,
+            systemMessage: `Codex text quality hook: quality check unavailable (${code})`,
+          });
+          if (fixtureKind === "read") {
+            expect(fs.existsSync(statePath), `${code} active cleanup boundary`).toBe(true);
+          } else {
+            expect(fs.existsSync(statePath), `${code} active cleanup`).toBe(false);
+          }
+          const activeRecords = diagnosticLogRecords(root);
+          expect(activeRecords, `${code} active log count`).toHaveLength(2);
+          expect(activeRecords.at(-1)).toMatchObject({
+            code,
+            event: "Stop",
+            stop_hook_active: true,
+          });
+        }
+      });
+    },
+    30_000,
+  );
+
+  it("includes only safe unavailable causes in inactive reason, systemMessage, and log", () => {
+    for (const [code, expectedMessage] of [
+      [
+        "textlint_config_unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+      ],
+      [
+        "untrusted_external_cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+      ],
+    ] as const) {
+      withFixture((root) => {
+        const sessionId = `inactive-diagnostic-${code}-${randomUUID()}`;
+        const stateFile = stateFileNameForSession(root, sessionId);
+        writeFile(
+          root,
+          `.artifacts/codex-text-quality/${stateFile}`,
+          `${JSON.stringify({
+            schema_version: 2,
+            root_id: createHash("sha256")
+              .update(path.resolve(git(root, ["rev-parse", "--show-toplevel"])), "utf8")
+              .digest("hex"),
+            session_id_hash: createHash("sha256").update(sessionId, "utf8").digest("hex"),
+            status: "baseline_unavailable",
+            code,
+          })}\n`,
+        );
+
+        const inactiveStop = runGate(
+          root,
+          "Stop",
+          { stop_hook_active: false },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+        expect(inactiveStop.status).toBe(0);
+        expect(JSON.parse(inactiveStop.stdout)).toEqual({
+          decision: "block",
+          reason: inactiveStopReason(
+            "baseline_unavailable",
+            code === "textlint_config_unavailable" ? code : undefined,
+          ),
+          systemMessage: expectedMessage,
+        });
+        expect(inactiveStop.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(1);
+        if (code === "untrusted_external_cause") {
+          expect(inactiveStop.stdout).not.toContain(code);
+        }
+        const [record] = diagnosticLogRecords(root);
+        expect(record).toBeDefined();
+        if (!record) throw new Error("diagnostic record was not written");
+        expect(record.code).toBe("baseline_unavailable");
+        if (code === "textlint_config_unavailable") {
+          expect(record.cause).toBe(code);
+        } else {
+          expect(record).not.toHaveProperty("cause");
+          expect(JSON.stringify(record)).not.toContain(code);
+        }
+
+        const activeStop = runGate(
+          root,
+          "Stop",
+          { stop_hook_active: true },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+        expectStructuredSystemMessage(activeStop, `active ${code}`, expectedMessage, [
+          root,
+          sessionId,
+          "untrusted_external_cause",
+        ]);
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    }
+  });
+
+  it("emits one fail-open JSON diagnostic when active Stop cleanup fails", () => {
+    if (process.platform === "win32") return;
+    withFixture((root) => {
+      const sessionId = `cleanup-failure-${randomUUID()}`;
+      expect(
+        runGate(
+          root,
+          "UserPromptSubmit",
+          { prompt: "cleanup baseline" },
+          path.join(root, "rules.json"),
+          sessionId,
+        ).status,
+      ).toBe(0);
+      writeFile(root, "docs/existing.md", "BAD\n");
+      const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
+      fs.chmodSync(stateDirectory, 0o555);
+      let result: ProcessResult;
+      try {
+        result = runGate(
+          root,
+          "Stop",
+          { stop_hook_active: true },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+      } finally {
+        fs.chmodSync(stateDirectory, 0o755);
+      }
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout.trim().split(/\r?\n/u)).toHaveLength(1);
+      expect(JSON.parse(result.stdout)).toEqual({
+        continue: true,
+        systemMessage: "Codex text quality hook: quality check unavailable (baseline_cleanup)",
+      });
+      expect(stateFiles(root)).toHaveLength(1);
+      const [record] = diagnosticLogRecords(root);
+      expect(record).toMatchObject({
+        schema_version: 1,
+        event: "Stop",
+        code: "baseline_cleanup",
+        stop_hook_active: true,
+      });
+      expect(JSON.stringify(record)).not.toContain(root);
+      expect(JSON.stringify(record)).not.toContain(sessionId);
+      expect(JSON.stringify(record)).not.toContain("BAD");
+    });
+  }, 30_000);
+
+  it("keeps the Hook result unchanged when diagnostic log writing is unavailable", () => {
+    withFixture((root) => {
+      const artifactDirectory = path.join(root, ".artifacts");
+      fs.mkdirSync(artifactDirectory, { recursive: true });
+      fs.writeFileSync(path.join(artifactDirectory, "codex-hooks"), "not-a-directory\n", "utf8");
+
+      const result = runGate(root, "Stop", {
+        stop_hook_active: false,
+        prompt: "log failure prompt secret=log-secret token=log-token",
+      });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout.trim().split(/\r?\n/u)).toHaveLength(1);
+      expect(JSON.parse(result.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_state_missing"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_state_missing)",
+      });
+      expect(fs.statSync(path.join(artifactDirectory, "codex-hooks")).isFile()).toBe(true);
+      expect(result.stdout).not.toContain(root);
+      expect(result.stdout).not.toContain("log-secret");
+      expect(result.stdout).not.toContain("log-token");
+    });
+  });
+
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {
       const missingPost = runGate(root, "PostToolUse", { tool_name: "Bash" });
       expectStructuredSystemMessage(
         missingPost,
         "missing PostToolUse state",
-        "Codex text quality hook: quality check unavailable (baseline_state)",
+        "Codex text quality hook: quality check unavailable (baseline_state_missing)",
         [root],
       );
 
       const missingStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(missingStop.status).toBe(0);
-      expect(JSON.parse(missingStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(missingStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_state_missing"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_state_missing)",
+      });
       expect(missingStop.stderr).toBe("");
 
+      const logCountBeforeActiveMissing = diagnosticLogRecords(root).length;
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
       expect(activeStop.status).toBe(0);
       expect(JSON.parse(activeStop.stdout)).toEqual({ continue: true });
       expect(activeStop.stderr).toBe("");
+      expect(diagnosticLogRecords(root)).toHaveLength(logCountBeforeActiveMissing);
     });
   });
 
@@ -2230,6 +2710,7 @@ describe("Codex deterministic text quality contracts", () => {
       expect(repeatedStop.stdout).not.toContain("baseline_state");
       expect(repeatedStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(0);
+      expect(diagnosticLogRecords(root)).toHaveLength(0);
     });
   });
 
