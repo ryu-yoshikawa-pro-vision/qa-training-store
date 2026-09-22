@@ -131,7 +131,8 @@ describe("Security dependency fallback workflow", () => {
     expect(afterPush).toBeLessThan(createPullRequest);
     expect(publish).toContain('if [[ "$latest_main_before_push" != "$BASE_SHA" ]]');
     expect(publish).toContain('if [[ "$latest_main_after_push" != "$BASE_SHA" ]]');
-    expect(publish).toContain("remote security branch is retained");
+    expect(publish).toContain("needs_human:main_advanced_before_push");
+    expect(publish).toContain("needs_human:main_advanced_after_push");
     expect(publish).not.toContain("opencode run");
     expect(publish).not.toMatch(/git\s+rebase/);
     expect(publish).not.toMatch(/git\s+push[^\n]*--force/);
@@ -174,6 +175,41 @@ describe("Security dependency fallback workflow", () => {
     expect(readAlert).toContain(endpoint);
     expect(publish).toContain(endpoint);
     expect(workflow).not.toContain("https://api.github.com/security-advisories/$ghsa_id");
+  });
+
+  it("accepts npm Dependabot alerts from package.json and pnpm-lock.yaml only", () => {
+    const readAlert = jobBlock("read-alert", "opencode-edit");
+
+    for (const manifestPath of [
+      '"package.json"',
+      '"/package.json"',
+      '"pnpm-lock.yaml"',
+      '"/pnpm-lock.yaml"',
+    ]) {
+      expect(readAlert).toContain(manifestPath);
+    }
+    expect(readAlert).toContain('needsHuman("unsupported_manifest")');
+    expect(readAlert).not.toContain('!["/package.json", "package.json"].includes(manifestPath)');
+  });
+
+  it("emits reason-coded diagnostics without exposing security identifiers or credentials", () => {
+    expect(workflow).not.toContain('throw new Error("needs_human")');
+    expect(workflow).not.toMatch(/echo\s+needs_human\s+>&2/);
+    expect(workflow).toContain('needs_human:${diagnostic}_http_${http_status}');
+    expect(workflow).toContain("needs_human:unsupported_manifest");
+    expect(workflow).toContain("needs_human:model_discovery_failed");
+    expect(workflow).toContain("needs_human:oidc_token_request_failed");
+    expect(workflow).toContain("needs_human:publish_pr_create_failed");
+
+    const diagnosticLines = workflow
+      .split(/\r?\n/)
+      .filter((line) => line.includes("needs_human:"));
+    expect(diagnosticLines.length).toBeGreaterThan(20);
+    for (const line of diagnosticLines) {
+      expect(line).not.toMatch(
+        /\$ALERT_NUMBER|\$ghsa_id|\$GITHUB_TOKEN|\$OPENCODE_API_KEY|\$oidc_token|\$installation_token/,
+      );
+    }
   });
 
   it("rejects validator trust dependencies before any fallback execution", () => {
@@ -273,7 +309,7 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain('OPENCODE_VERSION: "v1.18.31"');
     expect(workflow).toContain("opencode-linux-x64.tar.gz");
     expect(workflow).toContain("e9312be75ed803b7415fc2aeabda1f4fe938912a39673762dc0c38c0e11ebde4");
-    expect(workflow).toContain('test "$RUNNER_ARCH" = X64');
+    expect(workflow).toContain('if [[ "$RUNNER_ARCH" != X64 ]]');
     expect(workflow).toContain("timeout --signal=TERM --kill-after=30s 600");
     expect(workflow).toContain("--title security-dependency-fallback");
     expect(workflow).toContain("OPENCODE_DISABLE_DEFAULT_PLUGINS=1");
