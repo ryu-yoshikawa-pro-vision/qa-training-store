@@ -189,25 +189,21 @@ describe("Security dependency fallback workflow", () => {
       expect(readAlert).toContain(manifestPath);
     }
     expect(readAlert).toContain('needsHuman("unsupported_manifest")');
-    expect(readAlert).not.toContain(
-      '!["/package.json", "package.json"].includes(manifestPath)',
-    );
+    expect(readAlert).not.toContain('!["/package.json", "package.json"].includes(manifestPath)');
   });
 
   it("emits reason-coded diagnostics without exposing security identifiers or credentials", () => {
     expect(workflow).not.toContain('throw new Error("needs_human")');
     expect(workflow).not.toMatch(/echo\s+needs_human\s+>&2/);
     expect(workflow).not.toMatch(/^\s*test\b/gm);
-    expect(workflow).toContain('needs_human:${diagnostic}_http_${http_status}');
+    expect(workflow).toContain("needs_human:${diagnostic}_http_${http_status}");
     expect(workflow).toContain("needs_human:invalid_diagnostic_code");
     expect(workflow).toContain('needsHuman("unsupported_manifest")');
     expect(workflow).toContain("needs_human:model_discovery_failed");
     expect(workflow).toContain("needs_human:oidc_token_request_failed");
     expect(workflow).toContain("needs_human:publish_pr_create_failed");
 
-    const diagnosticLines = workflow
-      .split(/\r?\n/)
-      .filter((line) => line.includes("needs_human:"));
+    const diagnosticLines = workflow.split(/\r?\n/).filter((line) => line.includes("needs_human:"));
     expect(diagnosticLines.length).toBeGreaterThan(0);
     for (const line of diagnosticLines) {
       expect(line).not.toMatch(
@@ -215,19 +211,15 @@ describe("Security dependency fallback workflow", () => {
       );
     }
 
-    const helperCalls = [...workflow.matchAll(/needsHuman\(([^)]+)\)/g)].map(
-      (match) => match[1],
-    );
+    const helperCalls = [...workflow.matchAll(/needsHuman\(([^)]+)\)/g)].map((match) => match[1]);
     expect(helperCalls.length).toBeGreaterThan(0);
     for (const codeExpression of helperCalls) {
-      expect(codeExpression).toMatch(
-        /^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/,
-      );
+      expect(codeExpression).toMatch(/^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/);
     }
 
-    const fetchJsonDiagnostics = [
-      ...workflow.matchAll(/^\s*fetch_json\s+([^\s]+)\s+/gm),
-    ].map((match) => match[1]);
+    const fetchJsonDiagnostics = [...workflow.matchAll(/^\s*fetch_json\s+([^\s]+)\s+/gm)].map(
+      (match) => match[1],
+    );
     expect(fetchJsonDiagnostics.length).toBeGreaterThan(0);
     for (const diagnostic of fetchJsonDiagnostics) {
       expect(diagnostic).toMatch(/^"[a-z0-9_]+"$/);
