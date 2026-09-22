@@ -36,3 +36,27 @@
 - 検証: Plan-only修正のためRepository runtime test / CIは未実行。GitHub上のIssue、Current workflow、関連script、contract test、PR #133差分、ruleset、GitHub Docsをread-onlyで確認した。
 - ブロッカー: なし。実装開始時にlatest `main`へNative CI関連変更が入っていないかだけ再確認する。
 - Progress: 100% (12/12)
+
+## 2026-09-22 — 再レビュー2回目反映
+
+- 概要: 再レビューで残った6件を保存Planへ反映した。最新`main`は`8d73289350d45e28b4186c47caa32ad8d4809657`、Plan branchは修正前`8909bac0f3c581ee07e64a9b7fcf6ac7bc2b116a`で、Native CI関連の追加driftはない。
+- Android build:
+  - Reusable Workflowのexternal inputを`build_kind`だけへ縮小。
+  - Artifact名、filename、Evidence Artifact名はcalled workflow内で`build_kind`から決定。
+  - Automation / ProductionのABI検証、Save / Verify順、Gradle log、Evidence差異を現行contractとして固定。
+  - callerはjob ID / name / needs / if / uses / build_kindだけを持ち、runs-on / timeout / env / stepsはcalled workflowへ移す。
+  - `native-android-build.yml`へworkflow-level `concurrency`を追加しない。
+- Production Bundle Guard:
+  - APK extractionをTypeScript validatorへ移す案を撤回。
+  - `scripts/native/android-ci-production-bundle-guard.sh`をActual APK -> temporary `.hbc` -> existing validatorのadapterとして採用。
+  - `scripts/validate-native-production-bundle.ts`のCLI / Hermes marker policyは変更しない。
+- visual profile:
+  - `Check Android adb root capability` / `id: android_adb_root`はworkflowへ残す。
+  - `android-ci-visual-profile.sh`は`Normalize Android canonical visual profile`本文だけを所有する。
+- 検証:
+  - `native_changed=false`は静的contractで維持する。
+  - 実装PRのRemote CIは`native_changed=true`経路だけを実測する。
+  - 新規shellはProduction Guardを含む5本。
+- Validation: Plan-only修正のためRepository runtime test / CIは未実行。Current workflow、contract test、package dependency、Project Context、GitHub Actions仕様を確認してPlanへ反映した。
+- ブロッカー: なし。実装開始時にlatest `main`へNative CI関連driftがないかだけ再確認する。
+- Progress: 100% (10/10)

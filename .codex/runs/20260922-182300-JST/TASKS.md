@@ -2,27 +2,25 @@
 
 ## 完了
 
-- [x] 1. Issue #130と既存Planを再確認する。
-- [x] 2. 再レビュー時の最新`main`を確認し、Native CI関連差分がないことを確認する。
-- [x] 3. Phase 6後のPR #133でNative CIへ入った追加修正を確認する。
-- [x] 4. GitHub Actions Reusable Workflowの公式仕様を確認する。
-- [x] 5. Repository rulesetのrequired status checkを確認する。
-- [x] 6. Android buildのshell helper案とReusable Workflow案を比較する。
-- [x] 7. Production Bundle Guardを既存validatorへ寄せる方針へ修正する。
-- [x] 8. runtime helperを独立した変更理由がある4責務へ絞る。
-- [x] 9. workflowへ残すinline処理と理由を明記する。
-- [x] 10. change detectionを通常PR経路とmanual visual経路に分ける。
-- [x] 11. 検証計画、完了条件、リスク、対象外を更新する。
-- [x] 12. 保存PlanとRun Artifactを同期し、実装・PR作成へ進まず終了する。
+- [x] 1. 最新`main`とPlan branchの状態を再確認する。
+- [x] 2. Android Automation / Production buildの現行差異を実コードから再確認する。
+- [x] 3. Reusable Workflow inputを`build_kind`だけへ絞る。
+- [x] 4. caller / calledの責務と`concurrency`禁止条件を明記する。
+- [x] 5. Automation / ProductionのABI検証、Save / Verify順、Gradle log、Evidence差異を維持契約として記載する。
+- [x] 6. Production Bundle Guardをshell adapter + 既存validatorの責務へ戻す。
+- [x] 7. `android_adb_root`をworkflowへ残し、visual profile helperの境界をNormalize stepへ限定する。
+- [x] 8. no-change skipを静的contract、Remote CIを`native_changed=true`へ分ける。
+- [x] 9. change detection、contract test、実行タスク、検証、完了条件、リスクを同期する。
+- [x] 10. 保存PlanとRun Artifactを更新し、実装・PR作成へ進まず終了する。
 
 ## 発見事項
 
-- Phase 6後のPR #133でも`native-ci.yml`へlauncher stabilizationが追加され、Issue #130の問題が現在も継続している。
-- `android-maestro-run.sh`は通常Android Runtimeで利用されるが、現在のNative change detection対象外。
-- manual visual pathは通常PRでruntime実行されないため、通常`native_changed`へ追加しても変更箇所のruntime検証にはならない。
-- Android buildの2 jobは約200行ずつあり、Gradle commandだけのhelper化よりReusable Workflowへbuild responsibilityを移す方がIssue #130の目的に合う。
-- Production Bundle Guardは既存`validate-native-production-bundle.ts`が意味上の正本であり、新しいshell wrapperは不要。
-- `main-protection`のrequired status checkは`validate`のみ。
+- Reusable WorkflowへArtifact名をinputすると`build_kind`との矛盾状態を作れるため不要。
+- Automation / Production buildは共通処理が多いが、ABI検証・Save / Verify順・Evidenceに現在の非対称性がある。
+- 同じReusable Workflowを2回呼ぶため、called workflowへ同一`concurrency`を置くと相互cancelのリスクがある。
+- `validate-native-production-bundle.ts`は`.hbc`のHermes policy ownerとして既に責務が明確で、APK ZIP展開まで持たせる必要はない。
+- `android_adb_root`は後続stepのoutcome条件と環境変数を作る独立stepであり、Normalize helperへ吸収しない方が単純。
+- 実装PR自身がNative pathを変更するため、同じPRで`native_changed=false`をRemote実測できない。
 
 ## ブロック中
 
