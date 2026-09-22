@@ -189,13 +189,18 @@ describe("Security dependency fallback workflow", () => {
       expect(readAlert).toContain(manifestPath);
     }
     expect(readAlert).toContain('needsHuman("unsupported_manifest")');
-    expect(readAlert).not.toContain('!["/package.json", "package.json"].includes(manifestPath)');
+    expect(readAlert).not.toContain(
+      '!["/package.json", "package.json"].includes(manifestPath)',
+    );
   });
 
   it("emits reason-coded diagnostics without exposing security identifiers or credentials", () => {
     expect(workflow).not.toContain('throw new Error("needs_human")');
     expect(workflow).not.toMatch(/echo\s+needs_human\s+>&2/);
-    expect(workflow).toContain('needs_human:${diagnostic}_http_${http_status}');
+    expect(workflow).toContain(
+      'needs_human:${diagnostic}_http_${http_status}',
+    );
+    expect(workflow).toContain("needs_human:invalid_diagnostic_code");
     expect(workflow).toContain('needsHuman("unsupported_manifest")');
     expect(workflow).toContain("needs_human:model_discovery_failed");
     expect(workflow).toContain("needs_human:oidc_token_request_failed");
@@ -219,6 +224,14 @@ describe("Security dependency fallback workflow", () => {
       expect(codeExpression).toMatch(
         /^(?:"[a-z0-9_]+"|`[a-z0-9_]+_\$\{response\.status\}`)$/,
       );
+    }
+
+    const fetchJsonDiagnostics = [
+      ...workflow.matchAll(/^\s*fetch_json\s+([^\s]+)\s+/gm),
+    ].map((match) => match[1]);
+    expect(fetchJsonDiagnostics.length).toBeGreaterThan(0);
+    for (const diagnostic of fetchJsonDiagnostics) {
+      expect(diagnostic).toMatch(/^"[a-z0-9_]+"$/);
     }
   });
 
@@ -353,6 +366,40 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain("conflict_terms");
   });
 
+  it("records fixed diagnostic reasons at artifact trust boundaries", () => {
+    const opencode = jobBlock("opencode-edit", "validate-exec");
+    const validate = jobBlock("validate-exec", "finalize");
+    const finalize = jobBlock("finalize", "publish");
+    const publish = jobBlock("publish");
+
+    for (const reason of [
+      "needs_human:context_artifact_hash_mismatch",
+      "needs_human:candidate_artifact_file_set_invalid",
+    ]) {
+      expect(opencode).toContain(reason);
+    }
+    for (const reason of [
+      "needs_human:validate_candidate_package_hash_mismatch",
+      "needs_human:prepared_lockfile_hash_mismatch",
+    ]) {
+      expect(validate).toContain(reason);
+    }
+    for (const reason of [
+      "needs_human:finalize_prepared_lockfile_hash_mismatch",
+      "needs_human:final_guard_authorization_hash_mismatch",
+      "needs_human:finalize_change_set_invalid",
+    ]) {
+      expect(finalize).toContain(reason);
+    }
+    for (const reason of [
+      "needs_human:validated_artifact_manifest_missing",
+      "needs_human:publish_lockfile_hash_mismatch",
+      "needs_human:publish_change_set_invalid",
+    ]) {
+      expect(publish).toContain(reason);
+    }
+  });
+
   it("runs the final guard after Run Artifact sanitization and before validated upload", () => {
     const finalize = jobBlock("finalize", "publish");
     const createRun = stepBlock(finalize, "Verify prepared input and create public Run Artifact");
@@ -389,9 +436,9 @@ describe("Security dependency fallback workflow", () => {
     );
     expect(finalGuard).toContain("--validate-prepared");
     expect(finalGuard).toContain('> "$FINALIZE_VALIDATION_FILE"');
-    expect(finalGuard).toContain('test "$pre_strategy" = "$final_strategy"');
-    expect(finalGuard).toContain('grep -Fqx -- "- 選択strategy: $pre_strategy"');
-    expect(finalGuard).toContain('grep -Fqx -- "- strategy: $pre_strategy"');
+    expect(finalGuard).toContain("needs_human:finalize_strategy_changed");
+    expect(finalGuard).toContain("needs_human:run_plan_strategy_mismatch");
+    expect(finalGuard).toContain("needs_human:run_report_strategy_mismatch");
     expect(finalGuard).toContain("git diff --name-only");
     expect(finalGuard).toContain("git ls-files --others --exclude-standard");
     expect(finalGuard).toContain("git diff --check");
