@@ -583,8 +583,10 @@ function readPayload(expectedEvent) {
   return payload;
 }
 
-function outputBlock(reason) {
-  process.stdout.write(`${JSON.stringify({ decision: "block", reason })}\n`);
+function outputBlock(reason, systemMessage) {
+  const output = { decision: "block", reason };
+  if (typeof systemMessage === "string") output.systemMessage = systemMessage;
+  process.stdout.write(`${JSON.stringify(output)}\n`);
 }
 
 function formatViolation(violation) {
@@ -596,16 +598,20 @@ function formatViolations(violations) {
 }
 
 function diagnostics(code, diagnosticCause) {
-  const safeCause = code === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
-  const message = safeCause
-    ? `Codex text quality hook: quality check unavailable (baseline_unavailable; cause=${safeCause})`
-    : `Codex text quality hook: quality check unavailable (${code})`;
+  const message = formatDiagnosticMessage(code, diagnosticCause);
   process.stdout.write(
     `${JSON.stringify({
       continue: true,
       systemMessage: message,
     })}\n`,
   );
+}
+
+function formatDiagnosticMessage(code, diagnosticCause) {
+  const safeCause = code === "baseline_unavailable" ? diagnosticCauseFor(diagnosticCause) : undefined;
+  return safeCause
+    ? `Codex text quality hook: quality check unavailable (baseline_unavailable; cause=${safeCause})`
+    : `Codex text quality hook: quality check unavailable (${code})`;
 }
 
 function outputAllow() {
@@ -717,7 +723,10 @@ async function main() {
         ? error.code
         : "internal";
     if (expectedEvent === "Stop" && payload?.stop_hook_active !== true) {
-      outputBlock("Text quality check unavailable; completion cannot be confirmed.");
+      outputBlock(
+        "Text quality check unavailable; completion cannot be confirmed.",
+        formatDiagnosticMessage(code, error?.diagnosticCause),
+      );
     } else {
       diagnostics(code, error?.diagnosticCause);
       cleanupAllowedStop(payload);

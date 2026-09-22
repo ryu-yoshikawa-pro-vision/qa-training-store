@@ -272,7 +272,11 @@ pnpm run diagnose:hooks
 - `diagnose:hooks` はroot `.codex/config.toml`、`[features] hooks = true`、root `.codex/hooks.json`の診断範囲、filesystemのsymlink境界、既存`.artifacts/codex-text-quality` stateを読み取り専用で確認します。Hook、launcher、payload、baseline生成、log追記は実行しません。
 - doctorの`baseline_state_missing`、`baseline_state_read`、`baseline_state_json`、`baseline_state_schema`、`baseline_state_identity`、`baseline_state_manifest`は、stateが現在sessionの障害だと断定するためのものではありません。stateが存在しない場合や既存stateが壊れている場合も、runtime stateのWARNとしてexit 0になる範囲があります。
 - `baseline_unavailable; cause=<code>` は、stateへ保存された出力許可済みのsafe codeだけを表示します。prompt、Hook payload、state本文、raw session ID、absolute path、secret、raw exceptionは表示しません。regexに一致する未知codeはstateとして検証できても外部causeへ出しません。
+- inactive `Stop` の `Text quality check unavailable; completion cannot be confirmed.` は制御用`reason`として維持され、同じblockの`systemMessage`に `Codex text quality hook: quality check unavailable (<code>)` またはallowlist済みcause付きの分類が表示されます。これはHook本体が起動して内部で失敗した経路です。
+- `systemMessage` の `Codex text quality hook: Stop launcher unavailable` は、Hook本体を起動する前のStop launcher fallback経路です。inactive `Stop` はgeneric block、active `Stop` は既存どおり`continue=true`のfail-openで、両方ともlauncher診断を表示します。通常のtext-quality violation blockには診断用`systemMessage`を追加しません。
+- active `Stop` の `baseline_state_missing` は、正常Stopでstateをcleanupした後のrepeated Stopと区別できないため、従来どおり `{ "continue": true }` の無診断allowです。原因観測は最初のinactive `Stop`で行います。
 - `.artifacts/codex-text-quality`が無い、またはstate 0件は正常です。`N/A`で表示されるproject trust、Hook trust、managed override、実Codexのproject root / cwd / config layering、Host / session bindingはWARNへ数えません。
+- `diagnose:hooks` が `WARN=0 ERROR=0` でも、過去のruntime failureが無かったことは証明しません。再発時はblockと同時に出る`systemMessage`を一次情報として原因を切り分け、offline確認後にHost / trust / config layeringを調査します。
 
 このoffline経路でRepository側がPASSした後もHookが実Codexで動かない場合は、`/hooks`の定義・trust、project trust、Hook trust、実行環境の`CODEX_HOME`一致、Codex Host側のproject root / cwd / config layeringを別に確認します。`/hooks`と`CODEX_HOME`の運用はこの文書の既存trust手順が正本であり、offline doctorはそれらを自動判定しません。
 

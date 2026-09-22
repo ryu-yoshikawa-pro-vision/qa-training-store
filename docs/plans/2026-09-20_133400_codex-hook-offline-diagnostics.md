@@ -32,15 +32,15 @@
 - project trust、Hook trust、managed override、実Codexのproject root / cwd / config layering、Host / session bindingはRepositoryだけでは確定できないため、`N/A`（offlineでは未確認）として扱い、`WARN` 件数には含めない。
 - `PreToolUse`、`SessionStart`、logging Hook、text quality Hookの外部failure契約を既存testと不足testで確認する。
 - 「全Hookエラー」は、Repositoryが所有し外部から観測可能なfailure契約を意味する。内部の全`throw`、user / system / plugin Hook、Host内部失敗までは対象にしない。
-- `baseline_state` の原因を安全な6種類のcodeへ分け、active Stopでstateがcleanupされた後でも再発時の原因分類がHook出力から分かる。
+- `baseline_state` の原因を安全な6種類のcodeへ分け、最初のinactive Stopで`systemMessage`から原因分類が分かる。active Stopのmissing-state特例と正常cleanup後のrepeated Stopは診断なしallowを維持する。
 - `baseline_unavailable` はstateへ保存済みの`code`が既知の出力許可codeである場合だけHook診断へ`cause=<code>`として含める。regex上validでも未知のcodeはstateとして受理しても外部出力しない。
 - `TextQualityConfigurationError.code` も既存 `baseline_unavailable.code` へ保存し、`baseline_creation` に不必要に潰さない。
 - diagnosticへstate本文、prompt、Hook payload、token、secret、raw session ID、absolute user path、raw exceptionを含めない。
 - state fileが存在しない場合のevent別挙動を維持する。
   - `UserPromptSubmit`: stateが無ければbaselineを作成する。
   - `PostToolUse`: read-only toolは既存どおりstateを読まず無出力でreturnする。read-only以外でstateが欠落した場合はfail-open診断。
-  - inactive `Stop`: state欠落はcompletion確認不能としてblock。
-  - active `Stop`: state欠落は既存どおり診断なしでallow。
+  - inactive `Stop`: state欠落はcompletion確認不能としてblockし、安全な原因codeを`systemMessage`へ出力する。`reason`は従来のgeneric messageを維持する。
+  - active `Stop`: state欠落は既存どおり診断なしでallowする。正常cleanup後のrepeated Stopと区別できないため、missingだけを理由に診断を追加しない。
 - active Stopのcleanupはbest-effortを維持し、cleanup失敗を理由にblockしない。
 - `.artifacts/codex-text-quality` 自体が存在しない場合とstate 0件は正常とする。
 - 既存runtime stateの異常は現在sessionとの関連を証明できないため `WARN` / exit 0とし、現在sessionの障害と断定しない。
@@ -193,7 +193,7 @@ baseline_state_manifest
 - `baseline_state_identity`: `root_id` / `session_id_hash` がstringである前提を満たした後の形式不正、またはexpected root / session identityとの不一致。
 - `baseline_state_manifest`: ready stateの`files` array内部にあるentry、Markdown relative path、path重複、source、SHA-256、violations、fingerprint、count等のmanifest不正。
 
-active `Stop` のmissing-state特例は、generic `baseline_state` + `existsSync()` ではなく `baseline_state_missing` を基準に維持する。`PostToolUse`は既存のread-only tool早期returnを先に維持し、read-only以外でstateを読む場合だけ同じcodeをfail-open diagnosticとして扱う。inactive `Stop`は引き続きgeneric blockを返す。
+active `Stop` のmissing-state特例は、generic `baseline_state` + `existsSync()` ではなく `baseline_state_missing` を基準に維持する。`PostToolUse`は既存のread-only tool早期returnを先に維持し、read-only以外でstateを読む場合だけ同じcodeをfail-open diagnosticとして扱う。inactive `Stop`は引き続きgeneric `reason`でblockし、安全な原因codeを`systemMessage`へ出力する。
 
 ### 2.6 `baseline_unavailable` の原因保持
 
@@ -249,7 +249,7 @@ Codex text quality hook: quality check unavailable (baseline_unavailable; cause=
 Codex text quality hook: quality check unavailable (baseline_unavailable)
 ```
 
-inactive `Stop` は原因codeを外へ出さず、現在のgeneric blockを維持する。
+inactive `Stop` は`decision=block`と従来のgeneric `reason`を維持し、`formatDiagnosticMessage(code, diagnosticCause)`で安全に整形した原因分類を`systemMessage`へ出力する。`baseline_unavailable`のcauseは既存の`diagnosticCauseFor(...)`を通し、allowlist外の本文は出力しない。active `Stop`の`baseline_state_missing`は正常cleanup後のrepeated Stopと区別できないため、既存どおり診断なしでallowする。
 
 ### 2.7 state validation共有
 
@@ -287,6 +287,7 @@ Hook本体と共有moduleがNode ESMの `.mjs` であるため、doctorも `scri
 ### 3.1 変更候補
 
 ```text
+.codex/config.toml
 package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs
@@ -422,8 +423,10 @@ cause出力許可集合は2.6で列挙した18 codeだけとし、`scripts/lib/c
 - missing `.textlintrc.json` -> state `code=textlint_config_unavailable`
 - invalid textlint config ->対応するsafe configuration codeを保存
 - `PostToolUse` -> safe cause付きfail-open diagnostic、stateは維持
-- inactive Stop -> generic block、stateは維持
+- inactive Stop -> `decision=block`とgeneric `reason`を維持し、安全な原因分類を`systemMessage`へ出力、stateは維持
 - active Stop -> safe cause付きallow diagnostic、cleanupはbest-effort
+- active Stop + `baseline_state_missing` -> `continue=true`の無診断allowを維持
+- Stop launcher failure -> inactive Stopはgeneric block + `systemMessage=Stop launcher unavailable`、active Stopは既存どおりfail-open + 同じ`systemMessage`
 - `code`なし -> causeなしの従来 `baseline_unavailable` diagnostic
 - regex一致かつ出力許可済みcode -> cause付きdiagnostic
 - regex一致だが未知のcode -> stateはvalidのまま、causeなしの従来diagnostic
@@ -462,6 +465,8 @@ cause出力許可集合は2.6で列挙した18 codeだけとし、`scripts/lib/c
 - read-only `PostToolUse` のstate未読・無出力契約。
 - `TextQualityConfigurationError.code` の保存と`baseline_unavailable; cause=<code>`表示。
 - `baseline_unavailable.code`なし / 2.6の出力許可集合に含まれるregex-valid code / regex-valid未知 / regex-invalidのvalidation・出力契約。出力許可集合はshared moduleの1定義を参照し、Hook / doctorに複製しない。
+- inactive Stopのbaseline failureはgeneric `reason`を変更せず、safe code/causeを`systemMessage`へ出力する。正常なtext-quality violation blockには診断用`systemMessage`を追加しない。
+- Unix / Windows configured Stop launcherのfailureは、inactive fallbackのgeneric block + `Stop launcher unavailable`、active fallbackの`continue=true` + 同じdiagnosticをprocess境界で検証する。
 - `.codex` / `.codex/hooks` ancestorが実directoryかつ非symlinkであり、configured Repository handlerがregular fileかつ非symlinkである静的contract。
 - shared state module追加後もUnix / Windows configured launcherとtemp fixtureが同じproduction経路を実行できること。
 
@@ -593,7 +598,7 @@ pnpm run diagnose:hooks
 
 - `test:hooks`がFAILする場合は、Repository所有Hookの契約違反として対象testから原因を追う。
 - doctorで既存state異常が出る場合はWARN詳細を確認するが、そのstateが現在session由来とは断定しない。
-- state 0件かつ`test:hooks` PASSの場合、過去active Stopの原因は現在stateから断定しない。次回再発時はHookが出す `baseline_state_*` または `baseline_unavailable; cause=<code>` を使う。
+- state 0件かつ`test:hooks` PASSの場合、過去active Stopの原因は現在stateから断定しない。次回再発時は最初のinactive Stopが出す`systemMessage`の `baseline_state_*` または `baseline_unavailable; cause=<code>` を使う。`Stop launcher unavailable`ならHook本体より前のlauncher経路を調査する。
 - offline検証が全PASSしCodex実行時だけHookが動かない場合は、project trust、Hook trust、managed override、project root / cwd / config layering、Host binding側へ切り分ける。
 
 ### Task 11: CIへ組み込む
@@ -685,7 +690,8 @@ required job名は変更しない。
 - active Stopのnon-missing state failureは詳細codeを出した後にbest-effort cleanupされる。
 - `TextQualityConfigurationError.code` が既存 `baseline_unavailable.code` へ安全に保存される。
 - `PostToolUse` / active Stopが固定形式のsafe cause diagnosticを出せる。
-- inactive Stopのgeneric blockを維持する。
+- inactive Stopの`decision=block`とgeneric `reason`を維持し、Hook内部failureのsafe code/causeを`systemMessage`で観測できる。正常なviolation blockには診断用`systemMessage`を追加しない。
+- Stop launcher failureをHook内部failureと混同せず、inactiveはgeneric block + `Stop launcher unavailable`、activeは既存どおりfail-open + 同じ`systemMessage`とする。
 - Hookとdoctorが`scripts/lib/codex-text-quality-state.mjs`の同じpure state validatorを使い、missing / read / JSONとschema / identity / manifestの責務境界が固定されている。state fieldのroot / session identity比較はshared validatorへ一本化され、doctorはfilename形式とfilename root hashのcurrent repository所属だけを確認する。
 - shared state moduleが診断対象の`.codex`配下に置かれておらず、text quality temp fixtureとverify wrapperの必須template file契約へ含まれている。
 - read-only `PostToolUse` の既存early return契約が維持される。
@@ -777,6 +783,7 @@ doctorがHook / launcher実行、Git index refresh、symlink追跡をすると�
 ## 9. 想定成果物
 
 ```text
+.codex/config.toml
 package.json
 .github/workflows/ci.yml
 .codex/hooks/text_quality_gate.mjs

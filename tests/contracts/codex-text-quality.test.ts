@@ -549,6 +549,7 @@ function expectConfiguredStopBlock(result: ProcessResult, label: string, root: s
   expect(JSON.parse(result.stdout), `${label} stdout`).toEqual({
     decision: "block",
     reason: "Text quality check unavailable; completion cannot be confirmed.",
+    systemMessage: STOP_LAUNCHER_DIAGNOSTIC,
   });
   expect(result.stderr, `${label} stderr`).toBe("");
   for (const value of ["prompt", "stop-secret", "stop-token", root]) {
@@ -1523,7 +1524,12 @@ describe("Codex deterministic text quality contracts", () => {
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: "Text quality check unavailable; completion cannot be confirmed.",
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (textlint_config_invalid)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -1566,6 +1572,8 @@ describe("Codex deterministic text quality contracts", () => {
       expect(JSON.parse(inactiveStop.stdout)).toEqual({
         decision: "block",
         reason: "Text quality check unavailable; completion cannot be confirmed.",
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
       });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
@@ -2164,6 +2172,7 @@ describe("Codex deterministic text quality contracts", () => {
       expect(block.decision).toBe("block");
       expect(block.reason).toContain("docs/first.md:1 [TEST-BANNED-A]");
       expect(block.reason).toContain("docs/second.md:1 [TEST-BANNED-B]");
+      expect(block).not.toHaveProperty("systemMessage");
       expect(inactiveStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });
@@ -2226,7 +2235,12 @@ describe("Codex deterministic text quality contracts", () => {
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: "Text quality check unavailable; completion cannot be confirmed.",
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=baseline_creation)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -2251,7 +2265,11 @@ describe("Codex deterministic text quality contracts", () => {
 
       const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(inactiveStop.status).toBe(0);
-      expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: "Text quality check unavailable; completion cannot be confirmed.",
+        systemMessage: "Codex text quality hook: quality check unavailable (baseline_state_json)",
+      });
       expect(inactiveStop.stderr).toBe("");
       expect(stateFiles(root)).toHaveLength(1);
 
@@ -2280,8 +2298,12 @@ describe("Codex deterministic text quality contracts", () => {
 
         const inactiveStop = runGate(root, "Stop", { stop_hook_active: false });
         expect(inactiveStop.status).toBe(0);
-        expect(JSON.parse(inactiveStop.stdout)).toMatchObject({ decision: "block" });
-        expect(inactiveStop.stdout).toContain("quality check unavailable");
+        expect(JSON.parse(inactiveStop.stdout)).toEqual({
+          decision: "block",
+          reason: "Text quality check unavailable; completion cannot be confirmed.",
+          systemMessage:
+            "Codex text quality hook: quality check unavailable (baseline_state_identity)",
+        });
         expect(inactiveStop.stderr).toBe("");
         expect(stateFiles(root)).toHaveLength(1);
 
@@ -2298,6 +2320,70 @@ describe("Codex deterministic text quality contracts", () => {
     30_000,
   );
 
+  it("keeps inactive Stop reasons generic while exposing only safe unavailable causes", () => {
+    for (const [code, expectedMessage] of [
+      [
+        "textlint_config_unavailable",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_unavailable)",
+      ],
+      [
+        "untrusted_external_cause",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable)",
+      ],
+    ] as const) {
+      withFixture((root) => {
+        const sessionId = `inactive-diagnostic-${code}-${randomUUID()}`;
+        const stateFile = stateFileNameForSession(root, sessionId);
+        writeFile(
+          root,
+          `.artifacts/codex-text-quality/${stateFile}`,
+          `${JSON.stringify({
+            schema_version: 2,
+            root_id: createHash("sha256")
+              .update(path.resolve(git(root, ["rev-parse", "--show-toplevel"])), "utf8")
+              .digest("hex"),
+            session_id_hash: createHash("sha256").update(sessionId, "utf8").digest("hex"),
+            status: "baseline_unavailable",
+            code,
+          })}\n`,
+        );
+
+        const inactiveStop = runGate(
+          root,
+          "Stop",
+          { stop_hook_active: false },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+        expect(inactiveStop.status).toBe(0);
+        expect(JSON.parse(inactiveStop.stdout)).toEqual({
+          decision: "block",
+          reason: "Text quality check unavailable; completion cannot be confirmed.",
+          systemMessage: expectedMessage,
+        });
+        expect(inactiveStop.stderr).toBe("");
+        expect(stateFiles(root)).toHaveLength(1);
+        if (code === "untrusted_external_cause") {
+          expect(inactiveStop.stdout).not.toContain(code);
+        }
+
+        const activeStop = runGate(
+          root,
+          "Stop",
+          { stop_hook_active: true },
+          path.join(root, "rules.json"),
+          sessionId,
+        );
+        expectStructuredSystemMessage(activeStop, `active ${code}`, expectedMessage, [
+          root,
+          sessionId,
+          "untrusted_external_cause",
+        ]);
+        expect(stateFiles(root)).toHaveLength(0);
+      });
+    }
+  });
+
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {
       const missingPost = runGate(root, "PostToolUse", { tool_name: "Bash" });
@@ -2310,7 +2396,12 @@ describe("Codex deterministic text quality contracts", () => {
 
       const missingStop = runGate(root, "Stop", { stop_hook_active: false });
       expect(missingStop.status).toBe(0);
-      expect(JSON.parse(missingStop.stdout)).toMatchObject({ decision: "block" });
+      expect(JSON.parse(missingStop.stdout)).toEqual({
+        decision: "block",
+        reason: "Text quality check unavailable; completion cannot be confirmed.",
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_state_missing)",
+      });
       expect(missingStop.stderr).toBe("");
 
       const activeStop = runGate(root, "Stop", { stop_hook_active: true });

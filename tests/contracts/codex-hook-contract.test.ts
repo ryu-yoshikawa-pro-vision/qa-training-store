@@ -349,6 +349,9 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         expect(windowsScript).toContain(scriptName);
         if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
           expect(commandForHook(entry, "command", event)).toContain(
+            'fallback=\'{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}\'',
+          );
+          expect(commandForHook(entry, "command", event)).toContain(
             `active_diagnostic='{\"continue\":true,\"systemMessage\":\"Codex text quality hook: Stop launcher unavailable\"}'`,
           );
           expect(commandForHook(entry, "command", event)).toContain(
@@ -360,7 +363,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           expect(commandForHook(entry, "command", event)).toContain("hashlib.sha256");
           expect(commandForHook(entry, "command", event)).toContain("os.listdir");
           expect(windowsScript).toContain(
-            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed."}'`,
+            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
           );
           expect(windowsScript).toContain(
             `$activeDiagnostic = '{"continue":true,"systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
