@@ -95,3 +95,8 @@
 - Scope: Plan / Run Artifact / PR本文のみ。Native CI実装は未変更。
 - Progress: 100% (6/6)
 
+## 2026-09-22 — 修正後確認
+
+- 保存Planの実行タスクで番号`6`が重複していたため、Reusable Workflow caller変更を`7`へ修正し、1〜22の連番へ戻した。
+- 内容・対象範囲・実装方針の変更はない。
+

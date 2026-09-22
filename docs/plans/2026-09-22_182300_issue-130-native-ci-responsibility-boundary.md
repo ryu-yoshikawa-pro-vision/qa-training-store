@@ -792,7 +792,7 @@ launcher stabilizationとAPK install / launch assertionもworkflow側へ残す�
 - [ ] 4. called workflow内で`build_kind`から環境変数、Artifact名、filename、Evidence名を一意に決定し、workflow-level `concurrency`は追加しない。
 - [ ] 5. called workflowへ`NODE_VERSION=24` / `PNPM_VERSION=10.34.5` / `HUSKY="0"`を明示し、親workflowとの一致をcontract testで固定する。
 - [ ] 6. checkout、pnpm、Node、Java、Gradle cache、APK / Evidence uploadの既存Action SHAと重要な`with` / `if`設定をそのまま移す。
-- [ ] 6. `android-automation-build` / `android-production-build`を別caller jobのままReusable Workflow呼び出しへ変更する。
+- [ ] 7. `android-automation-build` / `android-production-build`を別caller jobのままReusable Workflow呼び出しへ変更する。
 - [ ] 8. Automation / Productionの既存ABI検証、Save / Verify順序、Gradle log、Evidence差異を維持する。
 - [ ] 9. `scripts/native/android-ci-production-bundle-guard.sh`を追加し、workflowからAutomation / Production APK pathを明示的に渡す。既存validatorのCLI / policyは変更しない。
 - [ ] 10. `android-ci-emulator-start.sh`を追加し、Emulator起動 / readinessを移す。`ANDROID_AVD_HOME` / `EMULATOR_PID`の`GITHUB_ENV`契約と既存diagnostic fileを維持する。
