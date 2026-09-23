@@ -72,3 +72,20 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (19/19)
+
+## 2026-09-23 — 最終レビュー修正
+
+- 概要: 実装開始前の最終レビューで残った2点を修正した。
+- 未使用contract:
+  - Current検索では`ImageAssetCatalogRepository`、`TestInspectionRepository`、`TestMetadataRepository`は`src/domain/repositories/contracts.ts`の定義以外にsource consumer / implementationが確認できない。
+  - `ImageAssetCatalogRepository`相当の実利用経路にはApplication-owned `ProductImageManifestRepository`が存在する。
+  - Test Inspection / Metadataの実処理は`TestControlService`が直接担っている。
+  - このため17 interfaceを「最低限の再配置対象」とせず、維持 / 移動 / 削除を判断する整理対象へ変更した。
+- static contract:
+  - 案A / BはDomain → Applicationのimport / re-exportを全面禁止する。
+  - 案Cは`src/domain/repositories/contracts.ts`から`@/application/contracts`へのtype-only参照だけを限定許可する。
+  - 通常import、`import type`、TypeScript import type query、runtime dynamic import、side-effect importに加え、`export ... from`、`export type ... from`、`export * from`とrelative path解決を検査する。
+  - 案Cでもre-export、runtime import、他Application module参照は許可しない。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (22/22)

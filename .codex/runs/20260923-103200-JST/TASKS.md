@@ -21,6 +21,9 @@
 - [x] 17. `ProductViewer`変換主体をCurrent callerのInfrastructure adapterへ修正する。
 - [x] 18. static contractのimport形とrelative path検査を具体化する。
 - [x] 19. decision-only / follow-up Refactorの検証commandをRepository標準へ整理する。
+- [x] 20. 17 interfaceを一律の再配置対象から外し、維持 / 移動 / 削除の整理対象へ修正する。
+- [x] 21. 未使用候補の`ImageAssetCatalogRepository` / `TestInspectionRepository` / `TestMetadataRepository`をfollow-upの削除確認対象へ追加する。
+- [x] 22. static contractを案A / Bと案Cで分岐し、re-export構文を検査対象へ追加する。
 
 ## ブロック中
 
