@@ -515,13 +515,25 @@ EOL-tolerant checkを採用する場合の条件:
 
 修復は、原因と採用方針に合わせてdisposable環境で手順を検証してから実施する。
 
+修復直前に現在worktreeを再確認する。
+
+- `git status --porcelain=v1 -z`
+- `git diff --`
+- `git diff --cached --`
+- untracked fileの有無
+- Phase 1でCRLF-onlyと確認した対象path集合と現在状態の一致
+
+Issue #177と無関係なtracked / staged / untracked変更がある場合は、それらを破棄・上書きし得る`reset --hard`、`git clean`、一括`restore`、worktreeの作り直しを実行しない。stashを自動作成して退避したことにもしない。現在変更を保持したまま安全に修復できない場合は、そのworktreeの修復を停止し、独立clean worktreeで実装・検証を継続する。
+
 候補:
 
-- clean checkout / worktree再作成
-- 採用したwriterでLFへ再出力
-- Prettier writeによるLF化
+- local変更がない、または破棄対象がIssue #177のCRLF-only状態だけと確認できた場合のclean checkout / worktree再作成
+- 採用したwriterで、Phase 1でCRLF-onlyと確認した対象pathだけをLFへ再出力
+- Prettier writeを使う場合もRepository全体の`pnpm run format`ではなく、Phase 1でCRLF-onlyと証明した対象pathへ限定してLF化
 
-git add --renormalize . はindexのnormalization用であり、今回の「worktree bytesを何がCRLFへしたか」の調査前に実行しない。
+修復後は、対象pathについてHEAD / indexとの意味上のcontent diffが0で、`git ls-files --eol`のworktree側だけが期待するLFへ戻ったことを確認する。Issue #177と無関係なlocal変更のstatus / diffが修復前後で不変であることも確認する。
+
+`git add --renormalize .`はindexのnormalization用であり、今回の「worktree bytesを何がCRLFへしたか」の調査前に実行しない。
 
 全file一括EOL変更をProduct変更と同じcommitへ混ぜない。
 
@@ -548,12 +560,12 @@ Prettier / ESLintのstaged content検査より先に、次の設定fileについ
 
 必須fixture:
 
-- staged source + unstaged `.prettierrc.json`変更 -> FAIL
-- staged source + unstaged `.prettierignore`変更 -> FAIL
-- staged source + unstaged `eslint.config.js`変更 -> FAIL
-- 設定fileをstage後に同fileをさらにunstaged変更 -> FAIL
+- `.prettierignore` / `.prettierrc.json` / `.editorconfig` / `eslint.config.js`の各fileについて、staged source + その設定fileのunstaged変更 -> FAIL
+- 上記4 fileの各fileについて、設定fileをstage後に同fileをさらにunstaged変更 -> FAIL
 - 設定fileのindex / worktreeが一致 -> 通常のstaged検査へ進む
 - Git上で差分0のEOL-only差 -> このguardではFAILしない
+
+4 fileの同じ契約はparameterized test等でまとめてよく、ほぼ同じtestを4本ずつ手書きしない。
 
 #### staged changeの取得
 
@@ -603,7 +615,8 @@ Prettier / ESLintのstaged content検査より先に、次の設定fileについ
 - staged違反 + 同pathのunstaged修正 -> FAIL
 - staged正常 + 同pathのunstaged違反 -> PASS
 - partial stagingでindexとworktreeが異なる -> index contentを判定
-- 品質設定fileにindex / worktree差分 -> 固定診断でFAIL
+- `.prettierignore` / `.prettierrc.json` / `.editorconfig` / `eslint.config.js`の各fileでindex / worktree差分 -> 固定診断でFAIL
+- 上記4 fileの各fileをstage後にさらにunstaged変更 -> 固定診断でFAIL
 - 品質設定fileのGit上の差分がEOL-onlyで0 -> config guardだけではFAILしない
 - Prettierの`.prettierignore`対象 -> PASSし、独自対象判定を行わない
 - ESLint warning-only -> PASS
@@ -723,7 +736,7 @@ EOL、Husky、Codex Hookは原因と修正ownerを別々に確定する。
 - [ ] 11. Huskyの3 commandについて、staged-only可否と現在の責務を個別に確認する。
 - [ ] 12. NUL-safeなstaged path列挙とindex stage 0 blob取得方式をrename / delete / partial staging / 空白pathを含むfixtureで決める。
 - [ ] 13. Prettier / ESLintがworktreeではなくindex contentを検査し、Prettierの`.prettierignore` / `.prettierrc.json` / `.editorconfig`と、ESLintのignore / warning / error終了条件を現在CLIと同じ意味で維持する最小実装を検証し、採用可否を決める。
-- [ ] 14. `.prettierignore` / `.prettierrc.json` / `.editorconfig` / `eslint.config.js`のindex / worktree差分guardを追加し、staged sourceをworktree側だけの設定で判定しないことをfixtureで固定する。
+- [ ] 14. `.prettierignore` / `.prettierrc.json` / `.editorconfig` / `eslint.config.js`のindex / worktree差分guardを追加し、4 fileすべてを同じcontractで検証して、staged sourceをworktree側だけの設定で判定しないことをfixtureで固定する。
 - [ ] 15. `security:check`をRepository-wide worktree維持 / Git indexの次回commit snapshot検査 / pre-commit外へ移す3案で比較し、安全性を落とさない最小案を決める。
 - [ ] 16. `tests/contracts/husky-config.test.ts`を採用後の責務へ更新し、staged違反 + unstaged修正、staged正常 + unstaged違反、partial staging、品質設定file不一致、Prettier / ESLint ignore、ESLint warning-only、commit対象0件、`git commit --allow-empty`、commit対象外fileをbehaviorで検証する。
 - [ ] 17. isolated temporary Repositoryのactual linked worktreeで通常install / Husky prepare後の実`git commit`成功・失敗経路を確認する。
@@ -732,7 +745,7 @@ EOL、Husky、Codex Hookは原因と修正ownerを別々に確定する。
 - [ ] 20. `UserPromptSubmit` / `PostToolUse` / inactive Stop / active Stopの既存fail-open / fail-close契約を回帰確認する。
 - [ ] 21. actual linked worktree自身のdoctor pathを起動するfixtureで、`diagnose:hooks`をdependency不足でも最低限起動できるようにし、dependency不足=ERROR / exit 1、repository context確立不能=exit 2、WARN-only=exit 0の境界を固定する。
 - [ ] 22. Hook file欠落、Node不足、dependency不足、state failureの既存診断を回帰確認する。
-- [ ] 23. 現在worktreeの既存CRLFを実装差分と混ぜずに修復する。
+- [ ] 23. 現在worktreeのstatus / staged / unstaged / untracked状態を再取得し、Issue #177と無関係なlocal変更を保護したうえで、Phase 1でCRLF-onlyと確認したpathだけを修復する。修復後に意味上のcontent diff 0と無関係なlocal変更の不変を確認する。
 - [ ] 24. EOL / Prettier、Husky staged境界・linked worktree、Codex Hook worktree、diagnosticsのfocused test / 受入を実行する。
 - [ ] 25. `pnpm run format:check`、`pnpm run test:hooks`、`pnpm run test:contracts`、`pnpm run verify`、`git diff --check`、Run Artifact sanitizerを実行する。
 - [ ] 26. clean Windows環境で実pre-commit、actual linked worktreeでHusky通常install後の実commit、linked worktree Codex Hookを確認する。
@@ -790,14 +803,27 @@ Case Aで特定writerのtest suiteが別にある場合は、そのfocused test�
 
 ### 6.5 Windows受入
 
-clean Windows環境で次を確認する。
+clean Windows環境で採用Caseに応じて確認する。
 
-- checkout直後のapp/**がLF
+共通条件:
+
 - 採用した恒久対応の再現手順が期待どおり
 - pre-commitがEOLだけの不要failureを起こさない
 - 実際のPrettier違反はpre-commitで失敗する
 - Git indexはLF
+- CIのstrict LF checkは維持される
 - global / system Git configを変更しなくても成立する
+
+Case A / B:
+
+- clean checkout直後のapp/**がLF
+- 原因となったwriter / Editor / 開発ツール操作を再実行しても、対象fileが意図せずCRLFへ戻らない
+
+Case C:
+
+- Phase 1から3で確定した再現条件によりworktreeがCRLFになっても、採用したlocal Repository-wide checkが定義どおりPASS / FAILを判定する
+- pre-commitはGit index contentを正本として判定し、CRLF worktreeだけを理由にFAILしない
+- 同じsourceをCIのstrict LF fixtureへ与えた場合はLF契約違反をFAILとして検出する
 
 ### 6.6 Husky staged boundary
 
@@ -1057,6 +1083,15 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - Windows / POSIXでpath quoting、cleanup、junction / symlink差に依存しない条件へ絞る。
 - 環境が機能自体を提供しない場合だけ明示skipし、通常fixtureへの置換でPASS扱いにしない。
 
+### 現在worktree修復でIssue #177と無関係なlocal変更を破棄・上書きする
+
+対策:
+- 修復直前に`git status --porcelain=v1 -z`、`git diff`、`git diff --cached`、untracked fileを再確認する。
+- 無関係なlocal変更がある場合は`reset --hard`、`git clean`、一括`restore`、worktree再作成を実行しない。
+- 自動stashで退避したことにせず、安全に修復できなければ独立clean worktreeで実装・検証を継続する。
+- Prettier writeを使う場合もPhase 1でCRLF-onlyと確認したpathに限定する。
+- 修復前後で無関係なlocal変更が不変、対象pathの意味上のcontent diffが0であることを確認する。
+
 ### 既存78 filesの一括formatを実装差分へ混ぜる
 
 対策:
@@ -1106,7 +1141,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - CIのstrict LF format checkを維持し、Case Cを採用した場合はlocal `format:check` / `verify`との責務差を明示している。
 - LF / CRLF x 正常 / format違反の4ケースを検証している。
 - Git add後のindexがLFであることを検証している。
-- clean Windows環境でpre-commitを検証している。
+- clean Windows環境で、Case A/Bではclean checkout LFと再発防止、Case Cでは確定したCRLF再現条件下のlocal check / pre-commit / CI strict LFの責務差を検証している。
 - 最新PR headのWeb CI / Mobile App CIが成功している。
 - pre-commitの検査範囲が明確で、commit対象外の既存format / lint差分だけで不要に停止しない。
 - Prettier / ESLintはstaged pathのworktree fileではなく、Git index stage 0のcommit予定contentを検査する。
@@ -1124,6 +1159,8 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - linked worktree自身のdoctor pathを起動しても、`diagnose:hooks`が失敗原因と同じdependency不足で完全に起動不能にならず、dependency不足はERROR / exit 1、repository context確立不能はexit 2、WARN-onlyはexit 0として分類される。
 - actual `git worktree add`を使う回帰testが追加または更新されている。
 - Windows / macOS / Linux / CIでpre-commit、Repository-wide gate、Codex Hookの責務差を説明できる。
+- 現在worktreeの修復でIssue #177と無関係なtracked / staged / untracked変更を破棄・上書きしていない。
+- CRLF修復はPhase 1でCRLF-onlyと確認したpathへ限定し、修復後もHEAD / indexとの意味上のcontent diffが0である。
 - unrelatedな大量fileのformat変更、新規dependency、Hook framework再設計を混ぜていない。
 
 ## 11. 未解決事項

@@ -59,3 +59,13 @@
 - 分割判断: Planは長いが、今回の追加はPhase 6と完了条件へ直接結び付く契約であり、別fileへ分けると実装順・検証・Case選択の参照先が増える。現時点では1 fileを維持する。
 - ブロッカー / 残作業: Plan更新としてはなし。次のレビューは新しい設計観点を増やさず、契約間の矛盾がないかと実装開始可否だけを確認する。
 - Progress: 100% (33/33)
+
+## 2026-09-23 — 実装開始前の最終整合修正
+
+- 概要: 最新Planを再レビューし、実装開始前に残っていた3点を反映した。新しいArchitectureやdependencyは追加していない。
+- 変更: Case CではWindows worktreeのCRLFが残り得るため、Windows受入をCase A/BとCase Cへ分岐した。Phase 5には修復直前の`git status --porcelain=v1 -z`、staged / unstaged diff、untracked確認を追加し、無関係なlocal変更がある場合は`reset --hard`、`git clean`、一括`restore`、worktree再作成を行わない契約へした。Prettier writeもPhase 1でCRLF-onlyと確認したpathだけへ限定する。品質設定guardは`.prettierignore`、`.prettierrc.json`、`.editorconfig`、`eslint.config.js`の4 fileすべてを同じ回帰contractで検証する。
+- 判断: Case Cでclean checkout LFを無条件DoDにするとCase定義と矛盾するため、Case A/BはLF再発防止、Case CはCRLF再現条件下でもlocal check / pre-commit / CI strict LFの責務差が成立することを受入条件とする。現在worktree修復はデータ損失を防ぐため、無関係なlocal変更を自動破棄・自動stashしない。
+- 検証: Phase 5、Phase 6の品質設定fixture、実装タスク、6.5 Windows受入、6.6 Husky staged boundary、リスク、完了条件を同じ契約へ同期した。実装コード、Hook、Husky、CI、dependency、Product codeは変更していない。
+- 分割判断: 今回の変更は既存Phaseと受入条件の整合修正であり、別fileへ分ける必要はない。Planは1 fileを維持する。
+- ブロッカー / 残作業: Plan修正としてはなし。次は新しい論点を増やさず、実装開始可否だけを最終確認する。
+- Progress: 100% (37/37)

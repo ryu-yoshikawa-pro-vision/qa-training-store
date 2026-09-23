@@ -35,6 +35,10 @@
 - [x] 31. actual linked worktreeでHuskyを通常install / prepare後に実commitする受入条件を追加する。
 - [x] 32. 完了条件をCase A/B/CだけでなくCase D/E/Fの採否記録へ同期する。
 - [x] 33. 実装タスク、検証、リスク、未解決事項へ同じ契約を反映し、ファイル分割不要を再確認する。
+- [x] 34. Case CとWindows受入条件の矛盾を解消し、Case A/BとCase Cで受入条件を分ける。
+- [x] 35. Phase 5へ修復直前のstatus / diff / untracked確認、破壊的Git操作禁止、CRLF-only path限定修復、修復後の意味差分0確認を追加する。
+- [x] 36. 品質設定guardの回帰testを`.prettierignore` / `.prettierrc.json` / `.editorconfig` / `eslint.config.js`の4 fileすべてへ適用する契約へ修正する。
+- [x] 37. 実装タスク、検証、リスク、完了条件へ上記3点を同期し、Plan分割不要を再確認する。
 
 ## ブロック中
 

@@ -8,6 +8,7 @@
 - Planレビューで確認したstaged content / worktree contentの境界、Git worktree scope、linked worktree自身のHook / doctor起動条件を反映する。
 - 再レビューで確認したPrettier / ESLint Node APIのCLI互換条件、doctorのexit code、linked worktree probeの作成・削除境界、Huskyの`--allow-empty`回帰契約を反映する。
 - 最終レビューで確認した品質設定fileのindex/worktree整合、`security:check`のnext-commit snapshot境界、actual linked worktreeでのHusky通常install後受入、Case A〜Fの完了条件同期を反映する。
+- 実装開始前の最終整合レビューで確認したCase C / Windows受入の条件分岐、現在worktree修復時のlocal変更保護、4品質設定fileの回帰contract網羅を反映する。
 
 ## 今回行うこと
 
