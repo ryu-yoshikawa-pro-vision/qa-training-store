@@ -2,25 +2,26 @@
 
 ## 目的
 
-- Issue #132のarchitecture方針確定に向け、Current Repositoryを再調査し、実装前Planを保存する。
-- 既存正本だけで一意に決まらない場合はarchitecture ownerのDecision PointをPlanへ明示する。
-- 今回はPlan-onlyとし、type移動、Repository Port移動、ADR追加、architecture contract実装へ進まない。
+- Issue #132のPlanレビューで見つかったarchitecture authorityの見落としを修正する。
+- Current Repositoryの明示方針に基づき、Domain → Application type-only dependencyの扱いとcanonical ownershipを確定できるPlanへ更新する。
+- 今回はPlan-onlyとし、Product source、test、ADR、Issue metadataは変更しない。
 
-## 調査対象
+## 追加確認
 
-- `src/domain/repositories/contracts.ts`
-- `src/domain/policies/permissions.ts`
-- `src/application/contracts/**`
-- `src/application/ports/**`
-- `tests/contracts/architecture.test.ts`
+- `docs/CODING_STANDARDS.md §7.1`
+- `docs/02_architecture/repository_structure.md §4`
+- `docs/01_requirements/non_functional_requirements.md`の`NFR-MA-001`
 - ADR-0003
-- `docs/04_data/repository_interfaces.md`
-- `docs/04_data/application_contracts.md`
-- Phase 6 §4.16のEvidence
+- `src/application/ports.ts`
+- `src/domain/repositories/contracts.ts`のinterface単位のApplication type利用
+- `src/domain/policies/permissions.ts`で`ProductViewer`から実際に使うfield
+- `@/domain/repositories`のCurrent consumer
 
-## Plan上の判断
+## 修正後の判断
 
-- Existing sourcesだけではDomain → Application type-only dependencyのallow / denyは一意に決まらない。
-- Plan実行時にarchitecture owner Decisionを必須gateとする。
-- Plan作成時の推奨は、Domain Repository Portを維持しつつRepository contractだけtype-only例外を限定許可し、Domain policyからApplicationへの参照は許可しない案。
-- `ProductViewer`のcanonical ownerはDomain側を第一候補とするが、実装はDecision後の別Planへ切り出す。
+- Current architectureはDomain → Applicationをtype-onlyを含め禁止している。
+- Current codeと一部Repository contract説明がarchitecture ruleへ整合していない。
+- Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。
+- Application typeを必要とするRepository PortはApplication ownership、Domain-owned typeだけで閉じるRepository ContractはDomain ownershipとする。
+- `canViewerSeeProduct()`はApplication `ProductViewer`へ依存せず、必要最小限のDomain-owned valueを受け取る。
+- §4.16はCurrent状態が維持されるなら`refactor_now`とし、実装は別Plan / PRへ切り出す。

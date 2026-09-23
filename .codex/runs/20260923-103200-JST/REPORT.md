@@ -19,3 +19,28 @@
   - Result: N/A。
   - 親Agentの判断: N/A。
 - Progress: 100% (8/8)
+
+## 2026-09-23 — 全体レビュー反映
+
+- 概要: 初版Planのarchitecture authority確認が不足していたため、Current Repositoryの依存方向を再確認し、Planの前提と実行順を修正した。
+- 追加根拠:
+  - `docs/CODING_STANDARDS.md §7.1`は`Presentation -> Application -> Domain`、`Infrastructure -> Application Port / Domain Contract`を明示し、DomainからApplicationへの依存を禁止する。
+  - `docs/02_architecture/repository_structure.md §4`も「Domainは他Layerへ依存しない」と明示する。
+  - `NFR-MA-001`はlayer dependency directionをRelease `Gate`としている。
+  - `src/application/ports.ts`には`ProductImageManifestRepository`等のApplication-owned Portが既に存在する。
+- Repository mapping:
+  - `src/domain/repositories/contracts.ts`の24 interface中、17件がApplication typeをsignatureに使用し、7件はDomain-owned typeだけで閉じる。
+  - Current direct consumerはApplication / Infrastructureで、Domain内consumerは確認されていない。
+  - `src/domain/policies/permissions.ts`の`canViewerSeeProduct()`は`ProductViewer.userId`を使用せず、公開可否に必要なのはviewerのcustomer判定と`membershipRank`だけ。
+- 修正判断:
+  - 「allow / denyは未確定」という初版結論を撤回し、Current policyはDomain → Applicationをtype-only含め禁止とした。
+  - `repository_interfaces.md`はmethod contractの説明であり、Domain → Application例外のauthorityとは扱わない。
+  - Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。
+  - Application typeを必要とするRepository PortはApplication ownership、Domain-owned typeだけで閉じるRepository ContractはDomain ownershipとする。
+  - Domain policyは`ProductViewer`全体ではなく必要最小限のDomain-owned valueを受け取る。
+  - §4.16はCurrent状態が維持される場合`refactor_now`とし、source remediation / static contractは別Plan / 実装PRへ切り出す。
+- Plan simplification: architecture ownerへA/B/Cを選ばせる必須Decision Gateを削除した。Current architecture自体を変更して例外を新設する場合だけowner Decisionを必要とする。
+- Scope: 保存Planと本Run Artifactだけを更新する。Product source、test、ADR、Issue metadata、PR metadataは変更しない。
+- Validation: Current `main`はbranch作成時と同じ`01cd8ab15078d479e821d373445af1e16a469519`。GitHub上でCurrent source / normative docs / historyをread-only確認した。runtime test / CIはPlan-onlyのため未実行。
+- ブロッカー: なし。
+- Progress: 100% (12/12)

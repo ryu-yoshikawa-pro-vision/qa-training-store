@@ -5,418 +5,570 @@
 - 対象Issue: #132 `investigate: Domain → Application type dependencyのarchitecture方針を確定する`
 - 作業branch: `plan/issue-132-domain-application-type-dependency`
 - branch作成時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`
+- 2026-09-23の再レビュー時点でも`main`は同SHAで、対象architecture / sourceに追加driftはない。
 - 今回はPlan作成までとし、type移動、Repository interface移動、architecture contract実装、ADR追加、Issue close、PR作成、mergeは行わない。
-- Issue #132の目的どおり、既存正本から一意に決まらないarchitecture policyをCodexだけで確定しない。
+- Refactor実装が必要な場合はIssue #132のdecision-only作業へ混在させず、別Plan / 実装PRへ切り出す。
 
 ## 1. 結論
 
-Current `main`を再確認した結果、既存正本だけではDomain → Applicationのtype-only dependencyを許容するかを一意に決められない。
+Current Repositoryには、Domain → Applicationを禁止する明示的なarchitecture方針が既に存在する。
 
-理由は次のとおり。
+根拠:
 
-1. ADR-0003は「Application層はDomain Repository Portだけに依存する」と明記している。
-2. `docs/04_data/repository_interfaces.md`は、RepositoryがDomain Entityまたは明示したRead DTOを返し、DTO・Input・Resultの具体型は`application_contracts.md`を参照する現行契約を記載している。
-3. 実装もこの2つを同時に満たす形になっており、Domain Repository Port自体は`src/domain/repositories/contracts.ts`に置かれたまま、method signatureがApplication contractをtype-onlyで参照している。
-4. `tests/contracts/architecture.test.ts`はApplication → InfrastructureやNative → Webの禁止方向を検査するが、Domain → Applicationのtype-only edgeは検査していない。
-5. Phase 6以降もこのboundary起因のruntime cycle、compile failure、repair再発は確認されていない。
+1. `docs/CODING_STANDARDS.md §7.1`
+   - `Presentation -> Application -> Domain`
+   - `Infrastructure -> Application Port / Domain Contract`
+   - 「DomainはApplication、Infrastructure、Presentationへ依存しない」
+2. `docs/02_architecture/repository_structure.md §4`
+   - 「Domainは他Layerへ依存しない」
+3. `docs/01_requirements/non_functional_requirements.md`
+   - `NFR-MA-001`は「Presentation、Application、Domain、Infrastructureの依存方向を守る」をRelease `Gate`としている。
+4. ADR-0003
+   - ApplicationからRepositoryへの依存をDomain Repository Port経由とし、Infrastructure実装をComposition Root / Adapter側へ置く。
 
-したがって、このIssueの実行時は次の順序を固定する。
+したがって、Issue #132の不足Evidenceは「Domain → Applicationを許容するか」ではない。
 
-1. Current dependency surfaceを有限に再取得する。
-2. 既存正本間の緊張関係をDecision Pointへ整理する。
-3. architecture ownerへ選択肢・影響・推奨案を提示し、判断を得る。
-4. 判断後にarchitecture decisionを正本へ保存し、static contractの要否と§4.16の再分類を確定する。
-5. type移動やRepository Port移動が必要な場合は、このIssue内で先行実装せず、別Plan / 実装PRへ切り出す。
+Currentで解消すべき点は次の3つ。
 
-## 2. Current repository mapping
+1. `src/domain/repositories/contracts.ts`と`src/domain/policies/permissions.ts`がCurrent architecture方針に違反してApplication typeへ依存している。
+2. `docs/04_data/repository_interfaces.md`がApplication DTO / query / commandをRepository signatureで利用するCurrent contractを説明する一方、Repository contractのownership境界を明示していない。
+3. `tests/contracts/architecture.test.ts`がCurrentの「DomainはApplicationへ依存しない」方針を検査していない。
 
-### 2.1 Entry points
+Issue #132ではCurrent policyを変更せず、次を確定する。
+
+- Domain → Application dependencyはruntime / type-onlyを問わず禁止する。
+- Application DTO / query / commandはApplication ownershipを維持する。
+- Application typeをsignatureに必要とするRepository PortはApplication ownershipへ寄せる。
+- Application typeを必要としないDomain Repository ContractはDomain ownershipを維持する。
+- `ProductViewer`はApplication contractに残し、Domain policyへApplication typeを渡さない。
+- §4.16は、Current `main`で再確認して同じ状態なら`refactor_now`へ再分類する。
+- 実際のtype / interface移動とarchitecture contract追加は別Plan / 実装PRで行う。
+
+既存architecture方針自体を意図的に変更し、Domain → Applicationの例外を新設する場合だけarchitecture ownerの新しいDecisionを必要とする。このPlanでは例外追加を採用しない。
+
+## 2. Current Repositoryの状態
+
+### 2.1 確認対象
 
 - Issue #132
 - `src/domain/repositories/contracts.ts`
+- `src/domain/repositories/index.ts`
 - `src/domain/policies/permissions.ts`
 - `src/application/contracts/**`
 - `src/application/contracts/common.ts`
-- `src/application/ports/**`
+- `src/application/ports.ts`
+- `src/application/transactions/contracts.ts`
 - `tests/contracts/architecture.test.ts`
 - `tests/unit/policies.test.ts`
 - Repository contract tests
+- `docs/CODING_STANDARDS.md`
+- `docs/01_requirements/non_functional_requirements.md`
+- `docs/02_architecture/repository_structure.md`
+- `docs/02_architecture/system_architecture.md`
 - `docs/adr/0003-platform-route-composition-root.md`
 - `docs/04_data/repository_interfaces.md`
 - `docs/04_data/application_contracts.md`
-- `docs/02_architecture/system_architecture.md`
 - `docs/reports/2026-09-06_193114_refactoring_necessity_review.md`
 
-### 2.2 Main flow
-
-Currentの主要依存は次。
+### 2.2 Current dependency
 
 ```text
-Application use cases
-  -> Domain Repository Port
+Application
+  -> Domain Repository Contract
        -> Application DTO / query / command type  [type-only]
   -> Domain policy
        -> Application ProductViewer               [type-only]
 
-Infrastructure adapters
-  -> Domain Repository Port
+Infrastructure
+  -> Domain Repository Contract
   -> Application contracts
-
-Presentation
-  -> Application services
+  -> Application ports
 ```
 
-Runtime import cycleは現在確認されていないが、type graphではDomainとApplicationが双方向に参照する。
+`import type`のためCurrent codeからruntime cycleは確認されていない。
 
-### 2.3 Current dependency surface
+ただし、Issue #132の対象はruntime cycleではなくcompile-timeのlayer dependency / canonical ownershipである。type-onlyであることはCurrent architecture方針の例外根拠にしない。
 
-`src/domain/**`から`@/application/**`を参照するCurrent fileは2件。
+### 2.3 `src/domain/repositories/contracts.ts`
 
-#### `src/domain/repositories/contracts.ts`
+Currentでは次を確認済み。
 
 - `@/application/contracts`から67型を一括type importしている。
-- 追加でinline type importとして次を参照する。
-  - `HomeCatalogDto`
-  - `ProductViewer`
-- Repository PortのsignatureにはRead DTOだけでなく、query / command / result型も含まれる。
-- `@/domain/repositories`の直接consumerはCurrent検索で18 source file確認できる。
-  - Application use cases / identity / transaction
-  - Dexie adapters
-  - SQLite Native adapter
+- inline type importで`HomeCatalogDto`と`ProductViewer`を参照する。
+- Repository interfaceは24件。
+- うちApplication typeをsignatureで使用するinterfaceは17件。
+- Application typeを使用しないinterfaceは7件。
+- `@/domain/repositories`の直接consumerは18 source fileで、ApplicationとInfrastructureに存在する。Current検索ではDomain内consumerは確認されていない。
 
-このため、問題を「4箇所の小さなimport修正」として扱わない。4 referenceがtype-onlyであることと、その1 referenceが多数のApplication-owned typeを束ねていることを分けて扱う。
+Application typeを使用する17 interface:
 
-#### `src/domain/policies/permissions.ts`
+- `UserRepository`
+- `AddressRepository`
+- `StorefrontCatalogQueryRepository`
+- `ProductQueryRepository`
+- `AdminProductQueryRepository`
+- `ProductRepository`
+- `CategoryRepository`
+- `BrandRepository`
+- `ImageAssetCatalogRepository`
+- `InventoryRepository`
+- `CartRepository`
+- `CheckoutSessionRepository`
+- `OrderRepository`
+- `ReviewRepository`
+- `AdminOverviewQueryRepository`
+- `TestInspectionRepository`
+- `TestMetadataRepository`
 
-- `ProductViewer`を`@/application/contracts`からtype importする。
-- `canViewerSeeProduct()`がそのtypeを直接使用する。
-- `ProductViewer`自体は`guest`またはcustomerの`userId` / `membershipRank`だけで構成され、現在は`src/application/contracts/common.ts`にある。
+Application typeを使用しない7 interface:
 
-### 2.4 History
+- `VersionedRepository`
+- `SessionRepository`
+- `ReviewSummaryRepository`
+- `SequenceRepository`
+- `PaymentRepository`
+- `ShipmentRepository`
+- `SettingsRepository`
 
-Currentで確認したcandidate pathの主な履歴は次。
+この分類はfollow-up Refactorの移動対象候補を決めるためのCurrent Evidenceであり、interface数だけを理由に分割・統合しない。
 
-- `src/domain/repositories/contracts.ts`
-  - `8900637`: Phase 1初期architecture
-  - `7f7e48e`: Native Foundation
-  - `778b6f6`: Native CI / Cart / checkout関連修正
-- `src/domain/policies/permissions.ts`
-  - `8900637`: Phase 1初期architecture
-- `tests/contracts/architecture.test.ts`
-  - `08510e3`: 2026-09-02のcontract整合修正が最新の主要変更
+### 2.4 `src/application/ports.ts`
 
-Issue作成後にcandidate boundaryの意味を変える変更は確認していない。実行開始時にはlatest `main`へrebaselineする。
+Current Applicationには既にPort ownershipの実例がある。
 
-## 3. 既存正本の緊張関係
+- `Clock`
+- `IdGenerator`
+- `CurrentSessionStore`
+- `GuestIdentityStore`
+- `CurrentActorResolver`
+- `PasswordHasher`
+- `PaymentGateway`
+- `StaticAddressLookup`
+- `ProductImageManifestRepository`
 
-### 3.1 ADR-0003
+InfrastructureがApplication Portを実装する構造はCurrent Repositoryに既に存在し、`docs/CODING_STANDARDS.md §7.1`の`Infrastructure -> Application Port / Domain Contract`とも一致する。
 
-ADR-0003は次を決定済みとする。
+したがって、Application DTO / query / commandを必要とするPortをApplication ownershipへ置くために、新しいarchitecture frameworkや抽象化方針を導入する必要はない。
 
-- Application層はDomain Repository Portだけに依存する。
-- Dexie / SQLite等のInfrastructure実装はComposition Root / Adapter側へ置く。
+### 2.5 `ProductViewer`
 
-これはRepository PortのownershipをDomainに置く方向を支持する。
+Current `ProductViewer`:
 
-### 3.2 Repository Interface正本
+```ts
+type ProductViewer =
+  | { kind: "guest" }
+  | { kind: "customer"; userId: string; membershipRank: MembershipRank };
+```
 
-`docs/04_data/repository_interfaces.md`は次を記録する。
+Applicationで次に利用される。
 
-- RepositoryはDomain Entityまたは明示Read DTOを返す。
-- DTO・Input・Resultの具体型は`application_contracts.md`を参照する。
-- Repository / Adapter固有ExceptionはUse Case境界でApplicationErrorへ変換する。
+- identity resolution
+- Catalog query
+- Cart / Storefront contract
+- Native customer capability
+- Repository adapter
 
-これはRepository contractがApplication-owned DTO等をsignatureで利用するCurrent設計を説明している。
+一方、Domainの`canViewerSeeProduct()`が実際に利用するのは次だけ。
 
-### 3.3 Application contract正本
+- `viewer.kind`
+- `viewer.membershipRank`
 
-`docs/04_data/application_contracts.md`はApplication / DTO contractの意味・責務を説明し、実装TypeScriptをSSOTとしている。
+`userId`はDomain policyで利用しない。
 
-したがって、Repository PortをDomainに置きながらApplication-owned contractをtype-onlyで利用するCurrent構造は、偶発的な1 importではなくRepository contract全体の設計と結び付いている。
+また、Domainには既に`MembershipRank`が存在し、`assertUserInvariant()`はcustomerのrankがnon-nullであることを保証する。
 
-### 3.4 Current static contract
+このため、`ProductViewer`全体をDomainへ移す必要はない。follow-up Refactorでは`ProductViewer`をApplicationに残し、`canViewerSeeProduct()`へ渡すDomain inputを現在必要な`MembershipRank | null`相当へ縮小する方針を第一候補とする。新しいviewer abstractionは作らない。
 
-`tests/contracts/architecture.test.ts`は以下を保護する。
+## 3. Current authorityの整理
 
-- Application → Infrastructure / Dexie禁止
-- Native entry point → Web-only dependency禁止
-- Web-only style / widget等の各boundary
+### 3.1 architecture direction
 
-一方、Domain → Applicationについてallow / denyのどちらも明示していない。
+Currentの依存方向は次を正本として扱う。
 
-## 4. Decision Point
+```text
+Presentation -> Application -> Domain
+Infrastructure -> Application Port / Domain Contract
+```
 
-architecture ownerへは最低限、次の3案を提示する。判断前にtype移動やRepository Port移動を行わない。
+DomainからApplicationへの逆方向依存は許可しない。
 
-| 案 | 方針 | 主な利点 | 主な欠点 |
-| --- | --- | --- | --- |
-| A | Domain Repository Portは現位置を維持し、`src/domain/repositories/contracts.ts`だけApplication contractへのtype-only参照を明示的な例外として許可する。Domain policyからApplicationへの参照は許可せず、`ProductViewer`はDomain側ownership候補とする。 | ADR-0003とCurrent repository contractをほぼ維持でき、18 consumerを広く移動しない。runtime依存を増やさず、例外をstatic contractで限定できる。 | Domain / Applicationのtype graph双方向性はRepository Portに限って残る。Application contract変更がDomain fileへ波及する構造も残る。 |
-| B | Application contractをsignatureに使うRepository Port自体をApplication ownershipへ移す。DomainはApplicationを参照しない。 | dependency directionが一方向になり、Domain independenceが明確になる。既存`src/application/ports/**`とも概念上揃えやすい。 | 18 direct consumerとadapter / transaction contract / docs / ADRへ広い移行が必要。Current failureがない状態では変更量が大きい。ADR-0003のdecision更新が必要。 |
-| C | Repository PortをDomainに維持し、参照中のDTO / query / commandをDomain ownershipへ移す。 | Domain Repository PortからApplication参照を消せる。 | Admin query、Application command、DTO等までDomainへ流入しやすく、Domain責務を広げる。Application contractのownershipを崩すため変更範囲も大きい。 |
+`NFR-MA-001`がRelease Gateであるため、Current policyを維持する限り、既知のDomain → Application依存を「runtime failureがない」という理由だけで`keep_as_is`または`refactor_when_touched`にしない。
 
-### 4.1 Plan作成時点の推奨案
+### 3.2 ADR-0003
 
-**案Aを第一候補としてarchitecture ownerへ提示する。**
+ADR-0003はPhase 2 Native導入時に、ApplicationからRepositoryへDomain Repository Portを利用することを決定した。
+
+今回のRefactorでApplication-specificなRepository / Query PortをApplication ownershipへ移す場合は、ADR-0003の「Domain Repository Portだけ」という記述との関係を明確化する必要がある。
+
+historical ADR本文をCurrent都合で書き換えない。Issue #132実行時に次available ADRを確認し、新しいADRで次を明記する。
+
+- Domain → Application dependencyは禁止する。
+- Domain Repository ContractはDomain-owned typeだけをsignatureに使う。
+- Application DTO / query / commandをsignatureに必要とするPortはApplication ownershipとする。
+- InfrastructureはApplication PortまたはDomain Contractを実装する。
+- ADR-0003のRepository ownership記述をこの範囲でclarify / supersedeする。
+
+Plan作成時点の次available番号はADR-0027だが、実行時に再確認する。
+
+### 3.3 `repository_interfaces.md`
+
+`docs/04_data/repository_interfaces.md`はRepository methodの意味とApplication DTO / query / command利用を説明するCurrent contractとして有効である。
+
+ただし、この文書はDomain → Application dependencyを許可するarchitecture authorityとして扱わない。
+
+follow-up RefactorでPort ownershipが変わる場合、interface名とmethod contractは可能な限り維持し、ownership説明だけをCurrent architectureへ合わせる。
+
+### 3.4 D-026
+
+D-026はTypeScript型を型定義のSSOTとし、Markdownを意味・責務・理由の説明責務とする。
+
+Current codeにDomain → Application type importが存在する事実は、architecture上その依存方向を許可済みである根拠にはしない。
+
+### 3.5 architecture contract
+
+`tests/contracts/architecture.test.ts`はCurrent architecture policyの一部を検査するが、Domain → Applicationは禁止していない。
+
+これは「policyが存在しない」Evidenceではなく、`NFR-MA-001`とCoding Standardsに対するFormal enforcement gapとして扱う。
+
+## 4. Canonical ownership
+
+### 4.1 Application DTO / query / command
+
+`src/application/contracts/**`にある次の種類はApplication ownershipを維持する。
+
+- Request / Command
+- Query
+- DTO
+- Result
+- Application inspection / metadata contract
+
+Domain Repository Contractへ移して依存方向を解消しない。
 
 理由:
 
-- runtime failure / cycle / candidate起因repairがない。
-- ADR-0003の「Domain Repository Port」を維持できる。
-- `repository_interfaces.md`がApplication Read DTOを利用するCurrent責務を既に説明している。
-- 18 direct consumerを移す案Bより変更blast radiusが小さい。
-- Application-centric DTO / commandをDomainへ移す案Cより責務を保ちやすい。
-- 例外を「Domain全体」ではなく`src/domain/repositories/contracts.ts`のtype-only参照へ限定し、static contractで拡大を防げる。
+- `application_contracts.md`が意味・責務をApplication contractとして定義している。
+- Presentation / Use Case / Adapter間のApplication boundaryで利用される。
+- Admin / Test inspection等をDomainへ移すとDomain responsibilityを不必要に広げる。
 
-ただし、これはPlan作成時の推奨でありarchitecture decisionではない。architecture ownerの承認前に採用扱いしない。
+### 4.2 Repository Port
 
-### 4.2 `ProductViewer`の扱い
+follow-up Refactorの原則:
 
-案Aを採用する場合でも、`src/domain/policies/permissions.ts`からApplication typeを参照する必要性はRepository Portとは別に判断する。
+1. Application typeをsignatureに使用する17 interfaceはApplication ownershipへ移す候補とする。
+2. Application typeを使用しない7 interfaceはDomain ownershipを維持する。
+3. interfaceを分割すること自体を目的にしない。
+4. Application ownershipへinterface単位で移せる場合は、method単位の細分化よりinterface単位の移動を優先する。
+5. Domain codeからRepository interfaceを直接利用するCurrent consumerは確認されていないため、Domain consumerのための互換layerを先回りして追加しない。
+6. re-exportは既存consumerを段階移行する明確な必要がある場合だけ使用し、恒久互換層として残さない。
+7. exact file配置とexport構成はfollow-up implementation PlanでCurrent import graphを再確認して決める。既存`src/application/ports.ts`を再利用できるかを最初に検討し、責務が過密になる場合だけApplication配下の専用moduleを追加する。
 
-Plan作成時点では、`ProductViewer`はDomain policyが直接意味を使用し、構成要素もDomain conceptだけであるため、Domain側をcanonical ownerとする案を推奨する。
+### 4.3 `ProductViewer`
 
-実際のtype移動はarchitecture decision確定後に別Plan / 実装PRへ切り出す。互換用re-export等を入れるかもその実装Planでconsumerを再確認して決める。
+canonical ownerはApplicationのままとする。
 
-## 5. 実行タスク
+Domain policyはApplication `ProductViewer`へ依存せず、公開可否に必要なDomain-owned情報だけを受け取る。
 
-### Task 1: latest mainへrebaseline
+第一候補:
 
-1. 実行開始時の`origin/main` SHAを記録する。
-2. 次のpathについてbranch作成時SHAからの差分を確認する。
-   - `src/domain/repositories/**`
-   - `src/domain/policies/**`
-   - `src/application/contracts/**`
-   - `src/application/ports/**`
-   - `tests/contracts/architecture.test.ts`
-   - `docs/adr/**`
-   - `docs/04_data/repository_interfaces.md`
-   - `docs/04_data/application_contracts.md`
-3. relevant driftがあればDecision Matrixだけ再評価し、Issue全体の再監査へ広げない。
+```text
+Application / Adapter
+  ProductViewer
+  -> viewerがcustomerならmembershipRank
+  -> guest / management-as-guestならnull
+  -> Domain canViewerSeeProduct(...)
+```
 
-### Task 2: finite dependency inventoryを確定
+Domain側へ新しいviewer typeを作ることは必須としない。
 
-次だけを取得する。
+この方針により、`userId`やApplication identity semanticsをDomainへ移さずにCurrent policyを維持できる。
 
-- `src/domain/**` → `@/application/**`の全edge
-- 各edgeがruntime importかtype-onlyか
-- Application typeごとの責務分類
-  - Domain concept
-  - Application request / command
-  - Application query
-  - Read DTO / result
-  - Test inspection
+## 5. Issue #132の実行タスク
+
+### Task 1: latest `main`へrebaseline
+
+実行開始時に`origin/main` SHAを記録し、branch作成時SHAから次を確認する。
+
+- `src/domain/repositories/**`
+- `src/domain/policies/**`
+- `src/application/contracts/**`
+- `src/application/ports.ts`
+- `src/application/transactions/**`
+- `tests/contracts/architecture.test.ts`
+- `docs/CODING_STANDARDS.md`
+- `docs/01_requirements/non_functional_requirements.md`
+- `docs/02_architecture/**`
+- `docs/adr/**`
+- `docs/04_data/repository_interfaces.md`
+- `docs/04_data/application_contracts.md`
+
+Current authorityまたはdependency surfaceにmaterial driftがあれば該当箇所だけ再評価する。Repository全体の再監査へ広げない。
+
+### Task 2: Current policyを確定する
+
+次を同じdecision recordへ接続する。
+
+- `NFR-MA-001`
+- `CODING_STANDARDS.md §7.1`
+- `repository_structure.md §4`
+- ADR-0003
+- D-026
+- Current TypeScript
+- Current architecture contract
+
+Current `main`がPlan作成時と同じ意味を維持していれば、Domain → Application dependencyはtype-onlyを含め禁止と確定する。
+
+新しいallow / deny Decisionをarchitecture ownerへ質問しない。
+
+### Task 3: Current violation surfaceを有限に確定する
+
+次だけを再取得する。
+
+- `src/domain/**`から`src/application/**`へのimport edge
+- static import / `import type` / dynamic `import()`
+- `src/domain/repositories/contracts.ts`のinterface単位のApplication type利用
+- `src/domain/policies/permissions.ts`の`ProductViewer`利用
 - `@/domain/repositories`の直接consumer
-- behaviorを守る既存unit / integration / repository contract
+- `canViewerSeeProduct()`の直接caller
+- behaviorを守るunit / integration / repository contract
 
 generic dependency graph、AST framework、恒久scannerは追加しない。
 
-### Task 3: normative sourceを突き合わせる
+### Task 4: canonical ownershipを確定する
 
-最低限次を同じDecision Matrixで比較する。
+Current EvidenceがPlan作成時と一致する場合は次で確定する。
 
-- ADR-0003
-- `repository_interfaces.md`
-- `application_contracts.md`
-- `system_architecture.md`
-- Current TypeScript code
-- Current architecture contract
+- Application DTO / query / command: Application
+- `ProductViewer`: Application
+- Application typeを必要とするRepository Port: Application
+- Domain-owned typeだけで閉じるRepository Contract: Domain
+- Domain policy input: Application typeではなく必要最小限のDomain-owned value
 
-確認する問い:
+Current Evidenceが変わり、この所有関係が成立しない具体的consumerが見つかった場合だけ該当interfaceを再評価する。
 
-1. Domain Repository Portのownershipは維持必須か。
-2. Repository PortがApplication-owned DTO / query / commandをtype-onlyで参照する例外を許容するか。
-3. `ProductViewer`のcanonical ownerはDomain / Applicationのどちらか。
-4. 許容するedgeをstatic contractでどこまで限定するか。
+### Task 5: architecture decisionを永続化する
 
-### Task 4: architecture owner Decision
+Current policyを新設するのではなく、既存policyとRepository ownershipの解釈を接続する。
 
-次を1つのDecision Pointとして提示する。
+実行時のnext available ADRで次を記録する。
 
-- 案A / B / C
-- Current Repository上の根拠
-- dependency direction
-- canonical type ownership
-- 既存consumerへの影響
-- migration量
-- static contract
-- ADRへの影響
-- §4.16の再分類候補
-- 推奨案と理由
+- Context: Current Domain → Application type-only dependency
+- Decision: Domain → Application禁止
+- Repository Port ownership rule
+- `ProductViewer` ownershipとDomain policy input boundary
+- ADR-0003との関係
+- Consequences: follow-up Refactorとarchitecture contract
 
-architecture ownerの回答前は以下を行わない。
+必要な説明文書だけを同期する。
 
-- type移動
-- Repository interface移動
-- re-export追加
-- architecture testの新規禁止規則
-- ADRでpolicyを確定
-- `refactor_now`等への最終再分類
+候補:
 
-### Task 5: decisionを永続化
-
-architecture ownerの判断後、必要な最小範囲でdecisionを保存する。
-
-原則としてhistorical ADR-0003本文を書き換えて現在の判断へ見せ替えない。新しいarchitecture decisionが必要なら、実装開始時の次available ADR番号を使って新規ADRを追加し、ADR-0003との関係を明記する。Plan作成時点では次番号はADR-0027。
-
-必要に応じて更新候補:
-
-- `docs/adr/0027-*.md` または実装時のnext available ADR
+- next available ADR
 - `docs/04_data/repository_interfaces.md`
-- `docs/04_data/application_contracts.md`
 - `docs/02_architecture/system_architecture.md`
-- `docs/PROJECT_CONTEXT.md`はproject理解が実際に変わる場合だけ更新する
+- `docs/02_architecture/repository_structure.md`は既存ruleを変更する必要がある場合だけ更新
+- `docs/04_data/application_contracts.md`は`ProductViewer`等のApplication ownership説明が不足する場合だけ更新
+- `docs/PROJECT_CONTEXT.md`はRepository-wideのCurrent architecture理解が実際に変わる場合だけ更新
 
-同じruleを複数文書へ重複して正本化しない。
+同じruleを複数Markdownへ重複して正本化しない。
 
-### Task 6: static architecture contractの要否を確定
+### Task 6: architecture contract仕様を確定する
 
-選択したarchitecture方針に応じてcontractを決める。
+follow-up Refactorと同じ実装PRで追加するstatic contractを次で固定する。
 
-#### 案Aの場合
+- `src/domain/**`から`src/application/**`へのimportを禁止する。
+- `import type`も禁止対象。
+- dynamic `import()`のtype referenceも禁止対象。
+- Application moduleごとのallowlistを作らない。
+- Repository contractだけの例外を作らない。
+- 新しいAST dependencyは追加しない。
+- 既存`tests/contracts/architecture.test.ts`のsource scan patternを再利用する。
+- relative importでApplicationへ到達する経路も検出対象とする。
 
-追加するなら、既存`tests/contracts/architecture.test.ts`へ小さいsource-scan testを追加する。
+Current sourceが違反している間にfailするcontractだけをdecision-only PRへ先行投入しない。source remediationと同じfollow-up implementation PRで追加する。
 
-守る内容:
+### Task 7: §4.16を再分類する
 
-- `src/domain/**`から`@/application/**`への依存は原則禁止。
-- 例外は`src/domain/repositories/contracts.ts`から`@/application/contracts`へのtype-only参照だけ。
-- runtime importは禁止。
-- `@/application/errors`や`@/application/ports`等、許可していないApplication moduleへの参照は禁止。
-- `src/domain/policies/**`には例外を設けない。
+Current `main`がPlan作成時と同じ状態なら、§4.16を`refactor_now`へ再分類する。
 
-TypeScript AST parser等の新規dependencyは追加せず、既存architecture testのsource scan方式で十分かを先に確認する。
+理由:
 
-#### 案B / Cの場合
+- `NFR-MA-001`はGate。
+- Coding StandardsとRepository StructureがDomain → Applicationを明示禁止している。
+- Current codeはその方向へtype-only dependencyを持つ。
+- Formal enforcementも不足している。
 
-Domain → Applicationを全面禁止するcontractを候補とする。Current sourceが違反する間は、migration実装とcontract導入の順序を別Planで決める。
+runtime failureがないことは`refactor_when_touched`へ落とす理由にしない。
 
-### Task 7: §4.16を再分類
+既存policyを意図的に変更して例外を設ける場合だけ、この分類を再評価する。
 
-architecture decisionとCurrent codeの適合状態から、次のいずれかへ変更する。
+### Task 8: follow-up Refactor Planを作成する
 
-- `keep_as_is`
-- `refactor_when_touched`
-- `refactor_now`
+Issue #132のdecision-only作業でProduct codeを変更しない。
 
-判定ルール:
+別Planには最低限次を入れる。
 
-- 採用policyへCurrent codeが適合し、追加migration不要なら`keep_as_is`。
-- policy上は変更が必要だが、Current failureがなく次回関連変更まで延期可能とownerが判断するなら`refactor_when_touched`。
-- policy上の不整合を現在解消する必要があるとownerが判断するなら`refactor_now`。
+1. Application typeを使用する17 Repository interfaceの移動先
+2. Domainに残す7 Repository Contract
+3. `src/domain/repositories/index.ts` / Application export構成
+4. 18 direct consumerのimport更新
+5. `src/application/transactions/contracts.ts`のRepository import更新
+6. Dexie / SQLite adapterのimplements / import更新
+7. `canViewerSeeProduct()`から`ProductViewer` dependencyを除去
+8. Application callerで`ProductViewer`からDomain policy inputへ変換する処理
+9. `repository_interfaces.md`等の説明同期
+10. Domain → Application禁止contract
+11. focused testとRepository標準validation
+12. compatibility re-exportが本当に必要かの確認
 
-分類名を先に決めてarchitecture decisionを逆算しない。
+大規模なtype rename、DTO移動、generic Port frameworkは含めない。
 
-### Task 8: Refactorが必要な場合だけ別Planへ切り出す
+## 6. Issue #132 decision-only作業の検証
 
-別Planには少なくとも次を含める。
-
-- exact type / interface移動対象
-- import consumer一覧
-- compatibility / re-exportの有無
-- ADR / docs同期
-- architecture contract導入順
-- focused tests
-- repository-wide validation
-- migrationを小さく分割できるか
-
-Issue #132の調査Planへ大規模type移動を混ぜない。
-
-## 6. Validation plan
-
-### 6.1 調査・decision保存だけの場合
-
-- Current dependency inventoryとDecision Matrixが一致している。
-- ADR / docs間でownershipとdependency directionが矛盾していない。
-- Markdown lint対象に新しいbare URLやformat違反がない。
-- `git diff --check`がPASSする。
-
-### 6.2 architecture contractを同じPRで追加する場合
-
-最低限:
+Issue #132自体でsource / testを変更しない場合:
 
 ```bash
-pnpm exec vitest run tests/contracts/architecture.test.ts --no-file-parallelism --maxWorkers=1
+pnpm run lint:markdown
+git diff --check
+```
+
+必要に応じて文章品質gateをCurrent Repository手順で実行する。
+
+確認項目:
+
+- ADRと既存architecture文書が矛盾していない。
+- Domain → Application禁止が明示されている。
+- Application DTO / query / commandのcanonical ownerが変わっていない。
+- `ProductViewer` ownershipとDomain policy boundaryが明示されている。
+- §4.16の再分類根拠が`NFR-MA-001`とCurrent codeへ追跡できる。
+- follow-up Refactorのscopeが具体化されている。
+- Product code / test / dependencyを変更していない。
+
+## 7. follow-up Refactorで必要な検証
+
+実装Planでは変更範囲を再確認した上で、最低限次を含める。
+
+```bash
+pnpm run typecheck
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:repository
 pnpm run test:contracts
 pnpm run verify
 git diff --check
 ```
 
-### 6.3 type / port移動が必要な場合
+追加でfocused test:
 
-このPlanでは実施しない。別Planで対象use case / repository contract / Native / Dexieへのfocused validationを追加する。
+- `tests/unit/policies.test.ts`
+- `tests/contracts/architecture.test.ts`
+- Repository Port移動の影響を受けるrepository contract
+- Catalog / Cart / Checkout等、`canViewerSeeProduct()` callerを変更した経路
 
-## 7. 完了条件
+test数を増やすことを目的にせず、既存testで同じ回帰を検出できる場合は再利用する。
 
-Issue #132の対応は、次をすべて満たした時点で完了候補とする。
+## 8. Issue #132の完了条件
 
-- latest `main`でDomain → Application edgeを再取得している。
-- runtime importとtype-only edgeを区別している。
-- Repository PortのApplication contract参照を単純なimport数だけで評価していない。
-- ADR-0003、Repository Interface正本、Application Contract正本、Current code、architecture testの関係を説明できる。
-- 既存正本だけで一意に決まらない場合、architecture ownerが案A / B / C等から明示判断している。
-- Domain → Application type-only dependencyのallow / deny ruleが明文化されている。
-- `ProductViewer`のcanonical ownerが決まっている。
-- Repository Read DTO / query / commandのcanonical ownerが決まっている。
-- static architecture contractの要否と、必要なら検査範囲が決まっている。
-- §4.16が`needs_more_evidence`以外へ再分類されている。
-- 新しいarchitecture decisionが必要ならADR等へ永続化している。
-- Refactorが必要な場合は別Plan / 実装PRへ切り出しており、このIssueの調査と混在させていない。
-- runtime Product behaviorを変更していない。
-- generic dependency graph / architecture framework /新規dependencyを追加していない。
+次をすべて満たした時点でIssue #132を完了候補とする。
 
-## 8. リスクと対策
+- latest `main`でCurrent authorityとDomain → Application edgeを再確認している。
+- Domain → Application dependencyはtype-onlyを含め禁止と確定している。
+- `NFR-MA-001` / Coding Standards / Repository Structure / ADR-0003 / D-026の関係を説明できる。
+- `repository_interfaces.md`のCurrent contract説明をDomain → Application許可根拠として扱っていない。
+- Application DTO / query / commandのcanonical ownerがApplicationである。
+- `ProductViewer`のcanonical ownerがApplicationである。
+- Domain policyからApplication `ProductViewer` dependencyを除去する方針が確定している。
+- Repository Portのownership ruleが確定している。
+- static architecture contractの検査仕様が確定している。
+- §4.16が`needs_more_evidence`から`refactor_now`へ再分類されている。
+- 必要なADR / normative documentationへdecisionが永続化されている。
+- Refactor実装は別Plan / 実装PRへ切り出されている。
+- Product behavior、Database schema、Native / Web featureを変更していない。
+- generic dependency graph、AST framework、新規dependencyを追加していない。
 
-### import数だけで小さい問題と誤認する
+## 9. リスクと対策
 
-`contracts.ts`の1つのtype import blockが多数のApplication contractを束ねる。reference数ではなくownershipとconsumer blast radiusで判断する。
+### Current codeをarchitecture authorityと誤認する
 
-### 一般的なClean ArchitectureをRepository規約へ持ち込む
+D-026は型定義のSSOTを定める。Current import directionそのものを正しいarchitecture policyとする決定ではない。
 
-既存ADR / docs / codeを先に比較し、一般論はDecision Pointの補足に留める。外部一般論だけで案Bを自動採用しない。
+対策:
 
-### 案Aの例外がDomain全体へ拡大する
+- layer directionは`NFR-MA-001`、Coding Standards、Repository Structure、ADRから判断する。
+- Current codeは適合性確認対象として扱う。
 
-例外を採用する場合は`src/domain/repositories/contracts.ts` + `@/application/contracts` + type-onlyへ限定し、static contractで拡張を検知する。
+### `repository_interfaces.md`をDomain ownershipの根拠にする
 
-### 案Bで移行範囲を過小評価する
+同文書はRepository method contractとApplication DTO利用を説明するが、Domain → Application例外を明示しない。
 
-Currentで`@/domain/repositories`のdirect consumerが18 source fileある。Repository Port移動を選ぶ場合は別Planでconsumerを再取得し、一括renameや広域re-exportを無計画に行わない。
+対策:
 
-### 案CでApplication semanticsをDomainへ流し込む
+- method contractとmodule ownershipを分ける。
+- follow-up Refactorでもmethod semanticsは不要に変更しない。
 
-DTO / query / commandを型重複だけでDomainへ移さない。各typeの責務からcanonical ownerを判断する。
+### Repository Portを細かく分割しすぎる
 
-### `ProductViewer`とRepository DTOを同じ結論にまとめる
+17 interfaceにはApplication type利用があるが、全methodを細分化する必要はない。
 
-Domain policyが直接使う`ProductViewer`と、Application use case向けのRead DTO / query / commandは責務が異なる。個別にownerを決める。
+対策:
 
-## 9. ロールバック
+- interface単位でApplication ownershipへ移せる場合はその方を優先する。
+- Domain consumer等の具体的理由がある場合だけ分割する。
 
-今回のPlan作成自体はdocumentation-only。
+### Application DTOをDomainへ移して依存を消す
 
-Issue実行時にADR / docs / contract testだけを変更する場合もDatabase、migration、external state変更はない。architecture decisionを誤って保存した場合は対象PRをmergeせず修正する。
+依存方向だけを合わせるためにAdmin DTO、Query、Command、Inspection contractをDomainへ流入させるとDomain responsibilityが広がる。
 
-type / Repository Port移動は別Plan / 実装PRとし、そこでrollback単位を定義する。
+対策:
 
-## 10. 対象外
+- Application contractはApplicationに残す。
+- Port側のownershipを合わせる。
+
+### `ProductViewer`全体をDomainへ移す
+
+Domain policyは`userId`を利用しない。
+
+対策:
+
+- `ProductViewer`をApplicationに維持する。
+- Domainへ渡す値を現在必要なrank情報へ縮小する。
+- 新しいviewer hierarchyやshared abstractionを作らない。
+
+### static contractをsource修正より先に追加する
+
+Current sourceは既に違反しているためdecision-only PRでcontractを追加すると意図的にCIを失敗させる。
+
+対策:
+
+- contract仕様だけIssue #132で確定する。
+- source remediationと同じfollow-up PRでcontractを追加する。
+
+## 10. ロールバック
+
+Issue #132のdecision-only変更はdocumentationだけで、Database、migration、external stateを変更しない。
+
+follow-up Refactorもtype / interface ownershipとimport directionが中心であり、Product behaviorを変えない。実装Planでrollback単位を定義し、問題があればRefactor commitをrevertできる構成にする。
+
+## 11. 対象外
 
 - Domain / Application全面再設計
-- Clean Architecture framework導入
-- Repository interface全体の書き換え
-- generic dependency graph / scanner導入
-- type-only importをruntime failureとして扱うこと
+- Domain → Application例外の新設
+- Application DTO / query / commandのDomain移動
+- Repository interfaceの機能的再設計
+- Repository method semantics変更
 - Product behavior変更
 - Dexie / SQLite schema変更
 - Native / Web feature変更
-- architecture owner未承認での新policy制定
-- decision前のtype移動
-- decision前のRepository Port移動
-- Issue #130 / #117 / #163の進行中作業を混在させること
+- generic dependency graph / scanner導入
+- AST framework導入
+- 新規dependency導入
+- 全Portの一括rename
+- 将来用互換layer
+- Issue #130 / #117 / #163の進行中作業
 
-## 11. 未解決事項
+## 12. 未解決事項
 
-実装開始を止める未解決事項は1件。
+Issue #132のarchitecture判断を止める未解決事項はない。
 
-- **architecture owner Decision:** 案A / B / Cのどのdependency direction / ownershipをRepository policyとして採用するか。
+実行開始時にlatest `main`へmaterial driftがあった場合だけ、影響したauthority / dependency surfaceを再確認する。
 
-このDecisionはIssue実行時にCurrent Evidenceと推奨案を提示して取得する。Plan作成段階では案Aを推奨するが、承認済みdecisionとして扱わない。
+既存architecture方針を変更してDomain → Application例外を新設したい場合は、このPlanをそのまま実行せず、architecture owner Decisionとして別途判断する。
