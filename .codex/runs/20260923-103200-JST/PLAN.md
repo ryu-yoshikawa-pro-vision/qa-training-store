@@ -58,3 +58,13 @@
 - 案BではDomain-owned repository input / output、Application boundary mapping、`NFR-MA-010`変更 / supersede判断を明示した。
 - §4.16の最終`refactor_now`はPhase 6 durable reportへfollow-up resolutionとして追記し、元の`needs_more_evidence`は履歴として保持する。
 - Planは1つのarchitecture Decisionとfollow-up分岐を扱うため、ファイル分割は行わない。
+
+## 最終実行順・検証修正
+
+- Repository Port ownershipのDecisionは案A / Bの1件だけとし、ADR-0003 Decision 3の扱いは選択結果から固定した。
+  - 案A: new ADRでDecision 3のRepository Port ownership部分を明示的にsupersedeする。
+  - 案B: Decision 3を維持する。
+- follow-up Refactor Plan作成を§4.16 durable report更新より先へ移し、durable reportが実在するPlanを参照できる順序へ修正した。
+- static contractはCurrent source検査だけでなく、`architecture.test.ts`内のsynthetic sourceによるtable-driven scanner self-testを必須にした。
+- decision-only検証へ`pnpm run format:check`を追加した。
+- PlanはDecision、ADR、follow-up、再分類が一続きのため分割しない。

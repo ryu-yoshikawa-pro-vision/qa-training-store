@@ -29,6 +29,10 @@
 - [x] 25. `src/application/**` bare specifierとliteral `require()`をCurrent violation / static contractへ追加する。
 - [x] 26. follow-up Refactor Planを共通 / 案A / 案Bへ分岐し、18 direct consumerを固定更新対象からimpact inventoryへ修正する。
 - [x] 27. §4.16の`refactor_now`をPhase 6 durable reportへfollow-up resolutionとして記録する手順を追加する。
+- [x] 28. 案A / BとADR-0003 Decision 3の扱いを1対1に固定し、独立Decisionをなくす。
+- [x] 29. follow-up Refactor Plan作成を§4.16 durable report更新より先へ移す。
+- [x] 30. architecture scannerのsynthetic source / table-driven self-testをPlanへ追加する。
+- [x] 31. decision-only検証へ`pnpm run format:check`を追加する。
 
 ## ブロック中
 

@@ -128,3 +128,25 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (27/27)
+
+## 2026-09-23 — 最終実行順・検証修正
+
+- 概要: 再レビューで残った4点をPlanへ反映した。
+- ADR-0003:
+  - architecture ownerのDecisionはRepository Port ownershipの案A / B 1件だけとした。
+  - 案Aを選ぶ場合はnew ADRの`Supersedes`でADR-0003 Decision 3のRepository Port ownership部分を限定的に置き換える。
+  - 案Bを選ぶ場合はADR-0003 Decision 3を維持する。
+  - ADRの扱いを案A / Bとは別の選択肢にしない。
+- 実行順:
+  - follow-up Refactor Plan作成を先に行い、その保存先確定後に§4.16を`refactor_now`へ再分類してPhase 6 durable reportへ追記する。
+  - durable reportは実在するnew ADRとfollow-up Refactor Planを参照する。
+- static contract:
+  - Current sourceの違反0件だけではscanner実装の正しさを証明できないため、`tests/contracts/architecture.test.ts`内でsynthetic sourceを使うtable-driven self-testを追加する。
+  - static import / type import / side-effect import / type query / dynamic import / re-export / literal `require()`、`@/application/**` / `src/application/**` / relative path、許可例を最低限検証する。
+  - fixture framework、AST dependency、汎用dependency scannerは追加しない。
+- 検証:
+  - decision-only作業へ`pnpm run format:check`を追加し、`lint:markdown` / `lint:text` / `git diff --check`と合わせて実行する。
+- ファイル分割: 行わない。DecisionからADR、follow-up Plan、再分類まで同一Planで順序を追える方が実行時の判断が少ない。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (31/31)
