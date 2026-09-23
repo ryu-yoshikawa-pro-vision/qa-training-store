@@ -425,14 +425,36 @@ describe("Skill Trigger Eval deterministic contract", () => {
     expect(preflight.routing_source_git_sha).toMatch(/^[a-f0-9]{40}$/u);
   });
 
-  it("allows only Run artifacts in evaluator status and rejects source changes", () => {
+  it("allows tracked and untracked Run artifacts while rejecting mixed source changes", () => {
     const evaluatorFixture = createGitFixture();
     mkdirSync(join(evaluatorFixture, ".codex", "runs"), { recursive: true });
-    writeFileSync(join(evaluatorFixture, ".codex", "runs", "checkpoint.md"), "run\n", "utf8");
+    const checkpointPath = join(evaluatorFixture, ".codex", "runs", "checkpoint.md");
+    writeFileSync(checkpointPath, "initial run\n", "utf8");
     expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual([]);
 
+    runFixtureGit(evaluatorFixture, ["add", "--", ".codex/runs/checkpoint.md"]);
+    runFixtureGit(evaluatorFixture, ["commit", "-qm", "Run artifact baseline"]);
+    writeFileSync(checkpointPath, "updated run\n", "utf8");
+
+    const trackedRunArtifactStatus = execFileSync(
+      "git",
+      ["-C", evaluatorFixture, "status", "--porcelain=v1", "--untracked-files=all"],
+      {
+        cwd: evaluatorFixture,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    expect(trackedRunArtifactStatus).toContain(" M .codex/runs/checkpoint.md");
+    expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual([]);
+
+    writeFileSync(join(evaluatorFixture, ".codex", "runs", "new.json"), "{}\n", "utf8");
+    writeFileSync(join(evaluatorFixture, "fixture.txt"), "updated source\n", "utf8");
     writeFileSync(join(evaluatorFixture, "source.ts"), "const source = true;\n", "utf8");
-    expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual(["?? source.ts"]);
+    expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual([
+      " M fixture.txt",
+      "?? source.ts",
+    ]);
   });
 
   it("does not classify a path mention as an actual Skill read", () => {

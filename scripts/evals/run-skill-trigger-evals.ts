@@ -244,7 +244,25 @@ function resolveGitPath(cwd: string, gitPath: string): string {
 }
 
 export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly string[] {
-  const output = runGit(evaluatorRoot, ["status", "--porcelain", "--untracked-files=all"]);
+  let output: string;
+  try {
+    output = execFileSync(
+      "git",
+      ["-C", evaluatorRoot, "status", "--porcelain=v1", "--untracked-files=all"],
+      {
+        cwd: evaluatorRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+  } catch (error) {
+    fail(
+      "git status --porcelain=v1 --untracked-files=all failed in " +
+        evaluatorRoot +
+        ": " +
+        String(error),
+    );
+  }
   if (output.length === 0) {
     return [];
   }
