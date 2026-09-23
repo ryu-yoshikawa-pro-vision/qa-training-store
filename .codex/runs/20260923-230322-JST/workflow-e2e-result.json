@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_status": "blocked",
+  "provenance": {
+    "evaluator_git_sha": "5c44fd2c72a24b083c779a97719e1589b738315f",
+    "source_revision_git_sha": "5c44fd2c72a24b083c779a97719e1589b738315f",
+    "routing_source_git_sha": "91a0b4fa8da6d4bdfb94a55e3dafe515885915bd",
+    "codex_version": "codex-cli 0.155.1",
+    "model": "gpt-5.6-luna",
+    "executed_at": "2026-09-23T16:00:36.844Z"
+  },
+  "cases": [],
+  "reason": "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution",
+  "smoke_probe": {
+    "status": "fail",
+    "initial_process_completed": true,
+    "resumed_process_completed": true,
+    "initial_thread_present": true,
+    "same_thread": true,
+    "initial_otel_reliable": true,
+    "resumed_otel_reliable": true,
+    "initial_schema_valid": true,
+    "resumed_schema_valid": true,
+    "initial_write_observed": false,
+    "resumed_write_observed": false,
+    "initial_command_execution_observed": false,
+    "resumed_command_execution_observed": false,
+    "initial_lifecycle": "completed",
+    "resumed_lifecycle": "completed",
+    "resumed_attempted": true,
+    "diagnostics": {
+      "initial": {
+        "exit_code": 0,
+        "trusted_terminal": "turn.completed",
+        "final_text_present": true,
+        "final_text_length": 26,
+        "last_message_file_present": true,
+        "command_execution_count": 0,
+        "event_types": [
+          "agent_message",
+          "item.completed",
+          "thread.started",
+          "turn.completed",
+          "turn.started"
+        ],
+        "file_change_event_observed": false,
+        "stderr_present": true,
+        "stderr_preview": "2026-09-23T16:00:16.707726Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Program Files\\\\\\\\\\\\\\\\PowerShell\\\\\\\\\\\\\\\\7\\\\\\\\\\\\\\\\pwsh.exe\\\\\\\" -NoProfile -Command \\\\\\\"node -e \\\\\\\\\\\\\\\"require('node:fs').appendFileSync('smoke.txt','initial-write\\\\\\\\\\\\\\\\n')\\\\\\\\\\\\\\\"\\\\\\\"` rejected: blocked by policy\\\")\" }\n",
+        "final_text_preview": "{\"status\":\"initial-write\"}",
+        "command_execution_summary": []
+      },
+      "resumed": {
+        "exit_code": 0,
+        "trusted_terminal": "turn.completed",
+        "final_text_present": true,
+        "final_text_length": 26,
+        "last_message_file_present": true,
+        "command_execution_count": 0,
+        "event_types": [
+          "agent_message",
+          "item.completed",
+          "thread.started",
+          "turn.completed",
+          "turn.started"
+        ],
+        "file_change_event_observed": false,
+        "stderr_present": true,
+        "stderr_preview": "2026-09-23T16:00:31.771609Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Program Files\\\\\\\\\\\\\\\\PowerShell\\\\\\\\\\\\\\\\7\\\\\\\\\\\\\\\\pwsh.exe\\\\\\\" -NoProfile -Command \\\\\\\"node -e \\\\\\\\\\\\\\\"require('node:fs').appendFileSync('smoke.txt','resumed-write\\\\\\\\\\\\\\\\n')\\\\\\\\\\\\\\\"\\\\\\\"` rejected: blocked by policy\\\")\" }\n",
+        "final_text_preview": "{\"status\":\"resumed-write\"}",
+        "command_execution_summary": []
+      }
+    }
+  }
+}

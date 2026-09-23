@@ -7,9 +7,9 @@
 - [x] 3. resume順序、prompt、command判定、JSONL event収集、diagnostic redaction/bounds、12 predicate fail-closedのcontract testを追加する。
 - [x] 4. focused Workflow contract test、Repository contract test、Markdown lintを実行する。
 - [x] 5. `verify`、必要なlint/typecheck、diff check、self-reviewを完了しRun Artifactを更新・sanitizationする。
-- [ ] 6. implementation commit / pushを行い、最新Evaluator headの必須CIを確認する。
-- [ ] 7. 新Evaluator SHAのtracked objectからfresh sanitized Targetを生成し、detached以外のpreflightを完了する。
-- [ ] 8. ユーザーdetach後にpreflight、Android確認、canonical runを1回だけ実施し、Artifact-only commit/push、PR更新、最新CI確認を完了する。
+- [x] 6. implementation commit / pushを行い、最新Evaluator headの必須CIを確認する。
+- [x] 7. 新Evaluator SHAのtracked objectからfresh sanitized Targetを生成し、detached以外のpreflightを完了する。
+- [x] 8. ユーザーdetach後のpreflightとAndroid確認、canonical runを1回だけ実施し、resultをsanitizationしてRunへ記録する。
 
 ## 完了処理の参照先
 
@@ -25,4 +25,4 @@
 
 ## Blocked（ブロック中）
 
-- まだなし。Target manual detachとcanonical runは後続task。
+- canonical runは実行済みだが、common smokeでnested Codexの固定Node commandがHost command policyに拒否され`run_status=blocked`。同Evaluator revisionでretryしない。
