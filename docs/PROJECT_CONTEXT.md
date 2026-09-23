@@ -625,3 +625,12 @@
 - P1-2 / P1-3の標準学習導線は、`docs/spec/state-and-scenarios.md`、必要な`docs/07_testability/seed_catalog.md`、`/guide`、現在UIの観察を中心とし、`src/seeds/metadata.ts`の直接読解と実装IDの照合はPlaywright実装後へ送る。
 - Workbook Evidence Validatorは`Trace:`直後に空白がないdrive、relative drive、file URL、親参照、UNC参照も拒否し、`http` / `https`のschemeのcolonは許可する。危険Pathの負例とURL・Artifact・output・Runの正例をtraining curriculum contractで固定する。
 - 今回のbounded repairのsource差分は教材2ファイル、`scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`の4ファイルに限定し、Native CI、C09、C12、Training Workflow等の既修正領域は再設計しない。標準contractのWindows Hook timeoutはsourceと無関係な環境観測として扱う。
+
+## Issue #130 Native CI責務境界の整理（2026-09-23）
+
+- `.github/workflows/native-ci.yml`はtrigger、change detection、job dependency、Artifact handoff、Runtime step構成、final `verify`を所有する。Android buildのjob IDは維持し、`native-android-build.yml`へ`build_kind`だけを渡す。
+- Reusable WorkflowはAutomation / Production双方のAndroid buildを所有する。AutomationのABI allow/deny確認とAPK Save前Verify、ProductionのSave後Verify、Gradle logとEvidence収集の非対称性はそれぞれ維持する。Artifact名、固定filename、Evidence Artifact名も既存値を保つ。
+- `android-ci-production-bundle-guard.sh`はActual APKからtemporary `.hbc`を作って既存CLIへ渡すadapterである。Hermes decodeとAutomation / Production marker policyは`validate-native-production-bundle.ts`が引き続き所有する。
+- Runtime helperはEmulator start、visual profile normalization、manual visual capture、failure diagnosticsをそれぞれ所有する。adb root capability判定、launcher stabilization、APK install / launch、Maestro Flow step、Artifact uploadは親workflowに残す。
+- Native change detectionには通常PRで実行するReusable Workflowとruntime helperだけをexact pathで加え、manual visual専用helperは加えない。`native_changed=false`のskipと`native-ci / verify`のfail-closed意味は既存contractに従う。
+- この整理はCI実装の責務配置を変更し、Product behavior、Formal / Trainingの保証境界は変更しない。実装と検証の履歴は[`docs/history/2026-09-23_110836_issue-130-native-ci-responsibility-boundary.md`](history/2026-09-23_110836_issue-130-native-ci-responsibility-boundary.md)に記録する。

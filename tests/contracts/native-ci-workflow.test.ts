@@ -70,7 +70,13 @@ function assertAndroidStartupInvocationContract(source: string): void {
 }
 
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
+const androidBuildWorkflow = readWorkflow(".github/workflows/native-android-build.yml");
 const nativeBundleValidator = readWorkflow("scripts/validate-native-production-bundle.ts");
+const productionGuardHelper = readWorkflow("scripts/native/android-ci-production-bundle-guard.sh");
+const emulatorStartHelper = readWorkflow("scripts/native/android-ci-emulator-start.sh");
+const visualProfileHelper = readWorkflow("scripts/native/android-ci-visual-profile.sh");
+const visualCaptureHelper = readWorkflow("scripts/native/android-ci-visual-capture.sh");
+const runtimeEvidenceHelper = readWorkflow("scripts/native/android-ci-runtime-evidence.sh");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
 const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
@@ -122,7 +128,32 @@ describe("Native CI workflow contracts", () => {
     expect(nativeStatic).toContain("run: pnpm run check:native-route-dependencies");
   });
 
-  it("keeps Android automation and production builds independent and self-contained", () => {
+  it("detects regular Native CI helper paths without broadening manual-only visual detection", () => {
+    const detect = jobBlock(nativeWorkflow, "detect", "native-static");
+
+    for (const path of [
+      ".github/workflows/native-android-build.yml",
+      "scripts/native/android-maestro-run.sh",
+      "scripts/native/android-ci-production-bundle-guard.sh",
+      "scripts/native/android-ci-emulator-start.sh",
+      "scripts/native/android-ci-runtime-evidence.sh",
+    ]) {
+      expect(detect).toContain(`'${path}'`);
+    }
+    for (const path of [
+      "scripts/native/android-ci-visual-profile.sh",
+      "scripts/native/android-ci-visual-capture.sh",
+      "scripts/spec/android-visual-capture.ts",
+      "scripts/spec/android-visual-setup.ts",
+      "scripts/spec/visual-registry.ts",
+    ]) {
+      expect(detect).not.toContain(`'${path}'`);
+    }
+    expect(detect).not.toContain("scripts/native/**");
+    expect(nativeWorkflow).not.toContain("visual_changed:");
+  });
+
+  it("keeps Android build caller IDs and delegates only the build kind", () => {
     const automation = jobBlock(
       nativeWorkflow,
       "android-automation-build",
@@ -138,63 +169,115 @@ describe("Native CI workflow contracts", () => {
     expect(production).toContain("name: Android Production-validation Build");
     expect(automation).toContain("needs: detect");
     expect(production).toContain("needs: detect");
-    expect(automation).not.toContain("android-production-build");
-    expect(production).not.toContain("android-automation-build");
-    expectInOrder(automation, [
-      "Verify Automation runtime metadata",
-      "Run Expo prebuild",
-      "Build Automation Release APK",
-      "Verify Automation Release APK",
-      "Upload Automation Release APK",
-    ]);
-    expectInOrder(production, [
-      "Verify Production runtime metadata",
-      "Run Expo prebuild",
-      "Build Production-validation Release APK",
-      "Verify Production-validation Release APK",
-      "Upload Production-validation Release APK",
-    ]);
-    for (const job of [automation, production]) {
-      expectInOrder(job, [
-        "./gradlew :app:assembleRelease",
-        '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"',
-        "-PreactNativeArchitectures=x86_64",
-      ]);
+    for (const [caller, buildKind] of [
+      [automation, "automation"],
+      [production, "production"],
+    ]) {
+      expect(caller).toContain("uses: ./.github/workflows/native-android-build.yml");
+      expect(caller).toContain(`build_kind: ${buildKind}`);
+      expect(caller).not.toContain("runs-on:");
+      expect(caller).not.toContain("timeout-minutes:");
+      expect(caller).not.toContain("steps:");
+      expect(caller).not.toContain("env:");
+      expect(caller).not.toContain("artifact_name:");
+      expect(caller).not.toContain("filename:");
     }
-    expect(automation).toContain("EXPO_PUBLIC_APP_ENV: automation");
-    expect(automation).toContain("EXPO_PUBLIC_BUILD_KIND: automation");
-    expect(automation).toContain('EXPO_PUBLIC_TEST_MODE: "true"');
-    expect(automation).toContain("EXPO_PUBLIC_DEFAULT_SEED: default");
-    expect(production).toContain("EXPO_PUBLIC_APP_ENV: production");
-    expect(production).toContain("EXPO_PUBLIC_BUILD_KIND: production");
-    expect(production).toContain('EXPO_PUBLIC_TEST_MODE: "false"');
-    expect(production).toContain("EXPO_PUBLIC_DEFAULT_SEED: default");
-    expect(automation).toContain("./gradlew :app:assembleRelease");
-    expect(production).toContain("./gradlew :app:assembleRelease");
+  });
+
+  it("owns Android builds in a constrained reusable workflow and preserves their asymmetry", () => {
+    const workflowCall = androidBuildWorkflow.slice(
+      androidBuildWorkflow.indexOf("workflow_call:"),
+      androidBuildWorkflow.indexOf("\njobs:"),
+    );
+    const build = jobBlock(androidBuildWorkflow, "android-build");
+
+    expect(workflowCall).toContain("build_kind:");
+    expect(workflowCall).toContain("required: true");
+    expect(workflowCall).toContain("type: string");
+    expect(workflowCall.match(/^      [a-z][a-z0-9_-]*:/gm)).toEqual(["      build_kind:"]);
+    expect(androidBuildWorkflow).not.toContain("concurrency:");
+    expect(build).toContain("runs-on: ubuntu-24.04");
+    expect(build).toContain("timeout-minutes: 40");
+    expect(androidBuildWorkflow).toContain("NODE_VERSION: 24");
+    expect(androidBuildWorkflow).toContain("PNPM_VERSION: 10.34.5");
+    expect(androidBuildWorkflow).toContain('HUSKY: "0"');
+    for (const versionName of ["NODE_VERSION", "PNPM_VERSION", "HUSKY"]) {
+      const parentValue = nativeWorkflow.match(new RegExp(`^  ${versionName}: (.+)$`, "m"))?.[1];
+      const buildValue = androidBuildWorkflow.match(
+        new RegExp(`^  ${versionName}: (.+)$`, "m"),
+      )?.[1];
+      expect(buildValue).toBe(parentValue);
+    }
+    expect(androidBuildWorkflow).toContain('case "$BUILD_KIND" in');
+    expect(androidBuildWorkflow).toContain("automation|production) ;;");
+    expect(build).toContain("EXPO_PUBLIC_APP_ENV: ${{ inputs.build_kind }}");
+    expect(build).toContain("EXPO_PUBLIC_BUILD_KIND: ${{ inputs.build_kind }}");
+    expect(androidBuildWorkflow).toContain(
+      "EXPO_PUBLIC_TEST_MODE: ${{ inputs.build_kind == 'automation' && 'true' || 'false' }}",
+    );
+    expect(build).toContain("EXPO_PUBLIC_DEFAULT_SEED: default");
+    expect(build).toContain('ANDROID_COMPILE_API_LEVEL: "36"');
+    expect(androidBuildWorkflow).toContain("format('native-android-apk-{0}', github.run_id)");
+    expect(androidBuildWorkflow).toContain("native-automation.apk");
+    expect(androidBuildWorkflow).toContain(
+      "format('native-android-production-apk-{0}', github.run_id)",
+    );
+    expect(androidBuildWorkflow).toContain("native-production-validation.apk");
+    expect(androidBuildWorkflow).toContain(
+      "format('native-android-build-evidence-{0}', github.run_id)",
+    );
+    expect(androidBuildWorkflow).toContain(
+      "format('native-android-production-build-evidence-{0}', github.run_id)",
+    );
+    expectInOrder(androidBuildWorkflow, [
+      "Build Android Release APK",
+      "Verify Automation Release APK",
+      "Save Automation Release APK",
+      "Save Production-validation Release APK",
+      "Verify Production-validation Release APK",
+    ]);
+    expect(androidBuildWorkflow).toContain("x86_64");
+    expect(androidBuildWorkflow).toContain("arm64-v8a|armeabi-v7a|x86");
+    expect(androidBuildWorkflow).not.toContain("emulator");
+    expect(androidBuildWorkflow).not.toContain("maestro test");
     expect(nativeWorkflow).not.toContain("createBundleReleaseJsAndAssets");
     expect(nativeWorkflow).not.toContain("--rerun-tasks");
-    expect(automation).not.toContain("system-images");
-    expect(production).not.toContain("system-images");
-    expect(automation).not.toContain("maestro test");
-    expect(production).not.toContain("maestro test");
+
+    for (const action of [
+      "actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8",
+      "pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a",
+      "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+      "actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+      "gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580",
+      "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+    ]) {
+      expect(androidBuildWorkflow).toContain(action);
+    }
+    expect(androidBuildWorkflow).toContain("persist-credentials: false");
+    expect(androidBuildWorkflow).toContain("version: ${{ env.PNPM_VERSION }}");
+    expect(androidBuildWorkflow).toContain("node-version: ${{ env.NODE_VERSION }}");
+    expect(androidBuildWorkflow).toContain("cache: pnpm");
+    expect(androidBuildWorkflow).toContain("distribution: temurin");
+    expect(androidBuildWorkflow).toContain('java-version: "17"');
+    expect(androidBuildWorkflow).toContain(
+      "cache-read-only: ${{ github.event_name == 'pull_request' }}",
+    );
+    expect(androidBuildWorkflow).toContain("if-no-files-found: error");
+    expect(androidBuildWorkflow).toContain("overwrite: true");
+    expect(androidBuildWorkflow).toContain("retention-days: 3");
+    expect(androidBuildWorkflow).toContain("if: always()");
+    expect(androidBuildWorkflow).toContain("if-no-files-found: warn");
+    expect(androidBuildWorkflow).toContain("retention-days: 7");
   });
 
   it("keeps Android APK producer and consumer paths explicit", () => {
-    const automation = jobBlock(
-      nativeWorkflow,
-      "android-automation-build",
-      "android-production-build",
-    );
-    const production = jobBlock(
-      nativeWorkflow,
-      "android-production-build",
-      "production-bundle-guard",
-    );
+    const androidBuild = jobBlock(androidBuildWorkflow, "android-build");
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
 
     for (const contract of [
       {
         artifact: "native-android-apk-${{ github.run_id }}",
+        buildArtifact: "format('native-android-apk-{0}', github.run_id)",
         saved: "native-automation.apk",
         runtimeDir: "native-apk",
         download: "Download Automation Release APK",
@@ -202,18 +285,20 @@ describe("Native CI workflow contracts", () => {
       },
       {
         artifact: "native-android-production-apk-${{ github.run_id }}",
+        buildArtifact: "format('native-android-production-apk-{0}', github.run_id)",
         saved: "native-production-validation.apk",
         runtimeDir: "native-production-apk",
         download: "Download Production-validation Release APK",
         install: 'timeout 180 "$ADB" install -r "$PRODUCTION_APK_PATH"',
       },
     ]) {
-      const producer = contract.saved === "native-automation.apk" ? automation : production;
       const variable =
         contract.saved === "native-automation.apk" ? "APK_PATH" : "PRODUCTION_APK_PATH";
-      expect(producer).toContain(`cp "$APK_PATH" "$RUNNER_TEMP/native-apks/${contract.saved}"`);
-      expect(producer).toContain(`name: ${contract.artifact}`);
-      expect(producer).toContain("path: ${{ runner.temp }}/native-apks/" + contract.saved);
+      expect(androidBuildWorkflow).toContain(contract.buildArtifact);
+      expect(androidBuildWorkflow).toContain(contract.saved);
+      expect(androidBuild).toContain('cp "$APK_PATH" "$RUNNER_TEMP/native-apks/$APK_FILENAME"');
+      expect(androidBuild).toContain("name: ${{ env.APK_ARTIFACT_NAME }}");
+      expect(androidBuild).toContain("$RUNNER_TEMP/native-apks/$APK_FILENAME");
       expect(runtime).toContain(`- name: ${contract.download}`);
       expect(runtime).toContain(`name: ${contract.artifact}`);
       expect(runtime).toContain("path: ${{ runner.temp }}/" + contract.runtimeDir);
@@ -229,11 +314,6 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("guards Actual Production APK Hermes artifacts through the shared validator", () => {
-    const production = jobBlock(
-      nativeWorkflow,
-      "android-production-build",
-      "production-bundle-guard",
-    );
     const productionGuard = jobBlock(nativeWorkflow, "production-bundle-guard", "android-runtime");
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
 
@@ -243,20 +323,26 @@ describe("Native CI workflow contracts", () => {
     expect(productionGuard).toContain("Download Automation Release APK");
     expect(productionGuard).toContain("Download Production-validation Release APK");
     expect(productionGuard).toContain("Inspect Actual Hermes artifacts with shared validator");
-    expect(productionGuard).toContain('unzip -Z1 "$apk_path"');
-    expect(productionGuard).toContain('unzip -p "$apk_path" "$entry"');
-    expect(productionGuard).toContain("^assets/.*\\.(bundle|hbc)$");
-    expect(productionGuard).toContain("--automation-bundle-path");
-    expect(productionGuard).toContain("--production-bundle-path");
     expect(productionGuard).toContain(
+      "run: bash scripts/native/android-ci-production-bundle-guard.sh",
+    );
+    expect(productionGuard).toContain("AUTOMATION_APK_PATH:");
+    expect(productionGuard).toContain("PRODUCTION_APK_PATH:");
+    expect(productionGuardHelper).toContain('unzip -Z1 "$apk_path"');
+    expect(productionGuardHelper).toContain('unzip -p "$apk_path" "$entry"');
+    expect(productionGuardHelper).toContain("^assets/.*\\.(bundle|hbc)$");
+    expect(productionGuardHelper).toContain("--automation-bundle-path");
+    expect(productionGuardHelper).toContain("--production-bundle-path");
+    expect(productionGuardHelper).toContain(
       'pnpm run validate:native-production-bundle "${validator_args[@]}"',
     );
-    expect(productionGuard).not.toContain(
+    expect(productionGuardHelper).not.toContain(
       'pnpm run validate:native-production-bundle -- "${validator_args[@]}"',
     );
-    expect(productionGuard).not.toContain("grep -aE");
+    expect(productionGuardHelper).not.toContain("grep -aE");
 
-    for (const source of [production, runtime]) {
+    const androidBuild = jobBlock(androidBuildWorkflow, "android-build");
+    for (const source of [androidBuild, runtime]) {
       expect(source).toContain('unzip -Z1 "$PRODUCTION_APK_PATH"');
       expect(source).toContain("^assets/.*\\.(bundle|hbc)$");
       expect(source).toContain('test -n "$bundle_entries"');
@@ -268,6 +354,7 @@ describe("Native CI workflow contracts", () => {
       "NativeTestControlService",
     ]) {
       expect(nativeWorkflow).not.toContain(marker);
+      expect(productionGuardHelper).not.toContain(marker);
     }
     expect(runtime).not.toContain(
       'unzip -l "$PRODUCTION_APK_PATH" | grep -Eq \'__SCENARIO_SHOP_NATIVE_AUTOMATION__',
@@ -338,9 +425,12 @@ describe("Native CI workflow contracts", () => {
 
   it("keeps canonical Android visual capture manual, profile-bound, and provenance-bound", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+    const profileStart = runtime.indexOf("- name: Normalize Android canonical visual profile");
+    const profileEnd = runtime.indexOf("\n      - name:", profileStart + 1);
+    const profileStep = runtime.slice(profileStart, profileEnd === -1 ? undefined : profileEnd);
     const captureStart = runtime.indexOf("- name: Capture Android Screen Catalog baseline");
     const captureEnd = runtime.indexOf("\n      - name:", captureStart + 1);
-    const capture = runtime.slice(captureStart, captureEnd === -1 ? undefined : captureEnd);
+    const captureStep = runtime.slice(captureStart, captureEnd === -1 ? undefined : captureEnd);
 
     expect(nativeWorkflow).toContain("capture_spec_visuals:");
     expect(nativeWorkflow).toContain("type: boolean");
@@ -348,15 +438,27 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("capture_case_key:");
     expect(nativeWorkflow).toContain("type: string");
     expect(nativeWorkflow).toContain("default: SCREEN-STOREFRONT-HOME/default/android");
+    expect(profileStart).toBeGreaterThanOrEqual(0);
     expect(captureStart).toBeGreaterThanOrEqual(0);
-    expect(capture).toContain("inputs.capture_spec_visuals == true");
-    expect(capture).toContain("steps.android_profile_normalize.outcome == 'success'");
-    expect(capture).not.toContain("pull_request");
-    expect(capture).toContain("CAPTURE_CASE_SELECTION");
-    expect(capture).toContain("android-visual-capture.ts list-cases");
-    expect(capture).toContain("android-visual-capture.ts describe-case");
-    expect(capture).toContain('for CASE_KEY in "${CASE_KEYS[@]}"');
-    expect(capture).toContain("capture_case() (");
+    expect(profileStep).toContain("id: android_profile_normalize");
+    expect(profileStep).toContain("steps.android_adb_root.outcome == 'success'");
+    expect(profileStep).toContain("run: bash scripts/native/android-ci-visual-profile.sh");
+    expect(captureStep).toContain("inputs.capture_spec_visuals == true");
+    expect(captureStep).toContain("steps.android_profile_normalize.outcome == 'success'");
+    expect(captureStep).not.toContain("pull_request");
+    expect(captureStep).toContain("CAPTURE_CASE_SELECTION: ${{ inputs.capture_case_key }}");
+    expect(captureStep).toContain("run: bash scripts/native/android-ci-visual-capture.sh");
+    expectInOrder(runtime, [
+      "Normalize Android canonical visual profile",
+      "Capture Android Screen Catalog baseline",
+    ]);
+    expect(runtime).toContain("native-android-screen-catalog-visuals-");
+
+    expect(visualCaptureHelper).toContain(': "${CAPTURE_CASE_SELECTION:?');
+    expect(visualCaptureHelper).toContain("android-visual-capture.ts list-cases");
+    expect(visualCaptureHelper).toContain("android-visual-capture.ts describe-case");
+    expect(visualCaptureHelper).toContain('for CASE_KEY in "${CASE_KEYS[@]}"');
+    expect(visualCaptureHelper).toContain("capture_case() (");
     for (const captureMetadata of [
       "scenario",
       "route",
@@ -370,88 +472,167 @@ describe("Native CI workflow contracts", () => {
       "ready_conditions",
       "capture_mode",
     ]) {
-      expect(capture).toContain(`.${captureMetadata}`);
+      expect(visualCaptureHelper).toContain(`.${captureMetadata}`);
     }
-    expect(capture).toContain("maestro/native-visual-capture.yaml");
-    expect(capture).toContain("android-maestro-run.sh");
-    expect(capture).toContain('--env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"');
-    expect(capture).toContain('--env "CHECKOUT_STEP=$NATIVE_CHECKOUT_STEP"');
-    expect(capture).toContain('jq -rn --arg value "$SCENARIO"');
-    expect(capture).toContain("scenario=${scenario_encoded}");
-    expect(capture).toContain('--env "ROLE=$ROLE"');
-    expectInOrder(capture, [
+    expect(visualCaptureHelper).toContain("maestro/native-visual-capture.yaml");
+    expect(visualCaptureHelper).toContain("android-maestro-run.sh");
+    expect(visualCaptureHelper).toContain('--env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"');
+    expect(visualCaptureHelper).toContain('--env "CHECKOUT_STEP=$NATIVE_CHECKOUT_STEP"');
+    expect(visualCaptureHelper).toContain('jq -rn --arg value "$SCENARIO"');
+    expect(visualCaptureHelper).toContain("scenario=${scenario_encoded}");
+    expect(visualCaptureHelper).toContain('--env "ROLE=$ROLE"');
+    expectInOrder(visualCaptureHelper, [
       "list-cases",
       "capture_case() (",
       "android-maestro-run.sh",
       "exec-out screencap -p",
       "android-visual-capture.ts write-manifest",
     ]);
-    expect(capture).not.toContain('test -n "$READY"');
-    expect(capture).toContain("source-commit-sha");
-    expect(capture).toContain("--automation-apk-path");
-    expect(capture).toContain("android-visual-capture.ts write-manifest");
-    expect(capture).toContain("--observed-profile-json");
-    expectInOrder(runtime, [
-      "Normalize Android canonical visual profile",
-      "Capture Android Screen Catalog baseline",
-    ]);
-    expect(capture).toContain("--system-image google_apis");
-    expect(capture).toContain("--avd-profile pixel_2");
-    expect(capture).toContain("batch.manifest.json");
-    expect(capture).toContain("capture_case_keys");
-    expect(capture).toContain("complete");
-    expect(capture).toContain("canonical promotion is forbidden");
-    expect(capture).not.toContain("25");
-    expect(runtime).toContain("native-android-screen-catalog-visuals-");
-    for (const profileValue of [
+    expect(visualCaptureHelper).not.toContain('test -n "$READY"');
+    expect(visualCaptureHelper).toContain("source-commit-sha");
+    expect(visualCaptureHelper).toContain("--automation-apk-path");
+    expect(visualCaptureHelper).toContain("android-visual-capture.ts write-manifest");
+    expect(visualCaptureHelper).toContain("--observed-profile-json");
+    expect(visualCaptureHelper).toContain("--system-image google_apis");
+    expect(visualCaptureHelper).toContain("--avd-profile pixel_2");
+    expect(visualCaptureHelper).toContain("batch.manifest.json");
+    expect(visualCaptureHelper).toContain("capture_case_keys");
+    expect(visualCaptureHelper).toContain("complete");
+    expect(visualCaptureHelper).toContain("canonical promotion is forbidden");
+    expect(visualCaptureHelper).not.toContain("25");
+    for (const profileValue of ['test "$api_level" = "34"', "ja-JP", "font_scale 1.0"]) {
+      expect(visualProfileHelper).toContain(profileValue);
+    }
+    for (const emulatorProfileValue of [
       "android-${ANDROID_API_LEVEL}",
       "google_apis",
       "x86_64",
       "pixel_2",
-      "ja-JP",
-      "font_scale 1.0",
     ]) {
-      expect(runtime).toContain(profileValue);
+      expect(emulatorStartHelper).toContain(emulatorProfileValue);
     }
     expect(runtime).toContain('"$ADB" root');
     expect(runtime).toContain('root_uid="$("$ADB" shell id -u');
     expect(runtime).toContain("uid=0\\(root\\)");
     expect(runtime).toContain("ADB_ROOT_AVAILABLE");
-    expect(runtime).toContain("root_available=false");
-    expect(runtime).toContain('provisioning_mode="settings_ui"');
-    expect(runtime).toContain('if [[ "${ADB_ROOT_AVAILABLE:-false}" = true ]]');
-    expect(runtime).toContain("setprop persist.sys.locale ja-JP");
-    expect(runtime).toContain('"$ADB" shell stop');
-    expect(runtime).toContain('"$ADB" shell start');
-    expect(runtime).toContain('"$ADB" unroot');
-    expect(runtime).toContain("settings_service_ready=false");
-    expect(runtime).toContain(
+    expect(visualProfileHelper).toContain('if [[ "${ADB_ROOT_AVAILABLE:-false}" = true ]]');
+    expect(visualProfileHelper).toContain('provisioning_mode="settings_ui"');
+    expect(visualProfileHelper).toContain("setprop persist.sys.locale ja-JP");
+    expect(visualProfileHelper).toContain('"$ADB" shell stop');
+    expect(visualProfileHelper).toContain('"$ADB" shell start');
+    expect(visualProfileHelper).toContain('"$ADB" unroot');
+    expect(visualProfileHelper).toContain("settings_service_ready=false");
+    expect(visualProfileHelper).toContain(
       "service check settings 2>/dev/null | grep -Eq ':[[:space:]]+found[[:space:]]*$'",
     );
-    expect(runtime).not.toContain('service check settings 2>/dev/null | grep -q "found"');
-    expect(runtime).toContain('test "$settings_service_ready" = true');
-    expect(runtime).toContain('observation_shell_uid="$("$ADB" shell id -u');
-    expect(runtime).toContain('test "$observation_shell_uid" != "0"');
-    expect(runtime).toContain("android.settings.LOCALE_SETTINGS");
-    expect(runtime).toContain('"$MAESTRO_BIN" test');
-    expect(runtime).toContain("maestro/android-locale-provision.yaml");
-    expect(runtime).not.toContain('"$ADB" reboot');
-    expect(runtime).not.toContain("settings put system system_locales ja-JP");
-    expect(runtime).toContain("$ADB shell dumpsys activity activities");
-    expect(runtime).toContain('"$ADB" shell wm density 440');
-    expect(runtime).toContain("Override density:");
-    expect(runtime).toContain('effective_locale_observation="dumpsys activity activities"');
-    expect(runtime).toContain("grep -Eq '\\[(ja_JP|ja-JP)(,|\\])'");
-    expect(runtime).toContain('effective_orientation="unknown"');
-    expect(runtime).toContain("from effective configuration");
-    expect(runtime).toContain('effective_locale="unknown"');
-    expect(runtime).toContain('test "$effective_locale" = "ja-JP"');
-    expect(runtime).not.toContain('test "$locale_settings" = "ja-JP"');
-    expect(runtime).not.toContain('test "$locale_value" = "ja-JP"');
-    expect(capture).toContain("exec-out screencap -p");
-    expect(capture).toContain("APK_PATH");
-    expect(capture).toContain("GITHUB_SHA");
-    expect(capture).toContain("GITHUB_RUN_ID");
+    expect(visualProfileHelper).not.toContain(
+      'service check settings 2>/dev/null | grep -q "found"',
+    );
+    expect(visualProfileHelper).toContain('test "$settings_service_ready" = true');
+    expect(visualProfileHelper).toContain('observation_shell_uid="$("$ADB" shell id -u');
+    expect(visualProfileHelper).toContain('test "$observation_shell_uid" != "0"');
+    expect(visualProfileHelper).toContain("android.settings.LOCALE_SETTINGS");
+    expect(visualProfileHelper).toContain('"$MAESTRO_BIN" test');
+    expect(visualProfileHelper).toContain("maestro/android-locale-provision.yaml");
+    expect(visualProfileHelper).not.toContain('"$ADB" reboot');
+    expect(visualProfileHelper).not.toContain("settings put system system_locales ja-JP");
+    expect(visualProfileHelper).toContain("$ADB shell dumpsys activity activities");
+    expect(visualProfileHelper).toContain('"$ADB" shell wm density 440');
+    expect(visualProfileHelper).toContain("Override density:");
+    expect(visualProfileHelper).toContain(
+      'effective_locale_observation="dumpsys activity activities"',
+    );
+    expect(visualProfileHelper).toContain("grep -Eq '\\[(ja_JP|ja-JP)(,|\\])'");
+    expect(visualProfileHelper).toContain('effective_orientation="unknown"');
+    expect(visualProfileHelper).toContain("from effective configuration");
+    expect(visualProfileHelper).toContain('effective_locale="unknown"');
+    expect(visualProfileHelper).toContain('test "$effective_locale" = "ja-JP"');
+    expect(visualProfileHelper).not.toContain('test "$locale_settings" = "ja-JP"');
+    expect(visualProfileHelper).not.toContain('test "$locale_value" = "ja-JP"');
+    expect(visualCaptureHelper).toContain("exec-out screencap -p");
+    expect(visualCaptureHelper).toContain("APK_PATH");
+    expect(visualCaptureHelper).toContain("GITHUB_SHA");
+    expect(visualCaptureHelper).toContain("GITHUB_RUN_ID");
+  });
+
+  it("keeps adb root as a workflow step and moves runtime I/O into its helper owners", () => {
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+    const profileStart = runtime.indexOf("- name: Normalize Android canonical visual profile");
+    const profileEnd = runtime.indexOf("\n      - name:", profileStart + 1);
+    const profileStep = runtime.slice(profileStart, profileEnd === -1 ? undefined : profileEnd);
+    const rootStart = runtime.indexOf("- name: Check Android adb root capability");
+    const rootEnd = runtime.indexOf("\n      - name:", rootStart + 1);
+    const rootStep = runtime.slice(rootStart, rootEnd === -1 ? undefined : rootEnd);
+    const emulatorStart = runtime.indexOf("- name: Start Android Emulator with KVM");
+    const emulatorEnd = runtime.indexOf("\n      - name:", emulatorStart + 1);
+    const emulatorStep = runtime.slice(emulatorStart, emulatorEnd === -1 ? undefined : emulatorEnd);
+    const evidenceStart = runtime.indexOf("- name: Collect Android evidence");
+    const evidenceEnd = runtime.indexOf("\n      - uses:", evidenceStart + 1);
+    const evidenceStep = runtime.slice(evidenceStart, evidenceEnd === -1 ? undefined : evidenceEnd);
+
+    expect(rootStep).toContain("id: android_adb_root");
+    expect(rootStep).toContain('"$ADB" root');
+    expect(rootStep).toContain("ADB_ROOT_AVAILABLE=$root_available");
+    expect(runtime).toContain("steps.android_adb_root.outcome == 'success'");
+    expect(emulatorStep).toContain("id: android_emulator_ready");
+    expect(emulatorStep).toContain("run: bash scripts/native/android-ci-emulator-start.sh");
+    for (const required of [
+      "ADB",
+      "AVDMANAGER",
+      "EMULATOR",
+      "ANDROID_API_LEVEL",
+      "RUNNER_TEMP",
+      "GITHUB_ENV",
+    ]) {
+      expect(emulatorStartHelper).toContain('"${' + required + ":?");
+    }
+    expect(emulatorStartHelper).toContain(
+      'echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"',
+    );
+    expect(emulatorStartHelper).toContain('echo "EMULATOR_PID=$EMULATOR_PID" >> "$GITHUB_ENV"');
+    for (const diagnostic of [
+      "avd-files.txt",
+      "avd-list.txt",
+      "emulator-pid.txt",
+      "emulator.log",
+    ]) {
+      expect(emulatorStartHelper).toContain(diagnostic);
+    }
+    expect(emulatorStartHelper).not.toContain("HOME:?");
+    expect(profileStep).toContain("run: bash scripts/native/android-ci-visual-profile.sh");
+    for (const required of [
+      "ADB",
+      "MAESTRO_BIN",
+      "ADB_ROOT_AVAILABLE",
+      "RUNNER_TEMP",
+      "GITHUB_WORKSPACE",
+      "GITHUB_ENV",
+    ]) {
+      expect(visualProfileHelper).toContain('"${' + required + ":?");
+    }
+    expect(visualProfileHelper).toContain(
+      'echo "ANDROID_OBSERVED_PROFILE_JSON=$profile_json" >> "$GITHUB_ENV"',
+    );
+    for (const required of [
+      "ADB",
+      "MAESTRO_BIN",
+      "APK_PATH",
+      "ANDROID_OBSERVED_PROFILE_JSON",
+      "RUNNER_TEMP",
+      "GITHUB_WORKSPACE",
+      "GITHUB_SHA",
+      "GITHUB_RUN_ID",
+    ]) {
+      expect(visualCaptureHelper).toContain('"${' + required + ":?");
+    }
+    expect(evidenceStep).toContain("NATIVE_ANDROID_JOB_STATUS: ${{ job.status }}");
+    expect(evidenceStep).toContain("run: bash scripts/native/android-ci-runtime-evidence.sh");
+    expect(runtimeEvidenceHelper).toContain(': "${NATIVE_ANDROID_JOB_STATUS:?');
+    expect(runtimeEvidenceHelper).toContain(': "${RUNNER_TEMP:?');
+    expect(runtimeEvidenceHelper).not.toContain('ADB="${ADB:?');
+    expect(runtimeEvidenceHelper).not.toContain('APK_PATH="${APK_PATH:?');
+    expect(runtimeEvidenceHelper).toContain('if [[ -n "${ADB:-}" && -x "${ADB:-}" ]]');
+    expect(runtimeEvidenceHelper).toContain('if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]');
   });
 
   it("keeps rootless Android locale fallback isolated in a Settings UI flow", () => {
@@ -467,7 +648,7 @@ describe("Native CI workflow contracts", () => {
 
   it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {
     expect(visualCaptureFlow).toContain("- launchApp\n");
-    expect(nativeWorkflow).toContain('.native_setup_subflow // ""');
+    expect(visualCaptureHelper).toContain('.native_setup_subflow // ""');
     for (const setup of [
       ["guest-cart-with-basic-shirt", "subflows/native-visual-capture-guest-cart.yaml"],
       ["customer-login", "subflows/native-visual-capture-customer-login.yaml"],

@@ -1,0 +1,298 @@
+name: Native Android Build
+
+on:
+  workflow_call:
+    inputs:
+      build_kind:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 10.34.5
+  HUSKY: "0"
+
+jobs:
+  android-build:
+    name: Android Build (${{ inputs.build_kind }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      BUILD_KIND: ${{ inputs.build_kind }}
+      EXPO_PUBLIC_APP_ENV: ${{ inputs.build_kind }}
+      EXPO_PUBLIC_BUILD_KIND: ${{ inputs.build_kind }}
+      EXPO_PUBLIC_TEST_MODE: ${{ inputs.build_kind == 'automation' && 'true' || 'false' }}
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      ANDROID_COMPILE_API_LEVEL: "36"
+      APK_FILENAME: ${{ inputs.build_kind == 'automation' && 'native-automation.apk' || 'native-production-validation.apk' }}
+      APK_ARTIFACT_NAME: ${{ inputs.build_kind == 'automation' && format('native-android-apk-{0}', github.run_id) || format('native-android-production-apk-{0}', github.run_id) }}
+      GRADLE_LOG_FILENAME: ${{ inputs.build_kind == 'automation' && 'gradle-assemble-release.log' || 'gradle-assemble-production-release.log' }}
+      EVIDENCE_DIRECTORY: ${{ inputs.build_kind == 'automation' && 'native-build-evidence' || 'native-production-build-evidence' }}
+      EVIDENCE_ARTIFACT_NAME: ${{ inputs.build_kind == 'automation' && format('native-android-build-evidence-{0}', github.run_id) || format('native-android-production-build-evidence-{0}', github.run_id) }}
+    steps:
+      - name: Validate Android build kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$BUILD_KIND" in
+            automation|production) ;;
+            *) echo "Unsupported Android build kind: $BUILD_KIND" >&2; exit 1 ;;
+          esac
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Configure Gradle cache
+        uses: gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580 # v5.0.0
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify Android runtime metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          config_path="$RUNNER_TEMP/android-${BUILD_KIND}-config.json"
+          pnpm exec expo config --json > "$config_path"
+          node -e 'const fs = require("node:fs"); const buildKind = process.argv[1]; const expected = { appEnvironment: buildKind, buildKind, testMode: buildKind === "automation" ? "true" : "false" }; const extra = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).extra ?? {}; for (const [key, value] of Object.entries(expected)) { if (extra[key] !== value) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${value}`); }' "$BUILD_KIND" "$config_path"
+      - name: Run Expo prebuild
+        run: pnpm exec expo prebuild --platform android --no-install
+      - name: Resolve Android SDK and sdkmanager
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_ROOT"
+          test -d "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          test -x "$SDKMANAGER"
+          ADB="$SDK_ROOT/platform-tools/adb"
+          APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
+          echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "ADB=$ADB" >> "$GITHUB_ENV"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          export PATH="$SDK_ROOT/platform-tools:$(dirname "$SDKMANAGER"):$PATH"
+          echo "Resolved Android SDK: $SDK_ROOT"
+          echo "Resolved sdkmanager: $SDKMANAGER"
+      - name: Install Android SDK build components
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$SDKMANAGER"
+          missing_components=()
+          if [[ ! -x "$SDK_ROOT/platform-tools/adb" ]]; then
+            missing_components+=("platform-tools")
+          fi
+          if [[ ! -f "$SDK_ROOT/platforms/android-${ANDROID_COMPILE_API_LEVEL}/android.jar" ]]; then
+            missing_components+=("platforms;android-${ANDROID_COMPILE_API_LEVEL}")
+          fi
+          if [[ ! -x "$SDK_ROOT/build-tools/36.0.0/aapt" ]]; then
+            missing_components+=("build-tools;36.0.0")
+          fi
+          if ((${#missing_components[@]} == 0)); then
+            echo "All required Android SDK build components are already installed; skipping download."
+            exit 0
+          fi
+          printf 'Missing Android SDK build components:\n - %s\n' "${missing_components[@]}"
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$license_status" -eq 0
+          "$SDKMANAGER" "${missing_components[@]}"
+      - name: Verify Android SDK build components
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "SDKMANAGER=$SDKMANAGER"
+          echo "ADB=$ADB"
+          echo "APK_PATH=$APK_PATH"
+          test -d "$SDK_ROOT"
+          test -d "$ANDROID_HOME"
+          test -x "$SDKMANAGER"
+          test -f "$SDK_ROOT/platforms/android-${ANDROID_COMPILE_API_LEVEL}/android.jar"
+          test -x "$SDK_ROOT/build-tools/36.0.0/aapt"
+          ls -la "$ANDROID_HOME/platform-tools"
+          ls -la "$SDK_ROOT/platforms/android-${ANDROID_COMPILE_API_LEVEL}"
+          ls -la "$SDK_ROOT/build-tools/36.0.0"
+      - name: Build Android Release APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleRelease \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
+            -PreactNativeArchitectures=x86_64 \
+            --build-cache \
+            --parallel \
+            --stacktrace \
+            2>&1 | tee "$RUNNER_TEMP/$GRADLE_LOG_FILENAME"
+      - name: Verify Automation Release APK
+        if: inputs.build_kind == 'automation'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$APK_PATH"
+          test -s "$APK_PATH"
+          if ! unzip -l "$APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
+            echo "Automation Release APK does not contain a JavaScript bundle." >&2
+            unzip -l "$APK_PATH" | tail -n 40 >&2
+            exit 1
+          fi
+          if ! unzip -l "$APK_PATH" | grep -Eq 'lib/x86_64/.*\.so'; then
+            echo "Automation Release APK does not contain x86_64 native libraries." >&2
+            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
+            exit 1
+          fi
+          if unzip -l "$APK_PATH" | grep -Eq 'lib/(arm64-v8a|armeabi-v7a|x86)/.*\.so'; then
+            echo "Automation Release APK contains a non-x86_64 native library." >&2
+            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
+            exit 1
+          fi
+          ls -lh "$APK_PATH"
+      - name: Save Automation Release APK
+        if: inputs.build_kind == 'automation'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-apks"
+          cp "$APK_PATH" "$RUNNER_TEMP/native-apks/$APK_FILENAME"
+          echo "AUTOMATION_APK_PATH=$RUNNER_TEMP/native-apks/$APK_FILENAME" >> "$GITHUB_ENV"
+      - name: Save Production-validation Release APK
+        if: inputs.build_kind == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_APK_PATH="$RUNNER_TEMP/native-apks/$APK_FILENAME"
+          test -f "$APK_PATH"
+          test -s "$APK_PATH"
+          mkdir -p "$RUNNER_TEMP/native-apks"
+          cp "$APK_PATH" "$PRODUCTION_APK_PATH"
+          echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"
+      - name: Verify Production-validation Release APK
+        if: inputs.build_kind == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${PRODUCTION_APK_PATH:?Production APK path was not exported by the save step}"
+          test -f "$PRODUCTION_APK_PATH"
+          test -s "$PRODUCTION_APK_PATH"
+          bundle_entries=$(
+            unzip -Z1 "$PRODUCTION_APK_PATH" |
+              grep -E '^assets/.*\.(bundle|hbc)$' || true
+          )
+          if [[ -z "$bundle_entries" ]]; then
+            echo "Production-validation APK does not contain a JavaScript bundle." >&2
+            exit 1
+          fi
+          test -n "$bundle_entries"
+          printf 'Production Hermes candidate entries:\n%s\n' "$bundle_entries"
+          ls -lh "$PRODUCTION_APK_PATH"
+      - name: Upload Android Release APK
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ env.APK_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/native-apks/${{ env.APK_FILENAME }}
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 3
+      - name: Collect Android build evidence
+        if: always()
+        shell: bash
+        env:
+          NATIVE_ANDROID_BUILD_JOB_STATUS: ${{ job.status }}
+          NATIVE_ANDROID_PRODUCTION_BUILD_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          evidence_dir="$RUNNER_TEMP/$EVIDENCE_DIRECTORY"
+          mkdir -p "$evidence_dir"
+          {
+            if [[ "$BUILD_KIND" == "automation" ]]; then
+              echo "job_status=${NATIVE_ANDROID_BUILD_JOB_STATUS:-unknown}"
+            else
+              echo "job_status=${NATIVE_ANDROID_PRODUCTION_BUILD_JOB_STATUS:-unknown}"
+            fi
+            echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}"
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-<unset>}"
+            echo "ANDROID_COMPILE_API_LEVEL=${ANDROID_COMPILE_API_LEVEL:-<unset>}"
+            echo "node_version=$(node --version 2>/dev/null || true)"
+            echo "java_version=$(java -version 2>&1 | head -n 1 || true)"
+          } > "$evidence_dir/android-build-environment.txt"
+          gradle_log="$RUNNER_TEMP/$GRADLE_LOG_FILENAME"
+          if [[ "$BUILD_KIND" == "automation" ]]; then
+            if [[ -f "$gradle_log" ]]; then
+              if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" == "success" ]]; then
+                tail -n 200 "$gradle_log" > "$evidence_dir/gradle-assemble-release.log"
+              else
+                if ! cp "$gradle_log" "$evidence_dir/gradle-assemble-release.log"; then
+                  echo "Gradle Release build log copy failed." > "$evidence_dir/gradle-copy-status.txt"
+                fi
+              fi
+            else
+              echo "Gradle Release build log was not generated." > "$evidence_dir/gradle-status.txt"
+            fi
+            if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
+              {
+                echo "apk_path=$APK_PATH"
+                stat -c 'size_bytes=%s' "$APK_PATH"
+                file "$APK_PATH" || true
+                unzip -l "$APK_PATH" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)|lib/x86_64/.*\\.so" || true
+                sha256sum "$APK_PATH" || true
+              } > "$evidence_dir/apk-metadata.txt"
+              if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" != "success" ]]; then
+                if ! cp "$APK_PATH" "$evidence_dir/native-automation.apk"; then
+                  echo "Automation Release APK copy failed." > "$evidence_dir/apk-copy-status.txt"
+                fi
+              fi
+            else
+              echo "Automation Release APK was not generated." > "$evidence_dir/apk-status.txt"
+            fi
+          else
+            if [[ -f "$gradle_log" ]]; then
+              cp "$gradle_log" "$evidence_dir/gradle-assemble-production-release.log"
+            else
+              echo "Gradle Production-validation build log was not generated." \
+                > "$evidence_dir/gradle-production-status.txt"
+            fi
+            if [[ -n "${PRODUCTION_APK_PATH:-}" && -f "$PRODUCTION_APK_PATH" ]]; then
+              {
+                echo "production_apk_path=$PRODUCTION_APK_PATH"
+                stat -c 'size_bytes=%s' "$PRODUCTION_APK_PATH"
+                file "$PRODUCTION_APK_PATH" || true
+                sha256sum "$PRODUCTION_APK_PATH" || true
+              } > "$evidence_dir/production-apk-metadata.txt"
+            else
+              echo "Production-validation APK was not generated." \
+                > "$evidence_dir/production-apk-status.txt"
+            fi
+          fi
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: ${{ env.EVIDENCE_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/${{ env.EVIDENCE_DIRECTORY }}
+          if-no-files-found: warn
+          retention-days: 7

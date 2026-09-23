@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "run_id": "20260923-095339-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "flaky_or_env_issue",
+    "artifact_contract_gap",
+    "scope_creep"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Planの実装とNative CI関連focused contractは完了した。clean origin/mainのformat:checkはPASS、current worktreeのapp/** 78 fileはCRLF / endOfLine: lf差でFAILする。ユーザーは今回1 commitのみ--no-verifyを許可し、lint / security:checkは手動PASSした。staged最終確認後のcommit / push、Remote CI、manual visual確認が残っている。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "Pre-commit baseline evidence、手動lint / security結果、最新の一回限りの--no-verify許可と未実行のRemote CI / manual visual確認。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "warn",
+      "evidence": "追跡対象のsource変更はPlan範囲内。先行するGitHub integration操作で未使用のremote feature branchが誤って作成されたが、内容は変更せず削除もしていない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "Side effect / environment",
+          "summary": "Accidental branch creation and decision to leave it untouched."
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Native focused tests、shell syntax、validator matrixはPASS。全contract suiteではWindows launcher testが負荷下でtimeoutし、同testの単独実行はPASS。current worktreeのformat:checkはapp/** 78件でFAILする一方、clean origin/mainでは同一checkがPASS。Git content diffは0で、raw line endingはcurrent CRLF / baseline LF。手動lintは0 errors / 66 warningsでPASS、security:checkもPASS。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "Focused tests、全contract結果、validator matrix、format failure、手動lint / security gate。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "force push、merge、default branchへのpush、Issue close、branch削除は行っていない。誤ったremote branch作成を開示し、no-delete指示に従って維持する。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "Side effect / environment",
+          "summary": "Remote branch safety status."
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Contract assertionは新しい責務ownerに配置し、documentationへ実装境界と観測した検証結果を記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "保存Planどおりに実装し、新しいCI framework、dependency、runtime reusable layerを加えず、Automation / Productionの非対称性を維持した。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "生成済みoutput copyを除外したNative focused commandはPASS。全体local verificationとpre-commitのformat stepはcurrent worktreeのCRLF差によるPrettier failureを観測した。clean origin/mainの同じPrettier checkはPASS。手動lint / security:checkはPASSし、ユーザーが今回のcommit限りの--no-verifyを許可した。commit / push未完了のためRemote checksは未記録。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "current worktreeのcorepack pnpm run verifyとpre-commit hookはapp file 78件のPrettier warningで停止したが、clean origin/main上の同じformat:checkはPASS。Git正規化後はapp内容のbranch差分がなく、current worktreeだけCRLF、baselineはLF。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 11:18 (JST)",
+          "summary": "Repository verify result."
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 11:49 (JST)",
+          "summary": "Pre-commit rejected the commit at the same unchanged repository format failure."
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "Clean origin/main passes; current worktree has 78 CRLF-only warnings; latest instruction authorizes one --no-verify commit after lint, security, and staged review pass."
+        }
+      ],
+      "detail": "78 fileはPlan対象外で、Git content diffは0。一方、clean baselineの同一format checkはPASSし、current worktreeにのみCRLFが存在してendOfLine: lfのPrettierがfailureする。全体format結果はFAILのまま記録し、78 fileをformatしない。ユーザーは今回1 commitだけの--no-verifyを、lint / security PASSと最終staged reviewを条件に明示許可した。lint / securityはPASSし、commitは最終レビュー後に実行する。Remote CIとmanual visual validationは未確認。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "既存Windows launcher contractは全contract suiteで30.7秒timeoutし、単独runは27.5秒でPASS。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 11:18 (JST)",
+          "summary": "Repeated full-suite timeout and isolated PASS."
+        }
+      ],
+      "detail": "test fileは今回変更せず、Native CIとは無関係。timeout tuningはPlan対象外で、FAILをPASSへ変換していない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "Plan記載のfocused Vitest commandはoutput/**内の古いtest copyを収集し、Native workflow assertion 18件がFAIL。現行source testsは78/78 PASS。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 11:18 (JST)",
+          "summary": "Exact command and source-only command results."
+        }
+      ],
+      "detail": "Repository標準のtest:contracts commandはoutput/**を除外する。生成済みcopyは変更していない。"
+    },
+    {
+      "category": "scope_creep",
+      "severity": "medium",
+      "evidence": "ユーザーからcurrent branch維持の指示を受ける前に、GitHub integration actionがremote branch feat/issue-130-native-ci-responsibility-boundaryを作成した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "Side effect / environment",
+          "summary": "Unintended branch creation was disclosed and left unchanged."
+        }
+      ],
+      "detail": "実装対象は現在のplan/issue-130-native-ci-responsibility-boundary branchだけとする。未使用branchは変更も削除もしない。"
+    }
+  ],
+  "improvement_candidates": []
+}
