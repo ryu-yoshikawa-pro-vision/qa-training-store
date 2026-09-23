@@ -15,6 +15,12 @@
 - [x] 11. Domain → Applicationのallow / denyをowner Decision対象から外し、Current policyとしてPlanへ反映する。
 - [x] 12. Repository Port ownershipだけをarchitecture owner Decisionとして残し、案A / B / Cと推奨案を整理する。
 - [x] 13. §4.16の再分類、follow-up Refactor、static contractの実装順をPlanへ反映する。
+- [x] 14. 17 / 7分類をownership決定から切り離し、24 interfaceを責務 / consumerで再評価する方針へ修正する。
+- [x] 15. `NFR-MA-010`をDecision Pointへ追加し、案BのGate変更リスクを明記する。
+- [x] 16. 案Cと対象外の矛盾を解消し、owner Decisionなしの例外新設だけを対象外とする。
+- [x] 17. `ProductViewer`変換主体をCurrent callerのInfrastructure adapterへ修正する。
+- [x] 18. static contractのimport形とrelative path検査を具体化する。
+- [x] 19. decision-only / follow-up Refactorの検証commandをRepository標準へ整理する。
 
 ## ブロック中
 

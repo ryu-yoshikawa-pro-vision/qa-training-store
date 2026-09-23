@@ -23,6 +23,16 @@
 - Current codeと一部Repository contract説明がarchitecture ruleへ整合していない。
 - Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。
 - Repository Port ownershipはADR-0003との整合が必要なため、案A / B / Cをarchitecture ownerへ提示するDecision Pointとして残す。
-- Plan上の推奨は、Application typeを必要とするPortをApplication ownershipへ移し、Domain-owned typeだけで閉じるContractをDomainへ残す案A。
+- Plan上の推奨は、Repository Portのownerを責務とconsumerで決める案A。17 interfaceはCurrent違反を直接持つ最低限の再配置対象候補とし、残る7 interfaceもDomain ownershipと自動確定しない。
 - `canViewerSeeProduct()`はApplication `ProductViewer`へ依存せず、必要最小限のDomain-owned valueを受け取る。
 - 案A / BでCurrent policyを維持する場合、§4.16は`refactor_now`とし、実装は別Plan / PRへ切り出す。
+
+## 再レビュー反映
+
+- `NFR-MA-010`をRepository ownership Decisionの制約へ追加した。
+- 17 / 7分類はownershipの結論ではなくCurrent違反のEvidenceとして扱う。
+- 案Bは`NFR-MA-010`変更またはsupersedeの可能性を伴うと明記した。
+- 案Cと対象外の矛盾を解消し、owner Decisionなしの例外新設だけを対象外とした。
+- `ProductViewer`からDomain policy inputへの変換主体をCurrent callerであるInfrastructure adapterへ修正した。
+- static contractは通常import、`import type`、TypeScript import type query、runtime dynamic import、relative pathを具体的に検査する。
+- decision-only検証へ`pnpm run lint:text`を追加し、follow-up実装はfocused test後に`pnpm run verify`を標準gateとして実行する。

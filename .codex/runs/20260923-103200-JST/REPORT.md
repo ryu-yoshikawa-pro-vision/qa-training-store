@@ -58,3 +58,17 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (13/13)
+
+## 2026-09-23 — 再レビュー反映
+
+- 概要: 最新PlanをIssue #132、Current Repository、Repository consumer、NFRと再照合し、ownership判断とfollow-up実装の曖昧さを修正した。
+- 修正:
+  - 17 / 7分類をcanonical ownershipの決定基準から外した。17 interfaceはDomain → Application違反を直接持つ最低限の再配置対象候補、7 interfaceはCurrent違反を直接持たない確認対象とし、24 interfaceすべてを責務 / consumerで再評価する。
+  - `NFR-MA-010`をDecision Pointの制約へ追加した。Domain-owned代替contractへ置換する案Bは、このGateの変更またはsupersedeが必要になる可能性を明記した。
+  - 案Cを比較対象に残す一方、対象外は「architecture owner DecisionなしでのDomain → Application例外新設」へ修正した。
+  - `canViewerSeeProduct()`のCurrent callerはDexie / SQLite等のInfrastructureであるため、`ProductViewer`からDomain policy inputへの変換主体をInfrastructure adapterへ修正した。
+  - static contractは通常import、`import type`、TypeScriptの`import("...").Type` type query、runtime dynamic import、relative path解決を検査対象として具体化した。
+  - decision-only検証へ`pnpm run lint:text`を追加した。follow-up実装はfocused test後に`pnpm run verify`と`git diff --check`を実行し、verify内のtest / typecheckを理由なく重複実行しない。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (19/19)
