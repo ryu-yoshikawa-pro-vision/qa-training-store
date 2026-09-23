@@ -9,10 +9,10 @@
 - [x] 5. focused trigger / workflow testsを実行する。
 - [x] 6. repository test、markdown lint、verify、TypeScript lint/typecheck、diff checkを実行する。
 - [x] 7. self-reviewし、Run Artifactをsanitizationしてimplementation commit前の状態を確定する。
-- [ ] 8. implementationを通常commit / pushし、新Evaluator SHAと最新head CIを確認する。
-- [ ] 9. 新Evaluator SHAからfresh sanitized Targetを生成し、root commitとdetach以外のpreflightを完了する。
-- [ ] 10. ユーザーmanual detach後にTarget / Evaluator / Android preflightを確認する。
-- [ ] 11. canonical live Workflow E2Eを1回実行し、resultと成功条件を検証する。
+- [x] 8. implementationを通常commit / pushし、新Evaluator SHAと最新head CIを確認する。
+- [x] 9. 新Evaluator SHAからfresh sanitized Targetを生成し、root commitとdetach以外のpreflightを完了する。
+- [x] 10. ユーザーmanual detach後にTarget / Evaluator / Android preflightを確認する。
+- [x] 11. canonical live Workflow E2Eを1回実行し、blocked resultと成功条件を検証する（成功条件未達）。
 - [ ] 12. Run Artifactをsanitization後、Artifact-only commit / push、PR本文更新、最新head CI確認を行う。
 
 ## 完了処理の参照先

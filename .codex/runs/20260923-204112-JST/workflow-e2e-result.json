@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "run_status": "blocked",
+  "provenance": {
+    "evaluator_git_sha": "0d0b11c3177577cbe7131919e39ba2430e74f553",
+    "source_revision_git_sha": "0d0b11c3177577cbe7131919e39ba2430e74f553",
+    "routing_source_git_sha": "63a70410fe02ba184111f4ac4cb438b588a11578",
+    "codex_version": "codex-cli 0.155.1",
+    "model": "gpt-5.6-luna",
+    "executed_at": "2026-09-23T13:02:11.547Z"
+  },
+  "cases": [],
+  "reason": "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution",
+  "smoke_probe": {
+    "status": "fail",
+    "initial_process_completed": true,
+    "resumed_process_completed": false,
+    "initial_thread_present": true,
+    "same_thread": false,
+    "initial_otel_reliable": true,
+    "resumed_otel_reliable": false,
+    "initial_schema_valid": false,
+    "resumed_schema_valid": false,
+    "initial_write_observed": false,
+    "resumed_write_observed": false,
+    "initial_command_execution_observed": false,
+    "resumed_command_execution_observed": false,
+    "initial_lifecycle": "completed",
+    "resumed_lifecycle": "unknown",
+    "resumed_attempted": true
+  }
+}
