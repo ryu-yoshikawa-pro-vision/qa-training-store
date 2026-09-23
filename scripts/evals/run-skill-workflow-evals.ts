@@ -315,7 +315,7 @@ function gitFiles(root: string): Readonly<Record<string, string>> {
     ["status", "--porcelain=v1", "--untracked-files=all", "--no-renames", "-z"],
     { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   );
-  const result: Record<string, string> = {};
+  const result = Object.create(null) as Record<string, string>;
   for (const entry of output.split("\0")) {
     if (entry.length === 0) continue;
     if (entry.length < 4 || entry[2] !== " ")

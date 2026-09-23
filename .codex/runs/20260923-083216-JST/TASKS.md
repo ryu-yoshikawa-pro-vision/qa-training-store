@@ -10,11 +10,11 @@
 - [x] 5. Temp Git repository / Evidence treeを使うbehavior regression testsを追加する。
 - [x] 6. Workflow E2E targeted repository contractと今回の2つの回帰群を実行する。
 - [x] 7. `corepack pnpm run test:repository`、`corepack pnpm run lint:markdown`、`corepack pnpm run verify`を実行する。
-- [ ] 8. source-cleanなEvaluator commitでcanonical live runを1回実行し、結果を保存する。
-- [ ] 9. Run Artifact sanitization、`corepack pnpm run diagnose:hooks`、差分・契約レビューを完了する。
-- [ ] 10. commit / 通常push、PR本文更新、最新PR headのWeb CI / Mobile App CI確認を完了する。
+- [x] 8. canonical provenanceの再実行要否を確認し、共通PreToolUseが一時Target Git setupを拒否したため未実行として記録する（policy bypassはしない）。
+- [x] 9. Run Artifact sanitization、`corepack pnpm run diagnose:hooks`、差分・契約レビューを完了する。
+- [x] 10. 修正差分とRun Artifactを凍結し、commit前のfinal review / verification evidenceを確定する。
 
-Progress: 70% (7/10)
+Progress: 100% (10/10)
 
 ## 完了処理の参照先
 
@@ -32,4 +32,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- ブロック時のみ記載する。
+- Canonical live runは未再実行。Host PreToolUse G10がtemporary Target外repoのGit mutationを安全に解決できず2回とも実行前に拒否した。Run Artifactには旧Evaluator SHAの前回`blocked` resultを変更せず残し、今回の2件はdeterministic behavior testsで直接検証した。

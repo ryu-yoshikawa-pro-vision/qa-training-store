@@ -114,11 +114,17 @@ describe("Workflow E2E Eval repository contract", () => {
       const before = captureStageScopeSnapshot(root);
 
       writeFileSync(existingPath, "changed during turn\n");
+      const prototypeNamedUntracked = "__proto__";
+      writeFileSync(join(root, prototypeNamedUntracked), "created during turn\n");
       const newUntracked = "notes/new-during-turn.txt";
       writeFileSync(join(root, newUntracked), "created during turn\n");
       const after = captureStageScopeSnapshot(root);
 
-      expect(changedStageScopeFiles(before, after)).toEqual([existingUntracked, newUntracked]);
+      expect(changedStageScopeFiles(before, after)).toEqual([
+        prototypeNamedUntracked,
+        existingUntracked,
+        newUntracked,
+      ]);
     });
   });
 

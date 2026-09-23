@@ -41,7 +41,7 @@
 
 - dirty unchangedは除外、dirty再変更・clean変更・untracked追加変更・削除は検出。Case A相当でPlan dirty + status.mjsのみ変更ならstatus.mjsだけを返す。
 - Case Bはcurrent `<run_id>/runner/output/evidence/**`内のregular fileだけ許可し、別run/evidence外/missing/directory/traversalを拒否する。URL same-origin判定を維持する。
-- 指定検証、sanitization、diagnose:hooks、1回のcanonical live run、commit/push、PR本文更新、最新headのWeb/Mobile CIを終える。PR/Issueはmerge/closeしない。
+- 指定検証、sanitization、diagnose:hooks、commit/push、PR本文更新、最新headのWeb/Mobile CIを終える。canonical provenance更新が必要ならHost Git safety gateが許す場合だけ1回実行し、拒否時は未実行を記録する。PR/Issueはmerge/closeしない。
 
 ## Risks / Unknowns（リスク・未知点）
 
@@ -50,5 +50,5 @@
 
 ## Thinking Log（判断記録）
 
-- 思考や判断の理由はここに逐次追記する（作業中に更新）。
-- 不明点の整理、選択肢比較、決定理由を簡潔に記録する。
+- 2026-09-23: previous implementation Runは履歴として保持し、このreview repair専用のstrict Runを作成した。
+- 2026-09-23: 一時sanitized TargetのGit setupは共通PreToolUse G10に2回拒否された。Hook変更や回避はせず、canonical live runは未実行として記録する。
