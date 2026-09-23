@@ -26,6 +26,9 @@
 - [x] 22. static contractをDomain → Application全面禁止へ統一し、re-export構文を検査対象へ追加する。
 - [x] 23. 案CをDecision候補から外し、Repository Port ownershipのDecisionを案A / Bへ限定する。
 - [x] 24. Task 3のCurrent violation再確認をTask 6と同じimport / re-export surfaceへ揃える。
+- [x] 25. `src/application/**` bare specifierとliteral `require()`をCurrent violation / static contractへ追加する。
+- [x] 26. follow-up Refactor Planを共通 / 案A / 案Bへ分岐し、18 direct consumerを固定更新対象からimpact inventoryへ修正する。
+- [x] 27. §4.16の`refactor_now`をPhase 6 durable reportへfollow-up resolutionとして記録する手順を追加する。
 
 ## ブロック中
 

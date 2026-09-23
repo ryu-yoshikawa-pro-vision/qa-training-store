@@ -107,3 +107,24 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (24/24)
+
+## 2026-09-23 — 実装分岐・完了証跡の修正
+
+- 概要: 最終レビューで確認した3点をPlanへ反映した。
+- static contract:
+  - `tsconfig.json`の`baseUrl: "."`により`src/application/**`のbare specifierが解決可能なため、`@/application/**`、relative pathと並ぶ禁止経路へ追加した。
+  - Current Repositoryではliteral `require()`が使用されるため、literal `require("...")`も検査対象へ追加した。
+  - computed `require(variable)`や汎用module resolverの実装までは広げない。
+- follow-up Refactor:
+  - Task 8を共通 / 案A / 案Bへ分けた。
+  - 18 direct consumerはimpact inventoryとして再取得し、実際にsignature / export pathが変わるconsumerだけを変更する。
+  - 案Aでは移動したPortだけexport / importを更新する。
+  - 案BではDomain-owned repository input / output、Application boundary mapping、`NFR-MA-010`変更 / supersede判断を実装Planへ含める。
+- §4.16:
+  - Phase 6 durable report `docs/reports/2026-09-06_193114_refactoring_necessity_review.md`の元の`needs_more_evidence`を履歴として保持する。
+  - Issue #132のfollow-up resolutionとして`refactor_now`、選択した案、new ADR、follow-up Refactor Planへの参照を追記する。
+  - closed済みIssue #72 / PR #128の過去のPhase 6結果は書き換えない。
+- ファイル分割: 行わない。Current Planは1件のarchitecture Decisionとそのfollow-up分岐を一続きで参照する方が実装時の判断を減らせる。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (27/27)

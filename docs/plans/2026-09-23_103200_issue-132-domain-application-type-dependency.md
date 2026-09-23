@@ -347,10 +347,15 @@ Current `main`がPlan作成時と同じ意味を維持していれば、Domain �
 
 次だけを再取得する。
 
-- `src/domain/**`から`src/application/**`へのimport / re-export edge
+- `src/domain/**`から`src/application/**`へのimport / re-export / literal `require()` edge
 - 通常のstatic import / `import type ... from "..."` / side-effect import / TypeScriptの`import("...").Type` type query / runtime dynamic `import("...")`
 - `export ... from "..."` / `export type ... from "..."` / `export * from "..."`
-- alias指定とrelative pathの両方。relative pathは解決先が`src/application/**`か確認する。
+- literal `require("...")`
+- module specifierは次の3経路を確認する。
+  - `@/application/**`
+  - `baseUrl: "."`で解決可能な`src/application/**`
+  - relative path。各Domain source fileから解決した到達先が`src/application/**`か確認する。
+- computed `require(variable)`や汎用module resolution解析は追加しない。Current Repositoryで確認できるliteral specifierを対象にする。
 - `src/domain/repositories/contracts.ts`のinterface単位のApplication type利用
 - `src/domain/policies/permissions.ts`の`ProductViewer`利用
 - `@/domain/repositories`の直接consumer
@@ -395,6 +400,7 @@ architecture ownerのDecision後、実行時のnext available ADRで次を記録
 - `docs/02_architecture/system_architecture.md`
 - `docs/02_architecture/repository_structure.md`は既存ruleを変更する必要がある場合だけ更新
 - `docs/04_data/application_contracts.md`は`ProductViewer`等のApplication ownership説明が不足する場合だけ更新
+- 案Bを選び、`NFR-MA-010`を変更またはsupersedeすると判断した場合だけ`docs/01_requirements/non_functional_requirements.md`を更新
 - `docs/PROJECT_CONTEXT.md`はRepository-wideのCurrent architecture理解が実際に変わる場合だけ更新
 
 同じruleを複数Markdownへ重複して正本化しない。
@@ -403,7 +409,7 @@ architecture ownerのDecision後、実行時のnext available ADRで次を記録
 
 follow-up Refactorと同じ実装PRで追加するstatic contractを次で固定する。
 
-- `src/domain/**`から`src/application/**`へ到達するimport / re-exportを全面禁止する。
+- `src/domain/**`から`src/application/**`へ到達するimport / re-export / literal `require()`を全面禁止する。
 - 少なくとも次のspecifier形を検査する。
   - 通常の`import ... from "..."`
   - `import type ... from "..."`
@@ -413,8 +419,12 @@ follow-up Refactorと同じ実装PRで追加するstatic contractを次で固定
   - `export ... from "..."`
   - `export type ... from "..."`
   - `export * from "..."`
-- `@/application/**`のalias指定は直接禁止する。
-- relative pathは各Domain source fileの位置からspecifierを解決し、解決先が`src/application/**`なら禁止する。
+  - literal `require("...")`
+- module specifierは次の3経路を禁止する。
+  - `@/application/**`
+  - `baseUrl: "."`で解決可能な`src/application/**`
+  - relative path。各Domain source fileの位置から解決し、到達先が`src/application/**`なら禁止する。
+- computed `require(variable)`、computed dynamic import、完全なTypeScript module resolverまでは実装しない。Current Repositoryで使用されるliteral specifierをsource scanで検査する。
 - Application moduleごとのallowlistを作らない。
 - Repository contractだけの例外を作らない。
 - 新しいAST dependencyは追加せず、既存`tests/contracts/architecture.test.ts`のsource scan方式へ小さいspecifier検査を追加する。
@@ -435,26 +445,45 @@ Repository Port ownershipの案A / Bのどちらを選んでもCurrentのDomain 
 
 runtime failureがないことは`refactor_when_touched`へ落とす理由にしない。
 
+再分類結果はPhase 6のdurable reportである`docs/reports/2026-09-06_193114_refactoring_necessity_review.md`へfollow-up resolutionとして追記する。
+
+- 既存の§4.16 `needs_more_evidence`はPhase 6時点の履歴として書き換えない。
+- §4.16節へ`Issue #132 follow-up resolution`を追記し、最終classification `refactor_now`、Issue #132、選択した案A / B、new ADR、follow-up Refactor Planを参照できるようにする。
+- closed済みTracking Issue #72やPR #128の過去のPhase 6結果は書き換えない。
+
 ### Task 8: follow-up Refactor Planを作成する
 
 Issue #132のdecision-only作業でProduct codeを変更しない。
 
-別Planには最低限次を入れる。
+別Planは選択した案A / Bを明示し、共通作業と案別作業を分ける。
 
-1. 24 Repository interfaceの責務 / consumer確認とcanonical owner
-2. Domain → Application違反を直接持つ17 interfaceの維持 / 移動 / 削除判断
-3. `ImageAssetCatalogRepository`、`TestInspectionRepository`、`TestMetadataRepository`の未使用確認と削除可否
-4. Current違反を直接持たない7 interfaceをDomainに残すかApplicationへ寄せるかの根拠
-5. `src/domain/repositories/index.ts` / Application export構成
-6. 18 direct consumerのimport更新
-7. `src/application/transactions/contracts.ts`のRepository import更新
-8. Dexie / SQLite adapterのimplements / import更新
-9. `canViewerSeeProduct()`から`ProductViewer` dependencyを除去
-10. Current callerであるDexie / SQLite等のInfrastructure adapterで、`ProductViewer`からDomain policyへ渡す`MembershipRank | null`相当の値を導出する処理
-11. `repository_interfaces.md`等の説明同期
-12. 選択した案に対応するDomain → Application architecture contract
-13. focused testとRepository標準validation
-14. compatibility re-exportが本当に必要かの確認
+共通:
+
+1. latest `main`で24 Repository interface、Current consumer、transaction境界を再確認する。
+2. Domain → Application違反を直接持つ17 interfaceについて、選択したownership ruleに従い維持 / 移動 / 削除を確定する。
+3. `ImageAssetCatalogRepository`、`TestInspectionRepository`、`TestMetadataRepository`は移動前に未使用確認を行い、不要なら削除する。
+4. Current違反を直接持たない7 interfaceも、選択したownership ruleへ照らしてownerを確認する。
+5. 18 direct consumerはCurrent impact inventoryとして再取得し、実際にsignature / export pathが変わるconsumerだけを変更する。18件すべてを更新対象に固定しない。
+6. `canViewerSeeProduct()`からApplication `ProductViewer` dependencyを除去する。
+7. Current callerであるDexie / SQLite等のInfrastructure adapterで、`ProductViewer`からDomain policyへ渡す`MembershipRank | null`相当の値を導出する。
+8. 選択したownership ruleへ`repository_interfaces.md`等の説明を同期する。
+9. Domain → Application禁止のarchitecture contractをsource remediationと同じPRで追加する。
+10. focused test後にRepository標準validationを実行する。
+
+案Aを選んだ場合:
+
+1. Application ownershipと確定したRepository PortだけをApplication配下へ移す。17件一括移動を前提にしない。
+2. 移動したPortのexport pathを確定し、Application Use Case / `src/application/transactions/contracts.ts` / Dexie / SQLite等のうち影響を受けるimportだけを更新する。
+3. Domain behavior contractとして残すPortはDomain-owned typeだけで閉じることを確認する。
+4. compatibility re-exportは既存consumerを段階移行する具体的必要がある場合だけ使い、不要なら追加しない。
+
+案Bを選んだ場合:
+
+1. Domain ownershipを維持するRepository PortからApplication DTO / query / command参照を除去し、必要なDomain-owned repository input / output contractを定義する。
+2. Application boundaryでApplication contractとDomain-owned repository contractを変換する。67参照を機械的に複製せず、実際に残るRepository methodごとに必要なcontractだけを追加する。
+3. Application Use Case / transaction / Infrastructure adapterのうちsignature変更の影響を受ける経路へmappingを追加する。import pathが変わらないconsumerを理由なく編集しない。
+4. `NFR-MA-010`と`application_contracts.md`のRepository型要求が新しいownership ruleと両立するか再確認し、両立しない場合はarchitecture ownerのDecisionどおり変更またはsupersedeする。
+5. Application DTO / query / command自体はApplication ownershipに維持し、Domainへ移さない。
 
 大規模なtype rename、DTO移動、generic Port frameworkは含めない。
 
@@ -512,7 +541,7 @@ git diff --check
 - Repository Portのownership ruleが確定している。
 - static architecture contractの検査仕様が確定している。
 - Repository Port ownershipについてarchitecture ownerのDecisionが記録されている。
-- §4.16が`needs_more_evidence`から`refactor_now`へ再分類されている。
+- §4.16が`needs_more_evidence`から`refactor_now`へ再分類され、Phase 6 durable reportへfollow-up resolutionとして追記されている。元の`needs_more_evidence`は履歴として保持されている。
 - 必要なADR / normative documentationへdecisionが永続化されている。
 - Refactor実装は別Plan / 実装PRへ切り出されている。
 - Product behavior、Database schema、Native / Web featureを変更していない。

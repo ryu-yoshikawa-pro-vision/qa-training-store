@@ -49,3 +49,12 @@
 - Repository Port ownershipのDecision Pointは案A / Bの2案に限定した。
 - §4.16は案A / Bのどちらでも`refactor_now`へ再分類する。
 - Task 3のCurrent violation再確認をTask 6と同じdependency surfaceへ揃え、side-effect import、re-export、alias / relative pathを含めた。
+
+## 実装分岐・完了証跡の修正
+
+- `tsconfig.json`の`baseUrl: "."`を考慮し、`@/application/**`とrelative pathだけでなく`src/application/**`のbare specifierをCurrent violation再確認とstatic contractの対象へ追加した。
+- Current Repositoryでliteral `require()`が使用されるため、literal `require("...")`もDomain → Application禁止contractへ追加した。computed specifier解析までは広げない。
+- follow-up Refactor Planを共通 / 案A / 案Bへ分岐した。18 direct consumerはimpact inventoryとして扱い、全18件を固定更新しない。
+- 案BではDomain-owned repository input / output、Application boundary mapping、`NFR-MA-010`変更 / supersede判断を明示した。
+- §4.16の最終`refactor_now`はPhase 6 durable reportへfollow-up resolutionとして追記し、元の`needs_more_evidence`は履歴として保持する。
+- Planは1つのarchitecture Decisionとfollow-up分岐を扱うため、ファイル分割は行わない。
