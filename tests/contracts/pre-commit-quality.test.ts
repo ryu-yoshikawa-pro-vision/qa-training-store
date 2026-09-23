@@ -286,6 +286,9 @@ describe("staged Prettier and ESLint contract", () => {
           "",
         ].join("\n"),
       );
+      if (process.platform !== "win32") {
+        fs.chmodSync(path.join(root, ".hooks", "pre-commit"), 0o755);
+      }
       git(root, ["config", "core.hooksPath", ".hooks"]);
       git(root, ["add", ".hooks/pre-commit"]);
       git(root, ["update-index", "--chmod=+x", ".hooks/pre-commit"]);
