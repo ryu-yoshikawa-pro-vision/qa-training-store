@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import {
   WORKFLOW_CASES,
@@ -14,13 +14,17 @@ import {
   workflowEvalResultSchema,
 } from "../../scripts/evals/skill-workflow-evals";
 import {
+  blockedResult,
   buildWorkflowCodexArguments,
   captureStageScopeSnapshot,
   changedStageScopeFiles,
+  createWorkflowAgentWorkspace,
   deriveNativeFirstAnomaly,
   isCaseBOfficialEvidenceFile,
   parseWorkflowEvalCliArguments,
   redactNativeDeviceSerial,
+  summarizeCommonSmokeProbe,
+  type WorkflowEvalCliOptions,
 } from "../../scripts/evals/run-skill-workflow-evals";
 
 const repositoryRoot = resolve(__dirname, "../..");
@@ -67,6 +71,169 @@ function withScopeWorkspace(run: (root: string) => void): void {
 }
 
 describe("Workflow E2E Eval repository contract", () => {
+  it("creates fresh nested Codex workspaces beside the sanitized Target", () => {
+    const parent = mkdtempSync(join(tmpdir(), "workflow-agent-workspace-parent-"));
+    const evaluatorRoot = join(parent, "qa-training-store");
+    const targetRoot = join(parent, "qa-training-store-target");
+    mkdirSync(evaluatorRoot);
+    mkdirSync(targetRoot);
+    try {
+      const first = createWorkflowAgentWorkspace(targetRoot, "workflow-e2e-smoke-");
+      const second = createWorkflowAgentWorkspace(targetRoot, "workflow-e2e-case-a-");
+      const realParent = realpathSync(parent);
+
+      expect(dirname(realpathSync(evaluatorRoot))).toBe(realParent);
+      expect(dirname(realpathSync(targetRoot))).toBe(realParent);
+      expect(dirname(realpathSync(first))).toBe(realParent);
+      expect(dirname(realpathSync(second))).toBe(realParent);
+      expect(first).not.toBe(second);
+      expect(realpathSync(first)).not.toBe(realpathSync(targetRoot));
+      expect(realpathSync(second)).not.toBe(realpathSync(evaluatorRoot));
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
+  });
+
+  it("routes each workspace-write Agent context through the shared Target-parent helper", () => {
+    const runner = readFileSync(
+      resolve(repositoryRoot, "scripts/evals/run-skill-workflow-evals.ts"),
+      "utf8",
+    );
+    expect(runner).toMatch(
+      /function createSmokeRepository\(targetRoot: string\): string \{[\s\S]*?createWorkflowAgentWorkspace\(targetRoot, "workflow-e2e-smoke-"\)/u,
+    );
+    expect(runner).toMatch(
+      /function createCaseContext\([\s\S]*?createWorkflowAgentWorkspace\(\s*options\.target_root,[\s\S]*?`workflow-e2e-\$\{caseId\.toLowerCase\(\)\}-`/u,
+    );
+    expect(runner).toMatch(
+      /async function runCaseAArtifactReuse\([\s\S]*?createWorkflowAgentWorkspace\(options\.target_root, "workflow-e2e-artifact-reuse-"\)/u,
+    );
+    expect(runner).toMatch(
+      /async function runCaseB\(options: ResolvedOptions\): Promise<CaseExecutionResult> \{\s*const contextRoot = createWorkflowAgentWorkspace\(options\.target_root, "workflow-e2e-b-"\)/u,
+    );
+    expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-skill-probe-")');
+    expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-b-baseline-")');
+    expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-b-independent-")');
+  });
+
+  it("reports every required common smoke predicate independently and fails closed", () => {
+    const passingTurn = {
+      lifecycle: "completed" as const,
+      thread_present: true,
+      otel_reliable: true,
+      schema_valid: true,
+      write_observed: true,
+      command_execution_observed: true,
+    };
+    const passingInput = {
+      initial: { ...passingTurn },
+      resumed_attempted: true,
+      resumed: { ...passingTurn },
+      same_thread: true,
+    };
+    expect(summarizeCommonSmokeProbe(passingInput)).toMatchObject({ status: "pass" });
+
+    const failures = [
+      { field: "initial_process_completed", initial: { lifecycle: "turn_failed" as const } },
+      { field: "resumed_process_completed", resumed: { lifecycle: "turn_failed" as const } },
+      { field: "initial_thread_present", initial: { thread_present: false } },
+      { field: "same_thread", same_thread: false },
+      { field: "initial_otel_reliable", initial: { otel_reliable: false } },
+      { field: "resumed_otel_reliable", resumed: { otel_reliable: false } },
+      { field: "initial_schema_valid", initial: { schema_valid: false } },
+      { field: "resumed_schema_valid", resumed: { schema_valid: false } },
+      { field: "initial_write_observed", initial: { write_observed: false } },
+      { field: "resumed_write_observed", resumed: { write_observed: false } },
+      {
+        field: "initial_command_execution_observed",
+        initial: { command_execution_observed: false },
+      },
+      {
+        field: "resumed_command_execution_observed",
+        resumed: { command_execution_observed: false },
+      },
+    ] as const;
+    for (const failure of failures) {
+      const input = {
+        initial: { ...passingInput.initial, ...("initial" in failure ? failure.initial : {}) },
+        resumed_attempted: true,
+        resumed: { ...passingInput.resumed, ...("resumed" in failure ? failure.resumed : {}) },
+        same_thread: "same_thread" in failure ? failure.same_thread : true,
+      };
+      const result = summarizeCommonSmokeProbe(input);
+      expect(result.status).toBe("fail");
+      expect(result[failure.field]).toBe(false);
+    }
+
+    const missingThread = summarizeCommonSmokeProbe({
+      initial: { ...passingTurn, thread_present: false },
+      resumed_attempted: false,
+      resumed: null,
+      same_thread: false,
+    });
+    expect(missingThread).toMatchObject({
+      status: "fail",
+      initial_thread_present: false,
+      resumed_attempted: false,
+      resumed_lifecycle: "not_attempted",
+      same_thread: false,
+      resumed_process_completed: false,
+      resumed_otel_reliable: false,
+      resumed_schema_valid: false,
+      resumed_write_observed: false,
+      resumed_command_execution_observed: false,
+    });
+  });
+
+  it("preserves common smoke diagnostics in a schema-valid blocked result", () => {
+    const options: WorkflowEvalCliOptions = {
+      target_root: "target",
+      source_revision_git_sha: "a".repeat(40),
+      routing_source_git_sha: "b".repeat(40),
+      model: "gpt-5.6-luna",
+      output: ".codex/runs/result.json",
+    };
+    const smokeProbe = summarizeCommonSmokeProbe({
+      initial: {
+        lifecycle: "completed",
+        thread_present: true,
+        otel_reliable: true,
+        schema_valid: true,
+        write_observed: false,
+        command_execution_observed: true,
+      },
+      resumed_attempted: true,
+      resumed: {
+        lifecycle: "completed",
+        thread_present: true,
+        otel_reliable: true,
+        schema_valid: true,
+        write_observed: true,
+        command_execution_observed: true,
+      },
+      same_thread: true,
+    });
+    const result = workflowEvalResultSchema.parse(
+      blockedResult(
+        options,
+        repositoryRoot,
+        "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution",
+        "codex-cli 0.155.1",
+        smokeProbe,
+      ),
+    );
+    expect(result).toMatchObject({
+      schema_version: 1,
+      run_status: "blocked",
+      cases: [],
+      smoke_probe: {
+        status: "fail",
+        initial_write_observed: false,
+        resumed_write_observed: true,
+      },
+    });
+  });
+
   it("excludes a pre-existing dirty file that remains unchanged during a stage", () => {
     withScopeWorkspace((root) => {
       writeFileSync(join(root, scopeFixtureFiles.plan), "plan was dirty before the turn\n");

@@ -79,6 +79,8 @@ const DEFAULT_MODEL = "gpt-5.6-luna";
 const TURN_TIMEOUT_MS = 327_000;
 const QA_TURN_TIMEOUT_MS = 915_000;
 const MAX_CAPTURED_OUTPUT = 4_000;
+const COMMON_SMOKE_BLOCKED_REASON =
+  "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution";
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const CASE_B_CHALLENGE_PATH = "training/agentic-qa/challenges/CHALLENGE-BASIC-001/challenge.json";
 const CASE_B_PATCH_PATH =
@@ -1052,8 +1054,16 @@ function gitObjectText(root: string, revision: string, relativePath: string): st
   });
 }
 
+export function createWorkflowAgentWorkspace(targetRoot: string, prefix: string): string {
+  const parent = path.dirname(fs.realpathSync(targetRoot));
+  return fs.mkdtempSync(path.join(parent, prefix));
+}
+
 function createCaseContext(options: ResolvedOptions, caseId: WorkflowCaseId): CaseContext {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `workflow-e2e-${caseId.toLowerCase()}-`));
+  const root = createWorkflowAgentWorkspace(
+    options.target_root,
+    `workflow-e2e-${caseId.toLowerCase()}-`,
+  );
   copySanitizedTrackedTree(options.target_root, root, caseId);
   createCaseFixture(root, caseId);
   const runId = caseRunId(caseId);
@@ -1471,7 +1481,7 @@ async function runCaseAArtifactReuse(
   original: CaseContext,
   planPath: string,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-e2e-artifact-reuse-"));
+  const root = createWorkflowAgentWorkspace(options.target_root, "workflow-e2e-artifact-reuse-");
   try {
     copySanitizedTrackedTree(options.target_root, root, "A");
     createCaseFixture(root, "A");
@@ -1890,7 +1900,7 @@ function browserCapabilityAvailable(
 }
 
 async function runCaseB(options: ResolvedOptions): Promise<CaseExecutionResult> {
-  const contextRoot = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-e2e-b-"));
+  const contextRoot = createWorkflowAgentWorkspace(options.target_root, "workflow-e2e-b-");
   let runtime: WebRuntime | null = null;
   let context: CaseContext | null = null;
   try {
@@ -2830,98 +2840,191 @@ function assertTargetPreflightForWorkflow(
   };
 }
 
-function createSmokeRepository(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-e2e-smoke-"));
-  fs.writeFileSync(path.join(root, "smoke.txt"), "baseline\n", "utf8");
-  fs.writeFileSync(
-    path.join(root, "smoke.schema.json"),
-    `${JSON.stringify(toJSONSchema(smokeResponseSchema), null, 2)}\n`,
-    "utf8",
-  );
-  gitOutput(root, ["init", "--quiet"]);
-  gitOutput(root, ["config", "user.name", "Codex Workflow Smoke"]);
-  gitOutput(root, ["config", "user.email", "codex-workflow-smoke@example.invalid"]);
-  gitOutput(root, ["add", "--all"]);
-  gitOutput(root, ["commit", "--quiet", "--no-gpg-sign", "-m", "workflow smoke baseline"]);
-  gitOutput(root, ["checkout", "--detach", "HEAD"]);
-  return root;
+type SmokeProbeLifecycle = ReturnType<typeof deriveProcessLifecycle>;
+
+type SmokeTurnEvidence = {
+  readonly lifecycle: SmokeProbeLifecycle;
+  readonly thread_present: boolean;
+  readonly otel_reliable: boolean;
+  readonly schema_valid: boolean;
+  readonly write_observed: boolean;
+  readonly command_execution_observed: boolean;
+};
+
+export function summarizeCommonSmokeProbe(input: {
+  readonly initial: SmokeTurnEvidence;
+  readonly resumed_attempted: boolean;
+  readonly resumed: SmokeTurnEvidence | null;
+  readonly same_thread: boolean;
+}): Readonly<Record<string, unknown>> {
+  const resumed = input.resumed;
+  const sameThread =
+    input.initial.thread_present &&
+    input.resumed_attempted &&
+    resumed?.thread_present === true &&
+    input.same_thread;
+  const checks = {
+    initial_process_completed: input.initial.lifecycle === "completed",
+    resumed_process_completed: input.resumed_attempted && resumed?.lifecycle === "completed",
+    initial_thread_present: input.initial.thread_present,
+    same_thread: sameThread,
+    initial_otel_reliable: input.initial.otel_reliable,
+    resumed_otel_reliable: input.resumed_attempted && resumed?.otel_reliable === true,
+    initial_schema_valid: input.initial.schema_valid,
+    resumed_schema_valid: input.resumed_attempted && resumed?.schema_valid === true,
+    initial_write_observed: input.initial.write_observed,
+    resumed_write_observed: input.resumed_attempted && resumed?.write_observed === true,
+    initial_command_execution_observed: input.initial.command_execution_observed,
+    resumed_command_execution_observed:
+      input.resumed_attempted && resumed?.command_execution_observed === true,
+  };
+  return {
+    status: Object.values(checks).every(Boolean) ? "pass" : "fail",
+    ...checks,
+    initial_lifecycle: input.initial.lifecycle,
+    resumed_lifecycle: input.resumed_attempted
+      ? (resumed?.lifecycle ?? "unknown")
+      : "not_attempted",
+    resumed_attempted: input.resumed_attempted,
+  };
+}
+
+function emptySmokeTurnEvidence(): SmokeTurnEvidence {
+  return {
+    lifecycle: "unknown",
+    thread_present: false,
+    otel_reliable: false,
+    schema_valid: false,
+    write_observed: false,
+    command_execution_observed: false,
+  };
+}
+
+function smokeLineObserved(root: string, line: string): boolean {
+  try {
+    return fs.readFileSync(path.join(root, "smoke.txt"), "utf8").split(/\r?\n/u).includes(line);
+  } catch {
+    return false;
+  }
+}
+
+function createSmokeRepository(targetRoot: string): string {
+  const root = createWorkflowAgentWorkspace(targetRoot, "workflow-e2e-smoke-");
+  try {
+    fs.writeFileSync(path.join(root, "smoke.txt"), "baseline\n", "utf8");
+    fs.writeFileSync(
+      path.join(root, "smoke.schema.json"),
+      `${JSON.stringify(toJSONSchema(smokeResponseSchema), null, 2)}\n`,
+      "utf8",
+    );
+    gitOutput(root, ["init", "--quiet"]);
+    gitOutput(root, ["config", "user.name", "Codex Workflow Smoke"]);
+    gitOutput(root, ["config", "user.email", "codex-workflow-smoke@example.invalid"]);
+    gitOutput(root, ["add", "--all"]);
+    gitOutput(root, ["commit", "--quiet", "--no-gpg-sign", "-m", "workflow smoke baseline"]);
+    gitOutput(root, ["checkout", "--detach", "HEAD"]);
+    return root;
+  } catch (error) {
+    try {
+      fs.rmSync(root, { recursive: true, force: true });
+    } catch {
+      // Preserve the setup failure as the canonical smoke outcome.
+    }
+    throw error;
+  }
 }
 
 async function runCommonSmokeProbe(
   options: ResolvedOptions,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const root = createSmokeRepository();
+  let root: string | null = null;
+  let initial = emptySmokeTurnEvidence();
+  let resumed: SmokeTurnEvidence | null = null;
+  let resumedAttempted = false;
+  let sameThread = false;
+  let probeExceptionObserved = false;
+  let cleanupFailed = false;
   try {
-    const initialOutputPath = path.join(root, "initial.json");
-    const initial = await executeCodexTurn({
+    root = createSmokeRepository(options.target_root);
+    const initialExecution = await executeCodexTurn({
       cwd: root,
       model: options.model,
       prompt: buildWorkflowTurnPrompt(
         "Write the exact line initial-write to smoke.txt. Then return JSON with status initial-write.",
       ),
       schemaPath: path.join(root, "smoke.schema.json"),
-      lastMessagePath: initialOutputPath,
+      lastMessagePath: path.join(root, "initial.json"),
       sandbox: "workspace-write",
     });
-    if (initial.thread_id === null) throw new Error("smoke initial thread.started is missing");
-    const resumedOutputPath = path.join(root, "resumed.json");
-    const resumed = await executeCodexTurn({
-      cwd: root,
-      model: options.model,
-      prompt: buildWorkflowTurnPrompt(
-        "Append the exact line resumed-write to smoke.txt. Then return JSON with status resumed-write.",
-      ),
-      schemaPath: path.join(root, "smoke.schema.json"),
-      lastMessagePath: resumedOutputPath,
-      resumeThreadId: initial.thread_id,
-      sandbox: "workspace-write",
-    });
-    const smokeText = fs.readFileSync(path.join(root, "smoke.txt"), "utf8");
-    const initialValue = parseStructuredOutput(initial.final_text, smokeResponseSchema);
-    const resumedValue = parseStructuredOutput(resumed.final_text, smokeResponseSchema);
-    const initialLife = deriveProcessLifecycle({
-      timed_out: initial.timed_out,
-      spawn_failed: initial.spawn_failed,
-      signaled: initial.signaled,
-      exit_code: initial.exit_code,
-      trusted_terminal: initial.trusted_terminal,
-    });
-    const resumedLife = deriveProcessLifecycle({
-      timed_out: resumed.timed_out,
-      spawn_failed: resumed.spawn_failed,
-      signaled: resumed.signaled,
-      exit_code: resumed.exit_code,
-      trusted_terminal: resumed.trusted_terminal,
-    });
-    const passed =
-      initialLife === "completed" &&
-      resumedLife === "completed" &&
-      initial.otel.reliable &&
-      resumed.otel.reliable &&
-      resumed.thread_id !== null &&
-      resumed.thread_id === initial.thread_id &&
-      initialValue?.status === "initial-write" &&
-      resumedValue?.status === "resumed-write" &&
-      smokeText.includes("initial-write") &&
-      smokeText.includes("resumed-write") &&
-      initial.command_executions.length > 0 &&
-      resumed.command_executions.length > 0;
-    if (!passed)
-      throw new Error(
-        "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution",
-      );
-    return {
-      status: "pass",
-      initial_lifecycle: initialLife,
-      resumed_lifecycle: resumedLife,
-      resumed_otel_reliable: resumed.otel.reliable,
-      command_execution_observed: true,
-      actual_write_observed: true,
-      same_thread: resumed.thread_id !== null && resumed.thread_id === initial.thread_id,
+    const initialValue = parseStructuredOutput(initialExecution.final_text, smokeResponseSchema);
+    initial = {
+      lifecycle: deriveProcessLifecycle({
+        timed_out: initialExecution.timed_out,
+        spawn_failed: initialExecution.spawn_failed,
+        signaled: initialExecution.signaled,
+        exit_code: initialExecution.exit_code,
+        trusted_terminal: initialExecution.trusted_terminal,
+      }),
+      thread_present: initialExecution.thread_id !== null,
+      otel_reliable: initialExecution.otel.reliable,
+      schema_valid: initialValue?.status === "initial-write",
+      write_observed: smokeLineObserved(root, "initial-write"),
+      command_execution_observed: initialExecution.command_executions.length > 0,
     };
+
+    if (initialExecution.thread_id !== null) {
+      resumedAttempted = true;
+      resumed = emptySmokeTurnEvidence();
+      const resumedExecution = await executeCodexTurn({
+        cwd: root,
+        model: options.model,
+        prompt: buildWorkflowTurnPrompt(
+          "Append the exact line resumed-write to smoke.txt. Then return JSON with status resumed-write.",
+        ),
+        schemaPath: path.join(root, "smoke.schema.json"),
+        lastMessagePath: path.join(root, "resumed.json"),
+        resumeThreadId: initialExecution.thread_id,
+        sandbox: "workspace-write",
+      });
+      const resumedValue = parseStructuredOutput(resumedExecution.final_text, smokeResponseSchema);
+      resumed = {
+        lifecycle: deriveProcessLifecycle({
+          timed_out: resumedExecution.timed_out,
+          spawn_failed: resumedExecution.spawn_failed,
+          signaled: resumedExecution.signaled,
+          exit_code: resumedExecution.exit_code,
+          trusted_terminal: resumedExecution.trusted_terminal,
+        }),
+        thread_present: resumedExecution.thread_id !== null,
+        otel_reliable: resumedExecution.otel.reliable,
+        schema_valid: resumedValue?.status === "resumed-write",
+        write_observed: smokeLineObserved(root, "resumed-write"),
+        command_execution_observed: resumedExecution.command_executions.length > 0,
+      };
+      sameThread = resumedExecution.thread_id === initialExecution.thread_id;
+    }
+  } catch {
+    probeExceptionObserved = true;
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    if (root !== null) {
+      try {
+        fs.rmSync(root, { recursive: true, force: true });
+      } catch {
+        cleanupFailed = true;
+      }
+    }
   }
+
+  return {
+    ...summarizeCommonSmokeProbe({
+      initial,
+      resumed_attempted: resumedAttempted,
+      resumed,
+      same_thread: sameThread,
+    }),
+    ...(probeExceptionObserved ? { probe_exception_observed: true } : {}),
+    ...(cleanupFailed ? { cleanup_failed: true } : {}),
+  };
 }
 
 async function runCanonicalSkillProbe(
@@ -3004,11 +3107,12 @@ async function runCanonicalSkillProbe(
   }
 }
 
-function blockedResult(
+export function blockedResult(
   options: WorkflowEvalCliOptions,
   evaluatorRoot: string,
   reason: string,
   codexVersion = "unavailable",
+  smokeProbe?: Readonly<Record<string, unknown>>,
 ): WorkflowEvalResult {
   const evaluatorSha = SHA_PATTERN.test(options.source_revision_git_sha)
     ? options.source_revision_git_sha
@@ -3030,6 +3134,7 @@ function blockedResult(
     provenance,
     cases: [],
     reason,
+    ...(smokeProbe === undefined ? {} : { smoke_probe: smokeProbe }),
   };
 }
 
@@ -3044,10 +3149,27 @@ export async function runWorkflowEval(
   const outputPath = path.resolve(evaluatorRoot, options.output);
   let resolved: ResolvedOptions;
   let codexVersion = "unavailable";
+  let smokeProbe: Readonly<Record<string, unknown>> | undefined;
   try {
     resolved = assertTargetPreflightForWorkflow(options, evaluatorRoot);
     codexVersion = getCodexVersion(resolved.evaluator_root);
-    const smoke = await runCommonSmokeProbe(resolved);
+    smokeProbe = await runCommonSmokeProbe(resolved);
+    if (smokeProbe.status !== "pass") {
+      const result = blockedResult(
+        options,
+        evaluatorRoot,
+        COMMON_SMOKE_BLOCKED_REASON,
+        codexVersion,
+        smokeProbe,
+      );
+      writeJson(outputPath, result);
+      const validated = parseJsonWithSchema(
+        readJson(outputPath),
+        workflowEvalResultSchema,
+        "Workflow E2E blocked result",
+      ) as WorkflowEvalResult;
+      return { result: validated, exit_code: 1 };
+    }
     const skillProbe = await runCanonicalSkillProbe(resolved);
     const caseResults: WorkflowCaseResult[] = [];
     const runners: readonly ((input: ResolvedOptions) => Promise<CaseExecutionResult>)[] = [
@@ -3074,7 +3196,7 @@ export async function runWorkflowEval(
         executed_at: new Date().toISOString(),
       },
       cases: caseResults,
-      smoke_probe: { ...smoke, canonical_skill_probe: skillProbe },
+      smoke_probe: { ...smokeProbe, canonical_skill_probe: skillProbe },
     };
     writeJson(outputPath, result);
     const validated = parseJsonWithSchema(
@@ -3089,6 +3211,7 @@ export async function runWorkflowEval(
       evaluatorRoot,
       error instanceof Error ? error.message : String(error),
       codexVersion,
+      smokeProbe,
     );
     writeJson(outputPath, result);
     return { result, exit_code: 1 };
