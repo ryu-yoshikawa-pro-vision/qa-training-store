@@ -22,6 +22,7 @@
 - Current architectureはDomain → Applicationをtype-onlyを含め禁止している。
 - Current codeと一部Repository contract説明がarchitecture ruleへ整合していない。
 - Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。
-- Application typeを必要とするRepository PortはApplication ownership、Domain-owned typeだけで閉じるRepository ContractはDomain ownershipとする。
+- Repository Port ownershipはADR-0003との整合が必要なため、案A / B / Cをarchitecture ownerへ提示するDecision Pointとして残す。
+- Plan上の推奨は、Application typeを必要とするPortをApplication ownershipへ移し、Domain-owned typeだけで閉じるContractをDomainへ残す案A。
 - `canViewerSeeProduct()`はApplication `ProductViewer`へ依存せず、必要最小限のDomain-owned valueを受け取る。
-- §4.16はCurrent状態が維持されるなら`refactor_now`とし、実装は別Plan / PRへ切り出す。
+- 案A / BでCurrent policyを維持する場合、§4.16は`refactor_now`とし、実装は別Plan / PRへ切り出す。

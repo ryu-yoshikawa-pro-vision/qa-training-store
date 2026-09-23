@@ -12,8 +12,9 @@
 - [x] 8. `src/application/ports.ts`の既存Application Port patternを確認する。
 - [x] 9. Repository interface 24件をApplication type利用17件 / Domain-only 7件へ分類する。
 - [x] 10. `ProductViewer`のCurrent responsibilityとDomain policyの実利用fieldを確認する。
-- [x] 11. owner Decision必須前提を撤回し、Current policy準拠のPlanへ修正する。
-- [x] 12. §4.16の再分類、follow-up Refactor、static contractの実装順をPlanへ反映する。
+- [x] 11. Domain → Applicationのallow / denyをowner Decision対象から外し、Current policyとしてPlanへ反映する。
+- [x] 12. Repository Port ownershipだけをarchitecture owner Decisionとして残し、案A / B / Cと推奨案を整理する。
+- [x] 13. §4.16の再分類、follow-up Refactor、static contractの実装順をPlanへ反映する。
 
 ## ブロック中
 
@@ -21,5 +22,5 @@
 
 ## 次工程
 
-- Planレビュー完了後にIssue #132のdecision-only作業を実施する。
+- Planレビュー完了後にIssue #132のdecision-only作業を実施し、Repository Port ownershipのDecisionを取得する。
 - Product source / testのRefactorはIssue #132のdecision確定後、別Plan / 実装PRで行う。

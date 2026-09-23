@@ -44,3 +44,17 @@
 - Validation: Current `main`はbranch作成時と同じ`01cd8ab15078d479e821d373445af1e16a469519`。GitHub上でCurrent source / normative docs / historyをread-only確認した。runtime test / CIはPlan-onlyのため未実行。
 - ブロッカー: なし。
 - Progress: 100% (12/12)
+
+## 2026-09-23 — Decision Point再点検
+
+- 概要: 全体レビュー反映後のPlanを再点検し、Domain → Application禁止とRepository Port ownershipを分離した。
+- 判断: `NFR-MA-001` / Coding Standards / Repository StructureからDomain → Application禁止はCurrent policyとして確定できる。一方、ADR-0003はApplicationがDomain Repository Portへ依存すると明示しており、Application typeを使う17 Repository interfaceのowner変更は新しいarchitecture decisionを伴う。
+- 修正:
+  - allow / deny自体をarchitecture ownerへ質問する構造には戻していない。
+  - Repository Port ownershipだけをDecision Pointとし、案A / B / Cを整理した。
+  - 案AはApplication typeを使う17 interfaceをApplication ownership、Domain-only 7 interfaceをDomain ownershipとする。Plan上の推奨は案A。
+  - 案BはDomain ownership維持のためDomain-side contract / mappingを追加する案、案Cはtype-only例外をCurrent policyへ追加する案として比較対象に残した。
+  - §4.16の`refactor_now`はCurrent policyを維持する案A / B採用時のclassificationとした。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (13/13)

@@ -34,17 +34,17 @@ Currentで解消すべき点は次の3つ。
 2. `docs/04_data/repository_interfaces.md`がApplication DTO / query / commandをRepository signatureで利用するCurrent contractを説明する一方、Repository contractのownership境界を明示していない。
 3. `tests/contracts/architecture.test.ts`がCurrentの「DomainはApplicationへ依存しない」方針を検査していない。
 
-Issue #132ではCurrent policyを変更せず、次を確定する。
+Issue #132ではまず次をCurrent policyとして確定する。
 
 - Domain → Application dependencyはruntime / type-onlyを問わず禁止する。
 - Application DTO / query / commandはApplication ownershipを維持する。
-- Application typeをsignatureに必要とするRepository PortはApplication ownershipへ寄せる。
-- Application typeを必要としないDomain Repository ContractはDomain ownershipを維持する。
 - `ProductViewer`はApplication contractに残し、Domain policyへApplication typeを渡さない。
-- §4.16は、Current `main`で再確認して同じ状態なら`refactor_now`へ再分類する。
-- 実際のtype / interface移動とarchitecture contract追加は別Plan / 実装PRで行う。
 
-既存architecture方針自体を意図的に変更し、Domain → Applicationの例外を新設する場合だけarchitecture ownerの新しいDecisionを必要とする。このPlanでは例外追加を採用しない。
+その上で、ADR-0003の「Application層はDomain Repository Portだけに依存する」とApplication contract ownershipをどう両立させるかだけをarchitecture ownerのDecision Pointとする。
+
+Plan上の推奨は、Application typeをsignatureに必要とするRepository PortをApplication ownershipへ移し、Application typeを必要としないDomain Repository ContractをDomainに残す案である。この案を採用する場合、§4.16はCurrent `main`で同じ状態を再確認したうえで`refactor_now`へ再分類し、実際のtype / interface移動とarchitecture contract追加は別Plan / 実装PRで行う。
+
+Domain → Applicationのtype-only例外を新設する案はCurrent `NFR-MA-001` / Coding Standardsを変更するため、Plan上の推奨にはしない。
 
 ## 2. Current Repositoryの状態
 
@@ -230,7 +230,7 @@ Current codeにDomain → Application type importが存在する事実は、arch
 
 これは「policyが存在しない」Evidenceではなく、`NFR-MA-001`とCoding Standardsに対するFormal enforcement gapとして扱う。
 
-## 4. Canonical ownership
+## 4. Canonical ownershipとDecision Point
 
 ### 4.1 Application DTO / query / command
 
@@ -250,9 +250,27 @@ Domain Repository Contractへ移して依存方向を解消しない。
 - Presentation / Use Case / Adapter間のApplication boundaryで利用される。
 - Admin / Test inspection等をDomainへ移すとDomain responsibilityを不必要に広げる。
 
-### 4.2 Repository Port
+### 4.2 Repository Port ownershipのDecision Point
 
-follow-up Refactorの原則:
+allow / deny自体はCurrent policyから決まるが、Repository Portのcanonical ownerはADR-0003とCurrent Application contractの両方を満たす形を選ぶ必要がある。
+
+architecture ownerへ次の3案を提示する。
+
+| 案 | 方針 | 影響 | Plan上の評価 |
+| --- | --- | --- | --- |
+| A | Application typeをsignatureに使用する17 interfaceをApplication ownershipへ移し、Domain-owned typeだけで閉じる7 interfaceをDomainへ残す。必要ならADR-0003のRepository ownership記述を新ADRでclarify / supersedeする。 | 既存Application contractを維持できる。Current direct consumerはApplication / Infrastructureで、Domain consumer向け互換layerは不要。17 interfaceのimport更新が必要。 | **推奨**。Current Coding Standardsの`Infrastructure -> Application Port / Domain Contract`を既存patternとして再利用でき、DTOをDomainへ移さない。 |
+| B | Repository PortはすべてDomain ownershipを維持し、Application DTO / query / commandを直接使わないDomain-owned repository input / outputへ置き換え、Application boundaryでmappingする。 | ADR-0003のRepository ownershipは維持できるが、現在67個あるApplication type参照に対応する新しいDomain-side contract / mappingが広く必要になる。 | 非推奨。依存方向を直すためにDomain contractとmappingを大量追加する可能性が高い。 |
+| C | `src/domain/repositories/contracts.ts`だけApplication contractへのtype-only依存を例外として許可する。 | Current code変更は最小だが、`NFR-MA-001`、Coding Standards、Repository Structureの依存方向を変更し、例外をstatic contractへ組み込む必要がある。 | 非推奨。Current architecture方針自体を変更する。 |
+
+Decision前に行わないこと:
+
+- Repository interface移動
+- Domain-side代替DTO / Command追加
+- type-only例外のstatic contract追加
+- ADR-0003をCurrent都合で直接書き換える
+- §4.16の最終再分類
+
+案Aを採用した場合のfollow-up Refactor原則:
 
 1. Application typeをsignatureに使用する17 interfaceはApplication ownershipへ移す候補とする。
 2. Application typeを使用しない7 interfaceはDomain ownershipを維持する。
@@ -333,27 +351,31 @@ Current `main`がPlan作成時と同じ意味を維持していれば、Domain �
 
 generic dependency graph、AST framework、恒久scannerは追加しない。
 
-### Task 4: canonical ownershipを確定する
+### Task 4: architecture owner Decisionを確定する
 
-Current EvidenceがPlan作成時と一致する場合は次で確定する。
+Current Evidenceを添えて§4.2の案A / B / Cを提示する。
 
-- Application DTO / query / command: Application
-- `ProductViewer`: Application
-- Application typeを必要とするRepository Port: Application
-- Domain-owned typeだけで閉じるRepository Contract: Domain
-- Domain policy input: Application typeではなく必要最小限のDomain-owned value
+Decision Pointで確定するもの:
 
-Current Evidenceが変わり、この所有関係が成立しない具体的consumerが見つかった場合だけ該当interfaceを再評価する。
+- Repository Portのcanonical owner
+- ADR-0003のRepository ownership記述を維持 / clarify / supersedeするか
+- Current architecture方針に例外を追加するか
+- §4.16の最終classification
+
+Current policy上、Application DTO / query / commandと`ProductViewer`のownerはApplicationとする。ここはRepository Port ownership Decisionと混同しない。
+
+Plan上は案Aを推奨するが、architecture ownerの回答前にRepository interface移動へ進まない。
 
 ### Task 5: architecture decisionを永続化する
 
 Current policyを新設するのではなく、既存policyとRepository ownershipの解釈を接続する。
 
-実行時のnext available ADRで次を記録する。
+architecture ownerのDecision後、実行時のnext available ADRで次を記録する。
 
 - Context: Current Domain → Application type-only dependency
-- Decision: Domain → Application禁止
-- Repository Port ownership rule
+- Current authority: Domain → Application禁止
+- 選択したRepository Port ownership rule
+- Application DTO / query / command ownership
 - `ProductViewer` ownershipとDomain policy input boundary
 - ADR-0003との関係
 - Consequences: follow-up Refactorとarchitecture contract
@@ -388,7 +410,9 @@ Current sourceが違反している間にfailするcontractだけをdecision-onl
 
 ### Task 7: §4.16を再分類する
 
-Current `main`がPlan作成時と同じ状態なら、§4.16を`refactor_now`へ再分類する。
+architecture owner Decisionに基づき最終classificationを確定する。
+
+案Aまたは案BでCurrentのDomain → Application禁止を維持する場合は、§4.16を`refactor_now`へ再分類する。
 
 理由:
 
@@ -399,7 +423,7 @@ Current `main`がPlan作成時と同じ状態なら、§4.16を`refactor_now`へ
 
 runtime failureがないことは`refactor_when_touched`へ落とす理由にしない。
 
-既存policyを意図的に変更して例外を設ける場合だけ、この分類を再評価する。
+案Cでtype-only例外を新しいCurrent policyとして採用する場合は、policy変更とstatic contractを先に明文化した上でclassificationを再評価する。
 
 ### Task 8: follow-up Refactor Planを作成する
 
@@ -479,7 +503,8 @@ test数を増やすことを目的にせず、既存testで同じ回帰を検出
 - Domain policyからApplication `ProductViewer` dependencyを除去する方針が確定している。
 - Repository Portのownership ruleが確定している。
 - static architecture contractの検査仕様が確定している。
-- §4.16が`needs_more_evidence`から`refactor_now`へ再分類されている。
+- Repository Port ownershipについてarchitecture ownerのDecisionが記録されている。
+- Current policyを維持する場合は§4.16が`needs_more_evidence`から`refactor_now`へ再分類されている。例外を新設する場合はそのpolicyとclassificationの根拠が記録されている。
 - 必要なADR / normative documentationへdecisionが永続化されている。
 - Refactor実装は別Plan / 実装PRへ切り出されている。
 - Product behavior、Database schema、Native / Web featureを変更していない。
@@ -567,8 +592,12 @@ follow-up Refactorもtype / interface ownershipとimport directionが中心で�
 
 ## 12. 未解決事項
 
-Issue #132のarchitecture判断を止める未解決事項はない。
+Issue #132の実行時にarchitecture ownerへ確認するDecision Pointは1件。
 
-実行開始時にlatest `main`へmaterial driftがあった場合だけ、影響したauthority / dependency surfaceを再確認する。
+- ADR-0003のDomain Repository Port方針とApplication contract ownershipをどう両立させるか。§4.2の案A / B / Cから判断する。
 
-既存architecture方針を変更してDomain → Application例外を新設したい場合は、このPlanをそのまま実行せず、architecture owner Decisionとして別途判断する。
+Domain → ApplicationをCurrent policyとして禁止していること自体は未解決事項ではない。
+
+Plan上の推奨は案A。
+
+実行開始時にlatest `main`へmaterial driftがあった場合だけ、影響したauthority / dependency surfaceを再確認してからDecision Pointを提示する。
