@@ -78,6 +78,15 @@
 - 最終verify後の`git diff --check`: PASS。working treeはrunner、repository contract test、今回Run Artifact 4 filesのみ。verify生成物による追加差分なし。
 - canonical runnerはまだ未実行。実装commit・push、実装commit head CI、fresh Target、manual detach、Android確認、canonical runは未実施。
 
+## 2026-09-23 19:04 (JST) 実装commit / CI完了
+
+- 実装commit: `a260791dae17b24c5e72b8443d94180a504c59d2`。runner、regression test、本Runの当時点Artifactだけを含み、通常pushが成功した。現在のremote PR headは同SHA。canonical Evaluator SHAとして固定する。
+- 最新head CI: Web run `35843796136` success。Mobile App run `35843796432` success。Vitest、Code Quality / Style Quality、Codex Hook contract、artifact sanitization、Chromium E2E、UI Review、Android build / Runtime / Maestro、iOS build / Native verify等の完了checkはsuccess。Extended E2E mobile-chromiumとdeploy-productionはworkflow条件によりskipped。check listにfailureなし。PR branch protection APIはrequired checksを報告しない。
+- Installed CLI: `codex-cli 0.155.1`。
+- Run Artifact task 7を完了にした。canonical runnerはまだ0回。
+- Workspace root確認: 今の対話workspace rootは`<REPO_ROOT>`。sanitized TargetをEvaluatorの兄弟へ置くと、その親は`<USER_HOME>/Documents`になる。修正後runnerのworkspace-write scratchはTargetのrealpath親へ作るため、canonical時にはEvaluatorとTargetを含む親をworkspace rootにする必要がある。Targetを置いてpreflightを進めるが、canonical runner起動前にはこのworkspace-root条件が満たされていることを確認する。
+- Progress: 64% (7/11)。
+
 ## 2026-09-23 17:48 (JST)
 
 - Code-review規約確認で、新しい`SmokeTurnEvidence`を`interface`ではなくRepository標準の`type`宣言へ修正した。これは型宣言形式だけの差分。
@@ -85,3 +94,50 @@
 - full `corepack pnpm run verify`は上記1行の型宣言形式修正前にexit 0。verify時の挙動・検証対象に影響しない宣言形式修正後はfocused test / ESLint / 全typecheckを再実行した。full verifyを宣言形式修正後に再実行してはいない。
 - Self-review findingは修正済みで、残るコードfindingはない。未完了事項はPR branch fast-forward policy blockerのみ。
 - Progress: 55% (6/11)。
+
+## 2026-09-23 19:12 (JST) fresh Target準備
+
+- `<NEW_EVALUATOR_SHA>`=`a260791dae17b24c5e72b8443d94180a504c59d2`のtracked Git objectからPython 3.11標準`tarfile` readerでexportした。working tree copyやuntracked inputは使っていない。
+- Plan denylistに従い、source tracked file 2,339件のうち1,394件を除外し、945件を`<USER_HOME>/Documents/qa-training-store-target-6`へ展開。missing 0 / unexpected 0 / forbidden file・directory 0、canonical 6 Skillすべて存在、`AGENTS.md`あり、export時の`.git`なし。
+- fresh Git setup: `git init -b workflow-e2e-target` PASS、`git add --all --force` PASS / staged 945 files、G10拒否なし。`git diff --cached --check`はEvaluator tracked contentに元から存在する末尾空白3箇所（README.md 2箇所、scripts/codex-task.ps1 1箇所）を示したため内容を改変せず記録。固定非個人identityでsynthetic root commit `9c0bef93ed731c2068f0cee6fbe09b4158239727`を作成。
+- Target preflight: parentless root、commit count 1、attached branch `workflow-e2e-target`（detachはまだ実行していない）、clean、remote 0、alternatesなし、required 6/6、forbidden 0。`routing_source_git_sha`=`9c0bef93ed731c2068f0cee6fbe09b4158239727`。
+- Evaluator preflight: HEADは`a260791...`のまま、`origin/main`へのbehind 0、working diffはRun Artifact内2 entryだけ。PR OPEN、remote head同SHA。
+- **canonical run前のworkspace条件blocker**: active workspace rootはEvaluator自身（`<REPO_ROOT>`）であり、TargetとAgent workspaceの親`<USER_HOME>/Documents`はroot外。scratch cwdをHost workspace内に置く今回の修正の実行条件が満たされていないため、canonical runnerはまだ0回。Targetはdetach以外の準備済み状態。
+
+## 2026-09-23 canonical live Workflow E2E（Evaluator `a260791dae17b24c5e72b8443d94180a504c59d2`）
+
+- ユーザーがworkspace rootを`<USER_HOME>/Documents`へ移し、Target `qa-training-store-target-6`をmanual detachした後にread-only preflightを再確認した。Target HEADは`9c0bef93ed731c2068f0cee6fbe09b4158239727`、detached、parentless root、commit count 1、clean、remote 0、alternatesなし、canonical Skill 6/6、forbidden path 0。Evaluatorとのrealpathは兄弟で分離。Evaluator HEADとPR headは`a260791dae17b24c5e72b8443d94180a504c59d2`、`origin/main`へのbehind 0、変更はRun Artifact内だけだった。
+- `adb devices -l`でphysical Android device 1台をstatus `device`として確認。emulator、unauthorized、offlineは選択していない。serialはArtifactへ記録せず`<DEVICE_SERIAL>`として扱った。
+- canonical runnerはmodel `gpt-5.6-luna`、Codex CLI `0.155.1`で**1回だけ実行**。CLI exit code 1。resultのprovenanceは`evaluator_git_sha` / `source_revision_git_sha`=`a260791dae17b24c5e72b8443d94180a504c59d2`、`routing_source_git_sha`=`9c0bef93ed731c2068f0cee6fbe09b4158239727`。
+- resultは`run_status=blocked`、`cases=[]`、reason=`Evaluator has source changes outside .codex/runs/**`。blockedはcommon smoke前のEvaluator source preflightで発生し、`smoke_probe`は生成されていない。したがってcommon smoke 12 predicate、Case A〜E、Artifact reuse、Semantic actual-outputはすべて未観測 / 未実行であり、個別PASS/FAILへ推定していない。raw device serialはresultに含まれない。retryはしない。
+- **Finding（Evaluator実装不具合）**:
+  - 発生箇所: `assertTargetPreflightForWorkflow()`が`sourceStatusOutsideRunArtifacts()`を呼ぶ経路。`scripts/evals/run-skill-trigger-evals.ts`の当該helperは`git status --porcelain --untracked-files=all`の出力全体へ`.trim()`を適用してから各行を固定位置3文字で分割する。
+  - Plan上の期待: `.codex/runs/**`内の今回Run Artifact差分は許可し、それ以外のsource差分だけを拒否する。
+  - 実際の挙動: 先頭status行が未ステージ変更` M .codex/runs/.../REPORT.md`の場合、全体`.trim()`がstatus列の先頭空白を除去する。固定slice後のpathが`M .codex/runs/.../REPORT.md`となり、artifact外の差分と誤判定される。read-onlyで同helperを確認したところ、現状もこのRun ArtifactのREPORTをartifact外として返すことを再現した。
+  - resultへの影響: runnerはsource preflightでfail-closeし、common smokeを起動せず`blocked` / `cases=[]` / CLI exit 1となった。12 predicate診断の実測値は存在しない。
+  - 修正が必要な理由: Run Artifactのみの許可差分を正しく認識できず、canonical runがcommon smokeや5 caseへ進めないため。修正はこのRun Artifact記録後の別Evaluator revisionで扱う必要があり、今回canonical runは再実行しない。
+- Run Artifact sanitization: runner resultにraw serialなし。Write / Checkとtext qualityの最終結果は後続checkpointへ記録する。Evaluator sourceは固定revisionから変更していない。
+- Progress: canonical runは1回実行済みだが、Planの成功条件は未達。PR #168のcanonical live Workflow E2E検証は未完了。
+
+### common smoke predicate（全件未観測）
+
+`smoke_probe`自体がresultに存在しないため、次の値はfalseではなく未観測。
+
+- `initial_process_completed`: 未観測
+- `resumed_process_completed`: 未観測
+- `initial_thread_present`: 未観測
+- `same_thread`: 未観測
+- `initial_otel_reliable`: 未観測
+- `resumed_otel_reliable`: 未観測
+- `initial_schema_valid`: 未観測
+- `resumed_schema_valid`: 未観測
+- `initial_write_observed`: 未観測
+- `resumed_write_observed`: 未観測
+- `initial_command_execution_observed`: 未観測
+- `resumed_command_execution_observed`: 未観測
+
+### Artifact finalization
+
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260923-170244-JST -Write -Check`: PASS（5 files、0 changes、0 replacements、0 residual findings）。credential、raw Android serial、不要なabsolute local pathは残っていない。
+- `corepack pnpm exec node scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree`: PASS（変更Markdown 2 files）。
+- source差分は固定Evaluator SHAから0。今回の変更は`.codex/runs/20260923-170244-JST/**`だけ。Run Artifactを通常commit / pushし、PR本文を実測`blocked`結果へ更新する。

@@ -9,8 +9,8 @@
 - [x] 4. workspace配置・diagnostic predicate・blocked resultのregression testを追加する。
 - [x] 5. focused test、repository test、markdown lint、verify、diff checkを実行する。
 - [x] 6. self-reviewし、source差分と変更範囲を確認する。
-- [ ] 7. Run Artifactをsanitizationし、implementation commitを作成・pushして最新head CIを確認する。
-- [ ] 8. fresh sanitized Targetを作成し、手動detach後preflightを通してcanonical runを一度実行する。
+- [x] 7. Run Artifactをsanitizationし、implementation commitを作成・pushして最新head CIを確認する。
+- [x] 8. fresh sanitized Targetを作成し、手動detach後preflightを通してcanonical runを一度実行する（run_status=blocked。source guard false positiveのためcommon smoke前に停止）。
 - [ ] 9. canonical resultを検証・sanitizationし、Run Artifactをcommit/push、PR本文を更新する。
 - [ ] 10. Artifact head CIと残存blockerを確認して完了判断する。
 
