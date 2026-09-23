@@ -79,6 +79,8 @@ const DEFAULT_MODEL = "gpt-5.6-luna";
 const TURN_TIMEOUT_MS = 327_000;
 const QA_TURN_TIMEOUT_MS = 915_000;
 const MAX_CAPTURED_OUTPUT = 4_000;
+const MAX_SMOKE_DIAGNOSTIC_PREVIEW = 800;
+const MAX_SMOKE_COMMAND_EXECUTIONS = 5;
 const COMMON_SMOKE_BLOCKED_REASON =
   "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution";
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
@@ -136,6 +138,7 @@ interface CodexTurnExecution {
   readonly stderr: string;
   readonly final_text: string | null;
   readonly command_executions: readonly CommandExecutionEvidence[];
+  readonly event_types: readonly string[];
   readonly tool_events: readonly string[];
 }
 
@@ -465,7 +468,6 @@ export function buildWorkflowCodexArguments(input: {
   readonly skipGitRepoCheck?: boolean | undefined;
 }): readonly string[] {
   const args = ["--ask-for-approval", "never", "exec"];
-  if (input.resumeThreadId !== undefined) args.push("resume", input.resumeThreadId);
   args.push(
     "--model",
     input.model,
@@ -489,6 +491,7 @@ export function buildWorkflowCodexArguments(input: {
   if (input.outputSchemaPath !== undefined) args.push("--output-schema", input.outputSchemaPath);
   if (input.outputLastMessagePath !== undefined)
     args.push("--output-last-message", input.outputLastMessagePath);
+  if (input.resumeThreadId !== undefined) args.push("resume", input.resumeThreadId);
   args.push("-");
   return args;
 }
@@ -521,16 +524,18 @@ function jsonLines(raw: string): readonly Record<string, unknown>[] {
     });
 }
 
-function collectCodexEvents(raw: string): {
+export function collectCodexEvents(raw: string): {
   threadId: string | null;
   trustedTerminal: "turn.completed" | "turn.failed" | null;
   commandExecutions: readonly CommandExecutionEvidence[];
+  eventTypes: readonly string[];
   toolEvents: readonly string[];
 } {
   const events = jsonLines(raw);
   let threadId: string | null = null;
   let trustedTerminal: "turn.completed" | "turn.failed" | null = null;
   const commands: CommandExecutionEvidence[] = [];
+  const eventTypes = new Set<string>();
   const toolEvents = new Set<string>();
   const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
@@ -540,6 +545,7 @@ function collectCodexEvents(raw: string): {
     if (typeof value !== "object" || value === null) return;
     const record = value as Record<string, unknown>;
     const type = typeof record.type === "string" ? record.type : "";
+    if (type.length > 0) eventTypes.add(type);
     if (type === "thread.started" && typeof record.thread_id === "string")
       threadId = record.thread_id;
     if (type === "turn.completed" || type === "turn.failed") trustedTerminal = type;
@@ -565,16 +571,14 @@ function collectCodexEvents(raw: string): {
         output: capturedText(record.aggregated_output ?? record.output ?? record.result),
       });
     }
-    const item = record.item;
-    if (typeof item === "object" && item !== null) visit(item);
-    const event = record.event;
-    if (typeof event === "object" && event !== null) visit(event);
+    Object.values(record).forEach(visit);
   };
   events.forEach(visit);
   return {
     threadId,
     trustedTerminal,
     commandExecutions: commands,
+    eventTypes: [...eventTypes].sort(),
     toolEvents: [...toolEvents].sort(),
   };
 }
@@ -643,6 +647,7 @@ async function executeCodexTurn(input: {
       stderr: "",
       final_text: null,
       command_executions: [],
+      event_types: [],
       tool_events: [],
     };
   }
@@ -712,6 +717,7 @@ async function executeCodexTurn(input: {
     stderr,
     final_text: finalText,
     command_executions: eventData.commandExecutions,
+    event_types: eventData.eventTypes,
     tool_events: eventData.toolEvents,
   };
 }
@@ -1182,8 +1188,8 @@ function testDigest(context: CaseContext): string {
   return hashFile(path.join(context.root, "workflow-e2e-fixtures", "case-a", "status.test.mjs"));
 }
 
-function commandRan(
-  execution: CodexTurnExecution,
+export function commandRan(
+  execution: Pick<CodexTurnExecution, "command_executions">,
   commandText: string,
   expectedExitCode: number,
 ): boolean {
@@ -2851,6 +2857,69 @@ type SmokeTurnEvidence = {
   readonly command_execution_observed: boolean;
 };
 
+type CommonSmokeTurn = "initial" | "resumed";
+
+export function commonSmokeCommand(turn: CommonSmokeTurn): string {
+  const line = `${turn}-write`;
+  return `node -e "require('node:fs').appendFileSync('smoke.txt','${line}\\n')"`;
+}
+
+export function buildCommonSmokePrompt(turn: CommonSmokeTurn): string {
+  const status = `${turn}-write`;
+  return buildWorkflowTurnPrompt(
+    [
+      "Run exactly this shell command once. Do not use a file-editing tool instead:",
+      commonSmokeCommand(turn),
+      "",
+      "After the command exits successfully, return exactly this JSON with no additional fields:",
+      JSON.stringify({ status }),
+    ].join("\n"),
+  );
+}
+
+function sanitizeSmokeDiagnosticText(value: string, root: string | null): string {
+  const redacted =
+    root === null ? value : redactValue(value, root).replaceAll("<CASE_ROOT>", "<SMOKE_ROOT>");
+  return redacted.slice(0, MAX_SMOKE_DIAGNOSTIC_PREVIEW);
+}
+
+export function summarizeSmokeTurnDiagnostics(
+  execution: Pick<
+    CodexTurnExecution,
+    | "exit_code"
+    | "trusted_terminal"
+    | "final_text"
+    | "command_executions"
+    | "event_types"
+    | "stderr"
+  >,
+  input: { readonly root: string; readonly lastMessageFilePresent: boolean },
+): Readonly<Record<string, unknown>> {
+  const commandExecutions = summarizeCommandExecutions(
+    execution.command_executions.slice(0, MAX_SMOKE_COMMAND_EXECUTIONS),
+    input.root,
+  );
+  return {
+    exit_code: execution.exit_code,
+    trusted_terminal: execution.trusted_terminal,
+    final_text_present: execution.final_text !== null,
+    final_text_length: execution.final_text?.length ?? 0,
+    last_message_file_present: input.lastMessageFilePresent,
+    command_execution_count: execution.command_executions.length,
+    event_types: [...new Set(execution.event_types)].sort(),
+    file_change_event_observed: execution.event_types.includes("file_change"),
+    stderr_present: execution.stderr.length > 0,
+    stderr_preview: sanitizeSmokeDiagnosticText(execution.stderr, input.root),
+    final_text_preview: sanitizeSmokeDiagnosticText(execution.final_text ?? "", input.root),
+    command_execution_summary: commandExecutions.map((command) => ({
+      command: sanitizeSmokeDiagnosticText(command.command, input.root),
+      exit_code: command.exit_code,
+      status: command.status,
+      output: sanitizeSmokeDiagnosticText(command.output, input.root),
+    })),
+  };
+}
+
 export function summarizeCommonSmokeProbe(input: {
   readonly initial: SmokeTurnEvidence;
   readonly resumed_attempted: boolean;
@@ -2940,21 +3009,28 @@ async function runCommonSmokeProbe(
   let root: string | null = null;
   let initial = emptySmokeTurnEvidence();
   let resumed: SmokeTurnEvidence | null = null;
+  let initialDiagnostics: Readonly<Record<string, unknown>> | undefined;
+  let resumedDiagnostics: Readonly<Record<string, unknown>> | undefined;
   let resumedAttempted = false;
   let sameThread = false;
   let probeExceptionObserved = false;
+  let probeExceptionReason: string | undefined;
   let cleanupFailed = false;
   try {
-    root = createSmokeRepository(options.target_root);
+    const smokeRoot = createSmokeRepository(options.target_root);
+    root = smokeRoot;
+    const initialLastMessagePath = path.join(smokeRoot, "initial.json");
     const initialExecution = await executeCodexTurn({
-      cwd: root,
+      cwd: smokeRoot,
       model: options.model,
-      prompt: buildWorkflowTurnPrompt(
-        "Write the exact line initial-write to smoke.txt. Then return JSON with status initial-write.",
-      ),
-      schemaPath: path.join(root, "smoke.schema.json"),
-      lastMessagePath: path.join(root, "initial.json"),
+      prompt: buildCommonSmokePrompt("initial"),
+      schemaPath: path.join(smokeRoot, "smoke.schema.json"),
+      lastMessagePath: initialLastMessagePath,
       sandbox: "workspace-write",
+    });
+    initialDiagnostics = summarizeSmokeTurnDiagnostics(initialExecution, {
+      root: smokeRoot,
+      lastMessageFilePresent: fs.existsSync(initialLastMessagePath),
     });
     const initialValue = parseStructuredOutput(initialExecution.final_text, smokeResponseSchema);
     initial = {
@@ -2968,23 +3044,26 @@ async function runCommonSmokeProbe(
       thread_present: initialExecution.thread_id !== null,
       otel_reliable: initialExecution.otel.reliable,
       schema_valid: initialValue?.status === "initial-write",
-      write_observed: smokeLineObserved(root, "initial-write"),
-      command_execution_observed: initialExecution.command_executions.length > 0,
+      write_observed: smokeLineObserved(smokeRoot, "initial-write"),
+      command_execution_observed: commandRan(initialExecution, commonSmokeCommand("initial"), 0),
     };
 
     if (initialExecution.thread_id !== null) {
       resumedAttempted = true;
       resumed = emptySmokeTurnEvidence();
+      const resumedLastMessagePath = path.join(smokeRoot, "resumed.json");
       const resumedExecution = await executeCodexTurn({
-        cwd: root,
+        cwd: smokeRoot,
         model: options.model,
-        prompt: buildWorkflowTurnPrompt(
-          "Append the exact line resumed-write to smoke.txt. Then return JSON with status resumed-write.",
-        ),
-        schemaPath: path.join(root, "smoke.schema.json"),
-        lastMessagePath: path.join(root, "resumed.json"),
+        prompt: buildCommonSmokePrompt("resumed"),
+        schemaPath: path.join(smokeRoot, "smoke.schema.json"),
+        lastMessagePath: resumedLastMessagePath,
         resumeThreadId: initialExecution.thread_id,
         sandbox: "workspace-write",
+      });
+      resumedDiagnostics = summarizeSmokeTurnDiagnostics(resumedExecution, {
+        root: smokeRoot,
+        lastMessageFilePresent: fs.existsSync(resumedLastMessagePath),
       });
       const resumedValue = parseStructuredOutput(resumedExecution.final_text, smokeResponseSchema);
       resumed = {
@@ -2998,13 +3077,17 @@ async function runCommonSmokeProbe(
         thread_present: resumedExecution.thread_id !== null,
         otel_reliable: resumedExecution.otel.reliable,
         schema_valid: resumedValue?.status === "resumed-write",
-        write_observed: smokeLineObserved(root, "resumed-write"),
-        command_execution_observed: resumedExecution.command_executions.length > 0,
+        write_observed: smokeLineObserved(smokeRoot, "resumed-write"),
+        command_execution_observed: commandRan(resumedExecution, commonSmokeCommand("resumed"), 0),
       };
       sameThread = resumedExecution.thread_id === initialExecution.thread_id;
     }
-  } catch {
+  } catch (error) {
     probeExceptionObserved = true;
+    probeExceptionReason = sanitizeSmokeDiagnosticText(
+      error instanceof Error ? error.message : String(error),
+      root,
+    );
   } finally {
     if (root !== null) {
       try {
@@ -3022,6 +3105,13 @@ async function runCommonSmokeProbe(
       resumed,
       same_thread: sameThread,
     }),
+    diagnostics: {
+      ...(initialDiagnostics === undefined ? {} : { initial: initialDiagnostics }),
+      ...(resumedDiagnostics === undefined ? {} : { resumed: resumedDiagnostics }),
+      ...(probeExceptionReason === undefined
+        ? {}
+        : { probe_exception_reason: probeExceptionReason }),
+    },
     ...(probeExceptionObserved ? { probe_exception_observed: true } : {}),
     ...(cleanupFailed ? { cleanup_failed: true } : {}),
   };

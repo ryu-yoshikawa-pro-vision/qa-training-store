@@ -15,15 +15,20 @@ import {
 } from "../../scripts/evals/skill-workflow-evals";
 import {
   blockedResult,
+  buildCommonSmokePrompt,
   buildWorkflowCodexArguments,
   captureStageScopeSnapshot,
   changedStageScopeFiles,
+  collectCodexEvents,
+  commandRan,
+  commonSmokeCommand,
   createWorkflowAgentWorkspace,
   deriveNativeFirstAnomaly,
   isCaseBOfficialEvidenceFile,
   parseWorkflowEvalCliArguments,
   redactNativeDeviceSerial,
   summarizeCommonSmokeProbe,
+  summarizeSmokeTurnDiagnostics,
   type WorkflowEvalCliOptions,
 } from "../../scripts/evals/run-skill-workflow-evals";
 
@@ -193,26 +198,33 @@ describe("Workflow E2E Eval repository contract", () => {
       model: "gpt-5.6-luna",
       output: ".codex/runs/result.json",
     };
-    const smokeProbe = summarizeCommonSmokeProbe({
-      initial: {
-        lifecycle: "completed",
-        thread_present: true,
-        otel_reliable: true,
-        schema_valid: true,
-        write_observed: false,
-        command_execution_observed: true,
+    const smokeProbe = {
+      ...summarizeCommonSmokeProbe({
+        initial: {
+          lifecycle: "completed",
+          thread_present: true,
+          otel_reliable: true,
+          schema_valid: true,
+          write_observed: false,
+          command_execution_observed: true,
+        },
+        resumed_attempted: true,
+        resumed: {
+          lifecycle: "completed",
+          thread_present: true,
+          otel_reliable: true,
+          schema_valid: true,
+          write_observed: true,
+          command_execution_observed: true,
+        },
+        same_thread: true,
+      }),
+      diagnostics: {
+        initial: { command_execution_count: 1, event_types: ["command_execution"] },
+        resumed: { command_execution_count: 0, event_types: ["agent_message"] },
+        probe_exception_reason: "resume error at <SMOKE_ROOT>",
       },
-      resumed_attempted: true,
-      resumed: {
-        lifecycle: "completed",
-        thread_present: true,
-        otel_reliable: true,
-        schema_valid: true,
-        write_observed: true,
-        command_execution_observed: true,
-      },
-      same_thread: true,
-    });
+    };
     const result = workflowEvalResultSchema.parse(
       blockedResult(
         options,
@@ -230,8 +242,124 @@ describe("Workflow E2E Eval repository contract", () => {
         status: "fail",
         initial_write_observed: false,
         resumed_write_observed: true,
+        diagnostics: {
+          initial: { command_execution_count: 1, event_types: ["command_execution"] },
+          resumed: { command_execution_count: 0, event_types: ["agent_message"] },
+          probe_exception_reason: "resume error at <SMOKE_ROOT>",
+        },
       },
     });
+  });
+
+  it("uses a fixed shell command and structured response for each common smoke turn", () => {
+    expect(commonSmokeCommand("initial")).toBe(
+      `node -e "require('node:fs').appendFileSync('smoke.txt','initial-write\\n')"`,
+    );
+    expect(commonSmokeCommand("resumed")).toBe(
+      `node -e "require('node:fs').appendFileSync('smoke.txt','resumed-write\\n')"`,
+    );
+
+    const initialPrompt = buildCommonSmokePrompt("initial");
+    const resumedPrompt = buildCommonSmokePrompt("resumed");
+    expect(initialPrompt).toContain(commonSmokeCommand("initial"));
+    expect(initialPrompt).toContain("Do not use a file-editing tool instead");
+    expect(initialPrompt).toContain('{"status":"initial-write"}');
+    expect(resumedPrompt).toContain(commonSmokeCommand("resumed"));
+    expect(resumedPrompt).toContain("Do not use a file-editing tool instead");
+    expect(resumedPrompt).toContain('{"status":"resumed-write"}');
+  });
+
+  it("requires the expected common smoke command to exit successfully", () => {
+    const initialCommand = commonSmokeCommand("initial");
+    const execution = (commands: readonly { command: string; exit_code: number | null }[]) => ({
+      command_executions: commands.map((command) => ({
+        ...command,
+        status: "completed",
+        output: "",
+      })),
+    });
+
+    expect(commandRan(execution([]), initialCommand, 0)).toBe(false);
+    expect(
+      commandRan(
+        execution([{ command: "node -e console.log('unrelated')", exit_code: 0 }]),
+        initialCommand,
+        0,
+      ),
+    ).toBe(false);
+    expect(
+      commandRan(execution([{ command: initialCommand, exit_code: 1 }]), initialCommand, 0),
+    ).toBe(false);
+    expect(
+      commandRan(execution([{ command: initialCommand, exit_code: 0 }]), initialCommand, 0),
+    ).toBe(true);
+  });
+
+  it("captures bounded smoke diagnostics and recursive JSONL event types", () => {
+    const smokeRoot = join(tmpdir(), "workflow-e2e-smoke-diagnostic-fixture");
+    const events = collectCodexEvents(
+      [
+        JSON.stringify({ type: "turn.completed", item: { type: "file_change" } }),
+        JSON.stringify({
+          type: "item.completed",
+          event: {
+            type: "command_execution",
+            command: commonSmokeCommand("initial"),
+            exit_code: 0,
+            status: "completed",
+            aggregated_output: `wrote ${smokeRoot}`,
+          },
+        }),
+      ].join("\n"),
+    );
+    expect(events.eventTypes).toEqual([
+      "command_execution",
+      "file_change",
+      "item.completed",
+      "turn.completed",
+    ]);
+
+    const longFinalText = `{"status":"initial-write"} ${smokeRoot} ${"f".repeat(1_000)}`;
+    const syntheticExecution = {
+      exit_code: 0,
+      trusted_terminal: "turn.completed" as const,
+      final_text: longFinalText,
+      stderr: `diagnostic ${smokeRoot} ${"e".repeat(1_000)}`,
+      event_types: events.eventTypes,
+      command_executions: Array.from({ length: 6 }, (_, index) => ({
+        command: `${commonSmokeCommand("initial")} # ${index} ${smokeRoot}`,
+        exit_code: 0,
+        status: "completed",
+        output: `wrote ${smokeRoot} ${"o".repeat(1_000)}`,
+      })),
+      stdout: "raw stdout must not be copied to the result",
+    };
+    const diagnostics = summarizeSmokeTurnDiagnostics(syntheticExecution, {
+      root: smokeRoot,
+      lastMessageFilePresent: true,
+    });
+    const serialized = JSON.stringify(diagnostics);
+    expect(diagnostics).toMatchObject({
+      exit_code: 0,
+      trusted_terminal: "turn.completed",
+      final_text_present: true,
+      final_text_length: longFinalText.length,
+      last_message_file_present: true,
+      command_execution_count: 6,
+      event_types: events.eventTypes,
+      file_change_event_observed: true,
+      stderr_present: true,
+    });
+    expect((diagnostics.stderr_preview as string).length).toBeLessThanOrEqual(800);
+    expect((diagnostics.final_text_preview as string).length).toBeLessThanOrEqual(800);
+    expect(diagnostics.stderr_preview).toContain("<SMOKE_ROOT>");
+    expect(diagnostics.final_text_preview).toContain("<SMOKE_ROOT>");
+    expect(diagnostics.command_execution_summary).toHaveLength(5);
+    expect(diagnostics.command_execution_summary).toContainEqual(
+      expect.objectContaining({ command: expect.stringContaining("<SMOKE_ROOT>") }),
+    );
+    expect(serialized).not.toContain(smokeRoot);
+    expect(serialized).not.toContain("raw stdout must not be copied");
   });
 
   it("excludes a pre-existing dirty file that remains unchanged during a stage", () => {
@@ -506,8 +634,8 @@ describe("Workflow E2E Eval repository contract", () => {
     ).toBe(false);
   });
 
-  it("fixes the canonical Codex controls and same-thread resume shape", () => {
-    const args = buildWorkflowCodexArguments({
+  it("keeps canonical Codex controls before resume and the prompt positional last", () => {
+    const resumeArgs = buildWorkflowCodexArguments({
       cwd: "C:/case",
       model: "gpt-5.6-luna",
       otelEndpoint: "http://127.0.0.1:4318/v1/metrics",
@@ -515,20 +643,58 @@ describe("Workflow E2E Eval repository contract", () => {
       outputSchemaPath: "C:/case/schema.json",
       outputLastMessagePath: "C:/case/last.json",
     });
-    expect(args).toEqual(
-      expect.arrayContaining([
-        "--ignore-user-config",
-        "--ignore-rules",
-        "--json",
-        "features.hooks=false",
-        "shell_environment_policy.inherit=core",
-        "web_search=disabled",
-        "resume",
-        "thread-1",
-      ]),
+    const resumeIndex = resumeArgs.indexOf("resume");
+    expect(resumeArgs.slice(0, 3)).toEqual(["--ask-for-approval", "never", "exec"]);
+    for (const option of [
+      "--sandbox",
+      "-C",
+      "--model",
+      "--json",
+      "--output-schema",
+      "--output-last-message",
+    ]) {
+      expect(resumeArgs.indexOf(option)).toBeGreaterThanOrEqual(0);
+      expect(resumeArgs.indexOf(option)).toBeLessThan(resumeIndex);
+    }
+    for (const option of [
+      "--ignore-user-config",
+      "--ignore-rules",
+      "features.hooks=false",
+      "shell_environment_policy.inherit=core",
+      "web_search=disabled",
+    ]) {
+      const index = resumeArgs.indexOf(option);
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(index).toBeLessThan(resumeIndex);
+    }
+    const otelIndex = resumeArgs.findIndex((argument) =>
+      argument.startsWith("otel.metrics_exporter="),
     );
-    expect(args).not.toContain("--ephemeral");
-    expect(args.at(-1)).toBe("-");
+    expect(otelIndex).toBeGreaterThanOrEqual(0);
+    expect(otelIndex).toBeLessThan(resumeIndex);
+    expect(resumeArgs.slice(resumeIndex, resumeIndex + 3)).toEqual(["resume", "thread-1", "-"]);
+    expect(resumeArgs).not.toContain("--ephemeral");
+    expect(resumeArgs).not.toContain("danger-full-access");
+    expect(resumeArgs.at(-1)).toBe("-");
+
+    const initialArgs = buildWorkflowCodexArguments({
+      cwd: "C:/case",
+      model: "gpt-5.6-luna",
+      otelEndpoint: "http://127.0.0.1:4318/v1/metrics",
+      outputSchemaPath: "C:/case/schema.json",
+      outputLastMessagePath: "C:/case/initial.json",
+    });
+    expect(initialArgs).not.toContain("resume");
+    expect(initialArgs).toContain("--sandbox");
+    expect(initialArgs).toContain("-C");
+    expect(initialArgs).toContain("--model");
+    expect(initialArgs).toContain("--json");
+    expect(initialArgs).toContain("--output-schema");
+    expect(initialArgs).toContain("--output-last-message");
+    expect(initialArgs).toContain("features.hooks=false");
+    expect(initialArgs).toContain("shell_environment_policy.inherit=core");
+    expect(initialArgs).toContain("web_search=disabled");
+    expect(initialArgs.at(-1)).toBe("-");
   });
 
   it("requires provenance inputs and derives Native first anomaly from the Doctor marker", () => {
