@@ -203,3 +203,65 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (39/39)
+
+## 2026-09-23 21:09 JST — Issue #132 decision-only実行開始
+
+- Summary: GitHub上の最新PR / Issue / Plan / Run Artifactを確認し、latest `main`へのrebaselineとTask 2 / 3のCurrent Evidence再確認を完了した。案A / Bのarchitecture owner Decisionが記録されていないため、Task 4で停止する。
+- GitHub state: PR #178はopen、head `a1977fae9515a104a293558757fa75599d5245ed`、base `main` / `2f5353b63414ace7278155d525e0e2cf074d630b`。Issue #132はopen。Issue commentsは0件。PR bodyは案A / Bを記載するが選択を記録していない。PRの唯一のIssue commentはCodeRabbit botのreview trigger、PR reviews / review commentsは0件。
+- Rebaseline: `git fetch origin`成功。latest `origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`。Plan指定のauthority / dependency pathsを`01cd8ab15078d479e821d373445af1e16a469519..origin/main`で比較し、material driftなし。
+- Task 2 Evidence: `NFR-MA-001`はlayer dependency directionをGateとする。`docs/CODING_STANDARDS.md §7.1`と`repository_structure.md §4`はDomainが他Layerへ依存しないと明示する。ADR-0003 Decision 3はApplicationがDomain Repository Portだけに依存すると記録する。D-026はTypeScript codeをtype definitionのSSOT、Markdownを意味・理由の説明とする。`NFR-MA-010`はApplication contractのDTO / Input / Result / ErrorにRepositoryを従わせるGate。`tsconfig.json`の`baseUrl: "."`と`@/*` pathは維持され、architecture testはApplication → Infrastructure等を検査するがDomain → Applicationは禁止していない。
+- Task 3 Evidence: `src/domain/repositories/contracts.ts`はApplication contractから67 named typeをtype importし、inlineで`HomeCatalogDto`と`ProductViewer`を参照する。24 Repository interface中17件がApplication typeをsignatureに使い、7件は使用しない。`src/domain/policies/permissions.ts`もApplication `ProductViewer`をtype importするが、policyで使うfieldは`kind`と`membershipRank`。`ProductViewer`はApplication contract上にあり、Domainには`MembershipRank`が存在する。`@/domain/repositories`のdirect consumerは18 source fileでApplication / Infrastructureにあり、Domain内consumerは確認されなかった。Policy unit testはguest/customer visibilityを検証し、repository-contract testsもviewerを含むCatalog経路を確認する。Current callerはDexie / SQLite Infrastructureにある。
+- Decision evidence: Issue #132 comments、PR #178 body / comments / reviews / review comments、確認対象のADR / reports / plansを確認したが、architecture ownerの案A / B選択は見つからなかった。Domain → Applicationのallow / denyはCurrent policyとして確定済みでありDecision Pointへ戻さない。
+- Blocked: 案A / B選択後にTask 5〜8（ADRと必要文書の更新、static contract仕様、follow-up scope記録、§4.16の`refactor_now` resolution）とPlan指定validationを行う。follow-up implementation Planは作成しない。
+- Changes: 本Runの`PLAN.md` / `TASKS.md` / `REPORT.md`だけをCurrent stateへ更新。Product source / test、ADR、Normative documentation、Phase 6 durable report、Issue metadataは変更していない。
+- Validation: このDecision gateではdecision-only最終validation commandおよびRun Artifact sanitizerは未実行。完了後、Plan §6記載のcommandをそのまま実行する。
+- Progress: 98% (42/43)。Task 4 / 43がarchitecture owner Decision待ち。
+
+## 2026-09-23 21:43 JST — 案A Decisionとdecision-only文書更新
+
+- Decision: architecture ownerが§4.2の案Aを採用した。Application / Infrastructureだけから利用され、Application contractを境界として使うPortはApplication ownershipを第一候補とし、Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持する。Domain → Application dependencyの禁止とApplication DTO / query / command / `ProductViewer`のApplication ownershipは維持する。
+- ADR / authority: next available ADRを再確認しADR-0027を追加した。ADR-0003 Decision 3のRepository Port ownership要件だけを限定的にsupersedeし、他のDecisionは維持する。`NFR-MA-010`は変更していない。
+- Normative docs: `docs/04_data/repository_interfaces.md`へPort ownership ruleを追記し、`docs/04_data/application_contracts.md`へ`ProductViewer` ownership / Domain policy boundaryを明記した。
+- Architecture contract specification: ADR-0027へ禁止syntax、3 path family、synthetic source table-driven self-test、Current source remediationと同時に追加する順序、scanner / AST / dependencyの除外を記録した。contract自体は実装していない。
+- Follow-up scope: 24 interfaceすべてを責務 / consumer / transaction boundary / 入出力contractで再評価し、維持 / 移動 / 削除を個別判断する。17 Application-type interfacesは最低限の整理対象、残り7件もDomain ownershipを自動確定しない。3 unused candidatesは削除可否を移動前に確認し、影響consumerだけを更新する。`ProductViewer`依存除去、architecture contractとscanner self-test、focused test / repository validationはsource remediationと同じ別実装PRへ含める。別Plan作成はIssue #132完了後にlatest `main`から行う。
+- Issue result: Issue #132へ案A、ADR-0027、`NFR-MA-010`維持、§4.16 `refactor_now`、follow-up scope / next actionをcomment ID `5794888964`として記録した。Issueはopenのまま。
+- Phase 6 report: `docs/reports/2026-09-06_193114_refactoring_necessity_review.md`の元の§4.16 `needs_more_evidence`を保持し、その後へIssue #132 follow-up resolutionを追記した。
+- Scope audit: tracked diffはRun Artifactと上記decision文書だけ。Product source / test、dependency、Repository interface、architecture contract、behavior、database schema、Native / Web featureに変更なし。follow-up implementation Planは作成していない。
+- Validation: CorepackからRepository固定`pnpm@10.34.5`を起動。`pnpm run lint:markdown`はPASS（451 Markdown files、0 issues）、`pnpm run lint:text`はPASS（working-tree、変更Markdown 7件）、`git diff --check`はPASS。`pnpm run format:check`はPASSせず、既存の未変更78ファイルがPrettier対象として検出された。変更したADR / 設計文書4件への個別Prettier診断は差分0。Product source / testが変更禁止のため、既存ファイルはformatしない。Run Artifact最終同期後、Plan §6 commandとsanitizerを再実行する。
+- Current next action: Run final stateを記録・検証し、Plan completion criteriaを照合してからcommit / pushする。push後は最新PR headで`Web CI` / `Mobile App CI`を確認する。merge、Issue close、follow-up Refactorは行わない。
+- Progress: 96% (48/50)。Task 49 validation / sanitizerとTask 50 commit / pushが残る。
+
+## 2026-09-23 21:53 JST — 指定検証とPlan完了条件照合
+
+- 指定validation commandはRepository固定`pnpm@10.34.5`をCorepack経由で呼び出して実行した。
+- `pnpm run format:check`: FAILURE。Repository全体で78個の未変更fileを報告。出力されたwarningは既存app sourceにあり、今回のtracked diffはRun Artifactと4 decision documentに限定される。変更したADR / 設計文書4件へのdiagnostic `prettier --list-different`は差分0。Product source / testを変更しない指示と合意scopeのためformat修正は行わない。
+- `pnpm run lint:markdown`: PASS — markdownlint 451 files、0 issues。
+- `pnpm run lint:text`: PASS — working-tree comparison、changed Markdown 7 files。
+- `git diff --check`: PASS。
+- `powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260923-103200-JST' -Write`: PASS — 3 files scanned、0 changed、0 replacements、0 residual findings。
+- `powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260923-103200-JST' -Check`: PASS — 3 files scanned、0 changed、0 replacements、0 residual findings。
+- Plan §8 completion criteria照合: (1) latest `main`をrebaselineしauthority / dependency edge確認、(2) runtime / type-onlyの両方を禁止、(3) NFR-MA-001 / Coding Standards / Repository Structure / ADR-0003 / D-026の関係をADR-0027へ記録、(4) `repository_interfaces.md`は依存例外のauthorityでないと明記、(5) DTO / query / command Application ownership維持、(6) `ProductViewer` Application ownership維持、(7) Domain policy input境界を`MembershipRank | null`相当へ縮小する方針、(8)責務 / consumerによるPort ownership rule、(9)static contractとsynthetic self-test仕様、(10)architecture owner案A decisionをIssue / ADRへ記録、(11)`needs_more_evidence`履歴を残し`refactor_now` resolution追記、(12)必要なADR / normative docs更新、(13)follow-up scope / next action記録、(14)Product behavior / DB schema / Native / Web feature不変更、(15)generic dependency graph / AST / dependencyなし — 各項目を確認済み。
+- Product source / testと`package.json` / lockfileは無変更。Repository interface移動、`ProductViewer`依存除去、architecture contract実装、follow-up Plan、Issue close、mergeは未実施。
+- Current remaining: decision-only成果は記録済み。Repository-wide `format:check`の既存failureを除く指定gateはpassした。commit / pushとpush後最新headの`Web CI` / `Mobile App CI`確認が残る。
+- Progress: 98% (49/50)。
+
+## 2026-09-23 22:00 JST — commit gateで停止
+
+- Commit前Git safety: branch `plan/issue-132-domain-application-type-dependency`、upstream `origin/plan/issue-132-domain-application-type-dependency`、local / upstream / PR #178 headは`a1977fae9515a104a293558757fa75599d5245ed`で一致。PRとIssue #132はopen、`origin/main`とPR baseは`2f5353b63414ace7278155d525e0e2cf074d630b`。Issue decision comment ID `5794888964`をGitHub APIで確認した。
+- Commit: 明示scopeの7文書だけをstageして`git commit -m 'docs: Issue #132のRepository Port ownershipを決定する'`を実行。`.husky/pre-commit`が最初の`pnpm run format:check`でexit 1となりcommit拒否。Hookの次command (`lint`, `security:check`) は起動していない。
+- Failure evidence: Prettierは78ファイル、いずれも既存`app/**`。`git diff --quiet origin/main HEAD -- app`と`git diff --quiet origin/main HEAD -- src tests package.json pnpm-lock.yaml`が成功し、指摘sourceと関連Product / test / dependency surfaceはlatest `main`と同一。今回変更したADR / 設計文書4件への`prettier --list-different`は空出力 / exit 0。formatter failureは今回の変更によるものではない。
+- Scope / recovery: Product source / testの変更禁止に従って78 app fileはformatしていない。`.husky/pre-commit`も迂回していない。7文書はstageされているがcommitされておらず、pushしていない。commit SHAなし。PR #178 headは`a1977fae9515a104a293558757fa75599d5245ed`のまま。通常CIは新しいpushがないため未実行。
+- Decision-only成果、Issue comment、Phase 6 resolutionおよびPlan §8 criteria 15件は記録済み。merge、Issue close、follow-up Refactorは未実施。
+- Blocker / next action: commitにはrepository-wide format gateを通す必要があるが、現在の依頼は該当Product sourceを変更しない。別途baseline formattingかRepository hook policyを扱わない限り、この7文書をcommit / pushできない。現在の制約下でできる修正はない。
+- Progress: 98% (49/50)。Task 50 commit / pushはpre-commit gateで未完了。
+
+## 2026-09-23 22:45 JST — Windows CRLF checkout diagnosisとformat復旧
+
+- 原因切り分け: `git ls-files --eol`でPrettierが指摘した`app/**`全78件が`i/lf w/crlf attr/text=auto eol=lf`。代表4件への`git check-attr text eol`は`text: auto` / `eol: lf`。`git config --show-origin --get core.autocrlf`は`true`で、originはGit for Windowsのsystem config。
+- Blob照合: 全78件のLF正規化内容が`origin/main`とindexのblob hashへ一致し、source内容のdriftは0。working treeではCRLF 370組を含み、bare LF / bare CRとのmixed endingは0件。したがってfailureはorigin/mainのformat baseline違反ではなく、Windows working treeのCRLFに限定される。dependency差は原因ではない。
+- Runtime比較: local Node `v22.20.0`、Corepack pnpm `10.34.5`、Prettier `3.8.1`。`.github/workflows/ci.yml`のStyle QualityはUbuntu、Node `24`、pnpm `10.34.5`。formatter versionはlockfileで`3.8.1`に固定されている。
+- 復旧: origin/indexへLF正規化hashが一致することを全件事前検証してからworking treeのCRLF bytesだけをLFへ置換。復元後の78件は`i/lf w/lf attr/text=auto eol=lf`。通常の`git checkout-index --force`は現system設定でCRLFを再生成した。runtime `git -c` overrideはG10に拒否されたため使わず、Git設定変更も行わなかった。Hook bypassなし。
+- Stage / scope: `git write-tree`は復元前後とも`a2f4247c03dadcaf8deb0a9a523546032492e667`。Product sourceのcached diff、normalized worktree diff、HEAD対`origin/main` diffはいずれも0。78 Product filesはstage / commit対象外。Run Artifact以外の4 decision文書を含む7文書のみstage済み。`git status`がstat-dirty表示する場合も内容diffは0で、EOL復元以外の差分はない。
+- `pnpm run format:check`: PASS — exit 0、`All matched files use Prettier code style!`。
+- Final Plan §6 validation: `pnpm run format:check` PASS（exit 0）、`pnpm run lint:markdown` PASS（451 files / 0 issues）、`pnpm run lint:text` PASS（7 changed Markdown files）、`git diff --check` PASS。Run Artifact sanitizer `Write` / `Check`はいずれも3 files scanned、0 changed、0 replacements、0 residual findings。
+- Remaining: `.husky/pre-commit`の全command、明示scopeのcommit、通常push、PR #178最新headの`Web CI` / `Mobile App CI`確認。merge、Issue close、follow-up Refactorは行わない。

@@ -90,3 +90,47 @@
 - Issue #132の完了条件は「別Plan / 実装PRへ切り出せる状態」に戻した。
 - Current Runの`TASKS.md`は`## Now（現在）` / `## Discovered（発見事項）` / `## Blocked（ブロック中）`形式へ揃える。
 - decision-only検証へRun Artifact sanitizerの`Write` / `Check`を追加し、residual findings 0を完了条件にする。
+
+## Current execution status（2026-09-23 21:09 JST）
+
+- PR #178のheadは`a1977fae9515a104a293558757fa75599d5245ed`、latest `origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`。PR headにはlatest `main`を取り込んだmerge commitが含まれる。
+- Task 1 rebaselineでは、branch作成時の`01cd8ab15078d479e821d373445af1e16a469519`からlatest `main`までPlan指定pathにmaterial driftは確認されなかった。
+- Task 2でCurrent policyを再確認した。`NFR-MA-001`、Coding Standards §7.1、Repository Structure §4はDomainからApplicationへの依存を禁止する。ADR-0003 Decision 3、D-026、NFR-MA-010、Current TypeScript、architecture contractとの関係をTask 2 / 3のEvidenceに記録した。
+- Task 3でDomain → Applicationのtype-only edge、Repository contract 24件のownership surface（Application type使用17件 / 未使用7件）、18 direct consumer、`ProductViewer`、policy caller、関連testを再確認した。
+- Task 4の案A / Bを選択したarchitecture owner DecisionはIssue / PRおよび確認したdecision記録に存在しないため、後続Taskを保留してownerの判断を待つ。Domain → Application禁止の再Decisionは求めない。
+- このcheckpointではProduct source / test、ADR、Normative documentation、Phase 6 reportを変更していない。Task 5〜8とPlan指定の最終検証はDecision後に行う。
+
+## Issue #132 Decision / documentation checkpoint（2026-09-23 21:43 JST）
+
+- GitHub recheck: PR #178はopenでhead `a1977fae9515a104a293558757fa75599d5245ed`、latest `origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`。対象authority / dependency surfaceにmaterial driftはない。
+- Task 4: architecture ownerが案Aを採用。案A / B以外のDecisionは追加していない。
+- Task 5: ADR-0027を追加し、ADR-0003 Decision 3のRepository Port ownership要件だけを限定的にsupersedeした。`NFR-MA-010`を維持し、Repository Port ownershipを責務 / consumerから決める説明を`repository_interfaces.md`へ、`ProductViewer`のApplication ownershipを`application_contracts.md`へ同期した。
+- Task 6: Domain → Application static contractのspecifier / path coverage、synthetic source table-driven self-test、実装をsource remediationと同じPRへ置く方針をADR-0027へ記録した。
+- Task 7: 24 interfaceすべてを責務、consumer、transaction boundary、入出力contractで再評価し、個別に維持 / 移動 / 削除を決めるscopeとnext actionをIssue #132へ記録した。Issue comment IDは`5794888964`。implementation Planは作成していない。
+- Task 8: Phase 6 §4.16へIssue #132 follow-up resolutionとして`refactor_now`を追記。元の`needs_more_evidence`を履歴として保持した。
+- Product source / test、Repository interface、architecture contract実装、dependency、Product behavior、schema、Native / Web featureは変更していない。
+- Preliminary validation: `lint:markdown` / `lint:text` / `git diff --check`は成功。全体`format:check`は78個の既存未変更ファイルを報告して失敗した。変更したADR / 設計文書は個別Prettier確認で差分なし。pnpmはsession-localにCorepack `10.34.5`経由で起動した。Run Artifact最終同期後に指定validationを再実行し、sanitizer Write / Checkを行う。
+- Remaining: Plan指定validation / sanitizerの最終確認、Plan completion criteria照合、commit / normal push、最新PR headと必須CI確認。
+
+## Decision-only validation / completion criteria checkpoint（2026-09-23 21:53 JST）
+
+- Plan §6 commandsを実行した。`pnpm run lint:markdown`（451 files / 0 issues）、`pnpm run lint:text`（7 changed Markdown files）、`git diff --check`、Run Artifact sanitizer `Write` / `Check`は成功し、いずれもsanitizer residual findingsは0。
+- `pnpm run format:check`は78個の未変更ファイルを報告して失敗した。今回変更したADR / 設計文書4件に対するdiagnostic Prettier checkでは差分0。`TASKS.md` Blockedへ記録し、Product source / testの変更禁止に従って既存app fileをformatしない。
+- Plan §8 completion criteriaを順に照合した。Current main / dependency evidence、Domain → Application禁止、NFR-MA-001 / Coding Standards / Repository Structure / ADR-0003 / D-026関係、repository_interfaces.mdが許可authorityでないこと、Application contract / `ProductViewer` ownership、Domain policy input方針、Port ownership rule、static contract仕様、Issue / ADR Decision記録、§4.16 resolutionと履歴保持、必要文書同期、follow-up scope / next action、Product behavior / schema / Native / Web無変更、generic graph / AST / dependencyなしを確認済み。
+- Decision-only文書は完了。Task 50として明示scopeのcommit / pushと、最新PR headでの必須CI確認が残る。merge / Issue close / follow-up Refactorは行わない。
+
+## Commit gate result（2026-09-23 22:00 JST）
+
+- Git safety precheckは期待branch、upstream、PR #178 open state、latest `main`との関係が一致した。
+- 明示した7文書だけをstageしcommitしたが、`.husky/pre-commit`の`pnpm run format:check`が既存78 `app/**` fileでfailureとなりcommitは拒否された。対象`app/**`と`src` / `tests` / dependency filesは`origin/main`と同一で、今回の差分に含まれない。
+- Product source / test変更禁止に従い既存sourceをformatせず、configured Hookを迂回しない。7 document changesはstage状態、commit / pushは未完了。PR headは旧SHAのまま。
+- Next action: このscopeで許可されていない既存app sourceのformat修正、またはHook bypassなしにcommit可能にするにはRepository側のformat baseline / Hook policyを別途解消する必要がある。現作業はここで停止する。
+
+## Windows改行コードdiagnosis / formatter recovery（2026-09-23 22:45 JST）
+
+- GitHub PR #178はopen、head `a1977fae9515a104a293558757fa75599d5245ed`、base / `origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`のまま。branchは期待するPR head branchでupstreamも同branch。
+- 初回`format:check`の78件はRepository baselineのPrettier違反ではなかった。`git ls-files --eol`で全78件が`i/lf w/crlf attr/text=auto eol=lf`、`git check-attr`は`text=auto` / `eol=lf`、`git config --show-origin --get core.autocrlf`はsystem設定の`true`だった。
+- 全78件についてCRLFをLFへ置換したblob hashが`origin/main`とindexの双方に一致することを事前検証した後、working treeの改行コードだけをLFへ復元した。対象78 filesの370 CRLF pairsを置換し、他byteは変更していない。復元後は全件`i/lf w/lf`。Product sourceのnormalized content diff、cached diff、HEAD対`origin/main` diffはいずれも0で、index tree SHA `a2f4247c03dadcaf8deb0a9a523546032492e667`を保持した。
+- CI workflowはUbuntu / Node 24 / pnpm 10.34.5を使用する。localはNode 22.20.0 / pnpm 10.34.5 / Prettier 3.8.1（lockfile固定）。version差ではなく、Windows checkoutのCRLFが失敗原因と判定した。通常checkout-indexもCRLFを再生成したため設定変更は行わず、Hookも迂回していない。
+- LF復元後の`pnpm run format:check`はPASS（`All matched files use Prettier code style!`）。stage treeと7文書のstage内容は不変。Product source / testをstage / commit対象に含めない。
+- Plan §6再実行: `format:check`、`lint:markdown`、`lint:text`、`git diff --check`、sanitizer `Write` / `Check`はすべてPASS、residual findings 0。次は明示scopeのcommit、通常push、PR #178最新headの`Web CI` / `Mobile App CI`を確認する。merge、Issue close、follow-up Refactorは行わない。

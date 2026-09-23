@@ -38,18 +38,30 @@
 - [x] 34. Task 1のrebaseline対象へ`tsconfig.json`の`baseUrl` / `paths`を追加する。
 - [x] 35. 案Bの`NFR-MA-010`を「変更またはsupersede」ではなくCurrent requirementの必須更新へ固定する。
 - [x] 36. Run `PLAN.md`に残った旧「可能性」「判断」表現をCurrent方針へ同期する。
+- [x] 40. latest `main`へrebaselineし、Plan指定pathにmaterial driftがないことを確認する。
+- [x] 41. Current policy、ADR-0003、D-026、NFR、TypeScript、architecture contractを再確認する。
+- [x] 42. Current violation surface、Repository Port consumer、`ProductViewer` caller、関連testを再確認する。
+- [x] 43. Current Evidenceを添えてarchitecture ownerからRepository Port ownershipの案A / B Decisionを取得する。案Aを採用。
+- [x] 44. 案AをADR-0027へ記録し、ADR-0003 Decision 3のRepository Port ownership部分だけをsupersedeする。
+- [x] 45. `NFR-MA-010`を維持し、Repository Port / Application contractのownership説明を同期する。
+- [x] 46. Domain → Application static architecture contractのfollow-up仕様をADR-0027へ記録する。
+- [x] 47. 24 Portの責務・consumerに基づく維持 / 移動 / 削除、`ProductViewer` boundary、static contract実装をfollow-up scopeとしてIssueとRun Artifactへ記録する。
+- [x] 48. §4.16の`needs_more_evidence`履歴を保持し、Issue #132 follow-up resolutionとして`refactor_now`をPhase 6 durable reportへ記録する。
+- [x] 49. Plan §6の指定validationとRun Artifact sanitizer `Write` / `Check`を実行し、結果を記録する。初回Prettier failureはWindows working treeのCRLFが原因と確認し、LF復元後の全体gateはPASS。sanitizer residualは0。
+- [ ] 50. Plan completion criteriaを照合し、許可範囲の差分をcommitしてPR branchへ通常pushする。
 
 ## Discovered（発見事項）
 
 - [x] 37. Task 7をfollow-up implementation Plan作成からscope / next action記録へ縮小し、Issue #132のdecision-only scopeへ戻す。
 - [x] 38. Current Run `TASKS.md`を`Now` / `Discovered` / `Blocked`形式へ正規化する。
 - [x] 39. decision-only検証へRun Artifact sanitizerの`Write` / `Check`を追加する。
+- Windowsの`core.autocrlf=true`（system設定）で78件の`app/**`がCRLF checkoutになっていた。Git blob内容は`origin/main` / indexと一致し、working treeをLFへ戻すと`format:check`がPASSした。依存version差は原因ではない。
 
 ## Blocked（ブロック中）
 
-- なし。
+- なし。残作業はTask 50のcommit / pushとpush後CI確認。
 
 ## 次工程
 
-- Planレビュー完了後にIssue #132のdecision-only作業を実施し、Repository Port ownershipのDecisionを取得する。
+- Plan completion criteriaを最終照合し、許可範囲の差分をcommit / pushして、最新PR headと必須CIを確認する。
 - Product source / testのRefactorはIssue #132のdecision確定後、別Plan / 実装PRで行う。
