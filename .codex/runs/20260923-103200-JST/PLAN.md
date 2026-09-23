@@ -68,3 +68,10 @@
 - static contractはCurrent source検査だけでなく、`architecture.test.ts`内のsynthetic sourceによるtable-driven scanner self-testを必須にした。
 - decision-only検証へ`pnpm run format:check`を追加した。
 - PlanはDecision、ADR、follow-up、再分類が一続きのため分割しない。
+
+## NFR / TypeScript構文 / rebaseline最終修正
+
+- 案BはCurrent `NFR-MA-010`と両立しないため、案B選択時は同Gateを新しいRepository ownership ruleへ合わせて変更またはsupersedeすることを必須化した。変更要否を第二のDecisionにはしない。
+- Task 3 / Task 6のre-export対象へTypeScriptの`export type * from`と`export type * as <name> from`を明示し、synthetic source self-testでも両構文を個別に固定する。
+- Task 1のlatest `main` rebaseline対象へ`tsconfig.json`の`baseUrl` / `paths`を追加し、material driftがある場合だけspecifier判定をCurrent設定へ更新する。
+- 汎用module resolver、AST dependency、新しいscanner基盤は追加しない。

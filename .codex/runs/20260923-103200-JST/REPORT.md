@@ -150,3 +150,22 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (31/31)
+
+## 2026-09-23 — NFR / TypeScript構文 / rebaseline最終修正
+
+- 概要: 再レビューで残った3点をPlanへ反映した。
+- 案B / NFR:
+  - 案BはRepository PortからApplication DTO / query / command参照を除去するため、Current `NFR-MA-010`とは両立しないと確定した。
+  - 案Bを選んだ場合は`NFR-MA-010`を新しいRepository ownership ruleへ合わせて変更またはsupersedeすることを必須とした。
+  - 「変更するかどうか」をarchitecture ownerへ再度判断させず、案A / Bの1 Decisionだけで後続作業を決定できるようにした。
+- static contract:
+  - TypeScriptのtype-only re-exportである`export type * from`と`export type * as <name> from`をTask 3 / Task 6へ明示した。
+  - synthetic sourceのtable-driven self-testでも両構文を個別に検証する。
+- rebaseline:
+  - Task 1へ`tsconfig.json`の`baseUrl` / `paths`を追加した。
+  - material driftがある場合だけTask 3 / Task 6のmodule specifier判定をCurrent設定へ合わせる。
+  - 汎用module resolverや追加frameworkへは広げない。
+- ファイル分割: 行わない。3点とも既存PlanのDecision / static contract / rebaseline責務に閉じる。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (34/34)

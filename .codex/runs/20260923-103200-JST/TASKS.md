@@ -33,6 +33,9 @@
 - [x] 29. follow-up Refactor Plan作成を§4.16 durable report更新より先へ移す。
 - [x] 30. architecture scannerのsynthetic source / table-driven self-testをPlanへ追加する。
 - [x] 31. decision-only検証へ`pnpm run format:check`を追加する。
+- [x] 32. 案B選択時の`NFR-MA-010`変更 / supersedeを必須化し、第二のDecisionをなくす。
+- [x] 33. `export type * from` / `export type * as <name> from`をstatic contractとscanner self-testへ明示する。
+- [x] 34. Task 1のrebaseline対象へ`tsconfig.json`の`baseUrl` / `paths`を追加する。
 
 ## ブロック中
 
