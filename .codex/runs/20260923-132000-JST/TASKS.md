@@ -30,6 +30,11 @@
 - [x] 26. current Repositoryを共有するlinked worktree probeを`git worktree add/remove`だけ許可する境界へ修正する。
 - [x] 27. staged対象0件と`git commit --allow-empty`のHusky回帰契約を追加する。
 - [x] 28. Safe change surface、検証、リスク、完了条件を再同期し、Plan分割不要を確認する。
+- [x] 29. Prettier / ESLintの設定fileがworktreeから解決される境界を確認し、4設定fileのindex/worktree差分guardをPlanへ追加する。
+- [x] 30. `security:check`のworktree read経路を再確認し、staged path限定ではなくRepository-wide worktree / Git index snapshot / pre-commit外の3案へ修正する。
+- [x] 31. actual linked worktreeでHuskyを通常install / prepare後に実commitする受入条件を追加する。
+- [x] 32. 完了条件をCase A/B/CだけでなくCase D/E/Fの採否記録へ同期する。
+- [x] 33. 実装タスク、検証、リスク、未解決事項へ同じ契約を反映し、ファイル分割不要を再確認する。
 
 ## ブロック中
 

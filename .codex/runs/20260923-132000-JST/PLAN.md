@@ -7,6 +7,7 @@
 - 更新後Issue #177で追加されたHusky staged境界、Codex Hookのworktree-local dependency、`diagnose:hooks` bootstrap、actual linked worktree回帰testを現行Planへ統合する。
 - Planレビューで確認したstaged content / worktree contentの境界、Git worktree scope、linked worktree自身のHook / doctor起動条件を反映する。
 - 再レビューで確認したPrettier / ESLint Node APIのCLI互換条件、doctorのexit code、linked worktree probeの作成・削除境界、Huskyの`--allow-empty`回帰契約を反映する。
+- 最終レビューで確認した品質設定fileのindex/worktree整合、`security:check`のnext-commit snapshot境界、actual linked worktreeでのHusky通常install後受入、Case A〜Fの完了条件同期を反映する。
 
 ## 今回行うこと
 

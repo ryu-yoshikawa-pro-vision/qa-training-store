@@ -49,3 +49,13 @@
 - 検証: Plan内のSafe change surface、Phase 2 / 6 / 8、実装タスク、検証方法、リスク、完了条件を同じ契約へ同期した。実装コード、dependency、Hook、Husky、CI、Product codeは変更していない。
 - ブロッカー / 残作業: Plan更新としてはなし。次は最新Planを最終レビューし、実装開始可否を判定できる。
 - Progress: 100% (28/28)
+
+## 2026-09-23 — 最終レビュー指摘の反映
+
+- 概要: 最新PlanをIssue #177、Prettier / ESLint、`security-static-check.ts`、Husky、Codex Hook、doctor、既存contractと再照合し、実装前に必要な4点を反映した。
+- 変更: Prettier / ESLintのsourceをindexから読む一方で設定だけworktreeから読む不整合を防ぐため、`.prettierignore`、`.prettierrc.json`、`.editorconfig`、`eslint.config.js`のindex / worktree差分guardを追加した。`security:check`はstaged pathだけのworktree検査を候補から外し、Repository-wide worktree維持 / Git indexの次回commit snapshot検査 / pre-commit外の3案へ修正した。actual linked worktreeで通常installまたはHusky prepare後に実`git commit`を行う受入を追加した。完了条件はCase A/B/CだけでなくD/E/Fの採否記録まで同期した。
+- 判断: 品質設定file不一致はstaged sourceの判定規則そのものを変えるため、commit対象外fileで停止しない原則の例外としてfail-closeする。ただしEOL-onlyでGit上の差分が0の場合はguardだけで停止しない。`security:check`でindex snapshotを採用する場合は固定Test API / runtime aggregate / seed契約を同じsnapshot上で維持し、複雑化する場合は`verify` / CIへRepository-wide責務を残す案を優先する。
+- 検証: Planの結論、確認済み事実、main flow、Safe change surface、Unknowns、Phase 6、実装タスク、Husky / linked worktree受入、検証、変更候補、リスク、完了条件、未解決事項を同期した。実装コード、Hook、Husky、CI、dependency、Product codeは変更していない。
+- 分割判断: Planは長いが、今回の追加はPhase 6と完了条件へ直接結び付く契約であり、別fileへ分けると実装順・検証・Case選択の参照先が増える。現時点では1 fileを維持する。
+- ブロッカー / 残作業: Plan更新としてはなし。次のレビューは新しい設計観点を増やさず、契約間の矛盾がないかと実装開始可否だけを確認する。
+- Progress: 100% (33/33)
