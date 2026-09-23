@@ -31,7 +31,7 @@
 
 - `NFR-MA-010`をRepository ownership Decisionの制約へ追加した。
 - 17 / 7分類はownershipの結論ではなくCurrent違反のEvidenceとして扱う。
-- 案Bは`NFR-MA-010`変更またはsupersedeの可能性を伴うと明記した。
+- 案BはCurrent `NFR-MA-010`と両立しないため、案B選択時に同Gateの文言更新が必須になることを明記した。
 - Domain → Application例外はCurrent policy変更になるため、Repository Port ownershipのDecision候補から外した。
 - `ProductViewer`からDomain policy inputへの変換主体をCurrent callerであるInfrastructure adapterへ修正した。
 - static contractは通常import、`import type`、TypeScript import type query、runtime dynamic import、relative pathを具体的に検査する。
@@ -55,7 +55,7 @@
 - `tsconfig.json`の`baseUrl: "."`を考慮し、`@/application/**`とrelative pathだけでなく`src/application/**`のbare specifierをCurrent violation再確認とstatic contractの対象へ追加した。
 - Current Repositoryでliteral `require()`が使用されるため、literal `require("...")`もDomain → Application禁止contractへ追加した。computed specifier解析までは広げない。
 - follow-up Refactor Planを共通 / 案A / 案Bへ分岐した。18 direct consumerはimpact inventoryとして扱い、全18件を固定更新しない。
-- 案BではDomain-owned repository input / output、Application boundary mapping、`NFR-MA-010`変更 / supersede判断を明示した。
+- 案BではDomain-owned repository input / output、Application boundary mapping、`NFR-MA-010`の必須更新を明示した。
 - §4.16の最終`refactor_now`はPhase 6 durable reportへfollow-up resolutionとして追記し、元の`needs_more_evidence`は履歴として保持する。
 - Planは1つのarchitecture Decisionとfollow-up分岐を扱うため、ファイル分割は行わない。
 
@@ -71,7 +71,14 @@
 
 ## NFR / TypeScript構文 / rebaseline最終修正
 
-- 案BはCurrent `NFR-MA-010`と両立しないため、案B選択時は同Gateを新しいRepository ownership ruleへ合わせて変更またはsupersedeすることを必須化した。変更要否を第二のDecisionにはしない。
+- 案BはCurrent `NFR-MA-010`と両立しないため、案B選択時は同Gateの文言を新しいRepository ownership ruleへ合わせて更新することを必須化した。更新要否を第二のDecisionにはしない。
 - Task 3 / Task 6のre-export対象へTypeScriptの`export type * from`と`export type * as <name> from`を明示し、synthetic source self-testでも両構文を個別に固定する。
 - Task 1のlatest `main` rebaseline対象へ`tsconfig.json`の`baseUrl` / `paths`を追加し、material driftがある場合だけspecifier判定をCurrent設定へ更新する。
 - 汎用module resolver、AST dependency、新しいscanner基盤は追加しない。
+
+## NFR更新方式の最終確定
+
+- Repositoryの既存運用に合わせ、NFR自体を`supersede`する表現をやめた。
+- 案Bでは`docs/01_requirements/non_functional_requirements.md`の`NFR-MA-010`文言をCurrent Repository ownership ruleへ必ず更新する。
+- new ADRには、案Bに伴う`NFR-MA-010`更新をDecision consequenceとして記録する。
+- 過去の判断経緯は`REPORT.md`へ保持し、Current `PLAN.md`内では旧「可能性」「判断」表現を残さない。

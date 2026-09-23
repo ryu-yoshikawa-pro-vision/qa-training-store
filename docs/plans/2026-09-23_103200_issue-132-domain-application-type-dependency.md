@@ -194,7 +194,7 @@ DomainからApplicationへの逆方向依存は許可しない。
 
 `NFR-MA-001`がRelease Gateであるため、Current policyを維持する限り、既知のDomain → Application依存を「runtime failureがない」という理由だけで`keep_as_is`または`refactor_when_touched`にしない。
 
-また、`NFR-MA-010`は「Phase 1 Core Use CaseとRepositoryが`application_contracts.md`のDTO / Input / Result / Error型に従う」をGateとしている。案AではこのGateを維持する。案BはRepository PortからApplication DTO / query / command参照を除去するためCurrent `NFR-MA-010`とは両立せず、案Bを選んだ時点で`NFR-MA-010`を新しいRepository ownership ruleへ合わせて変更またはsupersedeすることを必須とする。変更するか否かを第二のarchitecture Decisionにはしない。
+また、`NFR-MA-010`は「Phase 1 Core Use CaseとRepositoryが`application_contracts.md`のDTO / Input / Result / Error型に従う」をGateとしている。案AではこのGateを維持する。案BはRepository PortからApplication DTO / query / command参照を除去するためCurrent `NFR-MA-010`とは両立せず、案Bを選んだ時点で`NFR-MA-010`の文言を新しいRepository ownership ruleへ合わせて更新することを必須とする。更新するか否かを第二のarchitecture Decisionにはしない。
 
 ### 3.2 ADR-0003
 
@@ -209,7 +209,7 @@ ADR-0003はPhase 2 Native導入時に、ApplicationからRepositoryへDomain Rep
   - ADR-0003のPlatform Composition Root、Dexie / SQLite Adapter分離等、今回と無関係なDecisionは維持する。
 - 案Bを選ぶ場合:
   - Repository PortはDomain ownershipを維持するため、ADR-0003 Decision 3を維持する。
-  - Application contractとのmappingと、`NFR-MA-010`を新しいRepository ownership ruleへ合わせて変更またはsupersedeすることをnew ADRへ記録する。
+  - Application contractとのmappingと、案Bに伴い`NFR-MA-010`の文言を新しいRepository ownership ruleへ更新することをnew ADRへ記録する。
 
 historical ADR本文をCurrent都合で書き換えない。Issue #132実行時にnext available ADRを確認する。
 
@@ -264,7 +264,7 @@ architecture ownerへ次の2案を提示する。Decisionは案A / Bの選択1�
 | 案 | 方針 | ADR-0003 Decision 3 | 影響 | Plan上の評価 |
 | --- | --- | --- | --- | --- |
 | A | Repository Portのownerを責務とconsumerで決める。Application / Infrastructureだけから利用され、Application contractを境界として使うPortはApplication ownershipを第一候補とする。Domain behavior contractとして残す理由があるPortだけDomain ownershipを維持する。17 interfaceは最低限の整理対象として維持 / 移動 / 削除を確認し、7 interfaceもownerを再評価する。 | new ADRでRepository Port ownership部分を明示的にsupersedeする。 | Application contractを維持したままCurrent Coding Standardsの`Infrastructure -> Application Port / Domain Contract`を使える。CurrentでDomain consumerは確認されていないため、互換layerを先回りして作る必要はない。移動数は17件に固定せず、責務確認後に確定する。 | **推奨**。Current signatureではなく責務とconsumerを基準にでき、Application DTOをDomainへ移さない。 |
-| B | Repository PortはDomain ownershipを維持し、Application DTO / query / commandを直接使わないDomain-owned repository input / outputへ置き換え、Application boundaryでmappingする。 | 維持する。 | ADR-0003のRepository ownershipは維持できるが、現在67個あるApplication type参照に対応するDomain-side contract / mappingが広く必要になる。さらにCurrent `NFR-MA-010`とは両立しないため、同Gateを新しいRepository ownership ruleへ合わせて変更またはsupersedeする。 | 非推奨。依存方向を直すためにDomain contractとmappingを増やし、Current Gateの更新も必須になる。 |
+| B | Repository PortはDomain ownershipを維持し、Application DTO / query / commandを直接使わないDomain-owned repository input / outputへ置き換え、Application boundaryでmappingする。 | 維持する。 | ADR-0003のRepository ownershipは維持できるが、現在67個あるApplication type参照に対応するDomain-side contract / mappingが広く必要になる。さらにCurrent `NFR-MA-010`とは両立しないため、同Gateの文言を新しいRepository ownership ruleへ合わせて更新する。 | 非推奨。依存方向を直すためにDomain contractとmappingを増やし、Current Gateの更新も必須になる。 |
 
 検討したがDecision候補に含めない案:
 
@@ -402,7 +402,7 @@ ADR-0003との関係は選択した案に応じて固定する。
   - supersede範囲をRepository Port ownershipへ限定し、Platform Composition Root等の他Decisionを変更しない。
 - 案B:
   - ADR-0003 Decision 3を維持すると明記し、`Supersedes`対象にはしない。
-  - Application boundary mappingと、`NFR-MA-010`を新しいRepository ownership ruleへ合わせて変更またはsupersedeすることを記録する。
+  - Application boundary mappingと、案Bに伴い`NFR-MA-010`の文言を新しいRepository ownership ruleへ更新することを記録する。
 
 必要な説明文書だけを同期する。
 
@@ -413,7 +413,7 @@ ADR-0003との関係は選択した案に応じて固定する。
 - `docs/02_architecture/system_architecture.md`
 - `docs/02_architecture/repository_structure.md`は既存ruleを変更する必要がある場合だけ更新
 - `docs/04_data/application_contracts.md`は`ProductViewer`等のApplication ownership説明が不足する場合だけ更新
-- 案Bを選んだ場合は`NFR-MA-010`の変更またはsupersede内容を`docs/01_requirements/non_functional_requirements.md`へ必ず反映
+- 案Bを選んだ場合は`NFR-MA-010`の更新内容を`docs/01_requirements/non_functional_requirements.md`へ必ず反映
 - `docs/PROJECT_CONTEXT.md`はRepository-wideのCurrent architecture理解が実際に変わる場合だけ更新
 
 同じruleを複数Markdownへ重複して正本化しない。
@@ -488,7 +488,7 @@ Issue #132のdecision-only作業でProduct codeを変更しない。
 1. Domain ownershipを維持するRepository PortからApplication DTO / query / command参照を除去し、必要なDomain-owned repository input / output contractを定義する。
 2. Application boundaryでApplication contractとDomain-owned repository contractを変換する。67参照を機械的に複製せず、実際に残るRepository methodごとに必要なcontractだけを追加する。
 3. Application Use Case / transaction / Infrastructure adapterのうちsignature変更の影響を受ける経路へmappingを追加する。import pathが変わらないconsumerを理由なく編集しない。
-4. Current `NFR-MA-010`は案Bと両立しないため、新しいRepository ownership ruleへ合わせて変更またはsupersedeする。具体的な文言と置換方法はnew ADRと同じ意味になるように確定し、変更要否を再Decisionしない。
+4. Current `NFR-MA-010`は案Bと両立しないため、文言を新しいRepository ownership ruleへ合わせて更新する。具体的な文言はnew ADRと同じ意味になるように確定し、更新要否を再Decisionしない。
 5. Application DTO / query / command自体はApplication ownershipに維持し、Domainへ移さない。
 
 大規模なtype rename、DTO移動、generic Port frameworkは含めない。

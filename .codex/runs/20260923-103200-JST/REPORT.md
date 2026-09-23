@@ -169,3 +169,18 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (34/34)
+
+## 2026-09-23 — NFR更新方式の最終確定
+
+- 概要: 再レビューで残った2点を反映した。
+- `NFR-MA-010`:
+  - Repositoryの既存運用ではNFR行そのものをCurrent contractへ更新し、必要なDecision変更は別Decision / ADRで記録する。
+  - 案Bを選んだ場合は`NFR-MA-010`の文言を新しいRepository ownership ruleへ必ず更新する。
+  - NFR自体を`supersede`する選択肢はPlanから削除した。
+  - new ADRには案Bに伴う`NFR-MA-010`更新を記録する。
+- Run Artifact:
+  - `REPORT.md`の過去checkpointは履歴として保持した。
+  - Current `PLAN.md`に残っていた「変更またはsupersedeの可能性」「変更 / supersede判断」の旧表現をCurrent方針へ更新した。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (36/36)
