@@ -143,3 +143,10 @@
 - 78 `app/**`は全件LF、normalized content / cached diff / committed diffは0。追加のindex staging後もtree SHAは不変で、Product source / testに差分なし。
 - Plan §8 completion criteria 15項目、Decision、ADR / normative docs、Issue記録、Phase 6 §4.16 resolution、Run Artifact sanitizer residual 0を確認済み。Task 50を完了とした。
 - 残る作業はIssue #132完了後の別Plan / 実装PR。今回Product source / test Refactor、Repository interface移動、architecture contract実装、Issue close、PR mergeは行わない。
+
+## Review correction — Run Artifact / CI lifecycle
+
+- `685f6e3b210a11a9b9b25d37704da670538662c8`をpushした後、CI結果をtracked Run Artifactへ同期したことは実際に発生した。
+- Current `docs/reference/codex-implementation-harness.md` contractではtracked Run Artifactはfinal commit前に確定し、push後CI結果だけを理由にRun Artifactを変更 / 再commit / 再pushしない。push後CI結果はGitHub Actions、PR、ユーザー向け報告で管理する。
+- 今回のreview correctionは、先のpush後CI同期によるlifecycle不整合を修正するもの。
+- このcorrective commit / push後にCI結果が判明しても、Run Artifactは再更新しない。

@@ -48,7 +48,7 @@
 - [x] 47. 24 Portの責務・consumerに基づく維持 / 移動 / 削除、`ProductViewer` boundary、static contract実装をfollow-up scopeとしてIssueとRun Artifactへ記録する。
 - [x] 48. §4.16の`needs_more_evidence`履歴を保持し、Issue #132 follow-up resolutionとして`refactor_now`をPhase 6 durable reportへ記録する。
 - [x] 49. Plan §6の指定validationとRun Artifact sanitizer `Write` / `Check`を実行し、結果を記録する。初回Prettier failureはWindows working treeのCRLFが原因と確認し、LF復元後の全体gateはPASS。sanitizer residualは0。
-- [x] 50. Plan completion criteriaを照合し、7 decision文書をcommit `685f6e3b210a11a9b9b25d37704da670538662c8`としてPR branchへ通常pushした。PR #178の同headで`Web CI` / `Mobile App CI`がsuccess。
+- [x] 50. Plan completion criteriaを照合し、final commit前のRun Artifactと許可範囲の差分を確定する。
 
 ## Discovered（発見事項）
 
@@ -56,10 +56,13 @@
 - [x] 38. Current Run `TASKS.md`を`Now` / `Discovered` / `Blocked`形式へ正規化する。
 - [x] 39. decision-only検証へRun Artifact sanitizerの`Write` / `Check`を追加する。
 - Windowsの`core.autocrlf=true`（system設定）で78件の`app/**`がCRLF checkoutになっていた。Git blob内容は`origin/main` / indexと一致し、working treeをLFへ戻すと`format:check`がPASSした。依存version差は原因ではない。
+- [x] 51. `REPORT.md`のappend-only checkpoint境界を復元する。
+- [x] 52. `TASKS.md`のTask 50 / BlockedをRun Artifact・CI lifecycle契約へ合わせる。
+- [x] 53. Issue #132 commentのADR-0027リンクをcommit permalinkへ変更する。
 
 ## Blocked（ブロック中）
 
-- なし。残作業はTask 50のcommit / pushとpush後CI確認。
+- なし。
 
 ## 次工程
 

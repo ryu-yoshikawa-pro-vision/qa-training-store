@@ -264,6 +264,20 @@
 - Stage / scope: `git write-tree`は復元前後とも`a2f4247c03dadcaf8deb0a9a523546032492e667`。Product sourceのcached diff、normalized worktree diff、HEAD対`origin/main` diffはいずれも0。78 Product filesはstage / commit対象外。Run Artifact以外の4 decision文書を含む7文書のみstage済み。`git status`がstat-dirty表示する場合も内容diffは0で、EOL復元以外の差分はない。
 - `pnpm run format:check`: PASS — exit 0、`All matched files use Prettier code style!`。
 - Final Plan §6 validation: `pnpm run format:check` PASS（exit 0）、`pnpm run lint:markdown` PASS（451 files / 0 issues）、`pnpm run lint:text` PASS（7 changed Markdown files）、`git diff --check` PASS。Run Artifact sanitizer `Write` / `Check`はいずれも3 files scanned、0 changed、0 replacements、0 residual findings。
+- Remaining: `.husky/pre-commit`の全command、明示scopeのcommit、通常push、PR #178最新headの`Web CI` / `Mobile App CI`確認。merge、Issue close、follow-up Refactorは行わない。
+
+## 2026-09-23 23:12 JST — commit / push / CI確認
+
 - Task 50 completion: commit `685f6e3b210a11a9b9b25d37704da670538662c8`を作成し、PR branchへ通常pushした。PR #178の同head `685f6e3b210a11a9b9b25d37704da670538662c8`で`Web CI` run 1187 / `Mobile App CI` run 1033はいずれもsuccess。PR title / bodyも案A、Decision、変更範囲、検証結果に同期した。
 - Final scope: PR #178とIssue #132はopen。Product source / test、Repository interface、architecture contract実装、follow-up Planは変更 / 作成していない。§4.16のfollow-up classificationは`refactor_now`。残るのはIssue #132完了後に別Plan / 実装PRへ切り出すRefactorであり、今回開始していない。
 - Task 50の完了と本Runのcurrent stateを同期した。このRun Artifact同期はdecision-only成果の追加変更ではなく、commit / push lifecycleの記録。
+
+## 2026-09-24 — Run Artifact / Git lifecycle review correction
+
+- Finding: `685f6e3b210a11a9b9b25d37704da670538662c8`から`344e51c19018677bbb8eba085d36c1fb3c12ffaf`への更新で、22:45 JST checkpoint末尾の当時の`Remaining`が削除され、後続のcommit / push / CI結果で置き換えられていた。既存記録は当時のcheckpoint境界へ戻し、後続事実は23:12 JSTの独立checkpointへ分離した。
+- Repair: Task 50をfinal commit前に完了するtracked taskへ修正し、review correctionをDiscovered tasks 51–53へ追加した。Blockedはなし。Issue #132 comment ID `5794888964`のADR-0027リンクをcommit permalinkへ更新した。
+- Lifecycle: push後CI結果だけを理由にtracked Run Artifactを編集 / 再commit / 再pushしない。今回の修正は過去に発生したRun Artifact同期のlifecycle不整合を修復するもの。
+- Scope: この修正はRun Artifact 3ファイルとIssue #132 commentのADR permalinkに限定する。Architecture decision、Product source / test、ADR / normative documentation、follow-up scopeは変更しない。Issue / PRはopenのまま、follow-up Refactorは未開始。
+- Validation: `corepack pnpm run format:check` PASS、`corepack pnpm run lint:markdown` PASS（451 files / 0 issues）、`corepack pnpm run lint:text` PASS（3 changed Markdown files）、`git diff --check` PASS。Run Artifact sanitizer `Write` / `Check`は各3 files scanned、0 changed、0 replacements、0 residual findingsでPASS。
+- Environment: `pnpm` executableはこのPowerShellのPATHにないため、Corepack `pnpm@10.34.5`経由で指定scriptを実行した。
+- Progress: 100% (53/53)。全tracked checkboxは完了し、push後必須CI確認は別枠で扱う。
