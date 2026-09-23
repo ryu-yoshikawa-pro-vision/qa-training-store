@@ -48,7 +48,7 @@
 - [x] 47. 24 Portの責務・consumerに基づく維持 / 移動 / 削除、`ProductViewer` boundary、static contract実装をfollow-up scopeとしてIssueとRun Artifactへ記録する。
 - [x] 48. §4.16の`needs_more_evidence`履歴を保持し、Issue #132 follow-up resolutionとして`refactor_now`をPhase 6 durable reportへ記録する。
 - [x] 49. Plan §6の指定validationとRun Artifact sanitizer `Write` / `Check`を実行し、結果を記録する。初回Prettier failureはWindows working treeのCRLFが原因と確認し、LF復元後の全体gateはPASS。sanitizer residualは0。
-- [ ] 50. Plan completion criteriaを照合し、許可範囲の差分をcommitしてPR branchへ通常pushする。
+- [x] 50. Plan completion criteriaを照合し、7 decision文書をcommit `685f6e3b210a11a9b9b25d37704da670538662c8`としてPR branchへ通常pushした。PR #178の同headで`Web CI` / `Mobile App CI`がsuccess。
 
 ## Discovered（発見事項）
 
@@ -63,5 +63,4 @@
 
 ## 次工程
 
-- Plan completion criteriaを最終照合し、許可範囲の差分をcommit / pushして、最新PR headと必須CIを確認する。
-- Product source / testのRefactorはIssue #132のdecision確定後、別Plan / 実装PRで行う。
+- Issue #132はopenのまま。Product source / testのRefactorは同Issueの完了後、別Plan / 実装PRで行う。今回follow-up Refactorは開始していない。

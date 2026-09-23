@@ -134,3 +134,12 @@
 - CI workflowはUbuntu / Node 24 / pnpm 10.34.5を使用する。localはNode 22.20.0 / pnpm 10.34.5 / Prettier 3.8.1（lockfile固定）。version差ではなく、Windows checkoutのCRLFが失敗原因と判定した。通常checkout-indexもCRLFを再生成したため設定変更は行わず、Hookも迂回していない。
 - LF復元後の`pnpm run format:check`はPASS（`All matched files use Prettier code style!`）。stage treeと7文書のstage内容は不変。Product source / testをstage / commit対象に含めない。
 - Plan §6再実行: `format:check`、`lint:markdown`、`lint:text`、`git diff --check`、sanitizer `Write` / `Check`はすべてPASS、residual findings 0。次は明示scopeのcommit、通常push、PR #178最新headの`Web CI` / `Mobile App CI`を確認する。merge、Issue close、follow-up Refactorは行わない。
+
+## Task 50 commit / push / CI completion checkpoint（2026-09-23 23:12 JST）
+
+- Decision-onlyの7文書をcommit `685f6e3b210a11a9b9b25d37704da670538662c8`として記録し、`git push origin HEAD:plan/issue-132-domain-application-type-dependency`で通常pushした。
+- GitHub再取得: PR #178はopen、head `685f6e3b210a11a9b9b25d37704da670538662c8`、base / `origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`。`Web CI` run 1187と`Mobile App CI` run 1033はいずれもsuccess。
+- staleだったPR title / bodyを決定済み案A、decision-only scope、検証結果へ同期した。PR / Issueをcloseせず、mergeもしていない。
+- 78 `app/**`は全件LF、normalized content / cached diff / committed diffは0。追加のindex staging後もtree SHAは不変で、Product source / testに差分なし。
+- Plan §8 completion criteria 15項目、Decision、ADR / normative docs、Issue記録、Phase 6 §4.16 resolution、Run Artifact sanitizer residual 0を確認済み。Task 50を完了とした。
+- 残る作業はIssue #132完了後の別Plan / 実装PR。今回Product source / test Refactor、Repository interface移動、architecture contract実装、Issue close、PR mergeは行わない。
