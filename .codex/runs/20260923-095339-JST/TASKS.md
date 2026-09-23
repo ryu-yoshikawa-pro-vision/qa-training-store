@@ -21,10 +21,9 @@
 - [x] 17. focused contract testsと既存Production Bundle Guard validator contractを実行する。
 - [x] 18. `pnpm run test:contracts`、`pnpm run verify`、`git diff --check`を実行する。
 - [x] 19. Plan §11とIssue #130成功状態に照らして局所責務・scopeを確認する。検証FAILはRun `REPORT.md`へ分類して記録する。
-- [ ] 20. Run Artifactをsanitizationし、必要ファイルだけcommitして実装PRを作成する。
-- [ ] 21. 最新PR headでPR Mobile App CIの`native_changed=true`経路、Web CI、job / Artifact / final gateを確認する。
-- [ ] 22. branch `workflow_dispatch`で指定されたvisual 1 caseを実行し、出力・upload・verifyを確認する。
-- [ ] 23. 実際の検証結果をPR本文へ記録し、最新PR head / CI / working treeを最終確認する。
+- [x] 20. Review findingに対応し、Android build caller条件と`native_changed=false`時の各job skip / verify success contractを静的testで直接固定する。
+- [x] 21. tracked taskとpost-push lifecycleを分離し、過去Progressを履歴として保持したままRun Artifactとevaluationを更新する。
+- [x] 22. focused / repository validation、evaluation schema、collector、sanitization、commit前scope確認を完了する。
 
 ## 完了処理の参照先
 
@@ -36,16 +35,28 @@
 
 checkbox taskの完了はfinal commit前のtracked task進捗であり、task全体の完了を意味しない。詳細契約は上記の正本へ従う。
 
+Progress: 100% (22/22)
+
+## Commit後の完了処理
+
+- 対象branchへ通常commit / pushする。
+- local HEAD、remote branch HEAD、PR #176 headの一致を確認する。
+- 最新PR headのWeb CIとMobile App CIを確認する。
+- 必要なCI結果と今回の修正内容をPR本文へ反映する。
+- Runtime workflow / helper / Maestro Flowに変更がないため、manual visualはhead `f2aa9cc9595309b0cce60323702bc6cac960f360`での`SCREEN-STOREFRONT-HOME/default/android`既存Evidenceを維持し、今回の修正だけを理由に再実行しない。
+- ここに記載するpost-push lifecycleはtracked checkboxとTASKS.mdの基本Progress分母に含めない。
+
 ## Discovered（発見事項）
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
-- Plan §9は22件の実装taskで、18件完了、16番はstatic contractまで完了してmanual runtimeが未完了、20〜22番はRemote CI / manual runtime / PR本文確認が未完了。Run `Now`のtracked checkboxは23件で、19件完了。基本Progressは19/23（83%）。file-changing lifecycle用のユーザー向けProgressはRepository契約の追加CI確認1件を含め19/24（79%）で、Web CI / Mobile App CI successとPR本文記録後に加算する。過去の19/23と19/24は異なるProgress定義であり、task総数の差ではない。
+- 2026-09-23レビュー修正前の19/23はtracked checkbox Progress、19/24はpost-push CI checkpointを含めたユーザー向けlifecycle Progressとして記録された過去checkpointである。post-push処理をcheckboxから分離した現在のtracked Progressとは異なるため、過去REPORTの数値は書き換えない。
 
 ## Blocked（ブロック中）
 
-- 現時点で作業を停止するblockerはない。`format:check`全体はcurrent Windows worktreeの`app/**` 78 fileでFAILのまま。clean detached `origin/main`（SHA `01cd8ab15078d479e821d373445af1e16a469519`、Git status clean）は同command PASS、app warning 0。78 fileのGit content diffは0、current worktreeはCRLF、clean baselineはLF、`.prettierrc.json`は`endOfLine: lf`。Issue #130変更fileのPrettierはPASS。78 file、formatter設定、hook設定は変更しない。ユーザーの最新指示はlint / security PASSと最終diff確認を条件に今回のcommitのみ`--no-verify`を許可しており、両gateはPASS済み。
-- `pnpm run test:contracts`のfull suiteは既存Windows launcher testが負荷下で30.7秒timeout。単独実行は27.5秒でPASSした。timeout tuningはPlan対象外。
-- Planのfocused commandは`output/**`の生成済みtraining copies内に残る旧Native contract assertions 18件を収集してFAILする。source-only実行は78/78 PASS、Repository標準commandは`output/**`を除外する。
-- 先行commit attemptは`format:check`で止まり、hook後続lint / securityは未到達だった。その後、今回のline-ending差をEvidenceとして記録するようユーザーが明示し、後続lint / securityを手動実行してPASSした。最終staged-diff確認後に限り今回1 commitの`--no-verify`が許可されている。
+- 現在のWindows worktreeで`format:check`は未変更`app/**` 78 filesのCRLF差によりFAILする。clean `origin/main`では同checkがPASSし、78 filesにGit content diffはない。対象file、formatter / hook設定を変更していない。ユーザーは今回のfollow-up commitだけ`--no-verify`を明示許可し、手動の`lint`・`security:check`・source-only focused contractは今回再実行してPASSした。最終scope / artifact gateの後に1回だけ使用する。
+- Repository `test:contracts`は44 files中43 passed / 1 failed、760 tests中753 passed / 3 failed / 4 skipped。失敗3件は既存Windows launcher testの各30秒timeoutで、PASSへ読み替えない。
+- 指定focused commandは生成済み`output/**` copies内の旧assertion 18件でFAIL。今回のsource-only Native contractは27/27 PASS。
+- `corepack pnpm run verify`はnested `pnpm`を解決できずFAILした。package / Corepack / PATH / dependencyは今回変更せず、FAILのまま記録する。
+- 以前のRunに記録された未使用remote branchは既存のまま維持し、変更・削除しない。
 
 - ブロック時のみ記載する。

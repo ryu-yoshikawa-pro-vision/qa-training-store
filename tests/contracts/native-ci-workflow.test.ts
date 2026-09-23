@@ -169,6 +169,12 @@ describe("Native CI workflow contracts", () => {
     expect(production).toContain("name: Android Production-validation Build");
     expect(automation).toContain("needs: detect");
     expect(production).toContain("needs: detect");
+    expect(automation).toContain(
+      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
+    );
+    expect(production).toContain(
+      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
+    );
     for (const [caller, buildKind] of [
       [automation, "automation"],
       [production, "production"],
@@ -873,13 +879,28 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("keeps Native CI final verify fail-closed and preserves the no-change skip", () => {
+    const nativeStatic = jobBlock(nativeWorkflow, "native-static", "android-automation-build");
+    const productionGuard = jobBlock(nativeWorkflow, "production-bundle-guard", "android-runtime");
+    const androidRuntime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
     const verify = jobBlock(nativeWorkflow, "verify");
     const nativeIos = jobBlock(nativeWorkflow, "native-ios", "verify");
+    const nativeChangedStart = verify.indexOf('if [[ "$NATIVE_CHANGED" == "true" ]]');
+    const noChangeStart = verify.indexOf("\n          else\n", nativeChangedStart);
+    const noChangeEnd = verify.indexOf("\n          fi", noChangeStart);
+    const noChangeBranch = verify.slice(noChangeStart, noChangeEnd);
+    const nativeRunCondition =
+      "needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'";
 
+    expect(nativeChangedStart).toBeGreaterThanOrEqual(0);
+    expect(noChangeStart).toBeGreaterThan(nativeChangedStart);
+    expect(noChangeEnd).toBeGreaterThan(noChangeStart);
+    expect(nativeStatic).toContain(`if: ${nativeRunCondition}`);
+    expect(productionGuard).toContain("if: >-");
+    expect(productionGuard).toContain(`(${nativeRunCondition})`);
+    expect(androidRuntime).toContain("if: >-");
+    expect(androidRuntime).toContain(`(${nativeRunCondition})`);
     expect(nativeIos).toContain("needs: detect");
-    expect(nativeIos).toContain(
-      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
-    );
+    expect(nativeIos).toContain(`if: ${nativeRunCondition}`);
     expect(verify).toContain("if: always()");
     for (const jobName of [
       "native-static",
@@ -897,8 +918,17 @@ describe("Native CI workflow contracts", () => {
     expect(verify).toContain('test "$ANDROID_PRODUCTION_BUILD_RESULT" = success');
     expect(verify).toContain('test "$ANDROID_RUNTIME_RESULT" = success');
     expect(verify).toContain('test "$IOS_RESULT" = success');
-    expect(verify).toContain('test "$ANDROID_AUTOMATION_BUILD_RESULT" = skipped');
-    expect(verify).toContain('test "$ANDROID_PRODUCTION_BUILD_RESULT" = skipped');
+    for (const resultName of [
+      "STATIC_RESULT",
+      "PRODUCTION_RESULT",
+      "ANDROID_AUTOMATION_BUILD_RESULT",
+      "ANDROID_PRODUCTION_BUILD_RESULT",
+      "ANDROID_RUNTIME_RESULT",
+      "IOS_RESULT",
+    ]) {
+      expect(noChangeBranch).toContain(`test "$${resultName}" = skipped`);
+    }
+    expect(verify).toContain('echo "All Native CI gates completed successfully."');
     expect(verify).not.toContain("continue-on-error: true");
   });
 
