@@ -294,7 +294,7 @@ linked worktreeに`node_modules`がない場合は、event処理より前にdepe
 調査後の変更候補は、確認した原因と責務に応じて次へ限定する。
 
 - CRLFを書き込むことが確認されたRepository-owned writer
-- EOL fallbackが必要な場合の`package.json` / `.husky/pre-commit`
+- EOL fallbackが必要な場合の`package.json`、必要ならCIのstrict format check entry point
 - staged path列挙とindex stage 0 content検査を実装する既存Hookまたは必要最小限のscript
 - `security:check`の責務を変更する場合の`scripts/security-static-check.ts`
 - Codex Hookのbootstrap failureを分類するために必要な`.codex/hooks/text_quality_gate.mjs` / `scripts/lint-text-quality.mjs`
@@ -319,7 +319,8 @@ linked worktreeに`node_modules`がない場合は、event処理より前にdepe
 - clean linked worktreeとfresh cloneで同じ状態が再現するか
 - Prettier / ESLintへstaged pathではなくindex stage 0のcontentを安全に渡す最小経路
 - rename、削除、partial staging、対象外拡張子、空白を含むfile名をstaged content検査でどう扱うか
-- Prettier / ESLintの既存config / ignore意味をNode API経由でCLIと同等に保てるか
+- Prettier 3.8.1のNode APIで`.prettierignore` / `.prettierrc.json` / `.editorconfig`を現在CLIと同じ意味で適用できるか
+- ESLint 9.39.2のNode APIでignore / warning-only / error終了条件を現在`eslint .`と同じ意味で維持できるか
 - `security:check`をpre-commitでRepository-wideのまま維持する必要があるか
 - `security:check`へ限定modeを追加した場合に固定契約やruntime aggregate検査を弱めないか
 - linked worktree + `node_modules`なしで、各configured launcherが実際にどの出力とexit statusになるか
@@ -378,7 +379,9 @@ B. 現在RepositoryとはGit metadataを共有しない独立fresh clone
 - app/**のCRLF byte有無
 - `git check-attr --all`
 
-Aは現在Repositoryの共通Git metadataを使うprobeなので、このPhaseではread-onlyに限定する。`pnpm install`、`pnpm run prepare`、`pnpm run format`、Repository-owned writer、Git config変更は実行しない。
+AはPhase 1の観測完了後にだけ作成する。`git worktree add --detach`と後片付けの`git worktree remove`自体はworktree registryを更新するため、厳密なread-only操作ではない。許可するmutationはこの作成・削除だけに限定し、probe内部ではtracked file、Git config、info attributes、dependency、Husky metadataを変更しない。`pnpm install`、`pnpm run prepare`、`pnpm run format`、Repository-owned writerは実行しない。
+
+Aを作る前後で`git worktree list --porcelain`、common config、`git rev-parse --git-path info/attributes`の内容を記録する。削除後はprobeのworktree entryが残っていないことと、common config / info attributes / tracked file内容が観測前から変化していないことを確認する。worktree registryに作成・削除履歴相当の一時変化が生じること自体は想定内とする。
 
 Bは独立Repositoryなので、checkout直後のbaselineを固定した後、Phase 3のmutation実験用親Repositoryとして利用してよい。
 
@@ -526,16 +529,19 @@ staged-onlyを採用する場合、対象は「staged pathの現在worktree file
 #### Prettier
 
 - index blobの文字列へRepository-relative pathを付け、Prettier APIで検査する方法を第一候補にする。
-- `prettier.getFileInfo()`で`.prettierignore`とparser対象を判定し、`resolveConfig()`と`check(source, { ...config, filepath })`で既存設定を適用する案を確認する。
-- 手書きの拡張子allowlistでPrettier対象を再定義しない。
+- 現在の`prettier --check . --ignore-path .prettierignore`と同じRepository設定・ignore意味を維持する。
+- `prettier.getFileInfo(filePath, { ignorePath: path.join(root, ".prettierignore") })`相当で、Repository rootの`.prettierignore`を明示する。独自のignore listを追加しない。
+- `prettier.resolveConfig(filePath, { editorconfig: true })`相当で`.prettierrc.json`と`.editorconfig`を解決し、`check(source, { ...(config ?? {}), filepath: filePath })`相当でindex contentを検査する。実装時はPrettier 3.8.1の実APIで同じ意味になることをfocused testで固定する。
+- `getFileInfo()`がignoredまたはparser非対象と判定したfileはpre-commit対象外とし、手書きの拡張子allowlistでPrettier対象を再定義しない。
 - worktree fileを読み直さない。
 - staged違反をstage後のunstaged修正で隠せず、staged正常contentをunstaged違反で誤ってFAILさせないことを必須契約にする。
 
 #### ESLint
 
 - index blobの文字列へRepository-relative pathを付け、ESLint Node APIの`lintText(code, { filePath })`を使う方法を第一候補にする。
-- `eslint.config.js`のfiles / ignores / rulesを再実装せず、既存ESLint設定を正本として利用する。
-- ignore判定が必要なら`isPathIgnored()`等の既存APIを使う。
+- `eslint.config.js`のfiles / ignores / rulesを再実装せず、既存ESLint設定を正本として利用する。ignore判定が必要なら`isPathIgnored()`等の既存APIを使う。
+- 現在の`eslint .`と同じ終了条件を維持する。staged-only helperはESLint resultの`errorCount > 0`またはfatal errorをcommit failureとし、warning-onlyはPASSとする。`--max-warnings`相当の新しい閾値を追加しない。
+- ignored fileやESLint対象外fileはcommitを停止しない。ignore warningそのものをfailureへ昇格させない。
 - config変更等によりRepository-wide影響が出るケースはCI / `verify`が正本として検出する。
 - pre-commitでRepository全体lintを維持する必要があるEvidenceがあればstaged-onlyへ機械的に変更しない。
 
@@ -556,7 +562,13 @@ staged-onlyを採用する場合、対象は「staged pathの現在worktree file
 - staged違反 + 同pathのunstaged修正 -> FAIL
 - staged正常 + 同pathのunstaged違反 -> PASS
 - partial stagingでindexとworktreeが異なる -> index contentを判定
+- Prettierの`.prettierignore`対象 -> PASSし、独自対象判定を行わない
+- ESLint warning-only -> PASS
+- ESLint error / fatal error -> FAIL
+- ESLint ignore対象 -> PASS
 - rename / delete / 空白を含むpath -> pathを誤解釈しない
+- commit対象のPrettier / ESLint対象fileが0件 -> helperは成功終了
+- 既存Husky契約の`git commit --allow-empty` -> PASSし、HEADが1 commit進む
 - commit対象外のuntracked / unstaged違反 -> Prettier / ESLintでは不要停止しない
 
 ### Phase 7: Codex文章品質Hookのworktree bootstrapを調査・修正する
@@ -607,7 +619,9 @@ node_modulesなしでraw `MODULE_NOT_FOUND`やunstructured stack traceを利用�
 - `textlint` / `smol-toml`等、必要packageをresolve可能か
 - runtime state directoryの安全な存在確認
 
-TOMLの詳細parseが必要な段階だけ`smol-toml`をdynamic importし、利用不能なら「詳細設定診断はdependency不足で未実行」と安全に分類する案を優先して検討する。
+TOMLの詳細parseが必要な段階だけ`smol-toml`をdynamic importする。必要dependencyが利用不能でもdoctor process自体はraw `MODULE_NOT_FOUND`で落とさず、最低限診断と安全な原因表示を完了する。
+
+dependency不足は診断成功扱いにしない。`smol-toml`またはHook実行に必要な`textlint` / rule packageが不足している場合は`ERROR`として報告し、doctorはexit 1とする。Git repository context自体を確立できない既存ケースはexit 2を維持する。既存のWARN-only状態はexit 0、その他の診断ERRORはexit 1という現在の意味を変えない。
 
 新しいTOML parserを自作しない。diagnosticのためだけに新規dependencyや別runtimeを追加しない。
 
@@ -639,7 +653,7 @@ EOL、Husky、Codex Hookは原因と修正ownerを別々に確定する。
 - [ ] 1. 最新main、更新後Issue #177、ADR-0017、Husky / Codex Hook関連の既存Planとcontractをrebaselineする。
 - [ ] 2. Windows current worktreeのGit config、attributes、index/worktree EOL、Prettier failure集合をread-onlyで採取する。
 - [ ] 3. system / global / local / worktree scope、`extensions.worktreeConfig`、`git rev-parse --git-path info/attributes`、core.attributesFileを含むoverrideを確認する。
-- [ ] 4. 現在Repository metadataを共有するlinked detached worktreeではread-onlyでclean checkout時のEOL / config / attributesを確認する。
+- [ ] 4. Phase 1完了後に現在Repository metadataを共有するlinked detached worktreeを`git worktree add --detach`で作成し、probe内部は非変更でEOL / config / attributesを確認する。確認後に`git worktree remove`し、worktree entry、common config、info attributes、tracked contentが想定どおり復元・不変であることを確認する。
 - [ ] 5. Git metadataを共有しないfresh cloneでclean checkout時のEOLを確認し、mutation実験用baselineを作る。
 - [ ] 6. 独立temporary Repositoryでbranch switch、install、Husky prepare、format check / write、Repository-owned writerの順に実行し、最初のLF -> CRLF変換操作を特定する。
 - [ ] 7. 必要ならEditor保存とAI / agent file更新をdisposable環境で再現し、EOL発生源を確定する。
@@ -648,13 +662,13 @@ EOL、Husky、Codex Hookは原因と修正ownerを別々に確定する。
 - [ ] 10. Case Cならlocal Repository-wide format checkとCI strict LF checkのcallerを整理し、CI契約を弱めない最小fallbackを設計する。
 - [ ] 11. Huskyの3 commandについて、staged-only可否と現在の責務を個別に確認する。
 - [ ] 12. NUL-safeなstaged path列挙とindex stage 0 blob取得方式をrename / delete / partial staging / 空白pathを含むfixtureで決める。
-- [ ] 13. Prettier / ESLintがworktreeではなくindex contentを既存config / ignore意味で検査する最小実装を検証し、採用可否を決める。
+- [ ] 13. Prettier / ESLintがworktreeではなくindex contentを検査し、Prettierの`.prettierignore` / `.prettierrc.json` / `.editorconfig`と、ESLintのignore / warning / error終了条件を現在CLIと同じ意味で維持する最小実装を検証し、採用可否を決める。
 - [ ] 14. `security:check`をRepository-wide維持 / 限定mode / pre-commit外へ移す3案で比較し、安全性を落とさない最小案を決める。
-- [ ] 15. `tests/contracts/husky-config.test.ts`を採用後の責務へ更新し、staged違反 + unstaged修正、staged正常 + unstaged違反、partial staging、commit対象外fileをbehaviorで検証する。
+- [ ] 15. `tests/contracts/husky-config.test.ts`を採用後の責務へ更新し、staged違反 + unstaged修正、staged正常 + unstaged違反、partial staging、Prettier / ESLint ignore、ESLint warning-only、commit対象0件、`git commit --allow-empty`、commit対象外fileをbehaviorで検証する。
 - [ ] 16. actual `git worktree add` fixtureでlinked worktree自身のHook pathを起動し、dependenciesあり / なしのCodex Hookを再現する。
 - [ ] 17. textlint dependency load failureをraw module failureにせず固定診断へ分類する最小修正を決めて実装する。
 - [ ] 18. `UserPromptSubmit` / `PostToolUse` / inactive Stop / active Stopの既存fail-open / fail-close契約を回帰確認する。
-- [ ] 19. actual linked worktree自身のdoctor pathを起動するfixtureで、`diagnose:hooks`をdependency不足でも最低限起動できるようにし、詳細TOML診断との境界を固定する。
+- [ ] 19. actual linked worktree自身のdoctor pathを起動するfixtureで、`diagnose:hooks`をdependency不足でも最低限起動できるようにし、dependency不足=ERROR / exit 1、repository context確立不能=exit 2、WARN-only=exit 0の境界を固定する。
 - [ ] 20. Hook file欠落、Node不足、dependency不足、state failureの既存診断を回帰確認する。
 - [ ] 21. 現在worktreeの既存CRLFを実装差分と混ぜずに修復する。
 - [ ] 22. EOL / Prettier、Husky staged境界、Codex Hook worktree、diagnosticsのfocused testを実行する。
@@ -704,6 +718,7 @@ Case Cを採用した場合は、ローカルEOL許容がCIのstrict LF checkへ
 
 - focused contract test
 - pnpm run format:check
+- Case Cでlocal / strict checkを分離した場合は、local用checkとCIが使用するstrict LF checkの両方
 - pnpm run test:contracts
 - pnpm run verify
 - git diff --check
@@ -737,7 +752,11 @@ clean Windows環境で次を確認する。
 - 削除file -> formatter / linterへ存在しないpathを渡さない
 - file名に空白を含む -> pathを誤分割しない
 - 対象外拡張子だけのcommit -> 不要なformatter起動で失敗しない
-- staged fileのlint違反 -> FAIL
+- staged fileのESLint warning-only -> PASS
+- staged fileのESLint error / fatal error -> FAIL
+- Prettier / ESLintのignore対象 -> PASS
+- commit対象のPrettier / ESLint対象fileが0件 -> PASS
+- `git commit --allow-empty` -> PASS
 - `security:check`の採用後責務がcontract testで固定される
 - `verify` / CIはcommit対象外を含むRepository-wide違反を引き続き検出する
 
@@ -759,8 +778,11 @@ fixtureは既存Repositoryの`node_modules`をsymlinkした通常fixtureだけ�
 ### 6.8 Hook diagnostics bootstrap
 
 - `node_modules`あり -> 現行offline診断を維持
-- `node_modules`なし -> linked worktree自身の`scripts/diagnose-codex-hooks.mjs`を起動し、dependency不足を安全に識別する
-- `smol-toml`なし -> primary Repositoryのdoctorへfallbackせず、最低限診断まで実行し、詳細config parseだけを未実行として分類する
+- `node_modules`なし -> linked worktree自身の`scripts/diagnose-codex-hooks.mjs`を起動し、raw module failureなしでdependency不足をERRORとして識別しexit 1
+- `smol-toml`なし -> primary Repositoryのdoctorへfallbackせず、最低限診断まで実行し、詳細config parse未実行をERRORとして報告してexit 1
+- `textlint`または必要rule packageなし -> Hook runtime dependency不足をERRORとして識別しexit 1
+- Git repository context確立不能 -> 既存どおりexit 2
+- WARN-only -> 既存どおりexit 0
 - state fileのsafe diagnosticとsecret非露出を維持
 - doctorはread-onlyのまま
 - doctor実行が新しいpackage installやworktree mutationを要求しない
@@ -771,7 +793,7 @@ fixtureは既存Repositoryの`node_modules`をsymlinkした通常fixtureだけ�
 
 - Web CI: success
 - Mobile App CI: success
-- Web CIのformat checkはstrict endOfLine=lfを維持
+- Web CIのformat checkはstrict endOfLine=lfを維持。Case Cでlocal checkと分離した場合は、CIがstrict用entry pointを明示的に呼ぶ
 - CI / `verify`のRepository-wide lint / security意味を不必要に弱めていない
 - pre-commitをstaged-onlyへ変更しても、その限定がCIへ伝播していない
 - Codex Hookのworktree用修正が通常CIのHook contractを壊していない
@@ -815,7 +837,7 @@ fixtureは既存Repositoryの`node_modules`をsymlinkした通常fixtureだけ�
 - tests/contracts/husky-config.test.ts
 - 必要なbehavior contract test
 
-既存のGit / Node / shellで十分なら`lint-staged`を追加しない。
+既存のGit / Node / shellで十分なら`lint-staged`を追加しない。既存の`parseNameStatusZ`相当処理は参考にできるが、今回のためにGit差分処理全体を共通frameworkへ抽出しない。
 
 ### Case E: Codex Hook bootstrap
 
@@ -839,7 +861,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - package.jsonの`diagnose:hooks`はcommand名を変える必要がある場合だけ更新
 - 必要なRun Artifact
 
-新規dependencyは追加しない。
+新規dependencyは追加しない。dependency不足時もdoctor process自体を起動し、ERROR / exit 1で原因を返せる構成にする。
 
 ## 8. リスクと対策
 
@@ -877,6 +899,13 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - partial stagingを通常ケースとして扱う。
 - Prettier / ESLintのconfig / ignoreは既存Node APIを使い、手書きで再実装しない。
 
+### Node API化でPrettier / ESLintの既存CLI意味を変える
+
+対策:
+- PrettierはRepository rootの`.prettierignore`を明示し、`.prettierrc.json`と`.editorconfig`を解決してindex contentへ適用する。
+- ESLintは既存`eslint.config.js`を正本とし、warning-onlyを新たなfailureへ昇格させない。
+- ignore対象、warning-only、error、対象0件をfocused contractで固定する。
+
 ### pre-commitをstaged-onlyへ変えて既存保証を落とす
 
 対策:
@@ -898,14 +927,18 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 対策:
 - doctorの最低限bootstrap診断をNode標準機能だけで先に実行できる構成を検討する。
 - `smol-toml`は詳細config parseの段階だけに限定する案を優先する。
+- dependency不足はERROR / exit 1として安全に報告し、raw module failureやexit 0の成功扱いにしない。
+- Git repository context確立不能の既存exit 2、WARN-onlyのexit 0を維持する。
 - 新しいTOML parserを自作しない。
 
-### current Repository metadataを共有するlinked worktreeでmutationし、調査自体が状態を変える
+### current Repository metadataを共有するlinked worktree probeが共通metadataへ不要な差分を残す
 
 対策:
-- current Repositoryとmetadataを共有するlinked worktreeはread-only probeに限定する。
+- Phase 1の証拠採取前にはlinked worktreeを作らない。
+- current Repository側で許可するGit mutationは`git worktree add --detach`と後片付けの`git worktree remove`だけに限定する。
+- probe内部ではtracked file、Git config、info attributes、dependency、Husky metadataを変更しない。
 - install、Husky prepare、format write、writer実行は独立temporary clone側だけで行う。
-- current Repositoryのglobal / local / worktree configを書き換えない。
+- 作成前後と削除後に`git worktree list --porcelain`、common config、info attributesを比較し、probe entryや意図しない設定変更を残さない。
 
 ### actual linked worktree testがprimary Repositoryのdependencyを使って偽陽性になる
 
@@ -972,12 +1005,14 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 - pre-commitの検査範囲が明確で、commit対象外の既存format / lint差分だけで不要に停止しない。
 - Prettier / ESLintはstaged pathのworktree fileではなく、Git index stage 0のcommit予定contentを検査する。
 - staged違反 + unstaged修正はFAILし、staged正常 + unstaged違反はPASSする。
-- partial staging、rename、delete、空白を含むpathの挙動を回帰testで固定している。
+- Prettierは現在の`.prettierignore` / `.prettierrc.json` / `.editorconfig`の意味を維持してindex contentを検査する。
+- ESLint warning-onlyとignore対象はPASSし、error / fatal errorはFAILする。
+- partial staging、rename、delete、空白を含むpath、対象0件、`git commit --allow-empty`の挙動を回帰testで固定している。
 - `security:check`をpre-commitでどこまで実行するか、現在の実装責務に基づいて決定されている。
 - CI / `verify`のRepository-wide品質ゲートを不必要に弱めていない。
 - actual linked worktreeでCodex Hook failureを再現している。
 - linked worktree + `node_modules`なしでlinked worktree自身のHook pathを起動しても、raw module failureを漏らさず原因を識別できる。
-- linked worktree自身のdoctor pathを起動しても、`diagnose:hooks`が失敗原因と同じdependency不足で完全に起動不能にならない。
+- linked worktree自身のdoctor pathを起動しても、`diagnose:hooks`が失敗原因と同じdependency不足で完全に起動不能にならず、dependency不足はERROR / exit 1、repository context確立不能はexit 2、WARN-onlyはexit 0として分類される。
 - actual `git worktree add`を使う回帰testが追加または更新されている。
 - Windows / macOS / Linux / CIでpre-commit、Repository-wide gate、Codex Hookの責務差を説明できる。
 - unrelatedな大量fileのformat変更、新規dependency、Hook framework再設計を混ぜていない。

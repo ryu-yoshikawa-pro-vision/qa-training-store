@@ -5,7 +5,8 @@
 - Issue #177の実装前Planを、現在のRepository契約と過去のEOL対応履歴に基づいて作成する。
 - 2026-08-17の既存LF契約を前提に、再発したWindows worktree CRLFの発生源を調査してから恒久対応を選ぶ構成にする。
 - 更新後Issue #177で追加されたHusky staged境界、Codex Hookのworktree-local dependency、`diagnose:hooks` bootstrap、actual linked worktree回帰testを現行Planへ統合する。
-- Planレビューで確認したstaged content / worktree contentの境界、Git worktree scope、current metadataを共有するprobeのread-only境界、linked worktree自身のHook / doctor起動条件を反映する。
+- Planレビューで確認したstaged content / worktree contentの境界、Git worktree scope、linked worktree自身のHook / doctor起動条件を反映する。
+- 再レビューで確認したPrettier / ESLint Node APIのCLI互換条件、doctorのexit code、linked worktree probeの作成・削除境界、Huskyの`--allow-empty`回帰契約を反映する。
 
 ## 今回行うこと
 

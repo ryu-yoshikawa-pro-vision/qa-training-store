@@ -24,6 +24,12 @@
 - [x] 20. current Repository metadataを共有するlinked worktreeをread-only probeへ限定する。
 - [x] 21. no-dependency Hook / doctor testでlinked worktree自身のscript pathを実行する契約を追加する。
 - [x] 22. 検証matrix、リスク、完了条件、実装タスクを上記契約へ同期する。
+- [x] 23. Prettier staged checkへ`.prettierignore` / `.prettierrc.json` / `.editorconfig`を現在CLIと同じ意味で適用する契約を追加する。
+- [x] 24. ESLint staged checkのwarning-only PASS / error FAIL / ignore PASSを既存`eslint .`契約として追加する。
+- [x] 25. `diagnose:hooks`のdependency不足=ERROR / exit 1、repository context確立不能=exit 2、WARN-only=exit 0を固定する。
+- [x] 26. current Repositoryを共有するlinked worktree probeを`git worktree add/remove`だけ許可する境界へ修正する。
+- [x] 27. staged対象0件と`git commit --allow-empty`のHusky回帰契約を追加する。
+- [x] 28. Safe change surface、検証、リスク、完了条件を再同期し、Plan分割不要を確認する。
 
 ## ブロック中
 

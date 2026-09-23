@@ -40,3 +40,12 @@
 - Validation: Git公式git-add / gitrevisions / git-config / git-worktree / git-rev-parse / gitattributes、Prettier API、ESLint Node.js APIを確認した。Repository側ではpackage.json、eslint.config.js、.prettierignore、tests/contracts/husky-config.test.ts、tests/contracts/codex-hook-diagnostics.test.ts、CIのStyle Quality / Codex Hook Windows経路を再確認した。
 - Blocker / Remaining: Plan修正としてはなし。実装時はPhase 1のread-only観測から開始し、Husky staged-onlyを採用する場合はindex content検査を必須とする。
 - Progress: 100% (22/22)
+
+## 2026-09-23 — 再レビュー指摘の最終反映
+
+- 概要: 再レビューで実装結果を変え得る4点と既存Husky契約1点をPlanへ反映した。Plan構成は維持し、ファイル分割は行っていない。
+- 変更: Prettier staged checkはRepository rootの`.prettierignore`を明示し、`.prettierrc.json`と`.editorconfig`を解決してindex contentへ適用する契約へした。ESLint staged checkは現在の`eslint .`と同じくwarning-onlyをPASS、error / fatal errorをFAIL、ignore対象をPASSとした。doctorはdependency不足をraw module failureにせずERROR / exit 1、repository context確立不能を既存exit 2、WARN-onlyをexit 0として固定した。current Repositoryとmetadataを共有するlinked worktree probeはPhase 1後の`git worktree add --detach`と`git worktree remove`だけを許可し、probe内部の変更を禁止した。既存Issue #162で検証済みの`git commit --allow-empty`成功を回帰contractへ追加した。
+- 判断: 現行Planは約1000行だが、EOL / Husky / Codex Hook / diagnosticsが同一Issueの処理順として相互参照しており、今回の変更は契約補強である。ファイル分割するとCase選択、検証matrix、完了条件の同期先が増えるため、現時点では分割しない方が単純である。
+- 検証: Plan内のSafe change surface、Phase 2 / 6 / 8、実装タスク、検証方法、リスク、完了条件を同じ契約へ同期した。実装コード、dependency、Hook、Husky、CI、Product codeは変更していない。
+- ブロッカー / 残作業: Plan更新としてはなし。次は最新Planを最終レビューし、実装開始可否を判定できる。
+- Progress: 100% (28/28)
