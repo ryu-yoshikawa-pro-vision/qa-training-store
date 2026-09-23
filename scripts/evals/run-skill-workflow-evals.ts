@@ -137,10 +137,10 @@ interface CodexTurnExecution {
   readonly tool_events: readonly string[];
 }
 
-interface ScopeSnapshot {
+export interface StageScopeSnapshot {
   readonly head: string;
   readonly branch: string;
-  readonly git_files: readonly string[];
+  readonly git_files: Readonly<Record<string, string>>;
   readonly inventory: Readonly<Record<string, string>>;
 }
 
@@ -262,15 +262,6 @@ function gitOutput(root: string, args: readonly string[], allowFailure = false):
   }
 }
 
-function gitFiles(root: string): readonly string[] {
-  const output = gitOutput(root, ["status", "--porcelain=v1", "--untracked-files=all"]);
-  if (output.length === 0) return [];
-  return output
-    .split(/\r?\n/u)
-    .filter((line) => line.length > 0)
-    .map((line) => line.slice(3).trim().replaceAll("\\", "/"));
-}
-
 function gitHead(root: string): string {
   const value = gitOutput(root, ["rev-parse", "HEAD"]).toLowerCase();
   if (!SHA_PATTERN.test(value)) throw new Error(`Git HEAD is not a 40-hex SHA in ${root}`);
@@ -294,6 +285,48 @@ function hashFile(filePath: string): string {
   return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
+function filesystemFingerprint(absolutePath: string): string {
+  let stats: fs.Stats;
+  try {
+    stats = fs.lstatSync(absolutePath);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return "deleted";
+    throw error;
+  }
+
+  const mode = (stats.mode & 0o7777).toString(8);
+  if (stats.isFile()) return `file:${mode}:${stats.size}:${hashFile(absolutePath)}`;
+  if (stats.isSymbolicLink()) return `symlink:${mode}:${fs.readlinkSync(absolutePath)}`;
+  if (stats.isDirectory()) {
+    const entries = fs
+      .readdirSync(absolutePath)
+      .sort((left, right) => left.localeCompare(right))
+      .map((name) => `${name}\0${filesystemFingerprint(path.join(absolutePath, name))}`)
+      .join("\0");
+    return `directory:${mode}:${createHash("sha256").update(entries).digest("hex")}`;
+  }
+  return `special:${mode}:${stats.size}`;
+}
+
+function gitFiles(root: string): Readonly<Record<string, string>> {
+  const output = execFileSync(
+    "git",
+    ["status", "--porcelain=v1", "--untracked-files=all", "--no-renames", "-z"],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const result: Record<string, string> = {};
+  for (const entry of output.split("\0")) {
+    if (entry.length === 0) continue;
+    if (entry.length < 4 || entry[2] !== " ")
+      throw new Error("git status returned a malformed porcelain entry");
+    const filePath = normalizeRepoPath(entry.slice(3));
+    result[filePath] =
+      `${entry.slice(0, 2)}:${filesystemFingerprint(path.resolve(root, filePath))}`;
+  }
+  return result;
+}
+
 function walkInventory(root: string, relativeRoot: string): Record<string, string> {
   const absolute = path.join(root, relativeRoot);
   if (!fs.existsSync(absolute)) return {};
@@ -315,7 +348,7 @@ function walkInventory(root: string, relativeRoot: string): Record<string, strin
   return result;
 }
 
-function scopeSnapshot(root: string): ScopeSnapshot {
+export function captureStageScopeSnapshot(root: string): StageScopeSnapshot {
   return {
     head: gitHead(root),
     branch: detachedHead(root),
@@ -327,7 +360,7 @@ function scopeSnapshot(root: string): ScopeSnapshot {
   };
 }
 
-function changedInventoryFiles(
+function changedSnapshotFiles(
   before: Readonly<Record<string, string>>,
   after: Readonly<Record<string, string>>,
 ): readonly string[] {
@@ -336,12 +369,14 @@ function changedInventoryFiles(
     .sort();
 }
 
-function changedScopeFiles(before: ScopeSnapshot, after: ScopeSnapshot): readonly string[] {
+export function changedStageScopeFiles(
+  before: StageScopeSnapshot,
+  after: StageScopeSnapshot,
+): readonly string[] {
   return [
     ...new Set([
-      ...before.git_files,
-      ...after.git_files,
-      ...changedInventoryFiles(before.inventory, after.inventory),
+      ...changedSnapshotFiles(before.git_files, after.git_files),
+      ...changedSnapshotFiles(before.inventory, after.inventory),
     ]),
   ].sort();
 }
@@ -358,8 +393,8 @@ function scopeViolation(
 function ensureCaseGitState(
   root: string,
   baselineHead: string,
-  before: ScopeSnapshot,
-  after: ScopeSnapshot,
+  before: StageScopeSnapshot,
+  after: StageScopeSnapshot,
 ): string | null {
   if (after.head !== baselineHead || after.branch !== "HEAD")
     return "git_head_or_detached_state_changed";
@@ -736,7 +771,7 @@ async function runAgentStage(input: {
   readonly requireStructured?: boolean;
   readonly requireThreadForHandoff?: boolean;
 }): Promise<StageExecutionResult> {
-  const before = scopeSnapshot(input.caseContext.root);
+  const before = captureStageScopeSnapshot(input.caseContext.root);
   const schemaPath =
     input.schema === undefined
       ? undefined
@@ -751,8 +786,8 @@ async function runAgentStage(input: {
     resumeThreadId: input.currentThreadId ?? undefined,
     timeoutMs: input.timeoutMs,
   });
-  const after = scopeSnapshot(input.caseContext.root);
-  const changedFiles = changedScopeFiles(before, after);
+  const after = captureStageScopeSnapshot(input.caseContext.root);
+  const changedFiles = changedStageScopeFiles(before, after);
   const violations = scopeViolation(changedFiles, allowedStagePrefixes(input.stage));
   const stateViolation = ensureCaseGitState(
     input.caseContext.root,
@@ -1006,7 +1041,7 @@ function commitCaseBaseline(root: string): string {
   ) {
     throw new Error("case baseline must not use Git alternates");
   }
-  if (gitFiles(root).length !== 0) throw new Error("case baseline must be clean");
+  if (Object.keys(gitFiles(root)).length !== 0) throw new Error("case baseline must be clean");
   return gitHead(root);
 }
 
@@ -2131,6 +2166,72 @@ async function runCaseB(options: ResolvedOptions): Promise<CaseExecutionResult> 
   }
 }
 
+function isPathWithinRoot(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative.length === 0 ||
+    (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+  );
+}
+
+function isSamePath(left: string, right: string): boolean {
+  const normalizedLeft = path.normalize(left);
+  const normalizedRight = path.normalize(right);
+  return process.platform === "win32"
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight;
+}
+
+export function isCaseBOfficialEvidenceFile(
+  caseRoot: string,
+  runId: string,
+  evidenceRef: string,
+): boolean {
+  if (runId.length === 0 || /[\\/]/u.test(runId) || runId === "." || runId === "..") return false;
+
+  const normalizedRef = evidenceRef.replaceAll("\\", "/");
+  const evidencePrefix = `.artifacts/agentic-qa/${runId}/runner/output/evidence/`;
+  if (!normalizedRef.startsWith(evidencePrefix)) return false;
+  if (normalizedRef.split("/").some((segment) => segment === "." || segment === "..")) return false;
+
+  const evidenceRoot = path.resolve(
+    caseRoot,
+    ".artifacts",
+    "agentic-qa",
+    runId,
+    "runner",
+    "output",
+    "evidence",
+  );
+  const evidencePath = path.resolve(caseRoot, ...normalizedRef.split("/"));
+  if (isSamePath(evidenceRoot, evidencePath) || !isPathWithinRoot(evidenceRoot, evidencePath))
+    return false;
+
+  try {
+    if (!fs.lstatSync(evidencePath).isFile()) return false;
+    const realCaseRoot = fs.realpathSync(caseRoot);
+    const realEvidenceRoot = fs.realpathSync(evidenceRoot);
+    const expectedRealEvidenceRoot = path.resolve(
+      realCaseRoot,
+      ".artifacts",
+      "agentic-qa",
+      runId,
+      "runner",
+      "output",
+      "evidence",
+    );
+    if (!isSamePath(realEvidenceRoot, expectedRealEvidenceRoot)) return false;
+
+    const realEvidencePath = fs.realpathSync(evidencePath);
+    return (
+      !isSamePath(realEvidencePath, realEvidenceRoot) &&
+      isPathWithinRoot(realEvidenceRoot, realEvidencePath)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function validateCaseBFinding(
   findings: QaFindings,
   charter: Charter,
@@ -2162,7 +2263,6 @@ function validateCaseBFinding(
   } catch {
     return false;
   }
-  const officialEvidenceRoot = path.resolve(context.root, ".artifacts", "agentic-qa");
   for (const evidence of findings.findings.flatMap((finding) => finding.evidence)) {
     if (evidence.type === "url") {
       try {
@@ -2172,16 +2272,7 @@ function validateCaseBFinding(
       }
       continue;
     }
-    const normalizedRef = evidence.ref.replaceAll("\\", "/");
-    if (!isPathPrefix(normalizedRef, ".artifacts/agentic-qa/")) return false;
-    const evidencePath = path.resolve(context.root, ...normalizedRef.split("/"));
-    if (
-      (evidencePath !== officialEvidenceRoot &&
-        !evidencePath.startsWith(`${officialEvidenceRoot}${path.sep}`)) ||
-      !fs.existsSync(evidencePath) ||
-      !fs.statSync(evidencePath).isFile()
-    )
-      return false;
+    if (!isCaseBOfficialEvidenceFile(context.root, context.run_id, evidence.ref)) return false;
   }
   return findings.findings.some(
     (finding) =>
@@ -2704,7 +2795,8 @@ function assertTargetPreflightForWorkflow(
   if (gitOutput(targetReal, ["rev-parse", "--is-inside-work-tree"]) !== "true")
     throw new Error("Workflow E2E target is not a Git worktree");
   if (detachedHead(targetReal) !== "HEAD") throw new Error("Workflow E2E target must be detached");
-  if (gitFiles(targetReal).length > 0) throw new Error("Workflow E2E target must be clean");
+  if (Object.keys(gitFiles(targetReal)).length > 0)
+    throw new Error("Workflow E2E target must be clean");
   if (gitOutput(targetReal, ["remote"]).length > 0)
     throw new Error("Workflow E2E target must not have remotes");
   if (gitHead(targetReal) !== options.routing_source_git_sha)

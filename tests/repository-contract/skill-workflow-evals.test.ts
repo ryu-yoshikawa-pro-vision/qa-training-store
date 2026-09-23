@@ -1,5 +1,7 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import {
   WORKFLOW_CASES,
@@ -13,14 +15,182 @@ import {
 } from "../../scripts/evals/skill-workflow-evals";
 import {
   buildWorkflowCodexArguments,
+  captureStageScopeSnapshot,
+  changedStageScopeFiles,
   deriveNativeFirstAnomaly,
+  isCaseBOfficialEvidenceFile,
   parseWorkflowEvalCliArguments,
   redactNativeDeviceSerial,
 } from "../../scripts/evals/run-skill-workflow-evals";
 
 const repositoryRoot = resolve(__dirname, "../..");
+const scopeFixtureFiles = {
+  plan: "docs/plans/case-a-status-plan.md",
+  status: "workflow-e2e-fixtures/case-a/status.mjs",
+  clean: "src/clean-file.txt",
+} as const;
+
+function createScopeWorkspace(): string {
+  const root = mkdtempSync(join(tmpdir(), "skill-workflow-scope-"));
+  execFileSync("git", ["init", "--quiet"], { cwd: root, stdio: "ignore" });
+  writeFileSync(join(root, ".gitignore"), ".codex/runs/\n.artifacts/\n");
+  for (const relativePath of Object.values(scopeFixtureFiles)) {
+    const absolutePath = join(root, relativePath);
+    mkdirSync(join(absolutePath, ".."), { recursive: true });
+    writeFileSync(absolutePath, `baseline:${relativePath}\n`);
+  }
+  execFileSync("git", ["add", "--all"], { cwd: root, stdio: "ignore" });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=Workflow Eval Test",
+      "-c",
+      "user.email=workflow-eval-test@example.invalid",
+      "commit",
+      "--no-gpg-sign",
+      "-m",
+      "baseline",
+    ],
+    { cwd: root, stdio: "ignore" },
+  );
+  return root;
+}
+
+function withScopeWorkspace(run: (root: string) => void): void {
+  const root = createScopeWorkspace();
+  try {
+    run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
 
 describe("Workflow E2E Eval repository contract", () => {
+  it("excludes a pre-existing dirty file that remains unchanged during a stage", () => {
+    withScopeWorkspace((root) => {
+      writeFileSync(join(root, scopeFixtureFiles.plan), "plan was dirty before the turn\n");
+      const before = captureStageScopeSnapshot(root);
+      const after = captureStageScopeSnapshot(root);
+      expect(changedStageScopeFiles(before, after)).toEqual([]);
+    });
+  });
+
+  it("reports only status.mjs for a Case A implementation turn with a dirty Plan", () => {
+    withScopeWorkspace((root) => {
+      writeFileSync(join(root, scopeFixtureFiles.plan), "Plan turn output\n");
+      const before = captureStageScopeSnapshot(root);
+      writeFileSync(join(root, scopeFixtureFiles.status), "implementation turn output\n");
+      const after = captureStageScopeSnapshot(root);
+      expect(changedStageScopeFiles(before, after)).toEqual([scopeFixtureFiles.status]);
+    });
+  });
+
+  it("detects a further edit to a file that was already dirty at stage start", () => {
+    withScopeWorkspace((root) => {
+      writeFileSync(join(root, scopeFixtureFiles.status), "first edit\n");
+      const before = captureStageScopeSnapshot(root);
+      writeFileSync(join(root, scopeFixtureFiles.status), "second edit\n");
+      const after = captureStageScopeSnapshot(root);
+      expect(changedStageScopeFiles(before, after)).toEqual([scopeFixtureFiles.status]);
+    });
+  });
+
+  it("detects a clean tracked file changed during a stage", () => {
+    withScopeWorkspace((root) => {
+      const before = captureStageScopeSnapshot(root);
+      writeFileSync(join(root, scopeFixtureFiles.clean), "changed during turn\n");
+      const after = captureStageScopeSnapshot(root);
+      expect(changedStageScopeFiles(before, after)).toEqual([scopeFixtureFiles.clean]);
+    });
+  });
+
+  it("detects new and pre-existing untracked files changed during a stage", () => {
+    withScopeWorkspace((root) => {
+      const existingUntracked = "notes/already-untracked.txt";
+      const existingPath = join(root, existingUntracked);
+      mkdirSync(join(existingPath, ".."), { recursive: true });
+      writeFileSync(existingPath, "before turn\n");
+      const before = captureStageScopeSnapshot(root);
+
+      writeFileSync(existingPath, "changed during turn\n");
+      const newUntracked = "notes/new-during-turn.txt";
+      writeFileSync(join(root, newUntracked), "created during turn\n");
+      const after = captureStageScopeSnapshot(root);
+
+      expect(changedStageScopeFiles(before, after)).toEqual([existingUntracked, newUntracked]);
+    });
+  });
+
+  it("detects deleted Git-visible files and retains ignored-prefix inventory diffs", () => {
+    withScopeWorkspace((root) => {
+      const deletedPath = join(root, scopeFixtureFiles.clean);
+      const runArtifact = ".codex/runs/case-run/stage.json";
+      const officialArtifact = ".artifacts/agentic-qa/case-run/evidence.png";
+      mkdirSync(join(root, runArtifact, ".."), { recursive: true });
+      mkdirSync(join(root, officialArtifact, ".."), { recursive: true });
+      writeFileSync(join(root, runArtifact), "before");
+      writeFileSync(join(root, officialArtifact), "before");
+      const before = captureStageScopeSnapshot(root);
+
+      rmSync(deletedPath);
+      writeFileSync(join(root, runArtifact), "change");
+      writeFileSync(join(root, officialArtifact), "change");
+      const after = captureStageScopeSnapshot(root);
+
+      expect(changedStageScopeFiles(before, after)).toEqual([
+        officialArtifact,
+        runArtifact,
+        scopeFixtureFiles.clean,
+      ]);
+    });
+  });
+
+  it("accepts only regular Case B Evidence files inside the current run prefix", () => {
+    const caseRoot = mkdtempSync(join(tmpdir(), "skill-workflow-case-b-evidence-"));
+    const runId = "current-run";
+    const evidencePrefix = `.artifacts/agentic-qa/${runId}/runner/output/evidence/`;
+    const makeFile = (relativePath: string): void => {
+      const absolutePath = join(caseRoot, ...relativePath.split("/"));
+      mkdirSync(join(absolutePath, ".."), { recursive: true });
+      writeFileSync(absolutePath, "evidence\n");
+    };
+    try {
+      const currentEvidence = `${evidencePrefix}screen.png`;
+      const otherRunEvidence = ".artifacts/agentic-qa/other-run/runner/output/evidence/screen.png";
+      const runRootFile = `.artifacts/agentic-qa/${runId}/root.txt`;
+      const outsideEvidence = `.artifacts/agentic-qa/${runId}/runner/output/response.json`;
+      const broadOldRoot = ".artifacts/agentic-qa/legacy-evidence.png";
+      const directoryEvidence = `${evidencePrefix}directory`;
+      makeFile(currentEvidence);
+      makeFile(otherRunEvidence);
+      makeFile(runRootFile);
+      makeFile(outsideEvidence);
+      makeFile(broadOldRoot);
+      mkdirSync(join(caseRoot, ...directoryEvidence.split("/")), { recursive: true });
+
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, currentEvidence)).toBe(true);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, otherRunEvidence)).toBe(false);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, runRootFile)).toBe(false);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, outsideEvidence)).toBe(false);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, broadOldRoot)).toBe(false);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, `${evidencePrefix}missing.png`)).toBe(
+        false,
+      );
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, evidencePrefix)).toBe(false);
+      expect(isCaseBOfficialEvidenceFile(caseRoot, runId, directoryEvidence)).toBe(false);
+      expect(
+        isCaseBOfficialEvidenceFile(
+          caseRoot,
+          runId,
+          `${evidencePrefix}../../../../../../outside.png`,
+        ),
+      ).toBe(false);
+    } finally {
+      rmSync(caseRoot, { recursive: true, force: true });
+    }
+  });
+
   it("keeps the fixed five cases and stage handoff order", () => {
     expect(WORKFLOW_CASES.map((workflowCase) => workflowCase.id)).toEqual([
       "A",
