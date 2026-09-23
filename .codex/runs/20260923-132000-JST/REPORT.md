@@ -31,3 +31,12 @@
   - Result: N/A。
   - Parent decision: N/A。
 - Progress: 100% (15/15)
+
+## 2026-09-23 — Plan全体レビュー修正
+
+- Summary: Issue #177のPlanを再レビューし、実装開始前に必要と判断した5点を保存Planへ反映した。実装コードは変更していない。
+- Changes: staged-only pre-commitの判定対象をworktree fileからGit index stage 0 contentへ変更した。Case Cはpre-commit専用EOL緩和を第一候補にせず、local Repository-wide format checkとCI strict LF checkの責務分離を原因調査後に比較する構成へ修正した。Git configのworktree scope / extensions.worktreeConfig / git rev-parse --git-path境界、current Repository metadataを共有するlinked worktreeのread-only制約、linked worktree自身のHook / doctor pathを起動する回帰test契約を追加した。
+- Decision / Rationale: pathだけをPrettier / ESLintへ渡すとworktree contentを検査するため、partial stagingやstage後のunstaged編集で次回commit内容と判定がずれる。Git indexは次回commit内容を保持するため、Prettier / ESLintはindex blobの文字列を既存config / ignore意味で検査する。Prettier / ESLintのNode APIで文字列 + file pathを検査できるため、新規dependencyやlint-stagedを前提にしない。
+- Validation: Git公式git-add / gitrevisions / git-config / git-worktree / git-rev-parse / gitattributes、Prettier API、ESLint Node.js APIを確認した。Repository側ではpackage.json、eslint.config.js、.prettierignore、tests/contracts/husky-config.test.ts、tests/contracts/codex-hook-diagnostics.test.ts、CIのStyle Quality / Codex Hook Windows経路を再確認した。
+- Blocker / Remaining: Plan修正としてはなし。実装時はPhase 1のread-only観測から開始し、Husky staged-onlyを採用する場合はindex content検査を必須とする。
+- Progress: 100% (22/22)

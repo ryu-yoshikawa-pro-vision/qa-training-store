@@ -5,13 +5,14 @@
 - Issue #177の実装前Planを、現在のRepository契約と過去のEOL対応履歴に基づいて作成する。
 - 2026-08-17の既存LF契約を前提に、再発したWindows worktree CRLFの発生源を調査してから恒久対応を選ぶ構成にする。
 - 更新後Issue #177で追加されたHusky staged境界、Codex Hookのworktree-local dependency、`diagnose:hooks` bootstrap、actual linked worktree回帰testを現行Planへ統合する。
+- Planレビューで確認したstaged content / worktree contentの境界、Git worktree scope、current metadataを共有するprobeのread-only境界、linked worktree自身のHook / doctor起動条件を反映する。
 
 ## 今回行うこと
 
 - 更新後Issue #177、ADR-0017、EOL関連設定、Prettier / Husky経路を確認する。
 - `scripts/security-static-check.ts`、Codex文章品質Hook、scanner、doctor、関連contract testを確認する。
 - 過去Run ArtifactからEOL / pre-commit failureの再発履歴を確認する。
-- Git / Prettier公式仕様を確認する。
+- Git / Prettier / ESLint公式仕様を確認する。
 - main 01cd8ab15078d479e821d373445af1e16a469519からplan/issue-177-windows-crlf-prettierを作成する。
 - docs/plans/2026-09-23_132000_issue-177-windows-crlf-prettier.mdを保存する。
 

@@ -17,6 +17,13 @@
 - [x] 13. tests/contracts/husky-config.test.tsが現行Repository-wide 3 commandを固定していることを確認する。
 - [x] 14. 保存Planの矛盾を解消し、Husky / Codex Hook / diagnostics / linked worktree検証を統合する。
 - [x] 15. Plan-only Run Artifactを更新する。
+- [x] 16. Plan全体をIssue #177、Husky、security check、Codex Hook、doctor、contract、CIと再照合する。
+- [x] 17. Git index / stage 0、worktree config、git-path、Prettier API、ESLint Node APIの公式仕様を確認する。
+- [x] 18. staged-only契約を「staged pathのworktree content」から「Git index stage 0 content」へ修正する。
+- [x] 19. Case Cをpre-commit EOL緩和からlocal Repository-wide check / CI strict LF責務の比較へ修正する。
+- [x] 20. current Repository metadataを共有するlinked worktreeをread-only probeへ限定する。
+- [x] 21. no-dependency Hook / doctor testでlinked worktree自身のscript pathを実行する契約を追加する。
+- [x] 22. 検証matrix、リスク、完了条件、実装タスクを上記契約へ同期する。
 
 ## ブロック中
 
