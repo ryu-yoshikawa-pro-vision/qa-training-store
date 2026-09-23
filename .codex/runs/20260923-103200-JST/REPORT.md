@@ -89,3 +89,21 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (22/22)
+
+## 2026-09-23 — 最終整合修正
+
+- 概要: 再レビューで残ったPlan内部の矛盾2点を修正した。
+- Decision Point:
+  - Domain → Application禁止は`NFR-MA-001`、Coding Standards、Repository StructureからCurrent policyとして確定済みであり、新しいallow / deny Decisionは行わない。
+  - type-only例外案はCurrent policyを変更する新しいarchitecture decisionになるため、Issue #132のRepository Port ownership Decision候補から外した。
+  - architecture ownerへ提示するRepository Port ownershipは案A / Bの2案に限定した。
+  - §4.16は案A / Bのどちらでも`refactor_now`へ再分類する。
+- Current violation再確認:
+  - Task 3をstatic contractと同じdependency surfaceへ揃えた。
+  - 通常import、`import type`、side-effect import、TypeScript import type query、runtime dynamic import、`export ... from`、`export type ... from`、`export * from`、alias / relative pathを確認対象とした。
+- static contract:
+  - `src/domain/**`から`src/application/**`へのimport / re-exportを例外なく禁止する。
+  - Application module別allowlistやRepository contract例外は作らない。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (24/24)

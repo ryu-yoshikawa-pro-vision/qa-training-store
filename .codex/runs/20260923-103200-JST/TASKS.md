@@ -13,17 +13,19 @@
 - [x] 9. Repository interface 24件をApplication type利用17件 / Domain-only 7件へ分類する。
 - [x] 10. `ProductViewer`のCurrent responsibilityとDomain policyの実利用fieldを確認する。
 - [x] 11. Domain → Applicationのallow / denyをowner Decision対象から外し、Current policyとしてPlanへ反映する。
-- [x] 12. Repository Port ownershipだけをarchitecture owner Decisionとして残し、案A / B / Cと推奨案を整理する。
+- [x] 12. Repository Port ownershipだけをarchitecture owner Decisionとして残し、案A / Bと推奨案を整理する。
 - [x] 13. §4.16の再分類、follow-up Refactor、static contractの実装順をPlanへ反映する。
 - [x] 14. 17 / 7分類をownership決定から切り離し、24 interfaceを責務 / consumerで再評価する方針へ修正する。
 - [x] 15. `NFR-MA-010`をDecision Pointへ追加し、案BのGate変更リスクを明記する。
-- [x] 16. 案Cと対象外の矛盾を解消し、owner Decisionなしの例外新設だけを対象外とする。
+- [x] 16. Domain → Application例外をRepository Port ownershipのDecision候補から外し、Issue #132の対象外とする。
 - [x] 17. `ProductViewer`変換主体をCurrent callerのInfrastructure adapterへ修正する。
 - [x] 18. static contractのimport形とrelative path検査を具体化する。
 - [x] 19. decision-only / follow-up Refactorの検証commandをRepository標準へ整理する。
 - [x] 20. 17 interfaceを一律の再配置対象から外し、維持 / 移動 / 削除の整理対象へ修正する。
 - [x] 21. 未使用候補の`ImageAssetCatalogRepository` / `TestInspectionRepository` / `TestMetadataRepository`をfollow-upの削除確認対象へ追加する。
-- [x] 22. static contractを案A / Bと案Cで分岐し、re-export構文を検査対象へ追加する。
+- [x] 22. static contractをDomain → Application全面禁止へ統一し、re-export構文を検査対象へ追加する。
+- [x] 23. 案CをDecision候補から外し、Repository Port ownershipのDecisionを案A / Bへ限定する。
+- [x] 24. Task 3のCurrent violation再確認をTask 6と同じimport / re-export surfaceへ揃える。
 
 ## ブロック中
 
