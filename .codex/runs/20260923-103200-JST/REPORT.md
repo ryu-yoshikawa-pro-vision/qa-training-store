@@ -184,3 +184,22 @@
 - Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
 - ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
 - Progress: 100% (36/36)
+
+## 2026-09-23 — Issue #132 scope / Run Artifact contract最終修正
+
+- 概要: 再レビューで残った3点を反映した。
+- Issue #132 scope:
+  - Task 7を実際のfollow-up implementation Plan作成から、別Planへ切り出すためのscope / next action記録へ縮小した。
+  - 24 Repository interface、17 / 7、未使用候補3件、18 consumer、`ProductViewer`、案A / B別作業、static contract、検証方針はfollow-up notesとして保持する。
+  - 実際のimplementation Plan作成はIssue #132完了後の別作業とする。
+  - §4.16 durable reportはnew ADRとfollow-up scope / next actionを参照し、未作成Planへのリンクを完了条件にしない。
+- Run Artifact:
+  - `TASKS.md`をCurrent contractの`## Now（現在）` / `## Discovered（発見事項）` / `## Blocked（ブロック中）`形式へ揃えた。
+  - 既存1〜36 taskは削除せず`Now`へ保持し、今回の3修正をDiscovered 37〜39として記録した。
+  - 基本ProgressはCurrent contractに従い39 / 39とする。
+- 検証:
+  - decision-only検証へ`scripts/sanitize-codex-artifacts.ps1`の`Write` / `Check`を追加した。
+  - residual findings 0をIssue #132完了条件の検証項目へ追加した。
+- Scope: Plan / current Run Artifactだけを修正。Product source、test、ADR、Issue / PR metadataは変更していない。
+- ブロッカー: Repository Port ownershipのarchitecture owner Decision 1件。Plan作成自体のブロッカーはなし。
+- Progress: 100% (39/39)

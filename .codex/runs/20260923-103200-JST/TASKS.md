@@ -1,6 +1,6 @@
 # Tasks（タスク）
 
-## 完了
+## Now（現在）
 
 - [x] 1. Issue #132とPhase 6 §4.16の不足Evidenceを確認する。
 - [x] 2. Current `main`とcandidate pathの履歴を確認する。
@@ -39,7 +39,13 @@
 - [x] 35. 案Bの`NFR-MA-010`を「変更またはsupersede」ではなくCurrent requirementの必須更新へ固定する。
 - [x] 36. Run `PLAN.md`に残った旧「可能性」「判断」表現をCurrent方針へ同期する。
 
-## ブロック中
+## Discovered（発見事項）
+
+- [x] 37. Task 7をfollow-up implementation Plan作成からscope / next action記録へ縮小し、Issue #132のdecision-only scopeへ戻す。
+- [x] 38. Current Run `TASKS.md`を`Now` / `Discovered` / `Blocked`形式へ正規化する。
+- [x] 39. decision-only検証へRun Artifact sanitizerの`Write` / `Check`を追加する。
+
+## Blocked（ブロック中）
 
 - なし。
 

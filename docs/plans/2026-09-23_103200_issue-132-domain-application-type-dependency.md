@@ -457,11 +457,11 @@ scanner自体の検出能力も同じ`tests/contracts/architecture.test.ts`で�
 
 Current sourceが違反している間にfailするcontractだけをdecision-only PRへ先行投入しない。source remediationと同じfollow-up implementation PRで追加する。
 
-### Task 7: follow-up Refactor Planを作成する
+### Task 7: follow-up Refactorのscopeを記録する
 
-Issue #132のdecision-only作業でProduct codeを変更しない。
+Issue #132のdecision-only作業ではProduct code / testを変更せず、実際のfollow-up implementation Planも作成しない。
 
-別Planは選択した案A / Bを明示し、共通作業と案別作業を分ける。
+architecture ownerが選択した案A / Bに基づき、次の実装scopeをIssue #132のdecision結果とRun Artifactへ記録し、別Planへ切り出せる状態にする。
 
 共通:
 
@@ -493,9 +493,11 @@ Issue #132のdecision-only作業でProduct codeを変更しない。
 
 大規模なtype rename、DTO移動、generic Port frameworkは含めない。
 
+実際のimplementation PlanはIssue #132完了後の別作業で作成し、Task 1のlatest `main` rebaselineを再実行してから具体的な変更ファイルと実装順へ落とす。
+
 ### Task 8: §4.16を再分類する
 
-Task 7でfollow-up Refactor Planの保存先を確定した後、§4.16を`refactor_now`へ再分類する。Repository Port ownershipの案A / Bのどちらを選んでもCurrentのDomain → Application禁止は維持するため、classificationは同じである。
+Task 7でfollow-up Refactorのscopeとnext actionを記録した後、§4.16を`refactor_now`へ再分類する。Repository Port ownershipの案A / Bのどちらを選んでもCurrentのDomain → Application禁止は維持するため、classificationは同じである。
 
 理由:
 
@@ -509,7 +511,8 @@ runtime failureがないことは`refactor_when_touched`へ落とす理由にし
 再分類結果はPhase 6のdurable reportである`docs/reports/2026-09-06_193114_refactoring_necessity_review.md`へfollow-up resolutionとして追記する。
 
 - 既存の§4.16 `needs_more_evidence`はPhase 6時点の履歴として書き換えない。
-- §4.16節へ`Issue #132 follow-up resolution`を追記し、最終classification `refactor_now`、Issue #132、選択した案A / B、new ADR、Task 7で作成したfollow-up Refactor Planを参照できるようにする。
+- §4.16節へ`Issue #132 follow-up resolution`を追記し、最終classification `refactor_now`、Issue #132、選択した案A / B、new ADR、Task 7で確定したfollow-up scopeとnext actionを参照できるようにする。
+- follow-up implementation PlanはIssue #132完了後の別作業で作成するため、このdurable report更新時点の必須参照にはしない。
 - closed済みTracking Issue #72やPR #128の過去のPhase 6結果は書き換えない。
 
 ## 6. Issue #132 decision-only作業の検証
@@ -521,6 +524,8 @@ pnpm run format:check
 pnpm run lint:markdown
 pnpm run lint:text
 git diff --check
+powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260923-103200-JST' -Write
+powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260923-103200-JST' -Check
 ```
 
 Repository全体の既存文章も含めた検査が必要になった場合だけ`pnpm run lint:text:all`を追加する。
@@ -532,7 +537,8 @@ Repository全体の既存文章も含めた検査が必要になった場合だ�
 - Application DTO / query / commandのcanonical ownerが変わっていない。
 - `ProductViewer` ownershipとDomain policy boundaryが明示されている。
 - §4.16の再分類根拠が`NFR-MA-001`とCurrent codeへ追跡できる。
-- follow-up Refactorのscopeが具体化されている。
+- follow-up Refactorのscopeとnext actionが具体化され、実際のimplementation PlanはIssue #132完了後の別作業として残されている。
+- Run Artifact sanitizerの`Write` / `Check`が成功し、residual findingsが0である。
 - Product code / test / dependencyを変更していない。
 
 ## 7. follow-up Refactorで必要な検証
@@ -569,7 +575,7 @@ git diff --check
 - Repository Port ownershipについてarchitecture ownerのDecisionが記録されている。
 - §4.16が`needs_more_evidence`から`refactor_now`へ再分類され、Phase 6 durable reportへfollow-up resolutionとして追記されている。元の`needs_more_evidence`は履歴として保持されている。
 - 必要なADR / normative documentationへdecisionが永続化されている。
-- Refactor実装は別Plan / 実装PRへ切り出されている。
+- Refactor実装のscopeとnext actionが記録され、Issue #132完了後に別Plan / 実装PRへ切り出せる状態になっている。
 - Product behavior、Database schema、Native / Web featureを変更していない。
 - generic dependency graph、AST framework、新規dependencyを追加していない。
 
