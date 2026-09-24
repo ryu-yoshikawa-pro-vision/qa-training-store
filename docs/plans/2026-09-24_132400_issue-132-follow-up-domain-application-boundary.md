@@ -549,15 +549,31 @@ PR #180のcurrent head branch `plan/issue-132-follow-up-domain-application-bound
 
 実装はbuildを壊す時間を短くするため、次の順に行う。
 
-実行時の操作方法はCurrent `AGENTS.md`、`docs/reference/codex-implementation-harness.md`、`docs/reference/codex-safety-harness.md`を正本とする。本PlanはSafety契約を緩和せず、禁止されたcommandや操作でTaskを達成しない。物理file削除は、Task 0でCurrent Safety契約が本Planの明示対象に対するparent agentのレビュー可能な`apply_patch` deleteを許可していることを確認してから実装へ進む。
+実行時の操作方法はCurrent `AGENTS.md`、`docs/reference/codex-implementation-harness.md`、`docs/reference/codex-safety-harness.md`を正本とする。本PlanはSafety契約を緩和せず、禁止されたcommandや操作でTaskを達成しない。物理file削除は、Planへの記載や`apply_patch`の利用可否だけを承認根拠にせず、実行時に必要な明示承認が確認できる場合だけ行う。
 
-### Task 0: PR #180 branchをlatest `main`へrebaselineして実行条件を確定
+### Task 0: PR #180 branchを確認してRun Artifactを初期化
 
 1. PR #180がopenで、head branchが`plan/issue-132-follow-up-domain-application-boundary`であることを確認する。
 2. current branchがPR #180のhead branchと一致し、開始前に意図しないworking tree変更がないことを確認する。
-3. Run Artifactを作成する前に`origin/main`を取得し、PR #180のcurrent headとlatest `origin/main`のahead / behindを確認する。
-4. behindがある場合は、公開済みbranchの履歴を書き換えない方法で`origin/main`をcurrent branchへ取り込み、force pushを必要としない状態にする。rebaseline完了後にworking treeとbranch状態を再確認する。
-5. 本Plan作成時SHA `9cef8501c2b19e1764892b0c17ee50318fa90b97`から次へmaterial driftがないか確認する。
+3. 実装task用の新しいRunをRepository標準契約で初期化する。
+
+Current `scripts/new-run.ps1`はfailure cleanupに`Remove-Item -Recurse -Force`を含み、Current Safety契約はPowerShell commandによる削除を禁止している。この契約が変わっていない限り、Windowsでも`new-run.ps1`を実行しない。
+
+`bash`を安全に利用できる場合は、削除commandを含まない既存の`new-run.sh`を優先する。
+
+```bash
+bash scripts/new-run.sh --task-type implementation --workflow-level standard
+```
+
+`bash`を利用できない場合は、新しい初期化scriptやwrapperを作らず、`.codex/templates/PLAN.md`、`TASKS.md`、`REPORT.md`から同一Run IDのAgent-managed Artifactだけを手動初期化する。`run.json`は作成・直接編集せず、Task 13のcollectorに生成・更新させる。
+
+Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録する。同一task中に別Runを作らない。
+
+### Task 1: PR #180 branchをlatest `main`へrebaselineして実行条件を確定
+
+1. Run初期化後に`origin/main`を取得し、PR #180のcurrent headとlatest `origin/main`のahead / behindを確認する。
+2. behindがある場合は、開始時のRun Artifactを今回taskの既知差分として保持したまま、公開済みbranchの履歴を書き換えない方法で`origin/main`をcurrent branchへ取り込み、force pushを必要としない状態にする。rebaseline完了後にworking treeとbranch状態を再確認する。
+3. 本Plan作成時SHA `9cef8501c2b19e1764892b0c17ee50318fa90b97`から次へmaterial driftがないか確認する。
 
 - `src/domain/repositories/**`
 - `src/application/**`
@@ -574,28 +590,14 @@ PR #180のcurrent head branch `plan/issue-132-follow-up-domain-application-bound
 - `AGENTS.md`
 - `docs/reference/codex-implementation-harness.md`
 - `docs/reference/codex-safety-harness.md`
+- `.codex/templates/**`
 
-material driftがある場合は影響箇所だけ再評価し、24 / 17 / 7やconsumer件数を固定値として盲目的に使わない。
+material driftがある場合は影響箇所だけ再評価し、24 / 17 / 7やconsumer件数を固定値として盲目的に使わない。Run Artifactのtemplate / manifest / Safety契約にmaterial driftがあっても、新しいRunを作らず同じRunを継続し、Current契約に合わせて必要なAgent-managed Artifact更新とmachine-managed collectorを行う。
 
-6. 物理削除対象の`src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`について、Current Safety契約を確認する。Current `docs/reference/codex-safety-harness.md`の`safe`契約が「明示された対象とレビュー可能な理由がある場合」のfile削除を扱える状態であり、`docs/PROJECT_CONTEXT.md`の意図した`apply_patch`差分の扱いと矛盾しないことを確認する。
-7. 上記2 fileの削除はparent agentだけが`apply_patch`のfile deleteとして実行し、`implementation_worker`へ委譲しないことを実行条件として固定する。`rm`、`del`、`Remove-Item`、`git rm`は使用しない。
-8. Current Safety契約がmaterial driftによりこの削除経路を禁止している場合は、Run Artifactやsource変更を作成する前に停止して報告する。Safety契約を変更して回避しない。
-
-### Task 1: Run Artifactを初期化
-
-Task 0のrebaselineと実行条件確認が完了してから、実装task用の新しいRunをRepository標準契約で初期化する。これによりRun Artifactはlatest `main`を取り込んだCurrent branchとCurrent template / Safety契約を基準に作成する。
-
-Current `scripts/new-run.ps1`はfailure cleanupに`Remove-Item -Recurse -Force`を含み、Current Safety契約はPowerShell commandによる削除を禁止している。この契約が変わっていない限り、Windowsでも`new-run.ps1`を実行しない。
-
-`bash`を安全に利用できる場合は、削除commandを含まない既存の`new-run.sh`を優先する。
-
-```bash
-bash scripts/new-run.sh --task-type implementation --workflow-level standard
-```
-
-`bash`を利用できない場合は、新しい初期化scriptやwrapperを作らず、`.codex/templates/PLAN.md`、`TASKS.md`、`REPORT.md`から同一Run IDのAgent-managed Artifactだけを手動初期化する。`run.json`は作成・直接編集せず、Task 13のcollectorに生成・更新させる。
-
-Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲、Task 0で確認したrebaseline結果と削除操作のSafety条件を記録する。同一task中に別Runを作らない。
+4. 物理削除対象の`src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`について、Current `AGENTS.md`とSafety契約、および実行時のユーザー承認範囲を確認する。
+5. Planに削除対象が書かれていること、または`apply_patch`が利用可能であることだけを削除承認として扱わない。今回の実装依頼で上記2 fileの物理削除まで明示的に承認されていることを確認できる場合だけ、parent agentがレビュー可能なfile-delete operationを行う。`implementation_worker`へfile deleteを委譲せず、`rm`、`del`、`Remove-Item`、`git rm`も使用しない。
+6. 必要な削除承認を確認できない場合、またはCurrent Safety契約が削除を許可しない場合は、source変更へ進む前に同じRunの`REPORT.md`へ根拠と未完了事項を記録して停止する。Safety契約の変更、空file、stub、compatibility re-exportで回避しない。
+7. rebaseline結果、material drift判断、削除承認 / Safety確認結果を同じRunの`PLAN.md` / `REPORT.md`へ記録してからTask 2へ進む。
 
 ### Task 2: focused regressionを先に確認
 
@@ -652,7 +654,7 @@ sourceの`@/domain/repositories`参照が0になったことを確認後、
 
 を削除対象とする。
 
-Task 0で確定したとおり、この2 fileは本Planで明示された削除対象であり、consumer migration完了と旧path参照0を確認した後、parent agentが`apply_patch`のfile deleteとして削除する。`implementation_worker`へfile deleteを委譲せず、`rm`、`del`、`Remove-Item`、`git rm`も使用しない。空file、stub、compatibility re-exportを残して物理削除を回避しない。
+Task 1で削除に必要な明示承認とCurrent Safety契約を確認済みであることを再確認し、consumer migration完了と旧path参照0を確認した後、parent agentが承認済みのレビュー可能なfile-delete operationで削除する。`apply_patch`自体を承認根拠にせず、`implementation_worker`へfile deleteを委譲しない。`rm`、`del`、`Remove-Item`、`git rm`も使用せず、空file、stub、compatibility re-exportを残して物理削除を回避しない。
 
 ### Task 7: `ProductViewer` dependencyを除去
 
@@ -926,7 +928,7 @@ docs/02_architecture/repository_structure.md
 - 実装task用Run ArtifactがRepository契約どおり保存され、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`がPASSし、`run.json.changed_files`がmachine-managedでCurrent変更を反映している。
 - collector成功後にsanitizer `Write` / `Check`がPASSしている。
 - Current `AGENTS.md` / implementation harness / Safety契約に違反するcommandや操作を使っていない。
-- `src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`はparent agentのレビュー可能な`apply_patch` file deleteで削除し、`implementation_worker`やcommand-based deletionを使用していない。
+- `src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`は、実行時に必要な明示承認とCurrent Safety契約を確認したうえでparent agentが削除し、`apply_patch`自体を承認根拠にしておらず、`implementation_worker`やcommand-based deletionを使用していない。
 - final commit後に通常pushし、local HEAD / remote head / PR #180 headが一致している。
 - PR #180の最新headでWeb CI / Mobile App CIがともに`success`である。
 - push後CI結果だけを理由にtracked Run Artifactを再commitしていない。
@@ -963,8 +965,8 @@ Database migrationやexternal state変更はない。
 
 設計・実装内容として実装開始を止める未解決事項はない。
 
-物理file削除の実行経路はTask 0で開始前に確定する。本Planの明示対象である`src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`は、Current Safety契約にmaterial driftがなければparent agentがレビュー可能な`apply_patch` file deleteで削除する。`implementation_worker`やcommand-based deletionは使わない。Safety契約が実装開始時までに変わり、この経路を禁止している場合だけTask 0で停止する。
+物理file削除はPlan記載だけで実行可とは扱わない。Task 1で`src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`の削除に必要な明示承認とCurrent Safety契約を確認し、確認できない場合は同じRunへ根拠を記録してsource変更前に停止する。`implementation_worker`やcommand-based deletionは使わない。
 
-PR #180の同一branchで実装まで行うため、PR #180のmergeは実装開始条件ではない。Task 0でlatest `main`へのrebaselineと実行条件確認を完了した後、Task 1以降を同PR上で進める。
+PR #180の同一branchで実装まで行うため、PR #180のmergeは実装開始条件ではない。Task 0でRunを初期化した後、Task 1でlatest `main`へのrebaselineと実行条件確認を行い、完了後にTask 2以降を同PR上で進める。
 
 実装開始時にlatest `main`へmaterial driftがあった場合だけ、影響したinterface / consumer / documentationを再評価する。ADR-0027のDecision自体は再Decisionしない。
