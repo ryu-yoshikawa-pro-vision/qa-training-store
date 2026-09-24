@@ -2,55 +2,75 @@
 
 ## Objective（目的）
 
-- CI待機中のAgent/LLMによる状態確認反復をなくす変更の実装PlanをRepositoryへ保存し、PR化する。
-- 実装自体はこのRunでは行わない。
+- CI待機中のAgent/LLMによる状態確認反復をなくし、exact HEADの `Web CI` / `Mobile App CI` が終端状態になった時だけAgentを再開する。
+- 同じbranch / PR #182でPlan修正から実装、検証まで完了する。
 
 ## Scope（対象範囲）
 
 - In:
-  - Repository現状とGitHub CLI仕様の確認
-  - `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` の作成
-  - plan-only PR作成
+  - 現在のCodex実行経路でmodel-free waitが可能かのruntime gate
+  - exact HEADの `Web CI` / `Mobile App CI` だけを監視する待機経路
+  - 必要なhelper / test / wrapperの最小実装
+  - `docs/reference/codex-implementation-harness.md`
+  - `scripts/verify` / `scripts/verify.ps1`
+  - PR #182の実装内容への同期
 - Out:
-  - `docs/reference/codex-implementation-harness.md` の実装変更
-  - `scripts/verify` / `scripts/verify.ps1` の実装変更
-  - workflow / Hook / 新規script追加
+  - Product code
+  - GitHub Actions workflow変更
+  - branch protection変更
+  - permission / sandbox緩和
+  - 外部常駐service
+  - merge
 
 ## Assumptions（仮定）
 
+- 削減対象はCI待機中のモデル推論であり、モデル外processのGitHub API pollingは許容する。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
-- plan-onlyのためfile-changing taskのpush後必須CI完了契約は適用しない。
+- `gh pr checks --watch` を呼ぶだけではmodel-free waitを保証しない。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
-- 必ず質問する不透明点: なし。
-- 仮定してよい細部: Plan内に記載。
-- 未回答の重要質問: なし。
+- ユーザーへ確認が必要な不透明点: なし。
+- 実装gate:
+  - installed Codex versionと実際のtask起動経路。
+  - completion waitの利用可否。
+  - completion waitがない場合のsafe resume可否。
+- 未回答の重要質問: 上記は実測して解消し、推測で実装しない。
 
 ## Research Plan（調査計画）
 
-- Repository: `AGENTS.md`、implementation harness、Bash / PowerShell verify、Web CI / Mobile App CI。
-- 外部仕様: GitHub CLI `gh pr checks` manualと0 checks時の実装。
+- Repository: `AGENTS.md`、implementation harness、codex-safe / codex-task、Bash / PowerShell verify、Web CI / Mobile App CI。
+- Runtime: installed Codexのversion / tool surfaceと35〜40秒のnon-mutating command。
+- 外部仕様: GitHub CLI `pr checks` / `run list`、OpenAI Codex unified exec source。
 - Exit Criteria:
-  - 正本文書だけの変更で十分か判断できる。
-  - registration raceを含む待機契約を実装可能な粒度へ落とせる。
+  - model-free waitを実現できるruntime pathが確定する。
+  - exact HEADの2 workflowだけを監視する終了条件が確定する。
+  - runtimeが対応不能なら、偽の回避策を実装せずblockerとして説明できる。
 
 ## Approach（進め方）
 
-- 既存契約と検証経路を確認する。
-- 必要変更を最小範囲へ限定する。
-- 保存Planを作成し、branchへcommitしてPRを作成する。
+- Task 0でruntime capabilityを確定する。
+- 判定Aならnative completion waitを使う。
+- 判定Bならmodel外supervisorでCI待機し、終了時だけ同一threadをresumeする。
+- 判定Cなら実装を停止し、host capability blockerを記録する。
+- A/Bの場合だけCI waiterを最小実装し、harness / verifyを同期する。
+- 最終push後はPR #182自身で新経路を実地検証する。
 
 ## Definition of Done（完了条件）
 
-- 保存Planが実装対象、検証、停止条件、対象外を明示している。
-- Plan PRが作成されている。
+- 保存PlanのDoDをすべて満たす。
+- PR #182がPlan-onlyではなく、実装・検証結果まで含む。
+- CI待機中にAgent pollingが発生していないことを実地証跡で確認する。
+- latest headの `Web CI` / `Mobile App CI` がsuccess、またはfailure時はrepair-loopへ戻って未解決を残さない。
 
 ## Risks / Unknowns（リスク・未知点）
 
-- `gh pr checks --watch` は0 checks時に待機しないため、registration waitをPlanへ含めないと目的を満たさない。
+- 最重要: interactive Codexがlong-running commandをyieldする場合、repo-local waiterだけでは目的を達成できない。
+- `gh pr checks --fail-fast` はunrelated checkへ反応するため正本にしない。
+- supervisor / resumeはinstalled versionでcwd / sandbox / session identityを検証してから採用する。
 
 ## Thinking Log（判断記録）
 
-- `docs/reference/codex-implementation-harness.md` だけを変更すると `scripts/verify` と `scripts/verify.ps1` のliteral contractが失敗するため、1ファイル修正では不十分と判断した。
-- `AGENTS.md` はimplementation harnessをCI lifecycleの正本として既に参照しているため変更対象外とした。
+- 初版Planの「1回のshell tool call内で `gh pr checks --watch`」は、Codex runtimeがlive sessionをAgentへ返す場合にモデルpollingを残すため撤回する。
+- CI登録完了は「checkが1件以上」ではなく、exact HEADの `Web CI` / `Mobile App CI` 両runの存在で判定する。
+- PR #182をPlan-onlyで終わらせず、同じbranchで実装まで進める。

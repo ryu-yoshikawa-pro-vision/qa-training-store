@@ -26,6 +26,23 @@
   - 親Agentの判断: N/A。
 - Progress: 100% (7/7)
 
+## 2026-09-24 20:20 (JST)
+
+- Summary: ユーザー指示によりPR #182をPlan-onlyから同一branchで実装まで行うtaskへ変更し、初版Planを再レビューした。
+- Changes: 保存PlanとRun PLAN / TASKSを、runtime gate -> CI waiter -> harness同期 -> 実地検証の流れへ更新した。source実装はまだ変更していない。
+- 判断 / 理由:
+  - `gh pr checks --watch` を1回呼ぶだけでは、Codex `exec_command` がyieldしてlive sessionを返す場合に `write_stdin` pollingとモデルturnが残るため、目的達成の保証にならない。
+  - CI登録完了をcheck 1件の存在で判定すると `Web CI` / `Mobile App CI` 登録前にwatchが終わり得るため、exact HEADの両workflow run存在を登録条件へ変更した。
+  - `--fail-fast` はunrelated checkにも反応するため、Repository正本の2 workflowだけを監視する設計へ変更した。
+  - installed Codexでcompletion waitを使えるなら最小経路を採用し、使えない場合だけsafe resumeを伴うsupervisorを検討する。どちらも使えない場合は偽のdocs-only修正を行わずblockerとして停止する。
+- Validation: Repositoryのcodex-safe / codex-task経路と、OpenAI Codex current source / GitHub CLI current sourceをread-only確認した。
+- ブロッカー / 残作業: blockerなし。次はTask 0のruntime gateから実装開始する。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 46% (6/13)
+
 ## 削除候補
 
 - なし。
