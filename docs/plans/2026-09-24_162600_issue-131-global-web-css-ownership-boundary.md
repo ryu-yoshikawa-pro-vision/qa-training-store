@@ -248,7 +248,7 @@ Web CSSについて、次の質問へCurrent sourceだけで回答できる状�
 
 責務:
 
-Storefront / Adminのどちらか一方の画面仕様ではなく、複数Web surfaceで再利用されるpresentation primitive。
+Storefront / Adminの境界、またはownerをまたぐWeb共通surfaceで実際に再利用されるpresentation primitive。Storefront内の複数画面だけ、またはAdmin内の複数画面だけで使われるstyleは、それぞれ`storefront.css`または`admin.css`に置く。
 
 候補:
 
@@ -264,9 +264,9 @@ Storefront / Adminのどちらか一方の画面仕様ではなく、複数Web s
 - consumerが複数領域にまたがるtable / scroll primitive
 - 共通image stateなど、実際に複数ownerから利用されるもの
 
-実装時にはclass名だけで分類せず、TSX consumerを確認して決める。
+実装時にはclass名や同じdeclarationを共有していることだけで分類せず、selectorごとにTSX consumerを確認して決める。
 
-Storefrontでしか使われないselectorを「将来Adminでも使うかもしれない」という理由でsharedへ移さない。逆も同様。
+Storefrontでしか使われないselectorを「将来Adminでも使うかもしれない」という理由でsharedへ移さない。逆も同様。異なるownerのselectorが同じdeclaration blockへgroupされている場合は、property値を変更せずselector listをownerごとに分割して配置する。
 
 ### 4.3 `storefront.css`
 
@@ -364,16 +364,18 @@ import "@/presentation/styles/admin.css";
 
 もし`global.css`のblobが`226a90d371f3960a722172b6249893a771180dd1`から変わっている場合は、変更部分を再mappingしてから以下を進める。
 
-### Task 1: selector ownership inventoryを作る
+### Task 1: selector / named at-rule ownership inventoryを作る
 
-Current `global.css`のtop-level ruleとmedia ruleを、次へ分類する。
+Current `global.css`のtop-level selector、media rule内のselector、named at-ruleを、次へ分類する。
 
 - foundation
 - shared
 - Storefront
 - Admin
 
-分類はselector名ではなくconsumerで決める。
+selector listを1つのrule単位でまとめて分類しない。各selectorのconsumerを確認してownerを決める。異なるownerのselectorが同じdeclaration blockへgroupされている場合は、declaration値を変更せずselector listをownerごとに分割する。同じdeclarationを持つこと自体はshared判定の根拠にしない。
+
+`@keyframes`などのnamed at-ruleは参照元を確認してownerを決める。複数ownerから参照される場合は、それらが共通して依存できるownerへ置く。Currentの`@keyframes payment-spin`はStorefront側の`.processing-spinner`とshared候補の`.state-panel--loading .state-panel__icon`から参照されるため、`shared.css`へ配置する。名前は変更しない。
 
 確認対象:
 
@@ -443,11 +445,11 @@ cross-ownerの競合候補では、少なくともselector、対象property、sp
 - reduced motion
 - existing root document behavior
 
-### Task 4: shared selectorを`shared.css`へ移す
+### Task 4: shared selector / named at-ruleを`shared.css`へ移す
 
-Storefront / Admin両方または複数Web featureで使うpresentation primitiveを移す。
+StorefrontとAdminの両方、またはownerをまたぐWeb共通surfaceから実際に利用されるpresentation primitiveとnamed at-ruleを移す。
 
-consumerが一方しかないものはshared化しない。
+Storefront内だけ、またはAdmin内だけの複数画面で使われることはshared化の根拠にしない。consumerが一方のownerにしかないものは、そのowner fileに置く。
 
 移動後、shared selectorのfeature側再定義を残さない。ただしowner固有modifierやmedia ruleはowner fileに残してよい。
 
@@ -456,6 +458,7 @@ consumerが一方しかないものはshared化しない。
 - `.button`本体 -> shared
 - Storefrontだけで使うbutton container -> Storefront
 - Adminだけのaction panel -> Admin
+- `@keyframes payment-spin` -> shared
 
 ### Task 5: Storefront selectorとresponsive ruleを`storefront.css`へ移す
 
@@ -488,7 +491,9 @@ Admin shell / pages / editor / tableをAdmin ownerへ移す。
 - `.admin-` selectorが`storefront.css`に残っていない。
 - `.storefront-` selectorが`admin.css`に残っていない。
 - 同一exact selectorがowner fileをまたいで定義されていない。
+- grouped selectorに異なるownerが混在したまま残っていない。
 - responsive ruleが対象owner fileにある。
+- named at-ruleのownerを参照元から説明でき、owner不明のnamed at-ruleが残っていない。
 - `global.css`へfeature selectorが残っていない。
 - 同一owner内の既存rule相対順を不必要に変更していない。
 - TSXのclassName renameが発生していない。
@@ -706,9 +711,9 @@ push後は最新PR headを対象に、Repositoryの完了契約どおり次を�
 実装完了時、次のすべてを満たす。
 
 1. CSS ownershipを4 boundaryで説明できる。
-2. selectorの変更理由から変更fileを一意に判断できる。
+2. selectorまたはnamed at-ruleの変更理由から変更fileを一意に判断できる。
 3. responsive ruleのownerがselector ownerと一致する。
-4. cross-file duplicate selectorに依存しない。
+4. cross-file duplicate selectorやowner不明のnamed at-ruleに依存しない。
 5. global foundation以外のfeature styleが`global.css`に残らない。
 6. className、DOM semantics、route、business behaviorを変更していない。
 7. visual / accessibility / responsive behaviorがCurrent mainと同等。
@@ -770,7 +775,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 
 1. active Runを確認し、必要なら`standard` workflowで初期化
 2. Current main / Issue / CSS blob再確認
-3. selector consumer inventory
+3. selector / named at-rule consumer inventory
 4. cascade / override chain mapping
 5. cross-ownerのsource order依存を解消し、移動前gateを通す
 6. baseline UI Review capture
@@ -800,7 +805,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 - 同じselectorがStorefrontとAdminで意図的に異なる値を必要としている。
 - cross-ownerのsource order依存をownerの確定だけでは解消できない。
 - direct import順だけではCurrent cascadeを維持できず、feature間の上書き依存が見つかった。
-- selector consumerを確認してもownerを一意に決められない。
+- selectorまたはnamed at-ruleのconsumer / 参照元を確認してもownerを一意に決められない。
 - className renameなしでは境界を作れない箇所が大量にある。
 - before / after visualで多数の差分が出る。
 - Current mainが本Plan作成後にCSS architectureを変更している。
