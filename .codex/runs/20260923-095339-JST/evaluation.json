@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "run_id": "20260923-095339-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "artifact_contract_gap",
+    "scope_creep"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "TASKS.mdのtracked pre-commit task 22件は完了し22/22。post-pushのcommit / push、最新head CI、PR本文更新はRepository契約上tracked checkbox外のlifecycleであり、それだけを理由にtask_completionをwarnまたはmissing_validationにしない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "レビュー修正後のtracked Progress、contract assertions、local validation、Run Artifact lifecycleの記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "warn",
+      "evidence": "今回の変更はnative-ci-workflow contract testとactive Run Artifactに限定した。以前の作業で誤って作成された未使用remote branchは既存のまま維持し、今回変更・削除していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "以前のGitHub integration操作で作成された未使用remote branchを維持した記録。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "source-only Native contractは27/27 PASS。指定focused commandはoutput/**の生成済み旧test copiesに由来する18 assertionでFAIL。test:contractsは43 files PASS / 1 file FAIL、753 passed / 3 failed / 4 skippedで、失敗3件は未変更codex-hook-contract内Windows launcherの30秒timeout。verify wrapperはnested pnpmを解決できず失敗し、直接format:checkは未変更app/** 78 filesでFAIL。通常commitもpre-commit format:checkで同じ78 filesにより拒否された。今回のfollow-up commitはユーザーの明示許可と手動gateのPASSを条件に一度だけ--no-verifyを使用する。今回再実行したlintは0 errors / 66 warnings、security:checkはPASS。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "レビュー修正後のtracked Progress、contract assertions、local validation、Run Artifact lifecycleの記録。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "今回merge、default branch push、force push、Issue close、branch削除をしていない。以前誤作成されたremote branchは変更せず残している。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "remote branchの既存状態と今回の操作制約に関する記録。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "既存testへAndroid Automation / Production両callerの実行条件とnative_changed=false時のjob skip・verify success assertionを置いた。workflow/runtime実装は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "summary": "既存のNative CI contract testへ直接assertionを追加。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "変更は既存Native workflow contract testとRun Artifactだけに限定し、新しいparser、framework、dependency、runtime変更を追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "summary": "jobBlockと文字列assertionを使用し、新しいframeworkを追加していない。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "環境差のあるWindows launcher timeoutとCRLF由来format failure、およびoutput/**の古いtest copiesをそのまま記録した。該当しないPASSへの読み替えは行わず、生成copy、app/**、formatter / hook設定も変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "今回のレビュー修正、local validation、Run Artifactの最終状態。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "corepack pnpm run verifyはnested pnpmを解決できず終了。直接実行したcorepack pnpm run format:checkはapp/** 78 filesを警告しexit 1。clean origin/mainでは同じcheckがPASSし、78 filesのGit content diffは0、worktree CRLF / baseline LF。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "verify wrapperとformat:checkの現行結果、およびclean origin/mainとの差分Evidence。"
+        }
+      ],
+      "detail": "format failureはcurrent Windows worktreeのline ending状態に限定され、Issue #130の変更内容によるものではない。app/**、formatter設定、hook設定は今回変更せず、format failureはFAILのまま保持する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "corepack pnpm run test:contracts: 44 files中43 passed / 1 failed、760 tests中753 passed / 3 failed / 4 skipped。失敗3件はcodex-hook-contract.test.tsのWindows launcher経由testが各30,000msでtimeout。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "Repository contract suiteのexit 1と3件のWindows launcher timeout。"
+        }
+      ],
+      "detail": "失敗fileは今回変更していない。既存Windows process-launcher / test環境の失敗として記録し、timeout変更、skip、continue-on-errorは追加していない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "指定focused commandのsource testは27 tests PASS。追加で収集されたoutput/**内3つの古いtest copiesが各6件、計18件FAIL。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 review remediation checkpoint",
+          "summary": "source-only Native focused PASSと指定focused commandのoutput/**由来18 failures。"
+        }
+      ],
+      "detail": "失敗は生成済みtraining copies内に残る旧workflow assertionで、current source testや今回の変更によるfailureではない。output/**は今回変更していない。"
+    },
+    {
+      "category": "scope_creep",
+      "severity": "medium",
+      "evidence": "以前の作業でGitHub integration actionが未使用のremote branch feat/issue-130-native-ci-responsibility-boundaryを作成した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260923-095339-JST/REPORT.md",
+          "selector": "2026-09-23 13:03 (JST)",
+          "summary": "意図しないremote branch作成を開示し、変更・削除せず維持した記録。"
+        }
+      ],
+      "detail": "今回の修正は指定PR head branchと既存PR #176だけを対象にする。既存remote branchには触れない。"
+    }
+  ],
+  "improvement_candidates": []
+}
