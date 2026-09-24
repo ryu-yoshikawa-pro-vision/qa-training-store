@@ -48,7 +48,7 @@ import type {
   SessionRepository,
   ShipmentRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import type {
   Cart,
   CartItem,
@@ -1164,10 +1164,15 @@ class NativeCartRepository implements CartRepository {
       if (cart.userId === null) throw new Error("Invalid Native SQLite carts.user_id");
       viewer = await this.viewerForUser(cart.userId);
     }
+    const membershipRank = viewer.kind === "customer" ? viewer.membershipRank : null;
     if (
       !variant.isActive ||
       variant.stockQuantity === 0 ||
-      !canViewerSeeProduct({ viewer, status: product.status, requiredRank: product.requiredRank })
+      !canViewerSeeProduct({
+        membershipRank,
+        status: product.status,
+        requiredRank: product.requiredRank,
+      })
     ) {
       throw new ApplicationError({
         code:
@@ -1588,7 +1593,7 @@ class NativeCartRepository implements CartRepository {
         product.status === "published" &&
         product.requiredRank !== null &&
         !canViewerSeeProduct({
-          viewer: input.viewer,
+          membershipRank,
           status: product.status,
           requiredRank: product.requiredRank,
         })

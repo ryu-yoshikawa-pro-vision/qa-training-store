@@ -39,7 +39,7 @@ import {
   ReviewRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface CheckoutOrderDependencies {
   users: UserRepository;

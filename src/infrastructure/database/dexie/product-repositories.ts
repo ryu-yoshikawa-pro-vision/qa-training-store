@@ -18,7 +18,7 @@ import type {
   InventoryRepository,
   ProductRepository,
   ReviewSummaryRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import type {
   InventoryHistory,
   Product,

@@ -2,7 +2,7 @@
 
 本書はRepository責務とTransaction境界の正本です。Domain Entityは`domain_types.md`、DTO・Input・Resultの具体型は`application_contracts.md`を参照します。
 
-Repository Portのcanonical ownerはADR-0027に従い、Portごとの責務とconsumerから決めます。Application / Infrastructureだけから利用され、Application contractを境界として使うPortはApplication ownershipを第一候補とし、Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持します。DomainからApplicationへの依存は禁止され、type-only importも例外にしません。Current signatureや定義位置は所有権の根拠にならず、本書のRepository method contractもその依存方向を許可するarchitecture authorityではありません。各Portの維持 / 移動 / 削除は別のfollow-up implementation PlanでCurrent consumerとtransaction boundaryを確認して決めます。
+Repository Portのcanonical ownerはADR-0027に従い、Portごとの責務とconsumerから決めます。Current sourceでは使用中のRepository Port contractをApplication ownershipとし、`src/application/repositories/**`へ配置しています。Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持します。DomainからApplicationへの依存は禁止され、type-only importも例外にしません。Current signatureや定義位置は所有権の根拠にならず、本書のRepository method contractもその依存方向を許可するarchitecture authorityではありません。
 
 ## 1. 共通
 
@@ -235,12 +235,6 @@ interface BrandRepository {
   changeActiveState(command: ChangeBrandActiveStateCommand): Promise<Brand>;
 }
 
-interface ImageAssetCatalogRepository {
-  searchActive(query: ImageAssetSearchQuery): Promise<Page<ImageAssetListItem>>;
-  getById(assetId: string): Promise<ImageAsset | null>;
-  listByIds(assetIds: string[]): Promise<ImageAsset[]>;
-}
-
 interface ReviewSummaryRepository extends VersionedRepository<ProductReviewSummary> {
   create(summary: ProductReviewSummary): Promise<ProductReviewSummary>;
   delete(productId: string, expectedVersion: number): Promise<void>;
@@ -346,7 +340,7 @@ interface ShipmentRepository extends VersionedRepository<Shipment> {
 
 Payment GatewayはApp DB Transaction外で呼びます。Order作成に必要な画像PathはBuild生成Manifest ModuleからTransaction前に解決し、`CreateOrderForPaymentCommand.assetPathByAssetId`として渡します。Alt TextはTransaction内で現在のProductImage関係から取得します。
 
-## 7. Review・Overview・Settings
+## 7. Review・Overview
 
 ```typescript
 interface ReviewRepository extends VersionedRepository<Review> {
@@ -362,26 +356,10 @@ interface AdminOverviewQueryRepository {
   getOverview(input: { lowStockThreshold: number; recentOrderLimit: number }): Promise<AdminOverview>;
 }
 
-interface SettingsRepository {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T): Promise<void>;
-}
 ```
-
-## 8. Automation Inspection
-
-```typescript
-interface TestInspectionRepository {
-  inspectOrder(orderId: string): Promise<OrderInspection>;
-  inspectVariant(variantId: string): Promise<VariantInspection>;
-  inspectReviewSummary(productId: string): Promise<ReviewSummaryInspection>;
-}
-```
-
-Automation Buildだけに固定DTOで公開します。任意Store名、任意条件、任意書換えは受け付けません。
 
 Review初回作成時の`ReviewStatusHistory.fromStatus`は`null`、以後の状態変更では直前Statusを設定します。
 
-## 9. 共通Error
+## 8. 共通Error
 
 Repository/Adapter固有ExceptionはUse Case境界で`ApplicationError`へ変換します。PresentationへDexie名、Store名、stack、内部Class名を露出しません。Error Code、messageKey、fieldErrors、retryableの正本は`application_contracts.md`です。Phase 1にReconciliation、Refund、Import、Migration Recovery固有Errorを定義しません。

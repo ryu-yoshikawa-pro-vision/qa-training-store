@@ -18,7 +18,11 @@ import {
   toCurrentUserDto,
 } from "@/application/identity/session-identity-resolver";
 import type { UserAddress } from "@/domain/contracts";
-import type { AddressRepository, SessionRepository, UserRepository } from "@/domain/repositories";
+import type {
+  AddressRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/application/repositories";
 
 interface AccountUseCaseDependencies {
   users: UserRepository;

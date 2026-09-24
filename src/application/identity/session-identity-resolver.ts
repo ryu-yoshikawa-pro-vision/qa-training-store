@@ -2,7 +2,7 @@ import { ApplicationError } from "@/application/errors";
 import type { CurrentUserDto, ProductViewer } from "@/application/contracts";
 import type { CurrentActorResolver, CurrentSessionStore } from "@/application/ports";
 import type { User } from "@/domain/contracts";
-import type { SessionRepository, UserRepository } from "@/domain/repositories";
+import type { SessionRepository, UserRepository } from "@/application/repositories";
 
 export function toCurrentUserDto(user: User): CurrentUserDto {
   return {

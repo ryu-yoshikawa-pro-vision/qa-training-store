@@ -17,9 +17,8 @@ import type {
   PaymentRepository,
   ReviewRepository,
   SequenceRepository,
-  SettingsRepository,
   ShipmentRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import type {
   Order,
   OrderItem,
@@ -426,23 +425,6 @@ function sortReviews(reviews: Review[], sort: ReviewListQuery["sort"]): Review[]
           : left.rating - right.rating;
     return primary || left.id.localeCompare(right.id);
   });
-}
-
-export class DexieSettingsRepository implements SettingsRepository {
-  constructor(private readonly db: ScenarioShopDatabase) {}
-
-  async get<T>(key: string): Promise<T | null> {
-    const setting = await this.db.app_settings.get(key);
-    return setting === undefined ? null : (JSON.parse(setting.valueJson) as T);
-  }
-
-  async set<T>(key: string, value: T): Promise<void> {
-    await this.db.app_settings.put({
-      key,
-      valueJson: JSON.stringify(value),
-      updatedAt: new Date().toISOString(),
-    });
-  }
 }
 
 export class DexieAdminOverviewRepository implements AdminOverviewQueryRepository {

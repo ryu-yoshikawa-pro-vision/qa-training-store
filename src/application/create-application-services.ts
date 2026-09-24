@@ -28,7 +28,7 @@ import type {
   SessionRepository,
   StorefrontCatalogQueryRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import { AccountUseCases } from "./use-cases/account-use-cases";
 import { AdminMasterUseCases } from "./use-cases/admin-master-use-cases";
 import { AdminOperationsUseCases } from "./use-cases/admin-operations-use-cases";

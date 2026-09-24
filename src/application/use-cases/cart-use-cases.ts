@@ -18,7 +18,7 @@ import type {
   IdGenerator,
 } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import type { CartRepository, SessionRepository, UserRepository } from "@/domain/repositories";
+import type { CartRepository, SessionRepository, UserRepository } from "@/application/repositories";
 
 interface CartRepositoryDependencies {
   users: UserRepository;

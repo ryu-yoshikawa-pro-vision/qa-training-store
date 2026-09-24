@@ -4,7 +4,6 @@ import type {
   CartItem,
   Category,
   CheckoutSession,
-  DailySequence,
   InventoryHistory,
   Order,
   OrderItem,
@@ -25,7 +24,6 @@ import type {
 } from "@/domain/contracts";
 import type {
   AcceptPriceChangesCommand,
-  AddressSuggestion,
   AddCartItemCommand,
   AdminOrderListItem,
   AdminOverview,
@@ -48,15 +46,12 @@ import type {
   CreateBrandCommand,
   CreateCategoryCommand,
   DeleteAddressCommand,
-  ImageAssetListItem,
-  ImageAssetSearchQuery,
   InventoryAdjustmentCommand,
   InventoryItem,
   InventorySearchQuery,
   MergeGuestCartCommand,
   MyOrderSearchQuery,
   OrderDetailDto,
-  OrderInspection,
   OrderListItem,
   OrderSearchQuery,
   Page,
@@ -73,7 +68,6 @@ import type {
   ReviewListItem,
   ReviewListQuery,
   ReviewSearchQuery,
-  ReviewSummaryInspection,
   SearchSuggestion,
   SearchSuggestionQuery,
   SetCheckoutAddressCommand,
@@ -82,7 +76,6 @@ import type {
   StorefrontBrandDto,
   StorefrontCatalogQuery,
   StorefrontCategoryDto,
-  TestMetadata,
   UpdateAddressCommand,
   UpdateBrandCommand,
   UpdateCartItemQuantityCommand,
@@ -90,7 +83,6 @@ import type {
   UserAdminListItem,
   UserSearchQuery,
   VariantDeletionBlockers,
-  VariantInspection,
 } from "@/application/contracts";
 
 export interface VersionedRepository<T> {
@@ -168,12 +160,6 @@ export interface BrandRepository {
   create(command: CreateBrandCommand): Promise<Brand>;
   updateDetails(command: UpdateBrandCommand): Promise<Brand>;
   changeActiveState(command: ChangeBrandActiveStateCommand): Promise<Brand>;
-}
-
-export interface ImageAssetCatalogRepository {
-  searchActive(query: ImageAssetSearchQuery): Promise<Page<ImageAssetListItem>>;
-  getById(assetId: string): Promise<import("@/domain/contracts").ImageAsset | null>;
-  listByIds(assetIds: string[]): Promise<import("@/domain/contracts").ImageAsset[]>;
 }
 
 export interface ReviewSummaryRepository extends VersionedRepository<ProductReviewSummary> {
@@ -276,20 +262,3 @@ export interface AdminOverviewQueryRepository {
     recentOrderLimit: number;
   }): Promise<AdminOverview>;
 }
-
-export interface SettingsRepository {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T): Promise<void>;
-}
-
-export interface TestInspectionRepository {
-  inspectOrder(orderId: string): Promise<OrderInspection>;
-  inspectVariant(variantId: string): Promise<VariantInspection>;
-  inspectReviewSummary(productId: string): Promise<ReviewSummaryInspection>;
-}
-
-export interface TestMetadataRepository {
-  getMetadata(): Promise<TestMetadata>;
-}
-
-export type { DailySequence };
