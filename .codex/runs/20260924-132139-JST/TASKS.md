@@ -10,9 +10,9 @@
 - [x] 5. focused testを実行し、新旧EOL matrixを確認する。
 - [x] 6. `format:check`、`format:check:strict`、`test:contracts`、`verify`、`git diff --check`を実行する。
 - [x] 7. diff scopeを確認してRun Artifactをsanitizer検証し、commit前状態にする。
-- [ ] 8. branch safety確認後commit / 通常pushし、local・remote・PR headを照合する。
-- [ ] 9. 最新head Web CI / Mobile App CIを確認し、古くなった場合だけPR本文を更新する。
-- [ ] 10. 未達件数を確定し最終報告する。
+- [x] 8. branch safety確認後commit / 通常pushし、local・remote・PR headを照合する。
+- [x] 9. 最新head Web CI / Mobile App CIを確認し、古くなった場合だけPR本文を更新する。
+- [x] 10. 未達件数を確定し最終報告する。
 
 ## 完了処理の参照先
 
