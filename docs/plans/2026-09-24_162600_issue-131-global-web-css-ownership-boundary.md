@@ -5,7 +5,7 @@
 - 対象Issue: #131 `refactor: Global Web CSSのownership boundaryを整理する`
 - 作業branch: `plan/issue-131-global-web-css-ownership-boundary`
 - branch作成時の`main`: `ac4e57721b55091ace3689eda289d44188241aee`
-- 今回はPlanのみを作成する。CSS実装、テスト変更、PR作成、Issue更新、mergeは行わない。
+- PR #181では本Planを先に追加し、同一branchで後続実装まで行う。現時点ではPlanのみで、CSS実装、テスト変更、Issue更新、mergeは行わない。
 - 目的は`global.css`を分割することではなく、局所UI変更時に確認・変更すべきstyle boundaryを特定でき、無関係な画面・selector・breakpointまでglobal cascade全体を追う必要を減らすことである。
 
 ## 1. 結論
@@ -61,9 +61,9 @@ Expoの公式資料でも、Global CSSはWeb専用で、Expo Routerではroot la
 
 参考:
 
-- https://docs.expo.dev/router/web/static-rendering/
-- https://docs.expo.dev/guides/tailwind/
-- https://docs.expo.dev/versions/v54.0.0/config/metro/#css
+- [Expo Router: Static rendering](https://docs.expo.dev/router/web/static-rendering/)
+- [Expo: Tailwind CSS](https://docs.expo.dev/guides/tailwind/)
+- [Expo Metro: CSS](https://docs.expo.dev/versions/v54.0.0/config/metro/#css)
 
 ### 2.2 Current `global.css`の責務
 
@@ -187,7 +187,7 @@ Web CIはPRで以下を実行する。
 - production smoke
 - final verify
 
-したがって、今回のRefactor用に新しいvisual testing frameworkを追加する必要はない。
+Current CIのUI Reviewはスクリーンショット生成とArtifact保存までを自動化しており、before / after画像の同等性判定は行わない。したがって、今回のRefactor用に新しいvisual testing frameworkは追加せず、同じroute・scenario・viewportで実装前後の画像を取得し、比較結果をRun ReportとPR本文へ記録する。
 
 ## 3. ゴール / 完了条件
 
@@ -217,7 +217,7 @@ Web CSSについて、次の質問へCurrent sourceだけで回答できる状�
 - Current CSS propertyの最終的な意味、specificity、cascade、responsive behavior、accessibility behaviorを維持する。
 - Native stylingを変更しない。
 - `root-layout.web.tsx`のCSS import orderをcontract testで固定する。
-- E2E / accessibility / UI review / buildで意図しないUI差分がない。
+- E2E / accessibility / buildがPASSし、同じroute・scenario・viewportで取得したbefore / after UI Reviewに意図しない差分がないことを確認して記録する。
 - 新しいCSS framework、CSS-in-JS、CSS Modules全面移行、Cascade Layersを導入しない。
 
 ## 4. Ownership contract
@@ -322,12 +322,14 @@ import "@/presentation/styles/storefront.css";
 import "@/presentation/styles/admin.css";
 ```
 
+このimport順は、Task 2でcross-ownerのcascade依存が0件になったことを確認した後に適用する。Current `global.css`内のStorefront / Admin / shared ruleの相対順を、この5 importだけで再現しようとはしない。
+
 理由:
 
 - document foundationを先に適用する。
 - reusable primitiveをfeature styleより先に適用する。
 - StorefrontとAdminはclass ownershipを分離するため、相互上書きを前提にしない。
-- order依存が必要なselectorが見つかった場合は、単純に後ろへ移して解決せず、そのselectorのownerを再確認する。
+- cross-ownerのsource order依存が見つかった場合は、import順で上書きを再現せず、selectorのownerと責務を確定してから移動する。
 
 `@import`を使ったaggregator方式は採用しない。
 
@@ -374,21 +376,28 @@ Current `global.css`のtop-level ruleとmedia ruleを、次へ分類する。
 
 一時的な調査表はRun Artifactまたは実装メモに残してよいが、恒久的な新しいmanifest / registryは追加しない。
 
-### Task 2: duplicate / override chainを整理する
+### Task 2: cascade依存とoverride chainを特定し、移動前gateを通す
 
-Current fileには同一selectorの複数定義がある。
-
-実装時は各selectorについて次を区別する。
+Current fileには同一selectorの複数定義があり、source orderが最終computed valueへ影響する箇所がある。ファイル分割前に、各ruleを次へ分類する。
 
 1. base rule
 2. 同じowner内の後段base override
 3. responsive override
 4. state / pseudo-class
 5. Issue修正で後付けされた局所override
+6. shared / Storefront / Adminをまたいで同じ要素・propertyへ競合するrule
 
-base ruleが複数位置へ分散している場合は、最終computed valueを確認し、同じowner file内の1つのbase ruleへ統合する。
+cross-ownerの競合候補では、少なくともselector、対象property、specificity、media条件、pseudo-class / state、Current source order、最終computed valueを確認する。
 
-一方、responsive overrideやstate ruleはbaseへ無理にflattenしない。
+移動前gate:
+
+- cross-ownerのsource order依存が0件になっている。
+- shared ruleをStorefront / Admin ruleが暗黙に上書きする必要がない。
+- StorefrontとAdminが互いのrule順序へ依存していない。
+- 依存が見つかった場合はimport順で再現せず、consumerと責務を確認してownerを1つへ確定する。
+- ownerを確定できない依存が残る場合は、Task 3以降へ進まずPlanを再評価する。
+
+初回のファイル移動では、property値、specificity、media条件、同一owner内のrule相対順を変更しない。duplicate consolidationとcanonical sectionへの並べ替えは、分割後のfocused validationとUI Reviewでbehavior維持を確認してから行う。
 
 特に次のようなselectorを重点確認する。
 
@@ -406,7 +415,7 @@ base ruleが複数位置へ分散している場合は、最終computed valueを
 - `.address-form-panel`
 - `.resource-table*`
 
-目標はselector数削減ではない。同じ変更理由のstyleを1つのownership boundaryから追える状態にすること。
+目標はselector数削減ではない。同じ変更理由のstyleを1つのownership boundaryから追え、cross-ownerのsource orderに依存しない状態にすること。
 
 ### Task 3: foundationを`global.css`へ残す
 
@@ -442,15 +451,15 @@ consumerが一方しかないものはshared化しない。
 
 Storefront / Customer / Publicを1つのownerとする。
 
-Current後半の`Premium commerce refresh`のような「変更履歴単位」のblockは残さず、対象featureのcanonical sectionへ統合する。
+初回移動ではCurrent file内の同一owner ruleの相対順を維持する。分割後のfocused validationとUI Reviewでbehavior維持を確認した後、`Premium commerce refresh`のような「変更履歴単位」のblockを対象featureのcanonical sectionへ統合する。
 
-ただし、値・specificity・breakpointを同時に改善しない。
+この統合ではproperty値・specificity・breakpointを変更しない。同一owner内でもsource orderが意味を持つoverrideは、computed behaviorを確認せずに統合しない。
 
 ### Task 6: Admin selectorとresponsive ruleを`admin.css`へ移す
 
 Admin shell / pages / editor / tableをAdmin ownerへ移す。
 
-1024px未満のAdmin viewport warningと1024〜1100px等の既存Admin responsive behaviorを同じowner fileに置く。
+初回移動では同一owner内のCurrent rule相対順を維持する。1024px未満のAdmin viewport warningと1024〜1100px等の既存Admin responsive behaviorを同じowner fileに置き、分割後の検証前には順序整理を行わない。
 
 ### Task 7: root importとarchitecture contractを更新する
 
@@ -560,6 +569,7 @@ visual behaviorを変えないRefactorなので、テスト数を増やすこと
 
 ```bash
 pnpm run format:check
+pnpm run lint:markdown
 pnpm run lint
 pnpm run typecheck
 pnpm exec vitest run tests/contracts/architecture.test.ts
@@ -607,9 +617,9 @@ pnpm run test:e2e:mobile-boundary
 
 ### 9.4 Visual
 
-Current CIのUI Reviewを利用する。
+Current CIのUI Reviewを利用する。ただし、CIの`UI Review` jobがPASSしても「スクリーンショット生成に成功した」ことしか証明しない。before / afterの画像同等性は別途確認する。
 
-実装前後で同じroute / viewportをcaptureできる場合は、別stageで保存する。
+CSS変更前にbaselineを取得し、実装後に同じroute・scenario・viewportを別stageで取得する。
 
 例:
 
@@ -620,7 +630,7 @@ UI_REVIEW_STAGE=issue-131-before pnpm exec playwright test e2e/web/ui-review.spe
 UI_REVIEW_STAGE=issue-131-before pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-small-mobile --workers=1
 ```
 
-実装後はstageを`issue-131-after`に変えて同じcaptureを取得する。
+実装後はstageを`issue-131-after`に変えて、同じcapture registry、route、scenario、viewportで取得する。
 
 比較対象:
 
@@ -629,7 +639,15 @@ UI_REVIEW_STAGE=issue-131-before pnpm exec playwright test e2e/web/ui-review.spe
 - Mobile 390×844
 - Small Mobile 320×700
 
-比較で意図しない差分が出た場合は、style値を新仕様へ合わせるのではなく、移動前のcascade / specificity / import orderを調べて回帰を直す。
+実装担当者がbefore / afterの画像ペアを確認し、Run ReportとPR本文へ次を記録する。
+
+- 比較したstage名
+- 対象viewport
+- 意図しない差分の有無
+- 差分がある場合のroute / screenshot名
+- 差分の原因と修正結果
+
+PRの完了条件では、CIのUI Review successをvisual equivalenceのEvidenceとして扱わない。比較で意図しない差分が出た場合は、style値を新仕様へ合わせるのではなく、移動前のcascade / specificity / import orderを調べて回帰を直す。
 
 ### 9.5 repository標準検証
 
@@ -678,10 +696,12 @@ Current file内では後段overrideが多数あるため、単純にselectorをf
 
 対策:
 
-- 最終computed valueを基準にbase ruleを統合する。
+- ファイル移動前にcross-ownerのsource order依存を洗い出し、未解決0件をTask 3以降へ進む条件にする。
+- 初回移動ではproperty値、specificity、media条件、同一owner内のrule相対順を変えない。
+- duplicate consolidationやsection並べ替えは分割後のfocused validationとUI Review後に行う。
 - feature間上書きを前提にしないownershipへ分ける。
 - responsive / pseudo-classは意味を保ったままowner file内へ移す。
-- before / after UI reviewとE2Eで確認する。
+- before / after UI ReviewとE2Eで確認する。
 
 ### 11.2 broad selectorの誤分類
 
@@ -718,28 +738,32 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 
 1. Current main / Issue / CSS blob再確認
 2. selector consumer inventory
-3. duplicate / override chain mapping
-4. baseline UI review capture
-5. `global.css` foundation整理
-6. `shared.css`作成・移動
-7. `storefront.css`作成・移動
-8. `admin.css`作成・移動
-9. responsive ruleを各ownerへ移動
-10. root CSS import order更新
-11. architecture contract更新
-12. static ownership self-review
-13. focused contract / build
-14. Chromium / a11y / mobile-boundary
-15. after UI review capture
-16. `pnpm run verify`
-17. diff / scope review
-18. PR作成時にIssue #131の目的、ownership表、validation結果を記載
+3. cascade / override chain mapping
+4. cross-ownerのsource order依存を解消し、移動前gateを通す
+5. baseline UI Review capture
+6. `global.css` foundation整理
+7. `shared.css`作成・移動
+8. `storefront.css`作成・移動
+9. `admin.css`作成・移動
+10. responsive ruleを各ownerへ移動
+11. root CSS import order更新
+12. architecture contract更新
+13. static ownership self-review
+14. focused contract / build
+15. Chromium / a11y / mobile-boundary
+16. after UI Review captureとbefore / after比較
+17. 安全性を確認できた同一owner内duplicate / sectionだけ整理
+18. 必要なfocused validationを再実行
+19. `pnpm run verify`
+20. diff / scope review
+21. PR本文へownership表、validation結果、visual比較結果を記載
 
 ## 13. 実装時に止めて再判断する条件
 
 次の場合は、その場で追加抽象化せずPlanを再評価する。
 
 - 同じselectorがStorefrontとAdminで意図的に異なる値を必要としている。
+- cross-ownerのsource order依存をownerの確定だけでは解消できない。
 - direct import順だけではCurrent cascadeを維持できず、feature間の上書き依存が見つかった。
 - selector consumerを確認してもownerを一意に決められない。
 - className renameなしでは境界を作れない箇所が大量にある。
