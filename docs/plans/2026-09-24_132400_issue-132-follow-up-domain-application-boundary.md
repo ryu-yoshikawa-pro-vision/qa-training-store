@@ -499,7 +499,21 @@ Currentの「follow-up RefactorではDomain policyへ渡さない」という未
 
 Mermaid全体の再設計はしない。
 
-### 8.4 履歴文書
+### 8.4 `docs/02_architecture/repository_structure.md`
+
+§4のCurrent architecture説明を実装後の状態へ同期する。
+
+Currentの次の記載:
+
+```text
+単一Storeで完結するAddress、Cart取得/作成、Settings等の原子的CommandはRepository Method内の1 Transactionを許可する。
+```
+
+から、削除済みになる`SettingsRepository`を前提とする`Settings`の例を削除する。Address、Cart取得/作成等、現在もRepository Method内の単一Store transactionを許可する例だけを残す。
+
+Repository ownership ruleやtransaction方針自体は変更しない。
+
+### 8.5 履歴文書
 
 次は履歴として書き換えない。
 
@@ -550,11 +564,11 @@ material driftがある場合は影響箇所だけ再評価し、24 / 17 / 7やc
 
 ### Task 2: focused regressionを先に確認
 
-変更前baselineとして次を実行する。
+変更前baselineとして次を実行する。Windows / PowerShellではRepositoryの`packageManager`（`pnpm@10.34.5`）をCorepack経由で使用し、PATH上のglobal `pnpm`を前提にしない。
 
 ```bash
-pnpm exec vitest run tests/unit/policies.test.ts
-pnpm exec vitest run tests/contracts/architecture.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+corepack pnpm exec vitest run tests/unit/policies.test.ts
+corepack pnpm exec vitest run tests/contracts/architecture.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
 ```
 
 関連Repository contract testもCurrent test配置から対象を確認して実行する。
@@ -626,21 +640,21 @@ Current source remediationが完了してからcontractを有効にし、意図�
 ### Task 10: focused validation
 
 ```bash
-pnpm exec vitest run tests/unit/policies.test.ts
-pnpm exec vitest run tests/contracts/architecture.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
-pnpm run test:repository
-pnpm run typecheck
+corepack pnpm exec vitest run tests/unit/policies.test.ts
+corepack pnpm exec vitest run tests/contracts/architecture.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000
+corepack pnpm run test:repository
+corepack pnpm run typecheck
 git diff --check
 ```
 
-Repository contract testが`pnpm run test:repository`全体より狭く安全に実行できる場合は、変更対象Repositoryに対応するfocused testを先に実行してから全体を実行する。
+Repository contract testが`corepack pnpm run test:repository`全体より狭く安全に実行できる場合は、変更対象Repositoryに対応するfocused testを先に実行してから全体を実行する。
 
 ### Task 11: Repository標準gate
 
 focused validation成功後に次を実行する。
 
 ```bash
-pnpm run verify
+corepack pnpm run verify
 git diff --check
 ```
 
@@ -745,6 +759,7 @@ tests/contracts/architecture.test.ts
 docs/04_data/repository_interfaces.md
 docs/04_data/application_contracts.md
 docs/02_architecture/system_architecture.md
+docs/02_architecture/repository_structure.md
 ```
 
 `DexieSettingsRepository`削除は`src/infrastructure/database/dexie/order-review-repositories.ts`内で行う。
@@ -852,10 +867,10 @@ docs/02_architecture/system_architecture.md
 - Domain → Application static contractがCurrent sourceを検査する。
 - scanner synthetic self-testが禁止syntax / path familyと許可例を検証する。
 - AST parser、新規dependency、generic scannerを追加していない。
-- `repository_interfaces.md`、`application_contracts.md`、`system_architecture.md`が実装後のCurrent stateと一致する。
+- `repository_interfaces.md`、`application_contracts.md`、`system_architecture.md`、`repository_structure.md`が実装後のCurrent stateと一致する。
 - 過去Plan / report / Run ArtifactをCurrent都合で書き換えていない。
 - Product behavior、Repository method semantics、DB schema、transaction scopeを変更していない。
-- focused validation、`test:repository`、`typecheck`、`pnpm run verify`、`git diff --check`がPASSする。
+- focused validation、`test:repository`、`typecheck`、`corepack pnpm run verify`、`git diff --check`がPASSする。
 - 実装task用Run ArtifactがRepository契約どおり保存され、sanitizer `Write` / `Check`がPASSしている。
 - final commit後に通常pushし、local HEAD / remote head / 実装PR headが一致している。
 - 実装PRの最新headでWeb CI / Mobile App CIがともに`success`である。
