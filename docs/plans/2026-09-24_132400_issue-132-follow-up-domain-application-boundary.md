@@ -718,7 +718,7 @@ git diff --check
 
 1. `TASKS.md`を実際の完了状態へ更新する。
 2. `REPORT.md`へ検証結果と最終inventoryをappend-onlyで記録する。
-3. actual `run.json`は手編集しない。Task 0で`run.json`を作成していない場合も含め、RepositoryのcollectorにCurrent templateから生成・更新させ、Current working treeの変更fileを反映する。
+3. actual `run.json`は手編集しない。Task 1で`run.json`を作成していない場合も含め、RepositoryのcollectorにCurrent templateから生成・更新させ、Current working treeの変更fileを反映する。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles -Strict
