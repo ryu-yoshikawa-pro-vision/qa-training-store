@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,6 +23,19 @@ function nodeErrorCode(error: unknown) {
 
 const repoRoot = path.resolve(process.cwd());
 const doctorPath = path.join(repoRoot, "scripts", "diagnose-codex-hooks.mjs");
+const stateModulePath = path.join(repoRoot, "scripts", "lib", "codex-text-quality-state.mjs");
+
+const doctorDependencies = [
+  "smol-toml",
+  "textlint",
+  "@textlint-rule/textlint-rule-no-invalid-control-character",
+  "textlint-rule-no-zero-width-spaces",
+  "textlint-rule-no-nfd",
+  "textlint-rule-no-kangxi-radicals",
+  "textlint-rule-no-hankaku-kana",
+  "textlint-rule-no-doubled-conjunctive-particle-ga",
+  "textlint-rule-no-dropping-the-ra",
+];
 
 function git(root: string, args: string[]) {
   return execFileSync("git", args, {
@@ -51,9 +64,59 @@ function writeFile(root: string, relativePath: string, content: string) {
   fs.writeFileSync(target, content, "utf8");
 }
 
+function linkDoctorDependencies(root: string) {
+  for (const packageName of doctorDependencies) {
+    const source = path.join(repoRoot, "node_modules", packageName);
+    const target = path.join(root, "node_modules", packageName);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(source, target, "junction");
+  }
+}
+
+function unlinkLinkedDoctorDependencies(root: string) {
+  const nodeModules = path.join(root, "node_modules");
+  try {
+    const stats = fs.lstatSync(nodeModules);
+    if (stats.isSymbolicLink() || !stats.isDirectory()) {
+      throw new Error("linked test node_modules boundary changed unexpectedly");
+    }
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+
+  for (const packageName of doctorDependencies) {
+    const target = path.join(nodeModules, packageName);
+    let stats: fs.Stats;
+    try {
+      stats = fs.lstatSync(target);
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+    if (!stats.isSymbolicLink()) {
+      throw new Error("linked test dependency is not a symlink");
+    }
+    fs.unlinkSync(target);
+  }
+
+  const scopedDirectory = path.join(nodeModules, "@textlint-rule");
+  if (fs.existsSync(scopedDirectory)) fs.rmdirSync(scopedDirectory);
+  fs.rmdirSync(nodeModules);
+}
+
 function createFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-doctor-"));
-  fs.mkdirSync(path.join(root, ".codex"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
+  writeFile(root, ".gitignore", "node_modules/\n");
+  fs.copyFileSync(
+    path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs"),
+    path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
+  );
   writeFile(
     root,
     ".codex/config.toml",
@@ -74,8 +137,9 @@ function createFixture() {
   git(root, ["init", "--quiet"]);
   git(root, ["config", "user.email", "codex-doctor@example.invalid"]);
   git(root, ["config", "user.name", "Codex Doctor Contract"]);
-  git(root, ["add", ".codex/config.toml"]);
+  git(root, ["add", "."]);
   git(root, ["commit", "--quiet", "-m", "fixture"]);
+  linkDoctorDependencies(root);
   return root;
 }
 
@@ -107,8 +171,8 @@ function removeFixture(root: string) {
   }
 }
 
-function runDoctor(cwd: string): ProcessResult {
-  const result = spawnSync(process.execPath, [doctorPath], {
+function runDoctor(cwd: string, scriptPath = doctorPath): ProcessResult {
+  const result = spawnSync(process.execPath, [scriptPath], {
     cwd,
     encoding: "utf8",
     env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
@@ -275,6 +339,16 @@ describe("offline Codex Hook diagnostics contract", () => {
     });
   });
 
+  it("reports a missing text quality Hook file as a safe diagnostic error", () => {
+    withFixture((root) => {
+      fs.rmSync(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+      expectReadOnlyDoctor(root, 1, (result) => {
+        expect(result.stdout).toContain("root text quality Hookがありません");
+        expect(result.stdout).toContain("Summary: WARN=0 ERROR=1");
+      });
+    });
+  });
+
   it("accepts an empty state directory and does not execute configured handlers", () => {
     withFixture((root) => {
       fs.mkdirSync(path.join(root, ".artifacts", "codex-text-quality"), { recursive: true });
@@ -397,7 +471,7 @@ describe("offline Codex Hook diagnostics contract", () => {
         expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
       });
     });
-  });
+  }, 60_000);
 
   it("classifies filename repository mismatch once without duplicate field identity validation", () => {
     withFixture((root) => {
@@ -479,7 +553,7 @@ describe("offline Codex Hook diagnostics contract", () => {
         expect(result.stdout).toContain("Summary: WARN=0 ERROR=1");
       });
     });
-  });
+  }, 60_000);
 
   it("rejects root hooks.json as an incomplete offline diagnostic boundary", () => {
     withFixture((root) => {
@@ -574,7 +648,7 @@ describe("offline Codex Hook diagnostics contract", () => {
         expect(result.stdout).not.toContain("state-file-secret");
       });
     });
-  });
+  }, 60_000);
 
   it("treats a non-Git cwd as unavailable repository context", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-doctor-nonrepo-"));
@@ -587,6 +661,91 @@ describe("offline Codex Hook diagnostics contract", () => {
     } finally {
       removeFixture(root);
     }
+  });
+
+  it("starts the actual linked worktree doctor without node_modules and reports dependency errors", () => {
+    const root = createFixture();
+    const linked = path.join(os.tmpdir(), `codex-hook-doctor-linked-${randomUUID()}`);
+    try {
+      fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
+      fs.copyFileSync(doctorPath, path.join(root, "scripts", "diagnose-codex-hooks.mjs"));
+      fs.copyFileSync(
+        stateModulePath,
+        path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
+      );
+      git(root, ["add", "scripts"]);
+      git(root, ["commit", "--quiet", "-m", "add doctor entry point"]);
+      git(root, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
+
+      const linkedDoctorPath = path.join(linked, "scripts", "diagnose-codex-hooks.mjs");
+      expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(false);
+      expect(path.dirname(path.resolve(root))).toBe(path.dirname(path.resolve(linked)));
+      const before = snapshot(linked);
+      const result = runDoctor(linked, linkedDoctorPath);
+      const after = snapshot(linked);
+
+      expect(after).toEqual(before);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("required dependency is unavailable: smol-toml");
+      expect(result.stdout).toContain("required dependency is unavailable: textlint");
+      expect(result.stdout).toContain("Summary: WARN=0 ERROR=");
+      expect(result.stdout).not.toMatch(
+        /MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|node:internal| at .*\.mjs/u,
+      );
+    } finally {
+      if (fs.existsSync(linked)) {
+        unlinkLinkedDoctorDependencies(linked);
+        try {
+          git(root, ["worktree", "remove", "--force", linked]);
+        } catch {
+          removeFixture(linked);
+        }
+      }
+      removeFixture(root);
+    }
+  });
+
+  it("loads dependencies prepared in an actual linked worktree and keeps doctor read-only", () => {
+    const root = createFixture();
+    const linked = path.join(os.tmpdir(), `codex-hook-doctor-linked-deps-${randomUUID()}`);
+    try {
+      fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
+      fs.copyFileSync(doctorPath, path.join(root, "scripts", "diagnose-codex-hooks.mjs"));
+      fs.copyFileSync(
+        stateModulePath,
+        path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
+      );
+      git(root, ["add", "scripts"]);
+      git(root, ["commit", "--quiet", "-m", "add doctor entry point"]);
+      git(root, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
+      linkDoctorDependencies(linked);
+
+      const linkedDoctorPath = path.join(linked, "scripts", "diagnose-codex-hooks.mjs");
+      expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(true);
+      const before = snapshot(linked);
+      const result = runDoctor(linked, linkedDoctorPath);
+      const after = snapshot(linked);
+
+      expect(after).toEqual(before);
+      expect(result.status, result.stdout + result.stderr).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("OK: required Hook dependencies are resolvable");
+      expect(result.stdout).toContain("OK: [features] hooks = true");
+      expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
+    } finally {
+      if (fs.existsSync(linked)) {
+        unlinkLinkedDoctorDependencies(linked);
+        try {
+          git(root, ["worktree", "remove", "--force", linked]);
+        } catch {
+          removeFixture(linked);
+        }
+      }
+      removeFixture(root);
+    }
+    expect(fs.existsSync(path.join(repoRoot, "node_modules", "textlint"))).toBe(true);
+    expect(fs.existsSync(path.join(repoRoot, "node_modules", "smol-toml"))).toBe(true);
   });
 
   it("keeps unreadable regular state files as WARN on permission-aware systems", () => {

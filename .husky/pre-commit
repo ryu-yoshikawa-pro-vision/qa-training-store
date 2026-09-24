@@ -1,3 +1,2 @@
-pnpm run format:check
-pnpm run lint
+pnpm run quality:staged
 pnpm run security:check
