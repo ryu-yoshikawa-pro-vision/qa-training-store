@@ -18,13 +18,13 @@
 
 ### 完了条件（DoD）
 
-- project-scoped MCP serverがRepositoryから起動でき、Codexのtool catalogにCI待機toolが登録される。
+- project-scoped MCP serverがRepository rootまたはRepository内subdirectoryから起動でき、fresh Codex processの初回tool catalogにCI待機toolが登録される。
 - MCP serverはstdio transportを使い、外部HTTP server、daemon、queue、webhook receiverを追加しない。
 - Codex側のMCP tool timeoutがCI待機上限より長く設定され、MCP tool callが待機途中でCodex側timeoutにならない。
 - CI待機tool `wait_for_required_ci` は、最低限次を入力に取る。
   - PR番号
   - expected head SHA
-- Repository名はmodel入力にせず、MCP server process起動時に固定cwdから1回だけ導出し、そのprocess lifetime中は同じRepository identityを使用する。
+- Repository名はmodel入力にせず、MCP server process起動時にローカルGitの `origin` URLから1回だけ導出し、そのprocess lifetime中は同じRepository identityを使用する。Repository固定のためにserver startup中のGitHub API通信は行わない。
 - toolは開始時にPRがOPENであり、current head SHAがexpected head SHAと一致することを確認する。
 - exact HEADかつ `pull_request` eventの `Web CI` / `Mobile App CI` が両方登録されるまでboundedに待つ。
 - 両workflow登録後は対象runだけを監視し、次のいずれかでtool resultを返す。
@@ -51,12 +51,13 @@
 - `scripts/verify` と `scripts/verify.ps1` は現在のpolling禁止文言をliteralで検証しているため、正本文書だけを変更すると標準verifyが失敗する。
 - `.codex/config.toml` はproject-scoped Codex configとして既に使われているが、現在は `[mcp_servers.*]` 定義を持たない。
 - `package.json` / `pnpm-lock.yaml` にMCP server SDKは入っていない。
-- RepositoryはZod 4.4.3、Node.js / TypeScript系の既存テスト基盤を持つ。
+- RepositoryはZod 4.4.3、Node.js / TypeScript系の既存テスト基盤を持ち、GitHub ActionsではNode 24を使用している。
 
 ### Codex MCP
 
 - Codexはstdio MCP serverの `command` / `args` / `cwd` を設定できる。
-- MCP server単位で `tool_timeout_sec` を設定できる。今回は `tool_timeout_sec = 6000` を明示し、Codexの既定値には依存しない。既定値はCodex versionによって異なり得るため、Planや成功判定の固定前提にしない。
+- MCP server単位で `startup_timeout_sec` / `tool_timeout_sec` を設定できる。今回は `startup_timeout_sec = 5`、`tool_timeout_sec = 6000` を明示し、server単位の既定値には依存しない。
+- optional MCP serverは初回tool catalog構築時の共有startup graceを超えると、そのturnのtool catalogから外れ得る。project configで `mcp_optional_startup_grace_ms = 5000` を明示し、5秒以内にreadyとなったrepo-local waiterを初回catalogへ含める。
 - MCP tool callは通常の `exec_command` live sessionとは別経路であり、tool serverがresultを返すまでMCP callを保持できる設計になっている。
 - 今回はこの性質を使い、「1回のtool call → MCP内部で待機 → result返却」を実現する。
 - 長時間tool callが現在のinstalled Codex / Windows環境で必要時間保持されることは、実地検証で確認する。upstream実装だけを根拠に完了扱いにしない。
@@ -73,7 +74,8 @@
 - 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中のモデル推論・Agent turn・tool再呼び出しによるトークン消費である。
 - MCP server内部のread-only GitHub pollingは許容する。
 - GitHub認証は既存の `gh` CLI認証を使用し、新しいtoken保存・credential管理を追加しない。
-- RepositoryはMCP serverの固定cwdへ拘束する。server process起動時に限り `gh api --method GET repos/{owner}/{repo}` でcurrent Repositoryを解決し、返された `full_name` をprocess内へ固定する。以降のtool callでは固定owner / repoをendpointへ明示し、Git remoteを再解決しない。modelから任意Repositoryを指定させない。
+- stdio MCP childへはCodexの既定環境に加え、親processに存在する場合だけ `GH_TOKEN` / `GITHUB_TOKEN` をMCP `env_vars` で明示継承する。token値はtracked config、ログ、tool resultへ書かない。
+- Repository identityはserver process起動時に `git remote get-url origin` を1回だけ実行してローカルに確定する。`https://github.com/<owner>/<repo>[.git]` と `git@github.com:<owner>/<repo>[.git]` を受理し、`owner/repo` をprocess内へ固定する。以降のtool callでは固定owner / repoをendpointへ明示し、Git remoteを再解決しない。modelから任意Repositoryを指定させない。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` を設定して非対話実行に固定する。
 - `gh api` は全呼び出しで `--method GET` を明示する。`-f` / `-F` query parameterを使う場合もHTTP methodを暗黙値に任せない。
 - CI失敗後の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
@@ -99,7 +101,9 @@
   - registration timeoutは5分、tool全体のoverall timeoutは90分とする。
   - Codex側 `tool_timeout_sec` は内部overall timeoutより十分長い100分（6000秒）を設定する。
 - 実装時に実測する項目:
-  - project-scoped `.codex/config.toml` からstdio MCP serverがWindows / host runtimeで起動できること。
+  - host Nodeが `node --run` を利用できるversionであること。
+  - Repository rootとRepository内subdirectoryの両方からproject-scoped `.codex/config.toml` のstdio MCP serverがWindows / host runtimeで起動できること。
+  - `mcp_optional_startup_grace_ms = 5000` と `startup_timeout_sec = 5` でfresh Codex processの初回tool catalogに `wait_for_required_ci` が登録されること。
   - 長時間MCP call中にAgentへ途中turnが戻らないこと。
   - MCP result返却後に同じCodex turnが継続すること。
 - 未回答の重要質問: なし。上記は実装gateとして実測し、失敗した場合は実装を完了扱いにしない。
@@ -110,9 +114,11 @@
 
 - `.codex/config.toml`
   - repo-local MCP server登録。
-  - MCP tool timeout設定。
+  - optional MCP startup grace、server startup timeout、MCP tool timeout設定。
+  - `GH_TOKEN` / `GITHUB_TOKEN` の名前だけをMCP childへ継承する設定。
 - `package.json`
   - 公式 `@modelcontextprotocol/server` v2 stableをexact versionで `devDependencies` に追加。
+  - Repository内subdirectoryからもserverを起動できる `mcp:ci-wait` scriptを追加。
 - `pnpm-lock.yaml`
   - dependency追加に同期。
 - `scripts/mcp/ci-wait-server.mjs`
@@ -154,10 +160,12 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 2. 公式 `@modelcontextprotocol/server` v2 stableのcurrent exact version、Node要件、licenseを確認する。
 3. `devDependencies` へexact versionを追加し、`pnpm-lock.yaml` を同期する。
 4. Repository標準セットアップどおり `pnpm install --frozen-lockfile` を完了してからMCP起動検証へ進む。fresh checkoutでdependency未導入のままMCP server起動成功を要求しない。
-5. stdio MCP serverを追加する。
-6. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
-7. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
-8. shell文字列連結を使わず、Node `child_process.execFile` / `spawn` のargvで `gh` を呼ぶ。
+5. host Nodeが `node --run` を利用できることを確認し、`package.json` に `mcp:ci-wait` scriptを追加する。Repository root / subdirectoryのどちらからでも上位の `package.json` を解決してserverを起動する経路とする。
+6. stdio MCP serverを追加する。
+7. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
+8. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
+9. Repository identity取得は `git remote get-url origin` をNode `child_process.execFile` / `spawn` のargvで1回だけ実行する。GitHub API通信をserver startup条件にしない。
+10. GitHub read I/Oはshell文字列連結を使わず、Node `child_process.execFile` / `spawn` のargvで `gh` を呼ぶ。
 
 公式SDKを使えない明確な互換性問題が見つかった場合は、MCP protocolを手書き実装せず停止して報告する。
 
@@ -168,18 +176,22 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 契約:
 
 - transport: stdio。
-- server command: Repository内serverをNodeで起動する。
-- `tool_timeout_sec = 6000`。
+- server command: `node --run mcp:ci-wait`。MCP `cwd` へuser固有絶対pathを埋め込まず、Nodeのpackage script探索でRepository rootの `package.json` を解決する。
+- project-level `mcp_optional_startup_grace_ms = 5000`。
+- server-level `startup_timeout_sec = 5`。
+- server-level `tool_timeout_sec = 6000`。
 - serverが公開するtoolはCI待機toolだけに限定する。
 - `wait_for_required_ci` だけをtool単位で `approval_mode = "approve"` に固定し、他toolへの包括的なapproval設定は追加しない。
 - user-level `~/.codex/config.toml` へ設定を要求しない。
 - secret / PAT / GitHub tokenをconfigへ追加しない。
 - existing `gh` authenticationをserver processから利用する。
+- MCP serverの `env_vars` に `GH_TOKEN` / `GITHUB_TOKEN` を指定し、親processに存在する場合だけ継承する。token値自体はconfigへ記載しない。
 - `required = true` は設定しない。dependency未導入のfresh checkoutでCodex全体の起動を妨げない。
-- server process初期化時に `gh api --method GET repos/{owner}/{repo}` を1回実行し、`full_name` を `owner/repo` 形式として検証してowner / repoをprocess stateへ固定する。初期化後はGit remoteや `{owner}` / `{repo}` placeholderを再参照しない。
-- Repository identityを確定できない場合はserver startupを成功扱いにしない。
+- server process初期化時に `git remote get-url origin` を1回だけ実行し、GitHub HTTPS / SSH origin URLから `owner/repo` を抽出してprocess stateへ固定する。初期化後はGit remoteを再参照しない。
+- originがない、GitHub URLとして解釈できない、またはRepository identityを確定できない場合はserver startupを成功扱いにしない。
+- server startupではGitHub API / `gh` 認証確認を行わない。GitHub接続・認証の検証は `wait_for_required_ci` tool call開始後に行う。
 
-project root以外からCodexを起動したときにrelative script path / `cwd` が壊れる場合は、Codexのstdio MCP `cwd` 設定でRepository rootへ固定できるかを確認する。user固有の絶対pathをtracked configへ書かない。
+Repository root以外のsubdirectoryからCodexを起動する経路も検証する。`node --run mcp:ci-wait` でroot `package.json` を解決できない場合は、`scripts/codex-task.*` やuser固有絶対pathへfallbackせずblockerとして報告する。
 
 MCP dependency / configを追加したcurrent実装process自体はtool availabilityの証拠にしない。`pnpm install --frozen-lockfile` 完了後に起動したfresh Codex processでserver startupとtool catalogを検証する。custom MCP startup failure後に同じprocessでdependencyを導入すれば自動復旧する、という前提は置かない。
 
@@ -196,18 +208,18 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 
 #### Repository固定
 
-- MCP serverはproject-scoped configでRepository rootをcwdとして起動する。
-- server process初期化時にだけ `gh api --method GET repos/{owner}/{repo}` を使い、current cwdからRepositoryを解決する。
-- 初期化結果の `full_name` を `owner/repo` 形式として検証し、owner / repoをprocess stateへ固定する。以降のPR / workflow API endpointは `repos/<fixed-owner>/<fixed-repo>/...` を組み立て、`{owner}` / `{repo}` placeholderやGit remoteを再解決しない。
+- MCP serverは `node --run mcp:ci-wait` で起動し、Repository root / subdirectoryのどちらからでもroot `package.json` のscriptへ到達できることを実地検証する。
+- server process初期化時に `git remote get-url origin` を1回だけ実行し、ローカルGit情報からRepositoryを解決する。startup中にGitHub APIは呼ばない。
+- `https://github.com/<owner>/<repo>[.git]` と `git@github.com:<owner>/<repo>[.git]` を受理し、`owner/repo` をprocess stateへ固定する。以降のPR / workflow API endpointは `repos/<fixed-owner>/<fixed-repo>/...` を組み立て、Git remoteを再解決しない。
 - model入力でRepository、owner、repo、GitHub endpointを上書きする経路を持たない。
-- tool開始時に取得したPRの `base.repo.full_name` が起動時に固定した `full_name` と一致しない場合は `repository_mismatch` を返し、そのPRやworkflowの監視へ進まない。
-- tool resultの `repository` には起動時に固定した `full_name` を使用する。
+- tool call開始後に取得したPRの `base.repo.full_name` が起動時に固定した `owner/repo` と一致しない場合は `repository_mismatch` を返し、そのPRやworkflowの監視へ進まない。
+- tool resultの `repository` には起動時に固定した `owner/repo` を使用する。
 - server process初期化時にRepository identityを確定できない場合はMCP startup failureとし、tool call内の `github_error` へ変換しない。
 
 #### GitHub操作
 
 - GitHub操作は `gh api --method GET` に統一する。Repository取得用の `gh repo view` やwrite系subcommandは使用しない。
-- `{owner}` / `{repo}` placeholderを使うのはserver process初期化時のRepository identity確定だけとする。tool call中は起動時に固定したowner / repoをendpointへ明示する。
+- GitHub API endpointでは `{owner}` / `{repo}` placeholderを使わず、server startup時に固定したowner / repoを明示する。GitHub API通信はtool call開始後だけ行う。
 - query parameterに `-f` / `-F` を使う場合も必ず `--method GET` を明示し、parameter追加による暗黙POSTを許可しない。
 - 各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。ただしserver初期化時のRepository identity取得失敗はstartup failureとして扱う。
 - 子processへ `GH_PROMPT_DISABLED=1` を設定し、認証prompt等による無期限待機を許可しない。
@@ -220,16 +232,19 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 - Repository契約上の表示名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
 - workflow操作、PR更新、comment、rerun、cancel等のwrite APIは持たない。
 
-#### 開始時guard
+#### PR guard
 
-- PRの `base.repo.full_name` が起動時に固定したRepositoryと違う場合は `repository_mismatch`。
-- PR stateがOPENでない場合は `invalid_pr_state`。
-- current head SHAがexpected head SHAと違う場合は `stale_head`。
+- PRを取得するたびに、次を同じ共通guardとして評価する。
+  - `base.repo.full_name` が起動時に固定したRepositoryと違う場合は `repository_mismatch`。
+  - stateがOPENでない場合は `invalid_pr_state`。
+  - current head SHAがexpected head SHAと違う場合は `stale_head`。
+- tool call開始時、workflow登録待ちの各poll、workflow完了待ちの各pollでこのPR guardを先に実行する。
 - GitHub CLI未導入、未認証、API errorは `github_error`。
 
 #### workflow登録待ち
 
-- `ci.yml` / `native-ci.yml` のworkflow run一覧を10秒間隔で個別に確認する。
+- 10秒間隔の各pollで最初にPR guardを実行し、通過した場合だけ `ci.yml` / `native-ci.yml` のworkflow run一覧を個別に確認する。
+- registration中にPRがcloseされた場合は `invalid_pr_state`、headが変わった場合は `stale_head`、base Repositoryが変わった場合は `repository_mismatch` を即時返す。
 - 各候補は `head_sha=expected_head_sha`、`event=pull_request`、`pull_requests[].number` に `pr_number` を含むことをすべて満たす。
 - 2 workflowの候補が両方見つかるまで待つ。「checkが1件以上存在する」をregistration completeにしない。
 - 5分で揃わなければ `registration_timeout`。
@@ -239,7 +254,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 #### workflow完了待ち
 
 - 固定した2 run IDを15秒間隔で確認する。
-- 各poll時にPR current headも確認し、expected head SHAから変わった時点で `stale_head` を返す。
+- 15秒間隔の各pollで最初に同じPR guardを実行する。PR closeは `invalid_pr_state`、head変更は `stale_head`、base Repository不一致は `repository_mismatch` として即時返す。
 - runの `status != "completed"` はstatus名にかかわらず継続待機とする。
 - 両runが `status == "completed"` かつ `conclusion == "success"` なら `success`。
 - どちらかが `status == "completed"` かつ `conclusion != "success"` なら `ci_failure`。
@@ -298,7 +313,8 @@ networkなしで状態判定を検証する。
 最低限:
 
 - input validation。
-- server process初期化時にRepository identityを1回だけ取得し、その後のrequest builderが固定owner / repoを使う。
+- `git remote get-url origin` のGitHub HTTPS / SSH URLからRepository identityを1回だけ取得し、その後のrequest builderが固定owner / repoを使う。
+- unsupported / missing originではserver startup failureとなり、GitHub APIを呼ばない。
 - tool call時にGit remote由来のRepository identityを再解決しない。
 - PRの `base.repo.full_name` が固定Repositoryと違う場合は `repository_mismatch`。
 - PR open + head一致。
@@ -318,11 +334,16 @@ networkなしで状態判定を検証する。
 - 全 `gh api` 呼び出しが `--method GET` を持ち、query parameter追加でもPOSTへ変わらないこと。
 - 1回の `gh` 呼び出しが30秒を超えた場合の `github_error`。
 - `GH_PROMPT_DISABLED=1` が子processへ渡ること。
+- MCP childへ `GH_TOKEN` / `GITHUB_TOKEN` の名前だけを継承設定し、親processに存在しない値を生成しないこと。
+- token値をstdout / stderr / tool resultへ出さないこと。
 - unrelated workflow / checkを取得・判定対象にしない。
-- polling中のhead変更で `stale_head`。
+- registration polling中のhead変更で `stale_head`。
+- registration polling中のPR closeで `invalid_pr_state`。
+- registration polling中のbase Repository不一致で `repository_mismatch`。
+- workflow完了polling中も同じPR guardを適用する。
 - tool resultにsecret / environment値を含めない。
 
-可能ならstdio serverを直接起動するMCP integration testも1件追加し、tool listingと短時間のmocked tool callが成立することを確認する。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
+stdio serverを直接起動するMCP integrationでは、Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
 
 ### Task 5: 長時間MCP callの実地検証
 
@@ -332,7 +353,9 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 
 確認すること:
 
-1. tool catalogに `wait_for_required_ci` が存在する。
+1. fresh Codex processの初回tool catalogに `wait_for_required_ci` が存在する。
+   - `mcp_optional_startup_grace_ms = 5000` / `startup_timeout_sec = 5` が有効であること。
+   - Repository root / subdirectoryの両起動経路で確認する。
 2. tool call開始後、CI終了までAgent側のGitHub polling / `write_stdin` /再tool callが発生しない。
 3. MCP server内部ではGitHub状態確認が継続する。
 4. tool resultが返った後にCodexが同じturnを継続する。
@@ -391,9 +414,13 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 
 - dependency / lockfile更新後に `pnpm install --frozen-lockfile` を完了する。
 - MCP startup / tool catalogの検証は、そのinstall完了後に起動したfresh Codex processで行う。
+- host Nodeが `node --run` をサポートすることを確認する。未対応ならwrapperや絶対pathへ勝手にfallbackせずblockerとする。
+- Repository root / subdirectoryの両方から `node --run mcp:ci-wait` がroot package scriptを解決できることを確認する。
+- `mcp_optional_startup_grace_ms = 5000` / `startup_timeout_sec = 5` で初回tool catalogへwaiterが入ることを確認する。
 - `codex mcp list` 等、installed Codexでproject MCP server登録を確認する。
 - installed Codexが `tool_timeout_sec = 6000` とtool単位のapproval設定をconfig errorなく受理することを確認する。
-- server起動失敗時にsecretを含まない診断が得られることを確認する。
+- tool call開始後のGitHub認証確認で、保存済みcredentialまたは継承された `GH_TOKEN` / `GITHUB_TOKEN` によりread-only APIへ到達できることを確認する。
+- server起動失敗・認証失敗時にsecretを含まない診断が得られることを確認する。
 
 ### focused test
 
@@ -441,13 +468,14 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 
 ### 2. project-scoped MCP起動path
 
-CodexをRepository subdirectoryから起動した場合、relative command / cwd解決が環境差になる可能性がある。
+CodexをRepository subdirectoryから起動した場合、単純なrelative script path / `cwd = "."` ではMCP server pathがずれる可能性がある。
 
 対策:
 
-- project configのstdio `cwd` を利用してRepository rootへ固定する。
-- Windows host runtimeで実地確認する。
-- user固有の絶対pathをtracked configへ書かない。
+- `package.json` に `mcp:ci-wait` を追加し、MCP commandを `node --run mcp:ci-wait` とする。
+- Repository root / subdirectoryの両方からroot package scriptを解決できることをWindows host runtimeで実地確認する。
+- `mcp_optional_startup_grace_ms = 5000` / `startup_timeout_sec = 5` を明示し、初回tool catalogへの登録を検証する。
+- user固有の絶対pathや `scripts/codex-task.*` 変更へfallbackしない。
 
 ### 3. MCP serverへGitHub権限が渡る
 
@@ -456,7 +484,7 @@ MCP serverはCodex sandboxとは別processとして `gh` 認証へアクセス�
 対策:
 
 - tool実装をread-only GETへ限定する。
-- Repositoryはserver process起動時に固定cwdから1回だけ導出してprocess内へ固定し、tool call中にGit remoteを再解決しない。
+- Repositoryはserver process起動時に `git remote get-url origin` からローカルに1回だけ導出してprocess内へ固定し、startup中にGitHub APIを呼ばず、tool call中にGit remoteを再解決しない。
 - PRの `base.repo.full_name` と固定Repositoryの一致をguardする。
 - modelから任意Repositoryを指定させない。
 - modelから任意command / endpoint / workflow名を入力させない。
@@ -476,6 +504,7 @@ MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkou
 - Node HTTP middleware等の不要packageは追加しない。
 - 既存Zodを再利用する。
 - Repository標準セットアップ `pnpm install --frozen-lockfile` 済みをMCP利用の前提にする。wrapperへ自動install処理は追加しない。
+- `node --run mcp:ci-wait` をRepository root / subdirectoryで検証し、user固有絶対pathや `scripts/codex-task.*` 変更を不要にする。
 - dependency導入後のMCP検証はfresh Codex processで行う。
 - Repository標準security / verifyを通す。
 
@@ -489,7 +518,18 @@ MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkou
 - PR head確認を含めてもGitHub API rate limitに対して過剰にならない間隔を維持する。
 - 1秒単位のpollingやadaptive backoff frameworkは追加しない。
 
-### 6. MCP waiterが利用できない場合
+### 6. `gh` 認証環境
+
+stdio MCP childはCodexが構成した環境で起動するため、shell側にある任意の環境変数が自動で全て引き継がれるとは限らない。
+
+対策:
+
+- MCP server configの `env_vars` に `GH_TOKEN` / `GITHUB_TOKEN` を指定し、存在する場合だけ継承する。
+- token値はtracked config、ログ、tool resultへ出さない。
+- 保存済み `gh auth login` credentialと環境変数認証の両方をtool-time validation対象にする。
+- 認証できない場合は `github_error` とし、別credential保存方式を自動追加しない。
+
+### 7. MCP waiterが利用できない場合
 
 repo-local MCPはdependency / config / startup条件に依存するため、tool catalogへ登録されない可能性がある。
 
@@ -500,7 +540,7 @@ repo-local MCPはdependency / config / startup条件に依存するため、tool
 - Agent側のGitHub status pollingへfallbackしない。
 - setupを修復した場合はfresh Codex processでtool availabilityを再確認する。
 
-## 8. 成果物
+## 9. 成果物
 
 ### Plan / Run Artifact
 
@@ -523,11 +563,11 @@ repo-local MCPはdependency / config / startup条件に依存するため、tool
 ## 9. 実装順
 
 1. MCP SDK current stable / installed Codex / config仕様を最終確認する。
-2. dependencyとproject MCP configを追加し、lockfileを同期する。
-3. `pnpm install --frozen-lockfile` を完了する。
-4. stdio MCP serverと `wait_for_required_ci` を実装する。
+2. dependency、`mcp:ci-wait` package script、project MCP configを追加し、lockfileを同期する。
+3. `pnpm install --frozen-lockfile` を完了し、host Nodeの `--run` 対応を確認する。
+4. stdio MCP serverへローカルGit originによるRepository固定と `wait_for_required_ci` を実装する。
 5. CI状態判定のcontract testを実装する。
-6. focused testを実行し、install後に起動したfresh Codex processでMCP startup / tool catalog /短時間integrationを確認する。
+6. focused testを実行し、Repository root / subdirectoryから `node --run mcp:ci-wait` を確認したうえで、install後に起動したfresh Codex processの初回MCP tool catalog /短時間integration / GitHub認証を確認する。
 7. implementation harnessへMCP waiter利用不能時のfail-closed契約を追加し、Bash / PowerShell verifyを同期する。
 8. Repository標準verifyを実行する。
 9. Run Artifactをfinal commit前状態へ更新する。

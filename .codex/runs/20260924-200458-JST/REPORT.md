@@ -136,6 +136,32 @@
   - 親Agentの判断: N/A。
 - Progress: 56% (9/16)
 
+
+## 2026-09-25 08:43 (JST) - 実装前レビュー反映
+
+- Summary: 実装直前レビューで確認した4点を保存Planへ反映した。source実装はまだ変更していない。
+- Changes:
+  - Repository identity固定をserver startup中の `gh api` からローカル `git remote get-url origin` へ変更し、startup時のネットワーク依存を除いた。
+  - `package.json` の `mcp:ci-wait` と `node --run mcp:ci-wait` を起動経路にし、Repository root / subdirectoryの両方からroot package scriptを解決する契約を追加した。
+  - project-level `mcp_optional_startup_grace_ms = 5000`、server-level `startup_timeout_sec = 5`、`tool_timeout_sec = 6000` を明示する方針へ更新した。
+  - workflow registration / completionの各pollでPR base Repository / OPEN state / exact headを共通guardとして再確認する契約を追加した。
+  - MCP childの `env_vars` に `GH_TOKEN` / `GITHUB_TOKEN` の名前だけを指定し、環境変数認証も既存 `gh` credentialと同様に利用可能とする契約を追加した。
+- 判断 / 理由:
+  - optional MCPは初回tool catalog構築のstartup graceを超えるとtoolが初回turnから外れ得るため、server startupでGitHub APIを呼ぶ必要はない。
+  - `scripts/codex-task.*` はRepository内subdirectoryを `codex exec -C` に渡し得るため、単純なrelative script path / `cwd = "."` に依存しない起動経路が必要。
+  - registration待機中にもPR head / stateは変化し得るため、開始時だけのguardでは `stale_head` / `invalid_pr_state` を `registration_timeout` と誤分類し得る。
+  - Codex stdio MCP childの既定環境には `GH_TOKEN` / `GITHUB_TOKEN` が含まれないため、環境変数認証を使う場合は `env_vars` で明示継承する必要がある。
+- Validation:
+  - 修正前PR head=77ae43018dc1e48ddb4eb84da5119245c956b82e、latest main比較はbehind=1 / ahead=8。
+  - latest mainの追加1 commitはapplication/domain境界の変更で、今回のMCP dependency/config対象ファイルを変更していないことを確認した。
+  - Codex `rust-v0.155.1` のoptional MCP startup grace、stdio launcherのcwd処理、MCP child環境変数構築を確認した。
+- ブロッカー / 残作業: blockerなし。次はTask 10以降のMCP実装・検証。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 56% (9/16)
+
 ## 削除候補
 
 - なし。
