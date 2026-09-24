@@ -9,8 +9,8 @@
 - branch作成時の`main`: `9cef8501c2b19e1764892b0c17ee50318fa90b97`
 - PR #178 merge後のWeb CI #1200 successを確認済み。
 - Issue #132のdecision-only作業は完了している。本PlanはADR-0027で確定した方針をCurrent sourceへ反映するfollow-up実装だけを扱う。
-- Plan作成時点ではPlan-onlyとして開始した。その後、本Planのレビュー用にPR #180を作成した。PR #180ではsource / test実装とmergeを行わない。
-- PR #180のレビュー完了・merge後にlatest `main`から新しい実装branch `refactor/issue-132-domain-application-boundary`を作成し、別の実装PRで本PlanのTask 0以降を実行する。現在のPlan branchではsource / test実装へ進まない。
+- Plan作成時点ではPlan-onlyとして開始したが、実装境界を見直し、PR #180の同一branchで本Planの実装まで行う方針へ変更した。PR #180はPlanとsource / test実装を同一PRで扱う。
+- PR #180のhead branch `plan/issue-132-follow-up-domain-application-boundary`をそのまま実装branchとして使用し、本PlanのTask 0以降を同PRで実行する。別branch / 別実装PRは作成しない。
 
 ## 1. 結論
 
@@ -545,14 +545,14 @@ ADR-0027もDecision自体は変更しない。実装完了を記録するため�
 
 ## 9. 実装順
 
-PR #180はPlan-onlyとして完了させ、source / test実装を同branchへ追加しない。PR #180のレビュー完了・merge後に、latest `main`から`refactor/issue-132-domain-application-boundary`を作成し、別の実装PRで次を実行する。
+PR #180のcurrent head branch `plan/issue-132-follow-up-domain-application-boundary`で、Plan更新に続けてsource / test実装まで行う。PR #180をPlan-onlyで先にmergeせず、別branch / 別実装PRも作成しない。
 
 実装はbuildを壊す時間を短くするため、次の順に行う。
 
-### Task 0: 実装branchとRun Artifactを初期化
+### Task 0: PR #180 branchとRun Artifactを初期化
 
-1. PR #180がmerge済みであることを確認する。
-2. latest `main`から`refactor/issue-132-domain-application-boundary`を作成する。
+1. PR #180がopenで、head branchが`plan/issue-132-follow-up-domain-application-boundary`であることを確認する。
+2. current branchがPR #180のhead branchと一致し、開始前に意図しないworking tree変更がないことを確認する。
 3. 実装task用の新しいRunをRepository標準契約で初期化する。
 
 Windowsでは次を基準とする。
@@ -563,9 +563,9 @@ powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implement
 
 生成された`.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`を同じ実装taskで利用する。Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録する。同一task中に別Runを作らない。
 
-### Task 1: latest `main` rebaseline
+### Task 1: PR #180 branchをlatest `main`へrebaseline
 
-実装開始時に`origin/main`を取得し、本Plan作成時SHA `9cef8501c2b19e1764892b0c17ee50318fa90b97`から次へmaterial driftがないか確認する。
+実装開始時に`origin/main`を取得し、PR #180のcurrent headとlatest `origin/main`のahead / behindを確認する。behindがある場合は、公開済みbranchの履歴を書き換えない方法で`origin/main`をcurrent branchへ取り込み、force pushを必要としない状態にする。その上で、本Plan作成時SHA `9cef8501c2b19e1764892b0c17ee50318fa90b97`から次へmaterial driftがないか確認する。
 
 - `src/domain/repositories/**`
 - `src/application/**`
@@ -720,27 +720,27 @@ final commit前の順序は`TASKS / REPORT確定 → collector → sanitizer Wri
 
 `Check`でresidual findingがある状態を完了扱いにしない。
 
-### Task 14: commit / normal push / 実装PR作成
+### Task 14: commit / normal push / PR #180更新
 
 1. `git diff --check`と変更scopeを再確認する。
 2. Run Artifactを含むfinal commit前状態を確定した後にcommitする。
-3. force pushを使わず`refactor/issue-132-domain-application-boundary`へ通常pushする。
-4. local HEADとremote headの一致を確認する。
-5. `main`向けの別実装PRを作成する。PR本文には変更scope、削除したunused abstraction、validation結果、Product behavior / DB schemaを変更していないことを記載する。
+3. force pushを使わず`plan/issue-132-follow-up-domain-application-boundary`へ通常pushする。
+4. local HEAD、remote head、PR #180 headの一致を確認する。
+5. PR #180本文を実装後の内容へ更新する。変更scope、削除したunused abstraction、validation結果、Product behavior / DB schemaを変更していないことを記載する。
 
-PR #180へsource commitを追加しない。
+別の実装PRは作成しない。source / test commitはPR #180へ追加する。
 
 ### Task 15: 最新headのRemote CIを確認
 
-実装PRの最新headで次を確認する。
+PR #180の最新headで次を確認する。
 
 - Web CI = `success`
 - Mobile App CI = `success`
 - CodeQL等、そのheadで実行された必須security workflowがある場合は結果を確認する
 
-Web CI / Mobile App CIが`queued` / `in_progress` / failure / 未確認の状態を実装完了としない。必要なCI結果を実装PR本文へ記録する。
+Web CI / Mobile App CIが`queued` / `in_progress` / failure / 未確認の状態を実装完了としない。必要なCI結果をPR #180本文へ記録する。
 
-push後CI結果を記録するためだけに`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`を再編集・再commit・再pushしない。push後CIの正本はGitHub Actionsと実装PR本文とする。
+push後CI結果を記録するためだけに`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`を再編集・再commit・再pushしない。push後CIの正本はGitHub ActionsとPR #180本文とする。
 
 ## 10. 変更対象の見込み
 
@@ -906,10 +906,10 @@ docs/02_architecture/repository_structure.md
 - focused validation、`test:repository`、`typecheck`、`corepack pnpm run verify`、`git diff --check`がPASSする。
 - 実装task用Run ArtifactがRepository契約どおり保存され、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`がPASSし、`run.json.changed_files`がmachine-managedでCurrent変更を反映している。
 - collector成功後にsanitizer `Write` / `Check`がPASSしている。
-- final commit後に通常pushし、local HEAD / remote head / 実装PR headが一致している。
-- 実装PRの最新headでWeb CI / Mobile App CIがともに`success`である。
+- final commit後に通常pushし、local HEAD / remote head / PR #180 headが一致している。
+- PR #180の最新headでWeb CI / Mobile App CIがともに`success`である。
 - push後CI結果だけを理由にtracked Run Artifactを再commitしていない。
-- PR #180はPlan-onlyのままmergeされ、source / test実装は別実装PRへ分離されている。
+- PR #180の同一branchにPlanとsource / test実装が含まれ、別実装PRを作成していない。
 
 ## 14. ロールバック
 
@@ -942,6 +942,6 @@ Database migrationやexternal state変更はない。
 
 Plan内容として実装開始を止める未解決事項はない。
 
-ただしPR #180はPlan-only PRであり、実装開始条件はPR #180のレビュー完了・mergeである。merge前に現在のPlan branchへsource / test変更を追加しない。
+PR #180の同一branchで実装まで行うため、PR #180のmergeは実装開始条件ではない。current branchをlatest `main`に対してrebaselineした後、Task 0以降を同PR上で進める。
 
 実装開始時にlatest `main`へmaterial driftがあった場合だけ、影響したinterface / consumer / documentationを再評価する。ADR-0027のDecision自体は再Decisionしない。
