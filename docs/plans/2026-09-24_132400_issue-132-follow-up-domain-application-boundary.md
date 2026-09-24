@@ -549,19 +549,25 @@ PR #180のcurrent head branch `plan/issue-132-follow-up-domain-application-bound
 
 実装はbuildを壊す時間を短くするため、次の順に行う。
 
+実行時の操作方法はCurrent `AGENTS.md`、`docs/reference/codex-implementation-harness.md`、`docs/reference/codex-safety-harness.md`を正本とする。本PlanはSafety契約を緩和せず、禁止されたcommandや操作でTaskを達成しない。Planに明記した削除対象でも、Current Safety契約で実行できる削除操作がない場合は、その対象と理由をRun Artifactへ記録して停止し、削除未完了の状態を完了扱いにしない。
+
 ### Task 0: PR #180 branchとRun Artifactを初期化
 
 1. PR #180がopenで、head branchが`plan/issue-132-follow-up-domain-application-boundary`であることを確認する。
 2. current branchがPR #180のhead branchと一致し、開始前に意図しないworking tree変更がないことを確認する。
 3. 実装task用の新しいRunをRepository標準契約で初期化する。
 
-Windowsでは次を基準とする。
+Current `scripts/new-run.ps1`はfailure cleanupに`Remove-Item -Recurse -Force`を含み、Current Safety契約はPowerShell commandによる削除を禁止している。この契約が変わっていない限り、Windowsでも`new-run.ps1`を実行しない。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard
+`bash`を安全に利用できる場合は、削除commandを含まない既存の`new-run.sh`を優先する。
+
+```bash
+bash scripts/new-run.sh --task-type implementation --workflow-level standard
 ```
 
-生成された`.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`を同じ実装taskで利用する。Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録する。同一task中に別Runを作らない。
+`bash`を利用できない場合は、新しい初期化scriptやwrapperを作らず、`.codex/templates/PLAN.md`、`TASKS.md`、`REPORT.md`から同一Run IDのAgent-managed Artifactだけを手動初期化する。`run.json`は作成・直接編集せず、Task 13のcollectorに生成・更新させる。
+
+Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録する。同一task中に別Runを作らない。
 
 ### Task 1: PR #180 branchをlatest `main`へrebaseline
 
@@ -626,6 +632,8 @@ Repository class名、constructor、method、transaction scope、Application cap
 
 `app_settings` Store、Seed、Test Controlは削除しない。
 
+interface / class定義の除去は既存ファイルの内容編集として行い、`rm`、`del`、`Remove-Item`、`git rm`等のcommand-based deletionは使用しない。
+
 ### Task 6: Domain Repository moduleを削除
 
 sourceの`@/domain/repositories`参照が0になったことを確認後、
@@ -633,7 +641,9 @@ sourceの`@/domain/repositories`参照が0になったことを確認後、
 - `src/domain/repositories/contracts.ts`
 - `src/domain/repositories/index.ts`
 
-を削除する。
+を削除対象とする。
+
+この2 fileの物理削除でも、shell / PowerShell / `git rm`による削除は禁止する。実行時点のCurrent Safety契約で、明示された対象に対するレビュー可能なfile-delete operationが許可されている場合だけ、その許可された経路を使う。許可された経路がない場合は、空file、stub、compatibility re-exportを残して回避せず、Task 6を未完了として停止し、対象fileと適用されたSafety契約を報告する。
 
 ### Task 7: `ProductViewer` dependencyを除去
 
@@ -699,7 +709,7 @@ git diff --check
 
 1. `TASKS.md`を実際の完了状態へ更新する。
 2. `REPORT.md`へ検証結果と最終inventoryをappend-onlyで記録する。
-3. actual `run.json`は手編集せず、RepositoryのcollectorでCurrent working treeの変更fileを反映する。
+3. actual `run.json`は手編集しない。Task 0で`run.json`を作成していない場合も含め、RepositoryのcollectorにCurrent templateから生成・更新させ、Current working treeの変更fileを反映する。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles -Strict
@@ -906,6 +916,8 @@ docs/02_architecture/repository_structure.md
 - focused validation、`test:repository`、`typecheck`、`corepack pnpm run verify`、`git diff --check`がPASSする。
 - 実装task用Run ArtifactがRepository契約どおり保存され、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`がPASSし、`run.json.changed_files`がmachine-managedでCurrent変更を反映している。
 - collector成功後にsanitizer `Write` / `Check`がPASSしている。
+- Current `AGENTS.md` / implementation harness / Safety契約に違反するcommandや操作を使っていない。
+- command-based deletionで削除を回避しておらず、必要なfile削除をCurrent Safety契約上実行できない場合は未完了として停止している。
 - final commit後に通常pushし、local HEAD / remote head / PR #180 headが一致している。
 - PR #180の最新headでWeb CI / Mobile App CIがともに`success`である。
 - push後CI結果だけを理由にtracked Run Artifactを再commitしていない。
@@ -940,7 +952,9 @@ Database migrationやexternal state変更はない。
 
 ## 16. 未解決事項
 
-Plan内容として実装開始を止める未解決事項はない。
+設計・実装内容として実装開始を止める未解決事項はない。
+
+ただし、Task 6の物理file削除は実行時点のCurrent Safety契約に従う。Current Safety契約で許可された削除経路がない場合は実装を完了できないため、その時点で停止する。この停止条件を回避するためにSafety契約を変更したり、禁止commandを使用したり、空fileやcompatibility layerを残したりしない。
 
 PR #180の同一branchで実装まで行うため、PR #180のmergeは実装開始条件ではない。current branchをlatest `main`に対してrebaselineした後、Task 0以降を同PR上で進める。
 
