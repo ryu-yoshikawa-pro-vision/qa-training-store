@@ -112,6 +112,30 @@
   - 親Agentの判断: N/A。
 - Progress: 56% (9/16)
 
+
+## 2026-09-24 23:34 (JST) - 最終レビュー反映
+
+- Summary: ユーザーによるlatest `main` 取り込みを確認し、残っていたRepository identity固定とMCP waiter利用不能時のfail-closed契約をPlanへ反映した。source実装はまだ変更していない。
+- Changes:
+  - MCP server process起動時に `gh api --method GET repos/{owner}/{repo}` を1回だけ実行してRepository `full_name` を固定し、tool call中は固定owner / repoを使う契約へ変更した。
+  - PRの `base.repo.full_name` と固定Repositoryが一致しない場合の `repository_mismatch` resultを追加した。
+  - `{owner}` / `{repo}` placeholderはserver初期化時だけ使用し、tool call中にGit remoteを再解決しない契約を追加した。
+  - fresh Codex processで `wait_for_required_ci` がtool catalogに存在しない、またはMCP startupが失敗した場合はblockerとし、Agent側の `gh` status polling、`gh pr checks --watch`、`exec_command` / `write_stdin` pollingへfallbackしない契約をHarness変更方針へ追加した。
+  - `required = true` は使わず、dependency未導入のfresh checkoutでCodex全体の起動を妨げない方針を明記した。
+- 判断 / 理由:
+  - tool入力からRepositoryを外しても、tool callごとにGit remoteからRepositoryを再解決するとserver起動後のremote変更が監視先へ影響し得る。process起動時に固定すればscopeを広げず境界を閉じられる。
+  - MCP waiterが利用不能なときに既存のAgent pollingへ戻ると、今回の目的であるCI待機中のモデル推論削減を破るため、完了条件はfail-closedにする必要がある。
+  - `required = true` はMCP dependency未導入環境のbootstrapを妨げるため採用しない。
+- Validation:
+  - PR #182 head=4410c89e55b40877c60929a214db4572f82666ee、latest mainとの比較はbehind=0 / ahead=7。
+  - branchのdependency状態がlatest mainを取り込み済みであることを確認した。
+- ブロッカー / 残作業: blockerなし。Plan上の残作業はTask 10以降のMCP実装・検証。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 56% (9/16)
+
 ## 削除候補
 
 - なし。

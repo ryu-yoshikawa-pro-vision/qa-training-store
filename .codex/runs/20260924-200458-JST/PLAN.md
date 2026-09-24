@@ -30,7 +30,7 @@
 
 - 削減対象はCI待機中のモデル推論であり、MCP server内部のGitHub API pollingは許容する。
 - MCP serverはexisting `gh` authenticationをread-onlyで利用する。
-- Repositoryはproject-scoped MCP serverの固定cwdへ拘束し、`gh api` の `{owner}` / `{repo}` placeholderで解決する。model入力にしない。
+- Repositoryはproject-scoped MCP server process起動時に固定cwdから1回だけ解決し、`full_name` をprocess lifetime中固定する。tool call中は固定owner / repoを使い、Git remoteを再解決しない。model入力にしない。
 - GitHub accessは `gh api --method GET` に統一し、workflow file、exact head、pull_request event、PR番号でrunを特定する。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
@@ -63,13 +63,16 @@
 
 - 公式SDKで1 toolだけのstdio MCP serverを作る。
 - MCP protocolは独自実装しない。
-- GitHub操作は全て `gh api --method GET` に統一し、Repositoryは固定cwdの `{owner}` / `{repo}` placeholderで解決する。
+- GitHub操作は全て `gh api --method GET` に統一する。`{owner}` / `{repo}` placeholderはserver process初期化時のRepository identity確定だけに使い、tool call中は固定owner / repoをendpointへ明示する。
+- PRの `base.repo.full_name` が固定Repositoryと一致することをguardする。
 - `ci.yml` / `native-ci.yml` を直接指定し、exact head + pull_request event + PR番号でrunを絞る。
 - 各 `gh` 呼び出しに30秒timeoutと `GH_PROMPT_DISABLED=1` を適用する。
 - `status != completed` はstatus名を列挙せず待機継続とする。
 - `wait_for_required_ci` はread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` に固定する。
 - tool内部でregistration waitとworkflow waitを行う。
 - tool結果を受け取ったCodexがsuccess / repair-loop / blockerへ進む。
+- fresh Codex processでwaiterがtool catalogに存在しない、またはMCP startupが失敗した場合はblockerとし、Agent側GitHub pollingへfallbackしない。
+- setup修復後はfresh Codex processでtool availabilityを再確認する。
 - resume / supervisorへfallbackしない。
 
 ## Definition of Done（完了条件）
@@ -77,7 +80,8 @@
 - 保存PlanのDoDをすべて満たす。
 - Codexから `wait_for_required_ci` を1回callできる。
 - CI待機中にAgent pollingが発生しない。
-- latest headの `Web CI` / `Mobile App CI` を正しく判定する。
+- latest headの `Web CI` / `Mobile App CI` を固定Repository内で正しく判定する。
+- MCP waiter利用不能時にAgent pollingへfallbackせずblockerとなる。
 - PR #182が実装・検証結果まで含む。
 - Repository標準verifyがPASSする。
 
@@ -86,7 +90,8 @@
 - Host側にMCP `tool_timeout_sec` より短い固定timeoutがある可能性。360秒smokeは90分保持の保証にはしない。
 - fresh checkoutでMCP dependency未導入のままCodexを起動するとserver startupが失敗し得るため、install済み + fresh Codex processを検証前提にする。
 - project-relative MCP server pathのWindows解決。
-- MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository固定・read-only操作・子process timeoutが必要。
+- MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository identityをserver process起動時に固定し、PR base repo一致guard・read-only操作・子process timeoutを適用する必要がある。
+- MCP waiterがtool catalogへ出ない場合に既存Agent pollingへ戻ると目的を再発させるため、Harness側でfail-closedにする必要がある。
 - MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
 - 新規MCP SDK dependency追加。
 

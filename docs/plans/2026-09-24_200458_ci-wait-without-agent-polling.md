@@ -24,7 +24,7 @@
 - CI待機tool `wait_for_required_ci` は、最低限次を入力に取る。
   - PR番号
   - expected head SHA
-- Repository名はmodel入力にせず、MCP serverの固定cwdから導出する。
+- Repository名はmodel入力にせず、MCP server process起動時に固定cwdから1回だけ導出し、そのprocess lifetime中は同じRepository identityを使用する。
 - toolは開始時にPRがOPENであり、current head SHAがexpected head SHAと一致することを確認する。
 - exact HEADかつ `pull_request` eventの `Web CI` / `Mobile App CI` が両方登録されるまでboundedに待つ。
 - 両workflow登録後は対象runだけを監視し、次のいずれかでtool resultを返す。
@@ -73,7 +73,7 @@
 - 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中のモデル推論・Agent turn・tool再呼び出しによるトークン消費である。
 - MCP server内部のread-only GitHub pollingは許容する。
 - GitHub認証は既存の `gh` CLI認証を使用し、新しいtoken保存・credential管理を追加しない。
-- RepositoryはMCP serverの固定cwdへ拘束し、`gh api` の `{owner}` / `{repo}` placeholderをcurrent Repositoryから解決させる。modelから任意Repositoryを指定させない。
+- RepositoryはMCP serverの固定cwdへ拘束する。server process起動時に限り `gh api --method GET repos/{owner}/{repo}` でcurrent Repositoryを解決し、返された `full_name` をprocess内へ固定する。以降のtool callでは固定owner / repoをendpointへ明示し、Git remoteを再解決しない。modelから任意Repositoryを指定させない。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` を設定して非対話実行に固定する。
 - `gh api` は全呼び出しで `--method GET` を明示する。`-f` / `-F` query parameterを使う場合もHTTP methodを暗黙値に任せない。
 - CI失敗後の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
@@ -175,6 +175,9 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 - user-level `~/.codex/config.toml` へ設定を要求しない。
 - secret / PAT / GitHub tokenをconfigへ追加しない。
 - existing `gh` authenticationをserver processから利用する。
+- `required = true` は設定しない。dependency未導入のfresh checkoutでCodex全体の起動を妨げない。
+- server process初期化時に `gh api --method GET repos/{owner}/{repo}` を1回実行し、`full_name` を `owner/repo` 形式として検証してowner / repoをprocess stateへ固定する。初期化後はGit remoteや `{owner}` / `{repo}` placeholderを再参照しない。
+- Repository identityを確定できない場合はserver startupを成功扱いにしない。
 
 project root以外からCodexを起動したときにrelative script path / `cwd` が壊れる場合は、Codexのstdio MCP `cwd` 設定でRepository rootへ固定できるかを確認する。user固有の絶対pathをtracked configへ書かない。
 
@@ -194,21 +197,24 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 #### Repository固定
 
 - MCP serverはproject-scoped configでRepository rootをcwdとして起動する。
-- GitHub endpointは `repos/{owner}/{repo}/...` を使い、`gh api` にcurrent cwdのRepositoryから `{owner}` / `{repo}` を解決させる。
-- 最初のPR取得 `GET repos/{owner}/{repo}/pulls/{pr_number}` の `base.repo.full_name` をtool resultのRepository名として使用する。
-- model入力でRepositoryやGitHub endpointを上書きする経路を持たない。
-- current cwdがGitHub Repositoryとして解決できない場合は `github_error` とする。
+- server process初期化時にだけ `gh api --method GET repos/{owner}/{repo}` を使い、current cwdからRepositoryを解決する。
+- 初期化結果の `full_name` を `owner/repo` 形式として検証し、owner / repoをprocess stateへ固定する。以降のPR / workflow API endpointは `repos/<fixed-owner>/<fixed-repo>/...` を組み立て、`{owner}` / `{repo}` placeholderやGit remoteを再解決しない。
+- model入力でRepository、owner、repo、GitHub endpointを上書きする経路を持たない。
+- tool開始時に取得したPRの `base.repo.full_name` が起動時に固定した `full_name` と一致しない場合は `repository_mismatch` を返し、そのPRやworkflowの監視へ進まない。
+- tool resultの `repository` には起動時に固定した `full_name` を使用する。
+- server process初期化時にRepository identityを確定できない場合はMCP startup failureとし、tool call内の `github_error` へ変換しない。
 
 #### GitHub操作
 
 - GitHub操作は `gh api --method GET` に統一する。Repository取得用の `gh repo view` やwrite系subcommandは使用しない。
+- `{owner}` / `{repo}` placeholderを使うのはserver process初期化時のRepository identity確定だけとする。tool call中は起動時に固定したowner / repoをendpointへ明示する。
 - query parameterに `-f` / `-F` を使う場合も必ず `--method GET` を明示し、parameter追加による暗黙POSTを許可しない。
-- 各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。
+- 各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。ただしserver初期化時のRepository identity取得失敗はstartup failureとして扱う。
 - 子processへ `GH_PROMPT_DISABLED=1` を設定し、認証prompt等による無期限待機を許可しない。
-- PR情報からstate / current head SHA / `base.repo.full_name` を取得する。
+- PR情報からstate / current head SHA / `base.repo.full_name` を取得し、固定Repositoryとの一致をguardする。
 - workflow run一覧はworkflow fileを直接指定し、次の2 endpointを別々に取得する。
-  - `GET repos/{owner}/{repo}/actions/workflows/ci.yml/runs`
-  - `GET repos/{owner}/{repo}/actions/workflows/native-ci.yml/runs`
+  - `GET repos/<fixed-owner>/<fixed-repo>/actions/workflows/ci.yml/runs`
+  - `GET repos/<fixed-owner>/<fixed-repo>/actions/workflows/native-ci.yml/runs`
 - 各workflow run一覧は `head_sha=expected_head_sha`、`event=pull_request`、`per_page=100` をGET queryとして指定する。
 - run候補はさらに `pull_requests[].number` に入力 `pr_number` が含まれるものだけに限定する。同じSHAを使う別PRのrunを採用しない。
 - Repository契約上の表示名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
@@ -216,6 +222,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 
 #### 開始時guard
 
+- PRの `base.repo.full_name` が起動時に固定したRepositoryと違う場合は `repository_mismatch`。
 - PR stateがOPENでない場合は `invalid_pr_state`。
 - current head SHAがexpected head SHAと違う場合は `stale_head`。
 - GitHub CLI未導入、未認証、API errorは `github_error`。
@@ -246,6 +253,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 - `success`
 - `ci_failure`
 - `stale_head`
+- `repository_mismatch`
 - `invalid_pr_state`
 - `registration_timeout`
 - `overall_timeout`
@@ -290,6 +298,9 @@ networkなしで状態判定を検証する。
 最低限:
 
 - input validation。
+- server process初期化時にRepository identityを1回だけ取得し、その後のrequest builderが固定owner / repoを使う。
+- tool call時にGit remote由来のRepository identityを再解決しない。
+- PRの `base.repo.full_name` が固定Repositoryと違う場合は `repository_mismatch`。
 - PR open + head一致。
 - closed PRを拒否。
 - stale headを拒否。
@@ -343,7 +354,9 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 - CI待機対象はexact HEADの `Web CI` / `Mobile App CI`。
 - `success` なら完了処理へ進む。
 - `ci_failure` は既存repair-loopへ渡す。
-- `stale_head` / timeout / `github_error` は完了扱いにしない。
+- `repository_mismatch` / `stale_head` / timeout / `github_error` は完了扱いにしない。
+- fresh Codex processのtool catalogに `wait_for_required_ci` が存在しない、またはrepo-local MCP server startupが失敗した場合はrequired CI未確認のblockerとする。Agent側の `gh` status polling、`gh pr checks --watch`、`exec_command` / `write_stdin` pollingへfallbackしない。
+- MCP dependency / configを修復した場合はfresh Codex processを起動し直し、tool availabilityを確認してからCI待機を再開する。同一processでの自動復旧を前提にしない。
 - tracked Run ArtifactをCI結果記録だけのために再commitしない既存契約を維持する。
 
 ### Task 7: verify contractを同期する
@@ -356,6 +369,7 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
   - `Web CI`
   - `Mobile App CI`
   - Agent polling禁止
+  - waiter利用不能時のpolling fallback禁止
 - MCP server内部の細かなpoll intervalや関数名までliteralで固定しない。
 
 ### Task 8: PR #182を実装PRとして同期する
@@ -408,7 +422,8 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 - MCP toolがCodexから利用できる。
 - 長時間待機中にLLM pollingが発生しない。
 - exact HEADの2 workflowだけを正しく待機する。
-- success / failure / timeout / stale headを決定論的に返す。
+- success / failure / timeout / stale head / repository mismatchを決定論的に返す。
+- MCP waiter利用不能時にAgent pollingへfallbackせずblockerとなる。
 - Repository標準verifyがPASSする。
 - PR #182自身で実CI待機を確認できる。
 
@@ -441,7 +456,9 @@ MCP serverはCodex sandboxとは別processとして `gh` 認証へアクセス�
 対策:
 
 - tool実装をread-only GETへ限定する。
-- Repositoryは固定cwdから導出し、modelから任意Repositoryを指定させない。
+- Repositoryはserver process起動時に固定cwdから1回だけ導出してprocess内へ固定し、tool call中にGit remoteを再解決しない。
+- PRの `base.repo.full_name` と固定Repositoryの一致をguardする。
+- modelから任意Repositoryを指定させない。
 - modelから任意command / endpoint / workflow名を入力させない。
 - 各 `gh` 呼び出しを30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - token値を読み取り・出力しない。
@@ -472,6 +489,17 @@ MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkou
 - PR head確認を含めてもGitHub API rate limitに対して過剰にならない間隔を維持する。
 - 1秒単位のpollingやadaptive backoff frameworkは追加しない。
 
+### 6. MCP waiterが利用できない場合
+
+repo-local MCPはdependency / config / startup条件に依存するため、tool catalogへ登録されない可能性がある。
+
+対策:
+
+- `required = true` でCodex全体の起動を止める方式にはしない。
+- required CI確認時に `wait_for_required_ci` が存在しない、またはMCP startup failureが確認された場合はblockerとする。
+- Agent側のGitHub status pollingへfallbackしない。
+- setupを修復した場合はfresh Codex processでtool availabilityを再確認する。
+
 ## 8. 成果物
 
 ### Plan / Run Artifact
@@ -500,7 +528,7 @@ MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkou
 4. stdio MCP serverと `wait_for_required_ci` を実装する。
 5. CI状態判定のcontract testを実装する。
 6. focused testを実行し、install後に起動したfresh Codex processでMCP startup / tool catalog /短時間integrationを確認する。
-7. implementation harnessとBash / PowerShell verifyを同期する。
+7. implementation harnessへMCP waiter利用不能時のfail-closed契約を追加し、Bash / PowerShell verifyを同期する。
 8. Repository標準verifyを実行する。
 9. Run Artifactをfinal commit前状態へ更新する。
 10. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
