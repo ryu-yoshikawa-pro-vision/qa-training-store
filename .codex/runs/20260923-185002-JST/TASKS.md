@@ -15,8 +15,8 @@
 - [x] 10. Phase 9で変更を統合し、focused test・actual linked worktree・実`git commit`受入を行う。
 - [x] 11. Windows / Git保存 / format matrix / `test:hooks` / `test:contracts` / `verify` / sanitizer / `git diff --check`を検証する。
 - [x] 12. Plan「## 10. 完了条件」の各項目へEvidenceを対応づけ、Run Artifactをfinal commit前状態へ確定する。
-- [ ] 13. branch safetyを再確認してcommit / pushし、最新PR headのWeb CI / Mobile App CIとPR本文の結果を確認する。
-- [ ] 14. 未達項目の有無を確定して最終報告する。
+- [x] 13. branch safetyを再確認してcommit / pushし、最新PR headのWeb CI / Mobile App CIとPR本文の結果を確認する。
+- [x] 14. 未達項目の有無を確定して最終報告する。
 
 ## 完了処理の参照先
 
