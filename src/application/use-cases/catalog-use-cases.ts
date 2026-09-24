@@ -22,7 +22,7 @@ import type {
   SessionRepository,
   StorefrontCatalogQueryRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface CatalogRepositoryDependencies {
   users: UserRepository;

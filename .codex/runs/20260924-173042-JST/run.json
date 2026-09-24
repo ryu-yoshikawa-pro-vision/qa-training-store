@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "run_id": "20260924-173042-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/02_architecture/repository_structure.md",
+    "docs/02_architecture/system_architecture.md",
+    "docs/04_data/application_contracts.md",
+    "docs/04_data/repository_interfaces.md",
+    "docs/plans/2026-09-24_132400_issue-132-follow-up-domain-application-boundary.md",
+    "src/application/create-application-services.ts",
+    "src/application/identity/session-identity-resolver.ts",
+    "src/application/transactions/contracts.ts",
+    "src/application/use-cases/account-use-cases.ts",
+    "src/application/use-cases/admin-master-use-cases.ts",
+    "src/application/use-cases/admin-operations-use-cases.ts",
+    "src/application/use-cases/admin-product-use-cases.ts",
+    "src/application/use-cases/auth-use-cases.ts",
+    "src/application/use-cases/cart-use-cases.ts",
+    "src/application/use-cases/catalog-use-cases.ts",
+    "src/application/use-cases/checkout-order-use-cases.ts",
+    "src/application/use-cases/review-user-use-cases.ts",
+    "src/domain/policies/permissions.ts",
+    "src/domain/repositories/contracts.ts",
+    "src/domain/repositories/index.ts",
+    "src/infrastructure/database/dexie/basic-repositories.ts",
+    "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+    "src/infrastructure/database/dexie/order-review-repositories.ts",
+    "src/infrastructure/database/dexie/product-repositories.ts",
+    "src/infrastructure/database/dexie/storefront-repositories.ts",
+    "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+    "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+    "tests/contracts/architecture.test.ts",
+    "tests/unit/policies.test.ts",
+    "src/application/repositories/contracts.ts",
+    "src/application/repositories/index.ts"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": false
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}

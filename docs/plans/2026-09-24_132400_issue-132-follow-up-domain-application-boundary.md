@@ -575,24 +575,24 @@ Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録
 2. behindがある場合は、開始時のRun Artifactを今回taskの既知差分として保持したまま、公開済みbranchの履歴を書き換えない方法で`origin/main`をcurrent branchへ取り込み、force pushを必要としない状態にする。rebaseline完了後にworking treeとbranch状態を再確認する。
 3. 本Plan作成時SHA `9cef8501c2b19e1764892b0c17ee50318fa90b97`から次へmaterial driftがないか確認する。
 
-- `src/domain/repositories/**`
-- `src/application/**`
-- `src/domain/policies/permissions.ts`
-- §6.2の4 caller file
-- `src/infrastructure/database/dexie/**`
-- `src/infrastructure/database/sqlite/**`
-- `src/test-controls/**`
-- `tests/unit/policies.test.ts`
-- `tests/contracts/architecture.test.ts`
-- `docs/02_architecture/**`
-- `docs/04_data/**`
-- ADR-0027
-- `AGENTS.md`
-- `docs/reference/codex-implementation-harness.md`
-- `docs/reference/codex-safety-harness.md`
-- `.codex/templates/**`
+   - `src/domain/repositories/**`
+   - `src/application/**`
+   - `src/domain/policies/permissions.ts`
+   - §6.2の4 caller file
+   - `src/infrastructure/database/dexie/**`
+   - `src/infrastructure/database/sqlite/**`
+   - `src/test-controls/**`
+   - `tests/unit/policies.test.ts`
+   - `tests/contracts/architecture.test.ts`
+   - `docs/02_architecture/**`
+   - `docs/04_data/**`
+   - ADR-0027
+   - `AGENTS.md`
+   - `docs/reference/codex-implementation-harness.md`
+   - `docs/reference/codex-safety-harness.md`
+   - `.codex/templates/**`
 
-material driftがある場合は影響箇所だけ再評価し、24 / 17 / 7やconsumer件数を固定値として盲目的に使わない。Run Artifactのtemplate / manifest / Safety契約にmaterial driftがあっても、新しいRunを作らず同じRunを継続し、Current契約に合わせて必要なAgent-managed Artifact更新とmachine-managed collectorを行う。
+   material driftがある場合は影響箇所だけ再評価し、24 / 17 / 7やconsumer件数を固定値として盲目的に使わない。Run Artifactのtemplate / manifest / Safety契約にmaterial driftがあっても、新しいRunを作らず同じRunを継続し、Current契約に合わせて必要なAgent-managed Artifact更新とmachine-managed collectorを行う。
 
 4. 物理削除対象の`src/domain/repositories/contracts.ts`と`src/domain/repositories/index.ts`について、Current `AGENTS.md`とSafety契約、および実行時のユーザー承認範囲を確認する。
 5. Planに削除対象が書かれていること、または`apply_patch`が利用可能であることだけを削除承認として扱わない。今回の実装依頼で上記2 fileの物理削除まで明示的に承認されていることを確認できる場合だけ、parent agentがレビュー可能なfile-delete operationを行う。`implementation_worker`へfile deleteを委譲せず、`rm`、`del`、`Remove-Item`、`git rm`も使用しない。

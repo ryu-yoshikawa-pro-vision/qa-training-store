@@ -24,7 +24,7 @@ import type {
   CategoryRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface AdminMasterDependencies {
   users: UserRepository;

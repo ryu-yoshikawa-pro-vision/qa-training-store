@@ -20,7 +20,7 @@ import {
   toCurrentUserDto,
 } from "@/application/identity/session-identity-resolver";
 import type { User } from "@/domain/contracts";
-import type { SessionRepository, UserRepository } from "@/domain/repositories";
+import type { SessionRepository, UserRepository } from "@/application/repositories";
 
 interface AuthUseCaseDependencies {
   users: UserRepository;

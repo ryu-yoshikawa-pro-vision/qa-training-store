@@ -24,7 +24,7 @@ import type {
   CategoryRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import type { Brand, Category, Session, User, UserAddress } from "@/domain/contracts";
 import { normalizeComparisonText } from "@/domain/services/normalization";
 import type { ScenarioShopDatabase } from "./database";

@@ -13,7 +13,7 @@ import type {
   SessionRepository,
   ShipmentRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 export interface TransactionScopeMap {
   "register-and-merge-cart": {

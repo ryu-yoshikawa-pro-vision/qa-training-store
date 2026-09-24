@@ -21,7 +21,7 @@ import type {
   OrderRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface AdminOperationsDependencies {
   users: UserRepository;
