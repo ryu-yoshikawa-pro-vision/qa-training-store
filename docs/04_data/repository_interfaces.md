@@ -2,6 +2,8 @@
 
 本書はRepository責務とTransaction境界の正本です。Domain Entityは`domain_types.md`、DTO・Input・Resultの具体型は`application_contracts.md`を参照します。
 
+Repository Portのcanonical ownerはADR-0027に従い、Portごとの責務とconsumerから決めます。Application / Infrastructureだけから利用され、Application contractを境界として使うPortはApplication ownershipを第一候補とし、Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持します。DomainからApplicationへの依存は禁止され、type-only importも例外にしません。Current signatureや定義位置は所有権の根拠にならず、本書のRepository method contractもその依存方向を許可するarchitecture authorityではありません。各Portの維持 / 移動 / 削除は別のfollow-up implementation PlanでCurrent consumerとtransaction boundaryを確認して決めます。
+
 ## 1. 共通
 
 ```typescript
