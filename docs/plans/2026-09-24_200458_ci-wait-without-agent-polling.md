@@ -56,7 +56,7 @@
 ### Codex MCP
 
 - Codexはstdio MCP serverの `command` / `args` / `cwd` を設定できる。
-- MCP server単位で `tool_timeout_sec` を設定できる。Codex upstreamの既定MCP tool timeoutは300秒なので、CI待機用途では明示的な延長が必要。
+- MCP server単位で `tool_timeout_sec` を設定できる。今回は `tool_timeout_sec = 6000` を明示し、Codexの既定値には依存しない。既定値はCodex versionによって異なり得るため、Planや成功判定の固定前提にしない。
 - MCP tool callは通常の `exec_command` live sessionとは別経路であり、tool serverがresultを返すまでMCP callを保持できる設計になっている。
 - 今回はこの性質を使い、「1回のtool call → MCP内部で待機 → result返却」を実現する。
 - 長時間tool callが現在のinstalled Codex / Windows環境で必要時間保持されることは、実地検証で確認する。upstream実装だけを根拠に完了扱いにしない。
@@ -73,8 +73,9 @@
 - 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中のモデル推論・Agent turn・tool再呼び出しによるトークン消費である。
 - MCP server内部のread-only GitHub pollingは許容する。
 - GitHub認証は既存の `gh` CLI認証を使用し、新しいtoken保存・credential管理を追加しない。
-- Repository名はMCP serverの固定cwdにあるRepositoryから導出し、modelから任意Repositoryを指定させない。
+- RepositoryはMCP serverの固定cwdへ拘束し、`gh api` の `{owner}` / `{repo}` placeholderをcurrent Repositoryから解決させる。modelから任意Repositoryを指定させない。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` を設定して非対話実行に固定する。
+- `gh api` は全呼び出しで `--method GET` を明示する。`-f` / `-F` query parameterを使う場合もHTTP methodを暗黙値に任せない。
 - CI失敗後の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
 
 ### 対象外
@@ -152,10 +153,11 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 1. installed Codex versionとproject-scoped configの有効性を記録する。
 2. 公式 `@modelcontextprotocol/server` v2 stableのcurrent exact version、Node要件、licenseを確認する。
 3. `devDependencies` へexact versionを追加し、`pnpm-lock.yaml` を同期する。
-4. stdio MCP serverを追加する。
-5. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
-6. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
-7. shell文字列連結を使わず、Node `child_process.execFile` / `spawn` のargvで `gh` を呼ぶ。
+4. Repository標準セットアップどおり `pnpm install --frozen-lockfile` を完了してからMCP起動検証へ進む。fresh checkoutでdependency未導入のままMCP server起動成功を要求しない。
+5. stdio MCP serverを追加する。
+6. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
+7. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
+8. shell文字列連結を使わず、Node `child_process.execFile` / `spawn` のargvで `gh` を呼ぶ。
 
 公式SDKを使えない明確な互換性問題が見つかった場合は、MCP protocolを手書き実装せず停止して報告する。
 
@@ -176,6 +178,8 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 
 project root以外からCodexを起動したときにrelative script path / `cwd` が壊れる場合は、Codexのstdio MCP `cwd` 設定でRepository rootへ固定できるかを確認する。user固有の絶対pathをtracked configへ書かない。
 
+MCP dependency / configを追加したcurrent実装process自体はtool availabilityの証拠にしない。`pnpm install --frozen-lockfile` 完了後に起動したfresh Codex processでserver startupとtool catalogを検証する。custom MCP startup failure後に同じprocessでdependencyを導入すれば自動復旧する、という前提は置かない。
+
 ### Task 2: `wait_for_required_ci` tool契約
 
 #### 入力
@@ -190,18 +194,24 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 #### Repository固定
 
 - MCP serverはproject-scoped configでRepository rootをcwdとして起動する。
-- Repository名は固定cwdから `gh repo view --json nameWithOwner` 等で導出する。
-- model入力でRepositoryを上書きする経路を持たない。
-- Repository導出に失敗した場合は `github_error` とする。
+- GitHub endpointは `repos/{owner}/{repo}/...` を使い、`gh api` にcurrent cwdのRepositoryから `{owner}` / `{repo}` を解決させる。
+- 最初のPR取得 `GET repos/{owner}/{repo}/pulls/{pr_number}` の `base.repo.full_name` をtool resultのRepository名として使用する。
+- model入力でRepositoryやGitHub endpointを上書きする経路を持たない。
+- current cwdがGitHub Repositoryとして解決できない場合は `github_error` とする。
 
 #### GitHub操作
 
-- `gh api` のread-only GETだけを使用する。
-- Repository導出を含む各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。
+- GitHub操作は `gh api --method GET` に統一する。Repository取得用の `gh repo view` やwrite系subcommandは使用しない。
+- query parameterに `-f` / `-F` を使う場合も必ず `--method GET` を明示し、parameter追加による暗黙POSTを許可しない。
+- 各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。
 - 子processへ `GH_PROMPT_DISABLED=1` を設定し、認証prompt等による無期限待機を許可しない。
-- PR情報からstate / current head SHAを取得する。
-- Actions workflow runをexpected head SHAと `pull_request` eventで取得する。
-- workflow名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
+- PR情報からstate / current head SHA / `base.repo.full_name` を取得する。
+- workflow run一覧はworkflow fileを直接指定し、次の2 endpointを別々に取得する。
+  - `GET repos/{owner}/{repo}/actions/workflows/ci.yml/runs`
+  - `GET repos/{owner}/{repo}/actions/workflows/native-ci.yml/runs`
+- 各workflow run一覧は `head_sha=expected_head_sha`、`event=pull_request`、`per_page=100` をGET queryとして指定する。
+- run候補はさらに `pull_requests[].number` に入力 `pr_number` が含まれるものだけに限定する。同じSHAを使う別PRのrunを採用しない。
+- Repository契約上の表示名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
 - workflow操作、PR更新、comment、rerun、cancel等のwrite APIは持たない。
 
 #### 開始時guard
@@ -212,20 +222,20 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 
 #### workflow登録待ち
 
-- exact HEAD / `pull_request` のworkflow runを10秒間隔で確認する。
-- `Web CI` / `Mobile App CI` の両方が見つかるまで待つ。
-- 「checkが1件以上存在する」をregistration completeにしない。
+- `ci.yml` / `native-ci.yml` のworkflow run一覧を10秒間隔で個別に確認する。
+- 各候補は `head_sha=expected_head_sha`、`event=pull_request`、`pull_requests[].number` に `pr_number` を含むことをすべて満たす。
+- 2 workflowの候補が両方見つかるまで待つ。「checkが1件以上存在する」をregistration completeにしない。
 - 5分で揃わなければ `registration_timeout`。
-- 同一workflow名・同一headに複数runが存在する場合は、最も新しいrunを選択してrun IDを固定する。
+- 同一workflow file / exact head / PR番号に複数runが存在する場合は `created_at` が最も新しいrunを選び、同値ならrun IDが大きい方を選んでrun IDを固定する。
 - 選択後は別runへ途中で自動乗り換えしない。
 
 #### workflow完了待ち
 
 - 固定した2 run IDを15秒間隔で確認する。
 - 各poll時にPR current headも確認し、expected head SHAから変わった時点で `stale_head` を返す。
-- 両runが `completed + success` なら `success`。
-- どちらかが `completed` かつ `success` 以外なら `ci_failure`。
-- `queued` / `in_progress` は継続待機。
+- runの `status != "completed"` はstatus名にかかわらず継続待機とする。
+- 両runが `status == "completed"` かつ `conclusion == "success"` なら `success`。
+- どちらかが `status == "completed"` かつ `conclusion != "success"` なら `ci_failure`。
 - tool開始から90分で `overall_timeout`。
 - unrelated checkのfailureを終了条件にしない。
 
@@ -284,19 +294,20 @@ networkなしで状態判定を検証する。
 - closed PRを拒否。
 - stale headを拒否。
 - workflow 0件ではregistration wait継続。
-- Web CIだけではregistration wait継続。
-- 両workflow登録でrun IDを固定。
-- duplicate runから最新を選択。
-- 両方successで `success`。
-- Web CI failureで `ci_failure`。
-- Mobile App CI cancelled / timed_out / skipped / neutral等で `ci_failure`。
-- queued / in_progressは待機継続。
+- `ci.yml` だけではregistration wait継続。
+- `ci.yml` / `native-ci.yml` の両方でexact head + pull_request event + PR番号が一致した時だけrun IDを固定。
+- 同じSHAでも `pull_requests[].number` が別PRだけのrunは候補から除外。
+- duplicate runから `created_at` 最新、同値ならrun ID最大を選択。
+- 両方 `completed + success` で `success`。
+- いずれかが `completed` かつnon-success conclusionなら `ci_failure`。
+- `status != completed` は `requested` / `waiting` / `pending` / `queued` / `in_progress` 等の名称に依存せず待機継続。
 - registration timeout。
 - overall timeout。
 - GitHub API error。
+- 全 `gh api` 呼び出しが `--method GET` を持ち、query parameter追加でもPOSTへ変わらないこと。
 - 1回の `gh` 呼び出しが30秒を超えた場合の `github_error`。
 - `GH_PROMPT_DISABLED=1` が子processへ渡ること。
-- unrelated workflow / checkを無視。
+- unrelated workflow / checkを取得・判定対象にしない。
 - polling中のhead変更で `stale_head`。
 - tool resultにsecret / environment値を含めない。
 
@@ -314,15 +325,13 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 2. tool call開始後、CI終了までAgent側のGitHub polling / `write_stdin` /再tool callが発生しない。
 3. MCP server内部ではGitHub状態確認が継続する。
 4. tool resultが返った後にCodexが同じturnを継続する。
-5. tool call durationが5分を超えた場合でもCodex既定300秒timeoutではなく設定した `tool_timeout_sec` が有効である。
+5. tracked configで `tool_timeout_sec = 6000` が指定され、installed Codexがその設定を拒否せずMCP server / toolを利用できる。
 6. latest PR headがexpected head SHAと一致している。
 7. `Web CI` / `Mobile App CI` のresultがtool outputとGitHub上の実結果に一致する。
 
-CIが5分を超えて実行され、MCP callが300秒を超えて保持された場合は、その実CIを `tool_timeout_sec` 検証の証拠に使う。
+実CIのMCP callが360秒以上継続した場合は、その実CIを長時間保持のbehavioral evidenceに使う。360秒未満で完了した場合は、Repositoryを変更しない一時的なlocal smokeで360秒のMCP call保持を1回確認する。
 
-CIが5分以内に完了して300秒超の保持を検証できなかった場合は、「MCP呼び出し成功」と「300秒超の長時間保持成功」を分けて記録し、Repositoryを変更しない一時的なlocal smokeで360秒のMCP call保持を1回確認する。360秒smokeでは、300秒を超えてもAgentへ途中turnが戻らず、360秒後にresultが返って同じturnが継続することを確認する。一時smoke toolやfixtureを最終差分へ残さない。
-
-300秒超の保持を未検証のままDoD達成とはしない。
+360秒smokeの目的は、長時間tool call中にAgentへ途中turnが戻らず、設定したtimeout overrideによって短時間で切断されず、result返却後に同じturnが継続することのsanity checkである。360秒成功を「90分保持が実証済み」とは扱わない。内部overall timeout 90分と `tool_timeout_sec = 6000` の大小関係は設定契約として検証し、Host側の未知の短い上限が実運用で判明した場合はblockerとする。一時smoke toolやfixtureを最終差分へ残さない。
 
 ### Task 6: Harness契約をMCPへ同期する
 
@@ -366,8 +375,10 @@ CIが5分以内に完了して300秒超の保持を検証できなかった場�
 
 ### dependency / config
 
-- `pnpm install --frozen-lockfile` が更新後lockfileで成立する状態を確認する。
+- dependency / lockfile更新後に `pnpm install --frozen-lockfile` を完了する。
+- MCP startup / tool catalogの検証は、そのinstall完了後に起動したfresh Codex processで行う。
 - `codex mcp list` 等、installed Codexでproject MCP server登録を確認する。
+- installed Codexが `tool_timeout_sec = 6000` とtool単位のapproval設定をconfig errorなく受理することを確認する。
 - server起動失敗時にsecretを含まない診断が得られることを確認する。
 
 ### focused test
@@ -409,9 +420,9 @@ CIが5分以内に完了して300秒超の保持を検証できなかった場�
 
 対策:
 
-- Codexの `tool_timeout_sec` を100分へ設定する。
-- PR #182で実際の長時間tool callを確認する。
-- Host側にそれより短い固定timeoutが存在すると判明した場合は、resume方式へ自動fallbackせずblockerとして報告する。
+- Codexの `tool_timeout_sec` を100分へ明示設定し、既定値には依存しない。
+- PR #182または360秒local smokeで、長時間MCP call中にAgentへ途中turnが戻らないことを確認する。
+- 360秒smokeは90分保持の保証には使わない。Host側に100分より短い固定timeoutが存在すると実運用で判明した場合は、resume方式へ自動fallbackせずblockerとして報告する。
 
 ### 2. project-scoped MCP起動path
 
@@ -439,7 +450,7 @@ MCP serverはCodex sandboxとは別processとして `gh` 認証へアクセス�
 
 ### 4. 新規dependency
 
-MCP SDK追加はsupply-chain / update対象を増やす。
+MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkoutでdependency未導入のままCodexを起動するとrepo-local MCP serverが起動できない。
 
 対策:
 
@@ -447,6 +458,8 @@ MCP SDK追加はsupply-chain / update対象を増やす。
 - exact versionで固定する。
 - Node HTTP middleware等の不要packageは追加しない。
 - 既存Zodを再利用する。
+- Repository標準セットアップ `pnpm install --frozen-lockfile` 済みをMCP利用の前提にする。wrapperへ自動install処理は追加しない。
+- dependency導入後のMCP検証はfresh Codex processで行う。
 - Repository標準security / verifyを通す。
 
 ### 5. polling API量
@@ -482,17 +495,19 @@ MCP SDK追加はsupply-chain / update対象を増やす。
 ## 9. 実装順
 
 1. MCP SDK current stable / installed Codex / config仕様を最終確認する。
-2. dependencyとproject MCP configを追加する。
-3. stdio MCP serverと `wait_for_required_ci` を実装する。
-4. CI状態判定のcontract testを実装する。
-5. focused testと短時間MCP integrationを確認する。
-6. implementation harnessとBash / PowerShell verifyを同期する。
-7. Repository標準verifyを実行する。
-8. Run Artifactをfinal commit前状態へ更新する。
-9. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
-10. push直後のPR #182 latest headでMCP toolを1回callし、実CIを待機する。
-11. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。
-12. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
+2. dependencyとproject MCP configを追加し、lockfileを同期する。
+3. `pnpm install --frozen-lockfile` を完了する。
+4. stdio MCP serverと `wait_for_required_ci` を実装する。
+5. CI状態判定のcontract testを実装する。
+6. focused testを実行し、install後に起動したfresh Codex processでMCP startup / tool catalog /短時間integrationを確認する。
+7. implementation harnessとBash / PowerShell verifyを同期する。
+8. Repository標準verifyを実行する。
+9. Run Artifactをfinal commit前状態へ更新する。
+10. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
+11. push後にfresh Codex validation processを起動し、PR #182 latest headでMCP toolを1回callして実CIを待機する。
+12. 実CIのcallが360秒未満なら必要に応じて360秒local smokeを1回行う。
+13. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。
+14. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
 
 ## 10. 備考
 

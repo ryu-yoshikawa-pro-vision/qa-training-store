@@ -88,6 +88,30 @@
   - 親Agentの判断: N/A。
 - Progress: 56% (9/16)
 
+
+## 2026-09-24 22:31 (JST) - 再レビュー反映
+
+- Summary: MCP方式の徹底レビューで確認した5点を保存Planへ反映した。source実装はまだ変更していない。
+- Changes:
+  - workflow run取得を `ci.yml` / `native-ci.yml` のworkflow-specific endpointへ固定し、exact head + `pull_request` event + `pull_requests[].number == pr_number` を候補条件にした。
+  - GitHub accessを `gh api --method GET` へ統一し、`-f` / `-F` 使用時の暗黙POSTを禁止した。Repositoryはcwdから `{owner}` / `{repo}` placeholderで解決し、`gh repo view` は使わない。
+  - workflow runの非終端判定をstatus名の列挙から `status != completed` へ変更した。
+  - MCP SDK dependency追加後は `pnpm install --frozen-lockfile` 済みのfresh Codex processでstartup / tool catalogを検証する契約を追加した。
+  - CodexのMCP tool既定timeoutを固定前提にせず、`tool_timeout_sec=6000` を明示契約とした。360秒smokeは長時間callのsanity checkとし、90分保持の実証には使わない。
+- 判断 / 理由:
+  - 同一SHAが別PRで使われた場合でも別PRのrunを採用しない必要がある。
+  - `gh api` はparameter追加時にmethodがPOSTへ変わり得るため、read-only契約には `--method GET` の明示が必要。
+  - GitHub Actionsの非終端statusを個別列挙すると既存statusの見落としや将来のstatus追加で誤判定し得る。
+  - repo-local MCP serverはNode dependencyを読むため、dependency未導入のfresh checkoutで同session自動復旧を前提にできない。
+  - 360秒smokeは短いHost timeoutやAgent wakeupの有無を確認できるが、90分保持そのものは証明しない。
+- Validation: current Plan、workflow定義、Codex `rust-v0.155.1` MCP client source、current Codex MCP config / stdio launcher、GitHub CLI `gh api` manual、GitHub Actions workflow run APIを確認した。
+- ブロッカー / 残作業: blockerなし。Planレビューはここで終了し、次はTask 10のdependency / config実装へ進める。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 56% (9/16)
+
 ## 削除候補
 
 - なし。

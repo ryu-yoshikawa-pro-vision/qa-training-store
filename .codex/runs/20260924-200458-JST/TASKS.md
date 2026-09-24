@@ -10,14 +10,14 @@
 - [x] 6. Codex MCP `tool_timeout_sec` とstdio MCP server設定を確認する。
 - [x] 7. 公式MCP TypeScript SDK v2 stableと既存Zod 4の利用方針を確認する。
 - [x] 8. 保存Plan / Run PLANをMCP方式へ更新する。
-- [x] 9. MCP再レビューを反映し、Repository固定・`gh` timeout・tool approval・300秒超smoke契約を確定する。
+- [x] 9. MCP再レビューを反映し、Repository固定、read-only GET、run識別、`gh` timeout、tool approval、dependency起動前提、長時間smoke契約を確定する。
 - [ ] 10. official MCP SDK exact versionを確定しdependency / lockfile / project MCP configを更新する。
 - [ ] 11. `wait_for_required_ci` MCP serverを実装する。
 - [ ] 12. CI waiter contract testとMCP integration testを実装する。
 - [ ] 13. implementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
 - [ ] 14. focused testとRepository標準verifyを実行する。
 - [ ] 15. Run Artifactをfinal commit前状態へ更新し、commit / push / PR本文を同期する。
-- [ ] 16. PR #182 latest headで `wait_for_required_ci` を1回callし、実CIの長時間待機を検証する。
+- [ ] 16. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。
 
 ## 完了処理の参照先
 
@@ -31,7 +31,7 @@
 - `scripts/verify` と `scripts/verify.ps1` が現在のpolling禁止文言をliteralで固定している。
 - `gh pr checks --watch` はcheck 0件では待機せず、`--fail-fast` はRepository必須CI以外のcheckにも反応する。
 - 通常 `exec_command` はlong-running commandをlive session化し得るため、shell側のwatchだけではAgent pollingを除去できない。
-- Codexはstdio MCP serverとserver単位の `tool_timeout_sec` をサポートする。upstream既定tool timeoutは300秒。
+- Codexはstdio MCP serverとserver単位の `tool_timeout_sec` をサポートする。既定値はversion依存として扱い、今回の契約は明示値 `6000` に固定する。
 - Repository `.codex/config.toml` には現在MCP server定義がない。
 - RepositoryにMCP SDK dependencyはないが、既存Zod 4.4.3は公式MCP TypeScript SDK v2のschemaに利用できる。
 - 公式SDKを使えばstdio serverをprotocol手書きなしで実装できる。
@@ -39,7 +39,11 @@
 - `repository` はtool入力から外し、project-scoped MCP serverの固定cwdから導出する。MCP serverがCodex sandbox外の `gh` 認証を使って任意Repositoryを読む境界を作らない。
 - 各 `gh` 子processは30秒timeout + `GH_PROMPT_DISABLED=1` とし、1回のCLI hangでoverall timeoutが機能しなくなる状態を防ぐ。
 - `wait_for_required_ci` はread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` に固定する。
-- `tool_timeout_sec=6000` の実効性は300秒超で確認する。実CIが5分以内なら360秒の一時smokeを使う。
+- workflow runは `ci.yml` / `native-ci.yml` を直接指定し、exact head + pull_request event + PR番号が一致したrunだけを採用する。
+- GitHub accessは `gh api --method GET` に統一し、`-f` / `-F` 使用時も暗黙POSTへ切り替えない。
+- run statusは `status != completed` を一律待機、`completed + success` を成功、`completed + non-success` を失敗とする。
+- MCP dependency追加後は `pnpm install --frozen-lockfile` 済みのfresh Codex processでstartup / tool catalogを検証する。
+- 360秒smokeは長時間callのsanity checkであり、90分保持の実証には使わない。
 
 ## Blocked（ブロック中）
 
