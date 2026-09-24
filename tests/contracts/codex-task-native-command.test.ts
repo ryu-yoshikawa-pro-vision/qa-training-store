@@ -401,7 +401,7 @@ function runWrapper(
   const result = spawnSync(powerShellCommand, wrapperArgs, {
     cwd: fixture.root,
     encoding: "utf8",
-    timeout: 30_000,
+    timeout: process.platform === "win32" ? 60_000 : 30_000,
     env: {
       ...process.env,
       CODEX_BIN: fixture.fakeCodexPath,

@@ -1,8 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-
-import { parse as parseToml } from "smol-toml";
 
 import {
   STATE_STATUS,
@@ -17,6 +16,17 @@ const diagnostics = {
   errors: [],
   warnings: [],
 };
+const REQUIRED_DEPENDENCIES = Object.freeze([
+  "smol-toml",
+  "textlint",
+  "@textlint-rule/textlint-rule-no-invalid-control-character",
+  "textlint-rule-no-zero-width-spaces",
+  "textlint-rule-no-nfd",
+  "textlint-rule-no-kangxi-radicals",
+  "textlint-rule-no-hankaku-kana",
+  "textlint-rule-no-doubled-conjunctive-particle-ga",
+  "textlint-rule-no-dropping-the-ra",
+]);
 
 function report(level, message) {
   if (level === "ERROR") diagnostics.errors.push(message);
@@ -164,17 +174,53 @@ function checkPowerShellAvailability() {
   process.stdout.write("OK: powershell.exe is available\n");
 }
 
-function checkProjectConfig(root) {
+function checkDependencies(root) {
+  const requireFromRoot = createRequire(path.join(root, "package.json"));
+  const unavailable = [];
+  for (const packageName of REQUIRED_DEPENDENCIES) {
+    try {
+      requireFromRoot.resolve(packageName);
+    } catch {
+      unavailable.push(packageName);
+      report("ERROR", "required dependency is unavailable: " + packageName);
+    }
+  }
+  if (unavailable.length === 0) {
+    process.stdout.write("OK: required Hook dependencies are resolvable\n");
+  }
+  return unavailable;
+}
+
+function checkTextQualityHookFile(root) {
+  const hooksDirectory = path.join(root, ".codex", "hooks");
+  if (!checkRealDirectory(hooksDirectory, "root .codex/hooks")) return;
+  checkRegularFile(path.join(hooksDirectory, "text_quality_gate.mjs"), "root text quality Hook");
+}
+
+async function checkProjectConfig(root, unavailableDependencies) {
   const codexDirectory = path.join(root, ".codex");
   if (!checkRealDirectory(codexDirectory, "root .codex")) return;
+  checkTextQualityHookFile(root);
 
   const configPath = path.join(codexDirectory, "config.toml");
   let config = null;
   if (checkRegularFile(configPath, "root .codex/config.toml")) {
+    let parseToml;
     try {
-      config = parseToml(fs.readFileSync(configPath, "utf8"));
+      if (!unavailableDependencies.includes("smol-toml")) {
+        ({ parse: parseToml } = await import("smol-toml"));
+      }
     } catch {
-      report("ERROR", "root .codex/config.tomlをparseできません");
+      if (!unavailableDependencies.includes("smol-toml")) {
+        report("ERROR", "required dependency is unavailable: smol-toml");
+      }
+    }
+    if (parseToml) {
+      try {
+        config = parseToml(fs.readFileSync(configPath, "utf8"));
+      } catch {
+        report("ERROR", "root .codex/config.tomlをparseできません");
+      }
     }
   }
 
@@ -356,7 +402,7 @@ function printOfflineBoundaries() {
   }
 }
 
-function main() {
+async function main() {
   const root = resolveRepositoryRoot();
   if (!root) {
     process.stdout.write("ERROR: Git repository contextを確立できません\n");
@@ -372,7 +418,8 @@ function main() {
   ) {
     report("ERROR", "Git repository rootが安全な実directoryではありません");
   } else {
-    checkProjectConfig(root);
+    const unavailableDependencies = checkDependencies(root);
+    await checkProjectConfig(root, unavailableDependencies);
     checkStateDirectory(root);
   }
   printOfflineBoundaries();
@@ -383,4 +430,11 @@ function main() {
   return diagnostics.errors.length > 0 ? 1 : 0;
 }
 
-process.exitCode = main();
+main()
+  .then((code) => {
+    process.exitCode = code;
+  })
+  .catch(() => {
+    report("ERROR", "Hook diagnostics could not complete safely");
+    process.exitCode = 1;
+  });

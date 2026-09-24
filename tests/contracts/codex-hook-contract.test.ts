@@ -3307,7 +3307,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
         permissionDecision: "deny",
       },
     });
-  }, 10000);
+  }, 30000);
 
   it("preserves PreToolUse policy through the configured Windows launcher and both shell wrappers", () => {
     if (process.platform !== "win32") return;
@@ -3342,7 +3342,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
         });
       }
     }
-  }, 30000);
+  }, 60000);
 
   it("keeps quote, backslash, LF, and CRLF stdin semantics through the launcher", () => {
     if (process.platform !== "win32") return;

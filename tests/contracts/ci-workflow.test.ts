@@ -5,6 +5,7 @@ const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const crossBrowserWorkflow = readFileSync(".github/workflows/cross-browser-smoke.yml", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   packageManager?: string;
+  scripts?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
 const allWorkflows = readdirSync(".github/workflows")
@@ -43,7 +44,7 @@ describe("Phase 1 CI deployment boundaries", () => {
     const specification = stepBlock(style, "Specification and Agentic QA validation");
     const impact = stepBlock(style, "Specification impact summary");
 
-    expect(format).toContain("pnpm run format:check");
+    expect(format).toContain("pnpm run format:check:strict");
     expect(markdown).toContain("pnpm run lint:markdown");
     expect(textQualityFull).toContain("pnpm run lint:text:all");
     expect(textQualityChange).toContain("check-text-quality-changes.mjs --base-ref");
@@ -69,6 +70,13 @@ describe("Phase 1 CI deployment boundaries", () => {
     );
     expect(style).not.toMatch(/run: pnpm run lint$/m);
     expect(style).not.toMatch(/run: pnpm run typecheck$/m);
+  });
+
+  it("keeps the local format check EOL tolerant and CI strict", () => {
+    expect(packageJson.scripts?.["format:check"]).toContain("--end-of-line auto");
+    expect(packageJson.scripts?.["format:check:strict"]).not.toContain("--end-of-line auto");
+    expect(packageJson.scripts?.verify).toContain("pnpm run format:check");
+    expect(packageJson.scripts?.verify).not.toContain("format:check:strict");
   });
 
   it("runs code checks in the separate code-quality job", () => {

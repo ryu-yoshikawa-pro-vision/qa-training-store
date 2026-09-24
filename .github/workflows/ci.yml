@@ -72,7 +72,7 @@ jobs:
         run: pnpm run summarize:spec-impact
 
       - name: Format check
-        run: pnpm run format:check
+        run: pnpm run format:check:strict
 
       - name: Markdown lint
         run: pnpm run lint:markdown
