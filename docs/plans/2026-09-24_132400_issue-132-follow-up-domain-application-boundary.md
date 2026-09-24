@@ -709,7 +709,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifact
 - `changed_files`、validation結果、status等の観測事実をAgentが`run.json`へ手書きしない。
 - `-Strict`がnonzeroになった場合は原因を解消し、成功するまでfinal commitへ進まない。
 
-4. collector成功後にRun Artifact sanitizationを実行する。
+1. collector成功後にRun Artifact sanitizationを実行する。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Write
