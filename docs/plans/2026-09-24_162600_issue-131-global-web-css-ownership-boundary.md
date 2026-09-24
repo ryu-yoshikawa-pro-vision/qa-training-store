@@ -5,7 +5,7 @@
 - 対象Issue: #131 `refactor: Global Web CSSのownership boundaryを整理する`
 - 作業branch: `plan/issue-131-global-web-css-ownership-boundary`
 - branch作成時の`main`: `ac4e57721b55091ace3689eda289d44188241aee`
-- PR #181では本Planを先に追加し、同一branchで後続実装まで行う。現時点ではPlanのみで、CSS実装、テスト変更、Issue更新、mergeは行わない。
+- PR #181では本Planを先に追加し、同一branchで実装を継続する。2026-09-24時点でCSS ownership分離、Web root import、architecture contract、PROJECT_CONTEXT / historyを更新済み。focused / repository validation、最終scope review、Run Artifact sanitizationは完了し、commit / normal push、最新PR headの必須CI、PR本文更新が残る。
 - 目的は`global.css`を分割することではなく、局所UI変更時に確認・変更すべきstyle boundaryを特定でき、無関係な画面・selector・breakpointまでglobal cascade全体を追う必要を減らすことである。
 
 ## 1. 結論
@@ -44,15 +44,18 @@ Current `main`の`src/presentation/styles/global.css`は、Phase 6 investigation
 6. `root-layout.web.tsx`でCSS import orderを明示し、`tests/contracts/architecture.test.ts`でそのorderとNative非importを保護する。
 7. class名rename、CSS Modules全面移行、Cascade Layers導入、design system刷新、新CSS framework導入は行わない。
 
-## 2. Current mapping
+## 2. Mapping
 
 ### 2.1 Web composition root
 
-CurrentのWeb rootは`src/presentation/root-layout.web.tsx`で、次の順にCSSをimportしている。
+Web composition rootは`src/presentation/root-layout.web.tsx`で、CSSを次の順にimportする。このorderを`tests/contracts/architecture.test.ts`で固定する。
 
 ```ts
 import "@/presentation/styles/fonts.css";
 import "@/presentation/styles/global.css";
+import "@/presentation/styles/shared.css";
+import "@/presentation/styles/storefront.css";
+import "@/presentation/styles/admin.css";
 ```
 
 `tests/contracts/architecture.test.ts`にも、Web-only CSSをWeb composition rootからimportし、Native rootではCSSをimportしない契約がある。
@@ -64,7 +67,7 @@ Expoの公式資料でも、Global CSSはWeb専用で、Expo Routerではroot la
 - [Expo Router: Static rendering](https://docs.expo.dev/router/web/static-rendering/)
 - [Expo Metro: CSS](https://docs.expo.dev/versions/latest/config/metro/#css)
 
-### 2.2 Current `global.css`の責務
+### 2.2 Refactor前の`global.css`責務
 
 Phase 6 reportでは次を同一global cascadeが担当していると整理されている。
 
@@ -76,7 +79,7 @@ Phase 6 reportでは次を同一global cascadeが担当していると整理さ�
 - responsive
 - accessibility state
 
-Current mainでもこの構造は変わっていない。
+これはbranch作成時点の`main`におけるrefactor前baselineである。
 
 Current file内には少なくとも次の責務が混在する。
 
@@ -322,7 +325,7 @@ import "@/presentation/styles/storefront.css";
 import "@/presentation/styles/admin.css";
 ```
 
-このimport順は、ファイル移動前のcascade依存確認でfoundation / shared / Storefront / Admin間のsource order依存が0件になったことを確認した後に適用する。Current `global.css`内の各ruleの相対順を、この5 importだけで再現しようとはしない。
+このimport順は、ファイル移動前のcascade依存確認でfoundation / shared / Storefront / Admin間にowner分割後のCurrent computed behaviorを維持できない未解決dependencyが0件になったことを確認した後に適用する。Current `global.css`内の各ruleの相対順を、この5 importだけで再現しようとはしない。
 
 理由:
 
@@ -375,6 +378,22 @@ Current `global.css`のtop-level selector、media rule内のselector、named at-
 
 selector listを1つのrule単位でまとめて分類しない。各selectorのconsumerを確認してownerを決める。異なるownerのselectorが同じdeclaration blockへgroupされている場合は、declaration値を変更せずselector listをownerごとに分割する。同じdeclarationを持つこと自体はshared判定の根拠にしない。
 
+#### 未参照selector
+
+ownership inventory中にCurrent sourceでconsumerを確認できないselectorが見つかった場合、class名や周辺selectorだけからownerを推測しない。次を確認する。
+
+1. Current treeで完全一致consumerが存在しない。
+2. classNameの動的生成等により実行時だけ生成される可能性がない。
+3. Git履歴から過去のconsumerと、そのconsumerが削除された経緯を確認できる。
+4. Current route / behavior / test contractから、そのselectorが必要であるEvidenceがない。
+
+これらを満たし、consumer削除後にCSSだけが残ったことを説明できる場合は、ownerへ移動せず`dead / remove`としてinventoryへ記録する。source-order dependencyのowner判定対象から除外するが、inventory段階ではCSSを変更しない。CSSの削除はTask 2のgate通過後、before UI Review取得後のCSS refactor時に行う。この判定は今回のownership inventory中に実際にowner判定を阻害したselectorへ限定し、Repository-wideな未使用CSS cleanupへ拡張しない。履歴から用途を判断できない場合や、動的consumerの可能性を除外できない場合は§13の停止条件として扱う。
+
+今回確認済みの例:
+
+- `.fixture-account-panel`系: Login consumerがcommit `01acf2c216fc72470253c0b49c616f0219377167`で削除され、`/guide`への案内へ変更された。Currentは`dead / remove`。
+- `.admin-resource-code`系: Admin注文詳細と商品編集のconsumerがcommit `0466614281efd2327bfba662dee10c3de5fd4d13`で削除された。Currentは`dead / remove`。
+
 `@keyframes`などのnamed at-ruleは参照元を確認してownerを決める。複数ownerから参照される場合は、それらが共通して依存できるownerへ置く。Currentの`@keyframes payment-spin`はStorefront側の`.processing-spinner`とshared候補の`.state-panel--loading .state-panel__icon`から参照されるため、`shared.css`へ配置する。名前は変更しない。
 
 確認対象:
@@ -399,11 +418,30 @@ Current fileには同一selectorの複数定義があり、source orderが最終
 5. Issue修正で後付けされた局所override
 6. foundation / shared / Storefront / Adminをまたいで同じ要素・propertyへ競合するrule
 
-owner間の競合候補では、少なくともselector、対象property、specificity、media条件、pseudo-class / state、Current source order、最終computed valueを確認する。
+owner間のcascade dependency候補はpairwiseなrule比較だけで判定しない。対象elementについて、適用される全cascade chainのselector、対象property、specificity、pseudo-class / state、media条件、source order、同じpropertyを設定する後続rule、最終computed valueを確認し、そのelementが実際に表示されるviewport / stateを照合する。途中の2 ruleのsource orderを入れ替えると値が変わるだけではblockerにしない。予定ownerへ分割した後、実際に表示されるstateでCurrentの最終computed behaviorが変わる依存だけを未解決cross-owner dependencyとする。
+
+cross-owner source-order dependencyが確認された場合、import順を歪めてCurrentの結果を再現しない。owner固有stateとしてCurrent behaviorを表現できる場合は、Current property値・state・specificityを維持できる最小のscoped ruleでowner-localに表現してよい。この例外は確認済みcross-owner dependencyの解消だけに用い、一般的なCSS整理やspecificity変更へ拡張しない。
+
+今回のBreadcrumbs mapping:
+
+```text
+Current:
+  .breadcrumbs a
+  + later global a:hover
+  -> hover color = var(--color-accent-dark)
+
+After:
+  shared.css:
+    .breadcrumbs a
+    :where(.breadcrumbs) a:hover
+  -> hover color = var(--color-accent-dark)
+```
+
+`global.css`の`a:hover`は一般anchorのdefault hover contractとして残す。`:where(.breadcrumbs) a:hover`はCurrent global `a:hover`と同じspecificity `(0,1,1)`を保ち、Breadcrumbsのshared owner内で同じhover colorを適用する。
 
 移動前gate:
 
-- foundation / shared / Storefront / Admin間のsource order依存が0件になっている。
+- foundation / shared / Storefront / Admin間で、owner分割後にCurrentの最終computed behaviorを維持できない未解決dependencyが0件になっている。
 - foundation ruleとshared / Storefront / Admin ruleが、Current file内の相対順へ暗黙に依存していない。
 - shared ruleをStorefront / Admin ruleが暗黙に上書きする必要がない。
 - StorefrontとAdminが互いのrule順序へ依存していない。
@@ -640,7 +678,7 @@ pnpm run test:e2e:mobile-boundary
 
 Current CIのUI Reviewを利用する。ただし、CIの`UI Review` jobがPASSしても「スクリーンショット生成に成功した」ことしか証明しない。before / afterの画像同等性は別途確認する。
 
-CSS変更前にbaselineを取得し、実装後に同じroute・scenario・viewportを別stageで取得する。
+CSS変更前にbaselineを取得し、実装後に同じroute・scenario・viewportを別stageで取得する。全route一括captureは300秒timeoutとなったため、既存`UI_REVIEW_ROUTES`で同じregistryを3 groupに分け、`search-empty`を各groupへ含めて全viewportで空groupにならないようにする。実測したstageは`issue-131-before-batch-01..03`と`issue-131-after-batch-01..03`。
 
 例:
 
@@ -779,7 +817,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 2. Current main / Issue / CSS blob再確認
 3. selector / named at-rule consumer inventory
 4. cascade / override chain mapping
-5. foundation / shared / Storefront / Admin間のsource order依存を解消し、移動前gateを通す
+5. foundation / shared / Storefront / Admin間の未解決behavior-changing dependencyを0件にし、移動前gateを通す
 6. baseline UI Review capture
 7. `global.css` foundation整理
 8. `shared.css`作成・移動
@@ -816,7 +854,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 
 ## 14. 成果物
 
-今回の成果物:
+今回の作業成果物:
 
 - branch: `plan/issue-131-global-web-css-ownership-boundary`
 - Plan: 本ファイル

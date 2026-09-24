@@ -169,7 +169,7 @@ describe("architecture boundaries", () => {
       /from\s+["'][^"']*dexie["']/i,
       /react-aria-components/,
       /indexedDB|sessionStorage|localStorage|document\.|window\./,
-      /global\.css/,
+      /^\s*import\b[^\n]*\.css["'];?\s*$/m,
     ];
     const violations = paths.flatMap((path) => {
       const text = source(path);
@@ -182,8 +182,17 @@ describe("architecture boundaries", () => {
     const webRoot = source(join(projectRoot, "src", "presentation", "root-layout.web.tsx"));
     const nativeRoot = source(join(projectRoot, "src", "presentation", "root-layout.native.tsx"));
 
-    expect(webRoot).toContain('import "@/presentation/styles/fonts.css";');
-    expect(webRoot).toContain('import "@/presentation/styles/global.css";');
+    const webStylesheetImports = Array.from(
+      webRoot.matchAll(/^\s*import\s+["']([^"']+\.css)["'];?\s*$/gm),
+      (match) => match[1],
+    );
+    expect(webStylesheetImports).toEqual([
+      "@/presentation/styles/fonts.css",
+      "@/presentation/styles/global.css",
+      "@/presentation/styles/shared.css",
+      "@/presentation/styles/storefront.css",
+      "@/presentation/styles/admin.css",
+    ]);
     expect(nativeRoot).not.toMatch(/^\s*import\b[^\n]*\.css["'];?\s*$/m);
   });
 
