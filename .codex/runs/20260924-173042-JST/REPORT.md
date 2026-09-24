@@ -204,3 +204,14 @@
 - ブロッカー / 残作業: Task 11 `corepack pnpm run verify`、Task 12 final inventory、Task 13 collector / sanitizer、commit / normal push / PR本文更新、最新head CI確認。
 - Subagent: Delegationなし。Result: 親Agentがtest failureを調査し、sourceの一行修正とbounded再検証を実施。親Agentの判断: ignored output copyやunrelated skill-trigger behaviorは変更しない。
 - Progress: 63% (10/16)
+
+## 2026-09-25 00:14 (JST)
+
+- Summary: clean worktreeでTask 11のRepository標準gateを再実行し、3つの必須確認がすべてPASSした。
+- Environment: PR #180 head `6de20636e318d963aadaf3755e6fff09bc1a336c`のdetached clean worktreeを使用。開始時に`output/`と過去Run由来のtraining copyは存在しなかった。`corepack pnpm install --frozen-lockfile`はpnpm 10.34.5でexit 0。`package.json` / `pnpm-lock.yaml`に差分なし。
+- Current baseline: 作業直前の`origin/main` / PR baseは`10d04ecd7466c1ed92e439037dd5529d38d8f2e2`（#183 Expo SDK推奨versionとlockfile更新）。Task 1指定のarchitecture / Domain / Application / policy / test / documentation / safety path familyには前回確認以降の差分なし。PR branchは最新mainを含み、ahead 17 / behind 0。GitHub APIでPR #180 open / unmerged、PR / remote / local HEAD一致を確認した。
+- Validation: `corepack pnpm run test:repository` PASS (11 files / 147 tests)。`corepack pnpm run verify`はCorepackのpnpm shimをtemporary PATHへ加えた環境で同じ標準commandを実行しexit 0。verify内のRepository suiteもPASS (11 files / 147 tests)、contracts suite PASS (46 files / 793 passed / 4 skipped)、Web export / docs / spec build PASS。`git diff --check` PASS。
+- Failure diagnosis: `verify`の最初の起動はscript内の裸`pnpm`がPATHに無いため検査開始前に失敗した。公式Corepack shimを使ったgate実行ではGit fixture test `requires a detached, clean, isolated Routing Target` 1件が既定5秒timeoutしたが、単独・single worker・30秒timeoutの診断でPASS (1 test / 1.26秒)。既存のtest:repository PASSと合わせて一時的な並行実行遅延と分類し、bounded retryを1回だけ実行。retryでは同testを含むRepository suiteがPASSし、verify全体もexit 0となった。
+- Generated output / scope: すべてのtest stage実行時に古いignored `output/**` training copyはなく、旧policy failureは再現しなかった。verify後に生成されたignored outputは`output/spec-site`だけで、training copyは0。今回Task 11のためのsource / test / test harness / configuration / dependency変更なし。`run.json`はcollectorのみが更新する。
+- Completion: Task 11を完了として記録。Active blockerなし。Task 14 / 15は本checkpointでは変更せず未完了のまま保持する。
+- Progress: 88% (14/16)

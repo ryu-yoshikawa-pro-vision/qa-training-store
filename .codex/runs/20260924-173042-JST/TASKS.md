@@ -14,7 +14,7 @@
 - [x] 8. architecture static contractとsynthetic self-testを追加する。
 - [x] 9. 対象documentationをCurrent sourceへ同期する。
 - [x] 10. focused validationを実行し、Current root Repository suiteを確認する。
-- [ ] 11. Repository標準gateを実行する。
+- [x] 11. Repository標準gateを実行する。
 - [x] 12. final inventoryを全件確認する。
 - [x] 13. Run Artifactを更新しcollector / sanitizerを完了する。
 - [ ] 14. scope再確認後にcommit、通常push、PR #180本文を更新する。
@@ -36,4 +36,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- Task 11の`corepack pnpm run verify`はローカルignored `output/**`内の古い生成コピーをVitest / Jestが拾い、root外のtest failureとなる。Current root各test suiteは`output/**`を除外した実行でPASS。さらに`codex-text-quality`の固定30秒fixture testがfull serial suite実行時に一度timeoutし、単独再実行ではPASS。標準gateの無条件PASSは未確認であり、Task 11は完了扱いにしない。
+- なし。Task 11の旧ブロッカーはclean worktreeで標準gateを再実行して解消した。過去のignored `output/**` training copyは存在せず、旧policy failureは再現しなかった。
