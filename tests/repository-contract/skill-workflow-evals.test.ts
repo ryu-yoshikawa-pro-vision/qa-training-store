@@ -21,7 +21,7 @@ import {
   changedStageScopeFiles,
   collectCodexEvents,
   commandRan,
-  commonSmokeCommand,
+  commonSmokeValidationCommand,
   createWorkflowAgentWorkspace,
   deriveNativeFirstAnomaly,
   isCaseBOfficialEvidenceFile,
@@ -138,6 +138,27 @@ describe("Workflow E2E Eval repository contract", () => {
     };
     expect(summarizeCommonSmokeProbe(passingInput)).toMatchObject({ status: "pass" });
 
+    expect(
+      summarizeCommonSmokeProbe({
+        ...passingInput,
+        initial: { ...passingTurn, command_execution_observed: false },
+      }),
+    ).toMatchObject({
+      status: "fail",
+      initial_write_observed: true,
+      initial_command_execution_observed: false,
+    });
+    expect(
+      summarizeCommonSmokeProbe({
+        ...passingInput,
+        initial: { ...passingTurn, write_observed: false },
+      }),
+    ).toMatchObject({
+      status: "fail",
+      initial_write_observed: false,
+      initial_command_execution_observed: true,
+    });
+
     const failures = [
       { field: "initial_process_completed", initial: { lifecycle: "turn_failed" as const } },
       { field: "resumed_process_completed", resumed: { lifecycle: "turn_failed" as const } },
@@ -251,26 +272,32 @@ describe("Workflow E2E Eval repository contract", () => {
     });
   });
 
-  it("uses a fixed shell command and structured response for each common smoke turn", () => {
-    expect(commonSmokeCommand("initial")).toBe(
-      `node -e "require('node:fs').appendFileSync('smoke.txt','initial-write\\n')"`,
-    );
-    expect(commonSmokeCommand("resumed")).toBe(
-      `node -e "require('node:fs').appendFileSync('smoke.txt','resumed-write\\n')"`,
-    );
-
+  it("separates file-editing writes from the fixed read-only smoke command", () => {
+    expect(commonSmokeValidationCommand()).toBe("git status --short");
     const initialPrompt = buildCommonSmokePrompt("initial");
     const resumedPrompt = buildCommonSmokePrompt("resumed");
-    expect(initialPrompt).toContain(commonSmokeCommand("initial"));
-    expect(initialPrompt).toContain("Do not use a file-editing tool instead");
+    expect(initialPrompt).toContain("Use the file-editing tool, not a shell command");
+    expect(initialPrompt).toContain("append exactly this line");
+    expect(initialPrompt).toContain("Do not use a shell command to edit `smoke.txt`");
+    expect(initialPrompt).toContain("Preserve all existing contents of `smoke.txt`");
+    expect(initialPrompt).toContain("initial-write");
+    expect(initialPrompt).toContain(commonSmokeValidationCommand());
+    expect(initialPrompt.split(commonSmokeValidationCommand())).toHaveLength(2);
     expect(initialPrompt).toContain('{"status":"initial-write"}');
-    expect(resumedPrompt).toContain(commonSmokeCommand("resumed"));
-    expect(resumedPrompt).toContain("Do not use a file-editing tool instead");
+    expect(initialPrompt).not.toMatch(/node -e|appendFileSync/u);
+    expect(resumedPrompt).toContain("Use the file-editing tool, not a shell command");
+    expect(resumedPrompt).toContain("append exactly this line");
+    expect(resumedPrompt).toContain("Do not use a shell command to edit `smoke.txt`");
+    expect(resumedPrompt).toContain("Preserve all existing contents of `smoke.txt`");
+    expect(resumedPrompt).toContain("resumed-write");
+    expect(resumedPrompt).toContain(commonSmokeValidationCommand());
+    expect(resumedPrompt.split(commonSmokeValidationCommand())).toHaveLength(2);
     expect(resumedPrompt).toContain('{"status":"resumed-write"}');
+    expect(resumedPrompt).not.toMatch(/node -e|appendFileSync/u);
   });
 
   it("requires the expected common smoke command to exit successfully", () => {
-    const initialCommand = commonSmokeCommand("initial");
+    const validationCommand = commonSmokeValidationCommand();
     const execution = (commands: readonly { command: string; exit_code: number | null }[]) => ({
       command_executions: commands.map((command) => ({
         ...command,
@@ -279,19 +306,15 @@ describe("Workflow E2E Eval repository contract", () => {
       })),
     });
 
-    expect(commandRan(execution([]), initialCommand, 0)).toBe(false);
+    expect(commandRan(execution([]), validationCommand, 0)).toBe(false);
     expect(
-      commandRan(
-        execution([{ command: "node -e console.log('unrelated')", exit_code: 0 }]),
-        initialCommand,
-        0,
-      ),
+      commandRan(execution([{ command: "git status", exit_code: 0 }]), validationCommand, 0),
     ).toBe(false);
     expect(
-      commandRan(execution([{ command: initialCommand, exit_code: 1 }]), initialCommand, 0),
+      commandRan(execution([{ command: validationCommand, exit_code: 1 }]), validationCommand, 0),
     ).toBe(false);
     expect(
-      commandRan(execution([{ command: initialCommand, exit_code: 0 }]), initialCommand, 0),
+      commandRan(execution([{ command: validationCommand, exit_code: 0 }]), validationCommand, 0),
     ).toBe(true);
   });
 
@@ -304,7 +327,7 @@ describe("Workflow E2E Eval repository contract", () => {
           type: "item.completed",
           event: {
             type: "command_execution",
-            command: commonSmokeCommand("initial"),
+            command: commonSmokeValidationCommand(),
             exit_code: 0,
             status: "completed",
             aggregated_output: `wrote ${smokeRoot}`,
@@ -327,7 +350,7 @@ describe("Workflow E2E Eval repository contract", () => {
       stderr: `diagnostic ${smokeRoot} ${"e".repeat(1_000)}`,
       event_types: events.eventTypes,
       command_executions: Array.from({ length: 6 }, (_, index) => ({
-        command: `${commonSmokeCommand("initial")} # ${index} ${smokeRoot}`,
+        command: `${commonSmokeValidationCommand()} # ${index} ${smokeRoot}`,
         exit_code: 0,
         status: "completed",
         output: `wrote ${smokeRoot} ${"o".repeat(1_000)}`,

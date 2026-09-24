@@ -2859,19 +2859,24 @@ type SmokeTurnEvidence = {
 
 type CommonSmokeTurn = "initial" | "resumed";
 
-export function commonSmokeCommand(turn: CommonSmokeTurn): string {
-  const line = `${turn}-write`;
-  return `node -e "require('node:fs').appendFileSync('smoke.txt','${line}\\n')"`;
+export function commonSmokeValidationCommand(): string {
+  return "git status --short";
 }
 
 export function buildCommonSmokePrompt(turn: CommonSmokeTurn): string {
   const status = `${turn}-write`;
   return buildWorkflowTurnPrompt(
     [
-      "Run exactly this shell command once. Do not use a file-editing tool instead:",
-      commonSmokeCommand(turn),
+      "Use the file-editing tool, not a shell command, to append exactly this line to `smoke.txt`:",
+      status,
       "",
-      "After the command exits successfully, return exactly this JSON with no additional fields:",
+      "Preserve all existing contents of `smoke.txt`, including its baseline and any line written in a prior turn.",
+      "Do not use a shell command to edit `smoke.txt`.",
+      "",
+      "Then run exactly this read-only shell command once:",
+      commonSmokeValidationCommand(),
+      "",
+      "After that command completes, return exactly this JSON with no additional fields:",
       JSON.stringify({ status }),
     ].join("\n"),
   );
@@ -3045,7 +3050,7 @@ async function runCommonSmokeProbe(
       otel_reliable: initialExecution.otel.reliable,
       schema_valid: initialValue?.status === "initial-write",
       write_observed: smokeLineObserved(smokeRoot, "initial-write"),
-      command_execution_observed: commandRan(initialExecution, commonSmokeCommand("initial"), 0),
+      command_execution_observed: commandRan(initialExecution, commonSmokeValidationCommand(), 0),
     };
 
     if (initialExecution.thread_id !== null) {
@@ -3078,7 +3083,7 @@ async function runCommonSmokeProbe(
         otel_reliable: resumedExecution.otel.reliable,
         schema_valid: resumedValue?.status === "resumed-write",
         write_observed: smokeLineObserved(smokeRoot, "resumed-write"),
-        command_execution_observed: commandRan(resumedExecution, commonSmokeCommand("resumed"), 0),
+        command_execution_observed: commandRan(resumedExecution, commonSmokeValidationCommand(), 0),
       };
       sameThread = resumedExecution.thread_id === initialExecution.thread_id;
     }
