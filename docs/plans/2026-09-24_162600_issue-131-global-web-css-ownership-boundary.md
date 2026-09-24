@@ -322,14 +322,14 @@ import "@/presentation/styles/storefront.css";
 import "@/presentation/styles/admin.css";
 ```
 
-このimport順は、ファイル移動前のcascade依存確認でcross-ownerのsource order依存が0件になったことを確認した後に適用する。Current `global.css`内のStorefront / Admin / shared ruleの相対順を、この5 importだけで再現しようとはしない。
+このimport順は、ファイル移動前のcascade依存確認でfoundation / shared / Storefront / Admin間のsource order依存が0件になったことを確認した後に適用する。Current `global.css`内の各ruleの相対順を、この5 importだけで再現しようとはしない。
 
 理由:
 
 - document foundationを先に適用する。
 - reusable primitiveをfeature styleより先に適用する。
 - StorefrontとAdminはclass ownershipを分離するため、相互上書きを前提にしない。
-- cross-ownerのsource order依存が見つかった場合は、import順で上書きを再現せず、selectorのownerと責務を確定してから移動する。
+- foundationを含むowner間のsource order依存が見つかった場合は、import順で上書きを再現せず、selectorのownerと責務を確定してから移動する。
 
 `@import`を使ったaggregator方式は採用しない。
 
@@ -397,16 +397,18 @@ Current fileには同一selectorの複数定義があり、source orderが最終
 3. responsive override
 4. state / pseudo-class
 5. Issue修正で後付けされた局所override
-6. shared / Storefront / Adminをまたいで同じ要素・propertyへ競合するrule
+6. foundation / shared / Storefront / Adminをまたいで同じ要素・propertyへ競合するrule
 
-cross-ownerの競合候補では、少なくともselector、対象property、specificity、media条件、pseudo-class / state、Current source order、最終computed valueを確認する。
+owner間の競合候補では、少なくともselector、対象property、specificity、media条件、pseudo-class / state、Current source order、最終computed valueを確認する。
 
 移動前gate:
 
-- cross-ownerのsource order依存が0件になっている。
+- foundation / shared / Storefront / Admin間のsource order依存が0件になっている。
+- foundation ruleとshared / Storefront / Admin ruleが、Current file内の相対順へ暗黙に依存していない。
 - shared ruleをStorefront / Admin ruleが暗黙に上書きする必要がない。
 - StorefrontとAdminが互いのrule順序へ依存していない。
-- 依存が見つかった場合はimport順で再現せず、consumerと責務を確認してownerを1つへ確定する。
+- `body`、`a`、`button`、`input`、`select`、`textarea`等のbroad raw-element ruleを`global.css`へ残す場合は、Current位置からfoundation側へ移動しても最終computed behaviorが変わらないことを確認する。
+- 依存が見つかった場合はimport順で再現せず、そのruleが本当にfoundationなのか、shared / Storefront / Adminのどこへ置くべきかをconsumerと責務から再判定する。
 - ownerを確定できない依存が残る場合は、Task 3以降へ進まずPlanを再評価する。
 
 ファイル移動では、property値、specificity、media条件、同一owner内のrule相対順を変更しない。同一owner内のduplicate consolidation、履歴単位blockの統合、section並べ替えはIssue #131の対象外とする。cross-ownerの依存を解消するために必要な最小限の統合だけを例外とする。
@@ -427,7 +429,7 @@ cross-ownerの競合候補では、少なくともselector、対象property、sp
 - `.address-form-panel`
 - `.resource-table*`
 
-目標はselector数削減ではない。同じ変更理由のstyleを1つのownership boundaryから追え、cross-ownerのsource orderに依存しない状態にすること。
+目標はselector数削減ではない。同じ変更理由のstyleを1つのownership boundaryから追え、foundationを含むowner間のsource orderに依存しない状態にすること。
 
 ### Task 3: foundationを`global.css`へ残す
 
@@ -733,7 +735,7 @@ Current file内では後段overrideが多数あるため、単純にselectorをf
 
 対策:
 
-- ファイル移動前にcross-ownerのsource order依存を洗い出し、未解決0件をTask 3以降へ進む条件にする。
+- ファイル移動前にfoundation / shared / Storefront / Admin間のsource order依存を洗い出し、未解決0件をTask 3以降へ進む条件にする。
 - property値、specificity、media条件、同一owner内のrule相対順を変えない。
 - 同一owner内のduplicate consolidationやsection並べ替えは今回行わない。
 - feature間上書きを前提にしないownershipへ分ける。
@@ -777,7 +779,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 2. Current main / Issue / CSS blob再確認
 3. selector / named at-rule consumer inventory
 4. cascade / override chain mapping
-5. cross-ownerのsource order依存を解消し、移動前gateを通す
+5. foundation / shared / Storefront / Admin間のsource order依存を解消し、移動前gateを通す
 6. baseline UI Review capture
 7. `global.css` foundation整理
 8. `shared.css`作成・移動
@@ -803,7 +805,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 次の場合は、その場で追加抽象化せずPlanを再評価する。
 
 - 同じselectorがStorefrontとAdminで意図的に異なる値を必要としている。
-- cross-ownerのsource order依存をownerの確定だけでは解消できない。
+- foundationを含むowner間のsource order依存をownerの確定だけでは解消できない。
 - direct import順だけではCurrent cascadeを維持できず、feature間の上書き依存が見つかった。
 - selectorまたはnamed at-ruleのconsumer / 参照元を確認してもownerを一意に決められない。
 - className renameなしでは境界を作れない箇所が大量にある。
