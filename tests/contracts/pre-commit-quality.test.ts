@@ -18,6 +18,15 @@ function git(root: string, args: string[]) {
   return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: "pipe" }).trim();
 }
 
+function gitWithInput(root: string, args: string[], input: string) {
+  return execFileSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    input: Buffer.from(input, "utf8"),
+    stdio: "pipe",
+  }).trim();
+}
+
 function writeFile(root: string, filePath: string, source: string) {
   const absolutePath = path.join(root, filePath);
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
@@ -146,6 +155,39 @@ describe("staged Prettier and ESLint contract", () => {
       const result = runChecker(root);
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("PASS: staged Prettier and ESLint checks");
+    });
+  });
+
+  it("fails a CRLF stage 0 blob while the worktree remains LF", () => {
+    withFixture((root) => {
+      const worktreeSource = 'const sample = { answer: "ok" };\n';
+      const stagedSource = worktreeSource.replaceAll("\n", "\r\n");
+      writeFile(root, "sample.js", worktreeSource);
+
+      const blobId = gitWithInput(root, ["hash-object", "-w", "--stdin"], stagedSource);
+      git(root, ["update-index", "--add", "--cacheinfo", `100644,${blobId},sample.js`]);
+
+      const stagedBytes = execFileSync("git", ["show", ":sample.js"], {
+        cwd: root,
+        encoding: null,
+        stdio: "pipe",
+      });
+      expect(stagedBytes.includes(Buffer.from("\r\n", "utf8"))).toBe(true);
+      expect(fs.readFileSync(path.join(root, "sample.js"))).toEqual(
+        Buffer.from(worktreeSource, "utf8"),
+      );
+      expect(
+        JSON.parse(fs.readFileSync(path.join(root, ".prettierrc.json"), "utf8")),
+      ).toMatchObject({
+        endOfLine: "lf",
+      });
+      expect(fs.readFileSync(path.join(root, ".editorconfig"), "utf8")).toContain(
+        "end_of_line = lf",
+      );
+
+      const result = runChecker(root);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("staged Prettier check failed");
     });
   });
 

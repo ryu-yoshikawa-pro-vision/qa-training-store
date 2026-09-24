@@ -95,7 +95,6 @@ async function checkPrettier(root, filePath, source) {
   return check(source, {
     ...(config ?? {}),
     filepath: absolutePath,
-    endOfLine: "auto",
   });
 }
 
