@@ -239,6 +239,8 @@ pbkdf2-sha256$210000$<saltBase64>$<hashBase64>
 
 ## 3. Storefront Query・DTO
 
+`ProductViewer`はStorefront query / DTOで利用するApplication-owned contractです。follow-up RefactorではDomain policyへこのApplication typeを渡さず、商品閲覧判定に必要なDomain-owned情報だけを渡します。Port ownershipとDomain dependencyの詳細はADR-0027を参照してください。
+
 ```typescript
 type ProductViewer =
   | { kind: "guest" }

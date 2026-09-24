@@ -314,6 +314,16 @@ Pass 1でEvidenceが足りなかったのは§4.16だけである。Pass 2では
 - Why now / why not now: type-onlyでruntime failureがなく、即時refactorのbenefitは確定しない。一方、ADR-0003はApplicationがDomain Repository Portへ依存する方向を記録し、repository interface説明はApplication contractのRead DTOを参照する現行設計を記録している。Domain→Application type dependencyを許容するのか、ProductViewer / repository DTOのcanonical ownerを移すのかを確定するEvidenceなしにkeep_as_is / refactor_when_touchedへ断定しない。
 - Follow-up trigger or missing evidence: 不足Evidenceは、Domain→Application type dependencyを許容する明示ADR / architecture contract、ProductViewer・repository Read DTOのcanonical ownerを決める設計判断、その判断を検査するstatic contract。取得条件はarchitecture ownerが方針を決め、必要ならADR / contract testを追加する時点。再判断triggerはDomain / Application contractの次回変更、runtime cycle / compile-time dependency failureの再現、またはarchitecture direction ADRの確定である。Related finding: RA-Q1。
 
+### Issue #132 follow-up resolution
+
+- Resolution: Issue #132でarchitecture ownerが案Aを選択し、ADR-0027でRepository Port ownership ruleを確定した。`NFR-MA-001`、Coding Standards §7.1、Repository Structure §4に従い、Domain → Application dependencyはruntime / type-onlyを問わず禁止する。
+- Canonical ownership: Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。Repository Portは責務とconsumerから個別に判断し、Application / Infrastructureだけから利用されApplication contractを境界として使うPortはApplication ownershipを第一候補とする。Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持する。`NFR-MA-010`は維持する。
+- Classification: `refactor_now`。この追記はPhase 6時点の`needs_more_evidence` classificationと当時のEvidenceを履歴として保持し、Issue #132後続判断を記録する。
+- Follow-up scope: latest `main`へrebaselineした別Planで24 interfaceすべての責務、consumer、transaction boundary、入出力contractを確認し、個別に維持 / 移動 / 削除を判断する。Application typeを使う17 interfaceを最低限の整理対象とし、未使用候補の`ImageAssetCatalogRepository`、`TestInspectionRepository`、`TestMetadataRepository`は移動前に削除可否を確認する。残り7 interfaceもDomain ownershipを自動確定しない。影響を受けるconsumerだけを更新し、`canViewerSeeProduct()`から`ProductViewer`依存を除去してCurrent Infrastructure callerで`MembershipRank | null`相当を導出する。
+- Architecture contract: source remediationと同じ実装PRで、Domain → Applicationのstatic contractと`tests/contracts/architecture.test.ts`内synthetic source table-driven self-testを追加する。ADR-0027が禁止syntax / path coverageと除外範囲を定義する。
+- Next action: Issue #132完了後、latest `main`で再baselineしてfollow-up implementation Planを作成する。そのPlanで変更file、順序、focused test、Repository標準validationを確定し、別の実装PRで行う。Issue #132 decision-only作業ではProduct source / test、architecture contract implementation、Repository interface移動を行わない。
+- Decision reference: ADR-0027。ADR-0003 Decision 3のRepository Port ownership要件だけを限定的にsupersedeし、残りのDecisionは維持する。
+
 ## RA-C1 conclusion
 
 RA-C1（Hotspot / duplication / large-file等のRefactoring candidate群）は、16 candidateのNecessity Reviewとして次のように集約される。
