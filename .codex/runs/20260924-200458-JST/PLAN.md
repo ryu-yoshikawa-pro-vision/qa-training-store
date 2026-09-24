@@ -2,75 +2,86 @@
 
 ## Objective（目的）
 
-- CI待機中のAgent/LLMによる状態確認反復をなくし、exact HEADの `Web CI` / `Mobile App CI` が終端状態になった時だけAgentを再開する。
-- 同じbranch / PR #182でPlan修正から実装、検証まで完了する。
+- push後のCI待機を1回のMCP tool callへ委譲し、CI待機中のAgent/LLMによる状態確認反復をなくす。
+- exact HEADの `Web CI` / `Mobile App CI` が終端状態になった時だけtool resultを同じCodex turnへ返す。
+- 同じbranch / PR #182でPlan修正からMCP実装、検証まで完了する。
 
 ## Scope（対象範囲）
 
 - In:
-  - 現在のCodex実行経路でmodel-free waitが可能かのruntime gate
-  - exact HEADの `Web CI` / `Mobile App CI` だけを監視する待機経路
-  - 必要なhelper / test / wrapperの最小実装
-  - `docs/reference/codex-implementation-harness.md`
-  - `scripts/verify` / `scripts/verify.ps1`
-  - PR #182の実装内容への同期
+  - project-scoped stdio MCP server
+  - `wait_for_required_ci` tool
+  - Codex MCP `tool_timeout_sec`
+  - exact HEADの `Web CI` / `Mobile App CI` read-only監視
+  - MCP SDK dependency
+  - contract test
+  - implementation harness / Bash / PowerShell verify同期
+  - PR #182での実CI待機検証
 - Out:
-  - Product code
+  - `codex exec resume`
+  - Codex再起動supervisor
+  - webhook / queue / daemon
   - GitHub Actions workflow変更
-  - branch protection変更
-  - permission / sandbox緩和
-  - 外部常駐service
+  - GitHub write操作
+  - Product code
   - merge
 
 ## Assumptions（仮定）
 
-- 削減対象はCI待機中のモデル推論であり、モデル外processのGitHub API pollingは許容する。
+- 削減対象はCI待機中のモデル推論であり、MCP server内部のGitHub API pollingは許容する。
+- MCP serverはexisting `gh` authenticationをread-onlyで利用する。
+- 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
-- `gh pr checks --watch` を呼ぶだけではmodel-free waitを保証しない。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
 - ユーザーへ確認が必要な不透明点: なし。
 - 実装gate:
-  - installed Codex versionと実際のtask起動経路。
-  - completion waitの利用可否。
-  - completion waitがない場合のsafe resume可否。
-- 未回答の重要質問: 上記は実測して解消し、推測で実装しない。
+  - project configからstdio MCP serverがinstalled Codex / Windows hostで起動すること。
+  - `tool_timeout_sec=6000` が長時間callへ適用されること。
+  - MCP call待機中にAgentへ途中turnが戻らないこと。
+  - tool result後に同じCodex turnが継続すること。
+- 上記が成立しなければMCP方式を完了扱いにせずblockerとして停止する。
 
 ## Research Plan（調査計画）
 
-- Repository: `AGENTS.md`、implementation harness、codex-safe / codex-task、Bash / PowerShell verify、Web CI / Mobile App CI。
-- Runtime: installed Codexのversion / tool surfaceと35〜40秒のnon-mutating command。
-- 外部仕様: GitHub CLI `pr checks` / `run list`、OpenAI Codex unified exec source。
+- Repository: `.codex/config.toml`、implementation harness、verify、Web CI / Mobile App CI。
+- Dependency: official MCP TypeScript SDK v2 stable、Node requirement、license。
+- Codex: stdio MCP config、`tool_timeout_sec`、project-scoped config。
+- GitHub: exact head workflow run取得とrun status / conclusion。
 - Exit Criteria:
-  - model-free waitを実現できるruntime pathが確定する。
-  - exact HEADの2 workflowだけを監視する終了条件が確定する。
-  - runtimeが対応不能なら、偽の回避策を実装せずblockerとして説明できる。
+  - MCP serverの起動契約が確定する。
+  - CI waiterの入力 / 出力 / timeout / failure契約が確定する。
+  - model-side pollingなしを実地検証できる。
 
 ## Approach（進め方）
 
-- Task 0でruntime capabilityを確定する。
-- 判定Aならnative completion waitを使う。
-- 判定Bならmodel外supervisorでCI待機し、終了時だけ同一threadをresumeする。
-- 判定Cなら実装を停止し、host capability blockerを記録する。
-- A/Bの場合だけCI waiterを最小実装し、harness / verifyを同期する。
-- 最終push後はPR #182自身で新経路を実地検証する。
+- 公式SDKで1 toolだけのstdio MCP serverを作る。
+- MCP protocolは独自実装しない。
+- GitHub操作は `gh api` read-only GETだけにする。
+- tool内部でregistration waitとworkflow waitを行う。
+- tool結果を受け取ったCodexがsuccess / repair-loop / blockerへ進む。
+- resume / supervisorへfallbackしない。
 
 ## Definition of Done（完了条件）
 
 - 保存PlanのDoDをすべて満たす。
-- PR #182がPlan-onlyではなく、実装・検証結果まで含む。
-- CI待機中にAgent pollingが発生していないことを実地証跡で確認する。
-- latest headの `Web CI` / `Mobile App CI` がsuccess、またはfailure時はrepair-loopへ戻って未解決を残さない。
+- Codexから `wait_for_required_ci` を1回callできる。
+- CI待機中にAgent pollingが発生しない。
+- latest headの `Web CI` / `Mobile App CI` を正しく判定する。
+- PR #182が実装・検証結果まで含む。
+- Repository標準verifyがPASSする。
 
 ## Risks / Unknowns（リスク・未知点）
 
-- 最重要: interactive Codexがlong-running commandをyieldする場合、repo-local waiterだけでは目的を達成できない。
-- `gh pr checks --fail-fast` はunrelated checkへ反応するため正本にしない。
-- supervisor / resumeはinstalled versionでcwd / sandbox / session identityを検証してから採用する。
+- Host側にMCP `tool_timeout_sec` より短い固定timeoutがある可能性。
+- project-relative MCP server pathのWindows解決。
+- MCP serverがCodex sandbox外で `gh` authへアクセスするため、read-only操作へ厳密に限定する必要。
+- 新規MCP SDK dependency追加。
 
 ## Thinking Log（判断記録）
 
-- 初版Planの「1回のshell tool call内で `gh pr checks --watch`」は、Codex runtimeがlive sessionをAgentへ返す場合にモデルpollingを残すため撤回する。
-- CI登録完了は「checkが1件以上」ではなく、exact HEADの `Web CI` / `Mobile App CI` 両runの存在で判定する。
-- PR #182をPlan-onlyで終わらせず、同じbranchで実装まで進める。
+- 初版の `gh pr checks --watch` shell待機はCodex `exec_command` live session pollingを残し得るため撤回した。
+- supervisor + `codex exec resume` 案は、Codex processを終了・再起動する必要があり今回の要件より複雑なため撤回した。
+- ユーザー想定どおり「1回のtool call内部でCIを待ち、終了時に同じLLM turnへ返す」方式を採用する。
+- CodexがMCP tool単位のtimeoutを持ち、公式MCP TypeScript SDKがstdio serverを提供するため、repo-local MCP serverを実装方針とした。

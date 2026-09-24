@@ -1,416 +1,479 @@
-# CI待機中のモデル推論を停止し、完了時にAgentを再開する計画
+# MCPでCI待機をAgent外へ委譲する計画
 
 ## 0. 依頼概要
 
-- 依頼内容: 実装・push後のCI確認でAgentが状態確認を反復してトークンを消費する運用をやめ、CIが成功または失敗で終了した時点でAgentの作業を再開できるようにする。
-- 背景: 現在のRepository契約では最新PR headの必須CI確認が完了条件に含まれるが、待機方法は「無制限pollingや独自の監視scriptを追加しない」とだけ定義されている。
-- 期待成果: CI待機中はモデル推論を発生させず、exact HEADの `Web CI` / `Mobile App CI` が終端状態になった時だけAgentへ制御を戻す。
-- 実装範囲: このbranch / PR #182でPlan修正から実装、検証、push後の実地確認まで行う。Plan-only PRにはしない。
+- 依頼内容: 実装・push後のCI確認でAgentがGitHub状態を反復確認してトークンを消費する運用をやめ、CI終了時だけ同じAgentへ制御を戻す。
+- 背景: 現在のRepository契約では最新PR headの `Web CI` / `Mobile App CI` 成功確認が完了条件に含まれるが、待機方法は「無制限pollingや独自監視scriptを追加しない」とだけ定義されている。
+- 期待成果: Codexから1回のMCP tool callを行い、MCP server内部でCIを監視し、成功・失敗・timeout等が確定した時だけtool resultをCodexへ返す。
+- 実装範囲: このbranch / PR #182でPlan修正からMCP実装、検証、push後の実地確認まで行う。Plan-only PRにはしない。
 
 ## 1. ゴール / 完了条件
 
 ### ゴール
 
-- CI待機をAgent自身の反復確認から外し、モデルを使わないプロセスへ委譲する。
-- 最新PR headに対する `Web CI` と `Mobile App CI` だけをRepositoryの完了判定対象として扱う。
-- 両workflowが `success` ならAgentを成功経路へ戻し、どちらかが終端の非successになったら原因調査へ戻す。
-- 旧headの結果、branch protectionから推測したrequired checks、CodeRabbit等の別checkをRepository必須CIの代替にしない。
+- CI待機中にAgent / LLMの追加turnを発生させない。
+- Codex threadやprocessを終了して `resume` する方式は使わず、同じturn内の長時間MCP tool callとして待機する。
+- latest PR headに対する `Web CI` と `Mobile App CI` だけをRepositoryの完了判定対象とする。
+- GitHub状態のpollingはMCP server内部で行い、Agentへ途中結果を返さない。
 
 ### 完了条件（DoD）
 
-- 実装開始前に、実際に使っているCodex実行経路で「長時間commandをモデルへ制御を返さず完了まで待てるか」を実測している。
-- CI待機中に `write_stdin` 等のAgent側pollingを繰り返さない経路が確立している。
-- exact HEADに紐づく `pull_request` eventの `Web CI` / `Mobile App CI` が両方登録されるまで、モデル外でboundedに待機する。
-- workflow登録後は、両workflowのrunをモデル外で監視し、次のいずれかで終了する。
+- project-scoped MCP serverがRepositoryから起動でき、Codexのtool catalogにCI待機toolが登録される。
+- MCP serverはstdio transportを使い、外部HTTP server、daemon、queue、webhook receiverを追加しない。
+- Codex側のMCP tool timeoutがCI待機上限より長く設定され、MCP tool callが待機途中でCodex側timeoutにならない。
+- CI待機tool `wait_for_required_ci` は、最低限次を入力に取る。
+  - repository
+  - PR番号
+  - expected head SHA
+- toolは開始時にPRがOPENであり、current head SHAがexpected head SHAと一致することを確認する。
+- exact HEADかつ `pull_request` eventの `Web CI` / `Mobile App CI` が両方登録されるまでboundedに待つ。
+- 両workflow登録後は対象runだけを監視し、次のいずれかでtool resultを返す。
   - 両方 `success`。
   - どちらかが終端の非success。
-  - registration timeout、overall timeout、GitHub API / CLI error。
-- 待機開始前と終了時にPR headを取得し、期待するcommit SHAから変わっていないことを確認する。
-- `docs/reference/codex-implementation-harness.md` のCI lifecycle契約と実装経路が一致している。
-- `scripts/verify` と `scripts/verify.ps1` のsemantic contractを新契約へ同期し、Bash / PowerShellの標準verifyがPASSする。
-- 実装後のPR #182最新headで、実際の `Web CI` / `Mobile App CI` 完了待機を新経路で実行し、待機中にモデルpollingが発生していない証跡を残す。
+  - PR headがexpected head SHAから変わった。
+  - registration timeout。
+  - overall timeout。
+  - GitHub CLI / API error。
+- CI待機中にCodex側で `exec_command` / `write_stdin` / GitHub状態確認tool callを反復しない。
+- `docs/reference/codex-implementation-harness.md` がMCP toolをCI待機の正本経路として説明する。
+- `scripts/verify` と `scripts/verify.ps1` が新しい契約へ同期し、Bash / PowerShellの標準verifyがPASSする。
+- PR #182 latest headの実CIでMCP tool callを実行し、CI終了後に同じCodex turnへresultが返ることを確認する。
 - PR #182のtitle / bodyをPlan-only表現から実装内容へ同期する。
 - mergeはユーザーから明示指示があるまで行わない。
 
-## 2. 現状理解と確認済み事実
+## 2. 現状理解と前提
 
 ### Repository
 
-- `AGENTS.md` はfile-changing taskのcommit / push / PR / CI lifecycleの正本を `docs/reference/codex-implementation-harness.md` としている。rootへ詳細契約を複製する必要はない。
-- `docs/reference/codex-implementation-harness.md` は通常PRの必須CIを `Web CI` と `Mobile App CI` と定義し、pushした最新commitをheadとするPRで確認する契約を持つ。
-- `.github/workflows/ci.yml` のworkflow名は `Web CI`、`.github/workflows/native-ci.yml` のworkflow名は `Mobile App CI` で、どちらも `pull_request` で起動する。
-- `scripts/verify` と `scripts/verify.ps1` は現在の「`queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。」という文言をliteralで検証している。正本文書だけを変更すると標準verifyが失敗する。
-- 過去Runでは `gh pr checks <PR> --watch` を使用しているが、これは「モデル推論を発生させず待てる」というruntime保証にはならない。
+- `AGENTS.md` はfile-changing taskのcommit / push / PR / CI lifecycleの正本を `docs/reference/codex-implementation-harness.md` としている。rootへCI待機詳細を重複させない。
+- `docs/reference/codex-implementation-harness.md` は通常PRの必須CIを `Web CI` と `Mobile App CI` と定義している。
+- `.github/workflows/ci.yml` のworkflow名は `Web CI`、`.github/workflows/native-ci.yml` のworkflow名は `Mobile App CI`。どちらも `pull_request` eventで起動する。
+- `scripts/verify` と `scripts/verify.ps1` は現在のpolling禁止文言をliteralで検証しているため、正本文書だけを変更すると標準verifyが失敗する。
+- `.codex/config.toml` はproject-scoped Codex configとして既に使われているが、現在は `[mcp_servers.*]` 定義を持たない。
+- `package.json` / `pnpm-lock.yaml` にMCP server SDKは入っていない。
+- RepositoryはZod 4.4.3、Node.js / TypeScript系の既存テスト基盤を持つ。
 
-### GitHub CLI
+### Codex MCP
 
-- `gh pr checks --watch` はstatus checkが存在する場合にcheck完了まで監視できる。
-- status checkが0件の時点では `no checks reported on the '<branch>' branch` で終了するため、push直後のregistration raceを単体では吸収できない。
-- `--fail-fast` はPR上の最初のcheck failureを対象とするため、Repositoryが正本としている `Web CI` / `Mobile App CI` だけの終了条件とは一致しない。
-- そのため、本実装では `gh pr checks --watch --fail-fast` をCI待機の正本にしない。
+- Codexはstdio MCP serverの `command` / `args` / `cwd` を設定できる。
+- MCP server単位で `tool_timeout_sec` を設定できる。Codex upstreamの既定MCP tool timeoutは300秒なので、CI待機用途では明示的な延長が必要。
+- MCP tool callは通常の `exec_command` live sessionとは別経路であり、tool serverがresultを返すまでMCP callを保持できる設計になっている。
+- 今回はこの性質を使い、「1回のtool call → MCP内部で待機 → result返却」を実現する。
+- 長時間tool callが現在のinstalled Codex / Windows環境で必要時間保持されることは、実地検証で確認する。upstream実装だけを根拠に完了扱いにしない。
 
-### Codex runtime
+### MCP SDK
 
-- 現行OpenAI Codexの `exec_command` は通常modeで `yield_time_ms` を持ち、defaultは10秒。長時間commandはlive sessionを返し、`write_stdin` で継続する経路を持つ。
-- upstream sourceにはcommand completionまで待つone-shot用specも存在するが、現在このRepositoryで使っている実行経路から選択できるかは未確認である。
-- event-driven wakeupやhookから「process終了までモデルを起こさず待つ」機能についてはOpenAI Codex repositoryでfeature requestが公開されており、通常のinteractive `exec_command` に一般提供済みと仮定しない。
-- よって「`gh ... --watch` を1回呼べばトークン消費が止まる」という前提では実装しない。
-
-### 外部仕様・確認元
-
-- GitHub CLI `gh pr checks`: https://cli.github.com/manual/gh_pr_checks
-- GitHub CLI `gh run list`: https://cli.github.com/manual/gh_run_list
-- GitHub CLI check 0件時の実装: https://github.com/cli/cli/blob/trunk/pkg/cmd/pr/checks/checks.go
-- OpenAI Codex unified exec: https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/handlers/unified_exec.rs
-- OpenAI Codex exec command handler: https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs
-- event-driven wakeup提案: https://github.com/openai/codex/issues/32188
-- long-running commandのwait-until-completion提案: https://github.com/openai/codex/issues/39596
-
-GitHub Issueは現行仕様の正本ではなく、通常のinteractive経路で自動wakeを前提にできないことを確認する補助情報として扱う。
-
-## 3. 前提 / 質問 / 曖昧性
+- 公式TypeScript SDKのv2 stable lineは `@modelcontextprotocol/server` を提供し、stdio serverをサポートする。
+- 公式SDKはStandard Schemaを使い、既存のZod 4をtool schemaに利用できる。
+- MCP protocolを独自実装するより、公式SDKを使う方がprotocol互換性・保守性・テスト容易性で適切。
+- 実装時に公式stable versionを確認し、Repositoryの既存方針に合わせてexact versionを `devDependencies` へ追加する。
 
 ### 前提
 
-- 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中に発生するモデル推論・Agent turn・そのトークン消費である。
-- モデル外のprocessがGitHub APIを一定間隔で確認することは許容する。
-- CI失敗時の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
-- 新しい依存packageは追加しない。必要なhelperを作る場合もNode.js標準APIと既存の `gh` CLIで完結させる。
+- 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中のモデル推論・Agent turn・tool再呼び出しによるトークン消費である。
+- MCP server内部のread-only GitHub pollingは許容する。
+- GitHub認証は既存の `gh` CLI認証を使用し、新しいtoken保存・credential管理を追加しない。
+- CI失敗後の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
 
-### 実装開始時に必ず解消する不確定事項
+### 対象外
 
-次はユーザー判断ではなく、実際のruntimeを確認して決める実装gateとする。
+- `codex exec resume`。
+- Codex processの終了・再起動を管理するsupervisor。
+- GitHub Actions `workflow_run` からAgentを起動する構成。
+- webhook受信server、queue、常駐daemon。
+- GitHub Actions workflow変更。
+- branch protection / ruleset変更。
+- CIのcancel / rerun / dispatch等のwrite操作。
+- 汎用MCP gateway / MCP manager。
+- Product code変更。
 
-1. 現在のfile-changing taskで使う実行経路は、`codex-safe` のinteractive path、`codex-task` のnon-interactive path、または別host pathのどれか。
-2. その経路でcommand completionまでモデルへ制御を返さないmodeを明示的に使用できるか。
-3. 使用できない場合、同一threadを安全に再開できる `codex exec resume <thread-id>` 相当のsupervisor経路を、現在のCodex version・cwd・sandbox契約を維持して実装できるか。
+## 3. 質問 / 曖昧性
 
-これらを確認せず、docsだけで「モデルpollingなし」と宣言しない。
+- 必ず質問する不透明点: なし。
+- 仮定してよい細部:
+  - MCP server名、script path、test file名はRepository既存命名に合わせて実装時に確定する。
+  - registration poll intervalは10秒、workflow poll intervalは15秒を初期値とする。設定項目化しない。
+  - registration timeoutは5分、tool全体のoverall timeoutは90分とする。
+  - Codex側 `tool_timeout_sec` は内部overall timeoutより十分長い100分（6000秒）を設定する。
+- 実装時に実測する項目:
+  - project-scoped `.codex/config.toml` からstdio MCP serverがWindows / host runtimeで起動できること。
+  - 長時間MCP call中にAgentへ途中turnが戻らないこと。
+  - MCP result返却後に同じCodex turnが継続すること。
+- 未回答の重要質問: なし。上記は実装gateとして実測し、失敗した場合は実装を完了扱いにしない。
 
 ## 4. 影響範囲
 
-### 確定している確認・変更対象
+### 変更予定
 
+- `.codex/config.toml`
+  - repo-local MCP server登録。
+  - MCP tool timeout設定。
+- `package.json`
+  - 公式 `@modelcontextprotocol/server` v2 stableをexact versionで `devDependencies` に追加。
+- `pnpm-lock.yaml`
+  - dependency追加に同期。
+- `scripts/mcp/ci-wait-server.mjs`
+  - stdio MCP server。
+  - `wait_for_required_ci` tool。
+  - GitHub read-only polling。
+- `tests/contracts/ci-wait-mcp.test.ts`
+  - 入力検証、run選択、状態遷移、timeout、stale head等の回帰テスト。
 - `docs/reference/codex-implementation-harness.md`
+  - CI待機の正本経路をMCPへ更新。
 - `scripts/verify`
 - `scripts/verify.ps1`
-- `.github/workflows/ci.yml`（read-only確認）
-- `.github/workflows/native-ci.yml`（read-only確認）
-- `AGENTS.md`（read-only確認）
-- `.codex/config.toml`（runtime契約確認）
-- `scripts/codex-safe.sh`
-- `scripts/codex-safe.ps1`
-- `scripts/codex-task.sh`
-- `scripts/codex-task.ps1`
+  - 新しいHarness契約へ同期。
+- `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md`
+- `.codex/runs/20260924-200458-JST/**`
 
-### runtime gate通過後に追加し得る実装対象
-
-- exact HEADの必須workflowだけをモデル外で監視するrepo-local helper。
-- helperの状態判定を検証するcontract test。
-- native completion waitが使えず、既存non-interactive wrapperで安全にresume可能と確認できた場合だけ、対象wrapperのsupervisor処理。
-
-### 原則として変更しないもの
+### read-only確認
 
 - `AGENTS.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
-- branch protection / ruleset
-- Hookのpermission / sandbox契約
-- repair-loopの分類
-- Product code
-- 外部常駐service、webhook server、queue
+- `docs/reference/repair-loop.md`
 
-上記を変更しないと目的を達成できないことがruntime gateで判明した場合は、勝手にscopeを拡大せずblockerとして報告する。
+### 変更しないもの
+
+- `scripts/codex-safe.*`
+- `scripts/codex-task.*`
+- GitHub Actions workflow
+- Hook permission / sandbox policy
+- Product code
+
+MCP実装のために上記変更不可対象が必要になった場合は、scopeを勝手に広げずblockerとして報告する。
 
 ## 5. 変更方針
 
-### Task 0: 実際のCodex実行経路を固定する
+### Task 0: MCP serverの最小構成を確定する
 
-実装前に次を実施する。
+1. installed Codex versionとproject-scoped configの有効性を記録する。
+2. 公式 `@modelcontextprotocol/server` v2 stableのcurrent exact version、Node要件、licenseを確認する。
+3. `devDependencies` へexact versionを追加し、`pnpm-lock.yaml` を同期する。
+4. stdio MCP serverを追加する。
+5. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
+6. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
+7. shell文字列連結を使わず、Node `child_process.execFile` / `spawn` のargvで `gh` を呼ぶ。
 
-1. `codex --version` と対象taskの起動経路を記録する。
-2. 通常のfile-changing taskと同じ経路で、repositoryを変更しない35〜40秒程度のlocal commandを1回だけ実行する。
-3. command終了前にlive sessionがAgentへ返り、`write_stdin` 等の追加tool callが必要になるかを確認する。
-4. installed Codexのhelp / config / 実行経路から、one-shotまたは同等のcompletion waitを明示的に利用できるか確認する。
-5. upstream `main` に機能が存在するだけでは利用可能と判定しない。installed versionと実際のtool surfaceで確認する。
+公式SDKを使えない明確な互換性問題が見つかった場合は、MCP protocolを手書き実装せず停止して報告する。
 
-#### 判定A: モデルを起こさずcommand completionまで待てる
+### Task 1: project-scoped Codex configへMCPを登録する
 
-- 下記Task 1のCI waiterを、そのcompletion wait経路から1回だけ起動する。
-- CI waiter実行中にAgentへlive sessionを返さないことを実地確認する。
-- supervisor / resume機構は追加しない。
+`.codex/config.toml` にrepo-local serverを登録する。
 
-#### 判定B: interactive commandは必ずyieldするが、既存wrapperの外側から同一threadを安全にresumeできる
+契約:
 
-- CI waiterはCodex processの外側で実行する。
-- 初回Codex turnはpushと待機情報の確定までで終了する。
-- wrapper / supervisorがモデルを起動せずCI waiterを実行する。
-- CI waiter終了後にだけ同一threadをresumeし、結果を渡してrepairまたは完了処理を続ける。
-- `codex exec resume` のcwd、sandbox、session識別がinstalled versionで決定論的に維持できることを先にcontract testまたは実地確認する。
-- 既存 `codex-task` のoutput / report / manifest契約を壊す変更は行わない。
+- transport: stdio。
+- server command: Repository内serverをNodeで起動する。
+- `tool_timeout_sec = 6000`。
+- serverが公開するtoolはCI待機toolだけに限定する。
+- user-level `~/.codex/config.toml` へ設定を要求しない。
+- secret / PAT / GitHub tokenをconfigへ追加しない。
+- existing `gh` authenticationをserver processから利用する。
 
-#### 判定C: completion waitも安全なresumeも使えない
+project root以外からCodexを起動したときにrelative script path / `cwd` が壊れる場合は、Codexのstdio MCP `cwd` 設定でRepository rootへ固定できるかを確認する。user固有の絶対pathをtracked configへ書かない。
 
-- repo-local scriptだけでは「CI終了時にAgentを自動再開する」という目的を達成できないため、実装を停止する。
-- `gh pr checks --watch` の文書追加だけで完了扱いにしない。
-- 確認したruntime制約、未達条件、次に必要なhost機能をPR / Run Artifactへ記録する。
-
-### Task 1: exact HEADの必須CIをモデル外で監視する
-
-判定AまたはBの場合、Repository固有のCI waiterを実装する。
+### Task 2: `wait_for_required_ci` tool契約
 
 #### 入力
 
-最低限、次を明示入力とする。
+- `repository`
+  - `owner/repo` 形式。
+  - 改行、空白、shell metacharacter等を許容せずschemaで検証する。
+- `pr_number`
+  - 正の整数。
+- `expected_head_sha`
+  - 40桁hex SHA。
 
-- repository
-- PR番号
-- expected head SHA
+自由なcommand、workflow名、poll interval、URLをtool inputとして受け取らない。
 
-現在branchや「最新PR」を暗黙推測して待機対象を決めない。
+#### GitHub操作
+
+- `gh api` のread-only GETだけを使用する。
+- PR情報からstate / current head SHAを取得する。
+- Actions workflow runをexpected head SHAと `pull_request` eventで取得する。
+- workflow名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
+- workflow操作、PR更新、comment、rerun、cancel等のwrite APIは持たない。
 
 #### 開始時guard
 
-- PRがOPENであることを確認する。
-- PRのcurrent head SHAがexpected head SHAと一致することを確認する。
-- 不一致なら待機を開始せずnon-zeroで終了する。
+- PR stateがOPENでない場合は `invalid_pr_state`。
+- current head SHAがexpected head SHAと違う場合は `stale_head`。
+- GitHub CLI未導入、未認証、API errorは `github_error`。
 
 #### workflow登録待ち
 
-- expected head SHAかつ `pull_request` eventに対するworkflow runを取得する。
-- 対象名は `Web CI` と `Mobile App CI` の2つだけとする。
-- 「PR上にcheckが1件存在する」ことを登録完了条件にしない。
-- 両workflowのrunが見つかるまで10秒間隔で最大5分待つ。
-- 同一workflow名・同一headに複数runがある場合は、最新に作成されたrunを対象とし、採用したrun IDを固定して以後の監視に使う。
-- 認証失敗、GitHub API / CLI errorはretry対象にせず即時non-zeroで返す。
-- 5分経過時に両方揃わなければregistration timeoutとして終了する。
+- exact HEAD / `pull_request` のworkflow runを10秒間隔で確認する。
+- `Web CI` / `Mobile App CI` の両方が見つかるまで待つ。
+- 「checkが1件以上存在する」をregistration completeにしない。
+- 5分で揃わなければ `registration_timeout`。
+- 同一workflow名・同一headに複数runが存在する場合は、最も新しいrunを選択してrun IDを固定する。
+- 選択後は別runへ途中で自動乗り換えしない。
 
 #### workflow完了待ち
 
-- 固定した `Web CI` / `Mobile App CI` のrun IDだけを監視する。
-- 15秒間隔で状態を確認する。
-- 両方 `completed + success` になったらexit 0。
-- どちらかが `completed` かつ `success` 以外になったら、その時点でnon-zero終了する。
-- overall waitは90分を上限とする。
-- `queued` / `in_progress` は失敗に読み替えない。
-- `cancelled`、`timed_out`、`action_required`、`stale`、`startup_failure`、`neutral`、`skipped` 等、Repository契約の `success` 以外の終端結果はすべてAgentへ返して原因分類する。
-- unrelated checkのfailureをこのwaiterの終了条件にしない。
+- 固定した2 run IDを15秒間隔で確認する。
+- 各poll時にPR current headも確認し、expected head SHAから変わった時点で `stale_head` を返す。
+- 両runが `completed + success` なら `success`。
+- どちらかが `completed` かつ `success` 以外なら `ci_failure`。
+- `queued` / `in_progress` は継続待機。
+- tool開始から90分で `overall_timeout`。
+- unrelated checkのfailureを終了条件にしない。
 
-#### 終了時guard
+#### tool result
 
-- PRのcurrent head SHAを再取得し、expected head SHAと一致することを確認する。
-- 待機中に新しいcommitがpushされてheadが変わった場合は、旧headの成功を現在headへ流用せずstale-head errorとして終了する。
+最低限次の固定resultを持つ。
 
-#### 出力
+- `success`
+- `ci_failure`
+- `stale_head`
+- `invalid_pr_state`
+- `registration_timeout`
+- `overall_timeout`
+- `github_error`
 
-- polling中は通常stdoutへ逐次ログを出さず、モデルへ流れる出力量を増やさない。
-- 終了時だけ、次を含む短いmachine-readable summaryを出す。
-  - expected / observed head SHA
-  - PR番号
-  - `Web CI` run ID / status / conclusion / URL
-  - `Mobile App CI` run ID / status / conclusion / URL
-  - waiter result
-  - timeout / error reason
-- secret、token、環境変数値を出力しない。
+resultには次を含める。
 
-### Task 2: CI waiterの実装方法を最小化する
+- repository
+- PR番号
+- expected / observed head SHA
+- `Web CI` run ID / status / conclusion / URL
+- `Mobile App CI` run ID / status / conclusion / URL
+- result
+- error reason（該当時）
 
-- runtime gate後もinline shellだけで、Windows / Bashの差異なく上記契約を決定論的に満たせる場合は、新しいhelperを作らない。
-- quoting、並列監視、timeout、JSON処理の差で実装が分岐する場合は、Node.js標準APIだけを使う1個のrepo-local helperへ集約する。
-- helperを追加する場合は、GitHubアクセス処理と純粋な状態判定を分離し、failure / timeout / stale-headをnetworkなしでtestできるようにする。
-- 新しいnpm dependency、framework、daemon、serviceは追加しない。
+CI failureはMCP transport failureにせず、正常なtool resultとして返す。予期しないserver内部例外だけをtool errorとして扱う。
 
-### Task 3: Harness契約を実装へ同期する
+### Task 3: 実装をテスト可能に分離する
+
+MCP protocol処理とCI状態判定を同じ巨大関数へまとめない。
+
+最低限次を分離する。
+
+- MCP server登録 / transport。
+- GitHub read I/O。
+- workflow run選択。
+- wait state判定。
+
+ただし将来拡張用interface / class hierarchyは作らない。現在の1 toolをテストするために必要な関数分離だけにする。
+
+### Task 4: 自動テスト
+
+networkなしで状態判定を検証する。
+
+最低限:
+
+- input validation。
+- PR open + head一致。
+- closed PRを拒否。
+- stale headを拒否。
+- workflow 0件ではregistration wait継続。
+- Web CIだけではregistration wait継続。
+- 両workflow登録でrun IDを固定。
+- duplicate runから最新を選択。
+- 両方successで `success`。
+- Web CI failureで `ci_failure`。
+- Mobile App CI cancelled / timed_out / skipped / neutral等で `ci_failure`。
+- queued / in_progressは待機継続。
+- registration timeout。
+- overall timeout。
+- GitHub API error。
+- unrelated workflow / checkを無視。
+- polling中のhead変更で `stale_head`。
+- tool resultにsecret / environment値を含めない。
+
+可能ならstdio serverを直接起動するMCP integration testも1件追加し、tool listingと短時間のmocked tool callが成立することを確認する。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
+
+### Task 5: 長時間MCP callの実地検証
+
+MCP実装・config・focused testが通った後、実際のCodex経路で確認する。
+
+最終push直後のPR #182 latest headを使い、CIが実行中の間にfresh Codex validation processから `wait_for_required_ci` を1回だけ呼ぶ。
+
+確認すること:
+
+1. tool catalogに `wait_for_required_ci` が存在する。
+2. tool call開始後、CI終了までAgent側のGitHub polling / `write_stdin` /再tool callが発生しない。
+3. MCP server内部ではGitHub状態確認が継続する。
+4. tool resultが返った後にCodexが同じturnを継続する。
+5. tool call durationが5分を超えた場合でもCodex既定300秒timeoutではなく設定した `tool_timeout_sec` が有効である。
+6. latest PR headがexpected head SHAと一致している。
+7. `Web CI` / `Mobile App CI` のresultがtool outputとGitHub上の実結果に一致する。
+
+CIがtool call開始前に完了して長時間待機を検証できなかった場合は、「MCP呼び出し成功」と「長時間保持成功」を分けて記録する。長時間保持を未検証のままDoD達成とはしない。
+
+必要な場合のみ、Repositoryを変更しない一時的なlocal smokeで60〜90秒のMCP call保持を確認する。一時smoke toolやfixtureを最終差分へ残さない。
+
+### Task 6: Harness契約をMCPへ同期する
 
 `docs/reference/codex-implementation-harness.md` に次を明記する。
 
-- CI待機中にAgent自身がGitHub状態を反復解釈しない。
+- push後のCI待機は `wait_for_required_ci` MCP toolを1回呼ぶ。
+- Agent自身は `queued` / `in_progress` を理由にGitHub状態を反復確認しない。
+- shell `gh pr checks --watch` や `exec_command` live sessionを標準待機経路にしない。
 - CI待機対象はexact HEADの `Web CI` / `Mobile App CI`。
-- model-free waitが利用可能な実行経路だけで自動待機を行う。
-- interactive runtimeがlive sessionを返す場合、`write_stdin` pollingを「トークン削減済み」と扱わない。
-- runtimeにcompletion wait / safe resumeがない場合は、未達を明示して停止する。
-- `gh pr checks --watch --fail-fast` はRepository必須CI完了判定の正本にしない。
-- CI failure後は既存repair-loopへ戻る。
-- tracked Run ArtifactをCI結果記録だけのために再commitしない既存契約は維持する。
+- `success` なら完了処理へ進む。
+- `ci_failure` は既存repair-loopへ渡す。
+- `stale_head` / timeout / `github_error` は完了扱いにしない。
+- tracked Run ArtifactをCI結果記録だけのために再commitしない既存契約を維持する。
 
-### Task 4: verify contractを同期する
+### Task 7: verify contractを同期する
 
-- `scripts/verify` と `scripts/verify.ps1` の旧literal contractを、新しいCI待機契約の最小semantic markersへ置き換える。
+- `scripts/verify` と `scripts/verify.ps1` の旧literal contractを新契約へ置き換える。
 - Bash / PowerShellで同じ意味を検証する。
-- 実装方法の詳細を大量のliteralで固定しない。次の契約だけを固定する。
+- 次の最低限だけを固定する。
+  - `wait_for_required_ci`
   - exact HEAD
   - `Web CI`
   - `Mobile App CI`
-  - Agent pollingを行わない
-  - model-free waitが使えないruntimeでは完了扱いにしない
-- helperを追加した場合は、存在と最低限の契約だけを既存verifyへ追加し、処理詳細は専用testで検証する。
+  - Agent polling禁止
+- MCP server内部の細かなpoll intervalや関数名までliteralで固定しない。
 
-### Task 5: PR #182を実装PRとして同期する
+### Task 8: PR #182を実装PRとして同期する
 
-- 実装開始時にPR title / bodyからPlan-only表現を除く。
+- PR title / bodyからPlan-only表現と旧 `gh pr checks --watch --fail-fast` 方針を除く。
 - 同じbranch `plan/ci-wait-without-agent-polling` とPR #182を継続使用する。branch renameは行わない。
-- PR本文には最終的に次を記録する。
-  - 採用したruntime経路と理由
-  - CI waiterの対象と停止条件
-  - local validation
-  - latest head SHA
-  - 新経路で待機した `Web CI` / `Mobile App CI` の結果
-  - 待機中にモデルpollingがなかったことの確認方法
+- PR本文へ次を記録する。
+  - MCP方式を採用した理由。
+  - 追加したMCP server / tool。
+  - tool timeoutと内部timeout。
+  - local validation。
+  - latest head SHA。
+  - PR #182での実MCP CI wait結果。
+  - CI待機中にAgent pollingがなかったことの確認方法。
 
 ## 6. 検証方法
 
-### runtime gate
+### dependency / config
 
-- `codex --version`
-- 実際のtask起動経路の確認
-- repositoryを変更しない35〜40秒のcommandを同じtool surfaceで1回実行
-- live session / `write_stdin` が必要か確認
-- completion waitまたはsafe resumeをinstalled versionで確認
+- `pnpm install --frozen-lockfile` が更新後lockfileで成立する状態を確認する。
+- `codex mcp list` 等、installed Codexでproject MCP server登録を確認する。
+- server起動失敗時にsecretを含まない診断が得られることを確認する。
 
-成功条件:
+### focused test
 
-- 判定AまたはBについて、待機中にモデル推論を挟まないことを実測で説明できる。
-- 判定Cなら、目的未達を隠して実装を進めない。
-
-### CI waiterの自動テスト
-
-helperを追加する場合、最低限次をnetworkなしで検証する。
-
-- expected headとPR head一致。
-- stale headを拒否。
-- 片方のworkflowだけ登録済みなら待機継続。
-- 両workflow登録で監視開始。
-- 両方successでexit 0相当。
-- Web CI failureで即時failure。
-- Mobile App CI cancelled / timed_out等でfailure。
-- registration timeout。
-- overall timeout。
-- GitHub CLI / API error。
-- unrelated checkは判定に影響しない。
-- duplicate runがある場合に最新runを固定する。
+- CI waiter contract test。
+- MCP stdio integration test（追加した場合）。
+- config / harness contractに関係する既存test。
 
 ### Repository標準検証
 
-- 対象focused test。
 - `bash scripts/verify`
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
 - `git diff --check`
-- Markdownを変更するためRepository標準の文章・Markdown gateも既存verify経由で確認する。
-- 変更ファイル一覧を確認し、runtime gateで必要性を説明できない変更が混入していないことを確認する。
+- Repository標準のlint / typecheck / test / verify。
+- dependency追加があるためlockfile整合も確認する。
 
-### PR #182での実地検証
+### 実地検証
 
-最終実装commitを通常pushした後、次を行う。
+- PR #182 latest headを固定。
+- `wait_for_required_ci` を1回call。
+- tool call開始から終了までAgent側状態確認callが増えていないことをCodex event / logで確認。
+- tool outputの2 workflow結果をGitHub上のexact head runと照合。
+- failure経路のためにCIを意図的に壊さない。failure / timeout / stale headは自動テストで検証する。
 
-1. PR #182のlatest head SHAを固定する。
-2. 新しいCI waiterを採用したmodel-free実行経路で開始する。
-3. exact HEADの `Web CI` / `Mobile App CI` を待機する。
-4. 待機中にAgentによる `write_stdin` / GitHub状態確認tool callが発生していないことを、利用したruntimeのlog / eventで確認する。
-5. waiter終了後、PR headが同じSHAであることを再確認する。
-6. 両workflowがsuccessなら完了処理へ進む。非successなら既存repair-loopへ進む。
+### 成功判定
 
-実CIを意図的に壊してfailure経路を検証しない。failure / timeoutは自動テストで検証する。
+- MCP toolがCodexから利用できる。
+- 長時間待機中にLLM pollingが発生しない。
+- exact HEADの2 workflowだけを正しく待機する。
+- success / failure / timeout / stale headを決定論的に返す。
+- Repository標準verifyがPASSする。
+- PR #182自身で実CI待機を確認できる。
 
-## 7. リスクと停止条件
+## 7. リスクと未解決論点
 
-### 1. Codex host側に自動wake能力がない
+### 1. Codex / transport側の長時間tool timeout
 
-最重要リスク。repo-local CI waiterだけを作っても、Agentのtool callが途中でyieldするならトークン削減と自動再開を達成できない。
-
-対策:
-
-- Task 0を最初に実施する。
-- runtime capabilityを確認する前にhelperやdocsを作り込まない。
-- completion waitもsafe resumeもない場合は判定Cで停止する。
-
-### 2. `gh pr checks --fail-fast` がunrelated checkへ反応する
-
-Repositoryの完了契約と一致しない。
+内部waiterが正しくても、MCP transportやHostがtoolを途中で切る可能性がある。
 
 対策:
 
-- exact HEADの `Web CI` / `Mobile App CI` workflow runだけを監視する。
+- Codexの `tool_timeout_sec` を100分へ設定する。
+- PR #182で実際の長時間tool callを確認する。
+- Host側にそれより短い固定timeoutが存在すると判明した場合は、resume方式へ自動fallbackせずblockerとして報告する。
 
-### 3. push直後のworkflow registration race
+### 2. project-scoped MCP起動path
 
-check 1件の存在だけではrequired workflowの登録を保証できない。
-
-対策:
-
-- 2つのworkflow名とexact HEADが揃うまで5分bounded waitする。
-
-### 4. 待機中に新しいcommitがpushされる
-
-旧headの成功を新headへ流用する危険がある。
+CodexをRepository subdirectoryから起動した場合、relative command / cwd解決が環境差になる可能性がある。
 
 対策:
 
-- expected head SHAを入力として固定し、開始時と終了時にcurrent PR headとの一致を検証する。
+- project configのstdio `cwd` を利用してRepository rootへ固定する。
+- Windows host runtimeで実地確認する。
+- user固有の絶対pathをtracked configへ書かない。
 
-### 5. supervisor / resumeがsession契約を変える
+### 3. MCP serverへGitHub権限が渡る
 
-判定Bでは `codex exec resume` がcwd、sandbox、session identityを安全に維持できない可能性がある。
-
-対策:
-
-- installed versionで先に実地確認する。
-- resume経路のためにpermission / sandboxを緩めない。
-- 安全に固定できなければ判定Cとして停止する。
-
-### 6. 変更範囲が広がる
-
-wrapper、helper、testを無条件に増やすと今回の目的に対して過剰になる。
+MCP serverはCodex sandboxとは別processとして `gh` 認証へアクセスできる。
 
 対策:
 
-- Task 0の結果で必要な経路だけ実装する。
-- 判定Aならsupervisor変更を行わない。
-- inlineで契約を満たせるならhelperを追加しない。
+- tool実装をread-only GETへ限定する。
+- modelから任意command / endpoint / workflow名を入力させない。
+- token値を読み取り・出力しない。
+- GitHub write操作をserverへ実装しない。
+
+### 4. 新規dependency
+
+MCP SDK追加はsupply-chain / update対象を増やす。
+
+対策:
+
+- 公式 `@modelcontextprotocol/server` だけを追加する。
+- exact versionで固定する。
+- Node HTTP middleware等の不要packageは追加しない。
+- 既存Zodを再利用する。
+- Repository標準security / verifyを通す。
+
+### 5. polling API量
+
+15秒間隔で長時間pollするとAPI call数が増える。
+
+対策:
+
+- workflow登録後は固定した2 run IDだけを取得する。
+- PR head確認を含めてもGitHub API rate limitに対して過剰にならない間隔を維持する。
+- 1秒単位のpollingやadaptive backoff frameworkは追加しない。
 
 ## 8. 成果物
 
-### 現在確定しているPlan / Run Artifact
+### Plan / Run Artifact
 
 - `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md`
 - `.codex/runs/20260924-200458-JST/**`
 
-### 実装で必ず更新するもの
+### 実装予定
 
+- `.codex/config.toml`
+- `package.json`
+- `pnpm-lock.yaml`
+- `scripts/mcp/ci-wait-server.mjs`
+- `tests/contracts/ci-wait-mcp.test.ts`
 - `docs/reference/codex-implementation-harness.md`
 - `scripts/verify`
 - `scripts/verify.ps1`
-- PR #182 title / body
 
-### Task 0の結果次第で追加するもの
-
-- CI waiter helper
-- CI waiter contract test
-- 判定Bで必要と確認された既存wrapper
-
-### 原則変更しないもの
-
-- `AGENTS.md`
-- GitHub Actions workflow
-- Product code
-- package dependency
-- Hook permission / sandbox policy
+実装時の既存パターン確認によりtest path等を変更する場合は、同じ責務の既存配置へ合わせる。新しいMCP用framework directoryは作らない。
 
 ## 9. 実装順
 
-1. Task 0のruntime gateを実行する。
-2. 判定A / B / CをRun Artifactへ記録する。
-3. AまたはBならCI waiterの最小実装を決める。
-4. CI waiterと必要なtestを実装する。
-5. 採用runtime経路へ接続する。
+1. MCP SDK current stable / installed Codex / config仕様を最終確認する。
+2. dependencyとproject MCP configを追加する。
+3. stdio MCP serverと `wait_for_required_ci` を実装する。
+4. CI状態判定のcontract testを実装する。
+5. focused testと短時間MCP integrationを確認する。
 6. implementation harnessとBash / PowerShell verifyを同期する。
-7. focused testとRepository標準verifyを実行する。
-8. Run Artifactをfinal commit前状態まで更新・検証する。
-9. commit / pushし、PR #182のtitle / bodyを実装内容へ同期する。
-10. latest headを固定し、新しいmodel-free待機経路でPR CIを実地確認する。
-11. 成功なら最終報告する。failureなら既存repair-loopへ進む。
+7. Repository標準verifyを実行する。
+8. Run Artifactをfinal commit前状態へ更新する。
+9. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
+10. push直後のPR #182 latest headでMCP toolを1回callし、実CIを待機する。
+11. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。
+12. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
 
 ## 10. 備考
 
-- このPRはPlan-onlyではない。同じbranch / PR #182で実装まで行う。
-- 目的は「GitHubをpollしないこと」ではなく、「CI待機中にモデル推論を繰り返さないこと」。
-- upstreamの機能存在だけを根拠にruntime capabilityを仮定しない。installed versionと実際の実行経路で確認する。
+- 今回の目的は「GitHubをpollしないこと」ではなく、「CI待機中にLLMを起こしてpollしないこと」。
+- MCP serverはCI待機専用とし、汎用GitHub操作toolへ拡張しない。
+- `resume` / supervisor方式は今回の実装対象から外す。
+- PR #182はPlan-onlyではない。同じbranchで実装まで行う。

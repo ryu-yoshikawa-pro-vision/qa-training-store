@@ -43,6 +43,29 @@
   - 親Agentの判断: N/A。
 - Progress: 46% (6/13)
 
+## 2026-09-24 20:55 (JST)
+
+- Summary: ユーザーが想定していた「1回のtool call内部でCI終了まで待ち、終了時に同じLLMへresultを返す」方式へPlanを変更した。
+- Changes:
+  - supervisor / `codex exec resume` / Codex再起動案を対象外へ変更した。
+  - repo-local stdio MCP serverと `wait_for_required_ci` toolを実装方針にした。
+  - `.codex/config.toml` のMCP server登録と `tool_timeout_sec=6000` を対象へ追加した。
+  - 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する方針を固定した。
+  - GitHub操作は `gh api` read-only GET、workflow名は `Web CI` / `Mobile App CI` 固定、exact HEAD必須とした。
+  - contract test、MCP integration、PR #182での長時間tool call実地確認をDoDへ追加した。
+- 判断 / 理由:
+  - 通常shell `exec_command` はlive session pollingを残し得るが、MCP tool callはserverがresultを返すまで別tool executionとして保持でき、Codex側にserver単位のtool timeout設定がある。
+  - process終了 / thread resumeは今回の目的に不要なsession lifecycle管理を増やす。
+  - MCP protocolの独自実装は不要な互換性・保守リスクになるため、公式SDKを使う。
+  - RepositoryにはMCP SDKがなく、新規dependencyは1 packageへ限定する。既存Zod 4を再利用する。
+- Validation: current `.codex/config.toml`、`package.json`、Repository内MCP使用実績、Codex current MCP config source、公式MCP TypeScript SDK v2 READMEをread-only確認した。
+- ブロッカー / 残作業: blockerなし。次はdependency / project MCP config / server実装。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 53% (8/15)
+
 ## 削除候補
 
 - なし。
