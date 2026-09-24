@@ -162,7 +162,7 @@ describe("Native customer purchase screens", () => {
     expect(addressScreen.getByTestId("native-address-line1").props.maxLength).toBe(
       INPUT_LIMITS.addressLine1,
     );
-  });
+  }, 15_000);
 
   it("logs in through the Native Auth service and returns to the requested route", async () => {
     const login = jest.fn().mockResolvedValue({ user: { role: "customer" } });

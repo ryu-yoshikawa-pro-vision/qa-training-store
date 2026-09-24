@@ -3,8 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createLinter, loadTextlintrc } from "textlint";
-
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_RULES_PATH = path.resolve(
   scriptDirectory,
@@ -412,6 +410,7 @@ async function getTextlintLinter(configPath) {
     readTextlintConfig(absoluteConfigPath);
     let descriptor;
     try {
+      const { loadTextlintrc } = await import("textlint");
       descriptor = await loadTextlintrc({
         configFilePath: absoluteConfigPath,
         node_modulesDir: path.resolve(path.dirname(absoluteConfigPath), "node_modules"),
@@ -432,7 +431,12 @@ async function getTextlintLinter(configPath) {
       throw new TextQualityConfigurationError("textlint_rule_load");
     }
 
-    return createLinter({ descriptor, cwd: path.dirname(absoluteConfigPath) });
+    try {
+      const { createLinter } = await import("textlint");
+      return createLinter({ descriptor, cwd: path.dirname(absoluteConfigPath) });
+    } catch {
+      throw new TextQualityConfigurationError("textlint_config_load");
+    }
   })();
   textlintLinterPromises.set(absoluteConfigPath, linterPromise);
   return linterPromise;

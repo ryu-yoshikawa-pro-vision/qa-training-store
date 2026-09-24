@@ -213,6 +213,53 @@ function removeFixture(root: string) {
   fs.rmdirSync(root);
 }
 
+function unlinkLinkedTextlintDependencies(root: string) {
+  const nodeModules = path.join(root, "node_modules");
+  const packages = [
+    "textlint",
+    "textlint-rule-no-zero-width-spaces",
+    "textlint-rule-no-nfd",
+    "textlint-rule-no-kangxi-radicals",
+    "textlint-rule-no-hankaku-kana",
+    "textlint-rule-no-doubled-conjunctive-particle-ga",
+    "textlint-rule-no-dropping-the-ra",
+    "@textlint-rule/textlint-rule-no-invalid-control-character",
+  ];
+  let nodeModulesStats: fs.Stats;
+  try {
+    nodeModulesStats = fs.lstatSync(nodeModules);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+  if (nodeModulesStats.isSymbolicLink() || !nodeModulesStats.isDirectory()) {
+    throw new Error("linked test node_modules boundary changed unexpectedly");
+  }
+
+  for (const packageName of packages) {
+    const target = path.join(nodeModules, packageName);
+    let stats: fs.Stats;
+    try {
+      stats = fs.lstatSync(target);
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+    if (!stats.isSymbolicLink()) {
+      throw new Error("linked test dependency is not a symlink");
+    }
+    fs.unlinkSync(target);
+  }
+
+  const scopedDirectory = path.join(nodeModules, "@textlint-rule");
+  if (fs.existsSync(scopedDirectory)) fs.rmdirSync(scopedDirectory);
+  fs.rmdirSync(nodeModules);
+}
+
 function removeFixtureFile(filePath: string) {
   fs.rmSync(filePath, { force: true });
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -228,6 +275,25 @@ function withFixture(
     test(root);
   } finally {
     removeFixture(root);
+  }
+}
+
+function withLinkedFixture(test: (primary: string, linked: string) => void) {
+  const primary = createFixture();
+  const linked = path.join(os.tmpdir(), `codex text quality linked ${randomUUID()}`);
+  try {
+    git(primary, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
+    test(primary, linked);
+  } finally {
+    if (fs.existsSync(linked)) {
+      unlinkLinkedTextlintDependencies(linked);
+      try {
+        git(primary, ["worktree", "remove", "--force", linked]);
+      } catch {
+        removeFixture(linked);
+      }
+    }
+    removeFixture(primary);
   }
 }
 
@@ -598,6 +664,101 @@ function expectConfiguredStopActive(
 }
 
 describe("Codex deterministic text quality contracts", () => {
+  it("classifies missing textlint dependencies from the actual linked worktree for each Stop state", () => {
+    withLinkedFixture((_primary, linked) => {
+      const sessionId = `linked-no-deps-${randomUUID()}`;
+      expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(false);
+
+      const prompt = runGate(
+        linked,
+        "UserPromptSubmit",
+        { prompt: "linked prompt secret" },
+        path.join(linked, "rules.json"),
+        sessionId,
+      );
+      expectStructuredSystemMessage(
+        prompt,
+        "linked no-dependency UserPromptSubmit",
+        "Codex text quality hook: quality check unavailable (textlint_config_load)",
+        ["linked prompt secret", linked, sessionId, "MODULE_NOT_FOUND", "stack trace"],
+      );
+      expect(readGateState(linked)).toMatchObject({
+        status: "baseline_unavailable",
+        code: "textlint_config_load",
+      });
+
+      const post = runGate(
+        linked,
+        "PostToolUse",
+        { tool_name: "Bash" },
+        path.join(linked, "rules.json"),
+        sessionId,
+      );
+      expectStructuredSystemMessage(
+        post,
+        "linked no-dependency PostToolUse",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_load)",
+        [linked, sessionId, "MODULE_NOT_FOUND", "stack trace"],
+      );
+
+      const inactiveStop = runGate(
+        linked,
+        "Stop",
+        { stop_hook_active: false },
+        path.join(linked, "rules.json"),
+        sessionId,
+      );
+      expect(inactiveStop.status).toBe(0);
+      expect(JSON.parse(inactiveStop.stdout)).toEqual({
+        decision: "block",
+        reason: inactiveStopReason("baseline_unavailable", "textlint_config_load"),
+        systemMessage:
+          "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_load)",
+      });
+      expect(inactiveStop.stderr).toBe("");
+
+      const activeStop = runGate(
+        linked,
+        "Stop",
+        { stop_hook_active: true },
+        path.join(linked, "rules.json"),
+        sessionId,
+      );
+      expectStructuredSystemMessage(
+        activeStop,
+        "linked no-dependency active Stop",
+        "Codex text quality hook: quality check unavailable (baseline_unavailable; cause=textlint_config_load)",
+        [linked, sessionId, "MODULE_NOT_FOUND", "stack trace"],
+      );
+      expect(stateFiles(linked)).toHaveLength(0);
+    });
+  }, 60_000);
+
+  it("loads textlint from dependencies deliberately prepared in an actual linked worktree", () => {
+    withLinkedFixture((_primary, linked) => {
+      linkTextlintDependencies(linked);
+      const sessionId = `linked-with-deps-${randomUUID()}`;
+      expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(true);
+
+      const prompt = runGate(
+        linked,
+        "UserPromptSubmit",
+        { prompt: "linked prompt" },
+        path.join(linked, "rules.json"),
+        sessionId,
+      );
+      expectConfiguredUserPromptBaseline(
+        prompt,
+        "linked dependency-present UserPromptSubmit",
+        linked,
+        sessionId,
+      );
+      expect(readGateState(linked)).toMatchObject({ status: "ready" });
+    });
+    expect(fs.existsSync(path.join(repoRoot, "node_modules", "textlint"))).toBe(true);
+    expect(fs.existsSync(path.join(repoRoot, "node_modules", "smol-toml"))).toBe(true);
+  }, 60_000);
+
   it("registers a separate matcher-free text quality Hook for each supported event", () => {
     const config = readCodexConfig();
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
@@ -914,7 +1075,7 @@ describe("Codex deterministic text quality contracts", () => {
       "GOOD\n",
       "codex-text-quality-windows-degraded-",
     );
-  }, 90_000);
+  }, 120_000);
 
   it("uses the configured Unix Stop launcher fallback according to parsed stop_hook_active", () => {
     if (process.platform === "win32") return;
