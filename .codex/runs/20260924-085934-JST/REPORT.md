@@ -60,3 +60,43 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-24 追記: implementation head CI完了
+
+- Summary: implementation revisionを固定し、PR #168の同revision CIが完了したことを確認した。
+- Evaluator: implementation commit / canonical対象SHA=`45e13f3362c7a4197ed5c28e9323f904e81c3a03`。通常push済み。PRはOPEN、remote headとEvaluator HEADが一致、`origin/main`へのbehindは0、worktree clean。
+- CI: Web CI 27 checks PASS / 2 conditional SKIP、Mobile App CI 10 checks PASS、CodeQL 3 analyses PASS。Android Runtime / Maestro、iOS Automation / Production-validation build、CodeQLを含む。Failureなし。CodeRabbitはmanual review requiredのためskip扱い。
+- Scope / self-review: source変更は`run-skill-workflow-evals.ts`と対応contract testだけ。12 predicate、PASS条件、diagnostics、schema v1、Plan、Hook/G10/config、CI、model、sandbox、approvalは維持。実装Run Artifactはsanitizerでresidual 0。
+- Status: 実装修正・検証・implementation commit/push・最新head CIは完了。canonical runnerは未実行。Target-8は再利用しない。
+- Blocker / next: Evaluator SHAからTarget-9をtracked Git objectで生成し、detached以外のpreflightを完了する。ユーザーにHost workspace rootをDocumentsへ設定しTargetを手動detachしてもらう。detach後にread-only preflightとAndroid確認を行い、新revisionのcanonical runを1回だけ起動する。
+- Progress: 60% (6/10)
+
+## 2026-09-24 追記: Target-9準備完了 / manual detach待ち
+
+- Target: Evaluator SHA `45e13f3362c7a4197ed5c28e9323f904e81c3a03`のtracked Git objectから`git archive`を取得し、Python標準`tarfile` readerで`../qa-training-store-target-9`へ展開した。Evaluator working tree / untracked filesは入力していない。
+- Sanitized export: tracked files 2,370、Plan denylist excluded 1,418、exported 952。missing 0 / unexpected 0 / forbidden 0。canonical Skills 6/6、`AGENTS.md` / `package.json` / `pnpm-lock.yaml`あり。Evaluator `.git`はコピーされていない。
+- Target Git: Targetをcwdにして`git init -b workflow-e2e-target`と`git add --all --force`を別々に実行し、ともに成功。G10拒否なし。固定process-local identityでsynthetic root commit `d84b0f899ee07debba83f971bdebc9c014ecbef7`を作成。parentless、commit数1、working tree clean、remote 0、alternatesなし。6 Skillsとforbidden 0をindexから再確認。Target branchは現在`workflow-e2e-target`（manual detach前）。
+- Separation / source guard: Target realpathとEvaluator realpathは分離。uncommitted変更はRun Artifact内のみで、`sourceStatusOutsideRunArtifacts()`は`[]`。
+- Status: Android確認はdetach後に実施する。canonical runnerは未起動。Evaluator SHA固定中。Target-9のmanual detachとHost workspace rootを`<USER_HOME>/Documents`に設定するユーザー操作待ち。
+- Blocker / next: ユーザーのdetach完了報告後、Target/Evaluator read-only preflightとAndroid physical device確認を行う。すべてPASSした場合だけ新Evaluator revisionのcanonical live Workflow E2Eを1回起動する。
+- Progress: 70% (7/10)
+
+## 2026-09-24 追記: canonical run実行 / Host Runtime blocker
+
+- Summary: Target-9のdetach後preflightとAndroid実機確認が通り、Evaluator `45e13f3362c7a4197ed5c28e9323f904e81c3a03`でcanonical runnerを1回実行した。runner resultは`run_status=blocked`、CLI exit 1、`cases=[]`。
+- Provenance: resultのEvaluator / source SHAは`45e13f3362c7a4197ed5c28e9323f904e81c3a03`、routing SHAは`d84b0f899ee07debba83f971bdebc9c014ecbef7`。Codex CLI `0.155.1`、model `gpt-5.6-luna`。physical Android deviceは1台を`device`状態として確認し、serialは記録していない。
+- Target preflight: Target HEADはrouting SHAと一致し、detached、parentless、commit 1、clean、remote 0、alternatesなし。sanitized tracked content 952 files、canonical Skill 6/6、forbidden 0。Evaluatorとのrealpath分離を確認した。
+- Smoke result: source preflightを通過しcommon smokeに到達。resume / same-thread、両turnのprocess completion、OTel、structured schemaは成立。initial / resumed actual writeと`git status --short`の`command_execution`は不成立。詳細な12 predicateとbounded diagnosticsの正本は`workflow-e2e-result.json`。
+- Blocker: 両turnのfile editingはHost Runtimeのread-only sandboxとapproval設定により拒否され、`smoke.txt`のactual writeは観測されなかった。指定したread-only `git status --short`も両turnでHost command policyに拒否され、`command_execution` eventは0件。別commandへのfallback、policy / sandbox変更、再実行は行わない。
+- Case A〜Eはcommon smoke停止により未開始。Artifact reuseとSemantic actual-outputも未実行。PR #168のcanonical live Workflow E2E成功条件は未達。
+- Validation: resultを手作業で変更せずRun Artifactとして記録。sanitizer Write / Checkとartifact-only finalizationを実施する。
+- ブロッカー / 残作業: Host Runtimeがsafe read-only command_executionとworkspace-write file editingを許可しない。Run Artifact sanitization、artifact-only commit/push、PR本文更新、最新head CI確認が残る。
+- Progress: 90% (9/10)
+
+## 2026-09-24 追記: canonical Run Artifact sanitization完了
+
+- Summary: runner resultを手作業で変更せず、今回Run Artifactのsanitizer Write / Checkを完了した。
+- Validation: Run ID `20260924-085934-JST`の5 filesを走査。変更0、置換0、residual finding 0。raw Android serialをArtifactへ記録していない。`sourceStatusOutsideRunArtifacts()`は引き続き`[]`。
+- Evidence: `.codex/runs/20260924-085934-JST/workflow-e2e-result.json`がcanonical resultの正本。共通smoke blockedの詳細は同JSONの`smoke_probe`とbounded diagnosticsに保持。
+- ブロッカー / 残作業: source変更はなく、差分はRun Artifactだけ。通常commit / push、PR本文へ実測を追記、最新PR head CI確認。
+- Progress: 90% (9/10)

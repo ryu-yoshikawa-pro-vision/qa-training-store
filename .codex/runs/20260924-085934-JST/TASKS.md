@@ -7,10 +7,10 @@
 - [x] 3. Common smoke writeをfile editing toolへ、command_executionを`git status --short`へ分離し、両predicateを独立して判定する。
 - [x] 4. Prompt、command helper、predicate独立性、diagnosticsをWorkflow contract testで固定する。
 - [x] 5. Focused test、Repository test、markdown/text quality、verify、diff checkを実行する。
-- [ ] 6. Self-review、sanitization、scope確認後にimplementation commit / pushし、最新Evaluator head CIを確認する。
-- [ ] 7. 新Evaluator SHAのtracked objectからfresh sanitized Targetを作り、detached以外のpreflightを完了する。
-- [ ] 8. User manual detach後にTarget/Evaluator/Android final preflightをread-onlyで行う。
-- [ ] 9. Canonical runnerを1回だけ実行し、resultをsanitizationする。Host refusalならcommand fallbackせず停止する。
+- [x] 6. Self-review、sanitization、scope確認後にimplementation commit / pushし、最新Evaluator head CIを確認する。
+- [x] 7. 新Evaluator SHAのtracked objectからfresh sanitized Targetを作り、detached以外のpreflightを完了する。
+- [x] 8. User manual detach後にTarget/Evaluator/Android final preflightをread-onlyで行う。
+- [x] 9. Canonical runnerを1回だけ実行し、resultをsanitizationする。Host refusalならcommand fallbackせず停止する。
 - [ ] 10. Run Artifact-only commit / push、PR本文更新、最新head CIを確認する。
 
 ## 完了処理の参照先
@@ -29,4 +29,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- ブロック時のみ記載する。
+- canonical runnerはEvaluator `45e13f3362c7a4197ed5c28e9323f904e81c3a03`で1回実行済み。`run_status=blocked`。file editingはread-only sandbox / approval設定で拒否され、read-only `git status --short`はHost command policyに拒否された。fallbackや同revision retryは禁止のため行わない。
