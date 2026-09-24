@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   CANONICAL_TRIAL_COUNT,
   JUDGE_TIMEOUT_MS,
+  aggregateTrialResults,
   buildJudgePrompt,
   deriveTrialResult,
   evaluateSemanticCase,
@@ -18,6 +19,7 @@ import {
   type LoadedSemanticCase,
   type SemanticCaseEvaluation,
   type SemanticDatasetBundle,
+  type SemanticCriterion,
   type TrialResult,
 } from "./skill-semantic-output-evals";
 
@@ -323,7 +325,7 @@ function executeCodexJudge(
 }
 
 async function runJudgeTrial(
-  semanticCase: LoadedSemanticCase,
+  semanticCase: Pick<LoadedSemanticCase, "skill" | "criteria" | "context" | "candidate_output">,
   model: string,
 ): Promise<TrialResult> {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "skill-semantic-output-eval-"));
@@ -349,6 +351,57 @@ async function runJudgeTrial(
       // A failed cleanup does not change the observed Judge outcome.
     }
   }
+}
+
+export interface ActualSemanticOutputInput {
+  readonly skill: LoadedSemanticCase["skill"];
+  readonly criteria: readonly SemanticCriterion[];
+  readonly context: string;
+  readonly candidate_output: string;
+  readonly model: string;
+}
+
+export interface ActualSemanticOutputEvaluation {
+  readonly skill: ActualSemanticOutputInput["skill"];
+  readonly trials: readonly TrialResult[];
+  readonly aggregate: ReturnType<typeof aggregateTrialResults>;
+}
+
+/**
+ * Evaluate a real Skill output with the PR5 criteria/Judge/trial contract.
+ *
+ * This path deliberately does not accept or return a calibration `expected`
+ * value.  The calibration cases remain owned by `runSemanticOutputEval`; PR6
+ * supplies only the actual candidate and the fixed Skill context.
+ */
+export async function runActualSemanticOutputEval(
+  input: ActualSemanticOutputInput,
+  evaluatorRoot = process.cwd(),
+): Promise<ActualSemanticOutputEvaluation> {
+  const bundle = loadSemanticDatasets(evaluatorRoot);
+  const dataset = bundle.datasets.find((candidate) => candidate.skill === input.skill);
+  if (dataset === undefined) {
+    throw new Error(`semantic criteria are missing for ${input.skill}`);
+  }
+  if (JSON.stringify(dataset.criteria) !== JSON.stringify(input.criteria)) {
+    throw new Error(`actual semantic criteria do not match the canonical ${input.skill} dataset`);
+  }
+
+  const candidate = {
+    skill: input.skill,
+    criteria: input.criteria,
+    context: input.context,
+    candidate_output: input.candidate_output,
+  } satisfies Pick<LoadedSemanticCase, "skill" | "criteria" | "context" | "candidate_output">;
+  const trials: TrialResult[] = [];
+  for (let trial = 0; trial < CANONICAL_TRIAL_COUNT; trial += 1) {
+    trials.push(await runJudgeTrial(candidate, input.model));
+  }
+  return {
+    skill: input.skill,
+    trials,
+    aggregate: aggregateTrialResults(trials),
+  };
 }
 
 export function selectSemanticCases(
