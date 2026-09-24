@@ -66,6 +66,28 @@
   - 親Agentの判断: N/A。
 - Progress: 53% (8/15)
 
+
+## 2026-09-24 22:31 (JST)
+
+- Summary: MCP方式の再レビューで確認した4点を保存Planへ反映した。実装ファイルはまだ変更していない。
+- Changes:
+  - `repository` を `wait_for_required_ci` のmodel入力から削除し、project-scoped MCP serverの固定cwdからRepositoryを導出する契約へ変更した。
+  - 各 `gh` 子processへ30秒timeoutと `GH_PROMPT_DISABLED=1` を要求し、CLI hang時は `github_error` を返す契約を追加した。
+  - `wait_for_required_ci` にread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` とする契約を追加した。
+  - 実CIが5分以内の場合のfallback smokeを60〜90秒から360秒へ変更し、Codex既定300秒を超えて `tool_timeout_sec=6000` が有効であることを検証するようにした。
+- 判断 / 理由:
+  - MCP serverはCodex sandbox外で既存 `gh` 認証を利用するため、modelへ任意Repository指定を許可する必要はない。
+  - overall timeoutだけでは1回の `gh` process hangを止められない。
+  - CI待機を無人で開始するにはapproval判定を曖昧にせず、read-only toolに限定した明示approvalが必要。
+  - 60〜90秒smokeでは既定300秒timeoutとの差を検証できない。
+- Validation: current Plan、`.codex/config.toml`、Codex MCP stdio launcher / tool approval実装、公式MCP SDK package metadataをread-only確認した。
+- ブロッカー / 残作業: blockerなし。次はdependency / project MCP config / server実装。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 56% (9/16)
+
 ## 削除候補
 
 - なし。

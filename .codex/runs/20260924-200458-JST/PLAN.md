@@ -30,6 +30,8 @@
 
 - 削減対象はCI待機中のモデル推論であり、MCP server内部のGitHub API pollingは許容する。
 - MCP serverはexisting `gh` authenticationをread-onlyで利用する。
+- Repositoryはproject-scoped MCP serverの固定cwdから導出し、model入力にしない。
+- 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
 
@@ -38,7 +40,8 @@
 - ユーザーへ確認が必要な不透明点: なし。
 - 実装gate:
   - project configからstdio MCP serverがinstalled Codex / Windows hostで起動すること。
-  - `tool_timeout_sec=6000` が長時間callへ適用されること。
+  - `tool_timeout_sec=6000` が300秒を超える長時間callへ適用されること。
+  - 実CIが5分以内なら360秒の一時smokeで300秒超の保持を確認すること。
   - MCP call待機中にAgentへ途中turnが戻らないこと。
   - tool result後に同じCodex turnが継続すること。
 - 上記が成立しなければMCP方式を完了扱いにせずblockerとして停止する。
@@ -58,7 +61,9 @@
 
 - 公式SDKで1 toolだけのstdio MCP serverを作る。
 - MCP protocolは独自実装しない。
-- GitHub操作は `gh api` read-only GETだけにする。
+- GitHub操作は `gh api` read-only GETだけにし、Repositoryは固定cwdから導出する。
+- 各 `gh` 呼び出しに30秒timeoutと `GH_PROMPT_DISABLED=1` を適用する。
+- `wait_for_required_ci` はread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` に固定する。
 - tool内部でregistration waitとworkflow waitを行う。
 - tool結果を受け取ったCodexがsuccess / repair-loop / blockerへ進む。
 - resume / supervisorへfallbackしない。
@@ -76,7 +81,8 @@
 
 - Host側にMCP `tool_timeout_sec` より短い固定timeoutがある可能性。
 - project-relative MCP server pathのWindows解決。
-- MCP serverがCodex sandbox外で `gh` authへアクセスするため、read-only操作へ厳密に限定する必要。
+- MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository固定・read-only操作・子process timeoutが必要。
+- MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
 - 新規MCP SDK dependency追加。
 
 ## Thinking Log（判断記録）

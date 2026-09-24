@@ -22,9 +22,9 @@
 - MCP serverはstdio transportを使い、外部HTTP server、daemon、queue、webhook receiverを追加しない。
 - Codex側のMCP tool timeoutがCI待機上限より長く設定され、MCP tool callが待機途中でCodex側timeoutにならない。
 - CI待機tool `wait_for_required_ci` は、最低限次を入力に取る。
-  - repository
   - PR番号
   - expected head SHA
+- Repository名はmodel入力にせず、MCP serverの固定cwdから導出する。
 - toolは開始時にPRがOPENであり、current head SHAがexpected head SHAと一致することを確認する。
 - exact HEADかつ `pull_request` eventの `Web CI` / `Mobile App CI` が両方登録されるまでboundedに待つ。
 - 両workflow登録後は対象runだけを監視し、次のいずれかでtool resultを返す。
@@ -73,6 +73,8 @@
 - 削減対象はGitHub APIへのpolling回数そのものではなく、CI待機中のモデル推論・Agent turn・tool再呼び出しによるトークン消費である。
 - MCP server内部のread-only GitHub pollingは許容する。
 - GitHub認証は既存の `gh` CLI認証を使用し、新しいtoken保存・credential管理を追加しない。
+- Repository名はMCP serverの固定cwdにあるRepositoryから導出し、modelから任意Repositoryを指定させない。
+- 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` を設定して非対話実行に固定する。
 - CI失敗後の原因分類・修正は既存 `docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` を正本とする。
 
 ### 対象外
@@ -167,6 +169,7 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 - server command: Repository内serverをNodeで起動する。
 - `tool_timeout_sec = 6000`。
 - serverが公開するtoolはCI待機toolだけに限定する。
+- `wait_for_required_ci` だけをtool単位で `approval_mode = "approve"` に固定し、他toolへの包括的なapproval設定は追加しない。
 - user-level `~/.codex/config.toml` へ設定を要求しない。
 - secret / PAT / GitHub tokenをconfigへ追加しない。
 - existing `gh` authenticationをserver processから利用する。
@@ -177,19 +180,25 @@ project root以外からCodexを起動したときにrelative script path / `cwd
 
 #### 入力
 
-- `repository`
-  - `owner/repo` 形式。
-  - 改行、空白、shell metacharacter等を許容せずschemaで検証する。
 - `pr_number`
   - 正の整数。
 - `expected_head_sha`
   - 40桁hex SHA。
 
-自由なcommand、workflow名、poll interval、URLをtool inputとして受け取らない。
+Repository、自由なcommand、workflow名、poll interval、URLをtool inputとして受け取らない。
+
+#### Repository固定
+
+- MCP serverはproject-scoped configでRepository rootをcwdとして起動する。
+- Repository名は固定cwdから `gh repo view --json nameWithOwner` 等で導出する。
+- model入力でRepositoryを上書きする経路を持たない。
+- Repository導出に失敗した場合は `github_error` とする。
 
 #### GitHub操作
 
 - `gh api` のread-only GETだけを使用する。
+- Repository導出を含む各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。
+- 子processへ `GH_PROMPT_DISABLED=1` を設定し、認証prompt等による無期限待機を許可しない。
 - PR情報からstate / current head SHAを取得する。
 - Actions workflow runをexpected head SHAと `pull_request` eventで取得する。
 - workflow名はserver内の固定値 `Web CI` / `Mobile App CI` とする。
@@ -244,6 +253,13 @@ resultには次を含める。
 
 CI failureはMCP transport failureにせず、正常なtool resultとして返す。予期しないserver内部例外だけをtool errorとして扱う。
 
+#### MCP tool annotations / approval
+
+- `wait_for_required_ci` はread-only toolとして登録する。
+- MCP annotationsは `readOnlyHint = true`、`destructiveHint = false`、`openWorldHint = true` とする。
+- Codex configではこのtoolだけ `approval_mode = "approve"` に固定し、CI待機開始時に人間approval promptを挟まない。
+- annotationsやapproval設定をGitHub write権限の代替にしない。server実装自体をread-only GETへ限定する。
+
 ### Task 3: 実装をテスト可能に分離する
 
 MCP protocol処理とCI状態判定を同じ巨大関数へまとめない。
@@ -278,6 +294,8 @@ networkなしで状態判定を検証する。
 - registration timeout。
 - overall timeout。
 - GitHub API error。
+- 1回の `gh` 呼び出しが30秒を超えた場合の `github_error`。
+- `GH_PROMPT_DISABLED=1` が子processへ渡ること。
 - unrelated workflow / checkを無視。
 - polling中のhead変更で `stale_head`。
 - tool resultにsecret / environment値を含めない。
@@ -300,9 +318,11 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
 6. latest PR headがexpected head SHAと一致している。
 7. `Web CI` / `Mobile App CI` のresultがtool outputとGitHub上の実結果に一致する。
 
-CIがtool call開始前に完了して長時間待機を検証できなかった場合は、「MCP呼び出し成功」と「長時間保持成功」を分けて記録する。長時間保持を未検証のままDoD達成とはしない。
+CIが5分を超えて実行され、MCP callが300秒を超えて保持された場合は、その実CIを `tool_timeout_sec` 検証の証拠に使う。
 
-必要な場合のみ、Repositoryを変更しない一時的なlocal smokeで60〜90秒のMCP call保持を確認する。一時smoke toolやfixtureを最終差分へ残さない。
+CIが5分以内に完了して300秒超の保持を検証できなかった場合は、「MCP呼び出し成功」と「300秒超の長時間保持成功」を分けて記録し、Repositoryを変更しない一時的なlocal smokeで360秒のMCP call保持を1回確認する。360秒smokeでは、300秒を超えてもAgentへ途中turnが戻らず、360秒後にresultが返って同じturnが継続することを確認する。一時smoke toolやfixtureを最終差分へ残さない。
+
+300秒超の保持を未検証のままDoD達成とはしない。
 
 ### Task 6: Harness契約をMCPへ同期する
 
@@ -410,9 +430,12 @@ MCP serverはCodex sandboxとは別processとして `gh` 認証へアクセス�
 対策:
 
 - tool実装をread-only GETへ限定する。
+- Repositoryは固定cwdから導出し、modelから任意Repositoryを指定させない。
 - modelから任意command / endpoint / workflow名を入力させない。
+- 各 `gh` 呼び出しを30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - token値を読み取り・出力しない。
 - GitHub write操作をserverへ実装しない。
+- tool単位の `approval_mode = "approve"` はread-only実装を前提とし、権限境界の代替にしない。
 
 ### 4. 新規dependency
 
