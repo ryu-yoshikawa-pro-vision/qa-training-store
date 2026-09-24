@@ -433,7 +433,7 @@ async function waitForWebRuntime(url: string): Promise<Omit<RuntimeSanityPhase, 
   throw new Error(`Web runtime did not become ready: ${url}`);
 }
 
-async function resetBrowserScenario(
+export async function resetBrowserScenario(
   page: Page,
   baseUrl: string,
   scenario: string,
@@ -465,7 +465,7 @@ async function resetBrowserScenario(
   }
 }
 
-async function runChallengeGroundTruthSanity(
+export async function runChallengeGroundTruthSanity(
   page: Page,
   baseUrl: string,
   challenge: Challenge,
