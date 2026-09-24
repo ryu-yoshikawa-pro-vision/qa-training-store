@@ -105,6 +105,36 @@
 - Subagent: Delegationなし。Result: 親Agentが4 documentsを更新。親Agentの判断: 設計判断・Repository method / transaction behaviorの説明は変えていない。
 - Progress: 63% (10/16)
 
+## 2026-09-24 20:42 (JST)
+
+- Summary: PR #180のMobile App CI失敗をRepository repair policyに基づいて調査し、Expo Doctorが要求する既存Expo SDK packageのpatch不整合を限定修復した。
+- Finding / 分類: `must_fix`。旧head `1f7558e43504bbec1dbbcf070087b720eab362a5` のMobile App CI `Native Static / Run Expo Doctor`がfailure。ログとCurrent `main`の`package.json` / `pnpm-lock.yaml`を比較し、両方にある`expo@57.0.24`、`expo-build-properties@57.0.21`、`expo-linking@57.0.10`、`expo-router@57.0.22`に対しExpo Doctor 1.17.6がそれぞれ`~57.0.25`、`~57.0.22`、`~57.0.11`、`~57.0.23`を要求することを確認した。差分起因ではないbaseline不整合だが、必須Mobile CI契約に関係しsafe minimal repairが可能。
+- Repair iteration 1: allowed files=`package.json`, `pnpm-lock.yaml`。修復計画は4つの既存直接dependencyだけをExpo Doctor指定patchへ更新し、互換性に必要なExpo SDK lock解決を反映すること。変更ファイルは指定2 fileのみ。新しい直接dependency、Product / Domain behavior、Database / native featureは追加・変更していない。
+- Validation: `corepack pnpm install --frozen-lockfile` PASS。`corepack pnpm exec expo install --check` PASS。CIと同じ`corepack pnpm dlx expo-doctor@1.17.6` PASS (17/17 checks)。`corepack pnpm run test:component:native` PASS (13 suites / 64 tests)。`corepack pnpm run check:native-route-dependencies` PASS (38 routes)。`corepack pnpm run validate:eas:config` PASS。`corepack pnpm run typecheck:app`、`typecheck:native-tests`、`typecheck:training`各PASS。
+- 残差: 更新後の厳密な`pnpm run verify`はformat、Markdown、text、skills、spec、visual、curriculum、ESLint (0 errors / 65 warnings)、typecheck、image manifest、security checkを通過後、unit suiteの`output/common-walkthrough-training-copy-20260918`および2つの`output/training-runtime-*` ignored copyにある古い`tests/unit/policies.test.ts`で3 failure / 264 tests (261 passed)。変更canonical sourceとは別のgenerated copyで同じ既知failureを再現。`output/**`を変更・削除せず、root-only test suiteは前checkpointの個別検証PASSを保持する。`verify`はPASS扱いにしない。
+- Repair decision: このiterationではSDK patch mismatchを解消し、同じExpo Doctorを17/17で検証した。最新commitでMobile App CIを再実行して確認するため`continue`。修正後のRemote CI結果は未確認。
+- Plan deviation: `package.json` / `pnpm-lock.yaml`の4既存package patch更新はPlanのsource変更対象外だが、明示されたMobile App CI success条件とRepository repair policyに従う最小修復。根拠はCI失敗ログ、最新mainにも同じversionsがあること、Expo Doctor 1.17.6のexpected version、および17/17 local pass。ADR-0027 Decisionや今回のDomain/Application architectureは変更していない。
+- ブロッカー / 残作業: Task 11 exact local `verify`はignored generated copyで未達。repair変更のfinal diff / inventory、Run Artifact collector / sanitizer、repair commit / normal push、PR本文更新、最新headのWeb / Mobile CI確認が残る。
+- Progress: 81% (13/16)
+
+## 2026-09-24 20:49 (JST)
+
+- Summary: repair後のTask 12 final inventoryを再確認した。
+- Inventory: `rg '@/domain/repositories' src`はmatch 0。`src/domain/repositories/**`のtracked / discoverable file 0 (承認された`contracts.ts` / `index.ts`は物理削除済み。local directory entryは空で、fresh checkoutへは含まれない)。architecture static contractとpolicy focused validationは2 files / 14 tests PASS。unused `ImageAssetCatalogRepository` / `TestInspectionRepository` / `TestMetadataRepository` / `SettingsRepository` / `DexieSettingsRepository` source definition 0。TestApi / TestControlServiceのmetadata、order、variant、review inspection methodsを確認。`ProductImageManifestRepository` / `StaticManifestRepository`は維持。
+- Scope: implementation diffにDatabase schema / migration / seed / `app_settings` / transaction runner変更なし。ProductViewer Application shapeと既存Repository semantics / Product behavior維持。package repairのdirect dependency差分は既存4 Expo SDK packageのpatch versionだけで、新しいdirect dependencyはない。Run `PLAN.md` / `REPORT.md`の追記以外にPlan source/docs scopeの変更なし。
+- Validation: `corepack pnpm exec vitest run tests/contracts/architecture.test.ts tests/unit/policies.test.ts --exclude "output/**" --no-file-parallelism --maxWorkers=1 --testTimeout=30000` PASS (2 files / 14 tests)。`git diff --check`、collector、sanitizer Write / Checkをこのcheckpointの後に実行してからfinal commitする。
+- ブロッカー / 残作業: Task 11のstrict local `verify`は3 ignored output-copy policy failuresのため未達。Repair commit / push / PR本文、PR最新head CI確認が未完了。
+- Progress: 81% (13/16)
+
+## 2026-09-24 20:50 (JST)
+
+- Summary: Task 12 final inventoryとTask 13 collector / sanitizerを再確認した。
+- Inventory: `src/**`内`@/domain/repositories` path reference 0、old Domain repository tracked/discoverable files 0、obsolete Repository interface/class definitions 0。Architecture static contract scanを含む2 files / 14 tests PASS。`TestApi` / `TestControlService`のmetadata / inspectOrder / inspectVariant / inspectReviewSummary維持、`ProductImageManifestRepository` / `StaticManifestRepository`維持。初期実装commitとの差分にDatabase schema / migration / seed / `app_settings` / transaction runner pathなし。
+- Run Artifact: strict collector exit 0。collector-managed `run.json`の`changed_files`は33 source/Plan path (deletionsを含む)へ更新され、Run artifact自体は変更source一覧から除外。run.jsonの直接編集なし。Sanitizer Write / Check各exit 0、4 files scanned / 0 changed / 0 replacements / 0 residual findings。
+- 変更後の追加検証: `git diff --check` PASS。Collector / sanitizerをREPORT追記後に再実行し、最終commit前状態を固定する。
+- ブロッカー / 残作業: Task 11のstrict local `verify`はignored output-copy policy failuresのため未達。Task 14のrepair commit / normal push / PR本文更新とTask 15最新head CI確認が残る。
+- Progress: 81% (13/16)
+
 ## 2026-09-24 19:58 (JST)
 
 - Summary: Task 10のCurrent root focused / regression validationとTask 12 final inventoryを完了した。Task 11の標準`verify`はローカルignored `output/**` test copyに阻害され、PASS未達として残す。

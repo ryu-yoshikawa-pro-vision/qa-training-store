@@ -40,7 +40,9 @@
     "tests/contracts/architecture.test.ts",
     "tests/unit/policies.test.ts",
     "src/application/repositories/contracts.ts",
-    "src/application/repositories/index.ts"
+    "src/application/repositories/index.ts",
+    "package.json",
+    "pnpm-lock.yaml"
   ],
   "validation": {
     "status": "not_run",
