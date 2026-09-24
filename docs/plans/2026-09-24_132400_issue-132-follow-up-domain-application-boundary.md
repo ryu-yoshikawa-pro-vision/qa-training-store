@@ -9,7 +9,8 @@
 - branch作成時の`main`: `9cef8501c2b19e1764892b0c17ee50318fa90b97`
 - PR #178 merge後のWeb CI #1200 successを確認済み。
 - Issue #132のdecision-only作業は完了している。本PlanはADR-0027で確定した方針をCurrent sourceへ反映するfollow-up実装だけを扱う。
-- 今回はPlan作成までとし、source / test実装、PR作成、mergeは行わない。
+- Plan作成時点ではPlan-onlyとして開始した。その後、本Planのレビュー用にPR #180を作成した。PR #180ではsource / test実装とmergeを行わない。
+- PR #180のレビュー完了・merge後にlatest `main`から新しい実装branch `refactor/issue-132-domain-application-boundary`を作成し、別の実装PRで本PlanのTask 0以降を実行する。現在のPlan branchではsource / test実装へ進まない。
 
 ## 1. 結論
 
@@ -116,6 +117,39 @@ Infrastructure側の直接consumer:
 
 ## 3. Repository Portの最終分類
 
+### 3.0 24 interfaceの個別判断
+
+ADR-0027の「24 Repository interfaceを一律に移動しない」という契約に従い、Current consumer、Application contract型利用、transactionでの役割、責務をinterfaceごとに確認した結果を次に固定する。
+
+| interface | Application contract型 | Current consumer / 実装経路 | transactionでの役割 | 責務 | 判断 | 理由 |
+|---|---|---|---|---|---|---|
+| `VersionedRepository` | なし | 他Repository interfaceの継承元のみ | 直接なし。継承先がtransactionへ参加 | version付きEntityの共通get / update契約 | Applicationへ移動 | Domain consumerはなく、Application-owned Repository contractを構成する共通interfaceとしてだけ使う |
+| `UserRepository` | あり | Identity Resolver、Auth / Account / Catalog / Cart / Admin / Review / Checkout Use Case、Dexie / SQLite | Register / Login / Cart / Checkout / User Access / Order等 | User永続化、検索、admin count | Applicationへ移動 | Application Use Caseとtransaction contractが利用し、Application query DTOも境界に含む |
+| `SessionRepository` | なし | Identity Resolver、複数Use Case、Dexie / SQLite | Register / Login / User Access等 | Session永続化・削除 | Applicationへ移動 | Domain consumerはなく、Applicationの認証・session処理とtransaction境界で利用する |
+| `AddressRepository` | あり | Account Use Case、Dexie / SQLite | `ApplicationTransactionRunner`外。Repository内の単一Store transaction | Address CRUDとdefault再割当 | Applicationへ移動 | Application commandを受け取り、Account Use Caseの永続化境界として利用する |
+| `StorefrontCatalogQueryRepository` | あり | Catalog Use Case、Dexie storefront query adapter | なし。read query | Home / navigation catalog読取 | Applicationへ移動 | Application query / DTOを直接境界にするread port |
+| `ProductQueryRepository` | あり | Catalog Use Case、Dexie storefront query adapter | なし。read query | Product検索・suggest・detail読取 | Applicationへ移動 | Application query / resultを直接境界にするread port |
+| `AdminProductQueryRepository` | あり | Admin Product Use Case、Dexie product query adapter | なし。read query | Admin product検索・編集DTO読取 | Applicationへ移動 | Application admin query / DTOを直接境界にするread port |
+| `ProductRepository` | あり | Catalog / Admin Product / Review Use Case、Dexie / SQLite、transaction runner | Cart / Checkout / Product Aggregate / Order等 | Product aggregate永続化・status変更・参照確認 | Applicationへ移動 | Application command / resultを含み、Application transaction contractで広く利用する |
+| `CategoryRepository` | あり | Catalog / Admin Master / Admin Product Use Case、Dexie / SQLite、transaction runner | Product Aggregate / Category active state等 | Category CRUD・並べ替え | Applicationへ移動 | Application command / admin DTOを境界にし、Application transactionへ参加する |
+| `BrandRepository` | あり | Admin Master / Admin Product Use Case、Dexie / SQLite、transaction runner | Product Aggregate / Brand active state等 | Brand CRUD・active state変更 | Applicationへ移動 | Application command / admin DTOを境界にし、Application transactionへ参加する |
+| `ImageAssetCatalogRepository` | あり | なし。interface定義のみ | なし | Image asset catalog読取を想定した旧contract | 削除 | 実装・注入経路がなく、実経路は`ProductImageManifestRepository` / `StaticManifestRepository` |
+| `ReviewSummaryRepository` | なし | Admin Product Use Case、Dexie / SQLite、transaction runner | Product Aggregate / Review change等 | Product review summary永続化 | Applicationへ移動 | Domain consumerはなく、Application transaction contractで更新対象として利用する |
+| `InventoryRepository` | あり | Admin Operations Use Case、Dexie / SQLite、transaction runner | Cart / Checkout / Product Aggregate / Order等 | Inventory更新・履歴・検索 | Applicationへ移動 | Application command / query DTOを境界にし、Application transactionへ参加する |
+| `CartRepository` | あり | Cart / Checkout Use Case、Dexie / SQLite、transaction runner | Register / Login / Cart mutation / Checkout / Order等 | Cart aggregate永続化・DTO構築 | Applicationへ移動 | Application command / DTO / `ProductViewer`を境界にし、Application transactionへ参加する |
+| `CheckoutSessionRepository` | あり | Checkout Use Case、Dexie / SQLite、transaction runner | Start Checkout / User Access / Create Order等 | Checkout Session永続化・confirmation読取 | Applicationへ移動 | Application command / DTOを境界にし、Application transactionへ参加する |
+| `OrderRepository` | あり | Admin Operations / Checkout / Review Use Case、Dexie / SQLite、transaction runner | Create Order / Payment / Shipment系 | Order永続化・検索・履歴 | Applicationへ移動 | Application query / DTOを含み、Application transaction contractで利用する |
+| `SequenceRepository` | なし | transaction runner、Dexie / SQLite | Create Order | 日次sequence採番 | Applicationへ移動 | Domain consumerはなく、ApplicationのOrder transaction内だけで利用する |
+| `PaymentRepository` | なし | Checkout Use Case、Dexie / SQLite、transaction runner | Create Order / Payment success・failure / Retry | Payment永続化・gateway key検索 | Applicationへ移動 | Domain consumerはなく、Application payment workflow / transactionで利用する |
+| `ShipmentRepository` | なし | transaction runner、Dexie / SQLite | Payment success / Preparation / Ship / Delivery | Shipment永続化 | Applicationへ移動 | Domain consumerはなく、Application transaction scopeからのみ利用する |
+| `ReviewRepository` | あり | Catalog / Checkout / Review Use Case、Dexie / SQLite、transaction runner | Review change | Review永続化・検索・status history | Applicationへ移動 | Application query / DTOを境界にし、Application transactionへ参加する |
+| `AdminOverviewQueryRepository` | あり | Admin Master Use Case、Dexie overview adapter | なし。read query | Admin overview集約読取 | Applicationへ移動 | Application `AdminOverview`を返すApplication専用read port |
+| `SettingsRepository` | なし | `DexieSettingsRepository`実装だけ。生成・注入なし | なし | generic settings get / set | 削除 | interface / classとも実行経路がなく、`app_settings`はSeed / Test Controlが直接利用する |
+| `TestInspectionRepository` | あり | なし。interface定義のみ | なし | Automation inspectionを想定した旧contract | 削除 | 実装・注入経路がなく、Current ownerは`TestControlService` / `TestApi` |
+| `TestMetadataRepository` | あり | なし。interface定義のみ | なし | Test metadata読取を想定した旧contract | 削除 | 実装・注入経路がなく、Current ownerは`TestControlService.getMetadata()` / `TestApi.getMetadata()` |
+
+この表の判断はCurrent sourceの責務とconsumerに基づく。17 / 7は補助Evidenceであり、Application contract型の有無だけでownerを決めていない。実装開始時にmaterial driftがあったinterfaceだけ再評価する。
+
 ### 3.1 Application ownershipへ移す20 interface
 
 次を`src/application/repositories/contracts.ts`へ移す。
@@ -143,12 +177,12 @@ Infrastructure側の直接consumer:
 
 理由:
 
+- §3.0で各interfaceのCurrent consumer、transactionでの役割、責務を個別に確認した。
 - Current Domain consumerがない。
-- Application Use Case / transaction contractが利用するPortである。
+- 使用中のinterfaceはApplication Use Case / transaction contract、またはApplication専用read queryから利用される。
 - Infrastructure adapterがApplicationへ実装を提供する境界である。
-- 17 interfaceはApplication DTO / query / commandを直接signatureへ使用する。
-- 残るinterfaceもCurrent consumerと責務からApplication Portとして扱う方がADR-0027と一致する。
-- Domain-owned contractとして残す具体的なCurrent要件が確認できない。
+- Application contract型を使うinterfaceはそのcontractをApplication ownershipのまま維持できる。
+- Application contract型を使わないinterfaceも、Current consumerと責務からDomain-owned contractとして残す具体的理由がない。
 
 `VersionedRepository`は複数Repository interfaceが継承する共通contractとしてそのまま移す。今回のために継承を展開しない。
 
@@ -381,7 +415,17 @@ computed `require(variable)` / computed dynamic importは対象外。
 - `src/application/**`
 - Domain source fileからrelative resolveしたpathが`src/application`またはその配下へ到達するspecifier
 
-relative path判定はNode標準`path.resolve` / `path.dirname`等で行う。完全なTypeScript module resolutionは実装しない。
+relative path判定はNode標準`path.resolve` / `path.dirname` / `path.relative` / `path.isAbsolute` / `path.sep`だけで行い、完全なTypeScript module resolutionは実装しない。
+
+実装規則を次で固定する。
+
+1. `applicationRoot = resolve(projectRoot, "src", "application")`を基準にする。
+2. alias / baseUrl形式はspecifier文字列について、`@/application`または`@/application/` prefix、`src/application`または`src/application/` prefixだけを一致とする。`@/application-old`や`src/application-old`は一致させない。
+3. relative specifierは`resolvedPath = resolve(dirname(sourcePath), specifier)`で解決する。
+4. `relativePath = relative(applicationRoot, resolvedPath)`を求め、`relativePath === ""`、または`relativePath !== ".."`かつ`!relativePath.startsWith(".." + sep)`かつ`!isAbsolute(relativePath)`の場合だけApplication root配下と判定する。
+5. module specifier自体は`/`区切り、filesystem path判定はNode `path` APIへ任せる。Windowsの`\\`とUbuntuの`/`を手書き置換して比較しない。
+
+synthetic relative-path testでは`join(projectRoot, "src", "domain", "fixture.ts")`のようなabsolute source pathをhelperへ渡し、Windows / Ubuntuのどちらでも同じ判定規則を使う。
 
 #### `domainToApplicationDependencies()`
 
@@ -432,9 +476,9 @@ fixture directoryや新しいtest frameworkは追加しない。
 
 - Repository Portのcanonical ownerを「follow-upで決める」表現から、Current sourceではApplication ownershipへ移行済みである説明へ更新する。
 - `ImageAssetCatalogRepository` interface記載を削除する。
-- `TestInspectionRepository` interface記載を削除する。
-- Automation Inspectionのbehavior説明が必要なら`TestApi` / `TestControlService`をownerとして説明し、Repository interfaceを再作成しない。
-- `SettingsRepository`記載があれば削除する。
+- §8の`TestInspectionRepository` interface blockを削除する。
+- Repository interfaceとしてのAutomation Inspection sectionは削除し、必要な説明は`docs/07_testability/testability_design.md`の`TestApi` / `TestControlService`を参照させる。Repository interfaceを再作成しない。
+- §7の`SettingsRepository` interface blockを削除する。
 - method semanticsの説明は移動を理由に変更しない。
 
 ### 8.2 `docs/04_data/application_contracts.md`
@@ -467,7 +511,23 @@ ADR-0027もDecision自体は変更しない。実装完了を記録するため�
 
 ## 9. 実装順
 
+PR #180はPlan-onlyとして完了させ、source / test実装を同branchへ追加しない。PR #180のレビュー完了・merge後に、latest `main`から`refactor/issue-132-domain-application-boundary`を作成し、別の実装PRで次を実行する。
+
 実装はbuildを壊す時間を短くするため、次の順に行う。
+
+### Task 0: 実装branchとRun Artifactを初期化
+
+1. PR #180がmerge済みであることを確認する。
+2. latest `main`から`refactor/issue-132-domain-application-boundary`を作成する。
+3. 実装task用の新しいRunをRepository標準契約で初期化する。
+
+Windowsでは次を基準とする。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard
+```
+
+生成された`.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`を同じ実装taskで利用する。Run `PLAN.md`には本durable Planのpath、実装branch、対象範囲を記録する。同一task中に別Runを作らない。
 
 ### Task 1: latest `main` rebaseline
 
@@ -600,6 +660,42 @@ git diff --check
 - `TestApi` / `TestControlService`のinspection / metadata APIは維持
 - `ProductImageManifestRepository`は維持
 - Product behavior / DB schema差分なし
+
+### Task 13: Run Artifactをfinal commit前状態へ確定
+
+- `TASKS.md`を実際の完了状態へ更新する。
+- `REPORT.md`へ検証結果と最終inventoryをappend-onlyで記録する。
+- actual `run.json`は手編集せず、Repositoryのwriter / collector経路だけで更新する。
+- Run Artifact sanitizationをfinal commit前に実行する。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Write
+powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Check
+```
+
+`Check`でresidual findingがある状態を完了扱いにしない。
+
+### Task 14: commit / normal push / 実装PR作成
+
+1. `git diff --check`と変更scopeを再確認する。
+2. Run Artifactを含むfinal commit前状態を確定した後にcommitする。
+3. force pushを使わず`refactor/issue-132-domain-application-boundary`へ通常pushする。
+4. local HEADとremote headの一致を確認する。
+5. `main`向けの別実装PRを作成する。PR本文には変更scope、削除したunused abstraction、validation結果、Product behavior / DB schemaを変更していないことを記載する。
+
+PR #180へsource commitを追加しない。
+
+### Task 15: 最新headのRemote CIを確認
+
+実装PRの最新headで次を確認する。
+
+- Web CI = `success`
+- Mobile App CI = `success`
+- CodeQL等、そのheadで実行された必須security workflowがある場合は結果を確認する
+
+Web CI / Mobile App CIが`queued` / `in_progress` / failure / 未確認の状態を実装完了としない。必要なCI結果を実装PR本文へ記録する。
+
+push後CI結果を記録するためだけに`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`を再編集・再commit・再pushしない。push後CIの正本はGitHub Actionsと実装PR本文とする。
 
 ## 10. 変更対象の見込み
 
@@ -760,6 +856,11 @@ docs/02_architecture/system_architecture.md
 - 過去Plan / report / Run ArtifactをCurrent都合で書き換えていない。
 - Product behavior、Repository method semantics、DB schema、transaction scopeを変更していない。
 - focused validation、`test:repository`、`typecheck`、`pnpm run verify`、`git diff --check`がPASSする。
+- 実装task用Run ArtifactがRepository契約どおり保存され、sanitizer `Write` / `Check`がPASSしている。
+- final commit後に通常pushし、local HEAD / remote head / 実装PR headが一致している。
+- 実装PRの最新headでWeb CI / Mobile App CIがともに`success`である。
+- push後CI結果だけを理由にtracked Run Artifactを再commitしていない。
+- PR #180はPlan-onlyのままmergeされ、source / test実装は別実装PRへ分離されている。
 
 ## 14. ロールバック
 
@@ -790,6 +891,8 @@ Database migrationやexternal state変更はない。
 
 ## 16. 未解決事項
 
-実装開始を止める未解決事項はない。
+Plan内容として実装開始を止める未解決事項はない。
+
+ただしPR #180はPlan-only PRであり、実装開始条件はPR #180のレビュー完了・mergeである。merge前に現在のPlan branchへsource / test変更を追加しない。
 
 実装開始時にlatest `main`へmaterial driftがあった場合だけ、影響したinterface / consumer / documentationを再評価する。ADR-0027のDecision自体は再Decisionしない。
