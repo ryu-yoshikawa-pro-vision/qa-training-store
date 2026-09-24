@@ -86,10 +86,10 @@ actual writeが失敗する場合はrun `blocked`とする。`danger-full-access
 ### Live Workflow E2E
 
 ```bash
-pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --source-revision-git-sha <SOURCE_40HEX> --model gpt-5.6-luna --output .codex/runs/<RUN_ID>/workflow-e2e-result.json
+pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --source-revision-git-sha <SOURCE_40HEX> --routing-source-git-sha <ROUTING_SOURCE_40HEX> --model gpt-5.6-luna --output .codex/runs/<RUN_ID>/workflow-e2e-result.json
 
 # Windows + PowerShell環境でCase Eを評価する場合だけ必須追加
-pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --source-revision-git-sha <SOURCE_40HEX> --model gpt-5.6-luna --android-device-serial <PHYSICAL_DEVICE_SERIAL> --output .codex/runs/<RUN_ID>/workflow-e2e-result.json
+pnpm run eval:skills:workflow -- --target-root <SANITIZED_TARGET> --source-revision-git-sha <SOURCE_40HEX> --routing-source-git-sha <ROUTING_SOURCE_40HEX> --model gpt-5.6-luna --android-device-serial <PHYSICAL_DEVICE_SERIAL> --output .codex/runs/<RUN_ID>/workflow-e2e-result.json
 ```
 
 成功判定:

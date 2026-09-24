@@ -1,7 +1,17 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   WORKFLOW_CASES,
@@ -12,8 +22,13 @@ import {
   isWorkflowRunSuccessful,
   repairOutputSchema,
   workflowEvalResultSchema,
+  type WorkflowEvalResult,
+  type WorkflowStageResult,
 } from "../../scripts/evals/skill-workflow-evals";
+import { CANONICAL_SKILLS } from "../../scripts/evals/skill-trigger-evals";
 import {
+  assertTargetPreflightForWorkflow,
+  assertTrackedTreeUnchanged,
   blockedResult,
   buildCommonSmokePrompt,
   buildWorkflowCodexArguments,
@@ -27,17 +42,96 @@ import {
   isCaseBOfficialEvidenceFile,
   parseWorkflowEvalCliArguments,
   redactNativeDeviceSerial,
+  resolveWorkflowRunOutputPath,
+  runWorkflowEval,
   summarizeCommonSmokeProbe,
   summarizeSmokeTurnDiagnostics,
   type WorkflowEvalCliOptions,
 } from "../../scripts/evals/run-skill-workflow-evals";
 
 const repositoryRoot = resolve(__dirname, "../..");
+const temporaryRoots: string[] = [];
 const scopeFixtureFiles = {
   plan: "docs/plans/case-a-status-plan.md",
   status: "workflow-e2e-fixtures/case-a/status.mjs",
   clean: "src/clean-file.txt",
 } as const;
+
+function runFixtureGit(root: string, args: readonly string[]): string {
+  return execFileSync("git", [...args], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function commitFixture(root: string, message: string): void {
+  execFileSync("git", ["commit", "--no-gpg-sign", "-m", message], {
+    cwd: root,
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "Workflow Eval Test",
+      GIT_AUTHOR_EMAIL: "workflow-eval-test@example.invalid",
+      GIT_COMMITTER_NAME: "Workflow Eval Test",
+      GIT_COMMITTER_EMAIL: "workflow-eval-test@example.invalid",
+    },
+    stdio: "ignore",
+  });
+}
+
+function initializeFixtureRepository(root: string, message: string): string {
+  runFixtureGit(root, ["init", "--quiet"]);
+  runFixtureGit(root, ["add", "--all"]);
+  commitFixture(root, message);
+  return runFixtureGit(root, ["rev-parse", "HEAD"]);
+}
+
+function createWorkflowPreflightFixture(): {
+  readonly parent: string;
+  readonly evaluatorRoot: string;
+  readonly targetRoot: string;
+  readonly evaluatorSha: string;
+  readonly routingSha: string;
+} {
+  const parent = mkdtempSync(join(tmpdir(), "workflow-preflight-contract-"));
+  temporaryRoots.push(parent);
+  const evaluatorRoot = join(parent, "evaluator");
+  const targetRoot = join(parent, "target");
+  mkdirSync(evaluatorRoot);
+  mkdirSync(targetRoot);
+  writeFileSync(join(evaluatorRoot, "evaluator.txt"), "evaluator fixture\n", "utf8");
+  const evaluatorSha = initializeFixtureRepository(evaluatorRoot, "evaluator baseline");
+
+  for (const skill of CANONICAL_SKILLS) {
+    const skillPath = join(targetRoot, ".agents", "skills", skill, "SKILL.md");
+    mkdirSync(dirname(skillPath), { recursive: true });
+    writeFileSync(skillPath, `# ${skill}\n`, "utf8");
+  }
+  writeFileSync(join(targetRoot, "target.txt"), "sanitized target fixture\n", "utf8");
+  const routingSha = initializeFixtureRepository(targetRoot, "sanitized target root");
+  runFixtureGit(targetRoot, ["switch", "--detach", "HEAD"]);
+  return { parent, evaluatorRoot, targetRoot, evaluatorSha, routingSha };
+}
+
+function workflowOptions(
+  fixture: ReturnType<typeof createWorkflowPreflightFixture>,
+  overrides: Partial<WorkflowEvalCliOptions> = {},
+): WorkflowEvalCliOptions {
+  return {
+    target_root: fixture.targetRoot,
+    source_revision_git_sha: fixture.evaluatorSha,
+    routing_source_git_sha: fixture.routingSha,
+    model: "gpt-5.6-luna",
+    output: ".codex/runs/test/workflow-e2e-result.json",
+    ...overrides,
+  };
+}
+
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function createScopeWorkspace(): string {
   const root = mkdtempSync(join(tmpdir(), "skill-workflow-scope-"));
@@ -119,6 +213,125 @@ describe("Workflow E2E Eval repository contract", () => {
     expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-skill-probe-")');
     expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-b-baseline-")');
     expect(runner).toContain('path.join(os.tmpdir(), "workflow-e2e-b-independent-")');
+  });
+
+  it("checks Case B tracked content using git diff exit status", () => {
+    withScopeWorkspace((root) => {
+      expect(() => assertTrackedTreeUnchanged(root)).not.toThrow();
+      writeFileSync(join(root, scopeFixtureFiles.clean), "changed tracked content\n", "utf8");
+      expect(() => assertTrackedTreeUnchanged(root)).toThrow(
+        "Case B dependency preparation changed tracked files",
+      );
+    });
+
+    const nonRepository = mkdtempSync(join(tmpdir(), "workflow-diff-failure-"));
+    temporaryRoots.push(nonRepository);
+    expect(() => assertTrackedTreeUnchanged(nonRepository)).toThrow(
+      "git diff --exit-code HEAD -- failed",
+    );
+  });
+
+  it("reuses isolated Target preflight and requires one parentless Target commit", () => {
+    const fixture = createWorkflowPreflightFixture();
+    const resolved = assertTargetPreflightForWorkflow(
+      workflowOptions(fixture),
+      fixture.evaluatorRoot,
+    );
+    expect(resolved.evaluator_git_sha).toBe(fixture.evaluatorSha);
+    expect(resolved.routing_source_git_sha).toBe(fixture.routingSha);
+
+    writeFileSync(join(fixture.targetRoot, "second.txt"), "second commit\n", "utf8");
+    runFixtureGit(fixture.targetRoot, ["add", "--all"]);
+    commitFixture(fixture.targetRoot, "second target commit");
+    runFixtureGit(fixture.targetRoot, ["switch", "--detach", "HEAD"]);
+    expect(() =>
+      assertTargetPreflightForWorkflow(workflowOptions(fixture), fixture.evaluatorRoot),
+    ).toThrow("parentless root commit");
+  }, 15_000);
+
+  it("rejects Workflow Targets with remotes", () => {
+    const fixture = createWorkflowPreflightFixture();
+    runFixtureGit(fixture.targetRoot, [
+      "remote",
+      "add",
+      "origin",
+      "https://example.invalid/target.git",
+    ]);
+    expect(() =>
+      assertTargetPreflightForWorkflow(workflowOptions(fixture), fixture.evaluatorRoot),
+    ).toThrow("must not have remotes");
+  }, 15_000);
+
+  it("rejects Workflow Targets with Git alternates", () => {
+    const fixture = createWorkflowPreflightFixture();
+    const alternatesPath = join(fixture.targetRoot, ".git", "objects", "info", "alternates");
+    mkdirSync(dirname(alternatesPath), { recursive: true });
+    writeFileSync(alternatesPath, "missing-object-store\n", "utf8");
+    expect(() =>
+      assertTargetPreflightForWorkflow(workflowOptions(fixture), fixture.evaluatorRoot),
+    ).toThrow("objects/info/alternates");
+  }, 15_000);
+
+  it("restricts Workflow output to a file below Evaluator .codex/runs", async () => {
+    const fixture = createWorkflowPreflightFixture();
+    expect(
+      resolveWorkflowRunOutputPath(
+        fixture.evaluatorRoot,
+        ".codex/runs/test/workflow-e2e-result.json",
+      ),
+    ).toBe(join(fixture.evaluatorRoot, ".codex", "runs", "test", "workflow-e2e-result.json"));
+    expect(resolveWorkflowRunOutputPath(fixture.evaluatorRoot, ".codex/runs/result.json")).toBe(
+      join(fixture.evaluatorRoot, ".codex", "runs", "result.json"),
+    );
+
+    for (const output of [
+      ".codex/runs",
+      "package.json",
+      "src/result.json",
+      "result.json",
+      "../outside.json",
+      join(fixture.parent, "outside.json"),
+    ]) {
+      expect(() => resolveWorkflowRunOutputPath(fixture.evaluatorRoot, output), output).toThrow(
+        ".codex/runs",
+      );
+    }
+
+    const unsafePath = join(fixture.parent, "unsafe-result.json");
+    await expect(
+      runWorkflowEval(workflowOptions(fixture, { output: unsafePath }), fixture.evaluatorRoot),
+    ).rejects.toThrow(".codex/runs");
+    expect(existsSync(unsafePath)).toBe(false);
+  });
+
+  it("keeps blocked provenance actual, requested, and verified values separate", async () => {
+    const fixture = createWorkflowPreflightFixture();
+    const requestedSource = "a".repeat(40);
+    const requestedRouting = "b".repeat(40);
+    const options = workflowOptions(fixture, {
+      target_root: "missing-target",
+      source_revision_git_sha: requestedSource,
+      routing_source_git_sha: requestedRouting,
+    });
+    const preflightBlocked = await runWorkflowEval(options, fixture.evaluatorRoot);
+    expect(preflightBlocked.exit_code).toBe(1);
+    expect(preflightBlocked.result.provenance).toMatchObject({
+      evaluator_git_sha: fixture.evaluatorSha,
+      source_revision_git_sha: requestedSource,
+      routing_source_git_sha: null,
+    });
+
+    const postPreflightBlocked = blockedResult(
+      options,
+      fixture.evaluatorSha,
+      fixture.routingSha,
+      "common smoke blocked",
+    );
+    expect(postPreflightBlocked.provenance).toMatchObject({
+      evaluator_git_sha: fixture.evaluatorSha,
+      source_revision_git_sha: requestedSource,
+      routing_source_git_sha: fixture.routingSha,
+    });
   });
 
   it("reports every required common smoke predicate independently and fails closed", () => {
@@ -249,7 +462,8 @@ describe("Workflow E2E Eval repository contract", () => {
     const result = workflowEvalResultSchema.parse(
       blockedResult(
         options,
-        repositoryRoot,
+        "c".repeat(40),
+        null,
         "installed Codex smoke probe did not prove actual write, resume, OTel, schema, and command_execution",
         "codex-cli 0.155.1",
         smokeProbe,
@@ -258,6 +472,11 @@ describe("Workflow E2E Eval repository contract", () => {
     expect(result).toMatchObject({
       schema_version: 1,
       run_status: "blocked",
+      provenance: {
+        evaluator_git_sha: "c".repeat(40),
+        source_revision_git_sha: "a".repeat(40),
+        routing_source_git_sha: null,
+      },
       cases: [],
       smoke_probe: {
         status: "fail",
@@ -607,7 +826,26 @@ describe("Workflow E2E Eval repository contract", () => {
         .success,
     ).toBe(true);
 
-    const result = {
+    const stage = (id: string, status: "pass" | "not_executed" = "pass"): WorkflowStageResult => {
+      const definition = WORKFLOW_CASES.flatMap((workflowCase) => workflowCase.stages).find(
+        (candidate) => candidate.id === id,
+      );
+      return {
+        id,
+        thread_id: status === "pass" ? "thread-1" : null,
+        expected_skill: definition?.expected_skill ?? null,
+        observed_skill: null,
+        status,
+        process_lifecycle: status === "pass" ? "completed" : "unknown",
+        changed_files: [],
+        checks: {},
+      };
+    };
+    const stages = (caseId: "A" | "B" | "C" | "D" | "E") =>
+      WORKFLOW_CASES.find((workflowCase) => workflowCase.id === caseId)?.stages.map((entry) =>
+        stage(entry.id),
+      ) ?? [];
+    const result = workflowEvalResultSchema.parse({
       schema_version: 1,
       run_status: "completed",
       provenance: {
@@ -624,7 +862,7 @@ describe("Workflow E2E Eval repository contract", () => {
           id: "A",
           case_baseline_git_sha: "c".repeat(40),
           status: "pass",
-          stages: [],
+          stages: stages("A"),
           artifact_reuse: { status: "pass" },
         },
         {
@@ -632,26 +870,77 @@ describe("Workflow E2E Eval repository contract", () => {
           case_baseline_git_sha: "d".repeat(40),
           status: "not_executed",
           reason: "browser_capability_unavailable_under_canonical_config",
-          stages: [],
+          stages: [stage("qa", "not_executed")],
         },
-        { id: "C", case_baseline_git_sha: "e".repeat(40), status: "pass", stages: [] },
-        { id: "D", case_baseline_git_sha: "f".repeat(40), status: "pass", stages: [] },
+        {
+          id: "C",
+          case_baseline_git_sha: "e".repeat(40),
+          status: "pass",
+          stages: stages("C"),
+        },
+        {
+          id: "D",
+          case_baseline_git_sha: "f".repeat(40),
+          status: "pass",
+          stages: stages("D"),
+        },
         {
           id: "E",
           case_baseline_git_sha: "0".repeat(40),
           status: "not_executed",
           reason: "host_capability_unavailable",
-          stages: [],
+          stages: [stage("doctor", "not_executed")],
         },
       ],
-    } as const;
+    }) as WorkflowEvalResult;
     expect(workflowEvalResultSchema.safeParse(result).success).toBe(true);
     expect(isWorkflowRunSuccessful(result)).toBe(true);
     expect(
       isWorkflowRunSuccessful({
         ...result,
         cases: result.cases.map((candidate) =>
+          candidate.id === "A" ? { ...candidate, stages: [] } : candidate,
+        ),
+      }),
+    ).toBe(false);
+    expect(
+      isWorkflowRunSuccessful({
+        ...result,
+        cases: result.cases.map((candidate) =>
+          candidate.id === "A"
+            ? { ...candidate, stages: [stage("implementation"), ...candidate.stages.slice(1)] }
+            : candidate,
+        ),
+      }),
+    ).toBe(false);
+    expect(
+      isWorkflowRunSuccessful({
+        ...result,
+        cases: result.cases.map((candidate) =>
+          candidate.id === "A"
+            ? {
+                ...candidate,
+                stages: candidate.stages.map((entry, index) =>
+                  index === 0 ? { ...entry, status: "fail" as const } : entry,
+                ),
+              }
+            : candidate,
+        ),
+      }),
+    ).toBe(false);
+    expect(
+      isWorkflowRunSuccessful({
+        ...result,
+        cases: result.cases.map((candidate) =>
           candidate.id === "B" ? { ...candidate, reason: "fixture_invalid" } : candidate,
+        ),
+      }),
+    ).toBe(false);
+    expect(
+      isWorkflowRunSuccessful({
+        ...result,
+        cases: result.cases.map((candidate) =>
+          candidate.id === "B" ? { ...candidate, stages: [] } : candidate,
         ),
       }),
     ).toBe(false);
@@ -755,10 +1044,34 @@ describe("Workflow E2E Eval repository contract", () => {
       "--routing-source-git-sha",
       "b".repeat(40),
       "--output",
-      "result.json",
+      ".codex/runs/result.json",
     ]);
     expect(parsed.target_root).toBe("target");
-    expect(parsed.output).toBe("result.json");
+    expect(parsed.output).toBe(".codex/runs/result.json");
+  });
+
+  it("rejects unsafe Workflow output arguments before runner execution", () => {
+    const commonArguments = [
+      "--target-root",
+      "target",
+      "--source-revision-git-sha",
+      "a".repeat(40),
+      "--routing-source-git-sha",
+      "b".repeat(40),
+    ];
+    for (const output of [
+      ".codex/runs",
+      "package.json",
+      "src/result.json",
+      "result.json",
+      "../result.json",
+      join(tmpdir(), "workflow-outside.json"),
+    ]) {
+      expect(
+        () => parseWorkflowEvalCliArguments([...commonArguments, "--output", output]),
+        output,
+      ).toThrow(".codex/runs");
+    }
   });
 
   it("does not add a PR6 workflow script to CI and reuses the existing native helper", () => {

@@ -394,6 +394,14 @@ export function isWorkflowRunSuccessful(result: WorkflowEvalResult): boolean {
   for (const definition of WORKFLOW_CASES) {
     const actual = result.cases.find((candidate) => candidate.id === definition.id);
     if (actual === undefined) return false;
+    const expectedStageIds = definition.stages.map((stage) => stage.id);
+    const actualStageIds = actual.stages.map((stage) => stage.id);
+    if (
+      actualStageIds.length > expectedStageIds.length ||
+      actualStageIds.some((stageId, index) => stageId !== expectedStageIds[index])
+    )
+      return false;
+    if (actual.status !== caseStatusFromStages(definition.id, actual.stages)) return false;
     if (definition.id === "A" || definition.id === "C" || definition.id === "D") {
       if (actual.status !== "pass") return false;
     } else if (

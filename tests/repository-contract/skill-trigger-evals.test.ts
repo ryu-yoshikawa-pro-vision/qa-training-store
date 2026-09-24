@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -455,6 +455,32 @@ describe("Skill Trigger Eval deterministic contract", () => {
       " M fixture.txt",
       "?? source.ts",
     ]);
+  });
+
+  it("rejects both rename directions across the Run Artifact boundary", () => {
+    const runArtifactToSource = createGitFixture();
+    const runArtifactPath = join(runArtifactToSource, ".codex", "runs", "a.txt");
+    const sourcePathAfterMove = join(runArtifactToSource, "src", "a.txt");
+    mkdirSync(join(runArtifactToSource, ".codex", "runs"), { recursive: true });
+    mkdirSync(join(runArtifactToSource, "src"), { recursive: true });
+    writeFileSync(runArtifactPath, "tracked run artifact\n", "utf8");
+    runFixtureGit(runArtifactToSource, ["add", "--all"]);
+    runFixtureGit(runArtifactToSource, ["commit", "-qm", "run artifact baseline"]);
+    renameSync(runArtifactPath, sourcePathAfterMove);
+    runFixtureGit(runArtifactToSource, ["add", "--all"]);
+    expect(sourceStatusOutsideRunArtifacts(runArtifactToSource)).toEqual(["A  src/a.txt"]);
+
+    const sourceToRunArtifact = createGitFixture();
+    const sourcePathBeforeMove = join(sourceToRunArtifact, "src", "a.txt");
+    const runArtifactPathAfterMove = join(sourceToRunArtifact, ".codex", "runs", "a.txt");
+    mkdirSync(join(sourceToRunArtifact, "src"), { recursive: true });
+    mkdirSync(join(sourceToRunArtifact, ".codex", "runs"), { recursive: true });
+    writeFileSync(sourcePathBeforeMove, "tracked source\n", "utf8");
+    runFixtureGit(sourceToRunArtifact, ["add", "--all"]);
+    runFixtureGit(sourceToRunArtifact, ["commit", "-qm", "source baseline"]);
+    renameSync(sourcePathBeforeMove, runArtifactPathAfterMove);
+    runFixtureGit(sourceToRunArtifact, ["add", "--all"]);
+    expect(sourceStatusOutsideRunArtifacts(sourceToRunArtifact)).toEqual(["D  src/a.txt"]);
   });
 
   it("does not classify a path mention as an actual Skill read", () => {

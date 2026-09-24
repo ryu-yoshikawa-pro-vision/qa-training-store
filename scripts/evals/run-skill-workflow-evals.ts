@@ -52,7 +52,7 @@ import {
 } from "./otel-skill-observer.js";
 import {
   buildCodexOtelMetricsExporterConfig,
-  sourceStatusOutsideRunArtifacts,
+  assertTargetPreflight,
 } from "./run-skill-trigger-evals.js";
 import {
   WORKFLOW_CASES,
@@ -110,6 +110,7 @@ export interface WorkflowEvalCliOptions {
 
 interface ResolvedOptions extends WorkflowEvalCliOptions {
   readonly evaluator_root: string;
+  readonly evaluator_git_sha: string;
   readonly output_path: string;
 }
 
@@ -195,7 +196,49 @@ function validateSha(value: string, option: string): string {
   return value;
 }
 
-export function parseWorkflowEvalCliArguments(args: readonly string[]): WorkflowEvalCliOptions {
+function realPathWithMissingSuffix(candidate: string): string {
+  let current = path.resolve(candidate);
+  const suffix: string[] = [];
+  for (;;) {
+    let exists = false;
+    try {
+      fs.lstatSync(current);
+      exists = true;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+    }
+    if (exists) return path.resolve(fs.realpathSync(current), ...suffix);
+    const parent = path.dirname(current);
+    if (parent === current) throw new Error(`Cannot resolve output path ancestor: ${candidate}`);
+    suffix.unshift(path.basename(current));
+    current = parent;
+  }
+}
+
+export function resolveWorkflowRunOutputPath(evaluatorRoot: string, output: string): string {
+  const evaluatorReal = fs.realpathSync(evaluatorRoot);
+  const runsRoot = path.resolve(evaluatorReal, ".codex", "runs");
+  const outputPath = path.resolve(evaluatorReal, output);
+  if (isSamePath(outputPath, runsRoot) || !isPathWithinRoot(runsRoot, outputPath)) {
+    throw new Error("--output must be a file under Evaluator .codex/runs/**");
+  }
+
+  const realRunsRoot = realPathWithMissingSuffix(runsRoot);
+  if (!isSamePath(realRunsRoot, runsRoot)) {
+    throw new Error("Evaluator .codex/runs must not resolve through a path outside the repository");
+  }
+  const realOutputPath = realPathWithMissingSuffix(outputPath);
+  if (isSamePath(realOutputPath, realRunsRoot) || !isPathWithinRoot(realRunsRoot, realOutputPath)) {
+    throw new Error("--output must resolve to a file under Evaluator .codex/runs/**");
+  }
+  return outputPath;
+}
+
+export function parseWorkflowEvalCliArguments(
+  args: readonly string[],
+  evaluatorRoot = process.cwd(),
+): WorkflowEvalCliOptions {
   const normalizedArgs = args[0] === "--" ? args.slice(1) : args;
   let targetRoot: string | undefined;
   let sourceRevision: string | undefined;
@@ -243,6 +286,7 @@ export function parseWorkflowEvalCliArguments(args: readonly string[]): Workflow
   if (routingSource === undefined) usageError("--routing-source-git-sha is required");
   if (model === undefined) model = DEFAULT_MODEL;
   if (output === undefined) usageError("--output is required");
+  resolveWorkflowRunOutputPath(evaluatorRoot, output);
 
   const base = {
     target_root: targetRoot,
@@ -254,15 +298,14 @@ export function parseWorkflowEvalCliArguments(args: readonly string[]): Workflow
   return androidSerial === undefined ? base : { ...base, android_device_serial: androidSerial };
 }
 
-function gitOutput(root: string, args: readonly string[], allowFailure = false): string {
+function gitOutput(root: string, args: readonly string[]): string {
   try {
     return execFileSync("git", [...args], {
       cwd: root,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", allowFailure ? "pipe" : "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
     }).trim();
   } catch (error) {
-    if (allowFailure) return "";
     throw new Error(`git ${args.join(" ")} failed: ${String(error)}`);
   }
 }
@@ -1684,8 +1727,24 @@ function prepareCaseBDependencies(root: string): void {
     throw new Error(
       `Case B offline dependency preparation failed: ${install.stderr.slice(0, 500)}`,
     );
-  if (gitOutput(root, ["diff", "--exit-code", "HEAD", "--"], true).length !== 0)
-    throw new Error("Case B dependency preparation changed tracked files");
+  assertTrackedTreeUnchanged(root);
+}
+
+export function assertTrackedTreeUnchanged(root: string): void {
+  const result = spawnSync("git", ["diff", "--exit-code", "HEAD", "--"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  if (result.error !== undefined) {
+    throw new Error(`git diff --exit-code HEAD -- failed: ${result.error.message}`);
+  }
+  if (result.status === 0) return;
+  if (result.status === 1) throw new Error("Case B dependency preparation changed tracked files");
+  throw new Error(
+    `git diff --exit-code HEAD -- failed with status ${String(result.status)}: ${String(result.stderr ?? "").slice(0, 500)}`,
+  );
 }
 
 function caseBBuild(root: string): void {
@@ -2794,39 +2853,28 @@ function assertNoForbiddenTargetPath(targetRoot: string, relativePath: string): 
     throw new Error(`sanitized Target contains forbidden path: ${relativePath}`);
 }
 
-function assertTargetPreflightForWorkflow(
+export function assertTargetPreflightForWorkflow(
   options: WorkflowEvalCliOptions,
   evaluatorRoot: string,
 ): ResolvedOptions {
-  const evaluatorReal = fs.realpathSync(evaluatorRoot);
-  const targetAbsolute = path.resolve(evaluatorRoot, options.target_root);
-  if (!fs.existsSync(targetAbsolute)) throw new Error("Workflow E2E target root does not exist");
-  const targetReal = fs.realpathSync(targetAbsolute);
-  if (
-    targetReal === evaluatorReal ||
-    targetReal.startsWith(`${evaluatorReal}${path.sep}`) ||
-    evaluatorReal.startsWith(`${targetReal}${path.sep}`)
-  )
-    throw new Error("Evaluator and Workflow E2E target must be separate roots");
-  if (gitOutput(targetReal, ["rev-parse", "--is-inside-work-tree"]) !== "true")
-    throw new Error("Workflow E2E target is not a Git worktree");
-  if (detachedHead(targetReal) !== "HEAD") throw new Error("Workflow E2E target must be detached");
-  if (Object.keys(gitFiles(targetReal)).length > 0)
-    throw new Error("Workflow E2E target must be clean");
+  const commonPreflight = assertTargetPreflight(evaluatorRoot, options.target_root);
+  const evaluatorReal = commonPreflight.evaluator_root;
+  const targetReal = commonPreflight.target_root;
   if (gitOutput(targetReal, ["remote"]).length > 0)
     throw new Error("Workflow E2E target must not have remotes");
-  if (gitHead(targetReal) !== options.routing_source_git_sha)
+  const headWithParents = gitOutput(targetReal, ["rev-list", "--parents", "-n", "1", "HEAD"])
+    .split(/\s+/u)
+    .filter((value) => value.length > 0);
+  if (headWithParents.length !== 1)
+    throw new Error("Workflow E2E target HEAD must be a parentless root commit");
+  const reachableCommitCount = Number(gitOutput(targetReal, ["rev-list", "--count", "HEAD"]));
+  if (reachableCommitCount !== 1)
+    throw new Error("Workflow E2E target must have exactly one reachable commit");
+  if (commonPreflight.routing_source_git_sha !== options.routing_source_git_sha)
     throw new Error("routing_source_git_sha does not match the sanitized Target HEAD");
-  const evaluatorSha = gitHead(evaluatorReal);
-  if (evaluatorSha !== options.source_revision_git_sha)
+  if (commonPreflight.evaluator_git_sha !== options.source_revision_git_sha)
     throw new Error("source_revision_git_sha must equal evaluator_git_sha for a canonical run");
-  if (sourceStatusOutsideRunArtifacts(evaluatorReal).length > 0)
-    throw new Error("Evaluator has source changes outside .codex/runs/**");
   for (const skill of CANONICAL_SKILLS) {
-    const skillPath = path.join(targetReal, ".agents", "skills", skill, "SKILL.md");
-    if (!fs.existsSync(skillPath) || !fs.statSync(skillPath).isFile())
-      throw new Error(`sanitized Target is missing canonical Skill: ${skill}`);
-    assertNoForbiddenTargetPath(targetReal, `.agents/skills/${skill}/evals/trigger`);
     assertNoForbiddenTargetPath(targetReal, `.agents/skills/${skill}/evals/output`);
   }
   assertNoForbiddenTargetPath(targetReal, "training/agentic-qa/instructor");
@@ -2835,12 +2883,13 @@ function assertTargetPreflightForWorkflow(
   assertNoForbiddenTargetPath(targetReal, ".codex/runs");
   for (const relativePath of PR6_EVALUATOR_PATHS)
     assertNoForbiddenTargetPath(targetReal, relativePath);
-  const outputPath = path.resolve(evaluatorRoot, options.output);
+  const outputPath = resolveWorkflowRunOutputPath(evaluatorReal, options.output);
   if (outputPath === targetReal || outputPath.startsWith(`${targetReal}${path.sep}`))
     throw new Error("Workflow E2E result output must be outside the target");
   return {
     ...options,
     evaluator_root: evaluatorReal,
+    evaluator_git_sha: commonPreflight.evaluator_git_sha,
     output_path: outputPath,
     target_root: targetReal,
   };
@@ -3204,20 +3253,23 @@ async function runCanonicalSkillProbe(
 
 export function blockedResult(
   options: WorkflowEvalCliOptions,
-  evaluatorRoot: string,
+  actualEvaluatorSha: string,
+  verifiedRoutingSha: string | null,
   reason: string,
   codexVersion = "unavailable",
   smokeProbe?: Readonly<Record<string, unknown>>,
 ): WorkflowEvalResult {
-  const evaluatorSha = SHA_PATTERN.test(options.source_revision_git_sha)
+  const evaluatorSha = SHA_PATTERN.test(actualEvaluatorSha)
+    ? actualEvaluatorSha
+    : "0000000000000000000000000000000000000000";
+  const sourceSha = SHA_PATTERN.test(options.source_revision_git_sha)
     ? options.source_revision_git_sha
     : "0000000000000000000000000000000000000000";
-  const routingSha = SHA_PATTERN.test(options.routing_source_git_sha)
-    ? options.routing_source_git_sha
-    : null;
+  const routingSha =
+    verifiedRoutingSha !== null && SHA_PATTERN.test(verifiedRoutingSha) ? verifiedRoutingSha : null;
   const provenance: WorkflowProvenance = {
     evaluator_git_sha: evaluatorSha,
-    source_revision_git_sha: evaluatorSha,
+    source_revision_git_sha: sourceSha,
     routing_source_git_sha: routingSha,
     codex_version: codexVersion,
     model: options.model,
@@ -3241,18 +3293,28 @@ export async function runWorkflowEval(
   options: WorkflowEvalCliOptions,
   evaluatorRoot = process.cwd(),
 ): Promise<{ readonly result: WorkflowEvalResult; readonly exit_code: 0 | 1 }> {
-  const outputPath = path.resolve(evaluatorRoot, options.output);
+  const outputPath = resolveWorkflowRunOutputPath(evaluatorRoot, options.output);
+  let actualEvaluatorSha = "0000000000000000000000000000000000000000";
+  try {
+    actualEvaluatorSha = gitHead(evaluatorRoot);
+  } catch {
+    // Preserve the blocked-result write path even when the Evaluator repository cannot be read.
+  }
+  let verifiedRoutingSha: string | null = null;
   let resolved: ResolvedOptions;
   let codexVersion = "unavailable";
   let smokeProbe: Readonly<Record<string, unknown>> | undefined;
   try {
     resolved = assertTargetPreflightForWorkflow(options, evaluatorRoot);
+    actualEvaluatorSha = resolved.evaluator_git_sha;
+    verifiedRoutingSha = resolved.routing_source_git_sha;
     codexVersion = getCodexVersion(resolved.evaluator_root);
     smokeProbe = await runCommonSmokeProbe(resolved);
     if (smokeProbe.status !== "pass") {
       const result = blockedResult(
         options,
-        evaluatorRoot,
+        actualEvaluatorSha,
+        verifiedRoutingSha,
         COMMON_SMOKE_BLOCKED_REASON,
         codexVersion,
         smokeProbe,
@@ -3283,7 +3345,7 @@ export async function runWorkflowEval(
       schema_version: WORKFLOW_RESULT_SCHEMA_VERSION,
       run_status: "completed",
       provenance: {
-        evaluator_git_sha: resolved.source_revision_git_sha,
+        evaluator_git_sha: resolved.evaluator_git_sha,
         source_revision_git_sha: resolved.source_revision_git_sha,
         routing_source_git_sha: resolved.routing_source_git_sha,
         codex_version: codexVersion,
@@ -3303,7 +3365,8 @@ export async function runWorkflowEval(
   } catch (error) {
     const result = blockedResult(
       options,
-      evaluatorRoot,
+      actualEvaluatorSha,
+      verifiedRoutingSha,
       error instanceof Error ? error.message : String(error),
       codexVersion,
       smokeProbe,

@@ -248,7 +248,15 @@ export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly
   try {
     output = execFileSync(
       "git",
-      ["-C", evaluatorRoot, "status", "--porcelain=v1", "--untracked-files=all"],
+      [
+        "-C",
+        evaluatorRoot,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--no-renames",
+        "-z",
+      ],
       {
         cwd: evaluatorRoot,
         encoding: "utf8",
@@ -267,10 +275,13 @@ export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly
     return [];
   }
   return output
-    .split(/\r?\n/u)
-    .filter((line) => line.length > 0)
-    .filter((line) => {
-      const pathPart = line.slice(3).trim().replaceAll("\\", "/");
+    .split("\0")
+    .filter((entry) => entry.length > 0)
+    .filter((entry) => {
+      if (entry.length < 4 || entry[2] !== " ") {
+        fail("git status returned a malformed porcelain entry");
+      }
+      const pathPart = entry.slice(3).replaceAll("\\", "/");
       return !(pathPart === ".codex/runs" || pathPart.startsWith(".codex/runs/"));
     });
 }
