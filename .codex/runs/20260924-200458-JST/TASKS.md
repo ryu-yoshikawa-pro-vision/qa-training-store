@@ -8,7 +8,7 @@
 - [x] 4. 実装対象を正本文書 + Bash / PowerShell verifyへ限定する。
 - [x] 5. 保存Planを作成する。
 - [x] 6. Plan-only Run Artifactを確定する。
-- [ ] 7. Planをcommitし、PRを作成する。
+- [x] 7. Planをcommitし、PRを作成する。
 
 ## 完了処理の参照先
 
