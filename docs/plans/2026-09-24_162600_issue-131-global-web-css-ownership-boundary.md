@@ -62,8 +62,7 @@ Expoの公式資料でも、Global CSSはWeb専用で、Expo Routerではroot la
 参考:
 
 - [Expo Router: Static rendering](https://docs.expo.dev/router/web/static-rendering/)
-- [Expo: Tailwind CSS](https://docs.expo.dev/guides/tailwind/)
-- [Expo Metro: CSS](https://docs.expo.dev/versions/v54.0.0/config/metro/#css)
+- [Expo Metro: CSS](https://docs.expo.dev/versions/latest/config/metro/#css)
 
 ### 2.2 Current `global.css`の責務
 
@@ -218,6 +217,7 @@ Web CSSについて、次の質問へCurrent sourceだけで回答できる状�
 - Native stylingを変更しない。
 - `root-layout.web.tsx`のCSS import orderをcontract testで固定する。
 - E2E / accessibility / buildがPASSし、同じroute・scenario・viewportで取得したbefore / after UI Reviewに意図しない差分がないことを確認して記録する。
+- `docs/PROJECT_CONTEXT.md`が実装後のCSS ownership boundaryと一致し、更新前内容が`docs/history/`に保存されている。
 - 新しいCSS framework、CSS-in-JS、CSS Modules全面移行、Cascade Layersを導入しない。
 
 ## 4. Ownership contract
@@ -322,7 +322,7 @@ import "@/presentation/styles/storefront.css";
 import "@/presentation/styles/admin.css";
 ```
 
-このimport順は、Task 2でcross-ownerのcascade依存が0件になったことを確認した後に適用する。Current `global.css`内のStorefront / Admin / shared ruleの相対順を、この5 importだけで再現しようとはしない。
+このimport順は、ファイル移動前のcascade依存確認でcross-ownerのsource order依存が0件になったことを確認した後に適用する。Current `global.css`内のStorefront / Admin / shared ruleの相対順を、この5 importだけで再現しようとはしない。
 
 理由:
 
@@ -340,6 +340,16 @@ import "@/presentation/styles/admin.css";
 - `global.css`を「他CSSを読むだけのindex file」にしてownership名と実責務をずらさない。
 
 ## 6. Cascadeを壊さず移行する手順
+
+### 実装開始前: active Runを確認・初期化する
+
+この実装は複数ファイルを変更する通常の実装taskなので、Repository契約どおり`standard` workflowとして扱う。
+
+- 同一taskのactive Runがある場合は再利用する。
+- active Runがない場合は、`scripts/new-run.sh --task-type implementation --workflow-level standard`または`scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard`でRunを初期化する。
+- `.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`を実装中の作業管理に使う。
+- `run.json`はmachine-managedとし、Agentが直接編集しない。
+- 本ファイルはRepository向けの保存Planとして維持し、Run固有の進捗や実行事実はRun Artifactへ記録する。
 
 ### Task 0: 実装開始時にCurrent mainを再確認する
 
@@ -397,7 +407,7 @@ cross-ownerの競合候補では、少なくともselector、対象property、sp
 - 依存が見つかった場合はimport順で再現せず、consumerと責務を確認してownerを1つへ確定する。
 - ownerを確定できない依存が残る場合は、Task 3以降へ進まずPlanを再評価する。
 
-初回のファイル移動では、property値、specificity、media条件、同一owner内のrule相対順を変更しない。duplicate consolidationとcanonical sectionへの並べ替えは、分割後のfocused validationとUI Reviewでbehavior維持を確認してから行う。
+ファイル移動では、property値、specificity、media条件、同一owner内のrule相対順を変更しない。同一owner内のduplicate consolidation、履歴単位blockの統合、section並べ替えはIssue #131の対象外とする。cross-ownerの依存を解消するために必要な最小限の統合だけを例外とする。
 
 特に次のようなselectorを重点確認する。
 
@@ -451,15 +461,13 @@ consumerが一方しかないものはshared化しない。
 
 Storefront / Customer / Publicを1つのownerとする。
 
-初回移動ではCurrent file内の同一owner ruleの相対順を維持する。分割後のfocused validationとUI Reviewでbehavior維持を確認した後、`Premium commerce refresh`のような「変更履歴単位」のblockを対象featureのcanonical sectionへ統合する。
-
-この統合ではproperty値・specificity・breakpointを変更しない。同一owner内でもsource orderが意味を持つoverrideは、computed behaviorを確認せずに統合しない。
+Current file内の同一owner ruleの相対順を維持したまま移動する。`Premium commerce refresh`のような履歴単位blockが同一owner内に残っても、今回の完了条件にはしない。ownership分離後の同一owner内部整理は、具体的な保守コストが残る場合に別対応とする。
 
 ### Task 6: Admin selectorとresponsive ruleを`admin.css`へ移す
 
 Admin shell / pages / editor / tableをAdmin ownerへ移す。
 
-初回移動では同一owner内のCurrent rule相対順を維持する。1024px未満のAdmin viewport warningと1024〜1100px等の既存Admin responsive behaviorを同じowner fileに置き、分割後の検証前には順序整理を行わない。
+同一owner内のCurrent rule相対順を維持する。1024px未満のAdmin viewport warningと1024〜1100px等の既存Admin responsive behaviorを同じowner fileに置き、今回のIssueではduplicate consolidationやsection並べ替えを行わない。
 
 ### Task 7: root importとarchitecture contractを更新する
 
@@ -482,7 +490,7 @@ Admin shell / pages / editor / tableをAdmin ownerへ移す。
 - 同一exact selectorがowner fileをまたいで定義されていない。
 - responsive ruleが対象owner fileにある。
 - `global.css`へfeature selectorが残っていない。
-- `Premium commerce refresh`等の時系列blockへfeature styleが残っていない。
+- 同一owner内の既存rule相対順を不必要に変更していない。
 - TSXのclassName renameが発生していない。
 
 この確認のための一時コマンドは使ってよいが、新しい恒久lint scriptは追加しない。
@@ -538,6 +546,12 @@ Issueの明示的Non-goalなので行わない。
 - `src/presentation/styles/admin.css` 新規
 - `src/presentation/root-layout.web.tsx`
 - `tests/contracts/architecture.test.ts`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/{JST timestamp}_project-context-before-issue-131-global-web-css-ownership-boundary.md` 新規
+
+`docs/PROJECT_CONTEXT.md`の「共通の視覚実装」の記述を、新しい4つのCSS ownership boundaryと一致するよう更新する。更新前のProject Contextは既存のhistory運用に従って`docs/history/`へ保存する。
+
+`docs/spec/ui-ux-contract.md`は、色・Typography・Spacing・Radiusの正本となるcustom properties等を引き続き`global.css`に残す限り変更しない。
 
 ### 条件付き
 
@@ -669,6 +683,24 @@ PRでは`.github/workflows/ci.yml`の以下が成功することを確認する�
 - Production Smoke
 - final verify
 
+### 9.6 Run Artifact / Git / PR完了契約
+
+local validation完了後、commit前に次を行う。
+
+- `TASKS.md`、`REPORT.md`等のactive Run Artifactをfinal commit前状態へ更新する。
+- `scripts/sanitize-codex-artifacts.ps1 -Write -Check`を実行し、residual finding 0を確認する。
+- scope外変更がないことを確認する。
+- 通常commitを作成し、対象branchへ通常pushする。force pushは行わない。
+- local HEAD、remote branch head、PR #181 headが同じ最新commitであることを確認する。
+
+push後は最新PR headを対象に、Repositoryの完了契約どおり次を確認する。
+
+- Web CI: success
+- Mobile App CI: success
+- PR本文へownership mapping、local validation、before / after visual比較、最新CI結果を記録済み
+
+最新headの必須CIがfailureの場合は完了扱いにせず、Repositoryのrepair-loop契約に従って原因を切り分ける。以前のcommitのCI結果を最新headのEvidenceとして流用しない。
+
 ## 10. 成功判定
 
 実装完了時、次のすべてを満たす。
@@ -697,8 +729,8 @@ Current file内では後段overrideが多数あるため、単純にselectorをf
 対策:
 
 - ファイル移動前にcross-ownerのsource order依存を洗い出し、未解決0件をTask 3以降へ進む条件にする。
-- 初回移動ではproperty値、specificity、media条件、同一owner内のrule相対順を変えない。
-- duplicate consolidationやsection並べ替えは分割後のfocused validationとUI Review後に行う。
+- property値、specificity、media条件、同一owner内のrule相対順を変えない。
+- 同一owner内のduplicate consolidationやsection並べ替えは今回行わない。
 - feature間上書きを前提にしないownershipへ分ける。
 - responsive / pseudo-classは意味を保ったままowner file内へ移す。
 - before / after UI ReviewとE2Eで確認する。
@@ -736,27 +768,30 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 
 実装時は次の順で進める。
 
-1. Current main / Issue / CSS blob再確認
-2. selector consumer inventory
-3. cascade / override chain mapping
-4. cross-ownerのsource order依存を解消し、移動前gateを通す
-5. baseline UI Review capture
-6. `global.css` foundation整理
-7. `shared.css`作成・移動
-8. `storefront.css`作成・移動
-9. `admin.css`作成・移動
-10. responsive ruleを各ownerへ移動
-11. root CSS import order更新
-12. architecture contract更新
-13. static ownership self-review
-14. focused contract / build
-15. Chromium / a11y / mobile-boundary
-16. after UI Review captureとbefore / after比較
-17. 安全性を確認できた同一owner内duplicate / sectionだけ整理
-18. 必要なfocused validationを再実行
+1. active Runを確認し、必要なら`standard` workflowで初期化
+2. Current main / Issue / CSS blob再確認
+3. selector consumer inventory
+4. cascade / override chain mapping
+5. cross-ownerのsource order依存を解消し、移動前gateを通す
+6. baseline UI Review capture
+7. `global.css` foundation整理
+8. `shared.css`作成・移動
+9. `storefront.css`作成・移動
+10. `admin.css`作成・移動
+11. responsive ruleを各ownerへ移動
+12. root CSS import order更新
+13. architecture contract更新
+14. `docs/PROJECT_CONTEXT.md`と対応する`docs/history/`を更新
+15. static ownership self-review
+16. focused contract / build
+17. Chromium / a11y / mobile-boundary
+18. after UI Review captureとbefore / after比較
 19. `pnpm run verify`
 20. diff / scope review
-21. PR本文へownership表、validation結果、visual比較結果を記載
+21. Run Artifactを確定し、sanitizationを実行
+22. commit・通常push・local / remote / PR head一致確認
+23. 最新headのWeb CI / Mobile App CI成功確認
+24. PR本文へownership表、validation結果、visual比較結果、CI結果を記載
 
 ## 13. 実装時に止めて再判断する条件
 
@@ -784,8 +819,10 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 - ownership分離済みWeb CSS
 - updated root CSS composition
 - architecture contract
-- existing E2E / accessibility / UI reviewによる回帰Evidence
-- PR本文のownership mappingとvalidation結果
+- `docs/PROJECT_CONTEXT.md`と対応する`docs/history/`
+- active Runの`PLAN.md`、`TASKS.md`、`REPORT.md`等
+- existing E2E / accessibility / UI Reviewによる回帰Evidence
+- PR本文のownership mapping、validation結果、visual比較結果、最新CI結果
 
 ## 15. 対象外
 
@@ -797,6 +834,7 @@ CSSを移動する途中でspacing / color / breakpointを改善すると、回�
 - 全class rename
 - breakpoint taxonomy再設計
 - DRY化だけを理由にした共通化
+- ownership分離に必要な最小限の統合を除く、同一owner内のduplicate consolidation / 履歴単位block統合 / section並べ替え
 - CSS parser / custom linter / selector registryの新設
 - product behavior変更
 - route変更
