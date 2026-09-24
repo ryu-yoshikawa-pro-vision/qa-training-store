@@ -697,15 +697,26 @@ git diff --check
 
 ### Task 13: Run Artifactをfinal commit前状態へ確定
 
-- `TASKS.md`を実際の完了状態へ更新する。
-- `REPORT.md`へ検証結果と最終inventoryをappend-onlyで記録する。
-- actual `run.json`は手編集せず、Repositoryのwriter / collector経路だけで更新する。
-- Run Artifact sanitizationをfinal commit前に実行する。
+1. `TASKS.md`を実際の完了状態へ更新する。
+2. `REPORT.md`へ検証結果と最終inventoryをappend-onlyで記録する。
+3. actual `run.json`は手編集せず、RepositoryのcollectorでCurrent working treeの変更fileを反映する。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Write
-powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Check
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles -Strict
 ```
+
+- collectorは`run.json.changed_files`をCurrent working treeからmachine-managedで更新し、既存report / evaluationがあれば同じ契約で再集約する。
+- `changed_files`、validation結果、status等の観測事実をAgentが`run.json`へ手書きしない。
+- `-Strict`がnonzeroになった場合は原因を解消し、成功するまでfinal commitへ進まない。
+
+4. collector成功後にRun Artifact sanitizationを実行する。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Write
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/<run_id>' -Check
+```
+
+final commit前の順序は`TASKS / REPORT確定 → collector → sanitizer Write → sanitizer Check → final commit`で固定する。
 
 `Check`でresidual findingがある状態を完了扱いにしない。
 
@@ -893,7 +904,8 @@ docs/02_architecture/repository_structure.md
 - 過去Plan / report / Run ArtifactをCurrent都合で書き換えていない。
 - Product behavior、Repository method semantics、DB schema、transaction scopeを変更していない。
 - focused validation、`test:repository`、`typecheck`、`corepack pnpm run verify`、`git diff --check`がPASSする。
-- 実装task用Run ArtifactがRepository契約どおり保存され、sanitizer `Write` / `Check`がPASSしている。
+- 実装task用Run ArtifactがRepository契約どおり保存され、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`がPASSし、`run.json.changed_files`がmachine-managedでCurrent変更を反映している。
+- collector成功後にsanitizer `Write` / `Check`がPASSしている。
 - final commit後に通常pushし、local HEAD / remote head / 実装PR headが一致している。
 - 実装PRの最新headでWeb CI / Mobile App CIがともに`success`である。
 - push後CI結果だけを理由にtracked Run Artifactを再commitしていない。
