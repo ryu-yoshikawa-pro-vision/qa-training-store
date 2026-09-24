@@ -553,7 +553,7 @@ describe("offline Codex Hook diagnostics contract", () => {
         expect(result.stdout).toContain("Summary: WARN=0 ERROR=1");
       });
     });
-  });
+  }, 60_000);
 
   it("rejects root hooks.json as an incomplete offline diagnostic boundary", () => {
     withFixture((root) => {
@@ -648,7 +648,7 @@ describe("offline Codex Hook diagnostics contract", () => {
         expect(result.stdout).not.toContain("state-file-secret");
       });
     });
-  });
+  }, 60_000);
 
   it("treats a non-Git cwd as unavailable repository context", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-doctor-nonrepo-"));

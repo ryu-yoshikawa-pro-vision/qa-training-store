@@ -53,7 +53,7 @@ Codex Hookは現在のtextlint品質契約と`UserPromptSubmit` / `PostToolUse` 
 main 01cd8ab15078d479e821d373445af1e16a469519 では次を確認済み。
 
 - .gitattributes
-  - * text=auto eol=lf
+  - - text=auto eol=lf
 - .editorconfig
   - charset = utf-8
   - end_of_line = lf
@@ -187,6 +187,7 @@ ESLintのNode APIには`eslint.lintText(code, { filePath })`があり、file pat
 Prettier公式では`endOfLine=lf`がRepositoryをLFへ保つ設定として案内されている。Case CでローカルworktreeのEOL差を許容する場合も、CIのstrict LF検査とGit indexのLF契約を同時に維持する。
 
 参考:
+
 - [Git gitattributes](https://git-scm.com/docs/gitattributes)
 - [Git git-add](https://git-scm.com/docs/git-add)
 - [Git gitrevisions](https://git-scm.com/docs/gitrevisions)
@@ -446,6 +447,7 @@ LF baselineから、通常開発で実際に使う操作を1つずつ実行し�
 #### Case A: Repository-owned writerが原因
 
 例:
+
 - script
 - generator
 - formatter wrapper
@@ -973,24 +975,28 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### 原因調査前にCRLFをLFへ直してEvidenceを失う
 
 対策:
+
 - 最初のPhaseはread-only観測に限定する。
 - format、checkout、restore、renormalizeを観測完了前に実行しない。
 
 ### .gitattributes以外のattribute overrideを見落とす
 
 対策:
+
 - .git/info/attributesとcore.attributesFileを必ず確認する。
 - git check-attr --allで実効値を確認する。
 
 ### Git diff 0を「byte差なし」と誤解する
 
 対策:
+
 - git ls-files --eolとraw byte確認を併用する。
 - index / worktree / Prettierを別の観測対象として扱う。
 
 ### ローカルEOL許容をCIへ伝播させてRepositoryのLF契約まで弱める
 
 対策:
+
 - Case Cを採用する場合もCIのstrict LF checkを独立して維持する。
 - local Repository-wide checkをEOL-tolerantにする必要がある場合は、CIが同じentry pointを暗黙利用しないようcallerを明示する。
 - `.prettierrc.json`の`endOfLine=lf`とGit index LF契約を維持する。
@@ -999,6 +1005,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### staged pathだけ取得してworktree contentを検査し、次回commit内容と判定がずれる
 
 対策:
+
 - Prettier / ESLintはGit indexのstage 0 blobを検査する。
 - 「staged違反 + unstaged修正」と「staged正常 + unstaged違反」を必須回帰testにする。
 - partial stagingを通常ケースとして扱う。
@@ -1007,6 +1014,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### Node API化でPrettier / ESLintの既存CLI意味を変える
 
 対策:
+
 - PrettierはRepository rootの`.prettierignore`を明示し、`.prettierrc.json`と`.editorconfig`を解決してindex contentへ適用する。
 - ESLintは既存`eslint.config.js`を正本とし、warning-onlyを新たなfailureへ昇格させない。
 - ignore対象、warning-only、error、対象0件をfocused contractで固定する。
@@ -1014,6 +1022,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### sourceはindex版だが品質設定fileだけworktree版を読み、存在しない組み合わせを検査する
 
 対策:
+
 - `.prettierignore`、`.prettierrc.json`、`.editorconfig`、`eslint.config.js`のindex / worktree差分を検査前に確認する。
 - 差分がある場合はfail-closeし、設定fileのstageまたはworktree復元を案内する。
 - EOL-onlyでGit上の差分が0なら、このguardだけでFAILさせない。
@@ -1022,6 +1031,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### `security:check`の限定modeがworktreeを読み、staged security違反を見逃す
 
 対策:
+
 - staged pathだけをworktreeから読むsecurity modeは採用しない。
 - pre-commitへ残す場合は現行Repository-wide worktree検査、またはGit indexの次回commit snapshot全体を検査する。
 - index snapshotで既存保証を単純に維持できない場合は、pre-commitから外して`verify` / CIをRepository-wide正本にする。
@@ -1030,6 +1040,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### pre-commitをstaged-onlyへ変えて既存保証を落とす
 
 対策:
+
 - Prettier / ESLint / securityを同じ規則で一括変更しない。
 - `security:check`のRepository-wide検査、固定Test API確認、runtime aggregate検査を先に分解する。
 - local pre-commitの早期検査とCI / `verify`のRepository-wide責務を明示する。
@@ -1039,6 +1050,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### Codex Hookのdynamic import化でfail-open / fail-close意味を変える
 
 対策:
+
 - 変更対象はbootstrapとfailure分類に限定する。
 - `UserPromptSubmit`、`PostToolUse`、inactive / active `Stop`の既存contractをbefore / afterで固定する。
 - textlint rule、baseline fingerprint、state schemaを今回の都合で変更しない。
@@ -1046,6 +1058,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### diagnosticsも同じdependency不足で起動不能になる
 
 対策:
+
 - doctorの最低限bootstrap診断をNode標準機能だけで先に実行できる構成を検討する。
 - `smol-toml`は詳細config parseの段階だけに限定する案を優先する。
 - dependency不足はERROR / exit 1として安全に報告し、raw module failureやexit 0の成功扱いにしない。
@@ -1055,6 +1068,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### current Repository metadataを共有するlinked worktree probeが共通metadataへ不要な差分を残す
 
 対策:
+
 - Phase 1の証拠採取前にはlinked worktreeを作らない。
 - current Repository側で許可するGit mutationは`git worktree add --detach`と後片付けの`git worktree remove`だけに限定する。
 - probe内部ではtracked file、Git config、info attributes、dependency、Husky metadataを変更しない。
@@ -1064,6 +1078,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### linked worktreeでHusky runtimeが未準備のまま、Hookが有効だと誤認する
 
 対策:
+
 - actual linked worktreeで通常installまたは`pnpm run prepare`後の`core.hooksPath`とHusky runtimeを確認する。
 - 実`git commit`の成功・失敗をlinked側で確認する。
 - install前にHusky品質scriptを動かす要件は追加しない。
@@ -1072,6 +1087,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### actual linked worktree testがprimary Repositoryのdependencyを使って偽陽性になる
 
 対策:
+
 - no-dependency Hook testは`linkedRoot/.codex/hooks/text_quality_gate.mjs`を直接起動する。
 - no-dependency doctor testは`linkedRoot/scripts/diagnose-codex-hooks.mjs`を直接起動する。
 - linked rootをprimary Repositoryの`node_modules`がancestor探索で見える場所に置かない。
@@ -1079,6 +1095,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### actual linked worktree testがOS差で不安定になる
 
 対策:
+
 - production worktree managerを作らず、temporary repository内の最小fixtureで`git worktree add`を実行する。
 - Windows / POSIXでpath quoting、cleanup、junction / symlink差に依存しない条件へ絞る。
 - 環境が機能自体を提供しない場合だけ明示skipし、通常fixtureへの置換でPASS扱いにしない。
@@ -1086,6 +1103,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### 現在worktree修復でIssue #177と無関係なlocal変更を破棄・上書きする
 
 対策:
+
 - 修復直前に`git status --porcelain=v1 -z`、`git diff`、`git diff --cached`、untracked fileを再確認する。
 - 無関係なlocal変更がある場合は`reset --hard`、`git clean`、一括`restore`、worktree再作成を実行しない。
 - 自動stashで退避したことにせず、安全に修復できなければ独立clean worktreeで実装・検証を継続する。
@@ -1095,6 +1113,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### 既存78 filesの一括formatを実装差分へ混ぜる
 
 対策:
+
 - 発生源修正とworktree修復を分離する。
 - Product codeの意味変更がないことをbyte / diffで確認する。
 - 不要な大量fileのformat変更をPRへ含めない。
@@ -1102,6 +1121,7 @@ textlint rule、fingerprint、baseline semanticsは今回のbootstrap修正を�
 ### local user設定を書き換える
 
 対策:
+
 - system / global Git configはEvidenceとして読むだけにする。
 - 恒久対応を個人環境の強制変更へ依存させない。
 

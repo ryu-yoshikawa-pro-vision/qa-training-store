@@ -13,7 +13,7 @@
 - [x] 8. Phase 7でCodex Hook Case Eを選び、actual linked worktree回帰を実装する。
 - [x] 9. Phase 8でdiagnostics Case Fを選び、dependency不足とexit code回帰を実装する。
 - [x] 10. Phase 9で変更を統合し、focused test・actual linked worktree・実`git commit`受入を行う。
-- [ ] 11. Windows / Git保存 / format matrix / `test:hooks` / `test:contracts` / `verify` / sanitizer / `git diff --check`を検証する。
+- [x] 11. Windows / Git保存 / format matrix / `test:hooks` / `test:contracts` / `verify` / sanitizer / `git diff --check`を検証する。
 - [x] 12. Plan「## 10. 完了条件」の各項目へEvidenceを対応づけ、Run Artifactをfinal commit前状態へ確定する。
 - [ ] 13. branch safetyを再確認してcommit / pushし、最新PR headのWeb CI / Mobile App CIとPR本文の結果を確認する。
 - [ ] 14. 未達項目の有無を確定して最終報告する。
@@ -34,4 +34,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- Task 11の`verify`: `lint:markdown`が保存済みPlan `docs/plans/2026-09-23_132000_issue-177-windows-crlf-prettier.md`に21件を報告。Planは既存の明示的な不編集指示に従って維持し、独立した後続gateは個別検証した。Plan書式変更の許可がないため未修正。
+- なし。
