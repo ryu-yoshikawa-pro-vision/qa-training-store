@@ -281,3 +281,14 @@
 - Validation: `corepack pnpm run format:check` PASS、`corepack pnpm run lint:markdown` PASS（451 files / 0 issues）、`corepack pnpm run lint:text` PASS（3 changed Markdown files）、`git diff --check` PASS。Run Artifact sanitizer `Write` / `Check`は各3 files scanned、0 changed、0 replacements、0 residual findingsでPASS。
 - Environment: `pnpm` executableはこのPowerShellのPATHにないため、Corepack `pnpm@10.34.5`経由で指定scriptを実行した。
 - Progress: 100% (53/53)。全tracked checkboxは完了し、push後必須CI確認は別枠で扱う。
+
+## 2026-09-24 — durable Plan Current state correction
+
+- 開始時のrecheck: PR #178はopen / mergeable、base `main`、head `6c010008ee86cf5d93f6b64eb3ab2ff23c9e3eae`。`origin/main`は`2f5353b63414ace7278155d525e0e2cf074d630b`、Issue #132はopen。current branchとupstreamはいずれも`plan/issue-132-domain-application-type-dependency`でworking treeはclean。
+- Baseline: branch作成・初期Planレビュー時の`main` `01cd8ab15078d479e821d373445af1e16a469519`とdecision-only実行開始時の`main` `2f5353b63414ace7278155d525e0e2cf074d630b`を区別した。Plan指定authority / dependency surfaceにmaterial driftはなかった。
+- Finding / assessment: merge前レビューでdurable PlanにPlan-only / Decision未確定と読めるCurrent stateの不整合を確認した。architecture Decision自体に問題はなく、architecture ownerは案Aを採用済みで、ADR-0027、必要な説明文書、Issue #132 Decision記録、Phase 6 §4.16の`refactor_now` resolutionも完了済み。
+- Repair: durable Planの§0 / §1 / §4.2 / §12を現在状態へ同期し、案A / B比較表と当初Plan-only作成の履歴を保持した。Task 54を追加した。Run `PLAN.md`には矛盾がなく変更していない。
+- Scope: 今回の修正対象はdurable Planと同一Runの`TASKS.md` / `REPORT.md`のみ。ADR、normative documentation、Architecture Decision本体、Product source / test、dependency、follow-up scopeは変更していない。Product source / testのRefactorとarchitecture contract実装は未開始。follow-up implementation Planも作成していない。
+- Validation: `corepack pnpm run format:check` PASS（All matched files use Prettier code style!）。`corepack pnpm run lint:markdown` PASS（451 files / 0 issues）。`corepack pnpm run lint:text` PASS（working-tree、changed Markdown files=2）。`git diff --check` PASS。
+- Sanitizer: Run Artifact sanitizer `Write` / `Check`はいずれも3 files scanned、0 changed、0 replacements、0 residual findingsでPASS。
+- Progress: 100% (54/54)。tracked修正taskとfinal commit前のRun Artifact更新を完了。残りは明示scopeのstage / pre-commit / normal commit / pushと、push後のPR最新head確認および必須CI確認。merge、Issue close、follow-up Refactorは行わない。

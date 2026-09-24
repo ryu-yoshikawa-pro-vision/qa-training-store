@@ -59,6 +59,7 @@
 - [x] 51. `REPORT.md`のappend-only checkpoint境界を復元する。
 - [x] 52. `TASKS.md`のTask 50 / BlockedをRun Artifact・CI lifecycle契約へ合わせる。
 - [x] 53. Issue #132 commentのADR-0027リンクをcommit permalinkへ変更する。
+- [x] 54. durable PlanのPlan-only / Decision未確定表現を現在のIssue #132 decision-only完了状態へ同期する。
 
 ## Blocked（ブロック中）
 

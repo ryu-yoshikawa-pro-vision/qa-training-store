@@ -4,10 +4,11 @@
 
 - 対象Issue: #132 `investigate: Domain → Application type dependencyのarchitecture方針を確定する`
 - 作業branch: `plan/issue-132-domain-application-type-dependency`
-- branch作成時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`
-- 2026-09-23の再レビュー時点でも`main`は同SHAで、対象architecture / sourceに追加driftはない。
-- 今回はPlan作成までとし、type移動、Repository interface移動、architecture contract実装、ADR追加、Issue close、PR作成、mergeは行わない。
-- Refactor実装が必要な場合はIssue #132のdecision-only作業へ混在させず、別Plan / 実装PRへ切り出す。
+- branch作成・初期Planレビュー時の`main`: `01cd8ab15078d479e821d373445af1e16a469519`。
+- decision-only実行開始時に再取得したlatest `main`: `2f5353b63414ace7278155d525e0e2cf074d630b`。両時点の間にPlan指定のauthority / dependency surfaceのmaterial driftはなかった。
+- このPlanは当初Plan-onlyとして作成した。その後、同Planに基づくIssue #132 decision-only作業をPR #178で実施し、architecture ownerは案Aを採用した。
+- decision-only作業ではADR-0027、必要な説明文書、Issue #132のDecision記録、Phase 6 §4.16 follow-up resolution（`refactor_now`）まで完了した。
+- Product source / test、Repository interface移動、`ProductViewer`依存除去、architecture contract実装は今回実施していない。実際のRefactorはIssue #132完了後の別Plan / 実装PRへ切り出す。
 
 ## 1. 結論
 
@@ -34,15 +35,15 @@ Currentで解消すべき点は次の3つ。
 2. `docs/04_data/repository_interfaces.md`がApplication DTO / query / commandをRepository signatureで利用するCurrent contractを説明する一方、Repository contractのownership境界を明示していない。
 3. `tests/contracts/architecture.test.ts`がCurrentの「DomainはApplicationへ依存しない」方針を検査していない。
 
-Issue #132ではまず次をCurrent policyとして確定する。
+Issue #132 decision-only作業で次の方針を確認し、確定した。
 
 - Domain → Application dependencyはruntime / type-onlyを問わず禁止する。
 - Application DTO / query / commandはApplication ownershipを維持する。
 - `ProductViewer`はApplication contractに残し、Domain policyへApplication typeを渡さない。
 
-その上で、ADR-0003の「Application層はDomain Repository Portだけに依存する」とApplication contract ownershipをどう両立させるかだけをarchitecture ownerのDecision Pointとする。
+Repository Port ownershipについてarchitecture ownerは案Aを採用した。ADR-0027はADR-0003 Decision 3のRepository Port ownership部分だけを限定的にsupersedeし、`NFR-MA-010`は維持する。
 
-Plan上の推奨は、Repository PortのownerをCurrent signatureだけで決めず、責務とconsumerから判断する案である。CurrentでApplication typeをsignatureに使用する17 interfaceはDomain → Application違反を直接作っているため最低限の整理対象とする。整理時は各interfaceを維持 / 移動 / 削除のいずれかで判断し、移動を前提にしない。一方、Application typeを使用しない7 interfaceもDomain ownershipと自動確定せず、Domain behavior contractとして残す理由があるかをfollow-up Planで再確認する。この案を採用する場合、§4.16はCurrent `main`で同じ状態を再確認したうえで`refactor_now`へ再分類し、実際のtype / interface移動とarchitecture contract追加は別Plan / 実装PRで行う。
+案Aに従い、Repository Portのownerはsignatureだけで決めず、責務とconsumerから個別に判断する。24 interfaceすべてを維持 / 移動 / 削除のいずれかで確認し、移動を前提にしない。Application typeを使用しない7 interfaceもDomain ownershipと自動確定せず、Domain behavior contractとして残す具体的理由を確認する。§4.16は`refactor_now`としてfollow-up resolutionへ記録済みであり、実際のtype / interface移動とarchitecture contract追加は別Plan / 実装PRで行う。
 
 Domain → Applicationのtype-only例外はCurrent `NFR-MA-001` / Coding Standards / Repository Structureを変更する新しいarchitecture policyになるため、Issue #132のRepository Port ownership Decisionには含めない。
 
@@ -255,11 +256,11 @@ Domain Repository Contractへ移して依存方向を解消しない。
 - Presentation / Use Case / Adapter間のApplication boundaryで利用される。
 - Admin / Test inspection等をDomainへ移すとDomain responsibilityを不必要に広げる。
 
-### 4.2 Repository Port ownershipのDecision Point
+### 4.2 Repository Port ownershipのDecision記録（案A採用済み）
 
-allow / deny自体はCurrent policyから決まるが、Repository Portのcanonical ownerはADR-0003とCurrent Application contractの両方を満たす形を選ぶ必要がある。
+allow / deny自体はCurrent policyから決まり、Repository Portのcanonical ownerについてarchitecture ownerは案Aを採用した。案AはADR-0027へ記録済みである。
 
-architecture ownerへ次の2案を提示する。Decisionは案A / Bの選択1件だけとし、ADR-0003の扱いは選択した案から決定論的に導く。
+architecture ownerへ次の2案を提示した。architecture ownerは案Aを採用した。以下の比較はDecision時の判断根拠として保持する。Decisionは案A / Bの選択1件だけとし、ADR-0003の扱いは選択した案から決定論的に導いた。
 
 | 案 | 方針 | ADR-0003 Decision 3 | 影響 | Plan上の評価 |
 | --- | --- | --- | --- | --- |
@@ -674,12 +675,12 @@ follow-up Refactorもtype / interface ownershipとimport directionが中心で�
 
 ## 12. 未解決事項
 
-Issue #132の実行時にarchitecture ownerへ確認するDecision Pointは1件。
+Issue #132 decision-only範囲のarchitecture Decisionは解決済みであり、未解決のDecision Pointはない。architecture ownerは§4.2の案Aを採用した。
 
-- ADR-0003のDomain Repository Port方針とApplication contract ownershipをどう両立させるか。§4.2の案A / Bから判断する。
+- Domain → Application dependencyはruntime / type-onlyを問わず禁止する。
+- Application DTO / query / commandと`ProductViewer`はApplication ownershipを維持する。
+- Repository Port ownershipは責務とconsumerから個別に判断する。Application / Infrastructureだけから利用され、Application contractを境界とするPortはApplication ownershipを第一候補とする。Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持する。
+- ADR-0027はADR-0003 Decision 3のRepository Port ownership部分だけを限定的にsupersedeし、`NFR-MA-010`は維持する。
+- §4.16はIssue #132 follow-up resolutionとして`refactor_now`へ再分類済み。
 
-Domain → ApplicationをCurrent policyとして禁止していること自体は未解決事項ではない。
-
-Plan上の推奨は案A。
-
-実行開始時にlatest `main`へmaterial driftがあった場合だけ、影響したauthority / dependency surfaceを再確認してからDecision Pointを提示する。
+残っているのはArchitecture Decisionではなく、Issue #132完了後に行うfollow-up implementation Plan / Refactorである。follow-upではlatest `main`へrebaselineし、24 Portを責務・consumer・transaction boundary・入出力contractに基づき個別に維持 / 移動 / 削除し、`ProductViewer`依存除去とDomain → Application architecture contract実装を具体化する。
