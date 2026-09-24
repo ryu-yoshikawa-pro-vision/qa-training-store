@@ -476,10 +476,12 @@ fixture directoryや新しいtest frameworkは追加しない。
 
 - Repository Portのcanonical ownerを「follow-upで決める」表現から、Current sourceではApplication ownershipへ移行済みである説明へ更新する。
 - `ImageAssetCatalogRepository` interface記載を削除する。
-- §8の`TestInspectionRepository` interface blockを削除する。
-- Repository interfaceとしてのAutomation Inspection sectionは削除し、必要な説明は`docs/07_testability/testability_design.md`の`TestApi` / `TestControlService`を参照させる。Repository interfaceを再作成しない。
-- §7の`SettingsRepository` interface blockを削除する。
-- method semanticsの説明は移動を理由に変更しない。
+- §7見出しを`Review・Overview・Settings`から`Review・Overview`へ変更する。
+- §7の`SettingsRepository` interface blockだけを削除し、`ReviewRepository`と`AdminOverviewQueryRepository`のcontractは維持する。
+- §8の`TestInspectionRepository` interface blockとAutomation Inspectionの説明を削除する。Repository interfaceを再作成せず、必要なTest Control説明は`docs/07_testability/testability_design.md`の`TestApi` / `TestControlService`を参照させる。
+- Current §8末尾の`ReviewStatusHistory.fromStatus`契約はTest Inspectionとは無関係なので削除しない。§7のReview説明へ移し、初回作成時は`null`、以後の状態変更では直前Statusを設定する意味を保持する。
+- §8削除後はCurrent §9 `共通Error`を§8へ繰り上げる。後続見出しがあれば同様に連番だけを詰め、内容は変更しない。
+- method semanticsの説明はownership移動や見出し整理だけを理由に変更しない。
 
 ### 8.2 `docs/04_data/application_contracts.md`
 
@@ -501,9 +503,27 @@ Mermaid全体の再設計はしない。
 
 ### 8.4 `docs/02_architecture/repository_structure.md`
 
-§4のCurrent architecture説明を実装後の状態へ同期する。
+§1の物理配置と§4のCurrent architecture説明を実装後の状態へ同期する。
 
-Currentの次の記載:
+§1のPhase 1推奨構成はRepository ownership移動だけを反映する。
+
+Current:
+
+```text
+├── application/{contracts,auth,catalog,cart,checkout,payments,orders,reviews,administration,testing,transactions}/
+├── domain/{contracts,entities,value-objects,services,policies,repositories,errors,states}/
+```
+
+を、Application側へ`repositories`を追加し、Domain側から`repositories`を削除した構成へ更新する。
+
+```text
+├── application/{contracts,repositories,auth,catalog,cart,checkout,payments,orders,reviews,administration,testing,transactions}/
+├── domain/{contracts,entities,value-objects,services,policies,errors,states}/
+```
+
+この変更を理由に、§1の他directory名やPhase 1 / Phase 2構成を整理・renameしない。
+
+§4ではCurrentの次の記載:
 
 ```text
 単一Storeで完結するAddress、Cart取得/作成、Settings等の原子的CommandはRepository Method内の1 Transactionを許可する。
@@ -868,6 +888,8 @@ docs/02_architecture/repository_structure.md
 - scanner synthetic self-testが禁止syntax / path familyと許可例を検証する。
 - AST parser、新規dependency、generic scannerを追加していない。
 - `repository_interfaces.md`、`application_contracts.md`、`system_architecture.md`、`repository_structure.md`が実装後のCurrent stateと一致する。
+- `repository_interfaces.md`で`ReviewStatusHistory.fromStatus`契約が保持され、削除済みの`Settings` / Automation Inspection見出しだけが残っていない。
+- `repository_structure.md` §1が`src/application/repositories/**`を示し、Domain構成に`repositories`を残していない。
 - 過去Plan / report / Run ArtifactをCurrent都合で書き換えていない。
 - Product behavior、Repository method semantics、DB schema、transaction scopeを変更していない。
 - focused validation、`test:repository`、`typecheck`、`corepack pnpm run verify`、`git diff --check`がPASSする。
