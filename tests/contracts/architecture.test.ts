@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const projectRoot = process.cwd();
 
@@ -13,6 +13,45 @@ function sourceFiles(directory: string): string[] {
 
 function source(path: string): string {
   return readFileSync(path, "utf8");
+}
+
+function extractLiteralModuleSpecifiers(sourceText: string): string[] {
+  const patterns = [
+    /\bimport\s+(?:type\s+)?(?:[A-Za-z_$][\w$]*\s*,\s*)?(?:\{[^}]*\}|\*\s+as\s+[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[A-Za-z_$][\w$]*))?\s+from\s*(['"])([^'"]+)\1/g,
+    /\bimport\s*(['"])([^'"]+)\1/g,
+    /\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g,
+    /\bexport\s+(?:type\s+)?(?:\*\s+as\s+[A-Za-z_$][\w$]*|\*|\{[^}]*\})\s+from\s*(['"])([^'"]+)\1/g,
+    /\brequire\s*\(\s*(['"])([^'"]+)\1\s*\)/g,
+  ];
+  return patterns.flatMap((pattern) =>
+    Array.from(sourceText.matchAll(pattern), (match) => match[2] ?? "").filter(Boolean),
+  );
+}
+
+function resolvesToApplication(sourcePath: string, specifier: string): boolean {
+  if (
+    specifier === "@/application" ||
+    specifier.startsWith("@/application/") ||
+    specifier === "src/application" ||
+    specifier.startsWith("src/application/")
+  ) {
+    return true;
+  }
+  if (!specifier.startsWith(".")) return false;
+
+  const applicationRoot = resolve(projectRoot, "src", "application");
+  const resolvedPath = resolve(dirname(sourcePath), specifier);
+  const relativePath = relative(applicationRoot, resolvedPath);
+  return (
+    relativePath === "" ||
+    (relativePath !== ".." && !relativePath.startsWith(".." + sep) && !isAbsolute(relativePath))
+  );
+}
+
+function domainToApplicationDependencies(sourcePath: string, sourceText: string): string[] {
+  return extractLiteralModuleSpecifiers(sourceText).filter((specifier) =>
+    resolvesToApplication(sourcePath, specifier),
+  );
 }
 
 function webPresentationSourceFiles(): string[] {
@@ -58,6 +97,73 @@ function usesReactAriaComplexWidgets(sourceText: string): boolean {
 }
 
 describe("architecture boundaries", () => {
+  it("keeps Domain independent from Application", () => {
+    const violations = sourceFiles(join(projectRoot, "src", "domain")).flatMap((path) =>
+      domainToApplicationDependencies(path, source(path)).map(
+        (specifier) => `${relative(projectRoot, path)} -> ${specifier}`,
+      ),
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it("detects every supported literal module syntax from synthetic Domain sources", () => {
+    const sourcePath = join(projectRoot, "src", "domain", "fixture.ts");
+    const specifier = "@/application/contracts";
+    const syntaxFixtures = [
+      { name: "static import", sourceText: `import { Value } from "${specifier}";` },
+      { name: "type import", sourceText: `import type { Value } from "${specifier}";` },
+      { name: "side-effect import", sourceText: `import "${specifier}";` },
+      { name: "type query", sourceText: `type Value = import("${specifier}").Value;` },
+      { name: "dynamic import", sourceText: `void import("${specifier}");` },
+      { name: "named re-export", sourceText: `export { Value } from "${specifier}";` },
+      { name: "type re-export", sourceText: `export type { Value } from "${specifier}";` },
+      { name: "type star re-export", sourceText: `export type * from "${specifier}";` },
+      {
+        name: "type namespace re-export",
+        sourceText: `export type * as Application from "${specifier}";`,
+      },
+      { name: "star re-export", sourceText: `export * from "${specifier}";` },
+      { name: "literal require", sourceText: `const value = require("${specifier}");` },
+    ];
+
+    for (const fixture of syntaxFixtures) {
+      expect(domainToApplicationDependencies(sourcePath, fixture.sourceText)).toEqual([specifier]);
+    }
+  });
+
+  it("resolves only the supported Application path families", () => {
+    const sourcePath = join(projectRoot, "src", "domain", "policies", "fixture.ts");
+    const pathFixtures = [
+      { specifier: "@/application", expected: true },
+      { specifier: "@/application/contracts", expected: true },
+      { specifier: "src/application", expected: true },
+      { specifier: "src/application/repositories/contracts", expected: true },
+      { specifier: "@/application-old/contracts", expected: false },
+      { specifier: "src/application-old/contracts", expected: false },
+      { specifier: "@/domain/contracts", expected: false },
+      { specifier: "node:path", expected: false },
+      { specifier: "../../application/contracts", expected: true },
+      { specifier: "../services/pricing", expected: false },
+    ];
+
+    for (const fixture of pathFixtures) {
+      expect(resolvesToApplication(sourcePath, fixture.specifier)).toBe(fixture.expected);
+    }
+  });
+
+  it("allows Domain-local imports, builtins, and computed require calls", () => {
+    const sourcePath = join(projectRoot, "src", "domain", "policies", "fixture.ts");
+    const allowedFixtures = [
+      'import type { Product } from "@/domain/contracts";',
+      'import "../services/pricing";',
+      'import { join } from "node:path";',
+      "const value = require(target);",
+    ];
+    for (const sourceText of allowedFixtures) {
+      expect(domainToApplicationDependencies(sourcePath, sourceText)).toEqual([]);
+    }
+  });
+
   it("keeps Application independent from Infrastructure and Dexie", () => {
     const forbidden = [
       /from\s+["'][^"']*infrastructure/,

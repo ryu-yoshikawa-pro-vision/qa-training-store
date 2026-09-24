@@ -32,7 +32,7 @@ import type {
   ReviewRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface Dependencies {
   users: UserRepository;

@@ -21,22 +21,39 @@ describe("permission policies", () => {
     expect(rankSatisfies("regular", "gold")).toBe(false);
     expect(
       canViewerSeeProduct({
-        viewer: { kind: "guest" },
+        membershipRank: null,
         status: "published",
         requiredRank: "gold",
       }),
     ).toBe(false);
     expect(
       canViewerSeeProduct({
-        viewer: {
-          kind: "customer",
-          userId: "gold",
-          membershipRank: "gold",
-        },
+        membershipRank: "gold",
         status: "published",
         requiredRank: "gold",
       }),
     ).toBe(true);
+    expect(
+      canViewerSeeProduct({
+        membershipRank: "regular",
+        status: "published",
+        requiredRank: "gold",
+      }),
+    ).toBe(false);
+    expect(
+      canViewerSeeProduct({
+        membershipRank: null,
+        status: "published",
+        requiredRank: null,
+      }),
+    ).toBe(true);
+    expect(
+      canViewerSeeProduct({
+        membershipRank: "platinum",
+        status: "draft",
+        requiredRank: null,
+      }),
+    ).toBe(false);
     expect(canUseCart("guest")).toBe(true);
     expect(canUseCart("operator")).toBe(false);
     expect(canCheckout("customer", "active")).toBe(true);

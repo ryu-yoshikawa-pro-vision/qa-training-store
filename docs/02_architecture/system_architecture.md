@@ -6,10 +6,10 @@
 flowchart LR
   UI[Storefront / Admin Web UI] --> UC[Application Use Cases]
   UC --> D[Domain Rules]
-  UC --> R[Repository Ports]
+  UC --> R[Application Repository Ports]
   UC --> PG[Payment Gateway Port]
   UC --> AL[Address Lookup Port]
-  UC --> IA[Image Asset Catalog Port]
+  UC --> IA[ProductImageManifestRepository Port]
   R --> DX[Dexie / IndexedDB]
   PG --> MP[Deterministic Local Mock]
   AL --> SA[Static Learning Address Map]
@@ -18,6 +18,8 @@ flowchart LR
 ```
 
 Phase 1はServer、API、Cloud Database、外部Paymentを持ちません。
+
+Repository Port contractsはApplication ownershipで`src/application/repositories/**`に置き、`src/application/ports.ts`はplatform / external Portを所有します。
 
 ## 2. レイヤー責務
 
@@ -50,14 +52,15 @@ Phase 1はServer、API、Cloud Database、外部Paymentを持ちません。
 ## 3. 主要Ports
 
 - UserRepository、SessionRepository、AddressRepository、AddressLookupService
-- StorefrontCatalogQueryRepository、ProductQueryRepository、AdminProductQueryRepository、ProductRepository、CategoryRepository、BrandRepository、ReviewSummaryRepository、ImageAssetCatalogRepository
+- StorefrontCatalogQueryRepository、ProductQueryRepository、AdminProductQueryRepository、ProductRepository、CategoryRepository、BrandRepository、ReviewSummaryRepository
 - CartRepository、CheckoutSessionRepository
 - InventoryRepository
 - OrderRepository、SequenceRepository、ShipmentRepository
 - PaymentRepository、PaymentGateway
 - ReviewRepository、AdminOverviewQueryRepository
 - Clock、IdGenerator、PasswordHasher
-- ApplicationTransactionRunner、TestInspectionRepository
+- ProductImageManifestRepository（`StaticManifestRepository`が実装）
+- ApplicationTransactionRunner
 
 ## 4. 状態管理
 

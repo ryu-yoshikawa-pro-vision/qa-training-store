@@ -5,7 +5,6 @@ import type {
   User,
   UserRole,
 } from "@/domain/contracts";
-import type { ProductViewer } from "@/application/contracts";
 
 const RANK_LEVEL: Readonly<Record<MembershipRank, number>> = {
   regular: 0,
@@ -18,7 +17,7 @@ export function rankSatisfies(actual: MembershipRank, required: MembershipRank |
 }
 
 export function canViewerSeeProduct(input: {
-  viewer: ProductViewer;
+  membershipRank: MembershipRank | null;
   status: ProductStatus;
   requiredRank: MembershipRank | null;
 }): boolean {
@@ -28,10 +27,10 @@ export function canViewerSeeProduct(input: {
   if (input.requiredRank === null) {
     return true;
   }
-  return (
-    input.viewer.kind === "customer" &&
-    rankSatisfies(input.viewer.membershipRank, input.requiredRank)
-  );
+  if (input.membershipRank === null) {
+    return false;
+  }
+  return rankSatisfies(input.membershipRank, input.requiredRank);
 }
 
 export function canUseCart(role: UserRole | "guest"): boolean {

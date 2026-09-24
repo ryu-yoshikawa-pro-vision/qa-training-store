@@ -38,7 +38,7 @@ import type {
   ReviewSummaryRepository,
   SessionRepository,
   UserRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 
 interface AdminProductDependencies {
   users: UserRepository;

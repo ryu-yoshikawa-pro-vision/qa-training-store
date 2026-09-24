@@ -14,7 +14,7 @@ import type {
   UpdateCartItemQuantityCommand,
 } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
-import type { CartRepository, CheckoutSessionRepository } from "@/domain/repositories";
+import type { CartRepository, CheckoutSessionRepository } from "@/application/repositories";
 import type { Cart, CartItem, CheckoutSession, ProductVariant } from "@/domain/contracts";
 import { addCartQuantity, maximumCartQuantity, mergeCartQuantity } from "@/domain/services/cart";
 import { calculateOrderTotals, effectiveUnitPrice } from "@/domain/services/pricing";
@@ -149,10 +149,11 @@ export class DexieCartRepository implements CartRepository {
       input.owner.ownerType === "guest"
         ? ({ kind: "guest" } as const)
         : await this.viewerForUser(input.owner.userId);
+    const membershipRank = viewer.kind === "customer" ? viewer.membershipRank : null;
     if (
       !variant.isActive ||
       !canViewerSeeProduct({
-        viewer,
+        membershipRank,
         status: product.status,
         requiredRank: product.requiredRank,
       }) ||
@@ -471,7 +472,7 @@ export class DexieCartRepository implements CartRepository {
         product.status === "published" &&
         product.requiredRank !== null &&
         !canViewerSeeProduct({
-          viewer: input.viewer,
+          membershipRank,
           status: product.status,
           requiredRank: product.requiredRank,
         })
@@ -558,11 +559,12 @@ export class DexieCartRepository implements CartRepository {
       cart.ownerType === "guest"
         ? ({ kind: "guest" } as const)
         : await this.viewerForUser(requireEntity(cart.userId, "errors.cart.ownerMissing"));
+    const membershipRank = viewer.kind === "customer" ? viewer.membershipRank : null;
     if (
       !variant.isActive ||
       variant.stockQuantity === 0 ||
       !canViewerSeeProduct({
-        viewer,
+        membershipRank,
         status: product.status,
         requiredRank: product.requiredRank,
       })
