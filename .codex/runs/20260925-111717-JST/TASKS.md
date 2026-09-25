@@ -11,11 +11,13 @@
 - [ ] L3変更としてユーザーの明示承認を確認し、latest main / branch / PR #182 / Codex version / baseline / requirements・metadata・safety.network consumerを記録する。
 - [ ] 同じRun IDを既存machine-managed writerでstrictへ補完し、run.json / evaluation template / explicit scopeを作る。
 - [ ] .codex/config.tomlを workspace-write / approval never / network trueへ変更する。
-- [ ] codex-project.tomlのnetwork / apply_patch / standard run_manifest metadataを新契約へ同期する。
+- [ ] codex-project.tomlのnetwork / apply_patch metadataを新契約へ同期し、standard run_manifest=recommendedは維持する。
 - [ ] codex-safe / codex-taskでsafeのnetwork false、auto-netのnetwork trueを明示して既存semanticsを維持する。
 - [ ] .codex/rules/20-risky-prompt.rulesでgit switchだけをbroad Git promptから外す。
-- [ ] generic gh apiと高影響GitHub CLI operationをpromptへ追加し、通常PR workflowをblanket blockしない。
-- [ ] merge / rebase recoveryはdirect neverで迂回せず、必要時だけcodex-safe safeのon-request経路を使う契約へ同期する。
+- [ ] git branch -d / --deleteをpromptへ追加し、git branch -D / -fとremote branch deleteの既存denyを維持する。
+- [ ] generic gh apiと高影響GitHub CLI operationをpromptへ追加し、通常PR workflowをblanket blockしない。これをGitHub writeのhard boundaryとは扱わない。
+- [ ] codex-safe safeで副作用のないread-only network operationを使い、on-request承認 + network sandbox昇格が実runtimeで成立するか確認する。失敗時はblockerとし、新presetを追加しない。
+- [ ] merge / rebase recoveryはdirect neverで迂回せず、safe wrapper runtime検証が成功した場合だけ必要時にon-request経路を使う契約へ同期する。
 - [ ] parent / subagentの実効configを確認し、明示的なrole contractがない限りworkspace-write roleへnetwork falseを追加しない。
 - [ ] docs/reference/run-artifacts.mdを通常direct + manifestなし / strict machine-managed契約へ更新し、safety.networkとexternal validationの責務を分ける。
 - [ ] implementation / safety reference、quickstart、MIGRATIONを新契約へ同期する。
@@ -34,4 +36,4 @@
 - strict必須のrun.json / evaluation.jsonは未作成。
 - 次のgateはL3実装承認。その直後にmachine-managed strict Artifact bootstrapを行う。
 
-Progress: 14% (3/21)
+Progress: 13% (3/23)

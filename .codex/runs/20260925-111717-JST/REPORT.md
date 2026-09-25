@@ -50,3 +50,26 @@ Progress: 15% (3/20)
 L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
 
 Progress: 14% (3/21)
+
+
+## 2026-09-25 - 再レビュー5回目の修正
+
+### 状態
+
+- 実装は未開始。
+- Workflow Levelはstrictを維持する。
+- 次のgateはL3実装承認で変更しない。
+
+### 今回反映した修正
+
+- local branch削除の抜けを補い、`git branch -d / --delete`をcommon execpolicyのprompt対象へ追加する方針にした。`git branch -D / -f`とremote branch deleteの既存denyは維持する。
+- 明示依頼された高影響network operationやGit recoveryで`codex-safe safe`を使う前に、on-request承認とnetwork sandbox昇格を組み合わせたread-only runtime検証を必須にした。成立しない場合はblockerとし、新presetやbypassを追加しない。
+- GitHub CLIのprompt ruleは通常CLI経路のdefense-in-depthと位置づけ、networkとcredentialを持つ任意code pathからのGitHub writeを完全遮断するhard boundaryとは扱わないことを明示した。
+- `codex-project.toml`の`standard.run_manifest`は`recommended`を維持する。direct standardだけ、現行manifestがdirect sessionを正確に表せないため`--no-run-manifest`を明示例外として使用する。
+- direct用manifest schema、credential broker、新しい承認presetは今回追加しない。
+
+### 次のgate
+
+L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
+
+Progress: 13% (3/23)

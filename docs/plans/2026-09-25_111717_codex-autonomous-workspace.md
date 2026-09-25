@@ -53,7 +53,10 @@ direct `codex` では「高リスク時だけその場でユーザーへ確認�
 
 - 通常作業で必要なoperationは、既存Hookとrulesで安全性を確認したうえでprompt不要にする。
 - 高影響operationは既存denyまたはexecpolicy `prompt`を維持し、direct `never`では実行しない。
-- ユーザーが高影響operationを明示的に依頼し、Repository契約上実行可能な場合は、direct `never`の拒否を迂回せず、`codex-safe safe` の `on-request` 経路を使って承認を得る。
+- ユーザーが高影響operationを明示的に依頼し、Repository契約上実行可能な場合でも、direct `never`の拒否を迂回しない。
+- 例外操作の承認経路として既存`codex-safe safe`の`on-request`を候補にするが、project default変更後も「execpolicy承認 + network sandbox昇格」が実runtimeで成立することを先に検証する。
+- 上記runtime検証が成功した場合だけ、明示依頼された例外操作で`codex-safe safe`を使う。
+- runtime検証が失敗した場合はblockerとして報告し、新preset、danger-full-access、approval bypass、network常時有効の承認wrapperを今回追加しない。
 - normal direct workflowが拒否されたことだけを理由にwrapperへ自動fallbackしない。
 
 ### 既存の禁止
@@ -206,7 +209,9 @@ consumerが現在のliteral valueへ依存していないことを実装前に�
   - readonly / auto-netでは禁止
   - direct workspace-write / safeでも必要性、影響、migration理由の確認なしには実行しない
 
-`[workflow_levels.standard].run_manifest` は、通常direct standard Runで `--no-run-manifest` を正規経路にするため `recommended` から `optional` へ変更する。
+`[workflow_levels.standard].run_manifest = "recommended"` は維持する。
+
+direct standard Runでは現行manifestがdirect sessionを正確に表現できないため、通常interactive経路の明示的な例外として `--no-run-manifest` / `-NoRunManifest` を選ぶ。standard全体のevidence契約を `optional` へ弱めない。
 
 `strict.run_manifest = "required"` は維持する。
 
@@ -310,9 +315,26 @@ git tag
 
 recoveryが必要な場合は、direct session内でpolicyを迂回せず、`codex-safe safe` の `on-request` 経路へ切り替える。この例外はrecovery時だけであり、通常interactive入口をwrapperへ戻すものではない。
 
+### local branch削除
+
+ユーザーの明示指示なしでbranch削除を行わない既存契約をdirect `never`でも維持する。
+
+`.codex/rules/20-risky-prompt.rules` に次を追加する。
+
+- `git branch -d <branch>`
+- `git branch --delete <branch>`
+
+direct `never`では拒否する。明示依頼がある場合は、networkを必要としないため`codex-safe safe`の`on-request`承認経路を使用できる。
+
+force deleteの `git branch -D` / `-f` は既存forbidden / Hook denyを維持し、承認経路へ昇格させない。remote branch deleteの既存denyも維持する。
+
 ### GitHub CLIの高影響操作
 
-networkをproject defaultで有効にするため、これまでnetwork sandboxが追加防御になっていたGitHub上の高影響操作をexecpolicyで明示的に保護する。
+networkをproject defaultで有効にするため、これまでnetwork sandboxが追加防御になっていたGitHub上の高影響操作へexecpolicyの`prompt`を追加する。
+
+このruleは通常CLI経路での誤実行を減らすdefense-in-depthであり、GitHub writeを技術的に完全遮断するtrust boundaryとは扱わない。networkと利用可能なcredentialを持つshellから別command / code pathで外部APIへ到達できる可能性があるため、Repositoryの人間承認契約をmachine-enforced hard guaranteeと表現しない。
+
+強い外部権限分離が必要ならcredential broker、権限を絞った専用tool、agent環境外のcredential管理等が別設計として必要になるが、今回は追加しない。
 
 新しいHook parserや別のpolicy engineは追加せず、既存 `.codex/rules/20-risky-prompt.rules` を使う。
 
@@ -329,7 +351,7 @@ networkをproject defaultで有効にするため、これまでnetwork sandbox�
 
 direct `never`ではこれらを拒否する。
 
-ユーザーが対象operationを明示的に依頼し、Repository契約上実行可能な場合は `codex-safe safe` の `on-request` 経路で承認を得る。
+ユーザーが対象operationを明示的に依頼し、Repository契約上実行可能な場合でも、`codex-safe safe`を使えるのはTask 3のruntime検証でapproval + network昇格が成立した場合だけとする。成立しない場合はblockerとして扱い、今回のscopeで新しい承認presetを追加しない。
 
 次の通常workflowは上記ruleで一括blockしない。
 
@@ -467,7 +489,7 @@ bootstrap完了前にsource設定を変更しない。
 - `codex-project.toml`
   - network metadataをtrueへ同期
   - `apply_patch_*` metadataをdirect workspace-write + wrapper契約へ同期
-  - standard `run_manifest` をoptionalへ変更
+  - standard `run_manifest=recommended` を維持
   - strict `run_manifest=required` を維持
 - `.codex/requirements.toml` はTask 0のconsumer確認結果に従う
 
@@ -478,7 +500,9 @@ bootstrap完了前にsource設定を変更しない。
 - `codex-task safe`: network falseを明示
 - `codex-task auto-net`: network trueを維持
 - Bash / PowerShellを同じ意味にする
-- direct `never`で拒否する高影響operationの明示承認経路として `codex-safe safe` の `on-request` を維持する
+- `codex-safe safe` の `on-request` を維持する
+- project default変更後、safe wrapperから副作用のないread-only network operationを使い、execpolicy承認とnetwork sandbox昇格を経て通信できるか実runtimeで確認する
+- この検証が失敗した場合は高影響network operationの承認経路を未成立blockerとして扱い、新presetを追加しない
 
 ### Task 4: execpolicy
 
@@ -486,6 +510,8 @@ bootstrap完了前にsource設定を変更しない。
 
 - `git switch`だけを既存broad Git promptから外す
 - `git checkout / merge / rebase / tag` はprompt維持
+- `git branch -d / --delete` をpromptへ追加する
+- `git branch -D / -f` とremote branch deleteの既存denyは維持する
 - `gh api` familyをprompt
 - `gh pr merge / close` をprompt
 - `gh issue close` をprompt
@@ -497,6 +523,7 @@ bootstrap完了前にsource設定を変更しない。
 - normal `git switch` はpromptで止まらない
 - destructive switchはHook deny
 - merge / rebase recoveryはdirect `never`ではreject、safe wrapperではapproval対象
+- local `git branch -d / --delete` はdirect `never`でreject、force / remote deleteは既存deny
 - direct modeでgeneric `gh api` と高影響 `gh` operationがrejectされる
 - normal PR create / edit / checksは今回追加ruleでblockされない
 
@@ -560,7 +587,8 @@ parent / configured roleのresolved / effective configを前後比較する。
 - `codex-project.toml`
   - `network_access_in_workspace_write = true`
   - direct workspace-writeを含む`apply_patch_*`契約
-  - standard manifest optional / strict required
+  - standard manifest recommended / strict required
+  - direct standardの `--no-run-manifest` は通常interactive経路の明示例外
 - wrapper safe: network false
 - wrapper auto-net: network true
 - `codex-safe` safe / readonly: on-request
@@ -569,8 +597,11 @@ parent / configured roleのresolved / effective configを前後比較する。
 - `git switch`:通常caseがpromptで止まらない
 - `git checkout / merge / rebase / tag`:prompt維持
 - destructive switch:deny
+- local `git branch -d / --delete`:prompt
+- `git branch -D / -f` とremote branch delete:既存deny
 - high-impact `gh` operation / generic `gh api`:prompt
 - normal `gh pr create / edit / checks`:今回の追加ruleに一致しない
+- GitHub CLI prompt ruleはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない
 - command-based deletion:deny
 - destructive Git / remote script piping / protected branch safety:既存deny維持
 - compact Hook / AGENTS契約:未変更
@@ -594,13 +625,14 @@ Repository / workspaceからfresh `codex`を直接起動する。
 2. project configが読み込まれる。
 3. workspace内の通常編集がsandbox approvalなしで進む。
 4. `git ls-remote <remote> HEAD` 等のread-only network operationがsandbox network拒否なしで成功する。
-5. build / lint / typecheck / test等の通常作業が進む。
-6. 通常の `git switch` がrules承認待ちで止まらない。
-7. `git checkout / merge / rebase / tag`、generic `gh api`、high-impact `gh` operationは `never` 契約どおりユーザーpromptを出さず拒否される。
-8. destructive operationは実行せず、execpolicy / Hook contractでdenyを確認する。
-9. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
-10. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
-11. danger-full-accessへfallbackしない。
+5. 別のfresh `codex-safe safe` sessionで副作用のないread-only network operationを実行し、execpolicy承認とnetwork sandbox昇格の後に通信できるか確認する。成功した場合だけ、明示依頼された高影響network operationの承認経路としてsafe wrapperを採用する。失敗した場合はblockerとして記録する。
+6. build / lint / typecheck / test等の通常作業が進む。
+7. 通常の `git switch` がrules承認待ちで止まらない。
+8. `git checkout / merge / rebase / tag`、`git branch -d / --delete`、generic `gh api`、high-impact `gh` operationは `never` 契約どおりユーザーpromptを出さず拒否される。
+9. `git branch -D / -f`、remote branch delete、その他destructive operationは実行せず、execpolicy / Hook contractでdenyを確認する。
+10. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
+11. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
+12. danger-full-accessへfallbackしない。
 
 結果は `REPORT.md` と `evaluation.json` のevidenceへ記録する。direct session用 `run.json` は作らない。
 
@@ -641,13 +673,17 @@ merge / rebase recoveryが必要な場合はdirect `never`で迂回せず、safe
 
 project workspace-write内のnetworkはtrueになる。
 
-generic `gh api` と明示的な高影響 `gh` operationをpromptに置き、direct `never`では拒否する。
+generic `gh api` と明示的な高影響 `gh` operationをpromptに置き、direct `never`では拒否する。これは通常CLI経路のdefense-in-depthであり、networkとcredentialを持つshellからの全GitHub writeを技術的に封鎖するものではない。
 
-通常のPR作成・更新・確認経路までblanket blockしない。
+通常のPR作成・更新・確認経路までblanket blockしない。強いcredential分離は今回のscopeへ追加しない。
+
+明示依頼された高影響network operationのsafe wrapper承認経路はruntimeで成立を確認してから採用し、成立しなければblockerとする。
 
 ### `codex-project.toml`
 
-networkだけでなく、通常入口変更により意味が変わる `apply_patch_*` とstandard `run_manifest` も同期する。
+networkだけでなく、通常入口変更により意味が変わる `apply_patch_*` を同期する。
+
+standard `run_manifest=recommended` は維持し、direct standardのmanifestなし運用は明示例外として文書化する。
 
 literal consumerが存在する場合は先に互換性を確認する。
 
@@ -689,7 +725,7 @@ direct `codex`用のmanifest modelを今回追加しない。
 3. active Runを既存machine-managed経路でstrictへ補完する。
 4. `.codex/config.toml` と `codex-project.toml` を同期する。
 5. wrapper safe / auto-netの既存semanticsを維持する。
-6. `git switch`分離とGitHub CLI high-impact prompt ruleを追加する。
+6. `git switch`分離、local branch delete prompt、GitHub CLI high-impact prompt ruleを追加する。
 7. parent / subagentの実効configを確認する。
 8. Run Artifact / implementation / safety referenceを通常direct・strict machine-managedの2経路へ同期する。
 9. quickstart / MIGRATION / PROJECT_CONTEXT / historyを同期する。

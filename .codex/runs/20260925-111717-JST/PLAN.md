@@ -24,11 +24,13 @@ Run Artifactは新しいdirect用manifest modelを追加せず、通常のlightw
 - 今回のactive Runはstrict。L3承認後、source変更前に既存machine-managed writerで同じRun IDへrun.json / evaluation template / scopeを補完する。
 - fresh direct `codex`はproject defaultのexternal runtime validationとして別途実行し、その結果をREPORT / evaluationへ記録する。direct session用run.jsonは作らない。
 - `run.json.safety.network` はmachine-managed execution pathのnetwork利用を表し、external direct validationまで集約する値とは扱わない。
-- `codex-project.toml`はnetwork trueだけでなく、direct workspace-writeのapply_patch契約とstandard manifest optionalへ同期する。
+- `codex-project.toml`はnetwork trueとdirect workspace-writeのapply_patch契約へ同期する。standard manifestはrecommendedを維持し、direct standardだけ`--no-run-manifest`を明示例外として使う。
 - `.codex/requirements.toml`はactual consumer / managed distributionで実効性を確認できた場合だけ変更する。
 - `git switch`だけをbroad prompt ruleから外す。
-- `git checkout / merge / rebase / tag`はprompt維持する。merge / rebase recoveryが必要ならsafe wrapperのon-request経路を使う。
-- generic `gh api` と高影響GitHub CLI operationをpromptに置き、direct neverでは拒否する。通常のPR create / edit / checksはblanket blockしない。
+- `git checkout / merge / rebase / tag`はprompt維持する。
+- `git branch -d / --delete`はprompt、`git branch -D / -f`とremote branch deleteは既存denyを維持する。
+- merge / rebase recoveryや明示依頼された高影響network operationで`codex-safe safe`を使うのは、safe wrapperのapproval + network昇格runtime検証が成功した場合だけとする。失敗時はblockerとし、新presetを追加しない。
+- generic `gh api` と高影響GitHub CLI operationをpromptに置き、direct neverでは拒否する。ただしこのruleはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない。通常のPR create / edit / checksはblanket blockしない。
 - auto-net presetは削除しない。
 - rm / git rm等の既存denyを変更しない。
 - workspace-write subagentへnetwork falseを新設しない。既存role contractに禁止根拠がある場合だけ個別overrideする。
