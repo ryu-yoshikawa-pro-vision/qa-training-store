@@ -228,6 +228,22 @@
 - ブロッカー / 残作業: source実装前のL3明示承認gateは継続。次はTask 10。
 - Progress: 50% (9/18)
 
+
+## 2026-09-25 - MCP test client dependency契約の修正
+
+- Summary: stdio MCP integration testに必要な公式client packageをPlanへ追加した。source実装は変更していない。
+- Changes:
+  - `@modelcontextprotocol/server` と `@modelcontextprotocol/client` を同じexact v2 stable versionでdevDependenciesへ追加する契約へ変更した。
+  - `@modelcontextprotocol/server` はproduction MCP server、`@modelcontextprotocol/client` はstdio integration testだけに使う境界を明記した。
+  - integration testは `Client` / `StdioClientTransport` を使い、tool listing / mocked tool call / request cancellationを検証する契約へ変更した。
+  - 独自JSON-RPC / stdio test clientを実装しないことを明記した。
+- 判断 / 理由:
+  - MCP TypeScript SDK v2ではserverとclientが別packageであり、stdio test clientの正式実装は `@modelcontextprotocol/client/stdio` の `StdioClientTransport`。
+  - server packageだけを追加したままMCP test clientを要求すると、実装者が独自protocol clientを書くかtest契約を弱める余地が残る。
+  - 2026-09-25確認時点ではserver/clientとも2.1.0、Node >=20だが、実装時にcurrent stableを再確認して同一exact versionへ固定する。
+- ブロッカー / 残作業: source実装前のL3明示承認gateは継続。次はTask 10。
+- Progress: 50% (9/18)
+
 ## 削除候補
 
 - なし。

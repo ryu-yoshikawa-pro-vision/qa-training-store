@@ -36,7 +36,7 @@
 - GitHub accessは `gh api --method GET` に統一し、workflow file、exact head、pull_request event、PR番号でrunを特定する。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - 長時間handlerはMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、serverがcancellationを受信した場合の追加pollを停止する。installed Codexからstdio MCP requestへのcancellation伝播自体はruntimeで実測し、固定前提にしない。
-- 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
+- 公式 `@modelcontextprotocol/server` / `@modelcontextprotocol/client` v2 stableを同じexact versionでdevDependenciesへ追加する。server packageはproduction MCP server、client packageはstdio integration testだけに使う。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
 
 ## Questions / Ambiguity（質問・曖昧性）
@@ -108,7 +108,7 @@
 - MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
 - non-interactive `codex exec` ではversion / approval処理によってMCP tool callが成立しない可能性があるため、実callをruntime gateにする。
 - L3変更のrollbackは今回追加するproject MCP config、dependency / lockfile、server / test、Harness / verify差分だけを戻し、user-level configやGitHub credentialを変更しない。
-- 新規MCP SDK dependency追加。
+- 新規MCP SDK dependency追加（`@modelcontextprotocol/server` + test専用 `@modelcontextprotocol/client`。同じexact v2 stable version）。
 
 ## Thinking Log（判断記録）
 

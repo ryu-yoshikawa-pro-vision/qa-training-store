@@ -68,10 +68,10 @@
 
 ### MCP SDK
 
-- 公式TypeScript SDKのv2 stable lineは `@modelcontextprotocol/server` を提供し、stdio serverをサポートする。
+- 公式TypeScript SDKのv2 stable lineはproduction server用の `@modelcontextprotocol/server` とtest client用の `@modelcontextprotocol/client` を別packageとして提供し、stdio server / clientをサポートする。
 - 公式SDKはStandard Schemaを使い、既存のZod 4をtool schemaに利用できる。
-- MCP protocolを独自実装するより、公式SDKを使う方がprotocol互換性・保守性・テスト容易性で適切。
-- 実装時に公式stable versionを確認し、Repositoryの既存方針に合わせてexact versionを `devDependencies` へ追加する。
+- MCP protocolやstdio test clientを独自実装するより、公式SDKを使う方がprotocol互換性・保守性・テスト容易性で適切。
+- 実装時に両packageの公式stable versionを確認し、同じexact v2 stable versionを `devDependencies` へ追加する。`@modelcontextprotocol/server` はMCP server実装だけ、`@modelcontextprotocol/client` はintegration testだけから利用する。
 
 ### 前提
 
@@ -123,7 +123,8 @@
   - optional MCP startup grace、server startup timeout、MCP tool timeout設定。
   - `GH_TOKEN` / `GITHUB_TOKEN` の名前だけをMCP childへ継承する設定。
 - `package.json`
-  - 公式 `@modelcontextprotocol/server` v2 stableをexact versionで `devDependencies` に追加。
+  - 公式 `@modelcontextprotocol/server` と `@modelcontextprotocol/client` を同じexact v2 stable versionで `devDependencies` に追加。
+  - `@modelcontextprotocol/server` はproduction MCP server用、`@modelcontextprotocol/client` はstdio MCP integration test用に限定する。
   - Repository内subdirectoryからもserverを起動できる `mcp:ci-wait` scriptを追加。
 - `pnpm-lock.yaml`
   - dependency追加に同期。
@@ -174,8 +175,8 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
   - user-level Codex config、保存済みGitHub credential、PAT / token値は変更・削除しない。
 
 1. installed Codex versionとproject-scoped configの有効性を記録する。
-2. 公式 `@modelcontextprotocol/server` v2 stableのcurrent exact version、Node要件、licenseを確認する。
-3. `devDependencies` へexact versionを追加し、`pnpm-lock.yaml` を同期する。
+2. 公式 `@modelcontextprotocol/server` / `@modelcontextprotocol/client` v2 stableのcurrent exact version、Node要件、licenseを確認する。両packageは同じversionへ揃える。
+3. 両packageを同じexact versionで `devDependencies` へ追加し、`pnpm-lock.yaml` を同期する。`@modelcontextprotocol/client` はtest専用とし、server実装からimportしない。
 4. Repository標準セットアップどおり `pnpm install --frozen-lockfile` を完了してからMCP起動検証へ進む。fresh checkoutでdependency未導入のままMCP server起動成功を要求しない。
 5. host Nodeが `node --run` を利用できることを確認し、`package.json` に `mcp:ci-wait` scriptを追加する。Repository root / subdirectoryのどちらからでも上位の `package.json` を解決してserverを起動する経路とする。
 6. 公式MCP TypeScript SDK v2の `serveStdio` を使ってstdio MCP serverを追加する。transportを手書き実装しない。
@@ -373,7 +374,7 @@ networkなしで状態判定を検証する。
 - serverが受信したcancellationを `github_error` / `ci_failure` / timeout等の独自resultへ変換しない。
 - tool resultにsecret / environment値を含めない。
 
-stdio serverを直接起動するMCP integrationでは、Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。MCP test clientからrequest cancellationを送った場合にhandlerが停止し、追加pollが発生しないことも1経路で確認する。これはserver側のcancellation処理を検証するもので、installed Codexからの伝播保証とは分ける。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
+stdio serverを直接起動するMCP integrationでは、test専用 `@modelcontextprotocol/client` の `Client` / `StdioClientTransport` を使う。Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。MCP test clientからrequest cancellationを送った場合にhandlerが停止し、追加pollが発生しないことも1経路で確認する。これはserver側のcancellation処理を検証するもので、installed Codexからの伝播保証とは分ける。独自JSON-RPC / stdio clientは実装しない。
 
 ### Task 5: Codex実行経路と長時間MCP callの実地検証
 
@@ -543,9 +544,10 @@ MCP SDK追加はsupply-chain / update対象を増やす。また、fresh checkou
 
 対策:
 
-- 公式 `@modelcontextprotocol/server` だけを追加する。
-- exact versionで固定する。
-- Node HTTP middleware等の不要packageは追加しない。
+- production用に公式 `@modelcontextprotocol/server`、stdio integration test用に公式 `@modelcontextprotocol/client` だけを追加する。
+- 両packageを同じexact v2 stable versionで固定する。
+- `@modelcontextprotocol/client` はtest codeだけからimportし、server runtime dependencyとして使わない。
+- 独自MCP client、Node HTTP middleware等の不要packageは追加しない。
 - 既存Zodを再利用する。
 - Repository標準セットアップ `pnpm install --frozen-lockfile` 済みをMCP利用の前提にする。wrapperへ自動install処理は追加しない。
 - `node --run mcp:ci-wait` をRepository root / subdirectoryで検証し、user固有絶対pathや `scripts/codex-task.*` 変更を不要にする。
@@ -633,7 +635,7 @@ installed Codexのversionやapproval処理によっては、tool catalogにMCP t
 1. `AGENTS.md` のL3対象であることとrollback planを提示し、ユーザーの明示承認を確認する。未承認ならここで停止する。
 2. PR #182 bodyが最新PlanのMCP方式・scope・実装gateへ同期済みであることを確認する。
 3. MCP SDK current stable / installed Codex / config仕様を最終確認する。
-4. dependency、`mcp:ci-wait` package script、project MCP configを追加し、lockfileを同期する。
+4. `@modelcontextprotocol/server` / `@modelcontextprotocol/client` を同じexact v2 stable versionで追加し、`mcp:ci-wait` package script、project MCP config、lockfileを同期する。client packageはintegration test専用とする。
 5. `pnpm install --frozen-lockfile` を完了し、host Nodeの `--run` 対応を確認する。
 6. 公式SDK v2の `serveStdio` でstdio MCP serverを追加し、ローカルGit originによるRepository固定、serverが受信したrequest-scoped AbortSignalのsleep / `gh` childへの伝播、`wait_for_required_ci` を実装する。
 7. CI状態判定のcontract testを実装する。

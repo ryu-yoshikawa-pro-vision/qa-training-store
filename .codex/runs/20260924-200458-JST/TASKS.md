@@ -12,9 +12,9 @@
 - [x] 8. 保存Plan / Run PLANをMCP方式へ更新する。
 - [x] 9. MCP再レビューを反映し、ローカルGitによるRepository identity固定、subdirectory起動、optional MCP startup grace、GitHub認証env継承、poll中PR guard、read-only GET、run識別、`gh` timeout、tool approval、dependency起動前提、waiter利用不能時のfail-closed、長時間smoke契約を確定する。
 - [ ] 10. `AGENTS.md` のL3対象であることとrollback planを提示し、ユーザーの明示承認を確認する。未承認なら実装を開始しない。
-- [ ] 11. official MCP SDK exact versionを確定し、dependency / lockfile / `mcp:ci-wait` script / project MCP config（startup grace・timeouts・GitHub auth env継承）を更新する。
+- [ ] 11. official MCP SDK exact versionを確定し、`@modelcontextprotocol/server` / test専用 `@modelcontextprotocol/client` を同じexact v2 stable versionで追加して、lockfile / `mcp:ci-wait` script / project MCP config（startup grace・timeouts・GitHub auth env継承）を更新する。
 - [ ] 12. 公式SDK v2の `serveStdio` を使い、serverが受信したrequest-scoped AbortSignalをsleep / `gh` child processへ伝播する `wait_for_required_ci` MCP serverを実装する。
-- [ ] 13. CI waiter contract testとMCP integration testを実装し、MCP test clientからrequest cancellationを送った場合にsleep / `gh` childが停止して追加pollしないことを検証する。installed Codexからの伝播保証とは分ける。
+- [ ] 13. CI waiter contract testとMCP integration testを実装する。stdio integrationはtest専用 `@modelcontextprotocol/client` の `Client` / `StdioClientTransport` を使い、tool listing / mocked tool call / request cancellationを検証する。独自MCP clientは実装しない。
 - [ ] 14. fresh Codex processで、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗したらblockerとして停止する。
 - [ ] 15. runtime gate通過後だけimplementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
 - [ ] 16. focused testとRepository標準verifyを実行する。
@@ -35,7 +35,7 @@
 - 通常 `exec_command` はlong-running commandをlive session化し得るため、shell側のwatchだけではAgent pollingを除去できない。
 - Codexはstdio MCP serverとserver単位の `tool_timeout_sec` をサポートする。既定値はversion依存として扱い、今回の契約は明示値 `6000` に固定する。
 - Repository `.codex/config.toml` には現在MCP server定義がない。
-- RepositoryにMCP SDK dependencyはないが、既存Zod 4.4.3は公式MCP TypeScript SDK v2のschemaに利用できる。
+- RepositoryにMCP SDK dependencyはないが、既存Zod 4.4.3は公式MCP TypeScript SDK v2のschemaに利用できる。production serverとstdio integration testには別packageが必要なため、`@modelcontextprotocol/server` とtest専用 `@modelcontextprotocol/client` を同じexact versionで追加する。
 - 公式SDKを使えばstdio serverをprotocol手書きなしで実装できる。
 - `resume` は今回の目的には不要。1回のMCP callを長時間保持する方針へ変更した。
 - `repository` はtool入力から外す。Repository identityはMCP server process起動時に `git remote get-url origin` からローカルに1回だけ導出してprocess内へ固定し、startup中にGitHub APIを呼ばず、tool call中にGit remoteを再解決しない。PRの `base.repo.full_name` も固定Repositoryと照合する。
