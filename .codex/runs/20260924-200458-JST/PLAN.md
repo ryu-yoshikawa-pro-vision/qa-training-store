@@ -11,6 +11,8 @@
 - In:
   - project-scoped stdio MCP server
   - `wait_for_required_ci` tool
+  - L3明示承認とrollback gate
+  - `codex-safe` / `codex-task` 両経路の実MCP call gate
   - Codex MCP `tool_timeout_sec`
   - exact HEADの `Web CI` / `Mobile App CI` read-only監視
   - MCP SDK dependency
@@ -38,10 +40,11 @@
 
 ## Questions / Ambiguity（質問・曖昧性）
 
-- ユーザーへ確認が必要な不透明点: なし。
+- 実装前の必須確認: MCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3に該当するため、ユーザーの明示承認が必要。今回のPlan修正依頼だけを実装承認とは扱わない。
 - 実装gate:
   - project configからstdio MCP serverがinstalled Codex / Windows hostで起動すること。
   - `tool_timeout_sec=6000` をinstalled Codexが受理し、MCP toolが利用できること。
+  - tool listingだけでなく、`scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callできること。non-interactive `codex exec` でcallがcancel /拒否される場合はblockerとする。
   - 実CIが360秒未満なら360秒の一時smokeで長時間call中にAgentへ途中turnが戻らないことを確認すること。
   - 360秒smokeを90分保持の実証として扱わないこと。
   - MCP call待機中にAgentへ途中turnが戻らないこと。
@@ -61,7 +64,7 @@
 
 ## Approach（進め方）
 
-- 公式SDKで1 toolだけのstdio MCP serverを作る。
+- 公式SDK v2の `serveStdio` で1 toolだけのstdio MCP serverを作る。
 - MCP protocolは独自実装しない。
 - GitHub API操作はtool call開始後に `gh api --method GET` で行い、server process起動時に固定したowner / repoをendpointへ明示する。Repository identity確定にGitHub APIは使わない。
 - PRの `base.repo.full_name` が固定Repositoryと一致することをguardする。
@@ -74,14 +77,14 @@
 - `wait_for_required_ci` はread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` に固定する。
 - tool内部でregistration waitとworkflow waitを行う。
 - tool結果を受け取ったCodexがsuccess / repair-loop / blockerへ進む。
-- fresh Codex processでwaiterがtool catalogに存在しない、またはMCP startupが失敗した場合はblockerとし、Agent側GitHub pollingへfallbackしない。
+- fresh Codex processでwaiterがtool catalogに存在しない、MCP startupが失敗する、または `codex-safe` / `codex-task` のどちらかで実tool callが成立しない場合はblockerとし、Agent側GitHub pollingへfallbackしない。
 - setup修復後はfresh Codex processでtool availabilityを再確認する。
 - resume / supervisorへfallbackしない。
 
 ## Definition of Done（完了条件）
 
 - 保存PlanのDoDをすべて満たす。
-- Codexから `wait_for_required_ci` を1回callできる。
+- `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callできる。
 - CI待機中にAgent pollingが発生しない。
 - latest headの `Web CI` / `Mobile App CI` を固定Repository内で正しく判定する。
 - MCP waiter利用不能時にAgent pollingへfallbackせずblockerとなる。
@@ -98,6 +101,8 @@
 - MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository identityをserver process起動時に固定し、PR base repo一致guard・read-only操作・子process timeoutを適用する必要がある。
 - MCP waiterがtool catalogへ出ない場合に既存Agent pollingへ戻ると目的を再発させるため、Harness側でfail-closedにする必要がある。
 - MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
+- non-interactive `codex exec` ではversion / approval処理によってMCP tool callが成立しない可能性があるため、実callをruntime gateにする。
+- L3変更のrollbackは今回追加するproject MCP config、dependency / lockfile、server / test、Harness / verify差分だけを戻し、user-level configやGitHub credentialを変更しない。
 - 新規MCP SDK dependency追加。
 
 ## Thinking Log（判断記録）

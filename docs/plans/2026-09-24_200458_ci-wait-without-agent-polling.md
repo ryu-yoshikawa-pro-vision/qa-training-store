@@ -18,7 +18,9 @@
 
 ### 完了条件（DoD）
 
+- `.codex/config.toml` のMCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3として扱い、実装開始前にユーザーの明示承認を確認する。rollback planも実装前に確定する。
 - project-scoped MCP serverがRepository rootまたはRepository内subdirectoryから起動でき、fresh Codex processの初回tool catalogにCI待機toolが登録される。
+- tool catalogへの登録だけでは完了扱いにせず、`scripts/codex-safe.*` のinteractive経路と `scripts/codex-task.*` のnon-interactive `codex exec` 経路の両方から `wait_for_required_ci` を実際に1回callし、tool resultがCodexへ返ることを確認する。
 - MCP serverはstdio transportを使い、外部HTTP server、daemon、queue、webhook receiverを追加しない。
 - Codex側のMCP tool timeoutがCI待機上限より長く設定され、MCP tool callが待機途中でCodex側timeoutにならない。
 - CI待機tool `wait_for_required_ci` は、最低限次を入力に取る。
@@ -38,7 +40,7 @@
 - `docs/reference/codex-implementation-harness.md` がMCP toolをCI待機の正本経路として説明する。
 - `scripts/verify` と `scripts/verify.ps1` が新しい契約へ同期し、Bash / PowerShellの標準verifyがPASSする。
 - PR #182 latest headの実CIでMCP tool callを実行し、CI終了後に同じCodex turnへresultが返ることを確認する。
-- PR #182のtitle / bodyをPlan-only表現から実装内容へ同期する。
+- PR #182のbodyは実装着手前に最新PlanのMCP方式・対象ファイル・実装gateへ同期し、実装後はtitle / bodyを実装結果へ再同期する。
 - mergeはユーザーから明示指示があるまで行わない。
 
 ## 2. 現状理解と前提
@@ -94,7 +96,7 @@
 
 ## 3. 質問 / 曖昧性
 
-- 必ず質問する不透明点: なし。
+- 実装前の必須確認: `.codex/config.toml` のMCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3に該当するため、ユーザーの明示承認を得る。今回のPlan修正依頼だけをL3実装承認とは扱わない。
 - 仮定してよい細部:
   - MCP server名、script path、test file名はRepository既存命名に合わせて実装時に確定する。
   - registration poll intervalは10秒、workflow poll intervalは15秒を初期値とする。設定項目化しない。
@@ -104,9 +106,10 @@
   - host Nodeが `node --run` を利用できるversionであること。
   - Repository rootとRepository内subdirectoryの両方からproject-scoped `.codex/config.toml` のstdio MCP serverがWindows / host runtimeで起動できること。
   - `mcp_optional_startup_grace_ms = 5000` と `startup_timeout_sec = 5` でfresh Codex processの初回tool catalogに `wait_for_required_ci` が登録されること。
+  - `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路で、tool listingではなく実際の `wait_for_required_ci` callが成立し、resultが返ること。non-interactive `codex exec` でtool callがcancel /拒否される場合はblockerとする。
   - 長時間MCP call中にAgentへ途中turnが戻らないこと。
   - MCP result返却後に同じCodex turnが継続すること。
-- 未回答の重要質問: なし。上記は実装gateとして実測し、失敗した場合は実装を完了扱いにしない。
+- 未回答の重要質問: L3実装承認は実装開始前に確認する。runtime gateは実測し、`codex-safe` / `codex-task` のどちらか一方でも実tool callが成立しない場合はHarness切替へ進まずblockerとして停止する。
 
 ## 4. 影響範囲
 
@@ -156,12 +159,23 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 
 ### Task 0: MCP serverの最小構成を確定する
 
+#### L3 governance gate
+
+- `.codex/config.toml` のMCP server登録、`approval_mode = "approve"`、`GH_TOKEN` / `GITHUB_TOKEN` の環境変数継承、implementation harnessの標準待機経路変更は `AGENTS.md` のL3として扱う。
+- 実装開始前にユーザーの明示承認を確認する。承認が確認できない場合は `.codex/config.toml`、dependency、server、Harnessを変更しない。
+- rollbackは次に限定する。
+  - `.codex/config.toml` から今回追加するMCP server、startup grace、tool approval、`env_vars` 設定だけを戻す。
+  - `package.json` の `mcp:ci-wait` とMCP SDK dependency、対応する `pnpm-lock.yaml` 差分を戻す。
+  - 今回追加する `scripts/mcp/ci-wait-server.mjs` と専用contract testを戻す。
+  - `docs/reference/codex-implementation-harness.md`、`scripts/verify`、`scripts/verify.ps1` を変更前のCI確認契約へ戻す。
+  - user-level Codex config、保存済みGitHub credential、PAT / token値は変更・削除しない。
+
 1. installed Codex versionとproject-scoped configの有効性を記録する。
 2. 公式 `@modelcontextprotocol/server` v2 stableのcurrent exact version、Node要件、licenseを確認する。
 3. `devDependencies` へexact versionを追加し、`pnpm-lock.yaml` を同期する。
 4. Repository標準セットアップどおり `pnpm install --frozen-lockfile` を完了してからMCP起動検証へ進む。fresh checkoutでdependency未導入のままMCP server起動成功を要求しない。
 5. host Nodeが `node --run` を利用できることを確認し、`package.json` に `mcp:ci-wait` scriptを追加する。Repository root / subdirectoryのどちらからでも上位の `package.json` を解決してserverを起動する経路とする。
-6. stdio MCP serverを追加する。
+6. 公式MCP TypeScript SDK v2の `serveStdio` を使ってstdio MCP serverを追加する。transportを手書き実装しない。
 7. serverは1つの目的だけを持ち、最終状態では `wait_for_required_ci` 以外の業務toolを増やさない。
 8. MCP stdioのstdoutはprotocol専用とし、診断ログを通常stdoutへ出さない。必要な診断はstderrへ限定する。
 9. Repository identity取得は `git remote get-url origin` をNode `child_process.execFile` / `spawn` のargvで1回だけ実行する。GitHub API通信をserver startup条件にしない。
@@ -171,7 +185,7 @@ MCP実装のために上記変更不可対象が必要になった場合は、sc
 
 ### Task 1: project-scoped Codex configへMCPを登録する
 
-`.codex/config.toml` にrepo-local serverを登録する。
+`.codex/config.toml` にrepo-local serverを登録する。このTaskはTask 0のL3明示承認を確認した後にだけ実施する。
 
 契約:
 
@@ -221,7 +235,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 - GitHub操作は `gh api --method GET` に統一する。Repository取得用の `gh repo view` やwrite系subcommandは使用しない。
 - GitHub API endpointでは `{owner}` / `{repo}` placeholderを使わず、server startup時に固定したowner / repoを明示する。GitHub API通信はtool call開始後だけ行う。
 - query parameterに `-f` / `-F` を使う場合も必ず `--method GET` を明示し、parameter追加による暗黙POSTを許可しない。
-- 各 `gh` 子processは30秒でtimeoutし、timeout時はprocessを停止して `github_error` とする。ただしserver初期化時のRepository identity取得失敗はstartup failureとして扱う。
+- registration / overall timeoutはtool開始時からのdeadlineとして保持する。各sleep / `gh` callの前に残時間を確認し、各 `gh` 子processのtimeoutは `min(30秒, remaining deadline)` とする。残時間がない場合は該当するtimeout resultを返し、1回の子processでdeadlineを超えない。子process自体のtimeout / API errorは `github_error` とする。ただしserver初期化時のRepository identity取得失敗はstartup failureとして扱う。
 - 子processへ `GH_PROMPT_DISABLED=1` を設定し、認証prompt等による無期限待機を許可しない。
 - PR情報からstate / current head SHA / `base.repo.full_name` を取得し、固定Repositoryとの一致をguardする。
 - workflow run一覧はworkflow fileを直接指定し、次の2 endpointを別々に取得する。
@@ -247,7 +261,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 - registration中にPRがcloseされた場合は `invalid_pr_state`、headが変わった場合は `stale_head`、base Repositoryが変わった場合は `repository_mismatch` を即時返す。
 - 各候補は `head_sha=expected_head_sha`、`event=pull_request`、`pull_requests[].number` に `pr_number` を含むことをすべて満たす。
 - 2 workflowの候補が両方見つかるまで待つ。「checkが1件以上存在する」をregistration completeにしない。
-- 5分で揃わなければ `registration_timeout`。
+- tool開始時から5分のregistration deadlineまでに揃わなければ `registration_timeout`。
 - 同一workflow file / exact head / PR番号に複数runが存在する場合は `created_at` が最も新しいrunを選び、同値ならrun IDが大きい方を選んでrun IDを固定する。
 - 選択後は別runへ途中で自動乗り換えしない。
 
@@ -258,7 +272,7 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 - runの `status != "completed"` はstatus名にかかわらず継続待機とする。
 - 両runが `status == "completed"` かつ `conclusion == "success"` なら `success`。
 - どちらかが `status == "completed"` かつ `conclusion != "success"` なら `ci_failure`。
-- tool開始から90分で `overall_timeout`。
+- tool開始時から90分のoverall deadlineに達したら `overall_timeout`。
 - unrelated checkのfailureを終了条件にしない。
 
 #### tool result
@@ -345,9 +359,18 @@ networkなしで状態判定を検証する。
 
 stdio serverを直接起動するMCP integrationでは、Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
 
-### Task 5: 長時間MCP callの実地検証
+### Task 5: Codex実行経路と長時間MCP callの実地検証
 
-MCP実装・config・focused testが通った後、実際のCodex経路で確認する。
+MCP実装・config・focused testが通った後、HarnessをMCPへ切り替える前に実際のCodex経路をgateする。
+
+まず既に終端状態のexact HEADを使い、同じ `wait_for_required_ci` を次の両経路から1回ずつ実callする。
+
+- `scripts/codex-safe.*` のinteractive経路。
+- `scripts/codex-task.*` のnon-interactive `codex exec` 経路。
+
+初回tool catalogへの掲載や `codex mcp list` だけでは成功としない。両経路ともtool resultがCodexへ返ることを必須とする。`codex-task` 経路でMCP tool callがcancel /拒否されるなど、どちらか一方でも実callが成立しない場合はblockerとして停止し、Task 6以降のHarness / verify切替を行わない。別方式へ自動fallbackしない。
+
+このruntime gateを通過した後、PR #182の実CIで長時間callを確認する。
 
 最終push直後のPR #182 latest headを使い、CIが実行中の間にfresh Codex validation processから `wait_for_required_ci` を1回だけ呼ぶ。
 
@@ -395,9 +418,10 @@ MCP実装・config・focused testが通った後、実際のCodex経路で確認
   - waiter利用不能時のpolling fallback禁止
 - MCP server内部の細かなpoll intervalや関数名までliteralで固定しない。
 
-### Task 8: PR #182を実装PRとして同期する
+### Task 8: PR #182のmetadataを同期する
 
-- PR title / bodyからPlan-only表現と旧 `gh pr checks --watch --fail-fast` 方針を除く。
+- Plan確定時点でPR bodyから旧 `gh pr checks --watch --fail-fast`、3ファイル限定、Plan-only完了表現を除き、MCP方式・実装予定scope・L3 / runtime gateへ同期する。
+- 実装開始後はPR title / bodyを実装内容と検証結果へ再同期する。
 - 同じbranch `plan/ci-wait-without-agent-polling` とPR #182を継続使用する。branch renameは行わない。
 - PR本文へ次を記録する。
   - MCP方式を採用した理由。
@@ -540,7 +564,18 @@ repo-local MCPはdependency / config / startup条件に依存するため、tool
 - Agent側のGitHub status pollingへfallbackしない。
 - setupを修復した場合はfresh Codex processでtool availabilityを再確認する。
 
-## 9. 成果物
+### 8. non-interactive `codex exec` でMCP tool callが成立しない場合
+
+installed Codexのversionやapproval処理によっては、tool catalogにMCP toolが存在してもnon-interactive `codex exec` から実callできない可能性がある。
+
+対策:
+
+- tool listingではなく `scripts/codex-safe.*` と `scripts/codex-task.*` の両方で実callを確認する。
+- `codex-task` が `--ask-for-approval never` を使う既存契約を変更して回避しない。
+- non-interactive経路で実callできない場合はHarnessをMCPへ切り替えずblockerとする。
+- wrapper、approval policy、別transport、resume方式へ自動fallbackしない。
+
+## 8. 成果物
 
 ### Plan / Run Artifact
 
@@ -562,20 +597,23 @@ repo-local MCPはdependency / config / startup条件に依存するため、tool
 
 ## 9. 実装順
 
-1. MCP SDK current stable / installed Codex / config仕様を最終確認する。
-2. dependency、`mcp:ci-wait` package script、project MCP configを追加し、lockfileを同期する。
-3. `pnpm install --frozen-lockfile` を完了し、host Nodeの `--run` 対応を確認する。
-4. stdio MCP serverへローカルGit originによるRepository固定と `wait_for_required_ci` を実装する。
-5. CI状態判定のcontract testを実装する。
-6. focused testを実行し、Repository root / subdirectoryから `node --run mcp:ci-wait` を確認したうえで、install後に起動したfresh Codex processの初回MCP tool catalog /短時間integration / GitHub認証を確認する。
-7. implementation harnessへMCP waiter利用不能時のfail-closed契約を追加し、Bash / PowerShell verifyを同期する。
-8. Repository標準verifyを実行する。
-9. Run Artifactをfinal commit前状態へ更新する。
-10. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
-11. push後にfresh Codex validation processを起動し、PR #182 latest headでMCP toolを1回callして実CIを待機する。
-12. 実CIのcallが360秒未満なら必要に応じて360秒local smokeを1回行う。
-13. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。
-14. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
+1. `AGENTS.md` のL3対象であることとrollback planを提示し、ユーザーの明示承認を確認する。未承認ならここで停止する。
+2. PR #182 bodyが最新PlanのMCP方式・scope・実装gateへ同期済みであることを確認する。
+3. MCP SDK current stable / installed Codex / config仕様を最終確認する。
+4. dependency、`mcp:ci-wait` package script、project MCP configを追加し、lockfileを同期する。
+5. `pnpm install --frozen-lockfile` を完了し、host Nodeの `--run` 対応を確認する。
+6. 公式SDK v2の `serveStdio` でstdio MCP serverを追加し、ローカルGit originによるRepository固定と `wait_for_required_ci` を実装する。
+7. CI状態判定のcontract testを実装する。
+8. focused testを実行し、Repository root / subdirectoryから `node --run mcp:ci-wait` を確認する。
+9. install後に起動したfresh Codex processで初回MCP tool catalog / GitHub認証を確認し、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗した場合はblockerとして停止する。
+10. runtime gate通過後だけ、implementation harnessへMCP waiter利用不能時のfail-closed契約を追加し、Bash / PowerShell verifyを同期する。
+11. Repository標準verifyを実行する。
+12. Run Artifactをfinal commit前状態へ更新する。
+13. commit / pushし、PR #182 title / bodyを実装内容へ同期する。
+14. push後にfresh Codex validation processを起動し、PR #182 latest headでMCP toolを1回callして実CIを待機する。
+15. 実CIのcallが360秒未満なら必要に応じて360秒local smokeを1回行う。
+16. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。
+17. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
 
 ## 10. 備考
 

@@ -165,3 +165,25 @@
 ## 削除候補
 
 - なし。
+
+## 2026-09-25 10:37 (JST) - 実装前最終レビュー反映
+
+- Summary: PR #182の実装前レビューで残っていた3件と関連する2件をPlanへ反映した。source実装は変更していない。
+- Changes:
+  - MCP server登録、tool approval、GitHub credential利用、Harness変更を `AGENTS.md` のL3として扱い、実装開始前の明示承認と具体的rollbackを追加した。
+  - tool catalog確認だけでなく、`scripts/codex-safe.*` と `scripts/codex-task.*` の両方から `wait_for_required_ci` を実callするruntime gateをHarness切替前へ追加した。
+  - non-interactive `codex exec` でMCP tool callがcancel /拒否される場合はblockerとし、approval policyやwrapper変更で自動回避しない契約を追加した。
+  - stdio serverの実装入口を公式SDK v2の `serveStdio` に固定し、registration / overall deadline直前の `gh` callがdeadlineを超えないよう子process timeoutを残時間で制限する契約を追加した。
+  - PR #182 bodyを実装開始前に最新Planへ同期する順序へ変更した。
+- 判断 / 理由:
+  - project MCP configとtool approvalはRepository自身のL3ガバナンス対象であり、Plan内に承認gateとrollbackが必要。
+  - `codex mcp list` やtool catalogへの掲載だけではnon-interactive `codex exec` の実call可否を証明できないため、標準Harness切替前に両実行経路を実測する。
+  - MCP方式自体、exact HEADのworkflow run識別、read-only GET、run固定、PR guardは再設計不要と判断した。
+- Validation: PR #182 latest head、最新Plan、Run Artifact、`AGENTS.md`、implementation harness、Web CI / Mobile App CI実runを再確認した。
+- ブロッカー / 残作業: source実装前にL3明示承認が必要。現時点ではPlan修正のみ。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 50% (9/18)
+

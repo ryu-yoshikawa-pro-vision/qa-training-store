@@ -11,13 +11,15 @@
 - [x] 7. 公式MCP TypeScript SDK v2 stableと既存Zod 4の利用方針を確認する。
 - [x] 8. 保存Plan / Run PLANをMCP方式へ更新する。
 - [x] 9. MCP再レビューを反映し、ローカルGitによるRepository identity固定、subdirectory起動、optional MCP startup grace、GitHub認証env継承、poll中PR guard、read-only GET、run識別、`gh` timeout、tool approval、dependency起動前提、waiter利用不能時のfail-closed、長時間smoke契約を確定する。
-- [ ] 10. official MCP SDK exact versionを確定し、dependency / lockfile / `mcp:ci-wait` script / project MCP config（startup grace・timeouts・GitHub auth env継承）を更新する。
-- [ ] 11. `wait_for_required_ci` MCP serverを実装する。
-- [ ] 12. CI waiter contract testとMCP integration testを実装する。
-- [ ] 13. implementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
-- [ ] 14. focused testとRepository標準verifyを実行する。
-- [ ] 15. Run Artifactをfinal commit前状態へ更新し、commit / push / PR本文を同期する。
-- [ ] 16. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。
+- [ ] 10. `AGENTS.md` のL3対象であることとrollback planを提示し、ユーザーの明示承認を確認する。未承認なら実装を開始しない。
+- [ ] 11. official MCP SDK exact versionを確定し、dependency / lockfile / `mcp:ci-wait` script / project MCP config（startup grace・timeouts・GitHub auth env継承）を更新する。
+- [ ] 12. 公式SDK v2の `serveStdio` を使って `wait_for_required_ci` MCP serverを実装する。
+- [ ] 13. CI waiter contract testとMCP integration testを実装する。
+- [ ] 14. fresh Codex processで、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗したらblockerとして停止する。
+- [ ] 15. runtime gate通過後だけimplementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
+- [ ] 16. focused testとRepository標準verifyを実行する。
+- [ ] 17. Run Artifactをfinal commit前状態へ更新し、commit / push / PR本文を実装結果へ同期する。
+- [ ] 18. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。
 
 ## 完了処理の参照先
 
@@ -39,6 +41,8 @@
 - `repository` はtool入力から外す。Repository identityはMCP server process起動時に `git remote get-url origin` からローカルに1回だけ導出してprocess内へ固定し、startup中にGitHub APIを呼ばず、tool call中にGit remoteを再解決しない。PRの `base.repo.full_name` も固定Repositoryと照合する。
 - 各 `gh` 子processは30秒timeout + `GH_PROMPT_DISABLED=1` とし、1回のCLI hangでoverall timeoutが機能しなくなる状態を防ぐ。
 - `wait_for_required_ci` はread-only annotationsを付け、このtoolだけ `approval_mode = "approve"` に固定する。
+- MCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3に該当するため、実装前に明示承認とrollback planが必要。
+- tool catalogへの掲載だけでは不十分。`codex-safe` と `codex-task` の両方から実tool callが成立することをHarness切替前のruntime gateにする。
 - workflow runは `ci.yml` / `native-ci.yml` を直接指定し、exact head + pull_request event + PR番号が一致したrunだけを採用する。
 - GitHub accessは `gh api --method GET` に統一し、`-f` / `-F` 使用時も暗黙POSTへ切り替えない。
 - run statusは `status != completed` を一律待機、`completed + success` を成功、`completed + non-success` を失敗とする。
@@ -54,4 +58,4 @@
 
 ## Blocked（ブロック中）
 
-- なし。次はMCP dependency / config / server実装。Progress: 56% (9/16)。
+- なし。次はL3実装承認の確認。承認後にMCP dependency / config / server実装へ進む。Progress: 50% (9/18)。
