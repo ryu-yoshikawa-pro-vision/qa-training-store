@@ -1,18 +1,29 @@
 # REPORT
 
-## 2026-09-25 11:17 (JST) - Plan作成完了
+## 2026-09-25 - Planレビュー反映
 
-- main@c42082ba62cbca87f675b336d06885719d21b50e から plan/codex-autonomous-workspace を作成した。
-- 通常のinteractive入口をworkspace内の direct codex とし、workspace-write / approval never / network enabledへ整理するPlanを作成した。
-- auto-net は専用rules、wrapper、new-run、verify、current docsに残っているため、設定値だけではなくactive contract全体を同期する計画にした。
-- current .codex/config.toml はworkspace-write / network disabled / approval policy未設定。
-- current verifyはその状態をliteral contractとして検証している。
-- .codex/rules/20-risky-prompt.rules はnetwork readや各種tool familyを広く prompt にしており、approval never化と同時に監査が必要。
-- GitHub code searchで .github/workflows/** の auto-net 参照は0件。
-- codex-safe はauto-net以外にpreflight / logging / Run manifest sync責務があるため、wrapper全削除はPlan対象にしなかった。
-- OpenAI Codex config referenceで approval_policy = "never"、sandbox_mode = "workspace-write"、sandbox_workspace_write.network_access が現行設定として確認できた。
-- 公式はinteractiveでは一般に on-request を推奨するため、今回の never はユーザーの自律実行要件に基づく明示的なRepository方針として扱う。
-- 実装は未実施。今回はPlan-only。
-- L3実装承認が次のgate。
-- Plan: docs/plans/2026-09-25_111717_codex-autonomous-workspace.md
-- Progress: 100% (9/9)
+### 状態
+
+- branch: plan/codex-autonomous-workspace
+- base: main@c42082ba62cbca87f675b336d06885719d21b50e
+- 実装は未開始。
+- このRunはPlan-onlyで終了せず、L3承認後に同じbranchで実装・検証・PR・CI確認まで継続する。
+
+### 反映した判断
+
+- direct codexのproject defaultを workspace-write / approval never / network trueへ変更する。
+- auto-net presetは通常のdirect codexを邪魔しないため削除しない。
+- rm / git rm等の既存破壊操作denyは変更しない。
+- project defaultをnetwork trueにしても、codex-safe / codex-taskのsafeはnetwork false、auto-netはnetwork trueという既存意味を維持する。
+- Issue #135 / PR #147で整理済みのAGENTS.mdを今回再設計しない。
+- runtime設定値や個別command policyをAGENTS.mdへ追加しない。
+- compact時のSessionStart Hookによるroot AGENTS.md再注入を維持する。
+- prompt rulesは全面再設計せず、fresh runtimeで通常workflowを実際に阻害した箇所だけ変更する。
+- approval_policy = "never" の完了条件は通常のshell / workspace操作に限定し、MCP / apps / Hook trust等の別approval契約と混同しない。
+- PR #182との競合は実装開始時にlatest headを再確認して処理する。
+
+### 次のgate
+
+L3変更の明示承認後、正本Planの実装順に従って作業を開始する。
+
+Progress: 25% (3/12)

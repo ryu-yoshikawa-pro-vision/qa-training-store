@@ -1,36 +1,31 @@
 # Run Plan
 
 - Run ID: 20260925-111717-JST
-- Task type: plan
-- Workflow level: standard
+- Task type: harness-improvement
+- Workflow level: strict
 - Branch: plan/codex-autonomous-workspace
 - Base: main@c42082ba62cbca87f675b336d06885719d21b50e
 
 ## 目的
 
-通常のinteractive Codexをworkspaceで codex だけで起動する実運用へRepository契約を合わせるPlanを作成する。
-
-対象方針:
-
-- sandbox_mode = "workspace-write"
-- approval_policy = "never"
-- sandbox_workspace_write.network_access = true
-- auto-net preset整理
-- AGENTS.md / Harness / rules / verifyの整合
-- destructive safety boundaryは維持
-
-## 対象範囲
-
-今回実施するのは調査・Plan作成・branch保存まで。source実装は行わない。
+このbranchでPlan作成だけで終了せず、direct codexのproject defaultを自律実行向けへ変更し、既存の安全境界とwrapper互換性を維持したうえで、検証、commit、push、PR、最新PR headのCI確認まで進める。
 
 正本Plan:
 
 - docs/plans/2026-09-25_111717_codex-autonomous-workspace.md
 
-## 判断
+## 確定方針
 
-- 通常interactive入口は direct codex とする。
-- auto-net はcurrent workflow callsiteがなく、通常project configでnetworkを有効化するなら専用presetとして重複するため削除候補とする。
-- codex-safe 自体はRun manifest sync / preflight等の責務が残るため、今回の目的だけでは削除しない。
-- approval_policy = "never" とbroad prompt rulesの整合が必要なため、config値だけの変更にはしない。
-- 実装はL3変更になるため、別途明示承認を得てから開始する。
+- direct codex:
+  - workspace-write
+  - approval never
+  - network true
+- danger-full-accessへ変更しない。
+- auto-net presetは削除しない。
+- rm / git rm等の既存denyを変更しない。
+- codex-safe / codex-taskのsafe / readonly / auto-net semanticsを維持する。
+- Issue #135 / PR #147で整理済みのAGENTS.mdを再設計しない。
+- compact時のAGENTS.md再注入Hookを変更しない。
+- rulesは通常workflowを実際に阻害する場合だけ最小変更する。
+- 実装はL3の明示承認後に開始する。
+- mergeは明示指示があるまで行わない。
