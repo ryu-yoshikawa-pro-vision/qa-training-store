@@ -99,3 +99,28 @@ Progress: 13% (3/23)
 最新Plan-only headのCIを再確認した後も、source実装の次gateはL3実装承認のまま。
 
 Progress: 13% (3/24)
+
+
+## 2026-09-25 - 再レビュー7回目の修正
+
+### 状態
+
+- 実装は未開始。
+- Workflow Levelはstrictを維持する。
+- 最新Plan-only headではWeb CI / Mobile App CIともにsuccessを確認済み。
+
+### 今回反映した修正
+
+- `auto-net`がcommon `.codex/rules/20-risky-prompt.rules`を読み込まない現行構成をPlanへ反映した。
+- `.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`を必須変更対象へ追加し、local branch deleteとgeneric `gh api` / 高影響GitHub CLI operationをauto-netではforbiddenとして同期する方針にした。
+- `.codex/rules-auto-net/10-auto-net-allow.rules`のread-only branch inspectionと、`30-auto-net-forbidden.rules`の既存契約は維持する。
+- auto-net preset自体は削除せず、network=true / approval=neverの既存semanticsを維持する。
+- auto-net preflight / verifyでは追加forbidden caseとread-only branch allowの両方を確認する。
+- `run.json.safety.network` の確認済みconsumer一覧を、`docs/reference/run-artifacts.md`、`scripts/codex-task.sh`、`scripts/codex-task.ps1`、`scripts/collect-run-artifacts.py`へ修正した。
+- source実装、L3設定変更、mergeは行っていない。
+
+### 次のgate
+
+L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
+
+Progress: 12% (3/25)

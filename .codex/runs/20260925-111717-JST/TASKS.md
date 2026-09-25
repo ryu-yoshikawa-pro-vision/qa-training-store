@@ -8,7 +8,7 @@
 
 ## 実装
 
-- [ ] L3変更としてユーザーの明示承認を確認し、latest main / branch / PR #182 / Codex version / baseline / requirements・metadata・safety.network consumerを記録する。
+- [ ] L3変更としてユーザーの明示承認を確認し、latest main / branch / PR #182 / Codex version / baseline / requirements・metadata・safety.network consumerを記録する。safety.network consumerはdocs、Bash / PowerShell両codex-task、collectorを確認する。
 - [ ] 同じRun IDを既存machine-managed writerでstrictへ補完し、run.json / evaluation template / explicit scopeを作る。
 - [ ] .codex/config.tomlを workspace-write / approval never / network trueへ変更する。
 - [ ] codex-project.tomlのnetwork / apply_patch metadataを新契約へ同期し、standard run_manifest=recommendedは維持する。
@@ -16,6 +16,7 @@
 - [ ] .codex/rules/20-risky-prompt.rulesでgit switchだけをbroad Git promptから外す。
 - [ ] git branch -d / --deleteをpromptへ追加し、複合short option / option順序違いもpromptになることを検証する。git branch -D / -fとremote branch deleteの既存denyを維持する。
 - [ ] generic gh apiと高影響GitHub CLI operationをpromptへ追加し、通常PR workflowをblanket blockしない。これをGitHub writeのhard boundaryとは扱わない。
+- [ ] auto-net専用rulesへlocal branch deleteとgeneric gh api / 高影響GitHub CLI operationのforbiddenを同期し、read-only branch inspectionのallowを維持する。
 - [ ] local例外操作についてcodex-safe safeのon-request承認が成立することを確認する。network sandbox昇格は条件にしない。
 - [ ] network例外操作についてcodex-safe safeで副作用のないread-only network operationを使い、on-request承認 + network sandbox昇格が実runtimeで成立するか確認する。失敗時はnetwork例外操作だけをblockerとし、新presetを追加しない。
 - [ ] merge / rebase recoveryはdirect neverで迂回せず、local例外操作として必要時にcodex-safe safeのon-request経路を使う契約へ同期する。
@@ -37,4 +38,4 @@
 - strict必須のrun.json / evaluation.jsonは未作成。
 - 次のgateはL3実装承認。その直後にmachine-managed strict Artifact bootstrapを行う。
 
-Progress: 13% (3/24)
+Progress: 12% (3/25)
