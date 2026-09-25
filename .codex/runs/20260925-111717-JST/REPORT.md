@@ -1,25 +1,25 @@
 # REPORT
 
-## 2026-09-25 - 再レビュー2回目の修正
+## 2026-09-25 - 再レビュー3回目の修正
 
 ### 状態
 
 - branch: plan/codex-autonomous-workspace
 - 実装は未開始。
-- Workflow Levelをstrictへ戻した。
-- strict必須のrun.json / evaluation.jsonは未作成。Agentが手書きせず、L3承認後・source変更前に既存machine-managed writerで同じRun IDへ補完する。
+- Workflow Levelはstrictを維持する。
+- strict必須のrun.json / evaluation.jsonは未作成。L3承認後・source変更前に既存machine-managed writerで同じRun IDへ補完する。
 
-### 反映した修正
+### 今回反映した修正
 
-- safety / rules / wrapper変更をstandardへ降格していた誤りを修正し、Repository contractどおりstrictへ戻した。
-- active Runに紐づくinteractive実行をcodex-safe必須とする現行run-artifacts contractを変更対象へ追加した。
-- direct codexをactive Runでも正規入口として認め、manifest更新は既存machine-managed checkpointで担保する方針にした。
-- .codex/requirements.tomlを変更対象へ追加した。
-- codex-project.tomlのnetwork_access_in_workspace_write=falseを変更対象へ追加した。
-- approval neverで確実に拒否される通常git checkout / switchを条件付き修正から必須修正へ変更した。
-- merge / rebase / tag、curl family、infrastructure / cloud CLI等は今回の目的だけで緩和しない。
-- workspace-write subagentのnetwork falseはrole固有contractではないため、根拠なく個別overrideを追加しない方針へ変更した。
-- auto-net、rm deny、AGENTS.md、compact Hookは維持する。
+- direct `codex`と現行run.jsonのpreset / safety.network不整合を解消するため、通常lightweight / standardとstrictを分離した。
+- 通常lightweight / standard interactiveはdirect `codex`とし、Run初期化では`--no-run-manifest`を使ってPLAN / TASKS / REPORTだけを管理する。
+- strict / machine-managed evidenceが必要なRunは既存`codex-safe -RunId` / `codex-task --record-run-manifest`経路を維持する。
+- direct session用の新しいmanifest schema、writer、presetは追加しない。
+- `git checkout`はworking tree復元にも使えるためpromptを維持し、branch操作専用の`git switch`だけをbroad promptから外す方針へ変更した。
+- `.codex/requirements.toml`をruntime-criticalなproject instructionとして扱う前提を撤回した。actual consumer / managed distributionで実効性が確認できた場合だけ変更する。
+- `codex-project.toml`のnetwork metadataはproject configと同期する。
+- PR #182は今回の通常interactive契約確定後に最新mainへ同期し、interactive MCP E2Eをdirect `codex`基準へ修正する順序を明示した。
+- auto-net、rm deny、AGENTS.md、compact Hook、既存Run manifest schemaは維持する。
 
 ### 次のgate
 

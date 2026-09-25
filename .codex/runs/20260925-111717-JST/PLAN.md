@@ -8,9 +8,9 @@
 
 ## 目的
 
-このbranchでdirect `codex`を通常interactive入口へ変更し、project defaultをworkspace-write / approval never / network trueへ揃える。
+通常interactiveをdirect `codex`へ変更し、project defaultをworkspace-write / approval never / network trueへ揃える。
 
-同時に、既存の安全境界、wrapper preset、Run Artifact、Repository metadata、subagent責務を矛盾なく維持する。
+Run Artifactは新しいdirect用manifest modelを追加せず、通常のlightweight / standardとstrictを分離する。
 
 正本Plan:
 
@@ -19,24 +19,22 @@
 ## 確定方針
 
 - direct `codex`: workspace-write / approval never / network true
-- Workflow Levelはstrict。Artifact不足を理由にstandardへ降格しない。
-- actual `run.json`は手書きしない。L3承認後、source変更前に既存machine-managed writerで同じRun IDへ補完する。
-- active Runがあるinteractive taskでもdirect `codex`を正規入口として認めるようRun Artifact contractを更新する。
-- `codex-safe -RunId`はactive Run紐付けの必須入口から、wrapper固有機能が必要な場合の補助経路へ変更する。
-- `.codex/requirements.toml`と`codex-project.toml`をproject configと同期する。
-- 通常の`git checkout / switch`をbroad prompt ruleから外す。`merge / rebase / tag`はprompt維持。
+- 通常lightweight / standard interactiveはdirect `codex`を使い、Run初期化時は`--no-run-manifest`でPLAN / TASKS / REPORTだけを管理する。
+- strict / machine-managed evidenceが必要なRunは既存`codex-safe -RunId` / `codex-task --record-run-manifest`経路を維持する。
+- 今回のactive Runはstrict。L3承認後、source変更前に既存machine-managed writerで同じRun IDへrun.json / evaluation template / scopeを補完する。
+- fresh direct `codex`はproject defaultのE2E validationとして別途実行し、その結果をREPORT / evaluationへ記録する。direct session用run.jsonは作らない。
+- `codex-project.toml`をproject network trueへ同期する。
+- `.codex/requirements.toml`はactual consumer / managed distributionで実効性を確認できた場合だけ変更する。
+- `git switch`だけをbroad prompt ruleから外す。`git checkout / merge / rebase / tag`はprompt維持。
 - auto-net presetは削除しない。
 - rm / git rm等の既存denyを変更しない。
 - workspace-write subagentへnetwork falseを新設しない。既存role contractに禁止根拠がある場合だけ個別overrideする。
-- Issue #135 / PR #147で整理済みのAGENTS.mdを再設計しない。
-- compact時のAGENTS.md再注入Hookを変更しない。
-- PROJECT_CONTEXT更新時はhistory snapshotを追加する。
+- AGENTS.mdとcompact再注入Hookを変更しない。
+- PR #182はこのbranchの通常interactive契約確定後に最新mainへ同期し、interactive E2Eをdirect `codex`基準へ修正する。
 - mergeは明示指示があるまで行わない。
 
 ## strict Artifactの現在状態
 
 `run.json` / `evaluation.json` は未作成。
 
-これは既知のblockerであり、L3承認後の最初の工程で既存`codex-task`の`--record-run-manifest` / `--evaluation-template` / scope optionを使ってmachine-managedに補完する。
-
-補完完了前にsource変更へ進まない。
+次のgateはL3実装承認。その直後、source変更前に既存machine-managed経路で補完する。
