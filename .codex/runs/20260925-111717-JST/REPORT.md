@@ -1,29 +1,30 @@
 # REPORT
 
-## 2026-09-25 - Planレビュー反映
+## 2026-09-25 - 再レビュー修正
 
 ### 状態
 
 - branch: plan/codex-autonomous-workspace
-- base: main@c42082ba62cbca87f675b336d06885719d21b50e
 - 実装は未開始。
-- このRunはPlan-onlyで終了せず、L3承認後に同じbranchで実装・検証・PR・CI確認まで継続する。
+- このbranchはPlanで終了せず、L3承認後に実装・検証・PR・CI確認まで継続する。
+- active RunのWorkflow Levelはstandardへ戻した。strict必須のrun.json / evaluation.jsonを後付けで手書きしない。
 
-### 反映した判断
+### 今回反映した修正
 
-- direct codexのproject defaultを workspace-write / approval never / network trueへ変更する。
-- auto-net presetは通常のdirect codexを邪魔しないため削除しない。
-- rm / git rm等の既存破壊操作denyは変更しない。
-- project defaultをnetwork trueにしても、codex-safe / codex-taskのsafeはnetwork false、auto-netはnetwork trueという既存意味を維持する。
-- Issue #135 / PR #147で整理済みのAGENTS.mdを今回再設計しない。
-- runtime設定値や個別command policyをAGENTS.mdへ追加しない。
-- compact時のSessionStart Hookによるroot AGENTS.md再注入を維持する。
-- prompt rulesは全面再設計せず、fresh runtimeで通常workflowを実際に阻害した箇所だけ変更する。
-- approval_policy = "never" の完了条件は通常のshell / workspace操作に限定し、MCP / apps / Hook trust等の別approval契約と混同しない。
-- PR #182との競合は実装開始時にlatest headを再確認して処理する。
+- `approval_policy = "never"` の意味を現行Codex仕様へ修正した。
+  - sandbox approval、execpolicy prompt、MCP elicitation、request_permissions、Skill approvalはpromptを出さず自動拒否。
+  - Apps / MCP tool固有approval modeとHook trustは別契約。
+- direct `codex` とRun Artifactの境界を確定した。
+  - 通常interactiveはdirect `codex`。
+  - strict Run / machine-managed manifest syncが必要なinteractive workは既存`codex-safe -RunId`を維持。
+  - Run Artifact lifecycle自体の再設計は今回行わない。
+- workspace-write subagentの実効configを実装前後で確認し、project network trueによる意図しない境界拡大があればrole側でnetwork falseを明示する。
+- `docs/PROJECT_CONTEXT.md` 更新時はAGENTS契約どおり`docs/history/` snapshotを追加する。
+- auto-net、rm deny、AGENTS.md、compact Hookは維持する。
+- prompt rulesは全面再設計せず、neverで通常workflowを実際に阻害する必要経路だけ最小変更する。
 
 ### 次のgate
 
 L3変更の明示承認後、正本Planの実装順に従って作業を開始する。
 
-Progress: 25% (3/12)
+Progress: 21% (3/14)
