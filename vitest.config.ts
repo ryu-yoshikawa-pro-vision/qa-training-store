@@ -15,7 +15,7 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,
-    exclude: [...configDefaults.exclude, "**/.artifacts/**"],
+    exclude: [...configDefaults.exclude, "**/.artifacts/**", "**/output/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],

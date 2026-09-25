@@ -37,11 +37,13 @@
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
 - 長時間handlerはMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、serverがcancellationを受信した場合の追加pollを停止する。installed Codexからstdio MCP requestへのcancellation伝播自体はruntimeで実測し、固定前提にしない。
 - 公式 `@modelcontextprotocol/server` / `@modelcontextprotocol/client` v2 stableを同じexact versionでdevDependenciesへ追加する。server packageはproduction MCP server、client packageはstdio integration testだけに使う。
+- 2026-09-25の追加ユーザー承認: Repository標準verifyがignored `output/**/training-copy` をVitest test discoveryへ混入させたため、`vitest.config.ts` の共通 `test.exclude` へ `**/output/**` だけを追加する。training-copy、test script、verify wrapperは変更しない。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
-- 実装前の必須確認: MCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3に該当するため、ユーザーの明示承認が必要。今回のPlan修正依頼だけを実装承認とは扱わない。
+- 実装前の必須確認: MCP server登録、tool approval、GitHub credential利用、Harness変更は `AGENTS.md` のL3に該当する。2026-09-25のユーザー指示で最新Planに記載された対象について明示承認済み。rollbackは最新PlanのTask 0に記載された範囲に限定する。
+- 詳細契約・実装順・検証・停止条件の正本: `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md`。
 - 実装gate:
   - project configからstdio MCP serverがinstalled Codex / Windows hostで起動すること。
   - `tool_timeout_sec=6000` をinstalled Codexが受理し、MCP toolが利用できること。

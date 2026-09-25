@@ -166,6 +166,30 @@
 
 - なし。
 
+## 2026-09-25 - MCP server実装とfocused test
+
+- Summary: 公式MCP SDK v2のCI waiterを実装し、Task 11〜13を完了した。Task 14のruntime gateは未実施。
+- Changes:
+  - `@modelcontextprotocol/server` / `@modelcontextprotocol/client` を同じexact `2.1.0` で追加し、`mcp:ci-wait` scriptとproject MCP configを登録した。
+  - `scripts/mcp/ci-wait-server.mjs` にstdio server、origin由来のrepository固定、read-only GitHub CLI呼び出し、PR/head/run判定、bounded wait、request cancellation cleanupを実装した。
+  - `tests/contracts/ci-wait-mcp.test.ts` にcontract / SDK stdio integrationとroot / subdirectory起動の20件を追加した。
+- Validation: `corepack pnpm install --frozen-lockfile` 成功。`codex mcp list` / `codex mcp get ci_wait` がconfigを受理。`corepack pnpm exec vitest run tests/contracts/ci-wait-mcp.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` は20/20 PASS。Integration testはRepository rootおよび`tests/contracts`からserverを起動し、mock tool callとsleep / gh process cancellation cleanupを確認した。
+- ブロッカー / 残作業: Task 14でfresh Codex processから`codex-safe` / `codex-task`双方の実callを確認する。いずれか失敗なら計画どおりHarness / verify変更へ進まず停止する。
+- Progress: 72% (13/18)
+
+## 2026-09-25 19:20 (JST) - 実装開始gate
+
+- Summary: PR #182、作業branch、最新main、最新Plan、active Run、L3承認とrollback範囲を照合し、Task 10を完了した。
+- Changes: active Run PLANの承認状態を今回の明示承認へ更新し、TASKSのTask 10を完了扱いにした。
+- 判断 / 理由:
+  - current branchとPR #182 headは`plan/ci-wait-without-agent-polling` / `af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b`で一致する。working tree開始時はclean。
+  - remote `main` と`origin/main`は`c42082ba62cbca87f675b336d06885719d21b50e`で一致し、PR branchはbehind 0 / ahead 14。
+  - ユーザーが最新Planの実装範囲についてL3対象を含む明示承認を行い、rollbackをPlan Task 0の列挙範囲に限定すると指定した。
+  - 公式MCP TypeScript SDKの現行exact versionはserver/clientとも`2.1.0`、Node要件は`>=20`、licenseはMIT。Corepack経由でRepository指定の`pnpm@10.34.5`を利用できる。
+- Validation: `gh pr view 182`でPR headを確認。`git ls-remote origin refs/heads/main`、`git rev-list --left-right --count origin/main...HEAD`、`git status --short --branch`を確認。Plan指定のread-only workflow / repair / harness契約を確認。`gh pr checks 182`で現headのWeb CI / Mobile App CIが終端successであることを確認。
+- ブロッカー / 残作業: なし。次はTask 11以降。Task 14のruntime gateには現headのexact SHAを使う。
+- Progress: 56% (10/18)
+
 ## 2026-09-25 10:37 (JST) - 実装前最終レビュー反映
 
 - Summary: PR #182の実装前レビューで残っていた3件と関連する2件をPlanへ反映した。source実装は変更していない。
@@ -247,3 +271,57 @@
 ## 削除候補
 
 - なし。
+
+## 2026-09-25 20:00 (JST) - runtime gate通過とHarness同期
+
+- Summary: Task 14の両経路runtime gateが成功したため、Task 15としてHarnessおよびBash / PowerShell verifyをMCP契約へ同期した。
+- Changes:
+  - Harnessはpush後の最新PR headを指定した`wait_for_required_ci`一回呼び出し、exact HEADの`Web CI` / `Mobile App CI`待機、Agent側polling禁止、waiter利用不能時のfail-closedを定義した。
+  - `scripts/verify` と `scripts/verify.ps1` は同じ必須契約を確認するよう更新した。
+- Validation: fresh `codex-safe` processとfresh `codex-task` / `codex exec` processの双方でPR 182、head `af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b`に対して`wait_for_required_ci`を各1回実call。両方ともtool resultがCodexへ返り、expected/observed head一致、`Web CI` run `36122585737` success、`Mobile App CI` run `36122586014` successを確認した。codex-taskはwrapperの`approval: never`のままtool call成功。installed Codex cancellation伝播はこの完了済みcallでは実測していない。server側cleanupはfocused integration testで確認済み。
+- ブロッカー / 残作業: なし。次にfocused test、Bash / PowerShell verify、Repository標準verifyを実行する。その後Run Artifact確定、commit / push、PR metadata更新、最新headの実CI waitと条件付き360秒smokeを行う。
+- Progress: 83% (15/18)
+
+## 2026-09-25 21:39 (JST) - Vitest discovery修正とTask 16完了
+
+- Summary: ユーザーの追加承認を受け、ignored generated outputがVitestへ混入するtest discoveryだけを共通設定で修正した。既存outputを削除せず、同じworkspaceでTask 16のfocused testとRepository標準verifyが完了した。
+- Cause:
+  - `.gitignore` が`output/`全体を生成物としてignoreしている。
+  - `package.json` の`test:unit`は `vitest run tests/unit` だが、`vitest.config.ts` の共通 `test.exclude` は既定除外と`**/.artifacts/**`だけだったため、output配下のchallenge training-copy testも拾っていた。
+  - 失敗したcopyでは`CHALLENGE-ADVANCED-001.patch` がpermission rank checkを `return true` に置き換えるchallenge状態を作るため、通常sourceのpolicy assertionが失敗していた。MCP実装起因ではなく、generated fixtureをsource unit testとして発見する設定漏れだった。
+- Changes:
+  - `vitest.config.ts` の共通 `test.exclude` へ `**/output/**` を1件追加した。
+  - `output/**` の削除、training-copy / test / script / verify wrapperの変更は行っていない。Vitest以外の設定整理、workflow、Product codeも変更していない。
+- Validation:
+  - 失敗元 `output/common-walkthrough-training-copy-20260918/tests/unit/policies.test.ts` が存在し、Git ignoredであることを修正後も確認した。
+  - 同一workspaceで `corepack pnpm run test:unit`: 13 files / 66 tests PASS。正規 `tests/unit` は引き続き実行され、generated output testは収集されなかった。
+  - `corepack pnpm exec vitest run tests/contracts/ci-wait-mcp.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000`: 1 file / 20 tests PASS。
+  - `bash scripts/verify`: PASS=2 / FAIL=0 / SKIP=2（Codex executableを検出できずexecpolicyとBash-wrapper preflightをskip）。`pwsh -ExecutionPolicy Bypass -File scripts/verify.ps1`: PASS=3 / FAIL=0 / SKIP=0。
+  - `corepack pnpm run verify`（子script向けCorepack pnpm shimを一時PATHへ追加）: exit 0。format、Markdown/text、Skills/spec/visuals/curriculum、ESLint（0 errors / 65 warnings）、app/native/training typecheck、image manifest、security checkを通過。
+  - 標準test: unit 13 files / 66 tests、integration 9 / 111、repository-contract 11 / 147、web component 11 / 102、native Jest 13 suites / 64、contract 47 files / 814 passed / 4 skipped。
+  - build: web Expo exportとdocs build PASS、spec build 22 pages PASS。Jestはignored generated packageとのHaste naming collision warningを表示したが、native testは全件PASS。
+  - `git diff --check` PASS。test開始からverify完了までoutputを手動削除していない。
+  - 追加fetch後、branch=`plan/ci-wait-without-agent-polling`、HEAD / origin branch / PR #182 head=`af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b`、PR OPEN、`origin/main` behind 0 / ahead 14を確認。
+- Blocker / 未完了: Task 17（final Run確定、commit / push、PR title/body同期）とTask 18（push後latest headへのfresh Codex MCP CI wait、必要時の360秒smoke）は未完了。installed Codex cancellation伝播は完了済みCI callでは実測機会なし。server側cleanupはMCP integration testで確認済み。
+- Progress: 89% (16/18)
+
+## 2026-09-25 20:45 (JST) - Repository verify blockerとMCP再検証
+
+- Summary: MCP execution surface修正後に両Codex wrapperからのfresh実callを再確認した。Plan対象のfocused / contract検証は成功した一方、Repository標準verifyがignored training copyのunit testで停止したため、Task 16以降は未完了とした。
+- Validation:
+  - `corepack pnpm run test:contracts`: 47 files passed、814 tests passed、4 skipped（676.73秒）。新規MCP contract / stdio integration / cancellation testを含む。
+  - `corepack pnpm exec vitest run tests/contracts/ci-wait-mcp.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000`: 20/20 PASS。`typecheck:app` PASS。
+  - `bash scripts/verify`: PASS=2、FAIL=0、SKIP=2（Bash環境からCodex executableを検出できないためexecpolicy/Bash preflightをskip）。`scripts/verify.ps1`: PASS=3、FAIL=0、SKIP=0。
+  - `corepack pnpm run verify`は一時Corepack pnpm shimをPATHへ加えて起動。format、Markdown/text lint、Skill/spec/visual/curriculum validation、ESLint（0 errors、既存warning 65件）、全typecheck、image manifest、security checkはPASS。unit stageは52 files中3 failuresで停止。
+  - unit failuresはGit未追跡・ignoredの`output/**/training-copy`にあるpermission-policy test 3件。各copyの`CHALLENGE-ADVANCED-001.patch`がrank checkを`return true`へ変えるchallenge fixtureで、assertion line 39が失敗する。`vitest.config.ts`と`test:unit`はcurrent diff対象外で、解消にはPlan外のtest discovery変更またはignored copyの扱いが要る。Planのscope制約に従い変更せずblockerとした。
+  - MCP実装後のfresh revalidation: `codex-safe` / `codex-task`双方からPR 182、head `af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b`を各1回実call。両方ともCodexへ`result: success`を返し、`Web CI` run `36122585737` / `Mobile App CI` run `36122586014` はcompleted success。`codex-task`のapprovalは`never`のまま成立した。
+  - installed Codexからのrequest cancellation伝播は実測していない（runtime再確認のheadは既に完了しておりcancel機会なし）。server側abort cleanupはMCP client integration testで確認済み。`git diff --check`は通過し、REPORTのCRLF→LFに関するGit warningのみ。
+- Blocker / 未完了: Task 16のRepository標準verify PASS、Task 17のfinal Run確定 / commit / push / PR metadata同期、Task 18のpush後latest-head MCP CI waitと条件該当時の360秒smoke。したがってfinal commit/pushも行っていない。Plan外のVitest設定変更を許可する追加指示、またはignored output artifactsを含まない検証workspaceが必要。
+- Progress: 83% (15/18)
+
+## 2026-09-25 21:39 (JST) - blocker解消のRun状態確定
+
+- Summary: 上記20:45のblocked checkpoint後、ユーザーがVitest共通excludeの最小修正を追加承認した。直前の21:39検証記録にあるとおり、同じworkspaceでunitとRepository標準verifyはPASSし、Task 16を完了した。
+- Scope: 追加source変更は`vitest.config.ts`の`**/output/**`追加だけ。ignored output、training-copy、各test script、verify wrapper、workflow、Product codeは変更していない。
+- 残作業: Task 17（tracked Runのfinal commit前確定、commit/push、PR metadata同期）とTask 18（push後latest headのMCP CI wait、該当時の360秒smoke）。installed Codex cancellation伝播は完了済み実callだったため観測機会なし。server側cleanupはfocused MCP integration testで確認済み。
+- Progress: 89% (16/18)

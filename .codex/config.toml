@@ -5,6 +5,17 @@
 sandbox_mode = "workspace-write"
 web_search = "cached"
 allow_login_shell = false
+mcp_optional_startup_grace_ms = 5000
+
+[mcp_servers.ci_wait]
+command = "node"
+args = ["--run", "mcp:ci-wait"]
+env_vars = ["GH_TOKEN", "GITHUB_TOKEN"]
+startup_timeout_sec = 5
+tool_timeout_sec = 6000
+
+[mcp_servers.ci_wait.tools.wait_for_required_ci]
+approval_mode = "approve"
 
 [sandbox_workspace_write]
 network_access = false

@@ -1,0 +1,3 @@
+{"timestamp":"2026-09-25T19:57:01.8627007+09:00","event":"wrapper_start","runtime":"host","run_id":"20260924-200458-JST","preset":"safe"}
+{"timestamp":"2026-09-25T19:57:02.0239129+09:00","event":"codex_exec_start","output_file":"<REPO_ROOT>/.codex\\\\runs\\20260924-200458-JST\\artifacts\\codex-task-20260925-195701.json","runtime":"host"}
+{"timestamp":"2026-09-25T19:57:57.9234359+09:00","event":"codex_exec_exit","exit_code":0}

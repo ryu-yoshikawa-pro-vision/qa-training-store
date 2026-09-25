@@ -1,0 +1,10 @@
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"result\":\"success\",\"repository\":\"ryu-yoshikawa-pro-vision/qa-training-store\",\"pr_number\":182,\"expected_head_sha\":\"af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b\",\"observed_head_sha\":\"af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b\",\"runs\":{\"Web CI\":{\"run_id\":36122585737,\"status\":\"completed\",\"conclusion\":\"success\",\"url\":\"https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/36122585737\"},\"Mobile App CI\":{\"run_id\":36122586014,\"status\":\"completed\",\"conclusion\":\"success\",\"url\":\"https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/36122586014\"}}}"
+    }
+  ]
+}
+```
