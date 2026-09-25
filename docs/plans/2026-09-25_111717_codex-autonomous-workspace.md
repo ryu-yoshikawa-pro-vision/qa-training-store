@@ -79,22 +79,23 @@ direct `codex` では「高リスク時だけその場でユーザーへ確認�
 
 direct `codex` へ自動適用されるものではなく、wrapperを明示利用した場合のpresetとして維持する。
 
-現行wrapperは`auto-net`選択時にcommon `.codex/rules/20-risky-prompt.rules`を読み込まない。そのため、今回common promptへ追加する安全境界を`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`へも同期する。
+現行wrapperは`auto-net`のpreflightでcommon `.codex/rules/20-risky-prompt.rules`を除外し、`.codex/rules-auto-net/*.rules`を追加して`codex execpolicy check`を実行する。
 
-auto-netはnon-interactive / network-enabled presetなのでpromptではなくforbiddenとする。
+一方、actual Codex sessionへ`--rules`は渡していない。Repositoryが前提にするCodex 0.147.0ではproject config layerの`.codex/rules/*.rules`がruntime policyとして自動ロードされ、`.codex/rules-auto-net/*.rules`は自動ロードされない。
 
-対象:
+したがって責務を次で固定する。
 
-- local `git branch -d / --delete` と複合short option / option順序違い
-- generic `gh api`
-- `gh pr merge / close`
-- `gh issue close`
-- `gh release create / delete`
-- `gh repo delete`
+- actual runtime policyの正本: `.codex/rules/*.rules`
+- `.codex/rules-auto-net/*.rules`: 現行wrapperのpreflight専用overlay
+- `--ignore-rules`やpreset-specific runtime loaderは今回追加しない
 
-既存`.codex/rules-auto-net/10-auto-net-allow.rules`のread-only `git branch` allowは維持する。forbidden ruleをより厳しいdecisionとして重ね、read-only branch inspectionまでblanket blockしない。
+今回common `.codex/rules/20-risky-prompt.rules`へ追加するlocal branch deleteと高影響GitHub CLI operationは、actual auto-net sessionでもcommon ruleとして読み込まれる。auto-netは`approval_policy=never`なので、これらの`prompt`はruntimeでrejectされる。
 
-`.codex/rules-auto-net/30-auto-net-forbidden.rules`の既存安全契約も維持する。
+`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`には同じ高影響operationをforbiddenとしてmirrorし、preflight時点でもreject期待値を確認する。ただし、これをruntime enforcementとは扱わない。
+
+既存`.codex/rules-auto-net/10-auto-net-allow.rules`のread-only `git branch` allowと、`30-auto-net-forbidden.rules`の既存preflight契約は維持する。
+
+なお現行auto-netには、preflight overlayでallowされてもactual runtimeではcommon promptに一致して`never`でrejectされるcommandが存在する可能性がある。この既存preflight/runtime差は実装前baselineで確認し、今回の目的に必要な安全境界以外は別課題として記録する。
 
 ## 2. interactive入口とRun Artifactの責務
 
@@ -279,7 +280,7 @@ auto-net  = workspace-write / never / network true
 
 safeでは `sandbox_workspace_write.network_access=false` を明示overrideする。auto-netはtrueを維持する。
 
-`auto-net` presetと`new-run`のpreset体系は変更しない。`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`だけ、common promptから除外される高影響operationをforbiddenとして同期する。
+`auto-net` presetと`new-run`のpreset体系は変更しない。`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`はpreflight overlayとして高影響operationのreject期待値をmirrorする。actual runtime enforcementの正本はcommon `.codex/rules/*.rules`とする。
 
 `codex-safe safe` の `on-request` は、direct `never`で意図的に拒否している例外操作をユーザーが明示的に依頼した場合の承認経路としても維持する。通常作業の自動fallbackには使わない。
 
@@ -550,7 +551,7 @@ bootstrap完了前にsource設定を変更しない。
 - `gh issue close` をprompt
 - `gh release create / delete` をprompt
 - `gh repo delete` をprompt
-- `.codex/rules-auto-net/20-auto-net-risky-forbidden.rules` へ、local branch deleteと上記高影響GitHub CLI operationの同等forbiddenを追加する
+- `.codex/rules-auto-net/20-auto-net-risky-forbidden.rules` へ、local branch deleteと上記高影響GitHub CLI operationの同等forbiddenをpreflight mirrorとして追加する
 
 確認:
 
@@ -560,8 +561,10 @@ bootstrap完了前にsource設定を変更しない。
 - local `git branch -d / --delete` はdirect `never`でreject、force / remote deleteは既存deny
 - direct modeでgeneric `gh api` と高影響 `gh` operationがrejectされる
 - normal PR create / edit / checksは今回追加ruleでblockされない
-- auto-netではlocal branch deleteとgeneric `gh api` / 高影響`gh` operationがforbidden
-- auto-netのread-only `git branch --show-current` 等は既存allowを維持する
+- auto-net preflight overlayではlocal branch deleteとgeneric `gh api` / 高影響`gh` operationがforbidden
+- auto-net preflight overlayではread-only `git branch --show-current` 等の既存allowを維持する
+- actual auto-net runtimeではproject common `.codex/rules/*.rules`が読み込まれ、今回追加するbranch delete / 高影響`gh` promptが`approval_policy=never`によりrejectされる
+- preflight overlayでallowされる代表commandとactual auto-net runtimeのdecision差をbaselineとして確認し、既存差分があれば別課題として記録する
 
 ### Task 5: subagent実効値
 
@@ -637,9 +640,11 @@ parent / configured roleのresolved / effective configを前後比較する。
 - `git branch -D / -f` とremote branch delete:既存deny
 - high-impact `gh` operation / generic `gh api`:prompt
 - normal `gh pr create / edit / checks`:今回の追加ruleに一致しない
-- auto-netのlocal branch delete / generic `gh api` / high-impact `gh` operation:forbidden
-- auto-netのread-only branch inspection:既存allow維持
-- GitHub CLI prompt / auto-net forbidden ruleはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない
+- auto-net preflight overlayのlocal branch delete / generic `gh api` / high-impact `gh` operation:forbidden
+- auto-net preflight overlayのread-only branch inspection:既存allow維持
+- actual auto-net runtime: common `.codex/rules/*.rules`を読み込み、今回追加した高影響promptは`never`でreject
+- preflight-only `.codex/rules-auto-net/**`をruntime enforcementとは表現しない
+- GitHub CLI prompt / preflight mirrorはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない
 - command-based deletion:deny
 - destructive Git / remote script piping / protected branch safety:既存deny維持
 - compact Hook / AGENTS契約:未変更
@@ -669,10 +674,11 @@ Repository / workspaceからfresh `codex`を直接起動する。
 8. 通常の `git switch` がrules承認待ちで止まらない。
 9. `git checkout / merge / rebase / tag`、`git branch -d / --delete`と複合short option / option順序違い、generic `gh api`、high-impact `gh` operationは `never` 契約どおりユーザーpromptを出さず拒否される。
 10. `git branch -D / -f`、remote branch delete、その他destructive operationは実行せず、execpolicy / Hook contractでdenyを確認する。
-11. auto-net rulesetでlocal branch delete、generic `gh api`、high-impact `gh` operationがforbiddenとなり、read-only branch inspectionはallowのままであることをexecpolicyで確認する。実外部変更は行わない。
-12. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
-13. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
-14. danger-full-accessへfallbackしない。
+11. auto-net preflight overlayでlocal branch delete、generic `gh api`、high-impact `gh` operationがforbiddenとなり、read-only branch inspectionはallowのままであることをexecpolicyで確認する。
+12. actual auto-net sessionではcommon project rulesが読み込まれることを、副作用のないrepresentative commandで確認する。common promptに一致するcommandが`never`でrejectされることと、preflight overlayのdecisionとの差をREPORTへ記録する。実外部変更は行わない。
+13. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
+14. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
+15. danger-full-accessへfallbackしない。
 
 結果は `REPORT.md` と `evaluation.json` のevidenceへ記録する。direct session用 `run.json` は作らない。
 
@@ -717,7 +723,9 @@ generic `gh api` と明示的な高影響 `gh` operationをpromptに置き、dir
 
 通常のPR作成・更新・確認経路までblanket blockしない。強いcredential分離は今回のscopeへ追加しない。
 
-auto-netはcommon prompt ruleを読み込まないため、同じ高影響operationをauto-net専用rulesでforbiddenにする。read-only `git branch` allow等の既存用途は維持する。
+auto-netのpreflightはcommon risky prompt ruleを除外するため、同じ高影響operationをauto-net専用rulesでforbiddenとしてmirrorする。ただしactual runtimeはcommon project rulesを読み込むため、auto-net専用rulesをruntime enforcementとは扱わない。
+
+既存auto-netでpreflightとactual runtimeのdecisionが異なるcommandが確認された場合は、今回の目的に必要な安全境界だけを維持し、preset-specific runtime loader等へscopeを広げず別課題として記録する。
 
 local例外操作のsafe wrapper承認経路はon-request approvalだけを確認する。明示依頼された高影響network operationのsafe wrapper承認経路はapproval + network昇格がruntimeで成立することを確認してから採用し、成立しなければnetwork例外操作だけをblockerとする。
 
@@ -755,7 +763,7 @@ direct `codex`用のmanifest modelを今回追加しない。
 - rules:
   - `git switch`分離差分を戻す
   - GitHub CLI high-impact prompt ruleを戻す
-  - `.codex/rules-auto-net/20-auto-net-risky-forbidden.rules` の同期差分を戻す
+  - `.codex/rules-auto-net/20-auto-net-risky-forbidden.rules` のpreflight mirror差分を戻す
 - docs / verify / history:同じ変更単位で旧契約へ戻す
 - 条件付きで`.codex/requirements.toml` / subagentを変更した場合はその差分だけ戻す
 
@@ -768,7 +776,7 @@ direct `codex`用のmanifest modelを今回追加しない。
 3. active Runを既存machine-managed経路でstrictへ補完する。
 4. `.codex/config.toml` と `codex-project.toml` を同期する。
 5. wrapper safe / auto-netの既存semanticsを維持する。
-6. `git switch`分離、local branch delete prompt（複合short option / option順序違いを含む）、GitHub CLI high-impact prompt ruleを追加し、auto-net専用rulesへ同等forbiddenを同期して`.codex/rules/README.md`を更新する。
+6. `git switch`分離、local branch delete prompt（複合short option / option順序違いを含む）、GitHub CLI high-impact prompt ruleをcommon rulesへ追加し、auto-net専用rulesにはpreflight mirrorとして同等forbiddenを同期して`.codex/rules/README.md`を更新する。
 7. parent / subagentの実効configを確認する。
 8. Run Artifact / implementation / safety referenceを通常direct・strict machine-managedの2経路へ同期する。
 9. quickstart / MIGRATION / PROJECT_CONTEXT / historyを同期する。
@@ -792,4 +800,5 @@ direct `codex`用のmanifest modelを今回追加しない。
 - 現行 `run.json` の `preset` / `safety.network` はwrapper / codex-taskのexecution metadataであり、direct `codex`のproject network設定を観測しない。
 - 現行Hookは通常 `git switch` をallowし、destructive switchをdenyする。
 - 現行Hookは `git rebase --abort` / `git merge --abort` をrecoveryとしてallowするが、common execpolicy promptはdirect `never`でより厳しく拒否するため、recovery時はsafe wrapperのapproval経路を使う。
+- Codex 0.147.0のruntimeは各config layerの`rules/*.rules`を自動ロードする。現行wrapperの`rules-auto-net`はpreflightの`codex execpolicy check --rules`にだけ使われ、actual sessionへは渡されない。
 - PR #182 latest Planはinteractive MCP E2Eをwrapper前提としているため、今回の通常interactive契約確定後に同期が必要である。

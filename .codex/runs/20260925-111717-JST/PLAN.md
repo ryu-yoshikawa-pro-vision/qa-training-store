@@ -32,8 +32,10 @@ Run Artifactは新しいdirect用manifest modelを追加せず、通常のlightw
 - merge / rebase recoveryとlocal branch deleteはlocal例外操作として扱い、`codex-safe safe`のon-request approval成立だけを条件にする。network昇格は条件にしない。
 - 明示依頼された高影響network operationで`codex-safe safe`を使うのは、safe wrapperのapproval + network昇格runtime検証が成功した場合だけとする。失敗時はnetwork例外操作だけをblockerとし、新presetを追加しない。
 - generic `gh api` と高影響GitHub CLI operationをpromptに置き、direct neverでは拒否する。ただしこのruleはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない。通常のPR create / edit / checksはblanket blockしない。
-- auto-netはcommon risky prompt ruleを読み込まないため、local branch deleteとgeneric `gh api` / 高影響GitHub CLI operationを`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`でforbiddenへ同期する。read-only branch inspectionは維持する。
-- `.codex/rules/README.md`をdirect never / prompt semanticsとauto-net専用forbiddenへ同期する。
+- auto-netのpreflightはcommon risky prompt ruleを除外するため、local branch deleteとgeneric `gh api` / 高影響GitHub CLI operationを`.codex/rules-auto-net/20-auto-net-risky-forbidden.rules`へforbiddenとしてmirrorする。
+- actual auto-net runtimeはproject `.codex/rules/*.rules`を読み込み、`.codex/rules-auto-net/**`は自動ロードされない。専用rulesをruntime enforcementとは扱わない。
+- preflight overlayとactual runtimeのdecision差を副作用のない代表commandで記録し、既存差分があれば今回runtime loaderを新設せず別課題とする。
+- `.codex/rules/README.md`をdirect never / prompt semanticsとauto-net preflight overlayの責務へ同期する。
 - auto-net preset自体は削除しない。
 - rm / git rm等の既存denyを変更しない。
 - workspace-write subagentへnetwork falseを新設しない。既存role contractに禁止根拠がある場合だけ個別overrideする。

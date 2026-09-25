@@ -124,3 +124,27 @@ Progress: 13% (3/24)
 L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
 
 Progress: 12% (3/25)
+
+
+## 2026-09-25 - 再レビュー8回目の修正
+
+### 状態
+
+- 実装は未開始。
+- Workflow Levelはstrictを維持する。
+- 最新Plan-only headではWeb CI / Mobile App CIともにsuccessを確認済み。
+
+### 今回反映した修正
+
+- `scripts/codex-safe.*` のauto-net専用rulesはactual Codex起動引数へ渡されず、wrapperのpreflightでだけ`codex execpolicy check --rules ...`へ使われることをPlanへ反映した。
+- Codex 0.147.0のruntimeはproject config layerの`.codex/rules/*.rules`を自動ロードし、`.codex/rules-auto-net/*.rules`は自動ロードしないことを確認した。
+- actual runtime policyの正本をcommon `.codex/rules/*.rules`、`.codex/rules-auto-net/*.rules`をpreflight専用overlayと定義した。
+- local branch delete / generic `gh api` / 高影響GitHub CLI operationはcommon promptへ置くため、actual auto-net runtimeでも`approval_policy=never`によりrejectされる。auto-net専用forbiddenはpreflight mirrorとして扱う。
+- 既存auto-netではpreflight overlayとactual runtimeのdecisionが異なるcommandが存在する可能性をbaselineで確認し、確認された場合は別課題として記録する。今回preset-specific runtime loader、`--ignore-rules`、新presetは追加しない。
+- source実装、L3設定変更、mergeは行っていない。
+
+### 次のgate
+
+L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
+
+Progress: 12% (3/26)

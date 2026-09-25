@@ -16,7 +16,7 @@
 - [ ] .codex/rules/20-risky-prompt.rulesでgit switchだけをbroad Git promptから外す。
 - [ ] git branch -d / --deleteをpromptへ追加し、複合short option / option順序違いもpromptになることを検証する。git branch -D / -fとremote branch deleteの既存denyを維持する。
 - [ ] generic gh apiと高影響GitHub CLI operationをpromptへ追加し、通常PR workflowをblanket blockしない。これをGitHub writeのhard boundaryとは扱わない。
-- [ ] auto-net専用rulesへlocal branch deleteとgeneric gh api / 高影響GitHub CLI operationのforbiddenを同期し、read-only branch inspectionのallowを維持する。
+- [ ] auto-net専用rulesへlocal branch deleteとgeneric gh api / 高影響GitHub CLI operationのforbiddenをpreflight mirrorとして同期し、read-only branch inspectionのallowを維持する。actual runtime enforcementとは扱わない。
 - [ ] local例外操作についてcodex-safe safeのon-request承認が成立することを確認する。network sandbox昇格は条件にしない。
 - [ ] network例外操作についてcodex-safe safeで副作用のないread-only network operationを使い、on-request承認 + network sandbox昇格が実runtimeで成立するか確認する。失敗時はnetwork例外操作だけをblockerとし、新presetを追加しない。
 - [ ] merge / rebase recoveryはdirect neverで迂回せず、local例外操作として必要時にcodex-safe safeのon-request経路を使う契約へ同期する。
@@ -27,6 +27,7 @@
 - [ ] actual consumerが確認できた場合だけ.codex/requirements.tomlを同期する。
 - [ ] scripts/verify / scripts/verify.ps1と必要な既存contract testを更新する。
 - [ ] focused test / Hook test / execpolicy / Bash・PowerShell verify / Repository標準verifyを実行する。
+- [ ] auto-netのpreflight overlayとactual runtime rulesetの差を副作用のないrepresentative commandで確認し、既存不整合があれば別課題として記録する。preset-specific runtime loaderは今回追加しない。
 - [ ] fresh direct codex sessionでworkspace write / network / git switch / GitHub CLI guard / never behaviorを実runtime確認する。
 - [ ] strict evaluation / run manifestを最終化し、Run Artifactをfinal commit前状態へ更新する。
 - [ ] commit / normal push / PR作成または更新を行う。
@@ -38,4 +39,4 @@
 - strict必須のrun.json / evaluation.jsonは未作成。
 - 次のgateはL3実装承認。その直後にmachine-managed strict Artifact bootstrapを行う。
 
-Progress: 12% (3/25)
+Progress: 12% (3/26)
