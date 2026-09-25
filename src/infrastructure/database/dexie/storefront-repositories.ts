@@ -14,7 +14,7 @@ import type {
 import type {
   ProductQueryRepository as ProductQueryRepositoryContract,
   StorefrontCatalogQueryRepository,
-} from "@/domain/repositories";
+} from "@/application/repositories";
 import type { Product, ProductReviewSummary, ProductVariant } from "@/domain/contracts";
 import { productImageManifest } from "@/generated/product-image-manifest";
 import { canViewerSeeProduct } from "@/domain/policies/permissions";
@@ -265,7 +265,7 @@ export class DexieProductQueryRepository implements ProductQueryRepositoryContra
     return products.flatMap((product): CatalogCandidate[] => {
       if (
         !canViewerSeeProduct({
-          viewer: query.viewer,
+          membershipRank,
           status: product.status,
           requiredRank: product.requiredRank,
         })

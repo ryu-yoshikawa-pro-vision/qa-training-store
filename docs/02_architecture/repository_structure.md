@@ -35,8 +35,8 @@ ec-automation-training-app/
 │   └── +not-found.tsx
 ├── src/
 │   ├── generated/product-image-manifest.ts
-│   ├── application/{contracts,auth,catalog,cart,checkout,payments,orders,reviews,administration,testing,transactions}/
-│   ├── domain/{contracts,entities,value-objects,services,policies,repositories,errors,states}/
+│   ├── application/{contracts,repositories,auth,catalog,cart,checkout,payments,orders,reviews,administration,testing,transactions}/
+│   ├── domain/{contracts,entities,value-objects,services,policies,errors,states}/
 │   ├── infrastructure/
 │   │   ├── database/{dexie,contracts}/
 │   │   ├── payment/mock-payment-gateway.ts
@@ -98,7 +98,7 @@ Cancel/Return/Refund ModuleもPhase 2開始時に追加します。
 - Storefront ShellとAdmin Shellを混在させない。
 - UI文言はContent Dictionaryを参照し、Domain内部値を直接表示しない。
 - Payment GatewayはDB Transaction Contextを受け取らない。
-- 複数Storeを更新するPhase 1書込みは`ApplicationTransactionRunner`を経由し、参加Repositoryが個別top-level Dexie Transactionを開始しない。単一Storeで完結するAddress、Cart取得/作成、Settings等の原子的CommandはRepository Method内の1 Transactionを許可する。
+- 複数Storeを更新するPhase 1書込みは`ApplicationTransactionRunner`を経由し、参加Repositoryが個別top-level Dexie Transactionを開始しない。単一Storeで完結するAddress、Cart取得/作成等の原子的CommandはRepository Method内の1 Transactionを許可する。
 - `/checkout/processing?orderId=...`、`/checkout/complete?orderId=...`、`/checkout/failed?orderId=...`は`orderId` Queryを必須とし、Checkout SessionではなくOrder所有権と最新Payment状態から復元する。
 - 実装開始前はPhase 1のDTO/Request/Command/Result/Errorを`04_data/application_contracts.md`の正本に従う。最初の実装PRで同契約を`src/domain/contracts/`、`src/application/contracts/`、`src/application/errors.ts`へ移し、以後はコードを型の正本、Markdownを意味・制約・設計理由の正本とする。
 - Phase 1で未使用の将来Interfaceを定義しない。

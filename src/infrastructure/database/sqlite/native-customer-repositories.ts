@@ -344,9 +344,10 @@ export class NativeCustomerSQLiteRepository
   }): Promise<ProductDetail | null> {
     const product = await this.getProduct(input.productId);
     if (product === null) return null;
+    const membershipRank = input.viewer.kind === "customer" ? input.viewer.membershipRank : null;
     if (
       !canViewerSeeProduct({
-        viewer: input.viewer,
+        membershipRank,
         status: product.status,
         requiredRank: product.requiredRank,
       })
@@ -375,7 +376,6 @@ export class NativeCustomerSQLiteRepository
       now: input.now,
     });
     if (candidate === null) return null;
-    const membershipRank = input.viewer.kind === "customer" ? input.viewer.membershipRank : null;
     return {
       ...candidate.item,
       shortDescription: product.shortDescription,
@@ -785,9 +785,10 @@ export class NativeCustomerSQLiteRepository
     const rows = await this.database.getAllAsync<NativeProductRow>(
       "SELECT * FROM products ORDER BY published_at DESC, id ASC",
     );
+    const membershipRank = viewer.kind === "customer" ? viewer.membershipRank : null;
     return rows.map(mapNativeProduct).filter((product) =>
       canViewerSeeProduct({
-        viewer,
+        membershipRank,
         status: product.status,
         requiredRank: product.requiredRank,
       }),
