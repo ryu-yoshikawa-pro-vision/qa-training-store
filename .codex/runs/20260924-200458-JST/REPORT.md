@@ -325,3 +325,14 @@
 - Scope: 追加source変更は`vitest.config.ts`の`**/output/**`追加だけ。ignored output、training-copy、各test script、verify wrapper、workflow、Product codeは変更していない。
 - 残作業: Task 17（tracked Runのfinal commit前確定、commit/push、PR metadata同期）とTask 18（push後latest headのMCP CI wait、該当時の360秒smoke）。installed Codex cancellation伝播は完了済み実callだったため観測機会なし。server側cleanupはfocused MCP integration testで確認済み。
 - Progress: 89% (16/18)
+
+## 2026-09-25 21:53 (JST) - push権限blocker
+
+- Summary: implementation commitはlocal branchへ作成できたが、指定PR branchへの通常pushがGitHubから拒否された。Task 17 / 18は未完了のまま停止する。
+- Evidence:
+  - `git push origin HEAD:plan/ci-wait-without-agent-polling` は `Permission to ryu-yoshikawa-pro-vision/qa-training-store.git denied to ryu-yoshikawa` / HTTP 403で失敗した。force pushや別branch pushは試していない。
+  - active GitHub accountは`ryu-yoshikawa`で、Git Credential Managerに見えるaccountもこれ1つ。`gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/collaborators/ryu-yoshikawa/permission` は `Must have push access to view collaborator permission` / HTTP 403を返した。
+  - PR #182はOPEN、head ownerは`ryu-yoshikawa-pro-vision`、`maintainerCanModify=false`。PR head / origin branchは`af67d8ab8f60accf77f0dc29bfa5e59c5b4cbd0b`のまま。local implementation commitは`c605392e1a177103fa85c0579a775a3f9c941d6a`。
+  - Git credential、GitHub token、remote URL、PR title/bodyは変更していない。MCP latest-head wait / 360秒smokeも実行していない。前回のCI結果は旧head向けのため今回のlocal commitには流用しない。
+- Cause / next action: 認証credential自体は使用可能だが、current GitHub identityにtarget repositoryのpush permissionがない。指定branchへ通常pushするためのwrite access、または同repositoryへのpushが許可された既存accountが必要。authorization boundaryを変えるcredential操作や別remote/branchへの迂回はしない。
+- Progress: 89% (16/18)（Run checkbox基準。file-changing task lifecycleは16/19）

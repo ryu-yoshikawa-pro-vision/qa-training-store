@@ -61,6 +61,7 @@
 
 ## Blocked（ブロック中）
 
-- 現在blockerなし。以前のverify失敗は共通test discoveryの除外漏れが原因であり、ユーザー承認を受けた`vitest.config.ts` 1行の追加後、同じworkspace上のRepository標準verify全体がPASSした。
-- 残作業: Task 17のRun Artifact最終確定・commit / push・PR metadata同期、およびTask 18の最新headでのMCP CI waitと条件該当時のsmoke。
+- Blocked: local implementation commit `c605392e1a177103fa85c0579a775a3f9c941d6a` の通常pushがGitHub HTTP 403で拒否された。`gh` account `ryu-yoshikawa`へのpush permissionがなく、collaborator permission endpointも`Must have push access`を返した。origin / PR branchの更新、PR metadata更新、Task 18のlatest-head MCP waitへ進めない。
+- 次の対応: `plan/ci-wait-without-agent-polling` へのwrite accessを付与するか、対象repositoryへのpushが許可された既存GitHub accountを提供する。credential切替・書き換え、force push、fork/別branchへのfallbackは行わない。
+- Progress: 89% (16/18)
 - Progress: 89% (16/18)
