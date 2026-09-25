@@ -35,6 +35,7 @@
 - RepositoryはMCP server process起動時に `git remote get-url origin` のローカル情報から1回だけ解決し、`owner/repo` をprocess lifetime中固定する。startup中にGitHub APIは呼ばない。tool call中は固定owner / repoを使い、Git remoteを再解決しない。model入力にしない。
 - GitHub accessは `gh api --method GET` に統一し、workflow file、exact head、pull_request event、PR番号でrunを特定する。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
+- 長時間handlerはMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、client cancellation後の追加pollを停止する。
 - 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
 
@@ -78,7 +79,8 @@
 - tool内部でregistration waitとworkflow waitを行う。
 - tool結果を受け取ったCodexがsuccess / repair-loop / blockerへ進む。
 - fresh Codex processでwaiterがtool catalogに存在しない、MCP startupが失敗する、または `codex-safe` / `codex-task` のどちらかで実tool callが成立しない場合はblockerとし、Agent側GitHub pollingへfallbackしない。
-- setup修復後はfresh Codex processでtool availabilityを再確認する。
+- MCP execution surface（`.codex/config.toml`、`mcp:ci-wait` script、MCP SDK / lockfile、`scripts/mcp/ci-wait-server.mjs`）を修復・変更した後はfresh Codex processでtool availabilityと実callを再確認する。既存stdio MCP childのhot reloadを前提にしない。
+- Product codeだけのrepairでは、この理由によるfresh Codex process再起動は要求しない。
 - resume / supervisorへfallbackしない。
 
 ## Definition of Done（完了条件）
@@ -100,6 +102,8 @@
 - stdio MCP childでは `GH_TOKEN` / `GITHUB_TOKEN` が既定継承されないため、`env_vars` で明示しつつsecretを出力しない。
 - MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository identityをserver process起動時に固定し、PR base repo一致guard・read-only操作・子process timeoutを適用する必要がある。
 - MCP waiterがtool catalogへ出ない場合に既存Agent pollingへ戻ると目的を再発させるため、Harness側でfail-closedにする必要がある。
+- request cancellation後にMCP server内部pollingだけが残る可能性があるため、AbortSignalをsleep / `gh` child processへ伝播してcleanupする必要がある。
+- MCP server sourceをrepairしても既存stdio childは古いcodeを保持し得るため、MCP execution surface変更後はfresh Codex processが必要。
 - MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
 - non-interactive `codex exec` ではversion / approval処理によってMCP tool callが成立しない可能性があるため、実callをruntime gateにする。
 - L3変更のrollbackは今回追加するproject MCP config、dependency / lockfile、server / test、Harness / verify差分だけを戻し、user-level configやGitHub credentialを変更しない。

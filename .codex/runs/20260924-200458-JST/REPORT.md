@@ -187,3 +187,30 @@
   - 親Agentの判断: N/A。
 - Progress: 50% (9/18)
 
+
+
+## 2026-09-25 11:25 (JST) - 最終2点反映
+
+- Summary: 実装前レビューで残っていたrequest cancellationとMCP execution surface変更後のfresh Codex契約をPlanへ反映した。source実装は変更していない。
+- Changes:
+  - `wait_for_required_ci` handlerでMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleepと実行中 `gh` child processへ伝播し、cancel後に追加pollしない契約を追加した。
+  - request cancellationはCI状態ではないため、`github_error` / `ci_failure` / timeout等の固定resultへ変換せずMCP request cancellationとして終了する契約を追加した。
+  - cancellation時のsleep中断、`gh` child停止、追加pollなしをcontract / integration test対象へ追加した。
+  - fresh Codex再起動条件をdependency / config修復だけでなく、`.codex/config.toml`、`mcp:ci-wait` script、MCP SDK / lockfile、`scripts/mcp/ci-wait-server.mjs` を含むMCP execution surface変更時へ拡張した。
+  - Product codeだけのrepairではMCP execution surface変更を理由としたfresh process再起動を要求しない。
+- 判断 / 理由:
+  - 最大90分のhandlerでclient cancellationを無視すると、Codex側終了後もMCP server内部pollingが継続し得る。
+  - 既に起動済みのstdio MCP childはserver source変更をhot reloadする前提にできないため、MCP code/config/dependency変更後はfresh Codex processが必要。
+- Validation:
+  - 修正前PR head=99e1658c35d6d014fc5d6a176eb8e6e4d6b51498、latest main比較はbehind=2 / ahead=10。
+  - 公式MCP TypeScript SDK v2がrequest-scoped `ctx.mcpReq.signal` を提供し、transport close / client cancellationでhandlerをabortできることを確認した。
+- ブロッカー / 残作業: source実装前のL3明示承認gateは継続。次はTask 10。
+- Subagent:
+  - Delegation: なし。
+  - Result: N/A。
+  - 親Agentの判断: N/A。
+- Progress: 50% (9/18)
+
+## 削除候補
+
+- なし。
