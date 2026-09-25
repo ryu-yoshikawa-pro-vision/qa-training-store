@@ -211,6 +211,23 @@
   - 親Agentの判断: N/A。
 - Progress: 50% (9/18)
 
+
+## 2026-09-25 - request cancellation保証の修正
+
+- Summary: request cancellationのserver実装契約は維持し、installed Codexからstdio MCP requestへ必ずcancelが伝播するという保証だけをPlanから外した。source実装は変更していない。
+- Changes:
+  - `ctx.mcpReq.signal` を受信した場合のsleep / `gh` child停止、追加poll禁止、CI resultへの誤分類禁止は維持した。
+  - contract / integration testはMCP test clientからcancellationを送るserver側検証として位置付けた。
+  - installed Codexからのcancel伝播はruntimeで実測できた範囲を記録し、未伝播／未確認でもこの点単独ではblockerにしない契約へ変更した。
+  - cancel伝播がない場合の安全策は既存overall timeout 90分とし、supervisor、heartbeat、別transport等は追加しない。
+  - Plan末尾の見出し番号 `## 10. 備考` を `## 12. 備考` へ修正した。
+- 判断 / 理由:
+  - MCP TypeScript SDK v2はserver側の `ctx.mcpReq.signal` を提供する一方、Codex 0.155.1のtool dispatchはturn cancellation時にtool taskをabortするが、approval後のstdio MCP callへturn `CancellationToken` を明示的に渡す経路は確認できなかった。
+  - そのためserverが受信したcancellationのcleanupは実装・テストできるが、Codexからの伝播自体をPlanの保証や完了条件にするのは過剰。
+  - 今回の主目的は通常CI待機中のAgent / LLM polling削減であり、cancel伝播未確認だけで目的未達とはならない。
+- ブロッカー / 残作業: source実装前のL3明示承認gateは継続。次はTask 10。
+- Progress: 50% (9/18)
+
 ## 削除候補
 
 - なし。

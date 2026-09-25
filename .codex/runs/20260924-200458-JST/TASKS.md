@@ -13,13 +13,13 @@
 - [x] 9. MCP再レビューを反映し、ローカルGitによるRepository identity固定、subdirectory起動、optional MCP startup grace、GitHub認証env継承、poll中PR guard、read-only GET、run識別、`gh` timeout、tool approval、dependency起動前提、waiter利用不能時のfail-closed、長時間smoke契約を確定する。
 - [ ] 10. `AGENTS.md` のL3対象であることとrollback planを提示し、ユーザーの明示承認を確認する。未承認なら実装を開始しない。
 - [ ] 11. official MCP SDK exact versionを確定し、dependency / lockfile / `mcp:ci-wait` script / project MCP config（startup grace・timeouts・GitHub auth env継承）を更新する。
-- [ ] 12. 公式SDK v2の `serveStdio` を使い、request-scoped AbortSignalをsleep / `gh` child processへ伝播する `wait_for_required_ci` MCP serverを実装する。
-- [ ] 13. CI waiter contract testとMCP integration testを実装し、request cancellationでsleep / `gh` childが停止して追加pollしないことを検証する。
+- [ ] 12. 公式SDK v2の `serveStdio` を使い、serverが受信したrequest-scoped AbortSignalをsleep / `gh` child processへ伝播する `wait_for_required_ci` MCP serverを実装する。
+- [ ] 13. CI waiter contract testとMCP integration testを実装し、MCP test clientからrequest cancellationを送った場合にsleep / `gh` childが停止して追加pollしないことを検証する。installed Codexからの伝播保証とは分ける。
 - [ ] 14. fresh Codex processで、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗したらblockerとして停止する。
 - [ ] 15. runtime gate通過後だけimplementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
 - [ ] 16. focused testとRepository標準verifyを実行する。
 - [ ] 17. Run Artifactをfinal commit前状態へ更新し、commit / push / PR本文を実装結果へ同期する。
-- [ ] 18. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。repairでMCP execution surfaceを変更した場合はfresh Codex processを起動し直して再検証する。
+- [ ] 18. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。installed Codexからcancelした際のserver側AbortSignal伝播は実測できた範囲を記録し、未伝播／未確認でもこの点単独ではblockerにしない。repairでMCP execution surfaceを変更した場合はfresh Codex processを起動し直して再検証する。
 
 ## 完了処理の参照先
 
@@ -53,7 +53,7 @@
 - `GH_TOKEN` / `GITHUB_TOKEN` はMCP `env_vars` で名前だけ継承し、secret値は保存・ログ出力しない。
 - 360秒smokeは長時間callのsanity checkであり、90分保持の実証には使わない。
 - `wait_for_required_ci` がfresh Codex processのtool catalogに存在しない、またはMCP startupが失敗した場合はblockerとし、Agent側のGitHub pollingへfallbackしない。setup修復後はfresh Codex processで再確認する。
-- MCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、cancel後の追加pollを停止する。cancellationをCI failure / GitHub errorへ分類しない。
+- MCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、serverがcancellationを受信した場合の追加pollを停止する。installed Codexからstdio MCP requestへのcancel伝播は固定前提にせずruntimeで確認する。未伝播／未確認でもoverall timeout 90分があるため、この点単独ではblockerにしない。
 - `.codex/config.toml`、`mcp:ci-wait` script、MCP SDK / lockfile、`scripts/mcp/ci-wait-server.mjs` のいずれかをrepair・変更した後はfresh Codex processでtool availability / 実callを再確認する。Product codeだけのrepairではこの理由による再起動は不要。
 - 2026-09-24 23:34 JST時点ではPR #182 branchはlatest `main` に対してbehind 0だった。
 - 2026-09-25 08:43 JST時点ではmainがその後1 commit進みbehind 1。今回のmain側変更はapplication/domain境界の実装・文書で、`package.json` / `pnpm-lock.yaml` / MCP対象ファイルは含まれないため、このPlan修正では追加mergeを行わない。実装開始時にbase差分を再確認する。

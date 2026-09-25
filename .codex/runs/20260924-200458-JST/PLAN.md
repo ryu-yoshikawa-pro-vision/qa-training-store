@@ -35,7 +35,7 @@
 - RepositoryはMCP server process起動時に `git remote get-url origin` のローカル情報から1回だけ解決し、`owner/repo` をprocess lifetime中固定する。startup中にGitHub APIは呼ばない。tool call中は固定owner / repoを使い、Git remoteを再解決しない。model入力にしない。
 - GitHub accessは `gh api --method GET` に統一し、workflow file、exact head、pull_request event、PR番号でrunを特定する。
 - 各 `gh` 子processは30秒でtimeoutし、`GH_PROMPT_DISABLED=1` で非対話化する。
-- 長時間handlerはMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、client cancellation後の追加pollを停止する。
+- 長時間handlerはMCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をsleep / `gh` child processへ伝播し、serverがcancellationを受信した場合の追加pollを停止する。installed Codexからstdio MCP requestへのcancellation伝播自体はruntimeで実測し、固定前提にしない。
 - 公式 `@modelcontextprotocol/server` v2 stableをexact versionでdevDependencyへ追加する。
 - Planの正本は `docs/plans/2026-09-24_200458_ci-wait-without-agent-polling.md` とする。
 
@@ -50,6 +50,7 @@
   - 360秒smokeを90分保持の実証として扱わないこと。
   - MCP call待機中にAgentへ途中turnが戻らないこと。
   - tool result後に同じCodex turnが継続すること。
+  - installed Codexからtool callをcancelした際にserver側 `ctx.mcpReq.signal` までabortが届くかは実測対象とする。未伝播／未確認でも、この点単独ではMCP方式のblockerにしない。
 - 上記が成立しなければMCP方式を完了扱いにせずblockerとして停止する。
 
 ## Research Plan（調査計画）
@@ -102,7 +103,7 @@
 - stdio MCP childでは `GH_TOKEN` / `GITHUB_TOKEN` が既定継承されないため、`env_vars` で明示しつつsecretを出力しない。
 - MCP serverがCodex sandbox外で `gh` authへアクセスするため、Repository identityをserver process起動時に固定し、PR base repo一致guard・read-only操作・子process timeoutを適用する必要がある。
 - MCP waiterがtool catalogへ出ない場合に既存Agent pollingへ戻ると目的を再発させるため、Harness側でfail-closedにする必要がある。
-- request cancellation後にMCP server内部pollingだけが残る可能性があるため、AbortSignalをsleep / `gh` child processへ伝播してcleanupする必要がある。
+- MCP request cancellationがserverまで届いた場合に内部pollingを残さないため、AbortSignalをsleep / `gh` child processへ伝播してcleanupする。installed Codexからのcancel伝播は保証せず、未伝播／未確認時はoverall timeout 90分をboundedな安全策とする。
 - MCP server sourceをrepairしても既存stdio childは古いcodeを保持し得るため、MCP execution surface変更後はfresh Codex processが必要。
 - MCP tool approvalを自動化するため、tool単位のapprovalとread-only annotationsを一致させる必要。
 - non-interactive `codex exec` ではversion / approval処理によってMCP tool callが成立しない可能性があるため、実callをruntime gateにする。

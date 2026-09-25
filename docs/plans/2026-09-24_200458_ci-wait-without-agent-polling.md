@@ -37,7 +37,8 @@
   - overall timeout。
   - GitHub CLI / API error。
 - CI待機中にCodex側で `exec_command` / `write_stdin` / GitHub状態確認tool callを反復しない。
-- Codex / MCP clientが `wait_for_required_ci` requestをcancelした場合は、MCP SDK v2のrequest-scoped `ctx.mcpReq.signal` を検知し、待機中sleepと実行中 `gh` 子processを中断して追加pollを行わず終了する。request cancellationを `github_error` / `ci_failure` 等の独自resultへ変換しない。
+- MCP server側は、`ctx.mcpReq.signal` がabortされた場合に待機中sleepと実行中 `gh` 子processを中断し、追加pollを行わず終了する。request cancellationを `github_error` / `ci_failure` 等の独自resultへ変換しない。
+- installed Codexからstdio MCP requestへcancellationが必ず伝播することはDoDの固定前提にしない。実地検証で伝播可否を確認し、伝播しない／確認できない場合は既知制約として記録する。通常CI待機は内部overall timeout 90分で必ずboundedに終了するため、この制約だけをMCP方式全体のblockerにはしない。
 - `docs/reference/codex-implementation-harness.md` がMCP toolをCI待機の正本経路として説明する。
 - `scripts/verify` と `scripts/verify.ps1` が新しい契約へ同期し、Bash / PowerShellの標準verifyがPASSする。
 - PR #182 latest headの実CIでMCP tool callを実行し、CI終了後に同じCodex turnへresultが返ることを確認する。
@@ -110,6 +111,7 @@
   - `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路で、tool listingではなく実際の `wait_for_required_ci` callが成立し、resultが返ること。non-interactive `codex exec` でtool callがcancel /拒否される場合はblockerとする。
   - 長時間MCP call中にAgentへ途中turnが戻らないこと。
   - MCP result返却後に同じCodex turnが継続すること。
+  - installed Codexで実tool callをcancelした際、stdio MCP serverの `ctx.mcpReq.signal` までabortが伝播するか。伝播しない、または自動実測できない場合は既知制約として記録し、この点単独ではHarness切替のblockerにしない。
 - 未回答の重要質問: L3実装承認は実装開始前に確認する。runtime gateは実測し、`codex-safe` / `codex-task` のどちらか一方でも実tool callが成立しない場合はHarness切替へ進まずblockerとして停止する。
 
 ## 4. 影響範囲
@@ -279,10 +281,12 @@ Repository、自由なcommand、workflow名、poll interval、URLをtool input�
 
 #### request cancellation
 
-- Codex / MCP clientからのrequest cancellationは、MCP SDK v2の `ctx.mcpReq.signal` を正本とする。
+- MCP SDK v2のrequest-scoped `ctx.mcpReq.signal` をserver側のcancellation入力として扱う。
 - signalがabortされた場合は、待機中sleepと実行中 `gh` 子processを速やかに停止し、以降のPR / workflow pollを行わない。
 - request cancellationはCIの状態ではないため、`success` / `ci_failure` / `github_error` / timeout等の固定resultへ変換しない。MCP request cancellationとしてhandlerを終了する。
-- cancellation処理のための独自daemon / worker / background taskは追加しない。
+- server実装・contract / integration testでは、MCP clientからsignalが届く経路のcleanupを保証する。
+- installed Codex 0.155.1のturn cancellationがstdio MCP requestへ必ず `notifications/cancelled` 等として伝播することは実装側から保証しない。runtimeで確認できた事実だけを記録する。
+- Codexからsignalが届かない場合でも、通常のCI待機は内部overall timeout 90分で終了する。cancellation伝播のためにsupervisor、heartbeat、別transport等を追加しない。
 
 #### tool result
 
@@ -364,12 +368,12 @@ networkなしで状態判定を検証する。
 - registration polling中のPR closeで `invalid_pr_state`。
 - registration polling中のbase Repository不一致で `repository_mismatch`。
 - workflow完了polling中も同じPR guardを適用する。
-- request cancellation時に待機中sleepが中断され、追加pollを行わない。
-- request cancellation時に実行中の `gh` 子processを停止し、完了後に追加API callへ進まない。
-- cancellationを `github_error` / `ci_failure` / timeout等の独自resultへ変換しない。
+- MCP test clientからrequest cancellationを送った場合に待機中sleepが中断され、追加pollを行わない。
+- MCP test clientからrequest cancellationを送った場合に実行中の `gh` 子processを停止し、完了後に追加API callへ進まない。
+- serverが受信したcancellationを `github_error` / `ci_failure` / timeout等の独自resultへ変換しない。
 - tool resultにsecret / environment値を含めない。
 
-stdio serverを直接起動するMCP integrationでは、Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。request cancellationを送った場合にhandlerが停止し、追加pollが発生しないことも1経路で確認する。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
+stdio serverを直接起動するMCP integrationでは、Repository rootと1段以上深いsubdirectoryの両方から `node --run mcp:ci-wait` がroot `package.json` を解決し、tool listingと短時間のmocked tool callが成立することを確認する。MCP test clientからrequest cancellationを送った場合にhandlerが停止し、追加pollが発生しないことも1経路で確認する。これはserver側のcancellation処理を検証するもので、installed Codexからの伝播保証とは分ける。既存testだけで同じ回帰を検出できる場合は重複を増やさない。
 
 ### Task 5: Codex実行経路と長時間MCP callの実地検証
 
@@ -397,6 +401,7 @@ MCP実装・config・focused testが通った後、HarnessをMCPへ切り替え�
 5. tracked configで `tool_timeout_sec = 6000` が指定され、installed Codexがその設定を拒否せずMCP server / toolを利用できる。
 6. latest PR headがexpected head SHAと一致している。
 7. `Web CI` / `Mobile App CI` のresultがtool outputとGitHub上の実結果に一致する。
+8. installed Codexから実tool callをcancelできる検証機会がある場合は、server側 `ctx.mcpReq.signal` までabortが届くかを確認する。届かない、または自動実測できない場合は既知制約として記録し、この点単独ではruntime gateを失敗扱いにしない。
 
 実CIのMCP callが360秒以上継続した場合は、その実CIを長時間保持のbehavioral evidenceに使う。360秒未満で完了した場合は、Repositoryを変更しない一時的なlocal smokeで360秒のMCP call保持を1回確認する。
 
@@ -481,6 +486,7 @@ MCP実装・config・focused testが通った後、HarnessをMCPへ切り替え�
 - tool call開始から終了までAgent側状態確認callが増えていないことをCodex event / logで確認。
 - tool outputの2 workflow結果をGitHub上のexact head runと照合。
 - failure経路のためにCIを意図的に壊さない。failure / timeout / stale headは自動テストで検証する。
+- cancellationはserver側contract / integration testを必須とし、installed Codexからの伝播は実測できた範囲を記録する。伝播しない／未確認でも、overall timeout 90分でboundedな通常待機が成立する限りMCP方式のblockerにはしない。
 
 ### 成功判定
 
@@ -569,14 +575,16 @@ stdio MCP childはCodexが構成した環境で起動するため、shell側に�
 
 ### 7. 長時間tool callのrequest cancellation
 
-CI待機は最大90分の長時間handlerになるため、Codex / MCP client側でrequestがcancelされた後もserver内部pollingだけが残ると不要なGitHub accessが継続する。
+CI待機は最大90分の長時間handlerになるため、MCP request cancellationがserverまで届いた場合は速やかにcleanupする必要がある。一方、installed Codex 0.155.1のturn cancellationがstdio MCP requestへ必ず伝播することは現時点で確認できていない。
 
 対策:
 
-- `ctx.mcpReq.signal` をwait loopと `gh` child processへ伝播する。
-- abort後はsleep / child processを停止し、追加pollを行わない。
+- server側は `ctx.mcpReq.signal` をwait loopと `gh` child processへ伝播する。
+- signal受信後はsleep / child processを停止し、追加pollを行わない。
 - cancellationをCI failureやGitHub errorへ分類しない。
-- cancellation後のcleanupをcontract / integration testで確認する。
+- server側cleanupはcontract / integration testで確認する。
+- installed Codexからのcancel伝播はruntimeで実測できた範囲を記録する。伝播しない／未確認でも、通常待機はoverall timeout 90分でboundedに終了するため、この点だけをblockerにしない。
+- cancellation伝播を補うためのsupervisor、heartbeat、別transportは追加しない。
 
 ### 8. MCP waiterが利用できない場合
 
@@ -627,7 +635,7 @@ installed Codexのversionやapproval処理によっては、tool catalogにMCP t
 3. MCP SDK current stable / installed Codex / config仕様を最終確認する。
 4. dependency、`mcp:ci-wait` package script、project MCP configを追加し、lockfileを同期する。
 5. `pnpm install --frozen-lockfile` を完了し、host Nodeの `--run` 対応を確認する。
-6. 公式SDK v2の `serveStdio` でstdio MCP serverを追加し、ローカルGit originによるRepository固定、request-scoped AbortSignalの伝播、`wait_for_required_ci` を実装する。
+6. 公式SDK v2の `serveStdio` でstdio MCP serverを追加し、ローカルGit originによるRepository固定、serverが受信したrequest-scoped AbortSignalのsleep / `gh` childへの伝播、`wait_for_required_ci` を実装する。
 7. CI状態判定のcontract testを実装する。
 8. focused testを実行し、Repository root / subdirectoryから `node --run mcp:ci-wait` を確認する。
 9. install後に起動したfresh Codex processで初回MCP tool catalog / GitHub認証を確認し、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗した場合はblockerとして停止する。
@@ -640,7 +648,7 @@ installed Codexのversionやapproval処理によっては、tool catalogにMCP t
 16. successなら最終確認へ進む。CI failureなら既存repair-loopへ進む。repair-loopでMCP execution surfaceを変更した場合は、再push後にfresh Codex processを起動してtool catalog / 実tool callを再確認してからCI待機を再開する。
 17. MCP長時間call自体が失敗した場合は、目的未達としてblockerを記録し、別方式へ勝手に切り替えない。
 
-## 10. 備考
+## 12. 備考
 
 - 今回の目的は「GitHubをpollしないこと」ではなく、「CI待機中にLLMを起こしてpollしないこと」。
 - MCP serverはCI待機専用とし、汎用GitHub操作toolへ拡張しない。
