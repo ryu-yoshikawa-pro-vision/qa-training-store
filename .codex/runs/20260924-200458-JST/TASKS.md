@@ -64,4 +64,3 @@
 - Blocked: local implementation commit `c605392e1a177103fa85c0579a775a3f9c941d6a` の通常pushがGitHub HTTP 403で拒否された。`gh` account `ryu-yoshikawa`へのpush permissionがなく、collaborator permission endpointも`Must have push access`を返した。origin / PR branchの更新、PR metadata更新、Task 18のlatest-head MCP waitへ進めない。
 - 次の対応: `plan/ci-wait-without-agent-polling` へのwrite accessを付与するか、対象repositoryへのpushが許可された既存GitHub accountを提供する。credential切替・書き換え、force push、fork/別branchへのfallbackは行わない。
 - Progress: 89% (16/18)
-- Progress: 89% (16/18)
