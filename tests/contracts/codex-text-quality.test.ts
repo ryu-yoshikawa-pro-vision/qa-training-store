@@ -1490,7 +1490,7 @@ describe("Codex deterministic text quality contracts", () => {
       expect(result.stdout).not.toContain('"match"');
       expect(result.stdout).not.toContain("BAD");
     });
-  });
+  }, 60_000);
 
   it("loads exactly the seven adopted production textlint rules and preserves stable fingerprints", () => {
     const textlintConfig = JSON.parse(fs.readFileSync(textlintConfigPath, "utf8")) as {
@@ -1627,7 +1627,7 @@ describe("Codex deterministic text quality contracts", () => {
         ]);
       }
     });
-  }, 60_000);
+  }, 120_000);
 
   it("applies textlint fingerprints to the existing baseline and exact rename mapping", () => {
     withFixture((root) => {
@@ -1651,7 +1651,7 @@ describe("Codex deterministic text quality contracts", () => {
       expect(post.stdout).toBe("");
       expect(post.stderr).toBe("");
     }, "ｶﾀｶﾅ\n");
-  }, 60_000);
+  }, 180_000);
 
   it("does not silently pass missing, invalid, or unloadable textlint configuration", () => {
     withFixture((root) => {

@@ -275,7 +275,7 @@ describe("architecture boundaries", () => {
       /from\s+["'][^"']*dexie["']/i,
       /react-aria-components/,
       /indexedDB|sessionStorage|localStorage|document\.|window\./,
-      /global\.css/,
+      /^\s*import\b[^\n]*\.css["'];?\s*$/m,
     ];
     const violations = paths.flatMap((path) => {
       const text = source(path);
@@ -288,9 +288,37 @@ describe("architecture boundaries", () => {
     const webRoot = source(join(projectRoot, "src", "presentation", "root-layout.web.tsx"));
     const nativeRoot = source(join(projectRoot, "src", "presentation", "root-layout.native.tsx"));
 
-    expect(webRoot).toContain('import "@/presentation/styles/fonts.css";');
-    expect(webRoot).toContain('import "@/presentation/styles/global.css";');
+    const webStylesheetImports = Array.from(
+      webRoot.matchAll(/^\s*import\s+["']([^"']+\.css)["'];?\s*$/gm),
+      (match) => match[1],
+    );
+    expect(webStylesheetImports).toEqual([
+      "@/presentation/styles/fonts.css",
+      "@/presentation/styles/global.css",
+      "@/presentation/styles/shared.css",
+      "@/presentation/styles/storefront.css",
+      "@/presentation/styles/admin.css",
+    ]);
     expect(nativeRoot).not.toMatch(/^\s*import\b[^\n]*\.css["'];?\s*$/m);
+  });
+
+  it("keeps shared component variant owners in shared.css", () => {
+    const sharedStyles = source(join(projectRoot, "src", "presentation", "styles", "shared.css"));
+    const storefrontStyles = source(
+      join(projectRoot, "src", "presentation", "styles", "storefront.css"),
+    );
+    const adminStyles = source(join(projectRoot, "src", "presentation", "styles", "admin.css"));
+    const sharedVariantRules = [
+      /^\.button--danger\s*\{/m,
+      /^\.status-badge--danger\s*\{/m,
+      /^\.status-badge--info\s*\{/m,
+    ];
+
+    for (const rule of sharedVariantRules) {
+      expect(sharedStyles).toMatch(rule);
+      expect(storefrontStyles).not.toMatch(rule);
+      expect(adminStyles).not.toMatch(rule);
+    }
   });
 
   it("connects shared Native presentation to React Native primitives and shared tokens", () => {
