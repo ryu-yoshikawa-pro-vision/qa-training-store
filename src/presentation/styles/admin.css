@@ -1,9 +1,4 @@
 /* Admin presentation, including owner-local responsive rules. */
-.button--danger {
-  background: #b91c1c;
-  color: #fff;
-}
-
 .admin-wordmark {
   color: #0f172a;
   font-size: 20px;
@@ -417,11 +412,6 @@
 .notice {
   border-inline-start: 4px solid var(--color-warning);
   padding: var(--space-3);
-}
-
-.button--danger {
-  border-color: #b91c1c;
-  background: #b91c1c;
 }
 
 .admin-wordmark {

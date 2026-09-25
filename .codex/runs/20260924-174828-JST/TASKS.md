@@ -46,6 +46,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、push後
 - Breadcrumbsは`.breadcrumbs a`と後段`a:hover`が同specificity `(0,1,1)`で競合し、Current hover colorは`var(--color-accent-dark)`。shared ownerで同値・同specificityの`:where(.breadcrumbs) a:hover`をbase ruleの後に置いて保持するmappingを確定した。gateでは未解決dependencyに数えない。
 - その他のanchor color chainでは`.section-heading > a`が同specificityで後勝ちし、移動後もStorefront ownerがglobalより後に残る。Footer / Account / Admin navigationはowner-local hover ruleがよりspecific、Catalog / table linksはbase ruleがよりspecific。一般`a[href]` / `a:hover`はglobal owner内で相対順を保つ。別のbehavior-changing cross-owner dependencyは残らない。
 - `.filter-bar input/select`（1066-1067）と`input/select:focus`（2669-2672）はpropertyが重なるが、focus側の`border-color`に`!important`があるためsource order依存ではない。
+- PR #181 review finding: 静的selector / prefix auditでは`status-badge--${tone}`と`ConfirmDialog`の動的button modifierを捉えられていなかった。`.button--danger`、`.status-badge--danger`、`.status-badge--info`をshared ownerへ移し、3 selector限定のarchitecture contractとtargeted before / after UI Reviewを追加した。詳細とEvidenceはactive Run `REPORT.md`の2026-09-25 repair checkpointを参照する。
 
 ## Blocked（ブロック中）
 

@@ -302,6 +302,25 @@ describe("architecture boundaries", () => {
     expect(nativeRoot).not.toMatch(/^\s*import\b[^\n]*\.css["'];?\s*$/m);
   });
 
+  it("keeps shared component variant owners in shared.css", () => {
+    const sharedStyles = source(join(projectRoot, "src", "presentation", "styles", "shared.css"));
+    const storefrontStyles = source(
+      join(projectRoot, "src", "presentation", "styles", "storefront.css"),
+    );
+    const adminStyles = source(join(projectRoot, "src", "presentation", "styles", "admin.css"));
+    const sharedVariantRules = [
+      /^\.button--danger\s*\{/m,
+      /^\.status-badge--danger\s*\{/m,
+      /^\.status-badge--info\s*\{/m,
+    ];
+
+    for (const rule of sharedVariantRules) {
+      expect(sharedStyles).toMatch(rule);
+      expect(storefrontStyles).not.toMatch(rule);
+      expect(adminStyles).not.toMatch(rule);
+    }
+  });
+
   it("connects shared Native presentation to React Native primitives and shared tokens", () => {
     const nativeComponents = source(
       join(projectRoot, "src", "presentation", "native", "native-components.tsx"),

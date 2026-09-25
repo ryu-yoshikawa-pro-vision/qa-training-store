@@ -1,14 +1,4 @@
 /* Storefront, customer, and public presentation, including owner-local responsive rules. */
-.status-badge--danger {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.status-badge--info {
-  background: #e0f2fe;
-  color: #075985;
-}
-
 .storefront-header {
   position: sticky;
   z-index: 30;
@@ -1703,18 +1693,6 @@
   line-height: 1.5;
   font-weight: 800;
   letter-spacing: 0.12em;
-}
-
-.status-badge--danger {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #991b1b;
-}
-
-.status-badge--info {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-  color: #1e40af;
 }
 
 .storefront-header {

@@ -263,3 +263,34 @@
 - Next:
   - explicit path stagingとcached diff reviewの後、commit・normal push、latest-head CI確認、PR本文更新・readbackを完了する。
 - Progress: 78% (18/23)
+
+## 2026-09-25 — PR #181 review finding repair
+
+- Finding / triage:
+  - `must_fix` / `review_gap`: `ConfirmDialog`の`.button--danger`と`StatusBadge`の`.status-badge--danger` / `.status-badge--info`が、Storefront / CustomerとAdminのshared variantであるにもかかわらずfeature owner CSSへ配置されていた。
+  - Root cause: 前回のownership auditは静的selector / prefix中心で、`status-badge.tsx`の`status-badge--${tone}`と`ConfirmDialog`の`button--${danger ? "danger" : ...}`をconsumer inventoryとして追えていなかった。
+  - 以前の「owner間exact selector重複0」は、その限定した静的検査の観測結果であり、dynamic modifierを含む完全なownership証明ではない。3 selectorのownershipは本iterationで修正した。
+- Current before repair:
+  - `git fetch origin --prune`後、PR #181はopen、head `6d81aee81c5c0dc00fa12a0ead196a40e7f378f6`、base `main` `1c3e30c93837cad84c27ad3f40e3f34c2c2de645`。
+  - Current branch / upstreamは`plan/issue-131-global-web-css-ownership-boundary`で一致し、working treeはcleanだった。PR branchはcurrent mainをすでに取り込んでおり、指定source fileにmain側との競合はなかった。
+- Evidence / consumer inventory:
+  - `StatusBadge`は`status-badge--${tone}`を生成し、`statusTone()`はsuccess / warning / danger / info / neutralを返す。dangerには`failed`等、infoには`shipped` / `gold` / `platinum`等が含まれる。
+  - Adminの`OrderStatusBadge` / `PaymentStatusBadge` / `ShipmentStatusBadge`、Product status、User role / rank / account statusが同じcomponentとtone mappingを利用する。Customer review pageも同じ`StatusBadge`を利用する。
+  - `ConfirmDialog`は`button--danger`を動的に生成する。Customerのreview削除とAdmin Productの販売終了 / draft削除が同componentを使用する。
+  - Buttonのprimary / secondary / tertiary / dangerとStatusBadgeの5 toneを限定再監査し、各familyのbase / modifierは`shared.css`が所有する。今回の3 selector以外に、同family内の明確なfeature owner誤配置は見つからなかった。
+- Repair iteration 1:
+  - `allowed_files`: `src/presentation/styles/shared.css`, `src/presentation/styles/storefront.css`, `src/presentation/styles/admin.css`, `tests/contracts/architecture.test.ts`。
+  - `changed_files`: 上記4 source file。初期ruleと後段overrideのdeclarationを変えず、`.button--danger`の2 rule chainを`admin.css`から、`.status-badge--danger` / `.status-badge--info`の2 rule chainずつを`storefront.css`から`shared.css`へ移した。
+  - `global.css`、Web root import、TSX / DOM / className / route / breakpointは変更していない。architecture contractは今回の3 selectorだけについてshared ownerの存在とStorefront / Adminのtop-level owner rule不在を検査する。
+  - Before computed style: Customer review削除button background / border `rgb(185, 28, 28)`、text `rgb(255, 255, 255)`。Admin `/admin/orders` danger badge background / border / text `rgb(254, 242, 242)` / `rgb(254, 202, 202)` / `rgb(153, 27, 27)`、info badge `rgb(239, 246, 255)` / `rgb(191, 219, 254)` / `rgb(30, 64, 175)`。
+  - After computed styleは上記全値と一致した。
+  - Targeted UI Review stages `issue-131-review-fix-before` / `issue-131-review-fix-after`を同じDesktop viewport (1440×1000)、同じ`review-published` / `admin-orders` routeでcapture。両画像とも1440幅でchanged pixels 0 / max channel delta 0。Layout / geometry差はなかった。
+- Validation:
+  - `corepack pnpm exec vitest run tests/contracts/architecture.test.ts`: 1 file / 13 tests PASS。
+  - `corepack pnpm run lint`: 0 errors / 65 warnings。既知66件から増加なし。
+  - `corepack pnpm run typecheck`: PASS。`build:web`: PASS。
+  - `test:e2e:chromium`: 34/34 PASS。`test:a11y`: 5/5 PASS。`test:e2e:mobile-boundary`: 4/4 PASS。
+  - `corepack pnpm run verify`: PASS。46 contract files、794 passed / 4 skipped / 0 failed。format / lint / typecheck / security / test / build gatesを完了した。
+  - 最初のverifyは今回編集したarchitecture testのPrettier差分で停止した。該当ファイルのみ整形し、後続full verifyを再実行してPASSした。Playwright初回起動時のchild processが`pnpm`を解決できなかったため、temp-only PATH shimを使って既存specのbefore / after UI Reviewを再実行しPASSした。Repository sourceへの追加はない。
+  - `decision`: `stop_success`。残差なし。sanitization / Markdown lint / final diff review / commit / normal push / latest-head CI / PR body update-readbackは次の完了工程。
+- Progress: 78% (18/23)
