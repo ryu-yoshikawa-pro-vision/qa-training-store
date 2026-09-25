@@ -73,3 +73,29 @@ Progress: 14% (3/21)
 L3実装承認後、strict Run Artifactをmachine-managedに補完してからsource変更へ進む。
 
 Progress: 13% (3/23)
+
+
+## 2026-09-25 - 再レビュー6回目の修正
+
+### 状態
+
+- 実装は未開始。
+- Workflow Levelはstrictを維持する。
+- PR #184の初回Web CI failureは正本Plan内のMD034/no-bare-urls 2件が原因だった。
+
+### 今回反映した修正
+
+- OpenAI Codex config reference / execpolicyのbare URLをMarkdown linkへ変更し、MD034を解消した。
+- `codex-safe safe` の例外操作をlocalとnetworkへ分離した。
+  - local branch delete、merge / rebase recoveryはon-request approvalのみを条件とし、network sandbox昇格を要求しない。
+  - 高影響GitHub CLI等のnetwork例外操作だけ、on-request approval + network sandbox昇格のread-only runtime検証成功を条件にする。
+  - network昇格検証失敗時はnetwork例外操作だけをblockerとし、local recoveryまでblockしない。
+- local branch deleteは`git branch -d / --delete`だけでなく、`-vd`、`-dv`、`-v -d`等の複合short option / option順序違いもpromptになることを検証契約へ追加した。
+- `.codex/rules/README.md`を必須変更対象へ追加し、direct `never`でpromptがrejectになる新しいrules契約へ同期する方針にした。
+- source実装、L3設定変更、mergeは行っていない。
+
+### 次のgate
+
+最新Plan-only headのCIを再確認した後も、source実装の次gateはL3実装承認のまま。
+
+Progress: 13% (3/24)

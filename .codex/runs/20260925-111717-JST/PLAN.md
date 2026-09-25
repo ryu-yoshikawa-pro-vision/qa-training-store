@@ -28,9 +28,11 @@ Run Artifactは新しいdirect用manifest modelを追加せず、通常のlightw
 - `.codex/requirements.toml`はactual consumer / managed distributionで実効性を確認できた場合だけ変更する。
 - `git switch`だけをbroad prompt ruleから外す。
 - `git checkout / merge / rebase / tag`はprompt維持する。
-- `git branch -d / --delete`はprompt、`git branch -D / -f`とremote branch deleteは既存denyを維持する。
-- merge / rebase recoveryや明示依頼された高影響network operationで`codex-safe safe`を使うのは、safe wrapperのapproval + network昇格runtime検証が成功した場合だけとする。失敗時はblockerとし、新presetを追加しない。
+- `git branch -d / --delete`はpromptとし、複合short option / option順序違いも検証する。`git branch -D / -f`とremote branch deleteは既存denyを維持する。
+- merge / rebase recoveryとlocal branch deleteはlocal例外操作として扱い、`codex-safe safe`のon-request approval成立だけを条件にする。network昇格は条件にしない。
+- 明示依頼された高影響network operationで`codex-safe safe`を使うのは、safe wrapperのapproval + network昇格runtime検証が成功した場合だけとする。失敗時はnetwork例外操作だけをblockerとし、新presetを追加しない。
 - generic `gh api` と高影響GitHub CLI operationをpromptに置き、direct neverでは拒否する。ただしこのruleはdefense-in-depthであり、credentialを持つ任意code pathのhard boundaryとは扱わない。通常のPR create / edit / checksはblanket blockしない。
+- `.codex/rules/README.md`をdirect never / prompt semanticsへ同期する。
 - auto-net presetは削除しない。
 - rm / git rm等の既存denyを変更しない。
 - workspace-write subagentへnetwork falseを新設しない。既存role contractに禁止根拠がある場合だけ個別overrideする。

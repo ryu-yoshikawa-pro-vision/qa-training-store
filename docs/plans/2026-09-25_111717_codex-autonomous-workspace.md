@@ -54,9 +54,10 @@ direct `codex` では「高リスク時だけその場でユーザーへ確認�
 - 通常作業で必要なoperationは、既存Hookとrulesで安全性を確認したうえでprompt不要にする。
 - 高影響operationは既存denyまたはexecpolicy `prompt`を維持し、direct `never`では実行しない。
 - ユーザーが高影響operationを明示的に依頼し、Repository契約上実行可能な場合でも、direct `never`の拒否を迂回しない。
-- 例外操作の承認経路として既存`codex-safe safe`の`on-request`を候補にするが、project default変更後も「execpolicy承認 + network sandbox昇格」が実runtimeで成立することを先に検証する。
-- 上記runtime検証が成功した場合だけ、明示依頼された例外操作で`codex-safe safe`を使う。
-- runtime検証が失敗した場合はblockerとして報告し、新preset、danger-full-access、approval bypass、network常時有効の承認wrapperを今回追加しない。
+- local例外操作（local branch delete、merge / rebase recovery等）は、既存`codex-safe safe`の`on-request`承認が成立することを条件に使う。network sandbox昇格は条件にしない。
+- network例外操作（高影響GitHub CLI operation等）は、project default変更後も`codex-safe safe`で「execpolicy承認 + network sandbox昇格」が実runtimeで成立することを先に検証する。
+- network例外操作では上記runtime検証が成功した場合だけ`codex-safe safe`を使う。
+- network昇格runtime検証が失敗した場合はnetwork例外操作の承認経路だけをblockerとして報告し、local例外操作までblockしない。新preset、danger-full-access、approval bypass、network常時有効の承認wrapperを今回追加しない。
 - normal direct workflowが拒否されたことだけを理由にwrapperへ自動fallbackしない。
 
 ### 既存の禁止
@@ -324,7 +325,17 @@ recoveryが必要な場合は、direct session内でpolicyを迂回せず、`cod
 - `git branch -d <branch>`
 - `git branch --delete <branch>`
 
-direct `never`では拒否する。明示依頼がある場合は、networkを必要としないため`codex-safe safe`の`on-request`承認経路を使用できる。
+direct `never`では拒否する。明示依頼がある場合は、networkを必要としないlocal例外操作として`codex-safe safe`の`on-request`承認経路を使用できる。network sandbox昇格の成功は条件にしない。
+
+execpolicyはprefix matchなので、`-d` / `--delete`の基本形だけでなく、既存Hookが解釈する複合short optionやoption順序違いも検証対象にする。
+
+少なくとも次をpromptとして固定する。
+
+- `git branch -d old-feature`
+- `git branch --delete old-feature`
+- `git branch -vd old-feature`
+- `git branch -dv old-feature`
+- `git branch -v -d old-feature`
 
 force deleteの `git branch -D` / `-f` は既存forbidden / Hook denyを維持し、承認経路へ昇格させない。remote branch deleteの既存denyも維持する。
 
@@ -351,7 +362,7 @@ networkをproject defaultで有効にするため、これまでnetwork sandbox�
 
 direct `never`ではこれらを拒否する。
 
-ユーザーが対象operationを明示的に依頼し、Repository契約上実行可能な場合でも、`codex-safe safe`を使えるのはTask 3のruntime検証でapproval + network昇格が成立した場合だけとする。成立しない場合はblockerとして扱い、今回のscopeで新しい承認presetを追加しない。
+ユーザーが対象operationを明示的に依頼し、Repository契約上実行可能な場合でも、network例外操作で`codex-safe safe`を使えるのはTask 3のruntime検証でapproval + network昇格が成立した場合だけとする。成立しない場合はnetwork例外操作の承認経路をblockerとして扱い、今回のscopeで新しい承認presetを追加しない。
 
 次の通常workflowは上記ruleで一括blockしない。
 
@@ -417,6 +428,7 @@ PR #182は現在もPlan-onlyだが、最新Planはinteractive E2Eを `codex-safe
 - `.codex/config.toml`
 - `codex-project.toml`
 - `.codex/rules/20-risky-prompt.rules`
+- `.codex/rules/README.md`
 - `scripts/codex-safe.ps1`
 - `scripts/codex-safe.sh`
 - `scripts/codex-task.ps1`
@@ -500,9 +512,10 @@ bootstrap完了前にsource設定を変更しない。
 - `codex-task safe`: network falseを明示
 - `codex-task auto-net`: network trueを維持
 - Bash / PowerShellを同じ意味にする
-- `codex-safe safe` の `on-request` を維持する
-- project default変更後、safe wrapperから副作用のないread-only network operationを使い、execpolicy承認とnetwork sandbox昇格を経て通信できるか実runtimeで確認する
-- この検証が失敗した場合は高影響network operationの承認経路を未成立blockerとして扱い、新presetを追加しない
+- `codex-safe safe` の `on-request` をlocal / network例外操作の明示承認経路として維持する
+- local例外操作ではon-request承認のみを条件とし、network昇格を要求しない
+- network例外操作ではproject default変更後、safe wrapperから副作用のないread-only network operationを使い、execpolicy承認とnetwork sandbox昇格を経て通信できるか実runtimeで確認する
+- network昇格検証が失敗した場合は高影響network operationの承認経路だけを未成立blockerとして扱い、local例外操作はblockしない。新presetを追加しない
 
 ### Task 4: execpolicy
 
@@ -511,6 +524,7 @@ bootstrap完了前にsource設定を変更しない。
 - `git switch`だけを既存broad Git promptから外す
 - `git checkout / merge / rebase / tag` はprompt維持
 - `git branch -d / --delete` をpromptへ追加する
+- `git branch -vd / -dv / -v -d` 等、既存Hookが解釈する複合short option / option順序違いもpromptになることを検証する
 - `git branch -D / -f` とremote branch deleteの既存denyは維持する
 - `gh api` familyをprompt
 - `gh pr merge / close` をprompt
@@ -522,7 +536,7 @@ bootstrap完了前にsource設定を変更しない。
 
 - normal `git switch` はpromptで止まらない
 - destructive switchはHook deny
-- merge / rebase recoveryはdirect `never`ではreject、safe wrapperではapproval対象
+- merge / rebase recoveryはdirect `never`ではreject、network昇格とは独立したlocal例外操作としてsafe wrapperのon-request approval対象
 - local `git branch -d / --delete` はdirect `never`でreject、force / remote deleteは既存deny
 - direct modeでgeneric `gh api` と高影響 `gh` operationがrejectされる
 - normal PR create / edit / checksは今回追加ruleでblockされない
@@ -597,7 +611,7 @@ parent / configured roleのresolved / effective configを前後比較する。
 - `git switch`:通常caseがpromptで止まらない
 - `git checkout / merge / rebase / tag`:prompt維持
 - destructive switch:deny
-- local `git branch -d / --delete`:prompt
+- local `git branch -d / --delete` と複合short option / option順序違い:prompt
 - `git branch -D / -f` とremote branch delete:既存deny
 - high-impact `gh` operation / generic `gh api`:prompt
 - normal `gh pr create / edit / checks`:今回の追加ruleに一致しない
@@ -625,14 +639,15 @@ Repository / workspaceからfresh `codex`を直接起動する。
 2. project configが読み込まれる。
 3. workspace内の通常編集がsandbox approvalなしで進む。
 4. `git ls-remote <remote> HEAD` 等のread-only network operationがsandbox network拒否なしで成功する。
-5. 別のfresh `codex-safe safe` sessionで副作用のないread-only network operationを実行し、execpolicy承認とnetwork sandbox昇格の後に通信できるか確認する。成功した場合だけ、明示依頼された高影響network operationの承認経路としてsafe wrapperを採用する。失敗した場合はblockerとして記録する。
-6. build / lint / typecheck / test等の通常作業が進む。
-7. 通常の `git switch` がrules承認待ちで止まらない。
-8. `git checkout / merge / rebase / tag`、`git branch -d / --delete`、generic `gh api`、high-impact `gh` operationは `never` 契約どおりユーザーpromptを出さず拒否される。
-9. `git branch -D / -f`、remote branch delete、その他destructive operationは実行せず、execpolicy / Hook contractでdenyを確認する。
-10. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
-11. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
-12. danger-full-accessへfallbackしない。
+5. local例外操作について、fresh `codex-safe safe` sessionで副作用のないprompt対象commandを使い、on-request承認が成立することを確認する。network sandbox昇格は要求しない。
+6. network例外操作について、別のfresh `codex-safe safe` sessionで副作用のないread-only network operationを実行し、execpolicy承認とnetwork sandbox昇格の後に通信できるか確認する。成功した場合だけ、明示依頼された高影響network operationの承認経路としてsafe wrapperを採用する。失敗した場合はnetwork例外操作だけをblockerとして記録する。
+7. build / lint / typecheck / test等の通常作業が進む。
+8. 通常の `git switch` がrules承認待ちで止まらない。
+9. `git checkout / merge / rebase / tag`、`git branch -d / --delete`と複合short option / option順序違い、generic `gh api`、high-impact `gh` operationは `never` 契約どおりユーザーpromptを出さず拒否される。
+10. `git branch -D / -f`、remote branch delete、その他destructive operationは実行せず、execpolicy / Hook contractでdenyを確認する。
+11. normal `gh pr create / edit / checks` 等が今回追加したhigh-impact ruleで誤ってblockされないことをexecpolicyで確認する。実外部変更を伴うcommand自体はE2E目的だけでは実行しない。
+12. Apps / MCP tool固有approval modeとHook trustは必要な既存機能だけ別契約として確認する。
+13. danger-full-accessへfallbackしない。
 
 結果は `REPORT.md` と `evaluation.json` のevidenceへ記録する。direct session用 `run.json` は作らない。
 
@@ -677,7 +692,7 @@ generic `gh api` と明示的な高影響 `gh` operationをpromptに置き、dir
 
 通常のPR作成・更新・確認経路までblanket blockしない。強いcredential分離は今回のscopeへ追加しない。
 
-明示依頼された高影響network operationのsafe wrapper承認経路はruntimeで成立を確認してから採用し、成立しなければblockerとする。
+local例外操作のsafe wrapper承認経路はon-request approvalだけを確認する。明示依頼された高影響network operationのsafe wrapper承認経路はapproval + network昇格がruntimeで成立することを確認してから採用し、成立しなければnetwork例外操作だけをblockerとする。
 
 ### `codex-project.toml`
 
@@ -725,7 +740,7 @@ direct `codex`用のmanifest modelを今回追加しない。
 3. active Runを既存machine-managed経路でstrictへ補完する。
 4. `.codex/config.toml` と `codex-project.toml` を同期する。
 5. wrapper safe / auto-netの既存semanticsを維持する。
-6. `git switch`分離、local branch delete prompt、GitHub CLI high-impact prompt ruleを追加する。
+6. `git switch`分離、local branch delete prompt（複合short option / option順序違いを含む）、GitHub CLI high-impact prompt ruleを追加し、`.codex/rules/README.md`を同期する。
 7. parent / subagentの実効configを確認する。
 8. Run Artifact / implementation / safety referenceを通常direct・strict machine-managedの2経路へ同期する。
 9. quickstart / MIGRATION / PROJECT_CONTEXT / historyを同期する。
@@ -740,10 +755,8 @@ direct `codex`用のmanifest modelを今回追加しない。
 
 ## 13. 調査根拠
 
-- OpenAI Codex config reference:
-  https://developers.openai.com/ja-JP/docs/config-file/config-reference
-- OpenAI Codex execpolicy:
-  https://github.com/openai/codex/blob/main/codex-rs/execpolicy/README.md
+- [OpenAI Codex config reference](https://developers.openai.com/ja-JP/docs/config-file/config-reference)
+- [OpenAI Codex execpolicy](https://github.com/openai/codex/blob/main/codex-rs/execpolicy/README.md)
 - `approval_policy = "never"` はexecpolicy `prompt`を承認表示ではなく拒否として扱う。
 - execpolicyで複数ruleが一致する場合は `forbidden > prompt > allow` の最も厳しいdecisionが有効になる。
 - `requirements.toml` はmanaged security requirements用であり、project `.codex/config.toml` とは責務が異なる。

@@ -14,13 +14,14 @@
 - [ ] codex-project.tomlのnetwork / apply_patch metadataを新契約へ同期し、standard run_manifest=recommendedは維持する。
 - [ ] codex-safe / codex-taskでsafeのnetwork false、auto-netのnetwork trueを明示して既存semanticsを維持する。
 - [ ] .codex/rules/20-risky-prompt.rulesでgit switchだけをbroad Git promptから外す。
-- [ ] git branch -d / --deleteをpromptへ追加し、git branch -D / -fとremote branch deleteの既存denyを維持する。
+- [ ] git branch -d / --deleteをpromptへ追加し、複合short option / option順序違いもpromptになることを検証する。git branch -D / -fとremote branch deleteの既存denyを維持する。
 - [ ] generic gh apiと高影響GitHub CLI operationをpromptへ追加し、通常PR workflowをblanket blockしない。これをGitHub writeのhard boundaryとは扱わない。
-- [ ] codex-safe safeで副作用のないread-only network operationを使い、on-request承認 + network sandbox昇格が実runtimeで成立するか確認する。失敗時はblockerとし、新presetを追加しない。
-- [ ] merge / rebase recoveryはdirect neverで迂回せず、safe wrapper runtime検証が成功した場合だけ必要時にon-request経路を使う契約へ同期する。
+- [ ] local例外操作についてcodex-safe safeのon-request承認が成立することを確認する。network sandbox昇格は条件にしない。
+- [ ] network例外操作についてcodex-safe safeで副作用のないread-only network operationを使い、on-request承認 + network sandbox昇格が実runtimeで成立するか確認する。失敗時はnetwork例外操作だけをblockerとし、新presetを追加しない。
+- [ ] merge / rebase recoveryはdirect neverで迂回せず、local例外操作として必要時にcodex-safe safeのon-request経路を使う契約へ同期する。
 - [ ] parent / subagentの実効configを確認し、明示的なrole contractがない限りworkspace-write roleへnetwork falseを追加しない。
 - [ ] docs/reference/run-artifacts.mdを通常direct + manifestなし / strict machine-managed契約へ更新し、safety.networkとexternal validationの責務を分ける。
-- [ ] implementation / safety reference、quickstart、MIGRATIONを新契約へ同期する。
+- [ ] implementation / safety reference、.codex/rules/README.md、quickstart、MIGRATIONを新契約へ同期する。
 - [ ] PROJECT_CONTEXT更新前snapshotをdocs/historyへ保存し、PROJECT_CONTEXTを同期する。
 - [ ] actual consumerが確認できた場合だけ.codex/requirements.tomlを同期する。
 - [ ] scripts/verify / scripts/verify.ps1と必要な既存contract testを更新する。
@@ -36,4 +37,4 @@
 - strict必須のrun.json / evaluation.jsonは未作成。
 - 次のgateはL3実装承認。その直後にmachine-managed strict Artifact bootstrapを行う。
 
-Progress: 13% (3/23)
+Progress: 13% (3/24)
