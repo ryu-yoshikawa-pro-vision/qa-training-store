@@ -40,6 +40,14 @@ Codex harness で生成・参照される artifact の責務を分けるため�
 
 一時ファイルをRun Directory内に生成した場合は、作業完了前に標準Run Artifactと分離します。生のCLI log、MCP log、ADB logcat等は原則としてGit管理外の`.artifacts`配下へ保存し、Run Artifactには必要な要約とrepo-relativeな参照だけを記録します。
 
+### direct `codex` とmanifest境界
+
+- 通常のlightweight／standard interactive作業はRepository内からdirect `codex`を起動します。Runは`PLAN.md`、`TASKS.md`、`REPORT.md`で管理します。
+- この経路のRun初期化で`scripts/new-run.*`を使う場合は`--no-run-manifest`／`-NoRunManifest`を指定し、`run.json`を作成しません。direct sessionのexecution metadataを現行manifestが正確に表せないためです。
+- `codex-project.toml`のstandard `run_manifest = "recommended"`はmachine-managed／wrapper標準経路として維持します。direct standardのmanifestなし運用は通常interactive経路に限る明示例外です。
+- strict Run、またはmachine-managed evidenceが必要なRunでは既存`codex-safe -RunId`／`codex-task --record-run-manifest`とcollectorを使い、`run.json`とevaluationを集約します。Agentはactual `run.json`を直接作成・編集しません。
+- `run.json.safety.network`はmachine-managed runner／wrapperが観測したexecution pathのnetwork利用です。同じstrict task内で別途行うfresh direct `codex` runtime validationを含むtask全体の通信値ではありません。そのvalidationは`REPORT.md`と`evaluation.json`へ記録します。
+
 ### Past Run changes
 
 - 過去Runの標準Run Artifactは、事実誤認や形式破損の修正を除き、原則として上書きしません。

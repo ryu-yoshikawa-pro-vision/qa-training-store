@@ -371,9 +371,36 @@ check_template_contract() {
   contains "Output format" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Non-goals" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/config.toml || return 1
-  if grep -Eq '^[[:space:]]*approval_policy[[:space:]]*=' .codex/config.toml; then return 1; fi
+  contains "approval_policy = \"never\"" .codex/config.toml || return 1
   contains "web_search = \"cached\"" .codex/config.toml || return 1
-  contains "network_access = false" .codex/config.toml || return 1
+  contains "network_access = true" .codex/config.toml || return 1
+  contains "network_access_in_workspace_write = true" codex-project.toml || return 1
+  contains "apply_patch_file_edits = \"allowed_in_direct_workspace_write_safe_and_auto_net\"" codex-project.toml || return 1
+  contains "apply_patch_creates = \"allowed_in_direct_workspace_write_safe_and_auto_net\"" codex-project.toml || return 1
+  contains "apply_patch_deletes = \"forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_explicit_intent_and_reviewable_diff\"" codex-project.toml || return 1
+  contains "apply_patch_renames = \"forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_review_and_migration_reason\"" codex-project.toml || return 1
+  contains 'run_manifest = "recommended"' codex-project.toml || return 1
+  contains 'run_manifest = "required"' codex-project.toml || return 1
+  contains 'sandbox_workspace_write.network_access=false' scripts/codex-safe.ps1 || return 1
+  contains 'sandbox_workspace_write.network_access=false' scripts/codex-safe.sh || return 1
+  contains 'sandbox_workspace_write.network_access=true' scripts/codex-safe.ps1 || return 1
+  contains 'sandbox_workspace_write.network_access=true' scripts/codex-safe.sh || return 1
+  contains 'sandbox_workspace_write.network_access=false' scripts/codex-task.ps1 || return 1
+  contains 'sandbox_workspace_write.network_access=false' scripts/codex-task.sh || return 1
+  contains 'sandbox_workspace_write.network_access=true' scripts/codex-task.ps1 || return 1
+  contains 'sandbox_workspace_write.network_access=true' scripts/codex-task.sh || return 1
+  contains 'pattern = ["git", ["checkout", "merge", "rebase", "tag"]]' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'git branch -vd old-feature' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'git branch -dv old-feature' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'git branch -v -d old-feature' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'gh api /repos/example/repo/issues' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'gh pr merge 123' .codex/rules/20-risky-prompt.rules || return 1
+  contains 'gh pr create' .codex/rules/20-risky-prompt.rules && return 1
+  contains 'git branch -vd old-feature' .codex/rules-auto-net/20-auto-net-risky-forbidden.rules || return 1
+  contains 'gh api /repos/example/repo/issues' .codex/rules-auto-net/20-auto-net-risky-forbidden.rules || return 1
+  contains 'git branch --show-current' .codex/rules-auto-net/10-auto-net-allow.rules || return 1
+  contains 'preflight用overlay' .codex/rules/README.md || return 1
+  contains 'actual runtime policyは`.codex/rules/*.rules`が正本' .codex/rules/README.md || return 1
   contains "[agents]" .codex/config.toml || return 1
   contains "default_subagent_model =" .codex/config.toml || return 1
   contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
@@ -413,6 +440,20 @@ check_template_contract() {
   contains "追加の subagent を起動しない" .codex/agents/quality_gate_runner.toml || return 1
   contains "run.json" docs/reference/run-artifacts.md || return 1
   contains "evaluation.json" docs/reference/run-artifacts.md || return 1
+  contains "--no-run-manifest" docs/reference/run-artifacts.md || return 1
+  contains "-NoRunManifest" docs/reference/run-artifacts.md || return 1
+  contains "run.json.safety.network" docs/reference/run-artifacts.md || return 1
+  contains 'fresh direct `codex` runtime validation' docs/reference/run-artifacts.md || return 1
+  contains "Repository / workspace内での通常interactive入口" docs/reference/codex-implementation-harness.md || return 1
+  contains "--no-run-manifest" docs/reference/codex-implementation-harness.md || return 1
+  contains "-NoRunManifest" docs/reference/codex-implementation-harness.md || return 1
+  contains "approval_policy = \"never\"" docs/reference/codex-safety-harness.md || return 1
+  contains "network access enabled" docs/guides/quickstart.md || return 1
+  contains "--no-run-manifest" docs/guides/quickstart.md || return 1
+  contains "-NoRunManifest" docs/guides/quickstart.md || return 1
+  contains "approval_policy = \"never\"" MIGRATION.md || return 1
+  contains "auto-net" MIGRATION.md || return 1
+  contains "Codex direct interactive default" docs/PROJECT_CONTEXT.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1
   contains "Source-of-Truth" docs/reference/run-artifacts.md || return 1
   contains ".codex/logs/hooks-" docs/reference/run-artifacts.md || return 1
@@ -615,6 +656,104 @@ check_execpolicy_baseline() {
   return 0
 }
 
+execpolicy_expect() {
+  local expected="$1"
+  local ruleset="$2"
+  shift 2
+  local -a rule_args=()
+
+  case "$ruleset" in
+    common)
+      rule_args=(
+        --rules .codex/rules/10-readonly-allow.rules
+        --rules .codex/rules/20-risky-prompt.rules
+        --rules .codex/rules/30-destructive-forbidden.rules
+      )
+      ;;
+    auto-net)
+      rule_args=(
+        --rules .codex/rules-auto-net/10-auto-net-allow.rules
+        --rules .codex/rules-auto-net/20-auto-net-risky-forbidden.rules
+        --rules .codex/rules-auto-net/30-auto-net-forbidden.rules
+      )
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  local output decision
+  output="$(codex execpolicy check "${rule_args[@]}" -- "$@")" || return 1
+  decision="$(decision_from_json "$output")" || return 1
+  if [[ "$decision" != "$expected" ]]; then
+    echo "Expected execpolicy $expected for $ruleset '$*', got '$decision'" >&2
+    return 1
+  fi
+}
+
+check_execpolicy_safety_contract() {
+  local -a common_cases=(
+    'allow|git switch feature/safe'
+    'prompt|git checkout feature/safe'
+    'prompt|git merge main'
+    'prompt|git merge --abort'
+    'prompt|git rebase --abort'
+    'prompt|git tag release-1'
+    'prompt|git branch -d old-feature'
+    'prompt|git branch --delete old-feature'
+    'prompt|git branch -vd old-feature'
+    'prompt|git branch -dv old-feature'
+    'prompt|git branch -v -d old-feature'
+    'forbidden|git branch -D old-feature'
+    'forbidden|git branch -f old-feature'
+    'forbidden|git push --delete origin old-feature'
+    'prompt|gh api /repos/example/repo/issues'
+    'prompt|gh pr merge 123'
+    'prompt|gh pr close 123'
+    'prompt|gh issue close 123'
+    'prompt|gh release create v1'
+    'prompt|gh release delete v1'
+    'prompt|gh repo delete example/repo'
+    'allow|gh pr create --title test'
+    'allow|gh pr edit 123'
+    'allow|gh pr checks 123'
+  )
+  local -a auto_net_cases=(
+    'allow|git branch --show-current'
+    'forbidden|git branch -d old-feature'
+    'forbidden|git branch --delete old-feature'
+    'forbidden|git branch -vd old-feature'
+    'forbidden|git branch -dv old-feature'
+    'forbidden|git branch -v -d old-feature'
+    'forbidden|gh api /repos/example/repo/issues'
+    'forbidden|gh pr merge 123'
+    'forbidden|gh pr close 123'
+    'forbidden|gh issue close 123'
+    'forbidden|gh release create v1'
+    'forbidden|gh release delete v1'
+    'forbidden|gh repo delete example/repo'
+    'allow|docker ps'
+  )
+  local test_case expected command
+  local -a command_tokens=()
+
+  for test_case in "${common_cases[@]}"; do
+    expected="${test_case%%|*}"
+    command="${test_case#*|}"
+    read -r -a command_tokens <<< "$command"
+    execpolicy_expect "$expected" common "${command_tokens[@]}" || return 1
+  done
+
+  for test_case in "${auto_net_cases[@]}"; do
+    expected="${test_case%%|*}"
+    command="${test_case#*|}"
+    read -r -a command_tokens <<< "$command"
+    execpolicy_expect "$expected" auto-net "${command_tokens[@]}" || return 1
+  done
+
+  execpolicy_expect prompt common docker ps
+}
+
 check_codex_available() {
   command -v codex >/dev/null 2>&1 &&
     codex --version >/dev/null 2>&1 &&
@@ -661,6 +800,7 @@ if ! check_codex_available; then
   log_skip "execpolicy checks (codex command not executable)"
 else
   run_check "execpolicy baseline decisions" check_execpolicy_baseline
+  run_check "execpolicy safety decisions" check_execpolicy_safety_contract
 fi
 
 if [[ -f scripts/codex-safe.sh ]] && check_codex_available; then

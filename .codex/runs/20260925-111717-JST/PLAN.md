@@ -45,6 +45,34 @@ Run Artifactは新しいdirect用manifest modelを追加せず、通常のlightw
 
 ## strict Artifactの現在状態
 
-`run.json` / `evaluation.json` は未作成。
+ユーザーの明示指示をこのPlanのL3実装承認として確認し、source変更前に同じRun IDを既存 codex-task writerでbootstrapした。
 
-次のgateはL3実装承認。その直後、source変更前に既存machine-managed経路で補完する。
+- run.json: schema v2、strict、preset=safe、runtime=host、status=completed、validation.status=skipped、safety.network=false、scope_violation=false、changed_files=[]、codex_task_report_count=1。
+- evaluation.json: 既存templateを作成済み。result=not_evaluatedで、最終評価は未実施。
+- scope: --allowed-files / --allowed-dirs / --allowed-globsをwriterへ渡した。source scopeはこのRunのREPORTに記録する。
+- bootstrap時点でsource変更なし。Task 0 baselineとTask 1 bootstrapの結果はREPORTへ追記済み。
+
+次のgateはTask 2のproject default / metadata変更。その後、Task 3以降を順に進める。
+
+## 2026-09-26 execution status
+
+- Task 2からTask 8の実装と指定検証を完了した。条件付き`.codex/requirements.toml` / subagent role変更は、実効consumer / role contractが確認できなかったため行わなかった。
+- Task 9はpartial。fresh direct `codex`の通常workspace write、direct neverによるGitHub CLI prompt拒否、auto-net preflightとactual runtimeの差は確認した。shared `.git` metadata sandbox拒否、GitHub network接続 / credential制約、interactive PTY不在によりdirect git switch / network / safe on-request approvalとnetwork昇格は未完了。
+- Task 10のfocused test、Hook test、execpolicy representative cases、Bash / PowerShell verify、`pnpm run verify`は完了。evaluationはpartialでschema-validとした。
+- 次は既存writer / collectorでevaluationとRun manifestを最終集約し、commit、normal push、PR #184本文更新、最新head CIを確認する。mergeは行わない。
+- Plan全体は未完了扱いとし、interactive approval / direct network・Git metadata runtimeの未達をREPORTへ記録する。
+
+## 2026-09-26 final aggregation status
+
+- Evaluation JSONはASCII Unicode escapesへ修復し、Python schema validatorとWindows PowerShell JSON parserで有効性を確認した。
+- 最終strict writer report reports/codex-task-20260926-101700.report.jsonはCodex exit 0、git diff --check exit 0、evaluation validation passed。
+- run.jsonは既存writer / collectorが出力した。最新task statusはcompletedだが、validation.status=blockedとsafety.scope_violation=trueには先行writerの評価parse failure / scope引数binding誤りの履歴が保持される。actual manifestを手編集して履歴を消さない。
+- Task 9のinteractive approval、network sandbox昇格、direct network / Git metadata runtimeは未達。auto-net preflight/runtime差は別のL3候補へdeferした。Planはpartialであり、commit / push / PR更新 / CI確認も継続する。
+
+## 2026-09-26 precommit artifact checkpoint
+
+- final sanitizer Write / Checkは24 files scan、0 replacements、0 residual findingsでPASS。
+- existing collector `collect-run-artifacts.ps1 -RunId 20260925-111717-JST -RefreshGitChangedFiles -Strict`はexit 0。
+- 最終run.json: status=completed、validation.status=blocked、safety.scope_violation=true、evaluation present、6 reports。blocked / scope flagは過去の同一Run内finalizer記録を保持するためであり、最新strict writer reportは成功。Run manifestは手編集していない。
+- 過去のevaluation validation failure evidenceにはWindows PowerShell 5.1 ANSI decode由来の日本語mojibakeが残る。evaluation.json自体は修復・検証済みだが、actual run.jsonの履歴evidenceは直接編集せずblockerとして保持する。
+- evaluation schema / PowerShell JSON parse / git diff --checkはPASS。interactive approvalとdirect runtimeの未達を含め、Plan outcomeはpartial。次はcommit、normal push、PR更新、latest-head CI。

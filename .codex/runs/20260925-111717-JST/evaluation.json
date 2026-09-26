@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "run_id": "20260925-111717-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "\u5b9f\u88c5\u3068\u6307\u5b9a\u691c\u8a3c\u306f\u5b8c\u4e86\u3057\u305f\u304c\u3001fresh interactive codex-safe safe\u306eon-request\u627f\u8a8d / network\u6607\u683c\u3068\u3001direct runtime\u306enetwork / git switch\u5b9f\u884c\u304c\u74b0\u5883\u5236\u7d04\u3067\u672a\u5b8c\u4e86\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Fresh direct Codex runtime validation",
+          "summary": "direct runtime validation\u306e\u7d50\u679c\u3068\u672a\u9054\u6761\u4ef6"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "\u5b9f\u88c5\u30d5\u30a1\u30a4\u30eb\u306f\u6b63\u672cPlan\u306e\u5909\u66f4\u7bc4\u56f2\u5185\u3067\u3042\u308b\u3002\u6700\u7d42strict writer\u306f\u5b8c\u5168\u306acomma-delimited scope\u3067\u6210\u529f\u3057\u305f\u3002\u5148\u884c\u3059\u308bscope check blocked\u306f\u3001PowerShell string[]\u5f15\u6570\u3078\u30d5\u30a1\u30a4\u30eb\u4e00\u89a7\u3092\u6b63\u3057\u304f\u6e21\u305b\u306a\u304b\u3063\u305ffinalizer invocation\u306b\u8d77\u56e0\u3057\u3001\u305d\u306e\u5b9f\u884c\u306fread-only git diff --check\u306e\u307f\u3067source\u5909\u66f4\u3092\u52a0\u3048\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-autonomous-workspace.test.ts",
+          "summary": "\u8ffd\u52a0\u5909\u66f4\u306fharness contract test\u306b\u9650\u5b9a"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "\u5b9f\u88c5\u5185\u5bb9\u3068\u6761\u4ef6\u4ed8\u304d\u5224\u65ad",
+          "summary": "\u6761\u4ef6\u4ed8\u304d\u5909\u66f4\u306e\u6839\u62e0\u3068\u975e\u5909\u66f4\u7bc4\u56f2"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/reports/codex-task-20260926-101700.report.json",
+          "selector": "status, codex_exit_code, verify_exit_code",
+          "summary": "\u5b8c\u5168\u306ascope\u6307\u5b9a\u3067\u5b9f\u884c\u3057\u305f\u6700\u7d42writer\u304c\u6210\u529f"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused test\u3001Hook test\u3001PowerShell/Bash verify\u3001Repository verify\u306f\u901a\u904e\u3002\u6700\u7d42strict writer\u3082evaluation validation\u3092\u901a\u904e\u3057\u305f\u304c\u3001run.json.validation.status\u306f\u5148\u884cwriter\u306eevaluation parse failure\u3068scope check blocked\u3092\u4fdd\u6301\u3057\u3066blocked\u3002\u904e\u53bb\u306e\u5931\u6557evidence\u306b\u306fWindows PowerShell 5.1 ANSI decode\u306b\u3088\u308b\u65e5\u672c\u8a9emojibake\u304c\u6b8b\u308a\u3001direct runtime\u306e\u5916\u90e8\u901a\u4fe1 / interactive approval\u3082\u672a\u5b9f\u8a3c\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "\u5b9f\u884c\u3057\u305f\u691c\u8a3c",
+          "summary": "\u691c\u8a3c\u30b3\u30de\u30f3\u30c9\u3068\u6700\u7d42\u7d50\u679c"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260925-111717-JST/logs/codex-safe-20260926.jsonl",
+          "summary": "safe / auto-net wrapper runtime event\u3068\u62d2\u5426\u7d50\u679c"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260925-111717-JST/run.json",
+          "selector": "validation.status, safety.scope_violation, artifact_summary",
+          "summary": "\u6700\u65b0writer\u6210\u529f\u5f8c\u3082\u5c65\u6b74\u3092\u542b\u3080\u96c6\u7d04\u72b6\u614b\u304cblocked"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "strict evaluation / Run manifest finalization",
+          "summary": "\u8a55\u4fa1JSON\u4fee\u5fa9\u3068manifest\u306b\u6b8b\u308b\u5c65\u6b74blocker"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "\u5371\u967a\u306a\u64cd\u4f5c\u306f\u5b9f\u884c\u305b\u305a\u3001direct never\u3068auto-net actual runtime\u306eprompt command\u306f\u5b9f\u884c\u524d\u306b\u62d2\u5426\u3055\u308c\u305f\u3002network exception\u3082approval\u7d4c\u8def\u672a\u78ba\u8a8d\u306e\u305f\u3081\u5b9f\u884c\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Fresh direct Codex runtime validation",
+          "summary": "read-only representative command\u306e\u62d2\u5426\u3068\u975e\u5b9f\u884c\u78ba\u8a8d"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "\u5909\u66f4\u5951\u7d04\u3092reference\u6587\u66f8\u3068focused contract test\u3067\u793a\u3057\u3001auto-net runtime\u5dee\u3068\u672a\u9054\u6761\u4ef6\u3092Run Report\u3078\u5206\u96e2\u3057\u3066\u8a18\u9332\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/codex-safety-harness.md",
+          "summary": "direct / safe / auto-net safety contract"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/run-artifacts.md",
+          "summary": "direct runtime evidence\u3068machine manifest\u8cac\u52d9\u306e\u5206\u96e2"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "\u65e2\u5b58config, wrapper, rules, collector, validation scripts\u3092\u66f4\u65b0\u3057\u3001\u65b0\u898fmanifest schema / writer / preset / dependency\u3092\u8ffd\u52a0\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/verify.ps1",
+          "summary": "\u65e2\u5b58verify\u5951\u7d04\u3078\u65b0\u3057\u3044\u8a2d\u5b9a\u30fbrule\u30b1\u30fc\u30b9\u3092\u8ffd\u52a0"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/codex-safe.ps1",
+          "summary": "\u65e2\u5b58safe/auto-net wrapper\u306enetwork override\u3092\u660e\u793a"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "\u540c\u3058active strict Run\u3068\u65e2\u5b58writer\u3092\u7dad\u6301\u3057\u305f\u3002evaluation\u306fASCII escape\u8868\u8a18\u3078\u4fee\u5fa9\u3057Python schema validator\u3068PowerShell parser\u3092\u901a\u904e\u3002\u6700\u65b0writer\u306f\u6210\u529f\u3057\u305f\u304cmanifest\u306f\u904e\u53bb\u306efailed / blocked\u8a18\u9332\u3092\u4fdd\u6301\u3057\u3066\u304a\u308a\u3001\u305d\u306e\u7406\u7531\u3092REPORT\u3078\u8a18\u9332\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260925-111717-JST/run.json",
+          "selector": "workflow_level, preset, safety, changed_files",
+          "summary": "strict host Run manifest"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Fresh direct Codex runtime validation",
+          "summary": "\u5916\u90e8runtime\u5236\u7d04\u3068\u518d\u73fe\u7d50\u679c"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/reports/codex-task-20260926-101700.report.json",
+          "selector": "evaluation validation, git diff --check",
+          "summary": "\u6700\u7d42writer\u306ecurrent report\u306f\u6210\u529f"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "interactive PTY\u3092\u4f5c\u6210\u3067\u304d\u305a\u3001codex-safe safe\u306eon-request approval\u3068network sandbox\u6607\u683c\u3092\u5b9fruntime\u3067\u627f\u8a8d\u30fb\u78ba\u8a8d\u3067\u304d\u306a\u304b\u3063\u305f\u3002non-interactive codex exec\u306fapproval=never\u3067\u62d2\u5426\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "safe approval route",
+          "summary": "on-request approval runtime\u306f\u672a\u9054"
+        }
+      ],
+      "detail": "Task 9\u306elocal exception\u3068network exception\u306eapproval path\u306f\u5b8c\u4e86\u6761\u4ef6\u3092\u6e80\u305f\u3057\u3066\u3044\u306a\u3044\u3002interactive terminal\u3092\u5229\u7528\u3067\u304d\u308bhost\u4e0a\u3067fresh codex-safe safe session\u3092\u5b9f\u884c\u3059\u308b\u5fc5\u8981\u304c\u3042\u308b\u3002"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "direct git switch\u306fshared .git/worktrees/.../index.lock\u306ePermission denied\u3067\u5931\u6557\u3057\u3001git ls-remote\u306fSEC_E_NO_CREDENTIALS\u3001public read-only GET\u306fTLS\u63a5\u7d9a\u5207\u65ad\u3068\u306a\u3063\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "direct workspace, git, network probes",
+          "summary": "sandbox / credential / TLS\u5883\u754c\u3067\u306e\u5931\u6557"
+        }
+      ],
+      "detail": "project config\u306eworkspace-write / network true\u3092\u5909\u66f4\u305b\u305a\u306b\u691c\u8a3c\u74b0\u5883\u304b\u3089\u89e3\u6d88\u3067\u304d\u306a\u3044\u3002shared Git metadata writable root\u306e\u8ffd\u52a0\u3084credential\u8a2d\u5b9a\u306fscope\u5916\u306e\u305f\u3081\u884c\u308f\u305a\u3001PR\u5b8c\u4e86\u524d\u306b\u5229\u7528\u53ef\u80fd\u306ahost runtime\u3067\u518d\u78ba\u8a8d\u3059\u308b\u3002"
+    },
+    {
+      "category": "review_gap",
+      "severity": "medium",
+      "evidence": "auto-net preflight overlay\u306fdocker ps\u3092allow\u3059\u308b\u304c\u3001actual runtime\u306fcommon prompt rule\u306b\u4e00\u81f4\u3057\u3001approval=never\u3067\u5b9f\u884c\u524d\u306b\u62d2\u5426\u3059\u308b\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "auto-net preflight and actual runtime",
+          "summary": "preflight/runtime decision mismatch"
+        }
+      ],
+      "detail": "\u65e2\u5b58\u306edecision\u5dee\u3068\u3057\u3066\u78ba\u8a8d\u3057\u3001Plan\u3069\u304a\u308aruntime loader\u3092\u8ffd\u52a0\u305b\u305a\u3001\u5c06\u6765\u306e\u5225L3\u5224\u65ad\u3078\u5207\u308a\u51fa\u3057\u305f\u3002"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "auto-net preflight/runtime policy parity for docker ps",
+      "evidence": "The auto-net preflight overlay allowed the read-only docker ps representative case, while a fresh actual auto-net runtime applied common project rules and approval=never rejected it before execution.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "auto-net preflight and actual runtime",
+          "summary": "preflight overlay allow contrasted with actual runtime prompt rejection"
+        }
+      ],
+      "expected_impact": "Keep the preflight decision aligned with the effective session policy or clearly surface the difference so auto-net users do not infer that a preflight allow means the runtime will execute the command.",
+      "recommendation": "Create a separate L3 decision to either remove the docker ps allowance from the auto-net overlay or design and verify an appropriate runtime policy alignment. Do not add a preset-specific runtime loader in this PR."
+    }
+  ]
+}

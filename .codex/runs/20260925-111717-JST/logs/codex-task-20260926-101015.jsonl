@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-26T10:10:17.8477093+09:00","event":"wrapper_start","runtime":"host","run_id":"20260925-111717-JST","preset":"safe"}
+{"timestamp":"2026-09-26T10:10:18.9095042+09:00","event":"preflight_start"}
+{"timestamp":"2026-09-26T10:10:26.6009179+09:00","event":"preflight_ok"}
+{"timestamp":"2026-09-26T10:10:26.6436504+09:00","event":"codex_exec_start","runtime":"host","output_file":"\u003cREPO_ROOT\u003e/.codex\\\\runs\\20260925-111717-JST\\artifacts\\codex-task-20260926-101015.json"}
+{"timestamp":"2026-09-26T10:11:18.9238094+09:00","event":"codex_exec_exit","exit_code":0}
+{"timestamp":"2026-09-26T10:11:20.2504413+09:00","event":"scope_violation","evidence":"changed files outside allowed scope: .codex/config.toml, .codex/rules-auto-net/20-auto-net-risky-forbidden.rules, .codex/rules/20-risky-prompt.rules, .codex/rules/README.md, MIGRATION.md, codex-project.toml, docs/PROJECT_CONTEXT.md, docs/guides/quickstart.md, docs/history/20260925-111717_project-context-before-codex-autonomous-workspace.md, docs/reference/codex-implementation-harness.md, docs/reference/codex-safety-harness.md, docs/reference/run-artifacts.md, scripts/codex-safe.ps1, scripts/codex-safe.sh, scripts/codex-task.ps1, scripts/codex-task.sh, scripts/verify, scripts/verify.ps1, tests/contracts/codex-autonomous-workspace.test.ts"}

@@ -1362,6 +1362,8 @@ main() {
     cmd+=(--ask-for-approval "$approval_policy")
     if [[ "$preset" == "auto-net" ]]; then
       cmd+=(-c "sandbox_workspace_write.network_access=true")
+    elif [[ "$preset" == "safe" ]]; then
+      cmd+=(-c "sandbox_workspace_write.network_access=false")
     fi
     if (( allow_search )); then
       cmd+=(--search)
@@ -1405,6 +1407,8 @@ main() {
     docker_cmd+=("${CODEX_DOCKER_IMAGE}" codex --ask-for-approval "$approval_policy")
     if [[ "$preset" == "auto-net" ]]; then
       docker_cmd+=(-c "sandbox_workspace_write.network_access=true")
+    elif [[ "$preset" == "safe" ]]; then
+      docker_cmd+=(-c "sandbox_workspace_write.network_access=false")
     fi
     if (( allow_search )); then
       docker_cmd+=(--search)

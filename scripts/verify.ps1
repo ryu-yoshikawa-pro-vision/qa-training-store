@@ -438,9 +438,78 @@ function Test-TemplateContract {
     $config = Get-Content -Raw .codex/config.toml
 
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
-    if ($config -match '(?m)^\s*approval_policy\s*=') { throw "project config must not set approval_policy" }
+    if ($config -notmatch [regex]::Escape('approval_policy = "never"')) { throw "config missing never approval policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
-    if ($config -notmatch [regex]::Escape('network_access = false')) { throw "config missing disabled workspace-write network" }
+    if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing enabled workspace-write network" }
+    $project = Get-Content -Raw codex-project.toml
+    foreach ($contract in @(
+        'network_access_in_workspace_write = true',
+        'apply_patch_file_edits = "allowed_in_direct_workspace_write_safe_and_auto_net"',
+        'apply_patch_creates = "allowed_in_direct_workspace_write_safe_and_auto_net"',
+        'apply_patch_deletes = "forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_explicit_intent_and_reviewable_diff"',
+        'apply_patch_renames = "forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_review_and_migration_reason"',
+        'run_manifest = "recommended"',
+        'run_manifest = "required"'
+    )) {
+        if ($project -notmatch [regex]::Escape($contract)) { throw "codex-project.toml missing contract: $contract" }
+    }
+    foreach ($path in @('scripts/codex-safe.ps1', 'scripts/codex-safe.sh', 'scripts/codex-task.ps1', 'scripts/codex-task.sh')) {
+        $wrapper = Get-Content -Raw $path
+        if ($wrapper -notmatch 'sandbox_workspace_write\.network_access=false') { throw "$path missing safe network false override" }
+        if ($wrapper -notmatch 'sandbox_workspace_write\.network_access=true') { throw "$path missing auto-net network true override" }
+    }
+    $commonPromptRules = Get-Content -Raw .codex/rules/20-risky-prompt.rules
+    if ($commonPromptRules -notmatch [regex]::Escape('pattern = ["git", ["checkout", "merge", "rebase", "tag"]]')) { throw "common prompt rules must leave git switch prompt-free" }
+    foreach ($command in @(
+        'git branch -d old-feature',
+        'git branch --delete old-feature',
+        'git branch -vd old-feature',
+        'git branch -dv old-feature',
+        'git branch -v -d old-feature',
+        'gh api /repos/example/repo/issues',
+        'gh pr merge 123',
+        'gh pr close 123',
+        'gh issue close 123',
+        'gh release create v1',
+        'gh release delete v1',
+        'gh repo delete example/repo'
+    )) {
+        if ($commonPromptRules -notmatch [regex]::Escape($command)) { throw "common prompt rules missing $command" }
+    }
+    $autoNetPromptRules = Get-Content -Raw .codex/rules-auto-net/20-auto-net-risky-forbidden.rules
+    if ($autoNetPromptRules -notmatch [regex]::Escape('gh api /repos/example/repo/issues')) { throw "auto-net preflight overlay missing gh api guard" }
+    if ((Get-Content -Raw .codex/rules-auto-net/10-auto-net-allow.rules) -notmatch [regex]::Escape('git branch --show-current')) { throw "auto-net read-only branch allow missing" }
+    $rulesReadme = Get-Content -Raw .codex/rules/README.md
+    if ($rulesReadme -notmatch 'preflight') { throw "rules README missing auto-net overlay contract" }
+    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern 'actual runtime policy')) { throw "rules README missing runtime policy source" }
+    $runArtifacts = Get-Content -Raw docs/reference/run-artifacts.md
+    foreach ($contract in @('--no-run-manifest', '-NoRunManifest', 'run.json.safety.network', 'fresh direct `codex` runtime validation')) {
+        if ($runArtifacts -notmatch [regex]::Escape($contract)) { throw "run-artifacts reference missing direct runtime contract: $contract" }
+    }
+    $implementation = Get-Content -Raw docs/reference/codex-implementation-harness.md
+    foreach ($contract in @(
+        'direct `codex`',
+        '--no-run-manifest',
+        '-NoRunManifest',
+        'run_manifest = "recommended"',
+        '--record-run-manifest'
+    )) {
+        if ($implementation -notmatch [regex]::Escape($contract)) { throw "implementation harness missing direct / strict contract: $contract" }
+    }
+    foreach ($contract in @(
+        'approval_policy = "never"',
+        'network false',
+        'read-only runtime validation',
+        'direct `codex`'
+    )) {
+        if (-not (Select-String -LiteralPath 'docs/reference/codex-safety-harness.md' -SimpleMatch -Quiet -Pattern $contract)) { throw "safety harness missing direct safety contract: $contract" }
+    }
+    foreach ($path in @('docs/guides/quickstart.md', 'MIGRATION.md', 'docs/PROJECT_CONTEXT.md')) {
+        $content = Get-Content -Raw $path
+        if ($content -notmatch [regex]::Escape('--no-run-manifest') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct Run initialization contract" }
+        if ($content -notmatch [regex]::Escape('approval_policy = "never"') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct approval contract" }
+    }
+    if ((Get-Content -Raw docs/PROJECT_CONTEXT.md) -notmatch [regex]::Escape('Codex direct interactive default')) { throw "PROJECT_CONTEXT missing direct interactive section" }
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }
     if ($config -notmatch '(?m)^\s*default_subagent_model\s*=') { throw "config missing default subagent model key" }
     if ($config -notmatch '(?m)^\s*default_subagent_reasoning_effort\s*=') { throw "config missing default subagent reasoning effort key" }
@@ -533,6 +602,89 @@ function Test-ExecpolicyBaseline {
     if ((Get-Decision ($gitRmForbidden | Out-String)) -ne 'forbidden') { throw "git rm should be forbidden" }
 }
 
+function Assert-ExecpolicyDecision {
+    param(
+        [string]$CodexExe,
+        [string[]]$RuleArgs,
+        [string[]]$CommandTokens,
+        [string]$Expected
+    )
+
+    $execArguments = @('execpolicy', 'check') + $RuleArgs + @('--') + $CommandTokens
+    $result = & $CodexExe @execArguments 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "codex execpolicy check failed for '$($CommandTokens -join ' ')': $result" }
+    $decision = Get-Decision ($result | Out-String)
+    if ($decision -ne $Expected) {
+        throw "Expected execpolicy '$Expected' for '$($CommandTokens -join ' ')', got '$decision'"
+    }
+}
+
+function Test-ExecpolicySafetyContract {
+    $codex = (Get-Command codex -ErrorAction Stop).Source
+    $commonRuleArgs = @(
+        '--rules', '.codex/rules/10-readonly-allow.rules',
+        '--rules', '.codex/rules/20-risky-prompt.rules',
+        '--rules', '.codex/rules/30-destructive-forbidden.rules'
+    )
+    $autoNetRuleArgs = @(
+        '--rules', '.codex/rules-auto-net/10-auto-net-allow.rules',
+        '--rules', '.codex/rules-auto-net/20-auto-net-risky-forbidden.rules',
+        '--rules', '.codex/rules-auto-net/30-auto-net-forbidden.rules'
+    )
+
+    $commonCases = @(
+        @{ Expected = 'allow'; Command = @('git', 'switch', 'feature/safe') },
+        @{ Expected = 'prompt'; Command = @('git', 'checkout', 'feature/safe') },
+        @{ Expected = 'prompt'; Command = @('git', 'merge', 'main') },
+        @{ Expected = 'prompt'; Command = @('git', 'merge', '--abort') },
+        @{ Expected = 'prompt'; Command = @('git', 'rebase', '--abort') },
+        @{ Expected = 'prompt'; Command = @('git', 'tag', 'release-1') },
+        @{ Expected = 'prompt'; Command = @('git', 'branch', '-d', 'old-feature') },
+        @{ Expected = 'prompt'; Command = @('git', 'branch', '--delete', 'old-feature') },
+        @{ Expected = 'prompt'; Command = @('git', 'branch', '-vd', 'old-feature') },
+        @{ Expected = 'prompt'; Command = @('git', 'branch', '-dv', 'old-feature') },
+        @{ Expected = 'prompt'; Command = @('git', 'branch', '-v', '-d', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-D', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-f', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'push', '--delete', 'origin', 'old-feature') },
+        @{ Expected = 'prompt'; Command = @('gh', 'api', '/repos/example/repo/issues') },
+        @{ Expected = 'prompt'; Command = @('gh', 'pr', 'merge', '123') },
+        @{ Expected = 'prompt'; Command = @('gh', 'pr', 'close', '123') },
+        @{ Expected = 'prompt'; Command = @('gh', 'issue', 'close', '123') },
+        @{ Expected = 'prompt'; Command = @('gh', 'release', 'create', 'v1') },
+        @{ Expected = 'prompt'; Command = @('gh', 'release', 'delete', 'v1') },
+        @{ Expected = 'prompt'; Command = @('gh', 'repo', 'delete', 'example/repo') },
+        @{ Expected = 'allow'; Command = @('gh', 'pr', 'create', '--title', 'test') },
+        @{ Expected = 'allow'; Command = @('gh', 'pr', 'edit', '123') },
+        @{ Expected = 'allow'; Command = @('gh', 'pr', 'checks', '123') }
+    )
+    foreach ($case in $commonCases) {
+        Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $commonRuleArgs -CommandTokens $case.Command -Expected $case.Expected
+    }
+
+    $autoNetCases = @(
+        @{ Expected = 'allow'; Command = @('git', 'branch', '--show-current') },
+        @{ Expected = 'forbidden'; Command = @('git', 'switch', 'feature/safe') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-d', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '--delete', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-vd', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-dv', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-v', '-d', 'old-feature') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'api', '/repos/example/repo/issues') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'pr', 'merge', '123') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'pr', 'close', '123') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'issue', 'close', '123') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'release', 'create', 'v1') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'release', 'delete', 'v1') },
+        @{ Expected = 'forbidden'; Command = @('gh', 'repo', 'delete', 'example/repo') },
+        @{ Expected = 'allow'; Command = @('docker', 'ps') }
+    )
+    foreach ($case in $autoNetCases) {
+        Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $autoNetRuleArgs -CommandTokens $case.Command -Expected $case.Expected
+    }
+    Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $commonRuleArgs -CommandTokens @('docker', 'ps') -Expected 'prompt'
+}
+
 function Test-WrapperPreflight {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
     $safeExitCode = $LASTEXITCODE
@@ -574,6 +726,7 @@ if ($HookContracts) {
 
 if (Get-Command codex -ErrorAction SilentlyContinue) {
     Invoke-Check "execpolicy baseline decisions" { Test-ExecpolicyBaseline }
+    Invoke-Check "execpolicy safety decisions" { Test-ExecpolicySafetyContract }
 }
 else {
     Add-Skip "execpolicy baseline decisions"
