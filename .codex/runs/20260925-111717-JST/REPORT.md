@@ -388,3 +388,60 @@ Next: final tracked Run Artifactsをcommitし、normal push、PR #184本文更�
 - `git diff --check`: PASS。source / wrapper / rules / sandbox設定の差分はなく、今回の変更はREPORT / TASKS / evaluationとwrapperが生成したRun logに限定。
 - 最終aggregate: `run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`、`safety.network=false`、`primary_failure_category=missing_validation`、5 validation commands、0 warnings、6 reports、evaluation present、19 changed files。過去のblocked validationとscope evidenceを保持。
 - このartifact checkpoint時点のcheckbox Progressは`85% (23/27)`（`Now`＋`Discovered`の実checkbox数）。Task 9のnetwork 2項目とcommit / push / PR / latest CIのcheckboxはこのcommit前時点では未完了。
+
+## 2026-09-26 - merge前最終修正とTask 9再判定
+
+### 開始状態と正本
+
+- 作業開始時のbranchは`plan/codex-autonomous-workspace`。local HEAD、`origin/plan/codex-autonomous-workspace`、PR #184 headはすべて`f70d7ed132319b949e6315dc0b988db72bbd5746`で、worktreeはcleanだった。`origin/main...HEAD`は`0 14`。PRはOPEN、base=`main`、mergeableだった。
+- 作業開始時の最新必須CIはWeb CI run `36237307954`とMobile App CI run `36237308262`で、どちらも同じhead SHAを対象にcompleted / successだった。追跡差分に今回と無関係な変更はなかった。
+- 正本PlanのTask 9を再確認した。network昇格runtime検証が失敗した場合はnetwork例外操作の経路だけをblockerとし、local例外操作をblockせず、新presetやbypassを追加しない契約である。能力の成功とvalidation自体の完了を分けて評価する。
+
+### quickstart / Safety文書
+
+- `docs/guides/quickstart.md`のmode選択表で、`git add / commit / push`をfile-changing taskのGit lifecycle契約へ移し、削除・rename・`git rm`をSafety / Git safety契約に従う別行へ分けた。全ファイル内を検索し、通常入口をsafe wrapperとする記述や外部通信を常時`auto-net`へ送る記述は他に見つからなかった。
+- `docs/reference/codex-safety-harness.md`の推奨起動節をRepository rootからのdirect `codex`から始め、`codex-safe`はlocal例外・recovery・preflight・wrapper logging用の補助経路として後置した。通常interactive入口をwrapperへ戻していない。
+- 同文書へ、safe presetが`sandbox_workspace_write.network_access=false`をCodexへ明示することと、観測したWindows elevated sandbox（`CodexSandboxOffline`）ではPython HTTPSが成功したことを追加した。この環境の観測に限り、原因や一般的なWindows挙動を断定せず、`network=false`単独をWindowsの完全なnetwork isolation boundaryとして扱わないよう記載した。ネットワーク遮断がsecurity requirementなら別途信頼できる隔離環境またはruntime validationが必要とした。
+- wrapper、rules、project config、credential、Windows設定、PR #182、HIC-20260926-01、Product codeは変更していない。
+
+### Fresh direct public HTTPS
+
+- PTY経由の対話`codex`起動は`CreateProcessW`でアクセス拒否となったため、その経路ではprobeを実行しなかった。Computer Useの規約上terminal/Codex CLIをWindows UIから操作せず、Repository rootでfresh direct `codex exec`を起動した。wrapperなし、sandbox / approval / network CLI overrideなし。Codex CLIは`0.156.0`。
+- session起動表示はapproval=`never`、sandbox=`workspace-write`、network access enabled。これはtrusted projectの`.codex/config.toml`にある`workspace-write` / `approval_policy=never` / `network_access=true`と一致した。Codexはuser-level configの4個の未認識設定を無視する警告を出したが、変更せず、probe結果との因果関係を推定しない。
+- 実行したnetwork probeは次の1回のみで、追加probeは行っていない。
+
+```powershell
+python -c "import urllib.request; r=urllib.request.urlopen('https://example.com', timeout=10); print(r.status)"
+```
+
+- Codex session内のexit statusは`0`、stdoutは`200`（CRLF終端）。したがって`direct public network=PASS`。前回のdirect `git ls-remote https://github.com/git/git.git HEAD`の`SEC_E_NO_CREDENTIALS (0x8009030E)`は削除せず、Git / Schannel transport固有のruntime issueとして分離する。Python HTTPS成功により、前回のGit transport failureをdirect public network全体のfailureとは扱わない。
+
+### safe network / Plan failure branch
+
+- 既存のfresh interactive safe結果は、effective config=`workspace-write / on-request / network=false`、sandbox user=`pc-k16-0126\codexsandboxoffline`、local `git tag --list`のone-time approval=`PASS`。
+- `curl.exe https://example.com -I`はexecpolicy approval後に`SEC_E_NO_CREDENTIALS`で失敗した。safe session内のPython HTTPSは`200`を返したが追加approvalはなかった。これらはnetwork sandbox elevationと昇格後の成功通信を証明しない。safe network exception capabilityはこの検証環境で`BLOCKED`のまま。
+- Planのfailure branchにより、safe network exception validation taskは「試験未実施」ではなく「runtime validationを実施し、approval + elevation + communicationが成立しなかった結果をblockerとして記録した」状態とする。blockerはnetwork例外承認経路だけに限定し、local on-request approvalをblockしない。
+- `evaluation.json`の`missing_validation`は、direct Python HTTPSが成功し、safe network validationも実施済みとなった現状には不適切なため、primary categoryを`flaky_or_env_issue`へ更新した。`result=partial`は維持し、safe network例外経路の未成立を記録する。`run.json`の`validation.status=blocked` / `safety.scope_violation=true`は以前のevaluation parse failureとscope-check blockedを含む履歴集約で、後続の成功記録でも消えない。既存collector contractどおり保持し、actual `run.json`は直接編集しない。
+- Task 9のdirect public HTTPSとsafe network exception validationのcheckboxを完了へ変更した。safe capability自体を成功扱いにはしていない。auto-net preflight/runtime差は`HIC-20260926-01`の別課題として維持する。
+
+### このcheckpoint時点の進捗
+
+- 今回追加した文書差分とRun Artifactをfinal commit前に検証・確定し、通常commit / push / PR本文更新 / 最新head必須CI確認へ進む。PRのmergeは行わない。
+- 更新後のTASKS基本Progressは`93% (25/27)`。commit / push / PR更新とCI checkboxはfinal-commit-before lifecycle契約に従い、このartifact checkpointでは未完了のままにする。
+
+### 文書 / Run Artifactの検証結果
+
+- 変更対象5ファイルのPrettier check: PASS。
+- 変更した4 MarkdownファイルのMarkdown lint: PASS。
+- `node scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree`: PASS（changed Markdown files=4）。PowerShell環境に`pnpm` commandがなかったため、既存`node_modules`のCLIとRepositoryのNode scriptを直接実行した。package dependencyやlockfileは変更していない。
+- `node node_modules/vitest/vitest.mjs run tests/contracts/codex-autonomous-workspace.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000`: PASS（1 file / 5 tests）。
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`: PASS（4 pass / 0 fail / 0 skip）。
+- `bash scripts/verify`: PASS（2 pass / 0 fail / 2 skip）。Bash環境からCodex executableを利用できないため、execpolicy checksとBash wrapper preflightは既存script契約に従ってskipされた。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260925-111717-JST/evaluation.json`: PASS。`git diff --check`: PASS。
+
+### Strict Run finalization before commit
+
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260925-111717-JST -Write`と`-Check`: PASS。24 files scanned、0 replacements、0 residual findings。
+- `scripts/collect-run-artifacts.ps1 -RunId 20260925-111717-JST -RefreshGitChangedFiles -Strict`: exit 0。actual `run.json`は既存collectorで再集約し、直接編集していない。
+- final aggregate: `run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`、`safety.network=false`、5 validation commands、0 warnings。`evaluation.json.result=partial`、`primary_failure_category=flaky_or_env_issue`。blocked / scope履歴は過去のevaluation parse failureとscope-check blockedから継承されたもので、今回のdirect Python HTTPSや文書検証の失敗ではない。
+- final `git diff --check`: PASS。tracked Run Artifactをcommit前状態へ確定した。commit / push / PR更新 / latest CIの記録はimplementation harnessに従いGitHub側とユーザー向け最終報告へ反映し、CI結果記録だけを目的とするpost-CI commitは作らない。

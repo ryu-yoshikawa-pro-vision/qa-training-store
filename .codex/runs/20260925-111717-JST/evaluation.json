@@ -2,15 +2,15 @@
   "schema_version": 1,
   "run_id": "20260925-111717-JST",
   "result": "partial",
-  "primary_failure_category": "missing_validation",
+  "primary_failure_category": "flaky_or_env_issue",
   "failure_categories": [
-    "missing_validation",
-    "flaky_or_env_issue"
+    "flaky_or_env_issue",
+    "review_gap"
   ],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Task 9 current matrix: direct workspace write, direct approval_policy=never rejection, and normal git switch PASS on prior evidence. Safe local on-request approval PASS: a fresh interactive Windows Terminal / PowerShell codex-safe safe session showed the approval UI for git tag --list; the user approved once and the command ran without repository mutation or network elevation request. Direct public network remains BLOCKED by the prior host-success / direct-Codex SEC_E_NO_CREDENTIALS A/B result. Safe network approval plus sandbox elevation remains BLOCKED: curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional approval, so the required elevation path is not demonstrated. The network mismatch is not established as a PR #184 source defect; HIC-20260926-01 remains separate.",
+      "evidence": "Task 9 current matrix: direct workspace write, direct approval_policy=never rejection, normal git switch, and safe local on-request approval PASS. Fresh wrapperless direct Codex CLI 0.156.0 with no sandbox/approval/network overrides reported workspace-write / never / network enabled; the specified Python HTTPS probe exited 0 and printed 200, so direct public HTTPS is PASS. The earlier direct git ls-remote SEC_E_NO_CREDENTIALS result is retained as a Git / Schannel path-specific issue. Safe network-exception validation was performed: curl.exe received execpolicy approval but failed with SEC_E_NO_CREDENTIALS, and Python HTTPS succeeded without a further approval. No network sandbox elevation was established, so only the safe network-exception route remains BLOCKED under the Plan failure branch. No PR #184 source defect is established; HIC-20260926-01 remains separate.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -51,7 +51,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "The existing focused contract, hook, repository, and direct runtime evidence remains unchanged. This checkpoint confirms fresh interactive safe local on-request approval for git tag --list. In that same safe session, curl.exe returned Windows Schannel SEC_E_NO_CREDENTIALS, while Python urllib returned HTTP 200 without another network approval. These observations do not demonstrate network sandbox elevation; direct public network and safe network approval plus elevation remain BLOCKED. No source, wrapper, rule, sandbox, credential, or OS setting was changed, and no further network investigation was performed.",
+      "evidence": "The required Python HTTPS probe ran once in a fresh direct Codex CLI 0.156.0 session from the repository root, without a wrapper or sandbox/approval/network override; the session reported workspace-write / never / network enabled and returned HTTP 200. This confirms direct public HTTPS. The earlier git ls-remote SEC_E_NO_CREDENTIALS result remains a Git / Schannel path-specific runtime issue. Safe local on-request approval PASS is unchanged. The safe network-exception path remains BLOCKED because the curl.exe approval did not establish network sandbox elevation and its communication failed; Python HTTPS in the safe session succeeded without an additional network approval. The changed-file Prettier, Markdown lint, text-quality gate, focused contract test (5/5), PowerShell verify (4/4), Bash verify (2 pass / 2 contract skips), evaluation schema, and diff checks passed. Existing run.json history still aggregates earlier evaluation parse and scope-check errors as validation.status=blocked with safety.scope_violation=true, despite later successful writer and validation records. No source, wrapper, rule, sandbox, credential, or OS setting was changed.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -81,6 +81,12 @@
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
           "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "文書 / Run Artifactの検証結果",
+          "summary": "文書lint、text quality、focused contract、PowerShell/Bash verify結果"
         }
       ]
     },
@@ -130,7 +136,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Fresh direct Codex CLI 0.156.0 still has the prior host-success / direct-Codex SEC_E_NO_CREDENTIALS result. A later fresh interactive codex-safe safe session reproduced the local one-time approval flow for git tag --list under workspace-write / on-request / network=false. The session reported CodexSandboxOffline; curl.exe failed with SEC_E_NO_CREDENTIALS after approval and Python urllib returned HTTP 200 without an additional network approval. No evidence establishes network sandbox elevation; the two network requirements remain blocked.",
+      "evidence": "Fresh direct Codex CLI 0.156.0 with project defaults reported workspace-write / never / network enabled; the single Python urllib HTTPS probe returned HTTP 200. The prior git ls-remote failure remains specific to the Git / Schannel transport. A separate fresh interactive codex-safe safe session reported workspace-write / on-request / network=false and CodexSandboxOffline; local git tag --list approval succeeded. curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional network approval. No evidence establishes network sandbox elevation, so safe network exceptions remain blocked in the verified environment. The run manifest also retains historical blocked validation/scope evidence.",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -161,29 +167,29 @@
   },
   "findings": [
     {
-      "category": "missing_validation",
+      "category": "flaky_or_env_issue",
       "severity": "high",
-      "evidence": "Fresh interactive codex-safe safe confirmed local on-request approval: the approval UI appeared for git tag --list, the user approved once, and the read-only command ran. Direct public network remains blocked by the host-success / direct-Codex SEC_E_NO_CREDENTIALS result. Safe network approval plus sandbox elevation also remains unverified: curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional network approval.",
+      "evidence": "Fresh direct Codex CLI 0.156.0 using the project defaults completed the specified Python HTTPS request with exit 0 and output 200, so direct public HTTPS is confirmed. The previous git ls-remote failure remains a Git / Schannel-specific runtime observation. In the separate safe session, effective settings were workspace-write / on-request / network=false; local git tag --list approval PASS. curl.exe received execpolicy approval but failed with SEC_E_NO_CREDENTIALS, and Python HTTPS returned 200 without an additional network approval. The required network sandbox elevation was not demonstrated.",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "Task 9 continuation runtime validation",
-          "summary": "interactive codex-safe safe\u306e\u8d77\u52d5blocker"
+          "summary": "fresh direct Python HTTPS result, Git transport distinction, and safe network exception blocker"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
-          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
+          "summary": "Direct public HTTPS PASS; safe local approval PASS; only safe network elevation remains blocked."
         }
       ],
-      "detail": "The local on-request exception path is now verified and is not a blocker. The separate network exception path still requires evidence of execpolicy approval, network sandbox elevation, and successful communication in that elevated runtime. The direct public network check also remains blocked. Do not infer sandbox elevation from the curl.exe execpolicy prompt or the Python request. Keep these environment/runtime findings separate from PR #184 source defects; do not add a network workaround or continue network root-cause investigation in this PR."
+      "detail": "The direct public-network validation task is complete and passes through the requested Schannel-independent Python HTTPS probe. The older Git / Schannel result is preserved as a transport-specific observation rather than a direct network failure. Safe local approval is separately confirmed. Safe network-exception validation was performed, but there is no evidence of network sandbox elevation or successful communication after such elevation; under the Plan failure branch, this blocks only the safe network-exception approval route. The current Windows observation does not establish complete network isolation from network=false or a general cause. Keep these runtime findings separate from PR #184 source defects; do not add a network workaround or continue root-cause investigation in this PR."
     },
     {
       "category": "flaky_or_env_issue",
       "severity": "medium",
-      "evidence": "With CLI 0.156.0 launched directly from the trusted project root and no wrapper or policy CLI override, project config specifies workspace-write / approval_policy=never / network_access=true. Host public remote query succeeded and returned 0f8e75abebff0877cae681a3d5ff31ac47f54220; the identical direct Codex query failed with exit 1 and Windows Schannel SEC_E_NO_CREDENTIALS (0x8009030E).",
+      "evidence": "An earlier host / direct Codex comparison found that `git ls-remote https://github.com/git/git.git HEAD` succeeded on the host and failed inside direct Codex with Windows Schannel SEC_E_NO_CREDENTIALS (0x8009030E). A later fresh direct Codex Python HTTPS probe succeeded with HTTP 200 under the project network-enabled default, so the earlier result remains a Git / Schannel transport-specific runtime issue and does not mean direct public HTTPS is blocked.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -192,7 +198,7 @@
           "summary": "host / direct Codex network\u6bd4\u8f03\u3068\u72ec\u7acbclone\u306egit switch"
         }
       ],
-      "detail": "The A-success / B-failure result is a direct Codex runtime or Windows Schannel credential-context blocker. Available evidence does not establish a project config or wrapper defect, so no source change was made. Keep credential, proxy, TLS, OS and user-level Codex settings unchanged; retry only in another eligible runtime environment."
+      "detail": "The Git command result identifies an unresolved Git / Schannel credential-context issue for that transport only. The required public HTTPS check passed through Python, and available evidence does not establish a project config or wrapper defect. Keep credential, proxy, TLS, OS and user-level Codex settings unchanged; do not add a workaround in this PR."
     },
     {
       "category": "review_gap",

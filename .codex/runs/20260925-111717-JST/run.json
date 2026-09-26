@@ -83,5 +83,5 @@
   },
   "evaluation_path": ".codex/runs/20260925-111717-JST/evaluation.json",
   "status": "completed",
-  "primary_failure_category": "missing_validation"
+  "primary_failure_category": "flaky_or_env_issue"
 }

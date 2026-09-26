@@ -45,6 +45,7 @@
 | local branch delete、merge／rebase recovery等の明示的例外 | `codex-safe safe`のon-request承認 |
 | 高影響GitHub CLI等のnetwork例外 | `codex-safe safe`。approval + network sandbox昇格のruntime確認が成立した場合のみ |
 | 非対話strict実装・machine-managed evidence | `codex-task --run-id <run_id> --record-run-manifest` |
-| 削除、rename、git add/commit/push/rm | Codex に実行させない |
+| git add / commit / push | file-changing taskのGit lifecycle契約に従う（ユーザーがGit操作を禁止していない場合） |
+| 削除、rename、git rm | 原則実行しない。明示された対象はSafety / Git safety契約に従う |
 
 通常のdirect `codex`は`workspace-write`／`approval_policy = "never"`／network access enabledで動作します。execpolicy `prompt` operationは承認promptを出さず自動拒否されます。`auto-net`は削除せず、必要時に明示する既存wrapper presetとして維持します。

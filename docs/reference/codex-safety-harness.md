@@ -63,7 +63,15 @@
 
 ## 推奨起動方法
 
-PowerShell から実行:
+通常のinteractive作業では、Repository rootからdirect `codex`を起動します。
+
+```powershell
+codex
+```
+
+project `.codex/config.toml`のdefaultは `workspace-write` / `approval_policy = "never"` / `network_access = true` です。`never`ではsandbox approvalやexecpolicy `prompt`などの承認promptは自動拒否されるため、高影響操作は実行しません。`git switch`は通常のbranch切替としてprompt対象から除外し、destructive switchは既存Hookがdenyします。
+
+local例外操作、recovery、preflight、wrapper loggingなどが必要な場合は、`codex-safe`を補助経路として使います。PowerShell から実行:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1
@@ -105,11 +113,11 @@ auto-net preset:
 bash scripts/codex-safe.sh --preset auto-net
 ```
 
-通常のinteractive作業ではrepository rootからdirect `codex`を起動します。`approval_policy = "never"`ではsandbox approvalやexecpolicy `prompt`などの承認promptは自動拒否されるため、高影響操作は実行しません。`git switch`は通常のbranch切替としてprompt対象から除外し、destructive switchは既存Hookがdenyします。
-
 `git checkout`、merge／rebase recovery、local branch deleteはpromptのままです。明示依頼されたlocal例外操作だけは、network昇格なしの`codex-safe safe`（on-request）で実行できます。`gh api`とmerge／close／release／repo deleteなど高影響GitHub CLI操作もpromptを維持します。これらのnetwork例外操作では、safe wrapperのexecpolicy approvalとnetwork sandbox昇格がread-only runtime validationで確認できた場合だけ承認経路として使います。通常の直接実行をwrapperへ自動fallbackしません。
 
 `auto-net` は明示指定時だけ有効な既存presetです。wrapper default は `safe` のままです。direct project default networkとは独立し、wrapperがnetwork設定を明示します。
+
+`safe` presetは`sandbox_workspace_write.network_access=false`をCodexへ明示します。ただし、今回確認したWindows elevated sandbox環境では、`CodexSandboxOffline`として動作するsessionからPython HTTPSが成功しました。この観測は当該環境での結果であり、一般的なWindows上の挙動や原因を示すものではありません。したがって、Windowsではsafe presetの`network=false`だけを完全なnetwork isolation boundaryとして扱いません。network遮断自体がsecurity requirementとなる作業では、この未確認状態を前提にせず、別途信頼できる隔離環境またはruntime validationを必要とします。
 
 ## 何をブロックするか（例）
 
