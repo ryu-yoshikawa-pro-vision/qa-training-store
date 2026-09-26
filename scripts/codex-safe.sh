@@ -280,6 +280,43 @@ run_preflight() {
   assert_decision allow git status
   assert_decision allow rg --files docs
   if [[ "$preset" == "auto-net" ]]; then
+    assert_decision allow git branch --show-current
+    assert_decision forbidden git switch feature/safe
+    assert_decision forbidden git branch -d old-feature
+    assert_decision forbidden git branch --delete old-feature
+    assert_decision forbidden git branch -vd old-feature
+    assert_decision forbidden git branch -dv old-feature
+    assert_decision forbidden git branch -v -d old-feature
+    assert_decision forbidden gh api /repos/example/repo/issues
+    assert_decision forbidden gh pr merge 123
+    assert_decision forbidden gh pr close 123
+    assert_decision forbidden gh issue close 123
+    assert_decision forbidden gh release create v1
+    assert_decision forbidden gh release delete v1
+    assert_decision forbidden gh repo delete example/repo
+  else
+    assert_decision allow git switch feature/safe
+    assert_decision prompt git checkout feature/safe
+    assert_decision prompt git merge main
+    assert_decision prompt git merge --abort
+    assert_decision prompt git rebase --abort
+    assert_decision prompt git branch -d old-feature
+    assert_decision prompt git branch --delete old-feature
+    assert_decision prompt git branch -vd old-feature
+    assert_decision prompt git branch -dv old-feature
+    assert_decision prompt git branch -v -d old-feature
+    assert_decision prompt gh api /repos/example/repo/issues
+    assert_decision prompt gh pr merge 123
+    assert_decision prompt gh pr close 123
+    assert_decision prompt gh issue close 123
+    assert_decision prompt gh release create v1
+    assert_decision prompt gh release delete v1
+    assert_decision prompt gh repo delete example/repo
+    assert_decision allow gh pr create --title test
+    assert_decision allow gh pr edit 123
+    assert_decision allow gh pr checks 123
+  fi
+  if [[ "$preset" == "auto-net" ]]; then
     assert_decision forbidden git add .
     assert_decision forbidden python -c "print(1)"
     assert_decision forbidden python -
@@ -398,6 +435,8 @@ preset_config
 final_args=(-C "$cwd" --sandbox "$sandbox_mode" --ask-for-approval "$approval_policy")
 if (( network_access_override )); then
   final_args+=(-c 'sandbox_workspace_write.network_access=true')
+elif [[ "$preset" == "safe" ]]; then
+  final_args+=(-c 'sandbox_workspace_write.network_access=false')
 fi
 if (( allow_search )); then
   final_args+=(--search)

@@ -11,9 +11,7 @@
 - 計画依頼では package-local [`feature-plan template`](../.agents/skills/feature-plan/assets/plan-template.md) をベースに計画書を作り、Repositoryの保存契約に従って `docs/plans/` へ保存する。
 - `docs/reports/` は durable な調査・監査・検証結果だけに使う。review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録では作らない。
 - run の進捗と実行ログは `.codex/runs/<run_id>/REPORT.md` と `.codex/runs/<run_id>/logs/` に残す。
-- 通常のinteractive作業はRepository内からdirect `codex`を起動する。project defaultは`workspace-write`／`approval_policy = "never"`／workspace network access enabledであり、execpolicy `prompt`は自動拒否される。
-- safe wrapperはnetwork falseを明示し、local例外操作・recoveryにはon-request approvalを提供する。高影響network例外はapprovalとnetwork sandbox昇格のread-only runtime確認後に限る。`auto-net`は明示利用する既存presetとして維持する。
-- shell / PowerShell / git command によるファイル削除は禁止する。direct workspace-writeの`apply_patch`で通常編集・新規作成は可能だが、削除・rename・moveには明示された対象とレビュー可能な理由、または必要性・影響・migration理由の確認が必要。
+- プロジェクト配下の読み書きは通常承認なしでよいが、shell / PowerShell / git command によるファイル削除は禁止する。意図した差分としての `apply_patch` は許可する。
 - read-only 調査 subagent は調査結果だけを返し、編集・作成・削除を行わない。
 - `implementation_worker` は親 agent が承認した小さく限定された実装だけを担当し、対象ファイル以外の編集、削除、rename、git mutation を行わない。
 - 重要な意思決定は `docs/adr/` に記録する。
@@ -30,14 +28,6 @@
 - `docs/reference/`: operator / maintainer 向け補助資料
 - `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
 - `codex-project.toml`: template 適用後の project metadata
-
-## Codex direct interactive default（2026-09-25）
-
-- Repository rootからの通常interactive入口はdirect `codex`であり、project defaultは`workspace-write`、`approval_policy = "never"`、workspace network access enabledである。通常operationはHookとcommon execpolicyで安全性を確認し、高影響operationの`prompt`は自動拒否する。
-- `git switch`は通常のbranch切替としてbroad prompt ruleから外し、destructive switchの既存Hook denyを維持する。`git checkout`、merge／rebase／tag、local branch delete、generic `gh api`と高影響GitHub CLI operationはpromptのまま保つ。
-- `codex-safe safe`はworkspace-write／on-request／network falseを明示し、明示依頼されたlocal例外操作とrecoveryに使える。network例外operationにはruntimeで確認したapprovalとnetwork sandbox昇格の両方を要求する。通常のdirect sessionから自動fallbackしない。
-- `auto-net`はwrapperで明示する既存presetとして維持する。safe wrapperはnetwork false、auto-net wrapperはnetwork trueを明示する。auto-net rulesはpreflight overlayであり、actual runtime policyの正本は`.codex/rules/*.rules`である。
-- 通常lightweight／standard Runは`PLAN.md`、`TASKS.md`、`REPORT.md`を管理し、`new-run --no-run-manifest`／`-NoRunManifest`を使う。strict Runは既存machine-managed writer／collectorによる`run.json`とevaluationを維持する。`run.json.safety.network`はmachine-managed execution pathの観測値を表し、別途実施するdirect runtime validationは`REPORT.md`と`evaluation.json`へ記録する。
 
 ## Codex Hook / Run記録整理（2026-08-28）
 

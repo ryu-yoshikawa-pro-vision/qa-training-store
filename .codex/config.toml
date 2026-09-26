@@ -3,11 +3,12 @@
 # explicit sandbox/approval flags and block unsafe overrides.
 
 sandbox_mode = "workspace-write"
+approval_policy = "never"
 web_search = "cached"
 allow_login_shell = false
 
 [sandbox_workspace_write]
-network_access = false
+network_access = true
 writable_roots = []
 
 [shell_environment_policy]

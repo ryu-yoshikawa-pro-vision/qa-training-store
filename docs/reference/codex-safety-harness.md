@@ -29,12 +29,14 @@
   - `--preset auto-net` 指定時だけ追加で読み込む execpolicy ルール
   - network / package manager / build / test 系を allow に寄せ、shell wrapper 系は hook 検証後まで forbidden にする
 - `.codex/config.toml`
-  - project-scoped default: `sandbox_mode = "workspace-write"`, `web_search = "cached"`
-  - project config では approval policy を固定せず、`codex-safe` wrapper の `safe` / `readonly` preset が `--ask-for-approval on-request` を明示注入する
-  - workspace-write sandbox は `network_access = false`, `writable_roots = []`
+  - project-scoped default: `sandbox_mode = "workspace-write"`, `approval_policy = "never"`, `web_search = "cached"`
+  - `sandbox_workspace_write.network_access = true`, `writable_roots = []`
+  - 通常のinteractive入口はdirect `codex`。Codexのapproval promptは表示せず自動拒否する。
+  - `codex-safe safe` は `--ask-for-approval on-request` と `sandbox_workspace_write.network_access=false` を明示し、local例外操作・recoveryの承認経路として使える。network例外操作にはapprovalとnetwork sandbox昇格のruntime検証が必要。
+  - `readonly` はread-only sandbox / on-request、`auto-net` はworkspace-write / never / network trueを明示する。
   - login shell は `allow_login_shell = false`
   - Codex 0.147.0で有効なproject profileに依存せず、wrapperがpresetごとのsandbox／approvalを明示注入する
-  - `auto-net` の network access は wrapper が `-c sandbox_workspace_write.network_access=true` を明示注入する
+  - `safe` の network false と `auto-net` の network true はwrapperが明示overrideする
   - PreToolUse/Bash hook: `.codex/hooks/pre_tool_use_policy.mjs`
   - Windows native launcher: `.codex/hooks/pre_tool_use_policy_windows.ps1`
   - 文章品質Hook: `.codex/hooks/text_quality_gate.mjs`
@@ -61,7 +63,15 @@
 
 ## 推奨起動方法
 
-PowerShell から実行:
+通常のinteractive作業では、Repository rootからdirect `codex`を起動します。
+
+```powershell
+codex
+```
+
+project `.codex/config.toml`のdefaultは `workspace-write` / `approval_policy = "never"` / `network_access = true` です。`never`ではsandbox approvalやexecpolicy `prompt`などの承認promptは自動拒否されるため、高影響操作は実行しません。`git switch`は通常のbranch切替としてprompt対象から除外し、destructive switchは既存Hookがdenyします。
+
+local例外操作、recovery、preflight、wrapper loggingなどが必要な場合は、`codex-safe`を補助経路として使います。PowerShell から実行:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1
@@ -103,7 +113,11 @@ auto-net preset:
 bash scripts/codex-safe.sh --preset auto-net
 ```
 
-`auto-net` は明示指定時だけ有効です。wrapper default は `safe` のままです。
+`git checkout`、merge／rebase recovery、local branch deleteはpromptのままです。明示依頼されたlocal例外操作だけは、network昇格なしの`codex-safe safe`（on-request）で実行できます。`gh api`とmerge／close／release／repo deleteなど高影響GitHub CLI操作もpromptを維持します。これらのnetwork例外操作では、safe wrapperのexecpolicy approvalとnetwork sandbox昇格がread-only runtime validationで確認できた場合だけ承認経路として使います。通常の直接実行をwrapperへ自動fallbackしません。
+
+`auto-net` は明示指定時だけ有効な既存presetです。wrapper default は `safe` のままです。direct project default networkとは独立し、wrapperがnetwork設定を明示します。
+
+`safe` presetは`sandbox_workspace_write.network_access=false`をCodexへ明示します。ただし、今回確認したWindows elevated sandbox環境では、`CodexSandboxOffline`として動作するsessionからPython HTTPSが成功しました。この観測は当該環境での結果であり、一般的なWindows上の挙動や原因を示すものではありません。したがって、Windowsではsafe presetの`network=false`だけを完全なnetwork isolation boundaryとして扱いません。network遮断自体がsecurity requirementとなる作業では、この未確認状態を前提にせず、別途信頼できる隔離環境またはruntime validationを必要とします。
 
 ## 何をブロックするか（例）
 
@@ -131,13 +145,13 @@ bash scripts/codex-safe.sh --preset auto-net
 
 `apply_patch` は通常のファイル編集には使ってよい。ただし delete / rename / move は、意図が見えづらく影響が大きいため、通常編集とは分けて扱う。
 
-| 操作 | readonly | safe | auto-net |
-| --- | --- | --- | --- |
-| 既存ファイルの内容変更 | 不可 | 可 | 可 |
-| 新規ファイル作成 | 不可 | 可 | 可 |
-| ファイル削除 | 不可 | 原則不可。明示された対象とレビュー可能な理由がある場合のみ候補化 | 不可 |
-| rename / move | 不可 | 要レビュー。必要性、影響、migration を説明する | 不可 |
-| 削除候補の `REPORT.md` 記録 | 可 | 可 | 可 |
+| 操作 | readonly | direct `codex` | safe | auto-net |
+| --- | --- | --- | --- | --- |
+| 既存ファイルの内容変更 | 不可 | 可 | 可 | 可 |
+| 新規ファイル作成 | 不可 | 可 | 可 | 可 |
+| ファイル削除 | 不可 | 原則不可。明示された対象とレビュー可能な理由がある場合のみ候補化 | 原則不可。明示された対象とレビュー可能な理由がある場合のみ候補化 | 不可 |
+| rename / move | 不可 | 要レビュー。必要性、影響、migration を説明する | 要レビュー。必要性、影響、migration を説明する | 不可 |
+| 削除候補の `REPORT.md` 記録 | 可 | 可 | 可 | 可 |
 
 判断に迷う場合は、delete / rename / move を実行せず、`REPORT.md` に削除候補または移動候補として記録する。
 

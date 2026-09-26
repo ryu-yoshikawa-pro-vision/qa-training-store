@@ -6,14 +6,18 @@
 
 ## 使い分け
 
+- direct `codex`
+  - Repository / workspace内での通常interactive入口。
+  - project defaultは`workspace-write` / `approval_policy = "never"` / network access enabled。`prompt`は自動拒否されるため、高影響operationは実行しない。
 - `scripts/new-run.ps1|sh`
   - run directory 初期化用 helper。
   - `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` をまとめて作る。
   - actual `.codex/runs/<run_id>/run.json`の通常workflowにおける正規生成経路です。Agentはactual `run.json`を直接作成・編集しません。
   - 既存 run は上書きせず、`--force` / `-Force` でも欠けている親 directory を作るだけに留める。
 - `scripts/codex-safe.ps1|sh`
-  - 手動対話用の安全 wrapper。
+  - preflightやJSONL記録が必要なとき、およびdirect `never`で拒否する例外operationの明示承認用wrapper。
   - preflight、危険引数拒否、sandbox/approval 固定、JSONL ログを提供する。
+  - `safe`はworkspace-write / on-request / network falseを明示する。local branch deleteやmerge／rebase recoveryはnetwork昇格なしで承認できる。network例外operationはapproval + network昇格のruntime検証が成功した場合だけ使う。
   - active Runに紐づくinteractive実行では current `RunId` を `-RunId`／`--run-id` で必ず指定する。省略はactive Runに紐づかないad-hoc実行に限り、manifest syncを行わない。
   - RunId指定時は既存Run Directoryをログ生成前に確認し、存在しないRunIdではCodexを起動しない。既存 `run.json` がある場合だけ、Codex終了後にabsolute pathのcollectorを一度実行してmanifestを同期する。manifest-less Runは実行するがmanifestを生成しない。
   - `--no-log`／`-NoLog` はloggingだけを無効にし、manifest syncは無効にしない。Codex終了や `Stop` Hookだけで `status=completed` へ変更しない。
@@ -42,6 +46,8 @@
 - `lightweight` は無制限 mode ではない。
 - 外部通信、削除、rename、移行、権限変更、セキュリティ影響、公開 contract 変更を含む場合は `standard` 以上へ引き上げる。
 - `standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。
+- direct `codex`を通常interactive入口とするlightweight／standard Runでは、`new-run`に`--no-run-manifest`／`-NoRunManifest`を指定します。`PLAN.md`、`TASKS.md`、`REPORT.md`は残し、direct session用manifestは追加しません。
+- `run_manifest = "recommended"`はmachine-managed標準経路で維持します。strict Runは既存writer／collectorを使い、run manifestとevaluationを必須にします。
 - `lightweight`でもRun Artifactを残します。
 - `lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。
 - `new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。
@@ -101,10 +107,11 @@
 
 ## Run 初期化
 
+- 通常のdirect interactive入口（lightweight／standard）はmanifestなしで初期化します。
 - Bash:
-  - `bash scripts/new-run.sh --task-type implementation --workflow-level standard`
+  - `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
 - PowerShell:
-  - `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard`
+  - `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
 - `--run-id` / `-RunId` を省略した場合は JST 現在時刻から `YYYYMMDD-HHMMSS-JST` を生成する。
 - 生成対象:
   - `.codex/runs/<run_id>/PLAN.md`
@@ -210,20 +217,24 @@
 ## 推奨フロー
 
 - run を初期化する:
-  - `new-run`
-- 手動で探索・相談しながら進める:
-  - `codex-safe`
+  - direct lightweight／standardでは`new-run --no-run-manifest`／`new-run -NoRunManifest`
+- 通常のinteractive作業:
+  - Repository rootから`codex`
+- local例外operation／recoveryや明示的なnetwork例外operation:
+  - runtimeで成立した範囲に限り`codex-safe safe`のon-request承認経路を使う
 - 生成物をファイルで残す自動実装・CI 補助:
-  - `codex-task --run-id <run_id>`
+  - strict Runでは`codex-task --run-id <run_id> --record-run-manifest`
 - 外部隔離環境を明示的に用意できる:
   - `codex-sandbox`
 
 ## auto-net preset
 
 - `codex-safe` と `codex-task` の既定 preset は `safe` のままです。
-- network access つきで workspace 内の自律実装が必要なときだけ `--preset auto-net` を明示する。
+- `auto-net`は明示利用時だけ適用し、direct project defaultには自動適用しません。
 - `auto-net` は project profileに依存せず、`workspace-write` sandbox、`approval_policy = "never"`、wrapperが明示する `sandbox_workspace_write.network_access=true` を使う。
+- `safe`はnetwork falseを明示し、`readonly`はread-only sandbox、`safe`はon-request、`auto-net`はneverを維持します。
 - `codex-task` は非対話 harness なので、safe / readonly / auto-net のいずれでも Codex CLI には `--ask-for-approval never` を渡す。preset は sandbox、network override、preflight rules の選択に使う。
+- `.codex/rules/*.rules`がactual runtime policyの正本です。`.codex/rules-auto-net/*.rules`はauto-net wrapperのpreflight専用overlayで、runtime enforcementとして扱いません。
 - raw `--full-auto`、`danger-full-access`、`--dangerously-bypass-approvals-and-sandbox` は使わない。
 - `codex-task` の preflight は指定 preset を `codex-safe` に渡すため、safe と auto-net の期待値は分離される。
 

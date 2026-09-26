@@ -1712,6 +1712,8 @@ Write-TaskLog -Path $state.log_path -Event "codex_exec_start" -Data @{ runtime =
 $codexArgs = @("--ask-for-approval", $approvalPolicy)
 if ($state.preset -eq "auto-net") {
     $codexArgs += @("-c", "sandbox_workspace_write.network_access=true")
+} elseif ($state.preset -eq "safe") {
+    $codexArgs += @("-c", "sandbox_workspace_write.network_access=false")
 }
 if ($state.allow_search) {
     $codexArgs += "--search"
@@ -1778,6 +1780,8 @@ else {
     $containerArgs = @("codex", "--ask-for-approval", $approvalPolicy)
     if ($state.preset -eq "auto-net") {
         $containerArgs += @("-c", "sandbox_workspace_write.network_access=true")
+    } elseif ($state.preset -eq "safe") {
+        $containerArgs += @("-c", "sandbox_workspace_write.network_access=false")
     }
     if ($state.allow_search) {
         $containerArgs += "--search"

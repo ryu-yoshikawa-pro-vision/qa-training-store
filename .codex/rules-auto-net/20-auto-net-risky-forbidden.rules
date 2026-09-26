@@ -31,3 +31,50 @@ prefix_rule(
   decision = "forbidden",
   match = ["git checkout feature", "git rebase main"],
 )
+
+prefix_rule(
+  pattern = ["git", "branch", ["-d", "--delete", "-vd", "-dv"]],
+  decision = "forbidden",
+  match = [
+    "git branch -d old-feature",
+    "git branch --delete old-feature",
+    "git branch -vd old-feature",
+    "git branch -dv old-feature",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "branch", "-v", ["-d", "--delete"]],
+  decision = "forbidden",
+  match = ["git branch -v -d old-feature", "git branch -v --delete old-feature"],
+)
+
+prefix_rule(
+  pattern = ["gh", "api"],
+  decision = "forbidden",
+  match = ["gh api /repos/example/repo/issues"],
+)
+
+prefix_rule(
+  pattern = ["gh", "pr", ["merge", "close"]],
+  decision = "forbidden",
+  match = ["gh pr merge 123", "gh pr close 123"],
+)
+
+prefix_rule(
+  pattern = ["gh", "issue", "close"],
+  decision = "forbidden",
+  match = ["gh issue close 123"],
+)
+
+prefix_rule(
+  pattern = ["gh", "release", ["create", "delete"]],
+  decision = "forbidden",
+  match = ["gh release create v1", "gh release delete v1"],
+)
+
+prefix_rule(
+  pattern = ["gh", "repo", "delete"],
+  decision = "forbidden",
+  match = ["gh repo delete example/repo"],
+)

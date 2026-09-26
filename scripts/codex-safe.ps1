@@ -304,6 +304,26 @@ function Invoke-Preflight {
     $tests = [System.Collections.Generic.List[object]]::new()
     @(
         @{ Tokens = @('git', 'status'); Decisions = @('allow') },
+        @{ Tokens = @('git', 'switch', 'feature/safe'); Decisions = @('allow') },
+        @{ Tokens = @('git', 'checkout', 'feature/safe'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'merge', 'main'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'merge', '--abort'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'rebase', '--abort'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'branch', '-d', 'old-feature'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'branch', '--delete', 'old-feature'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'branch', '-vd', 'old-feature'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'branch', '-dv', 'old-feature'); Decisions = @('prompt') },
+        @{ Tokens = @('git', 'branch', '-v', '-d', 'old-feature'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'api', '/repos/example/repo/issues'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'pr', 'merge', '123'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'pr', 'close', '123'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'issue', 'close', '123'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'release', 'create', 'v1'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'release', 'delete', 'v1'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'repo', 'delete', 'example/repo'); Decisions = @('prompt') },
+        @{ Tokens = @('gh', 'pr', 'create', '--title', 'test'); Decisions = @('allow') },
+        @{ Tokens = @('gh', 'pr', 'edit', '123'); Decisions = @('allow') },
+        @{ Tokens = @('gh', 'pr', 'checks', '123'); Decisions = @('allow') },
         @{ Tokens = @('rg', '--files', 'docs'); Decisions = @('allow') },
         @{ Tokens = @('git', 'add', '.'); Decisions = @('allow') },
         @{ Tokens = @('git', 'reset', '--hard', 'HEAD~1'); Decisions = @('forbidden') },
@@ -316,9 +336,35 @@ function Invoke-Preflight {
     ) | ForEach-Object { $tests.Add($_) }
 
     $presetSpecificForbidden = $PresetName -eq 'auto-net'
-    $tests[2].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
-    $tests[5].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
-    $tests[6].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $testByCommand = @{}
+    foreach ($test in $tests) {
+        $testByCommand[($test.Tokens -join ' ')] = $test
+    }
+    $testByCommand['git switch feature/safe'].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $promptClassDecision = if ($presetSpecificForbidden) { @('forbidden') } else { @('prompt') }
+    foreach ($command in @(
+        'git checkout feature/safe',
+        'git merge main',
+        'git merge --abort',
+        'git rebase --abort',
+        'git branch -d old-feature',
+        'git branch --delete old-feature',
+        'git branch -vd old-feature',
+        'git branch -dv old-feature',
+        'git branch -v -d old-feature',
+        'gh api /repos/example/repo/issues',
+        'gh pr merge 123',
+        'gh pr close 123',
+        'gh issue close 123',
+        'gh release create v1',
+        'gh release delete v1',
+        'gh repo delete example/repo'
+    )) {
+        $testByCommand[$command].Decisions = $promptClassDecision
+    }
+    $testByCommand['git add .'].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $testByCommand['python -c print(1)'].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $testByCommand['python -'].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
 
     if ($PresetName -eq 'auto-net') {
         @(
@@ -330,6 +376,7 @@ function Invoke-Preflight {
             @{ Tokens = @('systemctl', 'stop', 'nginx'); Decisions = @('forbidden') },
             @{ Tokens = @('crontab', '-e'); Decisions = @('forbidden') },
             @{ Tokens = @('netsh', 'advfirewall', 'show', 'allprofiles'); Decisions = @('forbidden') },
+            @{ Tokens = @('git', 'branch', '--show-current'); Decisions = @('allow') },
             @{ Tokens = @('git', 'checkout', 'feature'); Decisions = @('forbidden') },
             @{ Tokens = @('terraform', 'apply', '-auto-approve'); Decisions = @('forbidden') },
             @{ Tokens = @('kubectl', 'apply', '-f', 'deploy.yaml'); Decisions = @('forbidden') }
@@ -465,6 +512,8 @@ $finalArgs = @(
 
 if ($presetConfig.NetworkAccessOverride) {
     $finalArgs += @('-c', 'sandbox_workspace_write.network_access=true')
+} elseif ($Preset -eq 'safe') {
+    $finalArgs += @('-c', 'sandbox_workspace_write.network_access=false')
 }
 
 if ($AllowSearch) {

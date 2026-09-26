@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "run_id": "20260925-111717-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "review_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Task 9 current matrix: direct workspace write, direct approval_policy=never rejection, normal git switch, and safe local on-request approval PASS. Fresh wrapperless direct Codex CLI 0.156.0 with no sandbox/approval/network overrides reported workspace-write / never / network enabled; the specified Python HTTPS probe exited 0 and printed 200, so direct public HTTPS is PASS. The earlier direct git ls-remote SEC_E_NO_CREDENTIALS result is retained as a Git / Schannel path-specific issue. Safe network-exception validation was performed: curl.exe received execpolicy approval but failed with SEC_E_NO_CREDENTIALS, and Python HTTPS succeeded without a further approval. No network sandbox elevation was established, so only the safe network-exception route remains BLOCKED under the Plan failure branch. No PR #184 source defect is established; HIC-20260926-01 remains separate.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "Task 9\u306e\u500b\u5225runtime\u7d50\u679c\u3068\u672a\u9054\u6761\u4ef6"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "\u5b9f\u88c5\u30d5\u30a1\u30a4\u30eb\u306f\u6b63\u672cPlan\u306e\u5909\u66f4\u7bc4\u56f2\u5185\u3067\u3042\u308b\u3002\u6700\u7d42strict writer\u306f\u5b8c\u5168\u306acomma-delimited scope\u3067\u6210\u529f\u3057\u305f\u3002\u5148\u884c\u3059\u308bscope check blocked\u306f\u3001PowerShell string[]\u5f15\u6570\u3078\u30d5\u30a1\u30a4\u30eb\u4e00\u89a7\u3092\u6b63\u3057\u304f\u6e21\u305b\u306a\u304b\u3063\u305ffinalizer invocation\u306b\u8d77\u56e0\u3057\u3001\u305d\u306e\u5b9f\u884c\u306fread-only git diff --check\u306e\u307f\u3067source\u5909\u66f4\u3092\u52a0\u3048\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-autonomous-workspace.test.ts",
+          "summary": "\u8ffd\u52a0\u5909\u66f4\u306fharness contract test\u306b\u9650\u5b9a"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "\u5b9f\u88c5\u5185\u5bb9\u3068\u6761\u4ef6\u4ed8\u304d\u5224\u65ad",
+          "summary": "\u6761\u4ef6\u4ed8\u304d\u5909\u66f4\u306e\u6839\u62e0\u3068\u975e\u5909\u66f4\u7bc4\u56f2"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/reports/codex-task-20260926-101700.report.json",
+          "selector": "status, codex_exit_code, verify_exit_code",
+          "summary": "\u5b8c\u5168\u306ascope\u6307\u5b9a\u3067\u5b9f\u884c\u3057\u305f\u6700\u7d42writer\u304c\u6210\u529f"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "The required Python HTTPS probe ran once in a fresh direct Codex CLI 0.156.0 session from the repository root, without a wrapper or sandbox/approval/network override; the session reported workspace-write / never / network enabled and returned HTTP 200. This confirms direct public HTTPS. The earlier git ls-remote SEC_E_NO_CREDENTIALS result remains a Git / Schannel path-specific runtime issue. Safe local on-request approval PASS is unchanged. The safe network-exception path remains BLOCKED because the curl.exe approval did not establish network sandbox elevation and its communication failed; Python HTTPS in the safe session succeeded without an additional network approval. The changed-file Prettier, Markdown lint, text-quality gate, focused contract test (5/5), PowerShell verify (4/4), Bash verify (2 pass / 2 contract skips), evaluation schema, and diff checks passed. Existing run.json history still aggregates earlier evaluation parse and scope-check errors as validation.status=blocked with safety.scope_violation=true, despite later successful writer and validation records. No source, wrapper, rule, sandbox, credential, or OS setting was changed.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "Task 9 A/B network\u6bd4\u8f03\u3001safe approval blocker\u3001Run manifest\u5c65\u6b74\u306e\u78ba\u8a8d"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260925-111717-JST/logs/codex-safe-20260926.jsonl",
+          "summary": "safe / auto-net wrapper runtime event\u3068\u62d2\u5426\u7d50\u679c"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260925-111717-JST/run.json",
+          "selector": "validation.status, safety.scope_violation, artifact_summary",
+          "summary": "\u6700\u65b0writer\u6210\u529f\u5f8c\u3082\u5c65\u6b74\u3092\u542b\u3080\u96c6\u7d04\u72b6\u614b\u304cblocked"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "Task 9 A/B network\u6bd4\u8f03\u3001safe approval blocker\u3001Run manifest\u5c65\u6b74\u306e\u78ba\u8a8d"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "文書 / Run Artifactの検証結果",
+          "summary": "文書lint、text quality、focused contract、PowerShell/Bash verify結果"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "\u7834\u58ca\u64cd\u4f5c\u3084\u5916\u90e8write\u306f\u884c\u3063\u3066\u3044\u306a\u3044\u3002git switch\u306f\u72ec\u7acb\u3057\u305fignored normal clone\u3060\u3051\u3067\u5b9f\u884c\u3057\u3001network probe\u306fpublic read-only operation\u306b\u9650\u5b9a\u3057\u305f\u3002credential\u3001proxy\u3001OS\u3001user-level Codex\u8a2d\u5b9a\u3001policy\u3001sandbox\u306f\u5909\u66f4\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "read-only runtime probes\u3068\u5909\u66f4\u5883\u754c"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "\u5909\u66f4\u5951\u7d04\u3092reference\u6587\u66f8\u3068focused contract test\u3067\u793a\u3057\u3001auto-net runtime\u5dee\u3068\u672a\u9054\u6761\u4ef6\u3092Run Report\u3078\u5206\u96e2\u3057\u3066\u8a18\u9332\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/codex-safety-harness.md",
+          "summary": "direct / safe / auto-net safety contract"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/run-artifacts.md",
+          "summary": "direct runtime evidence\u3068machine manifest\u8cac\u52d9\u306e\u5206\u96e2"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "\u65e2\u5b58config, wrapper, rules, collector, validation scripts\u3092\u66f4\u65b0\u3057\u3001\u65b0\u898fmanifest schema / writer / preset / dependency\u3092\u8ffd\u52a0\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/verify.ps1",
+          "summary": "\u65e2\u5b58verify\u5951\u7d04\u3078\u65b0\u3057\u3044\u8a2d\u5b9a\u30fbrule\u30b1\u30fc\u30b9\u3092\u8ffd\u52a0"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/codex-safe.ps1",
+          "summary": "\u65e2\u5b58safe/auto-net wrapper\u306enetwork override\u3092\u660e\u793a"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Fresh direct Codex CLI 0.156.0 with project defaults reported workspace-write / never / network enabled; the single Python urllib HTTPS probe returned HTTP 200. The prior git ls-remote failure remains specific to the Git / Schannel transport. A separate fresh interactive codex-safe safe session reported workspace-write / on-request / network=false and CodexSandboxOffline; local git tag --list approval succeeded. curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional network approval. No evidence establishes network sandbox elevation, so safe network exceptions remain blocked in the verified environment. The run manifest also retains historical blocked validation/scope evidence.",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260925-111717-JST/run.json",
+          "selector": "workflow_level, preset, safety, changed_files",
+          "summary": "strict host Run manifest"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "Task 9 continuation runtime validation\u3068aggregate manifest\u72b6\u614b"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/reports/codex-task-20260926-101700.report.json",
+          "selector": "evaluation validation, git diff --check",
+          "summary": "\u6700\u7d42writer\u306ecurrent report\u306f\u6210\u529f"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "Fresh direct Codex CLI 0.156.0 using the project defaults completed the specified Python HTTPS request with exit 0 and output 200, so direct public HTTPS is confirmed. The previous git ls-remote failure remains a Git / Schannel-specific runtime observation. In the separate safe session, effective settings were workspace-write / on-request / network=false; local git tag --list approval PASS. curl.exe received execpolicy approval but failed with SEC_E_NO_CREDENTIALS, and Python HTTPS returned 200 without an additional network approval. The required network sandbox elevation was not demonstrated.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "fresh direct Python HTTPS result, Git transport distinction, and safe network exception blocker"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Direct public HTTPS PASS; safe local approval PASS; only safe network elevation remains blocked."
+        }
+      ],
+      "detail": "The direct public-network validation task is complete and passes through the requested Schannel-independent Python HTTPS probe. The older Git / Schannel result is preserved as a transport-specific observation rather than a direct network failure. Safe local approval is separately confirmed. Safe network-exception validation was performed, but there is no evidence of network sandbox elevation or successful communication after such elevation; under the Plan failure branch, this blocks only the safe network-exception approval route. The current Windows observation does not establish complete network isolation from network=false or a general cause. Keep these runtime findings separate from PR #184 source defects; do not add a network workaround or continue root-cause investigation in this PR."
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "An earlier host / direct Codex comparison found that `git ls-remote https://github.com/git/git.git HEAD` succeeded on the host and failed inside direct Codex with Windows Schannel SEC_E_NO_CREDENTIALS (0x8009030E). A later fresh direct Codex Python HTTPS probe succeeded with HTTP 200 under the project network-enabled default, so the earlier result remains a Git / Schannel transport-specific runtime issue and does not mean direct public HTTPS is blocked.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "Task 9 continuation runtime validation",
+          "summary": "host / direct Codex network\u6bd4\u8f03\u3068\u72ec\u7acbclone\u306egit switch"
+        }
+      ],
+      "detail": "The Git command result identifies an unresolved Git / Schannel credential-context issue for that transport only. The required public HTTPS check passed through Python, and available evidence does not establish a project config or wrapper defect. Keep credential, proxy, TLS, OS and user-level Codex settings unchanged; do not add a workaround in this PR."
+    },
+    {
+      "category": "review_gap",
+      "severity": "medium",
+      "evidence": "auto-net preflight overlay\u306fdocker ps\u3092allow\u3059\u308b\u304c\u3001actual runtime\u306fcommon prompt rule\u306b\u4e00\u81f4\u3057\u3001approval=never\u3067\u5b9f\u884c\u524d\u306b\u62d2\u5426\u3059\u308b\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "auto-net preflight and actual runtime",
+          "summary": "preflight/runtime decision mismatch"
+        }
+      ],
+      "detail": "\u65e2\u5b58\u306edecision\u5dee\u3068\u3057\u3066\u78ba\u8a8d\u3057\u3001Plan\u3069\u304a\u308aruntime loader\u3092\u8ffd\u52a0\u305b\u305a\u3001\u5c06\u6765\u306e\u5225L3\u5224\u65ad\u3078\u5207\u308a\u51fa\u3057\u305f\u3002"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "auto-net preflight/runtime policy parity for docker ps",
+      "evidence": "The auto-net preflight overlay allowed the read-only docker ps representative case, while a fresh actual auto-net runtime applied common project rules and approval=never rejected it before execution.",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "auto-net preflight and actual runtime",
+          "summary": "preflight overlay allow contrasted with actual runtime prompt rejection"
+        }
+      ],
+      "expected_impact": "Keep the preflight decision aligned with the effective session policy or clearly surface the difference so auto-net users do not infer that a preflight allow means the runtime will execute the command.",
+      "recommendation": "Create a separate L3 decision to either remove the docker ps allowance from the auto-net overlay or design and verify an appropriate runtime policy alignment. Do not add a preset-specific runtime loader in this PR."
+    }
+  ]
+}

@@ -8,8 +8,9 @@
 4. `docs/PROJECT_CONTEXT.md` をそのプロジェクト用に更新する。
 5. `bash scripts/verify` または `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1` を実行して最低限のセットアップを確認する。
 6. 最初の依頼では `scripts/new-run.sh` または `scripts/new-run.ps1` で `.codex/runs/<run_id>/` を初期化する。
-   - Bash: `bash scripts/new-run.sh --task-type implementation --workflow-level standard`
-   - PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard`
+   - 通常のdirect `codex` lightweight／standard Runはmanifestなしにする。
+   - Bash: `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
+   - PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
 7. 計画系は `PLANS.md`、レビュー系は `CODE_REVIEW.md` から対応 skill を開く。
 8. 軽微な修正だけなら `lightweight`、通常の実装は `standard`、安全性・移行・公開契約を触る変更は `strict` を選ぶ。
 
@@ -39,9 +40,12 @@
 
 | 作業 | 推奨 mode |
 | --- | --- |
-| ドキュメント確認、PRレビュー、静的調査 | `readonly` または `safe` |
-| 通常の実装・文書更新 | `safe` |
-| 外部通信、依存解決、ネットワークが必要な検証 | 明示的に `auto-net` |
-| 削除、rename、git add/commit/push/rm | Codex に実行させない |
+| ドキュメント確認、PRレビュー、静的調査 | `readonly` またはdirect `codex` |
+| 通常のinteractive実装・文書更新 | Repository内からdirect `codex` |
+| local branch delete、merge／rebase recovery等の明示的例外 | `codex-safe safe`のon-request承認 |
+| 高影響GitHub CLI等のnetwork例外 | `codex-safe safe`。approval + network sandbox昇格のruntime確認が成立した場合のみ |
+| 非対話strict実装・machine-managed evidence | `codex-task --run-id <run_id> --record-run-manifest` |
+| git add / commit / push | file-changing taskのGit lifecycle契約に従う（ユーザーがGit操作を禁止していない場合） |
+| 削除、rename、git rm | 原則実行しない。明示された対象はSafety / Git safety契約に従う |
 
-`auto-net` は通常作業の既定値ではない。外部通信が必要な場合だけ明示的に使う。
+通常のdirect `codex`は`workspace-write`／`approval_policy = "never"`／network access enabledで動作します。execpolicy `prompt` operationは承認promptを出さず自動拒否されます。`auto-net`は削除せず、必要時に明示する既存wrapper presetとして維持します。

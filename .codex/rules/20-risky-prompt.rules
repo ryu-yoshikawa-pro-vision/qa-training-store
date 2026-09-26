@@ -1,9 +1,56 @@
 # Broad prompts for mutating or high-impact commands.
 
 prefix_rule(
-  pattern = ["git", ["checkout", "switch", "merge", "rebase", "tag"]],
+  pattern = ["git", ["checkout", "merge", "rebase", "tag"]],
   decision = "prompt",
   match = ["git checkout feature", "git merge main"],
+)
+
+prefix_rule(
+  pattern = ["git", "branch", ["-d", "--delete", "-vd", "-dv"]],
+  decision = "prompt",
+  match = [
+    "git branch -d old-feature",
+    "git branch --delete old-feature",
+    "git branch -vd old-feature",
+    "git branch -dv old-feature",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "branch", "-v", ["-d", "--delete"]],
+  decision = "prompt",
+  match = ["git branch -v -d old-feature", "git branch -v --delete old-feature"],
+)
+
+prefix_rule(
+  pattern = ["gh", "api"],
+  decision = "prompt",
+  match = ["gh api /repos/example/repo/issues"],
+)
+
+prefix_rule(
+  pattern = ["gh", "pr", ["merge", "close"]],
+  decision = "prompt",
+  match = ["gh pr merge 123", "gh pr close 123"],
+)
+
+prefix_rule(
+  pattern = ["gh", "issue", "close"],
+  decision = "prompt",
+  match = ["gh issue close 123"],
+)
+
+prefix_rule(
+  pattern = ["gh", "release", ["create", "delete"]],
+  decision = "prompt",
+  match = ["gh release create v1", "gh release delete v1"],
+)
+
+prefix_rule(
+  pattern = ["gh", "repo", "delete"],
+  decision = "prompt",
+  match = ["gh repo delete example/repo"],
 )
 
 prefix_rule(

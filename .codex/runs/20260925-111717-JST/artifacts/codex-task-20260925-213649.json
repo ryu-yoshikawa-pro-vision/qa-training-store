@@ -1,0 +1,11 @@
+## Summary
+
+- 正本Planは通常の `codex` 起動を `workspace-write` / `approval_policy=never` / network有効に整える計画です。active Runは `20260925-111717-JST`、strict workflow、status `running` です。
+- Run記録では実装未開始、次のgateはL3実装承認、その後は既存writerでRun artifactを整える手順です。
+- `TASKS.md` と `REPORT.md` は `run.json` / `evaluation.json` を未作成と記載していますが、両ファイルは現在存在します。記録値は `run.json.status=running`、`validation.status=not_run`、`evaluation.json.result=not_evaluated` です。変更は加えていません。
+
+**Progress:** 12% (3/26、Run記載値)
+
+**Next:** L3承認後、既存writerによるartifact処理へ進む段階です。
+
+**Evidence:** 読み取り対象は[正本Plan](<REPO_ROOT>/docs/plans/2026-09-25_111717_codex-autonomous-workspace.md)、[Run PLAN](<REPO_ROOT>/.codex/runs/20260925-111717-JST/PLAN.md)、[TASKS](<REPO_ROOT>/.codex/runs/20260925-111717-JST/TASKS.md)、[REPORT](<REPO_ROOT>/.codex/runs/20260925-111717-JST/REPORT.md)、[run.json](<REPO_ROOT>/.codex/runs/20260925-111717-JST/run.json)、[evaluation.json](<REPO_ROOT>/.codex/runs/20260925-111717-JST/evaluation.json)です。今回は読み取りのみです。
