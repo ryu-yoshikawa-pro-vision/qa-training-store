@@ -336,3 +336,24 @@
   - Git credential、GitHub token、remote URL、PR title/bodyは変更していない。MCP latest-head wait / 360秒smokeも実行していない。前回のCI結果は旧head向けのため今回のlocal commitには流用しない。
 - Cause / next action: 認証credential自体は使用可能だが、current GitHub identityにtarget repositoryのpush permissionがない。指定branchへ通常pushするためのwrite access、または同repositoryへのpushが許可された既存accountが必要。authorization boundaryを変えるcredential操作や別remote/branchへの迂回はしない。
 - Progress: 89% (16/18)（Run checkbox基準。file-changing task lifecycleは16/19）
+
+## 2026-09-26 - review findings修正と検証
+
+- Summary: PR #182のhead 02c44aecd55decaea5467c0f84cce832b7734808 に対する3件の指摘を最小範囲で修正し、focused test、両Codex runtime gate、Repository検証を完了した。
+- Findings / Changes:
+  - Finding 1: registration loopが各workflowを最初に見つけた時点で個別固定していたため、Web CI run 101の後にMobile App CIが登録された場合、同じpollで見つかった新しいWeb CI run 102を選べなかった。pollごとの一時候補へ両workflowを保持し、同一pollで両方そろった時だけ2 runを固定するよう変更した。固定後のcompletion pollingは引き続き同じrun IDを使う。
+  - 回帰testは1回目をWeb 101 / Mobileなし、2回目をWeb 102 / Mobile 202とし、completionで102と202を取得し101を取得しないこと、および両workflowを2回登録pollしたことをassertする。既存exact head / pull_request / PR番号 / created_at / tie-break選択testも維持した。
+  - Finding 2: tests/contracts/ci-wait-mcp.test.ts に smol-toml を使うproject config contractを追加した。startup grace、server command / args / env_vars / startup timeout / tool timeout、wait_for_required_ci approval、serverがrequired=trueでないこと、package script、MCP server/client exact version 2.1.0をassertする。新dependencyとverify側の重複literal checkは追加していない。
+  - Finding 3: Task 17をfinal commit前のRun確定・scope確認・local validationへ限定し、push後CIのTask 18 checkboxを削除した。push後CIはimplementation harness lifecycleに委譲し、TASKSのtracked Progressを100% (17/17)へ修正した。現在の403 Blocked状態を解消し、過去の403 checkpointは変更せず履歴として保持した。
+- Validation:
+  - focused初回は追加config testのfixture path解決がVitest変換後のimport.meta.urlで失敗した。Repository rootのprocess.cwd()からconfig / packageを読む形に修正し、再実行は21 tests PASS。
+  - fresh codex-safe processからwait_for_required_ciを1回実call: expected / observed headは上記SHAで一致、result success、Web CI run 36139640622 completed / success、Mobile App CI run 36139640912 completed / success。
+  - fresh codex-task processから同じMCP callを1回実callし、同じhead・result・run結論がCodexへ返ることを確認した。
+  - bash scripts/verify: PASS=2 / FAIL=0 / SKIP=2。Codex executableをBash環境から解決できずexecpolicyとBash wrapper preflightはskip、PowerShell wrapper preflightはpass。
+  - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1: PASS=3 / FAIL=0 / SKIP=0。
+  - corepack pnpm run verifyの初回起動は子processからpnpmを解決できず停止した。同じRepository workspaceで一時Corepack pnpm shimをPATH先頭に設定して同じverifyを再実行し、exit 0。ignored output/**/training-copyは削除せず、unit 13 files / 66 tests PASSで正規testsだけが収集された。
+  - 標準verify: ESLint 0 errors / 65 warnings、全typecheck、image manifest、security static check pass。unit 13/66、integration 9/111、repository contract 11/147、Web component 11/102、Native Jest 13 suites / 64、contract 47 files / 815 passed / 4 skipped。Web export、22 specification + 25 curriculum docs build、22-page spec build pass。
+  - installed Codexからのstdio request cancellation伝播は今回の終端CI callで実測機会なし。server-side request cancellation cleanupはfocused MCP integration testsでpass。
+  - Run sanitizer Write / Check: 9 files scanned、residual findings 0。
+- Blockers: 3件の修正・検証にblockerなし。commit / push後に新しいPR headへ実施する必須CI waitはfile-changing task lifecycleとして継続する。
+- Progress: 100% (17/17) tracked checkbox tasks。push後CIはHarness lifecycleの別加算。

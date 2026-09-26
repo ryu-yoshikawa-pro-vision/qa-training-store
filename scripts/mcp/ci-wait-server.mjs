@@ -350,6 +350,7 @@ export function createCiWaiter(options) {
         const guardResult = await checkPullRequest(registrationDeadline, "registration");
         if (guardResult) return baseResult(guardResult);
 
+        const registrationCandidates = {};
         for (const workflow of REQUIRED_CI_WORKFLOWS) {
           const workflowRuns = await request(
             `repos/${repository.owner}/${repository.repository}/actions/workflows/${workflow.file}/runs`,
@@ -358,13 +359,16 @@ export function createCiWaiter(options) {
             "registration",
           );
           const run = selectWorkflowRun(workflowRuns.workflow_runs, prNumber, expectedHeadSha);
-          if (run && !fixedRuns[workflow.resultKey]) {
-            fixedRuns[workflow.resultKey] = run;
-            runs[workflow.resultKey] = summarizeRun(run);
-          }
+          if (run) registrationCandidates[workflow.resultKey] = run;
         }
 
-        if (fixedRuns["Web CI"] && fixedRuns["Mobile App CI"]) break;
+        if (registrationCandidates["Web CI"] && registrationCandidates["Mobile App CI"]) {
+          for (const workflow of REQUIRED_CI_WORKFLOWS) {
+            fixedRuns[workflow.resultKey] = registrationCandidates[workflow.resultKey];
+            runs[workflow.resultKey] = summarizeRun(fixedRuns[workflow.resultKey]);
+          }
+          break;
+        }
         const remainingMs = registrationDeadline - now();
         if (remainingMs <= 0) throw new DeadlineExceededError("registration");
         await sleep(Math.min(REGISTRATION_POLL_INTERVAL_MS, remainingMs), signal);

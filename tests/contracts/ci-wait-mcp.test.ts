@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { parse as parseToml } from "smol-toml";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -452,7 +453,7 @@ describe("CI waiter contracts", () => {
     },
   );
 
-  it("waits for both workflow runs and fixes the first selected run IDs", async () => {
+  it("waits until both workflow runs register and fixes IDs selected in that poll", async () => {
     const firstWebRun = makeRun(101, { created_at: "2026-09-25T10:00:00Z" });
     const laterWebRun = makeRun(102, { created_at: "2026-09-25T10:01:00Z" });
     const fixture = createWaiterFixture({
@@ -466,15 +467,25 @@ describe("CI waiter contracts", () => {
 
     expect(result.result).toBe("success");
     const runs = result.runs as Record<string, Record<string, unknown>>;
-    expect(runs["Web CI"]?.run_id).toBe(101);
+    expect(runs["Web CI"]?.run_id).toBe(102);
     expect(runs["Mobile App CI"]?.run_id).toBe(202);
     expect(fixture.sleep).toHaveBeenCalledWith(10_000, undefined);
-    expect(fixture.calls.map((call) => call.endpoint)).toContain(
-      `repos/${repository.owner}/${repository.repository}/actions/runs/101`,
-    );
-    expect(fixture.calls.map((call) => call.endpoint)).not.toContain(
+    const endpoints = fixture.calls.map((call) => call.endpoint);
+    expect(endpoints).toContain(
       `repos/${repository.owner}/${repository.repository}/actions/runs/102`,
     );
+    expect(endpoints).toContain(
+      `repos/${repository.owner}/${repository.repository}/actions/runs/202`,
+    );
+    expect(endpoints).not.toContain(
+      `repos/${repository.owner}/${repository.repository}/actions/runs/101`,
+    );
+    expect(
+      fixture.calls.filter((call) => call.endpoint.endsWith("/workflows/ci.yml/runs")),
+    ).toHaveLength(2);
+    expect(
+      fixture.calls.filter((call) => call.endpoint.endsWith("/workflows/native-ci.yml/runs")),
+    ).toHaveLength(2);
     const webListCall = fixture.calls.find((call) =>
       call.endpoint.endsWith("/workflows/ci.yml/runs"),
     );
@@ -483,6 +494,50 @@ describe("CI waiter contracts", () => {
       event: "pull_request",
       per_page: 100,
     });
+  });
+
+  it("keeps the Codex MCP configuration and package contract aligned", () => {
+    type CiWaitProjectConfig = {
+      mcp_optional_startup_grace_ms?: number;
+      mcp_servers?: {
+        ci_wait?: {
+          command?: string;
+          args?: string[];
+          env_vars?: string[];
+          startup_timeout_sec?: number;
+          tool_timeout_sec?: number;
+          required?: boolean;
+          tools?: {
+            wait_for_required_ci?: { approval_mode?: string };
+          };
+        };
+      };
+    };
+
+    const projectConfig = parseToml(
+      fs.readFileSync(path.resolve(process.cwd(), ".codex/config.toml"), "utf8"),
+    ) as CiWaitProjectConfig;
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"),
+    ) as {
+      scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    const server = projectConfig.mcp_servers?.ci_wait;
+
+    expect(projectConfig.mcp_optional_startup_grace_ms).toBe(5_000);
+    expect(server).toMatchObject({
+      command: "node",
+      args: ["--run", "mcp:ci-wait"],
+      env_vars: ["GH_TOKEN", "GITHUB_TOKEN"],
+      startup_timeout_sec: 5,
+      tool_timeout_sec: 6_000,
+    });
+    expect(server?.tools?.wait_for_required_ci?.approval_mode).toBe("approve");
+    expect(server?.required).not.toBe(true);
+    expect(packageJson.scripts["mcp:ci-wait"]).toBe("node scripts/mcp/ci-wait-server.mjs");
+    expect(packageJson.devDependencies["@modelcontextprotocol/server"]).toBe("2.1.0");
+    expect(packageJson.devDependencies["@modelcontextprotocol/client"]).toBe("2.1.0");
   });
 
   it("keeps waiting when run statuses are not completed, whatever their names", async () => {

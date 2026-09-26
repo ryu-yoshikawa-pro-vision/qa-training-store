@@ -18,8 +18,7 @@
 - [x] 14. fresh Codex processで、既に終端状態のexact HEADに対して `scripts/codex-safe.*` と `scripts/codex-task.*` の両経路から `wait_for_required_ci` を実callする。どちらか一方でも失敗したらblockerとして停止する。
 - [x] 15. runtime gate通過後だけimplementation harnessとBash / PowerShell verifyをMCP契約へ同期する。
 - [x] 16. focused testとRepository標準verifyを実行する。
-- [ ] 17. Run Artifactをfinal commit前状態へ更新し、commit / push / PR本文を実装結果へ同期する。
-- [ ] 18. dependency install後のfresh Codex processでPR #182 latest headへ `wait_for_required_ci` を1回callし、必要なら360秒smokeも実行して長時間待機を検証する。installed Codexからcancelした際のserver側AbortSignal伝播は実測できた範囲を記録し、未伝播／未確認でもこの点単独ではblockerにしない。repairでMCP execution surfaceを変更した場合はfresh Codex processを起動し直して再検証する。
+- [x] 17. Run Artifactをfinal commit前状態へ確定し、scope確認と必要なlocal validationを完了する。
 
 ## 完了処理の参照先
 
@@ -61,6 +60,5 @@
 
 ## Blocked（ブロック中）
 
-- Blocked: local implementation commit `c605392e1a177103fa85c0579a775a3f9c941d6a` の通常pushがGitHub HTTP 403で拒否された。`gh` account `ryu-yoshikawa`へのpush permissionがなく、collaborator permission endpointも`Must have push access`を返した。origin / PR branchの更新、PR metadata更新、Task 18のlatest-head MCP waitへ進めない。
-- 次の対応: `plan/ci-wait-without-agent-polling` へのwrite accessを付与するか、対象repositoryへのpushが許可された既存GitHub accountを提供する。credential切替・書き換え、force push、fork/別branchへのfallbackは行わない。
-- Progress: 89% (16/18)
+- なし。過去に発生したpush権限403はREPORTのcheckpoint履歴に保持し、現在のblockerとしては扱わない。
+- Progress: 100% (17/17)
