@@ -33,11 +33,12 @@
 
 ## Blocked
 
-- [ ] fresh interactive codex-safe safeでlocal例外操作のon-request承認を確認する。PTY起動が実行環境に拒否され、非interactive `codex exec`はapproval=neverを強制するため、承認経路を検証できていない。
-- [ ] fresh interactive codex-safe safeでread-only network例外のapproval + network sandbox昇格を確認する。PTYが使えず、direct public GETもTLS切断となったためruntime検証未完了。
-- [ ] fresh direct runtimeの全要件を完了する。workspace writeとnever拒否は確認したが、git switchはshared `.git`のindex.lock権限、networkは環境のcredential/TLS制約で失敗した。
-- [ ] final strict writerは成功したが、既存collectorが先行writerの評価parse failure、誤ったscope指定によるblocked記録、PowerShell ANSI decodeによるmojibake evidenceを保持し、run.json.validation.status=blocked / safety.scope_violation=trueとなった。actual manifestの直接編集で履歴を消さず、REPORT.mdへ根拠を記録した。
+- Task 9 runtime matrix (2026-09-26): direct workspace write=PASS (existing evidence); direct never rejection=PASS (existing evidence); normal `git switch`=PASS (fresh direct Codex, independent normal clone); direct public network=BLOCKED (host success / direct Codex `SEC_E_NO_CREDENTIALS`); safe local on-request approval=BLOCKED (PTY creation denied); safe network approval + sandbox elevation=BLOCKED (PTY creation denied); auto-net preflight/runtime difference=confirmed and deferred as `HIC-20260926-01`.
+- fresh interactive `codex-safe safe`でlocal例外操作のon-request承認を確認する。`git tag --list`はexecpolicy `prompt`と確認したが、interactive process作成前のPTY provisionが`CreateProcessW` / `os error 5`で拒否され、safe wrapperを起動できず、承認表示・承認後の実行は未確認。非interactive `codex exec`で代用していない。
+- fresh interactive `codex-safe safe`でread-only network例外のapproval + network sandbox昇格を確認する。`gh api --hostname api.github.com /meta`はexecpolicy `prompt`と確認したが、PTYが利用できず、approval表示・sandbox昇格・API requestはいずれも未実行。
+- direct public networkはhost shellの同一`git ls-remote https://github.com/git/git.git HEAD`が成功し、fresh direct Codexは`SEC_E_NO_CREDENTIALS`で失敗した。Planの分類によりCodex sandbox / project network経路のblockerとして扱う。credentialやnetwork設定は変更しない。
+- strict manifestはlatest writer成功後も過去のevaluation parse failure、scope check blocked、mojibake evidenceを保持する。既存writerはvalidation command/warningを追加し、collectorは過去blockedを優先して集約、`scope_violation`を保持するため、現contractに履歴clear経路はない。actual `run.json`を直接編集せず、`validation.status=blocked` / `safety.scope_violation=true`を履歴aggregateとして記録する。
 
 Progress: 92% (22/24)
 
-Next: commit / normal push / PR #184更新 / 最新head必須CI確認を行う。Blockedのruntime検証はinteractive terminalとread-only networkが利用可能な環境で再確認し、manifest履歴も既存contractで解消できる方法が必要。
+Next: 更新したREPORT / evaluation / TASKSをsanitization後に既存collectorで再集約し、diff確認、commit、normal push、PR #184更新、最新head必須CI確認を行う。Task 9はinteractive PTY承認とdirect network経路が未確認のためpartialのままとする。

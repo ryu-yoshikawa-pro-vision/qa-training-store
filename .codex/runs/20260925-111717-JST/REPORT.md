@@ -268,3 +268,46 @@ Next: strict evaluationと最終Run Artifact集約後、commit / normal push / P
 
 Progress: 92% (22/24)
 Next: intended sourceとfinal Run Artifactsをcommitし、normal push、PR #184更新、最新headの必須CI確認へ進む。Planはruntime未達とRun manifest履歴のためpartialのままとする。
+
+## 2026-09-26 - Task 9 continuation: runtime validation and manifest contract
+
+### 開始時の状態
+
+- PR #184はOPEN、headは`bd4a8d0342d0afb6f7bf4c04a8f2002abee109fa`。local HEADも同じSHAで、branchは`plan/codex-autonomous-workspace`、tracked working treeはcleanだった。
+- `git fetch origin main`後のlatest `origin/main`は`c42082ba62cbca87f675b336d06885719d21b50e`。
+- active Runは引き続き`20260925-111717-JST`、workflow levelはstrict。新しいRunは作成していない。
+
+### Task 9 runtime結果
+
+- direct workspace writeと`approval_policy=never`でのprompt対象operation拒否は、前回REPORTのevidenceを維持する。今回のfresh direct `codex exec`はProject configから`workspace-write`、`approval=never`、`network access enabled`を読み込んだ。
+- linked worktreeのshared Git metadata制約を避けるため、同じPR headから`.artifacts/pr184-runtime-20260926`に独立した通常cloneを作成した。cloneのHEADと`.codex/config.toml` blobはPR headと一致し、clone内の`.git`とcommon dirはいずれも`.git`だった。
+- 全Project rulesで`git switch --detach HEAD`とcloneを指定した同コマンドのexecpolicy decisionを確認し、どちらも`allow`（`matchedRules: []`）。fresh direct Codexから`git -C .artifacts/pr184-runtime-20260926 switch --detach HEAD`を実行しexit 0、`HEAD is now at bd4a8d0`を確認した。active development branchは切り替えておらず、cloneはdetachedかつclean。
+- read-only public network operationは同一commandで比較した。A: 通常host shellの`git ls-remote https://github.com/git/git.git HEAD`はexit 0で`0f8e75abebff0877cae681a3d5ff31ac47f54220`を返した。B: fresh direct CodexでもProject config上のnetwork accessはenabledだったが、同じcommandはexit 1で`fatal: unable to access 'https://github.com/git/git.git/': schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS (0x8009030E)`となった。PlanのA成功/B失敗分類に従い、Codex sandbox / project network経路の調査対象として残す。credential、proxy、OS、user-level Codex設定は変更していない。
+- 追加の`curl.exe --head --max-time 20 --show-error https://api.github.com`はhost shellでHTTP 200だったが、direct Codexでは実行前に`approval required by policy, but AskForApproval is set to Never`で拒否され、HTTP requestは発生しなかった。全Project rulesを明示したstandalone execpolicy checkは`matchedRules: []`だったため、この試行はnetwork runtime結果には数えず、Plan記載のpublic `git ls-remote`比較を判定に使った。
+- 認証helperを一時overrideする`git -c credential.helper= ...`は既存G10 Hookが実行前に拒否した。設定変更をせず、以後は通常のpublic `git ls-remote`を使った。
+- local approval候補の`git tag --list`は全Project rulesでexecpolicy `prompt`。network approval候補のread-only `gh api --hostname api.github.com /meta`も`prompt`と確認した。safe wrapperの`on-request` / `network=false`設定は前回の`-PrintCommand` evidenceを維持する。
+- interactive TTYを使うfresh direct Codex起動は、process作成前に実行環境から拒否された（`CreateProcessW`、`アクセスが拒否されました (os error 5)`）。この環境では同じPTYを必要とするfresh `codex-safe safe` sessionを開始できないため、safe wrapperは起動していない。local on-request承認、network approval、sandbox昇格は未検証のまま。non-interactive `codex exec`で代用していない。read-only API requestやprompt対象commandの副作用は発生していない。
+- auto-netの既存evidence（preflight overlayで`docker ps`がallow、actual runtimeはcommon prompt ruleと`approval=never`により実行前reject）は維持し、`HIC-20260926-01`も変更していない。
+
+### strict Run manifest履歴の扱い
+
+- `docs/reference/run-artifacts.md`、`scripts/collect-run-artifacts.py`、`scripts/codex-task.ps1` / `.sh`、`tests/contracts/codex-run-manifest-contract.test.ts`を確認した。
+- writerは既存`validation.commands`と`validation.warnings`へ新しい結果を追加し、既存`scope_violation`と新しいscope flagをORで保持する。collectorは既存commands/warningsとstatusを読み込み、commandに`blocked`があればaggregate statusを`blocked`にし、既存safety flagを保持する。現在の実装に過去evidenceを消す正式なreset経路はない。
+- したがって先行evaluation parse failure、scope指定誤りによるblocked記録、mojibakeを含むhistorical evidenceは保持する。これらはcurrent runtimeの結果ではなく同一Runの履歴である。actual `run.json`を直接編集せず、最新の実行結果は本節とevaluationで分離して記録する。
+- このRunのevaluationは`partial`のまま。direct network比較とinteractive safe approvalが未完了条件を満たすため、Task 9 / Planをpassへ変更しない。
+- 最終machine manifestの再集約後も、`run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`が残ることを想定する。これはartifact生成完了と履歴を含むvalidation aggregateであり、latest writer successの反証ではない。
+
+### 別課題候補の状態
+
+- `HIC-20260926-01`のauto-net preflight / actual runtime差は別のL3判断に据え置き、このPRでは変更していない。
+
+### Task 9 Run Artifact finalization
+
+- `sanitize-codex-artifacts.ps1 -Write` / `-Check`: 24 files scanned、0 replacements、0 residual findings。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260925-111717-JST/evaluation.json`: exit 0。Windows PowerShell 5.1の`ConvertFrom-Json`もcorrected commandでPASS。先行したparser invocationは親PowerShellのvariable expansionで無効なcommandとなったため、検証結果として数えず修正版を実行した。
+- `collect-run-artifacts.ps1 -RunId 20260925-111717-JST -RefreshGitChangedFiles -Strict`: exit 0。machine-managed manifestを直接編集せず再集約した。
+- final aggregate: `run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`、`primary_failure_category=missing_validation`、6 reports、evaluation present。validation warningsは0。過去blocked commandとscope flagがaggregate statusへ残る既存writer / collector contractを維持した。
+- `git diff --check`: PASS。tracked Run Artifact変更は`REPORT.md`、`TASKS.md`、`evaluation.json`のみ。source / policy / wrapper / testは変更していない。
+
+Progress: 92% (22/24)
+Next: final tracked Run Artifactsをcommitし、normal push、PR #184本文更新、最新headのWeb CI / Mobile App CIを確認する。direct networkとsafe interactive approvalはBLOCKEDのため、Task 9 / Planはpartialのままとする。
