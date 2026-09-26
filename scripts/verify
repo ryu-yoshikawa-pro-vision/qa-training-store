@@ -276,7 +276,7 @@ check_template_contract() {
   contains "in_progress" docs/reference/codex-implementation-harness.md || return 1
   contains "最新commit" docs/reference/codex-implementation-harness.md || return 1
   contains "失敗" docs/reference/codex-implementation-harness.md || return 1
-  contains "無制限polling" docs/reference/codex-implementation-harness.md || return 1
+  contains "AgentはGitHub状態pollingを行いません。" docs/reference/codex-implementation-harness.md || return 1
   contains "tracked Run Artifact" docs/reference/codex-implementation-harness.md || return 1
   contains "CI確認1件" docs/reference/codex-implementation-harness.md || return 1
   contains "checkboxによるProgress" docs/reference/codex-implementation-harness.md || return 1
@@ -296,7 +296,10 @@ check_template_contract() {
   contains 'CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。' docs/reference/codex-implementation-harness.md || return 1
   contains 'tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。' docs/reference/codex-implementation-harness.md || return 1
   contains 'push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。' docs/reference/codex-implementation-harness.md || return 1
+  contains "wait_for_required_ci" docs/reference/codex-implementation-harness.md || return 1
+  contains "exact HEAD" docs/reference/codex-implementation-harness.md || return 1
+  contains "MCP CI待機中、AgentはGitHub状態pollingを行いません。" docs/reference/codex-implementation-harness.md || return 1
+  contains "waiter利用不能時はCI未確認blockerとし、Agent側のGitHub状態pollingへfallbackしません。" docs/reference/codex-implementation-harness.md || return 1
   contains '修正後の新しいcommitと最新PR headで必須CIを再確認します。' docs/reference/codex-implementation-harness.md || return 1
   contains "baseline" docs/reference/repair-loop.md || return 1
   contains "current diff" docs/reference/repair-loop.md || return 1

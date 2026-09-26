@@ -327,7 +327,10 @@ function Test-TemplateContract {
         'CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。',
         'tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。',
         'push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。',
-        '`queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。',
+        'push後は最新PR headのSHAを指定して `wait_for_required_ci` MCP toolを1回呼び、Codexへ返る結果を待ちます。',
+        '`wait_for_required_ci` が待つ対象はexact HEADの `Web CI` と `Mobile App CI` です。',
+        'MCP CI待機中、AgentはGitHub状態pollingを行いません。',
+        'waiter利用不能時はCI未確認blockerとし、Agent側のGitHub状態pollingへfallbackしません。',
         '修正後の新しいcommitと最新PR headで必須CIを再確認します。'
     )) {
         if ($implementationHarness -notmatch [regex]::Escape($fileChangingContract)) { throw "implementation harness missing semantic file-changing contract: $fileChangingContract" }

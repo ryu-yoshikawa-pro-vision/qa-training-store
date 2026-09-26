@@ -95,7 +95,10 @@
 - push後は、pushした最新commitをheadとするPRのGitHub Actionsを確認します。以前のcommitの結果を最新headの結果として流用しません。
 - `Web CI` / `Mobile App CI` がともに`success`となり、必要なCI結果をPR本文へ記録した時点まで、file-changing taskを完了扱いにしません。`queued` / `in_progress`、未確認、failureは完了扱いにしません。
 - 必須CIがfailureの場合は、`docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` のbounded repair workflowに従い、修正後の新しいcommitと最新PR headで必須CIを再確認します。
-- `queued` / `in_progress`を理由に無制限pollingや独自の監視scriptを追加しません。
+- push後は最新PR headのSHAを指定して `wait_for_required_ci` MCP toolを1回呼び、Codexへ返る結果を待ちます。
+- `wait_for_required_ci` が待つ対象はexact HEADの `Web CI` と `Mobile App CI` です。
+- MCP CI待機中、AgentはGitHub状態pollingを行いません。
+- waiter利用不能時はCI未確認blockerとし、Agent側のGitHub状態pollingへfallbackしません。
 - tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。push後のCI結果はGitHub Actions、PR本文、ユーザー向け報告へ記録します。
 
 ### Progressとの責務分離

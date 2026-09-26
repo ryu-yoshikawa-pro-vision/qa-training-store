@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "prepare": "husky",
+    "mcp:ci-wait": "node scripts/mcp/ci-wait-server.mjs",
     "start": "expo start",
     "start:web": "expo start --web",
     "format": "prettier --write . --ignore-path .prettierignore",
@@ -127,6 +128,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@modelcontextprotocol/client": "2.1.0",
+    "@modelcontextprotocol/server": "2.1.0",
     "@playwright/test": "1.62.0",
     "@react-native/jest-preset": "0.86.3",
     "@testing-library/jest-dom": "7.0.0",
