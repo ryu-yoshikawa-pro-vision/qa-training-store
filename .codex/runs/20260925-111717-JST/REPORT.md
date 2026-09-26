@@ -311,3 +311,45 @@ Next: intended sourceとfinal Run Artifactsをcommitし、normal push、PR #184�
 
 Progress: 92% (22/24)
 Next: final tracked Run Artifactsをcommitし、normal push、PR #184本文更新、最新headのWeb CI / Mobile App CIを確認する。direct networkとsafe interactive approvalはBLOCKEDのため、Task 9 / Planはpartialのままとする。
+
+## 2026-09-26 - Task 9 continuation: alternate runtime retest
+
+### 開始状態と環境
+
+- 開始時のbranchは`plan/codex-autonomous-workspace`、local HEADとGitHub上のPR #184 headはいずれも`5b78d8d6832aaa51b5cd4dfce91db57383c44d79`、PRはOPEN、working treeはcleanだった。active strict Runは`20260925-111717-JST`のまま維持し、新しいRunは作成していない。
+- 実行環境はWindows 10.0.26200、PowerShell 7.6.6、Codex CLI `0.156.0`。fresh direct CodexはRepository rootを`-C .`で指定し、wrapper、sandbox / approvalのCLI overrideなしで起動した。project `.codex/config.toml`は`sandbox_mode=workspace-write`、`approval_policy=never`、`sandbox_workspace_write.network_access=true`、`writable_roots=[]`。Codex user configにはtrusted parent entryがあり、project configの信頼条件を満たす。Codex CLIはuser config内の4個の未認識feature設定を無視したと警告したが、これらを変更せず、network結果との因果関係も断定しない。
+
+### direct public network A/B
+
+- A / host PowerShell: `git ls-remote https://github.com/git/git.git HEAD`はexit 0、stdout=`0f8e75abebff0877cae681a3d5ff31ac47f54220\tHEAD`、stderrは空。
+- B / fresh direct Codex CLI `0.156.0`: 同一commandはexit 1、stdoutは空、stderr=`fatal: unable to access 'https://github.com/git/git.git/': schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS (0x8009030E)`。
+- 判定はhost成功 / direct Codex失敗。project configのnetwork値はtrueだが実通信は失敗した。エラーはWindows Schannelの`SEC_E_NO_CREDENTIALS`であり、project configの誤りとは確認できない。runtime / sandbox network pathまたはWindows credential context上の環境blockerとして記録し、source変更は行わない。credential、proxy、TLS、OS、user-level Codex設定はいずれも変更していない。
+
+### safe wrapper approval runtime
+
+- `scripts/codex-safe.ps1 safe -NoLog -PrintCommand`で最終引数を確認した。`-C <Repository root> --sandbox workspace-write --ask-for-approval on-request -c sandbox_workspace_write.network_access=false safe`であり、preflight有効、network overrideはfalse。起動時の要求値を満たす。
+- 全Project rulesで`git tag --list`とread-only候補`gh api --hostname api.github.com /meta`のexecpolicy decisionはともに`prompt`。
+- fresh interactive `codex --cd .`のPTY起動は、process作成前に`CreateProcessW` / `アクセスが拒否されました (os error 5)`で失敗した。したがってfresh `codex-safe safe` sessionは起動しておらず、local approval UI、ユーザー承認後の`git tag --list`実行は未確認。別fresh safe sessionでのnetwork approval、sandbox elevation、API通信も未実行。non-interactive `codex exec`による代替はしていない。副作用のあるlocal操作、外部write、追加network requestは発生していない。
+
+### Task 9の現況と最終評価
+
+- direct workspace write=PASS（既存evidence）、direct `approval_policy=never` rejection=PASS（既存evidence）、normal `git switch`=PASS（PR headと一致する独立通常cloneでの既存evidence）。direct public network=BLOCKED（今回host成功 / direct failure）。`codex-safe safe` local on-request approval=BLOCKED（PTY provision failure）。network approval + sandbox elevation=BLOCKED（PTY provision failure）。auto-net preflight / actual runtime差は既知の`HIC-20260926-01`として別課題に据え置く。
+- PR #184の実装がSchannel失敗またはPTY起動拒否の原因だと示すevidenceはない。今回はsource、rules、wrapper、docs、testsを変更しない。
+- evaluationは`partial`を維持する。current Task 9の未確認項目をPASSへ補完しない。historical evidenceはcurrent runtime outcomesと分離し、`run.json`を直接編集して過去のblocked command / scope violationを消さない。
+
+### Run Artifact再集約
+
+- 更新対象はこの`REPORT.md`、`TASKS.md`、`evaluation.json`に限定する。actual `run.json`は既存collector経由で最終再集約する。
+- current Run Artifact sanitization、evaluation schema validation、PowerShell JSON parse、collectorの結果はこのcheckpointのfinalization項へ追記する。今回source変更がないため、以前成功済みのRepository-wide test suiteは再実行しない。
+
+### Strict Artifact finalization result
+
+- `sanitize-codex-artifacts.ps1 -Path .codex/runs/20260925-111717-JST -Write`と`-Check`はいずれもexit 0。各24 files scanned、0 replacements、0 residual findings。最初のCheckでREPORT内のdrive root表記を検出したため一般化して再実行し、最終Checkで残存がないことを確認した。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260925-111717-JST/evaluation.json`はexit 0。Windows PowerShell 5.1では既定encodingの`Get-Content -Raw`を使ったparseが失敗したため、UTF-8を明示した`[IO.File]::ReadAllText`から`ConvertFrom-Json`を呼ぶ形へ直し、exit 0でparse成功を確認した。
+- `collect-run-artifacts.ps1 -RunId 20260925-111717-JST -RefreshGitChangedFiles -Strict`はexit 0でactual `run.json`をmachine-managed経路から再集約した。
+- 最終aggregate: `run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`、`safety.network=false`、`primary_failure_category=missing_validation`、5 validation commands、0 warnings、6 reports、evaluation present、19 changed files。historical blocked commandとscope violationを既存collector contractどおり保持した。
+- `evaluation.json.result=partial`。実装source / rules / wrapper / docs / testsに変更はなく、今回変更したRun Artifactだけをcommit対象とする。Repository-wide test suiteはsource変更がないため再実行していない。
+
+### PowerShell JSON encoding follow-up
+
+- Windows PowerShell 5.1で`Get-Content -Raw`の既定encodingによるparseは失敗した。`Get-Content -Raw -Encoding UTF8`から`ConvertFrom-Json`を実行するcorrected validationはexit 0。UTF-8を明示した`[IO.File]::ReadAllText`でもexit 0を確認した。

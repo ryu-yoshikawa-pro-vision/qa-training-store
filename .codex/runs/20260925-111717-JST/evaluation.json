@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Task 9\u306e\u65e2\u5b58direct workspace write / never\u62d2\u5426evidence\u306f\u7dad\u6301\u3002\u72ec\u7acb\u901a\u5e38clone\u4e0a\u306edirect git switch\u306f\u6210\u529f\u3002host\u306epublic git ls-remote\u306f\u6210\u529f\u3057\u305f\u304c\u3001\u540c\u4e00command\u3092direct Codex\u3067\u5b9f\u884c\u3059\u308b\u3068SEC_E_NO_CREDENTIALS\u3068\u306a\u3063\u305f\u3002safe on-request\u306elocal/network\u627f\u8a8d\u306fPTY provisioning failure\u3067\u672a\u78ba\u8a8d\u3002",
+      "evidence": "2026-09-26 Task 9: direct workspace write and never-policy rejection PASS on prior evidence; normal branch switch PASS on prior fresh direct evidence. Fresh CLI 0.156.0 ran from the trusted project root without wrapper or policy CLI overrides; project config specifies workspace-write / never / network=true. The same public remote HEAD query passed in host PowerShell and failed in direct Codex with Schannel SEC_E_NO_CREDENTIALS. Safe wrapper final args are workspace-write / on-request / network=false and both local and network candidates resolve to prompt. PTY creation failed with CreateProcessW os error 5, so approval and elevation remain blocked. auto-net remains deferred as HIC-20260926-01.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -45,7 +45,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "\u65e2\u5b58focused test\u3001Hook test\u3001verify\u3001Repository verify\u306f\u524d\u56decommit\u3067\u901a\u904e\u3057\u3001\u4eca\u56desource\u5909\u66f4\u306f\u306a\u3044\u3002\u65b0\u3057\u3044A/B network\u6bd4\u8f03\u3067\u306fhost\u6210\u529f / direct Codex\u5931\u6557\u3002safe interactive approval\u306fPTY provisioning\u306b\u3088\u308a\u672a\u78ba\u8a8d\u3002historical blocked evidence\u306f\u65e2\u5b58writer / collector\u306eaggregate\u3078\u4fdd\u6301\u3055\u308c\u308b\u3002",
+      "evidence": "Existing focused contract, hook and repository checks passed before this checkpoint; no source changed during the current runtime retest. Current A/B evidence is host success / direct Codex failure with Schannel SEC_E_NO_CREDENTIALS. Interactive approval and sandbox elevation were not run because PTY creation was denied. Historical blocked commands and scope flag remain in the aggregate by the existing writer/collector contract.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -118,7 +118,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "\u72ec\u7acbnormal clone\u306fPR head\u3068\u540c\u3058commit\u304a\u3088\u3073project config blob\u3092\u6301\u3064\u3002direct git switch\u306fclone\u5185\u3067exit 0\u3002host public git ls-remote\u306f\u6210\u529f\u3057direct Codex\u306fSEC_E_NO_CREDENTIALS\u3067\u5931\u6557\u3057\u305f\u3002\u540c\u3058Run ID\u3092\u7dad\u6301\u3057\u3001historical blocked evidence\u306fcollector contract\u3069\u304a\u308a\u4fdd\u6301\u3059\u308b\u3002",
+      "evidence": "Fresh direct CLI 0.156.0 ran from the trusted project root with no wrapper or policy CLI override. Host public remote query returned 0f8e75abebff0877cae681a3d5ff31ac47f54220; direct Codex returned exit 1 with Schannel SEC_E_NO_CREDENTIALS (0x8009030E). Safe wrapper final args and both prompt decisions were inspected, but interactive approval and elevation could not be reproduced because PTY provisioning failed with CreateProcessW os error 5.",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -145,7 +145,7 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "interactive TTY\u3092\u4f7f\u3046Codex process\u306e\u4f5c\u6210\u304cCreateProcessW / os error 5\u3067\u62d2\u5426\u3055\u308c\u3001fresh codex-safe safe session\u3092\u958b\u59cb\u3067\u304d\u306a\u304b\u3063\u305f\u3002local on-request\u627f\u8a8d\u304a\u3088\u3073network approval + sandbox\u6607\u683c\u306f\u672a\u78ba\u8a8d\u3002",
+      "evidence": "Fresh interactive Codex process creation failed before launch: CreateProcessW denied access (os error 5). Safe wrapper final args confirm workspace-write / on-request / network=false, and local plus network candidates resolve to prompt. No approval UI, local command execution, network elevation or API request occurred.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -154,12 +154,12 @@
           "summary": "interactive codex-safe safe\u306e\u8d77\u52d5blocker"
         }
       ],
-      "detail": "Task 9\u306elocal / network\u4f8b\u5916\u627f\u8a8d\u306f\u672a\u691c\u8a3c\u306e\u307e\u307e\u3002interactive terminal\u3092\u63d0\u4f9b\u3059\u308bhost\u3067fresh codex-safe safe\u3092\u8d77\u52d5\u3057\u3001\u526f\u4f5c\u7528\u306e\u306a\u3044prompt command\u3068read-only public API operation\u3067\u627f\u8a8d\u8868\u793a\u30fb\u627f\u8a8d\u5f8c\u306e\u7d50\u679c\u3092\u78ba\u8a8d\u3059\u308b\u5fc5\u8981\u304c\u3042\u308b\u3002"
+      "detail": "Task 9 local on-request approval and separate read-only network approval plus sandbox elevation remain unverified. The current host cannot provision an interactive PTY, so a fresh safe session cannot be started. Continue only in an environment with interactive PTY support; do not substitute a non-interactive session."
     },
     {
       "category": "flaky_or_env_issue",
       "severity": "medium",
-      "evidence": "host shell\u306epublic git ls-remote\u306fexit 0\u3067\u6210\u529f\u3057\u305f\u304c\u3001fresh direct Codex\u306f\u540c\u3058command\u3067exit 1\u3001SEC_E_NO_CREDENTIALS (0x8009030E)\u3068\u306a\u3063\u305f\u3002\u72ec\u7acbnormal clone\u3067\u306edirect git switch\u306fexit 0\u3002",
+      "evidence": "With CLI 0.156.0 launched directly from the trusted project root and no wrapper or policy CLI override, project config specifies workspace-write / approval_policy=never / network_access=true. Host public remote query succeeded and returned 0f8e75abebff0877cae681a3d5ff31ac47f54220; the identical direct Codex query failed with exit 1 and Windows Schannel SEC_E_NO_CREDENTIALS (0x8009030E).",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -168,7 +168,7 @@
           "summary": "host / direct Codex network\u6bd4\u8f03\u3068\u72ec\u7acbclone\u306egit switch"
         }
       ],
-      "detail": "Plan\u306eA\u6210\u529f / B\u5931\u6557\u5206\u985e\u306b\u5f93\u3044Codex sandbox / project network\u7d4c\u8def\u3092\u8abf\u67fb\u5bfe\u8c61\u3068\u3059\u308b\u3002\u3053\u308c\u306fsource\u5b9f\u88c5\u4e0d\u5177\u5408\u306e\u8a3c\u62e0\u3068\u306f\u5224\u5b9a\u3057\u306a\u3044\u3002credential\u3001proxy\u3001OS\u3001user-level Codex\u8a2d\u5b9a\u306f\u5909\u66f4\u305b\u305a\u3001\u5225\u306e\u9069\u683cruntime\u74b0\u5883\u3067\u518d\u78ba\u8a8d\u3059\u308b\u3002"
+      "detail": "The A-success / B-failure result is a direct Codex runtime or Windows Schannel credential-context blocker. Available evidence does not establish a project config or wrapper defect, so no source change was made. Keep credential, proxy, TLS, OS and user-level Codex settings unchanged; retry only in another eligible runtime environment."
     },
     {
       "category": "review_gap",
