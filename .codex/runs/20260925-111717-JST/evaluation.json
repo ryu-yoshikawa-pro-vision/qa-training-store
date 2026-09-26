@@ -10,13 +10,19 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "2026-09-26 Task 9: direct workspace write and never-policy rejection PASS on prior evidence; normal branch switch PASS on prior fresh direct evidence. Fresh CLI 0.156.0 ran from the trusted project root without wrapper or policy CLI overrides; project config specifies workspace-write / never / network=true. The same public remote HEAD query passed in host PowerShell and failed in direct Codex with Schannel SEC_E_NO_CREDENTIALS. Safe wrapper final args are workspace-write / on-request / network=false and both local and network candidates resolve to prompt. PTY creation failed with CreateProcessW os error 5, so approval and elevation remain blocked. auto-net remains deferred as HIC-20260926-01.",
+      "evidence": "Task 9 current matrix: direct workspace write, direct approval_policy=never rejection, and normal git switch PASS on prior evidence. Safe local on-request approval PASS: a fresh interactive Windows Terminal / PowerShell codex-safe safe session showed the approval UI for git tag --list; the user approved once and the command ran without repository mutation or network elevation request. Direct public network remains BLOCKED by the prior host-success / direct-Codex SEC_E_NO_CREDENTIALS A/B result. Safe network approval plus sandbox elevation remains BLOCKED: curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional approval, so the required elevation path is not demonstrated. The network mismatch is not established as a PR #184 source defect; HIC-20260926-01 remains separate.",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "Task 9 continuation runtime validation",
           "summary": "Task 9\u306e\u500b\u5225runtime\u7d50\u679c\u3068\u672a\u9054\u6761\u4ef6"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
         }
       ]
     },
@@ -45,7 +51,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Existing focused contract, hook and repository checks passed before this checkpoint; no source changed during the current runtime retest. Current A/B evidence is host success / direct Codex failure with Schannel SEC_E_NO_CREDENTIALS. Interactive approval and sandbox elevation were not run because PTY creation was denied. Historical blocked commands and scope flag remain in the aggregate by the existing writer/collector contract.",
+      "evidence": "The existing focused contract, hook, repository, and direct runtime evidence remains unchanged. This checkpoint confirms fresh interactive safe local on-request approval for git tag --list. In that same safe session, curl.exe returned Windows Schannel SEC_E_NO_CREDENTIALS, while Python urllib returned HTTP 200 without another network approval. These observations do not demonstrate network sandbox elevation; direct public network and safe network approval plus elevation remain BLOCKED. No source, wrapper, rule, sandbox, credential, or OS setting was changed, and no further network investigation was performed.",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -69,6 +75,12 @@
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "Task 9 continuation runtime validation",
           "summary": "Task 9 A/B network\u6bd4\u8f03\u3001safe approval blocker\u3001Run manifest\u5c65\u6b74\u306e\u78ba\u8a8d"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
         }
       ]
     },
@@ -118,7 +130,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Fresh direct CLI 0.156.0 ran from the trusted project root with no wrapper or policy CLI override. Host public remote query returned 0f8e75abebff0877cae681a3d5ff31ac47f54220; direct Codex returned exit 1 with Schannel SEC_E_NO_CREDENTIALS (0x8009030E). Safe wrapper final args and both prompt decisions were inspected, but interactive approval and elevation could not be reproduced because PTY provisioning failed with CreateProcessW os error 5.",
+      "evidence": "Fresh direct Codex CLI 0.156.0 still has the prior host-success / direct-Codex SEC_E_NO_CREDENTIALS result. A later fresh interactive codex-safe safe session reproduced the local one-time approval flow for git tag --list under workspace-write / on-request / network=false. The session reported CodexSandboxOffline; curl.exe failed with SEC_E_NO_CREDENTIALS after approval and Python urllib returned HTTP 200 without an additional network approval. No evidence establishes network sandbox elevation; the two network requirements remain blocked.",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -137,6 +149,12 @@
           "path": ".codex/runs/20260925-111717-JST/reports/codex-task-20260926-101700.report.json",
           "selector": "evaluation validation, git diff --check",
           "summary": "\u6700\u7d42writer\u306ecurrent report\u306f\u6210\u529f"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
         }
       ]
     }
@@ -145,16 +163,22 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Fresh interactive Codex process creation failed before launch: CreateProcessW denied access (os error 5). Safe wrapper final args confirm workspace-write / on-request / network=false, and local plus network candidates resolve to prompt. No approval UI, local command execution, network elevation or API request occurred.",
+      "evidence": "Fresh interactive codex-safe safe confirmed local on-request approval: the approval UI appeared for git tag --list, the user approved once, and the read-only command ran. Direct public network remains blocked by the host-success / direct-Codex SEC_E_NO_CREDENTIALS result. Safe network approval plus sandbox elevation also remains unverified: curl.exe failed with SEC_E_NO_CREDENTIALS after execpolicy approval, while Python urllib returned HTTP 200 without an additional network approval.",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260925-111717-JST/REPORT.md",
           "selector": "Task 9 continuation runtime validation",
           "summary": "interactive codex-safe safe\u306e\u8d77\u52d5blocker"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260925-111717-JST/REPORT.md",
+          "selector": "2026-09-26 Task 9 interactive safe approval checkpoint",
+          "summary": "Fresh interactive safe session: local on-request approval PASS; direct and safe network requirements remain BLOCKED."
         }
       ],
-      "detail": "Task 9 local on-request approval and separate read-only network approval plus sandbox elevation remain unverified. The current host cannot provision an interactive PTY, so a fresh safe session cannot be started. Continue only in an environment with interactive PTY support; do not substitute a non-interactive session."
+      "detail": "The local on-request exception path is now verified and is not a blocker. The separate network exception path still requires evidence of execpolicy approval, network sandbox elevation, and successful communication in that elevated runtime. The direct public network check also remains blocked. Do not infer sandbox elevation from the curl.exe execpolicy prompt or the Python request. Keep these environment/runtime findings separate from PR #184 source defects; do not add a network workaround or continue network root-cause investigation in this PR."
     },
     {
       "category": "flaky_or_env_issue",

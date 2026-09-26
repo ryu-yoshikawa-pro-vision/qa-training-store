@@ -24,6 +24,9 @@
 - [x] focused contract test / Hook test / execpolicy / Bash・PowerShell verify / Repository標準verifyを実行する。
 - [x] auto-netのpreflight overlayとactual runtime rulesetの差を副作用のないrepresentative commandで確認し、既存差分を別課題候補として記録する。preset-specific runtime loaderは追加しない。
 - [x] strict evaluation / run manifestを最終化し、Run Artifactをfinal commit前状態へ更新する。現writerは成功したが、履歴を集約するmanifestのvalidationはblockedとして記録した。
+- [x] Task 9 runtime follow-up: fresh interactive `codex-safe safe`でsafe local on-request approvalを確認し、Run Artifactへ反映する。network項目はBLOCKEDのまま維持する。
+- [ ] Task 9 remaining runtime: fresh direct Codex public-network request succeeds in the configured direct session.
+- [ ] Task 9 remaining runtime: safe network operation demonstrates execpolicy approval, network sandbox elevation, and successful read-only communication.
 - [ ] commit / normal push / PR作成または更新を行う。
 - [ ] 最新PR headの必須CIを確認し、failure時は既存repair contractに従う。
 
@@ -33,11 +36,11 @@
 
 ## Blocked
 
-- Task 9 runtime matrix (2026-09-26): direct workspace write=PASS (existing evidence); direct never rejection=PASS (existing evidence); normal `git switch`=PASS (fresh direct Codex, independent normal clone); direct public network=BLOCKED (host success / direct Codex CLI 0.156.0 `SEC_E_NO_CREDENTIALS`); safe local on-request approval=BLOCKED (PTY creation denied); safe network approval + sandbox elevation=BLOCKED (PTY creation denied); auto-net preflight/runtime difference=confirmed and deferred as `HIC-20260926-01`.
+- Task 9 runtime matrix (2026-09-26): direct workspace write=PASS (existing evidence); direct never rejection=PASS (existing evidence); normal `git switch`=PASS (fresh direct Codex, independent normal clone); safe local on-request approval=PASS (fresh interactive `codex-safe safe`, one-time user approval for `git tag --list`, then command ran with no repository mutation); direct public network=BLOCKED (host success / direct Codex CLI 0.156.0 `SEC_E_NO_CREDENTIALS`); safe network approval + sandbox elevation=BLOCKED (execpolicy approval alone did not establish sandbox elevation or successful network communication); auto-net preflight/runtime difference=confirmed and deferred as `HIC-20260926-01`.
 - fresh direct Codex CLI 0.156.0 was launched from the trusted project root with no wrapper or sandbox/approval CLI override. `.codex/config.toml` specifies `workspace-write` / `never` / `network_access=true`. Host PowerShell succeeded on the public remote HEAD query; the same command inside direct Codex exited 1 with Windows Schannel `SEC_E_NO_CREDENTIALS (0x8009030E)`. This is a runtime / credential-context blocker; evidence does not establish a project source defect, and no credentials or configuration were changed.
-- `codex-safe safe -NoLog -PrintCommand` confirms `workspace-write` / `on-request` / `network=false`. `git tag --list` and `gh api --hostname api.github.com /meta` both resolve to execpolicy `prompt`. A fresh interactive PTY was denied before process launch with `CreateProcessW` / `os error 5`, so local approval UI, network approval and sandbox elevation remain unverified. No non-interactive substitute or prompt-targeted operation was run.
+- `codex-safe safe -NoLog -PrintCommand` confirms `workspace-write` / `on-request` / `network=false`. `git tag --list` and `gh api --hostname api.github.com /meta` both resolve to execpolicy `prompt`. A later fresh interactive Windows Terminal / PowerShell session displayed the approval UI for `git tag --list`; the user approved it once and the read-only command ran without a repository change or network elevation request. `curl` first resolved to the PowerShell `Invoke-WebRequest` alias and failed; `curl.exe` displayed execpolicy approval and, after approval, failed with Schannel `SEC_E_NO_CREDENTIALS (0x8009030e)`. In the same session, Python `urllib.request` reached `https://example.com` and returned HTTP 200 without an additional network approval. `whoami` reported `pc-k16-0126\codexsandboxoffline`. The local approval path is PASS. The differing network results do not establish network sandbox elevation or a PR #184 source defect; safe network approval + elevation remains BLOCKED. No further network investigation or configuration/source change was performed.
 - strict manifestはlatest writer成功後も過去のevaluation parse failure、scope check blocked、mojibake evidenceを保持する。既存writerはvalidation command/warningを追加し、collectorは過去blockedを優先して集約、`scope_violation`を保持するため、現contractに履歴clear経路はない。actual `run.json`を直接編集せず、`validation.status=blocked` / `safety.scope_violation=true`を履歴aggregateとして記録する。
 
-Progress: 92% (22/24)
+Progress: 85% (23/27)
 
-Next: strict Run Artifactの再集約とschema / sanitization確認は完了。最終diff / statusを確認し、Run Artifactだけをcommit、normal push、PR #184本文更新、最新head必須CI確認へ進む。Task 9はdirect network成功とinteractive safe approval / elevationが未確認のためpartialのままとする。
+Next: local on-request approval PASSを記録したRun Artifactを確認・commitし、normal push、PR #184本文更新、最新head必須CI確認へ進む。direct public networkとsafe network approval + sandbox elevationはBLOCKEDのためTask 9とPlan全体はpartialのままとする。

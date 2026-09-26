@@ -353,3 +353,38 @@ Next: final tracked Run Artifactsをcommitし、normal push、PR #184本文更�
 ### PowerShell JSON encoding follow-up
 
 - Windows PowerShell 5.1で`Get-Content -Raw`の既定encodingによるparseは失敗した。`Get-Content -Raw -Encoding UTF8`から`ConvertFrom-Json`を実行するcorrected validationはexit 0。UTF-8を明示した`[IO.File]::ReadAllText`でもexit 0を確認した。
+
+## 2026-09-26 - Task 9 interactive safe approval checkpoint
+
+### Local on-request approval
+
+- Windows Terminal / PowerShellからfresh interactive `codex-safe safe`を起動できた。wrapperのeffective configは`workspace-write / on-request / network=false`。
+- 副作用のない`git tag --list`はexecpolicyで`prompt`となり、command実行前にapproval UIが表示された。ユーザーが今回だけ許可し、承認後にcommandが実行された。Repository状態の変更はなく、network elevationも要求されていない。Task 9の`safe local on-request approval`はPASS。
+
+### Network observations in that safe session
+
+- `curl https://example.com -I`ではPowerShellの`curl` aliasが`Invoke-WebRequest`として解釈され、失敗した。
+- `curl.exe https://example.com -I`ではapproval UIが表示され、ユーザー承認後に実行されたが、通信はSchannel `SEC_E_NO_CREDENTIALS (0x8009030e)`で失敗した。execpolicy approvalを確認しただけで、network sandbox elevationの成立とは扱わない。
+- 同じsessionで`python -c "import urllib.request; r=urllib.request.urlopen('https://example.com', timeout=10); print(r.status)"`はHTTP 200を返し、追加のnetwork approvalは表示されなかった。
+- `whoami`は`pc-k16-0126\codexsandboxoffline`を返した。観測結果は`network=false` wrapper / `CodexSandboxOffline` / `curl.exe`のSchannel failure / Python HTTPS 200である。異なる通信結果の原因はPR #184のsource不具合と確認できていない。
+
+### Updated Task 9 matrix and scope
+
+- direct workspace write=PASS（既存evidence）。
+- direct `approval_policy=never` rejection=PASS（既存evidence）。
+- normal `git switch`=PASS（既存evidence）。
+- safe local on-request approval=PASS（このcheckpointのinteractive承認evidence）。
+- direct public network=BLOCKED（host query成功 / fresh direct Codexは`SEC_E_NO_CREDENTIALS`の既存A/B evidence）。今回のPython通信は別経路のため代替evidenceにしない。
+- safe network approval + sandbox elevation=BLOCKED。`curl.exe`へのapprovalは確認したが、network sandbox elevationとその後の通信成功を確認していない。Python HTTPS 200にも追加approvalはなく、この差から昇格を推測しない。
+- Windows Firewall、CodexSandboxOffline内部、Schannel credential、proxy、certificate、OS、Codex runtime、wrapper、network guardの追加調査・変更は行わない。source、wrapper、rules、sandbox設定、credential設定、`HIC-20260926-01`は変更しない。必要ならruntime側の別調査候補として扱う。
+- active Runは`20260925-111717-JST`を維持する。actual `run.json`は直接編集せず、historical validation / scope evidenceも削除しない。evaluationは`partial`のままとし、Task 9とPlan全体は未完了。
+
+### Checkpoint artifact validation
+
+- Sanitizer Write: PASS、24 files scanned、1 known local path replacement、0 residual findings。Sanitizer Check: PASS、24 files scanned、0 residual findings。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260925-111717-JST/evaluation.json`: PASS。
+- Windows PowerShell `Get-Content -Raw -Encoding UTF8 ... | ConvertFrom-Json`: PASS。`run_id=20260925-111717-JST`、`result=partial`、`primary_failure_category=missing_validation`。
+- `collect-run-artifacts.ps1 -RunId 20260925-111717-JST -RefreshGitChangedFiles -Strict`: exit 0。既存writer / collector経由で再集約し、actual `run.json`を直接編集していない。
+- `git diff --check`: PASS。source / wrapper / rules / sandbox設定の差分はなく、今回の変更はREPORT / TASKS / evaluationとwrapperが生成したRun logに限定。
+- 最終aggregate: `run.json.status=completed`、`validation.status=blocked`、`safety.scope_violation=true`、`safety.network=false`、`primary_failure_category=missing_validation`、5 validation commands、0 warnings、6 reports、evaluation present、19 changed files。過去のblocked validationとscope evidenceを保持。
+- このartifact checkpoint時点のcheckbox Progressは`85% (23/27)`（`Now`＋`Discovered`の実checkbox数）。Task 9のnetwork 2項目とcommit / push / PR / latest CIのcheckboxはこのcommit前時点では未完了。
