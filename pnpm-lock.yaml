@@ -8,7 +8,7 @@ overrides:
   smol-toml: 1.7.1
   expo-constants: 57.0.19
   xcode@3.0.1>uuid: 11.1.1
-  '@eslint/eslintrc@3.3.6>js-yaml': 4.3.2
+  '@eslint/eslintrc@3.3.6>js-yaml': 5.4.1
   '@expo/xcpretty@4.4.4>js-yaml': 4.3.2
   '@react-native/community-cli-plugin@0.86.2>metro': 0.84.5
   '@react-native/community-cli-plugin@0.86.2>metro-config': 0.84.5
@@ -4541,6 +4541,10 @@ packages:
     resolution: {integrity: sha512-dayzUzKkJ1MkuUtZglSebU43utNXH0OWQByK9rKOOuYIO8M5TV1y+n8ALMdG0rdzBnfNkOmZEqrURepb0ejqBw==}
     hasBin: true
 
+  js-yaml@5.4.1:
+    resolution: {integrity: sha512-28R/k+NAjeuf7+CKlTxWZVExJGwVVLwY06DgEnOMz2gEpfNkDcD7QvyiVPT0xy0XXhU8vHsd4Ot42OOPdJG7dQ==}
+    hasBin: true
+
   jsc-safe-url@0.2.4:
     resolution: {integrity: sha512-0wM3YBWtYePOjfyXQH5MWQ8H7sdk5EXSwZvmSLKk2RboVQ2Bu239jycHDz5J/8Blf3K0Qnoy2b6xD+z10MFB+Q==}
 
@@ -7584,7 +7588,7 @@ snapshots:
       globals: 14.0.0
       ignore: 5.3.2
       import-fresh: 3.3.1
-      js-yaml: 4.3.2
+      js-yaml: 5.4.1
       minimatch: 3.1.5
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
@@ -11932,6 +11936,10 @@ snapshots:
       argparse: 2.0.1
 
   js-yaml@5.2.2:
+    dependencies:
+      argparse: 2.0.1
+
+  js-yaml@5.4.1:
     dependencies:
       argparse: 2.0.1
 
