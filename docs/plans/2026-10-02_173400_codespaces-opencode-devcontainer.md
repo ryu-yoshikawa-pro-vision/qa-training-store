@@ -151,13 +151,13 @@ Phase B〜E の実測で、Dockerfile、`AGENTS.md`、既存 `.codex/**`、helpe
   - `remoteUser: "node"`
   - Node / pnpm / OpenCode / Codex CLI setup
   - `OPENCODE_DISABLE_AUTOUPDATE=true`
-  - Phase B で確定した Free-only `OPENCODE_CONFIG_CONTENT`
+  - 必要な場合だけ、Secret値を含まないOpenCode Zen認証用config
   - recommended secret `OPENCODE_API_KEY`
   - `forwardPorts: [8081]`
 - `README.md`
   - Codespaces 作成前の Personal Secret 設定
   - dotfiles を無効にした canonical Fresh Create 検証
-  - OpenCode Free-only の通常起動
+  - OpenCodeのmodelはユーザーが選択し、Repository側でFree / paidを制限しないこと
   - OpenCode Zen 認証方式
   - Codex device-code login / project trust / Hook trust / `ci_wait`
   - Native 対象外
@@ -349,11 +349,10 @@ READMEへ次を追加する。
 5. Node 24 / pnpm 10.34.5 / OpenCode exact / Codex exactを確認する。
 6. Fresh shellで `command -v opencode` / `command -v codex` がPhase Bの期待pathを返すことを確認する。
 7. `pnpm install --frozen-lockfile` を再実行し、lockfile差分0を確認する。
-8. selected modelがcurrent Zen metadata / pricingでもzero-costであることを再確認する。
-9. OpenCode auth、version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
-10. Codexはdevice-code authを再実行し、認証監査、`test:hooks`、Repository integration、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
-11. `ci_wait` からPR #188のCIをread-only取得する。
-12. `pnpm run start:web` を起動し8081 forwarded portから表示する。
+8. OpenCode auth、version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
+9. Codexはdevice-code authを再実行し、認証監査、`test:hooks`、Repository integration、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
+10. `ci_wait` からPR #188のCIをread-only取得する。
+11. `pnpm run start:web` を起動し8081 forwarded portから表示する。
 
 #### E-3: candidate SHAのcanonical Fresh Create
 
@@ -629,33 +628,3 @@ PASS:
 - [ ] 22. 最終記録を通常commit / pushする。
 - [ ] 23. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
 - [ ] 24. latest head必須CIを確認する。
-
-
-
-- [ ] 1. Phase A: latest main / branch / Repository契約 / current公式仕様を再確認する。
-- [ ] 2. Personal `OPENCODE_API_KEY` Codespaces Secretを確認し、Personal dotfilesを無効化する。
-- [ ] 3. dotfilesなしの新規plain Codespace baselineを作成しfrozen installを確認する。
-- [ ] 4. OpenCode stable exact install、install provenance、Zen認証を検証する。
-- [ ] 5. current Zen metadata / pricingからzero-cost候補を決定論的に列挙する。
-- [ ] 6. current stableの全config sourceとFree-only effective configを検証する。
-- [ ] 7. OpenCode candidateごとのread-only / development smoke、session-bound usage evidence、version固定を確認する。
-- [ ] 8. selected modelに対するnon-selected zero-cost model negative controlを行う。
-- [ ] 9. Codex stable exact installと代替認証環境変数監査を行う。
-- [ ] 10. Codex device-code authentication / login statusを確認する。
-- [ ] 11. Codex `test:hooks` / project trust / Hook trust / readonly preflight / `ci_wait` を検証する。
-- [ ] 12. Codex read-only / development smokeとsame-session Hook runtime evidenceを確認する。
-- [ ] 13. bounded read-only subagentを1回実行しSubagentStart / SubagentStopを確認する。
-- [ ] 14. Phase B→C checkpointをcanonical Plan / active Runへ固定する。
-- [ ] 15. `.devcontainer/devcontainer.json` を実装する。
-- [ ] 16. READMEを更新する。
-- [ ] 17. candidate作成前に `pnpm run verify` / `git diff --check` / scope確認を行う。
-- [ ] 18. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録する。
-- [ ] 19. candidate SHAで `gh codespace rebuild --full` を実行し統合検証する。
-- [ ] 20. 同じcandidate SHAからdotfilesなしFresh Codespaceを作成し統合検証する。
-- [ ] 21. Web 8081 forwarded portをFull Rebuild / Fresh Createの両方で確認する。
-- [ ] 22. Fresh Create後に環境影響差分が出た場合は新candidate SHAを作り、Full Rebuild / Fresh Createを両方やり直す。
-- [ ] 23. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
-- [ ] 24. final working treeで `pnpm run verify` / `git diff --check` を再実行する。
-- [ ] 25. 最終記録を通常commit / pushする。
-- [ ] 26. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
-- [ ] 27. latest head必須CIを確認する。
