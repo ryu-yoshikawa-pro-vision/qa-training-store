@@ -68,3 +68,15 @@
 - ファイル分割: 実施しない。model制御削除によりPlanは単純化され、分割理由はさらに弱くなった。
 - Blocker: なし。次はPhase A。
 - Progress: 25% (8/32)
+
+## 2026-10-03 08:50 (JST)
+
+- Summary: 最新の複数レビューを現在の「OpenCode modelはユーザー選択」前提で再評価し、まだ必要な契約だけをcanonical Planへ反映した。
+- Changes: Full Rebuild直前のcandidate SHA / clean worktree /環境影響差分 /対象Codespace確認、candidate検証中のbranch freeze、OpenCode smokeのmodel能力precondition、workspace root・逐次・fail-fastのpostCreate、Repository既存`wait_for_required_ci`契約へのCI同期、「同等環境」の契約レベル定義を追加した。
+- CI contract: `docs/reference/codex-implementation-harness.md` を正本とし、final exact HEADで`Web CI` / `Mobile App CI`を待つ。`wait_for_required_ci`は1回だけ使用し、Agent pollingへfallbackしない。CI結果だけのためにRun Artifactを再commitしない。
+- Full Rebuild: `gh codespace rebuild --full -c <codespace-name>`で対象を明示する。GitHub公式上、Rebuildはworking directoryのdev container設定を使い、`/workspaces`は保持されるため、workspace clean-stateはFresh Createで検証する。
+- OpenCode: Free-only / pricing / negative control / launcher / Model access関連レビューは、modelをユーザーが選択する最新要件と矛盾するため採用しない。smokeに必要なmodel能力だけをpreconditionにする。
+- Style Quality: 前headで発生したMD029はE-3 ordered listの`9 → 11 → 12`が原因。今回`9 → 10 → 11 → 12`へ修正した。
+- ファイル分割: 実施しない。今回の修正は既存Phase C / E / F / Smoke契約の補強だけで、別ファイル化するとcandidate SHAとCI lifecycleが分散する。
+- Blocker: なし。次はPhase A。
+- Progress: 27% (9/33、必須CI確認1件を含む)
