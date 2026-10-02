@@ -6,7 +6,7 @@
 - Changes: `plan/codespaces-opencode-devcontainer` branchを作成し、canonical Planとplan-only Run Artifactだけを追加した。`.devcontainer`、README、source、test、workflowは変更していない。
 - 判断 / 理由: plain CodespaceでOpenCode / Zen Free modelの疎通を先に確認し、成功後だけ最小devcontainerを追加する。これによりOpenCode側failureとDev Container側failureを分離する。Nativeは既存Windows / macOS経路を維持する。
 - Validation: Repositoryの`package.json`、README、CI、AGENTS、既存OpenCode Security fallback、Plan / Run規約と、GitHub Codespaces / Dev Containers / OpenCode公式資料を照合した。Codespace実機検証とRepository `pnpm run verify` は今回のplan-only scopeでは未実行。
-- ブロッカー / 残作業: なし。後続実装ではcanonical PlanのPhase Aから開始し、Free model / OpenCode version / data policyを実装時点で再確認する。
+- ブロッカー / 残作業: なし。後続実装ではcanonical PlanのPhase Aから開始し、Free model / OpenCode versionを実装時点で再確認する。
 - Progress: 100% (6/6)
 
 ## 2026-10-02 18:38 (JST)
@@ -17,3 +17,12 @@
 - Validation: OpenAI公式のCodex CLI、ChatGPT plan、config referenceを確認。Codex CLIはLinuxで利用でき、初回起動時に`Sign in with ChatGPT`を選択できる。ChatGPTアカウントでのCodex利用はChatGPTプランの利用枠を使用する。Codespace実機検証は後続Phase Bで行う。
 - ブロッカー / 残作業: なし。後続実装ではOpenCodeとCodexをplain Codespaceで個別に疎通確認してから`.devcontainer`を追加する。
 - Progress: 100% (7/7)
+
+## 2026-10-02 19:59 (JST)
+
+- Summary: OpenCode Free modelの学習利用に関する前提を更新した。
+- Changes: `qa-training-store` がpublic Repositoryであることを確認し、Repository内容やprompt / completionが学習利用される可能性を許容する方針へcanonical PlanとRun Artifactを修正した。
+- 判断 / 理由: 学習利用可否はFree modelの選定条件・停止条件から外す。一方で、`OPENCODE_API_KEY`、ChatGPT認証情報、その他Repositoryに含まれないSecretはOpenCodeへ送信しない。
+- Validation: GitHub Repository metadataでvisibility=`public`を確認した。Repositoryがprivateへ変更された場合だけ、この前提を再確認するgateをPlanへ残した。
+- ブロッカー / 残作業: なし。
+- Progress: 100% (8/8)
