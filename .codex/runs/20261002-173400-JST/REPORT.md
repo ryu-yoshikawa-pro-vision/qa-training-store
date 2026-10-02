@@ -26,3 +26,13 @@
 - Validation: GitHub Repository metadataでvisibility=`public`を確認した。Repositoryがprivateへ変更された場合だけ、この前提を再確認するgateをPlanへ残した。
 - ブロッカー / 残作業: なし。
 - Progress: 100% (8/8)
+
+## 2026-10-02 複数レビュー統合（JST）
+
+- Summary: PR #188の複数レビューを統合し、実装前に必要な修正をcanonical Planへ反映した。以前のplan-only完了状態は、ユーザー指示により同じPRで実装まで進めるactive Runへ拡張した。
+- Changes: Full Rebuild + Fresh Create、OpenCode `model` / `small_model` Free固定、auto update無効、stable channel限定、Codex代替認証監査、project / Hook trustと既存harness検証、Phase B→C checkpoint、目的達成に必須な変更を同一PRで扱うscopeルール、8081のみforward、ignored smoke artifactを削除不要とする契約を追加した。
+- 判断 / 理由: OpenCode公式仕様では`small_model`が別modelを利用でき、自動更新も既定で有効。GitHub Codespacesの通常Rebuildはcacheを再利用するためFresh CreateだけでなくFull Rebuildとの両方を検証する。CodexはRepository固有のproject / Hook trustがあるためCLI単体疎通だけを合格にしない。
+- Validation: Repositoryの`package.json`、`.codex/config.toml`、`scripts/codex-safe.sh`、`AGENTS.md`、`.gitignore`、Playwright configと、GitHub Codespaces / Dev Containers / OpenCode / OpenAI公式資料を照合した。
+- ファイル分割: 実施しない。単一の検証→確定→実装→再現性検証の流れで共通条件が多く、分割すると重複が増えるため。
+- Blocker: なし。実装はPhase Aから開始する。
+- Progress: 23% (5/22)
