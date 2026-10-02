@@ -2,7 +2,7 @@
 
 ## 0. 依頼概要
 
-GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入する。OpenCode は OpenCode Zen の Free model だけを利用し、Codex CLI は ChatGPT アカウントで認証して ChatGPT プランの Codex 利用枠を使用する。
+GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入する。OpenCode は OpenCode Zen を利用し、使用する model はユーザーがその都度選択する。Free / paid のどちらを使うかは Repository / harness 側では制御しない。Codex CLI は ChatGPT アカウントで認証して ChatGPT プランの Codex 利用枠を使用する。
 
 この Plan は PR #188 で Plan、実装、Codespaces 実機検証、Repository 検証、CI 確認まで完了するための正本とする。
 
@@ -27,37 +27,32 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 1. 実装開始時に latest `main`、branch 差分、Repository 契約、current 公式仕様を再確認する。
 2. Phase B の plain Codespace と canonical Fresh Create は、どちらも Personal dotfiles の自動installを無効にした状態から新規作成する。
 3. `.devcontainer` 導入前の plain Codespace で OpenCode / Codex CLI を個別に疎通確認する。
-4. OpenCode は stable channel だけを対象とし、beta / `next` は使用しない。
-5. OpenCode stable の exact version を再インストール可能な install form で固定し、自動更新を無効化する。
-6. Free model候補はmodel名の `*-free` suffixだけで決めず、current OpenCode Zen metadata / pricingでzero-costと確認できた利用可能modelから決定論的に選ぶ。
-7. OpenCode は selected Free model 以外の LLM request を標準開発経路で発生させない。main model、`small_model`、Title / Summary / Compaction、利用する primary agent / subagent、command、provider、全config sourceを確認する。
-8. Free-only の対象は、devcontainer が提供する標準 `opencode` 起動、TUI model picker、`opencode run`、built-in agent / subagent / hidden agent、Repository / global commandとする。利用者が環境変数、config、binary自体を意図的に改変する adversarial bypass は対象外とする。
-9. 標準CLIの `--model` / `-m` で non-selected model を指定できる場合は通常利用のbypassとみなし、同じPRでfail-closedにする。selectedとは別のzero-cost modelを使ったnegative controlで、LLM request前に拒否されることを確認する。
-10. OpenCode の Free-only 設定は README の手動設定に依存させず、`.devcontainer` から起動した通常 shell の既定状態へ反映する。
-11. Free-only を current stable OpenCode で技術的に構成できない、negative controlでbypassを拒否できない、または実利用modelをsession単位で証明できない場合は Phase C へ進まない。
-12. `qa-training-store` は public Repository として扱い、OpenCode Free model による Repository 内容や prompt / completion の学習利用を許容する。
-13. Secret の保護境界は「OpenCode process から技術的に不可視にする」ことではなく、Secret 値を prompt / completion / log / Run Artifact / PR 本文へ意図的に含めないこととする。
-14. `OPENCODE_API_KEY` は Personal Codespaces Secret とし、`qa-training-store` だけへ access を許可する。
-15. OpenCode Zen の認証は Personal `OPENCODE_API_KEY` から current stable OpenCode CLI へ接続できる exact mechanism を Phase B で確定する。
-16. Codex CLI は ChatGPT 認証を使用し、API key / access token / WIF を代替認証として使っていないことを確認する。
-17. Codespaces のような remote / headless 環境では device-code authentication を正規経路とし、`codex login --device-auth` で認証できない場合は API key へ fallback せず停止する。
-18. Codex は既存 `.codex/config.toml`、project trust、Hook trust、`diagnose:hooks`、`test:hooks`、Linux `codex-safe.sh`、`ci_wait` MCP、bounded subagentを含む Repository 固有の既存契約が Codespaces 上でも実Runtimeで成立する。
-19. Dev Container image は `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm` を使用する。実装開始時に tag が current supported major であることを再確認し、存在しない場合だけ同じ固定方針で Plan を更新する。
-20. `remoteUser` は公式 image の非 root `node` user とし、`whoami` と `id -u` で確認する。
-21. `forwardPorts` は 8081 だけとする。Training Runtime 8082 の外部 forwarding は今回の対象外。
-22. `.devcontainer` / README実装と事前Repository検証後、環境再現性に影響する全変更を含む candidate commit を通常pushし、candidate SHAを固定する。
-23. canonical Full Rebuild と canonical Fresh Create は同じ candidate SHAを検証対象にする。
-24. canonical Full Rebuild は `gh codespace rebuild --full` を使用し、通常 Rebuild を代替として認めない。
-25. candidate SHA の Full Rebuild 後に Node / pnpm / OpenCode / Codex / Repository integration / Web Runtime が成立する。
-26. candidate SHA から Personal dotfiles を適用しない完全新規 Codespace を作成し、手動 CLI install や home directory / auth cache のコピーなしで再現する。
-27. Fresh Create でも OpenCode / Codex / Repository integration / Web Runtime を再確認する。
-28. OpenCode / Codex は Repository 固有情報を読んで成果物を生成し、shell command で検証する bounded development smoke を成功させる。
-29. Fresh Create 後に `.devcontainer/**`、OpenCode runtime config、Codespaces helper、`.codex/**`、`AGENTS.md`、`package.json` / lockfile、install script等の環境・agent動作へ影響するファイルを変更した場合は、新candidate SHAを通常pushし、Full Rebuild / Fresh Createを両方やり直す。
-30. Fresh Create後の変更が canonical Plan、Run Artifact、PR本文など検証結果の記録だけの場合はFresh Createをやり直さず、final headとcandidate SHAの差分に環境再現性へ影響する変更がないことを確認する。
-31. `pnpm run verify` と `git diff --check` が成功する。
-32. Native 経路、Security fallback、application source、test、workflowへ目的外の変更を入れない。
-33. 実測で今回のゴール達成に必須と判明した最小変更は canonical Plan を更新して同じ PR #188 で対応する。単なる改善や将来拡張だけを別課題へ送る。
-34. 最新 PR head で Repository 契約上の必須 CI が成功する。
+4. OpenCode は stable channel の exact version を再インストール可能な install form で固定し、自動更新を無効化する。
+5. OpenCode Zen への認証を Personal `OPENCODE_API_KEY` から再現できる exact mechanism を Phase B で確定する。
+6. OpenCode の model 選択はユーザーに委ねる。Free / paid、model ID、provider内のmodel選択を Repository / devcontainer / harness の合否条件にしない。
+7. OpenCode の標準利用で Repository を読め、tracked fileを変更しないread-only smokeと、ignored artifactだけを書けるbounded development smokeが成功する。
+8. `qa-training-store` は public Repository として扱い、OpenCodeへRepository内容を送信することを許容する。
+9. Secret の保護境界は「OpenCode process から技術的に不可視にする」ことではなく、Secret 値を prompt / completion / log / Run Artifact / PR 本文へ意図的に含めないこととする。
+10. `OPENCODE_API_KEY` は Personal Codespaces Secret とし、`qa-training-store` だけへ access を許可する。
+11. Codex CLI は ChatGPT 認証を使用し、API key / access token / WIF を代替認証として使っていないことを確認する。
+12. Codespaces のような remote / headless 環境では device-code authentication を正規経路とし、`codex login --device-auth` で認証できない場合は API key へ fallback せず停止する。
+13. Codex は既存 `.codex/config.toml`、project trust、Hook trust、`diagnose:hooks`、`test:hooks`、Linux `codex-safe.sh`、`ci_wait` MCP、bounded subagentを含む Repository 固有の既存契約が Codespaces 上でも実Runtimeで成立する。
+14. Dev Container image は `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm` を使用する。実装開始時に tag が current supported major であることを再確認し、存在しない場合だけ同じ固定方針で Plan を更新する。
+15. `remoteUser` は公式 image の非 root `node` user とし、`whoami` と `id -u` で確認する。
+16. `forwardPorts` は 8081 だけとする。Training Runtime 8082 の外部 forwarding は今回の対象外。
+17. `.devcontainer` / README実装と事前Repository検証後、環境再現性に影響する全変更を含む candidate commit を通常pushし、candidate SHAを固定する。
+18. canonical Full Rebuild と canonical Fresh Create は同じ candidate SHAを検証対象にする。
+19. canonical Full Rebuild は `gh codespace rebuild --full` を使用し、通常 Rebuild を代替として認めない。
+20. candidate SHA の Full Rebuild 後に Node / pnpm / OpenCode / Codex / Repository integration / Web Runtime が成立する。
+21. candidate SHA から Personal dotfiles を適用しない完全新規 Codespace を作成し、手動 CLI install や home directory / auth cache のコピーなしで再現する。
+22. Fresh Create でも OpenCode / Codex / Repository integration / Web Runtime を再確認する。
+23. OpenCode / Codex は Repository 固有情報を読んで成果物を生成し、shell command で検証する bounded development smoke を成功させる。
+24. Fresh Create 後に `.devcontainer/**`、OpenCode authentication / install helper、Codespaces helper、`.codex/**`、`AGENTS.md`、`package.json` / lockfile、install script等の環境・agent動作へ影響するファイルを変更した場合は、新candidate SHAを通常pushし、Full Rebuild / Fresh Createを両方やり直す。
+25. Fresh Create後の変更が canonical Plan、Run Artifact、PR本文など検証結果の記録だけの場合はFresh Createをやり直さず、final headとcandidate SHAの差分に環境再現性へ影響する変更がないことを確認する。
+26. `pnpm run verify` と `git diff --check` が成功する。
+27. Native 経路、Security fallback、application source、test、workflowへ目的外の変更を入れない。
+28. 実測で今回のゴール達成に必須と判明した最小変更は canonical Plan を更新して同じ PR #188 で対応する。
+29. 最新 PR head で Repository 契約上の必須 CI が成功する。
 
 ## 2. 現状理解と確定前提
 
@@ -76,20 +71,13 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 
 ### OpenCode
 
-- OpenCode config は置換ではなく merge される。
-- current stable の config source は Remote config、Global config、`OPENCODE_CONFIG`、Project config、`.opencode`、`OPENCODE_CONFIG_DIR`、`OPENCODE_CONFIG_CONTENT`、および実行環境に適用される managed config を含む。実装時点の公式precedenceを正本として全sourceを監査する。
-- `OPENCODE_CONFIG_CONTENT` はruntime overrideとして利用できるが、managed config等の優先sourceや別keyの設定が残り得るため、raw設定値だけでなく resolved config を確認する。
-- `model` と `small_model` は別設定で、`small_model` は Title 等の軽量処理に使われる。
-- built-in agent には primary agent / subagent / hidden agent があり、agent / command は個別に model を override できる。
-- model選択では CLIの `--model` / `-m` がconfigの `model` より優先される。
-- provider `whitelist` は model picker の表示を絞る機能であり、それ単体を hard guard とみなさない。
-- provider制御はcurrent stableの推奨方法を実装時に確認する。experimental policyはprovider単位の制御であり、selected model単体のhard guardとして先回り導入しない。
-- `opencode debug config` で resolved config を確認できる。
-- `opencode stats --models` と `opencode export <sessionID>` はlocal session / model usage evidenceの候補として使える。
-- OpenCode Zen はcurrent model metadataを公開し、公式Pricingでもzero-cost modelを示している。model IDの名称だけをFree判定の根拠にしない。
-- OpenCode は既定で自動更新するため、exact version installだけではversion固定にならない。
-- `OPENCODE_DISABLE_AUTOUPDATE` で自動更新チェックを無効化できる。
-- current stable と V2 beta は別 channel。今回の対象は stable のみ。
+- OpenCodeのmodel選択はユーザー操作として扱う。Free / paid、特定model ID、model価格、provider内のmodel制限をRepository契約にしない。
+- root `opencode.json` やdevcontainer環境変数でmodelを固定しない。
+- `model` / `small_model`、provider whitelist、`enabled_providers`、Model access、fail-closed launcher等を今回の目的のために追加しない。
+- OpenCode CLI自体は再現性のためstable exact versionを固定し、自動更新を無効化する。
+- OpenCode Zenの認証方式は、Personal `OPENCODE_API_KEY` を利用してFresh Createでも再現できることを確認する。
+- model選択に依存しないread-only / bounded development smokeで、Repository開発に必要なCLI動作を確認する。
+- OpenCodeが実際に利用したmodelのFree / paid判定やusage集計は今回の検証対象にしない。
 
 ### Codex
 
@@ -127,36 +115,15 @@ Phase B で次を実測し、Phase C 前に canonical Plan と active Run Artifa
 
 1. OpenCode stable の package spec、exact version、exact-version reinstall command、binary name。
 2. OpenCode の `command -v` 結果、install先、実行 user、PATH 成立条件。
-3. Codex CLI stable の package spec、exact version、exact-version reinstall command。
-4. Codex の `command -v` 結果、install先、実行 user、PATH 成立条件。
-5. current Zen metadata / pricing上でzero-costと確認できた利用可能model一覧。
-6. 決定論的な候補順で最初に全条件を満たした selected Free model ID。
-7. selected modelのFree statusを確認したofficial metadata / pricingと確認日時。
-8. OpenCode Free-only の exact `OPENCODE_CONFIG_CONTENT`。
-9. current stable の全config sourceと、resolved configでselected model以外へ到達するrouteがないことを確認する exact method。
-10. non-selected zero-cost modelを使うnegative controlの exact commandと、request前に拒否されたことを確認する方法。
-11. OpenCode Zen authentication exact mechanism。
-12. candidate sessionを一意に識別する方法、`opencode export <sessionID>` / `opencode stats --models` 等を使ったsession-bound usage evidenceの exact method。
-13. Codex device-code authentication の exact 手順と `codex login status` の期待結果。
-14. Codex Hook runtime / subagent evidenceとして確認するsession IDとJSONL path。
-15. Dev Container image tag が `5-24-bookworm` で利用可能であること。
-16. Section 6 の smoke で実際に成功した exact command / prompt / expected result。
+3. OpenCode Zen authentication exact mechanism。
+4. Codex CLI stable の package spec、exact version、exact-version reinstall command。
+5. Codex の `command -v` 結果、install先、実行 user、PATH 成立条件。
+6. Codex device-code authentication の exact 手順と `codex login status` の期待結果。
+7. Codex Hook runtime / subagent evidenceとして確認するsession IDとJSONL path。
+8. Dev Container image tag が `5-24-bookworm` で利用可能であること。
+9. Section 6 の smoke で実際に成功した exact command / prompt / expected result。
 
-これらを推測で Phase C へ持ち込まない。
-
-### Free model の選定規則
-
-1. current OpenCode CLIのmodel一覧とOpenCode Zenのcurrent metadata / pricingを照合する。
-2. OpenCode Zen providerで利用可能かつ、current official metadata / pricing上でzero-costと確認できたmodelだけを候補にする。model IDの `*-free` suffixは補助情報として扱い、Free判定の正本にしない。
-3. 候補model IDをASCII昇順でsortする。
-4. 各candidateは新しいOpenCode sessionと一意なsmoke artifact pathで検証する。
-5. 各candidateについて Section 6 の read-only / development write / Free-only positive / negative control / version固定を実行する。
-6. candidateのLLM requestは、session export等で検証対象sessionへ一意に紐付ける。aggregate statsを使う場合はcandidate実行前後のbaseline / deltaを取り、検証窓中に他のOpenCode利用を行わない。
-7. すべてPASSした最初のmodelをselected Free modelとする。
-8. 1件の失敗では停止せず次候補へ進む。
-9. 全候補が失敗した場合、またはFree status / usage evidence / negative controlを証明できない場合はPhase Cへ進まない。
-
-性能比較・ランキングは行わない。Zen service-account Usage APIのために追加Secretを導入しない。
+OpenCodeのmodel ID、Free / paid、pricing、usage evidenceはcheckpoint対象にしない。
 
 ### 同一 PR で対応する条件
 
@@ -240,45 +207,31 @@ Phase B〜E の実測で、Dockerfile、`AGENTS.md`、既存 `.codex/**`、helpe
 6. `node --version`、`corepack --version`、`git --version`、`whoami`、`id -u`を記録する。
 7. `corepack enable` → `pnpm install --frozen-lockfile` を実行する。
 
-#### B-1: OpenCode install / authentication
+#### B-1: OpenCode
 
 1. 公式stable docs / releaseからstable channelを確認する。beta / `next` は使用しない。
 2. exact versionを指定して再インストールできる install command を選ぶ。`latest` しか指定できない経路は採用しない。
 3. `node` userで実行可能か確認し、必要なら install 時だけ `sudo` を使う。その要否をcheckpointへ記録する。
 4. `opencode --version`、`command -v opencode`、実体pathを記録する。
 5. Fresh shellでも同じbinaryを解決できることを確認する。
-6. `OPENCODE_DISABLE_AUTOUPDATE=true` を設定する。
-7. `~/.local/share/opencode/auth.json` が存在しない状態で Personal Secret `OPENCODE_API_KEY` を環境変数として渡し、Zen認証できるか確認する。
-8. 7が成立しない場合は、current stableがprovider `opencode` の `options.apiKey` で `{env:OPENCODE_API_KEY}` 相当のenv参照を利用できるか確認し、inline configからSecret値そのものを埋め込まず認証できるか検証する。
-9. `opencode debug config` 等がSecretの展開値を出力し得る場合、raw outputをRun Artifactへ保存しない。必要なkeyの存在・model routeだけをSecret非表示で確認する。
-10. environment authenticationまたはofficial env substitutionでFresh Create再現可能な認証が成立した場合、その方式を正規経路として確定する。
-11. `/connect`で生成される `~/.local/share/opencode/auth.json` はFresh Create再現性の前提にしない。`/connect`しか成立しない場合はPersonal Secretだけで再現する現在方針と不整合なのでPhase Cへ進まずPlanを更新する。
+6. `OPENCODE_DISABLE_AUTOUPDATE=true` を設定し、起動前後でversionが変わらないことを確認する。
+7. `~/.local/share/opencode/auth.json` が存在しない状態で Personal Secret `OPENCODE_API_KEY` を使い、OpenCode Zenへ認証できるか確認する。
+8. environment variableだけで成立しない場合は、current stableのofficial env substitutionでprovider `options.apiKey` に `{env:OPENCODE_API_KEY}` 相当を渡せるか確認する。Secret値そのものをconfigへ埋め込まない。
+9. `opencode debug config` 等がSecretの展開値を出力し得る場合、raw outputをRun Artifactへ保存しない。
+10. environment authenticationまたはofficial env substitutionでFresh Create再現可能な認証が成立した方式を正規経路として確定する。
+11. `/connect`で生成されるauth cacheをFresh Create再現性の前提にしない。`/connect`しか成立しない場合は現在方針と不整合なのでPhase Cへ進まずPlanを更新する。
+12. 使用するmodelはユーザーが選択する。Free / paid、model ID、価格をPASS / FAIL条件にしない。
+13. Section 6のOpenCode read-only / development write smokeを実行する。
 
-#### B-2: OpenCode Free-only
+OpenCode停止条件:
 
-1. current OpenCode model一覧とcurrent Zen metadata / pricingを照合し、zero-cost候補をSection 3の規則で確定する。
-2. 候補ごとにruntime configを作成する。最低限、main `model`、`small_model`、provider allowlist、picker whitelist、通常利用で発火し得るagent / command model routeをselected candidateへ閉じる。
-3. provider `whitelist` はpicker制限として扱い、単独のhard guardとはみなさない。experimental policyはcurrent stableでprovider制御に必要と実測した場合だけ採用し、selected model単位のguardとして決め打ちしない。
-4. current stable公式docsが定義する全config sourceを監査する。少なくともRemote config、Global config、`OPENCODE_CONFIG`、Project config、`.opencode`、`OPENCODE_CONFIG_DIR`、`OPENCODE_CONFIG_CONTENT`、Linux Codespaceに適用されるmanaged configを対象にする。
-5. `opencode debug config` 等のresolved configで、selected candidate以外へ到達するprovider / model / agent / command routeが残っていないことを確認する。Secret展開値を記録しない。
-6. Title / Summary / Compaction と利用する primary / subagent のeffective modelを確認する。
-7. candidateごとに新しいsessionを開始し、実行前後のsession一覧から対象session IDを一意に記録する。
-8. candidateごとにSection 6の一意なartifact pathを割り当て、開始前に対象pathが存在しないことを確認する。
-9. Section 6のread-only smokeとdevelopment write smokeを実行する。
-10. `opencode export <sessionID>` を第一候補としてsession-bound evidenceを取得し、candidate session内のmodel利用を確認する。
-11. session exportだけでTitle / Summary / Compaction等を含む全利用modelを確認できない場合は、`opencode stats --models` のcandidate実行前後baseline / deltaを、他のOpenCode利用がないisolated windowで補助evidenceとして使う。
-12. account-wide / project-wide evidenceが他sessionと混ざり、candidateへ一意に紐付けられない場合はそのcandidateをFAILとする。Zen service-account Usage APIのために新しいSecretは追加しない。
-13. positive smokeでselected candidate以外のLLM requestが0件であることを確認する。
-14. selected candidate決定前の各candidateについてcurrent Zen metadata / pricing上でzero-costであることを再確認する。
-15. candidateがpositive条件を満たしたらnegative controlを実施する。selected candidateとは別のzero-cost modelを `--model` / `-m` で明示指定し、LLM request発生前に拒否され、usage evidenceにもnon-selected requestが増えていないことを確認する。
-16. TUI model pickerでもselected candidate以外を標準操作で選択できないことを確認する。
-17. negative controlが通らない場合は、current Personal Zen利用形態でZen Workspace Model access等のserver-side制御が利用可能か確認する。利用可能ならselected model以外をdisabledにして再検証する。
-18. server-side制御が利用できない、または標準 `opencode --model` bypassを拒否できない場合は、標準 `opencode` 起動経路をfail-closedにする最小launcher等を同PRで追加する。追加前にcanonical Planを更新する。
-19. current stableの公式機能と最小launcherを含めてもselected candidate以外を標準経路から拒否できない場合はPhase Cへ進まない。
-20. `opencode --version` を起動前後で確認し、自動更新されていないことを確認する。
-21. 全候補FAILならPhase Cへ進まない。
+- stable OpenCode CLIをexact version指定で再インストールできない。
+- Fresh shellで同じbinaryを解決できない。
+- Personal SecretからFresh Createで再現可能なZen認証経路を構成できない。
+- read-only smokeまたはdevelopment write smokeがFAILする。
+- OpenCodeが起動時にexact versionから自動更新される。
 
-#### B-3: Codex CLI / ChatGPT authentication
+#### B-2: Codex CLI / ChatGPT authentication
 
 1. 公式stable install経路から exact versionを再インストール可能なcommandを選ぶ。
 2. `node` userで実行可能か確認し、必要ならinstall時だけ`sudo`を使う。
@@ -291,7 +244,7 @@ Phase B〜E の実測で、Dockerfile、`AGENTS.md`、既存 `.codex/**`、helpe
 9. `codex login status` がChatGPT認証を肯定的に示すことを確認する。
 10. `/status` でsession / model / usageを確認する。
 
-#### B-4: Codex Repository integration
+#### B-3: Codex Repository integration
 
 1. `pnpm run test:hooks` を実行する。
 2. `pnpm run diagnose:hooks` を実行する。
@@ -327,34 +280,29 @@ Phase Bが成功したら `.devcontainer` を編集する前に、canonical Plan
 
 - OpenCode stable package spec / exact version / reinstall command / binary name。
 - OpenCode `command -v`、install先、実行user、PATH成立条件。
+- OpenCode Zen authentication exact mechanism。
 - Codex CLI package spec / exact version / reinstall command。
 - Codex `command -v`、install先、実行user、PATH成立条件。
-- current Zen metadata / pricingでzero-costと確認した候補一覧、確認日時、selected model ID。
-- selected modelの候補順での位置と、それ以前の候補がFAILした理由。
-- Free-only `OPENCODE_CONFIG_CONTENT` のexact JSON。Secret値そのものは記録しない。
-- current stableの全config sourceとresolved configの確認方法。
-- negative controlのexact command、拒否結果、non-selected requestが0件であるsession-bound evidence。
-- OpenCode Zen authentication exact mechanism。
-- candidate session IDを特定する方法と、session export / stats baseline-deltaのexact evidence method。
 - Dev Container image tag `5-24-bookworm` の利用可否確認結果。
 - Codex device-code loginのexact手順と `codex login status` の期待結果。
 - `/hooks` / `ci_wait` / same-session Hook runtime / bounded subagentの確認手順。
 - Section 6のsmokeで実際に成功したexact command / prompt / expected result。
 
-このcheckpointが未更新のままPhase Cへ進まない。
+OpenCodeのmodel ID、Free / paid、価格、model利用実績は固定しない。このcheckpointが未更新のままPhase Cへ進まない。
 
 ### Phase C: `.devcontainer/devcontainer.json` 実装
 
 1. `image` は `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`。
 2. `remoteUser` は `node`。
-3. `containerEnv` または current Dev Container specで同等のcontainer-wide設定として `OPENCODE_DISABLE_AUTOUPDATE=true` とPhase Bで確定したFree-only runtime configを入れる。
+3. `containerEnv` または current Dev Container specで同等のcontainer-wide設定として `OPENCODE_DISABLE_AUTOUPDATE=true` を入れる。
 4. `postCreateCommand` は `corepack enable`、`pnpm install --frozen-lockfile`、Phase Bで確定したOpenCode / Codex exact reinstall commandだけを基本とする。
 5. `secrets` には `OPENCODE_API_KEY` をrecommended secretとして宣言する。値やdefault tokenは書かない。
 6. `forwardPorts` は `[8081]`。
-7. root `opencode.json` は追加しない。Phase Bのnegative controlでinline runtime configだけではFree-onlyを閉じられないと実証された場合だけ、最小launcherやserver-side Model access等の必要手段をPlan更新後に追加する。
-8. Codex auth file / ChatGPT tokenをcopy / mountしない。
-9. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
-10. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
+7. OpenCodeのmodelは固定しない。root `opencode.json`、model-specific `OPENCODE_CONFIG_CONTENT`、provider whitelist、Model access、model制御launcherは追加しない。
+8. OpenCode認証でofficial env substitutionが必要とPhase Bで確定した場合だけ、Secret値を含まない最小configをdevcontainerの既定環境へ反映する。
+9. Codex auth file / ChatGPT tokenをcopy / mountしない。
+10. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
+11. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
 
 ### Phase D: README更新
 
@@ -365,16 +313,15 @@ READMEへ次を追加する。
 3. 作成後にSecretを追加・変更した場合はstop → restartが必要であること。
 4. `devcontainer.json#secrets` はrecommended secretの案内であり、通常のクイック作成では事前Secret登録を正規手順とすること。
 5. `node --version` / `pnpm --version` / `opencode --version` / `codex --version` の確認。
-6. OpenCode Free-only設定はdevcontainerから既定で渡されるため、通常利用者がmodel設定を手入力しないこと。
-7. Free model一覧やcurrent latest versionは固定しないが、このdevcontainerで採用したselected model IDは再現性のため固定すること。selected modelが利用不能またはcurrent Zen pricingでzero-costでなくなった場合は、意図した保守変更で再選定すること。
-8. OpenCode Zen authentication exact mechanism。
-9. OpenCode Free modelの学習利用を許容する一方、Secret値をprompt / completion / log等へ意図的に含めないこと。
-10. Codexはremote環境で `codex login --device-auth` を使うこと。
-11. CodexではAPI key / access token / WIFやauth file copyへfallbackしないこと。
-12. `codex login status`、project trust、`/hooks`、Hook trust、`ci_wait` の初回確認。
-13. Full Rebuild / Fresh Create後はCodexを再認証することを正規手順とする。
-14. root `AGENTS.md` を上書きしないこと。
-15. CodespacesはWeb / Repository validation用で、Windows Android / macOS iOSの正式経路を置き換えないこと。
+6. OpenCodeのmodelはユーザーがOpenCode上で選択すること。Repository / devcontainerはFree / paidを制限しないこと。
+7. OpenCode Zen authentication exact mechanism。
+8. Repositoryがpublicであることを前提にOpenCodeへsourceを送信できる一方、Secret値をprompt / completion / log等へ意図的に含めないこと。
+9. Codexはremote環境で `codex login --device-auth` を使うこと。
+10. CodexではAPI key / access token / WIFやauth file copyへfallbackしないこと。
+11. `codex login status`、project trust、`/hooks`、Hook trust、`ci_wait` の初回確認。
+12. Full Rebuild / Fresh Create後はCodexを再認証することを正規手順とする。
+13. root `AGENTS.md` を上書きしないこと。
+14. CodespacesはWeb / Repository validation用で、Windows Android / macOS iOSの正式経路を置き換えないこと。
 
 ### Phase E: candidate SHAの作成と実機検証
 
@@ -403,7 +350,7 @@ READMEへ次を追加する。
 6. Fresh shellで `command -v opencode` / `command -v codex` がPhase Bの期待pathを返すことを確認する。
 7. `pnpm install --frozen-lockfile` を再実行し、lockfile差分0を確認する。
 8. selected modelがcurrent Zen metadata / pricingでもzero-costであることを再確認する。
-9. OpenCode auth、resolved Free-only config、negative control、read-only / development smoke、session-bound usage evidenceを再検証する。
+9. OpenCode auth、version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
 10. Codexはdevice-code authを再実行し、認証監査、`test:hooks`、Repository integration、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
 11. `ci_wait` からPR #188のCIをread-only取得する。
 12. `pnpm run start:web` を起動し8081 forwarded portから表示する。
@@ -417,9 +364,8 @@ READMEへ次を追加する。
 5. manual CLI install、home directory copy、auth cache copyを行わない。
 6. devcontainer作成処理だけでNode / pnpm / OpenCode / Codex CLIが揃うことを確認する。
 7. `whoami` / `id -u`、version、`command -v`、dependency installを確認する。
-8. selected modelがcurrent Zen metadata / pricingでもzero-costであることを再確認する。
-9. OpenCodeはPersonal `OPENCODE_API_KEY` だけからPhase Bで確定した認証方式を再現する。
-10. OpenCode resolved Free-only config、negative control、read-only / development smoke、session-bound usage evidenceを再検証する。
+8. OpenCodeはPersonal `OPENCODE_API_KEY` だけからPhase Bで確定した認証方式を再現する。
+9. OpenCode version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
 11. Codexは `codex login --device-auth` で新規認証し、認証監査、`test:hooks`、project / Hook trust、`ci_wait`、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
 12. `pnpm run start:web` を8081 forwarded portから確認する。
 
@@ -453,13 +399,13 @@ Full RebuildとFresh Createは異なる失敗を検出するため、どちら�
 
 ## 6. Smoke契約
 
-Phase BでCLI versionに合わせてexact commandを確定する。各smokeは実行ごとに一意なartifact pathを使い、開始前に対象pathが存在しないことをpreconditionとして確認する。
+Phase BでCLI versionに合わせてexact commandを確定する。各write smokeは実行ごとに一意なartifact pathを使い、開始前に対象pathが存在しないことをpreconditionとして確認する。
 
 ### artifact path規則
 
-- OpenCode Phase B candidate: `.artifacts/codespaces-smoke/opencode/phase-b/<NN>-<sanitized-model-id>-attempt-<N>.txt`
-- OpenCode Full Rebuild: `.artifacts/codespaces-smoke/opencode/full-rebuild/<sanitized-model-id>-attempt-<N>.txt`
-- OpenCode Fresh Create: `.artifacts/codespaces-smoke/opencode/fresh-create/<sanitized-model-id>-attempt-<N>.txt`
+- OpenCode Phase B: `.artifacts/codespaces-smoke/opencode/phase-b/attempt-<N>.txt`
+- OpenCode Full Rebuild: `.artifacts/codespaces-smoke/opencode/full-rebuild/attempt-<N>.txt`
+- OpenCode Fresh Create: `.artifacts/codespaces-smoke/opencode/fresh-create/attempt-<N>.txt`
 - Codex Phase B: `.artifacts/codespaces-smoke/codex/phase-b/attempt-<N>.txt`
 - Codex Full Rebuild: `.artifacts/codespaces-smoke/codex/full-rebuild/attempt-<N>.txt`
 - Codex Fresh Create: `.artifacts/codespaces-smoke/codex/fresh-create/attempt-<N>.txt`
@@ -467,6 +413,8 @@ Phase BでCLI versionに合わせてexact commandを確定する。各smokeは�
 同じphaseを再試行する場合はattempt番号を増やし、既存artifactを再利用しない。smoke artifactの削除は完了条件にしない。
 
 ### OpenCode read-only
+
+使用するmodelはユーザーが選択する。Free / paid、model IDはPASS / FAIL条件にしない。
 
 prompt:
 
@@ -476,13 +424,10 @@ PASS:
 
 - responseに `Summary`、`Progress`、`Next`、`Evidence` の4項目が含まれる。
 - tracked file変更0件。
-- resolved configでselected Free model以外のmodel routeが残っていない。
-- candidate session IDが一意に特定できる。
-- session-bound usage evidenceでselected Free model以外のLLM requestが0件。
 
 ### OpenCode development write
 
-promptの出力先は実行phase / candidateに対応する一意なartifact pathへ置換する。
+promptの出力先は実行phaseに対応する一意なartifact pathへ置換する。
 
 > `package.json` の `packageManager` と `.codex/config.toml` の `[features].hooks` を読み、指定されたartifact pathに `packageManager=<実値>` と `hooks=<実値>` の2行だけを書いてください。その後、shell commandで内容を検証してください。tracked fileは変更しないでください。
 
@@ -495,19 +440,6 @@ PASS:
 - `hooks=true` がcurrent `.codex/config.toml` と一致する。
 - agent自身がshell commandで内容を検証してPASSを報告する。
 - tracked file変更0件。
-- candidate session IDが一意に特定できる。
-- session-bound usage evidenceでselected Free model以外のLLM requestが0件。
-
-### OpenCode negative control
-
-- selected Free modelとは別のcurrent zero-cost Zen modelを使う。
-- 標準devcontainer環境の `opencode run --model <non-selected-zero-cost-model>` またはcurrent stableの同等明示指定を実行する。
-- promptは「`package.json` の `packageManager` を答える。file変更なし」とする。
-- PASSはLLM request発生前にnon-selected model指定が拒否されること。
-- candidate session / stats evidenceでnon-selected modelのrequestが増えていないことを確認する。
-- TUI pickerでもselected model以外を標準操作で選択できないことを確認する。
-- non-selected zero-cost modelが1件もなく安全なnegative controlを構成できない場合は、server-side Model access等で拒否を証明できない限りFree-only hard guardを未証明としてFAILにする。
-- 有料modelをnegative controlのために実行しない。
 
 ### Codex read-only
 
@@ -553,11 +485,8 @@ PASS:
 | OpenCode stable | exact-version reinstall command | exact version一致、beta / next不使用 |
 | OpenCode install provenance | `command -v` / path / user / fresh shell | 同じbinaryを再現 |
 | OpenCode auth | Personal `OPENCODE_API_KEY` | auth cacheなしでPhase B確定方式によりZen認証成功 |
-| Free status | current Zen metadata / pricing | selected modelがcurrent zero-cost |
-| OpenCode config source | current stable公式precedence + resolved config | selected以外へのprovider / model / agent / command routeなし |
-| OpenCode positive smoke | Section 6 | read-only / development write PASS |
-| OpenCode negative control | non-selected zero-cost model明示指定 | request前に拒否、usage増分0 |
-| OpenCode usage | session export +必要時stats baseline / delta | candidate sessionへ一意に紐付きselected model以外0 |
+| OpenCode model selection | ユーザー操作 | Repository / harnessはFree / paidを制限しない |
+| OpenCode smoke | Section 6 | read-only / development write PASS |
 | OpenCode version | auto update無効 + 起動前後version | exact version維持 |
 | Codex stable | exact-version reinstall command | exact version一致 |
 | Codex install provenance | `command -v` / path / user / fresh shell | 同じbinaryを再現 |
@@ -580,37 +509,25 @@ PASS:
 
 ## 8. リスクと扱い
 
-### Free model availability / pricing
+### OpenCode model選択
 
-- model IDの名前だけをFree判定に使わない。
-- current Zen metadata / pricingでzero-costを確認する。
-- selected model IDはdevcontainerの再現性契約として固定する。
-- selected modelが利用不能またはzero-costでなくなった場合は意図した保守変更で再選定する。
-- Phase Bの候補選定はASCII昇順とし、性能比較は行わない。
-
-### Free-only制約
-
-- Free-onlyはRepositoryが提供する標準起動経路を対象にする。利用者がenv / config / binaryを意図的に改変するadversarial bypassは対象外。
-- 標準 `--model` / `-m` は通常利用の一部なので、non-selected modelへ切替可能ならbypassとみなす。
-- picker whitelist単独をhard guardとみなさない。
-- current stableの全config source、resolved config、positive usage evidence、negative controlを組み合わせる。
-- current official configだけで閉じない場合はZen Workspace Model access等のserver-side制御を確認し、それでも不足する場合だけ最小fail-closed launcherを同PRで追加する。
-- selected model以外を標準経路から拒否・検証できない場合は停止する。
-
-### Usage evidenceの混在
-
-- candidateごとに新しいsession IDと一意なartifact pathを使う。
-- session exportを第一候補にする。
-- aggregate statsはbaseline / deltaとisolated windowを併用する。
-- candidateへ一意に紐付けられないevidenceは合格根拠にしない。
-- Zen service-account Usage APIのために追加Secretを導入しない。
+- 使用modelはユーザーが選択する。
+- Free / paid、model価格、特定model IDをRepository側で制御しない。
+- devcontainerやharnessにmodel固定、provider whitelist、Free-only guard、negative control、usage証拠の仕組みを追加しない。
+- 将来OpenCode側のmodel availabilityや価格が変わっても、CLI環境自体が正常なら今回の環境再現性failureとはしない。
 
 ### OpenCode Zen authentication
 
 - 既存Security fallbackのenvironment authenticationをinteractive stable CLIへ無条件に外挿しない。
-- auth cacheなしでPersonal Secretの直接認識を試し、成立しない場合はofficial `provider.opencode.options.apiKey = "{env:OPENCODE_API_KEY}"` 相当を検証する。
+- auth cacheなしでPersonal Secretの直接認識を試し、成立しない場合はofficial env substitutionを検証する。
 - `opencode debug config` 等がSecretを展開し得る場合、raw outputを保存しない。
 - `/connect`で作成されるauth cacheをFresh Create前提にしない。
+
+### Secret境界
+
+- Secretを同一container / userのagent processから技術的に不可視にすることは今回の要件にしない。
+- Secret値をprompt / completion / log / Run Artifact / PR本文へ意図的に露出させない。
+- Secret値を表示する確認commandは使わない。
 
 ### Codespaces personalization
 
@@ -687,6 +604,33 @@ PASS:
 - [Using Codex with a ChatGPT plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)
 
 ## 11. 実行タスク
+
+- [ ] 1. Phase A: latest main / branch / Repository契約 / current公式仕様を再確認する。
+- [ ] 2. Personal `OPENCODE_API_KEY` Codespaces Secretを確認し、Personal dotfilesを無効化する。
+- [ ] 3. dotfilesなしの新規plain Codespace baselineを作成しfrozen installを確認する。
+- [ ] 4. OpenCode stable exact install、install provenance、Zen認証を検証する。
+- [ ] 5. ユーザーが選択した任意のOpenCode modelでread-only / development smokeとversion固定を確認する。
+- [ ] 6. Codex stable exact installと代替認証環境変数監査を行う。
+- [ ] 7. Codex device-code authentication / login statusを確認する。
+- [ ] 8. Codex `test:hooks` / project trust / Hook trust / readonly preflight / `ci_wait` を検証する。
+- [ ] 9. Codex read-only / development smokeとsame-session Hook runtime evidenceを確認する。
+- [ ] 10. bounded read-only subagentを1回実行しSubagentStart / SubagentStopを確認する。
+- [ ] 11. Phase B→C checkpointをcanonical Plan / active Runへ固定する。
+- [ ] 12. `.devcontainer/devcontainer.json` を実装する。
+- [ ] 13. READMEを更新する。
+- [ ] 14. candidate作成前に `pnpm run verify` / `git diff --check` / scope確認を行う。
+- [ ] 15. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録する。
+- [ ] 16. candidate SHAで `gh codespace rebuild --full` を実行し統合検証する。
+- [ ] 17. 同じcandidate SHAからdotfilesなしFresh Codespaceを作成し統合検証する。
+- [ ] 18. Web 8081 forwarded portをFull Rebuild / Fresh Createの両方で確認する。
+- [ ] 19. Fresh Create後に環境影響差分が出た場合は新candidate SHAを作り、Full Rebuild / Fresh Createを両方やり直す。
+- [ ] 20. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
+- [ ] 21. final working treeで `pnpm run verify` / `git diff --check` を再実行する。
+- [ ] 22. 最終記録を通常commit / pushする。
+- [ ] 23. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
+- [ ] 24. latest head必須CIを確認する。
+
+
 
 - [ ] 1. Phase A: latest main / branch / Repository契約 / current公式仕様を再確認する。
 - [ ] 2. Personal `OPENCODE_API_KEY` Codespaces Secretを確認し、Personal dotfilesを無効化する。
