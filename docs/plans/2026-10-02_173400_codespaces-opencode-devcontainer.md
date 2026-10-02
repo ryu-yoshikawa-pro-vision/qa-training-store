@@ -20,6 +20,8 @@ GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入�
 
 Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開発に利用でき、Repository にコミットした設定から Full Rebuild と完全新規 Codespace の両方で同等の環境を再現できる状態にする。
 
+ここでの「同等」はcontainer image digestの完全一致ではなく、Node major、pnpm / OpenCode / Codex exact version、実行user、CLI path、認証方式、Codex Hook / MCP、Web Runtimeなど、このPlanで定義するRepository開発契約が一致することを指す。
+
 ### 完了条件
 
 以下をすべて満たす。
@@ -30,7 +32,7 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 4. OpenCode は stable channel の exact version を再インストール可能な install form で固定し、自動更新を無効化する。
 5. OpenCode Zen への認証を Personal `OPENCODE_API_KEY` から再現できる exact mechanism を Phase B で確定する。
 6. OpenCode の model 選択はユーザーに委ねる。Free / paid、model ID、provider内のmodel選択を Repository / devcontainer / harness の合否条件にしない。
-7. OpenCode の標準利用で Repository を読め、tracked fileを変更しないread-only smokeと、ignored artifactだけを書けるbounded development smokeが成功する。
+7. OpenCodeの環境検証smokeでは、file read/writeとshell / tool利用など当該smokeに必要な能力を持つmodelをユーザーが選択する。model自体の能力不足はCodespaces環境のfailureとは判定せず、対応modelでsmokeを再実行する。OpenCode の標準利用で Repository を読め、tracked fileを変更しないread-only smokeと、ignored artifactだけを書けるbounded development smokeが成功する。
 8. `qa-training-store` は public Repository として扱い、OpenCodeへRepository内容を送信することを許容する。
 9. Secret の保護境界は「OpenCode process から技術的に不可視にする」ことではなく、Secret 値を prompt / completion / log / Run Artifact / PR 本文へ意図的に含めないこととする。
 10. `OPENCODE_API_KEY` は Personal Codespaces Secret とし、`qa-training-store` だけへ access を許可する。
@@ -295,11 +297,11 @@ OpenCodeのmodel ID、Free / paid、価格、model利用実績は固定しない
 1. `image` は `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`。
 2. `remoteUser` は `node`。
 3. `containerEnv` または current Dev Container specで同等のcontainer-wide設定として `OPENCODE_DISABLE_AUTOUPDATE=true` を入れる。
-4. `postCreateCommand` は `corepack enable`、`pnpm install --frozen-lockfile`、Phase Bで確定したOpenCode / Codex exact reinstall commandだけを基本とする。
+4. `postCreateCommand` はworkspace rootで単一の逐次shellとして実行し、`corepack enable` → `pnpm install --frozen-lockfile` → Phase Bで確定したOpenCode exact reinstall command → Codex exact reinstall commandの順とする。並列実行しない。いずれか1つがnon-zeroで終了した時点でpostCreate全体を失敗させ、後続commandを実行しない。
 5. `secrets` には `OPENCODE_API_KEY` をrecommended secretとして宣言する。値やdefault tokenは書かない。
 6. `forwardPorts` は `[8081]`。
 7. OpenCodeのmodelは固定しない。root `opencode.json`、model-specific `OPENCODE_CONFIG_CONTENT`、provider whitelist、Model access、model制御launcherは追加しない。
-8. OpenCode認証でofficial env substitutionが必要とPhase Bで確定した場合だけ、Secret値を含まない最小configをdevcontainerの既定環境へ反映する。
+8. Personal `OPENCODE_API_KEY` の直接認識で認証できる場合はOpenCode用configを追加しない。official env substitutionが必要とPhase Bで確定した場合だけ、Secret値を含まない最小configをdevcontainerの既定環境へ反映する。
 9. Codex auth file / ChatGPT tokenをcopy / mountしない。
 10. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
 11. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
@@ -338,33 +340,44 @@ READMEへ次を追加する。
 1. 環境再現性に影響する全変更を含むcandidate commitを作成する。
 2. 通常pushする。force pushしない。
 3. remote branch headとlocal HEADが一致することを確認し、candidate SHAをRun Artifactへ記録する。
-4. Full Rebuild / Fresh Createはこのcandidate SHAを検証対象とする。
+4. candidate SHA確定後からE-2 Full RebuildとE-3 Fresh Createの証拠取得完了まで、このbranchへ通常pushを含む追加pushを行わない。
+5. Full Rebuild / Fresh Createはこのcandidate SHAを検証対象とする。
 
 #### E-2: candidate SHAのFull Rebuild
 
-1. candidate SHAをcheckoutしたCodespaceで `gh codespace rebuild --full` を実行する。通常 Rebuild は代替として認めない。
-2. Run Artifactへ使用したexact command / operationとcandidate SHAを記録する。
-3. postCreateが成功することを確認する。
-4. `whoami` が `node`、`id -u` が0以外であることを確認する。
-5. Node 24 / pnpm 10.34.5 / OpenCode exact / Codex exactを確認する。
-6. Fresh shellで `command -v opencode` / `command -v codex` がPhase Bの期待pathを返すことを確認する。
-7. `pnpm install --frozen-lockfile` を再実行し、lockfile差分0を確認する。
-8. OpenCode auth、version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
-9. Codexはdevice-code authを再実行し、認証監査、`test:hooks`、Repository integration、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
-10. `ci_wait` からPR #188のCIをread-only取得する。
-11. `pnpm run start:web` を起動し8081 forwarded portから表示する。
+Full Rebuildはcontainer image / lifecycle setup / CLI installationの再現性を確認する。GitHub Codespacesでは `/workspaces` がRebuild後も保持されるため、repository workspaceまでcleanな再現性はE-3 Fresh Createで確認する。
+
+1. 対象Codespace名を確定し、Run Artifactへ記録する。
+2. Rebuild直前に `git rev-parse HEAD` がcandidate SHAと一致することを確認する。
+3. tracked working tree / indexがcleanであることを確認する。
+4. `.devcontainer/**`、OpenCode authentication / install helper、Codespaces helper、`.codex/**`、`AGENTS.md`、`package.json` / lockfile、install / setup scriptにcandidate SHAと異なる未commit差分がないことを確認する。
+5. candidateに含まれない環境影響untracked fileがある場合はRebuildを開始せずE-0へ戻る。
+6. `gh codespace rebuild --full -c <codespace-name>` で対象Codespaceを明示してFull Rebuildする。通常 Rebuild は代替として認めない。
+7. Run Artifactへ使用したexact command、Codespace名、candidate SHAを記録する。
+8. postCreateが成功することを確認する。
+9. `whoami` が `node`、`id -u` が0以外であることを確認する。
+10. Node 24 / pnpm 10.34.5 / OpenCode exact / Codex exactを確認する。
+11. Fresh shellで `command -v opencode` / `command -v codex` がPhase Bの期待pathを返すことを確認する。
+12. `pnpm install --frozen-lockfile` を再実行し、lockfile差分0を確認する。
+13. OpenCode auth、version、read-only / development smokeを再検証する。smokeには必要なfile / shell / tool能力を持つmodelを使い、model能力不足は環境failureにしない。
+14. Codexはdevice-code authを再実行し、認証監査、`test:hooks`、Repository integration、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
+15. `ci_wait` からPR #188のCIをread-only取得する。
+16. `pnpm run start:web` を起動し8081 forwarded portから表示する。
 
 #### E-3: candidate SHAのcanonical Fresh Create
 
+Fresh Createはrepository workspaceを含むclean-state再現性を確認する。
+
 1. GitHub Codespaces Personal Settingsでdotfilesの自動installが無効であることを確認する。
-2. Phase B / E-2で使用したCodespaceとは別に、candidate SHAをremote branch headとして新しいCodespaceを作成する。
-3. 作成後にcheckout SHAがcandidate SHAと一致することを確認する。
-4. dotfiles repositoryやsetup scriptが適用されていないことを確認する。適用されていた場合はcanonical Fresh Create証拠としてFAILとする。
-5. manual CLI install、home directory copy、auth cache copyを行わない。
-6. devcontainer作成処理だけでNode / pnpm / OpenCode / Codex CLIが揃うことを確認する。
-7. `whoami` / `id -u`、version、`command -v`、dependency installを確認する。
-8. OpenCodeはPersonal `OPENCODE_API_KEY` だけからPhase Bで確定した認証方式を再現する。
-9. OpenCode version、read-only / development smokeを再検証する。使用するmodelはユーザーが選択し、Free / paidを合否条件にしない。
+2. Fresh Create直前にremote branch headがcandidate SHAと一致することを再確認する。不一致なら作成せずE-0へ戻る。
+3. Phase B / E-2で使用したCodespaceとは別に、candidate branchから新しいCodespaceを作成する。
+4. 作成直後に `git rev-parse HEAD` がcandidate SHAと一致することを確認する。不一致ならFAILとする。
+5. dotfiles repositoryやsetup scriptが適用されていないことを確認する。適用されていた場合はcanonical Fresh Create証拠としてFAILとする。
+6. manual CLI install、home directory copy、auth cache copyを行わない。
+7. devcontainer作成処理だけでNode / pnpm / OpenCode / Codex CLIが揃うことを確認する。
+8. `whoami` / `id -u`、version、`command -v`、dependency installを確認する。
+9. OpenCodeはPersonal `OPENCODE_API_KEY` だけからPhase Bで確定した認証方式を再現する。
+10. OpenCode version、read-only / development smokeを再検証する。smokeには必要なfile / shell / tool能力を持つmodelを使い、model能力不足は環境failureにしない。
 11. Codexは `codex login --device-auth` で新規認証し、認証監査、`test:hooks`、project / Hook trust、`ci_wait`、same-session Hook runtime、bounded subagent、read-only / development smokeを再検証する。
 12. `pnpm run start:web` を8081 forwarded portから確認する。
 
@@ -388,11 +401,15 @@ canonical Plan、Run Artifact、PR本文など検証結果の記録だけを更�
 
 1. candidate SHA、Full Rebuild、Fresh Create、OpenCode / Codex evidenceをactive Run Artifactへ記録する。
 2. canonical PlanのPhase B→C確定値と実測結果を最終状態へ更新する。
-3. PR #188本文へcandidate SHAと検証結果を反映する。
+3. PR #188本文へcandidate SHAと実機検証結果を反映する。
 4. `pnpm run verify` と `git diff --check` をfinal working treeで再実行する。
-5. Run Artifact / Plan等の最終記録を通常commit /通常pushする。
+5. tracked Run Artifact / PlanをCI待機前の最終状態まで確定し、通常commit /通常pushする。
 6. final PR headとcandidate SHAを比較し、Fresh Create後の差分にE-4対象ファイルが0件であることを確認する。含まれる場合はE-0へ戻る。
-7. latest PR headの必須CIを確認する。
+7. `docs/reference/codex-implementation-harness.md` と `ci_wait` contractを必須CIの正本とする。current contractではexact final HEADの `Web CI` と `Mobile App CI` が対象であり、branch protection / rulesetから自動推測しない。
+8. pushしたfinal HEAD SHAを指定して `wait_for_required_ci` を1回だけ呼び、その結果を待つ。Agent自身でGitHub Actionsをpollingしない。
+9. waiter利用不能はCI未確認blockerとし、別手段のpollingへfallbackしない。
+10. `Web CI` / `Mobile App CI` がともにsuccessした後、PR #188本文へfinal exact-head CI結果を記録する。
+11. CI結果を記録するだけの理由で `TASKS.md`、`REPORT.md`、`PLAN.md` 等を再commit /再pushしない。
 
 Full RebuildとFresh Createは異なる失敗を検出するため、どちらも同じcandidate SHAに対して必須とする。
 
@@ -413,7 +430,7 @@ Phase BでCLI versionに合わせてexact commandを確定する。各write smok
 
 ### OpenCode read-only
 
-使用するmodelはユーザーが選択する。Free / paid、model IDはPASS / FAIL条件にしない。
+使用するmodelはユーザーが選択する。Free / paid、model IDはPASS / FAIL条件にしない。ただしこのsmokeでは、Repository fileのreadと指示理解に必要な能力を持つmodelを使用する。model自体の能力不足はCodespaces環境failureにしない。
 
 prompt:
 
@@ -425,6 +442,8 @@ PASS:
 - tracked file変更0件。
 
 ### OpenCode development write
+
+このsmokeではfile read/writeとshell / tool利用に対応するmodelを使用する。model自体の能力不足はCodespaces環境failureにせず、対応modelを選択して再実行する。
 
 promptの出力先は実行phaseに対応する一意なartifact pathへ置換する。
 
@@ -497,14 +516,14 @@ PASS:
 | Codex smoke | Section 6 | read-only / development write PASS |
 | non-root | `whoami` / `id -u` | `node` / UID != 0 |
 | candidate checkpoint | commit /通常push / SHA記録 | remote headとcandidate SHA一致 |
-| Full Rebuild | candidate SHAで `gh codespace rebuild --full` | devcontainerから再構築成功 |
+| Full Rebuild | clean candidate workspaceで `gh codespace rebuild --full -c <codespace-name>` | candidate SHAのcontainer / lifecycle setup / CLI再構築成功 |
 | Fresh Create | dotfilesなしでcandidate SHAから別Codespace | manual install / auth copyなしで再現 |
 | dependency | frozen install | PASS、lockfile差分0 |
 | Web | `pnpm run start:web` | 8081 forwardから表示 |
 | Repository | candidate前とfinal headで `pnpm run verify` | PASS |
 | diff | `git diff --check` / `git status --short` | 意図した差分のみ |
 | evidence revision | final head vs candidate SHA | Fresh Create後に環境影響差分0 |
-| PR | latest head CI | 必須CI成功 |
+| PR | exact final HEADで `wait_for_required_ci` を1回実行 | `Web CI` / `Mobile App CI` success、PR本文更新 |
 
 ## 8. リスクと扱い
 
@@ -550,6 +569,7 @@ PASS:
 ### candidate SHAとFresh Create
 
 - Full Rebuild / Fresh Create前に環境影響ファイルをcandidate commitへ含めて通常pushする。
+- candidate SHA確定後からFull Rebuild / Fresh Createの証拠取得完了までbranchへpushしない。
 - Full Rebuild / Fresh Createは同じcandidate SHAで実施する。
 - Fresh Create後に環境影響ファイルを変更した場合、旧evidenceを流用せず新candidate SHAで両方やり直す。
 - Plan / Run Artifact / PR本文だけの最終記録は再実行理由にしないが、final headとのdiffで環境影響差分0を確認する。
@@ -608,23 +628,23 @@ PASS:
 - [ ] 2. Personal `OPENCODE_API_KEY` Codespaces Secretを確認し、Personal dotfilesを無効化する。
 - [ ] 3. dotfilesなしの新規plain Codespace baselineを作成しfrozen installを確認する。
 - [ ] 4. OpenCode stable exact install、install provenance、Zen認証を検証する。
-- [ ] 5. ユーザーが選択した任意のOpenCode modelでread-only / development smokeとversion固定を確認する。
+- [ ] 5. 必要な能力を持つユーザー選択modelでOpenCode read-only / development smokeとversion固定を確認する。
 - [ ] 6. Codex stable exact installと代替認証環境変数監査を行う。
 - [ ] 7. Codex device-code authentication / login statusを確認する。
 - [ ] 8. Codex `test:hooks` / project trust / Hook trust / readonly preflight / `ci_wait` を検証する。
 - [ ] 9. Codex read-only / development smokeとsame-session Hook runtime evidenceを確認する。
 - [ ] 10. bounded read-only subagentを1回実行しSubagentStart / SubagentStopを確認する。
 - [ ] 11. Phase B→C checkpointをcanonical Plan / active Runへ固定する。
-- [ ] 12. `.devcontainer/devcontainer.json` を実装する。
+- [ ] 12. workspace root・逐次・fail-fastの `.devcontainer/devcontainer.json` を実装する。
 - [ ] 13. READMEを更新する。
 - [ ] 14. candidate作成前に `pnpm run verify` / `git diff --check` / scope確認を行う。
-- [ ] 15. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録する。
-- [ ] 16. candidate SHAで `gh codespace rebuild --full` を実行し統合検証する。
-- [ ] 17. 同じcandidate SHAからdotfilesなしFresh Codespaceを作成し統合検証する。
+- [ ] 15. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
+- [ ] 16. candidate SHA / clean worktree /対象Codespaceを確認し、`gh codespace rebuild --full -c <codespace-name>` で統合検証する。
+- [ ] 17. remote branch head == candidate SHAを確認し、同じcandidate branchからdotfilesなしFresh Codespaceを作成してHEAD一致を確認する。
 - [ ] 18. Web 8081 forwarded portをFull Rebuild / Fresh Createの両方で確認する。
 - [ ] 19. Fresh Create後に環境影響差分が出た場合は新candidate SHAを作り、Full Rebuild / Fresh Createを両方やり直す。
 - [ ] 20. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
 - [ ] 21. final working treeで `pnpm run verify` / `git diff --check` を再実行する。
-- [ ] 22. 最終記録を通常commit / pushする。
+- [ ] 22. tracked Run Artifact / Planを最終状態へ更新して通常commit / pushする。
 - [ ] 23. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
-- [ ] 24. latest head必須CIを確認する。
+- [ ] 24. exact final HEADでRepository既存の `wait_for_required_ci` contractに従い `Web CI` / `Mobile App CI` を確認し、success後にPR本文だけを更新する。
