@@ -57,3 +57,14 @@
 - ファイル分割: 実施しない。追加内容は既存Phase A / B / B→C / E / Smoke契約へ収まり、分割するとcandidate SHAと停止条件が二重管理になる。
 - Blocker: なし。次はPhase A。
 - Progress: 21% (7/34)
+
+## 2026-10-03 OpenCode model選択方針変更（JST）
+
+- Summary: OpenCodeのmodel選択をRepository / harness側で制御せず、ユーザーがOpenCode上で選択する前提へ変更した。
+- Changes: Free-only guard、zero-cost / pricing判定、selected model固定、provider whitelist、negative control、model usage evidence、Model access / fail-closed launcher検討をcanonical Planとactive Runの今後タスクから削除した。
+- 維持する契約: OpenCode stable exact version、auto update無効、Personal `OPENCODE_API_KEY` を使ったFresh Create再現可能なZen認証、Secret非露出、read-only / bounded development smoke。
+- 理由: ユーザーはFree modelを主に利用予定だが、paid modelを選ぶ可能性もあり、model選択はユーザー操作である。Repository側のmodel制限は現在要件ではなく、実装と検証を不必要に複雑化する。
+- Candidate SHA / Full Rebuild / Fresh Create / Codex Repository integrationの契約は変更しない。
+- ファイル分割: 実施しない。model制御削除によりPlanは単純化され、分割理由はさらに弱くなった。
+- Blocker: なし。次はPhase A。
+- Progress: 25% (8/32)
