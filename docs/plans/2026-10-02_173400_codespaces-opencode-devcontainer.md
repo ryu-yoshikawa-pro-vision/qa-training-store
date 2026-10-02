@@ -2,536 +2,508 @@
 
 ## 0. 依頼概要
 
-- 依頼内容:
-  - GitHub Codespaces 上で OpenCode の無料モデルを使って `qa-training-store` を開発できることを実環境で検証する。
-  - 同じ Codespace へ Codex CLI も導入し、ChatGPT アカウントでサインインして ChatGPT プランの Codex 利用枠を使えることを検証する。
-  - 検証が成立した場合、OpenCode / Codex CLI を含む再現可能な Codespaces 開発環境として最小限の `.devcontainer` 設定を導入する。
-  - この Plan は `plan/codespaces-opencode-devcontainer` branch で後続実装する前提とする。
-- 作成基準:
-  - `main@84ce165493649550832731a60cf436f8ae29c56b`
-  - 初回調査日: 2026-10-02 JST
-  - Codex CLI 追加更新: 2026-10-02 JST
-- 期待成果:
-  - Codespaces 内の公式 OpenCode CLI から OpenCode Zen の `-free` model を明示選択し、Repository read / write を行えることを確認できる。
-  - Codespaces 内の Codex CLI へ ChatGPT アカウントでサインインし、API key 課金ではなく ChatGPT プランの Codex 利用枠で Repository を扱えることを確認できる。
-  - Node / pnpm / OpenCode / Codex CLI の実行環境が Codespace 再作成・Rebuild 後も再現できる。
-  - Secret、ChatGPT認証、Native 開発、既存 Security fallback の責務を混ぜない。
+- GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入する。
+- OpenCode は OpenCode Zen の Free model のみを利用する。
+- Codex CLI は `Sign in with ChatGPT` を使い、ChatGPT プランの Codex 利用枠を利用する。
+- OpenCode / Codex CLI の疎通を素の Codespace で確認してから `.devcontainer` を実装する。
+- 同じ PR #188 で Plan、実装、Codespaces 実機検証、Repository検証、CI確認まで完了する。
+- Native の Windows / macOS ローカル開発経路は維持し、Codespacesへ移さない。
+
+作成基準:
+- 初回 base: `main@84ce165493649550832731a60cf436f8ae29c56b`
+- branch: `plan/codespaces-opencode-devcontainer`
+- PR: `#188`
+- 初回作成: 2026-10-02 JST
+- 複数レビュー反映: 2026-10-02 JST
 
 ## 1. ゴール / 完了条件
 
 ### ゴール
 
-Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開発に利用できる状態にし、ローカル Windows / macOS の Native 実機開発経路を維持する。
+Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開発に利用でき、`.devcontainer` から同等の環境を Full Rebuild と完全新規 Codespace の両方で再現できる状態にする。
 
-### 完了条件（DoD）
+### 完了条件
 
 以下をすべて満たす。
 
-1. 実装開始時の `origin/main` と本 branch の差分を確認し、古い前提のまま実装しない。
-2. `.devcontainer` 導入前に、現在の branch を使った Codespace で OpenCode CLI + Zen Free model と Codex CLI + ChatGPT サインインを個別に疎通確認する。
-3. OpenCode の疎通確認では、使用 model を `opencode/<model-id>` で明示し、`-free` model 以外へ fallback していないことを確認する。
-4. `qa-training-store` は public Repository であり、OpenCode Free model が Repository の内容や prompt / completion を学習利用する可能性を許容する。学習利用の有無は model 選定や導入可否の停止条件にしない。ただし、`OPENCODE_API_KEY`、ChatGPT認証情報、その他 Repository に含まれない Secret は prompt へ含めない。
-5. `OPENCODE_API_KEY` はユーザーアカウント単位の GitHub Codespaces development environment secret とし、`qa-training-store` だけへ access を許可する。Repository、`devcontainer.json`、ログ、Run Artifact、PR本文へ値を保存しない。
-6. Codex CLI は `Sign in with ChatGPT` を使用する。通常の開発経路では `OPENAI_API_KEY` や API key ベースの Codex 認証へ自動切替しない。
-7. Codex の認証情報は Repository や Codespaces Secret へコピーしない。Codespace 新規作成・削除後の再作成では、必要に応じて ChatGPT へ再サインインする。
-8. `.devcontainer/devcontainer.json` は Node 24 と pnpm 10.34.5 を現行 Repository 契約に合わせる。
-9. OpenCode CLI と Codex CLI は、事前疎通で成功した stable version を exact version でインストールする。実装時点で公式情報を再確認し、未検証の `latest` を固定値として使わない。
-10. Codespace の Rebuild 後に次が成立する。
-   - Node major が 24。
-   - pnpm が 10.34.5。
-   - `pnpm install --frozen-lockfile` が成功する。
-   - OpenCode が Plan で確定した version で起動する。
-   - Codex が Plan で確定した version で起動する。
-   - `opencode models --refresh` で利用可能な `opencode/*-free` を確認できる。
-   - 指定 Free model で OpenCode read-only smoke が成功する。
-   - 指定 Free model で Git 管理外の `.artifacts/` に限定した OpenCode write smoke が成功する。
-   - `codex login status` で ChatGPT サインイン状態を確認できる。未ログインなら再サインインしてから続行できる。
-   - ChatGPT サインイン済み Codex で read-only smoke が成功する。
-   - ChatGPT サインイン済み Codex で `.artifacts/` に限定した write smoke が成功する。
-   - Web 起動と Codespaces の port forwarding を確認できる。
-11. `pnpm run verify` と `git diff --check` が成功する。
-12. Native の Windows / macOS ローカル経路、`.github/opencode/security-fallback.json`、`.github/workflows/security-dependency-fallback.yml` の Security fallback 契約を変更しない。
-13. 実装差分に Dockerfile、Android SDK、iOS toolchain、追加CI、root `opencode.json`、Codex用の新規認証ファイルを理由なく追加しない。
-14. 実装後に対象 branch へ通常 push し、PRを作成した場合は最新headの必須CIを Repository 契約どおり確認する。
+1. 実装開始時に latest `main`、branch差分、Repository契約、公式仕様を再確認する。
+2. `.devcontainer` 導入前の素の Codespace で OpenCode / Codex CLI を個別に疎通確認する。
+3. OpenCode は stable channel だけを対象とし、beta / `next` は使用しない。
+4. OpenCode は利用可能な `opencode/*-free` のうち少なくとも1つで read-only / write smoke が成功する。
+5. OpenCode の main model と `small_model` を同じ選定済み Free model に固定し、選定済み Free model 以外へのLLM requestを発生させない。
+6. OpenCode の自動更新を無効化し、起動後も Phase B で確定した exact version が維持される。
+7. `qa-training-store` は public Repository として扱い、OpenCode Free modelによるRepository内容や prompt / completion の学習利用を許容する。ただし Repository に含まれない Secret / token / 認証情報は送信しない。
+8. `OPENCODE_API_KEY` はユーザーアカウント単位の Codespaces development environment secret とし、`qa-training-store` だけへaccessを許可する。
+9. `OPENCODE_API_KEY` は原則として Codespace 作成前に設定する。作成後に追加・変更した場合は Codespace を stop → restart してから検証する。
+10. Codex CLI は `Sign in with ChatGPT` を通常経路とし、API key / access token / WIF を代替認証として使っていないことを確認する。
+11. Codex は既存 `.codex/config.toml`、Hook trust、`diagnose:hooks`、Linux `codex-safe.sh` を含む Repository 固有の既存契約が Codespaces 上でも成立する。
+12. `.devcontainer/devcontainer.json` は Node 24、pnpm 10.34.5、OpenCode CLI、Codex CLI、8081 forwarding、推奨 `OPENCODE_API_KEY` Secret を再現する。
+13. Dev Container image は公式 `mcr.microsoft.com/devcontainers/typescript-node` の Node 24 / Bookworm 系を使い、実装時に確認した supported image major を固定する。
+14. `remoteUser` は公式 image の非root `node` userを明示し、`whoami` と `id -u` で非rootを確認する。
+15. `.devcontainer` 適用後に既存 Codespaceで Full Rebuild を行い、必要な環境と検証が成立する。
+16. Phase Bで使用した Codespaceとは別に、branch最新headから完全に新しい Codespace を作成し、手動installによる補正なしで環境を再現できる。
+17. Fresh Codespaceでも OpenCode / Codex / Repository integration / Web Runtime を再確認する。
+18. `pnpm run start:web` が8081で起動し、Codespaces forwarded portから画面へアクセスできる。
+19. `pnpm run verify` と `git diff --check` が成功する。
+20. Native経路、Security fallback、application source、test、workflowへ目的外の変更を入れない。
+21. 実測で今回のゴール達成に必須と判明した最小変更は、canonical Planを更新して同じPR #188で対応する。単なる改善や将来拡張だけを別課題へ送る。
+22. 最新PR headでRepository契約上の必須CIが成功する。
 
-## 2. 現状理解と前提
+## 2. 現状理解と確定前提
 
-### 現状理解
+### Repository
 
-- 現在の `main` には `.devcontainer/` / `devcontainer.json` がない。
+- current visibility は public。
 - `package.json#packageManager` は `pnpm@10.34.5`。
-- `.github/workflows/ci.yml` は `NODE_VERSION: "24"` / `PNPM_VERSION: "10.34.5"` を使用する。
-- README のローカルセットアップも Node.js 24 / pnpm 10.34.5 と `corepack enable` → `pnpm install --frozen-lockfile` を正本としている。
+- CI は Node 24 / pnpm 10.34.5 を使用する。
 - Web の通常起動は `pnpm run start:web`。
-- Playwright の通常 Runtime は 8081、Training Runtime は 8082 を既定値として持つ。
-- Native Build はローカル Windows / macOS を正式な主経路としている。Windows Android には PowerShell 固有の helper があるため、Linux Codespace で置き換えない。
-- Repository には既に OpenCode を使う Security Dependency Fallback があるが、これは Dependabot Alert 修正専用である。
-- `.github/opencode/security-fallback.json` は deny-first、限定read、`package.json` だけの edit 許可を持つため、通常開発向け設定として再利用しない。
-- Security fallback workflow は `OPENCODE_API_KEY`、`opencode models`、`opencode run --model opencode/<id>` を使用している。
-- Repository には既に Codex 用の `.codex/**`、Run Artifact、wrapper、Hook、`AGENTS.md` がある。Codespaces 向けに別の Codex 設定体系を新設しない。
-- OpenCode は project root の `AGENTS.md` を project instruction として読み込む。
-- Codex CLI も既存 `AGENTS.md` と Repository の `.codex/**` を通常の開発経路で使用する。
-- GitHub は Node.js project で project 固有の `devcontainer.json` を用意することで Codespaces 環境を再現可能にする方法を案内している。
-- GitHub Codespaces は `devcontainer.json#secrets` で推奨 development environment secret を宣言できる。
-- OpenCode 公式仕様では `npm install -g opencode-ai` がサポートされ、Zen は API key を設定後に `/models` または `opencode models` から model を確認できる。
-- OpenCode の Free model 一覧は固定契約ではなく変更される。model は `opencode/<model-id>` 形式で明示指定できる。
-- `qa-training-store` の current visibility は public。Repository内容が OpenCode Free model の学習利用対象になり得ることは許容する。
-- OpenAI 公式仕様では Codex CLI は Linux で利用でき、初回起動時に `Sign in with ChatGPT` を選択できる。ChatGPT アカウントでサインインした Codex CLI は ChatGPT プランの Codex 利用枠を使用する。
-- Codex の認証情報ストアは Repository 設定とは別のユーザー / runtime 状態である。`CODEX_HOME/auth.json` を使う構成も存在するが、今回の導入では auth file を Repository や Secret へコピーして永続化しない。
+- Playwright通常Runtimeは8081、Training Runtimeは8082。
+- 今回、人間がCodespacesから直接利用するWeb Runtimeは通常Runtimeだけを対象とするため、`forwardPorts` は8081だけにする。
+- Training testは必要に応じてCodespace内部から8082へ接続でき、外部forwardingを完了条件にしない。
+- Native BuildはWindows / macOSローカルが正式経路であり、Codespacesで置き換えない。
+- `.artifacts/` は `.gitignore` 対象。
 
-### 前提
+### OpenCode
 
-- Codespaces の主用途は Web / TypeScript / Repository test / OpenCode / Codex CLI 開発とする。
-- Native の実機 Build / Runtime validation は既存ローカル経路を使う。
-- `OPENCODE_API_KEY` はユーザーアカウント単位の Codespaces Secret とし、`qa-training-store` に限定して許可する。
-- OpenCode Free model は Repository に固定しない。availability が外部サービス側で変化するため、実行時に明示選択する。
-- OpenCode Free model の学習利用は許容する。Repository が public であることを前提とし、学習利用可否を model 選定条件にしない。
-- Secret、token、個人の認証情報など Repository に含まれない機密情報は OpenCode へ送信しない。
-- Codex は ChatGPT サインインを通常経路とし、個人の ChatGPT プランに含まれる Codex 利用枠を使う。
-- `OPENAI_API_KEY`、`CODEX_ACCESS_TOKEN`、Codex workload identity federation は今回の個人向け interactive Codespaces 開発には導入しない。
-- OpenCode / Codex CLI version は環境再現性のため devcontainer では exact pin するが、Security fallback workflow の OpenCode version と同一にすること自体は要件にしない。用途と更新周期が異なるため、無理にSSOT化しない。
+- RepositoryにはSecurity Dependency Fallback向けOpenCode設定があるが、通常開発向けには再利用しない。
+- current stable docsでは `model` と `small_model` を別々に設定できる。
+- `small_model` 未指定時は軽量処理で別modelを選択する可能性があるため、main modelだけをFree modelにしてもFree-onlyを保証できない。
+- OpenCodeは起動時に自動更新するため、exact version installだけではversion固定にならない。
+- `OPENCODE_CONFIG_CONTENT` でruntime overrideを設定できる。
+- `OPENCODE_DISABLE_AUTOUPDATE` で自動更新チェックを無効化できる。
+- current stableとV2 betaは別channelとして公開されている。今回の対象はstable channelのみとする。
 
-### 対象外
+### Codex
 
-- Android SDK / Emulator / Maestro / JDK の Codespace 導入。
-- iOS / Xcode の Codespace 対応。
-- Cloudflare deploy 構成変更。
-- `.github/workflows/security-dependency-fallback.yml` の変更。
-- `.github/opencode/security-fallback.json` の変更。
-- root `opencode.json` の追加。
-- 既存 `.codex/config.toml`、Codex wrapper、Hook、Run Artifact契約の再設計。
-- `AGENTS.md` の Codex 固有記述の整理。
-- Codespaces 課金設定、Organization billing policy の変更。
-- OpenCode Free model 自体の性能比較・ランキング。
-- Codex model の性能比較・ランキング。
-- Codex のAPI key認証、自動化用access token、workload identity federationの導入。
-- Dockerfile / Docker Compose の追加。既存 image + `devcontainer.json` だけで要件を満たせない実測が出た場合にだけ別Planで再評価する。
+- Repositoryには `.codex/config.toml`、Hook、rules、Run Artifact、Linux / Windows wrapperが既に存在する。
+- `.codex/config.toml` はproject trust後に読み込まれ、`features.hooks = true` を使う。
+- RepositoryのHook trustはproject trustと別に確認する必要があり、既存正本は `docs/reference/codex-safety-harness.md`。
+- `pnpm run diagnose:hooks` がRepository側のread-only診断経路として存在する。
+- Linux wrapperは `scripts/codex-safe.sh`。`--preset readonly --preflight-only` でCodex Hostを起動せず既存policy preflightを確認できる。
+- Codex CLIのChatGPT sign-in状態はCodespaces SecretではなくCodex側の認証状態であり、新規Codespaceでは再ログインが必要になり得る。
 
-## 3. 質問 / 曖昧性
+### Secret / データ
 
-### 必ず質問する不透明点
+- `OPENCODE_API_KEY` はRepository固有資格情報ではなくユーザー固有資格情報として扱う。
+- GitHubのrecommended secretsはSecret値を保存する機能ではなく、`New with options` で未設定Secretを案内する機能。
+- 通常経路はPersonal Codespaces Secretへ事前登録する。
+- public Repositoryの内容はOpenCode Free modelへ送信してよい。
+- `OPENCODE_API_KEY`、ChatGPT token、Codex auth file、その他Repositoryに存在しないcredentialはprompt / log / Run Artifact / PR本文へ出さない。
 
-現時点で実装開始を止める未回答質問はない。
+## 3. 実装中の判断ルール
 
-ただし、以下は実装時の実測値として確定する。推測で固定しない。
+### 実測で確定する値
 
-1. OpenCode の current stable version。
-2. Codex CLI の current stable versionと、Linuxで exact version を導入できる公式supported install経路。
-3. `opencode models --refresh` が返す current `opencode/*-free` 一覧。
-4. 実装時点でも `qa-training-store` の visibility が public のままか。private へ変更されていた場合は、OpenCodeへRepository内容を送信する前に前提を再確認する。
-5. ChatGPT サインインが Codespace から正常に完了するか。
-6. Codespace Rebuild 後に Codex のログイン状態が保持されるか。保持を前提にせず `codex login status` で実測する。
-7. current Dev Container image の supported major tag。
+Phase Bで次を実測して確定する。
 
-### 仮定してよい細部
+1. OpenCode stable の package spec、exact version、install command、binary name。
+2. Codex CLI stable の package spec、exact version、install command。
+3. Dev Container image の supported major + `24-bookworm` tag。
+4. 利用可能な `opencode/*-free` model。
+5. OpenCodeで main model / `small_model` を同じFree modelへ固定する exact runtime command。
+6. OpenCodeで選定Free model以外の利用がないことを確認する exact verification method。
+7. Codex `Sign in with ChatGPT` の手順と `codex login status` の成功表示。
+8. OpenCode / Codex smoke のexact command、prompt、期待結果。
 
-- Dev Container image は公式 `mcr.microsoft.com/devcontainers/typescript-node` の Node 24 / Debian Bookworm 系を第一候補にする。
-- image は Node majorだけの無制限 floating tagより、実装時に確認した supported image major + Node 24 + Bookworm の tagを使う。
-- 8081 / 8082 は current Repository config に対応するため `forwardPorts` の候補とする。
-- VS Code extension はこの導入目的に必須でないため追加しない。
-- Codex のログイン状態がRebuild後も残った場合でも、それを再現性の要件にはしない。CLIの再インストールと再ログイン可能性を要件にする。
+これらを推測で実装へ持ち込まない。
 
-### 未回答の重要質問
+### 同一PRで対応する条件
 
-なし。上記の実測値が条件を満たさない場合は、その時点で実装を止めてユーザー判断へ戻す。
+Phase B〜Eの実測で、Dockerfile、`AGENTS.md`、既存 `.codex/**`、helper script、その他ファイルへの変更がないと今回のゴールを達成できないことが確認された場合:
+
+- 原因と必要性を確認する。
+- canonical Planとactive Run Artifactを先に更新する。
+- 目的達成に必要な最小変更だけを同じPR #188で実装する。
+- 将来拡張や利便性改善だけを理由に変更範囲を広げない。
+
+次の場合だけ実装を停止してユーザー判断へ戻す。
+
+- 目的そのものを変更する必要がある。
+- destructive / irreversible operationが必要。
+- Secret / credentialの取り扱いを変更する必要がある。
+- 外部サービスの契約・課金に新たなユーザー判断が必要。
+- 必要な権限や認証を取得できず実行不能。
 
 ## 4. 影響範囲
 
-### 導入時に変更する候補
+### 予定する変更
 
 - `.devcontainer/devcontainer.json`
-  - Codespaces の image、初期化、OpenCode向け推奨Secret、OpenCode / Codex CLI install、必要portを定義する。
+  - Dev Container image。
+  - `remoteUser: "node"`。
+  - Node / pnpm / OpenCode / Codex CLI setup。
+  - `OPENCODE_DISABLE_AUTOUPDATE=true`。
+  - recommended secret `OPENCODE_API_KEY`。
+  - `forwardPorts: [8081]`。
 - `README.md`
-  - Codespaces + OpenCode / Codex CLI の最小利用手順、認証の違い、Free model明示選択、Native対象外を追記する。
-- 実装時の active Run Artifact
-  - Repository規約に従う。
+  - Codespaces作成前のPersonal Secret設定。
+  - OpenCode Free-only起動手順。
+  - Codex ChatGPT sign-in / trust / Hook初回手順。
+  - Full Rebuild / Fresh Createで再ログインが必要な場合の扱い。
+  - Native対象外。
+- canonical Plan / active Run Artifact。
 
-### 確認対象
+### 必要性を確認してから変更するもの
 
-- `package.json`
-- `pnpm-lock.yaml`
-- `README.md`
 - `AGENTS.md`
-- `CONTRIBUTING.md`
-- `.codex/config.toml`
-- `scripts/codex-safe.sh` / `scripts/codex-safe.ps1`
-- `playwright.config.ts`
-- `playwright.training.config.ts`
-- `.github/workflows/ci.yml`
-- `.github/opencode/security-fallback.json`
-- `.github/workflows/security-dependency-fallback.yml`
-- `docs/native/**`
-- `docs/reference/codex-implementation-harness.md`
-- `docs/reference/git-branch-safety.md`
+- `.codex/**`
+- `.devcontainer/Dockerfile`
+- helper script
+- その他、Phase B〜Eでゴール達成に必須と確認されたファイル
 
 ### 原則として変更しない
 
-- `package.json`
-- `pnpm-lock.yaml`
-- `AGENTS.md`
-- `.codex/**` の既存契約
-- `.github/**`
-- `docs/native/**`
+- `package.json` / `pnpm-lock.yaml`
+- `.github/opencode/security-fallback.json`
+- `.github/workflows/security-dependency-fallback.yml`
 - application source / test
 - Cloudflare / Expo / Playwright config
+- `docs/native/**`
 
-既存依存やCodex harness自体の変更が必要だと判明した場合は、このPlanの想定を超えているため先に原因を確認する。
+上記も実測で今回のゴール達成に必須と確認された場合は、Section 3のルールに従いPlan更新後に最小修正する。
 
-## 5. 変更方針
+## 5. 実装手順
 
 ### Phase A: 実装開始時の再基準化
 
-1. `plan/codespaces-opencode-devcontainer` が作業branchであることを確認する。
-2. `git fetch origin` 後に `origin/main` と branch の ahead / behind、working tree、upstream を確認する。
-3. branch 作成後に main が更新されている場合は、`docs/reference/git-branch-safety.md` に従い、force pushを使わず最新baseを反映してから以降を実施する。
-4. `package.json`、README、CIの Node / pnpm 値と、既存 `.codex/**` / Codex harness が本Planの前提から変わっていないか確認する。
-5. OpenCode / GitHub Codespaces / Dev Containers / Codex CLI / ChatGPT plan authentication の公式仕様を再確認する。特に install command、stable version、Free model、Secret、image tag、Codex authentication は実装日基準で確認する。
-6. `qa-training-store` のRepository visibilityが public のままであることを確認する。privateへ変更されていた場合は、OpenCode Free modelへRepository内容を送信する前にユーザー判断へ戻す。
+1. branchが `plan/codespaces-opencode-devcontainer`、対象PRが #188 であることを確認する。
+2. `git fetch origin` 後、latest `origin/main` とbranchのahead / behind、working tree、upstreamを確認する。
+3. main更新がある場合はGit safety契約に従って最新baseを取り込む。force pushしない。
+4. `package.json`、README、CI、`.codex/config.toml`、`scripts/codex-safe.sh`、Hook関連正本がPlan前提から変わっていないか確認する。
+5. OpenCode / GitHub Codespaces / Dev Containers / Codexの公式仕様を実装日基準で再確認する。
+6. Repository visibilityがpublicのままであることを確認する。privateへ変更されていた場合はOpenCodeへsourceを送る前に停止する。
+7. active RunはこのPRの実装scopeへ更新済みのものを継続する。同一taskを別sessionで実装する場合はRepositoryのRun lifecycleに従う。
 
-### Phase B: `.devcontainer` 追加前の Codespaces + OpenCode / Codex 実疎通
+### Phase B: 素の Codespace で事前検証
 
-目的は、Dev Container設定の問題、OpenCode / Zen 側の問題、Codex / ChatGPT authentication 側の問題を分離すること。
+#### B-0: Secretとbaseline
 
-1. 本 branch の現状から Codespace を作成する。
-2. 次を確認する。
-   - `node --version`
-   - `corepack --version`
-   - `git --version`
-3. README の既存手順で `corepack enable` と `pnpm install --frozen-lockfile` を実行し、依存導入が成立することを確認する。
+1. Codespace作成前にPersonal Codespaces Secret `OPENCODE_API_KEY` を登録し、Repository accessを `qa-training-store` に限定する。
+2. Secretを作成後に変更した場合はCodespaceをstop → restartする。
+3. current branchから`.devcontainer`なしのCodespaceを作成する。
+4. `node --version`、`corepack --version`、`git --version`を記録する。
+5. `corepack enable` → `pnpm install --frozen-lockfile` を実行する。
 
-#### Phase B-1: OpenCode
+#### B-1: OpenCode
 
-4. OpenCode の current stable versionを公式Release / install documentationで確認する。
-5. その exact versionを公式の Node.js install経路で一時導入し、`opencode --version` が一致することを確認する。
-6. `OPENCODE_API_KEY` はユーザーアカウント単位の Codespaces development environment secret から渡す。Secret access は `qa-training-store` に限定する。値をshell historyへ直接貼り付ける手順を正規手順にしない。
-7. `opencode models --refresh` を実行し、`opencode/*-free` が1件以上存在することを確認する。
-8. Free model の学習利用可否は選定条件にしない。`qa-training-store` の public なRepository内容は送信してよいが、`OPENCODE_API_KEY`、ChatGPT認証情報、その他 Repository に含まれない Secret を prompt に含めない。
-9. 選定した model を明示して read-only smoke を実行する。
-10. OpenCodeの成功条件:
-   - `403 Forbidden: free tier can only be used from within OpenCode` が発生しない。
-   - paid modelへfallbackしない。
-   - Repositoryを読める。
-   - ファイル変更が発生しない。
-   - `AGENTS.md` が project instruction として認識される。
+1. 公式stable docs / releaseからstable channelを確認する。beta / `next` は使用しない。
+2. stableの `{package spec, exact version, install command, binary name}` を記録する。
+3. exact versionを一時installし、`opencode --version` を確認する。
+4. `OPENCODE_DISABLE_AUTOUPDATE=true` を設定する。
+5. `opencode models --refresh` で `opencode/*-free` を列挙する。
+6. Free modelが複数ある場合、性能ランキングは行わず1件ずつ疎通する。少なくとも1件成功すれば継続し、全候補が失敗した場合だけ停止する。
+7. 選定modelを `model` と `small_model` の両方へ設定した `OPENCODE_CONFIG_CONTENT` を使う。
+8. `opencode --version` を起動前後で確認し、自動更新されていないことを確認する。
+9. read-only smokeを実行する。
+10. write smokeを実行する。
+11. OpenCode Zenのcurrent usage / activity確認方法で、選定Free model以外の課金model利用が発生していないことを確認する。
 
-#### Phase B-2: Codex CLI
+OpenCode停止条件:
 
-11. Codex CLI の current stable versionと公式supported install経路を確認する。
-12. exact versionで一時導入し、`codex --version` が一致することを確認する。
-13. Codex用に `OPENAI_API_KEY`、`CODEX_ACCESS_TOKEN`、認証ファイルのコピーを用意しない。
-14. Repository rootで `codex` を起動し、`Sign in with ChatGPT` を選択して対象ChatGPTアカウントへサインインする。
-15. `codex login status` でログイン状態を確認する。
-16. `/status` または同等の現行CLI表示で、利用中のsession / model / usage情報を確認する。
-17. 既存Repository harnessのread-only経路、または現行Codex CLIのread-only sandboxを使って、Repository概要を読むだけのsmall smokeを実行する。
-18. Codexの成功条件:
-   - ChatGPT サインインが完了する。
-   - `codex login status` が未ログインや API key 認証を示さない。
-   - Codex CLIから1 turn以上の推論が成功する。
-   - Repositoryを読める。
-   - read-only smokeでsource変更が発生しない。
-
-#### Phase B 停止条件
-
-次のいずれかなら `.devcontainer` 実装へ進まない。
-
-- 公式 OpenCode CLI からでも Free tier 403 が再現する。
-- OpenCode Free modelが0件。
-- Codespaces自体から OpenCode / Zen endpointへ接続できない。
+- stable channelをCodespaceへinstallできない。
 - `OPENCODE_API_KEY` 認証が成立しない。
-- Codex CLI の公式supported install経路がCodespaceで成立しない。
-- `Sign in with ChatGPT` がCodespaceで完了できない。
-- `codex login status` が意図しない認証方式を示す。
-- ChatGPTサインイン済みでもCodex CLIのsmall smokeが成立しない。
+- `opencode/*-free` が0件。
+- 全Free model候補で疎通に失敗する。
+- `model` / `small_model` を同じFree modelへ閉じられない。
+- 選定Free model以外の課金model requestが発生する。
+- auto updateを無効化できずexact versionを維持できない。
 
-失敗時はDev Container設定で隠さず、OpenCode / Zen / Codex / ChatGPT authentication / account / network のどこで失敗したかを分けて記録する。
+#### B-2: Codex CLI
 
-### Phase C: 最小の `.devcontainer/devcontainer.json` を追加
+1. 公式stable install経路から `{package spec, exact version, install command}` を記録する。
+2. exact versionを一時installし、`codex --version` を確認する。
+3. 次の環境変数について、値を出力せず set / unset だけを確認する。
+   - `OPENAI_API_KEY`
+   - `CODEX_API_KEY`
+   - `CODEX_ACCESS_TOKEN`
+   - `OPENAI_FEDERATION_RULE_ID`
+   - `OPENAI_IDENTITY_TOKEN_FILE`
+4. 上記が設定されている場合はChatGPT sign-in検証前に原因を確認し、今回のCodex processから除外する。値は表示・記録しない。
+5. Repository rootで `codex` を起動し `Sign in with ChatGPT` を実施する。
+6. `codex login status` が肯定的にChatGPT sign-inを示すことを確認する。
+7. `/status` でsession / model / usageを確認し、API key / access token / WIF経路へ切り替わっていないことを確認する。
+8. `pnpm run diagnose:hooks` を実行する。
+9. `bash scripts/codex-safe.sh --preset readonly --preflight-only` を実行する。
+10. Repository rootからdirect `codex` を起動する。
+11. `/hooks` で `.codex/config.toml` がdefinition sourceであること、必要Hookの定義内容、trust状態を確認する。必要なHookだけを内容確認後にtrustする。
+12. trust確認と実行で同じ `CODEX_HOME` を使用する。
+13. direct Codexでread-only smokeを実行する。
+14. direct Codexでbounded write smokeを実行する。
 
-Phase B がOpenCode / Codexの両方で成功した場合だけ実施する。
+Codex停止条件:
 
-1. image:
-   - 公式 `mcr.microsoft.com/devcontainers/typescript-node` を使用する。
-   - Node 24 + Bookworm を選ぶ。
-   - 実装時の supported image major を確認し、その major + `24-bookworm` でpinする。
-   - 独自 Dockerfile は作らない。
-2. `remoteUser`:
-   - image標準の非root userを維持する。root常用へ切り替えない。
-3. `postCreateCommand`:
+- stable Codex CLIをCodespaceへinstallできない。
+- `Sign in with ChatGPT` が完了しない。
+- `codex login status` がChatGPT sign-inを肯定的に示さない。
+- 代替認証変数を今回のCodex processから除外できない。
+- `diagnose:hooks` またはreadonly preflightのfailureが今回のCodespaces導入に起因し、解消できない。
+- project / Hook trustを成立させられない。
+- direct Codexのread-only smokeが成立しない。
+
+### Phase B→C: 確定事項のPlan反映
+
+Phase Bが成功したら `.devcontainer` を編集する前に、canonical Planとactive Run Artifactへ次を追記して固定する。
+
+- OpenCode stable package spec / exact version / install command / binary name。
+- Codex CLI package spec / exact version / install command。
+- selected `opencode/*-free` model ID。
+- OpenCode `OPENCODE_CONFIG_CONTENT` のexact command / JSON。
+- OpenCodeのFree-only利用確認方法。
+- Dev Container image tag。
+- Codex ChatGPT sign-inのexact手順と `codex login status` の期待結果。
+- `/hooks` の確認手順。
+- Section 6のsmokeで実際に成功したexact command / prompt / expected result。
+
+このcheckpointが未更新のままPhase Cへ進まない。
+
+### Phase C: `.devcontainer/devcontainer.json` 実装
+
+Phase B→C checkpoint確定後に実装する。
+
+1. `image` は公式 `mcr.microsoft.com/devcontainers/typescript-node` のPhase Bで確定したNode 24 / Bookworm tag。
+2. `remoteUser` は `node`。
+3. `containerEnv` で `OPENCODE_DISABLE_AUTOUPDATE=true` を設定する。
+4. `postCreateCommand` で次を実行する。
    - `corepack enable`
    - `pnpm install --frozen-lockfile`
-   - Phase B で検証した exact OpenCode version の `opencode-ai` を公式supported経路でinstall
-   - Phase B で検証した exact Codex CLI version を公式supported経路でinstall
-   - これらだけで十分なら shell scriptを新設しない。
-4. `secrets`:
-   - `OPENCODE_API_KEY` だけを推奨Secretとして宣言する。
-   - Secret value、default value、example tokenは書かない。
-   - Codex ChatGPT サインイン用token / auth fileは `secrets` へ追加しない。
-5. `forwardPorts`:
-   - current configとの整合を確認した上で 8081 / 8082 を設定する。
-6. 次は追加しない。
-   - model固定
-   - OpenCode providerの独自設定
-   - root `opencode.json`
-   - Codex用の新規project config
-   - Codex auth fileのcopy / bind mount
-   - `OPENAI_API_KEY`
-   - `CODEX_ACCESS_TOKEN`
-   - Android / iOS toolchain
-   - Docker-in-Docker
-   - browser一式の事前install
-   - CI専用依存
-   - VS Code extensionの大量追加
+   - Phase Bで確定したOpenCode exact install command
+   - Phase Bで確定したCodex CLI exact install command
+5. `secrets` には `OPENCODE_API_KEY` をrecommended secretとして宣言する。値やdefault tokenは書かない。
+6. `forwardPorts` は `[8081]`。
+7. root `opencode.json` は追加しない。Free modelはREADME記載のruntime `OPENCODE_CONFIG_CONTENT` で選択する。
+8. Codex auth file / ChatGPT tokenをcopy / mountしない。
+9. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
+10. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
 
-### Phase D: README に最小利用手順を追加
+### Phase D: README更新
 
-README のセットアップ付近へ、Codespaces利用者が迷わない範囲だけ追記する。
+READMEへ次だけを追加する。
 
-記載する内容:
+1. Personal Codespaces Secret `OPENCODE_API_KEY` をCodespace作成前に登録し、`qa-training-store`へaccessを許可する手順。
+2. 作成後にSecretを追加・変更した場合はstop → restartが必要であること。
+3. `devcontainer.json#secrets` はrecommended secretの案内であり、通常のクイック作成では事前Secret登録を正規手順とすること。
+4. `node --version` / `pnpm --version` / `opencode --version` / `codex --version` の確認。
+5. `opencode models --refresh` でcurrent Free modelを確認すること。
+6. selected Free modelを main model / `small_model` の両方へ設定するruntime `OPENCODE_CONFIG_CONTENT` 起動手順。
+7. OpenCode auto updateが無効であること。
+8. OpenCode Free modelの学習利用を許容する一方、Secret / token /認証情報をpromptへ含めないこと。
+9. Codexは `Sign in with ChatGPT` を使い、API key / access token / WIFを通常経路にしないこと。
+10. `codex login status`、project trust、`/hooks`、Hook trustの初回確認。
+11. Codespace新規作成時にCodexが未ログインなら再サインインすること。
+12. root `AGENTS.md` を上書きしないこと。
+13. CodespacesはWeb / Repository validation用で、Windows Android / macOS iOSの正式経路を置き換えないこと。
 
-1. Codespace 作成前または作成時に、ユーザーアカウントの Codespaces Secretとして `OPENCODE_API_KEY` を設定し、`qa-training-store` へだけaccessを許可する。
-2. Rebuild / 新規作成後に `node --version`、`pnpm --version`、`opencode --version`、`codex --version` を確認する。
-3. OpenCodeは `opencode models --refresh` で current Free model を確認し、`opencode/<model-id>` を明示選択する。
-4. OpenCode Free modelによるRepository内容の学習利用は許容する。Secretや認証情報などRepositoryに含まれない機密情報はpromptへ含めない。
-5. Codexは `codex` を起動して `Sign in with ChatGPT` を選び、ChatGPTプランのCodex利用枠を使う。
-6. Codexでは `OPENAI_API_KEY` を設定してAPI課金へ切り替える手順を通常開発手順に含めない。
-7. Codexのログイン状態は `codex login status` で確認する。新しいCodespaceで未ログインなら再サインインする。
-8. OpenCode / Codexとも既存root `AGENTS.md` を使用するため、`/init` 等で既存 `AGENTS.md` を上書きしない。
-9. Codespaces は Web / Repository validation 用であり、Windows Android / macOS iOS の正式ローカル経路を置き換えない。
+Free model一覧や可変versionはREADMEへ固定しない。
 
-長い一般ガイド、OpenCode Free model一覧、Codex model一覧はREADMEへ固定しない。変動する情報は公式ドキュメント参照に留める。
+### Phase E: Dev Container実機検証
 
-### Phase E: Rebuild 後の統合検証
+#### E-1: Full Rebuild
 
-1. `.devcontainer` 適用後に Codespace を Rebuild する。既存shellで設定を継ぎ足しただけの状態を合格にしない。
-2. version確認:
-   - `node --version` → major 24
-   - `pnpm --version` → 10.34.5
-   - `opencode --version` → Phase Bでpinしたversion
-   - `codex --version` → Phase Bでpinしたversion
-3. dependency:
-   - `pnpm install --frozen-lockfile` が再実行可能で、`package.json` / `pnpm-lock.yaml` に差分を出さない。
-4. OpenCode:
-   - `opencode models --refresh`
-   - 選択対象が `opencode/*-free` であることを再確認する。
-   - Phase B と同等の read-only smoke を explicit `--model` で実行する。
-   - Git管理外の `.artifacts/codespaces-opencode-smoke.txt` だけを作成するwrite smokeを行う。
-5. Codex:
-   - `codex login status` を確認する。
-   - Rebuild後に未ログインなら `Sign in with ChatGPT` で再サインインする。認証状態が保持されること自体はDoDにしない。
-   - `OPENAI_API_KEY` を今回のCodex経路へ設定していないことを確認する。
-   - 既存Repository harnessのread-only経路、または現行CLIのread-only sandboxでsmall smokeを行う。
-   - Git管理外の `.artifacts/codespaces-codex-smoke.txt` だけを作成するbounded write smokeを行う。
-6. OpenCode / Codex write smoke後:
-   - 期待した内容だけが作成されたことを確認する。
-   - smoke用一時ファイルを削除する。
-   - `git status --short` で意図しないsource変更が0件であることを確認する。
-7. Web Runtime:
-   - `pnpm run start:web`
-   - Expo Web が起動し、Codespaces forwarded portから画面へアクセスできることを確認する。
-   - 8081以外が実際に選ばれた場合は、原因を確認してから `forwardPorts` の前提を修正する。
-8. Repository validation:
-   - `pnpm run verify`
-   - `git diff --check`
-9. Native:
-   - Codespace上で Android / iOS build を成功条件にしない。
-   - Native関連ファイル・scriptに差分がないことを確認する。
+1. `.devcontainer` 反映済みCodespaceで `Codespaces: Full Rebuild Container` または `gh codespace rebuild --full` を実行する。
+2. cacheに依存せずpostCreateが成功することを確認する。
+3. `whoami` が `node`、`id -u` が0以外であることを確認する。
+4. Node 24 / pnpm 10.34.5 / OpenCode exact / Codex exactを確認する。
+5. `pnpm install --frozen-lockfile` を再実行してlockfile差分0を確認する。
+6. OpenCode read-only / write smokeとFree-only利用確認を再実行する。
+7. Codex認証監査、ChatGPT sign-in、Repository integration、read-only / write smokeを再実行する。
+8. `pnpm run start:web` を起動し8081 forwarded portから表示する。
 
-### Phase F: 最終差分とGitHub検証
+#### E-2: 完全新規 Codespace
 
-1. 最終差分を確認し、原則として次だけに限定する。
-   - `.devcontainer/devcontainer.json`
-   - `README.md`
-   - canonical Plan
-   - active Run Artifact
-2. dependency / lockfile / workflow / application source / `.codex/**` に意図しない変更がないことを確認する。
-3. Secret、OpenCode auth情報、Codex auth file / token、`.artifacts`、browser binaries、`node_modules` をcommitしない。
-4. RepositoryのGit safety契約に従い commit /通常pushする。
-5. PRを作成する場合は Codespaces 実測結果を簡潔に記録する。
-   - Codespace rebuild: PASS / FAIL
-   - Node / pnpm / OpenCode / Codex version
-   - 使用した OpenCode Free model ID
-   - Codex auth: ChatGPT sign-in / FAIL
-   - OpenCode read-only / write smoke
-   - Codex read-only / write smoke
-   - Web Runtime
-   - `pnpm run verify`
-   - Secret値、ChatGPT token、Codex auth file内容は記載しない。
-6. 最新PR headで Repository 契約上の必須CIを確認する。
+1. Phase B / E-1で使用したCodespaceとは別に、branch最新headから新しいCodespaceを作成する。
+2. 事前登録済みPersonal `OPENCODE_API_KEY` が利用できることを確認する。
+3. manual CLI installやhome directoryのコピーをせず、devcontainer作成処理だけでNode / pnpm / OpenCode / Codex CLIが揃うことを確認する。
+4. `whoami` / `id -u`、version、dependency installを確認する。
+5. OpenCode runtime Free model設定後、read-only / write smokeとFree-only利用確認を行う。
+6. Codexは必要に応じてChatGPTへ再サインインし、認証監査、project / Hook trust、Repository integration、read-only / write smokeを行う。
+7. `pnpm run start:web` を8081 forwarded portから確認する。
 
-## 6. 検証方法
+Fresh Createは「再作成可能」を証明するための必須検証であり、Full Rebuildの代替にはしない。
 
-### 必須検証
+### Phase F: Repository / GitHub検証
+
+1. `pnpm run verify`。
+2. `git diff --check`。
+3. `git status --short` とPR差分を確認する。
+4. Native、Security fallback、application source / test / workflowに目的外差分がないことを確認する。
+5. Secret、Codex auth file / token、OpenCode auth情報、`.artifacts`、`node_modules` をcommitしない。
+6. active Run Artifactを確定する。
+7. 通常commit /通常push。force pushしない。
+8. PR #188本文へ実測結果を反映する。
+9. latest PR headの必須CIを確認する。
+
+## 6. Smoke契約
+
+Phase BでCLI versionに合わせてexact commandを確定するが、prompt、対象file、PASS/FAIL条件は以下を正本とする。
+
+### OpenCode read-only
+
+prompt:
+
+> root `AGENTS.md` で、すべてのユーザー向け返答に含めるよう求められている4項目だけを列挙してください。ファイルは変更しないでください。
+
+PASS:
+- responseに `Summary`、`Progress`、`Next`、`Evidence` の4項目が含まれる。
+- source / tracked file変更0件。
+- main model / `small_model` は同一のselected `opencode/*-free`。
+- selected Free model以外の課金model利用0件。
+
+### OpenCode write
+
+- path: `.artifacts/codespaces-smoke/opencode.txt`
+- exact content: `opencode-codespaces-smoke`
+- `git check-ignore -q .artifacts/codespaces-smoke/opencode.txt` が成功する。
+- 指定file以外のsource変更を発生させない。
+- smoke artifactの削除は完了条件にしない。
+
+### Codex read-only
+
+direct CodexでOpenCode read-onlyと同じpromptを実行する。
+
+PASS:
+- responseに `Summary`、`Progress`、`Next`、`Evidence` の4項目が含まれる。
+- tracked file変更0件。
+- project config / Hook trust確認済み。
+- ChatGPT sign-in経路で実行される。
+
+### Codex write
+
+- path: `.artifacts/codespaces-smoke/codex.txt`
+- exact content: `codex-codespaces-smoke`
+- `git check-ignore -q .artifacts/codespaces-smoke/codex.txt` が成功する。
+- 指定file以外のsource変更を発生させない。
+- smoke artifactの削除は完了条件にしない。
+
+## 7. 検証一覧
 
 | 対象 | 方法 | 成功条件 |
 | --- | --- | --- |
-| Codespace baseline | devcontainer導入前に新規Codespace | Repository clone / installが成立 |
-| OpenCode install | exact stable versionを公式supported経路で導入 | `opencode --version`一致 |
-| OpenCode Free model discovery | `opencode models --refresh` | `opencode/*-free` が存在 |
-| OpenCode auth | explicit `--model` の read-only run | 403なし、paid fallbackなし |
-| Codex install | exact stable versionを公式supported経路で導入 | `codex --version`一致 |
-| Codex auth | `Sign in with ChatGPT` → `codex login status` | ChatGPTサインイン済みで利用可能 |
-| Codex billing path | `OPENAI_API_KEY`を通常経路へ設定せずsmall smoke | ChatGPTプランのCodex経路で推論成功 |
-| project instruction | OpenCode / Codex read-only smoke | 既存root `AGENTS.md` を認識 |
-| Dev Container | Rebuild Container | postCreate完了、shell利用可能 |
-| Node | `node --version` | major 24 |
-| pnpm | `pnpm --version` | 10.34.5 |
-| dependency | `pnpm install --frozen-lockfile` | PASS、lockfile差分なし |
-| OpenCode write | `.artifacts/` 限定smoke | 指定fileだけ作成可能 |
-| Codex write | `.artifacts/` 限定smoke | 指定fileだけ作成可能 |
-| Web | `pnpm run start:web` | forwarded portから表示可能 |
+| baseline | plain Codespace | clone / frozen install成功 |
+| OpenCode stable | Phase B確定install | exact version一致、beta/next不使用 |
+| OpenCode Free-only | `model` + `small_model` runtime固定 | 同一Free model、課金model利用0 |
+| OpenCode version | auto update無効 + 起動前後version | exact version維持 |
+| OpenCode smoke | Section 6 | read / write PASS |
+| Codex stable | Phase B確定install | exact version一致 |
+| Codex auth | env audit → ChatGPT sign-in → `codex login status` | ChatGPT経路を肯定確認 |
+| Codex Repository integration | `diagnose:hooks` / readonly preflight / `/hooks` / direct Codex | project config・Hook・trust成立 |
+| Codex smoke | Section 6 | read / write PASS |
+| nonroot | `whoami` / `id -u` | `node` / UID != 0 |
+| Full Rebuild | cache消去Rebuild | devcontainerだけで再構築成功 |
+| Fresh Create | 別Codespaceをbranch最新headから新規作成 | manual installなしで再現 |
+| dependency | frozen install | PASS、lockfile差分0 |
+| Web | `pnpm run start:web` | 8081 forwardから表示 |
 | Repository | `pnpm run verify` | PASS |
 | diff | `git diff --check` / `git status --short` | 意図した差分のみ |
+| PR | latest head CI | 必須CI成功 |
 
-### 失敗時の扱い
+## 8. リスクと扱い
 
-- OpenCode / Zen、Codex / ChatGPT authentication、Dev Container 構成の失敗を同じ原因として扱わない。
-- `postCreateCommand` の失敗は、Node / Corepack / pnpm / OpenCode install / Codex install / network の最初の失敗点を確認する。
-- OpenCode Free model availability / policy failureはRepository codeで回避しない。
-- Codex ChatGPT sign-inが失敗した場合、API keyへ自動fallbackして合格扱いにしない。
-- Codexのログイン状態がRebuildで失われても、再サインインで正常利用できるなら環境再現性のfailureとはしない。
-- `verify` failureは差分起因か既存問題かを分類し、差分起因なら最小修正する。
-- CodespacesだけでNative検証できないことは failure にしない。
+### Free model availability
 
-## 7. リスクと未解決論点
-
-### OpenCode Free modelのavailability変更
-
-Free modelは外部サービス側で追加・削除されるため、model IDをRepository defaultへ固定すると陳腐化しやすい。
-
-対策:
-- devcontainerではmodelを固定しない。
+- model IDはRepository defaultへ固定しない。
 - 実行時に `opencode models --refresh` で確認する。
-- smokeでは explicit `--model` を必須にする。
+- 1件失敗しても他Free modelを試せる。全候補失敗時だけ停止する。
 
-### public Repository と Secret の境界
+### OpenCodeの別model利用
 
-`qa-training-store` は public Repository のため、OpenCode Free model が Repository 内容や prompt / completion を学習利用する可能性を許容する。学習利用可否は導入停止条件にしない。
+- `--model`だけでは不十分。
+- runtime configで main model / `small_model` を同じFree modelへ固定する。
+- usage確認で課金model利用0を確認する。
 
-対策:
-- 実装開始時に Repository visibility が public のままか確認する。
-- Repositoryに含まれる公開情報はOpenCodeへ送信してよい。
-- `OPENCODE_API_KEY`、ChatGPT認証情報、その他 Repository に含まれない Secret は prompt、ログ、Run Artifact、PR本文へ含めない。
-- Repository が private へ変更されていた場合は、この前提をそのまま適用せずユーザー判断へ戻す。
+### CLI version drift
 
-### OpenCode / Codex version drift
+- OpenCode / CodexともPhase Bで成功したexact versionをdevcontainerへ固定する。
+- OpenCodeはauto updateを無効化する。
+- version更新は意図した保守変更として行う。
 
-`latest` を使うと Codespace rebuildでCLI挙動が変わる。
+### Codespace cache依存
 
-対策:
-- Phase Bで成功した exact stable version を devcontainerでpinする。
-- version更新は意図した保守変更として別途行う。
+- 通常Rebuildだけを再現性の証拠にしない。
+- Full Rebuild + Fresh Createを両方必須にする。
 
-### Codex認証と課金経路
+### Codex認証経路
 
-Codespaceへ `OPENAI_API_KEY` を入れると、ChatGPTプランではなくAPI課金の経路を意図せず使う可能性がある。
+- ChatGPT sign-in前に代替認証環境変数を値非表示で監査する。
+- ChatGPT sign-in失敗をAPI key fallbackで通さない。
 
-対策:
-- 今回のCodex通常経路では `Sign in with ChatGPT` を使う。
-- `OPENAI_API_KEY` をdevcontainerのSecretとして宣言しない。
-- `codex login status` とsmall smokeで実際の認証成立を確認する。
-- ChatGPTサインインが失敗してもAPI keyへfallbackして検証を通さない。
+### `AGENTS.md` / Codex harness互換性
 
-### Codexログイン状態の寿命
+- 先回りして変更しない。
+- OpenCode / Codex smokeで実害を確認する。
+- 実害が今回のゴールを妨げる場合、Plan更新後に同じPRで最小修正する。
 
-Codex CLIの認証はCodespaces Secretとは別のruntime stateであり、Codespace削除後までの保持を前提にできない。
+### CodespacesとNative
 
-対策:
-- auth file / tokenをRepositoryやGitHub Secretへコピーしない。
-- 新規Codespace / Rebuild後に `codex login status` を確認する。
-- 未ログインなら再サインインする手順をREADMEへ明記する。
+- CodespacesはWeb / Repository用途。
+- Android / iOSの正式検証は既存ローカル経路を維持する。
 
-### Dev Container image drift
+## 9. 成果物
 
-完全なfloating tagではNode 24以外の周辺toolingが変わり得る。一方でdigest完全固定はsecurity update取り込みを重くする。
-
-対策:
-- 公式imageのsupported major + Node 24 + Bookwormをpinし、同major内の修正は取得する。
-- 独自Dockerfileを持たない。
-
-### `AGENTS.md` のCodex固有記述
-
-OpenCodeはroot `AGENTS.md` を読むため、Codex固有のworkflowを自分向け必須手順と誤解する可能性がある。一方、Codexは既存契約としてその内容を使用する。
-
-対策:
-- 今回は先回りして `AGENTS.md` を変更しない。
-- OpenCode smokeで実害を確認する。
-- 実害がある場合は今回のdevcontainer変更へ無条件に混ぜず、必要な互換性整理を明示して再評価する。
-
-### CodespacesとNativeの境界
-
-Linux CodespaceへWindows Android helperやiOS toolchainを持ち込むと、既存の正式検証経路と責務が重複する。
-
-対策:
-- Nativeは明示的に対象外とする。
-- Web / TypeScript / Repository validationに限定する。
-
-## 8. 成果物
-
-### このPlan更新時
+予定成果物:
 
 - `docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md`
-- plan-only Run Artifact
-
-### 後続実装で予定する変更
-
 - `.devcontainer/devcontainer.json`
 - `README.md`
-- 実装Run Artifact
+- active Run Artifact
 
-### 現時点で追加しないもの
+現時点では追加しない:
 
-- `.devcontainer/Dockerfile`
-- `.devcontainer/docker-compose.yml`
 - root `opencode.json`
-- OpenCode専用の新規Agent設定
-- Codex用の新規project config / auth file
-- `OPENAI_API_KEY` / `CODEX_ACCESS_TOKEN` のCodespaces Secret
-- 新規package dependency
+- 新しいCodex project config / auth file
+- `OPENAI_API_KEY` / `CODEX_API_KEY` / `CODEX_ACCESS_TOKEN` / WIF用Secret
+- Docker Compose
+- Native toolchain
 - 新規CI workflow
-- Native toolchain設定
 
-## 9. 公式資料
+ファイル分割は行わない。このPlanは単一の検証→確定→実装→再現性検証の順序を共有しており、現時点で分割すると共通の停止条件・確定事項が重複するため。
 
-実装時には下記を再確認し、2026-10-02時点の内容を固定事実として扱わない。
+## 10. 公式資料
 
-- GitHub Codespaces / Node.js dev container:
-  - https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/setting-up-your-nodejs-project-for-codespaces
-- GitHub Codespaces / recommended secrets:
-  - https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/specifying-recommended-secrets-for-a-repository
+実装時にcurrent内容を再確認する。
+
+- GitHub Codespaces / rebuild:
+  - https://docs.github.com/en/codespaces/developing-in-a-codespace/rebuilding-the-container-in-a-codespace
 - GitHub Codespaces / account-specific secrets:
   - https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces
-- Dev Containers Node / TypeScript image:
+- GitHub Codespaces / recommended secrets:
+  - https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/specifying-recommended-secrets-for-a-repository
+- Dev Containers TypeScript / Node image:
   - https://github.com/devcontainers/images/blob/main/src/typescript-node/README.md
-- OpenCode installation:
+- OpenCode stable install:
   - https://dev.opencode.ai/docs
-- OpenCode CLI:
+- OpenCode config:
+  - https://dev.opencode.ai/docs/config
+- OpenCode CLI / environment variables:
   - https://dev.opencode.ai/docs/cli/
+- OpenCode V2 beta:
+  - https://dev.opencode.ai/v2/docs/
 - OpenCode rules / `AGENTS.md`:
   - https://dev.opencode.ai/docs/rules/
-- OpenCode Zen / model一覧:
+- OpenCode Zen:
   - https://opencode.ai/docs/zen/
-- Codex CLI:
-  - https://developers.openai.com/codex/cli
+- Codex configuration:
+  - https://developers.openai.com/ja-JP/docs/config-file/config-reference
+- Codex workload identity federation:
+  - https://developers.openai.com/api/docs/guides/workload-identity-federation
 - ChatGPT planでCodexを使う:
   - https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan
-- Codex configuration / credential store:
-  - https://developers.openai.com/ja-JP/docs/config-file/config-reference
 
-## 10. 実行タスク
+## 11. 実行タスク
 
-- [ ] 1. 実装開始時に branch / latest main / toolchain / existing Codex harness / official specification を再確認する。
-- [ ] 2. devcontainer導入前のCodespaceでOpenCode exact stable versionを導入する。
-- [ ] 3. ユーザーアカウントの `OPENCODE_API_KEY` Codespaces Secretを `qa-training-store` に限定し、`opencode models --refresh` を実行する。
-- [ ] 4. `qa-training-store` が public であることと Secret が prompt に含まれないことを確認し、`opencode/*-free` modelで OpenCode read-only smokeを行う。
-- [ ] 5. devcontainer導入前のCodespaceでCodex CLI exact stable versionを導入する。
-- [ ] 6. `Sign in with ChatGPT` でCodexへログインし、`codex login status` とsmall read-only smokeでChatGPTプラン経路を確認する。
-- [ ] 7. OpenCode / CodexのPhase B停止条件がないことを確認する。
-- [ ] 8. 最小の `.devcontainer/devcontainer.json` を追加し、OpenCode / Codex CLIをexact versionで導入する。
-- [ ] 9. READMEへCodespaces + OpenCode / Codex利用手順、認証の違い、Native対象外を追記する。
-- [ ] 10. CodespaceをRebuildし、Node / pnpm / OpenCode / Codex / dependency installを再検証する。
-- [ ] 11. OpenCodeでexplicit Free modelのread-only / `.artifacts`限定write smokeを行う。
-- [ ] 12. CodexでChatGPTサインイン状態を確認し、read-only / `.artifacts`限定write smokeを行う。
-- [ ] 13. `pnpm run start:web` と forwarded port を確認する。
-- [ ] 14. `pnpm run verify`、`git diff --check`、最終scope確認を行う。
-- [ ] 15. Run Artifactを確定し、通常commit / pushを行う。
-- [ ] 16. PRを作成する場合は最新headの必須CIとCodespaces実測結果を確認する。
+- [ ] 1. Phase A: latest main / branch / Repository契約 / current公式仕様を再確認する。
+- [ ] 2. Personal `OPENCODE_API_KEY` Codespaces Secretを作成前に確認する。
+- [ ] 3. plain Codespace baselineを作成しfrozen installを確認する。
+- [ ] 4. OpenCode stable exact install、Free model discovery、main / small model固定、auto update無効を検証する。
+- [ ] 5. OpenCode read-only / write smokeとFree-only利用を確認する。
+- [ ] 6. Codex stable exact installと代替認証環境変数監査を行う。
+- [ ] 7. Codex ChatGPT sign-in / login status / Repository trust / Hook trust / harnessを検証する。
+- [ ] 8. Codex read-only / write smokeを行う。
+- [ ] 9. Phase B→C checkpointをcanonical Plan / active Runへ確定記録する。
+- [ ] 10. `.devcontainer/devcontainer.json` を実装する。
+- [ ] 11. READMEを更新する。
+- [ ] 12. Full Rebuild後の統合検証を行う。
+- [ ] 13. 完全新規CodespaceのFresh Create検証を行う。
+- [ ] 14. Web 8081 forwarded portを確認する。
+- [ ] 15. `pnpm run verify` / `git diff --check` / scope確認を行う。
+- [ ] 16. active Run ArtifactとPR #188本文を最終結果へ更新する。
+- [ ] 17. 通常commit / push後、latest headの必須CIを確認する。
