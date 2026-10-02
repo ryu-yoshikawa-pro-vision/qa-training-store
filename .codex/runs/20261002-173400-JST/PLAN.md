@@ -24,13 +24,15 @@
 
 - 後続実装は同じ `plan/codespaces-opencode-devcontainer` branch で行う。
 - Free model一覧、OpenCode / Codex stable version、Codex authenticationは変動するため、後続実装開始時に再確認する。
+- `qa-training-store` は public Repository であり、OpenCode Free modelによるRepository内容の学習利用を許容する。学習利用可否は停止条件にしない。
+- Repositoryに含まれないSecretや認証情報はOpenCodeへ送信しない。
 - Codexは `Sign in with ChatGPT` を通常経路とし、API key認証を今回のCodespaces導入へ追加しない。
 
 ## Questions / Ambiguity（質問・曖昧性）
 
 - 必ず質問する不透明点: 現時点ではなし。
 - 仮定してよい細部: official TypeScript Node 24 / Bookworm imageを第一候補とする。
-- 未回答の重要質問: なし。外部availability / policyは後続実装の実測gateとする。
+- 未回答の重要質問: なし。Free model availabilityとRepository visibilityは後続実装の実測gateとする。
 
 ## Hypotheses（仮説）
 
@@ -65,7 +67,8 @@
 
 ## Risks / Unknowns（リスク・未知点）
 
-- Free model availability / data policyは変動する。
+- Free model availabilityは変動する。
+- OpenCode Free modelによるpublic Repository内容の学習利用は許容するが、Secretや認証情報の送信は許容しない。
 - OpenCode / Codex stable versionは実装時に変わる可能性がある。
 - CodexのChatGPTサインイン状態はCodespaceごとのruntime stateとして扱い、RepositoryやSecretへコピーしない。
 - CodespacesのOpenCode / Codex実疎通は今回未実行であり、後続実装のPhase Bで確認する。
