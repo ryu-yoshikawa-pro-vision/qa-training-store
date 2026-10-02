@@ -36,3 +36,13 @@
 - ファイル分割: 実施しない。単一の検証→確定→実装→再現性検証の流れで共通条件が多く、分割すると重複が増えるため。
 - Blocker: なし。実装はPhase Aから開始する。
 - Progress: 23% (5/22)
+
+## 2026-10-02 最終レビュー統合（JST）
+
+- Summary: PR #188の追加レビューをRepository実装とcurrent公式仕様に照らし、実装開始前に必要な条件をcanonical Planへ追加した。
+- Changes: Personal dotfilesをcanonical Fresh Createから除外、OpenCode Free-onlyをprovider / agent / command / usageまで閉じる、Free-only設定をdevcontainerの既定runtimeへ反映、Zen認証exact mechanismをPhase Bで確定、Codex device-code authentication、`ci_wait` MCP、CLI install path / user / PATH、Repository-derived development smokeを追加した。
+- CI: head `75462e9c4a7eb9811b1579cd1d09f96d807347b6` のWeb CIはStyle Quality failure。実ログでcanonical PlanのMD032 3件・MD034 13件を確認し、今回のPlan全面更新でblank lineとMarkdown linkへ修正した。
+- 根拠: OpenCode公式はconfig merge順、`OPENCODE_CONFIG_CONTENT`、`small_model`、agent / command model override、`enabled_providers`、`opencode debug config`を定義する。GitHub Codespaces公式は新規Codespaceへのdotfiles自動適用と`GITHUB_TOKEN`提供を定義する。Codex公式はremote / headless環境でdevice-code authenticationを推奨する。
+- ファイル分割: 実施しない。既存Phase B / B→C / E / Smoke契約への追記で収まり、別ファイル化すると共通条件が重複する。
+- Blocker: なし。次はPhase A。
+- Progress: 24% (6/25)
