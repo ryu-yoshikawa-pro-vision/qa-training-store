@@ -18,7 +18,9 @@
 
 ## Discovered（発見事項）
 
-- Free model一覧とデータ利用条件は外部側で変動するため、Repositoryへmodel IDを固定しない。
+- Free model一覧は外部側で変動するため、Repositoryへmodel IDを固定しない。
+- `qa-training-store` は public Repository であり、OpenCode Free modelによるRepository内容の学習利用を許容する。学習利用可否はmodel選定条件にしない。
+- Secretや認証情報などRepositoryに含まれない機密情報はOpenCodeへ送信しない。
 - OpenCodeの既存Security fallback設定は通常開発向けではない。
 - OpenCodeはroot `AGENTS.md` をproject instructionとして利用できる。
 - Codex CLIはChatGPTアカウントでサインインしてChatGPTプランのCodex利用枠を使える。
