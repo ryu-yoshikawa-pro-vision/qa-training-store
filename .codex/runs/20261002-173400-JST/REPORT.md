@@ -46,3 +46,14 @@
 - ファイル分割: 実施しない。既存Phase B / B→C / E / Smoke契約への追記で収まり、別ファイル化すると共通条件が重複する。
 - Blocker: なし。次はPhase A。
 - Progress: 24% (6/25)
+
+## 2026-10-03 06:53 (JST)
+
+- Summary: 追加の複数レビューを統合し、Fresh Createの実行順序、OpenCode Free-onlyの負方向検証、Free status、usage evidence、Codex Hook実Runtimeをcanonical Planへ反映した。
+- Changes: 環境影響変更をcandidate commitへ通常pushしてSHAを固定した後、同じSHAで`gh codespace rebuild --full`とdotfilesなしFresh Createを行う順序へ変更した。Phase Bもdotfilesなし新規Codespaceへ変更した。OpenCode候補はmodel名ではなくcurrent Zen metadata / pricingのzero-costを根拠にし、`--model` negative control、全config source監査、session-bound usage evidence、一意artifact pathを追加した。Codexは`pnpm run test:hooks`、same-session Hook runtime、bounded subagentを追加した。
+- OpenCode認証: Personal Secretの直接認識が成立しない場合、official env substitutionでprovider `options.apiKey`へ`{env:OPENCODE_API_KEY}`相当を渡す経路を検証し、auth cache copyは採用しない。
+- Evidence: OpenCode current docsでconfig merge / precedence、CLI `--model`優先、`stats --models`、session export、Zen pricing / model metadataを確認した。GitHub Codespaces current docsでFull Rebuildと`/workspaces` persistenceを確認した。既存`.codex/hooks/log_event.mjs`はUserPromptSubmit / PostToolUse / SubagentStart / SubagentStop / Stopをsession単位JSONLへ記録できる。
+- CI: 反映前head `b843ba2d4188051c71f887fa69a4a778e743d35e` のWeb CI / Mobile App CIはいずれもsuccess。
+- ファイル分割: 実施しない。追加内容は既存Phase A / B / B→C / E / Smoke契約へ収まり、分割するとcandidate SHAと停止条件が二重管理になる。
+- Blocker: なし。次はPhase A。
+- Progress: 21% (7/34)
