@@ -35,7 +35,7 @@
 - target devcontainerはofficial GitHub CLI Featureを持ち、`ci_wait`が使うGitHub APIへCodespaces `GITHUB_TOKEN`で接続できることを確認する。
 - Codex device-code authenticationはbetaだが今回のremote/headless正規経路とする。利用不能時は公式fallbackへ進まずBlocker。
 - effective `CODEX_HOME`をlogin / trust / smoke / subagent / `ci_wait`で統一する。
-- Full Rebuildでは`/workspaces`と`/tmp`のpersistを考慮し、Rebuild自体をauth zero-stateの証明にしない。
+- Full Rebuildでは`/workspaces`と`<TEMP_ROOT>`のpersistを考慮し、Rebuild自体をauth zero-stateの証明にしない。
 - validation-only Codex credentialは最終利用後に`codex logout`で削除する。
 - Repository-wide gate failureは`docs/reference/repair-loop.md`へ従う。
 
