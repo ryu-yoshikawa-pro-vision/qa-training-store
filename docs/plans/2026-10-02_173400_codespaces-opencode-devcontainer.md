@@ -281,7 +281,7 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
 10. control shellで`gh --version`を確認する。
 11. token値を表示しない`gh auth status --active --hostname github.com`を実行し、active accountがCodespaces操作可能であることを確認する。
 12. `gh codespace list -R ryu-yoshikawa-pro-vision/qa-training-store`を実行し、control shellからCodespaces control planeへアクセスできることを確認する。
-13. `gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/codespaces/machines -f ref=plan/codespaces-opencode-devcontainer`等のofficial APIで利用可能machineを取得し、CPU → memory → storageの順で最小の有効Linux machineをcanonical validation machineとして記録する。locationは未指定の自動選択とし、今回の同等性契約に含めない。
+13. `gh api --method GET repos/ryu-yoshikawa-pro-vision/qa-training-store/codespaces/machines -f ref=plan/codespaces-opencode-devcontainer`等のofficial APIで利用可能machineを取得し、CPU → memory → storageの順で最小の有効Linux machineをcanonical validation machineとして記録する。locationは未指定の自動選択とし、今回の同等性契約に含めない。
 14. GitHub Codespaces Personal Settingsのdotfiles enabled/disabled状態と選択dotfiles Repositoryを変更前evidenceとして記録する。この時点では設定を変更しない。
 15. Personal Secret設定、dotfiles設定変更、ChatGPT側device-code有効化、one-time code入力、Agentがbrowserを利用できない場合のforwarded URL表示確認はユーザー操作とする。Agentは必要な手順と検証結果を案内・記録する。
 16. Codespace create / rebuild / stop操作は対象Codespace外のcontrol shellまたはGitHub UIから行い、環境内検証は対象Codespace内で行う。
