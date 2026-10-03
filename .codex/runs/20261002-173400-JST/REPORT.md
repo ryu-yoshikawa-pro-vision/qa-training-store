@@ -107,3 +107,18 @@
 - ファイル分割: 実施しない。今回の修正はcandidate同期、Full Rebuild、Fresh Create、final CI、cleanupという同一state lifecycleの補完であり、分割すると契約が重複する。
 - Blocker: なし。次はPhase A。
 - Progress: 28% (11/40、必須CI確認1件を含む)
+
+## 2026-10-03 16:42 (JST)
+
+- Summary: 複数モデルの最新レビューをRepository実装とcurrent公式仕様へ照合し、実装開始前に残っていたRepository integration / control plane / cleanup契約をcanonical Planへ反映した。
+- OpenCode: root `AGENTS.md`の自動適用、`.agents/skills/feature-plan`のnative `skill` discoveryをcanonical smokeへ追加した。`AGENTS.md`はRepository-wide規約をOpenCodeにも適用し、Codex固有機能だけをCodex専用とする最小修正対象へ移した。model選択とpermission境界は変更しない。
+- GitHub / Codespaces: control shell preflight、canonical最小machine、`gh codespace create --status`、target GitHub CLI Feature、`ci_wait`が使うPR / workflow runs APIへのread-only疎通を追加した。Fresh CreateではGit identity / remote / `git push --dry-run`も確認する。
+- dotfiles: Run全体でOFFにせず、Phase B / Fresh Createのcreate直前だけOFF → `--status`と補助evidenceで未適用確認 → 即時復元へ簡素化した。
+- Codex: device-code authenticationがbetaであることと、利用不能時に公式fallbackへ進まないscope境界を明記した。validation-only Codespaceは最終利用後に`codex logout` /未認証確認してstopする。
+- Full Rebuild: `/workspaces`だけでなく`/tmp`のpersistもzero-state調査対象へ追加した。`postCreateCommand`成功後の重複`pnpm install --frozen-lockfile`再実行は削除した。
+- Repository governance: quality gate / CI failureでは`docs/reference/repair-loop.md`を優先し、safe minimal repairが環境影響ファイルならnew candidate、非環境影響なら関連verify / CI再実行とした。
+- Web / clean: forwarded URLのStorefront heading「決定的なシナリオで、確かなテストを。」をPASS条件にし、Agent browser不可時だけユーザー確認とした。E-2 / E-3終了時にtracked / index cleanと`git diff --check`を必須化した。
+- README: 通常利用者向け情報と正本リンクへ縮小し、canonical validation内部契約を重複記載しない方針へ変更した。
+- ファイル分割: 実施しない。candidate → Full Rebuild → Fresh Create → final CI → cleanupの状態遷移を単一正本で追う方が判断点が少ない。
+- Blocker: なし。次はPhase A。
+- Progress: 29% (12/42、必須CI確認1件を含む)
