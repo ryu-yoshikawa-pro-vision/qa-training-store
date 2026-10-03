@@ -80,3 +80,15 @@
 - ファイル分割: 実施しない。今回の修正は既存Phase C / E / F / Smoke契約の補強だけで、別ファイル化するとcandidate SHAとCI lifecycleが分散する。
 - Blocker: なし。次はPhase A。
 - Progress: 27% (9/33、必須CI確認1件を含む)
+
+## 2026-10-03 10:07 (JST)
+
+- Summary: 複数モデルの追加レビューを現在の要件とRepository実装へ照合し、実装結果を誤判定し得る未確定契約をcanonical Planへ反映した。
+- Changes: Phase Bのplain環境provenanceをtarget contractから分離、OpenCode Personal Secret利用のone-shot evidence、canonical Zen provider smoke、model failure分類、latest non-prerelease stable決定規則、dotfiles元状態の保存 / 復元、validation-only Codespace stop、Fresh Create auth zero-state、explicit devcontainer path、Full Rebuild / Fresh Create内`pnpm run verify`、`waitFor: "postCreateCommand"`、Web process cleanupを追加した。
+- ci_wait: Phase B / Full Rebuild / Fresh CreateではMCP server startupと`wait_for_required_ci` discoveryだけを確認しtoolは呼ばない。canonical processから`GH_TOKEN`を除外しCodespaces標準`GITHUB_TOKEN`を利用する。final exact HEADでのみwait toolを1回呼ぶ。
+- OpenCode: model ID / Free / paidはユーザー選択のまま維持する。canonical smokeのみZen providerを要求する。smoke成功だけをPersonal Secret認証の証拠にせず、exact versionのcredential pathとauth cache / alternate source排除を組み合わせる。
+- Codespaces lifecycle: Phase Aでdotfiles設定を記録して一時OFF、Fresh Create evidence取得後に復元する。validation-only Codespaceはstopし、delete候補をREPORTへ記録するが自動deleteしない。
+- main baseline: Phase A時点のlatest mainを固定し、mainが進んだだけでは再検証しない。branchへmain変更を取り込んだ場合だけcandidate変更として扱う。
+- ファイル分割: 実施しない。今回追加した契約もcandidate SHA → Full Rebuild → Fresh Create → cleanup → final CIの一続きであり、分割すると状態と停止条件が重複する。
+- Blocker: なし。次はPhase A。
+- Progress: 27% (10/37、必須CI確認1件を含む)
