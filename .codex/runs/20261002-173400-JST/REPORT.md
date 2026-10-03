@@ -115,7 +115,7 @@
 - GitHub / Codespaces: control shell preflight、canonical最小machine、`gh codespace create --status`、target GitHub CLI Feature、`ci_wait`が使うPR / workflow runs APIへのread-only疎通を追加した。Fresh CreateではGit identity / remote / `git push --dry-run`も確認する。
 - dotfiles: Run全体でOFFにせず、Phase B / Fresh Createのcreate直前だけOFF → `--status`と補助evidenceで未適用確認 → 即時復元へ簡素化した。
 - Codex: device-code authenticationがbetaであることと、利用不能時に公式fallbackへ進まないscope境界を明記した。validation-only Codespaceは最終利用後に`codex logout` /未認証確認してstopする。
-- Full Rebuild: `/workspaces`だけでなく`/tmp`のpersistもzero-state調査対象へ追加した。`postCreateCommand`成功後の重複`pnpm install --frozen-lockfile`再実行は削除した。
+- Full Rebuild: `/workspaces`だけでなく`<TEMP_ROOT>`のpersistもzero-state調査対象へ追加した。`postCreateCommand`成功後の重複`pnpm install --frozen-lockfile`再実行は削除した。
 - Repository governance: quality gate / CI failureでは`docs/reference/repair-loop.md`を優先し、safe minimal repairが環境影響ファイルならnew candidate、非環境影響なら関連verify / CI再実行とした。
 - Web / clean: forwarded URLのStorefront heading「決定的なシナリオで、確かなテストを。」をPASS条件にし、Agent browser不可時だけユーザー確認とした。E-2 / E-3終了時にtracked / index cleanと`git diff --check`を必須化した。
 - README: 通常利用者向け情報と正本リンクへ縮小し、canonical validation内部契約を重複記載しない方針へ変更した。
