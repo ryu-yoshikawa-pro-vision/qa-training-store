@@ -274,15 +274,18 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
 3. Phase A時点のlatest main SHAをbaseline main SHAとして記録する。Phase A後にmainが進んだだけではbaselineを更新しない。
 4. main更新をbranchへ取り込む必要がある場合はGit safety契約に従ってPhase B前に行う。force pushは使わない。
 5. Phase B開始前にworking tree clean、local HEAD == remote PR headを確認し、baseline PR head SHAを記録する。
-6. `package.json`、README、CI、`.codex/config.toml`、`scripts/codex-safe.sh`、Hook関連正本がPlan前提から変わっていないか確認する。
+6. `package.json`、README、CI、`.codex/config.toml`、`scripts/codex-safe.sh`、Hook関連正本、`docs/reference/repair-loop.md`がPlan前提から変わっていないか確認する。
 7. OpenCode / GitHub Codespaces / Dev Containers / Codexの公式仕様を実装日基準で再確認する。
 8. stable version決定規則に従いOpenCode / Codexのexact versionを確定し、canonical Plan / active Runへ記録する。
 9. Repository visibilityがpublicのままであることを確認する。privateへ変更されていた場合はOpenCodeへsourceを送る前に停止する。
-10. GitHub Codespaces Personal Settingsのdotfiles enabled/disabled状態と選択dotfiles Repositoryを変更前evidenceとして記録する。
-11. Phase B用Codespace作成前にPersonal dotfilesを一時的に無効化する。元状態がOFFなら変更しない。
-12. Personal Secret設定、dotfiles設定変更、ChatGPT側device-code有効化、one-time code入力はユーザー操作とする。Agentは必要な手順と検証結果を案内・記録する。
-13. Codespace create / rebuild / stop操作は対象Codespace外のcontrol shellまたはGitHub UIから行い、環境内検証は対象Codespace内で行う。
-14. active RunはこのPRの実装scopeを継続する。
+10. control shellで`gh --version`を確認する。
+11. token値を表示しない`gh auth status --active --hostname github.com`を実行し、active accountがCodespaces操作可能であることを確認する。
+12. `gh codespace list -R ryu-yoshikawa-pro-vision/qa-training-store`を実行し、control shellからCodespaces control planeへアクセスできることを確認する。
+13. `gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/codespaces/machines -f ref=plan/codespaces-opencode-devcontainer`等のofficial APIで利用可能machineを取得し、CPU → memory → storageの順で最小の有効Linux machineをcanonical validation machineとして記録する。locationは未指定の自動選択とし、今回の同等性契約に含めない。
+14. GitHub Codespaces Personal Settingsのdotfiles enabled/disabled状態と選択dotfiles Repositoryを変更前evidenceとして記録する。この時点では設定を変更しない。
+15. Personal Secret設定、dotfiles設定変更、ChatGPT側device-code有効化、one-time code入力、Agentがbrowserを利用できない場合のforwarded URL表示確認はユーザー操作とする。Agentは必要な手順と検証結果を案内・記録する。
+16. Codespace create / rebuild / stop操作は対象Codespace外のcontrol shellまたはGitHub UIから行い、環境内検証は対象Codespace内で行う。
+17. active RunはこのPRの実装scopeを継続する。
 
 ### Phase B: dotfilesなし plain Codespace で事前検証
 
@@ -290,13 +293,16 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
 
 1. Codespace作成前にPersonal Codespaces Secret `OPENCODE_API_KEY` を確認する。既存Secretの場合は既存Repository accessを保持したまま`qa-training-store`を追加し、新規専用Secretの場合だけ`qa-training-store`限定で作成する。
 2. Secretを作成後に変更した場合はCodespaceをstop → restartしてから使用する。
-3. Personal dotfilesが無効であることを再確認する。
-4. control shellからbaseline PR branchを指定して新しいplain Codespaceを作成する。`.devcontainer/devcontainer.json`はまだ存在しないため`--devcontainer-path`を指定しない。
-5. 作成したCodespace名、`gh codespace view --json devcontainerPath`の結果、baseline PR head SHAをevidenceへ記録する。
-6. Codespace内で`git rev-parse HEAD` == baseline PR head SHAを確認する。不一致ならPhase Bを開始しない。
-7. `/workspaces/.codespaces/.persistedshare/dotfiles`とcreation log等を確認し、dotfilesが適用されていないことを確認する。
-8. `node --version`、`corepack --version`、`git --version`、`whoami`、`id -u`、`command -v node`をbaseline evidenceとして記録する。
-9. `corepack enable` → `pnpm install --frozen-lockfile` を実行する。
+3. Phase Aで記録したdotfiles設定がONなら、Phase B Codespace作成直前だけ一時的にOFFにする。元状態がOFFなら変更しない。
+4. canonical machine nameを使い、control shellから`gh codespace create -R ryu-yoshikawa-pro-vision/qa-training-store -b plan/codespaces-opencode-devcontainer -m <canonical-machine-name> --status`でplain Codespaceを作成する。`.devcontainer/devcontainer.json`はまだ存在しないため`--devcontainer-path`は指定しない。
+5. create commandが失敗した場合も、dotfilesを変更していたなら次工程へ進む前に元状態へ復元する。
+6. 作成したCodespace名と`gh codespace view -c <codespace-name> --json devcontainerPath,machineName,machineDisplayName,location`をevidenceへ記録し、machineName == canonical machine nameを確認する。
+7. `--status`出力をprimary evidenceとし、必要な場合だけ`/workspaces/.codespaces/.persistedshare/dotfiles`とcreation logを補助evidenceとして確認してdotfiles未適用を確定する。
+8. dotfiles未適用を確認した直後に、Phase Aで記録した元のdotfiles設定へ復元する。元々OFFなら変更しない。
+9. Codespace内で`git rev-parse HEAD` == baseline PR head SHAを確認する。不一致ならPhase Bを開始しない。
+10. `node --version`、`corepack --version`、`git --version`、`gh --version`、`whoami`、`id -u`、`command -v node`、`command -v gh`をbaseline evidenceとして記録する。
+11. plain Codespaceに`gh`が存在しない場合は、Phase Bの`ci_wait`検証に必要な一時prerequisiteとしてcurrent official GitHub CLI install経路で導入し、その事実をbaseline evidenceへ記録する。target devcontainerの提供方法には流用しない。
+12. `corepack enable` → `pnpm install --frozen-lockfile` を実行する。
 
 #### B-1: OpenCode
 
@@ -308,19 +314,22 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
 6. `~/.local/share/opencode/auth.json` が存在しないことを確認する。
 7. Repository / project configに別のZen credential sourceがないことを確認する。Secret値は探索・出力しない。
 8. Phase Aで確定したexact versionについて、official docsまたはupstream implementation / testで`OPENCODE_API_KEY`がOpenCode Zen credentialとして認識されることを確認する。
-9. current stableにSecret非露出のcredential-status API / CLIがある場合はそれを優先する。ない場合はone-shot evidenceとして、auth cache・他credential sourceなし、同一command・同一configで変更するのは`OPENCODE_API_KEY`の有無だけという条件を作る。SecretありではZen credentialが成立し、Secretなしでは同じ認証必須操作がcredential failureになるというcredential-specificな差分を要求する。単なるmodel一覧差分だけでは認証証拠にしない。
-10. smoke成功だけをZen認証成功の証拠にしない。
-11. direct env credentialがexact versionで利用できない場合だけofficial env substitutionを検証する。その場合、exact config source、配置場所、provider ID、apiKey表現、precedence、Fresh Createでの注入方法をPhase B→C checkpointへ確定するまでPhase Cへ進まない。
+9. current stableにSecret非露出のcredential-status API / CLIがある場合はそれを優先する。ない場合はauth cache・他credential sourceなし、同一command・同一configで変更するのは`OPENCODE_API_KEY`の有無だけという条件を作り、SecretありではZen credentialが成立し、Secretなしでは同じ認証必須操作がcredential failureになるcredential-specific evidenceを要求する。単なるmodel一覧差分だけでは認証証拠にしない。
+10. direct env credentialがexact versionで利用できない場合だけofficial env substitutionを検証する。config sourceは「configなし / root `opencode.json` / 別config source」のいずれか1つへPhase B→C checkpointで固定し、配置場所、provider ID、apiKey表現、precedence、Fresh Createでの注入方法まで確定する。
+11. root `opencode.json`をfallbackとして採用する場合はSecret値、model、permissionを含めず、Zen credentialの`{env:...}`接続だけを目的とする最小configにする。
 12. `/connect`で生成されるauth cacheをFresh Create再現性の前提にしない。
 13. canonical OpenCode smokeにはOpenCode Zen providerのmodelを使用する。model ID、Free / paidはユーザーが選択する。
-14. Section 6のOpenCode read-only / development write smokeを実行する。
+14. `OPENCODE_DISABLE_PROJECT_CONFIG`がcanonical sessionで有効になっていないことを確認する。
+15. `~/.config/opencode/AGENTS.md`、`~/.claude/CLAUDE.md`、global `.agents/skills/feature-plan`等、Repository instructions / representative Skill smokeを曖昧にするglobal sourceがないことを確認する。存在する場合は内容を読んで同一契約の由来を曖昧にしない方法を確定するまでsmokeを実行しない。
+16. Section 6のOpenCode Repository instructions自動適用smoke、native Skill discovery smoke、development write smokeを実行する。
 
 OpenCode停止条件:
 
 - exact versionをinstallできない、またはversionが一致しない。
 - Personal SecretがZen credential pathへ入ったことをSecret非露出で証明できない。
 - Fresh Createで再現可能なZen認証方式を確定できない。
-- read-only smokeまたはdevelopment write smokeがenvironment / integration failureでFAILする。
+- root `AGENTS.md`の自動適用または`.agents/skills/feature-plan`のnative discovery / loadが成立しない。
+- smokeがenvironment / integration failureでFAILする。
 - OpenCodeが起動時にexact versionから自動更新される。
 
 #### B-2: Codex CLI / ChatGPT authentication
@@ -332,41 +341,47 @@ OpenCode停止条件:
 5. `OPENAI_API_KEY`、`CODEX_API_KEY`、`CODEX_ACCESS_TOKEN`、`OPENAI_FEDERATION_RULE_ID`、`OPENAI_IDENTITY_TOKEN_FILE`は値を出力せずset / unsetだけを確認する。
 6. 上記が設定されている場合はChatGPT認証前に原因を確認し、今回のCodex processから除外する。
 7. `codex login status`を認証有無の正本として実行する。
-8. `codex login --device-auth`を正規認証経路にする。
-9. device-code loginがChatGPT側で無効ならユーザー操作で有効化して再実行する。利用不可または失敗する場合はAPI keyやauth file copyへfallbackせず停止する。
-10. 認証後の`codex login status`がChatGPT認証を肯定的に示すことを確認する。
-11. `/status`でsession / model / usageを確認する。
-12. login、project trust、Hook trust、smoke、subagent、`ci_wait`で同じeffective `CODEX_HOME`を使用する。
+8. remote / headless向けdevice-code authenticationはcurrent公式仕様上betaであることをevidenceへ記録する。
+9. `codex login --device-auth`を今回の正規認証経路にする。
+10. device-code loginがChatGPT側で無効ならユーザー操作で有効化して再実行する。利用不可または失敗する場合はAPI key、access token、auth cache copy、SSH callback等の公式fallbackへ進まずBlockerとする。
+11. 認証後の`codex login status`がChatGPT認証を肯定的に示すことを確認する。
+12. `/status`でsession / model / usageを確認する。
+13. login、project trust、Hook trust、smoke、subagent、`ci_wait`で同じeffective `CODEX_HOME`を使用する。
 
 #### B-3: Codex Repository integration
 
 1. `GH_TOKEN` / `GITHUB_TOKEN` は値を出力せずset / unsetだけを確認する。
 2. canonical Codespaces検証ではCodex / `ci_wait`を起動するprocessから`GH_TOKEN`を除外し、Codespaces標準`GITHUB_TOKEN`を利用する。`.codex/config.toml`の`GH_TOKEN` supportは変更しない。
-3. `pnpm run test:hooks` を実行する。
-4. `pnpm run diagnose:hooks` を実行する。
-5. `bash scripts/codex-safe.sh --preset readonly --preflight-only` を実行する。
-6. Repository rootからdirect `codex` を起動する。
-7. project trustを成立させる。
-8. `/hooks`で`.codex/config.toml`がdefinition sourceであること、必要Hookの定義内容、trust状態を確認する。
-9. 必要なHookだけを内容確認後にtrustする。
-10. trust確認と実行でB-2に記録した同じeffective `CODEX_HOME`を使用し、値が変わっていないことを確認する。
-11. `ci_wait` MCP serverがstartupし、`wait_for_required_ci` toolをdiscoverできることを確認する。Phase Bではtoolを呼ばない。
-12. GitHub read-only connectivityが必要なら、`GH_TOKEN`を除外した同じprocess条件で`gh api`等を使いRepository / PRへアクセスできることを確認する。
-13. Section 6のCodex read-only / development smokeを同一sessionで実行し、そのsession IDを記録する。
-14. 同一sessionの`hooks-<session_id>.jsonl`または既存loggerのfallback pathだけを確認し、`UserPromptSubmit`、`PostToolUse`、`Stop`が実Runtimeで記録されたことを確認する。
-15. 同じCodex sessionからRepositoryの`packageManager`を読むだけのbounded read-only subagentを1回だけ起動する。
-16. 同一session logで`SubagentStart` / `SubagentStop`が同じagent IDに対して記録され、subagentが正常終了したことを確認する。
-17. Hook contract PASS、Hook trust、実Runtime event、subagent eventを別のevidenceとして記録する。
+3. `command -v gh`と`gh --version`を確認する。
+4. `pnpm run test:hooks` を実行する。
+5. `pnpm run diagnose:hooks` を実行する。
+6. `bash scripts/codex-safe.sh --preset readonly --preflight-only` を実行する。
+7. Repository rootからdirect `codex` を起動する。
+8. project trustを成立させる。
+9. `/hooks`で`.codex/config.toml`がdefinition sourceであること、必要Hookの定義内容、trust状態を確認する。
+10. 必要なHookだけを内容確認後にtrustする。
+11. trust確認と実行でB-2に記録した同じeffective `CODEX_HOME`を使用し、値が変わっていないことを確認する。
+12. `ci_wait` MCP serverがstartupし、`wait_for_required_ci` toolをdiscoverできることを確認する。Phase Bではtoolを呼ばない。
+13. `GH_TOKEN`を除外した同じtoken条件で、少なくとも次のAPI種別へ`gh api`でread-only接続できることを必須確認する。
+    - `repos/ryu-yoshikawa-pro-vision/qa-training-store/pulls/188`
+    - `repos/ryu-yoshikawa-pro-vision/qa-training-store/actions/workflows/ci.yml/runs`
+    - `repos/ryu-yoshikawa-pro-vision/qa-training-store/actions/workflows/native-ci.yml/runs`
+    - workflow run IDを取得できた場合は`repos/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/<run-id>`
+14. Section 6のCodex read-only / development smokeを同一sessionで実行し、そのsession IDを記録する。
+15. 同一sessionの`hooks-<session_id>.jsonl`または既存loggerのfallback pathだけを確認し、`UserPromptSubmit`、`PostToolUse`、`Stop`が実Runtimeで記録されたことを確認する。
+16. 同じCodex sessionからRepositoryの`packageManager`を読むだけのbounded read-only subagentを1回だけ起動する。
+17. 同一session logで`SubagentStart` / `SubagentStop`が同じagent IDに対して記録され、subagentが正常終了したことを確認する。
+18. Hook contract PASS、Hook trust、実Runtime event、subagent eventを別のevidenceとして記録する。
 
 Codex停止条件:
 
 - exact versionをinstallできない、またはversionが一致しない。
-- `codex login --device-auth`が利用できない、またはChatGPT認証が完了しない。
+- betaの`codex login --device-auth`が利用できない、またはChatGPT認証が完了しない。
 - `codex login status`がChatGPT認証を肯定的に示さない。
 - 代替認証変数を今回のCodex processから除外できない。
 - `test:hooks`、`diagnose:hooks`、readonly preflightのfailureが今回のCodespaces導入に起因し、解消できない。
 - project / Hook trustを成立させられない。
-- `ci_wait` MCP serverまたは`wait_for_required_ci` tool discoveryが成立しない。
+- `ci_wait` MCP server、`wait_for_required_ci` tool discovery、または必須GitHub API read-only connectivityが成立しない。
 - same-session Hook runtime evidenceまたはbounded subagent evidenceを取得できない。
 - read-only smokeまたはdevelopment write smokeがFAILする。
 
@@ -376,61 +391,67 @@ Phase Bが成功したら`.devcontainer`を編集する前に、canonical Plan�
 
 - OpenCode package spec / exact version / binary name。
 - OpenCode Zen authentication exact mechanismとcredential-specificなPersonal Secret利用evidence。
-- official env substitution fallbackを使う場合は、exact config source、配置場所、provider ID、apiKey表現、precedence、Fresh Createでの注入方法。
-- OpenCode smokeのexact command / prompt / expected result。
+- OpenCode auth config source。direct envで成立する場合はconfigなし、fallbackの場合はroot `opencode.json`または別sourceの1つへ固定し、配置場所、provider ID、apiKey表現、precedence、Fresh Createでの注入方法を記録する。
+- OpenCode Repository instructions自動適用 / native Skill discovery / development smokeのexact command / prompt / expected result。
 - Codex package spec / exact version / binary name。
-- Codex device-code loginのexact手順と`codex login status`の期待結果。
+- betaのdevice-code loginを今回採用するexact手順と`codex login status`の期待結果。
 - effective `CODEX_HOME` とlogin / trust / smoke / subagent / `ci_wait`で同じ値を使う手順。
 - `/hooks`、same-session Hook runtime、bounded subagentの確認手順。
-- `ci_wait` server startup / tool discovery / `GH_TOKEN`除外 / `GITHUB_TOKEN`利用の確認手順。
+- `ci_wait` server startup / tool discovery / `GH_TOKEN`除外 / `GITHUB_TOKEN`利用と必須GitHub API endpointの確認手順。
 - Dev Container image tag `5-24-bookworm` の利用可否確認結果。
+- GitHub CLI Feature `ghcr.io/devcontainers/features/github-cli:1` の利用可否確認結果。
 - target `node` userで使用するOpenCode / Codex exact install command、install先の方針、PATH反映、sudo使用有無。
 - `corepack enable`と`postCreateCommand`のexact command / 実行順 / fail-fast条件。
+- canonical machine name。
 
 plain Codespaceの`command -v`、実install path、user、PATHはbaseline evidenceのままとし、target contractへ昇格させない。
 
 OpenCodeのmodel ID、Free / paid、価格、model利用実績は固定しない。このcheckpointが未更新のままPhase Cへ進まない。
 
-### Phase C: `.devcontainer/devcontainer.json` 実装
+### Phase C: `.devcontainer/devcontainer.json` / `AGENTS.md` 実装
+
+#### `.devcontainer/devcontainer.json`
 
 1. `image`は`mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`。
 2. `remoteUser`は`node`。
-3. `waitFor`は`postCreateCommand`。postCreate完了前をReady扱いしない。
-4. `containerEnv`またはcurrent Dev Container specで同等のcontainer-wide設定として`OPENCODE_DISABLE_AUTOUPDATE=true`を入れる。
-5. `postCreateCommand`はPhase B→C checkpointで確定したexact command / sudo方針 / PATH反映をそのまま使い、workspace rootで逐次・fail-fastに実行する。実装時にinstall方式を選び直さない。
-6. `secrets`には`OPENCODE_API_KEY`をrecommended secretとして宣言する。値やdefault tokenは書かない。
-7. `forwardPorts`は`[8081]`。
-8. OpenCodeのmodelは固定しない。root`opencode.json`、model-specific config、provider whitelist、model制御launcherは追加しない。
-9. OpenCode permissionはupstream defaultを使用する。Codex Safety Harness相当のpermission / sandbox / Hook設定をOpenCodeへ追加しない。
-10. Personal `OPENCODE_API_KEY`の直接認識で認証できる場合はOpenCode用configを追加しない。
-11. official env substitution fallbackが必要とPhase Bで確定した場合だけ、Phase B→C checkpointで確定したexact source / provider / precedence / injection methodに従ってSecret値を含まない最小configを反映する。実装時にconfig sourceを選び直さない。
-12. Codex auth file / ChatGPT tokenをcopy / mountしない。
-13. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
-14. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
+3. `features`へ`ghcr.io/devcontainers/features/github-cli:1`を追加し、target devcontainer自身でGitHub CLIを保証する。
+4. `waitFor`は`postCreateCommand`。postCreate完了前をReady扱いしない。
+5. `containerEnv`またはcurrent Dev Container specで同等のcontainer-wide設定として`OPENCODE_DISABLE_AUTOUPDATE=true`を入れる。
+6. `postCreateCommand`はPhase B→C checkpointで確定したexact command / sudo方針 / PATH反映をそのまま使い、workspace rootで逐次・fail-fastに実行する。実装時にinstall方式を選び直さない。
+7. `secrets`には`OPENCODE_API_KEY`をrecommended secretとして宣言する。値やdefault tokenは書かない。
+8. `forwardPorts`は`[8081]`。
+9. OpenCodeのmodelは固定しない。model-specific config、provider whitelist、model制御launcherは追加しない。
+10. OpenCode permissionはupstream defaultを使用する。Codex Safety Harness相当のpermission / sandbox / Hook設定をOpenCodeへ追加しない。
+11. Personal `OPENCODE_API_KEY`のdirect recognitionで認証できる場合はOpenCode用configを追加しない。
+12. official env substitution fallbackが必要とPhase Bで確定した場合だけ、Phase B→C checkpointで固定したconfig sourceへSecret値を含まない最小configを反映する。root `opencode.json`を採用した場合はmodel / permissionを含めない。
+13. Codex auth file / ChatGPT tokenをcopy / mountしない。
+14. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
+15. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
+16. canonical最小machineで明確なresource exhaustionが再現しない限り`hostRequirements`を追加しない。必要な場合は最小要件だけを追加してnew candidateから再検証する。
+
+#### `AGENTS.md`
+
+1. title / introductionだけを中心に最小修正し、このRepositoryで作業するCodex / OpenCode等のAgentへRepository-wide規約が適用されることを明示する。
+2. `.codex/**`、Hook trust、Codex wrapper、native delegation、`ci_wait`など明示的にCodex固有の項目はCodexだけに適用されると明示する。
+3. 既存のSkill / Harness / validator / rulesを正本とする構造は維持し、OpenCode向けに同じ契約を複製しない。
+4. `.agents/skills/**`のroutingはOpenCode native Skill discoveryでも利用する。
 
 ### Phase D: README更新
 
-READMEへ次を追加する。
+READMEは通常利用者がCodespaceを使い始めるために必要な情報だけを追加し、canonical validation内部の手順を重複させない。
 
-1. Personal Codespaces Secret `OPENCODE_API_KEY` をCodespace作成前に確認する手順。既存Secretの場合は既存Repository accessを保持したまま`qa-training-store`を追加し、新規専用Secretの場合だけRepository限定で作成する。
-2. Phase B / canonical Fresh CreateではPersonal dotfilesを一時的に無効化し、success / failure / blocker / user stopを問わずRun終了前に元設定へ復元すること。
-3. SecretをCodespace作成後に追加・変更した場合はstop → restartが必要であること。
-4. `devcontainer.json#secrets`はrecommended secretの案内であり、Secret valueを保存しないこと。
-5. Secret非露出は値をprompt / completion / command output / terminal output / log / Artifact / REPORT / PR本文へ意図的に出さない意味であり、OpenCodeへcredential envを提供しない意味ではないこと。
-6. `node --version` / `pnpm --version` / `opencode --version` / `codex --version` の確認。
-7. OpenCodeのmodelはユーザーがOpenCode Zen上で選択すること。Repository / devcontainerはFree / paidを制限しないこと。
-8. OpenCodeはupstream default permissionを利用し、Codex Safety Harness相当の制御は今回導入しないこと。
-9. OpenCode Zen authentication exact mechanism。fallback configを使う場合は配置場所とSecretを保存しないこと。
-10. Codexはremote環境で`codex login --device-auth`を使い、`codex login status`を認証状態の正本とすること。
-11. CodexではAPI key / access token / WIFやauth file copyへfallbackしないこと。
-12. effective `CODEX_HOME`をlogin / project trust / Hook trust / smoke / subagent / `ci_wait`で統一すること。
-13. `codex login status`、project trust、`/hooks`、Hook trust、`ci_wait`の初回確認。
-14. canonical Codespaces検証では`GH_TOKEN`を除外し、Codespaces標準`GITHUB_TOKEN`を利用すること。
-15. Full Rebuildでは通常`/workspaces`外のcontainer stateが再生成されるため認証zero-stateを期待すること。予期せず認証済みならsymlinkやalternate credential storeを調査すること。
-16. Fresh Createはさらに新規Codespace、workspace clone、create-time devcontainer selection、dotfiles未適用を含む完全新規環境の正本であること。
-17. Personal dotfilesを復元した後の個人環境はcanonical Repository再現性契約の対象外であること。
-18. root`AGENTS.md`を上書きしないこと。
-19. CodespacesはWeb / Repository validation用で、Windows Android / macOS iOSの正式経路を置き換えないこと。
+1. Codespaceの作成入口と`OPENCODE_API_KEY` Personal Codespaces Secretの設定。既存Secretの場合は既存Repository accessを保持したまま`qa-training-store`を追加する。
+2. SecretをCodespace作成後に追加・変更した場合はstop → restartが必要であること。
+3. `devcontainer.json#secrets`はrecommended secretの案内であり、Secret valueを保存しないこと。
+4. `OPENCODE_API_KEY`はCodespace-wide environment variableとして他processからも参照可能で、今回process単位のSecret分離は行わないこと。値を出力・保存しないこと。
+5. `node --version` / `pnpm --version` / `gh --version` / `opencode --version` / `codex --version` の確認。
+6. OpenCodeのmodelはユーザーがOpenCode Zen上で選択し、Repository / devcontainerはFree / paidを制限しないこと。
+7. OpenCodeはRepository root `AGENTS.md`と`.agents/skills/**`を利用し、permissionはupstream defaultであること。
+8. OpenCode Zen authentication exact mechanism。fallback configを使う場合は配置場所とSecret値を保存しないこと。
+9. Codexはremote/headless環境でbetaの`codex login --device-auth`を今回の経路として使い、`codex login status` / `codex logout`で状態を確認・解除すること。今回API key / token / auth cache copyへfallbackしないこと。
+10. Webは8081を利用すること。
+11. CodespacesはWeb / Repository validation用で、Windows Android / macOS iOSの正式経路を置き換えないこと。
+12. Full Rebuild / Fresh Create / dotfiles一時OFF / `ci_wait` phase差 / Hook evidence等の検証詳細はcanonical Planと`docs/reference/**`へリンクし、READMEへ再定義しない。
 
 ### Phase E: candidate SHAの作成と実機検証
 
