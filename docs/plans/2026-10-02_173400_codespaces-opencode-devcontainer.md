@@ -12,7 +12,7 @@ GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入�
 - branch: `plan/codespaces-opencode-devcontainer`
 - PR: `#188`
 - 初回作成: 2026-10-02 JST
-- 複数レビュー最終反映: 2026-10-02 JST
+- 複数レビュー最終反映: 2026-10-03 JST
 
 ## 1. ゴール / 完了条件
 
