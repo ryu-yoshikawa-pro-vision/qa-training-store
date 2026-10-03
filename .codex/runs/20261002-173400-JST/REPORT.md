@@ -122,3 +122,37 @@
 - ファイル分割: 実施しない。candidate → Full Rebuild → Fresh Create → final CI → cleanupの状態遷移を単一正本で追う方が判断点が少ない。
 - Blocker: なし。次はPhase A。
 - Progress: 29% (12/42、必須CI確認1件を含む)
+
+## 2026-10-03 21:27 (JST)
+
+- Summary: Phase A再基準化、control shell preflight、OpenCode / Codex stable distribution固定を完了した。Personal dotfiles状態をCodespace作成accountについて確認できないため、Task 16の残りとPhase B開始前で停止する。
+- Baseline: branch `plan/codespaces-opencode-devcontainer`、PR #188 OPEN / non-draft / base `main`。local HEADとremote PR headは`83d6d9366f933529b03d6a837f97c2f9310ccb60`で一致し、working tree / indexはclean。latest `origin/main`は`813699a57a8b8f114fb7419b74fddba49b5dd908`。Phase A後にmainが進んだだけではbaselineを更新しない。
+- Repository差分評価: Plan作成時のmain `84ce165493649550832731a60cf436f8ae29c56b`からlatest mainまで、確認したPhase A関連pathでは`package.json`と`pnpm-lock.yaml`だけが変更され、Expo patch更新と依存override更新だった。README、CI、`.codex/config.toml`、`scripts/codex-safe.sh`、Hook / repair-loop契約には差分なし。このmain更新をPhase B前にbranchへ取り込む必要はないと判断した。
+- Control shell: `gh version 2.101.0`、active GitHub CLI auth status、Codespaces list、machine API、Secret metadata取得が成功。対象Repositoryはpublic、既存Codespaceは0件。Active CLI authでのCodespaces accessを確認した。token / credential値は出力・記録していない。
+- OpenCode: `@opencode/cli@2.0.22`、official V2 install docsに従う`npm install --global @opencode/cli@2.0.22`、npm latest tarball `https://registry.npmjs.org/@opencode/cli/-/cli-2.0.22.tgz`。現行V2 docsはこのpackageを導入先として案内し、npm `dist-tags.latest`は`2.0.22`。非versioned V1 docs / latest GitHub releaseが示す`opencode-ai@1.18.34`とは別distribution。V1とV2の配布表示差は確認済みで、Phase Aのstable判定はV2 official docs + 当該package metadataに基づく。認証 / AGENTS / Skillの実Runtime検証は未実施。
+- Codex: `@openai/codex@0.160.0`、exact install command `npm install --global @openai/codex@0.160.0`、npm latest tarball `https://registry.npmjs.org/@openai/codex/-/codex-0.160.0.tgz`。
+- Canonical machine: `basicLinux32gb` (Linux、2 CPU、8 GiB RAM、32 GiB storage)。他の利用可能machineよりCPU → memory → storage順で最小。
+- Personal Secret: active CLI accountで`OPENCODE_API_KEY`のmetadataを確認。visibilityはselected、selected repositoryは`ryu-yoshikawa-pro-vision/qa-training-store`。Secret valueにはアクセスしていない。
+- Dotfiles: active CLI accountのPersonal Settings状態 / selected dotfiles Repositoryは未確認。Browser UIではauto-install OFFと表示されたが、そのBrowser sessionはactive CLI accountと別accountなので、この値を適用できる設定として記録しない。AgentはPersonal Settingsを変更していない。
+- Blocker / stop: Task 16はcanonical machineとSecret確認まで完了、dotfiles確認が残る。正しいaccountのPersonal Codespaces settingsを確認する前にPhase B Codespaceを作成しない。設定アカウント不一致は追加のhuman confirmationを要する。
+- 次の人間操作: active `gh` CLI accountと同じGitHub accountで`https://github.com/settings/codespaces`を開き、dotfiles auto-install状態と選択Repositoryを確認する。ONならPhase B Codespace作成の直前に限ってユーザー自身が一時OFFにし、元状態を記録して知らせる。OFFなら変更不要。
+- 再開位置: 正しいaccountのdotfiles状態が確認できたらTask 16を完了し、ユーザーの必要設定が反映されている条件下でTask 17 / Phase B plain Codespace作成へ進む。作成後のdotfiles復元もユーザー操作が必要なら、その直前で再度停止する。
+- 完了Task: 13, 14, 15。Task 16部分完了。Task 17以降未着手。Codespace作成、implementation、commit / push、Full Rebuild、Codex device authenticationは行っていない。
+- Progress: 36% (15/42、必須CI確認1件を含む)
+
+## 2026-10-03 23:42 (JST)
+
+- Summary: ユーザー確認によりPersonal dotfiles状態を確定し、Task 16を完了した。自動適用はOFFで、dotfiles Repositoryの選択状態もないため、設定変更は不要。
+- Secret / account: 前checkpointでactive CLI accountの`OPENCODE_API_KEY`がselected visibilityで対象Repositoryへのaccessを持つことを確認済み。今回もSecret valueにはアクセスしていない。dotfiles状態はユーザー報告を根拠とする。
+- Blocker: Phase Aに残作業なし。Task 17以降は未着手。Phase B前提のlocal working tree cleanは、canonical PlanとRun ArtifactのPhase A記録更新により現在満たしていない。local HEADとremote PR headは`83d6d9366f933529b03d6a837f97c2f9310ccb60`で一致する。今回のscopeではcandidate commit / pushを行わないため、Phase Bには進まない。
+- 次: Task 17 / Phase B plain Codespace作成。dotfilesは元々OFFのため一時変更は不要。Phase Bへ進む際はRun Artifact更新を含むclean tree条件を先に解決し、Planの`--status`、canonical machine、baseline PR head確認を行う。
+- 完了Task: 13, 14, 15, 16。Task 17以降未着手。Codespace作成、implementation、commit / push、Full Rebuild、Codex device authenticationは行っていない。
+- Progress: 38% (16/42、必須CI確認1件を含む)
+
+## 2026-10-04 00:34 (JST)
+
+- Summary: ユーザー指示により、Phase Aのcanonical Plan / active Run記録のみをPR #188 branchへcommit / pushする。これは実装candidateではない。
+- Scope: 変更対象はこのPlanとactive `TASKS.md` / `REPORT.md`のみ。application / test / configuration source変更なし。
+- Git preflight: current branchとupstreamは`plan/codespaces-opencode-devcontainer`、local HEAD == remote PR head `83d6d9366f933529b03d6a837f97c2f9310ccb60`。PR #188はOPEN / base `main` / head branch一致。`git diff --check`成功、indexはcommit前clean。
+- Clarification: 前回の「workflow変更」はGitHub Actions workflow fileの変更ではなく、Phase A記録差分とPhase B clean gateの扱いに関するPlan上のworkflowを指していた。今回の記録pushではGitHub Actions設定を変更しない。
+- Push後はPR headが記録専用commitへ進む。Phase B開始時には最新PR headとlocal HEAD一致を再確認し、新headをCodespace baselineとしてRunへ記録する。latest main baseline `813699a57a8b8f114fb7419b74fddba49b5dd908`はPlan契約どおり固定する。

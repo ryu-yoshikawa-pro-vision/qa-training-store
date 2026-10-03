@@ -14,10 +14,10 @@
 - [x] 10. plain/target provenance分離、Zen認証証明、dotfiles cleanup、waitFor、target verify、ci_wait token契約等を反映する。
 - [x] 11. Phase B→candidate同期、B→C install戦略、CODEX_HOME、Full Rebuild zero-state、final CI順序、OpenCode permission境界を反映する。
 - [x] 12. OpenCode Repository integration、GitHub CLI / API、Git write、canonical machine、dotfiles短時間化、repair-loop、fallback、device auth beta、Web / tracked clean契約を反映する。
-- [ ] 13. Phase A: baseline main / PR head、Repository契約、current公式仕様を再確認する。
-- [ ] 14. control shellのGitHub CLI認証 / Codespaces accessをpreflightする。
-- [ ] 15. OpenCode / Codexの正規distributionからlatest non-prerelease stableを固定する。
-- [ ] 16. canonical validation machineを固定し、dotfiles元状態 / Secret accessを確認する。
+- [x] 13. Phase A: baseline main / PR head、Repository契約、current公式仕様を再確認する。
+- [x] 14. control shellのGitHub CLI認証 / Codespaces accessをpreflightする。
+- [x] 15. OpenCode / Codexの正規distributionからlatest non-prerelease stableを固定する。
+- [x] 16. canonical validation machineを固定し、dotfiles元状態 / Secret accessを確認する。
 - [ ] 17. dotfilesをcreate直前だけOFFにし、canonical machine + `--status`でplain Codespaceを作成して即時復元する。
 - [ ] 18. OpenCode exact install、Zen credential、root AGENTS自動適用、native feature-plan Skill、development smokeを検証する。
 - [ ] 19. Codex exact install、effective CODEX_HOME、beta device authを検証する。
@@ -76,4 +76,4 @@
 
 - なし。
 
-Progress: 29% (12/42、必須CI確認1件を含む)
+Progress: 38% (16/42、必須CI確認1件を含む)

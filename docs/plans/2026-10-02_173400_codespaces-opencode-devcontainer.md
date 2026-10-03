@@ -287,6 +287,13 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
 16. Codespace create / rebuild / stop操作は対象Codespace外のcontrol shellまたはGitHub UIから行い、環境内検証は対象Codespace内で行う。
 17. active RunはこのPRの実装scopeを継続する。
 
+#### Phase A stable version baseline (2026-10-03 JST)
+
+- OpenCode: `@opencode/cli@2.0.22`。現行の[公式V2 install docs](https://opencode.ai/v2/docs/)が`@opencode/cli`を案内し、npm `dist-tags.latest` / `version` は`2.0.22`。exact install commandは`npm install --global @opencode/cli@2.0.22`。
+- OpenCode distribution差: 非versionedのV1 docs / latest GitHub releaseは別packageの`opencode-ai@1.18.34`を示す。今回はV2 docsで指定されたpackageのlatest distributionを採用する。beta docsの`@opencode-ai/cli@next`は別package / channelなので採用しない。
+- Codex: `@openai/codex@0.160.0`。npm `dist-tags.latest` / `version` は`0.160.0`。exact install commandは`npm install --global @openai/codex@0.160.0`。
+- 上記はinstall versionの基準であり、Phase Bでinstall、実行version、Secret認識、AGENTS / Skill smokeを検証する。
+
 ### Phase B: dotfilesなし plain Codespace で事前検証
 
 #### B-0: Secret / baseline Codespace
