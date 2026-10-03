@@ -92,3 +92,18 @@
 - ファイル分割: 実施しない。今回追加した契約もcandidate SHA → Full Rebuild → Fresh Create → cleanup → final CIの一続きであり、分割すると状態と停止条件が重複する。
 - Blocker: なし。次はPhase A。
 - Progress: 27% (10/37、必須CI確認1件を含む)
+
+## 2026-10-03 11:11 (JST)
+
+- Summary: 複数モデルの最新レビューを現行Plan・Repository契約・current公式仕様へ照合し、実装開始前に残っていた実行経路の穴だけをcanonical Planへ反映した。
+- Changes: success以外でも必ず実行するdotfiles復元 / Codespace stop、Phase B Codespaceのcandidate SHAへの`merge --ff-only`同期、Phase B→C時点でのtarget node install戦略確定、Full Rebuild後の`devcontainerPath`確認、Full Rebuild認証zero-state、effective `CODEX_HOME`、canonical Fresh Codespaceからのfinal waiter、Web forwarding provenance、Secret非露出定義、OpenCode upstream default permission境界を追加した。
+- Secret: 既存Personal `OPENCODE_API_KEY`を使う場合は既存Repository accessを削除せず`qa-training-store`を追加する。新規専用Secretの場合だけRepository限定とする。
+- OpenCode auth: auth cache / alternate credential sourceなし、同一操作・同一configで変えるのは`OPENCODE_API_KEY`有無だけというcredential-specific evidenceを要求し、単なるmodel一覧差分は認証証拠にしない。
+- Full Rebuild: Phase B CodespaceをGit safety契約に従ってcandidateへfast-forwardし、Full Rebuild後にactive`devcontainerPath`が`.devcontainer/devcontainer.json`であることを確認する。通常`/workspaces`外のcontainer stateは再生成されるため、E-2でも認証zero-stateを期待する。
+- Codex: `codex login status`を認証状態の正本とし、effective `CODEX_HOME`をlogin / trust / smoke / subagent / `ci_wait`で統一する。
+- Final CI: canonical Fresh Codespaceをfinal HEADへ`merge --ff-only`した後、Codespaces標準`GITHUB_TOKEN`で`wait_for_required_ci`を1回実行し、PR本文更新後にdotfiles復元 / Codespace stopを行う。
+- OpenCode permission: current upstream default permissionを明示的に採用し、Codex Safety Harness相当の制御追加は今回の対象外とした。
+- Stable version: installに使う正規distribution metadataを正本とし、補助official sourceの公開タイミング差だけではRunを停止しない。
+- ファイル分割: 実施しない。今回の修正はcandidate同期、Full Rebuild、Fresh Create、final CI、cleanupという同一state lifecycleの補完であり、分割すると契約が重複する。
+- Blocker: なし。次はPhase A。
+- Progress: 28% (11/40、必須CI確認1件を含む)
