@@ -9,31 +9,35 @@
 - [x] 5. Fresh Create、OpenCode auto update、Codex auth / harness等の初回レビューをPlanへ反映する。
 - [x] 6. dotfiles、Zen認証、Codex device auth、`ci_wait`、install provenanceをPlanへ反映する。
 - [x] 7. candidate SHA順序、Hook実Runtime / subagentをPlanへ反映する。
-- [x] 8. OpenCodeのmodel選択をユーザー管理へ変更し、Free-only / pricing / negative control / usage監査を削除する。
+- [x] 8. OpenCodeのmodel選択をユーザー管理へ変更し、Free-only関連を削除する。
 - [x] 9. candidate precondition、branch freeze、model能力条件、CI正本、postCreate実行契約をPlanへ反映する。
-- [ ] 10. Phase A: latest main / branch / Repository契約 / current公式仕様を再確認する。
-- [ ] 11. Personal `OPENCODE_API_KEY` Codespaces Secretを確認し、Personal dotfilesを無効化する。
-- [ ] 12. dotfilesなしの新規plain Codespace baselineを作成しfrozen installを確認する。
-- [ ] 13. OpenCode stable exact install、install provenance、Zen認証を検証する。
-- [ ] 14. 必要な能力を持つユーザー選択modelでOpenCode read-only / development smokeとversion固定を確認する。
-- [ ] 15. Codex stable exact installと代替認証環境変数監査を行う。
-- [ ] 16. Codex device-code authentication / login statusを確認する。
-- [ ] 17. Codex `test:hooks` / project trust / Hook trust / readonly preflight / `ci_wait` を検証する。
-- [ ] 18. Codex read-only / development smokeとsame-session Hook runtime evidenceを確認する。
-- [ ] 19. bounded read-only subagentを1回実行しSubagentStart / SubagentStopを確認する。
-- [ ] 20. Phase B→C checkpointをcanonical Plan / active Runへ固定する。
-- [ ] 21. workspace root・逐次・fail-fastの `.devcontainer/devcontainer.json` を実装する。
+- [x] 10. plain/target provenance分離、Zen認証証明、dotfiles復元、Codespace cleanup、waitFor、target verify、ci_wait token契約等を最終反映する。
+- [ ] 11. Phase A: baseline main / PR head、Repository契約、current公式仕様を再確認する。
+- [ ] 12. OpenCode / Codexのlatest non-prerelease stableを公式source間で照合しexact versionを固定する。
+- [ ] 13. Personal dotfilesの元状態 / repositoryを記録し、一時的に無効化する。
+- [ ] 14. Personal `OPENCODE_API_KEY` Codespaces Secretを確認する。
+- [ ] 15. baseline PR headからdotfilesなしplain Codespaceを作成し、HEAD / default config / frozen installを確認する。
+- [ ] 16. OpenCode exact install、baseline provenance、Personal SecretのZen credential利用、Zen smokeを検証する。
+- [ ] 17. Codex exact install、baseline provenance、device-code authenticationを検証する。
+- [ ] 18. Codex `test:hooks` / trust / preflight / same-session Hook runtime / bounded subagentを検証する。
+- [ ] 19. `GH_TOKEN`を除外し、`ci_wait` server startup / tool discovery / GitHub read-only connectivityを検証する。wait toolは呼ばない。
+- [ ] 20. Phase B→C checkpointへexact version / install / auth / smoke / fallback config契約を固定する。
+- [ ] 21. `waitFor: "postCreateCommand"`とworkspace root・逐次・fail-fastの`.devcontainer/devcontainer.json`を実装する。
 - [ ] 22. READMEを更新する。
-- [ ] 23. candidate作成前に `pnpm run verify` / `git diff --check` / scope確認を行う。
+- [ ] 23. candidate作成前に`pnpm run verify` / `git diff --check` / scope確認を行う。
 - [ ] 24. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
-- [ ] 25. candidate SHA / clean worktree /対象Codespaceを確認し、`gh codespace rebuild --full -c <codespace-name>` で統合検証する。
-- [ ] 26. remote branch head == candidate SHAを確認し、同じcandidate branchからdotfilesなしFresh Codespaceを作成してHEAD一致を確認する。
-- [ ] 27. Web 8081 forwarded portをFull Rebuild / Fresh Createの両方で確認する。
-- [ ] 28. Fresh Create後に環境影響差分が出た場合は新candidate SHAを作り、Full Rebuild / Fresh Createを両方やり直す。
-- [ ] 29. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
-- [ ] 30. final working treeで `pnpm run verify` / `git diff --check` を再実行する。
-- [ ] 31. tracked Run Artifact / Planを最終状態へ更新して通常commit / pushする。
-- [ ] 32. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
+- [ ] 25. candidate SHA / clean worktree /対象Codespaceを確認し、control shellからFull Rebuildする。
+- [ ] 26. Full Rebuild内でtarget CLI contract、OpenCode / Codex integration、`pnpm run verify`、Web smokeを確認する。
+- [ ] 27. remote head == candidate SHAを確認し、explicit devcontainer pathでdotfilesなしFresh Codespaceを作成する。
+- [ ] 28. Fresh CreateでHEAD / devcontainerPath / dotfiles未適用 /認証zero-state / target contractを確認する。
+- [ ] 29. Fresh CreateでOpenCode / Codex integration、`pnpm run verify`、Web smokeを確認する。
+- [ ] 30. Fresh Create後に環境影響差分が出た場合は新candidate SHAを作り、Full Rebuild / Fresh Createを両方やり直す。
+- [ ] 31. Personal dotfiles設定をPhase Aの元状態へ復元する。
+- [ ] 32. validation-only Codespaceをstopし、継続利用候補 / delete候補をREPORTへ記録する。
+- [ ] 33. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
+- [ ] 34. final working treeで`pnpm run verify` / `git diff --check`を再実行する。
+- [ ] 35. tracked Run Artifact / Planを最終状態へ更新して通常commit / pushする。
+- [ ] 36. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
 
 ## 正本
 
@@ -45,9 +49,9 @@
 ## 必須CI
 
 - checkboxには含めない。
-- file-changing taskのProgressでは、上記checkbox総数にCI確認1件を加算する。
-- final push後にexact HEADを指定して `wait_for_required_ci` を1回だけ呼ぶ。
-- current contractでは `Web CI` / `Mobile App CI` の両方がsuccessし、PR本文更新まで完了した時点でCI確認1件を完了扱いにする。
+- file-changing taskのProgressではcheckbox総数にCI確認1件を加算する。
+- final push後、`GH_TOKEN`を除外したcanonical token条件でexact HEADを指定し`wait_for_required_ci`を1回だけ呼ぶ。
+- `Web CI` / `Mobile App CI`の両方がsuccessし、PR本文更新まで完了した時点でCI確認1件を完了扱いにする。
 - waiter利用不能時はblocker。Agent自身のpollingへfallbackしない。
 - CI結果記録だけを理由にこのfileを再commitしない。
 
@@ -55,4 +59,4 @@
 
 - なし。
 
-Progress: 27% (9/33、必須CI確認1件を含む)
+Progress: 27% (10/37、必須CI確認1件を含む)
