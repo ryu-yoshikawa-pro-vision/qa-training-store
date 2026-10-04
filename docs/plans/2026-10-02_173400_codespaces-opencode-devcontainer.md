@@ -6,6 +6,9 @@ GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入�
 
 この Plan は PR #188 で Plan、実装、Codespaces 実機検証、Repository 検証、CI 確認まで完了するための正本とする。
 
+IDE拡張とPlaywright GUI録画の追加要件は、[`2026-10-04_160000_codespaces-ide-playwright-recording.md`](./2026-10-04_160000_codespaces-ide-playwright-recording.md)を正本とする。
+同Planが扱う`desktop-lite`、VS Code拡張、6080 forwarding、Playwright Chromium導入、GUI smokeはこのPlanのdevcontainer要件へ加算し、それ以外のOpenCode / Codex CLI、Full Rebuild / Fresh Create、CI、cleanup契約はこのPlanを維持する。
+
 作成基準:
 
 - 初回 base: `main@84ce165493649550832731a60cf436f8ae29c56b`
