@@ -199,7 +199,7 @@ ms-playwright.playwright
 
 ### 5.3 ChromiumをFresh Create時から利用可能にする
 
-既存Planの`postCreateCommand`はdependency install -> OpenCode exact install -> Codex exact installを予定している。この順序を維持し、dependency install後にPlaywright Chromium導入を追加する。
+既存Planの`postCreateCommand`へPlaywright Chromium導入を同期し、dependency install後、OpenCode / Codexの前に実行する。
 
 期待順序:
 
@@ -265,12 +265,14 @@ CLI GUI基盤がPASSした後だけ拡張機能を確認する。
 
 1. `ms-playwright.playwright`がcontainer側へ導入されていることを確認する。
 2. Testing sidebarで`playwright.config.ts`のChromium projectと既存testが表示されることを確認する。
-3. headlessで既存の小さいChromium testを1件実行してPASSを確認する。
-4. Show Browserを有効化して同testを実行し、headed ChromiumがnoVNC上に表示されることを確認する。
-5. `Record new`を開始し、ChromiumがnoVNC上に表示されることを確認する。
-6. 8081のStorefrontを開き、1回以上操作し、VS Code側へtest codeが生成されることを確認する。
-7. 検証専用の一時testで`Record at cursor`を実行し、cursor位置へ1操作以上が追加されることを確認する。
-8. 検証用test / 差分をRepository safety契約に従ってcleanupし、working treeをcleanに戻す。
+3. `pnpm run start:web`を別processで起動し、8081がlisten状態になることを確認する。
+4. headlessで既存の小さいChromium testを1件実行してPASSを確認する。
+5. Show Browserを有効化して同testを実行し、headed ChromiumがnoVNC上に表示されることを確認する。
+6. `Record new`を開始し、ChromiumがnoVNC上に表示されることを確認する。
+7. 8081のStorefrontを開き、1回以上操作し、VS Code側へtest codeが生成されることを確認する。
+8. 検証専用の一時testで`Record at cursor`を実行し、cursor位置へ1操作以上が追加されることを確認する。
+9. 起動したWeb processを停止し、8081が解放されたことを確認する。
+10. 検証用test / 差分をRepository safety契約に従ってcleanupし、working treeをcleanに戻す。
 
 録画確認のためだけに恒久的なsample testを追加しない。
 
@@ -409,13 +411,13 @@ headed Chromiumでshared memory不足が実測された場合だけ`--shm-size=1
 
 ## 10. 公式資料
 
-- Dev Containers `desktop-lite`: https://github.com/devcontainers/features/tree/main/src/desktop-lite
-- Playwright Docker / GitHub Codespaces + noVNC: https://playwright.dev/docs/docker
-- Playwright VS Code extension: https://playwright.dev/docs/getting-started-vscode
-- Playwright Codegen: https://playwright.dev/docs/codegen
-- Playwright browser install: https://playwright.dev/docs/browsers
-- VS Code Dev Container customizations: https://code.visualstudio.com/docs/devcontainers/tutorial
-- GitHub Codespaces port forwarding: https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace
-- GitHub Codespaces security: https://docs.github.com/en/codespaces/reference/security-in-github-codespaces
-- Codex VS Code extension: https://marketplace.visualstudio.com/items?itemName=OpenAI.chatgpt
-- OpenCode IDE integration: https://opencode.ai/docs/ide/
+- [Dev Containers `desktop-lite`](https://github.com/devcontainers/features/tree/main/src/desktop-lite)
+- [Playwright Docker / GitHub Codespaces + noVNC](https://playwright.dev/docs/docker)
+- [Playwright VS Code extension](https://playwright.dev/docs/getting-started-vscode)
+- [Playwright Codegen](https://playwright.dev/docs/codegen)
+- [Playwright browser install](https://playwright.dev/docs/browsers)
+- [VS Code Dev Container customizations](https://code.visualstudio.com/docs/devcontainers/tutorial)
+- [GitHub Codespaces port forwarding](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
+- [GitHub Codespaces security](https://docs.github.com/en/codespaces/reference/security-in-github-codespaces)
+- [Codex VS Code extension](https://marketplace.visualstudio.com/items?itemName=OpenAI.chatgpt)
+- [OpenCode IDE integration](https://opencode.ai/docs/ide/)

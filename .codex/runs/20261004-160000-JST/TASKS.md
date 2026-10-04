@@ -13,9 +13,13 @@
 - Playwright公式Docker資料がCodespaces + `desktop-lite` + noVNCでrecord / selector pick / codegenを利用する構成を案内している。
 - Repositoryは`@playwright/test@1.62.0`を既に持つため、新しいnpm dependencyは不要。
 - `.devcontainer/devcontainer.json`は現時点のPR headには存在しない。
+- [x] 6. 新Planの裸URLをMarkdown linkへ修正し、MD034 failureを解消する。
+- [x] 7. Playwright Recorder検証前に8081を再起動し、検証後に停止する手順へ修正する。
+- [x] 8. 親Planのdevcontainer / postCreate / port / browser境界を追加Planと同期する。
+- [x] 9. 修正後のPlan間契約とMarkdown sourceを静的確認する。
 
 ## Blocked（ブロック中）
 
 - なし。
 
-Progress: 100% (5/5)
+Progress: 100% (9/9)

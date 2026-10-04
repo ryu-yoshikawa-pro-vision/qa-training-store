@@ -47,8 +47,8 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 16. Codexは既存`.codex/config.toml`、project trust、Hook trust、`test:hooks`、`diagnose:hooks`、Linux `codex-safe.sh`、same-session Hook runtime、bounded subagent、`ci_wait` MCPをCodespaces上で確認する。
 17. target devcontainerはGitHub CLIを提供し、`command -v gh` / `gh --version`が成功する。Phase B / E-2 / E-3では`GH_TOKEN`を対象processから除外し、Codespaces標準`GITHUB_TOKEN`で`ci_wait`が実際に使用するPR / workflow runs APIへread-only接続できることを確認する。
 18. Phase B / Full Rebuild / Fresh Createでは`ci_wait` server startupと`wait_for_required_ci` tool discoveryまでをintegration evidenceとし、tool自体は呼ばない。
-19. `.devcontainer/devcontainer.json`は`mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`、`remoteUser: "node"`、`ghcr.io/devcontainers/features/github-cli:1`、`waitFor: "postCreateCommand"`、8081 forwardingを持つ。
-20. `postCreateCommand`はworkspace rootから逐次・fail-fastで、dependency install → OpenCode exact install → Codex exact installを実行する。postCreate完了前をReady扱いしない。
+19. `.devcontainer/devcontainer.json`は`mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`、`remoteUser: "node"`、`ghcr.io/devcontainers/features/github-cli:1`、`ghcr.io/devcontainers/features/desktop-lite:1`、`waitFor: "postCreateCommand"`、`forwardPorts: [8081, 6080]`を持つ。VS Code拡張とPlaywright Chromiumの追加要件はIDE / Playwright追加Planに従う。
+20. `postCreateCommand`はworkspace rootから逐次・fail-fastで、dependency install → Playwright Chromium + Linux dependencies → OpenCode exact install → Codex exact installを実行する。postCreate完了前をReady扱いしない。
 21. candidate SHA確定後からFull Rebuild / Fresh Createのevidence取得完了までbranchへpushしない。両方を同じcandidate SHAで検証する。
 22. E-2ではPhase B Codespaceを再利用し、clean確認 → `git fetch origin` → expected branch確認 → `git merge --ff-only origin/plan/codespaces-opencode-devcontainer`でcandidate SHAへ同期する。fast-forwardできない場合は停止する。
 23. Full Rebuild直前にHEAD == candidate SHA、tracked worktree / index clean、環境影響差分0、対象Codespace名を確認し、control shellから`gh codespace rebuild --full -c <codespace-name>`を実行する。Rebuild後にactive `devcontainerPath`が`.devcontainer/devcontainer.json`であることを確認する。
@@ -56,7 +56,7 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 25. Fresh CreateはPersonal dotfilesを作成直前だけ一時OFFにし、canonical machine、candidate branch、`.devcontainer/devcontainer.json`、`--status`を明示して作成する。作成・dotfiles未適用確認後は直ちにdotfiles設定を元へ戻す。
 26. Fresh CreateのCodex未認証判定は`codex login status`を正本とし、`auth.json`不在と代替認証env不在は補助evidenceとする。
 27. Fresh Createでもtarget CLI contract、effective `CODEX_HOME`、OpenCode / Codex integration、Git identity / remote / `git push --dry-run`、`pnpm run verify`、Web Runtimeを成功させ、検証終了時にtracked / index差分0と`git diff --check`を確認する。
-28. Web smokeでは手動のport追加を行わず、`.devcontainer/devcontainer.json`の`forwardPorts: [8081]`と`gh codespace ports`の8081 browse URL / visibilityを確認する。forwarded URLではStorefront heading「決定的なシナリオで、確かなテストを。」を確認し、GitHub / Expo / Reactのエラー画面ならFAILとする。確認後はWeb processを停止し8081を解放する。
+28. Web smokeでは手動のport追加を行わず、`.devcontainer/devcontainer.json`の`forwardPorts: [8081, 6080]`を確認したうえで、`gh codespace ports`の8081 browse URL / visibilityを確認する。forwarded URLではStorefront heading「決定的なシナリオで、確かなテストを。」を確認し、GitHub / Expo / Reactのエラー画面ならFAILとする。確認後はWeb processを停止し8081を解放する。6080の検証はIDE / Playwright追加Planに従う。
 29. validation-only CodespaceでCodex認証を行った場合、最終利用後に`codex logout` → `codex login status`で未認証を確認してからstopする。canonical Fresh Codespaceもユーザーが継続利用を明示しない限りfinal CI / PR本文更新後に同じcleanupを行う。
 30. Personal dotfilesの一時変更中にsuccess / failure / blocker / user stopへ至った場合は、次工程へ進む前に元状態へ復元する。validation-only Codespaceを作成済みならRun終了前にstopする。
 31. cleanup自体を実行できない場合は、その未復元 / 未停止 / 未logout状態をBlockerとしてREPORTとユーザー報告へ明記する。
@@ -148,7 +148,7 @@ Phase A時点で、OpenCodeとCodexそれぞれについて実際にinstallへ�
 
 ### Phase B で確定する値
 
-Phase Bでは環境非依存の契約と、Phase Cで使うtarget install戦略を確定する。
+Phase Bでは環境非依存の契約と、Phase Cで使うtarget install戦略を確定する。`desktop-lite`、VS Code拡張、Playwright Chromium導入についてはIDE / Playwright追加Planのcheckpointも同時に確定する。
 
 1. OpenCode package spec、exact version、binary name。
 2. OpenCode Zen authentication exact mechanism。
@@ -226,11 +226,13 @@ Phase B〜F の実測またはRepository-wide quality gateで、今回のゴー�
   - image: `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`
   - `remoteUser: "node"`
   - GitHub CLI Feature: `ghcr.io/devcontainers/features/github-cli:1`
-  - Node / pnpm / OpenCode / Codex CLI setup
+  - Desktop Feature: `ghcr.io/devcontainers/features/desktop-lite:1`
+  - VS Code extensions: `OpenAI.chatgpt` / `sst-dev.opencode` / `ms-playwright.playwright`
+  - Node / pnpm / Playwright Chromium / OpenCode / Codex CLI setup
   - `OPENCODE_DISABLE_AUTOUPDATE=true`
   - `waitFor: "postCreateCommand"`
   - recommended secret `OPENCODE_API_KEY`
-  - `forwardPorts: [8081]`
+  - `forwardPorts: [8081, 6080]`
 - `AGENTS.md`
   - title / introductionをRepository Agent向けに最小修正
   - Repository-wide規約がOpenCodeにも適用されることを明示
@@ -424,18 +426,18 @@ OpenCodeのmodel ID、Free / paid、価格、model利用実績は固定しない
 
 1. `image`は`mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`。
 2. `remoteUser`は`node`。
-3. `features`へ`ghcr.io/devcontainers/features/github-cli:1`を追加し、target devcontainer自身でGitHub CLIを保証する。
+3. `features`へ`ghcr.io/devcontainers/features/github-cli:1`と`ghcr.io/devcontainers/features/desktop-lite:1`を追加し、target devcontainer自身でGitHub CLIとGUI基盤を保証する。`customizations.vscode.extensions`には`OpenAI.chatgpt`、`sst-dev.opencode`、`ms-playwright.playwright`を追加する。
 4. `waitFor`は`postCreateCommand`。postCreate完了前をReady扱いしない。
 5. `containerEnv`またはcurrent Dev Container specで同等のcontainer-wide設定として`OPENCODE_DISABLE_AUTOUPDATE=true`を入れる。
 6. `postCreateCommand`はPhase B→C checkpointで確定したexact command / sudo方針 / PATH反映をそのまま使い、workspace rootで逐次・fail-fastに実行する。実装時にinstall方式を選び直さない。
 7. `secrets`には`OPENCODE_API_KEY`をrecommended secretとして宣言する。値やdefault tokenは書かない。
-8. `forwardPorts`は`[8081]`。
+8. `forwardPorts`は`[8081, 6080]`。5901はforwardしない。6080はprivate visibilityを維持する。
 9. OpenCodeのmodelは固定しない。model-specific config、provider whitelist、model制御launcherは追加しない。
 10. OpenCode permissionはupstream defaultを使用する。Codex Safety Harness相当のpermission / sandbox / Hook設定をOpenCodeへ追加しない。
 11. Personal `OPENCODE_API_KEY`のdirect recognitionで認証できる場合はOpenCode用configを追加しない。
 12. official env substitution fallbackが必要とPhase Bで確定した場合だけ、Phase B→C checkpointで固定したconfig sourceへSecret値を含まない最小configを反映する。root `opencode.json`を採用した場合はmodel / permissionを含めない。
 13. Codex auth file / ChatGPT tokenをcopy / mountしない。
-14. Android / iOS toolchain、Docker-in-Docker、browser一式、CI専用依存、不要なVS Code extensionは追加しない。
+14. Android / iOS toolchain、Docker-in-Docker、Firefox / WebKitのCodespaces用browser、CI専用依存、追加の不要なVS Code extensionは追加しない。Chromiumと3つのVS Code拡張はIDE / Playwright追加Planで要求された範囲だけ導入する。
 15. Phase Bで必須と判明していない限りDockerfileやhelper scriptを増やさない。
 16. canonical最小machineで明確なresource exhaustionが再現しない限り`hostRequirements`を追加しない。必要な場合は最小要件だけを追加してnew candidateから再検証する。
 
@@ -717,7 +719,7 @@ PASS:
 
 Full Rebuild / Fresh Createの各環境で次を行う。
 
-1. `.devcontainer/devcontainer.json`に`forwardPorts: [8081]`が定義されていることを確認する。
+1. `.devcontainer/devcontainer.json`に`forwardPorts: [8081, 6080]`が定義されていることを確認する。このWeb smokeでは8081だけを対象とし、6080はIDE / Playwright追加Planで検証する。
 2. canonical smoke中は手動の「Add Port」や`gh codespace ports visibility`等でportを追加・変更しない。
 3. `pnpm run start:web`を別processで起動し、PIDまたはprocess handleを記録する。
 4. 8081がlisten状態になることを確認する。
@@ -725,7 +727,7 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 6. control shellから`gh codespace ports -c <codespace-name>`等で8081のbrowse URLとvisibilityを確認する。
 7. visibilityを変更せず、GitHubへサインイン済みのブラウザでforwarded URLを開く。
 8. Storefrontが表示され、heading「決定的なシナリオで、確かなテストを。」が表示されることを確認する。GitHub / Expo / Reactのエラー画面が表示される場合はFAILとする。
-9. Agentが利用可能なbrowserで確認できる場合はAgentが実施する。利用できない場合はユーザーが画面表示を確認し、Agentはその結果をevidenceへ記録する。この確認だけのためにPlaywright browserや追加browser依存をCodespacesへ導入しない。
+9. Agentが利用可能なbrowserで確認できる場合はAgentが実施する。利用できない場合はユーザーが画面表示を確認し、Agentはその結果をevidenceへ記録する。このWeb smokeのためだけにbrowser依存を追加せず、IDE / Playwright追加Planで導入するChromiumを超えて依存を増やさない。
 10. 起動したWeb processだけを停止する。
 11. 8081が解放されたことを確認してから次工程へ進む。
 
@@ -892,7 +894,7 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - 新規CI workflow
 - OpenCode用の追加permission / sandbox / Hook framework
 - process単位のSecret broker
-- Codespaces用browser依存
+- Chromium以外のCodespaces用browser一式
 
 ファイル分割は行わない。このPlanはplain Codespace、B→C checkpoint、candidate、Full Rebuild、Fresh Create、final CI、cleanupが一続きであり、分割すると同じ停止条件と確定事項が複数ファイルへ重複するため。
 
