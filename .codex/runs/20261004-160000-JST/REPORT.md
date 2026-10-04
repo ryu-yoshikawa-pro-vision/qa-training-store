@@ -26,3 +26,17 @@
   - Result: なし。
   - 親Agentの判断: なし。
 - Progress: 100% (9/9)
+
+
+## 2026-10-04 16:31 (JST)
+
+- Summary: 再レビューで指摘されたCodex IDE拡張の認証契約1件を修正した。
+- Changes: 新Planの完了条件、Codex拡張検証手順、検証表、Full Rebuild / Fresh Create確認項目を、CLIとIDE拡張が同じeffective `CODEX_HOME`とcached loginを共有する契約へ統一した。公式資料にCodex authenticationとenvironment variablesを追加した。
+- 判断 / 理由: OpenAI公式仕様ではCodex CLIとIDE拡張は同じcached loginを共有し、`CODEX_HOME`はCLI / IDE extensionの双方が利用する。CLI認証済みなのにIDEだけ再ログインを要求する場合、別認証で通すと環境差を隠すため、integration failureとして調査する。
+- Validation: 新Planから「CLI認証と独立してIDE利用可能」「IDE側で別途認証する」契約を除去し、shared `CODEX_HOME` / cached loginを完了条件と検証表の双方に反映した。Markdown link形式を維持した。
+- ブロッカー / 残作業: Plan修正自体にブロッカーなし。実機でのIDE拡張認証共有確認は実装フェーズで行う。push後の必須CI確認はRepositoryの`wait_for_required_ci`契約に従う。
+- Subagent:
+  - Delegation: なし。
+  - Result: なし。
+  - 親Agentの判断: なし。
+- Progress: 100% (10/10)

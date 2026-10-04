@@ -17,9 +17,10 @@
 - [x] 7. Playwright Recorder検証前に8081を再起動し、検証後に停止する手順へ修正する。
 - [x] 8. 親Planのdevcontainer / postCreate / port / browser境界を追加Planと同期する。
 - [x] 9. 修正後のPlan間契約とMarkdown sourceを静的確認する。
+- [x] 10. Codex CLI / IDE拡張のcached login共有と`CODEX_HOME`契約を公式仕様へ同期する。
 
 ## Blocked（ブロック中）
 
 - なし。
 
-Progress: 100% (9/9)
+Progress: 100% (10/10)

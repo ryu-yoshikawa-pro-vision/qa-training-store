@@ -32,7 +32,7 @@ Codespacesをブラウザから開くだけで、Repositoryの通常開発に加
 
 1. `.devcontainer/devcontainer.json`で`OpenAI.chatgpt`、`sst-dev.opencode`、`ms-playwright.playwright`を明示的に導入する。
 2. OpenCode拡張はCodespace内に導入済みのOpenCode CLIを利用して起動でき、選択中のファイルまたは範囲をOpenCodeへ渡せる。
-3. Codex拡張はCodespacesのブラウザ版VS Codeで起動でき、ChatGPTアカウントで利用可能な状態を確認する。CLI認証成功だけをIDE拡張の認証成功として扱わない。
+3. Codex拡張はCodespacesのブラウザ版VS Codeで起動し、既存PlanでCLIが同じeffective `CODEX_HOME`へ保存したcached loginを共有してChatGPTアカウントを利用できることを確認する。CLIが認証済みなのにIDE拡張が再ログインを要求する場合はPASSにせず、`CODEX_HOME`またはExtension Hostの環境差をintegration failureとして扱う。
 4. Playwright拡張が既存`playwright.config.ts`と`@playwright/test@1.62.0`を認識し、Testing sidebarから既存Chromiumテストを列挙・実行できる。
 5. `ghcr.io/devcontainers/features/desktop-lite:1`を追加し、`DISPLAY=:1`のGUI環境、Fluxbox、TigerVNC、noVNCを利用できる。
 6. noVNCの6080だけを`forwardPorts`へ追加し、5901は外部forwardしない。6080はGitHub Codespacesのprivate visibilityを維持し、public / orgへ変更しない。
@@ -194,7 +194,7 @@ ms-playwright.playwright
 ```
 
 - OpenCode側の自動extension installには依存しない。Fresh Createの再現性を優先し、devcontainerで明示する。
-- Codex CLIとCodex IDE extensionは別integrationとして検証する。
+- Codex CLIとCodex IDE extensionは同じeffective `CODEX_HOME`とcached loginを共有する。認証状態は共通だが、IDE UI / Extension Host経路の機能は別integrationとして検証する。
 - Playwright拡張は既存`playwright.config.ts`を利用する。
 
 ### 5.3 ChromiumをFresh Create時から利用可能にする
@@ -281,8 +281,9 @@ CLI GUI基盤がPASSした後だけ拡張機能を確認する。
 #### Codex
 
 - `OpenAI.chatgpt`が導入済みであることを確認する。
-- Codespacesブラウザ版でCodex panelを開けることを確認する。
-- ChatGPT sign-inが必要ならIDE側で認証する。CLIの`codex login status`だけを代替証拠にしない。
+- 既存PlanでCLI認証に使用したeffective `CODEX_HOME`をIDE拡張も使用していることを確認する。
+- CLIの`codex login status`が認証済みの状態でCodespacesブラウザ版のCodex panelを開き、IDE拡張が同じcached loginを再利用してサインイン済みになることを確認する。
+- IDE拡張だけが再ログインを要求する場合は別認証で回避せず、`CODEX_HOME`またはExtension Hostの環境差をintegration failureとして調査する。
 - 現在開いているRepository fileをcontextにしたread-onlyな質問を1回実行し、応答できることを確認する。
 
 #### OpenCode
@@ -303,6 +304,7 @@ Full Rebuild / Fresh Createでは追加で次を確認する。
 - 6080 listen / private forwarding。
 - Chromium install済み。
 - 3つのVS Code extension導入済み。
+- Codex IDE extensionがCLIと同じeffective `CODEX_HOME` / cached loginを共有し、再ログインなしで利用可能。
 - CLI codegen GUI smoke。
 - Playwright extension Test Explorer / Show Browser。
 - Fresh Createで`Record new` / `Record at cursor`。
@@ -323,7 +325,7 @@ Chromiumがshared memory不足を示す具体的なfailureを出した場合に�
 | --- | --- | --- |
 | VS Code拡張配布 | container内extension一覧 + VS Code UI | 3拡張が導入済み |
 | OpenCode extension | extension起動 + file context | Codespace内CLIを利用しcontext連携できる |
-| Codex extension | panel起動 + IDE sign-in + read-only prompt | CLI認証と独立してIDE利用可能 |
+| Codex extension | shared `CODEX_HOME` / cached login + panel起動 + read-only prompt | CLI認証を共有し、再ログインなしでIDE利用可能 |
 | Playwright extension | Testing sidebar | existing config / Chromium testsを認識 |
 | Chromium install | `pnpm exec playwright install --list`等 | Repository version対応Chromiumが存在 |
 | desktop-lite | `DISPLAY` / process / 6080 | `DISPLAY=:1`、desktop表示可能 |
@@ -420,4 +422,6 @@ headed Chromiumでshared memory不足が実測された場合だけ`--shm-size=1
 - [GitHub Codespaces port forwarding](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
 - [GitHub Codespaces security](https://docs.github.com/en/codespaces/reference/security-in-github-codespaces)
 - [Codex VS Code extension](https://marketplace.visualstudio.com/items?itemName=OpenAI.chatgpt)
+- [Codex authentication](https://learn.chatgpt.com/docs/auth)
+- [Codex environment variables](https://learn.chatgpt.com/docs/config-file/environment-variables)
 - [OpenCode IDE integration](https://opencode.ai/docs/ide/)
