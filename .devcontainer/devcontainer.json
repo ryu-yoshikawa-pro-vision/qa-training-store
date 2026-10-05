@@ -15,7 +15,7 @@
   "containerEnv": {
     "OPENCODE_DISABLE_AUTOUPDATE": "true"
   },
-  "postCreateCommand": "bash -lc 'set -e; corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; npm install --global @opencode/cli@2.0.22; npm install --global @openai/codex@0.160.0'",
+  "postCreateCommand": "bash -lc 'set -e; sudo corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; sudo npm install --global @opencode/cli@2.0.22; sudo npm install --global @openai/codex@0.160.0'",
   "forwardPorts": [8081, 6080],
   "portsAttributes": {
     "8081": {

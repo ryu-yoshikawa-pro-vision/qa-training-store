@@ -26,15 +26,15 @@
 - [x] 22. devcontainer、AGENTS最小修正、条件付きOpenCode auth configを実装する（Free-only keylessのためauth configは追加しない）。
 - [x] 23. READMEを通常利用者向け情報と正本リンクに絞って更新する。
 - [x] 24. candidate前verify / diff / repair-loop確認を行う。
-- [ ] 25. candidate commit / pushしSHAを固定してbranchをfreezeする。
-- [ ] 26. Phase B Codespaceをclean確認後にff-onlyでcandidateへ同期する。
-- [ ] 27. Full Rebuildしactive devcontainerPath / machineを確認する。
-- [ ] 28. Full Rebuild内でauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex / API、verify、Web、tracked cleanを確認する。
-- [ ] 29. Full Rebuild CodespaceをCodex logout後にstopする。
-- [ ] 30. dotfiles一時OFF、canonical machine、explicit devcontainer、`--status`でFresh Codespaceを作成して即時復元する。
-- [ ] 31. Fresh CreateのHEAD / machine / devcontainerPath / auth zero-state / target contractを確認する。
-- [ ] 32. Fresh CreateでOpenCode / Codex / API、Git identity / push dry-run、verify、Web、tracked cleanを確認する。
-- [ ] 33. 必要なrepair /環境変更が出た場合はnew candidateからFull Rebuild / Fresh Createをやり直す。
+- [x] 25. candidate commit / pushしSHAを固定してbranchをfreezeする。
+- [x] 26. Phase B plain Codespaceのbaseline / clean状態を確認した（当時candidateへff-only同期した事実は履歴として保持し、canonical validation対象から除外）。
+- [ ] 27. 修正後のnew candidate SHAからcanonical machineとexplicit `.devcontainer/devcontainer.json`を指定して新規Codespaceを`--status`で作成し、dotfiles元状態へ即時復元する。
+- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / Creation Log / postCreate / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。
+- [ ] 29. Task 28がPASSした同じcandidate-created CodespaceをFull Rebuildし、Creation Log / canonical machine / target Runtimeを確認する。empty `devcontainerPath` aloneはFAILにしない。
+- [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。
+- [x] 31. main Codespace成功とPhase B plain Codespaceの既存container reuse / recovery evidenceをRunへ記録し、Fresh Create failureと分離する。
+- [x] 32. Phase B plain Codespaceのmigration / baseline evidenceを保全し、不要になった時点でstopする。deleteしない。
+- [ ] 33. 確定した`corepack enable` system-wide write failureを限定修正し、Repository検証 / scope / sanitizer PASS後にnew candidateを通常commit / pushしてSHAを固定する。
 - [ ] 34. candidate evidenceをPlan / Run Artifact / PR本文へ反映する。
 - [ ] 35. final verify / diffを実行し、failureはrepair-loopへ従う。
 - [ ] 36. tracked Plan / Run Artifactを最終化して通常commit / pushする。
@@ -57,7 +57,8 @@
 
 - dotfilesは各create直前だけ一時OFFにし、作成・未適用確認後すぐ元状態へ戻す。途中停止でも復元を優先する。
 - validation-only Codex credentialは最終利用後に`codex logout`し、未認証を確認する。
-- Phase B / Full Rebuild CodespaceはTask 28後のcleanupでstopする。
+- Phase B plain CodespaceはTask 32でbaseline evidence記録後にstopする。
+- candidate-created canonical CodespaceはTask 39完了までstopしない。
 - canonical Fresh CodespaceはTask 39完了までstopしない。ユーザーが継続利用を明示しない限りTask 40でlogout / stopする。
 - cleanup不能時は未復元 / 未logout / 未停止状態をBlockerとしてREPORTとユーザー報告へ記録する。
 - Codespace deleteは行わない。
@@ -77,7 +78,7 @@
 - Task 17 evidence note (non-blocking): `gh codespace create --status`はCodespace作成後の初回SSHでexit 1となりprimary出力を保存できなかった。既存Codespace `stunning-space-goggles-977gqrjrrwx6hxxp7`のcontrol-plane情報とCodespace内HEAD / full worktreeは後続確認済み。Codespaceを重複作成しない。
 - Task 18 security event: CodespaceへのPowerShell multiline command forwarding後にshell variable valuesを含む出力が返り、`OPENCODE_API_KEY`とCodespaces `GITHUB_TOKEN`が露出した。remote commandがbare `set`として解釈された可能性が高いが正確なargv解析は未確認。値は記録・再掲しない。control shellからstopを要求し、`Shutdown`を確認済み。ユーザーはZen key再発行を申告した（値・新Secretは確認していない）。本RunはFree-only / keylessなので、smoke processへkeyを渡さず、Personal Secretも変更しない。
 - Token caveat: GitHub公式仕様はCodespace restartごとに新しい自動期限付き`GITHUB_TOKEN`が発行されることを示すが、旧tokenの即時失効までは確認できない。旧tokenは利用せず、漏えい値を再取得・記録しない。
-- 再開gate: local / PR / Run状態とCodespace `Shutdown`を確認済み。review済みのcredential-free scriptをignored `.artifacts/codespaces-smoke/phase-b/`へ保存し、`Get-Content -Raw -LiteralPath $scriptPath | gh codespace ssh -c $codespaceName -- bash -s`でstdinへ渡して固定markerだけを出力させる。完全一致のPASS以外は安全な終了概要のみ記録して停止し、inline / `bash -lc`へfallbackしない。scriptではbare `set`、`env`、`printenv`、shell tracing、全environment / shell state dumpを禁止する。
+- Historical Task 18 Phase B shell-smoke gate: the fixed-marker / stdin guidance below applied only to that earlier smoke and was superseded by its later PASS record. It is not a Task 27 / Full Rebuild transport requirement. Do not use it to block Task 27 or trigger SSH-specific repair.
 - Task 18 Phase B stop checkpoint (2026-10-05 01:55 JST): Codespace `stunning-space-goggles-977gqrjrrwx6hxxp7` is `Available`, `basicLinux32gb`, empty `devcontainerPath`, HEAD `0d554416d2e31eeda89f705dbe2a3db79492a3b6`; branch / tracked / index clean. OpenCode `2.0.22` Free keyless AGENTS smoke (`attempt-1.txt`) and native `feature-plan` Skill smoke (`attempt-3.txt`) passed. The first Skill command used unsupported `opencode run --dir`; exact-version help confirmed no such flag and SSH's initial directory was outside the repository. The retry ran from the repository root. Development smoke (`attempt-4.txt`) did not pass: no `read`, `write`, or `bash` tool events, content did not match the required two lines, and its stream contained 3 valid JSON lines plus 3 malformed lines. No explicit authentication, network, quota, permission, CLI, or tool-capability error was found. Its OpenCode process used only the HOME/PATH/LANG/auto-update allowlist; no credential value was output. Stop Task 18 under the Phase B OpenCode smoke failure condition; do not start Task 19/20 until resolved.
 - 2026-10-05 11:32 JST Task 19再開: ユーザーはCodex device-code認証完了を申告。branch / local / remote PR head `9fb97917d75c61e74249ea0d49d76841eb25474e`、latest `origin/main` `813699a57a8b8f114fb7419b74fddba49b5dd908`、index clean、既存4 tracked変更を確認。同じPhase B Codespaceは`Available` / `basicLinux32gb` / empty `devcontainerPath` / baseline HEAD `0d554416d2e31eeda89f705dbe2a3db79492a3b6`。read-only `codex login status`分類を含む固定形式scriptを1回送ったが、SSH exit 0 / stdout 1行 / stderr 0行で、その行は期待する固定markerに一致しなかった。rawは表示・保存・再分類していない。Task 19認証状態は未確定、Task 20未着手。別remote commandやtransportへfallbackせず、transport gateで停止。詳細はREPORT 2026-10-05 11:32 JST記録。
 - 2026-10-05 02:11 JST follow-up: `git fetch origin` and `gh pr view 188` reconfirmed local / remote PR head `9fb97917d75c61e74249ea0d49d76841eb25474e`, latest `origin/main` `813699a57a8b8f114fb7419b74fddba49b5dd908`, PR OPEN. A read-only recheck of the existing Skill artifact via `control-command-attempt-25.sh` returned SSH exit 0 but 11 stdout lines where the strict allowlist expected 10; the output was not displayed or saved, so this recheck is inconclusive. No more Codespace commands were sent. No model was called and no credential value was displayed or recorded. Official Zen model metadata lists model IDs but no tool-capability field, so the development smoke failure cannot be reclassified as model capability failure. Keep Task 18 blocked under B-1 stop condition; no account setting change is required.
@@ -89,5 +90,24 @@
 - attempt-4 diagnosis: Three non-JSON lines are each permission requested=false, auto-rejecting=false, error=false, warning=false, ANSI/UI-only=false, credential-like=false, other=true. OpenCode DB session evidence shows 22 tool calls (`read=5`, `write=1`, `shell=13`, `glob=1`, `grep=2`), so the run was not text-only and model change / A-B comparison is not indicated. Local reviewed attempt-4 launcher redirected OpenCode JSON stdout/stderr to the same path assigned to the model artifact, which explains the artifact/stream collision. No raw text, tool argument, DB row, Secret, or credential value was emitted or recorded.
 - Plan correction: exact v2.0.22 Runtime default DB path is `~/.local/share/opencode/opencode.db` (not the stale `opencode-next.db` path); safe DB counts were zero credential / account rows, `OPENCODE_DB` override unset, legacy auth file absent. Canonical Plan now records that exact-version observation and explicitly separates stdout / stderr from the model output artifact. Free-only model and retry conditions are unchanged.
 - Historical stop entries above are superseded by the 2026-10-05 diagnosis and runtime evidence recorded in the latest REPORT section. Task 18 attempt-5 PASS、Task 19 authenticated status PASS、Task 20 Hook / same-session smoke / subagent / `ci_wait` / GitHub API PASS、Task 21 Phase B→C checkpoint recorded、Task 22/23 implementation PASS. Task 24 completed after user approval of the two-script L2 parallelism change; targeted suites and full pnpm run verify passed. See the 2026-10-05 17:37 JST REPORT section.
+- 2026-10-05 18:27 JST Task 27 blocker (superseded by the 19:16 JST clarification): Full Rebuild returned the existing Codespace to Available on basicLinux32gb, but gh codespace view reported an empty devcontainerPath. The earlier SSH-shell checks did not establish target-container status. At that point Creation Log retrieval and target Runtime were unconfirmed. Do not use empty devcontainerPath alone as FAIL and do not request manual VS Code log inspection; follow the 19:16 JST checkpoint. Candidate 48a92742dd1892835d6b5f5e3516cfce1d8adfc3 remains frozen.
+- 2026-10-05 19:16 JST superseding Task 27 checkpoint: Per approved L2 correction, empty `devcontainerPath` alone is not a Full Rebuild failure; use Creation Log + target Runtime. Fresh Create exact path remains required. Codespace now reports `Shutdown` / `basicLinux32gb`. A bounded `gh codespace logs` classifier timed out without capturing stdout/stderr; no raw log was displayed or saved. The start API request was blocked by automatic approval review before execution. The temporary classifier and its SSH children were removed/terminated. Await the same Codespace being `Available`, then resume Task 27. Task 27 stays unchecked and Task 28 is not started; no rebuild was repeated.
+- 2026-10-05 19:41 JST Task 27 SSH diagnostic (superseded by the 22:33 JST user correction): `gh codespace logs` timed out with no captured bytes. `ssh-add -l` exit 2 was classified as agent unavailable, so loaded identity count was unknown; a passphrase prompt was only a hypothesis. This diagnosis is historical and not a Task 27 blocker. Do not perform SSH-agent, key, or config changes.
+- 2026-10-05 22:33 JST Task 27 resume: candidate / local HEAD / PR #188 head `48a92742dd1892835d6b5f5e3516cfce1d8adfc3` match. Prior Full Rebuild command exit 0 is recorded; current Codespace metadata is `Available`, `basicLinux32gb`, expected branch, clean / no unpushed changes, empty `devcontainerPath` informational. Candidate `.devcontainer/devcontainer.json` exists. User reports recovery-mode-looking IDE; control-plane data does not classify it as devcontainer failure. No Creation Log bytes or target Runtime evidence are available. No rebuild repeated. `gh api user/codespaces/<name>` was rejected by automatic approval review before execution; no API request was sent. User requested no browser operations. Task 27 remains open; Task 28 has not started. Human handoff is limited to the normal IDE terminal checks `whoami`, `node --version`, `pnpm --version`, `opencode --version`, `codex --version`, `gh --version`.
+ Progress: 67% (28/42、必須CI確認1件を含む)
 
- Progress: 57% (24/42、必須CI確認1件を含む)
+## 2026-10-05 23:27 JST — Candidate validation path update
+
+- Supersedes the earlier human handoff that requested runtime checks in the old Phase B Codespace. The user-provided Creation Log describes existing plain-container reuse failure (`node` user missing) followed by a `vscode` recovery container; it does not establish a Fresh Create failure.
+- User reports a main-branch Codespace starts normally. Record this only as broad baseline evidence, not proof that the PR devcontainer works.
+- Candidate `.devcontainer/devcontainer.json` and `remoteUser: "node"` remain unchanged. No image / Feature / lifecycle / CLI install edits.
+- Task 27 is now the one explicit-path Fresh Create; Task 28 verifies its metadata and target contract; Task 29 Full Rebuilds that same candidate-created Codespace once; Task 30 performs post-Rebuild validation. Task 31 records the supplied baseline evidence and is complete; Task 32 stops the old Phase B plain Codespace after its evidence is preserved.
+- Candidate remains frozen at `48a92742dd1892835d6b5f5e3516cfce1d8adfc3`. Fresh Create has not yet run. Do not Rebuild the old Phase B Codespace, operate a browser, or perform SSH-specific repair.
+
+## 2026-10-06 00:01 JST — Fresh Create control-plane and runtime checkpoint
+
+- Fresh Codespace `probable-spoon-wrrq9pgppxvp36rq` exists, is `Available`, and reports candidate branch, candidate HEAD via the existing Codespaces command route, `basicLinux32gb`, and exact `.devcontainer/devcontainer.json` metadata.
+- Its AI-visible Runtime facts are `whoami=vscode`, uid `1000`, and Node / pnpm / OpenCode / Codex / gh all unavailable. Treat the target contract as unconfirmed and do not start Full Rebuild until the first Creation Log failure stage and normal IDE Runtime are confirmed.
+- `gh codespace create --status` and `gh codespace logs` were each started once, returned no usable output, and their local waiting processes were interrupted; no logs were saved or displayed. No SSH setup/repair, browser operation, source edit, new candidate, or Rebuild was performed.
+- The old Phase B plain Codespace `stunning-space-goggles-977gqrjrrwx6hxxp7` is `Shutdown`; stop command exit was nonzero but control-plane state confirms the requested result. Task 32 is complete. Candidate Fresh Create Tasks 27–28 remain incomplete; Tasks 29–30 have not started.
+- Human evidence needed only for the new Codespace: normal IDE terminal values for `whoami`, `id -u`, CLI versions, and `command -v` results, plus a safe summary of the first Creation Log failure stage and `postCreateCommand` completion. Do not provide raw logs or credential content.
