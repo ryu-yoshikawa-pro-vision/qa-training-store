@@ -1,6 +1,6 @@
-# Codex Working Agreement
+# Repository Agent Working Agreement
 
-Codex は、このリポジトリで作業するとき、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。
+Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / wrapper / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
 
 ## 1. 基本原則と常駐契約
 

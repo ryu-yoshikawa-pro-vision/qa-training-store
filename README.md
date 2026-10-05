@@ -96,6 +96,45 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 - Cloudflare Pages
 - pnpm
 
+## GitHub Codespaces
+
+Repositoryの **Code → Codespaces** からCodespaceを作成できます。開発containerはNode.js、pnpm、GitHub CLI、OpenCode CLI、Codex CLI、Chromiumと、Codex / OpenCode / PlaywrightのVS Code拡張を準備します。起動後は次でversionを確認できます。
+
+```bash
+node --version
+pnpm --version
+gh --version
+opencode --version
+codex --version
+```
+
+### OpenCode Free model
+
+`opencode`を起動し、OpenCode Zenで現在Freeとして提供されているmodelを選んでください。今回の利用条件はFree-onlyです。model IDはRepository設定に固定していません。Free利用にPersonal Codespaces SecretやOpenCodeの`/connect`設定は必要ありません。
+
+### Codex
+
+Remote Codespaceでは、ChatGPT側でCodex CLIのdevice-code認証を有効にしてから、次のコマンドでChatGPTへログインできます。
+
+```bash
+codex login --device-auth
+codex login status
+```
+
+ログアウトする場合は`codex logout`を実行してください。今回のCodespaces利用ではAPI key、access token、auth cacheのコピーへ切り替えません。
+
+### Playwright Desktop
+
+Webアプリを`pnpm run start:web`で起動すると8081を利用できます。Codespace内のChromiumとPlaywright InspectorをGUIで操作するときは、Portsタブから **Playwright Desktop (6080)** を開きます。このportはGitHub Codespacesのprivate設定のまま使用してください。5901は公開しません。
+
+通常のPlaywright録画は次で開始できます。
+
+```bash
+pnpm exec playwright codegen http://127.0.0.1:8081
+```
+
+Playwright拡張ではTesting sidebarからテストを実行し、`Record new`または`Record at cursor`で操作を記録できます。Codespaces環境、認証、拡張、GUI録画の詳細な検証条件は[Codespaces / OpenCode / Codex Plan](docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)と[IDE / Playwright Plan](docs/plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)を参照してください。
+
 ## 仕様とAgentic QA
 
 - Normative Product Specification: [`docs/spec/README.md`](docs/spec/README.md)
