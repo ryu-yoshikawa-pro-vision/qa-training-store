@@ -427,7 +427,7 @@ OpenCode model IDはRepository設定に固定しない。本Runの実行では�
 - OpenCode smoke command shapeは`/usr/bin/env -i HOME="$HOME" PATH="$PATH" LANG=C.UTF-8 OPENCODE_DISABLE_AUTOUPDATE=true opencode run --format json --model <runtime-selected-free-zen-model-id> "$prompt"`。OpenCode JSON stdout / stderrは別々にcaptureし、どちらもmodel artifactへredirectしない。`OPENCODE_API_KEY`はprocess environmentへ渡さない。raw event streamはRun Artifactへコピーしない。
 - attempt-5はexit 0、JSON event 13件、non-JSON 0件、stderr 0件、tool event 4件（`read=2`、`write=1`、`shell=1`）、tool error 0件。新規ignored `attempt-5.txt`をshell検証し、tracked / indexはcleanだった。attempt-4の原因はevent streamとmodel artifactの同一fileへのredirectで、permission rejectやFree modelのtext-only応答ではなかった。
 - OpenCode v2.0.22 default databaseは`~/.local/share/opencode/opencode.db`。`OPENCODE_DB` overrideはunset、legacy `~/.local/share/opencode/auth.json`はabsent、safe database分類ではcredential / account rowは0件。Full Rebuild / Fresh Createでもcredential-free状態を確認する。
-- Codex device-code loginは`codex login --device-auth`を使用し、認証確認の正本は`codex login status`。Task 19/20のeffective `CODEX_HOME`は未設定時の`/home/codespace/.codex`。targetでは`CODEX_HOME`を設定せず、login / trust / smoke / subagent / `ci_wait`全工程でdefault `/home/node/.codex`を使う。
+- Codex device-code loginは`codex login --device-auth`を使用し、認証確認の正本は`codex login status`。Task 19/20のeffective `CODEX_HOME`は未設定時の`<USER_HOME>/.codex`。targetでは`CODEX_HOME`を設定せず、login / trust / smoke / subagent / `ci_wait`全工程でdefault `<USER_HOME>/.codex`を使う。
 - Task 20の同一App Server threadでread-only / development smoke / bounded read-only subagentがPASSした。詳しいsession IDとHook event countsはactive Run REPORTを参照する。`ci_wait` MCP serverはconnectedで`wait_for_required_ci`をdiscoverした。Phase Bではwait toolを呼び出さない。Codex / `ci_wait` processでは`GH_TOKEN`を除外し、Codespaces標準`GITHUB_TOKEN`を使う。PR #188、`ci.yml` / `native-ci.yml` runsと取得したworkflow run detailへのread-only GETは成功した。
 - Target image `mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm`は公式image tagとして利用可能で、non-root `node` userとsudo accessを備える。`ghcr.io/devcontainers/features/github-cli:1`はDebian / Ubuntu系をサポートする。出典: [TypeScript Node image](https://github.com/devcontainers/images/blob/main/src/typescript-node/README.md)、[GitHub CLI Feature](https://github.com/devcontainers/features/tree/main/src/github-cli)。
 - `postCreateCommand`はworkspace rootで次を順番にfail-fast実行し、完了を`waitFor: "postCreateCommand"`で待つ。実行userは`node`。`corepack enable`のshim作成とglobal npm package installは`/usr/local`へのsystem-wide writeとなるため、その3 commandだけを`sudo`で実行する。Repository dependency installとPlaywright install commandは`node`のまま実行する。
@@ -1054,10 +1054,10 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - [ ] 16. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
 - [x] 17. remote head == candidate SHAを確認し、dotfiles元状態を確認したうえでcanonical machine / explicit devcontainer / `--status`によるFresh Createを1回行い、dotfiles未適用を確認して直ちに元状態へ戻す。
 - [x] 18. Fresh Createでrepository / branch / HEAD / machine / exact devcontainerPath / target user / CLI versions / PATH / effective CODEX_HOMEを確認する。Creation LogはRuntimeだけでは失敗箇所を判定できない場合に取得し、Runtime contract PASS時の必須条件にしない。
-- [ ] 19. Fresh Createのauth zero-state、OpenCode / Codex integration、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、tracked cleanを確認する。Hook / API / GitのPASS報告はFull Rebuild後のTask 22へ帰属し、Fresh Createではauth zero-state / Repository integration / Hook / subagent / `ci_wait` / Web smokeを未確認のため継続する。
+- [ ] 19. Fresh Createのauth zero-state、OpenCode / Codex integration、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、tracked cleanを確認する。Fresh Createではtarget metadata / Runtime / 作成直後のtracked clean以外を未確認とする。PostToolUse / Stop timeout修正のCodespaces実測は独立した後続sessionのevidenceであり、Fresh CreateのHook確認へ流用しない。
 - [x] 20. Full Rebuild直前に同一candidate-created CodespaceのHEAD / tracked・index clean / environment-impacting untracked fileなしを確認し、`gh codespace rebuild --full`を1回行う。
 - [x] 21. 同じCodespaceのFull Rebuild後にcanonical machine / target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failureの原因特定に必要な場合だけ取得し、`devcontainerPath`の空値だけではFAILにしない。
-- [ ] 22. Full Rebuild後のauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。Linux Codespacesの`pnpm run verify`はbuild:specまで失敗0件（contracts 48 files / 806 passed / 18 skipped）。ユーザー確認により同じ`turbo-umbrella-7vvjr6p66jvgcgg4`でHEAD=`3c243f38b627c282fc779e7c13b98dbae08f1c74`、`git status --short`空。Codex / OpenCodeの基本利用、Hook、required GitHub API、Git identity / remote / push dry-runはユーザー報告でPASS。auth zero-state / Repository integration / subagent / `ci_wait` / Web smokeは未実施のため継続する。
+- [ ] 22. Full Rebuild後のauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。Full Rebuild Runtime contract PASSと、HEAD=`3c243f38b627c282fc779e7c13b98dbae08f1c74`での過去Linux verify / clean報告は履歴として保持する。ユーザーは後続の確認項目（auth zero-state / integration / Hook / subagent / `ci_wait` / GitHub API / Git / Web）を実行していないと訂正したため、Task 22のPASSへ流用しない。後続Codespaces verify 2回はESLint開始後にexit 143で終了しておりPASSではない。PostToolUse / Stop timeout修正のHook固有runtime・test evidenceは別sessionの結果として記録し、Full Rebuild phaseへ帰属させない。auth zero-state / integrations / GitHub API / Git / Web等は未確認のため継続する。
 - [ ] 23. Phase B plain Codespaceをbaseline evidenceとして記録し、不要になった時点でstopする。deleteしない。
 - [ ] 24. Fresh Create後に環境影響repair /変更が出た場合はnew candidateを作り、Full Rebuild / Fresh Createを両方やり直す。
 - [ ] 25. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
@@ -1078,3 +1078,21 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - CI failureでsafe minimal repairを行いnew final HEADをpushした場合は、その新exact HEADに対してのみwaiterを1回実行する。
 - waiter利用不能時はBlockerとし、終了時cleanup契約を実行してから報告する。
 - CI結果記録だけを理由にこのfileを再commitしない。
+
+## Post-candidate Hook timeout修正 evidence（2026-10-07）
+
+- PR #188 headは`17e612b1b5fadf8736de9b99d6f437a94ef397a4`。ユーザーが指定した`176e612b1b5fadf8736de9b99d6f437a94ef397a4`はGitHub上に存在せず、remote PR head / commit APIで確認した正確なSHAは`17e612b1b5fadf8736de9b99d6f437a94ef397a4`。
+- commitの親は`8275e8574c6c43830f25375a35aa7d60e05545b3`。実diffは`.codex/hooks/text_quality_gate.mjs`、`tests/contracts/codex-text-quality.test.ts`、`docs/adr/0026-codex-text-quality-gate.md`の3ファイルだけ。環境影響ファイル、dependency、lockfile、認証、Node / pnpm / OpenCode / Codex設定は変更していない。したがってFresh Create / Full Rebuildは再実行しない。
+- PostToolUseは安全に取得できた明示Markdown pathだけを即時scanし、pathを得られないtoolやintersection 0件では他の変更Markdownへfallbackしない。Stopは従来どおり全変更Markdownを最終scanする。ユーザー実測のpathなしBash 5回は217 / 284 / 251 / 283 / 222 msで、10秒timeout再発なし。
+- Stopはcurrent本文を先にscanし、違反0件ならbaseline本文をread / scanしない。違反がある場合のみ従来のbaseline fingerprint比較を行う。Stop(false) block、quality check不能時のfail-close、Stop(true) allow / cleanup、rename / move、全変更Markdown最終検査を維持したというユーザー提供の実装・検証説明。
+- Hook固有validation（ユーザー報告）: `tests/contracts/codex-text-quality.test.ts` 60/60、`tests/contracts/codex-hook-contract.test.ts` 154/154、`pnpm run test:hooks` 230/230、`pnpm run diagnose:hooks` WARN 0 / ERROR 0、ESLint 0 errors（既存65 warnings）、typecheck、security、web build、spec build、format、Markdown lint、text lint、`git diff --check` PASS。修正Hookは同じ実Codex sessionで発火し、Hook JSONL記録も継続。effective `CODEX_HOME=<USER_HOME>/.codex`（sanitizer token）。
+- Codespacesの標準`pnpm run verify`は2回ともESLint開始後にexit 143。PASSとして扱わず、Hook修正原因とは断定しない。localでの最終標準verifyは別途1回実行し結果を記録する。
+- このHook修正runtime sessionをFresh Create / Full Rebuildのどちらかへ推測で帰属しない。既存Task 19 / 22の環境別auth・integration・GitHub API・Git・Web検証も代替しない。
+
+## 最終検証状態（2026-10-07）
+
+- PR #188はopen / non-draft。actual headは`17e612b1b5fadf8736de9b99d6f437a94ef397a4`。`176e612b1b5fadf8736de9b99d6f437a94ef397a4`はGitHubに存在せず、指定SHAの誤記。
+- local標準`pnpm run verify`はPR headで1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。format / lint / validation / typecheck / security / unit / integration / repository / component stagesはpass、test failureのためweb / spec buildは未到達。全失敗test fileと環境観測はactive Run REPORTに記録する。これはPASSではなく、Hook変更に起因すると確定したものでもない。
+- Windows `pwsh.exe`起動のAccess deniedに伴うcontract launcher失敗と、原因未確定の`ci-wait-mcp` child process `Connection closed`を分けて記録する。Windows権限・toolchainを変更せず、verifyを再実行しない。
+- candidateからPR headまでのcompareは6 commits / 8 pathsで、devcontainer、dependency / lockfile、CLI / install契約など環境影響pathは0件。よってFresh Create / Full Rebuildを再実行しない。
+- Task 35の標準verifyは未完了。Required CIとPR本文更新、およびCodespaces上のTask 28 / 30 broader integration / Web validationは未完了であり、PR完了とは扱わない。

@@ -719,3 +719,84 @@
 - Commit `708b8d5f3e9f4fadb4337327dfc98521b5392485`のwaiterは`ci_failure`を返した。`Web CI`は再びUbuntuの`Check changed Codex artifacts` stepで失敗し、Windows sanitizerと他の主要jobは成功。waiter応答時点の`Mobile App CI`はin progress。waiterは再実行しない。
 - 原因を調べると、最初の修正後に追加したCI診断文が、検出されたtemporary pathの生文字列を2か所に記載していた。PR branch内のactive REPORTにその文字列が残っていることをread-only検索で確認した。
 - Findingは`must_fix`。許可範囲はactive `REPORT.md`だけ。診断内容は保ちつつ、temporary pathの生文字列を文章から除去し、正規化済み`<TEMP_ROOT>`表記だけを残す。これ以上Sanitizer failureが続く場合はrepair-loopの反復停止条件に従う。
+
+## 2026-10-06 20:51 JST — Task 28 target execution経路の再開
+
+- 対象: Fresh Create Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`、candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`。PR #188 / local branch headは`8275e8574c6c43830f25375a35aa7d60e05545b3`で一致、local tracked / indexはclean。
+- Control plane: ユーザーの明示承認に従い`gh api --silent --method POST /user/codespaces/turbo-umbrella-7vvjr6p66jvgcgg4/start`を1回実行。Codespaceは`Shutdown`から`Starting`を経て`Available`。Repository / branch ref / `basicLinux32gb` / `.devcontainer/devcontainer.json` / ahead・behindなし / uncommitted・unpushedなしを確認した。start requestは再送していない。
+- Target command transport: Plan既存のstdin `bash -s`経路へsecret値を含まないread-only status / auth-zero-state scriptを一度送ったがexit 1で、応答は許可形式に一致しなかったため全内容を表示・保存せず抑止した。固定markerだけのstdin scriptは合計2回実行し、両方ともexit 1、marker 0件、応答12行だった。2回目は初回応答を追加分類するために再実行した。追加のsecret-safe分類はpermission request=false、automatic rejection=false、error indicator=true、warning=false、ANSI=false、credential-like=false、other lines=12。raw応答は表示・保存せず、SSH固有の設定・鍵・agentを調査・変更していない。これはtransport invocationの結果であり、Codespace / devcontainerの失敗証拠ではない。
+- 代替経路確認: 現在のtool catalogにCodespaces target runtime terminal connectorはない。GitHubの[Codespaces REST API endpoints](https://docs.github.com/en/rest/codespaces)はCodespaceの一覧・作成・取得・更新・start・stop等の管理APIを列挙しており、in-container command execution endpointはない。追加wrapperやremote access方式は作成しない。
+- Task 28 evidence分類: **PASS** — 以前のユーザー提供Fresh Create runtime contract（HEAD `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOME、Fresh Create時tracked clean）および今回のcontrol-plane metadata。個別判定は以下。
+  - **未実施** — OpenCode persisted credential zero-state / Codex `login status`。read-only scriptの有効結果を受信できず、login flowは開始していない。
+  - **未実施** — OpenCode Repository instructions / Skill / development integration。
+  - **未実施** — Codex Repository integration.
+  - **BLOCKED** — Hook runtime.
+  - **BLOCKED** — bounded subagent.
+  - **BLOCKED** — `ci_wait` MCP startup / `wait_for_required_ci` tool discovery。
+  - **BLOCKED** — target Codespace内のrequired GitHub API。
+  - **BLOCKED** — target Git identity。
+  - **BLOCKED** — target remote / `git push --dry-run`。
+  - **未実施** — Fresh Create Codespace上の`pnpm run verify`。
+  - **BLOCKED** — Web server / HTTP / heading smoke。target shell実行不可のためserverを開始していない。
+  - **PASS** — Fresh Create時のtracked / index clean（ユーザー提供実測）。**未実施** — Task 28検証完了後の最終tracked / index clean。
+  - 上記についてFull Rebuild後・他SHA・Phase Bの結果はFresh Create evidenceへ流用しない。
+- 最終tracked clean: Fresh Create時の`git status --short`空はユーザー提供PASS。今回、targetへのwrite / login / test / smokeは実行しておらず、control planeもcleanを示す。Task 28の検証終了後cleanとしての再確認は未実施。
+- 停止理由: Codespaceは起動済みだが、AI側の既存target execution経路からallowlisted command結果を取得できず、Codespaces管理APIにもin-container command実行手段がない。SSH自体を成果条件やdevcontainer判定へ加えていない。Task 28は未完了のまま保持し、必要な人間操作は通常IDE Terminalからのruntime検証に限られる。
+- Candidate SHA / environment configは変更していない。Task 28が未完了のためProgressは`76% (32/42、必須CI確認1件を含む)`のまま。
+- Artifact validation: `git diff --check`、変更対象Run Artifact sanitizer（2 files / 0 residual findings）、`pnpm run lint:text`（変更Markdown 2 files）、Markdown lint（465 files / 0 issues）がPASS。Product / devcontainer / test sourceは変更していない。
+
+## 2026-10-06 21:16 JST — Direct remote commandの確認
+
+- ユーザー指示に従い、先行するstdin `bash -s`の結果だけでremote executionの有無を判定せず、最小direct commandを実行した。
+- Command: `gh codespace ssh -c turbo-umbrella-7vvjr6p66jvgcgg4 -- whoami`
+- Exit code: `1`
+- Safe error summary: GitHub CLIはCodespace container内のSSH serverを起動できず、containerにSSH serverがないと報告した。credential値は表示されていない。
+- `whoami`が失敗したため、指示された停止条件に従って`id -u`やTask 28の別remote commandは実行しない。Windows `ssh-agent`、SSH鍵、`.ssh/config`、containerの`sshd` Feature、Plan成果条件は変更しない。
+- この結果はdirect remote execution transportの実行不能を示す。Codespace metadataは`Available`であるため、target devcontainer構築failureの証拠にはしない。Fresh Create固有のTask 28 runtime項目は未確認のまま、Task 28を未完了とする。
+
+## 2026-10-07 07:36 JST — Hook timeout修正のremote diff確認とevidence分離
+
+- GitHub App経由でPR #188をread-only確認。PRはopen / draft。実headは17e612b1b5fadf8736de9b99d6f437a94ef397a4。依頼記載の176e612b1b5fadf8736de9b99d6f437a94ef397a4はcommit APIで見つからず、PR headにある実SHAと一致しない。実headの親は8275e8574c6c43830f25375a35aa7d60e05545b3で、compare結果はahead 1 / behind 0。
+- 実commit「fix: Stop Hookで不要なbaseline scanを省く」のdiffは次の3ファイルのみ: .codex/hooks/text_quality_gate.mjs、tests/contracts/codex-text-quality.test.ts、docs/adr/0026-codex-text-quality-gate.md。remote commit treeは9c0e8c2b10d12670e67cd9136e16bea846ed2876。3つのlocal file blob SHAはcommit API上の各blob SHAと一致し、実diffを確認した。devcontainer、dependency、lockfile、認証、Node / pnpm / OpenCode / Codex version、install契約の変更はない。
+- ユーザー提供の実装説明: PostToolUseは安全に特定できた明示Markdown pathだけを即時scan。pathなしBash等と明示path / changed pathのintersection 0件では別Markdownへfallbackしない。Stopでは全変更Markdownを最終検査する。pathなしBashを実Codex sessionで5回実行した値は217 / 284 / 251 / 283 / 222 msで、5回とも10秒timeoutなし。
+- Stop timeout主因は複数Markdownのcurrent / baseline両方を毎回textlintしていたこと。修正後はcurrentを先にscanし、current違反0ならbaseline read / scanを省略し、違反がある場合だけ既存baseline fingerprint比較を行う。Stop(false) block、quality check不能時のfail-close、Stop(true) allow / cleanup、Bashなどpathなし変更のStop最終検知、baseline比較、fingerprint、rename / move、全変更Markdown最終検査を維持したというユーザー報告。
+- Hook固有のCodespaces検証結果（ユーザー報告）: tests/contracts/codex-text-quality.test.ts 60/60、tests/contracts/codex-hook-contract.test.ts 154/154、pnpm run test:hooks 230/230、pnpm run diagnose:hooks WARN 0 / ERROR 0、ESLint 65 warnings / 0 errors、typecheck、security、web build、spec build、format、Markdown lint、text lint、git diff --check PASS。修正後Hookは同じ実Codex sessionで発火し、Hook JSONL記録が継続。effective CODEX_HOME=<USER_HOME>/.codex（sanitizer token）。
+- Hook固有sessionのFresh Create / Full Rebuild phaseまたはCodespace名はこのevidenceに付されていない。よってFresh Create Task 28 / Full Rebuild Task 30へこのHook PASSを割り当てない。別に確認済みのFresh Create target runtime（candidate b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3）とFull Rebuild runtimeはそれぞれの記録に保持。環境影響差分がないためFresh Create / Full Rebuildを再実行しない。
+- Codespaces上の標準 pnpm run verify は2回ともESLint開始後にexit 143（SIGTERM）。PASS扱いしない。Hook修正との因果は未確定であり、timeout延長 / retry / cache / daemonを追加しない。local final verifyは未実行で、本checkpoint後に1回だけ実行する。
+- 過去Task 28 / 30にあったauth / integration / Hook / GitHub API / Git checksのユーザー報告PASSは、その後のユーザー訂正を反映しない誤帰属であり、今回のTask 28 / 30 PASSには使用しない。target phase別の未確認項目は未完了のまま。
+- local gh pr viewはGraphQL 401、git ls-remoteはSEC_E_NO_CREDENTIALSで失敗した。PR head / diffはGitHub App read-only APIで確認。credential値は表示・保存していない。local final verify、artifact validation、commit/push、environment diff、exact-head required CI、PR本文整合確認は未完了.
+
+## 2026-10-07 07:48 JST — Artifact sanitizer repair loop
+
+- Iteration 1 input finding: sanitizerがcanonical Planのeffective CODEX_HOME説明にLinux user-home absolute pathを3件検出（同一行のdefault path 2件と、新規Hook evidence 1件）。
+- Decision: must_fix。許可範囲はcanonical Plan 1ファイル。既存のnode user home配下の意味を保ち、該当表記をsanitizer token <USER_HOME>/.codexへ正規化した。source、test、environment設定、dependencyは変更していない。
+- Validation: powershell -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md -Write -Check exit 0、1 file / 0 findings。active Run directory sanitizerも3 files / 0 findings、ADR sanitizerは1 file / 0 findings。
+- Remaining delta: なし。decision=stop_success。local final pnpm run verifyとその他のfinal validationはこの時点では未実行。
+
+## 2026-10-07 07:54 JST — Sanitizer / Markdown修正loop完了
+
+- Iteration 1: sanitizerのLinux user-home path findingをmust_fixと分類し、許可対象をcanonical Planに限定。CODEX_HOMEのuser-home配下という意味を保持して該当箇所を<USER_HOME>/.codexへ正規化。
+- Iteration 1後のMarkdownlintでPlanのOrdered listに13件の連番エラーを検出。原因は項目28を置換する編集で項目を削除したこと。親commit 8275e8574c6c43830f25375a35aa7d60e05545b3の原文を確認し、項目28を同じ内容で復元した。分類must_fix、許可対象はcanonical Planのみ。
+- Final validation: Run sanitizer 3 files / 0 findings、canonical Plan 1 file / 0 findings、ADR 1 file / 0 findings。Markdownlint 465 files / 0 issues、lint:text 4 changed Markdown files / PASS、git diff --check / cached diff check PASS。Ordered listのTask 28 acceptance statementは保持されている。
+- Remaining delta: sanitizer / Markdown修復なし。decision=stop_success。最終標準pnpm run verifyは次の独立gateとして未実行。
+
+## 2026-10-07 08:21 JST — local final verify分類とPR head再確認
+
+- PR #188をGitHub App read-only APIで再確認: open / non-draft、head branch `plan/codespaces-opencode-devcontainer`、actual head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`。依頼文の`176e612b1b5fadf8736de9b99d6f437a94ef397a4`はcommit API 422 / no commit found。actual Hook commitのdiffは直前checkpointに記録済み。Local HEADはactual PR headと一致し、branch upstreamも同名のorigin branch。
+- PR descriptionは「実装未完のためDraftを維持」「Phase A / Phase B / implementation / candidate / final CI pending」としているが、現PR metadataはnon-draft、複数の実装 / Fresh Create / Full Rebuild / Hook fixは完了済み。この文面は現状と不一致。最新exact-head required CI後、実測済み事実と残 blockerを反映して更新する。
+- candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` → current PR head compare: ahead 6 / behind 0、6 commits / 8 changed paths。pathsはHook、二つのcontract tests、ADR、canonical / Run計画記録。`.devcontainer/**`、package manifest / lockfile、install / auth / Node / pnpm / OpenCode / Codex version契約は含まれない。Run final changesetもPlan / Run文書4ファイルに限定し、Fresh Create / Full Rebuildを再実行しない。
+- 標準local verifyは`cmd.exe /d /c pnpm.cmd run verify`としてcurrent source HEADで1回実行、exit 1。Test stage: 48 files total、43 passed / 5 failed。827 tests total、779 passed / 44 failed / 4 skipped。失敗file: `codex-text-quality.test.ts` 10件、`codex-hook-contract.test.ts` 17件、`codex-task-native-command.test.ts` 8件、`codex-safe-run-manifest-sync.test.ts` 6件、`ci-wait-mcp.test.ts` 3件。
+- 失敗前にformat、Markdown lint（465 files / 0 issues）、lint:text、lint:text:all（151件）、skill validation（6 packages / 15 Markdown / 28 local links）、spec / visuals / curriculum validation、ESLint（65 warnings / 0 errors）、app / native / training typecheck、image manifest、security、unit（66）、integration（111）、repository-contract（147）、web component（102）、native component（64）はpass。test failureのためweb / spec buildは未到達。
+- Read-only environment diagnosis: local Node `v22.20.0`（canonical targetは`v24.21.0`）。`pwsh.exe --version`はPATHから解決する一方process startがAccess denied。`powershell.exe`は存在するが、システム権限 / install / alias設定の変更は行っていない。関連contract suitesではlauncher unavailable / Hook JSONL未生成症状があり、実行環境とHook実装の原因を同一視しない。
+- `ci-wait-mcp.test.ts`の3 failureはchild MCP processからの`SdkError: Connection closed`。直接原因は確定していないため、コード変更の根拠にせず、追加test retryも行わない。local runtime差が影響した可能性はあるが未証明。
+- Repair-loop classification: `pwsh`の起動拒否はhost permission / runtime issueで、Repository内safe minimal repairは特定できず、権限・toolchain変更はこの作業範囲外。MCP connection closedはroot cause未確定。Hook固有Codespaces suite 230/230とreal-session firingはユーザー報告PASSだが、standard verify全体のPASSへ拡張しない。decision=`stop_unresolved_environment_gate`; Task 35 remains unchecked.
+- Codespaces上標準`pnpm run verify`の2回のexit 143も未解決でPASSではない。timeout延長 / retry / cache / daemonを追加せず、先行direct target command `whoami`のexit 1後はremote commandを再試行しない。
+- Active task counts: Task 35 unchecked、Task 37 candidate-to-PR-head environment-impact compare complete、Task 28 / 30 broader Codespaces validation open。Progress `76% (32/42)`。Required CI item is in the denominator and remains pending.
+- Required exact-head CI、Run docs commit / push、final PR description update、Codespace auth / runtime cleanup、dotfiles final setting confirmationはこのcheckpoint時点で未実施。
+
+## 2026-10-07 08:26 JST — final document validation
+
+- Changed scope is exactly four tracked Markdown files: canonical Plan plus active Run `PLAN.md`, `TASKS.md`, `REPORT.md`. No source, test, devcontainer, dependency, lockfile, or installation contract was edited in this local changeset.
+- Run Artifact sanitizer: active Run directory 3 files / 0 findings; canonical Plan 1 file / 0 findings.
+- `pnpm run lint:text`: PASS for 4 changed Markdown files. `markdownlint-cli2`: exit 0 after scanning 465 files. `pnpm run format:check:strict`: PASS. `git diff --check` and cached diff check: PASS; Git emitted only the existing REPORT CRLF-to-LF working-copy warning.
+- Standard `pnpm run verify` is not repeated. The prior exit 1 remains the current final verify result and Task 35 remains open.

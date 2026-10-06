@@ -29,16 +29,16 @@
 - [x] 25. candidate commit / pushしSHAを固定してbranchをfreezeする。
 - [x] 26. Phase B plain Codespaceのbaseline / clean状態を確認した（当時candidateへff-only同期した事実は履歴として保持し、canonical validation対象から除外）。
 - [x] 27. 修正後のnew candidate SHAからcanonical machineとexplicit `.devcontainer/devcontainer.json`を指定して新規Codespaceを`--status`で作成し、dotfiles元状態へ即時復元する。
-- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。Fresh Createのtarget metadata / Runtime契約とtracked cleanはユーザー提供の実測値でPASS（candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`、Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`）。auth zero-state、OpenCode / Codex Repository integration、Hook、subagent、`ci_wait` discovery、required GitHub API、Git identity / remote / dry-run、Fresh Createでの`pnpm run verify`、Web smokeは今回のFresh Create evidenceとして未実施。Post-Rebuildのユーザー報告やHEAD `3c243f38b627c282fc779e7c13b98dbae08f1c74`のverifyをFresh Createへ流用しない。target Runtime PASS時にCreation Logは追加取得しない。
+- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。Fresh Createのtarget metadata / Runtime契約とtracked cleanはユーザー提供の実測値でPASS（candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`、Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`）。2026-10-06にユーザー承認済みstart APIを1回実行し、ShutdownからAvailableへの遷移、`basicLinux32gb`、exact devcontainer path、branch、control-plane cleanを確認。以前のstdin `bash -s`結果だけではdirect execution不可と判定しない。追加で`gh codespace ssh -c turbo-umbrella-7vvjr6p66jvgcgg4 -- whoami`を実行したがexit 1でremote SSH serverを起動できないというsafe error summaryを得た。最初のdirect command failureで停止し、`id -u`は未実行。SSH設定・鍵・agent・devcontainerは変更せず、これをdevcontainer failureとは判定しない。今回のHook修正runtime / testは別Codespaces sessionのevidenceでFresh Createへ帰属させない。Auth zero-state、OpenCode / Codex integration、Fresh Create上のHook / subagent、`ci_wait`、target GitHub API / Git、Fresh Create内verify、Web smokeは今回のFresh Create evidenceとして未確認。Full Rebuild後の結果や別HEADでのverifyを流用しない。Task 28未完了。
 - [x] 29. Fresh Createのtarget RuntimeがPASSした同じcandidate-created CodespaceをFull Rebuildし、canonical machineとpost-Rebuild target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failure原因の特定に必要な場合だけ取得し、empty `devcontainerPath` aloneはFAILにしない。
-- [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する（verify / clean、Codex・OpenCode基本利用、Hook、required GitHub API、Git identity / remote / push dry-runはユーザー報告でPASS。auth zero-state / Repository integration / subagent / `ci_wait` discovery / Web smokeは未実施）。
+- [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。Full Rebuild後Runtime contractはユーザー実測でPASS。ユーザーは以前のauth / integration / Hook / API / Git / Web確認を実行していないと訂正したため、それらをTask 30のPASSへ流用しない。別Codespaces sessionのHook timeout修正test/runtimeはHook修正固有のPASSで、Full Rebuild phaseの確認とは分離する。後続Codespaces `pnpm run verify` 2回はESLint開始後にexit 143（PASSではなく、原因未確定）。auth zero-state / Repository integration / subagent / `ci_wait` / required API / Git / Web smokeとTask 30最終cleanは未確認。
 - [x] 31. main Codespace成功とPhase B plain Codespaceの既存container reuse / recovery evidenceをRunへ記録し、Fresh Create failureと分離する。
 - [x] 32. Phase B plain Codespaceのmigration / baseline evidenceを保全し、不要になった時点でstopする。deleteしない。
 - [x] 33. 確定した`corepack enable` system-wide write failureを限定修正し、Repository検証 / scope / sanitizer PASS後にnew candidateを通常commit / pushしてSHAを固定する。
 - [ ] 34. candidate evidenceをPlan / Run Artifact / PR本文へ反映する。
-- [x] 35. final verify / diffを実行し、failureはrepair-loopへ従う（Windows local `pnpm run verify` exit 0、820 tests passed / 4 skipped、build:web / build:spec PASS。修復後のLinux Codespaces verifyもHEAD=`3c243f38b627c282fc779e7c13b98dbae08f1c74`・cleanで失敗0件、build:specまでPASS）。
-- [ ] 36. tracked Plan / Run Artifactを最終化して通常commit / pushする。
-- [ ] 37. final headとcandidate SHAの差分に環境影響変更がないことを確認する。
+- [ ] 35. final verify / diffを実行し、failureはrepair-loopへ従う。2026-10-07の最終local `cmd.exe /d /c pnpm.cmd run verify` はPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`でexit 1、48 files中43 PASS / 5 FAIL、827 tests中779 PASS / 44 FAIL / 4 skipped。失敗は`codex-text-quality` 10、`codex-hook-contract` 17、`codex-task-native-command` 8、`codex-safe-run-manifest-sync` 6、`ci-wait-mcp` 3。先行するformat / lint / validation / typecheck / security / unit / integration / repository / componentはPASSしたが、test failureでweb / spec buildへ未到達。Windows `pwsh.exe`は存在確認後の起動がAccess deniedで、関連contract suiteにlauncher unavailable / Hook JSONL未生成症状。`ci-wait-mcp` 3件はchild processの`SdkError: Connection closed`で原因未確定。local Node 22.20.0はtarget Node 24.21.0と異なる。Codespaces標準verifyの2回のexit 143もPASSではない。Hook修正failureとは断定せず、権限 / 実行環境問題をRepository codeで推測修正しない。Task 35未完了。
+- [x] 36. tracked Plan / Run Artifactを最終化して通常commit / pushする。
+- [x] 37. final headとcandidate SHAの差分に環境影響変更がないことを確認する。candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`から現PR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`は6 commits / 8 paths。devcontainer、package manifest / lockfile、install / authentication / CLI version契約の変更なし。final Run changesetはPlan / Run文書4ファイルのみ。
 - [ ] 38. canonical Fresh Codespaceをff-onlyでfinal HEADへ同期しwaiterを1回実行する。
 - [ ] 39. Web CI / Mobile App CI success後にPR本文を更新する。
 - [ ] 40. canonical Fresh CodespaceをCodex logout後にstopし、delete候補をREPORTへ記録する。
@@ -72,6 +72,12 @@
 - CI failureでsafe minimal repairを行いnew final HEADをpushした場合は、そのnew exact HEADだけを新しいCI確認対象とする。
 - waiter利用不能時はBlocker。
 - CI結果記録だけを理由にこのfileを再commitしない。
+
+## 2026-10-07 08:21 JST — final verification / candidate impact checkpoint
+
+- Local standard `pnpm run verify` failed once at PR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`; detailed stage, test counts, and environment observations are recorded in REPORT. Task 35 is unchecked; do not rerun the standard gate without a new authorized execution environment.
+- GitHub compare confirms candidate-to-PR-head has no environment-impacting paths. The current pending Run change is limited to the canonical Plan and three active Run documents. Task 37 is complete.
+- Progress: 79% (33/42; required CI item remains pending).
 
 ## Blocked（ブロック中）
 

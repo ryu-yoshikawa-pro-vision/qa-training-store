@@ -201,3 +201,22 @@
 - After the test repair, full local `pnpm run verify` exited 0 (48 contract files; 820 tests passed / 4 skipped; web and spec builds passed). Final `format:check`, Markdown lint, text lint, Run sanitizer, and `git diff --check` also passed.
 - Task 35 is complete. Progress is 76% (32/42, including the pending required-CI item). Task 28 and Task 30 remain open for target Codespace authentication / integrations / Git / API / Web checks and Linux verify on the repaired branch head.
 - Only the test harness changed outside the existing Plan / Run documentation; `.devcontainer/**`, package manifests / lockfiles, CLI versions, and install behavior are unchanged. Candidate environment SHA `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains valid for Fresh Create / Full Rebuild evidence.
+
+## 2026-10-07 07:36 JST — Post-candidate Hook timeout修正の統合
+
+- GitHub APIでPR #188 headを確認。実headは17e612b1b5fadf8736de9b99d6f437a94ef397a4、親はlocal HEAD 8275e8574c6c43830f25375a35aa7d60e05545b3。依頼に記載された176e612b1b5fadf8736de9b99d6f437a94ef397a4はGitHub上に存在せず、PR headの転記誤りと判断した。実diffはhook / contract test / ADRの3ファイルだけで環境影響差分なし。
+- Codespaces上の別Hook検証sessionについてユーザー報告を統合。PostToolUseは安全に取得できた明示Markdown pathだけを即時scanし、pathなし / intersection 0件では他Markdownへfallbackしない。Stopは従来どおり全変更Markdownを最終scanする。pathなしBash 5回は217 / 284 / 251 / 283 / 222 msで、10秒timeout再発なし。
+- Stopはcurrent本文を先にscanし、違反0件ならbaseline本文をread / scanしない。current違反がある場合のみ従来fingerprint比較を行う。Stop(false) block、quality check不能時のfail-close、Stop(true) allow / cleanup、rename / move、全変更Markdown最終検査は維持。
+- Hook固有validation（ユーザー報告）: focused text-quality 60/60、hook contract 154/154、test:hooks 230/230、diagnose:hooks WARN 0 / ERROR 0、ESLint 0 errors（既存65 warnings）、typecheck / security / web build / spec build / format / Markdown lint / text lint / diff check PASS。修正Hookは同じ実Codex sessionで発火し、Hook JSONL記録が継続。effective CODEX_HOMEは<USER_HOME>/.codex（sanitizer token）。
+- このruntime sessionのFresh Create / Full Rebuild phaseは示されていないため、Fresh Create Task 28やFull Rebuild Task 30へHook PASSを流用しない。過去のFresh Create / Full Rebuild Runtime contractは別provenanceで保持する。
+- Codespaces標準 pnpm run verify はESLint開始後に2回exit 143。PASSではなく、Hook修正失敗とも断定しない。今回のdiffにdevcontainer / dependency / lockfile / install / version変更はないためFresh Create / Full Rebuildを繰り返さない。local最終verifyとGitHub exact-head CIは未実行。
+- ユーザーの後続訂正によりFresh Create / Full Rebuildのauth zero-state / integration / Hook / subagent / ci_wait / required API / Git / Web検証は未確認。Fresh Createのtarget RuntimeとFull Rebuild Runtime contractだけを既存provenanceのまま保持する。
+- 直近のdirect remote whoamiはexit 1（container内SSH serverを起動できない旨）。これはexecution transportの失敗で、Codespacesまたはdevcontainer構築failureの証拠ではない。SSH鍵・agent・config、sshd、Plan成果条件は変更していない。
+
+## 2026-10-07 08:21 JST — local final verifyとcandidate影響範囲
+
+- Local標準`pnpm run verify`をPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`で1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。先行stageはpassしたが、test failureによりweb / spec buildは未到達。失敗詳細と安全な原因分類はactive Run REPORTを参照し、Task 35は未完了のまま。
+- Windowsの`pwsh.exe` process起動がAccess deniedとなり、関連launcher / Hook JSONL contractで失敗。`ci-wait-mcp`の3件はchild processの`SdkError: Connection closed`で未解決。local Node 22.20.0はcanonical target Node 24.21.0と異なる。Hook修正が原因とは断定せず、Windows permission変更や追加のinstall / retry / timeout / cache / daemonは行わない。
+- Codespaces上標準verifyの2回のexit 143もPASS扱いしない。target command transportは先行direct `whoami`のexit 1で利用不能と確認済み。Task 28 / 30のphase別チェックとWeb smokeは未確認のまま。
+- GitHub PR metadataはPR #188 open / non-draft、actual head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`。提示SHA `176e612b1b5fadf8736de9b99d6f437a94ef397a4`は存在しない。PR本文はDraft維持・Phase A/B pending等の古い記述があり、required CI後に現状へ更新する。
+- candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`からactual headまでのGitHub compareは6 commits / 8 paths、environment-impacting pathは0。今後のRun commitも文書4ファイルだけとし、Fresh Create / Full Rebuildは再実行しない。
