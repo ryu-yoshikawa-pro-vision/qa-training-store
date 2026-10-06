@@ -195,7 +195,7 @@
 
 - Summary: 再発防止としてcanonical PlanのCodespace remote command transport契約を追加した。Shared permission / sandbox / wrapper codeは変更していない。
 - Root cause assessment: 直前のPowerShell here-stringを`gh codespace ssh ... -- bash -lc <multiline>`のremote-command argumentへ渡した。GitHub CLIの正式syntaxは`[-- <ssh-flags>...] [<command>]`でremote commandを受け取る。観測されたshell variable dumpは、引数再解釈で先頭の`set -Eeuo pipefail`相当がbare `set`となって実行された結果と整合する。正確なargv transformation自体は計測されていないためinferenceとして扱う。
-- Prevention: 今後Phase Bのmultiline shellはSecret値を含まないreviewed script fileで実行し、`gh codespace cp`（`-e`なし）でCodespaceの`/tmp`へ転送後、fixed-pathの単一commandで起動する。SSH command argumentへscript本文を渡さない。bare `set`、`env`、`printenv`、shell trace、環境全体の出力を禁止し、boolean / 明示PASS-FAIL等のallowlisted outputだけをRunへ残す。OpenCode smoke processはFree-onlyのためcredentialを継承しない。
+- Prevention: 今後Phase Bのmultiline shellはSecret値を含まないreviewed script fileで実行し、`gh codespace cp`（`-e`なし）でCodespaceの`<TEMP_ROOT>`へ転送後、fixed-pathの単一commandで起動する。SSH command argumentへscript本文を渡さない。bare `set`、`env`、`printenv`、shell trace、環境全体の出力を禁止し、boolean / 明示PASS-FAIL等のallowlisted outputだけをRunへ残す。OpenCode smoke processはFree-onlyのためcredentialを継承しない。
 - Safe execution boundary: userがOpenCode Zen keyをrevoke完了したと知らせるまでCodespaceへ再接続しない。revoke後にstate / refsを再確認してから、stop済みCodespaceを再起動し新しい期限付きCodespaces `GITHUB_TOKEN`を取得させ、transport自体をsafe minimal commandで検証してからTask 18を再開する。Transportが失敗した場合にinline-commandへfallbackしない。
 - Verification limitation: このターンではCodespace内でtransportを試していない。local diff reviewとRun Artifact sanitization / `git diff --check`だけを行い、remote transportのruntime proofはkey revoke後に行う。
 - Official contract: [GitHub CLI `gh codespace cp`](https://cli.github.com/manual/gh_codespace_cp)は`remote:` pathとliteral path behaviorを記載し、[GitHub CLI `gh codespace ssh`](https://cli.github.com/manual/gh_codespace_ssh)はremote command syntaxを定義する。
@@ -701,3 +701,10 @@
 - Hook / required GitHub API / Git identity / remote / dry-runのユーザー報告PASSはFull Rebuild後のTask 30 evidenceとして保持し、Task 28へ流用していない。HEAD `3c243f38b627c282fc779e7c13b98dbae08f1c74`でのユーザー報告Linux verifyもTask 30 / 35のevidenceであり、Fresh Create Task 28のverifyとしていない。旧Codespace / 旧candidateの結果も使用していない。
 - Web smokeは未実施。targetが`Shutdown`で、AIからplanned Web processをCodespace内で起動できず、port metadataのみではHTTP / page smokeをPASSとできないため。ブラウザ操作は行っていない。target専用の残項目も実行経路がないため`未実施`とし、product FAILとは判定しない。
 - Task 28は未完了のため、Task 28 PASSを条件とする後続検証へは進めない。Task 29はPASSを維持し、既存Task 30 evidenceは別provenanceで保持する。Progressは76% (32/42、必須CI確認1件を含む)。
+
+## 2026-10-06 18:55 JST — post-push sanitizer CI failureと修正
+
+- Commit `c91a589e78edd6eddbf10764f687d6ae3fa388af`のpush後、exact-head `wait_for_required_ci`を1回呼び出した。結果は`ci_failure`。`Web CI`はcompleted / failure、`Mobile App CI`はwaiter応答時点でin progress。waiterは再実行しない。
+- `Web CI`の失敗jobは`Codex artifact sanitization (ubuntu-latest)`で、step `Check changed Codex artifacts`。失敗ログのsecret-safe要約で、`.codex/runs/20261002-173400-JST/REPORT.md:198`の`/tmp`が`known registered path`として検出された。検出されたのは過去checkpointに残るtemporary path表記で、実行環境の不具合やcandidate環境のfailureではない。
+- 修復分類は`must_fix`。許可範囲はactive `REPORT.md`の検出行のみ。Run Artifact sanitization契約に従い、意味を変えず`/tmp`を`<TEMP_ROOT>`へ正規化する。Source、test、dependency、environment-impacting file、SSH設定 / credentialは変更しない。
+- Local Windows sanitizerがこのLinux temporary pathを検出しなかったため、次回検証ではPR branch全体で変更された6つのRun Artifactも対象にしてsanitizationを確認する。
