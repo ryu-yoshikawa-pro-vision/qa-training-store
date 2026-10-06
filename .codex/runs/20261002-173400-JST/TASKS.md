@@ -28,15 +28,15 @@
 - [x] 24. candidate前verify / diff / repair-loop確認を行う。
 - [x] 25. candidate commit / pushしSHAを固定してbranchをfreezeする。
 - [x] 26. Phase B plain Codespaceのbaseline / clean状態を確認した（当時candidateへff-only同期した事実は履歴として保持し、canonical validation対象から除外）。
-- [ ] 27. 修正後のnew candidate SHAからcanonical machineとexplicit `.devcontainer/devcontainer.json`を指定して新規Codespaceを`--status`で作成し、dotfiles元状態へ即時復元する。
-- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / Creation Log / postCreate / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。
-- [ ] 29. Task 28がPASSした同じcandidate-created CodespaceをFull Rebuildし、Creation Log / canonical machine / target Runtimeを確認する。empty `devcontainerPath` aloneはFAILにしない。
+- [x] 27. 修正後のnew candidate SHAからcanonical machineとexplicit `.devcontainer/devcontainer.json`を指定して新規Codespaceを`--status`で作成し、dotfiles元状態へ即時復元する。
+- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。Creation LogはRuntimeだけで失敗箇所を判定できない場合の補足であり、target Runtime PASS時に追加取得しない。
+- [x] 29. Fresh Createのtarget RuntimeがPASSした同じcandidate-created CodespaceをFull Rebuildし、canonical machineとpost-Rebuild target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failure原因の特定に必要な場合だけ取得し、empty `devcontainerPath` aloneはFAILにしない。
 - [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。
 - [x] 31. main Codespace成功とPhase B plain Codespaceの既存container reuse / recovery evidenceをRunへ記録し、Fresh Create failureと分離する。
 - [x] 32. Phase B plain Codespaceのmigration / baseline evidenceを保全し、不要になった時点でstopする。deleteしない。
-- [ ] 33. 確定した`corepack enable` system-wide write failureを限定修正し、Repository検証 / scope / sanitizer PASS後にnew candidateを通常commit / pushしてSHAを固定する。
+- [x] 33. 確定した`corepack enable` system-wide write failureを限定修正し、Repository検証 / scope / sanitizer PASS後にnew candidateを通常commit / pushしてSHAを固定する。
 - [ ] 34. candidate evidenceをPlan / Run Artifact / PR本文へ反映する。
-- [ ] 35. final verify / diffを実行し、failureはrepair-loopへ従う。
+- [x] 35. final verify / diffを実行し、failureはrepair-loopへ従う（Windows local `pnpm run verify` exit 0、820 tests passed / 4 skipped、build:web / build:spec PASS。Linux Codespaceで修復後verifyを再確認する作業はTask 30に残す）。
 - [ ] 36. tracked Plan / Run Artifactを最終化して通常commit / pushする。
 - [ ] 37. final headとcandidate SHAの差分に環境影響変更がないことを確認する。
 - [ ] 38. canonical Fresh Codespaceをff-onlyでfinal HEADへ同期しwaiterを1回実行する。
@@ -111,3 +111,43 @@
 - `gh codespace create --status` and `gh codespace logs` were each started once, returned no usable output, and their local waiting processes were interrupted; no logs were saved or displayed. No SSH setup/repair, browser operation, source edit, new candidate, or Rebuild was performed.
 - The old Phase B plain Codespace `stunning-space-goggles-977gqrjrrwx6hxxp7` is `Shutdown`; stop command exit was nonzero but control-plane state confirms the requested result. Task 32 is complete. Candidate Fresh Create Tasks 27–28 remain incomplete; Tasks 29–30 have not started.
 - Human evidence needed only for the new Codespace: normal IDE terminal values for `whoami`, `id -u`, CLI versions, and `command -v` results, plus a safe summary of the first Creation Log failure stage and `postCreateCommand` completion. Do not provide raw logs or credential content.
+
+## 2026-10-06 08:26 JST — Repaired candidate checkpoint
+
+- Candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` is pushed and frozen. Task 33 is complete; Tasks 27–28 still require a new explicit-path Fresh Create from this SHA. Full Rebuild Tasks 29–30 are not started.
+- Progress: 69% (29/42、必須CI確認1件を含む)
+
+## Historical checkpoint — 2026-10-06 08:40 JST (superseded by the 09:30 JST result below)
+
+- New candidate Codespace `expert-chainsaw-r445rqpqqqqwh566v` exists and is `Available`; repository / branch / `basicLinux32gb` / exact `.devcontainer/devcontainer.json` path match. The single `gh codespace create --status` call exited 1 after a startup wait timeout; no retry was made.
+- At that time, Creation Log stages and target Runtime values were unconfirmed, so Tasks 27 / 28 were still open and Full Rebuild had not started.
+- Progress at that checkpoint: 69% (29/42、必須CI確認1件を含む)
+
+## Historical checkpoint — 2026-10-06 09:30 JST (Runtime provenance corrected at 12:15 JST)
+
+- Task 27 is complete. `expert-chainsaw-r445rqpqqqqwh566v` was created once from candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`, with repository / branch / `basicLinux32gb` / explicit `.devcontainer/devcontainer.json` confirmed. Personal dotfiles were already OFF with no selected repository and were not changed. The `--status` invocation reported a startup wait timeout after creating the Codespace; follow-up metadata confirmed it was Available.
+- At this checkpoint, the user-provided IDE values were provisionally attributed to `expert-chainsaw-r445rqpqqqqwh566v`; this attribution was corrected after the user said they started a new Codespace. See the 12:15 JST checkpoint.
+- Per the user's interpretation rule, expected Codex at the last fail-fast postCreate install step supports the inference that `sudo corepack enable`, dependency install, Playwright install, and OpenCode install were not stopped by an earlier failure. This is Runtime-based inference, not Creation Log evidence. Do not retrieve a Creation Log for this PASS case.
+- The broader Task 28 items (auth zero-state, integrations, Git development checks, `pnpm run verify`, Web smoke, and final clean state) remain open.
+- The `expert-chainsaw` Full Rebuild control-plane transition was observed, but its Runtime values are not established by this checkpoint. No environment-affecting file changed after candidate freeze.
+- Progress: 71% (30/42、必須CI確認1件を含む)
+
+## 2026-10-06 12:15 JST — Runtime provenance correction / Full Rebuild retarget
+
+- The user clarified that the supplied Runtime output followed starting a new Codespace. The control-plane listing contains only `turbo-umbrella-7vvjr6p66jvgcgg4` as Available; its repository / branch / `basicLinux32gb` / exact `.devcontainer/devcontainer.json` / clean metadata match candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`. Attribute the supplied IDE output to this new Codespace; the prior `expert-chainsaw` Codespace now returns HTTP 404.
+- Keep the `expert-chainsaw` Full Rebuild as control-plane-only historical evidence; it has no confirmed post-Rebuild Runtime and does not pass Task 29.
+- `turbo-umbrella` Fresh Create Runtime values match the target contract: candidate HEAD, clean status, `node` / UID 1000, Node 24.21.0, pnpm 10.34.5, OpenCode 2.0.22, Codex 0.160.0, gh 2.102.0, expected paths, and effective CODEX_HOME (sanitized in Run files as `<USER_HOME>/.codex`).
+- The candidate-created `turbo-umbrella` Codespace passed preflight. Its `gh codespace rebuild --full` was issued once and exited 0 with `is rebuilding`; latest control-plane state is `Rebuilding`. Await `Available` before requesting the post-Rebuild Runtime check. Do not repeat this Rebuild.
+- Task 27 remains complete; Tasks 28–30 remain open. Progress remains 71% (30/42、必須CI確認1件を含む).
+
+## 2026-10-06 13:09 JST — Task 29 Full Rebuild target Runtime PASS
+
+- User-provided normal IDE output is confirmed as post-Rebuild evidence from the same candidate-created Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`. HEAD is `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; `git status --short` is empty; user is `node`, UID 1000; Node `v24.21.0`; pnpm `10.34.5`; OpenCode `2.0.22`; Codex `0.160.0`; GitHub CLI `2.102.0`; expected command paths resolve; effective `CODEX_HOME=<USER_HOME>/.codex`.
+- Control-plane metadata confirms the same Codespace is `Available`, `basicLinux32gb`, on the candidate branch with exact `.devcontainer/devcontainer.json` and no uncommitted / unpushed changes. The Full Rebuild command was issued once and is not repeated.
+- Task 29 is complete. Fresh Create broader validation (Task 28) and post-Rebuild broader validation (Task 30) remain open. Progress: 74% (31/42、必須CI確認1件を含む).
+
+## 2026-10-06 15:47 JST — Task 35 local repository verification
+
+- Task 35 is complete after the Linux `pwsh ENOENT` test-gate repair, full local `pnpm run verify`, formatting / lint checks, artifact sanitization, scope review, and `git diff --check`.
+- Tasks 28 and 30 remain open; Linux Codespaces must rerun `pnpm run verify` after syncing the test-only repair, and the other target checks remain pending.
+- Progress: 76% (32/42、必須CI確認1件を含む).

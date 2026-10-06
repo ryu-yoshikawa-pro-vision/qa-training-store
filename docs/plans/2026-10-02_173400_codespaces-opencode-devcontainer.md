@@ -51,8 +51,8 @@ Codespaces を Web / TypeScript / Repository 検証と OpenCode / Codex CLI 開�
 20. `postCreateCommand`はworkspace rootから逐次・fail-fastで、dependency install → Playwright Chromium + Linux dependencies → OpenCode exact install → Codex exact installを実行する。postCreate完了前をReady扱いしない。
 21. candidate SHA確定後からFull Rebuild / Fresh Createのevidence取得完了までbranchへpushしない。両方を同じcandidate SHAで検証する。
 22. Phase B plain CodespaceはPhase A / Bのbaseline evidenceとして保持し、candidateへfast-forwardせず、canonical Fresh Create / Full Rebuild validationには使用しない。plain Codespaceからcandidate devcontainerへ切り替えるmigrationはRequired DoDではない。
-23. candidate branchから新しいCodespaceを作り、`--devcontainer-path .devcontainer/devcontainer.json`を明示する。Fresh Createでrepository / branch / candidate SHA / canonical machine / exact `devcontainerPath`、Creation Log / `postCreateCommand`、target Runtimeを確認する。
-24. Fresh Createでtarget contractを確認した同一Codespaceについて、tracked worktree / index clean、environment-affecting untracked fileなし、HEAD == candidate SHAをFull Rebuild直前に確認し、`gh codespace rebuild --full`を一度実行する。Rebuild後はCreation Log、canonical machine、target Runtime、Full Rebuild validationを確認する。Full Rebuild後の空`devcontainerPath`だけをFAILにしない。
+23. candidate branchから新しいCodespaceを作り、`--devcontainer-path .devcontainer/devcontainer.json`を明示する。Fresh Createでrepository / branch / candidate SHA / canonical machine / exact `devcontainerPath`とtarget Runtimeを確認する。Creation Logはtarget Runtimeだけでは失敗箇所を判定できない場合の補足診断であり、Runtimeがtarget contractを満たせば追加取得しない。fail-fastの`postCreateCommand`では最後のCodex installまで到達していることをexact versionの実測から推定できるため、これはRunへ推論として記録する。
+24. Fresh Createでtarget contractを確認した同一Codespaceについて、tracked worktree / index clean、environment-affecting untracked fileなし、HEAD == candidate SHAをFull Rebuild直前に確認し、`gh codespace rebuild --full`を一度実行する。Rebuild後はcanonical machineとtarget Runtimeを確認する。Creation LogはRuntime失敗の最初の原因を識別する必要がある場合に取得する。Full Rebuild後の空`devcontainerPath`だけをFAILにしない。
 25. Fresh CreateとFull Rebuildの両方で必要なtarget CLI / authentication / integration / `pnpm run verify` / Web / tracked-clean validationを行い、同じcandidate SHAのdevcontainer再現性を確認する。
 26. Fresh CreateはPersonal dotfilesが元々OFFなら変更せず、ONなら作成直前だけ一時OFFにする。canonical machine、candidate branch、`.devcontainer/devcontainer.json`、`--status`を明示し、作成・dotfiles未適用確認後は直ちに元設定へ戻す。
 27. Fresh CreateのCodex未認証判定は`codex login status`を正本とし、`auth.json`不在と代替認証env不在は補助evidenceとする。
@@ -512,7 +512,7 @@ READMEは通常利用者がCodespaceを使い始めるために必要な情報�
 
 Full RebuildはE-3でcandidate branchから新規作成し、target contractを確認した同じCodespaceに対して行う。plain Phase B Codespaceからcandidate devcontainerへ移行できることはこのPRのDoDに含めない。GitHub Codespacesでは`/workspaces`に加えて`/tmp`もFull Rebuildをまたいで残り得るため、「Full Rebuildしたから無条件に認証zero-state」とは判定しない。
 
-`gh codespace view`は`devcontainerPath`をCodespace metadataとして返し、E-3 Fresh Createでは`gh codespace create --devcontainer-path`でconfiguration pathを明示する。Fresh Createではexact path一致を必須とし、同じCodespaceのE-2 Full Rebuild後はCreation Logとtarget Runtimeを正本にして、empty `devcontainerPath`単独ではFAILにしない（[GitHub CLI `codespace create`](https://cli.github.com/manual/gh_codespace_create)、[GitHub CLI `codespace view`](https://cli.github.com/manual/gh_codespace_view)、[GitHub REST Codespaces API](https://docs.github.com/en/rest/codespaces/codespaces?apiVersion=2026-03-10)）。
+`gh codespace view`は`devcontainerPath`をCodespace metadataとして返し、E-3 Fresh Createでは`gh codespace create --devcontainer-path`でconfiguration pathを明示する。Fresh Createではexact path一致を必須とする。同じCodespaceのE-2 Full Rebuildはcanonical machineとtarget RuntimeをPASS根拠とし、empty `devcontainerPath`単独ではFAILにしない。Creation Logはtarget Runtimeだけでは最初のfailure stageを識別できない場合の補足診断であり、Runtime PASS時に必須取得しない（[GitHub CLI `codespace create`](https://cli.github.com/manual/gh_codespace_create)、[GitHub CLI `codespace view`](https://cli.github.com/manual/gh_codespace_view)、[GitHub REST Codespaces API](https://docs.github.com/en/rest/codespaces/codespaces?apiVersion=2026-03-10)）。
 
 1. E-3 Fresh Createでtarget contractがPASSした同じcandidate-created Codespace名を対象として確定し、Run Artifactへ記録する。Phase B plain Codespaceは対象にしない。
 2. 対象Codespace内で`git rev-parse HEAD` == candidate SHAを確認する。
@@ -520,8 +520,8 @@ Full RebuildはE-3でcandidate branchから新規作成し、target contractを�
 4. `.devcontainer/**`、OpenCode authentication / install helper、Codespaces helper、`.codex/**`、`AGENTS.md`、`package.json` / lockfile、install / setup scriptにcandidate SHAと異なる未commit差分がないことを確認する。
 5. candidateに含まれない環境影響untracked fileがある場合はRebuildを開始せずE-0へ戻る。
 6. control shellから`gh codespace rebuild --full -c <codespace-name>`を実行する。通常Rebuildは代替にしない。
-7. Rebuild後、control shellから`gh codespace view -c <codespace-name> --json devcontainerPath,machineName,machineDisplayName`を確認し、machineNameがcanonical machine nameであることをevidence化する。`devcontainerPath`は返却値を記録するが、空値単独ではFAILにしない。Creation Logで`.devcontainer/devcontainer.json`の使用、target container作成、`postCreateCommand`開始・終了statusを確認し、target Runtimeへの接続とB→C checkpoint契約の実測値をE-2 PASSの根拠とする。
-8. Run Artifactへexact command、Codespace名、candidate SHA、返却された`devcontainerPath`（空値を含む）、machineName、Creation Logの安全な分類、target Runtime結果を記録する。Creation Log raw全文・Secret値・credential値は表示・保存しない。
+7. Rebuild後、control shellから`gh codespace view -c <codespace-name> --json devcontainerPath,machineName,machineDisplayName`を確認し、machineNameがcanonical machine nameであることをevidence化する。`devcontainerPath`は返却値を記録するが、空値単独ではFAILにしない。target Runtimeへの接続とB→C checkpoint契約の実測値をE-2 PASSの根拠とする。target Runtime failureの原因特定が必要な場合だけCreation Logで`.devcontainer/devcontainer.json`の使用、target container、最初のfailed stepを確認する。
+8. Run Artifactへexact command、Codespace名、candidate SHA、返却された`devcontainerPath`（空値を含む）、machineName、target Runtime結果を記録する。Creation Logを診断に使用した場合のみ、その安全な分類も記録する。raw全文・Secret値・credential値は表示・保存しない。
 9. postCreate完了後に環境をReady扱いする。
 10. `whoami == node`、`id -u != 0`を確認する。
 11. Node 24 / pnpm 10.34.5 / OpenCode exact / Codex exact、`gh --version`を確認する。
@@ -572,6 +572,43 @@ Full RebuildはE-3でcandidate branchから新規作成し、target contractを�
 - Safe minimal repair: add `sudo` only to `corepack enable` and the two exact global npm installs for OpenCode / Codex. Keep `pnpm install --frozen-lockfile` and `pnpm exec playwright install --with-deps chromium` outside a whole-command `sudo` shell.
 - Candidate `48a92742dd1892835d6b5f5e3516cfce1d8adfc3` remains preserved as failed evidence and is no longer the validation candidate after the environment-affecting repair. Validate, commit, and normally push a new candidate; then perform a new explicit-path Fresh Create and, after target contract PASS, a Full Rebuild of that same new candidate-created Codespace.
 - Do not repair or reuse the failed recovery Codespace. No SSH transport, agent, key, or config issue is implicated.
+
+##### 2026-10-06 08:26 JST — New candidate freeze
+
+- New candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` contains the bounded permission repair and Run / Plan corrections. It was committed and normally pushed to `plan/codespaces-opencode-devcontainer`; PR #188 remains OPEN and its head matches this SHA.
+- The old candidate `48a92742dd1892835d6b5f5e3516cfce1d8adfc3` remains historical failed evidence. The new SHA is the sole candidate for the next validation. Keep it frozen until Fresh Create and Full Rebuild evidence for this same SHA is complete.
+- Task 27 / 28 Fresh Create and target contract are pending. After they PASS, Full Rebuild the same candidate-created Codespace once; do not use the old recovery Codespace.
+
+##### Historical checkpoint — 2026-10-06 08:40 JST (superseded by the 09:30 JST result below)
+
+- Codespace `expert-chainsaw-r445rqpqqqqwh566v` was created once from candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` using the canonical repository, branch, `basicLinux32gb`, and explicit `.devcontainer/devcontainer.json` path. It is now `Available`; repository / branch / machine / path metadata match.
+- The create command's `--status` wait exited 1 with a startup timeout, while follow-up control-plane state is `Available`. Creation Log evidence and target Runtime values are not yet available, so this is neither Fresh Create PASS nor evidence of a specific devcontainer failure.
+- The existing AI-side Runtime route could not start an SSH server. Do not alter the candidate to add SSH support or make that transport a validation requirement. Human confirmation in the normal Codespaces IDE is required before Task 28 can PASS. Full Rebuild has not started.
+
+##### Historical checkpoint — 2026-10-06 09:30 JST (Runtime provenance corrected at 12:15 JST)
+
+- At the time of this checkpoint the user-provided Runtime output was provisionally attributed to `expert-chainsaw-r445rqpqqqqwh566v`; the user later clarified that the values came from a newly started Codespace. See the 12:15 JST correction below.
+- Codex is the last fail-fast install step in `postCreateCommand`; its exact Runtime version supports inferring that preceding install commands completed. Record this as inference. The user requests no additional Creation Log for this PASS, so it is not required.
+- Fresh Create metadata and runtime attribution were later corrected; preserve this checkpoint only as historical transition evidence.
+
+##### 2026-10-06 12:15 JST — Runtime provenance correction / retarget to `turbo-umbrella`
+
+- The user clarified the Runtime output followed launching a new Codespace. The only currently listed Available Codespace is `turbo-umbrella-7vvjr6p66jvgcgg4`; metadata matches candidate branch, repository, `basicLinux32gb`, exact devcontainer path, and clean state. Attribute the supplied Runtime values to this Fresh Create.
+- `expert-chainsaw-r445rqpqqqqwh566v` now returns HTTP 404. Its Full Rebuild command / control-plane transition is not target Runtime evidence; do not mark its Full Rebuild gate PASS.
+- Fresh Create target Runtime and Task 18 are PASS for `turbo-umbrella`. The same Codespace passed preflight; `gh codespace rebuild --full -c turbo-umbrella-7vvjr6p66jvgcgg4` was issued once, exited 0 with `is rebuilding`, and currently reports `Rebuilding` with expected metadata.
+- Task 21 remains open until `turbo-umbrella` is Available and its post-Rebuild target Runtime is verified. Do not repeat this Full Rebuild.
+
+##### 2026-10-06 12:25 JST — Full Rebuild control-plane completion
+
+- A fresh `gh codespace view` now reports `turbo-umbrella-7vvjr6p66jvgcgg4` as `Available`; repository, candidate branch, `basicLinux32gb`, explicit `.devcontainer/devcontainer.json`, and clean / no-unpushed metadata match.
+- The one Full Rebuild command has completed its control-plane transition from `Rebuilding` to `Available`. This alone is not target Runtime PASS; do not repeat the Rebuild.
+- Task 21 remains open pending target Runtime values from the same Codespace after Rebuild. Creation Log is only needed if Runtime failure requires root-cause diagnosis; it is not required when the target contract passes.
+
+##### 2026-10-06 13:09 JST — Full Rebuild target Runtime PASS
+
+- The user confirmed the IDE Runtime values were collected after Full Rebuild in the same candidate-created Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`. Candidate SHA matches; `git status --short` is empty; `whoami=node`, UID `1000`; Node `v24.21.0`; pnpm `10.34.5`; OpenCode `2.0.22`; Codex `0.160.0`; GitHub CLI `2.102.0`; command paths match the Fresh Create; effective CODEX_HOME is recorded as `<USER_HOME>/.codex` in Run artifacts.
+- Control-plane metadata remains `Available`, `basicLinux32gb`, correct repository / branch, exact `.devcontainer/devcontainer.json`, and clean / no-unpushed. The single Full Rebuild completed; no retry or Creation Log retrieval was needed.
+- Task 21 is complete. Tasks 19 and 22 remain open for Fresh Create and Full Rebuild authentication / integration / API / Git / verify / Web / clean-state checks.
 
 #### E-3: candidate SHAのcanonical Fresh Create（E-2より先に実行）
 
@@ -813,8 +850,8 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 | candidate checkpoint | commit / push / SHA記録 | remote head == candidate SHA、branch freeze |
 | Main Codespace baseline | main branch startup | GitHub Codespaces / Repository access / account / machine are not broadly unavailable; not proof of PR devcontainer success |
 | Phase B plain migration | existing-container reuse Creation Log | baseline diagnostic only; migration is not Required DoD |
-| Fresh Create provenance | explicit devcontainer path + post-view | candidate HEAD / canonical machine / exact devcontainerPath / Creation Log / target Runtime |
-| Full Rebuild provenance | same candidate-created Codespace + full rebuild | Creation Log + target Runtime + canonical machine; empty devcontainerPath alone is not FAIL |
+| Fresh Create provenance | explicit devcontainer path + post-view | candidate HEAD / canonical machine / exact devcontainerPath / target Runtime; Creation Log only for failure diagnosis |
+| Full Rebuild provenance | same candidate-created Codespace + full rebuild | target Runtime + canonical machine; empty devcontainerPath alone is not FAIL; Creation Log only for failure diagnosis |
 | Full Rebuild auth | login status / auth source確認 | persisted sourceを考慮してzero-state確認後に認証 |
 | Full Rebuild target | user / path / version / PATH / gh / CODEX_HOME | B→C戦略どおりの実測値 |
 | Full Rebuild verify | `pnpm run verify` + tracked clean | PASS、tracked / index差分0 |
@@ -1015,11 +1052,11 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - [ ] 14. READMEを通常利用者向け情報と正本リンクに絞って更新する。
 - [ ] 15. candidate作成前に`pnpm run verify` / `git diff --check` / scope / repair-loop確認を行う。
 - [ ] 16. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
-- [ ] 17. remote head == candidate SHAを確認し、dotfiles元状態を確認したうえでcanonical machine / explicit devcontainer / `--status`によるFresh Createを1回行い、dotfiles未適用を確認して直ちに元状態へ戻す。
-- [ ] 18. Fresh Createでrepository / branch / HEAD / machine / exact devcontainerPath / Creation Log / postCreate / target user / CLI versions / PATH / effective CODEX_HOMEを確認する。
+- [x] 17. remote head == candidate SHAを確認し、dotfiles元状態を確認したうえでcanonical machine / explicit devcontainer / `--status`によるFresh Createを1回行い、dotfiles未適用を確認して直ちに元状態へ戻す。
+- [x] 18. Fresh Createでrepository / branch / HEAD / machine / exact devcontainerPath / target user / CLI versions / PATH / effective CODEX_HOMEを確認する。Creation LogはRuntimeだけでは失敗箇所を判定できない場合に取得し、Runtime contract PASS時の必須条件にしない。
 - [ ] 19. Fresh Createのauth zero-state、OpenCode / Codex integration、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、tracked cleanを確認する。
-- [ ] 20. Full Rebuild直前に同一candidate-created CodespaceのHEAD / tracked・index clean / environment-impacting untracked fileなしを確認し、`gh codespace rebuild --full`を1回行う。
-- [ ] 21. 同じCodespaceのFull Rebuild後にCreation Log / canonical machine / target Runtimeを確認する。`devcontainerPath`の空値だけではFAILにしない。
+- [x] 20. Full Rebuild直前に同一candidate-created CodespaceのHEAD / tracked・index clean / environment-impacting untracked fileなしを確認し、`gh codespace rebuild --full`を1回行う。
+- [x] 21. 同じCodespaceのFull Rebuild後にcanonical machine / target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failureの原因特定に必要な場合だけ取得し、`devcontainerPath`の空値だけではFAILにしない。
 - [ ] 22. Full Rebuild後のauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。
 - [ ] 23. Phase B plain Codespaceをbaseline evidenceとして記録し、不要になった時点でstopする。deleteしない。
 - [ ] 24. Fresh Create後に環境影響repair /変更が出た場合はnew candidateを作り、Full Rebuild / Fresh Createを両方やり直す。

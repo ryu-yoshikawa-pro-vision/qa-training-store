@@ -514,7 +514,7 @@ describe("codex-task native command output and exit code contract", () => {
   });
 
   for (const fixture of verifyRuntimeFixtures.fixtures) {
-    it.skipIf(!fixture.available)(
+    it.skipIf(!powerShellAvailable || !fixture.available)(
       `returns a scalar exit code for the ${fixture.name} verify path`,
       () => {
         const result = runVerifyProbe(fixture.commandText, verifyRuntimeFixtures.root);

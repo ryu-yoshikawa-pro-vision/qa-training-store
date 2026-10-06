@@ -579,3 +579,76 @@
 - `node` JSON parse of `.devcontainer/devcontainer.json` passed. `git diff --check` passed (Git reported the existing Run `REPORT.md` CRLF-to-LF conversion warning). No test content, package script, lockfile, image, Feature, port, authentication, `remoteUser`, or version changed. Sanitizer and final scope/index checks remain before candidate commit.
 - No commit, push, replacement Fresh Create, or Full Rebuild has occurred yet. The candidate freeze for `48a92742dd1892835d6b5f5e3516cfce1d8adfc3` is released for this repair; Task 27/28 remain incomplete and Full Rebuild Tasks 29/30 have not started.
 - Progress: 67% (28/42、必須CI確認1件を含む)
+
+## 2026-10-06 08:26 JST — New candidate committed and pushed
+
+- Candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` (`fix: Codespaces postCreateの権限を修正する`) includes the `.devcontainer/devcontainer.json` repair plus the canonical Plan / active Run evidence correction. It was pushed normally to `plan/codespaces-opencode-devcontainer`; no force push was used. PR #188 remains OPEN and points to this SHA.
+- This is the new frozen candidate. Old candidate `48a92742dd1892835d6b5f5e3516cfce1d8adfc3` remains retained as failure evidence. Task 33 is complete. Task 27 / 28 remain pending for a new Codespace from `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; Tasks 29 / 30 wait for Fresh Create target PASS.
+- Repository verification and Run Artifact sanitizer passed before this candidate commit. No new Codespace or Full Rebuild has been run for the new SHA yet.
+- Progress: 69% (29/42、必須CI確認1件を含む)
+
+## 2026-10-06 08:40 JST — Repaired candidate Fresh Create control-plane checkpoint
+
+- Fresh Create was issued exactly once from frozen candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` with repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, machine `basicLinux32gb`, explicit `--devcontainer-path .devcontainer/devcontainer.json`, and `--status`. Codespace created: `expert-chainsaw-r445rqpqqqqwh566v`.
+- `gh codespace create --status` exited 1 after `timed out while waiting for the codespace to start`. Follow-up control-plane view reports `Available`, expected repository / branch, `basicLinux32gb`, exact `devcontainerPath`, and no uncommitted / unpushed changes. This distinguishes an available Codespace from the CLI wait failure but does not prove target Runtime or postCreate success. No creation retry was made.
+- Personal dotfiles remained confirmed OFF with no selected repository; no preference change was made.
+- One existing `gh codespace logs` call completed exit 1; the in-memory safe classifier captured only 12 lines and no Creation Log stage, command, permission, completion, or recovery markers. No raw log was displayed or saved. The official `gh codespace ssh` Runtime query failed to start an SSH server in the container. This is recorded only as a transport limitation; no SSH, image, Feature, or remote-access repair was attempted.
+- AI-visible target Runtime and workspace HEAD are therefore still unknown. Task 27 / 28 remain incomplete; Full Rebuild Tasks 29 / 30 have not started. Do not reuse the old failed recovery Codespace `probable-spoon-wrrq9pgppxvp36rq`.
+- Human-only evidence needed for this new Codespace, in its normal Codespaces IDE terminal: `git rev-parse HEAD`, `git status --short`, `whoami`, `id -u`, `node --version`, `pnpm --version`, `opencode --version`, `codex --version`, `gh --version`, `command -v node pnpm opencode codex gh`, and effective `CODEX_HOME` (print `${CODEX_HOME:-$HOME/.codex}`). From the IDE Creation Log, share only whether image build and target start passed, `User: node` attached, each postCreate install step passed, `postCreateCommand` exited 0, and whether recovery fallback occurred; if a stage failed, name the first failure and safe error category. Do not share raw log text, credential values, or secrets.
+- Candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains frozen. No Full Rebuild or subsequent integration validation has been run.
+- Progress: 69% (29/42、必須CI確認1件を含む)
+
+## 2026-10-06 09:30 JST — Fresh Create PASS / Full Rebuild control-plane result
+
+- User-provided normal Codespaces IDE terminal output is accepted as Fresh Create target Runtime PASS for Codespace `expert-chainsaw-r445rqpqqqqwh566v`: `git rev-parse HEAD` is candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; `git status --short` is empty; `whoami=node`; `id -u=1000`; Node `v24.21.0`; pnpm `10.34.5`; OpenCode `v2.0.22`; Codex `0.160.0`; GitHub CLI `2.102.0`; command paths resolve to `/usr/local/bin/node`, `/usr/local/share/npm-global/bin/pnpm`, `/usr/local/share/npm-global/bin/opencode`, `/usr/local/share/npm-global/bin/codex`, `/usr/bin/gh`; effective `CODEX_HOME=<USER_HOME>/.codex`.
+- The user requests no additional Creation Log collection for this PASS. Since `postCreateCommand` is fail-fast and Codex is the final install step, the expected Codex version plus the preceding expected toolchain supports an inference that `sudo corepack enable`, frozen dependency install, Playwright install, and OpenCode install did not stop the command. This is recorded as inference, not Creation Log evidence.
+- Task 27 (explicit-path Fresh Create and dotfiles contract) is complete. Task 28 remains open for Fresh Create auth zero-state, integrations, required API, Git development checks, `pnpm run verify`, Web smoke, and final tracked/index clean validation.
+- Before Full Rebuild, local HEAD, origin branch, and PR #188 head matched candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; the Codespace IDE had reported clean tracked state, and control-plane metadata showed repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, machine `basicLinux32gb`, exact `.devcontainer/devcontainer.json`, and no dirty / unpushed changes. No environment-affecting file changed after candidate freeze.
+- Issued exactly once: `gh codespace rebuild --full -c expert-chainsaw-r445rqpqqqqwh566v`. Exit code was 0 and output was `expert-chainsaw-r445rqpqqqqwh566v is rebuilding`. Follow-up control-plane metadata transitioned from `Rebuilding` to `Available` and still matches repository, branch, `basicLinux32gb`, exact devcontainer path, and clean status. This confirms control-plane completion only; post-Rebuild target Runtime is pending.
+- No additional Creation Log was retrieved, no SSH change or troubleshooting was performed, and the old plain / recovery Codespaces were not reused. Full Rebuild was not repeated.
+- Next evidence must come from the same Codespace's normal IDE after Rebuild: candidate HEAD / clean status, user / uid, CLI versions / paths, and effective CODEX_HOME. Remaining target-runtime integration and Repository checks are still required under the canonical Plan.
+- Progress: 71% (30/42、必須CI確認1件を含む)
+
+## 2026-10-06 09:48 JST — Plan / Run documentation validation
+
+- Sanitized the three active Run artifacts with `scripts/sanitize-codex-artifacts.ps1 -Write -Check`: 3 files scanned, 0 changes, 0 residual findings. The supplied effective CODEX_HOME path is stored as `<USER_HOME>/.codex` in Run artifacts.
+- `pnpm run lint:markdown`: PASS, 0 issues. `pnpm run lint:text`: PASS for the four changed Markdown files. `git diff --check`: exit 0; Git emitted only the existing REPORT.md CRLF-to-LF warning.
+- Scope remains limited to canonical Plan and active Run PLAN / TASKS / REPORT. No environment-affecting file changed after candidate freeze; no commit or push was made.
+- The requested post-Rebuild `pnpm run verify` is a Codespace target validation and remains pending along with the target Runtime check.
+
+## 2026-10-06 12:15 JST — Runtime provenance correction / Rebuild target retarget
+
+- The user stated that the supplied Runtime values were obtained after starting a new Codespace. `gh codespace list` shows `turbo-umbrella-7vvjr6p66jvgcgg4` as the only currently available Codespace (created 10:54 JST); control-plane metadata matches repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, machine `basicLinux32gb`, exact `.devcontainer/devcontainer.json`, and clean / no unpushed state. Attribute the supplied IDE Runtime output to this new Codespace based on the user correction and listing.
+- The former Full Rebuild target `expert-chainsaw-r445rqpqqqqwh566v` now returns HTTP 404. The earlier Rebuild command and control-plane `Rebuilding` → `Available` transition remain historical control-plane evidence only. Do not attribute target Runtime PASS to `expert`; do not retry against the missing Codespace.
+- The supplied values establish Fresh Create Runtime PASS for `turbo-umbrella`: HEAD `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`, empty `git status --short`, `node` / UID `1000`, Node `v24.21.0`, pnpm `10.34.5`, OpenCode `2.0.22`, Codex `0.160.0`, GitHub CLI `2.102.0`, expected command paths, and effective `CODEX_HOME=<USER_HOME>/.codex`.
+- The same candidate-created `turbo-umbrella` Codespace passed Full Rebuild preflight. Issued once: `gh codespace rebuild --full -c turbo-umbrella-7vvjr6p66jvgcgg4`; exit 0, output `turbo-umbrella-7vvjr6p66jvgcgg4 is rebuilding`. Follow-up `gh codespace view` reports `Rebuilding` with matching repository / branch / machine / devcontainerPath / clean state. Do not repeat it.
+- Task 29 remains open until `turbo-umbrella` returns Available and post-Rebuild target Runtime is confirmed. No new Creation Log was retrieved; no browser or SSH operation was performed. Progress remains 71% (30/42、必須CI確認1件を含む).
+
+## 2026-10-06 12:25 JST — Full Rebuild control-plane completion checkpoint
+
+- Rechecked `gh codespace view -c turbo-umbrella-7vvjr6p66jvgcgg4 --json name,state,repository,gitStatus,machineName,devcontainerPath`. The same candidate-created Codespace is now `Available`; repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, machine `basicLinux32gb`, explicit `.devcontainer/devcontainer.json`, and clean / no-unpushed control-plane status match.
+- The single prior `gh codespace rebuild --full -c turbo-umbrella-7vvjr6p66jvgcgg4` completed its control-plane transition from `Rebuilding` to `Available`. This does not establish target Runtime after Rebuild. Do not repeat Full Rebuild.
+- The user-confirmed Runtime output remains Fresh Create evidence only. Post-Rebuild target Runtime is pending from the same Codespace's normal IDE terminal. Creation Log and browser checks are not requested for this Runtime gate.
+- Task 29 remains incomplete until post-Rebuild target Runtime passes; Task 30 remains open for the remaining integrations, Git, `pnpm run verify`, Web smoke, and clean-state checks. No candidate or environment file changed.
+- Progress remains 71% (30/42、必須CI確認1件を含む)
+
+## 2026-10-06 13:09 JST — Task 29 Full Rebuild target Runtime PASS
+
+- The user confirmed this IDE Runtime output was collected after Full Rebuild in the same candidate-created Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`: candidate HEAD `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; empty `git status --short`; `whoami=node`; UID `1000`; Node `v24.21.0`; pnpm `10.34.5`; OpenCode `2.0.22`; Codex `0.160.0`; GitHub CLI `2.102.0`; command paths `/usr/local/bin/node`, `/usr/local/share/npm-global/bin/pnpm`, `/usr/local/share/npm-global/bin/opencode`, `/usr/local/share/npm-global/bin/codex`, `/usr/bin/gh`; effective `CODEX_HOME=<USER_HOME>/.codex`.
+- Control-plane metadata confirms `Available`, repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, `basicLinux32gb`, exact `.devcontainer/devcontainer.json`, and no uncommitted / unpushed changes. The one `gh codespace rebuild --full -c turbo-umbrella-7vvjr6p66jvgcgg4` command exited 0; target Runtime now confirms Full Rebuild PASS.
+- No Creation Log, browser, SSH-specific repair, or additional Rebuild was used. Candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains frozen.
+- Task 29 is complete. Task 28 Fresh Create broader checks and Task 30 post-Rebuild auth / integration / GitHub API / verify / Web / tracked-clean checks remain open. Progress: 74% (31/42、必須CI確認1件を含む).
+
+## 2026-10-06 13:26 JST — Task 29 Run documentation validation
+
+- `pnpm run lint:markdown`: exit 0, 0 issues reported. `pnpm run lint:text`: PASS for four changed Markdown files.
+- Run Artifact sanitizer `-Check`: 3 active Run files scanned, 0 changes, 0 residual findings. `git diff --check`: exit 0; only the existing REPORT.md CRLF-to-LF warning was emitted.
+- Diff scope remains the canonical Plan and active Run PLAN / TASKS / REPORT; no environment-impacting file changed and candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains frozen.
+
+## 2026-10-06 15:44 JST — Linux verify failure diagnosis and repair
+
+- User-provided Codespaces/Linux `pnpm run verify` evidence isolates the only failures to `returns a scalar exit code for the .sh verify path` and `returns a scalar exit code for the default executable verify path` in `tests/contracts/codex-task-native-command.test.ts`. Both failed because `spawnSync pwsh ENOENT`; this means the PowerShell driver was absent. ESLint reported 65 warnings / 0 errors. React Native `act(...)` messages were warnings from passing tests.
+- Root cause: `runVerifyProbe` always starts `pwsh` on non-Windows hosts, but those two fixture entries were gated only by fixture availability. The `.sh` fixture checks for Bash, and the default executable fixture is unconditionally available, so both ran despite missing PowerShell.
+- Repair-loop iteration 1: finding `must_fix`; allowed / changed file: `tests/contracts/codex-task-native-command.test.ts`. The test now skips when either `powerShellAvailable` or fixture availability is false. This avoids requiring an undeclared PowerShell installation in the Codespaces image. No devcontainer, product, dependency, lockfile, CLI, test-content, or test expectation change was made.
+- Validation: targeted contract suite on Windows passed, 11 passed / 1 skipped. Full local `pnpm run verify` exited 0: Test Files 48 passed; Tests 820 passed / 4 skipped; build:web and build:spec passed. Full lint had 65 warnings / 0 errors; React `act(...)` console errors were non-fatal and associated tests passed.
+- Residual validation: the Windows host has PowerShell, so the Linux no-`pwsh` skip path still needs confirmation in the canonical Codespace after the test repair reaches its branch. Do not install `pwsh` in the devcontainer solely for this test. Since no environment-impacting file changed, the existing Fresh Create and Full Rebuild evidence for environment candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains applicable.
