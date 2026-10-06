@@ -29,14 +29,14 @@
 - [x] 25. candidate commit / pushしSHAを固定してbranchをfreezeする。
 - [x] 26. Phase B plain Codespaceのbaseline / clean状態を確認した（当時candidateへff-only同期した事実は履歴として保持し、canonical validation対象から除外）。
 - [x] 27. 修正後のnew candidate SHAからcanonical machineとexplicit `.devcontainer/devcontainer.json`を指定して新規Codespaceを`--status`で作成し、dotfiles元状態へ即時復元する。
-- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。Creation LogはRuntimeだけで失敗箇所を判定できない場合の補足であり、target Runtime PASS時に追加取得しない。
+- [ ] 28. Fresh Createのrepository / branch / candidate HEAD / machine / exact devcontainerPath / target CLI contract / effective CODEX_HOME / auth zero-state / integrations / API / Git / verify / Web / tracked cleanを確認する。Fresh Createのtarget metadata / Runtime契約とtracked cleanはユーザー提供の実測値でPASS（candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`、Codespace `turbo-umbrella-7vvjr6p66jvgcgg4`）。auth zero-state、OpenCode / Codex Repository integration、Hook、subagent、`ci_wait` discovery、required GitHub API、Git identity / remote / dry-run、Fresh Createでの`pnpm run verify`、Web smokeは今回のFresh Create evidenceとして未実施。Post-Rebuildのユーザー報告やHEAD `3c243f38b627c282fc779e7c13b98dbae08f1c74`のverifyをFresh Createへ流用しない。target Runtime PASS時にCreation Logは追加取得しない。
 - [x] 29. Fresh Createのtarget RuntimeがPASSした同じcandidate-created CodespaceをFull Rebuildし、canonical machineとpost-Rebuild target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failure原因の特定に必要な場合だけ取得し、empty `devcontainerPath` aloneはFAILにしない。
-- [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。
+- [ ] 30. Full Rebuild後にauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する（verify / clean、Codex・OpenCode基本利用、Hook、required GitHub API、Git identity / remote / push dry-runはユーザー報告でPASS。auth zero-state / Repository integration / subagent / `ci_wait` discovery / Web smokeは未実施）。
 - [x] 31. main Codespace成功とPhase B plain Codespaceの既存container reuse / recovery evidenceをRunへ記録し、Fresh Create failureと分離する。
 - [x] 32. Phase B plain Codespaceのmigration / baseline evidenceを保全し、不要になった時点でstopする。deleteしない。
 - [x] 33. 確定した`corepack enable` system-wide write failureを限定修正し、Repository検証 / scope / sanitizer PASS後にnew candidateを通常commit / pushしてSHAを固定する。
 - [ ] 34. candidate evidenceをPlan / Run Artifact / PR本文へ反映する。
-- [x] 35. final verify / diffを実行し、failureはrepair-loopへ従う（Windows local `pnpm run verify` exit 0、820 tests passed / 4 skipped、build:web / build:spec PASS。Linux Codespaceで修復後verifyを再確認する作業はTask 30に残す）。
+- [x] 35. final verify / diffを実行し、failureはrepair-loopへ従う（Windows local `pnpm run verify` exit 0、820 tests passed / 4 skipped、build:web / build:spec PASS。修復後のLinux Codespaces verifyもHEAD=`3c243f38b627c282fc779e7c13b98dbae08f1c74`・cleanで失敗0件、build:specまでPASS）。
 - [ ] 36. tracked Plan / Run Artifactを最終化して通常commit / pushする。
 - [ ] 37. final headとcandidate SHAの差分に環境影響変更がないことを確認する。
 - [ ] 38. canonical Fresh Codespaceをff-onlyでfinal HEADへ同期しwaiterを1回実行する。

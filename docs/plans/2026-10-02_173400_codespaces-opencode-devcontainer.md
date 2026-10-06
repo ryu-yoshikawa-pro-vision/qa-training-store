@@ -1054,10 +1054,10 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - [ ] 16. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
 - [x] 17. remote head == candidate SHAを確認し、dotfiles元状態を確認したうえでcanonical machine / explicit devcontainer / `--status`によるFresh Createを1回行い、dotfiles未適用を確認して直ちに元状態へ戻す。
 - [x] 18. Fresh Createでrepository / branch / HEAD / machine / exact devcontainerPath / target user / CLI versions / PATH / effective CODEX_HOMEを確認する。Creation LogはRuntimeだけでは失敗箇所を判定できない場合に取得し、Runtime contract PASS時の必須条件にしない。
-- [ ] 19. Fresh Createのauth zero-state、OpenCode / Codex integration、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、tracked cleanを確認する。
+- [ ] 19. Fresh Createのauth zero-state、OpenCode / Codex integration、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、tracked cleanを確認する。Hook / API / GitのPASS報告はFull Rebuild後のTask 22へ帰属し、Fresh Createではauth zero-state / Repository integration / Hook / subagent / `ci_wait` / Web smokeを未確認のため継続する。
 - [x] 20. Full Rebuild直前に同一candidate-created CodespaceのHEAD / tracked・index clean / environment-impacting untracked fileなしを確認し、`gh codespace rebuild --full`を1回行う。
 - [x] 21. 同じCodespaceのFull Rebuild後にcanonical machine / target Runtimeを確認する。`turbo-umbrella-7vvjr6p66jvgcgg4`でcandidate HEAD、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認。Creation LogはRuntime failureの原因特定に必要な場合だけ取得し、`devcontainerPath`の空値だけではFAILにしない。
-- [ ] 22. Full Rebuild後のauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。
+- [ ] 22. Full Rebuild後のauth zero-state、target CLI / gh / CODEX_HOME、OpenCode / Codex integration、required GitHub API、`pnpm run verify`、Web smoke、tracked cleanを確認する。Linux Codespacesの`pnpm run verify`はbuild:specまで失敗0件（contracts 48 files / 806 passed / 18 skipped）。ユーザー確認により同じ`turbo-umbrella-7vvjr6p66jvgcgg4`でHEAD=`3c243f38b627c282fc779e7c13b98dbae08f1c74`、`git status --short`空。Codex / OpenCodeの基本利用、Hook、required GitHub API、Git identity / remote / push dry-runはユーザー報告でPASS。auth zero-state / Repository integration / subagent / `ci_wait` / Web smokeは未実施のため継続する。
 - [ ] 23. Phase B plain Codespaceをbaseline evidenceとして記録し、不要になった時点でstopする。deleteしない。
 - [ ] 24. Fresh Create後に環境影響repair /変更が出た場合はnew candidateを作り、Full Rebuild / Fresh Createを両方やり直す。
 - [ ] 25. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。

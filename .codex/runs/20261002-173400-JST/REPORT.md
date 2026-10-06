@@ -652,3 +652,52 @@
 - Repair-loop iteration 1: finding `must_fix`; allowed / changed file: `tests/contracts/codex-task-native-command.test.ts`. The test now skips when either `powerShellAvailable` or fixture availability is false. This avoids requiring an undeclared PowerShell installation in the Codespaces image. No devcontainer, product, dependency, lockfile, CLI, test-content, or test expectation change was made.
 - Validation: targeted contract suite on Windows passed, 11 passed / 1 skipped. Full local `pnpm run verify` exited 0: Test Files 48 passed; Tests 820 passed / 4 skipped; build:web and build:spec passed. Full lint had 65 warnings / 0 errors; React `act(...)` console errors were non-fatal and associated tests passed.
 - Residual validation: the Windows host has PowerShell, so the Linux no-`pwsh` skip path still needs confirmation in the canonical Codespace after the test repair reaches its branch. Do not install `pwsh` in the devcontainer solely for this test. Since no environment-impacting file changed, the existing Fresh Create and Full Rebuild evidence for environment candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3` remains applicable.
+
+## 2026-10-06 17:01 JST — Linux Codespaces verify PASS reported
+
+- The user reviewed the Linux Codespaces `pnpm run verify` output and reports it completed through `build:spec` with zero failing tests / commands. Contracts: 48 files passed, 806 tests passed, 18 skipped, 0 failed. The previously failing `codex-task-native-command.test.ts` now passes.
+- Web component tests passed 102/102 and Native tests passed 64/64. ESLint reported 65 warnings and 0 errors. React `act(...)` notices, Native `act(...)` console output, and the Dexie connection stderr occurred with passing tests and did not fail verify. These are recorded as non-fatal output.
+- The supplied summary does not include the Codespace name or `git rev-parse HEAD`; therefore this PASS is recorded as user-provided Linux verify evidence without attributing it to a specific Codespace or SHA. Do not treat it as proof that the Codespace had synced to final PR head `3c243f38b627c282fc779e7c13b98dbae08f1c74`.
+- Task 35's Linux verify recheck is evidenced. The `pnpm run verify` sub-check in Task 30 is reported PASS, while Tasks 28 / 30 remain open for their remaining auth, integration, API, Git, Web smoke, and clean-state requirements. No task checkbox or Progress count changes from this evidence alone; Progress remains 76% (32/42, including the required-CI item).
+
+## 2026-10-06 17:16 JST — Linux verify SHA / clean-state confirmation
+
+- The user confirmed that the Codespace used for the Linux verify run was at `3c243f38b627c282fc779e7c13b98dbae08f1c74` and `git status --short` was empty. The conversation identifies this Codespace as `turbo-umbrella-7vvjr6p66jvgcgg4`.
+- Fresh control-plane reads show that same Codespace is currently `Shutdown`, on repository `ryu-yoshikawa-pro-vision/qa-training-store`, branch `plan/codespaces-opencode-devcontainer`, machine `basicLinux32gb`, and explicit `.devcontainer/devcontainer.json`; metadata reports no uncommitted or unpushed changes and ahead / behind `0 / 0`. PR #188 is OPEN, non-draft, and its head SHA is `3c243f38b627c282fc779e7c13b98dbae08f1c74`.
+- The Linux `pnpm run verify` PASS is therefore tied to the exact current PR head, with target clean-state confirmed by the user and control plane. The test-only commit does not alter the already validated environment candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`.
+- The user separately reported that Codex and OpenCode were usable. Record this as basic CLI usability PASS only; it does not establish Repository instructions / Skill behavior, OpenCode write smoke, Codex Hook / subagent, or `ci_wait` discovery.
+- Task 30's verify and tracked-clean sub-checks are evidenced. Tasks 28 / 30 remain open for authentication, integration, API, Git, Web smoke, and the other target-specific requirements. Progress remains 76% (32/42, including the required-CI item).
+
+## 2026-10-06 17:35 JST — Run evidence documentation validation
+
+- `pnpm exec markdownlint-cli2` exited 0 for the canonical Plan and active Run Markdown; the CLI reported 0 issues. `pnpm run lint:text` passed for the three changed Markdown files.
+- Run Artifact sanitizer `-Write -Check` scanned 3 active Run files, changed 0, and reported 0 residual findings. `git diff --check` exited 0; Git emitted the existing REPORT.md CRLF-to-LF warning.
+- This checkpoint changes only the canonical Plan and active Run `TASKS.md` / `REPORT.md`. No environment-impacting file or candidate runtime contract changed. The docs changes are not committed yet because the broader validation tasks remain open.
+
+## 2026-10-06 18:05 JST — Remaining Codespaces gate status reported
+
+- The user reports Hook, required GitHub API, and Git identity / remote / push dry-run as PASS. The response does not distinguish whether each was run after Fresh Create or after Full Rebuild; preserve these as reported target evidence and do not use them to complete phase-specific Task 28 / 30 requirements yet.
+- The user reports auth zero-state, OpenCode / Codex Repository integration, subagent, `ci_wait` discovery, and Web smoke as not run. The user requested browserless progress earlier, so no browser operation or Web smoke was attempted.
+- Previously confirmed Linux `pnpm run verify` remains PASS at PR head `3c243f38b627c282fc779e7c13b98dbae08f1c74`, with clean working tree. The target Codespace `turbo-umbrella-7vvjr6p66jvgcgg4` is currently Shutdown, and no AI-accessible target-runtime execution path is available.
+- Tasks 28 / 30 remain open for phase-attributed auth / integration / API / Git evidence, subagent, `ci_wait`, and Web smoke. Progress remains 76% (32/42, including the required-CI item). No Codespace restart, browser operation, SSH action, or credential operation was performed.
+
+## 2026-10-06 18:07 JST — Post-Rebuild status attribution
+
+- The status request explicitly framed the listed remaining checks as Full Rebuild-after validation. Accordingly, the user's Hook / required GitHub API / Git identity / remote / push dry-run PASS values are attributed to Task 30; they are not reused to satisfy Fresh Create Task 28.
+- Task 30 remains incomplete: auth zero-state, OpenCode / Codex Repository integration, subagent, `ci_wait` discovery, and Web smoke are reported untested. Task 28 remains open for its Fresh Create-specific auth / integration / API / Git / verify / Web evidence.
+
+## 2026-10-06 18:10 JST — Status update artifact validation
+
+- `pnpm run lint:text` passed for 3 changed Markdown files. Run Artifact sanitizer `-Write -Check` scanned 3 active Run files, changed 0, and reported 0 residual findings. `git diff --check` exited 0 with only the existing REPORT.md line-ending warning.
+- No source, test, package, or environment-impacting file changed. Candidate runtime SHA remains `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`; PR code head before the pending documentation commit remains `3c243f38b627c282fc779e7c13b98dbae08f1c74`.
+
+## 2026-10-06 18:24 JST — Task 28 Fresh Create evidenceとruntime実行経路
+
+- Fresh Createのmetadata / Runtime contractとtracked cleanは、`turbo-umbrella-7vvjr6p66jvgcgg4`の通常IDE Terminalでユーザーが確認した実測値を根拠にPASS。repository `ryu-yoshikawa-pro-vision/qa-training-store`、branch `plan/codespaces-opencode-devcontainer`、candidate HEAD `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`、`basicLinux32gb`、explicit `.devcontainer/devcontainer.json`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、CLI PATH、effective `CODEX_HOME=<USER_HOME>/.codex`、空の`git status --short`を確認済み。現在のcontrol-plane viewもrepository、branch ref、machine、exact devcontainer path、ahead / behindなし、dirty / unpushedなしを確認。
+- AIは`gh codespace list`、`gh codespace view`、`gh codespace ports`で最新のread-only control-plane確認を実行した。同じCodespaceは現在`Shutdown`で、forwarded port 8081は`private`（URL自体は表示していない）。Codespaces CLIに`start` / `exec`はなく、現在のtool catalogにもCodespaces runtime terminal connectorはない。`gh codespace ssh`は有効な鍵pairがない場合に鍵pairを自動作成する旨がhelpにあるため起動せず、鍵・agent・config変更、SSH修復は行っていない。ブラウザ、wrapper、新しい接続機構も使っていない。
+- Fresh Create Task 28のphase別evidence:
+  - **PASS** — repository / branch / candidate HEAD / machine / explicit devcontainer path、target user / UID / CLI versions / PATH / effective CODEX_HOME、tracked working tree clean（ユーザーのFresh Create実測値とcontrol-plane metadata）。
+  - **未実施** — auth zero-state、OpenCode Repository instructions / Skill integration、Codex Repository integration、Hook、subagent、`ci_wait` discovery、required GitHub API、Git identity、remote / push dry-run、Fresh Createでの`pnpm run verify`、Web smoke。
+- Hook / required GitHub API / Git identity / remote / dry-runのユーザー報告PASSはFull Rebuild後のTask 30 evidenceとして保持し、Task 28へ流用していない。HEAD `3c243f38b627c282fc779e7c13b98dbae08f1c74`でのユーザー報告Linux verifyもTask 30 / 35のevidenceであり、Fresh Create Task 28のverifyとしていない。旧Codespace / 旧candidateの結果も使用していない。
+- Web smokeは未実施。targetが`Shutdown`で、AIからplanned Web processをCodespace内で起動できず、port metadataのみではHTTP / page smokeをPASSとできないため。ブラウザ操作は行っていない。target専用の残項目も実行経路がないため`未実施`とし、product FAILとは判定しない。
+- Task 28は未完了のため、Task 28 PASSを条件とする後続検証へは進めない。Task 29はPASSを維持し、既存Task 30 evidenceは別provenanceで保持する。Progressは76% (32/42、必須CI確認1件を含む)。
