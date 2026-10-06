@@ -705,11 +705,17 @@
 ## 2026-10-06 18:55 JST — post-push sanitizer CI failureと修正
 
 - Commit `c91a589e78edd6eddbf10764f687d6ae3fa388af`のpush後、exact-head `wait_for_required_ci`を1回呼び出した。結果は`ci_failure`。`Web CI`はcompleted / failure、`Mobile App CI`はwaiter応答時点でin progress。waiterは再実行しない。
-- `Web CI`の失敗jobは`Codex artifact sanitization (ubuntu-latest)`で、step `Check changed Codex artifacts`。失敗ログのsecret-safe要約で、`.codex/runs/20261002-173400-JST/REPORT.md:198`の`/tmp`が`known registered path`として検出された。検出されたのは過去checkpointに残るtemporary path表記で、実行環境の不具合やcandidate環境のfailureではない。
-- 修復分類は`must_fix`。許可範囲はactive `REPORT.md`の検出行のみ。Run Artifact sanitization契約に従い、意味を変えず`/tmp`を`<TEMP_ROOT>`へ正規化する。Source、test、dependency、environment-impacting file、SSH設定 / credentialは変更しない。
+- `Web CI`の失敗jobは`Codex artifact sanitization (ubuntu-latest)`で、step `Check changed Codex artifacts`。失敗ログのsecret-safe要約で、`.codex/runs/20261002-173400-JST/REPORT.md:198`のtemporary pathが`known registered path`として検出された。検出されたのは過去checkpointに残るtemporary path表記で、実行環境の不具合やcandidate環境のfailureではない。
+- 修復分類は`must_fix`。許可範囲はactive `REPORT.md`の検出行のみ。Run Artifact sanitization契約に従い、意味を変えず履歴内のtemporary path表記を`<TEMP_ROOT>`へ正規化する。Source、test、dependency、environment-impacting file、SSH設定 / credentialは変更しない。
 - Local Windows sanitizerがこのLinux temporary pathを検出しなかったため、次回検証ではPR branch全体で変更された6つのRun Artifactも対象にしてsanitizationを確認する。
 
 ## 2026-10-06 18:59 JST — sanitizer修復後の検証とpush
 
-- `/tmp`を`<TEMP_ROOT>`へ正規化後、PR branchで変更されたRun Artifact 6ファイルを`sanitize-codex-artifacts.ps1 -Check`で再確認し、残存finding 0件でPASS。`pnpm run lint:text`、明示path指定のMarkdown lint（7ファイル、0 issues）、`git diff --check`もPASS。
+- temporary path表記を`<TEMP_ROOT>`へ正規化後、PR branchで変更されたRun Artifact 6ファイルを`sanitize-codex-artifacts.ps1 -Check`で再確認し、残存finding 0件でPASS。`pnpm run lint:text`、明示path指定のMarkdown lint（7ファイル、0 issues）、`git diff --check`もPASS。
 - 修復対象はactive `REPORT.md`のみ。commit `39c2f468d4cea0e48a62a7599fea93df6d463fb5`をbranch `plan/codespaces-opencode-devcontainer`へ通常pushした。force pushなし。push後のexact-head required CI waiter結果は別途確認する。
+
+## 2026-10-06 19:09 JST — Sanitizer failureの再発原因と限定修復
+
+- Commit `708b8d5f3e9f4fadb4337327dfc98521b5392485`のwaiterは`ci_failure`を返した。`Web CI`は再びUbuntuの`Check changed Codex artifacts` stepで失敗し、Windows sanitizerと他の主要jobは成功。waiter応答時点の`Mobile App CI`はin progress。waiterは再実行しない。
+- 原因を調べると、最初の修正後に追加したCI診断文が、検出されたtemporary pathの生文字列を2か所に記載していた。PR branch内のactive REPORTにその文字列が残っていることをread-only検索で確認した。
+- Findingは`must_fix`。許可範囲はactive `REPORT.md`だけ。診断内容は保ちつつ、temporary pathの生文字列を文章から除去し、正規化済み`<TEMP_ROOT>`表記だけを残す。これ以上Sanitizer failureが続く場合はrepair-loopの反復停止条件に従う。
