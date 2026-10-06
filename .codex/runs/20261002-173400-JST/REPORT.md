@@ -708,3 +708,8 @@
 - `Web CI`の失敗jobは`Codex artifact sanitization (ubuntu-latest)`で、step `Check changed Codex artifacts`。失敗ログのsecret-safe要約で、`.codex/runs/20261002-173400-JST/REPORT.md:198`の`/tmp`が`known registered path`として検出された。検出されたのは過去checkpointに残るtemporary path表記で、実行環境の不具合やcandidate環境のfailureではない。
 - 修復分類は`must_fix`。許可範囲はactive `REPORT.md`の検出行のみ。Run Artifact sanitization契約に従い、意味を変えず`/tmp`を`<TEMP_ROOT>`へ正規化する。Source、test、dependency、environment-impacting file、SSH設定 / credentialは変更しない。
 - Local Windows sanitizerがこのLinux temporary pathを検出しなかったため、次回検証ではPR branch全体で変更された6つのRun Artifactも対象にしてsanitizationを確認する。
+
+## 2026-10-06 18:59 JST — sanitizer修復後の検証とpush
+
+- `/tmp`を`<TEMP_ROOT>`へ正規化後、PR branchで変更されたRun Artifact 6ファイルを`sanitize-codex-artifacts.ps1 -Check`で再確認し、残存finding 0件でPASS。`pnpm run lint:text`、明示path指定のMarkdown lint（7ファイル、0 issues）、`git diff --check`もPASS。
+- 修復対象はactive `REPORT.md`のみ。commit `39c2f468d4cea0e48a62a7599fea93df6d463fb5`をbranch `plan/codespaces-opencode-devcontainer`へ通常pushした。force pushなし。push後のexact-head required CI waiter結果は別途確認する。
