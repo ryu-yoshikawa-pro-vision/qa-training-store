@@ -235,6 +235,13 @@
 - Post-Rebuild Runtime and all phase-specific integration / verification remain pending. Direct AI-side command execution is unavailable, so request post-Rebuild target values from the normal IDE Terminal. No Creation Log was needed for the successful Fresh Create Runtime; none was fetched for this Rebuild.
 - Progress remains 74% (31/42); Task 27 / 33 / 35 are complete. Task 28 Fresh Create broader validation, Task 29 post-Rebuild Runtime, Task 30 post-Rebuild broader validation, final exact-head CI, and PR body synchronization remain open.
 
+## 2026-10-07 11:12 JST — Full Rebuild target Runtime PASS
+
+- User-provided IDE Terminal output is attributed to the same Codespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v` after its single Full Rebuild. HEAD is candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`; `git status --short` is empty; user is `node`, UID 1000; Node 24.21.0; pnpm 10.34.5; OpenCode 2.0.22; Codex 0.160.0; gh 2.102.0; expected command paths; effective CODEX_HOME `<USER_HOME>/.codex`. Task 29 target Runtime PASS.
+- Broad integration and verification results have not been supplied or executed in either phase: auth zero-state, OpenCode / Codex Repository integration, Hook, subagent, `ci_wait`, required GitHub API, Git identity / remote / dry-run, `pnpm run verify`, Web smoke, and final post-test clean.
+- The prior direct remote command failure remains a transport-only limitation. No SSH condition or repair has been introduced. PR head now includes a documentation-only commit after the validated environment candidate; no environment-impacting files changed.
+- Progress: 76% (32/42). Task 28 / 30 and final-head tasks remain open.
+
 ## 2026-10-07 08:21 JST — local final verifyとcandidate影響範囲
 
 - Local標準`pnpm run verify`をPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`で1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。先行stageはpassしたが、test failureによりweb / spec buildは未到達。失敗詳細と安全な原因分類はactive Run REPORTを参照し、Task 35は未完了のまま。

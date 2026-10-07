@@ -840,3 +840,30 @@
 - Fresh Create and Full Rebuild phase-specific auth zero-state, OpenCode / Codex Repository integration, Hook runtime / trust, subagent, `ci_wait` discovery, required GitHub API, Git identity / remote / push dry-run, Codespaces `pnpm run verify`, Web smoke, and post-validation tracked / index clean remain unverified. Earlier Phase B, b05 / other-candidate, historical `3c243f38...`, and separate Hook-session evidence are not attributed to candidate `5dda30d` phases. No raw credential, token, secret, or Creation Log was recorded.
 - Task 18 / active Task 27 Fresh Create target contract is PASS; active Task 28 broader Fresh Create checks remain open. Canonical Task 20 / active Task 29 Full Rebuild command is complete at the control-plane level, but post-Rebuild Runtime is pending so the Runtime task stays open. Canonical Task 21 / active Task 30 broader Rebuild checks remain open. Progress remains 74% (31/42).
 - Required CI has not been run for a final docs-updated head; PR body still needs correction after current-head required checks. The local pending delta remains limited to the canonical Plan and active Run documentation. No devcontainer, source, dependency, lockfile, install, CLI version, or authentication contract changed, so this documentation update does not require another Fresh Create or Full Rebuild.
+
+## 2026-10-07 11:12 JST — Full Rebuild target Runtime PASS and phase evidence ledger
+
+- User-provided IDE Terminal output is confirmed as post-Full-Rebuild evidence from `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v`. HEAD is `5dda30d5bcb58150fd280da0561bc0b44d63b617`; `git status --short` is empty; `whoami=node`; UID `1000`; Node `v24.21.0`; pnpm `10.34.5`; OpenCode `v2.0.22`; Codex `0.160.0`; gh `2.102.0`; expected executable paths resolve; effective CODEX_HOME is `<USER_HOME>/.codex`. Full Rebuild target Runtime: PASS.
+- The current PR head was rechecked after the doc checkpoint push: `106adc509378722f9cc8720f8e36deccc3039337`, open / non-draft, expected branch. That commit changes only canonical Plan / Run evidence. The environment candidate remains `5dda30d5...`; its Fresh Create and Full Rebuild evidence remains valid because no environment-impacting file changed.
+- Per-phase validation ledger (PASS means directly evidenced for that phase; no other phase or historical evidence is substituted):
+
+| Item | Fresh Create | Full Rebuild |
+| --- | --- | --- |
+| Candidate HEAD / clean status / target user / UID / CLI versions / PATH / effective CODEX_HOME | PASS | PASS |
+| OpenCode persisted-credential zero-state | 未実施 | 未実施 |
+| Codex auth zero-state / `codex login status` | 未実施 | 未実施 |
+| OpenCode Repository instructions / Skill / Free-model integration | 未実施 | 未実施 |
+| Codex Repository integration / project and Hook trust | 未実施 | 未実施 |
+| Hook runtime events in this phase | 未実施 | 未実施 |
+| Bounded subagent | 未実施 | 未実施 |
+| `ci_wait` server / `wait_for_required_ci` discovery | 未実施 | 未実施 |
+| Required GitHub API | 未実施 | 未実施 |
+| Git identity / remote / push dry-run | 未実施 | 未実施 |
+| `pnpm run verify` on the phase runtime | 未実施 | 未実施 |
+| Web smoke | 未実施 | 未実施 |
+| Final tracked / index clean after validations | 未実施 | 未実施 |
+
+- Runtime checkの`git status --short` was empty at both phase checkpoints; the separate final-clean-after-validation row remains 未実施 because those suites / smokes have not run. Hook evidence from the independent Hook session, previous candidate Codespaces, and historical `3c243f38...` verify result are not reused.
+- `gh codespace ssh -c pr188-expo-5dda30d-pjj5g4p44vrxc7p7v -- whoami` had returned exit 1 because no SSH server is installed in the container. This establishes no existing AI remote command path; it is not a target devcontainer failure or Plan acceptance criterion. SSH configuration remains untouched. Post-Rebuild IDE Runtime was the only human-supplied item needed to close Task 29.
+- Task 29 / canonical Task 21 is now PASS. Task 28 Fresh Create broader checks and Task 30 Full Rebuild broader checks remain open. Progress: 76% (32/42). `pnpm run verify`, integrations, Web smoke, and final clean are not claimed PASS.
+- Documentation changes for this checkpoint were pushed in `106adc509378722f9cc8720f8e36deccc3039337`; local / remote PR head matched and the worktree was clean immediately after push. Required CI was not run for this docs-updated head yet. PR body still has old Draft / pending language and must be corrected only after exact-head required checks.
