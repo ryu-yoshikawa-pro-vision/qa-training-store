@@ -15,8 +15,7 @@
   - dotfilesを各create直前だけ一時OFFにし、作成後すぐ復元。
   - Phase B plain Codespaceをbaseline evidenceとして扱い、candidate validationの対象から除外する。
   - candidate SHAからexplicit devcontainer Fresh Createし、target contract確認後に同じCodespaceをFull Rebuildする。
-  - Fresh Create / Full Rebuildのvalidation、`pnpm run verify`とtracked cleanを確認する。
-  - Fresh CreateでGit identity / remote / push dry-run。
+  - Fresh Createではmetadata / target Runtime / 作成直後のclean stateを確認し、残りのauth / integration / Git / verify / Web validationは同じCodespaceのFull Rebuild後に行う。
   - final exact HEADのwaiter、Codex logout、Codespace stop。
   - Repository-wide quality gate failureに対する既存repair-loop。
 - Out:
@@ -53,10 +52,9 @@
 ## 完了条件
 
 - canonical PlanのDoDを満たす。
-- OpenCodeのRepository instructions / native Skill discoveryがPhase B / E-2 / E-3で成立する。
+- OpenCodeのRepository instructions / native Skill discoveryがPhase B baselineおよびcandidate Full Rebuild後のE-2で成立する。Fresh Create E-3はmetadata / Runtime / initial cleanのみを確認する。
 - target devcontainerの`gh`とrequired GitHub API connectivityが成立する。
-- candidate-created CodespaceのFresh Create / 同Codespace Full Rebuildでtarget contractと`pnpm run verify` / tracked cleanが成立する。
-- Fresh CreateでGit write credentialをdry-runで確認する。
+- candidate-created CodespaceのFresh Createでmetadata / target Runtime / clean stateが成立し、同じCodespaceのFull Rebuild後にtarget contractと全integration / Git / `pnpm run verify` / Web / final tracked cleanが成立する。
 - exact final HEADの`Web CI` / `Mobile App CI`がsuccessする。
 - validation Codex credentialをlogoutしCodespaceをstopする。
 - dotfiles設定が元状態である。
@@ -242,6 +240,12 @@
 - The prior direct remote command failure remains a transport-only limitation. No SSH condition or repair has been introduced. PR head now includes a documentation-only commit after the validated environment candidate; no environment-impacting files changed.
 - Progress: 76% (32/42). Task 28 / 30 and final-head tasks remain open.
 
+## 2026-10-07 11:22 JST — candidate-to-current-head impact check
+
+- `git diff --name-status 5dda30d5bcb58150fd280da0561bc0b44d63b617...HEAD` contains only the canonical Plan and three active Run documents. No devcontainer, dependency / lockfile, install, auth, or CLI version path changed; environment-impacting paths = 0. Task 37 PASS; no Fresh Create / Full Rebuild rerun is required for the documentation commits.
+- Current PR #188 remains open / non-draft on the expected branch at head `adfd698e48e150f6ed385acd9af68b3245641179`. Local / remote branch match and worktree was clean after push. Exact-head required CI and PR body correction remain pending.
+- Progress: 79% (33/42; required CI pending). Tasks 28 / 30 remain open for phase-specific validation.
+
 ## 2026-10-07 08:21 JST — local final verifyとcandidate影響範囲
 
 - Local標準`pnpm run verify`をPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`で1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。先行stageはpassしたが、test failureによりweb / spec buildは未到達。失敗詳細と安全な原因分類はactive Run REPORTを参照し、Task 35は未完了のまま。
@@ -256,3 +260,11 @@
 - Repository repair-loop classifies the CI contract failure as `must_fix`. Bounded repair scope is only `package.json` and `pnpm-lock.yaml`; align exactly `expo`, `expo-constants`, `expo-linking`, `expo-router`, `expo-sqlite` to the versions required by the observed pinned Expo Doctor. Do not change unrelated Native code or workflow.
 - This dependency / lockfile change is environment-impacting. Reopen the prior candidate freeze and repeat candidate preverify, new candidate push, explicit-path Fresh Create, same-Codespace Full Rebuild, and phase-specific target validation on the new SHA. Prior b05 runtime evidence remains historical. No new Create / Rebuild has been run yet.
 - PR body remains unchanged pending successful required CI for the eventual exact head. No workflow skip / rerun / timeout workaround is planned.
+
+## 2026-10-07 11:35 JST — Fresh Create acceptance boundary and Full Rebuild Runtime
+
+- User clarified the phase boundary: Fresh Create acceptance is metadata / target Runtime / initial clean state only. All remaining auth zero-state, OpenCode / Codex integration, Hook / subagent / `ci_wait`, API, Git, `pnpm run verify`, Web smoke, and final clean checks are performed after Full Rebuild on the same Codespace.
+- Codespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v` passed the single Full Rebuild target Runtime contract at candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`; user-provided values are recorded in REPORT. No second rebuild is required.
+- Fresh Create metadata / Runtime / initial clean are PASS; active Task 28 is complete under the clarified scope. Full Rebuild post-runtime Task 29 is PASS. Task 30 remains open until its post-Rebuild validations are evidenced. User confirmed they will run those checks in the normal IDE Terminal and return summarized results; no outcomes have been received yet.
+- Current local target PR head was confirmed through GitHub connector as `adfd698e48e150f6ed385acd9af68b3245641179`, open / non-draft. Local `gh pr view` returned HTTP 401; use the GitHub connector for PR metadata. Exact-head required CI and PR body correction remain pending.
+- Progress: 81% (34/42; required CI pending).

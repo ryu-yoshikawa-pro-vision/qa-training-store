@@ -867,3 +867,38 @@
 - `gh codespace ssh -c pr188-expo-5dda30d-pjj5g4p44vrxc7p7v -- whoami` had returned exit 1 because no SSH server is installed in the container. This establishes no existing AI remote command path; it is not a target devcontainer failure or Plan acceptance criterion. SSH configuration remains untouched. Post-Rebuild IDE Runtime was the only human-supplied item needed to close Task 29.
 - Task 29 / canonical Task 21 is now PASS. Task 28 Fresh Create broader checks and Task 30 Full Rebuild broader checks remain open. Progress: 76% (32/42). `pnpm run verify`, integrations, Web smoke, and final clean are not claimed PASS.
 - Documentation changes for this checkpoint were pushed in `106adc509378722f9cc8720f8e36deccc3039337`; local / remote PR head matched and the worktree was clean immediately after push. Required CI was not run for this docs-updated head yet. PR body still has old Draft / pending language and must be corrected only after exact-head required checks.
+
+## 2026-10-07 11:22 JST — candidate-to-current-head scope verification
+
+- `git diff --name-status 5dda30d5bcb58150fd280da0561bc0b44d63b617...HEAD` lists only `.codex/runs/20261002-173400-JST/PLAN.md`, `REPORT.md`, `TASKS.md`, and `docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md`. Environment-impacting paths: 0. Task 37 PASS; no runtime rebuild is required for these documentation-only commits.
+- The current PR head is `adfd698e48e150f6ed385acd9af68b3245641179`; `git fetch origin` confirmed the local branch matched `origin/plan/codespaces-opencode-devcontainer`, and GitHub metadata confirmed PR #188 open / non-draft on that exact head. The worktree was clean after push.
+- The current head has not had the required-CI waiter run. PR body remains stale and is intentionally not changed before exact-head required checks. Progress: 79% (33/42; required CI pending).
+
+## 2026-10-07 11:35 JST — user-confirmed phase scope and post-Rebuild Runtime
+
+- Fresh Create acceptance was clarified by the user: metadata, target Runtime, and initial clean state are the complete Fresh Create contract. The same candidate-created Codespace is then Full Rebuilt once; remaining auth / integration / Git / verify / Web validation belongs after that Rebuild. Canonical Plan checklist and active Tasks 28 / 30 now reflect this order.
+- Fresh Create PASS evidence for `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v` at candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`: prior control-plane state `Available`, repository / branch match, machine `basicLinux32gb`, exact `.devcontainer/devcontainer.json`, clean metadata; user-provided IDE output confirmed exact HEAD, empty `git status --short`, `node` / UID 1000, Node `v24.21.0`, pnpm `10.34.5`, OpenCode `2.0.22`, Codex `0.160.0`, gh `2.102.0`, expected CLI paths, and effective CODEX_HOME `<USER_HOME>/.codex`.
+- The same Codespace received exactly one `gh codespace rebuild --codespace pr188-expo-5dda30d-pjj5g4p44vrxc7p7v --full` operation. It exited 0 and reached `Available`. User-provided post-Rebuild IDE output independently confirms exact candidate HEAD, empty `git status --short`, `node` / UID 1000, Node `v24.21.0`, pnpm `10.34.5`, OpenCode `2.0.22`, Codex `0.160.0`, gh `2.102.0`, expected CLI paths, and effective CODEX_HOME `<USER_HOME>/.codex`. Full Rebuild target Runtime: PASS. Do not repeat this Rebuild.
+- Fresh Create and Full Rebuild Runtime / initial clean: PASS. Fresh Create auth / integration / API / Git write / verify / Web checks are outside the user-confirmed Fresh Create acceptance scope; they are not FAILs and are not substituted with historical evidence. Full Rebuild post-runtime auth zero-state, OpenCode / Codex integration, Hook, subagent, `ci_wait` discovery, required GitHub API, Git identity / remote / push dry-run, `pnpm run verify`, Web smoke, and final post-validation clean remain 未実施.
+- The user confirmed they will execute the remaining Full Rebuild checks in the normal IDE Terminal and return summarized outcomes. No results are yet supplied. Auth zero-state must be checked before any new login / auth operation; no secret, raw credential, token value, or raw Creation Log is needed in the result.
+- Current per-check ledger (the Fresh Create broad checks are intentionally outside this phase's accepted scope; no historical result is substituted):
+
+| Check | Fresh Create | Full Rebuild |
+| --- | --- | --- |
+| Candidate metadata / target Runtime / initial clean | PASS | PASS |
+| OpenCode persisted-credential zero-state | 未実施（Full Rebuild後に実施） | 未実施 |
+| Codex auth zero-state / `codex login status` | 未実施（Full Rebuild後に実施） | 未実施 |
+| OpenCode Repository instructions / Skill / Free-model integration | 未実施（Full Rebuild後に実施） | 未実施 |
+| Codex Repository integration / project and Hook trust | 未実施（Full Rebuild後に実施） | 未実施 |
+| Hook runtime | 未実施（Full Rebuild後に実施） | 未実施 |
+| Bounded subagent | 未実施（Full Rebuild後に実施） | 未実施 |
+| `ci_wait` server / tool discovery | 未実施（Full Rebuild後に実施） | 未実施 |
+| Required GitHub API | 未実施（Full Rebuild後に実施） | 未実施 |
+| Git identity / remote / push dry-run | 未実施（Full Rebuild後に実施） | 未実施 |
+| `pnpm run verify` | 未実施（Full Rebuild後に実施） | 未実施 |
+| Web smoke | 未実施（Full Rebuild後に実施） | 未実施 |
+| Final tracked / index clean after validations | 未実施（Full Rebuild後に実施） | 未実施 |
+
+- AI-side direct `gh codespace ssh -c pr188-expo-5dda30d-pjj5g4p44vrxc7p7v -- whoami` previously exited 1 because the target container has no SSH server. This is only evidence that the existing control-shell remote-command path is unavailable; SSH is not a validation condition and no SSH setting, key, agent, `sshd`, image, or devcontainer change was made.
+- GitHub connector rechecked PR #188 as open / non-draft on `plan/codespaces-opencode-devcontainer`, head `adfd698e48e150f6ed385acd9af68b3245641179`. Local `gh pr view 188` returned HTTP 401; PR metadata was obtained through the existing GitHub connector. PR body still contains stale Draft / pending wording. Exact-head required CI has not run for the final docs-updated head; body update waits until required CI succeeds.
+- Progress: 81% (34/42; required CI pending). Task 28 (Fresh Create contract) and Task 29 (Full Rebuild Runtime) are complete; Task 30 and final exact-head tasks remain open.
