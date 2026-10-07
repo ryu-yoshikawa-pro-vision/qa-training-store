@@ -1,0 +1,29 @@
+{
+  "name": "qa-training-store",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm",
+  "remoteUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["OpenAI.chatgpt", "sst-dev.opencode", "ms-playwright.playwright"]
+    }
+  },
+  "waitFor": "postCreateCommand",
+  "containerEnv": {
+    "OPENCODE_DISABLE_AUTOUPDATE": "true"
+  },
+  "postCreateCommand": "bash -lc 'set -e; sudo corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; sudo npm install --global @opencode/cli@2.0.22; sudo npm install --global @openai/codex@0.160.0'",
+  "forwardPorts": [8081, 6080],
+  "portsAttributes": {
+    "8081": {
+      "label": "qa-training-store"
+    },
+    "6080": {
+      "label": "Playwright Desktop",
+      "onAutoForward": "notify"
+    }
+  }
+}

@@ -690,7 +690,7 @@ describe("Codex deterministic text quality contracts", () => {
       const post = runGate(
         linked,
         "PostToolUse",
-        { tool_name: "Bash" },
+        { tool_name: "Bash", tool_input: { path: "docs/existing.md" } },
         path.join(linked, "rules.json"),
         sessionId,
       );
@@ -1653,6 +1653,42 @@ describe("Codex deterministic text quality contracts", () => {
     }, "ｶﾀｶﾅ\n");
   }, 180_000);
 
+  it("skips pathless PostToolUse scans but keeps the changed Markdown in the final Stop scan", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/existing.md", "GOOD\nBAD\n");
+
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { command: "true" },
+      });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(JSON.parse(stop.stdout)).toMatchObject({ decision: "block" });
+      expect(stop.stdout).toContain("[TEST-BANNED]");
+      expect(stop.stderr).toBe("");
+    }, "GOOD\n");
+  }, 30_000);
+
+  it("does not scan a different changed Markdown file when an explicit path has no intersection", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/other.md", "BAD\n");
+
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Write",
+        tool_input: { file_path: "docs/existing.md" },
+      });
+      expect(post.status).toBe(0);
+      expect(post.stdout).toBe("");
+      expect(post.stderr).toBe("");
+    }, "GOOD\n");
+  }, 30_000);
+
   it("does not silently pass missing, invalid, or unloadable textlint configuration", () => {
     withFixture((root) => {
       removeFixtureFile(path.join(root, ".textlintrc.json"));
@@ -1736,7 +1772,10 @@ describe("Codex deterministic text quality contracts", () => {
         path.join(root, ".artifacts", "codex-text-quality", stateFiles(root)[0] ?? ""),
         "utf8",
       );
-      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         post,
         "PostToolUse safe unavailable cause",
@@ -1784,7 +1823,10 @@ describe("Codex deterministic text quality contracts", () => {
       state.status = "baseline_unavailable";
       delete state.files;
       fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
-      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         post,
         "PostToolUse unavailable without cause",
@@ -1814,7 +1856,10 @@ describe("Codex deterministic text quality contracts", () => {
       state.code = "regex_valid_but_unknown";
       delete state.files;
       fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
-      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         post,
         "PostToolUse unknown unavailable cause",
@@ -1838,7 +1883,10 @@ describe("Codex deterministic text quality contracts", () => {
       state.code = "INVALID-CODE";
       delete state.files;
       fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`, "utf8");
-      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         post,
         "PostToolUse invalid unavailable cause",
@@ -2250,6 +2298,19 @@ describe("Codex deterministic text quality contracts", () => {
     }, "GOOD\n");
   }, 30_000);
 
+  it("allows and cleans Stop when a changed current Markdown has no violations", () => {
+    withFixture((root) => {
+      expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
+      writeFile(root, "docs/existing.md", "GOOD\n");
+
+      const stop = runGate(root, "Stop", { stop_hook_active: false });
+      expect(stop.status).toBe(0);
+      expect(stop.stdout).toBe("");
+      expect(stop.stderr).toBe("");
+      expect(stateFiles(root)).toHaveLength(0);
+    }, "GOOD\nBAD\n");
+  });
+
   it("lazily reads a clean tracked Markdown baseline from the start HEAD", () => {
     withFixture((root) => {
       expect(runGate(root, "UserPromptSubmit", { prompt: "start" }).status).toBe(0);
@@ -2410,7 +2471,10 @@ describe("Codex deterministic text quality contracts", () => {
         ),
       ).toBe(unavailableStateText);
 
-      const post = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const post = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         post,
         "PostToolUse baseline unavailable",
@@ -2801,7 +2865,10 @@ describe("Codex deterministic text quality contracts", () => {
 
   it("fails open for PostToolUse failures and fails closed for an inactive Stop", () => {
     withFixture((root) => {
-      const missingPost = runGate(root, "PostToolUse", { tool_name: "Bash" });
+      const missingPost = runGate(root, "PostToolUse", {
+        tool_name: "Bash",
+        tool_input: { path: "docs/existing.md" },
+      });
       expectStructuredSystemMessage(
         missingPost,
         "missing PostToolUse state",

@@ -434,11 +434,8 @@ async function buildPairs({ root, state, rules, targetPaths }) {
   });
   const changedPaths = getChangedCurrentPaths(records, mappings, currentPaths);
   let pathsToScan = changedPaths;
-  if (targetPaths && targetPaths.size > 0) {
-    const targeted = new Set([...changedPaths].filter((filePath) => targetPaths.has(filePath)));
-    if (targeted.size > 0) {
-      pathsToScan = targeted;
-    }
+  if (targetPaths !== undefined) {
+    pathsToScan = new Set([...changedPaths].filter((filePath) => targetPaths.has(filePath)));
   }
   if (pathsToScan.size === 0) return { records, pairs: [] };
   await ensureTextlintConfiguration();
@@ -462,13 +459,17 @@ async function makePairs(root, state, rules, mappings, entryByPath, changedPaths
       path: currentPath,
       rules,
     });
-    const baselineViolations = await getBaselineViolations({
-      root,
-      startHead: state.start_head,
-      entry,
-      filePath: baselinePath,
-      rules,
-    });
+    // No baseline comparison can add a finding when the current scan is clean.
+    const baselineViolations =
+      currentViolations.length === 0
+        ? []
+        : await getBaselineViolations({
+            root,
+            startHead: state.start_head,
+            entry,
+            filePath: baselinePath,
+            rules,
+          });
     pairs.push({ currentPath, baselinePath, baselineViolations, currentViolations });
   }
   return pairs;
@@ -737,13 +738,15 @@ async function processUserPrompt(payload) {
 async function processPostToolUse(payload) {
   const root = getRoot(typeof payload.cwd === "string" ? payload.cwd : process.cwd());
   if (READ_ONLY_TOOLS.has(payload.tool_name)) return;
+  const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
+  if (explicitPaths.size === 0) return;
+
   const stateInfo = makeStatePath(root, payload.session_id);
   const state = readState(stateInfo.path, stateInfo);
   if (state.status !== STATE_STATUS.READY) {
     throw new QualityUnavailable("baseline_unavailable", state.code);
   }
   const { rules } = loadRules(process.env.CODEX_TEXT_QUALITY_RULES ?? DEFAULT_RULES_PATH);
-  const explicitPaths = extractMarkdownPaths(payload.tool_input, root);
   const { pairs } = await buildPairs({ root, state, rules, targetPaths: explicitPaths });
   const newViolations = pairs.flatMap((pair) => getNewViolations(pair.baselineViolations, pair.currentViolations));
   if (newViolations.length > 0) {
