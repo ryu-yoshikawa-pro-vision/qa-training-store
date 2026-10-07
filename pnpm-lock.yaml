@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  smol-toml: 1.7.1
+  smol-toml: 1.9.0
   expo-constants: 57.0.21
   xcode@3.0.1>uuid: 11.1.1
   '@eslint/eslintrc@3.3.6>js-yaml': 5.4.1
@@ -180,8 +180,8 @@ importers:
         specifier: 0.35.4
         version: 0.35.4(@types/node@26.1.1)
       smol-toml:
-        specifier: 1.7.1
-        version: 1.7.1
+        specifier: 1.9.0
+        version: 1.9.0
       textlint:
         specifier: ^15.8.0
         version: 15.8.0
@@ -5955,8 +5955,8 @@ packages:
     resolution: {integrity: sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==}
     engines: {node: '>=8.0.0'}
 
-  smol-toml@1.7.1:
-    resolution: {integrity: sha512-PPlsspAZ4jbMBu5DMFhfUGDQLu/vrL4SyBROVS37x8ynnVmFIs1VPBz1Co8Xks3TvpIaZXmU85y4DrQ+UyVFoQ==}
+  smol-toml@1.9.0:
+    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
     engines: {node: '>= 18'}
 
   source-map-js@1.2.1:
@@ -8775,7 +8775,9 @@ snapshots:
       metro-runtime: 0.84.6
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 
@@ -12206,7 +12208,7 @@ snapshots:
       markdownlint: 0.41.1
       markdownlint-cli2-formatter-default: 0.0.6(markdownlint-cli2@0.23.2)
       micromatch: 4.0.8
-      smol-toml: 1.7.1
+      smol-toml: 1.9.0
     transitivePeerDependencies:
       - supports-color
 
@@ -13779,7 +13781,7 @@ snapshots:
 
   slugify@1.6.9: {}
 
-  smol-toml@1.7.1: {}
+  smol-toml@1.9.0: {}
 
   source-map-js@1.2.1: {}
 
