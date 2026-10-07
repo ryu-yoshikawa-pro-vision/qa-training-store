@@ -1025,34 +1025,34 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 
 ## 11. 実行タスク
 
-- [ ] 1. Phase A: baseline main / PR head、Repository契約、current公式仕様を再確認する。
-- [ ] 2. control shellのGitHub CLI認証 / Codespaces accessをpreflightする。
-- [ ] 3. OpenCode / Codexの正規distributionからlatest non-prerelease stableとexact install sourceを固定する。
-- [ ] 4. 利用可能machineからcanonical validation machineを固定する。
-- [ ] 5. Personal dotfilesの元状態 / repositoryを確認する。Free-only利用ではPersonal `OPENCODE_API_KEY` accessは不要。
-- [ ] 6. dotfilesを作成直前だけOFFにし、canonical machine + `--status`でplain Codespaceを作成後、未適用確認と即時復元を行う。
-- [ ] 7. OpenCode exact install、baseline provenance、公式Free catalog / keyless model invocationを検証する。
-- [ ] 8. OpenCodeのroot `AGENTS.md`自動適用、native `feature-plan` Skill discovery、development smokeを検証する。
-- [ ] 9. Codex exact install、baseline provenance、effective `CODEX_HOME`、beta device-code authenticationを検証する。
-- [ ] 10. Codex `test:hooks` / trust / preflight / same-session Hook runtime / bounded subagentを同じ`CODEX_HOME`で検証する。
-- [ ] 11. `GH_TOKEN`を除外し、`ci_wait` server / tool discoveryと必須GitHub API read-only connectivityを検証する。wait toolは呼ばない。
-- [ ] 12. Phase B→C checkpointへFree-only OpenCode model policy / keyless invocation、target node install戦略、GitHub CLI Feature、CODEX_HOME、postCreate、smoke契約を固定する。
-- [ ] 13. `.devcontainer/devcontainer.json`と`AGENTS.md`の最小修正を実装する。OpenCode auth configは追加しない。
-- [ ] 14. READMEを通常利用者向け情報と正本リンクに絞って更新する。
-- [ ] 15. candidate作成前に`pnpm run verify` / `git diff --check` / scope / repair-loop確認を行う。
-- [ ] 16. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
+- [x] 1. Phase A: baseline main / PR head、Repository契約、current公式仕様を再確認する。
+- [x] 2. control shellのGitHub CLI認証 / Codespaces accessをpreflightする。
+- [x] 3. OpenCode / Codexの正規distributionからlatest non-prerelease stableとexact install sourceを固定する。
+- [x] 4. 利用可能machineからcanonical validation machineを固定する。
+- [x] 5. Personal dotfilesの元状態 / repositoryを確認する。Free-only利用ではPersonal `OPENCODE_API_KEY` accessは不要。
+- [x] 6. dotfilesを作成直前だけOFFにし、canonical machine + `--status`でplain Codespaceを作成後、未適用確認と即時復元を行う。
+- [x] 7. OpenCode exact install、baseline provenance、公式Free catalog / keyless model invocationを検証する。
+- [x] 8. OpenCodeのroot `AGENTS.md`自動適用、native `feature-plan` Skill discovery、development smokeを検証する。
+- [x] 9. Codex exact install、baseline provenance、effective `CODEX_HOME`、beta device-code authenticationを検証する。
+- [x] 10. Codex `test:hooks` / trust / preflight / same-session Hook runtime / bounded subagentを同じ`CODEX_HOME`で検証する。
+- [x] 11. `GH_TOKEN`を除外し、`ci_wait` server / tool discoveryと必須GitHub API read-only connectivityを検証する。wait toolは呼ばない。
+- [x] 12. Phase B→C checkpointへFree-only OpenCode model policy / keyless invocation、target node install戦略、GitHub CLI Feature、CODEX_HOME、postCreate、smoke契約を固定する。
+- [x] 13. `.devcontainer/devcontainer.json`と`AGENTS.md`の最小修正を実装する。OpenCode auth configは追加しない。
+- [x] 14. READMEを通常利用者向け情報と正本リンクに絞って更新する。
+- [x] 15. candidate作成前に`pnpm run verify` / `git diff --check` / scope / repair-loop確認を行う。
+- [x] 16. 環境影響変更をcandidate commitへ含めて通常pushし、candidate SHAを記録してbranchをfreezeする。
 - [x] 17. remote head == candidate SHAを確認し、dotfiles元状態を確認したうえでcanonical machine / explicit devcontainer / `--status`によるFresh Createを1回行い、dotfiles未適用を確認して直ちに元状態へ戻す。
 - [x] 18. Fresh Createのcontrol-plane metadataを確認する。candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`から作成されたCodespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v`は`Available` / `basicLinux32gb` / expected repository・branch・explicit `.devcontainer/devcontainer.json`。
 - [x] 19. Fresh Createの受入範囲であるtarget Runtimeと作成直後のclean stateを確認する。通常IDE RuntimeでHEAD一致・`git status --short` empty・`node` / UID 1000・Node 24.21.0・pnpm 10.34.5・OpenCode 2.0.22・Codex 0.160.0・gh 2.102.0・期待PATH・effective CODEX_HOMEを確認。Fresh Createではこれら以外のauth / integration / Git write / verify / Web gateを要求せず、同じCodespaceのFull Rebuild後にTask 22で実施する。
 - [x] 20. 同一candidate-created Codespaceについて、Full Rebuild直前にHEAD / tracked・index clean / environment-impacting untracked fileなし、`basicLinux32gb`、target devcontainer正常稼働を確認し、`gh codespace rebuild --codespace pr188-expo-5dda30d-pjj5g4p44vrxc7p7v --full`を1回実行。candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`、PR head一致。command exit 0、control-planeは`Rebuilding`から`Available`へ遷移した。
 - [x] 21. 同じCodespaceのFull Rebuild後にcanonical machine / target Runtimeを確認する。user-provided IDE Runtimeでcandidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`、clean status、`basicLinux32gb`、`node` / UID 1000、Node 24.21.0、pnpm 10.34.5、OpenCode 2.0.22、Codex 0.160.0、gh 2.102.0、expected PATH、effective CODEX_HOMEを確認した。Creation LogはRuntime failureの原因特定に必要な場合だけ取得し、`devcontainerPath`の空値だけではFAILにしない。
-- [ ] 22. Full Rebuild後、他のauth操作に先立ちOpenCode persisted-credential zero-stateとCodex `login status`を確認し、OpenCode / Codex Repository integration、Hook、subagent、`ci_wait` discovery、required GitHub API、Git identity / remote / push dry-run、`pnpm run verify`、Web smoke、最終tracked / index cleanを検証する。Full Rebuild target RuntimeはPASS。本candidateの残りは未実施で、historical candidate / Phase B / 別sessionの結果を流用しない。ユーザーは同Codespaceの通常IDEで実行して結果を返すと回答済み。
-- [ ] 23. Phase B plain Codespaceをbaseline evidenceとして記録し、不要になった時点でstopする。deleteしない。
-- [ ] 24. Fresh Create後に環境影響repair /変更が出た場合はnew candidateを作り、Full Rebuild / Fresh Createを両方やり直す。
-- [ ] 25. candidate SHAと実測結果をactive Run Artifact / canonical Plan / PR #188本文へ記録する。
-- [ ] 26. final working treeで`pnpm run verify` / `git diff --check`を再実行し、failureはrepair-loopへ従う。
-- [ ] 27. tracked Run Artifact / Planを最終状態へ更新して通常commit / pushする。
-- [ ] 28. final headとcandidate SHAの差分に環境影響ファイルが0件であることを確認する。
+- [x] 22. Full Rebuild後の同じcandidate-created CodespaceでTask 22 integrationを完了した。OpenCode zero-state / Free model・AGENTS・native Skill・read/write smoke、Codex zero-state再確立とdevice-code認証、Hook trust/runtime、`codex-safe` false-PASS修正、bounded subagent、`ci_wait` startup / discovery、GitHub API、Git identity / remote / dry-run、`pnpm run verify`、Web smoke、cleanを確認。CodexのFull Rebuild直後zero-stateは直接観測しておらず、既存`auth.json`をlogoutで除去して`Not logged in`とファイル不存在を確認した後にzero-stateを再確立した。詳細はTask 22 integration evidence（2026-10-07）を参照。
+- [x] 23. Phase B plain Codespaceをbaseline evidenceとして記録し、不要になった時点でstopする。deleteしない。
+- [x] 24. Fresh Create後の環境影響repairに対して新candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`を作り、同じcandidateからFresh Create / Full Rebuildを実施した。candidate後のHook / `codex-safe` repairとPlan / Run記録commitは環境影響pathを変更していないため、再実行不要。
+- [x] 25. candidate SHAとTask 22実測結果をactive Run Artifact / canonical Planへ記録する。PR #188本文の最終同期はrequired CI成功後のTask 30で行う。
+- [x] 26. Task 22の最終`pnpm run verify`（exit 0、1306 passed / 19 skipped）と`git diff --check`を確認。今回の残差分はPlan / Run記録のみのため、標準verifyは再実行せず、Markdown lint・text lint・Prettier・`git diff --check`を実行した。
+- [x] 27. sanitized / validatedなtracked Run Artifact / Planを最終化し、PR branchへ通常commit / pushする。
+- [x] 28. candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`からcommit予定のtreeまでを比較。差分は4つのPlan / Run記録、`scripts/codex-safe.sh`、`tests/contracts/codex-safe-run-manifest-sync.test.ts`のみで、`.devcontainer/**`、依存 / lockfile、install/setup、toolchain、image / Features、`remoteUser`、auth、portsの変更は0件。commit後にも同じscopeを再確認する。
 - [ ] 29. canonical Fresh Codespaceを`merge --ff-only`でfinal HEADへ同期し、同じeffective `CODEX_HOME`とCodespaces`GITHUB_TOKEN`で`wait_for_required_ci`を1回実行する。
 - [ ] 30. `Web CI` / `Mobile App CI` success後にPR本文を更新する。failureはimplementation harness / repair-loopへ従う。
 - [ ] 31. canonical Fresh Codespaceで`codex logout` /未認証確認後にstopし、不要Codespaceをdelete候補としてREPORTへ記録する。
@@ -1092,6 +1092,16 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - These five current versions match `origin/main`; the Hook commit does not modify them. The required CI failure is real and predates the Hook-only change. Repair only those package versions and their lockfile resolutions, using the observed Expo Doctor expected versions. Do not skip or weaken the CI gate.
 - A `package.json` / lockfile repair is environment-impacting under this Plan. The current candidate freeze is reopened for the limited repair; after repository validation and a new candidate commit, repeat explicit-path Fresh Create and Full Rebuild on a candidate-created Codespace. Do not reuse b05 runtime evidence for the new SHA.
 - PR remains incomplete until the repair candidate's target contracts and exact-head required CI pass. The Hook-only evidence remains separately recorded and needs no additional Fresh Create / Full Rebuild by itself.
+
+## Task 22 Full Rebuild integration evidence（2026-10-07）
+
+- Fresh Create / Full Rebuild target Runtime provenance remains the candidate SHA `5dda30d5bcb58150fd280da0561bc0b44d63b617` on Codespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v`. The later `codex-safe` repair commits `93df9d0` and `c4eccfc` and documentation commits are separate post-candidate work; they did not change `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, setup/install scripts, Node / pnpm / OpenCode / Codex versions, image, Features, `remoteUser`, authentication setup, or ports. No second Fresh Create / Full Rebuild is required.
+- OpenCode zero-state was confirmed before the smoke: `OPENCODE_DB` unset, default database and legacy auth file absent, no project Zen credential source, and no authenticated saved integration. The smoke process excluded `OPENCODE_API_KEY`, disabled auto-update, used the official Free `muse-spark-1.3-contributor-free` model, preserved OpenCode `2.0.22`, loaded root `AGENTS.md` and native `feature-plan` Skill, and passed repository instruction plus bounded read/write smoke. `.task22-opencode-smoke.tmp` was removed through Codespaces Explorer; final tree was clean.
+- Codex Full Rebuild-immediate zero-state was not directly observed. Subsequent zero-state re-establishment evidence is distinct: alternative auth environment variables were unset; effective `CODEX_HOME` was `<USER_HOME>/.codex`; pre-logout `auth.json` was a regular non-symlink file; `codex logout` succeeded; afterward `codex login status` reported `Not logged in` and `auth.json` was absent. The canonical `codex login --device-auth` flow then completed and `codex login status` confirmed ChatGPT authentication.
+- The Bash `codex-safe` false PASS came from two defects: its text parser did not handle Codex 0.160.0's structured execpolicy output (implicit allow is `{"matchedRules":[]}`), and `run_preflight()` relied on `set -e` despite being invoked in a conditional context, allowing later success to mask earlier mismatches. Commit `93df9d0` parses JSON structurally through Node, fails closed for invalid / ambiguous decisions, and explicitly returns on each failed `assert_decision`; `c4eccfc` fixes the regression fixture environment typing. No decision rules or security policy changed. Focused contract tests: 11 passed / 8 skipped; actual `readonly` and `safe` preflight each exited 0 with zero mismatch and exactly one success line.
+- Hook trust/runtime: `pnpm run test:hooks` 231/231 passed; `pnpm run diagnose:hooks` exited 0 with WARN 0 / ERROR 0. One read-only native subagent returned only `pnpm@10.34.5`; `SubagentStart` and `SubagentStop` share agent ID `01a114a7-697e-7330-a4f5-8e63ced8af3b` in the same-session Hook JSONL. `ci_wait` server startup and `wait_for_required_ci` discovery passed; the waiter was not called.
+- Same Codespaces IDE Terminal token conditions had `GITHUB_TOKEN` set and `GH_TOKEN` unset. Read-only PR API returned 188; CI run `37564104950` and Native CI run `37564105123` were completed / success, and the detailed Actions run lookup for `37564104950` was completed / success. Git identity and `origin` remote were confirmed; `git push --dry-run origin HEAD:plan/codespaces-opencode-devcontainer` completed without auth error and reported the `688a331..c4eccfc` fast-forward. User then pushed normally; local HEAD, remote branch and PR REST head were all confirmed as `c4eccfc11d54dc8e1ac2fed66dc2e1146c518c5c`.
+- `pnpm run verify` on the repaired tree exited 0: 1306 passed / 19 skipped across 105 files; ESLint 65 warnings / 0 errors; Web and spec builds passed. Web smoke on 8081 showed the exact Storefront heading, no GitHub / Expo / React error screen, and page errors 0; the process stopped and port was released. After the Explorer cleanup, tracked worktree and index were clean. These checks are Task 22 evidence, not Fresh Create evidence. Exact-final-head `wait_for_required_ci` and PR body update remain later tasks.
 
 ## Hook evidence integration and dependency repair validation（2026-10-07）
 
@@ -1137,3 +1147,9 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - Existing AI-side direct `gh codespace ssh ... -- whoami` returned exit 1 because no SSH server is installed in the target container. This only establishes the current remote-command transport limitation; SSH is not a Plan outcome, and no SSH config, key, agent, `sshd`, image, or devcontainer change was made.
 - GitHub connector confirmed PR #188 open / non-draft at docs head `adfd698e48e150f6ed385acd9af68b3245641179`; the local `gh pr view` request returned HTTP 401. Exact-head required CI and PR body update remain pending. The PR body still says Draft / implementation pending and must be corrected after successful required CI for the eventual exact head.
 - Active Run Progress is 81% (34/42, including the pending required-CI item): Tasks 27–29 PASS; Task 30 and final-head tasks remain open.
+
+## Latest status — 2026-10-07 14:20 JST
+
+- Canonical Task 22 / active Run Task 30 is PASS. The detailed evidence and provenance split are in “Task 22 Full Rebuild integration evidence” and the active Run REPORT section at the same timestamp. Older checkpoints below / above that still call Full Rebuild integration pending are historical and superseded for Task 22 only.
+- The candidate Runtime remains `5dda30d5bcb58150fd280da0561bc0b44d63b617`; post-Rebuild integration and repair work is separately associated with branch head `c4eccfc11d54dc8e1ac2fed66dc2e1146c518c5c`. Neither adds environment-impacting paths.
+- Still pending: finish the four-file evidence commit / push, verify candidate-to-final scope, sync the canonical Codespace by ff-only, run `wait_for_required_ci` exactly once at final HEAD, update the PR body after both required workflows succeed, then log out / verify / stop the Codespace and confirm dotfiles remain OFF with no selected repository. Do not merge or delete the Codespace.
