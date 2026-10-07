@@ -213,6 +213,13 @@
 - ユーザーの後続訂正によりFresh Create / Full Rebuildのauth zero-state / integration / Hook / subagent / ci_wait / required API / Git / Web検証は未確認。Fresh Createのtarget RuntimeとFull Rebuild Runtime contractだけを既存provenanceのまま保持する。
 - 直近のdirect remote whoamiはexit 1（container内SSH serverを起動できない旨）。これはexecution transportの失敗で、Codespacesまたはdevcontainer構築failureの証拠ではない。SSH鍵・agent・config、sshd、Plan成果条件は変更していない。
 
+## 2026-10-07 09:52 JST — Hook evidence integrated / Expo dependency repair validated
+
+- Actual remote Hook commit is `17e612b1b5fadf8736de9b99d6f437a94ef397a4` (the supplied `176e612...` SHA is a typo); PR head `92852d6be3db09c2d7df60718bc42538f2a2dfa4` contains it. Commit diff is the Hook implementation, focused contract test, and ADR only. The reported PostToolUse / Stop behavior, five Bash timings, Hook suite results, and same-session Hook JSONL evidence remain tied to the separate Hook session.
+- Required Mobile App CI identified five Expo patch-level mismatches. Updated those five direct dependencies, fixed the matching `pnpm.overrides.expo-constants` value, and regenerated `pnpm-lock.yaml`. Frozen install passed; pinned Expo Doctor 1.17.6 passed 17/17.
+- Standard `pnpm run verify` exited 1 in the default sandbox because Windows Hook / PowerShell / `ci_wait` child-process contract tests could not run. In the approved elevated execution context, the same standard command passed exit 0: 48/48 test files, 823 passed / 4 skipped, 65 ESLint warnings / 0 errors, and Web / spec builds passed. Detailed provenance is in REPORT.
+- Since the package / lock change is environment-impacting, new-candidate Fresh Create and same-Codespace Full Rebuild remain required. This requirement is caused by the separate Expo dependency repair; the Hook-only change does not trigger rebuilds. Existing b05 Runtime values remain historical.
+
 ## 2026-10-07 08:21 JST — local final verifyとcandidate影響範囲
 
 - Local標準`pnpm run verify`をPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`で1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。先行stageはpassしたが、test failureによりweb / spec buildは未到達。失敗詳細と安全な原因分類はactive Run REPORTを参照し、Task 35は未完了のまま。
@@ -220,3 +227,10 @@
 - Codespaces上標準verifyの2回のexit 143もPASS扱いしない。target command transportは先行direct `whoami`のexit 1で利用不能と確認済み。Task 28 / 30のphase別チェックとWeb smokeは未確認のまま。
 - GitHub PR metadataはPR #188 open / non-draft、actual head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`。提示SHA `176e612b1b5fadf8736de9b99d6f437a94ef397a4`は存在しない。PR本文はDraft維持・Phase A/B pending等の古い記述があり、required CI後に現状へ更新する。
 - candidate `b05b4508ff8bd8eadf788dd7914ab85f6fa4cbd3`からactual headまでのGitHub compareは6 commits / 8 paths、environment-impacting pathは0。今後のRun commitも文書4ファイルだけとし、Fresh Create / Full Rebuildは再実行しない。
+
+## 2026-10-07 09:11 JST — required Mobile CI failure repair
+
+- Exact-head waiter on `92852d6be3db09c2d7df60718bc42538f2a2dfa4` returned `ci_failure`: Web CI success; Mobile App CI failure. Failure log identifies Native Static / Expo Doctor: five Expo SDK packages are one patch behind the required versions. The same versions exist on `origin/main`; this predates the Hook commit but fails the required PR gate.
+- Repository repair-loop classifies the CI contract failure as `must_fix`. Bounded repair scope is only `package.json` and `pnpm-lock.yaml`; align exactly `expo`, `expo-constants`, `expo-linking`, `expo-router`, `expo-sqlite` to the versions required by the observed pinned Expo Doctor. Do not change unrelated Native code or workflow.
+- This dependency / lockfile change is environment-impacting. Reopen the prior candidate freeze and repeat candidate preverify, new candidate push, explicit-path Fresh Create, same-Codespace Full Rebuild, and phase-specific target validation on the new SHA. Prior b05 runtime evidence remains historical. No new Create / Rebuild has been run yet.
+- PR body remains unchanged pending successful required CI for the eventual exact head. No workflow skip / rerun / timeout workaround is planned.
