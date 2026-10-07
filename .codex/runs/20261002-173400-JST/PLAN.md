@@ -220,6 +220,21 @@
 - Standard `pnpm run verify` exited 1 in the default sandbox because Windows Hook / PowerShell / `ci_wait` child-process contract tests could not run. In the approved elevated execution context, the same standard command passed exit 0: 48/48 test files, 823 passed / 4 skipped, 65 ESLint warnings / 0 errors, and Web / spec builds passed. Detailed provenance is in REPORT.
 - Since the package / lock change is environment-impacting, new-candidate Fresh Create and same-Codespace Full Rebuild remain required. This requirement is caused by the separate Expo dependency repair; the Hook-only change does not trigger rebuilds. Existing b05 Runtime values remain historical.
 
+## 2026-10-07 10:38 JST — new candidate Fresh Create control-plane checkpoint
+
+- Candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617` was pushed and confirmed as PR head. One new Codespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v` was created from that branch with `basicLinux32gb` and explicit `.devcontainer/devcontainer.json`; control plane now reports `Available`, expected repository / branch / machine / path, and no local or unpushed changes. Existing `turbo-umbrella` was not reused.
+- Target Runtime and exact container HEAD remain unconfirmed. Direct `gh codespace ssh ... -- whoami` failed exit 1 because the container has no SSH server. `gh codespace logs` failed exit 1 without usable lifecycle evidence. These are transport / log-access limitations and do not prove devcontainer failure. SSH setup was not changed.
+- The target IDE Runtime command output was requested from the user. Do not run Full Rebuild before Fresh Create target contract passes. No new-candidate Full Rebuild or exact-head required-CI waiter has run. PR description has not been changed.
+
+## 2026-10-07 10:50 JST — Fresh Create Runtime PASS / Full Rebuild control-plane completion
+
+- PR #188 is open / non-draft on the expected branch with head `5dda30d5bcb58150fd280da0561bc0b44d63b617`. Candidate Codespace `pr188-expo-5dda30d-pjj5g4p44vrxc7p7v` is `Available`, `basicLinux32gb`, exact `.devcontainer/devcontainer.json`, expected repository / branch, and control-plane clean.
+- User-provided Fresh Create IDE Runtime confirmed exact candidate HEAD, empty `git status --short`, `whoami=node`, UID 1000, Node 24.21.0, pnpm 10.34.5, OpenCode 2.0.22, Codex 0.160.0, gh 2.102.0, expected PATH, and effective CODEX_HOME `<USER_HOME>/.codex`. Fresh Create target Runtime is PASS; phase-specific auth / integration / Hook / subagent / `ci_wait` / API / Git / verify / Web remain unverified.
+- After the same Codespace passed Fresh Create target Runtime, pre-Rebuild metadata and user-provided clean workspace state matched the candidate. `gh codespace rebuild --codespace pr188-expo-5dda30d-pjj5g4p44vrxc7p7v --full` exited 0, reported `Rebuilding`, and the same Codespace later returned `Available`. This was one Full Rebuild. Do not repeat it.
+- The existing direct `gh codespace ssh -c pr188-expo-5dda30d-pjj5g4p44vrxc7p7v -- whoami` had failed exit 1 because no SSH server is installed in the container. This is only a remote command transport limitation. SSH is not a Plan condition; no SSH settings, keys, agent, `sshd`, image, or devcontainer modifications were made. Fresh Create Runtime evidence is not reused as post-Rebuild Runtime evidence.
+- Post-Rebuild Runtime and all phase-specific integration / verification remain pending. Direct AI-side command execution is unavailable, so request post-Rebuild target values from the normal IDE Terminal. No Creation Log was needed for the successful Fresh Create Runtime; none was fetched for this Rebuild.
+- Progress remains 74% (31/42); Task 27 / 33 / 35 are complete. Task 28 Fresh Create broader validation, Task 29 post-Rebuild Runtime, Task 30 post-Rebuild broader validation, final exact-head CI, and PR body synchronization remain open.
+
 ## 2026-10-07 08:21 JST — local final verifyとcandidate影響範囲
 
 - Local標準`pnpm run verify`をPR head `17e612b1b5fadf8736de9b99d6f437a94ef397a4`で1回実行しexit 1。48 files中43 passed / 5 failed、827 tests中779 passed / 44 failed / 4 skipped。先行stageはpassしたが、test failureによりweb / spec buildは未到達。失敗詳細と安全な原因分類はactive Run REPORTを参照し、Task 35は未完了のまま。
