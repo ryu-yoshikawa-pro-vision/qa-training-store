@@ -45,7 +45,13 @@ function runPowerShell(wrapperPath: string, args: string[], cwd = repoRoot, code
   );
 }
 
-function runBash(wrapperPath: string, args: string[], cwd = repoRoot, codexPath?: string) {
+function runBash(
+  wrapperPath: string,
+  args: string[],
+  cwd = repoRoot,
+  codexPath?: string,
+  envOverrides: NodeJS.ProcessEnv = {},
+) {
   const relativeWrapperPath = path.relative(cwd, wrapperPath).replaceAll("\\", "/");
   const bashWrapperPath = relativeWrapperPath.startsWith(".")
     ? relativeWrapperPath
@@ -53,8 +59,93 @@ function runBash(wrapperPath: string, args: string[], cwd = repoRoot, codexPath?
   return spawnSync("bash", [bashWrapperPath, ...args], {
     cwd,
     encoding: "utf8",
-    env: codexPath ? { ...process.env, CODEX_BIN: codexPath } : process.env,
+    env: {
+      ...process.env,
+      ...(codexPath ? { CODEX_BIN: codexPath } : {}),
+      ...envOverrides,
+    },
   });
+}
+
+function createFakeCodex(root: string): string {
+  const fakeCodexPath = path.join(root, "fake-codex");
+  fs.writeFileSync(
+    fakeCodexPath,
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+
+const args = process.argv.slice(2);
+const command = args.slice(args.lastIndexOf("--") + 1);
+const commandText = command.join(" ");
+const callsPath = process.env.CODEX_FAKE_CALLS;
+const previousCalls = fs.existsSync(callsPath)
+  ? fs.readFileSync(callsPath, "utf8").split(/\\r?\\n/).filter(Boolean).length
+  : 0;
+fs.appendFileSync(callsPath, JSON.stringify(command) + "\\n");
+
+const mode = process.env.CODEX_FAKE_MODE ?? "success";
+if (mode === "mismatch-second" && previousCalls === 1) {
+  process.stdout.write('{"decision":"prompt"}');
+  process.exit(0);
+}
+if (mode === "fixed-response") {
+  process.stdout.write(process.env.CODEX_FAKE_RESPONSE ?? "");
+  process.exit(0);
+}
+
+const expectedDecisions = new Map([
+  ["git status", "allow"],
+  ["rg --files docs", "allow"],
+  ["git switch feature/safe", "allow"],
+  ["git checkout feature/safe", "prompt"],
+  ["git merge main", "prompt"],
+  ["git merge --abort", "prompt"],
+  ["git rebase --abort", "prompt"],
+  ["git branch -d old-feature", "prompt"],
+  ["git branch --delete old-feature", "prompt"],
+  ["git branch -vd old-feature", "prompt"],
+  ["git branch -dv old-feature", "prompt"],
+  ["git branch -v -d old-feature", "prompt"],
+  ["gh api /repos/example/repo/issues", "prompt"],
+  ["gh pr merge 123", "prompt"],
+  ["gh pr close 123", "prompt"],
+  ["gh issue close 123", "prompt"],
+  ["gh release create v1", "prompt"],
+  ["gh release delete v1", "prompt"],
+  ["gh repo delete example/repo", "prompt"],
+  ["gh pr create --title test", "allow"],
+  ["gh pr edit 123", "allow"],
+  ["gh pr checks 123", "allow"],
+  ["git add .", "allow"],
+  ["python -c print(1)", "allow"],
+  ["python -", "allow"],
+  ["git reset --hard HEAD~1", "forbidden"],
+  ["terraform destroy -auto-approve", "forbidden"],
+  ["docker ps", "prompt"],
+  ["rm file.txt", "forbidden"],
+  ["Remove-Item file.txt", "forbidden"],
+  ["git rm file.txt", "forbidden"],
+]);
+const decision = expectedDecisions.get(commandText);
+if (!decision) {
+  process.stderr.write("Unmapped synthetic execpolicy command");
+  process.exit(64);
+}
+
+if (commandText === "git switch feature/safe") {
+  process.stdout.write('{"matchedRules":[]}');
+} else if (commandText === "git status") {
+  process.stdout.write(JSON.stringify({ matchedRules: [], decision }));
+} else if (commandText === "rg --files docs") {
+  process.stdout.write(JSON.stringify({ matchedRules: [], decision }, null, 2));
+} else {
+  process.stdout.write(JSON.stringify({ matchedRules: [{}], decision }));
+}
+`,
+    "utf8",
+  );
+  fs.chmodSync(fakeCodexPath, 0o755);
+  return fakeCodexPath;
 }
 
 function hasPowerShellRuntime() {
@@ -453,4 +544,120 @@ describe("codex-safe run manifest sync contract", () => {
     },
     runtimeTestTimeout,
   );
+});
+
+describe("Bash codex-safe execpolicy preflight contract", () => {
+  it.each(["safe", "readonly"] as const)(
+    "%s validates compact, whitespace, and implicit-allow JSON before printing success",
+    (preset) => {
+      const fixture = createFixture({ git: false, manifest: false });
+      const fakeCodexPath = createFakeCodex(fixture.root);
+      const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
+      const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--preset", preset, "--preflight-only", "--log-path", logPath],
+          fixture.root,
+          fakeCodexPath,
+          { CODEX_FAKE_CALLS: callsPath },
+        );
+        const calls = fs
+          .readFileSync(callsPath, "utf8")
+          .trim()
+          .split(/\r?\n/)
+          .map((line) => JSON.parse(line) as string[]);
+        const events = fs
+          .readFileSync(logPath, "utf8")
+          .trim()
+          .split(/\r?\n/)
+          .map((line) => (JSON.parse(line) as { event: string }).event);
+
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain("Preflight OK. Rules validated against smoke tests.");
+        expect(calls).toContainEqual(["git", "switch", "feature/safe"]);
+        expect(events).toContain("preflight_ok");
+        expect(events).not.toContain("preflight_failed");
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+  );
+
+  it("fails immediately on an intermediate mismatch and records failure without success", () => {
+    const fixture = createFixture({ git: false, manifest: false });
+    const fakeCodexPath = createFakeCodex(fixture.root);
+    const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
+    const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+
+    try {
+      const result = runBash(
+        path.join(fixture.root, "scripts", "codex-safe.sh"),
+        ["--preset", "readonly", "--preflight-only", "--log-path", logPath],
+        fixture.root,
+        fakeCodexPath,
+        { CODEX_FAKE_CALLS: callsPath, CODEX_FAKE_MODE: "mismatch-second" },
+      );
+      const calls = fs
+        .readFileSync(callsPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => JSON.parse(line) as string[]);
+      const events = fs
+        .readFileSync(logPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => (JSON.parse(line) as { event: string }).event);
+
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).not.toContain("Preflight OK");
+      expect(calls).toHaveLength(2);
+      expect(events).toContain("preflight_failed");
+      expect(events).not.toContain("preflight_ok");
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it.each([
+    ["invalid JSON", "not-json"],
+    ["missing decision with matched rules", '{"matchedRules":[{}]}'],
+    ["missing decision and matchedRules", '{"other":[]}'],
+    ["unknown decision", '{"decision":"unknown","matchedRules":[]}'],
+    ["empty decision", '{"decision":"","matchedRules":[]}'],
+  ])("fails closed for %s", (_label, response) => {
+    const fixture = createFixture({ git: false, manifest: false });
+    const fakeCodexPath = createFakeCodex(fixture.root);
+    const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
+    const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+
+    try {
+      const result = runBash(
+        path.join(fixture.root, "scripts", "codex-safe.sh"),
+        ["--preset", "readonly", "--preflight-only", "--log-path", logPath],
+        fixture.root,
+        fakeCodexPath,
+        {
+          CODEX_FAKE_CALLS: callsPath,
+          CODEX_FAKE_MODE: "fixed-response",
+          CODEX_FAKE_RESPONSE: response,
+        },
+      );
+      const calls = fs.readFileSync(callsPath, "utf8").trim().split(/\r?\n/);
+      const events = fs
+        .readFileSync(logPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => (JSON.parse(line) as { event: string }).event);
+
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).not.toContain("Preflight OK");
+      expect(calls).toHaveLength(1);
+      expect(events).toContain("preflight_failed");
+      expect(events).not.toContain("preflight_ok");
+    } finally {
+      removeFixture(fixture);
+    }
+  });
 });

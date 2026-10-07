@@ -240,17 +240,45 @@ collect_rule_args() {
 decision_from_output() {
   local output="$1"
   local decision
-  decision="${output##*\"decision\":\"}"
-  decision="${decision%%\"*}"
-  if [[ -n "$decision" && "$decision" != "$output" ]]; then
+  if decision="$(printf '%s' "$output" | node -e '
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  let parsed;
+  try {
+    parsed = JSON.parse(input);
+  } catch {
+    process.exitCode = 1;
+    return;
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    process.exitCode = 1;
+    return;
+  }
+
+  if (Object.hasOwn(parsed, "decision")) {
+    if (typeof parsed.decision === "string" && parsed.decision.length > 0) {
+      process.stdout.write(parsed.decision);
+    } else {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (Array.isArray(parsed.matchedRules) && parsed.matchedRules.length === 0) {
+    process.stdout.write("allow");
+    return;
+  }
+
+  process.exitCode = 1;
+});
+' 2>/dev/null)"; then
     printf '%s' "$decision"
     return 0
   fi
-  if [[ "$output" == *'"matchedRules":[]'* ]]; then
-    printf 'allow'
-    return 0
-  fi
-  echo "Unable to parse decision from output: $output" >&2
+  echo "Unable to parse execpolicy JSON output" >&2
   return 1
 }
 
@@ -277,74 +305,74 @@ assert_decision() {
 }
 
 run_preflight() {
-  assert_decision allow git status
-  assert_decision allow rg --files docs
+  assert_decision allow git status || return 1
+  assert_decision allow rg --files docs || return 1
   if [[ "$preset" == "auto-net" ]]; then
-    assert_decision allow git branch --show-current
-    assert_decision forbidden git switch feature/safe
-    assert_decision forbidden git branch -d old-feature
-    assert_decision forbidden git branch --delete old-feature
-    assert_decision forbidden git branch -vd old-feature
-    assert_decision forbidden git branch -dv old-feature
-    assert_decision forbidden git branch -v -d old-feature
-    assert_decision forbidden gh api /repos/example/repo/issues
-    assert_decision forbidden gh pr merge 123
-    assert_decision forbidden gh pr close 123
-    assert_decision forbidden gh issue close 123
-    assert_decision forbidden gh release create v1
-    assert_decision forbidden gh release delete v1
-    assert_decision forbidden gh repo delete example/repo
+    assert_decision allow git branch --show-current || return 1
+    assert_decision forbidden git switch feature/safe || return 1
+    assert_decision forbidden git branch -d old-feature || return 1
+    assert_decision forbidden git branch --delete old-feature || return 1
+    assert_decision forbidden git branch -vd old-feature || return 1
+    assert_decision forbidden git branch -dv old-feature || return 1
+    assert_decision forbidden git branch -v -d old-feature || return 1
+    assert_decision forbidden gh api /repos/example/repo/issues || return 1
+    assert_decision forbidden gh pr merge 123 || return 1
+    assert_decision forbidden gh pr close 123 || return 1
+    assert_decision forbidden gh issue close 123 || return 1
+    assert_decision forbidden gh release create v1 || return 1
+    assert_decision forbidden gh release delete v1 || return 1
+    assert_decision forbidden gh repo delete example/repo || return 1
   else
-    assert_decision allow git switch feature/safe
-    assert_decision prompt git checkout feature/safe
-    assert_decision prompt git merge main
-    assert_decision prompt git merge --abort
-    assert_decision prompt git rebase --abort
-    assert_decision prompt git branch -d old-feature
-    assert_decision prompt git branch --delete old-feature
-    assert_decision prompt git branch -vd old-feature
-    assert_decision prompt git branch -dv old-feature
-    assert_decision prompt git branch -v -d old-feature
-    assert_decision prompt gh api /repos/example/repo/issues
-    assert_decision prompt gh pr merge 123
-    assert_decision prompt gh pr close 123
-    assert_decision prompt gh issue close 123
-    assert_decision prompt gh release create v1
-    assert_decision prompt gh release delete v1
-    assert_decision prompt gh repo delete example/repo
-    assert_decision allow gh pr create --title test
-    assert_decision allow gh pr edit 123
-    assert_decision allow gh pr checks 123
+    assert_decision allow git switch feature/safe || return 1
+    assert_decision prompt git checkout feature/safe || return 1
+    assert_decision prompt git merge main || return 1
+    assert_decision prompt git merge --abort || return 1
+    assert_decision prompt git rebase --abort || return 1
+    assert_decision prompt git branch -d old-feature || return 1
+    assert_decision prompt git branch --delete old-feature || return 1
+    assert_decision prompt git branch -vd old-feature || return 1
+    assert_decision prompt git branch -dv old-feature || return 1
+    assert_decision prompt git branch -v -d old-feature || return 1
+    assert_decision prompt gh api /repos/example/repo/issues || return 1
+    assert_decision prompt gh pr merge 123 || return 1
+    assert_decision prompt gh pr close 123 || return 1
+    assert_decision prompt gh issue close 123 || return 1
+    assert_decision prompt gh release create v1 || return 1
+    assert_decision prompt gh release delete v1 || return 1
+    assert_decision prompt gh repo delete example/repo || return 1
+    assert_decision allow gh pr create --title test || return 1
+    assert_decision allow gh pr edit 123 || return 1
+    assert_decision allow gh pr checks 123 || return 1
   fi
   if [[ "$preset" == "auto-net" ]]; then
-    assert_decision forbidden git add .
-    assert_decision forbidden python -c "print(1)"
-    assert_decision forbidden python -
+    assert_decision forbidden git add . || return 1
+    assert_decision forbidden python -c "print(1)" || return 1
+    assert_decision forbidden python - || return 1
   else
-    assert_decision allow git add .
-    assert_decision allow python -c "print(1)"
-    assert_decision allow python -
+    assert_decision allow git add . || return 1
+    assert_decision allow python -c "print(1)" || return 1
+    assert_decision allow python - || return 1
   fi
-  assert_decision forbidden git reset --hard HEAD~1
-  assert_decision forbidden terraform destroy -auto-approve
+  assert_decision forbidden git reset --hard HEAD~1 || return 1
+  assert_decision forbidden terraform destroy -auto-approve || return 1
   if [[ "$preset" == "auto-net" ]]; then
-    assert_decision allow docker ps
-    assert_decision allow npm test
-    assert_decision allow curl https://example.com
-    assert_decision forbidden bash -lc "npm test"
-    assert_decision forbidden chmod 644 file.txt
-    assert_decision forbidden systemctl stop nginx
-    assert_decision forbidden crontab -e
-    assert_decision forbidden netsh advfirewall show allprofiles
-    assert_decision forbidden git checkout feature
-    assert_decision forbidden terraform apply -auto-approve
-    assert_decision forbidden kubectl apply -f deploy.yaml
+    assert_decision allow docker ps || return 1
+    assert_decision allow npm test || return 1
+    assert_decision allow curl https://example.com || return 1
+    assert_decision forbidden bash -lc "npm test" || return 1
+    assert_decision forbidden chmod 644 file.txt || return 1
+    assert_decision forbidden systemctl stop nginx || return 1
+    assert_decision forbidden crontab -e || return 1
+    assert_decision forbidden netsh advfirewall show allprofiles || return 1
+    assert_decision forbidden git checkout feature || return 1
+    assert_decision forbidden terraform apply -auto-approve || return 1
+    assert_decision forbidden kubectl apply -f deploy.yaml || return 1
   else
-    assert_decision prompt docker ps
+    assert_decision prompt docker ps || return 1
   fi
-  assert_decision forbidden rm file.txt
-  assert_decision forbidden Remove-Item file.txt
-  assert_decision forbidden git rm file.txt
+  assert_decision forbidden rm file.txt || return 1
+  assert_decision forbidden Remove-Item file.txt || return 1
+  assert_decision forbidden git rm file.txt || return 1
 }
 
 preset_config() {
