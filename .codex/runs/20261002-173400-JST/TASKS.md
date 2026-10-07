@@ -39,10 +39,10 @@
 - [x] 35. final standard `pnpm run verify` / diff / repair-loop確認。default sandboxの試行はWindows launcher / `ci_wait` child-process制限でexit 1（5 files / 44 tests failed）となったが、同じ標準commandを承認済みelevated execution contextで再実行しexit 0。48/48 test files、823 passed / 4 skipped、65 ESLint warnings / 0 errors、Web / spec build PASS。詳細はREPORT 2026-10-07 09:52 JST。
 - [x] 36. 新environment candidateとactive Plan / Run Artifactを最終化し、sanitizer / quality gates / environment scopeを確認してPR branchへ通常commit / pushする。
 - [x] 37. `git diff --name-status 5dda30d5bcb58150fd280da0561bc0b44d63b617...`でcommit予定のtreeまでを比較。差分はactive Plan / Runの4文書、`scripts/codex-safe.sh`、`tests/contracts/codex-safe-run-manifest-sync.test.ts`のみで、`.devcontainer/**`、dependency / lockfile、install/setup、toolchain、image / Features、`remoteUser`、auth、portsの変更は0件。commit後にも同じscopeを再確認する。
-- [ ] 38. canonical Fresh Codespaceをff-onlyでfinal HEADへ同期しwaiterを1回実行する。
-- [ ] 39. Web CI / Mobile App CI success後にPR本文を更新する。
-- [ ] 40. canonical Fresh CodespaceをCodex logout後にstopし、delete候補をREPORTへ記録する。
-- [ ] 41. Personal dotfiles設定が元状態であることを最終確認する。
+- [x] 38. canonical Fresh Codespaceの検証を完了し、final HEAD `965fd979a42bef65eaeb56869fb7ed34a6ebd52e`のrequired-CI結果を確認する。ユーザー確認では同一CodespaceのFull Rebuild後検証・最終同期・停止まで完了。
+- [x] 39. exact-head `965fd979a42bef65eaeb56869fb7ed34a6ebd52e`のWeb CI / Mobile App CI successを確認し、結果と現状をPR本文へ反映する。Mobile App CIは失敗jobだけを1回rerunしてsuccess。
+- [x] 40. canonical Fresh CodespaceでCodex logout後に`Not logged in`を確認し、Codespaceをstopする。ユーザー確認済み。Codespaceはdeleteしていない。
+- [x] 41. Personal dotfiles設定の元状態を確認する。automatic install OFF、repository未選択。変更なし。
 
 ## 正本
 
@@ -187,3 +187,10 @@
 - Task 35 is complete after the Linux `pwsh ENOENT` test-gate repair, full local `pnpm run verify`, formatting / lint checks, artifact sanitization, scope review, and `git diff --check`.
 - Tasks 28 and 30 remain open; Linux Codespaces must rerun `pnpm run verify` after syncing the test-only repair, and the other target checks remain pending.
 - Progress: 76% (32/42、必須CI確認1件を含む).
+
+## Latest closeout status — 2026-10-07
+
+- Tasks 38–41 are complete per the user's final confirmation and the exact-head GitHub evidence recorded in REPORT. PR #188 is open / non-draft; local HEAD, origin PR branch, and PR head matched `965fd979a42bef65eaeb56869fb7ed34a6ebd52e` at recheck. Web CI and Mobile App CI succeeded on that exact head.
+- The canonical Fresh Create / one Full Rebuild contract, post-Rebuild integration, `pnpm run verify`, Web smoke, final clean state, and cleanup are complete. Fresh Create and Full Rebuild remain distinct evidence phases.
+- Progress: 100% (42/42 including the exact-head required CI confirmation).
+- Known IDE limits are not PASS claims: OpenCode CLI PASS / extension installed / IDE startup BLOCKED by unsupported `--port`; Playwright Desktop, noVNC, Chromium GUI, and CLI codegen PASS at the user-confirmed overall level, while individual Test Explorer / Show Browser / Record controls were not separately evidenced. These do not block PR #188's accepted CLI development objective.

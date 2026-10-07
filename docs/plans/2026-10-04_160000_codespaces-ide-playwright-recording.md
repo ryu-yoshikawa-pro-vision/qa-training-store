@@ -392,24 +392,24 @@ headed Chromiumでshared memory不足が実測された場合だけ`--shm-size=1
 
 ## 9. 実行タスク
 
-- [ ] 1. 実装開始時のPR headと既存Planの進捗を再確認する。
-- [ ] 2. `desktop-lite:1`、Playwright VS Code extension、Codex / OpenCode extensionのcurrent配布状態を再確認する。
-- [ ] 3. 既存PlanのB→C checkpointへChromium install方法とVS Code extension listを追加する。
-- [ ] 4. `.devcontainer/devcontainer.json`へ`desktop-lite`、3拡張、8081 / 6080 forwardingを実装する。
-- [ ] 5. postCreateへRepository version由来のChromium + Linux dependencies導入を追加する。
-- [ ] 6. READMEへCodespaces IDE / Playwright Desktop利用手順を追加する。
-- [ ] 7. `pnpm run verify` / `git diff --check`を実行し、candidate SHAを固定する。
-- [ ] 8. 既存Phase B Codespaceをcandidateへff-only同期し、Full Rebuildする。
-- [ ] 9. Full Rebuildで3拡張、`DISPLAY=:1`、6080 private、Chromium、CLI codegenを確認する。
-- [ ] 10. Full RebuildでPlaywright Test Explorer / headless / Show Browserを確認する。
-- [ ] 11. 既存PlanのOpenCode / Codex CLI / GitHub API / Web / verify契約を再確認する。
-- [ ] 12. canonical machineからFresh Codespaceを作成する。
-- [ ] 13. Fresh Createで3拡張、Chromium、desktop-lite、private 6080を再確認する。
-- [ ] 14. Fresh CreateでCLI codegen、`Record new`、`Record at cursor`を実操作する。
-- [ ] 15. 録画検証用差分を限定cleanupし、working tree cleanを確認する。
-- [ ] 16. GUI起因のresource failureがある場合だけ`--shm-size=1g`を検討し、変更時はnew candidateから再検証する。
-- [ ] 17. final `pnpm run verify` / `git diff --check`、既存Planのexact-head CI / cleanupを実行する。
-- [ ] 18. PR #188本文へ最終実測結果を反映する。
+- [x] 1. 実装開始時のPR headと既存Planの進捗を再確認する。
+- [x] 2. `desktop-lite:1`、Playwright VS Code extension、Codex / OpenCode extensionの配布状態を確認し、設定へ反映する。
+- [x] 3. 既存PlanのB→C checkpointへChromium install方法とVS Code extension listを追加する。
+- [x] 4. `.devcontainer/devcontainer.json`へ`desktop-lite`、3拡張、8081 / 6080 forwardingを実装する。
+- [x] 5. postCreateへRepository version由来のChromium + Linux dependencies導入を追加する。
+- [x] 6. READMEへCodespaces IDE / Playwright Desktop利用手順とPlan linksを追加する。
+- [x] 7. `pnpm run verify` / `git diff --check`を実行し、candidate SHAを固定する。
+- [x] 8. 旧Phase B plain Codespaceからのmigration経路はRequired DoDから外れた。candidateを明示devcontainer pathでFresh Createし、同じcandidate-created CodespaceをFull Rebuildする契約へ置き換え、両方PASS。
+- [ ] 9. Full Rebuildで3拡張、`DISPLAY=:1`、6080 private、Chromium、CLI codegenを個別確認する。Full Rebuild自体はPASSだが、この詳細セットはユーザー提供結果に個別記載がないため完了扱いにしない。
+- [ ] 10. Full RebuildでPlaywright Test Explorer / headless / Show Browserを個別確認する。結果は未報告。
+- [x] 11. 既存PlanのOpenCode / Codex CLI / GitHub API / Web / verify契約を再確認する。Task 22 / active Run Task 30のFull Rebuild evidenceを参照。
+- [x] 12. canonical machineからcandidateのFresh Codespaceを作成する。Fresh Createのmetadata / target Runtime / initial cleanはcanonical Planに記録済み。
+- [x] 13. Fresh CreateしたCodespaceと追加環境が動作することをユーザーが確認。Playwright Desktop / noVNC / Chromium GUI / CLI codegenもユーザー確認済み。個別VS Code extension操作は別判定。
+- [ ] 14. Fresh CreateのCLI codegenはPASS。taskに含まれる`Record new` / `Record at cursor`の個別実測結果は提供されていないため、このtask全体は未完了として残す。
+- [x] 15. 検証後のworking tree / index cleanを確認し、一時smoke artifactをcleanupした。
+- [x] 16. GUI起因のresource failureは報告されていないため、`--shm-size=1g`は追加せず、new candidate再検証も不要だった。
+- [x] 17. final `pnpm run verify` PASS、文書quality gate / `git diff --check`、exact-head required CI success、cleanupを確認する。
+- [x] 18. required CI success後にPR #188本文へ実測結果を反映する。final documentation headのCI後に現在のIDE extension statusも同期する。
 
 ## 10. 公式資料
 
@@ -425,3 +425,11 @@ headed Chromiumでshared memory不足が実測された場合だけ`--shm-size=1
 - [Codex authentication](https://learn.chatgpt.com/docs/auth)
 - [Codex environment variables](https://learn.chatgpt.com/docs/config-file/environment-variables)
 - [OpenCode IDE integration](https://opencode.ai/docs/ide/)
+
+## 11. 最終実機結果と未達範囲
+
+- **Codespaces:** user-confirmed Fresh Create PASS、同じcandidate-created Codespaceのsingle Full Rebuild PASS、target Runtime PASS、`pnpm run verify` PASS、Web smoke PASS、新規Codespaceでも追加環境が動作。
+- **Codex:** CLI / device-code auth / Hook / bounded subagent / `ci_wait` integration PASS。ユーザーは`OpenAI.chatgpt` extensionがインストールされ、VS Code上で確認できることを確認。extensionのIDE prompt実行自体は、今回のユーザー提供結果では個別確認されていない。
+- **OpenCode:** CLI `2.0.22` / Free model / Repository instructions / Skill / read-write smoke PASS。`sst-dev.opencode` extensionはインストール済みだが、IDE起動時に`opencode --port 65147`を呼び、pinned CLIが`--port`をunknown flagとして拒否するためIDE extension startupはBLOCKED。CLI downgrade、wrapper、compatibility layer、dependency、devcontainer修正は行わない。このupstream互換性問題は、CLIを主経路とするPR #188のmerge blockerではない。
+- **Playwright:** overall PASS at the user's acceptance level: Playwright Desktop 6080 / noVNC、Chromium GUI、CLI `playwright codegen` are user-confirmed. Individual Testing sidebar enumeration、Show Browser、`Record new`、`Record at cursor` were not separately evidenced and remain unverified; do not claim those individual controls passed. The user accepts the overall Playwright result; these detail-level checks are not PR #188 merge blockers.
+- README describes extension installation and usage rather than asserting a successful OpenCode IDE activation; no README change was required for consistency.
