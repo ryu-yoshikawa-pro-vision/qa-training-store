@@ -50,7 +50,7 @@ function runBash(
   args: string[],
   cwd = repoRoot,
   codexPath?: string,
-  envOverrides: NodeJS.ProcessEnv = {},
+  envOverrides: Record<string, string> = {},
 ) {
   const relativeWrapperPath = path.relative(cwd, wrapperPath).replaceAll("\\", "/");
   const bashWrapperPath = relativeWrapperPath.startsWith(".")
