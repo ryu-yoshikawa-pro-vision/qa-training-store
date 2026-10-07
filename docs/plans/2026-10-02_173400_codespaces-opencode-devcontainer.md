@@ -1053,10 +1053,10 @@ Full Rebuild / Fresh Createの各環境で次を行う。
 - [x] 26. Task 22の最終`pnpm run verify`（exit 0、1306 passed / 19 skipped）と`git diff --check`を確認。今回の残差分はPlan / Run記録のみのため、標準verifyは再実行せず、Markdown lint・text lint・Prettier・`git diff --check`を実行した。
 - [x] 27. sanitized / validatedなtracked Run Artifact / Planを最終化し、PR branchへ通常commit / pushする。
 - [x] 28. candidate `5dda30d5bcb58150fd280da0561bc0b44d63b617`からcommit予定のtreeまでを比較。差分は4つのPlan / Run記録、`scripts/codex-safe.sh`、`tests/contracts/codex-safe-run-manifest-sync.test.ts`のみで、`.devcontainer/**`、依存 / lockfile、install/setup、toolchain、image / Features、`remoteUser`、auth、portsの変更は0件。commit後にも同じscopeを再確認する。
-- [ ] 29. canonical Fresh Codespaceを`merge --ff-only`でfinal HEADへ同期し、同じeffective `CODEX_HOME`とCodespaces`GITHUB_TOKEN`で`wait_for_required_ci`を1回実行する。
-- [ ] 30. `Web CI` / `Mobile App CI` success後にPR本文を更新する。failureはimplementation harness / repair-loopへ従う。
-- [ ] 31. canonical Fresh Codespaceで`codex logout` /未認証確認後にstopし、不要Codespaceをdelete候補としてREPORTへ記録する。
-- [ ] 32. Personal dotfiles設定がPhase Aの元状態と一致することを最終確認する。
+- [x] 29. canonical Fresh Codespaceを`merge --ff-only`でfinal HEADへ同期し、同じeffective `CODEX_HOME`とCodespaces`GITHUB_TOKEN`で`wait_for_required_ci`を1回実行する。
+- [x] 30. `Web CI` / `Mobile App CI` success後にPR本文を更新する。failureはimplementation harness / repair-loopへ従う。
+- [x] 31. canonical Fresh Codespaceで`codex logout` /未認証確認後にstopし、不要Codespaceをdelete候補としてREPORTへ記録する。
+- [x] 32. Personal dotfiles設定がPhase Aの元状態と一致することを最終確認する。
 
 ## 必須CI
 
