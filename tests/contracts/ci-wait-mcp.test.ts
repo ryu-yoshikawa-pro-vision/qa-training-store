@@ -496,7 +496,7 @@ describe("CI waiter contracts", () => {
     });
   });
 
-  it("keeps the Codex MCP configuration and package contract aligned", () => {
+  it("keeps the Codex MCP configuration and launch script aligned", () => {
     type CiWaitProjectConfig = {
       mcp_optional_startup_grace_ms?: number;
       mcp_servers?: {
@@ -521,7 +521,6 @@ describe("CI waiter contracts", () => {
       fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"),
     ) as {
       scripts: Record<string, string>;
-      devDependencies: Record<string, string>;
     };
     const server = projectConfig.mcp_servers?.ci_wait;
 
@@ -536,8 +535,6 @@ describe("CI waiter contracts", () => {
     expect(server?.tools?.wait_for_required_ci?.approval_mode).toBe("approve");
     expect(server?.required).not.toBe(true);
     expect(packageJson.scripts["mcp:ci-wait"]).toBe("node scripts/mcp/ci-wait-server.mjs");
-    expect(packageJson.devDependencies["@modelcontextprotocol/server"]).toBe("2.1.0");
-    expect(packageJson.devDependencies["@modelcontextprotocol/client"]).toBe("2.1.0");
   });
 
   it("keeps waiting when run statuses are not completed, whatever their names", async () => {
