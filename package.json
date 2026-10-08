@@ -153,7 +153,7 @@
     "prettier": "3.8.1",
     "semver": "7.8.5",
     "sharp": "0.35.4",
-    "smol-toml": "1.7.1",
+    "smol-toml": "1.9.0",
     "textlint": "^15.8.0",
     "textlint-rule-no-doubled-conjunctive-particle-ga": "3.0.0",
     "textlint-rule-no-dropping-the-ra": "3.0.0",
@@ -168,7 +168,7 @@
   },
   "pnpm": {
     "overrides": {
-      "smol-toml": "1.7.1",
+      "smol-toml": "1.9.0",
       "expo-constants": "57.0.21",
       "xcode@3.0.1>uuid": "11.1.1",
       "@eslint/eslintrc@3.3.6>js-yaml": "5.4.1",
