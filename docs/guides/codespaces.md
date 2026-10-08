@@ -128,7 +128,7 @@ git switch -c docs/example-change
 ```bash
 git diff --check
 git status --short
-git add <変更したファイル>
+git add path/to/changed-file
 git commit -m "docs: 変更内容を記載"
 git push -u origin docs/example-change
 ```
