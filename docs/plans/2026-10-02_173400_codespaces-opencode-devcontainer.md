@@ -6,7 +6,7 @@ GitHub Codespaces 上で `qa-training-store` を開発できる環境を導入�
 
 この Plan は PR #188 で Plan、実装、Codespaces 実機検証、Repository 検証、CI 確認まで完了するための正本とする。
 
-> **運用方針の追記（2026-10-08、PR #188マージ後）**：このPlanにある`OPENCODE_API_KEY`を除外したFreeモデルの検証は、PR #188当時の受入条件・実行記録である。通常の開発利用では、利用者が自身のOpenCode Zen APIキーを**個人アカウントのGitHub Codespaces Secret `OPENCODE_API_KEY`**に保存し、このRepositoryへのアクセスを許可して使う。OpenCode V2が環境変数を自動認識しない場合は、利用者のホームディレクトリ内のOpenCode設定で参照する。キーの値・認証情報をRepositoryへ保存しない。Freeモデルのみ選択する運用は維持するが、Secretの設定自体はFreeモデルの利用料金を保証しない。詳細は[Codespaces利用ガイド](../../docs/guides/codespaces.md)。この追記は過去のkeyless検証をSecret経由の検証済みに読み替えない。
+> **運用方針の追記（2026-10-08、PR #188マージ後）**：このPlanにある`OPENCODE_API_KEY`を除外したFreeモデルの検証は、PR #188当時の受入条件・実行記録である。通常の開発利用では、利用者が自身のOpenCode Zen APIキーを**個人アカウントのGitHub Codespaces Secret `OPENCODE_API_KEY`**に保存し、このRepositoryへのアクセスを許可して使う。OpenCode V2が環境変数を自動認識しない場合は、利用者のホームディレクトリ内のOpenCode設定で参照する。キーの値・認証情報をRepositoryへ保存しない。Freeモデルのみ選択する運用は維持するが、Secretの設定自体はFreeモデルの利用料金を保証しない。詳細は[Codespaces利用ガイド](../guides/codespaces.md)。この追記は過去のkeyless検証をSecret経由の検証済みに読み替えない。
 
 IDE拡張とPlaywright GUI録画の追加要件は、[`2026-10-04_160000_codespaces-ide-playwright-recording.md`](./2026-10-04_160000_codespaces-ide-playwright-recording.md)を正本とする。
 同Planが扱う`desktop-lite`、VS Code拡張、6080 forwarding、Playwright Chromium導入、GUI smokeはこのPlanのdevcontainer要件へ加算し、それ以外のOpenCode / Codex CLI、Full Rebuild / Fresh Create、CI、cleanup契約はこのPlanを維持する。
