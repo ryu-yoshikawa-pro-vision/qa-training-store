@@ -98,7 +98,7 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 
 ## GitHub Codespaces
 
-Repositoryの **Code → Codespaces** からCodespaceを作成できます。開発containerはNode.js、pnpm、GitHub CLI、OpenCode CLI、Codex CLI、Chromiumと、Codex / OpenCode / PlaywrightのVS Code拡張を準備します。起動後は次でversionを確認できます。
+Repositoryの **Code → Codespaces** からCodespaceを作成できます。開発containerはNode.js、pnpm、GitHub CLI、OpenCode CLI、Codex CLI、Chromiumと、Codex / OpenCode / PlaywrightのVS Code拡張を準備します。初回作成・Secretの設定・Web起動・録画・Git操作・停止方法は[Codespaces利用ガイド](docs/guides/codespaces.md)を参照してください。起動後は次でversionを確認できます。
 
 ```bash
 node --version
@@ -110,7 +110,7 @@ codex --version
 
 ### OpenCode Free model
 
-`opencode`を起動し、OpenCode Zenで現在Freeとして提供されているmodelを選んでください。今回の利用条件はFree-onlyです。model IDはRepository設定に固定していません。Free利用にPersonal Codespaces SecretやOpenCodeの`/connect`設定は必要ありません。
+通常利用では各利用者が自分のOpenCode Zen APIキーを取得し、個人のCodespaces Secret `OPENCODE_API_KEY`へ保存します。設定手順は[Codespaces利用ガイド](docs/guides/codespaces.md#2-opencode-zenを個人のcodespaces-secretで利用する)を参照してください。`opencode`を起動し、利用時点でFreeと確認したモデルのみを選んでください。モデルIDはRepository設定に固定していません。PR #188のキーなしFreeモデル検証は、通常利用のSecret運用とは別です。
 
 ### Codex
 
@@ -133,7 +133,7 @@ Webアプリを`pnpm run start:web`で起動すると8081を利用できます�
 pnpm exec playwright codegen http://127.0.0.1:8081
 ```
 
-Playwright拡張ではTesting sidebarからテストを実行し、`Record new`または`Record at cursor`で操作を記録できます。Codespaces環境、認証、拡張、GUI録画の詳細な検証条件は[Codespaces / OpenCode / Codex Plan](docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)と[IDE / Playwright Plan](docs/plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)を参照してください。
+Playwright拡張は導入されていますが、Testing sidebar、`Record new`、`Record at cursor`の個別動作はPR #188では未確認です。CLI版`codegen`は動作確認済みです。Codespaces環境、認証、拡張、GUI録画の詳細な検証条件は[Codespaces / OpenCode / Codex Plan](docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)と[IDE / Playwright Plan](docs/plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)を参照してください。
 
 ## 仕様とAgentic QA
 
