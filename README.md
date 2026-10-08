@@ -110,7 +110,7 @@ codex --version
 
 ### OpenCode Free model
 
-通常利用では各利用者が自分のOpenCode Zen APIキーを取得し、個人のCodespaces Secret `OPENCODE_API_KEY`へ保存します。設定手順は[Codespaces利用ガイド](docs/guides/codespaces.md#2-opencode-zenを個人のcodespaces-secretで利用する)を参照してください。`opencode`を起動し、利用時点でFreeと確認したモデルのみを選んでください。モデルIDはRepository設定に固定していません。PR #188のキーなしFreeモデル検証は、通常利用のSecret運用とは別です。
+通常利用では各利用者が自分のOpenCode Zen APIキーを取得し、個人のCodespaces Secret `OPENCODE_API_KEY`へ保存します。設定手順は[Codespaces利用ガイドのSecret登録手順](docs/guides/codespaces.md#1-利用前にopencode-zenのsecretを登録する)を参照してください。`opencode`を起動し、利用時点でFreeと確認したモデルのみを選んでください。モデルIDはRepository設定に固定していません。PR #188のキーなしFreeモデル検証は、通常利用のSecret運用とは別です。
 
 ### Codex
 
