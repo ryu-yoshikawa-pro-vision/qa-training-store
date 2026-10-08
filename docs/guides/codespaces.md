@@ -18,7 +18,7 @@ Codespacesで対応するのは主にWeb / TypeScript開発です。Android / iO
 4. **Name**に`OPENCODE_API_KEY`、**Value**に取得したキーを貼り付けます。
 5. **Repository access**で`ryu-yoshikawa-pro-vision/qa-training-store`を選択し、**Add secret**で保存します。ほかのリポジトリを不要に許可しないでください。
 
-これでGitHub側の準備は完了です。**APIキーの値をリポジトリ、`.env`、`devcontainer.json`、Issue、PR、ターミナルの出力に書かないでください。** 個人のSecretと、リポジトリのSettingsにある共通Secretは異なります。今回は個人のSecretを利用します。<https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces>
+これでGitHub側の準備は完了です。**APIキーの値をリポジトリ、`.env`、`devcontainer.json`、Issue、PR、ターミナルの出力に書かないでください。** 個人のSecretと、リポジトリのSettingsにある共通Secretは異なります。今回は個人のSecretを利用します。操作の詳細は[GitHub公式のCodespaces Secret手順](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces)を参照してください。
 
 すでにCodespaceを起動している場合は、[Your codespaces](https://github.com/codespaces)から対象を**Stop codespace → 再度開く**の順に操作してください。新しく作成するCodespaceには作成時にSecretが反映されます。
 
