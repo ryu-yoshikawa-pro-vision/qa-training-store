@@ -1,97 +1,97 @@
 # Part 1-9: 総合演習
 
-この総合演習では、既存Formal Regressionを答えとして写さず、現在の正式な仕様からCartの最小Riskを一巡します。Part 1の共通課程は共通経路で修了でき、モバイルアプリ自動化の選択課程は追加の選択経路です。発展課題は追加のChallengeです。
+この総合演習では、既存の正式な回帰テスト（Formal Regression）を答えとして丸写しするのではなく、現在の正式な仕様書をもとにカート機能（Cart）における最小限のリスクを一通り検証します。Part 1の共通課程は共通の学習経路のみで修了でき、モバイルアプリ自動化の選択課程は追加の選択肢となります。また、発展課題はさらなる挑戦のための追加課題です。
 
-## このLessonのInput / Output
+## このレッスンのインプット／アウトプット
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-1〜P1-8で作成した対象・Risk、Test Case、Layer / Tool、受講者コード、Failure分析、改善記録、必要ならNative成果物。`docs/spec`と既存のTraining入口を最後に再確認する |
-| Activity | Cartの最小Riskを仕様→Workbook→Case→Training code→Reset／実行→Failure分類→改善の順に一巡し、既存Formal Regressionと設計理由を比較する |
-| Observation | Caseとコードの対応、baseline／exerciseの違い、実行ExitとCase結果、Evidence、Failure分類、CommonとNative選択課程の境界 |
-| Output | Part 1の成果物一式、Repository相対コード、Execution Receipt／Evidence、Lesson ID別self-check、C09のinitial／repaired記録。編集場所は自由で、完了時に固定`handoff-root/`へ集約する。Repositoryのcanonical CSVへ完成回答を追記しない |
-| Self-check | C01〜C07、C09〜C10の対応を自分の成果物を指して説明し、Nativeを選択しなくてもCommonが成立する理由と、baseline／意図的Failureだけでは修了にならない理由を書く。C10で実在問題を使ったか、決定的教材演習へ切り替えたかも記録する |
-| Completion | Web Cart Journey、Spec／Risk／Case／Layer／Tool／実行記録の対応、C09のinitial Failure→repaired Pass、C10の実在する保守問題または決定的な教材演習→最小改善→別run、必須self-checkを確認できる。P2-1へ渡す開始条件を明示できる |
-| Recovery | 欠けた最初の成果物へ戻る。実行環境の不足はBrowser／Reset／Artifactの環境問題として記録し、Nativeを選択しないCommonの完了と混同しない |
-| Handoff | P2-1へ固定rootのWorkbook、code、Evidence、Receipt、self-checkと、Git管理Copyへ移行する際の対象Path／Case IDを渡す。Part 2正式CIへ進む時点でTraining Copyへmaterializeする |
+| インプット（Input） | P1-1〜P1-8で作成した対象・リスク、テストケース、対象レイヤー／ツール、受講者コード、失敗分析、改善記録、必要に応じたネイティブ成果物。最後に`docs/spec`と既存のトレーニング入口を再確認する |
+| アクティビティ（Activity） | カートの最小リスクを「仕様 → ワークブック → テストケース → 演習コード → リセット／実行 → 失敗分類 → 改善」の順に一巡し、既存の正式な回帰テスト（Formal Regression）と設計理由を比較する |
+| 観察事項（Observation） | テストケースとコードの対応、ベースラインと演習コード（exercise）の違い、実行終了コード（Exit）とケース結果、エビデンス、失敗分類、共通課程（Common）とネイティブ選択課程の境界 |
+| アウトプット（Output） | Part 1の成果物一式、リポジトリ相対パスのコード、実行レシート（Execution Receipt）／エビデンス、レッスンID別の自己確認（self-check）、C09の初回失敗（initial）／修復後（repaired）の記録。編集場所は自由だが、完了時には指定の`handoff-root/`へ集約する。リポジトリの正規（canonical）CSVへ完成した回答を直接追記しない |
+| 自己確認（Self-check） | C01〜C07、C09〜C10の対応関係を自身の成果物を示しながら説明し、ネイティブ課程を選択しなくても共通課程（Common）が成立する理由と、ベースラインや意図的な失敗（Failure）の確認だけでは修了とみなされない理由を記述する。また、C10で実在する問題を用いたか、決定的な教材演習へ切り替えたかも記録する |
+| 完了基準（Completion） | Webでのカートジャーニー（Web Cart Journey）、仕様／リスク／テストケース／レイヤー／ツール／実行記録の対応関係、C09の初回失敗（initial Failure）から修復後の成功（repaired Pass）への推移、C10の実在する保守課題または決定的な教材演習に対する最小限の改善と別実行（別run）での確認、および必須の自己確認（self-check）が揃っていることを確認できる。P2-1へ引き渡す開始条件を明示できる |
+| リカバリ（Recovery） | 不足している最初の成果物まで戻る。実行環境の不備はブラウザ／リセット／成果物（Artifact）の環境要因として記録し、ネイティブ課程を選択しない共通課程（Common）の完了と混同しないようにする |
+| 引継ぎ（Handoff） | P2-1へ指定ルート（root）配下のワークブック、コード、エビデンス、レシート、自己確認結果と、Git管理下のコピーへ移行する際の対象パス／ケースIDを引き渡す。Part 2の正式CIへ進む段階で、トレーニング用コピーへ実体化（materialize）する |
 
 ## 学習目標
 
-- Part 1の共通課程のC01〜C07 + C09〜C10を一つの対応関係へ接続する。
-- Guest Cart、Login、CheckoutのどこまでをWeb E2Eへ置くかを理由付きで決める。
-- Training baseline、exercise、実行記録、Failure分類を自力で説明する。
+- Part 1共通課程の C01〜C07 および C09〜C10 を、一連の明確な対応関係として結び付ける。
+- ゲストカート、ログイン、チェックアウトのうち、どこまでをWeb E2Eテストの対象とするかを根拠とともに判断する。
+- トレーニングのベースライン、演習（exercise）、実行記録、失敗分類について自力で説明できるようにする。
 
 ## 中核: Cart Journey（共通課程の必須範囲・Web）
 
-中核課題はPlaywrightによるWeb Cart Journeyで修了できます。モバイルアプリ自動化の選択やAndroid / iOS実行は、この共通経路の前提にしません。
+中核課題は、Playwrightを用いたWebカートジャーニー（Web Cart Journey）の自動化によって修了できます。モバイルアプリ自動化の選択や、Android / iOSでの実行は共通課程の前提条件には含まれません。
 
-1. [`cart.md`](../../../spec/features/cart.md) のBR / ACを読み、Guest / Customer / State / Dataを整理する。
-2. 受講者の作業表へRisk、条件、境界、期待結果を記録し、完了時に4 CSVを`handoff-root/workbook/`へ集約する。Repositoryのsample CSVへ回答を追記しない。
-3. [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)で必要な初期状態を確認し、必要な節だけ[`seed_catalog.md`](../../../07_testability/seed_catalog.md)と`/guide`で観察する。実装時にだけ実行可能なソースで具体的なIDを照合する。
-4. `pnpm run training:web:baseline`でbaselineを実行し、必要なCart条件を`exercises/`へ実装した後、P1-6のReceipt付き入口でDesktop learner exerciseを実行する。
-5. `training-mobile-chromium`でResponsive Riskを1件確認する。
-6. 受講者のWorkbookへDecision、実行記録、Failure分類を記録し、`03_automation-mapping.csv`と`04_execution-improvement.csv`を`handoff-root/workbook/`へ集約する。
+1. [`cart.md`](../../../spec/features/cart.md) のビジネスルール（BR）および受入基準（AC）を読み込み、ゲスト（Guest）、会員（Customer）、状態（State）、データ（Data）の関係を整理する。
+2. 受講者用の作業表にリスク、条件、境界値、期待結果を記録し、完了時には4つのCSVファイルを`handoff-root/workbook/`へ集約する。リポジトリ内のサンプルCSVファイルに回答を直接追記しないこと。
+3. [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)で必要な初期状態を確認し、該当する箇所のみ[`seed_catalog.md`](../../../07_testability/seed_catalog.md)や`/guide`画面で確認する。実装段階でのみ、実行可能なソースコードから具体的なIDを照合する。
+4. `pnpm run training:web:baseline`でベースラインテストを実行し、必要なカートの検証条件を`exercises/`配下に実装した上で、P1-6で整備したレシート出力付きの実行入口からデスクトップ向けの演習テストを実行する。
+5. `training-mobile-chromium`を実行し、レスポンシブ表示に関するリスクを1件検証する。
+6. 受講者用ワークブックに設計判断（Decision）、実行記録、失敗分類を記録し、`03_automation-mapping.csv`と`04_execution-improvement.csv`を`handoff-root/workbook/`へ集約する。
 
-P1-6のC09診断で作成した失敗時の記録、cause、action、修正後の再実行記録は、同じ`test_case_id`の異なる`run_context`として再利用します。P1-9で診断Failureを新しく作り直す必要はありません。
+P1-6のC09診断演習で作成した失敗時の実行記録、原因（cause）、対策（action）、修正後の再実行記録は、同一の`test_case_id`における異なる`run_context`として再利用します。P1-9のために診断用の失敗ケースを改めて作り直す必要はありません。
 
 ## モバイルアプリ自動化の選択課程（選択時）
 
-P1-7を選択した受講者は、P1-6までの共通課程の必須前提を満たした後、P1-7のNative開始条件とC08に最低限必要な成果物を確認します。Physical Android、Native artifact、Maestroの実行記録は選択課程の範囲であり、Part 1の共通課程の修了には要求しません。詳細はP1-7と [習熟度評価基準](../02_competency-rubric.md) を参照します。
+P1-7を選択した受講者は、P1-6までの共通課程における前提条件を満たした上で、P1-7のネイティブ開始条件とC08に求められる最低限の成果物を確認します。実機Android（Physical Android）、ネイティブビルド成果物（Native artifact）、Maestroの実行記録は選択課程の対象であり、Part 1共通課程の修了要件には含まれません。詳細はP1-7および [習熟度評価基準](../02_competency-rubric.md) を参照してください。
 
-選択課程を選ばない受講者やNative環境を利用できない受講者を、共通経路のblocked / not_completedとは扱いません。
+選択課程を受講しない場合やネイティブ環境を利用できない場合でも、共通課程における「未着手（blocked）」や「未完了（not_completed）」としては扱いません。
 
-Nativeを選択する場合だけ、P1-7で作成した受講者作成のNative exercise diffとMaestroの成功実行Artifactを中核課題の成果物とは別に確認します。Baseline / stock PASSやiOS Build-onlyは、その成果物の代替ではありません。
+ネイティブ課程を選択した場合に限り、P1-7で作成した演習コードの差分（Native exercise diff）とMaestroの実行成功ログ等の成果物（Artifact）を、中核課題の成果物とは個別に確認します。なお、ベースラインの成功結果（stock PASS）やiOSのビルド確認のみ（Build-only）をもって、これらの成果物の代わりとすることはできません。
 
 ## 発展課題
 
-中核課題の代わりにはならない追加課題です。
+本課題は、中核課題の代替ではなく、さらなる習熟を目指す受講者向けの追加課題です。
 
-- Purchase Journey: Guest Cart → Login → Cart統合 → Address → Checkout → Payment → Order。
-- Failure / Recovery: Payment Failure → Retry → Paid。
-- Cross-role Lifecycle: Customer Purchase → Operator Shipment → Customer Review。
+- 購入ジャーニー（Purchase Journey）: ゲストカート → ログイン → カート統合 → 配送先住所入力 → チェックアウト → 決済 → 注文完了
+- 失敗と回復（Failure / Recovery）: 決済失敗 → 再試行 → 決済完了
+- ロール間ライフサイクル（Cross-role Lifecycle）: 顧客の購入 → 管理者・運用者の発送処理 → 顧客のレビュー投稿
 
-発展課題は仕様のBR / AC、Scenario Reset、Layer選択、実行記録を中核課題と同じ形式でリポジトリ内へ保存・記録します。外部提出は必須ではありません。
+発展課題に取り組む場合も、仕様のBR／AC、シナリオのリセット手順、テストレイヤーの選定理由、実行記録を中核課題と同様の形式でリポジトリ内に記録・保存してください。外部への提出は必須ではありません。
 
 ## 自己確認
 
-次を自分の成果物を指しながら確認できれば、Part 1の共通課程の修了を自己判定できます。
+自身の成果物を参照しながら以下の項目を確認できれば、Part 1共通課程の修了を自己判定できます。
 
-- `cart.md`のBR / ACから選んだRisk、Test Case、Layer、Tool、実行記録の対応を説明できる。
-- Guest / Customer、State / Data、Scenario / Resetの境界を既存SSOTへ戻って確認できる。
-- Web baselineと自分のFailure Exerciseを分離し、Failure分類、原因仮説、実行記録、未確定範囲を説明できる。
-- C10では、実在する保守問題を使ったか、問題がなければ決定的な教材演習を使ったかを明示し、改善前後の別runとTest目的を維持した確認を示せる。
-- 自動化しないまたはLaterとした条件を、Riskと理由付きで説明できる。
-- Nativeを選択しない共通経路でも修了でき、選択時だけNative成果物を別判定できる。
+- `cart.md`のBR／ACから抽出したリスク、テストケース、テストレイヤー、使用ツール、および実行記録の対応関係を説明できること。
+- ゲスト／会員、状態／データ、シナリオ／リセットの境界について、信頼できる唯一の情報源（SSOT）である仕様書に戻って確認できること。
+- Webのベースラインテストと自身で作成した失敗演習（Failure Exercise）を明確に区別し、失敗分類、原因の仮説、実行記録、未確定の範囲を説明できること。
+- C10において、実在する保守上の問題を用いたか、該当する問題がなければ決定的な教材演習に切り替えたかを明示し、改善前後の別実行（別run）の記録と、テスト目的が維持されていることを提示できること。
+- 自動化対象外とした条件や後回し（Later）と判断した条件について、そのリスクと判断理由を併せて説明できること。
+- ネイティブ課程を選択しない共通課程のみでも修了判定が可能であり、ネイティブ課程を選択した場合にのみその成果物を個別判定できること。
 
 ## 修了確認コマンド
 
-Part 1の成果物を`<handoff-root>`へ集約したら、受講者自身で次の正式な確認を実行します。`<handoff-root>`はWorkbook、受講者Code、Evidence、Receipt、self-checkを集約した固定Directoryへ置き換えます。
+Part 1の成果物を`<handoff-root>`へ集約したら、受講者自身で以下の正式な確認コマンドを実行します。なお、`<handoff-root>`の部分は、ワークブック、受講者コード、エビデンス、レシート、自己確認結果を集約した固定ディレクトリパスに置き換えてください。
 
 ```bash
 pnpm run training:completion:check -- --mode common --root <handoff-root>
 ```
 
-生成された`<handoff-root>/completion-receipt.json`で、少なくとも次を確認します。
+実行後に生成される`<handoff-root>/completion-receipt.json`を開き、少なくとも以下の項目を確認します。
 
-- `status`: 完了条件の機械的な状態。
-- `missing_requirements`と`reasons`: 未達項目と、最初に戻るべき理由。
-- `checked_outputs`: Handoff、Workbook、実行記録、Learner code、Evidence、self-checkなどの確認結果。
-- `semantic_understanding`: 自動判定していない理解項目。通常は`NOT_EVALUATED`です。
+- `status`: 完了条件を満たしているかの機械的な判定結果。
+- `missing_requirements` および `reasons`: 不足している要件と、最初の手順に戻るべき理由。
+- `checked_outputs`: 引継ぎ成果物（Handoff）、ワークブック、実行記録、受講者コード、エビデンス、自己確認結果などの検査結果。
+- `semantic_understanding`: 自動判定の対象外となっている理解度項目（通常は`NOT_EVALUATED`と表示されます）。
 
-このReceiptの`PASS`は、成果物の構造・追跡・実行記録が契約を満たしたことを示すだけで、設計意図や説明の理解を自動採点した結果ではありません。Part 1の完了は、`PASS`、self-checkの記述、自分の成果物を指した公開されている最低限の評価基準の確認をそろえて自己判定します。`PASS`でない場合は、`reasons`または`missing_requirements`の最初の項目へ戻って修正し、確認コマンドを再実行します。
+このレシートにおける`PASS`の表示は、成果物のディレクトリ構成、トレーサビリティ、実行記録が所定の規約を満たしていることを示す機械的な検証に過ぎず、設計の妥当性や受講者の理解度を自動採点したものではありません。Part 1の完了は、レシートの`PASS`判定、自己確認（self-check）の記述内容、および自身の成果物に基づいた公開基準（評価ルーブリック）の確認をすべて揃えた上で、受講者自身が総合的に自己判定してください。`PASS`とならなかった場合は、`reasons`や`missing_requirements`に示された最初の指摘項目に戻って修正を行い、確認コマンドを再実行してください。
 
-### Recovery
+### リカバリ手順
 
-対応関係やFailureの分析がつながらない場合は、まず対象BR / AC、Risk、Test Case、実行条件、実行記録を1つずつ確認し、抜けた最初の項目へ戻ります。実行できない場合はBrowser、Seed / Reset、Test Control、環境上の問題を分けて記録します。Native環境の不足は共通課程の修了未達とせず、Nativeを選択する場合だけP1-7のRecoveryへ戻ります。
+成果物の対応関係や失敗分析の整合性が取れない場合は、まず対象のBR／AC、リスク、テストケース、実行条件、実行記録を順に照合し、不足が生じた最初の工程まで戻って見直してください。テストを実行できない場合は、ブラウザ、初期データ投入・リセット（Seed / Reset）、テスト制御（Test Control）、実行環境の要因に切り分けて記録します。なお、ネイティブ実行環境の不備は共通課程の未達理由には当たらないため、ネイティブ課程を選択している場合に限りP1-7のリカバリ手順に戻って対処してください。
 
 ## 完了条件
 
-- Part 1の共通課程: C01〜C07 + C09〜C10の対象範囲を限定したレベル2。各習熟項目に最低限必要な成果物は [習熟度評価基準](../02_competency-rubric.md) を参照し、C08 / Physical Android / Native artifactを共通課程の修了に要求しない。
-- Spec、Risk、Test Case、Layer、Tool、実行記録の対応関係を説明できる。
-- 自動化しない条件またはLater条件を1つ説明できる。
-- baselineとFailure Exerciseを混ぜていない。
-- 共通経路の成果物がWeb Cart Journey、対応関係、Failureの分析として自己完結し、Native / baselineの実行記録と混ざっていない。
+- Part 1共通課程: 対象範囲を限定したレベル2基準（C01〜C07 および C09〜C10）を達成していること。各習熟項目に求められる最低限の成果物については [習熟度評価基準](../02_competency-rubric.md) を参照すること。なお、C08、実機Android環境、およびネイティブ成果物は共通課程の修了要件に含まれない。
+- 仕様、リスク、テストケース、テストレイヤー、ツール、実行記録の一連の対応関係を説明できること。
+- 自動化を行わないと判断した条件、または後回し（Later）とした条件を少なくとも1つ挙げ、その理由を説明できること。
+- ベースラインのテストコード・実行結果と、失敗演習（Failure Exercise）の内容を混同せず明確に分離していること。
+- 共通課程の成果物が、Webカートジャーニー、各種対応関係、失敗分析として独立して完結しており、ネイティブ課程やベースラインの実行記録と混在していないこと。
 
 ## 次の行動
 
-Part 1の共通課程の成果物を完了したら、[00_learning-designのPart 2移行説明](../00_learning-design.md)を確認して [P2-1: 開発プロセス](../part2/01_software-development-process.md) へ進みます。モバイルアプリ自動化の選択課程を選んだ場合も、Native成果物を別判定したうえで同じPart 2入口へ戻ります。
+Part 1共通課程の成果物が整ったら、[00_learning-designのPart 2移行説明](../00_learning-design.md) を確認した上で [P2-1: 開発プロセス](../part2/01_software-development-process.md) へ進んでください。モバイルアプリ自動化の選択課程を受講した場合も、ネイティブ成果物の判定を個別に完了させた後、同一のPart 2開始地点へ合流します。

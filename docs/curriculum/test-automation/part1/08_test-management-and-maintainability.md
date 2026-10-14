@@ -2,19 +2,19 @@
 
 ## 学習目標
 
-- 自動テストが増えた運用フェーズで起きる問題を整理できる。
-- テストケース、spec、Test Data、Seed Scenario、共通処理の管理方法を考えられる。
-- Helper、Page Object Model、Component Object、Fixture、Seed Scenarioなどの役割を区別できる。
-- POMを必須ルールではなく、保守上の課題を解決する選択肢として判断できる。
-- 仕様変更時にRisk、Test Case、自動化実装、Regression分類を同期して更新できる。
-- 重複、Flaky、実行時間、不要テスト、責務の混在を改善できる。
-- スプレッドシート上のTest Caseとコード上のRegression資産を対応付けて管理できる。
+- 自動テストの増加に伴い、運用フェーズで発生する課題を整理できる。
+- テストケース、specファイル、テストデータ、Seed Scenario、共通処理の管理方針を検討できる。
+- Helper、Page Object Model（POM）、Component Object、Fixture、Seed Scenarioなどの役割の違いを区別できる。
+- POMを必須ルールとして画一的に導入するのではなく、保守上の課題を解決するための選択肢として適切に判断できる。
+- 仕様変更時に、リスク、テストケース、自動化実装、リグレッションテストの分類を同期して更新できる。
+- テストの重複、Flaky（不安定なテスト）、実行時間の増大、不要なテスト、責務の混在を解消・改善できる。
+- スプレッドシート上のテストケースとコード上のリグレッション資産を紐づけて管理できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリの既存Playwright / Maestroテストを使用します。**
+**このモジュールでは、本リポジトリに用意されている既存のPlaywright / Maestroテストを使用します。**
 
-仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) と対象FeatureのBR / ACです。Formal TestとTraining Testの責務を分けたうえで、Risk、Workbook、実装、Regression分類を同期します。
+仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) および対象FeatureのBR（ビジネスルール）／AC（受け入れ基準）です。Formal TestとTraining Testの責務を切り分けたうえで、リスク、Workbook、実装、リグレッション分類を同期させます。
 
 主な参照先:
 
@@ -26,92 +26,92 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-共通経路では、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はモバイルアプリ自動化の選択課程を選ぶ場合の前提であり、Playwrightのみで進む共通課程の修了には要求しません。自分のTestに実在する保守上の問題が見つからない場合は、教材が用意した決定的なC10演習を使います。
+共通課程では、受講者自身が複数のPlaywrightテストを作成済みであることを前提とします。Maestro Flowの作成経験はモバイルアプリ自動化の選択課程を進める場合の前提条件であり、Playwrightのみで進める共通課程の修了条件としては求められません。自身のテストコード内に実際の保守上の課題が見当たらない場合は、教材として用意されている再現性の高い「C10演習」を利用します。
 
-Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetや実行記録の収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
+Part 1-5やPart 1-6ではテストハーネスとして利用していたリセット処理や実行記録の収集について、本モジュールからは `e2e/web/fixtures.ts` の内部実装を読み解き、Fixtureにどのような責務を持たせているのかを具体的に分析します。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-5の複数の受講者Playwright Test、P1-6のFailure分析・Execution Receipt・Evidence、P1-7を選択した場合のNative成果物、仕様変更のBR / AC。作成済みのResetとTest Case対応を確認してから保守性を分析する。実在する問題がない場合は提供元の`training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts`を、Learner Caseとは別の`TC-CART-900`演習として受け取る |
-| Activity | 重複、責務の混在、Flaky、実行時間、Test Data、spec構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれが問題を解くか比較する。実在する問題がなければ、決定的なC10演習を受講者用`training/playwright/exercises/`へコピーし、`TC-CART-900`として同じTest目的を保った最小改善と別runを行う。仮想仕様変更の影響範囲を追跡する |
-| Observation | 同じ変更で直す箇所、Failureを隠す共通化、Test Caseとコードの対応、Reset／Fixtureの責務、改善前後の差分と再実行結果。決定的演習では、同じLocator式が複数箇所にあることと、変数へ切り出してもTest目的が変わらないことを確認する |
-| Output | `Improvement Target`、問題、なぜ問題か、`Action`、改善内容、再実行結果、影響を受けるTest Case／Pathを記録する。`Before Digest`／`After Digest`は受講者が計算・転記せず、RunnerがExecution Receiptへ記録する。編集場所は自由で、`04_execution-improvement.csv`やコードを完了時に`handoff-root/`へ集約する |
-| Self-check | POM等を採用する理由と採用しない理由、Fixture／Resetの責務、仕様変更からRisk→Case→コード→Regressionを追跡する方法を説明する。決定的演習を使った場合は、問題、改善を選んだ理由、実コードの差分、別run、Test目的を維持した確認を順に示す |
-| Completion | 少なくとも1つの実在する保守上の問題を特定するか、問題が見つからない場合は決定的なC10演習を使い、原因・影響を記録したうえで最小改善を実装し、`c10-improved`として別のExecution ReceiptとEvidenceを残す。設計だけではC10完了としない。Native成果物は選択時だけ追加し、baselineだけを成果としない |
-| Recovery | 問題が見つからない場合は、まずP1-5／P1-6のコードと記録を確認し、それでも保守問題がなければ決定的なC10演習へ進む。実行できない場合は環境問題として記録し、保守判断と分ける |
-| Handoff | P1-9へ改善前後のコードPath、Case ID（提供演習の場合は`TC-CART-900`）、差分、再実行結果、`04_execution-improvement.csv`のContextを渡す。選択課程ではNative成果物も別枠で渡す |
+| Input | P1-5で受講者が作成した複数のPlaywrightテスト、P1-6のFailure分析・Execution Receipt・エビデンス、P1-7を選択した場合のNative成果物、仕様変更のBR／AC。作成済みのReset処理とテストケースの対応関係を確認したうえで、保守性の分析に着手する。既存コードに課題が見つからない場合は、教材提供元の `training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts` を、受講者自身のケースとは別の `TC-CART-900` 演習として受け取る。 |
+| Activity | 重複、責務の混在、Flaky、実行時間、テストデータ、specの構成を観察し、Helper／POM／Component Object／Fixture／Seed Scenarioのどれを用いて解決すべきかを比較検討する。自作テストに課題がない場合は、決定的なC10演習を受講者用の `training/playwright/exercises/` 配下へコピーし、`TC-CART-900` としてテスト目的を維持した最小限の改善と個別実行を行う。さらに、仮想的な仕様変更に対する影響範囲の追跡を実施する。 |
+| Observation | 同じ仕様変更によって修正が必要となる箇所、失敗を隠蔽してしまうような共通化の有無、テストケースとコードの対応関係、Reset／Fixtureの責務分担、改善前後の差分と再実行結果を確認する。決定的な演習課題では、同一のロケーター定義が複数箇所に重複していること、およびそれを変数へ切り出してもテストの検証目的が変わらないことを確認する。 |
+| Output | `Improvement Target`、問題点、なぜそれが問題なのか、`Action`、改善内容、再実行結果、影響を受けるテストケース／ファイルパスを記録する。`Before Digest`／`After Digest` は受講者が手動で計算・転記するのではなく、RunnerがExecution Receiptへ自動記録する。編集作業の場所は任意だが、完了時には `04_execution-improvement.csv` やコードを `handoff-root/` 配下へ集約する。 |
+| Self-check | POM等を採用する理由・採用しない理由、FixtureやResetの責務、仕様変更から「リスク → ケース → コード → リグレッション分類」を追跡する手順を説明できること。決定的なC10演習を実施した場合は、問題点、改善手法の選定理由、実コードの差分、別コンテキストでの実行結果、テスト目的が維持されていることの確認を順序立てて提示する。 |
+| Completion | 実際の保守上の課題を少なくとも1件特定するか、該当する課題がない場合は決定的なC10演習を活用し、原因と影響を記録したうえで最小限の改善を実装して、`c10-improved` として独立したExecution Receiptおよびエビデンスを残すこと。設計メモのみではC10完了とは見なさない。Nativeの成果物は選択課程を受講している場合のみ追加し、ベースラインの取得のみを完了成果とはしない。 |
+| Recovery | 保守上の問題が見つからない場合は、まずP1-5／P1-6のコードと実行記録を再確認し、それでも問題がなければ決定的なC10演習へ進む。テストが実行できない場合は環境起因の障害として記録し、テストコードの保守性判断とは切り離して整理する。 |
+| Handoff | P1-9へ引き継ぐ情報として、改善前後のコードパス、ケースID（教材演習の場合は `TC-CART-900`）、差分、再実行結果、`04_execution-improvement.csv` のコンテキスト情報を渡す。選択課程を受講している場合は、Native成果物も別枠で引き継ぐ。 |
 
 ## Lesson 1: 運用フェーズで当たる壁
 
-テストが数本の間は、1ファイルへ直接書いても大きな問題になりません。
+テストが数本程度であれば、1つのファイルにベタ書きしていても大きな問題にはなりません。
 
-しかし本数が増えると、次の問題が現れます。
+しかし、テストの数が増加するにつれて、次のような問題が顕在化します。
 
-- Login処理が何度も重複する。
-- 商品選択やCheckout操作が何度も重複する。
-- Locator変更で多くのテストを直す必要がある。
-- Test Dataの作り方がテストごとに異なる。
-- どのspecに何があるか分かりにくくなる。
-- 同じ目的のテストが重複する。
-- RegressionとSmokeの境界が曖昧になる。
-- Flakyなテストが放置される。
-- 実行時間が増える。
-- 削除してよいテストか判断しづらい。
-- 仕様変更後にスプレッドシートと自動テストの内容がずれる。
+- ログイン処理が各所に重複して記述される。
+- 商品選択やチェックアウト操作のステップが何度も重複する。
+- UIのロケーター変更に伴い、大量のテストファイルを修正しなければならなくなる。
+- テストデータの準備方法がテストごとにバラバラになる。
+- どのspecファイルに何が書かれているのか把握できなくなる。
+- 同じ検証目的を持つテストが重複して存在する。
+- リグレッションテストとスモークテストの境界線が曖昧になる。
+- Flaky（不安定）なテストが原因究明されないまま放置される。
+- テストスイート全体の実行時間が長大化する。
+- どのテストが不要で削除してよいのか判断がつかなくなる。
+- 仕様変更後に、テスト管理スプレッドシートと自動テストコードの間で内容の乖離が生じる。
 
-ここで初めて「テスト資産をどう管理するか」を考えます。
+こうした段階に至って初めて、「テスト資産をいかに管理・保守していくか」という設計の視点が必要になります。
 
 ## Lesson 2: テストケース管理
 
-スプレッドシートのTest Case IDと実装を照合します。
+スプレッドシート等で管理されているテストケースIDと、実際のテスト実装コードを照合します。
 
-確認すること:
+確認すべきポイント:
 
-- 未自動化なのにAutomated扱いになっていないか。
-- 同じRiskを複数E2Eが重複して確認していないか。
-- 仕様変更で不要になったCaseが残っていないか。
-- Regressionとして継続価値があるか。
-- Web / Android / iOSの対応関係が分かるか。
+- まだ自動化されていないケースが、誤って「Automated（自動化済み）」扱いになっていないか。
+- 同一のリスクに対して、複数のE2Eテストが重複して検証を行っていないか。
+- 仕様変更によって不要となったケースが残骸として放置されていないか。
+- リグレッションテスト資産として今後も維持し続ける価値があるか。
+- Web / Android / iOS 間でのテストケースの対応関係が把握可能か。
 
-テスト管理は「本数を増やすこと」ではなく、必要な保証を維持することです。
+テスト管理の本質は「テストの本数を増やすこと」ではなく、「プロダクトに必要な品質保証を継続的に維持すること」にあります。
 
 ## Lesson 3: specの分け方
 
-ファイル分割は画面名だけで機械的に決めません。
+specファイルの分割は、画面名やURLだけで機械的に決めるべきではありません。
 
-候補:
+分割の切り口候補:
 
-- Feature単位
-- User Journey単位
-- Role単位
-- Test Type単位
+- Feature（機能）単位
+- User Journey（一連のユーザー行動フロー）単位
+- Role（ユーザー権限・ロール）単位
+- Test Type（スモーク、リグレッション、アクセシビリティ等）単位
 
-Scenario Shopの既存 `phase1-required.spec.ts`、`accessibility.spec.ts`、`mobile-boundary.spec.ts`、`cross-role-lifecycle.spec.ts` を比較し、なぜ分かれているか考えます。
+Scenario Shopの既存実装である `phase1-required.spec.ts`、`accessibility.spec.ts`、`mobile-boundary.spec.ts`、`cross-role-lifecycle.spec.ts` を比較し、それぞれがどのような意図や責務で分割されているかを考察します。
 
 ## Lesson 4: Helper
 
-小さく独立した共通操作ならHelperで十分な場合があります。
+小規模かつ独立した共通操作であれば、Helper関数を用意するだけで十分に対応できる場合があります。
 
-既存 `fixtures.ts` の `login` や `addDefaultAddress` を題材にします。
+既存の `fixtures.ts` 内にある `login` や `addDefaultAddress` などを具体例として確認します。
 
-Helperの利点:
+Helperのメリット:
 
-- 単純
-- 導入コストが低い
-- 呼び出しが分かりやすい
+- 構造が単純である。
+- 導入・実装コストが低い。
+- 呼び出し関係が直感的に分かりやすい。
 
-Risk:
+リスク・注意点:
 
-- Helperが増えすぎると責務が分からなくなる。
-- UI要素、業務Flow、Test Data準備が同じHelperへ混在しやすい。
+- Helperの数が増えすぎると、全体の責務分担が不明瞭になる。
+- UI要素の操作、業務フロー、テストデータの事前準備などが同一のHelper関数内に混在しやすい。
 
 ## Lesson 5: Page Object Model
 
-POMはPageごとのUI操作やLocatorをまとめる方法の一つです。
+Page Object Model（POM）は、画面（ページ）ごとのUI操作やロケーター定義をカプセル化してまとめる設計パターンの一つです。
 
-例:
+実装例:
 
 ```ts
 import type { Page } from "@playwright/test";
@@ -129,62 +129,62 @@ class ProductPage {
 }
 ```
 
-POMが有効になりやすい条件:
+POMが効果を発揮しやすい条件:
 
-- 同じPage操作を多くのテストで再利用する。
-- Locator変更を局所化したい。
-- Pageの操作語彙を明確にしたい。
+- 同一のページ操作を多数のテストケースで繰り返し再利用する。
+- ロケーターの変更による影響範囲を1箇所に局所化したい。
+- ページに対する操作の語彙（メソッド名）を共通化・明確化したい。
 
 POMが不要または過剰になりやすい条件:
 
-- 再利用がほとんどない。
-- TestよりObjectの抽象化の方が複雑になる。
-- AssertionやBusiness Flowまで何でもPage Objectへ詰め込む。
+- 該当ページの操作がほとんど再利用されない。
+- テストコードそのものよりも、Page Objectの抽象化コードのほうが複雑化してしまう。
+- アサーションや複雑な業務フローまで何でもPage Object内に詰め込んでしまう。
 
-この例の`class`はPage Objectの型を定義し、`constructor`はPageを受け取って初期化します。`private readonly page`はそのPageをインスタンスのPropertyとして保持する書き方です。ここでの構文はPOMを選んだ場合に必要な範囲だけ確認し、POMの採用自体を修了条件にはしません。
+上記のコード例において、`class` はPage Objectの構造を定義し、`constructor` はPageオブジェクトを受け取って初期化を行います。`private readonly page` は、そのPageインスタンスをプロパティとして内部保持するためのTypeScriptの構文です。ここでの構文はPOMを採用する際に必要な範囲で理解できれば十分であり、POMの実装自体を本モジュールの修了条件とするわけではありません。
 
 ## Lesson 6: Component Object
 
-Header、Navigation、Modal、Product Cardなど、Pageを跨いで再利用されるUIはComponent Objectとして扱う選択肢があります。
+ヘッダー、ナビゲーション、モーダル、商品カードなど、複数のページを跨いで共通利用されるUIパーツは、Component Objectとして切り出す選択肢があります。
 
-Page Objectだけで全UIを表現しようとすると、Page間で共通Componentが重複する可能性があります。
+すべてのUIをPage Objectだけで表現しようとすると、複数のPageクラス間で共通コンポーネントの操作コードが重複してしまう原因になります。
 
 ## Lesson 7: Fixture
 
-Fixtureはテスト実行環境や前提状態を提供するために使えます。
+Fixtureは、テストの実行環境や事前状態（セットアップ・ティアダウン）を安全に提供するために活用されます。
 
-ここで初めて既存 `scenario` Fixtureの内部を教材として読み、次を確認します。
+ここでは教材として既存の `scenario` Fixtureの実装を読み、以下の処理を確認します。
 
-- Test Data Reset
-- Page cleanup
-- Metadata確認
-- Console Error収集
+- テストデータのReset
+- ページのクリーンアップ
+- メタデータの確認
+- コンソールエラーの収集
 
-Part 1前半で利用していた「Seed ScenarioをResetできる」「Console Errorを実行記録として扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
+Part 1前半で利用していた「Seed Scenarioをリセットする」「コンソールエラーを実行記録として収集する」といったテストハーネスの裏側が、どのような責務分担としてFixture内に実装されているのかを把握します。
 
-Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
+ただし、Fixtureにあらゆる処理を詰め込みすぎると、テストケース側から前提条件の流れが見えなくなるリスクが生じます。
 
-「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
+「多くのテストに共通して必要な実行環境・前提条件」なのか、「特定のテストケース固有の業務操作」なのかを意識して切り分けます。
 
-### このLessonで読む`fixtures.ts`の範囲
+### 本Lessonで読み解く `fixtures.ts` の範囲
 
-対象は`e2e/web/fixtures.ts`の次の流れに限定します。File全体のTypeScriptを理解したり、Fixture frameworkを実装したりする必要はありません。
+対象は `e2e/web/fixtures.ts` の以下の処理フローに限定します。ファイル全体の高度なTypeScript構文をすべて把握したり、Fixtureフレームワーク自体を自作したりする必要はありません。
 
-1. `scenario` FixtureがTestへ何を提供するか。
-2. Test開始時にScenario Resetを呼び、決めた初期状態を作る箇所。
-3. Console Errorと`pageerror`などのPage Errorを収集する箇所。
-4. Test終了時に収集結果を確認・記録する箇所。
+1. `scenario` Fixtureがテストコードに対して何を提供しているか。
+2. テスト開始時にScenario Resetを呼び出し、あらかじめ決められた初期状態を構築している箇所。
+3. コンソールエラーや `pageerror` などのページエラーをフックして収集している箇所。
+4. テスト終了時にエラー収集結果を検証・記録している箇所。
 
-`type`、`interface`、generic、callback、`base.extend<Fixtures>`などの構文の詳細理解は今回不要です。受講者は「Fixtureが何を提供し、Resetとエラー収集をいつ行い、Test終了時に何を確認するか」を、呼び出し元のTestと対応付けて説明できれば十分です。
+`type`、`interface`、ジェネリクス、コールバック、`base.extend<Fixtures>` といった構文の詳細な挙動まで深く掘り下げる必要はありません。「Fixtureがテストへ何を提供し、Resetとエラー収集がどのタイミングで実行され、テスト終了時に何を検証しているのか」を、テスト側の呼び出しコードと対応付けて説明できれば十分です。
 
-## Lesson 8: 複数画面の共通操作を切り出す場合
+## Lesson 8: 複数画面にまたがる共通操作の切り出し
 
-複数Pageを跨ぐ業務操作は、共通操作として切り出す選択肢があります。
+複数の画面を順に遷移するような一連の業務操作は、共通ワークフローとして切り出す選択肢があります。
 
 例:
 
 ```text
-Purchaseの共通操作
+購入の共通操作フロー
 Login
 ↓
 Cart
@@ -196,207 +196,207 @@ Payment
 Confirm
 ```
 
-Page ObjectはUI操作を表し、共通操作は複数Pageを跨ぐ業務操作を表す、と分離できます。
+Page Objectが「各画面のUI操作」を表すのに対し、共通フローは「画面を跨いだ一連のビジネスプロセス」を表現するというように、責務を分離して整理できます。
 
-これはMaestroのYAMLファイルを指すMaestro Flowとは別の概念です。
+※これはMaestroのYAMLファイルを指す「Maestro Flow」とは異なる概念です。
 
-ただし、小規模なケースではHelperだけで十分な場合もあります。
+なお、小規模なテストスイートであれば、大がかりなクラス構造を作らずシンプルなHelper関数にまとめるだけでも十分に機能します。
 
-## Lesson 9: Seed Scenario / Test Data
+## Lesson 9: Seed Scenarioとテストデータ
 
-Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管理です。
+Seed Scenarioの目的は、UI操作を共通化することではなく、「テスト開始時の初期データ状態を適切に管理すること」にあります。
 
-`src/seeds/metadata.ts` は、Scenario Shopで利用するSeed Scenarioの名称、用途、推奨Account、初期Session、関連Routeなどを定義する**Scenario Metadataの正本**として機能します。
+`src/seeds/metadata.ts` は、Scenario Shopで利用するSeed Scenarioの名称、用途、推奨アカウント、初期セッション、関連ルートなどを一元定義する**シナリオメタデータのマスター（正本）**として機能しています。
 
-実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけが定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
+ただし、実際の在庫データ、カート情報、注文履歴などの生成やリセット処理そのものが、このメタデータファイル単体で完結しているわけではありません。Seed Scenarioの仕組みを正しく把握するには、メタデータ定義と実際のSeed生成・Reset処理の双方を合わせて確認する必要があります。
 
-次を分離して考えます。
+以下の各概念の責務を混同せず、分離して捉えます。
 
-- POM: どう操作するか
-- Fixture: どんな実行環境を提供するか
-- 共通操作: どんな業務操作をまとめるか
-- Seed Scenario: どんな状態から開始するか
-- Test: 何を保証するか
+- POM: 画面をどのように操作するか（UI操作の抽象化）
+- Fixture: どのような実行環境・基盤を提供するか（環境提供）
+- 共通操作: 複数の画面にまたがる業務フローをどうまとめるか（プロセス抽象化）
+- Seed Scenario: どのようなデータ状態でテストを開始するか（初期状態の管理）
+- テスト本体: システムが満たすべき何を保証・検証するか（期待結果の表明）
 
 ## Lesson 10: 仕様変更とテスト資産のライフサイクル
 
-運用では、テストを追加するだけでなく、仕様変更に合わせて既存資産を更新・廃止する必要があります。
+テストの継続的な運用においては、新しいテストを追加するだけでなく、プロダクトの仕様変更に応じて既存のテスト資産を適切に更新・廃棄していくライフサイクル管理が不可欠です。
 
-基本の流れは次です。
+仕様変更時の基本的な対応フロー:
 
 ```text
-仕様変更
+仕様変更の発生
 ↓
-影響するRiskを特定
+影響を受けるリスクを特定
 ↓
-Test Caseを追加 / 修正 / 廃止
+テストケースの追加・修正・廃止を検討
 ↓
-自動化対象を再評価
+自動化の対象範囲を再評価
 ↓
-Playwright / Maestro / 下位テストへの変更を特定
+Playwright／Maestro／下位テストコードへの変更箇所を特定
 ↓
-Regression分類を見直す
+リグレッションテストの分類（スモーク、必須、拡張など）を見直す
 ↓
-不要になったTestを削除または履歴化
+不要となったテストを削除またはアーカイブ化
 ↓
-Product変更後にTestを実装・実行して整合を確認
+プロダクトコードの変更後にテストを実装・実行し、整合性を確認
 ```
 
-例えば「Cartの購入上限が5から3へ変更される」と仮定します。
+具体例として、「カートの購入上限数が5個から3個に変更される」というケースを想定します。
 
-この場合、単にPlaywrightの期待値を `5` から `3` へ変えるだけでは不十分です。
+この際、単にPlaywrightコード内の期待値を `5` から `3` に書き換えるだけでは不十分です。
 
-確認するもの:
+確認・検討すべき項目:
 
-- 上限に関係するRiskは変わるか。
-- 同値分割はどう変わるか。
-- 境界値は `2 / 3 / 4` などへ変わるか。
-- 既存Test Case IDは同じ目的のままか。
-- 新しいCaseが必要か。
-- Web / Native両方へ影響するか。
-- Unit / Integration Testにも変更が必要か。
-- Regression / Smoke分類を変える必要があるか。
+- 購入上限に関連するリスクの重大度や内容は変わるか。
+- 同値分割の範囲はどのように変化するか。
+- 境界値のテスト対象は `2 / 3 / 4` などへシフトするか。
+- 既存のテストケースIDの検証目的は維持されるか。
+- 新規のテストケースを追加する必要があるか。
+- WebとNative（モバイル）の双方に影響が及ぶか。
+- E2EだけでなくUnit TestやIntegration Test側も変更が必要か。
+- スモークテストやリグレッションテストの分類を見直す必要があるか。
 
-**仕様、テスト設計、自動化コードを別々に更新しない**ことを学びます。
+このように、**「仕様」「テスト設計」「自動化コード」をバラバラに更新せず、常に整合性を保ちながら同期して管理する**重要性を理解します。
 
-ただし、このモジュールで扱う「購入上限5から3」は**影響分析のための仮想仕様変更**です。現在のScenario ShopのProduct仕様は変更しません。そのため、変更後仕様を前提にPlaywrightやMaestroを実際に書き換えてPassさせることは、このハンズオンの完了条件にしません。
+※なお、本モジュールで扱う「購入上限5個から3個への変更」は、**影響分析を学習するための仮想的な仕様変更**です。現在のScenario Shopの実際のプロダクト仕様は変更しません。したがって、変更後の仕様を前提としてPlaywrightやMaestroのコードを実際に書き換えてパスさせることは、本演習の完了条件には含まれません。
 
-教材実装時に「購入上限3へ変更済み」の専用演習Branchなどを別途用意した場合は、発展演習としてProduct変更とTest変更を実際に同期させて実行できます。
+教材の環境として「購入上限3個に変更済み」の専用演習ブランチ等が別途用意されている場合は、発展演習としてプロダクトコードの変更とテスト変更を実際に同期させて検証を行うことができます。
 
-## Lesson 11: Assertionの置き場所
+## Lesson 11: アサーションの配置場所
 
-AssertionをPage Objectへ隠しすぎると、Testが何を保証しているか分かりにくくなる場合があります。
+アサーション（期待値の検証）をPage Objectの内部に隠蔽しすぎると、テストケース本体が何を保証しようとしているのかが外部から読み取りにくくなります。
 
-原則としてTest Caseの目的となるAssertionはTestから読み取れることを重視します。
+原則として、**テストケースの主目的となる検証アサーションは、テストコード側に明示的に記述する**方針を推奨します。
 
-一方、ComponentのReady状態など、操作成立のための内部確認はObject側へ置く選択肢もあります。
+一方で、「ボタンがクリック可能になるまで待機する」「モーダルが展開完了したことを確認する」といった、操作を成立させるための前提確認（内部アサーション）については、Page Object側に閉じ込める設計が適している場合もあります。
 
-## Lesson 12: Naming / Test Case ID / Tag
+## Lesson 12: 命名規約・テストケースID・タグ
 
-テスト本数が増えたら検索・選択しやすさも重要です。
+テストの数が増加した環境では、目的のテストを素早く検索・抽出して実行できる構造が重要になります。
 
-検討対象:
+整理・検討の対象:
 
-- Test Case ID
-- Feature名
-- Role
-- Smoke / Regression
-- Platform
-- Tag
+- テストケースID
+- Feature（機能）名
+- Role（ユーザー権限）
+- スモーク / リグレッションの分類
+- 対象プラットフォーム（Web / iOS / Android）
+- タグ（`@smoke`, `@regression` など）
 
-UI要素を特定するUI Test ID / `testId` はTest Case IDとは別に管理します。
+画面上のUI要素を一意に特定するための属性（`testId` / `data-testid` 等）は、テストケースを識別するテストケースIDとは明確に区別して管理します。
 
-Tagを大量に追加し、誰も意味を管理できなくなる状態は避けます。
+また、ルールなく無秩序にタグを乱発し、誰もタグの分類基準を把握できない状態に陥ることは避けるべきです。
 
-## Lesson 13: Flaky Test管理
+## Lesson 13: Flaky Test（不安定なテスト）の管理
 
-Flakyを「たまに落ちるからRetryでよい」と扱いません。
+テストが時々失敗する現象（Flaky Test）を、「リトライを増やせば通るから問題ない」と安易に放置してはいけません。
 
-改善候補:
+主な改善・対処アプローチ:
 
-- Locator見直し
-- 状態待機
-- Seed Scenario Reset
-- Test間依存除去
-- 並列競合の解消
-- 不要な外部依存除去
+- 不適切なロケーターの指定を見直す。
+- 画面やデータ状態の確定を待機する適切なウェイト処理を入れる。
+- Seed ScenarioのReset処理を確実に実行し、初期状態を統一する。
+- 前のテストケースの結果に依存するテスト間依存を排除する。
+- 並列実行時のデータ競合（同一アカウントの同時操作等）を解消する。
+- 不要な外部ネットワーク依存や外部サービス呼び出しを排除する。
 
-Flakyが継続する場合は、Regression Gateへ残すRiskも判断します。
+Flakyな状態が解消できないテストについては、CIのリグレッションゲートに残し続けることで生じる開発遅延リスクを評価し、一時的にゲートから除外するなどの判断を行います。
 
-## Lesson 14: 実行時間とTest Suite（発展課題・参考比較）
+## Lesson 14: 実行時間とテストスイート構成（発展課題・参考比較）
 
-テストが増えると実行時間が伸びます。
+テスト資産が増加すると、全体の実行時間も長大化します。
 
-ここではまだCI設計へ深入りせず、ローカルTest Suiteとして次を考えます。
+ここではまだCIパイプラインの本格設計には深入りせず、ローカル環境で実行するテストスイートの構成として以下のような分類を検討します。
 
-- Smoke
-- 必須Regression
-- Extended Regression
-- Accessibility
-- Mobile
-- Native（モバイルアプリ自動化の選択課程・発展課題）
+- スモークテスト（最重要パスの最小セット）
+- 必須リグレッションテスト（PRマージ時の必須検証）
+- 拡張リグレッションテスト（網羅的な検証セット）
+- アクセシビリティテスト
+- モバイルWebテスト
+- Nativeテスト（モバイルアプリ自動化の選択課程・発展課題）
 
-これらをPR / main / Nightlyへ配置する設計はPart 2の参考比較です。このLessonの共通課程の修了にNative実行やCI設定を要求しません。
+これらをプルリクエスト時、mainブランチマージ時、あるいはNightlyビルド等にどう割り振るかという設計は、Part 2で扱う参考比較テーマです。本Lessonの共通課程の修了において、Nativeテストの実行やCIの詳細設定は必須としません。
 
-## ハンズオン1: 重複を探す
+## ハンズオン1: 重複コードの検出
 
-自分が作成したPlaywright Testから、重複しているLogin、商品操作、Cart操作などを洗い出します。
+自身が作成したPlaywrightテストのコードベースから、重複して記述されているログイン処理、商品選択、カート操作などを洗い出します。
 
-## ハンズオン2: 解決方法を選ぶ
+## ハンズオン2: 解決手段の選定
 
-各重複について次のどれを使うか判断します。
+洗い出した各重複箇所に対して、以下のどの手段を適用すべきかを判断します。
 
-- そのまま残す
-- Helper
-- POM
-- Component Object
-- Fixture
-- 複数画面の共通操作
+- 現状維持（そのまま残す）
+- Helper関数の作成
+- Page Object Model（POM）の導入
+- Component Objectの切り出し
+- Fixtureの活用
+- 複数画面にまたがる共通操作の切り出し
 
-必ず選択理由を書きます。
+選定した理由も合わせて記録します。
 
-## ハンズオン3: リファクタリング
+## ハンズオン3: リファクタリングの実践
 
-実在する保守問題に対して、Helper、POM、Component Object、Fixture、共通操作、または現状維持のいずれかを選び、最小の改善または選択理由を記録します。
+特定した実際の保守上の課題に対し、Helper、POM、Component Object、Fixture、共通操作、あるいは現状維持のいずれかを選択し、最小限のコード改善を行うか、その選択理由を記録します。
 
-POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
+POMを導入すること自体が完了条件ではありません。Helperのほうが過剰な抽象化を防げて適切であると判断した場合は、その論理的な理由を説明できれば合格基準を満たします。
 
-## 決定的なC10演習: 同じLocatorの重複を小さく改善する
+## 決定的なC10演習: 重複したロケーター定義の最小改善
 
-P1-5で作成したTestを読み、実在する保守上の問題を1件見つけた場合は、まずその問題を使います。適切に作れていて現状維持が正しい場合だけ、次の教材演習へ進みます。C10を完了するためだけに、自分の良いコードへ不要なPOMやHelperを追加しません。
+P1-5で自身が作成したテストコードを確認し、実際に存在する保守上の課題が1件でも見つかった場合は、まずそのコードの改善を優先します。自身のテストコードが十分に整理されており、現状維持が最も適切であると判断される場合に限り、以下の教材演習（C10演習）へ進みます。C10の完了実績を作るためだけに、すでに適切に書かれているコードへ不必要なPOMやHelperを無理に追加してはいけません。
 
 ### Input
 
-教材が配布する [`c10-locator-maintenance.spec.ts`](../../../../training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)、正式な製品Risk／Test Caseを参照できるP1-3のWorkbook、`04_execution-improvement.csv`です。配布Fileは問題を含む練習素材であり、完成答案ではありません。Product Code、Formal Regression、`e2e/`は変更しません。Locator重複はTest Codeの保守問題であり、新しい製品Riskを追加する理由にはしません。
+教材として配布されている [`c10-locator-maintenance.spec.ts`](../../../../training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts)、正式なプロダクトリスクとテストケースが記載されているP1-3のWorkbook、および `04_execution-improvement.csv` を入力とします。配布ファイルは問題点を含んだ演習用の素材であり、完成版の解答コードではありません。プロダクトコード本体、Formal Regressionテスト、`e2e/` ディレクトリのコードは変更しません。ロケーターの重複はテストコード内部の保守上の問題であり、プロダクト側の新たなリスクとして計上するものではありません。
 
 ### Activity
 
-1. まだ使っていなければ、教材Fileを自分のExerciseへコピーします。正式なReceipt実行では、Repository相対Pathを保ったまま`<handoff-root>/code/`へ置きます。既存のP1-5コードを別Directoryで編集していた場合も、実行前にこのcode配下へ集約します。
+1. まだ演習ファイルを配置していない場合は、教材ファイルを自身の演習用ディレクトリへコピーします。正式なReceipt実行を行うため、リポジトリの相対パス構造を維持した状態で `<handoff-root>/code/` 配下に配置します。P1-5のコードを別の場所で編集していた場合も、実行前にこの `code/` ディレクトリ配下へ集約してください。
 
    ```bash
    mkdir -p <handoff-root>/code/training/playwright/exercises <handoff-root>/code/training/playwright/support
    cp training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-900.spec.ts
    ```
 
-   PowerShellの場合は次を使います。
+   PowerShell環境の場合は以下のコマンドを使用します。
 
    ```powershell
    New-Item -ItemType Directory -Force <handoff-root>/code/training/playwright/exercises, <handoff-root>/code/training/playwright/support | Out-Null
    Copy-Item training/playwright/maintenance-exercises/c10-locator-maintenance.spec.ts <handoff-root>/code/training/playwright/exercises/c10-cart-900.spec.ts
    ```
 
-   決定的な教材演習として使う場合、コピー先のTest title／metadataは提供された`TC-CART-900`を使います。この提供演習は製品の`TARGET`／`RISK`や既存のLearner Caseへ結び付けず、`01_target-risk.csv`／`02_test-cases.csv`へ製品Riskを追加しません。`04_execution-improvement.csv`では`TC-CART-900`の前後Contextを記録し、実在のLearner Caseを保守する経路とは分けます。
+   決定的な教材演習として実施する場合、コピー先のテストタイトルおよびメタデータには提供時の `TC-CART-900` をそのまま使用します。この提供演習は製品の `TARGET`／`RISK` や受講者独自の既存ケースとは紐づけず、`01_target-risk.csv` や `02_test-cases.csv` に製品リスクを追加することもありません。`04_execution-improvement.csv` において `TC-CART-900` の改善前後コンテキストを記録し、受講者自身のケースを改善するフローとは区別して扱います。
 
    ```text
    TC-CART-900,c10-before,Not run,,,,
    TC-CART-900,c10-improved,Not run,,,,
    ```
 
-   実在するLearner Caseの保守を選ぶ場合だけ、そのCaseのTest title、Workbookの既存Risk／Case、実装Path、Evidenceを同じIDへ結びます。提供素材の`TC-CART-900`経路を、別のLearner Caseの代用にはしません。
+   受講者自身の実装ケースの改善を選択する場合に限り、そのケースのテストタイトル、Workbook上の既存リスク／ケース、実装ファイルパス、エビデンスを同一のケースIDに紐づけます。提供素材である `TC-CART-900` の手順を、別の自作ケースの代替として混同させてはいけません。
 
-2. 変更前に、Repository rootで次の正式入口を1回実行します。`<handoff-root>`は自分の作業成果物を集約するDirectoryへ置き換えます。`--suite`とTest Caseは変えず、`--project`、`--root`、`--run-context`だけを自分の環境に合わせます。
+2. コードの修正を行う前に、リポジトリルートで以下の正式なエントリーポイントコマンドを1度実行します。`<handoff-root>` は自身の作業成果物を集約するディレクトリパスに置き換えてください。`--suite` やテストケースの指定は変更せず、`--project`、`--root`、`--run-context` のみを自身の環境に合わせて指定します。
 
    ```bash
    pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-before
    ```
 
-   `c10-before`のReceiptとEvidenceで、対象CaseがPassしたこと、実装Pathがコピー先であること、改善前のコードとLearner-owned codeのDigest mapがRunnerによって記録されたことを確認します。
+   実行後、`c10-before` のReceiptおよびエビデンスを確認し、対象のケースがPassしていること、実装ファイルパスがコピー先と一致していること、改善前のコードおよび受講者管理コード（Learner-owned code）のDigestマップがRunnerによって正しく記録されていることを確認します。
 
-3. コピーしたTestを読み、同じ`getByRole("heading", { name: "すべての商品" })`が2つのAssertionへ繰り返し書かれていることを確認します。ここでの問題は、将来Locatorを変更するときに同じ修正を複数箇所へ行う必要があることです。Test目的やAssertionの強さが問題なのではありません。
+3. コピーしたテストコードを読み、同一の `getByRole("heading", { name: "すべての商品" })` というロケーター定義が2箇所のアサーションに重複して記述されていることを確認します。ここでの課題は、将来UIのロケーターが変更された際に、複数箇所を同時に修正しなければならず保守漏れのリスクがある点です。テストの検証目的やアサーションの厳格さ自体に不備があるわけではありません。
 
-4. `<handoff-root>/code/training/playwright/exercises/`内のコピーだけを最小限修正します。例えばLocatorを`const productsHeading = ...`へ1回だけ切り出し、2つのAssertionがその変数を使うようにします。POMを作る必要はなく、Assertionを削除・弱体化したり、Product Codeを変更したりしません。
+4. `<handoff-root>/code/training/playwright/exercises/` 配下のコピーしたファイルのみを対象に、最小限の修正を加えます。たとえば、重複しているロケーター定義を `const productsHeading = ...` として1回だけ変数へ切り出し、2つのアサーションからその変数を参照するように修正します。大がかりなPOMクラスを構築する必要はなく、既存のアサーションを削除・緩和したり、プロダクトコード本体を変更したりしてはいけません。
 
-5. 同じTest Case、同じコードPathで、別のContextを指定して再実行します。
+5. 同一のテストケースID、同一のコードパスに対して、実行コンテキストを切り替えて再実行します。
 
    ```bash
    pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context c10-improved
    ```
 
-   改善後のReceiptがPassし、`c10-before`とは同じCase ID・同じコードPathで、別のEvidenceを持ち、対象PathのDigestがRunnerによって変化として記録され、改善後の時刻が改善前より後で、Test Caseの目的が維持されていることを確認します。`c10-before`はRetry Failureを含まないclean Passでなければなりません。initialのEvidenceを上書きしたり、同じRunを修正後の結果として再利用したり、別Case・別PathのReceiptで置き換えたりしません。
+   改善後のReceiptがPassし、`c10-before` と同一のケースID・同一のコードパスでありながら異なるエビデンスを保持していること、対象ファイルのDigest変化がRunnerによって記録されていること、改善後のタイムスタンプが改善前より後であること、そしてテストケース本来の目的が維持されていることを確認します。なお、`c10-before` はリトライによる失敗を含まないクリーンなPassである必要があります。改善前のエビデンスを上書きしたり、同一の実行結果を修正後の結果として再利用したり、別ケース・別パスのReceiptで代用したりしてはいけません。
 
 ### Output
 
-`04_execution-improvement.csv`へ、少なくとも同じCaseの`c10-before`と`c10-improved`を記録します。Evidenceは実際に生成されたReceipt、Report、Screenshot、Traceなど後から追えるものを指定します。`c10-improved`には、問題、原因または保守上の懸念、選んだAction、改善内容を自分の言葉で記録します。さらに既存の`improvement`欄へ、実際に変更したLearner-owned codeのPathを記録します。前後DigestはRunnerがReceiptの`code_digests`へ記録し、受講者は計算・転記しません。これにより、spec自身ではなくHelper／POM等だけを改善した場合も対象を機械確認できます。
+`04_execution-improvement.csv` に、同一ケースの改善前（`c10-before`）と改善後（`c10-improved`）の実行記録を記載します。エビデンス欄には、実際に生成されたReceipt、レポート、スクリーンショット、Traceなど、後から追跡可能なパスを指定します。`c10-improved` の行には、問題点、原因または保守上の懸念、選定したAction、改善内容を受講者自身の言葉で記録します。さらに既存の `improvement` 欄へ、実際に修正を加えた受講者管理コードのパスを記載します。前後のコードDigestはRunnerがReceipt内の `code_digests` に自動記録するため、受講者自身が手動で計算・転記する必要はありません。これにより、specファイル自体ではなくHelperやPOM等のみを修正した場合でも、対象の変更を機械的に検証できます。
 
 ```text
 Improvement Target: training/playwright/support/cart-helper.ts
@@ -406,97 +406,97 @@ Action: Helperへ責務を分離する
 Improvement: Helperを追加し、再実行がPassした
 ```
 
-`Improvement Target`は`training/playwright/`配下のLearner-owned codeだけを指定します。提供済みの`support/reset-scenario.ts`や`maintenance-exercises/`は対象にせず、前後Digestの比較はReceiptに任せます。
+`Improvement Target` には `training/playwright/` 配下にある受講者管理コード（Learner-owned code）のみを指定します。教材として初期提供されている `support/reset-scenario.ts` や `maintenance-exercises/` は対象外とし、前後Digestの比較検証はReceiptの機能に委ねます。
 
 ```text
 TC-CART-900,c10-before,Pass,<改善前の実Evidence>,,,,
 TC-CART-900,c10-improved,Pass,<改善後の別Evidence>,Maintainability,<同じLocatorの変更箇所が増える>,<Locatorを変数へ切り出す>,Improvement Target: training/playwright/exercises/c10-cart-900.spec.ts; Problem: 同じLocator変更を複数箇所へ反映する必要がある; Why: 保守漏れが起きやすい; Action: Locatorを変数へ切り出す; Improvement: 再実行がPassした
 ```
 
-上の値は記入形式の例です。存在しないPath、Receipt、原因を作らず、実行結果に合わせて置き換えます。実在する保守問題を使った場合は、対象Caseと改善前後の実Diffが分かるように同じ項目を記録します。
+上記の値は記入フォーマットの一例です。架空のパス、Receipt、原因を捏造せず、実際の実行結果に合わせて記述してください。自身のテストコードの保守課題を扱った場合も、対象ケースと改善前後の実際の差分（Diff）が確認できるよう同様の項目を記録します。
 
-## ハンズオン4: Seed Scenario整理
+## ハンズオン4: Seed Scenarioの整理
 
-自分のTest Data Setupを既存Seed Scenarioと比較し、重複したUI SetupをSeed Scenario Resetへ置き換えられないか検討します。
+自身が作成したテストデータのセットアップ処理を既存のSeed Scenarioと比較し、重複したUIセットアップ操作をSeed ScenarioのReset処理に置き換えられないかを検討します。
 
-`src/seeds/metadata.ts` だけでなく、実際にReset後の状態を生成する処理も確認し、Metadataと実データ生成の責務を区別します。
+`src/seeds/metadata.ts` の定義内容だけでなく、実際にReset後のデータ状態を構築しているバックエンド処理も確認し、「メタデータの宣言」と「実データの生成処理」の責務分担を正しく区別して理解します。
 
-## ハンズオン5: 仮想仕様変更の影響を追跡する
+## ハンズオン5: 仮想的な仕様変更に対する影響分析
 
-「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として次を更新・整理します。
+「カートの購入上限数が5個から3個に変更される」と仮定し、**実際の実装コードを変更する前の影響度分析（Impact Analysis）**として以下の項目を整理・更新します。
 
-1. Risk
-2. 同値分割 / 境界値
-3. 影響するTest Case
-4. 自動化対象
-5. 変更が必要になるPlaywright / Maestro / 下位テスト
-6. Regression分類
-7. 不要になるCase / 新たに必要になるCase
+1. リスク評価の見直し
+2. 同値分割・境界値の再設定
+3. 影響を受けるテストケースの洗い出し
+4. 自動化対象の再評価
+5. 変更が必要となるPlaywright / Maestro / 下位テストコードの特定
+6. リグレッションテスト分類の見直し
+7. 廃止すべきケースおよび新規に必要なケースの整理
 
-Product実装は現在の購入上限5のままとし、変更後仕様向けのTest Codeを実際にPassさせることは求めません。
+※プロダクトコードは現在の購入上限5個のままとし、仕様変更後の期待値を前提としたテストコードを実際にPassさせることは求められません。
 
-提出するのは、例えば次のような変更計画です。
+成果物として、たとえば以下のような変更計画を作成します。
 
-| 対象 | 現在 | 仮想変更後 | 必要な対応 |
+| 対象 | 現在の仕様 | 仮想変更後の仕様 | 必要な対応内容 |
 | --- | --- | --- | --- |
-| 境界値 | 4 / 5 / 6 | 2 / 3 / 4 | Test Case更新 |
-| Playwright | 上限5を確認 | 上限3を確認予定 | Product変更後にTest更新 |
-| Maestro | 上限5のFlow | 上限3のFlow候補 | Native仕様反映後に更新 |
-| Unit Test | 現行Rule | 新Rule | Business Rule変更と同時に更新 |
+| 境界値 | 4 / 5 / 6 | 2 / 3 / 4 | テストケースの検証境界値を更新 |
+| Playwright | 上限5個を検証 | 上限3個を検証予定 | プロダクトコード変更後にテストコードを同期更新 |
+| Maestro | 上限5個のFlow | 上限3個のFlow候補 | Nativeアプリ側の仕様反映後にFlowを更新 |
+| Unit Test | 現行ルールを検証 | 新ルールを検証 | ビジネスルールのコード変更と同時に同期更新 |
 
-変更前後で、どの成果物へどの変更が必要になるかを説明します。
+仕様変更の前後で、どの設計資産・コード資産に対してどのような更新が必要になるかを筋道立てて説明します。
 
-専用の仕様変更済み演習Branchが教材として用意された場合のみ、発展として実際のProduct / Test変更と再実行まで行います。
+専用の「仕様変更済み演習ブランチ」が教材として用意されている場合に限り、発展課題としてプロダクトコードとテストコードの同期変更および再実行までを実施します。
 
-## ハンズオン6: Regression棚卸し（Practice Volume / 任意）
+## ハンズオン6: リグレッションテストの棚卸し（任意・演習ボリューム確保）
 
-追加演習として、Workbookの `03_automation-mapping.csv` と `04_execution-improvement.csv` を更新します。
+追加の演習として、Workbook内の `03_automation-mapping.csv` および `04_execution-improvement.csv` を更新します。
 
-最低限次を分類します。
+少なくとも以下の観点で既存テストを分類・棚卸しします。
 
-- 継続必須
-- 重複
-- 改善必要
-- 削除候補
-- Flaky
+- 継続必須（クリティカルな検証）
+- 重複（他テストと検証範囲が重複している）
+- 要改善（保守性や実行速度に課題がある）
+- 削除候補（陳腐化している、あるいは下位テストで担保可能）
+- Flaky（不安定で原因究明が必要）
 
 ## 確認問題
 
-1. POMを最初から必須にしない理由は何か。
-2. HelperとPOMはどう使い分けるか。
-3. Fixtureへ業務操作を大量に隠すと何が問題になるか。
-4. 複数画面の共通操作とPage Objectの責務をどう分けられるか。
-5. Seed ScenarioとFixtureは同じものか。
-6. `src/seeds/metadata.ts` だけをSeed Scenarioの全状態の定義と見なしてはいけない理由は何か。
-7. 仕様変更時にTest Codeだけを修正すると何がずれる可能性があるか。
-8. Product仕様がまだ変わっていない段階で、将来仕様向けTestを無理にPassさせるべきでないのはなぜか。
-9. テストを削除する判断が必要になるのはなぜか。
+1. テスト自動化の初期段階でPOMを最初から必須ルールにしない理由は何ですか。
+2. Helper関数とPage Objectは、どのような基準で使い分けますか。
+3. Fixtureの内部に複雑な業務操作を大量に隠蔽すると、どのような問題が生じますか。
+4. 「複数画面にまたがる共通操作」と「Page Object」の責務はどのように分離できますか。
+5. Seed ScenarioとFixtureは、それぞれ何を担当する仕組みですか。両者の違いを説明してください。
+6. `src/seeds/metadata.ts` のみを見て、Seed Scenarioの全データ状態が定義されていると判断してはいけない理由は何ですか。
+7. 仕様変更が発生した際、テストコードのみを先行して修正するとどのようなズレが生じる可能性がありますか。
+8. プロダクト側の仕様がまだ変更されていない段階で、将来の仕様に向けたテストを無理にパスさせてはならない理由は何ですか。
+9. テスト資産を増やすだけでなく、不要なテストを削除する判断が必要になる理由は何ですか。
 
-## 自己確認
+## 自己確認チェックリスト
 
-次を自分の変更Diff、Test Case、または短い説明で確認できれば、このモジュールの判断を説明できます。
+以下の項目について、自身の変更差分、テストケース、または簡潔な説明を通じて根拠を示せるか確認してください。
 
-- 実在するPlaywright保守問題を1件、重複・Flaky・責務混在・実行時間などの観察事実から説明できる。
-- 実在する問題がない場合は、決定的なC10演習の同じLocator重複を問題として説明できる。
-- その問題に対してHelper、POM、Component Object、Fixture、共通操作、現状維持のいずれを選び、選択理由と副作用を説明できる。
-- 最小改善のDiffがTest Caseの目的、Locator / Assertion、Test Data依存、既存Regressionとの関係を壊していないことを確認できる。
-- `e2e/web/fixtures.ts`では、Fixtureの提供物、Scenario Reset、Console / Page Error収集、Test終了時の確認だけをTestの呼び出しと対応付けて説明できる。未学習のTypeScript構文の説明は不要である。
-- C10では改善前と`c10-improved`を別Runとして残し、同じCaseのPass、別Evidence、実コードの変更Digest、目的維持を確認できる。
-- 仮想仕様変更では、Productを変更せず、Risk → Test Case → 自動化対象 → Regression分類の影響計画だけを作成している。
-- Native / Maestro / CIの比較は発展課題または参考資料であり、Playwrightのみで進む共通課程の修了に混ぜていない。
+- 自作のPlaywrightテストにおいて、重複、Flaky、責務の混在、実行時間などの客観的な観察事実に基づき、保守上の課題を1件以上説明できる。
+- 自作コードに課題がない場合、決定的なC10演習における「同一ロケーターの重複」を保守上の課題として説明できる。
+- 特定した問題に対して、Helper、POM、Component Object、Fixture、共通操作、現状維持のいずれかを選択し、その理由と想定されるトレードオフ（副作用）を論理的に説明できる。
+- 最小限の改善を加えた差分が、テストケース本来の目的、ロケーター／アサーションの強度、テストデータへの依存関係、既存リグレッションテストとの整合性を損なっていないことを確認できる。
+- `e2e/web/fixtures.ts` において、Fixtureが提供するオブジェクト、シナリオのリセット、コンソール／ページエラーの収集、テスト終了時の検証処理の流れを、テスト側の呼び出しコードと紐づけて説明できる（未学習の高度なTypeScript構文の解説は不要）。
+- C10演習において、改善前と `c10-improved` を個別のRunとして実行し、同一ケースのPass、独立したエビデンス、実コードの変更Digest、テスト目的の維持が確認できている。
+- 仮想的な仕様変更において、プロダクトコードを書き換えることなく、「リスク → テストケース → 自動化対象 → リグレッション分類」への影響計画を適切に作成できている。
+- Native / Maestro / CIに関する比較検討は発展課題または参考情報として位置づけ、Playwrightのみで進める共通課程の修了要件と混同していない。
 
-### Recovery
+### トラブルシューティング（Recovery）
 
-保守問題の原因が分からない場合は、まず対象Testの目的、Failureの再現条件、Test Data / Seed、Locator / Assertion、既存Regressionとの重複を1つずつ確認します。実行環境が原因なら環境上の問題として記録し、設計上の未理解なら問題の最小再現とTest Caseへ戻ります。仮想仕様変更で迷った場合は、ProductやTest Codeを変更せず、現行Specを基準に影響先と未実装境界を整理します。
+保守上の問題点や原因を特定できない場合は、まず対象テストの検証目的、エラー発生時の再現手順、テストデータ／Seedの状態、ロケーターとアサーションの妥当性、既存リグレッションテストとの重複有無を1つずつ切り分けて確認します。実行環境そのものに起因する障害であれば環境問題として切り離して記録し、設計レベルの疑問が残る場合は問題の最小再現コードと元のテストケース定義に立ち返って確認します。仮想仕様変更の分析で方針に迷った場合は、プロダクトコードやテストコードを無理に編集せず、現行のSpecドキュメントを基準として影響範囲と未実装の境界線を整理してください。
 
 ## 完了条件
 
-- 実在するPlaywright保守問題を1件以上診断するか、実在する問題がない場合は決定的なC10演習を使い、原因・影響を説明したうえで、最小の改善を1件実装している。改善前と`c10-improved`の別Run、別Evidence、実コード変更、Test目的を維持した確認が揃っていることを求める。追加の棚卸しは練習量の目安として推奨するが、件数だけでは修了としない。
-- 各問題について解決方法を選び、理由を説明している。
-- Test Case IDと自動化実装の対応を更新している。
-- 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。
-- 仮想仕様変更ではProduct未変更のまま将来仕様向けTestをPassさせることを完了条件にしていない。
+- 自作テストの保守上の課題を1件以上診断するか、自作コードに課題がない場合は決定的なC10演習を利用し、原因と影響を説明したうえで最小限の改善を1件実装していること。改善前の実行と `c10-improved` の実行が別コンテキストで記録され、それぞれのエビデンス、実コードの変更、テスト目的の維持が確認できていることを必須とします（追加のテスト棚卸しは演習量確保として推奨しますが、棚卸しの件数のみで完了とは見なしません）。
+- 各課題に対して適切な解決手段を選択し、その選定理由を論理的に説明できていること。
+- テストケースIDと自動化実装コードの対応関係を正しく更新していること。
+- 仮想的な仕様変更について、リスク、テストケース、自動化実装、リグレッション分類への影響を追跡し、具体的な変更計画を作成できていること。
+- 仮想仕様変更の演習において、プロダクトが未変更のまま将来仕様向けのテストを無理にパスさせることを完了条件としていないこと。
 
-## 次の行動
+## 次のステップ
 
-Part 1の共通課程を続ける場合は [P1-9: 総合演習](09_part1-capstone.md) へ進みます。Native / CIの追加比較は必要な受講者だけが発展課題・参考資料として行い、共通経路の完了やP1-9への移行を止めません。
+Part 1の共通課程を継続する場合は、[P1-9: 総合演習](09_part1-capstone.md) へ進みます。NativeやCIに関する追加の比較検証は、必要とする受講者のみが発展課題・参考資料として取り組み、共通課程の修了やP1-9への進行を止める必要はありません。

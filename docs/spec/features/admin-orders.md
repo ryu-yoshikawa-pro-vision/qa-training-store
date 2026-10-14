@@ -2,17 +2,17 @@
 
 ## Purpose / Scope
 
-Operator/AdminがOrderを準備、発送、配送完了へ進める管理契約を定義します。
+オペレーターおよび管理者が、注文（Order）を準備中、発送済み、配送完了へと進行させるための管理契約（仕様）を定義します。
 
 ## Business Rules
 
 ### BR-ADMINORD-001 — OrderとShipmentを同じ状態順で進める
 
-paid → preparing、preparing → shipped、shipped → deliveredだけを許可し、対応するShipmentも同じTransactionで更新します。
+「paid → preparing」「preparing → shipped」「shipped → delivered」の遷移のみを許可し、対応する配送情報（Shipment）も同一トランザクションで更新します。
 
 ## UI / Behavior Contract
 
-Order一覧/詳細はCustomer Snapshot、現在状態、次Action、Order Action Version、Shipment情報を表示します。古いVersionでの操作はConflictとして拒否します。
+注文一覧および注文詳細では、顧客スナップショット（Customer Snapshot）、現在の状態、次のアクション、注文アクションバージョン、配送情報を表示します。古いバージョンでの操作は競合（Conflict）として拒否します。
 
 ### SCREEN-ADMIN-ORDERS — Admin Orders
 
@@ -20,14 +20,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Order一覧、Payment、Shipment Status、Filterを表示する。
-- Order DetailのVersion付きActionへ進める。
+- 注文一覧、決済ステータス、配送ステータス、フィルターを表示する。
+- 注文詳細のバージョン付きアクションへ進める。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `orders-phase1-statuses` | 複数StatusのOrder一覧を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINORD-001`, `AC-ADMINORD-001` |
+| `default` | baseline | `operator, admin` | `orders-phase1-statuses` | 複数ステータスの注文一覧を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINORD-001`, `AC-ADMINORD-001` |
 
 #### Visual References
 
@@ -47,14 +47,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Customer Snapshot、Order / Shipment Status、次Action、Versionを表示する。
-- 許可された状態遷移だけを実行する。
+- 顧客スナップショット、注文・配送ステータス、次のアクション、バージョンを表示する。
+- 許可された状態遷移のみを実行する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `orders-phase1-statuses` | Order Detailと次Actionを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINORD-001`, `AC-ADMINORD-001` |
+| `default` | baseline | `operator, admin` | `orders-phase1-statuses` | 注文詳細と次のアクションを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINORD-001`, `AC-ADMINORD-001` |
 
 #### Visual References
 
@@ -76,7 +76,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 Related BR: `BR-ADMINORD-001`
 
-準備、発送、配送完了が順序とVersionを守り、OrderだけまたはShipmentだけが更新される状態を作りません。
+準備、発送、配送完了が正しい順序とバージョンに従って実行され、注文のみ、または配送情報のみが単独で更新される不整合な状態を発生させません。
 
 ## Executable Canonical Sources
 

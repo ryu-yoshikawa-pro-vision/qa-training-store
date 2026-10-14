@@ -1,13 +1,13 @@
 # Screen Catalog
 
-この文書は、Current Route SurfaceをScreen IDとPrimary specificationへ結び付けるSupporting indexです。Product Behavior、Important UI State、Expected UIは各Primary specificationが所有し、このCatalogへ複製しません。
+この文書は、現在のルーティング対象面（Current Route Surface）を各Screen IDおよび主仕様書（Primary specification）へ対応付ける補助インデックスです。プロダクトの振る舞い（Product Behavior）、重要なUI状態（Important UI State）、期待されるUI（Expected UI）などの詳細仕様は各主仕様書が管理しており、本カタログには重複して記載しません。
 
 ## Catalog contract
 
-- Screen IDは論理的な画面Identityであり、Current `app/**` route familyをplatform variantとdynamic parameterを正規化して表します。
-- `Primary specification`は各Screenに一つだけ存在し、Validatorがその文書のScreen Contract ownershipを導出します。
-- `Android = No`はNative Excludedを表し、iOS RuntimeはこのCatalogのVisual platformに含めません。
-- Test-onlyはOperational surfaceであり、Canonical Visual DoDのRequired Targetには含めません。
+- Screen IDは論理的な画面識別子（Identity）であり、プラットフォームごとの差異（platform variant）や動的パラメータ（dynamic parameter）を正規化して、現在の `app/**` ルートファミリーを表現します。
+- `Primary specification` は各画面（Screen）に対して1つのみ存在し、バリデータ（Validator）はその文書からScreen Contractの所有権を導出します。
+- `Android = No` はネイティブ対象外（Native Excluded）であることを示します。また、iOSランタイムは本カタログにおけるビジュアル検証プラットフォームには含めません。
+- Test-only（テスト専用）は運用・管理用の画面（Operational surface）であり、公式なビジュアルDoD（Canonical Visual DoD）の必須対象（Required Target）には含めません。
 
 ## Customer / Storefront Screens
 
@@ -51,7 +51,7 @@
 
 ## Admin Web Screens
 
-Admin routes are Web Product Screens. Current Native Admin entries are explicitly Excluded by the Native Customer scope.
+管理画面のルートはWeb向けのプロダクト画面です。ネイティブの一般顧客向けスコープ（Native Customer scope）により、現在のネイティブ向け管理画面のエントリは明示的に対象外（Excluded）とされています。
 
 | Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
 |---|---|---|---|---|---|---|---|
@@ -84,4 +84,4 @@ Admin routes are Web Product Screens. Current Native Admin entries are explicitl
 | Test-only | 1 |
 | Catalog Universe | 38 |
 
-Dynamic parameter names (`[productId]`, `[categoryId]`, `[orderId]`, `[orderItemId]`, `[userId]`) are route projections only; they do not create additional Screen IDs.
+動的パラメータ名（`[productId]`、`[categoryId]`、`[orderId]`、`[orderItemId]`、`[userId]`）はルートの投影表現にすぎず、これらによって個別のScreen IDが追加で作成されることはありません。

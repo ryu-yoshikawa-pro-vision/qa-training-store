@@ -1,111 +1,111 @@
 # Part 1-4: Playwright基礎
 
-## 演習コマンドを読むための最低限
+## 演習コマンドを読むための最低限の知識
 
-Playwrightを実行する前に、次のCLI / Node.jsの用語だけ確認します。一般的なCLI講座ではなく、Scenario Shopの演習を起動するための準備です。
+Playwrightを実行する前に、必要なCLIおよびNode.js関連の用語を確認します。一般的なCLIの解説ではなく、Scenario Shopの演習環境を起動するための前提知識です。
 
 - **ターミナル**: コマンドを入力して実行する画面です。
-- **現在のディレクトリ**: コマンドを実行しているFolderです。相対Pathはここを起点に解決されます。
-- **File / Directory**: `training/playwright/exercises`のように、Fileをまとめる場所をDirectoryと呼びます。
-- **Node.js**: TypeScriptやPlaywrightを実行するRuntimeです。
-- **Package Manager / pnpm**: DependencyをInstallし、`package.json`のScriptを実行するToolです。
-- **`package.json` / `scripts`**: RepositoryのDependencyと、名前付きコマンドを定義するFile / 項目です。
+- **現在のディレクトリ（カレントディレクトリ）**: コマンドを実行している作業フォルダです。相対パスはここを起点として解決されます。
+- **ファイル / ディレクトリ**: `training/playwright/exercises` のように、ファイルをまとめて管理する場所をディレクトリ（フォルダ）と呼びます。
+- **Node.js**: TypeScriptやPlaywrightを実行するためのランタイム環境です。
+- **パッケージマネージャー / pnpm**: 依存パッケージをインストールし、`package.json` に定義されたスクリプトを実行するツールです。
+- **`package.json` / `scripts`**: リポジトリの依存パッケージと、名前付きコマンドを定義するファイルおよびその設定項目です。
 
-演習では、RepositoryのRoot Directoryで次を実行します。
+演習では、リポジトリのルートディレクトリで次のコマンドを実行します。
 
 ```bash
 pnpm install
 pnpm run training:web:baseline
 ```
 
-`pnpm install`はDependencyを取得し、`pnpm run <script>`は`package.json`の`scripts`にある名前付きコマンドを実行します。成功したかどうかだけでなく、失敗時はError MessageのFile、行、Error Type、Expected / Receivedを確認します。`PLAYWRIGHT_BASE_URL`のようなEnvironment Variableは、Test対象の入口を指定する値です。
+`pnpm install` は依存パッケージを取得・解決し、`pnpm run <script>` は `package.json` の `scripts` に登録されているコマンドを実行します。単に成否を見るだけでなく、失敗時にはエラーメッセージに表示される対象ファイル、行番号、エラー種別、Expected（期待値）／Received（実際の値）を確認する習慣をつけましょう。`PLAYWRIGHT_BASE_URL` のような環境変数は、テスト対象アプリケーションのアクセス先（ベースURL）を指定する値です。
 
-この段階の開始Gateは、Desktopの`training:web:baseline`が動くことです。Mobile Webの`training:web:mobile`は、P1-5でViewportとMobile Projectを学んだ後に確認します。
+この段階の着手条件（開始ゲート）は、デスクトップ向けの `training:web:baseline` が正常に動作することです。モバイルWeb向けの `training:web:mobile` は、P1-5でビューポートとモバイル用プロジェクト設定を学んだあとに確認します。
 
 ## 学習目標
 
 - Playwrightを読み書きするために必要なJavaScript / TypeScriptの最小構文を理解できる。
 - Playwrightの役割と基本構造を理解できる。
-- `test`、`page`、Locator、Action、Assertionの関係を説明できる。
-- Scenario Shopを対象に、最小のWeb UIテストを自分で書ける。
-- `getByRole`、`getByLabel`、`getByText`、UI Test IDなどのLocatorを目的に応じて選べる。
-- 固定待機ではなくPlaywrightのAuto-waitを基本として使える。
-- テストが失敗した際に、Syntax Errorとテスト失敗を区別できる。
+- `test`、`page`、ロケーター（Locator）、操作（Action）、アサーション（Assertion）の関係を説明できる。
+- Scenario Shopを対象に、最小限のWeb UIテストを自力で記述できる。
+- `getByRole`、`getByLabel`、`getByText`、UIテストIDなどのロケーターを目的に応じて適切に選択できる。
+- 固定待機ではなく、Playwrightの自動待機（Auto-wait）を基本戦略として適用できる。
+- テストが失敗した際に、構文エラー（Syntax Error）とテストの検証失敗を正しく区別できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリのScenario Shop Webアプリを使用します。**
+**このモジュールでは、本リポジトリのScenario Shop Webアプリケーションを使用します。**
 
-主に次を参照します。
+主に次のリソースを参照します。
 
-- [`docs/spec/features/cart.md`](../../../spec/features/cart.md)のBR / AC
+- [`docs/spec/features/cart.md`](../../../spec/features/cart.md) のビジネスルール（BR）および受入基準（AC）
 - `playwright.training.config.ts`
 - `training/playwright/baseline/`
 - `training/playwright/exercises/`
-- Scenario Shopの商品一覧・商品詳細・Cart
+- Scenario Shopの商品一覧・商品詳細・カート画面
 
-Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習後に設計を比較するためのFormal Regression教材です。
+本番用の `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習後にテスト設計を比較するためのリグレッションテスト教材として使用します。
 
-## このLessonのInput / Output
+## このレッスンのインプット / アウトプット
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | このLesson本文の導入用`TC-PRODUCT-001`と、Repository rootで実行できるTraining環境。P1-3のLearner Case一覧は参照してもよいが、このLessonを開始・完了するための実装Inputではない。P1-3のCaseを正式に実装するInputはP1-5で受け取る |
-| Activity | JavaScript / TypeScriptの最小構文を読み、`test`、`page`、Locator、Action、Assertionの役割を小さな商品・Cart練習へ置き換える。Baselineを実行してTraining境界とErrorの読み方を確認する |
-| Observation | Actionの後に画面がどう変わるか、Locatorがどの意味を対象にしているか、Assertionが何を保証するか、Syntax／Type／Runtime／Assertion Failureのどこで止まったか |
-| Output | 本文の導入Caseを使った自分で説明できる最小Test、Locator選択理由のメモ、P1-5へ渡すPlaywright構文・実行・Failure分類の学習メモ。これはP1-3のLearner Case実装やCommon Completionのhandoffではない |
-| Self-check | `import`、`async`／`await`、`page`、Locator、Assertionの役割を自分のコードで説明し、固定待機を避ける理由とTraining／Formalの境界を含める |
-| Completion | 本文の`TC-PRODUCT-001`を使った導入Testを自分で書き、`test`、`page`、Locator、Action、Assertion、Reset、最小実行、Errorの読み方を説明できる。P1-3のLearner Caseを完成実装したことや、P1-5のCommon CompletionをこのLessonの完了条件へ含めない。Test本数は単独条件にしない |
-| Recovery | 構文・型の問題は該当Lesson 0へ戻り、実行中のFailureはRuntime、期待不一致はAssertionとして分類する。Browser／Base URL問題は環境として記録し、既存Formal Testへ直接追記して解決しない |
-| Handoff | P1-5へ導入Testから得た`test`／Locator／Action／Assertion／ResetのパターンとFailure分類を渡す。P1-3の複数Case、条件、前提、期待結果はP1-5の正式Inputとして別に読み直す |
+| インプット | 本レッスンで導入用として扱う `TC-PRODUCT-001` と、リポジトリルートで実行可能なトレーニング環境。P1-3の受講者用テストケース一覧は参照しても構いませんが、本レッスンを開始・完了するための直接の実装対象ではありません。P1-3のケースを正式に実装するためのインプットはP1-5で受け取ります。 |
+| 活動内容（Activity） | JavaScript / TypeScriptの最小構文を確認し、`test`、`page`、ロケーター、操作、アサーションの役割を商品やカートの小さな演習コードに適用します。ベースラインテストを実行し、トレーニング環境の境界とエラーログの読み方を確認します。 |
+| 観察項目（Observation） | 操作の実行後に画面がどう変化するか、ロケーターがどの要素の意味を対象にしているか、アサーションが何を保証しているか、構文エラー・型エラー・実行時エラー・アサーション失敗のどこで停止したかを観察します。 |
+| アウトプット | 本文の導入ケースを用いて自力で説明できる最小のテストコード、ロケーター選択理由のメモ、およびP1-5へ引き継ぐPlaywrightの構文・実行・エラー分類に関する学習メモ。これはP1-3の受講者テストケース実装や共通完了条件の成果物引き渡しではありません。 |
+| 自己確認（Self-check） | `import`、`async` / `await`、`page`、ロケーター、アサーションの役割を自分のコードをもとに説明し、固定待機を避けるべき理由とトレーニング用／本番用の境界について説明できることを確認します。 |
+| 完了基準（Completion） | 本文の `TC-PRODUCT-001` を用いた導入テストを自力で作成し、`test`、`page`、ロケーター、操作、アサーション、シナリオ初期化（Reset）、最小構成での実行、エラーログの読み方を説明できること。P1-3のテストケース実装の完了や、P1-5の共通完了条件を本レッスンの完了条件に含めません。作成したテストの件数のみを単独の基準にはしません。 |
+| リカバリー手順（Recovery） | 構文や型の問題が発生した場合はレッスン0に戻って確認し、実行中のエラーはランタイムエラー、期待値との不一致はアサーション失敗として切り分けます。ブラウザ未インストールやベースURLの不通は環境起因の問題として記録し、既存の本番用テストコードに直接手を加えて解決しようとしないでください。 |
+| 引き継ぎ（Handoff） | 導入テストの作成を通して得た `test` / ロケーター / 操作 / アサーション / 初期化のパターンとエラー分類の知見をP1-5へ引き継ぎます。P1-3で設計した複数ケース、前提条件、期待結果は、P1-5の正式なインプットとして改めて読み込みます。 |
 
-## このLessonだけで始められる導入Case
+## このレッスン単体で始められる導入ケース
 
-P1-3のWorkbookをまだ完成していなくても、次のCaseだけでこのLessonの構文練習を開始できます。
+P1-3のワークブックが未完成の状態であっても、以下のテストケースを用いることで本レッスンの構文演習を開始できます。
 
-| 項目 | 導入Caseの内容 |
+| 項目 | 導入ケースの内容 |
 | --- | --- |
-| Case ID | `TC-PRODUCT-001` |
+| ケースID | `TC-PRODUCT-001` |
 | 対象 | Scenario Shopの商品詳細画面 |
-| 前提 | `default` ScenarioをResetし、商品一覧を表示できる状態にする |
-| 操作 | 商品一覧から最初に表示される商品カードを開く |
-| 期待結果 | `product-basic-shirt`（ベーシックTシャツ）の商品詳細画面へ遷移し、正式Seedで定義された商品名「ベーシックTシャツ」が見出しとして表示される |
+| 前提条件 | `default` シナリオを初期化（Reset）し、商品一覧を表示できる状態にする |
+| 操作手順 | 商品一覧から、先頭に表示されている商品カードを開く |
+| 期待結果 | `product-basic-shirt`（ベーシックTシャツ）の商品詳細画面へ遷移し、正式な初期データ（Seed）で定義された商品名「ベーシックTシャツ」が見出しとして表示されること |
 
-これはPlaywrightの書き方を練習するためにP1-4本文が定義する導入Caseです。商品IDと商品名の出所は[Seedカタログ](../../../07_testability/seed_catalog.md)の`product-basic-shirt`です。P1-3のLearner Case、`03_automation-mapping.csv`の正式な`implementation_path`、Common CompletionのCaseへ流用しません。P1-5では、P1-3で自分が設計したCaseを別の正式実装として作成します。
+これはPlaywrightの記述方法を練習するために本レッスンで定義している導入用のテストケースです。商品IDと商品名は[初期データカタログ（Seedカタログ）](../../../07_testability/seed_catalog.md)の `product-basic-shirt` に準拠しています。このケースはP1-3の受講者用テストケースや、`03_automation-mapping.csv` の正式な `implementation_path`、共通完了条件のケースとしては流用しません。P1-5において、P1-3で各自が設計したケースを別の正式な実装として作成します。
 
 ## 演習コードの扱い
 
-Desktop learner exerciseの互換commandは `pnpm run training:web:exercise` です。実行事実を評価へ渡すときのReceipt付き入口はP1-6で扱う `training:web:exercise:with-receipt` です。
+デスクトップ向けの受講者演習用コマンドは `pnpm run training:web:exercise` です。実行結果の証跡を評価ステップへ引き渡すためのレシート付きコマンドは、P1-6で扱う `training:web:exercise:with-receipt` です。
 
-このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
+このカリキュラムでは、受講者が初めから既存の `phase1-required.spec.ts` や他の本番用リグレッションテストコードに追記することを前提としていません。
 
-受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、Scriptは現在のリポジトリで固定されています。
+受講者用のPlaywrightテストは、あらかじめ用意されたトレーニング用のディレクトリ領域に保存・実行します。対象パス、プロジェクト、スクリプトは現在のリポジトリ構成で固定されています。
 
 ```text
-既存Regression
+既存の本番用リグレッションテスト
 └ e2e/web/...
 
-Training用
+トレーニング用
 ├ training/playwright/baseline/
 ├ training/playwright/exercises/
 └ training/playwright/failure-exercises/
 ```
 
-`playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
+`playwright.config.ts` は本番用リグレッションテスト専用の設定です。トレーニング演習では `playwright.training.config.ts` の `training-chromium` および `training-mobile-chromium` のみを使用します。トレーニング用のテストコード（specファイル）を `e2e/web/` に追加してはいけません。
 
-### P1-5で最初のLearner specを作る場所
+### P1-5で最初の受講者テストコードを作成する場所
 
-P1-4では本文の導入Caseを練習用Fileへ書きます。P1-5で初めて、Starterの`training/playwright/exercises/training-exercise-starter.spec.ts`をResetとページ遷移の構造を読むための足場として使い、P1-3で作ったCaseを実装します。Starterを完成答案に書き換えず、`training/playwright/exercises/<自分のCaseを表す名前>.spec.ts`という新しいFileを作ります。Test titleまたは既存annotation／metadataへ自分のTest Case IDを残し、`03_automation-mapping.csv`の`implementation_path`へ同じRepository相対Pathを記録します。
+P1-4では、本文の導入ケースを練習用ファイルに記述します。P1-5に進んでから、スターターファイルである `training/playwright/exercises/training-exercise-starter.spec.ts` を初期化や画面遷移の構造を把握するための土台として活用し、P1-3で作成したケースを実装します。スターターファイル自体を完成コードに書き換えるのではなく、`training/playwright/exercises/<自分のテストケースを表す名前>.spec.ts` という新規ファイルを作成してください。テストタイトルまたは既存のアノテーション／メタデータに自身のテストケースIDを明記し、`03_automation-mapping.csv` の `implementation_path` に同じリポジトリ相対パスを記録します。
 
-実装の順番は、`resetScenario` → 対象画面を開く → 操作する → 期待結果をAssertionする、です。最初の実行は `pnpm run training:web:exercise -- --project=training-chromium` で行い、Browser未InstallやBase URL不通ならコードのFailureと混同せず、P1-4の開始環境を直します。実行結果を正式な学習記録へ渡す方法はP1-6のReceipt付きcommandで扱います。
+実装の手順は、「`resetScenario` による初期化 → 対象画面を開く → 操作する → 期待結果をアサーションで検証する」という流れです。初回のテスト実行は `pnpm run training:web:exercise -- --project=training-chromium` で行います。ブラウザの未インストールやベースURLの接続不可などのエラーが出た場合は、テストコードの不具合と混同せず、P1-4の環境構築手順に従って実行環境を修正してください。実行結果を正式な学習記録として引き渡す方法については、P1-6のレシート付きコマンドで解説します。
 
-受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`でDesktopの基準確認を行います。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。Mobile Webの基準確認と`training:web:mobile`はP1-5で扱います。
+受講者はこの作業ツリーの実行環境に合わせて `PLAYWRIGHT_BASE_URL` を設定し、`pnpm run training:web:baseline` でデスクトップ向けの基準動作を確認します。未指定時のフォールバック先は `127.0.0.1:8082` であり、8081や8083ポートは再利用しません。モバイルWebの基準確認と `training:web:mobile` についてはP1-5で扱います。
 
-## Lesson 0: Playwrightを書くためのJavaScript / TypeScript最小知識
+## レッスン 0: Playwrightを書くためのJavaScript / TypeScript最小限の知識
 
-このカリキュラムでは、JavaScript / TypeScript全体を先に学習することを求めません。
+このカリキュラムでは、事前にJavaScriptやTypeScriptの全機能を網羅して学習することは求めません。
 
-PlaywrightのTestを読み書きするために必要な範囲から学び、必要になった構文をその都度追加します。
+Playwrightのテストを読み書きするために必要な構文から順に学び、新しい記法が必要になった段階で都度追加していきます。
 
 ### 変数と文字列
 
@@ -113,9 +113,9 @@ PlaywrightのTestを読み書きするために必要な範囲から学び、必
 const productName = "対象商品の表示名";
 ```
 
-`const` は、後から別の値へ代入しない変数を宣言します。
+`const` は、後から別の値を再代入しない変数を宣言するキーワードです。
 
-### ObjectとProperty
+### オブジェクトとプロパティ
 
 ```ts
 const user = {
@@ -124,20 +124,20 @@ const user = {
 };
 ```
 
-PlaywrightのOptionやTest DataではObjectを頻繁に使います。
+Playwrightのオプション設定やテストデータを扱う際、オブジェクトを多用します。
 
 ### `async` / `await`
 
-Browser操作は完了まで時間がかかるため、Playwrightでは非同期処理を扱います。
+ブラウザの操作は完了までに時間がかかるため、Playwrightでは非同期処理を扱います。
 
 ```ts
 await page.goto("/products");
 await page.getByRole("button", { name: "対象操作" }).click();
 ```
 
-最初はPromiseの内部実装を理解する必要はありません。
+学習初期の段階では、Promiseの内部仕組みを完全に理解する必要はありません。
 
-**「Browser操作の完了を待ってから次へ進めるために `await` を付ける」**ところから理解します。
+**「ブラウザ操作の完了を待ってから次の処理へ進めるために、操作の前に `await` を付ける」** という点から理解を深めましょう。
 
 ### `import`
 
@@ -145,7 +145,7 @@ await page.getByRole("button", { name: "対象操作" }).click();
 import { test, expect } from "@playwright/test";
 ```
 
-別Moduleが提供している機能を現在のFileで利用します。
+別のモジュールが提供している機能を、現在のファイル内に取り込んで利用するための構文です。
 
 ### `{ page }` の意味
 
@@ -155,13 +155,13 @@ test("商品を確認する", async ({ page }) => {
 });
 ```
 
-`page` はPlaywright Testが用意するBrowser Pageです。
+`page` は、Playwright Testが自動的に用意するブラウザのページ操作用オブジェクトです。
 
-`{ page }` はObjectから `page` Propertyを取り出すDestructuringです。最初は「TestがBrowser操作用のPageを受け取っている」と理解できれば十分です。
+`{ page }` という記述は、渡されたオブジェクトから `page` プロパティを取り出す「分割代入（Destructuring）」と呼ばれる構文です。まずは「テスト関数がブラウザ操作用のページオブジェクトを受け取っている」と理解できれば十分です。
 
-### アロー関数とコールバック
+### アロー関数とコールバック関数
 
-`test`の第2引数へ渡す`async ({ page }) => { ... }`は、テストが実行されたときに呼び出されるコールバックです。関数名を別に付けず、処理をその場へ書けます。
+`test` の第2引数に渡す `async ({ page }) => { ... }` は、テストの実行時に呼び出されるコールバック関数です。個別の関数名を定義することなく、その場に直接処理を記述できます。
 
 ```ts
 test("商品を確認する", async ({ page }) => {
@@ -169,23 +169,23 @@ test("商品を確認する", async ({ page }) => {
 });
 ```
 
-まずは「`test`へ、テスト本体を後で実行する関数を渡している」と理解すれば十分です。配列、条件分岐、汎用関数、型注釈などは、それらを使うLessonで必要な範囲だけ扱います。
+はじめは「`test` 関数に対して、テスト本体の処理を後から実行するための関数を渡している」と把握しておけば問題ありません。配列、条件分岐、共通関数、型注釈などは、それらが必要となるレッスンで順次扱います。
 
-### Error Messageを読む
+### エラーメッセージの読み方
 
-コードが動かなかった場合は、まず次を区別します。
+コードが正常に動作しなかった場合は、まずエラーの種類を以下の3つに切り分けます。
 
-- Syntax / Type Error: コード自体を解釈・型確認できない。
-- Runtime Error: 実行中の処理が失敗した。
-- Playwright Assertion Failure: 実際の状態が期待結果と一致しなかった。
+- 構文エラー / 型エラー（Syntax / Type Error）: コード自体の文法解釈や型の検証に失敗している状態。
+- 実行時エラー（Runtime Error）: コードの実行途中で予期しない処理の失敗が発生した状態。
+- Playwrightのアサーション失敗（Assertion Failure）: 画面の実際の状態が、テストコードで期待した検証条件と一致しなかった状態。
 
-エラー全文を読まずに書き直すのではなく、File、Line、Error Type、Expected / Receivedを確認する習慣を付けます。
+エラーメッセージを読まずに勘でコードを書き直すのではなく、対象ファイル、行番号、エラー種別、Expected（期待値）／Received（実際の値）を確認する習慣を身につけましょう。
 
-## Lesson 1: Playwrightとは
+## レッスン 1: Playwrightとは
 
-PlaywrightはBrowserを操作し、Web UIを自動テストするためのFrameworkです。
+Playwrightはブラウザを自動操作し、Web UIの自動テストを実行するためのフレームワークです。
 
-基本構造は次です。
+基本的なテスト構造は以下のようになります。
 
 ```ts
 import { test, expect } from "@playwright/test";
@@ -198,199 +198,199 @@ test("商品詳細を表示できる", async ({ page }) => {
 });
 ```
 
-このSnippetの具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前に正式な仕様と対象Scenarioを確認し、Workbookへ対応付けます。
+※このコード例に記載されている具体的な商品ID、表示名、操作名は、期待される仕様を厳密に定義したものではありません。実装前には必ず正式な仕様書と対象シナリオを確認し、ワークブックと対応づけてください。
 
-このコードには次の要素があります。
+上記のコードには、以下の構成要素が含まれています。
 
-- Test Case
-- Browser Page
-- Navigation
-- Locator
-- Assertion
+- テストケース（Test Case）
+- ブラウザページ（Browser Page）
+- 画面遷移（Navigation）
+- ロケーター（Locator）
+- アサーション（Assertion）
 
-## Lesson 2: ActionとAssertion
+## レッスン 2: 操作（Action）と検証（Assertion）
 
-Actionは操作です。
+操作（Action）は、ユーザーの振る舞いを模倣して画面を動かす処理です。
 
-例:
+代表的な操作例:
 
-- `goto`
-- `click`
-- `fill`
-- `check`
-- `selectOption`
+- `goto`（URLへのアクセス）
+- `click`（要素のクリック）
+- `fill`（テキスト入力）
+- `check`（チェックボックスの選択）
+- `selectOption`（プルダウンの選択）
 
-Assertionは期待結果の確認です。
+検証（Assertion）は、操作後の画面状態が期待通りであるかを確認する処理です。
 
-例:
+代表的な検証例:
 
-- `toBeVisible`
-- `toHaveText`
-- `toContainText`
-- `toHaveURL`
-- `toBeDisabled`
+- `toBeVisible`（要素が表示されていること）
+- `toHaveText`（要素のテキストが完全一致すること）
+- `toContainText`（要素のテキストに対象文字列が含まれること）
+- `toHaveURL`（現在のURLが期待通りであること）
+- `toBeDisabled`（要素が無効化されていること）
 
-テストコードでは、操作したことではなく「何が正しければPassか」を明確にします。
+テストコードを作成する際は、単に操作を並べるだけでなく、「何が正しければテストが成功（Pass）と言えるのか」を明確にアサーションとして記述します。
 
-## Lesson 3: Locator
+## レッスン 3: ロケーター（Locator）
 
-Locatorは壊れにくさと意味の分かりやすさを重視します。
+ロケーターの指定では、変更に対する壊れにくさ（堅牢性）と、テストコードとしての意味の分かりやすさを重視します。
 
-候補は固定順位で暗記せず、対象の意味と安定性から選びます。ユーザーが認識するRole、Label、Text、明示されたUI Test IDを確認し、CSS Selectorなどはより意味のある契約がない場合に使います。
+ロケーターの候補を単純な優先順位として暗記するのではなく、対象要素の意味と構造の安定性に基づいて選択します。ユーザーが画面上で認識する役割（Role）、ラベル（Label）、テキスト（Text）、および明示的に付与されたUIテストIDを確認し、CSSセレクターなどはより意味のある識別手段が存在しない場合の選択肢とします。
 
-例:
+記述例:
 
 ```ts
 page.getByRole("button", { name: "対象操作" });
 page.getByLabel("数量");
 ```
 
-CSS ClassやDOM構造へ強く依存するLocatorは、見た目のRefactorで壊れやすくなる可能性があります。
+CSSクラス名やDOM構造に強く依存したロケーターは、デザイン変更やHTMLリファクタリングの影響を受けて壊れやすくなる傾向があります。
 
-ただし、Roleが常に唯一の正解というわけではありません。Nativeとの共通識別や動的要素ではstable UI Test IDが有効な場合もあります。
+ただし、Roleが常に唯一の正解というわけではありません。ネイティブアプリとの共通識別が必要な場合や、動的に変化する要素を扱う場合には、安定したUIテストIDが有効な手段となります。
 
-## Lesson 4: Auto-wait
+## レッスン 4: 自動待機（Auto-wait）
 
-PlaywrightはLocator ActionやAssertionで必要な状態を待機します。
+Playwrightは、ロケーターを用いた操作やアサーションの実行時に、必要な画面状態が整うまで自動的に待機します。
 
-そのため、次のような固定待機を基本戦略にしません。
+そのため、以下のようなミリ秒単位の固定待機を基本戦略として使用してはいけません。
 
 ```ts
 await page.waitForTimeout(3000);
 ```
 
-代わりに、意味のある状態を待ちます。
+固定待機の代わりに、意味のある画面状態の変化を待機します。
 
 ```ts
 await expect(page.getByRole("status")).toContainText("カートへ追加しました");
 ```
 
-学習者は「待つ秒数」ではなく「何の状態になれば次へ進めるか」を考えます。
+テストを書く際は、「何秒待つか」ではなく「どのような状態になれば次の操作へ進めるか」を考えます。
 
-## Lesson 5: 最初のテストを書く
+## レッスン 5: 最初のテストを書く
 
-Training用specへ次を自分で実装します。
+トレーニング用のspecファイルに、以下の操作フローを自力で実装してみましょう。
 
-1. 商品詳細を開く。
-2. 商品名を確認する。
-3. Variationを選択する。
-4. Cartへ追加する。
-5. 成功メッセージを確認する。
+1. 商品詳細画面を開く。
+2. 商品名が正しく表示されていることを確認する。
+3. バリエーションを選択する。
+4. カートに追加する。
+5. 完了メッセージが表示されることを確認する。
 
-最初はHelperやPOMを作りません。1つのspec内へ素直に書きます。
+この段階ではヘルパー関数やPage Object Model（POM）を導入する必要はありません。1つのspecファイル内に素直な手順で記述します。
 
-## Lesson 6: 既存コードと比較する
+## レッスン 6: 既存コードと比較する
 
-自分のテスト完成後、`e2e/web/phase1-required.spec.ts` のGuest商品操作を確認します。
+自力でテストを作成したあと、`e2e/web/phase1-required.spec.ts` に実装されているゲストユーザーの商品操作テストを確認します。
 
-比較観点:
+比較する観点:
 
-- Locatorは何を使っているか。
-- Assertionはどこにあるか。
-- 画像読み込みも確認しているのはなぜか。
-- Seed Scenario Resetがあるのはなぜか。
-- 自分のテストと比べて何が不足しているか。
+- どのようなロケーターを採用しているか。
+- どのアサーションで状態を保証しているか。
+- 画像の読み込みまで確認している理由は何か。
+- シナリオの初期化（Seed Scenario Reset）を呼んでいる理由は何か。
+- 自分が書いたテストと比較して、考慮が不足している部分はどこか。
 
-### このLessonで読む範囲
+### このレッスンで確認する範囲
 
-比較対象は、まず`phase1-required.spec.ts`の「01 Guestの商品検索・Filter・商品詳細・Cart追加」テスト1件（必要な場合だけ「02 Guest Cartの数量変更・削除・上限拒否」テスト）に限定します。既存File全体を読んで理解する必要はありません。次の役割を追えれば、このLessonの目的を満たします。
+比較対象とするコードは、まず `phase1-required.spec.ts` 内の「01 ゲストの商品検索・絞り込み・商品詳細・カート追加」テスト1件（必要に応じて「02 ゲストカートの数量変更・削除・上限エラー」テスト）に絞ります。既存ファイル全体の構造をすべて読み解く必要はありません。以下の要素がどのような役割を果たしているかを追えれば、本レッスンの目的は達成されます。
 
-- `test(...)`: どのTestを定義しているか
-- `page`: Browser Pageをどこで操作しているか
-- `goto`: どの画面へ移動しているか
-- Locator: どの意味のある要素を対象にしているか
-- Action: `click`や`fill`など何を操作しているか
-- Assertion: 何が正しければPassなのか
-- Scenario Resetの呼び出し: Testをどの初期状態から始めているか
+- `test(...)`: どのテストを定義しているか
+- `page`: ブラウザのページオブジェクトをどこで操作しているか
+- `goto`: どの画面へ遷移しているか
+- ロケーター: どの意味のある要素を対象に指定しているか
+- 操作（Action）: `click` や `fill` などでどのような操作を行っているか
+- アサーション（Assertion）: 何が正しければ成功と判定しているか
+- シナリオ初期化の呼び出し: テストをどの初期状態から開始しているか
 
-次の構文や処理は、見かけてもこのLessonの修了条件にしません。必要になったLessonで扱います。
+以下の構文や高度な処理は、既存コード内に見かけても本レッスンの修了条件には含みません。必要となる以降のレッスンで順次扱います。
 
-- `async function`の定義方法そのもの
-- 配列、`for...of`、`if`などの制御構文
-- `page.evaluate`、`evaluateAll`、Requestや画像の詳細確認
-- TypeScriptの型注釈、`type`、`interface`、generics
-- nested arrow function、callbackの細かな型や高度な共通化
-- `test.describe`、`test.beforeEach`、`.first()`、正規表現やCSS Locatorの細かな書き方、helper function内部
+- `async function` の詳細な定義方法
+- 配列、`for...of`、`if` などの制御構文
+- `page.evaluate`、`evaluateAll`、ネットワークリクエストや画像読み込みの詳細検証
+- TypeScriptの高度な型注釈、`type`、`interface`、ジェネリクス
+- ネストされたアロー関数やコールバックの厳密な型定義・高度な共通化
+- `test.describe`、`test.beforeEach`、`.first()`、正規表現やCSSロケーターの細かな記法、ヘルパー関数の内部実装
 
-この段階では、上記の構文を一語ずつ説明できなくても、Testの目的・操作・検証・Resetの流れを指し示せれば十分です。既存コードを完成答案としてコピーせず、自分のCaseを実装する判断材料として比較します。
+現段階では、これらの記法をひとつひとつ解説できなくても、テストの「目的・操作・検証・初期化」の一連の流れを把握できれば十分です。既存コードを正解例としてそのままコピーするのではなく、自身が担当するケースを実装するための判断材料として比較対照してください。
 
-## Lesson 7: Playwright Configを読む（P1-6への導入）
+## レッスン 7: Playwrightの設定ファイルを読む（P1-6への導入）
 
-`playwright.config.ts` を読み、次を確認します。
+`playwright.config.ts` を参照し、以下の設定項目を確認します。
 
-- `testDir`
-- `timeout`
-- `expect.timeout`
-- `retries`
-- `projects`
+- `testDir`（テスト対象ディレクトリ）
+- `timeout`（テスト全体のタイムアウト時間）
+- `expect.timeout`（アサーションのタイムアウト時間）
+- `retries`（リトライ回数）
+- `projects`（実行対象ブラウザ・デバイスの設定）
 
-設定値を暗記するのではなく、「なぜこのリポジトリではその設定が必要か」を考えます。`reporter`、`trace`、`screenshot`、`video`は、実行結果と失敗時の記録を扱うP1-6で詳しく確認します。
+各設定値を丸暗記するのではなく、「なぜこのリポジトリでその設定値が指定されているのか」の意図を考えます。`reporter`、`trace`、`screenshot`、`video` などの記録系オプションについては、実行結果の収集と失敗分析を扱うP1-6で詳しく確認します。
 
-さらに、現行Projectの `testMatch` やPackage Scriptが既存Suiteを対象としていることを確認し、Training用実行境界を正式Regressionから分ける理由を理解します。
+さらに、現在のプロジェクト設定にある `testMatch` やパッケージスクリプトが本番用スイートを対象にしていることを確認し、トレーニング用の実行環境を本番用リグレッションテストから明確に分離している理由を理解しましょう。
 
-## ハンズオン1: TypeScript最小コードを読む
+## ハンズオン1: TypeScriptの最小コードを読む
 
-短いPlaywright Testを使い、次を指し示せるようにします。
+短いPlaywrightテストコードを対象に、以下の構成要素を指し示せるようにします。
 
 - `import`
 - `test`
 - `async`
 - `await`
 - `page`
-- Locator
-- Assertion
+- ロケーター（Locator）
+- アサーション（Assertion）
 
-構文を暗記するのではなく、それぞれがテストのどの役割を担うか説明します。
+構文を暗記するのではなく、それぞれがテストコード全体においてどのような役割を担っているかを説明できるようにします。
 
-## ハンズオン2: 商品詳細
+## ハンズオン2: 商品詳細画面の表示テスト
 
-Test Case ID `TC-PRODUCT-001` を想定し、商品詳細表示を確認するテストを書きます。
+テストケースID `TC-PRODUCT-001` を想定し、商品詳細画面が正しく表示されることを確認するテストを作成します。
 
-## ハンズオン3: Cart追加
+## ハンズオン3: カート追加のテスト
 
-Workbookの代表Caseとは別の導入練習として、Variation選択からCart追加までを書きます。ここでは`TC-CART-001` / `TC-CART-002`を付けず、PlaywrightのActionとAssertionの読み書きに集中します。
+ワークブックで扱う代表的なテストケースとは別の導入練習として、バリエーションの選択からカート追加までの処理を記述します。ここではケースID（`TC-CART-001` / `TC-CART-002` など）の付与にはこだわらず、Playwrightの操作とアサーションの読み書きに集中します。
 
-## ハンズオン4: Locator改善
+## ハンズオン4: ロケーターの改善
 
-意図的に不安定なCSS Selectorで書いたLocatorを、Role / Label / UI Test IDなどへ改善します。
+あえて壊れやすいCSSセレクターで記述されたロケーターを、Role、Label、UIテストIDなどを用いた堅牢な指定へ改善します。
 
 ## 確認問題
 
-1. `async` / `await` はPlaywrightで何のために使うか。
-2. `{ page }` は何を受け取っているか。
-3. ActionとAssertionの違いは何か。
-4. LocatorをCSS Classだけに依存するとどんなRiskがあるか。
-5. `waitForTimeout`を基本戦略にしない理由は何か。
-6. `toBeVisible`は何を保証し、何を保証しないか。
-7. Playwright Configの`retries`を増やせばFlaky問題は解決するか。
-8. Training用specと正式Regressionを分離する理由は何か。
+1. Playwrightにおいて、`async` / `await` は何のために使用しますか。
+2. テスト関数の引数にある `{ page }` は、何を受け取っていますか。
+3. 操作（Action）と検証（Assertion）の役割の違いは何ですか。
+4. ロケーターをCSSクラス名だけに依存して指定すると、どのような保守上のリスクがありますか。
+5. `waitForTimeout` による固定待機を基本戦略にしてはいけない理由は何ですか。
+6. `toBeVisible` アサーションは何を保証し、逆に何を保証しませんか。
+7. Playwright設定の `retries`（リトライ回数）を増やすことで、不安定なテスト（Flakyテスト）の根本的な問題は解決しますか。
+8. トレーニング用テストコードと本番用リグレッションテストを分離して管理する理由は何ですか。
 
 ## 自己確認
 
-### 回答の最低判定基準
+### 回答の判定基準
 
-- `async` / `await`をBrowser操作の完了待ち、`{ page }`をTestが受け取るBrowser Pageとして説明している。
-- ActionとAssertionを「操作」と「何が正しければPassか」に分け、`toBeVisible`が対象の可視性だけを保証することを説明している。
-- Locatorの選択理由に、Role / Label / UI Test IDなど対象の意味と、CSS構造依存の保守Riskを含めている。
-- `waitForTimeout`ではなく意味のある状態を待つ理由を説明し、固定待機を使わない1例を書ける。
-- `retries`が根本原因の修正ではないこと、Syntax / Type、Runtime、AssertionのFailureを区別している。
-- Training specとFormal Regressionを分離する理由として、実行範囲と既存Suiteの品質境界を説明している。
+- `async` / `await` をブラウザ操作の完了待機のため、`{ page }` をテストが受け取るブラウザページオブジェクトとして説明できていること。
+- 操作と検証を「画面を動かす処理」と「何が正しければ成功とするかの判定」に区別し、`toBeVisible` が対象要素の可視性のみを保証していることを説明できていること。
+- ロケーターの選定基準として、Role、Label、UIテストIDといった要素の意味を重視すること、およびCSS構造への過度な依存がもたらす保守上のリスクを挙げられていること。
+- `waitForTimeout` ではなく意味のある画面状態を待機すべき理由を説明でき、固定待機を用いない代替例を1つ記述できること。
+- `retries` は不具合の根本解決ではないことを理解し、構文／型エラー、実行時エラー、アサーション失敗の3種を区別して説明できていること。
+- トレーニング用テストと本番用リグレッションテストを分離する理由として、実行対象スコープと既存スイートの品質保護の観点を説明できていること。
 
-### Recovery
+### リカバリー手順
 
-構文が読めない場合は該当するLesson 0の小節へ戻り、`import` → `test` → `page` → Locator → Assertionの役割を指差し確認します。Testが起動しない場合はSyntax / Type Error、実行中の失敗はRuntime、期待不一致はAssertionとしてエラー全文を分類し、Browser / Base URLの問題は環境上の問題として分けます。
+構文の把握に不安がある場合は、レッスン0の該当項目に戻り、`import` → `test` → `page` → ロケーター → アサーションの流れをひとつずつ確認してください。テストが起動しない場合は構文エラーや型エラー、実行中の異常終了はランタイムエラー、期待値との不一致はアサーション失敗としてエラー出力を分類し、ブラウザの起動失敗やベースURLの接続不可は環境起因のトラブルとして切り分けて対応します。
 
 ## 完了条件
 
-- Playwright Test内の `import`、`async`、`await`、`page`、Locator、Assertionの役割を説明できる。
-- Scenario Shopを対象に、意味のあるlearner-authored Playwright TestをTraining境界へ書いている。
-- 対象の意味に合うRole / Label / UI Test IDなどのLocatorを利用している。
-- 固定待機に頼らずAssertionで状態を待てる。
-- Training用実行境界と既存Regressionの役割を説明できる。
-- 自分のコードと既存E2Eの違いを3点以上説明できる。
+- Playwrightテスト内の `import`、`async`、`await`、`page`、ロケーター、アサーションの役割を説明できること。
+- Scenario Shopを対象とした、受講者自作の意味のあるPlaywrightテストコードをトレーニング用ディレクトリに作成できていること。
+- 対象要素の意味に即したRole、Label、UIテストIDなどの適切なロケーターを使用していること。
+- 固定待機に依存せず、アサーションを用いて画面状態の変化を待機できていること。
+- トレーニング用の実行環境と既存のリグレッションテストの役割の違いを説明できること。
+- 自作したコードと既存のE2Eテストコードの違いを3点以上説明できること。
 
-練習量の目安として2本以上のTestを書いてもよいが、本数だけでは修了としません。
+※練習量の目安として2本以上のテストを作成しても構いませんが、作成した本数のみを完了判定の基準とはしません。
 
-## 次の行動
+## 次のステップ
 
-[Part 1-5: Playwright E2E実践](./05_playwright-e2e-practice.md)へ進み、設計したCart CaseをReset可能なTraining E2Eへ接続します。
+[Part 1-5: Playwright E2E実践](./05_playwright-e2e-practice.md) へ進み、自身で設計したカート操作のテストケースを、データ初期化が可能なトレーニング用E2Eテストへ組み込みます。
