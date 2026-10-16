@@ -13,16 +13,16 @@
 
 ## Phase 1：AIエージェントとテスト分析・設計（M00〜M04）
 
-**修了時点で可能なこと**：AI初心者が安全にエージェントを使い、仕様根拠を伴う分析・設計・レビューをローカルで実施できる。Git/GitHub、Playwright、CIは必要としない。M04終了時に[Phase 1独立総合演習](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を行う。
+**修了時点で可能なこと**：AI初心者がCodespaces内で安全にエージェントを使い、仕様根拠を伴う分析・設計・レビューを実施できる。**Codespace作成にGitHubアカウントは必要**だが、Gitコマンド・PR・Playwright・CI操作は不要。M04終了時に[Phase 1独立総合演習](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を行う。
 
 ## M00 学習環境とAIの安全な利用
 
 | ID | 必要な理解・行動 | 水準 | 評価 |
 | --- | --- | --- | --- |
-| M00-01 | OpenCodeの導入・起動・作業フォルダ指定と、配布教材の保存先・許可された範囲を理解する | 適用 | 指示付きで初回起動・読み取りを確認 |
-| M00-02 | チャットとの違い、エージェントのファイル参照・ツール実行、Skillの役割と利用条件を区別する | 説明 | クイズ、実在するSkillの認識・発見の確認 |
+| M00-01 | 2コアCodespacesの作成・確認、VS Codeのターミナル・ファイル・作業フォルダ、OpenCode CLIの起動と許可範囲を理解する | 適用 | **初回環境確認**と誘導付き読み取り。設定済み・動作済みの確認を学習評価と混同しない |
+| M00-02 | チャットとの違い、エージェントのファイル参照・ツール実行、Skillの発見・補助Python依存・許可条件と、無料モデル・Secretの扱いを区別する | 説明 | クイズ、Codespacesで実在するSkillの認識・安全な実行確認 |
 | M00-03 | 手本の依頼を試した後、自分でAIに目的・参照資料・権限・成果物・完了条件を指定する | 適用 | 用意された依頼→本人作成依頼の演習 |
-| M00-04 | Secret・個人情報を入力させず、AIによるファイルの変更前後を比較し、未実行を成功と扱わない | 判断 | ローカルファイル比較・AI報告の照合。Gitコマンド必須ではない |
+| M00-04 | Secret・個人情報をAIや公開ログに出さず、AI変更の前後を比較し、未実行を成功とせず、6080等の公開範囲・Codespace停止と無料枠を確認する | 判断 | Codespacesでファイル比較・安全なポート／費用判断・AI報告の照合。Gitコマンド必須ではない |
 
 ## M01 QAと自動化の基礎
 
@@ -64,17 +64,17 @@
 
 ## Phase 2：Playwright構築・実装・実行・改善（M05〜M07）
 
-**修了時点で可能なこと**：Phase 1のテストケースを使い、Node.js/Playwrightの設定、ローカルE2Eの実装・実行・診断・改善を行える。GitHubやCIなしで[Phase 2独立総合演習](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を完了する。
+**修了時点で可能なこと**：Phase 1のテストケースを使い、Codespaces既存のNode.js/Playwrightの設定、Codespace内E2Eの実装・実行・診断・改善を行える。Git/PR/CI操作なしで[Phase 2独立総合演習](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を完了する。
 
 ## M05 Playwrightと最小TypeScript
 
 | ID | 必要な理解・行動 | 水準 | 評価 |
 | --- | --- | --- | --- |
-| M05-01 | Node.js/npm、Playwrightの導入・設定・最小の実行手順と、`test`、`page`、`async/await`の意味を説明・確認できる | 適用 | 新課程用のローカル環境構築と最小実行・コード読解 |
+| M05-01 | Codespacesに導入済みのNode.js/pnpm/Playwright/Chromiumと設定の意味、最小実行手順、`test`・`page`・`async/await`を理解・確認できる | 適用 | 新課程の最小spec実行とコード読解。devcontainer再構築は不要 |
 | M05-02 | Locator・Action・Assertionを区別し役割に合う選択を行う | 適用 | Locator/Assertion選択 |
 | M05-03 | 表示確認と業務上の期待結果の違い、Assertionの限界を判断する | 判断 | 弱いAssertionのレビュー |
 | M05-04 | 固定待機と自動待機、構文・実行時・Assertionの失敗を区別する | 説明 | コードとエラーの分類 |
-| M05-05 | Playwright Config、testDir、出力パス、AIによる変更の差分を確認し、正しい対象を実行できる | 適用 | 設定・差分・コマンドの照合。GitHub不要 |
+| M05-05 | Playwright Config、専用8082のtest serverと通常Web 8081・noVNC 6080の違い、testDir・結果出力先・AIの差分を確認できる | 適用 | Codespaces内の設定・ポート・実行結果を確認。Git/PR操作不要 |
 
 ## M06 E2E実装と実行
 
@@ -116,7 +116,7 @@
 | M09-01 | Workflow、Trigger、Job、Runner、Build、Testの役割を読める | 説明 | CIクイズ |
 | M09-02 | Run/Check/Artifactと対象commitのSHAを対応付ける | 適用 | Training CIの証拠 |
 | M09-03 | 失敗段階と調査すべきログを判定する | 判断 | CI失敗の分類 |
-| M09-04 | 品質ゲートをリスク・実行速度・コストから選ぶ | 判断 | 最小CI構成の説明 |
+| M09-04 | 公開リポジトリの標準Runnerとprivate/larger runnerの料金条件を区別し、品質ゲートをリスク・実行速度・コストから選ぶ | 判断 | 無料条件と最小CI構成の説明 |
 | M09-05 | Trainingの権限・Secret・正式デプロイの境界を判断する | 判断 | 安全性レビュー |
 
 ## M10 Phase 3総合演習（GitHub・CI）
@@ -137,7 +137,7 @@ Phase 2を修了した後、希望者がNativeのロール・状態、Stable Tes
 
 ## 実装時に完成させる対応表
 
-以下の列を1つのMarkdown表で管理し、各フェーズに属する学習項目の評価漏れを確認する。Phase 3は選択であり、Phase 1・2の必須項目へ混ぜない。
+以下の列を1つのMarkdown表で管理し、各フェーズに属する学習項目の評価漏れを確認する。**Codespacesの事前準備が完了したことと、本人が技能を習得したことを混同しない**。Phase 3は選択であり、Phase 1・2の必須項目へ混ぜない。
 
 | フェーズ | 項目ID | 教材節 | 水準 | クイズ問題ID（不要なら理由） | 正答・解説 | 実技・成果物 | 評価結果・復習先 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
