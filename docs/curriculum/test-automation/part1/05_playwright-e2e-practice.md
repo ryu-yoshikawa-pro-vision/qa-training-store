@@ -286,12 +286,6 @@ Part 1-3で設計したカート機能のテストケース群から、共通課
 
 ※この段階では、Page Object Model（POM）の導入やFixture内部の設計変更・独自実装には着手しません。共通化の必要性や設計上の課題を認識・記録するにとどめ、Part 1-8でその体系的な解決手法を学びます。
 
-## AIエージェントを使ったWebテスト実装
-
-P1-3で採用したカートのテスト条件をOpenCodeに渡し、`e2e-test-inspection`・`e2e-test-implementation`なども必要に応じて使って実装を支援させます。
-
-実装先は既存の`training/playwright/exercises/`に限定します。生成されたLocator、Assertion、Seed／Reset、既存テストとの重複を受講者が確認し、`pnpm run training:web:exercise`で検証してください。実行不能・失敗の場合はその状態を記録します。AIが作成したテストでも、採用した理由と実行証拠を説明できれば受講者の成果物として扱います。
-
 ## 確認問題
 
 1. 各テストケースの開始直前にSeed ScenarioをResetすることには、どのような価値があるか。

@@ -343,12 +343,6 @@ WebとNativeの双方において、共通するテストの検証条件と、�
 - プラットフォーム差分として分岐が必要になった部分
 - 現状の構成でiOSのRuntime実行を必須としない理由、およびiOS固有のビルド差分
 
-## AIエージェントによるMaestro実装支援（選択課程）
-
-選択課程を履修する場合、OpenCodeにMaestro Flowの作成・修正を支援させてかまいません。受講者は要素識別、Test Control、Deep Link、実行可能な端末の条件を確認し、既存の`training/maestro/exercises/`で検証します。
-
-`qa-workflow-skills`にはPlaywright向けのE2E実装Skillがありますが、これをMaestro専用実装・実行機能として扱いません。受講者自身のNative成果物と実行証拠がない場合、AIの生成結果のみではC08を達成したことにしません。
-
 ## 確認問題
 
 1. PlaywrightのDOMロケーターを、そのままNativeアプリのテストに流用できない理由は何か。
