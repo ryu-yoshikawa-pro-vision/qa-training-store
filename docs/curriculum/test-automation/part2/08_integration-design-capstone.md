@@ -433,7 +433,7 @@ AndroidとiOSを同一のジョブツリーに配置する必要はありませ�
 
 ## AIエージェント活用の最終確認
 
-Scenario Shopの対象範囲を限定し、OpenCodeとqa-workflow-skillsを使って「仕様とリスクの確認 → テスト設計 → Playwrightの実装・実行 → 結果の分析 → PRレビュー → Web CI確認」を一巡します。対象とする既存Seedは[演習対象一覧](../../../training/ai-assisted-qa/README.md)から選びます。
+Scenario Shopの対象範囲を限定し、OpenCodeとqa-workflow-skillsを使って「仕様とリスクの確認 → テスト設計 → Playwrightの実装・実行 → 結果の分析 → PRレビュー → Web CI確認」を一巡します。対象とする既存Seedは[演習対象一覧](../../../../training/ai-assisted-qa/README.md)から選びます。
 
 AIが提案した分析・コード・改善を、受講者が仕様と実行証拠に照らして評価した記録を残してください。AIの提案を不採用にした場合も理由を説明します。既存のC11・C12、Training Copy、CI成果物、最終修了条件は引き続き満たす必要があり、AIの報告で代用できません。
 
