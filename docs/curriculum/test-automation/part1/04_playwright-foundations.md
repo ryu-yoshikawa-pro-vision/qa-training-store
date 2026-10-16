@@ -354,6 +354,12 @@ await expect(page.getByRole("status")).toContainText("カートへ追加しま�
 
 あえて壊れやすいCSSセレクターで記述されたロケーターを、Role、Label、UIテストIDなどを用いた堅牢な指定へ改善します。
 
+## AIエージェントによるコード理解の支援
+
+Playwrightの基本的なLocator、Action、Assertion、`async`／`await`を読んだ後、分からないコードの説明をOpenCodeに依頼してみましょう。説明が正しいか、教材内の実コードと公式APIの振る舞いを照合してください。
+
+コード生成を利用してかまいませんが、生成したAssertionが何を検証するかを説明できることが必要です。AIが生成したコードを理解できないまま提出しないでください。
+
 ## 確認問題
 
 1. Playwrightにおいて、`async` / `await` は何のために使用しますか。
