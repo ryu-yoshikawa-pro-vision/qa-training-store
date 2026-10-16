@@ -8,13 +8,13 @@
 
 ## 共通課程で使用するシナリオ
 
-| 段階 | 対象 | 対応する既存Seed | 主な学習内容 |
-| --- | --- | --- | --- |
-| 仕様・リスク分析 | カートへの商品追加と購入可否 | `default`、`out-of-stock`、`low-stock` | 正常系・境界値・期待結果の根拠 |
-| テスト設計 | 購入不可商品を含むカート | `cart-with-invalid-items` | ロール・在庫・SKU・商品状態の条件整理 |
-| Playwright実装 | ゲスト・会員のカート操作 | `default`、`regular-member` | Locator・Assertion・Seed/Reset |
-| 失敗分析 | 失敗と復旧の区別 | `payment-declined`、Trainingの診断演習 | 製品不具合とテスト不具合の切り分け |
-| 最終比較 | チェックアウトの状態変化 | `cart-version-invalidates-checkout`、`checkout-resume` | 状態遷移、リスク、回帰影響 |
+| 段階           | 対象             | 対応する既存Seed                                            | 主な学習内容                       |
+| ------------ | -------------- | ----------------------------------------------------- | ---------------------------- |
+| 仕様・リスク分析     | カートへの商品追加と購入可否 | `default`、`out-of-stock`、`low-stock`                  | 正常系・境界値・期待結果の根拠              |
+| テスト設計        | 購入不可商品を含むカート   | `cart-with-invalid-items`                             | ロール・在庫・SKU・商品状態の条件整理         |
+| Playwright実装 | ゲスト・会員のカート操作   | `default`、`regular-member`                            | Locator・Assertion・Seed/Reset |
+| 失敗分析         | 失敗と復旧の区別       | `payment-declined`、Trainingの診断演習                      | 製品不具合とテスト不具合の切り分け            |
+| 最終比較         | チェックアウトの状態変化   | `cart-version-invalidates-checkout`、`checkout-resume` | 状態遷移、リスク、回帰影響                |
 
 演習は最初から全シナリオを実行しません。最小のカートジャーニーから開始し、追加のリスクを説明できた場合に対象を広げます。決済・チェックアウトに関する追加シナリオは、対象機能の正式な仕様を確認してから使用します。
 
