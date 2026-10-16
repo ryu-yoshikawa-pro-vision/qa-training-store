@@ -23,9 +23,26 @@
 
 - AIエージェント未経験者は、ファイル参照・ツール実行・権限・Skillの発見や必要な依頼形式を、Playwrightの設定やGitHubの操作より前に学ぶ必要がある。このため**Phase 1（M00〜M04）をAIの基本操作と自動化に必要なテスト分析・設計で完結**させる。
 - Phase 1の設計成果物を使って、Phase 2（M05〜M07）でNode.js/Playwrightの導入・最小構成・E2E実装・ローカル実行・保守を学ぶ。これを終えることで**Playwright自動化を単独で構築・実行する能力**を評価できる。
-- GitHubを利用しない現場や学習工数の制約を考慮し、Phase 3（M08〜M10）は**選択**とする。第3フェーズにだけGitHubアカウント・PR・GitHub Actions・CI実行が必要になる。
-- Phase 1・2の教材と提出物は、GitHubでclone・PR作成することなくローカルで入手・編集・確認できる必要がある。必要な資料と基準revisionを受講者向けに配布する方式はCodex実装時に検証する。
+- GitHubを業務上使わない現場や学習工数の制約を考慮し、Phase 3（M08〜M10）は**選択**とする。Codespaces利用のための**GitHubアカウント・作成権限は全フェーズ共通の環境前提**とし、Git・PR・Actions・CIの**操作学習はPhase 3だけ**で要求する。
+- Phase 1・2は**Codespaces上のVS Code・ターミナル**で教材を開き、手動のclone・branch作成・PR操作なしで作業できるようにする。Git操作なしで作業成果をダウンロード・保存する手順と、必要なSkill一式の参照方法はCodex実装時に検証する。
 - **全フェーズ横断の最終課題1つでは足りない**。Phase 1終了時は初見条件の設計、Phase 2終了時はローカルE2E・診断、Phase 3終了時は既存specのCI化としてそれぞれ実技と修了を設ける。
+
+## Codespaces・無料枠の確認結果（2026-10-16）
+
+| 項目 | リポジトリ／公式情報で確認した事実 | Planでの扱い |
+| --- | --- | --- |
+| `.devcontainer/devcontainer.json` | TypeScript/Node 24 image、pnpmの依存導入、Chromium、OpenCode CLI `@opencode/cli@2.0.22`、Codex CLI `@openai/codex@0.160.0`、desktop-lite、8081/6080転送を定義 | **新規環境を一から構築しない**。Phase 2でPlaywright設定・環境の意味を教える |
+| マシン | `hostRequirements`は未設定。リポジトリで2コアに固定していない | **作成時に2コアを選び確認**する。最小必要コア指定は上限固定でないため現段階で追加しない |
+| Codespaces無料枠 | GitHub Freeの**個人**アカウントは120コア時間/月、15 GB-month/月。組織のプランにはCodespaces無料枠がない | 受講者本人の所有・支払主体と残量・予算設定を開始前に確認する。2コアなら理論上最大約60時間/月だが個人の残量は未確認 |
+| `docs/guides/codespaces.md` | 初回作成、個人Codespaces Secret、OpenCode CLI、Playwright codegen・6080画面転送、停止方法を記載 | 既存手順を参照し、初心者向けの**講義導線だけ**新設する |
+| OpenCode Zen | 現行ガイドは個人`OPENCODE_API_KEY`のSecretを利用。固定CLIでの認証は未検証。Freeモデルは提供条件が変わり得る | Freeのみを選び、補助モデル・有料自動選択・auto-reloadと支払条件を確認。無料の実利用は未証明 |
+| `qa-workflow-skills` | 独立リポジトリ。SkillにPython helper等の実行依存がある | 使用するrevisionと必要なSkill/補助ファイルをCodespaceで認識・実行できるか検証 |
+| Playwright Training | `playwright.training.config.ts`は8082専用、出力は`output/training/playwright/`。通常Web表示は8081、noVNCは6080 | 新課程specと結果先を旧Trainingから分離し、誤接続を防ぐ |
+| GitHub Actions | 公開リポジトリの標準GitHub-hosted runnerは無料。private repositoryの無料枠・保存容量は別条件 | Phase 3は公開の書込可能なTraining Copyと標準Runnerを第一候補にする。権限と支払主体は実機確認 |
+
+参考：[GitHub利用枠](https://docs.github.com/ja/billing/reference/product-usage-included)、[Codespaces課金](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)、[GitHub Codespacesガイド](../guides/codespaces.md)、[OpenCode Zen](https://opencode.ai/docs/zen/)、[GitHub Actions課金](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
+
+**未確認**：2コアの新規Codespaceで初回環境構築・Playwright Chromium・OpenCode/Skill実行が安定するか、無料モデルの認証・支払情報の要否、受講者本人の料金支払主体・残量・演習所要時間、Codespace停止・再開後の教材引継ぎ。過去のPR #188のCLI動作確認を、今回の3フェーズを無料で完走できた証拠にしない。
 
 ## 以前のPlanを修正する理由
 
@@ -38,7 +55,7 @@
 - **採用する**：仕様・テスト技法・Playwright・証拠・PR・CIの実務的な知識、Seedを使った再現性のある実習、正式仕様のBR/ACを期待結果の根拠とする姿勢、失敗/未実施/環境障害の区別。
 - **変更して採用する**：AIが提案したテスト分析、設計、コード、原因仮説を人間が採否判断する学習を最初から入れる。問題は正答・誤答解説・復習先まで完成させる。
 - **採用しない**：17レッスンの固定、C13を旧rubricへ追加、旧104問の一括四択変換、65学習項目/65問の件数固定、初回80%を根拠なく全課程へ一律適用、旧check-completion.tsへの新課程の合否追加。
-- **まだ未確認**：OpenCodeとSkillの実行、既存Reset helperを新課程の専用configから呼べるか、最終課題に使える未演習条件、受講者の実際の所要時間と問題の難易度。
+- **まだ未確認**：今回のCodespacesにおけるOpenCode認証とSkillの実行、既存Reset helperを新課程専用configから呼べるか、フェーズ別の未演習課題、受講者の実際の所要時間・ストレージ消費・問題の難易度。
 
 ## 新旧の独立性を確認する具体的方法
 
@@ -46,7 +63,7 @@
 2. 旧 `validate:curriculum`、`training:completion:check`の公開入力・出力契約を変更しない。新しい合否ロジックは別に作るか、最小構成では受講者向けの公開ルーブリックによる確認とする。
 3. `training/ai-assisted-qa-course/`の新spec・演習が旧 `training:web:exercise` / `training:web:diagnostic` / 正式 `e2e/web/` に混入しないことを対象列挙で確かめる。
 4. Product Code、Seed、Specを共有する場合、旧課程と正式回帰の期待結果が引き続き成立することを確認する。必要性がない限り変更しない。
-5. 新課程のPhase 1ではGitHub/Playwright、Phase 2ではGitHub/CIを必須にしないことを配布・実行・採点の両面から確かめる。Phase 3のための追加資産をPhase 1/2の必須前提へ混ぜない。
+5. **Codespaces作成にGitHubログインは必要**だが、Phase 1ではPlaywrightとGit操作を、Phase 2ではGit/PR/CI操作を修了条件にしないことを、起動・教材・採点まで確認する。Phase 3の追加資産をPhase 1/2の必須前提へ混ぜない。
 6. 新旧どちらのREADMEを開いても、それぞれの学習経路・評価・成果物の所在が一意に分かるようにする。新課程から旧課程へ参照リンクを張るのはよいが、旧課程を新課程の必修入口にしない。
 
 ## 調査の限界
