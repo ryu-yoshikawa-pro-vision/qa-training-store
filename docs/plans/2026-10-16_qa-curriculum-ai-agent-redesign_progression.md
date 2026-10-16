@@ -125,3 +125,88 @@
 | M05-05 | 新課程Config、`testDir`、8081/8082/6080、report/Trace、AIの差分 | **指定された新課程の1 spec**を実行し、対象サーバー・設定・ログ・結果先を示せる |
 
 **次への条件**：提示された短いspecを**読める・一箇所変更できる・実行して結果を説明できる**。M06で初めてCaseからの新規E2E実装を求める。高度なTypeScriptやdevcontainerの全面再構築は要求しない。
+
+### M06 E2E実装と実行
+
+**前提**：M05でTypeScriptの最小コードを読んで小修正でき、1本のspecを実行できる。
+
+**順序**：Phase 1のCase選択→Seed/Resetと事前条件→Locator/Action/Assertionへの変換→単独・再実行→コード・ログ・証拠とCaseの照合。
+
+| ID | 必要な理解・演習 | Level 2の判定 |
+| --- | --- | --- |
+| M06-01 | Caseの前提・操作・期待結果をAIに渡し、未完成specを完成させる | 新しいCaseで**Case→操作/Assertionの対応**を確認・修正できる。AI生成だけでは不合格 |
+| M06-02 | Seed/ResetとBrowser Context、実行順依存・残存データを確認する | 単独実行・再実行で結果を確認し、**状態の共有による誤成功や失敗**を説明・防止できる |
+| M06-03 | LocatorとAssertionが仕様上の期待結果を観測するかレビューする | 無関係でもPASSするAssertionを見抜き、**Caseの観測対象へ修正**できる |
+| M06-04 | CLI、対象spec、実行結果、ログ、Trace/Report/Receiptを紐付ける | **同じ実行を指す**コマンド・結果・証拠を示し、別RunのPASSを流用しない |
+| M06-05 | 未実行/環境BLOCKED/FAIL/PASSを区別する | エラーの発生場所と実行有無に基づき分類し、AIの自己申告だけでPASSにしない |
+
+**次への条件**：指定されたCaseから新課程専用specを作り、Reset後の単独・再実行と意味のあるAssertionの証拠を提出できる。全ケースをE2E化しない。
+
+### M07 失敗分析と保守
+
+**前提**：M06で本人のテストコード・実行結果・ログがある。
+
+**順序**：失敗を再現→ログ/Trace/Screenshot→原因仮説→最小修正→別Runによる再確認→Phase 2総合演習。
+
+| ID | 必要な理解・演習 | Level 2の判定 |
+| --- | --- | --- |
+| M07-01 | Test/Product/Environment/Flakyの原因を仕様・初期状態・ログから考える | **確認済みの事実と可能性**を分け、区別する追加検証を提案できる |
+| M07-02 | Trace/スクリーンショット/標準出力/reportを読んで失敗点へたどる | 別Runの証拠から**問題の操作・Assertion**を特定し、画像だけで断定できない点も示せる |
+| M07-03 | RetryやTimeout延長と原因修正の違いを整理 | タイミング失敗に対して**原因の切分けを先に選び**、無根拠な固定待機を増やさない |
+| M07-04 | AIパッチを仕様・差分・影響から評価し、修正前後の別Runを確認 | **原因に必要な最小修正**を行い、修正後の実行を新たな証拠として示せる |
+| M07-05 | 実際の重複・保守負荷に応じてHelper/POM/Fixtureを選ぶ | 抽象化が必要/不要の**両方を具体的に判断**できる。可能性だけでPOMを作らない |
+
+**Phase 2修了**：新しいCaseまたは故意に誤ったspecについて、AIと協働して実装・Reset・実行・原因調査・改善を行い、**Case→spec→Assertion→結果→根拠**を対応付ける。M05の読解やM06の独立性を欠いたまま、Traceを見ただけで合格にしない。Git/CIは不要。
+
+**Phase 3への引継ぎ**：動くspec、Config、依存関係、Reset、コマンド、直近実行結果・未解決事項をGitなしで保全。
+
+---
+
+## Phase 3：GitHub・CIによる継続実行（選択）
+
+### M08 Git・GitHubとレビュー
+
+**前提**：Phase 2で動くspecと、その実行証拠を保全済み。
+
+**順序**：ファイル変更と差分→stage/commit/branch→個人リポジトリへの共有→PR→AIレビューの採否。
+
+| ID | 必要な理解・演習 | Level 2の判定 |
+| --- | --- | --- |
+| M08-01 | Working tree/stage/commit/branch/remote、VS Code上の変更とGit履歴を区別 | 課題ファイルの変更→stage→commit→pushの**各時点の状態**を説明できる |
+| M08-02 | `git status`/`git diff`/`.gitignore`を使い不要なファイル・Secretを除外 | **必要なspec・設定だけ**をdiffで選択してcommitできる |
+| M08-03 | PRの目的、変更対象、関連仕様ID、テスト結果、レビュー方法を確認 | 自分の変更をPRとして示し、**何を検証した変更か**を説明できる |
+| M08-04 | AIレビューの誤指摘・見落とし・不要な抽象化を評価 | 指摘を根拠から採否判断できる。指摘数の多さを習熟基準にしない |
+
+**次への条件**：学習者個人の同じリポジトリでPhase 2成果物を安全に変更管理できる。CIはM09で学ぶ。
+
+### M09 CIと品質ゲート
+
+**前提**：M08でcommit・PRと対象の差分を理解できる。
+
+**順序**：workflow/trigger/job/runner→依存導入→Build/Serve/Test→Run/SHA/Artifact→失敗ログ・権限・料金→品質ゲート。
+
+| ID | 必要な理解・演習 | Level 2の判定 |
+| --- | --- | --- |
+| M09-01 | YAMLの最小構文、event/job/step/runner、Build/Serve/Testの順番を学ぶ | 短いworkflowを読み**いつ・何を・どのRunnerで動かすか**説明できる |
+| M09-02 | commit SHAとRun/Check/Artifactの関係を確認 | **別SHAの成功Runを現在HEADの証拠にせず**一致する証拠を示せる |
+| M09-03 | install/build/server/test/artifactの失敗段階をログから追う | 失敗Runで**最初に見るJob/stepと該当ログ**を特定できる |
+| M09-04 | 公開標準Runner、private/larger runnerの料金と品質ゲートを比較 | リスク・所要時間・費用から**最低限のゲートを選択**できる |
+| M09-05 | 権限・Secret・外部公開・製品正式CIとの分離 | 危険なworkflowや過剰な権限を見抜き、**必要な範囲へ抑えられる** |
+
+**次への条件**：新課程専用workflowの対象spec・起動条件・対象SHA・実行結果を説明できる。新規テストケースの設計を再要求しない。
+
+### M10 Phase 3総合演習
+
+**前提**：M08でGit/PR、M09でCIと対象SHAを理解済み。
+
+**順序**：Phase 2のspec再利用→差分確認とcommit/PR→CI実行→SHA/Run/Artifactの照合→失敗調査→報告。
+
+| ID | 必要な理解・演習 | Level 2の判定 |
+| --- | --- | --- |
+| M10-01 | Phase 2のspec・Config・Reset・依存を確認しGitへ追加する | 不要なログやSecretを除外し、**公開するコードと理由**を説明できる |
+| M10-02 | 専用の最小Actions workflowを実行し、CodespacesとCIの違いを確認 | **同じPhase 2のspec**をCIで動かし、再現に必要な設定を説明できる |
+| M10-03 | PR HEAD、SHA、Run/Check/Artifactを対応付ける | HEAD更新後に古いRunを使わず、**現在SHAに対応する証拠**を示せる |
+| M10-04 | CI固有の失敗とテスト・製品の失敗を区別する | 失敗例で**原因を区別する最初の調査対象**を選び必要なら別Runで確かめる |
+| M10-05 | AI提案の採否と、CIで保証できる範囲・未確認事項を報告する | 実行の保証範囲と残リスクを**過大に表現せず**説明できる |
+
+**Phase 3修了**：受講者個人のリポジトリでPhase 2のspecをCIへ統合し、PR・対象SHA・Run/Artifactと評価根拠を示す。**Phase 1・2の再受講、新規E2E一式の再実装は不要**。Phase 3未受講でもPhase 1・2の修了は維持する。
