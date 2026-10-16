@@ -1,6 +1,6 @@
 # Scenario Shop
 
-Playwrightを中心としたテスト自動化の学習・検証を目的とした模擬EC Webアプリケーションです。
+Playwright・Maestroによるテスト自動化と、OpenCode・qa-workflow-skillsによるAIエージェント活用を学ぶための模擬ECアプリケーションです。
 
 商品の検索、カート操作、購入、決済失敗、在庫競合、注文・配送、レビューから、商品・在庫・ユーザー管理に至るまで、一般的なECサイトおよびSaaS型管理画面における主要なユースケースを網羅して再現しています。
 
@@ -154,6 +154,8 @@ Playwright拡張機能は導入されていますが、Testingサイドバーや
 ## テスト自動化カリキュラム / Training
 
 - カリキュラム案内: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)
+- AIエージェント活用演習: [`docs/curriculum/test-automation/05_ai-agent-workflow.md`](docs/curriculum/test-automation/05_ai-agent-workflow.md)
+- AI活用演習のテスト対象: [`training/ai-assisted-qa/README.md`](training/ai-assisted-qa/README.md)
 - 本番公開カリキュラム: [https://ec-test-automation-store.pages.dev/docs/curriculum/](https://ec-test-automation-store.pages.dev/docs/curriculum/)
 - 必須のカリキュラム検証コマンド: `pnpm run validate:curriculum`
 - Training Web ベースライン検証: `pnpm run training:web:baseline`（`PLAYWRIGHT_BASE_URL` で専用ランタイムを指定）
