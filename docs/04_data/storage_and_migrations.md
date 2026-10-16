@@ -1,68 +1,68 @@
-# Storage・Schema運用設計
+# ストレージ・スキーマ運用設計
 
-## 1. Phase 1保存先
+## 1. フェーズ1の保存先
 
-| Data | Web |
+| データ種別 | Web環境での保存先 |
 |---|---|
-| 業務Data・商品画像関連 | IndexedDB `ec-automation-training` |
-| Current Session ID・guestId | Local Storage |
-| 商品画像Binary | GitHub Repository `public/images/products/` |
-| 商品画像Manifest Runtime正本 | `src/generated/product-image-manifest.ts` |
-| 商品画像Manifest診断用 | `public/images/product-image-manifest.json` |
-| Test Clock/Delay | app_settings |
+| 業務データ・商品画像関連 | IndexedDB `ec-automation-training` |
+| カレントセッションID・guestId | ローカルストレージ（Local Storage） |
+| 商品画像バイナリ | GitHubリポジトリ `public/images/products/` |
+| 商品画像マニフェスト（ランタイム正本） | `src/generated/product-image-manifest.ts` |
+| 商品画像マニフェスト（診断用） | `public/images/product-image-manifest.json` |
+| テスト用クロック・遅延設定（Test Clock/Delay） | app_settings |
 
-Phase 1では画像Blob、別Gateway DB、GitHub書込みTokenをBrowserへ保存しません。
+フェーズ1では、画像のBlobデータ、外部Gateway DB、およびGitHubへの書き込み用トークンをブラウザ側に保存しません。
 
 ## 2. GitHub画像運用
 
-- GitHub Repositoryを画像Binaryの正本とし、Cloudflare PagesのBuild成果物として同一Origin配信します。
-- File名は原則`<semantic-name>.<content-hash>.<ext>`とし、既存Fileを上書きしません。
-- `scripts/generate-image-manifest.ts`がAsset ID、Path、MIME、寸法、容量、SHA-256、Default Alt、Tag、有効状態を検証・生成します。
-- 管理UIはManifestのactive Assetを選択し、Productとの関連付けをIndexedDBへ保存します。
-- 新規画像Binaryの追加・置換・廃止はGitHubのCommit/PRとCloudflare再Deployで行います。アプリ内の管理者操作ではGitHubを変更しません。
-- 使用中Assetは物理削除しません。候補から外す場合はManifest上でinactiveにし、既存参照は表示継続します。
-- GitHub Contents API、PAT、OAuth TokenをFrontendから利用しません。
+- GitHubリポジトリを画像バイナリの正本とし、Cloudflare Pagesのビルド成果物として同一オリジンから配信します。
+- ファイル名は原則として `<semantic-name>.<content-hash>.<ext>` の形式とし、既存ファイルを上書きしません。
+- `scripts/generate-image-manifest.ts` が、アセットID、パス、MIMEタイプ、寸法、ファイルサイズ、SHA-256、デフォルトAlt、タグ、有効状態を検証・生成します。
+- 管理UIではマニフェスト内の有効（active）なアセットを選択し、商品（Product）との関連付け情報をIndexedDBに保存します。
+- 新規画像バイナリの追加・差し替え・廃止は、GitHubのコミット／プルリクエスト（PR）とCloudflareの再デプロイによって行います。アプリ内の管理者操作からGitHubリポジトリを変更することはありません。
+- 使用中のアセットは物理削除しません。選択候補から外す場合はマニフェスト上で `inactive` に設定し、既存の参照先では引き続き画像が表示されるようにします。
+- フロントエンドからGitHub Contents API、PAT（パーソナルアクセストークン）、OAuthトークンを直接利用しません。
 
-## 3. 初期化と画像Manifest
+## 3. 初期化と画像マニフェスト
 
-Build前に`scripts/generate-image-manifest.ts`を実行し、同じ内容から次を生成します。
+ビルド前に `scripts/generate-image-manifest.ts` を実行し、同一の内容から以下のファイルを生成します。
 
-- `src/generated/product-image-manifest.ts`: Runtimeが静的importする正本
-- `public/images/product-image-manifest.json`: CI確認・人間の診断用
+- `src/generated/product-image-manifest.ts`: ランタイムが静的にインポート（import）して参照する正本
+- `public/images/product-image-manifest.json`: CIでの確認および開発者の診断用
 
-Runtime Fetch、Runtime Cache、取得失敗時Fallbackは実装しません。生成物が欠落・不整合の場合はBuildを失敗させます。Release済み画像Pathはappend-onlyです。
+ランタイムでの動的取得（Runtime Fetch）、ランタイムキャッシュ、取得失敗時のフォールバック処理は実装しません。生成物の欠落や不整合が検知された場合は、ビルドを失敗させます。また、リリース済みの画像パスは追記のみ（append-only）とし、変更や上書きは行いません。
 
-App起動時はDBをOpenし、Schema Versionを確認します。DBが空なら`default` Seedを投入し、無効なCurrent Sessionを削除し、guestIdがなければ生成してLocal Storageへ保存します。
+アプリ起動時にはデータベースをオープンし、スキーマバージョンを確認します。データベースが空の場合は `default` シードデータを投入し、無効なカレントセッションを削除したうえで、`guestId` が存在しなければ新たに生成してローカルストレージへ保存します。
 
-## 4. Reset
+## 4. データリセット（Reset）
 
-- Automation BuildのadminまたはTest APIだけが実行可能。
-- 対応条件は1 Browser Context・1 Pageであり、IndexedDBとLocal Storageをまたぐ原子性は保証しない。
-- 実行前にDexie Connectionを閉じ、IndexedDB、Local StorageのSession ID、guestIdを削除する。
-- DBを再作成し、指定Seedを投入後、Seedで定義したSession/guestIdをLocal Storageへ設定してPageをReloadする。
-- 別PageがDBを開いて削除がblockedになった場合は`RESET_BLOCKED_BY_OPEN_PAGE`で失敗し、利用者またはPlaywright Fixtureが他Pageを閉じて再試行する。
-- GitHub上の画像AssetとBuild生成Manifest ModuleはReset対象外。
-- Reset前Dataは保持しない。ExportはPhase 3まで提供しない。
+- 自動テスト用ビルド（Automation Build）の管理者機能、またはテスト用APIからのみ実行可能です。
+- 対象とする実行環境は「1ブラウザコンテキスト・1ページ」を前提とし、IndexedDBとローカルストレージをまたぐトランザクションの原子性（アトミック性）は保証しません。
+- リセットの実行前にはDexieの接続を閉じ、IndexedDBのデータ、およびローカルストレージ内のセッションIDと `guestId` を削除します。
+- データベースを再作成して指定されたシードデータを投入後、シード側で定義されているセッションIDおよび `guestId` をローカルストレージへ設定し、ページをリロードします。
+- 別のページがデータベースを開いており、削除処理がブロックされた（blocked）場合は `RESET_BLOCKED_BY_OPEN_PAGE` エラーで失敗するため、ユーザーまたはPlaywright Fixture側で他のページを閉じたうえで再試行します。
+- GitHub上の画像アセット、およびビルド時に生成されたマニフェストモジュールはリセットの対象外です。
+- リセット前のデータは保持されません。データのエクスポート機能はフェーズ3まで提供しません。
 
-## 5. Schema変更
+## 5. スキーマ変更
 
-Phase 1は新規Schema v1だけをRelease対象とします。開発中にSchemaを変更する場合は、正式Release前であればDB Resetを許可します。
+フェーズ1では、新規スキーマ `v1` のみをリリースの対象とします。開発段階でスキーマを変更する必要が生じた場合は、正式リリース前に限りデータベースのリセット（DB Reset）を許可します。
 
-正式なUpgrade Migration、失敗Recovery、旧Version互換TestはPhase 3で追加します。Phase 1へMigration Frameworkを先行実装しません。
+正式なアップグレードマイグレーション、障害時のリカバリ処理、旧バージョン互換性テストはフェーズ3で追加します。フェーズ1の段階でマイグレーションフレームワークを先行して実装することはありません。
 
-## 6. 容量・画像品質
+## 6. 容量および画像品質
 
-- default Seedは11商品、負荷確認用`many-products`は1,000商品。100商品ScenarioはPhase 1に持たない。
-- 商品画像はPNG/JPEG/WebP、1:1を基本、1枚50～150KBを目安、上限500KB。
-- Productへの関連付けは最大3枚。同一Assetの複数商品利用を許可する。
-- Manifest生成時に500KB超過、未対応MIME、Path重複、assetId重複、Hash不一致をBuild Errorとする。
-- 画像はBrowser Storage Quotaを消費しない。Quota超過は業務Dataの書込みに対して`STORAGE_QUOTA_EXCEEDED`を表示する。
+- デフォルトのシードデータ（`default`）は11商品、負荷検証用の `many-products` は1,000商品とします。100商品のシナリオはフェーズ1では用意しません。
+- 商品画像はPNG、JPEG、WebP形式に対応し、アスペクト比は1:1（正方形）を基本とします。ファイルサイズは1枚あたり50〜150KBを目安とし、上限は500KBとします。
+- 1つの商品（Product）に関連付けられる画像は最大3枚までとします。また、同一アセットを複数の商品で再利用することを許可します。
+- マニフェスト生成時に、500KB超過、未対応のMIMEタイプ、パスの重複、`assetId` の重複、ハッシュ値の不一致が検出された場合はビルドエラーとします。
+- 画像データはブラウザのストレージクォータ（Storage Quota）を消費しません。ストレージ容量上限の超過は、業務データの書き込み時に `STORAGE_QUOTA_EXCEEDED` エラーとして通知・表示します。
 
-## 7. Phase 2・3
+## 7. フェーズ2・フェーズ3の展望
 
-- Phase 2: Nativeで同じManifest/AssetをBundleまたはRemote Static Assetとして利用する方式を再評価。
-- Phase 3: Migration、Import/Export、Integrity Check、Recovery UI。
+- フェーズ2: ネイティブアプリ（Native）において、同一のマニフェストおよび画像アセットをアプリ内にバンドルするか、リモートの静的アセット（Remote Static Asset）として配信・利用するかについて方式を再検討・評価します。
+- フェーズ3: データベースマイグレーション、データのインポート／エクスポート、整合性チェック（Integrity Check）、およびリカバリ用UIの実装を予定しています。
 
-## Phase 2資料
+## フェーズ2関連資料
 
-SQLite初期案は`future/phase2/sqlite_schema.md`へ分離し、Phase 1の正本ではありません。
+SQLiteに関する初期設計案は `future/phase2/sqlite_schema.md` へ分離されており、フェーズ1における正本仕様ではありません。

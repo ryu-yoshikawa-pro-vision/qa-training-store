@@ -2,76 +2,76 @@
 
 ## 1. 前提
 
-Authentication、Authorization、Paymentは学習用疑似実装です。Browser DBを利用者が変更できるため、本物のSecurity Boundaryではありません。
+認証（Authentication）、認可（Authorization）、決済（Payment）は学習用の疑似実装である。ブラウザのデータベース（Browser DB）を利用者が直接変更できるため、本来のセキュリティ境界（Security Boundary）ではない。
 
 ## 2. 利用者表示
 
-全画面ではHeaderの「テスト環境」Badgeで環境を明示します。Login、Signup、Cart、Checkoutでは次の注意を本文内へ再掲します。
+全画面において、ヘッダーの「テスト環境」バッジで動作環境を明示する。ログイン、サインアップ、カート、チェックアウトの各画面では、次の注意事項を本文内へ再掲する。
 
-- 実取引なし
-- 実在氏名・住所・電話・Card情報を入力しない
-- DataはBrowser内に保存され、ResetやBrowser Data削除で消失する
+- 実際の取引は行われない
+- 実在する氏名・住所・電話番号・カード情報を入力しない
+- データはブラウザ内に保存され、リセットやブラウザデータの削除によって消失する
 
-## 3. Authentication・Authorization
+## 3. 認証・認可
 
-- Passwordを平文保存しない。
-- Current Session IDだけをLocal Storageへ保存する。
-- Use CaseでRole、Account Status、Ownership、Membership Rankを確認する。
-- operator/adminは購入不可。
-- 最後のactive adminを保護する。
-- UI非表示だけをAuthorizationとしない。
+- パスワードを平文で保存しない。
+- 現在のセッションID（Current Session ID）のみをローカルストレージへ保存する。
+- ユースケース層でロール、アカウント状態（Account Status）、所有権（Ownership）、会員ランク（Membership Rank）を確認する。
+- operator/adminは購入不可とする。
+- 最後の有効な管理者（active admin）を保護する。
+- UIの非表示化のみを認可制御としない。
 
-## 3.1 Password Hash
+## 3.1 パスワードハッシュ
 
-- `PasswordHasher` Portを経由し、Web Crypto APIのPBKDF2-SHA-256を使用する。
-- 反復回数210,000、Salt 16byte、派生Key 32byteとする。
-- 保存形式は`pbkdf2-sha256$210000$saltBase64$hashBase64`へ固定する。
-- Seed Hashも同じFormatでBuild時に生成する。
-- Password、Salt生成前の平文、PasswordHashをLog・Artifactへ出力しない。
-- Local疑似認証であり、本物のServer認証・Credential保護を再現するものではない。
+- `PasswordHasher`ポートを経由し、Web Crypto APIのPBKDF2-SHA-256を使用する。
+- 反復回数は210,000回、ソルト（Salt）は16バイト、派生キーは32バイトとする。
+- 保存形式は`pbkdf2-sha256$210000$saltBase64$hashBase64`に固定する。
+- シードハッシュ（Seed Hash）も同一の形式でビルド時に生成する。
+- パスワード、ソルト生成前の平文、パスワードハッシュをログや成果物（Artifact）へ出力しない。
+- ローカル環境における疑似認証であり、本物のサーバー認証やクレデンシャル保護を再現するものではない。
 
 ## 4. 入力・XSS
 
 - `dangerouslySetInnerHTML`を使用しない。
-- 商品説明、Review、Policy本文をTextとして表示する。
-- Query、Route Parameter、File名をValidationする。
-- URLから任意外部ResourceをFetchしない。
+- 商品説明、レビュー、ポリシー本文をテキストとして表示する。
+- クエリ、ルートパラメータ、ファイル名を検証（バリデーション）する。
+- URLから任意の外部リソースを取得（Fetch）しない。
 
-## 5. Image・GitHub
+## 5. 画像・GitHub
 
-- 商品画像BinaryはGitHub Repository内の静的Assetだけを使用し、Cloudflare Pagesから同一Originで配信する。
-- PNG/JPEG/WebP、1枚500KB以下、Product関連付け最大3枚。SVGと外部URL画像は対象外。
-- Manifest生成時にMIME、拡張子、容量、Hash、Pathを検証し、読込失敗時はPlaceholderを表示する。
-- GitHub PAT、OAuth Token、Deploy KeyをFrontend Bundle、Local Storage、IndexedDB、Test Artifactへ含めない。
-- 管理UIからGitHub APIへのUpload・上書き・削除を行わない。
+- 商品画像のバイナリはGitHubリポジトリ内の静的アセットのみを使用し、Cloudflare Pagesから同一オリジンで配信する。
+- 画像形式はPNG/JPEG/WebP、1枚あたり500KB以下、商品（Product）への関連付けは最大3枚までとする。SVGおよび外部URLの画像は対象外とする。
+- マニフェスト生成時にMIMEタイプ、拡張子、容量、ハッシュ、パスを検証し、読み込み失敗時はプレースホルダーを表示する。
+- GitHub PAT（パーソナルアクセストークン）、OAuthトークン、デプロイキーを、フロントエンドバンドル、ローカルストレージ、IndexedDB、テスト成果物へ含めない。
+- 管理UIからGitHub APIへのアップロード、上書き、削除は行わない。
 
-## 6. Test API
+## 6. テストAPI
 
-- Automation Buildだけに含める。
-- 書込み可能操作はReset、Scenario Seed、Clock、Payment Delayだけとする。
-- 読取り可能操作はMetadataと、Entity IDを1件指定して固定形式DTOを返すOrder、Variant、Review Summary Inspectionだけとする。
-- 任意Table、任意Query、任意条件、任意Entity書換え、任意File Path、任意Script、外部URL Fetchを提供しない。
-- Inspection DTOにはPassword Hash、Session ID、住所全文、電話番号全文、内部Repository Objectを含めない。
-- 全画面へ小さなTEST MODE Badgeを表示し、入力・購入画面では詳細注意を再掲する。
+- 自動テスト用ビルド（Automation Build）にのみ含める。
+- 書き込み可能な操作は、Reset、Scenario Seed、Clock、Payment Delayのみとする。
+- 読み取り可能な操作は、メタデータ取得と、エンティティIDを1件指定して固定形式DTOを返すOrder、Variant、Review Summaryのインスペクション（Inspection）のみとする。
+- 任意のテーブル操作、任意のクエリ実行、任意の条件指定、任意のエンティティ書き換え、任意のファイルパス指定、任意のスクリプト実行、外部URLからの取得（Fetch）は提供しない。
+- インスペクションDTOには、パスワードハッシュ、セッションID、住所全文、電話番号全文、内部のリポジトリオブジェクトを含めない。
+- 全画面に小さな「TEST MODE」バッジを表示し、入力画面や購入画面では詳細な注意事項を再掲する。
 
-## 7. Log Mask
+## 7. ログマスク
 
-Password、PasswordHash、Session ID、住所全文、電話番号全文をConsoleやArtifactへ出力しません。Order Number、User ID、Error Codeを使用します。
+パスワード、パスワードハッシュ、セッションID、住所全文、電話番号全文をコンソールや成果物（Artifact）へ出力しない。出力時は注文番号（Order Number）、ユーザーID、エラーコードを使用する。
 
-Phase 1では永続Runtime Ring Bufferと詳細Audit Logを作りません。
+Phase 1では、永続的なランタイムリングバッファや詳細な監査ログ（Audit Log）は作成しない。
 
 ## 8. 外部通信
 
-RuntimeでAnalytics、Error SaaS、外部CDN、外部Payment、外部業務API、GitHub APIを使用しません。Cloudflare PagesからAppと商品画像Assetを取得する通信だけが発生します。
+ランタイムでは、アナリティクス、エラー監視SaaS、外部CDN、外部決済、外部業務API、GitHub APIは使用しない。Cloudflare Pagesからアプリケーション本体と商品画像アセットを取得する通信のみが発生する。
 
 ## 9. Phase 1の脅威シナリオ
 
-- Route直接AccessによるRole/Ownership違反
-- Rank不足商品への直接Access
-- XSS文字列を含む商品名・Review
-- Image Manifest改ざん、MIME/Hash不一致
-- GitHub CredentialのFrontend混入
-- Test APIの想定外操作
-- Local Storage Sessionが存在しないUserを指す状態
+- ルートへの直接アクセスによるロールや所有権の違反
+- ランク不足の商品への直接アクセス
+- XSS文字列を含む商品名やレビューの登録・表示
+- 画像マニフェスト（Image Manifest）の改ざん、MIMEタイプやハッシュの不一致
+- GitHubクレデンシャルのフロントエンド混入
+- テストAPIの想定外の操作
+- ローカルストレージのセッションが存在しないユーザーを参照している状態
 
-Payment Unknown二重試行、Import汚染、Public Bundle混入はPhase 3です。
+なお、決済結果不明（Payment Unknown）時の二重試行、インポート汚染、公開バンドルへの混入はPhase 3で対応する。

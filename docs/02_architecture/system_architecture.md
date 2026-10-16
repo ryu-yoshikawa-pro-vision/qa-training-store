@@ -17,37 +17,37 @@ flowchart LR
   TC[Test Control] --> UC
 ```
 
-Phase 1はServer、API、Cloud Database、外部Paymentを持ちません。
+Phase 1では、サーバー、API、クラウドデータベース、外部決済サービスを持ちません。
 
-Repository Port contractsはApplication ownershipで`src/application/repositories/**`に置き、`src/application/ports.ts`はplatform / external Portを所有します。
+リポジトリのPort規約（Contract）はアプリケーション層の管轄として`src/application/repositories/**`に配置し、`src/application/ports.ts`ではプラットフォームや外部サービス向けのPortを管理します。
 
 ## 2. レイヤー責務
 
 ### Presentation
 
-- Storefront/Admin Shell、Route、画面状態、Form、Focus、表示Message
-- Use Case呼出しと結果表示
-- DB・価格計算・権限判断を直接持たない
+- ストアフロントおよび管理画面のシェル、ルーティング、画面状態、フォーム、フォーカス制御、表示メッセージ
+- ユースケースの呼び出しと結果の表示
+- データベースアクセス、価格計算、権限判定のロジックを直接持たない
 
 ### Application
 
-- 認証、商品、Cart、Checkout、Payment、Order、Reviewの処理順序
-- `ApplicationTransactionRunner`を使ったTransaction境界
-- Role、Ownership、Versionの検証呼出し
+- 認証、商品、カート、チェックアウト、決済、注文、レビューの一連の処理順序の制御
+- `ApplicationTransactionRunner`を用いたトランザクション境界の制御
+- ロール、所有権（Ownership）、バージョンの検証呼び出し
 
 ### Domain
 
-- Money、価格・送料・会員割引
-- 商品閲覧条件、Search/Filter/Facet Rule
-- 在庫・数量制約
-- Order/Payment/Product/Reviewの状態遷移
+- 金額（Money）、価格・送料・会員割引の計算ロジック
+- 商品の閲覧条件、検索・絞り込み・ファセットのルール
+- 在庫数および注文数量の制約
+- 注文、決済、商品、レビューの状態遷移
 
 ### Infrastructure
 
-- Dexie Repository、Admin Overview Read Model
-- Local Session、GitHub管理の静的Image Asset Catalog
-- Deterministic Mock Payment Gateway
-- Static Address Lookup、System Clock/ID Generator
+- Dexieによるリポジトリ実装、管理画面概要（Admin Overview）のリードモデル
+- ローカルセッション、GitHub管理の静的画像アセットカタログ
+- 決定論的（Deterministic）なローカルモック決済ゲートウェイ
+- 静的な住所検索（Address Lookup）、システムクロックおよびID生成器
 
 ## 3. 主要Ports
 
@@ -64,25 +64,25 @@ Repository Port contractsはApplication ownershipで`src/application/repositorie
 
 ## 4. 状態管理
 
-- 永続業務Data: Repository
-- Current Session ID: Local Storage
-- 画面内Form・Dialog: Component State
+- 永続化する業務データ: リポジトリ（Repository）
+- 現在のセッションID: ローカルストレージ（Local Storage）
+- 画面内のフォームやダイアログ: コンポーネントの状態（Component State）
 - 共有UI状態: 必要最小限のContext
-- Server State Libraryは使用しない
+- サーバー状態管理ライブラリ（Server State Library）は使用しない
 
-## 5. 商品Aggregateと画像Asset境界
+## 5. 商品Aggregateと画像アセットの境界
 
-- 商品保存は`ProductAggregate`（Product、Variant、ProductImage関連）単位で行う。
-- 既存Variantの`stockQuantity`はAggregate更新対象外とし、在庫調整Use Caseだけが変更する。
-- ProductImageはGitHub Repository内の静的Assetを`assetId`で参照する。画像BinaryはIndexedDBへ保存しない。
-- 管理UIはAsset Catalogから選択、関連解除、Primary変更、順序変更、Alt Text変更だけを行う。
-- BrowserからGitHub APIへ書き込まず、画像Binary追加はCommit/PR、Manifest生成、Cloudflare再Deployで反映する。
-- Release済みAssetはBrowser内の参照有無をGitHub CIから判定できないためappend-onlyとし、廃止は`isActive=false`で表す。
-- 新規関連付けはactive Assetだけを許可し、既存関連のinactive Assetは維持・表示できるが、解除後の再関連付けはできない。
+- 商品の保存は、`ProductAggregate`（Product、Variant、ProductImageの関連付け）単位で行う。
+- 既存Variantの`stockQuantity`は集約（Aggregate）の更新対象外とし、在庫調整ユースケースのみが変更する。
+- ProductImageはGitHubリポジトリ内の静的アセットを`assetId`で参照し、画像バイナリはIndexedDBへ保存しない。
+- 管理UIで行う操作は、アセットカタログからの選択、関連付けの解除、プライマリ画像の変更、表示順序の変更、Altテキストの変更のみとする。
+- ブラウザからGitHub APIへの書き込みは行わず、画像バイナリの追加はコミットやプルリクエスト（PR）、マニフェスト生成、Cloudflareへの再デプロイを通じて反映する。
+- リリース済みのアセットは、ブラウザ側での参照有無をGitHub Actions（CI）から判定できないため追記のみ（append-only）とし、廃止する場合は`isActive=false`で表現する。
+- 新規の関連付けは有効なアセット（active）のみに限定する。既存の関連付けがある無効なアセット（inactive）は維持・表示可能だが、一度解除した後の再関連付けは行えない。
 
-## 6. Phase 1 Payment境界
+## 6. Phase 1における決済（Payment）境界
 
-Paymentは外部決済の厳密な再現ではなく、E2Eで成功・失敗・再試行を学ぶための決定的Mockです。
+Payment（決済）は外部決済サービスの厳密な再現ではなく、E2Eテストを通じて成功・失敗・再試行の挙動を学ぶための決定論的モック（Deterministic Mock）です。
 
 ```mermaid
 sequenceDiagram
@@ -101,77 +101,77 @@ sequenceDiagram
   UC-->>UI: 結果
 ```
 
-- Gateway呼出し中にDB Txを保持しません。
-- Mock結果はMethod Codeだけで決まり、同じAttempt Keyは同じ結果になります。Mockは時刻を返さず、結果受領後にApplicationが`Clock.now()`を1回取得し、Payment processedAt・Order/Payment HistoryのcreatedAtへ同じ値を使用します。
-- `processing`のまま再起動した場合や確定Txが失敗した場合、同じAttemptを再実行します。Local Mockなので二重課金概念はありません。既にsucceeded/failedなら既存結果を返し、確定競合時は最新状態を再取得して完了済み結果を返します。
-- timeout、unknown、独立台帳、ReconciliationはPhase 3です。
+- ゲートウェイの呼び出し中はデータベースのトランザクションを保持しません。
+- モックの実行結果は決済手段コード（Method Code）のみに基づいて決まり、同一の試行キー（Attempt Key）に対しては常に同じ結果を返します。モック側は時刻情報を返却せず、結果を受け取った後にアプリケーション層が`Clock.now()`を1度だけ取得して、Paymentの`processedAt`やOrder/Payment履歴の`createdAt`に同一の値を設定します。
+- ステータスが`processing`のままアプリが再起動された場合や、確定トランザクションが失敗した場合は、同一のAttemptを再実行します。ローカルモックであるため二重課金の概念はありません。すでに`succeeded`または`failed`となっている場合は既存の結果をそのまま返し、確定処理が競合した際には最新の状態を再取得したうえで完了済みの結果を返します。
+- タイムアウト、状態不明（unknown）、独立した決済台帳、および照合（Reconciliation）の仕組みはPhase 3で扱います。
 
-## 7. Transaction実装契約
+## 7. トランザクション実装契約
 
-- Application層は`ApplicationTransactionRunner.run(scope, work)`を呼び、Runnerが必要なDexie Storeを1つのTransactionとして開く。
-- `work`へ渡すRepository群は同じTransaction Contextへ束縛され、Context外のRepositoryを混在させない。
-- Gateway、Address LookupなどDB外I/OはTransactionの外で実行する。画像CatalogはBuild生成Moduleを静的importし、必要なPathをTransaction開始前に解決する。
-- 複数Storeをまたぐ書込みは`ApplicationTransactionRunner`から開始し、参加Repositoryはtop-level Transactionを開始しない。
-- 単一Storeで完結する単純作成・更新はRepository Method内の1 Transactionを許可する。
-- Category作成は単一Category Store Transaction内で現在の最大sortOrderを読み、0件なら10、既存時はmax+10として保存する。
-- Login/Register、Cart統合、Checkout、Product Aggregate/Status、Inventory、User Access、Order、Payment、Shipment、ReviewのScopeを型付きMapで固定する。
+- アプリケーション層は`ApplicationTransactionRunner.run(scope, work)`を呼び出し、Runnerが必要なDexieのストアを単一のトランザクションとして開始する。
+- `work`関数に渡されるリポジトリ群は同一のトランザクションコンテキストにバインドされ、コンテキスト外のリポジトリを混在させてはならない。
+- 決済ゲートウェイや住所検索などの外部I/O処理は、トランザクションの外側で実行する。画像カタログはビルド時に生成されたモジュールを静的にインポートし、必要なパスをトランザクション開始前に解決しておく。
+- 複数ストアにまたがる書き込みは必ず`ApplicationTransactionRunner`から開始し、処理に参加する各リポジトリ内部で個別にトップレベルのトランザクションを開始してはならない。
+- 単一ストアで完結する単純な作成・更新処理に限り、リポジトリメソッド内での単一トランザクション実行を認める。
+- カテゴリーの作成時は、単一のCategoryストアのトランザクション内で現在の最大`sortOrder`を読み出し、0件であれば10、既存データがある場合は最大値+10として保存する。
+- ログイン/会員登録、カート統合、チェックアウト、商品集約（Aggregate）/ステータス更新、在庫、ユーザー権限（User Access）、注文、決済、出荷、レビューの各スコープは、型付けされたマップによって定義を固定する。
 
-## 8. 主なTransaction
+## 8. 主なトランザクション一覧
 
-| 操作 | 同一Txで更新するData |
+| 操作 | 同一トランザクション内で更新するデータ |
 |---|---|
-| Login/Register | Session、User作成（Register時）、Guest/User Cart統合 |
-| Default配送先保存・削除（単一Store） | User Address、旧Default解除または後継Default |
-| 初回Cart追加 | ownerのactive Cart取得または作成、Cart Item加算/作成、親Cart version更新 |
-| Cart変更 | Cart、Cart Item、親Cart version |
-| 商品Aggregate・公開状態 | Category/Brand、Product、Variant、Image関連、INITIAL_STOCK History |
-| 商品Aggregate時刻 | Use CaseがClockを1回取得し、Product・Variant・画像関連・INITIAL_STOCK履歴へ同じ時刻を使用。Create時だけ0件Review Summaryにも使用し、Update時はSummaryを変更しない |
-| Category/Brand無効化 | CategoryまたはBrand、参照Product |
-| 在庫調整 | Variant在庫、Inventory History |
-| User Access | User、対象User Sessions。customer停止時はactive Checkoutもabandoned |
-| Order作成 | Order、Order Items（Build生成Catalogから事前解決した画像Pathと、Tx内ProductImageから取得したAlt TextのSnapshotを含む）、Payment processing、Cart consumed、Checkout converted、Sequence、History |
-| Payment成功確定 | Payment succeeded、Order paid、SKU在庫、Inventory History、Order History |
-| Payment失敗確定 | Payment failed、Order payment_failed、Order History |
-| Payment再試行 | Order pending_payment、新Payment processing、Order History |
-| 発送 | Order shipped、Shipment shipped、Order History |
-| 配送完了 | Order delivered、Shipment delivered、Order History |
-| Review変更 | Review、Review History、Product Review Summary・評価分布 |
+| ログイン / 会員登録 | Session、User作成（新規登録時）、ゲスト/ユーザーのCart統合 |
+| デフォルト配送先の保存・削除（単一ストア） | User Address、旧デフォルト配送先の解除または後継のデフォルト配送先設定 |
+| 初回カート追加 | 対象オーナーの有効なCart（active Cart）の取得または作成、Cart Itemの加算/作成、親Cartのversion更新 |
+| カート変更 | Cart、Cart Item、親Cartのversion更新 |
+| 商品Aggregate・公開状態 | Category/Brand、Product、Variant、Imageの関連付け、INITIAL_STOCK履歴 |
+| 商品Aggregate時刻 | ユースケースがClockを1回取得し、Product、Variant、画像関連付け、INITIAL_STOCK履歴へ同一の時刻を適用。新規作成時のみレビュー0件のReview Summaryにも適用し、更新時はSummaryを変更しない |
+| Category/Brand無効化 | 該当のCategoryまたはBrand、およびそれらを参照するProduct |
+| 在庫調整 | Variantの在庫数、Inventory History |
+| ユーザーアクセス権（User Access） | User、対象ユーザーの全Session。customer停止時は進行中のCheckoutもabandonedに変更 |
+| 注文作成 | Order、Order Items（ビルド生成カタログから事前解決した画像パスと、トランザクション内のProductImageから取得したAltテキストのスナップショットを含む）、Payment（processing）、Cart（consumed）、Checkout（converted）、Sequence、History |
+| 決済成功確定 | Payment（succeeded）、Order（paid）、SKU在庫、Inventory History、Order History |
+| 決済失敗確定 | Payment（failed）、Order（payment_failed）、Order History |
+| 決済再試行 | Order（pending_payment）、新規Payment（processing）、Order History |
+| 発送 | Order（shipped）、Shipment（shipped）、Order History |
+| 配送完了 | Order（delivered）、Shipment（delivered）、Order History |
+| レビュー変更 | Review、Review History、該当商品のReview Summaryおよび評価分布 |
 
-## 9. Platform分離
+## 9. プラットフォーム分離
 
-Phase 1はDexieだけを実装します。Repository InterfaceはPlatform非依存に保ち、Phase 2でSQLite Adapterを同じContract Testへ追加します。WebとNativeを同時完成させるための抽象化は行いません。
+Phase 1ではDexieのみを実装します。リポジトリのインターフェースはプラットフォーム非依存に保ち、Phase 2において同一のコントラクトテスト（Contract Test）にSQLiteアダプターを追加します。Webとネイティブの双方を同時に完成させるための過度な抽象化は行いません。
 
-## 10. Error境界
+## 10. エラー境界
 
-- Domain Error: Validation、Permission、Invalid State、Stock、Price
-- Repository Error: Read、Write、Conflict、Quota
-- Presentation: 利用者向けMessageへ変換
-- 内部Exception、Stack、Password、住所全文を画面へ出さない
+- ドメインエラー（Domain Error）: バリデーション、権限不足、不正な状態遷移、在庫不足、価格計算エラー
+- リポジトリエラー（Repository Error）: 読み込み失敗、書き込み失敗、競合（Conflict）、クォータ超過
+- プレゼンテーション層: 利用者向けメッセージへの変換
+- 内部の例外情報（Exception）、スタックトレース、パスワード、住所の全文などを画面上へ出力しない
 
 ## 11. Clock・ID・Test Control
 
-Clock、ID Generator、PasswordHasherはPort化します。Automation BuildではClock固定、Seed Reset、Payment Delay、固定Read-only Inspectionだけを提供します。任意DB書換え、任意Table Query、任意Script実行は提供しません。
+Clock、ID生成器（IdGenerator）、PasswordHasherはPortとして抽象化します。自動テスト用ビルド（Automation Build）では、Clockの固定、シードデータのリセット（Seed Reset）、決済遅延（Payment Delay）、固定の読み取り専用インスペクション（Read-only Inspection）のみを提供します。任意のデータベース書き換え、任意のテーブルクエリ実行、任意のスクリプト実行機能は提供しません。
 
 ## 12. Web配信
 
-Expo Web SPAをCloudflare Pages 1 Projectへ配信します。Bot Challenge、Turnstile、Accessは自動化対象で使用しません。
+Expo WebによるSPAを、Cloudflare Pagesの単一プロジェクトへ配信します。ボット対策のBot Challenge、Turnstile、Cloudflare Accessは、自動テストの対象環境では使用しません。
 
 ## 13. 禁止事項
 
-- UIからDexieを直接呼ぶ
-- 複数Repository更新を別々のTransactionとして順番にCommitする
-- BrowserへGitHub Tokenを埋め込み、管理UIから画像BinaryをGitHubへUploadする
-- Payment Mock呼出し中にDB Txを保持する
-- 未使用のGateway Ledger、Refund、Migration Recovery TableをPhase 1へ作る
-- StorefrontとAdminを同じPage Shellへ詰め込む
-- Domain内部状態名をUIへ直接表示する
-- Role判定をメニュー非表示だけで済ませる
-- 固定sleepをE2Eの同期手段にする
+- UIからDexieを直接呼び出すこと
+- 複数リポジトリの更新処理を別々のトランザクションに分割し、順番にコミットすること
+- ブラウザにGitHub Tokenを埋め込み、管理UIから画像バイナリをGitHubへ直接アップロードすること
+- 決済モックの呼び出し中にデータベースのトランザクションを保持し続けること
+- 未使用の決済ゲートウェイ台帳（Gateway Ledger）、返金（Refund）、マイグレーション復旧用テーブルなどをPhase 1で作成すること
+- ストアフロントと管理画面（Admin）を同一のページシェルに混在させること
+- ドメイン層の内部状態名をUIへそのまま直接表示すること
+- ロール（権限）判定をメニュー項目の非表示処理だけで済ませること
+- 固定の待機時間（sleep）をE2Eテストの同期手段として利用すること
 
 ## 実装境界と採用ライブラリ
 
-- Presentationは`*Request`のみ生成し、ApplicationがSession、Clock、IdGenerator、GuestIdentity、Build生成Manifestから`*Command`を組み立てる。
-- FormはReact Hook Form、ValidationはZod。
-- Shared UIはReact Native StyleSheet、Web専用Admin/Layoutは`.web.tsx`＋CSS Modules。
-- Dialog/Combobox等はReact Aria Componentsへ限定する。
-- 実装開始後は`src/domain/contracts`、`src/application/contracts`、`src/application/errors.ts`、Dexie Schema実コードを型の正本とし、Markdownは意味・業務ルール・設計理由を正本とする。
+- プレゼンテーション層は`*Request`のみを生成し、アプリケーション層がSession、Clock、IdGenerator、GuestIdentity、ビルド時に生成されたManifestをもとに`*Command`を組み立てる。
+- フォーム管理にはReact Hook Formを採用し、バリデーションにはZodを使用する。
+- 共通UIにはReact NativeのStyleSheetを使用し、Web専用の管理画面やレイアウトには`.web.tsx`とCSS Modulesを組み合わせる。
+- ダイアログやコンボボックスなどのアクセシビリティ対応コンポーネントは、React Aria Componentsに限定する。
+- 実装開始後は、`src/domain/contracts`、`src/application/contracts`、`src/application/errors.ts`、およびDexieのスキーマ定義コードを型の正本とし、Markdownドキュメントは業務ルールの意味や設計理由の正本とする。

@@ -1,3 +1,3 @@
 # Training Maestroの失敗演習
 
-このディレクトリは、必要なレッスンでだけ明示実行するNative failure exerciseの置き場です。必須CIと通常のbaseline commandは`baseline/`だけを実行します。
+このディレクトリは、必要なレッスンでのみ明示的に実行するネイティブ失敗演習（Native failure exercise）の格納場所です。必須CIおよび通常のベースラインコマンド（baseline command）は、`baseline/`のみを実行対象とします。
