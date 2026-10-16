@@ -44,6 +44,15 @@
 
 **未確認**：2コアの新規Codespaceで初回環境構築・Playwright Chromium・OpenCode/Skill実行が安定するか、無料モデルの認証・支払情報の要否、受講者本人の料金支払主体・残量・演習所要時間、Codespace停止・再開後の教材引継ぎ。過去のPR #188のCLI動作確認を、今回の3フェーズを無料で完走できた証拠にしない。
 
+## 教材の正本と学習者の作業場所の分離（設計決定）
+
+- 公開`qa-training-store`を教材・Scenario Shopの**正本**とし、学習者は**別の公開学習用Templateから作成した個人リポジトリ**のCodespacesで作業する。
+- 現在の新課程Planは学習クイズの正答・解説を公開する想定である。学習目的の公開解説は維持するが、**修了課題・実技の模範解答や必要な非公開評価用テストは公開commitに含めない**。教材だけ分けても公開Git履歴やWeb検索から解答を取得できる点に注意する。
+- 教材管理者が配布許可リストから同期する処理と、**受講者が`M00`〜`M10`を1つずつ指定してロードする処理**を分離する。ロードは閲覧制限・採点・自動解答ではなく、課題の作業領域への準備である。
+- 既存の`scripts/training/prepare-training-copy.ts`は元リポジトリを全体cloneし、旧`training-ci.yml`と`training-native-ci.yml`を有効にする。`scripts/training/validate-training-copy.ts`はその2件だけを許可する。今回の**許可リスト同期・教材ロードの用途にそのまま再利用しない**。旧契約も変更しない。
+- 同期された別リポジトリからScenario Shopを実行する方法は**未検証**。Phase 2でアプリを起動し、Seed/Reset・新課程Playwrightを実行できる最小依存関係を確認してから同期対象を確定する。製品コードの別正本は作らない。
+- 詳細な処理経路・除外対象・再ロード時の保護・受入試験は[教材同期・ロード設計](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)に記載する。
+
 ## 以前のPlanを修正する理由
 
 以前のPlanは、既存17レッスンとC01〜C12を維持し、C13を追加してAI利用を強化する「旧課程の改訂案」だった。しかし今回の目的は**別の新カリキュラム**を作ることなので、その改訂案は不適切。
@@ -55,14 +64,14 @@
 - **採用する**：仕様・テスト技法・Playwright・証拠・PR・CIの実務的な知識、Seedを使った再現性のある実習、正式仕様のBR/ACを期待結果の根拠とする姿勢、失敗/未実施/環境障害の区別。
 - **変更して採用する**：AIが提案したテスト分析、設計、コード、原因仮説を人間が採否判断する学習を最初から入れる。問題は正答・誤答解説・復習先まで完成させる。
 - **採用しない**：17レッスンの固定、C13を旧rubricへ追加、旧104問の一括四択変換、65学習項目/65問の件数固定、初回80%を根拠なく全課程へ一律適用、旧check-completion.tsへの新課程の合否追加。
-- **まだ未確認**：今回のCodespacesにおけるOpenCode認証とSkillの実行、既存Reset helperを新課程専用configから呼べるか、フェーズ別の未演習課題、受講者の実際の所要時間・ストレージ消費・問題の難易度。
+- **まだ未確認**：学習用リポジトリに必要な最小製品ランタイムと依存、同期・ロードスクリプトの安全性、今回のCodespacesにおけるOpenCode認証とSkillの実行、既存Reset helperの再利用、フェーズ別の未演習課題、受講者の実際の所要時間・ストレージ消費・問題の難易度。
 
 ## 新旧の独立性を確認する具体的方法
 
 1. 新課程の教材・問題・評価基準を`docs/curriculum/ai-assisted-qa/`に作り、旧 `docs/curriculum/test-automation/` の既存ファイル差分を0件にする。
 2. 旧 `validate:curriculum`、`training:completion:check`の公開入力・出力契約を変更しない。新しい合否ロジックは別に作るか、最小構成では受講者向けの公開ルーブリックによる確認とする。
-3. `training/ai-assisted-qa-course/`の新spec・演習が旧 `training:web:exercise` / `training:web:diagnostic` / 正式 `e2e/web/` に混入しないことを対象列挙で確かめる。
-4. Product Code、Seed、Specを共有する場合、旧課程と正式回帰の期待結果が引き続き成立することを確認する。必要性がない限り変更しない。
+3. `training/ai-assisted-qa-course/`の新spec・演習が旧 `training:web:exercise` / `training:web:diagnostic` / 正式 `e2e/web/` に混入しないことを対象列挙で確かめる。また、同期後の**学習者リポジトリへ模範解答・不要な正式specが配布されない**ことを検証する。
+4. Product Code、Seed、Specの正本を維持し、必要なランタイム配布物を確定SHAから生成する。**学習用リポジトリだけでBuild/Serve/Reset/Playwrightを実行できるか**確認したうえで、旧課程と正式回帰の期待結果が引き続き成立することを確認する。必要性がない限り変更しない。
 5. **Codespaces作成にGitHubログインは必要**だが、Phase 1ではPlaywrightとGit操作を、Phase 2ではGit/PR/CI操作を修了条件にしないことを、起動・教材・採点まで確認する。Phase 3の追加資産をPhase 1/2の必須前提へ混ぜない。
 6. 新旧どちらのREADMEを開いても、それぞれの学習経路・評価・成果物の所在が一意に分かるようにする。新課程から旧課程へ参照リンクを張るのはよいが、旧課程を新課程の必修入口にしない。
 
