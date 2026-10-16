@@ -18,6 +18,17 @@ OpenCodeと[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-w
 3. Skill群は上記の公式リポジトリから取得し、利用したcommit SHAを記録します。OpenCodeが`.agents/skills/<name>/SKILL.md`を読み込めることを確認します。既存の`.agents/skills/exploratory-qa`を上書きしません。
 4. Pythonによる決定論的処理が必要なSkillでは、当該Skillが要求する実行環境を確認します。Skillの説明だけを読ませ、必要なスクリプトを実行していない場合は、機械検証が完了したとは扱いません。
 
+CodespacesなどのLinuxターミナルを使う場合、Training Copyを開いた状態で、例えば次のように準備できます。Skill一式をコピーするのは、`qa-workflow`が必要な担当Skillへ処理をつなぐためです。
+
+```bash
+git clone https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills.git ../qa-workflow-skills
+git -C ../qa-workflow-skills rev-parse HEAD
+mkdir -p .agents/skills
+cp -R ../qa-workflow-skills/skills/. .agents/skills/
+```
+
+取得したcommit SHAを演習記録へ書き、OpenCodeをTraining Copyのルートで再起動して`qa-workflow`の検出を確認します。すでに同名Skillを配置している場合は上書きせず、利用するrevisionを確認します。Windowsなどでコマンドが異なる場合は講師側で配置を支援します。
+
 Skillを演習リポジトリに配置する場合、作業先は自分のTraining Copyとし、元の`qa-training-store`や本番用テストスイートへ変更を混入させません。取り込んだSkill本体を受講成果物としてPRへ追加する必要はありません。変更を保存する前に`git status`で意図しないファイルを確認します。
 
 Skillの取得・配置が難しい場合は講師または運営担当に環境準備を依頼できます。Skillの配布や有料モデルの契約を受講者個人の評価対象にしません。
