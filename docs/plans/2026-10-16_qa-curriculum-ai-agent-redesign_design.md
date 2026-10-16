@@ -18,13 +18,13 @@
 
 ## 全フェーズ共通の学習環境と開始手順
 
-**GitHub Codespaces（2コア選択）**を標準とし、Phase 1・2は同じCodespace内でVS Code・ターミナル・OpenCode CLIを利用する。2コアは**設定済み・固定済みではない**ため受講者が作成時に確認する。既存の`.devcontainer/devcontainer.json`はNode.js 24、pnpm、Playwright/Chromium、OpenCode CLI、Codex CLI、GUI用desktop-liteを準備する。変更する前に[既存ガイド](../guides/codespaces.md)と実機結果を確認する。
+**別の公開学習用Templateリポジトリから受講者本人が作成したリポジトリのGitHub Codespaces（2コア選択）**を標準とし、Phase 1・2は同じCodespace内でVS Code・ターミナル・OpenCode CLIを利用する。2コアは**設定済み・固定済みではない**ため受講者が作成時に確認する。既存の`.devcontainer/devcontainer.json`はNode.js 24、pnpm、Playwright/Chromium、OpenCode CLI、Codex CLI、GUI用desktop-liteを準備する**配布元の参考実装**である。学習用リポジトリで成立するよう必要部分を同期して実機検証する。変更する前に[既存ガイド](../guides/codespaces.md)と実機結果を確認する。
 
-開始前に、(1) GitHubアカウント・リポジトリアクセス・Codespaceの作成権限と**費用の支払主体**、(2) 2コア選択・残り無料利用枠／保存容量・課金停止条件、(3) Codespace作成のログ・基本コマンドの起動、(4) 個人Secret経由のOpenCode認証と**無料モデル限定**の設定、(5) `qa-workflow-skills`のSkillとPython helperの実行可否を確認する。**これらは初期セットアップの健全性確認**であり、それだけでPhase 1の学習目標を達成したとは評価しない。
+開始前に、(1) **学習用Templateからの個人リポジトリ作成**、GitHubアカウント・Codespaceの作成権限と**費用の支払主体**、(2) 2コア選択・残り無料利用枠／保存容量・課金停止条件、(3) Codespace作成のログ・基本コマンドの起動、(4) 個人Secret経由のOpenCode認証と**無料モデル限定**の設定、(5) `qa-workflow-skills`のSkillとPython helperの実行可否、(6) 学習者本人による`course:load M00`での課題ロードを確認する。**これらは初期セットアップの健全性確認**であり、それだけでPhase 1の学習目標を達成したとは評価しない。
 
 GitHub Freeの個人利用枠は120コア時間/月・15 GB-month/月（2コアで理論上最大約60稼働時間/月）だが、使用残量や組織側の支払設定で変わる。所要時間は未実測。Codespaceを使い終えたら停止し、保存容量・残り無料枠を確認して必要な成果物をエクスポートする。**無料を保証した教材として案内しない**。登録・モデル・料金条件が合わなければBLOCKEDとして停止し、本人の承認なく有料手段で続行しない。
 
-Phase 1の成果物はGitコマンド不要でダウンロード・バックアップ可能なMarkdown等、Phase 2はその成果物に加えてspec・設定・ログを保存できる形とする。Phase 3で初めてGitとPRを使い、Phase 2の成果物をGitHubへ持ち込む。Codespaceの削除や無料枠到達に備えて、**フェーズ終了ごとの作業成果の取り出し**を教材に含める。
+受講者は`pnpm course:load M00`等で**その時点の1モジュールだけ**を`workspace/Mxx/`に用意し、別モジュールの成果物は維持する。モジュールをまとめて自動ロードしない。詳細は[同期・ロード設計](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)に従う。Phase 1の成果物はGitコマンド不要でダウンロード・バックアップ可能なMarkdown等、Phase 2はその成果物に加えてspec・設定・ログを保存できる形とする。Phase 3で初めてGitとPRを使い、Phase 2の成果物をGitHubへ持ち込む。Codespaceの削除や無料枠到達に備えて、**フェーズ終了ごとの作業成果の取り出し**を教材に含める。
 
 ## フェーズごとの学習順序
 
@@ -48,13 +48,13 @@ AI操作は「実例を真似る→依頼を自作する→初見課題で成果
 | M06 | Phase 1のケースとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行 | 期待結果に合ったE2E、実行ログ・差分、再現性 |
 | M07 | Trace・Screenshot・Error、Test/Product/Environment/Flakyの切り分け、最小修正、Helper/POM/Fixtureの要否 | **Phase 2総合演習**：未演習の条件でテストを作り、実行・失敗分析・修正・再実行 |
 
-Phase 1で作成したケースを**再利用**する。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
+学習者本人がモジュールIDを指定して順次ロードし、**Phase 1で作成したケースを再利用**する。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
 
 ### Phase 3：GitHubとCIで継続実行（M08〜M10、選択）
 
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
-| M08 | Gitの状態、branch、commit、GitHubへのpush、PR作成と差分・AIレビューの検証 | 受講者コピーでのPRと理由付きレビュー |
+| M08 | Gitの状態、branch、commit、GitHubへのpush、PR作成と差分・AIレビューの検証 | **学習者個人の同じリポジトリ**でのPRと理由付きレビュー |
 | M09 | GitHub ActionsのWorkflow/Job/Runner、PlaywrightのBuild/Serve/Test、対象SHA、Report/Artifact、権限と品質ゲート | 新課程専用CIでテスト実行し、根拠を説明 |
 | M10 | **Phase 3総合演習**：Phase 2のE2EをGitHub/CIで再現し、失敗があれば原因を切り分け、最終状態の保証範囲を説明 | 対象PR・SHA・Run・Artifactと修了判断 |
 
@@ -79,19 +79,28 @@ docs/curriculum/
       M00/README.md ... M04/README.md  # Phase 1
       M05/README.md ... M07/README.md  # Phase 2
       M08/README.md ... M10/README.md  # Phase 3（選択）
-    quizzes/                         # 問題と公開解答をモジュールごとに分離
+    quizzes/                         # 学習用問題・公開解説。修了課題の模範解答は置かない
     assessments/                     # Phase 1/2/3 の独立した総合演習
     optional/native/                 # 本件の3フェーズとは別の選択教材
 training/
-  ai-assisted-qa-course/             # 必要な場合のPhase 2/3専用実技
+  ai-assisted-qa-course/             # 課題用の未完成コード
+  course-sync/manifest.json          # 学習者へ配布する範囲の許可リスト
+scripts/training/
+  sync-ai-assisted-qa.ts              # 管理者用の同期処理（実装予定）
+
+# 別の公開学習用Templateリポジトリへ同期
+course/modules/M00/ ... M10/          # 配布済み教材
+scripts/load-module.ts                # 学習者用モジュール単位ロード
+workspace/M00/                        # 受講者作業領域
+runtime/ など                         # Scenario Shop実行に必要な最小配布物
 ```
 
-初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
+初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。元の公開リポジトリと受講者の作業リポジトリを分け、配布物から実技・修了課題の模範解答を除外する。公開済み解説は秘密扱いできないため、修了評価は初見条件と本人の説明で確認する。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
 
 ## 未実証事項とCodex実装の責務
 
 - OpenCodeの利用環境と`qa-workflow-skills`の実際のSkill発見・Python helperは実演して確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
-- Phase 1はGitHubアカウントによるCodespace作成を前提に、Gitコマンド・PR・CIの操作なしで進められる教材配布・保存・評価の導線を検証する。
-- Phase 2は既存devcontainerのNode/Playwrightを利用し、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
-- Phase 3のTraining Copy／CI workflowの隔離とGitHub権限・標準Runnerの無料条件を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
+- Phase 1は学習用Templateから作成した個人リポジトリのCodespaceを前提に、Gitコマンド・PR・CIの操作なしで進められる教材配布・保存・評価の導線を検証する。
+- Phase 2は**同期された学習用リポジトリ単体**でNode/Playwright・Scenario ShopのBuild/Serve/Seed/Resetが成立し、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
+- Phase 3は学習者個人の同じリポジトリ上で専用CIを利用し、旧Training Copy／正式workflowの隔離とGitHub権限・標準Runnerの無料条件を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
 - **本PRはPlanのみ**。最終的な教材本文、全問題と答え、実行可能な課題はCodex実装時に作成・試行する。
