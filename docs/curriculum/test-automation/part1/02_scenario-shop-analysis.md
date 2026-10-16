@@ -251,7 +251,7 @@ Scenario Shop では、ユーザーのUI操作に伴ってシステム内部の�
 
 ## AIエージェントによる仕様分析
 
-[AI活用演習のテスト対象](../../../training/ai-assisted-qa/README.md)を参照して、カート機能を対象に次を実施します。
+[AI活用演習のテスト対象](../../../../training/ai-assisted-qa/README.md)を参照して、カート機能を対象に次を実施します。
 
 1. 受講者自身が`docs/spec/features/cart.md`からBR／ACと主要リスクを整理します。
 2. OpenCodeと`spec-analysis`・`question-analysis`・`test-analysis`などへ同じ仕様の分析を依頼します。
