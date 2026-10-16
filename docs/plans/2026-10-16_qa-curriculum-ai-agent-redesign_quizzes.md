@@ -7,7 +7,7 @@
 [学習項目表](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)の理解を確認するため、新課程**専用**の四択クイズを設ける。旧課程の記述式104問はそのまま残し、新課程へ移動・改変・一括変換しない。
 
 - Phase 1はAIエージェントを触ったことがない人を想定し、**Codespacesの2コア選択、VS Code・ターミナル、OpenCode CLI、無料モデルとSecretの取り扱い、ポート公開・停止と保存**、エージェントの実行権限、Skillの使い方、指示の要件、AIの自己報告と実際の成果物の違いについても確認する。初回は手順を見て操作し、最後は自分で依頼・検証する。GitHub/Playwrightの知識をPhase 1の問題の前提にしない。
-- Phase 2は**Codespacesに導入済みのPlaywright構成**と新課程のConfig・ポート8081/8082/6080・出力先、Locator/Assertion、Reset、Traceと失敗の分析を確認し、Git/PR/CI操作を知らなくても解ける問題にする。
+- Phase 2は**Node.jsの役割、pnpm/package.json、TypeScriptの変数・オブジェクト・配列・関数・型・import/export・async/await**を短いテストコードと結び付けて確認する。その上でCodespacesに導入済みのPlaywright構成、新課程Config・ポート8081/8082/6080・出力先、Locator/Assertion、Reset、Traceと失敗の分析を確認し、Git/PR/CI操作を知らなくても解ける問題にする。
 - Phase 3はGit、GitHub Actions、SHAとCI Evidence、**公開リポジトリの標準Runnerとprivate/larger runnerの料金の違い**、権限・品質ゲートを確認する。Phase 1・2の修了点数にPhase 3の得点を加算しない。
 - 知識・具体事例・判断を対象とする。**Playwrightの実装やAIの実利用をクイズだけで合格としない**。
 - 問題数をあらかじめ65問などに固定しない。学習項目ごとに必要な確認を割り当て、目標に対する不足があれば増やす。
@@ -57,7 +57,7 @@ docs/curriculum/ai-assisted-qa/
 
 ## 問題の設計と独立レビュー
 
-1. [学習項目表](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)から、知識として理解すべきことを確認する。**フェーズ別に**必要な学習項目だけを選び、問題・正答の対応表を記録する。全項目に問題IDまたは**クイズ不要の根拠と対応する実技**を記録する。
+1. [学習項目表](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)と[段階的習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)から、知識として理解すべきことを確認する。**フェーズ別に**必要な学習項目だけを選び、問題・正答の対応表を記録する。全項目に問題IDまたは**クイズ不要の根拠と対応する実技**を記録する。
 2. 難易度の高い状態遷移や計算問題では、正答の根拠を問題文に先に明かさない。仕様の条件に基づき導ける問題にする。
 3. 問題を作った後、**正解を独立に再計算・検証**する。数量、実行時間、日時、SHA、権限などの誤りは合否に直結する。
 4. A〜Dを各々問題文の条件と照合する。2つ以上正解、正解なし、条件によって回答が変わる問題を不採用にする。
