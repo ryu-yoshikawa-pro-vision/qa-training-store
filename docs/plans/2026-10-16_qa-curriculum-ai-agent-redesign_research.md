@@ -21,10 +21,10 @@
 | AI用の既存基盤 | `training/agentic-qa/`、`.agents/skills/exploratory-qa/`、探索Challenge、Scored評価 | 一般的なテスト分析・設計の必修とは別。Black-box Scoredは発展・参考に留める |
 
 主な根拠：
-- [カリキュラムREADME](../../curriculum/test-automation/README.md)、[学習設計](../../curriculum/test-automation/00_learning-design.md)、[ルーブリック](../../curriculum/test-automation/02_competency-rubric.md)、[工数](../../curriculum/test-automation/04_learning-effort-reference.md)
-- [P1総合演習](../../curriculum/test-automation/part1/09_part1-capstone.md)、[P2総合演習](../../curriculum/test-automation/part2/08_integration-design-capstone.md)
-- [受講者用ワークブック](../../../training/workbook/README.md)、[既存Agentic QA参照](../../reference/agentic-qa-workflow.md)
-- [カリキュラム検証](../../../scripts/validate-curriculum.ts)、[契約テスト](../../../tests/contracts/training-curriculum.test.ts)、[修了確認](../../../scripts/training/check-completion.ts)
+- [カリキュラムREADME](../curriculum/test-automation/README.md)、[学習設計](../curriculum/test-automation/00_learning-design.md)、[ルーブリック](../curriculum/test-automation/02_competency-rubric.md)、[工数](../curriculum/test-automation/04_learning-effort-reference.md)
+- [P1総合演習](../curriculum/test-automation/part1/09_part1-capstone.md)、[P2総合演習](../curriculum/test-automation/part2/08_integration-design-capstone.md)
+- [受講者用ワークブック](../../training/workbook/README.md)、[既存Agentic QA参照](../reference/agentic-qa-workflow.md)
+- [カリキュラム検証](../../scripts/validate-curriculum.ts)、[契約テスト](../../tests/contracts/training-curriculum.test.ts)、[修了確認](../../scripts/training/check-completion.ts)
 
 ### 17レッスンの取り扱い
 
@@ -39,7 +39,7 @@ OpenCode公式は `.opencode/skills/<name>/SKILL.md` のほか、`.agents/skills
 - [OpenCode公式：Agent Skills](https://docs.opencode.ai/docs/skills/)
 - [OpenCode公式：V2 Skills](https://dev.opencode.ai/v2/docs/skills/)（現行CLIでどの設定体系が有効か、実行時に判別する。旧・新仕様を混ぜない）
 - [Playwright公式：Best Practices](https://playwright.dev/docs/best-practices)
-- [Codespacesガイド](../../guides/codespaces.md)
+- [Codespacesガイド](../guides/codespaces.md)
 
 `qa-workflow-skills` は22 Skill。責務は次のように分かれている。
 
