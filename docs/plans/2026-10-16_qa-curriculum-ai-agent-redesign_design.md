@@ -28,11 +28,13 @@ GitHub Freeの個人利用枠は120コア時間/月・15 GB-month/月（2コア�
 
 ## フェーズごとの学習順序
 
+**モジュール内の説明順序・理解すべき知識・演習・Level 2の具体的判定・先行モジュールとの前提関係**は[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に定義する。M00前の受講開始ガイドはモジュールとして数えない。
+
 ### Phase 1：AI初心者からテスト設計まで（M00〜M04）
 
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
-| M00 | CodespacesでのVS Code・ターミナル操作、OpenCode CLI起動・作業ディレクトリ・ファイル読解、チャットとの違い、権限・Skill発見と安全な依頼 | **環境の起動確認と技能評価を分離**。用意した指示から開始し自分で目的・制約・出力を指定 |
+| M00 | **受講開始ガイドで最初のロードを済ませ**、CodespacesでのVS Code・ターミナル・保存・パス・コマンド結果、OpenCode CLI、権限・Skill発見と安全な依頼 | **環境の起動確認と技能評価を分離**。用意した指示から開始し自分で目的・制約・出力を指定 |
 | M01 | 自動化の目的・限界・テスト層、人間とAIの責任、自動化対象の選び方 | 知識と判断のクイズ |
 | M02 | Scenario ShopのBR/AC、観測・推測の区別、Seed・Role/State・リスク分析 | AIに仕様の分析を依頼し、仕様との照合で誤りを検出 |
 | M03 | 同値分割・境界値・デシジョンテーブル・状態遷移、Risk→Condition→Case→仕様ID | AIとのテスト設計と期待結果の根拠 |
@@ -44,11 +46,11 @@ AI操作は「実例を真似る→依頼を自作する→初見課題で成果
 
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
-| M05 | Codespaces既存のNode.js/pnpm/Playwright/Chromiumの構成確認、最小TypeScript、Config・testDir・ポート・出力・Locator・Assertion・待機 | **既存環境の意味を説明し、新課程用の最小テストを実行**。devcontainer全体の再構築は不要 |
+| M05 | **Node.jsの役割→pnpmとpackage.json→TypeScriptの最小構文→Playwright**の順に、学習用Codespaces・Config・testDir・ポート・出力・Locator・Assertion・待機を学ぶ | **既存環境の意味を説明し、新課程用の最小テストを実行**。devcontainer全体の再構築は不要 |
 | M06 | Phase 1のケースとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行 | 期待結果に合ったE2E、実行ログ・差分、再現性 |
 | M07 | Trace・Screenshot・Error、Test/Product/Environment/Flakyの切り分け、最小修正、Helper/POM/Fixtureの要否 | **Phase 2総合演習**：未演習の条件でテストを作り、実行・失敗分析・修正・再実行 |
 
-学習者本人がモジュールIDを指定して順次ロードし、**Phase 1で作成したケースを再利用**する。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
+学習者本人がモジュールIDを指定して順次ロードし、**Phase 1で作成したケースを再利用**する。M05では短いTypeScriptコードを自力で読解・部分修正・実行できる状態を確認し、M06の新規Case実装、M07の失敗分析へ段階的に進む。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
 
 ### Phase 3：GitHubとCIで継続実行（M08〜M10、選択）
 
@@ -101,6 +103,6 @@ runtime/ など                         # Scenario Shop実行に必要な最小�
 
 - OpenCodeの利用環境と`qa-workflow-skills`の実際のSkill発見・Python helperは実演して確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
 - Phase 1は学習用Templateから作成した個人リポジトリのCodespaceを前提に、Gitコマンド・PR・CIの操作なしで進められる教材配布・保存・評価の導線を検証する。
-- Phase 2は**同期された学習用リポジトリ単体**でNode/Playwright・Scenario ShopのBuild/Serve/Seed/Resetが成立し、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
+- Phase 2は**同期された学習用リポジトリ単体**でNode/Playwright・Scenario ShopのBuild/Serve/Seed/Resetが成立し、**M05の基本構文読解と部分修正がM06の前提として評価され**、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
 - Phase 3は学習者個人の同じリポジトリ上で専用CIを利用し、旧Training Copy／正式workflowの隔離とGitHub権限・標準Runnerの無料条件を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
 - **本PRはPlanのみ**。最終的な教材本文、全問題と答え、実行可能な課題はCodex実装時に作成・試行する。
