@@ -2,7 +2,7 @@
 
 ## この文書の役割
 
-この表が**新しいカリキュラムの内容設計の起点**となる。教材の正本は公開の`qa-training-store`に置き、別の学習用Templateへ許可対象だけを同期する。**受講者本人がモジュールを1つずつロード**して進める。Phase 1（M00〜M04）、Phase 2（M05〜M07）、Phase 3（M08〜M10、選択）を独立して評価する。旧17レッスンの項目や65問を引き継ぐための対照表ではない。各学習項目について何を教え、何を確認するのかを決め、[全体構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)・[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)・[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)の間で漏れを防ぐ。
+この表が**新しいカリキュラムの内容設計の起点**となる。各項目の**前提・教材順序・演習とLevel 2の具体的判定**は[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に定義する。教材の正本は公開の`qa-training-store`に置き、別の学習用Templateへ許可対象だけを同期する。**受講者本人がモジュールを1つずつロード**して進める。Phase 1（M00〜M04）、Phase 2（M05〜M07）、Phase 3（M08〜M10、選択）を独立して評価する。旧17レッスンの項目や65問を引き継ぐための対照表ではない。各学習項目について何を教え、何を確認するのかを決め、[全体構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)・[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)・[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)の間で漏れを防ぐ。
 
 評価水準：
 - **説明**：目的、意味、前提、限界を自分の言葉で説明できる。
@@ -19,7 +19,7 @@
 
 | ID | 必要な理解・行動 | 水準 | 評価 |
 | --- | --- | --- | --- |
-| M00-01 | 学習用Templateから個人リポジトリと2コアCodespacesを作成し、VS Code・ターミナル・OpenCode CLIを使って**自分でM00だけロード**できる | 適用 | **初回環境確認**、`course:load M00`と誘導付き読み取り。設定済み・動作済みと学習評価を混同しない |
+| M00-01 | **受講開始ガイド**で本人の2コアCodespaceとM00ロードを準備し、M00でVS Codeの保存、ターミナル、現在位置・相対パス、CLI結果を学ぶ | 適用 | 別ファイルの読取り・編集・保存と、コマンドの実行場所・結果の説明。**初回ロード成功だけでは合格にしない** |
 | M00-02 | チャットとの違い、エージェントのファイル参照・ツール実行、Skillの発見・補助Python依存・許可条件と、無料モデル・Secretの扱いを区別する | 説明 | クイズ、Codespacesで実在するSkillの認識・安全な実行確認 |
 | M00-03 | 手本の依頼を試した後、自分でAIに目的・参照資料・権限・成果物・完了条件を指定する | 適用 | 用意された依頼→本人作成依頼の演習 |
 | M00-04 | Secret・個人情報をAIや公開ログに出さず、ロード時の作業ファイルの上書きを防ぎ、AI変更の前後・6080等の公開範囲・Codespace停止と無料枠を確認する | 判断 | `workspace/M00`の再ロード・差分確認と安全なポート／費用判断。Gitコマンド必須ではない |
@@ -70,10 +70,10 @@
 
 | ID | 必要な理解・行動 | 水準 | 評価 |
 | --- | --- | --- | --- |
-| M05-01 | **同期済み学習用リポジトリ**のNode.js/pnpm/Playwright/Chromium、Scenario Shopの起動とSeed/Reset、設定・最小実行手順、`test`・`page`・`async/await`を理解できる | 適用 | 学習者がM05をロードして最小spec・コード読解・実際のアプリ起動。devcontainer全面再構築は不要 |
+| M05-01 | 学習用リポジトリの**Node.js→pnpm/`package.json`→TypeScript（変数・配列・オブジェクト・条件分岐・関数・基本型・import/export・async/await）→Playwright**を段階的に理解し、Scenario Shopを実行する | 適用 | 短いspecの意味を説明し、値・型・関数呼出し等を**一箇所修正して再実行**。devcontainerの再構築は不要 |
 | M05-02 | Locator・Action・Assertionを区別し役割に合う選択を行う | 適用 | Locator/Assertion選択 |
 | M05-03 | 表示確認と業務上の期待結果の違い、Assertionの限界を判断する | 判断 | 弱いAssertionのレビュー |
-| M05-04 | 固定待機と自動待機、構文・実行時・Assertionの失敗を区別する | 説明 | コードとエラーの分類 |
+| M05-04 | 固定待機と自動待機、構文・**TypeScriptの型**・実行時・Assertionの失敗を区別する | 説明・適用 | 短い誤りのあるspecを読んで失敗箇所と修正方向を判断 |
 | M05-05 | Playwright Config、専用8082のtest serverと通常Web 8081・noVNC 6080の違い、testDir・結果出力先・AIの差分を確認できる | 適用 | Codespaces内の設定・ポート・実行結果を確認。Git/PR操作不要 |
 
 ## M06 E2E実装と実行
@@ -137,7 +137,7 @@ Phase 2を修了した後、希望者がNativeのロール・状態、Stable Tes
 
 ## 実装時に完成させる対応表
 
-以下の列を1つのMarkdown表で管理し、各フェーズに属する学習項目の評価漏れを確認する。**モジュール別の配布許可リスト・学習者ロードの検証は[同期設計](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の受入条件で確認**し、学習項目数を機械的に増やさない。**Codespacesの事前準備が完了したことと、本人が技能を習得したことを混同しない**。Phase 3は選択であり、Phase 1・2の必須項目へ混ぜない。
+以下の列を1つのMarkdown表で管理し、各フェーズに属する学習項目の評価漏れを確認する。[詳細な判定基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)と照合して、**51項目すべてが説明・例・確認方法を持つこと**を検査する。**モジュール別の配布許可リスト・学習者ロードの検証は[同期設計](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の受入条件で確認**し、学習項目数を機械的に増やさない。**Codespacesの事前準備が完了したことと、本人が技能を習得したことを混同しない**。Phase 3は選択であり、Phase 1・2の必須項目へ混ぜない。
 
 | フェーズ | 項目ID | 教材節 | 水準 | クイズ問題ID（不要なら理由） | 正答・解説 | 実技・成果物 | 評価結果・復習先 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
