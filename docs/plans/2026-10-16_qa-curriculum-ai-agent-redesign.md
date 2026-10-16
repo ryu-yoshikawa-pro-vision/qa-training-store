@@ -10,10 +10,10 @@ AIエージェントの実習には、無料で利用できるモデルがある
 
 ## 今回の前提と作業境界
 
-- 対象リポジトリは \`ryu-yoshikawa-pro-vision/qa-training-store\`。教材・演習・正式仕様は、このリポジトリのScenario Shopへ統一する。
-- 本Planの作業ブランチは \`docs/plan-ai-agent-qa-curriculum-redesign\`。作成時の親コミットはPR #198 \`docs/refine-spec-curriculum-ja\` の \`36803c29efd1df8f09ef7b7d533759f79dc9893f\`。
+- 対象リポジトリは `ryu-yoshikawa-pro-vision/qa-training-store`。教材・演習・正式仕様は、このリポジトリのScenario Shopへ統一する。
+- 本Planの作業ブランチは `docs/plan-ai-agent-qa-curriculum-redesign`。作成時の親コミットはPR #198 `docs/refine-spec-curriculum-ja` の `36803c29efd1df8f09ef7b7d533759f79dc9893f`。
 - PR #198は**文章表現のリライトのみ**を対象とする。今回の学習目的・評価基準・製品変更をPR #198へ混在させない。PR #198が進んだ場合、実装着手時に最新の差分を再確認する。
-- 以前の \`feat/ai-assisted-qa-curriculum\` で作成した内容は取り消し済み。再利用する場合も、その内容を正解や設計上の前提とせず、目的から検証する。
+- 以前の `feat/ai-assisted-qa-curriculum` で作成した内容は取り消し済み。再利用する場合も、その内容を正解や設計上の前提とせず、目的から検証する。
 - 本Plan段階で新たな製品仕様・意図的な不具合・Skill実装を追加しない。必要性が確認された変更だけを後続の実装段階に含める。
 - マージ、force push、既存ブランチ削除、既存PRの変更は作業範囲に含めない。
 
@@ -25,34 +25,34 @@ AIエージェントの実習には、無料で利用できるモデルがある
 
 | 対象 | 現状 | 見直す理由 |
 | --- | --- | --- |
-| \`docs/curriculum/test-automation/README.md\` | Part 1が9レッスン、Part 2が8レッスン。共通課程はWeb中心、Maestroは選択課程 | 現在の順序と分割を固定せず、AI活用が自然に入るか比較する |
-| \`00_learning-design.md\` | 初学者・プログラミング未経験者を想定。Part 1でGitHubアカウントを必須にしない | AIがファイル変更する際の差分確認など、必要最小限の安全操作をどの段階で教えるか決める |
-| \`02_competency-rubric.md\` | C01〜C12。Part 1共通はC01〜C07とC09〜C10、最終共通はC01〜C07とC09〜C12のレベル2 | AIへ任せる判断と受講者自身の理解・評価能力が、現行項目から十分判定できるか未確定 |
-| \`04_learning-effort-reference.md\` | 共通課程の標準工数は67.5〜98時間、通常の目安は約80〜85時間。受講実績ではなく試算 | AI活用を追加するとともに、置き換えられる学習時間も考慮して再試算する |
-| \`part1/09_specification-agentic-qa.md\` | Agentic QAは参考資料で、共通の修了要件には含まれない | 基礎的なAI活用に使う部分と、高度なBlack-box Scoredなどの選択・参考部分を区別する |
-| \`part1/09_part1-capstone.md\` / \`part2/08_integration-design-capstone.md\` | カートのWebテストとWeb CI導入をまとめる総合演習がある | 卒業時に「AIへの依頼→成果物の検証→実行→改善」を実証できるか見直す |
+| `docs/curriculum/test-automation/README.md` | Part 1が9レッスン、Part 2が8レッスン。共通課程はWeb中心、Maestroは選択課程 | 現在の順序と分割を固定せず、AI活用が自然に入るか比較する |
+| `00_learning-design.md` | 初学者・プログラミング未経験者を想定。Part 1でGitHubアカウントを必須にしない | AIがファイル変更する際の差分確認など、必要最小限の安全操作をどの段階で教えるか決める |
+| `02_competency-rubric.md` | C01〜C12。Part 1共通はC01〜C07とC09〜C10、最終共通はC01〜C07とC09〜C12のレベル2 | AIへ任せる判断と受講者自身の理解・評価能力が、現行項目から十分判定できるか未確定 |
+| `04_learning-effort-reference.md` | 共通課程の標準工数は67.5〜98時間、通常の目安は約80〜85時間。受講実績ではなく試算 | AI活用を追加するとともに、置き換えられる学習時間も考慮して再試算する |
+| `part1/09_specification-agentic-qa.md` | Agentic QAは参考資料で、共通の修了要件には含まれない | 基礎的なAI活用に使う部分と、高度なBlack-box Scoredなどの選択・参考部分を区別する |
+| `part1/09_part1-capstone.md` / `part2/08_integration-design-capstone.md` | カートのWebテストとWeb CI導入をまとめる総合演習がある | 卒業時に「AIへの依頼→成果物の検証→実行→改善」を実証できるか見直す |
 
 ### 利用できる教材・実装
 
-- \`training/workbook/\` に対象・リスク、テストケース、自動化対象、実行・改善の4 CSVがある。仕様・リスク・ケース・コード・証拠の追跡に使用している。
-- \`training/playwright/\` には \`baseline/\`、\`exercises/\`、\`diagnostic-exercises/\`、\`failure-exercises/\`、\`maintenance-exercises/\` が分離されている。完成答案を先に見せない設計で、正式な \`e2e/web/\` と区別されている。
-- \`training/agentic-qa/\` には受講者向けChallenge、講師用情報、Skill snapshot、Tool Profileがある。\`docs/reference/agentic-qa-workflow.md\` と \`.agents/skills/exploratory-qa/\` は、探索QAのNormal / Gray-box / Black-box Scoredと検証境界を扱う。一般の分析・設計演習と同一の仕組みだとは扱わない。
-- \`docs/guides/codespaces.md\` と開発コンテナにはOpenCode CLIの導入経路が存在する。ただし、ガイドは個人のSecretを使う運用の認証成功を未検証と記載しており、今回の受講環境でのSkill連携も未実証である。
-- \`scripts/validate-curriculum.ts\`、\`tests/contracts/training-curriculum.test.ts\` では現行のレッスン数・ファイル・表示文言・Training入口等を検査する。\`scripts/training/check-completion.ts\` は既存Lesson IDのself-check等を扱う。\`tests/contracts/training-completion.test.ts\`、\`training-copy-handoff.test.ts\` 等も関連する。教材構成を変更する場合は機械契約への影響を必ず確認する。
-- \`training:copy:prepare\` / \`training:copy:validate\` は学習用CIの実行範囲を限定する。元リポジトリのデプロイ・正式回帰テストへ演習コードを混ぜない。
+- `training/workbook/` に対象・リスク、テストケース、自動化対象、実行・改善の4 CSVがある。仕様・リスク・ケース・コード・証拠の追跡に使用している。
+- `training/playwright/` には `baseline/`、`exercises/`、`diagnostic-exercises/`、`failure-exercises/`、`maintenance-exercises/` が分離されている。完成答案を先に見せない設計で、正式な `e2e/web/` と区別されている。
+- `training/agentic-qa/` には受講者向けChallenge、講師用情報、Skill snapshot、Tool Profileがある。`docs/reference/agentic-qa-workflow.md` と `.agents/skills/exploratory-qa/` は、探索QAのNormal / Gray-box / Black-box Scoredと検証境界を扱う。一般の分析・設計演習と同一の仕組みだとは扱わない。
+- `docs/guides/codespaces.md` と開発コンテナにはOpenCode CLIの導入経路が存在する。ただし、ガイドは個人のSecretを使う運用の認証成功を未検証と記載しており、今回の受講環境でのSkill連携も未実証である。
+- `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts` では現行のレッスン数・ファイル・表示文言・Training入口等を検査する。`scripts/training/check-completion.ts` は既存Lesson IDのself-check等を扱う。`tests/contracts/training-completion.test.ts`、`training-copy-handoff.test.ts` 等も関連する。教材構成を変更する場合は機械契約への影響を必ず確認する。
+- `training:copy:prepare` / `training:copy:validate` は学習用CIの実行範囲を限定する。元リポジトリのデプロイ・正式回帰テストへ演習コードを混ぜない。
 
 ### qa-workflow-skills
 
-2026-10-16確認時の \`main\`: \`dcabbb218cf79f6920f5c8303e60140ab9c15f23\`。
+2026-10-16確認時の `main`: `dcabbb218cf79f6920f5c8303e60140ab9c15f23`。
 
-\`skills/\` 配下には22 Skillがあり、\`qa-workflow\`が必要工程の開始・再利用・停止・再開を管理する。個別の \`spec-analysis\`、\`test-analysis\`、\`test-condition-design\`、\`test-case-design\`、\`coverage-analysis\`、\`e2e-test-inspection\`、\`e2e-test-implementation\`、\`e2e-test-execution\`、\`e2e-test-result-analysis\` 等が工程を担当する。Playwright E2E実装・実行は別Skillへ分かれ、QAの全工程を常に通すわけではない。
+`skills/` 配下には22 Skillがあり、`qa-workflow`が必要工程の開始・再利用・停止・再開を管理する。個別の `spec-analysis`、`test-analysis`、`test-condition-design`、`test-case-design`、`coverage-analysis`、`e2e-test-inspection`、`e2e-test-implementation`、`e2e-test-execution`、`e2e-test-result-analysis` 等が工程を担当する。Playwright E2E実装・実行は別Skillへ分かれ、QAの全工程を常に通すわけではない。
 
 注意点:
 - 意味上の判断はLLMが担当し、ID・トレーサビリティや一部のテスト技法はSkill付属の決定論的スクリプトが担当する。Skillの説明文を読ませただけで実行・検証が完了したと見なさない。
-- Skill本来の成果物形式・IDと、\`training/workbook/\`のCSV・IDの互換性は未検証。初めから変換器や新しい共通データベースを作らない。
-- \`e2e-test-implementation\` と \`e2e-test-execution\` はPlaywright向けである。Maestro向けに同等の専用Skillがあるという前提は置かない。
+- Skill本来の成果物形式・IDと、`training/workbook/`のCSV・IDの互換性は未検証。初めから変換器や新しい共通データベースを作らない。
+- `e2e-test-implementation` と `e2e-test-execution` はPlaywright向けである。Maestro向けに同等の専用Skillがあるという前提は置かない。
 - PR #16は未マージの実装作業、PR #17は未実装の評価ランナーPlanであり、今回の必須教材の前提にはしない。
-- \`qa-training-store\` 内の \`exploratory-qa\` と \`qa-workflow-skills\` 内の \`exploratory-testing\` は責務・実行契約が異なる。併用が必要な場合だけ境界を決める。
+- `qa-training-store` 内の `exploratory-qa` と `qa-workflow-skills` 内の `exploratory-testing` は責務・実行契約が異なる。併用が必要な場合だけ境界を決める。
 
 参考: [qa-workflow-skills README](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/blob/main/README.md)、[OpenCode Agent Skills公式仕様](https://opencode.ai/docs/skills/)、[Playwright Best Practices](https://playwright.dev/docs/best-practices)。
 
@@ -77,7 +77,7 @@ AIエージェントの実習には、無料で利用できるモデルがある
 
 ### 1. 卒業像と到達基準の確定
 
-対象: \`README.md\`、\`00_learning-design.md\`、\`02_competency-rubric.md\`、Part 1・Part 2総合演習。
+対象: `README.md`、`00_learning-design.md`、`02_competency-rubric.md`、Part 1・Part 2総合演習。
 
 1. 想定受講者（手動テスト経験、プログラミング未経験、AIエージェント経験の有無）と、修了後に任せたい実務タスクを明記する。
 2. 現行C01〜C12とG1〜G6を対応付け、既存項目の説明変更で足りるもの、追加・統合・削除が必要なものを分ける。**C01〜C12の維持も拡張も先に決めない。**
@@ -89,7 +89,7 @@ AIエージェントの実習には、無料で利用できるモデルがある
 
 ### 2. カリキュラム全体の再構成
 
-対象: \`docs/curriculum/test-automation/part1/*.md\`、\`part2/*.md\`、\`01_spreadsheet-test-design.md\`、\`03_instructor-reference.md\`、\`04_learning-effort-reference.md\`。
+対象: `docs/curriculum/test-automation/part1/*.md`、`part2/*.md`、`01_spreadsheet-test-design.md`、`03_instructor-reference.md`、`04_learning-effort-reference.md`。
 
 現行17レッスンへAIの説明を追加するだけでは不十分。以下を比較してから採用する。
 
@@ -102,13 +102,13 @@ AIエージェントの実習には、無料で利用できるモデルがある
 
 | 学習の流れ | 扱う能力 | 対応する既存教材と候補Skill |
 | --- | --- | --- |
-| ① 対象理解とAI利用の準備 | 仕様の読み方、AIの作業範囲、必要最小限のファイル・差分確認 | P1-1〜P1-2、\`spec-analysis\`、\`question-analysis\` |
-| ② テスト分析・設計 | リスク、テスト技法、条件・ケース、期待結果の照合 | P1-2〜P1-3、\`test-analysis\`、\`test-condition-design\`、\`test-case-design\`、\`coverage-analysis\` |
-| ③ Playwright実装・実行・改善 | 基礎構文の読解、AI生成テスト、Seed/Reset、失敗分析、保守 | P1-4〜P1-6・P1-8、\`e2e-test-inspection\`、\`e2e-test-implementation\`、\`e2e-test-execution\`、\`e2e-test-result-analysis\` |
-| ④ 変更管理・継続実行 | Git・PRレビュー、CI、実行結果とリグレッション影響、総合演習 | P2-1〜P2-8、必要時の\`adversarial-review\`、\`regression-testing\` |
+| ① 対象理解とAI利用の準備 | 仕様の読み方、AIの作業範囲、必要最小限のファイル・差分確認 | P1-1〜P1-2、`spec-analysis`、`question-analysis` |
+| ② テスト分析・設計 | リスク、テスト技法、条件・ケース、期待結果の照合 | P1-2〜P1-3、`test-analysis`、`test-condition-design`、`test-case-design`、`coverage-analysis` |
+| ③ Playwright実装・実行・改善 | 基礎構文の読解、AI生成テスト、Seed/Reset、失敗分析、保守 | P1-4〜P1-6・P1-8、`e2e-test-inspection`、`e2e-test-implementation`、`e2e-test-execution`、`e2e-test-result-analysis` |
+| ④ 変更管理・継続実行 | Git・PRレビュー、CI、実行結果とリグレッション影響、総合演習 | P2-1〜P2-8、必要時の`adversarial-review`、`regression-testing` |
 | 選択課程 | MaestroによるNative自動化、探索的QA、高度なAgentic QA | P1-7・P2-6、既存のAgentic QA Challenge。環境と前提に応じて選択 |
 
-GitHubアカウントをPart 1必須にしない現行方針は、合理性を確認して維持候補とする。一方、AIがコードを変更する前に、\`git diff\`などの**最低限の差分確認と作業範囲の指定**を先に教える必要があるか検討する。Git・PR・CIの体系的な学習は適切な段階に配置する。
+GitHubアカウントをPart 1必須にしない現行方針は、合理性を確認して維持候補とする。一方、AIがコードを変更する前に、`git diff`などの**最低限の差分確認と作業範囲の指定**を先に教える必要があるか検討する。Git・PR・CIの体系的な学習は適切な段階に配置する。
 
 各レッスンは「何をAIに依頼するか」「どこを人間が判断するか」「成果物」「失敗した場合の対応」「次のレッスンへの引継ぎ」まで決める。元の説明を残したまま同内容を追加するだけの変更は避ける。
 
@@ -116,13 +116,13 @@ GitHubアカウントをPart 1必須にしない現行方針は、合理性を�
 
 ### 3. OpenCode・qa-workflow-skillsの実習設計と検証
 
-対象: \`docs/guides/codespaces.md\`、\`.devcontainer/\`、\`docs/curriculum/test-automation/\`、\`training/\`。qa-workflow-skills本体の改修は本計画の直接対象外。
+対象: `docs/guides/codespaces.md`、`.devcontainer/`、`docs/curriculum/test-automation/`、`training/`。qa-workflow-skills本体の改修は本計画の直接対象外。
 
-1. 開発用の隔離したTraining CopyでOpenCode CLIを起動し、Agent Skillsが認識されることを確かめる。公式に認識対象となる \`.agents/skills/<name>/SKILL.md\` などの既存経路を使用する。
-2. \`qa-workflow-skills\`の利用commitを記録し、必要なSkillの \`SKILL.md\` と、呼び出される \`references/\`・\`scripts/\` も利用可能にする。22個のSkillをすべて授業で使うことは要求しない。
+1. 開発用の隔離したTraining CopyでOpenCode CLIを起動し、Agent Skillsが認識されることを確かめる。公式に認識対象となる `.agents/skills/<name>/SKILL.md` などの既存経路を使用する。
+2. `qa-workflow-skills`の利用commitを記録し、必要なSkillの `SKILL.md` と、呼び出される `references/`・`scripts/` も利用可能にする。22個のSkillをすべて授業で使うことは要求しない。
 3. **最小の実演を先に確認する**: Scenario Shopの小さなCart条件で、仕様の分析→テスト条件→ケース→Playwright実装→限定実行→結果評価までを、実際のOpenCodeとSkillで1回通す。使用Skill、途中の停止、生成物、編集差分、コマンド、実行結果を記録する。
-4. \`qa-workflow-skills\`の成果物がTraining Workbookの \`TARGET/RISK/TC\` 系ID・CSV列と直接接続できるかを比較する。差があれば、まず受講者が関連を記録できる最小の運用を検討し、繰り返し利用で必要と判明した場合だけ自動変換を実装する。
-5. 既存 \`.agents/skills/exploratory-qa\` は探索・採点の別経路として扱い、同名の責務や完了条件を無理に共通化しない。
+4. `qa-workflow-skills`の成果物がTraining Workbookの `TARGET/RISK/TC` 系ID・CSV列と直接接続できるかを比較する。差があれば、まず受講者が関連を記録できる最小の運用を検討し、繰り返し利用で必要と判明した場合だけ自動変換を実装する。
+5. 既存 `.agents/skills/exploratory-qa` は探索・採点の別経路として扱い、同名の責務や完了条件を無理に共通化しない。
 6. 無料モデルの利用可否、認証の経路、Codespaces等の別料金、AIへの入力データ、端末・権限・Skillの実行可能性だけを学習開始条件として確認する。モデル別性能比較や有料Claude Codeとの比較は必須課題にしない。
 
 **重要**: この実演の成否は未確認。Skillが説明どおりに自律実行しなかった場合は、教材側で「実行できた」と見なさない。失敗箇所を切り分けて、(a) 教材手順の不足、(b) 対象repoとの接続不足、(c) Skill側の不具合、(d) 環境・無料利用枠の制約、のどれかを記録し、対応範囲を決める。
@@ -131,16 +131,16 @@ GitHubアカウントをPart 1必須にしない現行方針は、合理性を�
 
 ### 4. Scenario Shopのテスト対象を評価する
 
-対象の正本は \`docs/spec/README.md\`、\`docs/spec/features/*.md\`、\`docs/spec/state-and-scenarios.md\`。Seedの実装参照は \`src/seeds/metadata.ts\`、\`docs/07_testability/seed_catalog.md\`。既存のE2E・Training・テスト制御も照合する。
+対象の正本は `docs/spec/README.md`、`docs/spec/features/*.md`、`docs/spec/state-and-scenarios.md`。Seedの実装参照は `src/seeds/metadata.ts`、`docs/07_testability/seed_catalog.md`。既存のE2E・Training・テスト制御も照合する。
 
 | 学習課題候補 | 既存仕様・Seed候補 | 不足を確認する点 |
 | --- | --- | --- |
-| 入力・境界値と正確な期待結果 | \`BR-CART-001\`、\`default\`、\`out-of-stock\`、\`low-stock\` | 指定数量、拒否後の保持、Resetを受講者が再現できるか |
-| 複数条件、ロール・状態、除外理由 | \`BR-CART-002/003\`、\`guest-cart-merge-overflow\`、\`cart-with-invalid-items\` | 仕様根拠、テスト条件と観測結果、必要データが対応するか |
-| 状態遷移と再開・不一致 | \`BR-CHECKOUT-001/002\`、\`checkout-resume\`、\`cart-version-invalidates-checkout\` | 開始・途中状態・終了・リセット、前後の差異を再現できるか |
-| 決済失敗・処理中と結果の切り分け | \`BR-CHECKOUT-003\`、\`payment-declined\`、\`payment-processing\` | 外部決済を使わずに状態、二重操作防止、証拠を再現できるか |
-| 失敗原因の調査・修正 | \`training/playwright/diagnostic-exercises/\`、\`failure-exercises/\`、\`maintenance-exercises/\` | AIの誤診と根拠のある原因切り分け、修正前後の比較を練習できるか |
-| エージェントによる探索（選択・発展） | \`training/agentic-qa/challenges/\`、\`.agents/skills/exploratory-qa/\` | 既存Challengeの受講者・講師情報分離と実環境の隔離条件を満たせるか |
+| 入力・境界値と正確な期待結果 | `BR-CART-001`、`default`、`out-of-stock`、`low-stock` | 指定数量、拒否後の保持、Resetを受講者が再現できるか |
+| 複数条件、ロール・状態、除外理由 | `BR-CART-002/003`、`guest-cart-merge-overflow`、`cart-with-invalid-items` | 仕様根拠、テスト条件と観測結果、必要データが対応するか |
+| 状態遷移と再開・不一致 | `BR-CHECKOUT-001/002`、`checkout-resume`、`cart-version-invalidates-checkout` | 開始・途中状態・終了・リセット、前後の差異を再現できるか |
+| 決済失敗・処理中と結果の切り分け | `BR-CHECKOUT-003`、`payment-declined`、`payment-processing` | 外部決済を使わずに状態、二重操作防止、証拠を再現できるか |
+| 失敗原因の調査・修正 | `training/playwright/diagnostic-exercises/`、`failure-exercises/`、`maintenance-exercises/` | AIの誤診と根拠のある原因切り分け、修正前後の比較を練習できるか |
+| エージェントによる探索（選択・発展） | `training/agentic-qa/challenges/`、`.agents/skills/exploratory-qa/` | 既存Challengeの受講者・講師情報分離と実環境の隔離条件を満たせるか |
 
 順序は「既存仕様・Seed・Training演習で実現できるか」→「小さなテストデータまたは教材の追加で足りるか」→「製品実装の変更が必要か」で判断する。
 
@@ -151,19 +151,19 @@ GitHubアカウントをPart 1必須にしない現行方針は、合理性を�
 - 意図的な不具合や不安定テストを用意するなら、本体の正式な製品動作へ混ぜず、既存の診断演習または隔離Challenge側で扱う。
 - 正式仕様と現在の実装が食い違った場合は、教材の都合で仕様を実装へ合わせず、既存の仕様変更手順に従って不整合を確認する。
 - Web / Native・権限・価格・在庫・決済状態などへの影響を確認し、正式な回帰テストとTrainingテストの境界を維持する。
-- \`docs/spec/unresolved-specifications.md\` の未確定項目は不具合や期待値の正解として使わない。
+- `docs/spec/unresolved-specifications.md` の未確定項目は不具合や期待値の正解として使わない。
 
 成果物: 学習目標→テスト条件→画面/機能→仕様ID→Seed→Training入口→期待される証拠の対応表、および実装変更の要否（不要の場合は理由）と修正対象の一覧。
 
 ### 5. 成果物・修了判定・CIとの整合
 
-対象: \`training/workbook/*\`、\`scripts/training/check-completion.ts\`、\`scripts/training/materialize-training-handoff.ts\`、\`scripts/training/prepare-training-copy.ts\`、\`scripts/training/validate-training-copy.ts\`、\`scripts/validate-curriculum.ts\`、\`tests/contracts/training-*.test.ts\`、\`training/github-actions/*\`、関連 \`.github/workflows/*\`。
+対象: `training/workbook/*`、`scripts/training/check-completion.ts`、`scripts/training/materialize-training-handoff.ts`、`scripts/training/prepare-training-copy.ts`、`scripts/training/validate-training-copy.ts`、`scripts/validate-curriculum.ts`、`tests/contracts/training-*.test.ts`、`training/github-actions/*`、関連 `.github/workflows/*`。
 
 1. AIによる成果物を受講者自身の成果物と認めるために必要な証拠を定義する。最低限、目的・入力根拠、AIへの依頼または作業記録、生成結果、受講者の判断、実行・再実行の証拠を対応付ける。秘密情報や大量の会話ログの保存を要求しない。
-2. 既存の4 CSV、\`handoff-root/{workbook,code,evidence,receipts,self-check}\`、Completion Receiptで表現できるか確認する。不足が明白なものに限って列・文書・チェック処理を追加する。
+2. 既存の4 CSV、`handoff-root/{workbook,code,evidence,receipts,self-check}`、Completion Receiptで表現できるか確認する。不足が明白なものに限って列・文書・チェック処理を追加する。
 3. 現行のC01〜C12・Lesson IDを変更する場合は、参照・契約テスト・過去教材の互換性を確認する。既存テストが旧ルーブリックの文字列を固定しているからという理由だけで、学習目的の変更を断念しない。一方、必要のないID変更は行わない。
 4. 機械判定可能なのはID・参照・ファイル・実行記録の整合といった事実であり、AIが提案したテスト条件の妥当性や受講者の理解度まで自動合格させない。自己確認・講師レビューで判定する意味上の基準を公開する。
-5. \`training:copy:prepare\` / \`validate\` によるTraining CI隔離を維持し、受講者に本番Secret・元リポジトリへのPush権限・有料CI契約を要求しない。CIでのRun / Check / Artifactの証拠と、AIの自己申告を区別する。
+5. `training:copy:prepare` / `validate` によるTraining CI隔離を維持し、受講者に本番Secret・元リポジトリへのPush権限・有料CI契約を要求しない。CIでのRun / Check / Artifactの証拠と、AIの自己申告を区別する。
 
 成果物: 提出・評価形式、機械検証と人間の判断の境界、必要な契約テスト変更一覧、CIとコピー環境の移行方針。
 
@@ -180,7 +180,7 @@ Plan承認後、上記の判断結果に沿って次の順序で実装する。�
 
 検証候補（変更範囲に応じて実行し、結果を記録）:
 
-\`\`\`bash
+```bash
 pnpm run validate:curriculum
 pnpm run test:contracts
 pnpm run typecheck:training
@@ -191,9 +191,9 @@ pnpm run training:copy:validate
 pnpm run format:check
 pnpm run lint:markdown
 pnpm run lint:text:all
-\`\`\`
+```
 
-\`training:completion:check\` は事前に作成した受講者用 \`handoff-root\` が必要。実行可能な環境・入力がない場合はスキップ理由を記録し、PASSと扱わない。変更がアプリやCIに及ぶなら、該当するunit/integration/contract/E2Eを追加して実行し、必要ならリポジトリ標準の \`pnpm run verify\` で回帰を確認する。Maestroは選択課程と端末条件に従って検証し、iOS Build-onlyをRuntime検証と誤認しない。
+`training:completion:check` は事前に作成した受講者用 `handoff-root` が必要。実行可能な環境・入力がない場合はスキップ理由を記録し、PASSと扱わない。変更がアプリやCIに及ぶなら、該当するunit/integration/contract/E2Eを追加して実行し、必要ならリポジトリ標準の `pnpm run verify` で回帰を確認する。Maestroは選択課程と端末条件に従って検証し、iOS Build-onlyをRuntime検証と誤認しない。
 
 ## 想定リスクと対応
 
@@ -215,7 +215,7 @@ Plan作成時点では、次は**決定済みとして扱わない**。
 
 1. 17レッスンを維持するか再編するか：G1〜G6との対応、重複、前提、工数、移行コストから案A/Bを比較して決める。
 2. 既存C01〜C12を維持するか：AI活用の実証を評価できるかで判断する。名称や番号の変更を目的にしない。
-3. 共通課程へ含めるSkillの範囲：最小実演の結果から必要な工程だけを採用する。\`qa-workflow-skills\`自体の開発学習は求めない。
+3. 共通課程へ含めるSkillの範囲：最小実演の結果から必要な工程だけを採用する。`qa-workflow-skills`自体の開発学習は求めない。
 4. Scenario Shop本体の変更量：仕様・既存Seed・Training演習とのギャップを確認するまで、追加機能・不具合を決めない。
 5. 工数と実施形態：新しい演習の所要時間を、既存から置き換える作業とセットで見積もる。現行80〜85時間は参考値として扱う。
 6. 無料モデルの制約下で通し演習が成立するか：OpenCode＋Skillの小さな実動作で確認する。未検証の成功を保証しない。
@@ -231,7 +231,7 @@ Plan作成時点では、次は**決定済みとして扱わない**。
 - [ ] AI活用を単なる追加セクションにせず、必要な学習活動と評価へ具体的に組み込む方針が決まっている。
 - [ ] OpenCode＋qa-workflow-skillsの担当範囲と、動作確認が必要な点が区別されている。
 - [ ] Scenario Shopの対象機能・仕様・Seed・Training入口・実行証拠の対応を確認し、修正の要否と対象を明示している。
-- [ ] \`training/workbook/\`、\`training:completion:check\`、契約テスト、Training Copy、CIへの影響と必要な検証が追える。
+- [ ] `training/workbook/`、`training:completion:check`、契約テスト、Training Copy、CIへの影響と必要な検証が追える。
 - [ ] 無理な独自基盤・全Skill必修・新規製品機能・モデル固定など、根拠のない追加要求を含めていない。
 - [ ] 未確認・未決定を事実や完了として扱わず、実装前に何を確認すれば決められるか記載している。
 - [ ] **Planをレビューし、実装開始の判断が得られている。**
