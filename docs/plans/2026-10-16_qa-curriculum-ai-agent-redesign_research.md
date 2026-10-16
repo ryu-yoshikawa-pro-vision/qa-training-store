@@ -19,11 +19,19 @@
 
 参考： [旧課程](../curriculum/test-automation/README.md)、[旧評価](../curriculum/test-automation/02_competency-rubric.md)、[旧validator](../../scripts/validate-curriculum.ts)、[旧修了確認](../../scripts/training/check-completion.ts)、[Training workbook](../../training/workbook/README.md)、[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)。
 
+## 3フェーズへの変更理由と新たな境界
+
+- AIエージェント未経験者は、ファイル参照・ツール実行・権限・Skillの発見や必要な依頼形式を、Playwrightの設定やGitHubの操作より前に学ぶ必要がある。このため**Phase 1（M00〜M04）をAIの基本操作と自動化に必要なテスト分析・設計で完結**させる。
+- Phase 1の設計成果物を使って、Phase 2（M05〜M07）でNode.js/Playwrightの導入・最小構成・E2E実装・ローカル実行・保守を学ぶ。これを終えることで**Playwright自動化を単独で構築・実行する能力**を評価できる。
+- GitHubを利用しない現場や学習工数の制約を考慮し、Phase 3（M08〜M10）は**選択**とする。第3フェーズにだけGitHubアカウント・PR・GitHub Actions・CI実行が必要になる。
+- Phase 1・2の教材と提出物は、GitHubでclone・PR作成することなくローカルで入手・編集・確認できる必要がある。必要な資料と基準revisionを受講者向けに配布する方式はCodex実装時に検証する。
+- **全フェーズ横断の最終課題1つでは足りない**。Phase 1終了時は初見条件の設計、Phase 2終了時はローカルE2E・診断、Phase 3終了時は既存specのCI化としてそれぞれ実技と修了を設ける。
+
 ## 以前のPlanを修正する理由
 
 以前のPlanは、既存17レッスンとC01〜C12を維持し、C13を追加してAI利用を強化する「旧課程の改訂案」だった。しかし今回の目的は**別の新カリキュラム**を作ることなので、その改訂案は不適切。
 
-旧課程の17という数字、既存の分割、旧Completion Receiptの構造を継承する必要はない。一方、Scenario Shop、正式仕様、Seed/ResetやPlaywright helperを複製する理由もない。**教材と評価の正本を分け、製品の正本は共有する**。
+旧課程の17という数字、既存の分割、旧Completion Receiptの構造を継承する必要はない。新課程は独立した3フェーズを持ち、Phase 3を受講しなくてもPhase 1/2の修了を妨げない。一方、Scenario Shop、正式仕様、Seed/ResetやPlaywright helperを複製する理由もない。**教材と評価の正本を分け、製品の正本は共有する**。
 
 ## 既存課程との比較で採用するもの・しないもの
 
@@ -38,7 +46,8 @@
 2. 旧 `validate:curriculum`、`training:completion:check`の公開入力・出力契約を変更しない。新しい合否ロジックは別に作るか、最小構成では受講者向けの公開ルーブリックによる確認とする。
 3. `training/ai-assisted-qa-course/`の新spec・演習が旧 `training:web:exercise` / `training:web:diagnostic` / 正式 `e2e/web/` に混入しないことを対象列挙で確かめる。
 4. Product Code、Seed、Specを共有する場合、旧課程と正式回帰の期待結果が引き続き成立することを確認する。必要性がない限り変更しない。
-5. 新旧どちらのREADMEを開いても、それぞれの学習経路・評価・成果物の所在が一意に分かるようにする。新課程から旧課程へ参照リンクを張るのはよいが、旧課程を新課程の必修入口にしない。
+5. 新課程のPhase 1ではGitHub/Playwright、Phase 2ではGitHub/CIを必須にしないことを配布・実行・採点の両面から確かめる。Phase 3のための追加資産をPhase 1/2の必須前提へ混ぜない。
+6. 新旧どちらのREADMEを開いても、それぞれの学習経路・評価・成果物の所在が一意に分かるようにする。新課程から旧課程へ参照リンクを張るのはよいが、旧課程を新課程の必修入口にしない。
 
 ## 調査の限界
 
