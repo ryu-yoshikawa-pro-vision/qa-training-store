@@ -6,6 +6,15 @@
 
 不足のある教材を機械的に増やさず、すでにあるSeed/Reset、Playwrightの診断・保守演習、既存のTraining Copyを再利用する。AIエージェントとの実際の協働は、製品コードを編集しなくても成立する設計とする。
 
+## 演習と知識・評価のつながり
+
+この文書のE1〜E6は[学習項目表](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)の「適用」「判断」に対する実技証拠である。[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)の4択問題だけで実技をPASSと認定しない。[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)に定めた学習項目とC01〜C13の完了条件に照らして判断する。
+
+- E1/E2：P1-02/P1-03の仕様分析・リスク・テスト条件、P1-05のWeb自動化。E2は設計を必須、E2の追加E2Eは発展。
+- E3/E4：P1-06/P1-08の診断・保守、AIの提案に対する採否判断。
+- E5：P2-02/P2-03/P2-05/P2-08の差分・PR・CI証拠。
+- E6：P1-02/P1-03/P1-09の正式仕様との照合。**固定誤答案を評価する実技**であり、AIが実際にその誤答を返したとは扱わない。
+
 ## 仕様と検証の優先順位
 
 1. 正式仕様：`docs/spec/README.md` → `features/cart.md`、`features/checkout-and-payment.md`などのBR/AC。
@@ -84,7 +93,7 @@ Skill選択・呼び出しそのものはOpenCodeの発火機構に任せても�
 
 ### 安全な実行と成果物の置き場所
 
-1. 受講者専用のTraining Copyまたは隔離された学習用コピーで実施。正式 `e2e/web/` と製品ソース変更を禁止する。
+1. P1-02/P1-03でのAI分析では、当面は仕様読解と提案の判断のみを行わせ、受講者ファイルへの自動編集を許可しない。P1-04で差分確認を学んだ後に編集を伴う演習へ移る。受講者専用のTraining Copyまたは隔離された学習用コピーで実施。正式 `e2e/web/` と製品ソース変更を禁止する。
 2. `git status`・`git diff`でAIの変更を確認する。
 3. `pnpm run training:web:baseline` は環境の確認に使う。成功しても本人が作成したテストの合格にはならない。
 4. `pnpm run training:web:exercise` は受講者specの実行。`training:web:exercise:with-receipt` を利用する際は引数・必要な成果物を現行スクリプトで確認する。古いArtifactを今回の実行結果として流用しない。
