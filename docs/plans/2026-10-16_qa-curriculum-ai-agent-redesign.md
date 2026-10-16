@@ -16,6 +16,7 @@
 - Phase 1の学習対象はテスト自動化に必要なテスト分析・設計に限る。広範なQA管理・全テスト技法の習熟を目的にしない。
 - Phase 3ではPhase 2で作成したテストを再利用し、分析・実装のやり直しを必須にしない。
 - **各フェーズの最後に独立した修了課題**を置く。Phase 1は設計、Phase 2はローカルE2E、Phase 3はGitHub・CI。従来のM10はPhase 3の総合演習として扱い、Phase 1・2の必修に含めない。
+- **受講開始ガイド（モジュール数に含めない）**を設け、ターミナル未経験の受講者が最初のM00をロードできるようにする。M00はVS Code・AI基本操作、M05はNode.js→pnpm→TypeScript→Playwrightの順に教える。各項目のLevel 2判定は[詳細な学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)による。
 - 11モジュール／51学習項目は現時点の設計案。目標と評価に照らして必要な追加・整理は認めるが、数合わせで増やさない。
 
 ## 学習用リポジトリへの同期とモジュール単位のロード
@@ -51,21 +52,22 @@
 
 1. [調査と既存課程の境界](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md)：旧契約と3フェーズ化にあたっての再利用範囲・未確認事項。
 2. [学習目的・3フェーズの構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)：受講者像、モジュール、フェーズ間の引継ぎ、段階別の修了目標。
-3. [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)：M00〜M10の学ぶ内容・評価手段、フェーズごとの必須範囲。
-4. [確認クイズ・正答・解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)：初心者から段階的に確認する問題、正答・誤答説明・復習先。
-5. [評価・各フェーズの修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)：知識・実技・判断、未達・BLOCKED、フェーズ別の合否。
-6. [教材同期・モジュール単位ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)：管理者の同期、受講者の1モジュールずつのロード、公開解説と非公開評価資料、Scenario Shopの配布契約。
-7. [Scenario Shop・実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)：別リポジトリのCodespacesでのPlaywright実行、Phase別導線・成果物、選択Phase 3のCI、旧実装との分離。
+3. [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)：M00〜M10の学習項目51件と評価範囲。
+4. [学習順序・モジュール別習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)：受講開始ガイド、前提知識、各モジュールの順序、51項目別のLevel 2判定、飛躍・漏れ・目的逸脱の確認。
+5. [確認クイズ・正答・解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)：初心者から段階的に確認する問題、正答・誤答説明・復習先。
+6. [評価・各フェーズの修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)：知識・実技・判断、未達・BLOCKED、フェーズ別の合否。
+7. [教材同期・モジュール単位ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)：管理者の同期、受講者の1モジュールずつのロード、公開解説と非公開評価資料、Scenario Shopの配布契約。
+8. [Scenario Shop・実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)：別リポジトリのCodespacesでのPlaywright実行、Phase別導線・成果物、選択Phase 3のCI、旧実装との分離。
 
 ## 実装作業の順序（Codex引継ぎ）
 
 1. PR #199のHEADとPR #198、`.devcontainer/devcontainer.json`、`docs/guides/codespaces.md`、`docs/spec/`、既存教材・Training・validator・CIの最新状態を確認する。**2コアの新規Codespace**での動作・課金条件・OpenCode認証・Skill実行は過去の検証結果を流用せず、必要な範囲で再検証する。
 2. 公開の教材正本と別の公開学習用Templateリポジトリの**同期・ロード経路**を先に実装・検証する。許可リスト方式の同期、確定SHAの記録、完成解答の除外、学習者による1モジュール単位のロード、上書き防止、別リポジトリ単体でのScenario Shop起動を確認する。**本Planの段階ではリポジトリを作成しない**。
 3. 新教材ディレクトリを作り、トップREADMEで**Phase 1のみ／Phase 1〜2／全3フェーズ**の受講経路と修了の違いを示す。共通の開始手順は**学習用リポジトリ作成→本人の2コアCodespace作成・確認→CLI・AI認証・Skill確認→学習者がM00をロード**とする。Phase 1・2でGitコマンド・PR・CI操作を要求しない。
-3. [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)から、各モジュールの必要な説明・最小例・確認クイズ・正答解説・復習先・実技評価を作る。前提を教えずに専門知識を使わせない。
-4. Phase 1の**誘導付きのAI操作→自分で依頼→初見の仕様分析・設計**の流れを作る。実在するSkillの発見・使用条件・依存と、AIの誤った推論の見抜き方を教材にする。失敗を伴う環境制約はBLOCKEDと区別する。
-5. Phase 1の成果物（仕様根拠・Risk/Condition/Case・採否理由）をCodespaceの作業フォルダに保存し、Gitを知らない受講者でもダウンロードして保全・引継ぎできる形式と手順を用意する。Phase 1修了時にPlaywrightやGit操作を要求しない。
-6. Phase 2は**Codespacesに導入済みのNode.js/pnpm/Playwright/Chromium**を使い、設定・実行方法と最小構成の再現を教える。専用spec・結果パス・ポート境界を確認し、実装・Reset→実行→失敗分析・保守まで**CI不要で**成立する総合演習を作る。Devcontainer全体の再構築を修了要件にしない。
+4. [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)および[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)から、各モジュールの必要な説明・最小例・確認クイズ・正答解説・復習先・実技評価を作る。前提を教えずに専門知識を使わせない。
+5. Phase 1の**誘導付きのAI操作→自分で依頼→初見の仕様分析・設計**の流れを作る。実在するSkillの発見・使用条件・依存と、AIの誤った推論の見抜き方を教材にする。失敗を伴う環境制約はBLOCKEDと区別する。
+6. Phase 1の成果物（仕様根拠・Risk/Condition/Case・採否理由）をCodespaceの作業フォルダに保存し、Gitを知らない受講者でもダウンロードして保全・引継ぎできる形式と手順を用意する。Phase 1修了時にPlaywrightやGit操作を要求しない。
+7. Phase 2は**Codespacesに導入済みのNode.js/pnpm/Playwright/Chromium**を使い、設定・実行方法と最小構成の再現を教える。専用spec・結果パス・ポート境界を確認し、実装・Reset→実行→失敗分析・保守まで**CI不要で**成立する総合演習を作る。Devcontainer全体の再構築を修了要件にしない。
 8. Phase 3では**Phase 1・2と同じ学習用リポジトリ**でGit/GitHub/PR、専用GitHub Actionsの構築・実行・Artifact、CI失敗時の切り分けを**選択課程**として実装する。既存の旧Training Copyは本件の配布に流用しない。Phase 1・2の合否には参照させない。
 9. フェーズ単位で学習項目↔教材↔クイズと正解解説↔実技↔修了条件を照合する。旧課程の検証を回帰として実行し、別フェーズの証拠・実績を流用しない。
 
@@ -83,7 +85,7 @@
 
 ## 完了の定義
 
-**Planの完成**：3フェーズの目的・教材・クイズ/解説・実技と修了判定、Codespacesの無料条件に加え、**公開の教材正本→公開学習用リポジトリへの許可リスト同期→学習者によるモジュール単位ロード**と、完成解答の除外、上書き防止、Scenario Shopの実行方法を明文化する。
+**Planの完成**：3フェーズの目的・教材・クイズ/解説・実技と修了判定、**受講開始からM10までの順序・51項目別の到達判定・前提関係**、Codespacesの無料条件に加え、**公開の教材正本→公開学習用リポジトリへの許可リスト同期→学習者によるモジュール単位ロード**と、完成解答の除外、上書き防止、Scenario Shopの実行方法を明文化する。
 
 **教材実装の完成**：学習者個人のリポジトリに完成解答を含めず**モジュールを一つずつロードして**各フェーズをその到達点だけで修了でき、Phase 1・2ではCodespacesの初期利用に必要なGitHubログイン以外のGit/PR/CI操作を要求しない。Phase 1にPlaywright、Phase 2にCIを必須にしない。新規2コア環境でOpenCode/Skill・Playwrightが動くことを実行証拠で検証し、無料枠内での完走可否は受講時間・ストレージ・実行環境の実測で判定する。
 
