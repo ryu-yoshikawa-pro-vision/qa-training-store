@@ -12,11 +12,23 @@
 | **Phase 2：Playwright構築・実装・実行・改善** | M05〜M07 | Phase 1の成果物から、ローカルで実行できる自動テストを構築する | 環境設定、実装、Seed/Reset、実行、失敗分析、保守改善ができる | Phase 1修了後に受講。ここまででPlaywright自動化の修了 |
 | **Phase 3：GitHub・CIによる継続実行** | M08〜M10 | Phase 2のテスト資産をGitHubで管理し、CIへ組み込む | PRレビュー、対象SHAのCI実行・Artifact・失敗対応と品質ゲートを扱える | **選択**。Phase 1・2の修了要件には含めない |
 
-- Phase 1とPhase 2は**GitHubアカウント、PR、GitHub Actions、CIを必要としない**。教材・課題は配布済みローカルファイルと利用可能なAI環境だけで進められるようにする。Phase 2で使うNode.js・Playwright等の導入は別途必要。
+- **標準学習環境はGitHub Codespaces**とする。Codespaceの作成にはGitHubアカウントと利用権限が必要だが、**Phase 1・2でGit/branch/commit/PR/GitHub Actions/CIの操作は学ばせず、修了条件にも含めない**。同じCodespaceで教材・成果物を引き継ぐ。GitHubを使わない業務で学習成果を活用できるよう、成果物はGitに依存しない形式でも保存する。
 - Phase 1の学習対象はテスト自動化に必要なテスト分析・設計に限る。広範なQA管理・全テスト技法の習熟を目的にしない。
 - Phase 3ではPhase 2で作成したテストを再利用し、分析・実装のやり直しを必須にしない。
 - **各フェーズの最後に独立した修了課題**を置く。Phase 1は設計、Phase 2はローカルE2E、Phase 3はGitHub・CI。従来のM10はPhase 3の総合演習として扱い、Phase 1・2の必修に含めない。
 - 11モジュール／51学習項目は現時点の設計案。目標と評価に照らして必要な追加・整理は認めるが、数合わせで増やさない。
+
+## Codespacesと追加料金ゼロを目指す運用
+
+- **受講者本人のGitHub個人アカウントによる無料枠**の利用を標準案とする。利用前にCodespaceの**所有者・支払主体**と残り無料枠を確認する。組織・企業アカウント自体にはCodespaces無料枠が付かない。現在のリポジトリは公開されているが、組織所有であることから自動的に受講者個人の無料枠が適用されるとは断定しない。
+- GitHub Free個人アカウントの目安は**120コア時間/月、15 GB-month/月**（2026-10-16時点）。**2コアなら計算上最大約60起動時間/月**だが、他Codespaceとの共用・保存容量・個人の設定・支払条件によって変わる。無料を保証する時間数ではない。
+- **2コアを標準として作成時に選択・確認**する。現行`.devcontainer/devcontainer.json`に`hostRequirements`はなく、**2コアに明示固定されていない**。`hostRequirements.cpus: 2`は最小要件であり上限固定ではないので、費用対策だけを理由に追加しない。4コア以上への変更を標準手順に入れない。2コアでの初期セットアップ・OpenCode・Skill・Playwright実行は**実機未検証**。
+- 作成前に利用者の**予算／利用上限・請求設定**を確認し、無料枠超過で課金が発生しない設定または運用を選ぶ。料金を発生させる必要がある場合は演習を停止し、無断で上位マシン・有料プラン・有料モデルへ移行しない。学習終了時はCodespaceを停止し、保存容量と不要環境の整理、成果物の持ち出し方法を案内する。
+- OpenCode CLIは既存devcontainerが導入するが、**モデル推論の無料利用は保証されない**。利用時点で公式にFreeと確認できたモデルのみ使い、補助モデル・自動選択・有料モデルへの切替、Zenのauto-reloadや月間上限を確認する。個人`OPENCODE_API_KEY`のCodespaces Secret認証は既存ガイドに手順があるが、固定CLIでの実機認証は未検証。**APIキー値や認証キャッシュは教材・ログ・GitHubへ保存しない**。
+- Phase 3は**標準GitHub-hosted runnerを用いる公開学習用リポジトリ**を第一候補とする。公開リポジトリの標準Runnerは無料だが、受講者用のコピー、書込権限、workflow有効化、Artifact保存の利用条件を確認する。private repository／larger runner／有料サービスを必須にしない。
+- 各フェーズについて、受講者の実測**Codespace起動時間・ストレージ使用量・セットアップ成否**を記録し、無料枠内で成立するか判断する。現時点では学習時間・消費量・受講者全員の無料利用は**未確認**。無料条件が成立しない場合はBLOCKEDとして扱い、勝手な課金で解消しない。
+
+参考：[GitHubのプラン別使用量](https://docs.github.com/ja/billing/reference/product-usage-included)、[Codespaces課金](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)、[Codespaces利用ガイド](../guides/codespaces.md)、[OpenCode Zen料金](https://opencode.ai/docs/zen/)、[GitHub Actionsの課金](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
 
 ## 既存カリキュラムとは独立して作る
 
@@ -33,16 +45,16 @@
 3. [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)：M00〜M10の学ぶ内容・評価手段、フェーズごとの必須範囲。
 4. [確認クイズ・正答・解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)：初心者から段階的に確認する問題、正答・誤答説明・復習先。
 5. [評価・各フェーズの修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)：知識・実技・判断、未達・BLOCKED、フェーズ別の合否。
-6. [Scenario Shop・実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)：ローカル配布と成果物の引継ぎ、Playwright、選択Phase 3のCI、旧実装との分離。
+6. [Scenario Shop・実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)：既存Codespacesの流用、Phase別導線・成果物、Playwright実行、選択Phase 3のCI、旧実装との分離。
 
 ## 実装作業の順序（Codex引継ぎ）
 
-1. PR #199のHEADとPR #198、`docs/spec/`、既存教材・Training・validator・CIの最新状態を確認する。Planと現行実装の食い違いを報告する。
-2. 新教材ディレクトリを作り、トップREADMEで**Phase 1のみ／Phase 1〜2／全3フェーズ**の受講経路と修了の違いを示す。Phase 1・2にGitHub操作やCIを要求しない。
+1. PR #199のHEADとPR #198、`.devcontainer/devcontainer.json`、`docs/guides/codespaces.md`、`docs/spec/`、既存教材・Training・validator・CIの最新状態を確認する。**2コアの新規Codespace**での動作・課金条件・OpenCode認証・Skill実行は過去の検証結果を流用せず、必要な範囲で再検証する。
+2. 新教材ディレクトリを作り、トップREADMEで**Phase 1のみ／Phase 1〜2／全3フェーズ**の受講経路と修了の違いを示す。共通の開始手順は**GitHubログイン→2コアCodespace作成・確認→CLI・AI認証・Skillの起動確認**とする。Phase 1・2でGitコマンド・PR・CI操作を要求しない。
 3. [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)から、各モジュールの必要な説明・最小例・確認クイズ・正答解説・復習先・実技評価を作る。前提を教えずに専門知識を使わせない。
 4. Phase 1の**誘導付きのAI操作→自分で依頼→初見の仕様分析・設計**の流れを作る。実在するSkillの発見・使用条件・依存と、AIの誤った推論の見抜き方を教材にする。失敗を伴う環境制約はBLOCKEDと区別する。
-5. Phase 1の成果物（仕様根拠・Risk/Condition/Case・採否理由）をローカルで保存し、Phase 2へ引き継げる形にする。Phase 1修了時にPlaywrightやGitHubの実行を要求しない。
-6. Phase 2の**Node.js/TypeScript/Playwrightの導入・最小設定→実装・Reset→実行→失敗分析・保守**を独立して作る。新課程専用のspecと結果パスを設定し、ローカル完結の総合演習を用意する。
+5. Phase 1の成果物（仕様根拠・Risk/Condition/Case・採否理由）をCodespaceの作業フォルダに保存し、Gitを知らない受講者でもダウンロードして保全・引継ぎできる形式と手順を用意する。Phase 1修了時にPlaywrightやGit操作を要求しない。
+6. Phase 2は**Codespacesに導入済みのNode.js/pnpm/Playwright/Chromium**を使い、設定・実行方法と最小構成の再現を教える。専用spec・結果パス・ポート境界を確認し、実装・Reset→実行→失敗分析・保守まで**CI不要で**成立する総合演習を作る。Devcontainer全体の再構築を修了要件にしない。
 7. Phase 3のGit/GitHub/PR、専用Training Copy、GitHub Actionsの構築・実行・Artifact、CI失敗時の切り分けを**選択課程**として実装する。Phase 1・2の合否には参照させない。
 8. フェーズ単位で学習項目↔教材↔クイズと正解解説↔実技↔修了条件を照合する。旧課程の検証を回帰として実行し、別フェーズの証拠・実績を流用しない。
 
@@ -60,8 +72,8 @@
 
 ## 完了の定義
 
-**Planの完成**：3フェーズそれぞれの目的・必須範囲・初心者向け教材の学習順序・確認クイズ・正答解説の作成規則・フェーズごとの実技評価・引継ぎ・ローカル／GitHubの境界を明文化している。
+**Planの完成**：3フェーズの目的・必須範囲・初心者向け教材・クイズ/解説・実技と修了判定に加え、**Codespaces標準環境、2コアと無料枠の利用条件、AIの無料モデル・認証の未確認点、Git操作学習との分離、保存・引継ぎ**を明文化している。
 
-**教材実装の完成**：各フェーズを**その到達点だけで修了**でき、Phase 1にはGitHub・Playwrightの必須条件がなく、Phase 2にはGitHub・CIの必須条件がない。Phase 3だけがGitHub・CIを必要とする。実際のSkill利用、Playwright実行、CIは実行証拠で検証する。
+**教材実装の完成**：各フェーズを**その到達点だけで修了**でき、Phase 1・2ではCodespacesの初期利用に必要なGitHubログイン以外のGit/PR/CI操作を要求しない。Phase 1にPlaywright、Phase 2にCIを必須にしない。新規2コア環境でOpenCode/Skill・Playwrightが動くことを実行証拠で検証し、無料枠内での完走可否は受講時間・ストレージ・実行環境の実測で判定する。
 
 **今回の変更範囲**：Planのみ。教材実装・merge・PR #198の変更・PR #199のcloseは行わない。
