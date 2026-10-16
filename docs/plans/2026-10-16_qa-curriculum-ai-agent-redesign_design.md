@@ -2,7 +2,7 @@
 
 ## 対象者・目標
 
-手動テスト経験はあるが、**AIエージェント・プログラミング・GitHub未経験でも参加できる**ことを前提とする。AIエージェントにQA業務を丸投げするのではなく、学習者本人が作業目的、正本、完了条件とAI成果物の妥当性を判断できるようにする。
+手動テスト経験はあるが、**AIエージェント・プログラミング・Gitの操作は未経験でも参加できる**ことを前提とする。標準学習環境はGitHub Codespacesのため、全員にGitHubログインとCodespace作成権限が必要となる。ただしGit/PR/CIを学ぶのは選択Phase 3である。AIエージェントにQA業務を丸投げするのではなく、学習者本人が作業目的、正本、完了条件とAI成果物の妥当性を判断できるようにする。
 
 対象は**テスト自動化**。仕様理解・テスト分析・設計は、適切な自動化対象・正しい期待結果・維持可能なコードを作るために学ぶ。QA管理全般や全Skillの習熟は要求しない。
 
@@ -16,29 +16,39 @@
 
 受講パターンは**Phase 1のみ、Phase 1〜2、Phase 1〜3**の3種類。Phase 3は選択課程であり、Phase 2修了者をCI未経験という理由で不合格にしない。Phase 1の修了はAIを使った設計能力の認定であり、**テスト自動化コードを実装できるという認定ではない**。
 
+## 全フェーズ共通の学習環境と開始手順
+
+**GitHub Codespaces（2コア選択）**を標準とし、Phase 1・2は同じCodespace内でVS Code・ターミナル・OpenCode CLIを利用する。2コアは**設定済み・固定済みではない**ため受講者が作成時に確認する。既存の`.devcontainer/devcontainer.json`はNode.js 24、pnpm、Playwright/Chromium、OpenCode CLI、Codex CLI、GUI用desktop-liteを準備する。変更する前に[既存ガイド](../guides/codespaces.md)と実機結果を確認する。
+
+開始前に、(1) GitHubアカウント・リポジトリアクセス・Codespaceの作成権限と**費用の支払主体**、(2) 2コア選択・残り無料利用枠／保存容量・課金停止条件、(3) Codespace作成のログ・基本コマンドの起動、(4) 個人Secret経由のOpenCode認証と**無料モデル限定**の設定、(5) `qa-workflow-skills`のSkillとPython helperの実行可否を確認する。**これらは初期セットアップの健全性確認**であり、それだけでPhase 1の学習目標を達成したとは評価しない。
+
+GitHub Freeの個人利用枠は120コア時間/月・15 GB-month/月（2コアで理論上最大約60稼働時間/月）だが、使用残量や組織側の支払設定で変わる。所要時間は未実測。Codespaceを使い終えたら停止し、保存容量・残り無料枠を確認して必要な成果物をエクスポートする。**無料を保証した教材として案内しない**。登録・モデル・料金条件が合わなければBLOCKEDとして停止し、本人の承認なく有料手段で続行しない。
+
+Phase 1の成果物はGitコマンド不要でダウンロード・バックアップ可能なMarkdown等、Phase 2はその成果物に加えてspec・設定・ログを保存できる形とする。Phase 3で初めてGitとPRを使い、Phase 2の成果物をGitHubへ持ち込む。Codespaceの削除や無料枠到達に備えて、**フェーズ終了ごとの作業成果の取り出し**を教材に含める。
+
 ## フェーズごとの学習順序
 
 ### Phase 1：AI初心者からテスト設計まで（M00〜M04）
 
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
-| M00 | OpenCodeの準備・起動・作業ディレクトリ・ファイル読解、AIエージェントとチャットの違い、ツール権限、Skillの発見・利用、安全な作業範囲と検証 | **用意した指示を実行して結果を確認**。次に自分で目的・制約・出力形式を指定 |
+| M00 | CodespacesでのVS Code・ターミナル操作、OpenCode CLI起動・作業ディレクトリ・ファイル読解、チャットとの違い、権限・Skill発見と安全な依頼 | **環境の起動確認と技能評価を分離**。用意した指示から開始し自分で目的・制約・出力を指定 |
 | M01 | 自動化の目的・限界・テスト層、人間とAIの責任、自動化対象の選び方 | 知識と判断のクイズ |
 | M02 | Scenario ShopのBR/AC、観測・推測の区別、Seed・Role/State・リスク分析 | AIに仕様の分析を依頼し、仕様との照合で誤りを検出 |
 | M03 | 同値分割・境界値・デシジョンテーブル・状態遷移、Risk→Condition→Case→仕様ID | AIとのテスト設計と期待結果の根拠 |
 | M04 | AI生成ケースの欠落・重複・誤った期待結果・テスト層の選択、Automation候補の採否 | **Phase 1総合演習**：初見の状態条件を分析・設計し、採否理由を記録 |
 
-AI操作は「実例を真似る→依頼を自作する→初見課題で成果物を検証する」の順に進める。**Phase 1にGitHubアカウント・Git CLI・Playwright・CIを要求しない**。ローカルで参照できる仕様資料・課題・AIの成果物保存場所を配布する。必要なCLI導入やAIプロバイダー認証は別途準備・検証する。使えない場合はBLOCKEDと記録し、「使ったことにする」ことを認めない。
+AI操作は「実例を真似る→依頼を自作する→初見課題で成果物を検証する」の順に進める。Codespacesの利用にはGitHubアカウントが必要だが、**Phase 1にGitコマンド・PR・Playwright・CIの操作は要求しない**。OpenCodeのCLIを確実な入口とし、未確認のVS Code拡張を必修としない。Skillの発見だけでなく補助ファイル・Python実行を確認する。使えない場合はBLOCKEDとし「使ったことにする」ことを認めない。
 
 ### Phase 2：Playwrightをローカルで動かす（M05〜M07）
 
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
-| M05 | Node.js/npm、最小TypeScript、Playwrightの導入、Config・testDir・コマンド・テスト結果、Locator・Assertion・待機 | **新しい学習用環境を準備し、最小テストを実行**。生成設定の意味を説明 |
+| M05 | Codespaces既存のNode.js/pnpm/Playwright/Chromiumの構成確認、最小TypeScript、Config・testDir・ポート・出力・Locator・Assertion・待機 | **既存環境の意味を説明し、新課程用の最小テストを実行**。devcontainer全体の再構築は不要 |
 | M06 | Phase 1のケースとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行 | 期待結果に合ったE2E、実行ログ・差分、再現性 |
 | M07 | Trace・Screenshot・Error、Test/Product/Environment/Flakyの切り分け、最小修正、Helper/POM/Fixtureの要否 | **Phase 2総合演習**：未演習の条件でテストを作り、実行・失敗分析・修正・再実行 |
 
-Phase 1で作成したケースを**再利用**する。Phase 2ではPlaywright Configや実行環境を理解できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入をすべての題材に要求しない。**GitHubやCIを使わないローカルの実行証拠だけで修了**する。
+Phase 1で作成したケースを**再利用**する。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
 
 ### Phase 3：GitHubとCIで継続実行（M08〜M10、選択）
 
@@ -76,12 +86,12 @@ training/
   ai-assisted-qa-course/             # 必要な場合のPhase 2/3専用実技
 ```
 
-初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。Phase 1の課題資料、問題、成果物の書式をGitHub操作なしで入手・利用できるようにする。Phase 2も同じくローカルで完結。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
+初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
 
 ## 未実証事項とCodex実装の責務
 
 - OpenCodeの利用環境と`qa-workflow-skills`の実際のSkill発見・Python helperは実演して確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
-- Phase 1をGitHubアカウントなしで進められる資料配布・保存・評価の実際の導線を検証する。
-- Phase 2のNode/Playwrightの初期構築・新課程専用実行・結果保存先が旧Trainingと衝突しないことを検証する。
-- Phase 3のTraining Copy／CI workflowの隔離とGitHub権限の必要性を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
+- Phase 1はGitHubアカウントによるCodespace作成を前提に、Gitコマンド・PR・CIの操作なしで進められる教材配布・保存・評価の導線を検証する。
+- Phase 2は既存devcontainerのNode/Playwrightを利用し、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
+- Phase 3のTraining Copy／CI workflowの隔離とGitHub権限・標準Runnerの無料条件を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
 - **本PRはPlanのみ**。最終的な教材本文、全問題と答え、実行可能な課題はCodex実装時に作成・試行する。
