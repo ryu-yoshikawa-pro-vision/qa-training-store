@@ -114,7 +114,7 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | 検証 | 合格条件 |
 | --- | --- |
 | 教材分離 | 旧`docs/curriculum/test-automation/**`に差分0。新教材だけで一連の導線が成立 |
-| 学習項目とクイズ | 新課程の全必須項目に知識・実技の対応があり、解答・根拠・復習先が存在 |
+| 学習項目とクイズ | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に基づき、**M00前の開始ガイドと51項目すべての説明・演習・Level 2判定・復習先**がある。公開クイズの解説と非公開の修了解答を区別 |
 | 共通開始 | 本人の支払主体・無料枠・2コアの選択、Codespaces起動、OpenCode Freeモデルと個人Secret、Skill/Python helperが実際に利用できる（未確認ならBLOCKED） |
 | 教材同期 | 許可リストから学習用Templateを生成し、非公開解答・完成spec・Secret・正式workflowを除外。同期元SHAを記録 |
 | 学習者ロード | 本人が`course:load Mxx`で指定した1モジュールだけをロード。未知ID拒否・既存成果物の上書き防止・他モジュールの非変更 |
