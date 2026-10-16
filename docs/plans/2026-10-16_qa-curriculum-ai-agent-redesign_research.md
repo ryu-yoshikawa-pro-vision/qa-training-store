@@ -32,6 +32,18 @@
 
 最初の案のように**全レッスン末尾へ「AI活用」節を足すだけでは、手作業の教材とAI演習の二重履修になる**。置き換える具体的な節・ハンズオンを実装設計で指定する。
 
+## 既存の知識確認・採点の追加調査
+
+PR #198のHEADにある必須・選択レッスン17本を再集計した。
+
+- **15本のレッスンに記述式の確認問題が合計104問**（Part 1は59問、Part 2は45問）。P1-09とP2-08は統合演習・自己確認中心であり、個別の`## 確認問題`はない。
+- 全17本に自己確認と完了条件があり、説明すべき最低回答要素や実技の成果物は一定程度示される。しかし4択問題、選択肢ごとの正答解説、学習項目IDと問題・演習の全件対応は用意されていない。
+- `docs/curriculum/test-automation/02_competency-rubric.md`はC01〜C12とLevel 0〜3の評価基準を示すが、各レッスン内の個々の知識項目を明確な正答問題へ分解していない。
+- `scripts/training/check-completion.ts`の`validateSelfChecks()`は`self-check/<Lesson ID>.md`の存在と非空を検査する。Completion Receiptの`semantic_understanding`は`NOT_EVALUATED`であり、理解度を自動採点しているわけではない。
+- `docs/reference/curriculum-self-study-review.md`の旧方針は公開教材内の最低回答要素と自己学習を重視し、長い非公開Answer Keyを前提にしていない。改訂では公開クイズの正答・選択肢別解説を**受講者が回答後に参照できる形**で追加する。非公開採点基準への依存は追加しない。
+
+**変更理由**：既存の確認問題104問があることと、クイズ・正答・解説・目標との対応が整っていることは別である。既存の記述式確認問題は必要な範囲で維持し、[学習項目表](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)、[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)に沿って不足分を追加する。104問を機械的にすべて四択へ変換しない。
+
 ## 2. OpenCode・Skillに関する確認
 
 OpenCode公式は `.opencode/skills/<name>/SKILL.md` のほか、`.agents/skills/<name>/SKILL.md` と `.claude/skills/<name>/SKILL.md` を対象にし、Skillを必要に応じて読み込むとしている。これは**発見の仕様**であり、このTraining Copy・無料モデル上で実際に実行できたことの証明ではない。
