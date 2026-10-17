@@ -24,7 +24,12 @@
 ## 2026-10-18 01:37 (JST)
 
 - Summary: 実装commitを作成し、対象branchへ通常pushし、PR #201本文を実装と検証結果に更新した。
-- Delivery: 5f9ceda2f17305ff4687688ef9343e0ad8b3fc3をissue-192-codex-git-workdir-guardへpush。PR #201はopenでhead SHAがこのcommitと一致することを確認。PR本文に実装内容、検証結果、未確認事項を記載した。commit前Hookのstaged quality、security static check、staged Artifact sanitizerは成功。
+- Delivery: b5f9ceda2f17305ff4687688ef9343e0ad8b3fc3をissue-192-codex-git-workdir-guardへpush。PR #201はopenでhead SHAがこのcommitと一致することを確認。PR本文に実装内容、検証結果、未確認事項を記載した。commit前Hookのstaged quality、security static check、staged Artifact sanitizerは成功。
 - 未完了条件: pnpm run test:contracts / pnpm run verifyはTemp fixture cleanupのEPERM 8件で失敗。Codex CLIとLinux/Codespaces/Actions runnerは利用できず実機検証未実施。必須wait_for_required_ci MCP toolがなくexact-head CI結果は未確認。compact用SessionStartの設定参照は削除したが、未参照ファイル本体は削除制約のため残置。
 - 判断: 失敗した検証を合格扱いせず、Git/PR lifecycleは通常手順で実施した。mergeとIssue closeは行っていない。
 - Progress: 75% (12/16)
+## 2026-10-18 01:41 (JST)
+
+- Summary: Stop Hookが指摘したREPORT.mdのU+0008を、commit SHA先頭の意図された文字に修正した。
+- Validation: invalid control byteが0件、pnpm run lint:text:allはMarkdown 152ファイルすべて成功。
+- Progress: 75% (12/16)。verifyのEPERM、Codex実機、exact-head CIの未確認は継続。
