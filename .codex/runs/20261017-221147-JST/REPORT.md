@@ -42,3 +42,11 @@
 - CLI確認: `codex-cli 0.160.0`。`codex debug prompt-input`はproject contextでexit 0。`--strict-config`はdebug subcommandでは非対応のため、この形でのstrict parse確認はしていない。
 - Review / residual: 追加したWsl fixture処理を自己レビューし、テストを通した。compact専用Hookの設定参照は除去済みだが、未参照`session_start_context.mjs`と旧PowerShell sanitizer libraryはdelete制約に従い残置。interactive `/hooks` trustとCode Mode内のnested tool Hook到達は未確認。CI待機toolは利用可能で、final push後にexact-headを確認する。
 - Progress: 81% (13/16)。follow-up commit / push / PR本文更新とexact-head CIは残作業。
+
+## 2026-10-18 08:58 (JST)
+
+- Delivery: WSL contract fixture修正をcommit `e0144b4d2baafe8dcf5c8b85f46f92539ee5fb12`として作成し、`issue-192-codex-git-workdir-guard`へ明示refspecで通常pushした。PR #201本文をこの実装とローカル検証結果へ更新した。
+- Codex runtime: `codex-cli 0.160.0`のinteractive `/hooks`で、project `.codex/config.toml`の`PreToolUse`（`^Bash$`）がActive / Trustedと表示された。Code Mode内のnested `tools.exec_command()`ではroot固定なしの`git fetch origin`がPreToolUse Hookに拒否され、checkout root固定付きの同じfetchは成功した。Direct interactive executionとFull Access / Approve for meは個別に実行していない。
+- Config parse: `codex debug prompt-input`はexit 0。`codex debug`は`--strict-config`を受け付けないため、この形式のstrict parseは未確認。
+- Remaining: 最終Run記録commit後のexact-head `Web CI` / `Mobile App CI`を必須待機toolで確認し、PR本文へ結果を反映する。未参照`session_start_context.mjs`と旧PowerShell sanitizer libraryは削除禁止契約に従って残置する。
+- Progress: 100% (15/15)。tracked taskは完了。exact-head CIは別のfile-changing-task完了条件として残る。

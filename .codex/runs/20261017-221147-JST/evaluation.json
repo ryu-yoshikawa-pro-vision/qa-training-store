@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "両Planの実装、専用Hook test、契約テスト、pnpm run verify、buildは成功。follow-up commit、push、PR本文更新、exact-head CIは未完了で、Code Modeの実runtime適用は未確認。",
+      "evidence": "両Planの実装、専用Hook test、契約テスト、pnpm run verify、build、follow-up commit/push、PR本文更新は完了。最終Run記録commit後のexact-head CIとDirect interactive tool経路は未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -29,11 +29,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "pnpm run verifyはexit 0。unit 66、integration 111、repository 147、Web component 102、native component 64、contract 818 testsがpassし、3件skip。Web/spec buildも成功。Codex CLI debug prompt-inputは設定読込成功。"
+      "evidence": "pnpm run verifyはexit 0。unit 66、integration 111、repository 147、Web component 102、native component 64、contract 818 testsがpassし、3件skip。Web/spec buildも成功。Codex CLI debug prompt-inputとinteractive /hooksのproject Hook表示を確認。"
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "既存の危険Git拒否と通常pushの暗黙更新拒否を関連contractで検証。pnpm run test:hooksは215 tests pass、pnpm run verifyとsecurity checkも成功。force push等は行っていない。実CodexでのHook trust/Code Mode到達は未検証。"
+      "evidence": "既存の危険Git拒否と通常pushの暗黙更新拒否を関連contractで検証。pnpm run test:hooksは215 tests pass、pnpm run verifyとsecurity checkも成功。interactive /hooksでPreToolUse HookがActive/Trustedと表示され、Code Mode nested execではroot固定なしfetchの拒否を実行時確認。force push等は行っていない。"
     },
     "reviewability": {
       "rating": "pass",
@@ -45,15 +45,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows + WSLで全ローカルgateを再実行し、codex-cli 0.160.0のdebug prompt-inputによる設定読込を確認。GitHub Actions exact-head CIとinteractive/Code Mode Hook runtimeは未確認。"
+      "evidence": "Windows + WSLで全ローカルgateを再実行。codex-cli 0.160.0のdebug prompt-input、interactive /hooksのTrusted状態、Code Mode nested execのPreToolUse拒否を確認。Direct interactive tool経路とGitHub Actions exact-head CIは未確認。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "codex-cli 0.160.0の`debug prompt-input`は成功。follow-up push後のexact-head CIとinteractive `/hooks` trust、Code Mode内のnested tool Hook到達は未確認。",
-      "detail": "ローカル設定読込とcontract testは確認済みだが、実際のtool実行経路でHookが適用されることは未検証。CIはfinal push後に待機ツールで確認する。"
+      "evidence": "codex-cli 0.160.0の`debug prompt-input`とinteractive `/hooks` trustは確認済み。最終Run記録push後のexact-head CI、Direct interactive tool経路、Full Access / Approve for meは未確認。",
+      "detail": "Code Mode nested `tools.exec_command()`ではPreToolUseのroot固定拒否を実行時確認した。未実施のtool modeを成功扱いせず、CIはfinal push後に必須待機toolで確認する。"
     },
     {
       "category": "artifact_contract_gap",
