@@ -3,10 +3,19 @@
 ## 0. 依頼概要
 
 - 対象: [Issue #192](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/192)
-- 作業branch: `issue-192-codex-git-workdir-guard`（`main`から独立）
+- 作業branch: `issue-192-codex-git-workdir-guard`（Issue #193と共用。両Issueを同一ブランチ・同一PRで実装する）
 - 参考実装: [qa-workflow-skills のCodex Hook](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/blob/main/.codex/hooks/pre_tool_use_policy.mjs)、[対応するテスト](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/blob/main/tests/codex/test_codex_hooks.py)、[安全境界の説明](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/blob/main/docs/reference/codex-safety-harness.md)
 - 本変更はPlanのみ。Hook・設定・テストの実装、PR作成、mergeは別作業とする。
 - ユーザーの通常運用はCodexの「Full Access」または「Approve for me」をその時の作業に応じて使い分ける前提とする。同時に1つの権限モードとみなさない。
+
+## 両Issue共通の実装・検証方針
+
+- 同じブランチで#192と#193を実装し、**PRは1件**にまとめる。実装用の別ブランチ・別PRを作成しない。
+- #193の詳細は[Issue #193のPlan](./2026-10-17_104100_issue-193-portable-artifact-sanitizer.md)を参照する。両Planは同じブランチの実装計画であり、独立した実装・mergeを前提としない。
+- 作業順序: (1) #192のHook/Git safety境界とテスト修正、(2) #193のsanitizer既存fixture固定とNode正本への移植、(3) PowerShell/Bash wrapperとCIの統一、(4) **両Issueを合わせた回帰検証と1件のPRでレビュー**。
+- 共通する変更が出た場合は、既存の`AGENTS.md`、`.codex/config.toml`、`docs/reference/codex-safety-harness.md`等の正本を1回の変更で整合させる。別の正本や重複ルールを作らない。
+- #192のFull Access／Approve for meにおけるHookの拒否が、#193のRun Artifact sanitizationを迂回する理由になってはならない。各責務のテストを独立して維持し、統合後に両方を検証する。
+- 実装時の各変更はレビューできる単位でcommitを分けてよいが、最終的なbranch、PR、CI成功判定は共通とする。PRを作るまでは、このPlan保存のみで止める。
 
 ## 1. ゴールと完了条件
 
