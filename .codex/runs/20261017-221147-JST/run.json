@@ -29,7 +29,8 @@
     "tests/contracts/husky-config.test.ts",
     "tests/contracts/security-dependency-fallback-workflow.test.ts",
     "scripts/lib/codex-artifact-sanitizer.mjs",
-    "scripts/sanitize-codex-artifacts.mjs"
+    "scripts/sanitize-codex-artifacts.mjs",
+    "tests/contracts/codex-safe-run-manifest-sync.test.ts"
   ],
   "validation": {
     "status": "not_run",
@@ -46,5 +47,5 @@
   },
   "evaluation_path": ".codex/runs/20261017-221147-JST/evaluation.json",
   "status": "pending",
-  "primary_failure_category": "flaky_or_env_issue"
+  "primary_failure_category": "missing_validation"
 }
