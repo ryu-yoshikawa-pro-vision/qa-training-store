@@ -3,43 +3,43 @@
 ## 学習目標
 
 - GitとGitHubの役割の違いを説明できる。
-- Repository、Remote、Push、Pull Requestの関係を理解できる。
-- ForkとUpstream Repositoryの関係を理解できる。
-- Pull Requestを単なるMerge手段ではなく、変更内容と検証結果を共有する単位として扱える。
-- 自動テストの変更をReviewする観点を持てる。
-- GitHub上のChecksが後続のCIとどのようにつながるか理解できる。
+- リポジトリ、リモート、Push、プルリクエスト（Pull Request）の関係を理解できる。
+- Forkとアップストリーム（Upstream）リポジトリの関係を理解できる。
+- プルリクエストを単なるマージの手段ではなく、変更内容と検証結果を共有するための単位として扱える。
+- 自動テストの変更をレビューする観点を身につける。
+- GitHub上のChecksが、後続のCI環境とどのように連携しているかを理解できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリ `qa-training-store` と、その実際のPull Request構成を使用します。**
+**本モジュールでは、このリポジトリ `qa-training-store` と、実際のプルリクエスト構成を使用します。**
 
-レビューの判断基準は [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、習熟度評価基準です。Training変更は `training/`とTraining Configへ置き、Formal Regressionへ混在させません。
+レビューの判断基準となるのは、[`docs/spec/README.md`](../../../spec/README.md)、対象機能のBR / AC、および習熟度評価基準です。研修用の変更は `training/` ディレクトリとTraining Config内に配置し、本番向けの回帰テスト（Formal Regression）には混在させません。
 
-教材用に別のテスト対象へ切り替えません。
+教材用に別のテスト対象へ切り替えることはありません。
 
-ただし、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体へのPush権限を持つことは前提にしません。P2-01〜P2-03ではForkまたは準備済みTraining Copyを使えますが、C12／Training CIへ進む前に、自己学習開始前に用意された学習者書き込み可能なTraining Copyへ切り替えます。
+なお、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体のリポジトリに対するPush権限を持っていることは前提としません。P2-01〜P2-03まではForkまたは事前準備済みのTraining Copyを利用できますが、C12およびTraining CIに進む前には、学習開始前に用意された「受講者が書き込み可能なTraining Copy」へ切り替えます。
 
-## 演習Repositoryの標準形
+## 演習リポジトリの構成
 
-GitHub演習では、次のいずれかを使用します。
+GitHub演習では、次のいずれかの環境を使用します。
 
-1. `qa-training-store` を自分のGitHub AccountへForkする。
-2. 運営者が開始前に用意した `qa-training-store` の演習用Copyを使用する。
+1. `qa-training-store` を自分のGitHubアカウントへForkする。
+2. 運営側が事前に用意した `qa-training-store` の演習用コピー（Training Copy）を使用する。
 
-どちらの場合もテスト対象・コードベースはScenario Shopのままです。
+どちらの場合も、テスト対象およびコードベースはScenario Shopのまま進めます。
 
-## このLessonのInput / Output
+## 本レッスンのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P2-2のBranch／Commit／Diff、P1成果物のCase IDとコードPath、Pull Requestで説明するTest結果。GitHubアカウントと、基礎学習に使うForkまたはTraining Copy |
-| Activity | Remote、Fork、Push、Pull Request、Review、Checksの関係を確認し、Test Codeの変更・理由・実行記録をPR単位で共有する |
-| Observation | Base／Headの差分、変更対象、Reviewコメント、Checkの状態、Test Case／Receipt／Artifact参照、学習者が書き込みできるRemoteかどうか |
-| Output | Branch／Commit／Pull Request、PR説明、Review記録、Check参照、P2-4へ渡すTest Case・コードPath・実行記録。C11の機械確認へ渡す記録には、少なくとも`Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`、`Reason:`を記載する。`Reason:`には変更がTest Case・期待結果・Failure Evidenceへどう関係するかを書きます。形式と編集場所は自由で、self-checkは`handoff-root/self-check/P2-03.md`へ残す |
-| Self-check | GitとGitHub、ForkとUpstream、PRとMerge、ReviewとChecksの役割を分け、Test CodeもReview対象にする理由を説明する |
-| Completion | P2-2の変更をPRで共有し、レビューとCheckの結果を説明できる。`Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`、`Reason:`を含む自分の変更管理記録を残す。Forkを使った場合はP2-3までの基礎学習として完了し、C12／Training CIの正式経路はTraining Copyだと確認できる |
-| Recovery | Remote／権限の問題はForkまたは準備済みTraining Copyの開始条件を確認する。Reviewの理解不足はDiffとPR本文へ戻り、管理者権限・Secrets・Workflow設定変更で解決しない |
-| Handoff | P2-4へTraining CopyのURL、Branch／PR、Case ID、コードPath、Check／Review記録を渡す。ForkのPRは基礎学習の記録として扱い、C12の証跡と混同しない |
+| Input | P2-2で作成したブランチ／コミット／差分（Diff）、P1成果物のCase IDとコードパス、プルリクエストで説明するテスト結果。GitHubアカウント、および基礎学習に使用するForkまたはTraining Copy |
+| Activity | リモート、Fork、Push、プルリクエスト、レビュー、Checksの関係を把握し、テストコードの変更点・変更理由・実行ログをPR単位で共有する |
+| Observation | BaseとHeadの差分、変更対象ファイル、レビューコメント、Checksのステータス、テストケース／Receipt／Artifactの参照先、受講者自身に書き込み権限があるリモートかどうか |
+| Output | ブランチ／コミット／プルリクエスト、PRの説明文、レビュー記録、Checksの確認結果、P2-4へ引き継ぐテストケース・コードパス・実行ログ。C11の機械判定に渡す記録には、最低限 `Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`、`Reason:` を記載する。`Reason:` には、今回の変更がテストケース・期待される結果・失敗時のエビデンスとどう関連しているかを記述する。記録のフォーマットや作成場所は任意とし、自己確認結果は `handoff-root/self-check/P2-03.md` に残す |
+| Self-check | GitとGitHub、Forkとアップストリーム、PRとマージ、レビューとChecksそれぞれの役割の違いを整理し、テストコード自体もレビュー対象にすべき理由を説明できる |
+| Completion | P2-2の変更をPRで共有し、レビュー内容とChecksの結果を説明できる。`Branch:`、`Commit:`、`Diff:`、`Pull Request:`、`Review:`、`Reason:` を網羅した自身の変更管理記録を残せている。Forkを使用した場合はP2-3までの基礎学習として完了とし、C12／Training CIへ進む正式な手順はTraining Copyで行うことを確認できている |
+| Recovery | リモートや権限のエラーが発生した場合は、Forkまたは準備済みTraining Copyの初期条件を再確認する。レビュー内容の理解が不足している場合は差分とPR本文の確認に戻り、管理者権限の付与やSecrets、Workflow設定の変更で強引に解決しようとしない |
+| Handoff | P2-4に向けて、Training CopyのURL、ブランチ／PR、Case ID、コードパス、Checks／レビュー記録を引き継ぐ。Fork上で作成したPRは基礎学習用の記録として扱い、C12の提出証跡と混同しないようにする |
 
 ```text
 Upstream / 教材元
@@ -47,39 +47,39 @@ qa-training-store
         ↓
 Fork または演習用Copy
         ↓
-training/* branch
+training/* ブランチ
         ↓
 Pull Request
 ```
 
-本体Repositoryへ直接Pushできることを学習要件にしません。
+本体リポジトリへ直接Pushできることは、本カリキュラムの修了条件には含みません。
 
-## Lesson 1: GitとGitHub
+## Lesson 1: GitとGitHubの違い
 
-Gitは変更履歴を管理する仕組みです。
+Gitは、ファイルの変更履歴を記録・管理するための分散型バージョン管理システムです。
 
-GitHubはGit RepositoryをHostingし、Pull Request、Review、Issues、Actionsなどの共同開発機能を提供するServiceです。
+一方GitHubは、Gitリポジトリをクラウド上でホスティングし、プルリクエストやコードレビュー、Issue管理、GitHub Actions（CI/CD）といったチーム開発を円滑にする機能を提供するWebサービスです。
 
-この違いを明確にします。
+まずは、このツールとプラットフォームの役割の違いを明確に把握しましょう。
 
-## Lesson 2: RemoteとFork
+## Lesson 2: リモートリポジトリとFork
 
-Local RepositoryとGitHub上のRepositoryは別の状態を持ちます。
+ローカル環境のリポジトリと、GitHub上にあるリモートリポジトリは、それぞれ独立した状態を持っています。
 
-代表的な確認:
+代表的な確認コマンド：
 
 ```bash
 git remote -v
 ```
 
-Forkを使う場合は、概念的に次を区別します。
+Forkを利用する場合、概念として以下を明確に区別します。
 
-- `origin`: 自分がPushできるFork
-- `upstream`: 教材元のRepository
+- `origin`: 自分がPush可能なFork先のリポジトリ
+- `upstream`: 教材元となる本流のリポジトリ
 
-受講者の権限や教材配布方法によってRemote構成は異なるため、名前の暗記より「どこへPushし、どこを参照元にするか」を理解します。
+受講者ごとの権限や教材の配布形態によってリモートの構成は異なります。単に名前を丸暗記するのではなく、「どこへ変更をPushし、どこを参照元としているか」を常に意識することが重要です。
 
-Branchを共有するには、自分が書き込めるRemoteへPushします。
+作業ブランチをチームに共有するには、自身が書き込み権限を持つリモートに対してPushを行います。
 
 ```bash
 git push -u origin training/cart-e2e
@@ -87,43 +87,43 @@ git push -u origin training/cart-e2e
 
 ### 準備済み環境からPushする手順
 
-アカウント作成や認証は開始前の環境準備です。ここでは、すでにLocal RepositoryとGitHubの書き込み可能なForkまたはTraining Copyが用意されている状態から始めます。
+アカウント作成やSSH/HTTPS認証などの設定は、学習開始前の環境構築段階で完了している前提とします。ここでは、ローカルリポジトリと、GitHub上の書き込み可能なForkまたはTraining Copyがすでに手元に用意されている状態から進めます。
 
-1. Repository rootで、自分が今いるBranchを確認します。
+1. リポジトリのルートディレクトリで、現在チェックアウトしているブランチを確認します。
 
    ```bash
    git branch --show-current
    ```
 
-   出力されたBranchを、これから共有する作業Branchとして控えます。`main`のままなら、P2-2で作成した`training/*` Branchへ切り替えます。
+   表示されたブランチ名が、これから共有対象とする作業ブランチであることを確認・控えておきます。もし `main` にいる場合は、P2-2で作成した `training/*` ブランチへ切り替えてください。
 
-2. Push先を確認します。
+2. Push先のリモートURLを確認します。
 
    ```bash
    git remote -v
    ```
 
-   `fetch`は取得元、`push`は送信先です。`push`のURLが自分のForkまたは学習者書き込み可能なTraining CopyであるRemoteを選びます。書き込み権限がないURLへ送らないでください。
+   `fetch` は取得元、`push` は送信先を示します。`push` のURLが、自身のForkまたは書き込み権限のあるTraining Copyを指しているリモート名を確認します。権限のないリポジトリURLへPushしないよう注意してください。
 
-3. BranchをPushします。`<writable-remote>`は`git remote -v`で確認したRemote名、`<branch>`は1で確認したBranch名へ置き換えます。
+3. ブランチをリモートへPushします。`<writable-remote>` は上記で確認したリモート名、`<branch>` は手順1で確認したブランチ名に置き換えます。
 
    ```bash
    git push -u <writable-remote> <branch>
    ```
 
-   コマンド終了後、GitHubで同じRepositoryに同じBranchが表示されることを確認します。権限エラーになった場合は、認証を教材課題として解決しようとせず、ForkまたはTraining Copyの準備情報へ戻ります。
+   コマンドの完了後、GitHub上の該当リポジトリに同じブランチが反映されていることをブラウザで確認します。もし権限エラーが発生した場合は、認証エラーを本課題の中で無理に解決しようとせず、ForkやTraining Copyの準備案内へ戻って権限設定を確認してください。
 
-### Pull Requestを作成して確認する場所
+### プルリクエストを作成して確認するポイント
 
-GitHubでPushしたBranchを開き、`Pull requests`またはBranchの比較画面から`New pull request`を選びます。画面の配置やボタン名が異なる場合も、Branch比較から同じ選択を行います。
+GitHub上でPushしたブランチを表示し、`Pull requests` タブまたはブランチ比較画面から `New pull request` を選択します。UIの変更によってボタンの位置や名称が多少異なる場合でも、ブランチ同士の比較（Compare）画面から同様の操作を行います。
 
-- **Base**: 変更を取り込む先。Training Copyの`main`など、準備情報で指定された宛先Repository／Branchを選びます。
-- **Compare / Head**: 自分がPushしたBranchと、そのBranchが存在するForkまたはTraining Copyを選びます。
-- **Files changed**: 自分が意図したTest、Workbook、Evidenceだけが差分になっているかを確認します。
-- **Checks**: PRに紐付いた自動検証の状態と、どのWorkflow／Jobが完了・失敗したかを確認します。
-- **Review**: `Files changed`上のコメント、Approve／Request changes／Commentの結果を確認します。
+- **Base**: 変更を取り込む宛先ブランチ。Training Copyの `main` など、事前案内で指定された宛先リポジトリおよびブランチを選択します。
+- **Compare / Head**: 自分が作業・Pushしたブランチ、およびそのブランチが存在するForkまたはTraining Copyを選択します。
+- **Files changed**: 意図したテストコード、Workbook、エビデンスファイルのみが差分に含まれているかを確認します。
+- **Checks**: PRに紐づく自動検証（CI）の実行状況を確認し、どのWorkflowやJobが成功・失敗したかを把握します。
+- **Review**: `Files changed` 上に投稿されたコメントや、Approve／Request changes／Commentなどのレビュー判定結果を確認します。
 
-PRを作成した後、`Base`と`Compare / Head`、差分、Checks、Reviewを順番に見ます。確認した結果は、ローカルの`handoff-root/evidence/P2-03-github.md`など任意の人間可読Fileへ次の項目で残します。
+PRを作成した後は、`Base` と `Compare / Head`、差分、Checks、レビューの各タブを順番に確認します。確認した内容は、ローカルの `handoff-root/evidence/P2-03-github.md` などのテキストファイルに、以下の項目を整理して記録します。
 
 ```text
 Repository: <Training Copy or Fork URL>
@@ -137,9 +137,9 @@ Checks: <Workflow / Job / status>
 Review: <確認したコメントと自分の判断>
 ```
 
-この記録はGitHub画面で自分が確認した内容を残すものです。第三者からApproveを受けることや、特定のUI座標を覚えることは共通課程の条件ではありません。
+この記録は、GitHub画面上で自分自身が確認した事実を残すためのものです。共通課程においては、第三者からのApproveをもらうことや、特定のUI配置を暗記することは修了条件ではありません。
 
-ForkでP2-3を行った場合、そのFork上のPRはGitとPRの基礎を練習した記録です。P2-4以降の正式なTraining CIへ進むときは、開始前に用意されたTraining CopyのURLと権限を確認し、そのCopyで新しい`training/*` Branchを作ります。Fork上のRunやPRをTraining Copyの証跡へ読み替えません。既存のLocal作業を移す必要がある場合だけ、提供されたTraining Copyを別Remoteとして登録し、書き込み可能なことを確認してから同じBranchをPushします。
+Forkを使ってP2-3を実施した場合、そのFork上のPRはGitとPR運用の基本を練習した記録として扱います。P2-4以降の本格的なTraining CIに進む際は、事前に案内されたTraining CopyのURLと権限を再確認し、そのTraining Copy上で新しく `training/*` ブランチを作成してください。Fork上の実行ログやPRを、Training Copy側の公式な証跡として流用することはできません。ローカルの作業内容を引き継ぐ必要がある場合に限り、提供されたTraining Copyを別のリモートとして登録し、書き込み可能であることを確認した上で同じブランチをPushします。
 
 ```bash
 git remote add training <Training Copy URL>
@@ -147,153 +147,153 @@ git remote -v
 git push -u training <branch>
 ```
 
-Push後は、Training CopyのGitHub画面で`Pull requests` → `New pull request`を開きます。BaseをTraining Copyの指定Branch、Compare / Headを今PushしたBranchへ設定し、Training Copy上に新しいPRを作成します。Fork上で作成した基礎練習用PRをTraining CopyのPRやC12のCI証跡へ読み替えません。Training Copy上のPR URLをP2-4のInputとして記録します。
+Push完了後は、Training CopyのGitHub画面上で `Pull requests` → `New pull request` を開きます。BaseにTraining Copyの指定ブランチ、Compare / Headに今Pushしたブランチを指定し、Training Copy側に新規PRを作成してください。Fork側で作成した基礎練習用PRを、Training CopyのPRやC12のCI証跡と混同しないように注意します。Training Copy上で発行されたPRのURLを、P2-4への引き継ぎインプットとして記録してください。
 
-Remote名がすでに存在する場合は、同じ名前を重ねて追加せず、現在の`git remote -v`のPush URLと開始前の準備情報を確認します。
+リモート名がすでに重複して存在する場合は、同じ名前を重ねて登録しようとせず、一度 `git remote -v` で現在のPush先URLと準備案内を照合してください。
 
-## Lesson 3: Pull Request
+## Lesson 3: プルリクエストの本質
 
-Pull Requestでは、作業BranchをBase Branchへ統合する前に変更内容を確認します。
+プルリクエスト（PR）は、作業ブランチをBaseブランチへマージ（統合）する前に、変更内容に問題がないかをチームで確認するための仕組みです。
 
-PRで最低限伝える内容:
+PRの概要欄で最低限伝えるべき項目：
 
-- 何を変更したか。
-- なぜ変更したか。
-- どんなTestを追加・変更したか。
-- どの検証を実行したか。
-- 未確認事項やRiskは何か。
+- 何を変更したのか（変更概要）
+- なぜその変更が必要だったのか（背景・理由）
+- どのようなテストを追加・修正したのか
+- どのような検証を実施したのか
+- 未確認の事項や、残存するリスクは何か
 
-演習では自分のForkまたは演習用Copy内でPRを作成できます。本体RepositoryへのPR作成は必須にしません。
+本演習では、自身のForkまたは演習用コピー内でPRを作成すれば十分です。本体リポジトリに対するPR作成は必須ではありません。
 
-## Lesson 4: Diff Review
+## Lesson 4: 差分レビュー（Diff Review）
 
-Reviewでは「コードが動くか」だけを見ません。
+コードレビューでは、「単にコードがエラーなく動くか」だけを見るわけではありません。
 
-テスト自動化では次を確認します。
+テスト自動化の文脈では、特に以下の観点を確認します。
 
-- Test Caseの目的が分かるか。
-- Assertionが弱くなっていないか。
-- 固定待機が追加されていないか。
-- Locatorが不安定ではないか。
-- Test Data依存が増えていないか。
-- 既存Regressionと重複していないか。
-- POMやHelperが過剰に複雑化していないか。
-- TestをPassさせるためにProduct側の品質条件を弱めていないか。
+- テストケースの意図や目的が明確に伝わるか
+- アサーション（検証条件）が意図せず緩められていないか
+- 不要な固定待機（Sleepなど）が追加されていないか
+- 要素の特定（Locator）が不安定な指定になっていないか
+- テストデータへの依存度が高まりすぎていないか
+- 既存の回帰テスト（Regression Test）と重複していないか
+- ページオブジェクト（POM）やヘルパー関数が無駄に複雑化していないか
+- テストを通すために、プロダクト側の品質要件やエラー判定を不当に緩和していないか
 
-## Lesson 5: Test CodeもProduction Codeと同じくReviewする
+## Lesson 5: テストコードもプロダクションコードと同様にレビューする
 
-自動テストは継続的に保守するCodeです。
+自動テストコードは、プロダクトのコードと同様に長期的に保守し続ける資産です。
 
-誤ったTestがMergeされると、次の問題があります。
+問題のあるテストがマージされてしまうと、以下のような弊害が生じます。
 
-- 本当の不具合を見逃す。
-- False Failureが増える。
-- FlakyによってCIへの信頼が落ちる。
-- 保守コストが増える。
+- 実際の本番障害や不具合を見逃してしまう
+- テストの不備による誤検知（False Failure）が増加する
+- 実行ごとに結果が変わる不安定なテスト（Flaky Test）により、CIの信頼性が損なわれる
+- テストコード自体のメンテナンスコストが跳ね上がる
 
-「テストだから多少雑でもよい」という扱いを避けます。
+「テスト用のコードだから多少雑でも構わない」という考え方は避け、本番コードと同等の厳密さでレビューに向き合う必要があります。
 
-## Lesson 6: PRとChecks
+## Lesson 6: PRとChecksの連携
 
-GitHub Actionsを設定すると、PRへChecksが表示されます。
+GitHub Actionsを設定すると、PR画面上に「Checks」として自動テストや静的解析の結果が表示されます。
 
-Scenario Shop本体では、現在のCIで次のような検証があります。
+Scenario Shop本体のリポジトリでは、現在のCIパイプラインで以下のような検証が実行されています。
 
-- Style Quality
-- Code Quality
-- Vitest
-- Build
-- Playwright E2E
-- UI Review
-- Smoke
-- Native CI
+- Style Quality（コードスタイル・フォーマット検証）
+- Code Quality（静的解析・型チェック）
+- Vitest（ユニットテスト）
+- Build（ビルド成否検証）
+- Playwright E2E（ブラウザ自動テスト）
+- UI Review（UIビジュアルリグレッション検証）
+- Smoke（主要導線のスモークテスト）
+- Native CI（モバイルアプリ向け検証）
 
-ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
+この段階では、詳細なWorkflowファイルを作り込む必要はありません。PRと自動検証の結果がどのように紐づいて可視化されるのか、その全体像を掴んでおくことが目的です。
 
-重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。受講開始前にTraining Copy、実行対象Workflow、SecretsやDeployの分離を確認します。共通課程の修了では、準備済みの演習環境でPRとTest変更をレビューします。
+大切なのは、本体リポジトリのChecks設定をそのまま演習環境へ丸ごと複製することではありません。受講開始前にTraining Copy、実行対象のWorkflow、Secretsやデプロイ設定が本体と分離されていることを確認します。共通課程の修了要件としては、用意された演習環境上でPRとテストの変更内容を適切にレビューできれば問題ありません。
 
-## Lesson 7: Merge判断
+## Lesson 7: マージ可否の総合判断
 
-Merge判断では次を組み合わせます。
+マージを実施するかどうかの判断は、単一の要素ではなく、以下の観点を総合して下します。
 
-- Review内容
-- 必須Checks
-- Test結果
-- 未解決Risk
-- Scope
+- レビューコメントとそれに対する対応状況
+- 必須Checks（CIの各ジョブ）の成否
+- 手動・自動テストの実行結果
+- 未解決のリスクや既知の懸念点
+- 変更の影響範囲（スコープ）
 
-「CIが緑だから必ず正しい」わけではありません。CIが確認していないRiskは人間が判断します。
+「CIがオールグリーン（緑）だから100%安全」とは限りません。CIの自動テスト網がカバーしていない業務リスクや仕様の齟齬は、人間がレビューを通じて最終判断する必要があります。
 
-## ハンズオン1: Fork / Copyで作業Branchを共有する
+## ハンズオン1: Fork / Copyで作業ブランチを共有する
 
-自分が書き込める演習Repositoryで `training/*` Branchを作成し、GitHubへPushします。
+書き込み権限を持つ演習用リポジトリ上で `training/*` ブランチを作成し、GitHubへPushします。
 
-次を確認します。
+作業後、以下をそれぞれ確認してください。
 
-- Local Branch
-- Remote Branch
-- Base Branch
-- Push先
+- ローカルブランチ名
+- リモートブランチ名
+- マージ先となるBaseブランチ
+- 実際にPushされたリモート先のURL
 
-## ハンズオン2: PR説明を書く
+## ハンズオン2: PRの説明文を作成する
 
-Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します。
+Part 1で作成した「Playwrightによるテストケース追加」を題材に、PRの本文を作成します。
 
-最低限次を含めます。
+説明文には、最低限以下の要素を盛り込んでください。
 
-- Background
-- Changes
-- Test Designとの対応
-- Validation
-- Remaining Risk
+- Background（変更の背景・目的）
+- Changes（具体的な変更内容）
+- Test Design（テスト設計・ケースIDとの対応関係）
+- Validation（実施した検証内容と結果）
+- Remaining Risk（現時点で残っているリスクや未確認事項）
 
-## ハンズオン3: Test PRをReviewする
+## ハンズオン3: テストPRの差分をレビューする
 
-既存または演習用Diffを使い、Testの正確性・安定性・保守性に影響するmaterialなReview観点を選び、理由と確認結果を記録します。固定件数を満たすことではなく、変更のRiskを自分で説明できることを重視します。
+既存の差分または演習用の変更Diffを使い、テストの正確性・安定性・保守性に影響を及ぼす実質的なレビュー観点（Material Diff）を抽出し、その理由と確認結果を記録します。ここでは、あらかじめ決められた指摘件数をこなすことではなく、変更に潜むリスクを自分自身の言葉で論理的に説明できることを重視します。
 
-単なる好みではなく、テストの正確性・安定性・保守性に影響するものを優先します。
+個人の好みや些細な記法ではなく、テストの信頼性や保守性に直結する観点を優先してください。
 
-GitHub上でReviewを残せる場合は、`Files changed`を開き、対象行の`Start a review`または行コメントからコメントを入力します。最後に`Comment`、`Approve`、`Request changes`のいずれかを選び、`Submit review`で送信します。第三者のReviewを必須にはしません。自分のPRでReview操作ができない環境、または教材環境がGitHub上のReviewを要求しない場合は、`handoff-root/evidence/P2-03-github.md`へ次を記録して代替します。
+GitHub上でレビューを送信できる環境の場合は、`Files changed` タブを開き、該当する行の `Start a review` または行コメント欄から指摘を入力します。最後に `Comment`、`Approve`、`Request changes` のいずれかを選択し、`Submit review` で送信してください。第三者からのレビュー受領は必須としません。自身のPRに対してGitHub上でのレビュー機能が利用できない環境や、演習環境側でGitHubレビューを要求されない場合は、`handoff-root/evidence/P2-03-github.md` に以下のフォーマットで記録を残すことで代替可能です。
 
 ```text
-Review target: <File and line or Diff section>
-Risk: <正確性・安定性・保守性のどれへの影響か>
-Comment or decision: <指摘・Approve・保留の判断>
-Reason: <Test Case / expected result / Failure Evidenceとの関係>
-Result: <GitHubへSubmitした結果、またはローカル記録での判断>
+Review target: <対象ファイル名・行番号、またはDiffの該当セクション>
+Risk: <正確性・安定性・保守性のうち、どの観点にどう影響するか>
+Comment or decision: <指摘内容、Approve・保留などの判定>
+Reason: <テストケース／期待結果／失敗エビデンスとの関連性>
+Result: <GitHub上に送信した結果、またはローカル記録上の結論>
 ```
 
 ## 確認問題
 
-1. GitとGitHubの違いは何か。
-2. Forkを使うと本体RepositoryへのPush権限がなくても演習できるのはなぜか。
-3. Pull Requestを使う価値は何か。
-4. Test CodeのReviewが必要な理由は何か。
-5. CIが成功していてもMergeを止める判断があり得るのはなぜか。
-6. Assertionを弱くする変更はなぜ危険か。
+1. GitとGitHubの役割の違いを簡潔に説明してください。
+2. Fork機能を利用することで、本体リポジトリへのPush権限がなくても演習を進められるのはなぜですか。
+3. プルリクエスト（PR）を活用する最大の価値・メリットは何ですか。
+4. プロダクトコードだけでなく、テストコードにもコードレビューが必要な理由を述べてください。
+5. CIのChecksがすべて成功（グリーン）している場合でも、マージを保留・停止すべきケースにはどのようなものがありますか。
+6. テストコードのアサーション（検証条件）を安易に緩めてしまう変更には、どのような危険性がありますか。
 
-## 自己確認
+## 自己確認チェックリスト
 
-次を自分のPR説明またはReviewメモで確認できれば、このLessonの判断を自己判定できます。
+以下の項目を、自身のPR説明文またはレビューメモと照らし合わせてセルフチェックしてください。
 
-- Fork / Remote / Push / Pull Requestの役割と、自分が書き込める場所を説明できる。
-- PR本文へ変更内容、理由、Test Designとの対応、Validation、Remaining Riskを記録できる。
-- material diffについて、Test目的、Assertion、Locator、Data依存、Regression重複、Product条件の観点から必要な確認を選べる。
-- Review観点を好みではなく、正確性・安定性・保守性への影響として説明できる。
-- Training Copyの準備や第三者Reviewは共通課程の修了の前提ではなく、件数quotaなしで自分のレビューを完了できる。
+- Fork／リモート／Push／プルリクエストそれぞれの役割と、自分が書き込み権限を持つリポジトリの場所を正確に説明できる。
+- PR本文に変更概要、背景理由、テスト設計との対応関係、検証結果、残存リスクを漏れなく記述できている。
+- 実質的な差分（Material Diff）に対し、テストの目的、アサーションの強度、Locatorの堅牢性、データ依存度、回帰テストとの重複有無、プロダクト要件の適合性といった観点から必要な確認項目を選定できる。
+- レビューの指摘観点を単なる好みではなく、正確性・安定性・保守性への具体的な影響として論理的に説明できる。
+- Training Copyの準備確認や第三者レビューは共通課程修了の必須前提ではないことを理解し、ノルマ件数にとらわれずに自身のレビューを完了できる。
 
-### Recovery
+### トラブルシューティング（Recovery）
 
-PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権限、Base Branchを確認し、環境・アカウント上の問題として切り分けます。レビューの判断が曖昧な場合は、変更の目的、期待するAssertion、失敗時の記録、既存Regressionとの重複へ戻り、重要な観点を1つずつ記録します。
+PushやPR作成が正常に行えない場合は、まずローカルブランチ、リモートURL、アカウント権限、Baseブランチの設定を再確認し、環境や認証に起因する問題として切り分けを行ってください。レビューの判断に迷いが生じた場合は、テスト変更の目的、期待されるアサーション、テスト失敗時の記録、既存回帰テストとの重複有無に立ち返り、重要な観点から1つずつ丁寧に整理して記録しましょう。
 
 ## 完了条件
 
-- Forkまたは演習用Copyと本体Repositoryの役割を説明できる。
-- 自分が書き込めるRemoteへLocal BranchをPushできる。
-- Pull Requestの役割を説明できる。
-- Test変更の重要なレビュー観点を、変更のRiskと理由付きで選べる。固定件数や第三者Reviewを修了条件にしない。
-- PR本文へTest Designとの対応とValidationを記録できる。
+- Forkまたは演習用コピーと、本体リポジトリそれぞれの役割の違いを説明できる。
+- 自身が書き込み権限を持つリモートリポジトリへ、ローカルブランチを正しくPushできる。
+- プルリクエストの目的と役割を説明できる。
+- テストコード変更における重要なレビュー観点を、変更リスクおよびその理由とともに提示できる（固定件数のノルマや第三者レビューの受領は修了条件としない）。
+- PRの説明文に、テスト設計との対応関係および実施した検証結果を過不足なく記録できる。
 
-## 次の行動
+## 次のステップ
 
-PRとself-reviewをCIの実行契約へ接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md)へ進みます。
+作成したPRとセルフレビューの結果を、CI（継続的インテグレーション）の実行パイプラインと接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md) へ進みましょう。

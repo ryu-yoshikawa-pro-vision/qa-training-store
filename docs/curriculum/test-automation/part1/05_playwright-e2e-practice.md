@@ -2,15 +2,15 @@
 
 ## 学習目標
 
-- スプレッドシートで設計したテスト条件をPlaywrightへ実装できる。
-- 正常系だけでなく、異常系、境界値、Role差分、状態遷移をE2Eへ落とせる。
-- Seed Scenario / Resetを利用して再現可能なテストを作れる。
-- UIの期待結果と、必要な場合に内部状態を確認する発展課題の違いを説明できる。
-- Desktop / Mobile Web、Accessibilityなど異なる品質観点を理解できる。
+- スプレッドシートで設計したテスト条件をPlaywrightのテストコードへ落とし込める。
+- 正常系だけでなく、異常系、境界値、ロールごとの挙動差分、状態遷移をE2Eテストとして実装できる。
+- Seed ScenarioおよびReset機能を活用し、再現性のある独立したテストを作成できる。
+- UI上の期待結果の検証と、必要に応じて内部状態まで検証する発展課題との違いを説明できる。
+- デスクトップ／モバイルWeb、アクセシビリティなど、異なる品質観点の特徴を理解できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリのScenario Shop Webアプリと既存Playwright E2Eを使用します。**
+**本モジュールでは、本リポジトリのScenario Shop Webアプリケーションおよび既存のPlaywright E2Eテストを使用します。**
 
 主な参照先:
 
@@ -19,67 +19,67 @@
 - `training/playwright/baseline/training-baseline.spec.ts`
 - `training/playwright/exercises/`
 - `training/playwright/support/reset-scenario.ts`
-- `e2e/web/phase1-required.spec.ts`（Formal比較教材）
+- `e2e/web/phase1-required.spec.ts`（正式リグレッション比較教材）
 - `e2e/web/mobile-boundary.spec.ts`
 - `e2e/web/accessibility.spec.ts`
 - `e2e/web/cross-role-lifecycle.spec.ts`
 
-`e2e/web/fixtures.ts` はこの段階では内部実装を読み解く教材にしません。Seed Scenario Resetや実行記録の収集はTraining Test Harnessが提供する機能として利用し、Fixtureの責務・共通化・内部設計はPart 1-8で扱います。
+`e2e/web/fixtures.ts` は、現段階では内部実装まで読み解く対象とはしません。Seed ScenarioのResetや実行記録の収集は、研修用テストハーネスが提供する機能としてそのまま利用し、Fixtureの責務・共通化・内部設計についてはPart 1-8で詳しく扱います。
 
 ## 演習実装の前提
 
-受講者が作るE2Eは、実装済みのTraining用実行境界で管理します。
+受講者が作成するE2Eテストは、あらかじめ用意されている研修用の実行スコープ内で管理します。
 
-既存の正式Regressionへ直接追加することは前提にしません。既存E2Eは、受講者が自分の実装を完成させた後に設計・品質の比較対象として使用します。
+既存の正式なリグレッションテストスイートへ直接追加することは想定していません。既存のE2Eテストコードは、受講者が自身の実装を完成させた後に、テスト設計や品質レベルを比較するための参考資料として使用します。
 
-Training環境には最低限、次が必要です。
+研修環境には最低限、以下の要素が備わっている必要があります。
 
-- Training用specを `training/playwright/`へ保存できる。
-- `training-chromium` / `training-mobile-chromium`を明示的に実行できる。
-- Scenario ShopのTraining Harnessを利用できる。
-- Seed ScenarioをResetできるTest Harnessを利用できる。
-- Failure時にTrace、Screenshot、Videoなどを確認できる。
-- Training用変更が正式Regressionの必須Suiteへ意図せず混入しない。
+- 研修用テストファイル（spec）を `training/playwright/` 配下へ保存できること。
+- `training-chromium` および `training-mobile-chromium` を明示的に指定して実行できること。
+- Scenario Shopの研修用ハーネスを利用できること。
+- Seed Scenarioを初期状態へResetできるテストハーネスを利用できること。
+- テスト失敗（Failure）時に、Trace、スクリーンショット、動画などを確認できること。
+- 研修用の変更内容が、正式なリグレッション必須スイートへ意図せず混入しないこと。
 
-`playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
+これらは `playwright.training.config.ts`、`package.json` に定義された研修用スクリプト、および研修用CIテンプレートによって保証されます。
 
 ## 実装を始める前に準備するもの
 
-P1-3の設計が未完了なら、先に戻ってから実装します。Playwrightのコードだけを先に書くと、何を確認するTestなのか、どの結果をWorkbookへ記録するのかが決まりません。最低限、次のInputを1つのCaseごとに揃えます。
+Part 1-3のテスト設計が完了していない場合は、まず設計に戻って整理を完了させてください。Playwrightのコード作成を先行させてしまうと、何を検証するテストなのか、どの実行結果をワークブックに記録すべきかが曖昧になります。最低限、テストケースごとに以下の入力情報を揃えてから着手します。
 
-| 準備するもの | 例 | 使う場所 |
+| 準備するもの | 例 | 使用箇所 |
 | --- | --- | --- |
-| Test Case ID | P1-3で作った`TC-CART-101`など。配布sampleの`TC-CART-001`／`TC-CART-002`を完成Caseとして流用しない | Test titleまたはannotation、Workbookの全行 |
-| 条件・前提・期待結果 | 対象商品、Seed Scenario、操作、確認する画面状態 | `02_test-cases.csv`、Test本文 |
-| Reset方法 | `resetScenario(page, "default")`など | Testの最初 |
-| 代表specのPath | `training/playwright/exercises/my-cart.spec.ts` | `03_automation-mapping.csv`の`implementation_path` |
+| テストケースID | Part 1-3で作成した `TC-CART-101` など（※配布サンプルの `TC-CART-001` や `TC-CART-002` を自身の完成ケースとして流用しないこと） | テストタイトルまたはannotation、ワークブックの該当行 |
+| 条件・前提・期待結果 | 対象商品、Seed Scenario、操作手順、確認する画面状態 | `02_test-cases.csv`、テストコード本文 |
+| Reset方法 | `resetScenario(page, "default")` など | 各テストの開始直後 |
+| 代表specのファイルパス | `training/playwright/exercises/my-cart.spec.ts` | `03_automation-mapping.csv` の `implementation_path` |
 
-Starterは完成答案ではありません。内容を直接完成させず、`training/playwright/exercises/`へ自分のCase用の新しい`.spec.ts`を作成し、そこへStarterのimportと最小構造を参考に書きます。Helper／POMを作る場合も同じ`training/playwright/`配下へ置き、代表specからimportします。まずは1つのspecへ素直に書き、P1-8で共通化の要否を判断します。
+Starter（ひな形）は完成した模範解答ではありません。Starterファイルを直接編集して完成形にするのではなく、`training/playwright/exercises/` 配下に自身のケース用の新しい `.spec.ts` ファイルを作成し、Starterのimport文や最小限の構成を参考にしてコードを記述してください。HelperやPOM（Page Object Model）を作成する場合も同様に `training/playwright/` 配下に配置し、代表specからimportします。まずは1つのspecファイルへ素直に記述し、共通化の要否はPart 1-8で判断します。
 
-Desktop learner exerciseの互換commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。画面の見え方だけを確認する観察ではこれらの互換commandを使えますが、実行結果を評価へ渡す場合は、P1-6で扱うReceipt付き入口を使います。Mobile Webの正式なCase記録は、次のように`--project`だけを変更し、Desktopとは別のContextで残します。
+受講者用演習（デスクトップ）を実行する互換コマンドは `pnpm run training:web:exercise`、モバイル演習用は `pnpm run training:web:mobile:exercise` です。画面の見え方や表示崩れの確認のみを行う観察目的であればこれらの互換コマンドを使用できますが、実行結果を評価へ提出する場合は、Part 1-6で扱うReceipt（実行レシート）出力付きの実行コマンドを使用します。モバイルWebの正式なテスト記録を残す際は、以下のように `--project` のみを切り替え、デスクトップとは独立したコンテキストで記録します。
 
 ```bash
 pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-mobile-chromium --root <handoff-root> --run-context mobile-exercise
 ```
 
-この実行はNative Android／iOSではなく、同じWeb TestをMobile Web Projectで確認するものです。ReceiptのCase、実装Path、Evidenceを確認し、Desktopと異なる表示・操作上の観察があればWorkbookへ記録します。Browserや対象Applicationを利用できない場合は、実行結果を作ったことにせず、P1-6の`BLOCKED`／`Not run`の記録方法へ進みます。
+この実行はNative（Android／iOS）環境ではなく、同一のWebテストをモバイルWeb用プロジェクトで確認するものです。Receiptに記録されたテストケース、実装パス、エビデンスを確認し、デスクトップ環境と異なる表示や操作上の挙動があればワークブックへ記録します。ブラウザや対象アプリケーションが利用できない状態の場合は、実行結果を捏造せず、Part 1-6で解説する `BLOCKED` や `Not run` の記録手順に従って処理を進めてください。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-3で設計した複数のTest Case、特に自分が作成した`TC-CART-101`などを代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool、P1-4で確認したAction／Locator／Assertionの基礎、既存`resetScenario`。実装前にCase ID、Reset方法、代表specの保存先を準備する |
-| Activity | CaseをTraining specへ実装し、各Testの開始時に明示的なSeed ScenarioへResetする。正常、境界／異常、状態変化、Desktop、受講者が作成したMobile Web exerciseを必要な範囲で実行する |
-| Observation | Reset後のScenario、画面上の状態変化、期待結果と実際の結果、Desktop／Mobileの差、Trace／Screenshot／Video／Reportの生成、WorkbookのCaseとコードの対応 |
-| Output | 受講者が作成したTraining spec、対応するWorkbookの`implementation_path`、実行ごとのReceipt／Evidence参照、Desktop／Mobileで観察した差分。各Test Case IDはWorkbookの`implementation_path`、テストタイトル、注釈、または既存metadataのいずれかでコードと実行結果へ追跡できるようにする。編集場所は自由で、評価時はRepository相対Pathを保って`handoff-root/code/`と各rootへ集約する |
-| Self-check | P1-3のCaseとコードの条件・期待結果が対応し、Reset、正常・境界／異常、状態変化、Desktop、Learner-authored Mobileの各観点を必要な理由とともに説明する。意味の妥当性は自動判定へ委ねない |
-| Completion | Workbookで`Automate`／`Web E2E`／`Playwright`として選んだ受講者CaseをTraining境界へ実装し、各Caseについて明示Resetと意味のあるAssertion、実行記録、Workbookとの対応を確認できる。固定件数を完了条件にせず、`TC-CART-101`はこの経路の縦断確認Caseとして必須にする。実装したCaseではRepository相対`implementation_path`を記録する。`TC-CART-001`／`TC-CART-002`は配布sampleのため、必須の完成Caseとして要求しない |
-| Recovery | 学習上の実装不足はP1-3／P1-4へ戻る。Test／Product FailureはExpected／ActualとEvidenceを分ける。Browser、Base URL、Harness、Artifact不足は環境問題として記録し、Training specをFormal Regressionへ移さない |
-| Handoff | P1-6へCase ID、実装Path、実行command、run／case／RetryのReceipt、Evidence、Failure分類またはPass結果を渡す。P1-6開始時に初期状態と実行対象が再現できることを確認する |
+| Input | Part 1-3で設計した複数のテストケース（特に受講者自身が作成した `TC-CART-101` 等を代表とする条件・前提・期待結果・Risk／BR／AC・Layer / Tool）、Part 1-4で習得したAction／Locator／Assertionの基礎知識、既存の `resetScenario`。実装開始前に、テストケースID、Reset方法、代表specの保存先パスを用意しておくこと。 |
+| Activity | テストケースを研修用specとして実装し、各テストの開始時に明示的に目的のSeed ScenarioへResetする。正常系、境界値／異常系、状態遷移、デスクトップ表示、および受講者が作成したモバイルWeb演習ケースを必要な範囲で実行する。 |
+| Observation | Reset実行後のシナリオ状態、画面上の状態変化、期待結果と実際の結果の突合、デスクトップとモバイルの差異、Trace／スクリーンショット／動画／レポートの生成状況、ワークブック上のケース定義とテストコードの整合性を観察・確認する。 |
+| Output | 受講者が作成した研修用specコード、対応するワークブックの `implementation_path`、実行ごとのReceipt／エビデンス参照、デスクトップとモバイルで確認された差分の記録。各テストケースIDは、ワークブックの `implementation_path`、テストタイトル、注釈（annotation）、または既存メタデータのいずれかを通じてコードおよび実行結果から追跡可能にしておくこと。作業ディレクトリは自由だが、成果物提出時はリポジトリ相対パスを維持したまま `handoff-root/code/` および各指定ディレクトリへ集約する。 |
+| Self-check | Part 1-3のテストケース定義とコード上の条件・期待結果が正しく一致しているか、Reset処理・正常系・境界値／異常系・状態変化・デスクトップ検証・受講者作成のモバイル検証の各観点が必要とされる理由とともに説明できるかを確認する。テストの妥当性判断をツールの自動合否判定のみに委ねないこと。 |
+| Completion | ワークブックで `Automate`／`Web E2E`／`Playwright` と判定した受講者担当ケースを研修スコープへ実装完了し、各ケースにおいて明示的なReset、意図のある適切なAssertion、実行記録、ワークブックとの紐付けが確認できていること。単なる作成件数のみを修了条件とはせず、`TC-CART-101` を一連の縦断検証ケースとして必須とする。実装したケースにはリポジトリ相対パスの `implementation_path` を記録する。なお、`TC-CART-001` および `TC-CART-002` は配布サンプルのため、必須の修了ケースには含めない。 |
+| Recovery | 学習上の実装不足や理解の曖昧さがある場合はPart 1-3またはPart 1-4へ戻って再確認する。テスト失敗や製品障害が発生した場合は、期待結果と実際の結果、およびエビデンスを明確に分離して整理する。ブラウザ起動不可、Base URLアクセス不可、ハーネスエラー、成果物不足などの問題は環境起因の事象として記録し、研修用specを未検証のまま正式リグレッションへ混入させないこと。 |
+| Handoff | Part 1-6に向けて、テストケースID、実装パス、実行コマンド、run／case／RetryごとのReceipt、エビデンス群、失敗分類またはPass結果を引き渡す。Part 1-6の開始時点で初期状態とテスト対象が再現可能であることを確認しておくこと。 |
 
 ### Caseの分類と実行範囲
 
-`Automate`を選んだCaseがすべてWeb E2Eになるわけではありません。P1-3で記録した値が次の3つに一致するCaseだけを、Playwright Learner Caseとして扱います。
+`Automate`（自動化する）と判断したケースのすべてがWeb E2Eテストになるわけではありません。Part 1-3で記録した値が以下の3条件すべてに一致するケースのみを、受講者がPlaywrightで実装すべき対象ケース（Learner Case）として扱います。
 
 ```text
 automation_decision = Automate
@@ -87,44 +87,44 @@ test_layer = Web E2E
 tool = Playwright
 ```
 
-`Automate / Unit / Vitest`などの非UI Layerは、Layerを選んだ理由と保証範囲をWorkbookへ記録しますが、このLessonではPlaywright code、`resetScenario`、Desktop／Mobile Web実行を要求しません。`Later`と`Do not automate`はimplementation pathを持たず、今は自動化しない理由と将来の再判断条件を残します。P1-4の導入練習用`TC-PRODUCT-001`、配布sampleの`TC-CART-001`／`TC-CART-002`は正式なLearner Caseへ流用しません。
+`Automate / Unit / Vitest` など非UI層（Unit/Integration）を選択したケースについては、そのテスト階層を選択した理由と保証範囲をワークブックへ記録しますが、本レッスン内でPlaywrightのテストコード作成、`resetScenario` の呼び出し、デスクトップ／モバイルWeb実行までを行う必要はありません。また、`Later`（将来対応）および `Do not automate`（自動化しない）としたケースは実装パスを持たないため、現時点で自動化を見送る理由と将来再評価するための条件のみを記録に残します。Part 1-4の導入練習用ケース `TC-PRODUCT-001` や、配布サンプルの `TC-CART-001`／`TC-CART-002` は、受講者自身の正式な提出ケースとしては流用できません。
 
-実行範囲は、DesktopではすべてのPlaywright Learner Caseを成功させ、Mobile Webではそのうち1件以上を成功させます。Mobileで全Caseを繰り返すことはCommonの条件ではありません。Unit／Integration等の実装自体をCommonの必須条件へ追加せず、P1-3の設計判断として説明します。
+テストの実行範囲としては、デスクトップ環境において受講者が実装したすべてのPlaywrightテストケースをPassさせ、モバイルWeb環境ではその中から1件以上をPassさせる必要があります。モバイル環境ですべてのケースを網羅して再実行することは共通必須の修了条件ではありません。また、UnitテストやIntegrationテストの実装自体も本レッスンの共通必須条件には含めず、Part 1-3におけるテスト設計上の判断理由として説明できるように整理しておきます。
 
 ## Lesson 1: テスト設計からコードへ落とす
 
-スプレッドシートのTest Caseを、次の順序でコードへ変換します。
+スプレッドシート上で設計したテストケースは、以下のステップに沿って段階的にコードへと変換します。
 
 ```text
-Test Case ID
+Test Case ID（テストケースIDの特定）
 ↓
-前提状態
+前提状態（事前のデータ・認証状態）
 ↓
-操作
+操作（画面上でのアクション）
 ↓
-期待結果
+期待結果（画面やメッセージの検証）
 ↓
-必要なEvidence
+必要なEvidence（成否を証明する証跡）
 ```
 
-例:
+変換例:
 
 ```text
 TC-CART-002
-前提: cart-with-invalid-itemsへResetし、regular@example.comでLoginする
-操作: CartからCheckoutの入口を確認する
-期待: 購入不可明細の理由が表示され、Checkoutへ進めない
+前提: cart-with-invalid-items シナリオへResetし、regular@example.com でログインする
+操作: カート画面からチェックアウトの導線を確認する
+期待: 購入不可の明細がある理由が表示され、チェックアウトへ進めないこと
 ```
 
-ここからPlaywright Testを作成します。
+このように前提と検証ポイントを明確に定義した上で、Playwrightのテストコードを作成します。
 
 ## Lesson 2: Seed Scenario / Reset
 
-E2Eでは前のテスト結果へ依存しないことが重要です。
+E2Eテストでは、直前に実行されたテストの結果やデータ残骸に依存しない独立性を確保することが極めて重要です。
 
-Scenario Shopには、テスト開始状態を再現するためのSeed Scenarioがあります。
+Scenario Shopには、テスト開始時の初期状態を確実に再現するための事前定義シナリオ（Seed Scenario）が用意されています。
 
-例:
+シナリオ例:
 
 - `default`
 - `out-of-stock`
@@ -133,195 +133,194 @@ Scenario Shopには、テスト開始状態を再現するためのSeed Scenario
 - `payment-declined`
 - `cart-version-invalidates-checkout`
 
-Training Testでは、教材側が提供する`resetScenario(page, "<scenario>")`を使って必要なSeed ScenarioへResetします。受講者は`page.evaluate()`、`window.__TEST_API__`、正式RegressionのFixture内部を実装しません。
+研修用のテストコードでは、教材側から提供されているヘルパー関数 `resetScenario(page, "<scenario>")` を呼び出して目的のSeed Scenarioへ初期化（Reset）します。受講者自身が `page.evaluate()` や `window.__TEST_API__` を直接操作したり、正式リグレッション用のFixture内部を独自に実装したりする必要はありません。
 
-### Testの分離と製品データのReset
+### テストの分離と製品データのReset
 
-PlaywrightのBrowserContext分離とScenario Shop固有のResetは別の責務です。
+Playwrightが提供する「BrowserContextの分離」と、Scenario Shop固有の「シナリオReset」は、それぞれ異なる責務を持っています。
 
-- **BrowserContext分離**: TestごとにCookie、`localStorage`、`sessionStorage`などのBrowser状態を分け、前のTestの認証やBrowser状態へ依存しないようにします。
-- **Scenario Reset**: 在庫、Cart、Account、Clockなどの製品データを指定Scenarioへ戻します。
+- **BrowserContextの分離**: テストケースごとにCookie、`localStorage`、`sessionStorage` などのブラウザストレージを独立させ、先行するテストの認証状態やブラウザセッションに影響を受けないようにします。
+- **Scenario Reset**: アプリケーション側の在庫情報、カート内容、アカウントステータス、仮想時刻などの製品データを、指定したシナリオの初期状態へ復元します。
 
-BrowserContextだけでは製品データの初期状態は作れず、Scenario ResetだけではBrowser状態の分離を代替できません。両方を使って再現可能なTestを作ります。
+BrowserContextを分離しただけではサーバー・製品側のデータ初期状態は作れず、逆にScenario Resetだけではブラウザ内のストレージ分離は担保できません。再現性のある堅牢なテストを作成するためには、これら両方を正しく組み合わせて運用します。
 
-この段階で重要なのは、Fixtureの実装方法ではなく次を理解することです。
+現段階の学習において重要なのは、Fixtureの内部コードを自作することではなく、以下の原則を理解して適用することです。
 
-- 各Testが明示的な初期状態から始まる。
-- 前のTestが残したCartやSessionへ依存しない。
-- Reset後の状態が期待したSeed Scenarioであることを確認できる。
-- 状態準備のために長いUI操作を毎回繰り返さなくてよい。
+- すべてのテストが明示的な初期状態から開始されていること。
+- 先行するテストが残したカート状態やセッション情報に依存していないこと。
+- Reset完了後の状態が、期待通りのSeed Scenarioになっていることを検証できること。
+- 目的の状態を準備するために、冗長なUI操作を最初から毎回繰り返す必要がないこと。
 
-既存Repositoryがこの仕組みをどのようにFixtureへ実装しているかは、Maestroまで一巡した後のPart 1-8で確認します。
+リポジトリ内でこの仕組みがFixtureとしてどのように実装されているかについては、モバイルテスト（Maestro）の学習が一巡した後のPart 1-8で詳しく確認します。
 
 ## Lesson 3: 異常系と境界値
 
-スプレッドシートで設計したケースから、次のような条件をPlaywrightへ実装します。
+スプレッドシートで設計したテストケースの中から、以下のような代表的な条件をPlaywrightで実装します。
 
-- 在庫切れ
-- 購入上限
-- suspended user Login拒否
-- Payment失敗
+- 在庫切れ時の挙動
+- 購入上限数の境界値
+- 利用停止（suspended）ユーザーのログイン拒否
+- 決済処理の失敗
 
-重要なのはError Messageを確認するだけではなく、誤った状態へ遷移していないことも確認することです。
+ここで重要なのは、単にエラーメッセージが表示されたことだけでなく、画面が意図しない後続フローへ遷移していない（不正な画面遷移がブロックされている）ことも併せて検証することです。
 
-境界値の全組み合わせをE2Eへ持ち込まず、UI Journeyとして価値の高い代表条件を選びます。
+また、境界値のあらゆる組み合わせをすべてE2Eテストとして網羅しようとせず、UIジャーニーとして検証する価値の高い代表的な境界条件に絞って実装します。
 
 ## Lesson 4: 状態遷移をE2Eにする（発展）
 
-Paymentを例にします。
+決済処理（Payment）の流れを例に考えます。
 
 ```text
-Checkout
+Checkout（チェックアウト画面）
 ↓
-Processing
+Processing（決済処理中）
 ↓
-Failed
+Failed（決済失敗）
 ↓
-Order Detail
+Order Detail（注文詳細画面）
 ↓
-Retry
+Retry（再試行操作）
 ↓
-Complete
+Complete（注文完了）
 ```
 
-1画面ずつ別テストにするだけでなく、業務上重要なJourneyとして確認する価値を考えます。
+画面単体ごとにテストを細切れにするだけでなく、一連の業務フローとしてクリティカルなジャーニーを一貫して検証する意義を検討します。
 
-既存のPayment失敗・再試行E2Eと比較します。
+既存の決済失敗・再試行E2Eテストの実装と見比べながら、フローの構成方法を学びます。
 
-## Lesson 5: Role横断テスト（発展）
+## Lesson 5: ロール横断テスト（発展）
 
-Scenario ShopではAdminが作成・変更した状態がCustomer側へ影響します。
+Scenario Shopでは、管理者（Admin）が作成・変更した商品や注文の状態が、一般顧客（Customer）側の画面表示や購入可否に直接影響します。
 
-Cross-role Testでは、単一Roleの画面だけでなく、Roleを跨ぐLifecycleを確認できます。
+ロール横断テスト（Cross-role Test）では、単一ロールの画面完結テストにとどまらず、複数のロールを跨いだライフサイクル全体を一気通貫で確認できます。
 
-例:
+フロー例:
 
 ```text
-Adminが商品作成
+Adminが新規商品を作成
 ↓
-公開
+公開ステータスへ変更
 ↓
-Customerが購入
+Customerが商品を購入
 ↓
-Operatorが配送
+Operator（配送担当）が配送ステータスを更新
 ↓
-CustomerがReview
+Customerが商品レビューを投稿
 ```
 
-どこまでを1本のE2Eに含めるかは、Risk、失敗原因の特定性、実行時間から判断します。
+どこまでを1本のE2Eテストにまとめるかは、業務上のリスク、テスト失敗時の原因特定しやすさ（切り分けの容易さ）、実行時間のバランスを総合的に考慮して判断します。
 
 ## Lesson 6: UIと内部状態を組み合わせる（発展）
 
-購入完了画面が表示されても、内部状態が完全に正しいとは限りません。
+画面上に「購入完了」が表示されたからといって、バックエンドの内部状態まで完全に正しく更新されているとは限りません。
 
-Scenario ShopのTest APIではOrderなどをInspectionできます。
+Scenario ShopのテストAPIを利用すると、注文レコードなどの内部状態をプログラムからインスペクション（検証取得）できます。
 
-既存E2Eでは、UI表示に加えて次のような状態も確認します。
+既存のE2Eテストでは、UIの表示確認に加えて、以下のような内部ステータスも突合しています。
 
-- `orderStatus`
-- `latestPaymentStatus`
-- `cartStatus`
-- `checkoutStatus`
+- `orderStatus`（注文ステータス）
+- `latestPaymentStatus`（最新決済ステータス）
+- `cartStatus`（カートステータス）
+- `checkoutStatus`（チェックアウトステータス）
 
-UI E2Eで内部状態を確認する場合は、ProductionへTest APIを露出しないなどの安全境界も必要です。
+UI E2Eテストの内部でシステム状態を検証する場合は、本番環境にテスト用APIを不用意に公開しないといったセキュリティ・実行環境の安全境界を設ける設計が不可欠です。
 
 ## Lesson 7: Mobile Web
 
-Playwright Projectを切り替え、Mobile Viewportでも主要Flowを確認します。
+Playwrightのプロジェクト設定を切り替え、モバイル端末のビューポート（画面解像度）でも主要フローが正常に動作するかを確認します。
 
-確認観点:
+主な検証観点:
 
-- 横Overflow
-- Tap Target
-- Navigation
-- AdminのMobile Boundary
-- Small viewportでPage Endへ到達できるか
+- 横スクロール（横方向のオーバーフロー）が発生していないか
+- タップターゲット（ボタンやリンクのタップ領域）が適切なサイズ・間隔を保っているか
+- モバイル特有のナビゲーション（ハンバーガーメニュー等）が正しく機能するか
+- 管理者画面におけるモバイル表示の制限境界（非対応画面の制御など）が機能しているか
+- 画面縦幅が狭いビューポート（Small viewport）において、ページ最下部までスクロールして操作を完了できるか
 
-DesktopでPassすることとMobileで使えることは同じではありません。
+デスクトップ表示でテストがPassすることと、モバイル画面で快適に利用できることは同義ではありません。
 
-Training baselineのDesktop確認とは別に、受講者が作成したExerciseは `pnpm run training:web:exercise` で `training-chromium`へ実行します。
+Training baselineのデスクトップ確認とは別に、受講者が作成したExerciseは `pnpm run training:web:exercise` を使用して `training-chromium` プロジェクト上で実行します。
 
-Training baselineのMobile確認は `pnpm run training:web:mobile` で実行します。
-Baseline確認とは別に、受講者が作成したExerciseをMobile Projectで実行する場合は、
-`pnpm run training:web:mobile:exercise` を使用します。この入口は
-`training/playwright/exercises`だけを `training-mobile-chromium` で実行し、Formal E2Eを実行しません。
+Training baselineのモバイル表示確認は `pnpm run training:web:mobile` で実行します。
+ベースラインの確認とは別に、受講者が作成したテストコードをモバイルプロジェクトで実行する場合は、
+`pnpm run training:web:mobile:exercise` を使用します。この実行エントリポイントは、
+`training/playwright/exercises` 配下のテストのみを `training-mobile-chromium` で実行し、正式なリグレッションテストは実行対象外とします。
 
-## Lesson 8: Accessibility（発展）
+## Lesson 8: アクセシビリティ（発展）
 
-`@axe-core/playwright` を利用した自動Accessibility Testと、Keyboard操作などの確認を学びます。
+`@axe-core/playwright` を活用した自動アクセシビリティスキャンの実行方法と、キーボード操作のみによるナビゲーション確認について学びます。
 
-自動Accessibility Scanだけでは完全なAccessibility保証にならない点も理解します。
+ツールによる自動スキャンを実施するだけで、すべてのアクセシビリティ要件が満たせるわけではない（手動確認やスクリーンリーダー検証が必要な観点が存在する）点も正しく理解しておきます。
 
-## ハンズオン1: Cart Regression
+## ハンズオン1: カートのリグレッションテスト実装
 
-P1-3で作成した複数のCart Test Caseから、共通課程の中核として代表条件を実装します。`TC-CART-101`はP1-2からP1-6へ渡す縦断Caseの1つであり、これだけで全ての観点を満たしたことにはしません。3件程度は練習量の目安であり、件数だけを修了条件にはしません。
+Part 1-3で設計したカート機能のテストケース群から、共通課程のコア学習として代表的な条件をテストコードへ実装します。`TC-CART-101` はPart 1-2からPart 1-6へと引き継いでいく縦断ケースの1つですが、これ単体ですべての検証観点が満たされるわけではありません。実装件数としては3件程度が目安ですが、単に件数目標を達成することだけを修了条件とはしません。
 
-必須:
+必須とする検証観点:
 
-- 正常追加
-- 購入上限または別の対象Riskの境界値（受講者のCase ID。`TC-CART-101`を代表例にする）
-- 購入不可明細からのCheckout阻止など、別のRiskを表すCase
-- 削除または数量変更
+- カートへの正常な商品追加
+- 購入上限数または設計時に定めた対象リスクの境界値（受講者自身のケースID。代表例として `TC-CART-101`）
+- 購入不可明細が存在する場合のチェックアウト導線遮断など、別のリスクを捉えたケース
+- 商品の削除または数量変更操作
 
-在庫切れ（`out-of-stock`）を追加練習にする場合も、Workbookの`TC-CART-001`／`TC-CART-002`は配布sampleとして扱い、完成Caseとして流用しません。受講者自身のCaseには`TC-CART-101`、`TC-CART-102`など別のTest Case IDを付け、コードと実行結果をそのIDへ対応付けます。
+在庫切れ（`out-of-stock`）のシナリオを追加演習として実装する場合も、ワークブック上の `TC-CART-001` や `TC-CART-002` は配布された初期サンプルとして扱い、自身の完成成果物としてそのまま流用しないでください。受講者自身が設計したケースには `TC-CART-101`、`TC-CART-102` などの固有のテストケースIDを付与し、テストコードおよび実行結果をそのIDと正確に対応付けます。
 
-各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
+各ケースについて、スプレッドシート上のテスト設計根拠と、テストコード内のAssertion（期待値検証）が論理的に一致していることを確認してください。
 
-## ハンズオン2: Payment Failure（発展）
+## ハンズオン2: 決済失敗フローの実装（発展）
 
-Payment拒否からRetry成功までを実装します。
+決済処理の拒否（Payment Declined）が発生してから、再試行を行って決済成功に至るまでのジャーニーを実装します。
 
-## ハンズオン3: Mobile確認
+## ハンズオン3: モバイル環境での動作確認
 
-まず `pnpm run training:web:mobile` でTraining baselineを確認します。その後、作成したテストのうち1件以上を
-`pnpm run training:web:mobile:exercise` でMobile向けTraining実行環境へ実行し、Desktopとの差を記録します。
+まず `pnpm run training:web:mobile` を実行し、Training baselineの動作を確認します。その後、自身が作成したテストコードの中から1件以上を選び、`pnpm run training:web:mobile:exercise` を用いてモバイル用研修実行環境で実行し、デスクトップ表示との差分や観察事項を記録します。
 
-## ハンズオン4: 既存E2Eとの差分分析（発展課題・参考資料との比較）
+## ハンズオン4: 既存E2Eテストとの差分分析（発展課題・参考資料との比較）
 
-`phase1-required.spec.ts` と自分の実装を比較し、次を記録します。
+正式テストコードである `phase1-required.spec.ts` と自身の実装コードを比較し、以下の観点をレポートに記録します。
 
-- 自分の方が単純な点
-- 既存側で追加している検証
-- 既存側の保守上気になる点
-- 後で共通化したくなりそうな処理
+- 自身の実装の方がシンプルに書けている点
+- 既存の実装側で手厚く追加検証されている点
+- 既存コードの保守性において課題と感じられる点
+- 将来的に共通化や共通関数化（Helper化）を検討したくなる処理
 
-この時点ではまだPOMやFixture内部の設計へ変更・分析しません。共通化の必要性だけを問題として記録し、Part 1-8で解決方法を学びます。
+※この段階では、Page Object Model（POM）の導入やFixture内部の設計変更・独自実装には着手しません。共通化の必要性や設計上の課題を認識・記録するにとどめ、Part 1-8でその体系的な解決手法を学びます。
 
 ## 確認問題
 
-1. 各テストの開始前にSeed ScenarioをResetする価値は何か。
-2. UI表示だけでは不足するE2Eの例を挙げる。
-3. Cross-role E2Eを巨大化しすぎると何が問題になるか。
-4. DesktopでPassしてもMobile Testが必要な理由は何か。
-5. Accessibility自動Scanだけで十分ではない理由は何か。
-6. Training用E2Eを正式Regressionから分離する理由は何か。
-7. Part 1前半でFixture内部を先に学ばない理由は何か。
+1. 各テストケースの開始直前にSeed ScenarioをResetすることには、どのような価値があるか。
+2. UIの画面表示を確認しただけでは不十分で、内部状態の検証が求められるE2Eテストの具体例を挙げよ。
+3. ロール横断（Cross-role）のE2Eテストを肥大化させすぎると、どのような問題が発生するか。
+4. デスクトップ環境でテストがPassした場合でも、モバイル環境でのテストが必要となる理由は何か。
+5. アクセシビリティの自動スキャンツールを実行するだけでは、品質保証として不十分な理由は何か。
+6. 研修用のE2Eテストを、正式なリグレッションテストスイートから分離して管理する理由は何か。
+7. Part 1の前半カリキュラムにおいて、Fixtureの内部設計を先行して学ばない理由は何か。
 
 ## 自己確認
 
 ### 回答の最低判定基準
 
-- Seed Scenario / Resetについて、各Testが明示的な初期状態から始まり、前のTestの状態へ依存しないことを説明している。
-- UI表示だけでなく、必要なCaseでは状態遷移や内部状態を確認し、Test API / Inspectionを使う場合のTraining / Production境界を説明している。
-- CoreとしてCartの正常追加、削除または数量変更、在庫切れまたは購入上限の代表Boundary、Mobile baselineとExerciseを選んでいる。
-- Payment、Cross-role、Internal Inspection、Accessibilityの実行は発展課題であり、共通課程の修了には不要だと説明できる。
-- DesktopとMobileの差をViewport / Navigation / Touch Targetなど観測可能な観点で記録し、実行記録とTest Case IDを結び付けている。
-- Failure時に期待状態と実際の状態を分け、Training specをFormal Regressionへ混在させていない。
+- Seed ScenarioとResetについて、すべてのテストが明示的な初期状態から開始され、直前のテスト状態に依存しないテストの独立性を保つための仕組みであることを説明できていること。
+- UIの見た目だけでなく、必要に応じて状態遷移やバックエンドの内部ステータスを検証し、テスト用API／内部インスペクションを使用する際の研修環境と本番環境の安全境界を説明できていること。
+- コア実装として、カートへの正常追加、削除または数量変更、在庫切れまたは購入上限の代表的境界値、モバイル用ベースラインおよび作成したExerciseのモバイル実行を選択・実施していること。
+- 決済処理、ロール横断、内部状態インスペクション、アクセシビリティの各テスト実行は発展課題として位置付けられており、共通課程の修了には必須ではないことを理解して説明できること。
+- デスクトップとモバイルの差異について、ビューポート、ナビゲーション、タップターゲットなど、実際に観測可能な観点で記録し、実行結果のログとテストケースIDを正しく結び付けていること。
+- テスト失敗時に期待値と実際の状態を切り分けて分析でき、研修用specを正式なリグレッションスイートへ混入させていないこと。
 
-### Recovery
+### リカバリ手順
 
-共通課程の中核と発展課題を混同した場合はLesson 3とLesson 7、ハンズオン1と3へ戻り、Cartの代表Boundaryを1件だけResetから再実行します。実行できない場合はBase URL / Browser / Training Harnessを環境上の問題として記録し、Caseの選択理由と分けて復帰します。
+共通課程のコア学習と発展課題の境界を混同してしまった場合は、Lesson 3およびLesson 7、ハンズオン1および3の記述へ戻り、カート機能の代表的な境界値テスト1件のみをReset処理から再実行してください。環境起因でテストが実行できない場合は、Base URL、ブラウザ環境、研修用ハーネスの状況を環境課題として切り分けて記録し、テストケースの設計判断そのものと混同しないように復旧を進めてください。
 
 ## 完了条件
 
-- 共通課程の中核として、Cartの正常追加、明示的なSeed Scenario / Reset、代表Boundary、Mobile baselineと作成したExerciseのMobile実行を対応付けて確認できる。
-- 各TestのTest Case ID、Risk / BR / AC、期待結果、Layer / Tool、実行記録を対応付けている。
-- Payment、Cross-role、Internal Inspection、Accessibilityの実行は発展課題として扱い、共通課程の修了の前提にしていない。
-- Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
-- Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。
+- 共通課程のコア学習として、カートへの正常追加、明示的なSeed ScenarioへのReset、代表的な境界値検証、モバイルベースラインの確認、および作成したExerciseのモバイル実行結果が相互に関連付けて確認できていること。
+- 各テストケースについて、テストケースID、リスク／ビジネスルール／受け入れ基準（Risk / BR / AC）、期待結果、テスト層／ツール（Layer / Tool）、実行記録が正しく紐付けられていること。
+- 決済フロー、ロール横断、内部状態インスペクション、アクセシビリティの各検証は発展課題として扱い、共通課程の修了要件と混同していないこと。
+- 研修用E2Eテストと既存の正式リグレッションテストを区別し、それぞれの役割と分離の目的を説明できること。
+- Seed ScenarioのReset機能を活用できる一方で、Fixtureの内部設計や自作はPart 1-8で扱う内容として明確に区別できていること。
 
-練習量の目安として5件以上のPlaywright E2Eを作成してもよいが、件数や発展課題の実施だけでは修了としません。
+※演習量の目安として5件以上のPlaywright E2Eテストを作成することは推奨されますが、単なる作成件数の達成や発展課題の実施のみをもって修了条件を満たしたとはみなしません。
 
 ## 次の行動
 
-[Part 1-6: テスト実行・結果分析・改善](./06_execution-and-failure-analysis.md)へ進み、共通課程の中核または発展課題で得たFailure / 実行記録を原因分析へ接続します。
+[Part 1-6: テスト実行・結果分析・改善](./06_execution-and-failure-analysis.md) へ進み、共通課程のコア学習または発展課題を通じて得られたテスト失敗（Failure）や実行結果を、構造的な原因分析へと繋げていきます。

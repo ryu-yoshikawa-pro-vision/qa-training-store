@@ -12,19 +12,19 @@
 
 ## Customer Rank
 
-`regular`、`gold`、`platinum`の順に権限水準を持ちます。Rank制限商品は同等以上のCustomerだけが見えます。価格割引と送料条件は現在のRankから単価ごとに計算します。具体的なRank値は `src/domain/policies/permissions.ts` と価格計算Use Caseを正本とします。
+権限水準は `regular`、`gold`、`platinum` の順に高くなります。ランク制限商品は、同等以上のランクを持つCustomerのみ閲覧できます。価格割引および配送料の適用条件は、現在のランクに基づいて商品単価ごとに計算します。具体的なランクの定義値は `src/domain/policies/permissions.ts` および価格計算ユースケースを正本とします。
 
 ## Authorization
 
-AuthorizationはUI表示だけでなくApplication Use Caseで強制します。Customerは自分のAccount、Address、Order、Reviewだけを操作できます。Operator/AdminはStore管理を行えますが、Customer購入導線を利用できません。AdminだけがUser管理を行います。
+認可制御（Authorization）はUI上の表示制御にとどまらず、アプリケーションのユースケース層で確実に適用・強制します。Customerは自身のアカウント（Account）、配送先住所（Address）、注文履歴（Order）、レビュー（Review）のみ操作できます。OperatorおよびAdminはストア管理を行えますが、Customer向けの購入導線は利用できません。ユーザー管理（User management）を実行できるのはAdminのみです。
 
 ## Account Status
 
-`active`だけがCustomer LoginとCheckoutを許可されます。`suspended`と`withdrawn`はLoginを拒否します。管理操作で扱うAccount遷移は `active ↔ suspended` に限り、`withdrawn`は固定Seedの読取専用状態です。
+Customerのログインおよびチェックアウト（Checkout）が許可されるのは `active` 状態のみです。`suspended` および `withdrawn` のアカウントはログインが拒否されます。管理画面などの操作で変更可能なアカウント状態の遷移は `active ↔ suspended` に限られ、`withdrawn` はシードデータとして固定された読み取り専用の状態です。
 
 ## Canonical Sources
 
-Role/Statusの型は `src/domain/contracts/entities.ts`、認可Policyは `src/domain/policies/permissions.ts`、SessionとRoute Guardは `src/application/` および `src/presentation/`、固定アカウントは `src/seeds/default-dataset.ts` を参照してください。
+ロールやステータスの型定義は `src/domain/contracts/entities.ts`、認可ポリシーは `src/domain/policies/permissions.ts`、セッション管理およびルートガードは `src/application/` および `src/presentation/`、固定アカウントデータは `src/seeds/default-dataset.ts` を参照してください。
 
 ## Screen Contracts
 
@@ -34,8 +34,8 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 #### Functions
 
-- RoleまたはPermissionにより利用できないRouteであることを説明する。
-- 利用者が安全なStorefrontまたは許可された入口へ戻れるActionを表示する。
+- ロール（Role）または権限（Permission）の不足によりアクセスできないルートであることを説明する。
+- 利用者が安全にストアフロント（Storefront）やアクセス可能な導線へ戻れるアクションを表示する。
 
 #### Important UI States
 

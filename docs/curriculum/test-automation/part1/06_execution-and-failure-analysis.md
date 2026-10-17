@@ -2,15 +2,15 @@
 
 ## 学習目標
 
-- Playwright Testを目的に応じて実行できる。
-- Test ResultをPass / Failだけで終わらせず、失敗原因を分類できる。
-- Trace、Screenshot、Video、HTML Report、Console Errorを使ってFailureを調査できる。
-- Product Bug、Test Bug、Environment Issue、Flakyなどを区別できる。
-- RetryやTimeout延長を安易な解決策にせず、原因に応じた改善ができる。
+- 目的に応じてPlaywrightのテストを実行できる。
+- テスト結果を単なる合否（Pass / Fail）だけで終わらせず、失敗原因を正しく分類できる。
+- トレース、スクリーンショット、動画、HTMLレポート、コンソールエラーを活用してテスト失敗の原因を調査できる。
+- プロダクトの不具合（Product Bug）、テストコードの不具合（Test Bug）、環境起因の問題（Environment Issue）、不安定なテスト（Flaky Test）などを適切に区別できる。
+- リトライの安易な追加やタイムアウトの延長に頼らず、根本原因に応じた適切な改善ができる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリのScenario ShopとPlaywright設定・既存E2Eを使用します。**
+**このモジュールでは、本リポジトリのScenario ShopとPlaywright設定・既存E2Eテストを使用します。**
 
 主な参照先:
 
@@ -19,36 +19,36 @@
 - `training/playwright/failure-exercises/`
 - `training/playwright/diagnostic-exercises/`
 - `output/training/playwright/`
-- `playwright.config.ts` / `output/playwright/`（Formal比較教材）
+- `playwright.config.ts` / `output/playwright/`（本番構成との比較教材）
 
-Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要な実行記録の収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
+Part 1-5と同様に、現段階では `e2e/web/fixtures.ts` の内部設計まで読み解く必要はありません。トレーニング用テストハーネス（Training Test Harness）が初期シナリオのリセットや必要な実行ログの収集を提供する前提に立ち、まずは失敗の観測・分類・改善のサイクルに集中します。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P1-5で実装した複数の受講者Case、Workbookの条件・期待結果・`implementation_path`、Reset方法、Playwrightの実行結果。Receiptを作る前に、対象Case ID、実行するProject、保存する`handoff-root`を決める。C09では既存の決定的なDiagnostic fixtureも使う |
-| Activity | 教材が用意した正式な入口で目的に応じたSuiteを実行し、run全体の終了結果とCaseごとの状態を分けて読む。Error、Trace、Screenshot、Video、HTML Report、Console Errorから最初の異常を探し、原因を仮説化して最小修正後に別runで再実行する |
-| Observation | Expected／Actual、FailureしたTest Case ID、Retryと受講者修正後の再実行の違い、Evidenceの差、Product／Test／Data／Locator／Timing／Environmentのどこで起きたか。Receiptの引数を暗記できたかではなく、どの記録から何を観測したかを確認する |
-| Output | `04_execution-improvement.csv`の実行Context別記録、Failure分析メモ、初期／修正後のExecution ReceiptとEvidence。編集場所は自由で、評価時は`handoff-root/workbook/`、`receipts/`、`evidence/`へ集約する |
-| Self-check | 最初の異常と派生エラー、Expected／Actual、原因分類、Evidence、修正、再実行結果を説明する。Retryを「受講者が修正した」と読み替えず、C09のinitial Failureとrepaired Passを別Contextで示す。Error、Screenshot、Video、Trace、HTML Reportをどこから確認したかも書く |
-| Completion | 意図的Failureまたは意味のあるDiagnostic／Learner Failureを1件以上分析し、対象・操作・事象がEvidenceと一致する。C09は`diagnostic-initial`の決定的Failure、原因説明、修正、`diagnostic-repaired`の別run／別Evidenceを記録する。initial Failureだけを通常の最終FAILへ集約しない |
-| Recovery | 学習不足はP1-3〜P1-5へ戻る。テスト／製品のFailureはExpected／Actualと仕様を再確認する。Browser、Base URL、Harness、Artifact不足は環境として分ける。Diagnostic初期状態はGit操作なしの復元手順で受講者コピーへ戻し、修正済みEvidenceを初期Evidenceへ上書きしない。Receiptの引数で止まったら、下記の固定入口と変更してよい引数だけを確認する |
-| Handoff | P1-8（共通経路）またはP1-7（Native選択）へ、改善前後のCase ID、実装Path、Failure分類、原因、Action、再実行結果、Receipt／Evidence、`04_execution-improvement.csv`のContextを渡す |
+| Input | P1-5で実装した複数の受講者テストケース、ワークブック（Workbook）記載の条件・期待結果・`implementation_path`、リセット手順、Playwrightの実行結果。実行レシート（Receipt）を生成する前に、対象のケースID、実行プロジェクト、保存先となる `handoff-root` を決定する。C09では既存の決定的な診断用フィクスチャ（Diagnostic fixture）も使用する。 |
+| Activity | 教材で提供されている正規の実行コマンドから目的に応じたテストスイートを実行し、全体の終了結果とテストケースごとの状態を切り分けて確認する。エラーメッセージ、トレース、スクリーンショット、動画、HTMLレポート、コンソールエラーから最初の異常箇所を特定し、原因の仮説を立てて最小限の修正を行った上で、別回の実行として再テストする。 |
+| Observation | 期待値（Expected）と実際の結果（Actual）、失敗したテストケースID、自動リトライと修正後の再実行との差異、エビデンスの差分、問題の発生箇所（プロダクト／テストコード／テストデータ／ロケーター／タイミング／環境）。レシートコマンドの引数を暗記したかではなく、どの記録から何を観測・判断したかを確認する。 |
+| Output | `04_execution-improvement.csv` への実行コンテキスト別記録、失敗分析メモ、修正前後の実行レシートおよびエビデンス。作業時の編集場所は自由だが、評価時には `<handoff-root>/workbook/`、`receipts/`、`evidence/` 配下へ集約して配置する。 |
+| Self-check | 最初の異常と派生エラー、期待値と実際の結果、原因分類、参照エビデンス、修正内容、再実行結果を論理的に説明できること。自動リトライによる成功を「受講者が修正した結果」と誤認せず、C09の初回失敗（initial Failure）と修正後の成功（repaired Pass）を別コンテキストとして示せているか確認する。また、エラーメッセージ、スクリーンショット、動画、トレース、HTMLレポートをどのパスから確認したかも明記する。 |
+| Completion | 意図的に発生させた失敗、または診断演習／受講者作成テストで起きた意味のある失敗を1件以上分析し、対象・操作内容・発生事象がエビデンスと整合していること。C09では `diagnostic-initial` の決定的な失敗、原因の説明、修正内容、および `diagnostic-repaired` による別実行・別エビデンスが記録されていること（初回の失敗記録を通常の最終FAILとして上書き・集約しない）。 |
+| Recovery | 理解不足がある場合はP1-3〜P1-5に戻って復習する。テストやプロダクトの失敗については、期待値・実際の結果・仕様を再確認する。ブラウザ、ベースURL、テストハーネスの不備や成果物の欠落などは環境起因として切り分ける。診断演習の初期状態へ戻す際は、Git操作を介さない所定の復元手順で演習用コピーへ復元し、修正後のエビデンスで初期エビデンスを上書きしない。レシートコマンドの引数で迷った場合は、後述の固定コマンドと変更可能な引数の定義を確認する。 |
+| Handoff | P1-8（共通トラック）またはP1-7（Nativeアプリ自動化の選択コース）へ、改善前後のテストケースID、実装パス、失敗分類、原因、対策（Action）、再実行結果、レシート／エビデンス、および `04_execution-improvement.csv` のコンテキスト情報を引き継ぐ。 |
 
 ## 実行コマンドの扱い
 
-現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。`pnpm run test:e2e:*`などのFormal入口は既存Suiteの構成を理解するための比較教材であり、受講者のTraining specを実行する入口ではありません。
+本リポジトリには、回帰テスト（Formal Regression）とトレーニング（Training）を目的に応じて実行するスクリプトが用意されています。`pnpm run test:e2e:*` などの回帰テスト用コマンドは既存スイートの構成を理解するための比較用教材であり、受講者のトレーニング用テストコード（spec）を実行するための入口ではありません。
 
 ### 通常Exerciseで使う固定入口
 
-受講者が覚える実行入口は、次のReceipt付きcommandです。コマンドはRepositoryのRoot Directoryで実行します。
+受講者が使用する基本の実行コマンドは、以下のレシート生成付きコマンドです。このコマンドは必ずリポジトリのルートディレクトリで実行してください。
 
 ```bash
 pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context learner-exercise
 ```
 
-このコマンドで、`<handoff-root>/code/training/playwright/exercises/`へ集約した受講者specを実行し、Receiptとその実行に対応するEvidenceをまとめて保存します。`<handoff-root>/code/`はRunnerが読むローカルのコード実行root、`<handoff-root>/`はWorkbook・Code・Receipt・Evidenceを保存する固定rootです。P1-5で別の場所に作成したspecは、実行前にRepository相対Pathを保ったままこのcode配下へコピーします。
+このコマンドを実行すると、`<handoff-root>/code/training/playwright/exercises/` に配置された受講者のテストコードが実行され、実行レシートおよびその実行に対応するエビデンスがまとめて保存されます。`<handoff-root>/code/` はテストランナーが読み込むローカルのコード実行ルートであり、`<handoff-root>/` はワークブック・コード・レシート・エビデンスを保管する固定ルートです。P1-5で別の場所に作成したテストコードは、実行前にリポジトリ内の相対パスを維持したまま、この `code` 配下へコピーしてください。
 
 ```text
 <handoff-root>/
@@ -61,19 +61,19 @@ pnpm run training:web:exercise:with-receipt -- --suite exercise --project traini
 
 変更してよい引数は次のとおりです。
 
-- `--project`: Desktopなら`training-chromium`、Mobile Webなら`training-mobile-chromium`
-- `--root`: Receipt／Evidenceを保存する自分の固定`handoff-root`
-- `--run-context`: `learner-exercise`や`desktop-exercise`など、実行の目的を表す重複しない名前
+- `--project`: デスクトップ環境なら `training-chromium`、モバイルWeb環境なら `training-mobile-chromium`
+- `--root`: レシートやエビデンスを保存する自身の固定ディレクトリ（`<handoff-root>`）
+- `--run-context`: `learner-exercise` や `desktop-exercise` など、実行目的を表す一意の名前
 
-`--suite exercise`は変更しません。通常Exerciseでは`--test-root`を追加せず、上記の`<handoff-root>/code/`をRunnerの実行rootとして使います。`corepack pnpm exec tsx`や`--force`も追加しません。コマンドは常にRepository Rootから実行します。Mobile Webへ切り替える場合だけ`--project training-mobile-chromium`へ変更します。
+`--suite exercise` は変更しません。通常の演習では `--test-root` を追加せず、前述の `<handoff-root>/code/` をテストランナーの実行ルートとして使用します。`corepack pnpm exec tsx` や `--force` などのオプションも追加しないでください。コマンドは常にリポジトリルートから実行し、モバイルWebの検証に切り替える場合のみ `--project training-mobile-chromium` に変更します。
 
-正常終了（exit code 0）の後は、`<handoff-root>/receipts/`のExecution Receiptを開き、対象Caseが`passed`であること、`implementation_path`が自分のspecを指すこと、CaseにEvidence参照があることを確認します。終了コードだけを見て完了にしません。失敗した場合は、ReceiptのCase／Retry状態と、同じContextのEvidenceから最初の異常を確認します。
+テストが正常終了（exit code 0）した後は、`<handoff-root>/receipts/` 配下の実行レシートを開き、対象ケースが `passed` になっていること、`implementation_path` が自身のテストコードを指していること、および各ケースにエビデンスへの参照が含まれていることを確認してください。終了コードだけを見て完了と判断してはいけません。テストが失敗した場合は、レシート内のケースステータスやリトライ状態、および同一コンテキストのエビデンスから最初の異常内容を調査します。
 
-Browser、Base URL、Training Copy、権限など、教材理解とは独立した環境が利用できず実行できない場合は、成功したようにReceiptを作りません。正式入口の実行結果または環境確認メモへ、`BLOCKED`、具体的な理由、確認できなかった対象を記録し、Workbookの該当行は`Not run`とします。環境が復旧した後に実行できた場合は、別Context・別Evidenceとして追加し、以前の`Not run`やEvidenceを上書きしません。
+ブラウザの起動失敗、ベースURLへの接続不能、トレーニング用コピーの破損、権限エラーなど、受講者の教材理解とは無関係な環境トラブルで実行できない場合は、成功したかのようにレシートを手動作成してはいけません。正規コマンドの実行結果ログや環境確認メモに `BLOCKED` である旨、具体的な理由、および確認できなかった対象を記録し、ワークブックの該当行は `Not run` と記載してください。環境復旧後に実行できた場合は、以前の `Not run` や過去のエビデンスを上書きせず、別のコンテキスト・別のエビデンスとして記録を追加します。
 
 ### C09 Diagnosticの手順
 
-Diagnosticは正本Repositoryを書き換えず、正本Repository外の`<exercise-copy>`で行います。開始前に次の形でコピーを作ります。
+診断演習（Diagnostic）は正本リポジトリを直接書き換えるのではなく、リポジトリ外部に作成した演習用コピー（`<exercise-copy>`）で行います。演習開始前に、以下の構造でコピーを作成してください。
 
 ```text
 <exercise-copy>/
@@ -81,158 +81,158 @@ Diagnosticは正本Repositoryを書き換えず、正本Repository外の`<exerci
 └ support/reset-scenario.ts
 ```
 
-`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts`と、Runnerが利用する提供済み`training/playwright/support/reset-scenario.ts`を、それぞれ`<exercise-copy>`の同じ相対位置へ配置します。Canonical Helperは受講者成果物ではないため、正式な`<handoff-root>/code/`へコピーしません。`<exercise-copy>`は自分が書き込みできる一時Directoryであり、正本の`training/playwright/`でもありません。
+`training/playwright/diagnostic-exercises/diagnostic-cart.spec.ts` と、テストランナーが使用する提供済みのヘルパー `training/playwright/support/reset-scenario.ts` を、それぞれ `<exercise-copy>` 配下の同じ相対位置へ配置します。提供された正規ヘルパー（Canonical Helper）は受講者の成果物ではないため、正式な `<handoff-root>/code/` 配下へはコピーしません。`<exercise-copy>` は受講者が書き込み可能な一時作業ディレクトリであり、正本リポジトリの `training/playwright/` とは明確に区別されます。
 
-初回は次の入口を実行します。
+初回は次のコマンドを実行します。
 
 ```bash
 pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --test-root <exercise-copy> --root <handoff-root> --run-context diagnostic-initial
 ```
 
-`--test-root`は実際にTestを読む演習コピー、`--root`はReceipt／Evidenceを保存する固定Handoff rootです。初回は決定的な期待値Failureになるため、Error Message、Screenshot、Trace、VideoまたはHTML Reportを確認し、ExpectedとActual、原因、最小修正を`04_execution-improvement.csv`へ記録します。修正するのは`<exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts`だけです。
+`--test-root` には実際にテストコードを読み込む演習用コピーのパスを指定し、`--root` にはレシートやエビデンスを保存する固定のハンドオフルートを指定します。初回実行時は決定的にアサーションエラー（期待値不一致の失敗）となるため、エラーメッセージ、スクリーンショット、トレース、動画、HTMLレポートを確認し、期待値（Expected）と実際の結果（Actual）、失敗原因、および最小限の修正案を `04_execution-improvement.csv` へ記録します。修正対象は `<exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts` のみです。
 
-修正後は同じ`<exercise-copy>`を使い、次の別Contextで実行します。
+修正後は同じ `<exercise-copy>` を使用し、コンテキスト名を切り替えて再実行します。
 
 ```bash
 pnpm run training:web:exercise:with-receipt -- --suite diagnostic --project training-chromium --test-root <exercise-copy> --root <handoff-root> --run-context diagnostic-repaired
 ```
 
-`diagnostic-initial`と`diagnostic-repaired`のReceipt／Evidenceは別のDirectoryとして残ります。初回Evidenceを削除、修正後Evidenceで上書き、またはRetryを修正後の実行として記録してはいけません。既存の`pnpm run training:web:diagnostic`は互換的な直接実行入口ですが、C09の正式な記録には上記のReceipt付き入口を使います。
+`diagnostic-initial` と `diagnostic-repaired` のレシートおよびエビデンスは、それぞれ別のディレクトリとして保存されます。初回の実行エビデンスを削除したり、修正後のエビデンスで上書きしたり、自動リトライの成功結果を「修正後の再実行」として扱ったりしてはいけません。既存の `pnpm run training:web:diagnostic` コマンドは互換性のための直接実行用であり、C09の正式な演習記録には上記のレシート付きコマンドを使用します。
 
-C09のWorkbookには、`diagnostic-initial`を`Fail`として、同じCase ID・同じ実装Pathの初期Evidence、`failure_category`、`cause`、`action`を記録します。`diagnostic-repaired`は同じCaseの`Pass`として別Receipt・別Evidenceへ記録します。修正後の実行が初回より後であること、実装の`code_digest`が変わっていることもReceiptで確認します。RetryだけでPassした結果や、別Case・別Pathの結果を修正後の記録へ置き換えません。
+C09のワークブックには、`diagnostic-initial` を結果 `Fail` として記録し、同一ケースID・同一実装パスの初期エビデンス、失敗分類（`failure_category`）、原因（`cause`）、対策（`action`）を記載します。続けて `diagnostic-repaired` を同一ケースの `Pass` として別レシート・別エビデンスの参照とともに記録します。修正後の実行日時が初回より後であること、および実装コードのハッシュ値（`code_digest`）が変化していることもレシート上で確認してください。自動リトライだけで成功した結果や、別ケース・別パスの実行結果を修正後の記録として流用してはなりません。
 
 ### Artifactを開く順番
 
-Receipt付き実行後は、`<handoff-root>/evidence/<run-context>-<timestamp>/`を開きます。実行ごとにtimestampが変わるため、まず次のように一覧を確認します。
+レシート付きコマンドを実行した後は、`<handoff-root>/evidence/<run-context>-<timestamp>/` を開きます。実行ごとにタイムスタンプが付与されるため、まずは以下のコマンド等でディレクトリ内を確認してください。
 
 ```bash
 find <handoff-root>/evidence -type f
 ```
 
-Windows PowerShellの場合は次を使えます。
+Windows PowerShellの場合は次のコマンドを使用できます。
 
 ```powershell
 Get-ChildItem <handoff-root>/evidence -Recurse -File
 ```
 
-確認対象ごとの場所と最初に見る点は次のとおりです。
+確認対象ごとの格納場所と、最初に見るべきポイントは以下のとおりです。
 
-| 確認対象 | 生成場所・開き方 | 最初に見ること |
+| 確認対象 | 生成場所・開き方 | 最初に見るポイント |
 | --- | --- | --- |
-| Error Message | `<handoff-root>/evidence/<context>-<timestamp>/run.log`、`report.json`、`<handoff-root>/receipts/`のReceiptをテキストエディタで開く | 最初に失敗したFile／行、Error Type、Expected／Actual、case／Retryのstatus |
-| Screenshot | 同じEvidence Directory内の`playwright/`配下にある画像を画像Viewerまたはファイル一覧から開く | Failure時点の画面、対象要素、表示された値やメッセージ |
-| Video | 同じ`playwright/`配下の動画FileをVideo Playerで開く | 操作がどこまで進み、いつ表示や状態が変わったか |
-| Trace | 同じ`playwright/`配下の`trace.zip`を次で開く: `pnpm exec playwright show-trace <trace.zip>` | 操作履歴、Failure直前のDOM／URL、Network／Consoleの異常 |
-| HTML Report | 同じ`playwright/`配下の`report/`を次で開く: `pnpm exec playwright show-report <report-directory>` | Test一覧、Failure箇所、各Attemptと添付Artifact |
+| エラーメッセージ | `<handoff-root>/evidence/<context>-<timestamp>/run.log`、`report.json`、および `<handoff-root>/receipts/` 内のレシートファイルをテキストエディタで開く | 最初に失敗したファイル名と行番号、エラー種別、期待値（Expected）と実際値（Actual）、ケースおよびリトライのステータス |
+| スクリーンショット | 同一エビデンスディレクトリ内の `playwright/` 配下にある画像ファイルを画像ビューアやファイル一覧から開く | テスト失敗時点の画面状態、対象要素の描画、表示されている文言や数値 |
+| 動画 | 同一 `playwright/` 配下の動画ファイルを動画プレイヤーで開く | 一連の操作がどこまで正常に進み、画面の表示や状態がいつ切り替わったか |
+| トレース | 同一 `playwright/` 配下の `trace.zip` を次のコマンドで開く: `pnpm exec playwright show-trace <trace.zip>` | アクションの実行履歴、失敗直前のDOM構造やURL遷移、ネットワーク通信およびコンソールの異常 |
+| HTMLレポート | 同一 `playwright/` 配下の `report/` を次のコマンドで開く: `pnpm exec playwright show-report <report-directory>` | テスト一覧、失敗箇所の詳細、各試行（Attempt）の状況と添付アーティファクト |
 
-Error Messageで最初の異常を絞り、Screenshot／Video／Traceでその時点の事実を確かめ、HTML ReportとReceiptでCase・Attempt・Evidenceの対応を確認します。Receiptの内部Schemaや全引数を理解することは学習目標ではありません。
+まずエラーメッセージから最初の異常を絞り込み、スクリーンショット・動画・トレースでその時点の事実関係を確認し、HTMLレポートとレシートによってケース・試行・エビデンスの整合性を検証します。なお、レシートの内部スキーマや全引数の仕様を完全に把握することは本学習の主目的ではありません。
 
-initialの期待Failure、`training:web:check-expected-failure`が扱う期待された非0終了、受講者Caseの自然なFailureは別の意味です。Playwrightの自動Retryは修正後の再実行ではありません。診断の初期Failureを確認するために、完成答案を正本fixtureへ書き戻さず、必要なら次のGitless Recoveryで演習用コピーを初期状態へ戻します。
+初回実行時の意図的なアサーションエラー、`training:web:check-expected-failure` が検証する期待通りの非0終了、そして受講者のテストケースで自然発生する失敗は、それぞれ意味合いが異なります。また、Playwrightの自動リトライ機能は「原因を修正した後の再実行」ではありません。診断演習の初期失敗を再確認したい場合、完成版のコードを正本フィクスチャに上書きせず、必要に応じて以下のGit非依存の復元コマンド（Gitless Recovery）を用いて演習用コピーを初期状態に戻してください。
 
 ```bash
 corepack pnpm exec tsx scripts/training/restore-diagnostic-exercise.ts --root <exercise-copy> --target <exercise-copy>/diagnostic-exercises/diagnostic-cart.spec.ts --force
 ```
 
-`--root`はcanonical repositoryの外側にある演習コピーを明示し、`--target`はそのroot配下の`.spec.ts`だけを指定します。root外、`.git`配下、symlink経由のPathは復元対象にできません。`--force`は既存Fileを意図的に上書きする確認であり、root境界の代わりにはなりません。
+`--root` には正本リポジトリ外にある演習用コピーのルートを指定し、`--target` にはそのルート配下の `.spec.ts` ファイルのみを指定します。ルート外のパス、`.git` ディレクトリ配下、シンボリックリンク経由のパスは復元対象に指定できません。`--force` は既存ファイルを意図的に上書きすることを確認するオプションであり、ルート境界の指定を省略するためのものではありません。
 
-Receiptを生成したら、`04_execution-improvement.csv`の`run_context`にはcommandへ渡した同じContext、`result`にはReceiptのCase statusに対応する`Pass`または`Fail`、`evidence`にはそのCaseのReceiptが実際に参照している`evidence/...`を記録します。予定していたPathや、別Case・別ContextのEvidenceを先に記入しません。未実行なら`Not run`とし、Receiptだけを手作業で作って埋めないでください。
+レシートを生成したら、`04_execution-improvement.csv` の `run_context` にはコマンドに渡したコンテキスト名、`result` にはレシート内のステータスに対応する `Pass` または `Fail`、`evidence` にはそのケースのレシートが実際に参照している `evidence/...` の相対パスを記録します。予定していたパスや別ケース・別コンテキストのエビデンスを推測で先行記入してはいけません。未実行の場合は `Not run` と記載し、レシートだけを手動作成して埋めるような行為は避けてください。
 
 ## Lesson 1: テストを目的別に実行する
 
-すべてを毎回実行するのではなく、変更内容と調査目的に応じて実行対象を選びます。
+毎回すべてのテストを実行するのではなく、コードの変更内容や調査目的に応じて実行対象を適切に選定します。
 
-例えば次を区別します。
+たとえば、次のような使い分けを意識します。
 
-- 自分が作成したTraining Testだけを再実行する。
-- DesktopとMobileを比較する。
-- Accessibility Suiteを確認する。
-- 既存Cross-role Regressionを読む・実行して挙動を比較する。
+- 自身が作成・修正したトレーニング用テストのみを絞り込んで再実行する。
+- デスクトップ表示とモバイル表示の挙動差異を比較する。
+- アクセシビリティ検証スイートのみを確認する。
+- 既存のロール横断回帰テスト（Cross-role Regression）を実行・読解し、通常挙動と比較する。
 
-「どのコマンドを暗記するか」ではなく、「今の調査目的に必要なTest Scopeは何か」を考えます。
+「コマンドを丸暗記すること」ではなく、「現在の調査目的に対して、どのテストスコープが必要か」を論理的に判断する姿勢を身につけます。
 
-## Lesson 2: Failureを分類する
+## Lesson 2: 失敗原因（Failure）を分類する
 
-テストが赤くなったとき、すぐに「アプリのバグ」と判断しません。
+テストが失敗（赤）になったからといって、直ちに「アプリケーションのバグ」と決めつけてはいけません。
 
-最低限次に分類します。
+最低限、以下の切り口で原因を分類します。
 
-- Product Bug
-- Test Code Bug
-- Test Data / Initial State問題
-- Locator問題
-- Timing / Synchronization問題
-- Environment問題
-- External Dependency問題
-- Flaky
+- プロダクトの不具合（Product Bug）
+- テストコードの不具合（Test Code Bug）
+- テストデータ／初期状態の不備（Test Data / Initial State Issue）
+- ロケーターの指定不備（Locator Issue）
+- タイミング／同期処理の不備（Timing / Synchronization Issue）
+- 実行環境の問題（Environment Issue）
+- 外部依存関係の問題（External Dependency Issue）
+- 不安定なテスト（Flaky Test）
 
-Failure分類ができると、修正すべき対象を誤りにくくなります。
+失敗の発生要因を正しく分類できるようになると、修正すべき対象を見誤らなくなります。
 
-Failureの**発生源**と、報告上の**Outcome**は別に記録します。Outcomeは次のいずれかです。
+また、失敗の**発生源**と、QA報告上の**判定結果（Outcome）**は明確に区別して記録します。Outcomeは以下のいずれかに分類します。
 
-- **Bug**: 現在の正式な仕様のBR / ACに反することを、再現条件と実行記録で確認できた。
-- **UX**: 仕様違反とは断定できないが、利用者が迷う・誤操作しやすい観測上の問題がある。
-- **Suggestion**: 現行仕様を満たしているが、新しい仕様や改善として提案する。
-- **未確定**: 再現条件、観測、または実行記録が不足し、上の分類を断定できない。
+- **Bug**: 現行の正式な業務ルール／受入基準（BR / AC）に反していることが、再現手順と実行ログによって確認できた。
+- **UX**: 明確な仕様違反とまでは断定できないものの、ユーザーが迷ったり誤操作を招きやすかったりする観察上の問題がある。
+- **Suggestion**: 現行仕様は満たしているが、機能拡張や使いやすさ向上のための改善提案として提起する。
+- **未確定**: 再現手順、観測結果、または実行ログが不足しており、上記のいずれにも断定できない。
 
-### 発展リファレンス: Security成立条件の最小確認
+### 発展リファレンス: セキュリティ成立条件の最小確認
 
-`<script>`のような文字列を入力・保存・表示できることだけでは、Security Bugとは断定しません。少なくとも、**入力 → 保存 → escapeされた表示か → HTMLとして解釈されたか → JavaScriptが実行されたか、または実行可能なsinkへ到達したか**を分けて記録します。これは誤分類を防ぐ参考情報であり、C09の共通必須成果物や修了条件には含めません。Security専門のLessonやProduct変更は行いません。
+`<script>` のような文字列を入力・保存・表示できたという事実のみをもって、直ちにセキュリティバグと断定してはいけません。最低限、**入力 → 保存 → エスケープされた表示か → HTMLとして解釈されたか → JavaScriptが実行されたか（または実行可能なシンクへ到達したか）**の各段階を切り分けて事実を記録します。これは誤分類を防ぐための参考情報であり、C09の共通必須成果物や修了条件には含めません。本モジュールではセキュリティ専門の講義やプロダクトコードの変更は行いません。
 
-## Lesson 3: Trace
+## Lesson 3: トレース（Trace）
 
-Playwright Traceでは、Failure前後の操作やDOM状態などを確認できます。
+Playwrightのトレースビューア（Trace Viewer）を使用すると、テスト失敗前後の操作履歴、DOMの状態、画面レンダリングなどをタイムラインに沿って詳細に確認できます。
 
-Scenario Shopの設定ではFailure時のTraceを保持します。
+Scenario ShopのPlaywright設定では、テスト失敗時のトレースを自動保持する構成になっています。
 
-確認すること:
+確認すべきポイント:
 
-- どこまで操作が成功していたか。
-- 対象要素は存在していたか。
-- URLは期待した状態だったか。
-- Assertion時の画面はどうなっていたか。
-- NetworkやConsoleに異常がなかったか。
+- どのステップまで操作が正常に成功していたか。
+- 操作対象の要素はその時点で画面（DOM）に存在していたか。
+- 失敗直前のURLは期待通りの遷移状態だったか。
+- アサーション（検証）実行時の画面描画はどうなっていたか。
+- ネットワーク通信やブラウザコンソールに異常なエラーログが出ていないか。
 
-Training実行環境では `output/training/playwright/`へTrace、Screenshot、Video、HTML Reportを保存します。
+トレーニング実行環境では、`output/training/playwright/` 配下にトレース、スクリーンショット、動画、HTMLレポートが保存されます。
 
-## Lesson 4: Screenshot / Video
+## Lesson 4: スクリーンショットと動画（Screenshot / Video）
 
-ScreenshotはFailure時点の視覚状態を確認するのに向きます。
+スクリーンショットは、テストが失敗した瞬間の画面の視覚的状態をすばやく確認するのに適しています。
 
-Videoは操作の流れや一瞬の表示変化を見るのに役立ちます。
+動画は、一連の操作の流れや、画面上に一瞬だけ表示されて消える要素・アニメーションの遷移を把握するのに役立ちます。
 
-Trace、Screenshot、Videoは重複もあります。何でも永続保存すればよいのではなく、調査価値と保存コストを考えます。
+トレース、スクリーンショット、動画には情報として重複する部分もあります。すべてのログを無制限に永続保存するのではなく、トラブルシューティングにおける調査価値とストレージコストのバランスを考慮して運用します。
 
-## Lesson 5: Console Error
+## Lesson 5: コンソールエラー（Console Error）
 
-画面上の期待結果がPassしていても、Console ErrorやPage Errorが発生していれば品質上の問題が残る場合があります。
+画面上の表示やアサーション結果が成功（Pass）していても、ブラウザのコンソールエラーやページエラー（未処理の例外など）が発生していれば、潜在的な品質課題が残っている可能性があります。
 
-Training Test Harnessでは、必要に応じてConsole Errorを実行記録として確認できる構成を教材要件とします。
+トレーニング用テストハーネスでは、必要に応じてコンソールエラーを実行ログとして捕捉・確認できる構成を教材の前提としています。
 
-この時点では「Console ErrorもFailure分析の情報になる」ことを理解できれば十分です。現在のScenario Shopがその収集をどのようにFixtureへ組み込んでいるかは、Part 1-8で `e2e/web/fixtures.ts` を読みながら確認します。
+この段階では、「ブラウザのコンソールエラーもテストの失敗分析や品質評価の重要な情報源になる」と理解できれば十分です。Scenario Shopがこの収集処理をどのようにフィクスチャへ組み込んでいるかについては、Part 1-8で `e2e/web/fixtures.ts` を読み解きながら学習します。
 
-## Lesson 6: Flaky Test
+## Lesson 6: 不安定なテスト（Flaky Test）
 
-Flaky Testは、同じコード・同じ前提でも成功と失敗が不安定に変わるテストです。
+Flaky Testとは、テストコードやアプリケーションに変更がなく、前提条件も同一であるにもかかわらず、実行によって成功したり失敗したりと結果が不安定に揺れるテストのことです。
 
-よくある原因:
+代表的な原因:
 
-- 固定時間待機
-- 不安定なLocator
-- 非同期状態を待てていない
-- Test間の状態依存
-- 外部環境依存
-- Animation / Transition
-- Parallel実行時の競合
+- `waitForTimeout` などの固定時間待機による同期
+- DOM構造の変化に弱い不安定なロケーター
+- 非同期処理やAPIレスポンスの完了待機漏れ
+- テストケース間でのデータやセッション状態の依存
+- ネットワーク遅延などの外部環境依存
+- アニメーションやCSSトランジションの完了待ち不足
+- 並列実行時におけるデータやリソースの競合
 
-RetryはFailureを見えにくくする可能性があります。
+安易なリトライ設定（`retries` の増加）は、テストの不安定さの本質を覆い隠してしまうリスクがあります。
 
-`retries`を増やす前に、なぜ失敗したかを調べます。
+リトライ回数を増やす前に、「なぜそのテストが失敗したのか」の根本原因を徹底的に調査する姿勢が不可欠です。
 
-## Lesson 7: Timeout
+## Lesson 7: タイムアウト（Timeout）
 
-Timeoutを延ばすと一時的にPassする場合がありますが、根本原因が遅延なのか同期不足なのかを区別します。
+タイムアウト時間を延長すると一時的にテストが成功（Pass）することがありますが、根本原因がシステムの真の遅延なのか、待機処理の同期不足なのかを明確に区別しなければなりません。
 
-次を比較します。
+次の2つの実装を比較してください。
 
 ```ts
 await page.waitForTimeout(5000);
@@ -244,110 +244,110 @@ await page.waitForTimeout(5000);
 await expect(page.getByRole("status")).toContainText("完了");
 ```
 
-意味のある状態を待つ設計を基本とします。
+前者は単に5秒間待つだけですが、後者は要素が「完了」という期待する状態になるまで自動待機（Auto-wait）します。状態変化を論理的に待つ設計をテスト自動化の基本とします。
 
 ## Lesson 8: 改善サイクル
 
-Failureを次の流れで改善します。
+テスト失敗に直面した際は、以下のステップで体系的に改善を進めます。
 
 ```text
-再現
+再現（同一条件での確認）
 ↓
-Evidence確認
+エビデンス確認（ログ・トレース・スクショ等の精査）
 ↓
-Failure分類
+失敗原因の分類（プロダクト／テスト／環境等の切り分け）
 ↓
-仮説
+仮説立案（なぜ起きたかの特定）
 ↓
-最小修正
+最小限の修正（コードやデータの調整）
 ↓
-再実行
+再実行（別実行としての検証）
 ↓
-回帰確認
+回帰確認（他のテストへの影響確認）
 ```
 
-盲目的に同じコマンドを繰り返すことは分析ではありません。
+原因を分析せず、あてずっぽうに同じテストコマンドを繰り返す行為は「分析」とは呼びません。
 
-## ハンズオン1: アーティファクト確認用の失敗
+## ハンズオン1: アーティファクト確認用の意図的失敗
 
-Training用Playwright TestのAssertionを意図的に誤らせます。
+トレーニング用のテストコードでアサーションの期待値をあえて誤った値に書き換え、意図的にテストを失敗させます。
 
-Failure後に次を確認します。
+テスト失敗後、以下のアーティファクトを確認してください。
 
-- Error message
-- Screenshot
-- Trace
-- Video
+- エラーメッセージ（Error message）
+- スクリーンショット（Screenshot）
+- トレース（Trace）
+- 動画（Video）
 
-どの実行記録が最も原因特定に役立ったか記録します。
+どの実行記録が原因特定において最も有効だったかを振り返り、記録します。
 
 ## ハンズオン2: 原因を診断して修正する
 
-`training/playwright/diagnostic-exercises/`の代表ケースを上記の`diagnostic-initial` Contextで実行します。FailureのTrace / ScreenshotからExpectedとActualを分け、原因を「誤った期待値」「誤ったLocator」「誤った初期状態」などから判断します。原因に合わせて学習者コピーへ最小修正を行い、`diagnostic-repaired` Contextで別runとして再実行し、2つのEvidenceを残します。
+`training/playwright/diagnostic-exercises/` にある代表ケースを、前述の `diagnostic-initial` コンテキストで実行します。失敗時に出力されたトレースやスクリーンショットから期待値と実際の結果を切り分け、原因が「誤った期待値」「誤ったロケーター」「不正な初期データ」のいずれにあるかを判断します。特定した原因に基づき演習用コピーのテストコードへ最小限の修正を施し、`diagnostic-repaired` コンテキストで別回の実行として再テストを行って、2つの独立したエビデンスを残します。
 
-## ハンズオン3: Locator Failure
+## ハンズオン3: ロケーター起因の失敗（Locator Failure）
 
-Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改善します。
+トレーニング用テストにあえて壊れやすい不安定なロケーター（階層の深いCSSセレクターなど）を記述して失敗を再現させ、ロールやアクセシビリティ属性に基づくセマンティックなロケーター（`getByRole` など）へ改善します。
 
-## ハンズオン4: Timing Failure
+## ハンズオン4: タイミング起因の失敗（Timing Failure）
 
-固定待機を入れたテストとAuto-wait / Assertionを使ったテストを比較します。
+固定時間待機（`waitForTimeout`）を入れた不安定なテストと、Playwrightの自動待機やWeb-first Assertionsを活用したテストの挙動を比較し、同期の安定性を確認します。
 
-## ハンズオン5: Failure分析メモ
+## ハンズオン5: 失敗分析メモの作成
 
-次の形式で1件以上記録します。
+以下のフォーマットに従い、1件以上の失敗分析を記録します。
 
 | 項目 | 内容 |
 | --- | --- |
-| Test Case ID | 対象ケース |
-| Failure | 発生内容 |
-| 分類 | Product / Test / Env / Flakyなど |
-| Outcome | Bug / UX / Suggestion / 未確定 |
-| 実行記録 | Trace / Screenshotなど |
-| 整合 | 対象・操作・観測事象が実行記録と一致しているか |
-| 原因 | 調査結果 |
-| 修正 | 実施内容 |
-| 再発防止 | 必要なら記載 |
+| Test Case ID | 対象のテストケースID |
+| 発生事象 | 具体的に起きた失敗の内容 |
+| 分類 | Product / Test / Environment / Flaky などの発生源 |
+| Outcome | Bug / UX / Suggestion / 未確定 のいずれか |
+| 参照記録 | トレース、スクリーンショット、ログなどの確認先 |
+| 整合性 | 対象要素、操作手順、観測事象が実行ログと完全に一致しているか |
+| 原因 | 調査によって判明した根本原因 |
+| 修正内容 | 実施した最小限の修正内容 |
+| 再発防止策 | 必要に応じて記載 |
 
 ## 確認問題
 
-1. Test FailureをすぐProduct Bugと判断してはいけない理由は何か。
-2. TraceとScreenshotの使い分けは何か。
-3. Retryを増やす前に確認すべきことは何か。
-4. Timeout延長でPassした場合でも問題が解決したとは限らないのはなぜか。
-5. Console ErrorをE2EのFailure分析情報として扱う価値は何か。
-6. 既存Regression ScriptとTraining用Testの実行入口を分ける理由は何か。
-7. Failure分析の段階でFixture内部設計まで先に学ばない理由は何か。
+1. テストが失敗した際、直ちに「プロダクトのバグ」と断定してはならない理由は何か。
+2. トレースとスクリーンショットはそれぞれどのような場面で使い分けるべきか。
+3. リトライ回数を増やす前に確認・調査すべき事項は何か。
+4. タイムアウト時間の延長によってテストがPassした場合でも、問題が解決したとは限らないのはなぜか。
+5. ブラウザのコンソールエラーをE2Eテストの失敗分析情報として扱う意義は何か。
+6. 回帰テスト用の既存スクリプトとトレーニング用テストの実行コマンドが分かれている理由は何か。
+7. 失敗分析を学ぶ段階で、フィクスチャの内部実装まで先行して深掘りしない理由は何か。
 
 ## 自己確認
 
 ### 回答の最低判定基準
 
-- Product / Test / Test Data / Locator / Timing / Environment / External / Flakyの発生源を区別し、発生源だけでProduct Bugと断定していない。
-- Trace、Screenshot、Video、Console Errorを、何を観測できる実行記録かに応じて使い分けている。
-- Retry / Timeoutを増やす前に、再現、同期、状態依存、Environmentを確認する理由を説明している。
-- OutcomeをBug / UX / Suggestion / 未確定へ分け、BugにはBR / ACと再現条件、未確定には不足している記録を示している。
-- Failure報告の対象・操作・事象がScreenshot / Traceなどの実行記録と一致し、不足時に断定を避けている。
-- 最小修正後の再実行結果を記録し、意図的Failureの練習と実際のmeaningful diagnosisを区別している。
+- 問題の発生源を Product / Test / Test Data / Locator / Timing / Environment / External / Flaky に正しく分類でき、発生源の特定だけで直ちにプロダクトバグと決めつけていないこと。
+- トレース、スクリーンショット、動画、コンソールエラーの特性を理解し、それぞれから観測できる情報に応じて使い分けていること。
+- リトライやタイムアウトの安易な追加の前に、再現性、非同期の同期処理、テストケース間のデータ依存、実行環境の差異を確認する理由を論理的に説明できること。
+- 判定結果（Outcome）を Bug / UX / Suggestion / 未確定 に分類し、Bugには受入基準（BR / AC）と再現手順、未確定には不足しているログや証跡を明示できていること。
+- 報告書に記載した対象・操作・事象がスクリーンショットやトレースなどの客観的記録と一致しており、証跡が不足している場合は独断を避けていること。
+- 最小限の修正を行った後の再実行結果を記録し、意図的な失敗演習と実用的な診断演習（meaningful diagnosis）を区別して整理できていること。
 
-### Recovery
+### リカバリ手順
 
-分類が揺れる場合はLesson 2〜8を使い、最初の異常と派生エラーを分けて1件の分析表を書き直します。Commandが起動しない、Browser / Base URLがない、Artifactが生成されない場合は環境上の問題として記録し、実行できた後もExpected / Actual / 実行記録を説明できない場合だけ学習上のRecoveryとして再分析します。
+分類に迷う場合はLesson 2〜8の内容を再確認し、最初の異常とそれに伴う派生エラーを切り分けた上で分析表を1件書き直してください。コマンドが起動しない、ブラウザやベースURLが利用できない、アーティファクトが出力されないといったトラブルは環境要因として切り分けます。テストが正常実行できたにもかかわらず期待値・実際の結果・エビデンスを説明できない場合のみ、学習上のリカバリとして再分析を実施してください。
 
 ## 完了条件
 
-- 意図的または実際のFailureを1件分析し、実行記録から発生源と原因仮説を分けて記録している。
-- Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・記録の有無に応じて分類している。
-- 報告の対象・操作・事象が実行記録と一致し、記録不足時は未確定としている。
-- C09の診断演習で、Locator / Timing / Assertionなどの意味のあるFailureを1件分析し、失敗時の記録、cause、action、修正後の再実行記録を`04_execution-improvement.csv`へ別の`run_context`で記録している。
-- 固定待機または不安定Locatorの改善は、診断結果へ適用するPracticeとして説明できる。
-- RetryとTimeoutの利用判断を説明できる。
-- Training用Testと既存正式Suiteの実行目的を区別できる。
-- 失敗時の記録を利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
-- 恒久的なアーティファクト確認用Failureと、原因確認・修正・再実行を行う診断用Failureを別の実行経路として扱っている。
+- 意図的な失敗または実際のテスト失敗を1件以上分析し、実行ログから発生要因と原因仮説を切り分けて記録していること。
+- Bug / UX / Suggestion / 未確定の各判定結果を、BR / AC、観察事実、客観的ログの有無に基づいて正しく分類していること。
+- 報告内容の対象・操作・事象が実行エビデンスと整合しており、記録不足時は未確定として扱っていること。
+- C09の診断演習において、ロケーター／タイミング／アサーション等に起因する意義のある失敗を1件分析し、失敗時の記録、原因（cause）、対策（action）、および修正後の再実行記録を `04_execution-improvement.csv` へ別々の `run_context` で記録していること。
+- 固定時間待機の排除や不安定なロケーターの改善を、診断結果に適用するプラクティスとして説明できること。
+- リトライやタイムアウト設定の適切な利用判断基準を説明できること。
+- トレーニング用テストと既存の正規回帰テストスイートの実行目的の違いを理解していること。
+- 失敗時の実行ログを活用することと、ログ収集の仕組みをフィクスチャとして実装することを、別の学習段階として区別できていること。
+- アーティファクト確認用の意図的な失敗と、原因特定・修正・再実行を目的とする診断用の失敗を、別々の実行経路として整理できていること。
 
-Securityの入力・保存・HTML解釈・実行確認は発展の参考資料として必要な場合だけ扱い、C09の完了条件へ混ぜません。
+なお、セキュリティ観点（入力・保存・HTML解釈・スクリプト実行の確認）は発展的な参考資料として扱い、C09の必須完了条件には含めません。
 
 ## 次の行動
 
-モバイルアプリ自動化の選択課程を選ぶ場合は[Part 1-7: MaestroによるNative UI自動化](./07_maestro-native-automation.md)へ、共通経路の場合は[Part 1-8: テスト管理と保守性改善](./08_test-management-and-maintainability.md)へ進みます。
+モバイルアプリ自動化の選択コースに進む場合は [Part 1-7: MaestroによるNative UI自動化](./07_maestro-native-automation.md) へ、共通トラックを継続する場合は [Part 1-8: テスト管理と保守性改善](./08_test-management-and-maintainability.md) へ進んでください。

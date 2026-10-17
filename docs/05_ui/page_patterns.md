@@ -1,6 +1,6 @@
 # ページパターン設計
 
-本ファイルは画面の構造とInteractionの正本です。各Route固有のData項目は`ui_specifications.md`、文言は`ui_content_dictionary.md`を参照します。
+本ドキュメントは画面構造とインタラクションの正本です。各ルート固有のデータ項目は`ui_specifications.md`、文言定義は`ui_content_dictionary.md`を参照します。
 
 ## 1. Storefront Shell
 
@@ -13,9 +13,9 @@
 [Footer: 規約・Privacy・模擬取引表示]
 ```
 
-- Searchは全Storefrontで利用可能。
-- operator/adminがLogin中の場合は購入Navigationを出さず、「管理画面へ」を表示する。
-- HeaderはScrollしても主要Navigationが見失われない範囲でStickyとする。
+- 検索機能はすべてのストアフロント画面で利用可能とする。
+- operatorまたはadminとしてログイン中の場合は購入ナビゲーションを表示せず、「管理画面へ」を表示する。
+- ヘッダーはスクロール時も主要ナビゲーションを見失わないよう、固定表示（Sticky）とする。
 
 ### Mobile
 
@@ -25,20 +25,20 @@
 [Home] [検索] [カート] [注文] [アカウント]
 ```
 
-Bottom Navigationは現在地をTextとIconで示します。
+ボトムナビゲーションは、現在地をテキストとアイコンで明示する。
 
 ## 2. Homeパターン
 
 表示順:
 
-1. Hero: 架空店舗説明、主要CTA「商品を見る」
-2. 主要Category: 最大6件
+1. ヒーローエリア: 架空店舗の説明、主要CTA「商品を見る」
+2. 主要カテゴリ: 最大6件
 3. 新着商品: 最大8件
-4. Sale商品: 最大8件。0件ならSection自体を表示しない
-5. 会員Rank案内: 割引率と送料無料条件
-6. 学習用注意: 詳細NoticeへのLink
+4. セール商品: 最大8件（0件の場合はセクション自体を表示しない）
+5. 会員ランク案内: 割引率および送料無料の適用条件
+6. 学習用注意事項: 詳細お知らせ（Notice）へのリンク
 
-Recommendationや閲覧履歴によるPersonalizationは行いません。
+おすすめ機能（レコメンド）や閲覧履歴に基づくパーソナライズ表示は行わない。
 
 ## 3. Product List・Search・Categoryパターン
 
@@ -65,25 +65,25 @@ Recommendationや閲覧履歴によるPersonalizationは行いません。
 [Pagination]
 ```
 
-Rule:
+ルール:
 
-- Desktop Filterは変更時に即時適用する。
-- Mobile FilterはBottom Sheet内で仮選択し、「123件の商品を表示」で確定する。
-- Filter項目: Category、Brand、価格、在庫あり、Sale中、最低評価。
-- Applied Chipは個別解除でき、「すべて解除」を最後に置く。
-- Filter候補件数は0件候補も表示し、選択不可であることを伝える。
-- Search結果0件では、検索語修正、Filter解除、全商品、主要Categoryへの導線を表示する。
-- 詳細から戻った場合、Query、Page、Scroll位置を復元する。
+- デスクトップ表示のフィルターは、条件変更時に即時適用する。
+- モバイル表示のフィルターはボトムシート内で仮選択し、「123件の商品を表示」ボタンの押下で確定・適用する。
+- フィルター項目: カテゴリ、ブランド、価格帯、在庫あり、セール中、最低評価。
+- 適用中のフィルターチップは個別に解除可能とし、末尾に「すべて解除」を配置する。
+- フィルターの選択候補件数は該当が0件のものも表示し、選択不可であることを明示する。
+- 検索結果が0件の場合は、検索キーワードの修正、フィルター解除、全商品一覧、主要カテゴリへの各導線を表示する。
+- 商品詳細画面から一覧に戻った際は、検索クエリ、ページ番号、スクロール位置を復元する。
 
 ## 4. Search Suggestionパターン
 
-- 2文字以上入力し、150ms Debounce後に最大8件を表示する。
-- Group順は商品、Category、Brand。
-- 商品候補は商品名とBrandを表示する。
-- `ArrowDown/ArrowUp`で移動、`Enter`で決定、`Escape`で閉じる。
-- 商品候補は`/products/[productId]`、Category候補は`/categories/[categoryId]`、Brand候補は`/search?brand=[brandId]`へ移動する。
-- 候補外の文字列でEnterした場合は`/search?q=...`へ移動する。
-- 検索中、0件、読込ErrorをCombobox内で明示する。
+- 2文字以上入力し、150msのデバウンス（Debounce）後に最大8件を表示する。
+- グループの表示順は「商品」「カテゴリ」「ブランド」。
+- 商品候補には商品名とブランド名を表示する。
+- キーボード操作に対応し、`ArrowDown`/`ArrowUp`で候補間を移動、`Enter`で決定、`Escape`で閉じる。
+- 商品候補は`/products/[productId]`、カテゴリ候補は`/categories/[categoryId]`、ブランド候補は`/search?brand=[brandId]`へ遷移する。
+- 候補一覧にない任意の文字列でEnterを押下した場合は、`/search?q=...`へ遷移する。
+- 検索中、該当件数0件、読み込みエラーの各状態をコンボボックス内で明示する。
 
 ## 5. Product Detailパターン
 
@@ -103,19 +103,19 @@ Rule:
 
 ### Mobile
 
-- Gallery、商品名、価格、Variation、在庫、説明、Reviewの順。
-- Viewport下部に選択価格・在庫・「カートに追加」を含むSticky Barを表示する。
-- Sticky BarはSoftware Keyboard表示時に入力を妨げない。
+- ギャラリー、商品名、価格、バリエーション、在庫状況、商品説明、レビューの順に配置する。
+- 画面下部（ビューポート下端）に、選択中の価格・在庫状況・「カートに追加」を含む固定バー（Sticky Bar）を表示する。
+- 固定バーは、ソフトウェアキーボード表示時に入力操作を妨げないように制御する。
 
-Rule:
+ルール:
 
-- Thumbnail選択でMain Imageを変更する。
-- Main Image選択で拡大Dialogを開く。DialogはKeyboardとSwipe/Buttonに対応する。
-- 通常価格、Sale価格、会員適用価格を視覚的に区別し、二重に同じ価格を表示しない。
-- Variationが12件以下ならButton、13件以上ならSelect。
-- 選択不能Variationは消さず、在庫切れ理由を表示する。
-- RatingはReview SectionへのAnchor Link。
-- 送料は「あと¥1,200で送料無料」または「送料無料」と表示する。
+- サムネイル選択時にメイン画像を切り替える。
+- メイン画像選択時に拡大ダイアログを表示する。ダイアログはキーボード操作およびスワイプ／ボタン操作に対応させる。
+- 通常価格、セール価格、会員ランク適用価格を視覚的に区別し、同一の金額を重複して表示しない。
+- バリエーションの選択肢が12件以下の場合はボタン形式、13件以上の場合はセレクトボックス形式で表示する。
+- 選択できないバリエーションは非表示にせず、選択不可（在庫切れなど）の理由を明示する。
+- 評価レーティング（Rating）の表示は、レビューセクションへのアンカーリンクとする。
+- 配送料の案内は「あと¥1,200で送料無料」または「送料無料」と表示する。
 
 ## 6. Cartパターン
 
@@ -132,7 +132,7 @@ Rule:
 
 ### Mobile
 
-Item一覧の下へSummaryを置き、Checkout CTAを画面下部にSticky表示してもよい。ただしItem Errorがある場合はCTAを無効化し、理由へ移動できるLinkを表示します。
+商品一覧の下に注文サマリー（Summary）を配置し、チェックアウトCTAボタンを画面下部に固定（Sticky）表示してもよい。ただし、カート内商品にエラーがある場合はCTAボタンを無効化し、該当のエラー箇所へ移動できるリンクを表示する。
 
 ## 7. Checkoutパターン
 
@@ -145,33 +145,33 @@ Item一覧の下へSummaryを置き、Checkout CTAを画面下部にSticky表示
 
 ### Mobile
 
-- Step Indicatorを簡略表示する。
-- Order Summaryは上部の折りたたみ領域とする。
-- Primary CTAは画面末尾に1つだけ置く。
+- ステップインジケーターは簡略化した形式で表示する。
+- 注文サマリー（Order Summary）は、画面上部に折りたたみ可能なアコーディオン領域として配置する。
+- 主要なアクションボタン（Primary CTA）は画面末尾に1つのみ配置する。
 
-Rule:
+ルール:
 
-- 建物名など任意Fieldは折りたたみ可能だが、入力済みなら常時表示する。
-- 電話番号には「配送連絡に使用します」と理由を表示する。
-- 郵便番号候補は自動確定せず、候補を利用するか選択させる。
-- Submit Error時はError SummaryへFocusする。
-- 注文確認CTAは「注文を確定する（合計金額）」とする。
-- 会員Checkoutのみである理由をLogin誘導時に簡潔に示す。
+- 建物名などの任意入力項目は初期状態で折りたたみ可能とするが、入力済みの場合は常に展開して表示する。
+- 電話番号入力欄には「配送連絡に使用します」と利用目的を表示する。
+- 郵便番号検索による住所候補は自動確定させず、候補一覧からユーザーに選択させる。
+- 送信エラー（Submit Error）発生時は、画面上部のエラーサマリーへフォーカスを移動する。
+- 注文確認ボタンの文言は「注文を確定する（合計金額）」とする。
+- ゲスト購入不可（会員限定チェックアウト）である理由を、ログイン誘導時に簡潔に示す。
 
 ## 8. Order・Self-Serviceパターン
 
-Order一覧:
+注文一覧:
 
-- Order Number、注文日時、合計、状態、代表商品画像、詳細Link。
-- 状態Filterと新しい順Sort。
+- 注文番号（Order Number）、注文日時、合計金額、注文ステータス、代表商品画像、詳細ページへのリンクを表示する。
+- ステータスによる絞り込み（フィルター）および注文日時の新しい順による並び替え（ソート）を提供する。
 
-Order詳細:
+注文詳細:
 
-- Page HeaderにOrder NumberとStatus。
+- ページヘッダーに注文番号とステータスを表示する。
 - 「現在の状態」「次に行われること」「利用者ができること」を表示する。
-- 商品、金額、配送先、Payment Attempt、Shipment、TimelineをSection化する。
-- `payment_failed`だけ再Payment CTAを表示する。
-- `delivered`のeligible ItemへReview CTAを表示する。
+- 注文商品、請求金額、配送先住所、決済試行履歴（Payment Attempt）、配送情報（Shipment）、注文タイムラインをそれぞれセクションに分けて整理する。
+- ステータスが`payment_failed`（決済失敗）の場合に限り、再決済用CTAボタンを表示する。
+- ステータスが`delivered`（配達完了）であり、レビュー投稿の対象となる商品（eligible Item）に対してレビュー投稿CTAボタンを表示する。
 
 ## 9. Admin Shell・Overviewパターン
 
@@ -182,7 +182,7 @@ Order詳細:
                   [Main Content]
 ```
 
-Side Navigation:
+サイドナビゲーション:
 
 - 概要
 - 商品管理: 商品、カテゴリ、ブランド、在庫
@@ -191,12 +191,12 @@ Side Navigation:
 - ユーザー（adminのみ）
 - テスト制御（Automation adminのみ）
 
-Overview:
+概要（Overview）:
 
-- 要対応Card: 発送準備待ち、低在庫、非公開Review
-- 最近の注文Table
-- Quick Action: 商品登録、在庫調整、注文確認
-- 売上、Conversion、Chart、前年対比は表示しない
+- 要対応カード: 発送準備待ち、在庫僅少、非公開レビュー
+- 直近の注文一覧テーブル
+- クイックアクション: 商品登録、在庫調整、注文確認
+- 売上高、コンバージョン率、各種グラフ（チャート）、前年対比は表示しない。
 
 ## 10. Resource Indexパターン
 
@@ -209,22 +209,22 @@ Overview:
 [Pagination]
 ```
 
-Rule:
+ルール:
 
-- Empty Stateは「まだDataがない」と「Filterで0件」を区別する。
-- Row全体をLinkにせず、Resource NameをPrimary Linkとする。
-- Bulk Actionは商品公開/非公開、Review非公開/再公開だけ。
-- Bulk処理前に対象件数を確認し、結果は成功件数と失敗件数を表示する。
+- データが0件の表示（Empty State）は、「初期状態でデータがまだ存在しない場合」と「フィルター絞り込みの結果0件になった場合」を明確に区別する。
+- テーブルの行全体をリンクにせず、リソース名（商品名や注文番号など）を主要な遷移リンク（Primary Link）とする。
+- 一括操作（Bulk Action）の対象は、「商品の公開／非公開の切り替え」および「レビューの非公開化／再公開」のみとする。
+- 一括処理の実行前に対象件数を確認し、処理結果として成功件数と失敗件数の内訳を表示する。
 
 ## 11. Resource Details・Formパターン
 
-### Detail
+### 詳細（Detail）
 
-- Breadcrumb、Page Title、Status、Primary Action。
-- Main 2/3に主要情報、Aside 1/3に状態・分類・Meta情報。
-- 危険操作はPage末尾のDanger Zoneへ分離する。
+- パンくずリスト、ページタイトル、ステータス、主要アクション（Primary Action）。
+- メイン領域（2/3幅）に主要情報を配置し、サイド領域（Aside 1/3幅）にステータス・分類・メタ情報を配置する。
+- 削除などの重大な影響を及ぼす危険操作は、ページ末尾の「危険な操作（Danger Zone）」エリアへ分離する。
 
-### Product Edit
+### 商品編集（Product Edit）
 
 ```text
 [Main 2/3]                         [Aside 1/3]
@@ -236,30 +236,30 @@ GitHub Image Assets                会員制限
 [Contextual Save Bar: 破棄 / 保存]
 ```
 
-- TabでFormを細切れにせず、Section HeadingとAnchor Navigationを使用する。
-- 未保存変更がある間だけContextual Save Barを表示する。
-- Route離脱時は保存・破棄・戻るを選択させる。
-- 既存SKUの在庫は読取専用とし、在庫調整画面へのLinkを置く。
-- GitHub Image Asset Catalogから関連付ける。Binary Uploadは行わない。
-- 並べ替えはDragと上下移動Buttonの両方を提供する。
+- タブ切り替えによって入力フォームを細切れに分断せず、セクション見出しとアンカーナビゲーションを使用する。
+- 未保存の変更が存在する間のみ、コンテキスト保存バー（Contextual Save Bar）を表示する。
+- 未保存のまま別ルートへ離脱しようとした場合は、保存・破棄・編集に戻るの選択肢を提示する。
+- 既存SKUの在庫数は読み取り専用とし、在庫調整画面へのリンクを配置する。
+- 商品画像はGitHubの画像アセットカタログ（Image Asset Catalog）から選択して関連付ける。ローカルからのバイナリ直接アップロードは行わない。
+- 並べ替え操作は、ドラッグ＆ドロップと上下移動ボタンの両方を提供する。
 
 ## 12. Loading・Empty・Errorパターン
 
-### Loading
+### ローディング（Loading）
 
-- 初回Pageは構造を保つSkeleton。
-- Button処理はButton内Loading。
-- Search Suggestionは候補領域内Loading。
+- 初回ページ読み込み時は、画面全体のレイアウト構造を保つスケルトンスクリーン（Skeleton）を表示する。
+- ボタン押下時の処理中は、ボタン内部にローディング表示を行う。
+- 検索サジェストの通信中は、候補表示領域内にローディング表示を行う。
 
-### Empty
+### エンプティ（Empty）
 
-- 空の理由
-- 次の1Action
-- 必要なら補助Link
+- データが存在しない理由を表示する。
+- 次にユーザーが取るべき1つのアクションを提示する。
+- 必要に応じて補助的な誘導リンクを設置する。
 
-### Error
+### エラー（Error）
 
-- Page読込ErrorはRetryと安全な戻り先。
-- Form ErrorはSummaryとField Error。
-- Conflictは変更内容を保持し、再読込か再適用を選択。
-- Not FoundとForbiddenを区別する。
+- ページ全体の読み込みエラー時は、再試行（リトライ）ボタンと安全な戻り先への導線を提供する。
+- フォーム入力エラー時は、上部のエラーサマリーと該当入力フィールド個別のエラー表示を併用する。
+- データ競合（コンフリクト）発生時は、編集内容を保持した上で、最新データの再読み込みか現在の変更内容の再適用かを選択させる。
+- 対象が存在しない場合（404 Not Found）と、アクセス権限がない場合（403 Forbidden）を明確に区別して案内する。

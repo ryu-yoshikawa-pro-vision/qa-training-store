@@ -2,41 +2,41 @@
 
 ## 1. 方針
 
-- 架空店舗名は`Scenario Shop`とし、製品説明名「ECテスト自動化学習アプリ」と分離する。
-- 洗練は装飾量ではなく、情報の優先順位、余白、状態、次の操作の明確さで作る。
-- Storefrontは商品画像と購入判断を主役にし、AdminはTable/Formの可読性と操作効率を主役にする。
-- Phase 1はLight Themeのみ。Dark Modeは対象外。
-- WebとNativeでTokenと意味を共通化し、操作ComponentはPlatform固有実装を許可する。
-- 外部Web Font・大規模UI Framework・外部画像CDNを使用しない。
+- 架空店舗名は `Scenario Shop` とし、製品説明用の名称である「ECテスト自動化学習アプリ」とは明確に分離する。
+- 洗練された印象は装飾の多さではなく、情報の優先順位、余白、状態表示、そして次に取るべき操作の分かりやすさによって実現する。
+- ストアフロントでは商品画像と購入判断を最優先とし、管理画面（Admin）ではテーブルやフォームの可読性と操作効率を最優先とする。
+- フェーズ1ではライトテーマのみを提供し、ダークモードは対象外とする。
+- Webとネイティブアプリでトークンと設計上の意味を共通化しつつ、操作コンポーネントについては各プラットフォーム固有の実装を許容する。
+- 外部Webフォント、大規模なUIフレームワーク、および外部画像CDNは使用しない。
 
 ## 2. 視覚表現
 
-### Storefront
+### ストアフロント
 
-- 背景はWhiteを基本とし、Sectionの区切りに`surface-subtle`を使用する。
-- 商品画像は1:1、明るい無地または簡潔な生活背景で統一する。
-- Accent Colorは主要CTA、選択状態、Linkだけに使う。
-- Product Cardへ不要なBorderやShadowを重ねず、画像・商品名・価格の順を明確にする。
+- 背景色は白（White）を基本とし、セクションの区切りには `surface-subtle` を使用する。
+- 商品画像はアスペクト比1:1とし、明るい無地またはシンプルな生活背景で統一する。
+- アクセントカラーは主要なCTA（コールトゥアクション）、選択状態、およびリンクのみに限定して使用する。
+- 商品カード（Product Card）には不要な枠線やシャドウを重ねず、画像・商品名・価格という情報の並び順を明確にする。
 
-### Admin
+### 管理画面（Admin）
 
-- 背景は淡いSlate、Content PanelはWhite。
-- Side Navigation、Page Header、Filter Bar、Tableを固定パターンとして使う。
-- KPI Chartではなく、対応件数とResource Linkを優先する。
-- 商品写真よりStatus、ID、日時、操作を高密度に表示する。
+- 背景色は淡いスレート調（Slate）、コンテンツパネルは白（White）とする。
+- サイドナビゲーション、ページヘッダー、フィルターバー、テーブルを定型パターンとして統一して使用する。
+- KPIチャートの配置ではなく、対応が必要な件数やリソースへのリンク表示を優先する。
+- 商品写真の大きさよりも、ステータス、ID、日時、各種操作の情報を高密度に分かりやすく表示することを重視する。
 
-## 3. Brand・Icon・Image
+## 3. ブランド・アイコン・画像
 
-| 項目 | 決定 |
+| 項目 | 決定事項 |
 |---|---|
-| Storefront Logo | `Scenario Shop`のWordmark＋単純なShopping Bag Symbol |
-| Admin Label | `Scenario Shop Admin` |
-| Icon | 同一のOutline Icon Set。絵文字をAction Iconに使わない |
-| Product Image | 1:1、Seed内で同一照明・余白・背景方針 |
-| Placeholder | Image Icon＋「画像を表示できません」 |
-| Test Mode | Header内の小さな環境Badge。重要NoticeはLogin/Signup/Checkoutで再掲 |
+| ストアフロントロゴ | `Scenario Shop` のワードマーク＋シンプルなショッピングバッグのシンボル |
+| 管理画面ラベル | `Scenario Shop Admin` |
+| アイコン | 同一のアウトラインアイコンセットで統一。絵文字をアクション用アイコンとして使用しない |
+| 商品画像 | 1:1（正方形）、シードデータ内で照明・余白・背景の方針を統一 |
+| プレースホルダー | 画像アイコン＋「画像を表示できません」のテキスト |
+| テストモード | ヘッダー内に小さな環境バッジを表示。重要な通知はログイン／新規登録（Signup）／チェックアウト画面で再掲 |
 
-## 4. レイアウトToken
+## 4. レイアウトトークン
 
 | Token | 値 |
 |---|---:|
@@ -57,25 +57,25 @@
 | minimum-touch-target | 44×44px |
 | admin-side-nav-width | 248px |
 
-## 5. Typography
+## 5. タイポグラフィ
 
-OS標準Font Stackを使用します。
+OS標準のフォントスタックを使用する。
 
 | Token | Size / Line height / Weight | 用途 |
 |---|---|---|
-| display | 36 / 44 / 700 | Home Hero |
-| heading-1 | 30 / 38 / 700 | 画面Title |
-| heading-2 | 24 / 32 / 700 | Section |
-| heading-3 | 20 / 28 / 600 | Card/Panel |
+| display | 36 / 44 / 700 | ホームのヒーローセクション |
+| heading-1 | 30 / 38 / 700 | 画面タイトル |
+| heading-2 | 24 / 32 / 700 | セクション見出し |
+| heading-3 | 20 / 28 / 600 | カード／パネル見出し |
 | body | 16 / 24 / 400 | 標準本文 |
-| body-small | 14 / 20 / 400 | 補足 |
-| label | 14 / 20 / 600 | Input Label |
-| caption | 12 / 18 / 400 | Meta情報 |
-| mono | 14 / 20 / 400 | ID、SKU、Version |
+| body-small | 14 / 20 / 400 | 補足テキスト |
+| label | 14 / 20 / 600 | 入力ラベル |
+| caption | 12 / 18 / 400 | メタ情報 |
+| mono | 14 / 20 / 400 | ID、SKU、バージョン |
 
-Mobileのdisplayは32/40、heading-1は28/36へ縮小します。本文は16px未満にしません。
+モバイル表示時の `display` は32/40、`heading-1` は28/36へと縮小する。なお、可読性確保のため本文フォントサイズは16px未満に縮小しない。
 
-## 6. Color Token
+## 6. カラートークン
 
 | Token | Foreground / Background |
 |---|---|
@@ -99,9 +99,9 @@ Mobileのdisplayは32/40、heading-1は28/36へ縮小します。本文は16px�
 | danger | `#B91C1C` / `#FEE2E2` |
 | info | `#075985` / `#E0F2FE` |
 
-TextとBackgroundの組合せはWCAG AAを満たすことを自動・手動確認します。状態はText/Iconを併用し、色だけで表しません。
+テキストと背景色の組み合わせは、WCAG AA基準を満たしていることを自動テストおよび手動確認の両面で担保する。また、各種状態の表現にはテキストやアイコンを併用し、色のみに依存した伝達は行わない。
 
-## 7. Elevation
+## 7. エレベーション
 
 | Token | 値 |
 |---|---|
@@ -110,63 +110,66 @@ TextとBackgroundの組合せはWCAG AAを満たすことを自動・手動確�
 | shadow-popover | `0 8px 24px rgba(15,23,42,.16)` |
 | shadow-modal | `0 20px 40px rgba(15,23,42,.24)` |
 
-Nativeでは対応するElevation/Shadowへ変換します。
+ネイティブアプリ環境では、プラットフォーム固有の対応するElevationやShadowプロパティへ変換して適用する。
 
-## 8. 共通Component
+## 8. 共通コンポーネント
+
+以下の共通コンポーネントを定義・実装する。
 
 StorefrontHeader、StorefrontFooter、MobileBottomNavigation、AdminShell、AdminSideNavigation、PageHeader、Breadcrumbs、LearningNotice、TestModeBadge、Button、IconButton、Text/Password/NumberField、Select、Checkbox、RadioGroup、Combobox、FormErrorSummary、InlineError、StatusBadge、MembershipBadge、ProductCard、ProductGallery、PriceDisplay、ShippingProgress、RatingDisplay、RatingDistribution、VariationSelector、QuantityControl、FilterBar、AppliedFilterChips、ResourceIndex、ResourceDetailsLayout、ContextualSaveBar、BulkActionBar、Empty/Error/LoadingState、ConfirmDialog、Modal/BottomSheet、Pagination、StepIndicator、OrderTimeline。
 
-## 9. Button
+## 9. ボタン
 
-- Primary、Secondary、Tertiary、Danger。
-- default/hover/focus/pressed/disabled/loading。
-- Loading中はLabelを「処理中」に変え、幅を大きく変えない。
-- Icon-onlyはAccessible Name必須。
-- Dangerは確認Dialogまたは明示入力を伴う。
-- 商品詳細の主要CTAは「カートに追加」、Checkoutは「注文を確定する（¥12,340）」形式とする。
+- バリエーション：Primary、Secondary、Tertiary、Danger。
+- サポート状態：default、hover、focus、pressed、disabled、loading。
+- ローディング中（loading）はラベル表示を「処理中」へ切り替え、ボタン幅が急激に変化しないよう制御する。
+- アイコンのみのボタン（Icon-only）には、アクセシブルネームの設定を必須とする。
+- 破壊的操作（Danger）を実行する際は、確認ダイアログの表示または明示的な入力を要求する。
+- 商品詳細画面における主要CTAは「カートに追加」、チェックアウト画面では「注文を確定する（¥12,340）」の形式とする。
 
-## 10. Form
+## 10. フォーム
 
-- Label、必須/任意Text、補足、Control、Errorの順。
-- Checkoutは原則1列Form。管理商品編集のみSection化した2列Pageを許可する。
-- Error SummaryはForm先頭に置き、Submit Error時はSummaryへFocusする。
-- Summary内Linkから該当Fieldへ移動する。
-- Focus Ringは2px、focus Token、2px Offset。
-- Numberは単位を視覚・Accessible Nameで明示。
-- 任意Fieldは「任意」とText表示し、必須だけをAsteriskにしない。
+- 各項目の配置順は、ラベル（Label）、必須／任意テキスト、補足説明、入力コントロール（Control）、エラーメッセージ（Error）の順とする。
+- チェックアウト画面は原則として1列のフォームレイアウトとする。ただし、管理画面の商品編集のみ、セクション単位で整理された2列レイアウトを許容する。
+- エラーサマリー（Error Summary）はフォームの先頭に配置し、送信エラー（Submit Error）発生時はサマリーへ自動でフォーカスを移動させる。
+- エラーサマリー内のリンクをクリックした際、該当する入力フィールドへ直接移動できるようにする。
+- フォーカスリングは幅2px、`focus` トークンの色を用い、オフセットは2pxとする。
+- 数値入力フィールド（Number）は、単位を視覚的テキストおよびアクセシブルネームの両面で明示する。
+- 任意の入力項目には「任意」とテキストで明示し、必須項目のみにアスタリスク（*）を付与するような不十分な区別は行わない。
 
 ## 11. レスポンシブブレークポイント
 
-| 区分 | 幅 | Layout |
+| 区分 | 幅 | レイアウト |
 |---|---:|---|
-| compact | 360～599 | Storefront 2列商品Grid、Bottom Nav、16px Padding |
-| medium | 600～899 | Storefront 3列商品Grid、24px Padding |
-| large | 900～1279 | Storefront 4列、Header Nav |
-| wide | 1280以上 | max幅で中央配置 |
+| compact | 360～599 | ストアフロント：商品グリッド2列、ボトムナビゲーション、16pxパディング |
+| medium | 600～899 | ストアフロント：商品グリッド3列、24pxパディング |
+| large | 900～1279 | ストアフロント：商品グリッド4列、ヘッダーナビゲーション |
+| wide | 1280以上 | 最大幅（`content-max`）で中央揃え配置 |
 
-管理画面は1024px未満で閲覧説明だけ表示し、編集操作を無効化します。
+管理画面は画面幅1,024px未満の場合、閲覧および説明テキストのみを表示し、編集操作は無効化する。
 
-## 12. 商品Grid
+## 12. 商品グリッド
 
-- 360～599px: 2列。
-- 600～899px: 3列。
-- 900px以上: 4列。
-- CSS Gridは`minmax(0, 1fr)`を使用し、Card固定最小幅を設けない。
-- 画像Aspect 1:1、商品名最大2行。
-- 360pxでは左右Padding 16px、Gap 12pxを確保する。
+- 画面幅に応じた列数：
+  - 360〜599px：2列
+  - 600〜899px：3列
+  - 900px以上：4列
+- CSS Gridには `minmax(0, 1fr)` を採用し、カード要素に固定の最小幅を持たせない。
+- 画像のアスペクト比は1:1、商品名は最大2行までの表示とする。
+- 最小幅360pxの環境でも、左右パディング16pxおよびグリッドギャップ12pxを確実に確保する。
 
-## 13. 管理Table
+## 13. 管理テーブル
 
-- 20件Page、Sticky HeaderはDesktopのみ。
-- Header/Cell関連付け、Sort状態通知。
-- 横幅不足はTable全体Scroll。
-- 重要操作は明示Button、補助操作だけRow Menu。
-- SelectionはBulk Action対象画面だけ表示する。
-- Loading時はColumn構造を保つSkeletonを表示する。
+- ページネーションは1ページあたり20件とし、固定ヘッダー（Sticky Header）はデスクトップ表示時のみ適用する。
+- ヘッダーセルとデータセルを意味的に関連付け、並び替え（ソート）状態を適切に通知する。
+- 画面の横幅が不足する場合は、テーブル全体を水平スクロール可能とする。
+- 重要な操作は独立したボタンとして明示し、補助的な操作のみ行メニュー（Row Menu）内に収める。
+- 複数選択用のチェックボックス（Selection）は、一括操作（Bulk Action）の対象となる画面でのみ表示する。
+- 読み込み中（Loading）は、テーブルの列構造を維持したスケルトンUIを表示する。
 
-## 14. Motion
+## 14. モーション
 
-- 通常Transition 150ms、Modal 200ms。
-- `prefers-reduced-motion`で0ms。
-- Automation Buildは常時0ms。
-- LoadingはAnimationより状態Textを優先する。
+- アニメーション時間：通常のトランジションは150ms、モーダル表示は200msとする。
+- OSの「視覚効果を減らす（`prefers-reduced-motion`）」が有効な場合は、所要時間を0msとする。
+- 自動テスト用ビルド（Automation Build）では、常時0msとする。
+- ローディング表示においては、装飾的なアニメーションよりも現在の状態を示すテキストの明示を優先する。
