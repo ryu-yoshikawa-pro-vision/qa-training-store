@@ -1,2 +1,3 @@
 pnpm run quality:staged
 pnpm run security:check
+node scripts/sanitize-codex-artifacts.mjs --staged --check

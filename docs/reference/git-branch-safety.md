@@ -6,6 +6,19 @@ Git mutationが許可された作業でも、Codexが作業対象branchを外れ
 
 この文書は、PR番号、commit SHA、特定の依存修正に依存しない。リポジトリの通常のGit作業と、branch mismatchからのboundedな復旧に適用する。
 
+## Hookによる操作rootの固定
+
+PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判定し、payloadの`cwd`には依存しない。状態を変更するbare `git`／`git.exe`は、Hookを所有するcheckoutのcanonical rootと一致する絶対pathへ明示的に移動した直後にだけ判定対象となる。
+
+- POSIX: `cd -- "<absolute-checkout-root>" && git <subcommand> ...`
+- PowerShell: `Set-Location -LiteralPath "<absolute-checkout-root>" -ErrorAction Stop; git <subcommand> ...`
+- 指定rootがHookのcheckoutと異なる、相対path・変数展開を使う、移動の間に別commandを挟む、`git -C`／`--git-dir`／`--work-tree`／Git環境変数を使う形式は拒否する。
+- `command git`、`env git`、PowerShellの`& git`もroot固定例外にはならない。Hookが確認できる直接呼出しだけを検出し、任意scriptや間接実行すべてを検査するとは扱わない。
+- read-only操作はroot固定を要求しない。保護branchから非保護branchへの通常の`switch`／`checkout`は既存契約を維持する。
+- 通常pushは構成済みremoteへの単一で明示的な非保護refだけが候補となる。`--follow-tags`、`push.followTags`、再帰submodule push、mirror設定等の追加更新があり得る場合や、安全な判定に必要なGit設定を読めない場合は拒否する。
+
+このHookはCodexのBash PreToolUse向け制御であり、任意の外部プロセスやすべてのMCP操作を保護するものではない。実行経路別の検証範囲はRun Artifactと報告に記録する。
+
 ## 保護branch・default branchの方針
 
 - main、master、repository default branchへCodexが直接commit/pushしない。

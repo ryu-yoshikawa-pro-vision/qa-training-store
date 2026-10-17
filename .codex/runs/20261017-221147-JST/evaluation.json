@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "20261017-221147-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "両Planの主要実装と関連テストを完了。verifyの契約テスト8件のcleanup失敗、Codex実機確認、commit以降のLifecycleは未完了。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "pnpm run verify: 契約テスト48 files中47 pass、809 pass、8 fail、4 skip。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "差分は2 PlanのHook、Sanitizer、wrapper、CI、運用契約、契約テスト、Run Artifactに限定。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "test:hooks、Node Sanitizer、fixture、build:web、build:specが成功。pnpm run verifyは一時fixture削除のEPERMで失敗。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存の危険Git拒否を維持し、検査不能な通常push更新を拒否する契約をテスト。Git操作拒否の回避を試みていない。Codex実機hook経路は未検証。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "自己レビューの3 findingを修正し、git diff --check、Run sanitizer、strict collectorを実行。"
+    },
+    "maintainability": {
+      "rating": "warn",
+      "evidence": "共通runtimeをNode CLIに統一したが、未参照のSessionStartファイルと旧PowerShell実装ファイルが残る。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windowsで主要テストと両buildを再実行。Linux/Codespaces/Actions runnerとCodex CLI実runtimeは未確認。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run verifyでtests/contracts/codex-safe-run-manifest-sync.test.tsの8 caseがTemp fixtureのfs.rmSyncでEPERM。",
+      "detail": "一時fixtureのcleanup例外が検証を失敗させる。契約テストのassert自体とは別のcleanup箇所で起きるが、テストスイートは成功扱いできない。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "Codex CLIがPATHになく、required wait_for_required_ci MCP toolも利用不可。",
+      "detail": "Codex 0.160.0の実設定・compact・approve UI・Code Mode hook到達と、新しいcommitのexact-head CIは確認できない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "compact専用SessionStart設定は削除したが、未参照session_start_context.mjsファイルは削除制約により残置。旧PowerShell sanitizer libraryは互換wrapperから参照されない。",
+      "detail": "Planにある不要なHook実体の撤去と物理的なNode一本化は未完了。現行設定・wrapper・CI経路では使用されない。"
+    }
+  ],
+  "improvement_candidates": []
+}

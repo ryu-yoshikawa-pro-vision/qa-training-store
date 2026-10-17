@@ -6,12 +6,13 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { parse as parseToml } from "smol-toml";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 type PolicyCase = {
   id: string;
   expected: "allow" | "deny";
   command: string;
+  decisionId?: string;
   context?: {
     currentBranch?: string;
     upstreamBranch?: string;
@@ -36,7 +37,7 @@ type ContextualEvaluation = {
 const repoRoot = path.resolve(process.cwd());
 const hookPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs");
 const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy_windows.ps1");
-const sessionStartHookPath = path.join(repoRoot, ".codex", "hooks", "session_start_context.mjs");
+let policyFixtureRoot: string | undefined;
 const safePayload = JSON.stringify({
   tool_name: "Bash",
   tool_input: { command: "git status --short" },
@@ -107,29 +108,28 @@ function hookEntryForScript(config: TomlRecord, event: string, scriptName: strin
   return entry;
 }
 
-function runNodeHook(payload: string, cwd = repoRoot, timeout = 30_000): HookResult {
+function getPolicyFixtureRoot() {
+  if (!policyFixtureRoot) {
+    policyFixtureRoot = makeGitFixture();
+    setFixtureBranch(policyFixtureRoot, "feature/safe");
+  }
+  return policyFixtureRoot;
+}
+
+function ownerRootAnchor(command: string, root = getPolicyFixtureRoot()) {
+  const escapedRoot = root.replaceAll("'", "''");
+  return `Set-Location -LiteralPath '${escapedRoot}' -ErrorAction Stop; ${command}`;
+}
+
+function runNodeHook(payload: string, cwd = getPolicyFixtureRoot(), timeout = 30_000): HookResult {
+  const env = { ...process.env };
+  for (const name of Object.keys(env)) {
+    if (name.startsWith("GIT_CONFIG_")) delete env[name];
+  }
   const result = spawnSync(process.execPath, [hookPath], {
     cwd,
     encoding: "utf8",
-    input: payload,
-    timeout,
-  });
-  return {
-    status: result.status ?? -1,
-    stdout: result.stdout ?? "",
-    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
-  };
-}
-
-function runSessionStartHook(
-  payload: string,
-  cwd = repoRoot,
-  hook = sessionStartHookPath,
-  timeout = 30_000,
-): HookResult {
-  const result = spawnSync(process.execPath, [hook], {
-    cwd,
-    encoding: "utf8",
+    env,
     input: payload,
     timeout,
   });
@@ -162,8 +162,21 @@ function runWindowsLauncher(
   };
 }
 
-function runNodeHookWithExplicitContexts(testCases: PolicyCase[]): HookResult {
+function runNodeHookWithExplicitContexts(
+  testCases: PolicyCase[],
+  cwd = getPolicyFixtureRoot(),
+): HookResult {
   const moduleUrl = pathToFileURL(hookPath).href;
+  const preparedCases = testCases.map((testCase) => {
+    const bareGitCommand = /^\s*git(?:\.exe)?\s+/i.test(testCase.command);
+    return {
+      ...testCase,
+      command:
+        testCase.expected === "allow" && bareGitCommand
+          ? ownerRootAnchor(testCase.command, cwd)
+          : testCase.command,
+    };
+  });
   const script = [
     `import { evaluateCommand } from ${JSON.stringify(moduleUrl)};`,
     "const cases = JSON.parse(process.env.CODEX_POLICY_CONTEXT_CASES);",
@@ -173,13 +186,17 @@ function runNodeHookWithExplicitContexts(testCases: PolicyCase[]): HookResult {
     "}));",
     "process.stdout.write(JSON.stringify(results));",
   ].join("\n");
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    CODEX_POLICY_CONTEXT_CASES: JSON.stringify(preparedCases),
+  };
+  for (const name of Object.keys(env)) {
+    if (name.startsWith("GIT_CONFIG_")) delete env[name];
+  }
   const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-    cwd: repoRoot,
+    cwd,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      CODEX_POLICY_CONTEXT_CASES: JSON.stringify(testCases),
-    },
+    env,
   });
   return {
     status: result.status ?? -1,
@@ -199,25 +216,8 @@ function makeGitFixture(copyHook = true) {
   return root;
 }
 
-function makeSessionFixture(agents = "# Fixture AGENTS\n日本語\n") {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex session hook 空白-"));
-  fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
-  fs.copyFileSync(
-    sessionStartHookPath,
-    path.join(root, ".codex", "hooks", "session_start_context.mjs"),
-  );
-  fs.writeFileSync(path.join(root, "AGENTS.md"), agents, "utf8");
-  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe" });
-  return root;
-}
-
 function removeFixture(root: string) {
   fs.rmSync(root, { force: true, recursive: true });
-}
-
-function removeFixtureFile(filePath: string) {
-  fs.rmSync(filePath, { force: true });
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
 function setFixtureBranch(root: string, branch: string) {
@@ -231,18 +231,9 @@ function quoteCommandPath(value: string) {
   return `"${value}"`;
 }
 
-function readPolicyMatrix() {
-  return JSON.parse(
-    execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    }),
-  ) as PolicyCase[];
-}
-
-function addGitC(command: string) {
-  return command.replace(/^(\s*)git\s+/i, "$1git -C . ");
-}
+afterAll(() => {
+  if (policyFixtureRoot) removeFixture(policyFixtureRoot);
+});
 
 describe("Codex PreToolUse/Bash Node Hook contract", () => {
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
@@ -269,33 +260,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(windowsSafetyScript).toContain("git rev-parse --show-toplevel");
     expect(windowsSafetyCommand).not.toContain('"');
     expect(safetyEntry.timeout).toBe(30);
-    expect(fs.existsSync(sessionStartHookPath)).toBe(true);
-    const sessionGroups = hookGroups(config, "SessionStart");
-    expect(sessionGroups).toHaveLength(1);
-    const sessionGroup = sessionGroups[0];
-    if (!sessionGroup) throw new Error("missing SessionStart matcher group");
-    expect(sessionGroup.matcher).toBe("^compact$");
-    const sessionEntries = asTomlRecords(sessionGroup.hooks, "hooks.SessionStart[0].hooks");
-    expect(sessionEntries).toHaveLength(1);
-    const sessionEntry = sessionEntries[0];
-    if (!sessionEntry) throw new Error("missing SessionStart Hook entry");
-    expect(sessionEntry.type).toBe("command");
-    expect(commandForHook(sessionEntry, "command", "SessionStart")).toContain(
-      "session_start_context.mjs",
-    );
-    expect(sessionEntry.additionalContextLimit).toBe(4096);
-    expect(sessionEntry.timeout).toBe(10);
-    const sessionWindowsCommand = commandForHook(sessionEntry, "command_windows", "SessionStart");
-    const sessionWindowsScript = decodeWindowsPowerShellCommand(
-      sessionWindowsCommand,
-      "SessionStart",
-    );
-    expect(sessionWindowsScript).toContain("session_start_context.mjs");
-    expect(sessionWindowsScript).toContain('"continue":false');
-    expect(sessionWindowsScript).toContain("Hook launcher failure");
-    expect(sessionWindowsScript).not.toContain("exit 2");
-    expect(sessionWindowsCommand).not.toContain('"');
-
+    expect(asTomlRecord(config.hooks, "hooks")).not.toHaveProperty("SessionStart");
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       expect(hookGroups(config, event), event).toHaveLength(1);
       expect(hookEntries(config, event), event).toHaveLength(2);
@@ -414,8 +379,8 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       "pre_tool_use_policy_windows.ps1",
       "log_event.mjs",
       "text_quality_gate.mjs",
-      "session_start_context.mjs",
     ];
+    expect(JSON.stringify(readCodexConfig())).not.toContain("session_start_context.mjs");
     for (const handlerName of configuredHandlerNames) {
       const handlerStats = fs.lstatSync(path.join(hooksDirectory, handlerName));
       expect(handlerStats.isFile(), handlerName).toBe(true);
@@ -507,7 +472,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       { command: "git push --force origin feature", expected: "G7" },
       { command: "git push -d origin old-feature", expected: "G8" },
       { command: "git branch -D old-feature", expected: "G9" },
-      { command: "git fetch origin", expected: null },
+      { command: "git fetch origin", expected: "G10" },
       { command: "git commit -m change", expected: "G10" },
     ];
 
@@ -529,6 +494,182 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
       }
     }
+  });
+
+  it("requires a literal canonical root immediately before direct Git mutations", () => {
+    const root = getPolicyFixtureRoot();
+    const otherRoot = makeGitFixture();
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const cases: (PolicyCase & { decisionId?: string })[] = [
+      {
+        id: "bare-commit",
+        expected: "deny",
+        decisionId: "G10",
+        command: 'git commit -m "safe"',
+        context,
+      },
+      {
+        id: "posix-canonical-root",
+        expected: "allow",
+        command: `cd -- "${root}" && git commit -m "safe"`,
+        context,
+      },
+      {
+        id: "powershell-canonical-root",
+        expected: "allow",
+        command: ownerRootAnchor('git commit -m "safe"', root),
+        context,
+      },
+      { id: "read-only-git-grep", expected: "allow", command: "git grep pattern", context },
+      { id: "read-only-git-ls-files", expected: "allow", command: "git ls-files -z", context },
+      {
+        id: "read-only-git-cat-file",
+        expected: "allow",
+        command: "git cat-file -e HEAD:README.md",
+        context,
+      },
+      {
+        id: "different-root",
+        expected: "deny",
+        decisionId: "G10",
+        command: ownerRootAnchor('git commit -m "safe"', otherRoot),
+        context,
+      },
+      {
+        id: "relative-root",
+        expected: "deny",
+        decisionId: "G10",
+        command: 'cd -- . && git commit -m "safe"',
+        context,
+      },
+      {
+        id: "intervening-command",
+        expected: "deny",
+        decisionId: "G10",
+        command: `${ownerRootAnchor("Write-Output ready", root)}; git commit -m safe`,
+        context,
+      },
+      {
+        id: "command-wrapper",
+        expected: "deny",
+        decisionId: "G10",
+        command: `${ownerRootAnchor("command git commit -m safe", root)}`,
+        context,
+      },
+      {
+        id: "env-wrapper",
+        expected: "deny",
+        decisionId: "G10",
+        command: `${ownerRootAnchor("env git commit -m safe", root)}`,
+        context,
+      },
+      {
+        id: "powershell-call-operator",
+        expected: "deny",
+        decisionId: "G10",
+        command: `${ownerRootAnchor("& git commit -m safe", root)}`,
+        context,
+      },
+    ];
+
+    try {
+      const result = runNodeHookWithExplicitContexts(cases, root);
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+      expect(evaluations).toHaveLength(cases.length);
+      for (const [index, testCase] of cases.entries()) {
+        const evaluation = evaluations[index];
+        expect(evaluation?.id).toBe(testCase.id);
+        if (testCase.expected === "allow") expect(evaluation?.decision).toBeNull();
+        else expect(evaluation?.decision?.id).toBe(testCase.decisionId);
+      }
+    } finally {
+      removeFixture(otherRoot);
+    }
+  });
+
+  it("does not invoke Git when changing to the requested root fails", () => {
+    const root = getPolicyFixtureRoot();
+    const missingRoot = path.join(root, "missing-root");
+    const marker = path.join(root, "git-was-invoked.txt");
+    if (process.platform === "win32") {
+      const script = [
+        "$ErrorActionPreference = 'Stop'",
+        "$failed = $false",
+        `function global:git { [System.IO.File]::WriteAllText('${marker.replaceAll("'", "''")}', 'called') }`,
+        `try { Set-Location -LiteralPath '${missingRoot.replaceAll("'", "''")}' -ErrorAction Stop; git status } catch { $failed = $true }`,
+        `if (-not $failed -or (Test-Path -LiteralPath '${marker.replaceAll("'", "''")}')) { exit 9 }`,
+        "exit 0",
+      ].join("; ");
+      const result = spawnSync(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", script],
+        {
+          cwd: root,
+          encoding: "utf8",
+        },
+      );
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+    } else {
+      const command = `function git() { printf called > '${marker.replaceAll("'", "'\\''")}'; }; cd -- '${missingRoot.replaceAll("'", "'\\''")}' && git status`;
+      const result = spawnSync("bash", ["-c", command], { cwd: root, encoding: "utf8" });
+      expect(result.status).not.toBe(0);
+    }
+    expect(fs.existsSync(marker)).toBe(false);
+  });
+
+  it("ignores payload.cwd and anchors policy to the Hook process checkout", () => {
+    const ownerRoot = getPolicyFixtureRoot();
+    const otherRoot = makeGitFixture();
+    try {
+      const result = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          cwd: otherRoot,
+          tool_input: { command: ownerRootAnchor("git fetch origin", ownerRoot) },
+        }),
+        ownerRoot,
+      );
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+    } finally {
+      removeFixture(otherRoot);
+    }
+  });
+
+  it("fails closed for inherited Git configuration overrides even with a root anchor", () => {
+    const root = getPolicyFixtureRoot();
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GIT_CONFIG_COUNT: "1",
+      GIT_CONFIG_KEY_0: "safe.directory",
+      GIT_CONFIG_VALUE_0: "*",
+    };
+    const result = spawnSync(process.execPath, [hookPath], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+      input: JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command: ownerRootAnchor("git commit -m safe", root) },
+      }),
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      hookSpecificOutput: {
+        permissionDecision: "deny",
+        permissionDecisionReason: expect.stringMatching(/^G10:/),
+      },
+    });
   });
 
   it("executes every common-policy representative from the Hook matrix", () => {
@@ -576,7 +717,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         if (testCase.expected === "allow") {
           expect(decision, testCase.id).toBeNull();
         } else {
-          expect(decision?.id, testCase.id).toBe(testCase.id);
+          expect(decision?.id, testCase.id).toBe(testCase.decisionId ?? testCase.id);
         }
         contextualIndex += 1;
         continue;
@@ -585,7 +726,12 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       const result = runNodeHook(
         JSON.stringify({
           tool_name: "Bash",
-          tool_input: { command: testCase.command },
+          tool_input: {
+            command:
+              testCase.expected === "allow" && /^\s*git(?:\.exe)?\s+/i.test(testCase.command)
+                ? ownerRootAnchor(testCase.command)
+                : testCase.command,
+          },
         }),
       );
 
@@ -604,15 +750,15 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         expect(output.hookSpecificOutput?.hookEventName, testCase.id).toBe("PreToolUse");
         expect(output.hookSpecificOutput?.permissionDecision, testCase.id).toBe("deny");
         expect(output.hookSpecificOutput?.permissionDecisionReason, testCase.id).toMatch(
-          new RegExp(`^${testCase.id}:`),
+          new RegExp(`^${testCase.decisionId ?? testCase.id}:`),
         );
       }
     }
   }, 30000);
 
   it.each([
-    { command: "git checkout -bfeature", expected: "allow" },
-    { command: "git tag -mfoo v1", expected: "allow" },
+    { command: "git checkout -bfeature", expected: "G10" },
+    { command: "git tag -mfoo v1", expected: "G10" },
     { command: "git clean -efoo -n", expected: "allow" },
     { command: "mv source destination", expected: "allow" },
     { command: "mv -fi source destination", expected: "allow" },
@@ -676,35 +822,52 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     );
   });
 
-  it("keeps git -C variants equivalent to Git commands in the policy matrix", () => {
-    const featureContext = {
-      currentBranch: "feature/safe",
-      protectedBranches: ["main", "master"],
-      remoteNames: ["origin"],
-    };
-    const matrix = readPolicyMatrix().filter(({ command }) => /^\s*git\s+/i.test(command));
-    const variants = matrix.map((testCase) => ({
-      ...testCase,
-      command: addGitC(testCase.command),
-      context: testCase.context ?? featureContext,
-    }));
-    expect(new Set(variants.map((testCase) => testCase.id)).size).toBeLessThan(variants.length);
-    const result = runNodeHookWithExplicitContexts(variants);
+  it("keeps read-only git -C operations and rejects context-changing variants", () => {
+    const cases: (PolicyCase & { decisionId?: string })[] = [
+      { id: "git-c-status", expected: "allow", command: "git -C . status" },
+      { id: "git-c-log", expected: "allow", command: "git -C . log" },
+      { id: "git-c-diff", expected: "allow", command: "git -C . diff" },
+      {
+        id: "git-c-branch-show-current",
+        expected: "allow",
+        command: "git -C . branch --show-current",
+      },
+      { id: "git-c-fetch", expected: "deny", decisionId: "G10", command: "git -C . fetch" },
+      {
+        id: "git-c-switch",
+        expected: "deny",
+        decisionId: "G10",
+        command: "git -C . switch feature/safe",
+      },
+      {
+        id: "git-c-commit",
+        expected: "deny",
+        decisionId: "G10",
+        command: 'git -C . commit -m "feature change"',
+      },
+      {
+        id: "git-c-push",
+        expected: "deny",
+        decisionId: "G10",
+        command: "git -C . push origin feature/safe",
+        context: {
+          currentBranch: "feature/safe",
+          protectedBranches: ["main", "master"],
+          remoteNames: ["origin"],
+        },
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
-    expect(evaluations).toHaveLength(variants.length);
-
-    for (const [index, testCase] of variants.entries()) {
+    expect(evaluations).toHaveLength(cases.length);
+    for (const [index, testCase] of cases.entries()) {
       const evaluation = evaluations[index];
-      expect(evaluation?.id, testCase.id).toBe(testCase.id);
-      const decision = evaluation?.decision;
-      if (testCase.expected === "allow") {
-        expect(decision, testCase.id).toBeNull();
-      } else {
-        expect(decision?.id, testCase.id).toBe(testCase.id);
-      }
+      expect(evaluation?.id).toBe(testCase.id);
+      if (testCase.expected === "allow") expect(evaluation?.decision).toBeNull();
+      else expect(evaluation?.decision?.id).toBe(testCase.decisionId);
     }
   });
 
@@ -806,38 +969,15 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     }
   });
 
-  it("allows safe and feature-branch git -C variants", () => {
+  it("allows read-only git -C variants", () => {
     const cases: PolicyCase[] = [
       { id: "git-c-status", expected: "allow", command: "git -C . status" },
       { id: "git-c-log", expected: "allow", command: "git -C . log" },
       { id: "git-c-diff", expected: "allow", command: "git -C . diff" },
-      { id: "git-c-fetch", expected: "allow", command: "git -C . fetch" },
       {
         id: "git-c-branch-show-current",
         expected: "allow",
         command: "git -C . branch --show-current",
-      },
-      {
-        id: "git-c-switch-main",
-        expected: "allow",
-        command: "git -C . switch main",
-        context: { currentBranch: "main", protectedBranches: ["main", "master"] },
-      },
-      {
-        id: "git-c-feature-commit",
-        expected: "allow",
-        command: 'git -C . commit -m "feature change"',
-        context: { currentBranch: "feature/safe", protectedBranches: ["main", "master"] },
-      },
-      {
-        id: "git-c-feature-push",
-        expected: "allow",
-        command: "git -C . push origin feature/safe",
-        context: {
-          currentBranch: "feature/safe",
-          protectedBranches: ["main", "master"],
-          remoteNames: ["origin"],
-        },
       },
     ];
     const result = runNodeHookWithExplicitContexts(cases);
@@ -1034,376 +1174,6 @@ function runConfiguredWindowsCommand(
     stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
   };
 }
-
-function sessionStartCommandFor(launcher: LoggingLauncher) {
-  const field = launcher === "unix" ? "command" : "command_windows";
-  const config = readCodexConfig();
-  return commandForHook(
-    hookEntryForScript(config, "SessionStart", "session_start_context.mjs"),
-    field,
-    "SessionStart",
-  );
-}
-
-function sessionStartPayload(source = "compact", extra: Record<string, unknown> = {}) {
-  return JSON.stringify({
-    session_id: "contract-session-start",
-    transcript_path: null,
-    cwd: repoRoot,
-    hook_event_name: "SessionStart",
-    model: "contract-model",
-    permission_mode: "default",
-    source,
-    ...extra,
-  });
-}
-
-function runConfiguredSessionStartHook(
-  payload: string,
-  launcher: LoggingLauncher,
-  cwd: string,
-): HookResult {
-  const command = sessionStartCommandFor(launcher);
-  if (launcher === "windows") {
-    return runConfiguredWindowsCommand(command, payload, cwd);
-  }
-
-  const result = spawnSync("sh", ["-c", command], {
-    cwd,
-    encoding: "utf8",
-    input: payload,
-  });
-  return {
-    status: result.status ?? -1,
-    stdout: result.stdout ?? "",
-    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
-  };
-}
-
-function expectSessionStartLauncherFailure(result: HookResult, forbidden: string[]) {
-  expect(result.status).toBe(0);
-  expect(result.stderr).toBe("");
-  const output = JSON.parse(result.stdout) as {
-    continue?: boolean;
-    stopReason?: string;
-  };
-  expect(output).toEqual({
-    continue: false,
-    stopReason: "compact後の必須指示を再注入できませんでした: Hook launcher failure",
-  });
-  for (const value of forbidden) {
-    expect(result.stdout).not.toContain(value);
-    expect(result.stderr).not.toContain(value);
-    expect(output.stopReason).not.toContain(value);
-  }
-}
-
-describe("Codex SessionStart compact context Hook contract", () => {
-  it("returns the complete root AGENTS.md with the SessionStart structured shape", () => {
-    const agentsPath = path.join(repoRoot, "AGENTS.md");
-    const expectedContext = fs.readFileSync(agentsPath, "utf8");
-    const result = runSessionStartHook(sessionStartPayload(), path.join(repoRoot, "docs"));
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-    const output = JSON.parse(result.stdout) as {
-      hookSpecificOutput?: {
-        hookEventName?: string;
-        additionalContext?: string;
-      };
-    };
-    expect(output).toEqual({
-      hookSpecificOutput: {
-        hookEventName: "SessionStart",
-        additionalContext: expectedContext,
-      },
-    });
-    expect(Buffer.byteLength(output.hookSpecificOutput?.additionalContext ?? "", "utf8")).toBe(
-      fs.statSync(agentsPath).size,
-    );
-  });
-
-  it.each(["startup", "resume", "clear"])(
-    "does not emit context for non-compact source %s",
-    (source) => {
-      const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-noncompact-"));
-      try {
-        const result = runSessionStartHook(sessionStartPayload(source), nonRepository);
-
-        expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
-      } finally {
-        removeFixture(nonRepository);
-      }
-    },
-  );
-
-  it("preserves UTF-8, quotes, backslashes, and newlines through JSON output", () => {
-    const agents = '# "quoted"\n\\backslash\n日本語の指示\n改行\n';
-    const fixture = makeSessionFixture(agents);
-    const nested = path.join(fixture, "nested", "working directory");
-    fs.mkdirSync(nested, { recursive: true });
-    try {
-      const result = runSessionStartHook(sessionStartPayload(), nested);
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(JSON.parse(result.stdout)).toEqual({
-        hookSpecificOutput: {
-          hookEventName: "SessionStart",
-          additionalContext: agents,
-        },
-      });
-    } finally {
-      removeFixture(fixture);
-    }
-  });
-
-  it("uses the explicit context limit with a margin over the actual root file estimate", () => {
-    const entry = hookEntryForScript(
-      readCodexConfig(),
-      "SessionStart",
-      "session_start_context.mjs",
-    );
-    const agentsBytes = fs.statSync(path.join(repoRoot, "AGENTS.md")).size;
-    const limit = entry.additionalContextLimit;
-
-    expect(typeof limit).toBe("number");
-    expect(Number.isInteger(limit)).toBe(true);
-    expect(limit).toBe(4096);
-    expect(limit as number).toBeGreaterThanOrEqual(Math.ceil(agentsBytes / 4));
-  });
-
-  it.each([
-    "",
-    "{",
-    "null",
-    "[]",
-    "{}",
-    '{"hook_event_name":"SessionStart"}',
-    '{"hook_event_name":"Other","source":"compact","token":"super-secret-token","cwd":"C:\\\\secret\\\\path"}',
-  ])("fails closed with structured output for malformed input: %j", (payload) => {
-    const result = runSessionStartHook(payload);
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-    const output = JSON.parse(result.stdout) as {
-      continue?: boolean;
-      stopReason?: string;
-      hookSpecificOutput?: unknown;
-    };
-    expect(output.continue).toBe(false);
-    expect(output.hookSpecificOutput).toBeUndefined();
-    expect(output.stopReason).toMatch(/^compact後の必須指示を再注入できませんでした:/);
-    expect(output.stopReason).not.toContain("super-secret-token");
-    expect(output.stopReason).not.toContain(repoRoot);
-  });
-
-  it("fails closed without exposing the cwd when repository root resolution fails", () => {
-    const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "codex-session-not-repo-"));
-    try {
-      const result = runSessionStartHook(sessionStartPayload(), nonRepository);
-      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(output.continue).toBe(false);
-      expect(output.stopReason).toContain("repository root解決失敗");
-      expect(output.stopReason).not.toContain(nonRepository);
-    } finally {
-      removeFixture(nonRepository);
-    }
-  });
-
-  it("fails closed when root AGENTS.md is missing", () => {
-    const fixture = makeSessionFixture();
-    const agentsPath = path.join(fixture, "AGENTS.md");
-    try {
-      removeFixtureFile(agentsPath);
-      const result = runSessionStartHook(sessionStartPayload(), fixture);
-      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(output.continue).toBe(false);
-      expect(output.stopReason).toContain("root AGENTS.md欠落");
-      expect(output.stopReason).not.toContain(fixture);
-    } finally {
-      removeFixture(fixture);
-    }
-  });
-
-  it("fails closed when root AGENTS.md cannot be read", () => {
-    const fixture = makeSessionFixture();
-    const agentsPath = path.join(fixture, "AGENTS.md");
-    try {
-      removeFixtureFile(agentsPath);
-      fs.mkdirSync(agentsPath);
-      const result = runSessionStartHook(sessionStartPayload(), fixture);
-      const output = JSON.parse(result.stdout) as { continue?: boolean; stopReason?: string };
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(output.continue).toBe(false);
-      expect(output.stopReason).toContain("root AGENTS.md read失敗");
-      expect(output.stopReason).not.toContain(fixture);
-    } finally {
-      removeFixture(fixture);
-    }
-  });
-
-  it("fails non-zero if both SessionStart structured output writes fail", () => {
-    const source = fs.readFileSync(sessionStartHookPath, "utf8");
-
-    expect(source).toContain("structured output生成失敗");
-    expect(source).toContain("continue: false");
-    expect(source).toContain("process.exitCode = 2;");
-    expect(source).not.toContain("process.exitCode = 0;");
-  });
-
-  it("executes the configured Unix launcher from a nested cwd", () => {
-    if (process.platform === "win32") return;
-
-    const agents = "# Unix launcher fixture\n日本語\n";
-    const fixture = makeSessionFixture(agents);
-    const nested = path.join(fixture, "nested", "working directory");
-    fs.mkdirSync(nested, { recursive: true });
-    try {
-      const result = runConfiguredSessionStartHook(sessionStartPayload(), "unix", nested);
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(JSON.parse(result.stdout)).toEqual({
-        hookSpecificOutput: {
-          hookEventName: "SessionStart",
-          additionalContext: agents,
-        },
-      });
-    } finally {
-      removeFixture(fixture);
-    }
-  });
-
-  it("executes the configured Windows launcher from a nested cwd", () => {
-    if (process.platform !== "win32") return;
-
-    const fixture = fs.mkdtempSync(path.join(repoRoot, "codex session Windows 空白-"));
-    const nested = path.join(fixture, "nested", "working directory");
-    fs.mkdirSync(nested, { recursive: true });
-    try {
-      const result = runConfiguredSessionStartHook(sessionStartPayload(), "windows", nested);
-      const agents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
-
-      expect(result.status).toBe(0);
-      expect(result.stderr).toBe("");
-      expect(JSON.parse(result.stdout)).toEqual({
-        hookSpecificOutput: {
-          hookEventName: "SessionStart",
-          additionalContext: agents,
-        },
-      });
-    } finally {
-      removeFixture(fixture);
-    }
-  }, 30_000);
-
-  it("converges configured Unix launcher failures to structured fail-close output", () => {
-    if (process.platform === "win32") return;
-
-    const fixture = makeSessionFixture("# Unix launcher failure fixture\n日本語\n");
-    const secretPayload = sessionStartPayload("compact", {
-      prompt: "session launcher prompt",
-      token: "session-token",
-      secret: "session-secret",
-    });
-    try {
-      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
-      removeFixtureFile(hookPath);
-      expectSessionStartLauncherFailure(
-        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
-        [fixture, "session launcher prompt", "session-token", "session-secret"],
-      );
-
-      fs.writeFileSync(
-        hookPath,
-        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
-        "utf8",
-      );
-      expectSessionStartLauncherFailure(
-        runConfiguredSessionStartHook(secretPayload, "unix", fixture),
-        [fixture, "session-path", "session-token", "session-secret"],
-      );
-
-      const nonRepository = fs.mkdtempSync(
-        path.join(os.tmpdir(), "codex-session-unix-launcher-failure-"),
-      );
-      try {
-        const rootFailurePayload = sessionStartPayload("compact", {
-          cwd: nonRepository,
-          prompt: "root failure prompt",
-          token: "root-failure-token",
-          secret: "root-failure-secret",
-        });
-        expectSessionStartLauncherFailure(
-          runConfiguredSessionStartHook(rootFailurePayload, "unix", nonRepository),
-          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
-        );
-      } finally {
-        removeFixture(nonRepository);
-      }
-    } finally {
-      removeFixture(fixture);
-    }
-  }, 30_000);
-
-  it("converges configured Windows launcher failures to structured fail-close output", () => {
-    if (process.platform !== "win32") return;
-
-    const fixture = makeSessionFixture("# Windows launcher failure fixture\n日本語\n");
-    const secretPayload = sessionStartPayload("compact", {
-      prompt: "session launcher prompt",
-      token: "session-token",
-      secret: "session-secret",
-    });
-    try {
-      const hookPath = path.join(fixture, ".codex", "hooks", "session_start_context.mjs");
-      removeFixtureFile(hookPath);
-      expectSessionStartLauncherFailure(
-        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
-        [fixture, "session launcher prompt", "session-token", "session-secret"],
-      );
-
-      fs.writeFileSync(
-        hookPath,
-        'process.stdout.write("session-secret"); process.stderr.write("session-path"); process.exit(2);\n',
-        "utf8",
-      );
-      expectSessionStartLauncherFailure(
-        runConfiguredSessionStartHook(secretPayload, "windows", fixture),
-        [fixture, "session-path", "session-token", "session-secret"],
-      );
-
-      const nonRepository = fs.mkdtempSync(
-        path.join(os.tmpdir(), "codex-session-windows-launcher-failure-"),
-      );
-      try {
-        const rootFailurePayload = sessionStartPayload("compact", {
-          cwd: nonRepository,
-          prompt: "root failure prompt",
-          token: "root-failure-token",
-          secret: "root-failure-secret",
-        });
-        expectSessionStartLauncherFailure(
-          runConfiguredSessionStartHook(rootFailurePayload, "windows", nonRepository),
-          [nonRepository, "root failure prompt", "root-failure-token", "root-failure-secret"],
-        );
-      } finally {
-        removeFixture(nonRepository);
-      }
-    } finally {
-      removeFixture(fixture);
-    }
-  }, 30_000);
-});
 
 function runConfiguredLoggingHook(
   event: LoggingEvent,
@@ -1966,7 +1736,7 @@ describe("Codex logging Hook contract", () => {
 });
 
 describe("Codex PreToolUse/Bash remaining contract", () => {
-  it("uses the repository selected by quoted git -C path for branch context", () => {
+  it("rejects a context-sensitive operation that selects a repository with git -C", () => {
     const repoA = makeGitFixture();
     const repoB = makeGitFixture();
     const relativeRepoB = path.relative(repoA, repoB);
@@ -2004,7 +1774,12 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       );
 
       expect(allowed.status).toBe(0);
-      expect(allowed.stdout).toBe("");
+      expect(JSON.parse(allowed.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
       expect(allowed.stderr).toBe("");
     } finally {
       removeFixture(repoA);
@@ -2012,7 +1787,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     }
   });
 
-  it("evaluates every Git invocation with its own repository context", () => {
+  it("rejects repository changes through git -C in a compound command", () => {
     const repoA = makeGitFixture();
     const repoB = makeGitFixture();
     const command =
@@ -2052,7 +1827,12 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       );
 
       expect(allowed.status).toBe(0);
-      expect(allowed.stdout).toBe("");
+      expect(JSON.parse(allowed.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
       expect(allowed.stderr).toBe("");
     } finally {
       removeFixture(repoA);
@@ -2065,7 +1845,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       JSON.stringify({
         tool_name: "Bash",
         tool_input: {
-          command: "git push origin feature/safe; git push --force origin feature/safe",
+          command: "git status; git push --force origin feature/safe",
         },
       }),
     );
@@ -2081,7 +1861,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       JSON.stringify({
         tool_name: "Bash",
         tool_input: {
-          command: "git reset HEAD -- file.txt; git reset --hard HEAD",
+          command: `${ownerRootAnchor("git reset HEAD -- file.txt")}; git reset --hard HEAD`,
         },
       }),
     );
@@ -2137,7 +1917,12 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       );
 
       expect(allowed.status).toBe(0);
-      expect(allowed.stdout).toBe("");
+      expect(JSON.parse(allowed.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
       expect(allowed.stderr).toBe("");
     } finally {
       removeFixture(repoA);
@@ -2481,6 +2266,18 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     };
     const deniedCases: PolicyCase[] = [
       {
+        id: "switch-without-root-anchor",
+        expected: "deny",
+        command: "git switch feature/safe",
+        context,
+      },
+      {
+        id: "checkout-without-root-anchor",
+        expected: "deny",
+        command: "git checkout feature/safe",
+        context,
+      },
+      {
         id: "switch-previous-branch-then-commit",
         expected: "deny",
         command: "git switch - && git commit -m bad",
@@ -2518,6 +2315,12 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
 
     const allowedCases: PolicyCase[] = [
       { id: "switch-previous-branch-alone", expected: "allow", command: "git switch -", context },
+      {
+        id: "switch-from-protected-to-feature",
+        expected: "allow",
+        command: ownerRootAnchor("git switch feature/safe"),
+        context: { ...context, currentBranch: "main" },
+      },
       {
         id: "checkout-previous-branch-alone",
         expected: "allow",
@@ -2617,6 +2420,102 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     expect(JSON.parse(result.stdout)).toEqual(
       cases.map((testCase) => ({ id: testCase.id, decision: null })),
     );
+  });
+
+  it("rejects implicit annotated-tag updates through push.followTags", () => {
+    const source = makeGitFixture();
+    const remote = fs.mkdtempSync(path.join(os.tmpdir(), "codex hook bare remote-"));
+    try {
+      execFileSync("git", ["init", "--bare", "--quiet", remote], { stdio: "pipe" });
+      execFileSync("git", ["config", "user.name", "Hook Contract"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["config", "user.email", "hook@example.invalid"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      fs.writeFileSync(path.join(source, "tracked.txt"), "feature\n");
+      execFileSync("git", ["add", "tracked.txt"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["commit", "-qm", "feature"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["branch", "-M", "feature/safe"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["tag", "-a", "v1", "-m", "annotated"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["remote", "add", "origin", remote], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["config", "push.followTags", "true"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["push", "--quiet", "origin", "feature/safe"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      expect(() =>
+        execFileSync(
+          "git",
+          ["--git-dir", remote, "show-ref", "--verify", "--quiet", "refs/tags/v1"],
+          {
+            stdio: "pipe",
+          },
+        ),
+      ).not.toThrow();
+
+      const context = {
+        currentBranch: "feature/safe",
+        protectedBranches: ["main", "master"],
+        remoteNames: ["origin"],
+      };
+      const command = ownerRootAnchor("git push origin feature/safe", source);
+      const denied = runNodeHookWithExplicitContexts(
+        [{ id: "implicit-tag-push", expected: "deny", decisionId: "G10", command, context }],
+        source,
+      );
+      expect(denied.status).toBe(0);
+      expect(denied.stderr).toBe("");
+      const deniedEvaluation = (JSON.parse(denied.stdout) as ContextualEvaluation[])[0];
+      expect(deniedEvaluation?.decision?.reason).toContain("push.followTags");
+
+      execFileSync("git", ["config", "push.followTags", "false"], { cwd: source, stdio: "pipe" });
+      const allowed = runNodeHookWithExplicitContexts(
+        [{ id: "explicit-only-push", expected: "allow", command, context }],
+        source,
+      );
+      expect(JSON.parse(allowed.stdout)).toEqual([{ id: "explicit-only-push", decision: null }]);
+
+      const evaluateRisk = (id: string, pushCommand = command) => {
+        const result = runNodeHookWithExplicitContexts(
+          [{ id, expected: "deny", command: pushCommand, context }],
+          source,
+        );
+        expect(result.status).toBe(0);
+        expect(result.stderr).toBe("");
+        return (JSON.parse(result.stdout) as ContextualEvaluation[])[0]?.decision;
+      };
+
+      execFileSync("git", ["config", "push.recurseSubmodules", "on-demand"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      expect(evaluateRisk("recursive-submodule-push")?.reason).toContain(
+        "recursive submodule push effects",
+      );
+      execFileSync("git", ["config", "push.recurseSubmodules", "false"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      execFileSync("git", ["config", "remote.origin.mirror", "true"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      expect(evaluateRisk("mirror-push")?.reason).toContain("mirror remote configuration");
+      execFileSync("git", ["config", "--unset", "remote.origin.mirror"], {
+        cwd: source,
+        stdio: "pipe",
+      });
+      const followTagsOption = ownerRootAnchor(
+        "git push --follow-tags origin feature/safe",
+        source,
+      );
+      expect(evaluateRisk("follow-tags-option", followTagsOption)?.reason).toContain(
+        "unsupported push option",
+      );
+    } finally {
+      removeFixture(source);
+      removeFixture(remote);
+    }
   });
 
   it("fails closed for runtime Git config and environment overrides on mutations", () => {
@@ -2809,6 +2708,12 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
         context,
       },
       {
+        id: "status-then-commit",
+        expected: "deny",
+        command: 'git status && git commit -m "safe"',
+        context,
+      },
+      {
         id: "set-location-then-commit",
         expected: "deny",
         command: "Set-Location ../protected; git commit -m bad",
@@ -2867,12 +2772,6 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       { id: "checkout-alone", expected: "allow", command: "git checkout main", context },
       { id: "status-after-cd", expected: "allow", command: "cd ../other && git status", context },
       { id: "status-after-popd", expected: "allow", command: "popd; git status", context },
-      {
-        id: "status-then-commit",
-        expected: "allow",
-        command: 'git status && git commit -m "safe"',
-        context,
-      },
       { id: "log-then-status", expected: "allow", command: "git log && git status", context },
     ];
     const allowedResult = runNodeHookWithExplicitContexts(allowedCases);
@@ -3245,28 +3144,26 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     expect(evaluated[0]?.decision).toMatchObject({ id: "G10" });
   });
 
-  it("allows @ from a feature branch", () => {
-    const moduleUrl = pathToFileURL(hookPath).href;
-    const script = [
-      "import { evaluateCommand } from " + JSON.stringify(moduleUrl) + ";",
-      'const decision = evaluateCommand("git push origin @", {',
-      '  currentBranch: "feature/safe",',
-      '  protectedBranches: ["main"],',
-      '  remoteNames: ["origin"],',
-      "});",
-      "process.stdout.write(JSON.stringify(decision));",
-    ].join("\n");
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    });
+  it("allows @ from a feature branch when the canonical root is explicit", () => {
+    const result = runNodeHookWithExplicitContexts([
+      {
+        id: "feature-at-push",
+        expected: "allow",
+        command: "git push origin @",
+        context: {
+          currentBranch: "feature/safe",
+          protectedBranches: ["main"],
+          remoteNames: ["origin"],
+        },
+      },
+    ]);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toBeNull();
+    expect(JSON.parse(result.stdout)).toEqual([{ id: "feature-at-push", decision: null }]);
   });
 
-  it("keeps explicit matrix contexts data-driven for feature-branch allow cases", () => {
+  it("keeps explicit matrix contexts aligned with their allow and deny decisions", () => {
     const matrix = JSON.parse(
       execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
         cwd: repoRoot,
@@ -3279,9 +3176,13 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     const evaluated = JSON.parse(result.stdout) as ContextualEvaluation[];
-    expect(evaluated).toEqual(
-      contextualCases.map((testCase) => ({ id: testCase.id, decision: null })),
-    );
+    expect(evaluated).toHaveLength(contextualCases.length);
+    for (const [index, testCase] of contextualCases.entries()) {
+      const actual = evaluated[index];
+      expect(actual?.id).toBe(testCase.id);
+      if (testCase.expected === "allow") expect(actual?.decision).toBeNull();
+      else expect(actual?.decision?.id).toBe(testCase.decisionId ?? testCase.id);
+    }
   });
 
   it("preserves safe and deny semantics through the Windows launcher from root and nested cwd", () => {

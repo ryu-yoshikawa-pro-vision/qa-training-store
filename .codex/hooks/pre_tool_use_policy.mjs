@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -34,6 +35,9 @@ const GIT_MUTATION_OPERATIONS = new Set([
   "config",
 ]);
 const GIT_READ_ONLY_OPERATIONS = new Set([
+  "cat-file",
+  "grep",
+  "ls-files",
   "status",
   "log",
   "diff",
@@ -126,7 +130,7 @@ const PULL_SAFE_OPTIONS = new Set([
   "--squash",
 ]);
 
-/** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[] }} GitContext */
+/** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[], repositoryRoot?: string }} GitContext */
 /** @typedef {{ id: string, expected: "allow" | "deny", command: string, context?: GitContext }} PolicyCase */
 
 const DENY_CASES = [
@@ -179,23 +183,25 @@ const DENY_CASES = [
 const ALLOW_CASES = [
   { id: "A1", expected: "allow", command: "git status --short" },
   { id: "A2", expected: "allow", command: "git diff --check" },
-  { id: "A3", expected: "allow", command: "git add sentinel.txt" },
+  { id: "A3", expected: "deny", decisionId: "G10", command: "git add sentinel.txt" },
   {
     id: "A4",
-    expected: "allow",
+    expected: "deny",
+    decisionId: "G10",
     command: "git commit -m \"feature change\"",
     context: { currentBranch: "feature/safe", protectedBranches: PROTECTED_FALLBACK_BRANCHES },
   },
   {
     id: "A5",
-    expected: "allow",
+    expected: "deny",
+    decisionId: "G10",
     command: "git push origin feature/safe",
     context: { currentBranch: "feature/safe", protectedBranches: PROTECTED_FALLBACK_BRANCHES },
   },
-  { id: "A6", expected: "allow", command: "git fetch origin" },
+  { id: "A6", expected: "deny", decisionId: "G10", command: "git fetch origin" },
   { id: "A7", expected: "allow", command: "git switch feature/safe" },
-  { id: "A8", expected: "allow", command: "git reset HEAD -- sentinel.txt" },
-  { id: "A9", expected: "allow", command: "git restore --staged sentinel.txt" },
+  { id: "A8", expected: "deny", decisionId: "G10", command: "git reset HEAD -- sentinel.txt" },
+  { id: "A9", expected: "deny", decisionId: "G10", command: "git restore --staged sentinel.txt" },
   { id: "A10", expected: "allow", command: "git rebase --abort" },
   { id: "A11", expected: "allow", command: "git merge --abort" },
   { id: "A12", expected: "allow", command: "git am --show-current-patch" },
@@ -490,15 +496,52 @@ function getGitInvocations(command) {
     while (/^(?:\$env:)?[A-Za-z_][A-Za-z0-9_]*=/.test(tokenized.tokens[commandTokenIndex]?.value ?? "")) {
       commandTokenIndex += 1;
     }
-    const commandToken = tokenized.tokens[commandTokenIndex];
-    if (!commandToken || !isGitExecutableToken(commandToken.value)) return;
+    const firstCommandToken = tokenized.tokens[commandTokenIndex];
+    let gitTokenIndex = commandTokenIndex;
+    let wrappedExecution = false;
+    if (firstCommandToken && isGitExecutableToken(firstCommandToken.value)) {
+      gitTokenIndex = commandTokenIndex;
+    } else if (
+      firstCommandToken &&
+      ["command", "&"].includes(firstCommandToken.value.toLowerCase()) &&
+      isGitExecutableToken(tokenized.tokens[commandTokenIndex + 1]?.value ?? "")
+    ) {
+      gitTokenIndex = commandTokenIndex + 1;
+      wrappedExecution = true;
+    } else if (firstCommandToken?.value.toLowerCase() === "env") {
+      let candidateIndex = commandTokenIndex + 1;
+      while (candidateIndex < tokenized.tokens.length) {
+        const value = tokenized.tokens[candidateIndex]?.value ?? "";
+        if (value === "--") {
+          candidateIndex += 1;
+          break;
+        }
+        if (value.startsWith("-") && value !== "-") {
+          candidateIndex += 1;
+          continue;
+        }
+        if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(value)) {
+          candidateIndex += 1;
+          continue;
+        }
+        break;
+      }
+      if (!isGitExecutableToken(tokenized.tokens[candidateIndex]?.value ?? "")) return;
+      gitTokenIndex = candidateIndex;
+      wrappedExecution = true;
+    } else {
+      return;
+    }
 
+    const commandToken = tokenized.tokens[gitTokenIndex];
+    if (!commandToken) return;
     const prefix = segment.slice(0, commandToken.start);
     const parsed = parseGitInvocation(segment.slice(commandToken.end));
     const inlineEnvironment = parseInlineEnvironment(prefix);
     const persistentEnvironment = hasPersistentGitEnvironmentChange(command.slice(0, segmentStart + commandToken.start));
     invocations.push({
       ...parsed,
+      wrappedExecution,
       repositoryEnvironmentChanging:
         inlineEnvironment.repositoryEnvironmentChanging || persistentEnvironment.repositoryEnvironmentChanging,
       runtimeEnvironmentChanging:
@@ -515,7 +558,6 @@ function getGitInvocations(command) {
   evaluateSegment(command.length);
   return invocations;
 }
-
 function getInvocationArguments(invocation, operation) {
   return invocation.subcommand === operation.toLowerCase() ? invocation.argumentTokens : null;
 }
@@ -581,7 +623,30 @@ function hasCwdChangingShellOperation(commandPrefix) {
   );
 }
 
-function evaluateCompoundContextTransition(invocation, invocations, command) {
+function isCanonicalLiteralRoot(candidate, ownerRoot) {
+  if (!candidate || !ownerRoot || !path.isAbsolute(candidate)) return false;
+  if (/[\r\n$`%*?;|&]/.test(candidate) || candidate.includes("\0")) return false;
+  try {
+    const resolved = realpathSync(path.resolve(candidate));
+    const expected = realpathSync(ownerRoot);
+    return process.platform === "win32"
+      ? resolved.toLowerCase() === expected.toLowerCase()
+      : resolved === expected;
+  } catch {
+    return false;
+  }
+}
+
+function hasExplicitOwnerRootAnchor(commandPrefix, ownerRoot) {
+  const posix = /^[ \t]*cd[ \t]+--[ \t]+(["'])([^"']+)\1[ \t]*&&[ \t]*$/i.exec(commandPrefix);
+  if (posix && isCanonicalLiteralRoot(posix[2], ownerRoot)) return true;
+  const powershell = /^[ \t]*Set-Location[ \t]+-LiteralPath[ \t]+(["'])([^"']+)\1[ \t]+-ErrorAction[ \t]+Stop[ \t]*;[ \t]*$/i.exec(
+    commandPrefix,
+  );
+  return Boolean(powershell && isCanonicalLiteralRoot(powershell[2], ownerRoot));
+}
+
+function evaluateCompoundContextTransition(invocation, invocations, command, ownerRoot) {
   if (!isContextSensitiveMutation(invocation)) return null;
   const previousInvocations = invocations.filter((candidate) => candidate.sourceIndex < invocation.sourceIndex);
   if (previousInvocations.some(isBranchChangingInvocation)) {
@@ -591,10 +656,16 @@ function evaluateCompoundContextTransition(invocation, invocations, command) {
     };
   }
   const commandPrefix = command.slice(0, invocation.sourceIndex);
-  if (hasCwdChangingShellOperation(commandPrefix)) {
+  if (invocation.wrappedExecution) {
     return {
       id: "G10",
-      reason: "G10: cwd-changing shell operation cannot precede a context-sensitive Git mutation in one shell command.",
+      reason: "G10: direct Git wrappers cannot execute a context-sensitive mutation safely.",
+    };
+  }
+  if (invocation.changeDirectories.length > 0) {
+    return {
+      id: "G10",
+      reason: "G10: -C cannot change the repository used by a context-sensitive mutation.",
     };
   }
   const persistentEnvironment = hasPersistentGitEnvironmentChange(commandPrefix);
@@ -604,9 +675,15 @@ function evaluateCompoundContextTransition(invocation, invocations, command) {
       reason: "G10: persistent Git environment changes cannot precede a context-sensitive mutation in one shell command.",
     };
   }
+  if (!hasExplicitOwnerRootAnchor(commandPrefix, ownerRoot)) {
+
+    return {
+      id: "G10",
+      reason: "G10: context-sensitive Git mutations require an explicit literal checkout-root anchor immediately before bare Git.",
+    };
+  }
   return null;
 }
-
 function argumentHasLongOption(argumentsList, option) {
   return argumentsList.some(
     (argument) => argument.toLowerCase() === option.toLowerCase() || argument.toLowerCase().startsWith(`${option.toLowerCase()}=`),
@@ -686,10 +763,27 @@ function evaluateGitClean(invocation) {
   );
 }
 
-function getGitCommandContext(cwd) {
+function getOwnerRepositoryRoot(cwd) {
+  const inheritedGitOverrides = Object.keys(process.env).some((name) =>
+    name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"),
+  );
+  if (inheritedGitOverrides) return null;
+  try {
+    const reportedRoot = execFileSync("git", ["-C", cwd, "rev-parse", "--show-toplevel"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 2000,
+    }).trim();
+    return reportedRoot ? realpathSync(path.resolve(reportedRoot)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getGitCommandContext(repositoryRoot) {
   const runGit = (args) => {
     try {
-      return execFileSync("git", ["-C", cwd, ...args], {
+      return execFileSync("git", ["-C", repositoryRoot, ...args], {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
         timeout: 2000,
@@ -712,21 +806,13 @@ function getGitCommandContext(cwd) {
     .filter(Boolean);
 
   return {
+    repositoryRoot,
     currentBranch: runGit(["branch", "--show-current"]),
     upstreamBranch: runGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]),
     protectedBranches: [...protectedBranches],
     remoteNames,
   };
 }
-
-function getEffectiveGitCwd(invocation, cwd) {
-  return invocation.changeDirectories.reduce(
-    (effectiveCwd, changeDirectory) =>
-      changeDirectory === "" ? effectiveCwd : path.resolve(effectiveCwd, changeDirectory),
-    cwd,
-  );
-}
-
 function normalizedRef(value) {
   return normalizeShellSecurityToken(value)
     .trim()
@@ -751,7 +837,6 @@ const PUSH_OPTIONS_WITH_VALUE = new Set(["--exec", "--receive-pack", "--push-opt
 const PUSH_SAFE_OPTIONS = new Set([
   "--atomic",
   "--dry-run",
-  "--follow-tags",
   "--ipv4",
   "--ipv6",
   "--no-atomic",
@@ -868,6 +953,52 @@ function getPushDestination(refspec, currentBranch) {
   };
 }
 
+function readGitConfigValues(repositoryRoot, key) {
+  if (!repositoryRoot) return null;
+  try {
+    const output = execFileSync("git", ["-C", repositoryRoot, "config", "--null", "--get-all", key], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 2000,
+    });
+    return output.split("\0").filter((value) => value !== "");
+  } catch (error) {
+    return error?.status === 1 ? [] : null;
+  }
+}
+
+function gitBooleanRisk(repositoryRoot, key) {
+  const values = readGitConfigValues(repositoryRoot, key);
+  if (values === null) return null;
+  let enabled = false;
+  for (const value of values) {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "yes", "on", "1", ""].includes(normalized)) enabled = true;
+    else if (!["false", "no", "off", "0"].includes(normalized)) return null;
+  }
+  return enabled;
+}
+
+function evaluatePushConfiguration(context, remote) {
+  const repositoryRoot = context.repositoryRoot;
+  if (!repositoryRoot || !/^[A-Za-z0-9_-]+$/.test(remote)) return "G10: push configuration cannot be resolved safely.";
+  const remoteNames = (context.remoteNames ?? []).map((name) => name.toLowerCase());
+  if (!remoteNames.includes(remote.toLowerCase())) return "G10: push requires a configured named remote.";
+
+  const followTags = gitBooleanRisk(repositoryRoot, "push.followTags");
+  if (followTags !== false) return "G10: push.followTags may add annotated tags implicitly.";
+
+  const recurseValues = readGitConfigValues(repositoryRoot, "push.recurseSubmodules");
+  if (recurseValues === null) return "G10: recursive submodule push configuration cannot be resolved safely.";
+  if (recurseValues.some((value) => !["false", "no", "off", "0"].includes(value.trim().toLowerCase()))) {
+    return "G10: recursive submodule push effects are forbidden.";
+  }
+
+  const mirror = gitBooleanRisk(repositoryRoot, `remote.${remote}.mirror`);
+  if (mirror !== false) return "G10: mirror remote configuration can update additional refs.";
+  return null;
+}
+
 function evaluateGitPush(invocation, context) {
   const argumentsList = getInvocationArguments(invocation, "push");
   if (argumentsList === null) return null;
@@ -898,9 +1029,10 @@ function evaluateGitPush(invocation, context) {
   if (isProtectedRef(destination.destination, context.protectedBranches)) {
     return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
   }
+  const configurationDecision = evaluatePushConfiguration(context, parsed.repository);
+  if (configurationDecision) return { id: "G10", reason: configurationDecision };
   return null;
 }
-
 function parseFetchLikeArguments(argumentsList, operation) {
   const positional = [];
   let endOfOptions = false;
@@ -1139,6 +1271,13 @@ function evaluateProtectedBranchReferenceMutation(invocation, context) {
 function isReadOnlyGitInvocation(invocation) {
   if (GIT_READ_ONLY_OPERATIONS.has(invocation.subcommand)) return true;
   const argumentsList = invocation.argumentTokens;
+  if (invocation.subcommand === "clean") {
+    for (const argument of argumentsList) {
+      if (argument === "--") break;
+      if (argument.toLowerCase() === "--dry-run") return true;
+      if (/^-([A-Za-z]+)$/.test(argument) && argument.slice(1).toLowerCase().includes("n")) return true;
+    }
+  }
   if (invocation.subcommand === "branch") {
     if (getBranchMutation(argumentsList).mode) return false;
     return (
@@ -1330,22 +1469,22 @@ function requiresResolvedGitContext(invocation) {
 export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const normalizedCommand = normalizeShellContinuations(command).trimStart();
   const invocations = getGitInvocations(normalizedCommand);
+  const ownerRoot = getOwnerRepositoryRoot(cwd);
   let deferredContextDecision = null;
   for (const invocation of invocations) {
-    const context =
-      suppliedContext ??
-      (GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)
-        ? getGitCommandContext(getEffectiveGitCwd(invocation, cwd))
-        : EMPTY_CONTEXT);
+    const actualContext = ownerRoot ? getGitCommandContext(ownerRoot) : EMPTY_CONTEXT;
+    const context = suppliedContext
+      ? { ...actualContext, ...suppliedContext, repositoryRoot: ownerRoot ?? suppliedContext.repositoryRoot }
+      : actualContext;
     const decision = evaluateGitInvocation(invocation, context);
     if (decision) return decision;
-    if (!suppliedContext && requiresResolvedGitContext(invocation) && !context.currentBranch) {
+    if (requiresResolvedGitContext(invocation) && !context.currentBranch) {
       deferredContextDecision ??= {
         id: "G10",
         reason: "G10: Git repository or branch context could not be resolved safely for a mutation.",
       };
     }
-    const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand);
+    const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand, ownerRoot);
     if (transitionDecision) deferredContextDecision ??= transitionDecision;
   }
 
@@ -1421,7 +1560,7 @@ function validatePayload(raw) {
 
 export function decidePayload(payload, cwd = process.cwd()) {
   const command = payload.tool_input.command;
-  const decision = evaluateCommand(command, undefined, typeof payload.cwd === "string" ? payload.cwd : cwd);
+  const decision = evaluateCommand(command, undefined, cwd);
   if (!decision) return null;
   return {
     hookSpecificOutput: {

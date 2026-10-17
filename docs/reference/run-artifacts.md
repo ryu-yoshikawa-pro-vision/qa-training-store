@@ -56,7 +56,10 @@ Codex harness で生成・参照される artifact の責務を分けるため�
 
 ### Run Artifact Path Sanitization
 
-- Repositoryへ追加するCodex Run Artifactは、作業完了前に`scripts/sanitize-codex-artifacts.ps1`の`Write`と`Check`を実行します。
+- Repositoryへ追加するCodex Run Artifactは、作業完了前に`scripts/sanitize-codex-artifacts.mjs --path <path> --write --check`を実行します。PowerShell互換入口として`scripts/sanitize-codex-artifacts.ps1`も利用できます。
+- 共通実装はNode.js 24の標準libraryを使います。`codex-task.ps1`／`codex-task.sh`は終了時にRun root（ある場合）と既知のoutput／report／log／manifest／evaluationだけを`Write`→`Check`します。Run IDなしやRun root外の明示出力も対象ですが、任意directoryは再帰走査しません。
+- Huskyは`node scripts/sanitize-codex-artifacts.mjs --staged --check`で、`.codex/runs/**`、`.codex/artifacts/**`、`.codex/reports/**`、`.codex/logs/**`のstage 0 blobを検査します。worktreeやindexを自動修正しません。修正後はsanitizeしてstageし直します。
+- CIは`--committed --check --base-ref <base>`で比較範囲のHEAD blobとGit modeを検査します。symlink／gitlink／unmerged entry／blob取得不能は拒否し、working treeの内容を代替入力として使いません。
 - 未サニタイズのローカル絶対パスを含むRun Artifactは完了扱いにしません。Unsanitized local absolute paths prevent Run completion. SanitizationはRun Artifactのcompletion gateです。
 - `REPORT.md`のAppend-only契約は、checkpoint単位の意味情報を削除、並べ替え、意味変更せずに保持することを指します。Hook JSONLで取得できるmachine factを`REPORT.md`へ逐次転記しません。
 - 既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の既定Tokenへ、記録の意味を変えずに置換する場合だけ、Append-only契約の安全性例外として許可します。
