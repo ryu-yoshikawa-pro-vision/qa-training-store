@@ -1,120 +1,64 @@
-# PR #198 日本語文書と既存機械契約の整合修正 Plan
+# PR #198 日本語文書と機械契約の整合修正 Plan
 
-## 目的
+## 目的・対象
 
-PR #198で日本語化した見出し・説明文を原則維持したまま、仕様書・教材の読取処理、画面契約、リンク、契約テスト、文書生成、CIを正常に動作させる。
+PR #198で日本語化した人間向けの見出し・説明文を原則維持し、仕様・画面・Agentic QA・教材の機械契約、相対リンク、契約テスト、文書生成、Web CIを正常に動作させる。
 
-文書の意味、正式な製品動作、BR/AC、必須・任意、学習内容、評価基準、修了条件を変更しない。日本語を許可するために必要な既存実装とテストだけを修正する。全体の翻訳基盤・新規依存関係は導入しない。
+製品の期待動作、業務ルール、BR/AC、固定識別子・コマンド・CSV列、学習目標・評価基準・修了条件を変えない。解析処理やテストを弱めて成功扱いにしない。追加のライブラリや汎用翻訳基盤は導入しない。
 
-**実装と最終検証の対象は既存PR #198のheadブランチ `docs/refine-spec-curriculum-ja` とする。** Planだけを持つ `docs/plan-pr198-japanese-contract-alignment` で実装を完了扱いにしない。新たなブランチ・PRを作成しない。
+- 作業ブランチ：**`docs/refine-spec-curriculum-ja`**（既存PR #198のhead）
+- 実装変更と最終CI確認は**このPRの最終HEAD**に反映する。
+- 新しいブランチ・PRを作成しない。Plan専用の別ブランチを作業先にしない。
+- merge・force pushは実施しない。
 
-## 変更対象と対応
+## 実装指示
 
-### 1. Navigation・機能仕様5章
+本Planと次の2文書を**一体の実装指示**として使用する。
 
-- `scripts/spec/markdown.ts` の `extractNavigation()` を修正する。
-  - `## Navigation` および `## ナビゲーション（Navigation）` の双方を認識する。
-  - いずれか1つの見出しの直下から直接Markdownリンクを抽出する。両見出しの重複、欠落、リンク未指定は失敗とする。
-- `scripts/spec/validate-spec.ts` の `validateNavigation()` と `validateFeatureGrammar()` を日本語と英語の双方に対応させる。
-  - 次の5章を同じ論理的な節として扱い、各章はちょうど1つ、順序と階層も従来どおり検査する。
+1. [解析処理・契約テストの修正](./2026-10-17_pr198_japanese_contract_alignment_implementation.md)：関数・文字列判定・表記対応・契約テストの更新と負例。
+2. [文書・リンク・教材表記の修正](./2026-10-17_pr198_japanese_contract_alignment_documents.md)：末尾改行が必要な108ファイルの一覧、Markdown構造修正、既知の6アンカー、D-026・在庫・Risk・Evidence・Likelihood、`QA_AGENT.md`。
 
-| 英語の章見出し | 日本語の章見出し |
-| --- | --- |
-| `Purpose / Scope` | `目的・対象範囲（Purpose / Scope）` |
-| `Business Rules` | `ビジネスルール（Business Rules）` |
-| `UI / Behavior Contract` | `UI・振る舞い規約（UI / Behavior Contract）` |
-| `Acceptance Criteria` | `受入基準（Acceptance Criteria）` |
-| `Executable Canonical Sources` | `実行可能カノニカルソース（Executable Canonical Sources）` |
+### 1. 仕様・画面の解析
 
-- 必須章を日英で二重記載した場合は重複として失敗させる。必須章の未知の言い換えは別名として認めない。
-- **必須5章以外の第2階層見出しを一律に禁止しない。** 既存実装の許容範囲を保ち、日本語対応を理由に新しい制約を追加しない。
-- 未変更の英語見出しを使う10機能仕様と日本語化した `docs/spec/features/cart.md` を同じ検証で処理する。
-- `scripts/spec/build-spec.ts` と `scripts/spec/slug-heading.ts` は原則として変更せず、既存処理を通して仕様サイトが生成されることを確認する。
+- `scripts/spec/markdown.ts` と `scripts/spec/validate-spec.ts`：仕様NavigationとFeature必須5章に、調査済みの英語・日本語の表記を許可する。必須章の重複・欠落・順序違反を拒否し、その他のH2は不必要に禁止しない。
+- `validateBrAc()`：`Related BR:` と `関連ビジネスルール:` の両方を認識。正しい行を収集するだけでなく、同一AC内の重複行・不正行・不正ID・未知BRを拒否する。`Acceptance: N/A` の既存契約は維持する。
+- `scripts/spec/visual-contract.ts`：Feature親H2、Screenの3つのH4、状態表、画像参照、孤立見出し検査を日英に対応させる。Screen単位の探索範囲、所有関係、状態slug、画像・Capture registryを維持する。
+- `scripts/agentic-qa/contracts.ts`：`specRefSchema` のMarkdownアンカーに、現行の `slugHeading()` で生成できる日本語文字を必要範囲で許可する。パス制約、ID形式、存在しないアンカーの拒否は維持し、`spec-refs.ts` の解決処理は変更しない。
+- 既存の`scripts/spec/build-spec.ts`、`scripts/spec/slug-heading.ts`、`scripts/docs/build-docs.ts`、`scripts/spec/validate-all.ts`、`scripts/spec/visual-registry.ts`、`scripts/spec/materialize-visual-references.ts` に、重複した回避処理を追加しない。
 
-### 2. BR/ACの参照関係
+### 2. 文書・参照先
 
-- `scripts/spec/validate-spec.ts` の `RELATED_BR` と `validateBrAc()` を、`Related BR:` と `関連ビジネスルール:` の双方に対応させる。
-- BR/ACのID、見出しレベル、番号、対応関係、未知のBR参照、Active BRの未参照、重複・不正な参照の検出を維持する。
-- 不正な参照行が正しい参照行と混在する場合、および同じACに日英両方の参照行が記載された場合も、既存の対応関係を曖昧にせず拒否する。
-- `Acceptance: N/A` は、今回実際に変更された入力に対応が必要な場合に限り扱いを見直す。未変更の構文は維持する。
-- `collectNormativeSpecReferences()` のBR/AC ID収集結果が変わらないことを確認する。
+- 既知の無効アンカー6参照は、**日本語の見出しを戻さず、参照元のアンカーだけ修正**する。
+- `docs/spec/features/native-customer.md` の不正なコードフェンスと編集報告を削除し、`docs/spec/state-and-scenarios.md` のH5直後、`docs/05_ui/validation_and_messages.md` のリスト直前の空行を修正する。
+- PR #198で日本語化した**元の108Markdownファイル**に末尾改行を追加し、MD047・MD032・MD031・MD022の全違反を解消する。本文内容を一括置換・一括整形しない。
+- D-026の正本責務、在庫数量とSKU件数、Risk教材の断定、未実行Evidence Pathの禁止、「Likelihood＝発生確率」を文書詳細の指示どおり是正する。
+- `QA_AGENT.md` の5章・BR参照の許可表記をvalidatorと揃える。既存英語が有効な `docs/spec/_templates/feature-spec.md` と機械契約保護の `docs/WRITING_STANDARDS.md` は原則維持する。
+- 元の108Markdownすべてについてbaseとの差分を照合し、規範的な意味・数値・境界・権限・例外・状態・手順・教材評価に意図しない変更があればその箇所のみ修正する。**自動テスト成功だけで全文の意味保持を確認済みとはしない。**
 
-### 3. 画面契約とVisual References
+### 3. 契約テスト
 
-`scripts/spec/visual-contract.ts` の見出し判定を、次の許可表記に対応させる。
-
-| 英語 | 日本語 |
-| --- | --- |
-| `UI / Behavior Contract` | `UI・振る舞い規約（UI / Behavior Contract）` |
-| `Functions` | `機能一覧（Functions）` |
-| `Important UI States` | `主要なUI状態（Important UI States）` |
-| `Visual References` | `画面リファレンス（Visual References）` |
-
-- `validateScreenContractGrammar()`、`findStateTables()`、Screen Catalogの所有関係と親見出し検証、`visualReferencesForState()`、孤立・重複節の検査を同じ許可表記に対応させる。
-- `Screen Contracts` など今回変更していない見出しを不要に翻訳しない。
-- `SCREEN-*`、状態slug、状態表の `STATE_COLUMNS`、Role、Required platforms、Related Oracle、Capture registry、画像参照は維持する。
-- 日本語Cartと英語の他機能を含む実データで検証し、欠落・順序違反・不正な状態表・画像参照不備を拒否する負例を残す。
-
-### 4. リンク・アンカーの修正
-
-- `slugHeading()` が生成する実際の見出しslugに合わせて、変更後の相対リンクとアンカーを修正する。
-- 既知の対象として、`docs/spec/screen-catalog.md` から日本語Cart見出しへの旧アンカー1件を修正する。
-- `docs/spec/ui-ux-contract.md` の `Boundary UX` 見出し変更に伴う `#boundary-ux` 参照を修正する。確認済みの参照元は、`product-scope.md` に3件、`roles-and-permissions.md` に1件、`ui-ux-contract.md` に1件。
-- そのほか、PR #198で変更したMarkdownの相対リンク・見出しアンカー、`Related Oracle`、`spec_refs` の破損を検出して修正する。
-- `validateLinks()` と Visual Contract のリンク検証を維持し、リンク検査の無効化や広範なslug置換で回避しない。
-- リポジトリ外の旧アンカー利用が確認できた場合だけ、必要性と影響に応じて互換性措置を検討する。将来の利用可能性だけで独自のリダイレクト機構を追加しない。
-
-### 5. 学習教材・契約テスト
-
-失敗している6ファイルの契約テスト11件を、本文の意味と保護対象に合わせて修正する。
-
-| テスト | 必ず残す検証内容 |
-| --- | --- |
-| `tests/contracts/architecture.test.ts` | D-026の正本責務、仕様のオラクル優先順位 |
-| `tests/contracts/codex-artifact-sanitization.test.ts` | Run Artifactの未サニタイズ絶対パス禁止、最終guard |
-| `tests/contracts/native-windows-local-validation.test.ts` | 単体Flow失敗時に後続Flowを実行しない規則 |
-| `tests/contracts/spec-agentic-qa.test.ts` | Navigationの抽出と仕様サイトへの到達 |
-| `tests/contracts/training-curriculum.test.ts` | 教材のInput/Output、リスク判断、共通／選択経路、Trainingと正式テストの分離、Expected Failure演習 |
-| `tests/contracts/visual-contract.test.ts` | Screen Catalog、状態表、Visual References、欠落・誤構造の拒否 |
-
-- 日本語化された教材の章見出し・表ラベルを認識させ、学習経路、実技成果物、評価・完了条件は維持する。
-- 完全一致の自然文検査については、対象の文体ではなく、ID・数量・禁止条件・手順・構造を検証できる形へ必要最小限で変更する。
-- 既存の負例を削除・skipしない。空のassertionや形式的な文字列置換で成功させない。
-- `scripts/validate-curriculum.ts`、`scripts/training/check-completion.ts` は、現行の修了判定・教材契約が維持できる限り変更しない。
-
-### 6. 日本語文書の意味・形式の修正
-
-PR #198で変更した全Markdownをbaseとの差分で照合し、仕様・学習内容・証拠・条件の意味を変更した箇所だけ是正する。次の既知の問題は確実に修正する。
-
-- `docs/13_decisions/decision_log.md` のD-026：TypeScript型・Enum・Dexieスキーマの**低レベルな型・構造**はコードを正本とし、製品の期待動作・業務上の意味は正式仕様を正本とする責務が区別できる日本語へ修正する。`docs/spec/README.md` のオラクル優先順位は変更しない。
-- `docs/03_domain/business_rules.md` の在庫分類：`out` はSKUの在庫数0、`low` はSKUの在庫数1〜5、`available` はSKUの在庫数1以上を指すと明記する。SKUの在庫数量をSKUの「件数」と誤解させる表現を除去し、在庫0を低在庫件数に含めない既存条件を維持する。
-- `docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`：原文にない「深刻な不整合」「影響度は極めて大きい」など、リスクの評価を先取りする表現を是正する。Impact・Likelihood・Priorityの判断は受講者が根拠を説明する構造を維持する。
-- `docs/curriculum/test-automation/01_spreadsheet-test-design.md`：未実行の行に予定のEvidence Pathを記載**しない**という禁止条件を維持し、「避けてください」という任意と読める表現を修正する。
-- `docs/spec/features/native-customer.md`：末尾に混入した `eof` 指定の不正なコードフェンス以降の報告文を除去し、元の仕様本文と末尾改行を維持する。
-- そのほか、数値、制限、状態、権限、例外、手順、必須／任意、コードフェンス内の設定・コマンド・識別子について、原文から変更された意味を修正する。
-- Markdown lintのエラー（MD047・MD032・MD031・MD022）を解消する。テキスト修正で不要な製品コード・設定の差分を増やさない。
-
-### 7. 仕様テンプレートと規約
-
-- `docs/spec/_templates/feature-spec.md`、`QA_AGENT.md`、`docs/WRITING_STANDARDS.md` のうち、実際の章見出し・参照ラベルの許可表記と矛盾する箇所だけ更新する。
-- 以後の仕様作成時の許可形式を明記する場合も、ID・表ヘッダー・コード識別子を変更対象に含めない。
-- 人が読む見出しと機械が参照する識別子を区別し、不要な翻訳・定数抽象化・独立した汎用パーサーを追加しない。
+- `tests/contracts/architecture.test.ts`、`codex-artifact-sanitization.test.ts`、`native-windows-local-validation.test.ts`、`spec-agentic-qa.test.ts`、`training-curriculum.test.ts`、`visual-contract.test.ts` の6ファイル11失敗と、同一テスト内で後から露出する旧文言assertionをすべて修正する。
+- 教材17本の共通表は、既存8論理項目と**実際に使われている日英表記**を対応付け、欠落・重複・順序違反を検査する。日本語見出し7本、日本語表ラベル4本の対応は実装詳細に固定した。
+- 既存の38 Screen・94 Capture Target、Visual Referencesの冪等性、共通課程／Native選択課程の分離、Trainingと正式テストの境界、Expected FailureのCI実行条件を維持する。
+- 解析を追加した箇所には、正常な日英入力と欠落・重複・不正参照の負例を追加する。既存の正例・負例を削除・skipしない。
+- `scripts/training/check-completion.ts` の修了判定、教材CSV schema、正式テストの期待値は修正しない。
 
 ## 実施順序
 
-1. **作業場所**：PR #198の現在のheadを確認し、`docs/refine-spec-curriculum-ja` で作業する。Planのみの別ブランチへ実装を積まない。
-2. **仕様読取処理**：Navigationと5章、BR/AC、Visual Contractを修正。日本語Cartと英語10機能が同時に通る正例・負例テストを追加または更新する。
-3. **リンク修復**：Cart、Boundary UX、変更文書のアンカー、BR/ACと画面参照を修正して、仕様サイトを生成する。
-4. **教材・契約テスト**：6ファイル11失敗に対応。本文とテストのいずれを修正すべきかは、変更前の契約の意味に基づいて判断する。
-5. **文書修復**：上記の既知の意味変更・混入内容・lint違反を解消し、変更全件の原文との意味比較を完了する。
-6. **全体検証**：下記コマンドと既存GitHub Actionsを、修正後の同一HEADで検証する。失敗を別の失敗やskipに置き換えない。
-7. **PR #198の更新**：実際の変更範囲と検証結果をPR本文へ反映する。必要な実装・通常push・PR更新は実装作業が許可された場合に行う。merge・force pushは行わない。
+1. PR #198の最新head・baseを固定し、既存の失敗を確認する。
+2. Navigation・5章・BR/ACの解析を修正して、英語Featureと日本語Cartの双方を検証する。
+3. Visual Contractの親子見出し・状態表・Visual Referencesの解析を修正する。派生したCapture/画像エラーは解析修正後に再判定し、画像自体を先に変えない。
+4. `specRefSchema` の日本語slugを限定的に許可し、既存ASCII参照と日本語・不正入力をテストする。
+5. 文書詳細のとおり6アンカー・既知の文章意味差・不要混入・108ファイルの改行と形式を修正する。
+6. 17レッスンの共通表と6ファイルの契約テストを修正し、後続のassertionも含めて全件成功を確認する。
+7. 元の108変更Markdownの全文について、baseとの意味照合とリンク・アンカーの確認を完了させる。追加の意図しない意味変更は**同じPRで**修復する。
+8. 変更後の最終HEADで検証し、PR #198本文に変更内容・対象範囲・成功/未成功の検証・未解決事項を記載する。commit・通常push・PR更新は別途実装権限が与えられた場合に行う。
 
 ## 必須検証
 
-`pnpm install --frozen-lockfile` の後、関連する修正を反映した同じHEADで実行する。
+必要な依存関係を `pnpm install --frozen-lockfile` で揃え、変更後の同じHEADについて確認する。
 
-```bash
+~~~bash
 pnpm run format:check
 pnpm run lint:markdown
 pnpm run lint:text:all
@@ -123,32 +67,24 @@ pnpm run validate:spec-visuals:final
 pnpm run validate:curriculum
 pnpm run test:contracts
 pnpm run build:spec
+pnpm run build:docs
 pnpm run build:web
 pnpm run verify
-```
+~~~
 
-`verify` 等が同じ処理を含む場合も、問題の切り分けに必要な個別実行は行う。テストの結果・最新HEAD SHA・未実行理由を記録する。
-
-| 条件 | 期待結果 |
-| --- | --- |
-| 正しい英語・日本語Navigation | リンクを抽出し、仕様HTMLを生成できる |
-| 日英Navigationの重複、空のNavigation | 拒否される |
-| 日本語Cartと英語10機能 | 仕様・画面検証が同時に通る |
-| 必須5章の日英重複・欠落・順序違反・不正な表記 | 拒否される |
-| 必須5章以外の既存の許容見出し | 不必要に拒否されない |
-| 日英の正しいBR参照 | AC/BRの関連付けが成立する |
-| BR参照の欠落、不正ID、存在しないID、日英の重複・混在不正行 | 拒否される |
-| 状態表、画像参照、Screen所有関係 | 正しい日英見出しで検証し、不正構造は拒否される |
-| CartおよびBoundary UXの参照、他の変更アンカー | 正しく解決できる |
-| 不存在のMarkdownリンク・アンカー | 拒否される |
-| 日本語教材 | 学習内容・成果物・修了条件・禁止事項の意味を維持する |
+- Navigation：日英それぞれ正例、欠落・重複・空一覧・リンク切れの負例。
+- Feature仕様：日本語Cart＋英語10機能の正例。必須5章の欠落・重複・順序違反・未知の必須章表記を拒否し、既存の許容H2を拒否しない。
+- BR/AC：既存ID・関連完全性の正例。不正な参照行・重複行・不明BRを拒否する。
+- Visual Contract：親子見出しの日英両対応、状態表9列、所有者・baseline・画像参照・画面数・Capture数・冪等性の正例と負例。
+- `spec_refs`：ASCII・日本語の実在アンカーを受理し、存在しないアンカー・不正ID・不正パスを拒否する。
+- 教材：17レッスン8項目、日本語の表ラベル4本、4学習経路、修了条件・Evidence・Expected Failureの保持。
+- 文書：元の108ファイルの意味照合、既知アンカー6件とその他の相対参照、形式エラー0件。
+- GitHub Actions：PR #198の**最終HEAD SHA**に対応するWeb CI・Mobile App CIおよび必要なJobを確認。後続Jobのskip・未実行を成功と報告しない。
 
 ## 完了条件
 
-- PR #198のheadに、日本語化した本文と対応する検証処理・契約テスト・参照修正が反映されている。
-- 変更前の英語見出しを利用する仕様と、日本語Cartの双方で従来の検証能力を維持する。欠落・重複・不正参照を見逃さない。
-- 既知の契約テスト11失敗、Markdown lint112違反、および追加検証で判明した今回の回帰が解消する。
-- 仕様HTMLとカリキュラムのNavigation・アンカー・Related Oracleが有効である。
-- 全変更Markdownをbaseと照合し、仕様・判断基準・手順・学習内容の意図しない変化が解消している。自動テスト成功だけで意味の保持を完了扱いにしない。
-- PR #198の**最終head SHA**について必要なCI・ビルド・テストの結果を確認し、PR本文に実施内容と未解決事項を正確に記録する。
-- 製品コード・正式なテストスイート・修了判定ロジックへの不要な変更、追加の依存関係、汎用日本語化基盤を含めない。
+- 実装詳細・文書詳細で指定した変更が既存PR #198のheadに反映され、機械契約の受理条件と不正入力の拒否条件が維持されている。
+- 現在の契約テスト11失敗、Markdown lint112違反、ビルド失敗、および修正後に明らかになった今回の回帰を解消する。
+- 元の108Markdownについて意味照合が完了し、仕様・学習内容・評価・修了要件の不必要な変更が残っていない。
+- 最終HEADで必須検証とCIの実行結果を確認し、未実行・失敗・残課題はその状態でPR本文に記録する。
+- merge・force push・新規PR作成・不要な汎用化・新規依存関係・製品仕様の変更は行わない。
