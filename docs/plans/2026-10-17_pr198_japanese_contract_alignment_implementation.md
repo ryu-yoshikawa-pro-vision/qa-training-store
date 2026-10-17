@@ -38,7 +38,13 @@
 - AC本文の次の見出しまでから、両ラベルの候補行を**正規表現で成功した行だけでなく不正形式の行も含めて**収集し、参照行がちょうど1件かつ書式が有効かを検証する。
 - 同じ参照行内のBR ID重複、複数行、日英2行、正しい行と不正行の混在、未知のBR、空参照を拒否する。無関係の本文を参照行と誤認しないよう、行頭ラベルに限定する。
 - `Acceptance: N/A — ...` は既存表記・既存判定を変更しない。
-- 正例：`Related BR: \`BR-CART-001\``、`関連ビジネスルール: \`BR-CART-001\``、複数BRの正規区切り。負例：IDのバッククォート欠落、存在しないBR、ID重複、二重参照、正常行と異常行の併記。
+- 正例は次の書式と複数BRの正規区切りを受け入れる。負例はIDのバッククォート欠落、存在しないBR、ID重複、二重参照、正常行と異常行の併記を拒否する。
+
+~~~text
+Related BR: `BR-CART-001`
+関連ビジネスルール: `BR-CART-001`
+Related BR: `BR-CART-001`, `BR-CART-002`
+~~~
 - 現在の `docs/spec/features/cart.md` のAC-CART-001〜003が、それぞれ対応するBRを参照できることを確認する。
 
 ## 4. Screen Contract・Visual References
@@ -84,7 +90,7 @@
 
 テストファイルに含まれる複数の `toContain()` は、CIで最初に失敗したassertionの後にも存在する。各修正後に対象テストを再実行し、**同一テスト内の後続assertionが新たに失敗していないか**最後まで確認する。
 
-### 7. 教材17レッスンの共通表
+## 7. 教材17レッスンの共通表
 
 対象：`tests/contracts/training-curriculum.test.ts` の約26〜64行。
 
@@ -97,10 +103,17 @@
   - P2-03：`本レッスンのInput / Output`
   - P2-05：`本レッスンのインプット／アウトプット`
 - 共通表の8つの論理項目は `Input / Activity / Observation / Output / Self-check / Completion / Recovery / Handoff`。各項目を**1回ずつ、定められた順序で**検証し、欠落・重複・空値・未知項目を拒否する。
-- P1-02、P1-04、P1-09、P2-05は表の項目名も日本語化されている。これらは**実ファイルで使われた表記のみ**を既存8項目へ対応付ける（例：`インプット（Input）` / `インプット` → `Input`、`実施内容（Activity）` / `活動内容（Activity）` / `アクティビティ（Activity）` / `アクティビティ` → `Activity`、`完了基準（Completion）` / `完了要件` → `Completion`）。観察・自己確認・リカバリー・引継ぎも実在する日本語表記を列挙して対応させる。
+- P1-02、P1-04、P1-09、P2-05は表の項目名も日本語化されている。以下の**実在する表記のみ**を左から順に8つの論理項目へ対応付ける。日本語以外の13レッスンは既存の英語8項目を維持する。
+
+| レッスン | Input | Activity | Observation | Output | Self-check | Completion | Recovery | Handoff |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P1-02 | インプット（Input） | 実施内容（Activity） | 観察事項（Observation） | アウトプット（Output） | セルフチェック（Self-check） | 完了基準（Completion） | リカバリー（Recovery） | 引き継ぎ（Handoff） |
+| P1-04 | インプット | 活動内容（Activity） | 観察項目（Observation） | アウトプット | 自己確認（Self-check） | 完了基準（Completion） | リカバリー手順（Recovery） | 引き継ぎ（Handoff） |
+| P1-09 | インプット（Input） | アクティビティ（Activity） | 観察事項（Observation） | アウトプット（Output） | 自己確認（Self-check） | 完了基準（Completion） | リカバリ（Recovery） | 引継ぎ（Handoff） |
+| P2-05 | インプット | アクティビティ | 観察項目 | アウトプット | セルフチェック | 完了要件 | リカバリ手順 | ハンドオフ |
 - 正しい見出しでも表の8項目が欠落していれば失敗させる。見出し検証だけを削除・弱体化しない。レッスン本文を一律英語へ戻さない。
 
-### 8. 教材の学習契約
+## 8. 教材の学習契約
 
 対象：`tests/contracts/training-curriculum.test.ts` の約66〜240行、342〜352行、354〜412行、439〜461行。
 
