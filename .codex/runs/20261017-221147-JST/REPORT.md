@@ -21,3 +21,10 @@
 - 判断 / 修理: 自己レビューで見つけたcodex-task.ps1の早期失敗経路、Node atomic-write rollback、Hookのreadonly git grep/ls-files/cat-file分類を修正し、それぞれ回帰テストを実行した。verifyのEPERMは一時fixture cleanup時点で発生し、今回変更した機能との因果は確認されず、同じ失敗がverifyで再現した。テストを成功扱いせず、修正範囲外の環境制約として記録する。
 - 未検証 / 残件: 実環境のCodex CLIがないため0.160.0設定読込、compact、Full Access/Approve for me、Code Mode hook適用は未検証。compact hook定義は除去したが、未参照のsession_start_context.mjs実体はリポジトリの削除制約により残置。Codespaces/Linux実機、Ubuntu/Windows CIも未実行。Git stage/commit/push、PR本文更新、exact-head CI確認は保留。
 - Progress: 56% (9/16)
+## 2026-10-18 01:37 (JST)
+
+- Summary: 実装commitを作成し、対象branchへ通常pushし、PR #201本文を実装と検証結果に更新した。
+- Delivery: 5f9ceda2f17305ff4687688ef9343e0ad8b3fc3をissue-192-codex-git-workdir-guardへpush。PR #201はopenでhead SHAがこのcommitと一致することを確認。PR本文に実装内容、検証結果、未確認事項を記載した。commit前Hookのstaged quality、security static check、staged Artifact sanitizerは成功。
+- 未完了条件: pnpm run test:contracts / pnpm run verifyはTemp fixture cleanupのEPERM 8件で失敗。Codex CLIとLinux/Codespaces/Actions runnerは利用できず実機検証未実施。必須wait_for_required_ci MCP toolがなくexact-head CI結果は未確認。compact用SessionStartの設定参照は削除したが、未参照ファイル本体は削除制約のため残置。
+- 判断: 失敗した検証を合格扱いせず、Git/PR lifecycleは通常手順で実施した。mergeとIssue closeは行っていない。
+- Progress: 75% (12/16)

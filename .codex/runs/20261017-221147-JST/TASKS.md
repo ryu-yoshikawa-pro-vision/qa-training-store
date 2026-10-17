@@ -15,8 +15,8 @@
 - [ ] 11. pnpm run test:hooks と pnpm run test:contracts を完了する。
 - [ ] 12. pnpm run verify を完了する。
 - [x] 13. Code Review Skillで差分を自己レビューし、Run artifactをsanitization/schema/範囲検査してcommit前状態を確定する。
-- [ ] 14. 確認済みの変更だけをcommitする。
-- [ ] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
+- [x] 14. 確認済みの変更だけをcommitする。
+- [x] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
 
 ## Discovered
 
@@ -26,5 +26,4 @@
 
 - Task 5: compact SessionStartの設定参照は除去済みだが、未参照のsession_start_context.mjs実体はRepositoryの削除制約により残置。Codex CLI実機も未導入。
 - Tasks 11-12: test:hooksは通過。contractsとverifyは一時fixture cleanupのWindows EPERM 8件で失敗。
-- Tasks 14-15: commit前のGit変更ゲートを確認する。
 - Exact-head CI: 必須wait_for_required_ci MCP toolが利用不可。
