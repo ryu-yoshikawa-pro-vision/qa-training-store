@@ -1,14 +1,14 @@
 # Native ローカル検証
 
-Native Build は EAS Cloud ではなく、Windows／macOS のローカル Toolchain を主経路とする。
+ネイティブビルドは EAS Cloud ではなく、Windows や macOS のローカルツールチェーン（Toolchain）を主経路とします。
 
-このディレクトリは、人間と AI エージェントが同じ手順・同じ停止条件で実行するための正本である。README や Skill に詳細手順を複製しない。
+本ディレクトリは、人間と AI エージェントが同一の手順および停止条件で検証を実行するためのマスタードキュメント（正本）です。個別の README や Skill に詳細な手順を重複して記載しないでください。
 
 ## Windows／Android
 
 - [Windows Android 実機検証 Runbook](./windows-android-local-validation.md)
 - [Windows Android トラブルシューティング](./windows-android-troubleshooting.md)
-- 実行入口: [`scripts/native/windows/android-local.ps1`](../../scripts/native/windows/android-local.ps1)
+- 実行エントリーポイント: [`scripts/native/windows/android-local.ps1`](../../scripts/native/windows/android-local.ps1)
 - AI エージェント用 Skill: [`.agents/skills/android-native-local-validation/SKILL.md`](../../.agents/skills/android-native-local-validation/SKILL.md)
 
 ## 検証の基本順序
@@ -22,11 +22,11 @@ Native Build は EAS Cloud ではなく、Windows／macOS のローカル Toolch
 7. `RuntimeSuite`
 8. `BoundarySuite`
 
-単体 Flow が失敗した場合、後続 Suite は実行しない。スクリーンショット、Accessibility Hierarchy、logcat、JUnit、Maestro Output を保存し、失敗原因を確認してから修正する。
+単体の Flow が失敗した場合は、後続の Suite を実行してはなりません。スクリーンショット、アクセシビリティ階層（Accessibility Hierarchy）、logcat、JUnit レポート、Maestro の出力結果を保存し、失敗原因を特定してから修正を行ってください。
 
-Build／Install／Test／Maestroの再実行前は、直近Runと失敗ログ、変更差分、成功条件を確認し、Runbook 5.1.1のpreflightと仮説テンプレートを使う。同一条件の無目的な再実行、上流失敗後の後続工程、Timeout延長やAssertion削除だけの成功扱いは禁止する。
+ビルド、インストール、テスト、および Maestro を再実行する前には、直近の実行結果（Run）と失敗ログ、変更差分、成功条件を必ず確認し、Runbook 5.1.1 の事前確認（preflight）と仮説テンプレートを活用してください。同一条件下での無目的な再実行、上流工程で失敗している状態での後続工程の続行、タイムアウト延長やアサーション削除のみによる見せかけのパス扱いは禁止します。
 
-Persistence／BoundaryのCI実行は、次の5 Flowを1つずつ独立したStepとして実行する。各Stepは固有のJUnitと`maestro-artifacts/<flow-name>/`を持ち、先行Flowが失敗しても後段の証跡収集は`always`で実行する。
+Persistence（永続化）および Boundary（境界値）の CI 実行では、以下の 5 つの Flow をそれぞれ独立したステップとして実行します。各ステップは固有の JUnit レポートと `maestro-artifacts/<flow-name>/` を保持し、先行する Flow が失敗した場合でも、後続の証跡収集は `always` 条件で確実に実行します。
 
 - `native-restart-persistence.yaml`
 - `native-reset-dirty-state.yaml`
@@ -34,55 +34,55 @@ Persistence／BoundaryのCI実行は、次の5 Flowを1つずつ独立したStep
 - `native-low-stock.yaml`
 - `native-purchase-limit.yaml`
 
-再起動後のCart確認では、汎用的な数量文字列ではなく、`native-persisted-state-ready`、`native-cart-badge-count`、`native-cart-item-<productId>-<variantId>`、`native-cart-quantity-<productId>-<variantId>`を使う。`native-persisted-state-ready`はCart Repositoryの読み込み完了後だけ表示する。
+アプリ再起動後のカート（Cart）確認では、汎用的な数量文字列ではなく、`native-persisted-state-ready`、`native-cart-badge-count`、`native-cart-item-<productId>-<variantId>`、`native-cart-quantity-<productId>-<variantId>` を使用します。なお、`native-persisted-state-ready` はカートリポジトリの読み込み完了後にのみ表示させてください。
 
-ScrollView内の成功メッセージや結果表示をMaestroで確認するときは、stableなtestIDを付け、`scrollUntilVisible`で可視領域へ移動してからassertする。表示要素が画面下端へ移動した後に次の上側の操作へ戻る場合は、対象IDを`direction: UP`で再表示する。画面外要素に対する文字列`extendedWaitUntil`だけで判定せず、assertion削除や固定Sleepで失敗を隠さない。
+ScrollView 内の成功メッセージや結果表示を Maestro で検証する際は、安定した（stable な）testID を付与し、`scrollUntilVisible` で画面の可視領域内へ移動させてからアサーションを実行します。表示要素が画面下端へ移動した後に上側の操作へ戻る必要がある場合は、対象 ID を `direction: UP` で再度画面内に表示させてください。画面外の要素に対して文字列の `extendedWaitUntil` だけで判定したり、アサーションの削除や固定スリープ（Sleep）でテスト失敗を隠蔽したりしてはなりません。
 
-Windows Android Build の Path／Autolinking 復旧は、Runbook 4.3 と [トラブルシューティング 9](./windows-android-troubleshooting.md#9-buildninja-が-still-dirty-after-100-tries-で失敗) を参照する。
+Windows 環境における Android ビルドのパス（Path）やオートリンキング（Autolinking）の復旧手順については、Runbook 4.3 および [トラブルシューティング 9](./windows-android-troubleshooting.md#9-buildninja-が-still-dirty-after-100-tries-で失敗) を参照してください。
 
 ## Maestro の入力経路
 
-- 既知商品の詳細、Variant、Cart、Persistenceを確認する主要Flowは、`scenario-shop://products/<productId>`のDeep Linkで商品を開く。主要FlowをIMEの入力状態に依存させない。
-- 検索欄への`inputText`、商品Code検索、検索結果カードのタップ、商品詳細画面の表示確認は、[`maestro/native-search.yaml`](../../maestro/native-search.yaml)に分離してカバレッジを維持する。これはRuntime／Boundaryの主要Flowとは別に実行する。
-- 物理端末の標準日本語IMEがASCII入力を保持しない場合、検索専用Flowを成功扱いにせず、LatinIME等の制御された入力方式へ一時切替してから実行する。終了後は元のIMEと有効IME一覧を必ず復元する。
-- 検索入力の失敗を理由に、既知商品の主要Flowへ検索操作を戻したり、`assertVisible`を削除したりしない。
+- 既知商品の詳細、バリエーション（Variant）、カート、永続化（Persistence）を確認する主要 Flow では、`scenario-shop://products/<productId>` のディープリンクを用いて商品画面を開きます。主要 Flow の成否を IME の入力状態に依存させないでください。
+- 検索欄への `inputText`、商品コード検索、検索結果カードのタップ、商品詳細画面の表示確認については、テストカバレッジを維持しつつ [`maestro/native-search.yaml`](../../maestro/native-search.yaml) に切り離して管理します。この検索 Flow は、Runtime および Boundary の主要 Flow とは別枠で実行します。
+- 物理端末の標準日本語 IME が ASCII 入力状態を保持できない場合は、検索専用 Flow を成功と見なしてはならず、LatinIME などの制御可能な入力方式へ一時的に切り替えてから実行してください。検証終了後は、元の IME および有効な IME の一覧を必ず復元してください。
+- 検索入力の失敗を回避することを理由に、既知商品を対象とする主要 Flow へ検索操作を戻したり、`assertVisible` による検証を削除したりしてはなりません。
 
-## Native テスト成果物の保存先
+## ネイティブテスト成果物の保存先
 
-- 人が確認・共有するモバイルネイティブのスクリーンショット、比較画像、選定した画面証跡は `output/mobile-native/` に保存する。リポジトリ直下には置かない。
-- 同じシナリオを複数回保存する場合は、シナリオ名、検証段階、Run ID または JST timestamp をファイル名またはサブディレクトリに含め、既存成果物を上書きしない。
-- Maestro／ADB／Gradle のログ、JUnit、Hierarchy、APK 情報など実行ごとの機械証跡は、引き続き `.artifacts/native-local/<timestamp>/` に保存する。`output/mobile-native/` は共有・確認用の成果物、`.artifacts/` は実行証跡として役割を分ける。
-- `output/` は Git 管理外であるため、生成物を Repository に追加するための `.gitkeep` や個別の ignore 追加は行わない。
+- 人間が目視確認や共有に利用するモバイルネイティブのスクリーンショット、比較画像、および選定した画面証跡は `output/mobile-native/` に保存します。リポジトリ直下には配置しないでください。
+- 同一シナリオを複数回検証・保存する場合は、既存の成果物を上書きしないよう、シナリオ名、検証フェーズ、Run ID または JST タイムスタンプをファイル名やサブディレクトリ名に含めてください。
+- Maestro、ADB、Gradle の各種ログ、JUnit レポート、アクセシビリティ階層情報、APK 情報といった実行ごとの機械的なログ・証跡は、引き続き `.artifacts/native-local/<timestamp>/` 配下に保存します。共有・確認用の成果物は `output/mobile-native/`、実行ごとの詳細な機械証跡は `.artifacts/` と、役割を明確に分担します。
+- `output/` は Git の管理対象外であるため、生成物をリポジトリにコミットするための `.gitkeep` や、個別の ignore 設定の追加は行いません。
 
 ## CI との違い
 
-- GitHub Actions: API 34 の x86_64 Emulator
-- Windows ローカル: USB 接続した Android 実機。ABI は実機から自動判定する
-- CI とローカルは主要Runtime／Boundaryで同じ Maestro Flow を使い、検索入力Flowは独立した実行として扱う
-- APK は ABI が異なるため、CI Artifact を実機用として流用しない
+- GitHub Actions: API レベル 34 の x86_64 エミュレータ環境
+- Windows ローカル環境: USB 接続された Android 実機（ABI は接続実機から自動判定）
+- CI とローカル環境では、主要な Runtime および Boundary において同一の Maestro Flow を使用し、検索入力 Flow は独立したテストとして実行・管理します。
+- APK はターゲット ABI が異なるため、CI で生成されたアーティファクトを実機検証用として流用してはなりません。
 
-## Phase 2後半 Native Customer 購入検証
+## Phase 2後半 ネイティブ Customer 購入検証
 
-- Native Customer は、Login／Session、Profile／Address、Guest Cart統合、Checkout／Mock Payment、Order、Reviewを共有Application Use Caseと実SQLite adapterで実行する。Native Adminは対象外である。
-- 購入系の主要Flowは [`maestro/native-purchase.yaml`](../../maestro/native-purchase.yaml) と [`maestro/native-review.yaml`](../../maestro/native-review.yaml) である。各FlowはTest Control Resetと安定testIDを使い、購入Flow失敗後にReview Flowを実行しない。
-- Node `node:sqlite`のRepository ContractはSQL／FK／transactionの高速確認であり、Android／iOSの実`expo-sqlite` runtime証跡の代替ではない。
-- Androidローカルは本Runbookの単体Flowから開始する。iOSはmacOS上のReusable WorkflowでAutomation／Productionの署名なしRelease Simulator Buildを独立実行し、Build metadata、Production Bundle Guard、生成`.app` Artifact validationを行う。iOS Simulator Runtimeは正式CI責務に含めない。
-- Native変更時の最終 `native-ci / verify` は、Detect、Static、Production Bundle Guard、Android Automation／Production Build、Android Runtime、iOS Automation／Production Build、iOS Build Gateをfail-closeで要求する。Remote CI未実行時はPASSと扱わない。
+- Native Customer（顧客向けネイティブ機能）では、ログイン・セッション管理、プロフィール・配送先住所、ゲストカート統合、チェックアウト・モック決済、注文処理、レビュー投稿を、共通のアプリケーションユースケースおよび実 SQLite アダプターを介して実行・検証します。なお、Native Admin（管理者機能）は対象外です。
+- 購入関連の主要 Flow は [`maestro/native-purchase.yaml`](../../maestro/native-purchase.yaml) および [`maestro/native-review.yaml`](../../maestro/native-review.yaml) です。各 Flow では Test Control による状態リセットと安定した testID を使用し、購入 Flow が失敗した場合は Review Flow を実行しないでください。
+- Node.js の `node:sqlite` を用いたリポジトリ契約テスト（Repository Contract）は、SQL、外部キー制約（FK）、トランザクション挙動の高速な検証を目的としたものであり、Android および iOS 実環境における `expo-sqlite` ランタイム証跡の代用にはなりません。
+- Android のローカル検証は本 Runbook の単体 Flow から順に開始します。一方、iOS は macOS 上の Reusable Workflow を介して、Automation 用および Production 用の未署名 Release Simulator ビルドを個別に実行し、ビルドメタデータ、Production Bundle Guard、生成された `.app` アーティファクトの検証を行います。なお、iOS シミュレータ上でのランタイム実行検証は、現行の正式な CI 責務には含めません。
+- ネイティブコード変更時における最終ゲート `native-ci / verify` では、Detect、Static、Production Bundle Guard、Android（Automation／Production）ビルド、Android ランタイム検証、iOS（Automation／Production）ビルド、および iOS ビルドゲートのすべてにおいて fail-close（安全側に倒した厳格な判定）を要求します。リモート CI が未実行の段階では、ローカルで通っていても PASS 扱いとしてはなりません。
 
 ### 2026-08-08 現行ソース検証メモ
 
-- 現行Android実機では、変更後Automation Release APKのBuild `20260808-231500-android-postfix-build`、Install `20260808-231900-android-postfix-install`、Smoke `20260808-231920-android-postfix-smoke`を確認した。Purchase `20260808-231940-android-postfix-purchase-merge`はGuest Cart数量1、Login後の統合数量2、Checkout成功を含む1/1である。
-- 同じ変更後APKでRuntime `20260808-232100-android-postfix-runtime`とBoundary `20260808-232400-android-postfix-boundary`は各5/5、Payment retry `20260808-232800-android-postfix-payment-retry`、Checkout restart `20260808-232900-android-postfix-session-restart`、Review `20260808-233000-android-postfix-review`は各1/1である。
-- Productionは、JS bundleのtargeted `--rerun-tasks`後に短縮Workspace条件で通常`assembleRelease`を行い、現行Postfix APKのProduction marker 0件、Install／Smoke、`native-production-validation.yaml` 1/1を確認した。Attempt `20260808-235600-android-postfix-production-current-shortpath`と`20260808-235900-android-postfix-production-install`に証跡を保存し、全`assemble --rerun-tasks`の無目的な再実行は行わない。
-- iOS WorkflowはAutomation／ProductionのResolved Expo Metadataを`expo config --json`で検査し、各Build後に生成`.app`内の`EXConstants.bundle/app.config`も直接検証する。ProductionはBuild-time marker guardを維持し、両Simulator Appを固定名Artifactとして保存／Uploadする。WindowsではiOS BuildとRemote GitHub Actionsは未実行であり、静的Workflow契約のPASSとは分離して記録する。
-- Android Automationの全16 Flowはcold-start時に`Native test runtime listening`を30秒待ってから`Scenario Shop`へ進み、Production Flowは`Scenario Shop`だけを30秒待ってからTest Control／Contract Harnessの非表示を検証する。実行順序は`tests/contracts/native-test-control-maestro.test.ts`で固定する。
+- 現行の Android 実機環境において、変更適用後の Automation Release APK を用いたビルド（`20260808-231500-android-postfix-build`）、インストール（`20260808-231900-android-postfix-install`）、スモークテスト（`20260808-231920-android-postfix-smoke`）の正常完了を確認しました。また、購入検証 Flow（`20260808-231940-android-postfix-purchase-merge`）では、ゲストカート数量 1、ログイン後のカート統合数量 2、およびチェックアウト成功を含むシナリオが 1/1 件すべて成功しています。
+- 同一の変更後 APK において、Runtime 検証（`20260808-232100-android-postfix-runtime`）および Boundary 検証（`20260808-232400-android-postfix-boundary`）はいずれも各 5/5 件の Flow が成功しました。決済リトライ検証（`20260808-232800-android-postfix-payment-retry`）、チェックアウト途中の再起動検証（`20260808-232900-android-postfix-session-restart`）、レビュー投稿検証（`20260808-233000-android-postfix-review`）についても、それぞれ 1/1 件の成功を確認しています。
+- Production 向けビルドでは、JS バンドルの対象タスクに絞った `--rerun-tasks` 実行後、パス短縮を施したワークスペース環境にて通常の `assembleRelease` を実施しました。その結果、現行 Postfix APK における Production マーカー 0 件、インストールおよびスモークテストの通過、ならびに `native-production-validation.yaml` の 1/1 件パスを確認しました。証跡は試行記録 `20260808-235600-android-postfix-production-current-shortpath` および `20260808-235900-android-postfix-production-install` に保存済みであり、全タスクを巻き込む無目的な `assemble --rerun-tasks` の再実行は行いません。
+- iOS 向けワークフローでは、Automation および Production 用に解決された Expo メタデータを `expo config --json` で検査し、各ビルド後に生成された `.app` 内の `EXConstants.bundle/app.config` も直接検証します。Production ビルドではビルド時マーカーガード（Build-time marker guard）を維持し、双方のシミュレータ用 App を固定名のアーティファクトとして保存・アップロードします。なお、Windows 環境では iOS ビルドおよびリモートの GitHub Actions 実行は未実行であるため、静的なワークフロー契約テストの PASS とは明確に区別して記録しています。
+- Android Automation の全 16 Flow は、コールドスタート時に `Native test runtime listening` の出力を最大 30 秒待機してから `Scenario Shop` の画面へ遷移します。一方、Production Flow では `Scenario Shop` のみ最大 30 秒待機した上で、Test Control や Contract Harness が非表示であることを検証します。なお、実行順序は `tests/contracts/native-test-control-maestro.test.ts` にて固定化されています。
 
-## Repository へ追加しないもの
+## リポジトリへ追加しないもの
 
 - `android/`、`ios/`
 - APK／AAB／IPA
 - `local.properties`
 - SDK／NDK／CMake／Maestro 本体
-- keystore、password、credential
+- キーストア（keystore）、パスワード、認証情報（credential）
 - `.artifacts/`
 - Windows 固有の絶対パスを含む `.npmrc`

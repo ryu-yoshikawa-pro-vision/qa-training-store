@@ -1,13 +1,13 @@
-# Domain Entity TypeScript契約
+# ドメインエンティティ TypeScript型定義契約
 
-本書はPhase 1のDomain Entity・Enum型の意味と責務を説明します。DB名・Indexは各物理Schema、DTOは`application_contracts.md`を参照します。
+本書では、フェーズ1におけるドメインエンティティおよびEnum型の定義と責務について説明します。データベース名やインデックス定義については各物理スキーマを、DTOについては `application_contracts.md` を参照してください。
 
 ## 正本・説明責務（D-026）
 
-- 実装開始後のTypeScript `type` / `interface` / `union` / `enum`相当とDexieのSchema / version / table定義は、実装CodeをSSOTとします。
-- 本書は型の意味・責務・理由・利用上の契約を説明するMarkdownであり、Codeと同一の型一覧を機械的に正本化しません。
+- 実装開始後におけるTypeScriptの `type` / `interface` / `union` / `enum` 相当の定義、およびDexieのスキーマ／バージョン／テーブル定義は、実装コードを信頼できる唯一の情報源（SSOT）とします。
+- 本書は各型の意味・責務・選定理由・利用上の契約を説明するためのドキュメントであり、コードと同一の型一覧を機械的に同期して正本化することはしません。
 
-## 1. 共通・Enum
+## 1. 共通型・Enum
 
 ```typescript
 type EntityId = string;
@@ -65,9 +65,9 @@ type Versioned = {
 };
 ```
 
-`Yen`、数量、在庫、VersionはRuntime Validationで整数を保証します。
+`Yen`、数量、在庫数、およびバージョン（Version）は、実行時バリデーション（Runtime Validation）によって整数であることを保証します。
 
-## 2. User・Session・Address
+## 2. ユーザー・セッション・住所
 
 ```typescript
 type User = Versioned & {
@@ -102,7 +102,7 @@ type Session = {
 };
 ```
 
-## 3. Catalog
+## 3. カタログ
 
 ```typescript
 type Category = Versioned & {
@@ -163,7 +163,7 @@ type ProductReviewSummary = {
   productId: EntityId;
   publishedCount: number;
   ratingTotal: number;
-  ratingAverage: number; // publishedCount=0は0、それ以外はratingTotal / publishedCountを未丸め保存
+  ratingAverage: number; // publishedCountが0の場合は0、それ以外はratingTotal / publishedCountを端数処理（丸め）せずそのまま保存
   rating1Count: number;
   rating2Count: number;
   rating3Count: number;
@@ -187,7 +187,7 @@ type ImageAsset = {
 };
 ```
 
-## 4. Inventory・Cart・Checkout
+## 4. 在庫・カート・チェックアウト
 
 ```typescript
 type InventoryHistory = {
@@ -216,7 +216,7 @@ type CartItem = Versioned & {
   cartId: EntityId;
   variantId: EntityId;
   quantity: number;
-  unitEffectivePriceAtAdd: Yen; // Sale適用後・会員割引適用前
+  unitEffectivePriceAtAdd: Yen; // セール適用後・会員割引適用前
 };
 
 type ShippingAddressSnapshot = {
@@ -243,9 +243,9 @@ type CheckoutSession = Versioned & {
 };
 ```
 
-IndexedDBでは`addressSnapshot`を構造化Objectとして保存します。Phase 2のSQLite Adapterだけが必要に応じてJSONへSerializeします。
+IndexedDBでは、`addressSnapshot` を構造化オブジェクトとして保存します。フェーズ2のSQLiteアダプターのみ、必要に応じてJSONへとシリアライズします。
 
-## 5. Order・Payment・Shipment
+## 5. 注文・決済・配送
 
 ```typescript
 type Order = Versioned & {
@@ -273,8 +273,8 @@ type OrderItem = {
   skuSnapshot: string;
   variationNameSnapshot: string | null;
   optionValueSnapshot: string | null;
-  unitEffectivePrice: Yen; // Sale適用後・会員割引前
-  unitDiscountAmount: Yen; // 単価ごとにfloorしてSnapshot
+  unitEffectivePrice: Yen; // セール適用後・会員割引適用前
+  unitDiscountAmount: Yen; // 単価ごとに小数点以下を切り捨て（floor）してスナップショットとして保持
   quantity: number;
   lineSubtotalAmount: Yen;
   lineDiscountAmount: Yen;
@@ -327,7 +327,7 @@ type Shipment = Versioned & {
 };
 ```
 
-## 6. Review・Settings
+## 6. レビュー・設定
 
 ```typescript
 type Review = Versioned & {
@@ -364,9 +364,9 @@ type SchemaMetadata = {
 };
 ```
 
-## 7. 永続化Projection
+## 7. 永続化プロジェクション
 
-Web Persistence Recordだけに次を追加します。Domain Entityへは露出しません。
+Webの永続化レコード（Persistence Record）にのみ以下のプロパティを追加し、ドメインエンティティ側には露出させません。
 
 ```typescript
 type BooleanKey = 0 | 1;
@@ -380,7 +380,7 @@ type ProductVariantRecord = ProductVariant & {
 };
 ```
 
-- `isDefaultKey/isActiveKey`はbooleanと常に一致させる。
-- activeかつVariationなしの`optionScopeKey`は`__SINGLE_ACTIVE__`。
-- activeかつVariationありは正規化済`optionValue`。
-- inactiveは`__INACTIVE__:<variantId>`。
+- `isDefaultKey` および `isActiveKey` は、対応する boolean 値と常に一致させます。
+- 有効（active）かつバリエーションが存在しない場合、`optionScopeKey` は `__SINGLE_ACTIVE__` とします。
+- 有効（active）かつバリエーションが存在する場合、`optionScopeKey` は正規化済みの `optionValue` とします。
+- 無効（inactive）な場合、`optionScopeKey` は `__INACTIVE__:<variantId>` とします。

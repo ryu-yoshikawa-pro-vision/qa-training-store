@@ -9,10 +9,10 @@ type AccountStatus = "active" | "suspended" | "withdrawn";
 ```
 
 - `role`: 購入者または店舗管理者としての責務
-- `membershipRank`: customerの購入特典
-- `accountStatus`: アカウント利用可否
+- `membershipRank`: customer向けの会員特典
+- `accountStatus`: アカウントの利用可否
 
-`operator`と`admin`は管理専用アカウントです。例外を増やさないため、Phase 1ではカート・購入・自分の注文・レビュー投稿を許可しません。
+`operator`と`admin`は管理専用アカウントです。仕様の例外を増やさないため、Phase 1ではカート利用・商品購入・注文履歴の閲覧・レビュー投稿を許可しません。
 
 ## 2. 固定アカウント
 
@@ -26,7 +26,7 @@ type AccountStatus = "active" | "suspended" | "withdrawn";
 | `user-operator` | 店舗担当者 | operator | なし | active | `testpass1` |
 | `user-admin` | 管理者 | admin | なし | active | `testpass1` |
 
-メールアドレスは`example.com`配下のダミー値を使用します。
+メールアドレスは`example.com`ドメイン配下のダミー値を使用します。
 
 ## 3. 権限マトリクス
 
@@ -61,29 +61,29 @@ regular < gold < platinum
 ## 5. 状態とログイン
 
 - `active`: ログイン可能。
-- `suspended`: ログイン拒否。既存Sessionは保護操作時に無効化。管理者が再開可能。
-- `withdrawn`: ログイン不可。Phase 1では固定Seedの読取専用状態として扱い、管理画面からの変更と顧客自身の退会処理はPhase 2。
+- `suspended`: ログイン拒否。既存セッションは保護対象の操作を実行した時点で無効化される。管理者は利用再開が可能。
+- `withdrawn`: ログイン不可。Phase 1では固定シードの読み取り専用状態として扱い、管理画面からのステータス変更および顧客自身による退会処理はPhase 2で対応する。
 
 ## 6. 権限チェック
 
-ナビゲーション、ルート、データ取得条件、UI活性、Use Case、Repository整合性の各段階で確認します。UI非表示だけを認可として扱いません。
+ナビゲーション、ルート、データ取得条件、UIの活性・非活性制御、ユースケース（Use Case）、リポジトリ（Repository）整合性の各段階で権限を検証します。単にUIを非表示にするだけでは認可処理とはみなしません。
 
 ## 7. 違反時の挙動
 
 | 状況 | 挙動 |
 |---|---|
-| 未ログインで保護画面 | ログインへ遷移し元URLを保持 |
+| 未ログインで保護画面へアクセス | ログイン画面へ遷移し、元のURLを保持する |
 | customer以外がCheckoutへアクセス | Forbidden |
-| 商品ランク不足 | 一覧非表示、直接URLはForbidden |
-| 利用停止・退会を検知 | Session削除後、理由付きログイン画面 |
-| 存在しないID | Not Found |
+| 商品の必要ランク不足 | 一覧では非表示とし、URL直接アクセスの場合はForbiddenとする |
+| 利用停止・退会状態を検知 | セッションを削除したうえで、理由を付記したログイン画面へ遷移する |
+| 存在しないIDへのアクセス | Not Found |
 
 ## 8. Phase 1のUser変更範囲
 
-- 会員ランク変更はcustomerに対するregular/gold/platinumだけを許可する。
-- Account Status変更は`active ↔ suspended`だけを許可する。`withdrawn`はSeedの読取専用状態である。
-- Role変更は`operator ↔ admin`だけを許可する。customerとの相互変換はPhase 2とする。
-- Statusまたはoperator/admin Role変更時は、対象Userの全Sessionを同一Transactionで削除する。customerをsuspendedへ変更する場合はactive Checkoutを同一Transactionでabandonedへ変更し、CartとOrderは保持する。operator/admin間のRole変更ではCart/Checkoutを変更しない。
-- 最後の有効なadminをsuspendedまたはoperatorへ変更できない。
-- adminは自分自身のadmin権限削除・停止をできない。
-- Phase 1では変更理由を入力・保存しない。変更履歴と理由は簡易Auditを導入するPhase 2で追加する。
+- 会員ランクの変更は、customerに対するregular / gold / platinumへの変更のみを許可する。
+- アカウント状態（Account Status）の変更は、`active ↔ suspended`の相互変更のみを許可する。`withdrawn`はシードデータの読み取り専用状態とする。
+- ロール（Role）変更は、`operator ↔ admin`の相互変更のみを許可する。customerとの相互変換はPhase 2で対応する。
+- ステータスまたはoperator / adminのロールを変更する際は、対象ユーザーの全セッションを同一トランザクション内で削除する。customerをsuspendedへ変更する場合は、アクティブなチェックアウト（activeなCheckout）を同一トランザクション内でabandonedへ変更し、CartおよびOrderは保持する。operatorとadminの間でロールを変更する場合は、CartやCheckoutは変更しない。
+- 最後の有効なadminアカウントをsuspendedまたはoperatorへ変更することはできない。
+- adminは、自分自身のadmin権限の削除やアカウント停止を行うことはできない。
+- Phase 1では変更理由の入力や保存は行わない。変更履歴および理由は、簡易監査（Audit）機能を導入するPhase 2で追加する。

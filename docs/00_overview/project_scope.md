@@ -3,119 +3,119 @@
 ## 1. 名称
 
 - プロジェクト名: ECテスト自動化学習アプリ
-- Storefront表示名: Scenario Shop
+- ストアフロント表示名: Scenario Shop
 - 英語名: EC Automation Training App
-- Repository: `ec-automation-training-app`
+- リポジトリ: `ec-automation-training-app`
 
-`Scenario Shop`は学習用の架空店舗名であり、実在する店舗・企業とは無関係です。
+`Scenario Shop` は学習用の架空店舗名であり、実在する店舗や企業とは一切関係ありません。
 
 ## 2. 目的
 
-ECサイトに多い画面・権限・価格・在庫・注文状態を、決定的なデータで再現できる学習用SUTを提供します。最優先は、PlaywrightでWeb E2Eを設計・実装・失敗分析できる状態を早期に完成させることです。
+ECサイトで典型的な画面、権限、価格、在庫、注文ステータスを、決定論的（再現可能）なデータで再現できる学習用SUT（テスト対象システム）を提供します。最優先事項は、Playwrightを用いたWeb E2Eテストの設計・実装・失敗分析を行える環境を早期に整えることです。
 
-- PlaywrightによるWeb E2E学習
-- テスト設計、状態遷移、境界値、権限、価格・在庫整合性の学習
-- 一般的なECの商品探索・購入体験の学習
+- PlaywrightによるWeb E2Eテストの学習
+- テスト設計、状態遷移、境界値、権限管理、価格・在庫整合性の学習
+- 一般的なECにおける商品探索・購入体験の学習
 - SaaS型管理画面の一覧・詳細・編集操作の学習
-- AIエージェントによる仕様理解・テスト実装
-- 後続PhaseでMaestroによるNative E2Eと高度な障害シナリオを追加
+- AIエージェントによる仕様把握とテスト実装
+- 後続フェーズにおけるMaestroを用いたネイティブE2Eテストおよび高度な障害シナリオの追加
 
-本アプリは実ECではなく、実際の販売・決済・配送・契約締結を行いません。
+なお、本アプリは学習用モックであり、実際の販売、決済、配送、契約締結などは行いません。
 
-## 3. 対象Platform
+## 3. 対象プラットフォーム
 
-| Platform | Phase 1 | Phase 2以降 |
+| プラットフォーム | フェーズ1 | フェーズ2以降 |
 |---|---:|---:|
-| Desktop Web | 購入者・管理 | 継続 |
-| Mobile Web | 購入者 | 継続 |
-| Android/iOS | Expo共通コードを維持するがRelease対象外 | 購入者機能・Maestro |
-| Native管理画面 | 対象外 | 当面対象外 |
+| デスクトップWeb | 購入者・管理 | 継続 |
+| モバイルWeb | 購入者 | 継続 |
+| Android/iOS | Expo共通コードを維持（リリース対象外） | 購入者機能・Maestro |
+| ネイティブ管理画面 | 対象外 | 当面対象外 |
 
-## 4. Phase 1の実装対象
+## 4. フェーズ1の実装対象
 
-### Storefront
+### ストアフロント（購入者画面）
 
-- Home、全商品、検索結果、カテゴリ別一覧、商品詳細
-- Search Suggestion、Rating/Saleを含むFilter、Sort、Pagination
-- 適用Filter表示、Mobile Filter、0件時の復旧導線、戻る時の状態復元
-- 商品Gallery、Variation、会員価格、在庫、送料条件、Review分布
-- 固定Account、新規登録、Login/Logout、Role/Rank/Status
-- guest/customer Cart、Login時Cart統合
-- 配送先、Checkout Session、注文確認
-- 決定的な模擬Payment成功・明確失敗・再試行
-- Order履歴、`paid → preparing → shipped → delivered`
-- Review投稿・編集
+- ホーム、全商品一覧、検索結果、カテゴリー別一覧、商品詳細
+- 検索サジェスト、評価（レーティング）やセール有無を含む絞り込みフィルター、ソート、ページネーション
+- 適用中フィルターの表示、モバイル用フィルター、検索結果0件時の復帰導線、ブラウザの「戻る」操作時の状態復元
+- 商品ギャラリー、バリエーション選択、会員価格、在庫表示、配送料条件、レビュー分布
+- 固定テストアカウント、新規会員登録、ログイン／ログアウト、ロール／ランク／ステータス管理
+- ゲスト／会員用カート、ログイン時のカート統合
+- 配送先指定、チェックアウトセッション、注文確認
+- 確定的な結果を返す模擬決済（成功、明確な失敗、再試行）
+- 注文履歴および注文ステータス遷移（`paid → preparing → shipped → delivered`）
+- レビューの投稿・編集
 
-### Admin
+### 管理画面（Admin）
 
-- Side Navigation、Page Header、Breadcrumbを持つAdmin Shell
-- 対応件数とQuick Actionを示すOverview。売上Chartは含めない
-- 商品、Category、Brand、在庫、Order、User、ReviewのResource一覧・詳細・編集
-- 商品本体・SKU・GitHub画像Asset参照の追加、変更、削除
-- 商品公開/非公開、Review非公開/再公開の限定Bulk Action
-- Contextual Save Bar、未保存離脱保護
+- サイドナビゲーション、ページヘッダー、パンくずリストを備えた管理画面シェル
+- 対応待ち件数とクイックアクションを表示するオーバービュー（売上チャートは含まない）
+- 商品、カテゴリー、ブランド、在庫、注文、ユーザー、レビューのリソース一覧・詳細・編集
+- 商品本体、SKU、GitHub画像アセット参照の追加・変更・削除
+- 商品の公開／非公開、レビューの非公開／再公開に関する限定的な一括操作（バルクアクション）
+- コンテキスト保存バー（Contextual Save Bar）、未保存時の離脱防止機能
 
 ### 技術・テスト
 
-- Seed、Reset、Test Clock、処理Delay
-- IndexedDB/Dexie、Playwright、Cloudflare Pages 1環境
+- シードデータ投入、データリセット、テストクロック（時刻操作）、処理遅延（ディレイ）の制御
+- IndexedDB／Dexie、Playwright、Cloudflare Pages（1環境）
 
-## 5. Phase 1対象外
+## 5. フェーズ1の対象外
 
-- Native Build・Maestro
-- Guest Checkout
-- Cancel申請、Return、Refund
-- Payment timeout/unknown、Gateway台帳、照合、Finalize失敗復旧
-- Import/Export、Migration Recovery、DB自動修復
-- Version付き規約同意履歴
-- 詳細Audit Log、Runtime Ring Buffer
-- Public DemoとAutomation Targetの分離
-- Visual Regression、厳密な性能Release Gate、iOS Release Gate
-- Wishlist、Recommendation Engine、行動履歴Personalization
-- Coupon、Point、Review画像、売上分析Chart、Saved View
+- ネイティブビルドおよびMaestroによるテスト
+- ゲスト購入（Guest Checkout）
+- キャンセル申請、返品、返金処理
+- 決済タイムアウト／決済結果不明（unknown）、決済ゲートウェイ台帳管理、突合、決済確定（Finalize）失敗からの復旧
+- インポート／エクスポート、マイグレーション復旧、データベース自動修復
+- バージョン管理付きの利用規約同意履歴
+- 詳細監査ログ、ランタイムリングバッファ
+- 一般公開用デモとテスト自動化対象環境の分離
+- ビジュアルリグレッションテスト、厳格なパフォーマンスリリースゲート、iOSリリースゲート
+- ウィッシュリスト（お気に入り）、レコメンドエンジン、行動履歴に基づくパーソナライズ
+- クーポン、ポイント、レビューへの画像添付、売上分析チャート、保存済みビュー（Saved View）
 
-上記は不要なのではなく、学習価値が確認できたものだけをPhase 2以降で再評価します。
+上記は不要な機能として除外するのではなく、学習価値が確認できたものからフェーズ2以降であらためて導入を検討します。
 
-## 6. 全体対象外
+## 6. 全体を通じた対象外事項
 
-実決済・通知・配送会社連携、複数店舗/倉庫、Marketplace、デジタル/定期購入、複数通貨、多言語、2軸Variation、一部Cancel/Return/Refund、CSV一括、PWA、Native Admin、App Store公開。
+実決済・外部通知・配送業者連携、複数店舗／倉庫管理、マーケットプレイス機能、デジタルコンテンツ／定期購入、複数通貨対応、多言語対応、2軸バリエーション、一部商品のキャンセル／返品／返金、CSV一括処理、PWA対応、ネイティブ版管理画面、App Store／Google Playでの一般公開。
 
 ## 7. 重要制約
 
-- DataはOrigin/端末ごとに分離され、別端末と共有しない。
-- 認証・認可は疑似実装で、本物のSecurity Boundaryではない。
-- 実端末間の在庫競合は再現しない。必要な競合は将来Fault Scenarioで疑似再現する。
-- 模擬Paymentは外部決済を呼ばず、指定した結果を決定的に返す。
-- 実在する個人情報・Card情報を入力しない。
-- Phase 1は認証・Cart統合の学習を優先するため会員Checkoutのみとする。一般ECのConversion最適化とは異なる意図的な制約である。
-- 郵便番号補完は外部APIを使わず、Seedで使用する限定的な学習用住所辞書だけを利用する。未一致時は手入力できる。
-- 商品画像BinaryはGitHub Repositoryの`public/images/products/`を正本とし、Cloudflare Pagesから同一Originで配信する。アプリは画像Assetの関連付けだけをIndexedDBへ保存する。したがって、管理UIで新規商品を作成する際は、Deploy済みAsset Catalog内の画像から選択する。管理画面単独では新規画像Binaryを追加できず、RepositoryへのCommit/PRと再Deployが必要である。Release済みAssetはappend-onlyとする。
-- BrowserへGitHub Tokenを保持せず、管理UIからGitHub APIへのUpload・削除は行わない。新規画像Binaryの追加はRepositoryへのCommit/PRと再Deployで行う。
+- データはオリジン（Origin）および端末ごとに分離され、別の端末とは共有されません。
+- 認証・認可は疑似的な実装であり、本番水準のセキュリティ境界（Security Boundary）ではありません。
+- 実端末間での在庫競合は再現しません。検証に必要な競合状態は、将来のフェーズでフォールトシナリオ（障害シナリオ）として疑似再現します。
+- 模擬決済では外部決済サービスと通信せず、指定された結果を確定的（決定論的）に返します。
+- 実在する個人情報やクレジットカード情報を入力してはなりません。
+- フェーズ1では認証やカート統合の学習を優先するため、会員のみが購入（チェックアウト）できる仕様としています。これは一般的なECにおけるコンバージョン率の最適化とは異なり、学習効果を重視した意図的な制約です。
+- 郵便番号による住所自動入力は外部APIを使用せず、シードデータに含まれる限定的な学習用住所辞書のみを参照します。該当する住所が見つからない場合は、手動で入力できます。
+- 商品画像のバイナリデータは、GitHubリポジトリの `public/images/products/` をマスター（正本）とし、Cloudflare Pagesから同一オリジンで配信します。アプリケーション側では、IndexedDBに画像アセットへの参照情報のみを保存します。そのため、管理画面で商品を新規登録する際は、デプロイ済みのアセットカタログ内の画像から選択します。管理画面単独で新規の画像バイナリを直接追加することはできず、リポジトリへのコミット／プルリクエストと再デプロイが必要です。なお、リリース済みのアセットは追記のみ（append-only）とし、既存画像の削除や上書きは行いません。
+- ブラウザ側にはGitHubトークンを保持させず、管理画面からGitHub APIを介した画像のアップロードや削除は一切行いません。新規画像バイナリの追加は、必ずリポジトリへのコミット／プルリクエストと再デプロイによって行います。
 
-## 8. Phase 1環境
+## 8. フェーズ1の動作環境
 
-| Environment | Purpose | Test Control |
+| 環境 | 用途 | テスト制御（Test Control） |
 |---|---|---:|
-| local | 開発・手動確認 | ON |
+| ローカル（local） | 開発・手動確認 | ON |
 | Cloudflare Automation | Playwright・QA学習 | ON |
 
-一般利用向けPublic DemoはPhase 3で必要性を再評価します。
+一般利用者向けの公開デモ環境（Public Demo）については、フェーズ3でその必要性をあらためて検討します。
 
-## 9. Phase 1成功条件
+## 9. フェーズ1の成功条件
 
-- Homeから商品を探し、検索・Filter・カテゴリ・商品詳細を経てCartへ追加できる。
-- 管理者が商品本体、SKU、画像参照を登録・変更・削除し、公開条件を満たす商品を公開できる。
-- customerがCartへの追加、数量変更、明細削除、Checkout、Payment成功、Order確認を完了できる。
-- 明確なPayment失敗後、同じOrderから再試行できる。
-- operator/adminがOverviewから対象Resourceを見つけ、Orderを準備開始、発送、配送完了へ進められる。
-- delivered Orderの商品へReviewを投稿できる。
-- Storefront 360px幅とAdmin 1024px以上で主要操作が完了できる。
-- Playwright Chromiumの主要Flowが安定して実行できる。
-- UIからDBを直接操作せず、Use CaseとRepository境界を維持する。
-- Phase 1の必須Playwright E2E 12本が安定し、細かな組合せ・境界値はUnit/Application/Component/Contract Testで担保する。
+- ホーム画面から商品を探索し、検索・フィルター・カテゴリー一覧・商品詳細画面を経由してカートへ追加できること。
+- 管理者が商品本体、SKU、画像参照情報を登録・変更・削除でき、公開条件を満たした商品を公開できること。
+- 購入者（customer）がカートへの追加、数量変更、アイテム削除、チェックアウト、決済の成功、注文完了の確認までを一通り完了できること。
+- 決済が明確に失敗した際、同一の注文から決済を再試行できること。
+- 運営担当者（operator／admin）がオーバービュー画面から対象リソースを特定し、注文ステータスを「準備開始」→「発送済み」→「配達完了」へと進行できること。
+- 配達完了（delivered）となった注文の商品に対して、レビューを投稿できること。
+- ストアフロントは画面幅360px、管理画面は画面幅1024px以上において、主要な操作に支障がないこと。
+- Playwright（Chromium）による主要なE2Eテストフローが安定して実行できること。
+- UI層からデータベースを直接操作せず、ユースケース層とリポジトリ層の責務境界が正しく保たれていること。
+- フェーズ1で必須とされる12本のPlaywright E2Eテストが安定稼働し、細かな入力値の組み合わせや境界値テストは単体（Unit）・アプリケーション・コンポーネント・契約（Contract）テストで網羅・担保されていること。
 
 ## 実装契約
 
-Phase 1実装は`04_data/domain_types.md`、`04_data/application_contracts.md`、`04_data/repository_interfaces.md`、`04_data/indexeddb_schema.md`の型・Transaction・Index契約に従います。実装者が別DTO、別Password Hash、別Admin Query方式を独自採用しません。`future/phase2`配下はPhase 1の正本ではありません。
+フェーズ1の実装では、`04_data/domain_types.md`、`04_data/application_contracts.md`、`04_data/repository_interfaces.md`、`04_data/indexeddb_schema.md` で定義された型定義、トランザクション、およびインデックス契約に厳格に従います。実装者が独自のDTO、異なるパスワードハッシュ方式、独自の管理画面クエリ方式などを勝手に採用することは認められません。なお、`future/phase2` 配下のドキュメントはフェーズ1における正本（信頼できる情報源）ではありません。
 
-- 商品画像はGitHubへ事前登録し、Build生成Manifest Moduleから参照します。管理画面は画像の関連付けだけを行い、画像Uploadは行いません。
+- 商品画像は事前にGitHubリポジトリへ登録し、ビルド時に生成されるマニフェストモジュールから参照します。管理画面では画像の紐付け（関連付け）のみを行い、画像ファイルの直接アップロードは行いません。

@@ -1,68 +1,68 @@
-# 実装Phase計画
+# 実装フェーズ計画
 
 ## 1. 方針
 
-設計全体を一括実装しません。学習価値と依存関係に基づき、各Phaseの完了条件を満たしてから次へ進みます。将来Phaseの仕様は方向性だけを保持し、Phase開始時に詳細を再レビューします。`future/phase2`配下は参考資料でありPhase 1の正本ではありません。
+設計全体を一度にまとめて実装することはしません。学習価値と機能同士の依存関係に基づき、各フェーズの完了条件を確実に満たしてから次へ進みます。将来フェーズの仕様は大まかな方向性の提示にとどめ、各フェーズの開始時に詳細を改めてレビューします。なお、`future/phase2` 配下のドキュメントは参考資料であり、Phase 1 の正式な仕様（正本）ではありません。
 
 ## 2. Phase 1: 洗練されたWeb ECとPlaywright
 
 ### 目的
 
-一般的なECの商品探索・購入と、SaaS型Adminの一覧・詳細・編集を安定して自動化できる状態を作ります。
+一般的なECサイトにおける商品の探索から購入までの流れと、SaaS型管理画面（Admin）での一覧表示・詳細閲覧・編集操作を、安定して自動テストできる状態を構築します。
 
 ### 必須範囲
 
-1. Domain基盤: Money、Price、Permission、商品・Order状態
-2. IndexedDB Repositoryと固定Seed
-3. Storefront Shell、Home、検索、商品一覧、カテゴリ、商品詳細
-4. Cart、Checkout、決定的Payment、Order履歴
-5. Admin Shell、Overview、商品Aggregate・GitHub画像Asset参照・在庫・Order・Review・User管理
-6. Accessibility、Playwright Chromium、Cloudflare Automation環境
+1. ドメイン基盤: Money、Price、Permission、商品状態・注文（Order）状態
+2. IndexedDB リポジトリと固定シード（Seed）データ
+3. ストアフロントシェル（Storefront Shell）、ホーム、検索、商品一覧、カテゴリ、商品詳細
+4. カート、チェックアウト、決定論的（再現可能）な決済処理（Payment）、注文履歴
+5. 管理画面シェル（Admin Shell）、オーバービュー（Overview）、商品集約（Aggregate）・GitHub画像アセット参照・在庫・注文・レビュー・ユーザー管理
+6. アクセシビリティ、Playwright Chromium、Cloudflare Automation 環境
 
 ### 完了条件
 
-- Home、検索候補、Filter、Sort、Pagination、商品詳細、Cart、購入を自動化できる。
-- 正常購入、明確なPayment失敗・再試行、Rank別価格、在庫不足、権限、管理Order処理を自動化できる。
-- Admin Overviewから対象一覧・詳細へ遷移し、商品本体・SKU・画像参照の追加変更削除を含む主要管理操作を完了できる。
-- Guest Cart統合、Cart数量境界、Checkout Session再開・破棄が決定的に動作する。
-- Seed/Reset/ClockによりTest前提が決定的である。
-- Critical/Highの既知不具合がない。
-- `08_testing/e2e_design.md`のPhase 1必須12 Flowが安定し、その他の組合せは下位Testで検証されている。
+- ホーム、検索候補、フィルター、ソート、ページネーション、商品詳細、カート、購入の各機能を自動テストできること。
+- 正常な購入、明示的な決済失敗および再試行、会員ランク別価格、在庫不足、権限制御、管理画面での注文処理を自動化できること。
+- Admin Overview から対象の一覧・詳細画面へ遷移し、商品本体・SKU・画像参照の追加・変更・削除を含む主要な管理操作を完了できること。
+- ゲストカートの統合、カート数量の境界値処理、チェックアウトセッションの再開および破棄が、決定論的（再現可能）に動作すること。
+- シードデータ、リセット処理、仮想時計（Clock）の制御により、テスト前提条件が常に再現可能であること。
+- Critical および High に分類される既知の不具合が存在しないこと。
+- `08_testing/e2e_design.md` に定義された Phase 1 必須の 12 フローが安定してパスし、その他の組み合わせは下位テストで十分に検証されていること。
 
-## 3. Phase 2: NativeとEC業務拡張
+## 3. Phase 2: ネイティブアプリとEC業務機能の拡張
 
 ### 候補範囲
 
-- SQLite Adapter、Android/iOS購入者画面、Maestro
-- Password変更、退会
-- Guest Checkoutの学習価値を再評価
-- 決定的なCancel、Return、全額Refund
-- 簡易Audit Log
-- Firefox/WebKitと主要Accessibility検証の拡充
+- SQLite アダプター、Android／iOS 向け購入者画面、Maestro によるテスト自動化
+- パスワード変更、退会機能
+- ゲスト購入（Guest Checkout）の教材としての学習価値の再評価
+- 決定論的に動作するキャンセル、返品、全額返金（Refund）
+- 簡易な監査ログ（Audit Log）
+- Firefox および WebKit でのクロスブラウザ検証と、主要なアクセシビリティ検証の拡充
 
 ### 開始条件
 
-Phase 1のRepository Interface、Page Pattern、業務ルールが安定し、Web E2Eの保守負荷が把握できていること。
+Phase 1 のリポジトリインターフェース（Repository Interface）、ページパターン（Page Pattern）、業務ルールが安定し、Web E2E テストの保守負荷を十分に把握できていること。
 
 ## 4. Phase 3: 高度な障害・運用教材
 
 ### 候補範囲
 
-- 独立Mock Gateway台帳
-- Payment timeout/unknown、Finalize失敗、Reconciliation
-- Crash Point、Migration Recovery
-- Import/Export、Integrity Check
-- Public Demo分離、Visual、性能計測、iOS Release Gate
-- Version付き規約同意履歴
-- Wishlist、Recommendation、Coupon、Pointは具体的な教材要件がある場合だけ検討
+- 独立したモック決済ゲートウェイ（Mock Gateway）台帳
+- 決済タイムアウト／成否不明（timeout / unknown）、確定処理（Finalize）の失敗、消込・照合（Reconciliation）
+- クラッシュポイント（Crash Point）のシミュレーション、マイグレーション復旧（Migration Recovery）
+- データのインポート／エクスポート、整合性チェック（Integrity Check）
+- 公開デモ（Public Demo）環境の分離、ビジュアルリグレッションテスト、性能計測、iOS リリースゲート
+- バージョン管理された規約同意履歴
+- お気に入り（Wishlist）、レコメンド、クーポン、ポイント機能（具体的な教材要件が生じた場合のみ検討）
 
 ### 開始条件
 
-高度機能が具体的な学習カリキュラムまたはTest課題として必要になったことを確認すること。単に実ECへ近づけるためだけには追加しません。
+これらの高度な機能が、具体的な学習カリキュラムまたはテスト課題として必要になったと確認できること。単に実際のECサイトに仕様を近づけることだけを目的とした機能追加は行いません。
 
 ## 5. 対象範囲の変更ルール
 
-- Phase 1へ項目を追加する場合、商品探索・購入判断・管理効率・Accessibilityのどれを改善するか説明する。
-- 見た目だけの装飾、行動履歴Personalization、分析ChartはPhase 1へ追加しない。
-- 将来Phaseの詳細実装をPhase 1コードへ先回りして作らない。
-- Interfaceは将来拡張を妨げない範囲で設計するが、未使用の抽象化やTableを追加しない。
+- Phase 1 に項目を追加する場合は、商品探索・購入判断・管理業務の効率化・アクセシビリティのいずれを改善するものかを明確に説明すること。
+- 見た目を整えるだけの装飾や、行動履歴に基づくパーソナライズ、分析用チャートなどは Phase 1 に追加しないこと。
+- 将来フェーズで必要となる詳細な実装を、Phase 1 のコードにあらかじめ先回りして作り込まないこと。
+- インターフェース（Interface）は将来の拡張を妨げない範囲で設計するが、現時点で未使用の過度な抽象化やテーブルを追加しないこと。
