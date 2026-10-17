@@ -25,7 +25,7 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 1. State-changing Git invocationは、コマンド自身の検証済みliteral absolute rootにより実行対象を固定したものだけがG10評価へ進む。`payload.cwd`やtool-level `workdir`だけを根拠にALLOWしない。
 2. 指定rootがHookを配置したこのcheckoutのcanonical Git worktree rootと一致しない、または決定できない場合は拒否する。移動失敗後にmutationが続く形式は拒否する。
 3. `git -C`、`--git-dir`、`--work-tree`、`GIT_DIR`／`GIT_WORK_TREE`等のrepository上書きによるmutationと、曖昧なwrapper／dynamic shell expansionは拒否する。read-only Gitの現行許可は維持する。
-4. Protected branch/refへのcommit、push、ref更新、削除等を拒否する。feature branch上の通常`git add`、`git commit`、`git push`等は既存の許可契約を満たす。`main`から非保護feature branchへの安全な`git switch`／`switch -c`は必要範囲で許可し、それ以外のmutationは拒否する。
+4. Protected branch/refへのcommit、push、ref更新、削除等を拒否する。feature branch上の通常`git add`、`git commit`、`git push`等は既存の許可契約を満たす。通常pushは明示した単一の非保護ref以外にtagやsubmoduleが暗黙にpushされないことも確認する。`main`から非保護feature branchへの安全な`git switch`／`switch -c`は必要範囲で許可し、それ以外のmutationは拒否する。
 5. `execpolicy`の既存`prompt`／`forbidden`を実command形式で検証する。ただし安全な通常pushを一律に`prompt`へ送るルールは追加しない。他の高影響操作に対する既存承認・禁止ルールは維持する。Hookの拒否をAuto-review承認で上書きできるものと解釈しない。
 6. Approve for meでは、対象repositoryの安全な通常pushがHookやrepository-local execpolicyによって不要に拒否・承認要求されないことを検証する。Full Accessでは同じHookの危険操作拒否を維持する。sandbox／実効的な承認設定による拒否は別原因として切り分け、承認を無効化して回避しない。
 7. Windows／POSIXの既存テスト、`pnpm run test:hooks`、`pnpm run test:contracts`、`pnpm run verify`、関係するGitHub Actionsが最終HEADで成功する。未実施の実runtime検証は成功と報告しない。
@@ -38,6 +38,7 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 - `tests/contracts/codex-hook-contract.test.ts` には`git -C`をfeature branchで許可するケース、複数Git invocation、Windows launcher、protected branch/ref等の多数の既存ケースがある。既存契約を無批判に新しい方針へ合わせて削らない。
 - `.codex/config.toml` の現時点のRepository defaultは `sandbox_mode = "workspace-write"` / `approval_policy = "never"`。Full Access／Approve for meのいずれかが常に有効になっているわけではない。
 - 現行`.codex/rules/20-risky-prompt.rules`には`git push`を一律に`prompt`へ送るルールがない。`.codex/rules/30-destructive-forbidden.rules`は一部のforce push・削除・mirror等を`forbidden`にし、Hookの`evaluateGitPush()`はG7（force）、G8（削除・mirror）、G10（宛先不明・protected ref）等を判定する。両者が全ての構文を網羅するとは前提にせず、#192のroot固定後も実コマンド形式で確認する。
+- 現行`parsePushArguments()`は`--follow-tags`を許可optionに含む。一方Gitは`push.followTags=true`でも注釈付きtagを追加pushし、`push.recurseSubmodules=on-demand`等でsubmoduleのpushが発生し得る。明示refspecが1件という構文検査だけでは実際の更新対象を1件に固定できない（[git-push](https://git-scm.com/docs/git-push)、[git-config](https://git-scm.com/docs/git-config)）。
 - 現状でApprove for meの通常pushが拒否される原因は未確定。他repositoryに明示ruleがない場合の成功だけでHook・execpolicy・sandboxのどれが原因かは断定しない。
 - [Codex upstream #32360](https://github.com/openai/codex/issues/32360) はBash PreToolUseにtool-level `workdir`が含まれない問題を扱う。実装時は対象Codex versionと実payloadを改めて確認する。
 
@@ -51,9 +52,9 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 
 ### 通常pushと承認の扱い
 
-- 承認負荷を減らす対象は「非保護feature branchから、宛先を明示した単一の非保護branch/refへの通常push」。例は`git push origin feature/safe`、`git push -u origin feature/safe`、`git push origin HEAD:refs/heads/feature/safe`。実際の実行時には#192で定義するcanonical root固定を必須とする。
+- 承認負荷を減らす対象は「非保護feature branchから、宛先を明示した単一の非保護branch/refへの通常push」。例は`git push origin feature/safe`、`git push -u origin feature/safe`、`git push origin HEAD:refs/heads/feature/safe`。実際の実行時には#192で定義するcanonical root固定を必須とする。Git設定や引数が追加のtag／submoduleを暗黙にpushする場合、これらの例でも無条件に許可しない。
 - `git push`全体を無条件に許可するルールや、全Git操作を承認不要にする設定は追加しない。現在の`20-risky-prompt.rules`に通常pushの一律`prompt`がないため、根拠なく新しい`allow`／`prompt`を追加しない。実効的な他のruleが通常pushへ一致した場合に限り、その一致元と安全性を調べて最小限の修正を検討する。
-- 強制push（`--force`、`-f`、`--force-with-lease`、短縮optionとの結合、refspec先頭`+`）、ref削除（`--delete`、空宛先）、`--mirror`／一括push、protected refへの直接push、宛先未確定・複数refspec・未知optionは、既存G7／G8／G10とexecpolicyによる拒否を維持する。通常pushを通すためにこれらの拒否を緩めない。
+- 強制push（`--force`、`-f`、`--force-with-lease`、短縮optionとの結合、refspec先頭`+`）、ref削除（`--delete`、空宛先）、`--mirror`／一括push、protected refへの直接push、宛先未確定・複数refspec・未知optionは、既存G7／G8／G10とexecpolicyによる拒否を維持する。さらに`--follow-tags`、`push.followTags`、`push.recurseSubmodules`等により追加pushが起きる構成は通常pushの自動許可対象外とする。通常pushを通すためにこれらの拒否を緩めない。
 - execpolicyのrule判定、PreToolUseのALLOW／deny、sandbox権限、Auto-reviewの承認結果を区別する。ルールに一致しないことは、サンドボックスから自動的に実行許可されることを意味しない。`approvals_reviewer`、`approval_policy`、Full Accessへの切替をpush成功のために変更しない。
 - `git commit`やその他の操作の承認ルールは、実際に問題が確認できない限り変更しない。User指示に基づくpushの実行権限・作業範囲は従来どおり必要とする。
 
@@ -78,6 +79,7 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 - `evaluateGitPush()`、`parsePushArguments()`、`getPushDestination()`および既存G7／G8／G10を再利用する。新たな承認フレームワークや別のpush parserは作らない。
 - root固定形式を導入する際、`git push`の通常形がHookからexecpolicyへ進み、危険なpushはexecpolicyの`forbidden`だけに依存せずHookでも拒否されるようにする。正規形のシェル区切りがexecpolicyのbare Git segmentと一致することを確認する。
 - `--no-verify`等の既存許可optionと、push先やrefのGit設定に依存する形式は、許可を拡張する前に実際の副作用と既存契約を確認する。必要性が確認できない形式を自動許可対象へ追加しない。
+- 特に`push.followTags`（明示`--follow-tags`を含む）、`push.recurseSubmodules`／`submodule.recurse`、remoteのmirror設定で、単一refspec以外の更新が起きないことを確認する。許可できない場合はG10で拒否し、Git設定を暗黙に書き換えない。`--no-follow-tags`／`--no-recurse-submodules`等のGit公式の無効化指定で安全な形式を提供する場合は、その引数を既存parserで必要な範囲だけ認識し、優先順位と実動作をfixtureで検証する。汎用Git設定parserは追加しない。
 
 ## 5. 変更対象と手順
 
@@ -93,7 +95,7 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 - [ ] 現行HookのGit operation分類（read-only／mutation、subcommand、global options、push/ref、compound shell）と既存テストの期待値を整理する。#192で意図的に変更する`git -C`の許可期待値を区別する。
 - [ ] canonical root固定の許可形式をPOSIXとPowerShellで確定し、特にcwd移動失敗時のfail-closedを小さなテストで確認する。
 - [ ] G10のcontext選択と`evaluateCompoundContextTransition()`を最小変更し、既存の他の拒否条件と合わせる。一般用途の新規shell parser／抽象化を追加しない。
-- [ ] feature branch許可、protected branch/ref禁止、複数mutation拒否、`git -C` mutation拒否、PowerShell launcher、実効権限モードの回帰テストを更新する。通常pushのpositive caseとforce／削除／protected ref／宛先不明のnegative caseを同じfixtureで対比する。
+- [ ] feature branch許可、protected branch/ref禁止、複数mutation拒否、`git -C` mutation拒否、PowerShell launcher、実効権限モードの回帰テストを更新する。通常pushのpositive caseとforce／削除／protected ref／宛先不明のnegative caseを同じfixtureで対比する。注釈付きtagと`push.followTags=true`を持つlocal remote fixtureを用い、1 refspecでもtagが追加される経路を再現する。必要に応じてsubmodule／mirror設定も同様に確認する。
 - [ ] `codex execpolicy check`では、通常pushがrepository-localの一律`prompt`／`forbidden`に該当しないこと、既存の高影響操作の`prompt`と危険操作の`forbidden`が維持されることを確認する。コマンド文字列の分割を伴う実execpolicy挙動は単純なargv checkだけで合格扱いしない。
 - [ ] 対象Codex版でHook登録と実効設定を確認し、Approve for me／Full Accessのモード別smokeを実施する。GitHubへの実pushはテストのために行わず、一時的なlocal bare repositoryをremoteとする明示的な通常pushで、feature branchからの成功、Hook拒否なし、不要なexecpolicy承認要求なし、危険pushがHookで拒否されることを確認する。sandboxまたはAuto-reviewでの追加承認・拒否があれば原因を区別して記録し、未達をPASSにしない。CLI versionやruntimeが利用できなければ未検証と明示する。
 - [ ] 安全境界の保証／制限、Codex起動手順、root固定するGit操作例を既存文書に同期する。
@@ -109,7 +111,9 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 | cwd移動失敗、二重移動、git実行前の別command／environment変更 | Hook deny、実Git未実行 |
 | `git -C`／`--git-dir`／`GIT_WORK_TREE`でmutation | Hook deny |
 | feature branchへのcommit、非保護refへの通常push | G10で不必要に拒否しない。通常pushはrepository-localの一律`prompt`／`forbidden`に該当しない。commitの既存承認分類は維持する |
-| canonical root固定＋`git push origin feature/safe`／`git push -u origin feature/safe`／`git push origin HEAD:refs/heads/feature/safe` | Hook許可、明示した1つの非保護refへの通常pushとして評価。local bare remoteで実動作を検証 |
+| canonical root固定＋`git push origin feature/safe`／`git push -u origin feature/safe`／`git push origin HEAD:refs/heads/feature/safe` | Hook許可は追加tag／submodule送信のない設定・引数に限る。local bare remoteで実動作を検証 |
+| `--follow-tags`または`push.followTags=true`、送信対象になる注釈付きtagあり | 明示refspecが1件でもtagが追加されるため通常push扱いしない。`--no-follow-tags`等による抑止は別のpositive fixtureで検証 |
+| `push.recurseSubmodules=on-demand`等でsubmoduleの追加pushが有効／mirror設定 | 追加更新が発生する設定で無条件ALLOWしない。明示的な抑止指定またはG10 denyの契約を検証 |
 | `git push --force`／`-f`／`--force-with-lease`／`+feature:feature`、短縮option結合 | G7 deny。execpolicyの既存`forbidden`も回帰確認 |
 | `git push --delete`／空宛先、`--mirror`／`--all`／`--tags`、複数refspec／宛先省略／未知option | G8またはG10 deny。宛先を確定できない形式を通常push扱いしない |
 | protected branchでのcommit、protected refへのpush／update | Hook deny |
@@ -125,6 +129,7 @@ Codex PreToolUseが`payload.cwd`を実行対象のrepositoryだと誤認し、`e
 - 既存`git -C`許可契約を変更するため、関連Contractは期待値の変更理由を記録する。read-onlyまで全面禁止にしない。
 - 既存の`approval_policy = "never"`／wrapper presetを別Issueの要求なく一括変更しない。Default変更が必要なら影響とrollbackを別途明示する。
 - 通常pushを一律`prompt`へ送るルールの追加は避けるが、承認削減を理由に`forbidden`やG7／G8／G10を削除しない。危険pushを見逃す回帰が出た場合は通常pushの承認削減より先に安全性を修正する。
+- Gitの設定による暗黙のtag／submodule送信を見逃すと、引数上1件の通常pushでも追加refが更新される。安全性を確認できない構成を自動許可して対応しない。
 - Full AccessでHookは万能な隔離機構ではない。agent自身や任意shellによる全ての迂回を技術的に禁止したとは記載しない。
 - 失敗時はHookと対応Contractを最後の成功commitへ戻す（force push／branch削除は行わない）。運用設定を変更した場合のみ、その具体的な設定を元へ戻す。
 - 対象外: Codex本体のupstream修正、任意shellの一般解析器、#193のsanitizer、別repositoryのHarness全体移植。
