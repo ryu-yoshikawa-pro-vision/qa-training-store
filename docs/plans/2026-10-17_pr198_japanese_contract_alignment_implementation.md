@@ -33,7 +33,7 @@
 
 対象：`scripts/spec/validate-spec.ts` の `RELATED_BR`、`validateBrAc()`。
 
-- 許可する行頭を `Related BR:` と `関連ビジネスルール:` の2つに限定する。IDをバッククォートで囲み、複数時は既存の「`, `」区切りを保つ。
+- 許可する行頭を `Related BR:` と `関連ビジネスルール:` の2つに限定する。IDをバッククォートで囲み、複数IDは下記の例と同じ半角カンマと半角スペースで区切る。
 - 既存のBR ID抽出、存在確認、BR未参照検出、AC/BR見出しの文法、`collectNormativeSpecReferences()` は維持する。
 - AC本文の次の見出しまでから、両ラベルの候補行を**正規表現で成功した行だけでなく不正形式の行も含めて**収集し、参照行がちょうど1件かつ書式が有効かを検証する。
 - 同じ参照行内のBR ID重複、複数行、日英2行、正しい行と不正行の混在、未知のBR、空参照を拒否する。無関係の本文を参照行と誤認しないよう、行頭ラベルに限定する。
@@ -45,6 +45,7 @@ Related BR: `BR-CART-001`
 関連ビジネスルール: `BR-CART-001`
 Related BR: `BR-CART-001`, `BR-CART-002`
 ~~~
+
 - 現在の `docs/spec/features/cart.md` のAC-CART-001〜003が、それぞれ対応するBRを参照できることを確認する。
 
 ## 4. Screen Contract・Visual References
@@ -81,8 +82,8 @@ Related BR: `BR-CART-001`, `BR-CART-002`
 
 | テスト | 修正箇所と方法 | 維持すべき条件 |
 | --- | --- | --- |
-| `tests/contracts/architecture.test.ts`（D-026） | `docs/13_decisions/decision_log.md` の修正後、約396〜405行の旧文章完全一致と関連2文書の旧表記を、コードの低レベル型・構造の正本と文書の意味・責務、正式仕様の期待動作の優先順位を検証する形へ更新 | Markdownの説明責務、TypeScript `type/interface/union/enum`、Dexie `Schema/version/table`、コードSSOTの対象範囲 |
-| `tests/contracts/codex-artifact-sanitization.test.ts` | 約193〜212行：`docs/reference/run-artifacts.md` の現行日本語を対象とし、未サニタイズのローカル絶対パスを含む成果物を完了扱いしない条件と`REPORT.md`の追記専用契約を検査 | サニタイズ未完了を許可しない。Write/Checkの欠落を許可しない |
+| `tests/contracts/architecture.test.ts`（D-026） | `docs/13_decisions/decision_log.md` の修正後、約396〜405行の旧文章完全一致を、次の3つの正本責務の確認へ更新。関連する2文書との整合性も確認 | TypeScriptの型・Enum・Dexieスキーマの定義・構造はコードが正本。型・構造の設計上の意味・責務・判断理由は該当Markdownが正本。製品の期待動作・業務ルールは正式な製品仕様が正本 |
+| `tests/contracts/codex-artifact-sanitization.test.ts` | 約193〜212行：`docs/reference/run-artifacts.md` の日本語を対象に、未サニタイズのローカル絶対パスを含む成果物を完了扱いしない条件、`REPORT.md` の追記専用契約を検査。Run再利用の禁止条件を検査している関連テストがあれば、変更後の日本語でも検証できるよう更新 | サニタイズ未完了、Write/Check欠落、同一会話セッション・同一タスクでのactive Run重複作成を許可しない。別タスク・別会話セッションの既存例外は維持 |
 | `tests/contracts/native-windows-local-validation.test.ts` | 約51行：`docs/native/windows-android-local-validation.md` の「単体テストフロー失敗時に後続を実行してはならない」という日本語の禁止条件へ対応 | 先行Gate失敗後に後続Flowを実行しない |
 | `tests/contracts/spec-agentic-qa.test.ts` | `buildSpecSite()` の正常生成検証を維持。Navigationの日英許可、欠落・重複・リンク切れを検証する正例・負例を補完 | 仕様サイトへ到達できるNavigation。単純なテスト削除は禁止 |
 | `tests/contracts/training-curriculum.test.ts` | 以下7章の個別指示に従い、17レッスンの見出し・表ラベル・旧自然文検証、経路、Expected Failureを修正 | 学習契約の8項目、共通／Native選択、Evidence、Trainingと正式テストの区分 |
@@ -111,15 +112,16 @@ Related BR: `BR-CART-001`, `BR-CART-002`
 | P1-04 | インプット | 活動内容（Activity） | 観察項目（Observation） | アウトプット | 自己確認（Self-check） | 完了基準（Completion） | リカバリー手順（Recovery） | 引き継ぎ（Handoff） |
 | P1-09 | インプット（Input） | アクティビティ（Activity） | 観察事項（Observation） | アウトプット（Output） | 自己確認（Self-check） | 完了基準（Completion） | リカバリ（Recovery） | 引継ぎ（Handoff） |
 | P2-05 | インプット | アクティビティ | 観察項目 | アウトプット | セルフチェック | 完了要件 | リカバリ手順 | ハンドオフ |
+
 - 正しい見出しでも表の8項目が欠落していれば失敗させる。見出し検証だけを削除・弱体化しない。レッスン本文を一律英語へ戻さない。
 
 ## 8. 教材の学習契約
 
 対象：`tests/contracts/training-curriculum.test.ts` の約66〜240行、342〜352行、354〜412行、439〜461行。
 
-- P1-02：RiskのImpact・Likelihood・Priority、計算だけで決めない条件、評価理由、`RISK-CART-101` 等の存在を検証。旧英文混在の文章断片は採用済みの日本語と必要条件に置換する。
+- P1-02：RiskのImpact・Likelihood・Priority、計算だけで決めない条件、評価理由、`RISK-CART-101` 等の存在を検証。加えてこのレッスンでTypeScript実装を読まない、実行可能なソースの具体値を確認しない、教材本文へ転記しないという3つの制約を保持する。旧英文混在の文章断片は採用済みの日本語と必要条件に置換する。
 - P1-03：リスクからテストケースと自動化判断へ追跡可能であること、`02_test-cases.csv`、`03_automation-mapping.csv`、`04_execution-improvement.csv` の役割と未実行時の制約を検証する。
-- P1-04/P1-05：`TC-PRODUCT-001`、`product-basic-shirt`、Reset、`page.evaluate`、受講者Caseと配布サンプルの分離、既存の最低条件、件数を恣意的に完了条件へしない条件を維持。
+- P1-04/P1-05：`TC-PRODUCT-001`、`product-basic-shirt`、Reset、`page.evaluate`、受講者Caseと配布サンプルの分離、既存の最低条件、件数を恣意的に完了条件へしない条件を維持。P1-04ではHelper／POMを作成せず、単一specへ手順を直接記述する制約を確認する。
 - P1-06/P1-08：診断時の`BLOCKED`、別Receipt/Evidence、Canonical Helperの責務、C10改善前後、既存のNGパターンを維持。
 - P2-04/P2-08：本番テストと教材、`main/schedule` の区別、必須成果物の経路、正式テストへの流用禁止を維持。
 - 学習経路：`docs/curriculum/test-automation/README.md` にある4経路を、共通 `P1-6→P1-8→P1-9`、Native選択 `P1-6→P1-7→P1-8→P1-9`、共通 `P2-5→P2-7→P2-8`、Native選択 `P2-5→P2-6→P2-7→P2-8` として検証する。Native選択を全員必須にしない。
