@@ -90,7 +90,7 @@ PR #198で変更した全Markdownをbaseとの差分で照合し、仕様・学�
 - `docs/03_domain/business_rules.md` の在庫分類：`out` はSKUの在庫数0、`low` はSKUの在庫数1〜5、`available` はSKUの在庫数1以上を指すと明記する。SKUの在庫数量をSKUの「件数」と誤解させる表現を除去し、在庫0を低在庫件数に含めない既存条件を維持する。
 - `docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`：原文にない「深刻な不整合」「影響度は極めて大きい」など、リスクの評価を先取りする表現を是正する。Impact・Likelihood・Priorityの判断は受講者が根拠を説明する構造を維持する。
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`：未実行の行に予定のEvidence Pathを記載**しない**という禁止条件を維持し、「避けてください」という任意と読める表現を修正する。
-- `docs/spec/features/native-customer.md`：末尾に混入した `\`\`\`eof` 以降の報告文・不正なコードフェンスを除去し、元の仕様本文と末尾改行を維持する。
+- `docs/spec/features/native-customer.md`：末尾に混入した `eof` 指定の不正なコードフェンス以降の報告文を除去し、元の仕様本文と末尾改行を維持する。
 - そのほか、数値、制限、状態、権限、例外、手順、必須／任意、コードフェンス内の設定・コマンド・識別子について、原文から変更された意味を修正する。
 - Markdown lintのエラー（MD047・MD032・MD031・MD022）を解消する。テキスト修正で不要な製品コード・設定の差分を増やさない。
 
