@@ -27,6 +27,14 @@
 - [ ] 20. 原因がfixtureにあると確認できた場合だけfixtureを修正し、12件と危険Git操作拒否を再検証する。
 - [ ] 21. `pnpm run test:contracts`、`pnpm run verify`、PR本文、最終commit/push、最新head CIを完了する。
 
+## 最終切り分け (2026-10-18)
+
+- [x] 22. Git for Windows公式PortableGit 2.55.0.windows.5／2.56.0.windows.2の固定配布物とSHA-256を確認する。
+- [x] 23. 同一runnerで同一fixtureを各Git版から再初期化し、ASCII+空白／日本語+空白のroot、Git-dir、cwd、`-C`、明示Git-dir結果を比較する機密情報なしの診断を用意する。
+- [ ] 24. Windows Actionsの比較結果からバージョン差またはパス文字種の原因を特定する。
+- [ ] 25. 原因が確定した場合のみ最小修正を行い、安全契約と要求された全検証を実行する。特定できない場合は一時診断を整理し、証拠と残る仮説を記録して停止する。
+- [ ] 26. 修正成立時にcommit・通常push・PR本文更新を行い、最新headのrequired CI成功を確認する。
+
 ## Discovered
 
 - Exact-head required CI confirmation is an additional file-changing-task completion check, not a checkbox here. Use `mcp__ci_wait__wait_for_required_ci` after pushing the final commit; do not replace it with agent-side GitHub polling.

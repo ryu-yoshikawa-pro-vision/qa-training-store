@@ -106,3 +106,14 @@
 - Validation: ローカル`pnpm run test:hooks`は216 passed。Focused診断、Prettier、ESLint、Markdown lint、text quality、Run Artifact strict check、staged quality/security checkも成功。`pnpm run test:contracts`と`pnpm run verify`は修正未成立かつ停止条件により今回未実施。
 - Remaining: 原因不明のまま。diagnostic commitはPR branchへ通常push済み。PR本文へ最新の診断事実と未解決状態を反映し、最新headのCI結果を明記する。
 - Progress: 77% (17/22)。root原因の特定、fixture修正、`test:contracts`／`verify`、CI成功は未達。
+
+## 2026-10-18 — 最終切り分けの準備
+
+- Summary: ユーザー指定に従い、既確認のsafe.directory、隔離HOME、Git discovery環境変数の原因調査を繰り返さず、Git for Windowsの版とfixture path文字種を同一Windows Actions runnerで比較する診断を用意した。
+- 配布物: Git for Windows公式releaseのPortableGit `2.55.0.windows.5`（`PortableGit-2.55.0.5-64-bit.7z.exe`、SHA-256 `5aa8a20f6e9abb2c755f0e73c91c687701a46b309ad84a0ca6509380fa4ae290`）と`2.56.0.windows.2`（`PortableGit-2.56.0.2-64-bit.7z.exe`、SHA-256 `075e158ef8e1f0ab80b347e245405d3eca735c2dc88fd8e032e137d0ca61f61b`）を固定。Actions jobの一時領域へ展開し、runner既存Gitやglobal設定を変更しない。
+- 比較設計: 2つの版から同じ一時fixture pathを順番に`git init`し、初期化直後、cwdのみ、`git -C`、明示Git-dir／worktreeの`show-toplevel`と`absolute-git-dir`を比較する。fixtureはASCII+spaceと現在の`codex hook 空白-`形式。canonical realpath一致、path形式、`.git`形状、`core.worktree`、実行ファイル名とSHA-256のみを出力し、絶対pathやGit stderrは出力しない。各subprocessへ同じ`process.env`を渡す。
+- 変更: `.github/workflows/ci.yml`に限定診断のdownload・hash検証・実行stepを追加し、`scripts/diagnose-windows-git-root.mjs`を新設した。診断準備・実行stepは失敗時も既存Hookテストを続けるためcontinue-on-errorとし、結果が無い場合は成功扱いせずログで区別する。production Hook、G10、期待値、skipは変更していない。
+- 情報源: [Git for Windows 2.55.0.windows.5 release](https://github.com/git-for-windows/git/releases/tag/v2.55.0.windows.5)、[Git for Windows 2.56.0.windows.2 release](https://github.com/git-for-windows/git/releases/tag/v2.56.0.windows.2)、[PortableGitの公式README](https://github.com/git-for-windows/build-extra/blob/main/portable/root/README.portable)。
+- Validation: Actionsでのmatrix実行は未実施。PreToolUseが`command-based file deletion`を理由に拒否したため、ローカルdownload/extract/cleanupを含む複合commandは実行されず、代替回避をしていない。ActionsではRunner専用一時VM内でhashを照合後に展開し、そのVM破棄で一時配布物を処理する。
+- Next: script/workflowのformat・syntax確認後、診断commitをPR branchへ通常pushし、Windows Actionsで得られた同一runner比較の結果から原因を判断する。原因が絞れない場合は修正を行わず、repair-loopの停止条件に従う。
+- Progress: 70% (19/27)。診断は準備済みだがActions実測、原因特定、必要時の修正・検証・最終CIは未達。
