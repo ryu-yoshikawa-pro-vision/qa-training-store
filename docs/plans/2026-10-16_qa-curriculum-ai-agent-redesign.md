@@ -1,5 +1,8 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+- **文書の入口**：[Planインデックス](./2026-10-16_qa-curriculum-ai-agent-redesign_index.md)
+- **合意済み方針と残確認事項**：[決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)
+
 ## 目的と採用方針
 
 **目的は、AIエージェントと協働してテスト自動化を構築・検証・改善できる人材を育成すること。** QA活動全体やGitHubの一般的な運用を網羅することではない。受講者は手動テスト経験者を想定し、AIエージェント・プログラミング・GitHubの未経験者も対象にする。
@@ -67,19 +70,9 @@
 - 仕様・テスト対象はScenario Shopの`docs/spec/`等を参照し、製品の正式な仕様・Seed・回帰テストを不用意に変更しない。
 - **今回の更新はPlanの完成仕様の修正**に限定する。PR #199に既に追加されている知識グラフJSON・運用README・読取り専用CLIは保持し、完成仕様で未実装の契約は今後の実装対象に含める。新教材・同期/ロードスクリプト・テスト実技・製品コード・CIの実装へは進まず、PR #198も変更しない。
 
-## 設計文書の読み順
+## 設計文書の入口
 
-1. [調査と既存課程の境界](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md)：旧契約と3フェーズ化にあたっての再利用範囲・未確認事項。
-2. [学習目的・3フェーズの構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)：受講者像、モジュール、フェーズ間の引継ぎ、段階別の修了目標。
-3. [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)：M00〜M10の学習項目51件と評価範囲。
-4. [学習順序・モジュール別習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)：受講開始ガイド、前提知識、各モジュールの順序、51項目別のLevel 2判定、飛躍・漏れ・目的逸脱の確認。
-5. [確認クイズ・正答・解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)：初心者から段階的に確認する問題、正答・誤答説明・復習先。
-6. [評価・各フェーズの修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)：知識・実技・判断、未達・BLOCKED、フェーズ別の合否。
-7. [教材同期・モジュール単位ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)：管理者の同期、受講者の1モジュールずつのロード、公開解説と非公開評価資料、Scenario Shopの配布契約。
-8. [Scenario Shop・実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)：別リポジトリのCodespacesでのPlaywright実行、Phase別導線・成果物、選択Phase 3のCI、旧実装との分離。
-9. [知識グラフの完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)：学習目標・知識・教材・問題・実技・評価・テスト対象・外部Skillの全対応と改訂・検証契約。
-10. [知識グラフ運用](../curriculum/ai-assisted-qa/README.md)：グラフの現在の参照形式、変更影響の確認手順。
-11. [全モジュールの開始・終了基準状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md)：M00〜M10の正しい開始/終了データ、前後の一致、非公開模範と受講者の成果物の分離。
+各詳細Planへのリンクと作業別の参照順は[Planインデックス](./2026-10-16_qa-curriculum-ai-agent-redesign_index.md)で管理する。合意済みの条件、Planで採用した設計、運営上の指定待ち、実装・実機での確認待ちは[決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)を確認する。詳細な仕様と受入条件は各Planを正本とし、インデックスや一覧へ複製しない。
 
 ## 実装作業の順序
 
