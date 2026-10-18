@@ -160,3 +160,12 @@
 - Validation: 修正後のNode syntax、Prettier、既存workflow関連contractを再確認する。Actionsでのmatrixは次のheadで再取得する。
 - Progress: 70% (19/27)。runner実行経路比較、root原因確定、原因別修正・全検証・最新head CIは未達。
 - Local validation for this iteration: `node --check scripts/diagnose-windows-git-root.mjs` passed; `corepack pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/codex-artifact-sanitization.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` passed (2 files / 36 tests).
+
+## 2026-10-18 — runner実行経路比較
+
+- CI: commit `73e0f7175c552cafd58d3168fff3f407497979c9` のexact-head Web CI run `39122233657` はfailure、Mobile App CI run `39122233553` はsuccess。Windows job `117659994138` の診断stepはsuccessし、Hook testは216件中204 passed／12 failed。失敗は従来と同じG10拒否。
+- 実行ファイル: `where.exe git.exe` は3候補を返し、選択された実行ファイルはdrive-absolute形式。PATH起動と同じexeのabsolute-path起動でexe SHA-256、core executable SHA-256、versionが一致。両者はPortableGit 2.56と同じGit version・実行ファイルhashだった。
+- 条件比較: runner PATH／absoluteの両起動経路とPortableGit 2.55／2.56を、ASCII+space／日本語+space fixtureで比較した8行すべてで、`git init`、init直後のroot／Git-dir、cwdのみ、`git -C`、明示Git-dir／worktreeの結果がfixtureと一致。出力形式はdrive-absolute、realpath成功。診断出力に絶対pathは含めていない。
+- 判定: raw Windows Actions shell内ではGit版、文字種、選択されたGit実行ファイル、PATH／absolute起動経路でroot不一致を再現しなかった。一方、同じrunのHook testは12件失敗を継続。比較stepは依存関係導入前だったため、残る一条件として`pnpm exec`のPATH環境内で同じ比較を1回実施する。既確認のsafe.directory、隔離HOME、Git discovery環境変数は再調査しない。
+- Next: Windows jobで比較stepを`pnpm install`後へ移し、`pnpm exec node`で実行する。ここでも全matrixが一致しHook失敗条件が絞れなければ、指定に従い原因未特定で停止し、診断用workflow／scriptを整理する。原因未確認のままproduction HookやG10条件は変更しない。
+- Progress: 71% (20/28)。pnpm実行環境の最終比較、原因判定、必要時の修正と要求検証、PR本文／最新head CIは未完了。

@@ -254,11 +254,11 @@ jobs:
             Write-Output "Prepared pinned PortableGit $($release.Tag) after SHA-256 verification."
           }
 
-      - name: Compare Git version and fixture path conditions
-        run: node scripts/diagnose-windows-git-root.mjs
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Compare Git version and fixture path conditions
+        run: pnpm exec node scripts/diagnose-windows-git-root.mjs
 
       - name: Run focused Hook contracts
         run: pnpm run test:hooks
