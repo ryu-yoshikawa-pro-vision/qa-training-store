@@ -1143,7 +1143,9 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/spec/features/cart.md",
       "source_kind": "product_spec",
-      "status": "verified_path"
+      "status": "verified_path",
+      "source_blob_sha": "e4a9a480dc059ed327d6a86141cf5a752d3555b2",
+      "source_revision_kind": "git_blob"
     },
     {
       "id": "F-CHECKOUT",
@@ -1152,7 +1154,9 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/spec/features/checkout-and-payment.md",
       "source_kind": "product_spec",
-      "status": "verified_path"
+      "status": "verified_path",
+      "source_blob_sha": "282b7ad958df324075c103581ef68aa5f3e00b79",
+      "source_revision_kind": "git_blob"
     },
     {
       "id": "F-STOREFRONT",
@@ -1161,7 +1165,9 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/spec/features/storefront.md",
       "source_kind": "product_spec",
-      "status": "verified_path"
+      "status": "verified_path",
+      "source_blob_sha": "f28ac7ea9267767ef04a5dcf18312afea9691f10",
+      "source_revision_kind": "git_blob"
     },
     {
       "id": "F-ORDERS",
@@ -1170,7 +1176,9 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/spec/features/orders.md",
       "source_kind": "product_spec",
-      "status": "verified_path"
+      "status": "verified_path",
+      "source_blob_sha": "37d067ee8ae345137a0701382e02531a3817fd29",
+      "source_revision_kind": "git_blob"
     },
     {
       "id": "S-QA-WORKFLOW",
@@ -1178,8 +1186,9 @@
       "title": "qa-workflow",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/qa-workflow/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-SPEC-ANALYSIS",
@@ -1187,8 +1196,9 @@
       "title": "spec-analysis",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/spec-analysis/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-TEST-ANALYSIS",
@@ -1196,8 +1206,9 @@
       "title": "test-analysis",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/test-analysis/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-TEST-CONDITIONS",
@@ -1205,8 +1216,9 @@
       "title": "test-condition-design",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/test-condition-design/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-TEST-CASES",
@@ -1214,8 +1226,9 @@
       "title": "test-case-design",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/test-case-design/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-COVERAGE",
@@ -1223,8 +1236,9 @@
       "title": "coverage-analysis",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/coverage-analysis/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-REVIEW",
@@ -1232,8 +1246,9 @@
       "title": "adversarial-review",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/adversarial-review/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-E2E-IMPLEMENTATION",
@@ -1241,8 +1256,9 @@
       "title": "e2e-test-implementation",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/e2e-test-implementation/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-E2E-EXECUTION",
@@ -1250,8 +1266,9 @@
       "title": "e2e-test-execution",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/e2e-test-execution/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-E2E-RESULT-ANALYSIS",
@@ -1259,8 +1276,9 @@
       "title": "e2e-test-result-analysis",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/e2e-test-result-analysis/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     },
     {
       "id": "S-E2E-REPORTING",
@@ -1268,8 +1286,9 @@
       "title": "e2e-test-reporting",
       "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       "path": "skills/e2e-test-reporting/SKILL.md",
-      "ref": "main",
-      "status": "path_verified_runtime_unverified"
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
     }
   ],
   "edges": [
@@ -2646,5 +2665,10 @@
       "status": "draft",
       "reason": "同じモジュール内で先に理解する事項（初期案）"
     }
-  ]
+  ],
+  "source_revisions": {
+    "product_spec_baseline_ref": "c095feba436d4f2691bf014160ff7bd35ac6c8aa",
+    "external_skills_ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "note": "製品側のbaselineは基準グラフ作成前のPlan HEAD。実装内容のcurrent SHAではない。外部Skillはこの時点のmain SHAを参照し、改訂時は差分を照合する。"
+  }
 }
