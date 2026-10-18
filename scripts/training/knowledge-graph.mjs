@@ -31,6 +31,8 @@ function validate(graph) {
   for (const node of graph.nodes) {
     if (!permittedTypes.has(node.type) || !node.title) fail('Invalid node: ' + node.id);
     if ((node.type === 'test_target' || node.type === 'skill') && !node.path) fail('Missing path: ' + node.id);
+    if (node.type === 'skill' && (node.repo !== 'ryu-yoshikawa-pro-vision/qa-workflow-skills' || !/^skills\/[^/]+\/SKILL\.md$/.test(node.path)))
+      fail('Skill must refer to qa-workflow-skills/skills/: ' + node.id);
     if (node.type === 'test_target' && node.repo === 'ryu-yoshikawa-pro-vision/qa-training-store') {
       const actual = resolve(root, node.path);
       if (!actual.startsWith(root + '/') || !existsSync(actual)) fail('Missing/local path escapes repository: ' + node.path);
@@ -80,6 +82,8 @@ function impact(graph, query) {
   const affected = new Set(), objectives = new Set(), reasons = [];
   // Trace skills to modules, feature specs to objectives, and knowledge to its dependent objectives.
   for (const target of matches) {
+    if (target.type === 'learning_objective') { objectives.add(target.id); affected.add(target.module); }
+    else if (target.type === 'module') affected.add(target.id);
     const prerequisiteDependents = new Set([target.id]);
     if (target.type === 'knowledge') {
       let changed = true;
