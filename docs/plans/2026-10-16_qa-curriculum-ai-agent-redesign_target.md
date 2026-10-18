@@ -127,11 +127,13 @@
 | 工程 | 使用するSkillの候補 | 課題の前提 |
 | --- | --- | --- |
 | M00 | `qa-workflow`の役割紹介・安全なSkill発見 | **複合workflowの実行を必修化しない** |
-| M02 | `spec-analysis`, `test-analysis` | 正式な仕様・BR/ACと調査対象 |
-| M03 | `test-condition-design`, `test-case-design`, `coverage-analysis` | 承認可能な前段の条件と根拠 |
+| M02 | `spec-analysis`, `test-analysis` | 正式な仕様・BR/ACと対象範囲。M03の前に検証責務ID・仕様根拠・リスクを明文化する |
+| M03 | `test-condition-design`（初回は`direct` mode）→`test-case-design`、必要時`coverage-analysis` | M02の検証責務（テスト要求相当）、仕様/リスク参照、入力modeに適合する構造化データと上流Entity。条件を設計した後にCaseへ渡す |
 | M04 | `adversarial-review` | 本人が作成・確認したCaseと仕様 |
 | M06 | **`e2e-test-inspection` → `e2e-test-implementation` → `e2e-test-execution`** | 対象画面/既存コードを確認してから実装。実装Skillにinspection結果が必要 |
 | M07 | `e2e-test-result-analysis`, `e2e-test-reporting` | 実際のRun・Trace・失敗ログと仕様 |
+
+**M02→M03の固定経路**：M02の分析から「何を検証するか」を示すテスト要求相当の成果物を作り、M03の`test-condition-design`に渡す。初回演習では**`direct` mode**を用い、実際の`condition_structure.py`が受け付ける`test_requirements[]`（`tr_id`、`priority`、`authority_refs`、`risk_refs`、`scope_refs`）とruntime metadata・上流Entityの整合を検証する。`artifact` modeは`test-requirement-design`のcurrent TR Entityを要求する**別の経路**であり、direct実行をその成功として流用しない。テスト要求設計の**概念は学ぶ**が、全員に`test-requirement-design`のruntime運用を必修とはしない。固定Skill revisionで直結1件を実行して必要なinput/TCN/CI/Caseの追跡性を検証し、モード依存のエラーをAIの推測で補完しない。詳細は[学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に置く。
 
 - 学習用Templateに必要なSkillは**使用するSkill Package全体（`SKILL.md`、`references/`、`assets/`、必要なSkill-local `scripts/`）**を同一の固定commitから同期する。ファイル単位のコピー漏れを検出する。外部の共有評価ランタイム`scripts/skills/evals/`は、今回の演習が明示的に必要としない限り配布しない。
 - Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは受入検証する。開発専用の大量のテスト依存は持ち込まない。
