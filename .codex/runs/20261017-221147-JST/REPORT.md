@@ -117,3 +117,12 @@
 - Validation: Actionsでのmatrix実行は未実施。PreToolUseが`command-based file deletion`を理由に拒否したため、ローカルdownload/extract/cleanupを含む複合commandは実行されず、代替回避をしていない。ActionsではRunner専用一時VM内でhashを照合後に展開し、そのVM破棄で一時配布物を処理する。
 - Next: script/workflowのformat・syntax確認後、診断commitをPR branchへ通常pushし、Windows Actionsで得られた同一runner比較の結果から原因を判断する。原因が絞れない場合は修正を行わず、repair-loopの停止条件に従う。
 - Progress: 70% (19/27)。診断は準備済みだがActions実測、原因特定、必要時の修正・検証・最終CIは未達。
+
+## 2026-10-18 — Windows診断stepの配置修正
+
+- Finding: 診断commit `7b4e31ad716c4948913eeaa6d991e0b3e40c4093`のWeb CI run `39120045684`を確認したところ、Windows job `117653622698`のstep一覧にPortableGit準備／比較がなく、既存のHook testだけが実行中だった。workflow diffの配置を確認し、曖昧なsetup-node contextへのpatchにより診断stepが`Style Quality` jobへ入っていたことを特定した。
+- Cause assessment: このCI runからGit版／path別の比較結果は得られていない。Windows Actions上のroot不一致原因は依然未特定。production HookやG10の因果推定には使わない。
+- Repair: PortableGit準備と比較stepを`Codex Hook contract (Windows)` job内へ移した。ASCII／日本語path、Git版、Git実行ファイル、Git設定の比較条件は変えていない。初回commitは原因修正ではなく、比較実行のための診断追加である。
+- Validation: 修正後の`ci.yml`をPrettier確認し、該当jobのPowerShell blockをParserで構文検証。診断Node scriptも`node --check`成功。修正commitと次のWindows Actions結果は未確認。
+- Repair-loop: 配置ミスを特定してbounded修正した。次のrunで同一Windows runner比較を取得する。比較後もroot条件が絞れない場合は追加修正を重ねず停止する。
+- Progress: 70% (19/27)。同一runnerでのGit版／path matrix、原因特定、必要時の修正・全検証・最終CIは未達。

@@ -61,61 +61,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Prepare pinned PortableGit builds for root comparison
-        id: portable-git-comparison
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $ErrorActionPreference = "Stop"
-          $comparisonRoot = Join-Path $env:RUNNER_TEMP "qts-git-root-comparison"
-          New-Item -ItemType Directory -Path $comparisonRoot -Force | Out-Null
-
-          $releases = @(
-            @{
-              Tag = "v2.55.0.windows.5"
-              Asset = "PortableGit-2.55.0.5-64-bit.7z.exe"
-              Sha256 = "5aa8a20f6e9abb2c755f0e73c91c687701a46b309ad84a0ca6509380fa4ae290"
-              InstallDirectory = "git-2.55"
-              EnvironmentName = "QTS_PORTABLE_GIT_255"
-            },
-            @{
-              Tag = "v2.56.0.windows.2"
-              Asset = "PortableGit-2.56.0.2-64-bit.7z.exe"
-              Sha256 = "075e158ef8e1f0ab80b347e245405d3eca735c2dc88fd8e032e137d0ca61f61b"
-              InstallDirectory = "git-2.56"
-              EnvironmentName = "QTS_PORTABLE_GIT_256"
-            }
-          )
-
-          foreach ($release in $releases) {
-            $archive = Join-Path $comparisonRoot $release.Asset
-            $installDirectory = Join-Path $comparisonRoot $release.InstallDirectory
-            $downloadUrl = "https://github.com/git-for-windows/git/releases/download/$($release.Tag)/$($release.Asset)"
-            Invoke-WebRequest -Uri $downloadUrl -OutFile $archive
-
-            $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actualHash -ne $release.Sha256) {
-              throw "PortableGit SHA-256 verification failed for $($release.Tag)"
-            }
-
-            $process = Start-Process -FilePath $archive -ArgumentList @("-o$installDirectory", "-y") -Wait -PassThru -NoNewWindow
-            if ($process.ExitCode -ne 0) {
-              throw "PortableGit extraction failed for $($release.Tag)"
-            }
-
-            $gitExecutable = Join-Path $installDirectory "cmd\git.exe"
-            if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
-              throw "PortableGit executable is missing for $($release.Tag)"
-            }
-            Add-Content -LiteralPath $env:GITHUB_ENV -Value "$($release.EnvironmentName)=$gitExecutable"
-            Write-Output "Prepared pinned PortableGit $($release.Tag) after SHA-256 verification."
-          }
-
-      - name: Compare Git version and fixture path conditions
-        if: steps.portable-git-comparison.outcome == 'success'
-        continue-on-error: true
-        run: node scripts/diagnose-windows-git-root.mjs
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
@@ -259,6 +204,62 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
+      - name: Prepare pinned PortableGit builds for root comparison
+        id: portable-git-comparison
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = "Stop"
+          $comparisonRoot = Join-Path $env:RUNNER_TEMP "qts-git-root-comparison"
+          New-Item -ItemType Directory -Path $comparisonRoot -Force | Out-Null
+
+          $releases = @(
+            @{
+              Tag = "v2.55.0.windows.5"
+              Asset = "PortableGit-2.55.0.5-64-bit.7z.exe"
+              Sha256 = "5aa8a20f6e9abb2c755f0e73c91c687701a46b309ad84a0ca6509380fa4ae290"
+              InstallDirectory = "git-2.55"
+              EnvironmentName = "QTS_PORTABLE_GIT_255"
+            },
+            @{
+              Tag = "v2.56.0.windows.2"
+              Asset = "PortableGit-2.56.0.2-64-bit.7z.exe"
+              Sha256 = "075e158ef8e1f0ab80b347e245405d3eca735c2dc88fd8e032e137d0ca61f61b"
+              InstallDirectory = "git-2.56"
+              EnvironmentName = "QTS_PORTABLE_GIT_256"
+            }
+          )
+
+          foreach ($release in $releases) {
+            $archive = Join-Path $comparisonRoot $release.Asset
+            $installDirectory = Join-Path $comparisonRoot $release.InstallDirectory
+            New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
+            $downloadUrl = "https://github.com/git-for-windows/git/releases/download/$($release.Tag)/$($release.Asset)"
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $archive
+
+            $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -ne $release.Sha256) {
+              throw "PortableGit SHA-256 verification failed for $($release.Tag)"
+            }
+
+            $process = Start-Process -FilePath $archive -ArgumentList @("-o$installDirectory", "-y") -Wait -PassThru -NoNewWindow
+            if ($process.ExitCode -ne 0) {
+              throw "PortableGit extraction failed for $($release.Tag)"
+            }
+
+            $gitExecutable = Join-Path $installDirectory "cmd\git.exe"
+            if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
+              throw "PortableGit executable is missing for $($release.Tag)"
+            }
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value "$($release.EnvironmentName)=$gitExecutable"
+            Write-Output "Prepared pinned PortableGit $($release.Tag) after SHA-256 verification."
+          }
+
+      - name: Compare Git version and fixture path conditions
+        if: steps.portable-git-comparison.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/diagnose-windows-git-root.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
