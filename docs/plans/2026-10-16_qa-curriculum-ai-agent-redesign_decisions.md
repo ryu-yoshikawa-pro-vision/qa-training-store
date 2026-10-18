@@ -40,7 +40,7 @@
 | 教材更新 | 公開Templateの後続更新は、受講中の個人リポジトリへ自動反映しない。配布元revisionを保持し、明示的に更新した場合だけ差分を適用 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 実行環境 | 個人所有・2コアCodespacesを標準とする。Phase 1・2でGit/PR/CI操作を要求しない。Phase 2は同期先だけでBuild/Serve/Reset/Playwrightを成立させる | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Skillの使用順 | 学習目標に必要なSkill Packageだけを使う。M06は`e2e-test-inspection`→`e2e-test-implementation`→`e2e-test-execution`の前提を確認。全Skillの習熟やworkflow全工程の実行を強制しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| M02→M03の入力とSkill経路 | M02に検証責務ID、BR/AC、関連リスク、期待する成立条件・不変条件を明記し、M03で`test-condition-design`の**`direct` mode**に接続する。`artifact` modeはcurrent TR Entityを要する別経路として区別し、入力不足をAIが補完しない | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| M02→M03の入力とSkill経路 | M02の**人間可読の検証責務本文**と、M03で用意する厳密なruntime JSONを分離。条件設計の入口は`condition_structure(direct)`、技法runtime後のCI生成は**`materialize_coverage(artifact)`必須**。Caseはcurrent TR Entityの有無に合うmodeを固定commitの通し実行で検証する。directは上流参照欠落を許容し得るため、Authority/Risk/Scope・TCNへの継承を別途照合する | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | 直接の本人判断評価 | M04・M07・M10の正式修了で、評価担当者が未提示の条件変更・誤りを1件示し、AI生成回答に依存せず本人が根拠と判断を説明したことを確認する。通常演習はAI利用可 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 22状態の実データ共有 | 11モジュール×開始/終了の22個の論理状態は維持。共通する公開可能な設定・Seed等は同一ID/revisionで参照し、公開サンプルと非公開模範の実体は分離。前後の本人成果物と公開サンプルは同じ入力契約に適合する別IDを許す | [状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 対応関係の正本 | 学習目標・習熟の説明はPlan、教材・問題・評価の本文は各実ファイル、**ID間の関係はJSONグラフ**。Markdown対応表は生成物とし、二重の手動更新を防ぐ | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
@@ -64,6 +64,15 @@
 
 **ここでの確認済みは「既存ソースの確認」であり、別の2コアCodespacesで実行してPASSした意味ではない。**
 
+## 固定Skillの追加確認結果と未実行範囲
+
+- **確認済みコード契約**（Skill commit `7cc6cba7772de549841a39d71694cbafbc783324`）：`condition_structure.py`の`direct`はcurrent TR Entityなしでも利用できるが、`require_all=False`により上流Authority/Risk依存が欠落しても処理が進み得る。`materialize_coverage.py`は`artifact`のみ受け付ける。
+- **入力形式**：`condition_structure`の`metadata`は17キー、`input`は15キー、`test_requirements[]`の1行は5キー。`test_requirements[]`へ検証責務本文の独自フィールドを追加しない。current TR Entityを持たない`requirement_dispositions[]`を有効な処理として扱わない。
+- **拒否・成功の区別**：`run_cli()`は一部の`invalid_input`で終了コード0を返す。返されたenvelope、参照の完全性、current Entity、必要な技法結果・Case、最終evidence gateと意味上の仕様整合を確認する。
+- **既存CI**：[Validate Deterministic Output Evalsの実行](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/actions/runs/38994981607)は当該固定commitで`success`（2026-10-17 UTC）と確認した。ただし**今回のCartのM02成果物からの混合modeの通し受入を実施した証拠ではない**。テスト総数の細部や教材固有のPASSは断定しない。
+- **未実行**：固定SkillでCartの具体的な仕様・Risk・Scopeを使った`condition_structure(direct)`→`materialize_coverage(artifact)`→`case_structure`の受け渡し、および最終証拠検証は未確認。各スクリプトの実装を確認した事実と、新しい入力で成功した事実を区別する。
+- **採用判断**：初心者の学習では`direct`を**条件設計の入口のみ**に採用。途中で`artifact`を使う必要があることは既知。新しいモジュールやSkill内部のruntimeを追加せず、通し受入で契約が成立しない場合に理由と最小の対応を判断する。
+
 ## 残確認事項：運営開始までに指定する内容
 
 | 対象 | 必要な指定 | 状態・扱い |
@@ -83,7 +92,7 @@
 | 管理者同期とモジュールロード | 固定SHA、機密データ混入の拒否、途中失敗・再ロード・シンボリックリンク・衝突時の非破壊性、指定1モジュールだけのロードをテスト | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 11モジュールの開始・終了基準状態 | **22状態**の実データ・契約・公開可能な入力サンプル・非公開模範を揃える。入力欠落・版違い・意図的FAILと正常開始を区別 | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 初見課題・教材・問題の妥当性 | 51学習項目を説明できる教材、正しい問題と全選択肢の解説、別条件を使ったM04/M07/M10の実技とLevel 2の証拠 | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
-| M02→M03の`direct` mode受入検証 | 固定commitでM02の検証責務を`test_requirements[]`へ接続し、Authority/Risk/Scopeのcurrent参照、TCN/CI→Case、誤モード・不足入力の停止を確かめる。**設計上はdirectを選択済み、実行成功は未確認** | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) |
+| M02→M03の固定Skill受入検証 | **固定commitの既存CIは成功を確認済みだが、M02のCart実データからCaseへのdirect起点の通し実行は未実施**。実在Authority/Risk/ScopeとTR相当1件を用い、TCN(direct)→技法→CI(artifact)→Case(適切なmode)→evidence gateの`valid=true`を確認する。上流参照欠落、Caseに必要なCI/TCN/TR不一致、current TRなしのDisposition、誤mode、`invalid_input`の終了コード0を成功扱いしない | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | 外部SkillとPython helper | 採用Skill Packageの参照・呼出し・入力/出力・検証と、2コアCodespacesでの実行結果。未実行を「使用済み」としない | [実行環境・Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Phase 2のE2E実行 | 新課程専用Playwright Config、対象spec、Seed/Reset、複数RunとTrace/Report、旧Trainingとの出力分離の証拠 | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Phase 3の専用CI | 受講者の明示的な有効化、最小権限、対象SHAとRun/Check/Artifactの一致、正式/旧workflowの非発火 | [実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
