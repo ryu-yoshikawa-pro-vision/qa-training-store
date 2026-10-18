@@ -84,6 +84,16 @@ qa-training-store/                               # 教材の公開正本
 
 開始状態と終了状態の検査は**読み取り専用**。開始可能を出す条件は全部の必要要素が確認できた場合だけとし、未確認を成功扱いしない。実技の模範と受講者の提出物が同じ内容になっても、それを本人のLevel 2の根拠として自動採用しない。
 
+## M02→M03の開始入力と終了状態の照合
+
+- **開始入力の2種類を区別**：受講者がM02で作った人間可読の検証責務と、M03同梱の別条件の検証済み開始サンプルは、**同じ入力契約・別の成果物ID**を持つ。どちらを使用したか記録する。サンプルの公開でM02の非公開修了課題の模範を漏らさない。
+- **意味上の入力契約**：検証責務ID/文章、根拠BR/AC、対象Scope、Risk・優先度、状態/Seed、期待する成立条件・不変条件、仕様とSkillの確定revision、未決事項を参照できること。BR/ACと`spec-analysis`のAuthority Entity IDは同一だと推定しない。
+- **機械的な入力契約**：M03で作成する`metadata`（**17キー**）と`condition_structure.py`の`input`（**15キー**）、`test_requirements[]`各行（**5キー**）は固定Skillの検証契約に一致する。実際の`spec-analysis` Authority、`test-analysis` Product Risk、Scope IDの参照元・current性を入力前に確認する。`test_requirements[]`にない説明文はM02の成果物で管理し、未知フィールドを挿入しない。
+- **入力とTCNの差分検査**：`test_requirements[]`から`test_conditions[]`へ引き継ぐTR/Authority/Risk/Scopeを比較し、生成されたTCNの参照とM02の仕様根拠へ追跡する。**`direct`で`ready`になっても未解決参照が省略された場合は開始・終了の成功判定に使わない**。ScopeはID形式だけでなく実際の参照先・版も確認する。
+- **未決・Disposition**：current TR Entityを持たない初回directの`requirement_dispositions[]`は空配列とし、未確定の責務はM02の未決として扱う。Dispositionを使用するときは、対象のcurrent TR Entityを固定Skillの実行結果で確かめる。
+- **終了状態**：`condition_structure(direct)`でTCN/Model、技法runtimeで適用結果、`materialize_coverage(artifact)`でCI、適切なmodeの`case_structure`でCaseを生成し、最終の`verify_runtime_evidence`が`valid=true`であること。さらに、期待結果の仕様整合・技法の選択理由・正しい別解を確認する。終了コード0のみ、単独の`ready`、AIの成功報告のみでは修了としない。
+- **失敗時**：未知の参照、誤mode、未解決TCN、古いEntity、未実行の技法結果、fingerprint不一致、終了コード0の`invalid_input`を区別し、どの契約を満たさなかったか記録する。自動復元や新しいruntimeの実装を必須としない。
+
 ## 非公開資料を公開せずに開始入力を利用する条件
 
 モジュールの**通常演習用の開始入力**と、修了課題を採点するための**非公開模範**は、同じファイルを共有しない。
@@ -102,8 +112,8 @@ qa-training-store/                               # 教材の公開正本
 | --- | --- | --- |
 | **M00：開発環境・AIの安全な利用** | 本人の2コアCodespaces、モジュールロード済みの未編集教材と練習用ファイル、許可したAI/Skill実行範囲、Secretを含まない設定。**ターミナル知識は前提にしない** | 指定された練習用ファイルだけに妥当な変更があり、保存・操作記録・AIの許可判断と結果照合が説明できる。Secret漏えい・範囲外編集なし。模範の変更例と許容差分を持つ |
 | **M01：QA・自動化の基礎** | M00の安全なAI利用条件、製品の簡単な機能説明と未記入の確認対象表、既知の期待結果を示す仕様断片 | 期待/観測の区別、手動/自動の選択、テスト層の比較、人間/AIの責任の説明。正しい判断例と誤判定の基準を持つ |
-| **M02：仕様とリスク分析** | M01の用語・判断の前提、Cart等の確定BR/AC、Role/State/Data/Journeyの入力資料、未完成の分析表 | 仕様IDに紐付いた状態・Seedの意味・リスク/優先度・未決事項に加え、**検証責務ID、対応BR/AC、関連リスク、適用範囲、期待する成立条件・不変条件**を持つテスト要求相当の分析結果。AI推測を事実とせず、まだ技法やCaseを設計しない |
-| **M03：テスト設計** | **仕様ID・初期状態・リスク・検証責務IDとBR/AC根拠が揃ったM02相当の分析**（本人成果物または同じ契約に適合した別IDの開始サンプル）、Skillの`direct` modeで必要な参照Entity、未完成の技法/Caseテンプレート | 検証責務から条件・技法を選択し、**TR→TCN/CI→CaseとBR/ACの根拠**を対応付ける。成立する入力・期待結果・未決の扱いが確認でき、Skill-local runtime契約で照合できる |
+| **M02：仕様とリスク分析** | M01の用語・判断の前提、Cart等の確定BR/AC、Role/State/Data/Journeyの入力資料、未完成の分析表 | 正本の仕様ID・revision、対応BR/AC、Role/State/Data、Scopeの実在する根拠、Risk・優先度・未決事項と**TR相当の検証責務ID・本文・成立条件・観測方法**を持つMarkdown等。Skillへ渡すMachine EntityやTCN/CI/Caseの生成はM02の修了条件ではない |
+| **M03：テスト設計** | **M02の検証責務本文とBR/AC・リスク・Scope・優先度・仕様revision**（本人提出物か、同じ入力契約に適合する別IDの公開開始サンプル）、**確認済みのAuthority/Product Risk Entity、Scopeの実在する参照先、固定Skill revision**、M03で設計する技法/Caseの未完成テンプレート。`direct`のruntime JSONはこれらから作成する | `condition_structure(direct)`による**current TCN/Model**→必要な技法runtime→`materialize_coverage(artifact)`による**current CI**→`case_structure`によるCase→`verify_runtime_evidence`の証拠を保持。**TR→TCN→CI→Case、BR/AC・Risk・Scope・期待結果の参照漏れなし**、実在するMachine Entity・fingerprintと意味的な正しさを確認。未決・未実行・不整合・無効入力は完成扱いしない |
 | **M04：設計レビュー・自動化対象選定** | **M03相当の承認済みCase**と、意図した欠落・誤りを含むレビュー素材、自動化候補と評価基準 | 誤りを根拠で採否判断したレビュー記録、修正済みCase、自動化採否・保留理由、未決事項。**Phase 1修了成果とPhase 2へ渡す正しい分析・Case・前提・期待結果**を確定する |
 | **M05：Node.js/TypeScript/Playwright基礎** | **M04終了状態に対応する承認済みCaseとテストデータ・仕様根拠**、動作するScenario Shop、Node/pnpm/Chromium、修正可能な短い練習用spec | TypeScriptの最低限の読解・部分修正が反映されたspec、正しいLocator/Assertion、設定・実行コマンド・対象URLと実行結果。**Phase 1の本人成果物が使えない場合でも、M05の基準入力は定義済み** |
 | **M06：CaseからE2E実装** | **M05の最小specが実行できる環境**と承認済みCase、Seed/Reset、未完成の新課程専用spec、対象テストデータ | Case ID→Locator/Action/Assertionの対応、独立実行できるspec、Reset後の複数回の結果、Run/Trace/Reportの根拠。無意味なAssertionや状態依存を除外する完成specを持つ |
@@ -133,7 +143,7 @@ qa-training-store/                               # 教材の公開正本
 
 - 各`module`→開始基準状態・終了基準状態を辿れる。
 - 状態から必要な知識・製品仕様・利用Skill・教材・実技・評価基準・revisionへ辿れる。
-- 前モジュールの終了と次モジュールの開始が共有する成果物IDを検索でき、仕様やSkill変更時の再確認候補となる。
+- 前モジュールの終了と次モジュールの開始が共有する**入力契約ID・参照revision**を検索できる。本人成果物を使う場合は成果物IDを維持し、公開サンプルの場合は**別IDが同じ入力契約へ適合**することを確認できる。仕様やSkill変更時の再確認候補も特定できる。
 - 機械で確認する条件と、意味・判断を確認する条件は混同しない。
 - 公開グラフは**基準状態の識別子・公開可能な判定契約のみ**を持ち、非公開の模範内容や受講者成績を含めない。
 
@@ -143,6 +153,7 @@ qa-training-store/                               # 教材の公開正本
 | --- | --- |
 | モジュール網羅 | **11モジュールすべて**に開始・終了の基準データと判定条件があり、実在ファイルに紐付く |
 | 前提整合 | M00には未学習知識の要求がない。隣接モジュールとフェーズ境界の成果物ID・版に矛盾がない |
+| M02→M03 | 本人入力・公開サンプルともM02の検証責務とAuthority/Risk/Scopeが確認でき、condition_structure(direct)→選択技法→materialize_coverage(artifact)→Case→証拠検証が成立する。不正参照・誤mode・未実行を成功扱いしない |
 | 完成データ | **開始と終了の状態を実際に用意**し、コード・設定・Seed・Case・Run・評価根拠がある項目では動作・意味の両面を確認済み |
 | 開始判定 | 正常、前提ファイル欠落、revision不一致、状態不一致、意図的な失敗素材、確認不能を区別できる |
 | 終了判定 | 模範の機械チェックと、仕様・理由・別解を含む意味的な確認方法が揃っている |
