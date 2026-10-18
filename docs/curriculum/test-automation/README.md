@@ -26,7 +26,7 @@
 - GitHub上でBranch、Commit、Pull Request、Reviewを適切に扱える。
 - CIの目的を理解し、GitHub Actions上で自動テストを実行できる。
 - 対象範囲を限定したWeb CI環境にPlaywrightを組み込み、Trigger、Gate、Artifact、および失敗調査用ログの記録について説明できる。
-- PR作成時、mainブランチへのマージ時、Nightly、手動実行（Manual）など、目的に応じたテスト実行タイミングを設計できる。
+- PR作成時、mainブランチ、Nightly、手動実行（Manual）など、目的に応じたテスト実行タイミングを設計できる。
 - Quality Gate、Build、Preview、Production、およびデプロイ後のSmokeテストまでを含むCI/CDパイプラインの全体構成を比較教材として理解できる。
 - Scenario Shopを題材として、実際のプロジェクトへテスト自動化を導入するためのテスト実行基盤を設計できる。
 

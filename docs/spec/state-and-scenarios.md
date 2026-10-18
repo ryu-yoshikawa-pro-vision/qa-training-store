@@ -54,4 +54,5 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Visual References
 
 ##### `default`
+
 （該当なし：Test-only operational surfaceのため対象外）

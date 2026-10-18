@@ -18,7 +18,7 @@
 | `SCREEN-STOREFRONT-PRODUCT-DETAIL` | Product Detail | Product | `/products/[productId]` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-product-detail-product-detail) |
 | `SCREEN-STOREFRONT-SEARCH` | Search | Product | `/search` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-search-search) |
 | `SCREEN-STOREFRONT-CATEGORY` | Category | Product | `/categories/[categoryId]` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-category-category) |
-| `SCREEN-STOREFRONT-CART` | Cart | Product | `/cart` | Yes | Yes | Guest / Customer | [Cart](./features/cart.md#screen-storefront-cart-cart) |
+| `SCREEN-STOREFRONT-CART` | Cart | Product | `/cart` | Yes | Yes | Guest / Customer | [Cart](./features/cart.md#screen-storefront-cart-カート) |
 | `SCREEN-AUTH-LOGIN` | Login | Product | `/login` | Yes | Yes | Guest | [Authentication](./features/authentication.md#screen-auth-login-login) |
 | `SCREEN-AUTH-SIGNUP` | Signup | Product | `/signup` | Yes | Yes | Guest | [Authentication](./features/authentication.md#screen-auth-signup-signup) |
 | `SCREEN-AUTH-ACCOUNT-PROFILE` | Account Profile | Product | `/account/profile` | Yes | Yes | Customer | [Authentication](./features/authentication.md#screen-auth-account-profile-account-profile) |

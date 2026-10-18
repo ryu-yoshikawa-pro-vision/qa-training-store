@@ -48,7 +48,9 @@ describe("Windows Android local validation contract", () => {
     expect(runbook).toContain("maestro/native-test-control.yaml");
     expect(script).toContain("GetFileNameWithoutExtension($Flow)");
     expect(runbook).toContain("'maestro/native-restart-persistence.yaml'");
-    expect(runbook).toContain("単体 Flow が失敗した場合、他の Flow を実行しない");
+    expect(runbook).toContain(
+      "単体テストフローが失敗した場合は、後続の他のフローを実行してはならない。",
+    );
     expect(workflow).toContain("A later gate runs only after its upstream gate passes");
     expect(script).toContain('"--virtual-store-dir", $virtualStorePath');
   });

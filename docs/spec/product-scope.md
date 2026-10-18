@@ -73,7 +73,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | 利用規約本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | 利用規約本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 
@@ -100,7 +100,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | プライバシーポリシー本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | プライバシーポリシー本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 
@@ -127,7 +127,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | 模擬取引の説明とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | 模擬取引の説明とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 

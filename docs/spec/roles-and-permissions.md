@@ -41,7 +41,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `guest, customer, operator, admin` | `default` | 権限不足の説明と安全な戻り先を表示する。 | `required` | `web-desktop, android` | `-` | [Roles and Permissions](./roles-and-permissions.md#authorization), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `guest, customer, operator, admin` | `default` | 権限不足の説明と安全な戻り先を表示する。 | `required` | `web-desktop, android` | `-` | [Roles and Permissions](./roles-and-permissions.md#authorization), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 

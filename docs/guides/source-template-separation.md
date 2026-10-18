@@ -1,4 +1,3 @@
-<!-- STREAMING_CHUNK:Defining the boundary rules for consumer repositories... -->
 # テンプレートの境界
 
 このテンプレートは利用側リポジトリ（consumer repo）の土台です。以下のファイルやディレクトリは、リポジトリを利用する側で維持・管理してください。

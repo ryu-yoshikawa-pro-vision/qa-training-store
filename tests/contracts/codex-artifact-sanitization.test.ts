@@ -206,8 +206,18 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(runArtifacts).toContain("scripts/sanitize-codex-artifacts.ps1");
     expect(runArtifacts).toContain("`Write`");
     expect(runArtifacts).toContain("`Check`");
-    expect(runArtifacts).toContain("未サニタイズのローカル絶対パス");
-    expect(runArtifacts).toContain("完了扱いにしません");
-    expect(runArtifacts).toContain("`REPORT.md`のAppend-only契約");
+    expect(runArtifacts).toContain(
+      "サニタイズされていないローカル絶対パスを含む成果物は完了扱いになりません",
+    );
+    expect(runArtifacts).toContain("`REPORT.md` の追記専用（Append-only）ルール");
+    expect(runArtifacts).toContain(
+      "アクティブなRunが存在する状態で、同一タスクのために別のRun Directoryを作成して作業履歴を分散させてはなりません",
+    );
+    expect(runArtifacts).toContain(
+      "ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます",
+    );
+    expect(runArtifacts).toContain(
+      "会話セッションが変わった場合は、アクティブなRunの引き継ぎが明示されていない限り、新規にRunを作成します",
+    );
   });
 });

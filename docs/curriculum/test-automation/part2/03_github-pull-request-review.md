@@ -13,7 +13,7 @@
 
 **本モジュールでは、このリポジトリ `qa-training-store` と、実際のプルリクエスト構成を使用します。**
 
-レビューの判断基準となるのは、[`docs/spec/README.md`](../../../spec/README.md)、対象機能のBR / AC、および習熟度評価基準です。研修用の変更は `training/` ディレクトリとTraining Config内に配置し、本番向けの回帰テスト（Formal Regression）には混在させません。
+レビューの判断基準となるのは、[`docs/spec/README.md`](../../../spec/README.md)、対象機能のBR / AC、および習熟度評価基準です。研修用の変更は `training/` ディレクトリとTraining Config内に配置し、正式な回帰テスト（Formal Regression）には混在させません。
 
 教材用に別のテスト対象へ切り替えることはありません。
 

@@ -31,7 +31,13 @@ Static serverの`Sec-Fetch-Dest`は偽装可能なbrowser UX情報でありSecur
 - JSON + Zod schemaの正本は`scripts/agentic-qa/contracts.ts`です。
 - 各JSONは`schema_version: 1`を持ち、validatorを通らない入力は実行前Failureです。
 - `spec_refs[]`は`BR-<AREA>-NNN`、`AC-<AREA>-NNN`、または`docs/spec/<normative-file>.md#<slug-heading>`だけを許可します。
-- Feature Specificationは`Purpose / Scope`、`Business Rules`、`UI / Behavior Contract`、`Acceptance Criteria`、`Executable Canonical Sources`の5節をこの順で持ちます。`AC`はRelated BRを持ち、Active BRはACまたは明示的な`Acceptance: N/A`を持ちます。
+- Feature Specificationは次の5節をこの順で持ちます。各節は英語表記または括弧内に英語を含む指定の日本語表記を使用します。
+  1. `Purpose / Scope` または `目的・対象範囲（Purpose / Scope）`
+  2. `Business Rules` または `ビジネスルール（Business Rules）`
+  3. `UI / Behavior Contract` または `UI・振る舞い規約（UI / Behavior Contract）`
+  4. `Acceptance Criteria` または `受入基準（Acceptance Criteria）`
+  5. `Executable Canonical Sources` または `実行可能カノニカルソース（Executable Canonical Sources）`
+- `AC`は`Related BR:`または`関連ビジネスルール:`の行を1件だけ持ちます。行中のBR IDはバッククォートで囲み、複数IDは半角カンマと半角スペースで区切ります。Active BRはACまたは明示的な`Acceptance: N/A`を持ちます。
 - Normal / Gray-boxのCoverage SSOTはCharter、Black-box ScoredのCoverage SSOTは`challenge.json.required_coverage`です。Runnerは`required_ids`やCoverage Itemを追加・削除・並べ替えません。
 - FindingはMachine Contractに従うAtomic Findingです。Expected、Actual、Reproduction Steps、Oracle、Role/Seed、Evidence、Reproduction Count、Severity、Confidence、Known Deviation、Suggested Regression Layerを記録します。複数問題をまとめた提出は`invalid_non_atomic`です。
 - Evidenceは`.artifacts/`のraw artifactを相対参照します。未探索はTNにせず、Observation EvidenceがないNon-defectは確定しません。Coverage未完了またはObservation Evidence不足はNEです。

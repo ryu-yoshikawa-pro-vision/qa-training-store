@@ -35,7 +35,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `missing-route` | ページが見つからない旨（Page Not Found）と戻り先の導線を表示する。 | `required` | `web-desktop, android` | `-` | [UI and UX Contract](./ui-ux-contract.md#boundary-ux), [State and Scenarios](./state-and-scenarios.md#error-and-boundary-states) |
+| `default` | baseline | `all` | `missing-route` | ページが見つからない旨（Page Not Found）と戻り先の導線を表示する。 | `required` | `web-desktop, android` | `-` | [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux), [State and Scenarios](./state-and-scenarios.md#error-and-boundary-states) |
 
 #### Visual References
 

@@ -22,7 +22,7 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality 
 
 また、これら3つのワークフローは現在それぞれ異なる役割を担っています。
 
-- Web `ci.yml`: PR、mainマージ、スケジュール実行、手動実行を含むWeb CI/CD。
+- Web `ci.yml`: PR、mainブランチ、スケジュール実行、手動実行を含むWeb CI/CD。
 - Android `native-ci.yml`: PRおよび手動実行で動作するNative CI。
 - iOS `native-ios-ci.yml`: 単体では `workflow_dispatch` による手動実行のみを受け付ける、iOSビルド専用のベースライン。Nativeコード変更時には最上位の `native-ci.yml` からこの再利用可能ワークフロー（Reusable Workflow）が呼び出され、`native-ci / verify` ジョブにおいてiOSビルドの成功が必須条件となる。
 
@@ -35,7 +35,7 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
 | Input | P2-1〜P2-7のプロセス図、Git／PRの履歴、Training Copy上で実行されたWeb CIのRun／Check／Artifact、Part 1で作成したテストケース／コード／失敗分析、必要に応じてNative選択コースの記録 |
-| Activity | Scenario Shopの対象範囲を定め、Trigger、Build、Playwright、Quality Gate、Artifact、および失敗時の切り戻し・調査ルートを設計したうえで、現在のワークフロー・仕様・Contract Testと比較する |
+| Activity | Scenario Shopの対象範囲を定め、Trigger、Build、Playwright、Quality Gate、Artifact、および失敗時の対応・調査ルートを設計したうえで、現在のワークフロー・仕様・Contract Testと比較する |
 | Observation | どのリスクをどのレイヤーやトリガーで担保するか、受講者ケースとCIの対応関係、最小権限の原則、Artifactの追跡性、Common／Native／CDの境界線、設計と現行実装との差分 |
 | Output | `handoff-root/self-check/P2-08.md` に対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failureの対応表、Run／Check／Artifactの参照情報、最終セルフチェック結果を記録する。Mermaid等の図や補足エビデンスが必要な場合は既存の `handoff-root/evidence/` に配置し、P2-08.mdから参照する。Part 1およびPart 2の成果物を固定の `handoff-root/` 配下に集約する |
 | Self-check | 「何を、いつ、どこで、どの条件で実行し、失敗時に何を確認するか」を、Case／Risk／Workflow／Evidenceを明示して説明できること。GitHub外部の状態をAPI検証なしで証明できたと記述していないこと |
@@ -206,9 +206,9 @@ AndroidおよびiOSについて、既存リポジトリのトリガー設定を�
 
 - Androidのビルドとテスト実行を同一ジョブで行うか、分離するか。
 - 生成したAPKをArtifactとして保存・共有するか。
-- MaestroのFlowごとにジョブを分割して並列化するか。
+- MaestroのFlowごとにジョブを分割するか。
 - AndroidとiOSでマージの必須条件を同一にするか。
-- macOS Runnerの実行コストをどう評価・最適化するか。
+- macOS Runnerの実行コストをどう考慮するか。
 - PRのたびに両プラットフォームのテストを毎回実行するか。
 - iOSの検証を「PR必須」「PR任意」「main統合後」「Nightly」「手動実行」のどこに配置するか。
 - AndroidとiOSで異なる実行トリガーを採用する場合、その根拠は何か。
@@ -289,7 +289,7 @@ Production Smoke Test
 
 - Preview環境へのデプロイをPRの必須条件とするか。
 - Production環境へどのビルド成果物（Artifact）をデプロイするか。
-- デプロイ失敗時にどのようなロールバック・通知対応を取るか。
+- デプロイ失敗時にどう対応するか。
 - Production環境のスモークテストで何を確認するか。
 
 ## Phase 9: ワークフロー図の作成（共通課程の図・発展拡張）

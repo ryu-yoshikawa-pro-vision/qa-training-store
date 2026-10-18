@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugHeading } from "../spec/slug-heading";
 import {
   OFFICIAL_RUNNER_EVIDENCE_REF_PATTERN,
   OFFICIAL_RUNNER_EVIDENCE_REF_PREFIX_PATTERN,
@@ -77,15 +78,16 @@ export const challengeIdSchema = z
   .string()
   .regex(/^CHALLENGE-(?:BASIC|INTERMEDIATE|ADVANCED)-[0-9]{3}$/);
 const charterId = z.string().regex(/^CHARTER-[0-9]{3}$/);
-export const specRefSchema = z
-  .string()
-  .refine(
-    (value) =>
-      /^BR-[A-Z0-9]+-[0-9]{3}$/.test(value) ||
-      /^AC-[A-Z0-9]+-[0-9]{3}$/.test(value) ||
-      /^docs\/spec\/(?!.*\.\.)[^#\s]+\.md(?:#[a-z0-9][a-z0-9-]*)?$/.test(value),
-    "must be a BR, AC, or repo-relative Normative Markdown reference",
+export const specRefSchema = z.string().refine((value) => {
+  if (/^BR-[A-Z0-9]+-[0-9]{3}$/.test(value) || /^AC-[A-Z0-9]+-[0-9]{3}$/.test(value)) {
+    return true;
+  }
+  const match = /^docs\/spec\/(?!.*\.\.)[^#\s]+\.md(?:#([\p{L}\p{N}][\p{L}\p{N}-]*))?$/u.exec(
+    value,
   );
+  const fragment = match?.[1];
+  return match !== null && (fragment === undefined || fragment === slugHeading(fragment));
+}, "must be a BR, AC, or repo-relative Normative Markdown reference");
 const platform = z.enum(["web", "android", "ios"]);
 const role = z.enum(["guest", "customer", "operator", "admin"]);
 export const evidenceTypeSchema = z.enum([
