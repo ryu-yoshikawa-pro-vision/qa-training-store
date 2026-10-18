@@ -40,6 +40,10 @@
 | 教材更新 | 公開Templateの後続更新は、受講中の個人リポジトリへ自動反映しない。配布元revisionを保持し、明示的に更新した場合だけ差分を適用 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 実行環境 | 個人所有・2コアCodespacesを標準とする。Phase 1・2でGit/PR/CI操作を要求しない。Phase 2は同期先だけでBuild/Serve/Reset/Playwrightを成立させる | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Skillの使用順 | 学習目標に必要なSkill Packageだけを使う。M06は`e2e-test-inspection`→`e2e-test-implementation`→`e2e-test-execution`の前提を確認。全Skillの習熟やworkflow全工程の実行を強制しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| M02→M03の入力とSkill経路 | M02に検証責務ID、BR/AC、関連リスク、期待する成立条件・不変条件を明記し、M03で`test-condition-design`の**`direct` mode**に接続する。`artifact` modeはcurrent TR Entityを要する別経路として区別し、入力不足をAIが補完しない | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| 直接の本人判断評価 | M04・M07・M10の正式修了で、評価担当者が未提示の条件変更・誤りを1件示し、AI生成回答に依存せず本人が根拠と判断を説明したことを確認する。通常演習はAI利用可 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 22状態の実データ共有 | 11モジュール×開始/終了の22個の論理状態は維持。共通する公開可能な設定・Seed等は同一ID/revisionで参照し、公開サンプルと非公開模範の実体は分離。前後の本人成果物と公開サンプルは同じ入力契約に適合する別IDを許す | [状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
+| 対応関係の正本 | 学習目標・習熟の説明はPlan、教材・問題・評価の本文は各実ファイル、**ID間の関係はJSONグラフ**。Markdown対応表は生成物とし、二重の手動更新を防ぐ | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
 | 新旧カリキュラムの分離 | 旧17レッスン・104問・旧validator・正式回帰の契約は維持。新課程の同期/Playwright/CIは専用経路に分離する | [調査](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md) |
 | クイズと評価 | 四択は原則正解1つ、A〜Dの意味・正誤理由・根拠・復習先を記載。全必須観点Level 2以上でフェーズ修了。クイズ得点・AIの自己申告だけでは合格にしない | [クイズ](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 知識グラフ | JSONと読取り専用CLIを採用。51学習項目、教材・問題・実技・22状態・仕様・Skill・評価を結び、仕様やSkill改訂時の影響を追う。未登録変更を「影響なし」にしない | [知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
@@ -79,6 +83,7 @@
 | 管理者同期とモジュールロード | 固定SHA、機密データ混入の拒否、途中失敗・再ロード・シンボリックリンク・衝突時の非破壊性、指定1モジュールだけのロードをテスト | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 11モジュールの開始・終了基準状態 | **22状態**の実データ・契約・公開可能な入力サンプル・非公開模範を揃える。入力欠落・版違い・意図的FAILと正常開始を区別 | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 初見課題・教材・問題の妥当性 | 51学習項目を説明できる教材、正しい問題と全選択肢の解説、別条件を使ったM04/M07/M10の実技とLevel 2の証拠 | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| M02→M03の`direct` mode受入検証 | 固定commitでM02の検証責務を`test_requirements[]`へ接続し、Authority/Risk/Scopeのcurrent参照、TCN/CI→Case、誤モード・不足入力の停止を確かめる。**設計上はdirectを選択済み、実行成功は未確認** | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) |
 | 外部SkillとPython helper | 採用Skill Packageの参照・呼出し・入力/出力・検証と、2コアCodespacesでの実行結果。未実行を「使用済み」としない | [実行環境・Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Phase 2のE2E実行 | 新課程専用Playwright Config、対象spec、Seed/Reset、複数RunとTrace/Report、旧Trainingとの出力分離の証拠 | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Phase 3の専用CI | 受講者の明示的な有効化、最小権限、対象SHAとRun/Check/Artifactの一致、正式/旧workflowの非発火 | [実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
