@@ -39,6 +39,7 @@
   - `safe` の network false と `auto-net` の network true はwrapperが明示overrideする
   - PreToolUse/Bash hook: `.codex/hooks/pre_tool_use_policy.mjs`
   - Windows native launcher: `.codex/hooks/pre_tool_use_policy_windows.ps1`
+  - state-changing Git操作はHook所有checkoutのcanonical rootへ明示的に固定し、直接Git wrapperや`git -C`による対象変更を拒否する。詳細は[Git branch安全性](git-branch-safety.md#hookによる操作rootの固定)を参照する。
   - 文章品質Hook: `.codex/hooks/text_quality_gate.mjs`
 - `.codex/text-quality-rules.json`
   - Repository固有のliteral／regex ruleの正本。現在は4個の明示的な置換ruleをconfiguredで管理し、一般日本語ruleはここへ複製しない。

@@ -1082,8 +1082,8 @@ jobs:
           - package / lockfileのexact resolutionとRepository標準検証を確認した。
           - Security情報は公開可能な最小範囲に限定した。
           EOF
-          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Write
-          pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path "$run_dir/PLAN.md" "$run_dir/TASKS.md" "$run_dir/REPORT.md" -Check
+          node scripts/sanitize-codex-artifacts.mjs --path "$run_dir/PLAN.md" --path "$run_dir/TASKS.md" --path "$run_dir/REPORT.md" --write
+          node scripts/sanitize-codex-artifacts.mjs --path "$run_dir/PLAN.md" --path "$run_dir/TASKS.md" --path "$run_dir/REPORT.md" --check
           expected_changes=$(printf '%s\n' \
             package.json \
             pnpm-lock.yaml \

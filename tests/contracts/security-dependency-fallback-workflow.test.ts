@@ -547,7 +547,10 @@ describe("Security dependency fallback workflow", () => {
     expect(createRun).toContain('> "$RUNNER_TEMP/pre-run-validation.json"');
     expect(createRun).toContain('> "$RUNNER_TEMP/pre-run-graph.json"');
     expect(createRun).toContain("scripts/new-run.sh");
-    expect(createRun).toContain("sanitize-codex-artifacts.ps1");
+    expect(createRun).toContain("node scripts/sanitize-codex-artifacts.mjs");
+    expect(createRun.match(/node scripts\/sanitize-codex-artifacts\.mjs/gu)).toHaveLength(2);
+    expect(createRun).toContain("--write");
+    expect(createRun).toContain("--check");
     expect(createRun).not.toContain("finalize-validation.json");
     expect(createRun).toContain("needs_human:run_strategy_invalid");
 
@@ -582,7 +585,7 @@ describe("Security dependency fallback workflow", () => {
     const afterFinalGuard = finalize.slice(uploadIndex);
     for (const forbidden of [
       "scripts/new-run.sh",
-      "sanitize-codex-artifacts.ps1",
+      "sanitize-codex-artifacts.mjs",
       "pnpm run verify",
       "pnpm run test",
       "pnpm run build",

@@ -252,7 +252,7 @@ check_template_contract() {
   contains "### Standard and temporary artifacts" docs/reference/run-artifacts.md || return 1
   contains "### Past Run changes" docs/reference/run-artifacts.md || return 1
   contains "### Run Artifact Path Sanitization" docs/reference/run-artifacts.md || return 1
-  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/run-artifacts.md || return 1
+  contains "scripts/sanitize-codex-artifacts.mjs" docs/reference/run-artifacts.md || return 1
   contains '`Write`' docs/reference/run-artifacts.md || return 1
   contains '`Check`' docs/reference/run-artifacts.md || return 1
   contains "未サニタイズのローカル絶対パス" docs/reference/run-artifacts.md || return 1

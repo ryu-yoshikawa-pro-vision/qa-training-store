@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "run_id": "20261017-221147-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "missing_validation",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "両Planの実装、関連contract、test:hooks、test:contracts、pnpm run verify、commit/push、PR更新は実施。修正前head 001ab889とrepair head 7332fe65のexact-head CIで同じWindows Hook contract 11件がG10失敗し、Mobile CIは両方成功。bounded repair後も同じfailureが再現したためrepair-loop stop_no_progressで停止。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "pnpm run verify: 48 contract files, 818 passed, 3 skipped; exit 0."
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20261017-221147-JST/REPORT.md",
+          "summary": "実装commit/push/PR lifecycleを記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "差分は2 PlanのHook、Sanitizer、wrapper、CI、運用契約、契約テスト、Run Artifactに限定。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "ローカルWindowsで修正後のtest:hooks 215、test:contracts 48 files / 818 pass / 3 skip、pnpm run verify exit 0。Actions repair head 7332fe65ではWeb CIのWindows Hook contract 11件が同じG10で失敗、Mobile CI成功。"
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "production Hook policyを変更せず、既存安全contractとnested PreToolUse拒否は確認済み。Windows Actionsの必須Hook contract 11件が2回のexact-head CIでG10となり、修正後も未解決。追加repairはbounded repair-loopの同一failure stop条件で停止。force push等なし。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "テスト差分、Run artifact、git diff --checkをレビュー。隔離Git homeはcontract testだけに使用しfixture trustを一時化、利用者global configとproduction Hookには変更なし。prettier、strict collector/schema、sanitizer、text品質検査が成功。"
+    },
+    "maintainability": {
+      "rating": "warn",
+      "evidence": "共通runtimeはNode CLIに統一済み。compact SessionStart設定参照を外した後のsession_start_context.mjsと旧PowerShell sanitizer libraryは未参照のまま残置。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "ローカルWindows + WSL gatesは成功。Windows ActionsでWeb CI run 39081151487と39084764098の両方が同じ11 Hook contract casesで失敗し、Mobile CI runs 39081151606と39084764107は成功。隔離Git home修正はローカルでは有効だがActionsでは同じ失敗を再現。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "修正後head 7332fe6590d28d7f067837e31628ab03e3566d94のWeb CI run 39084764098でWindows Hook contract 11/215件がG10失敗。Mobile App CI run 39084764107成功。",
+      "detail": "隔離Git home修正後も同じWindows Actions failureが再現したため、required CIと安全contractの完了条件は未達。Direct interactive tool / Full Access / Approve for meも個別未検証。repair-loopのsame-failure stop conditionでコード修正を停止し、原因を追加調査する必要がある。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "compact専用SessionStart設定は削除したが、未参照session_start_context.mjsファイルと旧PowerShell sanitizer libraryは残置。",
+      "detail": "現行設定・wrapper・CI経路では使用されない。物理削除はRepositoryのdelete制約に従って行わず、残存リスクとして記録する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "detail": "隔離Git homeへのsafe.directory追加はローカルで成功したが、Windows Actionsでは同じG10 failureが再発した。CIログだけではHook subprocessが隔離configを読まない問題かfixture root解決差かを確定できない。Repository repair-loopの反復停止条件を適用し、追加変更は行わずstop_no_progressとして記録。",
+      "severity": "medium",
+      "evidence": "Web CI run 39081151487および39084764098でWindows Codex Hook contractの同じ11/215件がG10となった。Mobile CI runs 39081151606と39084764107は成功。ローカルでは隔離Git home修正後のHook 215、全contracts 818、pnpm run verifyが成功。"
+    }
+  ],
+  "improvement_candidates": []
+}

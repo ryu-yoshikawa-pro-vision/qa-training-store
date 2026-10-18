@@ -261,7 +261,7 @@ function Test-TemplateContract {
         "### Standard and temporary artifacts",
         "### Past Run changes",
         "### Run Artifact Path Sanitization",
-        "scripts/sanitize-codex-artifacts.ps1",
+        "scripts/sanitize-codex-artifacts.mjs",
         "Write",
         "Check",
         "Unsanitized local absolute paths prevent Run completion",
