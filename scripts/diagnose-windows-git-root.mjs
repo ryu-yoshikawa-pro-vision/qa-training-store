@@ -117,9 +117,10 @@ function configPresence(executable, configPath, key, expectedRoot) {
 }
 
 function executableEvidence(executable) {
-  const resolved = canonicalize(executable);
-  const version = runGit(executable, ["--version"], repoRoot);
-  const execPathResult = runGit(executable, ["--exec-path"], repoRoot);
+  const pathForEvidence = executable.resolvedExecutable ?? executable.executable;
+  const resolved = canonicalize(pathForEvidence);
+  const version = runGit(executable.executable, ["--version"], repoRoot);
+  const execPathResult = runGit(executable.executable, ["--exec-path"], repoRoot);
   const execPath = execPathResult.exitCode === 0 ? canonicalize(execPathResult.stdout) : null;
   const coreExecutable =
     execPath?.succeeded === true ? path.resolve(execPath.path, "..", "..", "bin", "git.exe") : null;
@@ -207,19 +208,19 @@ function rootResolution(executable, fixtureRoot, gitDir) {
 
 function inspectFixture(executable, version, fixtureKind, fixtureRoot) {
   const gitEntry = path.join(fixtureRoot, ".git");
-  const init = runGit(executable, ["init", "--quiet", fixtureRoot], repoRoot);
+  const init = runGit(executable.executable, ["init", "--quiet", fixtureRoot], repoRoot);
   const gitEntryStat = fs.existsSync(gitEntry) ? fs.lstatSync(gitEntry) : null;
   const gitDirectory = fixtureGitDirectory(fixtureRoot);
   const gitDir = gitDirectory.path;
   const immediate = {
     showToplevel: inspectPath(
-      executable,
+      executable.executable,
       ["rev-parse", "--show-toplevel"],
       fixtureRoot,
       fixtureRoot,
     ),
     absoluteGitDir: inspectPath(
-      executable,
+      executable.executable,
       ["rev-parse", "--absolute-git-dir"],
       fixtureRoot,
       gitDir,
@@ -228,7 +229,7 @@ function inspectFixture(executable, version, fixtureKind, fixtureRoot) {
   const configPath = path.join(gitDir, "config");
 
   return {
-    gitVersion: version,
+    gitExecutableCase: version,
     fixtureKind,
     fixturePathFormat: pathShape(fixtureRoot),
     fixtureSeparatorStyle:
@@ -255,22 +256,42 @@ function inspectFixture(executable, version, fixtureKind, fixtureRoot) {
     gitFilePointerTargetExists: gitDirectory.pointerTargetExists,
     gitDirectoryExists: fs.existsSync(gitDir),
     configExists: fs.existsSync(configPath),
-    coreWorktree: configPresence(executable, configPath, "core.worktree", fixtureRoot),
-    worktreeConfig: configPresence(executable, configPath, "extensions.worktreeConfig"),
+    coreWorktree: configPresence(executable.executable, configPath, "core.worktree", fixtureRoot),
+    worktreeConfig: configPresence(executable.executable, configPath, "extensions.worktreeConfig"),
     immediatelyAfterInit: immediate,
-    resolutions: rootResolution(executable, fixtureRoot, gitDir),
+    resolutions: rootResolution(executable.executable, fixtureRoot, gitDir),
   };
 }
 
 function validateExecutables() {
   return versions.map((entry) => {
     if (!entry.executable) throw new Error(`Missing pinned executable for ${entry.label}`);
-    const evidence = executableEvidence(entry.executable);
+    const prepared = { ...entry, resolvedExecutable: entry.executable };
+    const evidence = executableEvidence(prepared);
     if (evidence.version !== `git version ${entry.label}`) {
       throw new Error(`Pinned Git version did not match ${entry.label}`);
     }
-    return { ...entry, evidence };
+    return { ...prepared, evidence };
   });
+}
+
+function resolveRunnerGit() {
+  const result = spawnSync("where.exe", ["git.exe"], {
+    cwd: repoRoot,
+    env: process.env,
+    encoding: "utf8",
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  const candidates =
+    result.status === 0
+      ? result.stdout
+          .split(/\r?\n/u)
+          .map((candidate) => candidate.trim())
+          .filter((candidate) => /(?:^|[\\/])git\.exe$/iu.test(candidate))
+      : [];
+  if (candidates.length === 0) throw new Error("Runner Git executable could not be resolved");
+  return { candidateCount: candidates.length, executable: path.resolve(candidates[0]) };
 }
 
 function createFixture(fixtureKind) {
@@ -300,13 +321,48 @@ function compareFixture(fixtureKind, preparedVersions) {
 
 try {
   const preparedVersions = validateExecutables();
+  const runnerGit = resolveRunnerGit();
+  const executables = [
+    ...preparedVersions,
+    {
+      label: "runner-PATH",
+      executable: "git",
+      resolvedExecutable: runnerGit.executable,
+    },
+    {
+      label: "runner-absolute",
+      executable: runnerGit.executable,
+      resolvedExecutable: runnerGit.executable,
+    },
+  ];
+  const executableResults = executables.map((entry) => ({
+    label: entry.label,
+    evidence: executableEvidence(entry),
+  }));
+  const runnerPathEvidence = executableResults.find(
+    (entry) => entry.label === "runner-PATH",
+  ).evidence;
+  const runnerAbsoluteEvidence = executableResults.find(
+    (entry) => entry.label === "runner-absolute",
+  ).evidence;
   const comparison = {
     platform: process.platform,
     sameProcessEnvironment: true,
-    gitExecutables: preparedVersions.map(({ label, evidence }) => ({ label, ...evidence })),
+    gitExecutables: executableResults.map(({ label, evidence }) => ({ label, ...evidence })),
+    runnerLaunchComparison: {
+      whereResultCount: runnerGit.candidateCount,
+      selectedExecutablePathFormat: pathShape(runnerGit.executable),
+      executableSha256Matches:
+        runnerPathEvidence.executableSha256 === runnerAbsoluteEvidence.executableSha256,
+      coreExecutableSha256Matches:
+        runnerPathEvidence.coreExecutableSha256 === runnerAbsoluteEvidence.coreExecutableSha256,
+      versionMatches: runnerPathEvidence.version === runnerAbsoluteEvidence.version,
+      bothExecPathsInsidePackage:
+        runnerPathEvidence.execPathInsidePackage && runnerAbsoluteEvidence.execPathInsidePackage,
+    },
     fixtures: [
-      ...compareFixture("ascii-with-space", preparedVersions),
-      ...compareFixture("japanese-with-space", preparedVersions),
+      ...compareFixture("ascii-with-space", executables),
+      ...compareFixture("japanese-with-space", executables),
     ],
   };
   process.stdout.write(`[windows-git-root-comparison] ${JSON.stringify(comparison)}\n`);

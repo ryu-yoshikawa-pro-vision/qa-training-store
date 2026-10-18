@@ -247,7 +247,7 @@ jobs:
             }
 
             $gitExecutable = Join-Path $installDirectory "cmd\git.exe"
-            if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
+            if (-not [System.IO.File]::Exists($gitExecutable)) {
               throw "PortableGit executable is missing for $($release.Tag)"
             }
             Add-Content -LiteralPath $env:GITHUB_ENV -Value "$($release.EnvironmentName)=$gitExecutable"

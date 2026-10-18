@@ -142,3 +142,12 @@
 - Validation: `corepack pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` は1 file／27 tests passed。Windows job内PowerShell blockのParser確認、workflow／診断scriptのPrettier、Node `--check`もpass。
 - Remaining: 変更はまだ未commit。次のActions runで同一runner比較を取得する。root不一致の原因は未特定であり、比較が絞り込めない場合はここで調査を止める。
 - Progress: 70% (19/27)。Git matrix実測、root原因特定、原因に応じた修正、`test:hooks`／`test:contracts`／`verify`、最新head CIは未達。
+
+## 2026-10-18 — PortableGit版／path matrix結果
+
+- CI: commit `5ac9708585a8dffc9b6f61634c9556e0d272ccaf`のWeb CI run `39120817190`で比較stepがsuccess。PortableGit 2.55.0.windows.5と2.56.0.windows.2の各package SHA-256照合・展開・実行file解決が通り、Windows runner上で同じfixture directoryを使って比較した。
+- 観測: 2バージョンともASCII+space、日本語+spaceの両fixtureで、`git init`直後、cwdのみ、`git -C`、明示Git-dir／worktreeの`--show-toplevel`と`--absolute-git-dir`がfixtureに一致。全てdrive-absoluteでrealpath成功。Gitの出力separatorはslash、Node fixture pathはbackslashだがcanonical比較は一致。temp baseはASCII、`.git`はdirectory、config有、`core.worktree`／worktreeConfig無効。
+- 判定: PortableGitでは版差・日本語path差・slash/backslash表記差のいずれもroot不一致を再現しなかった。一方、同じrunのHook contract内診断はPATHで起動したrunner Git `2.56.0.windows.2`についてroot/Git-dir不一致を示し、12/216 testsがG10で失敗。よって、Gitのsemverまたはfixture文字種だけでは説明できず、実際のrunner Git executable／PATHとPortableGitの起動・配置差が残る比較対象。原因確定とは扱わない。
+- CI内追加failure: `test:contracts`の1 testは診断追加の`Test-Path`文字列がsanitizer workflow contractの対象範囲に入ったためfailure。workflowで`[System.IO.File]::Exists`へ置換し、既存の`native-ci-workflow`／`codex-artifact-sanitization` contractをローカル再実行して2 files／36 tests pass。test自体は未変更。
+- 次の診断: runnerのPATHから`where.exe git.exe`で解決した実体のname／SHA／exec-pathを記録し、同一exeのPATH呼出しとabsolute-path呼出し、PortableGit 2.56を同じpath matrixで比較する。絶対pathは出力しない。
+- Progress: 70% (19/27)。実行経路差の切り分け、元のroot原因確定、原因別の修正・要求検証・最新head CIは未達。
