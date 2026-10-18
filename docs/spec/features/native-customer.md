@@ -2,21 +2,21 @@
 
 ## Purpose / Scope
 
-Native CustomerがWebと共有するProduct Behaviorを、SQLite/Native KVとNative Shellで提供する契約を定義します。Native Admin、Guest Checkout、iOS物理端末Runtimeは対象外です。
+Native CustomerがWeb版と共有するプロダクトの振る舞いを、SQLite／ネイティブKVおよびネイティブシェルによって提供するための契約を定義します。Native Admin、ゲストチェックアウト、およびiOS実機環境（物理端末ランタイム）は対象外です。
 
 ## Business Rules
 
 ### BR-NATIVE-001 — Native Customerは共有Application契約に従う
 
-Login、Account、Cart、Checkout、Payment、Order、Reviewの意味、Role、State、Error、SnapshotをWebと共有し、Native専用の簡略業務Ruleを作りません。
+ログイン、アカウント、カート、チェックアウト、決済、注文、レビューの定義やロール、状態、エラー、スナップショットをWeb版と共有し、ネイティブ専用の簡略化したビジネスルールは作成しません。
 
 ### BR-NATIVE-002 — Native RuntimeとProduction Capabilityを分離する
 
-Automation/DevelopmentだけがTest Control、Harness、Automation Bridgeを持ち、Production Buildはそれらを公開・Importしません。Native SQLite Mutationはexclusive transactionとFK checkを守ります。
+自動テスト環境および開発環境のみがテストコントロール、ハーネス、自動化ブリッジを保持し、本番ビルド（Production Build）ではこれらを公開・インポートしません。ネイティブSQLiteにおけるデータ更新（Mutation）では、排他トランザクション（exclusive transaction）と外部キー制約チェック（FK check）を遵守します。
 
 ## UI / Behavior Contract
 
-Androidは標準Native Runtime対象で、Maestroはユーザー操作、観測、実行記録、個別の指摘（Atomic Finding）へ接続します。iOSは独立BuildとBuild-time guard/artifactを検証し、Simulator Runtime/Maestroは正式Gateにしません。
+Androidは標準のネイティブランタイム対象であり、Maestroによるユーザー操作、状態の観測、実行ログの記録、個別の指摘（Atomic Finding）への連携を行います。iOSは独立したビルドおよびビルド時のガード機能や成果物（artifact）を検証対象とし、シミュレータ環境やMaestroによる検証は正式な品質ゲート（Gate）とはしません。
 
 ## Acceptance Criteria
 
@@ -26,13 +26,13 @@ Androidは標準Native Runtime対象で、Maestroはユーザー操作、観測�
 
 Related BR: `BR-NATIVE-001`
 
-Native Customerの購入・Order・ReviewとRole/State/Failureが共有Application契約と一致し、Admin capabilityが混入しません。
+Native Customerにおける購入・注文・レビューの処理、およびロール／状態／エラー（Failure）の定義が共有アプリケーション契約と一致しており、管理者権限（Admin capability）が混入しないこと。
 
 #### AC-NATIVE-002 — AutomationとProductionを隔離する
 
 Related BR: `BR-NATIVE-002`
 
-Automation BuildでTest Control/Harnessが到達でき、Production BundleではMarker、Module、画面、Serviceが存在しません。Android RuntimeとiOS Build-onlyの保証範囲が混同されません。
+自動テスト用ビルド（Automation Build）からテストコントロールやハーネスにアクセス可能であり、本番用バンドル（Production Bundle）にはテスト用マーカー、モジュール、画面、サービスが一切存在しないこと。また、AndroidランタイムとiOSのビルド検証のみ（Build-only）の保証範囲が混同されないこと。
 
 ## Executable Canonical Sources
 

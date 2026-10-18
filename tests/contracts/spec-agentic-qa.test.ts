@@ -16,6 +16,7 @@ import {
   qaFindingsSchema,
   runnerSessionSchema,
   runIdSchema,
+  specRefSchema,
   toolProfileSchema,
   workingTreeSnapshotSchema,
   type QaFindings,
@@ -54,10 +55,74 @@ import {
 } from "../../scripts/agentic-qa/validate-contracts";
 import { buildSpecSite } from "../../scripts/spec/build-spec";
 import { slugHeading } from "../../scripts/spec/slug-heading";
+import { extractNavigation, parseMarkdownFile } from "../../scripts/spec/markdown";
 import { extractBrAcIds, formatSpecImpactSummary } from "../../scripts/spec/summarize-impact";
 import { validateMarkdownSpec } from "../../scripts/spec/validate-spec";
+import { resolveSpecReference } from "../../scripts/agentic-qa/spec-refs";
 
 const rootDir = path.resolve(__dirname, "../..");
+const englishFeatureSections = [
+  "Purpose / Scope",
+  "Business Rules",
+  "UI / Behavior Contract",
+  "Acceptance Criteria",
+  "Executable Canonical Sources",
+];
+const japaneseFeatureSections = [
+  "目的・対象範囲（Purpose / Scope）",
+  "ビジネスルール（Business Rules）",
+  "UI・振る舞い規約（UI / Behavior Contract）",
+  "受入基準（Acceptance Criteria）",
+  "実行可能カノニカルソース（Executable Canonical Sources）",
+];
+
+function createFeatureSpec(sections: string[]): string {
+  return `# Fixture\n\n${sections.map((section) => `## ${section}\n\nContent.`).join("\n\n")}\n`;
+}
+
+function validateSpecFixture(readme: string, feature = createFeatureSpec(englishFeatureSections)) {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "spec-contract-fixture-"));
+  const specRoot = path.join(temporary, "docs", "spec");
+  const featurePath = path.join(specRoot, "features", "fixture.md");
+  fs.mkdirSync(path.dirname(featurePath), { recursive: true });
+  fs.writeFileSync(path.join(specRoot, "README.md"), readme);
+  fs.writeFileSync(featurePath, feature);
+  try {
+    return validateMarkdownSpec(temporary);
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
+function fixtureReadme(navigation: string): string {
+  return `# Fixture\n\n${navigation}\n`;
+}
+
+function createBrAcFeature(relatedLines: string): string {
+  return [
+    "# Cart",
+    "## Purpose / Scope",
+    "Cart scope.",
+    "## Business Rules",
+    "### BR-CART-001 — First rule",
+    "First rule.",
+    "### BR-CART-002 — Second rule",
+    "Second rule.",
+    "## UI / Behavior Contract",
+    "UI contract.",
+    "## Acceptance Criteria",
+    "#### AC-CART-001 — Cart acceptance",
+    "Acceptance.",
+    relatedLines,
+    "## Executable Canonical Sources",
+    "Canonical sources.",
+    "",
+  ].join("\n\n");
+}
+
+function fixtureNavigation(heading = "Navigation", target = "./features/fixture.md"): string {
+  return `## ${heading}\n\n- [Fixture](${target})`;
+}
 
 function fixtureEvidenceRef(fileName: string, runId = "20260810-000001-JST"): string {
   return agenticQaRef(runId, "runner", "evidence", fileName);
@@ -196,6 +261,145 @@ describe("Specification and Agentic QA contracts", () => {
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
     }
+  });
+
+  it("accepts one English or Japanese spec navigation and rejects malformed lists", () => {
+    const readme = parseMarkdownFile(
+      path.join(rootDir, "docs/spec/README.md"),
+      "docs/spec/README.md",
+    );
+    const navigation = extractNavigation(readme);
+    expect(navigation.map((item) => item.target)).toEqual([
+      "./product-scope.md",
+      "./roles-and-permissions.md",
+      "./features/storefront.md",
+      "./features/authentication.md",
+      "./features/cart.md",
+      "./features/checkout-and-payment.md",
+      "./features/orders.md",
+      "./features/reviews.md",
+      "./features/admin-catalog.md",
+      "./features/admin-inventory.md",
+      "./features/admin-orders.md",
+      "./features/admin-users.md",
+      "./features/native-customer.md",
+      "./state-and-scenarios.md",
+      "./ui-ux-contract.md",
+      "./screen-catalog.md",
+    ]);
+    expect(validateSpecFixture(fixtureReadme(fixtureNavigation("Navigation")))).toEqual([]);
+    expect(
+      validateSpecFixture(fixtureReadme(fixtureNavigation("ナビゲーション（Navigation）"))),
+    ).toEqual([]);
+
+    const invalidReadmes = [
+      fixtureReadme("## Overview\n\n- [Fixture](./features/fixture.md)"),
+      fixtureReadme("## Navigation\n\n## Navigation\n\n- [Fixture](./features/fixture.md)"),
+      fixtureReadme(
+        "## Navigation\n\n## ナビゲーション（Navigation）\n\n- [Fixture](./features/fixture.md)",
+      ),
+      fixtureReadme("## Navigation\n\nNo links."),
+      fixtureReadme(fixtureNavigation("Navigation", "./features/missing.md")),
+    ];
+    const diagnostics = invalidReadmes.map((content) =>
+      validateSpecFixture(content)
+        .map((item) => item.message)
+        .join("\n"),
+    );
+    expect(diagnostics[0]).toContain("Navigation must contain");
+    expect(diagnostics[1]).toContain("exactly one Navigation heading");
+    expect(diagnostics[2]).toContain("exactly one Navigation heading");
+    expect(diagnostics[3]).toContain("Navigation must contain");
+    expect(diagnostics[4]).toContain("Navigation target does not exist");
+  });
+
+  it("accepts existing Unicode spec anchors and still verifies exact anchor existence", () => {
+    const english = "docs/spec/features/authentication.md#purpose-scope";
+    const japanese = "docs/spec/features/cart.md#screen-storefront-cart-カート";
+    expect(specRefSchema.safeParse(english).success).toBe(true);
+    expect(specRefSchema.safeParse(japanese).success).toBe(true);
+    expect(resolveSpecReference(rootDir, english)).toMatchObject({
+      ownerPath: "docs/spec/features/authentication.md",
+      anchor: "purpose-scope",
+    });
+    expect(resolveSpecReference(rootDir, japanese)).toMatchObject({
+      ownerPath: "docs/spec/features/cart.md",
+      anchor: "screen-storefront-cart-カート",
+    });
+
+    const nonexistent = "docs/spec/features/cart.md#存在しない見出し";
+    expect(specRefSchema.safeParse(nonexistent).success).toBe(true);
+    expect(resolveSpecReference(rootDir, nonexistent)).toBeNull();
+    for (const invalid of [
+      "docs/spec/features/../cart.md#screen-storefront-cart-カート",
+      "docs/spec/features/cart.md#",
+      "docs/spec/features/cart.md#Screen-Storefront-Cart",
+      "BR-CART-01",
+    ])
+      expect(specRefSchema.safeParse(invalid).success, invalid).toBe(false);
+  });
+
+  it("accepts Japanese and English Feature section aliases without banning other H2 headings", () => {
+    const readme = fixtureReadme(fixtureNavigation());
+    const mixed = [...englishFeatureSections];
+    mixed[1] = japaneseFeatureSections[1]!;
+    expect(validateSpecFixture(readme, createFeatureSpec(japaneseFeatureSections))).toEqual([]);
+    expect(validateSpecFixture(readme, createFeatureSpec(mixed))).toEqual([]);
+
+    const withOptionalSection = [...englishFeatureSections];
+    withOptionalSection.splice(2, 0, "Notes");
+    expect(validateSpecFixture(readme, createFeatureSpec(withOptionalSection))).toEqual([]);
+
+    const missing = [...japaneseFeatureSections];
+    missing[3] = "受入基準";
+    const duplicated = [...englishFeatureSections];
+    duplicated.splice(2, 0, japaneseFeatureSections[1]!);
+    const outOfOrder = [...englishFeatureSections];
+    [outOfOrder[2], outOfOrder[3]] = [outOfOrder[3]!, outOfOrder[2]!];
+    for (const sections of [missing, duplicated, outOfOrder]) {
+      expect(
+        validateSpecFixture(readme, createFeatureSpec(sections)).some((item) =>
+          item.message.startsWith("feature "),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["Related BR: `BR-CART-001`, `BR-CART-002`"],
+    ["関連ビジネスルール: `BR-CART-001`, `BR-CART-002`"],
+  ])("accepts a single valid BR reference line: %s", (relatedLine) => {
+    const readme = fixtureReadme(fixtureNavigation());
+    expect(validateSpecFixture(readme, createBrAcFeature(relatedLine))).toEqual([]);
+  });
+
+  it.each([
+    ["Related BR: BR-CART-001", "AC Related BR line does not match exact grammar"],
+    ["Related BR: `BR-CART-001`, `BR-CART-001`", "AC Related BR line contains duplicate BR IDs"],
+    ["Related BR: `BR-CART-999`", "AC references unknown BR: BR-CART-999"],
+    [
+      "Related BR: `BR-CART-001`\n\n関連ビジネスルール: `BR-CART-001`",
+      "AC must contain exactly one valid Related BR line",
+    ],
+    [
+      "Related BR: `BR-CART-001`\n\nRelated BR: BR-CART-001",
+      "AC must contain exactly one valid Related BR line",
+    ],
+    ["Related BR: ", "AC Related BR line does not match exact grammar"],
+  ])("rejects invalid or ambiguous BR reference lines: %s", (relatedLine, expected) => {
+    const issues = validateSpecFixture(
+      fixtureReadme(fixtureNavigation()),
+      createBrAcFeature(relatedLine),
+    );
+    expect(issues.map((item) => item.message).join("\n")).toContain(expected);
+  });
+
+  it("preserves Acceptance: N/A when each AC still has its exact BR reference", () => {
+    const feature = createBrAcFeature("Related BR: `BR-CART-001`, `BR-CART-002`").replace(
+      "### BR-CART-002 — Second rule\n\nSecond rule.",
+      "### BR-CART-002 — Second rule\n\nSecond rule.\n\nAcceptance: N/A — no separate acceptance criteria apply.",
+    );
+    expect(validateSpecFixture(fixtureReadme(fixtureNavigation()), feature)).toEqual([]);
   });
 
   it("summarizes referenced BR and Normative file impact without auto-failing content drift", () => {

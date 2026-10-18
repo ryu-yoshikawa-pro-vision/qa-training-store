@@ -1,23 +1,23 @@
-# Cloudflare Pages Deploy設計
+# Cloudflare Pages デプロイ設計
 
-## 1. Phase 1 Project
+## 1. フェーズ1 プロジェクト
 
-Cloudflare Pages Projectを1つだけ使用します。
+Cloudflare Pagesのプロジェクトは1つのみ運用します。
 
-| Project | Build | Test API | 用途 |
+| プロジェクト | ビルド | テストAPI | 用途 |
 |---|---|---:|---|
 | `ec-training-automation` | automation | ○ | Playwright・QA学習・手動確認 |
 
-一般向けPublic DemoはPhase 3で必要性を再評価します。初期から2 Projectを運用しません。
+一般向けの公開デモ（Public Demo）環境については、フェーズ3で必要性を再評価します。初期段階から2つのプロジェクトを並行運用することはありません。
 
 ## 2. 設定
 
-- Expo Web `output: single`
-- Build: `pnpm run build:web`
-- Output: `dist`
-- Production Branch: `main`
+- Expo Webの設定: `output: single`
+- ビルドコマンド: `pnpm run build:web`
+- 出力先ディレクトリ: `dist`
+- 本番ブランチ: `main`
 - Bot Fight Mode、Challenge、Turnstile、Cloudflare Accessは使用しない
-- Pages Functions、Workers、Server APIなし
+- Pages Functions、Workers、サーバーAPIは使用しない
 
 ### 2.1 package scripts
 
@@ -31,9 +31,9 @@ Cloudflare Pages Projectを1つだけ使用します。
 }
 ```
 
-Cloudflare Pages、Local Release Build、CIのWeb Buildはすべて`pnpm run build:web`を使用し、Manifest生成・検証を迂回する別Build Commandを持ちません。
+Cloudflare Pages、ローカルのリリースビルド、CI環境におけるWebビルドは、すべて共通して`pnpm run build:web`を使用します。マニフェストの生成や検証をバイパスするような別のビルドコマンドは用意しません。
 
-## 3. Build変数
+## 3. ビルド環境変数
 
 ```text
 EXPO_PUBLIC_APP_ENV=automation
@@ -42,18 +42,18 @@ EXPO_PUBLIC_TEST_MODE=true
 EXPO_PUBLIC_DEFAULT_SEED=default
 ```
 
-Build SHA、App/Schema/Seed Versionを含めます。秘密情報は置きません。
+ビルドSHA、アプリ／スキーマ／シードの各バージョン情報を含めます。シークレットなどの秘密情報は設定しません。
 
-## 4. Preview
+## 4. プレビュー環境
 
-- PR Previewを生成する。
-- Dependabot等の自動更新BranchはPreview対象外にできる。
-- PreviewごとにOriginが異なり、IndexedDBも独立する。
-- E2Eは各PreviewでReset/Seedしてから実行する。
+- プルリクエスト（PR）ごとにプレビュー環境を生成する。
+- Dependabotなどの自動更新ブランチはプレビュー生成の対象外に設定できる。
+- プレビュー環境ごとにオリジン（Origin）が異なり、IndexedDBのデータ領域も独立して管理される。
+- E2Eテストは、各プレビュー環境でデータのリセットおよびシード投入を行ってから実行する。
 
-## 5. SPA・Header
+## 5. SPA・ヘッダー
 
-- 独自静的`404.html`を置かず、Expo Routerの`+not-found`を使用する。
+- 独自の静的ファイル`404.html`は配置せず、Expo Routerの`+not-found`ルートを使用する。
 - `_headers`:
 
 ```text
@@ -65,30 +65,31 @@ Build SHA、App/Schema/Seed Versionを含めます。秘密情報は置きませ
   X-Robots-Tag: noindex
 ```
 
-## 6. Cache
+## 6. キャッシュ
 
-- Hash付きAssetは標準Cache。
-- HTMLは長期固定しない。
-- Seed AssetはVersion付き。
-- 業務DataはBrowser内だけ。
+- ハッシュ値が付与されたアセットファイルには標準キャッシュを適用する。
+- HTMLファイルは長期キャッシュで固定しない。
+- シードデータ用のアセットにはバージョンを付与して管理する。
+- 業務データはブラウザ内部のみに保持する。
 
-## 7. Smoke
+## 7. スモークテスト
 
-- HTTP 200とTest Mode Badge
-- Test API Metadata
-- Reset/default Seed
-- Home、Search Suggestion、商品検索
-- Login、正常購入、Order詳細
-- Admin Overview
+- HTTPステータス200の返却とテストモードバッジの表示確認
+- テストAPIメタデータの取得確認
+- リセット処理およびデフォルトシード投入の動作確認
+- ホーム画面、検索サジェスト、商品検索の動作確認
+- ログイン、正常な商品購入フロー、注文詳細画面の表示確認
+- 管理者概要（Admin Overview）画面の表示確認
 
-## 8. Rollback
+## 8. ロールバック
 
-Schema変更を含まない場合は直前の成功DeployへRollback可能です。Schema変更後のRollbackはData互換性を確認し、安易に行いません。
+データベーススキーマの変更を含まないデプロイであれば、直前の正常デプロイへロールバックが可能です。スキーマ変更を伴うデプロイ後のロールバックについては、データの互換性を慎重に確認し、安易には実施しません。
 
-## 9. Phase 3
+## 9. フェーズ3
 
-一般閲覧用URLが実際に必要になった場合だけPublic Projectを分離し、Test ModuleをBuild Graphから除外します。
+一般公開用の閲覧URLが実際に必要になった段階でのみ公開用プロジェクトを分離し、テスト用モジュールをビルドグラフから除外します。
 
 ## 商品画像配信
 
-`public/images/products/`と診断用`product-image-manifest.json`をExpo Exportへ含めます。RuntimeはBuild生成済み`src/generated/product-image-manifest.ts`をBundleから使用します。`pnpm run build:web`の先頭でManifest生成と検証を必ず実行し、File不存在・Hash不一致・500KB超過をDeploy失敗とします。GitHub APIへのClient書込みは行いません。
+`public/images/products/`内の画像アセットおよび診断用の`product-image-manifest.json`を、Expoのエクスポート成果物に含めます。ランタイム環境では、ビルド時に事前生成された`src/generated/product-image-manifest.ts`をバンドル内から参照して使用します。
+`pnpm run build:web`の実行時には先頭でマニフェストの生成と検証を必ず実行し、ファイルの欠落・ハッシュ値の不一致・500KBを超えるファイルが存在する場合はデプロイ失敗（ビルドエラー）として扱います。クライアント側からGitHub APIへの書き込み処理は行いません。

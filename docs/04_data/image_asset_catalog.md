@@ -1,10 +1,10 @@
-# GitHub商品画像Assetカタログ設計
+# GitHub商品画像アセットカタログ設計
 
 ## 1. 目的
 
-Backendを持たないPhase 1で、商品画像を安全かつ決定的に利用するため、GitHub Repository内の静的画像を正本とします。管理画面は画像BinaryをUploadせず、登録済みAssetと商品を関連付けます。
+バックエンドを持たないフェーズ1において、商品画像を安全かつ決定的に利用するため、GitHubリポジトリ内の静的画像を正本とします。管理画面からは画像バイナリを直接アップロードせず、登録済みのアセットと商品とを関連付けます。
 
-## 2. Directory
+## 2. ディレクトリ構成
 
 ```text
 public/
@@ -20,9 +20,9 @@ scripts/
 └── generate-image-manifest.ts
 ```
 
-Cloudflare Pagesでは`/images/products/...`として同一Origin配信します。
+Cloudflare Pagesでは、`/images/products/...` として同一オリジンから配信します。
 
-## 3. Manifest
+## 3. マニフェスト
 
 ```typescript
 type ProductImageAssetManifest = {
@@ -43,65 +43,65 @@ type ProductImageAssetManifest = {
 };
 ```
 
-- `config/product-image-assets.json`にassetId、path、defaultAltText、tags、isActiveを記述し、生成ScriptがFileからMIME、寸法、容量、SHA-256を補完する。
-- `assetId`と`path`はunique。
-- Pathは`/images/products/`配下だけを許可する。
-- active Assetだけを新規選択候補へ表示する。
-- inactive Assetも既存商品が参照している場合は表示できる。
+- `config/product-image-assets.json` に `assetId`、`path`、`defaultAltText`、`tags`、`isActive` を定義し、生成スクリプトが実ファイルからMIMEタイプ、寸法、ファイルサイズ、SHA-256ハッシュを補完します。
+- `assetId` と `path` は一意（ユニーク）である必要があります。
+- `path` は `/images/products/` 配下のみを許可します。
+- 有効なアセット（`isActive: true`）のみを新規選択の候補として表示します。
+- 無効化されたアセット（`isActive: false`）であっても、既存商品から参照されている場合は継続して表示可能です。
 
-## 4. 管理画面操作
+## 4. 管理画面の操作
 
-管理者がアプリ内で実行できること:
+管理者がアプリ内で実行できる操作:
 
-- Asset Catalogの検索・選択
-- 商品への関連付け追加
-- 関連解除
-- Primary画像変更
-- 表示順変更
-- Product固有Alt Text変更
+- アセットカタログの検索・選択
+- 商品への画像関連付けの追加
+- 関連付けの解除
+- メイン画像（Primary画像）の変更
+- 表示順序の変更
+- 商品固有の代替テキスト（Altテキスト）の変更
 
-管理者がアプリ内で実行しないこと:
+管理者がアプリ内で実行しない（禁止されている）操作:
 
-- Local FileのUpload
-- GitHubへのBinary追加・上書き・削除
-- GitHub Token入力
-- 外部URL画像の登録
+- ローカルファイルのアップロード
+- GitHubへの画像バイナリの追加・上書き・削除
+- GitHubトークンの入力
+- 外部URLによる画像の登録
 
-新しい画像を利用する場合は、Repository管理者がFile追加、Manifest Metadata追加/生成、PR Review、Cloudflare Deployを行います。
+新しい画像を利用する場合は、リポジトリ管理者がファイルの追加、マニフェストメタデータの追加・生成、プルリクエストのレビュー、Cloudflareへのデプロイという正規のフローを実施します。
 
 ## 5. 不変ルール
 
-- 公開済みAssetのBinaryを同一Pathで上書きしない。
-- 変更画像は新Hash File・新assetIdとして追加する。
-- Release済みAssetは、使用状態にかかわらず物理削除しない。GitHub CIは利用者ごとのIndexedDB参照を把握できないため、削除可否判定を行わない。
-- ProductImage関連削除やProduct削除ではAsset Binaryを削除しない。
-- 廃止は`isActive=false`だけで表し、Path/File/Manifest Entryは保持する。
+- 公開済みアセットのバイナリを、同一パスで上書きしてはなりません。
+- 画像を変更する場合は、新しいハッシュを含むファイル名・新しい `assetId` として新規追加します。
+- リリース済みのアセットは、使用状況にかかわらず物理削除しません。GitHub CI上ではユーザーごとのIndexedDBによる参照状況を把握できないため、削除可否の判定を行わない方針とします。
+- 商品画像の関連付け解除や商品自体の削除を行っても、アセットのバイナリファイルは削除しません。
+- アセットの廃止は `isActive=false` のフラグ変更のみで表現し、パス、実ファイル、マニフェストエントリはそのまま保持します。
 
-これにより、Order履歴やSeed Screenshotが後から別画像へ変わることを防ぎます。
+このルールにより、注文履歴や初期データ（Seed）のスクリーンショットが、後から意図せず別の画像に差し替わる事態を防ぎます。
 
-## 6. Build検証
+## 6. ビルド検証
 
-CIで次を検証します。
+CIでは以下の項目を自動検証します。
 
-1. Manifest Schema
-2. Asset File存在
-3. MIMEと拡張子
-4. 1ファイル500KB以下
-5. 寸法・1:1比率の警告
-6. SHA-256一致
-7. assetId/path重複なし
-8. Seedが参照するassetIdの存在
-9. Seed・静的Fixtureが参照するassetIdの存在
-10. Release済みManifest EntryのPath/Fileが過去Versionから削除されていないこと
+1. マニフェストのスキーマ検証（Manifest Schema）
+2. アセットファイルの実体が存在すること
+3. MIMEタイプと拡張子の一致
+4. 1ファイルあたり500KB以下であること
+5. 画像寸法および1:1（正方形）比率の検証（必要に応じた警告）
+6. SHA-256ハッシュの一致
+7. `assetId` および `path` の重複がないこと
+8. シードデータ（Seed）が参照する `assetId` が存在すること
+9. シードデータおよび静的フィクスチャ（Fixture）が参照する `assetId` が存在すること
+10. リリース済みマニフェストエントリのパスおよびファイルが、過去のバージョンから削除されていないこと
 
-## 7. Test
+## 7. テスト観点
 
-- Manifest Repository Contract Test
-- active/inactive Asset Filter
-- 既存inactive関連の維持、新規関連付け拒否、解除後再関連付け拒否
-- 存在しないassetIdのValidation Error
-- Product関連付け最大3件
-- Primary画像ちょうど1件
-- 上下移動Buttonで順序変更
-- Asset読込失敗時のPlaceholder
-- Product削除後もAsset URLが残ること
+- マニフェストリポジトリの契約テスト（Contract Test）
+- 有効／無効（active / inactive）アセットのフィルタリング検証
+- 既存の無効アセット関連付けの維持、新規関連付けの拒否、解除後の再関連付け拒否の検証
+- 存在しない `assetId` を指定した際のバリデーションエラー検証
+- 商品への画像関連付け上限（最大3件）の検証
+- メイン画像（Primary画像）が必ず1件設定されていることの検証
+- 上下移動ボタンによる並び順変更の動作検証
+- アセット読み込み失敗時のプレースホルダー表示検証
+- 商品削除後もアセットのURLが保持されることの検証

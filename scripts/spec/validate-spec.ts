@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { isNormativeSpecPath, listSpecMarkdown } from "./build-spec";
 import {
   extractNavigation,
+  findNavigationHeadings,
   isExternalLink,
   parseMarkdownFile,
   type ParsedMarkdown,
@@ -24,7 +25,17 @@ const BR_HEADING = /^### BR-[A-Z0-9]+-[0-9]{3} — .+$/;
 const AC_HEADING = /^#### AC-[A-Z0-9]+-[0-9]{3} — .+$/;
 const BR_ID = /^BR-[A-Z0-9]+-[0-9]{3}$/;
 const AC_ID = /^AC-[A-Z0-9]+-[0-9]{3}$/;
-const RELATED_BR = /^Related BR: `((?:BR-[A-Z0-9]+-[0-9]{3})(?:`, `BR-[A-Z0-9]+-[0-9]{3})*)`$/;
+const RELATED_BR =
+  /^(?:Related BR: |関連ビジネスルール: )`((?:BR-[A-Z0-9]+-[0-9]{3})(?:`, `BR-[A-Z0-9]+-[0-9]{3})*)`$/;
+const RELATED_BR_LABEL = /^(?:Related BR:|関連ビジネスルール:)/;
+
+const REQUIRED_FEATURE_SECTIONS = [
+  ["Purpose / Scope", "目的・対象範囲（Purpose / Scope）"],
+  ["Business Rules", "ビジネスルール（Business Rules）"],
+  ["UI / Behavior Contract", "UI・振る舞い規約（UI / Behavior Contract）"],
+  ["Acceptance Criteria", "受入基準（Acceptance Criteria）"],
+  ["Executable Canonical Sources", "実行可能カノニカルソース（Executable Canonical Sources）"],
+] as const;
 
 export function collectNormativeSpecReferences(
   rootDir = process.cwd(),
@@ -102,6 +113,16 @@ function validateNavigation(
     issue(issues, "docs/spec/README.md", "Specification entry point is missing");
     return;
   }
+  const headings = findNavigationHeadings(readme);
+  if (headings.length > 1) {
+    issue(
+      issues,
+      readme.relativePath,
+      "docs/spec/README.md must contain exactly one Navigation heading",
+      headings[1]?.line,
+    );
+    return;
+  }
   const navigation = extractNavigation(readme);
   if (navigation.length === 0) {
     issue(
@@ -120,35 +141,29 @@ function validateNavigation(
 }
 
 function validateFeatureGrammar(parsed: ParsedMarkdown, issues: SpecIssue[]): void {
-  const required = [
-    "Purpose / Scope",
-    "Business Rules",
-    "UI / Behavior Contract",
-    "Acceptance Criteria",
-    "Executable Canonical Sources",
-  ];
   const sectionHeadings = parsed.headings
     .filter((heading) => heading.level === 2)
     .map((heading) => heading.text);
-  const positions = required.map((heading) => sectionHeadings.indexOf(heading));
-  if (positions.some((position) => position < 0)) {
+  const counts = REQUIRED_FEATURE_SECTIONS.map(
+    (aliases) =>
+      sectionHeadings.filter((heading) => (aliases as readonly string[]).includes(heading)).length,
+  );
+  if (counts.some((count) => count === 0)) {
     issue(
       issues,
       parsed.relativePath,
-      `feature spec must contain required sections exactly once: ${required.join(" / ")}`,
+      `feature spec must contain required sections exactly once: ${REQUIRED_FEATURE_SECTIONS.map((aliases) => aliases[0]).join(" / ")}`,
     );
-  } else if (
-    positions.some(
-      (position, index) =>
-        sectionHeadings.filter((heading) => heading === required[index]).length !== 1,
-    ) ||
-    positions.some((position, index) => index > 0 && position <= positions[index - 1]!)
-  ) {
-    issue(
-      issues,
-      parsed.relativePath,
-      "feature required sections must be unique and in the exact order",
+  }
+  if (counts.some((count) => count > 1)) {
+    issue(issues, parsed.relativePath, "feature required sections must be unique");
+  }
+  if (counts.every((count) => count === 1)) {
+    const positions = REQUIRED_FEATURE_SECTIONS.map((aliases) =>
+      sectionHeadings.findIndex((heading) => (aliases as readonly string[]).includes(heading)),
     );
+    if (positions.some((position, index) => index > 0 && position <= positions[index - 1]!))
+      issue(issues, parsed.relativePath, "feature required sections must be in the exact order");
   }
 }
 
@@ -179,22 +194,41 @@ function validateBrAc(parsedFiles: Map<string, ParsedMarkdown>, issues: SpecIssu
             if (acs.has(id))
               issue(issues, parsed.relativePath, `duplicate AC id: ${id}`, index + 1);
             acs.set(id, { file: parsed.relativePath, line: index + 1, related: [] });
+            const relatedLines: { line: string; number: number }[] = [];
             for (let next = index + 1; next < parsed.lines.length; next += 1) {
               const nextLine = parsed.lines[next] ?? "";
               if (/^#{1,6}\s+/.test(nextLine)) break;
-              const related = RELATED_BR.exec(nextLine);
-              if (related !== null) {
-                const ids = related[1]?.match(/BR-[A-Z0-9]+-[0-9]{3}/g) ?? [];
-                acs.get(id)!.related.push(...ids);
-              }
+              if (RELATED_BR_LABEL.test(nextLine))
+                relatedLines.push({ line: nextLine, number: next + 1 });
             }
-            if ((acs.get(id)?.related.length ?? 0) === 0)
+            if (relatedLines.length !== 1) {
               issue(
                 issues,
                 parsed.relativePath,
-                `AC must contain one or more Related BR lines: ${id}`,
+                `AC must contain exactly one valid Related BR line: ${id}`,
                 index + 1,
               );
+            } else {
+              const related = RELATED_BR.exec(relatedLines[0]!.line);
+              if (related === null) {
+                issue(
+                  issues,
+                  parsed.relativePath,
+                  `AC Related BR line does not match exact grammar: ${id}`,
+                  relatedLines[0]!.number,
+                );
+              } else {
+                const ids = related[1]?.match(/BR-[A-Z0-9]+-[0-9]{3}/g) ?? [];
+                if (new Set(ids).size !== ids.length)
+                  issue(
+                    issues,
+                    parsed.relativePath,
+                    `AC Related BR line contains duplicate BR IDs: ${id}`,
+                    relatedLines[0]!.number,
+                  );
+                acs.get(id)!.related.push(...ids);
+              }
+            }
           }
         }
       }

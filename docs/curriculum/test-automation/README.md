@@ -2,107 +2,107 @@
 
 ## 目的
 
-このカリキュラムは、単にPlaywrightやMaestroの操作方法を覚えるのではなく、テスト対象の理解からテスト分析・設計、自動化対象の選定、実装、実行、結果分析、保守、CI/CDへの組み込みまでを一連の流れとして学ぶことを目的とします。
+このカリキュラムは、単にPlaywrightやMaestroの操作方法を習得するだけにとどまらず、テスト対象の理解からテスト分析・設計、自動化対象の選定、実装、実行、結果分析、保守、そしてCI/CDへの組み込みに至る一連のプロセスを体系的に学ぶことを目的としています。
 
-共通課程の卒業像は、実務に入りたての汎用テスト自動化エンジニアです。共通課程で身につける能力と、対象範囲を限定したレベル2の評価詳細は[習熟度評価基準](./02_competency-rubric.md)を正本とします。
+共通課程の卒業像は、実務に着任したばかりの汎用テスト自動化エンジニアです。共通課程で習得する能力と、対象範囲を限定したレベル2の評価基準の詳細は、[習熟度評価基準](./02_competency-rubric.md)を正本とします。
 
 最終的には、受講者が次の2段階へ到達することを目指します。
 
 ### Part 1: テスト自動化の基礎と実践
 
-- テスト自動化の目的、適用範囲、限界を説明できる。
-- テスト対象を調査し、Google Sheetsなどのスプレッドシートでテスト分析・設計を行える。
-- 自動化に向くテストと向かないテストを判断できる。
-- PlaywrightでWeb UIテストを設計・実装・実行できる。
-- モバイルアプリのUIテスト自動化を学ぶ選択課程では、MaestroによるUIテストを設計・実装・実行できる。
-- Trace、Screenshot、Video、JUnitなどの実行結果から失敗原因を分析できる。
-- テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Seed Scenarioなどを選択肢として使い分けられる。
-- テスト資産を整理し、Flaky Test、重複、実行時間、保守性を改善できる。
+- テスト自動化の目的、適用範囲、および限界を正しく説明できる。
+- テスト対象を調査し、Googleスプレッドシート等を用いてテスト分析・設計を行える。
+- 自動化に適したテストと適さないテストを的確に判断できる。
+- Playwrightを用いてWeb UIテストを設計・実装・実行できる。
+- モバイルアプリのUIテスト自動化を学ぶ選択課程において、MaestroによるUIテストを設計・実装・実行できる。
+- Trace、Screenshot、Video、JUnitレポートなどの実行結果から失敗原因を分析できる。
+- テストが増加する運用フェーズにおいて、Helper、Page Object Model（POM）、Fixture、Seed Scenarioなどの設計手法を選択肢として適切に使い分けられる。
+- テスト資産を整理し、Flaky Test（不安定なテスト）の解消、重複排除、実行時間の短縮、保守性の向上を実現できる。
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
 
-- 一般的なソフトウェア開発と変更管理の流れを説明できる。
-- Gitによるバージョン管理の基本を理解できる。
-- GitHub上でBranch、Commit、Pull Request、Reviewを扱える。
-- CIの目的を説明し、GitHub Actions上で自動テストを実行できる。
-- 対象範囲を限定したWeb CIにPlaywrightを組み込み、Trigger、Gate、Artifact、失敗を確認するための記録について説明できる。
-- PR、main、Nightly、Manualなどの実行タイミングを目的に応じて設計できる。
-- Quality Gate、Build、Preview、Production、Deploy後Smokeまで含むCI/CDの構成を比較教材として理解できる。
-- Scenario Shopを題材に、案件へテスト自動化を導入するための実行基盤を設計できる。
+- 一般的なソフトウェア開発の流れと変更管理プロセスを説明できる。
+- Gitによるバージョン管理の基本概念を理解できる。
+- GitHub上でBranch、Commit、Pull Request、Reviewを適切に扱える。
+- CIの目的を理解し、GitHub Actions上で自動テストを実行できる。
+- 対象範囲を限定したWeb CI環境にPlaywrightを組み込み、Trigger、Gate、Artifact、および失敗調査用ログの記録について説明できる。
+- PR作成時、mainブランチ、Nightly、手動実行（Manual）など、目的に応じたテスト実行タイミングを設計できる。
+- Quality Gate、Build、Preview、Production、およびデプロイ後のSmokeテストまでを含むCI/CDパイプラインの全体構成を比較教材として理解できる。
+- Scenario Shopを題材として、実際のプロジェクトへテスト自動化を導入するためのテスト実行基盤を設計できる。
 
 ## この文書群のスコープ
 
-このディレクトリは、テスト自動化学習の**カリキュラム本文と提供時の実行契約**を定義するものです。本文、習熟度評価基準、講師向け資料、CSV Workbook、Training Web / Nativeの入口、検証Script、CI Templateを同じリポジトリで管理します。
+このディレクトリは、テスト自動化学習における**カリキュラム本文と提供時の実行契約**を定義するものです。本文、習熟度評価基準、講師向け資料、CSV形式のワークブック、Training Web / Nativeの各エントリーポイント、検証用スクリプト、およびCIテンプレートを同一リポジトリ内で管理します。
 
-期待される製品動作は、[`docs/spec/README.md`](../../spec/README.md)を入口とする正式な仕様を判断の正本とします。既存UI、既存Test、README、観測した動作から教材用の期待動作を逆算して固定しません。
+期待される製品動作の判断基準については、[`docs/spec/README.md`](../../spec/README.md)を起点とする正式な仕様書を正本とします。既存のUI、既存テストコード、README、あるいは実際の観測動作から教材用の期待動作を逆算して固定することはしません。
 
 ## Lesson本文の共通契約
 
-講師の都度の説明がなくても進められるように、Canonicalな17 Lesson（`P1-01`〜`P1-09`、`P2-01`〜`P2-08`）は、各Lesson内で次を明示します。`P1-07`と`P2-06`はNativeの選択課程です。
+講師による都度の補足説明がなくても学習を円滑に進められるよう、標準の17レッスン（`P1-01`〜`P1-09`、`P2-01`〜`P2-08`）の本文内では、以下の項目を明示します（`P1-07`と`P2-06`はNativeアプリの選択課程です）。
 
-- **Input**: 配布物、前のLessonの成果物、受講者が作る準備物を区別し、出所、参照先、準備完了の確認方法を示す。
-- **Activity / Observation**: 何をどの順に行い、画面、ログ、差分、実行結果、Artifactの何を観察するかを示す。
-- **Output**: 何を残すか、編集場所の自由度、評価へ渡す形式、次のLessonでの使い方を示す。
-- **Self-check / Completion**: 自分で答える問いと最低限の要素、第三者が観測できる完了条件を分けて示す。用意されたbaselineやstarterのPASSだけを完了扱いにしない。
-- **Feedback / Recovery / Handoff**: 学習上のつまずき、テスト／製品のFailure、環境不足を区別し、復旧方法と次の受け手・ID・Evidence・開始条件を示す。
+- **Input**: 配布物、前レッスンの成果物、受講者が自ら用意する前提物を明確に区別し、それぞれの出所、参照先、準備完了の確認手順を示します。
+- **Activity / Observation**: 作業の手順と、画面・ログ・差分・実行結果・Artifactのどこを観察すべきかを具体的に示します。
+- **Output**: 何を成果物として残すか、編集可能な範囲、評価対象となる形式、および次のレッスンでの活用方法を示します。
+- **Self-check / Completion**: 自分で確認すべき問いと満たすべき要素、第三者が客観的に確認できる完了条件を明確に区別して示します。あらかじめ用意されたbaselineやstarterテストのPASSのみをもって完了とはみなしません。
+- **Feedback / Recovery / Handoff**: 学習上のつまずき、テストや製品の不具合（Failure）、環境起因の不備を明確に区別し、リカバリー手順とともに、次の引き継ぎ先・ID・エビデンス・開始条件を示します。
 
-受講者はGoogle Sheetsや任意のローカルFolderで作業できますが、Part 1からPart 2の最終確認へ渡す評価用正本は、固定`handoff-root/`へ集約します。4つのWorkbook CSVは`handoff-root/workbook/`、Repository相対の受講者コードは`handoff-root/code/`、実行Evidenceは`handoff-root/evidence/`、Execution Receiptは`handoff-root/receipts/`、Lesson ID別の自己確認は`handoff-root/self-check/`へ置きます。Completion Receiptはroot直下へ出力します。Training CopyはGitHub Actionsを動かす実行環境であり、評価用正本の代わりにはしません。
+受講者はGoogleスプレッドシートや任意のローカルフォルダで作業できますが、Part 1からPart 2の最終確認へ引き渡す評価用正本は、規定の `handoff-root/` ディレクトリ配下に集約します。4つのワークブックCSVは `handoff-root/workbook/`、リポジトリ相対パスの受講者コードは `handoff-root/code/`、実行エビデンスは `handoff-root/evidence/`、Execution Receiptは `handoff-root/receipts/`、レッスン別の自己確認結果は `handoff-root/self-check/` に配置します。また、Completion Receiptはルート直下へ出力します。なお、Training CopyはGitHub Actionsを実行するための作業環境であり、評価用正本の代用とはしません。
 
-現在の保証は次のとおりです。
+現在のプラットフォーム別保証範囲は以下のとおりです。
 
 | Platform | 現在の保証範囲 | カリキュラムでの扱い |
 | --- | --- | --- |
 | Web | Formal RegressionとTraining baselineを分離して実行 | `training-chromium` / `training-mobile-chromium` |
-| Android | Build + Runtime E2E | Training Maestroは既存Formal Native Runtimeを再利用 |
-| iOS | Build-only | Runtime / Simulator / Maestro PASSとして記録しない |
+| Android | Build + Runtime E2E | Training Maestroは既存のFormal Native Runtimeを再利用 |
+| iOS | Build-only | Runtime / Simulator / MaestroのPASSとしては記録しない |
 
-この表はリポジトリ上で必要な実行保証を示すものであり、受講者が必ず学ぶ共通課程の修了条件を意味しません。Native環境やNative CIを選択しない受講者も、共通経路で学習を完了できます。
+※ 上記の表はリポジトリ上で定義されている実行保証の範囲を示すものであり、受講者全員が必須で習得すべき共通課程の修了条件を表すものではありません。Native環境やNative CIを選択しない受講者も、共通経路のみで学習を完結できます。
 
-Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` に分離します。`failure-exercises/` は明示実行時だけ使い、通常の必須baselineへ混在させません。
+学習用のテスト（Training Test）は `training/`、正式なリグレッションテスト（Formal Regression）は `e2e/web/` および `maestro/` に明確に分離します。また、`failure-exercises/` は明示的に指定して実行する場合にのみ使用し、通常の必須baselineへ混在させることはありません。
 
 ## 教材
 
-**すべての教材・演習では、このリポジトリ `qa-training-store` のScenario Shopを使用します。**
+**すべての教材および演習では、本リポジトリ `qa-training-store` の「Scenario Shop」を使用します。**
 
-架空のTodoアプリや別のサンプルプロジェクトへ切り替えず、同じテスト対象を継続して利用します。学習が進むにつれて、同じ機能を異なる観点から分析し、実装し、改善することで、知識のつながりを理解できる構成とします。
+架空のTodoアプリや別のサンプルプロジェクトを途中で切り替えて使うことはせず、一貫して同一のテスト対象を扱います。学習の進行に伴い、同じ機能を多様な観点から分析・実装・改善していくことで、個々の技術や知識のつながりを深く理解できる設計となっています。
 
-主に次の実装を教材として利用します。
+主に以下のリソースを教材として利用します。
 
-- Scenario Shop Web / Nativeアプリ
-- `src/seeds/metadata.ts` のSeed Scenario
-- `e2e/web/` のPlaywright E2E
-- `e2e/web/fixtures.ts` の共通処理とSeed Scenario制御
-- `playwright.config.ts` のProject、Reporter、Artifact設定
-- `maestro/` のMaestro Flow
-- `.github/workflows/ci.yml` のWeb CI/CD
-- `.github/workflows/native-ci.yml` のAndroid Build / Runtime / Maestro
-- `.github/workflows/native-ios-ci.yml` のiOS Build-only baseline
-- `tests/unit/`、`tests/integration/`、`tests/component/`、`tests/contracts/` などのテスト層
-- `/guide` とTest Control
-- Cloudflare Pages Preview / Productionのデプロイ経路
+- Scenario Shop Web / Native アプリケーション
+- `src/seeds/metadata.ts` 内のSeed Scenario
+- `e2e/web/` 内のPlaywright E2Eテスト
+- `e2e/web/fixtures.ts` 内の共通処理およびSeed Scenario制御ロジック
+- `playwright.config.ts` 内のProject、Reporter、Artifact設定
+- `maestro/` 内のMaestro Flow定義
+- `.github/workflows/ci.yml` 内のWeb CI/CDパイプライン
+- `.github/workflows/native-ci.yml` 内のAndroid Build / Runtime / Maestroワークフロー
+- `.github/workflows/native-ios-ci.yml` 内のiOS Build-only baselineワークフロー
+- `tests/unit/`、`tests/integration/`、`tests/component/`、`tests/contracts/` 等の各テスト層の実装
+- `/guide` ページおよびテストコントロールUI
+- Cloudflare Pages Preview / Productionへのデプロイパイプライン
 
 ## 学習設計の原則
 
-1. ツールより先に、テスト自動化の目的とプロセスを学びます。
-2. GitHubアカウントをPart 1の前提条件にしません。
-3. テスト分析・設計はスプレッドシートを基本教材とします。
-4. PlaywrightのSyntax暗記ではなく、テスト条件からコードへ落とす流れを重視します。
-5. モバイルアプリ自動化の選択課程を選んだ場合は、Playwrightの後にMaestroを学び、WebとNativeの共通点・相違点を理解します。
-6. Helper、POM、Fixture、Seed Scenarioなどの共通化や初期状態管理は最初から正解として教えません。
-7. まず自動テストを複数実装し、運用上の問題を体験した後に保守・管理手法として学びます。
-8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
-9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
-10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のリポジトリと比較します。
-11. Training実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を使用します。
-12. 学習者が教材元Repositoryへ直接Pushできることを前提にせず、P2-01〜P2-03のGit／GitHub基礎ではForkを利用できます。
-13. Part 1をZIPなどGit管理されていないコピーで進めた受講者は、Part 2開始前に準備された、Git履歴を持つ学習者書き込み可能なTraining Copyへ成果物を引き継ぎます。
-14. CIハンズオン、C12、Part 2最終確認ではTraining Copyを正式経路とし、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件にします。本番Secret、管理者権限、Workflow権限変更、GitHub App設定は要求しません。
+1. ツールの操作方法を覚える前に、テスト自動化の本来の目的とプロセスを学びます。
+2. Part 1の学習において、GitHubアカウントの所持を前提条件とはしません。
+3. テスト分析およびテスト設計の基礎演習には、スプレッドシートを標準教材として使用します。
+4. Playwrightの構文暗記ではなく、テスト条件からコードへと論理的に落とし込む思考プロセスを重視します。
+5. モバイルアプリ自動化の選択課程では、Playwrightを学んだ後にMaestroを扱い、WebとNativeにおける自動化の共通点と相違点を整理して理解します。
+6. Helper、POM、Fixture、Seed Scenarioなどの共通化や初期状態管理の手法は、最初から「正解」として提示しません。
+7. まず複数の自動テストを愚直に実装して運用上の課題を実際に経験した上で、保守・管理のためのプラクティスとしてそれらの手法を学びます。
+8. POM（Page Object Model）は必須の絶対解ではなく、保守課題を解決するための有力な選択肢の一つとして位置づけます。
+9. Part 2ではGit/GitHub自体の習得を自己目的化せず、実務開発プロセスと自動テストのスムーズな接続を学びます。
+10. 最終演習では完成版のCI定義を先に見せることはせず、受講者自身で設計を行わせた後、本リポジトリの実装と比較・検証します。
+11. 学習用コード（Training実装）は、既存のリグレッションテストスイートや本番向けCI/CDパイプラインに意図せず混入しないよう、明確な実行境界を維持します。
+12. 学習者が教材リポジトリへ直接Pushできる権限を持つことを前提とせず、`P2-01`〜`P2-03`のGit/GitHub基礎演習ではFork環境を活用できます。
+13. Part 1をZIP配布などのGit管理外の環境で進めた受講者は、Part 2を開始する前に、Git履歴を保持し自身が書き込み可能な「Training Copy」へと成果物を移行します。
+14. CIハンズオン、C12の評価、およびPart 2の最終確認ではTraining Copyを正式な検証経路とし、Training Workflowと教材元のProduction/Deploy Workflowが重複起動しないことを開始条件とします。受講者に対して、本番環境のSecret、管理者権限、Workflow権限の変更、あるいはGitHub Appの設定などを要求することはありません。
 
 ## 全体構成
 
 ### 受講者向け標準導線
 
-受講者は、まずPart 1-1でScenario Shopとテスト自動化の目的を学びます。P1-2で対象とRisk、P1-3でTest Caseと自動化対象を作るため、Playwright実装を始める前に必要なTest Caseがどこから来るかを本文で確認できます。WorkbookはP1-2 / P1-3で使い、評価基準は各課題の達成度を確認するときに参照します。
+受講者は、まずPart 1-1でScenario Shopの概要とテスト自動化の目的を学びます。続くP1-2でテスト対象とリスクの分析を行い、P1-3でテストケースの作成と自動化対象の選定を行うため、Playwrightの実装に着手する前に「実装すべきテストケースがどのような根拠から導かれたか」を本文に沿って確認できます。ワークブックはP1-2およびP1-3で使用し、評価基準は各課題の達成度を確認する際に参照します。
 
 ### Part 1: テスト自動化の基礎と実践
 
@@ -130,92 +130,92 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 ### 共通Referenceと運営支援
 
 - [学習方針と進め方](./00_learning-design.md)
-- [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md) — P1-2 / P1-3で必要な段階で参照します。
-- [習熟度評価基準（評価の正本）](./02_competency-rubric.md) — 各課題の評価基準を確認するときに参照します。
-- [講師向け資料（運営支援）](./03_instructor-reference.md) — 受講者が必ず学ぶ経路や修了条件の正本ではありません。
+- [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md) — P1-2 / P1-3の演習時に参照します。
+- [習熟度評価基準（評価の正本）](./02_competency-rubric.md) — 各課題の達成基準を確認する際に参照します。
+- [講師向け資料（運営支援）](./03_instructor-reference.md) — 受講者の必須学習経路や修了要件の正本ではありません。
 
 ## 学習経路と修了契約
 
-### Entry / graduation
+### Entry / graduation（受講前提と卒業像）
 
-コース開始時の対象者は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコードの経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。共通の学習範囲では、受講開始時の受講者像と、それ以前に受講者必須の学習経路で明示的に学んだ内容だけを前提にします。
+本コース受講開始時の想定対象者は、テスト自動化の目的や基本概念を大枠で理解しており、ノーコード/ローコードツールでのテスト作成経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験であり、本格的なプログラミング経験を必須とはしない受講者です。共通課程の範囲内では、この受講開始時の前提知識と、それ以前の必須レッスンで明示的に学んだ内容のみを前提としてカリキュラムを進行します。
 
-共通課程の卒業像は **実務に入りたての汎用テスト自動化エンジニア** です。修了集合は次のとおりです。
+共通課程の卒業像は **「実務に入りたての汎用テスト自動化エンジニア」** です。修了要件となるコンピテンシー基準は以下のとおりです。
 
-- Part 1の共通課程の修了条件: `C01〜C07 + C09〜C10`、対象範囲を限定したレベル2
-- Part 2 / 最終共通課程の修了条件: `C01〜C07 + C09〜C12`、対象範囲を限定したレベル2
-- `C08`、Physical Android、Native CIはモバイルアプリ自動化の選択課程に属し、共通課程の修了条件には含めません。
+- Part 1 共通課程の修了条件: `C01〜C07 + C09〜C10` において、対象範囲を限定したレベル2を達成すること
+- Part 2 / 最終共通課程の修了条件: `C01〜C07 + C09〜C12` において、対象範囲を限定したレベル2を達成すること
+- なお、`C08`、実機Android環境、およびNative CIはモバイルアプリ自動化の選択課程に属するため、共通課程の修了条件には含みません。
 
 ### 共通課程と選択課程のナビゲーション
 
-モバイルアプリ自動化の選択課程は、トップレベルのLesson番号や配置を変えない選択経路です。次の経路を使います。
+モバイルアプリ自動化の選択課程は、全体のレッスン番号やファイル配置を変更しないオプション経路として設計されています。受講者は次の経路を選択して進めます。
 
-- Part 1 Common: P1-6 → P1-8 → P1-9
-- Part 1 Native: P1-6 → P1-7 → P1-8 → P1-9
-- Part 2 Common: P2-5 → P2-7 → P2-8
-- Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8
+- Part 1 共通経路: P1-6 → P1-8 → P1-9
+- Part 1 Native選択経路: P1-6 → P1-7 → P1-8 → P1-9
+- Part 2 共通経路: P2-5 → P2-7 → P2-8
+- Part 2 Native選択経路: P2-5 → P2-6 → P2-7 → P2-8
 
-モバイルアプリ自動化を選択しない場合はP1-7 / P2-6を飛ばして共通経路を進みます。P1-7の完了後はP1-8、P2-6の完了後はP2-7へ合流します。P2-6を選択する場合は、P1の選択課程で身につけたMaestro実行能力を、選択課程内の必須前提として先に満たします。
+モバイルアプリ自動化を選択しない受講者は、P1-7およびP2-6をスキップして共通経路を進みます。P1-7を完了した受講者はP1-8へ、P2-6を完了した受講者はP2-7へそれぞれ合流します。なお、P2-6を選択する場合は、Part 1の選択課程（P1-7）で身につけたMaestro実行スキルを、選択課程内の前提条件として事前に満たしている必要があります。
 
 ### 教材分類と支援境界
 
-- **受講者必須の共通課程**: 共通経路の学習内容、演習、自己確認、修了、評価に必要な受講者向け教材です。
-- **モバイルアプリ自動化の選択課程**: P1-7 / P2-6と、選択した場合に必要なNative環境・実行成果物です。共通課程の修了条件には含めません。
-- **リポジトリ必須の資材**: validatorが存在を確認するカリキュラム、Workbook、Training入口、Workflow Templateなどのリポジトリ資材です。存在することだけで、受講者必須の学習内容や共通課程の修了条件にはなりません。
-- `03_instructor-reference.md`はリポジトリ上で必要な支援資料であり、受講者必須の学習経路や、共通課程・選択課程の修了条件の正本ではありません。
-- 講師・運営は環境、アカウント・権限、端末、演習用リポジトリ / Training Copy、インフラ / ツールチェーンの準備・障害対応を支援できます。学習内容、自己確認、完了条件、評価観点は受講者向け教材を正本とします。
+- **受講者必須の共通課程**: 共通経路の学習内容、演習、自己確認、修了認定、および評価に必要な受講者向けコア教材です。
+- **モバイルアプリ自動化の選択課程**: P1-7、P2-6、およびこれらを選択した場合に必要となるNative環境・実行成果物です。共通課程の修了条件には含まれません。
+- **リポジトリ必須の資材**: バリデータが整合性を検証するカリキュラムファイル、ワークブック、Training用エントリーポイント、ワークフローテンプレート等のリポジトリ管理資材です。リポジトリ内に存在していること自体が、直ちに受講者の必須学習範囲や共通課程の修了条件となるわけではありません。
+- `03_instructor-reference.md` はリポジトリ上で必要な運営支援資料であり、受講者の必須学習経路や、共通課程・選択課程の修了条件を定義する正本ではありません。
+- 講師および運営側は、受講環境、アカウント・権限、端末、演習用リポジトリ / Training Copy、インフラおよびツールチェーンのセットアップや障害対応をサポートできます。一方、学習内容、自己確認項目、完了条件、評価観点については、受講者向け教材本文を正本とします。
 
 ## Part 1とPart 2を分ける理由
 
-Part 1はGitHubアカウントやCI環境がなくても進められるようにします。Autify、MagicPodなどのノーコード・ローコード自動化経験者も、テスト対象分析、テスト設計、テストシナリオ / 利用者の操作経路、Action、Assertion、Test Dataといった共通概念からコードベースの自動化へ移行できます。
+Part 1は、GitHubアカウントやCI環境が手元にない受講者でも学習を開始できるように設計されています。AutifyやMagicPodといったノーコード・ローコード自動化ツールの経験者も、テスト対象分析、テスト設計、テストシナリオ / ユーザージャーニー、Action、Assertion、Test Dataといった自動化共通の基礎概念を整理した上で、コードベースの自動化へスムーズに移行できます。
 
-Part 2では、Part 1で作成した自動テストを「どのように開発プロセスへ組み込み、継続的に実行するか」を学びます。Git/GitHubは自動化そのものの前提ではなく、変更管理、Review、CI、品質ゲートを実現するための仕組みとして扱います。
+Part 2では、Part 1で作成した自動テストを「開発プロセスへどのように組み込み、継続的に運用・実行するか」を学びます。GitやGitHubは自動化それ自体の前提条件ではなく、変更管理、コードレビュー、CI、品質ゲートを実現するための基盤技術として位置づけて学習します。
 
-Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り替えるわけではありません。Git履歴を持つ同じScenario Shopの演習用コピーへPart 1成果物を引き継いで続けます。
+Part 1を配布ZIPなどのGit管理外環境で実施した場合でも、Part 2で別の教材に切り替える必要はありません。同一のScenario ShopのGit履歴を持つ演習用コピーへ、Part 1の成果物を引き継いで継続して演習を行えます。
 
-Git / GitHubの基本操作ではForkも利用できますが、ForkはP2-01〜P2-03に限ります。C12／Training CI／Part 2最終修了は、自己学習開始前に準備された学習者書き込み可能なTraining Copyを正式経路とします。`training:copy:prepare`と`training:copy:validate`で、教材元から継承したProduction / Deploy Workflowをactive allowlistから外し、Training Workflowだけを検証します。Fork上のRun／Check／ArtifactをC12の証跡へ読み替えません。
+Git / GitHubの基本操作演習ではForkも利用できますが、Fork環境を利用するのは `P2-01`〜`P2-03` の範囲に限定されます。C12の評価、Training CI、およびPart 2の最終修了認定は、自己学習開始前に準備された受講者が書き込み権限を持つTraining Copyを正式な検証経路とします。`training:copy:prepare` および `training:copy:validate` スクリプトにより、教材元から引き継がれたProduction / Deploy Workflowをactive allowlistから除外し、Training Workflowのみを検証対象とします。Fork上でのRun、Check、ArtifactをC12の達成証跡とみなすことはできません。
 
-`part1/09_specification-agentic-qa.md` は任意の参考資料、`part1/10_part1-capstone.md` は過去の参照先を保つ別名として保存しています。必須ナビゲーション、評価基準、Validatorはcanonical `part1/09_part1-capstone.md`だけを対象にします。
+なお、`part1/09_specification-agentic-qa.md` は任意の参考資料、`part1/10_part1-capstone.md` は過去の参照リンクを維持するための別名ファイルとして保管されています。必須のナビゲーション、評価基準、およびバリデータが対象とするのは、規定の正本である `part1/09_part1-capstone.md` のみです。
 
 ## 学習成果物
 
-共通経路で、受講者は最低限次の成果物を作成・記録します。
+共通経路において、受講者は最低限以下の成果物を作成・記録します。
 
 - Scenario Shopのテスト対象分析表
-- リスク・テスト観点整理
+- リスクおよびテスト観点の整理表
 - テストケース一覧
 - 自動化対象選定表
-- Playwright E2E
+- PlaywrightによるE2Eテストコード
 - Failure分析メモ
-- テスト管理・リファクタリング結果
-- Part 1総合演習成果物
-- Git/GitHub操作履歴
-- GitHub Actions Workflow演習
-- CI実行結果とArtifact分析
-- Scenario ShopへのCI導入設計
+- テスト管理およびリファクタリング結果
+- Part 1 総合演習の成果物
+- Git / GitHubの操作履歴
+- GitHub Actions Workflow演習ファイル
+- CI実行結果およびArtifactの分析メモ
+- Scenario ShopへのCI導入設計書
 
-これらは編集場所を指定することで学ぶものではありません。各LessonのInputとOutputに従って作業し、最終的に固定`handoff-root/`へ4 CSV、Repository相対コード、Evidence、Execution Receipt、Lesson ID別self-checkを集約します。CSVの空欄や`Not run`は、まだ実行・判断していないことを表すため、見栄えを整える目的で架空の結果を入力しません。
+これらの成果物は、単に指定されたフォルダにファイルを置くこと自体を目的とするものではありません。各レッスンのInputとOutputの定義に従って作業を進め、最終的に規定の `handoff-root/` ディレクトリ配下へ「4つのCSVワークブック」「リポジトリ相対コード」「実行エビデンス」「Execution Receipt」「レッスン別自己確認結果」を集約します。CSV内の空欄や `Not run` の表記は、未実行または未判断の状態を正確に示すものであるため、見栄えを整える目的で架空の実行結果を入力してはなりません。
 
-モバイルアプリ自動化の選択課程を選んだ受講者は、P1-7 / P2-6で自分が作成した演習と、Native実行の成果物を追加で作成します。Nativeのbaseline / stock flowや、リポジトリ必須資材が存在するだけでは、共通課程または選択課程の習熟度達成とはみなしません。
+モバイルアプリ自動化の選択課程を受講した場合は、P1-7およびP2-6において自身が作成した演習コードと、Native環境での実行成果物を追加で作成・提出します。Nativeのbaselineやstock flow、あるいはリポジトリ必須資材がファイルとして存在しているだけでは、共通課程または選択課程の習熟度を満たしたとはみなされません。
 
 ## 提供済みのTraining入口
 
-本計画では、次の入口を現在のリポジトリ上の実装へ接続しています。
+本リポジトリでは、学習・検証を円滑に行えるよう、以下のエントリーポイントがあらかじめ接続されています。
 
-1. `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`。
-2. `training/playwright/baseline/`、`exercises/`、`failure-exercises/`。
-3. `training/maestro/` のbaseline / exerciseと、既存Formal Runtimeを再利用する実行Script。
-4. `training/workbook/` のCSV canonical template。
-5. `scripts/validate-curriculum.ts`、`scripts/training/`、Training TypeScript typecheck。
-6. `.github/workflows/`へコピーするための最小権限のTraining Workflow Template。
-7. `ci.yml`の必須のPhase 1カリキュラム検証 / Training Web baseline、`native-ci.yml`のTraining Maestro baseline接続。
+1. `playwright.training.config.ts` で定義された `training-chromium` / `training-mobile-chromium`
+2. `training/playwright/baseline/`、`exercises/`、`failure-exercises/`
+3. `training/maestro/` のbaseline / exercise、および既存のFormal Runtimeを再利用する実行スクリプト
+4. `training/workbook/` のCSV正本テンプレート
+5. `scripts/validate-curriculum.ts`、`scripts/training/`、およびTraining TypeScriptのtypecheck設定
+6. `.github/workflows/` へコピーして使用するための、最小権限で構成されたTraining Workflowテンプレート
+7. `ci.yml` における必須のPhase 1カリキュラム検証 / Training Web baseline、および `native-ci.yml` におけるTraining Maestro baseline接続
 
-受講者が使用するWeb Base URLは `PLAYWRIGHT_BASE_URL` で明示します。未指定時のローカル代替値はこのworktree専用の `http://127.0.0.1:8082` であり、Formal / Visual RuntimeのPortを再利用しません。
+受講者が使用するWebのBase URLは、環境変数 `PLAYWRIGHT_BASE_URL` で明示的に指定します。未指定時にローカル環境で代替されるポートは、本worktree専用の `http://127.0.0.1:8082` であり、FormalやVisual Runtimeのポートとは重複しないよう分離されています。
 
 ## 完成済みコードの扱い
 
-このリポジトリにはすでに高度なPlaywright、Maestro、CI/CD実装が存在します。教材では、最初から完成形を模倣することを目的にしません。
+本リポジトリには、すでに完成度の高いPlaywright、Maestro、CI/CDの実装が存在しています。しかし教材の演習では、最初から完成形を模倣することを目的としていません。
 
-学習者はまず小さな実装を自分で作り、問題を経験し、改善案を考えます。その後に既存実装を参照し、自分の設計との差分と理由を分析します。
+学習者はまず自身の力で小さな実装を作成し、直面した課題を経験した上で、その改善策を検討します。その後に既存の完成実装を参照し、自身の設計との差分や、なぜそのような設計になっているのかという理由を分析します。
 
-この順序により、「このリポジトリではこう書いているから」ではなく、「なぜこの構造が必要なのか」を理解することを重視します。
+この学習プロセスを踏むことにより、「このリポジトリにそう書いてあるから」という形骸化した理解ではなく、「なぜこの構造や設計が必要なのか」を本質的に理解できるようになります。

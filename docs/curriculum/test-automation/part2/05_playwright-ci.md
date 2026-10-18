@@ -2,17 +2,17 @@
 
 ## 学習目標
 
-- Localで動くPlaywright Testが、準備済みTraining WorkflowからCI上でどのように実行されるか説明できる。
-- Part 1で作成した受講者向けPlaywright Testが、準備済みTraining WorkflowのPull Requestから継続実行される流れを説明できる。
-- Browser Install、Application Build / Serve、Base URL、Environmentの関係を理解できる。
-- HTML Report、Trace、Screenshot、VideoがCI Artifactとして生成・保存されたことを確認し、Failure分析に利用できる。
-- Smoke、必須Regression、拡張RegressionなどのTest Suiteを実行タイミングに応じて分けられる。
-- Browser / Viewport Matrixと実行時間のTrade-offを理解できる。
-- Scenario Shopの既存Playwright CI構成を読み、その設計理由を説明できる。
+- ローカル環境で動作するPlaywrightテストが、準備済みのトレーニング用ワークフローを通じてCI上でどのように実行されるかを説明できる。
+- Part 1で作成した受講者向けのPlaywrightテストが、準備済みトレーニング用ワークフローのプルリクエストから継続的に実行される流れを説明できる。
+- ブラウザのインストール、アプリケーションのビルドと配信（Serve）、ベースURL、実行環境の相互関係を理解できる。
+- HTMLレポート、トレース、スクリーンショット、動画がCIのアーティファクトとして生成・保存されたことを確認し、テスト失敗時の分析に活用できる。
+- スモークテスト、必須リグレッションテスト、拡張リグレッションテストなどのテストスイートを実行タイミングに応じて適切に分割できる。
+- ブラウザやビューポートのマトリクス構成と実行時間のトレードオフを理解できる。
+- Scenario Shopの既存のPlaywright CI構成を読み解き、その設計意図を説明できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリのPlaywright E2E、`playwright.config.ts`、`.github/workflows/ci.yml` を使用します。**
+**このモジュールでは、本リポジトリのPlaywright E2Eテスト、`playwright.config.ts`、`.github/workflows/ci.yml` を使用します。**
 
 主な参照先:
 
@@ -24,42 +24,42 @@
 
 ## 演習の前提
 
-このモジュールはPart 2-4で用意した**Secret不要・DeployなしのTraining Workflow**を拡張して進めます。
+このモジュールは、Part 2-4で用意した**シークレット不要・デプロイなしのトレーニング用ワークフロー**を拡張して進めます。
 
-受講者は本体Repositoryの `.github/workflows/ci.yml` を直接変更してPlaywright演習を行いません。
+受講者が本体リポジトリの `.github/workflows/ci.yml` を直接変更してPlaywrightの演習を行うことはありません。
 
-Part 1で作成したTraining用Playwright Testは `playwright.training.config.ts` と `training-ci.yml`から明示的に実行します。現行 `playwright.config.ts` / `package.json` のFormal Suiteへ演習specを混在させません。
+Part 1で作成した演習用のPlaywrightテストは、`playwright.training.config.ts` および `training-ci.yml` から明示的に実行します。現行の `playwright.config.ts` や `package.json` で定義されている正式なテストスイート（Formal Suite）へ演習用のテストコード（spec）を混在させることは避けてください。
 
-準備済みTraining CopyのTraining Workflowには、`pull_request`で基準確認を行った後にReceipt付きの`training:web:exercise:with-receipt`を実行するStepがあらかじめ接続されています。受講者は実行用`.github/workflows/**`へStepを追加するのではなく、Part 1で作成した`training/playwright/exercises/`の変更をTraining CopyのPull Requestへ送り、同じTest、Execution Receipt、Failure ArtifactがCIで生成されることを確認します。`training:copy:validate`はWorkflowの配布元とactive allowlistを確認する生成時検証であり、受講者TestのCI成功とは別です。
+準備済みのトレーニングコピー（Training Copy）のワークフローには、`pull_request` イベントで基準確認（baseline）を行った後、レシート（実行証明）付きの `training:web:exercise:with-receipt` を実行するステップがあらかじめ組み込まれています。受講者は実行用の `.github/workflows/**` にステップを追加するのではなく、Part 1で作成した `training/playwright/exercises/` の変更をトレーニングコピーのプルリクエストへプッシュし、同一のテスト、実行レシート、および失敗時のアーティファクトがCI上で生成されることを確認します。なお、`training:copy:validate` はワークフローの配布元やアクティブな許可リスト（allowlist）を検証する生成時のチェックであり、受講者テストがCIで成功したことの確認とは異なります。
 
-現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
+現在の `.github/workflows/ci.yml` は、受講者自身で最小構成のPlaywright CIを動作させた後に、比較用の教材として確認します。
 
-現在のworkflow構成、PR / main / Nightlyの配置、Production Artifact Smokeは参考・発展比較の範囲です。P2-5の共通課程の修了は、準備済みTraining WorkflowのWeb Build、Playwright実行、Failure Artifactで成立します。
+現在のワークフロー構成、PR／mainブランチ／Nightly実行の配置、プロダクション成果物に対するスモークテストなどは、参考および発展的な比較対象という位置づけです。P2-5の共通課程の修了要件は、準備済みトレーニング用ワークフローにおけるWebビルド、Playwrightの実行、および失敗時アーティファクトの取得・確認によって満たされます。
 
 ## 出力場所の役割
 
-同じTest結果でも、保存場所によって役割が違います。
+同じテスト結果であっても、保存先によって役割が異なります。
 
 | 場所 | 役割 |
 | --- | --- |
-| Localの`handoff-root/` | Workbook、受講者Code、Evidence、Execution Receipt、self-checkを集約する学習成果物の正本。Local実行時は`--root <handoff-root>`を指定する |
-| CI Runner上の`.` | GitHub Actionsが一時的にCheckoutしたRepository root。Training Workflowではこの一時DirectoryをReceipt出力rootとして`--root .`で使う。Run終了後もLocalの正本にはならない |
-| GitHub Actions Artifact | CI Runの後から確認できるようにUploadされた保存物。Run／Checkと結び付いたCI側のEvidenceであり、Localの`handoff-root/`へ自動的に昇格しない |
+| ローカルの `handoff-root/` | ワークブック、受講者コード、エビデンス、実行レシート、セルフチェック結果を集約する学習成果物の正本。ローカル実行時は `--root <handoff-root>` を指定する |
+| CIランナー上の `.` | GitHub Actionsが一時的にチェックアウトしたリポジトリのルートディレクトリ。トレーニング用ワークフローでは、この一時ディレクトリをレシート出力ルートとして `--root .` で使用する。ワークフロー実行終了後も、ローカルの正本としては扱わない |
+| GitHub Actions アーティファクト | CIの実行後に確認できるようアップロードされた保存物。各実行（Run）やチェック（Check）と紐づくCI側のエビデンスであり、ローカルの `handoff-root/` へ自動的に昇格・同期されることはない |
 
-Training Workflowの受講者Exercise Artifactは、ActionsのRun Summaryから次の名前で開きます。
+トレーニング用ワークフローで生成された受講者演習のアーティファクトは、ActionsのRun Summary画面から以下の名前で確認・取得できます。
 
-| Artifact | 主な内容 | 学習者が確認する場所 |
+| アーティファクト名 | 主な内容 | 受講者が確認する場所 |
 | --- | --- | --- |
-| `training-web-<run_id>-<run_attempt>` | `output/training/playwright`（HTML Report、Screenshot、Trace、Video）、`receipts`、`evidence` | PR → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts |
-| `web-dist-automation` | Production／既存CIのBuild再利用用Artifact。Training ExerciseのReceiptとは別物 | Production Workflowの該当Run。Commonの完了証跡へ読み替えない |
+| `training-web-<run_id>-<run_attempt>` | `output/training/playwright`（HTMLレポート、スクリーンショット、トレース、動画）、`receipts`、`evidence` | プルリクエスト → Checks → `Scenario Shop Training Web` → Run Summary → Artifacts |
+| `web-dist-automation` | プロダクション環境および既存CIでのビルド再利用向けアーティファクト。トレーニング演習のレシートとは別物 | 本番用ワークフローの該当Run。共通課程の完了証跡として読み替えてはならない |
 
-Artifact名の`<run_id>`と`<run_attempt>`は実際のRun画面の値へ置き換えます。Workflowの説明とArtifact境界は [`training/github-actions/README.md`](../../../../training/github-actions/README.md) と突き合わせます。
+アーティファクト名に含まれる `<run_id>` と `<run_attempt>` は、実際の実行画面に表示されている数値に置き換えて確認します。ワークフローの詳細な説明とアーティファクトの境界については、[`training/github-actions/README.md`](../../../../training/github-actions/README.md) と照合してください。
 
-したがって、Localの正式入口では`--root <handoff-root>`、CIのStepでは`--root .`となります。値が違うのは環境が違うためで、Receiptの役割が違うわけではありません。受講者はCI Artifactを開いて結果を確認し、その確認内容を人間可読EvidenceとしてLocalの`handoff-root/evidence/`へ記録します。CI出力をコピーしただけの`ci.md`や、Artifactを見ていない記録をCompletionの根拠にはしません。
+したがって、ローカル環境での正式な実行コマンドでは `--root <handoff-root>` を指定し、CIのステップ内では `--root .` を指定します。値が異なるのは動作環境の違いによるものであり、レシートの持つ役割自体が変わるわけではありません。受講者はCIのアーティファクトを開いて結果を確認し、その内容を人間が読める形式のエビデンスとしてローカルの `handoff-root/evidence/` に記録します。CIのログ出力を単にコピーしただけの `ci.md` や、アーティファクトを実際に確認していない記録は、完了の根拠とは認められません。
 
-### Training CopyのLearner codeを固定Handoffへ戻す
+### トレーニングコピーの受講者コードを固定ハンドオフ環境へ同期する
 
-Training Copy上で編集・commitしたLearner codeは、CIで評価された内容を確認した後、CI Receipt／Evidenceを固定Handoffへ取り込む前に、Part 1から継続して使う固定`<handoff-root>`へ同期します。まずTraining Copyで、今回確認したPR／Runに対応する状態であることを確認してください。
+トレーニングコピー上で編集・コミットした受講者コードは、CI上で評価された内容を確認した後、CIのレシートやエビデンスを固定ハンドオフ（Handoff）環境へ取り込む前に、Part 1から継続して使用している固定の `<handoff-root>` へ同期します。まずトレーニングコピー側で、今回確認したプルリクエストやRunに対応するコミット状態になっていることを確認してください。
 
 ```bash
 git status --short --branch
@@ -67,215 +67,215 @@ git rev-parse HEAD
 pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>
 ```
 
-`--root`はPart 1から継続している固定Handoff root、`--source`はPart 2で実際に編集・commitしたTraining CopyのローカルDirectoryです。同期されるのはTraining Copy内のLearner-ownedな`training/playwright/` codeだけです。Workbook、Receipt、Evidence、self-check、Workflow、Product Code、Formal Regression、provided code、Canonical `reset-scenario.ts`は同期しません。
+ここで `--root` にはPart 1から継続している固定のハンドオフルートディレクトリを指定し、`--source` にはPart 2で実際に編集・コミットを行ったトレーニングコピーのローカルディレクトリを指定します。このコマンドによって同期されるのは、トレーニングコピー内の受講者が管理する `training/playwright/` 配下のコードのみです。ワークブック、レシート、エビデンス、セルフチェック、ワークフロー定義、プロダクトコード、正式なリグレッションテストスイート、教材提供コード、および標準の `reset-scenario.ts` は同期対象外です。
 
-Training Copyで削除したLearner fileはHandoffからも削除され、renameは旧Pathの削除と新Pathの追加として反映されます。CI実行後に未commit変更を追加してから同期すると、Receiptが評価したcodeとHandoffのcodeが一致しなくなるため、`git status --short --branch`と`git rev-parse HEAD`でRun／PRの`submission_sha`との一致を確認してから実行します。
+トレーニングコピー側で削除した受講者ファイルはハンドオフ環境側からも削除され、ファイル名の変更（リネーム）は旧パスの削除と新パスの追加として反映されます。CI実行後に未コミットの変更を追加した状態で同期を行うと、レシートで検証されたコードとハンドオフ環境のコードに不一致が生じるため、必ず `git status --short --branch` および `git rev-parse HEAD` を実行し、該当Runやプルリクエストの `submission_sha` と一致していることを確認した上で同期を実行してください。
 
-### CI Receiptを固定Handoffへ戻す手順
+### CIレシートを固定ハンドオフ環境へ取り込む手順
 
-1. 対象PRの`Scenario Shop Training Web` Runを開き、Run IDとRun attemptが自分のPR／提出Commitのものか確認します。
-2. Run Summaryから`training-web-<run_id>-<run_attempt>`をダウンロードし、展開した`receipts/`、`evidence/`、`output/training/playwright/`を確認します。
-3. 展開した`receipts/`から選択したCI Execution Receiptを`<handoff-root>/receipts/`へコピーし、そのReceiptが参照する同じ相対Pathの`evidence/`配下（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）も`<handoff-root>/evidence/`へコピーします。Local Execution Receiptを上書きせず、Receiptを手書きで作成・補正しません。Artifact内のEvidenceをReceiptなしで別Runのものへ置き換えてはいけません。
-4. `run.ci.github_run_id`、`run.ci.github_run_attempt`、`run.ci.artifact_name`、`run.ci.workflow`、`run.ci.job`、`run.ci_sha`、`run.submission_sha`、`run.training_copy_source_sha`、`run.execution_sha`をRun／Check／Artifactと照合します。
-5. GitHub画面で確認したRun、Check、Artifact、対象Case、結果、Failure調査内容を、`<handoff-root>/evidence/`へ人間可読に記録します。`04_execution-improvement.csv`では`ci-exercise`など既存のCI Contextを使い、ReceiptのCase結果とEvidenceを結び付けます。
+1. 対象プルリクエストの `Scenario Shop Training Web` のRun画面を開き、Run IDとRun attemptが自身のプルリクエストおよび提出コミットのものであることを確認します。
+2. Run Summary画面から `training-web-<run_id>-<run_attempt>` をダウンロードし、解凍して得られる `receipts/`、`evidence/`、`output/training/playwright/` の内容を確認します。
+3. 解凍した `receipts/` から対象のCI実行レシートを選択して `<handoff-root>/receipts/` へコピーし、そのレシートが参照している同一相対パスの `evidence/` 配下（`report.json`、`run.log`、PlaywrightのHTMLレポート、トレース、スクリーンショット、動画を含む）も `<handoff-root>/evidence/` へコピーします。ローカル実行時のレシートを上書きしてはならず、またレシートを手作業で作成・修正してはいけません。アーティファクト内のエビデンスを、レシートの裏付けなしに別の実行回のものと差し替えることも禁止です。
+4. `run.ci.github_run_id`、`run.ci.github_run_attempt`、`run.ci.artifact_name`、`run.ci.workflow`、`run.ci.job`、`run.ci_sha`、`run.submission_sha`、`run.training_copy_source_sha`、`run.execution_sha` の各メタデータを、実際のRun、Check、アーティファクトの情報と照合します。
+5. GitHubの画面上で確認したRun、Check、アーティファクト名、対象ケース、結果、失敗時の調査内容を、人間が読める形式で `<handoff-root>/evidence/` に記録します。`04_execution-improvement.csv` などの記録ファイルでは、`ci-exercise` などの既存のCIコンテキスト名を使用し、レシートに記録されたケース結果とエビデンスを正しく紐付けます。
 
-この順序で、P2-8へはCI Receipt、GitHub画面を確認した人間Evidence、Workbook、Learner code、self-checkを渡します。CIが実行できない場合は、実行したことにせず、権限・Training Copy・外部環境の問題として`BLOCKED`または`Not run`を記録します。
+この手順を踏むことで、P2-8へCIレシート、GitHub画面を確認した人間可読エビデンス、ワークブック、受講者コード、セルフチェック結果を引き渡すことができます。権限不足やトレーニングコピーの設定不備、外部環境の問題などによってCIを実行できない場合は、実行したことに捏造せず、実行不能の理由とともに `BLOCKED` または `Not run` として記録してください。
 
-## このLessonのInput / Output
+## 本レッスンのインプット／アウトプット
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P2-4で確認したTraining CopyのPR／Runと、P1-5／P1-6のCase ID、Repository相対コード、Local Receipt／Evidence。Secret不要・Deployなし・`contents: read`のTraining Workflowを前提にする |
-| Activity | Build、Serve、Browser Install、Playwright、Retry、Report／Trace／Screenshot／Videoのつながりを読み、準備済みTraining Workflowが受講者CodeをどのStepでCI実行するか確認する。WorkflowへStepを追加・編集しない |
-| Observation | LocalとCIの差、実行したCase、Run／Check／Artifact、失敗Step、Retry、Execution Receiptのrun／case／attempt、Artifactへの人間可読参照 |
-| Output | CI上のExecution Receipt、Run／Check／Artifactの参照、Failure Artifactの分析メモ、P2-7へ渡すCase／コード／Evidence対応。CI Receiptの機械メタデータとは別に、GitHub画面で確認したRun／Check／Artifact／結果／対象Caseを人間可読Evidenceへ記録する。Evidenceの必須項目はArtifact名で、URLは任意の別項目です。編集場所は自由で、ローカルの正本は固定`handoff-root/`に集約する |
-| Self-check | CIで必要なBuild／Browser／Base URL／Testの関係、Localの`handoff-root`・CI Runnerの`.`・GitHub Artifactの役割、Artifactの用途、Retryと修正後再実行の違い、正式Training Copy経路を説明する |
-| Completion | Training CopyのPRに紐付く準備済みWorkflowのRunを開き、受講者CaseのReceiptとFailure Artifact、Run／Check／Artifactを確認して、Caseごとの人間可読EvidenceとともにP2-7へ渡せる。CI自身が生成した`ci.md`だけではC12完了としない。Fork上のCI結果をC12の証跡へ読み替えない |
-| Recovery | Build／Browser／Base URL／権限／Runnerの問題は環境として分ける。TestやWorkflowのFailureは最初の異常へ戻り、完成済みFormal CIやWorkflow権限変更で解決しない |
-| Handoff | P2-7へTraining Copy URL、PR／Branch、Run／Job／Check、Artifact名、Case ID、code Path、Receipt／Evidence、Failure分類を渡す |
+| インプット | P2-4で確認したトレーニングコピーのプルリクエスト／Run、P1-5・P1-6で扱ったケースID、リポジトリ相対パスのコード、ローカルのレシートおよびエビデンス。シークレット不要・デプロイなし・`contents: read` 権限のトレーニング用ワークフローを前提とする |
+| アクティビティ | ビルド、配信（Serve）、ブラウザインストール、Playwright実行、リトライ、各種レポート（HTML／Trace／Screenshot／Video）の連携関係を読み解き、準備済みトレーニング用ワークフローが受講者コードをどのステップでCI実行しているか確認する。ワークフロー定義へのステップ追加や編集は行わない |
+| 観察項目 | ローカル環境とCI環境の差異、実行対象ケース、Run／Check／アーティファクトの対応関係、失敗ステップ、リトライ動作、実行レシート内のrun／case／attempt情報、アーティファクトへの人間可読な参照情報 |
+| アウトプット | CI上で生成された実行レシート、Run／Check／アーティファクトの参照情報、失敗時アーティファクトの分析メモ、P2-7へ引き渡すケース／コード／エビデンスの対応情報。CIレシートの機械可読メタデータとは別に、GitHub画面上で確認したRun／Check／アーティファクト名／結果／対象ケースを人間可読エビデンスとして記録する。エビデンスにおける必須記録項目はアーティファクト名であり、URLの記録は任意とする。編集作業の場所は任意だが、ローカルの正本は固定の `handoff-root/` に集約する |
+| セルフチェック | CI環境で必要となる「ビルド／ブラウザ／ベースURL／テスト」の相互関係、ローカルの `handoff-root`・CIランナーの `.`・GitHubアーティファクトそれぞれの役割、アーティファクトの用途、一時的なリトライとコード修正後の再実行の違い、正式なトレーニングコピー運用経路を説明できるか確認する |
+| 完了要件 | トレーニングコピーのプルリクエストに紐づく準備済みワークフローのRun画面を開き、受講者ケースのレシート、失敗時アーティファクト、Run／Check／アーティファクトを確認した上で、ケースごとの人間可読エビデンスとともにP2-7へ引き渡せる状態になっていること。CIが自動生成した `ci.md` のみをもって完了（C12）とはみなさない。フォーク環境でのCI実行結果を本課題の証跡として代替利用してはならない |
+| リカバリ手順 | ビルド、ブラウザ、ベースURL、権限、ランナー起因のトラブルは環境側の問題としてテスト自体の不具合と切り離す。テストやワークフローの失敗が発生した場合は、最初の異常発生箇所まで遡って原因を特定し、完成済みの正式CIコードをコピーしたりワークフロー権限を変更したりして安易に解消しようとしないこと |
+| ハンドオフ | P2-7へトレーニングコピーのURL、プルリクエスト／ブランチ名、Run／Job／Check情報、アーティファクト名、ケースID、コードのパス、レシートおよびエビデンス、失敗分類結果を引き渡す |
 
-## Lesson 1: CIでPlaywrightを動かすために必要なもの
+## Lesson 1: CIでPlaywrightを動作させるために必要な要素
 
-Playwright TestだけをRunnerへ置いても実行できません。
+PlaywrightのテストコードだけをCIランナー上に配置しても、テストを実行することはできません。
 
-最低限次が必要です。
+最低限、以下の順序で前提条件を揃える必要があります。
 
 ```text
-Source Code
+ソースコードの取得
 ↓
-Dependencies
+依存パッケージのインストール
 ↓
-Browser
+ブラウザバイナリのインストール
 ↓
-Test対象Application
+テスト対象アプリケーションの起動（ビルドおよび配信）
 ↓
-Playwright Test
+Playwrightテストの実行
 ```
 
-Scenario ShopではWeb Buildを作り、それを配信してPlaywrightからアクセスできます。
+Scenario ShopではWebのビルド成果物を生成し、それをローカル配信サーバーから配信することで、Playwrightからのアクセスを可能にしています。
 
-## Lesson 2: Browser Install
+## Lesson 2: ブラウザのインストール
 
-CI Runnerでは必要なBrowserが事前に存在するとは限りません。
+CIランナーの環境には、テストに必要なブラウザがあらかじめインストールされているとは限りません。
 
-例:
+実行例:
 
 ```bash
 pnpm exec playwright install --with-deps chromium
 ```
 
-Browser BinaryだけでなくOS Dependencyが必要な点も理解します。
+ブラウザの実行バイナリ本体だけでなく、OSレベルの依存ライブラリ（OS Dependencies）のインストールが必要になる点も理解しておく必要があります。
 
-## Lesson 3: BuildしてからTestする
+## Lesson 3: アプリケーションをビルドしてからテストする
 
-Scenario ShopのPlaywright Configは、Localでは必要に応じてWeb BuildとServer起動を行います。
+Scenario ShopのPlaywright設定（`playwright.config.ts`）は、ローカル環境では必要に応じてWebのビルドと配信サーバーの起動を自動的に行います。
 
-一方、現在のCIではAutomation Buildを専用Jobで一度作り、ArtifactとしてE2E Jobへ渡します。
+一方、現在のCIでは、専用のジョブで自動テスト用ビルド（Automation Build）を一度作成し、アーティファクトとしてE2Eテスト実行ジョブへ受け渡す設計を採用しています。
 
-まずTraining Workflowで単純構成を考えます。
-
-```text
-E2E Job
-├ Install
-├ Build
-├ Browser Install
-└ Playwright
-```
-
-その後、現在のRepositoryの構成と比較します。
+まず、トレーニング用ワークフローにおけるシンプルな構成を考えます。
 
 ```text
-Build Job
-↓
-web-dist-automation Artifact
-↓
-E2E Job
+E2Eテストジョブ
+├ 依存パッケージのインストール
+├ アプリケーションのビルド
+├ ブラウザのインストール
+└ Playwrightテストの実行
 ```
 
-## Lesson 4: Build Artifact再利用
+その上で、現在の本体リポジトリで採用されている構成と比較します。
 
-同じ`dist/`を複数E2E Jobで毎回Buildすると、時間とResourceが重複します。
+```text
+ビルドジョブ
+↓
+web-dist-automation アーティファクトの生成・保存
+↓
+E2Eテストジョブ（成果物をダウンロードしてテスト実行）
+```
 
-Scenario Shopでは `PLAYWRIGHT_USE_PREBUILT_DIST=true` を利用し、Download済みArtifactを配信します。
+## Lesson 4: ビルド成果物（Artifact）の再利用
 
-この設計の利点:
+同一の `dist/` 成果物を複数のE2Eテストジョブで毎回ビルドし直すと、実行時間とサーバリソースを無駄に消費してしまいます。
 
-- Build回数を減らす。
-- 同じArtifactへ複数Testを実行できる。
-- Build結果とTest対象を一致させやすい。
+Scenario Shopでは環境変数 `PLAYWRIGHT_USE_PREBUILT_DIST=true` を活用し、事前にダウンロードしたビルド成果物をそのまま配信してテストします。
 
-Trade-off:
+この設計のメリット:
 
-- Job間Artifactの管理が増える。
-- Build Jobへの依存が増える。
+- 全体のビルド回数を削減できる。
+- 同一のビルド成果物に対して複数の異なるテストを実行できる。
+- ビルド結果とテスト対象の完全な一致を保証しやすい。
 
-## Lesson 5: CI向けRetry
+トレードオフ:
 
-`playwright.config.ts` ではCI時だけRetryを設定しています。
+- ジョブ間におけるアーティファクトの受け渡しや保存期間の管理コストが発生する。
+- 後続のテストジョブがビルドジョブの成否に依存する。
 
-Retryが存在する理由を考える一方で、Flakyを放置する免罪符にしないことを再確認します。
+## Lesson 5: CI環境向けのリトライ設計
 
-次を区別します。
+`playwright.config.ts` では、CI環境での実行時のみテストのリトライ（再試行）を有効に設定しています。
 
-- 一時的なRunner / Browser揺らぎ
-- Test自体の同期不足
-- ProductのRace Condition
+リトライが設けられている理由を理解する一方で、不安定なテスト（Flaky Test）を根本解決せずに放置するための口実にしてはならない点に留意してください。
 
-## Lesson 6: Failure Artifact
+以下の事象を明確に区別して分析することが重要です。
 
-CIではLocalのようにその場でBrowserを見ることができません。
+- CIランナーやブラウザの一時的な負荷・通信の揺らぎ
+- テストコード側における待機処理や同期の不足
+- アプリケーション本体に潜む競合状態（Race Condition）
 
-そのため失敗時の記録をArtifactとして残します。
+## Lesson 6: 失敗時のアーティファクト（Failure Artifact）
 
-Scenario ShopではFailure時のPlaywright出力をUploadしています。
+CI環境では、ローカルでの実行時のようにその場でブラウザ画面を目視確認することができません。
 
-候補:
+そのため、テスト失敗時の詳細な状況をアーティファクトとして保存しておく必要があります。
 
-- Trace
-- Screenshot
-- Video
-- HTML Report
-- Scenario Metadata
-- Console Error
+Scenario Shopでは、テスト失敗時にPlaywrightが出力する各種ログやメディアをアップロードする構成にしています。
 
-Artifactは「多ければ多いほどよい」ではなく、原因分析に必要なものを残します。
+主な出力対象:
 
-## Lesson 7: Smoke / Regression（参考: suiteの配置）
+- トレース（Trace）
+- スクリーンショット（Screenshot）
+- 動画（Video）
+- HTMLレポート（HTML Report）
+- シナリオメタデータ（Scenario Metadata）
+- コンソールエラーログ（Console Error）
 
-全部のPlaywright Testを同じ頻度で実行する必要はありません。
+アーティファクトは「多ければ多いほど良い」というものではなく、失敗原因の分析に必要な情報を過不足なく残す設計が求められます。
 
-例:
+## Lesson 7: スモークテストとリグレッションテスト（参考: スイートの配置設計）
 
-### PR
+すべてのPlaywrightテストを常に同じ頻度で実行する必要はありません。
 
-- Critical Chromium E2E
-- Accessibility
-- Mobile Boundary
+実行タイミングの分割例:
 
-### main / Nightly候補
+### プルリクエスト（PR）時
 
-- Firefox
-- WebKit
-- Extended Mobile
+- 重要機能に絞ったChromium E2Eテスト
+- アクセシビリティ検証
+- モバイル表示の境界テスト
 
-Scenario Shopの現在のworkflowでPRと非PRの差を確認します。Test Suiteの配置設計はP2-7で扱うため、このLessonでは参考比較として確認します。
+### mainブランチ／Nightly定期実行の候補
 
-## Lesson 8: Browser Strategy
+- Firefox環境での検証
+- WebKit環境での検証
+- 網羅的なモバイル端末検証
 
-Cross-browser品質を考えるとChromium、Firefox、WebKitを確認したくなります。
+Scenario Shopの現在のワークフローを参照し、PR時と非PR時でどのような差分が設けられているかを確認してください。テストスイートの配置設計の詳細はP2-7で扱うため、本レッスンでは参考としての比較確認にとどめます。
 
-しかし全Browserで全E2EをPRごとに回すとCostが増えます。
+## Lesson 8: ブラウザ戦略（Browser Strategy）
 
-次を考えます。
+クロスブラウザ品質を担保するためには、Chromium、Firefox、WebKitの全環境で動作を確認することが理想的です。
 
-- Browser固有Risk
-- Application利用者のBrowser比率
-- Critical Flow
-- PR Feedback時間
-- Nightlyで補完できるか
+しかし、すべてのブラウザですべてのE2Eテストをプルリクエストごとに実行すると、CIの実行時間とコストが大幅に増大します。
 
-## Lesson 9: UI Review
+以下の観点から現実的なバランスを検討します。
 
-Scenario ShopではDesktop、Tablet、Mobile、Small MobileのScreenshotをCI Artifactとして収集します。
+- 当該機能におけるブラウザ固有のリスク
+- アプリケーション利用者のブラウザシェア比率
+- クリティカルなユーザーフローの選定
+- プルリクエストに対するフィードバック速度の維持
+- 夜間の定期実行（Nightly）等で補完可能かどうか
 
-これは通常のFunctional Assertionとは異なる目的です。
+## Lesson 9: UIレビュー（Visual Review）
 
-- Layout確認
-- Responsive差分
-- 人間によるVisual Review
+Scenario Shopでは、デスクトップ、タブレット、モバイル、スモールモバイルの各画面サイズのスクリーンショットをCIのアーティファクトとして収集しています。
 
-Visual確認をFunctional E2Eへ無理に混ぜない設計を理解します。
+これは、プログラムによる機能検証（Functional Assertion）とは異なる目的を持っています。
 
-## Lesson 10: Production Artifact Smoke（発展課題・参考資料）
+- レイアウト崩れの確認
+- レスポンシブ表示の差分確認
+- 人間の目視によるデザイン・外観の確認（Visual Review）
 
-Automation BuildとProduction Buildは同じとは限りません。
+外観の確認を機能テストのアサーションに無理に組み込まず、独立したレビュー材料として切り分ける設計意図を理解してください。
 
-Scenario ShopではProduction ArtifactをLocal配信してSmoke Testします。
+## Lesson 10: プロダクション成果物のスモークテスト（発展課題・参考資料）
 
-Test APIなどAutomation専用機能がProductionへ混入していないことも重要な品質条件です。
+テスト用のビルド（Automation Build）と本番用のビルド（Production Build）は、内部構造やバンドル設定が必ずしも同一とは限りません。
 
-Training Workflowでは本番Deployや本番Secretを扱わず、Production Artifact Smokeの設計思想を既存CIから学びます。
+Scenario Shopでは、本番用のビルド成果物をローカル配信サーバーで立ち上げ、スモークテストを実施する構成も備えています。
 
-## ハンズオン1: 受講者TestをTraining CIへ接続する
+テスト専用のAPIやモックなどの自動テスト用機能が、誤って本番ビルドに混入していないことを検証することも極めて重要な品質条件です。
 
-準備済みのTraining Workflowで、次の順序を確認します。
+なお、本トレーニング用ワークフローでは実際の本番デプロイや本番シークレットは扱わず、プロダクション成果物スモークテストの設計思想のみを既存CIの構成から学びます。
 
-1. Build
-2. Chromium Install
-3. `training:web:baseline`による基準確認
-4. `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise`による受講者向けPlaywright E2EとExecution Receipt生成。ここでの`.`はCI Runner上の一時的なRepository rootです
+## ハンズオン1: 受講者テストをトレーニングCIへ接続する
 
-ローカルで次の正式入口を成功させた自分の変更を、準備済みTraining CopyのPull Requestへ送ります。
+準備済みのトレーニング用ワークフローにおいて、以下の実行順序を確認します。
+
+1. アプリケーションのビルド
+2. Chromiumブラウザのインストール
+3. `training:web:baseline` による基準テストの実行と確認
+4. `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root . --run-context ci-exercise` による受講者向けPlaywright E2Eテストの実行および実行レシートの生成（※ここでの `.` はCIランナー上の一時的なリポジトリルートを指します）
+
+ローカル環境で以下の正式なコマンドを実行し、成功を確認できた自身の変更内容を、準備済みトレーニングコピーのプルリクエストへプッシュします。
 
 ```text
 pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context local-exercise
 ```
 
-`<handoff-root>`にはP1-6で受講者Codeを集約した固定rootを指定します。Pull Requestでは基準確認後に同じReceipt付きExerciseが1回だけ実行され、Execution Receipt、成功またはFailureのArtifactをP2-8のCI設計の根拠へ再利用します。既存の`training:web:exercise`は互換性確認用の直接入口です。
+`<handoff-root>` には、P1-6で受講者コードを集約した固定のルートディレクトリを指定します。プルリクエスト上では、基準確認（baseline）の通過後に同一のレシート付き演習テストが1回だけ実行されます。ここで得られた実行レシート、ならびに成功または失敗のアーティファクトは、P2-8におけるCI設計の根拠資料として再利用します。なお、既存の `training:web:exercise` は互換性確認のための直接実行用コマンドです。
 
-このLocal入口で受講者specが`../support/reset-scenario`などをimportする場合、Canonical HelperはTraining CopyまたはRunnerが提供するものを利用します。`reset-scenario.ts`を`<handoff-root>/code/`へコピーしません。P1-5で追加した受講者Helperも同じ`code/training/playwright/`配下へ集約します。別の一時Directoryへ暗黙に依存したり、CI Runner上の`.`をLocalの正本として扱ったりしません。
+このローカル実行用コマンドにおいて受講者のテストコード（spec）が `../support/reset-scenario` などをインポートする場合、標準のヘルパー（Canonical Helper）はトレーニングコピーまたはランナー側から提供されるものをそのまま利用してください。`reset-scenario.ts` を受講者自身の `<handoff-root>/code/` へ手動コピーしてはいけません。P1-5で追加した受講者独自のヘルパーも、同様に `code/training/playwright/` 配下に集約します。別の作業用一時ディレクトリへ暗黙的に依存したり、CIランナー上の `.` をローカルの正本として誤認したりしないよう注意してください。
 
-Run完了後は、CIが自動生成した`ci.md`を人間確認の証拠にしません。GitHubのRun／Check／Artifactを自分で確認し、対象Caseごとに`handoff-root/evidence/`へ次の項目を含む記録を作成します。`Result`は実際に確認した結論を記録し、機械ReceiptのRun ID・Artifact名を単に転記しただけのFileにはしません。
+Run完了後は、CIが自動生成した `ci.md` をそのまま人間による確認の証拠として代用することは禁止します。必ず受講者自身でGitHubのRun／Check／アーティファクトを確認し、対象ケースごとに `handoff-root/evidence/` 配下へ以下の項目を含む記録ファイルを作成してください。`Result` には実際に目視確認した結果・結論を記録するものとし、機械的なレシートからRun IDやアーティファクト名を単に転記しただけのファイルで済ませてはなりません。
 
 ```text
 Run ID: <Run ID>
@@ -287,96 +287,104 @@ Result: success
 Case: <Test Case ID>
 ```
 
-## ハンズオン2: GitHub ActionsのExpected Failure Artifact
+## ハンズオン2: GitHub Actionsにおける意図的なテスト失敗（Expected Failure）のアーティファクト確認
 
-P2-5の正式なFailure Artifact学習は、ローカルcommandだけで完了させず、準備済みTraining CopyのGitHub Actions Runで行います。受講者自身が次の順序を実施します。
+P2-5における正式な失敗時アーティファクトの学習は、ローカル環境のコマンド実行のみで終わらせるのではなく、準備済みトレーニングコピーのGitHub Actions上で実際にRunを実行して行います。受講者自身で以下の手順を実施してください。
 
 ```text
-GitHub
+GitHub画面を開く
 ↓
-Actions
+Actionsタブを選択
 ↓
-Scenario Shop Training Web
+「Scenario Shop Training Web」ワークフローを選択
 ↓
-Run workflow
+「Run workflow」ボタンを押下
 ↓
-mode = expected-failure
+mode に「expected-failure」を指定
 ↓
-Run
+「Run」を実行
 ↓
-Failureを確認
+ワークフローの失敗（Failure）を確認
 ↓
-Run Summary
+該当Runの「Run Summary」を開く
 ↓
-Artifacts
+「Artifacts」セクションを確認
 ↓
-training-web-<run_id>-<run_attempt>
+「training-web-<run_id>-<run_attempt>」アーティファクトをダウンロード
 ↓
-Trace / Screenshot / Video / HTML Report
+トレース／スクリーンショット／動画／HTMLレポートを展開して確認
 ↓
-原因を説明
+失敗の根本原因を説明できるようにする
 ```
 
-Expected Failureは通常baselineへ含めません。Run Summaryで最初のFailureを確認し、Artifactを開いてTrace、Screenshot、Video、HTML Reportから原因を説明します。確認したRun ID、Attempt、Check、Artifact名、Result、対象Caseを人間可読Evidenceへ記録してください。
+意図的な失敗検証（Expected Failure）は、通常時の基準テスト（baseline）には含めません。Run Summary画面から最初の失敗ステップを確認し、ダウンロードしたアーティファクト内のトレース、スクリーンショット、動画、HTMLレポートを精査して原因を特定・説明できるようにします。確認したRun ID、Attempt、Check、アーティファクト名、Result、対象ケースを人間可読エビデンスとして記録してください。
 
-`training:web:check-expected-failure`はCI前の確認や、手元でEvidence構造を確認する補助入口として残します。ただし、GitHub ActionsのRun／Check／Artifactを確認した正式な学習成果には読み替えません。
+なお、`training:web:check-expected-failure` はCI実行前の事前確認や、ローカルでエビデンスの出力構造を把握するための補助的なコマンドとして残されています。ただし、これをGitHub Actions上のRun／Check／アーティファクトを目視確認した正式な学習実績の代わりとして読み替えることはできません。
 
-## ハンズオン3: Test Suiteを分ける
+## ハンズオン3: テストスイートの分割設計
 
-Part 1で作成したTestを次へ仮分類します。
+Part 1で作成したテストケースを、実行頻度や目的に応じて以下のように仮分類します。
 
-- PRで必須
-- main
-- Nightly
-- Manual
+- プルリクエスト（PR）時に必須で実行するもの
+- mainブランチで実行するもの
+- 夜間定期実行（Nightly）に回すもの
+- 手動実行（Manual）にとどめるもの
 
-各分類の理由を記録します。
+それぞれの分類を選択した理由と根拠を記録してください。
 
-## ハンズオン4: 既存CI比較
+## ハンズオン4: 既存CI構成との比較
 
-現在の `.github/workflows/ci.yml` を読み、自分のTraining構成と比較します。
+現在の `.github/workflows/ci.yml` を読み込み、自身が扱ったトレーニング用ワークフローの構成と比較します。
 
-最低限次を説明します。
+最低限、以下の設計理由について説明できるようにしてください。
 
-- Buildを別Jobにしている理由
-- Artifact再利用の理由
-- Chromium E2EをMatrix化している理由
-- Extended E2EをPRでSkipする理由
-- UI Reviewを独立させている理由
-- Preview / ProductionをTraining CIへそのまま含めない理由
+- ビルド処理を独立したジョブに分離している理由
+- ビルド成果物（Artifact）を再利用している理由
+- Chromium環境でのE2Eテストをマトリクス（並列）化している理由
+- 拡張E2EテストをPR時にはスキップしている理由
+- UIレビュー（外観確認）ジョブを機能テストから独立させている理由
+- プレビュー環境や本番環境へのデプロイ処理をトレーニングCIに含めていない理由
 
 ## 確認問題
 
-1. CIでPlaywrightを実行するためにBrowser以外に何が必要か。
-2. Build Artifactを再利用する利点は何か。
-3. 全Browser全TestをPRごとに回さない判断があり得るのはなぜか。
-4. Failure Artifactが必要な理由は何か。
-5. Automation BuildとProduction Buildを分ける価値は何か。
-6. Training Playwright CIを本体のDeploy Workflowから分ける理由は何か。
+1. CI環境でPlaywrightを実行する際、ブラウザバイナリのほかに最低限どのような要素が必要になりますか。
+2. ビルド成果物（Artifact）をテストジョブ間で再利用することには、どのような利点がありますか。
+3. すべてのブラウザを対象とした全テストを、プルリクエストごとに毎回実行しない判断が妥当とされるのはなぜですか。
+4. CIにおいて失敗時のアーティファクト（Failure Artifact）の保存が必要不可欠である理由を説明してください。
+5. 自動テスト用ビルド（Automation Build）と本番用ビルド（Production Build）を分離することの意義は何ですか。
+6. トレーニング用のPlaywright CIを、本体のデプロイ用ワークフローから明確に分離しておくべき理由は何ですか。
 
-## 自己確認
+## 自己確認チェックリスト
 
-次をTraining Workflowの実行結果またはArtifactを指しながら確認できれば、P2-5の共通課程の到達度を自己判定できます。
+トレーニング用ワークフローの実行結果またはアーティファクトを実際に指し示しながら以下の項目を確認できれば、P2-5の共通課程の到達基準を満たしていると自己判定できます。
 
-- Browser Install、Application Build / Serve、Base URL、Playwright Testの関係を説明できる。
-- BuildしたArtifactを再利用する理由と、Failure工程に応じて必要なTrace / Screenshot / Reportを選べる。
-- Training Web CIとProduction Deploy / Smokeの責務を分け、Production SecretをTrainingへ持ち込まない理由を説明できる。
-- `pull_request`の基準確認後に`training:web:exercise`が実行されることと、生成時の`training:copy:validate`を受講者TestのCI成功と区別できる。
-- Expected Failureを通常のbaseline PASSへ混ぜず、失敗時の記録から原因の範囲を説明できる。
-- PR / main / Nightlyの配置や現在のCI構成はP2-7または参考比較であり、P2-5の共通課程の修了の隠れた前提ではない。
+- ブラウザのインストール、アプリケーションのビルドと配信（Serve）、ベースURL、Playwrightテスト実行の相互関係を説明できる。
+- ビルド成果物を再利用する理由を理解し、失敗のフェーズに応じて必要なトレース、スクリーンショット、レポートを適切に選択できる。
+- トレーニング用のWeb CIと本番のデプロイ／スモークテストの責務を明確に分離し、本番環境のシークレットをトレーニング環境へ持ち込んではならない理由を説明できる。
+- `pull_request` イベントにおける基準テスト（baseline）の通過後に `training:web:exercise` が実行される流れを理解し、環境生成時の検証コマンド `training:copy:validate` と受講者テストのCI成功を明確に区別できる。
+- 意図的な失敗検証（Expected Failure）を通常のベースライン成功（PASS）結果と混同せず、失敗時の記録アーティファクトから原因の所在を論理的に説明できる。
+- PR／main／Nightlyの配置設計や現行の本番CI構成の把握はP2-7または参考比較の位置づけであり、P2-5共通課程の修了における必須の前提条件ではないことを理解している。
 
-### Recovery
+### トラブルシューティングとリカバリ
 
-CIで失敗した場合は、Browser / Dependency Setup、Application Build / Serve、Base URL、Playwright Assertion、Artifact Uploadの順にFailure stageを確認します。Artifactが残らない場合はまずWorkflow設定と環境上の問題を切り分け、Testの理解不足と決めつけません。Production環境やSecretが必要になった場合はTraining Workflowへ追加せず、発展課題の条件として切り分けます。
+CI上で失敗が発生した場合は、以下の順序でどのフェーズで障害が発生したかを切り分けてください。
+
+1. ブラウザおよび依存パッケージのセットアップ（Browser / Dependency Setup）
+2. アプリケーションのビルドと配信（Application Build / Serve）
+3. ベースURLへのアクセス疎通（Base URL）
+4. Playwrightのアサーション失敗（Playwright Assertion）
+5. アーティファクトのアップロード処理（Artifact Upload）
+
+アーティファクトが出力されていない場合は、まずワークフローの設定や実行環境側の問題を切り分け、安易にテストロジックの理解不足が原因だと決めつけないようにしてください。本番環境へのアクセスやシークレット情報が必要となった場合は、それらをトレーニング用ワークフローに安易に追加するのではなく、発展課題のスコープとして明確に切り離して対処します。
 
 ## 完了条件
 
-- Training Workflow上でScenario ShopのPlaywright Testを実行できる。
-- Failure時に記録用Artifactを取得できる。
-- Build / Browser / Serve / Base URLとPlaywright Testの関係を説明できる。
-- Training CIと実運用CIの責務差を説明でき、Production SecretやDeployへ依存しない境界を守れる。
-- Failure stageと記録用Artifactの対応を1件説明できる。
+- トレーニング用ワークフロー上で、Scenario ShopのPlaywrightテストを正常に実行できること。
+- テスト失敗時に原因究明用のアーティファクトを確実に取得できること。
+- ビルド、ブラウザ、配信、ベースURLとPlaywrightテストの相互関係を説明できること。
+- トレーニング用CIと実運用向けCIの責務の違いを説明でき、本番シークレットやデプロイ処理に依存しない境界設計を遵守できること。
+- 失敗が発生したフェーズと、それを裏付ける記録用アーティファクトの対応関係を少なくとも1件具体的に説明できること。
 
-## 次の行動
+## 次のステップ
 
-Training Web CIの実行結果をQuality Gate、Artifact、Fail-closedの設計へ接続するため、[P2-7: Quality GateとCI/CD](07_ci-cd-quality-gates.md)へ進みます。
+トレーニング用Web CIの実行結果を、品質ゲート（Quality Gate）、アーティファクト管理、フェイルクローズ（Fail-closed）の設計思想へと接続するため、[P2-7: Quality GateとCI/CD](07_ci-cd-quality-gates.md) へ進んでください。

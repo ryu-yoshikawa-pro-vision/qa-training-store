@@ -1,101 +1,100 @@
 # Part 2-8: 導入設計演習
 
-Part 2の最終共通課程は、対象範囲を限定したWeb CIを中心とする共通経路で修了できます。Native CI、multi-platform、preview-prod deliveryは、選択したモバイルアプリ自動化の選択課程または共通課程のレベル2の範囲外にある発展課題として扱います。
+Part 2の最終共通課程は、対象範囲をWeb CIに絞った共通ルートで修了できます。Native CI、マルチプラットフォーム対応、Preview／Production環境へのデリバリーは、モバイルアプリ自動化の選択コース、または共通課程レベル2の対象外となる発展課題として扱います。
 
 ## 学習目標
 
-Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality Gateを使い、Scenario Shopへ対象範囲を限定したWeb CIを導入する設計を自分で作成します。Maestro / Native CIとPreview / Production deliveryは、選択時または発展課題・参考資料として追加します。
+Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality Gateを活用し、Scenario Shopに対して対象範囲を限定したWeb CIの導入設計を自力で組み立てます。Maestro／Native CIやPreview／Productionへのデリバリーは、コース選択時または発展課題・参考資料として適宜追加します。
 
-この演習では提案資料の作成を目的にしません。
+本演習の目的は、単なる提案資料を作ることではありません。
 
-目的は、対象案件に対して「何を、いつ、どこで、どのように自動実行し、失敗時に何を確認するか」を技術設計として決められることです。
+対象プロジェクトに対し、「何を、いつ、どこで、どのように自動実行し、失敗した際に何を確認するのか」を技術設計として判断・決定できるようになることが目的です。
 
 ## 共通課程の必須範囲
 
-共通経路の最終設計は、Web CIのTrigger、Quality Gate、Artifact、Failureの調査経路を対象範囲を限定して決めることで完了します。Native CI / Maestro、multi-platform、Preview / Production / Deploy後Smokeを含む一連のdeliveryは、選択したモバイルアプリ自動化の選択課程または発展課題・参考資料です。
+共通ルートの最終設計は、Web CIのトリガー（Trigger）、Quality Gate、成果物（Artifact）、および失敗（Failure）時の調査ルートの対象範囲を絞り込んで決定することで完了します。Native CI／Maestro、マルチプラットフォーム対応、ならびにPreview／Production／デプロイ後スモークテストを含む一連のデリバリーパイプラインは、モバイルアプリ自動化の選択コースまたは発展課題・参考資料の位置づけとなります。
 
 ## 教材
 
-**この総合演習では、このリポジトリ `qa-training-store` だけを使用します。**
+**本総合演習では、このリポジトリ `qa-training-store` のみを使用します。**
 
-現在の `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml` は比較教材として存在しますが、最初から正解として読みません。
+リポジトリ内の `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml` は比較検討用の教材として用意されていますが、最初から正解の構成として鵜呑みにはしません。
 
-また、3つのWorkflowは現在の役割が同じではありません。
+また、これら3つのワークフローは現在それぞれ異なる役割を担っています。
 
-- Web `ci.yml`: PR / main / schedule / manualを含むWeb CI/CD。
-- Android `native-ci.yml`: PR / manualで動くNative CI。
-- iOS `native-ios-ci.yml`: standaloneでは`workflow_dispatch`による手動実行のiOS Build-only baseline。Native変更時はtop-level `native-ci.yml`がこのreusable workflowを呼び、`native-ci / verify`がiOS成功を必須とする。
+- Web `ci.yml`: PR、mainブランチ、スケジュール実行、手動実行を含むWeb CI/CD。
+- Android `native-ci.yml`: PRおよび手動実行で動作するNative CI。
+- iOS `native-ios-ci.yml`: 単体では `workflow_dispatch` による手動実行のみを受け付ける、iOSビルド専用のベースライン。Nativeコード変更時には最上位の `native-ci.yml` からこの再利用可能ワークフロー（Reusable Workflow）が呼び出され、`native-ci / verify` ジョブにおいてiOSビルドの成功が必須条件となる。
 
-standaloneの手動入口、Native変更時の必須Build-only経路、iOS Runtime / Simulator / Maestro非保証を区別します。
+単体での手動実行トリガー、Native変更時に必須となるビルド専用ルート、およびiOS Runtime／Simulator／Maestroの実行は保証対象外であることを明確に区別して設計します。
 
-まず「CIがまだ存在しないScenario Shop」という前提で自分の設計を作り、その後で現在の実装と比較します。
+まずは「CIがまだ存在しないScenario Shop」という前提でゼロから自身の設計を組み立て、その後に既存の実装と比較・検証を行います。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P2-1〜P2-7のプロセス図、Git／PR記録、Training Copy上のWeb CI Run／Check／Artifact、Part 1のCase／コード／Failure分析、必要ならNative選択課程の別記録 |
-| Activity | Scenario Shopの対象範囲を決め、Trigger、Build、Playwright、Quality Gate、Artifact、Failure時の戻り先を設計した後、現在のWorkflow・仕様・Contract Testと比較する |
-| Observation | どのRiskをどのLayer／Triggerで守るか、受講者CaseとCIの対応、最小権限、Artifactの追跡、Common／Native／CDの境界、設計と現行実装の差 |
-| Output | `handoff-root/self-check/P2-08.md`へ対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failure対応表、Run／Check／Artifact参照、最終self-checkを記録する。Mermaid等の図や補足Evidenceが必要なら既存`handoff-root/evidence/`へ置き、P2-08.mdから参照する。Part 1／2の成果物を固定`handoff-root/`へ集約する |
-| Self-check | 「何を、いつ、どこで、どの条件で実行し、Failure時に何を見るか」をCase／Risk／Workflow／Evidenceを指して説明する。GitHub外部状態をAPIなしで証明したとは書かない |
-| Completion | C01〜C07、C09〜C12の対象範囲を限定したCommon成果物を一つの対応関係へつなぎ、準備済みTraining CopyでのCI経路と人間可読Evidenceを示せる。C09はinitial Failure→同じ対象のrepaired Pass、C10は実在または決定的教材演習の改善→別run、C11はBranch／Commit／Diff／Pull Request／Review記録、C12はRun／Check／Artifact確認をそれぞれ満たす。Native／iOS Runtimeは必須にしない |
-| Recovery | 対応が切れる最初の成果物へ戻る。Run／Check／Artifactを取得できない場合はTraining Copy／権限／外部環境の問題として分け、設計だけでPASSにしない |
-| Handoff | `handoff-root/self-check/P2-08.md`を最終設計とSelf-checkの正本として渡し、固定rootのWorkbook、Repository相対code、Evidence、Execution Receipt、Lesson ID別self-checkと結び付ける。Part 2の正式修了はTraining Copy上のCI結果と併せて確認する |
+| Input | P2-1〜P2-7のプロセス図、Git／PRの履歴、Training Copy上で実行されたWeb CIのRun／Check／Artifact、Part 1で作成したテストケース／コード／失敗分析、必要に応じてNative選択コースの記録 |
+| Activity | Scenario Shopの対象範囲を定め、Trigger、Build、Playwright、Quality Gate、Artifact、および失敗時の対応・調査ルートを設計したうえで、現在のワークフロー・仕様・Contract Testと比較する |
+| Observation | どのリスクをどのレイヤーやトリガーで担保するか、受講者ケースとCIの対応関係、最小権限の原則、Artifactの追跡性、Common／Native／CDの境界線、設計と現行実装との差分 |
+| Output | `handoff-root/self-check/P2-08.md` に対象範囲を限定したWeb CI導入設計、Test／Trigger／Gate／Artifact／Failureの対応表、Run／Check／Artifactの参照情報、最終セルフチェック結果を記録する。Mermaid等の図や補足エビデンスが必要な場合は既存の `handoff-root/evidence/` に配置し、P2-08.mdから参照する。Part 1およびPart 2の成果物を固定の `handoff-root/` 配下に集約する |
+| Self-check | 「何を、いつ、どこで、どの条件で実行し、失敗時に何を確認するか」を、Case／Risk／Workflow／Evidenceを明示して説明できること。GitHub外部の状態をAPI検証なしで証明できたと記述していないこと |
+| Completion | C01〜C07、C09〜C12における共通必須成果物を1つの対応関係としてまとめ、準備済みTraining CopyでのCI実行ルートと人間が可読なエビデンスを提示できること。C09は初期の失敗（initial Failure）から同一対象を修正した合格（repaired Pass）への推移、C10は実在または決定的な教材演習の改善から別Runでの実行、C11はBranch／Commit／Diff／Pull Request／Reviewの記録、C12はRun／Check／Artifactの確認をそれぞれ満たしていること。NativeおよびiOS Runtimeの検証は必須としない |
+| Recovery | 整合性が取れなくなった最初の成果物まで戻って確認する。Run／Check／Artifactを取得できない場合は、Training Copy・権限・外部環境に起因する問題として切り分け、机上設計のみで安易にPASSと判定しない |
+| Handoff | `handoff-root/self-check/P2-08.md` を最終設計およびセルフチェックの正本として引き渡し、固定ルート配下のWorkbook、リポジトリ相対パスのコード、Evidence、Execution Receipt、レッスンID別のセルフチェックと紐付ける。Part 2の正式な修了判定はTraining Copy上のCI実行結果と合わせて確認する |
 
 ## 修了確認とCI成果物の取り込み
 
-P2-8では、P2-5で確認したCI成果物を固定`<handoff-root>`へ戻し、その後に受講者向け修了確認を実行します。Training Copy上でCIが実際に評価したLearner codeと、固定Handoffの`code/`を一致させることが先です。正式な処理順は次のとおりです。
+P2-8では、P2-5で確認したCI成果物を固定の `<handoff-root>` へ反映したうえで、受講者向けの修了確認を実施します。Training Copy上でCIが実際に検証した受講者コードと、固定Handoff配下の `code/` を一致させることが前提となります。正式な処理手順は以下のとおりです。
 
-1. Training Copyで`git status --short --branch`と`git rev-parse HEAD`を実行し、今回確認したPR／Runの`submission_sha`に対応する提出Commitであることを確認する。
-2. 次の既存commandで、Training CopyのLearner codeを固定Handoffへ同期する。
+1. Training Copyで `git status --short --branch` および `git rev-parse HEAD` を実行し、今回確認したPR／Runの `submission_sha` に対応する提出コミットであることを確認します。
+2. 以下の既存コマンドを実行し、Training Copyの受講者コードを固定Handoffへ同期します。
 
    ```bash
    pnpm run training:copy:sync-handoff -- --root <handoff-root> --source <training-copy>
    ```
 
-3. Run Summaryで対象Run／Attemptを確認し、`training-web-<run_id>-<run_attempt>`をダウンロード・展開する。
-4. CI Execution Receiptを`<handoff-root>/receipts/`へ戻し、Receiptが参照する同じRunのEvidenceを固定Handoffへ戻す。
-5. GitHub画面で確認したRun／Check／Artifact／Case／結果を、人間可読Evidenceとして追加する。
-6. Workbook、Learner code、self-checkを確認する。
-7. 固定Handoffを`training:completion:check --mode part2`へ渡す。
+3. Run Summary画面で対象のRun／Attemptを確認し、`training-web-<run_id>-<run_attempt>` をダウンロードして展開します。
+4. CI Execution Receiptを `<handoff-root>/receipts/` へ配置し、Receiptが参照している同一Runのエビデンス群を固定Handoffへ反映します。
+5. GitHub画面上で確認したRun、Check、Artifact、対象ケース、結果の情報を、人間が可読なエビデンスとして追加します。
+6. Workbook、受講者コード、セルフチェックの内容を点検します。
+7. 固定Handoffを指定して `training:completion:check --mode part2` を実行します。
 
-`--root`はPart 1から継続している固定Handoff root、`--source`はPart 2で実際に編集・commitしたTraining CopyのローカルDirectoryです。同期対象はLearner-ownedな`training/playwright/` codeだけで、Workbook、Receipt、Evidence、self-check、Workflow、Product Code、Formal Regression、provided code、Canonical `reset-scenario.ts`は対象外です。Training Copyで削除したLearner fileはHandoffからも削除され、renameは旧Path削除＋新Path追加として反映されます。CI後に未commit変更を加えた状態で同期せず、Receiptが評価したCommitと`git rev-parse HEAD`の`submission_sha`が一致することを確認してください。
+ここで `--root` はPart 1から継続して使用している固定Handoffのルートディレクトリ、`--source` はPart 2で実際に編集・コミットを行ったTraining Copyのローカルディレクトリを指します。同期の対象となるのは受講者管理下の `training/playwright/` 配下のコードのみです。Workbook、Receipt、Evidence、セルフチェック、Workflow、プロダクトコード、Formal Regression、配布コード、Canonicalな `reset-scenario.ts` は同期の対象外となります。Training Copy側で削除された受講者ファイルはHandoff側でも削除され、ファイル名変更は「旧パスの削除＋新パスの追加」として反映されます。CI実行後に未コミットの変更が残っている状態で同期を行わず、Receiptが評価対象としたコミットと `git rev-parse HEAD` が出力する `submission_sha` が一致していることを必ず確認してください。
 
-CI Artifactは自動的にLocalへ戻らないため、展開物の`receipts/`から選択したCI Execution Receiptを、同じ相対位置の`<handoff-root>/receipts/`へコピーします。Local ReceiptをCI Receiptで上書きしたり、Receiptを手入力で作ったりしません。
+CI Artifactはローカル環境へ自動的には反映されないため、展開した成果物内の `receipts/` から対象のCI Execution Receiptを選択し、同じ相対パスである `<handoff-root>/receipts/` へコピーします。ローカルで生成したReceiptをCI Receiptで上書きしたり、Receiptを手作業で捏造・作成したりしてはいけません。
 
-CI Receiptの`run`にある`ci.github_run_id`、`ci.github_run_attempt`、`ci.artifact_name`、`ci.workflow`、`ci.job`、`ci_sha`、`submission_sha`、`training_copy_source_sha`、`execution_sha`が、確認したRun／提出Commit／Training Copy／実行結果と一致するかを確認します。Receiptの`cases[].evidence`が参照するArtifact内の`evidence/`（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoを含む）は、Receiptと同じRunのものを同じ相対Pathで`<handoff-root>/evidence/`へ戻します。GitHub画面で確認したRun、Check、Artifact、対象Case、結果は、そこへ別の人間可読Evidenceとして追加します。`04_execution-improvement.csv`では既存の`ci-exercise`など認識済みのCI Contextを使い、ReceiptのCase結果、Evidence、Failure分類を対応付けます。
+CI Receipt内の `run` に記録されている `ci.github_run_id`、`ci.github_run_attempt`、`ci.artifact_name`、`ci.workflow`、`ci.job`、`ci_sha`、`submission_sha`、`training_copy_source_sha`、`execution_sha` が、自身が確認したRun、提出コミット、Training Copy、実行結果と合致していることを検証します。Receiptの `cases[].evidence` が参照しているArtifact内の `evidence/`（`report.json`、`run.log`、Playwright Report／Trace／Screenshot／Videoなど）は、Receiptと同一Runのものを同じ相対パスで `<handoff-root>/evidence/` へ配置します。GitHub画面で確認したRun、Check、Artifact、対象ケース、実行結果は、個別の可読エビデンスとしてそこへ追加します。`04_execution-improvement.csv` では既存の `ci-exercise` などの認識済みCIコンテキストを用い、Receiptに記載されたケース結果、エビデンス、失敗分類を紐付けます。
 
-上の順序で成果物を確認した後、そろえた固定rootを次のコマンドへ渡します。
+上記の手順に従って成果物を確認・集約した後、準備の整った固定ルートを指定して以下のコマンドを実行します。
 
 ```bash
 pnpm run training:completion:check -- --mode part2 --root <handoff-root>
 ```
 
-`completion-receipt.json`の`status`、`missing_requirements`、`reasons`、`checked_outputs`、`semantic_understanding`を読み、`PASS`が意味の理解を自動採点した結果ではないことを確認します。Part 2の完了は、`PASS`、self-check、公開されている最低限の評価基準、CI Run／Check／Artifactを自分で確認したEvidenceのすべてで判定します。正式な書き込み可能Training CopyまたはGitHub実行環境がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録し、ローカルReceiptやForkの結果をCI完了へ読み替えません。
+実行後、`completion-receipt.json` の `status`、`missing_requirements`、`reasons`、`checked_outputs`、`semantic_understanding` を確認し、`PASS` という判定結果が「設計の意味や背景の理解度を自動採点したものではない」点に留意してください。Part 2の正式な完了は、ツールの `PASS` 判定、セルフチェックの妥当性、公開されている最低限の評価基準、および自身で確認したCI Run／Check／Artifactのエビデンスのすべてが揃っていることで総合的に判断します。正式な書き込み権限のあるTraining CopyまたはGitHub Actions実行環境が用意できない場合は、作成した設計成果物を保持したうえでPart 2 V1を `BLOCKED` として記録し、ローカルのReceiptやFork環境での検証結果をCI完了の証跡として読み替えてはなりません。
 
 ## 演習シナリオ
 
-次の状態を想定します。
+以下の前提状況をもとに演習を進めます。
 
-> 共通シナリオ: Scenario ShopのWeb自動テストはローカルでは実行できるが、Merge前に継続実行される保証がない。
+> 共通シナリオ: Scenario ShopのWeb自動テストはローカル環境で実行できているものの、マージ前に継続的に実行される仕組みが整っていない。
 >
-> Unit / Integration / Component / Playwrightの確認はローカルで実行でき、開発者はGitとPull Requestで変更を管理している。
+> Unit／Integration／Component／Playwrightの各テストはローカルで動作確認が可能であり、開発チームはGitとPull Requestを用いてソースコードを管理している。
 >
-> この共通シナリオでは、対象範囲を限定したWeb CIについて、何をいつ実行し、どのQuality GateとArtifactでFailureを調べるかを設計する。
+> この共通シナリオに基づき、対象範囲を限定したWeb CIについて「何を、いつ実行し、どのQuality Gateと成果物（Artifact）を用いて失敗を調査するか」を設計する。
 >
-> Nativeを選択する受講者は、別の選択課程としてAndroid / iOSの保証を追加検討できる。これはCommonの必須条件ではない。
->
+> Native環境を扱う受講者は、選択コースとしてAndroid／iOS向けの品質保証を追加で検討できる。ただし、これは共通課程の必須条件には含まれない。
 
-この状態から、まず共通課程のWeb CI設計を作成します。
+このシナリオを出発点として、まずは共通課程となるWeb CIの設計を作成します。
 
-Phase 1〜4、Phase 6のWeb項目、Phase 7の共通Web項目がCommonの必須範囲です。Phase 5のNative項目、Phase 6のNative／Deploy項目、Phase 7のNative／Preview／Production項目は、見出しまたは表に`Native選択時`／`発展課題`と記載された追加範囲です。Commonだけで進む受講者は、追加範囲を設計せず「未選択」と記録して次へ進みます。
+Phase 1〜4、Phase 6のWeb関連項目、およびPhase 7の共通Web項目が共通課程の必須範囲です。Phase 5のNative関連項目、Phase 6のNative／デプロイ項目、Phase 7のNative／Preview／Production関連項目は、見出しや表に「Native選択時」または「発展課題」と明記されている追加範囲となります。共通課程のみを進める受講者は、これらの追加範囲を設計せず「未選択」と記載して次のステップへ進んでください。
 
 ## Phase 1: 現状把握
 
-Repositoryを確認し、次を一覧化します。
+リポジトリの内容を確認し、以下の要素を洗い出して整理します。
 
-### Test（共通課程の設計対象はWeb範囲を選ぶ）
+### テスト種別（共通課程の設計対象はWebの範囲を選択）
 
 - Unit
 - Integration
@@ -107,217 +106,217 @@ Repositoryを確認し、次を一覧化します。
 - Mobile Boundary
 - Cross-role
 - UI Review
-- Maestro（モバイルアプリ自動化の選択課程・参考資料）
+- Maestro（モバイルアプリ自動化の選択コース・参考資料）
 
-### Build
+### ビルド種別
 
 - Web Automation Build
 - Web Production Build
 - Android Build（Native選択時）
 - iOS `iphonesimulator` Build Artifact（Native選択時）
 
-### Deploy（発展課題・参考資料）
+### デプロイ（発展課題・参考資料）
 
-- Preview
-- Production
+- Preview環境
+- Production環境
 
-### 実行記録
+### 実行ログ・記録物
 
 - Playwright Trace
 - Screenshot
 - Video
 - HTML Report
-- JUnit
+- JUnitレポート
 - Maestro Artifact（Native選択時）
 - Native Log（Native選択時）
 
-この段階では現在のWorkflow Job構成をコピーしません。
+※この段階では、既存ワークフローのジョブ構成をそのまま転記してはいけません。
 
-## Phase 2: Riskを整理する
+## Phase 2: リスクの整理
 
-共通Webでは最低限次を考えます。
+共通Webの範囲において、最低限以下の観点を検討します。
 
-- PR Merge前に絶対検出したいFailureは何か。
-- mainへ統合された後に確認すればよいものは何か。
-- Nightlyで十分なものは何か。
-- FlakyなTestを必須にしてよいか。
+- PRのマージ前に必ず検知しなければならない失敗（Failure）は何か。
+- mainブランチへの統合後に確認できれば十分なものは何か。
+- Nightly（夜間定期実行）での検証で十分なものは何か。
+- 不安定（Flaky）なテストを必須のゲートに含めてよいか。
 
-Nativeを選択する場合だけ、高コストなNative Testをどの頻度で回すかを追加します。Deployを発展課題として扱う場合だけ、Deploy Failureをどう検出するかを追加します。これらをCommon Webの回答へ混ぜません。
+Nativeを選択する場合に限り、「実行コストの高いNativeテストをどの頻度で実行するか」を追加で検討します。また、デプロイを発展課題として扱う場合に限り、「デプロイ失敗をどう検知するか」を追加します。これらを共通Webの回答に混在させないよう注意してください。
 
-## Phase 3: Test Suiteを分類する
+## Phase 3: テストスイートの分類
 
-次の実行タイミングへTestを配置します。
+テストの実行タイミングを以下のカテゴリに分類・配置します。
 
 ### Pull Request
 
-Merge前の短時間Feedbackとして必要なもの。
+マージ前の迅速なフィードバックとして必須となるテスト群。
 
 ### main
 
-統合後に必要なもの。
+ブランチ統合後に品質を維持・確認するために必要なテスト群。
 
 ### Nightly
 
-高コスト・広範囲のRegression。
+実行コストが高く、広範な範囲を検証するリグレッションテスト群。
 
 ### Manual
 
-調査、Release前、特定条件など必要時に起動するもの。
+不具合調査、リリース前確認、特定条件下での検証など、必要に応じて手動起動するテスト群。
 
-各配置には理由が必要です。
+※各テストをそのタイミングに配置した明確な理由を言語化してください。
 
-## Phase 4: Web CIを設計する
+## Phase 4: Web CIの設計
 
-最低限次を決めます。
+最低限、以下の設計項目を決定します。
 
-- Trigger
-- Quality Check
-- Unit / Integration / Component
-- Web Build
-- Playwright
-- Browser Strategy
-- Artifact
-- Final Gate
+- トリガー（Trigger）
+- 静的解析・コード品質チェック（Quality Check）
+- Unit / Integration / Component テスト
+- Webビルド（Web Build）
+- Playwright E2Eテスト
+- ブラウザ実行戦略（Browser Strategy）
+- 成果物（Artifact）の保存方針
+- 最終判定ゲート（Final Gate）
 
-### 設計質問
+### 設計における検討事項
 
-- ChromiumだけをPRで必須にするか。
-- Firefox / WebKitはいつ回すか。
-- Accessibilityは必須か。
-- Mobile Boundaryは必須か。
-- UI Review Screenshotは必須か、実行記録の収集にとどめるか。
-- Automation BuildとProduction Buildを分けるか。
-- E2E Jobで毎回Buildするか、Artifactを再利用するか。
+- PR段階でChromiumのみを必須とするか。
+- FirefoxおよびWebKitはどのタイミングで実行するか。
+- アクセシビリティテストはマージ必須条件に含めるか。
+- Mobile Boundaryテストは必須とするか。
+- UI Reviewのスクリーンショット取得は必須チェックとするか、エビデンス収集のみに留めるか。
+- Automation用ビルドとProduction用ビルドを分離するか。
+- E2Eジョブのたびにビルドし直すか、前段のビルド成果物（Artifact）を再利用するか。
 
-## Phase 5: モバイルアプリ自動化の選択課程のCIを設計する（選択時）
+## Phase 5: モバイルアプリ自動化のCI設計（選択コース受講時）
 
-AndroidとiOSについて、現在のRepository Triggerを正解としてコピーせず、ゼロから次を決めます。
+AndroidおよびiOSについて、既存リポジトリのトリガー設定をそのまま正解とみなさず、ゼロベースで以下の項目を検討します。
 
-- Build Trigger
-- Native変更判定
-- Static Check
-- Build
-- Emulator / Simulator
-- Maestro
-- Artifact
-- 実行記録
-- Final Gate
+- ビルドトリガー（Build Trigger）
+- Nativeコードの変更検知条件
+- 静的解析チェック（Static Check）
+- ビルド処理（Build）
+- エミュレータ／シミュレータの起動戦略
+- Maestroテストの実行
+- 成果物（Artifact）の保存
+- 実行ログ・記録物の収集
+- 最終判定ゲート（Final Gate）
 
-### 設計質問
+### 設計における検討事項
 
-- Android BuildとRuntimeを同じJobにするか。
-- APKをArtifact化するか。
-- Maestro FlowごとにJobを分けるか。
-- AndroidとiOSを同じ必須条件にするか。
-- macOS Runner Costをどう考えるか。
-- PRで両Platformを毎回実行するか。
-- iOSはPRで必須、PRでは任意、main、Nightly、Manualのどこへ置くか。
-- AndroidとiOSで異なるTriggerを採用するなら、その理由は何か。
+- Androidのビルドとテスト実行を同一ジョブで行うか、分離するか。
+- 生成したAPKをArtifactとして保存・共有するか。
+- MaestroのFlowごとにジョブを分割するか。
+- AndroidとiOSでマージの必須条件を同一にするか。
+- macOS Runnerの実行コストをどう考慮するか。
+- PRのたびに両プラットフォームのテストを毎回実行するか。
+- iOSの検証を「PR必須」「PR任意」「main統合後」「Nightly」「手動実行」のどこに配置するか。
+- AndroidとiOSで異なる実行トリガーを採用する場合、その根拠は何か。
 
-Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を使い、Build / Emulator / MaestroのCostを具体的に考えます。
+Part 2-6でAndroidのTraining Native Workflowを実際に動作させた経験に基づき、ビルド、エミュレータ起動、Maestro実行にかかる具体的なコストを考慮して設計します。
 
-選択課程を選ばない場合は、このPhaseを飛ばしてPhase 6へ進みます。Nativeを選択した場合だけ、Android / iOSの設計成果物とCost判断を追加し、共通課程の修了の必須条件へ戻しません。
+※選択コースを受講しない場合は、本PhaseをスキップしてPhase 6へ進んでください。Nativeを選択した場合にのみAndroid／iOSの設計成果物とコスト判断を追加しますが、これらは共通課程の修了要件には影響しません。
 
-## Phase 6: Failure時の調査経路を設計する
+## Phase 6: 失敗時の調査ルート設計
 
-各Job Failureで、最初に確認する実行記録を定義します。
+各ジョブが失敗（Failure）した際に、最初に確認すべき実行ログやエビデンスを定義します。
 
 例:
 
-| Failure | 最初に確認するもの |
+| 失敗事象 | 最初に確認すべき情報 |
 | --- | --- |
-| Lint | GitHub Actions Log |
-| Playwright Assertion | Trace / Screenshot |
-| Browser起動 | Setup Log |
-| Gradle Build（Native選択時） | Gradle Log |
-| APK Install（Native選択時） | adb / Runtime Log |
-| Maestro Assertion（Native選択時） | JUnit / Screenshot |
-| iOS Build（Native選択時） | Xcode Build Log / Build Artifact |
-| Deploy（発展課題） | Deploy Log / URL |
-| Deploy後Smoke（発展課題） | Playwrightの実行記録 |
+| Lintエラー | GitHub Actionsの実行ログ |
+| Playwright Assertionエラー | Trace / Screenshot |
+| ブラウザ起動エラー | セットアップログ（Setup Log） |
+| Gradleビルド失敗（Native選択時） | Gradleビルドログ |
+| APKインストール失敗（Native選択時） | adbログ／ランタイムログ |
+| Maestro Assertionエラー（Native選択時） | JUnitレポート／Screenshot |
+| iOSビルド失敗（Native選択時） | Xcodeビルドログ／ビルド成果物 |
+| デプロイ失敗（発展課題） | デプロイログ／デプロイ先URL |
+| デプロイ後スモークテスト失敗（発展課題） | Playwrightの実行記録・レポート |
 
-「失敗したら担当者が頑張って調べる」ではなく、調査可能な実行記録を設計へ含めます。
+「テストが失敗したら担当者が手作業でログを探す」という運用にせず、誰もが迷わず調査に着手できるエビデンス収集方針を設計に盛り込みます。
 
-## Phase 7: Quality Gateを設計する（共通Web・Native選択時）
+## Phase 7: Quality Gateの設計（共通Web・Native選択時）
 
-Mergeを止める必須条件を定義します。
+プルリクエストのマージをブロックする必須条件を定義します。
 
-次を考えます。
+以下の観点から検討します。
 
-- 必須Test
-- 必須Build
-- Androidの必須範囲（Native選択時）
-- iOSの必須範囲（Native選択時）
-- Preview Smoke
-- Final Verify
+- 必須とするテストスイート
+- 必須とするビルド処理
+- Androidの必須検証範囲（Native選択時）
+- iOSの必須検証範囲（Native選択時）
+- Preview環境でのスモークテスト
+- 最終検証ゲート（Final Verify）
 
-共通経路ではWebの必須Test、Build / Artifact、Final Gateの範囲を限定して定義します。Android / iOS、Preview Smoke、Productionに関する必須範囲は、選択時または発展課題・参考資料として別に判断します。
+共通ルートでは、Webの必須テスト、ビルド／Artifactの受け渡し、およびFinal Gateの範囲を絞り込んで定義します。Android／iOS、Previewスモークテスト、Production環境に関する必須範囲については、選択コースまたは発展課題・参考資料として切り離して判断します。
 
-次のような弱体化は禁止とします。
+なお、以下のような品質ゲートの弱体化は厳禁とします。
 
-- 不安定だから`continue-on-error`
-- 遅いから重要なTestを削除
-- FailするからAssertionを弱くする
-- 原因不明のままRetry回数だけ増やす
+- テストが不安定だからといって `continue-on-error` で失敗をもみ消す
+- 実行速度を優先するあまり、重要なリグレッションテストをゲートから除外する
+- テストを通過させるために、検証アサーションを緩める
+- 根本原因を調査しないまま、リトライ（Retry）回数だけを増やす
 
-必要ならTest自体を改善するか、必須指定の配置を見直します。
+問題がある場合は、テスト自体の安定性を改善するか、実行タイミングの配置を見直します。
 
-Nativeについては「両Platformを必須にすれば品質が高い」と短絡せず、Risk、実行時間、Runner Cost、Flakiness、代替Coverageから判断します。
+またNativeに関しては、「両プラットフォームを必須にすれば品質が保てる」と単純化せず、実際のリスク、実行所要時間、Runnerコスト、Flakiness（フレーキーさ）、代替可能なカバレッジの有無を総合的に勘案して判断してください。
 
-## Phase 8: CI/CDを設計する（発展課題・参考資料）
+## Phase 8: CI/CDの設計（発展課題・参考資料）
 
-Webについて、Build後のDelivery / Deployまで設計します。Preview / Production / Deploy後Smokeは共通課程の修了の前提ではありません。
+Web領域を対象として、ビルド後のデリバリー／デプロイパイプラインまでを設計します。Preview環境、Production環境、デプロイ後のスモークテストは、共通課程修了の必須条件ではありません。
 
-候補:
+設計パイプラインの例:
 
 ```text
 Pull Request
-↓
-CI
-↓
+    ↓
+CI (Lint / Test / Build)
+    ↓
 Preview Deploy
-↓
-Preview Smoke
-↓
-Merge
-↓
+    ↓
+Preview Smoke Test
+    ↓
+Merge to main
+    ↓
 Production Deploy
-↓
-Production Smoke
+    ↓
+Production Smoke Test
 ```
 
-次を決めます。
+以下の項目を決定します。
 
-- Previewを必須にするか。
-- Productionへ何のArtifactをDeployするか。
-- Deploy Failure時にどう扱うか。
-- Production Smokeで何を確認するか。
+- Preview環境へのデプロイをPRの必須条件とするか。
+- Production環境へどのビルド成果物（Artifact）をデプロイするか。
+- デプロイ失敗時にどう対応するか。
+- Production環境のスモークテストで何を確認するか。
 
-## Phase 9: Workflow Diagramを作成する（共通課程の図・発展拡張）
+## Phase 9: ワークフロー図の作成（共通課程の図・発展拡張）
 
-最終設計をJob Graphとして図示します。
+完成した最終設計を、ジョブ間の依存関係を示すグラフ（Job Graph）として視覚化します。
 
-例の形だけを参考にし、内容は自分で決めます。
+以下の構成例を参考にしつつ、実際のジョブ構成は自身の設計に基づいて決定してください。
 
 ```text
-PR
-├ Quality
-├ Tests
+PR Trigger
+├ Quality Check
+├ Tests (Unit / Integration)
 ├ Build
-└ Native
+└ Native (選択時)
     ↓
 Final Gate
     ↓
-Preview
+Preview Deploy (発展課題)
     ↓
-Smoke
+Smoke Test (発展課題)
 ```
 
-AndroidとiOSを同じ枝へ置く必要はありません。実行タイミングを分けた場合は、その差も図に表します。
+AndroidとiOSを同一のジョブツリーに配置する必要はありません。実行タイミングを分けた場合は、その違いも図中に反映します。
 
-## Phase 10: 現在のScenario Shop CIと比較する（参考比較）
+## Phase 10: 現行のScenario Shop CIとの比較（参考比較）
 
-自分の設計完成後、現在の次のFileを読みます。
+自身の設計が完成した後、リポジトリ内の以下のファイルを確認します。
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
@@ -325,151 +324,151 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - `tests/contracts/ci-workflow.test.ts`
 - `tests/contracts/native-ci-workflow.test.ts`
 
-次を比較します。
+以下の観点で比較を行います。
 
-1. Trigger
-2. Job構成
-3. 必須範囲
-4. Test Suite配置
-5. Browser Strategy
-6. Artifact再利用
-7. Native変更判定
-8. Android Build / Runtime境界
-9. iOS Build-only経路
-10. iOSのstandalone Manual入口とNative変更時の必須Build-only経路（Runtime PASSとは別）
-11. Preview / Production
-12. 失敗時の記録
+1. 実行トリガー（Trigger）
+2. ジョブ構成と並列性
+3. マージ必須範囲の定義
+4. テストスイートの配置タイミング
+5. ブラウザ実行戦略（Browser Strategy）
+6. ビルド成果物（Artifact）の再利用方法
+7. Nativeコードの変更検知ロジック
+8. Androidのビルドとテスト実行の分離境界
+9. iOSのビルド専用（Build-only）ルート
+10. iOSの単体手動実行トリガーと、Native変更時の必須ビルド専用ルート（Runtimeテストの合格とは別物である点）
+11. Preview／Production環境のデリバリー構成
+12. 失敗時のログ・記録物の収集設計
 
-現在のiOS Workflowがstandaloneでは`workflow_dispatch`であり、Native変更時にはtop-level `native-ci`から必須のBuild-only経路として呼び出されることを「差分」として扱います。自分の設計がiOSをPRやNightlyへ配置していた場合、どちらが妥当かを理由付きで評価します。
+現行のiOSワークフローは、単体では `workflow_dispatch` による手動実行であり、Native変更時には最上位の `native-ci` から呼び出される必須のビルド専用ルートとして機能しています。この構造を「現行実装との差分」として捉えてください。自身の設計でiOSをPR必須やNightlyに配置していた場合は、どちらの設計がより妥当であるかを理由とともに評価します。
 
-## Phase 11: 差分を評価する
+## Phase 11: 差分の評価
 
-「Repositoryの現在の構成が正解だから自分の設計を合わせる」のではありません。
+「リポジトリの既存構成が正解だから、自分の設計を既存コードに合わせる」という姿勢は取らないでください。
 
-差分ごとに次を評価します。
+洗い出した差分ごとに、以下の観点で評価します。
 
-- 現在のRepository設計の方がよい理由
-- 自分の設計の方が単純でよい可能性
-- 現在の規模だから必要な複雑性
-- 現在は過渡期・baselineであり、将来変更され得る構成
-- 別案件なら不要になり得る構成
-- 今後改善できる点
+- 既存のリポジトリ構成のほうが優れている理由
+- 自身の設計のほうがシンプルで実務に適している可能性
+- 現在のプロジェクト規模だからこそ求められる複雑さ
+- 現状の実装が過渡期のベースラインであり、将来的に改修され得る箇所
+- 別の案件・要件であれば不要になり得る構成
+- 今後の改善点・発展の余地
 
 ## 記録する成果物
 
-次の成果物はリポジトリ内へ保存・記録します。外部提出を共通課程の修了の必須条件にしません。
+以下の成果物をリポジトリ内に作成・記録します。外部システムへのレポート提出は、共通課程修了の必須要件ではありません。
 
 ### 共通課程の必須成果物
 
-- 現在の状態とRiskの整理（Web CIの設計判断に必要な範囲）
-- 対象範囲を限定したWeb CI設計
-- Web Quality Gate定義
-- Artifact / 失敗時の記録の設計
-- fail-closedを含むFailureの調査経路
-- 必要最小限の対象範囲を限定したWeb CI Diagram
-- 最終設計判断と理由
-- P2-5で受講者が作成したPlaywright TestをTraining Copy Pull Requestで成功させたrun結果 / Artifact
+- 現状の整理とリスク分析（Web CIの設計判断に必要な範囲）
+- 対象範囲を限定したWeb CI導入設計
+- Web向けQuality Gateの定義
+- 成果物（Artifact）および失敗時ログ収集の設計
+- Fail-closed（安全側に倒す制御）を含む失敗調査ルート
+- 必要最小限の範囲に絞ったWeb CIワークフロー図（Diagram）
+- 最終的な設計判断とその根拠
+- P2-5で受講者が作成したPlaywrightテストをTraining CopyのPull Request上で成功させた実行結果／Artifact
 
 ### 最終成果物の照合
 
-外部へのレポート提出はCommonの修了条件にしません。ただし、準備済みTraining Copy上で作成したPRのCI実行証跡は、Part 2の正式な学習成果です。完了前に次の対応を一つずつ照合します。
+外部へのレポート提出は共通課程の修了条件ではありません。ただし、準備済みのTraining Copy上で作成したPRのCI実行証跡は、Part 2における正式な学習成果となります。完了判定を行う前に、以下の対応関係を1点ずつ照合・確認してください。
 
-| 習熟項目 | 最終確認する対応関係 |
+| 習熟度項目 | 最終確認を行う対応関係 |
 | --- | --- |
-| C09 | 同じCase／コードPathの`diagnostic-initial` Failure → `diagnostic-repaired` Pass、別Receipt／別Evidence |
-| C10 | 同じCase／コードPathの`c10-before` Pass → `c10-improved` Pass、別Evidence、Digest変更 |
-| C11 | Branch、Commit、Diff、Training Copy上のPull Request、Review記録 |
-| C12 | Training Copy上のRun、Check、Artifact、画面確認に基づく人間可読Evidence |
+| C09 | 同一ケース／コードパスにおける初期失敗（`diagnostic-initial` Failure）から修正後合格（`diagnostic-repaired` Pass）への推移、および別々のReceipt／Evidenceが存在すること |
+| C10 | 同一ケース／コードパスにおける改善前合格（`c10-before` Pass）から改善後合格（`c10-improved` Pass）への推移、別々のEvidenceが存在し、ダイジェスト（Digest）が変更されていること |
+| C11 | Branch、Commit、Diff、Training Copy上でのPull Request、Reviewの各記録が揃っていること |
+| C12 | Training Copy上でのRun、Check、Artifact、および画面確認に基づいた人間が可読なエビデンスが提示できること |
 
-ローカルの`handoff-root`だけでC12のRun／Check／Artifactを作ったことにはしません。Training Copyまたは必要なGitHub権限がない場合は、設計成果物を保存したうえでPart 2 V1を`BLOCKED`として記録します。
+ローカル環境の `handoff-root` のみでC12のRun／Check／Artifactを作成したとみなすことはできません。Training Copyまたは必要なGitHub実行権限が存在しない場合は、設計成果物を退避・保存したうえでPart 2 V1を `BLOCKED` として記録してください。
 
 ### 練習・参考資料
 
-- PR / main / Nightly / Manual Test配置表
+- PR / main / Nightly / Manual テストスイート配置表
 
-### モバイルアプリ自動化の選択課程（選択時）
+### モバイルアプリ自動化の選択コース（選択時）
 
-- Android CI設計
-- iOS CI設計
-- Native Failureの記録の設計
+- Android CI導入設計
+- iOS CI導入設計
+- Nativeテスト失敗時のログ・エビデンス収集設計
 
 ### 発展課題・参考資料
 
-- Preview / Production / Deploy後Smokeを含むfull delivery設計
-- 現在のScenario Shop CIとの差分比較
+- Preview / Production / デプロイ後スモークテストを含むフルデリバリー設計
+- 現行のScenario Shop CIワークフローとの差分比較レポート
 
 ## 評価観点
 
-### 開発プロセス理解
+### 開発プロセスの理解
 
-- Testを単独の作業としてではなく、変更管理へ接続しているか。
+- テストを単体の作業として孤立させず、変更管理やリリースフローへ適切に接続できているか。
 
-### Test配置
+### テスト配置の妥当性
 
-- すべてをPRで回す設計にしていないか。
-- 重要なRegressionをGateから外していないか。
-- AndroidとiOSの実行頻度を機械的に同一にしていないか。
+- すべてのテストをPR時に実行するような非効率な設計になっていないか。
+- 重大なリグレッションを防ぐテストを品質ゲートから誤って除外していないか。
+- AndroidとiOSの実行頻度を、プラットフォームの特性を無視して機械的に同一にしていないか。
 
-### Cost（共通Web、Native選択時に拡張）
+### コスト意識（共通Web、Native選択時に拡張）
 
-- Browser、Android、iOS RunnerのCostとFeedback時間を考えているか。
+- 各ブラウザやAndroid・iOS Runnerの実行コスト、および開発者へのフィードバック時間を考慮できているか。
 
-### Reliability
+### 信頼性（Reliability）
 
-- Flaky Testを放置したまま必須化していないか。
+- 不安定なテスト（Flaky Test）を放置したまま、マージ必須のゲートに組み込んでいないか。
 
-### 実行記録
+### 実行ログとトレーサビリティ
 
-- Failure時に原因調査できるArtifactがあるか。
+- テスト失敗時に原因を即座に調査・特定できる適切なArtifact（ログ、レポート、トレース等）が保存されているか。
 
-### CI/CD（発展課題・参考資料）
+### CI/CDパイプライン（発展課題・参考資料）
 
-- TestしたArtifactとDeployするArtifactの関係を説明できるか。
-- Deploy後のSmokeまで考えているか。
+- テスト対象となった成果物（Artifact）と、実際にデプロイされる成果物の関係性を論理的に説明できるか。
+- デプロイ後のスモークテストまで視野に入れて設計できているか。
 
-### 設計判断
+### 設計判断の論理性
 
-- 「現在のRepositoryがそうなっているから」ではなく、理由を説明できるか。
-- 現在のWorkflow Triggerと、自分が設計した理想状態を区別できるか。
+- 「既存のリポジトリがそうなっているから」という理由にとどまらず、技術的な根拠を自身の言葉で説明できるか。
+- 現行ワークフローの制約・暫定措置と、自身が設計した理想状態を明確に区別して整理できているか。
 
 ## 自己確認
 
-次を自分の最終設計、Job Graph、Gate条件、失敗時の記録で確認できれば、Part 2の共通課程の修了を自己判定できます。
+自身の最終設計書、Job Graph、Gate条件、失敗時のログ収集方針と照らし合わせ、以下の項目を満たしていることを確認できれば、Part 2共通課程の修了を自己判定できます。
 
-- 共通課程の必須範囲としてWeb CIのTrigger、必須Gate、Artifact、Failureの調査経路を一つの設計へ接続できる。
-- P2-5で受講者が作成したPlaywright TestのTraining Copy Pull Request上のsuccessful run / Artifactを、Trigger、Gate、判定条件の実行記録として再利用できる。
-- Gateが止めるFailure、確認するArtifact、fail-closed条件を説明できる。
-- Test配置をRisk、Feedback速度、Flakiness、Runner Cost、Actionabilityの理由付きで判断できる。
-- モバイルアプリ自動化の選択課程を選ばない場合にP2-6相当を飛ばし、Nativeを選択した場合だけ追加成果物を作って共通課程へ合流できる。
-- Preview / Production / Deploy後Smoke、vendor detail、multi-platformは発展課題・参考資料として分類し、共通課程の必須範囲の暗黙の前提にしていない。
+- 共通課程の必須範囲として、Web CIのTrigger、必須Gate、Artifact、および失敗時の調査ルートが1つの整合性ある設計として繋がっていること。
+- P2-5で受講者自身が作成したPlaywrightテストについて、Training CopyのPull Request上で成功したRun／Artifactを、Trigger、Gate、判定条件の実行エビデンスとして活用できていること。
+- 品質ゲートがどのような失敗を阻止し、どのArtifactを確認すべきか、またFail-closed（異常検知時に安全側に倒す動作）の条件を説明できること。
+- テストの配置タイミングを、リスク、フィードバック速度、Flakiness、Runnerコスト、対処の容易性（Actionability）の観点から理由づけて判断できていること。
+- モバイルアプリ自動化の選択コースを選択しない場合はP2-6相当の内容をスキップし、Nativeを選択した場合にのみ追加成果物を作成して共通課程へ合流できていること。
+- Preview／Production環境へのデリバリー、デプロイ後スモークテスト、ベンダー固有の詳細設定、マルチプラットフォーム展開を発展課題・参考資料として正しく切り分け、共通課程修了の暗黙の前提にしていないこと。
 
-### Recovery
+### リカバリ手順
 
-設計が広がりすぎた場合は、まずWeb Trigger、Gate、Artifact、Failureの調査経路の4点へ戻します。Failureの調査先が決まらない場合は、Jobごとに最初に確認するLog / Artifactを1つ定義します。NativeやDeliveryを選択しない場合は飛ばしたことを記録して共通課程の設計へ戻り、環境実行の問題は環境上の問題として分離します。
+設計の対象範囲が広がりすぎて収拾がつかなくなった場合は、基本に立ち返り「WebのTrigger」「Gate」「Artifact」「失敗時の調査ルート」の4点に絞り込んで再構築します。失敗時の調査先が定まらない場合は、ジョブごとに「最初に確認すべきログやArtifact」を1つだけ特定して定義してください。NativeやCDパイプラインを選択しない場合は、スキップした旨を記録したうえで共通課程のWeb設計に集中し、環境実行上のトラブルは設計論とは切り離して対処します。
 
 ## Part 2完了条件
 
-Part 2の最終共通課程: C01〜C07 + C09〜C12の対象範囲を限定したレベル2。各習熟項目に最低限必要な成果物は [習熟度評価基準](../02_competency-rubric.md) を参照します。C12の共通課程は対象範囲を限定したWeb CIのTrigger / Gate / Artifact / 失敗時の記録に限定します。
+Part 2の最終共通課程の基準は、C01〜C07およびC09〜C12を対象範囲を絞って達成するレベル2です。各習熟項目に最低限求められる成果物の詳細については、[習熟度評価基準](../02_competency-rubric.md) を参照してください。なお、C12の共通課程における評価範囲は、対象範囲を限定したWeb CIのTrigger／Gate／Artifact／失敗時のログ記録に限定されます。
 
-受講者が共通経路で次を自力で設計・説明できればPart 2完了とします。
+受講者が共通ルートにおいて、以下の項目を自力で設計・説明できるようになることをもってPart 2の完了と認定します。
 
-- 一般的な開発プロセスとテストの関係
-- Git / GitHubによる変更管理
-- Pull RequestとReview
-- CI Trigger
-- Playwright CI
-- Test Suiteの実行タイミング
-- 必須のQuality Gate
-- 失敗時の記録
-- Build Artifact
-- 対象範囲を限定したWeb CIのGate、Artifact、Failure調査経路
+- 一般的なソフトウェア開発プロセスとテストとの関係性
+- GitおよびGitHubを用いた変更管理
+- Pull Requestの運用とコードレビューの流れ
+- CIにおける実行トリガーの設計
+- Playwrightを用いたCIテストの運用
+- テストスイートごとの適切な実行タイミングの分類
+- マージを制御する必須のQuality Gate
+- 失敗原因を追跡するためのログ・記録物
+- ビルド成果物（Artifact）の生成と受け渡し
+- 対象範囲を限定したWeb CIにおけるGate、Artifact、失敗調査ルートの全体設計
 
-Native CI / Maestro、Android / iOSの異なる実行戦略、multi-platform、Preview / Production / Deploy後Smokeを含む一連のdeliveryは、モバイルアプリ自動化の選択課程または共通課程のレベル2の範囲外にある発展課題です。これらを共通課程の修了の必須条件にしません。
+Native CI／Maestroの導入、AndroidとiOSで異なる実行戦略の策定、マルチプラットフォーム対応、およびPreview／Production環境やデプロイ後スモークテストを含む一連のデリバリー設計は、モバイルアプリ自動化の選択コース、または共通課程レベル2の対象外となる発展課題です。これらを共通課程修了の必須条件として求めることはありません。
 
-最終到達点は、GitHub ActionsのYAMLを暗記することではありません。
+本演習の最終到達点は、GitHub ActionsのYAML構文を暗記することではありません。
 
-**案件のRisk、Test、Platform、実行Cost、Feedback速度を見て、自動テストを継続実行する仕組みを設計できること**を目標とします。
+**プロジェクトのリスク、テストの性質、対象プラットフォーム、実行コスト、そして開発者へのフィードバック速度を総合的に見極め、自動テストを継続的に運用する仕組みを自ら設計できるようになること** を目指します。
 
 ## 次の行動
 
-Part 2の共通課程の設計を完了したら、習熟度評価基準の共通課程の実行記録と自分のFailureの調査経路を最終確認します。モバイルアプリ自動化の選択課程または発展課題・参考資料を選んだ場合は、追加成果物を別区分で確認し、共通課程の必須範囲へ混ぜません。
+Part 2共通課程の設計が完了したら、習熟度評価基準に示された共通課程の実行記録と、自身で定義した失敗調査ルートを最終確認してください。モバイルアプリ自動化の選択コースや発展課題・参考資料に取り組んだ受講者は、それらの追加成果物を別枠として確認し、共通課程の必須成果物に混在させないよう整理して完了判定へ進みます。

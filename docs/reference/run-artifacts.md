@@ -2,65 +2,65 @@
 
 ## 目的
 
-この文書でいう `Source-of-Truth` は、各契約における正本を指します。
+この文書でいう `Source-of-Truth` は、各契約における正本（信頼できる唯一の情報源）を指します。
 
-Codex harness で生成・参照される artifact の責務を分けるための契約です。実行事実、集約 manifest、評価判断、人間向け要約、低レベルログを混在させないことを目的にします。
+Codexハーネス（Codex harness）で生成・参照される成果物（artifact）の責務を明確に分離するための取り決めです。実行された事実、集約マニフェスト、評価・判断、人間向けの要約、低レベルなログを混在させないことを目的としています。
 
 ## Progress calculation
 
-- `TASKS.md` の `## Now` と `## Discovered` にある checkbox task の合計を基本Progressの分母とします。
-- `## Blocked` のcheckboxは基本Progressの分母に含めません。
+- `TASKS.md` の `## Now` および `## Discovered` にあるチェックボックス付きタスクの合計を、基本進捗（Progress）の分母とします。
+- `## Blocked` のチェックボックスは基本進捗の分母に含めません。
 - 基本表記は `Progress: <NN>% (<done>/<total>)` とします。
-- この基本Progressは、final commit前に完了できるtracked taskの進捗を表します。file-changing task全体の完了条件やpush後CIの完了判定とは分離します。
-- CI確認をProgressへ加算する条件、加算しないtask種別、CI状態の扱いは `docs/reference/codex-implementation-harness.md` を正本とします。この文書へCI加算条件を重複定義しません。
+- この基本進捗は、最終コミット（final commit）前に完了できる追跡対象タスク（tracked task）の進捗を示します。ファイル変更を伴うタスク（file-changing task）全体の完了条件や、プッシュ後のCI完了判定とは切り離して扱います。
+- CI確認結果を進捗へ加算する条件、加算対象外とするタスク種別、およびCI状態の扱いについては、`docs/reference/codex-implementation-harness.md` を正本とします。本ドキュメントではCI加算条件の重複定義を行いません。
 
 ## Run Artifact lifecycle
 
-- `.codex/runs/<run_id>/` 配下の標準成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、未完了事項を引き継ぐための正式なRepository成果物です。
-- 作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。
-- 同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。`REPORT.md`はappend-onlyで追記し、Agent-managedな`PLAN.md`／`TASKS.md`等は履歴を失わない範囲で更新します。actual `run.json`はmachine-managed writer / collectorの経路だけで更新し、active Runがあるのに新しいRun Directoryを作成して履歴を分散させません。
-- 同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。
-- 会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。
-- 過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。既存のgenerated Run cleanup例外は、下記の`Cleanup workflow`にあるpreview、明示confirm、対象path制約に従います。
-- `.codex/runs/`を`.gitignore`へ追加しません。
-- 個別taskで「コードのみ変更する」「作業用ファイルを追加しない」「不要なドキュメントを削除する」と指定されても、標準Run Artifactの作成・更新・保存はその対象外です。
-- Run Artifactの作成を省略、削除、移動してよいのは、ユーザーが`.codex/runs/`または対象Runを明示して指示した場合に限ります。既存の`cleanup-runs`例外を使う場合も、下記のcleanup契約を満たします。
-- Git操作が禁止されている場合でも、Agent-managedなRun Artifactの作成・更新は通常のファイル編集として実施します。ただしactual `run.json`の直接編集や禁止されたGit mutationは行いません。
+- `.codex/runs/<run_id>/` 配下の標準成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、および未完了事項を引き継ぐための正式なリポジトリ成果物です。
+- 作業完了後も実行ディレクトリ（Run Directory）を保持し、調査、レビュー、修正、再発防止に活用できるよう蓄積します。
+- 同一の会話セッション内で同一タスクを継続する場合は、既存のアクティブなRunを再利用します。`REPORT.md` は追記専用（append-only）で更新し、エージェントが管理する `PLAN.md` や `TASKS.md` などは履歴を損なわない範囲で更新します。実体の `run.json` はマシン管理のライター／コレクター（machine-managed writer / collector）経由でのみ更新します。アクティブなRunが存在する状態で、同一タスクのために別のRun Directoryを作成して作業履歴を分散させてはなりません。
+- 同一の会話セッション内であっても、ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます。
+- 会話セッションが変わった場合は、アクティブなRunの引き継ぎが明示されていない限り、新規にRunを作成します。
+- 過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は、通常のクリーンアップや成果物整理のみを理由として削除しません。生成済みRunのクリーンアップに関する既存の例外規定は、後述の `クリーンアップworkflow` に記載されたプレビュー、明示的な確認、対象パスの制約に従います。
+- `.codex/runs/` を `.gitignore` に追加してはなりません。
+- 個別タスクで「コードのみ変更する」「作業用ファイルを追加しない」「不要なドキュメントを削除する」と指示された場合でも、標準成果物（Run Artifact）の作成・更新・保存はその制限の対象外です。
+- Run Artifactの作成の省略、削除、移動が認められるのは、ユーザーが `.codex/runs/` または対象のRunを明示的に指定して指示した場合のみです。既存の `cleanup-runs` 例外を適用する場合も、後述のクリーンアップの取り決めに従います。
+- Git操作が禁止されている環境であっても、エージェントが管理するRun Artifactの作成・更新は通常のファイル編集として実施します。ただし、実体の `run.json` の直接編集や、禁止されているGitの変更操作（mutation）は行いません。
 
 ### Standard and temporary artifacts
 
-標準Run Artifactとして長期保存する対象は、`PLAN.md`、`TASKS.md`、`REPORT.md`、Workflow Levelで必要な`run.json`／`evaluation.json`、およびユーザーまたはDoDが保存を要求した補足資料です。標準Run Artifactは正式なRepository成果物として扱い、通常のcleanup、成果物整理、コード以外のファイル整理だけを理由に削除しません。
+標準成果物（Run Artifact）として長期保存する対象は、`PLAN.md`、`TASKS.md`、`REPORT.md`、ワークフローレベルで必要とされる `run.json`／`evaluation.json`、およびユーザーや完了定義（DoD: Definition of Done）が保存を要求した補足資料です。標準成果物は正式なリポジトリ成果物として扱い、通常のクリーンアップや成果物の整理、コード以外のファイル整理のみを理由とした削除は行いません。
 
-次のものは標準Run Artifactに含めない一時生成物です。
+以下の項目は、標準成果物に含めない一時生成物です。
 
-- `shims/`、cache、`node_modules`、browser binaries
-- 一時的なPATH設定用ファイル、OSや実行端末固有の絶対pathを含むファイル
-- 再生成可能な一時ログ、credential／token／secretを含む可能性があるファイル
-- 一時的なdownload、build、test output
+- `shims/`、キャッシュ、`node_modules`、ブラウザのバイナリ
+- 一時的なPATH設定用ファイル、OSや実行環境固有の絶対パスを含むファイル
+- 再生成可能な一時ログ、認証情報（credential）・トークン・機密情報（secret）を含む可能性があるファイル
+- 一時的なダウンロード、ビルド、テストの出力
 
-一時ファイルをRun Directory内に生成した場合は、作業完了前に標準Run Artifactと分離します。生のCLI log、MCP log、ADB logcat等は原則としてGit管理外の`.artifacts`配下へ保存し、Run Artifactには必要な要約とrepo-relativeな参照だけを記録します。
+一時ファイルを実行ディレクトリ内に生成した場合は、作業完了前に標準成果物から分離します。生のCLIログ、MCPログ、ADBのlogcatなどは、原則としてGit管理対象外の `.artifacts` 配下に保存し、Run Artifactには必要な要約とリポジトリ相対パス（repo-relative）の参照のみを記録します。
 
 ### direct `codex` とmanifest境界
 
-- 通常のlightweight／standard interactive作業はRepository内からdirect `codex`を起動します。Runは`PLAN.md`、`TASKS.md`、`REPORT.md`で管理します。
-- この経路のRun初期化で`scripts/new-run.*`を使う場合は`--no-run-manifest`／`-NoRunManifest`を指定し、`run.json`を作成しません。direct sessionのexecution metadataを現行manifestが正確に表せないためです。
-- `codex-project.toml`のstandard `run_manifest = "recommended"`はmachine-managed／wrapper標準経路として維持します。direct standardのmanifestなし運用は通常interactive経路に限る明示例外です。
-- strict Run、またはmachine-managed evidenceが必要なRunでは既存`codex-safe -RunId`／`codex-task --record-run-manifest`とcollectorを使い、`run.json`とevaluationを集約します。Agentはactual `run.json`を直接作成・編集しません。
-- `run.json.safety.network`はmachine-managed runner／wrapperが観測したexecution pathのnetwork利用です。同じstrict task内で別途行うfresh direct `codex` runtime validationを含むtask全体の通信値ではありません。そのvalidationは`REPORT.md`と`evaluation.json`へ記録します。
+- 通常の軽量／標準的な対話型（interactive）作業では、リポジトリ内から直接 `codex` を起動します。Runの管理には `PLAN.md`、`TASKS.md`、`REPORT.md` を使用します。
+- この手順でRunを初期化する際に `scripts/new-run.*` を使用する場合は、`--no-run-manifest` または `-NoRunManifest` を指定して `run.json` を作成しないようにします。直接起動したセッションの実行メタデータを、現行のマニフェスト形式では正確に表現できないためです。
+- `codex-project.toml` 内の標準設定である `run_manifest = "recommended"` は、マシン管理／ラッパー経由の標準経路向けとして維持します。直接起動時のマニフェストなし運用は、通常の対話型作業に限定された明示的な例外扱いです。
+- strict Run、またはマシン管理のエビデンスが要求されるRunでは、既存の `codex-safe -RunId` や `codex-task --record-run-manifest`、およびコレクターを使用して、`run.json` と評価結果（evaluation）を集約します。エージェントが実体の `run.json` を直接作成・編集してはなりません。
+- `run.json.safety.network` は、マシン管理のランナー／ラッパーが観測した実行パスにおけるネットワーク利用状況を示します。同一のstrictタスク内で別途実施する、クリーンな環境での直接 `codex` ランタイム検証（fresh direct `codex` runtime validation）を含んだタスク全体の通信量ではありません。その検証結果は `REPORT.md` および `evaluation.json` に記録します。
 
 ### Past Run changes
 
-- 過去Runの標準Run Artifactは、事実誤認や形式破損の修正を除き、原則として上書きしません。
-- 過去Runの不足を補う必要がある場合は、履歴を失わない追記とし、今回の作業内容は新しいRunへ記録します。
-- 標準Run Artifactの削除、移動、置換は、ユーザーが対象Pathを明示した場合に限ります。
+- 過去のRunに属する標準成果物は、事実誤認やフォーマット破損の修正を除き、原則として上書きしません。
+- 過去のRunの内容を補完する必要がある場合は、履歴を損なわない追記にとどめ、今回の作業内容は新しいRunへ記録します。
+- 標準成果物の削除、移動、置換は、ユーザーが対象パスを明示的に指定した場合にのみ行います。
 
 ### Run Artifact Path Sanitization
 
-- Repositoryへ追加するCodex Run Artifactは、作業完了前に`scripts/sanitize-codex-artifacts.ps1`の`Write`と`Check`を実行します。
-- 未サニタイズのローカル絶対パスを含むRun Artifactは完了扱いにしません。Unsanitized local absolute paths prevent Run completion. SanitizationはRun Artifactのcompletion gateです。
-- `REPORT.md`のAppend-only契約は、checkpoint単位の意味情報を削除、並べ替え、意味変更せずに保持することを指します。Hook JSONLで取得できるmachine factを`REPORT.md`へ逐次転記しません。
-- 既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の既定Tokenへ、記録の意味を変えずに置換する場合だけ、Append-only契約の安全性例外として許可します。
-- Credential Redactionや汎用的な機密情報マスキングはこの例外に含めません。それらが必要になった場合は、別途契約・実装・テスト・承認を行います。
+- リポジトリに追加するCodex Run Artifactは、作業完了前に `scripts/sanitize-codex-artifacts.ps1` の `Write` および `Check` を実行する必要があります。
+- サニタイズされていないローカル絶対パスを含む成果物は完了扱いになりません（未サニタイズの絶対パスが存在するとRunを完了できません）。サニタイズ処理は、Run Artifactの完了判定ゲート（completion gate）として機能します。
+- `REPORT.md` の追記専用（Append-only）ルールは、チェックポイント単位の意味情報を削除・並べ替え・改変せず、そのまま保持することを指します。HookのJSONLログから取得できる機械的な事実（machine fact）を、`REPORT.md` へ逐次転記することはしません。
+- 既存の記録に含まれるローカル絶対パスを、記録の意味を変えずに `<REPO_ROOT>` や `<USER_HOME>` などの既定トークンへ置換する場合に限り、追記専用ルールの安全な例外として許可します。
+- 認証情報の秘匿化（Credential Redaction）や一般的な機密情報のマスキングは、この例外には含めません。これらが必要となった場合は、別途仕様の合意・実装・テスト・承認を行います。
 
 ## Source-of-Truth Rule
 
@@ -71,84 +71,73 @@ Both are validated by schema / validator.
 ```
 
 - 実行事実の正本は runner / wrapper / hooks が生成します。
-- 失敗解釈の正本は `evaluation.json` です。
-- 汎用Run評価を使う場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされるsummary fieldです。Agentic QAの評価は `valid_for_scoring` と `invalid_reasons[]` を正本とし、この汎用fieldへ読み替えません。
-- `evaluation.json` 生成前の `run.json.primary_failure_category` は `null` です。
-- `run.json.evaluation_path` は評価の正本となる `evaluation.json` を指します。
-- `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` が食い違う場合、後続 validator は warning または failure にするべきです。
-- `changed_files`、exit code、log path、report path、executed commands は agent が手書きしません。
-- agent は観測事実を `run.json` / `codex-task` report JSON / logs から参照して評価します。
+- 失敗原因の解釈における正本は `evaluation.json` です。
+- 汎用的なRun評価を用いる場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる要約フィールド（summary field）です。Agentic QAの評価では `valid_for_scoring` と `invalid_reasons[]` を正本とし、この汎用フィールドへの読み替えは行いません。
+- `evaluation.json` が生成される前は、`run.json.primary_failure_category` の値は `null` となります。
+- `run.json.evaluation_path` は、評価の正本となる `evaluation.json` を指します。
+- `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` の値に不一致がある場合、後続のバリデータ（validator）は警告（warning）または失敗（failure）と判定すべきです。
+- `changed_files`、終了コード（exit code）、ログパス（log path）、レポートパス（report path）、実行コマンド（executed commands）を、エージェントが手動で記述してはなりません。
+- エージェントは、観測された事実を `run.json`、`codex-task` のレポートJSON、または各種ログから参照して評価します。
 
 ## Artifactの責任分担
 
 ### `codex-task` report JSON
 
-- 1 回の `codex-task` 実行事実を記録する低レベル report です。
-- exit code、verify result、output path、log path、prompt source、cwd、git branch などの観測事実を保持します。
-- `run.json` に置き換えられるものではありません。
+- 1回の `codex-task` 実行における事実を記録する低レベルなレポートです。
+- 終了コード、検証結果（verify result）、出力パス、ログパス、プロンプトの参照元、作業ディレクトリ（cwd）、Gitブランチなどの観測事実を保持します。
+- `run.json` を置き換えるものではありません。
 
 ### `run.json`
 
-- run 全体の aggregate manifest です。
-- actual `.codex/runs/<run_id>/run.json` は常にmachine-managedです。Agentは通常workflowでもmanifest writer / collectorの実装タスクでも直接作成・直接編集せず、temporary test fixtureだけを例外とします。
-- 通常workflowの新規manifestは `scripts/new-run.ps1|sh`、非対話更新は `codex-task --record-run-manifest`、interactive更新は `codex-safe -RunId`／`--run-id`終了時のcollectorを正規経路とします。
-- 複数の `codex-task` report JSON を参照できます。
-- 新規manifestはschema v2とし、task type、workflow level、preset、runtime、changed files、validation summary、`safety.network` / `safety.scope_violation`、evaluation pathを保持します。
-- v2の`artifact_summary`は`codex_task_report_count`と`evaluation_present`だけをsummaryします。
-- v2では`agents_used`、`hook_observations`、`subagents`、旧observer由来の専用safety fieldを生成しません。
-- Hookの低レベル事実はRunへ自動集約せず、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`を参照します。
-- 既存v1 manifestを明示処理する場合だけ、既存legacy fieldの値を保持します。v1からv2への自動migration、旧JSONの再走査・再集約は行いません。
-- `codex-task` report JSON の置き換えではありません。
-- `validation.commands` は single command 前提ではなく、`output schema validation`、`verify`、`evaluation validation`、`clean git check` など複数の観測結果を保持できます。
-- `run.json.evaluation_path` は `evaluation.json` への summary link です。
-- `run.json.primary_failure_category` は valid な `evaluation.json.primary_failure_category` からだけコピーされる summary field です。
-- `scripts/collect-run-artifacts.sh` / `scripts/collect-run-artifacts.ps1` は on-disk artifact を再走査し、`run.json` summary を再集約できます。
+- Run全体の集約マニフェスト（aggregate manifest）です。
+- 実体の `.codex/runs/<run_id>/run.json` は常にマシン管理（machine-managed）です。エージェントは通常のワークフローはもちろん、マニフェストライター／コレクターの実装タスクであっても直接作成・直接編集を行ってはならず、一時的なテスト用フィクスチャ（temporary test fixture）のみを例外とします。
+- 通常ワークフローにおける新規マニフェスト作成は `scripts/new-run.ps1|sh`、非対話的な更新は `codex-task --record-run-manifest`、対話型（interactive）の更新は `codex-safe -RunId`／`--run-id` 終了時のコレクター呼び出しを正規の経路とします。
+- 複数の `codex-task` レポートJSONを参照可能です。
+- 新規マニフェストはスキーマv2に準拠し、タスク種別（task type）、ワークフローレベル（workflow level）、プリセット、ランタイム、変更ファイル一覧（changed files）、検証サマリー（validation summary）、`safety.network` / `safety.scope_violation`、評価パス（evaluation path）を保持します。
+- v2の `artifact_summary` は、`codex_task_report_count` と `evaluation_present` のみを要約対象とします。
+- v2では、`agents_used`、`hook_observations`、`subagents`、および旧observerに由来する専用の安全フィールドは生成しません。
+- Hookの低レベルな事実はRunへ自動集約せず、セッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` を参照します。
+- 既存のv1マニフェストを明示的に処理する場合にのみ、既存のレガシーフィールドの値を保持します。v1からv2への自動移行（migration）や、過去のJSONに対する再走査・再集約は行いません。
+- `codex-task` レポートJSONを置き換えるものではありません。
+- `validation.commands` は単一コマンド（single command）を前提とせず、出力スキーマ検証（`output schema validation`）、検証（`verify`）、評価結果検証（`evaluation validation`）、未コミット変更チェック（`clean git check`）など、複数の観測結果を保持できます。
+- `run.json.evaluation_path` は、`evaluation.json` への要約リンク（summary link）です。
+- `run.json.primary_failure_category` は、有効（valid）な `evaluation.json.primary_failure_category` からのみコピーされる要約フィールドです。
+- `scripts/collect-run-artifacts.sh` および `scripts/collect-run-artifacts.ps1` は、ディスク上の成果物を再走査し、`run.json` のサマリーを再集約できます。
 
 ### Interactive `codex-safe` manifest sync
 
-- active Runに紐づくinteractive実行では、current active Runの `RunId` を `codex-safe -RunId`／`--run-id` で明示します。`RunId`省略はactive Runに紐づかないad-hoc interactive実行に限り、manifest syncを行いません。wrapperはRunIdを自動探索・推測・環境変数伝播しません。
-- RunId指定時は、ログdirectoryを作る前に `.codex/runs/<run_id>/` の存在を確認します。存在しない場合はCodexを起動せず、Run Directoryやlogsも作りません。
-- Run Directoryがあっても `run.json` がない場合はCodexを実行しますが、manifestを生成せず、終了時collectorを呼びません。既存 `run.json` がある場合だけ、Codex process終了後にcollectorをrefresh付きで1回実行します。
-- `--refresh-git-changed-files` は `git diff --name-only --relative -z HEAD --` と `git ls-files --others --exclude-standard -z` からtracked／untracked pathを取得します。既存 `changed_files` はcleanupせず保持し、新規観測pathだけ `.codex/runs/**` を除外してunionします。`run.json.status`は変更しません。
-- Codex process終了や `Stop` Hookだけを理由に `status=completed` へ変更しません。`--no-log`／`-NoLog` はloggingだけを抑止し、manifest syncは継続します。Codex nonzeroはCodex exit codeを優先し、Codex zeroかつcollector failure時だけcollector exit codeを返します。
+- アクティブなRunに紐づく対話型実行では、現在アクティブなRunの `RunId` を `codex-safe -RunId` または `--run-id` で明示します。`RunId` の省略はアクティブなRunに紐づかない一時的（ad-hoc）な対話型実行に限定され、その場合はマニフェスト同期を行いません。ラッパー側でRunIdの自動探索、推測、環境変数経由での伝播を行うことはありません。
+- RunIdが指定された際は、ログディレクトリを作成する前に `.codex/runs/<run_id>/` の存在を確認します。存在しない場合はCodexを起動せず、実行ディレクトリやログも作成しません。
+- 実行ディレクトリが存在しても `run.json` が存在しない場合はCodexを実行しますが、マニフェストの生成は行わず、終了時のコレクターも呼び出しません。既存の `run.json` がある場合に限り、Codexプロセスの終了後にリフレッシュ処理を伴うコレクターを1回実行します。
+- `--refresh-git-changed-files` は、`git diff --name-only --relative -z HEAD --` および `git ls-files --others --exclude-standard -z` から追跡対象（tracked）および未追跡（untracked）のパスを取得します。既存の `changed_files` は削除せずに保持し、新規に観測されたパスから `.codex/runs/**` を除外したうえで統合（union）します。この際、`run.json.status` は変更しません。
+- Codexプロセスの終了や `Stop` Hookの実行のみを理由として `status=completed` に変更してはなりません。`--no-log`／`-NoLog` はログ出力を抑止するのみで、マニフェスト同期は継続して行われます。Codexの終了コードが0以外（nonzero）の場合はCodexの終了コードを優先して返し、Codexが0で終了かつコレクターが失敗した場合にのみコレクターの終了コードを返します。
 
 ### `evaluation.json`
 
-- agent / reviewer による成果評価・失敗解釈・改善候補の正本です。
-- 観測事実は `run.json` / `codex-task` report JSON / logs から参照します。
-- agent が exit code や changed files などの実行事実を後書きする場所ではありません。
-- runner は evaluation result を自動判断しません。
-- runner が行うのは `evaluation.json` の template 作成、存在確認、JSON / schema validation、`run_id` 一致確認、manifest summary field 更新だけです。
-- `evidence` 文字列は required のまま維持し、必要に応じて `evidence_refs` で `run.json` / report / Hook JSONL / validation command などへの structured reference を追加できます。
-- Strict Codex Runの汎用`evaluation.json`は既存toolingどおり
-  `.codex/runs/<run_id>/evaluation.json`へ保存します。`run.json.evaluation_path`はこの相対path、
-  `artifact_summary.evaluation_present`はこの実体の存在を示し、`primary_failure_category`は
-  汎用evaluationの値からだけ転記します。未実行の評価をこのfieldへ手書きしません。
-- Agentic QAのScored evaluationは別のAgentic契約として、同じOfficial Run Rootの
-  `.artifacts/agentic-qa/<run_id>/evaluation/evaluation.json`へCanonical JSONで保存します。
-  これは`scripts/agentic-qa/contracts.ts`の`valid_for_scoring`／`invalid_reasons[]`が正本であり、
-  汎用Codex Runの`primary_failure_category`へ読み替えません。
+- エージェントまたはレビュー担当者（reviewer）による成果評価、失敗原因の解釈、および改善提案に関する正本です。
+- 観測された事実は、`run.json`、`codex-task` のレポートJSON、または各種ログから参照します。
+- エージェントが終了コードや変更ファイル一覧などの実行事実を事後的に書き込む場所ではありません。
+- ランナー側で評価結果（evaluation result）を自動判断することはありません。
+- ランナーが実施するのは、`evaluation.json` のテンプレート作成、存在確認、JSON／スキーマ検証、`run_id` の一致確認、およびマニフェストのサマリーフィールド更新のみです。
+- `evidence` 文字列は必須（required）の仕様を維持しつつ、必要に応じて `evidence_refs` を用いて `run.json`、レポート、Hook JSONL、検証コマンドなどへの構造化参照（structured reference）を追加できます。
+- Strict Codex Runにおける汎用的な `evaluation.json` は、既存ツールの仕様に従い `.codex/runs/<run_id>/evaluation.json` に保存します。`run.json.evaluation_path` はこの相対パスを指し、`artifact_summary.evaluation_present` はその実体の存在有無を示します。また、`primary_failure_category` は汎用評価の値からのみ転記され、未実施の評価をこのフィールドへ手動で書き込んではなりません。
+- Agentic QAのスコア対象評価（Scored evaluation）は別個の規約として扱い、同一の公式実行ルート（Official Run Root）配下の `.artifacts/agentic-qa/<run_id>/evaluation/evaluation.json` にCanonical JSON形式で保存します。これは `scripts/agentic-qa/contracts.ts` に定義された `valid_for_scoring` および `invalid_reasons[]` を正本とし、汎用Codex Runの `primary_failure_category` への読み替えは行いません。
 
 ### Agentic QA evaluation boundary
 
-- Agentic QAの`evaluation.json`は`scripts/agentic-qa/contracts.ts`のJSON + Zod契約で検証します。Agentic形状のevaluationはbenchmark manifestがなくても検証対象から除外しません。
-- Contract Fixtureは`execution_kind=contract_fixture`として保存できる診断成果物ですが、`fixture_not_official`を付与し、`valid_for_scoring=false`かつMetric `null`でなければなりません。
-- Official model-backed Scored Runは、patched runtimeの実測、Forbidden Probe、Fresh Runner、Required Evidence、Atomic Freeze、別Evaluator Sessionのすべてが証明できた場合だけ有効です。未実行の工程を`PASS`や`true`へ補完しません。
+- Agentic QAにおける `evaluation.json` は、`scripts/agentic-qa/contracts.ts` のJSON＋Zodスキーマ定義に従って検証します。Agentic形式の評価データは、ベンチマークマニフェスト（benchmark manifest）が存在しない場合であっても検証対象から除外しません。
+- 規約フィクスチャ（Contract Fixture）は `execution_kind=contract_fixture` として保存可能な診断用成果物ですが、必ず `fixture_not_official` を付与し、`valid_for_scoring=false` かつ各指標（Metric）を `null` と設定する必要があります。
+- 公式のモデル実行に基づくスコア対象Run（Official model-backed Scored Run）は、パッチ適用済みランタイムでの実測、禁止プローブ検証（Forbidden Probe）、クリーンなランナー実行（Fresh Runner）、必須エビデンスの確保（Required Evidence）、不可分な固定化（Atomic Freeze）、および独立した評価セッション（別Evaluator Session）のすべてが証明された場合にのみ有効となります。未実行の工程を推測で `PASS` や `true` に補完してはなりません。
 
 ### Benchmark Manifest
 
-- Official v1は`1 run_id = 1 challenge`です。Benchmark Manifestは同じCanonical Run Rootの
-  `trusted/benchmark-manifest.json`だけを正本とし、同じ`run_id`へ別Challengeを静かに
-  上書きしません。
+- 公式（Official）v1では、`1 run_id = 1 challenge` の関係を厳格に維持します。ベンチマークマニフェストは、同一の正規実行ルート（Canonical Run Root）にある `trusted/benchmark-manifest.json` のみを正本とし、同一の `run_id` に対して別の課題（Challenge）を暗黙のうちに上書きしてはなりません。
 
-Learner-safe InputはManifestのhash一致だけでなく、Benchmark Manifestから導出したcanonical
-allowlisted file／directory setとの完全一致を要求します。Isolated Runner Rootもfrozen inputから
-導出されるcanonical setだけを許可します。Official Artifact／Trusted EvidenceのpathはCanonical
-Run Rootからleafまでancestor directory symlinkを許可しません。
+学習者向け安全入力（Learner-safe Input）は、マニフェストのハッシュ一致のみならず、ベンチマークマニフェストから導出された正規の許可リスト（canonical allowlisted）に登録されたファイル／ディレクトリの集合と完全に一致している必要があります。また、分離ランナー環境（Isolated Run Root）においても、固定入力（frozen input）から導出される正規のセットのみを許可します。公式成果物（Official Artifact）および信頼済みエビデンス（Trusted Evidence）のパスは、正規実行ルートから末端ノード（leaf）に至る上位ディレクトリにおいて、シンボリックリンク（symlink）の使用を一切認めません。
 
 ### Official Black-box Scored artifact chain
 
-Official v1では、次のartifactを同じRun IDへCanonical JSONとして保存します。
+公式v1では、以下の成果物を同一のRun ID配下にCanonical JSON形式で保存します。
 
 ```text
 .artifacts/agentic-qa/<run_id>/
@@ -186,113 +175,95 @@ Official v1では、次のartifactを同じRun IDへCanonical JSONとして保�
    └─ evaluation.json
 ```
 
-`canonical-json.ts`がobject key order、UTF-8/LF、trailing newline、duplicate-key
-拒否を含む共有Serializerです。Runtime VariantはBenchmark Revision digestから除外し、
-`challenge_id + benchmark_revision + runtime_variant_id`のIdentity dimensionとして扱います。
-`host-capability-receipt.json`がない、またはrequired proofが`proven`でない場合は、
-他の準備artifactが揃っていても`valid_for_scoring=false`です。unknown / unmeasured /
-not executedを推測でPASSへ変換しません。
+`canonical-json.ts` は、オブジェクトのキー順序の正規化、UTF-8/LF改行、末尾改行の付与、重複キーの拒否を含む共通シリアライザーです。ランタイムバリアント（Runtime Variant）はベンチマークリビジョンのダイジェスト計算から除外し、`challenge_id + benchmark_revision + runtime_variant_id` で構成される識別子ディメンション（Identity dimension）として扱います。
+`host-capability-receipt.json` が存在しない場合、または必須証明（required proof）が `proven` となっていない場合は、他の準備成果物が揃っていたとしても `valid_for_scoring=false` と判定されます。不明（unknown）、未測定（unmeasured）、未実行（not executed）の状態を推測で `PASS` に変換してはなりません。
 
-`trusted/learner-safe-input-artifact-manifest.json`は`input/**`全体（Manifest自身を除く）
-のfile set／byte hashをfreezeし、Official verifierは評価時にも実FSと完全一致させます。
-Host Capability Receiptの`learner_safe_input_artifact_sha256`はこのManifestの
-`artifact_sha256`と一致しなければなりません。同様に
-`trusted/preparation/isolated-run-root-artifact-manifest.json`はRepository-side
-preflight rootの完全なfile setをfreezeします。trusted evidence_refはcurrent runの
-`trusted/**`配下にある実regular fileへ解決できる場合だけproofとして扱います。
-Official verifierへ渡すartifact pathもCanonical Run Root内に限定し、required artifactや
-evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
+`trusted/learner-safe-input-artifact-manifest.json` は、マニフェスト自体を除く `input/**` 配下の全ファイルセットおよびバイトハッシュを固定（freeze）し、公式検証ツール（Official verifier）は評価時にも実際のファイルシステムと完全一致していることを検証します。Host Capability Receipt に記録される `learner_safe_input_artifact_sha256` は、このマニフェストの `artifact_sha256` と一致していなければなりません。同様に、`trusted/preparation/isolated-run-root-artifact-manifest.json` はリポジトリ側の事前チェック環境（Repository-side preflight root）の完全なファイルセットを固定します。信頼済みエビデンス参照（trusted evidence_ref）は、現在のRunの `trusted/**` 配下に存在する実際の通常ファイル（regular file）として解決できる場合にのみ、有効な証明として扱います。
+公式検証ツールへ渡す成果物パスも正規実行ルート（Canonical Run Root）配下に限定され、必須成果物やエビデンスのシンボリックリンク、実行ルート外への参照、および異なるRunを跨ぐ参照（cross-run参照）は一切受理されません。
 
 ## Runnerの完了オプション
 
 ### `--evaluation-template`
 
-- `.codex/runs/<run_id>/evaluation.json` の初期 template を作るだけです。
-- 評価済みを意味しません。
-- baseline では `--run-id` と `--record-run-manifest` が必要です。
-- 既存 `evaluation.json` がある場合は上書きせず、`run.json.evaluation_path` だけ更新してよいものとします。
+- `.codex/runs/<run_id>/evaluation.json` の初期テンプレートを生成するのみです。
+- このオプションの実行は、評価が完了したことを意味するものではありません。
+- ベースライン環境では、`--run-id` および `--record-run-manifest` の指定が必須です。
+- 既に `evaluation.json` が存在する場合は上書きせず、`run.json.evaluation_path` のみ更新して構いません。
 
 ### `--require-evaluation`
 
-- Codex 実行後の最終 gate として `evaluation.json` の存在、valid JSON、`.codex/templates/evaluation.schema.json` への適合、`evaluation.run_id` と `--run-id` の一致を要求します。Agentic QAのBlack-box Evaluationは別契約として `scripts/agentic-qa/contracts.ts` のZod schemaを使います。
-- runner は evaluation result を解釈しません。
-- valid evaluation のときだけ `run.json.primary_failure_category` を summary copy します。
-- baseline では `--run-id` と `--record-run-manifest` が必要です。
+- Codex実行後の最終ゲートとして、`evaluation.json` の存在、有効なJSONであること、`.codex/templates/evaluation.schema.json` への適合、および `evaluation.run_id` と `--run-id` の一致を検証・要求します。なお、Agentic QAのブラックボックス評価については別個の規約として `scripts/agentic-qa/contracts.ts` のZodスキーマを使用します。
+- ランナー側で評価結果の内容を解釈することはありません。
+- 正当な評価（valid evaluation）が得られた場合にのみ、`run.json.primary_failure_category` へサマリー情報をコピーします。
+- ベースライン環境では、`--run-id` および `--record-run-manifest` の指定が必須です。
 
 ### `--require-clean-git`
 
-- Codex 実行前の source dirty を検出します。
-- `.codex/runs/` は generated artifact として dirty 判定から除外します。
-- dirty の場合は Codex を実行せず、manifest 有効時は `run.json.validation.commands` に `clean git check` を記録します。
-- dirty source changes は `changed_files` に記録してよいものとします。
+- Codex実行前にソースコードの未コミット変更（source dirty）を検出します。
+- `.codex/runs/` は自動生成成果物として扱い、未コミット変更の判定から除外します。
+- 未コミットの変更が存在する場合はCodexを実行せず、マニフェストが有効であれば `run.json.validation.commands` に `clean git check` を記録します。
+- 未コミットのソース変更内容は、`changed_files` に記録して差し支えありません。
 
 ### `--require-run-id`
 
-- `--run-id` 指定漏れを防ぐ precondition です。
-- run id を自動生成しません。
-- `--record-run-manifest` を暗黙に有効化しません。
+- `--run-id` の指定漏れを防止するための事前条件（precondition）チェックです。
+- Run IDの自動生成は行いません。
+- `--record-run-manifest` を暗黙的に有効化することはありません。
 
 ### `--max-iterations`
 
-- repair loop workflow 向けの予約 option です。
-- 現時点の `codex-task` では parse / validation だけを行い、Codex の自動再実行は行いません。
-- `--max-iterations` は repair-loop workflows 向け reserved contract であり、現状は no-op です。
+- 修復ループワークフロー（repair loop workflow）向けに予約されているオプションです。
+- 現行の `codex-task` では構文解析（parse）と検証（validation）のみを実施し、Codexの自動再実行は行いません。
+- `--max-iterations` は修復ループワークフロー用の予約仕様であり、現状の実装では実質的な動作を行わない（no-op）設定です。
 
 ### `REPORT.md`
 
-- 人間向けの実行 summary です。
-- 機械判定の正本にはしません。
+- 人間向けの実行サマリー（要約）です。
+- 機械的な判定における正本としては扱いません。
 
 ### REPORT.md append-only contract
 
-`REPORT.md`のAppend-only契約は、checkpointの意味を削除、並べ替え、意味変更せずに保持することを指します。既存記録のローカル絶対Pathを既定Tokenへ置換する安全性例外は、記録の意味を変えない場合に限ります。
+`REPORT.md` の追記専用ルールは、チェックポイント単位の意味情報を削除・並べ替え・改変せず、そのまま保持することを指します。既存の記録に含まれるローカル絶対パスを規定のトークンに置換する安全上の例外規定は、記録の意味内容を変更しない場合に限り適用されます。
 
 ### Normal / Gray-box Working Tree Snapshot
 
-- Normal／Gray-boxでは、current runを確定してから
-  `.codex/runs/<run_id>/qa-charter.json` を確認します。欠落時はCoding AgentがUser
-  Scope、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime
-  Capabilityからbounded Charterをcurrent runへ作成し、既存のZod／validatorで検証します。
-  過去RunのCharterは暗黙に再利用しません。Charterには既存の
-  `exploration_budget` schemaとStop Conditionを含めます。
-- `working-tree-snapshot-<mode>-before.json` と `working-tree-snapshot-<mode>-after.json` は、同じRun／ModeのSource Working Treeを同一JSON + Zod形式で記録します。
-- `working-tree-snapshot-<mode>-comparison.json` は `source_head_changed`、`source_diff`、`additional_source_diff_count`、`passed` を持ち、追加Source差分が0でない場合はQA Findingsを確定できません。
-- Charter作成／検証後、最初のRuntime interactionより前にBEFORE Snapshotを取得します。
-  Runtime QAとcandidate Findingsの後にAFTER Snapshotを取得し、comparisonの
-  `passed: true` と `additional_source_diff_count: 0` を確認してからFindingsをfinalizeします。
-- `.codex/runs/`、`.artifacts/`、その他のRuntime生成物はSnapshotのSource差分比較から除外します。Snapshot自体はRun Artifactとして保存します。
+- 通常（Normal）およびグレーボックス（Gray-box）モードでは、対象となる現在のRunを確定したうえで `.codex/runs/<run_id>/qa-charter.json` の存在を確認します。ファイルが欠落している場合、コーディングエージェントはユーザー定義スコープ、規定仕様（Normative Specification）、ビジネスルール／受け入れ基準（BR／AC）、リスク項目、プラットフォーム、役割／シード情報、ランタイム機能要件に基づき、スコープを限定したチャーター（bounded Charter）を現在のRun内に作成し、既存のZod／バリデータを用いて検証します。過去のRunで作成されたチャーターを暗黙的に再利用してはなりません。チャーターには既存の `exploration_budget` スキーマおよび停止条件（Stop Condition）を必ず含めます。
+- `working-tree-snapshot-<mode>-before.json` と `working-tree-snapshot-<mode>-after.json` は、同一Runおよび同一モードにおけるソース作業ツリー（Source Working Tree）の状態を、統一されたJSON＋Zod形式で記録します。
+- `working-tree-snapshot-<mode>-comparison.json` は、`source_head_changed`、`source_diff`、`additional_source_diff_count`、`passed` の各フィールドを保持します。追加のソース差分（additional_source_diff_count）が0でない限り、QAの指摘事項（QA Findings）を確定することはできません。
+- チャーターの作成と検証が完了した後、ランタイムに対する最初の操作（Runtime interaction）を開始する前に事前スナップショット（BEFORE Snapshot）を取得します。ランタイムでのQA実施および指摘候補の抽出が完了した後に事後スナップショット（AFTER Snapshot）を取得し、差分比較結果において `passed: true` かつ `additional_source_diff_count: 0` であることを確認したうえで、最終的なFindingsを確定します。
+- `.codex/runs/`、`.artifacts/`、およびその他のランタイム生成物は、スナップショットのソース差分比較の対象から除外します。なお、スナップショットファイル自体はRun Artifactとして保存します。
 
 ## クリーンアップworkflow
 
-- `scripts/cleanup-runs.sh` / `scripts/cleanup-runs.ps1` は generated run artifact の整理候補を一覧化する maintainer / operator 補助 command です。
-- 既定動作は preview-only です。`--dry-run` / `-DryRun` を省略しても削除は行いません。
-- 実際の削除には `--confirm-delete-generated-runs` / `-ConfirmDeleteGeneratedRuns` が必要です。
-- `--older-than-days` / `-OlderThanDays` で古い candidate に絞れます。負数は受け付けません。
-- 削除対象は `.codex/runs/<run_id>/`と`.codex/logs/*.jsonl`の既知 generated artifact だけに限定します。
-- `run_id` pattern は `YYYYMMDD-HHMMSS-JST` です。pattern を満たさない directory は cleanup 対象にしません。
-- symlink / reparse point や repo root 外へ逃げる candidate は拒否します。
-- cleanup 実行後も summary を stdout に表示します。
+- `scripts/cleanup-runs.sh` および `scripts/cleanup-runs.ps1` は、自動生成されたRun成果物の整理候補を一覧表示するための、保守担当者・運用者向けの補助コマンドです。
+- デフォルトの動作はプレビュー表示のみ（preview-only）です。`--dry-run` または `-DryRun` の指定を省略した場合でも、実際の削除処理は実行されません。
+- 実際に削除を行うには、`--confirm-delete-generated-runs` または `-ConfirmDeleteGeneratedRuns` の明示的な指定が必要です。
+- `--older-than-days` または `-OlderThanDays` を使用して、指定日数以前の古い候補に対象を絞り込むことができます（負の値は指定できません）。
+- 削除対象は、`.codex/runs/<run_id>/` および `.codex/logs/*.jsonl` に該当する既知の自動生成成果物のみに限定されます。
+- `run_id` の形式パターンは `YYYYMMDD-HHMMSS-JST` です。このパターンを満たさないディレクトリはクリーンアップの対象外とします。
+- シンボリックリンクやリパースポイント（reparse point）、リポジトリルート外を参照している候補は安全のため除外・拒否します。
+- クリーンアップの実行後には、処理結果のサマリーを標準出力（stdout）に表示します。
 
 ### JSONLログ
 
-- runner / Codex / hooks による低レベルイベントログです。
-- 集計の正本というより、追跡・デバッグ用です。
-- Logging Hookは`.codex/hooks/log_event.mjs`を通じて、書込み可能な環境ではsession単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ1 event 1 lineでappendします。Windows elevated sandboxが`.codex`をread-onlyとして扱う場合は、同じrecordをGit管理外の`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`へfallbackします。
-- `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`のmachine factを保持します。`SubagentStop` / `Stop`から最終終了を推測しません。
-- `Stop` / `SubagentStop` Hookはsession観測用であり、run manifestの更新triggerではありません。
-- Hook JSONLは`run.json`へ新規集約せず、collectorもHook JSONLやSubagent専用JSONを再走査しません。
-- `.codex/logs/*.jsonl`と`.artifacts/codex-hooks/*.jsonl`はGit管理外です。前者は既存の汎用cleanup対象、後者は`.artifacts/`のephemeral raw evidenceとして扱い、いずれもRun manifestへ自動集約しません。
+- ランナー、Codex、およびHookによって出力される低レベルなイベントログです。
+- 集計の正本ではなく、主に実行追跡やデバッグを目的として使用されます。
+- ロギング用Hookは `.codex/hooks/log_event.mjs` を通じて、書き込み可能な環境ではセッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` へ1イベント1行の形式で追記（append）します。Windowsの管理者サンドボックス環境などで `.codex` が読み取り専用として扱われる場合は、同一のレコードをGit管理対象外の `.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl` へフォールバックして書き込みます。
+- `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop` といった機械的事実（machine fact）を保持します。`SubagentStop` や `Stop` の発生をもって最終的な処理終了を推測することはありません。
+- `Stop` および `SubagentStop` Hookはセッション状態の観測用であり、Runマニフェスト更新のトリガーとしては機能しません。
+- HookのJSONLログを `run.json` へ新規に集約することはなく、コレクターもHook JSONLやサブエージェント専用JSONの再走査を行いません。
+- `.codex/logs/*.jsonl` および `.artifacts/codex-hooks/*.jsonl` はGit管理対象外です。前者は既存の汎用クリーンアップ対象、後者は `.artifacts/` 配下の一時的な生エビデンス（ephemeral raw evidence）として扱い、いずれもRunマニフェストへの自動集約は行われません。
 
 ### Subagentの意味情報
 
-- Subagentを利用した場合、machine factはHook JSONLへ、意味情報は次のTASK完了またはRun完了checkpointのREPORTへ分離します。
-- REPORTへ記録するのは`Delegation`、`Result`、`Parent decision`だけで、agent id、timestamp、transcript path、raw message全文、全prompt / Tool callは転記しません。
-- Subagent専用Structured Artifactは新規作成せず、最終評価は`evaluation.json`を正本とします。
+- サブエージェント（Subagent）を利用した場合、機械的事実（machine fact）はHook JSONLに記録し、意味的な情報（semantic information）は次のタスク完了時またはRun完了時のチェックポイントにおける `REPORT.md` へ分離して記録します。
+- `REPORT.md` に記録する項目は `Delegation`（委譲内容）、`Result`（結果）、`Parent decision`（親エージェントの判断）のみに限定し、エージェントID、タイムスタンプ、トランスクリプトのパス、生のメッセージ全文、全プロンプト、およびTool呼び出しの詳細は転記しません。
+- サブエージェント専用の構造化成果物（Structured Artifact）を新規作成することはせず、最終評価は `evaluation.json` を正本として扱います。
 
 ### `failure-taxonomy.json`
 
-- failure category enum の正本です。
-- agent は taxonomy に定義された category から選びます。
+- 失敗カテゴリの列挙型（failure category enum）に関する正本です。
+- エージェントは、この分類体系（taxonomy）に定義されているカテゴリの中から適切なものを選択します。
 
 ## Status / Result Enum
 
@@ -309,12 +280,12 @@ evaluation.result:
 
 意味の違い:
 
-- `run.status = completed` は runner が artifact 生成まで完了したことを示します。タスク成功を意味しません。
-- `run.status = failed` は runner 自体が異常終了し、artifact 生成や検証手順が完了しなかったことを示します。
-- `validation.status = failed` は検証コマンドが失敗したことを示します。必ずしも `evaluation.result = fail` ではありません。
-- `validation.status = blocked` は safety rule / hook / environment 制約により検証が実行できなかったことを示します。
-- `validation.status = skipped` は明示的な理由により検証を実行しなかったことを示します。
-- `evaluation.result` は成果物としてのタスク達成度に対する agent / reviewer 判断です。
+- `run.status = completed` は、ランナーが成果物の生成処理までを完了したことを示します。タスク自体の成功を意味するものではありません。
+- `run.status = failed` は、ランナー自体が異常終了し、成果物の生成や検証手順が最後まで完了しなかったことを示します。
+- `validation.status = failed` は、実行された検証コマンドが失敗したことを示します。必ずしも `evaluation.result = fail` と同義ではありません。
+- `validation.status = blocked` は、セキュリティルール、Hook、または実行環境の制約により検証が実行できなかったことを示します。
+- `validation.status = skipped` は、明示的な理由に基づいて検証の実行を見送ったことを示します。
+- `evaluation.result` は、成果物としてのタスク達成度に対するエージェントまたはレビュー担当者の総合的な判断結果を表します。
 
 例:
 
@@ -324,11 +295,11 @@ validation.status = failed
 evaluation.result = partial
 ```
 
-これは、runner は完了し、検証は失敗したが、成果物の一部は有効で追加修正可能、という状態を表します。
+これは、「ランナーの処理自体は完了し、検証コマンドは失敗したものの、成果物の一部は有効であり追加修正によって対応可能な状態」を表しています。
 
 ## 実務上の注意
 
-- `run.json` は aggregate manifest であり、単発の `codex-task` report JSON を上書きしません。
-- `evaluation.json` は実行結果の説明責任を持ちますが、実行事実を再生成しません。
-- JSONL logs は後から評価の evidence をたどるための補助であり、summary field の正本ではありません。
-- Hook JSONLはsession scopeの低レベル観測、REPORT checkpointはAIの意味情報、`evaluation.json`は評価判断として責務を分けます。
+- `run.json` は全体の集約マニフェスト（aggregate manifest）であり、個別の `codex-task` レポートJSONを上書きするものではありません。
+- `evaluation.json` は実行結果に対する説明責任を担うものであり、実行された事実そのものを再生成・改変する場ではありません。
+- JSONLログは、事後的に評価のエビデンスを追跡するための補助情報であり、要約フィールドの正本ではありません。
+- HookのJSONLログはセッションスコープの低レベルな観測記録、`REPORT.md` のチェックポイントはAIによる意味的な要約情報、`evaluation.json` は正式な評価・判断結果として、それぞれの責務を明確に分離して運用します。

@@ -1,49 +1,49 @@
-# 修復ループのリポジトリReference
+# 修復ループのリポジトリリファレンス
 
 ## 目的
 
-この文書は、portableな`repair-loop` Skillへ提供するScenario ShopのRepository-side contractsを定義します。package-localのSkillとworkflowは、一般的な対象範囲を限定したloop、Findingの仕分け、反復記録、検証、停止の意味を定義します。
+この文書は、ポータブルな`repair-loop`スキルに対してScenario Shopが提供するリポジトリ側の規約を定義します。パッケージローカルのスキルおよびワークフロー側では、スコープを限定した一般的なループ処理、指摘事項（Finding）の仕分け、イテレーション記録、検証、および停止基準の定義を定めています。
 
-## Repository inputs
+## リポジトリ入力
 
-- Repositoryのcoding and review policyは`CODE_REVIEW.md`を参照します。
+- リポジトリのコーディングおよびレビュー方針は`CODE_REVIEW.md`を参照します。
 - 対象範囲ポリシーは`docs/reference/change-scope-policy.md`を参照します。
-- evaluation artifactとFinding schemaはRepositoryのevaluation契約を参照します。
-- Failure categoriesは`spec/failure-taxonomy.json`を参照します。
-- Run manifest、Run report、Hook observation、Subagent recordの保存先はactive Run契約を参照します。
-- Run Artifactのlifecycleとpath sanitizationは[`docs/reference/run-artifacts.md`](run-artifacts.md)を参照します。Repair workflowはこのRepository-wide契約を利用し、ここでは重複定義しません。
+- 評価成果物（evaluation artifact）およびFindingスキーマは、リポジトリの評価規約を参照します。
+- 失敗分類（Failure categories）は`spec/failure-taxonomy.json`を参照します。
+- Runマニフェスト、Runレポート、Hookの観測ログ（Hook observation）、Subagentの記録の保存先は、アクティブなRun規約を参照します。
+- Run成果物のライフサイクルおよびパスのサニタイズ（path sanitization）については[`docs/reference/run-artifacts.md`](run-artifacts.md)を参照します。修復ワークフロー（Repair workflow）はこのリポジトリ全体の共通規約を利用するため、ここでは重複して定義しません。
 
-`AGENTS.md`はこれらのRepository inputをpackageへ対応付けます。別のRepositoryで使うとき、このpackageはこれらのpath、schema、commandを前提にしてはいけません。
+`AGENTS.md`は、これらのリポジトリ入力をパッケージへマッピングします。別のリポジトリで利用する場合、本パッケージがこれらのパス、スキーマ、コマンドの存在を前提にしてはなりません。
 
-## 共通の品質gate方針
+## 共通の品質ゲート方針
 
-品質gateのfailureは、保留する前にbaseline、current diff、shared dependency、test or CI contract、execution environmentに照らして調査します。原因が現在の変更、現在の変更を検証するために必要なもの、または独立した既存問題のいずれであっても、現在の権限内でsafe minimal repair（安全な最小修正）が可能ならcurrent loopで扱います。baseline、既存問題、unrelated status aloneだけを理由に保留しません。
+品質ゲートの失敗（failure）が発生した場合は、保留とする前に、ベースライン、現在の差分（diff）、共有依存関係、テストやCIの規約、および実行環境に照らして原因を調査します。原因が現在の変更、現在の変更を検証するために必要な要素、または独立した既存の問題のいずれであっても、現在の権限内で安全な最小限の修復（safe minimal repair）が可能であれば、現在のループ内で対処します。ベースラインであること、既存の問題であること、あるいは単に無関係なステータス（unrelated status）であることのみを理由にして保留することはありません。
 
-安全な修復が、unsafe、destructive、permissionまたはcredentialに依存する、irreversible external side effectを伴う、requirement-dependentである、またはRepositoryのretry stop conditionに達したため実行できない場合は、causal assessment、unexecuted checks、next actionを記録し、bounded workflowに従って停止します。
+安全な修復が、安全性を欠く（unsafe）、破壊的である（destructive）、権限や認証情報に依存する、不可逆な外部副作用を伴う、仕様・要件の判断を要する、あるいはリポジトリのリトライ停止条件に達したなどの理由で実行できない場合は、原因分析（causal assessment）、未実行のチェック項目（unexecuted checks）、および次のアクション（next action）を記録したうえで、制限付きワークフロー（bounded workflow）の規定に従って停止します。
 
-## EvaluationとFailure Taxonomyの統合
+## 評価とFailure Taxonomyの統合
 
-この文書の`failure taxonomy`（Failure Taxonomy）は、Repositoryの評価分類契約を指します。
+本文書における`failure taxonomy`（Failure Taxonomy）は、リポジトリの評価分類規約を指します。
 
-- Repositoryのevaluation artifactを、loopの結果、Finding、残差、改善候補の正本とします。
-- RepositoryのFailure Taxonomyを`failure_category`の正本とします。Native execution labelは補助Evidenceとして対応付け、新しいevaluation categoryとして追加しません。
-- loopが完了条件を満たさず停止した場合も、`partial`または`fail`の結果を見える状態で残します。
+- リポジトリの評価成果物（evaluation artifact）を、ループの実行結果、指摘事項（Finding）、残差、および改善候補の正本とします。
+- リポジトリのFailure Taxonomyを`failure_category`の正本とします。ネイティブの実行ラベル（Native execution label）は補助的なエビデンスとしてマッピングするにとどめ、新しい評価カテゴリ（evaluation category）として追加しません。
+- ループが完了条件を満たさずに停止した場合であっても、`partial`（部分完了）または`fail`（失敗）の結果を可視化された状態で残します。
 
-## 対象範囲とartifactの統合
+## 対象範囲と成果物の統合
 
-- `allowed_files`と`expected_changed_files`はRepositoryの変更範囲ポリシーに照らして確認します。
-- Run reportはappend-only契約に従い、checkpointの意味を保持します。
-- Hook JSONL、Run manifest、evaluation file、Subagent recordはEvidenceの源です。最終判断はevaluation artifactと記録したdecisionに残します。
-- Repository artifactのsanitizationは完了ゲートです。サニタイズされていないローカル絶対パスがある場合、Runを完了扱いにしません。
+- `allowed_files`および`expected_changed_files`は、リポジトリの変更範囲ポリシーに照らして確認します。
+- Runレポートは追記専用（append-only）規約に従い、チェックポイントとしての整合性を保持します。
+- HookのJSONLログ、Runマニフェスト、評価ファイル、およびSubagentの記録はエビデンスの情報源です。最終的な判断結果は、評価成果物（evaluation artifact）と記録された決定事項（decision）に残します。
+- リポジトリ成果物のサニタイズ処理は完了ゲートです。サニタイズされていないローカルの絶対パスが含まれている場合、そのRunを完了扱いにはしません。
 
-## Subagent Evidenceの境界
+## Subagentエビデンスの境界
 
-既存のSubagent生成recordと観測は、対象範囲への適合や親の判断のEvidenceとして利用できます。このRepository referenceは、Subagentのrole、tool、permission、sandbox設定、delegationルールを定義・複製しません。
+既存のSubagentによって生成された記録や観測結果は、対象範囲への適合性や親エージェントによる判断のエビデンスとして利用できます。本リポジトリリファレンスでは、Subagentの役割（role）、ツール、権限、サンドボックス設定、および委譲ルールについての定義や複製は行いません。
 
 ## 外部レビューの方針
 
-外部サービスのfull reviewや再レビューは、ユーザーの明示的な指示または承認後だけ開始します。結果を報告した後の修復、thread操作、別レビューにはユーザーの判断が必要です。
+外部サービスによるフルレビューや再レビューは、ユーザーからの明示的な指示または承認を得た後にのみ開始します。結果を報告した後の修復作業、スレッドの操作、別レビューの実施には、ユーザーの判断が必要です。
 
 ## 永続的な報告
 
-Runの進捗はactive Run reportに記録します。永続的なレポートファイルは、ユーザーまたは完了条件が後日の監査参照を明示的に求める場合だけ作成します。レビューのみや軽い確認だけを理由に永続的なレポートを作成しません。
+Runの進捗状況はアクティブなRunレポート（active Run report）に記録します。永続的なレポートファイルは、ユーザーまたはタスクの完了条件が後日の監査参照を明示的に求めている場合にのみ作成します。レビューのみや簡易的な確認だけを理由として、永続的なレポートを作成することはありません。

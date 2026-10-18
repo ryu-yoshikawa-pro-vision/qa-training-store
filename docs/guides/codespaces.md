@@ -1,12 +1,12 @@
 # GitHub Codespaces利用ガイド
 
-このガイドは、`qa-training-store`をGitHub Codespacesで開き、Webアプリの開発・テストやAIエージェントの操作を始めるための手順です。
+このガイドでは、`qa-training-store`をGitHub Codespacesで開き、Webアプリの開発・テストやAIエージェントの操作を始めるための手順を説明します。
 
-GitHub Codespacesは、ブラウザ上のVS Codeから利用できる開発環境です。自分のPCにNode.jsなどをインストールせずに、リポジトリのファイルを編集できます。画面下部の**ターミナル**は、コマンドを入力する場所です。初回の環境準備は[`devcontainer.json`](../../.devcontainer/devcontainer.json)に従って自動実行されます。
+GitHub Codespacesは、ブラウザ上のVS Codeから利用できるクラウド開発環境です。手元のPCにNode.jsなどをインストールすることなく、リポジトリのファイルを編集できます。画面下部の**ターミナル**は、各種コマンドを入力・実行する場所です。初回の環境構築は[`devcontainer.json`](../../.devcontainer/devcontainer.json)の設定に基づいて自動実行されます。
 
-最初に、GitHubへログインし、このリポジトリを開けることと、自分のアカウントでCodespacesを作成できることを確認してください。**Codespacesのコンピューティング・保存領域の料金と、OpenCode Zenのモデル利用料金は別**です。作成前に[Codespacesの利用料金](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)を確認してください。
+作業を始める前に、まずGitHubへログインし、本リポジトリにアクセスできること、および自分のアカウントでCodespacesを作成できることを確認してください。**Codespacesのコンピューティング・ストレージ利用料金と、OpenCode Zenのモデル利用料金はそれぞれ別体系**となっています。環境を作成する前に[Codespacesの利用料金](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)を確認してください。
 
-目的に合う章だけ進めて構いません。いずれも最後は**8. Codespaceを停止・再開・削除する**を確認します。
+目的に合わせて必要な章だけを進めて構いません。どの作業を行う場合でも、最後は必ず**8. Codespaceを停止・再開・削除する**の手順を確認してください。
 
 - **まずWebアプリを表示する**：2 → 5 → 8
 - **Playwrightでテストする**：2 → 5 → 6 → 8
@@ -14,32 +14,32 @@ GitHub Codespacesは、ブラウザ上のVS Codeから利用できる開発環�
 - **Codex CLIを使う**：2 → 4 → 8
 - **変更をPRにする**：2 → 7 → 8
 
-OpenCode ZenのSecret登録は、WebアプリやPlaywrightだけを使う場合には不要です。
+※Webアプリの確認やPlaywrightテストのみを行う場合、第1章のOpenCode ZenのSecret登録は不要です。
 
-Codespacesで対応するのは主にWeb / TypeScript開発です。Android / iOSのNative Buildは、従来どおりWindows / macOSのローカル環境で行います。
+なお、Codespaces環境でサポートしているのは、主にWebおよびTypeScriptの開発です。Android / iOSのネイティブビルドは、従来どおりWindowsやmacOSのローカル環境で行います。
 
 ## 1. 利用前にOpenCode ZenのSecretを登録する
 
-**OpenCode Zenを利用する人は、自分のAPIキーをGitHubアカウントのCodespaces Secretに登録します。** SecretはパスワードなどをGitHubに安全に保存し、許可したリポジトリのCodespaceへ環境変数として渡す機能です。
+**OpenCode Zenを利用する場合は、各自のAPIキーをGitHubアカウントのCodespaces Secretに登録します。** Secretとは、APIキーやパスワードなどをGitHub上に安全に保存し、許可したリポジトリのCodespaceへ環境変数として渡すための機能です。
 
-1. [OpenCode Zen](https://opencode.ai/docs/zen/)にサインインし、自分のAPIキーを取得します。利用前に[モデル別の料金](https://opencode.ai/docs/zen/#pricing)と、残高の自動補充（auto-reload）・月間上限を確認してください。**Freeモデルは提供条件が変わることがあります。**
-2. GitHub右上のプロフィール画像から**Settings → Codespaces**を開きます。[個人のCodespaces設定](https://github.com/settings/codespaces)からも移動できます。
+1. [OpenCode Zen](https://opencode.ai/docs/zen/)にサインインし、APIキーを取得します。利用を開始する前に、[モデル別の料金](https://opencode.ai/docs/zen/#pricing)や残高の自動補充（auto-reload）、月間上限設定を確認してください。**なお、Freeモデルは提供条件が変更される場合があります。**
+2. GitHub画面右上のプロフィールアイコンから**Settings → Codespaces**を開きます（[個人のCodespaces設定](https://github.com/settings/codespaces)から直接移動することもできます）。
 3. **Codespaces secrets → New secret**を選択します。
-4. **Name**に`OPENCODE_API_KEY`、**Value**に取得したキーを貼り付けます。
-5. **Repository access**で`ryu-yoshikawa-pro-vision/qa-training-store`を選択し、**Add secret**で保存します。ほかのリポジトリを不要に許可しないでください。
+4. **Name**に`OPENCODE_API_KEY`と入力し、**Value**に取得したAPIキーを貼り付けます。
+5. **Repository access**で`ryu-yoshikawa-pro-vision/qa-training-store`を選択し、**Add secret**をクリックして保存します。不要なリポジトリへのアクセス許可は与えないようにしてください。
 
-**データ保護にも注意してください。** OpenCode Zenの[Privacy説明](https://opencode.ai/docs/zen/#privacy)によると、一部Freeモデルでは入力データがモデル改善に利用される場合があります。送信先のモデルと利用条件を確認し、業務上の機密情報・実在する顧客情報・個人情報を、許可なく入力しないでください。
+**データ保護に関する注意点**：OpenCode Zenの[プライバシーポリシー](https://opencode.ai/docs/zen/#privacy)によると、一部のFreeモデルでは入力データがモデル改善に利用される場合があります。送信先となるモデルと利用規約を事前に確認し、業務上の機密情報や実在する顧客情報、個人情報を許可なく入力しないでください。
 
-これでGitHub側のSecret登録は完了です。**APIキーの値をリポジトリ、`.env`、`devcontainer.json`、Issue、PR、ターミナルの出力に書かないでください。** 個人のSecretと、リポジトリのSettingsにある共通Secretは異なります。今回は個人のSecretを利用します。操作の詳細は[GitHub公式のCodespaces Secret手順](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces)を参照してください。
+これでGitHub側へのSecret登録は完了です。**APIキーの値をリポジトリ内のファイルや`.env`、`devcontainer.json`、Issue、PR、ターミナルの出力などに直接書き込まないでください。** なお、個人のSecretとリポジトリのSettingsにある共通Secretは別物です。今回は個人のSecretを利用します。操作の詳細は[GitHub公式のCodespaces Secret手順](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces)を参照してください。
 
-すでにCodespaceを起動している場合は、[Your codespaces](https://github.com/codespaces)から対象を**Stop codespace → 再度開く**の順に操作してください。新しく作成するCodespaceには作成時にSecretが反映されます。
+すでにCodespaceを起動している場合は、[Your codespaces](https://github.com/codespaces)から該当の環境を一度**Stop codespace**で停止し、再度開き直してください。新しく作成するCodespaceには、作成時に自動でSecretが反映されます。
 
 ## 2. Codespaceを作成する
 
-1. [リポジトリ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store)を開き、緑の**Code**ボタンから**Codespaces**タブを選びます。
-2. **Create codespace on main**をクリックします。別のbranchで作業したい場合は、作成時に対象branchを選択してください。
-3. ブラウザ版VS Codeが表示されたら、最初のインストールが完了するまで、作成ログを確認します。`postCreateCommand`は、依存ライブラリ、OpenCode、Codex、Playwrightのブラウザを自動でインストールする処理です。
-4. メニューの**Terminal → New Terminal**でターミナルを開き、次を入力します。
+1. [リポジトリ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store)を開き、緑色の**Code**ボタンから**Codespaces**タブを選びます。
+2. **Create codespace on main**をクリックします。別のブランチで作業したい場合は、作成時に対象のブランチを選択してください。
+3. ブラウザ版VS Codeが表示されたら、初回のセットアップが完了するまで作成ログを確認します。`postCreateCommand`により、依存ライブラリ、OpenCode、Codex、Playwright用ブラウザのインストールが自動で実行されます。
+4. メニューの**Terminal → New Terminal**からターミナルを開き、次のコマンドを入力して動作確認を行います。
 
 ```bash
 node --version
@@ -49,15 +49,15 @@ opencode --version
 codex --version
 ```
 
-いずれもバージョンが表示されれば、必要なコマンドが見つかっています。エラーがなく準備が終われば、**Webを起動したい人は第5章**、OpenCodeやCodexを使う人はそれぞれ第3・4章へ進んでください。
+それぞれバージョン番号が表示されれば、必要なコマンドが正常に認識されています。エラーなく準備が完了したら、**Webアプリを起動したい場合は第5章**へ、OpenCodeやCodexを使いたい場合はそれぞれ第3章・第4章へ進んでください。
 
-`command not found`などが出た場合は、Codespaceの作成ログ（**View Creation Log**）からインストールの失敗を確認してください。必要な変更を保存済みであれば、コマンドパレットの**Codespaces: Rebuild Container**による再構築も候補ですが、原因が分からないまま繰り返さず、エラー内容を確認してください。ログを他人と共有する際はAPIキーや認証情報が含まれていないか確認してください。
+もし`command not found`などのエラーが出た場合は、Codespaceの作成ログ（**View Creation Log**）を開き、インストールの失敗箇所を確認してください。必要な変更を保存済みであれば、コマンドパレットから**Codespaces: Rebuild Container**を実行してコンテナを再構築するのも有効ですが、原因が分からないまま何度も再構築せず、まずはエラー内容を確認してください。また、調査のためにログを他者と共有する際は、APIキーや認証情報が含まれていないことを必ず確認してください。
 
 ## 3. OpenCode Zenを利用する
 
 ### 3-1. Secretが渡されているか確認する
 
-Codespaceのターミナルで次を実行します。**APIキーの中身は表示しません。**
+Codespaceのターミナルで次のコマンドを実行します。**APIキーの値そのものは表示されません。**
 
 ```bash
 if [ -n "$OPENCODE_API_KEY" ]; then
@@ -67,15 +67,15 @@ else
 fi
 ```
 
-**設定済み**なら次へ進みます。**未設定**なら、第1章のSecret名とRepository accessを確認し、Codespaceを停止して再開してください。この表示は環境変数が存在することだけを示し、APIキーの有効性や接続成功を保証しません。
+**設定済み**と表示されたら次へ進みます。**未設定**と表示された場合は、第1章で登録したSecretの名前とRepository accessの設定を確認した上で、Codespaceを一度停止して再起動してください。なお、この確認は環境変数が存在していることのみを示すものであり、APIキー自体の有効性や接続の成功を保証するものではありません。
 
 ### 3-2. OpenCodeにSecretを参照させる
 
-OpenCode V2には環境変数を利用するプロバイダー設定があります。設定ファイルには**Secret名だけ**を書き、APIキーの値は書きません。[OpenCode V2のプロバイダー設定](https://opencode.ai/v2/docs/providers)を参照してください。
+OpenCode V2には環境変数を参照するプロバイダー設定があります。設定ファイルには**環境変数名（Secret名）のみ**を記述し、APIキーの値そのものは書き込みません。詳細は[OpenCode V2のプロバイダー設定](https://opencode.ai/v2/docs/providers)を参照してください。
 
 1. ターミナルで`mkdir -p ~/.config/opencode`を実行します。
-2. `code ~/.config/opencode/opencode.json`を実行し、VS Codeでファイルを開きます。ファイルがまだない場合は新しく作成します。
-3. 既存の設定が**ない場合**は、次の内容を入力して保存します。
+2. `code ~/.config/opencode/opencode.json`を実行し、VS Codeでファイルを開きます。ファイルがまだ存在しない場合は新しく作成されます。
+3. 既存の設定ファイルが**ない場合**は、次の内容を入力して保存します。
 
 ```json
 {
@@ -88,40 +88,40 @@ OpenCode V2には環境変数を利用するプロバイダー設定がありま
 }
 ```
 
-既存の設定が**ある場合はファイル全体を置き換えないでください**。変更前に`cp ~/.config/opencode/opencode.json ~/.config/opencode/opencode.json.bak`でバックアップを取り、既存の`providers`内に`opencode`の設定を統合します。JSONの構造が分からない場合は無理に編集せず、設定内容からAPIキーなどの値を除いて相談してください。設定ファイルはCodespace内の利用者ホームに保存し、リポジトリへcommitしません。
+既存の設定ファイルが**すでにある場合は、ファイル全体を上書きしないでください**。変更前に`cp ~/.config/opencode/opencode.json ~/.config/opencode/opencode.json.bak`を実行してバックアップを取り、既存の`providers`ブロック内に`opencode`の設定を追加・統合します。JSONの構造や書き方が分からない場合は無理に編集せず、APIキーなどの機密情報を除いた上で周囲に相談してください。なお、この設定ファイルはCodespace内のユーザーホームディレクトリに保存され、リポジトリへコミットされることはありません。
 
-この明示設定は、Codespaces Secretの値をOpenCode側で参照する意図を明確にするためのものです。OpenCode V2の標準接続で環境変数を自動検出する場合もあります。`/connect`でキーを貼り付けて保存する方式は、今回の標準手順には含めません。
+この明示的な設定は、Codespaces Secretの値をOpenCode側で確実に参照させるためのものです。OpenCode V2の標準機能によって環境変数が自動検出される場合もありますが、`/connect`コマンドでキーを直接貼り付けて保存する方式は、本ガイドの標準手順としては採用していません。
 
 ### 3-3. 起動・モデル選択・接続確認
 
-ターミナルで次を実行します。
+ターミナルで次のコマンドを実行します。
 
 ```bash
 opencode
 ```
 
-OpenCodeの画面で`/models`を入力し、**OpenCode Zenのモデル**を選択します。利用前に[公式の料金一覧](https://opencode.ai/docs/zen/#pricing)で**Free**と確認できるモデルだけを選び、有料モデルは選択しないでください。
+OpenCodeの入力画面で`/models`と入力し、**OpenCode Zenのモデル**を選択します。利用前に[公式の料金一覧](https://opencode.ai/docs/zen/#pricing)を確認し、**Free**と明記されているモデルのみを選択してください。有料モデルは選択しないよう注意してください。
 
-まず**ファイルを変更しない簡単な質問**を送信し、応答とエラーの有無を確認します。終了後に`git status --short`で意図しないファイル変更がないことも確認してください。
+まずは**ファイルを変更しない簡単な質問**を送信し、正常に応答が返るか、エラーが発生しないかを確認します。確認が終わったら、`git status --short`を実行して意図しないファイルの変更が発生していないかもチェックしてください。
 
-**注意：応答の成功はAPIキー認証の証明ではありません。** Freeモデルはキーなしでも応答できる場合があり、既存の保存済み認証情報が環境変数より優先される場合もあります。個人Secret経由の動作を検証するときは、保存済み認証情報のない**新規Codespace**でSecretの存在と設定の反映を確認し、利用可能ならOpenCode Zen側のアカウント利用履歴と照合します。履歴だけでキー利用を特定できない場合、**認証経路は未確認**と記録してください。APIキー自体や認証データベースの内容を表示・共有しないでください。
+**注意：応答が返ってきたこと自体は、APIキーによる認証が通った証明にはなりません。** Freeモデルはキーがなくても応答できる場合があるほか、以前に保存された認証情報が環境変数よりも優先されるケースがあるためです。個人のSecretを経由して正しく動作しているかを厳密に検証したい場合は、保存済み認証情報のない**新規のCodespace**を作成し、Secretの存在と設定の反映を確認した上で、OpenCode Zen側の利用履歴と照合してください。履歴からキーの利用が特定できない場合は、記録上**認証経路は未確認**として扱ってください。なお、APIキーそのものや認証データベースの内容を画面に表示したり共有したりしないでください。
 
-`providers.opencode.env`の形式は公式仕様に沿っていますが、**このリポジトリの固定CLIと個人Codespaces Secretを組み合わせた実機認証は未検証です**。確認できるまで「Secretによる認証成功」を保証する手順ではありません。エラー時はSecretのRepository access、Codespaceの停止・再開、環境変数の設定有無、設定ファイル、モデルの選択、表示されたエラーをこの順で確認します。**Secret登録だけで無料利用が保証されるわけではありません。**
+`providers.opencode.env`の設定形式は公式仕様に沿ったものですが、**本リポジトリで固定されているCLIと個人のCodespaces Secretを組み合わせた実機での認証動作は未検証です**。そのため、動作確認が完了するまでは「Secretによる認証が確実に成功した」と保証する手順ではありません。エラーが発生した場合は、SecretのRepository access設定、Codespaceの停止と再開、環境変数が設定されているか、設定ファイルの内容、選択したモデル、出力されたエラーメッセージを順に確認してください。また、**Secretを登録したからといって、無条件で無料利用が保証されるわけではない点にも注意してください。**
 
-なお、PR #188ではOpenCode CLIの動作は確認済みですが、VS CodeのOpenCode拡張は起動時のオプション不一致で利用できません。**OpenCodeはターミナルから起動してください。**
+なお、PR #188の時点でOpenCode CLI自体の動作は確認できていますが、VS CodeのOpenCode拡張機能は起動時のオプション不一致により正常に動作しません。そのため、**OpenCodeは必ずターミナルから起動してください。**
 
 ## 4. Codex CLIを利用する
 
-Codespacesはリモート環境のため、Codex CLIのdevice-code認証を使います。
+Codespacesはリモート環境であるため、Codex CLIの認証にはデバイスコード（device-code）認証を使用します。
 
-1. [ChatGPT](https://chatgpt.com/)へログインし、**Settings → Security（またはSecurity and login）**を開き、Codexの**device-code sign-in / authorization**を有効にします。画面の項目名は変更される場合があります。組織のChatGPTワークスペースでは、管理者側の許可が必要です。
-2. Codespaceのターミナルで次を実行します。
+1. [ChatGPT](https://chatgpt.com/)にログインし、**Settings → Security（またはSecurity and login）**を開いて、Codexの**device-code sign-in / authorization**を有効にします。画面の項目名は変更されることがあります。なお、組織のChatGPTワークスペースを利用している場合は、管理者による許可が必要です。
+2. Codespaceのターミナルで次のコマンドを実行します。
 
 ```bash
 codex login --device-auth
 ```
 
-表示されたURLを**自分のブラウザで開き**、同じChatGPTアカウントでログインして一時コードを入力します。コードは第三者へ共有しないでください。
+ターミナルに表示されたURLを**ローカルPCのブラウザで開き**、同じChatGPTアカウントでログインして一時コードを入力します。このコードは第三者に共有しないでください。
 
 認証が完了したらターミナルに戻り、認証状態を確認してからCodexを起動します。
 
@@ -130,33 +130,33 @@ codex login status
 codex
 ```
 
-ログインできない場合は、ChatGPT側のdevice-code設定とアカウントを確認し、新しく生成したコードで再実行してください。[Codex公式認証手順](https://developers.openai.com/codex/auth)も参照してください。検証用・共有用のCodespaceを手放す場合は`codex logout`でログアウトします。APIキーやローカル認証キャッシュをコピーして利用する運用はしません。
+ログインできない場合は、ChatGPT側のdevice-code設定とログイン中のアカウントを確認し、新しく発行されたコードを使って再度実行してください。あわせて[Codex公式の認証手順](https://developers.openai.com/codex/auth)も参照してください。検証用や共有用のCodespaceでの作業を終える際は、`codex logout`を実行してログアウトしてください。APIキーやローカルの認証キャッシュを外部にコピーして使い回すような運用は行わないでください。
 
-VS CodeのCodex拡張`OpenAI.chatgpt`も導入されますが、PR #188では拡張の全操作は未検証です。CLIを確実な利用経路としてください。
+VS CodeのCodex拡張機能`OpenAI.chatgpt`もインストールされますが、PR #188の時点では拡張機能経由の全操作は検証されていません。確実な操作手段としてCLIを利用してください。
 
 ## 5. Webアプリを起動する
 
-ターミナルで次を実行します。
+ターミナルで次のコマンドを実行します。
 
 ```bash
 pnpm run start:web
 ```
 
-**このコマンドはWebサーバーを起動し続けるため、ターミナルが操作待ちに戻らなくても正常です。** VS Code画面下部のターミナル領域で**Ports**タブを開き、`qa-training-store (8081)`の行から**ブラウザで開く**操作を選択してください。Storefrontに「決定的なシナリオで、確かなテストを。」という見出しが表示されれば、PR #188と同じ起動確認ができています。
+**このコマンドを実行するとWebサーバーが常駐して起動し続けるため、ターミナルが入力待ちに戻らなくても問題ありません（正常な挙動です）。** VS Code下部のパネル領域で**Ports**タブを開き、`qa-training-store (8081)`の行にある地球儀アイコン（または右クリックメニュー）から**ブラウザで開く**を選択してください。Storefrontの画面に「決定的なシナリオで、確かなテストを。」という見出しが表示されれば、PR #188と同様に正常な起動が確認できたことになります。
 
-8081が表示されない場合は、`pnpm run start:web`を実行したターミナルにエラーが出ていないかと、8081番で起動しているかを先に確認してください。ポートの公開範囲は**Private**のままにし、**Publicには変更しないでください**。終了するときは起動したターミナルで`Ctrl+C`を押します。
+もし8081番ポートが表示されない場合は、`pnpm run start:web`を実行したターミナルにエラーログが出ていないか、サーバーが8081番で起動しているかをまず確認してください。なお、ポートの可視性（公開範囲）は**Private**のまま運用し、**Publicには変更しないでください**。サーバーを終了する際は、起動中のターミナルで`Ctrl+C`を押します。
 
 ## 6. Playwrightでテストと録画を行う
 
-**既存のE2Eテスト**を実行する場合は、通常いったん第5章の開発サーバーを`Ctrl+C`で停止してから次を実行します。Playwrightは設定に従ってテスト用Webサーバーを起動します。既に8081番のサーバーが起動していると、ローカルではそのサーバーを再利用する設定なので、意図しない状態のサーバーをテストしないように注意してください。
+**既存のE2Eテスト**を実行する場合は、設定によるサーバーの二重起動や競合を防ぐため、原則として第5章の開発サーバーをいったん`Ctrl+C`で停止してから次のコマンドを実行します。Playwrightは設定ファイルに従って自動でテスト用Webサーバーを立ち上げます。もし8081番のサーバーがすでに起動している場合、ローカル環境ではその既存サーバーを再利用する設定になっているため、意図しない状態の開発サーバーに対してテストを実行してしまわないよう注意してください。
 
 ```bash
 pnpm run test:e2e:chromium
 ```
 
-コマンドが正常終了し、失敗したテストがなければ成功です。失敗した場合は最後の失敗数とエラーを確認してください。別の`pnpm run verify`はformat・lint・型・単体テスト・ビルドなどを確認しますが、**Playwright E2Eは含みません**。E2Eの成功と`verify`の成功は別に判断してください。
+コマンドが正常終了し、失敗したテストが0件であればテスト成功です。失敗したテストがある場合は、最後に表示される失敗件数とエラーログを確認してください。なお、コード検証用のコマンドである`pnpm run verify`はフォーマット、リント、型チェック、単体テスト、ビルドなどを一括で検証しますが、**PlaywrightによるE2Eテストは含まれていません**。E2Eテストの成否と`verify`の成否は、それぞれ個別に判断してください。
 
-**録画練習**では、ターミナルを2つ開き、片方でWebアプリを起動したまま、もう片方で録画コマンドを実行します。
+**録画（codegen）の練習**を行う場合は、ターミナルを2つ開き、一方のターミナルでWebアプリを起動した状態を維持しながら、もう一方のターミナルで録画コマンドを実行します。
 
 **ターミナル1：**
 
@@ -170,36 +170,36 @@ pnpm run start:web
 pnpm exec playwright codegen http://127.0.0.1:8081
 ```
 
-**Ports**タブから**Playwright Desktop (6080)**を開くと、Codespace内で動いているChromium（ブラウザ）とPlaywright Inspector（操作の記録・確認画面）を表示できます。表示にはnoVNCというリモート画面転送機能を使っています。
+**Ports**タブから**Playwright Desktop (6080)**を開くと、Codespace内部で動作しているChromiumブラウザとPlaywright Inspector（操作の記録・確認用ウィンドウ）が表示されます。このGUI画面の表示には、noVNCというリモート画面転送機能が利用されています。
 
-`6080`は**Private**のままとし、`5901`は公開しないでください。
+ポート`6080`は**Private**のまま運用し、`5901`は公開しないでください。
 
 ### 録画結果をテストとして実行する
 
-1. noVNC画面の**Chromium**で、Storefrontの画面上にあるリンクなどを1回クリックします。**Playwright Inspector**に`page.goto`や`click`などの操作コードが追加されたことを確認します。これは操作動画の保存ではなく、**再実行できるコードの生成**です。
-2. Inspectorで録画を停止し、**Copy**で生成コード全体（`import`と`test(...)`を含む）をコピーします。
-3. VS Codeで`e2e/web/practice-phase1-required.spec.ts`という**練習用の新規ファイル**を作り、コードを貼り付けて保存します。**既存のテストファイルを上書きしないでください。**
-4. 別のターミナルで以下を実行します。録画用Webサーバーは起動したままで構いません。
+1. noVNC画面上の**Chromium**で、Storefront画面のリンクなどをクリックしてみます。**Playwright Inspector**に`page.goto`や`click`といった操作コードが逐次追加されることを確認してください。なお、これは操作画面の動画を録画する機能ではなく、**自動テストとして再実行可能なコードを生成する機能**です。
+2. Inspector画面で録画を停止し、**Copy**ボタンをクリックして生成されたコード全体（`import`文や`test(...)`ブロックを含む）をコピーします。
+3. VS Codeのエクスプローラーで`e2e/web/practice-phase1-required.spec.ts`という**練習用の新規ファイル**を作成し、コピーしたコードを貼り付けて保存します。**既存のテストファイルを上書きしないよう十分注意してください。**
+4. 別のターミナルを開き、以下のコマンドを実行します（このとき、録画用に立ち上げたWebサーバーは起動したままで問題ありません）。
 
 ```bash
 pnpm exec playwright test e2e/web/practice-phase1-required.spec.ts --project=chromium
 ```
 
-テスト結果に`passed`が表示され、失敗がなければ再実行成功です。失敗した場合は、録画時の操作と画面の状態が同じかを確認します。
+テスト結果に`passed`が表示され、失敗がなければ再実行は成功です。もしテストが失敗した場合は、録画時に行った操作手順や前提となる画面状態が再現できているかを確認してください。
 
-`chromium`プロジェクトには`testMatch`によるファイル名の制限があり、通常の`pnpm run test:e2e:chromium`は既存の3ファイルを明示的に指定しています。したがって練習用の`practice-phase1-required.spec.ts`は**上記の個別コマンド**で実行してください。例えば`recorded.spec.ts`という任意のファイル名にすると対象外になります。
+なお、本リポジトリの`chromium`プロジェクトには`testMatch`によるテストファイル名のフィルタが設定されており、通常の`pnpm run test:e2e:chromium`コマンドでは既存の指定された3ファイルのみが明示的に実行されるようになっています。そのため、練習用に作成した`practice-phase1-required.spec.ts`を動かす際は、**上記のようにファイルを指定した個別コマンド**で実行してください。たとえばファイル名を`recorded.spec.ts`などの任意の名称にした場合、実行対象外となってしまうため注意が必要です。
 
-終了後、練習用ファイルを正式な変更へ含めない場合は`git status --short`で確認し、`rm e2e/web/practice-phase1-required.spec.ts`で削除します。録画したコードを正式なテスト資産へ追加する場合は、既存のテスト設計・命名・検証方針に従って別途判断してください。
+練習が終わった後、作成した練習用ファイルをリポジトリの正式な変更に含めない場合は、`git status --short`で状態を確認した上で、`rm e2e/web/practice-phase1-required.spec.ts`を実行して削除してください。もし録画・生成したコードを正式なテスト資産として追加・コミットしたい場合は、プロジェクト既存のテスト設計や命名規則、検証方針に照らし合わせて別途適切に判断してください。
 
-PR #188ではGUIとCLIの`codegen`は確認済みですが、Playwright拡張の`Testing`サイドバー、`Record new`、`Record at cursor`の個別動作は未検証です。
+PR #188ではGUI（noVNC）およびCLI経由での`codegen`の動作を確認済みですが、VS CodeのPlaywright拡張機能にある`Testing`サイドバーや`Record new`、`Record at cursor`といった個別機能の動作は未検証です。
 
 ## 7. 変更を保存してPull Requestを作成する
 
-Gitで使う用語は次の意味です。**branch**は変更を分ける作業場所、**commit**は変更の記録、**push**は記録した変更のGitHubへの送信、**Pull Request（PR）**は変更内容を確認してもらうための申請です。
+Gitの基本用語の定義は以下のとおりです。**ブランチ（branch）**は作業や変更履歴を分岐させる作業場所、**コミット（commit）**は変更内容の記録、**プッシュ（push）**はローカルで記録したコミットをGitHubへ送信すること、**プルリクエスト（Pull Request / PR）**は変更内容を本体に取り込んでもらうためのレビュー申請です。
 
-以下は**実際に変更を提出する権限と作業依頼がある場合の例**です。練習だけのためにREADMEを変更してPRを作る必要はありません。リポジトリへ直接pushするには書き込み権限が必要です。権限がない場合は管理者に相談し、必要なら[GitHubのFork方式](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks)を利用してください。
+以下の手順は、**実際に変更を提出する権限や作業タスクがある場合の操作例**です。単なる練習目的のためだけにREADMEを無意味に変更してPRを作成することは避けてください。本リポジトリへ直接ブランチをプッシュするには、リポジトリへの書き込み権限（Push権限）が必要です。権限をお持ちでない場合は管理者に相談するか、必要に応じて[GitHubのFork方式](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks)を利用してください。
 
-まずターミナルで現在の状態を確認し、作業用branchを作ります。以下の`docs/example-change`は例なので、作業内容に合う名前へ変更してください。
+まずターミナルで現在の作業ツリーの状態を確認し、作業用のブランチを作成・切り替えます。以下の`docs/example-change`はブランチ名の例ですので、実際の作業内容に応じた適切な名前に変更してください。
 
 ```bash
 git status --short
@@ -207,7 +207,7 @@ git branch --show-current
 git switch -c docs/example-change
 ```
 
-例えば`README.md`を編集した場合は、保存後に次を実行します。
+例えば`README.md`を編集した場合は、保存後に次のコマンドを実行します。
 
 ```bash
 git diff --check
@@ -217,22 +217,22 @@ git commit -m "docs: READMEの説明を更新"
 git push -u origin docs/example-change
 ```
 
-`git add README.md`はREADMEだけを対象にする例です。別のファイルを編集した場合はそのパスへ置き換えてください。`nothing to commit`と出た場合は変更が保存されているか、`git status --short`を確認してください。
+`git add README.md`はREADMEのみをステージングする例です。他のファイルを編集した場合は、そのファイルパスに置き換えて実行してください。もし`nothing to commit`と表示された場合は、エディタ上でファイルの変更が正しく保存されているかを`git status --short`で確認してください。
 
-push後にGitHubでリポジトリを開き、**Compare & pull request**（表示されなければ**Pull requests → New pull request**）をクリックします。**base = main**、**compare = 自分の作業branch**であることを確認し、変更内容と検証結果を記載して**Create pull request**を選びます。作成したPRの画面が開けば完了です。[CONTRIBUTING.md](../../CONTRIBUTING.md)と[AGENTS.md](../../AGENTS.md)に従い、必要なテスト・CIも確認してください。
+プッシュが完了したらGitHub上でリポジトリのページを開き、表示される**Compare & pull request**ボタン（表示されない場合は**Pull requests**タブから**New pull request**）をクリックします。マージ先である**baseがmain**、取り込む変更である**compareが自分の作業ブランチ**になっていることを確認し、PRのタイトルと変更内容、検証結果を明記して**Create pull request**をクリックします。作成したPRのページが表示されれば申請完了です。その後は[CONTRIBUTING.md](../../CONTRIBUTING.md)および[AGENTS.md](../../AGENTS.md)のガイドラインに従い、必要な自動テストやCIが正常に通っているかを確認してください。
 
 ## 8. Codespaceを停止・再開・削除する
 
 1. [Your codespaces](https://github.com/codespaces)を開きます。
-2. 対象の`…`メニューから**Stop codespace**で停止します。再開時は一覧のCodespace名をクリックして開きます。
-3. 不要になったCodespaceは、未commit・未pushの変更が残っていないことを確認してから、同じメニューの削除操作で削除します。
+2. 一覧から該当するCodespaceの`…`（三点リーダー）メニューを開き、**Stop codespace**を選択して環境を停止します。作業を再開する際は、一覧に表示されているCodespaceの名前をクリックすれば再び開きます。
+3. 作業が完了して不要になったCodespaceは、未コミットや未プッシュの変更が残っていないことを確認した上で、同じメニューから削除（Delete）を実行します。
 
-**ブラウザのタブを閉じるだけでは停止しません。** 停止中も保存領域の料金が発生する場合があります。作業終了時には停止し、料金・無料枠・利用時間は[GitHub公式のライフサイクル説明](https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle)で確認してください。
+**ブラウザのタブを閉じただけではCodespaceは停止しません。** また、コンテナを停止している間でもストレージ（保存領域）の利用料金が発生する場合があります。作業を終了するときは忘れずに明示的な停止操作を行い、利用料金や無料枠、稼働時間の詳細については[GitHub公式のCodespaceライフサイクル解説](https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle)を参照してください。
 
-`devcontainer.json`の設定が変更された場合は、必要に応じてCodespaceを再構築します。再構築前に必要な変更をcommit・pushしてください。
+`devcontainer.json`の設定内容が変更された場合は、必要に応じてCodespaceを再構築（Rebuild）してください。再構築を実行する前には、作業中の変更内容を必ずコミットおよびプッシュしておいてください。
 
 ## 9. 既知の制約と導入記録
 
-- PR #188ではOpenCode CLIは動作確認済みです。ただしVS Code拡張`sst-dev.opencode`は、起動時の`opencode --port 65147`を固定CLIが受け付けず、起動できないことが確認されています。解決するまではCLIを使ってください。
-- Android / iOSのNative BuildはCodespacesの対象ではありません。
-- [Codespaces環境導入Plan](../plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)と[IDE・Playwright導入Plan](../plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)はPR #188当時の設計・検証記録です。当時の「FreeモデルをAPIキーなしで検証」と、通常利用で「個人Secretを使う」運用は異なります。
+- PR #188にてOpenCode CLIの正常動作は確認済みです。ただし、VS Code拡張機能`sst-dev.opencode`については、拡張機能の起動時に付与される引数`opencode --port 65147`を固定バージョンのCLIが受け付けず、起動できない問題が確認されています。本問題が解決するまでは、ターミナルからCLIを直接利用してください。
+- Android / iOSのネイティブビルドはCodespaces環境のサポート対象外です。
+- [Codespaces環境導入Plan](../plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)および[IDE・Playwright導入Plan](../plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)は、PR #188実装当時の設計・検証記録です。当時の検証における「FreeモデルをAPIキーなしで動作確認した記録」と、本番運用・通常利用における「個人のSecretを設定して利用する」運用方針とは前提が異なる点にご留意ください。

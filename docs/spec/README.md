@@ -1,20 +1,20 @@
 # Scenario Shop Specification System
 
-このディレクトリは、Scenario Shopの現在の製品動作を定義する仕様システムです。機能を学ぶときは、まず次の順で対象の期待動作を読みます。
+当ディレクトリは、Scenario Shopにおける現在の製品動作（仕様）を体系的に定義した仕様ドキュメント群です。各機能を把握・学習する際は、以下の順序に沿って期待動作を確認してください。
 
-## 学習者向けの読み始め
+## 学習者向けの読み進め方
 
-1. [Product Scope](./product-scope.md)で対象範囲を確認する。
-2. [Roles and Permissions](./roles-and-permissions.md)でRoleと権限を確認する。
-3. 対象FeatureのPurpose / Scopeを読む。
-4. 同じFeatureのBusiness RulesとAcceptance Criteria（BR / AC）を読む。
-5. 必要な状態とScenarioを[状態とシナリオ](./state-and-scenarios.md)で確認する。
-6. 必要な画面状態を[UI/UX契約](./ui-ux-contract.md)で確認する。
-7. 実装するときだけ、Feature文書のExecutable Canonical Sources（実行可能な正本ソース）にあるCode / Configを参照する。
+1. [Product Scope](./product-scope.md) で対象範囲を確認する。
+2. [Roles and Permissions](./roles-and-permissions.md) でロールと権限を確認する。
+3. 対象機能（Feature）の「目的とスコープ（Purpose / Scope）」を読む。
+4. 同機能の「ビジネスルールと受け入れ基準（BR / AC）」を読む。
+5. 必要な状態とシナリオを [状態とシナリオ](./state-and-scenarios.md) で確認する。
+6. 必要な画面状態を [UI/UX契約](./ui-ux-contract.md) で確認する。
+7. 実際に実装を行う段階でのみ、各機能ドキュメントの「実行可能な正本ソース（Executable Canonical Sources）」に記載されているコードや設定ファイル（Code / Config）を参照する。
 
-現在のUIや`/guide`は対象を観察する入口として使えますが、期待動作を決める正本ではありません。初期データやSeed IDなどの具体値は、必要になった段階で文書が示す実装上の参照先へ進みます。
+なお、稼働中のUIや `/guide` 画面は現在の挙動を観察するための参考情報としては利用できますが、仕様の期待動作を決定づける正本ではありません。初期データやSeed IDといった具体値が必要になった場合は、各ドキュメントで指定されている実装側の参照先を確認してください。
 
-## Navigation
+## ナビゲーション（Navigation）
 
 - [Product Scope](./product-scope.md)
 - [Roles and Permissions](./roles-and-permissions.md)
@@ -33,13 +33,13 @@
 - [UI/UX契約](./ui-ux-contract.md)
 - [画面カタログ](./screen-catalog.md)
 
-## 仕様を管理・変更するときのルール
+## 仕様の管理・変更ルール
 
 ### 責任分担
 
 #### 正式な製品動作
 
-次のファイルだけが、現在の期待挙動を定義します。
+現在期待される製品の挙動は、以下のドキュメントのみを正本として定義します。
 
 - [`product-scope.md`](./product-scope.md)
 - [`roles-and-permissions.md`](./roles-and-permissions.md)
@@ -49,24 +49,24 @@
 
 #### 補助・運用文書
 
-README、[`glossary.md`](./glossary.md)、[`change-process.md`](./change-process.md)、[`known-deviations.md`](./known-deviations.md)、[`unresolved-specifications.md`](./unresolved-specifications.md)、[`_templates/`](./_templates/feature-spec.md) は、読み方・運用・履歴・未確定事項を補助します。補助文書は正式な仕様の正本ではありません。
+README、[`glossary.md`](./glossary.md)、[`change-process.md`](./change-process.md)、[`known-deviations.md`](./known-deviations.md)、[`unresolved-specifications.md`](./unresolved-specifications.md)、[`_templates/`](./_templates/feature-spec.md) は、ドキュメントの読み方・運用手順・改訂履歴・未確定事項を補足・案内するための文書です。これらは正式な仕様の正本ではありません。
 
 #### 実行可能な正本ソース
 
-Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App ID、Test ID、Accessibility Labelなどの低レベル値は、各文書の「実行可能な正本ソース」に記載したCode/Configを正本とします。
+Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App ID、Test ID、Accessibility Label などの低レベルな具体値については、各機能ドキュメントの「実行可能な正本ソース」に指定されているコードや設定ファイル（Code / Config）を正本とします。
 
-### Oracleの優先順位
+### オラクル（正本判定）の優先順位
 
-1. 正式な製品動作
-2. 同じFeatureのBR / AC
-3. Active Known Deviation（差異の説明のみ）
-4. ADRによるDecision History
-5. Application / Seed / Test / README / Guide（観測記録または実装参照）
+1. 正式な製品動作（上記で指定された正本ドキュメント）
+2. 対象機能のビジネスルールと受け入れ基準（BR / AC）
+3. アクティブな既知の差異（Active Known Deviation、差分の説明のみに限定）
+4. ADRによる意思決定履歴（Decision History）
+5. 実装アプリケーション / Seed / テストコード / README / ガイド（観測記録または実装上の参照情報）
 
-ただし、各Featureの`Executable Canonical Sources`で明示された低レベル値については、Code / Configを正本とします。対象はRoute、App ID、Test ID、Accessibility label、Seed ID、Design token、Build configなどです。この例外は値の解決に限り、Application / Seed / Test / README / Guide全般を期待される製品動作より上位の正本へ昇格させるものではありません。
+ただし、各機能の `Executable Canonical Sources` で明示されている低レベル値に関しては、コードや設定ファイル（Code / Config）を正本として扱います。対象となるのは Route、App ID、Test ID、Accessibility label、Seed ID、Design token、Build config などです。この例外規定は特定の値の解決にのみ適用され、アプリケーション実装・Seed・テスト・README・ガイド全般が、期待される製品動作のドキュメントより上位の正本に繰り上がるわけではありません。
 
-Known Deviationは期待動作を書き換えません。Unresolvedの項目は、Product Decisionが完了するまで不具合判定の正本にはしません。
+既知の差異（Known Deviation）によって期待動作の定義そのものが書き換わることはありません。また、未確定（Unresolved）の項目については、プロダクトとしての意思決定（Product Decision）が完了するまで、不具合判定の正本基準としては扱いません。
 
-### 変更の入口
+### 変更手続き
 
-仕様変更は [`change-process.md`](./change-process.md) の順序に従います。Generated HTMLは `pnpm run build:spec` で再生成する成果物であり、編集対象ではありません。
+仕様を変更する際は、必ず [`change-process.md`](./change-process.md) に定められたプロセスに従ってください。なお、ビルドによって生成されるHTMLファイル群は `pnpm run build:spec` コマンドで再生成される成果物であり、直接編集する対象ではありません。

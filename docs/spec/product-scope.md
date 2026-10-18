@@ -2,34 +2,34 @@
 
 ## Current Product
 
-Scenario Shopは、固定SeedとLocal Mockを使って、EC StorefrontとSaaS型管理画面のQAを学習・検証するアプリケーションです。実際の販売、決済、配送、外部API通信は行いません。
+Scenario Shopは、固定シードとローカルモックを活用し、ECストアフロントおよびSaaS型管理画面のQA（品質保証）を学習・検証するためのアプリケーションです。実際の商品の販売、決済、配送、および外部APIとの通信は行いません。
 
 ## Platforms
 
 ### Web
 
-Desktop WebとMobile Webを正規対象とします。Storefront、Customer購入導線、Operator/Admin管理画面を提供します。管理操作はDesktop境界（1024px以上）を前提にし、狭いViewportでは専用Warningを表示します。
+デスクトップWebおよびモバイルWebを正式な対象とします。ストアフロント、カスタマー購入導線、オペレーター／管理者用管理画面を提供します。管理操作はデスクトップ環境（画面幅1024px以上）を前提としており、表示領域（ビューポート）が狭い場合は専用の警告メッセージを表示します。
 
 ### Native
 
-NativeはCustomer向けのGuest Storefront、Cart、Login、Account、Address、Checkout、Payment、Order、Reviewを対象とします。Native AdminとGuest Checkoutは対象外です。AndroidはBuildとRuntime/Maestroを保証範囲とし、iOSはAutomation/Production Simulator Build、Build-time metadata、Production guard、Artifact validationのBuild-only契約とします。
+ネイティブアプリは、カスタマー向けのゲストストアフロント、カート、ログイン、アカウント、住所、チェックアウト、決済、注文、レビューを対象とします。ネイティブ環境での管理画面（Native Admin）およびゲストチェックアウトは対象外です。Androidはビルドおよびランタイム／Maestroによる自動テストを保証範囲とし、iOSは自動化・本番シミュレータビルド（Automation/Production Simulator Build）、ビルド時メタデータ、本番ガード、成果物検証（Artifact validation）を対象とするビルド限定（Build-only）契約とします。
 
 ## Included Behavior
 
-- 商品探索、検索、Facet、価格、Sale、在庫、Variation、Review Summary
-- Guest/Customer Cart、Login時のCart統合、Checkout、Local Mock Payment
-- Order Snapshot、Payment結果、Shipment、Customer Review
-- Operator/Adminの商品、Category、Brand、Inventory、Order、Review、User管理
-- Seed Reset、固定Clock、決定的Payment Delay、限定されたInspection
-- Responsive、Keyboard、Screen Reader、Error/Empty/Loading/Conflict/Not Found表示
+- 商品の探索・検索、ファセット絞り込み（Facet）、価格、セール、在庫、バリエーション、レビュー要約（Review Summary）
+- ゲスト／カスタマーカート、ログイン時のカート統合、チェックアウト、ローカルモック決済
+- 注文スナップショット、決済結果、配送状況（Shipment）、カスタマーレビュー
+- オペレーター／管理者による商品、カテゴリー、ブランド、在庫、注文、レビュー、ユーザーの管理
+- シードリセット、固定クロック、決定論的な決済遅延（Payment Delay）、限定的なインスペクション
+- レスポンシブ表示、キーボード操作、スクリーンリーダー対応、エラー／Empty／Loading／Conflict／Not Foundの各種状態表示
 
 ## Excluded Behavior
 
-Cancel/Return/Refund、Payment Unknown/Reconciliation、Guest Checkout、Native Admin、Import/Export、Migration Recovery、Coupon、Point、Wishlist、Recommendation、外部Payment/配送APIは、このCurrent Specificationの期待挙動に含めません。
+キャンセル・返品・返金（Cancel/Return/Refund）、決済状態不明・照合（Payment Unknown/Reconciliation）、ゲストチェックアウト、ネイティブ管理画面、インポート・エクスポート、マイグレーション復旧、クーポン、ポイント、お気に入り（Wishlist）、レコメンド、外部の決済・配送APIとの通信は、現行仕様（Current Specification）の期待される動作に含めません。
 
 ## Canonical Source Boundaries
 
-この文書は意味・対象範囲を定義します。具体的なRouteは `app/`、Role/Status Typeは `src/domain/contracts/`、Seed/Scenarioは `src/seeds/metadata.ts` と `src/seeds/scenarios.ts`、Design Tokenは `src/presentation/design/tokens.ts`、Build/Native Configは `app.config.ts` と `.github/workflows/` を参照してください。
+本ドキュメントでは、システムの仕様上の意味と対象範囲を定義します。具体的なルーティングは `app/`、ロールやステータスの型定義は `src/domain/contracts/`、シードやシナリオは `src/seeds/metadata.ts` および `src/seeds/scenarios.ts`、デザイントークンは `src/presentation/design/tokens.ts`、ビルドおよびネイティブ設定は `app.config.ts` と `.github/workflows/` をそれぞれ参照してください。
 
 ## Screen Contracts
 
@@ -39,14 +39,14 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 #### Functions
 
-- Guest、Customer、Operator、AdminがScenario Shopの利用方法、固定Account、Role、Rank benefitを確認する。
-- 仕様の読み方と安全なReset入口を表示する。
+- ゲスト、カスタマー、オペレーター、管理者が、Scenario Shopの利用方法、固定アカウント、ロール、会員ランク特典（Rank benefit）を確認できる。
+- 仕様の読み方と、安全に初期状態へ戻すリセット機能への導線（入口）を表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `guest, customer, operator, admin` | `default` | Guide本文とRole別の入口を表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [Roles and Permissions](./roles-and-permissions.md#roles) |
+| `default` | baseline | `guest, customer, operator, admin` | `default` | ガイド本文とロール別の導線を表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [Roles and Permissions](./roles-and-permissions.md#roles) |
 
 #### Visual References
 
@@ -67,13 +67,13 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - 利用規約を閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- ストアフロントへ戻るナビゲーションを提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | 利用規約本文の入口とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | 利用規約本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 
@@ -94,13 +94,13 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 #### Functions
 
 - プライバシーポリシーを閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- ストアフロントへ戻るナビゲーションを提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | Privacy本文の入口とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | プライバシーポリシー本文の入口とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 
@@ -120,14 +120,14 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 #### Functions
 
-- 模擬取引表示と外部決済・配送を行わない範囲を閲覧できる。
-- Storefrontへ戻るNavigationを提供する。
+- 模擬取引の表示と、外部決済・配送を行わない対象範囲を閲覧できる。
+- ストアフロントへ戻るナビゲーションを提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `all` | `default` | 模擬取引の説明とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+| `default` | baseline | `all` | `default` | 模擬取引の説明とナビゲーションを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#境界領域のユーザー体験boundary-ux) |
 
 #### Visual References
 

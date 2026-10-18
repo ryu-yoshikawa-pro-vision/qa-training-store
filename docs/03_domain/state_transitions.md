@@ -26,31 +26,31 @@ stateDiagram-v2
   withdrawn --> [*]
 ```
 
-Phase 1では`active ↔ suspended`だけを管理操作として扱います。`withdrawn`は固定Seedの読取専用状態で、退会遷移はPhase 2です。
+Phase 1では、`active ↔ suspended` のみを取り扱い可能な管理操作とします。`withdrawn` は固定シードデータによる読み取り専用状態であり、退会処理に伴う状態遷移はPhase 2で対応します。
 
 ### Checkout Session
 
 ```mermaid
 stateDiagram-v2
   [*] --> active
-  active --> converted: Order作成
-  active --> abandoned: Rank/Account変更または新Session置換
+  active --> converted: 注文（Order）作成
+  active --> abandoned: ランク・アカウント変更または新規セッションへの置換
   active --> expired: 24時間超過
   converted --> [*]
   abandoned --> [*]
   expired --> [*]
 ```
 
-Cart変更時はCheckout Sessionを同じTransactionで更新しません。Cart Item変更で親Cart Versionだけを更新し、Checkout Route Guard・確認画面取得・注文確定時にSessionの`cartVersion`との不一致を検出してCartへ戻します。その後にCheckoutを再開始した際、旧active Sessionをabandonedへ変更して新しいCart VersionのSessionを作成します。
+カートの変更時には、同一トランザクション内でチェックアウトセッションを更新しません。カートアイテムの変更時は親カートのバージョンのみを更新し、チェックアウトルートガード、注文確認画面の取得時、および注文確定時にセッションの `cartVersion` との不一致を検出してカート画面へ戻します。その後、チェックアウトを再開した際に、従来の `active` セッションを `abandoned` へ変更し、新しいカートバージョンのセッションを作成します。
 
 ### Order
 
 ```mermaid
 stateDiagram-v2
   [*] --> pending_payment
-  pending_payment --> payment_failed: 明確なPayment失敗
-  pending_payment --> paid: Payment成功確定
-  payment_failed --> pending_payment: 再Payment開始
+  pending_payment --> payment_failed: 明確な決済失敗
+  pending_payment --> paid: 決済成功の確定
+  payment_failed --> pending_payment: 再決済の開始
   paid --> preparing: 準備開始
   preparing --> shipped: 発送
   shipped --> delivered: 配送完了
@@ -94,7 +94,7 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
   [*] --> active
-  active --> consumed: Order作成
+  active --> consumed: 注文（Order）作成
   active --> abandoned
   consumed --> [*]
   abandoned --> [*]
@@ -102,15 +102,15 @@ stateDiagram-v2
 
 ## 2. 操作制約
 
-- Payment processing中は再Payment・Cancel不可。
-- paid Orderを直接shippedへ変更できない。必ずpreparingを経由する。
-- OrderとShipmentの状態を別々の操作で更新しない。
-- Review deletedは終端。
-- 強制状態変更Use CaseはPhase 1へ設けない。
+- Payment が `processing` の間は、再決済やキャンセルを行えない。
+- `paid` 状態の Order を直接 `shipped` へ変更することはできず、必ず `preparing` を経由する。
+- Order と Shipment の状態を個別の操作で更新しない。
+- Review の `deleted` は終端状態とする。
+- 強制的に状態を変更するユースケースは、Phase 1 には設けない。
 
 ## 3. 将来拡張
 
-- Phase 2: cancelled、cancel_requested、return_requested、returned、refund_pending、refund_failed、refunded。
-- Phase 3: payment_unknown、reconciliation_required。
+- Phase 2: `cancelled`、`cancel_requested`、`return_requested`、`returned`、`refund_pending`、`refund_failed`、`refunded`
+- Phase 3: `payment_unknown`、`reconciliation_required`
 
-将来状態をPhase 1のDB CHECK制約やUIへ先行追加しません。
+将来拡張で予定されている状態を、Phase 1 のデータベース CHECK 制約や UI に先行して追加することはありません。
