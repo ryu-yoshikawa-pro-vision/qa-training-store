@@ -3,7 +3,7 @@
 // No package installation, remote access, Git writes, or curriculum edits.
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, relative, isAbsolute, sep } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const graphPath = resolve(root, 'docs/curriculum/ai-assisted-qa/knowledge-graph.json');
@@ -35,7 +35,9 @@ function validate(graph) {
       fail('Skill must refer to qa-workflow-skills/skills/: ' + node.id);
     if (node.type === 'test_target' && node.repo === 'ryu-yoshikawa-pro-vision/qa-training-store') {
       const actual = resolve(root, node.path);
-      if (!actual.startsWith(root + '/') || !existsSync(actual)) fail('Missing/local path escapes repository: ' + node.path);
+      const relativePath = relative(root, actual);
+      if (relativePath === '..' || relativePath.startsWith('..' + sep) || isAbsolute(relativePath) || !existsSync(actual))
+        fail('Missing/local path escapes repository: ' + node.path);
     }
   }
   const seenEdges = new Set();
