@@ -40,6 +40,7 @@ const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy
 let policyFixtureRoot: string | undefined;
 let isolatedGitHome: string | undefined;
 const isolatedGitRoots = new Set<string>();
+const fixtureInitializationDiagnostics = new Map<string, Record<string, unknown>>();
 const safePayload = JSON.stringify({
   tool_name: "Bash",
   tool_input: { command: "git status --short" },
@@ -112,7 +113,7 @@ function hookEntryForScript(config: TomlRecord, event: string, scriptName: strin
 
 function getPolicyFixtureRoot() {
   if (!policyFixtureRoot) {
-    policyFixtureRoot = makeGitFixture();
+    policyFixtureRoot = makeGitFixture(true, undefined, true);
     setFixtureBranch(policyFixtureRoot, "feature/safe");
   }
   return policyFixtureRoot;
@@ -150,6 +151,107 @@ function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv =
   return env;
 }
 
+function captureGitFixtureDiagnostics(root: string, env: NodeJS.ProcessEnv) {
+  const samePath = (left: string, right: string) => {
+    try {
+      const canonicalLeft = fs.realpathSync(left);
+      const canonicalRight = fs.realpathSync(right);
+      return process.platform === "win32"
+        ? canonicalLeft.toLowerCase() === canonicalRight.toLowerCase()
+        : canonicalLeft === canonicalRight;
+    } catch {
+      return false;
+    }
+  };
+  const runGit = (args: string[], cwd: string) => {
+    const result = spawnSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      env,
+      windowsHide: true,
+    });
+    return result.status === 0 ? result.stdout.trim() : null;
+  };
+  const fixtureGitEntry = path.join(root, ".git");
+  const gitEntryStat = fs.lstatSync(fixtureGitEntry);
+  let fixtureGitDir = fixtureGitEntry;
+  let gitFilePointerRelative: boolean | null = null;
+  let gitFilePointerTargetExists: boolean | null = null;
+  if (gitEntryStat.isFile()) {
+    const pointer = fs.readFileSync(fixtureGitEntry, "utf8").match(/^gitdir:\s*(.+)\s*$/imu)?.[1];
+    if (pointer) {
+      gitFilePointerRelative = !path.isAbsolute(pointer);
+      fixtureGitDir = path.resolve(root, pointer);
+      gitFilePointerTargetExists = fs.existsSync(fixtureGitDir);
+    }
+  }
+  const fixtureConfigPath = path.join(fixtureGitDir, "config");
+  const fixtureCoreWorktree = fs.existsSync(fixtureConfigPath)
+    ? runGit(["config", "--file", fixtureConfigPath, "--get", "core.worktree"], root)
+    : null;
+  const fixtureWorktreeConfig = fs.existsSync(fixtureConfigPath)
+    ? runGit(
+        ["config", "--file", fixtureConfigPath, "--bool", "--get", "extensions.worktreeConfig"],
+        root,
+      )
+    : null;
+  const inspect = (prefix: string[], cwd: string) => {
+    const gitArgs = (args: string[]) => [...prefix, ...args];
+    const reportedRoot = runGit(gitArgs(["rev-parse", "--show-toplevel"]), cwd);
+    const reportedGitDir = runGit(gitArgs(["rev-parse", "--absolute-git-dir"]), cwd);
+    const reportedPrefix = runGit(gitArgs(["rev-parse", "--show-prefix"]), cwd);
+    return {
+      revParseSucceeded: reportedRoot !== null,
+      rootMatchesFixture: reportedRoot !== null && samePath(reportedRoot, root),
+      gitDirMatchesFixture: reportedGitDir !== null && samePath(reportedGitDir, fixtureGitDir),
+      prefixIsEmpty: reportedPrefix === "",
+    };
+  };
+  const configured = (scope: "--global" | "--system", key: string) =>
+    runGit(["config", scope, "--get-all", key], root) !== null;
+  const discoveryEnvironmentNames = Object.keys(env)
+    .map((name) => name.toUpperCase())
+    .filter(
+      (name) =>
+        [
+          "GIT_DIR",
+          "GIT_WORK_TREE",
+          "GIT_COMMON_DIR",
+          "GIT_CEILING_DIRECTORIES",
+          "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+          "GIT_EXEC_PATH",
+        ].includes(name) || name.startsWith("GIT_CONFIG_"),
+    )
+    .sort();
+  const gitVersion = runGit(["--version"], root);
+  return {
+    gitResolved: gitVersion !== null,
+    gitVersion,
+    fixtureGitEntryKind: gitEntryStat.isDirectory()
+      ? "directory"
+      : gitEntryStat.isFile()
+        ? "file"
+        : "other",
+    gitFilePointerRelative,
+    gitFilePointerTargetExists,
+    fixtureGitDirExists: fs.existsSync(fixtureGitDir),
+    fixtureConfigExists: fs.existsSync(fixtureConfigPath),
+    fixtureCoreWorktreeConfigured: fixtureCoreWorktree !== null,
+    fixtureCoreWorktreeMatchesRoot:
+      fixtureCoreWorktree !== null &&
+      samePath(path.resolve(fixtureGitDir, fixtureCoreWorktree), root),
+    fixtureWorktreeConfigEnabled: fixtureWorktreeConfig === "true",
+    cwdOnly: inspect([], root),
+    gitC: inspect(["-C", root], repoRoot),
+    explicitFixtureGitDir: inspect(["--git-dir", fixtureGitDir, "--work-tree", root], repoRoot),
+    globalInitTemplateDirConfigured: configured("--global", "init.templatedir"),
+    systemInitTemplateDirConfigured: configured("--system", "init.templatedir"),
+    globalCoreWorktreeConfigured: configured("--global", "core.worktree"),
+    systemCoreWorktreeConfigured: configured("--system", "core.worktree"),
+    discoveryEnvironmentNames,
+  };
+}
+
 function diagnoseIsolatedGitEnvironment(root: string) {
   const marker = randomUUID();
   const inheritedGitOverrideNames = Object.keys(process.env)
@@ -163,6 +265,14 @@ function diagnoseIsolatedGitEnvironment(root: string) {
     ...process.env,
     CODEX_HOOK_ENV_DIAGNOSTIC_MARKER: marker,
   });
+  const fixtureAtInit = fixtureInitializationDiagnostics.get(root) ?? null;
+  const isolatedControlRoot = makeGitFixture(
+    false,
+    (fixtureRoot) => createIsolatedGitEnvironment(fixtureRoot),
+    true,
+  );
+  const isolatedControlAtInit = fixtureInitializationDiagnostics.get(isolatedControlRoot) ?? null;
+  removeFixture(isolatedControlRoot);
   const script = `
     import { execFileSync } from "node:child_process";
     import { existsSync, realpathSync } from "node:fs";
@@ -286,6 +396,9 @@ function diagnoseIsolatedGitEnvironment(root: string) {
     return {
       ...(JSON.parse(result.stdout ?? "") as Record<string, unknown>),
       inheritedGitOverrideNames,
+      fixtureAtInit,
+      isolatedControlAtInit,
+      isolatedEnvironmentRecognition: captureGitFixtureDiagnostics(root, env),
     };
   } catch {
     return {
@@ -382,14 +495,22 @@ function runNodeHookWithExplicitContexts(
   };
 }
 
-function makeGitFixture(copyHook = true) {
+function makeGitFixture(
+  copyHook = true,
+  initEnvFactory: (root: string) => NodeJS.ProcessEnv = () => process.env,
+  captureInitialization = false,
+) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex hook 空白-"));
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
   fs.copyFileSync(launcherPath, path.join(root, ".codex", "hooks", path.basename(launcherPath)));
   if (copyHook) {
     fs.copyFileSync(hookPath, path.join(root, ".codex", "hooks", path.basename(hookPath)));
   }
-  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe" });
+  const initEnv = initEnvFactory(root);
+  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe", env: initEnv });
+  if (captureInitialization) {
+    fixtureInitializationDiagnostics.set(root, captureGitFixtureDiagnostics(root, initEnv));
+  }
   return root;
 }
 

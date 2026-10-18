@@ -17,7 +17,15 @@
 - [x] 13. Code Review Skillで差分を自己レビューし、Run artifactをsanitization/schema/範囲検査してcommit前状態を確定する。
 - [x] 14. 確認済みの変更だけをcommitする。
 - [x] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
-- [x] 16. 最新headのWindows CI失敗を修正し、契約全体とverifyを再実行する。
+- [ ] 16. 最新headのWindows CI失敗を修正し、契約全体とverifyを再実行する。
+
+## 追加調査 (2026-10-18)
+
+- [x] 17. `git init`直後のfixture管理情報、cwdのみ／`git -C`／明示Git-dir、関連設定・環境名を秘密情報なしで診断する。
+- [x] 18. 対象を絞った診断と`pnpm run test:hooks`をローカルWindowsで実行する。
+- [ ] 19. 診断commitに対するWindows Actionsの結果からroot不一致の条件を特定する。
+- [ ] 20. 原因がfixtureにあると確認できた場合だけfixtureを修正し、12件と危険Git操作拒否を再検証する。
+- [ ] 21. `pnpm run test:contracts`、`pnpm run verify`、PR本文、最終commit/push、最新head CIを完了する。
 
 ## Discovered
 

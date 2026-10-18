@@ -85,3 +85,12 @@
 - Local evidence remains: repair commit `7332fe6590d28d7f067837e31628ab03e3566d94` passed `pnpm run test:hooks` (215), `pnpm run test:contracts` (48 files / 818 passed / 3 skipped), and `pnpm run verify` (exit 0). These results do not override the failing Windows Actions result.
 - Remaining: understand Windows Actions Git config/root resolution, then make a separately bounded repair and rerun the required CI. Current PR body must describe this failure. Direct interactive tool / Full Access / Approve for me remain unverified; `codex debug --strict-config` is unsupported. Unreferenced `session_start_context.mjs` and old PowerShell sanitizer library remain because deletion is prohibited.
 - Progress: 94% (16/17). Implementation and local validations are complete; the CI safety contract remains unresolved.
+
+## 2026-10-18 18:20 (JST)
+
+- Summary: PR #201の追加調査依頼に沿い、Windows Git fixtureのroot不一致を診断するboundedなtest-only計測を追加した。
+- Cause assessment: ローカルGit 2.55.0.windows.5では、fixtureを`git init`した直後に`.git`はdirectoryで、cwdのみ、`git -C`、fixture Git-dir明示のroot/Git-dirがすべて一致した。継承環境でinitしたfixtureと隔離HOMEでinitした対照fixtureにも差はなかった。global/systemの`init.templatedir`および`core.worktree`は未設定。ActionsはGit 2.56.0.windows.2で同じfixture rootの不一致を示すため、CI固有の条件は未特定。
+- Change: `tests/contracts/codex-hook-contract.test.ts`の診断に、Git version、`.git`種別とpointer状態、`core.worktree`／worktree extension、template設定の有無、Git discovery環境変数名、cwd／`-C`／明示Git-dirの一致結果を追加した。初期化rootと隔離環境からの対照rootを比較する。絶対path、設定値、秘密情報は出力しない。production Hook、G10判定、期待値、skipは変更していない。
+- Validation: focused診断testは1 passed。`pnpm run test:hooks`は216 passed。対象ファイルのPrettier、ESLint、`git diff --check`も成功。
+- Remaining: 診断commitに対する最新headのWindows Actionsを確認し、原因の特定またはrepair-loop停止判断を行う。原因未確認のままfixtureやHookを変更しない。
+- Progress: 77% (17/22)。Windows Actionsでのroot不一致、fixture repair、`test:contracts`、`verify`、最終PR CIが未完了。
