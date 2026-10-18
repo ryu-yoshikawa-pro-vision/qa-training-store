@@ -11,7 +11,7 @@ const mapPath = resolve(root, 'docs/plans/2026-10-16_qa-curriculum-ai-agent-rede
 const permittedTypes = new Set(['phase', 'module', 'learning_objective', 'knowledge', 'test_target', 'skill']);
 const relations = {
   part_of: [['module', 'phase'], ['learning_objective', 'module']],
-  requires: [['module', 'module']],
+  requires: [['module', 'module'], ['knowledge', 'knowledge']],
   requires_knowledge: [['learning_objective', 'knowledge']],
   applies_to: [['learning_objective', 'test_target']],
   may_use_skill: [['module', 'skill']],
@@ -69,7 +69,7 @@ function validate(graph) {
     visiting.delete(id);
     done.add(id);
   };
-  for (const n of graph.nodes.filter((n) => n.type === 'module')) dfs(n.id);
+  for (const n of graph.nodes.filter((n) => n.type === 'module' || n.type === 'knowledge')) dfs(n.id);
   return { nodes: graph.nodes.length, edges: graph.edges.length, objectives: mapIds.length,
     knowledge: graph.nodes.filter((n) => n.type === 'knowledge').length,
     tentative: graph.nodes.filter((n) => n.status?.includes('draft')).length };
@@ -78,8 +78,19 @@ function impact(graph, query) {
   const matches = graph.nodes.filter((n) => n.id === query || n.path === query || (n.repo && n.repo + ':' + n.path === query));
   if (!matches.length) fail('No node matches: ' + query);
   const affected = new Set(), objectives = new Set(), reasons = [];
+  // Trace skills to modules, feature specs to objectives, and knowledge to its dependent objectives.
   for (const target of matches) {
-    for (const edge of graph.edges.filter((e) => e.to === target.id)) {
+    const prerequisiteDependents = new Set([target.id]);
+    if (target.type === 'knowledge') {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const e of graph.edges.filter((e) => e.relation === 'requires' && !prerequisiteDependents.has(e.from))) {
+          if (prerequisiteDependents.has(e.to)) { prerequisiteDependents.add(e.from); changed = true; }
+        }
+      }
+    }
+    for (const edge of graph.edges.filter((e) => prerequisiteDependents.has(e.to))) {
       if (!['applies_to', 'may_use_skill', 'requires_knowledge'].includes(edge.relation)) continue;
       reasons.push({ source: target.id, relation: edge.relation, from: edge.from, status: edge.status });
       if (/^M\d\d-\d\d$/.test(edge.from)) { objectives.add(edge.from); affected.add(edge.from.slice(0, 3)); }
