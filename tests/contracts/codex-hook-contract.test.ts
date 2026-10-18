@@ -273,14 +273,31 @@ function diagnoseIsolatedGitEnvironment(root: string) {
   );
   const isolatedControlAtInit = fixtureInitializationDiagnostics.get(isolatedControlRoot) ?? null;
   removeFixture(isolatedControlRoot);
+  const hookSource = fs.readFileSync(hookPath, "utf8");
+  const ownerRootDeclaration = "function getOwnerRepositoryRoot(cwd) {";
+  const diagnosticHookSource = hookSource.replace(
+    ownerRootDeclaration,
+    "export function getOwnerRepositoryRoot(cwd) {",
+  );
+  if (diagnosticHookSource === hookSource) {
+    throw new Error("Could not expose the Hook owner-root resolver for diagnostics");
+  }
+  const diagnosticHookPath = path.join(
+    root,
+    ".codex",
+    "hooks",
+    `.pre-tool-use-policy-diagnostic-${marker}.mjs`,
+  );
+  fs.writeFileSync(diagnosticHookPath, diagnosticHookSource, "utf8");
   const script = `
     import { execFileSync } from "node:child_process";
-    import { existsSync, realpathSync } from "node:fs";
+    import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
     import os from "node:os";
     import path from "node:path";
     import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
 
-    const [root, command, marker, checkoutRoot] = process.argv.slice(1);
+    const [root, command, marker, checkoutRoot, diagnosticHookModuleUrl] = process.argv.slice(1);
+    const diagnosticHook = await import(diagnosticHookModuleUrl);
     const canonicalRoot = realpathSync(root);
     const canonicalCwd = realpathSync(process.cwd());
     const samePath = (left, right) => process.platform === "win32"
@@ -306,6 +323,126 @@ function diagnoseIsolatedGitEnvironment(root: string) {
         encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
       }).trim();
     } catch {}
+    let reportedGitDir = "";
+    try {
+      reportedGitDir = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--absolute-git-dir"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    } catch {}
+    const hookOwnerRoot = diagnosticHook.getOwnerRepositoryRoot(process.cwd());
+    const fixtureGitEntry = path.join(root, ".git");
+    let fixtureGitDir = fixtureGitEntry;
+    try {
+      if (lstatSync(fixtureGitEntry).isFile()) {
+        const pointer = readFileSync(fixtureGitEntry, "utf8").match(/^gitdir:\\s*(.+)\\s*$/imu)?.[1];
+        if (pointer) fixtureGitDir = path.resolve(root, pointer);
+      }
+    } catch {}
+    const backslash = String.fromCharCode(92);
+    const pathFormat = (value) => {
+      if (!value) return "empty";
+      const slashPath = value.split(backslash).join("/");
+      if (slashPath.startsWith("//?/UNC/")) return "extended-unc";
+      if (slashPath.startsWith("//?/")) return "extended-drive";
+      if (/^[A-Za-z]:/u.test(slashPath) && slashPath[2] === "/") return "drive-absolute";
+      if (slashPath.startsWith("//")) return "unc";
+      if (slashPath.startsWith("/")) return "posix-absolute";
+      return "relative";
+    };
+    const separatorStyle = (value) => {
+      if (!value) return "none";
+      const hasBackslash = value.includes(backslash);
+      const hasSlash = value.includes("/");
+      if (hasBackslash && hasSlash) return "mixed";
+      if (hasBackslash) return "backslash";
+      if (hasSlash) return "slash";
+      return "none";
+    };
+    const pathKey = (value) => {
+      if (process.platform !== "win32") return path.resolve(value);
+      let normalized = value;
+      const extendedUncPrefix = backslash + backslash + "?" + backslash + "UNC" + backslash;
+      const extendedPrefix = backslash + backslash + "?" + backslash;
+      if (normalized.toUpperCase().startsWith(extendedUncPrefix.toUpperCase())) {
+        normalized = backslash + backslash + normalized.slice(extendedUncPrefix.length);
+      } else if (normalized.startsWith(extendedPrefix)) {
+        normalized = normalized.slice(extendedPrefix.length);
+      }
+      normalized = path.win32.normalize(normalized);
+      const rootLength = path.win32.parse(normalized).root.length;
+      while (
+        normalized.length > rootLength &&
+        (normalized.endsWith(backslash) || normalized.endsWith("/"))
+      ) {
+        normalized = normalized.slice(0, -1);
+      }
+      return normalized.split("/").join(backslash).toLowerCase();
+    };
+    const resolveWith = (method, candidate) => {
+      if (!candidate) return { value: null, errorCode: null };
+      try {
+        return { value: method(path.resolve(candidate)), errorCode: null };
+      } catch (error) {
+        return { value: null, errorCode: error?.code ?? "unknown" };
+      }
+    };
+    const compareRealpaths = (candidate, expected) => {
+      const regular = resolveWith(realpathSync, candidate);
+      const native = resolveWith(realpathSync.native, candidate);
+      const regularExpected = expected ? resolveWith(realpathSync, expected) : null;
+      const nativeExpected = expected ? resolveWith(realpathSync.native, expected) : null;
+      return {
+        present: Boolean(candidate),
+        inputFormat: pathFormat(candidate),
+        inputSeparatorStyle: separatorStyle(candidate),
+        regular: {
+          succeeded: Boolean(regular.value),
+          errorCode: regular.errorCode,
+          format: pathFormat(regular.value),
+          separatorStyle: separatorStyle(regular.value),
+        },
+        native: {
+          succeeded: Boolean(native.value),
+          errorCode: native.errorCode,
+          format: pathFormat(native.value),
+          separatorStyle: separatorStyle(native.value),
+        },
+        rawResultsMatch: Boolean(regular.value && native.value) && regular.value === native.value,
+        methodsMatch:
+          Boolean(regular.value && native.value) && pathKey(regular.value) === pathKey(native.value),
+        regularMatchesExpected:
+          expected !== undefined &&
+          Boolean(regular.value && regularExpected?.value) &&
+          pathKey(regular.value) === pathKey(regularExpected.value),
+        nativeMatchesExpected:
+          expected !== undefined &&
+          Boolean(native.value && nativeExpected?.value) &&
+          pathKey(native.value) === pathKey(nativeExpected.value),
+        expectedRegularSucceeded: regularExpected ? Boolean(regularExpected.value) : null,
+        expectedNativeSucceeded: nativeExpected ? Boolean(nativeExpected.value) : null,
+      };
+    };
+    const pathResolutionComparison = {
+      sameFixture: true,
+      sameProcessEnvironment: true,
+      gitCommands: {
+        showToplevelSucceeded: Boolean(reportedRoot),
+        showToplevelFormat: pathFormat(reportedRoot),
+        absoluteGitDirSucceeded: Boolean(reportedGitDir),
+        absoluteGitDirFormat: pathFormat(reportedGitDir),
+      },
+      hookOwnerRoot: {
+        present: Boolean(hookOwnerRoot),
+        format: pathFormat(hookOwnerRoot),
+      },
+      paths: {
+        fixtureRoot: compareRealpaths(root, root),
+        gitShowToplevel: compareRealpaths(reportedRoot, root),
+        gitAbsoluteGitDir: compareRealpaths(reportedGitDir, fixtureGitDir),
+        fixtureGitEntry: compareRealpaths(fixtureGitEntry),
+        hookOwnerRoot: compareRealpaths(hookOwnerRoot, root),
+      },
+    };
     let reportedRootCanonical = "";
     try { if (reportedRoot) reportedRootCanonical = realpathSync(path.resolve(reportedRoot)); } catch {}
     let reportedPrefix = "";
@@ -375,6 +512,7 @@ function diagnoseIsolatedGitEnvironment(root: string) {
         : "other",
       reportedPrefixIsEmpty: reportedPrefix === "",
       gitDirMatchesFixtureMetadata,
+      pathResolutionComparison,
       gitDiscoveryEnvironmentNames,
       safeDirectoryRootMatches,
       safeDirectoryOriginIsIsolated,
@@ -383,15 +521,30 @@ function diagnoseIsolatedGitEnvironment(root: string) {
     }));
   `;
   const command = ownerRootAnchor("git commit -m safe", root);
-  const result = spawnSync(
-    process.execPath,
-    ["--input-type=module", "-e", script, root, command, marker, repoRoot],
-    {
-      cwd: root,
-      encoding: "utf8",
-      env,
-    },
-  );
+  const result = (() => {
+    try {
+      return spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          script,
+          root,
+          command,
+          marker,
+          repoRoot,
+          pathToFileURL(diagnosticHookPath).href,
+        ],
+        {
+          cwd: root,
+          encoding: "utf8",
+          env,
+        },
+      );
+    } finally {
+      fs.rmSync(diagnosticHookPath, { force: true });
+    }
+  })();
   try {
     return {
       ...(JSON.parse(result.stdout ?? "") as Record<string, unknown>),

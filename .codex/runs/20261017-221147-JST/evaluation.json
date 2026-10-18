@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Issue #192／#193の実装とローカル検証は過去のcommitで完了。今回のWindows Actions比較ではGit 2.55／2.56、ASCII／日本語path、runner Git起動経路、pnpm exec環境のいずれでもstandalone fixture rootは一致したが、Hook contractは最新headでも12/216件がG10拒否。原因未特定のため完了条件は未達。",
+      "evidence": "Issue #192／#193の実装とローカル検証は過去のcommitで完了。Windows Actionsの最新remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946ではHook contract 216件中12件がG10拒否。失敗fixtureでrealpathSync()／realpathSync.native()を比較する診断を追加し、ローカルWindowsの5対象は両方法ですべて同じcanonical pathを返した。Actions比較は未実施で原因未特定のため完了条件は未達。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "最新head 0b1e50ef90f05a9baf9006394ad711cb055debbcのexact-head Web CI run 39124090274はWindows Hook contract 12/216件がG10失敗、Mobile run 39124090269成功、Vitest contracts job成功。pnpm execの8ケースは全件root／Git-dir一致。ローカル関連workflow contracts 54件成功。pnpm run verifyは原因未特定の停止方針により今回未実施。"
+      "evidence": "remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946のWeb CI run 39124898173はWindows Hook contract 12/216件がG10失敗、Mobile run 39124898174成功、別Vitest contracts job成功。ローカルfocused診断は1 passed、pnpm run test:hooksは216/216 passed。失敗fixtureのfixture root、Git root、Git-dir、.git、Hook owner rootはrealpathSync()／native()がすべて同じ実体を示した。新診断のActions結果、test:contracts、pnpm run verifyは未実施。"
     },
     "safety_compliance": {
       "rating": "warn",
@@ -46,15 +46,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows Actionsのexact-head runs 39123264555と39124090274でHook contractの12/216件が同じG10拒否。対して、同じWindows Actions runnerでPortableGit 2.55／2.56、runner PATH／absolute、ASCII／日本語pathを比較した8ケースはすべてrootとGit-dirがfixtureに一致。"
+      "evidence": "Windows Actionsのexact-head run 39124898173ではHook contract 12/216件が同じG10拒否。独立比較ではGit版、runner起動経路、ASCII／日本語path、pnpm exec環境によるroot不一致は再現しなかった。今回追加したpath API比較はローカルWindowsで5対象すべて一致し、同じ失敗fixtureを使ったActions実行はまだない。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "最新head 0b1e50ef90f05a9baf9006394ad711cb055debbcのWeb CI run 39124090274でWindows Hook contract 12/216件がG10失敗。Mobile CI run 39124090269とVitest contracts jobは成功。",
-      "detail": "pnpm exec環境のGit版／実行file／ASCII・日本語path比較ではroot不一致を再現しなかった。Hook test fixtureまたはsubprocessからHookへ渡るroot contextとの差が残るが、今回の範囲では原因未確定。安全契約の完了条件は未達。"
+      "evidence": "remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946のWeb CI run 39124898173でWindows Hook contract 12/216件がG10失敗。Mobile CI run 39124898174とVitest contracts jobは成功。ローカルWindowsでは追加path API診断とtest:hooks 216件が成功。",
+      "detail": "新しいrealpathSync()／native()比較はWindows Actionsで未実施のため、その環境の結果は未確認。Git版／実行file／ASCII・日本語path／pnpm exec比較は別fixtureでroot不一致を再現していない。安全契約の完了条件は未達。"
     },
     {
       "category": "artifact_contract_gap",
@@ -64,9 +64,9 @@
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。Hook contractのfixture lifecycle／subprocess root context／canonical root照合境界は未特定。推測修正はせず調査を停止。",
+      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。今回追加した通常版／native版の比較ではローカルWindowsの失敗fixture全対象が一致したが、Windows Actionsでは未実施。Hook contractのroot不一致原因は未特定。推測修正はしていない。",
       "severity": "medium",
-      "evidence": "Exact-head Web CI runs 39123264555 (f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1)と39124090274 (0b1e50ef90f05a9baf9006394ad711cb055debbc)の両方でWindows Hook contract 12/216件がG10失敗。各Mobile App CI runはsuccess。"
+      "evidence": "Exact-head Web CI runs 39123264555 (f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1)、39124090274 (0b1e50ef90f05a9baf9006394ad711cb055debbc)、39124898173 (a918f09c6cf41fdbb54fe378119c7d9dc4d0a946)でWindows Hook contract 12/216件がG10失敗。各Mobile App CI runはsuccess。"
     }
   ],
   "improvement_candidates": []

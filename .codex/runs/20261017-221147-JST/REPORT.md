@@ -192,3 +192,13 @@
 - Evaluation: `evaluation.json`をpartialのまま最新の12/216件、原因未特定、Actions結果に同期した。Python `jsonschema` moduleは未導入だったが、Repository標準`python scripts/validate-output-schema.py`とNode JSON parseはsuccess。
 - Remaining: test fixture lifecycle／Hook subprocess root context／Hook内canonical root照合のどこにstandalone comparatorとの差があるかは未確定。production G10、test expectation、skipは変更していない。`pnpm run verify`は根本原因未特定の停止方針により未実施。
 - Progress: 75% (21/28)。原因特定、fixture修正、安全契約全件成功、`verify`、latest required CI successは未達。
+
+## 2026-10-18 — `realpathSync()`／`.native()`の同一fixture比較
+
+- Entry evidence: PR #201はOPEN、head `a918f09c6cf41fdbb54fe378119c7d9dc4d0a946`。PR本文、active Run記録、最新Windows Web CI run `39124898173`を確認した。Windows job `117667832350`ではHook contractが216件中204 passed／12 failedで、既知のG10拒否を再現。比較stepと別のVitest contracts jobはsuccess。
+- Prior diagnostics: 直近Windowsログでは本契約fixtureの`.git`とconfigが存在し、fixture生成直後のGit root/Git-dirがfixtureと一致しなかった。環境override名は空、隔離`safe.directory`はfixture rootと一致。独立比較fixtureのroot問題は再現せず、G10／期待値／skipを変える根拠はない。
+- Diagnostic change: `tests/contracts/codex-hook-contract.test.ts`の既存失敗fixtureで、同一fixture・同一child process環境から`git rev-parse --show-toplevel`、`--absolute-git-dir`、実際のHook `getOwnerRepositoryRoot()`を取得し、fixture root、Git root、Git-dir、fixture `.git`、Hook rootを`realpathSync()`と`realpathSync.native()`で比較する。Hookのowner-root関数本体は一時fixture copyでそのまま呼び、診断終了前にcopyを消す。JSONは一致結果、path形式／separator、成否、例外codeのみを含み、絶対pathや環境値は出力しない。
+- Local result: focused診断は1 passed。`pnpm run test:hooks`は3 files／216 tests passed。ローカル失敗fixtureの5対象すべてで通常版／native版が成功し、canonical path一致、fixture expected root/Git-dirとの一致もtrue。対象testのESLint、Prettier、`git diff --check`もsuccess。
+- Cause assessment: ローカルWindowsではパス解決API差を再現しなかった。これだけではWindows Actions側の結果を説明できない。G10判定、production Hook、期待値、skipは未変更。
+- Pending: 同じ診断をWindows Actionsの最新headで実行し、CI fixtureの通常版／native版が異なるか、両方が同じrootを返すかを確認する。原因が確認できるまでroot修正、`test:contracts`全件、`pnpm run verify`は実施しない。
+- Progress correction: 既存TASKSのcheckbox集計は22/28（79%）で、前項の21/28表記は1件少なく集計されていた。今回の3件を加え、現状は25/33（76%）。Actions比較と結果に応じた処置は未完了。

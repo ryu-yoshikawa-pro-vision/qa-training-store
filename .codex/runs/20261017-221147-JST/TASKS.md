@@ -37,6 +37,14 @@
 - [x] 27. runnerのPATH解決Gitと、同一runner上で解決した実行ファイルを直接起動した場合をPortableGit 2.56と比較する。
 - [x] 28. `pnpm exec`のPATH環境で同じGit版・fixture path matrixを比較し、元のHook失敗条件を絞れるか確認する。
 
+## path解決API比較 (2026-10-18)
+
+- [x] 29. 最新PR head、PR本文、active Run、最新Windows Hook contractログを確認する。
+- [x] 30. 既存の失敗fixture・同一子プロセス環境で、fixture root、Git root、Git-dir、`.git`、Hook owner rootを通常版と`.native()`で比較する診断を追加する。
+- [x] 31. focused診断と`pnpm run test:hooks`をローカルWindowsで実行し、絶対pathが診断JSONへ出ないことを確認する。
+- [ ] 32. 診断を最新headのWindows Actionsで実行し、5つのpathの通常版／native版の結果を分類する。
+- [ ] 33. 結果が根本原因を示す場合のみ最小修正と安全性契約・`test:contracts`・`pnpm run verify`を実施する。示さない場合は証拠と残る仮説を記録して停止する。
+
 ## Discovered
 
 - Exact-head required CI confirmation is an additional file-changing-task completion check, not a checkbox here. Use `mcp__ci_wait__wait_for_required_ci` after pushing the final commit; do not replace it with agent-side GitHub polling.
