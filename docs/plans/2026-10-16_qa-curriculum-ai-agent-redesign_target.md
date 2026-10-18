@@ -133,7 +133,26 @@
 | M06 | **`e2e-test-inspection` → `e2e-test-implementation` → `e2e-test-execution`** | 対象画面/既存コードを確認してから実装。実装Skillにinspection結果が必要 |
 | M07 | `e2e-test-result-analysis`, `e2e-test-reporting` | 実際のRun・Trace・失敗ログと仕様 |
 
-**M02→M03の固定経路**：M02の分析から「何を検証するか」を示すテスト要求相当の成果物を作り、M03の`test-condition-design`に渡す。初回演習では**`direct` mode**を用い、実際の`condition_structure.py`が受け付ける`test_requirements[]`（`tr_id`、`priority`、`authority_refs`、`risk_refs`、`scope_refs`）とruntime metadata・上流Entityの整合を検証する。`artifact` modeは`test-requirement-design`のcurrent TR Entityを要求する**別の経路**であり、direct実行をその成功として流用しない。テスト要求設計の**概念は学ぶ**が、全員に`test-requirement-design`のruntime運用を必修とはしない。固定Skill revisionで直結1件を実行して必要なinput/TCN/CI/Caseの追跡性を検証し、モード依存のエラーをAIの推測で補完しない。詳細は[学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に置く。
+### M02→M03のSkill実行契約
+
+固定commit `7cc6cba7772de549841a39d71694cbafbc783324`のSkill本体に従い、工程単位でmodeと入力・出力を変える。**初回演習を`direct`とするのは条件設計の入口であり、Case完成まで全工程をdirectで実行する意味ではない。**
+
+| 工程・スクリプト | mode・必要な入力 | 検証する結果 |
+| --- | --- | --- |
+| M02の検証責務 | 人が読めるMarkdown等。TR相当ID、BR/AC、リスク・Scope、期待する成立条件、優先度、未決 | 仕様正本に根拠があり、未決は推測で補完されていない |
+| `condition_structure.py` | **`direct`**。`metadata`17キー、`input`15キー、`test_requirements[]`各行5キー。前工程の実在するAuthority/Risk・Scope参照と`test_conditions[]`の根拠を確認 | current TR Entityは必須ではない。ただし未解決のAuthority/Risk依存を省略して`ready`になり得るため、M02の参照集合とTCN/Model出力を独立照合 |
+| 選択した技法のruntime | その技法の`model_key`、確定TCN/Model、入力・データ要求。**適用した技法だけ**実行 | 実際の決定論的結果、currentなModel/技法結果 |
+| `materialize_coverage.py` | **`artifact`必須**。`artifact:materialize_coverage:<TCN-ID>`と対応する`scope_key`、current TCN/Model・技法結果 | CI、親TCN・Scope・fingerprint、カバレッジとテストデータ要求 |
+| `case_structure.py` | **独立したmode指定が必要**。current TR Entityがない初回例はdirect候補。current TCN/CIなどを実際に渡し、固定commitの実行で採用modeを確定 | CIが最低1件、TCN/CI/TR/期待結果Authority・必要データの対応が成立 |
+| `verify_runtime_evidence` | 正規化した入力と実際の各runtime Input/Result・Machine Entity・成果物Markdown。通常の全件生成は`partial_rerun=false`、`previous_artifact_markdown=null` | **`valid=true`**と必要なruntime単位、依存/freshnessの整合。意味上の仕様適合は別途レビュー |
+
+- **機械入力と教材本文を混ぜない**：M02の検証責務の文章はMarkdown等の正本に置く。`test_requirements[]`の行へ`description`・`br_refs`等の未知キーを足さず、`tr_id`・`priority`・`authority_refs`・`risk_refs`・`scope_refs`だけにする。requiredは[学習順序の入力契約](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)で定義する。
+- **根拠の実在性を別に確認**：BR/ACとAuthority EntityのIDを同一視しない。Authorityは`spec-analysis`、Product Riskは`test-analysis`の実際の成果物に基づき、Scopeの参照先・版も確認する。`test_requirements[]`から`test_conditions[]`へTR・Authority・Risk・Scopeの参照が欠けた場合、**directでreadyでも失敗とする**。TR Machine Entityへの依存はdirectで必須ではない。
+- **Dispositionを誤用しない**：`requirement_dispositions[]`はmodeに関係なく対象のcurrent TR Entityが必要。通常の初回direct例では空配列とし、仕様未確定・未対応はM02の未決として保持する。勝手にdispositionで閉じたことにしない。
+- **成功の判断**：`run_cli`の終了コード0は一部`invalid_input`でも返るため成功条件にしない。結果envelope、`runtime_status`・`support_status`・`result_status`・`deterministic_generated`、未解決事項、生成Entity、最終evidence gateを確認する。実行のない仮想fingerprint・Machine Entityは作らない。
+- **学習者に要求する範囲**：受講者は検証責務、根拠、技法、条件/ケース、期待結果、AI成果物の採否を判断する。17キーのmetadata、fingerprintの計算、runtime内部の契約を暗記させない。Skill・エージェントが生成したJSONと実行結果は、既存runtimeで検証する。
+
+**未実行の受入項目**：実際のCart BR/ACと確認済みAuthority/Risk/Scopeから、`condition_structure(direct)`→技法→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→最終証拠検証まで通るかは、**PR #199の新課程入力について未確認**。固定commitの既存CI成功は流用しない。特に**direct生成TCNからartifact materializeとCaseへの接続**が成立しなければ原因と最小限の代替経路を調査する。新しいruntimeやモジュールの追加を先に決めない。
 
 - 学習用Templateに必要なSkillは**使用するSkill Package全体（`SKILL.md`、`references/`、`assets/`、必要なSkill-local `scripts/`）**を同一の固定commitから同期する。ファイル単位のコピー漏れを検出する。外部の共有評価ランタイム`scripts/skills/evals/`は、今回の演習が明示的に必要としない限り配布しない。
 - Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは受入検証する。開発専用の大量のテスト依存は持ち込まない。
@@ -169,6 +188,7 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | 開始・終了基準状態 | **M00〜M10の正しい開始・終了の実データと検証条件**を作り、前後の成果物ID・revisionの矛盾、入力欠落、別解の扱い、模範解答の非公開を確認 |
 | Phase 1 | **学習用Templateからの個人リポジトリ・GitHubログインは必要**だが、Git/PR/Playwright/CI操作なしでM00〜M04を一つずつロードし、分析→設計→独立修了できる |
 | Phase 2 | **学習用リポジトリ単体**の2コアCodespacesでBuild/Serve/Seed/Reset→Node/pnpm/Playwright→専用spec実行→診断・改善→独立修了がGit/PR/CIなしで行える。8081/8082/6080・結果保存先が正しく、旧training specや正式回帰を混ぜない |
+| M02→M03の固定Skill受入 | 実在するCartのAuthority/Risk/ScopeとTR相当の検証責務1件から、condition_structure(direct)→選択技法→materialize_coverage(artifact)→case_structure→最終evidence gateを実行。参照欠落、Disposition誤用、mode不一致、未解決、終了コード0のinvalid_inputを成功にしない |
 | 実行証拠 | 新課程専用のログ・report・Artifact。未実行と成功を区別 |
 | 旧Trainer | 旧`training:web:baseline`、旧validator・修了確認の契約は維持 |
 | Phase 3専用CI | **選択受講者だけ**個人の学習用リポジトリで新workflowを作成・有効化し、旧コピーのallowlistや正式workflowを変更しない |
