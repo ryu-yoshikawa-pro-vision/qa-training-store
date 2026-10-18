@@ -1,0 +1,2674 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-10-18",
+  "purpose": "AI協働テスト自動化課程の知識・前提・仕様・Skillの変更影響を追跡する基準グラフ。製品仕様やSkill自体の正本ではない。",
+  "source_of_truth": {
+    "curriculum_plan": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+    "progression": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md",
+    "product_spec": "docs/spec/README.md",
+    "external_skills_repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills"
+  },
+  "known_limitations": [
+    "知識の分解は設計草案。学習内容・試験妥当性の独立レビュー前。",
+    "修了課題・クイズ・実技の実ファイルと合否記録は未作成のため、架空の評価済み関係を作らない。",
+    "test_targetとのapplies_to関係は演習の候補例であり正式なテスト対象の指定ではない。",
+    "Skillの実ファイルは確認したがCodespacesでのインストール・起動確認は未実施。",
+    "グラフ内に模範解答・評価用テストやSecretを置かない。"
+  ],
+  "nodes": [
+    {
+      "id": "P1",
+      "type": "phase",
+      "title": "Phase 1：AIエージェントとテスト分析・設計",
+      "optional": false
+    },
+    {
+      "id": "P2",
+      "type": "phase",
+      "title": "Phase 2：Playwright実装・実行・改善",
+      "optional": false
+    },
+    {
+      "id": "P3",
+      "type": "phase",
+      "title": "Phase 3：GitHub・CIによる継続実行（選択）",
+      "optional": true
+    },
+    {
+      "id": "M00",
+      "type": "module",
+      "title": "学習環境とAIの安全な利用",
+      "phase": "P1",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M01",
+      "type": "module",
+      "title": "QAと自動化の基礎",
+      "phase": "P1",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M02",
+      "type": "module",
+      "title": "仕様とリスク分析",
+      "phase": "P1",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M03",
+      "type": "module",
+      "title": "テスト設計",
+      "phase": "P1",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M04",
+      "type": "module",
+      "title": "設計レビューと自動化対象選定",
+      "phase": "P1",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M05",
+      "type": "module",
+      "title": "Node.js・TypeScript・Playwrightの最小基礎",
+      "phase": "P2",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M06",
+      "type": "module",
+      "title": "E2E実装と実行",
+      "phase": "P2",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M07",
+      "type": "module",
+      "title": "失敗分析と保守",
+      "phase": "P2",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M08",
+      "type": "module",
+      "title": "Git・GitHubとレビュー",
+      "phase": "P3",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M09",
+      "type": "module",
+      "title": "CIと品質ゲート",
+      "phase": "P3",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M10",
+      "type": "module",
+      "title": "Phase 3総合演習",
+      "phase": "P3",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md"
+    },
+    {
+      "id": "M00-01",
+      "type": "learning_objective",
+      "title": "**受講開始ガイド**で本人の2コアCodespaceとM00ロードを準備し、M00でVS Codeの保存、ターミナル、現在位置・相対パス、CLI結果を学ぶ",
+      "module": "M00",
+      "cognitive_target": "適用",
+      "evaluation_hint": "別ファイルの読取り・編集・保存と、コマンドの実行場所・結果の説明。**初回ロード成功だけでは合格にしない**",
+      "level2": "**指定された別ファイル**を開き小変更・保存ができ、実行場所とコマンド結果を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M00-02",
+      "type": "learning_objective",
+      "title": "チャットとの違い、エージェントのファイル参照・ツール実行、Skillの発見・補助Python依存・許可条件と、無料モデル・Secretの扱いを区別する",
+      "module": "M00",
+      "cognitive_target": "説明",
+      "evaluation_hint": "クイズ、Codespacesで実在するSkillの認識・安全な実行確認",
+      "level2": "指定Skillの実体・依存を確認し、**許可/拒否を根拠付きで判断**できる。AI自己申告を成功証拠にしない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M00-03",
+      "type": "learning_objective",
+      "title": "手本の依頼を試した後、自分でAIに目的・参照資料・権限・成果物・完了条件を指定する",
+      "module": "M00",
+      "cognitive_target": "適用",
+      "evaluation_hint": "用意された依頼→本人作成依頼の演習",
+      "level2": "**条件を変えた小課題**で自分の指示を作り、期待外の結果を指摘・修正依頼できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M00-04",
+      "type": "learning_objective",
+      "title": "Secret・個人情報をAIや公開ログに出さず、ロード時の作業ファイルの上書きを防ぎ、AI変更の前後・6080等の公開範囲・Codespace停止と無料枠を確認する",
+      "module": "M00",
+      "cognitive_target": "判断",
+      "evaluation_hint": "`workspace/M00`の再ロード・差分確認と安全なポート／費用判断。Gitコマンド必須ではない",
+      "level2": "AIの成功報告を実ファイル/ログで照合し、危険な操作を拒否し、成果物を保全できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M01-01",
+      "type": "learning_objective",
+      "title": "テストの目的と品質保証、確認対象と期待結果を説明する",
+      "module": "M01",
+      "cognitive_target": "説明",
+      "evaluation_hint": "クイズ",
+      "level2": "新しい事例で期待と観測を**混同せず**説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M01-02",
+      "type": "learning_objective",
+      "title": "手動探索・自動化・リグレッションの役割と限界を区別する",
+      "module": "M01",
+      "cognitive_target": "判断",
+      "evaluation_hint": "クイズ、選定理由",
+      "level2": "2つの候補について**目的と再現性**から採否を判断できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M01-03",
+      "type": "learning_objective",
+      "title": "分析→設計→実行→評価→改善とAI/人間の担当を説明する",
+      "module": "M01",
+      "cognitive_target": "説明",
+      "evaluation_hint": "クイズ、作業の分類",
+      "level2": "AIの仕様推測や成功報告だけで合格にできない理由を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M01-04",
+      "type": "learning_objective",
+      "title": "高価なE2Eをすべての条件へ適用しない理由を説明する",
+      "module": "M01",
+      "cognitive_target": "判断",
+      "evaluation_hint": "クイズ",
+      "level2": "すべての条件をE2Eにしない理由を**事例に沿って**説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M02-01",
+      "type": "learning_objective",
+      "title": "`docs/spec/`のBR/AC、実装、観測事実、AIの推測を区別する",
+      "module": "M02",
+      "cognitive_target": "判断",
+      "evaluation_hint": "正本判定クイズ、分析実技",
+      "level2": "矛盾例で**期待結果の正本**を示し、不一致を報告できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M02-02",
+      "type": "learning_objective",
+      "title": "Role、State、Data、Journeyを整理し前提条件を定める",
+      "module": "M02",
+      "cognitive_target": "適用",
+      "evaluation_hint": "条件の整理",
+      "level2": "対象へ影響するRole/State/Data/Journeyと操作後の状態を抜き出せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M02-03",
+      "type": "learning_objective",
+      "title": "Seed/Resetの意味と保証する初期状態を把握する",
+      "module": "M02",
+      "cognitive_target": "適用",
+      "evaluation_hint": "Seedの選定",
+      "level2": "必要なSeedを選び**保証される状態と未保証の状態**を区別できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M02-04",
+      "type": "learning_objective",
+      "title": "Impact・Likelihood・Priorityと、優先順位の根拠を説明する",
+      "module": "M02",
+      "cognitive_target": "判断",
+      "evaluation_hint": "リスク分析実技",
+      "level2": "**根拠付きで**優先度を比較し、未確認の発生率を事実としない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M02-05",
+      "type": "learning_objective",
+      "title": "AIの仕様分析案について欠落・推測・誤読を見つける",
+      "module": "M02",
+      "cognitive_target": "判断",
+      "evaluation_hint": "AI案のレビュー",
+      "level2": "誤りを正本に照合し、修正すべき点と未決事項を分けられる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M03-01",
+      "type": "learning_objective",
+      "title": "同値分割から代表条件を選び、選んだ理由を説明する",
+      "module": "M03",
+      "cognitive_target": "適用",
+      "evaluation_hint": "事例クイズ、ケース設計",
+      "level2": "新しい条件で代表値を選び、**同値とみなす根拠・限界**を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M03-02",
+      "type": "learning_objective",
+      "title": "境界値を求め、数量・在庫などの期待結果を仕様から導く",
+      "module": "M03",
+      "cognitive_target": "適用",
+      "evaluation_hint": "境界値クイズ、ケース設計",
+      "level2": "必要な値と**操作後も維持すべき数量などの期待結果**を仕様から導ける",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M03-03",
+      "type": "learning_objective",
+      "title": "デシジョンテーブルで条件と動作を対応させる",
+      "module": "M03",
+      "cognitive_target": "適用",
+      "evaluation_hint": "条件表の穴の判定",
+      "level2": "条件表の穴・矛盾を見つけ、**仕様にない動作を断定せず未決とする**",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M03-04",
+      "type": "learning_objective",
+      "title": "状態遷移と事前・事後状態をテスト条件として表現する",
+      "module": "M03",
+      "cognitive_target": "適用",
+      "evaluation_hint": "遷移の事例、ケース設計",
+      "level2": "必要な状態遷移ケースを作り、仕様にない遷移を勝手に追加しない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M03-05",
+      "type": "learning_objective",
+      "title": "Risk→Condition→Case→BR/ACを追跡し、期待結果の根拠を示す",
+      "module": "M03",
+      "cognitive_target": "適用",
+      "evaluation_hint": "テストケース実技",
+      "level2": "初見条件で**ID・前提・操作・期待結果が対応したケース**を作り説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M04-01",
+      "type": "learning_objective",
+      "title": "AIのケース案にある欠落・重複・根拠がない期待結果を判定する",
+      "module": "M04",
+      "cognitive_target": "判断",
+      "evaluation_hint": "誤った提案のレビュー",
+      "level2": "**正しい提案は採用**し、誤りはBR/ACの根拠付きで直す。指摘を捏造しない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M04-02",
+      "type": "learning_objective",
+      "title": "Unit、Integration、Component、Web E2Eの検証範囲と費用を区別する",
+      "module": "M04",
+      "cognitive_target": "判断",
+      "evaluation_hint": "テスト層の選択",
+      "level2": "検証する動作と費用に合わせてUnit/Integration/Component/Web E2Eを選べる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M04-03",
+      "type": "learning_objective",
+      "title": "Automate/Later/Do not automateを対象リスクと再実行価値から選ぶ",
+      "module": "M04",
+      "cognitive_target": "判断",
+      "evaluation_hint": "自動化対象表",
+      "level2": "候補ごとに**自動化する/しない両方の理由**を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M04-04",
+      "type": "learning_objective",
+      "title": "仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す",
+      "module": "M04",
+      "cognitive_target": "判断",
+      "evaluation_hint": "不確定な事例の判定",
+      "level2": "不明点を正解にせず**確認事項と次の行動**を残せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M05-01",
+      "type": "learning_objective",
+      "title": "学習用リポジトリの**Node.js→pnpm/`package.json`→TypeScript（変数・配列・オブジェクト・条件分岐・関数・基本型・import/export・async/await）→Playwright**を段階的に理解し、Scenario Shopを実行する",
+      "module": "M05",
+      "cognitive_target": "適用",
+      "evaluation_hint": "短いspecの意味を説明し、値・型・関数呼出し等を**一箇所修正して再実行**。devcontainerの再構築は不要",
+      "level2": "別の短いコードで変数・関数・`await`・型・実行コマンドを説明し、**一箇所を安全に変更して再実行**できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M05-02",
+      "type": "learning_objective",
+      "title": "Locator・Action・Assertionを区別し役割に合う選択を行う",
+      "module": "M05",
+      "cognitive_target": "適用",
+      "evaluation_hint": "Locator/Assertion選択",
+      "level2": "同じ画面から**変化に強いLocator**を選び、対象を取り違えない理由を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M05-03",
+      "type": "learning_objective",
+      "title": "表示確認と業務上の期待結果の違い、Assertionの限界を判断する",
+      "module": "M05",
+      "cognitive_target": "判断",
+      "evaluation_hint": "弱いAssertionのレビュー",
+      "level2": "弱いAssertionを見抜き、**Caseの期待結果を検証するために必要な追加確認**を選べる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M05-04",
+      "type": "learning_objective",
+      "title": "固定待機と自動待機、構文・**TypeScriptの型**・実行時・Assertionの失敗を区別する",
+      "module": "M05",
+      "cognitive_target": "説明・適用",
+      "evaluation_hint": "短い誤りのあるspecを読んで失敗箇所と修正方向を判断",
+      "level2": "失敗例のログを分類し、根拠のない`waitForTimeout`を解決策にしない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M05-05",
+      "type": "learning_objective",
+      "title": "Playwright Config、専用8082のtest serverと通常Web 8081・noVNC 6080の違い、testDir・結果出力先・AIの差分を確認できる",
+      "module": "M05",
+      "cognitive_target": "適用",
+      "evaluation_hint": "Codespaces内の設定・ポート・実行結果を確認。Git/PR操作不要",
+      "level2": "**指定された新課程の1 spec**を実行し、対象サーバー・設定・ログ・結果先を示せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M06-01",
+      "type": "learning_objective",
+      "title": "自分がロードしたM06の課題で、Phase 1のケースに対応するPlaywrightコードをAIと作る",
+      "module": "M06",
+      "cognitive_target": "適用",
+      "evaluation_hint": "`workspace/M06`の受講者作成spec。完成済み実技回答は配布しない",
+      "level2": "新しいCaseで**Case→操作/Assertionの対応**を確認・修正できる。AI生成だけでは不合格",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M06-02",
+      "type": "learning_objective",
+      "title": "Seed/Reset・ブラウザContextを使ってテストの独立性を確保する",
+      "module": "M06",
+      "cognitive_target": "適用",
+      "evaluation_hint": "再実行による確認",
+      "level2": "単独実行・再実行で結果を確認し、**状態の共有による誤成功や失敗**を説明・防止できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M06-03",
+      "type": "learning_objective",
+      "title": "Locator・Assertionが仕様の期待結果を確認するか検証する",
+      "module": "M06",
+      "cognitive_target": "判断",
+      "evaluation_hint": "コードレビュー",
+      "level2": "無関係でもPASSするAssertionを見抜き、**Caseの観測対象へ修正**できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M06-04",
+      "type": "learning_objective",
+      "title": "実行コマンドと結果・ログ・Receipt等の証拠を対応付ける",
+      "module": "M06",
+      "cognitive_target": "適用",
+      "evaluation_hint": "実行記録",
+      "level2": "**同じ実行を指す**コマンド・結果・証拠を示し、別RunのPASSを流用しない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M06-05",
+      "type": "learning_objective",
+      "title": "未実行、環境障害、失敗、成功を区別する",
+      "module": "M06",
+      "cognitive_target": "判断",
+      "evaluation_hint": "実行状態の分類",
+      "level2": "エラーの発生場所と実行有無に基づき分類し、AIの自己申告だけでPASSにしない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M07-01",
+      "type": "learning_objective",
+      "title": "Test/Product/Environment/Flaky等の原因候補を証拠から区別する",
+      "module": "M07",
+      "cognitive_target": "判断",
+      "evaluation_hint": "失敗分析",
+      "level2": "**確認済みの事実と可能性**を分け、区別する追加検証を提案できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M07-02",
+      "type": "learning_objective",
+      "title": "Trace・Screenshot・ログ・Runの関係と限界を説明する",
+      "module": "M07",
+      "cognitive_target": "適用",
+      "evaluation_hint": "証拠の特定",
+      "level2": "別Runの証拠から**問題の操作・Assertion**を特定し、画像だけで断定できない点も示せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M07-03",
+      "type": "learning_objective",
+      "title": "RetryやTimeout延長を原因修正と混同しない",
+      "module": "M07",
+      "cognitive_target": "判断",
+      "evaluation_hint": "対策選定クイズ",
+      "level2": "タイミング失敗に対して**原因の切分けを先に選び**、無根拠な固定待機を増やさない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M07-04",
+      "type": "learning_objective",
+      "title": "AIが提案した修正の最小性、仕様の維持、修正前後の別実行を検証する",
+      "module": "M07",
+      "cognitive_target": "判断",
+      "evaluation_hint": "診断・修復演習",
+      "level2": "**原因に必要な最小修正**を行い、修正後の実行を新たな証拠として示せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M07-05",
+      "type": "learning_objective",
+      "title": "Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ",
+      "module": "M07",
+      "cognitive_target": "判断",
+      "evaluation_hint": "保守改善演習",
+      "level2": "抽象化が必要/不要の**両方を具体的に判断**できる。可能性だけでPOMを作らない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M08-01",
+      "type": "learning_objective",
+      "title": "Working tree、stage、commit、branchの違いとGitHubへの共有手順を理解する",
+      "module": "M08",
+      "cognitive_target": "説明",
+      "evaluation_hint": "Gitクイズ",
+      "level2": "課題ファイルの変更→stage→commit→pushの**各時点の状態**を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M08-02",
+      "type": "learning_objective",
+      "title": "学習者個人のリポジトリでAIの変更範囲を`git diff`から確認し、対象外やSecretを含めずcommitする",
+      "module": "M08",
+      "cognitive_target": "適用",
+      "evaluation_hint": "学習者リポジトリの差分・commit",
+      "level2": "**必要なspec・設定だけ**をdiffで選択してcommitできる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M08-03",
+      "type": "learning_objective",
+      "title": "PRで仕様・コード・テストの対応をレビューする",
+      "module": "M08",
+      "cognitive_target": "判断",
+      "evaluation_hint": "PRレビュー記録",
+      "level2": "自分の変更をPRとして示し、**何を検証した変更か**を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M08-04",
+      "type": "learning_objective",
+      "title": "AIによるレビューの誤指摘・不要な抽象化を検証する",
+      "module": "M08",
+      "cognitive_target": "判断",
+      "evaluation_hint": "採否の理由",
+      "level2": "指摘を根拠から採否判断できる。指摘数の多さを習熟基準にしない",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M09-01",
+      "type": "learning_objective",
+      "title": "Workflow、Trigger、Job、Runner、Build、Testの役割を読める",
+      "module": "M09",
+      "cognitive_target": "説明",
+      "evaluation_hint": "CIクイズ",
+      "level2": "短いworkflowを読み**いつ・何を・どのRunnerで動かすか**説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M09-02",
+      "type": "learning_objective",
+      "title": "Run/Check/Artifactと対象commitのSHAを対応付ける",
+      "module": "M09",
+      "cognitive_target": "適用",
+      "evaluation_hint": "Training CIの証拠",
+      "level2": "**別SHAの成功Runを現在HEADの証拠にせず**一致する証拠を示せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M09-03",
+      "type": "learning_objective",
+      "title": "失敗段階と調査すべきログを判定する",
+      "module": "M09",
+      "cognitive_target": "判断",
+      "evaluation_hint": "CI失敗の分類",
+      "level2": "失敗Runで**最初に見るJob/stepと該当ログ**を特定できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M09-04",
+      "type": "learning_objective",
+      "title": "公開リポジトリの標準Runnerとprivate/larger runnerの料金条件を区別し、品質ゲートをリスク・実行速度・コストから選ぶ",
+      "module": "M09",
+      "cognitive_target": "判断",
+      "evaluation_hint": "無料条件と最小CI構成の説明",
+      "level2": "リスク・所要時間・費用から**最低限のゲートを選択**できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M09-05",
+      "type": "learning_objective",
+      "title": "Trainingの権限・Secret・正式デプロイの境界を判断する",
+      "module": "M09",
+      "cognitive_target": "判断",
+      "evaluation_hint": "安全性レビュー",
+      "level2": "危険なworkflowや過剰な権限を見抜き、**必要な範囲へ抑えられる**",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M10-01",
+      "type": "learning_objective",
+      "title": "Phase 2の成果物をGitHubへ安全に持ち込み、対象と権限・変更範囲を確認する",
+      "module": "M10",
+      "cognitive_target": "適用",
+      "evaluation_hint": "差分・commit・PR",
+      "level2": "不要なログやSecretを除外し、**公開するコードと理由**を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M10-02",
+      "type": "learning_objective",
+      "title": "受講者のテストを実行する最小のGitHub Actions workflowを構築し、ローカルとの差を説明する",
+      "module": "M10",
+      "cognitive_target": "適用",
+      "evaluation_hint": "CI設定と初回Run",
+      "level2": "**同じPhase 2のspec**をCIで動かし、再現に必要な設定を説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M10-03",
+      "type": "learning_objective",
+      "title": "対象SHA、Run/Check/Artifactを対応付け、成功・失敗・未実行を正しく報告する",
+      "module": "M10",
+      "cognitive_target": "適用・判断",
+      "evaluation_hint": "CIの実証拠",
+      "level2": "HEAD更新後に古いRunを使わず、**現在SHAに対応する証拠**を示せる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M10-04",
+      "type": "learning_objective",
+      "title": "CI環境だけの失敗とテスト自体の問題を区別し、必要な改善・再実行を判断する",
+      "module": "M10",
+      "cognitive_target": "判断",
+      "evaluation_hint": "失敗時の調査と差分",
+      "level2": "失敗例で**原因を区別する最初の調査対象**を選び必要なら別Runで確かめる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "M10-05",
+      "type": "learning_objective",
+      "title": "AIの変更・レビュー提案の採否と、CIで確認した品質・未確認事項を説明する",
+      "module": "M10",
+      "cognitive_target": "判断",
+      "evaluation_hint": "Phase 3修了レビュー",
+      "level2": "実行の保証範囲と残リスクを**過大に表現せず**説明できる",
+      "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+      "status": "defined_in_plan"
+    },
+    {
+      "id": "K-M00-01",
+      "type": "knowledge",
+      "title": "VS Codeの基本操作とファイルの保存",
+      "module": "M00",
+      "can_do": "別ファイルを開き、保存結果と変更箇所を確かめる",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M00-02",
+      "type": "knowledge",
+      "title": "現在のディレクトリ・相対パス・コマンドの結果",
+      "module": "M00",
+      "can_do": "実行場所とコマンドの成功・失敗を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M00-03",
+      "type": "knowledge",
+      "title": "Chatとエージェントの操作権限",
+      "module": "M00",
+      "can_do": "ファイル読取り・編集・実行の許可範囲を判断する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M00-04",
+      "type": "knowledge",
+      "title": "Agent Skillsと補助スクリプト",
+      "module": "M00",
+      "can_do": "Skillの入口・依存と実際の動作を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M00-05",
+      "type": "knowledge",
+      "title": "AIへの依頼と結果の検証",
+      "module": "M00",
+      "can_do": "根拠・変更対象・完了条件を指定し、AIの結果を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M00-06",
+      "type": "knowledge",
+      "title": "Secret・公開ポート・無料枠・成果物保全",
+      "module": "M00",
+      "can_do": "危険な操作を避け、作業と請求の境界を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M01-01",
+      "type": "knowledge",
+      "title": "テスト目的と期待結果・観測結果",
+      "module": "M01",
+      "can_do": "テスト対象、期待される振る舞い、観測事実を区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M01-02",
+      "type": "knowledge",
+      "title": "探索的テスト・自動化・リグレッション",
+      "module": "M01",
+      "can_do": "それぞれの利点・制約・用途を比較する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M01-03",
+      "type": "knowledge",
+      "title": "テスト工程と人間・AIの責任",
+      "module": "M01",
+      "can_do": "分析・設計・実行・評価における判断主体を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M01-04",
+      "type": "knowledge",
+      "title": "Unit・Integration・Component・E2Eの役割",
+      "module": "M01",
+      "can_do": "必要なテスト層と実行費用を比較する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M02-01",
+      "type": "knowledge",
+      "title": "BR/ACと仕様の正本",
+      "module": "M02",
+      "can_do": "正式仕様、観測、AI推測から期待結果の根拠を選ぶ",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M02-02",
+      "type": "knowledge",
+      "title": "Role・State・Data・Journey",
+      "module": "M02",
+      "can_do": "前提条件と操作後の状態を把握する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M02-03",
+      "type": "knowledge",
+      "title": "Seed/Resetとテストデータの独立性",
+      "module": "M02",
+      "can_do": "初期状態に対して保証される条件を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M02-04",
+      "type": "knowledge",
+      "title": "影響・発生可能性・優先度",
+      "module": "M02",
+      "can_do": "証拠を基に重点確認対象を選ぶ",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M02-05",
+      "type": "knowledge",
+      "title": "AI分析の誤りと未確定事項",
+      "module": "M02",
+      "can_do": "誤読・条件欠落と未決事項を分類する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-01",
+      "type": "knowledge",
+      "title": "同値分割と代表値",
+      "module": "M03",
+      "can_do": "代表値と同等と扱える条件・限界を示す",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-02",
+      "type": "knowledge",
+      "title": "境界値と拒否後の状態",
+      "module": "M03",
+      "can_do": "仕様の境界直前・直後と不変条件を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-03",
+      "type": "knowledge",
+      "title": "デシジョンテーブル",
+      "module": "M03",
+      "can_do": "条件組合せ・期待動作・不可能な組合せを整理する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-04",
+      "type": "knowledge",
+      "title": "状態遷移と禁止遷移",
+      "module": "M03",
+      "can_do": "事前状態・イベント・事後状態をモデル化する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-05",
+      "type": "knowledge",
+      "title": "仕様・リスク・テスト条件・ケースの追跡",
+      "module": "M03",
+      "can_do": "期待結果とテストケースの出典をたどれるようにする",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M04-01",
+      "type": "knowledge",
+      "title": "テストケースの欠落・誤り・重複",
+      "module": "M04",
+      "can_do": "AIが作ったCaseを仕様の根拠でレビューする",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M04-02",
+      "type": "knowledge",
+      "title": "実施対象に合うテスト層の選択",
+      "module": "M04",
+      "can_do": "確認したい振る舞いと費用から層を選ぶ",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M04-03",
+      "type": "knowledge",
+      "title": "自動化の採否と保守性",
+      "module": "M04",
+      "can_do": "Automate/Later/Do not automateの採否理由を示す",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M04-04",
+      "type": "knowledge",
+      "title": "不確実な仕様と判断保留",
+      "module": "M04",
+      "can_do": "未確定条件を正解にせず確認事項として記録する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-01",
+      "type": "knowledge",
+      "title": "Node.js・Webサーバー・ブラウザの役割",
+      "module": "M05",
+      "can_do": "テストの実行環境と対象アプリを区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-02",
+      "type": "knowledge",
+      "title": "pnpm・package.json・依存関係とスクリプト",
+      "module": "M05",
+      "can_do": "依存導入とコマンド実行の違いを説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-03",
+      "type": "knowledge",
+      "title": "TypeScriptの変数・基本型・配列・オブジェクト",
+      "module": "M05",
+      "can_do": "短いコードの値と型を追う",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-04",
+      "type": "knowledge",
+      "title": "条件分岐・関数・引数と戻り値",
+      "module": "M05",
+      "can_do": "短いテスト関連コードを修正する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-05",
+      "type": "knowledge",
+      "title": "import/exportとモジュール",
+      "module": "M05",
+      "can_do": "別ファイルの関数やライブラリを参照する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-06",
+      "type": "knowledge",
+      "title": "async/awaitと非同期の実行順",
+      "module": "M05",
+      "can_do": "待つ必要のある処理と結果の順序を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-07",
+      "type": "knowledge",
+      "title": "Playwrightのtest・page・LocatorとAction",
+      "module": "M05",
+      "can_do": "画面操作対象を識別し、動作を構成する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-08",
+      "type": "knowledge",
+      "title": "Assertionの保証範囲",
+      "module": "M05",
+      "can_do": "可視性と業務結果が同じではないことを判断する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-09",
+      "type": "knowledge",
+      "title": "自動待機・Web-first assertionと失敗の分類",
+      "module": "M05",
+      "can_do": "構文・型・実行時・Assertionエラーを区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M05-10",
+      "type": "knowledge",
+      "title": "Playwright Config・port・report・Trace",
+      "module": "M05",
+      "can_do": "実際に動いたspecと結果の保存先を照合する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-01",
+      "type": "knowledge",
+      "title": "CaseとPlaywright specの対応",
+      "module": "M06",
+      "can_do": "前提・操作・期待結果をコードと結び付ける",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-02",
+      "type": "knowledge",
+      "title": "テストデータ・Seed/Reset・ブラウザコンテキスト",
+      "module": "M06",
+      "can_do": "実行順に依存しない前提を準備する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-03",
+      "type": "knowledge",
+      "title": "業務結果を検証するAssertion",
+      "module": "M06",
+      "can_do": "仕様と観測点が一致するか見直す",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-04",
+      "type": "knowledge",
+      "title": "実行ログ・Report・Traceの対応",
+      "module": "M06",
+      "can_do": "テスト実行と結果証拠を結び付ける",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-05",
+      "type": "knowledge",
+      "title": "PASS・FAIL・未実行・BLOCKED",
+      "module": "M06",
+      "can_do": "実行した事実と障害の区別を行う",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M07-01",
+      "type": "knowledge",
+      "title": "失敗の原因分類と事実・仮説",
+      "module": "M07",
+      "can_do": "Test/Product/Environment/Flakyを混同しない",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M07-02",
+      "type": "knowledge",
+      "title": "Trace・スクリーンショット・ログ",
+      "module": "M07",
+      "can_do": "失敗箇所と原因候補の証拠を探す",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M07-03",
+      "type": "knowledge",
+      "title": "Retry・Timeoutと原因修正",
+      "module": "M07",
+      "can_do": "固定待機を根拠なく増やさない",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M07-04",
+      "type": "knowledge",
+      "title": "AIパッチのレビューと修正前後の別Run",
+      "module": "M07",
+      "can_do": "最小修正と新しい実行証拠を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M07-05",
+      "type": "knowledge",
+      "title": "Helper・POM・Fixtureの適用判断",
+      "module": "M07",
+      "can_do": "重複・保守費用に応じて抽象化を選ぶ",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M08-01",
+      "type": "knowledge",
+      "title": "Gitのworking tree・stage・commit・branch",
+      "module": "M08",
+      "can_do": "ファイル状態と履歴を区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M08-02",
+      "type": "knowledge",
+      "title": "git status・diff・gitignoreと公開情報",
+      "module": "M08",
+      "can_do": "Secretやログを除いて差分を選ぶ",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M08-03",
+      "type": "knowledge",
+      "title": "PRとレビュー可能な変更説明",
+      "module": "M08",
+      "can_do": "変更の目的・仕様とテスト結果を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M08-04",
+      "type": "knowledge",
+      "title": "AIレビューの指摘の採否",
+      "module": "M08",
+      "can_do": "根拠のある指摘と過剰設計を区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M09-01",
+      "type": "knowledge",
+      "title": "GitHub Actionsのevent・job・step・runner",
+      "module": "M09",
+      "can_do": "workflowの実行条件・処理順を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M09-02",
+      "type": "knowledge",
+      "title": "SHA・Run・Check・Artifactの対応",
+      "module": "M09",
+      "can_do": "古いSHAの成功結果を流用しない",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M09-03",
+      "type": "knowledge",
+      "title": "CI失敗ログと処理段階",
+      "module": "M09",
+      "can_do": "依存導入・起動・実行のどこで失敗したか調べる",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M09-04",
+      "type": "knowledge",
+      "title": "標準Runnerの料金と品質ゲート",
+      "module": "M09",
+      "can_do": "無料条件と必要な検査のバランスを判断する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M09-05",
+      "type": "knowledge",
+      "title": "最小権限とCIのセキュリティ境界",
+      "module": "M09",
+      "can_do": "Secretや正式workflowを保護する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-01",
+      "type": "knowledge",
+      "title": "実技資産の選択とGit公開範囲",
+      "module": "M10",
+      "can_do": "Phase 2のspecだけを安全にcommitする",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-02",
+      "type": "knowledge",
+      "title": "CIの再現環境とテスト実行",
+      "module": "M10",
+      "can_do": "手元とRunnerの差を確認する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-03",
+      "type": "knowledge",
+      "title": "現行PR HEADと検証証拠",
+      "module": "M10",
+      "can_do": "最新SHAのRun/Artifactを示す",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-04",
+      "type": "knowledge",
+      "title": "CI障害の再現と原因切分け",
+      "module": "M10",
+      "can_do": "環境・テスト・アプリの失敗を区別する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-05",
+      "type": "knowledge",
+      "title": "AIによる修正・判断と残リスク報告",
+      "module": "M10",
+      "can_do": "保証されたことと未確認事項を説明する",
+      "status": "draft_requires_content_review"
+    },
+    {
+      "id": "F-CART",
+      "type": "test_target",
+      "title": "カートの数量・状態と拒否時の不変条件",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/spec/features/cart.md",
+      "source_kind": "product_spec",
+      "status": "verified_path",
+      "source_blob_sha": "e4a9a480dc059ed327d6a86141cf5a752d3555b2",
+      "source_revision_kind": "git_blob"
+    },
+    {
+      "id": "F-CHECKOUT",
+      "type": "test_target",
+      "title": "チェックアウト・決済の状態と整合性",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/spec/features/checkout-and-payment.md",
+      "source_kind": "product_spec",
+      "status": "verified_path",
+      "source_blob_sha": "282b7ad958df324075c103581ef68aa5f3e00b79",
+      "source_revision_kind": "git_blob"
+    },
+    {
+      "id": "F-STOREFRONT",
+      "type": "test_target",
+      "title": "商品閲覧と検索条件",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/spec/features/storefront.md",
+      "source_kind": "product_spec",
+      "status": "verified_path",
+      "source_blob_sha": "f28ac7ea9267767ef04a5dcf18312afea9691f10",
+      "source_revision_kind": "git_blob"
+    },
+    {
+      "id": "F-ORDERS",
+      "type": "test_target",
+      "title": "注文の状態遷移",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/spec/features/orders.md",
+      "source_kind": "product_spec",
+      "status": "verified_path",
+      "source_blob_sha": "37d067ee8ae345137a0701382e02531a3817fd29",
+      "source_revision_kind": "git_blob"
+    },
+    {
+      "id": "S-QA-WORKFLOW",
+      "type": "skill",
+      "title": "qa-workflow",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/qa-workflow/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-SPEC-ANALYSIS",
+      "type": "skill",
+      "title": "spec-analysis",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/spec-analysis/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-TEST-ANALYSIS",
+      "type": "skill",
+      "title": "test-analysis",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/test-analysis/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-TEST-CONDITIONS",
+      "type": "skill",
+      "title": "test-condition-design",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/test-condition-design/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-TEST-CASES",
+      "type": "skill",
+      "title": "test-case-design",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/test-case-design/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-COVERAGE",
+      "type": "skill",
+      "title": "coverage-analysis",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/coverage-analysis/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-REVIEW",
+      "type": "skill",
+      "title": "adversarial-review",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/adversarial-review/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-E2E-IMPLEMENTATION",
+      "type": "skill",
+      "title": "e2e-test-implementation",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/e2e-test-implementation/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-E2E-EXECUTION",
+      "type": "skill",
+      "title": "e2e-test-execution",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/e2e-test-execution/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-E2E-RESULT-ANALYSIS",
+      "type": "skill",
+      "title": "e2e-test-result-analysis",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/e2e-test-result-analysis/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
+      "id": "S-E2E-REPORTING",
+      "type": "skill",
+      "title": "e2e-test-reporting",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/e2e-test-reporting/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    }
+  ],
+  "edges": [
+    {
+      "from": "M00",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M04",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05",
+      "to": "P2",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06",
+      "to": "P2",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07",
+      "to": "P2",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M08",
+      "to": "P3",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09",
+      "to": "P3",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10",
+      "to": "P3",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01",
+      "to": "M00",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M02",
+      "to": "M01",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M03",
+      "to": "M02",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M04",
+      "to": "M03",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M05",
+      "to": "M04",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M06",
+      "to": "M05",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M07",
+      "to": "M06",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M08",
+      "to": "M07",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M09",
+      "to": "M08",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M10",
+      "to": "M09",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M00-01",
+      "to": "M00",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M00-02",
+      "to": "M00",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M00-03",
+      "to": "M00",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M00-04",
+      "to": "M00",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01-01",
+      "to": "M01",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01-02",
+      "to": "M01",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01-03",
+      "to": "M01",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01-04",
+      "to": "M01",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-01",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-02",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-03",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-04",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-05",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03-01",
+      "to": "M03",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03-02",
+      "to": "M03",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03-03",
+      "to": "M03",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03-04",
+      "to": "M03",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M03-05",
+      "to": "M03",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M04-01",
+      "to": "M04",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M04-02",
+      "to": "M04",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M04-03",
+      "to": "M04",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M04-04",
+      "to": "M04",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05-01",
+      "to": "M05",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05-02",
+      "to": "M05",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05-03",
+      "to": "M05",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05-04",
+      "to": "M05",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M05-05",
+      "to": "M05",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06-01",
+      "to": "M06",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06-02",
+      "to": "M06",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06-03",
+      "to": "M06",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06-04",
+      "to": "M06",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M06-05",
+      "to": "M06",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07-01",
+      "to": "M07",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07-02",
+      "to": "M07",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07-03",
+      "to": "M07",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07-04",
+      "to": "M07",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M07-05",
+      "to": "M07",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M08-01",
+      "to": "M08",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M08-02",
+      "to": "M08",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M08-03",
+      "to": "M08",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M08-04",
+      "to": "M08",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09-01",
+      "to": "M09",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09-02",
+      "to": "M09",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09-03",
+      "to": "M09",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09-04",
+      "to": "M09",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M09-05",
+      "to": "M09",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10-01",
+      "to": "M10",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10-02",
+      "to": "M10",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10-03",
+      "to": "M10",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10-04",
+      "to": "M10",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10-05",
+      "to": "M10",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M00-01",
+      "to": "K-M00-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-04",
+      "to": "K-M00-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-01",
+      "to": "K-M00-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-02",
+      "to": "K-M00-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-04",
+      "to": "K-M00-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-02",
+      "to": "K-M00-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-03",
+      "to": "K-M00-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-04",
+      "to": "K-M00-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-02",
+      "to": "K-M00-06",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M00-04",
+      "to": "K-M00-06",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M01-01",
+      "to": "K-M01-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M01-02",
+      "to": "K-M01-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M01-03",
+      "to": "K-M01-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M01-04",
+      "to": "K-M01-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-01",
+      "to": "K-M02-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-05",
+      "to": "K-M02-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-02",
+      "to": "K-M02-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-03",
+      "to": "K-M02-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-04",
+      "to": "K-M02-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-05",
+      "to": "K-M02-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M03-01",
+      "to": "K-M03-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M03-02",
+      "to": "K-M03-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M03-03",
+      "to": "K-M03-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M03-04",
+      "to": "K-M03-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M03-05",
+      "to": "K-M03-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M04-01",
+      "to": "K-M04-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M04-02",
+      "to": "K-M04-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M04-03",
+      "to": "K-M04-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M04-04",
+      "to": "K-M04-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-05",
+      "to": "K-M05-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-06",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-04",
+      "to": "K-M05-06",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-01",
+      "to": "K-M05-07",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-02",
+      "to": "K-M05-07",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-03",
+      "to": "K-M05-08",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-04",
+      "to": "K-M05-09",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M05-05",
+      "to": "K-M05-10",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-01",
+      "to": "K-M06-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-03",
+      "to": "K-M06-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-02",
+      "to": "K-M06-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-03",
+      "to": "K-M06-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-04",
+      "to": "K-M06-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M06-05",
+      "to": "K-M06-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M07-01",
+      "to": "K-M07-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M07-02",
+      "to": "K-M07-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M07-03",
+      "to": "K-M07-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M07-04",
+      "to": "K-M07-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M07-05",
+      "to": "K-M07-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M08-01",
+      "to": "K-M08-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M08-02",
+      "to": "K-M08-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M08-03",
+      "to": "K-M08-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M08-04",
+      "to": "K-M08-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M09-01",
+      "to": "K-M09-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M09-02",
+      "to": "K-M09-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M09-03",
+      "to": "K-M09-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M09-04",
+      "to": "K-M09-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M09-05",
+      "to": "K-M09-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M10-01",
+      "to": "K-M10-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M10-02",
+      "to": "K-M10-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M10-03",
+      "to": "K-M10-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M10-04",
+      "to": "K-M10-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M10-05",
+      "to": "K-M10-05",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-01",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-02",
+      "to": "F-CHECKOUT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-03",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-04",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M03-01",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M03-02",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M03-03",
+      "to": "F-STOREFRONT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M03-04",
+      "to": "F-CHECKOUT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M03-05",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M04-01",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M04-03",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M05-02",
+      "to": "F-STOREFRONT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M05-03",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M06-01",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M06-02",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M06-03",
+      "to": "F-CHECKOUT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M07-01",
+      "to": "F-ORDERS",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M00",
+      "to": "S-QA-WORKFLOW",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M02",
+      "to": "S-SPEC-ANALYSIS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M02",
+      "to": "S-TEST-ANALYSIS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M03",
+      "to": "S-TEST-CONDITIONS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M03",
+      "to": "S-TEST-CASES",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M03",
+      "to": "S-COVERAGE",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M04",
+      "to": "S-REVIEW",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M06",
+      "to": "S-E2E-IMPLEMENTATION",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M06",
+      "to": "S-E2E-EXECUTION",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M07",
+      "to": "S-E2E-RESULT-ANALYSIS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M07",
+      "to": "S-E2E-REPORTING",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "K-M00-02",
+      "to": "K-M00-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M00-03",
+      "to": "K-M00-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M00-04",
+      "to": "K-M00-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M00-05",
+      "to": "K-M00-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M00-06",
+      "to": "K-M00-05",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M01-02",
+      "to": "K-M01-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M01-03",
+      "to": "K-M01-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M01-04",
+      "to": "K-M01-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M02-02",
+      "to": "K-M02-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M02-03",
+      "to": "K-M02-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M02-04",
+      "to": "K-M02-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M02-05",
+      "to": "K-M02-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M03-05",
+      "to": "K-M03-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M03-05",
+      "to": "K-M03-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M03-05",
+      "to": "K-M03-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M03-05",
+      "to": "K-M03-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M04-03",
+      "to": "K-M04-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M04-04",
+      "to": "K-M04-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-02",
+      "to": "K-M05-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-03",
+      "to": "K-M05-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-04",
+      "to": "K-M05-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-05",
+      "to": "K-M05-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-06",
+      "to": "K-M05-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-07",
+      "to": "K-M05-05",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-07",
+      "to": "K-M05-06",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-08",
+      "to": "K-M05-07",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-09",
+      "to": "K-M05-08",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-10",
+      "to": "K-M05-07",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M05-10",
+      "to": "K-M05-09",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M06-02",
+      "to": "K-M06-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M06-03",
+      "to": "K-M06-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M06-04",
+      "to": "K-M06-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M06-05",
+      "to": "K-M06-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M07-02",
+      "to": "K-M07-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M07-03",
+      "to": "K-M07-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M07-04",
+      "to": "K-M07-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M07-05",
+      "to": "K-M07-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M08-02",
+      "to": "K-M08-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M08-03",
+      "to": "K-M08-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M08-04",
+      "to": "K-M08-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M09-02",
+      "to": "K-M09-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M09-03",
+      "to": "K-M09-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M09-04",
+      "to": "K-M09-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M09-05",
+      "to": "K-M09-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M10-02",
+      "to": "K-M10-01",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M10-03",
+      "to": "K-M10-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M10-04",
+      "to": "K-M10-02",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M10-05",
+      "to": "K-M10-03",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    },
+    {
+      "from": "K-M10-05",
+      "to": "K-M10-04",
+      "relation": "requires",
+      "status": "draft",
+      "reason": "同じモジュール内で先に理解する事項（初期案）"
+    }
+  ],
+  "source_revisions": {
+    "product_spec_baseline_ref": "c095feba436d4f2691bf014160ff7bd35ac6c8aa",
+    "external_skills_ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "note": "製品側のbaselineは基準グラフ作成前のPlan HEAD。実装内容のcurrent SHAではない。外部Skillはこの時点のmain SHAを参照し、改訂時は差分を照合する。"
+  }
+}
