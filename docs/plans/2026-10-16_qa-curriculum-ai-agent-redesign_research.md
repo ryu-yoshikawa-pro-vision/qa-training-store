@@ -65,6 +65,17 @@
 
 旧課程の17という数字、既存の分割、旧Completion Receiptの構造を継承する必要はない。新課程は独立した3フェーズを持ち、Phase 3を受講しなくてもPhase 1/2の修了を妨げない。一方、Scenario Shop、正式仕様、Seed/ResetやPlaywright helperを複製する理由もない。**教材と評価の正本を分け、製品の正本は共有する**。
 
+## 確認できた実装と解消した設計事項
+
+- **別リポジトリの製品実行経路**：既存`package.json`は`pnpm@10.34.5`を使用。`build:web`はフォント・画像manifest・`expo export --platform web`・文書生成を実行する。`playwright.training.config.ts`は8082のloopback、`PLAYWRIGHT_TEST_ROOT`、`webServer`、旧結果先を使用する。`scripts/serve-web-dist.ts`はloopbackのみ許可し、`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__`のリセット後にmetadataを照合する。**この依存経路に基づいてmanifestと新課程Configを定義**し、実機で依存閉包を確認する。
+- **Skillの実行順**：外部`qa-workflow-skills`の確定commit（`7cc6cba7772de549841a39d71694cbafbc783324`）には**22 Skill**が存在するが、すべてを配布・習得する必要はない。`e2e-test-implementation`は対象確認結果を要求するため、M06は**`e2e-test-inspection`→`e2e-test-implementation`→`e2e-test-execution`**を使用する。詳細は[実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)に定義する。
+- **前成果物の欠落**：先行フェーズの非公開模範を学習者へ提供せず、**各モジュールに同梱する別条件の公開可能な正しい開始入力**で進める。本人の先行成果物と公開サンプルは**同じ入力契約・異なるID**で扱う。復旧機能や無断上書きは設けない。
+- **評価**：各モジュールの`workspace/Mxx/submission.md`と必要な`evidence/`を提出とし、自己確認と担当者による正式な修了判定を分離する。模範との文字列一致だけでなく、別解と根拠を許容する。
+- **Template更新**：GitHub Templateは個人リポジトリの作成時点のファイルを複製するが、元Templateの後続変更は既存学習者リポジトリへ自動反映しない。学習中は配布元SHAを維持し、新版は明示的な更新・差分確認後に適用する。
+- **CI**：Phase 3の専用workflowはTemplateの標準有効workflowには置かず、教材テンプレートから受講者が明示的に有効化する。旧Trainerと正式回帰workflowの発火を避ける。
+- **実装でのみ確定できること**：manifestに列挙する最終ファイル一覧とその依存閉包、2コアの実行時間、各受講者のCodespaces無料残量は、現物で検証・計測する。確認済みOpenCode Zen無料モデルの利用可否は再検証しない。
+- **運営側の指定を要するもの**：実際に使用する学習用Templateのリポジトリ名・作成権限、非公開評価資料の物理的保存場所・管理担当者、正式修了の評価担当者の割当。**これらの固有名は公開Planへ記載せず**、運用開始までに担当者が設定する。設計上の入出力・保護・判定条件は既に確定している。
+
 ## 既存課程との比較で採用するもの・しないもの
 
 - **採用する**：仕様・テスト技法・Playwright・証拠・PR・CIの実務的な知識、Seedを使った再現性のある実習、正式仕様のBR/ACを期待結果の根拠とする姿勢、失敗/未実施/環境障害の区別。
