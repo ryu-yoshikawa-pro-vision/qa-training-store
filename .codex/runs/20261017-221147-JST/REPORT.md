@@ -181,3 +181,14 @@
 - 停止判断: 比較で原因を絞れず、fixture修正・G10緩和・期待値変更・skipは行わない。ログ秘匿の最小修正を確認後、指定範囲での調査を停止する。
 - Local validation: workflow関連contracts 3 files／54 tests passed。対象workflow／script／Run記録のPrettier、Node構文、`pnpm run lint:text`、`pnpm run lint:markdown`（468 files / 0 issues）、Run Artifact strict collect、REPORT/TASKS sanitizer、invalid C0 scan、`git diff --check`がsuccess。`pnpm run verify`は原因未特定による停止方針で今回未実施。
 - Progress: 75% (21/28)。原因特定、fixture修正、完全な安全契約成功、`verify`、latest required CI successは未達。
+
+## 2026-10-18 — ログmask修正後のexact-head結果
+
+- CI: commit `0b1e50ef90f05a9baf9006394ad711cb055debbc`のwaiter expected／observed headは一致。Web CI run `39124090274`はfailure、Mobile App CI run `39124090269`はsuccess。Windows比較stepと`Vitest (contracts)`はsuccess、Windows Hook contractはfailure。
+- 比較結果: `pnpm exec`で実行した8行（Git 2.55／2.56、runner PATH／absolute、ASCII／日本語path）はすべてinit成功、repository rootとGit-dirのcanonical一致を確認。runner PATH／absoluteとPortableGit 2.56のversion・exe/core executable SHA-256一致も確認した。
+- Hook結果: 216件中204 passed／12 failed。失敗は従来と同じG10拒否で、原因は比較範囲から絞れなかった。
+- ログ秘匿: 最新runのGitHub Actionsログで`QTS_PORTABLE_GIT_255`／`QTS_PORTABLE_GIT_256`を含む6行を検査し、未maskのPortableGit絶対path行は0件。比較JSONにはfixture絶対pathを出していない。
+- PR: PR #201本文を最新比較、未解決のHook失敗、検証実績へ更新。PRはOPEN、head `0b1e50ef...`、base `main`を確認した。
+- Evaluation: `evaluation.json`をpartialのまま最新の12/216件、原因未特定、Actions結果に同期した。Python `jsonschema` moduleは未導入だったが、Repository標準`python scripts/validate-output-schema.py`とNode JSON parseはsuccess。
+- Remaining: test fixture lifecycle／Hook subprocess root context／Hook内canonical root照合のどこにstandalone comparatorとの差があるかは未確定。production G10、test expectation、skipは変更していない。`pnpm run verify`は根本原因未特定の停止方針により未実施。
+- Progress: 75% (21/28)。原因特定、fixture修正、安全契約全件成功、`verify`、latest required CI successは未達。

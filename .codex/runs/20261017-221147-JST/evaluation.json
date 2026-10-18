@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "両Planの実装、関連contract、test:hooks、test:contracts、pnpm run verify、commit/push、PR更新は実施。修正前head 001ab889とrepair head 7332fe65のexact-head CIで同じWindows Hook contract 11件がG10失敗し、Mobile CIは両方成功。bounded repair後も同じfailureが再現したためrepair-loop stop_no_progressで停止。",
+      "evidence": "Issue #192／#193の実装とローカル検証は過去のcommitで完了。今回のWindows Actions比較ではGit 2.55／2.56、ASCII／日本語path、runner Git起動経路、pnpm exec環境のいずれでもstandalone fixture rootは一致したが、Hook contractは最新headでも12/216件がG10拒否。原因未特定のため完了条件は未達。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -30,11 +30,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "ローカルWindowsで修正後のtest:hooks 215、test:contracts 48 files / 818 pass / 3 skip、pnpm run verify exit 0。Actions repair head 7332fe65ではWeb CIのWindows Hook contract 11件が同じG10で失敗、Mobile CI成功。"
+      "evidence": "最新head 0b1e50ef90f05a9baf9006394ad711cb055debbcのexact-head Web CI run 39124090274はWindows Hook contract 12/216件がG10失敗、Mobile run 39124090269成功、Vitest contracts job成功。pnpm execの8ケースは全件root／Git-dir一致。ローカル関連workflow contracts 54件成功。pnpm run verifyは原因未特定の停止方針により今回未実施。"
     },
     "safety_compliance": {
       "rating": "warn",
-      "evidence": "production Hook policyを変更せず、既存安全contractとnested PreToolUse拒否は確認済み。Windows Actionsの必須Hook contract 11件が2回のexact-head CIでG10となり、修正後も未解決。追加repairはbounded repair-loopの同一failure stop条件で停止。force push等なし。"
+      "evidence": "production HookのG10判定、期待値、skipは変更していない。比較でroot不一致は再現せず原因未特定。fail-closed拒否は維持されるが、正当な操作12件のHook契約失敗が残り安全性完了条件は未達。危険操作の拒否契約は変更していない。"
     },
     "reviewability": {
       "rating": "pass",
@@ -46,15 +46,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "ローカルWindows + WSL gatesは成功。Windows ActionsでWeb CI run 39081151487と39084764098の両方が同じ11 Hook contract casesで失敗し、Mobile CI runs 39081151606と39084764107は成功。隔離Git home修正はローカルでは有効だがActionsでは同じ失敗を再現。"
+      "evidence": "Windows Actionsのexact-head runs 39123264555と39124090274でHook contractの12/216件が同じG10拒否。対して、同じWindows Actions runnerでPortableGit 2.55／2.56、runner PATH／absolute、ASCII／日本語pathを比較した8ケースはすべてrootとGit-dirがfixtureに一致。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "修正後head 7332fe6590d28d7f067837e31628ab03e3566d94のWeb CI run 39084764098でWindows Hook contract 11/215件がG10失敗。Mobile App CI run 39084764107成功。",
-      "detail": "隔離Git home修正後も同じWindows Actions failureが再現したため、required CIと安全contractの完了条件は未達。Direct interactive tool / Full Access / Approve for meも個別未検証。repair-loopのsame-failure stop conditionでコード修正を停止し、原因を追加調査する必要がある。"
+      "evidence": "最新head 0b1e50ef90f05a9baf9006394ad711cb055debbcのWeb CI run 39124090274でWindows Hook contract 12/216件がG10失敗。Mobile CI run 39124090269とVitest contracts jobは成功。",
+      "detail": "pnpm exec環境のGit版／実行file／ASCII・日本語path比較ではroot不一致を再現しなかった。Hook test fixtureまたはsubprocessからHookへ渡るroot contextとの差が残るが、今回の範囲では原因未確定。安全契約の完了条件は未達。"
     },
     {
       "category": "artifact_contract_gap",
@@ -64,9 +64,9 @@
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "隔離Git homeへのsafe.directory追加はローカルで成功したが、Windows Actionsでは同じG10 failureが再発した。CIログだけではHook subprocessが隔離configを読まない問題かfixture root解決差かを確定できない。Repository repair-loopの反復停止条件を適用し、追加変更は行わずstop_no_progressとして記録。",
+      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。Hook contractのfixture lifecycle／subprocess root context／canonical root照合境界は未特定。推測修正はせず調査を停止。",
       "severity": "medium",
-      "evidence": "Web CI run 39081151487および39084764098でWindows Codex Hook contractの同じ11/215件がG10となった。Mobile CI runs 39081151606と39084764107は成功。ローカルでは隔離Git home修正後のHook 215、全contracts 818、pnpm run verifyが成功。"
+      "evidence": "Exact-head Web CI runs 39123264555 (f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1)と39124090274 (0b1e50ef90f05a9baf9006394ad711cb055debbc)の両方でWindows Hook contract 12/216件がG10失敗。各Mobile App CI runはsuccess。"
     }
   ],
   "improvement_candidates": []
