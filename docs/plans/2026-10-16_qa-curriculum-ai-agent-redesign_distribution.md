@@ -35,6 +35,12 @@ qa-training-store/                                  # 公開・教材とScenario
 
 非公開保存先は**今回のPlanでは新しいGitHubリポジトリの作成を必須としない**。アクセス制限された既存の保存先でもよい。ただし、非公開の修了解答・評価用テストを`qa-training-store`や学習用リポジトリの公開commit・branch・履歴へ投入しない。
 
+## 知識グラフとの境界
+
+教材・理解事項・Skillの変更影響は[基準グラフ](../curriculum/ai-assisted-qa/README.md)で管理する。グラフは**学習用Templateへの配布許可リストではない**。`training/course-sync/manifest.json`が実際の同期範囲を決定する。
+
+**基準グラフ全件や運用用CLIは学習者へ自動同期しない。** 必要な教材・モジュール向けの参照情報だけを管理者が許可リストへ明示する。Skillの正本は別リポジトリ`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`であり、ローダーが公開元の別Skillを自動収集しない。非公開修了解答や評価用テストをグラフ・配布物へ含めない。
+
 ## 管理者による教材同期
 
 実装予定のコマンド例：
