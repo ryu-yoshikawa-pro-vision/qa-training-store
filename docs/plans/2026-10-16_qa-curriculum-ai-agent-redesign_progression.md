@@ -66,14 +66,37 @@
 
 **次への条件**：仕様ID、対象範囲、Role/State/Data、初期状態、リスク・優先度、未決事項に加え、**何を検証すべきかを表す検証責務（テスト要求相当）**を明記した分析結果を保存する。検証責務には識別子（例：`TR-001`）、対応するBR/AC、関連リスク、期待する成立条件・不変条件と観測対象を紐付ける。成立条件が未確定なら推測せずBLOCKED/未決とする。**同値分割・境界値や実行手順はM03で設計**し、M02の完了に要求しない。
 
-### M02→M03：テスト要求相当の入力とSkillの受け渡し
+### M02→M03：検証責務からCaseまでの入力・実行契約
 
-M02が扱う「仕様とリスクの分析」と、M03が扱う「どう検証するかというテスト条件の設計」の間に、**何を検証するかという検証責務の明文化**を置く。独立したモジュールや新しい学習項目IDは追加しない。
+M02は**何を検証すべきか**を仕様とリスクから整理し、M03は**どの条件・技法・データ・ケースで検証するか**を設計する。独立モジュールや学習項目IDは増やさない。Skillの機械入力を手作業で暗記・編集できることを習熟目標にしない。
 
-- **意味上の成果物**：検証責務ID、BR/ACへの参照、関連リスク・優先度、適用範囲、前提となる状態/データ、期待する成立条件または不変条件、未決事項。例えば「拒否された数量変更では、変更前のカート数量が維持される」という検証目的を記録する。未確定事項を期待結果へ補完しない。
-- **Skillの初回実行経路**：初心者の通常演習では`test-condition-design`の`direct` modeを採用する。検証責務から`TR-001`形式のIDを割り当て、Skill-local `condition_structure.py`が要求する`test_requirements[]`（`tr_id`、`priority`、`authority_refs`、`risk_refs`、`scope_refs`）と必要なupstream Entityを**実際のruntime契約に従って用意する**。`test_requirements[]`の行に受理されない独自の説明フィールドを追加せず、検証責務の文章は教材と成果物で参照させる。runtime envelope、fingerprintやMachine EntityをAIが捏造しない。
-- **別の実行経路との区別**：`artifact` modeでは`test-requirement-design`由来のcurrent TR Entityが必要。初回演習でこの経路を暗黙的に呼ばない。高度なworkflowを初心者の必修とせず、`direct` modeが必要な上流根拠を満たさない場合も推測補完せずBLOCKEDにする。
-- **受入条件**：実装時に既存Skillの固定commitで検証責務1件をM02分析から`direct`入力へ変換し、runtimeの検証成功、TCN/CIと仕様への追跡、Case生成までを確認する。入力不足・未知の参照・違うmode・未確認の出力を成功扱いしない。技術的に実行できない場合は、後述の追加調査対象として理由と最小の代替経路を提示する。
+#### M02で確定する意味上の成果物
+
+- 検証責務ID（`TR-001`等）、具体的な検証目的、BR/AC・正式仕様への参照とそのrevision、Role/State/Data/Journey、適用Scopeと根拠、Product Riskと優先度・判断理由、成立条件・不変条件、観測方法、未決事項を**Markdown等で読める形**で保存する。
+- 例：数量上限を超える変更が拒否され、変更前のカート数量が維持されること。仕様上の数量上限、拒否時の不変条件、必要なSeed・在庫・ロールを区別する。仕様から確認できない期待結果は推測で埋めない。
+- 未確定で条件設計へ進めない責務はM02の未決・BLOCKEDとして残す。**current TR Entityがないまま`requirement_dispositions[]`で対象外・ブロック中などとして処理しない**。Dispositionを実行する場合は`test-requirement-design`由来のcurrent TR Entityが必要である。
+- M02の終了時には同値分割・境界値の適用、TCN、CI、Case、手順を要求しない。M03へ渡せる確定責務と、未決・対象外の理由を区別する。
+
+#### M03で作るruntime入力
+
+- 初回の条件設計には固定Skill commit `7cc6cba7772de549841a39d71694cbafbc783324`の`test-condition-design/scripts/condition_structure.py`を**`input_mode="direct"`**で使う。current TR Entityの生成を初心者の必修としない。`artifact` modeであれば別途current TR Entityが必須であり、directの成功をその証拠へ流用しない。
+- M02の検証責務の**文章は別成果物**に置き、`input.test_requirements[]`の各行には`tr_id`、`priority`、`authority_refs`、`risk_refs`、`scope_refs`の**5フィールドのみ**を渡す。未定義の`description`、`br_refs`、`expected_behavior`等を追加しない。配列が構造上受理されたことと、根拠の意味・current性が正しいことは区別する。
+- `input`全体にはさらに`technique_selections`、`test_conditions`、`requirement_dispositions`、`models`、`previous_tcn_ids`、`previous_model_keys`、`update_scope_tcn_ids`、`update_scope_model_keys`、`inactive_tcn_ids`、`inactive_model_keys`、`inactive_tcn_history`、`inactive_model_history`、`inactive_materialize_history`、`zero_scope_terminal`を**実スクリプトの必須契約どおり**に渡す。初回に必要ない履歴・更新範囲・Dispositionはスキーマに合う空配列などを使い、意味なく過去成果物を作らない。`test_conditions[]`と`models[]`の意味上の設計はM03で行う。
+- runtimeリクエストは`metadata`と`input`で構成する。`metadata`は固定版`runtime_contract.py`の**17キー**に厳密一致させ、`input_mode="direct"`、`runtime_unit_key="artifact:condition_structure:all"`を使用する。この`artifact:`はruntime単位の名前でありmode指定ではない。上流Entityは`skill`・`entity_type`・`entity_ref`・`content`の実在する4フィールドで渡し、fingerprintはruntimeの出力から取得する。
+- 検証責務のBR/ACと**Authority EntityのIDを同一と推測しない**。M02の根拠→現在の正式仕様→実際のAuthority/製品リスク/Scope参照を確認する。`test_requirements[]`と`test_conditions[]`のTR・Authority・Risk・Scope参照集合を照合し、ScopeはID形式だけでなく実在する対象定義と版を確認する。優先度はM02の判断理由と下流Caseの`高`・`中`・`低`の契約に揃える。
+- **`direct`の参照不備はruntimeが必ず拒否するとは限らない**。`condition_structure.py`はTCNの依存解決で`require_all=False`となる場合があり、根拠Entityが欠けたまま`ready`になる可能性がある。入力前に実在性・current性を確認し、出力のTCN/ModelとM02の期待参照集合の差分を照合する。**存在すべき参照を欠く場合は成功にしない**。current TR Entityを用意しないdirectでは、TRのMachine Entity依存そのものは要求せず、TR IDと意味上の根拠をTCN/Caseまで追跡する。
+
+#### Case完成までの正しい工程と判定
+
+1. M02で確定した検証責務・根拠を使い、`condition_structure.py`を`direct`で実行してTCN/Modelを生成する。TCN候補とモデルの内容はM03で設計し、runtime出力のID・Entity・fingerprintを捏造しない。
+2. **選んだ技法だけ**の既存runtimeを実行し、実際に生成されたmodel Entityと技法結果・テストデータ要求を確認する。
+3. `materialize_coverage.py`は**`input_mode="artifact"`が必須**。実在するcurrent TCN/Model/技法結果を渡してCIを生成し、親TCN・カバレッジ・Scope・モデル依存とfingerprintの整合を確認する。`condition_structure`のdirectから続けてすべてをdirectで実行しない。
+4. `test-case-design/scripts/case_structure.py`は**その実行のcurrent TR Entityの有無など、実際のmode契約に従って選択**する。TR Entityのない初回教材ではdirectを候補とするが、**固定commitによる通し検証で可否を確定**する。最低1件のCI、CIの親TCNとCaseのTCN集合、TCN由来のTR集合、期待結果のAuthority、前提/操作/結果・必要データを照合する。後続がartifactだからといってcurrent TR EntityのないCaseを無条件にartifactで呼ばない。
+5. `verify_runtime_evidence`で実際の正規化入力、runtime Input/Result、Machine Entity、freshnessと必要なruntime単位を照合する。通常の全件生成では`partial_rerun=false`、`previous_artifact_markdown=null`とする。結果は**`valid=true`**が必要で、さらに仕様とテスト技法の**意味的な妥当性を人が確認**する。
+
+**成功判定は終了コード0や`runtime_status=ok`、`result_status=ready`だけに依存しない。** SkillのCLIは`invalid_input`でも終了コード0を返す場合がある。正常系では結果envelope、`support_status`、`deterministic_generated`、未解決violations、必要なcurrent Entityと最終evidence gateを確認する。誤mode・Authority/Risk/Scope欠落・TR参照欠落・未確定責務・未実行/不一致は成功と報告しない。
+
+**受入検証**：正式なCartのBR/ACを用い、確認済みRisk/Scope/Authorityに対応した**検証責務1件**から、TCN→選択技法→CI→Case→最終evidence gateを**固定Skill commitで実行**する。正常系と、根拠欠落、TCNとの参照不一致、誤mode、current TRなしのDisposition、未解決・未実行の異常系を確認する。既存CI成功はこの実行結果に代用できない。固定commitの処理が契約どおり接続できない場合は原因を記録し、必要な最小限の別経路またはSkill側の不整合として報告する。
 
 ### M03 テスト設計
 
