@@ -153,6 +153,7 @@ function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv =
 function diagnoseIsolatedGitEnvironment(root: string) {
   const marker = randomUUID();
   const inheritedGitOverrideNames = Object.keys(process.env)
+    .map((name) => name.toUpperCase())
     .filter(
       (name) => name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"),
     )
@@ -164,21 +165,36 @@ function diagnoseIsolatedGitEnvironment(root: string) {
   });
   const script = `
     import { execFileSync } from "node:child_process";
-    import { realpathSync } from "node:fs";
+    import { existsSync, realpathSync } from "node:fs";
     import path from "node:path";
     import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
 
-    const [root, command, marker] = process.argv.slice(1);
+    const [root, command, marker, checkoutRoot] = process.argv.slice(1);
     const canonicalRoot = realpathSync(root);
+    const canonicalCwd = realpathSync(process.cwd());
     const samePath = (left, right) => process.platform === "win32"
       ? left.toLowerCase() === right.toLowerCase()
       : left === right;
+    const isWithin = (base, target) => {
+      const relative = path.relative(base, target);
+      return relative === "" || (relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative));
+    };
     const activeOverrideNames = Object.keys(process.env)
+      .map((name) => name.toUpperCase())
       .filter((name) => name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"))
+      .filter((name, index, names) => names.indexOf(name) === index)
       .sort();
     let reportedRoot = "";
     try {
-      reportedRoot = execFileSync("git", ["-C", root, "rev-parse", "--show-toplevel"], {
+      reportedRoot = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--show-toplevel"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    } catch {}
+    let reportedRootCanonical = "";
+    try { if (reportedRoot) reportedRootCanonical = realpathSync(path.resolve(reportedRoot)); } catch {}
+    let reportedPrefix = "";
+    try {
+      reportedPrefix = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--show-prefix"], {
         encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
       }).trim();
     } catch {}
@@ -207,13 +223,23 @@ function diagnoseIsolatedGitEnvironment(root: string) {
       currentBranch: "feature/safe",
       protectedBranches: ["main", "master"],
       remoteNames: ["origin"],
-    }, root);
+    });
     process.stdout.write(JSON.stringify({
       childMarkerObserved: process.env.CODEX_HOOK_ENV_DIAGNOSTIC_MARKER === marker,
       activeOverrideNames,
       ownerRootWouldShortCircuit: activeOverrideNames.length > 0,
+      fixtureGitMetadataExists: existsSync(path.join(root, ".git")),
+      hookCwdMatchesFixture: samePath(canonicalCwd, canonicalRoot),
       revParseSucceeded: Boolean(reportedRoot),
-      reportedRootMatchesCanonical: Boolean(reportedRoot) && samePath(realpathSync(path.resolve(reportedRoot)), canonicalRoot),
+      reportedRootMatchesCanonical: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, canonicalRoot),
+      reportedRootMatchesHookCwd: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, canonicalCwd),
+      reportedRootMatchesCheckout: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, realpathSync(checkoutRoot)),
+      reportedRootRelation: !reportedRootCanonical ? "unresolved"
+        : samePath(reportedRootCanonical, canonicalRoot) ? "same"
+        : isWithin(reportedRootCanonical, canonicalRoot) ? "ancestor"
+        : isWithin(canonicalRoot, reportedRootCanonical) ? "descendant"
+        : "other",
+      reportedPrefixIsEmpty: reportedPrefix === "",
       safeDirectoryRootMatches,
       safeDirectoryOriginIsIsolated,
       literalRootMatchesCanonical: samePath(realpathSync(path.resolve(root)), canonicalRoot),
@@ -223,7 +249,7 @@ function diagnoseIsolatedGitEnvironment(root: string) {
   const command = ownerRootAnchor("git commit -m safe", root);
   const result = spawnSync(
     process.execPath,
-    ["--input-type=module", "-e", script, root, command, marker],
+    ["--input-type=module", "-e", script, root, command, marker, repoRoot],
     {
       cwd: root,
       encoding: "utf8",
@@ -241,10 +267,12 @@ function diagnoseIsolatedGitEnvironment(root: string) {
       childMarkerObserved: false,
       inheritedGitOverrideNames,
       activeOverrideNames: Object.keys(env)
+        .map((name) => name.toUpperCase())
         .filter(
           (name) =>
             name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"),
         )
+        .filter((name, index, names) => names.indexOf(name) === index)
         .sort(),
       childReportedJson: false,
     };
@@ -370,8 +398,14 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       childMarkerObserved: true,
       activeOverrideNames: [],
       ownerRootWouldShortCircuit: false,
+      fixtureGitMetadataExists: true,
+      hookCwdMatchesFixture: true,
       revParseSucceeded: true,
       reportedRootMatchesCanonical: true,
+      reportedRootMatchesHookCwd: true,
+      reportedRootMatchesCheckout: false,
+      reportedRootRelation: "same",
+      reportedPrefixIsEmpty: true,
       safeDirectoryRootMatches: true,
       safeDirectoryOriginIsIsolated: true,
       literalRootMatchesCanonical: true,
