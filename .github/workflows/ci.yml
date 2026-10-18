@@ -206,9 +206,7 @@ jobs:
           cache: pnpm
 
       - name: Prepare pinned PortableGit builds for root comparison
-        id: portable-git-comparison
         shell: pwsh
-        continue-on-error: true
         run: |
           $ErrorActionPreference = "Stop"
           $comparisonRoot = Join-Path $env:RUNNER_TEMP "qts-git-root-comparison"
@@ -257,8 +255,6 @@ jobs:
           }
 
       - name: Compare Git version and fixture path conditions
-        if: steps.portable-git-comparison.outcome == 'success'
-        continue-on-error: true
         run: node scripts/diagnose-windows-git-root.mjs
 
       - name: Install dependencies

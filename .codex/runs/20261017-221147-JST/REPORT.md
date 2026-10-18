@@ -126,3 +126,19 @@
 - Validation: 修正後の`ci.yml`をPrettier確認し、該当jobのPowerShell blockをParserで構文検証。診断Node scriptも`node --check`成功。修正commitと次のWindows Actions結果は未確認。
 - Repair-loop: 配置ミスを特定してbounded修正した。次のrunで同一Windows runner比較を取得する。比較後もroot条件が絞れない場合は追加修正を重ねず停止する。
 - Progress: 70% (19/27)。同一runnerでのGit版／path matrix、原因特定、必要時の修正・全検証・最終CIは未達。
+
+## 2026-10-18 — 初回診断commitのworkflow contract修正
+
+- CI: 診断commit `7b4e31ad716c4948913eeaa6d991e0b3e40c4093` のWeb CI `39120045684`はfailure、Mobile App CI `39120045690`はsuccess。Windows Hook contract jobは従来の215件を実行して失敗した。診断stepは別jobに誤配置され、比較は実行されていない。
+- 追加finding: Vitest contract job `117653622876`は1 failed／47 passed、806 passed／15 skipped。`tests/contracts/native-ci-workflow.test.ts`の既存契約がRequired CI workflow内の`continue-on-error: true`を拒否し、診断stepに加えた2箇所により失敗した。これは今回のworkflow変更に起因する。
+- Repair: 診断をWindows jobへ移したうえで、診断download／実行stepの`continue-on-error`と不要な条件を削除した。配布物hash、展開、比較が失敗した場合はWindows jobも失敗し、既存contractで禁止された失敗隠蔽を行わない。テストや期待値は変更していない。
+- Cause assessment: Vitest failureの原因は診断stepの配置・失敗制御に限定して特定した。これは元のGit root不一致原因とは別で、Git版／path matrix結果は未取得。
+- Validation: 局所workflow/parser/静的品質の再確認後、既存`native-ci-workflow.test.ts`を実行する。次のActions runでWindows診断出力を回収する。
+- Progress: 70% (19/27)。matrixの実測とroot原因特定、必要時の安全修正、要求検証、最新head CIは未達。
+
+## 2026-10-18 — Required workflow contractの再検証
+
+- Repair completion: `continue-on-error`と比較stepの条件分岐を削除し、PortableGit取得／SHA照合／診断の失敗をWindows jobのfailureとして扱う。これで失敗を隠す診断経路をなくし、既存のRequired workflow契約を保つ。
+- Validation: `corepack pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` は1 file／27 tests passed。Windows job内PowerShell blockのParser確認、workflow／診断scriptのPrettier、Node `--check`もpass。
+- Remaining: 変更はまだ未commit。次のActions runで同一runner比較を取得する。root不一致の原因は未特定であり、比較が絞り込めない場合はここで調査を止める。
+- Progress: 70% (19/27)。Git matrix実測、root原因特定、原因に応じた修正、`test:hooks`／`test:contracts`／`verify`、最新head CIは未達。
