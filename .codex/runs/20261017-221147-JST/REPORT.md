@@ -202,3 +202,13 @@
 - Cause assessment: ローカルWindowsではパス解決API差を再現しなかった。これだけではWindows Actions側の結果を説明できない。G10判定、production Hook、期待値、skipは未変更。
 - Pending: 同じ診断をWindows Actionsの最新headで実行し、CI fixtureの通常版／native版が異なるか、両方が同じrootを返すかを確認する。原因が確認できるまでroot修正、`test:contracts`全件、`pnpm run verify`は実施しない。
 - Progress correction: 既存TASKSのcheckbox集計は22/28（79%）で、前項の21/28表記は1件少なく集計されていた。今回の3件を加え、現状は25/33（76%）。Actions比較と結果に応じた処置は未完了。
+
+## 2026-10-18 — Issue #192／#193標準検証とCI待機制約
+
+- Entry evidence: PR #201はOPEN、PR head／local／remote trackingは`1e70f158ec96fdd29f40066a620e41c0eaa4df99`で一致。両Plan、Issue、対象Hook・contract・診断script・CI workflow・sanitizer・sanitizer contract、active Runを照合した。
+- Required CI: waiter tool schemaで受け付けるのは`expected_head_sha`と`pr_number`の2項目で、timeout引数はない。最新headを指定して再実行したが、tool内部で`timeout`に小数`26547.873100001365`が渡り、「unsigned integer」範囲外としてtool errorになった。Web CI／Mobile App CIのexact-head結果は返らず、未確認。Repositoryの待機契約に従いGitHub状態pollingへ切り替えていない。
+- Issue #192 diagnosis: 同一fixture・同一子プロセス環境で比較するpath API診断はlocal Windowsで5対象すべて通常版／native版のcanonical一致を確認済み。最新headのActions上の5対象結果はwaiter制約により取得できず、既知の直近Actions結果（旧head `a918f09c6cf41fdbb54fe378119c7d9dc4d0a946`）では216件中12件がG10拒否だった。現Evidenceからfixture生成、環境、owner root、literal root照合、explicit anchorのどの段階が分岐するかは特定できないため、原因を推測した修正はしていない。G10、期待値、skipは変更していない。原因切り分け用診断は必要なActions結果がないため残す。
+- Issue #193 validation: `corepack pnpm --version`は`10.34.5`。`corepack pnpm run test:contracts`は48 files／819 passed／3 skipped、exit 0。含まれる`codex-artifact-sanitization.test.ts`はWindowsで成功し、Node CLI Write／Check、PowerShell互換入口、stage／committed blob、symlink等の拒否契約を通過した。`corepack pnpm run security:check`は236 runtime／393 credential-scan filesで成功。Codespaces実機検証は未実施。
+- Standard validation: 最新headの記録済み`pnpm run test:hooks`は3 files／216 passed。`corepack pnpm run verify`もexit 0。format、Markdown／text lint、skill/spec/curriculum validation、ESLint（0 errors、65 warnings）、3系統typecheck、image manifest、security check、unit 66、integration 111、repository 147、component web 102、native 64、contracts 819 passed／3 skipped、web build、spec buildが成功した。
+- Decision: Issue #193のローカル受入条件と標準検証は成功。Issue #192はlocal Hook契約がpassする一方、Windows Actionsでの失敗が残るという既知の旧head結果と、最新head CI結果の未取得が残る。要求された原因を特定できないため、G10／fixtureのsource修正と診断整理を停止し、原因未特定・CI未確認のpartial状態を維持する。
+- Remaining: latest exact-head Windows Hook contract／Web CI／Mobile App CI結果、Windowsで安全なroot固定付き操作の許可契約、原因に応じた最小修正と診断整理、Codespaces実機動作は未確認または未達。PRをレビュー・マージ可能な完了状態とは扱わない。

@@ -11,11 +11,11 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Issue #192／#193の実装とローカル検証は過去のcommitで完了。Windows Actionsの最新remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946ではHook contract 216件中12件がG10拒否。失敗fixtureでrealpathSync()／realpathSync.native()を比較する診断を追加し、ローカルWindowsの5対象は両方法ですべて同じcanonical pathを返した。Actions比較は未実施で原因未特定のため完了条件は未達。",
+      "evidence": "Issue #193のNode sanitizer contractと標準verifyは最新local sourceで成功。Issue #192のlatest-head Windows Actions結果はwait_for_required_ci内部timeoutの小数値エラーで未取得。既知の旧headではHook contract 216件中12件がG10拒否。失敗fixtureのrealpathSync()／native()診断はlocal Windowsで5対象すべてcanonical一致したが、Actions側で失敗段階を分類できず完了条件は未達。",
       "evidence_refs": [
         {
           "kind": "validation_command",
-          "summary": "pnpm run verify: 48 contract files, 818 passed, 3 skipped; exit 0."
+          "summary": "corepack pnpm run verify: 48 contract files, 819 passed, 3 skipped; exit 0."
         },
         {
           "kind": "changed_file",
@@ -30,11 +30,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946のWeb CI run 39124898173はWindows Hook contract 12/216件がG10失敗、Mobile run 39124898174成功、別Vitest contracts job成功。ローカルfocused診断は1 passed、pnpm run test:hooksは216/216 passed。失敗fixtureのfixture root、Git root、Git-dir、.git、Hook owner rootはrealpathSync()／native()がすべて同じ実体を示した。新診断のActions結果、test:contracts、pnpm run verifyは未実施。"
+      "evidence": "最新local sourceでtest:hooks 216/216、test:contracts 819 passed／3 skipped、security:check、pnpm run verifyが成功。Actionsの既知結果は旧headでWeb CI内Hook contract 12/216件がG10失敗、Mobile success。latest head用wait_for_required_ciは内部timeoutへ小数を渡したrange errorでCI resultなし。Codespaces実機と最新Windows Actions path比較は未確認。"
     },
     "safety_compliance": {
       "rating": "warn",
-      "evidence": "production HookのG10判定、期待値、skipは変更していない。比較でroot不一致は再現せず原因未特定。fail-closed拒否は維持されるが、正当な操作12件のHook契約失敗が残り安全性完了条件は未達。危険操作の拒否契約は変更していない。"
+      "evidence": "production HookのG10判定、期待値、skipは変更していない。危険操作の拒否contractは全件維持され、local Hook test 216件が成功。一方、既知の旧head Windows Actionsで正当な操作12件がG10拒否されており、latest-head結果取得とroot原因特定ができないためWindows安全性完了条件は未達。"
     },
     "reviewability": {
       "rating": "pass",
@@ -46,15 +46,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows Actionsのexact-head run 39124898173ではHook contract 12/216件が同じG10拒否。独立比較ではGit版、runner起動経路、ASCII／日本語path、pnpm exec環境によるroot不一致は再現しなかった。今回追加したpath API比較はローカルWindowsで5対象すべて一致し、同じ失敗fixtureを使ったActions実行はまだない。"
+      "evidence": "localでrealpathSync()／native()の失敗fixture比較は5対象すべて一致し、最新head local contracts／verifyはsuccess。CI waiterの内部timeout range errorによりActions側の失敗fixture診断を取得できず、原因未特定。PR本文とactive RunはCI未確認を明記する。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "remote head a918f09c6cf41fdbb54fe378119c7d9dc4d0a946のWeb CI run 39124898173でWindows Hook contract 12/216件がG10失敗。Mobile CI run 39124898174とVitest contracts jobは成功。ローカルWindowsでは追加path API診断とtest:hooks 216件が成功。",
-      "detail": "新しいrealpathSync()／native()比較はWindows Actionsで未実施のため、その環境の結果は未確認。Git版／実行file／ASCII・日本語path／pnpm exec比較は別fixtureでroot不一致を再現していない。安全契約の完了条件は未達。"
+      "evidence": "同一fixture path API比較はActionsで未実施。Git版／実行file／ASCII・日本語path／pnpm exec比較は別fixtureでroot不一致を再現せず、local同一fixtureでは通常版／native版が一致。標準CI waiterは内部timeout小数値のrange errorで結果を返さず、latest-head required CIは未確認。",
+      "detail": "Actions上の同一fixture診断結果がなく、fixture生成・environment・owner root・literal root照合・explicit anchorのどの段階が分岐するか決められない。CI状態polling禁止契約に従い独自取得へは切り替えていない。安全契約の完了条件は未達。"
     },
     {
       "category": "artifact_contract_gap",
@@ -64,7 +64,7 @@
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。今回追加した通常版／native版の比較ではローカルWindowsの失敗fixture全対象が一致したが、Windows Actionsでは未実施。Hook contractのroot不一致原因は未特定。推測修正はしていない。",
+      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。今回追加した通常版／native版の比較ではローカルWindowsの失敗fixture全対象が一致した。Actions結果はwaiter tool errorで取得できず、Hook contractのroot不一致原因は未特定。推測修正はしていない。",
       "severity": "medium",
       "evidence": "Exact-head Web CI runs 39123264555 (f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1)、39124090274 (0b1e50ef90f05a9baf9006394ad711cb055debbc)、39124898173 (a918f09c6cf41fdbb54fe378119c7d9dc4d0a946)でWindows Hook contract 12/216件がG10失敗。各Mobile App CI runはsuccess。"
     }

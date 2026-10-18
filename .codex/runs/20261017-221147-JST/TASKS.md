@@ -45,6 +45,15 @@
 - [ ] 32. 診断を最新headのWindows Actionsで実行し、5つのpathの通常版／native版の結果を分類する。
 - [ ] 33. 結果が根本原因を示す場合のみ最小修正と安全性契約・`test:contracts`・`pnpm run verify`を実施する。示さない場合は証拠と残る仮説を記録して停止する。
 
+## 最終検証とCI待機制約 (2026-10-18)
+
+- [x] 34. `wait_for_required_ci`の入力schemaを確認し、最新headを使って標準waiterを再試行する。tool内部の小数timeout範囲エラーでCI結果が返らないことを記録する。
+- [x] 35. 指定Corepack pnpm 10.34.5で`pnpm run test:contracts`を実行し、Windows sanitizer contractを含む全件を確認する。
+- [x] 36. `pnpm run security:check`と`pnpm run verify`を実行し、全結果を記録する。
+- [x] 37. Issue #193の実装済み受入条件と、未実施のCodespaces実機確認を分けて評価へ反映する。
+- [ ] 38. 最新headのWindows Hook contract／Web CI／Mobile App CI結果を取得して12件の失敗位置を分類する。
+- [ ] 39. 原因に沿った最小修正、危険Git操作拒否のWindows／Linux回帰、不要診断整理、PR本文と最終CIを完了する。
+
 ## Discovered
 
 - Exact-head required CI confirmation is an additional file-changing-task completion check, not a checkbox here. Use `mcp__ci_wait__wait_for_required_ci` after pushing the final commit; do not replace it with agent-side GitHub polling.
