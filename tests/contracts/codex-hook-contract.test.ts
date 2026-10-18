@@ -150,6 +150,107 @@ function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv =
   return env;
 }
 
+function diagnoseIsolatedGitEnvironment(root: string) {
+  const marker = randomUUID();
+  const inheritedGitOverrideNames = Object.keys(process.env)
+    .filter(
+      (name) => name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"),
+    )
+    .sort();
+  const moduleUrl = pathToFileURL(hookPath).href;
+  const env = createIsolatedGitEnvironment(root, {
+    ...process.env,
+    CODEX_HOOK_ENV_DIAGNOSTIC_MARKER: marker,
+  });
+  const script = `
+    import { execFileSync } from "node:child_process";
+    import { realpathSync } from "node:fs";
+    import path from "node:path";
+    import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
+
+    const [root, command, marker] = process.argv.slice(1);
+    const canonicalRoot = realpathSync(root);
+    const samePath = (left, right) => process.platform === "win32"
+      ? left.toLowerCase() === right.toLowerCase()
+      : left === right;
+    const activeOverrideNames = Object.keys(process.env)
+      .filter((name) => name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"))
+      .sort();
+    let reportedRoot = "";
+    try {
+      reportedRoot = execFileSync("git", ["-C", root, "rev-parse", "--show-toplevel"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    } catch {}
+    let safeDirectoryRootMatches = false;
+    let safeDirectoryOriginIsIsolated = false;
+    try {
+      const entries = execFileSync("git", ["config", "--global", "--show-origin", "--get-all", "safe.directory"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim().split(/\\r?\\n/).filter(Boolean);
+      for (const entry of entries) {
+        const separator = entry.indexOf("\\t");
+        if (separator < 0) continue;
+        const origin = path.resolve(entry.slice(0, separator).replace(/^file:/, ""));
+        const value = entry.slice(separator + 1);
+        try {
+          if (samePath(realpathSync(value), canonicalRoot)) {
+            safeDirectoryRootMatches = true;
+            const relativeOrigin = path.relative(path.resolve(process.env.HOME), origin);
+            safeDirectoryOriginIsIsolated ||= relativeOrigin === "" ||
+              (!relativeOrigin.startsWith("..") && !path.isAbsolute(relativeOrigin));
+          }
+        } catch {}
+      }
+    } catch {}
+    const decision = evaluateCommand(command, {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    }, root);
+    process.stdout.write(JSON.stringify({
+      childMarkerObserved: process.env.CODEX_HOOK_ENV_DIAGNOSTIC_MARKER === marker,
+      activeOverrideNames,
+      ownerRootWouldShortCircuit: activeOverrideNames.length > 0,
+      revParseSucceeded: Boolean(reportedRoot),
+      reportedRootMatchesCanonical: Boolean(reportedRoot) && samePath(realpathSync(path.resolve(reportedRoot)), canonicalRoot),
+      safeDirectoryRootMatches,
+      safeDirectoryOriginIsIsolated,
+      literalRootMatchesCanonical: samePath(realpathSync(path.resolve(root)), canonicalRoot),
+      anchoredCommandDecisionId: decision?.id ?? null,
+    }));
+  `;
+  const command = ownerRootAnchor("git commit -m safe", root);
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script, root, command, marker],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    },
+  );
+  try {
+    return {
+      ...(JSON.parse(result.stdout ?? "") as Record<string, unknown>),
+      inheritedGitOverrideNames,
+    };
+  } catch {
+    return {
+      childStatus: result.status ?? -1,
+      childMarkerObserved: false,
+      inheritedGitOverrideNames,
+      activeOverrideNames: Object.keys(env)
+        .filter(
+          (name) =>
+            name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"),
+        )
+        .sort(),
+      childReportedJson: false,
+    };
+  }
+}
+
 function runNodeHook(payload: string, cwd = getPolicyFixtureRoot(), timeout = 30_000): HookResult {
   const result = spawnSync(process.execPath, [hookPath], {
     cwd,
@@ -259,6 +360,25 @@ afterAll(() => {
 });
 
 describe("Codex PreToolUse/Bash Node Hook contract", () => {
+  it("diagnoses only bounded Git fixture state in the Hook subprocess", () => {
+    const diagnostics = diagnoseIsolatedGitEnvironment(getPolicyFixtureRoot());
+    if (process.env.CI === "true") {
+      process.stdout.write(`[codex-hook-git-diagnostic] ${JSON.stringify(diagnostics)}\n`);
+    }
+
+    expect(diagnostics, JSON.stringify(diagnostics)).toMatchObject({
+      childMarkerObserved: true,
+      activeOverrideNames: [],
+      ownerRootWouldShortCircuit: false,
+      revParseSucceeded: true,
+      reportedRootMatchesCanonical: true,
+      safeDirectoryRootMatches: true,
+      safeDirectoryOriginIsIsolated: true,
+      literalRootMatchesCanonical: true,
+      anchoredCommandDecisionId: null,
+    });
+  });
+
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
     const config = readCodexConfig();
     const features = asTomlRecord(config.features, "features");
