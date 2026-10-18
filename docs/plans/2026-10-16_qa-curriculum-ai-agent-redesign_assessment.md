@@ -32,12 +32,12 @@
 
 - 上位の行を満たさない場合は、下位の達成と推定しない。**形式的なID対応・問題数・PASSだけでは習熟を保証しない**。
 - 問題の改訂、正式仕様または`qa-workflow-skills`の契約変更時は、影響対象を[グラフの変更影響検索](../curriculum/ai-assisted-qa/README.md)で抽出し、該当評価の内容を再確認する。古い版の合否を新しい版へ無条件で引き継がない。
-- 受講者の本人識別情報、回答・評価結果、非公開の採点用テストは**公開グラフや公開Templateへ保存しない**。初版で学習履歴DBは新設しない。
+- 受講者の本人識別情報、回答・評価結果、非公開の採点用テストは**公開グラフや公開Templateへ保存しない**。学習履歴DBは新設しない。
 
 ## 共通の受講開始条件（修了評価とは別）
 
 - **学習用Templateから作成した個人リポジトリ**で本人の無料枠を利用する2コアCodespaceを作成できることを確認する。現在のリポジトリは2コア固定設定ではない。所有者・支払主体、残りコア時間・ストレージ、課金停止条件を確認し、**無料利用が成立しなければ開始をBLOCKEDにする**。
-- 既存devcontainerの起動・Node.js/pnpm/OpenCode CLI、受講範囲に応じてPlaywright/Chromiumの動作を確認する。OpenCodeは利用時点のFreeモデルだけを使い、個人Secretの登録・認証経路・補助モデルと自動課金設定を確認する。実機未検証のものは成功と認定しない。
+- 既存devcontainerの起動・Node.js/pnpm、受講範囲に応じたPlaywright/Chromiumと外部Skillの動作を確認する。**OpenCode Zen無料モデルは利用確認済みとして採用し、モデルの利用可否・認証可否の再検証は要求しない**。Secretを安全に管理し、有料モデルへの自動切替や無断課金を避ける。
 - `qa-workflow-skills`の必要なSkillとPython helperを認識・実行でき、AIに与える権限を制限できることを確認する。**学習者本人による`course:load M00`などの1モジュール単位ロードと再実行時の上書き防止**も確認する。個人情報・APIキーを教材や共有ログに保存しない。
 - 各フェーズ終了時の成果物のダウンロード／保全とCodespace停止方法を示す。無料枠到達・容量不足・接続不能は**環境BLOCKED**として扱い、学習成果のLevelを推測で合格・不合格にしない。
 - **環境の準備完了 ≠ 受講者の技能習得**。初期設定は受講できる状態かの確認であり、以下のPhase 1〜3の実技評価を代替しない。
@@ -123,6 +123,6 @@ Phase 2でCodespaces内で動作確認したspec、環境設定、依存関係�
 
 ## 既存課程との境界と実装検証
 
-旧`scripts/training/check-completion.ts`の`semantic_understanding: "NOT_EVALUATED"`と旧課程の対象Lesson IDはそのまま維持する。新課程の修了判定は別の公開基準を用い、少なくとも初版では**ファイル存在だけで意味的な理解をPASSとしない**。
+旧`scripts/training/check-completion.ts`の`semantic_understanding: "NOT_EVALUATED"`と旧課程の対象Lesson IDはそのまま維持する。新課程の修了判定は別の公開基準を用い、**ファイル存在だけで意味的な理解をPASSとしない**。
 
-受入検証：**受講開始ガイドからM00をロードでき、M05でNode.js/pnpm/TypeScriptを順序立てて学習できること、51学習項目すべての具体的判定根拠があること**を検証する。学習用リポジトリの新規2コアCodespaceで本人による1モジュールロード、成果物の上書き防止、Phase 1・2の初期導入、OpenCodeの無料モデルとSkill、Playwright実行、成果物保全を検証する。Phase 1の修了判定にPlaywright・Git/PR/CI関連の必須証拠がないこと、Phase 2にGit/PR/CI関連がないこと、Phase 3を選択しない場合に旧・新のテストが失敗しないこと。各フェーズで学習目標・クイズ・実技・解説・修了条件の対応漏れを確認する。
+受入検証：**受講開始ガイドからM00をロードでき、M05でNode.js/pnpm/TypeScriptを順序立てて学習できること、51学習項目すべての具体的判定根拠があること**を検証する。学習用リポジトリの新規2コアCodespaceで本人による1モジュールロード、成果物の上書き防止、Phase 1・2の初期導入、`qa-workflow-skills`とPlaywright実行、成果物保全を検証する。**OpenCode Zen無料モデルの利用可否・認証可否を再検証する工程は置かない**。Phase 1の修了判定にPlaywright・Git/PR/CI関連の必須証拠がないこと、Phase 2にGit/PR/CI関連がないこと、Phase 3を選択しない場合に旧・新のテストが失敗しないこと。各フェーズで[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に沿い、全学習目標・理解事項・教材・クイズ・実技・修了条件の対応、評価内容の妥当性、仕様・Skill変更時の追跡まで確認する。
