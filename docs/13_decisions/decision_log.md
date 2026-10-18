@@ -29,7 +29,7 @@
 | D-023 | フェーズ1で必須とするE2Eテストは12本とし、ロール横断のライフサイクルテスト（Cross-role Lifecycle）はmainブランチおよび週次パイプラインで実行する |
 | D-024 | Cloudflare Pagesの1プロジェクトをテスト自動化（Automation）用途で使用する |
 | D-025 | 高度な決済照合、キャンセル・返品・返金（Cancel/Return/Refund）、インポート・エクスポート、マイグレーションリカバリは将来のフェーズへ分離する |
-| D-026 | 実装開始後はTypeScriptの型定義・Enum・Dexieスキーマのコードを仕様の正本とし、Markdownドキュメントは設計の意図や判断理由の正本とする |
+| D-026 | 実装開始後、TypeScriptの型・Enum・Dexieスキーマの定義および構造は実装コードを正本とします。型や構造の設計上の意味・責務・判断理由は該当Markdownを正本とします。ただし、製品の期待動作および業務ルールは正式な製品仕様を正本とします。 |
 | D-027 | GitHub Tokenをフロントエンドに保持させず、管理UIからGitHubへ直接画像を書き込まない |
 | D-028 | IndexedDBでは住所のスナップショットを型付きオブジェクト（Typed Object）として保存し、SQLite Adapterのみが必要に応じてシリアライズを行う |
 | D-029 | UI向けの読み取り専用DTO（Read DTO）からは、Gateway Key、Repository Version、内部Actor IDを除外する |

@@ -19,7 +19,7 @@
 - `training/playwright/failure-exercises/`
 - `training/playwright/diagnostic-exercises/`
 - `output/training/playwright/`
-- `playwright.config.ts` / `output/playwright/`（本番構成との比較教材）
+- `playwright.config.ts` / `output/playwright/`（正式なテスト構成との比較教材）
 
 Part 1-5と同様に、現段階では `e2e/web/fixtures.ts` の内部設計まで読み解く必要はありません。トレーニング用テストハーネス（Training Test Harness）が初期シナリオのリセットや必要な実行ログの収集を提供する前提に立ち、まずは失敗の観測・分類・改善のサイクルに集中します。
 

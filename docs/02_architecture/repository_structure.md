@@ -81,7 +81,7 @@ eas.json
 app Native固有Navigation・Test Deep Link
 ```
 
-キャンセル・返品・返金モジュール（Cancel/Return/Refund Module）もPhase 2の開始時系列で追加します。
+キャンセル・返品・返金モジュール（Cancel/Return/Refund Module）もPhase 2の開始時に追加します。
 
 ## 3. Phase 3で追加を検討するもの
 

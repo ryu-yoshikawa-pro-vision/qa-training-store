@@ -277,7 +277,7 @@ await expect(page.getByRole("status")).toContainText("カートへ追加しま�
 4. カートに追加する。
 5. 完了メッセージが表示されることを確認する。
 
-この段階ではヘルパー関数やPage Object Model（POM）を導入する必要はありません。1つのspecファイル内に素直な手順で記述します。
+この導入レッスンではヘルパー関数やPage Object Model（POM）を作成せず、1つのspecファイルに手順を直接記述します。
 
 ## レッスン 6: 既存コードと比較する
 

@@ -122,7 +122,7 @@ pass | partial | fail | not_evaluated
 
 ## 改善候補
 
-`improvement_candidates`（改善候補）には、少なくとも以下の項目を含める必要があります。
+`improvement_candidates`（改善候補）には、少なくとも以下の項目を含めるべきです。
 
 - `target`
 - `evidence`

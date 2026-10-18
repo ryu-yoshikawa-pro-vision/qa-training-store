@@ -42,9 +42,3 @@ Related BR: `BR-NATIVE-002`
 - `src/test-controls/`
 - `.github/workflows/native-ci.yml`
 - `.github/workflows/native-ios-ci.yml`
-```eof
-
-### 変更点と照合結果の報告
-- **表現の改善**: 英語のまま残っていた語句（Product Behavior → プロダクトの振る舞い、Role/State/Error → ロール、状態、エラー、Rule → ビジネスルールなど）を自然な日本語・カタカナ表記に整え、直訳調の語尾や接続を技術文書として平易で明瞭な文体に改善しました。
-- **仕様・構造の維持**: Markdownの見出し階層、識別子（`BR-NATIVE-001`、`AC-NATIVE-001` など）、コードパス、参照関係の欠落や独自補足がないことを原文と照合して確認済みです。
-- **安全な修正が困難な箇所**: 意味が不明確で原文維持とした箇所はありません（安全にリライトを完了しています）。
