@@ -40,7 +40,7 @@
 ## Codespacesの共通環境・無料枠管理（Phase 1〜3）
 
 - **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コア利用での安定動作は新規実機確認が必要。
-- 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。初回起動ログ、必要コマンド、認証状況を確認してから演習する。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
+- 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。Codespacesの起動ログ、必要コマンドと教材の実行環境を確認してから演習する。OpenCode Zen無料モデルの認証可否は再検証しない。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
 - **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合はBLOCKEDにし、無断で有料環境へ変更しない。
 - OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。モデルの利用可否・認証可否を再検証する工程は設けない。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
 - GitHub Codespacesの**8081（通常Web）と6080（noVNC）はPrivate**のままにし、5901を外部公開しない。Training用Playwrightの8082は専用テストサーバーで、8081をTraining実行先として使わない。コード生成`codegen`と実際のE2E実行対象の違いを教材で示す。
