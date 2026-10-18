@@ -109,6 +109,35 @@
 - Skillが改訂されたとき、現在参照するcommitと変更後のSkill本体・補助Pythonスクリプト・入出力契約を比較して、関連モジュールの演習を再実行するか判断する。**参照関係だけでは起動成功・Skillの正しさを保証しない**。
 - 登録済みの仕様4ファイル・Skill 11件は**学習・演習の参照候補**であり、完成時は[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に従って実際に採用した教材・実技・評価との関係を確定する。関連Skillの実行経路は、モデルの利用可否とは別に課題として検証する。
 
+## 既存コードに基づく実行・配布契約
+
+調査対象：`.devcontainer/devcontainer.json`、`package.json`、`playwright.training.config.ts`、`scripts/serve-web-dist.ts`、`training/playwright/support/reset-scenario.ts`。
+
+- **ツール**：既存devcontainerはNode.js 24、`pnpm@10.34.5`、Playwright Chromiumを導入する。学習用Templateには、この実行経路に必要な設定・依存だけを同期し、通常製品の開発/正式回帰workflowは配布しない。
+- **ビルド**：`build:web`は`prepare:font-assets`→`generate:image-manifest`→`validate:image-manifest`→`expo export --platform web`→`build:docs`を実行する。教材同期の許可リストは、この経路で必要なimport・asset・生成スクリプト・lockfileまで含め、固定SHAから再現できることを確認する。ファイルの追加理由はmanifestに記録し、不要な全体複製は行わない。
+- **起動**：既存`scripts/serve-web-dist.ts`は`WEB_SERVER_DIST_ROOT`（既定は`dist`）から静的ファイルを提供し、loopback以外のbindを拒否する。学習用のテストURLは`http://127.0.0.1:8082`を使用する。8081は通常Web、6080は必要な場合だけprivate noVNC。**8082を外部公開しない**。
+- **Playwright**：既存`playwright.training.config.ts`の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`reuseExistingServer`、report/Traceの構成を参考にする。ただし、旧`training/playwright`のspecを走らせないため、**新課程専用Config**は指定した`workspace/M06`または`workspace/M07`のspecだけを実行し、結果を`output/training/ai-assisted-qa/`へ保存する。環境・CIともに対象specと出力先を確認する。
+- **Seed/Reset**：既存`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__`の準備を待ち、`reset({scenario})`の後で`getMetadata().scenario`を照合する。新課程から再利用する場合も**テストモードで同APIが公開されること**を確認し、学習者が作るspecの開始前に必要なResetを行う。既存のReset契約と重複する独自処理は作らない。
+- **調査の受入**：学習用リポジトリ単体の2コアCodespacesで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行証拠を残す。構成が成立しない場合はその経路だけを修正し、原因未解明のままPASSにしない。
+
+## qa-workflow-skillsの工程別利用
+
+基準とするのは**別リポジトリ`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`**のSkill Packageである。確認したcommitには22 Skillがあるが、22件すべての配布・習得を必須にしない。
+
+| 工程 | 使用するSkillの候補 | 課題の前提 |
+| --- | --- | --- |
+| M00 | `qa-workflow`の役割紹介・安全なSkill発見 | **複合workflowの実行を必修化しない** |
+| M02 | `spec-analysis`, `test-analysis` | 正式な仕様・BR/ACと調査対象 |
+| M03 | `test-condition-design`, `test-case-design`, `coverage-analysis` | 承認可能な前段の条件と根拠 |
+| M04 | `adversarial-review` | 本人が作成・確認したCaseと仕様 |
+| M06 | **`e2e-test-inspection` → `e2e-test-implementation` → `e2e-test-execution`** | 対象画面/既存コードを確認してから実装。実装Skillにinspection結果が必要 |
+| M07 | `e2e-test-result-analysis`, `e2e-test-reporting` | 実際のRun・Trace・失敗ログと仕様 |
+
+- 学習用Templateに必要なSkillは**使用するSkill Package全体（`SKILL.md`、`references/`、`assets/`、必要なSkill-local `scripts/`）**を同一の固定commitから同期する。ファイル単位のコピー漏れを検出する。外部の共有評価ランタイム`scripts/skills/evals/`は、今回の演習が明示的に必要としない限り配布しない。
+- Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは受入検証する。開発専用の大量のテスト依存は持ち込まない。
+- **学習目標を優先**し、Skillのruntime・保存形式・migrationの全機能を初心者に理解させることを必修にしない。Skillが現在の課題条件を扱えない場合はBLOCKEDを記録し、AIによる架空のruntime結果で代用しない。
+- 知識グラフで候補関係として登録済みのSkillは、**この工程表と実技の実行結果を確認してから採用関係を確定する**。`e2e-test-inspection`は現在の候補グラフに未登録なので、完成時にM06との関連を追加する。
+
 ## AIエージェントとqa-workflow-skills
 
 - M00でCodespaces上のOpenCode CLIを使い、**Git操作を受講者に要求せずに**必要な`qa-workflow-skills`を用意してSkillの発見・安全な利用を確認し、使用したrevisionを記録する。
