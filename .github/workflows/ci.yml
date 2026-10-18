@@ -250,6 +250,7 @@ jobs:
             if (-not [System.IO.File]::Exists($gitExecutable)) {
               throw "PortableGit executable is missing for $($release.Tag)"
             }
+            Write-Output "::add-mask::$gitExecutable"
             Add-Content -LiteralPath $env:GITHUB_ENV -Value "$($release.EnvironmentName)=$gitExecutable"
             Write-Output "Prepared pinned PortableGit $($release.Tag) after SHA-256 verification."
           }

@@ -169,3 +169,15 @@
 - 判定: raw Windows Actions shell内ではGit版、文字種、選択されたGit実行ファイル、PATH／absolute起動経路でroot不一致を再現しなかった。一方、同じrunのHook testは12件失敗を継続。比較stepは依存関係導入前だったため、残る一条件として`pnpm exec`のPATH環境内で同じ比較を1回実施する。既確認のsafe.directory、隔離HOME、Git discovery環境変数は再調査しない。
 - Next: Windows jobで比較stepを`pnpm install`後へ移し、`pnpm exec node`で実行する。ここでも全matrixが一致しHook失敗条件が絞れなければ、指定に従い原因未特定で停止し、診断用workflow／scriptを整理する。原因未確認のままproduction HookやG10条件は変更しない。
 - Progress: 71% (20/28)。pnpm実行環境の最終比較、原因判定、必要時の修正と要求検証、PR本文／最新head CIは未完了。
+
+## 2026-10-18 — `pnpm exec`下の最終Git比較
+
+- CI: commit `f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1` のwaiter結果はexpected／observed head一致。Web CI run `39123264555`はfailure、Mobile App CI run `39123264571`はsuccess。Windows job `117663055614`でPortableGit準備、依存関係導入、比較stepがsuccessし、Hook contractだけがfailure。
+- 比較条件: 比較stepを`pnpm install`後に置き、`pnpm exec node`から実行した。PortableGit 2.55.0.windows.5／2.56.0.windows.2、runner PATH起動、runner Gitのabsolute起動の4ケースを、ASCII+space／日本語+spaceの各fixtureで比較した8行すべてで、init直後、cwdのみ、`git -C`、明示Git-dir／worktreeのrootとGit-dirがfixtureに一致し、realpathも成功。
+- 実行ファイル: `where.exe`は3候補を検出。runner PATH／absolute起動とPortableGit 2.56はGit version、exe SHA-256、core executable SHA-256が一致。絶対pathを含む値は診断JSONへ出力していない。
+- Hook結果: `pnpm run test:hooks`相当のWindows job結果は216件中204 passed／12 failed。12件は既存のG10拒否であり、期待値、skip、production Hook判定は変更していない。`Vitest (contracts)` jobはsuccess。
+- 原因判定: Git version、ASCII／日本語のpath、runner実行ファイル、PATH／absolute起動、`pnpm exec`の追加PATHではroot不一致を再現できなかった。これらは原因候補から除外できるが、単独比較用fixtureと本契約test fixture／Hook subprocessの生成・呼出し境界に残る差は未特定。残る仮説はfixture lifecycle、Hook subprocessへのcwd／root情報の渡し方、canonical pathをHookが読む際の差だが、どれも今回のEvidenceで確定していない。
+- ログ秘匿: CI stepのenv一覧にPortableGit一時実行ファイルの絶対pathが現れることを検出した。GITHUB_ENVへ登録する前にGitHub Actions maskへ加える修正を追加し、次のCIで出力が秘匿されることを確認する。
+- 停止判断: 比較で原因を絞れず、fixture修正・G10緩和・期待値変更・skipは行わない。ログ秘匿の最小修正を確認後、指定範囲での調査を停止する。
+- Local validation: workflow関連contracts 3 files／54 tests passed。対象workflow／script／Run記録のPrettier、Node構文、`pnpm run lint:text`、`pnpm run lint:markdown`（468 files / 0 issues）、Run Artifact strict collect、REPORT/TASKS sanitizer、invalid C0 scan、`git diff --check`がsuccess。`pnpm run verify`は原因未特定による停止方針で今回未実施。
+- Progress: 75% (21/28)。原因特定、fixture修正、完全な安全契約成功、`verify`、latest required CI successは未達。
