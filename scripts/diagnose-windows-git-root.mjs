@@ -308,7 +308,7 @@ function compareFixture(fixtureKind, preparedVersions) {
     for (const entry of preparedVersions) {
       const gitEntry = path.join(fixtureRoot, ".git");
       if (fs.existsSync(gitEntry)) fs.rmSync(gitEntry, { force: true, recursive: true });
-      results.push(inspectFixture(entry.executable, entry.label, fixtureKind, fixtureRoot));
+      results.push(inspectFixture(entry, entry.label, fixtureKind, fixtureRoot));
     }
   } finally {
     const canonicalRoot = canonicalize(fixtureRoot);

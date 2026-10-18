@@ -151,3 +151,12 @@
 - CI内追加failure: `test:contracts`の1 testは診断追加の`Test-Path`文字列がsanitizer workflow contractの対象範囲に入ったためfailure。workflowで`[System.IO.File]::Exists`へ置換し、既存の`native-ci-workflow`／`codex-artifact-sanitization` contractをローカル再実行して2 files／36 tests pass。test自体は未変更。
 - 次の診断: runnerのPATHから`where.exe git.exe`で解決した実体のname／SHA／exec-pathを記録し、同一exeのPATH呼出しとabsolute-path呼出し、PortableGit 2.56を同じpath matrixで比較する。絶対pathは出力しない。
 - Progress: 70% (19/27)。実行経路差の切り分け、元のroot原因確定、原因別の修正・要求検証・最新head CIは未達。
+
+## 2026-10-18 — runner実行経路診断の引数修正
+
+- CI: commit `619d3a3231f802e4ec20fca5bdc655bcd311c0a0`のWeb CI run `39121720231`でPortableGit準備はsuccessしたが、比較stepが`ERR_INVALID_ARG_TYPE`で停止した。診断JSONは出ず、Windows Hook testは実行されていない。`test:contracts`はfailure一覧に含まれずsuccess。
+- Cause: runner-PATH／absolute比較を追加して`inspectFixture`を実行情報objectに対応させた後、fixture loopが旧形式の実行ファイル文字列を渡していた。今回追加した診断script内だけの引数不整合で、Git rootの原因Evidenceではない。
+- Repair: loopから実行情報object全体を渡すよう1行を修正した。Git、fixture、G10条件や期待値は変更していない。
+- Validation: 修正後のNode syntax、Prettier、既存workflow関連contractを再確認する。Actionsでのmatrixは次のheadで再取得する。
+- Progress: 70% (19/27)。runner実行経路比較、root原因確定、原因別修正・全検証・最新head CIは未達。
+- Local validation for this iteration: `node --check scripts/diagnose-windows-git-root.mjs` passed; `corepack pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/codex-artifact-sanitization.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` passed (2 files / 36 tests).
