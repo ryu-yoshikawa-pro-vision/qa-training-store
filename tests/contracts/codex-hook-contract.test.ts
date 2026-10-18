@@ -166,6 +166,7 @@ function diagnoseIsolatedGitEnvironment(root: string) {
   const script = `
     import { execFileSync } from "node:child_process";
     import { existsSync, realpathSync } from "node:fs";
+    import os from "node:os";
     import path from "node:path";
     import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
 
@@ -184,6 +185,11 @@ function diagnoseIsolatedGitEnvironment(root: string) {
       .filter((name) => name === "GIT_DIR" || name === "GIT_WORK_TREE" || name.startsWith("GIT_CONFIG_"))
       .filter((name, index, names) => names.indexOf(name) === index)
       .sort();
+    const gitDiscoveryEnvironmentNames = Object.keys(process.env)
+      .map((name) => name.toUpperCase())
+      .filter((name) => ["GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES", "GIT_DISCOVERY_ACROSS_FILESYSTEM"].includes(name) || name.startsWith("GIT_CONFIG_"))
+      .filter((name, index, names) => names.indexOf(name) === index)
+      .sort();
     let reportedRoot = "";
     try {
       reportedRoot = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--show-toplevel"], {
@@ -197,6 +203,16 @@ function diagnoseIsolatedGitEnvironment(root: string) {
       reportedPrefix = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--show-prefix"], {
         encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
       }).trim();
+    } catch {}
+    let gitDirMatchesFixtureMetadata = false;
+    try {
+      const gitDir = execFileSync("git", ["-C", process.cwd(), "rev-parse", "--absolute-git-dir"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      gitDirMatchesFixtureMetadata = samePath(
+        realpathSync(path.resolve(gitDir)),
+        realpathSync(path.join(root, ".git")),
+      );
     } catch {}
     let safeDirectoryRootMatches = false;
     let safeDirectoryOriginIsIsolated = false;
@@ -234,12 +250,22 @@ function diagnoseIsolatedGitEnvironment(root: string) {
       reportedRootMatchesCanonical: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, canonicalRoot),
       reportedRootMatchesHookCwd: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, canonicalCwd),
       reportedRootMatchesCheckout: Boolean(reportedRootCanonical) && samePath(reportedRootCanonical, realpathSync(checkoutRoot)),
+      reportedRootMatchesCwdText: reportedRoot.replaceAll("\\\\", "/").toLowerCase() === process.cwd().replaceAll("\\\\", "/").toLowerCase(),
+      reportedRootFormat: /^[A-Za-z]:[\\\\/]/.test(reportedRoot) ? "drive-absolute"
+        : /^[/\\\\]{2}/.test(reportedRoot) ? "unc"
+        : /^\\//.test(reportedRoot) ? "posix-absolute"
+        : "other",
+      reportedRootSameVolume: Boolean(reportedRootCanonical) &&
+        samePath(path.parse(reportedRootCanonical).root, path.parse(canonicalCwd).root),
+      reportedRootIsTemp: Boolean(reportedRootCanonical) && isWithin(realpathSync(os.tmpdir()), reportedRootCanonical),
       reportedRootRelation: !reportedRootCanonical ? "unresolved"
         : samePath(reportedRootCanonical, canonicalRoot) ? "same"
         : isWithin(reportedRootCanonical, canonicalRoot) ? "ancestor"
         : isWithin(canonicalRoot, reportedRootCanonical) ? "descendant"
         : "other",
       reportedPrefixIsEmpty: reportedPrefix === "",
+      gitDirMatchesFixtureMetadata,
+      gitDiscoveryEnvironmentNames,
       safeDirectoryRootMatches,
       safeDirectoryOriginIsIsolated,
       literalRootMatchesCanonical: samePath(realpathSync(path.resolve(root)), canonicalRoot),
@@ -404,8 +430,13 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       reportedRootMatchesCanonical: true,
       reportedRootMatchesHookCwd: true,
       reportedRootMatchesCheckout: false,
+      reportedRootMatchesCwdText: true,
+      reportedRootSameVolume: true,
+      reportedRootIsTemp: true,
       reportedRootRelation: "same",
       reportedPrefixIsEmpty: true,
+      gitDirMatchesFixtureMetadata: true,
+      gitDiscoveryEnvironmentNames: [],
       safeDirectoryRootMatches: true,
       safeDirectoryOriginIsIsolated: true,
       literalRootMatchesCanonical: true,
