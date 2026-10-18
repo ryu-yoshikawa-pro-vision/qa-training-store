@@ -113,4 +113,4 @@ runtime/ など                         # Scenario Shop実行に必要な最小�
 - Phase 1は学習用Templateから作成した個人リポジトリのCodespaceを前提に、Gitコマンド・PR・CIの操作なしで進められる教材配布・保存・評価の導線を検証する。
 - Phase 2は**同期された学習用リポジトリ単体**でNode/Playwright・Scenario ShopのBuild/Serve/Seed/Resetが成立し、**M05の基本構文読解と部分修正がM06の前提として評価され**、新課程専用の実行・結果保存先が旧Trainingと衝突しないことを、**2コアの新規Codespace**で検証する。
 - Phase 3は学習者個人の同じリポジトリ上で専用CIを利用し、旧Training Copy／正式workflowの隔離とGitHub権限・標準Runnerの無料条件を検証する。Phase 3未受講をPhase 2の不合格条件にしない。
-- **本PRはPlanのみ**。最終的な教材本文、全問題と答え、実行可能な課題はCodex実装時に作成・試行する。
+- **本PRではPlanと知識グラフJSON・運用ガイド・読取り専用の検証CLIまで**を作成する。教材本文、確認問題・解答、実行可能な実技、学習用同期・ロード機能は後続の実装・検証で作成する。
