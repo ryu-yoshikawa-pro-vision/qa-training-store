@@ -92,6 +92,14 @@
 4. **公開の学習用リポジトリ＋標準GitHub-hosted Runner**を無料利用の第一候補とする。個人情報やSecret、不要な学習者成果物を公開commitしない。private/larger runnerの利用を無料と決めつけない。
 5. 実際のGitHub権限・Runner・workflow実行が利用不能ならPhase 3の実技をBLOCKEDにする。すでに完了したPhase 1・2の評価は維持する。
 
+## 知識グラフからテスト対象とSkillを見直す
+
+[基準グラフ](../curriculum/ai-assisted-qa/README.md)は、学習目標の必要知識と**Scenario Shopの正式な仕様ファイル**、別リポジトリ**`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`**の使用候補を参照する。`qa-training-store/.agents/skills/`は今回のQA workflow Skillの正本として扱わない。
+
+- 製品のBR/AC・Seed/Reset・テスト用画面が変わったとき、`impact`は**影響候補**を列挙する。元の仕様に照らして教材の例・実技・修了条件を再確認する。**学習対象の機能を自動で増減させない**。
+- Skillが改訂されたとき、現在参照するcommitと変更後のSkill本体・補助Pythonスクリプト・入出力契約を比較して、関連モジュールの演習を再実行するか判断する。**参照関係だけでは起動成功・Skillの正しさを保証しない**。
+- 初期版では仕様4ファイル・Skill 11件を**候補として登録**しているだけで、教材/実技での最終採用・動作検証は未完了。
+
 ## AIエージェントとqa-workflow-skills
 
 - M00でCodespaces上のOpenCode CLIを使い、**Git操作を受講者に要求せずに**必要な`qa-workflow-skills`を用意してSkillの発見・安全な利用を確認し、使用したrevisionを記録する。
