@@ -42,7 +42,7 @@
 - **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コア利用での安定動作は新規実機確認が必要。
 - 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。初回起動ログ、必要コマンド、認証状況を確認してから演習する。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
 - **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合はBLOCKEDにし、無断で有料環境へ変更しない。
-- OpenCodeは既存の**CLI**を標準とする。既存ガイドではOpenCode VS Code拡張の起動に制約が記録されているため、未検証の拡張機能を受講の前提にしない。Zenの`OPENCODE_API_KEY`は**個人のCodespaces Secret**とし、認証キャッシュ・Secret値を配布物・公開PR・ログへ出さない。**無料モデルのみ**を利用し、セッション補助モデル、モデルの自動選択、Zenのauto-reload・月間上限・支払条件は実際の利用前に確認する。固定CLI＋個人Secretの認証動作・全受講者の無料利用は未実証。
+- OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。モデルの利用可否・認証可否を再検証する工程は設けない。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
 - GitHub Codespacesの**8081（通常Web）と6080（noVNC）はPrivate**のままにし、5901を外部公開しない。Training用Playwrightの8082は専用テストサーバーで、8081をTraining実行先として使わない。コード生成`codegen`と実際のE2E実行対象の違いを教材で示す。
 - 学習終了時はCodespaceを停止し、不要なCodespace・Artifactの保存量を確認する。**Phase 1で設計Markdown、Phase 2でspec・設定・結果・ログ**をGit操作なしでダウンロード・保全できることを確認する。削除・利用枠超過・再構築に伴うデータ消失に備え、段階的にバックアップする。所要時間・ストレージ消費は実測して無料枠内での完走可否を判断する。
 
@@ -98,7 +98,7 @@
 
 - 製品のBR/AC・Seed/Reset・テスト用画面が変わったとき、`impact`は**影響候補**を列挙する。元の仕様に照らして教材の例・実技・修了条件を再確認する。**学習対象の機能を自動で増減させない**。
 - Skillが改訂されたとき、現在参照するcommitと変更後のSkill本体・補助Pythonスクリプト・入出力契約を比較して、関連モジュールの演習を再実行するか判断する。**参照関係だけでは起動成功・Skillの正しさを保証しない**。
-- 初期版では仕様4ファイル・Skill 11件を**候補として登録**しているだけで、教材/実技での最終採用・動作検証は未完了。
+- 登録済みの仕様4ファイル・Skill 11件は**学習・演習の参照候補**であり、完成時は[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に従って実際に採用した教材・実技・評価との関係を確定する。関連Skillの実行経路は、モデルの利用可否とは別に課題として検証する。
 
 ## AIエージェントとqa-workflow-skills
 
@@ -117,13 +117,13 @@
 
 Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題で使用する条件が不足すれば、正式仕様内の別条件を調べる。仕様の未確定箇所を正解として固定してはならない。M10ではPhase 2の資産をCIへ接続するため、未演習ケースの追加実装を要求しない。
 
-## Codex実装時の受入試験
+## 受入試験
 
 | 検証 | 合格条件 |
 | --- | --- |
 | 教材分離 | 旧`docs/curriculum/test-automation/**`に差分0。新教材だけで一連の導線が成立 |
 | 学習項目とクイズ | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に基づき、**M00前の開始ガイドと51項目すべての説明・演習・Level 2判定・復習先**がある。公開クイズの解説と非公開の修了解答を区別 |
-| 共通開始 | 本人の支払主体・無料枠・2コアの選択、Codespaces起動、OpenCode Freeモデルと個人Secret、Skill/Python helperが実際に利用できる（未確認ならBLOCKED） |
+| 共通開始 | 本人の支払主体・Codespaces無料枠・2コアの選択・起動を確認。**OpenCode Zen無料モデルの利用可否・認証可否は確認済みとして再検証しない**。`qa-workflow-skills`とPython helperの実行、個人Secretの安全な取扱いを確認 |
 | 教材同期 | 許可リストから学習用Templateを生成し、非公開解答・完成spec・Secret・正式workflowを除外。同期元SHAを記録 |
 | 学習者ロード | 本人が`course:load Mxx`で指定した1モジュールだけをロード。未知ID拒否・既存成果物の上書き防止・他モジュールの非変更 |
 | Phase 1 | **学習用Templateからの個人リポジトリ・GitHubログインは必要**だが、Git/PR/Playwright/CI操作なしでM00〜M04を一つずつロードし、分析→設計→独立修了できる |
