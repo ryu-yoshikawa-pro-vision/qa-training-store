@@ -38,6 +38,8 @@ const repoRoot = path.resolve(process.cwd());
 const hookPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs");
 const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy_windows.ps1");
 let policyFixtureRoot: string | undefined;
+let isolatedGitHome: string | undefined;
+const isolatedGitRoots = new Set<string>();
 const safePayload = JSON.stringify({
   tool_name: "Bash",
   tool_input: { command: "git status --short" },
@@ -121,15 +123,38 @@ function ownerRootAnchor(command: string, root = getPolicyFixtureRoot()) {
   return `Set-Location -LiteralPath '${escapedRoot}' -ErrorAction Stop; ${command}`;
 }
 
-function runNodeHook(payload: string, cwd = getPolicyFixtureRoot(), timeout = 30_000): HookResult {
-  const env = { ...process.env };
+// CI trusts its checkout root, not temporary Git fixtures; scope fixture trust to an isolated Git home.
+function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv = process.env) {
+  isolatedGitHome ??= fs.mkdtempSync(path.join(os.tmpdir(), "codex hook git home-"));
+  const xdgConfigHome = path.join(isolatedGitHome, "xdg");
+  fs.mkdirSync(path.join(xdgConfigHome, "git"), { recursive: true });
+  const env: NodeJS.ProcessEnv = {
+    ...baseEnv,
+    HOME: isolatedGitHome,
+    USERPROFILE: isolatedGitHome,
+    XDG_CONFIG_HOME: xdgConfigHome,
+  };
+
   for (const name of Object.keys(env)) {
     if (name.startsWith("GIT_CONFIG_")) delete env[name];
   }
+  const canonicalRoot = fs.realpathSync(root);
+  if (!isolatedGitRoots.has(canonicalRoot)) {
+    execFileSync("git", ["config", "--global", "--add", "safe.directory", canonicalRoot], {
+      cwd: root,
+      env,
+      stdio: "pipe",
+    });
+    isolatedGitRoots.add(canonicalRoot);
+  }
+  return env;
+}
+
+function runNodeHook(payload: string, cwd = getPolicyFixtureRoot(), timeout = 30_000): HookResult {
   const result = spawnSync(process.execPath, [hookPath], {
     cwd,
     encoding: "utf8",
-    env,
+    env: createIsolatedGitEnvironment(cwd),
     input: payload,
     timeout,
   });
@@ -186,17 +211,14 @@ function runNodeHookWithExplicitContexts(
     "}));",
     "process.stdout.write(JSON.stringify(results));",
   ].join("\n");
-  const env: NodeJS.ProcessEnv = {
+  const baseEnv: NodeJS.ProcessEnv = {
     ...process.env,
     CODEX_POLICY_CONTEXT_CASES: JSON.stringify(preparedCases),
   };
-  for (const name of Object.keys(env)) {
-    if (name.startsWith("GIT_CONFIG_")) delete env[name];
-  }
   const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd,
     encoding: "utf8",
-    env,
+    env: createIsolatedGitEnvironment(cwd, baseEnv),
   });
   return {
     status: result.status ?? -1,
@@ -233,6 +255,7 @@ function quoteCommandPath(value: string) {
 
 afterAll(() => {
   if (policyFixtureRoot) removeFixture(policyFixtureRoot);
+  if (isolatedGitHome) fs.rmSync(isolatedGitHome, { force: true, recursive: true });
 });
 
 describe("Codex PreToolUse/Bash Node Hook contract", () => {

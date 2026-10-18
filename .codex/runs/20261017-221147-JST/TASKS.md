@@ -17,6 +17,7 @@
 - [x] 13. Code Review Skillで差分を自己レビューし、Run artifactをsanitization/schema/範囲検査してcommit前状態を確定する。
 - [x] 14. 確認済みの変更だけをcommitする。
 - [x] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
+- [x] 16. 最新headのWindows CI失敗を修正し、契約全体とverifyを再実行する。
 
 ## Discovered
 

@@ -50,3 +50,28 @@
 - Config parse: `codex debug prompt-input`はexit 0。`codex debug`は`--strict-config`を受け付けないため、この形式のstrict parseは未確認。
 - Remaining: 最終Run記録commit後のexact-head `Web CI` / `Mobile App CI`を必須待機toolで確認し、PR本文へ結果を反映する。未参照`session_start_context.mjs`と旧PowerShell sanitizer libraryは削除禁止契約に従って残置する。
 - Progress: 100% (15/15)。tracked taskは完了。exact-head CIは別のfile-changing-task完了条件として残る。
+
+## 2026-10-18 09:26 (JST)
+
+- Summary: PR head `001ab889ebf8abd6cc5c6529b49690d8049e3701`のexact-head CIを確認した。Mobile App CIは成功、Web CIはWindowsのCodex Hook契約テストで失敗した。
+- Failure / cause: Windows CIでHook契約215件中11件がG10拒否となった。workflow logではcheckout rootのみがglobal `safe.directory`へ追加されており、OS temp配下のGit fixtureをrunnerが信頼せずowner rootを解決できなかったと判断した。これはHookの拒否ポリシーを弱めず、テストfixture環境で直すべき問題。
+- Repair: `tests/contracts/codex-hook-contract.test.ts`で隔離した一時Git homeを作り、各fixture rootだけをその一時global configの`safe.directory`へ登録するよう変更した。継承`GIT_CONFIG_*`は除去し、テスト終了時に隔離homeを削除する。利用者のGit configと製品Hookは変更しない。
+- Validation: 失敗した11ケースをWindows上で再実行し11/11 pass。`pnpm run test:hooks`は3 files / 215 tests pass。全`test:contracts`と`pnpm run verify`はこのrepair後まだ再実行していない。
+- Remaining: full contracts、`pnpm run verify`、Run artifact sanitizer/schema、review、repair commit/push、PR本文更新、repair後のexact-head CI。
+- Progress: 93% (15/16)。最新CI repairと最終確認を進行中。
+
+## 2026-10-18 09:54 (JST)
+
+- Summary: Windows CIで見つかったHook fixture trustの問題をテスト環境だけで修正し、全ローカル検証を再完了した。
+- Validation: 修正後のpnpm run test:contractsは48 files / 818 passed / 3 skipped、pnpm run verifyはexit 0。verify内のUnit 66、Integration 111、Repository 147、Web component 102、Native component 64、Contracts 818 passed / 3 skippedが成功。format、Markdown 468 files、text 152 files、6 Skill / 15 Markdown / 28 links、spec 3 challenges / 94 visuals、curriculum、ESLint 0 errors / 65 existing warnings、3 typecheck、security check (236 runtime / 393 credential-scan files)、Web build (Expo 2305 modules、22 spec pages、25 curriculum pages)、Spec build 22 pagesも成功。
+- Review: 追加したcontract helperは一時Git home内でfixture rootだけをsafe.directoryへ追加し、継承GIT_CONFIG_*を除去する。利用者global Git configとproduction Hook policyへ影響しない。全215 Hook tests、full contracts、verifyを実行済み。git diff --checkのRun Task末尾空行は修正した。
+- Remaining: 変更の最終sanitization/schema確認、commit、対象branchへの通常push、PR #201本文更新、final headのWeb/Mobile CI。Direct interactive tool経路とFull Access / Approve for meは未検証。未参照session_start_context.mjsと旧PowerShell sanitizer libraryは削除禁止契約に従って残置。
+- Progress: 100% (16/16) tracked tasks complete。final commit後のexact-head CIはfile-changing taskの追加完了条件として残る。
+
+## 2026-10-18 09:56 (JST)
+
+- Summary: repair後の実装・検証・artifact確認と差分レビューを完了した。失敗原因はcontract fixtureのWindows Git trust設定であり、修正はtest harness内に限定した。
+- Validation: pnpm run test:contractsは48 files / 818 passed / 3 skipped。pnpm run verifyはexit 0で、全test suite、typecheck、security check、Web/Spec buildを通過。python scripts/collect-run-artifacts.py --run-id 20261017-221147-JST --strictはexit 0。4 Run artifactsのsanitize Write/Checkは0 replacements / 0 residuals。対象5ファイルのPrettier、pnpm run lint:markdown (468 files / 0 issues)、pnpm run lint:text:all (152 files)、REPORTのinvalid C0 scan (0)、git diff --checkも成功。
+- Review: 	ests/contracts/codex-hook-contract.test.tsの変更を確認した。trustは隔離temp home内のfixture rootに限定し、テスト終了時に削除する。production Hook、利用者global Git config、テストのtimeout/skip/assertionは変更していない。今回差分に対する未修正findingはない。
+- Remaining: repair follow-upのcommit、通常push、PR #201本文の最新化、修正後commitに対するWeb/Mobile exact-head CI。Direct interactive tool / Full Access / Approve for meは個別未検証。codex debug --strict-configはunsupported。未参照session_start_context.mjsと旧PowerShell sanitizer libraryはdelete禁止契約に従って残置。
+- Progress: 100% (16/16) tracked tasks complete。final push後のexact-head CIは追加の完了条件として残る。
