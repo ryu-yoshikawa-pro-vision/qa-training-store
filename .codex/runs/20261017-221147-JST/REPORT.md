@@ -94,3 +94,15 @@
 - Validation: focused診断testは1 passed。`pnpm run test:hooks`は216 passed。対象ファイルのPrettier、ESLint、`git diff --check`も成功。
 - Remaining: 診断commitに対する最新headのWindows Actionsを確認し、原因の特定またはrepair-loop停止判断を行う。原因未確認のままfixtureやHookを変更しない。
 - Progress: 77% (17/22)。Windows Actionsでのroot不一致、fixture repair、`test:contracts`、`verify`、最終PR CIが未完了。
+
+## 2026-10-18 18:37 (JST)
+
+- Summary: 診断commit `274d49a87418d49dc6909242d1c8d7b83da3321d` のexact-head CIでWindows root不一致が再現した。原因を断定できる証拠は得られなかった。
+- CI: waiterのexpected/observed SHAは一致。Web CI run `39115492537` failure、Mobile App CI run `39115492527` success。Windows job `117640330234` は216件中204 passed／12 failedで、失敗は以前と同じG10拒否。その他のWeb CI jobは成功。
+- Windows診断: Git `2.56.0.windows.2`。`git init`直後の`.git`はdirectoryでconfigも存在したが、cwdのみ、`git -C`、fixtureのGit-dirとworktreeを明示した場合のすべてでrootおよびGit-dirがfixtureと不一致。`--show-prefix`は空。通常環境でinitしたfixtureと隔離HOMEの対照fixtureの結果は一致し、どちらもroot不一致。
+- Settings: fixtureの`core.worktree`と`extensions.worktreeConfig`、global/systemの`init.templatedir`と`core.worktree`はいずれも未設定。Git discovery関連環境変数名もなく、既存診断のsafe.directory一致・環境overrideなしも再確認した。これらは今回の不一致原因ではない。
+- Cause assessment: ローカルGit `2.55.0.windows.5`では同じ確認がすべて通る。Git for Windows 2.56の実行環境差は候補だが、原因を特定する比較証拠は不足している。パス文字種など未確認の条件を推測で変更しない。
+- Repair-loop decision: `stop_no_progress`。同じWindows Hook contract失敗が再発し、指定された追加診断でもfixture側の原因を確定できなかったため、ここでコード修正を停止する。G10、期待値、skip、production Hookは変更していない。
+- Validation: ローカル`pnpm run test:hooks`は216 passed。Focused診断、Prettier、ESLint、Markdown lint、text quality、Run Artifact strict check、staged quality/security checkも成功。`pnpm run test:contracts`と`pnpm run verify`は修正未成立かつ停止条件により今回未実施。
+- Remaining: 原因不明のまま。diagnostic commitはPR branchへ通常push済み。PR本文へ最新の診断事実と未解決状態を反映し、最新headのCI結果を明記する。
+- Progress: 77% (17/22)。root原因の特定、fixture修正、`test:contracts`／`verify`、CI成功は未達。
