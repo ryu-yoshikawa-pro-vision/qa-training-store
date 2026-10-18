@@ -75,3 +75,13 @@
 - Review: 	ests/contracts/codex-hook-contract.test.tsの変更を確認した。trustは隔離temp home内のfixture rootに限定し、テスト終了時に削除する。production Hook、利用者global Git config、テストのtimeout/skip/assertionは変更していない。今回差分に対する未修正findingはない。
 - Remaining: repair follow-upのcommit、通常push、PR #201本文の最新化、修正後commitに対するWeb/Mobile exact-head CI。Direct interactive tool / Full Access / Approve for meは個別未検証。codex debug --strict-configはunsupported。未参照session_start_context.mjsと旧PowerShell sanitizer libraryはdelete禁止契約に従って残置。
 - Progress: 100% (16/16) tracked tasks complete。final push後のexact-head CIは追加の完了条件として残る。
+
+## 2026-10-18 10:09 (JST)
+
+- Summary: final exact-head CI for `7332fe6590d28d7f067837e31628ab03e3566d94` completed with Web CI failure and Mobile App CI success. The required waiter observed the exact requested head.
+- Failure evidence: Web CI run `39084764098` failed job `Codex Hook contract (Windows)` (`117548904191`); `tests/contracts/codex-hook-contract.test.ts` again had the same 11 of 215 cases fail with G10, including valid literal-root cases. Other required Web jobs passed; workflow aggregation failed because the Hook contract job failed. Mobile App CI run `39084764107` succeeded.
+- Cause assessment: the isolated Git home repair passed all local Windows tests and full local gates, but did not resolve the identical G10 failures on Actions. The CI log does not expose enough environment/config-path detail to distinguish whether the isolated Git configuration was not read by the Hook subprocess or the fixture root resolved differently. Do not claim the CI issue is fixed.
+- Repair-loop decision: the same failure category and stage recurred after the bounded test-only repair. Per `.agents/skills/repair-loop/references/repair-workflow.md`, stop with `stop_no_progress` instead of retrying another unbounded change. No further code modification was made.
+- Local evidence remains: repair commit `7332fe6590d28d7f067837e31628ab03e3566d94` passed `pnpm run test:hooks` (215), `pnpm run test:contracts` (48 files / 818 passed / 3 skipped), and `pnpm run verify` (exit 0). These results do not override the failing Windows Actions result.
+- Remaining: understand Windows Actions Git config/root resolution, then make a separately bounded repair and rerun the required CI. Current PR body must describe this failure. Direct interactive tool / Full Access / Approve for me remain unverified; `codex debug --strict-config` is unsupported. Unreferenced `session_start_context.mjs` and old PowerShell sanitizer library remain because deletion is prohibited.
+- Progress: 94% (16/17). Implementation and local validations are complete; the CI safety contract remains unresolved.

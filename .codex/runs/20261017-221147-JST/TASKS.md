@@ -22,6 +22,7 @@
 ## Discovered
 
 - Exact-head required CI confirmation is an additional file-changing-task completion check, not a checkbox here. Use `mcp__ci_wait__wait_for_required_ci` after pushing the final commit; do not replace it with agent-side GitHub polling.
+- Latest exact-head waiter for `7332fe6590d28d7f067837e31628ab03e3566d94` returned Web CI failure (Windows Hook contract 11/215 G10) and Mobile App CI success. The same failure category recurred after one bounded repair; repair-loop stop condition reached.
 
 ## Remaining
 

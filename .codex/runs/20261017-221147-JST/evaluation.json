@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "両Planの実装と関連契約、test:hooks 215 tests、修正後test:contracts 48 files / 818 pass / 3 skip、pnpm run verify、strict Run collector、Run sanitizer、差分レビューは完了。修正前commit 001ab889のWeb CIはWindows fixture trust不足で失敗し、Mobile CIは成功。production Hook policyを変えないfixture修正後、全ローカル検証は成功。修正commitのexact-head CIとDirect interactive tool経路は未確認。",
+      "evidence": "両Planの実装、関連contract、test:hooks、test:contracts、pnpm run verify、commit/push、PR更新は実施。修正前head 001ab889とrepair head 7332fe65のexact-head CIで同じWindows Hook contract 11件がG10失敗し、Mobile CIは両方成功。bounded repair後も同じfailureが再現したためrepair-loop stop_no_progressで停止。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -30,11 +30,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "修正後pnpm run test:contractsは48 files / 818 pass / 3 skip。pnpm run verifyはexit 0でunit 66、integration 111、repository 147、Web component 102、native component 64、contract 818 pass / 3 skip、security check、Web/Spec buildが成功。ESLintは0 error / 65 warning。final repair head CIとDirect interactive tool経路は未確認。"
+      "evidence": "ローカルWindowsで修正後のtest:hooks 215、test:contracts 48 files / 818 pass / 3 skip、pnpm run verify exit 0。Actions repair head 7332fe65ではWeb CIのWindows Hook contract 11件が同じG10で失敗、Mobile CI成功。"
     },
     "safety_compliance": {
-      "rating": "pass",
-      "evidence": "Git変更系の既存安全contractとCode Mode nested PreToolUse拒否は実行時確認済み。今回のWindows CI修正はtest-onlyで、隔離Git home内にfixture rootだけをsafe.directory登録する。利用者Git configおよびproduction Hookを変更せず、全Hook testsとpnpm run verifyが成功。force push等なし。最終head CIは未確認。"
+      "rating": "warn",
+      "evidence": "production Hook policyを変更せず、既存安全contractとnested PreToolUse拒否は確認済み。Windows Actionsの必須Hook contract 11件が2回のexact-head CIでG10となり、修正後も未解決。追加repairはbounded repair-loopの同一failure stop条件で停止。force push等なし。"
     },
     "reviewability": {
       "rating": "pass",
@@ -46,15 +46,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows + WSLで全ローカルgateを実行。修正前headのActionsはWindows Hook contractのfixture trust不足でWeb CI失敗、Mobile CI成功。test helperを隔離Git homeへ修正後、test:hooks 215、test:contracts 818、pnpm run verifyは成功。修正後のActions exact-head CI、Direct interactive tool経路は未確認。"
+      "evidence": "ローカルWindows + WSL gatesは成功。Windows ActionsでWeb CI run 39081151487と39084764098の両方が同じ11 Hook contract casesで失敗し、Mobile CI runs 39081151606と39084764107は成功。隔離Git home修正はローカルでは有効だがActionsでは同じ失敗を再現。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "修正前commit 001ab889のWeb CIはWindows Hook contractのfixture trust不足で11件失敗、Mobile CI成功。修正後のHook 215件、全contract 818件、pnpm run verify、strict Run collectorとsanitizerは成功。新commitのexact-head CIとDirect interactive / Full Access経路は未確認。",
-      "detail": "Windows Actionsにおける一時fixture trust不足を隔離Git homeで修正し、production Hook policyを保ったまま全ローカルgateを通過した。最終commitのrequired CIを確認し、未実施tool modeは成功扱いしない。"
+      "evidence": "修正後head 7332fe6590d28d7f067837e31628ab03e3566d94のWeb CI run 39084764098でWindows Hook contract 11/215件がG10失敗。Mobile App CI run 39084764107成功。",
+      "detail": "隔離Git home修正後も同じWindows Actions failureが再現したため、required CIと安全contractの完了条件は未達。Direct interactive tool / Full Access / Approve for meも個別未検証。repair-loopのsame-failure stop conditionでコード修正を停止し、原因を追加調査する必要がある。"
     },
     {
       "category": "artifact_contract_gap",
@@ -64,9 +64,9 @@
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "Windows Actionsの一時fixture trust不足と判断し、production Hookを変更せずcontract testに隔離Git homeを追加した。修正後の失敗11ケース、test:hooks 215、test:contracts 818、pnpm run verify、Run artifact strict collector/sanitizerは成功。最終commitのActions CIはまだ未確認。",
+      "detail": "隔離Git homeへのsafe.directory追加はローカルで成功したが、Windows Actionsでは同じG10 failureが再発した。CIログだけではHook subprocessが隔離configを読まない問題かfixture root解決差かを確定できない。Repository repair-loopの反復停止条件を適用し、追加変更は行わずstop_no_progressとして記録。",
       "severity": "medium",
-      "evidence": "Web CI run 39081151487のWindows Codex Hook contractで11/215件がG10となった。Mobile CI run 39081151606は成功。workflow logではcheckout rootだけがglobal safe.directoryへ追加されていた。"
+      "evidence": "Web CI run 39081151487および39084764098でWindows Codex Hook contractの同じ11/215件がG10となった。Mobile CI runs 39081151606と39084764107は成功。ローカルでは隔離Git home修正後のHook 215、全contracts 818、pnpm run verifyが成功。"
     }
   ],
   "improvement_candidates": []
