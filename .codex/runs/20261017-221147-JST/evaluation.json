@@ -11,11 +11,11 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "origin/mainとの4競合をmain／PR双方の契約を保って解消し、merge commit a22f297aを通常push。Windows Actionsの同一fixture診断でrealpathSync()／native()のroot照合差を確認し、Hookをnativeへ合わせた。修正後はtest:hooks 217/217、test:contracts 834 passed／3 skipped、verify exit 0。修正後headのrequired CIは次のpush後に確認するため完了条件は未達。",
+      "evidence": "root修正と一時診断整理後、test:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。1回目のHook runでPowerShell logging childがexit 3221225477となったが、対象test単独と全Hook再実行は成功。最新push済みhead 8ede2a58のCIは古い診断assertion failureであり、cleanup後の新head CIは未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
-          "summary": "corepack pnpm run verify: 48 contract files, 834 passed, 3 skipped; exit 0."
+          "summary": "corepack pnpm run verify: 48 contract files, 833 passed, 3 skipped; exit 0 after diagnostic cleanup."
         },
         {
           "kind": "changed_file",
@@ -26,19 +26,19 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "origin/mainを通常mergeし、競合4件でmain／PR双方の意図を保持した。Hook変更は確認済みWindows path canonicalization差への最小修正と安全性回帰contractに限定した。"
+      "evidence": "4 merge conflictsはmain／PR双方の意図を維持して解消。root修正はnative canonicalizationに限定し、調査専用diagnostic contractとPortableGit comparison workflowを整理。恒久安全性testを残した。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Windows hostでtest:hooks 217/217、test:contracts 834 passed／3 skipped、verifyが成功。修正前merge headのActionsはWeb CI run 39181577681でHook 12/216件がG10失敗、Mobile App CI run 39181577668は成功。修正後exact-head CIとCodespaces実機は未確認。"
+      "evidence": "診断整理後Windows hostでtest:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。先行するPowerShell child exit 3221225477はfocused rerunとfull suiteで再現しなかった。最新push済みhead 8ede2a58のCI failureは診断整理前で、新head required CIはpending。"
     },
     "safety_compliance": {
       "rating": "warn",
-      "evidence": "G10拒否条件・literal root anchor要求・期待値・skipは緩めていない。canonical root解決のみnative realpathへ合わせ、別repository symlink aliasと別worktree anchorを拒否するcontractを追加。local Windows Hook 217件は成功。修正後Actions確認まではWindows CI完了条件未達。"
+      "evidence": "G10拒否条件、literal owner-root anchor、期待値、skipは変更していない。native realpath修正後にsymlink alias／別worktree anchorを拒否するtestを維持。診断整理後のlocal test:hooksは216/216 successful。最新cleanup headのCI確認は未完了。"
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "Hook差分はcanonical root解決APIのみ変更し、G10判定と拒否条件を維持。新しいcontractでsymlink alias／別worktree rootを拒否し、test:hooks、test:contracts、verify成功を確認。Run artifactは修正後head CIをpendingとして記録。"
+      "evidence": "G10安全性契約を維持し、診断helper／PortableGit matrixを除去。test:hooks、test:contracts、verifyは成功。未使用diagnostic scriptはHook N1削除拒否のため残るがworkflowから参照されない。"
     },
     "maintainability": {
       "rating": "warn",
@@ -46,27 +46,27 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Windows Actionsの同一失敗fixtureでGit root、Git-dir、Hook owner rootはnative realpathではexpectedと一致し通常版では不一致と確認。修正後のlocal hooks／contracts／verifyはsuccess。修正後head ActionsとCodespaces実機は未確認。"
+      "evidence": "修正前Windows Actionsはnative realpathのみexpected rootと一致。修正後local Windows test:hooks 216/216、contracts 833/3 skipped、verifyが成功。修正＋診断整理後headのrequired CIは未実施。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "修正前merge headのActions同一fixture診断でGit root／Git-dir／Hook owner rootがnative realpathで一致し通常版で不一致と判明。修正後のlocal test:hooks、test:contracts、verifyは成功。最新修正headのrequired CIは未確認。",
-      "detail": "原因はWindows Actionsにおける通常realpathとnative realpathのcanonical root照合差。最小修正を行いG10拒否契約を保った。修正後Actions成功とCodespaces実機は未確認。"
+      "evidence": "cleanup前head 8ede2a58 exact-head CIで診断test assertion 1件が失敗し、216 Hook tests pass。診断test／workflow matrixを整理後、local test:hooks、test:contracts、verifyは成功。新headのexact CIは未確認。",
+      "detail": "Actions診断からnative realpath root repairは成立し、cleanup前の残るfailureは診断helperの旧assertionだった。診断helper／PortableGit stepを除去しlocal標準検証を通した。修正後head CIが残る。"
     },
     {
       "category": "artifact_contract_gap",
       "severity": "low",
-      "evidence": "compact専用SessionStart設定は削除したが、未参照session_start_context.mjsファイルと旧PowerShell sanitizer libraryは残置。",
-      "detail": "現行設定・wrapper・CI経路では使用されない。物理削除はRepositoryのdelete制約に従って行わず、残存リスクとして記録する。"
+      "evidence": "未参照session_start_context.mjs、旧PowerShell sanitizer library、およびCI参照を外したdiagnose-windows-git-root.mjsが残る。",
+      "detail": "現行設定・wrapper・CI経路では使用されない。診断scriptの削除はHook N1 command-based deletion prohibitionに拒否された。"
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "Git版、path文字種、実行ファイル起動経路の比較では失敗を再現しなかったが、後続の同一fixture Actions診断でnative realpathのみroot一致となる原因を特定した。修正後CI成功は未確認。",
+      "detail": "root causeはnative realpathとregular realpathのWindows差として修正済み。CI failureは調査用診断の旧assertion。local PowerShell logging childは一度exit 3221225477となったがfocused rerunと全Hook rerunで再現せず。cleanup後のrequired CIはpending。",
       "severity": "medium",
-      "evidence": "修正前head a22f297aのWeb CI run 39181577681ではWindows Hook contract 12/216件がG10失敗、Mobile App CI run 39181577668はsuccess。修正後のlocal test:hooks、test:contracts、verifyは成功。"
+      "evidence": "修正前head Web CI run 39181577681は12/216 G10 rejection。repair head 8ede2a58のrun 39186104264は216 Hook tests pass／診断assertion 1 failure、Mobile success。cleanup後はlocal標準検証pass。"
     }
   ],
   "improvement_candidates": []

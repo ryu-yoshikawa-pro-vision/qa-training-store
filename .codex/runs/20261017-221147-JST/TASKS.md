@@ -17,7 +17,7 @@
 - [x] 13. Code Review Skillで差分を自己レビューし、Run artifactをsanitization/schema/範囲検査してcommit前状態を確定する。
 - [x] 14. 確認済みの変更だけをcommitする。
 - [x] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
-- [x] 16. Windows Actionsで確認した`realpathSync()`／`.native()`のroot照合差を最小修正し、契約全体とverifyを再実行する。修正後のexact-head CIは43で確認する。
+- [x] 16. Windows Actionsで確認した`realpathSync()`／`.native()`のroot照合差を最小修正し、診断整理後の契約全体とverifyを再実行する。修正後のexact-head CIは43で確認する。
 - [x] 40. `origin/main` mergeの4競合を、main側の日本語整理とPR側のHook root／Node sanitizer契約を保って解消する。
 - [x] 41. 指定された`test:hooks`、`test:contracts`、`verify`を実行し、契約テストの文言不一致を修正して再確認する。
 - [x] 42. Run Artifactを更新・検証し、merge commit `a22f297a`を対象branchへ通常pushする。

@@ -232,3 +232,18 @@
 - Validation after repair: `corepack pnpm run test:hooks`は3 files／217 passed、`corepack pnpm run test:contracts`は48 files／834 passed／3 skipped、`corepack pnpm run verify`はexit 0。verify内でもunit／integration／repository／component／contract tests、security check、typecheck、web/docs/spec buildが成功した。ESLintは0 errors／65 warnings。React `act`／Node experimental warningはnon-fatal。
 - Next: この修正と最終Run Artifactをcommit・通常pushし、新しいheadのrequired CIを確認する。merge後headのCIは修正前の結果であり、修正後のWindows Actions成功は未確認。Codespaces実機も未検証。
 - Progress: 95% (19/20)。ローカルrepair・標準検証とmerge deliveryは完了。最新修正headのCI確認は未完了。
+
+## 2026-10-19 — 修正後CIの診断契約失敗と整理
+
+- Exact-head result: commit `8ede2a58bfeddb649611a33ee167d27d0ae27436`のwaiter expected／observed SHAは一致。Web CI run `39186104264`はfailure、Mobile App CI run `39186104181`はsuccess。
+- Failure: Windows Hook contractは217件中216 passed／1 failed。失敗したのは一時診断用の`diagnoses only bounded Git fixture state in the Hook subprocess`で、G10拒否テストではない。Actions出力はHookのnative realpathがexpected rootと一致し、診断helper内の通常realpath canonical値が一致しないことを示した。`reportedRootMatchesCanonical`の旧期待値はHookの実装変更後に古くなっていた。
+- Cleanup: 一時診断testとそのfixture/helper比較コード、Windows workflowのPortableGit取得・matrix比較stepを除去した。symlink aliasと別worktreeを拒否する恒久回帰テストは残した。`scripts/diagnose-windows-git-root.mjs`の削除はHookのN1「command-based file deletion is forbidden」で拒否されたため、workflow参照のない未使用ファイルとして残る。
+- Validation: 診断整理後の`test:hooks`、`test:contracts`、`verify`はまだ未実施。実行・修正・通常push後に新しいexact-head required CIを確認する。
+- Progress: 90% (18/20)。Windows root修正後の標準検証と最新required CIが未完了。
+
+## 2026-10-19 — 診断整理後の標準検証
+
+- Repair: 直前のCI失敗は診断helperのassertionが旧canonicalizationを前提にしていたためと確定した。診断test/helperとPortableGit matrix workflow stepを除去し、symlink alias／別worktree拒否の恒久安全性testは保持した。診断script自体はHook N1のfile deletion拒否により残置し、CI参照は除去した。
+- Validation: `corepack pnpm run test:hooks`は3 files／216 passed。1回目の全実行で別のPowerShell logging subprocessがexit `3221225477`となったが、該当test単独が1 passedし、全Hook suite再実行も216 passed。`corepack pnpm run test:contracts`は48 files／833 passed／3 skipped。`corepack pnpm run verify`はexit 0。ESLintは0 errors／65 warnings、security check、typecheck、全test suite、web/docs/spec buildが成功。
+- Remaining: 診断整理の新commit／pushと、修正後のexact-head Windows Hook contract／Web CI／Mobile App CI結果確認。最新PR head `8ede2a58`のCI failureは修正前headの結果で、今回のcleanup commitの評価には流用しない。
+- Progress: 95% (19/20)。local修正と標準検証は完了。新headのrequired CIが未確認。
