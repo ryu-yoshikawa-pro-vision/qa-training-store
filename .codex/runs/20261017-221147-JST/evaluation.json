@@ -11,11 +11,11 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "origin/mainとの4競合をmain／PR双方の契約を保って解消。Windows hostでtest:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。最新merge headのActions結果はpush後に確認する。Issue #192の以前のActions G10拒否原因とrequired CIは未解決のため完了条件は未達。",
+      "evidence": "origin/mainとの4競合をmain／PR双方の契約を保って解消し、merge commit a22f297aを通常push。Windows Actionsの同一fixture診断でrealpathSync()／native()のroot照合差を確認し、Hookをnativeへ合わせた。修正後はtest:hooks 217/217、test:contracts 834 passed／3 skipped、verify exit 0。修正後headのrequired CIは次のpush後に確認するため完了条件は未達。",
       "evidence_refs": [
         {
           "kind": "validation_command",
-          "summary": "corepack pnpm run verify: 48 contract files, 819 passed, 3 skipped; exit 0."
+          "summary": "corepack pnpm run verify: 48 contract files, 834 passed, 3 skipped; exit 0."
         },
         {
           "kind": "changed_file",
@@ -26,19 +26,19 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "PR変更とorigin/mainを通常mergeし、競合4件だけを意味統合した。mainから入った日本語contract alignmentとRun Artifactは保持し、HookやG10の機能変更はしていない。"
+      "evidence": "origin/mainを通常mergeし、競合4件でmain／PR双方の意図を保持した。Hook変更は確認済みWindows path canonicalization差への最小修正と安全性回帰contractに限定した。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "最新merge worktreeでtest:hooks 216/216、test:contracts 833 passed／3 skipped、security:check、verifyが成功。diagnose:hooksはWARN=0／ERROR=0だがTrust関連はofflineで未確認。以前のActions結果は旧headのHook contract 12/216件がG10失敗、Mobile success。新headのrequired CIはpush後に確認する。Codespaces実機は未確認。"
+      "evidence": "Windows hostでtest:hooks 217/217、test:contracts 834 passed／3 skipped、verifyが成功。修正前merge headのActionsはWeb CI run 39181577681でHook 12/216件がG10失敗、Mobile App CI run 39181577668は成功。修正後exact-head CIとCodespaces実機は未確認。"
     },
     "safety_compliance": {
       "rating": "warn",
-      "evidence": "production HookのG10判定、期待値、skipは変更していない。危険操作の拒否contractとlocal Hook test 216件は成功。一方、以前のWindows Actionsで12件がG10拒否されており、最新merge headのCIはpush後確認のためWindows安全性完了条件はまだ未達。"
+      "evidence": "G10拒否条件・literal root anchor要求・期待値・skipは緩めていない。canonical root解決のみnative realpathへ合わせ、別repository symlink aliasと別worktree anchorを拒否するcontractを追加。local Windows Hook 217件は成功。修正後Actions確認まではWindows CI完了条件未達。"
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "テスト差分、Run artifact、git diff --checkをレビュー。隔離Git homeはcontract testだけに使用しfixture trustを一時化、利用者global configとproduction Hookには変更なし。prettier、strict collector/schema、sanitizer、text品質検査が成功。"
+      "evidence": "Hook差分はcanonical root解決APIのみ変更し、G10判定と拒否条件を維持。新しいcontractでsymlink alias／別worktree rootを拒否し、test:hooks、test:contracts、verify成功を確認。Run artifactは修正後head CIをpendingとして記録。"
     },
     "maintainability": {
       "rating": "warn",
@@ -46,15 +46,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "localでrealpathSync()／native()の失敗fixture比較は5対象すべて一致し、最新merge worktreeのhooks／contracts／verifyもsuccess。最新merge head CIはpush後に確認するため未確定。PR本文とactive RunではWindows G10の未解決状態を維持する。"
+      "evidence": "Windows Actionsの同一失敗fixtureでGit root、Git-dir、Hook owner rootはnative realpathではexpectedと一致し通常版では不一致と確認。修正後のlocal hooks／contracts／verifyはsuccess。修正後head ActionsとCodespaces実機は未確認。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "同一fixture path API比較はActionsで未実施。Git版／実行file／ASCII・日本語path／pnpm exec比較は別fixtureでroot不一致を再現せず、local同一fixtureでは通常版／native版が一致。標準CI waiterは内部timeout小数値のrange errorで結果を返さず、latest-head required CIは未確認。",
-      "detail": "Actions上の同一fixture診断結果がなく、fixture生成・environment・owner root・literal root照合・explicit anchorのどの段階が分岐するか決められない。CI状態polling禁止契約に従い独自取得へは切り替えていない。安全契約の完了条件は未達。"
+      "evidence": "修正前merge headのActions同一fixture診断でGit root／Git-dir／Hook owner rootがnative realpathで一致し通常版で不一致と判明。修正後のlocal test:hooks、test:contracts、verifyは成功。最新修正headのrequired CIは未確認。",
+      "detail": "原因はWindows Actionsにおける通常realpathとnative realpathのcanonical root照合差。最小修正を行いG10拒否契約を保った。修正後Actions成功とCodespaces実機は未確認。"
     },
     {
       "category": "artifact_contract_gap",
@@ -64,9 +64,9 @@
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "Git 2.55／2.56、runner GitのPATH／absolute起動、ASCII／日本語path、pnpm exec PATH条件はstandalone fixture root不一致の原因ではないと確認した。今回追加した通常版／native版の比較ではローカルWindowsの失敗fixture全対象が一致した。Actions結果はwaiter tool errorで取得できず、Hook contractのroot不一致原因は未特定。推測修正はしていない。",
+      "detail": "Git版、path文字種、実行ファイル起動経路の比較では失敗を再現しなかったが、後続の同一fixture Actions診断でnative realpathのみroot一致となる原因を特定した。修正後CI成功は未確認。",
       "severity": "medium",
-      "evidence": "Exact-head Web CI runs 39123264555 (f6e5e03af9a8704c4dcdc31ce14ccb2038a9d0b1)、39124090274 (0b1e50ef90f05a9baf9006394ad711cb055debbc)、39124898173 (a918f09c6cf41fdbb54fe378119c7d9dc4d0a946)でWindows Hook contract 12/216件がG10失敗。各Mobile App CI runはsuccess。"
+      "evidence": "修正前head a22f297aのWeb CI run 39181577681ではWindows Hook contract 12/216件がG10失敗、Mobile App CI run 39181577668はsuccess。修正後のlocal test:hooks、test:contracts、verifyは成功。"
     }
   ],
   "improvement_candidates": []

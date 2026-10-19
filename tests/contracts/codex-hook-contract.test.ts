@@ -1075,6 +1075,71 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     }
   });
 
+  it("rejects symlink aliases and separate worktrees as mutation root anchors", () => {
+    const root = makeGitFixture(false);
+    const otherRoot = makeGitFixture(false);
+    const symlinkRoot = path.join(os.tmpdir(), `codex hook root alias-${randomUUID()}`);
+    const worktreeRoot = path.join(os.tmpdir(), `codex hook worktree-${randomUUID()}`);
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+
+    try {
+      fs.symlinkSync(otherRoot, symlinkRoot, process.platform === "win32" ? "junction" : "dir");
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Contract Test",
+          "-c",
+          "user.email=contract@example.invalid",
+          "commit",
+          "--allow-empty",
+          "-m",
+          "fixture",
+        ],
+        { cwd: root, stdio: "ignore" },
+      );
+      execFileSync("git", ["worktree", "add", "--detach", worktreeRoot, "HEAD"], {
+        cwd: root,
+        stdio: "ignore",
+      });
+
+      const cases: PolicyCase[] = [
+        {
+          id: "symlink-other-repository-root",
+          expected: "deny",
+          decisionId: "G10",
+          command: ownerRootAnchor("git commit -m safe", symlinkRoot),
+          context,
+        },
+        {
+          id: "separate-worktree-root",
+          expected: "deny",
+          decisionId: "G10",
+          command: ownerRootAnchor("git commit -m safe", worktreeRoot),
+          context,
+        },
+      ];
+      const result = runNodeHookWithExplicitContexts(cases, root);
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+      expect(evaluations).toHaveLength(cases.length);
+      for (const [index, testCase] of cases.entries()) {
+        expect(evaluations[index]?.id).toBe(testCase.id);
+        expect(evaluations[index]?.decision?.id).toBe("G10");
+      }
+    } finally {
+      fs.rmSync(symlinkRoot, { force: true, recursive: true });
+      fs.rmSync(worktreeRoot, { force: true, recursive: true });
+      removeFixture(otherRoot);
+      removeFixture(root);
+    }
+  });
+
   it("does not invoke Git when changing to the requested root fails", () => {
     const root = getPolicyFixtureRoot();
     const missingRoot = path.join(root, "missing-root");

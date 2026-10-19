@@ -223,3 +223,12 @@
 - Standard validation: 最新headの記録済み`pnpm run test:hooks`は3 files／216 passed。`corepack pnpm run verify`もexit 0。format、Markdown／text lint、skill/spec/curriculum validation、ESLint（0 errors、65 warnings）、3系統typecheck、image manifest、security check、unit 66、integration 111、repository 147、component web 102、native 64、contracts 819 passed／3 skipped、web build、spec buildが成功した。
 - Decision: Issue #193のローカル受入条件と標準検証は成功。Issue #192はlocal Hook契約がpassする一方、Windows Actionsでの失敗が残るという既知の旧head結果と、最新head CI結果の未取得が残る。要求された原因を特定できないため、G10／fixtureのsource修正と診断整理を停止し、原因未特定・CI未確認のpartial状態を維持する。
 - Remaining: latest exact-head Windows Hook contract／Web CI／Mobile App CI結果、Windowsで安全なroot固定付き操作の許可契約、原因に応じた最小修正と診断整理、Codespaces実機動作は未確認または未達。PRをレビュー・マージ可能な完了状態とは扱わない。
+
+## 2026-10-19 — merge後のWindows G10拒否修正
+
+- Merge delivery: 4つの競合を統合したmerge commit `a22f297a6ce511db67c45bf4ca82a4badcb86d3a`をPR branchへ通常pushした。最新headのWeb CI run `39181577681`はWindows Hook contractで失敗、Mobile App CI run `39181577668`は成功。PR headとwaiterのexpected headは一致。
+- Windows evidence: failed Hook contractは216件中204 passed／12 failed。既存失敗fixtureの同一process診断で、`git rev-parse --show-toplevel`、`--absolute-git-dir`、Hook owner rootは`realpathSync.native()`でexpected rootと一致し、通常の`realpathSync()`では一致しなかった。これはWindows Actionsでのpath canonicalization差を示す。
+- Repair: `.codex/hooks/pre_tool_use_policy.mjs`のroot解決とcanonical anchor照合を`realpathSync.native()`へ合わせた。G10のliteral owner-root anchor要求、root同一性比較、拒否条件は維持した。回帰契約として別repositoryへのsymlink aliasと別worktree root anchorをG10で拒否するテストを追加した。期待値緩和、skip、G10解除は行っていない。
+- Validation after repair: `corepack pnpm run test:hooks`は3 files／217 passed、`corepack pnpm run test:contracts`は48 files／834 passed／3 skipped、`corepack pnpm run verify`はexit 0。verify内でもunit／integration／repository／component／contract tests、security check、typecheck、web/docs/spec buildが成功した。ESLintは0 errors／65 warnings。React `act`／Node experimental warningはnon-fatal。
+- Next: この修正と最終Run Artifactをcommit・通常pushし、新しいheadのrequired CIを確認する。merge後headのCIは修正前の結果であり、修正後のWindows Actions成功は未確認。Codespaces実機も未検証。
+- Progress: 95% (19/20)。ローカルrepair・標準検証とmerge deliveryは完了。最新修正headのCI確認は未完了。

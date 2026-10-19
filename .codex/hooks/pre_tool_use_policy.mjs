@@ -627,8 +627,8 @@ function isCanonicalLiteralRoot(candidate, ownerRoot) {
   if (!candidate || !ownerRoot || !path.isAbsolute(candidate)) return false;
   if (/[\r\n$`%*?;|&]/.test(candidate) || candidate.includes("\0")) return false;
   try {
-    const resolved = realpathSync(path.resolve(candidate));
-    const expected = realpathSync(ownerRoot);
+    const resolved = realpathSync.native(path.resolve(candidate));
+    const expected = realpathSync.native(ownerRoot);
     return process.platform === "win32"
       ? resolved.toLowerCase() === expected.toLowerCase()
       : resolved === expected;
@@ -774,7 +774,7 @@ function getOwnerRepositoryRoot(cwd) {
       stdio: ["ignore", "pipe", "ignore"],
       timeout: 2000,
     }).trim();
-    return reportedRoot ? realpathSync(path.resolve(reportedRoot)) : null;
+    return reportedRoot ? realpathSync.native(path.resolve(reportedRoot)) : null;
   } catch {
     return null;
   }
