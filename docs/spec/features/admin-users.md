@@ -2,17 +2,17 @@
 
 ## Purpose / Scope
 
-AdminがUserのCustomer Rank、Operator/Admin Role、Account Statusを管理する契約を定義します。
+管理者がユーザーの会員ランク（Customer Rank）、オペレーター／管理者ロール（Operator/Admin Role）、アカウントステータス（Account Status）を管理する契約（コントラクト）を定義します。
 
 ## Business Rules
 
 ### BR-ADMINUSER-001 — User変更はRole、Status、最終Admin保護を守る
 
-Customer RankはCustomer内だけ、Roleはoperator/admin間だけ、Statusはactive/suspended間だけ変更できます。最後のAdmin、自己破壊的変更、withdrawn操作は拒否します。
+会員ランクはカスタマー内のみ、ロールはoperator／admin間のみ、ステータスはactive／suspended間のみ変更可能です。最後の管理者の変更、自身の権限を失わせる自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作は拒否します。
 
 ## UI / Behavior Contract
 
-拒否理由を説明し、Customerの自分自身のRole/StatusやwithdrawnのMutationを操作可能に見せません。Status変更時は必要なSession/Checkoutの無効化を利用者へ説明します。
+操作を拒否する際はその理由を提示し、操作者自身のアカウントに対するロール／ステータス変更や、退会済み（withdrawn）ユーザーに対する更新（Mutation）を操作可能に見せないようにします。ステータス変更時は、必要なセッション（Session）やチェックアウト（Checkout）の無効化について利用者へ説明を表示します。
 
 ### SCREEN-ADMIN-USERS — Admin Users
 
@@ -20,14 +20,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- UserのRole、Rank、Account Status、Filterを表示する。
-- Customer自身、withdrawn、最後のAdminなどのMutation境界を説明する。
+- ユーザーのロール、ランク、アカウントステータス、および絞り込み条件（フィルター）を表示する。
+- 操作者自身、退会済み（withdrawn）、最後の管理者などに対する変更（Mutation）の境界条件を説明する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `admin` | `default` | User一覧とStatus/Roleを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINUSER-001`, `AC-ADMINUSER-001` |
+| `default` | baseline | `admin` | `default` | ユーザー一覧とステータス／ロールを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINUSER-001`, `AC-ADMINUSER-001` |
 
 #### Visual References
 
@@ -47,14 +47,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- User Detailと許可されたRole / Rank / Status操作を表示する。
-- 自己破壊的変更、withdrawn mutation、最後のAdmin変更を操作可能に見せない。
+- ユーザー詳細と、許可されたロール／ランク／ステータスの操作を表示する。
+- 自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作（Mutation）、最後の管理者に対する変更操作をUI上で操作可能に見せない。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `admin` | `default` | User Detailと保護理由を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINUSER-001`, `AC-ADMINUSER-001` |
+| `default` | baseline | `admin` | `default` | ユーザー詳細と保護理由を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINUSER-001`, `AC-ADMINUSER-001` |
 
 #### Visual References
 
@@ -76,7 +76,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 Related BR: `BR-ADMINUSER-001`
 
-許可されたRank/Role/Status変更だけが成功し、最後のAdmin、自己変更、withdrawn、Role不整合が拒否されます。
+許可されたランク／ロール／ステータスの変更のみが成功し、最後の管理者の変更、自身に対する変更、退会済み（withdrawn）ユーザーの変更、ロールの不整合は拒否されます。
 
 ## Executable Canonical Sources
 

@@ -1,20 +1,20 @@
-# Part 2-7: Quality GateとCI/CD
+# Part 2-7: クオリティゲートとCI/CD
 
 ## 学習目標
 
-- 対象範囲を限定したWeb CIのQuality Gate、Artifact、失敗時の記録、fail-closed条件を説明できる。
+- 対象範囲を限定したWeb CIにおけるクオリティゲート、アーティファクト、失敗時のログ記録、およびフェイルクローズ（fail-closed）の条件を説明できる。
 - CIとCDの違いを説明できる（CDの詳細は発展課題・参考資料）。
-- 必須Check / Quality Gateの役割を理解できる。
-- PR、main、Nightly、ManualへTest Suiteを配置できる。
-- Web Build / Test Artifactと失敗時の記録の関係を理解できる。
-- Preview Deploy、Production Deploy、Deploy後Smokeは発展課題・参考資料として比較できる。
-- 「すべてのTestを毎回実行する」以外の設計を、Risk・Feedback速度・Costから考えられる。
-- Job並列化、Artifact再利用、変更判定などのCI最適化を品質Gateを弱めずに考えられる。
-- Scenario Shopの対象範囲を限定したWeb CI構成を設計判断として説明できる。
+- 必須チェックおよびクオリティゲートが果たす役割を理解できる。
+- PR、main、Nightly、Manualの各実行タイミングへテストスイートを適切に配置できる。
+- Webのビルド／テストアーティファクトと、失敗時の記録との関係性を理解できる。
+- プレビューデプロイ、本番デプロイ、デプロイ後のスモークテストを発展課題・参考資料として比較・検討できる。
+- 「すべてのテストを毎回実行する」以外の設計方針を、リスク・フィードバック速度・コストの観点から検討できる。
+- ジョブの並列化、アーティファクトの再利用、差分検出などのCI最適化手法を、品質ゲートを弱めずに検討できる。
+- Scenario ShopにおけるWeb CI構成を、対象範囲を絞った設計判断として説明できる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリのWeb / Native CI/CD構成を使用します。**
+**このモジュールでは、本リポジトリのWeb / Native向けCI/CD構成を使用します。**
 
 主な参照先:
 
@@ -25,28 +25,28 @@
 - `tests/contracts/native-ci-workflow.test.ts`
 - `scripts/validate-curriculum.ts`
 - `training/github-actions/`
-- Cloudflare Pages Preview / Production経路
+- Cloudflare Pages Preview / Production 経路
 
 ## 共通課程の必須範囲
 
-共通経路では、対象範囲を限定したWeb CIについて、Mergeを止めるQuality Gate、確認対象のBuild / Test Artifact、失敗または想定外SkipをSuccessにしないfail-closedの判断を行います。Preview / Production delivery、Native CI、vendor固有の運用、Level 3の改善設計は発展課題・参考資料またはモバイルアプリ自動化の選択課程です。
+共通課程では、対象範囲をWeb CIに絞り、マージをブロックするクオリティゲート、確認対象となるビルド／テストアーティファクト、ならびに失敗や想定外のスキップを成功（Success）と判定させないフェイルクローズの設計判断を扱います。プレビューや本番環境へのデプロイ（delivery）、Native CI、ベンダー固有の運用、Level 3の改善設計などは、発展課題・参考資料またはモバイルアプリ自動化の選択課程として扱います。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P2-5のTraining Copy上のWeb CI Run／Check／Artifact／Execution Receipt、P2-4のWorkflow境界、P1からのCase／コード／Evidence、Native選択時はP2-6の別枠記録 |
-| Activity | 必須Check、Gate、Artifact、Failure／Skip、PR／main／Nightly／Manualの配置を比較し、Risk・Feedback速度・CostからWeb CIの範囲を設計する |
-| Observation | どの条件でMergeを止めるか、Failureと想定外Skipをどう扱うか、Artifactが原因調査へどうつながるか、Web CommonとNative／CDの境界 |
-| Output | `handoff-root/self-check/P2-07.md`へQuality Gate設計、対象Test／Trigger／Artifact／Failure時の対応表、P2-8へ渡すRun／Check／Artifact／Case参照を記録する。Mermaid等の図や補足Evidenceが必要なら既存`handoff-root/evidence/`へ置き、P2-07.mdから参照する |
-| Self-check | GateとTest、BuildとArtifact、SkipとSuccess、PR／main／Nightly／Manualの違い、最小権限とfail-closedの理由を説明する |
-| Completion | 対象範囲を限定したWeb CIのGateを理由付きで設計し、P2-5の実行記録と対応付けられる。Native／Preview／ProductionをCommonの必須条件へ混ぜない |
-| Recovery | Gateの理解不足はP2-4／P2-5のRunとWorkflowへ戻る。GitHub外部状態を確認できない場合はEvidence不足／環境として記録し、APIや追加Tokenを前提にしない |
-| Handoff | `handoff-root/self-check/P2-07.md`を設計資料とSelf-checkの正本としてP2-8へ渡す。対象Case／code Path、Trigger、Run／Check／Artifact、Failure対応を含め、Native選択記録は別枠で示す |
+| Input | P2-5のトレーニング用コピーにおけるWeb CI実行ログ（Run／Check／Artifact／Execution Receipt）、P2-4で整理したワークフローの境界、P1から引き継いだテストケース／コード／エビデンス（Native選択時はP2-6の別枠記録） |
+| Activity | 必須チェック、ゲート、アーティファクト、失敗／スキップの扱い、およびPR／main／Nightly／Manualの配置を比較し、リスク・フィードバック速度・コストの観点からWeb CIの適用範囲を設計する |
+| Observation | どの条件でマージをブロックするか、失敗や想定外のスキップをどう処理するか、アーティファクトが原因調査にどう役立つか、Web共通課程とNative／CDの境界線 |
+| Output | `handoff-root/self-check/P2-07.md` にクオリティゲート設計、対象テスト／トリガー／アーティファクト／失敗時の対応表、およびP2-8へ引き渡す実行ログ・チェック・アーティファクト・テストケースの参照情報を記録する。Mermaid等の図や補足エビデンスが必要な場合は既存の `handoff-root/evidence/` に配置し、P2-07.mdから参照する |
+| Self-check | ゲートとテスト、ビルドとアーティファクト、スキップと成功、PR／main／Nightly／Manualの違いを整理し、最小権限とフェイルクローズを採用する理由を説明する |
+| Completion | 対象範囲を限定したWeb CIのゲートを理由とともに設計し、P2-5の実行記録と紐づけられていること。Native、プレビュー、本番環境の要件を共通課程の必須条件に混在させていないこと |
+| Recovery | ゲートの理解が不足している場合はP2-4およびP2-5の実行結果やワークフロー定義に戻る。GitHub外部の状態が確認できない場合はエビデンス不足または環境起因として記録し、外部APIや追加トークンを前提としない |
+| Handoff | `handoff-root/self-check/P2-07.md` を設計資料およびセルフチェックの正本としてP2-8へ引き渡す。対象ケース／コードパス、トリガー、Run／Check／Artifact、失敗時の対応を含め、Native選択時の記録は別枠として明示する |
 
-## Lesson 1: Quality Gate
+## Lesson 1: クオリティゲート（Quality Gate）
 
-Quality Gateは、次の工程へ進むために満たすべき条件です。
+クオリティゲートとは、次の工程へ進むために満たすべき品質条件のことです。
 
 例:
 
@@ -55,62 +55,62 @@ Pull Request
 ↓
 Lint / Typecheck / Test / Build
 ↓
-Required Gate
+Required Gate（必須ゲート）
 ↓
-Merge可能
+マージ可能
 ```
 
-Testを実行するだけではなく、Failure時に先へ進ませないことが重要です。
+単にテストを実行するだけでなく、失敗（Failure）が発生した際に後続処理やマージを確実に食い止める設計が重要です。
 
-## Lesson 2: 必須Checkを選ぶ
+## Lesson 2: 必須チェックの選定基準
 
-すべてのTestを必須にすれば安全とは限りません。
+すべてのテストを必須チェックに指定すれば安全になる、とは限りません。
 
-必須に向くもの:
+必須チェックに向いているもの:
 
-- 高い信頼性がある。
-- 重要なRegressionを確認する。
-- 実行時間が許容できる。
-- Failure時に修正すべき対象が明確。
+- 実行結果の信頼性が高い（フレイキーでない）。
+- 重大なリグレッション（先祖返り）を確実に検知できる。
+- 実行時間が許容範囲内に収まっている。
+- テスト失敗時に修正すべき箇所が明確である（対処しやすい）。
 
 必須にする前に改善すべきもの:
 
-- 頻繁にFlakyになる。
-- 外部依存で不安定。
-- 数時間かかる。
-- FailureがActionableでない。
+- 頻繁に結果が不安定（Flaky）になる。
+- 外部依存が多く環境要因で失敗しやすい。
+- 完了までに数時間単位の時間がかかる。
+- 失敗しても原因の特定や対処が難しい（Actionableでない）。
 
-Quality Gateは厳しさだけでなく信頼性が重要です。
+クオリティゲートには、判定の厳格さだけでなく、開発を阻害しない「信頼性の高さ」が求められます。
 
-## Lesson 3: PR / main / Nightly / Manual
+## Lesson 3: 実行タイミング（PR / main / Nightly / Manual）
 
-実行タイミングごとに目的を整理します。
+テストの実行タイミングごとに、その目的を整理します。
 
-### PR
+### PR（プルリクエスト時）
 
-早いFeedbackとMerge前のRegression検出。
+迅速なフィードバックを提供し、ブランチのマージ前にリグレッションを検出することを目的とします。
 
-### main
+### main（メインブランチ）
 
-統合後のより広い確認やProductionへつながるGate。
+統合後のより広い確認や、本番環境へつながるゲートとして機能させます。
 
-### Nightly
+### Nightly（夜間定期実行）
 
-長時間・多Browser・広いRegressionなど、PR Feedbackを遅くしたくない検証。
+実行時間が長いテスト、複数ブラウザでの網羅的検証、広範なリグレッションテストなど、PR時のフィードバックを遅延させたくない重い検証を行います。
 
-### Manual
+### Manual（手動実行）
 
-高コスト、調査目的、Release前など人間が意図的に起動する検証。
+リソース消費が大きい検証、特定不具合の調査、リリース直前の最終確認など、人間が意図したタイミングで明示的に起動します。
 
-案件によって最適配置は異なります。
+プロジェクトの規模や要件に応じて、テストスイートの最適な配置は異なります。
 
-## Lesson 4: CIとCD（発展課題・参考資料）
+## Lesson 4: CIとCDの違い（発展課題・参考資料）
 
-CIは変更統合時のBuild / Testなどの自動検証を中心に扱います。
+CI（継続的インテグレーション）は、コードの変更を統合する際に行うビルドやテストなどの自動検証を中心に扱います。
 
-CDでは、検証済みArtifactを環境へDelivery / Deployする流れまで扱います。
+CD（継続的デリバリー／デプロイ）では、検証済みのアーティファクトを環境へ配信・デプロイする流れまでを扱います。
 
-Scenario ShopのWebでは概念的に次の経路があります。
+Scenario ShopのWeb環境では、概念として以下のようなパイプライン経路が存在します。
 
 ```text
 Build / Test
@@ -123,139 +123,139 @@ Preview Smoke
 ↓
 validate
 ↓
-mainではProduction Deploy
+mainブランチでは本番環境へデプロイ（Production Deploy）
 ↓
-Production Smoke
+本番スモークテスト（Production Smoke）
 ```
 
-## Lesson 5: Preview Environment（発展課題・参考資料）
+## Lesson 5: プレビュー環境（発展課題・参考資料）
 
-Pull RequestごとのPreviewは、Merge前に実際のDeploy環境で確認できる利点があります。
+プルリクエストごとにプレビュー環境を作成すると、コードのマージ前に実際のデプロイ環境で動作を確認できるという利点があります。
 
-ただしPreviewには次の課題があります。
+一方で、プレビュー環境の運用には以下の課題が伴います。
 
-- Secret
-- Hosting Cost
-- Environment差
-- Cleanup
-- Fork PRのSecurity
+- シークレット情報の安全な受け渡し
+- ホスティング環境のコスト増加
+- 本番環境との環境差異
+- 不要になった環境のクリーンアップ処理
+- フォークされたPRに対するセキュリティ対策
 
-Scenario Shopの既存CIにはCloudflare Previewの経路がありますが、これは共通課程の必須範囲ではなく、Preview環境を比較する発展課題・参考資料の題材です。
+Scenario Shopの既存CIにはCloudflare Pagesへのプレビュー配信経路が含まれていますが、これは共通課程の必須範囲ではなく、プレビュー環境の設計を比較検討するための発展課題・参考資料です。
 
-なぜLocal BuildのTestだけではなくPreview Smokeも実行するか考えます。
+ローカルビルドに対するテストだけでなく、なぜプレビュー環境でのスモークテストも必要なのかを考えてみましょう。
 
-## Lesson 6: Deploy後Smoke（発展課題・参考資料）
+## Lesson 6: デプロイ後スモークテスト（発展課題・参考資料）
 
-Deploy Commandが成功しても、公開URLが正常に動作する保証にはなりません。
+デプロイコマンド自体が正常終了しても、公開されたURL上でアプリケーションが正常に動作している保証にはなりません。
 
-Deploy後Smokeでは最低限のCritical状態を確認します。
+デプロイ後スモークテストでは、公開環境が最低限稼働しているクリティカルな状態を確認します。
 
-SmokeへRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
+ここではすべてのリグレッションテストを実行するのではなく、公開が成功したかを素早く判定できる最小限のテストを選定して実行します。
 
-## Lesson 7: Web Artifactと失敗時の記録（共通課程の必須範囲）
+## Lesson 7: Webアーティファクトと失敗時の記録（共通課程の必須範囲）
 
-「TestしたWeb Artifact」と、後続工程で確認するArtifactの関係を明確にすると、Test結果の意味を追跡しやすくなります。
+「テスト対象となったWebアーティファクト」と、後続の検証工程で確認するアーティファクトの関係性を明確にすることで、テスト結果の妥当性を正確に追跡できるようになります。
 
-Scenario ShopではBuildした`dist/`をArtifactとして後続Jobへ渡します。
+Scenario Shopでは、ビルドによって生成された `dist/` ディレクトリをアーティファクトとして保存し、後続のジョブへ受け渡しています。
 
-次を考えます。
+以下の点を整理してみましょう。
 
-- E2EしたArtifactは何か。
-- E2E Failure時に確認するArtifactは何か。
-- Preview / ProductionへDeployするArtifactは何か（発展課題・参考資料）。
+- E2Eテストを実行した対象のアーティファクトは何か。
+- E2Eテストが失敗した際、原因調査のために確認すべきアーティファクト（ログ、レポート、トレース等）は何か。
+- プレビューや本番環境へデプロイされるアーティファクトは何か（発展課題・参考資料）。
 
-## Lesson 8: Fail-closed
+## Lesson 8: フェイルクローズ（Fail-closed）
 
-上流Jobが失敗・想定外Skipしたとき、最終Gateが誤ってSuccessにならない設計が必要です。
+上流のジョブが失敗したり想定外にスキップされたりした際に、最終ゲートが誤って「成功（Success）」と判定されないような設計（フェイルクローズ）が不可欠です。
 
-Scenario Shopの`verify` / `validate`ではJob Resultを明示的に確認します。
+Scenario Shopの `verify` および `validate` ジョブでは、依存する前段ジョブの実行結果（Job Result）を明示的に検証しています。
 
-「Workflowが最後まで走った」ことと「必要条件がすべて成功した」ことを区別します。
+「ワークフローが最後まで完走したこと」と「必要な品質条件がすべて合格したこと」は明確に区別しなければなりません。
 
-Curriculum側でも `validate:curriculum` とTraining Web baselineを共通課程の確認対象へ接続します。Training Maestro baselineはモバイルアプリ自動化の選択課程・支援の確認対象であり、共通課程の必須範囲へ逆流させません。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常の必須PASSへ混在させません。
+カリキュラム側でも、`validate:curriculum` とトレーニング用Webのベースライン検証を共通課程の確認対象として接続しています。なお、Training Maestroのベースラインはモバイルアプリ自動化の選択課程・支援用であり、共通課程の必須範囲には含めません。また、意図的な失敗検証（Intentional Failure）は手動実行および講師確認用のものであり、通常の必須合格条件（PASS）とは混在させない設計としています。
 
-## Lesson 9: 並列化（発展課題・参考資料）
+## Lesson 9: ジョブの並列化（発展課題・参考資料）
 
-独立した処理は並列化するとWall-clockを短縮できます。
+互いに依存しない独立した処理は、並列実行することで全体の所要時間（ウォールクロック時間）を短縮できます。
 
-例:
+並列化の例:
 
-- Style Quality
-- Code Quality
-- Unit / Integration
-- Build
+- スタイルの静的解析（Style Quality）
+- コード品質の検証（Code Quality）
+- 単体テスト／結合テスト（Unit / Integration）
+- プロダクションビルド（Build）
 
-ただし次は考慮します。
+ただし、並列化を導入する際は以下のオーバーヘッドを考慮する必要があります。
 
-- Runner起動Cost
-- Dependency Install重複
-- Artifact Transfer
-- Job依存
+- ランナーの起動コスト
+- 依存関係のインストール（npm install等）の重複
+- アーティファクトのアップロード／ダウンロード転送コスト
+- ジョブ間の依存関係の複雑化
 
-Job数を増やすこと自体を最適化と呼びません。
+ジョブの数を細かく分割すること自体が、直ちに最適化につながるわけではありません。
 
-## Lesson 10: Failure時の再実行Cost（発展課題・参考資料）
+## Lesson 10: 失敗時の再実行コスト（発展課題・参考資料）
 
-大きな1Jobにすべて詰めると、後半だけ失敗しても最初から再実行する場合があります。
+1つの巨大なジョブにすべての検証を詰め込むと、処理の終盤で失敗した際にも最初からすべて再実行しなければならなくなります。
 
-Scenario ShopのAndroid Build / Runtime分離は、この問題への一つの解決例です。
+Scenario ShopにおいてAndroidのビルドジョブと実行環境（ランタイム）ジョブが分離されている構成は、この再実行コストを抑えるためのアプローチの一例です。
 
-「成功済みの高コスト工程を再利用できるか」という観点を持ちます。
+「すでに成功した高コストな処理結果を再利用できるか」という視点を持つことが重要です。
 
-## Lesson 11: Quality Gateを弱める最適化を避ける
+## Lesson 11: クオリティゲートを弱める安易な最適化の防止
 
-CIを速くするために次を安易に行いません。
+CIの実行速度を向上させたいからといって、以下のような安易な手段を取ってはなりません。
 
-- TestをSkipする。
-- `continue-on-error`へする。
-- 必須指定を外す。
-- Assertionを弱くする。
-- Timeoutを無意味に伸ばす。
+- テストの実行をスキップする。
+- `continue-on-error` を指定して失敗を無視する。
+- 必須チェックの指定を外す。
+- アサーション（検証条件）を緩める。
+- 原因を調査せずタイムアウト値だけを無闇に引き延ばす。
 
-最適化は「必要な保証を維持したまま」行います。
+CIの最適化は、「必要な品質保証のレベルを維持した状態」で行う必要があります。
 
-## Lesson 12: Workflow自体をTestする（発展課題・参考資料）
+## Lesson 12: ワークフロー自体のテスト（発展課題・参考資料）
 
-Scenario ShopにはCI WorkflowのContract Testがあります。
+Scenario Shopには、CIワークフローの構造を検証するコントラクトテスト（Contract Test）が用意されています。
 
-WorkflowもCodeであり、変更によって次が壊れる可能性があります。
+ワークフローの定義ファイルもコードの一種であり、編集ミスによって以下のような破損が生じるリスクがあります。
 
-- 必須Job依存
-- Artifact Upload / Download
-- Skip条件
-- Fail-closed
-- Secret Scope
+- 必須ジョブの依存関係が外れる
+- アーティファクトのアップロード／ダウンロード設定が崩れる
+- スキップ条件の判定ミス
+- フェイルクローズ判定の欠落
+- シークレット情報の参照スコープの誤り
 
-高度なCIではWorkflowの構造を自動Testする考え方も学びます。
+成熟したCI環境では、ワークフローの定義構造そのものを自動テストで保護するというアプローチも採用されます。
 
-## ハンズオン1: Test実行タイミング設計
+## ハンズオン1: テスト実行タイミングの設計
 
-Part 1で作成したTestを次へ配置します。
+Part 1で作成したテストスイートを、以下の各実行タイミングへ分類・配置します。
 
-- PR
-- main
-- Nightly
-- Manual
+- PR（プルリクエスト時）
+- main（メインブランチ）
+- Nightly（夜間定期実行）
+- Manual（手動実行）
 
-各Testについて理由を記録します。
+それぞれのテストについて、そのタイミングへ配置した理由を記録してください。
 
-## ハンズオン2: Quality Gate設計
+## ハンズオン2: クオリティゲートの設計
 
-PR Merge前に必須とするJobを選びます。
+PRマージの必須条件とするジョブを選定します。
 
-次をBalanceします。
+以下の要素のバランスを考慮して決定してください。
 
-- Risk
-- Execution Time
-- Flakiness
-- Runner Cost
-- Failure時のActionability
+- 検出すべきリスクの重要度
+- 実行時間（待ち時間）
+- テスト結果の安定性（Flakiness）
+- ランナーの消費コスト
+- 失敗時に対処しやすいかどうか（Actionability）
 
-## ハンズオン3: 対象範囲を限定したWeb CIの図（共通課程）
+## ハンズオン3: 対象範囲を限定したWeb CIの図示（共通課程）
 
-Scenario Shopの現在のWeb CIを、共通課程の必須範囲で図示します。Preview / Production / Smokeを含める場合は発展課題・参考資料と明記します。
+Scenario Shopの現在のWeb CI構成を、共通課程の必須範囲に絞って図示します。プレビュー、本番デプロイ、デプロイ後スモークテストを含める場合は、発展課題・参考資料であることを明記してください。
 
-最低限次を含めます。
+図には最低限以下の要素を含めます。
 
 - Quality
 - Tests
@@ -266,51 +266,51 @@ Scenario Shopの現在のWeb CIを、共通課程の必須範囲で図示しま�
 - Artifact
 - Final Gate
 
-Preview、Production、Deploy後Smokeは別の発展課題・参考資料の図として比較できます。
+プレビュー環境、本番環境、デプロイ後スモークテストについては、別の発展課題・参考資料の図として切り分けて比較できます。
 
-## ハンズオン4: 改善案を考える
+## ハンズオン4: CI改善案の検討
 
-現在のCIへ対して、品質を弱めずに改善可能な点を1件以上考えます。
+現在のCI構成に対して、品質保証のレベルを落とさずに改善可能なポイントを1件以上検討します。
 
-実際に変更する必要はありません。
+実際にコードを変更する必要はありません。
 
-例:
+検討の着眼点:
 
-- Job境界
-- Cache
-- Artifact
-- Test Suite配置
-- Change detection
+- ジョブの分割・統合（ジョブ境界）
+- キャッシュの活用
+- アーティファクトの受け渡し方法
+- テストスイートの配置見直し
+- 差分検出による不要なジョブのスキップ
 
 ## 確認問題
 
-1. Quality GateへすべてのTestを入れない理由は何か。
-2. Preview SmokeとLocal Production Artifact Smokeの違いは何か。
-3. TestしたArtifactとDeploy Artifactを一致させる価値は何か。
-4. `continue-on-error`でCIを通しやすくすることが危険なのはなぜか。
-5. Job並列化が必ず高速化につながるわけではない理由は何か。
-6. Workflow Contract Testにはどんな価値があるか。
+1. クオリティゲートにすべてのテストを含めるべきではない理由は何ですか。
+2. プレビュー環境でのスモークテストと、ローカルの本番ビルドアーティファクトに対するスモークテストにはどのような違いがありますか。
+3. テスト対象となったアーティファクトと、デプロイ対象のアーティファクトを完全に一致させることにはどのような価値がありますか。
+4. `continue-on-error` を使って安易にCIをパスさせることが危険なのはなぜですか。
+5. ジョブの並列化が必ずしも全体の高速化につながらないのはなぜですか。
+6. ワークフローに対するコントラクトテスト（Contract Test）にはどのような価値がありますか。
 
 ## 自己確認
 
-次を自分の対象範囲を限定したWeb CI設計、Gate条件、Artifact、失敗時の記録で確認できれば、共通課程の修了を自己判定できます。
+対象範囲を限定したWeb CI設計、ゲート条件、アーティファクト、および失敗時の記録に関して以下の項目を確認できれば、共通課程の修了を自己判定できます。
 
-- どのWeb Build / Testを必須Gateへ置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
-- TestしたArtifactと後続で確認するArtifactを対応付け、Failure時に確認するArtifactを説明できる。
-- 上流JobのFailureまたは想定外Skipを最終GateがSuccessにしない条件を説明できる。
-- `continue-on-error`、必須指定の解除、Assertion弱体化でGateを通しやすくする設計を採用していない。
-- Preview / Production、Native、vendor detail、Level 3改善は発展課題・参考資料または選択課程として分類し、共通課程の必須範囲へ混ぜていない。
+- どのWebビルド／テストを必須ゲートに配置するかを、リスク、信頼性、フィードバック速度、コスト、対処のしやすさ（Actionability）の理由を添えて選択できる。
+- テスト対象となったアーティファクトと後続工程で確認するアーティファクトを紐づけ、失敗時にどのアーティファクトを確認すべきか説明できる。
+- 上流ジョブの失敗や想定外のスキップが発生した際、最終ゲートが誤って成功（Success）にならない判定条件を説明できる。
+- `continue-on-error` の設定、必須指定の解除、アサーションの弱体化など、ゲートをすり抜けさせるような設計を採用していない。
+- プレビュー／本番環境、Native、ベンダー固有の詳細設定、Level 3の改善設計などを発展課題または選択課程として分類し、共通課程の必須条件と混同していない。
 
-### Recovery
+### リカバリ手順
 
-Gate設計が曖昧な場合は、まず「止めるFailure」「残すArtifact」「失敗時の確認先」の3点へ戻します。CIが動かない場合はWorkflow、Job、Artifact、Environmentを切り分け、想定外Skipなら条件とJob Resultを確認します。Preview / ProductionやNativeの詳細へ進みすぎた場合は、対象範囲を限定したWeb Gateへ戻って共通課程の最小条件を確定します。
+ゲート設計の判断に迷った場合は、まず「マージを止めるべき失敗」「保存すべきアーティファクト」「失敗時の確認先」の3点に立ち返ってください。CIが正常に動作しない場合は、ワークフロー全体、個別ジョブ、アーティファクトの受け渡し、実行環境の4層に切り分けて原因を特定します。想定外のスキップが発生している場合は、`if` 条件式と前段ジョブの実行結果を確認してください。プレビュー／本番環境やNativeの詳細に踏み込みすぎた場合は、対象範囲を絞ったWebゲートの設計に戻り、共通課程の最小要件を確定させてください。
 
 ## 完了条件
 
-- 対象範囲を限定したWeb CIについて、必須のQuality Gate、Build / Test Artifact、失敗時の記録、fail-closed条件を理由付きで設計できる。
-- Test配置やQuality Gateの判断をRisk、Feedback速度、Cost、Flakiness、Actionabilityで説明できる。
-- Preview / Production、Native、vendor固有の詳細、Level 3改善は共通課程の修了の必須条件にしていない。
+- 対象範囲を限定したWeb CIについて、必須クオリティゲート、ビルド／テストアーティファクト、失敗時のログ記録、およびフェイルクローズの条件を理由とともに設計できること。
+- テストの配置やクオリティゲートの選定理由を、リスク、フィードバック速度、コスト、安定性（Flakiness）、対処のしやすさ（Actionability）の観点から説明できること。
+- プレビュー／本番環境、Native、ベンダー固有の詳細設定、Level 3の改善設計などを、共通課程修了の必須条件に含めていないこと。
 
-## 次の行動
+## 次のステップ
 
-対象範囲を限定したWeb CIの設計を最終Integration設計へ接続するため、[P2-8: 導入設計演習](08_integration-design-capstone.md)へ進みます。Preview / Production deliveryやNative差分は必要な場合だけ発展課題・参考資料として比較します。
+対象範囲を絞ったWeb CIの設計を全体の導入設計演習へ繋げるため、[P2-8: 導入設計演習](08_integration-design-capstone.md) へ進んでください。プレビュー／本番環境へのデプロイやNative環境との差分については、必要に応じて発展課題・参考資料として比較・参照します。

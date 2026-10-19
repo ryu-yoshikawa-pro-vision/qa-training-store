@@ -2,128 +2,128 @@
 
 ## 目的
 
-- Codex の実行経路を `manual interactive` / `non-interactive task` / `docker sandbox` に分け、用途ごとに安全性と再現性を揃える。
+- Codex の実行経路を `manual interactive`（手動対話型）/ `non-interactive task`（非対話タスク型）/ `docker sandbox`（Docker サンドボックス型）に分離し、用途ごとに安全性と再現性を統一する。
 
 ## 使い分け
 
 - direct `codex`
-  - Repository / workspace内での通常interactive入口。
-  - project defaultは`workspace-write` / `approval_policy = "never"` / network access enabled。`prompt`は自動拒否されるため、高影響operationは実行しない。
+  - リポジトリ／ワークスペース内での通常の対話型エントリーポイント。
+  - プロジェクトの既定値は `workspace-write` / `approval_policy = "never"` / ネットワークアクセス有効。プロンプト承認要求（`prompt`）は自動で拒否されるため、影響の大きい操作は実行しない。
 - `scripts/new-run.ps1|sh`
-  - run directory 初期化用 helper。
-  - `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` をまとめて作る。
-  - actual `.codex/runs/<run_id>/run.json`の通常workflowにおける正規生成経路です。Agentはactual `run.json`を直接作成・編集しません。
-  - 既存 run は上書きせず、`--force` / `-Force` でも欠けている親 directory を作るだけに留める。
+  - Run ディレクトリ初期化用のヘルパー。
+  - `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` を一括作成する。
+  - 通常ワークフローにおいて、実体の `.codex/runs/<run_id>/run.json` を生成する正規の経路である。エージェントが実体の `run.json` を直接作成・編集することはない。
+  - 既存の Run は上書きせず、`--force` / `-Force` を指定した場合でも未作成の親ディレクトリを補完する動作にとどめる。
 - `scripts/codex-safe.ps1|sh`
-  - preflightやJSONL記録が必要なとき、およびdirect `never`で拒否する例外operationの明示承認用wrapper。
-  - preflight、危険引数拒否、sandbox/approval 固定、JSONL ログを提供する。
-  - `safe`はworkspace-write / on-request / network falseを明示する。local branch deleteやmerge／rebase recoveryはnetwork昇格なしで承認できる。network例外operationはapproval + network昇格のruntime検証が成功した場合だけ使う。
-  - active Runに紐づくinteractive実行では current `RunId` を `-RunId`／`--run-id` で必ず指定する。省略はactive Runに紐づかないad-hoc実行に限り、manifest syncを行わない。
-  - RunId指定時は既存Run Directoryをログ生成前に確認し、存在しないRunIdではCodexを起動しない。既存 `run.json` がある場合だけ、Codex終了後にabsolute pathのcollectorを一度実行してmanifestを同期する。manifest-less Runは実行するがmanifestを生成しない。
-  - `--no-log`／`-NoLog` はloggingだけを無効にし、manifest syncは無効にしない。Codex終了や `Stop` Hookだけで `status=completed` へ変更しない。
+  - 事前チェック（preflight）や JSONL ログの記録が必要な場合、および direct の `never` ポリシーで拒否される例外操作を明示的に承認するためのラッパー。
+  - 事前チェック、危険な引数の拒否、サンドボックスおよび承認ポリシーの固定、JSONL ログ機能を提供する。
+  - `safe` プリセットは workspace-write / on-request / ネットワーク無効（network false）を明示する。ローカルブランチの削除やマージ／リベースのリカバリは、ネットワーク権限の昇格なしで承認できる。ネットワークを伴う例外操作は、承認とネットワーク昇格のランタイム検証に成功した場合に限り使用する。
+  - アクティブな Run に紐づく対話実行では、現在の `RunId` を `-RunId`／`--run-id` で必ず指定する。指定を省略できるのはアクティブな Run に紐づかないアドホックな実行に限られ、その場合はマニフェスト同期を行わない。
+  - RunId 指定時は、ログ生成前に既存の Run ディレクトリの存在を確認し、存在しない RunId では Codex を起動しない。既存の `run.json` がある場合に限り、Codex 終了後に絶対パスでコレクターを1度実行してマニフェストを同期する。マニフェストを持たない Run（manifest-less Run）は実行されるが、マニフェストの生成は行わない。
+  - `--no-log`／`-NoLog` はログ記録のみを無効化し、マニフェスト同期は無効化しない。Codex の終了や `Stop` フックのみを根拠に `status=completed` へ変更してはならない。
 - `.codex/config.toml` / `.codex/hooks/log_event.mjs`
-  - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode loggerへ接続する。
-  - Logging Hookはmatcherなし、timeout 10秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。10秒は5秒の2倍のbounded headroomであり、無制限timeoutではない。
-  - 既存のSafety `PreToolUse` / Bash matcherは独立したblocking経路として維持する。
-- project-local Hookを追加・変更した場合は、interactive／non-interactiveの実行経路に関わらず、同じ `CODEX_HOME` で [codex-safety-harness.md](codex-safety-harness.md) のHook trust手順を確認してから使用する。Hook trustの定義元、`/hooks`、再レビュー、runtime境界などの詳細は同文書へ集約し、ここでは重複記載しない。
+  - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop` を同一の Node ロガーへ接続する。
+  - ロギングフックはマッチャーなし、タイムアウト10秒、リポジトリルート基準で起動し、セッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` へ保存する。10秒という設定値は、基準値5秒の2倍にあたる有界なバッファ（bounded headroom）であり、タイムアウトの無制限化を意味しない。
+  - 既存の安全性確保用 `PreToolUse` および Bash マッチャーは、独立したブロック経路として維持する。
+- プロジェクトローカルのフックを追加・変更した場合は、対話型／非対話型の実行経路にかかわらず、同一の `CODEX_HOME` で [codex-safety-harness.md](codex-safety-harness.md) のフック信頼（Hook trust）手順を確認してから使用する。フック信頼の定義元、`/hooks`、再レビュー、ランタイム境界などの詳細は同文書へ集約し、本書では重複して記載しない。
 - `scripts/codex-task.ps1|sh`
-  - 非対話 `codex exec` 用 wrapper。
-  - 実行順は `preflight -> codex exec -> output/schema check -> verify -> report`。
-  - `output-last-message` と machine-readable report JSON を必ず残す。
-  - `--run-id` 指定時は `.codex/runs/<run_id>/artifacts|reports|logs` に既定出力を集約する。
+  - 非対話の `codex exec` 用ラッパー。
+  - 実行順序は `preflight -> codex exec -> output/schema check -> verify -> report`。
+  - 最終メッセージ出力（`output-last-message`）と機械可読なレポート JSON（machine-readable report JSON）を必ず残す。
+  - `--run-id` 指定時は、`.codex/runs/<run_id>/artifacts|reports|logs` に既定の出力を集約する。
 - `scripts/codex-sandbox.ps1|sh`
-  - `codex-task --runtime docker-sandbox` の薄い互換 wrapper。
-  - Docker image と認証が明示設定されている場合だけ使う experimental path。
+  - `codex-task --runtime docker-sandbox` の軽量な互換ラッパー。
+  - Docker イメージと認証が明示的に設定されている場合にのみ使用する実験的パス。
 
-## Workflow levelの使い分け
+## ワークフローレベルの使い分け
 
-| workflow level | PLAN | TASKS | REPORT | run.json | evaluation | scope 指定 | 想定用途 |
+| ワークフローレベル | PLAN | TASKS | REPORT | run.json | evaluation | scope 指定 | 想定用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `lightweight` | 任意 | 簡易で可 | 最終 1 ブロックで可 | 任意 | 不要 | 任意 | 誤字修正、小規模 docs 修正、軽微な設定修正 |
-| `standard` | 必須 | 必須 | 必須 | 推奨 | 任意 | 推奨 | 通常の実装、複数ファイル変更 |
+| `lightweight` | 任意 | 簡易で可 | 最終 1 ブロックで可 | 任意 | 不要 | 任意 | 誤字修正、小規模なドキュメント修正、軽微な設定修正 |
+| `standard` | 必須 | 必須 | 必須 | 推奨 | 任意 | 推奨 | 通常の実装、複数ファイルにまたがる変更 |
 | `strict` | 必須 | 必須 | 必須 | 必須 | 必須 | 必須 | 安全性・移行・公開契約に関わる変更 |
 
-- `lightweight` は無制限 mode ではない。
-- 外部通信、削除、rename、移行、権限変更、セキュリティ影響、公開 contract 変更を含む場合は `standard` 以上へ引き上げる。
-- `standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。
-- direct `codex`を通常interactive入口とするlightweight／standard Runでは、`new-run`に`--no-run-manifest`／`-NoRunManifest`を指定します。`PLAN.md`、`TASKS.md`、`REPORT.md`は残し、direct session用manifestは追加しません。
-- `run_manifest = "recommended"`はmachine-managed標準経路で維持します。strict Runは既存writer／collectorを使い、run manifestとevaluationを必須にします。
-- `lightweight`でもRun Artifactを残します。
-- `lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。
-- `new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。
+- `lightweight` は制限なしのモードではない。
+- 外部通信、削除、リネーム、移行、権限変更、セキュリティへの影響、公開インターフェースや契約（公開 contract）の変更を含む場合は、`standard` 以上へ引き上げる。
+- `standard` / `strict` では、`scripts/new-run.sh` または `scripts/new-run.ps1` を優先して Run を初期化する。
+- direct `codex` を通常の対話型エントリーとする lightweight／standard Run では、`new-run` 実行時に `--no-run-manifest`／`-NoRunManifest` を指定する。`PLAN.md`、`TASKS.md`、`REPORT.md` は残すが、direct セッション用のマニフェストは追加しない。
+- `run_manifest = "recommended"` は機械管理の標準経路として維持する。strict Run では既存のライター／コレクターを使用し、Run マニフェストと評価結果（evaluation）の出力を必須とする。
+- `lightweight` レベルであっても Run 成果物（Run Artifact）を残す。
+- `lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、必要に応じて手動作成してよい。
+- `new-run` を使わずに手動で初期化する場合は、該当するワークフローレベルで作成すべきエージェント管理成果物に対応した既存テンプレートを元に作成する。
   - `.codex/templates/PLAN.md`
   - `.codex/templates/TASKS.md`
   - `.codex/templates/REPORT.md`
-- actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。
-- Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。
+- 実体の `run.json` は機械管理（machine-managed）であり、エージェントが直接作成・直接編集することはない。判断に迷う場合は `new-run` を使用し、少なくとも1件のエビデンスコマンドを残す。
+- ワークフローレベル一覧表の `lightweight` における `run.json` の「任意」は、Run マニフェスト自体が不要となるケースがあることを示すものであり、存在する `run.json` をエージェントが直接作成・編集してよいことを意味しない。
 
-## 検証tier
+## 検証レベル（tier）
 
-- consumer repo の通常確認:
+- 利用側リポジトリ（consumer repo）での通常確認:
   - `bash scripts/verify`
   - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
-- source repo maintainer の配布前確認:
+- 配布元リポジトリ（source repo）メンテナーによる配布前確認:
   - `bash template/scripts/verify --strict-harness`
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`
-- `--strict-harness` / `-StrictHarness` は source repo layout、spec/template/docs/version/CI 契約を前提にするため、consumer repo では通常 verify を使う。
+- `--strict-harness` / `-StrictHarness` はソースリポジトリの構成、仕様・テンプレート・ドキュメント・バージョン・CI に関する規約を前提としているため、利用側リポジトリでは通常の verify を使用する。
 
-## 文章品質gateの検証
+## 文章品質ゲートの検証
 
-- `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree`を呼び出し、現在のworktreeを開始時HEADと比較する。比較不能は失敗として扱う。
-- `pnpm run lint:text:all` は同じcheckerの`--all` modeを呼び出し、既存の`getWorkingTreeMarkdownPaths()`で列挙した現在のMarkdownから、`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md`を除いた範囲を全件検査する。差分gateのfingerprint比較と責務を分ける。
-- `scripts/verify` と `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存 `tests/contracts/codex-hook-contract.test.ts` と文章品質contractを追加実行するopt-inである。通常verifyのstrict意味や依存条件は変更しない。
-- `scripts/lint-text-quality.mjs` はRepository固有custom literal／regexと`.textlintrc.json`の7個の個別textlint ruleだけを本文へ適用し、Markdown構造は `lint:markdown` に任せる。`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。未確定の禁止語・置換・allowlist・英語混在判定は追加しない。
-- pull requestでは `origin/${{ github.base_ref }}` とworkflowがcheckoutしたmerge `HEAD`のmerge-baseを比較baseにする。pushでは `github.event.before`、scheduleとworkflow dispatchでは `HEAD^`を使う。local以外ではclean checkoutの `HEAD -> worktree` 比較をCI gateとして使わない。
-- 変更path、baseline本文、current本文、rename mappingは同一comparison treeから取得する。Git rename mappingがなく、削除pathをcurrent Markdownへexact content SHA-256で一意に対応付けられない場合は、推測せず比較failureにする。
+- `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree` を呼び出し、現在のワークツリーを開始時の HEAD と比較する。比較不能な場合は失敗として扱う。
+- `pnpm run lint:text:all` は同じチェッカーの `--all` モードを呼び出し、既存の `getWorkingTreeMarkdownPaths()` で列挙された現在の Markdown から、`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md` を除外した範囲を全件検査する。差分ゲートのフィンガープリント比較とは責務を分離する。
+- `scripts/verify` および `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存の `tests/contracts/codex-hook-contract.test.ts` と文章品質規約を追加実行するためのオプトインフラグである。通常検証における strict の意味や依存条件を変更するものではない。
+- `scripts/lint-text-quality.mjs` は、リポジトリ固有のカスタムリテラル／正規表現と、`.textlintrc.json` に定義された7個の個別 textlint ルールのみを本文へ適用し、Markdown の構造チェックは `lint:markdown` に委ねる。`no-unmatched-pair` は技術文書内のインラインコードなどを誤検知するため採用しない。未確定の禁止語、置換ルール、許可リスト（allowlist）、英語混在判定は追加しない。
+- プルリクエストでは、`origin/${{ github.base_ref }}` とワークフローがチェックアウトしたマージ後の `HEAD` との merge-base を比較基準とする。push では `github.event.before`、スケジュール実行および workflow_dispatch では `HEAD^` を使用する。ローカル環境以外では、クリーンチェックアウト時の `HEAD -> worktree` 比較を CI ゲートとして使用しない。
+- 変更パス、ベースライン本文、現在の本文、リネームのマッピングは、同一の比較ツリーから取得する。Git のリネームマッピングが存在せず、削除されたパスを現在の Markdown へ完全一致のコンテンツ SHA-256 で一意に対応付けられない場合は、推測を行わずに比較失敗とする。
 
-## Repository file-changing task の完了契約
+## ファイル変更を伴うタスクの完了規約
 
-次の契約は、repository working tree のファイルを実際に変更し、Git commit対象となる差分を作る実装・変更taskへ適用します。ユーザーがそのtaskでGit操作を明示的に禁止した場合は、禁止された工程を実行せず、その理由と残作業を報告します。
+次の規約は、リポジトリのワーキングツリー内のファイルを実際に変更し、Git コミット対象となる差分を生成する実装・変更タスクに適用する。ユーザーがそのタスクにおいて Git 操作を明示的に禁止した場合は、禁止された工程を実行せず、その理由と残作業を報告する。
 
 ### 適用対象と除外
 
-- 適用対象は、コード、test、設定、文書、Run Artifact等のrepository fileを変更し、commit対象差分を作る実装・変更taskです。
-- GitHub metadataのみ（PR / Issue本文、label、review comment、reviewer設定等）、review-only、plan-only、調査のみ、質問、状態確認、repository file変更を伴わない分析には、このcommit / push / PR / CI完了契約を適用しません。
-- repository file変更とGitHub metadata変更を同時に行う場合は、通常のfile-changing taskとして扱います。
+- 適用対象は、コード、テスト、設定、ドキュメント、Run 成果物などのリポジトリファイルを変更し、コミット対象の差分を作成する実装・変更タスクである。
+- GitHub のメタデータのみの変更（PR や Issue の本文、ラベル、レビューコメント、レビュアー設定など）、レビューのみ、計画作成のみ、調査のみ、質問、状態確認、リポジトリファイルの変更を伴わない分析には、このコミット／push／PR／CI 完了規約を適用しない。
+- リポジトリファイルの変更と GitHub メタデータの変更を同時に行う場合は、通常のファイル変更タスクとして扱う。
 
-### Commit / push / PR / CI lifecycle
+### コミット・push・PR・CI のライフサイクル
 
-- ローカル検証、tracked Run Artifactのfinal commit前状態への更新・検証、scope確認の後にcommitします。
-- 既存PRがある場合はそのPRを使用します。PRがなく、対象CIが`pull_request`を契機として実行される場合だけ、CI確認に必要なPRを作成します。CI確認のために`main`へ直接pushしません。
-- commit後は対象branchへ通常pushし、local HEAD / remote HEAD、PRの最新headを確認します。branch、refspec、復旧手順の詳細は `docs/reference/git-branch-safety.md` を参照します。
-- 通常PRで確認する必須CIは `Web CI` と `Mobile App CI` です。`Cross Browser Smoke` はscheduleと`workflow_dispatch`で起動する通常PR外のworkflowであり、通常PRの必須CIには含めません。必須CIの列挙はこのRepository契約を正本とし、branch protectionから自動推測しません。
-- push後は、pushした最新commitをheadとするPRのGitHub Actionsを確認します。以前のcommitの結果を最新headの結果として流用しません。
-- `Web CI` / `Mobile App CI` がともに`success`となり、必要なCI結果をPR本文へ記録した時点まで、file-changing taskを完了扱いにしません。`queued` / `in_progress`、未確認、failureは完了扱いにしません。
-- 必須CIがfailureの場合は、`docs/reference/repair-loop.md` と `.agents/skills/repair-loop/**` のbounded repair workflowに従い、修正後の新しいcommitと最新PR headで必須CIを再確認します。
-- push後は最新PR headのSHAを指定して `wait_for_required_ci` MCP toolを1回呼び、Codexへ返る結果を待ちます。
-- `wait_for_required_ci` が待つ対象はexact HEADの `Web CI` と `Mobile App CI` です。
-- MCP CI待機中、AgentはGitHub状態pollingを行いません。
-- waiter利用不能時はCI未確認blockerとし、Agent側のGitHub状態pollingへfallbackしません。
-- tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。push後のCI結果はGitHub Actions、PR本文、ユーザー向け報告へ記録します。
+- ローカル検証、追跡対象の Run 成果物の最終コミット前状態への更新・検証、変更スコープの確認を完了した後にコミットする。
+- 既存の PR がある場合はその PR を使用する。PR が存在せず、対象の CI が `pull_request` イベントをトリガーとして実行される場合に限り、CI 確認に必要な PR を作成する。CI 確認を目的として `main` ブランチへ直接 push してはならない。
+- コミット後は対象ブランチへ通常通り push し、ローカル HEAD、リモート HEAD、および PR の最新 head を確認する。ブランチ、refspec、復旧手順の詳細は `docs/reference/git-branch-safety.md` を参照する。
+- 通常の PR で確認すべき必須 CI は `Web CI` と `Mobile App CI` である。`Cross Browser Smoke` はスケジュール実行および `workflow_dispatch` で起動される通常 PR 対象外のワークフローであり、通常 PR の必須 CI には含めない。必須 CI の一覧は本リポジトリ規約を正本とし、ブランチ保護ルール（branch protection）から自動推測してはならない。
+- push 後は、push した最新コミットを head とする PR の GitHub Actions を確認する。過去のコミットの結果を最新 head の結果として流用してはならない。
+- `Web CI` と `Mobile App CI` がともに `success` となり、必要な CI 結果を PR 本文へ記録した時点をもって、ファイル変更タスクの完了とみなす。`queued`、`in_progress`、未確認、`failure` の状態では完了扱いとしない。
+- 必須 CI が failure となった場合は、`docs/reference/repair-loop.md` および `.agents/skills/repair-loop/**` に定める有界な修復ワークフロー（bounded repair workflow）に従い、修正後の新しいコミットと最新の PR head で必須 CI を再確認する。
+- push 後は最新の PR head の SHA を指定して `wait_for_required_ci` MCP ツールを1度呼び出し、Codex に返される結果を待機する。
+- `wait_for_required_ci` が待機する対象は、厳密な HEAD（exact HEAD）における `Web CI` と `Mobile App CI` である。
+- MCP による CI 待機中、エージェントは GitHub の状態に対するポーリングを行ってはならない。
+- 待機ツール（waiter）が利用不能な場合は、CI 未確認のブロッカーとして扱い、エージェント側での GitHub 状態ポーリングへフォールバックしてはならない。
+- 追跡対象の Run 成果物は、最終コミット前に保存すべき状態まで確定させる。push 後の CI 結果を記録するためだけの目的で `TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json` などを変更・再コミット・再 push してはならない。push 後の CI 結果は、GitHub Actions、PR 本文、およびユーザーへの報告に記録する。
 
-### Progressとの責務分離
+### 進捗率（Progress）との責務分離
 
-- `TASKS.md`のcheckboxによるProgressは `docs/reference/run-artifacts.md` の基本計算に従うtracked taskの進捗であり、file-changing task全体の完了判定とは同一ではありません。
-- file-changing taskでは、push後の必須CI確認1件をユーザー向けProgressの分母・分子へ加算します。分母は`TASKS.md`の`## Now`＋`## Discovered`のcheckbox総数＋1、分子は完了checkbox数＋条件を満たして完了した必須CI確認1件です。CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。
-- CI確認1件の加算は、最新PR headで`Web CI`と`Mobile App CI`がともに`success`となり、必要なPR本文更新まで完了した時点に限ります。CI success確認済みでも必要なPR本文更新前、queued / in_progress、未確認、failureの間は加算しません。
-- review-only、plan-only、調査、質問、状態確認、repository file変更を伴わない分析、GitHub metadataのみ、またはGit操作禁止のtaskではCI確認1件を加算しません。これらはcheckboxの基本Progressだけを適用します。
+- `TASKS.md` のチェックボックスに基づく進捗（Progress）は、`docs/reference/run-artifacts.md` の基本計算に従う追跡タスク（tracked task）の進捗であり、ファイル変更タスク全体の完了判定とは異なる。
+- ファイル変更タスクでは、push 後の必須 CI 確認1件を、ユーザー向けの進捗率（Progress）の分母および分子に加算する。分母は `TASKS.md` の `## Now` と `## Discovered` のチェックボックス総数に +1 した値とし、分子は完了チェックボックス数に、条件を満たして完了した必須 CI 確認1件（+1）を加えた値とする。この CI 確認1件は、`TASKS.md` のチェックボックス、マニフェストのフィールド、独自のスキーマには追加しない。
+- CI 確認1件の加算は、最新の PR head において `Web CI` と `Mobile App CI` がともに `success` となり、必要な PR 本文の更新まで完了した時点に限られる。CI の success を確認済みであっても、必要な PR 本文の更新前や、`queued` / `in_progress`、未確認、`failure` の間は加算しない。
+- レビューのみ、計画作成のみ、調査、質問、状態確認、リポジトリファイルの変更を伴わない分析、GitHub メタデータのみの変更、または Git 操作が禁止されたタスクでは、CI 確認1件を加算しない。これらにはチェックボックスに基づく基本進捗のみを適用する。
 
-## Run 初期化
+## Run の初期化
 
-- 通常のdirect interactive入口（lightweight／standard）はmanifestなしで初期化します。
+- 通常の直接対話型エントリー（lightweight／standard）では、マニフェストなしで初期化する。
 - Bash:
   - `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
 - PowerShell:
   - `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
-- `--run-id` / `-RunId` を省略した場合は JST 現在時刻から `YYYYMMDD-HHMMSS-JST` を生成する。
+- `--run-id` / `-RunId` を省略した場合は、JST 現在時刻から `YYYYMMDD-HHMMSS-JST` を生成する。
 - 生成対象:
   - `.codex/runs/<run_id>/PLAN.md`
   - `.codex/runs/<run_id>/TASKS.md`
   - `.codex/runs/<run_id>/REPORT.md`
   - `.codex/runs/<run_id>/run.json`
-- `--no-plan` / `-NoPlan` は `PLAN.md` を省略する。
-- `--no-run-manifest` / `-NoRunManifest` は `run.json` を省略する。
-- 既存 run directory がある場合は失敗する。`--force` / `-Force` は親 directory 作成を許可するだけで、既存 run の上書きは行わない。
+- `--no-plan` / `-NoPlan` は `PLAN.md` の生成を省略する。
+- `--no-run-manifest` / `-NoRunManifest` は `run.json` の生成を省略する。
+- 既存の Run ディレクトリが存在する場合は失敗する。`--force` / `-Force` は親ディレクトリの作成を許可するのみであり、既存の Run を上書きすることはない。
 
 ## `codex-task` の主な引数
 
@@ -131,15 +131,15 @@
 - `--runtime host|docker-sandbox`
 - `--task-type plan|review|implementation|investigation|repair|harness-improvement`
 - `--workflow-level lightweight|standard|strict`
-- `--prompt-file <path>` または末尾 prompt
+- `--prompt-file <path>` または末尾の prompt
 - `--output-file <path>`
 - `--output-schema <path>`
 - `--report-path <path>`
 - `--run-id <run_id>`
 - `--record-run-manifest`
 - `scripts/collect-run-artifacts.ps1|sh`
-  - run-localの`codex-task` reportとevaluationを再走査して、`run.json`の非廃止summaryを更新するhelper。
-  - Hook JSONLやSubagent専用Artifactは再走査・集約しない。
+  - Run ローカルの `codex-task` レポートと評価結果（evaluation）を再走査し、`run.json` の非推奨でないサマリー（非廃止 summary）を更新するヘルパー。
+  - フックの JSONL やサブエージェント専用の成果物は再走査・集約しない。
 - `--verify-command <cmd>`
 - `--allow-search`
 - `--skip-preflight`
@@ -150,96 +150,96 @@
 - `--expected-changed-files <path1,path2,...>`
 - `--expected-missing warn|fail`
 
-### scope option の要点
+### スコープオプションの要点
 
-- `allowed-files` は exact path。
-- `allowed-dirs` は指定 directory 配下を許可する。trailing slash の有無は同一扱い。
-- `allowed-globs` は限定的な glob を扱う。special token は `*`、`**`、`?` のみ。
-- scope option を使う場合は `--run-id` と `--record-run-manifest` を必須にする。
-- `.codex/runs/` 配下の generated artifact は source scope から除外する。
+- `allowed-files` は完全一致パス（exact path）を指定する。
+- `allowed-dirs` は指定ディレクトリ配下を許可する。末尾スラッシュの有無は同一として扱う。
+- `allowed-globs` は限定的な glob パターンを処理する。使用可能な特殊トークンは `*`、`**`、`?` のみとする。
+- スコープオプションを使用する場合は、`--run-id` と `--record-run-manifest` の指定を必須とする。
+- `.codex/runs/` 配下の生成成果物（generated artifact）は、ソースコードのスコープ対象から除外する。
 
 ### expected missing の要点
 
 - 既定値は `fail`。
-- `warn` を指定すると、`expected_changed_files` に挙げた file が未変更でも exit code は成功のままにする。
-- warning は stdout/stderr と `run.json.validation.warnings` に記録する。
-- warning を記録した run manifest は `validation.status = "passed_with_warnings"` とする。
+- `warn` を指定すると、`expected_changed_files` に挙げたファイルが未変更であっても終了コードは成功（0）のまま維持される。
+- 警告は標準出力／標準エラー出力、および `run.json.validation.warnings` に記録する。
+- 警告が記録された Run マニフェストは、`validation.status = "passed_with_warnings"` となる。
 
 ### `--verify-command` の扱い
 
-- PowerShell wrapper:
-  - 実在する `.ps1` / `.cmd` / `.bat` / `.sh` / 実行ファイル path は拡張子に応じて直接実行する。
-  - それ以外は PowerShell command として実行する。
-- bash wrapper:
+- PowerShell ラッパー:
+  - 実在する `.ps1` / `.cmd` / `.bat` / `.sh` / 実行ファイルのパスは、拡張子に応じて直接実行する。
+  - それ以外は PowerShell コマンドとして実行する。
+- Bash ラッパー:
   - `bash -lc "<cmd>"` として実行する。
 
 ## 成果物
 
-- output file:
+- 出力ファイル（output file）:
   - `codex exec --output-last-message` の最終出力
-  - 既定: `.codex/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
+  - 既定値: `.codex/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
   - `--run-id` 指定時: `.codex/runs/<run_id>/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
-- report JSON:
-  - 既定: `.codex/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
+- レポート JSON（report JSON）:
+  - 既定値: `.codex/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
   - `--run-id` 指定時: `.codex/runs/<run_id>/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
   - 必須キーは `runtime`, `preset`, `prompt_source`, `output_file`, `output_schema`, `log_path`, `codex_exit_code`, `verify_exit_code`, `status`, `run_id`, `git_branch`, `git_dirty`, `cwd`, `mode`
-- JSONL log:
-  - wrapper start、preflight、codex exec、schema check、verify のイベントを追記する
-  - 既定: `.codex/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
+- JSONL ログ:
+  - ラッパー起動、事前チェック、codex exec、スキーマチェック、検証の各イベントを追記する
+  - 既定値: `.codex/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
   - `--run-id` 指定時: `.codex/runs/<run_id>/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
-- run manifest:
+- Run マニフェスト（run manifest）:
   - `--record-run-manifest` 指定時のみ `.codex/runs/<run_id>/run.json` を更新する
-  - 新規manifestはschema v2とし、report count、changed files、validation、network / scope、evaluationだけをsummaryする
-  - Hook JSONLはsession scopeのまま保持し、`run.json`へ新規集約しない。既存v1はlegacy field valueだけを保持する
-  - interactive `codex-safe` の終了時syncは既存manifestに限定し、`Stop` / `SubagentStop` Hookをtriggerにしない
-  - `validation.warnings` に non-fatal warning を記録できる
-  - `expected-missing=warn` を使った場合は `validation.status = "passed_with_warnings"` になる
+  - 新規マニフェストはスキーマ v2 とし、レポート数、変更ファイル、バリデーション結果、ネットワーク／スコープ設定、評価結果のみをサマリーする
+  - フックの JSONL はセッションスコープのまま保持し、`run.json` へ新規集約しない。既存の v1 マニフェストはレガシーフィールドの値のみを保持する
+  - 対話型 `codex-safe` 終了時の同期は既存マニフェストのみに限定し、`Stop` / `SubagentStop` フックをトリガーとしない
+  - `validation.warnings` に致命的でない警告（non-fatal warning）を記録できる
+  - `expected-missing=warn` を使用した場合は `validation.status = "passed_with_warnings"` となる
 
 ## `--output-schema` の対応範囲
 
-- repo-local validator が対応するのは、`type`, `enum`, `required`, `properties`, `items`, `additionalProperties` とメタデータ系キーのみ。
-- `oneOf`, `anyOf`, `allOf`, `const`, `pattern`, `minimum` など未対応の keyword を含む schema は `invalid_output` ではなく「unsupported schema keyword」として失敗させる。
+- リポジトリローカルのバリデーターが対応しているのは、`type`、`enum`、`required`、`properties`、`items`、`additionalProperties`、およびメタデータ系キーのみである。
+- `oneOf`、`anyOf`、`allOf`、`const`、`pattern`、`minimum` など、未対応のキーワードを含むスキーマは、`invalid_output` ではなく「unsupported schema keyword」として失敗させる。
 
-## Docker sandbox
+## Docker サンドボックス
 
-- 既定では無効。`CODEX_DOCKER_IMAGE` を設定しない限り `docker-sandbox` runtime は失敗する。
-- repo root を `/workspace` に mount し、必要なら `~/.codex` と `OPENAI_API_KEY` を container へ渡す。
-- host fallback はしない。Docker 実行に必要な前提が足りない場合は明示エラーで止める。
+- 既定では無効。`CODEX_DOCKER_IMAGE` を設定しない限り、`docker-sandbox` ランタイムの実行は失敗する。
+- リポジトリルートを `/workspace` にマウントし、必要に応じて `~/.codex` と `OPENAI_API_KEY` をコンテナへ渡す。
+- ホスト環境へのフォールバックは行わない。Docker 実行に必要な前提条件が不足している場合は、明示的なエラーを出力して停止する。
 
-## Subagent 実装フロー
+## サブエージェントの実装フロー
 
-- 実装前の調査は `code_researcher` / `implementation_researcher` / `test_investigator` に委譲できる。
-- `implementation_worker` は、親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後にだけ使う。
-- `implementation_worker` は小さく限定された実装を行う workspace-write subagent であり、親 agent が指定した対象ファイルだけを最小差分で編集する。
-- writable subagent は原則 1 タスクにつき 1 つだけ使う。
-- `implementation_worker` の実装後は、親 agent が diff、仕様判断、未検証点、検証結果を確認する。
-- `implementation_worker` は削除、rename、移動、git mutation、delete / rename を含む patch operation、スコープ外リファクタリングを行わない。
-- Subagentの開始・終了のmachine factはHook JSONLへ記録し、専用Structured Artifactは作成しない。
-- Subagentを利用した場合、次のTASK完了またはRun完了checkpointのREPORTへ`Delegation`、`Result`、`Parent decision`だけを一度記録する。`SubagentStop` / `Stop`から最終終了やsuccess / failureを推測しない。
+- 実装前の調査は、`code_researcher` / `implementation_researcher` / `test_investigator` に委譲できる。
+- `implementation_worker` は、親エージェントが計画、対象ファイル、変更範囲、禁止事項を確定させた後に限り使用する。
+- `implementation_worker` は、小さく限定された実装を行うワークスペース書き込みサブエージェント（workspace-write subagent）であり、親エージェントが指定した対象ファイルのみを最小限の差分で編集する。
+- 書き込み権限を持つサブエージェント（writable subagent）は、原則として1タスクにつき1つのみ使用する。
+- `implementation_worker` による実装完了後は、親エージェントが diff、仕様上の判断、未検証の項目、検証結果を確認する。
+- `implementation_worker` は、ファイルの削除、リネーム、移動、Git 状態の変更（git mutation）、削除やリネームを含むパッチ操作、スコープ外のリファクタリングを行わない。
+- サブエージェントの開始・終了に関する機械的事実（machine fact）はフックの JSONL へ記録し、専用の構造化成果物（Structured Artifact）は作成しない。
+- サブエージェントを利用した場合は、直後の TASK 完了時または Run 完了チェックポイントの REPORT に、`Delegation`、`Result`、`Parent decision` のみを取りまとめて1度記録する。`SubagentStop` や `Stop` のイベントから最終完了や成功／失敗（success / failure）を推測してはならない。
 
 ## 推奨フロー
 
-- run を初期化する:
-  - direct lightweight／standardでは`new-run --no-run-manifest`／`new-run -NoRunManifest`
-- 通常のinteractive作業:
-  - Repository rootから`codex`
-- local例外operation／recoveryや明示的なnetwork例外operation:
-  - runtimeで成立した範囲に限り`codex-safe safe`のon-request承認経路を使う
-- 生成物をファイルで残す自動実装・CI 補助:
-  - strict Runでは`codex-task --run-id <run_id> --record-run-manifest`
-- 外部隔離環境を明示的に用意できる:
-  - `codex-sandbox`
+- Run を初期化する:
+  - 直接対話型の lightweight／standard では `new-run --no-run-manifest` または `new-run -NoRunManifest` を使用する
+- 通常の対話作業:
+  - リポジトリルートから `codex` を実行する
+- ローカルでの例外操作／リカバリや、明示的なネットワーク例外操作:
+  - ランタイム上で検証が成立した範囲に限り、`codex-safe safe` のオンリクエスト承認経路を使用する
+- 成果物をファイルとして残す自動実装や CI 補助:
+  - strict Run では `codex-task --run-id <run_id> --record-run-manifest` を使用する
+- 外部の隔離環境を明示的に用意できる場合:
+  - `codex-sandbox` を使用する
 
-## auto-net preset
+## auto-net プリセット
 
-- `codex-safe` と `codex-task` の既定 preset は `safe` のままです。
-- `auto-net`は明示利用時だけ適用し、direct project defaultには自動適用しません。
-- `auto-net` は project profileに依存せず、`workspace-write` sandbox、`approval_policy = "never"`、wrapperが明示する `sandbox_workspace_write.network_access=true` を使う。
-- `safe`はnetwork falseを明示し、`readonly`はread-only sandbox、`safe`はon-request、`auto-net`はneverを維持します。
-- `codex-task` は非対話 harness なので、safe / readonly / auto-net のいずれでも Codex CLI には `--ask-for-approval never` を渡す。preset は sandbox、network override、preflight rules の選択に使う。
-- `.codex/rules/*.rules`がactual runtime policyの正本です。`.codex/rules-auto-net/*.rules`はauto-net wrapperのpreflight専用overlayで、runtime enforcementとして扱いません。
-- raw `--full-auto`、`danger-full-access`、`--dangerously-bypass-approvals-and-sandbox` は使わない。
-- `codex-task` の preflight は指定 preset を `codex-safe` に渡すため、safe と auto-net の期待値は分離される。
+- `codex-safe` および `codex-task` の既定プリセットは `safe` のままとする。
+- `auto-net` は明示的に指定した場合にのみ適用し、direct のプロジェクト既定値へ自動適用することはない。
+- `auto-net` はプロジェクトプロファイルに依存せず、`workspace-write` サンドボックス、`approval_policy = "never"`、およびラッパーが明示する `sandbox_workspace_write.network_access=true` を使用する。
+- `safe` はネットワーク無効（network false）を明示し、`readonly` は読み取り専用サンドボックス、`safe` はオンリクエスト承認（on-request）、`auto-net` は承認なし（never）を維持する。
+- `codex-task` は非対話型ハーネスであるため、safe / readonly / auto-net のいずれであっても Codex CLI には `--ask-for-approval never` を渡す。プリセットはサンドボックス、ネットワークオーバーライド、事前チェックルールの選択に使用する。
+- `.codex/rules/*.rules` が実際のランタイムポリシー（actual runtime policy）の正本である。`.codex/rules-auto-net/*.rules` は auto-net ラッパーの事前チェック専用オーバーレイであり、ランタイムでの強制ルール（runtime enforcement）としては扱わない。
+- 生の（raw な）`--full-auto`、`danger-full-access`、`--dangerously-bypass-approvals-and-sandbox` は使用しない。
+- `codex-task` の事前チェックは指定されたプリセットを `codex-safe` に渡すため、safe と auto-net の期待値は明確に分離される。
 
 ## 関連資料
 

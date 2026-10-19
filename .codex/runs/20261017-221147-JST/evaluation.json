@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Issue #193のNode sanitizer contractと標準verifyは最新local sourceで成功。Issue #192のlatest-head Windows Actions結果はwait_for_required_ci内部timeoutの小数値エラーで未取得。既知の旧headではHook contract 216件中12件がG10拒否。失敗fixtureのrealpathSync()／native()診断はlocal Windowsで5対象すべてcanonical一致したが、Actions側で失敗段階を分類できず完了条件は未達。",
+      "evidence": "origin/mainとの4競合をmain／PR双方の契約を保って解消。Windows hostでtest:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。最新merge headのActions結果はpush後に確認する。Issue #192の以前のActions G10拒否原因とrequired CIは未解決のため完了条件は未達。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -26,15 +26,15 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "差分は2 PlanのHook、Sanitizer、wrapper、CI、運用契約、契約テスト、Run Artifactに限定。"
+      "evidence": "PR変更とorigin/mainを通常mergeし、競合4件だけを意味統合した。mainから入った日本語contract alignmentとRun Artifactは保持し、HookやG10の機能変更はしていない。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "最新local sourceでtest:hooks 216/216、test:contracts 819 passed／3 skipped、security:check、pnpm run verifyが成功。Actionsの既知結果は旧headでWeb CI内Hook contract 12/216件がG10失敗、Mobile success。latest head用wait_for_required_ciは内部timeoutへ小数を渡したrange errorでCI resultなし。Codespaces実機と最新Windows Actions path比較は未確認。"
+      "evidence": "最新merge worktreeでtest:hooks 216/216、test:contracts 833 passed／3 skipped、security:check、verifyが成功。diagnose:hooksはWARN=0／ERROR=0だがTrust関連はofflineで未確認。以前のActions結果は旧headのHook contract 12/216件がG10失敗、Mobile success。新headのrequired CIはpush後に確認する。Codespaces実機は未確認。"
     },
     "safety_compliance": {
       "rating": "warn",
-      "evidence": "production HookのG10判定、期待値、skipは変更していない。危険操作の拒否contractは全件維持され、local Hook test 216件が成功。一方、既知の旧head Windows Actionsで正当な操作12件がG10拒否されており、latest-head結果取得とroot原因特定ができないためWindows安全性完了条件は未達。"
+      "evidence": "production HookのG10判定、期待値、skipは変更していない。危険操作の拒否contractとlocal Hook test 216件は成功。一方、以前のWindows Actionsで12件がG10拒否されており、最新merge headのCIはpush後確認のためWindows安全性完了条件はまだ未達。"
     },
     "reviewability": {
       "rating": "pass",
@@ -46,7 +46,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "localでrealpathSync()／native()の失敗fixture比較は5対象すべて一致し、最新head local contracts／verifyはsuccess。CI waiterの内部timeout range errorによりActions側の失敗fixture診断を取得できず、原因未特定。PR本文とactive RunはCI未確認を明記する。"
+      "evidence": "localでrealpathSync()／native()の失敗fixture比較は5対象すべて一致し、最新merge worktreeのhooks／contracts／verifyもsuccess。最新merge head CIはpush後に確認するため未確定。PR本文とactive RunではWindows G10の未解決状態を維持する。"
     }
   },
   "findings": [

@@ -40,6 +40,9 @@ type VisualFixtureOptions = {
   oracle?: string;
   includeFunctions?: boolean;
   includeVisualReferences?: boolean;
+  featureParentHeading?: string;
+  screenContractHeadings?: readonly [string, string, string];
+  orphanHeading?: string;
   emptyAlt?: boolean;
   visualRequirement?: "required" | "shared" | "not-applicable";
   visualDetail?: string;
@@ -72,9 +75,14 @@ async function createVisualFixture(
         })
         .join("\n\n")
     : "";
+  const [functionsHeading, statesHeading, visualReferencesHeading] =
+    options.screenContractHeadings ?? ["Functions", "Important UI States", "Visual References"];
+  const featureParentHeading = options.featureParentHeading ?? "UI / Behavior Contract";
   const functions =
-    options.includeFunctions === false ? "" : "#### Functions\n\n- Example function.\n\n";
-  const screenSpec = `# Example\n\n## UI / Behavior Contract\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### Important UI States\n\n| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |\n|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### Visual References\n\n##### \`default\`\n\n${referenceLines}\n\n## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.\n\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
+    options.includeFunctions === false ? "" : `#### ${functionsHeading}\n\n- Example function.\n\n`;
+  const orphanHeading =
+    options.orphanHeading === undefined ? "" : `\n#### ${options.orphanHeading}\n`;
+  const screenSpec = `# Example\n\n## ${featureParentHeading}\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### ${statesHeading}\n\n| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |\n|---|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${referenceLines}\n\n## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.${orphanHeading}\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
   await mkdir(path.join(rootDir, "docs/spec/features"), { recursive: true });
   await mkdir(path.join(rootDir, "docs/spec/assets/screens/SCREEN-TEST-EXAMPLE/default"), {
     recursive: true,
@@ -368,6 +376,30 @@ describe("Screen Catalog / Visual Contract", () => {
         message: "must contain exactly one #### Functions",
       },
       {
+        name: "duplicate Japanese Functions alias",
+        options: {
+          screenContractHeadings: ["Functions", "機能一覧（Functions）", "Visual References"],
+        },
+        message: "must contain exactly one #### Functions",
+      },
+      {
+        name: "out of order localized headings",
+        options: {
+          screenContractHeadings: [
+            "画面リファレンス（Visual References）",
+            "機能一覧（Functions）",
+            "主要なUI状態（Important UI States）",
+          ],
+        },
+        message:
+          "Screen Contract headings must be exactly Functions, Important UI States, Visual References in that order",
+      },
+      {
+        name: "orphan localized heading",
+        options: { orphanHeading: "画面リファレンス（Visual References）" },
+        message: "Screen Contract heading is outside a Screen section",
+      },
+      {
         name: "Visual References missing",
         options: { includeVisualReferences: false },
         message: "captured Target requires exactly one Markdown image reference",
@@ -395,6 +427,24 @@ describe("Screen Catalog / Visual Contract", () => {
       } finally {
         await rm(root, { recursive: true, force: true });
       }
+    }
+  });
+
+  it("accepts Japanese Feature parent and Screen Contract headings and resolves their images", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-japanese-"));
+    try {
+      const fixtureCases = await createVisualFixture(root, {
+        featureParentHeading: "UI・振る舞い規約（UI / Behavior Contract）",
+        screenContractHeadings: [
+          "機能一覧（Functions）",
+          "主要なUI状態（Important UI States）",
+          "画面リファレンス（Visual References）",
+        ],
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 

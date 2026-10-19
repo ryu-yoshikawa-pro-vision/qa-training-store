@@ -1,10 +1,10 @@
-# Git branchの安全性
+# Gitブランチの安全性
 
 ## 目的
 
-Git mutationが許可された作業でも、Codexが作業対象branchを外れたままcommitやpushを実行しないための運用契約を定める。特に、PR branchの作業中にローカルbranchのupstreamがorigin/mainへ誤設定されている場合や、意図せずmainへswitchした場合に、履歴を失わず復旧できることを目的とする。
+Gitの変更操作（mutation）が許可されている作業であっても、Codexが作業対象のブランチから外れた状態でコミットやプッシュを実行しないための運用ルールを定める。特に、PRブランチでの作業中にローカルブランチのアップストリーム（upstream）が誤ってorigin/mainに設定されている場合や、意図せずmainブランチへ切り替えてしまった（switchした）場合に、コミット履歴を失わずに安全に復旧できるようにすることを目的とする。
 
-この文書は、PR番号、commit SHA、特定の依存修正に依存しない。リポジトリの通常のGit作業と、branch mismatchからのboundedな復旧に適用する。
+この文書は、特定のPR番号やコミットSHA、依存関係の修正内容には依存しない。リポジトリでの通常のGit作業全般、およびブランチの不一致（branch mismatch）が発生した際の影響範囲を限定した復旧（bounded recovery）に適用する。
 
 ## Hookによる操作rootの固定
 
@@ -19,17 +19,17 @@ PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判
 
 このHookはCodexのBash PreToolUse向け制御であり、任意の外部プロセスやすべてのMCP操作を保護するものではない。実行経路別の検証範囲はRun Artifactと報告に記録する。
 
-## 保護branch・default branchの方針
+## 保護ブランチ・デフォルトブランチの方針
 
-- main、master、repository default branchへCodexが直接commit/pushしない。
-- ユーザーの「commitして」「pushして」という指示だけでは、default branchへの直接反映許可とは解釈しない。
-- default branchへ直接反映する必要がある場合は、ユーザーが対象branchを明示したうえで、目的、影響、現在のremote状態を確認する。
-- PR、Issue、feature、fix branchが作業対象として存在する場合、PRのheadRefNameまたはユーザー指定branchを作業対象とする。
-- branch safety確認なしのremote mainへのpush、remote history rewrite、force pushは行わない。
+- main、master、およびリポジトリのデフォルトブランチに対して、Codexが直接コミットやプッシュを行わない。
+- ユーザーから「コミットして」「プッシュして」という指示があった場合でも、それだけでデフォルトブランチへの直接反映を許可されたとは解釈しない。
+- デフォルトブランチへ直接反映する必要がある場合は、ユーザーに対象ブランチを明示してもらった上で、作業目的、影響範囲、および現在のリモート状態を確認する。
+- 作業対象としてPR、Issue、featureブランチ、fixブランチが存在する場合は、PRのheadRefNameまたはユーザーが指定したブランチを作業対象とする。
+- ブランチの安全性確認（branch safety check）を行わずに、リモートのmainへのプッシュ、リモート履歴の書き換え（history rewrite）、および強制プッシュ（force push）は行わない。
 
 ## PR作業開始時の確認
 
-Git mutationを伴うタスクでは、変更・commit・pushの前に次を確認する。
+Gitの変更操作を伴うタスクでは、ファイルの変更・コミット・プッシュを行う前に以下を確認する。
 
     git status --short
     git branch --show-current
@@ -44,23 +44,23 @@ PR対応ではGitHubの状態を取得する。
       --repo <OWNER>/<REPOSITORY> \
       --json number,state,isDraft,headRefName,headRefOid,baseRefName,url
 
-次を満たさなければmutationを開始しない。
+以下の条件をすべて満たさない限り、変更操作を開始しない。
 
-- PRが対象repository・対象baseに存在する。
-- headRefNameがユーザー指定または作業計画のbranchと一致する。
-- git branch --show-currentがheadRefNameと一致する。
-- git branch -vvのupstreamが意図したremote branchを指している。少なくともorigin/mainをPR作業branchのupstreamとして残さない。
-- working treeの既存変更が把握され、今回の変更と混同されていない。
+- PRが対象リポジトリおよび対象のベースブランチ（base）に存在する。
+- headRefNameが、ユーザーの指定または作業計画で定めたブランチと一致している。
+- `git branch --show-current` の出力が headRefName と一致している。
+- `git branch -vv` で表示されるアップストリームが、意図したリモートブランチを指している。少なくとも、PR作業用ブランチのアップストリームとして origin/main が設定されたままになっていないこと。
+- ワーキングツリー（working tree）内の既存の変更内容が把握されており、今回の変更と混同されていない。
 
-必要ならupstreamをローカル設定だけ変更する。
+必要に応じて、ローカル設定のみでアップストリームを変更する。
 
     git branch --set-upstream-to=origin/<expected-branch> <expected-branch>
 
-この設定変更はremote履歴を変更しない。以後もpushは明示refspecで行い、upstream表示だけに依存しない。
+この設定変更によってリモートの履歴が変更されることはない。以降のプッシュも明示的なrefspecを用いて行い、アップストリームの表示だけに依存しないようにする。
 
-## commit前チェック
+## コミット前チェック
 
-git commitの直前に、確認済みの期待branchと現在branchが一致していることを再確認する。
+`git commit` の直前に、確認済みの期待されるブランチと現在のブランチが一致していることを再確認する。
 
     git status --short
     git branch --show-current
@@ -68,15 +68,15 @@ git commitの直前に、確認済みの期待branchと現在branchが一致し�
     git diff --check
     git diff --cached --stat
 
-- current branchが期待branchと異なる場合はcommitしない。
-- mainへ自動switchして帳尻を合わせない。
-- 期待branchが不明な場合はcommitを止め、PR headRefName、ユーザー指定、run planを確認する。
-- stage対象は明示し、git add .を使わない。
-- commit前に、main固有の変更、unrelated dependency、source、test、workflow、意図しない削除がstageされていないことを確認する。
+- 現在のブランチ（current branch）が期待されるブランチと異なる場合はコミットしない。
+- 辻褄を合わせるためにmainブランチへ自動で切り替える（switchする）ような対応は行わない。
+- 期待されるブランチが不明な場合はコミットを中断し、PRの headRefName、ユーザーの指定、作業計画（run plan）を確認する。
+- ステージング対象は個別に明示し、`git add .` は使用しない。
+- コミット前に、mainブランチ固有の変更、タスクと無関係な依存関係（unrelated dependency）、ソースコード、テスト、ワークフロー、および意図しないファイルの削除がステージングされていないことを確認する。
 
-## push前チェック
+## プッシュ前チェック
 
-git pushの直前に、同一shellの最新状態で次を実行する。
+`git push` の直前に、同一シェルの最新の状態で以下を実行する。
 
     git fetch origin
     git status --short
@@ -86,76 +86,76 @@ git pushの直前に、同一shellの最新状態で次を実行する。
       --repo <OWNER>/<REPOSITORY> \
       --json headRefName,headRefOid,state
 
-PR作業では以下がすべて必須である。
+PR作業では、以下の条件がすべて必須である。
 
-- current branch == PR headRefName
-- push対象がPR branchである
-- PRがOPENであり、mergeや別baseへの変更ではない
-- remote mainに今回の誤branch commitが含まれていない
-- working treeは意図したcommit後の状態である
+- 現在のブランチ == PRの headRefName
+- プッシュ対象がPRブランチであること
+- PRがオープン（OPEN）状態であり、マージ済みや別のベースブランチへの変更ではないこと
+- リモートのmainに、今回の誤ったブランチでのコミットが含まれていないこと
+- ワーキングツリーが、意図したコミット後の状態になっていること
 
-pushはbare形式ではなく、対象branchをrefspecに明示する。
+プッシュはブランチ名を省略した形式（bare形式）ではなく、対象ブランチをrefspecで明示して実行する。
 
     git push origin HEAD:<expected-branch>
 
-branch名が検証済みで、upstreamも正しい場合だけ、git push -u origin HEADを使える。ただしcurrent branchがmain/default branchのときは使わない。non-fast-forwardになった場合もforceせず、fetchして履歴とremote更新者を調査する。
+ブランチ名が検証済みで、アップストリームも正しく設定されている場合に限り、`git push -u origin HEAD` を使用できる。ただし、現在のブランチがmainやデフォルトブランチの場合は使用しない。ノンファストフォワード（non-fast-forward）になった場合も強制プッシュ（force push）は行わず、fetchを実行して履歴とリモートの更新者を確認・調査する。
 
-## upstream確認
+## アップストリームの確認
 
-git branch -vvに表示されるupstreamは、push先の意図を確認する重要な証拠である。PR branchが[origin/main: ahead N]と表示される場合は安全状態ではない。次を実行して意図したPR remote branchへ是正する。
+`git branch -vv` で表示されるアップストリームは、プッシュ先が意図通りかを確認するための重要な情報である。PRブランチが `[origin/main: ahead N]` と表示されている場合は、安全な状態ではない。以下のコマンドを実行し、意図したPRのリモートブランチへ修正する。
 
     git branch --set-upstream-to=origin/<expected-branch> <expected-branch>
     git branch -vv
 
-upstreamの是正後も、git push origin HEAD:<expected-branch>でrefspecを明示する。
+アップストリームを修正した後も、`git push origin HEAD:<expected-branch>` のようにrefspecを明示してプッシュする。
 
-## branch mismatch時の停止条件
+## ブランチ不一致時の停止条件
 
-期待branchとcurrent branchが異なる状態で、変更またはcommitが存在する場合は次の順序を守る。
+期待されるブランチと現在のブランチが異なる状態で、変更またはコミットが存在する場合は、以下の順序を厳守する。
 
-1. commit、push、reset、rebase、branch delete、force操作を停止する。
-2. working treeを変更せず、current HEAD、status、branch、remoteを記録する。
-3. current HEADを指すrescue branchを作成し、対象commitを参照可能にする。
-4. git fetch origin後、GitHub APIまたはgit rev-parse origin/mainでremote mainを確認する。
-5. 誤commitがremote mainへ入っているかを確認する。入っている場合は自動修復せず、履歴を書き換えずにユーザーへ報告する。
-6. 正しいPR remote branchとrescue branchのancestryを確認する。
-7. fast-forward可能ならCASE 1、そうでなければ対象commitだけを古い順に移すCASE 2へ進む。
+1. コミット、プッシュ、reset、rebase、ブランチの削除、force操作を直ちに停止する。
+2. ワーキングツリーを変更せず、現在のHEAD、status、ブランチ名、リモート情報を記録する。
+3. 現在のHEADを指すレスキューブランチ（rescue branch）を作成し、対象のコミットを参照可能な状態にして保護する。
+4. `git fetch origin` を実行した後、GitHub APIまたは `git rev-parse origin/main` でリモートのmainの状態を確認する。
+5. 誤ったコミットがリモートのmainに含まれてしまっていないかを確認する。含まれている場合は自動修復を試みず、履歴を書き換えないままユーザーへ報告する。
+6. 正しいPRのリモートブランチとレスキューブランチの祖先関係（ancestry）を確認する。
+7. ファストフォワード（fast-forward）が可能であれば「Case 1」へ、そうでなければ対象コミットのみを古い順に移す「Case 2」へ進む。
 
-remote mainへ誤commitが入っている場合は、この文書の自動復旧範囲外である。remote mainへforce push、revert、branch削除を自動実行せず、SHA、影響範囲、確認済みremote状態を報告してユーザー判断を待つ。
+リモートのmainに誤ったコミットが含まれている場合は、この文書で扱う自動復旧の対象外である。リモートのmainに対してforce push、revert、ブランチ削除などを自動で実行せず、コミットSHA、影響範囲、確認したリモートの状態を報告し、ユーザーの判断を待つ。
 
-## 誤branchでcommitした場合の復旧手順
+## 誤ったブランチでコミットした場合の復旧手順
 
-### rescue branchの作り方
+### レスキューブランチ（rescue branch）の作成手順
 
-現在HEADを最初に保護する。branch名は作業内容が分かる一時的な名前にする。
+現在のHEADを最優先で保護する。ブランチ名は作業内容が識別できる一時的な名称にする。
 
     git branch rescue/<task>-recovery
     git log -7 --oneline --decorate rescue/<task>-recovery
 
-次が確認できるまでreset、rebase、branch delete、force pushを行わない。
+以下が確認できるまで、reset、rebase、ブランチ削除、force pushは一切行わない。
 
-- rescue branchが存在する。
-- 誤branchで作成された対象commitがrescue branchから参照できる。
-- commitのparent、message、変更ファイルを確認できる。
+- レスキューブランチが正常に作成されていること。
+- 誤ったブランチで作成された対象コミットが、レスキューブランチから参照できること。
+- コミットの親コミット（parent）、コミットメッセージ、変更ファイルの内容を確認できること。
 
-### Case 1: 正しいbranchでのfast-forward継続
+### Case 1: 正しいブランチでのファストフォワード継続
 
-正しいPR branchがrescue branchのancestorである場合、履歴は次の形である。
+正しいPRブランチがレスキューブランチの祖先（ancestor）である場合、履歴は以下の構造になる。
 
     expected PR branch -> accidental commits -> rescue HEAD
 
-正しいbranchへ移動し、--ff-onlyだけで統合する。
+正しいブランチへ移動し、`--ff-only` オプションのみを用いて統合する。
 
     git switch <expected-branch>
     git status --short
     git branch --show-current
     git merge --ff-only rescue/<task>-recovery
 
-既に同一SHAならAlready up to dateであり、追加のmerge commitやcherry-pickは不要である。
+すでに同一のSHAを指している場合は `Already up to date` となり、追加のマージコミットの作成や cherry-pick は不要である。
 
-### Case 2: 別baseからcommitしてしまった場合
+### Case 2: 異なるベースからコミットしてしまった場合
 
-正しいPR branchがrescue branchのancestorでない場合、rescue branch全体をPR branchとしてpushしない。まず対象commitを古い順に明示し、正しいbranchへ移動して必要な5commit等だけをcherry-pickする。
+正しいPRブランチがレスキューブランチの祖先でない場合、レスキューブランチ全体をPRブランチとしてプッシュしてはならない。まず対象となるコミットを古い順に特定し、正しいブランチへ移動してから必要なコミット（例: 該当する5つのコミットなど）のみを cherry-pick する。
 
     git log --reverse --format="%H %s" <base>..<rescue-branch>
     git switch <expected-branch>
@@ -163,39 +163,39 @@ remote mainへ誤commitが入っている場合は、この文書の自動復旧
     git branch --show-current
     git cherry-pick <SHA1> <SHA2> <SHA3> <SHA4> <SHA5>
 
-conflictが発生したら、対象commitと既存PR差分を比較し、最小の意図保持解決ができない場合はcherry-pick --abortを含む追加操作をせず停止してユーザー判断へ戻す。force pushや既存PR履歴の削除で解決しない。
+コンフリクト（conflict）が発生した場合は、対象コミットの内容と既存PRの差分を比較する。本来の意図を保持した最小限の解決が安全に行えない場合は、`git cherry-pick --abort` を含むこれ以上の追加操作を行わずに作業を停止し、ユーザーの判断を仰ぐ。force pushや既存PRの履歴削除によって強引に解決してはならない。
 
-## remote mainへpushしていない場合の復旧
+## リモートのmainへプッシュしていない場合の復旧
 
-- remote mainが誤commitを含まないことをSHAとancestryで確認する。
-- remote mainを修復しない。force push、revert、branchの書き換えを行わない。
-- 正しいPR branchへの履歴だけを確認し、必要な場合のみ明示refspecでpushする。
-- rescue branchは、ユーザーが復旧結果を確認するまで削除しない。
+- リモートのmainに誤ったコミットが含まれていないことを、コミットSHAと祖先関係（ancestry）から確認する。
+- リモートのmainに対しては一切の修正操作を行わない。force push、revert、ブランチの履歴書き換えなどは行わない。
+- 正しいPRブランチへの履歴のみを確認し、必要な場合のみ明示的なrefspecを用いてプッシュする。
+- レスキューブランチは、ユーザーが復旧結果を確認・承認するまで削除しない。
 
-## remote mainへpush済みの場合
+## リモートのmainへプッシュ済みの場合
 
-- 自動修復しない。
-- remote mainのhistory rewrite、force push、branch deleteをしない。
-- 誤commitのSHA、push時刻、変更ファイル、影響範囲、GitHub PR/branch状態を記録する。
-- ユーザーへ報告し、remote mainの修復方法について明示判断を得る。
+- 自動での修復は行わない。
+- リモートのmainに対する履歴の書き換え（history rewrite）、force push、ブランチの削除は行わない。
+- 誤ってプッシュしたコミットのSHA、プッシュ時刻、変更されたファイル、影響範囲、およびGitHub上のPRやブランチの状態を記録する。
+- 状況を直ちにユーザーへ報告し、リモートmainの修復方法について明確な判断・指示を仰ぐ。
 
 ## 禁止操作
 
 - git push --force
 - git push -f
-- git push --force-with-lease（今回のbranch復旧でも使用しない）
+- git push --force-with-lease（今回のブランチ復旧作業でも使用しない）
 - rescue確認前のgit reset --hard
 - git branch -D
 - git clean -fd
-- remote mainへのbare pushまたは暗黙push
-- 誤branchの全履歴をPR branchとして無条件にpushすること
-- PRをmergeして復旧を完了扱いにすること
+- リモートmainへのbare pushまたは暗黙的なプッシュ
+- 誤ったブランチの全履歴をPRブランチとして無条件にプッシュすること
+- PRをマージすることで復旧を完了扱いにすること
 
-ユーザーが明示した復旧で、対象commitがrescue branchと期待branchの両方から参照でき、remote状態を確認済みの場合に限り、ローカルbranchをcanonical remoteへ合わせる限定的なgit reset --hard origin/<expected-branch>を検討できる。ただし、これはremote mainを書き換える操作ではなく、最終手段であり、今回のように不要なら実行しない。
+ユーザーから復旧作業の明確な指示があり、対象コミットがレスキューブランチと期待されるブランチの双方から参照可能で、かつリモートの状態も確認済みである場合に限り、ローカルブランチを正規のリモートブランチに同期させるための限定的な手段として `git reset --hard origin/<expected-branch>` の実行を検討できる。ただし、これはリモートのmainを書き換える操作ではなく、あくまで最終手段であり、今回のように不要であれば実行しない。
 
 ## 完了確認
 
-push後、次を確認する。
+プッシュ後、以下を確認する。
 
     git fetch origin
     git branch --show-current
@@ -208,10 +208,10 @@ push後、次を確認する。
       --repo <OWNER>/<REPOSITORY> \
       --json headRefName,headRefOid,state,url
 
-- current branchはexpected branchである。
-- local HEADとremote PR branchのSHAが一致する。
-- PR headRefNameとcurrent branchが一致する。
-- remote mainのSHAが意図せず変わっていない。
-- rescue branchが保持され、対象commitを参照できる。
-- worktreeがclean、または未commit変更が明示的に報告されている。
-- PRはmergeされていない。
+- 現在のブランチ（current branch）が期待されるブランチ（expected branch）であること。
+- ローカルのHEADとリモートのPRブランチのコミットSHAが一致していること。
+- PRの headRefName と現在のブランチ名が一致していること。
+- リモートのmainのコミットSHAが意図せず変更されていないこと。
+- レスキューブランチが保持されており、対象コミットを参照できる状態にあること。
+- ワーキングツリーがクリーンであるか、未コミットの変更がある場合はそれが明示的に報告されていること。
+- PRが意図せずマージ（merge）されていないこと。

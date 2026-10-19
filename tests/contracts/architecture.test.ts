@@ -394,14 +394,30 @@ describe("architecture boundaries", () => {
       join(projectRoot, "docs", "04_data", "application_contracts.md"),
     );
     expect(decisionLog).toContain(
-      "| D-026 | 実装開始後はTypeScript型・Enum・Dexie Schemaのコードを正本とし、Markdownは意味と理由を正本とする |",
+      "| D-026 | 実装開始後、TypeScriptの型・Enum・Dexieスキーマの定義および構造は実装コードを正本とします。型や構造の設計上の意味・責務・判断理由は該当Markdownを正本とします。ただし、製品の期待動作および業務ルールは正式な製品仕様を正本とします。 |",
     );
-    for (const document of [domainTypes, applicationContracts]) {
+    for (const [document, terms] of [
+      [
+        domainTypes,
+        [
+          "TypeScriptの `type` / `interface` / `union` / `enum` 相当の定義",
+          "Dexieのスキーマ／バージョン／テーブル定義",
+          "実装コードを信頼できる唯一の情報源（SSOT）とします",
+          "意味・責務・選定理由・利用上の契約",
+        ],
+      ],
+      [
+        applicationContracts,
+        [
+          "TypeScriptの`type`、`interface`、`union`、`enum`相当の型",
+          "Dexieのスキーマ、バージョン、テーブル定義",
+          "実装コードをSSOT（信頼できる唯一の情報源）とします",
+          "各型の意味、責務、設計理由、利用上の契約",
+        ],
+      ],
+    ] as const) {
       expect(document).toContain("## 正本・説明責務（D-026）");
-      expect(document).toContain("TypeScript `type` / `interface` / `union` / `enum`相当");
-      expect(document).toContain("DexieのSchema / version / table定義");
-      expect(document).toContain("実装CodeをSSOTとします");
-      expect(document).toContain("意味・責務・理由・利用上の契約を説明するMarkdown");
+      for (const term of terms) expect(document).toContain(term);
     }
   });
 });

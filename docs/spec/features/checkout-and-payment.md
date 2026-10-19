@@ -2,25 +2,25 @@
 
 ## Purpose / Scope
 
-CustomerのAddress、Checkout Session、Cart Version、価格確認、Local Mock Payment、Processing/Complete/FailedのBoundaryを定義します。
+顧客（Customer）の配送先住所、チェックアウトセッション、カートバージョン、価格確認、ローカルモック決済、および処理中（Processing）／完了（Complete）／失敗（Failed）の境界を定義します。
 
 ## Business Rules
 
 ### BR-CHECKOUT-001 — CustomerごとのCheckout Sessionを再開または置換する
 
-同じUser、Cart、Cart Versionのactive Sessionは再開し、異なるCart/Versionなら旧Sessionをabandonedにして新しいSessionを作ります。Sessionは24時間でexpiredです。
+同一のユーザー、カート、カートバージョンに紐づくアクティブなセッションは再開し、カートやバージョンが異なる場合は旧セッションを破棄（abandoned）扱いにして新しいセッションを作成します。なお、セッションは24時間で有効期限切れ（expired）となります。
 
 ### BR-CHECKOUT-002 — Cart Versionと価格をOrder作成直前に再検証する
 
-不一致または価格差異があればOrder/Paymentを作らずCartへ戻します。直接URLは不足Stepへ戻します。
+カートバージョンの不一致または価格の差異がある場合、注文（Order）および決済（Payment）は作成せずカート画面へ戻します。URLへ直接アクセスした場合は、未完了のステップへ戻します。
 
 ### BR-CHECKOUT-003 — Mock Payment結果をOrder/Inventoryと一貫して確定する
 
-TEST-SUCCESSだけが在庫を再検証してPayment succeeded、Order paid、在庫減算を確定します。明確な失敗はpayment_failedとし、在庫を変更しません。processing中は再試行とCancelを禁止します。
+TEST-SUCCESSの場合のみ在庫を再検証し、決済完了（Payment succeeded）、注文支払い済み（Order paid）、在庫の減算を確定します。明確に失敗した場合はpayment_failedとし、在庫は変更しません。処理中（processing）の状態では再試行およびキャンセルを禁止します。
 
 ## UI / Behavior Contract
 
-Address、Payment、Confirm、Processing、Complete、Failedの各画面はOrder所有権とPayment状態を検証します。Payment DelayはTest Controlで変更できますが、外部通信は行いません。
+配送先一覧（Addresses）、配送先選択（Address）、決済（Payment）、確認（Confirm）、処理中（Processing）、完了（Complete）、失敗（Failed）の各画面では、注文の所有権と決済状態を検証します。決済遅延（Payment Delay）はテストコントロールから変更可能ですが、外部通信は行いません。
 
 ### SCREEN-CHECKOUT-ADDRESSES — Addresses
 
@@ -28,15 +28,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Customer自身の配送先を一覧表示し、追加・編集・選択へ進める。
-- 未登録時にCheckoutへ進むための登録導線を表示する。
+- 顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。
+- 未登録時にチェックアウトへ進むための登録導線を表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `regular-member` | 配送先一覧と管理Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
-| `empty` | empty | `customer` | `default` | 未登録状態と追加Formへの導線を表示する。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
+| `default` | baseline | `customer` | `regular-member` | 配送先一覧と管理アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
+| `empty` | empty | `customer` | `default` | 未登録状態の案内と追加フォームへの導線を表示する。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
 
 #### Visual References
 
@@ -62,15 +62,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Checkout Sessionの配送先を選択し、Paymentへ進める。
-- Resume / replaced / stale状態のNoticeと次Actionを表示する。
+- チェックアウトセッションで使用する配送先を選択し、決済画面へ進める。
+- 再開（resume）、置換（replaced）、古い状態（stale）に関する通知と、次に行うアクションを表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `regular-member` | 配送先選択と次Step Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
-| `resume-notice` | transient | `customer` | `checkout-resume` | 再開したCheckout Sessionを一度だけ通知する。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
+| `default` | baseline | `customer` | `regular-member` | 配送先選択と次ステップへのアクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
+| `resume-notice` | transient | `customer` | `checkout-resume` | 再開されたチェックアウトセッションであることを一度だけ通知する。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-001`, `AC-CHECKOUT-001` |
 
 #### Visual References
 
@@ -96,14 +96,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Mock Payment optionを選択し、Confirmへ進める。
-- 不完全なSessionやCart Version不一致を安全に扱う。
+- モック決済オプションを選択し、確認画面へ進める。
+- 不完全なセッションやカートバージョンの不一致を安全に処理する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `regular-member` | Payment optionと確認Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
+| `default` | baseline | `customer` | `regular-member` | 決済オプションと確認アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
 
 #### Visual References
 
@@ -123,15 +123,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Order内容、配送先、価格、Paymentを最終確認する。
-- stale Cart / price conflict時は確定せず修正導線を表示する。
+- 注文内容、配送先、価格、決済方法を最終確認する。
+- カート情報が古い（stale）場合や価格の不一致（price conflict）が発生している場合は注文を確定せず、修正のための導線を表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `regular-member` | Order内容と確定Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
-| `stale-cart` | conflict | `customer` | `cart-version-invalidates-checkout` | 不一致を説明しCartまたは該当Stepへ戻す。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
+| `default` | baseline | `customer` | `regular-member` | 注文内容と確定アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
+| `stale-cart` | conflict | `customer` | `cart-version-invalidates-checkout` | 不一致の内容を説明し、カートまたは該当するステップへ戻す。 | `required` | `web-desktop` | `-` | `BR-CHECKOUT-002`, `AC-CHECKOUT-002` |
 
 #### Visual References
 
@@ -157,14 +157,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Payment processing中の状態とReload / resumeの導線を表示する。
-- Processing中の二重確定、Retry、Cancelを許可しない。
+- 決済処理中（processing）の状態を表示し、再読み込み（Reload）や再開（resume）の導線を表示する。
+- 処理中の二重確定、再試行（Retry）、キャンセルを禁止する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `payment-processing` | Payment処理中と待機Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
+| `default` | baseline | `customer` | `payment-processing` | 決済処理中の状態と待機アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
 
 #### Visual References
 
@@ -184,13 +184,13 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Payment成功、Order番号、注文履歴への導線を表示する。
+- 決済完了、注文番号、および注文履歴への導線を表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `default` | 注文完了とOrder確認Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
+| `default` | baseline | `customer` | `default` | 注文完了と注文確認アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
 
 #### Visual References
 
@@ -210,14 +210,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Payment拒否、再試行、Cart / Order確認への導線を表示する。
-- Payment失敗時に在庫やOrderを成功状態へ変更しない。
+- 決済拒否の通知、再試行、カート画面や注文内容確認への導線を表示する。
+- 決済失敗時に、在庫や注文を完了・成功状態へ変更しない。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `customer` | `payment-declined` | 失敗理由と再試行Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
+| `default` | baseline | `customer` | `payment-declined` | 失敗理由と再試行アクションを表示する。 | `required` | `web-desktop, android` | `-` | `BR-CHECKOUT-003`, `AC-CHECKOUT-003` |
 
 #### Visual References
 
@@ -239,19 +239,19 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 Related BR: `BR-CHECKOUT-001`
 
-同一Cart/Versionの再開、異なるVersionの置換、期限切れ、Logout後の再Login復帰が確認できます。
+同一のカートおよびバージョンにおける再開、異なるバージョンでの置換、有効期限切れ時の処理、ならびにログアウト後の再ログインによる復帰が確認できること。
 
 #### AC-CHECKOUT-002 — Stale Cartを確定しない
 
 Related BR: `BR-CHECKOUT-002`
 
-Cart Versionまたは価格が変わった状態で、Order/Paymentが作成されず、必要なStepまたはCartへ戻ります。
+カートバージョンまたは価格が変更された状態において、注文や決済が作成されず、必要なステップまたはカートへ戻ること。
 
 #### AC-CHECKOUT-003 — Payment結果を一度だけ確定する
 
 Related BR: `BR-CHECKOUT-003`
 
-成功、明確な拒否、processing再開、最終在庫不足で、Order、Payment、Inventory、Historyの整合が保たれます。
+成功、明確な拒否、処理中（processing）からの再開、最終的な在庫不足のいずれのケースにおいても、注文（Order）、決済（Payment）、在庫（Inventory）、注文履歴（History）の整合性が保たれること。
 
 ## Executable Canonical Sources
 

@@ -203,6 +203,17 @@
 - Pending: 同じ診断をWindows Actionsの最新headで実行し、CI fixtureの通常版／native版が異なるか、両方が同じrootを返すかを確認する。原因が確認できるまでroot修正、`test:contracts`全件、`pnpm run verify`は実施しない。
 - Progress correction: 既存TASKSのcheckbox集計は22/28（79%）で、前項の21/28表記は1件少なく集計されていた。今回の3件を加え、現状は25/33（76%）。Actions比較と結果に応じた処置は未完了。
 
+## 2026-10-19 — origin/main merge競合と標準検証
+
+- Merge: PR branchで進行中の`origin/main` mergeにある4競合を解消した。`codex-safety-harness.md`はmainの日本語表記を保ち、PRのcanonical root固定説明を追加した。`git-branch-safety.md`はPRのHook root契約とmainの保護ブランチ表記を統合した。`run-artifacts.md`はPRのNode共通実装、staged／committed blob、PowerShell互換入口の詳細を維持した。sanitizer contractはPRのwrapper failure-pathテストとmainのoperator agreementテストを両方残し、Node CLIの正本と現在の文言を検査するよう調整した。G10判定、Hook、危険Git操作の拒否条件、期待される安全操作の契約は変更していない。
+- `corepack pnpm run test:hooks`: 3 files、216 passed、exit 0（Windows host）。
+- `corepack pnpm run test:contracts`: 初回はoperator agreementの文言assertion 1件が不一致。ドキュメントの正本表現へassertionを合わせ、対象file 10 tests passed後に全件を再実行し、48 files、833 passed、3 skipped、exit 0。
+- `corepack pnpm run verify`: exit 0。format、Markdown/text品質、Skill/spec/visual/curriculum、ESLint（0 errors、65 warnings）、typecheck、image manifest、security check、unit 66、integration 111、repository 147、web component 102、native component 64、contracts 833 passed／3 skipped、web build、docs build、spec buildが成功。
+- `corepack pnpm run diagnose:hooks`: exit 0、WARN=0、ERROR=0。project trust、Hook trust、managed override、project root／cwd／config layering、host/session bindingはoffline診断のため未確認。
+- `git diff --check`はmainから入った`README.md`のMarkdown hard-break末尾空白5箇所を報告した。内容は変更せず、`format:check`と`lint:markdown`は成功。
+- Remaining: merge commit、通常push、最新headのrequired CI確認は未完了。以前のWindows Actionsでの12件G10拒否はroot原因未特定のまま残り、production Hookや拒否条件を変更していない。最新head CIで再確認する。
+- Progress: 85% (17/20)。このRunの既存Issue #192 root原因／Windows Actions解消項目と、merge commit／push／最新head CIは未完了。
+
 ## 2026-10-18 — Issue #192／#193標準検証とCI待機制約
 
 - Entry evidence: PR #201はOPEN、PR head／local／remote trackingは`1e70f158ec96fdd29f40066a620e41c0eaa4df99`で一致。両Plan、Issue、対象Hook・contract・診断script・CI workflow・sanitizer・sanitizer contract、active Runを照合した。

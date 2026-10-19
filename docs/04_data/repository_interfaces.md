@@ -1,8 +1,8 @@
 # Repository Interface設計
 
-本書はRepository責務とTransaction境界の正本です。Domain Entityは`domain_types.md`、DTO・Input・Resultの具体型は`application_contracts.md`を参照します。
+本書はリポジトリの責務とトランザクション境界に関する正本仕様です。ドメインエンティティの定義は`domain_types.md`、DTO・Input・Resultの具体型は`application_contracts.md`を参照してください。
 
-Repository Portのcanonical ownerはADR-0027に従い、Portごとの責務とconsumerから決めます。Current sourceでは使用中のRepository Port contractをApplication ownershipとし、`src/application/repositories/**`へ配置しています。Domain behavior contractとして残す具体的理由があるPortだけDomain ownershipを維持します。DomainからApplicationへの依存は禁止され、type-only importも例外にしません。Current signatureや定義位置は所有権の根拠にならず、本書のRepository method contractもその依存方向を許可するarchitecture authorityではありません。
+リポジトリポート（Repository Port）の正式な所有権（canonical owner）はADR-0027に従い、各ポートの責務と利用側（consumer）の関係に基づいて決定します。現在のソースコードでは、使用中のリポジトリポート規約（contract）の所有権をApplication層に置き、`src/application/repositories/**`へ配置しています。ドメインの振る舞いに関する規約として残す明確な理由があるポートのみ、Domain層の所有権を維持します。Domain層からApplication層への依存は禁止されており、型のみのインポート（type-only import）であっても例外とはしません。現在のシグネチャやコード上の定義位置は所有権の根拠にはならず、本書に記載するリポジトリメソッド規約も、その依存方向を許可するアーキテクチャ上の判断根拠ではありません。
 
 ## 1. 共通
 
@@ -13,7 +13,7 @@ interface VersionedRepository<T> {
 }
 ```
 
-RepositoryはDomain Entityまたは明示したRead DTOを返し、Dexie ObjectをUIへ露出しません。Transaction-bound Repositoryは新しいtop-level Transactionを開始しません。Clock、ID、Session、Guest Identity、Email正規化、Application Errorは`application_contracts.md`の共通契約を使用します。
+リポジトリはドメインエンティティまたは明示した参照用DTO（Read DTO）を返し、DexieオブジェクトをUI層へ露出しません。トランザクションに束縛されたリポジトリ（Transaction-bound Repository）は、新たなトップレベルトランザクションを開始しません。クロック、ID、セッション、ゲスト識別子（Guest Identity）、メールアドレス正規化、アプリケーションエラーについては、`application_contracts.md`に定める共通契約を使用します。
 
 ## 2. Application Transaction Runner
 
@@ -141,13 +141,13 @@ interface ApplicationTransactionRunner {
 
 ### Runner規約
 
-- Scopeに必要なStoreだけを1つのDexie Transactionとして開く。
-- `work`へは同じTransactionへ束縛されたRepositoryだけを渡す。
-- Scope外Repository呼出しはTypeScript型とRuntime Guardの両方で拒否する。
-- Payment Gateway、Address Lookup、Timerなどの外部非同期処理をTransaction内でawaitしない。画像PathはBuild生成ModuleからTransaction開始前に解決する。
-- nested Transactionは親ScopeのStore集合を超えない。
-- Transaction CallbackではNative Promise/Web Crypto/Dexie互換Promise以外を待機しない。
-- 認証のPassword照合と、Build生成画像CatalogからのAsset存在・有効状態確認はTransaction開始前に完了させる。
+- スコープに必要なストアのみを対象として、単一のDexieトランザクションを開く。
+- `work`関数へは、同一トランザクションに束縛されたリポジトリのみを渡す。
+- スコープ外のリポジトリ呼び出しは、TypeScriptの型チェックとランタイムガードの双方で遮断する。
+- 決済ゲートウェイ（Payment Gateway）、住所検索（Address Lookup）、タイマーなどの外部非同期処理をトランザクション内でawaitしない。画像パスはビルド時に生成されたモジュールからトランザクション開始前に解決しておく。
+- ネストされたトランザクション（nested transaction）が開くストアの範囲は、親スコープのストア集合を超えてはならない。
+- トランザクションのコールバック内では、ネイティブPromise、Web Crypto、Dexie互換Promise以外の非同期処理を待機（await）しない。
+- 認証時のパスワード照合や、ビルド生成画像カタログからのアセット存在・有効状態の確認は、必ずトランザクション開始前に完了させておく。
 
 ## 3. User・Session・Address
 
@@ -181,7 +181,7 @@ interface AddressLookupService {
 }
 ```
 
-Addressの保存・削除は`user_addresses`単一Storeの原子的Repository Methodで、旧Default解除または後継Default選択まで完了します。
+住所の保存および削除は、`user_addresses`単一ストアに対するアトミックなリポジトリメソッド内で実行し、旧デフォルト住所の解除または後継デフォルト住所の再選定までを完了させます。
 
 ## 4. Catalog
 
@@ -243,19 +243,19 @@ interface ReviewSummaryRepository extends VersionedRepository<ProductReviewSumma
 
 ### Catalog契約
 
-- Storefront SearchはViewer Filterと全Filterを適用した後にPage・Facetを返す。
-- Storefront NavigationはViewer条件適用後のvisibleProductCountが1件以上のactive Category/Brandだけを返す。CategoryはsortOrder・nameNormalized、BrandはnameNormalized・idの順で表示する。
-- Admin商品Searchはdraft/unpublished/discontinued、商品名、productCode、SKUを対象にする。`stockState`はactive SKUの在庫合計で商品単位に判定し、0を`out_of_stock`、1～5を`low_stock`、1以上を`in_stock`とする。
-- Category・Brand一覧もRepositoryでSearch/Filter/Sort/Pageを行う。
-- `deleteDraftAggregate()`はTransaction内でCart/Order/Review/Inventory参照を再確認し、条件不成立なら全体をAbortする。`hasBlockingReference()`はUI事前案内だけに使用する。
-- Aggregate保存Transaction内でCategory/Brand/SKU/Image条件とVariant削除条件を再確認する。
-- 商品公開・非公開は`change-product-status` Scope内でCategory/Brand/active SKU/Primary画像を再確認する。
-- Category状態変更Use CaseはProductRepositoryで公開商品参照を同一Transaction内に再確認し、参照があれば無効化を拒否する。
-- Category作成は`createAtEnd`で0件ならsortOrder=10、既存があればmax(sortOrder)+10を同一Category Store Transaction内で決定して保存する。
-- Brand状態変更Use CaseはProductRepositoryで対象Brandの公開商品参照を同一Transaction内に再確認する。
-- Storefront Category条件は指定した1階層Category IDをそのまま商品検索・Facet件数へ適用する。
-- Bulk Use Caseは対象ごとに通常の単体Use Case/Transactionを呼び、`BulkActionResult`へ成功・失敗を集約する。全対象を1つのTransactionへまとめない。
-- Review Summary更新では`publishedCount=0`なら`ratingAverage=0`、それ以外は`ratingTotal / publishedCount`を未丸めで保存し、Repositoryが表示用丸めを行わない。
+- ストアフロント検索は、閲覧者フィルター（Viewer Filter）および全フィルターを適用した上で、ページ情報およびファセット（Facet）を返す。
+- ストアフロントのナビゲーションは、閲覧者条件適用後の`visibleProductCount`が1件以上存在するアクティブなカテゴリおよびブランドのみを返す。並び順は、カテゴリは`sortOrder`、`nameNormalized`の順、ブランドは`nameNormalized`、`id`の順で表示する。
+- 管理者向け商品検索は、下書き（draft）、非公開（unpublished）、販売終了（discontinued）、商品名、商品コード（`productCode`）、SKUを検索対象とする。在庫状態（`stockState`）はアクティブなSKUの在庫合計に基づき商品単位で判定し、0件を`out_of_stock`、1～5件を`low_stock`、1件以上を`in_stock`とする。
+- カテゴリおよびブランドの一覧取得においても、リポジトリ側で検索、絞り込み、並べ替え、ページ分割（Search/Filter/Sort/Page）を行う。
+- `deleteDraftAggregate()`は、トランザクション内でカート、注文、レビュー、在庫からの参照を再確認し、条件を満たさない場合はトランザクション全体をアボート（ロールバック）する。`hasBlockingReference()`はUI上での事前案内のみに使用する。
+- 集約（Aggregate）保存トランザクション内では、カテゴリ、ブランド、SKU、画像（Image）の整合性条件およびバリアント（Variant）削除条件を再確認する。
+- 商品の公開・非公開の変更は、`change-product-status`スコープ内でカテゴリ、ブランド、アクティブなSKU、メイン画像（Primary画像）の存在と有効性を再確認する。
+- カテゴリ状態変更ユースケースでは、同一トランザクション内で`ProductRepository`を用いて公開商品からの参照を再確認し、参照が存在する場合は無効化を拒否する。
+- カテゴリ作成時は`createAtEnd`を用い、既存が0件なら`sortOrder = 10`、既存データがある場合は同一のカテゴリ・ストア・トランザクション内で`max(sortOrder) + 10`を算出して決定し、保存する。
+- ブランド状態変更ユースケースでは、同一トランザクション内で`ProductRepository`を用いて対象ブランドの公開商品参照を再確認する。
+- ストアフロントのカテゴリ条件は、指定された第1階層のカテゴリIDをそのまま商品検索およびファセット件数の集計に適用する。
+- 一括処理ユースケース（Bulk Use Case）は、対象ごとに通常の単体ユースケースおよびトランザクションを呼び出し、処理結果の成功・失敗を`BulkActionResult`に集約する。全対象を単一のトランザクションにまとめてはならない。
+- レビュー集計（Review Summary）の更新では、`publishedCount = 0`の場合は`ratingAverage = 0`とし、それ以外は`ratingTotal / publishedCount`の計算結果を丸めずに保存する。リポジトリ側で表示用の端数処理（丸め）を行ってはならない。
 
 ## 5. Inventory・Cart・Checkout
 
@@ -296,13 +296,13 @@ interface CheckoutSessionRepository extends VersionedRepository<CheckoutSession>
 
 ### 原子契約
 
-- active Cart取得/作成は単一Storeの原子的Repository Methodで再取得と作成を行い、Unique競合時は既存Cartを再取得する。
-- Item追加は`addQuantityToActiveCart`でownerのactive Cartを取得または`newCartId`で作成し、既存SKUなら加算、新規なら`newItemId`で作成する。Cart取得/作成、数量検証、明細更新、親Cartの`updatedAt/version`更新を`cart-mutation` Scopeの同一Transactionで行う。初回追加ではCart Versionを要求しない。数量更新は`setQuantityAndTouchCart`で絶対数量へ置換する。
-- 数量更新Inputが0の場合、Use Caseは`deleteItemAndTouchCart`へ委譲し、Repositoryへ0数量のCart Itemを保存しない。
-- Login/Register時、Transaction内でUserがactiveであることを再確認する。customerはSession作成とGuest Cart統合を同じScopeで実行し、失敗時はSession・CartをすべてRollbackしてGuest Cartを保持する。operator/adminはSessionだけを作成し、Guest Cartを取得・変更しない。
-- 在庫調整は`adjust-inventory` Scopeで数量更新と履歴追加を行う。片方だけCommitしない。
-- Checkout開始は`start-checkout` Scope内でUser active/customer、Cart/Item/Product/Variantを再検証してからSessionを作成・再開する。
-- Checkout Session期限切れ判定はApp起動、Checkout Route Guard、StartCheckout実行時に行い、定期Timerへ依存しない。
+- アクティブなカート（active Cart）の取得および作成は、単一ストアに対するアトミックなリポジトリメソッド内で再取得と作成を行い、一意性制約の競合（Unique競合）が発生した場合は既存カートを再取得する。
+- アイテムの追加は`addQuantityToActiveCart`を用い、所有者のアクティブなカートを取得するか、存在しなければ`newCartId`で新規作成する。既存SKUであれば数量を加算し、新規SKUであれば`newItemId`で明細を作成する。カートの取得・作成、数量検証、明細更新、および親カートの`updatedAt`と`version`の更新は、すべて`cart-mutation`スコープの同一トランザクション内で実行する。初回のアイテム追加時はカートのバージョン（Version）検証を要求しない。数量更新時は`setQuantityAndTouchCart`により絶対数量への置き換えを行う。
+- 数量更新の入力値（Input）が0の場合、ユースケース側で`deleteItemAndTouchCart`へ処理を委譲し、リポジトリに数量0のカート明細（Cart Item）を保存させない。
+- ログインおよび会員登録（Login/Register）の際は、トランザクション内で対象ユーザーがアクティブ（active）であることを再確認する。一般顧客（customer）の場合は、セッション作成とゲストカートの統合を同一スコープ内で実行し、失敗時はセッションおよびカートの変更をすべてロールバックしてゲストカートの状態を保持する。運用者・管理者（operator/admin）の場合はセッション作成のみを行い、ゲストカートの取得や変更は行わない。
+- 在庫調整は、`adjust-inventory`スコープ内で数量更新と履歴追加を一括して行う。どちらか一方のみをコミットしてはならない。
+- チェックアウトの開始時は、`start-checkout`スコープ内でユーザーがアクティブかつ一般顧客であること、およびカート、カート明細、商品、バリアント（Cart/Item/Product/Variant）の有効性を再検証した上で、セッションの作成または再開を行う。
+- チェックアウトセッションの期限切れ判定は、アプリ起動時、チェックアウトルートのガード（Route Guard）通過時、および`StartCheckout`の実行時に行い、定期的なタイマー処理には依存しない。
 
 ## 6. Order・Payment・Shipment
 
@@ -338,7 +338,7 @@ interface ShipmentRepository extends VersionedRepository<Shipment> {
 }
 ```
 
-Payment GatewayはApp DB Transaction外で呼びます。Order作成に必要な画像PathはBuild生成Manifest ModuleからTransaction前に解決し、`CreateOrderForPaymentCommand.assetPathByAssetId`として渡します。Alt TextはTransaction内で現在のProductImage関係から取得します。
+決済ゲートウェイ（Payment Gateway）は、アプリケーションDBのトランザクション外で呼び出します。注文作成に必要な画像パスは、ビルド時に生成されたマニフェストモジュールからトランザクション開始前に解決し、`CreateOrderForPaymentCommand.assetPathByAssetId`として渡します。代替テキスト（Alt Text）は、トランザクション内で最新の`ProductImage`関連から取得します。
 
 ## 7. Review・Overview
 
@@ -355,11 +355,10 @@ interface ReviewRepository extends VersionedRepository<Review> {
 interface AdminOverviewQueryRepository {
   getOverview(input: { lowStockThreshold: number; recentOrderLimit: number }): Promise<AdminOverview>;
 }
-
 ```
 
-Review初回作成時の`ReviewStatusHistory.fromStatus`は`null`、以後の状態変更では直前Statusを設定します。
+レビューの初回作成時における`ReviewStatusHistory.fromStatus`は`null`とし、それ以降の状態変更時には直前のステータス（Status）を設定します。
 
 ## 8. 共通Error
 
-Repository/Adapter固有ExceptionはUse Case境界で`ApplicationError`へ変換します。PresentationへDexie名、Store名、stack、内部Class名を露出しません。Error Code、messageKey、fieldErrors、retryableの正本は`application_contracts.md`です。Phase 1にReconciliation、Refund、Import、Migration Recovery固有Errorを定義しません。
+リポジトリやアダプター固有の例外（Exception）は、ユースケース境界で`ApplicationError`へ変換します。プレゼンテーション層に対して、Dexie名、ストア名、スタックトレース、内部クラス名などを露出させてはなりません。エラーコード（Error Code）、`messageKey`、`fieldErrors`、`retryable`の正本仕様は`application_contracts.md`です。なお、フェーズ1（Phase 1）では、照合（Reconciliation）、返金（Refund）、インポート（Import）、移行リカバリ（Migration Recovery）固有のエラーは定義しません。

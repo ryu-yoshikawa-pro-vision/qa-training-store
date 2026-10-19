@@ -101,6 +101,21 @@ const STATE_COLUMNS = [
   "Visual detail",
   "Related Oracle",
 ] as const;
+const SCREEN_CONTRACT_HEADINGS = [
+  { canonical: "Functions", aliases: ["Functions", "機能一覧（Functions）"] },
+  {
+    canonical: "Important UI States",
+    aliases: ["Important UI States", "主要なUI状態（Important UI States）"],
+  },
+  {
+    canonical: "Visual References",
+    aliases: ["Visual References", "画面リファレンス（Visual References）"],
+  },
+] as const;
+const FEATURE_SCREEN_CONTRACT_PARENT_HEADINGS = [
+  "UI / Behavior Contract",
+  "UI・振る舞い規約（UI / Behavior Contract）",
+] as const;
 const ROOT_OWNER_FILES = new Set([
   "docs/spec/product-scope.md",
   "docs/spec/roles-and-permissions.md",
@@ -115,6 +130,12 @@ function addIssue(
   line?: number,
 ): void {
   issues.push(line === undefined ? { file, message } : { file, line, message });
+}
+
+function screenContractHeading(text: string): string | undefined {
+  return SCREEN_CONTRACT_HEADINGS.find((heading) =>
+    (heading.aliases as readonly string[]).includes(text),
+  )?.canonical;
 }
 
 function cells(line: string): string[] {
@@ -225,15 +246,19 @@ function validateScreenContractGrammar(
   section: ScreenSection,
   issues: VisualContractIssue[],
 ): void {
-  const expected = ["Functions", "Important UI States", "Visual References"];
+  const expected = SCREEN_CONTRACT_HEADINGS.map((heading) => heading.canonical);
   const inner = parsed.headings
     .filter(
       (heading) =>
         heading.level === 4 && heading.line > section.heading && heading.line <= section.end,
     )
     .map((heading) => heading.text);
+  const canonical = inner.map(screenContractHeading);
   for (const heading of expected) {
-    const count = inner.filter((candidate) => candidate === heading).length;
+    const aliases = SCREEN_CONTRACT_HEADINGS.find((item) => item.canonical === heading)!.aliases;
+    const count = inner.filter((candidate) =>
+      (aliases as readonly string[]).includes(candidate),
+    ).length;
     if (count !== 1)
       addIssue(
         issues,
@@ -244,7 +269,7 @@ function validateScreenContractGrammar(
   }
   if (
     inner.length !== expected.length ||
-    inner.some((heading, index) => heading !== expected[index])
+    canonical.some((heading, index) => heading !== expected[index])
   )
     addIssue(
       issues,
@@ -268,9 +293,14 @@ function findStateTables(
     const section = screenSectionBounds(parsed, heading.line);
     const sectionEnd = section.end;
     validateScreenContractGrammar(parsed, screenId, section, issues);
-    const start = parsed.lines.findIndex(
-      (line, index) => index > heading.line - 1 && line.trim() === "#### Important UI States",
+    const stateHeading = parsed.headings.find(
+      (candidate) =>
+        candidate.level === 4 &&
+        candidate.line > heading.line &&
+        candidate.line <= sectionEnd &&
+        screenContractHeading(candidate.text) === "Important UI States",
     );
+    const start = stateHeading === undefined ? -1 : stateHeading.line - 1;
     if (start === -1 || start >= sectionEnd) {
       addIssue(
         issues,
@@ -469,14 +499,14 @@ export function collectVisualStates(
       const parent = [...owner.headings]
         .reverse()
         .find((heading) => heading.level === 2 && heading.line < section.line);
-      const expectedParent = entry.primarySpec.startsWith("docs/spec/features/")
-        ? "UI / Behavior Contract"
-        : "Screen Contracts";
-      if (parent?.text !== expectedParent)
+      const expectedParents = entry.primarySpec.startsWith("docs/spec/features/")
+        ? FEATURE_SCREEN_CONTRACT_PARENT_HEADINGS
+        : ["Screen Contracts"];
+      if (!(expectedParents as readonly string[]).includes(parent?.text ?? ""))
         addIssue(
           issues,
           entry.primarySpec,
-          `${entry.screenId} must be directly under ## ${expectedParent}`,
+          `${entry.screenId} must be directly under ## ${expectedParents[0]}`,
           section.line,
         );
       states.push(...findStateTables(owner, entry.screenId, issues));
@@ -505,9 +535,7 @@ export function collectVisualStates(
       .filter((candidate) => candidate.level === 3 && candidate.text.startsWith("SCREEN-"))
       .map((candidate) => screenSectionBounds(parsedFile, candidate.line));
     for (const heading of parsedFile.headings.filter(
-      (candidate) =>
-        candidate.level === 4 &&
-        ["Functions", "Important UI States", "Visual References"].includes(candidate.text),
+      (candidate) => candidate.level === 4 && screenContractHeading(candidate.text) !== undefined,
     )) {
       if (
         !screenSections.some(
@@ -566,11 +594,15 @@ function visualReferencesForState(parsed: ParsedMarkdown, state: VisualState): V
   );
   if (heading === undefined) return [];
   const sectionEnd = screenSectionBounds(parsed, heading.line).end;
-  const visualHeading = parsed.lines.findIndex(
-    (line, index) =>
-      index > heading.line - 1 && index < sectionEnd && line.trim() === "#### Visual References",
+  const visualHeadingRecord = parsed.headings.find(
+    (candidate) =>
+      candidate.level === 4 &&
+      candidate.line > heading.line &&
+      candidate.line <= sectionEnd &&
+      screenContractHeading(candidate.text) === "Visual References",
   );
-  if (visualHeading === -1) return [];
+  if (visualHeadingRecord === undefined) return [];
+  const visualHeading = visualHeadingRecord.line - 1;
   const stateHeading = parsed.lines.findIndex(
     (line, index) =>
       index > visualHeading && index < sectionEnd && line.trim() === `##### \`${state.slug}\``,

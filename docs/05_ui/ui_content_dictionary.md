@@ -1,8 +1,8 @@
 # UI文言集
 
-本ファイルは利用者へ表示する日本語文言とStatus名の正本です。Domain値、Route名、Repository名を画面へ直接表示しません。
+本ファイルは、利用者に表示する日本語のUI文言およびステータス名の正本です。ドメイン値、ルート名、リポジトリ名は画面へ直接表示しません。
 
-## 1. Brand・共通
+## 1. ブランド・共通
 
 | Key | 表示 |
 |---|---|
@@ -31,9 +31,9 @@
 | nav.users | ユーザー |
 | nav.testControl | テスト制御 |
 
-## 3. Role・Rank・Accountの状態
+## 3. ロール・ランク・アカウントの状態
 
-| Domain値 | 表示 |
+| ドメイン値 | 表示 |
 |---|---|
 | customer | 顧客 |
 | operator | 運用担当者 |
@@ -45,18 +45,18 @@
 | suspended | 利用停止中 |
 | withdrawn | 退会済み |
 
-## 4. Productの状態
+## 4. 商品の状態
 
-| Domain値 | 表示 |
+| ドメイン値 | 表示 |
 |---|---|
 | draft | 下書き |
 | published | 公開中 |
 | unpublished | 非公開 |
 | discontinued | 販売終了 |
 
-## 5. Order・Payment・Shipmentの状態
+## 5. 注文・決済・配送の状態
 
-| Domain値 | 表示 |
+| ドメイン値 | 表示 |
 |---|---|
 | pending_payment | 支払い待ち |
 | payment_failed | 支払い失敗 |
@@ -69,9 +69,9 @@
 | failed | 支払い失敗 |
 | pending | 発送準備前 |
 
-## 6. Reviewの状態
+## 6. レビューの状態
 
-| Domain値 | 表示 |
+| ドメイン値 | 表示 |
 |---|---|
 | published | 公開中 |
 | hidden | 非公開 |
@@ -102,7 +102,7 @@
 | action.clearFilters | 条件をすべて解除 |
 | action.showResults | {count}件の商品を表示 |
 
-## 8. Search・Filter
+## 8. 検索・フィルター
 
 | Key | 表示 |
 |---|---|
@@ -122,7 +122,7 @@
 | sort.priceDesc | 価格が高い順 |
 | sort.ratingDesc | 評価が高い順 |
 
-## 9. Price・Shipping
+## 9. 価格・送料
 
 | Key | 表示 |
 |---|---|
@@ -133,7 +133,7 @@
 | shipping.remaining | あと{amount}で送料無料 |
 | shipping.standard | 送料 {amount} |
 
-## 10. Form
+## 10. フォーム
 
 | Key | 表示 |
 |---|---|
@@ -150,7 +150,7 @@
 | Key | 表示 |
 |---|---|
 | product.priceRange | {min}〜{max} |
-| product.imageCatalogHelp | この画面では登録済み画像を選択します。新しい画像はGitHub Repositoryへ追加し、再デプロイすると選択できます。 |
+| product.imageCatalogHelp | この画面では登録済み画像を選択します。新しい画像はGitHubリポジトリへ追加し、再デプロイすると選択できます。 |
 | product.imageInactive | この画像は現在、新規選択の対象外です。 |
 | product.stockReadOnly | 既存SKUの在庫は在庫調整画面で変更してください。 |
 | product.deleteConfirm | 下書き商品「{name}」と関連するSKU・画像設定を削除します。GitHub上の画像ファイルは削除されません。 |
@@ -169,13 +169,13 @@
 
 ## 12. メッセージの文体
 
-- Titleは結果を簡潔に断定する: 「商品をカートに追加しました」。
-- Bodyは必要な場合だけ次の操作を示す。
-- 「成功しました」「エラーです」だけで終わらせない。
-- 英語のDomain値や技術語を利用者向けMessageへ出さない。
-- Account、Order、Payment、Reviewは画面では原則「アカウント」「注文」「支払い」「レビュー」と表記する。
+- タイトルは結果を簡潔に言い切る形式とする（例：「商品をカートに追加しました」）。
+- 本文は必要な場合のみ次の操作を案内する。
+- 「成功しました」「エラーです」といった曖昧な文言だけで終わらせない。
+- 英語のドメイン値や技術用語は、利用者向けのメッセージに表示しない。
+- Account、Order、Payment、Reviewは、画面上では原則として「アカウント」「注文」「支払い」「レビュー」と表記する。
 
-## 13. Checkout再確認
+## 13. チェックアウト再確認
 
 | Key | 文言 |
 |---|---|

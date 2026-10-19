@@ -18,6 +18,10 @@
 - [x] 14. 確認済みの変更だけをcommitする。
 - [x] 15. 対象branchへ通常pushし、PR #201本文を実装結果へ更新する。
 - [ ] 16. 最新headのWindows CI失敗を修正し、契約全体とverifyを再実行する。
+- [x] 40. `origin/main` mergeの4競合を、main側の日本語整理とPR側のHook root／Node sanitizer契約を保って解消する。
+- [x] 41. 指定された`test:hooks`、`test:contracts`、`verify`を実行し、契約テストの文言不一致を修正して再確認する。
+- [ ] 42. 最終Run Artifactを検証し、merge commitを作成して対象branchへ通常pushする。
+- [ ] 43. push後の最新PR headでrequired CIを確認し、PR状態を反映する。
 
 ## 追加調査 (2026-10-18)
 

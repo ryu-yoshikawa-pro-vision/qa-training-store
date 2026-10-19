@@ -2,21 +2,21 @@
 
 ## Purpose / Scope
 
-Operator/AdminがProduct Aggregate、Category、Brand、Image Asset、公開状態を管理する契約を定義します。
+オペレーターおよび管理者が、Product Aggregate、Category、Brand、Image Asset、および公開状態を管理する際の仕様規約を定義します。
 
 ## Business Rules
 
 ### BR-ADMINCAT-001 — Productの公開可否と状態遷移を検証する
 
-公開にはactive Category、active Brand、active SKU、Image、Primary Imageが必要です。Product Aggregate編集でStatusを変更せず、専用状態変更だけが遷移を行います。
+公開するには、有効な（active）Category、有効なBrand、有効なSKU、Image、およびPrimary Imageが必須です。通常のProduct Aggregate編集処理ではStatusを変更せず、専用の状態変更処理のみが状態遷移を実行します。
 
 ### BR-ADMINCAT-002 — Product AggregateとAsset関連をTransactionで更新する
 
-Product、Variant、Image関連、初期在庫履歴、Review Summaryを一貫して保存し、既存在庫とRelease済みAsset Binaryを商品編集で破壊しません。
+Product、Variant、Image関連、初期在庫履歴、およびReview Summaryを同一トランザクション内で一貫性を保って保存し、商品編集処理によって既存在庫やリリース済みのアセットバイナリ（Release済みAsset Binary）が損なわれないようにします。
 
 ## UI / Behavior Contract
 
-Operator/Adminは未保存FormのPreviewを見られますが、PreviewはDBを書き込みません。Draftでのみ許可されるCode/SKU変更と、公開後の追加SKU/無効化の境界を説明します。
+オペレーターおよび管理者は未保存フォームのプレビューを確認できますが、プレビューによってデータベースへの書き込みは行われません。Draft（下書き）状態でのみ許可されるCode/SKUの変更と、公開後に可能となるSKUの追加や無効化の境界条件を定義します。
 
 ### SCREEN-ADMIN-DASHBOARD — Admin Dashboard
 
@@ -24,15 +24,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Operator/Adminが管理対象の概要と主要管理導線を確認する。
-- Desktop境界を満たさないViewportでは管理操作の代わりにWarningを表示する。
+- オペレーターおよび管理者が管理対象の概要と主要な管理動線を確認する。
+- デスクトップ表示の要件を満たさないビューポートでは、管理操作UIの代わりに警告（Warning）を表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | 管理概要とNavigationを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
-| `admin-mobile-warning` | responsive | `operator, admin` | `default` | 1024px未満では専用Warningを表示する。 | `required` | `web-mobile, web-small-mobile` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `default` | baseline | `operator, admin` | `default` | 管理概要とナビゲーションを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `admin-mobile-warning` | responsive | `operator, admin` | `default` | 1024px未満では専用の警告メッセージを表示する。 | `required` | `web-mobile, web-small-mobile` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
 
 #### Visual References
 
@@ -62,15 +62,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Product、公開状態、Filter、Bulk操作の結果を表示する。
-- Product New / Detailへの管理導線を提供する。
+- 商品（Product）、公開状態、フィルター条件、一括操作の結果を表示する。
+- 商品新規登録（Product New）および詳細（Product Detail）への管理動線を提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | Product一覧と管理Actionを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
-| `many-products` | domain | `operator, admin` | `many-products` | 多数Productの一覧とFilterを表示する。 | `required` | `web-desktop` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `default` | baseline | `operator, admin` | `default` | 商品一覧と管理アクションを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `many-products` | domain | `operator, admin` | `many-products` | 多数の商品一覧とフィルターを表示する。 | `required` | `web-desktop` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
 
 #### Visual References
 
@@ -96,14 +96,14 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Product Aggregateの新規入力、Validation、Previewを提供する。
-- 保存前PreviewがDBへ書き込まれないことを表示上も区別する。
+- Product Aggregateの新規入力、バリデーション、プレビュー機能を提供する。
+- 保存前のプレビュー表示中はデータベースへ書き込まれないことを、画面表示上でも明確に区別する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | 新規Product Formを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `default` | baseline | `operator, admin` | `default` | 新規商品登録フォームを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
 
 #### Visual References
 
@@ -123,15 +123,15 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- 既存ProductのAggregate、Variant、Image、在庫、公開状態を編集する。
-- Dirty、Preview、Discontinue、Delete blockedなどの確認を表示する。
+- 既存商品のAggregate、Variant、Image、在庫、および公開状態を編集する。
+- 未保存変更（Dirty）、プレビュー、販売終了（Discontinue）、削除不可（Delete blocked）などの確認ダイアログやステータスを表示する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | Product編集Formと現在状態を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
-| `discontinue-confirm` | conflict | `operator, admin` | `default` | 販売終了の確認Dialogを表示する。 | `required` | `web-desktop` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `default` | baseline | `operator, admin` | `default` | 商品編集フォームと現在のステータスを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
+| `discontinue-confirm` | conflict | `operator, admin` | `default` | 販売終了の確認ダイアログを表示する。 | `required` | `web-desktop` | `-` | `BR-ADMINCAT-001`, `AC-ADMINCAT-001` |
 
 #### Visual References
 
@@ -157,13 +157,13 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Categoryの一覧、作成、編集、Validationを提供する。
+- カテゴリーの一覧表示、新規作成、編集、およびバリデーション機能を提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | Category一覧と管理Formを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-002`, `AC-ADMINCAT-002` |
+| `default` | baseline | `operator, admin` | `default` | カテゴリー一覧と管理フォームを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-002`, `AC-ADMINCAT-002` |
 
 #### Visual References
 
@@ -183,13 +183,13 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 #### Functions
 
-- Brandの一覧、作成、編集、Validationを提供する。
+- ブランドの一覧表示、新規作成、編集、およびバリデーション機能を提供する。
 
 #### Important UI States
 
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `operator, admin` | `default` | Brand一覧と管理Formを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-002`, `AC-ADMINCAT-002` |
+| `default` | baseline | `operator, admin` | `default` | ブランド一覧と管理フォームを表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMINCAT-002`, `AC-ADMINCAT-002` |
 
 #### Visual References
 
@@ -211,13 +211,13 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 Related BR: `BR-ADMINCAT-001`
 
-必要なCategory、Brand、SKU、Image、Primary Imageを満たさないProductが公開されず、許可された状態遷移だけが成功します。
+必須となるCategory、Brand、SKU、Image、Primary Imageの条件を満たさないProductは公開されず、許可された状態遷移のみが正常に完了すること。
 
 #### AC-ADMINCAT-002 — Previewと保存の責務を分離する
 
 Related BR: `BR-ADMINCAT-002`
 
-Preview、保存、初期在庫、Review Summary、Asset関連が各Transaction契約を満たし、PreviewだけではDBが変化しません。
+プレビュー、保存、初期在庫、Review Summary、アセット関連の各処理がトランザクション規約を満たし、プレビューの実行のみではデータベースが変更されないこと。
 
 ## Executable Canonical Sources
 

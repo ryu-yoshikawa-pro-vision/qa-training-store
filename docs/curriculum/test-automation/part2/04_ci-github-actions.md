@@ -2,36 +2,36 @@
 
 ## 学習目標
 
-- CIの目的を説明できる。
-- GitHub Actions Workflowの基本構造を読める。
-- YAMLのインデントと、演習用Workflowに現れるGitHub Actionsの主要なKeyを対応付けられる。
-- Trigger、Job、Step、Runnerの関係を理解できる。
-- Localで実行していたTest CommandとCI Stepを対応付けて説明できる。
-- 準備済みTraining Workflowで使うPR／manual実行の違いを説明でき、main／scheduleはProduction比較の参考情報として区別できる。
-- Training CIと教材元のProduction Workflowを安全に分離できる理由を説明できる。
-- CI Failureを「Workflowが悪い」「Testが悪い」「Environmentが悪い」に切り分ける観点を持てる。
+- CI（継続的インテグレーション）の目的を説明できる。
+- GitHub Actionsのワークフロー（Workflow）の基本構造を読み解くことができる。
+- YAMLのインデント構造と、演習用ワークフローに含まれる主要なGitHub Actionsのキーを対応付けられる。
+- トリガー（Trigger）、ジョブ（Job）、ステップ（Step）、ランナー（Runner）の関係性を理解できる。
+- ローカル環境で実行していたテストコマンドと、CIの各ステップの対応関係を説明できる。
+- 演習用に用意されたトレーニング用ワークフローにおけるプルリクエスト（PR）実行と手動実行の違いを説明でき、本番比較用の参考情報であるmainブランチ実行やスケジュール実行と明確に区別できる。
+- トレーニング用CIと教材元の本番ワークフローを安全に分離できる理由を説明できる。
+- CIの失敗原因を「ワークフロー自体の不備」「テストコードの不備」「実行環境の不備」に正しく切り分ける視点を持てる。
 
 ## 教材
 
-**このモジュールでは、このリポジトリの `.github/workflows/ci.yml` と `package.json` を使用します。**
+**このモジュールでは、本リポジトリの `.github/workflows/ci.yml` と `package.json` を使用します。**
 
-ただし、現在の `.github/workflows/ci.yml` はCloudflare Preview / Productionなど実運用向け経路を含む完成済みWorkflowです。
+ただし、現在配置されている `.github/workflows/ci.yml` は、Cloudflare Previewや本番環境（Production）向けなど、実運用を想定した経路を含む完成版のワークフローです。
 
-受講者が最初からこれを直接編集・複製して実行することは前提にしません。共通範囲では、準備済みのTraining Workflowを読み、実行対象の`.github/workflows/**`を編集しません。
+受講者が最初からこのファイルを直接編集・複製して実行することは想定していません。共通課程の範囲では、事前に用意されたトレーニング用ワークフローを読み解くことを中心とし、実行対象である `.github/workflows/**` 配下のファイルは編集しません。
 
 ## 共通課程の必須範囲
 
-共通課程の修了では、Training環境のTrigger、Job / Step、Failure工程、least privilege（必要最小限のPermission）を説明できることを求めます。TrainingとProduction / Deployの責務を分け、失敗や想定外SkipをSuccessとして扱わない理由も説明します。
+共通課程を修了するには、トレーニング環境におけるトリガー、ジョブやステップ、失敗時の工程、そして最小権限の原則（必要最小限の権限設定）について説明できる必要があります。また、トレーニング環境と本番環境（デプロイ）の責務を分離し、処理の失敗や想定外のスキップを「成功（Success）」として扱ってはならない理由についても説明が求められます。
 
-## 演習Workflowの境界（開始前に確認する条件）
+## 演習ワークフローの境界（開始前に確認する条件）
 
-Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、運営者が開始前に用意した準備済みTraining環境で行います。
+GitやGitHubの基礎演習ではフォーク（Fork）を利用できますが、CIのハンズオンは本番ワークフローから分離された、運営側が事前に用意したトレーニング環境で実施します。
 
-演習開始時に、自己学習開始前に準備された学習者書き込み可能なTraining Copyで、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、教材元Repositoryの必須Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、環境の準備問題として提供手順へ戻ります。
+演習開始時には、受講者自身に書き込み権限が付与された事前準備済みの「トレーニング用コピー」において、意図したトレーニング用ワークフローのみが実行されることを確認します。その際、本番用シークレット（Secret）やデプロイ権限を要求せず、教材元リポジトリの必須チェック（Required Checks）に影響を与えない状態であることを必ず確かめてください。これらが確認できない場合はCIの学習を進めず、環境の準備不備として配布手順の確認に戻ります。
 
-Training Copyの準備、実行対象Workflowのallowlist、Action pin、現在の構成、Native実行環境などのRepository固有の詳細は、開始前に提供された準備情報と、このRepositoryの実資材で確認します。受講者はこれらの値の暗記や準備作業を共通課程の修了条件にしません。
+トレーニング用コピーの準備状況、実行対象ワークフローの許可リスト（allowlist）、Actionのコミット固定（pin）、現在の構成、ネイティブ実行環境などのリポジトリ固有の詳細については、開始前に案内された準備情報や実際のリポジトリ資材を確認して把握します。これらの具体的な値の暗記や環境準備の作業自体は、共通課程の修了条件には含まれません。
 
-講師がいない自己学習では、開始前に次の「環境配布カード」を受け取っていることを前提にします。これはcredentialを記載する場所ではなく、学習者が接続先と完了判定の境界を確認するための情報です。カードがない、または値が空欄の場合は、推測でRepositoryやWorkflowを選ばずPart 2を`BLOCKED`として記録します。
+講師が同席しない自己学習形式の場合は、開始前に以下の「環境配布カード」をあらかじめ受け取っていることを前提とします。このカードは認証情報を記載するものではなく、学習者が接続先や完了判定の適用範囲を確認するための情報です。カードが手元にない場合や記載内容が空欄の場合は、自己判断や推測でリポジトリやワークフローを選定せず、Part 2を「`BLOCKED`（中断）」として記録してください。
 
 ```text
 Training Copy URL: <学習者が書き込み可能なURL>
@@ -42,28 +42,28 @@ Actions enabled: <yes / no>
 Expected PR / Artifact: <Training Copy上のPRとtraining-web-<run_id>-<run_attempt>>
 ```
 
-現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
+現在リポジトリにある `ci.yml` は、最小構成を理解した後に「実際の開発現場ではどのように発展していくのか」を把握するための比較教材として活用します。
 
 ## このLessonのInput / Output
 
 | 項目 | 受講者が確認・実施する内容 |
 | --- | --- |
-| Input | P2-3のPRと、P1／P2-3で作成したTest Case・Training code・実行記録。C12へ進むための、事前準備済みTraining CopyのURLと学習者書き込み権限 |
-| Activity | 準備済みTraining WorkflowのYAML、Trigger、Job、Step、Runner、権限、Local commandとの対応を読み、Workflowを編集せずにPRからActionsを実行してRun／Job／Check／Artifactを確認する |
-| Observation | どのEventでWorkflowが動いたか、各Stepの入力・出力、baselineとexercise、失敗段階、最小権限、Artifact、想定外Skipの扱い |
-| Output | Workflowの読み取りメモ、Local／CI command対応、Run／Job／Check／Artifactの人間可読Evidence、P2-5へ渡すCI実行参照。Evidenceの必須項目は実在するArtifact名であり、URLは任意の別項目です。CIが自動生成したReceipt／`ci.md`は機械メタデータであり、GitHub画面を確認したEvidenceの代わりにしない。編集場所は自由で、self-checkは`handoff-root/self-check/P2-04.md`へ残す |
-| Self-check | CIの価値、Local CommandとCI Stepの対応、Trigger／Job／Step／Runner、TrainingとProductionの境界、`contents: read`で十分な理由、FailureとSkipをSuccessにしない理由を説明する |
-| Completion | 準備済みTraining CopyでTraining Workflowを実行し、GitHub画面でRun／Check／Artifactと結果を確認して、対象Caseごとの人間可読Evidenceへ記録しP2-5へ渡せる。Fork上のCI実行はC12の正式証跡にしない。管理者権限、Secrets、Workflow権限変更は不要 |
-| Recovery | Workflowが動かない場合はCopyの権限、Actions有効化、Trigger、Runner、Browser／Buildの順で環境問題を切り分ける。YAMLの理解不足は該当Lessonへ戻り、Production Workflowを直接変更しない |
-| Handoff | P2-5へTraining Copy URL、PR／Branch、Run ID、Job／Check、Artifact名、実行したCase／code Path、Evidenceを渡す |
+| Input | P2-3で作成したPR、およびP1／P2-3で作成したテストケース・トレーニング用コード・実行記録。C12へ進むために必要な、事前準備済みトレーニング用コピーのURLと学習者自身の書き込み権限。 |
+| Activity | 用意されたトレーニング用ワークフローのYAMLファイルから、トリガー、ジョブ、ステップ、ランナー、付与された権限、およびローカルコマンドとの対応関係を読み解く。ワークフロー自体は編集せず、PRからGitHub Actionsを実行してRun／Job／Check／Artifactの各状態を確認する。 |
+| Observation | どのイベントを契機にワークフローが起動したか、各ステップの入力と出力、ベースライン（baseline）と演習（exercise）の差異、失敗が発生した段階、最小権限の設定状況、生成されたアーティファクト（Artifact）、想定外のスキップの扱いを確認する。 |
+| Output | ワークフローの読み取りメモ、ローカルコマンドとCIコマンドの対応表、Run／Job／Check／Artifactを確認した人間可読なエビデンス（証跡）、P2-5へ引き継ぐCI実行情報。エビデンスの必須項目は「実在するアーティファクト名」であり、URLの記載は任意です。CIが自動生成するレシートや `ci.md` などの機械的なメタデータは、受講者自身がGitHubの画面を目視確認したエビデンスの代用にはできません。メモの作成場所は自由ですが、セルフチェック結果は `handoff-root/self-check/P2-04.md` に記録してください。 |
+| Self-check | CIを導入する意義、ローカルコマンドとCIステップの対応関係、トリガー／ジョブ／ステップ／ランナーの役割、トレーニング環境と本番環境の境界線、`contents: read` で権限が十分である理由、失敗やスキップを成功扱いにしない理由を説明できる。 |
+| Completion | 準備されたトレーニング用コピーでトレーニング用ワークフローを実行し、GitHub画面上でRun／Check／Artifactとその結果を確認のうえ、対象ケースごとの人間可読なエビデンスとして記録し、P2-5へ引き継げる状態にすること。フォーク先で実行したCIの結果は、C12の正式な証跡としては認められません。リポジトリの管理者権限、Secretsの追加、ワークフロー権限の変更は不要です。 |
+| Recovery | ワークフローが起動しない場合は、トレーニング用コピーの権限、Actionsの有効化設定、トリガー、ランナー、ブラウザやビルド環境の順序で環境起因の問題を切り分けます。YAMLの理解不足がある場合は該当レッスンに戻り、本番用ワークフローを直接修正することは避けてください。 |
+| Handoff | P2-5へ引き継ぐ情報として、トレーニング用コピーのURL、PRまたはブランチ名、Run ID、Job／Check名、Artifact名、実行したケースまたはコードパス、および確認エビデンスをまとめます。 |
 
 ## Lesson 1: CIとは
 
-Continuous Integrationでは、変更を統合する過程でBuildやTestなどを自動実行し、問題を早く検出します。
+CI（Continuous Integration: 継続的インテグレーション）とは、ソースコードの変更を統合する過程でビルドやテストなどを自動的に実行し、不具合や問題を早期に検出するための手法です。
 
-Part 1では、人間がローカルでコマンドを実行していました。
+Part 1では、開発者が手動でローカル環境のコマンドを実行して確認していました。
 
-CIでは、その確認を変更イベントへ接続します。
+CIでは、これらの確認作業をコードの変更イベント（トリガー）と自動的に連動させます。
 
 ```text
 Push / Pull Request
@@ -81,147 +81,147 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) を参考資料として読みます。Actionのfull commit SHA、exact allowlist、現在のWorkflow構成は現在の資材と開始前の準備情報で確認し、日本語の暗記やRepositoryの準備作業を修了条件にはしません。
+トレーニング用の最小構成例として、[`training-ci.yml`](../../../../training/github-actions/training-ci.yml) および [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) を参考資料として読み進めます。Actionの完全なコミットハッシュ（full commit SHA）、厳密な許可リスト、現在のワークフロー構成などは、実際のリポジトリ資材および事前配布された準備情報で確認してください。構文の丸暗記やリポジトリの初期構築作業は、共通課程の修了条件ではありません。
 
-概念としては、Event → least-privilege Permission → Job / Runner → Dependency Setup → Test Command → Artifact / Resultの関係を読み分けます。remote ActionのpinやVersionを更新する場合は、official sourceとSecurity Advisoryを確認します。
+概念の整理としては、「イベント（Event） → 最小権限（Permissions） → ジョブ（Job）／ランナー（Runner） → 依存関係のセットアップ（Dependency Setup） → テストコマンド（Test Command） → 成果物・結果（Artifact / Result）」という一連の流れと関係性を正確に把握します。外部Actionのバージョン固定や更新を行う際は、公式の情報源やセキュリティアドバイザリ（Security Advisory）を確認することが基本となります。
 
-ここから次を読み分けます。
+ここでは、以下の要素を識別して読み解きます。
 
-- Workflow
-- Event
-- Permissions
-- Job
-- Runner
-- Step
-- Action
-- Command
+- ワークフロー（Workflow）
+- イベント（Event）
+- 権限（Permissions）
+- ジョブ（Job）
+- ランナー（Runner）
+- ステップ（Step）
+- アクション（Action）
+- コマンド（Command）
 
-YAMLの`key: value`、リスト、インデントによる入れ子を確認したうえで、準備済みのTraining Workflowを次の対応で読みます。
+YAMLにおける `キー: 値` の形式、リスト構造、インデントによる階層関係を確認したうえで、準備されたトレーニング用ワークフローを以下の対応関係に沿って読み解きます。
 
-| WorkflowのKey | 読み取る内容 |
+| ワークフローのキー | 読み取る内容 |
 | --- | --- |
-| `on` | どのEventでWorkflowを起動するか |
-| `jobs` | どの単位の処理を実行するか |
-| `runs-on` | Jobを動かすRunner |
-| `steps` | Job内の処理順序 |
-| `uses` | 再利用するAction |
-| `with` | Actionへ渡す設定 |
-| `run` | Runner上で実行するCommand |
-| `env` | Workflow / Job / Stepへ渡すEnvironment Variable |
-| `if` | StepやJobを実行する条件 |
+| `on` | どのようなイベントを契機にワークフローを起動するか |
+| `jobs` | どの処理単位を実行するか |
+| `runs-on` | ジョブを実行する環境（ランナー） |
+| `steps` | ジョブ内で順次実行される処理の手順 |
+| `uses` | 再利用する外部または共通のアクション |
+| `with` | アクションに渡す設定パラメータ |
+| `run` | ランナー上で直接実行するシェルコマンド |
+| `env` | ワークフロー、ジョブ、またはステップに渡す環境変数 |
+| `if` | ステップやジョブを実行するための条件式 |
 
-`${{ ... }}`はYAMLの値そのものではなく、GitHub ActionsのExpressionです。`github`はEventやRepository、`env`はEnvironment Variable、`inputs`は`workflow_dispatch`の入力値を参照するContextです。すべてのExpressionを暗記せず、実際のWorkflowで読める範囲を扱います。
+`${{ ... }}` で囲まれた記述はYAMLの固定値ではなく、GitHub Actionsの式（Expression）です。`github` はイベントやリポジトリの情報、`env` は環境変数、`inputs` は `workflow_dispatch` 経由で渡された入力値を参照するコンテキスト（Context）を表します。すべての式を暗記する必要はなく、演習で扱うワークフローの記述を正しく読める範囲を理解していれば十分です。
 
 ## Lesson 3: Trigger
 
-代表的なTrigger:
+代表的なトリガー（起動契機）:
 
 - `pull_request`
 - `push`
 - `schedule`
 - `workflow_dispatch`
 
-同じTestでも、実行コストや重要度に応じてTriggerを使い分けます。
+同じテストであっても、実行にかかるコストや検証の重要度に応じてトリガーを適切に使い分けます。
 
-この段階では「全部PRで回す」前提にしません。
+現段階では「すべてのテストをPRのたびに実行する」という構成にはしません。
 
-また、Repository内に複数Workflowがある場合、同じ`pull_request`で複数Workflowが起動し得ることも理解します。Training Workflowだけを設計しても、既存WorkflowのTriggerを確認しなければ演習環境全体は制御できません。
+また、リポジトリ内に複数のワークフローが存在する場合、同一の `pull_request` イベントによって複数のワークフローが同時に起動する可能性がある点にも注意が必要です。トレーニング用のワークフロー単体のみを考慮するのではなく、既存のワークフローに設定されたトリガーも確認しておかなければ、演習環境全体の挙動を正確に管理することはできません。
 
 ## Lesson 4: LocalとCIの差
 
-LocalでPassしてCIでFailする理由には次があります。
+「手元のローカル環境では成功するのに、CI環境では失敗する」という事象は頻繁に発生します。主な原因として以下が挙げられます。
 
-- OS差
-- Node / pnpm Version差
-- Browser未Install
-- Environment Variable不足
-- Secret不足
-- File pathやCase sensitivity
-- Timing / Performance差
-- Localに残ったStateへ依存していた
+- OSの差異（Linux、macOS、Windows）
+- Node.jsやpnpmのバージョン差異
+- 必要なブラウザがインストールされていない
+- 必要な環境変数の未設定や不足
+- 必要なシークレット（Secret）の未設定や不足
+- ファイルパスの指定ミスや、大文字・小文字の区別（Case sensitivity）の差異
+- 処理タイミングやマシン性能の差異
+- ローカル環境に残っていたキャッシュやファイル状態に依存していた
 
-CIは、Testをより再現可能な環境で実行する機会にもなります。
+CIは、テストをよりクリーンで再現性の高い環境で実行し、環境依存の不具合を洗い出す機会にもなります。
 
 ## Lesson 5: Dependency Install
 
-Scenario ShopではNodeとpnpm Versionを固定し、Lockfileを使用します。
+Scenario Shopでは、Node.jsおよびpnpmのバージョンを固定したうえで、ロックファイル（Lockfile）を用いて依存パッケージをインストールします。
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-CIで「手元では違うVersionが入っている」状態を減らします。
+このコマンドを使用することで、CI環境で「手元とは異なるバージョンのパッケージがインストールされてしまう」リスクを抑えます。
 
 ## Lesson 6: SecretとPermissionの境界
 
-GitHub Actionsでは、Workflowがどの権限・Secretを必要とするかを意識します。
+GitHub Actionsを扱う際は、各ワークフローがどのような実行権限やシークレットを必要としているかを常に意識する必要があります。
 
-Training用Workflowでは本番Deploy Secretを必要としない構成から始めます。
+トレーニング用ワークフローでは、本番環境へのデプロイ用シークレットを必要としない最小構成からスタートします。
 
-学習者は次を区別します。
+受講者は以下の要素を明確に区別してください。
 
-- Test実行に必要な通常の環境変数
-- Repository権限
-- Secret
-- Deploy Credential
+- テスト実行に必要な通常の環境変数
+- リポジトリに対する操作権限（Permissions）
+- 秘匿情報（Secret）
+- 本番デプロイ用の認証情報（Deploy Credential）
 
-「動かすために本番Secretを配る」という設計を避けます。
+「CIを動かすためにとりあえず本番シークレットを全員に配布する」といった危険な設計は絶対に避けます。
 
-既存WorkflowがSecretを要求する場合は、Training CIへSecretを追加して成功させるのではなく、演習環境からProduction Workflowを分離します。
+既存のワークフローがシークレットを要求している場合は、トレーニング用のCIに無理やりシークレットを追加して強引に通すのではなく、演習用の環境から本番用ワークフローを適切に切り離して対処します。
 
 ## Lesson 7: Jobを分ける理由
 
-現在のScenario Shop CIでは、Style、Code Quality、Vitest、Build、E2Eなどが複数Jobへ分かれています。
+現在のScenario ShopのCIでは、スタイルチェック（Style）、コード品質（Code Quality）、Vitestによる単体テスト、ビルド（Build）、E2Eテストなどが複数のジョブに分割されています。
 
-Job分割には次の利点があります。
+ジョブを分割することには以下のメリットがあります。
 
-- 独立処理を並列化できる。
-- Failure原因が分かりやすい。
-- 再実行範囲を分けられる。
+- 依存関係のない独立した処理を並列で実行できる。
+- どの工程で失敗したのかがひと目で分かる。
+- 失敗した特定の処理のみを再実行できる。
 
-一方でJobを増やしすぎると、Runner起動やDependency Installの重複Costが増えます。
+その一方で、ジョブを細かく分けすぎると、ランナーの起動時間やパッケージインストールの重複によるコストやオーバーヘッドが増加します。
 
-「分割すればするほど速い」わけではありません。
+そのため、「ジョブを細かく分ければ分けるほど全体の実行速度が速くなる」とは限りません。
 
 ## Lesson 8: Matrix
 
-複数Suiteや環境を同じJob定義で実行するときMatrixを使えます。
+複数のテストスイートや異なる実行環境を、単一のジョブ定義から効率的に実行したい場合にマトリックス（Matrix）機能が活用できます。
 
-Scenario ShopではVitest SuiteやPlaywright検証でMatrixを利用しています。
+Scenario Shopでも、Vitestのテストスイート分割やPlaywrightの検証処理においてマトリックスを利用しています。
 
-Matrixは重複YAMLを減らせますが、何でもMatrixへ入れるのではなく、同じ責務を異なる条件で実行するときに利用します。
+マトリックスを活用するとYAML内の重複コードを大幅に削減できます。ただし、何でもマトリックス化すればよいわけではなく、「同じ責務の処理を異なるパラメータや条件下で並行実行したい場合」に限定して適用します。
 
 ## Lesson 9: CI Failure分析
 
-Failure時は最低限次を確認します。
+CIが失敗した際は、慌てて対応せず、まず最低限以下の項目を順に確認します。
 
-1. どのWorkflowが起動したか。
-2. Training Workflowか、意図しない既存Workflowか。
-3. Setupで落ちたか。
-4. Buildで落ちたか。
-5. Testで落ちたか。
-6. Environment / Secret不足か。
-7. Permission問題か。
-8. Artifactは残っているか。
+1. どのワークフローが起動したか。
+2. 起動したのはトレーニング用ワークフローか、それとも意図しない既存のワークフローか。
+3. セットアップ（Setup）段階で失敗したか。
+4. ビルド（Build）段階で失敗したか。
+5. テスト（Test）段階で失敗したか。
+6. 必要な環境変数やシークレットの不足はないか。
+7. 権限（Permission）関連のエラーではないか。
+8. ログや成果物（Artifact）は正しく出力・保存されているか。
 
-「Re-run jobs」を最初の操作にせず、WorkflowとFailure Pointを確認します。
+「Re-run jobs（ジョブの再実行）」をいきなり押すのではなく、必ず対象ワークフローと具体的な失敗箇所（Failure Point）をログから特定してください。
 
-Training CIが成功していても別の既存WorkflowがFailureしている場合は、Test Codeを修正する前に演習境界が正しいかを確認します。
+トレーニング用CI自体は成功しているにもかかわらず既存のワークフローが失敗している場合は、テストコードを書き直す前に、まず演習環境の分離境界が正しく保たれているかを確認します。
 
 ## ハンズオン0: CI演習環境を確認する
 
-Training Workflowを書く前に、演習Repositoryで次を確認します。
+トレーニング用ワークフローを読み解く前に、演習用リポジトリで以下の前提条件を確認します。
 
-- GitHub Actionsを利用できる。
-- 教材元から継承したProduction / Deploy Workflowが演習PRで起動しない。
-- Training Workflow用に本番Secretを追加する必要がない。
-- Training Branch / PRの変更が本体Repositoryへ影響しない。
+- GitHub Actionsが正常に利用できる状態であること。
+- 教材元のリポジトリから引き継がれた本番環境／デプロイ用ワークフローが、演習用PRで起動しないこと。
+- トレーニング用ワークフローを実行するために、本番シークレットを追加する必要がないこと。
+- トレーニング用のブランチやPRに対する変更が、本体リポジトリへ影響を及ぼさないこと。
 
-P2-01〜P2-03でForkを利用していた場合は、ここへ進む前に自己学習開始前から用意されているTraining Copyへ切り替えます。Fork上でProduction Workflowを無効化する操作を受講者へ要求せず、Training CopyでTraining Workflowだけが動くことを確認します。Training Copyまたは必要な権限がない場合は、CIの実行を始めずPart 2をBLOCKEDとして記録します。
+P2-01〜P2-03でフォークを利用していた場合は、本手順へ進む前に、自己学習開始前に準備されているトレーニング用コピー環境へ切り替えてください。受講者自身にフォーク上で本番ワークフローを手動で無効化させるような作業は求めません。トレーニング用コピー上で、目的のトレーニング用ワークフローのみが動くことを確認します。トレーニング用コピーや必要な権限が用意されていない場合は、CIの実行を開始せず、Part 2を「`BLOCKED`（中断）」として記録してください。
 
-このGateを満たしていない状態ではCIハンズオンへ進みません。共通範囲では、Workflowを新規作成・編集するのではなく、準備済みのWorkflowを読むことから始めます。
+この確認基準を満たしていない状態では、CIハンズオンを進めることはできません。また、共通課程の範囲ではワークフローを新規作成したり編集したりするのではなく、まずは準備されたワークフローを正しく読むことから始めます。
 
-Runが完了したら、CIが生成した`ci.md`をそのまま確認Evidenceにはしません。GitHubのRun画面、Check、Artifactを自分で開いて確認し、Caseごとに次のような人間可読Fileを`handoff-root/evidence/`へ残します。`Result`は画面で確認した実際の結論に合わせます。
+ワークフローの実行（Run）が完了した際、CIが自動生成する `ci.md` などのファイルをそのまま確認エビデンスとして流用してはいけません。GitHubのRun画面、Check、Artifactをご自身で開き、内容を目視確認したうえで、ケースごとに以下のような人間が読める形式のテキストファイルを `handoff-root/evidence/` 配下に保存してください。なお、`Result` には画面で実際に確認した結果を正確に反映させてください。
 
 ```text
 Run ID: <Run ID>
@@ -235,73 +235,73 @@ Case: <Test Case ID>
 
 ## ハンズオン1: 準備済みTraining Workflowを読む
 
-リポジトリ管理の[`training-ci.yml`](../../../../training/github-actions/training-ci.yml)を開き、`on`、`permissions`、`jobs`、`runs-on`、`steps`、`uses`、`with`、`run`、`env`、`if`を1つずつ指し示します。基準確認のStepと失敗確認のStepが、どの条件で実行されるかを書きます。
+リポジトリ管理下の [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) を開き、`on`、`permissions`、`jobs`、`runs-on`、`steps`、`uses`、`with`、`run`、`env`、`if` の各記述を1つずつ確認します。基準となる動作確認ステップ（baseline）と演習用の確認ステップ（exercise）が、それぞれどのような条件のもとで実行されるかを書き出してください。
 
 ## ハンズオン2: Local CommandとCI Stepを対応付ける
 
-Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run training:web:baseline`などを、Part 1で使ったLocal Commandと対応付けます。共通範囲ではWorkflowへ新しいCommandを追加・編集せず、既存の許可されたStepを読んで「Localの何がCIのどのStepで実行されるか」を説明します。
+トレーニング用ワークフロー内に記述されている `pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run training:web:baseline` などの各コマンドを、Part 1で使用したローカル環境のコマンドと照らし合わせます。共通課程ではワークフローに対して新しいコマンドを追加・編集する必要はありません。すでに定義されている許可済みのステップを読み解き、「ローカルで実行していたどの操作が、CI環境のどのステップに対応しているか」を説明できるようにします。
 
-少なくとも次の対応表を自分のEvidenceへ残します。Commandの細部を暗記するのではなく、同じ目的のLocal操作がCIのどのStepへ移ったかを確認します。
+少なくとも以下の対応表を作成し、自身のエビデンスとして記録に残してください。コマンドの細部を丸暗記することが目的ではなく、同じ目的を持ったローカル操作がCI上のどのステップに移行しているのかを整理して確認することが重要です。
 
 | Localで確認したCommand | Training WorkflowのStep | CIで確認する結果 |
 | --- | --- | --- |
-| `pnpm run validate:curriculum` | `Validate curriculum contract` | Contract validationの終了状態 |
-| `pnpm run build:web` | `Build automation web` | Web buildの終了状態 |
-| `pnpm run training:web:baseline` | `Run Training Web baseline` | baseline Testの終了状態 |
-| `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context learner-exercise` | `Run Training Web exercise with receipt` | 受講者CaseのReceipt／Artifact |
+| `pnpm run validate:curriculum` | `Validate curriculum contract` | カリキュラム規約検証（Contract validation）の終了状態 |
+| `pnpm run build:web` | `Build automation web` | Webビルドの終了状態 |
+| `pnpm run training:web:baseline` | `Run Training Web baseline` | ベースラインテストの終了状態 |
+| `pnpm run training:web:exercise:with-receipt -- --suite exercise --project training-chromium --root <handoff-root> --run-context learner-exercise` | `Run Training Web exercise with receipt` | 受講者ケースのレシート（Receipt）およびアーティファクト |
 
 ## ハンズオン3: TriggerとContextを比較する
 
-準備済みWorkflowの`pull_request`と`workflow_dispatch`を比較し、PR時の`github.event_name`、手動実行時の`inputs.mode`が`if`へどう影響するかを記録します。`workflow_dispatch`をYAMLへ追加することは修了条件にしません。
+用意されたワークフローにおける `pull_request` と `workflow_dispatch` の定義を比較し、PR実行時の `github.event_name` や手動実行時の `inputs.mode` などのコンテキスト情報が、`if` 条件式にどのように反映されているかを記録します。なお、受講者自身の手で `workflow_dispatch` をYAMLファイルに追加する作業は修了条件には含まれません。
 
 ## ハンズオン4: 現在の`ci.yml`を読む
 
-準備済みのTraining Workflowを読んだ後に、教材元の `.github/workflows/ci.yml` を比較教材として読みます。
+準備されたトレーニング用ワークフローを理解したうえで、比較対象として教材元リポジトリの `.github/workflows/ci.yml` を読みます。
 
-確認すること:
+確認すべきポイント:
 
-- なぜStyleとCode Qualityが分かれているか。
-- なぜVitestがMatrixなのか。
-- なぜBuild Jobが分かれているか。
-- なぜ`verify`があるか。
-- なぜPreview DeployにはSecretが必要か。
-- なぜPR時にPreview経路が起動するのか。
-- Training Workflowへ本番Deployを含めない理由は何か。
-- ForkでこのWorkflowをそのまま起動すると、Training CIと競合し得るのはなぜか。
+- スタイルチェック（Style）とコード品質チェック（Code Quality）が別のジョブに分かれている理由は何か。
+- Vitestの実行にマトリックス（Matrix）が使われている理由は何か。
+- ビルドジョブ（Build）が独立して切り出されている理由は何か。
+- なぜ検証用の `verify` ジョブが設けられているのか。
+- プレビューデプロイ（Preview Deploy）の実行にシークレットが必要となる理由は何か。
+- PRの作成や更新時にプレビュー経路がトリガーされる理由は何か。
+- トレーニング用のワークフローに本番デプロイの処理を含めてはならない理由は何か。
+- フォーク先のリポジトリでこのワークフローをそのまま実行した場合に、トレーニング用CIと競合する恐れがあるのはなぜか。
 
 ## 確認問題
 
-1. CIを導入すると何が変わるか。
-2. Local Pass / CI Failが起きる代表例を3つ挙げる。
-3. Repositoryに複数Workflowがある場合、Training Workflowだけ見ていてはいけない理由は何か。
-4. Jobを分けすぎるデメリットは何か。
-5. Matrixが向く処理は何か。
-6. `workflow_dispatch`はどんな用途に向くか。
-7. Training CIで本番Secretを必要としない構成にする理由は何か。
-8. Forkで既存Production Workflowを演習中に分離する必要があるのはなぜか。
+1. 開発フローにCIを導入することで、具体的にどのような変化やメリットが生まれるか。
+2. 「ローカル環境では成功するが、CI環境では失敗する」代表的な原因を3つ挙げよ。
+3. リポジトリ内に複数のワークフローが存在する場合、トレーニング用ワークフローの記述だけを見ていては不十分な理由は何か。
+4. ジョブを過剰に細かく分割することによるデメリットは何か。
+5. マトリックス（Matrix）機能の利用が適しているのはどのような処理か。
+6. `workflow_dispatch` トリガーはどのようなユースケースに適しているか。
+7. トレーニング用CIにおいて、本番シークレットを不要とする構成にすべき理由は何か。
+8. フォーク環境で演習を進める際、既存の本番用ワークフローを演習対象から分離しておく必要があるのはなぜか。
 
 ## 自己確認
 
-次をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
+実際のワークフロー記述やCIの失敗ログを指し示しながら、以下の項目を確認できれば、本レッスンの核となる知識を十分に習得できていると自己判定できます。
 
-- Trigger、Job、Step、Runnerの関係を説明できる。
-- TrainingとProduction / Deployの境界、`permissions: contents: read`などleast privilegeの意味を説明できる。
-- FailureがSetup、Build、Test、Environment / Secret、Permissionのどの工程かをLogから切り分けられる。
-- 失敗または想定外Skipを最終GateでSuccessにしない理由を説明できる。
-- Action pin、allowlist、現在のWorkflow構成はRepository固有の準備情報・参考資料であり、共通課程の概念と区別できる。
+- トリガー、ジョブ、ステップ、ランナーのそれぞれの役割と関係性を説明できる。
+- トレーニング環境と本番環境（デプロイ）の境界線、および `permissions: contents: read` をはじめとする最小権限の意義を説明できる。
+- 失敗が発生した際、それがセットアップ、ビルド、テスト、環境変数／シークレット、権限のどの段階で起きたのかをログから切り分けられる。
+- 処理の失敗や意図しないステップのスキップを、最終判定（ゲート）で安易に「成功」として扱ってはならない理由を説明できる。
+- Actionのバージョン固定（pin）や許可リスト、現在のワークフロー構成がリポジトリ固有の準備情報・参考資料であり、共通課程で学ぶべき本質的な概念と区別して理解できている。
 
-### Recovery
+### 復旧手順（Recovery）
 
-Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界の環境・準備上の問題として記録し、準備条件へ戻ります。
+ワークフローが正常に動作しない場合は、まず「起動したワークフローとトリガーイベント」、次に「ランナーおよび依存パッケージのセットアップ」「ビルド」「テスト」「アーティファクト」「権限設定」の順で問題の発生箇所を確認します。もし本番用シークレットやデプロイ権限が求められる状況になった場合は、トレーニング環境側にそれらを追加するのではなく、演習境界の環境や準備に不備があると判断し、初期の前提条件の確認に戻ってください。
 
 ## 完了条件
 
-- GitHub Actionsの基本構造、Trigger、Job、Failure工程、least privilegeを説明できる。
-- 準備済みのTraining Workflowを読み、Trigger、Job、Step、Command、Contextの関係を説明できる。
-- Training Workflowで実際に確認したPR／manualの違いを説明でき、Push／main／scheduleはProduction比較の参考情報として、共通課程の実行条件と混同しない。
-- CI Failure時に、意図したWorkflowかどうかを含めて発生工程をLogから特定できる。
-- Training Workflowと本体の実運用Workflowを分ける理由を説明できる。
+- GitHub Actionsの基本構造、トリガー、ジョブ、失敗工程の切り分け、および最小権限の原則について説明できる。
+- 用意されたトレーニング用ワークフローを読み解き、トリガー、ジョブ、ステップ、コマンド、コンテキストの関係性を説明できる。
+- トレーニング用ワークフローにおいて実際に確認したPR実行と手動実行の違いを説明でき、プッシュ（Push）やmainブランチ実行、スケジュール実行については本番比較用の参考情報として位置づけ、共通課程の実行条件と混同しない。
+- CI失敗時に、意図したワークフローが実行されているかどうかも含めて、障害の発生工程をログから特定できる。
+- トレーニング用ワークフローと、本体リポジトリの実運用向けワークフローを分離すべき理由を論理的に説明できる。
 
-## 次の行動
+## 次のステップ
 
-共通課程のCI構造とFailure切り分けをWeb Testの実行へ接続するため、[P2-5: PlaywrightをCIで実行する](05_playwright-ci.md)へ進みます。Action pinやTraining Copyの詳細確認は必要な場合だけ参考資料として行います。
+共通課程で学んだCIの基本構造と失敗分析の手法をWebテストの自動実行に応用するため、[P2-5: PlaywrightをCIで実行する](05_playwright-ci.md) へ進みます。Actionのコミット固定やトレーニング用コピーに関する詳細の確認は、必要に応じて参考資料を参照しながら進めてください。

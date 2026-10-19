@@ -2,66 +2,66 @@
 
 ## 目的
 
-この文書は、`codex-task`の変更範囲の適用と期待ファイルの扱いを定義します。
+この文書は、`codex-task`における変更範囲の適用規則と、変更が期待されるファイルの扱いを定義します。
 
-- `template/docs/reference/change-scope-policy.md`は利用者向けReferenceです。
-- `spec/change-scope-policy.json` は source repo 側の source-of-truth catalog であり、validator の検証対象です。
-- 後続の runner implementation は、JSON catalog とこの Markdown contract の両方に従います。
+- `template/docs/reference/change-scope-policy.md` は、利用者向けのリファレンスです。
+- `spec/change-scope-policy.json` は、ソースリポジトリ側の正本（source-of-truth）カタログであり、バリデータの検証対象です。
+- 後続のランナー実装は、JSONカタログと本Markdown規約の両方に従います。
 
-## Pathの正規化
+## パスの正規化
 
-- path は repo root 相対 POSIX path に正規化します。
-- Windows path separator は `/` に正規化します。
-- absolute path は scope comparison に直接使いません。
-- absolute path を scope input として受け取ってはいけません。
-- `.` / `..` を含む path は正規化後に repo root 外へ出ないことを確認します。
-- directory 指定では trailing slash の有無を同一扱いにします。
-- scope option を使うとき `--run-id` と `--record-run-manifest` を必須にします。
+- パスは、リポジトリルート相対のPOSIXパスに正規化します。
+- Windowsのパス区切り文字は `/` に正規化します。
+- 絶対パスは、スコープ比較に直接使用しません。
+- 絶対パスをスコープの入力として受け取ってはなりません。
+- `.` や `..` を含むパスは、正規化後にリポジトリルート外へ出ないことを確認します。
+- ディレクトリ指定では、末尾のスラッシュ（trailing slash）の有無を同等として扱います。
+- スコープオプションを使用する際は、`--run-id` と `--record-run-manifest` の指定を必須とします。
 
 ## 変更ファイル
 
-- tracked modified files を `changed_files` に含めます。
-- untracked files を `changed_files` に含めます。
-- deleted files を `changed_files` に含めます。
-- renamed files は old path / new path の両方を評価対象にします。
-- copied files は copy 先を new file として扱います。
-- generated run artifacts under `.codex/runs/` は scope check の対象外にします。
-- `.codex/runs/` 配下の generated artifact は `changed_files` に混ぜません。
-- ただし `.codex/runs/` 配下の artifact は manifest に記録してよいものとします。
-- `changed_files` は repo-relative POSIX path の配列として `run.json` に記録します。
+- 追跡対象の変更ファイル（tracked modified files）を `changed_files` に含めます。
+- 未追跡ファイル（untracked files）を `changed_files` に含めます。
+- 削除されたファイル（deleted files）を `changed_files` に含めます。
+- 名前が変更されたファイル（renamed files）は、変更前の旧パスと変更後の新パスの双方を評価対象とします。
+- コピーされたファイル（copied files）は、コピー先を新規ファイルとして扱います。
+- `.codex/runs/` 配下に生成された実行成果物は、スコープ検証の対象外とします。
+- `.codex/runs/` 配下の生成成果物は、`changed_files` に混入させません。
+- ただし、`.codex/runs/` 配下の成果物はマニフェストに記録してよいものとします。
+- `changed_files` は、リポジトリ相対のPOSIXパスの配列として `run.json` に記録します。
 
 ## Clean Gitの前提条件
 
-- `--require-clean-git` は Codex 実行前の source dirty を検出します。
-- tracked modified、added、untracked、deleted、renamed、copied を dirty source changes として扱います。
-- `.codex/runs/` は generated artifact として clean git 判定から除外します。
-- dirty の場合は Codex を実行しません。
-- dirty failure では `changed_files` に pre-existing source changes を記録してよいものとします。
+- `--require-clean-git` は、Codex実行前におけるソースの未コミット変更（dirty状態）を検出します。
+- 追跡対象の変更、追加、未追跡、削除、名前変更、コピーを、未コミットのソース変更（dirty source changes）として扱います。
+- `.codex/runs/` は生成成果物として、クリーンなGit状態の判定から除外します。
+- dirty状態（未コミットの変更が存在する状態）の場合は、Codexを実行しません。
+- dirty状態による失敗（dirty failure）時には、Codex実行前から存在していたソースの変更（pre-existing source changes）を `changed_files` に記録してよいものとします。
 
 ## 許可するファイル
 
-- `allowed_files` は「変更してよい上限」を表します。
+- `allowed_files` は「変更を許可するファイルの上限」を表します。
 - 完全一致で評価します。
-- `allowed_files` に含まれない source file の変更は scope violation として扱います。
-- `.codex/runs/` 配下の generated artifact は scope check 対象外にできますが、source change と混同しません。
+- `allowed_files` に含まれないソースファイルの変更は、スコープ違反（scope violation）として扱います。
+- `.codex/runs/` 配下の生成成果物はスコープ検証の対象外に設定できますが、ソースの変更と混同しないようにします。
 
-## 許可するDirectory
+## 許可するディレクトリ
 
-- `allowed_dirs` は「この directory 配下なら変更してよい」を表します。
-- path は repo root 相対 POSIX path に正規化します。
-- `template/docs/reference` と `template/docs/reference/` は同じ意味です。
-- `allowed_dirs` 自体の prefix 一致ではなく、directory boundary で判定します。
-- 許可条件は `changed_path == allowed_dir` または `changed_path starts with allowed_dir + "/"` です。
+- `allowed_dirs` は「このディレクトリ配下であれば変更してよい」という範囲を表します。
+- パスは、リポジトリルート相対のPOSIXパスに正規化します。
+- `template/docs/reference` と `template/docs/reference/` は同一の意味として扱います。
+- `allowed_dirs` 自体の前方一致（prefix一致）ではなく、ディレクトリ境界に基づいて判定します。
+- 許可条件は、`changed_path == allowed_dir` または `changed_path starts with allowed_dir + "/"` です。
 
-## 許可するGlob
+## 許可するGlobパターン
 
-- `allowed_globs` は限定的な glob pattern を使った allow list です。
-- special token は `*`、`**`、`?` のみです。
-- `*` は `/` をまたがない 0 文字以上を表します。
-- `?` は `/` をまたがない 1 文字を表します。
-- `**` は `/` をまたぐ 0 文字以上を表します。
-- brace expansion、extglob、character class を前提にしません。これらは special syntax として解釈しません。
-- `../*` や `/absolute/path/*` のような repo 外参照は無効です。
+- `allowed_globs` は、限定的なglobパターンを用いた許可リスト（allow list）です。
+- 特殊トークンは `*`、`**`、`?` のみです。
+- `*` は、`/` をまたがない0文字以上の文字列を表します。
+- `?` は、`/` をまたがない1文字を表します。
+- `**` は、`/` をまたぐ0文字以上の文字列を表します。
+- ブレース展開（brace expansion）、拡張glob（extglob）、文字クラス（character class）は前提とせず、これらを特殊構文としては解釈しません。
+- `../*` や `/absolute/path/*` のようなリポジトリ外への参照は無効です。
 
 ## 対象範囲の優先順位
 
@@ -69,48 +69,48 @@
   1. `allowed_files` に完全一致
   2. `allowed_dirs` 配下に一致
   3. `allowed_globs` に一致
-- いずれにも一致しない source file の変更は scope violation です。
+- いずれにも一致しないソースファイルの変更は、スコープ違反（scope violation）となります。
 
 ## 変更を期待するファイル
 
 - `expected_changed_files` は「必ず変更されるべきファイル」を表します。
-- `allowed_files` とは意味が違います。
-- `expected_changed_files` が変更されていない場合の既定動作は `fail` です。
-- `expected_changed_files` は `allowed_files` / `allowed_dirs` / `allowed_globs` を合わせた allowed scope の subset であることが望ましいです。
-  - catalog 上の key は `must_be_subset_of_allowed_scope` です。
-- `--require-evaluation` や `--require-clean-git` を併用しても、`.codex/runs/` の generated artifact は source scope に混ぜません。
+- `allowed_files` とは意味合いが異なります。
+- `expected_changed_files` に指定されたファイルが変更されていない場合のデフォルト動作は `fail` です。
+- `expected_changed_files` は、`allowed_files` / `allowed_dirs` / `allowed_globs` を統合した許可スコープ（allowed scope）の部分集合（subset）であることが望ましいです。
+  - カタログ上のキー名は `must_be_subset_of_allowed_scope` です。
+- `--require-evaluation` や `--require-clean-git` を併用した場合でも、`.codex/runs/` 配下の生成成果物はソーススコープに混入させません。
 
 ### expected_missingの動作
 
 - `--expected-missing fail`
-  - 未変更 expected file を failure として扱います。
-  - non-zero exit で終了します。
+  - 変更されていない期待ファイル（expected file）を失敗（failure）として扱います。
+  - ゼロ以外の終了コード（non-zero exit）で終了します。
 - `--expected-missing warn`
-  - 未変更 expected file を warning として記録します。
-  - stdout/stderr に warning を出します。
-  - `run.json` がある場合は `validation.warnings` に記録します。
-  - exit code は成功扱いのままです。
+  - 変更されていない期待ファイルを警告（warning）として記録します。
+  - 標準出力および標準エラー出力（stdout/stderr）に警告を出力します。
+  - `run.json` が存在する場合は `validation.warnings` に記録します。
+  - 終了コード（exit code）は成功扱いのまま維持されます。
 
-## Deleted / Renamed / Copied（削除・名前変更・コピー）
+## 削除・名前変更・コピー（Deleted / Renamed / Copied）
 
-### deleted（削除）
+### 削除（deleted）
 
-- 削除も変更として扱います。
-- `allowed_files` に含まれていない file の削除は scope violation です。
+- 削除も変更の一環として扱います。
+- `allowed_files` に含まれていないファイルの削除は、スコープ違反となります。
 
-### renamed（名前変更）
+### 名前変更（renamed）
 
-- old path と new path の両方を評価対象にします。
-- rename 先が `allowed_files` に含まれない場合は scope violation candidate です。
+- 変更前の旧パスと変更後の新パスの双方を評価対象とします。
+- 変更先のパスが `allowed_files` に含まれない場合は、スコープ違反の候補（scope violation candidate）となります。
 
-### copied（コピー）
+### コピー（copied）
 
-- copy 先を new file として扱います。
-- copy 先が `allowed_files` に含まれない場合は scope violation candidate です。
+- コピー先を新規ファイル（new file）として扱います。
+- コピー先のパスが `allowed_files` に含まれない場合は、スコープ違反の候補となります。
 
 ## JSONカタログ
 
-- `spec/change-scope-policy.json` は source repo の validator 対象です。
-- Markdown doc は consumer-facing reference、JSON catalog は source repo の source-of-truth です。
-- validator は catalog type、schema version、path normalization、changed file kinds、artifact exclusion、`allowed_files` / `allowed_dirs` / `allowed_globs` / `expected_changed_files` の意味差分を確認します。
-- current baseline では runner enforcement、changed files collection、limited glob matching を有効化しています。
+- `spec/change-scope-policy.json` は、ソースリポジトリ側バリデータの検証対象です。
+- Markdown文書は利用者向けのリファレンスであり、JSONカタログはソースリポジトリ側の正本（source-of-truth）です。
+- バリデータは、カタログ種別（catalog type）、スキーマバージョン、パスの正規化、変更ファイル種別、成果物の除外設定、ならびに `allowed_files` / `allowed_dirs` / `allowed_globs` / `expected_changed_files` の意味的な差分を検証します。
+- 現在のベースラインでは、ランナーによる強制適用（runner enforcement）、変更ファイルの収集、および限定的なglobマッチングを有効化しています。

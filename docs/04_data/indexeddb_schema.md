@@ -1,14 +1,14 @@
-# IndexedDB / Dexie物理Schema
+# IndexedDB / Dexie 物理スキーマ
 
-## 1. DB
+## 1. データベース設定
 
-- Name: `ec-automation-training`
-- Phase 1 Schema Version: `1`
-- Gateway用の別DBは作成しない
+- データベース名: `ec-automation-training`
+- フェーズ1 スキーマバージョン: `1`
+- ゲートウェイ用の別データベースは作成しない
 
-## 2. IndexedDB Key制約
+## 2. IndexedDB キー制約
 
-IndexedDBのIndex Keyにはboolean、null、undefinedを使用しません。Domainのboolean/null値は、Web Persistence Recordで次へ投影します。
+IndexedDBのインデックスキーには `boolean`、`null`、`undefined` を使用しません。ドメイン層の `boolean` 値や `null` 値は、Web永続化レコード（Web Persistence Record）側で次のようにマッピングして保持します。
 
 ```typescript
 type BooleanKey = 0 | 1;
@@ -18,13 +18,13 @@ type CategoryRecord = Category & { isActiveKey: BooleanKey };
 type BrandRecord = Brand & { isActiveKey: BooleanKey };
 type ProductVariantRecord = ProductVariant & {
   isActiveKey: BooleanKey;
-  optionScopeKey: string; // activeかつVariationなしは`__SINGLE_ACTIVE__`、activeかつVariationありは正規化済optionValue、inactiveは`__INACTIVE__:<variantId>`
+  optionScopeKey: string; // activeかつバリエーションなしは`__SINGLE_ACTIVE__`、activeかつバリエーションありは正規化済みoptionValue、inactiveは`__INACTIVE__:<variantId>`
 };
 ```
 
-RepositoryはDomainとRecord間の変換を一箇所で行い、Key不一致をContract Testで検出します。
+リポジトリはドメインモデルとレコード間の変換を一元的に行い、キーの不一致はコントラクトテストで検出します。
 
-## 3. Dexie v1
+## 3. Dexie v1 定義
 
 ```typescript
 db.version(1).stores({
@@ -59,28 +59,28 @@ db.version(1).stores({
 });
 ```
 
-## 4. Dexieだけでは表せない制約
+## 4. Dexie単体では表現できない制約
 
-Application/Repository Contractで次を検証します。
+アプリケーション層およびリポジトリのコントラクトにて、以下の制約を検証します。
 
-- active CartはUser/Guestごとに1件
-- default AddressはUserごとに最大1件
-- UserあたりAddress最大5件
-- Review Summaryの評価1～5件数合計がpublishedCountと一致
-- Review SummaryはpublishedCount=0ならratingAverage=0、それ以外はratingTotal / publishedCountを未丸め保存
-- Product Imageは0～3件。同一Product/assetIdを重複させない。1件以上ならPrimaryちょうど1件
-- 管理RoleのmembershipRankはnull
-- Money/Quantity/Stockは整数・非負
-- Order内lineNumberは1始まりで一意
-- Order/Shipment状態の対応
-- Userごとのactive Checkout Session最大1件
-- `optionScopeKey`でactive SKUのVariationなしを含む選択肢を一意にし、inactive SKUはVariant ID付きKeyで保持する
-- `isDefaultKey/isActiveKey`とDomain booleanを一致させる
-- Existing Variant stockQuantityをAggregate更新で変更しない
+- アクティブなカート（active Cart）はユーザーまたはゲストごとに1件のみ保持
+- デフォルトの配送先住所（default Address）はユーザーごとに最大1件
+- 1ユーザーあたり登録できる配送先住所（Address）は最大5件
+- レビューサマリー（Review Summary）の評価1〜5の件数合計が `publishedCount` と一致すること
+- レビューサマリーは `publishedCount = 0` の場合は `ratingAverage = 0` とし、それ以外は `ratingTotal / publishedCount` の未丸め値を保存
+- 商品画像（Product Image）は0〜3件。同一商品内で同一 `assetId` を重複させない。1件以上存在する場合はプライマリ画像をちょうど1件設定する
+- 管理者ロール（管理Role）の会員ランク（membershipRank）は `null`
+- 金額（Money）、数量（Quantity）、在庫数（Stock）は0以上の整数（非負整数）
+- 注文（Order）内の行番号（lineNumber）は1始まりの連番で一意
+- 注文状態（Order status）と配送状態（Shipment status）の整合性・対応関係
+- ユーザーごとのアクティブなチェックアウトセッション（active Checkout Session）は最大1件
+- `optionScopeKey` により、バリエーションなしを含むアクティブなSKUの選択肢を一意にし、非アクティブなSKUはバリアントID付きキーで保持する
+- `isDefaultKey` および `isActiveKey` の値をドメイン層のboolean値と一致させる
+- 既存バリアントの在庫数（stockQuantity）を、商品集約（Aggregate）の更新処理で直接変更しない
 
-## 5. Transactionの対象範囲
+## 5. トランザクションの対象範囲
 
-| Scope | Store |
+| スコープ | 対象ストア |
 |---|---|
 | register-and-merge-cart | users, sessions, carts, cart_items, products, product_variants |
 | login-and-merge-cart | users, sessions, carts, cart_items, products, product_variants |
@@ -104,16 +104,16 @@ Application/Repository Contractで次を検証します。
 | complete-delivery | orders, order_status_histories, shipments |
 | review-change | reviews, review_status_histories, product_review_summaries |
 
-複数Store Scopeは`ApplicationTransactionRunner`からだけ開始します。Use Caseが上表のStoreへ個別Transactionを順番にCommitしてはいけません。Address保存/削除、active Cart取得/作成など単一Storeの原子的CommandはRepository Method内の1 Transactionを許可します。
+複数ストアにまたがるスコープのトランザクションは、必ず `ApplicationTransactionRunner` から開始します。ユースケース層が上表のストアに対して個別のトランザクションを順番にコミットしてはいけません。住所の保存・削除やアクティブなカートの取得・作成など、単一ストアに対する原子的コマンドについては、リポジトリメソッド内での単一トランザクションの実行を許可します。
 
-### Dexie実装規約
+### Dexie 実装規約
 
-- Transaction内でPayment Gateway、Address Lookup、Timerなどの外部非同期処理をawaitしない。画像PathはBuild生成ModuleからTransaction開始前に解決する。
-- tx-bound Repositoryはtop-level Transactionを開始しない。
-- Scope外StoreへAccessした場合は即時失敗する。
-- nested Transactionは親ScopeのStore集合を超えない。
-- Callback内で互換性のないPromise Libraryを使用しない。
+- トランザクション内で決済ゲートウェイ（Payment Gateway）、住所検索（Address Lookup）、タイマーなどの外部非同期処理を `await` しない。画像パスはビルド生成モジュールからトランザクション開始前に解決しておく。
+- トランザクションにバインドされたリポジトリ（tx-bound Repository）は、トップレベルのトランザクションを開始しない。
+- スコープ外のストアへアクセスした場合は即座に失敗させる。
+- ネストされたトランザクション（nested Transaction）は、親スコープのストア集合の範囲を超えてはならない。
+- コールバック内で互換性のないPromiseライブラリを使用しない。
 
-## 6. Multi-tab
+## 6. マルチタブ対応（Multi-tab）
 
-`BroadcastChannel`でCart、Order、User変更を通知します。受信側はRepositoryから再取得し、Payloadを正本として扱いません。
+`BroadcastChannel` を用いてカート、注文、ユーザーの変更を他タブへ通知します。通知の受信側はリポジトリから最新データを再取得するものとし、通知ペイロード自体を正本（信頼できる唯一の情報源）としては扱いません。

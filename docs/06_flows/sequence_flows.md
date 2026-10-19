@@ -38,34 +38,34 @@ sequenceDiagram
 
 ## 1.1 Cart変更
 
-1. guest/customerとactive Cart、Cart expectedVersionを確認する。
-2. Addは追加数量、Updateは変更後絶対数量としてSKU、在庫、購入上限を検証する。Update数量0はRemoveへ委譲する。
-3. Addは既存SKUへ加算または新規IDで作成し、Updateは絶対数量へ置換する。変更・削除・価格変更承認と親CartのupdatedAt/version更新を同一Txで確定する。
-4. 既存Checkout SessionはこのTransactionで更新しない。親Cart Versionの変更を、Checkout Route Guard・確認画面取得・注文確定時の不一致検出に使用する。
-5. 競合時はItemもCartも変更せずConflictを返す。
+1. guestまたはcustomerの種別、activeなCart、およびCartのexpectedVersionを確認する。
+2. 追加（Add）の場合は追加数量、更新（Update）の場合は変更後の絶対数量として、SKU、在庫、購入上限を検証する。Updateの数量が0の場合は削除（Remove）の処理へ委譲する。
+3. Addでは既存SKUへ加算するか新規IDで作成し、Updateでは指定された絶対数量へ置換する。アイテムの変更・削除・価格変更承認と、親CartのupdatedAtおよびversionの更新は、同一トランザクション（Tx）内で確定する。
+4. 既存のCheckout Sessionは、このトランザクション内では更新しない。親CartのVersion変更は、Checkout Route Guard、確認画面取得時、および注文確定時における不一致の検出に使用する。
+5. 競合（コンフリクト）発生時は、ItemもCartも変更せずにConflictを返す。
 
 ## 2. Checkout開始
 
-1. Clockで期限切れactive Checkout Sessionをexpiredへ変更する。
-2. active customerとactive Cartを確認する。
-3. 商品公開、Rank、価格、在庫を再検証する。
-4. 価格変更未承認ならCartへ戻す。
-5. Userのactive Checkout Sessionを確認する。
-6. 同じCart ID/Versionなら再開し、異なる場合は既存をabandonedへ変更する。
-7. 必要ならCheckout Sessionをactive/addressで作成する。
-8. Address、Payment、Confirmへ順に進む。
+1. Clockを参照し、期限切れとなったactiveなCheckout Sessionをexpiredへ変更する。
+2. activeなcustomerおよびactiveなCartを確認する。
+3. 商品の公開状態、会員ランク（Rank）、価格、在庫を再検証する。
+4. 価格変更が未承認の場合はCart画面へ差し戻す。
+5. 対象UserのactiveなCheckout Sessionを確認する。
+6. 同じCart IDおよびVersionであればセッションを再開し、異なる場合は既存のセッションをabandonedへ変更する。
+7. 必要に応じて、ステータスをactive、ステップをaddressとしてCheckout Sessionを作成する。
+8. Address、Payment、Confirmの順に処理を進める。
 
 ## 2.1 商品Aggregate保存
 
-1. operator/adminとProduct expectedVersionを確認し、Use CaseがClockを1回取得する。
-2. Product、Variant、画像関連を検証する。
-3. 既存VariantのstockQuantityが入力で変更されていないことを確認する。
-4. 新規VariantのinitialStockQuantityからINITIAL_STOCK履歴を作成する。
-5. 削除指定Variantの参照を確認し、物理削除または無効化を決定する。
-6. Image Asset ManifestでassetIdを検証する。
-7. Product、Variant、ProductImage関連、必要なInventory Historyを同一Txで保存し、手順1で取得した同一時刻を各createdAt/updatedAtへ使用する。新規商品では0件Review Summaryも同一Tx・同一時刻で作成する。商品更新では既存Review Summaryを読み書きしない。既存inactive Asset関連は維持可能だが、新規関連付け・再関連付けはactive Assetだけとする。
+1. operatorまたはadmin権限とProductのexpectedVersionを確認し、ユースケース内でClockから現在時刻を1回取得する。
+2. Product、Variant、および画像関連の整合性を検証する。
+3. 既存VariantのstockQuantityが入力値によって変更されていないことを確認する。
+4. 新規VariantのinitialStockQuantityをもとに、INITIAL_STOCK履歴を作成する。
+5. 削除対象として指定されたVariantの参照状況を確認し、物理削除するか無効化するかを決定する。
+6. Image Asset Manifestを参照してassetIdを検証する。
+7. Product、Variant、ProductImage関連付け、および必要なInventory Historyを同一トランザクションで保存し、手順1で取得した同一時刻を各エンティティのcreatedAt/updatedAtに使用する。新規商品の登録時は、0件のReview Summaryも同一トランザクション・同一時刻で作成する。商品の更新時は、既存のReview Summaryに対する読み書きは行わない。既存のinactiveなAsset関連付けは維持できるが、新規の関連付けや再関連付けはactiveなAssetのみを対象とする。
 
-GitHub画像BinaryはこのSequenceでは変更しません。
+GitHub上の画像バイナリは、このシーケンスでは変更しません。
 
 ## 3. Order作成
 
@@ -84,9 +84,9 @@ sequenceDiagram
   UC-->>UI: processingへ
 ```
 
-Payment GatewayはこのTx内で呼びません。画像PathはBuild生成ModuleからTransaction前に解決します。Transaction内ではPrimary assetIdと事前解決したPathを照合し、商品固有Alt Textは現在のProductImage関係から取得してOrder Itemへ保存します。
+Payment Gatewayの呼び出しは、このトランザクション内では行いません。画像パスは、ビルド時に生成されたManifestモジュールからトランザクション開始前に事前解決します。トランザクション内ではPrimaryのassetIdと事前解決済みのパスを照合し、商品固有のAltテキストは現在のProductImage関連付けから取得してOrder Itemへ保存します。
 
-Order作成Tx内で、Cart Itemの追加時単価と現在時刻に基づく現在単価を再計算して比較します。差異があれば`PRICE_CHANGED`として全体をRollbackし、Cart/Checkoutへ再確認を要求します。
+Order作成トランザクション内では、Cart Itemの追加時単価と、現在時刻に基づいて再計算した現在単価を比較します。差異がある場合は`PRICE_CHANGED`として全体をロールバックし、CartまたはCheckoutでの再確認を要求します。
 
 ## 4. Payment成功
 
@@ -115,15 +115,15 @@ sequenceDiagram
 
 ## 5. Payment明確失敗と再試行
 
-- Mockがfailedを返した場合、Payment failed、Order payment_failedを同一Txで確定する。
-- 在庫は変更しない。
-- Order詳細から再試行すると、`retry-payment`単一TxでOrderをpending_paymentへ戻し、HistoryとattemptNumberを増やしたPayment processingを作る。
-- 新AttemptのgatewayIdempotencyKeyを生成する。
-- processing中は再試行・Cancelを表示しない。
+- モックがfailedを返した場合は、PaymentのfailedおよびOrderのpayment_failedを同一トランザクションで確定する。
+- 在庫の変更は行わない。
+- Order詳細画面から再試行を実行すると、`retry-payment`の単一トランザクション内でOrderをpending_paymentへ戻し、Historyの記録とともにattemptNumberを増やしたprocessing状態のPaymentを作成する。
+- 新しい試行（Attempt）に対応するgatewayIdempotencyKeyを生成する。
+- processing状態の処理中は、再試行やキャンセル（Cancel）のボタン・操作を表示しない。
 
 ## 6. processing再開
 
-`/checkout/processing?orderId=...`の表示時、App/Browser再起動後、またはPayment結果確定のDB書込みが失敗して最新Paymentがprocessingのまま残った場合、Order所有権、Order pending_payment、最新Payment processingを確認して`ResumeProcessingPaymentUseCase`を実行します。同じAttempt KeyとMethod CodeでLocal Mockを再実行し、成功または失敗へ確定します。
+`/checkout/processing?orderId=...`の画面表示時、アプリやブラウザの再起動後、または決済結果確定時のDB書き込みが失敗して最新Paymentがprocessingのまま残存している場合、Orderの所有権、Orderのpending_payment状態、および最新Paymentがprocessing状態であることを確認した上で`ResumeProcessingPaymentUseCase`を実行します。同一のAttempt KeyおよびMethod Codeを用いてLocal Mockを再実行し、結果を成功または失敗として確定します。
 
 ## 7. Order処理
 
@@ -143,33 +143,34 @@ sequenceDiagram
 
 ## 8. Review
 
-1. customer本人、Order delivered、Order Item未Reviewを確認。
-2. Reviewをpublishedで作成。
-3. Product Review Summaryの件数、合計、平均、評価1～5別件数を同一Txで更新。
-4. 非公開・再公開・編集・削除でもSummaryと評価分布を同時更新。
+1. 操作者が購入者（customer）本人であること、対象Orderがdelivered状態であること、および対象OrderItemが未レビューであることを確認する。
+2. Reviewをpublishedステータスで作成する。
+3. Product Review Summaryの件数、合計、平均、および評価1～5別の件数を同一トランザクション内で更新する。
+4. 非公開化、再公開、編集、削除を行う場合も、同様にSummaryと評価分布を同時に更新する。
 
 ## 9. 在庫調整
 
-1. operator/admin、Variant expectedVersion、調整理由を確認する。
+1. 操作者がoperatorまたはadmin権限を持つこと、対象VariantのexpectedVersion、および調整理由を確認する。
 2. `ApplicationTransactionRunner.run("adjust-inventory")`を開始する。
-3. Variant在庫を更新し、before/after/changeを持つInventory Historyを同じTxで作成する。
-4. 在庫不足、競合、履歴保存失敗時は全体をRollbackする。
+3. Variantの在庫を更新し、変更前数量（before）、変更後数量（after）、変動量（change）を持つInventory Historyを同一トランザクション内で作成する。
+4. 在庫不足、競合、または履歴保存の失敗が発生した場合は、全体をロールバックする。
 
 ## 10. User Access変更
 
-1. admin本人と対象Userを取得する。
-2. Rank変更はcustomer内、Role変更はoperator/admin間、Status変更はactive/suspended間だけ許可する。
-3. Role/Status変更では同一Tx内で最後のactive adminと自己変更を再検証する。
-4. User更新と対象Userの全Session削除を同一TxでCommitする。
-5. CartとOrderは変更しない。会員ランク変更、またはcustomerをsuspendedへ変更する場合は、対象Userのactive Checkoutを同一Txでabandonedへ変更する。
+1. 操作者であるadmin本人と、変更対象となるUserの情報を取得する。
+2. Rank変更はcustomer内、Role変更はoperatorとadminの間、Status変更はactiveとsuspendedの間でのみ許可する。
+3. RoleまたはStatusを変更する際は、同一トランザクション内で「最後のactiveなadminが不在にならないか」および「自己変更でないか」を再検証する。
+4. Userの更新と、対象Userに紐づく全Sessionの削除を同一トランザクション内でコミットする。
+5. CartおよびOrderの内容は変更しない。ただし、会員ランク（Rank）を変更する場合、またはcustomerをsuspendedへ変更する場合は、対象UserのactiveなCheckout Sessionを同一トランザクション内でabandonedへ変更する。
 
 ## 11. Checkout期限切れ
 
-App起動、Checkout Route Guard、StartCheckout開始時にClockと`expiresAt`を比較し、期限超過のactive Sessionをexpiredへ変更します。定期Timerは使用しません。
+アプリ起動時、Checkout Route Guard通過時、およびStartCheckout開始時に、Clockと`expiresAt`を比較し、期限を超過したactiveなSessionをexpiredへ変更します。定期タイマー（定期Timer）は使用しません。
 
 ## 12. Test Reset
 
-Test ControlまたはTest API → 同一Browser ContextにPageが1件だけであることを確認 → Dexie Connection Close → IndexedDB削除 → CurrentSessionStore削除 → GuestIdentityStore削除 → DB v1作成 → 指定Seed投入 → Seed Guest ID設定 → Metadata返却 → Page Reload。別PageまたはDB delete blocked時は`RESET_BLOCKED_BY_OPEN_PAGE`で失敗し、成功扱いしません。
+Test ControlまたはTest APIからのリクエスト → 同一ブラウザコンテキスト（Browser Context）内に開いているページが1件のみであることを確認 → Dexieの接続をクローズ（Connection Close） → IndexedDBを削除 → CurrentSessionStoreを削除 → GuestIdentityStoreを削除 → DB v1スキーマを作成 → 指定されたSeedデータを投入 → Seed用のGuest IDを設定 → メタデータを返却 → ページをリロード（Page Reload）。
+別のページが開いている場合や、IndexedDBの削除がブロック（delete blocked）された場合は、`RESET_BLOCKED_BY_OPEN_PAGE`エラーとして処理を中断し、成功扱いにはしません。
 
 ## 会員ランク変更
 
@@ -184,8 +185,8 @@ sequenceDiagram
   U-->>A: User detail
 ```
 
-Cartは保持し、customerは次回Checkout開始時に新ランクで金額を再確認します。
+Cartの内容はそのまま保持され、customerは次回のCheckout開始時に新しい会員ランクに応じた金額を再確認します。
 
 ## Payment再開の冪等性
 
-最新Attemptが完了済みなら既存結果を返します。processingなら同じAttempt KeyでLocal Mockを再実行し、確定TxのConflict後は最新Order/Paymentを再取得して、他処理で完了済みなら同じ結果画面へ遷移します。
+最新の試行（Attempt）が完了済みであれば、既存の処理結果を返します。processing状態のままであれば、同一のAttempt KeyでLocal Mockを再実行します。確定トランザクションの競合（Conflict）が発生した後は、最新のOrderおよびPaymentを再取得し、並行する他の処理によって完了済みとなっていれば同じ結果画面へ遷移します。

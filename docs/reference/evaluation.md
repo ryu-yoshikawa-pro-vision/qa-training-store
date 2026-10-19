@@ -2,21 +2,21 @@
 
 ## 目的
 
-この文書は、Codex harness における `evaluation.json` の評価契約を説明します。Initial implementation A では schema 実装ではなく、後続の schema / validator 実装に先行する contract example として扱います。
+この文書は、Codex harness における `evaluation.json` の評価契約について説明します。初期実装（Initial implementation A）の段階ではスキーマ実装そのものではなく、後続のスキーマおよびバリデータ実装に先行する契約例（contract example）として位置づけます。
 
 ## 基本方針
 
-- 初期段階では数値 score を主軸にしません。
-- `rating + evidence` を基本にします。
-- 数値 score は、十分な評価データが溜まってから後段で検討します。
-- evaluation は成果評価だけでなく、harness improvement candidate を持てます。
-- 観測事実は `run.json` / `codex-task` report JSON / logs を参照します。
-- agent が exit code、changed files、executed commands などの実行事実を後書きしません。
-- `evidence` は人間向け短文、`evidence_refs` は machine-readable な artifact 参照として使います。
+- 初期段階では数値スコア（score）を主軸としません。
+- `rating + evidence`（評価値と根拠）の組み合わせを基本とします。
+- 数値スコアについては、十分な評価データが蓄積されてから後段で改めて検討します。
+- 評価（evaluation）には成果物の評価だけでなく、ハーネス改善候補（harness improvement candidate）を含めることができます。
+- 客観的な観測事実には `run.json`、`codex-task` のレポートJSON、およびログを参照します。
+- エージェント自身が終了コード（exit code）、変更ファイル（changed files）、実行コマンド（executed commands）などの実行事実を事後的に自己申告・後書きすることはありません。
+- `evidence` は人間向けの簡潔な説明文、`evidence_refs` は機械可読（machine-readable）な成果物（artifact）への参照として扱います。
 
 ## Rating Enum（評価値）
 
-dimension ごとの rating enum は以下に固定します。
+評価観点（dimension）ごとの評価値の列挙型（rating enum）は、以下に固定します。
 
 ```text
 pass | warn | fail | not_evaluated
@@ -24,105 +24,105 @@ pass | warn | fail | not_evaluated
 
 ## Evaluation Result Enum（評価結果）
 
-run 全体の `evaluation.result` は以下に固定します。
+実行（run）全体の `evaluation.result` は、以下に固定します。
 
 ```text
 pass | partial | fail | not_evaluated
 ```
 
-`dimensions.*.rating` は観点ごとの状態、`evaluation.result` は run 全体の成果達成度を表します。
+`dimensions.*.rating` は観点ごとの状態を示し、`evaluation.result` は実行全体の成果達成度を表します。
 
 ## 主な評価観点
 
 ### `task_completion`
 
 - 何を評価するか:
-  - ユーザー依頼や計画で定義された成果がどこまで達成されたか。
+  - ユーザーからの依頼や計画で定義された成果がどこまで達成されたか。
 - どのような evidence を求めるか:
-  - changed files、実装差分、出力 artifact、未完了項目の明示。
+  - 変更ファイル（changed files）、実装差分、出力成果物（artifact）、未完了項目の明記。
 - 判断例:
-  - `pass`: 必須成果物が揃い、非目標も守られている。
-  - `warn`: 主成果はあるが、未完了項目や追加修正前提が残る。
-  - `fail`: 必須成果物が不足し、目的を満たしていない。
+  - `pass`: 必須成果物がすべて揃っており、非目標（スコープ外事項）も遵守されている。
+  - `warn`: 主要な成果物は揃っているものの、未完了項目や追加修正を前提とする部分が残っている。
+  - `fail`: 必須成果物が不足しており、目的を達成できていない。
 
 ### `scope_control`
 
 - 何を評価するか:
-  - 変更が許可範囲に収まり、不要な差分を出していないか。
+  - 変更が許可範囲内に収まり、不要な差分を発生させていないか。
 - どのような evidence を求めるか:
-  - `changed_files`、計画上の対象ファイル、除外対象の確認。
+  - `changed_files`、計画上の対象ファイル、除外対象の確認結果。
 - 判断例:
-  - `pass`: 変更は許可された対象に限定されている。
-  - `warn`: 境界に近い変更があり、追加レビューが必要。
-  - `fail`: スコープ外の source file 変更や削除がある。
+  - `pass`: 変更が許可された対象のみに限定されている。
+  - `warn`: 境界線上にあたる変更が含まれており、追加レビューが必要である。
+  - `fail`: スコープ外のソースファイル（source file）の変更や削除が行われている。
 
 ### `validation_confidence`
 
 - 何を評価するか:
-  - 実行済み検証が十分か、結果をどこまで信頼できるか。
+  - 実施された検証が十分であるか、またその結果をどこまで信頼できるか。
 - どのような evidence を求めるか:
-  - verify command の status、既存 test / smoke / integration 実行結果、未実行理由。
+  - 検証コマンド（verify command）のステータス、既存テスト／スモークテスト／結合テスト（integration test）の実行結果、未実行の理由。
 - 判断例:
-  - `pass`: 必須検証が実行され、結果も妥当。
-  - `warn`: 一部未実行または一部失敗だが、限定的な説明が付いている。
-  - `fail`: 必須検証が不足、失敗、または理由なく省略されている。
+  - `pass`: 必須の検証が実行され、結果も妥当である。
+  - `warn`: 一部が未実行または失敗しているものの、限定的な補足説明がなされている。
+  - `fail`: 必須の検証が不足している、失敗している、あるいは正当な理由なく省略されている。
 
 ### `safety_compliance`
 
 - 何を評価するか:
-  - safety rule、hook、wrapper policy、禁止事項を守ったか。
+  - 安全規則（safety rule）、フック（hook）、ラッパーポリシー（wrapper policy）、および禁止事項を遵守したか。
 - どのような evidence を求めるか:
-  - blocked action の有無、実行コマンド、wrapper 利用状況、禁止操作未実施の確認。
+  - ブロックされたアクション（blocked action）の有無、実行コマンド、ラッパーの利用状況、禁止操作が実行されていないことの確認。
 - 判断例:
-  - `pass`: 安全ポリシー違反がない。
-  - `warn`: blocked action はあったが、危険操作は実行されていない。
-  - `fail`: 禁止された実行経路や unsafe action が行われた。
+  - `pass`: 安全ポリシー違反が一切ない。
+  - `warn`: ブロックされたアクションは発生したものの、危険な操作自体は実行されていない。
+  - `fail`: 禁止された実行経路の利用や、安全でないアクション（unsafe action）が行われた。
 
 ### `reviewability`
 
 - 何を評価するか:
-  - 後から人間が差分、根拠、判断を追跡できるか。
+  - 事後に人間が差分、根拠、判断の経緯を追跡できるか。
 - どのような evidence を求めるか:
-  - `REPORT.md`、run artifact、明示された evidence、整合した category / finding。
+  - `REPORT.md`、実行成果物（run artifact）、明示された根拠（evidence）、整合性の取れたカテゴリ／指摘事項（category / finding）。
 - 判断例:
-  - `pass`: 主要判断と証跡が追跡可能。
-  - `warn`: 一部説明不足だが、全体は追える。
-  - `fail`: 根拠不足でレビュー不能。
+  - `pass`: 主要な判断と証跡が十分に追跡可能である。
+  - `warn`: 一部説明不足な点はあるものの、全体の流れは追跡できる。
+  - `fail`: 根拠が不足しており、レビューが不可能な状態である。
 
 ### `maintainability`
 
 - 何を評価するか:
-  - 変更が既存構造に沿い、今後の保守を不必要に難しくしていないか。
+  - 変更が既存の構造に沿っており、今後の保守運用を不必要に難しくしていないか。
 - どのような evidence を求めるか:
-  - 既存設計との整合、責務分離、不要な複雑化の有無。
+  - 既存設計との整合性、責務の適切な分離、不要な複雑化の有無。
 - 判断例:
-  - `pass`: 既存構造と責務分離を保っている。
-  - `warn`: 動くが、後続で整理が必要な箇所がある。
-  - `fail`: 保守性を大きく損なう構造変更になっている。
+  - `pass`: 既存の構造と責務の分離が適切に保たれている。
+  - `warn`: 動作はするものの、後続作業で整理が必要な箇所が残っている。
+  - `fail`: 保守性を著しく損なうような構造変更が行われている。
 
 ### `reproducibility`
 
 - 何を評価するか:
-  - 同じ run を別の保守者が追跡・再実行しやすいか。
+  - 同一の実行（run）を別の担当者が容易に追跡・再実行できるか。
 - どのような evidence を求めるか:
-  - run id、参照 plan、実行コマンド、artifact path、環境依存の明示。
+  - 実行ID（run id）、参照した計画（plan）、実行コマンド、成果物パス（artifact path）、環境依存事項の明記。
 - 判断例:
-  - `pass`: 再現に必要な情報が残っている。
-  - `warn`: 一部環境依存が強いが、未再現要因が明記されている。
-  - `fail`: 再現に必要な前提や証跡が欠けている。
+  - `pass`: 再現に必要な情報が十分に記録されている。
+  - `warn`: 一部環境依存度が高いものの、未再現の要因が明確に記録されている。
+  - `fail`: 再現に必要な前提条件や証跡が欠落している。
 
 ## Failure Taxonomyとの接続
 
-- `primary_failure_category` は `spec/failure-taxonomy.json` の category から選びます。
-- `failure_categories` も taxonomy と整合する必要があります。
-- `findings[].category` も taxonomy と整合する必要があります。
-- taxonomy 外の category は使いません。
-- evidence のない finding / rating は後続 validator で warning または failure にするべきです。
-- `evidence_refs` は optional ですが、`run.json` / report / log / subagent / validation command への参照があると reviewability が上がります。
+- `primary_failure_category` は、`spec/failure-taxonomy.json` に定義されたカテゴリ（category）から選択します。
+- `failure_categories` も同様に、分類体系（taxonomy）と整合している必要があります。
+- `findings[].category` も、分類体系と整合している必要があります。
+- 分類体系（taxonomy）で定義されていない独自のカテゴリは使用しません。
+- 根拠（evidence）が示されていない指摘事項（finding）や評価値（rating）は、後続のバリデータ（validator）で警告（warning）または失敗（failure）として扱うべきです。
+- `evidence_refs` は任意（optional）ですが、`run.json`、レポート、ログ、サブエージェント（subagent）、検証コマンド（validation command）への参照を含めることで、レビュー容易性（reviewability）が向上します。
 
 ## 改善候補
 
-`improvement_candidates` は、少なくとも以下を持つべきです。
+`improvement_candidates`（改善候補）には、少なくとも以下の項目を含めるべきです。
 
 - `target`
 - `evidence`
@@ -130,7 +130,7 @@ pass | partial | fail | not_evaluated
 - `expected_impact`
 - `recommendation`
 
-対象になり得るもの:
+対象になり得るファイルおよびディレクトリの例:
 
 - `AGENTS.md`
 - `PLANS.md`
@@ -144,7 +144,7 @@ pass | partial | fail | not_evaluated
 
 ## 契約の例
 
-以下は Initial implementation A の説明用 example です。schema 実装ではありません。
+以下は初期実装（Initial implementation A）における説明用のサンプルです。スキーマの正式実装ではありません。
 
 ```json
 {

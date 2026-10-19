@@ -1,83 +1,83 @@
-# CI/CD・Release設計
+# CI/CD・リリース設計
 
-## 1. Branch
+## 1. ブランチ
 
-- `main`: Release可能な正本
+- `main`: リリース可能な正本ブランチ
 - `feat/*`, `fix/*`, `docs/*`, `chore/*`
-- Direct pushを避け、PR CIを通す
+- 直接プッシュ（Direct push）は避け、プルリクエスト（PR）のCIを通過させる
 
 ## 2. PR CI
 
-1. format/lint/typecheck
-2. Image Manifest・File・Hash・容量・Release済みAsset append-only検証
-3. GitHub Credential非混入Static Check
-4. Unit・Application Integration（PBKDF2、ApplicationTransactionRunner Rollback、Cart親Versionを含む）
-5. Dexie Repository / Admin Query / Image Asset Catalog Contract（Index Key投影を含む）
-6. `pnpm run build:web`（画像Manifest生成・検証を含む）
-7. Playwright Chromium必須E2E 12本
-8. Markdown Link/Requirement ID検査
-9. Cloudflare Preview Deploy
+1. フォーマット／Lint／型チェック（format / lint / typecheck）
+2. 画像マニフェスト、ファイル、ハッシュ、容量、およびリリース済みアセットの追記専用（append-only）検証
+3. GitHubクレデンシャル非混入の静的チェック（Static Check）
+4. 単体テスト・アプリケーション統合テスト（PBKDF2、ApplicationTransactionRunnerのロールバック、Cart親バージョンを含む）
+5. Dexieリポジトリ／管理画面クエリ／画像アセットカタログの規約検証（インデックスキー射影を含む）
+6. `pnpm run build:web`（画像マニフェストの生成・検証を含む）
+7. PlaywrightによるChromium必須E2Eテスト（12本）
+8. Markdownリンクおよび要件IDの整合性検査
+9. Cloudflare Pagesへのプレビューデプロイ
 
-Native Build、Migration、Public Build不存在検査はPhase 1に含めません。
+ネイティブビルド、マイグレーション、および公開ビルドの非存在検査は、フェーズ1（Phase 1）には含めません。
 
 ## 3. main CI
 
-- PR CI全件
-- Chromium Mobile
-- Firefox/WebKit主要Smokeを可能な範囲で実行
-- Cloudflare Production Deploy
-- Deployed Smoke
+- PR CIの全検証項目
+- モバイル版Chromiumテスト
+- Firefox／WebKitでの主要スモークテスト（可能な範囲で実行）
+- Cloudflare Pagesへの本番デプロイ
+- デプロイ後スモークテスト（Deployed Smoke）
 
 ## 4. 定期CI
 
 | 頻度 | 内容 |
 |---|---|
-| 毎日 | Deployed Smoke |
-| 週次 | Firefox/WebKit、Accessibility、many-products Benchmark |
+| 毎日 | デプロイ後スモークテスト（Deployed Smoke） |
+| 週次 | Firefox／WebKitテスト、アクセシビリティ検証、大量商品（many-products）ベンチマーク |
 
-Visual、Android/iOS、Migration/Importは将来Phaseです。
+ビジュアルテスト、Android／iOS、マイグレーション／インポートは将来のフェーズで対応します。
 
-## 5. Artifact
+## 5. アーティファクト
 
-E2E失敗時:
+E2Eテスト失敗時：
 
-- Trace、Screenshot、必要なVideo
-- Console
-- App/Schema/Seed/Build Version
-- Scenario、Clock、Payment Delay
+- トレース（Trace）、スクリーンショット、必要な動画（Video）
+- コンソールログ（Console）
+- アプリ／スキーマ／シード／ビルドの各バージョン
+- シナリオ、仮想時刻（Clock）、決済遅延（Payment Delay）
 
-DB ExportやGateway LedgerはPhase 1で生成しません。
+データベースのエクスポートやゲートウェイ台帳（Gateway Ledger）は、フェーズ1では生成しません。
 
-## 6. Version
+## 6. バージョン
 
 | 種別 | 例 |
 |---|---|
 | App | 0.1.0 |
 | Schema | 1 |
-| Seed | Build Metadataの`SEED_VERSION` |
+| Seed | ビルドメタデータの`SEED_VERSION` |
 
-Schema変更とSeed期待値変更をRelease Noteへ記載します。Seedの数値は本書へ重複記載せず、Seed Catalogから生成したBuild Metadataの`SEED_VERSION`をCI、Artifact、Deployed Smokeの正本として参照します。
+スキーマ変更とシード期待値の変更はリリースノートへ記載します。シードの数値は本書へ重複記載せず、シードカタログから生成したビルドメタデータの`SEED_VERSION`を、CI、アーティファクト、デプロイ後スモークテストの正本として参照します。
 
-## 7. Release Gate
+## 7. リリース基準（Release Gate）
 
-- Auth/Role/Rank
-- Home/Search/Filter/Product Detail
-- Catalog/Cart/Checkout
-- Payment success/failure/retry
-- Order paid→preparing→shipped→delivered
-- ReviewとSummary・評価分布
-- Admin Shell/Overview/Resource Pattern/限定Bulk
-- Product Aggregate、SKU CRUD、GitHub画像Asset関連・append-only
-- Accessibility主要Pattern
-- Seed/Reset/Clock/固定Read-only Inspection
-- `08_testing/e2e_design.md`のChromium必須E2E 12本とDeployed Smoke
+- 認証／ロール／ランク（Auth / Role / Rank）
+- ホーム／検索／絞り込み／商品詳細
+- カタログ／カート／チェックアウト
+- 決済処理（成功／失敗／リトライ）
+- 注文ステータス遷移（支払い済み → 準備中 → 発送済み → 配達完了）
+- レビューとサマリー・評価分布
+- 管理画面シェル／概要／リソースパターン／限定的な一括操作
+- 商品集約（Product Aggregate）、SKUのCRUD、GitHub画像アセット関連・追記専用（append-only）保護
+- 主要なアクセシビリティパターン
+- シード／リセット／仮想時刻（Clock）／固定の読み取り専用インスペクション機能
+- `08_testing/e2e_design.md`に規定されたChromium必須E2Eテスト12本、およびデプロイ後スモークテスト
 
 ## 8. 障害対応
 
-- 配信障害: 直前DeployへRollback。
-- IndexedDB書込障害: 利用者向けErrorを表示し、Test環境ではReset案内。
-- Schema変更障害: 開発段階ではReset。正式MigrationはPhase 3。
+- 配信障害: 直前のデプロイへロールバック。
+- IndexedDB書き込み障害: 利用者向けエラーを表示し、テスト環境ではリセット手順を案内。
+- スキーマ変更障害: 開発段階ではリセットで対応。正式なマイグレーションはフェーズ3で実施。
 
-## 9. 依存更新
+## 9. 依存パッケージの更新
 
-Expo、Dexie、Playwrightの更新は個別PRとし、主要Flowを確認します。自動更新BranchをCloudflare Preview対象から除外してもよいものとします。
+Expo、Dexie、Playwrightの更新は個別のプルリクエストとし、主要フローを確認します。自動更新用ブランチは、Cloudflareのプレビューデプロイ対象から除外してもよいものとします。

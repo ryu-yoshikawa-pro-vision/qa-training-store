@@ -1,24 +1,24 @@
 # Windows Android トラブルシューティング
 
-症状を確認し、直接原因にだけ対応する。一般的なRetry、失敗、証跡、停止、完了の判断は package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とする。警告の一括解消や無関係な Version 更新は行わない。
+発生している症状を確認し、直接の原因のみに対処します。一般的なリトライや失敗、エビデンス（証跡）の取得、処理の停止・完了の判断基準は、パッケージローカルの [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とします。警告の一括解消や、問題と無関係なバージョン更新は行わないでください。
 
 ## 一覧
 
 | 症状 | 主因 | 対応 |
 |---|---|---|
-| `java`／`javac` が見つからない | JDK または PATH 不備 | JDK 17、`JAVA_HOME`、Path を確認 |
-| `sdkmanager.bat` が見つからない | Command-line Tools 配置不備 | `cmdline-tools\latest\bin` を確認 |
-| Android CLI が `-1073740791` | Windows 上の CLI 異常終了 | `sdkmanager.bat` を直接使用 |
-| `cmdline-tools\latest-2` 警告 | Command-line Tools 二重配置 | Version 確認後、重複だけ整理 |
-| `CreateProcess error=2` | pnpm／CMake Path 超過 | Virtual Store を短い Path へ置く |
-| `Filename longer than 260 characters` | Ninja Object Path 超過 | NTFS Junction `C:\q` 経由で Build |
-| `build.ninja` が `still dirty after 100 tries` | 古い `.pnpm-local` の Autolinking／CMake 参照 | 外部 Virtual Store へ再リンクし、Prebuild で生成状態を再作成 |
-| `subst` 上で `settings.gradle` が失敗 | Autolinking 内部 `cmd` と仮想 Drive の不整合 | `subst` をやめ、NTFS Junction を使う |
-| Metro が `react` を解決できない | 外部 Virtual Store と Metro Resolution の不一致 | `autolinkingModuleResolution` を有効化 |
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 既存 APK と署名不一致 | データ消失確認後に手動 Uninstall |
-| `unauthorized` | USB debugging 未承認 | 実機側で RSA Key を許可 |
-| Maestro `visible` timeout | Accessibility 上で非表示／Bounds 外 | Screenshot と Hierarchy を比較 |
-| `inputText`後に既知の商品カードが見つからない | 端末IMEがASCII入力を保持していない | 主要FlowはProduct Deep Link、検索入力は専用Flow＋制御IMEで実行 |
+| `java`／`javac` が見つからない | JDK または PATH の設定不備 | JDK 17、`JAVA_HOME`、Path を確認 |
+| `sdkmanager.bat` が見つからない | Command-line Tools の配置不備 | `cmdline-tools\latest\bin` を確認 |
+| Android CLI が `-1073740791` | Windows 上での CLI 異常終了 | `sdkmanager.bat` を直接使用 |
+| `cmdline-tools\latest-2` 警告 | Command-line Tools の二重配置 | バージョン確認後、重複のみ整理 |
+| `CreateProcess error=2` | pnpm／CMake のパス長超過 | バーチャルストアを短いパスへ配置 |
+| `Filename longer than 260 characters` | Ninja オブジェクトパス長超過 | NTFS ジャンクション `C:\q` 経由でビルド |
+| `build.ninja` が `still dirty after 100 tries` | 古い `.pnpm-local` を参照するオートリンキング／CMake 設定の残存 | 外部バーチャルストアへ再リンクし、プリビルドで生成状態を再作成 |
+| `subst` 上で `settings.gradle` が失敗 | オートリンキング内部の `cmd` と仮想ドライブの不整合 | `subst` を解除し、NTFS ジャンクションを使用 |
+| Metro が `react` を解決できない | 外部バーチャルストアと Metro のモジュール解決の不一致 | `autolinkingModuleResolution` を有効化 |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 既存 APK との署名不一致 | データ消失の了承を確認後、手動でアンインストール |
+| `unauthorized` | USB デバッグ未承認 | 実機側で RSA キーを許可 |
+| Maestro `visible` timeout | アクセシビリティ上で非表示、または領域外（Bounds 外） | スクリーンショットと階層構造（Hierarchy）を比較 |
+| `inputText` 後に既知の商品カードが見つからない | 端末の IME が ASCII 入力を保持していない | 主要フローは商品詳細へのディープリンクを使用し、検索入力は専用フローと制御下 IME で実行 |
 
 ## 1. `CreateProcess error=2`
 
@@ -29,17 +29,17 @@ Could not start ... prefab_command.bat
 CreateProcess error=2
 ```
 
-`node_modules/.pnpm` 以下と CMake 生成 Path の合計が長すぎる場合に発生する。
+`node_modules/.pnpm` 配下のパスと CMake が生成するパスの合計長が、Windows のパス長制限を超えた場合に発生します。
 
 標準対応:
 
-- Repository は物理移動しない
-- `C:\q` Junction から実行
-- pnpm Virtual Store を `C:\v\qts` にする
-- `virtual-store-dir-max-length=20`
-- `expo prebuild --clean` で古い絶対 Path を破棄
+- リポジトリ自体は物理移動しない
+- `C:\q` ジャンクション経由で実行する
+- pnpm のバーチャルストアを `C:\v\qts` に設定する
+- `virtual-store-dir-max-length=20` を指定する
+- `expo prebuild --clean` を実行して、古い絶対パスを破棄する
 
-Library 個別の Version を先に変更しない。
+個別ライブラリのバージョン変更を先に行ってはなりません。
 
 ## 2. Ninja の260文字制限
 
@@ -49,14 +49,14 @@ Library 個別の Version を先に変更しない。
 ninja: error: ... Filename longer than 260 characters
 ```
 
-Virtual Store を短縮しても、Repository Root と `.cxx` が長い場合は残る。
+バーチャルストアのパスを短縮しても、リポジトリのルートパスや `.cxx` 配下のパスが長い場合は、この制限に抵触してエラーが残ります。
 
 ```text
 長い: C:\Users\...\qa-training-store\android\app\.cxx\...
 短い: C:\q\android\app\.cxx\...
 ```
 
-Windows の Long Path Policy だけでは、Ninja 自身の制限を解消できない場合がある。短い Junction を標準対応とする。
+Windows の長いパスの有効化ポリシー（Long Path Policy）を設定するだけでは、Ninja 自体の文字数制限を回避できない場合があります。そのため、短いパスのジャンクションを経由する手順を標準対応とします。
 
 ## 3. `subst` で Autolinking が失敗
 
@@ -67,7 +67,7 @@ Settings file 'Q:\android\settings.gradle'
 Process 'command 'cmd'' finished with non-zero exit value 1
 ```
 
-`subst` による仮想 Drive はこの Project の React Native Autolinking と相性が悪い。`subst` を解除し、同じ C Drive 上の NTFS Junction を使う。
+`subst` コマンドによる仮想ドライブは、本プロジェクトにおける React Native のオートリンキング処理と競合を起こしやすい傾向があります。`subst` を解除し、同一 C ドライブ上の NTFS ジャンクションを使用してください。
 
 ```powershell
 Set-Location C:\
@@ -77,7 +77,7 @@ New-Item -ItemType Junction `
   -Target C:\Users\<user>\Documents\qa-training-store
 ```
 
-通常はスクリプトの `Prepare` に任せる。
+通常は手動で作成せず、スクリプトの `Prepare` 処理に任せます。
 
 ## 4. Metro が `react` を解決できない
 
@@ -87,9 +87,9 @@ New-Item -ItemType Junction `
 Unable to resolve module react from ...\standard-navigation\...
 ```
 
-外部 Virtual Store 内の Package から Project Root の `react` へ到達できない状態。
+外部バーチャルストア内のパッケージから、プロジェクトルートにある `react` を解決・参照できない状態です。
 
-`app.config.ts` で Expo Autolinking と Metro の解決結果を揃える。
+`app.config.ts` で設定を行い、Expo のオートリンキングと Metro のモジュール解決結果を一致させます。
 
 ```ts
 experiments: {
@@ -98,68 +98,68 @@ experiments: {
 },
 ```
 
-SDK 57 では On-demand filesystem access は既定機能であるため、今回の理由だけで追加設定を増やさない。
+Expo SDK 57 ではオンデマンドのファイルシステムアクセス（On-demand filesystem access）が既定機能となっているため、このエラーの解消のみを理由として不要な追加設定を増やさないでください。
 
 ## 5. 大量の OpenSSL／Kotlin Warning
 
-次のような Warning は、Build が続いている限り直接原因ではない。
+次のような警告（Warning）は、ビルド処理が継続している限り、失敗の直接的な原因ではありません。
 
-- OpenSSL 3 deprecated API
-- Kotlin deprecated API
+- OpenSSL 3 の非推奨（deprecated）API
+- Kotlin の非推奨（deprecated）API
 - React Native Legacy Architecture API
 
-最後の `FAILED` Task と `Caused by` を確認する。警告をすべて修正しようとして依存 Package を広範囲に変更しない。
+ログ末尾の `FAILED` タスクと `Caused by` のメッセージを確認してください。警告をすべて解消しようとして、依存パッケージのバージョンなどを広範囲に変更してはなりません。
 
 ## 6. `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
 
-同じ Package ID の既存アプリと署名が異なる。
+同じパッケージ ID を持つインストール済みアプリと、新しくビルドしたアプリの間で署名が一致していません。
 
 ```powershell
 adb uninstall com.ryuyoshikawa.scenarioshop
 ```
 
-この操作は Application Data を消去する。自動スクリプトでは実行しない。
+このアンインストール操作を実行すると、アプリ内の保存データ（Application Data）がすべて消去されます。意図しないデータ消失を防ぐため、自動実行スクリプトには組み込まず、手動で確認のうえ実行してください。
 
 ## 7. Maestro が Text を見つけない
 
-画面上に見えていることと、Maestro が `visible` と判断することは別である。Maestro は Accessibility Tree を利用する。
+画面上で人間の目にテキストが見えていることと、Maestro が `visible`（表示中）と判定することは同義ではありません。Maestro は画面描画そのものではなく、アクセシビリティツリー（Accessibility Tree）の情報を参照して判定を行います。
 
-失敗時に確認するもの:
+失敗時に確認する項目:
 
-- `screen.png`
+- `screen.png`（画面キャプチャ）
 - `maestro-hierarchy.txt`
 - `uiautomator.xml`
-- Text の Bounds
-- Safe Area 内か
-- 他要素の背面にないか
-- 表示後すぐ別状態へ変わっていないか
-- Text が結合・分割されていないか
+- 対象テキストの表示領域（Bounds）
+- セーフエリア（Safe Area）の内側に収まっているか
+- 他の UI 要素の背面に隠れていないか
+- 要素の表示直後に別の状態へ遷移していないか
+- テキストが意図せず結合または分割されていないか
 
-次の回避は禁止:
+次の回避策は禁止とします:
 
-- Timeout を延ばすだけ
-- `assertVisible` を削除
-- Flow を Skip
-- CI を Allow failure
+- タイムアウト時間を延長するだけの場当たり的な対処
+- `assertVisible` アサーションの削除
+- テストフロー（Flow）自体のスキップ
+- CI ジョブの失敗許容（Allow failure）への変更
 
-UI／Accessibility、Runtime 状態遷移、Selector のどこに問題があるかを分類して最小修正する。
+UI やアクセシビリティの実装、実行時の状態遷移、セレクタの指定方法のどこに問題があるのかを切り分け、必要最小限の修正を行ってください。
 
 ### 7.1 Maestro `inputText` が検索欄へ保持されない
 
-SHV48の標準日本語IMEなど、端末の入力方式によってはMaestro CLIの`inputText: "P-0001"`が検索欄へ保持されないことがある。検索欄がplaceholderのまま残り、一覧に`native-product-card-product-basic-shirt`が現れない場合は、まず入力経路の問題として切り分ける。
+SHV48 の標準日本語 IME など、実機の入力方式によっては、Maestro CLI の `inputText: "P-0001"` による入力文字列が検索欄に確定・保持されない場合があります。検索欄がプレースホルダー表示のまま残り、商品一覧に対象カード（`native-product-card-product-basic-shirt`）が現れない場合は、まず入力経路に起因する問題として切り分けます。
 
-対応方針は次のとおり。
+対応方針は次のとおりです。
 
-1. 既知の商品を確認するStorefront／Cart／Persistenceの主要Flowは、`scenario-shop://products/product-basic-shirt`のDeep Linkを使う。検索入力で代替しない。
-2. 検索入力の契約は`maestro/native-search.yaml`で独立して確認する。
-3. 物理端末で専用Flowを実行する場合だけ、元のIMEと有効IME一覧を保存し、LatinIME等を一時選択する。Flow終了後は元のIMEと有効IME一覧へ戻す。
-4. 標準IMEのまま検索入力が成立しない場合、Timeout延長、Assertion削除、主要Flowへの検索復帰で成功扱いにしない。検索専用Flowの条件未達として記録する。
+1. 既知の商品の表示や動作を確認する Storefront／Cart／Persistence の主要フローでは、`scenario-shop://products/product-basic-shirt` のディープリンクを使用します。検索入力処理による画面遷移で代替してはなりません。
+2. 検索入力機能自体の検証契約は、`maestro/native-search.yaml` にて単独かつ独立して検証します。
+3. 実機（物理端末）で検索専用フローを実行する場合に限り、現在の IME 設定および有効な IME 一覧を保存したうえで、一時的に LatinIME などを選択します。フロー完了後は速やかに元の IME 設定および有効一覧へ復元してください。
+4. 端末標準の IME のまま検索入力が成立しない場合であっても、タイムアウト延長、アサーション削除、あるいは主要フローへの検索入力復帰によって見かけ上成功扱いにすることは禁止します。検索専用フローの前提条件未達として正確に記録してください。
 
-同じAPKでIMEだけを変えたA/Bを行い、`P-0001`入力後の検索欄、Accessibility Hierarchy、対象商品カードを比較する。SeedやSelectorを変更する前に、`.artifacts/native-local/<timestamp>/`のScreenshot、Hierarchy、JUnit、logcatを確認する。
+同一の APK に対して IME 設定のみを変更した A/B テストを実施し、`P-0001` 入力後の検索欄、アクセシビリティ階層（Accessibility Hierarchy）、対象商品カードの描画を比較します。テストデータ（Seed）やセレクタを変更する前に、`.artifacts/native-local/<timestamp>/` 配下のスクリーンショット、階層ダンプ、JUnit レポート、logcat を必ず確認してください。
 
 ## 8. 生成物を初期化したい場合
 
-通常は Build Cache を利用する。Path や Prebuild 設定が変わった場合だけ、次を使用する。
+通常はビルドキャッシュを利用して実行します。パス構成やプリビルド設定を変更した場合に限り、以下の手順で初期化ビルドを行います。
 
 ```powershell
 pnpm run native:android:prepare
@@ -169,7 +169,7 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -CleanNative
 ```
 
-`node_modules`、SDK、Gradle Cache を無条件に全削除しない。
+原因を切り分けることなく、`node_modules` や Android SDK、Gradle キャッシュを無条件に一括削除してはなりません。
 
 ## 9. `build.ninja` が `still dirty after 100 tries` で失敗
 
@@ -179,13 +179,13 @@ powershell -NoProfile -ExecutionPolicy Bypass `
 ninja: error: manifest 'build.ninja' still dirty after 100 tries
 ```
 
-外部 Virtual Store へ切り替えた後も、依存関係のメタデータや生成済み Autolinking／CMake が以前の `.pnpm-local` Path を参照していると発生する。`assemble-release.log` の最後の `FAILED` Task と `Caused by` を確認し、同じ古い Path が複数箇所に現れるかを確認する。
+外部バーチャルストアへ切り替えた後も、依存関係のメタデータや生成済みのオートリンキング設定・CMake キャッシュが以前の `.pnpm-local` パスを参照し続けている場合に発生します。まずは `assemble-release.log` の末尾にある `FAILED` タスクと `Caused by` を確認し、過去の古いパスが複数箇所に残存していないかを調査してください。
 
-復旧は次の順序で行う。
+復旧は次の順序で行います。
 
-1. `pnpm run native:android:prepare` を実行する。
-2. Runbook 4.3 の `.modules.yaml`、Package Link、`autolinking.json` を確認する。
-3. `.pnpm-local` が残っている場合だけ、`C:\q` から明示的な Virtual Store を指定して再リンクする。
+1. `pnpm run native:android:prepare` を実行します。
+2. ランブック（Runbook）4.3 に従い、`.modules.yaml`、パッケージのリンク状態、`autolinking.json` の内容を確認します。
+3. `.pnpm-local` のパスが残っている場合に限り、`C:\q` 上から明示的にバーチャルストアを指定して再リンクを行います。
 
    ```powershell
    $env:CI = 'true'
@@ -195,7 +195,7 @@ ninja: error: manifest 'build.ninja' still dirty after 100 tries
    pnpm exec expo prebuild --clean --platform android --no-install
    ```
 
-4. `autolinking.json` に古い `.pnpm-local` が残っていないことを確認し、`pnpm run native:android:build:local` を新しい Run ID で再実行する。
-5. APK が生成された場合だけ、通常の Install、Smoke、Test、RuntimeSuite、BoundarySuite の順へ戻る。Test または最初の Flow が失敗したら後続 Suite は実行しない。
+4. `autolinking.json` 内に古い `.pnpm-local` の記述が残っていないことを確認したうえで、`pnpm run native:android:build:local` を新しい Run ID を指定して再実行します。
+5. 正常に APK が生成された場合に限り、通常のテスト手順（Install、Smoke、Test、RuntimeSuite、BoundarySuite の順）へ復帰します。Test または初回のフローで失敗した場合は、後続のスイートを実行してはなりません。
 
-`pnpm-lock.yaml`、`autolinking.json`、CMake Cache を手編集しない。`-CleanNative` は生成状態を正しく再作成した後に Cache の再利用が妥当でない場合だけ使う。再リンクと Prebuild 後も同じエラーが続く場合は、ログの最後の `FAILED`／`Caused by` と `.artifacts/native-local/<timestamp>/build/assemble-release.log` を保存して停止する。
+`pnpm-lock.yaml` や `autolinking.json`、CMake キャッシュを手動で直接編集してはなりません。`-CleanNative` オプションは、生成状態を正しく再構築した後に、既存キャッシュの再利用が不適切と判断された場合にのみ使用します。再リンクおよびプリビルドを実行しても同一のエラーが解消しない場合は、ログ末尾の `FAILED`／`Caused by` の出力と `.artifacts/native-local/<timestamp>/build/assemble-release.log` を退避・保存したうえで、調査を中断（停止）してください。

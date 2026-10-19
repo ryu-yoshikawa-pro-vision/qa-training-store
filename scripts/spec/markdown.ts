@@ -84,9 +84,18 @@ export function parseMarkdownFile(absolutePath: string, relativePath: string): P
   return { relativePath, absolutePath, lines, headings, links };
 }
 
+const NAVIGATION_HEADING_TEXTS = new Set(["Navigation", "ナビゲーション（Navigation）"]);
+
+export function findNavigationHeadings(parsed: ParsedMarkdown): MarkdownHeading[] {
+  return parsed.headings.filter(
+    (heading) => heading.level === 2 && NAVIGATION_HEADING_TEXTS.has(heading.text),
+  );
+}
+
 export function extractNavigation(parsed: ParsedMarkdown): NavigationItem[] {
-  const headingIndex = parsed.lines.findIndex((line) => line.trim() === "## Navigation");
-  if (headingIndex < 0) return [];
+  const headings = findNavigationHeadings(parsed);
+  if (headings.length !== 1) return [];
+  const headingIndex = headings[0]!.line - 1;
 
   const items: NavigationItem[] = [];
   for (let index = headingIndex + 1; index < parsed.lines.length; index += 1) {

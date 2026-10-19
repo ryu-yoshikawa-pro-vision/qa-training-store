@@ -554,4 +554,35 @@ describe("portable Codex Run Artifact sanitizer", () => {
     },
     120_000,
   );
+  it("records the completion gate in the operator agreement", () => {
+    const agents = read("AGENTS.md");
+    const repairReference = read("docs/reference/repair-loop.md");
+    const repairSkill = read(".agents/skills/repair-loop/SKILL.md");
+    const runArtifacts = read("docs/reference/run-artifacts.md");
+    expect(agents).toContain("sanitization");
+    expect(agents).not.toContain("scripts/sanitize-codex-artifacts.ps1のWriteとCheck");
+    expect(repairReference).toContain("run-artifacts.md");
+    expect(repairReference).toContain("sanitization");
+    expect(repairReference).not.toContain("scripts/sanitize-codex-artifacts.ps1");
+    expect(repairSkill).toContain("sanitization");
+    expect(repairSkill).not.toContain("scripts/sanitize-codex-artifacts.ps1");
+    expect(agents).toContain("Run Artifact");
+    expect(runArtifacts).toContain("scripts/sanitize-codex-artifacts.mjs --path");
+    expect(runArtifacts).toContain("scripts/sanitize-codex-artifacts.ps1");
+    expect(runArtifacts).toContain("`Write`");
+    expect(runArtifacts).toContain("`Check`");
+    expect(runArtifacts).toContain(
+      "未サニタイズのローカル絶対パスを含むRun Artifactは完了扱いにしません",
+    );
+    expect(runArtifacts).toContain("`REPORT.md`のAppend-only契約");
+    expect(runArtifacts).toContain(
+      "アクティブなRunが存在する状態で、同一タスクのために別のRun Directoryを作成して作業履歴を分散させてはなりません",
+    );
+    expect(runArtifacts).toContain(
+      "ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます",
+    );
+    expect(runArtifacts).toContain(
+      "会話セッションが変わった場合は、アクティブなRunの引き継ぎが明示されていない限り、新規にRunを作成します",
+    );
+  });
 });
