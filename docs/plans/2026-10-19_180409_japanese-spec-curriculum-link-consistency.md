@@ -95,6 +95,7 @@
 - [ ] `scripts/spec/build-spec.ts` と `scripts/docs/build-docs.ts` の両方の `pageHtml()` にある `Navigation`、`Normative Product Behavior`、`Supporting / Operational`、`Scenario Shop Specification`、`Scenario Shop Test Automation Curriculum` などを、表示箇所（本文外のナビゲーション、分類、タイトル、`aria-label`）ごとに確認する。説明用の英語を日本語へ変更し、製品名 `Scenario Shop` や内部識別子・パス・HTML属性名は維持する。
 - [ ] `scripts/spec/visual-contract.ts` のFeature親章、共通ownerの `Screen Contracts`、画面H4の3つ、状態表9列の日本語名称を受け付ける。欠落・重複・順序・列数・所有関係・状態slug・画像参照などの拒否条件を維持する。
 - [ ] `scripts/spec/visual-contract.ts` のScreen Catalog解析について、`〇/×` 化に必要な入力処理を確認する。画面数、画面class、ルート、Web/Androidの対象、公開される利用値を保持し、表記だけ変更できるなら不要な解析変更を加えない。
+- [ ] `parseScreenCatalog()` は現在、`Primary specification` の `#fragment` を除去して所有仕様書のパスを `primarySpec` に格納する。このため、パスの所有者検証とは別に、**カタログに記載されたリンクの `#fragment` とリンク先H3の `SCREEN ID` の一致**を `scripts/spec/visual-contract.ts` の既存検証経路で確認できるようにする。既存の `primarySpec` のパス形式・公開データ契約を不要に変更せず、別画面IDへのリンクを拒否する。
 - [ ] `scripts/spec/materialize-visual-references.ts` の生成見出しと、既存の `visualReferencesForState()` の境界を確認する。生成前後の再実行で画像参照が重複しないことを維持する。
 - [ ] `scripts/spec/slug-heading.ts` と `scripts/agentic-qa/spec-refs.ts` は原則変更せず、生成済みアンカーと `resolveSpecReference()` の既存検証を使用する。外部で保存済みの旧slugを無条件に互換扱いしない。
 
