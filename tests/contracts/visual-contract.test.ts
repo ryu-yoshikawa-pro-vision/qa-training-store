@@ -979,4 +979,3 @@ describe("Screen Catalog / Visual Contract", () => {
     }
   });
 });
-

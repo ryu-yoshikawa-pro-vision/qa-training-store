@@ -388,4 +388,3 @@ CI上で失敗が発生した場合は、以下の順序でどのフェーズで
 ## 次のステップ
 
 トレーニング用Web CIの実行結果を、品質ゲート（Quality Gate）、アーティファクト管理、フェイルクローズ（Fail-closed）の設計思想へと接続するため、[P2-7: Quality GateとCI/CD](07_ci-cd-quality-gates.md) へ進んでください。
-

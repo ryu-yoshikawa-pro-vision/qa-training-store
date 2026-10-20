@@ -168,4 +168,3 @@ test("published curriculum mobile navigation smoke", async ({ page }) => {
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
 });
-
