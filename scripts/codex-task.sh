@@ -1505,6 +1505,46 @@ main() {
   exit 0
 }
 
+sanitize_known_outputs_on_exit() {
+  local original_status=$?
+  trap - EXIT
+  local sanitizer="$repo_root/scripts/sanitize-codex-artifacts.mjs"
+  local sanitizer_status=0
+  local target
+  local -a targets=()
+  local -a sanitizer_command=()
+
+  if [[ -n "$run_root" && -d "$run_root" ]]; then
+    targets+=("$run_root")
+  fi
+  targets+=("$output_file" "$report_path" "$log_path")
+  [[ -n "$manifest_path" ]] && targets+=("$manifest_path")
+  [[ -n "$evaluation_file_path" ]] && targets+=("$evaluation_file_path")
+
+  if ! command -v node >/dev/null 2>&1 || [[ ! -f "$sanitizer" ]]; then
+    printf '%s\n' 'Node artifact sanitizer is unavailable; known Run outputs could not be sanitized.' >&2
+    sanitizer_status=1
+  else
+    sanitizer_command=(node "$sanitizer")
+    for target in "${targets[@]}"; do
+      [[ -n "$target" ]] && sanitizer_command+=(--path "$target")
+    done
+    sanitizer_command+=(--write --check)
+    if "${sanitizer_command[@]}"; then
+      sanitizer_status=0
+    else
+      sanitizer_status=$?
+    fi
+  fi
+
+  if (( sanitizer_status != 0 )); then
+    printf 'Known Run output sanitization failed (exit %s).\n' "$sanitizer_status" >&2
+    (( original_status == 0 )) && original_status=1
+  fi
+  exit "$original_status"
+}
+
+trap sanitize_known_outputs_on_exit EXIT
 parse_args "$@"
 apply_run_paths
 main

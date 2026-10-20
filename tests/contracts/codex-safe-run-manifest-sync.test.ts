@@ -10,6 +10,22 @@ const powerShellWrapperPath = path.join(repoRoot, "scripts", "codex-safe.ps1");
 const bashWrapperPath = path.join(repoRoot, "scripts", "codex-safe.sh");
 const collectorPowerShellPath = path.join(repoRoot, "scripts", "collect-run-artifacts.ps1");
 const collectorPythonPath = path.join(repoRoot, "scripts", "collect-run-artifacts.py");
+const bashRunsInWsl =
+  process.platform === "win32" &&
+  spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }).stdout.trim().startsWith("Linux");
+
+function toBashPath(value: string) {
+  const normalized = value.replaceAll("\\", "/");
+  const drivePath = /^([A-Za-z]):\/(.*)$/.exec(normalized);
+  if (!bashRunsInWsl || !drivePath) {
+    return normalized;
+  }
+  return `/mnt/${drivePath[1]?.toLowerCase()}/${drivePath[2]}`;
+}
+
+function quoteBashArgument(value: string) {
+  return "'" + value.replaceAll("'", "'\\''") + "'";
+}
 
 type FixtureOptions = {
   git: boolean;
@@ -56,13 +72,30 @@ function runBash(
   const bashWrapperPath = relativeWrapperPath.startsWith(".")
     ? relativeWrapperPath
     : `./${relativeWrapperPath}`;
+  const shellEnvironment = {
+    ...(codexPath ? { CODEX_BIN: toBashPath(codexPath) } : {}),
+    ...envOverrides,
+  };
+  if (bashRunsInWsl && Object.keys(shellEnvironment).length > 0) {
+    const launcherPath = path.join(cwd, ".codex-safe-test-launcher.sh");
+    const environmentExports = Object.entries(shellEnvironment)
+      .map(([name, value]) => `export ${name}=${quoteBashArgument(value)}`)
+      .join("\n");
+    fs.writeFileSync(
+      launcherPath,
+      `#!/usr/bin/env bash\nexport PATH=${quoteBashArgument(toBashPath(path.dirname(wrapperPath)))}:"$PATH"\n${environmentExports}\nexec bash ${quoteBashArgument(bashWrapperPath)} "$@"\n`,
+      "utf8",
+    );
+    fs.chmodSync(launcherPath, 0o755);
+    const relativeLauncherPath = path.relative(cwd, launcherPath).replaceAll("\\", "/");
+    return spawnSync("bash", [relativeLauncherPath, ...args], { cwd, encoding: "utf8" });
+  }
   return spawnSync("bash", [bashWrapperPath, ...args], {
     cwd,
     encoding: "utf8",
     env: {
       ...process.env,
-      ...(codexPath ? { CODEX_BIN: codexPath } : {}),
-      ...envOverrides,
+      ...shellEnvironment,
     },
   });
 }
@@ -71,76 +104,68 @@ function createFakeCodex(root: string): string {
   const fakeCodexPath = path.join(root, "fake-codex");
   fs.writeFileSync(
     fakeCodexPath,
-    `#!/usr/bin/env node
-const fs = require("node:fs");
+    `#!/usr/bin/env bash
+set -u
 
-const args = process.argv.slice(2);
-const command = args.slice(args.lastIndexOf("--") + 1);
-const commandText = command.join(" ");
-const callsPath = process.env.CODEX_FAKE_CALLS;
-const previousCalls = fs.existsSync(callsPath)
-  ? fs.readFileSync(callsPath, "utf8").split(/\\r?\\n/).filter(Boolean).length
-  : 0;
-fs.appendFileSync(callsPath, JSON.stringify(command) + "\\n");
+args=("$@")
+command_start=-1
+for index in "\${!args[@]}"; do
+  if [[ "\${args[$index]}" == "--" ]]; then
+    command_start=$((index + 1))
+  fi
+done
+if (( command_start < 0 )); then
+  echo "Missing execpolicy command separator" >&2
+  exit 64
+fi
+command=("\${args[@]:command_start}")
+command_text="\${command[*]}"
 
-const mode = process.env.CODEX_FAKE_MODE ?? "success";
-if (mode === "mismatch-second" && previousCalls === 1) {
-  process.stdout.write('{"decision":"prompt"}');
-  process.exit(0);
-}
-if (mode === "fixed-response") {
-  process.stdout.write(process.env.CODEX_FAKE_RESPONSE ?? "");
-  process.exit(0);
-}
+previous_calls=0
+if [[ -f "$CODEX_FAKE_CALLS" ]]; then
+  while IFS= read -r _; do
+    previous_calls=$((previous_calls + 1))
+  done < "$CODEX_FAKE_CALLS"
+fi
+{
+  printf '['
+  separator=""
+  for argument in "\${command[@]}"; do
+    printf '%s"%s"' "$separator" "$argument"
+    separator=,
+  done
+  printf ']\\n'
+} >> "$CODEX_FAKE_CALLS"
 
-const expectedDecisions = new Map([
-  ["git status", "allow"],
-  ["rg --files docs", "allow"],
-  ["git switch feature/safe", "allow"],
-  ["git checkout feature/safe", "prompt"],
-  ["git merge main", "prompt"],
-  ["git merge --abort", "prompt"],
-  ["git rebase --abort", "prompt"],
-  ["git branch -d old-feature", "prompt"],
-  ["git branch --delete old-feature", "prompt"],
-  ["git branch -vd old-feature", "prompt"],
-  ["git branch -dv old-feature", "prompt"],
-  ["git branch -v -d old-feature", "prompt"],
-  ["gh api /repos/example/repo/issues", "prompt"],
-  ["gh pr merge 123", "prompt"],
-  ["gh pr close 123", "prompt"],
-  ["gh issue close 123", "prompt"],
-  ["gh release create v1", "prompt"],
-  ["gh release delete v1", "prompt"],
-  ["gh repo delete example/repo", "prompt"],
-  ["gh pr create --title test", "allow"],
-  ["gh pr edit 123", "allow"],
-  ["gh pr checks 123", "allow"],
-  ["git add .", "allow"],
-  ["python -c print(1)", "allow"],
-  ["python -", "allow"],
-  ["git reset --hard HEAD~1", "forbidden"],
-  ["terraform destroy -auto-approve", "forbidden"],
-  ["docker ps", "prompt"],
-  ["rm file.txt", "forbidden"],
-  ["Remove-Item file.txt", "forbidden"],
-  ["git rm file.txt", "forbidden"],
-]);
-const decision = expectedDecisions.get(commandText);
-if (!decision) {
-  process.stderr.write("Unmapped synthetic execpolicy command");
-  process.exit(64);
-}
+mode="\${CODEX_FAKE_MODE:-success}"
+if [[ "$mode" == "mismatch-second" && "$previous_calls" == 1 ]]; then
+  printf '{"decision":"prompt"}'
+  exit 0
+fi
+if [[ "$mode" == "fixed-response" ]]; then
+  printf '%s' "\${CODEX_FAKE_RESPONSE:-}"
+  exit 0
+fi
 
-if (commandText === "git switch feature/safe") {
-  process.stdout.write('{"matchedRules":[]}');
-} else if (commandText === "git status") {
-  process.stdout.write(JSON.stringify({ matchedRules: [], decision }));
-} else if (commandText === "rg --files docs") {
-  process.stdout.write(JSON.stringify({ matchedRules: [], decision }, null, 2));
-} else {
-  process.stdout.write(JSON.stringify({ matchedRules: [{}], decision }));
-}
+case "$command_text" in
+  "git status"|"rg --files docs"|"git switch feature/safe"|"gh pr create --title test"|"gh pr edit 123"|"gh pr checks 123"|"git add ."|"python -c print(1)"|"python -") decision="allow" ;;
+  "git checkout feature/safe"|"git merge main"|"git merge --abort"|"git rebase --abort"|"git branch -d old-feature"|"git branch --delete old-feature"|"git branch -vd old-feature"|"git branch -dv old-feature"|"git branch -v -d old-feature"|"gh api /repos/example/repo/issues"|"gh pr merge 123"|"gh pr close 123"|"gh issue close 123"|"gh release create v1"|"gh release delete v1"|"gh repo delete example/repo"|"docker ps") decision="prompt" ;;
+  "git reset --hard HEAD~1"|"terraform destroy -auto-approve"|"rm file.txt"|"Remove-Item file.txt"|"git rm file.txt") decision="forbidden" ;;
+  *)
+    echo "Unmapped synthetic execpolicy command" >&2
+    exit 64
+    ;;
+esac
+
+if [[ "$command_text" == "git switch feature/safe" ]]; then
+  printf '{"matchedRules":[]}'
+elif [[ "$command_text" == "git status" ]]; then
+  printf '{"matchedRules":[],"decision":"%s"}' "$decision"
+elif [[ "$command_text" == "rg --files docs" ]]; then
+  printf '{\\n  "matchedRules": [],\\n  "decision": "%s"\\n}' "$decision"
+else
+  printf '{"matchedRules":[{}],"decision":"%s"}' "$decision"
+fi
 `,
     "utf8",
   );
@@ -220,6 +245,11 @@ function createFixture(options: FixtureOptions): Fixture {
     recursive: true,
   });
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+  if (bashRunsInWsl) {
+    const nodeShimPath = path.join(root, "scripts", "node");
+    fs.writeFileSync(nodeShimPath, '#!/usr/bin/env bash\nexec node.exe "$@"\n', "utf8");
+    fs.chmodSync(nodeShimPath, 0o755);
+  }
   fs.copyFileSync(powerShellWrapperPath, path.join(root, "scripts", "codex-safe.ps1"));
   fs.copyFileSync(bashWrapperPath, path.join(root, "scripts", "codex-safe.sh"));
   fs.copyFileSync(collectorPowerShellPath, path.join(root, "scripts", "collect-run-artifacts.ps1"));
@@ -268,7 +298,23 @@ function createFixture(options: FixtureOptions): Fixture {
 }
 
 function removeFixture(fixture: Fixture) {
-  fs.rmSync(fixture.root, { recursive: true, force: true });
+  // WSL can briefly keep a Windows-mounted working directory busy after Bash exits.
+  const waitBuffer = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+  for (let retry = 0; ; retry += 1) {
+    try {
+      fs.rmSync(fixture.root, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EPERM" || retry >= 2) {
+        throw error;
+      }
+      Atomics.wait(waitBuffer, 0, 0, 2_500);
+    }
+  }
+}
+
+function fixtureBashPath(fixture: Fixture, filePath: string) {
+  return path.relative(fixture.root, filePath).replaceAll("\\", "/");
 }
 
 function missingRunId() {
@@ -554,15 +600,18 @@ describe("Bash codex-safe execpolicy preflight contract", () => {
       const fakeCodexPath = createFakeCodex(fixture.root);
       const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
       const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+      const callsArgument = fixtureBashPath(fixture, callsPath);
+      const logArgument = fixtureBashPath(fixture, logPath);
 
       try {
         const result = runBash(
           path.join(fixture.root, "scripts", "codex-safe.sh"),
-          ["--preset", preset, "--preflight-only", "--log-path", logPath],
+          ["--preset", preset, "--preflight-only", "--log-path", logArgument],
           fixture.root,
           fakeCodexPath,
-          { CODEX_FAKE_CALLS: callsPath },
+          { CODEX_FAKE_CALLS: callsArgument },
         );
+        expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
         const calls = fs
           .readFileSync(callsPath, "utf8")
           .trim()
@@ -574,7 +623,6 @@ describe("Bash codex-safe execpolicy preflight contract", () => {
           .split(/\r?\n/)
           .map((line) => (JSON.parse(line) as { event: string }).event);
 
-        expect(result.status).toBe(0);
         expect(result.stdout).toContain("Preflight OK. Rules validated against smoke tests.");
         expect(calls).toContainEqual(["git", "switch", "feature/safe"]);
         expect(events).toContain("preflight_ok");
@@ -590,14 +638,16 @@ describe("Bash codex-safe execpolicy preflight contract", () => {
     const fakeCodexPath = createFakeCodex(fixture.root);
     const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
     const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+    const callsArgument = fixtureBashPath(fixture, callsPath);
+    const logArgument = fixtureBashPath(fixture, logPath);
 
     try {
       const result = runBash(
         path.join(fixture.root, "scripts", "codex-safe.sh"),
-        ["--preset", "readonly", "--preflight-only", "--log-path", logPath],
+        ["--preset", "readonly", "--preflight-only", "--log-path", logArgument],
         fixture.root,
         fakeCodexPath,
-        { CODEX_FAKE_CALLS: callsPath, CODEX_FAKE_MODE: "mismatch-second" },
+        { CODEX_FAKE_CALLS: callsArgument, CODEX_FAKE_MODE: "mismatch-second" },
       );
       const calls = fs
         .readFileSync(callsPath, "utf8")
@@ -631,15 +681,17 @@ describe("Bash codex-safe execpolicy preflight contract", () => {
     const fakeCodexPath = createFakeCodex(fixture.root);
     const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
     const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+    const callsArgument = fixtureBashPath(fixture, callsPath);
+    const logArgument = fixtureBashPath(fixture, logPath);
 
     try {
       const result = runBash(
         path.join(fixture.root, "scripts", "codex-safe.sh"),
-        ["--preset", "readonly", "--preflight-only", "--log-path", logPath],
+        ["--preset", "readonly", "--preflight-only", "--log-path", logArgument],
         fixture.root,
         fakeCodexPath,
         {
-          CODEX_FAKE_CALLS: callsPath,
+          CODEX_FAKE_CALLS: callsArgument,
           CODEX_FAKE_MODE: "fixed-response",
           CODEX_FAKE_RESPONSE: response,
         },

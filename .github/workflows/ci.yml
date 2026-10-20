@@ -159,11 +159,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
       - name: Test Codex artifact sanitizer
         shell: pwsh
         run: ./scripts/tests/codex-artifact-sanitizer.test.ps1
 
-      - name: Check changed Codex artifacts
+      - name: Check committed Codex artifacts
         shell: pwsh
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -181,22 +185,7 @@ jobs:
             }
           }
 
-          $files = @(
-            # This scope includes .codex/runs/**/PLAN.md, .codex/runs/**/REPORT.md, and other text artifacts.
-            git diff --name-only --diff-filter=ACMRTUXB "$base...HEAD" -- ".codex/runs"
-          ) | Where-Object {
-            Test-Path -LiteralPath $_
-          }
-
-          if ($files.Count -gt 0) {
-            ./scripts/sanitize-codex-artifacts.ps1 -Path $files -Check
-            if ($LASTEXITCODE -ne 0) {
-              exit $LASTEXITCODE
-            }
-          }
-          else {
-            Write-Output "No changed Codex Run Artifact files to check."
-          }
+          node scripts/sanitize-codex-artifacts.mjs --committed --check --base-ref $base
 
   codex-hook-contract-windows:
     name: Codex Hook contract (Windows)

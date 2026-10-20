@@ -7,7 +7,8 @@ import { afterAll, describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(process.cwd());
 const taskScriptPath = path.join(repoRoot, "scripts", "codex-task.ps1");
-const sanitizerPath = path.join(repoRoot, "scripts", "lib", "codex-artifact-sanitizer.ps1");
+const sanitizerLibraryPath = path.join(repoRoot, "scripts", "lib", "codex-artifact-sanitizer.mjs");
+const sanitizerCliPath = path.join(repoRoot, "scripts", "sanitize-codex-artifacts.mjs");
 const powerShellCommand = process.platform === "win32" ? "powershell.exe" : "pwsh";
 const nativeStdoutMarker = "codex-task-native-stdout";
 const nativeStderrMarker = "codex-task-native-stderr";
@@ -266,6 +267,7 @@ type WrapperRunOptions = {
   verifyCommand?: string;
   recordRunManifest?: boolean;
   runId?: string;
+  additionalArguments?: string[];
 };
 
 function createFakeCodex(root: string) {
@@ -287,7 +289,8 @@ function createFakeCodex(root: string) {
       "shift",
       "goto parse_args",
       ":finish",
-      'if "%CODEX_TEST_EXIT_CODE%"=="0" if defined output_file echo {"ok":true}> "%output_file%"',
+      'set "repo_root=%CODEX_TEST_ROOT:\\=/%"',
+      'if "%CODEX_TEST_EXIT_CODE%"=="0" if defined output_file echo {"ok":"%repo_root%"}> "%output_file%"',
       "exit /b %CODEX_TEST_EXIT_CODE%",
       "",
     ].join("\r\n");
@@ -311,7 +314,8 @@ function createFakeCodex(root: string) {
     "  fi",
     "done",
     'if [ "$exit_code" = "0" ] && [ -n "$output_file" ]; then',
-    "  printf '%s\\n' '{\"ok\":true}' > \"$output_file\"",
+    '  repo_root="$(printf "%s" "${CODEX_TEST_ROOT:?}" | tr "\\\\" "/")"',
+    '  printf \'{"ok":"%s"}\\n\' "$repo_root" > "$output_file"',
     "fi",
     'exit "$exit_code"',
     "",
@@ -329,27 +333,27 @@ function createWrapperFixture({ manifest = false }: { manifest?: boolean } = {})
 
   const wrapperPath = path.join(scriptsDir, "codex-task.ps1");
   fs.copyFileSync(taskScriptPath, wrapperPath);
-  fs.copyFileSync(sanitizerPath, path.join(libDir, "codex-artifact-sanitizer.ps1"));
+  fs.copyFileSync(sanitizerLibraryPath, path.join(libDir, "codex-artifact-sanitizer.mjs"));
+  fs.copyFileSync(sanitizerCliPath, path.join(scriptsDir, "sanitize-codex-artifacts.mjs"));
+
+  const gitInit = spawnSync("git", ["init", "-q"], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 10_000,
+    windowsHide: process.platform === "win32",
+  });
+  if (gitInit.error || gitInit.status !== 0) {
+    throw new Error(
+      `Unable to initialize wrapper fixture repository: ${gitInit.stderr ?? gitInit.error}`,
+    );
+  }
 
   if (manifest) {
     for (const relativePath of [
       "scripts/collect-run-artifacts.ps1",
       "scripts/collect-run-artifacts.py",
-      "scripts/sanitize-codex-artifacts.ps1",
     ]) {
       fs.copyFileSync(path.join(repoRoot, relativePath), path.join(root, relativePath));
-    }
-
-    const gitInit = spawnSync("git", ["init", "-q"], {
-      cwd: root,
-      encoding: "utf8",
-      timeout: 10_000,
-      windowsHide: process.platform === "win32",
-    });
-    if (gitInit.error || gitInit.status !== 0) {
-      throw new Error(
-        `Unable to initialize manifest fixture repository: ${gitInit.stderr ?? gitInit.error}`,
-      );
     }
   }
 
@@ -395,8 +399,8 @@ function runWrapper(
     fixture.reportPath,
     "-LogPath",
     fixture.logPath,
-    "native command contract",
   );
+  wrapperArgs.push(...(options.additionalArguments ?? []), "native command contract");
 
   const result = spawnSync(powerShellCommand, wrapperArgs, {
     cwd: fixture.root,
@@ -405,6 +409,7 @@ function runWrapper(
     env: {
       ...process.env,
       CODEX_BIN: fixture.fakeCodexPath,
+      CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
       CODEX_TEST_EXIT_CODE: String(codexExitCode),
     },
     windowsHide: process.platform === "win32",
@@ -429,7 +434,10 @@ function runWrapper(
           validation: { status: string };
         })
       : undefined;
-  return { result, report, log, manifest };
+  const output = fs.existsSync(fixture.outputPath)
+    ? fs.readFileSync(fixture.outputPath, "utf8")
+    : undefined;
+  return { result, report, log, manifest, output };
 }
 
 const powerShellAvailable = hasPowerShellRuntime();
@@ -542,7 +550,7 @@ describe("codex-task native command output and exit code contract", () => {
       for (const exitCode of [0, 7]) {
         const fixture = createWrapperFixture();
         try {
-          const { result, report, log } = runWrapper(fixture, exitCode);
+          const { result, report, log, output } = runWrapper(fixture, exitCode);
 
           expect(result.error).toBeUndefined();
           expect(result.status).toBe(exitCode);
@@ -557,10 +565,34 @@ describe("codex-task native command output and exit code contract", () => {
 
           if (exitCode === 0) {
             expect(fs.existsSync(fixture.outputPath)).toBe(true);
+            expect(output).toContain("<REPO_ROOT>");
+            expect(output).not.toContain(fixture.root.replaceAll("\\", "/"));
           }
         } finally {
           fs.rmSync(fixture.root, { recursive: true, force: true });
         }
+      }
+    },
+    60_000,
+  );
+
+  it.skipIf(!powerShellAvailable)(
+    "sanitizes known outputs when argument validation fails before Codex starts",
+    () => {
+      const fixture = createWrapperFixture();
+      try {
+        const { result, report } = runWrapper(fixture, 0, {
+          additionalArguments: ["--unsupported-contract-option"],
+        });
+        const reportText = fs.readFileSync(fixture.reportPath, "utf8");
+
+        expect(result.error).toBeUndefined();
+        expect(result.status).not.toBe(0);
+        expect(report.status).toBe("invalid_args");
+        expect(reportText).toContain("<REPO_ROOT>");
+        expect(reportText).not.toContain(fixture.root.replaceAll("\\", "/"));
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
       }
     },
     60_000,
@@ -613,10 +645,10 @@ describe("codex-task native command output and exit code contract", () => {
         try {
           for (const relativePath of [
             "scripts/codex-task.ps1",
-            "scripts/lib/codex-artifact-sanitizer.ps1",
+            "scripts/lib/codex-artifact-sanitizer.mjs",
             "scripts/collect-run-artifacts.ps1",
             "scripts/collect-run-artifacts.py",
-            "scripts/sanitize-codex-artifacts.ps1",
+            "scripts/sanitize-codex-artifacts.mjs",
           ]) {
             expect(fs.existsSync(path.join(fixture.root, relativePath))).toBe(true);
           }
