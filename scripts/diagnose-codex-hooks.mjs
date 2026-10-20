@@ -3,30 +3,19 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-import {
-  STATE_STATUS,
-  StateValidationError,
-  diagnosticCauseFor,
-  parseStateFileName,
-  rootIdForPath,
-  validateState,
-} from "./lib/codex-text-quality-state.mjs";
-
 const diagnostics = {
   errors: [],
   warnings: [],
 };
-const REQUIRED_DEPENDENCIES = Object.freeze([
-  "smol-toml",
-  "textlint",
-  "@textlint-rule/textlint-rule-no-invalid-control-character",
-  "textlint-rule-no-zero-width-spaces",
-  "textlint-rule-no-nfd",
-  "textlint-rule-no-kangxi-radicals",
-  "textlint-rule-no-hankaku-kana",
-  "textlint-rule-no-doubled-conjunctive-particle-ga",
-  "textlint-rule-no-dropping-the-ra",
-]);
+const REQUIRED_DEPENDENCIES = Object.freeze(["smol-toml"]);
+const EXPECTED_HOOK_EVENTS = Object.freeze({
+  PreToolUse: { matcher: "^Bash$", timeout: "30" },
+  UserPromptSubmit: { matcher: "none", timeout: "10" },
+  PostToolUse: { matcher: "none", timeout: "10" },
+  SubagentStart: { matcher: "none", timeout: "10" },
+  SubagentStop: { matcher: "none", timeout: "10" },
+  Stop: { matcher: "none", timeout: "10" },
+});
 
 function report(level, message) {
   if (level === "ERROR") diagnostics.errors.push(message);
@@ -108,9 +97,13 @@ function summarizeConfiguredHooks(config) {
   }
 
   const events = Object.entries(hooks);
-  if (events.length === 0) {
-    process.stdout.write("OK: configured Hook events=0\n");
-    return;
+  const expectedEvents = Object.keys(EXPECTED_HOOK_EVENTS);
+  const unexpectedEvents = events
+    .map(([event]) => event)
+    .filter((event) => !expectedEvents.includes(event));
+  const missingEvents = expectedEvents.filter((event) => !Object.hasOwn(hooks, event));
+  if (unexpectedEvents.length > 0 || missingEvents.length > 0) {
+    report("ERROR", "Hook event一覧がRepository契約と一致しません");
   }
 
   for (const [event, groups] of events) {
@@ -136,6 +129,14 @@ function summarizeConfiguredHooks(config) {
       for (const handler of group.hooks) {
         if (handler && typeof handler === "object" && !Array.isArray(handler)) {
           if (Number.isInteger(handler.timeout)) timeouts.add(String(handler.timeout));
+          if (
+            (typeof handler.command === "string" &&
+              handler.command.includes("text_quality_gate")) ||
+            (typeof handler.command_windows === "string" &&
+              handler.command_windows.includes("text_quality_gate"))
+          ) {
+            report("ERROR", "廃止された文章品質Hookが設定されています");
+          }
         } else {
           malformed = true;
         }
@@ -155,6 +156,18 @@ function summarizeConfiguredHooks(config) {
         ([...timeouts].sort().join(",") || "none") +
         "\n",
     );
+    const expected = EXPECTED_HOOK_EVENTS[event];
+    if (
+      !expected ||
+      groups.length !== 1 ||
+      handlerCount !== 1 ||
+      matchers.size !== 1 ||
+      !matchers.has(expected.matcher) ||
+      timeouts.size !== 1 ||
+      !timeouts.has(expected.timeout)
+    ) {
+      report("ERROR", "Hook event " + event + "のgroup数・handler数・matcher・timeoutが契約外です");
+    }
   }
 }
 
@@ -186,21 +199,27 @@ function checkDependencies(root) {
     }
   }
   if (unavailable.length === 0) {
-    process.stdout.write("OK: required Hook dependencies are resolvable\n");
+    process.stdout.write("OK: required diagnostic dependencies are resolvable\n");
   }
   return unavailable;
 }
 
-function checkTextQualityHookFile(root) {
+function checkConfiguredHookFiles(root) {
   const hooksDirectory = path.join(root, ".codex", "hooks");
   if (!checkRealDirectory(hooksDirectory, "root .codex/hooks")) return;
-  checkRegularFile(path.join(hooksDirectory, "text_quality_gate.mjs"), "root text quality Hook");
+  for (const [file, label] of [
+    ["pre_tool_use_policy.mjs", "root Git safety Hook"],
+    ["pre_tool_use_policy_windows.ps1", "root Windows Git safety launcher"],
+    ["log_event.mjs", "root logging Hook"],
+  ]) {
+    checkRegularFile(path.join(hooksDirectory, file), label);
+  }
 }
 
 async function checkProjectConfig(root, unavailableDependencies) {
   const codexDirectory = path.join(root, ".codex");
   if (!checkRealDirectory(codexDirectory, "root .codex")) return;
-  checkTextQualityHookFile(root);
+  checkConfiguredHookFiles(root);
 
   const configPath = path.join(codexDirectory, "config.toml");
   let config = null;
@@ -252,144 +271,6 @@ async function checkProjectConfig(root, unavailableDependencies) {
   checkPowerShellAvailability();
 }
 
-function warnState(index, code, suffix = "") {
-  report("WARN", "runtime state candidate #" + index + ": " + code + suffix);
-}
-
-function readAndValidateState(candidate, filename, currentRootId) {
-  const parsedFilename = parseStateFileName(filename);
-  if (!parsedFilename) {
-    warnState(candidate.index, "baseline_state_identity (filename format)");
-    return;
-  }
-  if (parsedFilename.rootId !== currentRootId) {
-    warnState(candidate.index, "baseline_state_identity (filename repository mismatch)");
-    return;
-  }
-
-  let stateText;
-  try {
-    stateText = fs.readFileSync(candidate.path, "utf8");
-  } catch (error) {
-    warnState(
-      candidate.index,
-      error?.code === "ENOENT" ? "baseline_state_missing" : "baseline_state_read",
-    );
-    return;
-  }
-
-  let state;
-  try {
-    state = JSON.parse(stateText);
-  } catch {
-    warnState(candidate.index, "baseline_state_json");
-    return;
-  }
-
-  let validatedState;
-  try {
-    validatedState = validateState(state, {
-      expectedRootId: currentRootId,
-      expectedSessionIdHash: parsedFilename.sessionIdHash,
-    });
-  } catch (error) {
-    warnState(
-      candidate.index,
-      error instanceof StateValidationError ? error.code : "baseline_state_schema",
-    );
-    return;
-  }
-
-  if (validatedState.status === STATE_STATUS.UNAVAILABLE) {
-    const cause = diagnosticCauseFor(validatedState.code);
-    warnState(candidate.index, "baseline_unavailable", cause ? "; cause=" + cause : "");
-  } else {
-    process.stdout.write("OK: runtime state candidate #" + candidate.index + " is valid\n");
-  }
-
-  if (typeof validatedState.start_head === "string") {
-    try {
-      execFileSync("git", ["cat-file", "-e", validatedState.start_head + "^{commit}"], {
-        cwd: candidate.root,
-        env: readOnlyGitEnvironment(),
-        stdio: ["ignore", "ignore", "ignore"],
-      });
-    } catch {
-      warnState(candidate.index, "start_head (commit object unavailable)");
-    }
-  }
-}
-
-function checkStateDirectory(root) {
-  const artifactsPath = path.join(root, ".artifacts");
-  const artifacts = lstatOrNull(artifactsPath);
-  if (artifacts.error) {
-    report("ERROR", "存在する.artifactsを安全に確認できません");
-    return;
-  }
-  if (!artifacts.stats) {
-    process.stdout.write("OK: text quality state directory is absent (state 0件)\n");
-    return;
-  }
-  if (artifacts.stats.isSymbolicLink() || !artifacts.stats.isDirectory()) {
-    report("ERROR", "存在する.artifactsはsymlinkではない実directoryである必要があります");
-    return;
-  }
-
-  const stateDirectoryPath = path.join(artifactsPath, "codex-text-quality");
-  const stateDirectory = lstatOrNull(stateDirectoryPath);
-  if (stateDirectory.error) {
-    report("ERROR", "text quality state directoryを安全に確認できません");
-    return;
-  }
-  if (!stateDirectory.stats) {
-    process.stdout.write("OK: text quality state directory is absent (state 0件)\n");
-    return;
-  }
-  if (stateDirectory.stats.isSymbolicLink() || !stateDirectory.stats.isDirectory()) {
-    report("ERROR", "text quality state directoryはsymlinkではない実directoryである必要があります");
-    return;
-  }
-
-  let entries;
-  try {
-    entries = fs.readdirSync(stateDirectoryPath).sort();
-  } catch {
-    report("ERROR", "text quality state directoryを列挙できません");
-    return;
-  }
-
-  const candidates = entries.filter((entry) => entry.endsWith(".json"));
-  if (candidates.length === 0) {
-    process.stdout.write("OK: text quality state directory is empty (state 0件)\n");
-    return;
-  }
-
-  candidates.forEach((filename, index) => {
-    const candidatePath = path.join(stateDirectoryPath, filename);
-    const inspected = lstatOrNull(candidatePath);
-    const candidate = {
-      index: index + 1,
-      path: candidatePath,
-      root,
-    };
-    if (inspected.error || !inspected.stats) {
-      report("ERROR", "runtime state candidate #" + candidate.index + "を安全に確認できません");
-      return;
-    }
-    if (inspected.stats.isSymbolicLink() || !inspected.stats.isFile()) {
-      report(
-        "ERROR",
-        "runtime state candidate #" +
-          candidate.index +
-          "はregular fileかつ非symlinkである必要があります",
-      );
-      return;
-    }
-    readAndValidateState(candidate, filename, rootIdForPath(root));
-  });
-}
-
 function printOfflineBoundaries() {
   for (const item of [
     "project trust",
@@ -420,7 +301,6 @@ async function main() {
   } else {
     const unavailableDependencies = checkDependencies(root);
     await checkProjectConfig(root, unavailableDependencies);
-    checkStateDirectory(root);
   }
   printOfflineBoundaries();
 

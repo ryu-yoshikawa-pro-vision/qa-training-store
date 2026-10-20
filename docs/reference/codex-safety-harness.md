@@ -40,7 +40,6 @@
   - PreToolUse / Bash フック: `.codex/hooks/pre_tool_use_policy.mjs`
   - Windows ネイティブランチャー: `.codex/hooks/pre_tool_use_policy_windows.ps1`
   - 状態を変更する Git 操作は、フックが所有するチェックアウトの canonical root に明示的に固定し、直接 Git ラッパーや `git -C` による対象変更を拒否する。詳細は[Git ブランチ安全性](git-branch-safety.md#hookによる操作rootの固定)を参照する。
-  - 文書品質フック: `.codex/hooks/text_quality_gate.mjs`
 - `.codex/text-quality-rules.json`
   - リポジトリ固有のリテラル・正規表現ルールの正本。現在は明示的な4つの置換ルールを設定値として管理しており、一般的な日本語ルールはここに複製しない。
 - `.textlintrc.json`
@@ -276,51 +275,16 @@ Codex 対話型 CLI を起動
 
 ### Codex未起動のHook検証と診断
 
-リポジトリ側のフックを Codex ホストから切り離して検証する場合は、次の 2 つのコマンドを実行します。
+リポジトリ側のHook設定と実行経路をCodexホストから切り離して確認する場合は、次を実行します。
 
 ```bash
 pnpm run test:hooks
 pnpm run diagnose:hooks
 ```
 
-- `test:hooks` は、既存のフック契約（Hook contract）を正本とし、一時的なフィクスチャ（temp fixture）上でフック構成、ランチャー、stdin / stdout / stderr / exit、文書品質状態（text quality state）の外部エラーをプロセス境界レベルで検証します。Codex ホスト本体は起動せず、診断コマンド（doctor）向けのフック一覧の期待値を別実装することもありません。
-- `diagnose:hooks` は、ルートの `.codex/config.toml`、`[features] hooks = true`、ルートの `.codex/hooks.json` の診断範囲、ファイルシステムのシンボリックリンク境界、および既存の `.artifacts/codex-text-quality` の状態を読み取り専用で確認します。フックやランチャーの実行、ペイロード処理、ベースライン生成、フック内部エラー診断ログの追記などは行いません。
-- 診断コマンドにおける `baseline_state_missing`、`baseline_state_read`、`baseline_state_json`、`baseline_state_schema`、`baseline_state_identity`、`baseline_state_manifest` は、その状態が直ちに現在のセッションにおける障害であると断定するためのものではありません。状態ファイルが存在しない場合や破損している場合であっても、実行時状態の警告（WARN）として扱い、終了コード 0（exit 0）で終了する範囲があります。
-- `baseline_unavailable; cause=<code>` には、状態ファイルへ保存された出力許可済みの安全なコード（safe code）のみが表示されます。プロンプト、フックのペイロード、状態本文、生のセッション ID、絶対パス、シークレット、生の例外情報などは出力されません。正規表現に一致する未知のコードについては、状態ファイルとして検証可能であっても外部への原因表示（cause）には含めません。
-- 非アクティブな `Stop`（inactive `Stop`）によるブロック時の `reason` は、従来の文言プレフィックスを維持したうえで、`Diagnostic: <code>`（`baseline_unavailable` の安全な原因コードを含む場合は `; cause=<code>`）および `Run pnpm run diagnose:hooks before completion.` を続けて表示します。同一ブロックの `systemMessage` には、`Codex text quality hook: quality check unavailable (<code>)` または許可リスト（allowlist）に登録された原因コード付きの分類が表示されます。これはフック本体が起動したものの内部で失敗した場合の経路であり、AI エージェントはまず reason 内の `Diagnostic:` を確認する必要があります。
-- `systemMessage` または reason 内の `Stop launcher unavailable` は、フック本体を起動する前に発生した Stop ランチャーのフォールバック経路を示します。非アクティブな `Stop` では診断コマンドの案内を含む汎用ブロックとなり、アクティブな `Stop`（active `Stop`）では従来どおり `{ "continue": true }` によるフェイルオープン（fail-open）となって、いずれの場合もランチャーの診断情報が表示されます。なお、通常の文書品質違反（text-quality violation）によるブロック時には、診断用の `systemMessage` や `Diagnostic` 付きの reason は追加されません。
-- 非アクティブな `Stop` で `Text quality check unavailable` を受け取った AI エージェントは、原因が未確認のまま完了処理へ進んではならず、まず reason 内の `Diagnostic:` を確認し、続いて `pnpm run diagnose:hooks` を実行してください。フック内部の失敗である場合は、必要に応じて最新の安全なログを確認します。
-
-PowerShell:
-
-```powershell
-Get-Content .artifacts/codex-hooks/text-quality-diagnostics.jsonl -Tail 1
-```
-
-Bash:
-
-```bash
-tail -n 1 .artifacts/codex-hooks/text-quality-diagnostics.jsonl
-```
-
-このログは、フック内部のエラーのみを記録する一時的な（ephemeral）エラー専用 JSONL ログです。`schema_version`、タイムスタンプ、イベント種別、安全なコード（safe code）、`stop_hook_active`、許可済み原因コードのみが記録され、ログの書き込みに失敗した場合でもフックのフェイルオープン／フェイルクローズの判定は変更されません。ログファイルが存在しないこと自体はエラーではなく、Stop ランチャーの失敗時、正常終了時、通常の違反検知時、およびアクティブな Stop が連続して実行された場合などには作成されないことがあります。
-
-原因コード（code）の定義は次のとおりです。
-
-- `baseline_state_missing`: 想定される状態ファイルが存在しない。
-- `baseline_state_read`: 状態ファイルのパスは存在するが、読み取りができない。
-- `baseline_state_json`: 状態ファイルの内容を JSON として解析できない。
-- `baseline_state_schema`: JSON ではあるが、状態ファイルのスキーマに適合しない。
-- `baseline_state_identity`: リポジトリルートまたはセッションの識別情報が一致しない。
-- `baseline_state_manifest`: 状態ファイル内のマニフェストに関する安全性・整合性検証に失敗した。
-- `baseline_unavailable`: ベースライン作成時点で品質チェックが利用不能であった。安全な原因コードがある場合のみ `cause=<code>` を表示する。
-- `baseline_cleanup`: アクティブな Stop 等における状態ファイルのクリーンアップに失敗した。アクティブな Stop の場合はフェイルオープンにより処理を継続する。
-- `Stop launcher unavailable`: ランチャーがフック本体の正常終了まで到達できなかった。フック内部のログが残らない場合がある。
-- アクティブな `Stop` における `baseline_state_missing` は、正常な Stop 処理で状態ファイルをクリーンアップした後に再度 Stop が呼ばれたケースと区別がつかないため、従来どおり診断なしで `{ "continue": true }` として許可（allow）します。原因の観測は、最初に発生した非アクティブな `Stop` の時点で行います。
-- `.artifacts/codex-text-quality` が存在しない、あるいは状態ファイルが 0 件である状態は正常です。また、`N/A` と表示されるプロジェクトの信頼状態、フックの信頼状態、管理下オーバーライド、実際の Codex におけるプロジェクトルート／作業ディレクトリ／設定レイヤーの階層構造、ホストとセッションのバインディングなどは、警告（WARN）のカウント対象には含めません。
-- `diagnose:hooks` の実行結果が `WARN=0 ERROR=0` であっても、過去の実行時にエラーが一切発生していなかったことを証明するものではありません。問題が再発した際は、reason 内の `Diagnostic:`、ブロックと同時に出力される `systemMessage`、および必要に応じて安全な診断ログを一次情報として原因を切り分け、オフラインでの確認を行った後にホスト側設定・信頼状態・設定レイヤーの調査を進めてください。
-
-このオフライン経路でリポジトリ側の検証がすべて PASS しているにもかかわらず、実際の Codex 上でフックが動作しない場合は、`/hooks` での定義と信頼状態、プロジェクトの信頼状態、フックの信頼状態、実行環境における `CODEX_HOME` の一致、Codex ホスト側のプロジェクトルート／作業ディレクトリ／設定レイヤーの階層構造を個別に確認してください。`/hooks` および `CODEX_HOME` の運用に関しては本ドキュメントの信頼管理手順が正本であり、オフライン診断ツールがこれらを自動判定することはありません。
+- `test:hooks` は、PreToolUseの安全性Hook、5イベントのログ記録Hook、文章品質CLIのルール・差分比較を契約テストします。Codexホストは起動しません。
+- `diagnose:hooks` は、ルートの `.codex/config.toml`、`[features] hooks = true`、イベント別のHook数・matcher・timeout、PreToolUse／ログHookの実ファイル境界、および `.codex/hooks.json` のオフライン診断範囲を読み取り専用で確認します。Hookは実行しません。
+- この診断はproject／Hook trust、managed override、実際のCodexにおけるroot・cwd・config layering、host/session bindingを確認しません。これらは `/hooks` と実ホストで別途確認します。
 
 ### Hookが動かない場合の確認順序
 
@@ -356,26 +320,17 @@ tail -n 1 .artifacts/codex-hooks/text-quality-diagnostics.jsonl
 - レビューのみ（review-only）、計画のみ（plan-only）、状況報告（status update）、簡易な確認、通常の証跡コマンド実行結果、実行進捗の記録、チャット上で完結する評価などでは、`docs/reports/` にファイルを作成しない。
 - 判断に迷う場合はレポートファイルを作成せず、チャットでの回答および `.codex/runs/<run_id>/REPORT.md` への記録にとどめる。
 
-## 文章品質HookとRepository gate
+## 文章品質CLIとRepository gate
 
-- `UserPromptSubmit` は、セッションごとに開始時の `HEAD`、リポジトリルートの識別ハッシュ、および開始時点で HEAD と差分のある Markdown のワークツリーマニフェストのみを保存する。変更のない追跡対象（clean な tracked）Markdown については、変更発生時にセッション開始時 HEAD の blob からベースラインを取得する。
-- ベースラインには、Markdown の本文、プロンプト全文、生のマッチ文字列（raw match）、フックのペイロード、トークン、シークレット、認証情報を一切保存しない。違反情報としては、`rule_id`、正規化済みマッチ文字列の SHA-256 ハッシュ、および件数のみを識別情報（identity）として保持する。
-- ファイルの同一性（file identity）は、Git のリネームマッピング、完全一致するコンテンツの SHA-256 ハッシュによる一意な対応、対応付け不能（未解決）の順序で判定する。類似度（similarity）、ファイル名からの推測、編集距離（edit distance）などは使用しない。
-- `PostToolUse` は Markdown 変更時の早期フィードバックを担うものであり、障害発生時はフェイルオープン（fail-open）とし、トップレベルに `systemMessage` を含む構造化された標準出力（stdout）で診断情報を返す。exit 0 時に出力される生の標準エラー出力（raw stderr）は、Codex のフック結果診断経路としては扱わない。また、既存のログ記録フックとは責務を分離している。
-- `Stop` は、`stop_hook_active=false` の際に新規の違反が存在するか品質チェックが実行不能であれば、構造化された `decision=block` を返す。`true` の場合は診断情報を付与したうえで許可（allow）し、ベースライン状態を削除する。フックのエラー処理契約とリポジトリゲートのエラー処理契約は明確に分離して運用する。
-- Issue #135 が main へマージされた現在のブランチでは、`SessionStart` のうち `matcher = "^compact$"` に該当する場合に限り、ルートの `AGENTS.md` 全文を `hookSpecificOutput.additionalContext` へ再注入する。`startup`、`resume`、`clear` では出力を行わず、ルート解決、`AGENTS.md` の読み込み、構造化出力の生成に失敗した場合は、入力本文やパス情報を含めずに `continue=false` および `stopReason` を指定してフェイルクローズする。なお、設定値の `additionalContextLimit = 4096` は CLI における概算のトークンあふれ閾値（approximate token spill threshold）として扱い、標準出力の文字数制限としては扱わない。
-- 一般的な日本語向けの本番ルールは、`.textlintrc.json` に設定された 7 個の個別 textlint ルールによって管理されており、既存の markdownlint による構造検査と重複するルールは実装しない。`no-unmatched-pair` は技術文書内のインラインコードなどを誤検知するため採用していない。`.codex/text-quality-rules.json` には、リポジトリ固有のカスタムリテラルルール 4 個を設定値として保持している。
+- Codexの `UserPromptSubmit`／`PostToolUse`／`Stop` には文章品質Hookを登録しません。セッションごとのbaseline stateも作成しません。Stop時の誤ブロック、state lifecycleの複雑性、Hook実行時負荷をなくすためです。
+- 文章品質検査は `pnpm run lint:text`、`pnpm run lint:text:all`、`pnpm run lint:markdown`、および `pnpm run verify` から実行します。ルール、fingerprint、Git rename対応、比較不能時の失敗動作は維持します。
+- Git safetyのPreToolUse Hookと5イベントのログ記録Hookは独立して維持します。
+- `.textlintrc.json` は一般的な日本語向け7個のtextlint rule、`.codex/text-quality-rules.json` はRepository固有の4個のcustom literal ruleを管理します。Markdown構造検査は既存のmarkdownlintへ委譲します。
+- GitHub Actionsの `Text quality change gate`、`Text quality full scan`、`Markdown lint` は継続し、違反・比較不能は従来どおり非0終了で失敗します。
 
-リポジトリレベルの品質ゲート（Repository-level gate）における比較基準は以下のとおりです。
+ローカル `lint:text` は `HEAD -> current worktree`（staged、unstaged、untrackedを含む）を比較します。commit／PRのchange gateは、PRではcheckout済みmerge `HEAD` とbase refのmerge-base、pushでは `github.event.before`、schedule／workflow_dispatchでは `HEAD^` を基準とします。変更パス、baseline本文、現在本文、rename mappingには同一の比較treeを使用します。比較不能は違反0件として通過させず、非0終了にします。
 
-- ローカル環境の `pnpm run lint:text`: `HEAD -> current worktree`。ステージ済み（staged）、未ステージ（unstaged）、未追跡（untracked）の Markdown を対象に含む。
-- プルリクエスト（Pull Request）: `origin/${{ github.base_ref }}` とチェックアウト済みワークフローの `HEAD` とのマージベース（merge-base）から `HEAD` までを比較する。PR の生ヘッド（raw PR head）へチェックアウトする方式への変更は行わない。
-- push イベント: `github.event.before` を参照し、空またはオールゼロ SHA の場合は `HEAD^` へフォールバックする。
-- スケジュール実行（schedule）/ 手動実行（`workflow_dispatch`）: `HEAD^` を基準とする。
-
-すべてのコミット比較において、変更対象パス、ベースライン本文、現在の本文、リネームマッピングの解決には、同一のマージベースツリーを使用する。比較が正常に行えない場合は、違反 0 件として PASS 扱いに倒すのではなく、非 0 の終了コード（エラー）で終了させる。
-
-限定スコープのフック契約テスト（focused Hook contract）は、既存の `tests/contracts/**` を正本とし、以下のコマンドによりオプトイン形式で実行します。
+限定スコープのHook契約テスト（focused Hook contract）は既存の `tests/contracts/**` を正本とし、次のopt-in入口で実行します。文章品質CLIテストは `test:hooks` と `verify` に含まれますが、セッションHookとしては実行しません。
 
 ```bash
 bash scripts/verify --hook-contracts

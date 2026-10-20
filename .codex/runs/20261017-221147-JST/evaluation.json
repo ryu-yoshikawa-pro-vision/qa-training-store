@@ -2,71 +2,98 @@
   "schema_version": 1,
   "run_id": "20261017-221147-JST",
   "result": "partial",
-  "primary_failure_category": "flaky_or_env_issue",
+  "primary_failure_category": "missing_validation",
   "failure_categories": [
-    "flaky_or_env_issue",
     "missing_validation",
+    "flaky_or_env_issue",
     "artifact_contract_gap"
   ],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "root修正と一時診断整理後、test:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。1回目のHook runでPowerShell logging childがexit 3221225477となったが、対象test単独と全Hook再実行は成功。最新push済みhead 8ede2a58のCIは古い診断assertion failureであり、cleanup後の新head CIは未確認。",
+      "evidence": "Text quality Hook撤去、CLI／CI品質検査維持、Hook／CLI契約更新、docs整合、test:hooks 162 passed、test:contracts 779 passed／3 skipped、diagnose:hooks、文章lint、PowerShell sanitizer fixture、verifyを実施した。最終Run Artifactのstrict collect、commit／push、変更後headのrequired CIは未完了。実Codex host Stop動作とCodespaces実機は未検証。",
       "evidence_refs": [
         {
           "kind": "validation_command",
-          "summary": "corepack pnpm run verify: 48 contract files, 833 passed, 3 skipped; exit 0 after diagnostic cleanup."
+          "summary": "corepack pnpm run test:hooks: 162/162 passed after one transient launcher process exit was not reproduced."
+        },
+        {
+          "kind": "validation_command",
+          "summary": "corepack pnpm run test:contracts: 48 files, 779 passed, 3 skipped."
+        },
+        {
+          "kind": "validation_command",
+          "summary": "corepack pnpm run verify completed all checks and web/docs/spec builds."
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20261017-221147-JST/REPORT.md",
-          "summary": "実装commit/push/PR lifecycleを記録。"
+          "path": ".codex/config.toml",
+          "summary": "UserPromptSubmit/PostToolUse/Stop text quality handlers removed while logger and PreToolUse safety hooks remain."
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "4 merge conflictsはmain／PR双方の意図を維持して解消。root修正はnative canonicalizationに限定し、調査専用diagnostic contractとPortableGit comparison workflowを整理。恒久安全性testを残した。"
+      "evidence": "変更は文章品質Hookの登録撤去、専用diagnose／contractの更新、現行文書とRun記録の整合に限定した。G10、PreToolUse安全性Hook、ログ記録Hook、文章lint／CI gate、サニタイザー実装／workflowは維持。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "診断整理後Windows hostでtest:hooks 216/216、test:contracts 833 passed／3 skipped、verify exit 0。先行するPowerShell child exit 3221225477はfocused rerunとfull suiteで再現しなかった。最新push済みhead 8ede2a58のCI failureは診断整理前で、新head required CIはpending。"
+      "evidence": "WindowsローカルでHook 162件、全contract 779件／3 skipped、verify全工程、diagnose、文章lint、PowerShell sanitizer fixtureが成功した。変更後headのrequired CIはpush前のため未確認。実Codex host／trustとCodespaces実機は未検証。"
     },
     "safety_compliance": {
-      "rating": "warn",
-      "evidence": "G10拒否条件、literal owner-root anchor、期待値、skipは変更していない。native realpath修正後にsymlink alias／別worktree anchorを拒否するtestを維持。診断整理後のlocal test:hooksは216/216 successful。最新cleanup headのCI確認は未完了。"
+      "rating": "pass",
+      "evidence": "安全性Hook・G1〜G10／N1〜N4契約を変更せず、PreToolUse／Windows launcher契約を含むtest:hooksが162/162で成功した。text quality Hookの登録のみを外し、ログHookを3イベントで保持した。"
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "G10安全性契約を維持し、診断helper／PortableGit matrixを除去。test:hooks、test:contracts、verifyは成功。未使用diagnostic scriptはHook N1削除拒否のため残るがworkflowから参照されない。"
+      "evidence": "Hook構成と診断は現行6イベントを明示し、Quality Hook不在を契約で確認する。CLIの既存品質テストを保持し、ADR・運用文書・Runに現行方針と未検証範囲を記録した。"
     },
     "maintainability": {
       "rating": "warn",
-      "evidence": "共通runtimeはNode CLIに統一済み。compact SessionStart設定参照を外した後のsession_start_context.mjsと旧PowerShell sanitizer libraryは未参照のまま残置。"
+      "evidence": "session baseline stateと品質Hookは実行経路から除去したが、text_quality_gate.mjsとcodex-text-quality-state.mjsは未参照の物理ファイルとして残置している。既知のRepository file deletionガードを迂回しなかった。"
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "修正前Windows Actionsはnative realpathのみexpected rootと一致。修正後local Windows test:hooks 216/216、contracts 833/3 skipped、verifyが成功。修正＋診断整理後headのrequired CIは未実施。"
+      "evidence": "同じローカルWindows環境でHook・contract・verifyを完了した。変更後headのUbuntu／Windows Actionsは未実行。実Codex interactive /hooksとStop動作も今回のshellからは未確認。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "cleanup前head 8ede2a58 exact-head CIで診断test assertion 1件が失敗し、216 Hook tests pass。診断test／workflow matrixを整理後、local test:hooks、test:contracts、verifyは成功。新headのexact CIは未確認。",
-      "detail": "Actions診断からnative realpath root repairは成立し、cleanup前の残るfailureは診断helperの旧assertionだった。診断helper／PortableGit stepを除去しlocal標準検証を通した。修正後head CIが残る。"
+      "evidence": "今回の変更を含むheadはまだpushされていない。変更前の9fa06a74634e7f19d7475b40beb58bc282669933ではWeb CI／Mobile App CIがsuccessしたが、これは今回の実装のCI結果ではない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "Post-push mcp__ci_wait__wait_for_required_ci is pending for the new expected head."
+        }
+      ],
+      "detail": "今回の実装に対するWeb CI、Windows Hook contract、Ubuntu／Windows sanitizer matrix、Mobile App CIを最新headで確認し、PR本文へ実測結果を反映する。"
     },
     {
       "category": "artifact_contract_gap",
       "severity": "low",
-      "evidence": "未参照session_start_context.mjs、旧PowerShell sanitizer library、およびCI参照を外したdiagnose-windows-git-root.mjsが残る。",
-      "detail": "現行設定・wrapper・CI経路では使用されない。診断scriptの削除はHook N1 command-based deletion prohibitionに拒否された。"
+      "evidence": "text_quality_gate.mjsとcodex-text-quality-state.mjsは残るが、active config、diagnose、verify、contract invocationから参照されない。workflowから未参照のdiagnose-windows-git-root.mjsも残置している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "summary": "Three event registrations no longer invoke the text quality Hook."
+        }
+      ],
+      "detail": "品質Hook登録とbaseline-state診断は稼働経路から外した。物理ファイル削除は既知のRepository deletion guardを迂回せず、今回試みていない。"
     },
     {
       "category": "flaky_or_env_issue",
-      "detail": "root causeはnative realpathとregular realpathのWindows差として修正済み。CI failureは調査用診断の旧assertion。local PowerShell logging childは一度exit 3221225477となったがfocused rerunと全Hook rerunで再現せず。cleanup後のrequired CIはpending。",
-      "severity": "medium",
-      "evidence": "修正前head Web CI run 39181577681は12/216 G10 rejection。repair head 8ede2a58のrun 39186104264は216 Hook tests pass／診断assertion 1 failure、Mobile success。cleanup後はlocal標準検証pass。"
+      "severity": "low",
+      "evidence": "最初のtest:hooks全体実行で既存Windows PreToolUse launcher testのPowerShell childがexit 3221225477を返した。該当test単独とtest:hooks全体の再実行はsuccessし、同じ失敗は再現しなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "Focused launcher contract 1 passed; subsequent corepack pnpm run test:hooks 162/162 passed."
+        }
+      ],
+      "detail": "原因をproduction Hook変更に結び付ける証拠はなく、G10／expectation／skipは変更せず、一過性のprocess exitとして記録する。"
     }
   ],
   "improvement_candidates": []

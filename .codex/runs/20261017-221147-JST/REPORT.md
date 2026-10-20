@@ -247,3 +247,31 @@
 - Validation: `corepack pnpm run test:hooks`は3 files／216 passed。1回目の全実行で別のPowerShell logging subprocessがexit `3221225477`となったが、該当test単独が1 passedし、全Hook suite再実行も216 passed。`corepack pnpm run test:contracts`は48 files／833 passed／3 skipped。`corepack pnpm run verify`はexit 0。ESLintは0 errors／65 warnings、security check、typecheck、全test suite、web/docs/spec buildが成功。
 - Remaining: 診断整理の新commit／pushと、修正後のexact-head Windows Hook contract／Web CI／Mobile App CI結果確認。最新PR head `8ede2a58`のCI failureは修正前headの結果で、今回のcleanup commitの評価には流用しない。
 - Progress: 95% (19/20)。local修正と標準検証は完了。新headのrequired CIが未確認。
+
+## 2026-10-20 — Text quality Hook撤去と最終ローカル検証
+
+- Baseline: PR #201はOPEN、作業開始時のheadは9fa06a74634e7f19d7475b40beb58bc282669933。変更前headのWeb CI／Mobile App CI成功は過去の結果として扱い、今回の変更後head CIとは区別する。
+- Hook変更: .codex/config.tomlのUserPromptSubmit／PostToolUse／Stopから文章品質Hook登録を除去した。ログ記録Hook、PreToolUse安全性Hook、hooks = trueとそのtrust契約は維持した。
+- 品質検査: lint:text、lint:text:all、lint:markdown、verifyとCIのchange gate／full scanを維持した。CLIテストでは7つのtextlint rule、Repository固有rule、diff／rename／既存違反fingerprint、CLI非0終了を残した。baseline stateとsession Hook専用diagnoseは稼働経路から外した。
+- 診断／契約: diagnose:hooksはERROR=0／WARN=0で現行6イベントを確認した。test:hooksは3 files／162 passed。初回全suiteでWindows PowerShell launcher childが3221225477を1回返したが、該当test単独と全suite再実行は成功し再現しなかった。test:contractsは48 files／779 passed／3 skipped。
+- 品質lint: lint:textはworking-treeの変更Markdown 5 files、lint:text:allは152 Markdown files、lint:markdownは472 filesでsuccess。最初のmarkdown lintでADR-0026の空行1件を検出し修正後0 issue。PowerShell sanitizer fixtureは45 baseline contracts＋regression coverageでsuccess。
+- Verify: corepack pnpm run verifyでPrettier、Markdown/text lint、Skill/spec/visual/curriculum validation、ESLint 0 errors、3種typecheck、image manifest、security check、unit 66、integration 111、repository 147、web component 102、native component 64、contracts 779／3 skipped、web/docs/spec buildを実行し、全工程を完了した。診断testの未使用宣言を後から除去し、当該fileのESLint、contract test、Prettier checkも再実行してsuccess。
+- Sanitizer CI判断: 既存workflowのUbuntu／Windows matrixはPowerShell互換fixtureを実行し、その後Node CLIを直接使って--committed --checkを行う。既存contractsはNode CLIのWrite／Check、staged／committed blob、Git mode拒否も検証するため、CI／sanitizer実装は変更不要とした。Codespaces実機は未検証。
+- 文書: ADR-0026に後続判断を追記し、Safety／Implementation referenceとProject Contextを現行CLI／CI運用へ合わせた。Issue #134の記載は当時の仕様として保持し、履歴文書を追加した。
+- 残存: text_quality_gate.mjsとcodex-text-quality-state.mjsは物理ファイルとして残るが、config、diagnose、verify、contract invocationから参照されない。安全性／ログHook、Git操作policyは変更していない。workflowから未参照のdiagnose-windows-git-root.mjsも既知のfile deletionガードを回避しないため残置する。
+- 実ホスト: offline diagnoseはproject／Hook trust、Codex config layering、host/session bindingをN/Aとする。現在のshell作業からinteractive /hooksや実際のStop実行を確認できないため、Hook設定契約とホスト実動作は区別して未検証とする。
+- 最新head CI: 今回のコード変更後は未pushのため未確認。過去headの成功は新headへ流用しない。PR本文はpush後のwaiter結果で更新する。
+- Progress: 91% (30/33)。Next: Run Artifactを更新・strict collect/schema/sanitization/scope検証し、commit／通常push、最新head required CIとPR本文更新を行う。
+
+## 2026-10-20 — Run Artifact確定前の検査
+
+- REPORT／TASKS／evaluationを現在のlocal検証結果へ同期した。evaluation.jsonは今回の実装ローカル検証をpassとしつつ、新headのrequired CIがまだ観測されていないためoverall resultをpartialのまま維持する。旧headのCI失敗・成功履歴は削除していない。
+- scripts/sanitize-codex-artifacts.mjs --pathで3 Run filesをWrite／Checkし、files_changed=0、replacements_total=0、residual_findings=0。collect-run-artifacts.ps1 -Strictはexit 0。evaluation JSON schemaとRun Artifact schema／sanitization／scopeを再確認する。run.jsonを直接編集していない。
+- PR #201の変更後head CIはまだ未確認。実Codex hostのinteractive /hooks／Stop、project trust、Codespaces実機も未検証。
+- Progress: 97% (31/32)。Next: 最終diff review後にcommit／通常pushし、同一headのrequired CIをwaiterで確認、PR本文へ実測結果を記録する。
+
+## 2026-10-20 — 最終差分の自己レビュー
+
+- 差分分類はHook設定／診断／契約test／運用文書／Run記録の限定変更。レビューでG10・危険操作拒否、PreToolUse、logging、CLI／CI品質検査、sanitizer workflowの回帰や弱体化は見つからなかった。
+- 残る運用上の限界は、実Codexホストのinteractive /hooks／Stopとproject／Hook trustをこのshell経路から確認できないこと、および新head required CI待ち。診断はこれらをN/Aとして明示する。
+- Progress: 97% (31/32)。Next: safety referenceを確認して変更差分をcommitし、対象branchへ通常pushする。CI確認はpush後に追加のrequired completion gateとして実施する。

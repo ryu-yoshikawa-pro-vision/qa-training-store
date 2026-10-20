@@ -560,7 +560,7 @@
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
 
-## Issue #134 Codex Hook quality gate（2026-09-13）
+## Issue #134 Codex Hook quality gate（2026-09-13、当時の運用仕様）
 
 - 決定論的なMarkdown scannerは`scripts/lint-text-quality.mjs`、Repository-levelの差分gateは`scripts/check-text-quality-changes.mjs`を正本とする。scannerは明示されたliteral／regex ruleだけを扱い、Markdown構造の検査は既存`markdownlint`へ委譲する。
 - 一般日本語production文章品質は`.textlintrc.json`の5個のtextlint ruleで確定し、`no-unmatched-pair`は技術文書のinline code等を誤検知するため採用しない。`.codex/text-quality-rules.json`はRepository固有custom literal／regex rule用として`not-configured`／空ruleのまま維持する。preset、禁止語、置換表、allowlist、英語混在判定、AIによる意味評価は追加しない。
@@ -568,6 +568,13 @@
 - 文章品質Hookは既存logging Hookと別責務で`UserPromptSubmit`／`PostToolUse`／`Stop`へ接続する。PostToolUseはfail-open、`Stop`は`stop_hook_active=false`のときだけ新規違反または確認不能を1回blockし、active再実行ではallowする。Issue #135のmain取り込み後、`SessionStart`は`^compact$`に限りroot `AGENTS.md`全文を再注入し、非compactでは出力せず、再注入不能時はstructured `continue=false`でfail-closeする。
 - local gateは`HEAD -> current worktree`、commit／PR gateは確定した`comparison_base -> HEAD`を使い、PRでは現行workflow checkoutのmerge `HEAD`をcurrentとする。`bash scripts/verify --hook-contracts`／`scripts/verify.ps1 -HookContracts`は既存contractと文章品質contractのfocused入口である。
 - この設計判断は[ADR-0026](./adr/0026-codex-text-quality-gate.md)に記録する。main取り込み時に既存ADR-0023〜0025との番号重複を解消した。
+
+## PR #201 Text quality Hook撤去（2026-10-20）
+
+- Issue #134の文章品質Hookは当時の運用仕様として記録し、現行運用は後続決定で更新した。文章品質検査は `lint:text`、`lint:text:all`、`lint:markdown`、`verify` と GitHub Actions の change gate／full scan で行う。
+- `UserPromptSubmit`／`PostToolUse`／`Stop` に文章品質Hookを登録せず、session baseline stateを管理しない。Stopブロック、状態管理の複雑性、実行時負荷を解消する。
+- `.textlintrc.json`、Repository固有rules、Git比較、rename判定、文章品質の検出ルールは維持する。PreToolUseのGit安全性Hookと既存のlogging Hookも維持する。
+- 詳細な設計履歴は[ADR-0026](./adr/0026-codex-text-quality-gate.md)を参照する。
 
 ## PR #127 Trigger Eval blocker remediation（2026-09-07）
 

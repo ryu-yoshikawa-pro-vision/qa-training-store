@@ -125,10 +125,8 @@ check_template_contract() {
   [[ -f .codex/hooks/pre_tool_use_policy.mjs ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy_windows.ps1 ]] || return 1
   [[ -f .codex/hooks/log_event.mjs ]] || return 1
-  [[ -f .codex/hooks/text_quality_gate.mjs ]] || return 1
   [[ -f .codex/text-quality-rules.json ]] || return 1
   [[ -f scripts/lint-text-quality.mjs ]] || return 1
-  [[ -f scripts/lib/codex-text-quality-state.mjs ]] || return 1
   [[ -f scripts/diagnose-codex-hooks.mjs ]] || return 1
   [[ -f scripts/check-text-quality-changes.mjs ]] || return 1
   [[ ! -e .codex/hooks/pre_tool_use_policy.py ]] || return 1

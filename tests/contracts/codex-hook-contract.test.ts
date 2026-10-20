@@ -286,7 +286,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(asTomlRecord(config.hooks, "hooks")).not.toHaveProperty("SessionStart");
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       expect(hookGroups(config, event), event).toHaveLength(1);
-      expect(hookEntries(config, event), event).toHaveLength(2);
+      expect(hookEntries(config, event), event).toHaveLength(1);
     }
 
     const serializedConfig = JSON.stringify(config);
@@ -295,94 +295,34 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(serializedConfig).not.toContain("pre_tool_use_policy.py");
   });
 
-  it("validates text quality and logging Hook structure from parsed TOML", () => {
+  it("keeps only the logging Hook in text quality events", () => {
     const config = readCodexConfig();
-    const qualityScript = path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs");
     const loggingScript = path.join(repoRoot, ".codex", "hooks", "log_event.mjs");
 
-    expect(fs.existsSync(qualityScript)).toBe(true);
     expect(fs.existsSync(loggingScript)).toBe(true);
+    expect(JSON.stringify(config)).not.toContain("text_quality_gate.mjs");
     for (const event of ["UserPromptSubmit", "PostToolUse", "Stop"]) {
       const groups = hookGroups(config, event);
       const entries = hookEntries(config, event);
-      const qualityEntry = hookEntryForScript(config, event, "text_quality_gate.mjs");
       const loggingEntry = hookEntryForScript(config, event, "log_event.mjs");
-      const qualityGroup = groups.find((group) => {
-        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
-        return groupEntries.includes(qualityEntry);
-      });
-      const loggingGroup = groups.find((group) => {
-        const groupEntries = asTomlRecords(group.hooks, `hooks.${event}.hooks`);
-        return groupEntries.includes(loggingEntry);
-      });
+      const loggingGroup = groups.find((group) =>
+        asTomlRecords(group.hooks, "hooks." + event + ".hooks").includes(loggingEntry),
+      );
 
-      expect(entries).toHaveLength(2);
-      expect(qualityEntry).not.toBe(loggingEntry);
-      expect(qualityGroup).toBeDefined();
+      expect(groups).toHaveLength(1);
+      expect(entries).toEqual([loggingEntry]);
       expect(loggingGroup).toBeDefined();
-      if (!qualityGroup || !loggingGroup) throw new Error(`missing Hook group for ${event}`);
-      expect(Object.hasOwn(qualityGroup, "matcher"), event).toBe(false);
+      if (!loggingGroup) throw new Error("missing logging Hook group for " + event);
       expect(Object.hasOwn(loggingGroup, "matcher"), event).toBe(false);
-
-      for (const [entry, scriptName] of [
-        [qualityEntry, "text_quality_gate.mjs"],
-        [loggingEntry, "log_event.mjs"],
-      ] as const) {
-        expect(entry.type, event).toBe("command");
-        expect(commandForHook(entry, "command", event)).toContain(scriptName);
-        const windowsScript = decodeWindowsPowerShellCommand(
-          commandForHook(entry, "command_windows", event),
-          `${event} ${scriptName}`,
-        );
-        expect(windowsScript).toContain(scriptName);
-        if (event === "Stop" && scriptName === "text_quality_gate.mjs") {
-          expect(commandForHook(entry, "command", event)).toContain(
-            'fallback=\'{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed. Diagnostic: Stop launcher unavailable. Run pnpm run diagnose:hooks before completion.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}\'',
-          );
-          expect(commandForHook(entry, "command", event)).toContain(
-            `active_diagnostic='{\"continue\":true,\"systemMessage\":\"Codex text quality hook: Stop launcher unavailable\"}'`,
-          );
-          expect(commandForHook(entry, "command", event)).toContain(
-            `printf '%s\\n' \"$active_diagnostic\"`,
-          );
-          expect(commandForHook(entry, "command", event)).toContain("CODEX_QUALITY_REPO_ROOT");
-          expect(commandForHook(entry, "command", event)).toContain("fs.readdirSync");
-          expect(commandForHook(entry, "command", event)).toContain("fs.unlinkSync");
-          expect(commandForHook(entry, "command", event)).toContain("hashlib.sha256");
-          expect(commandForHook(entry, "command", event)).toContain("os.listdir");
-          expect(windowsScript).toContain(
-            `$fallback = '{"decision":"block","reason":"Text quality check unavailable; completion cannot be confirmed. Diagnostic: Stop launcher unavailable. Run pnpm run diagnose:hooks before completion.","systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
-          );
-          expect(windowsScript).toContain(
-            `$activeDiagnostic = '{"continue":true,"systemMessage":"Codex text quality hook: Stop launcher unavailable"}'`,
-          );
-          expect(windowsScript).toContain("ConvertFrom-Json");
-          expect(windowsScript).toContain("stop_hook_active");
-          expect(windowsScript).toContain("[Console]::Write($activeDiagnostic)");
-          expect(windowsScript).toContain("[Console]::Write($fallback)");
-          expect(windowsScript).toContain("[System.Security.Cryptography.SHA256]::Create()");
-          expect(windowsScript).toContain("Get-ChildItem -LiteralPath $stateDirectory -File");
-          expect(windowsScript).toContain("Name -match '^[0-9a-fA-F]{64}-[0-9a-fA-F]{64}\\.json$'");
-          expect(windowsScript).toContain("$env:ComSpec /D /S /C");
-          expect(windowsScript).toContain("cd /D");
-          expect(windowsScript).toContain("del /F /Q");
-          expect(windowsScript).toContain(
-            'EndsWith("-$sessionHash.json", [StringComparison]::OrdinalIgnoreCase)',
-          );
-        }
-        if (
-          (event === "UserPromptSubmit" || event === "PostToolUse") &&
-          scriptName === "text_quality_gate.mjs"
-        ) {
-          expect(commandForHook(entry, "command", event)).toContain(
-            `${event} launcher unavailable`,
-          );
-          expect(commandForHook(entry, "command", event)).not.toContain("|| true");
-          expect(commandForHook(entry, "command_windows", event)).not.toContain(" 2>NUL");
-          expect(windowsScript).toContain(`${event} launcher unavailable`);
-        }
-        expect(entry.timeout, `${event} ${scriptName}`).toBe(10);
-      }
+      expect(loggingEntry.type).toBe("command");
+      expect(loggingEntry.timeout).toBe(10);
+      expect(commandForHook(loggingEntry, "command", event)).toContain("log_event.mjs");
+      expect(
+        decodeWindowsPowerShellCommand(
+          commandForHook(loggingEntry, "command_windows", event),
+          event + " log_event.mjs",
+        ),
+      ).toContain("log_event.mjs");
     }
   });
 
@@ -401,7 +341,6 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       "pre_tool_use_policy.mjs",
       "pre_tool_use_policy_windows.ps1",
       "log_event.mjs",
-      "text_quality_gate.mjs",
     ];
     expect(JSON.stringify(readCodexConfig())).not.toContain("session_start_context.mjs");
     for (const handlerName of configuredHandlerNames) {
