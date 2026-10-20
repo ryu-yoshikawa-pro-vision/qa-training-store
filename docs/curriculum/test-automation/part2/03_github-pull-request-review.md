@@ -135,6 +135,7 @@ Diff: <Files changedで確認した要約>
 Pull Request: <URL or number>
 Checks: <Workflow / Job / status>
 Review: <確認したコメントと自分の判断>
+Reason: <変更がテストケース・期待結果・失敗時のエビデンスとどう関連するか>
 ```
 
 この記録は、GitHub画面上で自分自身が確認した事実を残すためのものです。共通課程においては、第三者からの承認（Approve）をもらうことや、特定のUI配置を暗記することは修了条件ではありません。
@@ -297,3 +298,4 @@ Result: <GitHub上に送信した結果、またはローカル記録上の結�
 ## 次のステップ
 
 作成したPRとセルフレビューの結果を、CI（継続的インテグレーション）の実行パイプラインと接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md) へ進みましょう。
+

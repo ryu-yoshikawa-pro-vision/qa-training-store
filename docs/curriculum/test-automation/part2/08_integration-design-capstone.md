@@ -58,7 +58,7 @@ P2-8では、P2-5で確認したCI成果物を固定の `<handoff-root>` へ反�
 4. CI実行レシートを `<handoff-root>/receipts/` へ配置し、レシートが参照している同一Runのエビデンス群を固定引き継ぎルートへ反映します。
 5. GitHub画面上で確認したRun、Check、Artifact、対象ケース、結果の情報を、人間が可読なエビデンスとして追加します。
 6. Workbook、受講者コード、セルフチェックの内容を点検します。
-7. 固定引き継ぎルートを指定して `training:completion:check --mode part2` を実行します。
+7. 固定引き継ぎルートを指定して `pnpm run training:completion:check -- --mode part2 --root <handoff-root>` を実行します。
 
 ここで `--root` はPart 1から継続して使用している固定引き継ぎディレクトリのルート、`--source` はPart 2で実際に編集・コミットを行ったTraining Copyのローカルディレクトリを指します。同期の対象となるのは受講者管理下の `training/playwright/` 配下のコードのみです。Workbook、Receipt、Evidence、セルフチェック、Workflow、プロダクトコード、Formal Regression、配布コード、Canonicalな `reset-scenario.ts` は同期の対象外となります。Training Copy側で削除された受講者ファイルは引き継ぎ側でも削除され、ファイル名変更は「旧パスの削除＋新パスの追加」として反映されます。CI実行後に未コミットの変更が残っている状態で同期を行わず、Receiptが評価対象としたコミットと `git rev-parse HEAD` が出力する `submission_sha` が一致していることを必ず確認してください。
 
@@ -472,3 +472,4 @@ Native CIやMaestroの導入、AndroidとiOSで異なる実行戦略の策定、
 ## 次の行動
 
 Part 2共通課程の設計が完了したら、習熟度評価基準に示された共通課程の実行記録と、自身で定義した失敗調査ルートを最終確認してください。モバイルアプリ自動化の選択コースや発展課題・参考資料に取り組んだ受講者は、それらの追加成果物を別枠として確認し、共通課程の必須成果物に混在させないよう整理して完了判定へ進みます。
+

@@ -49,10 +49,11 @@
 
 | 状態スラグ | 種別 | 対象者・ロール | 条件・シナリオ | 期待されるUI | 視覚要件 | 必須プラットフォーム | 視覚詳細 | 関連オラクル |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `admin` | `default` | テストコントロールの操作項目と実行結果を表示する。 | `not-applicable` | `-` | `reason: Test-only operational surfaceでありCanonical Visualの対象外` | [状態とシナリオ](./state-and-scenarios.md#シナリオ制御) |
+| `default` | baseline | `admin` | `default` | テストコントロールの操作項目と実行結果を表示する。 | `not-applicable` | `-` | `reason: テスト専用の操作画面であり、正本の画面リファレンスの対象外` | [状態とシナリオ](./state-and-scenarios.md#シナリオ制御) |
 
 #### 画面リファレンス
 
 ##### `default`
 
 （該当なし：テスト専用の操作画面のため対象外）
+

@@ -39,7 +39,7 @@ test("published docs smoke", async ({ page }) => {
 
   await page.goto("/docs/spec/");
   await expect(
-    page.getByRole("heading", { name: "Scenario Shop Specification System", exact: true }),
+    page.getByRole("heading", { name: "Scenario Shop 仕様システム", exact: true }),
   ).toBeVisible();
   await expect(page.locator('header .brand a[aria-current="page"]')).toHaveCount(1);
   await expect(page.locator(".primary-navigation")).toBeVisible();
@@ -47,7 +47,7 @@ test("published docs smoke", async ({ page }) => {
   await expect(page.locator("details.mobile-primary-navigation")).toBeHidden();
 
   await page.goto("/docs/spec/features/storefront.html");
-  await expect(page.getByRole("heading", { name: "Storefront", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ストアフロント", exact: true })).toBeVisible();
   await expect(page.locator(".primary-navigation")).toBeVisible();
   await expect(page.locator("article .document-body")).toBeVisible();
   await expect(page.locator("article .toc")).toBeVisible();
@@ -63,14 +63,27 @@ test("published docs smoke", async ({ page }) => {
   expect(articleBodyBox.x).toBeLessThan(contentsBox.x);
   const contentsLink = page.locator("article .toc a").first();
   const contentsHref = await contentsLink.getAttribute("href");
-  if (contentsHref === null || !contentsHref.startsWith("#")) {
+  if (contentsHref === null || !contentsHref.startsWith("#") || contentsHref.length === 1) {
     throw new Error("Specification Contents link did not contain an anchor");
   }
+  const expectedContentsFragment = decodeURIComponent(contentsHref.slice(1));
+  if (expectedContentsFragment.length === 0) {
+    throw new Error("Specification Contents link did not contain a fragment");
+  }
   await contentsLink.click();
-  expect(page.url()).toContain(contentsHref);
+  const currentFragment = new URL(page.url()).hash;
+  if (!currentFragment.startsWith("#") || currentFragment.length === 1) {
+    throw new Error("Specification Contents link did not navigate to a fragment");
+  }
+  expect(decodeURIComponent(currentFragment.slice(1))).toBe(expectedContentsFragment);
+  const targetHeadingText = await page.evaluate((fragment) => {
+    const target = document.getElementById(fragment);
+    return target?.closest("h1, h2, h3, h4, h5, h6")?.textContent?.trim() ?? null;
+  }, expectedContentsFragment);
+  expect(targetHeadingText).toBe(await contentsLink.innerText());
   await page
     .locator(".primary-navigation")
-    .getByRole("link", { name: "Product Scope", exact: true })
+    .getByRole("link", { name: "プロダクトスコープ", exact: true })
     .click();
   await expect(page).toHaveURL(/\/docs\/spec\/product-scope(?:\.html)?$/);
   await page.goto("/docs/spec/ui-ux-contract.html");
@@ -98,7 +111,7 @@ test("published docs smoke", async ({ page }) => {
     "受講者向け標準導線",
     "Part 1: テスト自動化の基礎と実践",
     "Part 2: 開発プロセスへの組み込みと実務導入",
-    "共通Referenceと運営支援",
+    "共通リファレンスと運営支援",
   ]);
   const curriculumLink = curriculumNavigation.locator(
     'a[href="/docs/curriculum/part1/04_playwright-foundations.html"]',
@@ -115,7 +128,7 @@ test("published docs smoke", async ({ page }) => {
   await expect(page.locator('.primary-navigation a[aria-current="page"]')).toHaveCount(1);
 
   await page
-    .getByRole("link", { name: "Scenario Shop Test Automation Curriculum", exact: true })
+    .getByRole("link", { name: "Scenario Shop テスト自動化カリキュラム", exact: true })
     .click();
   await expect(page).toHaveURL(/\/docs\/curriculum\/$/);
   const specificationLink = page.locator('a[href="/docs/spec/"]').first();
@@ -123,7 +136,7 @@ test("published docs smoke", async ({ page }) => {
   await specificationLink.click();
   await expect(page).toHaveURL(/\/docs\/spec\/$/);
   await expect(
-    page.getByRole("heading", { name: "Scenario Shop Specification System", exact: true }),
+    page.getByRole("heading", { name: "Scenario Shop 仕様システム", exact: true }),
   ).toBeVisible();
 });
 
@@ -155,3 +168,4 @@ test("published curriculum mobile navigation smoke", async ({ page }) => {
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
 });
+
