@@ -31,13 +31,15 @@ NormalモードおよびGray-boxモードの指摘成果物（finding artifact�
 - JSONおよびZodスキーマ（schema）の正本は `scripts/agentic-qa/contracts.ts` です。
 - 各JSONは `schema_version: 1` を保持し、バリデータ（validator）を通過しない入力は実行前の失敗（Failure）となります。
 - `spec_refs[]` は `BR-<AREA>-NNN`、`AC-<AREA>-NNN`、または `docs/spec/<normative-file>.md#<slug-heading>` のみを許可します。
-- 機能仕様書（Feature Specification）は、次の5節をこの順序で保持します。各節の見出しには英語表記、または括弧内に英語を含む指定の日本語表記を使用します。
-  1. `Purpose / Scope` または `目的・対象範囲（Purpose / Scope）`
-  2. `Business Rules` または `ビジネスルール（Business Rules）`
-  3. `UI / Behavior Contract` または `UI・振る舞い規約（UI / Behavior Contract）`
-  4. `Acceptance Criteria` または `受入基準（Acceptance Criteria）`
-  5. `Executable Canonical Sources` または `実行可能カノニカルソース（Executable Canonical Sources）`
-- `AC` は `Related BR:` または `関連ビジネスルール:` の行を1件のみ保持します。行内のBR IDはバッククォートで囲み、複数のIDがある場合は半角カンマと半角スペースで区切ります。有効なビジネスルール（Active BR）は、対応するACまたは明示的な `Acceptance: N/A` を保持する必要があります。
+- 機能仕様書（Feature Specification）は、次の5節をこの順序で保持します。新規作成・更新する現行仕様書では、日本語のみの標準見出しを使用します。
+  1. `目的・対象範囲`
+  2. `ビジネスルール`
+  3. `UI・振る舞い契約`
+  4. `受入基準`
+  5. `実行可能な正本ソース`
+- 既存文書との互換性のため、validatorは英語表記、英語併記、および実装で定義された一部の日本語別表記も受け入れます。許容される表記の正本は `scripts/spec/validate-spec.ts` の `REQUIRED_FEATURE_SECTIONS` です。互換表記を新規文書の標準表記として使用しないでください。
+- 必須5節の欠落、同一節の異表記による重複、および順序違反は認めません。
+- `AC` は関連するBRを指定する行を1件のみ保持します。新規文書では `関連ビジネスルール:` を標準表記とします。既存文書との互換性のため、`Related BR:`、`関連BR:`、`関連業務ルール:` も許容します。許容する構文の正本は `scripts/spec/validate-spec.ts` の `RELATED_BR` です。BR IDはバッククォートで囲み、複数指定する場合は半角カンマと半角スペースで区切ります。有効なBRは対応するACまたは明示的な `Acceptance: N/A` を保持する必要があります。
 - NormalモードおよびGray-boxモードにおけるカバレッジの信頼できる唯一の情報源（Coverage SSOT）はCharterであり、Black-box ScoredモードのカバレッジSSOTは `challenge.json.required_coverage` です。ランナー（Runner）は `required_ids` やカバレッジ項目（Coverage Item）の追加・削除・並べ替えを行ってはなりません。
 - 指摘事項（Finding）は、機械契約に従う単一かつ不可分の指摘（Atomic Finding）とします。期待動作（Expected）、実際の結果（Actual）、再現手順（Reproduction Steps）、判定基準（Oracle）、役割/シード（Role/Seed）、証拠（Evidence）、再現回数（Reproduction Count）、重要度（Severity）、確信度（Confidence）、既知の仕様乖離（Known Deviation）、提案する回帰テスト層（Suggested Regression Layer）を記録します。複数の問題をまとめた報告は `invalid_non_atomic` として無効化されます。
 - 証拠（Evidence）は、`.artifacts/` 配下の生の成果物（raw artifact）を相対パスで参照します。未探索の領域を真陰性（TN: True Negative）としてはならず、観察証拠（Observation Evidence）のない非欠陥（Non-defect）は確定できません。カバレッジ未完了または観察証拠の不足は未実行（NE: Not Executed）として扱います。
