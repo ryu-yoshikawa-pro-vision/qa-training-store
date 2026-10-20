@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "run_id": "20261017-221147-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "flaky_or_env_issue",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Text quality Hook撤去、CLI／CI品質検査維持、Hook／CLI契約更新、docs整合、test:hooks 162 passed、test:contracts 779 passed／3 skipped、diagnose:hooks、文章lint、PowerShell sanitizer fixture、verifyを実施した。最終Run Artifactのstrict collect、commit／push、変更後headのrequired CIは未完了。実Codex host Stop動作とCodespaces実機は未検証。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "corepack pnpm run test:hooks: 162/162 passed after one transient launcher process exit was not reproduced."
+        },
+        {
+          "kind": "validation_command",
+          "summary": "corepack pnpm run test:contracts: 48 files, 779 passed, 3 skipped."
+        },
+        {
+          "kind": "validation_command",
+          "summary": "corepack pnpm run verify completed all checks and web/docs/spec builds."
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "summary": "UserPromptSubmit/PostToolUse/Stop text quality handlers removed while logger and PreToolUse safety hooks remain."
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は文章品質Hookの登録撤去、専用diagnose／contractの更新、現行文書とRun記録の整合に限定した。G10、PreToolUse安全性Hook、ログ記録Hook、文章lint／CI gate、サニタイザー実装／workflowは維持。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "WindowsローカルでHook 162件、全contract 779件／3 skipped、verify全工程、diagnose、文章lint、PowerShell sanitizer fixtureが成功した。変更後headのrequired CIはpush前のため未確認。実Codex host／trustとCodespaces実機は未検証。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "安全性Hook・G1〜G10／N1〜N4契約を変更せず、PreToolUse／Windows launcher契約を含むtest:hooksが162/162で成功した。text quality Hookの登録のみを外し、ログHookを3イベントで保持した。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Hook構成と診断は現行6イベントを明示し、Quality Hook不在を契約で確認する。CLIの既存品質テストを保持し、ADR・運用文書・Runに現行方針と未検証範囲を記録した。"
+    },
+    "maintainability": {
+      "rating": "warn",
+      "evidence": "session baseline stateと品質Hookは実行経路から除去したが、text_quality_gate.mjsとcodex-text-quality-state.mjsは未参照の物理ファイルとして残置している。既知のRepository file deletionガードを迂回しなかった。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "同じローカルWindows環境でHook・contract・verifyを完了した。変更後headのUbuntu／Windows Actionsは未実行。実Codex interactive /hooksとStop動作も今回のshellからは未確認。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "今回の変更を含むheadはまだpushされていない。変更前の9fa06a74634e7f19d7475b40beb58bc282669933ではWeb CI／Mobile App CIがsuccessしたが、これは今回の実装のCI結果ではない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "Post-push mcp__ci_wait__wait_for_required_ci is pending for the new expected head."
+        }
+      ],
+      "detail": "今回の実装に対するWeb CI、Windows Hook contract、Ubuntu／Windows sanitizer matrix、Mobile App CIを最新headで確認し、PR本文へ実測結果を反映する。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "text_quality_gate.mjsとcodex-text-quality-state.mjsは残るが、active config、diagnose、verify、contract invocationから参照されない。workflowから未参照のdiagnose-windows-git-root.mjsも残置している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "summary": "Three event registrations no longer invoke the text quality Hook."
+        }
+      ],
+      "detail": "品質Hook登録とbaseline-state診断は稼働経路から外した。物理ファイル削除は既知のRepository deletion guardを迂回せず、今回試みていない。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "最初のtest:hooks全体実行で既存Windows PreToolUse launcher testのPowerShell childがexit 3221225477を返した。該当test単独とtest:hooks全体の再実行はsuccessし、同じ失敗は再現しなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "Focused launcher contract 1 passed; subsequent corepack pnpm run test:hooks 162/162 passed."
+        }
+      ],
+      "detail": "原因をproduction Hook変更に結び付ける証拠はなく、G10／expectation／skipは変更せず、一過性のprocess exitとして記録する。"
+    }
+  ],
+  "improvement_candidates": []
+}

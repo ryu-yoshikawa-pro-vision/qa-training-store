@@ -8,7 +8,10 @@ const packageJson = JSON.parse(readFileSync(path.join(root, "package.json"), "ut
   scripts?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
-const preCommit = readFileSync(path.join(root, ".husky", "pre-commit"), "utf8");
+const preCommit = readFileSync(path.join(root, ".husky", "pre-commit"), "utf8").replace(
+  /\r\n/g,
+  "\n",
+);
 
 describe("Husky configuration contracts", () => {
   it("initializes Husky from the package prepare script", () => {
@@ -17,8 +20,17 @@ describe("Husky configuration contracts", () => {
   });
 
   it("keeps pre-commit as the ordered lightweight quality gate", () => {
-    expect(preCommit).toBe(["pnpm run quality:staged", "pnpm run security:check", ""].join("\n"));
+    expect(preCommit).toBe(
+      [
+        "pnpm run quality:staged",
+        "pnpm run security:check",
+        "node scripts/sanitize-codex-artifacts.mjs --staged --check",
+        "",
+      ].join("\n"),
+    );
     expect(preCommit).not.toContain("pnpm run verify");
+    expect(preCommit).toContain("--staged --check");
+    expect(preCommit).not.toContain("--write");
     expect(preCommit).not.toContain("test");
     expect(preCommit).not.toContain("build");
     expect(preCommit).not.toContain("typecheck");
