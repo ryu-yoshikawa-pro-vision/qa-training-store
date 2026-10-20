@@ -1,10 +1,10 @@
-# State and Scenarios
+# 状態とシナリオ
 
-## State Transitions
+## 状態遷移
 
 想定している主な状態遷移は次のとおりです。
 
-| Aggregate | Allowed transitions |
+| 集約 | 許可される遷移 |
 |---|---|
 | Product | draft → published; published → unpublished/discontinued; unpublished → published/discontinued |
 | Account | active ↔ suspended |
@@ -16,43 +16,43 @@
 
 状態の飛び越しや逆戻り、終端状態からの変更は許可しません。`discontinued`、`delivered`、`deleted`、`converted`、`expired`、`abandoned` は終端状態です。
 
-## Scenario Control
+## シナリオ制御
 
 固定シナリオは `src/seeds/metadata.ts` の `SCENARIO_METADATA` および `src/seeds/scenarios.ts` における変換処理を正本とします。主なシナリオには、`default`、`empty-catalog`、`out-of-stock`、`low-stock`、`regular-member`、`cart-with-invalid-items`、`payment-declined`、`checkout-resume`、`reviewable-orders` があります。
 
-リセット処理では、データベース、セッション、ゲスト識別子（Guest Identity）、クロック、支払い遅延（Payment Delay）を指定された状態へ戻します。リセット完了の通知表示および安全な画面遷移の制御はUIテストコントロールのみが担当し、テストAPIのリセット処理（Test API Reset）はリセット結果とメタデータを返却するのみにとどめます。
+リセット処理では、データベース、セッション、ゲスト識別子、クロック、決済遅延を指定された状態へ戻します。リセット完了の通知表示および安全な画面遷移の制御はUIテストコントロールのみが担当し、テストAPIのリセット処理はリセット結果とメタデータを返却するのみにとどめます。
 
-## Error and Boundary States
+## エラー状態と境界状態
 
-アプリケーションでは、Loading（読み込み中）、Empty（データなし）、Error（エラー）、Conflict（競合）、Not Found（未検出）の各状態を明確に区別します。価格、公開状態、会員ランク、在庫、カートのバージョンは、カート表示、チェックアウト開始、注文確認、注文作成の各境界で再検証します。決済処理中（Payment processing中）は、再試行およびキャンセルを許可しません。
+アプリケーションでは、読み込み中、データなし、エラー、競合、未検出の各状態を明確に区別します。価格、公開状態、会員ランク、在庫、カートのバージョンは、カート表示、チェックアウト開始、注文確認、注文作成の各境界で再検証します。決済処理中は、再試行およびキャンセルを許可しません。
 
-## Native Boundary
+## ネイティブ境界
 
-ネイティブアプリ向けの顧客シナリオ（Native Customer Scenario）は、`NATIVE_CUSTOMER_SCENARIOS` に定義された範囲に限定します。ネイティブ環境はWeb環境とアプリケーション層の仕様・セマンティクスを共有しますが、ストレージおよびランタイムのアダプターにはSQLiteやNative KVを使用します。本番ビルド（Production Build）では、テストコントロール、ハーネス、自動化ブリッジ（Automation Bridge）は利用できません。
+ネイティブアプリ向けの顧客シナリオは、`NATIVE_CUSTOMER_SCENARIOS` に定義された範囲に限定します。ネイティブ環境はWeb環境とアプリケーション層の仕様・セマンティクスを共有しますが、ストレージおよびランタイムのアダプターにはSQLiteやNative KVを使用します。本番ビルドでは、テストコントロール、ハーネス、自動化ブリッジは利用できません。
 
-## Canonical Sources
+## 正本ソース
 
-状態型（State Type）の定義は `src/domain/contracts/entities.ts`、遷移ポリシーは `src/domain/policies/state-transitions.ts`、リセットプロトコルは `src/test-controls/`、ネイティブシナリオの許可リスト（Allowlist）は `src/seeds/metadata.ts`、Web向けテストコントロールは `src/test-controls/` および `e2e/web/fixtures.ts` を参照してください。
+状態型の定義は `src/domain/contracts/entities.ts`、遷移ポリシーは `src/domain/policies/state-transitions.ts`、リセットプロトコルは `src/test-controls/`、ネイティブシナリオの許可リストは `src/seeds/metadata.ts`、Web向けテストコントロールは `src/test-controls/` および `e2e/web/fixtures.ts` を参照してください。
 
-## Screen Contracts
+## 画面契約
 
-### SCREEN-TEST-CONTROL — Admin Test Control
+### SCREEN-TEST-CONTROL — 管理者テストコントロール
 
-Screen Catalog: [Screen Catalog](./screen-catalog.md)
+画面カタログ: [画面カタログ](./screen-catalog.md)
 
-#### Functions
+#### 機能一覧
 
 - Webの自動テスト（Automation Web）からシナリオ、クロック、決済遅延、シードリセットを操作する。
-- テスト専用の操作画面（Test-only surface）であり、プロダクト本来の振る舞いを示すビジュアル仕様（Canonical Visual）の対象には含めない。
+- テスト専用の操作画面であり、プロダクト本来の振る舞いを示すビジュアル仕様の対象には含めない。
 
-#### Important UI States
+#### 主要なUI状態
 
-| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+| 状態スラグ | 種別 | 対象者・ロール | 条件・シナリオ | 期待されるUI | 視覚要件 | 必須プラットフォーム | 視覚詳細 | 関連オラクル |
 |---|---|---|---|---|---|---|---|---|
-| `default` | baseline | `admin` | `default` | テストコントロールの操作項目と実行結果を表示する。 | `not-applicable` | `-` | `reason: Test-only operational surfaceでありCanonical Visualの対象外` | [State and Scenarios](./state-and-scenarios.md#scenario-control) |
+| `default` | baseline | `admin` | `default` | テストコントロールの操作項目と実行結果を表示する。 | `not-applicable` | `-` | `reason: Test-only operational surfaceでありCanonical Visualの対象外` | [状態とシナリオ](./state-and-scenarios.md#シナリオ制御) |
 
-#### Visual References
+#### 画面リファレンス
 
 ##### `default`
 
-（該当なし：Test-only operational surfaceのため対象外）
+（該当なし：テスト専用の操作画面のため対象外）

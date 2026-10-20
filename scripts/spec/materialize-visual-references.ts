@@ -15,10 +15,10 @@ function relativeAssetPath(specFile: string, asset: string): string {
 
 function platformLabel(platform: string): string {
   return platform
-    .replace("web-desktop", "Web Desktop")
-    .replace("web-tablet", "Web Tablet")
-    .replace("web-mobile", "Web Mobile")
-    .replace("web-small-mobile", "Web Small Mobile")
+    .replace("web-desktop", "Webデスクトップ")
+    .replace("web-tablet", "Webタブレット")
+    .replace("web-mobile", "Webモバイル")
+    .replace("web-small-mobile", "Web小型モバイル")
     .replace("android", "Android");
 }
 
@@ -106,7 +106,7 @@ export async function materializeVisualReferences(rootDir = process.cwd()): Prom
     const relative = relativeAssetPath(state.file, asset);
     if (hasAssetReference(lines, heading, end, state.file, asset)) continue;
     const block = [
-      `###### ${platformLabel(captureCase.platform)} — Canonical Visual Reference`,
+      `###### ${platformLabel(captureCase.platform)} — 正本画面リファレンス`,
       "",
       `[![${captureCase.screenId} ${captureCase.stateSlug} ${captureCase.platform}](${relative})](${relative})`,
       "",

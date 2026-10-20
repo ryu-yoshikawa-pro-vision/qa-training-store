@@ -91,31 +91,64 @@ const AUDIENCE_SET = new Set<string>(AUDIENCE_ORDER);
 const TARGET_STATUSES = new Set(["pending", "captured", "blocked"]);
 const MAX_TOTAL_ASSET_BYTES = 100 * 1024 * 1024;
 const STATE_COLUMNS = [
-  "State slug",
-  "Type",
-  "Audience / Role",
-  "Condition / Scenario",
-  "Expected UI",
-  "Visual requirement",
-  "Required platforms",
-  "Visual detail",
-  "Related Oracle",
+  "状態スラグ",
+  "種別",
+  "対象者・ロール",
+  "条件・シナリオ",
+  "期待されるUI",
+  "視覚要件",
+  "必須プラットフォーム",
+  "視覚詳細",
+  "関連オラクル",
+] as const;
+const STATE_COLUMN_ALIASES = [
+  ["状態スラグ", "状態slug", "State slug"],
+  ["種別", "区分", "Type"],
+  [
+    "対象者・ロール",
+    "対象者／ロール",
+    "対象者 / ロール",
+    "対象読者・役割",
+    "対象読者／ロール",
+    "対象読者 / 役割",
+    "対象・ロール",
+    "対象／ロール",
+    "対象 / ロール",
+    "Audience / Role",
+  ],
+  ["条件・シナリオ", "条件／シナリオ", "条件 / シナリオ", "条件/シナリオ", "Condition / Scenario"],
+  ["期待されるUI", "期待するUI", "期待UI", "Expected UI"],
+  ["視覚要件", "画面要件", "ビジュアル要件", "Visual requirement"],
+  ["必須プラットフォーム", "対象プラットフォーム", "要求プラットフォーム", "Required platforms"],
+  ["視覚詳細", "画面詳細", "ビジュアル詳細", "Visual detail"],
+  ["関連オラクル", "Related Oracle"],
 ] as const;
 const SCREEN_CONTRACT_HEADINGS = [
-  { canonical: "Functions", aliases: ["Functions", "機能一覧（Functions）"] },
+  {
+    canonical: "Functions",
+    aliases: ["Functions", "機能", "機能一覧", "機能一覧（Functions）"],
+  },
   {
     canonical: "Important UI States",
-    aliases: ["Important UI States", "主要なUI状態（Important UI States）"],
+    aliases: [
+      "Important UI States",
+      "重要なUI状態",
+      "主要なUI状態",
+      "主要なUI状態（Important UI States）",
+    ],
   },
   {
     canonical: "Visual References",
-    aliases: ["Visual References", "画面リファレンス（Visual References）"],
+    aliases: ["Visual References", "画面リファレンス", "画面リファレンス（Visual References）"],
   },
 ] as const;
 const FEATURE_SCREEN_CONTRACT_PARENT_HEADINGS = [
   "UI / Behavior Contract",
+  "UI・振る舞い契約",
+  "UI・振る舞い規約",
   "UI・振る舞い規約（UI / Behavior Contract）",
 ] as const;
+const ROOT_SCREEN_CONTRACT_PARENT_HEADINGS = ["Screen Contracts", "画面契約", "画面規約"] as const;
 const ROOT_OWNER_FILES = new Set([
   "docs/spec/product-scope.md",
   "docs/spec/roles-and-permissions.md",
@@ -160,33 +193,47 @@ function resolveSpecPath(source: string, target: string): string {
   return path.posix.normalize(path.posix.join(path.posix.dirname(source), fileTarget));
 }
 
-export function parseScreenCatalog(rootDir = process.cwd()): ScreenCatalogEntry[] {
+type ScreenCatalogTarget = {
+  entry: ScreenCatalogEntry;
+  anchor: string;
+  line: number;
+};
+
+function parseScreenCatalogTargets(rootDir = process.cwd()): ScreenCatalogTarget[] {
   const relativePath = "docs/spec/screen-catalog.md";
   const absolutePath = path.join(rootDir, relativePath);
   if (!fs.existsSync(absolutePath)) return [];
   const lines = fs.readFileSync(absolutePath, "utf8").split(/\r?\n/);
-  const entries: ScreenCatalogEntry[] = [];
+  const targets: ScreenCatalogTarget[] = [];
   lines.forEach((line, index) => {
     if (!line.trim().startsWith("| `SCREEN-")) return;
     const row = cells(line);
     if (row.length !== 8) return;
     const screenId = stripCode(row[0] ?? "");
     const screenClass = stripCode(row[2] ?? "") as ScreenCatalogEntry["screenClass"];
-    const primarySpec = parseLink(row[7] ?? "");
-    if (primarySpec === null) return;
-    entries.push({
-      screenId,
-      title: row[1] ?? "",
-      screenClass,
-      route: stripCode(row[3] ?? ""),
-      web: row[4] ?? "",
-      android: row[5] ?? "",
-      audience: row[6] ?? "",
-      primarySpec: resolveSpecPath(relativePath, primarySpec),
+    const target = parseLink(row[7] ?? "");
+    if (target === null) return;
+    const anchor = target.split("#", 2)[1] ?? "";
+    targets.push({
+      entry: {
+        screenId,
+        title: row[1] ?? "",
+        screenClass,
+        route: stripCode(row[3] ?? ""),
+        web: row[4] ?? "",
+        android: row[5] ?? "",
+        audience: row[6] ?? "",
+        primarySpec: resolveSpecPath(relativePath, target),
+      },
+      anchor,
+      line: index + 1,
     });
-    void index;
   });
-  return entries;
+  return targets;
+}
+
+export function parseScreenCatalog(rootDir = process.cwd()): ScreenCatalogEntry[] {
+  return parseScreenCatalogTargets(rootDir).map(({ entry }) => entry);
 }
 
 function parsePlatformList(value: string): VisualPlatform[] | ["-"] | null {
@@ -319,7 +366,12 @@ function findStateTables(
       } else if (table.length > 0 && /^#{1,6}\s+/.test(line)) break;
     }
     const header = cells(table[0]?.line ?? "");
-    if (header.join("|") !== STATE_COLUMNS.join("|")) {
+    if (
+      header.length !== STATE_COLUMNS.length ||
+      header.some(
+        (value, index) => !(STATE_COLUMN_ALIASES[index] as readonly string[]).includes(value),
+      )
+    ) {
       addIssue(
         issues,
         parsed.relativePath,
@@ -462,6 +514,9 @@ export function collectVisualStates(
   catalog = parseScreenCatalog(rootDir),
   issues: VisualContractIssue[] = [],
 ): VisualState[] {
+  const catalogTargets = new Map(
+    parseScreenCatalogTargets(rootDir).map((target) => [target.entry.screenId, target]),
+  );
   const parsed = new Map<string, ParsedMarkdown>();
   for (const relativePath of listSpecMarkdown(rootDir)) {
     parsed.set(relativePath, parseMarkdownFile(path.join(rootDir, relativePath), relativePath));
@@ -469,6 +524,7 @@ export function collectVisualStates(
   const states: VisualState[] = [];
   const owned = new Map<string, string>();
   for (const entry of catalog) {
+    const catalogTarget = catalogTargets.get(entry.screenId);
     if (!SCREEN_ID.test(entry.screenId))
       addIssue(issues, "docs/spec/screen-catalog.md", `invalid Screen ID: ${entry.screenId}`);
     if (!new Set(["Product", "Supporting", "Boundary", "Test-only"]).has(entry.screenClass))
@@ -496,12 +552,25 @@ export function collectVisualStates(
       );
     if (sections.length === 1) {
       const section = sections[0]!;
+      if (
+        catalogTarget === undefined ||
+        catalogTarget.entry.primarySpec !== entry.primarySpec ||
+        catalogTarget.anchor.length === 0 ||
+        catalogTarget.anchor !== section.anchor ||
+        !section.raw.startsWith(`### ${entry.screenId} — `)
+      )
+        addIssue(
+          issues,
+          "docs/spec/screen-catalog.md",
+          `${entry.screenId} Primary specification link must target its matching SCREEN ID — heading`,
+          catalogTarget?.line,
+        );
       const parent = [...owner.headings]
         .reverse()
         .find((heading) => heading.level === 2 && heading.line < section.line);
       const expectedParents = entry.primarySpec.startsWith("docs/spec/features/")
         ? FEATURE_SCREEN_CONTRACT_PARENT_HEADINGS
-        : ["Screen Contracts"];
+        : ROOT_SCREEN_CONTRACT_PARENT_HEADINGS;
       if (!(expectedParents as readonly string[]).includes(parent?.text ?? ""))
         addIssue(
           issues,
@@ -521,7 +590,9 @@ export function collectVisualStates(
     const parsedSpec = parsed.get(relativePath);
     if (parsedSpec === undefined) continue;
     const contracts = parsedSpec.headings.filter(
-      (heading) => heading.level === 2 && heading.text === "Screen Contracts",
+      (heading) =>
+        heading.level === 2 &&
+        (ROOT_SCREEN_CONTRACT_PARENT_HEADINGS as readonly string[]).includes(heading.text),
     );
     if (contracts.length !== 1)
       addIssue(

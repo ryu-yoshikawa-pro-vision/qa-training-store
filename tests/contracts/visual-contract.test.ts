@@ -46,6 +46,8 @@ type VisualFixtureOptions = {
   emptyAlt?: boolean;
   visualRequirement?: "required" | "shared" | "not-applicable";
   visualDetail?: string;
+  japaneseStateColumns?: boolean;
+  primarySpecAnchor?: string;
 };
 
 async function createVisualFixture(
@@ -78,11 +80,15 @@ async function createVisualFixture(
   const [functionsHeading, statesHeading, visualReferencesHeading] =
     options.screenContractHeadings ?? ["Functions", "Important UI States", "Visual References"];
   const featureParentHeading = options.featureParentHeading ?? "UI / Behavior Contract";
+  const stateColumns = options.japaneseStateColumns
+    ? "| 状態スラグ | 種別 | 対象者・ロール | 条件・シナリオ | 期待されるUI | 視覚要件 | 必須プラットフォーム | 視覚詳細 | 関連オラクル |"
+    : "| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |";
+  const primarySpecAnchor = options.primarySpecAnchor ?? "screen-test-example-example";
   const functions =
     options.includeFunctions === false ? "" : `#### ${functionsHeading}\n\n- Example function.\n\n`;
   const orphanHeading =
     options.orphanHeading === undefined ? "" : `\n#### ${options.orphanHeading}\n`;
-  const screenSpec = `# Example\n\n## ${featureParentHeading}\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### ${statesHeading}\n\n| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |\n|---|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${referenceLines}\n\n## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.${orphanHeading}\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
+  const screenSpec = `# Example\n\n## ${featureParentHeading}\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### ${statesHeading}\n\n${stateColumns}\n|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${referenceLines}\n\n## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.${orphanHeading}\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
   await mkdir(path.join(rootDir, "docs/spec/features"), { recursive: true });
   await mkdir(path.join(rootDir, "docs/spec/assets/screens/SCREEN-TEST-EXAMPLE/default"), {
     recursive: true,
@@ -90,7 +96,7 @@ async function createVisualFixture(
   await mkdir(path.join(rootDir, "app"), { recursive: true });
   await writeFile(
     path.join(rootDir, "docs/spec/screen-catalog.md"),
-    `# Screen Catalog\n\n| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |\n|---|---|---|---|---|---|---|---|\n| \`SCREEN-TEST-EXAMPLE\` | Example | Product | / | Yes | Yes | Customer | [Example](./features/example.md#screen-test-example-example) |\n`,
+    `# Screen Catalog\n\n| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |\n|---|---|---|---|---|---|---|---|\n| \`SCREEN-TEST-EXAMPLE\` | Example | Product | / | Yes | Yes | Customer | [Example](./features/example.md#${primarySpecAnchor}) |\n`,
   );
   await writeFile(path.join(rootDir, "docs/spec/features/example.md"), screenSpec);
   await writeFile(
@@ -443,6 +449,36 @@ describe("Screen Catalog / Visual Contract", () => {
       });
       const result = await validateVisualContract(root, { captureCases: fixtureCases });
       expect(result.issues).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts Japanese-only Screen Contract headings and 9-column state tables", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-japanese-only-"));
+    try {
+      const fixtureCases = await createVisualFixture(root, {
+        featureParentHeading: "UI・振る舞い契約",
+        screenContractHeadings: ["機能一覧", "主要なUI状態", "画面リファレンス"],
+        japaneseStateColumns: true,
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a catalog anchor that does not point to the matching Screen ID heading", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-wrong-anchor-"));
+    try {
+      const fixtureCases = await createVisualFixture(root, {
+        primarySpecAnchor: "screen-test-example-stale-target",
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues.map((issue) => issue.message).join("\n")).toContain(
+        "Primary specification link must target its matching SCREEN ID — heading",
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }

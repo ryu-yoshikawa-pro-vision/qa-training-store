@@ -84,7 +84,11 @@ export function parseMarkdownFile(absolutePath: string, relativePath: string): P
   return { relativePath, absolutePath, lines, headings, links };
 }
 
-const NAVIGATION_HEADING_TEXTS = new Set(["Navigation", "ナビゲーション（Navigation）"]);
+const NAVIGATION_HEADING_TEXTS = new Set([
+  "Navigation",
+  "ナビゲーション",
+  "ナビゲーション（Navigation）",
+]);
 
 export function findNavigationHeadings(parsed: ParsedMarkdown): MarkdownHeading[] {
   return parsed.headings.filter(
@@ -190,7 +194,7 @@ function renderTable(
 function renderToc(headings: MarkdownHeading[]): string {
   const entries = headings.filter((heading) => heading.level === 2 || heading.level === 3);
   if (entries.length === 0) return "";
-  return `<aside class="toc" aria-label="Table of contents"><strong>Contents</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></aside>`;
+  return `<aside class="toc" aria-label="目次"><strong>目次</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></aside>`;
 }
 
 export function renderMarkdown(

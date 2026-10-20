@@ -1,29 +1,29 @@
-# Feature Name
+# 機能名
 
-## Purpose / Scope
+## 目的・対象範囲
 
-このFeatureが定義する対象範囲と対象外を記載します。
+この機能が定義する対象範囲と対象外を記載します。
 
-## Business Rules
+## ビジネスルール
 
 ### BR-AREA-001 — ルールのタイトル
 
 業務ルールを記載します。
 
-## UI / Behavior Contract
+## UI・振る舞い契約
 
-画面、状態、Boundary、Accessibilityの契約を記載します。
+画面、状態、境界条件、アクセシビリティの契約を記載します。
 
-## Acceptance Criteria
+## 受入基準
 
-### Criteria
+### 受入条件
 
 #### AC-AREA-001 — 受入条件のタイトル
 
-Related BR: `BR-AREA-001`
+関連ビジネスルール: `BR-AREA-001`
 
 受入条件を観測可能な形で記載します。
 
-## Executable Canonical Sources
+## 実行可能な正本ソース
 
 - `src/`、`app/`、`e2e/`など、低レベル値の正本を列挙します。

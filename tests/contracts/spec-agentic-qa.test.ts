@@ -75,6 +75,13 @@ const japaneseFeatureSections = [
   "受入基準（Acceptance Criteria）",
   "実行可能カノニカルソース（Executable Canonical Sources）",
 ];
+const japaneseOnlyFeatureSections = [
+  "目的・対象範囲",
+  "ビジネスルール",
+  "UI・振る舞い契約",
+  "受入基準",
+  "実行可能な正本ソース",
+];
 
 function createFeatureSpec(sections: string[]): string {
   return `# Fixture\n\n${sections.map((section) => `## ${section}\n\nContent.`).join("\n\n")}\n`;
@@ -257,6 +264,10 @@ describe("Specification and Agentic QA contracts", () => {
       const indexHtml = fs.readFileSync(path.join(temporary, "index.html"), "utf8");
       expect(featureHtml).toContain('href="../index.html"');
       expect(featureHtml).not.toContain('href="README.html"');
+      expect(featureHtml).toContain("Scenario Shop 仕様書");
+      expect(featureHtml).toContain("製品の規範仕様");
+      expect(featureHtml).toContain('aria-label="仕様書ナビゲーション"');
+      expect(featureHtml).toContain("目次");
       expect(indexHtml).toContain('href="index.html"');
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
@@ -288,6 +299,7 @@ describe("Specification and Agentic QA contracts", () => {
       "./screen-catalog.md",
     ]);
     expect(validateSpecFixture(fixtureReadme(fixtureNavigation("Navigation")))).toEqual([]);
+    expect(validateSpecFixture(fixtureReadme(fixtureNavigation("ナビゲーション")))).toEqual([]);
     expect(
       validateSpecFixture(fixtureReadme(fixtureNavigation("ナビゲーション（Navigation）"))),
     ).toEqual([]);
@@ -298,6 +310,7 @@ describe("Specification and Agentic QA contracts", () => {
       fixtureReadme(
         "## Navigation\n\n## ナビゲーション（Navigation）\n\n- [Fixture](./features/fixture.md)",
       ),
+      fixtureReadme("## Navigation\n\n## ナビゲーション\n\n- [Fixture](./features/fixture.md)"),
       fixtureReadme("## Navigation\n\nNo links."),
       fixtureReadme(fixtureNavigation("Navigation", "./features/missing.md")),
     ];
@@ -309,18 +322,19 @@ describe("Specification and Agentic QA contracts", () => {
     expect(diagnostics[0]).toContain("Navigation must contain");
     expect(diagnostics[1]).toContain("exactly one Navigation heading");
     expect(diagnostics[2]).toContain("exactly one Navigation heading");
-    expect(diagnostics[3]).toContain("Navigation must contain");
-    expect(diagnostics[4]).toContain("Navigation target does not exist");
+    expect(diagnostics[3]).toContain("exactly one Navigation heading");
+    expect(diagnostics[4]).toContain("Navigation must contain");
+    expect(diagnostics[5]).toContain("Navigation target does not exist");
   });
 
   it("accepts existing Unicode spec anchors and still verifies exact anchor existence", () => {
-    const english = "docs/spec/features/authentication.md#purpose-scope";
+    const authentication = "docs/spec/features/authentication.md#screen-auth-login-ログイン";
     const japanese = "docs/spec/features/cart.md#screen-storefront-cart-カート";
-    expect(specRefSchema.safeParse(english).success).toBe(true);
+    expect(specRefSchema.safeParse(authentication).success).toBe(true);
     expect(specRefSchema.safeParse(japanese).success).toBe(true);
-    expect(resolveSpecReference(rootDir, english)).toMatchObject({
+    expect(resolveSpecReference(rootDir, authentication)).toMatchObject({
       ownerPath: "docs/spec/features/authentication.md",
-      anchor: "purpose-scope",
+      anchor: "screen-auth-login-ログイン",
     });
     expect(resolveSpecReference(rootDir, japanese)).toMatchObject({
       ownerPath: "docs/spec/features/cart.md",
@@ -344,6 +358,7 @@ describe("Specification and Agentic QA contracts", () => {
     const mixed = [...englishFeatureSections];
     mixed[1] = japaneseFeatureSections[1]!;
     expect(validateSpecFixture(readme, createFeatureSpec(japaneseFeatureSections))).toEqual([]);
+    expect(validateSpecFixture(readme, createFeatureSpec(japaneseOnlyFeatureSections))).toEqual([]);
     expect(validateSpecFixture(readme, createFeatureSpec(mixed))).toEqual([]);
 
     const withOptionalSection = [...englishFeatureSections];
@@ -351,7 +366,7 @@ describe("Specification and Agentic QA contracts", () => {
     expect(validateSpecFixture(readme, createFeatureSpec(withOptionalSection))).toEqual([]);
 
     const missing = [...japaneseFeatureSections];
-    missing[3] = "受入基準";
+    missing[3] = "未定義の節";
     const duplicated = [...englishFeatureSections];
     duplicated.splice(2, 0, japaneseFeatureSections[1]!);
     const outOfOrder = [...englishFeatureSections];
@@ -367,7 +382,9 @@ describe("Specification and Agentic QA contracts", () => {
 
   it.each([
     ["Related BR: `BR-CART-001`, `BR-CART-002`"],
+    ["関連BR: `BR-CART-001`, `BR-CART-002`"],
     ["関連ビジネスルール: `BR-CART-001`, `BR-CART-002`"],
+    ["関連業務ルール: `BR-CART-001`, `BR-CART-002`"],
   ])("accepts a single valid BR reference line: %s", (relatedLine) => {
     const readme = fixtureReadme(fixtureNavigation());
     expect(validateSpecFixture(readme, createBrAcFeature(relatedLine))).toEqual([]);
