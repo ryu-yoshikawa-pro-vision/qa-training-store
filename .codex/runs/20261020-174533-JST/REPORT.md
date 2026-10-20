@@ -39,3 +39,10 @@
 - Residual: earlier full test:contracts and verify result remains 52 failures / 797 passes / 4 skipped across the same five Codex Windows Harness files; primary cause is read-only .codex plus unavailable Windows launchers / process spawn. That failure category was repeated twice. It is outside the two-file repair scope; no retry or contract weakening.
 - Decision: iteration 4をstop_success。Run sanitizationを再実行し、変更範囲・差分チェック後に明示ファイルをstage/commitする。
 - Progress: 5/7 (71%)。
+## 2026-10-20 - Checkpoint 5 (JST)
+
+- Summary: 実装を専用ブランチへ配信し、Plan PR #202をbaseとするPR #203を作成した。
+- Delivery: commit 05b6bdac8db8473e48c43f121a8e7bf2c229fa59を feat/pr202-japanese-spec-curriculum-implementation へ通常push。PR #203 OPEN、base docs/plan-japanese-spec-curriculum-links、base SHA fcf52fedef19d5e97945c846152798f9aa78e9d8。作成直後のPR head/local HEAD/upstreamはいずれも05b6bdac8db8473e48c43f121a8e7bf2c229fa59。PR #202はOPENのまま。作業ツリーclean。
+- CI: exact-head required CIは未確認。現在のtool setにwait_for_required_ciがなく、ci_wait MCPのresources/templates handshakeは5秒でtimeout。Repository harness契約に従い別APIによる状態pollingへfallbackしない。
+- Decision: delivery complete。required CI waiterが使用不能のためtask 7はpendingのまま停止。
+- Progress: 6/7 (86%)。
