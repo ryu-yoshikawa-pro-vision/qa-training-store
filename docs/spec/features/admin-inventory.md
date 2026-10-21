@@ -1,10 +1,10 @@
-# Admin Inventory
+# 管理者在庫管理
 
-## Purpose / Scope
+## 目的・対象範囲
 
 オペレーターおよび管理者が、SKU単位の在庫と在庫履歴を管理する際の仕様・規約を定義します。
 
-## Business Rules
+## ビジネスルール
 
 ### BR-ADMININV-001 — 在庫はSKU単位の非負整数として調整する
 
@@ -12,63 +12,63 @@
 
 ### BR-ADMININV-002 — すべての在庫変更を履歴と一緒に保存する
 
-手動調整（Manual adjustment）および決済成功時の購入による減算は、変更前後の値（Before/After）、理由、実行者（Actor）、注文（Order）を含む履歴とともに、同一トランザクション内で保存します。
+手動調整および決済成功時の購入による減算は、変更前後の値、理由、実行者、注文を含む履歴とともに、同一トランザクション内で保存します。
 
-## UI / Behavior Contract
+## UI・振る舞い契約
 
-在庫一覧ではSKU単位の絞り込み（Filter）、検索（Search）、並び替え（Sort）機能を提供し、商品一覧における総在庫（Aggregate stock）表示とは明確に境界を分離します。処理の失敗時に中途半端な部分更新を表示することはありません。
+在庫一覧ではSKU単位の絞り込み、検索、並び替え機能を提供し、商品一覧における総在庫表示とは明確に境界を分離します。処理の失敗時に中途半端な部分更新を表示することはありません。
 
-### SCREEN-ADMIN-INVENTORIES — Admin Inventories
+### SCREEN-ADMIN-INVENTORIES — 管理者在庫一覧
 
-Screen Catalog: [Screen Catalog](../screen-catalog.md)
+画面カタログ: [画面カタログ](../screen-catalog.md)
 
-#### Functions
+#### 機能一覧
 
 - SKU単位の在庫数、ステータス分類、絞り込み、在庫調整、変更履歴を表示する。
-- 0 / 1〜5 / 6以上の境界値判定とバージョン競合（Version Conflict）について明示する。
+- 0 / 1〜5 / 6以上の境界値判定とバージョン競合について明示する。
 
-#### Important UI States
+#### 主要なUI状態
 
-| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+| 状態スラグ | 種別 | 対象者・ロール | 条件・シナリオ | 期待されるUI | 視覚要件 | 必須プラットフォーム | 視覚詳細 | 関連オラクル |
 |---|---|---|---|---|---|---|---|---|
 | `default` | baseline | `operator, admin` | `default` | 在庫一覧とステータス分類を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMININV-001`, `AC-ADMININV-001` |
 | `stock-boundaries` | boundary | `operator, admin` | `default` | 0、1〜5、6以上をそれぞれ異なるステータスとして表示する。 | `required` | `web-desktop` | `-` | `BR-ADMININV-001`, `AC-ADMININV-001` |
 
-#### Visual References
+#### 画面リファレンス
 
 ##### `default`
 
-###### Web Desktop
+###### Webデスクトップ
 
 [![SCREEN-ADMIN-INVENTORIES default web-desktop](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-desktop.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-desktop.webp)
 
-###### Web Tablet
+###### Webタブレット
 
 [![SCREEN-ADMIN-INVENTORIES default web-tablet](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-tablet.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-tablet.webp)
 
 ##### `stock-boundaries`
 
-###### Web Desktop
+###### Webデスクトップ
 
 [![SCREEN-ADMIN-INVENTORIES stock-boundaries web-desktop](../assets/screens/SCREEN-ADMIN-INVENTORIES/stock-boundaries/web-desktop.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/stock-boundaries/web-desktop.webp)
 
-## Acceptance Criteria
+## 受入基準
 
-### Criteria
+### 判定基準
 
 #### AC-ADMININV-001 — 在庫状態を正しく分類する
 
-Related BR: `BR-ADMININV-001`
+関連ビジネスルール: `BR-ADMININV-001`
 
-0、1、5、6の各境界値において、SKU一覧と商品概要（Product Overview）の表示内容および件数が分類規約と一致します。
+0、1、5、6の各境界値において、SKU一覧と商品概要の表示内容および件数が分類規約と一致します。
 
-#### AC-ADMININV-002 — 在庫履歴をAtomicに保存する
+#### AC-ADMININV-002 — 在庫履歴をアトミックに保存する
 
-Related BR: `BR-ADMININV-002`
+関連ビジネスルール: `BR-ADMININV-002`
 
 在庫調整または購入成功時に在庫数と履歴の内容が一致し、処理失敗時は双方が変更されず元の状態を維持します。
 
-## Executable Canonical Sources
+## 実行可能な正本ソース
 
 - `src/application/use-cases/admin-operations-use-cases.ts`
 - `src/domain/contracts/entities.ts`

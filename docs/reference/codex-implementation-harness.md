@@ -69,6 +69,8 @@
 
 ## 文章品質ゲートの検証
 
+文章品質の自動検査はCLIとCIで実施し、Codexの `UserPromptSubmit`／`PostToolUse`／`Stop` には品質Hookを登録しません。session baseline stateは作成せず、Stopによる完了ブロックも行いません。
+
 - `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree` を呼び出し、現在のワークツリーを開始時の HEAD と比較する。比較不能な場合は失敗として扱う。
 - `pnpm run lint:text:all` は同じチェッカーの `--all` モードを呼び出し、既存の `getWorkingTreeMarkdownPaths()` で列挙された現在の Markdown から、`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md` を除外した範囲を全件検査する。差分ゲートのフィンガープリント比較とは責務を分離する。
 - `scripts/verify` および `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存の `tests/contracts/codex-hook-contract.test.ts` と文章品質規約を追加実行するためのオプトインフラグである。通常検証における strict の意味や依存条件を変更するものではない。

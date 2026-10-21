@@ -3,7 +3,13 @@ import { createRequire } from "node:module";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path, { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
+import {
+  parseCsv,
+  validateCurriculum,
+  validateCurriculumDocumentHeadings,
+  validateCurriculumLinks,
+  validateWorkbook,
+} from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
 import { resolveTrainingAndroidSerial } from "../../scripts/training/serial-resolution";
 import {
@@ -15,6 +21,69 @@ const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
 
 describe("Training curriculum contracts", () => {
+  it("requires Japanese instructor H2 headings and one row for each rubric level", () => {
+    const rubric = [
+      "## レベル定義",
+      "",
+      "| レベル | 定義 | 成果物 |",
+      "| --- | --- | --- |",
+      "| レベル0 | できない | 記録 |",
+      "| レベル1 | 支援あり | 記録 |",
+      "| レベル2 | 自力 | 記録 |",
+      "| レベル3 | 改善提案 | 記録 |",
+      "",
+      "## Part 1修了基準",
+    ].join("\n");
+    const instructor = [
+      "公開資料という語を本文に含むだけでは見出し契約を満たさない。",
+      "## 公開資料",
+      "## 想定する契約",
+      "## 代替案",
+      "## 避けるべき例",
+    ].join("\n");
+    expect(() => validateCurriculumDocumentHeadings(rubric, instructor)).not.toThrow();
+    expect(() =>
+      validateCurriculumDocumentHeadings(rubric, instructor.replace("## 代替案", "代替案")),
+    ).toThrow(/exactly one H2 heading: 代替案/);
+    expect(() =>
+      validateCurriculumDocumentHeadings(rubric.replace("| レベル2 |", "| レベル1 |"), instructor),
+    ).toThrow(/exactly one level row: レベル1/);
+  });
+
+  it("validates local curriculum link targets and heading fragments", () => {
+    const root = mkdtempSync(join(tmpdir(), "qa-store-curriculum-links-"));
+    const sourcePath = "docs/curriculum/test-automation/part1/source.md";
+    const targetPath = "docs/curriculum/test-automation/part1/target.md";
+    const sourceAbsolutePath = join(root, sourcePath);
+    const targetAbsolutePath = join(root, targetPath);
+    try {
+      mkdirSync(join(root, "docs/curriculum/test-automation/part1"), { recursive: true });
+      writeFileSync(targetAbsolutePath, "# Target\n\n## Destination\n", "utf8");
+      writeFileSync(
+        sourceAbsolutePath,
+        "# Source\n\n## Local\n\n[Same document](#local)\n[Other document](./target.md#destination)\n",
+        "utf8",
+      );
+      expect(() => validateCurriculumLinks(root, [sourcePath])).not.toThrow();
+
+      writeFileSync(sourceAbsolutePath, "# Source\n\n[Missing target](./missing.md)\n", "utf8");
+      expect(() => validateCurriculumLinks(root, [sourcePath])).toThrow(
+        "links to missing target: ./missing.md",
+      );
+
+      writeFileSync(
+        sourceAbsolutePath,
+        "# Source\n\n[Missing fragment](./target.md#missing)\n",
+        "utf8",
+      );
+      expect(() => validateCurriculumLinks(root, [sourcePath])).toThrow(
+        "links to missing fragment: ./target.md#missing",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps the required curriculum and Training entrypoints connected", () => {
     const summary = validateCurriculum(process.cwd());
 
@@ -25,65 +94,46 @@ describe("Training curriculum contracts", () => {
 
   it("exposes the self-study contract in every canonical lesson", () => {
     const lessons = [
-      ["P1-01", "part1/01_test-automation-foundations.md", "このLessonのInput / Output"],
-      ["P1-02", "part1/02_scenario-shop-analysis.md", "本レッスンのインプット / アウトプット"],
-      ["P1-03", "part1/03_test-design-and-automation-selection.md", "このLessonのInput / Output"],
-      ["P1-04", "part1/04_playwright-foundations.md", "このレッスンのインプット / アウトプット"],
-      ["P1-05", "part1/05_playwright-e2e-practice.md", "このLessonのInput / Output"],
-      ["P1-06", "part1/06_execution-and-failure-analysis.md", "このLessonのInput / Output"],
-      ["P1-07", "part1/07_maestro-native-automation.md", "本レッスンのInput / Output"],
-      ["P1-08", "part1/08_test-management-and-maintainability.md", "このLessonのInput / Output"],
-      ["P1-09", "part1/09_part1-capstone.md", "このレッスンのインプット／アウトプット"],
-      ["P2-01", "part2/01_software-development-process.md", "このLessonのInput / Output"],
-      ["P2-02", "part2/02_git-version-control.md", "このレッスンのInput / Output"],
-      ["P2-03", "part2/03_github-pull-request-review.md", "本レッスンのInput / Output"],
-      ["P2-04", "part2/04_ci-github-actions.md", "このLessonのInput / Output"],
+      ["P1-01", "part1/01_test-automation-foundations.md", "このレッスンの入力・成果物"],
+      ["P1-02", "part1/02_scenario-shop-analysis.md", "本レッスンの入力・成果物"],
+      ["P1-03", "part1/03_test-design-and-automation-selection.md", "このレッスンの入力・成果物"],
+      ["P1-04", "part1/04_playwright-foundations.md", "このレッスンのインプット・アウトプット"],
+      ["P1-05", "part1/05_playwright-e2e-practice.md", "このレッスンの入力・成果物"],
+      ["P1-06", "part1/06_execution-and-failure-analysis.md", "このレッスンの入出力"],
+      ["P1-07", "part1/07_maestro-native-automation.md", "本レッスンの入出力"],
+      ["P1-08", "part1/08_test-management-and-maintainability.md", "本レッスンの入力・出力"],
+      ["P1-09", "part1/09_part1-capstone.md", "このレッスンの入力・成果物"],
+      ["P2-01", "part2/01_software-development-process.md", "このレッスンの入力・成果物"],
+      ["P2-02", "part2/02_git-version-control.md", "このレッスンの入出力"],
+      ["P2-03", "part2/03_github-pull-request-review.md", "本レッスンの入力・出力"],
+      ["P2-04", "part2/04_ci-github-actions.md", "このレッスンの入力・成果物"],
       ["P2-05", "part2/05_playwright-ci.md", "本レッスンのインプット／アウトプット"],
-      ["P2-06", "part2/06_native-ci-maestro.md", "このLessonのInput / Output"],
-      ["P2-07", "part2/07_ci-cd-quality-gates.md", "このLessonのInput / Output"],
-      ["P2-08", "part2/08_integration-design-capstone.md", "このLessonのInput / Output"],
+      ["P2-06", "part2/06_native-ci-maestro.md", "本レッスンの入力・成果物"],
+      ["P2-07", "part2/07_ci-cd-quality-gates.md", "本レッスンの入力・成果物"],
+      ["P2-08", "part2/08_integration-design-capstone.md", "本レッスンの入力・成果物"],
     ] as const;
-    const englishLabels = [
-      "Input",
-      "Activity",
-      "Observation",
-      "Output",
-      "Self-check",
-      "Completion",
-      "Recovery",
-      "Handoff",
+    const standardLabels = [
+      "入力",
+      "活動",
+      "観察",
+      "成果物",
+      "自己確認",
+      "完了条件",
+      "復旧",
+      "引き継ぎ",
     ];
     const localizedLabels: Record<string, readonly string[]> = {
-      "P1-02": [
-        "インプット（Input）",
-        "実施内容（Activity）",
-        "観察事項（Observation）",
-        "アウトプット（Output）",
-        "セルフチェック（Self-check）",
-        "完了基準（Completion）",
-        "リカバリー（Recovery）",
-        "引き継ぎ（Handoff）",
-      ],
       "P1-04": [
         "インプット",
-        "活動内容（Activity）",
-        "観察項目（Observation）",
+        "活動内容",
+        "観察項目",
         "アウトプット",
-        "自己確認（Self-check）",
-        "完了基準（Completion）",
-        "リカバリー手順（Recovery）",
-        "引き継ぎ（Handoff）",
+        "自己確認",
+        "完了基準",
+        "リカバリー手順",
+        "引き継ぎ",
       ],
-      "P1-09": [
-        "インプット（Input）",
-        "アクティビティ（Activity）",
-        "観察事項（Observation）",
-        "アウトプット（Output）",
-        "自己確認（Self-check）",
-        "完了基準（Completion）",
-        "リカバリ（Recovery）",
-        "引継ぎ（Handoff）",
-      ],
+      "P1-09": ["入力", "活動", "観察事項", "成果物", "自己確認", "完了条件", "復旧", "引継ぎ"],
       "P2-05": [
         "インプット",
         "アクティビティ",
@@ -100,19 +150,12 @@ describe("Training curriculum contracts", () => {
         resolve(process.cwd(), "docs/curriculum/test-automation", relativePath),
         "utf8",
       );
-      const headings = lesson
-        .split("\n")
-        .filter(
-          (line) =>
-            line.startsWith("## ") &&
-            ((line.includes("Input") && line.includes("Output")) ||
-              (line.includes("インプット") && line.includes("アウトプット"))),
-        );
+      const headings = lesson.split("\n").filter((line) => line === `## ${expectedHeading}`);
       expect(headings).toEqual([`## ${expectedHeading}`]);
 
       const section = lesson.split(`## ${expectedHeading}`, 2)[1]?.split(/^## /m, 1)[0] ?? "";
       const tableRows = (section.match(/^\|.*\|$/gm) ?? []).slice(2);
-      const expectedLabels = localizedLabels[lessonId] ?? englishLabels;
+      const expectedLabels = localizedLabels[lessonId] ?? standardLabels;
       const actualLabels = tableRows.map((row) => row.split("|")[1]?.trim() ?? "");
       expect(actualLabels).toEqual(expectedLabels);
       for (const row of tableRows) {
@@ -140,17 +183,15 @@ describe("Training curriculum contracts", () => {
       "テストにおけるリスクとは、単に「何かが起きるかもしれない」という漠然とした不安ではありません",
     );
     for (const term of [
-      "Impact",
-      "Likelihood",
-      "Priority",
+      "影響度",
+      "発生確率",
+      "優先度",
       "購入上限数を超えた状態でカートが成立してしまう",
     ]) {
       expect(riskLesson).toContain(term);
     }
     expect(riskLesson).toContain("機械的に掛け算して数値を出すこと自体が目的ではなく");
-    expect(riskLesson).toContain(
-      "それぞれの判断理由は分析メモまたはセルフチェック（Self-check）に残します",
-    );
+    expect(riskLesson).toContain("それぞれの判断理由は分析メモまたは自己確認に残します");
     expect(riskLesson).toContain("このレッスンではTypeScriptの実装コードを読みません");
     expect(riskLesson).toContain(
       "具体的なシナリオID、シード値、固定時刻など、実行可能なソースに定義された値は、このレッスンでは確認しません",
@@ -170,7 +211,7 @@ describe("Training curriculum contracts", () => {
     expect(foundationsLesson).toContain("TC-PRODUCT-001");
     expect(foundationsLesson).toContain("product-basic-shirt");
     expect(foundationsLesson).toContain("ベーシックTシャツ");
-    expect(foundationsLesson).toContain("Seedカタログ");
+    expect(foundationsLesson).toContain("初期データカタログ");
     expect(foundationsLesson).toContain("このレッスン単体で始められる導入ケース");
     expect(foundationsLesson).toContain("共通完了条件のケースとしては流用しません");
     expect(foundationsLesson).toContain("test(...)");
@@ -199,7 +240,7 @@ describe("Training curriculum contracts", () => {
     expect(practiceLesson).not.toContain("配布sampleのIDを使う場合でも");
 
     for (const term of [
-      "通常Exerciseで使う固定入口",
+      "通常演習で使う固定コマンド",
       "--suite exercise",
       "--run-context diagnostic-initial",
       "--run-context diagnostic-repaired",
@@ -220,9 +261,7 @@ describe("Training curriculum contracts", () => {
     expect(failureLesson).toContain("--test-root <exercise-copy>");
     expect(failureLesson).toContain("--root <handoff-root>");
     expect(failureLesson).toContain("テストランナーが読み込むローカルのコード実行ルート");
-    expect(failureLesson).toContain(
-      "提供された正規ヘルパー（Canonical Helper）は受講者の成果物ではないため",
-    );
+    expect(failureLesson).toContain("提供された正規ヘルパーは受講者の成果物ではないため");
 
     expect(maintenanceLesson).toContain("決定的なC10演習");
     expect(maintenanceLesson).toContain("c10-improved");
@@ -301,7 +340,7 @@ describe("Training curriculum contracts", () => {
       "受講者が管理する `training/playwright/` 配下のコードのみ",
       "ワークブック、レシート、エビデンス、セルフチェック、ワークフロー定義、プロダクトコード",
       "トレーニングコピー側で削除した受講者ファイルはハンドオフ環境側からも削除",
-      "ファイル名の変更（リネーム）は旧パスの削除と新パスの追加として反映",
+      "ファイル名の変更は旧パスの削除と新パスの追加として反映されます",
     ]) {
       expect(playwrightCiLesson).toContain(term);
     }
@@ -318,7 +357,7 @@ describe("Training curriculum contracts", () => {
     expect(capstoneLesson).toContain("Training Copy上でCIが実際に検証した受講者コード");
     const syncIndex = capstoneLesson.indexOf(syncHandoffCommand);
     const receiptIndex = capstoneLesson.indexOf(
-      "CI Execution Receiptを `<handoff-root>/receipts/` へ配置し",
+      "CI実行レシートを `<handoff-root>/receipts/` へ配置し",
     );
     const completionIndex = capstoneLesson.indexOf(
       "training:completion:check -- --mode part2 --root",

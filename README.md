@@ -4,57 +4,57 @@ Playwrightを中心としたテスト自動化の学習・検証を目的とし�
 
 商品の検索、カート操作、購入、決済失敗、在庫競合、注文・配送、レビューから、商品・在庫・ユーザー管理に至るまで、一般的なECサイトおよびSaaS型管理画面における主要なユースケースを網羅して再現しています。
 
-テストを安定して繰り返し実行できるように、固定シード（Seed）、データベースリセット、テストクロック（Test Clock）、決済遅延シミュレーション、内部状態確認用API（Inspection API）を備えています。
+テストを安定して繰り返し実行できるように、固定シード、データベースリセット、テストクロック、決済遅延シミュレーション、内部状態確認用APIを備えています。
 
 > [!IMPORTANT]
 > このアプリはテスト自動化の学習・検証専用です。実際の商品の売買、実決済、配送手配、外部APIとの通信は行われません。
 
-Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-automation-store.pages.dev/)
+本番公開Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-automation-store.pages.dev/)
 
 ## このアプリで学べること
 
-- Playwrightを用いたストアフロント（Storefront）および管理画面のE2Eテスト
+- Playwrightを用いたストアフロントおよび管理画面のE2Eテスト
 - guest、customer、operator、adminの各権限・ロール別テスト
 - 商品検索、フィルター絞り込み、カート、チェックアウト、注文・配送の状態遷移テスト
 - 価格変更、在庫不足、バージョン競合などの境界値・異常系テスト
-- 決済成功、利用拒否（カードエラー）、再試行、中断処理再開のテスト
+- 決済成功、カード利用拒否、再試行、中断処理再開のテスト
 - シード値、リセット、テストクロックを活用した決定論的なテスト手法
 - UI表示とIndexedDBの内部状態を組み合わせた検証
 - アクセシビリティ、キーボード操作、モバイル表示境界の検証
 
 ## 対象範囲
 
-現在の実装はWebのPhase 1と、NativeのPhase 2（Guestのストアフロント／カートおよびCustomerの購入フロー）を対象としています。Native環境での管理画面（Admin）およびゲスト購入（Guest Checkout）は対象外です。
+現在の実装はWebのPhase 1と、NativeのPhase 2（ゲストのストアフロント／カートおよびカスタマーの購入フロー）を対象としています。Native環境での管理画面およびゲスト購入は対象外です。
 
 | 項目 | 内容 |
 |---|---|
 | プラットフォーム | デスクトップ / モバイル Web |
 | ストアフロント | ホーム、商品一覧、検索、カテゴリー、商品詳細、カート |
 | カスタマー | アカウント、配送先管理、チェックアウト、注文履歴、レビュー |
-| 管理画面（Admin console） | 概要（Overview）、商品管理、カテゴリー、ブランド、在庫、注文、レビュー、ユーザー管理 |
+| 管理画面 | 概要、商品管理、カテゴリー、ブランド、在庫、注文、レビュー、ユーザー管理 |
 | データベース | IndexedDB + Dexie |
-| 決済 | 決定論的なローカルモック（Local Mock） |
+| 決済 | 決定論的なローカルモック |
 | E2Eテスト | Playwright |
 | ホスティング | Cloudflare Pages |
 | 管理画面の動作要件 | 1024px以上のデスクトップWeb |
-| 購入可能なロール | 有効（active）なカスタマー（customer） |
-| Native カスタマー機能 | Guestホーム、カタログ、検索、カテゴリー、商品詳細、バリエーション選択、カート、ログイン、アカウント、配送先管理、チェックアウト、決済、注文履歴、レビュー |
-| Native データベース | SQLite（Customer専用スキーマ） + Native KV |
+| 購入可能なロール | 有効（`active`）なカスタマー（`customer`） |
+| Nativeカスタマー機能 | ゲストホーム、カタログ、検索、カテゴリー、商品詳細、バリエーション選択、カート、ログイン、アカウント、配送先管理、チェックアウト、決済、注文履歴、レビュー |
+| Native データベース | SQLite（カスタマー専用スキーマ） + Native KV |
 | Native アプリ識別子 | Android `com.ryuyoshikawa.scenarioshop` / iOS `com.ryuyoshikawa.scenarioshop` |
 
 ## 主な機能
 
-### ストアフロント（Storefront）
+### ストアフロント
 
 - ホーム画面
 - 商品一覧、検索、インクリメンタル検索候補
-- カテゴリー、ブランド、価格帯、評価、セール有無による絞り込み（フィルター）
+- カテゴリー、ブランド、価格帯、評価、セール有無による絞り込み
 - 商品詳細、画像ギャラリー、バリエーション（サイズ・カラー等）選択
 - ゲスト用カート
 - ログイン、新規会員登録
 - 利用規約、プライバシーポリシー、特定商取引法に基づく表記
 
-### カスタマー（Customer）
+### カスタマー
 
 - プロフィール編集
 - 配送先の登録・編集・削除
@@ -64,7 +64,7 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 - 注文履歴一覧、注文詳細
 - レビューの投稿・編集・削除
 
-### オペレーター / 管理者（Operator / Admin）
+### オペレーター・管理者
 
 - 管理ダッシュボード（概要）
 - 商品・SKUの登録および編集
@@ -75,7 +75,7 @@ Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-au
 - 注文の準備中、発送済み、配達完了ステータス更新
 - 投稿レビューの公開状態管理
 
-### 管理者（Admin専用）
+### 管理者専用
 
 - ユーザー一覧・詳細
 - customerロールの会員ランク変更
@@ -110,11 +110,11 @@ codex --version
 
 ### OpenCode Zen（個人のシークレットを使用）
 
-通常利用では、各利用者が自身のOpenCode Zen APIキーを取得し、個人のCodespacesシークレット `OPENCODE_API_KEY` に登録します。設定手順は[Codespaces利用ガイドのSecret登録手順](docs/guides/codespaces.md#1-利用前にopencode-zenのsecretを登録する)を参照してください。`opencode` を起動した後は、利用時点で無料（Free）と確認できたモデルのみを選択してください。モデルIDはリポジトリ設定に固定されていません。なお、PR #188で実施したキー不要の無料モデル検証は、通常のシークレット運用とは異なります。
+通常利用では、各利用者が自身のOpenCode Zen APIキーを取得し、個人のCodespacesシークレット `OPENCODE_API_KEY` に登録します。設定手順は[Codespaces利用ガイドのSecret登録手順](docs/guides/codespaces.md#1-利用前にopencode-zenのsecretを登録する)を参照してください。`opencode` を起動した後は、利用時点で無料と確認できたモデルのみを選択してください。モデルIDはリポジトリ設定に固定されていません。なお、PR #188で実施したキー不要の無料モデル検証は、通常のシークレット運用とは異なります。
 
 ### Codex
 
-リモートのCodespaceでは、ChatGPT側でCodex CLIのデバイスコード認証（device-code）を有効にした後、次のコマンドでChatGPTへログインできます。
+リモートのCodespaceでは、ChatGPT側でCodex CLIのデバイスコード認証を有効にした後、次のコマンドでChatGPTへログインできます。
 
 ```bash
 codex login --device-auth
@@ -133,25 +133,25 @@ Webアプリを `pnpm run start:web` で起動するとポート8081番を利用
 pnpm exec playwright codegen http://127.0.0.1:8081
 ```
 
-Playwright拡張機能は導入されていますが、Testingサイドバーや `Record new`、`Record at cursor` などの拡張個別機能の動作はPR #188時点では未確認です。CLI版の `codegen` は正常動作を確認済みです。Codespaces環境、認証、拡張機能、GUI録画の詳細な検証条件は[Codespaces / OpenCode / Codex Plan](docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)および[IDE / Playwright Plan](docs/plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)を参照してください。
+Playwright拡張機能は導入されていますが、Testingサイドバーや `Record new`、`Record at cursor` などの拡張個別機能の動作はPR #188時点では未確認です。CLI版の `codegen` は正常動作を確認済みです。Codespaces環境、認証、拡張機能、GUI録画の詳細な検証条件は[Codespaces・OpenCode・Codex 計画書](docs/plans/2026-10-02_173400_codespaces-opencode-devcontainer.md)および[IDE・Playwright 計画書](docs/plans/2026-10-04_160000_codespaces-ide-playwright-recording.md)を参照してください。
 
 ## 仕様とAgentic QA
 
-- 正式製品仕様（Normative Product Specification）: [`docs/spec/README.md`](docs/spec/README.md)
-- 本番公開仕様（Production Specification）: [https://ec-test-automation-store.pages.dev/docs/spec/](https://ec-test-automation-store.pages.dev/docs/spec/)
+- 正式製品仕様: [`docs/spec/README.md`](docs/spec/README.md)
+- 本番公開仕様: [https://ec-test-automation-store.pages.dev/docs/spec/](https://ec-test-automation-store.pages.dev/docs/spec/)
 - Agentic QA実行契約: [`QA_AGENT.md`](QA_AGENT.md)
 - Agentic QAワークフロー: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
-- 学習者向けセーフチャレンジ（Learner-safe Challenge）: [`training/agentic-qa/`](training/agentic-qa/)
+- 学習者向けセーフチャレンジ: [`training/agentic-qa/`](training/agentic-qa/)
 
-## コントリビューション / セキュリティ
+## コントリビューション・セキュリティ
 
-- 不具合報告: [不具合報告 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml)
-- 機能要望: [機能要望 Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml)
-- プルリクエスト: [`CONTRIBUTING.md`](CONTRIBUTING.md)とPull Request用テンプレートを確認してください。
+- 不具合報告: [不具合報告 Issueフォーム](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml)
+- 機能要望: [機能要望 Issueフォーム](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml)
+- プルリクエスト: [`CONTRIBUTING.md`](CONTRIBUTING.md)とプルリクエスト用テンプレートを確認してください。
 - 文書作成ルール: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md) を確認してください。
 - セキュリティ脆弱性の報告: 公開IssueやPull Requestには投稿せず、[`SECURITY.md`](SECURITY.md)に記載されているGitHub Private Vulnerability Reportingを使用してください。
 
-## テスト自動化カリキュラム / Training
+## テスト自動化カリキュラム
 
 - カリキュラム案内: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)
 - 本番公開カリキュラム: [https://ec-test-automation-store.pages.dev/docs/curriculum/](https://ec-test-automation-store.pages.dev/docs/curriculum/)
@@ -160,7 +160,7 @@ Playwright拡張機能は導入されていますが、Testingサイドバーや
 - Training Web プロジェクト構成: `training-chromium` / `training-mobile-chromium`
 - Training Native ベースライン検証: `pnpm run training:native:baseline`（Androidランタイムのみ）
 
-本番向け回帰テスト（Formal Regression）とトレーニング用テスト（Training Test）は、それぞれ別の設定ファイル（Config）およびディレクトリで管理しています。現在のNative環境における品質保証範囲は、Androidが「ビルド＋ランタイムE2Eテスト」、iOSは「ビルド確認のみ（Build-only）」です。iOS環境でのランタイム動作やMaestroテストの成功（PASS）は、現時点では正式な保証範囲として扱いません。
+本番向け回帰テストとトレーニング用テストは、それぞれ別の設定ファイルおよびディレクトリで管理しています。現在のNative環境における品質保証範囲は、Androidが「ビルド＋ランタイムE2Eテスト」、iOSは「ビルド確認のみ」です。iOS環境でのランタイム動作やMaestroテストの成功（PASS）は、現時点では正式な保証範囲として扱いません。
 
 依存パッケージのバージョン指定は [`package.json`](./package.json)、実際に解決される固定バージョンは [`pnpm-lock.yaml`](./pnpm-lock.yaml) を参照してください。
 
@@ -196,7 +196,7 @@ pnpm run build:web
 
 フォントアセットの準備、商品画像マニフェストの生成・検証、Expo Web Exportが順次実行され、成果物が `dist/` ディレクトリへ出力されます。
 
-本番向けビルド（Production Build）は、CI/CD環境で本番用の環境変数を設定した上で実行します。
+本番向けビルドは、CI/CD環境で本番用の環境変数を設定した上で実行します。
 
 ### Nativeアプリのローカルビルド
 
@@ -208,9 +208,9 @@ pnpm run check:native-route-dependencies
 pnpm exec expo prebuild
 ```
 
-#### Windows環境 / Androidビルド
+#### Windows環境・Androidビルド
 
-Android Studio、JDK、Android SDK、Platform Tools、およびエミュレーターまたは実機を準備し、パッケージ名 `com.ryuyoshikawa.scenarioshop` を対象に開発用（Dev）またはリリース用（Release）のビルドをローカルで実行します。
+Android Studio、JDK、Android SDK、Platform Tools、およびエミュレーターまたは実機を準備し、パッケージ名 `com.ryuyoshikawa.scenarioshop` を対象に開発用またはリリース用のビルドをローカルで実行します。
 
 ```powershell
 pnpm run build:native:android
@@ -221,36 +221,36 @@ cd ..
 adb install -r android\app\build\outputs\apk\release\app-release.apk
 ```
 
-Release APKは、端末側で管理するGradle signing configやキーストア（keystore）を使用して署名します。Expoの生成テンプレートは未設定時にdebug keystoreを使用するため、正式なリリース署名を確認する場合は、Android StudioまたはGradleにローカルキーストアを設定してください。キーストア本体、パスワード、`*.jks`、`*.keystore` ファイルはリポジトリに保存しません。`expo run:android --variant release` が生成するインストール用成果物と、署名済み `assembleRelease` APKの検証結果は分けて記録します。
+Release APKは、端末側で管理するGradle signing configやキーストアを使用して署名します。Expoの生成テンプレートは未設定時にdebug keystoreを使用するため、正式なリリース署名を確認する場合は、Android StudioまたはGradleにローカルキーストアを設定してください。キーストア本体、パスワード、`*.jks`、`*.keystore` ファイルはリポジトリに保存しません。`expo run:android --variant release` が生成するインストール用成果物と、署名済み `assembleRelease` APKの検証結果は分けて記録します。
 
-#### macOS環境 / iOSビルド
+#### macOS環境・iOSビルド
 
-Xcode、Command Line Tools、CocoaPods、iOS Simulatorを準備し、バンドルID `com.ryuyoshikawa.scenarioshop` を対象に開発用（Dev）またはリリース用（Release）のSimulator向けビルドをローカルで実行します。
+Xcode、Command Line Tools、CocoaPods、iOS Simulatorを準備し、バンドルID `com.ryuyoshikawa.scenarioshop` を対象に開発用またはリリース用のSimulator向けビルドをローカルで実行します。
 
 ```bash
 pnpm run build:native:ios
 pnpm run build:native:ios:release
 ```
 
-必要に応じて、Xcodeから個人所有のiPhone実機へインストールして実行します。個人端末での検証は開発用署名（Development Signing）の範囲に限定し、配布用IPAの作成やストアへの提出作業は行いません。
+必要に応じて、Xcodeから個人所有のiPhone実機へインストールして実行します。個人端末での検証は開発用署名の範囲に限定し、配布用IPAの作成やストアへの提出作業は行いません。
 
 #### Native実環境の検証手順
 
 Androidの正式ランタイムゲートでは、アプリのインストール・起動後に以下の順序で実操作を行います。
 
 1. ホーム → 商品一覧 / 検索 / カテゴリー → 商品詳細 → バリエーション選択 → 「カートに追加」
-2. カート画面で数量変更・削除・空状態（Empty State）の表示を確認
-3. アプリ再起動後にゲスト識別子（Guest Identity）とカート状態が正しく復元されることを確認
-4. ローカルビルドおよび自動化ビルドにおいて、テストコントロールのディープリンク（Deep Link）とReady / Errorシグナルを確認
-5. 本番検証用ビルド（production validation）において、テストコントロールやテストハーネスが呼び出し不能であることを確認
+2. カート画面で数量変更・削除・空状態の表示を確認
+3. アプリ再起動後にゲスト識別子とカート状態が正しく復元されることを確認
+4. ローカルビルドおよび自動化ビルドにおいて、テストコントロールのディープリンクとReady / Errorシグナルを確認
+5. 本番検証用ビルドにおいて、テストコントロールやテストハーネスが呼び出し不能であることを確認
 
-iOSの正式CIはSimulator向けビルド確認のみ（Build-only）です。iOSでは自動化向け（Automation）および本番検証向け（Production-validation）のRelease `.app` ビルド、ビルドメタデータ、プロダクションバンドルガード（Production Bundle Guard）、成果物のバリデーションを必須（Required）として検証します。Simulatorへのインストール、アプリ起動、Maestroによる操作、実環境での `expo-sqlite` ランタイム動作は正式ゲートには含めません。
+iOSの正式CIはSimulator向けビルド確認のみです。iOSでは自動化向けおよび本番検証向けのRelease `.app` ビルド、ビルドメタデータ、プロダクションバンドルガード、成果物のバリデーションを必須として検証します。Simulatorへのインストール、アプリ起動、Maestroによる操作、実環境での `expo-sqlite` ランタイム動作は正式ゲートには含めません。
 
-WebとNativeの表示比較は、標準解像度 `390×844`、追加で最小解像度 `320×700` を対象とします。ホーム、カタログ、商品詳細、カートの情報配置順序、商品画像の縦横比、カラー、スペーシング、角丸（Radius）、タイポグラフィには共通のデザイントークンを使用し、プラットフォーム固有のヘッダー、ナビゲーション、Nativeコンポーネントによる差異のみを許容します。Native UIの実装において、WebのDOM、CSS、React Ariaコンポーネントを再利用することはありません。
+WebとNativeの表示比較は、標準解像度 `390×844`、追加で最小解像度 `320×700` を対象とします。ホーム、カタログ、商品詳細、カートの情報配置順序、商品画像の縦横比、カラー、スペーシング、角丸、タイポグラフィには共通のデザイントークンを使用し、プラットフォーム固有のヘッダー、ナビゲーション、Nativeコンポーネントによる差異のみを許容します。Native UIの実装において、WebのDOM、CSS、React Ariaコンポーネントを再利用することはありません。
 
 `pnpm run test:repository` には、Node.js 24組み込みのSQLiteを使用したNative Customer Adapterの実際のSQL、外部キー制約（FK）、シード、カタログ、カート契約テストが含まれます。ただし、これはAndroid実機やiOS Simulator上の `expo-sqlite` での実行確認を代替するものではありません。
 
-自動化ビルドおよび開発ビルドの `/admin/test-control` には、専用のDBとKV名前空間を用いて定義済みのカスタマー契約、FK違反、カート操作（追加・更新・削除）、アプリケーションDBの不変性を検証するNative Contract Harnessが用意されています。「Native contract passed」は、クリーンアップとアプリケーションDBの整合性確認がすべて成功した後にのみ表示されます。本番向けビルドでは、モジュール解決（Module Resolution）の仕組みにより、テストコントロールおよびハーネスの画面と実装コードが成果物から完全に除外されます。
+自動化ビルドおよび開発ビルドの `/admin/test-control` には、専用のDBとKV名前空間を用いて定義済みのカスタマー契約、FK違反、カート操作（追加・更新・削除）、アプリケーションDBの不変性を検証するNative Contract Harnessが用意されています。「Native contract passed」は、クリーンアップとアプリケーションDBの整合性確認がすべて成功した後にのみ表示されます。本番向けビルドでは、モジュール解決の仕組みにより、テストコントロールおよびハーネスの画面と実装コードが成果物から完全に除外されます。
 
 テストコントロールはローカルビルドおよび自動化ビルドでのみ利用可能です。
 
@@ -291,7 +291,7 @@ powershell -NoProfile -ExecutionPolicy Bypass `
 testpass1
 ```
 
-| 用途 | メールアドレス | ロール（Role） | ランク / ステータス |
+| 用途 | メールアドレス | ロール | ランク / ステータス |
 |---|---|---|---|
 | 一般会員 | `regular@example.com` | customer | regular / active |
 | ゴールド会員 | `gold@example.com` | customer | gold / active |
@@ -301,11 +301,11 @@ testpass1
 | 店舗担当者 | `operator@example.com` | operator | active |
 | 管理者 | `admin@example.com` | admin | active |
 
-`suspended`（利用停止）および `withdrawn`（退会済み）のアカウントは、ログイン拒否やアクセス制限のテストに使用します。
+利用停止（`suspended`）および退会済み（`withdrawn`）のアカウントは、ログイン拒否やアクセス制限のテストに使用します。
 
 ## シードシナリオ一覧
 
-テストコントロール画面、またはPlaywrightのテストフィクスチャ（Fixture）から、検証目的に応じた初期状態へデータベースをリセットできます。
+テストコントロール画面、またはPlaywrightのテストフィクスチャから、検証目的に応じた初期状態へデータベースをリセットできます。
 
 代表的なシナリオは以下のとおりです。
 
@@ -327,7 +327,7 @@ testpass1
 | `payment-processing` | 決済処理中の状態 |
 | `checkout-resume` | チェックアウト処理の中断と再開 |
 | `cart-version-invalidates-checkout` | カートバージョン不一致によるチェックアウト無効化 |
-| `product-aggregate-edit` | 商品集約（Aggregate）データの編集 |
+| `product-aggregate-edit` | 商品集約データの編集 |
 | `cross-role-product-lifecycle` | 管理者による商品登録から購入・レビューまでのロール横断フロー |
 | `product-delete-blocked` | 制約により商品削除が拒否される状態 |
 | `admin-bulk-partial-failure` | 一括操作における一部失敗の検証 |
@@ -335,7 +335,7 @@ testpass1
 
 全シナリオの完全な一覧は [`src/seeds/metadata.ts`](./src/seeds/metadata.ts) を参照してください。
 
-## テスト用API（Test API）
+## テスト用API
 
 ローカルビルドおよび自動化ビルド環境では、ブラウザのグローバルオブジェクト `window.__TEST_API__` を通じてテスト制御APIを利用できます。
 
@@ -356,9 +356,9 @@ testpass1
 - `inspectReviewSummary(productId)`  
   商品のレビュー集計状態を取得します。
 
-本番向けビルド（Production Build）にはTest APIは公開されません。
+本番向けビルドにはTest APIは公開されません。
 
-ローカルまたは自動化ビルド環境で管理者（admin）としてログインしている場合、`/admin/test-control` 画面からシナリオ切り替え、基準時刻、決済遅延をGUI上で変更できます。
+ローカルまたは自動化ビルド環境で管理者（`admin`）としてログインしている場合、`/admin/test-control` 画面からシナリオ切り替え、基準時刻、決済遅延をGUI上で変更できます。
 
 ### データベースリセット時の注意事項
 
@@ -404,7 +404,7 @@ pnpm run test:contracts
 pnpm run test
 ```
 
-### Playwright（E2Eテスト）
+### Playwright E2Eテスト
 
 Chromiumブラウザのみを対象とする場合は、Chromiumをインストールします。
 
@@ -436,23 +436,23 @@ pnpm run test:e2e:smoke:webkit
 pnpm run verify
 ```
 
-`verify` スクリプトは、フォーマットチェック、Lint、型チェック（Typecheck）、商品画像マニフェスト検証、セキュリティチェック、Vitest、Webアプリのビルドを一括で実行します。PlaywrightによるE2Eテストは含まれないため、必要に応じて個別に実行してください。
+`verify` スクリプトは、フォーマットチェック、Lint、型チェック、商品画像マニフェスト検証、セキュリティチェック、Vitest、Webアプリのビルドを一括で実行します。PlaywrightによるE2Eテストは含まれないため、必要に応じて個別に実行してください。
 
 ### Nativeアプリの検証状況（2026-08-09時点）
 
 #### 検証完了・成功項目
 
-- ディープリンク純粋関数、Native向けシナリオ許可リスト、未ログイン（Guest）での更新拒否、リセット時のロールバック、テストハーネスのシグナル順序、バリエーション未選択時の単体／契約／コンポーネントテスト
-- Native Customer向けのアプリケーションユースケース共通配線、本番向けモジュール解決、生成バンドルに対するプロダクションバンドルガードの適用確認
+- ディープリンク純粋関数、Native向けシナリオ許可リスト、未ログイン（ゲスト）での更新拒否、リセット時のロールバック、テストハーネスのシグナル順序、バリエーション未選択時の単体／契約／コンポーネントテスト
+- Nativeカスタマー向けのアプリケーションユースケース共通配線、本番向けモジュール解決、生成バンドルに対するプロダクションバンドルガードの適用確認
 - Nativeアセット生成差分の検証、型チェック、Lint、セキュリティスキャン、Node組み込みSQLite／Web／Nativeの各種回帰テスト（個別の結果は実行ログおよび成果物を参照）
 - Android／iOSのCIワークフロー定義、Androidビルド／ランタイム検証、iOSビルドオンリー／成果物アップロード／最終検証のワークフロー契約テスト
 - iOSビルドにおいて、ソースコード側のExpoメタデータ解決に加えて、生成された `.app` 内の `EXConstants.bundle/app.config` に含まれる `appEnvironment`、`buildKind`、`testMode` を直接検証し、本番マーカーガードと固定名アセットのアップロードを確認
 - Android実機環境において、修正後の自動化向けAPKビルド `20260808-231500-android-postfix-build` の生成、インストール、スモークテスト、ゲストカート数量1からログイン後統合で数量2になるケースを含む購入テスト（1/1 PASS）、決済再試行、チェックアウト再開、レビュー投稿、ランタイム検証（5/5 PASS）、境界値検証（5/5 PASS）を完了。修正後の本番向けAPKについても、短縮ワークスペース条件下でのビルド、マーカーガード、インストール、スモークテスト、本番検証（1/1 PASS）を完了。Web Chromiumでの回帰テストは27/27件成功（PASS）。
-- 最終自己レビューにおいて、Native SQLiteの行データ（Row）、Enum、集計値の処理をランタイムパーサーへ統一。カスタマートランザクションスコープの許可リスト化と、管理者用プレースホルダーの安全側（fail-close）境界設定を追加。全テスト（Unit: 65件、Integration: 95件、Repository: 31件、Web Component: 76件、Native Component: 38件、Contract: 158件）、型チェック、Prettier整形がすべて成功（PASS）。
+- 最終自己レビューにおいて、Native SQLiteの行データ、Enum、集計値の処理をランタイムパーサーへ統一。カスタマートランザクションスコープの許可リスト化と、管理者用プレースホルダーの安全側（fail-close）境界設定を追加。全テスト（Unit: 65件、Integration: 95件、Repository: 31件、Web Component: 76件、Native Component: 38件、Contract: 158件）、型チェック、Prettier整形がすべて成功（PASS）。
 
 #### 未実施・保留項目
 
-- Windows環境にはXcodeおよびiOS Simulatorが存在しないため、ローカルでのiOS Simulatorビルドは未実施。現行の正式CIでは、iOSは自動化ビルドと本番向けビルドの独立実行、ビルド時メタデータと本番ガードの検証、成果物アップロードまでを必須（Required）とし、Simulator上でのランタイム実行、Maestro操作、実 `expo-sqlite` ランタイム動作は正式ゲートの対象外。
+- Windows環境にはXcodeおよびiOS Simulatorが存在しないため、ローカルでのiOS Simulatorビルドは未実施。現行の正式CIでは、iOSは自動化ビルドと本番向けビルドの独立実行、ビルド時メタデータと本番ガードの検証、成果物アップロードまでを必須とし、Simulator上でのランタイム実行、Maestro操作、実 `expo-sqlite` ランタイム動作は正式ゲートの対象外。
 - 現在の環境からは、修正コミットに対するGitHubホストのNative CI実行結果、最新コミットでの `native-ci / verify` の成否、リモート成果物のダウンロード確認が未完了。ローカルでの静的検証およびAndroid実機での成功結果をもって、リモートCIの成功とはみなさない。
 - EAS Cloud Build、EAS Workflow、EAS Submit、各ストアへの公開作業、およびPR本文の自動更新はPhase 2のスコープ外。
 
@@ -505,7 +505,7 @@ Presentation層からIndexedDBを直接操作することは禁止されてお�
 | `src/domain/` | ドメインモデル、ビジネスルール、ドメインサービス |
 | `src/infrastructure/` | Dexieなどの外部アダプター実装 |
 | `src/seeds/` | 初期シードデータおよび各種シナリオデータ |
-| `src/test-controls/` | テスト用制御API（Test API） |
+| `src/test-controls/` | テスト用制御API |
 | `tests/` | Vitestによる単体・結合・契約テスト |
 | `e2e/web/` | PlaywrightによるE2Eテスト |
 | `scripts/` | ビルド、セキュリティスキャン、アセット検証用スクリプト |
@@ -516,7 +516,7 @@ AIエージェントによる開発作業ルールについては、[`AGENTS.md`
 
 ## CI/CDパイプライン
 
-プルリクエスト（Pull Request）作成時には、主に以下の項目を自動検証します。
+プルリクエスト作成時には、主に以下の項目を自動検証します。
 
 - コードフォーマット、Lint、TypeScript型チェック
 - 商品画像マニフェストの整合性
@@ -529,7 +529,7 @@ AIエージェントによる開発作業ルールについては、[`AGENTS.md`
 - モバイル表示における管理画面の境界テスト
 - デスクトップ、タブレット、モバイル、極小モバイルの各画面幅におけるUIスクリーンショット差分確認
 
-mainブランチへのPush時、定期実行、手動実行時には、上記に加えてMobile Chromium、ロール横断フロー、Firefox、WebKit環境でのスモーク検証も実行されます。
+mainブランチへのプッシュ時、定期実行、手動実行時には、上記に加えてMobile Chromium、ロール横断フロー、Firefox、WebKit環境でのスモーク検証も実行されます。
 
 Cloudflareのデプロイ用シークレットが設定されている環境では、プルリクエストごとのプレビュー環境構築およびmainブランチへの本番自動デプロイが実行されます。
 
@@ -545,13 +545,13 @@ Cloudflareのデプロイ用シークレットが設定されている環境で�
 - 複数端末間や異なるブラウザ間でのデータ同期には対応していません。
 - バックエンドAPIの通信障害やネットワーク遅延、サーバーサイド認可エラーの学習はスコープ外です。
 - 商品画像はリポジトリに静的に同梱されたアセットから選択する仕様となっており、管理画面からの新規画像ファイルアップロードには対応していません。
-- ゲスト購入、クーポン、ポイント、お気に入り（Wishlist）、返品、返金機能は対象外です。
+- ゲスト購入、クーポン、ポイント、お気に入り、返品、返金機能は対象外です。
 - 管理画面は画面幅1024px以上のデスクトップ環境を前提としています。
 
 本アプリは、実サービスのセキュリティ要件、バックエンド構築、外部サービス連携を学習する教材としては適していません。主な学習対象は、Web UIの自動操作、クライアントサイドの状態管理、ビジネスロジックの検証、ロール別の権限操作、アクセシビリティテストの自動化です。
 
 ## Native対応の詳細
 
-Native版はPhase 2として開発されており、ゲスト向けのホーム、カタログ、商品検索、カテゴリー、商品詳細、バリエーション選択、カート、利用ガイド／法表記に加え、ログインユーザー向けのセッション管理、プロフィール・配送先編集、チェックアウト／モック決済、注文履歴確認、レビュー機能を実装しています。Native環境での管理画面（Admin）およびゲスト購入は対象外です。
+Native版はPhase 2として開発されており、ゲスト向けのホーム、カタログ、商品検索、カテゴリー、商品詳細、バリエーション選択、カート、利用ガイド／法表記に加え、ログインユーザー向けのセッション管理、プロフィール・配送先編集、チェックアウト／モック決済、注文履歴確認、レビュー機能を実装しています。Native環境での管理画面およびゲスト購入は対象外です。
 
-Native版はWeb版とは分離されたルート（Root / Route）、UIシェル、Customer専用のSQLiteスキーマ、Native KV、PBKDF2暗号化アダプターを使用します。カラー、8pxグリッド、角丸、タイポグラフィ、タッチターゲットサイズ、商品画像の縦横比は `src/presentation/design/tokens.ts` を共通契約とし、Native固有のスタイルおよびプリミティブコンポーネントへ接続しています。現行の開発検証では、Android実機環境における購入フローおよび本番検証ビルドの正常動作を確認済みです。iOSの正式な保証範囲はビルド確認のみ（Build-only）であり、修正コミットに対するGitHubホストのリモートCI検証は未完了のため、リモートでの完了判定には含めていません。EASについては設定ファイルの静的検証のみを実施し、クラウド上でのビルド・ワークフロー実行・ストア提出は行いません。
+Native版はWeb版とは分離されたルート、UIシェル、カスタマー専用のSQLiteスキーマ、Native KV、PBKDF2暗号化アダプターを使用します。カラー、8pxグリッド、角丸、タイポグラフィ、タッチターゲットサイズ、商品画像の縦横比は `src/presentation/design/tokens.ts` を共通契約とし、Native固有のスタイルおよびプリミティブコンポーネントへ接続しています。現行の開発検証では、Android実機環境における購入フローおよび本番検証ビルドの正常動作を確認済みです。iOSの正式な保証範囲はビルド確認のみであり、修正コミットに対するGitHubホストのリモートCI検証は未完了のため、リモートでの完了判定には含めていません。EASについては設定ファイルの静的検証のみを実施し、クラウド上でのビルド・ワークフロー実行・ストア提出は行いません。

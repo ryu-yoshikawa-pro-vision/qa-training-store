@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { isNormativeSpecPath } from "./spec/build-spec";
+import { isExternalLink, parseMarkdownFile } from "./spec/markdown";
 import { collectNormativeSpecReferences } from "./spec/validate-spec";
 import { validateTrainingWorkflow } from "./training/workflow-contract";
 import { WORKBOOK_HEADERS } from "./training/workbook-schema";
@@ -61,6 +62,48 @@ function assertContains(text: string, token: string, context: string): void {
   if (!text.includes(token)) fail(`${context} is missing: ${token}`);
 }
 
+function headingsAtLevel(text: string, level: number): string[] {
+  const prefix = "#".repeat(level);
+  const headings: string[] = [];
+  let inFence = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const match = new RegExp(`^${prefix}(?!#)\\s+(.+?)\\s*$`).exec(line);
+    if (match?.[1] !== undefined) headings.push(match[1].replace(/\s+#+\s*$/, "").trim());
+  }
+  return headings;
+}
+
+export function validateCurriculumDocumentHeadings(rubric: string, instructor: string): void {
+  const rubricLines = rubric.split(/\r?\n/);
+  const levelDefinition = rubricLines.findIndex((line) => line.trim() === "## レベル定義");
+  if (levelDefinition === -1) fail("Competency Rubric is missing H2 heading: レベル定義");
+  const nextSection = rubricLines.findIndex(
+    (line, index) => index > levelDefinition && /^##(?!#)\s+/.test(line),
+  );
+  const levelRows = rubricLines.slice(
+    levelDefinition + 1,
+    nextSection === -1 ? undefined : nextSection,
+  );
+  for (const level of ["レベル0", "レベル1", "レベル2", "レベル3"]) {
+    const count = levelRows.filter((line) =>
+      new RegExp(`^\\|\\s*${level}\\s*\\|`).test(line),
+    ).length;
+    if (count !== 1) fail(`Competency Rubric must contain exactly one level row: ${level}`);
+  }
+
+  const requiredInstructorSections = ["公開資料", "想定する契約", "代替案", "避けるべき例"];
+  const instructorHeadings = headingsAtLevel(instructor, 2);
+  for (const section of requiredInstructorSections) {
+    const count = instructorHeadings.filter((heading) => heading === section).length;
+    if (count !== 1) fail(`Instructor Reference must contain exactly one H2 heading: ${section}`);
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -78,16 +121,33 @@ function parsePackageScripts(text: string): Record<string, string> {
   return result;
 }
 
-function validateCurriculumLinks(rootDir: string): void {
-  for (const relativePath of REQUIRED_CURRICULUM_FILES) {
-    const text = read(rootDir, relativePath);
-    const links = [...text.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1] ?? "");
-    for (const link of links) {
-      if (/^(?:https?:|mailto:)/i.test(link)) continue;
-      const [target] = link.split("#", 1);
-      if (!target) continue;
-      const absoluteTarget = path.resolve(rootDir, path.dirname(relativePath), target);
-      if (!fs.existsSync(absoluteTarget)) fail(`${relativePath} links to missing target: ${link}`);
+export function validateCurriculumLinks(
+  rootDir = process.cwd(),
+  requiredFiles: readonly string[] = REQUIRED_CURRICULUM_FILES,
+): void {
+  for (const relativePath of requiredFiles) {
+    const absolutePath = path.join(rootDir, relativePath);
+    const parsed = parseMarkdownFile(absolutePath, relativePath);
+    for (const link of parsed.links) {
+      if (isExternalLink(link.target)) continue;
+      const [targetPath = "", fragment] = link.target.split("#", 2);
+      const normalizedSource = relativePath.replaceAll("\\", "/");
+      const targetRelativePath = targetPath
+        ? path.posix.normalize(path.posix.join(path.posix.dirname(normalizedSource), targetPath))
+        : normalizedSource;
+      const absoluteTarget = path.resolve(rootDir, targetRelativePath);
+      if (!fs.existsSync(absoluteTarget))
+        fail(`${relativePath}:${link.line} links to missing target: ${link.target}`);
+      if (fragment === undefined || !targetRelativePath.toLowerCase().endsWith(".md")) continue;
+      const targetMarkdown = parseMarkdownFile(absoluteTarget, targetRelativePath);
+      let anchor = fragment;
+      try {
+        anchor = decodeURIComponent(fragment);
+      } catch {
+        // Invalid percent encoding cannot match a parsed heading anchor.
+      }
+      if (!targetMarkdown.headings.some((heading) => heading.anchor === anchor))
+        fail(`${relativePath}:${link.line} links to missing fragment: ${link.target}`);
     }
   }
 }
@@ -546,15 +606,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
   )) {
     assertContains(rubric, competency, "Competency Rubric");
   }
-  for (const level of ["Level 0", "Level 1", "Level 2", "Level 3"])
-    assertContains(rubric, level, "Competency Rubric");
-  for (const contract of [
-    "Expected Contract",
-    "Alternative Design",
-    "Anti-pattern",
-    "Public Reference",
-  ])
-    assertContains(instructor, contract, "Instructor Reference");
+  validateCurriculumDocumentHeadings(rubric, instructor);
   validateCurriculumLinks(rootDir);
   const workbookFiles = validateWorkbook(rootDir);
   const trainingProjects = validateTrainingAssets(rootDir);

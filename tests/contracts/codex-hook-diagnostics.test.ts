@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -12,8 +12,6 @@ type ProcessResult = {
   stderr: string;
 };
 
-type StateRecord = Record<string, unknown>;
-
 function nodeErrorCode(error: unknown) {
   if (error && typeof error === "object" && "code" in error) {
     return (error as { code?: unknown }).code;
@@ -23,19 +21,6 @@ function nodeErrorCode(error: unknown) {
 
 const repoRoot = path.resolve(process.cwd());
 const doctorPath = path.join(repoRoot, "scripts", "diagnose-codex-hooks.mjs");
-const stateModulePath = path.join(repoRoot, "scripts", "lib", "codex-text-quality-state.mjs");
-
-const doctorDependencies = [
-  "smol-toml",
-  "textlint",
-  "@textlint-rule/textlint-rule-no-invalid-control-character",
-  "textlint-rule-no-zero-width-spaces",
-  "textlint-rule-no-nfd",
-  "textlint-rule-no-kangxi-radicals",
-  "textlint-rule-no-hankaku-kana",
-  "textlint-rule-no-doubled-conjunctive-particle-ga",
-  "textlint-rule-no-dropping-the-ra",
-];
 
 function git(root: string, args: string[]) {
   return execFileSync("git", args, {
@@ -46,18 +31,6 @@ function git(root: string, args: string[]) {
   }).trim();
 }
 
-function hash(value: string) {
-  return createHash("sha256").update(value, "utf8").digest("hex");
-}
-
-function rootId(root: string) {
-  return hash(path.resolve(git(root, ["rev-parse", "--show-toplevel"])));
-}
-
-function sessionHash(sessionId: string) {
-  return hash(sessionId);
-}
-
 function writeFile(root: string, relativePath: string, content: string) {
   const target = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -65,58 +38,35 @@ function writeFile(root: string, relativePath: string, content: string) {
 }
 
 function linkDoctorDependencies(root: string) {
-  for (const packageName of doctorDependencies) {
-    const source = path.join(repoRoot, "node_modules", packageName);
-    const target = path.join(root, "node_modules", packageName);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.symlinkSync(source, target, "junction");
-  }
+  const packageName = "smol-toml";
+  fs.mkdirSync(path.join(root, "node_modules"), { recursive: true });
+  fs.symlinkSync(
+    path.join(repoRoot, "node_modules", packageName),
+    path.join(root, "node_modules", packageName),
+    "junction",
+  );
 }
 
 function unlinkLinkedDoctorDependencies(root: string) {
-  const nodeModules = path.join(root, "node_modules");
+  const target = path.join(root, "node_modules", "smol-toml");
   try {
-    const stats = fs.lstatSync(nodeModules);
-    if (stats.isSymbolicLink() || !stats.isDirectory()) {
-      throw new Error("linked test node_modules boundary changed unexpectedly");
-    }
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return;
-    }
-    throw error;
-  }
-
-  for (const packageName of doctorDependencies) {
-    const target = path.join(nodeModules, packageName);
-    let stats: fs.Stats;
-    try {
-      stats = fs.lstatSync(target);
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-        continue;
-      }
-      throw error;
-    }
-    if (!stats.isSymbolicLink()) {
-      throw new Error("linked test dependency is not a symlink");
-    }
+    const stats = fs.lstatSync(target);
+    if (!stats.isSymbolicLink()) throw new Error("linked test dependency is not a symlink");
     fs.unlinkSync(target);
+    fs.rmdirSync(path.dirname(target));
+  } catch (error) {
+    if (nodeErrorCode(error) !== "ENOENT") throw error;
   }
-
-  const scopedDirectory = path.join(nodeModules, "@textlint-rule");
-  if (fs.existsSync(scopedDirectory)) fs.rmdirSync(scopedDirectory);
-  fs.rmdirSync(nodeModules);
 }
 
 function createFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-doctor-"));
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
+  fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
   writeFile(root, ".gitignore", "node_modules/\n");
-  fs.copyFileSync(
-    path.join(repoRoot, ".codex", "hooks", "text_quality_gate.mjs"),
-    path.join(root, ".codex", "hooks", "text_quality_gate.mjs"),
-  );
+  writeFile(root, ".codex/hooks/pre_tool_use_policy.mjs", "export {};\n");
+  writeFile(root, ".codex/hooks/pre_tool_use_policy_windows.ps1", "exit 0\n");
+  writeFile(root, ".codex/hooks/log_event.mjs", "export {};\n");
   writeFile(
     root,
     ".codex/config.toml",
@@ -124,13 +74,26 @@ function createFixture() {
       "[features]",
       "hooks = true",
       "",
-      "[[hooks.UserPromptSubmit]]",
+      "[[hooks.PreToolUse]]",
+      'matcher = "^Bash$"',
       "",
-      "[[hooks.UserPromptSubmit.hooks]]",
+      "[[hooks.PreToolUse.hooks]]",
       'type = "command"',
-      'command = "node /absolute/doctor-command-secret"',
-      'command_windows = "powershell.exe -EncodedCommand DOCTOR-ENCODED-SECRET"',
-      "timeout = 10",
+      'command = "node .codex/hooks/pre_tool_use_policy.mjs"',
+      'command_windows = "powershell.exe -EncodedCommand SAFETY-SECRET"',
+      "timeout = 30",
+      ...["UserPromptSubmit", "PostToolUse", "SubagentStart", "SubagentStop", "Stop"].flatMap(
+        (event) => [
+          "",
+          "[[hooks." + event + "]]",
+          "",
+          "[[hooks." + event + ".hooks]]",
+          'type = "command"',
+          'command = "node .codex/hooks/log_event.mjs ' + event + '"',
+          'command_windows = "powershell.exe -EncodedCommand LOG-SECRET"',
+          "timeout = 10",
+        ],
+      ),
       "",
     ].join("\n"),
   );
@@ -253,7 +216,6 @@ function snapshot(root: string) {
       .split("\0")
       .filter(Boolean)
       .sort(),
-    state: listRelativeFiles(root, ".artifacts/codex-text-quality"),
     logs: listRelativeFiles(root, ".codex/logs"),
   };
 }
@@ -281,34 +243,6 @@ function withFixture(test: (root: string) => void) {
   }
 }
 
-function writeState(
-  root: string,
-  sessionId: string,
-  stateChanges: StateRecord = {},
-  filenameRoot = rootId(root),
-) {
-  const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-  fs.mkdirSync(stateDirectory, { recursive: true });
-  const state: StateRecord = {
-    schema_version: 2,
-    root_id: rootId(root),
-    session_id_hash: sessionHash(sessionId),
-    status: "ready",
-    start_head: git(root, ["rev-parse", "HEAD"]),
-    files: [],
-    ...stateChanges,
-  };
-  const filename = filenameRoot + "-" + sessionHash(sessionId) + ".json";
-  fs.writeFileSync(path.join(stateDirectory, filename), JSON.stringify(state) + "\n", "utf8");
-  return { filename, state };
-}
-
-function writeStateWithRawFilename(root: string, filename: string, state: StateRecord) {
-  const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-  fs.mkdirSync(stateDirectory, { recursive: true });
-  fs.writeFileSync(path.join(stateDirectory, filename), JSON.stringify(state) + "\n", "utf8");
-}
-
 function trySymlink(target: string, link: string, type: "file" | "dir") {
   try {
     fs.symlinkSync(
@@ -323,187 +257,46 @@ function trySymlink(target: string, link: string, type: "file" | "dir") {
 }
 
 describe("offline Codex Hook diagnostics contract", () => {
-  it("reports a clean fixture, state 0件, and offline boundaries without warnings", () => {
+  it("reports active Hook config without requiring quality Hook or baseline state", () => {
     withFixture((root) => {
+      expect(fs.existsSync(path.join(root, ".codex/hooks/text_quality_gate.mjs"))).toBe(false);
+      expect(fs.existsSync(path.join(root, ".artifacts/codex-text-quality"))).toBe(false);
       expectReadOnlyDoctor(root, 0, (result) => {
         expect(result.stdout).toContain("OK: [features] hooks = true");
-        expect(result.stdout).toContain("event=UserPromptSubmit handlers=1");
-        expect(result.stdout).toContain("state directory is absent (state 0件)");
+        for (const expected of [
+          "event=PreToolUse handlers=1 matcher=^Bash$ timeout=30",
+          "event=UserPromptSubmit handlers=1 matcher=none timeout=10",
+          "event=PostToolUse handlers=1 matcher=none timeout=10",
+          "event=SubagentStart handlers=1 matcher=none timeout=10",
+          "event=SubagentStop handlers=1 matcher=none timeout=10",
+          "event=Stop handlers=1 matcher=none timeout=10",
+        ]) {
+          expect(result.stdout).toContain(expected);
+        }
         expect(result.stdout).toContain("N/A: project trust");
         expect(result.stdout).toContain("N/A: Hook trust");
         expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
+        expect(result.stdout).not.toContain("text_quality_gate");
+        expect(result.stdout).not.toContain("baseline_state");
         expect(result.stdout).not.toContain("/absolute/doctor-command-secret");
-        expect(result.stdout).not.toContain("DOCTOR-ENCODED-SECRET");
+        expect(result.stdout).not.toContain("SAFETY-SECRET");
+        expect(result.stdout).not.toContain("LOG-SECRET");
         expect(result.stdout).not.toContain(root);
       });
     });
   });
 
-  it("reports a missing text quality Hook file as a safe diagnostic error", () => {
+  it("reports a missing active safety or logging Hook file as a safe diagnostic error", () => {
     withFixture((root) => {
-      fs.rmSync(path.join(root, ".codex", "hooks", "text_quality_gate.mjs"));
+      fs.unlinkSync(path.join(root, ".codex/hooks/log_event.mjs"));
       expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain("root text quality Hookがありません");
+        expect(result.stdout).toContain("root logging Hookがありません");
         expect(result.stdout).toContain("Summary: WARN=0 ERROR=1");
       });
     });
   });
 
-  it("accepts an empty state directory and does not execute configured handlers", () => {
-    withFixture((root) => {
-      fs.mkdirSync(path.join(root, ".artifacts", "codex-text-quality"), { recursive: true });
-      writeFile(root, ".codex/logs/hooks-secret.jsonl", "log-secret\n");
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("state directory is empty (state 0件)");
-        expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
-        expect(result.stdout).not.toContain("log-secret");
-        expect(result.stdout).not.toContain("DOCTOR-ENCODED-SECRET");
-      });
-    });
-  });
-
-  it("reports a valid ready state without exposing state contents", () => {
-    withFixture((root) => {
-      const sessionId = "doctor-session-secret";
-      writeState(root, sessionId);
-      writeFile(root, ".codex/logs/hooks-secret.jsonl", "state-secret\n");
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("runtime state candidate #1 is valid");
-        expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
-        expect(result.stdout).not.toContain(sessionId);
-        expect(result.stdout).not.toContain("state-secret");
-        expect(result.stdout).not.toContain(root);
-      });
-    });
-  });
-
-  it("reports safe baseline_unavailable causes and hides regex-valid unknown causes", () => {
-    withFixture((root) => {
-      const allowed = writeState(root, "allowed-session", {
-        status: "baseline_unavailable",
-        code: "textlint_config_invalid",
-        files: undefined,
-      });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_unavailable; cause=textlint_config_invalid");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-        expect(result.stdout).not.toContain(allowed.filename);
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "unknown-session", {
-        status: "baseline_unavailable",
-        code: "regex_valid_but_unknown",
-        files: undefined,
-      });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_unavailable");
-        expect(result.stdout).not.toContain("regex_valid_but_unknown");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-  });
-
-  it("classifies JSON, schema, filename, field identity, and manifest state warnings", () => {
-    withFixture((root) => {
-      const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-      fs.mkdirSync(stateDirectory, { recursive: true });
-      fs.writeFileSync(
-        path.join(stateDirectory, rootId(root) + "-" + sessionHash("json-session") + ".json"),
-        "{",
-        "utf8",
-      );
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_json");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "schema-session", { files: undefined });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_schema");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      const sessionId = "filename-session";
-      writeStateWithRawFilename(root, "invalid-filename-" + sessionHash(sessionId) + ".json", {
-        schema_version: 2,
-        status: "ready",
-        secret: "state-secret",
-      });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_identity");
-        expect(result.stdout).not.toContain("invalid-filename");
-        expect(result.stdout).not.toContain("state-secret");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "root-field-session", { root_id: "0".repeat(64) });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_identity");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "session-field-session", {
-        session_id_hash: "0".repeat(64),
-      });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_identity");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "manifest-session", {
-        files: [{ path: "../state-secret.md", source: "head_blob" }],
-      });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_manifest");
-        expect(result.stdout).not.toContain("state-secret.md");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-  }, 60_000);
-
-  it("classifies filename repository mismatch once without duplicate field identity validation", () => {
-    withFixture((root) => {
-      const sessionId = "foreign-session";
-      writeState(root, sessionId, { root_id: "0".repeat(64) }, "f".repeat(64));
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("filename repository mismatch");
-        expect(result.stdout).not.toContain("baseline_state_schema");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-  });
-
-  it("reports missing and unavailable start_head objects as runtime warnings", () => {
-    withFixture((root) => {
-      writeState(root, "missing-head-session", { start_head: undefined });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("baseline_state_schema");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-
-    withFixture((root) => {
-      writeState(root, "unavailable-head-session", { start_head: "0".repeat(40) });
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("commit object unavailable");
-        expect(result.stdout).toContain("Summary: WARN=1 ERROR=0");
-      });
-    });
-  });
-
-  it("rejects unsafe project and state filesystem boundaries without reading through them", () => {
+  it("rejects unsafe project config boundaries without reading through them", () => {
     withFixture((root) => {
       removeEntry(path.join(root, ".codex"));
       fs.writeFileSync(path.join(root, ".codex"), "codex-boundary-secret", "utf8");
@@ -514,8 +307,8 @@ describe("offline Codex Hook diagnostics contract", () => {
     });
 
     withFixture((root) => {
-      fs.rmSync(path.join(root, ".codex", "config.toml"));
-      fs.mkdirSync(path.join(root, ".codex", "config.toml"));
+      fs.unlinkSync(path.join(root, ".codex/config.toml"));
+      fs.mkdirSync(path.join(root, ".codex/config.toml"));
       writeFile(root, ".codex/config.toml/secret", "config-boundary-secret");
       expectReadOnlyDoctor(root, 1, (result) => {
         expect(result.stdout).toContain("config.toml");
@@ -524,36 +317,15 @@ describe("offline Codex Hook diagnostics contract", () => {
     });
 
     withFixture((root) => {
-      fs.writeFileSync(path.join(root, ".artifacts"), "artifacts-boundary-secret", "utf8");
+      fs.unlinkSync(path.join(root, ".codex/hooks/log_event.mjs"));
+      fs.mkdirSync(path.join(root, ".codex/hooks/log_event.mjs"));
       expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain(".artifacts");
-        expect(result.stdout).not.toContain("artifacts-boundary-secret");
+        expect(result.stdout).toContain(
+          "root logging Hookはsymlinkではないregular fileである必要があります",
+        );
       });
     });
-
-    withFixture((root) => {
-      fs.mkdirSync(path.join(root, ".artifacts"), { recursive: true });
-      fs.writeFileSync(
-        path.join(root, ".artifacts", "codex-text-quality"),
-        "state-directory-boundary-secret",
-        "utf8",
-      );
-      expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain("state directory");
-        expect(result.stdout).not.toContain("state-directory-boundary-secret");
-      });
-    });
-
-    withFixture((root) => {
-      const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-      fs.mkdirSync(stateDirectory, { recursive: true });
-      fs.mkdirSync(path.join(stateDirectory, "a".repeat(64) + "-" + "b".repeat(64) + ".json"));
-      expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain("regular file");
-        expect(result.stdout).toContain("Summary: WARN=0 ERROR=1");
-      });
-    });
-  }, 60_000);
+  });
 
   it("rejects root hooks.json as an incomplete offline diagnostic boundary", () => {
     withFixture((root) => {
@@ -581,7 +353,7 @@ describe("offline Codex Hook diagnostics contract", () => {
     });
   });
 
-  it("rejects symlink boundaries without following targets when the OS permits symlink fixtures", () => {
+  it("rejects active Hook symlink boundaries without following targets when supported", () => {
     withFixture((root) => {
       const codexTarget = path.join(root, "codex-target");
       fs.mkdirSync(codexTarget, { recursive: true });
@@ -604,8 +376,8 @@ describe("offline Codex Hook diagnostics contract", () => {
         '[features]\nhooks = true\nsecret = "config-secret"\n',
         "utf8",
       );
-      fs.rmSync(path.join(root, ".codex", "config.toml"));
-      if (!trySymlink(configTarget, path.join(root, ".codex", "config.toml"), "file")) return;
+      fs.unlinkSync(path.join(root, ".codex/config.toml"));
+      if (!trySymlink(configTarget, path.join(root, ".codex/config.toml"), "file")) return;
       expectReadOnlyDoctor(root, 1, (result) => {
         expect(result.stdout).toContain("config.toml");
         expect(result.stdout).not.toContain("config-secret");
@@ -613,39 +385,13 @@ describe("offline Codex Hook diagnostics contract", () => {
     });
 
     withFixture((root) => {
-      const artifactsTarget = path.join(root, "artifacts-target");
-      fs.mkdirSync(artifactsTarget);
-      fs.writeFileSync(path.join(artifactsTarget, "secret"), "artifacts-secret", "utf8");
-      if (!trySymlink(artifactsTarget, path.join(root, ".artifacts"), "dir")) return;
+      const hookTarget = path.join(root, "logger-target.mjs");
+      fs.writeFileSync(hookTarget, "logger-secret", "utf8");
+      fs.unlinkSync(path.join(root, ".codex/hooks/log_event.mjs"));
+      if (!trySymlink(hookTarget, path.join(root, ".codex/hooks/log_event.mjs"), "file")) return;
       expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain(".artifacts");
-        expect(result.stdout).not.toContain("artifacts-secret");
-      });
-    });
-
-    withFixture((root) => {
-      const stateTarget = path.join(root, "state-target");
-      fs.mkdirSync(stateTarget);
-      fs.mkdirSync(path.join(root, ".artifacts"));
-      if (!trySymlink(stateTarget, path.join(root, ".artifacts", "codex-text-quality"), "dir")) {
-        return;
-      }
-      expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain("state directory");
-        expect(result.stdout).not.toContain("state-target");
-      });
-    });
-
-    withFixture((root) => {
-      const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-      const target = path.join(root, "state-file-target.json");
-      const filename = "a".repeat(64) + "-" + "b".repeat(64) + ".json";
-      fs.mkdirSync(stateDirectory, { recursive: true });
-      fs.writeFileSync(target, '{"secret":"state-file-secret"}\n', "utf8");
-      if (!trySymlink(target, path.join(stateDirectory, filename), "file")) return;
-      expectReadOnlyDoctor(root, 1, (result) => {
-        expect(result.stdout).toContain("regular file");
-        expect(result.stdout).not.toContain("state-file-secret");
+        expect(result.stdout).toContain("root logging Hook");
+        expect(result.stdout).not.toContain("logger-secret");
       });
     });
   }, 60_000);
@@ -669,10 +415,6 @@ describe("offline Codex Hook diagnostics contract", () => {
     try {
       fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
       fs.copyFileSync(doctorPath, path.join(root, "scripts", "diagnose-codex-hooks.mjs"));
-      fs.copyFileSync(
-        stateModulePath,
-        path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
-      );
       git(root, ["add", "scripts"]);
       git(root, ["commit", "--quiet", "-m", "add doctor entry point"]);
       git(root, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
@@ -688,7 +430,8 @@ describe("offline Codex Hook diagnostics contract", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toBe("");
       expect(result.stdout).toContain("required dependency is unavailable: smol-toml");
-      expect(result.stdout).toContain("required dependency is unavailable: textlint");
+      expect(result.stdout).not.toContain("textlint");
+      expect(result.stdout).not.toContain("baseline_state");
       expect(result.stdout).toContain("Summary: WARN=0 ERROR=");
       expect(result.stdout).not.toMatch(
         /MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|node:internal| at .*\.mjs/u,
@@ -712,10 +455,6 @@ describe("offline Codex Hook diagnostics contract", () => {
     try {
       fs.mkdirSync(path.join(root, "scripts", "lib"), { recursive: true });
       fs.copyFileSync(doctorPath, path.join(root, "scripts", "diagnose-codex-hooks.mjs"));
-      fs.copyFileSync(
-        stateModulePath,
-        path.join(root, "scripts", "lib", "codex-text-quality-state.mjs"),
-      );
       git(root, ["add", "scripts"]);
       git(root, ["commit", "--quiet", "-m", "add doctor entry point"]);
       git(root, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
@@ -730,7 +469,7 @@ describe("offline Codex Hook diagnostics contract", () => {
       expect(after).toEqual(before);
       expect(result.status, result.stdout + result.stderr).toBe(0);
       expect(result.stderr).toBe("");
-      expect(result.stdout).toContain("OK: required Hook dependencies are resolvable");
+      expect(result.stdout).toContain("OK: required diagnostic dependencies are resolvable");
       expect(result.stdout).toContain("OK: [features] hooks = true");
       expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
     } finally {
@@ -744,29 +483,6 @@ describe("offline Codex Hook diagnostics contract", () => {
       }
       removeFixture(root);
     }
-    expect(fs.existsSync(path.join(repoRoot, "node_modules", "textlint"))).toBe(true);
     expect(fs.existsSync(path.join(repoRoot, "node_modules", "smol-toml"))).toBe(true);
-  });
-
-  it("keeps unreadable regular state files as WARN on permission-aware systems", () => {
-    if (process.platform === "win32") return;
-    withFixture((root) => {
-      const stateDirectory = path.join(root, ".artifacts", "codex-text-quality");
-      const statePath = path.join(
-        stateDirectory,
-        rootId(root) + "-" + sessionHash("permission-session") + ".json",
-      );
-      fs.mkdirSync(stateDirectory, { recursive: true });
-      fs.writeFileSync(statePath, '{"secret":"permission-secret"}\n', "utf8");
-      fs.chmodSync(statePath, 0o000);
-      try {
-        expectReadOnlyDoctor(root, 0, (result) => {
-          expect(result.stdout).toContain("baseline_state_read");
-          expect(result.stdout).not.toContain("permission-secret");
-        });
-      } finally {
-        fs.chmodSync(statePath, 0o600);
-      }
-    });
   });
 });

@@ -35,3 +35,15 @@ session baseline、fingerprint、rename mapping、`PostToolUse` / `Stop`、fail-
 - 既存logging Hookと文章品質Hookは別commandとして共存し、`PreToolUse/Bash`のmatcherや`--strict-harness`の責務は変更しない。
 - 一般日本語の明確な入力不正・誤記を検出する7個のtextlint ruleはproduction block対象であり、`no-unmatched-pair`は技術文書のinline code等の誤検知を理由に対象外とした。Repository固有custom literal／regex ruleは4個をconfiguredにしている。主観的な自然さ、禁止語、表記辞書、AIによる意味評価はblock対象にしない。
 - comparison不能を空baselineへ落とさないため、削除と追加を安全に区別できない変更はRepository gateでは失敗し、HookではPlanのfail-open／fail-close境界に従う。
+
+## 2026-10-20の後続運用決定（PR #201）
+
+このADRが定めたscanner、rule、Git比較、rename mapping、Repository gateの判断は維持します。セッション中の文章品質Hookに関する運用は、次のように後続変更します。
+
+- session単位のbaseline state管理を終了し、`UserPromptSubmit`／`PostToolUse`／`Stop`から文章品質Hook登録を撤去します。
+- 文章品質検査をCLIとCIに集約します。変更差分、全体Markdown、Markdown構造の各lintコマンドとCIの失敗判定を維持します。
+- textlint／Repository固有rule、fingerprint判定、Git比較、rename判定は変更しません。
+- 撤去理由は、baseline state欠落によるStopブロック、セッション状態管理の複雑性、Hookの実行時負荷です。
+- G1〜G10を含むPreToolUse安全性Hookとログ記録Hookは対象外とし、既存イベントと契約を維持します。
+
+これは過去の設計判断を書き換えるものではなく、文章品質Hookの実行経路に対する後続決定です。

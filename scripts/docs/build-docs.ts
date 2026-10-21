@@ -203,12 +203,12 @@ function pageHtml(
     .join("")}</ul>`;
   const homeCurrent =
     parsed.relativePath === CURRICULUM_README ? ' aria-current="page"' : "";
-  const mobileNavigation = `<details class="mobile-primary-navigation"><summary>Navigation</summary><nav aria-label="Curriculum navigation">${navigationContent}</nav></details>`;
+  const mobileNavigation = `<details class="mobile-primary-navigation"><summary>ナビゲーション</summary><nav aria-label="カリキュラムナビゲーション">${navigationContent}</nav></details>`;
   const linkTarget = (target: string): string =>
     resolveCurriculumLink(rootDir, parsed.relativePath, target);
   const imageTarget = (target: string): string =>
     resolveCurriculumImage(rootDir, parsed.relativePath, target);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop Test Automation Curriculum</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop Test Automation Curriculum</a></div></header><main><nav class="primary-navigation" aria-label="Curriculum navigation">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop テスト自動化カリキュラム</a></div></header><main><nav class="primary-navigation" aria-label="カリキュラムナビゲーション">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
 }
 
 export type BuildDocsResult = {

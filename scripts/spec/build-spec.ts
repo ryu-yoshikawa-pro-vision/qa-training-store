@@ -85,9 +85,7 @@ function relativeOutputPath(fromOutput: string, toOutput: string): string {
 
 function pageHtml(parsed: ParsedMarkdown, navigation: SpecificationNavigationItem[]): string {
   const title = parsed.headings.find((heading) => heading.level === 1)?.text ?? parsed.relativePath;
-  const label = isNormativeSpecPath(parsed.relativePath)
-    ? "Normative Product Behavior"
-    : "Supporting / Operational";
+  const label = isNormativeSpecPath(parsed.relativePath) ? "製品の規範仕様" : "補足・運用文書";
   const homeLink = relativeOutputPath(outputPathFor(parsed.relativePath), "index.html");
   const navigationContent = `<ul>${navigation
     .map((item) => {
@@ -100,11 +98,11 @@ function pageHtml(parsed: ParsedMarkdown, navigation: SpecificationNavigationIte
     })
     .join("")}</ul>`;
   const homeCurrent = parsed.relativePath === "docs/spec/README.md" ? ' aria-current="page"' : "";
-  const mobileNavigation = `<details class="mobile-primary-navigation"><summary>Navigation</summary><nav aria-label="Specification navigation">${navigationContent}</nav></details>`;
+  const mobileNavigation = `<details class="mobile-primary-navigation"><summary>ナビゲーション</summary><nav aria-label="仕様書ナビゲーション">${navigationContent}</nav></details>`;
   const linkTarget = (target: string): string => resolveOutputLink(parsed.relativePath, target);
   const imageTarget = (target: string): string =>
     resolveImageOutputLink(parsed.relativePath, target);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop Specification</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="${escapeHtml(homeLink)}"${homeCurrent}>Scenario Shop Specification</a><span class="label">${escapeHtml(label)}</span></div></header><main><nav class="primary-navigation" aria-label="Specification navigation">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop 仕様書</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="${escapeHtml(homeLink)}"${homeCurrent}>Scenario Shop 仕様書</a><span class="label">${escapeHtml(label)}</span></div></header><main><nav class="primary-navigation" aria-label="仕様書ナビゲーション">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
 }
 
 export type BuildSpecOptions = {
