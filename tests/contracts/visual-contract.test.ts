@@ -15,6 +15,7 @@ import {
 } from "../../scripts/spec/android-visual-capture";
 import { parseScreenCatalog, validateVisualContract } from "../../scripts/spec/visual-contract";
 import { materializeVisualReferences } from "../../scripts/spec/materialize-visual-references";
+import { slugHeading } from "../../scripts/spec/slug-heading";
 import {
   type CaptureMode,
   type CaptureRole,
@@ -46,6 +47,9 @@ type VisualFixtureOptions = {
   emptyAlt?: boolean;
   visualRequirement?: "required" | "shared" | "not-applicable";
   visualDetail?: string;
+  japaneseStateColumns?: boolean;
+  primarySpecAnchor?: string;
+  additionalScreen?: { screenId: string; title: string };
 };
 
 async function createVisualFixture(
@@ -78,19 +82,55 @@ async function createVisualFixture(
   const [functionsHeading, statesHeading, visualReferencesHeading] =
     options.screenContractHeadings ?? ["Functions", "Important UI States", "Visual References"];
   const featureParentHeading = options.featureParentHeading ?? "UI / Behavior Contract";
+  const stateColumns = options.japaneseStateColumns
+    ? "| 状態スラグ | 種別 | 対象者・ロール | 条件・シナリオ | 期待されるUI | 視覚要件 | 必須プラットフォーム | 視覚詳細 | 関連オラクル |"
+    : "| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |";
+  const additionalScreen = options.additionalScreen;
+  const additionalScreenAnchor =
+    additionalScreen === undefined
+      ? null
+      : slugHeading(`${additionalScreen.screenId} — ${additionalScreen.title}`);
+  const primarySpecAnchor = options.primarySpecAnchor ?? "screen-test-example-example";
+  const additionalAssetFor = (platform: string) =>
+    `docs/spec/assets/screens/${additionalScreen?.screenId}/default/${platform}.webp`;
+  const additionalRelativeAssetFor = (platform: string) =>
+    `../assets/screens/${additionalScreen?.screenId}/default/${platform}.webp`;
+  const additionalReferenceLines =
+    additionalScreen === undefined || !includeReference
+      ? ""
+      : platforms
+          .map((platform) => {
+            const alt = `${additionalScreen.screenId} default ${platform}`;
+            return `###### ${platform}\n\n[![${alt}](${additionalRelativeAssetFor(platform)})](${additionalRelativeAssetFor(platform)})`;
+          })
+          .join("\n\n");
+  const additionalScreenSection =
+    additionalScreen === undefined
+      ? ""
+      : `### ${additionalScreen.screenId} — ${additionalScreen.title}\n\n#### ${functionsHeading}\n\n- Example function.\n\n#### ${statesHeading}\n\n${stateColumns}\n|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`required\` | ${platforms.join(", ")} | \`-\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${additionalReferenceLines}\n\n`;
+  const additionalCatalogRow =
+    additionalScreen === undefined || additionalScreenAnchor === null
+      ? ""
+      : `| \`${additionalScreen.screenId}\` | ${additionalScreen.title} | Product | /other | Yes | Yes | Customer | [${additionalScreen.title}](./features/example.md#${additionalScreenAnchor}) |\n`;
   const functions =
     options.includeFunctions === false ? "" : `#### ${functionsHeading}\n\n- Example function.\n\n`;
   const orphanHeading =
     options.orphanHeading === undefined ? "" : `\n#### ${options.orphanHeading}\n`;
-  const screenSpec = `# Example\n\n## ${featureParentHeading}\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### ${statesHeading}\n\n| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |\n|---|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${referenceLines}\n\n## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.${orphanHeading}\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
+  const screenSpec = `# Example\n\n## ${featureParentHeading}\n\n### SCREEN-TEST-EXAMPLE — Example\n\n${functions}#### ${statesHeading}\n\n${stateColumns}\n|---|---|---|---|---|---|---|---|---|\n| \`default\` | baseline | ${audience} | \`default\` | Example UI. | \`${requirement}\` | ${platforms.join(", ")} | \`${visualDetail}\` | ${oracle} |\n\n#### ${visualReferencesHeading}\n\n##### \`default\`\n\n${referenceLines}\n\n${additionalScreenSection}## Business Rules\n\n### BR-TEST-001 — Example rule\n\nExample rule.${orphanHeading}\n## Acceptance Criteria\n\n### Criteria\n\n#### AC-TEST-001 — Example acceptance\n\nExample acceptance.\n`;
   await mkdir(path.join(rootDir, "docs/spec/features"), { recursive: true });
   await mkdir(path.join(rootDir, "docs/spec/assets/screens/SCREEN-TEST-EXAMPLE/default"), {
     recursive: true,
   });
+  if (additionalScreen !== undefined) {
+    await mkdir(
+      path.join(rootDir, "docs/spec/assets/screens", additionalScreen.screenId, "default"),
+      { recursive: true },
+    );
+  }
   await mkdir(path.join(rootDir, "app"), { recursive: true });
   await writeFile(
     path.join(rootDir, "docs/spec/screen-catalog.md"),
-    `# Screen Catalog\n\n| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |\n|---|---|---|---|---|---|---|---|\n| \`SCREEN-TEST-EXAMPLE\` | Example | Product | / | Yes | Yes | Customer | [Example](./features/example.md#screen-test-example-example) |\n`,
+    `# Screen Catalog\n\n| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |\n|---|---|---|---|---|---|---|---|\n| \`SCREEN-TEST-EXAMPLE\` | Example | Product | / | Yes | Yes | Customer | [Example](./features/example.md#${primarySpecAnchor}) |\n${additionalCatalogRow}`,
   );
   await writeFile(path.join(rootDir, "docs/spec/features/example.md"), screenSpec);
   await writeFile(
@@ -102,25 +142,35 @@ async function createVisualFixture(
       process.cwd(),
       "docs/spec/assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp",
     );
-    for (const platform of platforms) await cp(sourceAsset, path.join(rootDir, assetFor(platform)));
+    for (const platform of platforms) {
+      await cp(sourceAsset, path.join(rootDir, assetFor(platform)));
+      if (additionalScreen !== undefined) {
+        await cp(sourceAsset, path.join(rootDir, additionalAssetFor(platform)));
+      }
+    }
   }
-  return platforms.map((platform) => ({
-    captureCaseKey: `SCREEN-TEST-EXAMPLE/default/${platform}`,
-    screenId: "SCREEN-TEST-EXAMPLE",
-    stateSlug: "default",
-    platform: platform as CaptureCase["platform"],
-    scenario: "default",
-    route: "/",
-    role,
-    setup: "fixture setup",
-    ready: "fixture ready",
-    captureMode: "viewport" as CaptureMode,
-    ...(platform === "android"
-      ? { nativeSetupId: "customer-login" as const, nativeReadyId: "home-screen" as const }
-      : {}),
-    status,
-    blockerReason: status === "blocked" ? "fixture blocker" : null,
-  }));
+  const captureCasesFor = (screenId: string, route: string): CaptureCase[] =>
+    platforms.map((platform) => ({
+      captureCaseKey: `${screenId}/default/${platform}`,
+      screenId,
+      stateSlug: "default",
+      platform: platform as CaptureCase["platform"],
+      scenario: "default",
+      route,
+      role,
+      setup: "fixture setup",
+      ready: "fixture ready",
+      captureMode: "viewport" as CaptureMode,
+      ...(platform === "android"
+        ? { nativeSetupId: "customer-login" as const, nativeReadyId: "home-screen" as const }
+        : {}),
+      status,
+      blockerReason: status === "blocked" ? "fixture blocker" : null,
+    }));
+  return [
+    ...captureCasesFor("SCREEN-TEST-EXAMPLE", "/"),
+    ...(additionalScreen === undefined ? [] : captureCasesFor(additionalScreen.screenId, "/other")),
+  ];
 }
 
 type SharedFixtureOptions = {
@@ -443,6 +493,56 @@ describe("Screen Catalog / Visual Contract", () => {
       });
       const result = await validateVisualContract(root, { captureCases: fixtureCases });
       expect(result.issues).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts Japanese-only Screen Contract headings and 9-column state tables", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-japanese-only-"));
+    try {
+      const fixtureCases = await createVisualFixture(root, {
+        featureParentHeading: "UI・振る舞い契約",
+        screenContractHeadings: ["機能一覧", "主要なUI状態", "画面リファレンス"],
+        japaneseStateColumns: true,
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a catalog anchor that does not point to the matching Screen ID heading", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-wrong-anchor-"));
+    try {
+      const fixtureCases = await createVisualFixture(root, {
+        primarySpecAnchor: "screen-test-example-stale-target",
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues.map((issue) => issue.message).join("\n")).toContain(
+        "Primary specification link must target its matching SCREEN ID — heading",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a catalog anchor that points to another existing Screen ID heading", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "qa-store-visual-cross-screen-anchor-"));
+    try {
+      const additionalScreen = { screenId: "SCREEN-TEST-OTHER", title: "Other" };
+      const fixtureCases = await createVisualFixture(root, {
+        additionalScreen,
+        primarySpecAnchor: slugHeading(`${additionalScreen.screenId} — ${additionalScreen.title}`),
+      });
+      const result = await validateVisualContract(root, { captureCases: fixtureCases });
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          message:
+            "SCREEN-TEST-EXAMPLE Primary specification link must target its matching SCREEN ID — heading",
+        }),
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }

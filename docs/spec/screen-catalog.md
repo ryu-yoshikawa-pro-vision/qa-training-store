@@ -1,87 +1,87 @@
-# Screen Catalog
+# 画面カタログ
 
-この文書は、現在のルーティング対象面（Current Route Surface）を各Screen IDおよび主仕様書（Primary specification）へ対応付ける補助インデックスです。プロダクトの振る舞い（Product Behavior）、重要なUI状態（Important UI State）、期待されるUI（Expected UI）などの詳細仕様は各主仕様書が管理しており、本カタログには重複して記載しません。
+この文書は、現在のルーティング対象面を各Screen IDおよび主仕様書へ対応付ける補助インデックスです。プロダクトの振る舞い、主要なUI状態、期待されるUIなどの詳細仕様は各主仕様書が管理しており、本カタログには重複して記載しません。
 
-## Catalog contract
+## カタログ契約
 
-- Screen IDは論理的な画面識別子（Identity）であり、プラットフォームごとの差異（platform variant）や動的パラメータ（dynamic parameter）を正規化して、現在の `app/**` ルートファミリーを表現します。
-- `Primary specification` は各画面（Screen）に対して1つのみ存在し、バリデータ（Validator）はその文書からScreen Contractの所有権を導出します。
-- `Android = No` はネイティブ対象外（Native Excluded）であることを示します。また、iOSランタイムは本カタログにおけるビジュアル検証プラットフォームには含めません。
-- Test-only（テスト専用）は運用・管理用の画面（Operational surface）であり、公式なビジュアルDoD（Canonical Visual DoD）の必須対象（Required Target）には含めません。
+- Screen IDは論理的な画面識別子であり、プラットフォームごとの差異や動的パラメータを正規化して、現在の `app/**` ルートファミリーを表現します。
+- 主仕様書（Primary specification）は各画面に対して1つのみ存在し、バリデータはその文書から画面契約の所有権を導出します。
+- `Android = ×` はネイティブ対象外であることを示します。また、iOSランタイムは本カタログにおけるビジュアル検証プラットフォームには含めません。
+- テスト専用（Test-only）は運用・管理用の画面であり、公式なビジュアルDoDの必須対象には含めません。
 
-## Customer / Storefront Screens
+## 一般顧客・ストアフロント画面
 
-| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
+| Screen ID | 画面名 | クラス | ルート | Web | Android | 対象読者 | 主仕様書 |
 |---|---|---|---|---|---|---|---|
-| `SCREEN-STOREFRONT-HOME` | Home | Product | `/` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-home-home) |
-| `SCREEN-STOREFRONT-PRODUCT-LIST` | Product List | Product | `/products` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-product-list-product-list) |
-| `SCREEN-STOREFRONT-PRODUCT-DETAIL` | Product Detail | Product | `/products/[productId]` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-product-detail-product-detail) |
-| `SCREEN-STOREFRONT-SEARCH` | Search | Product | `/search` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-search-search) |
-| `SCREEN-STOREFRONT-CATEGORY` | Category | Product | `/categories/[categoryId]` | Yes | Yes | Guest / Customer / Operator / Admin | [Storefront](./features/storefront.md#screen-storefront-category-category) |
-| `SCREEN-STOREFRONT-CART` | Cart | Product | `/cart` | Yes | Yes | Guest / Customer | [Cart](./features/cart.md#screen-storefront-cart-カート) |
-| `SCREEN-AUTH-LOGIN` | Login | Product | `/login` | Yes | Yes | Guest | [Authentication](./features/authentication.md#screen-auth-login-login) |
-| `SCREEN-AUTH-SIGNUP` | Signup | Product | `/signup` | Yes | Yes | Guest | [Authentication](./features/authentication.md#screen-auth-signup-signup) |
-| `SCREEN-AUTH-ACCOUNT-PROFILE` | Account Profile | Product | `/account/profile` | Yes | Yes | Customer | [Authentication](./features/authentication.md#screen-auth-account-profile-account-profile) |
-| `SCREEN-CHECKOUT-ADDRESSES` | Addresses | Product | `/account/addresses` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-addresses-addresses) |
-| `SCREEN-CHECKOUT-ADDRESS` | Checkout Address | Product | `/checkout/address` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-address-checkout-address) |
-| `SCREEN-CHECKOUT-PAYMENT` | Checkout Payment | Product | `/checkout/payment` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-payment-checkout-payment) |
-| `SCREEN-CHECKOUT-CONFIRM` | Checkout Confirm | Product | `/checkout/confirm` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-confirm-checkout-confirm) |
-| `SCREEN-CHECKOUT-PROCESSING` | Checkout Processing | Product | `/checkout/processing` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-processing-checkout-processing) |
-| `SCREEN-CHECKOUT-COMPLETE` | Checkout Complete | Product | `/checkout/complete` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-complete-checkout-complete) |
-| `SCREEN-CHECKOUT-FAILED` | Checkout Failed | Product | `/checkout/failed` | Yes | Yes | Customer | [Checkout and Payment](./features/checkout-and-payment.md#screen-checkout-failed-checkout-failed) |
-| `SCREEN-ORDERS-LIST` | Orders | Product | `/orders` | Yes | Yes | Customer | [Orders](./features/orders.md#screen-orders-list-orders) |
-| `SCREEN-ORDERS-DETAIL` | Order Detail | Product | `/orders/[orderId]` | Yes | Yes | Customer | [Orders](./features/orders.md#screen-orders-detail-order-detail) |
-| `SCREEN-REVIEWS-EDITOR` | Review Editor | Product | `/reviews/[orderItemId]` | Yes | Yes | Customer | [Reviews](./features/reviews.md#screen-reviews-editor-review-editor) |
+| `SCREEN-STOREFRONT-HOME` | ホーム | Product | `/` | 〇 | 〇 | Guest / Customer / Operator / Admin | [ストアフロント](./features/storefront.md#screen-storefront-home-ホーム) |
+| `SCREEN-STOREFRONT-PRODUCT-LIST` | 商品一覧 | Product | `/products` | 〇 | 〇 | Guest / Customer / Operator / Admin | [ストアフロント](./features/storefront.md#screen-storefront-product-list-商品一覧) |
+| `SCREEN-STOREFRONT-PRODUCT-DETAIL` | 商品詳細 | Product | `/products/[productId]` | 〇 | 〇 | Guest / Customer / Operator / Admin | [ストアフロント](./features/storefront.md#screen-storefront-product-detail-商品詳細) |
+| `SCREEN-STOREFRONT-SEARCH` | 検索 | Product | `/search` | 〇 | 〇 | Guest / Customer / Operator / Admin | [ストアフロント](./features/storefront.md#screen-storefront-search-検索) |
+| `SCREEN-STOREFRONT-CATEGORY` | カテゴリ | Product | `/categories/[categoryId]` | 〇 | 〇 | Guest / Customer / Operator / Admin | [ストアフロント](./features/storefront.md#screen-storefront-category-カテゴリー) |
+| `SCREEN-STOREFRONT-CART` | カート | Product | `/cart` | 〇 | 〇 | Guest / Customer | [カート](./features/cart.md#screen-storefront-cart-カート) |
+| `SCREEN-AUTH-LOGIN` | ログイン | Product | `/login` | 〇 | 〇 | Guest | [認証](./features/authentication.md#screen-auth-login-ログイン) |
+| `SCREEN-AUTH-SIGNUP` | アカウント登録 | Product | `/signup` | 〇 | 〇 | Guest | [認証](./features/authentication.md#screen-auth-signup-サインアップ) |
+| `SCREEN-AUTH-ACCOUNT-PROFILE` | アカウント情報 | Product | `/account/profile` | 〇 | 〇 | Customer | [認証](./features/authentication.md#screen-auth-account-profile-アカウントプロフィール) |
+| `SCREEN-CHECKOUT-ADDRESSES` | お届け先一覧 | Product | `/account/addresses` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-addresses-配送先一覧) |
+| `SCREEN-CHECKOUT-ADDRESS` | お届け先指定 | Product | `/checkout/address` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-address-配送先選択) |
+| `SCREEN-CHECKOUT-PAYMENT` | 決済方法指定 | Product | `/checkout/payment` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-payment-決済) |
+| `SCREEN-CHECKOUT-CONFIRM` | 注文確認 | Product | `/checkout/confirm` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-confirm-注文確認) |
+| `SCREEN-CHECKOUT-PROCESSING` | 注文処理中 | Product | `/checkout/processing` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-processing-処理中) |
+| `SCREEN-CHECKOUT-COMPLETE` | 注文完了 | Product | `/checkout/complete` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-complete-完了) |
+| `SCREEN-CHECKOUT-FAILED` | 注文失敗 | Product | `/checkout/failed` | 〇 | 〇 | Customer | [注文手続き・決済](./features/checkout-and-payment.md#screen-checkout-failed-失敗) |
+| `SCREEN-ORDERS-LIST` | 注文履歴 | Product | `/orders` | 〇 | 〇 | Customer | [注文](./features/orders.md#screen-orders-list-注文一覧) |
+| `SCREEN-ORDERS-DETAIL` | 注文詳細 | Product | `/orders/[orderId]` | 〇 | 〇 | Customer | [注文](./features/orders.md#screen-orders-detail-注文詳細) |
+| `SCREEN-REVIEWS-EDITOR` | レビュー編集 | Product | `/reviews/[orderItemId]` | 〇 | 〇 | Customer | [レビュー](./features/reviews.md#screen-reviews-editor-レビューエディター) |
 
-## Supporting Screens
+## 補助画面
 
-| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
+| Screen ID | 画面名 | クラス | ルート | Web | Android | 対象読者 | 主仕様書 |
 |---|---|---|---|---|---|---|---|
-| `SCREEN-SUPPORTING-GUIDE` | Guide | Supporting | `/guide` | Yes | Yes | Guest / Customer / Operator / Admin | [Product Scope](./product-scope.md#screen-supporting-guide-guide) |
-| `SCREEN-SUPPORTING-TERMS` | Terms | Supporting | `/legal/terms` | Yes | Yes | All | [Product Scope](./product-scope.md#screen-supporting-terms-terms) |
-| `SCREEN-SUPPORTING-PRIVACY` | Privacy | Supporting | `/legal/privacy` | Yes | Yes | All | [Product Scope](./product-scope.md#screen-supporting-privacy-privacy) |
-| `SCREEN-SUPPORTING-COMMERCE` | Commerce | Supporting | `/legal/commerce` | Yes | Yes | All | [Product Scope](./product-scope.md#screen-supporting-commerce-commerce) |
+| `SCREEN-SUPPORTING-GUIDE` | ご利用ガイド | Supporting | `/guide` | 〇 | 〇 | Guest / Customer / Operator / Admin | [プロダクト対象範囲](./product-scope.md#screen-supporting-guide-ガイド) |
+| `SCREEN-SUPPORTING-TERMS` | 利用規約 | Supporting | `/legal/terms` | 〇 | 〇 | All | [プロダクト対象範囲](./product-scope.md#screen-supporting-terms-利用規約) |
+| `SCREEN-SUPPORTING-PRIVACY` | プライバシーポリシー | Supporting | `/legal/privacy` | 〇 | 〇 | All | [プロダクト対象範囲](./product-scope.md#screen-supporting-privacy-プライバシーポリシー) |
+| `SCREEN-SUPPORTING-COMMERCE` | 特定商取引法に基づく表記 | Supporting | `/legal/commerce` | 〇 | 〇 | All | [プロダクト対象範囲](./product-scope.md#screen-supporting-commerce-コマース) |
 
-## Boundary Screens
+## 境界画面
 
-| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
+| Screen ID | 画面名 | クラス | ルート | Web | Android | 対象読者 | 主仕様書 |
 |---|---|---|---|---|---|---|---|
-| `SCREEN-BOUNDARY-FORBIDDEN` | Forbidden | Boundary | `/forbidden` | Yes | Yes | Guest / Customer / Operator / Admin | [Roles and Permissions](./roles-and-permissions.md#screen-boundary-forbidden-forbidden) |
-| `SCREEN-BOUNDARY-NOT-FOUND` | Not Found | Boundary | `+not-found` | Yes | Yes | All | [UI and UX Contract](./ui-ux-contract.md#screen-boundary-not-found-not-found) |
+| `SCREEN-BOUNDARY-FORBIDDEN` | アクセス禁止 | Boundary | `/forbidden` | 〇 | 〇 | Guest / Customer / Operator / Admin | [役割と権限](./roles-and-permissions.md#screen-boundary-forbidden-アクセス拒否) |
+| `SCREEN-BOUNDARY-NOT-FOUND` | ページが見つかりません | Boundary | `+not-found` | 〇 | 〇 | All | [UI・UX契約](./ui-ux-contract.md#screen-boundary-not-found-未検出) |
 
-## Admin Web Screens
+## 管理Web画面
 
-管理画面のルートはWeb向けのプロダクト画面です。ネイティブの一般顧客向けスコープ（Native Customer scope）により、現在のネイティブ向け管理画面のエントリは明示的に対象外（Excluded）とされています。
+管理画面のルートはWeb向けのプロダクト画面です。ネイティブの一般顧客向けスコープにより、現在のネイティブ向け管理画面のエントリは明示的に対象外とされています。
 
-| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
+| Screen ID | 画面名 | クラス | ルート | Web | Android | 対象読者 | 主仕様書 |
 |---|---|---|---|---|---|---|---|
-| `SCREEN-ADMIN-DASHBOARD` | Admin Dashboard | Product | `/admin` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-dashboard-admin-dashboard) |
-| `SCREEN-ADMIN-PRODUCTS` | Admin Products | Product | `/admin/products` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-products-admin-products) |
-| `SCREEN-ADMIN-PRODUCT-NEW` | Admin Product New | Product | `/admin/products/new` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-product-new-admin-product-new) |
-| `SCREEN-ADMIN-PRODUCT-DETAIL` | Admin Product Detail / Edit | Product | `/admin/products/[productId]` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-product-detail-admin-product-detail-edit) |
-| `SCREEN-ADMIN-CATEGORIES` | Admin Categories | Product | `/admin/categories` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-categories-admin-categories) |
-| `SCREEN-ADMIN-BRANDS` | Admin Brands | Product | `/admin/brands` | Yes | No | Operator / Admin | [Admin Catalog](./features/admin-catalog.md#screen-admin-brands-admin-brands) |
-| `SCREEN-ADMIN-INVENTORIES` | Admin Inventories | Product | `/admin/inventories` | Yes | No | Operator / Admin | [Admin Inventory](./features/admin-inventory.md#screen-admin-inventories-admin-inventories) |
-| `SCREEN-ADMIN-ORDERS` | Admin Orders | Product | `/admin/orders` | Yes | No | Operator / Admin | [Admin Orders](./features/admin-orders.md#screen-admin-orders-admin-orders) |
-| `SCREEN-ADMIN-ORDER-DETAIL` | Admin Order Detail | Product | `/admin/orders/[orderId]` | Yes | No | Operator / Admin | [Admin Orders](./features/admin-orders.md#screen-admin-order-detail-admin-order-detail) |
-| `SCREEN-ADMIN-REVIEWS` | Admin Reviews | Product | `/admin/reviews` | Yes | No | Operator / Admin | [Reviews](./features/reviews.md#screen-admin-reviews-admin-reviews) |
-| `SCREEN-ADMIN-USERS` | Admin Users | Product | `/admin/users` | Yes | No | Admin | [Admin Users](./features/admin-users.md#screen-admin-users-admin-users) |
-| `SCREEN-ADMIN-USER-DETAIL` | Admin User Detail | Product | `/admin/users/[userId]` | Yes | No | Admin | [Admin Users](./features/admin-users.md#screen-admin-user-detail-admin-user-detail) |
+| `SCREEN-ADMIN-DASHBOARD` | 管理ダッシュボード | Product | `/admin` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-dashboard-管理ダッシュボード) |
+| `SCREEN-ADMIN-PRODUCTS` | 管理：商品一覧 | Product | `/admin/products` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-products-商品管理) |
+| `SCREEN-ADMIN-PRODUCT-NEW` | 管理：商品新規登録 | Product | `/admin/products/new` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-product-new-商品新規登録) |
+| `SCREEN-ADMIN-PRODUCT-DETAIL` | 管理：商品詳細・編集 | Product | `/admin/products/[productId]` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-product-detail-商品詳細編集) |
+| `SCREEN-ADMIN-CATEGORIES` | 管理：カテゴリ一覧 | Product | `/admin/categories` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-categories-カテゴリー管理) |
+| `SCREEN-ADMIN-BRANDS` | 管理：ブランド一覧 | Product | `/admin/brands` | 〇 | × | Operator / Admin | [管理カタログ](./features/admin-catalog.md#screen-admin-brands-ブランド管理) |
+| `SCREEN-ADMIN-INVENTORIES` | 管理：在庫一覧 | Product | `/admin/inventories` | 〇 | × | Operator / Admin | [管理在庫](./features/admin-inventory.md#screen-admin-inventories-管理者在庫一覧) |
+| `SCREEN-ADMIN-ORDERS` | 管理：注文一覧 | Product | `/admin/orders` | 〇 | × | Operator / Admin | [管理注文](./features/admin-orders.md#screen-admin-orders-管理者注文一覧) |
+| `SCREEN-ADMIN-ORDER-DETAIL` | 管理：注文詳細 | Product | `/admin/orders/[orderId]` | 〇 | × | Operator / Admin | [管理注文](./features/admin-orders.md#screen-admin-order-detail-管理者注文詳細) |
+| `SCREEN-ADMIN-REVIEWS` | 管理：レビュー一覧 | Product | `/admin/reviews` | 〇 | × | Operator / Admin | [レビュー](./features/reviews.md#screen-admin-reviews-管理者レビュー) |
+| `SCREEN-ADMIN-USERS` | 管理：ユーザー一覧 | Product | `/admin/users` | 〇 | × | Admin | [管理ユーザー](./features/admin-users.md#screen-admin-users-管理者ユーザー) |
+| `SCREEN-ADMIN-USER-DETAIL` | 管理：ユーザー詳細 | Product | `/admin/users/[userId]` | 〇 | × | Admin | [管理ユーザー](./features/admin-users.md#screen-admin-user-detail-管理者ユーザー詳細) |
 
-## Test-only Screens
+## テスト専用画面
 
-| Screen ID | Screen | Class | Route | Web | Android | Audience | Primary specification |
+| Screen ID | 画面名 | クラス | ルート | Web | Android | 対象読者 | 主仕様書 |
 |---|---|---|---|---|---|---|---|
-| `SCREEN-TEST-CONTROL` | Admin Test Control | Test-only | `/admin/test-control` | Automation Web | No | Admin | [State and Scenarios](./state-and-scenarios.md#screen-test-control-admin-test-control) |
+| `SCREEN-TEST-CONTROL` | 管理：テスト制御 | Test-only | `/admin/test-control` | Automation Web | × | Admin | [状態とシナリオ](./state-and-scenarios.md#screen-test-control-管理者テストコントロール) |
 
-## Inventory summary
+## 画面一覧サマリ
 
-| Class | Count |
+| クラス | 画面数 |
 |---|---:|
 | Product | 31 |
 | Supporting | 4 |
 | Boundary | 2 |
 | Test-only | 1 |
-| Catalog Universe | 38 |
+| カタログ全体 | 38 |
 
 動的パラメータ名（`[productId]`、`[categoryId]`、`[orderId]`、`[orderItemId]`、`[userId]`）はルートの投影表現にすぎず、これらによって個別のScreen IDが追加で作成されることはありません。

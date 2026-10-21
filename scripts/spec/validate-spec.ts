@@ -26,15 +26,25 @@ const AC_HEADING = /^#### AC-[A-Z0-9]+-[0-9]{3} — .+$/;
 const BR_ID = /^BR-[A-Z0-9]+-[0-9]{3}$/;
 const AC_ID = /^AC-[A-Z0-9]+-[0-9]{3}$/;
 const RELATED_BR =
-  /^(?:Related BR: |関連ビジネスルール: )`((?:BR-[A-Z0-9]+-[0-9]{3})(?:`, `BR-[A-Z0-9]+-[0-9]{3})*)`$/;
-const RELATED_BR_LABEL = /^(?:Related BR:|関連ビジネスルール:)/;
+  /^(?:Related BR: |関連BR: |関連ビジネスルール: |関連業務ルール: )`((?:BR-[A-Z0-9]+-[0-9]{3})(?:`, `BR-[A-Z0-9]+-[0-9]{3})*)`$/;
+const RELATED_BR_LABEL = /^(?:Related BR:|関連BR:|関連ビジネスルール:|関連業務ルール:)/;
 
 const REQUIRED_FEATURE_SECTIONS = [
-  ["Purpose / Scope", "目的・対象範囲（Purpose / Scope）"],
-  ["Business Rules", "ビジネスルール（Business Rules）"],
-  ["UI / Behavior Contract", "UI・振る舞い規約（UI / Behavior Contract）"],
-  ["Acceptance Criteria", "受入基準（Acceptance Criteria）"],
-  ["Executable Canonical Sources", "実行可能カノニカルソース（Executable Canonical Sources）"],
+  ["Purpose / Scope", "目的・対象範囲", "目的と対象範囲", "目的・対象範囲（Purpose / Scope）"],
+  ["Business Rules", "ビジネスルール", "業務ルール", "ビジネスルール（Business Rules）"],
+  [
+    "UI / Behavior Contract",
+    "UI・振る舞い契約",
+    "UI・振る舞い規約",
+    "UI・振る舞い規約（UI / Behavior Contract）",
+  ],
+  ["Acceptance Criteria", "受入基準", "受入条件", "受入基準（Acceptance Criteria）"],
+  [
+    "Executable Canonical Sources",
+    "実行可能な正本ソース",
+    "実行可能な正準ソース",
+    "実行可能カノニカルソース（Executable Canonical Sources）",
+  ],
 ] as const;
 
 export function collectNormativeSpecReferences(

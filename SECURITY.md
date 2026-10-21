@@ -10,9 +10,9 @@ Scenario Shopは、学習およびテストを目的とした模擬ECアプリ�
 
 セキュリティ上の脆弱性が疑われる問題を、公開のIssueやPull Requestへ投稿しないでください。
 
-報告にはGitHubのPrivate Vulnerability Reporting（非公開脆弱性レポート機能）を使用してください。
+報告にはGitHubの非公開脆弱性レポート機能を使用してください。
 
-1. [Security page](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security)を開きます。
+1. [セキュリティページ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security)を開きます。
 2. **Advisories**を開きます。
 3. **Report a vulnerability**を選択します。
 
@@ -20,12 +20,12 @@ Scenario Shopは、学習およびテストを目的とした模擬ECアプリ�
 
 ## 公開情報の境界
 
-未修正のアラート番号、生のペイロード（raw payload）、実際の影響範囲（actual exposure）、攻撃経路、非公開トリアージの内容は、公開のIssueやPull Requestへ記載しないでください。セキュリティ修正のPull Requestで公開してよい情報は、依存関係（dependency）名、変更前後のバージョン、セキュリティアップデートであること、およびCI・検証結果に関する最小限の情報のみです。
+未修正のアラート番号、生のペイロード、実際の影響範囲、攻撃経路、非公開トリアージの内容は、公開のIssueやPull Requestへ記載しないでください。セキュリティ修正のPull Requestで公開してよい情報は、依存関係名、変更前後のバージョン、セキュリティアップデートであること、およびCI・検証結果に関する最小限の情報のみです。
 
-アラートの自動dismiss（非表示・却下）は行いません。
+アラートの自動非表示・却下は行いません。
 
 ## 対応と公開
 
-報告はGitHubの非公開アドバイザリプロセスで確認します。必要に応じて、そのアドバイザリを通じて修正と公開の調整を行います。対応または修正に関する固定のSLA（サービス水準合意）は定めていません。
+報告はGitHubの非公開アドバイザリプロセスで確認します。必要に応じて、そのアドバイザリを通じて修正と公開の調整を行います。対応または修正に関する固定のSLAは定めていません。
 
 意図的に模擬している動作や、この学習用アプリケーションに文書化されている制限事項のみに関する問題は、セキュリティ報告の対象外です。
