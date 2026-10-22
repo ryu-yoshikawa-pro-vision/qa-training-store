@@ -2,23 +2,17 @@
   "schema_version": 1,
   "module_id": "M01",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
-  "inputs": [
-    {
-      "artifact_id": "M01-result-01",
-      "path": "workspace/M01/submission.md"
-    }
-  ],
   "environment": ["static product specification"],
   "expected": {
     "required_paths": ["workspace/M01/submission.md"],
     "objective_ids": ["M01-01", "M01-02", "M01-03", "M01-04"],
     "phase": "P1",
-    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
   },
   "checks": [
     {
@@ -35,6 +29,11 @@
       "id": "M01-END-03",
       "mode": "human-review",
       "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    },
+    {
+      "id": "M01-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
     }
   ],
   "references": [
@@ -46,5 +45,13 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
-  }
+  },
+  "outputs": [
+    {
+      "artifact_id": "M01-result-01",
+      "path": "workspace/M01/submission.md",
+      "revision": "M01-result-v1",
+      "contract_id": "M01-to-M02-handoff-v1"
+    }
+  ]
 }

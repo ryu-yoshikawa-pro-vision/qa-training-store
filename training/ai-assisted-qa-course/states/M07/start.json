@@ -2,26 +2,41 @@
   "schema_version": 1,
   "module_id": "M07",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
   "inputs": [
     {
-      "artifact_id": "M06-end-submission",
+      "artifact_id": "M06-result-01",
+      "path": "workspace/M06/submission.md",
+      "revision": "M06-result-v1",
+      "contract_id": "M06-to-M07-handoff-v1",
       "from_module": "M06",
       "optional": true,
-      "public_fallback": "inputs/M07/start.md",
+      "same_input_contract": true
+    },
+    {
+      "artifact_id": "M06-result-02",
+      "path": "workspace/M06/cart-cases.spec.ts",
+      "revision": "M06-result-v1",
+      "contract_id": "M06-to-M07-handoff-v1",
+      "from_module": "M06",
+      "optional": true,
       "same_input_contract": true
     }
   ],
   "environment": ["M06 spec", "Run logs and Trace"],
   "expected": {
-    "required_paths": ["inputs/M07/start.md"],
+    "required_paths": [
+      "inputs/M07/start.md",
+      "workspace/M07/failure-assertion.spec.ts",
+      "workspace/M07/repaired-assertion.spec.ts"
+    ],
     "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
     "phase": "P2",
-    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
   },
   "checks": [
     {
@@ -32,12 +47,17 @@
     {
       "id": "M07-START-02",
       "mode": "read-only",
-      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
+      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
     },
     {
       "id": "M07-START-03",
       "mode": "read-only",
       "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M07-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
     }
   ],
   "references": [
@@ -49,5 +69,12 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
+  },
+  "public_fallback": {
+    "artifact_id": "M07-public-start-01",
+    "revision": "M07-public-start-v1",
+    "contract_id": "M06-to-M07-handoff-v1",
+    "path": "inputs/M07/start.md",
+    "public": true
   }
 }

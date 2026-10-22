@@ -65,7 +65,7 @@ M00〜M10を順番に進みます。Phase 3は選択制です。Phase 1・2の�
 - [M08：Git・GitHubとレビュー](./modules/M08/README.md)
 - [M09：CIと品質ゲート](./modules/M09/README.md)
 - [M10：Phase 3総合演習](./modules/M10/README.md)
-- [Scenario Shopの正式仕様](../../spec/README.md)
-- [教材と評価の基準](../../plans/2026-10-16_qa-curriculum-ai-agent-redesign.md)
+- [Scenario ShopのCart正式仕様](../../spec/features/cart.md)
+- [学習項目と到達基準](../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
 
 \n

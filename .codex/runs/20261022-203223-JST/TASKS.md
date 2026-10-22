@@ -6,9 +6,9 @@
 - [x] 3. 全11モジュールのWeb/quiz validatorとChromium回帰E2Eを実装・検証。
 - [x] 4. 22状態データ/validator、51 objectiveを含む知識グラフ構造と影響検索を実装・構造検証。
 - [x] 5. 同期/単一モジュールload/checkを実装し、ローカルfixture契約を検証。
-- [x] 6. 標準`verify`と旧課程を含むChromium E2Eを実行・分類。配布契約を含む全contract suiteも再実行し、新課程8件はPASS、既存Windows Hook/native/MCP/ACL境界31件のFAILを確認。
+- [x] 6. 標準`verify`と旧課程を含むChromium E2Eを実行・分類。新課程focused contract 16/16、Web E2E 17/17、課程/状態/知識グラフvalidatorはPASS。全`verify`は755 passed / 31 failed / 2 skippedでFAILし、既存Codex Hook/task wrapper/MCP/Windows ACL境界の5 filesに失敗を特定。標準51-case E2Eは既定Chromium未配置で起動失敗したが、明示Chromeで全51ケースPASS表示、終了処理のexit codeは未取得。
 - [ ] 7. M02→M03の固定Skill実統合受入を実施（実在Authority/Risk/Scope entityとOpenCode実行経路待ち）。
-- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。M05の不足していた実行spec・load/state/graph契約を追加し、意図的失敗/一時修正版probeを確認した。M06/M07は公開scaffoldのままで、完成受入は未達。
+- [x] 8. M05→M06代表教材の開発受入とPhase 2専用Playwright経路を開発環境で確認。M05意図的Locator失敗と別の修正版1/1、M06公式Cart 3 Case 3/3、M07意図的Assertion失敗と修正後別Run 1/1を証拠付きで確認。受講者が完成するM06/M07のTODO scaffoldは公開入力として維持し、人間受入は実地検証工程へ分離。
 - [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
 - [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
 - [ ] 11. 58 tentative knowledge nodesと教材内容の独立した妥当性レビューを完了。

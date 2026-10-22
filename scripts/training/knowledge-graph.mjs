@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Read-only integrity and change-impact CLI for the AI-assisted QA curriculum.
 import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, relative, resolve, isAbsolute, sep } from "node:path";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -464,8 +464,9 @@ function changedFilesImpact(graph, listPath) {
       : "All curriculum-relevant files matched registered nodes.",
   };
 }
-function markdownCell(value) {
+export function markdownCell(value) {
   return String(value ?? "")
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .replace(/\r?\n/g, "<br>");
 }
@@ -624,24 +625,26 @@ function renderTable(graph) {
     ...rows,
   ].join("\n");
 }
-try {
-  const args = process.argv.slice(2),
-    graph = load(),
-    counts = validate(graph);
-  if (args[0] === "validate" && args.length === 1)
-    console.log(JSON.stringify({ ok: true, ...counts }, null, 2));
-  else if (args[0] === "table" && args.length === 1) console.log(renderTable(graph));
-  else if (args[0] === "impact" && args.length === 2)
-    console.log(JSON.stringify({ ok: true, ...impact(graph, args[1]) }, null, 2));
-  else if (args[0] === "impact" && args[1] === "--changed-files" && args.length === 3) {
-    const result = changedFilesImpact(graph, args[2]);
-    console.log(JSON.stringify(result, null, 2));
-    if (!result.ok) process.exitCode = 2;
-  } else
-    fail(
-      "Usage: node scripts/training/knowledge-graph.mjs validate | table | impact <node-id|repo-path> | impact --changed-files <path-list-file>",
-    );
-} catch (error) {
-  console.error("knowledge-graph: " + error.message);
-  process.exitCode = 1;
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  try {
+    const args = process.argv.slice(2),
+      graph = load(),
+      counts = validate(graph);
+    if (args[0] === "validate" && args.length === 1)
+      console.log(JSON.stringify({ ok: true, ...counts }, null, 2));
+    else if (args[0] === "table" && args.length === 1) console.log(renderTable(graph));
+    else if (args[0] === "impact" && args.length === 2)
+      console.log(JSON.stringify({ ok: true, ...impact(graph, args[1]) }, null, 2));
+    else if (args[0] === "impact" && args[1] === "--changed-files" && args.length === 3) {
+      const result = changedFilesImpact(graph, args[2]);
+      console.log(JSON.stringify(result, null, 2));
+      if (!result.ok) process.exitCode = 2;
+    } else
+      fail(
+        "Usage: node scripts/training/knowledge-graph.mjs validate | table | impact <node-id|repo-path> | impact --changed-files <path-list-file>",
+      );
+  } catch (error) {
+    console.error("knowledge-graph: " + error.message);
+    process.exitCode = 1;
+  }
 }

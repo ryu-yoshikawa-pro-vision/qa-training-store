@@ -2,26 +2,42 @@
   "schema_version": 1,
   "module_id": "M08",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
   "inputs": [
     {
-      "artifact_id": "M07-end-submission",
+      "artifact_id": "M07-result-01",
+      "path": "workspace/M07/diagnosis.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
       "from_module": "M07",
       "optional": true,
-      "public_fallback": "inputs/M08/start.md",
+      "same_input_contract": true
+    },
+    {
+      "artifact_id": "M07-result-02",
+      "path": "workspace/M07/repaired-assertion.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "from_module": "M07",
+      "optional": true,
       "same_input_contract": true
     }
   ],
   "environment": ["personal learning repository"],
   "expected": {
-    "required_paths": ["inputs/M08/start.md"],
+    "required_paths": [
+      "inputs/M08/start.md",
+      "workspace/M08/submission.md",
+      "workspace/M08/review-candidate.md",
+      "workspace/M08/local-only-run.log"
+    ],
     "objective_ids": ["M08-01", "M08-02", "M08-03", "M08-04"],
     "phase": "P3",
-    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
   },
   "checks": [
     {
@@ -32,12 +48,17 @@
     {
       "id": "M08-START-02",
       "mode": "read-only",
-      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
+      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
     },
     {
       "id": "M08-START-03",
       "mode": "read-only",
       "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M08-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
     }
   ],
   "references": [
@@ -49,5 +70,12 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
+  },
+  "public_fallback": {
+    "artifact_id": "M08-public-start-01",
+    "revision": "M08-public-start-v1",
+    "contract_id": "M07-to-M08-handoff-v1",
+    "path": "inputs/M08/start.md",
+    "public": true
   }
 }

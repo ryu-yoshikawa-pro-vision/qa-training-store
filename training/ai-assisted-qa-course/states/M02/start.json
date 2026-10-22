@@ -2,17 +2,19 @@
   "schema_version": 1,
   "module_id": "M02",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
   "inputs": [
     {
-      "artifact_id": "M01-end-submission",
+      "artifact_id": "M01-result-01",
+      "path": "workspace/M01/submission.md",
+      "revision": "M01-result-v1",
+      "contract_id": "M01-to-M02-handoff-v1",
       "from_module": "M01",
       "optional": true,
-      "public_fallback": "inputs/M02/start.md",
       "same_input_contract": true
     }
   ],
@@ -21,7 +23,7 @@
     "required_paths": ["inputs/M02/start.md"],
     "objective_ids": ["M02-01", "M02-02", "M02-03", "M02-04", "M02-05"],
     "phase": "P1",
-    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
   },
   "checks": [
     {
@@ -32,12 +34,17 @@
     {
       "id": "M02-START-02",
       "mode": "read-only",
-      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
+      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
     },
     {
       "id": "M02-START-03",
       "mode": "read-only",
       "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M02-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
     }
   ],
   "references": [
@@ -49,5 +56,12 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
+  },
+  "public_fallback": {
+    "artifact_id": "M02-public-start-01",
+    "revision": "M02-public-start-v1",
+    "contract_id": "M01-to-M02-handoff-v1",
+    "path": "inputs/M02/start.md",
+    "public": true
   }
 }

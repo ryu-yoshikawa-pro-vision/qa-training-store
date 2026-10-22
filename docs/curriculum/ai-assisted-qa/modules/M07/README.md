@@ -36,6 +36,6 @@ Phase 2ルーブリックは [`assessment/phase-2-rubric.md`](../../../../../tra
 
 ## 参考
 
-- [M07の習熟基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)
-- [評価と修了条件](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)
+- [M07の学習項目](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
+- [Phase 2評価基準](../../../../../training/ai-assisted-qa-course/assessment/phase-2-rubric.md)
 - [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M07/start.json)

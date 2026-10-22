@@ -2,19 +2,12 @@
   "schema_version": 1,
   "module_id": "M00",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
-  "inputs": [
-    {
-      "artifact_id": "course-environment",
-      "from_module": null,
-      "optional": false,
-      "public_fallback": "inputs/M00/start.md"
-    }
-  ],
+  "inputs": [],
   "environment": ["Browser VS Code", "approved agent and Skill scope"],
   "expected": {
     "required_paths": ["inputs/M00/start.md"],
@@ -31,12 +24,17 @@
     {
       "id": "M00-START-02",
       "mode": "read-only",
-      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
+      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
     },
     {
       "id": "M00-START-03",
       "mode": "read-only",
       "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M00-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
     }
   ],
   "references": [
@@ -48,5 +46,12 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
+  },
+  "public_fallback": {
+    "artifact_id": "M00-public-start-01",
+    "revision": "M00-public-start-v1",
+    "contract_id": "M00-start-v1",
+    "path": "inputs/M00/start.md",
+    "public": true
   }
 }

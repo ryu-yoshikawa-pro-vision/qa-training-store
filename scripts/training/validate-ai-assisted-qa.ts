@@ -162,6 +162,15 @@ function validateQuestion(
 }
 
 export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValidationResult {
+  const courseManifestPath = repositoryPath(rootDir, "training/course-sync/manifest.json");
+  const courseManifest = JSON.parse(fs.readFileSync(courseManifestPath, "utf8")) as {
+    state_contract_revision?: string;
+    load_files?: { module_id?: string; target_path?: string }[];
+  };
+  requireCondition(
+    courseManifest.state_contract_revision === "ai-assisted-qa-course-v2",
+    "course distribution state contract revision must be v2",
+  );
   const graphAbsolute = repositoryPath(rootDir, GRAPH_PATH);
   const graph = JSON.parse(fs.readFileSync(graphAbsolute, "utf8")) as {
     nodes?: { id?: string; type?: string }[];
@@ -268,7 +277,28 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
         source_sha_resolution?: string;
         public_contract?: boolean;
         read_only?: boolean;
-        inputs?: { artifact_id?: string; public_fallback?: string; optional?: boolean }[];
+        inputs?: {
+          artifact_id?: string;
+          path?: string;
+          revision?: string;
+          contract_id?: string;
+          from_module?: string;
+          optional?: boolean;
+          same_input_contract?: boolean;
+        }[];
+        public_fallback?: {
+          artifact_id?: string;
+          revision?: string;
+          contract_id?: string;
+          path?: string;
+          public?: boolean;
+        };
+        outputs?: {
+          artifact_id?: string;
+          path?: string;
+          revision?: string;
+          contract_id?: string;
+        }[];
         expected?: { required_paths?: string[]; objective_ids?: string[] };
         checks?: { id?: string; mode?: string; condition?: string }[];
         references?: string[];
@@ -283,7 +313,7 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
         `${statePath}のID/版が不正です`,
       );
       requireCondition(
-        state.revision === "ai-assisted-qa-course-v1",
+        state.revision === "ai-assisted-qa-course-v2",
         `${statePath}のrevisionが不正です`,
       );
       requireCondition(
@@ -322,21 +352,99 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       for (const reference of state.references ?? [])
         validateSourceReference(rootDir, reference, `${moduleId}/${stateName}`);
       if (stateName === "start") {
+        requireCondition(Array.isArray(state.inputs), `${statePath}にinputs配列がありません`);
+        const fallbackInput = state.public_fallback;
         requireCondition(
-          Array.isArray(state.inputs) && state.inputs.length > 0,
-          `${statePath}に入力契約がありません`,
+          Boolean(
+            fallbackInput?.artifact_id &&
+            fallbackInput.revision &&
+            fallbackInput.contract_id &&
+            fallbackInput.path &&
+            fallbackInput.public === true,
+          ),
+          `${statePath}の公開fallback契約が不完全です`,
         );
-        for (const input of state.inputs ?? []) {
-          if (input.public_fallback) {
-            const fallback = repositoryPath(
-              rootDir,
-              `training/ai-assisted-qa-course/${input.public_fallback}`,
+        const fallbackPath = repositoryPath(
+          rootDir,
+          `training/ai-assisted-qa-course/${fallbackInput?.path ?? ""}`,
+        );
+        requireCondition(
+          fs.existsSync(fallbackPath) &&
+            state.expected?.required_paths?.includes(fallbackInput?.path ?? ""),
+          `${statePath}の公開fallbackが必須入力に含まれていません`,
+        );
+        const currentIndex = requiredModules.indexOf(moduleId);
+        if (currentIndex === 0) {
+          requireCondition(
+            state.inputs.length === 0,
+            `${statePath}の先行入力は空である必要があります`,
+          );
+        } else {
+          const previousModule = requiredModules[currentIndex - 1];
+          const previousEndPath = repositoryPath(
+            rootDir,
+            `training/ai-assisted-qa-course/states/${previousModule}/end.json`,
+          );
+          const previousEnd = JSON.parse(fs.readFileSync(previousEndPath, "utf8")) as {
+            outputs?: {
+              artifact_id?: string;
+              path?: string;
+              revision?: string;
+              contract_id?: string;
+            }[];
+          };
+          requireCondition(state.inputs.length > 0, `${statePath}の先行入力がありません`);
+          for (const input of state.inputs) {
+            const priorOutput = previousEnd.outputs?.find(
+              (output) => output.artifact_id === input.artifact_id,
             );
             requireCondition(
-              fs.existsSync(fallback),
-              `${statePath}の公開開始入力がありません: ${input.public_fallback}`,
+              Boolean(
+                priorOutput &&
+                input.from_module === previousModule &&
+                input.optional === true &&
+                input.same_input_contract === true &&
+                input.path === priorOutput.path &&
+                input.revision === priorOutput.revision &&
+                input.contract_id === priorOutput.contract_id &&
+                input.contract_id === fallbackInput?.contract_id &&
+                input.revision !== fallbackInput?.revision &&
+                fallbackInput?.artifact_id !== input.artifact_id,
+              ),
+              `${statePath}の先行artifact ID/path/revision/contractが前工程と一致しません`,
             );
           }
+        }
+      } else {
+        requireCondition(
+          Array.isArray(state.outputs) && state.outputs.length > 0,
+          `${statePath}に終了artifactがありません`,
+        );
+        const outputIds = new Set<string>();
+        const outputPaths = new Set<string>();
+        for (const output of state.outputs ?? []) {
+          requireCondition(
+            Boolean(
+              output.artifact_id &&
+              output.path &&
+              output.revision &&
+              output.contract_id &&
+              state.expected?.required_paths?.includes(output.path),
+            ),
+            `${statePath}の終了artifact契約が不完全です`,
+          );
+          requireCondition(
+            !outputIds.has(output.artifact_id ?? "") && !outputPaths.has(output.path ?? ""),
+            `${statePath}の終了artifact ID/pathが重複しています`,
+          );
+          outputIds.add(output.artifact_id ?? "");
+          outputPaths.add(output.path ?? "");
+          requireCondition(
+            courseManifest.load_files?.some(
+              (entry) => entry.module_id === moduleId && entry.target_path === output.path,
+            ),
+            `${statePath}の終了artifact pathが単一モジュールのload allowlistにありません`,
+          );
         }
       }
       stateCount += 1;

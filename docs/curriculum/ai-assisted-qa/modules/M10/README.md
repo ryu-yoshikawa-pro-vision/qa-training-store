@@ -25,6 +25,6 @@ M10ではPhase 2で動作確認した同じspecを使い、Git差分からPull R
 
 ## 参考
 
-- [M10の学習項目と基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)
-- [評価と修了条件](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)
+- [M10の学習項目](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
+- [Phase 3評価基準](../../../../../training/ai-assisted-qa-course/assessment/phase-3-rubric.md)
 - [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M10/start.json)

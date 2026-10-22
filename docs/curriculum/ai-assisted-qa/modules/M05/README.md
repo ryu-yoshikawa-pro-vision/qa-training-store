@@ -94,7 +94,7 @@ Phase 2では新課程の専用Configを使い、テスト対象は`workspace/M0
 
 ## 参考
 
-- [PlaywrightのTraining Config](../../../../../playwright.training.config.ts)
+- [新課程Playwright Config](../../../../../playwright.ai-assisted-qa.config.ts)
 - [Playwrightの公式ベストプラクティス](https://playwright.dev/docs/best-practices)
 - [TypeScriptの基本型](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html)
 - [M05の学習項目と到達基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)

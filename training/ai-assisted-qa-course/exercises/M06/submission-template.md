@@ -2,9 +2,9 @@
 
 | Case ID | Role/State/Data | Locator・Action | 業務上のAssertion | Seed/Reset | Run結果 |
 |---|---|---|---|---|---|
-| CASE-CART-NORMAL | | | | | |
-| CASE-CART-REJECT-LIMIT | | | | | |
-| CASE-CART-LOW-STOCK | | | | | |
+| CASE-CART-001 | | | | | |
+| CASE-CART-002 | | | | | |
+| CASE-CART-003 | | | | | |
 
 - spec差分と実行コマンド:
 - 独立したRun IDとPASS/FAIL/未実行:

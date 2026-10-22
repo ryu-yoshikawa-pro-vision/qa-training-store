@@ -31,6 +31,6 @@ Unitは小さな関数、Integrationは複数部品の連携、ComponentはUI部
 
 ## 参考
 
-- [Scenario Shopの仕様入口](../../../../spec/README.md)
+- [Scenario ShopのCart仕様](../../../../spec/features/cart.md)
 - [M01の学習項目](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
 - [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M01/start.json)

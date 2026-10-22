@@ -16,7 +16,7 @@ AIの指摘は対象diff、正式仕様、実行証拠に照らします。正�
 
 ## 演習と提出
 
-`workspace/M08/`の練習変更だけを使用します。1件の目的外ファイルをstage候補に混ぜ、`status`/`diff --cached`から除外します。次に、Case ID・仕様根拠・対象spec・実行状態を含むPR説明を作成します。最後にAI指摘を根拠で評価します。実際の共有操作は個人用学習リポジトリの権限が確定した実地工程で行います。
+`workspace/M08/review-candidate.md`のTODOを補い、`workspace/M08/local-only-run.log`が合成メモで実行証拠ではないことを確認します。前者だけをstageし、`status`と`diff --staged`で後者が含まれていないことを確認します。次にCase ID・仕様根拠・対象spec・実行状態を含むPR説明を作成し、AI指摘を根拠で評価します。実際の共有操作は個人用学習リポジトリの権限が確定した実地工程で行います。
 
 提出は `workspace/M08/submission.md` に状態遷移・差分・レビュー根拠を記録します。GitHubアカウント権限やRunner利用可否を教材内で成功済みと扱いません。
 
@@ -26,6 +26,6 @@ AIの指摘は対象diff、正式仕様、実行証拠に照らします。正�
 
 ## 参考
 
-- [M08の学習項目と基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)
-- [Phase 3評価条件](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)
+- [M08の学習項目](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
+- [Phase 3評価基準](../../../../../training/ai-assisted-qa-course/assessment/phase-3-rubric.md)
 - [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M08/start.json)

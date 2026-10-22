@@ -22,6 +22,43 @@ function writeFixtureFile(root, relativePath, content) {
   return destination;
 }
 
+function snapshotDirectory(root) {
+  const snapshot = [];
+  const visit = (directory, prefix = "") => {
+    if (!fs.existsSync(directory)) return;
+    for (const entry of fs
+      .readdirSync(directory, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name))) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute, relative);
+      else if (entry.isFile()) snapshot.push([relative, fs.readFileSync(absolute)]);
+    }
+  };
+  visit(root);
+  return snapshot;
+}
+
+function expectMarkdownLinksResolve(root, relativePath) {
+  const markdownPath = path.join(root, ...relativePath.split("/"));
+  const markdown = fs.readFileSync(markdownPath, "utf8");
+  const links = [...markdown.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)].map(
+    (match) => match[1],
+  );
+  for (const href of links) {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) continue;
+    const filePart = decodeURIComponent(href.split(/[?#]/, 1)[0]);
+    if (!filePart) continue;
+    const resolved = path.resolve(path.dirname(markdownPath), filePart);
+    const fromRoot = path.relative(root, resolved);
+    expect(
+      fromRoot === ".." || fromRoot.startsWith(`..${path.sep}`),
+      `${relativePath} -> ${href} escapes distribution root`,
+    ).toBe(false);
+    expect(fs.existsSync(resolved), `${relativePath} -> ${href}`).toBe(true);
+  }
+}
+
 function blobSha(bytes) {
   return createHash("sha1")
     .update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes]))
@@ -38,6 +75,19 @@ function courseFixture() {
   const localFiles = [];
   const loadFiles = [];
   const distributionBytes = new Map();
+  const workspaceIgnore = "M00/\nM01/\nM02/\nM03/\nM04/\nM05/\nM06/\nM07/\n";
+  writeFixtureFile(
+    source,
+    "training/ai-assisted-qa-course/templates/workspace.gitignore",
+    workspaceIgnore,
+  );
+  localFiles.push({
+    source_path: "training/ai-assisted-qa-course/templates/workspace.gitignore",
+    target_path: "workspace/.gitignore",
+    module_id: null,
+    role: "workspace-protection",
+  });
+  distributionBytes.set("workspace/.gitignore", Buffer.from(workspaceIgnore));
   for (let index = 0; index <= 10; index += 1) {
     const moduleId = `M${String(index).padStart(2, "0")}`;
     const moduleReadmePath = `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`;
@@ -47,14 +97,18 @@ function courseFixture() {
     const templateSource = `training/ai-assisted-qa-course/exercises/${moduleId}/submission-template.md`;
     const startSource = `training/ai-assisted-qa-course/states/${moduleId}/start.json`;
     const endSource = `training/ai-assisted-qa-course/states/${moduleId}/end.json`;
+    const readmeContent =
+      index === 0
+        ? `# ${moduleId}\n[Quiz](../../quizzes/${moduleId}.json)\n[Start](../../start-here.md)\n[Cart](../../../../spec/features/cart.md)\n`
+        : `# ${moduleId}\n`;
     const rows = [
-      [moduleReadmePath, `course/modules/${moduleId}/README.md`, `# ${moduleId}\n`],
+      [moduleReadmePath, `course/modules/${moduleId}/README.md`, readmeContent],
       [
         quizPath,
         `course/quizzes/${moduleId}.json`,
         JSON.stringify({ schema_version: 1, module_id: moduleId, questions: [] }),
       ],
-      [inputSource, `course/inputs/${moduleId}/start.md`, `${moduleId} public input\n`],
+      [inputSource, `course/modules/${moduleId}/inputs/start.md`, `${moduleId} public input\n`],
       [exerciseSource, `course/exercises/${moduleId}/exercise.md`, `${moduleId} exercise\n`],
       [
         templateSource,
@@ -68,18 +122,32 @@ function courseFixture() {
           schema_version: 1,
           module_id: moduleId,
           state: "start",
-          revision: "ai-assisted-qa-course-v1",
+          revision: "ai-assisted-qa-course-v2",
           source_sha: null,
           public_contract: true,
           read_only: true,
-          inputs: [
-            {
-              artifact_id: `${moduleId}-fallback`,
-              from_module: index ? `M${String(index - 1).padStart(2, "0")}` : null,
-              optional: index > 0,
-              public_fallback: `inputs/${moduleId}/start.md`,
-            },
-          ],
+          inputs: index
+            ? [
+                {
+                  artifact_id: `M${String(index - 1).padStart(2, "0")}-submission`,
+                  path: `workspace/M${String(index - 1).padStart(2, "0")}/submission.md`,
+                  revision: `M${String(index - 1).padStart(2, "0")}-result-v1`,
+                  contract_id: `M${String(index - 1).padStart(2, "0")}-to-${moduleId}-handoff-v1`,
+                  from_module: `M${String(index - 1).padStart(2, "0")}`,
+                  optional: true,
+                  same_input_contract: true,
+                },
+              ]
+            : [],
+          public_fallback: {
+            artifact_id: `${moduleId}-fallback`,
+            revision: `${moduleId}-public-start-v1`,
+            contract_id: index
+              ? `M${String(index - 1).padStart(2, "0")}-to-${moduleId}-handoff-v1`
+              : `${moduleId}-start-v1`,
+            path: `inputs/${moduleId}/start.md`,
+            public: true,
+          },
           expected: { required_paths: [`inputs/${moduleId}/start.md`] },
           checks: [{ id: `${moduleId}-START`, mode: "read-only", condition: "check inputs" }],
           references: [
@@ -100,12 +168,20 @@ function courseFixture() {
           schema_version: 1,
           module_id: moduleId,
           state: "end",
-          revision: "ai-assisted-qa-course-v1",
+          revision: "ai-assisted-qa-course-v2",
           source_sha: null,
           public_contract: true,
           read_only: true,
-          inputs: [
-            { artifact_id: `${moduleId}-submission`, path: `workspace/${moduleId}/submission.md` },
+          outputs: [
+            {
+              artifact_id: `${moduleId}-submission`,
+              path: `workspace/${moduleId}/submission.md`,
+              revision: `${moduleId}-result-v1`,
+              contract_id:
+                index < 10
+                  ? `${moduleId}-to-M${String(index + 1).padStart(2, "0")}-handoff-v1`
+                  : `${moduleId}-completion-v1`,
+            },
           ],
           expected: { required_paths: [`workspace/${moduleId}/submission.md`] },
           checks: [{ id: `${moduleId}-END`, mode: "read-only", condition: "check submission" }],
@@ -134,14 +210,19 @@ function courseFixture() {
         source_path: sourcePath,
         target_path: targetPath,
         module_id: moduleId,
-        role: "fixture",
+        role:
+          sourcePath === moduleReadmePath
+            ? "lesson"
+            : sourcePath === inputSource
+              ? "input"
+              : "fixture",
       });
       distributionBytes.set(targetPath, Buffer.from(content));
     }
     for (const targetPath of [
       `course/modules/${moduleId}/README.md`,
       `course/quizzes/${moduleId}.json`,
-      `course/inputs/${moduleId}/start.md`,
+      `course/modules/${moduleId}/inputs/start.md`,
       `course/exercises/${moduleId}/exercise.md`,
       `course/states/${moduleId}/start.json`,
       `course/states/${moduleId}/end.json`,
@@ -166,6 +247,26 @@ function courseFixture() {
         kind: "exercise-code",
       });
     }
+  }
+  const sharedMarkdown = [
+    [
+      "docs/curriculum/ai-assisted-qa/start-here.md",
+      "course/start-here.md",
+      "[M00](./modules/M00/README.md)\n[Cart](../../spec/features/cart.md)\n[Map](../../plans/learning-map.md)\n",
+      "guide",
+    ],
+    [
+      "docs/spec/features/cart.md",
+      "docs/spec/features/cart.md",
+      "# Cart specification\n",
+      "reference",
+    ],
+    ["docs/plans/learning-map.md", "docs/plans/learning-map.md", "# Learning map\n", "reference"],
+  ];
+  for (const [sourcePath, targetPath, content, role] of sharedMarkdown) {
+    writeFixtureFile(source, sourcePath, content);
+    localFiles.push({ source_path: sourcePath, target_path: targetPath, module_id: null, role });
+    distributionBytes.set(targetPath, Buffer.from(content));
   }
   const skillNames = [
     "qa-workflow",
@@ -195,7 +296,7 @@ function courseFixture() {
   const manifest = {
     schema_version: 1,
     source_sha: "${SOURCE_SHA}",
-    state_contract_revision: "ai-assisted-qa-course-v1",
+    state_contract_revision: "ai-assisted-qa-course-v2",
     external_skill_source: {
       repository: "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       commit: "7cc6cba7772de549841a39d71694cbafbc783324",
@@ -246,9 +347,11 @@ describe("AI-assisted QA distribution contract", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const result = validateCourseManifest(manifest);
     expect(result).toMatchObject({ modules: 11, externalSkillFiles: 94 });
-    expect(manifest.local_files.some((entry) => entry.target_path.startsWith("workspace/"))).toBe(
-      false,
-    );
+    expect(
+      manifest.local_files
+        .filter((entry) => entry.target_path.startsWith("workspace/"))
+        .map((entry) => entry.target_path),
+    ).toEqual(["workspace/.gitignore"]);
     expect(
       manifest.external_skill_files.every((entry) => !entry.source_path.includes("/evals/")),
     ).toBe(true);
@@ -261,6 +364,31 @@ describe("AI-assisted QA distribution contract", () => {
         ],
       }),
     ).toThrow(/prohibited/);
+  });
+
+  it("maps every lesson and start-guide link to an allowlisted distribution file", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const targetBySource = new Map(
+      manifest.local_files.map((entry) => [
+        path.posix.normalize(entry.source_path),
+        entry.target_path,
+      ]),
+    );
+    for (const entry of manifest.local_files.filter(
+      (file) => file.role === "lesson" || file.role === "guide",
+    )) {
+      const content = fs.readFileSync(path.join(repositoryRoot, entry.source_path), "utf8");
+      for (const match of content.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)) {
+        const href = match[1];
+        if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) continue;
+        const [sourceHref = ""] = href.split(/[?#]/, 1);
+        if (!sourceHref) continue;
+        const sourceTarget = path.posix.normalize(
+          path.posix.join(path.posix.dirname(entry.source_path), sourceHref),
+        );
+        expect(targetBySource.has(sourceTarget), `${entry.source_path} -> ${href}`).toBe(true);
+      }
+    }
   });
 
   it("distributes the M05 reading exercise and incomplete Phase 2 specs without publishing answers", () => {
@@ -278,6 +406,13 @@ describe("AI-assisted QA distribution contract", () => {
         path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M05/start.json"),
         "utf8",
       ),
+    );
+    const m06Template = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/exercises/M06/submission-template.md",
+      ),
+      "utf8",
     );
     const m05End = JSON.parse(
       fs.readFileSync(
@@ -315,6 +450,11 @@ describe("AI-assisted QA distribution contract", () => {
     expect(m05).toContain('await expect(mugLink).toHaveAttribute("href", "/products/product-mug")');
     expect(m05Start.expected.required_paths).toContain(m05Path);
     expect(m05End.expected.required_paths).toContain(m05Path);
+    for (const caseId of ["CASE-CART-001", "CASE-CART-002", "CASE-CART-003"]) {
+      expect(m06).toContain(caseId);
+      expect(m06Template).toContain(caseId);
+    }
+    expect(m06Template).not.toMatch(/CASE-CART-(NORMAL|REJECT-LIMIT|LOW-STOCK)/);
     expect(m06.match(/throw new Error\("TODO:/g)).toHaveLength(3);
     expect(m06).not.toMatch(/toHaveValue\(|toBeVisible\(/);
     expect(m07Before).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
@@ -393,13 +533,15 @@ describe("AI-assisted QA distribution contract", () => {
     expect(firstSync.copied.length).toBeGreaterThan(0);
     expect(repeatedSync.copied).toEqual([]);
     expect(repeatedSync.unchanged).toBe(repeatedSync.fileCount);
+    expectMarkdownLinksResolve(fixture.target, "course/modules/M00/README.md");
+    expectMarkdownLinksResolve(fixture.target, "course/start-here.md");
+    expect(
+      fs.readFileSync(path.join(fixture.target, "course/modules/M00/README.md"), "utf8"),
+    ).toContain("../../../docs/spec/features/cart.md");
+    expect(fs.readFileSync(path.join(fixture.target, "workspace/.gitignore"), "utf8")).toContain(
+      "M07/",
+    );
 
-    const start = checkState({ root: fixture.target, moduleId: "M00", stateName: "start" });
-    expect(start).toMatchObject({
-      status: "ready",
-      sourceSha,
-      input: { source: "module-public-sample" },
-    });
     const firstLoad = loadModule({
       root: fixture.target,
       moduleId: "M00",
@@ -407,6 +549,12 @@ describe("AI-assisted QA distribution contract", () => {
     });
     expect(firstLoad.moduleId).toBe("M00");
     expect(fs.existsSync(path.join(fixture.target, "workspace/M01/submission.md"))).toBe(false);
+    const start = checkState({ root: fixture.target, moduleId: "M00", stateName: "start" });
+    expect(start).toMatchObject({
+      status: "ready",
+      sourceSha,
+      input: { source: "module-public-sample" },
+    });
     expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" }).status).toBe(
       "insufficient",
     );
@@ -415,7 +563,7 @@ describe("AI-assisted QA distribution contract", () => {
     fs.appendFileSync(submission, "Learner evidence\n");
     expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" })).toMatchObject({
       status: "ready",
-      assessment: "構造照合のみ。Level 2は人が別途評価します",
+      assessment: "構造照合のみです。Level 2は人が別途評価します",
     });
     expect(() =>
       loadModule({
@@ -470,14 +618,22 @@ describe("AI-assisted QA distribution contract", () => {
 
     for (let index = 0; index <= 10; index += 1) {
       const moduleId = `M${String(index).padStart(2, "0")}`;
+      loadModule({
+        root: fixture.target,
+        moduleId,
+        now: new Date(`2026-10-22T02:${String(index).padStart(2, "0")}:00.000Z`),
+      });
       for (const stateName of ["start", "end"]) {
         const statePath = path.join(fixture.target, `course/states/${moduleId}/${stateName}.json`);
         const before = fs.readFileSync(statePath);
+        const learnerBefore = snapshotDirectory(path.join(fixture.target, "workspace"));
         const result = checkState({ root: fixture.target, moduleId, stateName });
         const after = fs.readFileSync(statePath);
+        const learnerAfter = snapshotDirectory(path.join(fixture.target, "workspace"));
         stateSnapshots.push({ statePath, before, after });
 
         expect(result.moduleId).toBe(moduleId);
+        expect(learnerAfter).toEqual(learnerBefore);
         if (stateName === "start") expect(result).toMatchObject({ status: "ready", sourceSha });
         else expect(result).toMatchObject({ status: "insufficient", sourceSha });
       }
@@ -485,7 +641,7 @@ describe("AI-assisted QA distribution contract", () => {
 
     expect(stateSnapshots).toHaveLength(22);
     expect(stateSnapshots.every(({ before, after }) => before.equals(after))).toBe(true);
-    expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(true);
   });
 
   it("resumes a partial sync idempotently after a new-file write failure", async () => {
@@ -547,10 +703,15 @@ describe("AI-assisted QA distribution contract", () => {
       shopBuildRoot: missingInput.source,
       allowUncommittedFixture: true,
     });
-    fs.rmSync(path.join(missingInput.target, "course/inputs/M00/start.md"));
+    loadModule({
+      root: missingInput.target,
+      moduleId: "M00",
+      now: new Date("2026-10-22T03:00:00.000Z"),
+    });
+    fs.rmSync(path.join(missingInput.target, "course/modules/M00/inputs/start.md"));
     expect(
       checkState({ root: missingInput.target, moduleId: "M00", stateName: "start" }).status,
-    ).toBe("insufficient");
+    ).toBe("mismatch");
 
     const oldRevision = courseFixture();
     const revisionPath = path.join(
@@ -601,6 +762,11 @@ describe("AI-assisted QA distribution contract", () => {
       shopBuildRoot: badReference.source,
       allowUncommittedFixture: true,
     });
+    loadModule({
+      root: badReference.target,
+      moduleId: "M00",
+      now: new Date("2026-10-22T03:02:00.000Z"),
+    });
     expect(
       checkState({ root: badReference.target, moduleId: "M00", stateName: "start" }),
     ).toMatchObject({
@@ -620,10 +786,100 @@ describe("AI-assisted QA distribution contract", () => {
       shopBuildRoot: fixture.source,
       allowUncommittedFixture: true,
     });
+    loadModule({
+      root: fixture.target,
+      moduleId: "M01",
+      now: new Date("2026-10-22T04:00:00.000Z"),
+    });
     expect(checkState({ root: fixture.target, moduleId: "M01", stateName: "start" })).toMatchObject(
       {
         status: "ready",
-        input: { source: "module-public-sample", path: "course/inputs/M01/start.md" },
+        input: { source: "module-public-sample", path: "course/modules/M01/inputs/start.md" },
+      },
+    );
+  });
+
+  it("rejects predecessor ID, path, revision, and stale load-receipt mismatches", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "9".repeat(40);
+    const predecessorCases = [
+      {
+        moduleId: "M01",
+        field: "artifact_id",
+        value: "M00-wrong-result",
+        expectedReason: "artifact ID is absent",
+      },
+      {
+        moduleId: "M02",
+        field: "path",
+        value: "workspace/M01/other.md",
+        expectedReason: "artifact path does not match",
+      },
+      {
+        moduleId: "M03",
+        field: "revision",
+        value: "M02-result-v0",
+        expectedReason: "artifact revision or contract does not match",
+      },
+    ];
+    for (const { moduleId, field, value } of predecessorCases) {
+      const startPath = path.join(
+        fixture.source,
+        `training/ai-assisted-qa-course/states/${moduleId}/start.json`,
+      );
+      const state = JSON.parse(fs.readFileSync(startPath, "utf8"));
+      state.inputs[0][field] = value;
+      writeFixtureFile(
+        fixture.source,
+        `training/ai-assisted-qa-course/states/${moduleId}/start.json`,
+        JSON.stringify(state),
+      );
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    for (const { moduleId, expectedReason } of predecessorCases) {
+      loadModule({
+        root: fixture.target,
+        moduleId,
+        now: new Date(`2026-10-22T05:0${moduleId.slice(2)}:00.000Z`),
+      });
+      expect(checkState({ root: fixture.target, moduleId, stateName: "start" })).toMatchObject({
+        status: "mismatch",
+        reasons: [expect.stringContaining(expectedReason)],
+      });
+    }
+
+    const loaded = loadModule({
+      root: fixture.target,
+      moduleId: "M00",
+      now: new Date("2026-10-22T06:00:00.000Z"),
+    });
+    const receiptPath = path.join(fixture.target, loaded.receipt);
+    const originalReceipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+    const staleReceipt = structuredClone(originalReceipt);
+    staleReceipt.source_sha = "b".repeat(40);
+    fs.writeFileSync(receiptPath, JSON.stringify(staleReceipt));
+    expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "start" })).toMatchObject(
+      {
+        status: "mismatch",
+        reasons: [expect.stringContaining("pinned course source SHA")],
+      },
+    );
+
+    const malformed = structuredClone(originalReceipt);
+    malformed.files[0] = null;
+    fs.writeFileSync(receiptPath, JSON.stringify(malformed));
+    expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "start" })).toMatchObject(
+      {
+        status: "mismatch",
+        reasons: [expect.stringContaining("invalid file entry")],
       },
     );
   });

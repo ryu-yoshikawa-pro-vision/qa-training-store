@@ -113,3 +113,36 @@
 - Remaining: M02→M03実Skill統合は実在Authority/Risk/Scope EntityとOpenCode CLI実行経路不足でBLOCKED。M06/M07完成教材/開発受入、全11モジュール非公開模範・採点テストは未達（保存先/権限/担当者未指定）。58 knowledge nodeの独立意味レビューも未完了。Phase 3の外部Templateでの対象SHA/Run/Artifact実行は未確認。初心者/評価者・新規Codespace・時間/容量/無料枠・運用開始判断は実装後の独立実地検証であり実装未完了理由にしない。
 - Git/PR: 既存head `30c5d15fa89e7068fa86bcbc339f1318b7757602`へM05修正を積み、通常commit/push後にPR本文を更新する。新SHAのCI waiterは前回呼出しが結果を返さず終了したため、代替APIでstatusを照会しない。CIは新HEADで未確認として記録する。
 - Progress: 7/12 tracking tasks complete; full Plan implementation remains incomplete.
+
+## 2026-10-23 04:28 (JST)
+
+- Summary: 22状態の状態定義revisionとartifact revisionを分離し、開始/終了状態の照合を実データに合わせて修正した。M06提出表のCase IDを公開specに一致させた。
+- Findings: 任意の前工程成果物pathはrequired_pathsではなくoptional inputとして扱う。前工程end出力と学習者inputは同一artifact ID/revision、公開fallbackは別ID/revisionで同一contract_idとする。状態checkは当該moduleのload receipt、pinned source SHA、allowlist、前工程endの出力ID/path/revision/contractをread-onlyで照合する。
+- Changes: ai-assisted-qa-course-core.mjs、validate-ai-assisted-qa.ts、全22状態JSON、course-sync manifest revision、distribution contract tests、M06 submission-template。
+- Validation: focused curriculum/distribution contracts 14/14 PASS; validate:ai-assisted-qa PASS (M00-M10, 53 quizzes); knowledge graph validate PASS (256 nodes, 581 edges, 51 objectives, 58 knowledge nodes, 22 states); typecheck 3 projects PASS; Prettier/ESLint/git diff --check PASS.
+- Phase 2 runtime attempt: M06 3-case validation source was temporary and restored exactly. Default Playwright Chromium executable was absent; with installed Chrome, the runner printed all three tests as passed, but the runner process did not exit or print a final summary and was interrupted. This is not recorded as a full command PASS.
+- Remaining: M02→M03 actual fixed-Skill integration is BLOCKED by missing confirmed Authority/Risk/Scope runtime entities and unavailable local OpenCode CLI; private model answers/grading tests remain uncreated because storage/access owner is unspecified; content review is incomplete. M06/M07 learner scaffolds remain intentionally incomplete and full acceptance remains open. Field validation remains a separate post-implementation phase.
+- Progress: 7/12 tracking tasks complete; full curriculum implementation is incomplete.
+
+## 2026-10-23 04:29 (JST) 日本語記録
+
+- 要約: 全22状態で状態定義revisionとartifact revisionを分け、開始/終了照合契約を修正した。M06提出表のCase IDを演習specと一致させた。
+- 根拠: 前工程のartifactがある場合は前工程end状態と同一ID/revision/path/contractを照合する。公開fallbackは異なるartifact ID/revisionを使い、同じcontract_idへ適合させる。optionalな前工程pathの不在だけで状態不一致にせず、fallback選択を記録する。read-only checkはload receiptのSHA/allowlist、参照先、必要成果物の変更有無を検査する。
+- 変更: scripts/training/ai-assisted-qa-course-core.mjs、scripts/training/validate-ai-assisted-qa.ts、22状態JSON、training/course-sync/manifest.json、distribution contract test、M06 submission-template。
+- 検証: focused curriculum/distribution contracts 14/14 PASS。課程validatorはM00〜M10/53問PASS。知識グラフvalidatorは256 nodes/581 edges/51 objectives/58 knowledge/22 states PASS。3プロジェクトtypecheck、Prettier、ESLint、git diff --check PASS。
+- M06実行確認: Playwright既定Chromium実行ファイルの欠落を検出。インストール済みChrome指定後、3ケースすべてPASS表示だったがrunnerが終了せず最終summary/exit codeを得られず中断したため、専用実行全体をPASSとはしていない。一時的に編集したspecは初期内容へ完全復元した。
+- 未完了: M02→M03固定Skill実統合はAuthority/Risk/Scope実体とローカルOpenCode CLI不足でBLOCKED。非公開模範・採点用テストは保存先/権限/担当が未指定で未作成。教材内容の独立レビュー、M06/M07の開発受入、残り課程の実装が未完了。実地検証は実装完了後の独立工程。
+- Progress: 7/12追跡項目。全課程の実装完了ではない。
+
+## 2026-10-23 05:54 JST
+
+- 要約: 全11モジュールの公開素材、22状態、同期/単一モジュールload、知識グラフと開発用検証の統合を進めた。全体Planの実装完了条件は未達。
+- 変更: 22状態の参照/照合とrevision契約、source SHA/allowlist/依存パス保護、全課程distribution検証、M08/M09合成練習素材、knowledge graph Markdown escapeを更新。M08 local-only logは配布される練習素材であり、受講者側ではstage禁止のデータ。M05 `workspace/M05/validation/repaired.spec.ts`とM06 `workspace/M06/acceptance-probe.spec.ts`はローカル検証残置物なのでPRへ含めない。
+- 開発検証PASS: `pnpm.cmd run validate:ai-assisted-qa`（M00-M10/53問）、`pnpm.cmd run validate:curriculum`（22 docs/4 workbooks）、knowledge graph validate（256 nodes/581 edges/51 objectives/58 knowledge nodes/22 states）、focused curriculum/distribution/graph tests（16/16）、typecheck3系統、`build:web`、`build:spec`、format/Markdown/text lint/spec/visual/skills validators、security scan。新課程Chromium E2Eは明示Chromeで17/17・exit 0。
+- Phase 2開発probe: M05開始specは意図したLocator失敗、別修正版probe 1/1 PASS。M06公式Cart 3 Caseは専用Chrome runで3/3 PASS。M07意図的Assertion失敗を再現し、別Runの修正版は1/1 PASS。いずれも人間受講者による受入ではない。M06一時probeの削除はN1 command-deletion hookに拒否され、ファイル削除規則を迂回しないためローカル未追跡のまま残る。
+- 全体検証未PASS: `pnpm.cmd run verify`は755 passed / 31 failed / 2 skippedで失敗。Markdown等のlint、全validator、ESLint、typecheck、security、unit 66、integration 111、repository contract 147、Web component 103、Native component 64まではPASS。既存のCodex Hook/task wrapper/CI MCP/artifact sanitizer関連5 filesでpwsh/bash spawn `EACCES`、Windows temp ACL、child process出力欠落、MCP `Connection closed`を観測。原因外の失敗を無効化していない。既定ChromiumはPlaywright executable欠落。標準51-case suiteは明示Chromeで全ケースPASS表示したが終了summary/exit codeがなく、中断したためsuite PASSとはしない。新課程専用17/17は正常終了。
+- 未完了: M02→M03固定Skillの実Entity/CLI統合は実在Authority/Risk/Scope entityと実行経路がなく`BLOCKED`。全11モジュールの非公開模範/採点用テストは保存先・権限・管理担当未指定のため未作成。知識グラフ58 knowledge nodeの独立した意味レビューは未完了。Phase 3 sampleの静的契約は検証済みだが、外部Templateを使う対象SHA/Run/Artifact実行は未実施。テンプレートの作成先・管理権限も未指定。
+- 実地検証: 初心者/実受講者、正式評価者、新規2-core Codespace、時間/容量/無料枠の実測、運用開始判断は全量実装後の独立工程であり、実装ブロッカーとしていない。
+- Git/PR: 次に公開対象ファイルだけをcommitし、通常push後にlocal/origin/PR headを照合する。M05/M06ローカル検証残置物はstageしない。新commit SHAのCIは未確認。
+- Progress: 8/12追跡項目相当（1-6, 8-9）。Plan実装全体は未完了。
+- 自己レビュー: 高リスクの同期/ロード、path・symlink・receipt/revision照合、非公開物除外と変更テストを確認し、今回の差分にmust-fix指摘は見つからなかった。実行主体が指定されていない独立した内容レビューや固定Skill実統合は別の未完了条件として保持。

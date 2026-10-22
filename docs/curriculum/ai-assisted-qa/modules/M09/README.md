@@ -6,7 +6,7 @@ CIは指定イベントでRunner上の手順を実行する仕組みです。wor
 
 ## workflowを読む
 
-演習で使うGitHub Actionsファイルは `training/ai-assisted-qa-course/templates/phase3/` に置き、同期時は無効サンプルのままです。学習者がPhase 3を選択した場合だけ自分の作業用リポジトリで有効化します。workflowは新課程specに限定し、`permissions: contents: read`、Secretなし、deployなしを基本とします。対象SHAとRunを確認できる情報を保存します。
+演習で使うGitHub Actionsファイルは `training/ai-assisted-qa-course/templates/phase3/` に置き、同期時は無効サンプルのままです。学習用Templateでは `course/templates/phase3/course-e2e.workflow.yml.disabled` として読めます。学習者がPhase 3を選択した場合だけ自分の作業用リポジトリで有効化します。workflowは新課程specに限定し、`permissions: contents: read`、Secretなし、deployなしを基本とします。対象SHAとRunを確認できる情報を保存します。
 
 ```yaml
 name: AI QA course checks
@@ -36,7 +36,7 @@ jobs:
 
 ## 演習と提出
 
-`workspace/M09/`のworkflow断片について、trigger・Runner・job・step・権限を注釈します。Artifact stepを欠いた例から、結果だけでは提出証拠が残らないことを説明します。次にBuild失敗・Test失敗・SHA不一致の3ログを分類し、最初に見るstepと次の確認を記録します。
+`workspace/M09/failure-cases.md`には、実行証拠ではないと明記したBuild失敗・Test失敗・Artifact未生成の合成ログがあります。workflow断片のtrigger・Runner・job・step・権限と、合成ログで最初に見るstepを提出メモへ対応付けます。合成ログを実際に起きたCI結果として報告しません。
 
 ## 確認と復習
 
@@ -45,6 +45,6 @@ jobs:
 ## 参考
 
 - [M09の学習項目と基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
-- [Phase 3実行環境](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_target.md)
+- [Phase 3無効workflow見本](../../../../../training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled)
 - [GitHub Actionsのpull_requestイベントとSHA](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
 - [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M09/start.json)

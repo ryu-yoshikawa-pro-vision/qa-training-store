@@ -2,27 +2,17 @@
   "schema_version": 1,
   "module_id": "M05",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v1",
+  "revision": "ai-assisted-qa-course-v2",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
-  "inputs": [
-    {
-      "artifact_id": "M05-result-01",
-      "path": "workspace/M05/submission.md"
-    },
-    {
-      "artifact_id": "M05-result-02",
-      "path": "workspace/M05/product-link.spec.ts"
-    }
-  ],
   "environment": ["Node.js", "pnpm", "Playwright", "loopback :8082"],
   "expected": {
     "required_paths": ["workspace/M05/submission.md", "workspace/M05/product-link.spec.ts"],
     "objective_ids": ["M05-01", "M05-02", "M05-03", "M05-04", "M05-05"],
     "phase": "P2",
-    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
   },
   "checks": [
     {
@@ -39,6 +29,11 @@
       "id": "M05-END-03",
       "mode": "human-review",
       "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    },
+    {
+      "id": "M05-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
     }
   ],
   "references": [
@@ -50,5 +45,19 @@
     "public": true,
     "contains_model_answers": false,
     "contains_private_assessment_tests": false
-  }
+  },
+  "outputs": [
+    {
+      "artifact_id": "M05-result-01",
+      "path": "workspace/M05/submission.md",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1"
+    },
+    {
+      "artifact_id": "M05-result-02",
+      "path": "workspace/M05/product-link.spec.ts",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1"
+    }
+  ]
 }

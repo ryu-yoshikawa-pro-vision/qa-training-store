@@ -63,5 +63,5 @@ PASSは、その実行でspecが成功したことを示します。Assertionが
 
 - [Scenario ShopのCart仕様](../../../../spec/features/cart.md)
 - [SeedとResetの仕組み](../../../../../training/playwright/support/reset-scenario.ts)
-- [PlaywrightのTraining Config](../../../../../playwright.training.config.ts)
+- [新課程Playwright Config](../../../../../playwright.ai-assisted-qa.config.ts)
 - [M06の学習項目と到達基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)

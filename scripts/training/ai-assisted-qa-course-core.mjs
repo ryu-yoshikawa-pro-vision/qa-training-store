@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 export const COURSE_MANIFEST_PATH = "training/course-sync/manifest.json";
 export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
+const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v2";
+const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
@@ -70,7 +72,7 @@ function readJson(filePath, label) {
 
 export function validateCourseManifest(manifest) {
   if (manifest?.schema_version !== 1) fail("Unsupported course manifest schema_version");
-  if (manifest.state_contract_revision !== "ai-assisted-qa-course-v1")
+  if (manifest.state_contract_revision !== STATE_CONTRACT_REVISION)
     fail("The state contract revision must match the implemented read-only checker");
   if (
     !Array.isArray(manifest.local_files) ||
@@ -122,6 +124,26 @@ export function validateCourseManifest(manifest) {
   const loadedModuleIds = new Set(manifest.load_files.map((entry) => entry.module_id));
   if (MODULE_IDS.some((moduleId) => !loadedModuleIds.has(moduleId)))
     fail("Each of M00-M10 must have explicit load entries");
+  for (const moduleId of MODULE_IDS) {
+    const inputTarget = `course/modules/${moduleId}/inputs/start.md`;
+    if (
+      !manifest.local_files.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.role === "input" &&
+          entry.target_path === inputTarget,
+      ) ||
+      !manifest.load_files.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.source_path === inputTarget &&
+          entry.target_path === inputTarget,
+      )
+    )
+      fail(
+        `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
+      );
+  }
   for (const entry of manifest.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
       fail(`invalid load module_id: ${entry.module_id}`);
@@ -177,6 +199,31 @@ function bindStateSourceSha(bytes, sourcePath, sourceSha) {
   const state = JSON.parse(bytes.toString("utf8"));
   state.source_sha = sourceSha;
   return Buffer.from(`${JSON.stringify(state, null, 2)}\n`, "utf8");
+}
+
+function remapMarkdownLinks(bytes, entry, manifest) {
+  if (!REMAPPED_MARKDOWN_ROLES.has(entry.role)) return bytes;
+  const targetBySource = new Map(
+    manifest.local_files.map((file) => [path.posix.normalize(file.source_path), file.target_path]),
+  );
+  const sourceDirectory = path.posix.dirname(entry.source_path);
+  const targetDirectory = path.posix.dirname(entry.target_path);
+  const content = bytes
+    .toString("utf8")
+    .replace(/(!?\[[^\]]*\]\()([^\s)]+)(\))/g, (whole, prefix, href, suffix) => {
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return whole;
+      const match = href.match(/^([^?#]*)([?#].*)?$/);
+      const sourceHref = match?.[1];
+      if (!sourceHref) return whole;
+      const sourceTarget = targetBySource.get(
+        path.posix.normalize(path.posix.join(sourceDirectory, sourceHref)),
+      );
+      if (!sourceTarget) return whole;
+      const targetHref =
+        path.posix.relative(targetDirectory, sourceTarget) || path.posix.basename(sourceTarget);
+      return `${prefix}${targetHref}${match?.[2] ?? ""}${suffix}`;
+    });
+  return Buffer.from(content, "utf8");
 }
 
 function expandBuildOutput(root, manifest) {
@@ -297,12 +344,15 @@ export async function syncCourse({
     const raw = allowUncommittedFixture
       ? fs.readFileSync(assertNoSymlinkPath(sourceRoot, entry.source_path))
       : readCommittedFile(sourceRoot, sourceSha, entry.source_path);
-    const bytes = bindStateSourceSha(raw, entry.source_path, sourceSha);
+    const boundBytes = bindStateSourceSha(raw, entry.source_path, sourceSha);
+    const bytes = remapMarkdownLinks(boundBytes, entry, manifest);
     files.push({
       source_path: entry.source_path,
       target_path: entry.target_path,
       bytes,
       origin: "local",
+      module_id: entry.module_id,
+      role: entry.role,
     });
   }
   for (const entry of manifest.external_skill_files) {
@@ -327,6 +377,8 @@ export async function syncCourse({
     sha256: sha256(file.bytes),
     bytes: file.bytes.length,
     origin: file.origin,
+    ...(file.module_id ? { module_id: file.module_id } : {}),
+    ...(file.role ? { role: file.role } : {}),
     ...(file.blob_sha ? { blob_sha: file.blob_sha } : {}),
   }));
   const distribution = {
@@ -411,75 +463,327 @@ function verifiedCourseSource(root, distribution, sourcePath) {
   return bytes;
 }
 
-function detectPreviousInput(root, moduleId, state, distribution) {
-  const input = state.inputs?.find((item) => item.from_module && item.optional);
-  if (!input)
-    return {
-      source: "module-public-sample",
-      artifact_id: state.inputs?.[0]?.artifact_id ?? "course-environment",
-    };
-  const priorModule = input.from_module;
-  let previousPaths = state.expected?.previous_artifact_paths;
-  if (!Array.isArray(previousPaths)) {
-    const previousStatePath = resolveWithin(root, `course/states/${priorModule}/end.json`);
-    if (fs.existsSync(previousStatePath)) {
-      const previousState = readJson(previousStatePath, `${priorModule} end state`);
-      previousPaths = previousState.expected?.required_paths;
+function latestLoadReceipt(root, moduleId) {
+  const receiptRoot = assertNoSymlinkPath(root, ".course-load", true);
+  if (!fs.existsSync(receiptRoot)) return { status: "missing" };
+  if (!fs.lstatSync(receiptRoot).isDirectory())
+    return { status: "invalid", reasons: ["load receipt path is not a directory"] };
+  const names = fs
+    .readdirSync(receiptRoot)
+    .filter((name) => name.startsWith(`${moduleId}-`) && name.endsWith(".json"));
+  if (!names.length) return { status: "missing" };
+  const receipts = [];
+  for (const name of names) {
+    const filePath = path.join(receiptRoot, name);
+    if (fs.lstatSync(filePath).isSymbolicLink())
+      return { status: "invalid", reasons: [`load receipt must not be a symlink: ${name}`] };
+    try {
+      receipts.push(readJson(filePath, `${moduleId} load receipt`));
+    } catch (error) {
+      return {
+        status: "invalid",
+        reasons: [error instanceof Error ? error.message : String(error)],
+      };
     }
   }
-  const previousEnd =
-    state.expected?.previous_artifact_path ??
-    previousPaths?.[0] ??
-    `workspace/${priorModule}/submission.md`;
-  let candidates;
-  try {
-    candidates = (
-      Array.isArray(previousPaths) && previousPaths.length ? previousPaths : [previousEnd]
-    ).map((item) => resolveWithin(root, item));
-  } catch (error) {
-    return {
-      source: "invalid-previous-artifact-reference",
-      artifact_id: input.artifact_id,
-      reasons: [error instanceof Error ? error.message : String(error)],
-    };
-  }
-  const isLearnerArtifact = (candidate) => {
-    if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) return false;
-    const current = fs.readFileSync(candidate);
-    if (!current.length) return false;
-    const targetPath = path.relative(root, candidate).split(path.sep).join("/");
-    const template = distribution?.load_files.find(
-      (entry) => entry.kind === "submission-template" && entry.target_path === targetPath,
-    );
-    if (template) {
-      const templateBytes = verifiedCourseSource(root, distribution, template.source_path);
-      if (current.equals(templateBytes)) return false;
-    }
-    return true;
-  };
-  if (candidates.length > 0 && candidates.every(isLearnerArtifact))
-    return {
-      source: "learner-previous-artifact",
-      artifact_id: input.artifact_id,
-      paths: Array.isArray(previousPaths) ? previousPaths : [previousEnd],
-    };
-  const fallback = input.public_fallback;
-  const mapped = fallback?.startsWith("inputs/") ? `course/${fallback}` : fallback;
-  let publicPath = null;
-  try {
-    publicPath = mapped ? resolveWithin(root, mapped) : null;
-  } catch (error) {
-    return {
-      source: "invalid-previous-artifact-reference",
-      artifact_id: input.artifact_id,
-      reasons: [error instanceof Error ? error.message : String(error)],
-    };
-  }
-  if (publicPath && fs.existsSync(publicPath))
-    return { source: "module-public-sample", artifact_id: input.artifact_id, path: mapped };
-  return { source: "missing", artifact_id: input.artifact_id, path: mapped ?? null };
+  receipts.sort((left, right) => String(left.loaded_at).localeCompare(String(right.loaded_at)));
+  return { status: "found", receipt: receipts.at(-1) };
 }
 
+function mapModuleInputPath(moduleId, inputPath) {
+  const prefix = `inputs/${moduleId}/`;
+  if (!inputPath.startsWith(prefix)) return null;
+  const fileName = inputPath.slice(prefix.length);
+  if (!fileName || fileName === "." || fileName === ".." || /[\\/]/.test(fileName)) return null;
+  return `course/modules/${moduleId}/inputs/${fileName}`;
+}
+
+function validateLoadReceipt(root, moduleId, distribution) {
+  let latest;
+  try {
+    latest = latestLoadReceipt(root, moduleId);
+  } catch (error) {
+    return {
+      status: "invalid",
+      reasons: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+  if (latest.status !== "found") return latest;
+  const receipt = latest.receipt;
+  if (
+    receipt?.schema_version !== 1 ||
+    receipt.module_id !== moduleId ||
+    receipt.source_sha !== distribution.source_sha ||
+    !Array.isArray(receipt.files) ||
+    typeof receipt.loaded_at !== "string" ||
+    !Number.isFinite(Date.parse(receipt.loaded_at)) ||
+    receipt.learner_completion_inferred !== false
+  )
+    return {
+      status: "revision-mismatch",
+      reasons: [`${moduleId} load receipt does not match the pinned course source SHA`],
+      receipt,
+    };
+  const expected = distribution.load_files.filter((entry) => entry.module_id === moduleId);
+  if (receipt.files.length !== expected.length)
+    return {
+      status: "invalid",
+      reasons: [`${moduleId} load receipt has an incomplete file list`],
+      receipt,
+    };
+  if (
+    !receipt.files.every(
+      (entry) =>
+        entry &&
+        typeof entry === "object" &&
+        !Array.isArray(entry) &&
+        typeof entry.path === "string" &&
+        /^[a-f0-9]{64}$/.test(entry.sha256 ?? ""),
+    )
+  )
+    return {
+      status: "invalid",
+      reasons: [`${moduleId} load receipt contains an invalid file entry`],
+      receipt,
+    };
+  const recorded = new Map(receipt.files.map((entry) => [entry.path, entry.sha256]));
+  if (recorded.size !== receipt.files.length)
+    return {
+      status: "invalid",
+      reasons: [`${moduleId} load receipt contains duplicate paths`],
+      receipt,
+    };
+  for (const entry of expected) {
+    let bytes;
+    try {
+      bytes = verifiedCourseSource(root, distribution, entry.source_path);
+    } catch (error) {
+      return {
+        status: "invalid",
+        reasons: [error instanceof Error ? error.message : String(error)],
+        receipt,
+      };
+    }
+    if (recorded.get(entry.target_path) !== sha256(bytes))
+      return {
+        status: "invalid",
+        reasons: [
+          `${moduleId} load receipt does not match the allowlisted input: ${entry.target_path}`,
+        ],
+        receipt,
+      };
+  }
+  return { status: "valid", receipt };
+}
+
+function publicInputSelection(root, moduleId, state, distribution, ignoredPrevious = []) {
+  const fallback = state.public_fallback;
+  const refs = state.inputs ?? [];
+  if (
+    !fallback ||
+    fallback.public !== true ||
+    typeof fallback.artifact_id !== "string" ||
+    typeof fallback.revision !== "string" ||
+    !fallback.revision.trim() ||
+    typeof fallback.contract_id !== "string" ||
+    typeof fallback.path !== "string"
+  )
+    return { source: "invalid-public-fallback", artifact_id: fallback?.artifact_id ?? null };
+  if (refs.some((input) => input.artifact_id === fallback.artifact_id))
+    return {
+      source: "invalid-public-fallback",
+      artifact_id: fallback.artifact_id,
+      reasons: ["fallback artifact ID must differ from learner artifact IDs"],
+    };
+  if (
+    refs.length > 0 &&
+    refs.some(
+      (input) => input.revision === fallback.revision || input.contract_id !== fallback.contract_id,
+    )
+  )
+    return {
+      source: "invalid-public-fallback",
+      artifact_id: fallback.artifact_id,
+      reasons: ["fallback must use a distinct revision with the predecessor input contract"],
+    };
+  const mapped = fallback.path.startsWith("inputs/")
+    ? mapModuleInputPath(moduleId, fallback.path)
+    : fallback.path;
+  if (!mapped)
+    return {
+      source: "invalid-public-fallback",
+      artifact_id: fallback.artifact_id,
+      reasons: ["public fallback path must stay under this module's inputs directory"],
+    };
+  if (!state.expected?.required_paths?.includes(fallback.path))
+    return {
+      source: "invalid-public-fallback",
+      artifact_id: fallback.artifact_id,
+      reasons: ["public fallback is not listed as a required start path"],
+    };
+  const entry = distribution.files.find(
+    (file) => file.target_path === mapped && file.module_id === moduleId && file.role === "input",
+  );
+  if (!entry)
+    return {
+      source: "invalid-public-fallback",
+      artifact_id: fallback.artifact_id,
+      path: mapped,
+      reasons: ["public fallback is not an allowlisted input for this module"],
+    };
+  try {
+    verifiedCourseSource(root, distribution, mapped);
+  } catch (error) {
+    return {
+      source: "missing",
+      artifact_id: fallback.artifact_id,
+      path: mapped,
+      reasons: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+  return {
+    source: "module-public-sample",
+    artifact_id: fallback.artifact_id,
+    revision: fallback.revision,
+    contract_id: fallback.contract_id,
+    path: mapped,
+    ...(ignoredPrevious.length ? { ignored_previous_artifacts: ignoredPrevious } : {}),
+  };
+}
+
+function detectPreviousInput(root, moduleId, state, distribution) {
+  const refs = state.inputs;
+  if (!Array.isArray(refs))
+    return {
+      source: "invalid-previous-artifact-reference",
+      reasons: ["start state inputs must be an array"],
+    };
+  if (refs.length === 0) return publicInputSelection(root, moduleId, state, distribution);
+  const priorModules = new Set(refs.map((input) => input.from_module));
+  if (
+    priorModules.size !== 1 ||
+    !MODULE_ID_PATTERN.test(refs[0]?.from_module ?? "") ||
+    refs.some((input) => input.optional !== true || input.same_input_contract !== true)
+  )
+    return {
+      source: "invalid-previous-artifact-reference",
+      reasons: ["predecessor inputs must reference one optional module contract"],
+    };
+  const priorModule = refs[0].from_module;
+  const priorStatePath = `course/states/${priorModule}/end.json`;
+  let priorState;
+  try {
+    priorState = JSON.parse(
+      verifiedCourseSource(root, distribution, priorStatePath).toString("utf8"),
+    );
+  } catch (error) {
+    return {
+      source: "invalid-previous-artifact-reference",
+      reasons: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+  if (
+    priorState.module_id !== priorModule ||
+    priorState.state !== "end" ||
+    priorState.revision !== distribution.state_contract_revision ||
+    priorState.source_sha !== distribution.source_sha ||
+    !Array.isArray(priorState.outputs)
+  )
+    return {
+      source: "revision-mismatch",
+      artifact_id: refs.map((item) => item.artifact_id),
+      reasons: ["predecessor end state does not match the pinned revision"],
+    };
+  const fallback = state.public_fallback;
+  if (
+    !fallback ||
+    refs.some(
+      (input) => input.contract_id !== fallback.contract_id || input.revision === fallback.revision,
+    )
+  )
+    return {
+      source: "revision-mismatch",
+      artifact_id: refs.map((item) => item.artifact_id),
+      reasons: [
+        "predecessor and public fallback revisions must differ and share an input contract",
+      ],
+    };
+  const outputs = new Map(priorState.outputs.map((item) => [item.artifact_id, item]));
+  const ignored = [];
+  const candidatePaths = [];
+  for (const input of refs) {
+    const output = outputs.get(input.artifact_id);
+    if (!output)
+      return {
+        source: "invalid-previous-artifact-reference",
+        artifact_id: input.artifact_id,
+        reasons: [`artifact ID is absent from ${priorModule} end state`],
+      };
+    if (input.path !== output.path)
+      return {
+        source: "invalid-previous-artifact-reference",
+        artifact_id: input.artifact_id,
+        reasons: [`artifact path does not match ${priorModule} end state`],
+      };
+    if (input.revision !== output.revision || input.contract_id !== output.contract_id)
+      return {
+        source: "revision-mismatch",
+        artifact_id: input.artifact_id,
+        reasons: [`artifact revision or contract does not match ${priorModule} end state`],
+      };
+    let absolute;
+    try {
+      absolute = assertNoSymlinkPath(root, input.path, true);
+    } catch (error) {
+      return {
+        source: "invalid-previous-artifact-reference",
+        artifact_id: input.artifact_id,
+        reasons: [error instanceof Error ? error.message : String(error)],
+      };
+    }
+    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+      ignored.push(input.path);
+      continue;
+    }
+    const current = fs.readFileSync(absolute);
+    if (!current.length) {
+      ignored.push(input.path);
+      continue;
+    }
+    const loadEntry = distribution.load_files.find(
+      (entry) => entry.module_id === priorModule && entry.target_path === input.path,
+    );
+    if (!loadEntry)
+      return {
+        source: "invalid-previous-artifact-reference",
+        artifact_id: input.artifact_id,
+        reasons: [`artifact path is not a loadable predecessor file: ${input.path}`],
+      };
+    const templateBytes = verifiedCourseSource(root, distribution, loadEntry.source_path);
+    if (current.equals(templateBytes)) ignored.push(input.path);
+    else candidatePaths.push(input.path);
+  }
+  if (ignored.length) return publicInputSelection(root, moduleId, state, distribution, ignored);
+  if (candidatePaths.length !== refs.length)
+    return publicInputSelection(root, moduleId, state, distribution, candidatePaths);
+  const priorReceipt = validateLoadReceipt(root, priorModule, distribution);
+  if (priorReceipt.status !== "valid")
+    return {
+      source: "revision-mismatch",
+      artifact_id: refs.map((item) => item.artifact_id),
+      paths: candidatePaths,
+      reasons: priorReceipt.reasons ?? [
+        `${priorModule} has no verified load receipt for this source revision`,
+      ],
+    };
+  return {
+    source: "learner-previous-artifact",
+    artifact_id: refs.map((item) => item.artifact_id),
+    revision: refs[0].revision,
+    contract_id: refs[0].contract_id,
+    paths: candidatePaths,
+  };
+}
 export function loadModule({ root, moduleId, now = new Date() }) {
   if (!MODULE_ID_PATTERN.test(moduleId))
     fail("course:load accepts exactly one module ID from M00 through M10");
@@ -588,44 +892,115 @@ export function checkState({ root, moduleId, stateName }) {
     return { status, moduleId, state: stateName, reasons: [message] };
   }
   const reasons = [];
+  const missing = [];
+  const unchanged = [];
   if (state.module_id !== moduleId || state.state !== stateName)
-    reasons.push("状態IDが一致しません");
+    reasons.push("状態のmodule_idまたはstateが一致しません");
   if (state.revision !== distribution.state_contract_revision)
-    reasons.push("状態revisionと配布契約revisionが一致しません");
-  if (!state.public_contract || !state.read_only) reasons.push("公開・読取専用契約がありません");
+    reasons.push("状態revisionと配布revisionが一致しません");
+  if (!state.public_contract || !state.read_only)
+    reasons.push("公開・読み取り専用の状態契約がありません");
   if (state.source_sha !== distribution.source_sha)
     reasons.push("状態source_shaと配布source_shaが一致しません");
   if (
     state.confidentiality?.contains_model_answers !== false ||
     state.confidentiality?.contains_private_assessment_tests !== false
   )
-    reasons.push("公開状態に非公開資料が混入する可能性があります");
+    reasons.push("公開状態に非公開評価資料を含める設定があります");
   for (const reference of state.references ?? []) {
     if (!stateReferenceExists(targetRoot, moduleId, reference))
-      reasons.push(`参照先がありません: ${reference}`);
+      reasons.push(`状態の参照先がありません: ${reference}`);
   }
   if (!Array.isArray(state.references) || state.references.length === 0)
-    reasons.push("状態参照がありません");
-  const missing = [];
+    reasons.push("状態の参照先がありません");
   if (!Array.isArray(state.expected?.required_paths) || state.expected.required_paths.length === 0)
-    reasons.push("必須成果物の参照がありません");
+    reasons.push("必須pathがありません");
   for (const requiredPath of state.expected?.required_paths ?? []) {
     try {
       if (typeof requiredPath !== "string") fail("required_path must be a string");
-      const mapped = requiredPath.startsWith("inputs/") ? `course/${requiredPath}` : requiredPath;
-      const absolute = resolveWithin(targetRoot, mapped);
+      const mapped = requiredPath.startsWith("inputs/")
+        ? mapModuleInputPath(moduleId, requiredPath)
+        : requiredPath;
+      if (!mapped) fail("input required_path must stay under this module's inputs directory");
+      const absolute = assertNoSymlinkPath(targetRoot, mapped, true);
       if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) missing.push(mapped);
     } catch (error) {
-      reasons.push(
-        `必須成果物参照が不正です: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      reasons.push(`必須pathが不正です: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
   const input =
     stateName === "start" ? detectPreviousInput(targetRoot, moduleId, state, distribution) : null;
-  if (input?.source === "invalid-previous-artifact-reference")
-    reasons.push(...input.reasons.map((reason) => `先行成果物参照が不正です: ${reason}`));
+  if (
+    input?.source === "invalid-previous-artifact-reference" ||
+    input?.source === "invalid-public-fallback" ||
+    input?.source === "revision-mismatch"
+  )
+    reasons.push(...(input.reasons ?? ["開始入力の参照またはrevisionが一致しません"]));
   if (input?.source === "missing") missing.push(input.path ?? "公開開始サンプル");
+
+  const receiptState = validateLoadReceipt(targetRoot, moduleId, distribution);
+  if (receiptState.status === "missing") {
+    missing.push(`.course-load/${moduleId}-<load receipt>`);
+  } else if (receiptState.status !== "valid") {
+    reasons.push(...(receiptState.reasons ?? [`${moduleId} load receipt is invalid`]));
+  } else if (
+    stateName === "start" &&
+    JSON.stringify(receiptState.receipt.selected_input) !== JSON.stringify(input)
+  ) {
+    reasons.push(
+      "ロード時に選択した入力と現在の前提状態が異なります。確認後、同じモジュールを明示的に再ロードしてください",
+    );
+  }
+
+  if (stateName === "end") {
+    if (!Array.isArray(state.outputs) || state.outputs.length === 0)
+      reasons.push("終了状態にartifact IDとpathの一覧がありません");
+    const ids = new Set();
+    const paths = new Set();
+    for (const output of state.outputs ?? []) {
+      if (
+        typeof output.artifact_id !== "string" ||
+        !output.artifact_id ||
+        typeof output.path !== "string" ||
+        typeof output.revision !== "string" ||
+        !output.revision.trim() ||
+        typeof output.contract_id !== "string" ||
+        !output.contract_id
+      ) {
+        reasons.push("終了artifactのID・path・revision・contract_idが不完全です");
+        continue;
+      }
+      if (ids.has(output.artifact_id) || paths.has(output.path))
+        reasons.push("終了artifactのIDまたはpathが重複しています");
+      ids.add(output.artifact_id);
+      paths.add(output.path);
+      if (!state.expected?.required_paths?.includes(output.path))
+        reasons.push(`artifact pathがrequired_pathsにありません: ${output.path}`);
+      const loadEntry = distribution.load_files.find(
+        (entry) => entry.module_id === moduleId && entry.target_path === output.path,
+      );
+      if (!loadEntry) {
+        reasons.push(`artifact pathが単一モジュールのload allowlistにありません: ${output.path}`);
+        continue;
+      }
+      let absolute;
+      try {
+        absolute = assertNoSymlinkPath(targetRoot, output.path, true);
+      } catch (error) {
+        reasons.push(
+          `artifact path is unsafe: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        continue;
+      }
+      if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
+      const current = fs.readFileSync(absolute);
+      const template = verifiedCourseSource(targetRoot, distribution, loadEntry.source_path);
+      if (current.equals(template)) unchanged.push(output.path);
+      else if (current.length === 0) unchanged.push(output.path);
+    }
+  }
+
   if (reasons.length)
     return {
       status: "mismatch",
@@ -636,47 +1011,18 @@ export function checkState({ root, moduleId, stateName }) {
       missing,
       input,
     };
-  if (missing.length)
+  if (missing.length || unchanged.length)
     return {
       status: "insufficient",
       moduleId,
       state: stateName,
       sourceSha: distribution.source_sha,
-      reasons: [],
+      reasons: unchanged.map((item) => `artifact is still the loaded starter: ${item}`),
       missing,
+      unchanged,
       input,
+      assessment: "構造照合のみです。Level 2は人が別途評価します",
     };
-  if (stateName === "end") {
-    for (const file of distribution.load_files.filter(
-      (entry) => entry.module_id === moduleId && entry.kind === "submission-template",
-    )) {
-      const destination = resolveWithin(targetRoot, file.target_path);
-      if (!fs.existsSync(destination)) continue;
-      const current = fs.readFileSync(destination);
-      const source = verifiedCourseSource(targetRoot, distribution, file.source_path);
-      if (current.equals(source))
-        return {
-          status: "insufficient",
-          moduleId,
-          state: stateName,
-          sourceSha: distribution.source_sha,
-          reasons: ["提出ファイルは配布時の空テンプレートと同一です"],
-          missing: [],
-          input: null,
-          assessment: "構造照合のみ。Level 2は人が別途評価します",
-        };
-    }
-    return {
-      status: "ready",
-      moduleId,
-      state: stateName,
-      sourceSha: distribution.source_sha,
-      reasons: [],
-      missing: [],
-      input: null,
-      assessment: "構造照合のみ。Level 2は人が別途評価します",
-    };
-  }
   return {
     status: "ready",
     moduleId,
@@ -685,10 +1031,12 @@ export function checkState({ root, moduleId, stateName }) {
     reasons: [],
     missing: [],
     input,
-    assessment: "開始条件を確認しました。先行モジュールの修了を認定しません",
+    assessment:
+      stateName === "end"
+        ? "構造照合のみです。Level 2は人が別途評価します"
+        : "開始前提を照合しました。本人の先行モジュール修了は認定しません",
   };
 }
-
 export function loadCourseManifest(
   root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."),
 ) {
