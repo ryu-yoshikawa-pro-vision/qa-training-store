@@ -48,6 +48,7 @@
     "test:e2e:smoke:webkit": "playwright test --project=webkit-smoke",
     "test:smoke": "playwright test e2e/web/smoke.spec.ts --project=deployed-smoke",
     "training:web:baseline": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-chromium",
+    "training:ai-assisted-qa:test": "playwright test --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium",
     "training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium",
     "training:web:exercise:with-receipt": "tsx scripts/training/run-playwright-with-receipt.ts",
     "training:web:mobile": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-mobile-chromium",
@@ -68,6 +69,7 @@
     "validate:spec-visuals:final": "tsx scripts/spec/validate-all.ts --visuals-final",
     "apply:android-spec-visuals": "tsx scripts/spec/android-visual-capture.ts apply-batch",
     "validate:curriculum": "tsx scripts/validate-curriculum.ts",
+    "validate:ai-assisted-qa": "tsx scripts/training/validate-ai-assisted-qa.ts",
     "build:spec": "tsx scripts/spec/build-spec.ts",
     "build:docs": "tsx scripts/docs/build-docs.ts",
     "promote:spec-visuals": "tsx scripts/spec/promote-web-visuals.ts",
@@ -96,7 +98,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run lint:text:all && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run lint:text:all && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run validate:ai-assisted-qa && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.17",

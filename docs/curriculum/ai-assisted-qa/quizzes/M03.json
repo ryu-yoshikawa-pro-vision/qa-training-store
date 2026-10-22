@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "module_id": "M03",
+  "questions": [
+    {
+      "id": "M03-Q01",
+      "objective_ids": ["M03-02"],
+      "question": "在庫3、購入上限5、全体上限99の商品があります。カートに2個あり、さらに2個を追加しようとしました。`BR-CART-001`と`AC-CART-001`に合う期待結果はどれですか。",
+      "options": [
+        { "value": "A", "label": "4個にする", "meaning": "要求された追加をそのまま受け入れる", "reason": "合計4個は在庫3を超えます。" },
+        { "value": "B", "label": "3個に自動補正する", "meaning": "許容上限へ数量を丸める", "reason": "仕様は上限への自動補正を認めていません。" },
+        { "value": "C", "label": "追加を拒否し、元の2個を維持する", "meaning": "上限超過操作を拒否して不変条件を守る", "reason": "有効上限は3です。4個になる追加を拒否し、現在数量を維持します。" },
+        { "value": "D", "label": "0個にする", "meaning": "拒否時にカート明細を削除する", "reason": "0指定は削除ですが、この操作は上限超過の追加です。" }
+      ],
+      "correct_value": "C",
+      "source_refs": ["docs/spec/features/cart.md"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値"
+    },
+    {
+      "id": "M03-Q02",
+      "objective_ids": ["M03-02", "M03-05"],
+      "question": "同じSKUがカートの2明細に分かれて表示される状態を条件として扱います。数量上限を判定するとき、まず確認すべき値はどれですか。",
+      "options": [
+        { "value": "A", "label": "各明細の数量を別々に上限と比べる", "meaning": "同一SKUの行を独立商品とみなす", "reason": "BR-CART-001は同一SKUの数量を合算します。" },
+        { "value": "B", "label": "同一SKUの数量を合算して上限と比べる", "meaning": "仕様にある集計単位で条件を作る", "reason": "同一SKU単位の合計が上限を超えないことを確認します。" },
+        { "value": "C", "label": "異なるSKUの数量もすべて合算する", "meaning": "カート全体を一つの商品として扱う", "reason": "仕様は各SKUの数量を判定対象としています。" },
+        { "value": "D", "label": "画面の合計金額を数量の代わりに使う", "meaning": "金額と個数を混同する", "reason": "上限条件は数量に関する仕様です。" }
+      ],
+      "correct_value": "B",
+      "source_refs": ["docs/spec/features/cart.md"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値"
+    },
+    {
+      "id": "M03-Q03",
+      "objective_ids": ["M03-03"],
+      "question": "商品検索で同じfacetの条件はOR、異なるfacetの条件はANDです。色を赤または青、サイズをMにしたとき、条件の組合せをどう表しますか。",
+      "options": [
+        { "value": "A", "label": "色が赤または青、かつサイズがM", "meaning": "同一facet内のORとfacet間のANDを適用する", "reason": "同じ色facetはOR、色とサイズという別facet間はANDです。" },
+        { "value": "B", "label": "色が赤かつ青、またはサイズがM", "meaning": "同じfacetをANDにし、facet間をORにする", "reason": "仕様のOR/ANDの適用範囲を逆にしています。" },
+        { "value": "C", "label": "色が赤または青、またはサイズがM", "meaning": "すべての条件をORにする", "reason": "異なるfacet間はANDで結びます。" },
+        { "value": "D", "label": "赤、青、Mをひとつの同値クラスとして扱う", "meaning": "異なる属性を同じ条件とみなす", "reason": "色とサイズは別のfacetで、条件の意味も異なります。" }
+      ],
+      "correct_value": "A",
+      "source_refs": ["docs/spec/features/storefront.md"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル"
+    },
+    {
+      "id": "M03-Q04",
+      "objective_ids": ["M03-04"],
+      "question": "仕様には状態AからBへの遷移が定義されていますが、BからAへ戻る操作は書かれていません。テスト設計で適切な扱いはどれですか。",
+      "options": [
+        { "value": "A", "label": "利用者が望みそうなのでBからAも可能とする", "meaning": "仕様にない遷移を追加する", "reason": "妥当そうに見えることだけで未定義の遷移を期待結果にできません。" },
+        { "value": "B", "label": "定義済みのA→Bを確認し、B→Aは未決として扱う", "meaning": "定義された遷移と未定義の遷移を区別する", "reason": "定義済みの前提・事後状態は検証でき、未記載の動作は確定しません。" },
+        { "value": "C", "label": "すべての状態が相互に遷移できるとする", "meaning": "遷移表の欠落を自由な移動とみなす", "reason": "状態遷移の仕様がない経路を成功として追加できません。" },
+        { "value": "D", "label": "状態遷移テストは使わない", "meaning": "一つの未定義経路で技法全体を捨てる", "reason": "仕様で定義されたA→Bの条件はテストできます。" }
+      ],
+      "correct_value": "B",
+      "source_refs": ["docs/spec/state-and-scenarios.md"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#演習条件からcaseへ"
+    },
+    {
+      "id": "M03-Q05",
+      "objective_ids": ["M03-01", "M03-05"],
+      "question": "M02で検討した数量上限の条件とは別に、商品検索の色とサイズの条件を設計します。適切な最初の判断はどれですか。",
+      "options": [
+        { "value": "A", "label": "前の課題で使った境界値分析を必ず再利用する", "meaning": "題材が変わっても同じ技法を固定する", "reason": "検索条件の組合せでは条件表など、別の技法が適する場合があります。" },
+        { "value": "B", "label": "仕様の条件構造を見て、必要な技法と限界を選ぶ", "meaning": "技法選択を仕様と目的に結び付ける", "reason": "技法は問題の条件構造に応じて選び、その理由を説明します。" },
+        { "value": "C", "label": "AIが最初に提案した技法をそのまま採用する", "meaning": "AIの選択を独立に確認しない", "reason": "本人が仕様と目的に照らして採否を確認する必要があります。" },
+        { "value": "D", "label": "すべての条件を全組合せで試す", "meaning": "組合せ数や実行可能性を検討しない", "reason": "必要な網羅性、到達可能なデータ、検証コストを考慮します。" }
+      ],
+      "correct_value": "B",
+      "source_refs": ["docs/spec/features/storefront.md", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル"
+    }
+  ]
+}

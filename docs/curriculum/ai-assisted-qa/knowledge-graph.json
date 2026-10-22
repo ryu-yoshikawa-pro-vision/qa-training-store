@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_on": "2026-10-18",
+  "generated_on": "2026-10-22",
   "purpose": "AI協働テスト自動化課程の知識・前提・仕様・Skillの変更影響を追跡する基準グラフ。製品仕様やSkill自体の正本ではない。",
   "source_of_truth": {
     "curriculum_plan": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
@@ -10,7 +10,8 @@
   },
   "known_limitations": [
     "知識の分解は設計草案。学習内容・試験妥当性の独立レビュー前。",
-    "修了課題・クイズ・実技の実ファイルと合否記録は未作成のため、架空の評価済み関係を作らない。",
+    "M02/M03/M05/M06の教材、22問の公開クイズ、Level 2評価基準は実在するが、lesson/quiz/exercise/assessment/module_stateノードと評価関係は未登録。評価済みとはみなさない。",
+    "M00/M01/M04/M07/M08/M09/M10の教材・クイズ・実技と、全11モジュールの22基準状態、同期・ロード機能は未実装。代表教材の人による内容レビューと初心者試行が完了するまで展開しない。",
     "test_targetとのapplies_to関係は演習の候補例であり正式なテスト対象の指定ではない。",
     "Skillの実ファイルは確認したがCodespacesでのインストール・起動確認は未実施。",
     "グラフ内に模範解答・評価用テストやSecretを置かない。"

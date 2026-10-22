@@ -82,7 +82,11 @@ function validate(graph) {
     seenEdges.add(key);
   }
   const mapText = readFileSync(mapPath, "utf8");
-  const mapIds = [...mapText.matchAll(/^\|\s*(M\d\d-\d\d)\s*\|/gm)].map((m) => m[1]);
+  // The learning map repeats a few objective IDs in its later review-summary table.
+  // Only the canonical four-column objective-definition rows define the ID set.
+  const mapIds = [
+    ...mapText.matchAll(/^\|\s*(M\d\d-\d\d)\s*\|[^|\r\n]*\|[^|\r\n]*\|[^|\r\n]*\|\s*$/gm),
+  ].map((match) => match[1]);
   if (
     !unique(mapIds) ||
     !sameSet(
