@@ -13,10 +13,14 @@ const outputRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-assisted-qa-site-"));
 const docsOutput = path.join(outputRoot, "docs");
 
 describe("AI-assisted QA Playwright boundary", () => {
-  it("uses loopback port 8082 and only M06 or M07 workspace paths", () => {
+  it("uses loopback port 8082 and only M05-M07 workspace paths", () => {
+    const m05Settings = resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
+      testRoot: "workspace/M05/specs",
+    });
     const settings = resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
       testRoot: "workspace/M07/specs",
     });
+    expect(m05Settings.testDir).toBe(path.resolve("C:/training/course/workspace/M05/specs"));
     expect(settings.baseUrl).toBe("http://127.0.0.1:8082");
     expect(settings.testDir).toBe(path.resolve("C:/training/course/workspace/M07/specs"));
 
@@ -39,12 +43,12 @@ describe("AI-assisted QA Playwright boundary", () => {
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "training/playwright/exercises",
       }),
-    ).toThrow(/workspace\/M06またはworkspace\/M07/);
+    ).toThrow(/workspace\/M05、workspace\/M06またはworkspace\/M07/);
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "workspace/M06/../../training/playwright",
       }),
-    ).toThrow(/workspace\/M06またはworkspace\/M07/);
+    ).toThrow(/workspace\/M05、workspace\/M06またはworkspace\/M07/);
   });
 });
 

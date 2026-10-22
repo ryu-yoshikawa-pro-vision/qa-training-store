@@ -104,6 +104,17 @@
       "private": false
     },
     {
+      "id": "ART-M05-02",
+      "type": "artifact",
+      "title": "M05 artifact product-link.spec.ts",
+      "module": "M05",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "workspace/M05/product-link.spec.ts",
+      "destination": "workspace/M05/product-link.spec.ts",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M06-01",
       "type": "artifact",
       "title": "M06 artifact submission.md",
@@ -3171,6 +3182,11 @@
       "from": "EX-M05",
       "relation": "produces",
       "to": "ART-M05-01"
+    },
+    {
+      "from": "EX-M05",
+      "relation": "produces",
+      "to": "ART-M05-02"
     },
     {
       "from": "EX-M06",

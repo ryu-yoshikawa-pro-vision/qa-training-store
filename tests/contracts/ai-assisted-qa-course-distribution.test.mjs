@@ -121,6 +121,13 @@ function courseFixture() {
         }),
       ],
     ];
+    if (moduleId === "M05") {
+      rows.push([
+        "workspace/M05/product-link.spec.ts",
+        "course/exercises/M05/product-link.spec.ts",
+        "// M05 public exercise code\n",
+      ]);
+    }
     for (const [sourcePath, targetPath, content] of rows) {
       writeFixtureFile(source, sourcePath, content);
       localFiles.push({
@@ -151,6 +158,14 @@ function courseFixture() {
       target_path: `workspace/${moduleId}/submission.md`,
       kind: "submission-template",
     });
+    if (moduleId === "M05") {
+      loadFiles.push({
+        module_id: moduleId,
+        source_path: "course/exercises/M05/product-link.spec.ts",
+        target_path: "workspace/M05/product-link.spec.ts",
+        kind: "exercise-code",
+      });
+    }
   }
   const skillNames = [
     "qa-workflow",
@@ -248,17 +263,36 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
-  it("distributes incomplete Phase 2 specs without publishing their completed answers", () => {
+  it("distributes the M05 reading exercise and incomplete Phase 2 specs without publishing answers", () => {
     const manifest = loadCourseManifest(repositoryRoot);
+    const m05Path = "workspace/M05/product-link.spec.ts";
     const m06Path = "workspace/M06/cart-cases.spec.ts";
     const m07BeforePath = "workspace/M07/failure-assertion.spec.ts";
     const m07AfterPath = "workspace/M07/repaired-assertion.spec.ts";
+    const m05 = fs.readFileSync(path.join(repositoryRoot, m05Path), "utf8");
     const m06 = fs.readFileSync(path.join(repositoryRoot, m06Path), "utf8");
     const m07Before = fs.readFileSync(path.join(repositoryRoot, m07BeforePath), "utf8");
     const m07After = fs.readFileSync(path.join(repositoryRoot, m07AfterPath), "utf8");
+    const m05Start = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M05/start.json"),
+        "utf8",
+      ),
+    );
+    const m05End = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M05/end.json"),
+        "utf8",
+      ),
+    );
 
     expect(manifest.local_files).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          source_path: m05Path,
+          module_id: "M05",
+          role: "incomplete-spec",
+        }),
         expect.objectContaining({
           source_path: m06Path,
           module_id: "M06",
@@ -271,6 +305,16 @@ describe("AI-assisted QA distribution contract", () => {
         }),
       ]),
     );
+    expect(manifest.load_files).toContainEqual({
+      module_id: "M05",
+      source_path: "course/exercises/M05/product-link.spec.ts",
+      target_path: m05Path,
+      kind: "exercise-code",
+    });
+    expect(m05).toContain('name: "セラミックマク", exact: true');
+    expect(m05).toContain('await expect(mugLink).toHaveAttribute("href", "/products/product-mug")');
+    expect(m05Start.expected.required_paths).toContain(m05Path);
+    expect(m05End.expected.required_paths).toContain(m05Path);
     expect(m06.match(/throw new Error\("TODO:/g)).toHaveLength(3);
     expect(m06).not.toMatch(/toHaveValue\(|toBeVisible\(/);
     expect(m07Before).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
@@ -389,6 +433,25 @@ describe("AI-assisted QA distribution contract", () => {
     });
     expect(secondLoad.moduleId).toBe("M01");
     expect(fs.existsSync(path.join(fixture.target, "workspace/M02/submission.md"))).toBe(false);
+
+    const m05Load = loadModule({
+      root: fixture.target,
+      moduleId: "M05",
+      now: new Date("2026-10-22T01:03:00.000Z"),
+    });
+    const m05Spec = path.join(fixture.target, "workspace/M05/product-link.spec.ts");
+    expect(m05Load.moduleId).toBe("M05");
+    expect(fs.readFileSync(m05Spec, "utf8")).toContain("M05 public exercise code");
+    fs.appendFileSync(m05Spec, "Learner edit\n");
+    expect(() =>
+      loadModule({
+        root: fixture.target,
+        moduleId: "M05",
+        now: new Date("2026-10-22T01:04:00.000Z"),
+      }),
+    ).toThrow(/existing learner files differ/);
+    expect(fs.readFileSync(m05Spec, "utf8")).toContain("Learner edit");
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M06/submission.md"))).toBe(false);
   });
 
   it("checks all 22 module states without modifying state or learner files", async () => {

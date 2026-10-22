@@ -8,7 +8,7 @@
 - [x] 5. 同期/単一モジュールload/checkを実装し、ローカルfixture契約を検証。
 - [x] 6. 標準`verify`と旧課程を含むChromium E2Eを実行・分類。配布契約を含む全contract suiteも再実行し、新課程8件はPASS、既存Windows Hook/native/MCP/ACL境界31件のFAILを確認。
 - [ ] 7. M02→M03の固定Skill実統合受入を実施（実在Authority/Risk/Scope entityとOpenCode実行経路待ち）。
-- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。暫定M06の製品動作probe 3/3、M07の意図的失敗/別Run修正probe 1件ずつは確認したが、学習用scaffoldの完成評価ではない。
+- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。M05の不足していた実行spec・load/state/graph契約を追加し、意図的失敗/一時修正版probeを確認した。M06/M07は公開scaffoldのままで、完成受入は未達。
 - [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
 - [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
 - [ ] 11. 58 tentative knowledge nodesと教材内容の独立した妥当性レビューを完了。
@@ -25,6 +25,7 @@ checkbox完了はfinal commit前のtask進捗であり全体完了ではない�
 ## Discovered（発見事項）
 - 開始時: M02/M03/M05/M06のみ。7 module欠落、22状態/同期・ロード未実装。既存quizは4 moduleのみ。
 - 実装後: M00〜M10公開素材、quiz 53問、state 22件、distribution/sync/load、KG構造、Web/E2Eが追加済み。素材の存在・構造検証はPlan全体の教材/評価受入を意味しない。
+- M05再照合: lesson/exerciseが`workspace/M05`の実行spec修正を要求していたが、配布manifestにspecがなく、専用runnerはM06/M07だけを許可していた。M05の公開spec、single-module load entry、start/end必須path、KG artifact、専用runner許可と契約検証を追加した。
 - 実地検証未実施は実装DoD外だが、教材/機能/開発検証はDoD内。
 
 ## Blocked（ブロック中）

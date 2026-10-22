@@ -101,3 +101,15 @@
 
 - 02:40の検証checkpointとその直後に追加した訂正が、apply patchの誤った挿入位置により本来の01:12 checkpointより前に現れている。実際の作業順は01:12の後に02:40の検証・修正であり、これが最終の時系列訂正。
 - 02:40 checkpoint末尾の進捗`8/12`は誤記。該当時点で完了済みの追跡タスクは1〜6と9の7件で、正しくは`7/12`。実装完了の主張ではなく、M02→M03統合、M05→M06受入、非公開評価資料、内容妥当性レビュー、最終Plan照合/PR反映が残る。
+
+## 2026-10-23 03:46 JST
+
+- Summary: M05の実行教材がmanifest/load経路に存在しない不整合を修正し、M05単体の専用Playwright導線を完成。全Planの実装完了条件は引き続き未達。
+- Finding: `must_fix`。M05 lesson/exerciseは`workspace/M05`のspecを一箇所修正して再実行するよう案内していたが、配布manifestにはsubmissionだけがあり、専用Playwright settingsはM06/M07だけを許可していた。READMEと開始入力の指示を受講者が実行できない契約不一致。
+- Changes: 公開の意図的誤りを含む`workspace/M05/product-link.spec.ts`を追加し、source/local manifest・single-module load file・M05 start/end required path・知識グラフartifact/edgeへ接続。README、exercise、開始入力、提出templateを実行手順に合わせた。専用runnerの許可をM05-M07へ拡張し、境界エラー文と契約testも更新。M05 sampleはCase completion answerを含まず、Locatorの誤ったaccessible nameを一箇所修正するguided example。
+- Validation: `tests/contracts/ai-assisted-qa-curriculum.test.ts`と`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`は13/13 PASS。typecheck全3系統PASS、変更対象ESLint PASS、knowledge graph validate PASS（256 nodes/581 edges/51 objectives/58 knowledge/22 states/53 quiz questions/11 exercises/17 artifacts）。M05開始specは専用8082でLocator未検出による意図した1件FAILを確認し、別の一時修正版probeは1/1 PASS。fresh `pnpm.cmd run build:web` exit 0（12 new curriculum pages/11 quiz pages）、`pnpm.cmd run build:spec` exit 0（22 pages）、全11モジュールWeb Chromium E2E 17/17 PASS。
+- Full verify: format、Markdown/text lint、Skill/spec/visual/curriculum/course validators、typecheck、security scan、unit 66、integration 111、repository 147、Web component 103、Native component 64は通過。Contractsは50 files中45 PASS/5 FAIL、752 passed/31 failed/2 skipped。既存Codex Hook/native command/CI waiter MCP/artifact sanitizerのconnection closed、Windows temp ACL、pwsh spawn EACCES、bash不在/stdout欠落、child-process/report生成不能を確認。M05追加contractを含むcourse testはfocused/full contracts内ともPASS。全verifyはFAILのまま。
+- Temporary validation residue: 正しいLocatorのM05 runtime probeを`workspace/M05/validation/repaired.spec.ts`へ一時作成した。PR/commit/manifestには含めない。shell `Remove-Item`はN1 command-deletion hookに拒否され、repository agreementもapply_patchでのdeleteを許可しないため削除できず、ローカル未追跡のまま。追加承認を得ず安全規則を迂回しない。後続利用者が手動で当該一時ファイルを削除する必要がある。
+- Remaining: M02→M03実Skill統合は実在Authority/Risk/Scope EntityとOpenCode CLI実行経路不足でBLOCKED。M06/M07完成教材/開発受入、全11モジュール非公開模範・採点テストは未達（保存先/権限/担当者未指定）。58 knowledge nodeの独立意味レビューも未完了。Phase 3の外部Templateでの対象SHA/Run/Artifact実行は未確認。初心者/評価者・新規Codespace・時間/容量/無料枠・運用開始判断は実装後の独立実地検証であり実装未完了理由にしない。
+- Git/PR: 既存head `30c5d15fa89e7068fa86bcbc339f1318b7757602`へM05修正を積み、通常commit/push後にPR本文を更新する。新SHAのCI waiterは前回呼出しが結果を返さず終了したため、代替APIでstatusを照会しない。CIは新HEADで未確認として記録する。
+- Progress: 7/12 tracking tasks complete; full Plan implementation remains incomplete.

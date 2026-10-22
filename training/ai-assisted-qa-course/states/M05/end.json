@@ -11,11 +11,15 @@
     {
       "artifact_id": "M05-result-01",
       "path": "workspace/M05/submission.md"
+    },
+    {
+      "artifact_id": "M05-result-02",
+      "path": "workspace/M05/product-link.spec.ts"
     }
   ],
   "environment": ["Node.js", "pnpm", "Playwright", "loopback :8082"],
   "expected": {
-    "required_paths": ["workspace/M05/submission.md"],
+    "required_paths": ["workspace/M05/submission.md", "workspace/M05/product-link.spec.ts"],
     "objective_ids": ["M05-01", "M05-02", "M05-03", "M05-04", "M05-05"],
     "phase": "P2",
     "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"

@@ -64,7 +64,15 @@ PlaywrightのWeb-first Assertionは、条件が満たされるまで設定範囲
 
 ## 実技と確認
 
-学習者は`workspace/M05/`で短いコードを読み、指定された一箇所だけを安全に変更して、同じ実行コマンドで再確認します。変更前のコードと変更後の差、結果、ログを対応付けます。Phase 2では新課程の専用Configを使い、テスト対象は指定されたworkspace内のspecだけです。通常Webの8081、Training専用テストサーバーの8082、PrivateのnoVNC 6080を混同しません。
+学習者は`workspace/M05/product-link.spec.ts`を読み、商品一覧にあるMugへのリンクをLocatorが選べない失敗を確認します。商品一覧で実際のアクセシブル名を確かめ、Locatorの名前だけを修正して再実行します。Assertionが詳細リンク先まで確認する意味を説明します。弱いAssertionへの置換や製品コードの変更はしません。変更前後の差と結果は`workspace/M05/submission.md`へ記録します。
+
+M05は次の専用コマンドで実行します。
+
+```bash
+PLAYWRIGHT_TEST_ROOT=workspace/M05 pnpm run training:ai-assisted-qa:test
+```
+
+Phase 2では新課程の専用Configを使い、テスト対象は`workspace/M05`、`workspace/M06`または`workspace/M07`だけです。通常Webの8081、Training専用テストサーバーの8082、PrivateのnoVNC 6080を混同しません。
 
 本人が別の短いコードでも変数、関数、`await`、型、実行scriptを説明でき、変更後の実行証拠を示せれば次へ進めます。
 
