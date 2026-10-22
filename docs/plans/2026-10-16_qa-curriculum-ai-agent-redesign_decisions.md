@@ -36,7 +36,7 @@
 | 教材の配布境界 | 管理者が固定SHAと許可リストで公開Templateへ同期。学習者はそこから作成した個人リポジトリのCodespacesで作業。公開履歴に修了模範や採点用テストを置かない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 前工程の成果物がない場合 | 各モジュールに**先行修了課題と異なる条件の検証済み公開開始入力**を同梱。本人成果物とサンプルは**同じ入力契約・別の成果物ID/revision**。復旧や先行修了の認定はしない | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 基準状態の公開・非公開 | 11モジュール×開始/終了の22状態。公開の`start.json`/`end.json`は契約、非公開保存先には模範実データを置く。公開の正解サンプルと非公開の採点用模範を区別 | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
-| 状態判定 | ロード後の開始判定と読取り専用`course:check Mxx --state start|end`を設計。状態が整合しても本人のLevel 2は自動認定しない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 状態判定 | ロード後の開始判定と読取り専用`course:check Mxx --state start`または`course:check Mxx --state end`を設計。状態が整合しても本人のLevel 2は自動認定しない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 提出と修了 | `workspace/Mxx/submission.md`、必要な`evidence/`・コードを提出。自己確認と、評価担当者による正式修了判定を分け、正しい別解を許容する。受講者の成績は公開しない | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 教材更新 | 公開Templateの後続更新は、受講中の個人リポジトリへ自動反映しない。配布元revisionを保持し、明示的に更新した場合だけ差分を適用 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 実行環境 | 個人所有・2コアCodespacesを標準とする。Phase 1・2でGit/PR/CI操作を要求しない。Phase 2は同期先だけでBuild/Serve/Reset/Playwrightを成立させる | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
