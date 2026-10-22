@@ -10,7 +10,8 @@
 - **Planで採用した設計**：現行Planに明記した実装方針。ユーザーが個別にすべて承認したという意味ではない。
 - **既存実装で確認した事実**：参照したファイル・commit時点の挙動。新課程での動作成功を保証しない。
 - **運営上の指定待ち**：実際の名称・担当者・保存先など、運営する人による選定を要する事項。
-- **実装・実機での確認待ち**：完成仕様は定義したが、ファイル・教材・実行証拠がまだない事項。
+- **開発工程での実装・検証待ち**：教材・機能・データ・評価基準の未作成、必須の自動/静的/契約検証など、実装完了に必要な未達事項。
+- **実装完了後の実地検証・運用判断待ち**：全量実装後に実際の受講者・評価担当者・実環境で確認する事項と、運営担当者による指定を要する事項。未実施だけでは実装未完了や実装工程のBLOCKEDとしない。
 
 確認事項を解消したら、**証拠とともに該当するPlanを更新してから、この表の状態を更新**する。未実行をPASSにしない。
 
@@ -58,9 +59,9 @@
 | 教材の内容品質 | 必要な前提、具体的な導出過程、誤りと理由、誘導演習、別条件での独立適用、観測・復習を内容で確認。ページ数・問題数を一律に固定しない | [3フェーズ構成・教材品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
 | 技法ごとの演習対象 | Cartだけに固定せず、既存の在庫分類・検索条件・ロール・注文等を候補から選ぶ。正式仕様、Seed、観測・Resetの成立を確認してから採用。製品の新機能は不足が証明された場合のみ検討 | [演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | 実技模範と採点 | 完成成果物に加えて判断・導出過程、必須条件、誤答・部分的正答・正しい別解、評価不能を判定できる資料を作る。公開の学習例と非公開修了模範は区別 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
-| 代表教材の先行検証 | M02→M03とM05→M06で教材・独立演習・模範・採点基準を制作し、内容レビューと初心者試行を経てから全11モジュールの教材制作へ展開。技術経路の最小検証は先行・並行可能 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
+| 代表教材の先行検証 | M02→M03とM05→M06で教材・独立演習・模範・採点基準を先行制作し、正式仕様との照合、コード/教材レビュー、自動・契約検証の結果を反映してから全11モジュールへ展開する。初心者試行・実受講者・実際のCodespacesによる実地検証は全量実装後に行い、展開開始条件にしない | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
 
-上記は**Planで採用した設計**であって、教材の制作・初心者試行・第三者採点が完了したという意味ではない。
+上記は**Planで採用した設計**であり、教材の制作や実地検証の実施済みを示すものではない。開発時のレビューと自動検証、実装完了後の実地検証、運用開始判断を区別する。
 
 **Plan上の採用事項は実装済みという意味ではない。** 特に公開開始入力、22基準状態、評価用の実技、同期・ロード、専用CI、知識グラフの完成契約は、実ファイルと受入検証を必要とする。
 
@@ -97,25 +98,40 @@
 
 これらは運営に必要な値の指定であり、**カリキュラム全体の設計を未確定に戻すものではない**。権限・保存先が未指定のまま公開版へ非公開模範を追加したり、運用が完了したと宣言したりしない。
 
-## 残確認事項：実装・実機で検証する内容
+## 残確認事項：開発工程の実装・検証で完了に必要な内容
 
-| 対象 | 完了と判断するための証拠 | 対応するPlan |
+| 対象 | 実装完了に必要な証拠 | 対応するPlan |
 | --- | --- | --- |
-| 同期manifestの最終ファイル一覧 | `build:web`のimport/asset/起動依存を辿り、各許可パスの必要性を記録。学習用リポジトリ単体でBuild/Serve/TestをPASS | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
-| 管理者同期とモジュールロード | 固定SHA、機密データ混入の拒否、途中失敗・再ロード・シンボリックリンク・衝突時の非破壊性、指定1モジュールだけのロードをテスト | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
-| 11モジュールの開始・終了基準状態 | **22状態**の実データ・契約・公開可能な入力サンプル・非公開模範を揃える。入力欠落・版違い・意図的FAILと正常開始を区別 | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
-| 公開Webとクイズの受入 | 新課程の11モジュール、クイズを1問ずつ進める操作、最終結果と復習、中断・再開、アクセシビリティ、公開/非公開分離を確認。旧課程の表示と導線の回帰も検証する | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
-| 初見課題・教材・問題の妥当性 | 51学習項目を説明できる教材、正しい問題と全選択肢の解説、別条件を使ったM04/M07/M10の実技とLevel 2の証拠 | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
-| M02→M03の固定Skill受入検証 | **固定commitの既存CIは成功を確認済みだが、M02のCart実データからCaseへのdirect起点の通し実行は未実施**。実在Authority/Risk/ScopeとTR相当1件を用い、TCN(direct)→技法→CI(artifact)→Case(適切なmode)→evidence gateの`valid=true`を確認する。上流参照欠落、Caseに必要なCI/TCN/TR不一致、current TRなしのDisposition、誤mode、`invalid_input`の終了コード0を成功扱いしない | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| 外部SkillとPython helper | 採用Skill Packageの参照・呼出し・入力/出力・検証と、2コアCodespacesでの実行結果。未実行を「使用済み」としない | [実行環境・Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| Phase 2のE2E実行 | 新課程専用Playwright Config、対象spec、Seed/Reset、複数RunとTrace/Report、旧Trainingとの出力分離の証拠 | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| Phase 3の専用CI | 受講者の明示的な有効化、最小権限、対象SHAとRun/Check/Artifactの一致、正式/旧workflowの非発火 | [実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| 知識グラフの完成契約 | 全51項目と知識・教材・実技・評価・22状態の参照網羅、改訂時の未登録変更検出、意味的なレビュー | [知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
-| 費用と受講所要時間 | 2コアの実測起動時間、保存容量、受講者の無料枠条件。成立しない環境はBLOCKEDとし課金へ自動切替しない | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
+| 代表教材の開発受入 | M02→M03/M05→M06を正式仕様・学習順序・教材/評価基準と照合し、コード/教材レビューと自動・契約検証の指摘を反映。M02の固定Skill入力契約・統合経路を開発環境で検証 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| 全11モジュールの教材・評価 | 51学習項目を説明する教材、クイズ/正誤解説、初見実技、評価基準、非公開模範/採点用テスト、正答・誤答・部分的正答・正しい別解・評価不能の判定条件。正式仕様との意味上の照合と開発時レビューを行い、非公開資料を公開履歴へ含めない | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 11モジュールの開始・終了状態 | **22状態**の実データ・契約・公開可能な入力サンプルを作成し、入力欠落・版違い・意図的FAILと正常開始を自動/契約テストで区別する。非公開模範は公開物へ含めない | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
+| 公開Webとクイズ機能 | 全11モジュールのページとクイズ、一問ずつの回答、結果/復習、中断/再開、壊れたデータの拒否、公開/非公開分離を自動ブラウザ/E2E・静的検証・ビルド・旧課程回帰で確認 | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
+| 同期manifest・管理者同期・ロード | 依存閉包から許可ファイルを導出し、固定SHA、機密混入の拒否、途中失敗・再ロード・symlink・衝突時の非破壊性、指定1モジュールだけのロードをfixture/契約テストで検証 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
+| Phase 2のE2E | 専用Playwright Config/spec、Seed/Reset、複数RunとTrace/Report、結果保存先、旧Trainingとの出力分離を開発環境とCIで検証 | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| Phase 3の専用CI | 明示有効化、最小権限、対象SHAとRun/Check/Artifactの一致、正式/旧workflowの非発火をworkflow契約とPR CIで検証 | [実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
+| 知識グラフ | 全51項目と知識・教材・実技・評価・22状態の参照網羅、未登録変更検出、正式仕様との意味的な対応を検証 | [知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
+| 旧課程・正式仕様・CI | 必須lint/typecheck/test/build/verifyと必要なCIを実行し、既存の旧課程・製品・正式回帰を壊していないこと、教材と正式仕様の整合を確認する | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、関連する詳細Plan |
 
-**再検証不要**：OpenCode Zen無料モデルの利用可否・認証可否。これはユーザーの確認済み前提とし、上表の未確認事項へ戻さない。
+上記の未作成成果物、未実装機能、失敗中/未実施の必須開発テストを実地検証待ちへ移してはならない。これらは実装未完了として扱う。OpenCode Zen無料モデルの利用可否・認証可否はユーザー確認済み前提であり、再検証しない。
 
-## 今回の更新時点で行っていないこと
+## 実装完了後の実地検証
+
+実地検証は全11モジュールと関連機能の実装完了後に行う。実施方法と期待結果は次のとおりで、未実施・不合格を実装未完了や実装工程のBLOCKED理由にしない。
+
+| 対象 | 方法・期待結果 | 対応するPlan |
+| --- | --- | --- |
+| Web受講導線・教材理解 | Git/プログラミング未経験者が講師の補足なしにPhaseを選び、全11モジュールの本文・一問ずつのクイズ・結果/解説/復習を経て実技案内へ進む。迷子、未学習の前提、説明の飛躍を記録し、重大な誤りなく必要な行動・根拠・復習先を見つけられることを確認 | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)、[教材品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
+| 学習用TemplateとCodespaces | 指定された実際のTemplateから個人リポジトリを作り、新規2コアCodespaceでBuild/Serve/Seed/Reset、外部Skill/Python helper、Playwright、1モジュールロード、上書き防止、成果物保全を実行する。計画した証拠が再現し、許可外データや非公開模範/Secretが混入しないことを確認 | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
+| 実技・評価の運用 | 評価担当者が実際の提出物とM04/M07/M10の未提示条件を扱い、正答・誤答・部分的正答・正しい別解・評価不能を公開ルーブリックで一貫して判定し、本人の判断をLevel 2基準で確認する | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 費用・所要時間 | 2コアの起動時間、保存容量、学習所要時間、各受講者の無料枠を実測する。成立しない環境では課金へ自動切替せず、運用開始を保留 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
+
+## 運用開始判断に必要な未指定事項
+
+学習用Templateのリポジトリ名・作成アカウント・管理権限、非公開模範/採点資料の実保存先・アクセス権・管理担当、正式評価担当者、受講者ごとの支払主体・費用条件は未指定のまま保持する。これらを推測して公開リポジトリや非公開保存先を作成せず、指定前の状態は運用開始判断の未確定事項として扱う。実装を進めることは妨げない。
+
+## 当初のPlan策定時点で行っていなかったこと（履歴）
+
+以下は当初のPlan策定時点での記録であり、PR #199の現在の実装状況を示すものではない。現状はPR本文とactive Runで確認し、ここにある未着手項目だけから現在の実装状態を推測しない。
 
 - 新しい学習用Templateのリポジトリ作成、同期・ロードスクリプト実装・実行
 - 教材・問題・実技、基準状態の実データ・非公開模範の作成

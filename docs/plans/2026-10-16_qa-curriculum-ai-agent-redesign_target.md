@@ -60,12 +60,12 @@
 
 ## Codespacesの共通環境・無料枠管理（Phase 1〜3）
 
-- **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コア利用での安定動作は新規実機確認が必要。
+- **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コア利用の実機安定性は全量実装後の実地検証で確認する。
 - 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。Codespacesの起動ログ、必要コマンドと教材の実行環境を確認してから演習する。OpenCode Zen無料モデルの認証可否は再検証しない。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
-- **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合はBLOCKEDにし、無断で有料環境へ変更しない。
+- **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合は受講/運用開始を保留し、実装工程のBLOCKED理由にはせず、無断で有料環境へ変更しない。
 - OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。モデルの利用可否・認証可否を再検証する工程は設けない。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
 - GitHub Codespacesの**8081（通常Web）と6080（noVNC）はPrivate**のままにし、5901を外部公開しない。Training用Playwrightの8082は専用テストサーバーで、8081をTraining実行先として使わない。コード生成`codegen`と実際のE2E実行対象の違いを教材で示す。
-- 学習終了時はCodespaceを停止し、不要なCodespace・Artifactの保存量を確認する。**Phase 1で設計Markdown、Phase 2でspec・設定・結果・ログ**をGit操作なしでダウンロード・保全できることを確認する。削除・利用枠超過・再構築に伴うデータ消失に備え、段階的にバックアップする。所要時間・ストレージ消費は実測して無料枠内での完走可否を判断する。
+- 学習終了時はCodespaceを停止し、不要なCodespace・Artifactの保存量を確認する。**Phase 1で設計Markdown、Phase 2でspec・設定・結果・ログ**をGit操作なしでダウンロード・保全できる機能と手順を用意し、開発時は自動/契約テストで確認する。削除・利用枠超過・再構築に伴うデータ消失に備え、段階的にバックアップする。所要時間・実際のストレージ消費・無料枠内の完走可否は全11モジュールと関連機能の実装完了後に実測し、実装完了の条件にはしない。
 
 ## 開始・終了基準状態とフェーズ間の引継ぎ
 
@@ -139,7 +139,8 @@
 - **起動**：既存`scripts/serve-web-dist.ts`は`WEB_SERVER_DIST_ROOT`（既定は`dist`）から静的ファイルを提供し、loopback以外のbindを拒否する。学習用のテストURLは`http://127.0.0.1:8082`を使用する。8081は通常Web、6080は必要な場合だけprivate noVNC。**8082を外部公開しない**。
 - **Playwright**：既存`playwright.training.config.ts`の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`reuseExistingServer`、report/Traceの構成を参考にする。ただし、旧`training/playwright`のspecを走らせないため、**新課程専用Config**は指定した`workspace/M06`または`workspace/M07`のspecだけを実行し、結果を`output/training/ai-assisted-qa/`へ保存する。環境・CIともに対象specと出力先を確認する。
 - **Seed/Reset**：既存`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__`の準備を待ち、`reset({scenario})`の後で`getMetadata().scenario`を照合する。新課程から再利用する場合も**テストモードで同APIが公開されること**を確認し、学習者が作るspecの開始前に必要なResetを行う。既存のReset契約と重複する独自処理は作らない。
-- **調査の受入**：学習用リポジトリ単体の2コアCodespacesで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行証拠を残す。構成が成立しない場合はその経路だけを修正し、原因未解明のままPASSにしない。
+- **開発中の受入**：許可リスト、依存閉包、起動設定、Reset契約、Playwright設定・spec・結果保存先をソース/契約テストで検証し、リポジトリCIでBuild・自動テストと旧Trainingとの出力分離を確認する。設定不足、テスト失敗、仕様不整合を実装未完了として修正する。
+- **実装完了後の実地検証**：実際の学習用Templateから作成した個人リポジトリの新規2コアCodespaceで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行し証拠を残す。実際のCodespaceで未実施・失敗であることだけでは実装完了や他モジュール実装を止めない。運用開始は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の別判断とする。
 
 ## qa-workflow-skillsの工程別利用
 
@@ -176,7 +177,7 @@
 **未実行の受入項目**：実際のCart BR/ACと確認済みAuthority/Risk/Scopeから、`condition_structure(direct)`→技法→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→最終証拠検証まで通るかは、**PR #199の新課程入力について未確認**。固定commitの既存CI成功は流用しない。特に**direct生成TCNからartifact materializeとCaseへの接続**が成立しなければ原因と最小限の代替経路を調査する。新しいruntimeやモジュールの追加を先に決めない。
 
 - 学習用Templateに必要なSkillは**使用するSkill Package全体（`SKILL.md`、`references/`、`assets/`、必要なSkill-local `scripts/`）**を同一の固定commitから同期する。ファイル単位のコピー漏れを検出する。外部の共有評価ランタイム`scripts/skills/evals/`は、今回の演習が明示的に必要としない限り配布しない。
-- Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは受入検証する。開発専用の大量のテスト依存は持ち込まない。
+- Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。開発時はPython helperの入力/出力契約をfixture・契約テストで検証する。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは、全11モジュールの実装完了後に実地検証する。開発専用の大量のテスト依存は持ち込まない。
 - **学習目標を優先**し、Skillのruntime・保存形式・migrationの全機能を初心者に理解させることを必修にしない。Skillが現在の課題条件を扱えない場合はBLOCKEDを記録し、AIによる架空のruntime結果で代用しない。
 - 知識グラフで候補関係として登録済みのSkillは、**この工程表と実技の実行結果を確認してから採用関係を確定する**。`e2e-test-inspection`は現在の候補グラフに未登録なので、完成時にM06との関連を追加する。
 

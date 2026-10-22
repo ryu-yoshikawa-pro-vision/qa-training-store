@@ -5,7 +5,7 @@
 このファイルはPR #199の**設計文書への案内**を担当する。機能仕様、学習項目、判定条件の正本をここへ複製しない。
 
 - [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)：目的、範囲、3フェーズ、実装順序、全体の完了条件
-- [決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)：合意済みの方針、Plan採用事項、運営での指定待ち、実装・実機で確認する内容
+- [決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)：合意済みの方針、Plan採用事項、開発工程で必要な検証、実装完了後の実地検証、運用開始までの指定待ち
 - [PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)：変更履歴とレビュー
 - [PR #198](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/198)：本PRのbaseに相当する既存仕様・教材の見直し
 

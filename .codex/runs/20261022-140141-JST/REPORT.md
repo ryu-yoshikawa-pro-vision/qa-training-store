@@ -59,3 +59,14 @@
 - Remaining delta: 新しいSHAのCIで`Vitest (contracts)`とChromium E2Eの統合を確認する。ローカル全contract/verifyはWindows Harness/sandbox境界で未完了。代表実技・人による受入・全モジュールのPlan条件も引き続き未達。
 - Decision: `continue`（bounded iteration 2）。修正分をcommit/pushし、新しいheadで必須CIを確認する。失敗時は次のfindingを根本原因で分類し、同一failureの盲目的なretryはしない。
 - Progress: 44% (4/9)。追跡タスク4/8と未完了の必須CI確認1件を含むRepository所定の進捗。全体Planの完成率ではない。
+
+## 2026-10-22 19:15 (JST)
+
+- Summary: ユーザー指示に従い、実装完了・実地検証・運用開始判断を分けるようPR #199のPlanを修正した。今回の範囲はPlan/Run文書、文書検証、commit/push、PR本文であり、教材コード実装と実地検証は行わない。
+- Plan changes: 代表M02→M03/M05→M06は正式仕様照合、コード/教材レビュー、自動・静的・契約検証を通過した後に全11モジュールへ展開する。初心者試行、実受講者/評価者の採点、実際の2コアCodespaces/Template通し検証、時間・容量・費用の実測は全量実装後へ移し、実装完了の達成基準・実装BLOCKED理由から外した。必要な成果物、非公開模範/採点資料、必須開発テスト、CI、正式仕様照合は実装完了条件に残した。
+- Changed files: 全体Plan、決定事項、Plan index、design、progression、web-learning、target、assessment、distribution、およびこのRunのPLAN/TASKS/REPORT。
+- Validation PASS: `pnpm.cmd run lint:markdown` exit 0（issuesなし）、対象9 Plan文書のmarkdownlint exit 0、`pnpm.cmd run lint:text` PASS（変更Markdown 11件）、9 Plan文書のPrettier check PASS、9 Plan文書の相対リンク先確認 PASS、`git diff --check` PASS、Run artifact sanitization 3 files / 0 changes / 0 residual findings。
+- Validation boundary: ユーザーの今回の範囲に従いコードテスト・実地検証は行っていない。必須のWeb CI/Mobile App CIはこれから作るcommit SHAで未確認。外部Templateの名称/権限、非公開評価資料の保存先/アクセス権、実際の評価担当者は未指定のまま保持。
+- PR state before this update: GitHub connectorでPR #199はOPEN、base `main`、head `fe1f9236f08399b48465c99413b12725cbb7a6c6`と確認。Plan差分のcommit/pushとPR本文更新は未実施。
+- Next: 最終差分をstage/commitし、通常pushで既存PRへ反映する。PR本文を変更後の達成基準と未完了成果物に合わせ、新しいPR head SHAのWeb CI/Mobile App CIを1回確認する。
+- Progress: 50% (5/10)。Runの追跡タスク1-3と8-9を完了。これはPR #199の全体カリキュラム実装完了率ではない。
