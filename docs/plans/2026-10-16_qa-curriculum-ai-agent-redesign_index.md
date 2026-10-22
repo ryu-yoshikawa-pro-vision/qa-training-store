@@ -20,7 +20,7 @@
 | 3 | [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md) | 51学習項目、理解・適用・判断、学習項目ID |
 | 4 | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) | 未経験者向け導入、前提知識、各モジュールの演習、Level 2で確認する行動 |
 | 5 | [Web閲覧・受講者の学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) | 公開ページの受講導線、モジュール閲覧、一問ずつのクイズと最終結果・復習・再開、既存静的公開基盤の利用 |
-| 7 | [クイズと解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | 四択問題、正答・誤答説明、認知水準、復習先、問題の妥当性検証 |
+| 6 | [クイズと解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | 四択問題、正答・誤答説明、認知水準、復習先、問題の妥当性検証 |
 | 7 | [評価と修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | 提出物、自己確認、正式な評価、Level 0〜3、各フェーズの独立修了 |
 | 8 | [教材同期・モジュールロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) | 配布許可リスト、管理者同期、学習者による1モジュールロード、教材更新、上書き防止 |
 | 9 | [Scenario Shop・実行環境・Skill・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) | Build/Serve、Seed/Reset、Playwright、外部Skillの工程依存、選択Phase 3のCI |
