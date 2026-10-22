@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "module_id": "M07",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v1",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "inputs": [
+    {
+      "artifact_id": "M07-result-01",
+      "path": "workspace/M07/diagnosis.md"
+    }
+  ],
+  "environment": ["M06 spec", "Run logs and Trace"],
+  "expected": {
+    "required_paths": ["workspace/M07/diagnosis.md"],
+    "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
+    "phase": "P2",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M07-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M07-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M07-END-03",
+      "mode": "human-review",
+      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "confidentiality": {
+    "public": true,
+    "contains_model_answers": false,
+    "contains_private_assessment_tests": false
+  }
+}

@@ -4,6 +4,17 @@ import { defineConfig, devices } from "@playwright/test";
 import { resolveAiAssistedQaPlaywrightSettings } from "./scripts/training/ai-assisted-qa-playwright-settings";
 
 const repositoryRoot = process.cwd();
+const syncedShopPath = path.join(repositoryRoot, "course", "shop");
+const syncedDistributionManifest = path.join(
+  repositoryRoot,
+  ".course",
+  "distribution-manifest.json",
+);
+if (fs.existsSync(syncedDistributionManifest)) {
+  process.env.PLAYWRIGHT_USE_PREBUILT_DIST = "true";
+  process.env.WEB_SERVER_DIST_ROOT = syncedShopPath;
+  process.env.WEB_SERVER_PORT = "8082";
+}
 const settings = resolveAiAssistedQaPlaywrightSettings(repositoryRoot, {
   baseUrl: process.env.PLAYWRIGHT_BASE_URL,
   testRoot: process.env.PLAYWRIGHT_TEST_ROOT,
@@ -28,6 +39,8 @@ if (
 
 process.env.PLAYWRIGHT_BASE_URL = settings.baseUrl;
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER === "true";
+const outputRoot = process.env.AI_QA_OUTPUT_ROOT ?? "output/training/ai-assisted-qa";
+const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?.trim();
 const webServerCommand =
   process.env.PLAYWRIGHT_USE_PREBUILT_DIST === "true"
     ? "pnpm exec tsx scripts/serve-web-dist.ts"
@@ -40,13 +53,11 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 7_500 },
   retries: process.env.CI ? 2 : 0,
-  outputDir: "output/training/ai-assisted-qa/test-results",
-  reporter: [
-    ["list"],
-    ["html", { open: "never", outputFolder: "output/training/ai-assisted-qa/report" }],
-  ],
+  outputDir: path.join(outputRoot, "test-results"),
+  reporter: [["list"], ["html", { open: "never", outputFolder: path.join(outputRoot, "report") }]],
   use: {
     baseURL: settings.baseUrl,
+    ...(chromiumExecutable ? { launchOptions: { executablePath: chromiumExecutable } } : {}),
     navigationTimeout: 45_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

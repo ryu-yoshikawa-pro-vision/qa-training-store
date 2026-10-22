@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "module_id": "M04",
+  "questions": [
+    {
+      "id": "M04-Q01",
+      "objective_ids": [
+        "M04-01"
+      ],
+      "question": "Caseの期待結果に「数量超過分を上限へ自動補正する」とあります。正式Cart仕様は拒否と現数量保持を定めています。レビューで取るべき対応はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "既存Caseを維持し、説明文だけ整える",
+          "meaning": "既存Caseを維持し、説明文だけ整える",
+          "reason": "期待結果の仕様矛盾が残るため、文章の整形だけでは不十分です。"
+        },
+        {
+          "value": "B",
+          "label": "画面表示を見てから仕様を無視する",
+          "meaning": "画面表示を見てから仕様を無視する",
+          "reason": "観測結果が正式な期待結果の正本を置き換えるわけではありません。"
+        },
+        {
+          "value": "C",
+          "label": "BR/ACを示して期待結果を訂正し、関連Caseと追跡を確認する",
+          "meaning": "BR/ACを示して期待結果を訂正し、関連Caseと追跡を確認する",
+          "reason": "誤りの根拠を明示し、影響する条件とCaseを修正できます。"
+        },
+        {
+          "value": "D",
+          "label": "補正と拒否の両方を同時に期待する",
+          "meaning": "補正と拒否の両方を同時に期待する",
+          "reason": "矛盾した期待結果になり、テストで何を判定するか分かりません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M04-Q02",
+      "objective_ids": [
+        "M04-02"
+      ],
+      "question": "純粋な金額計算の境界値を高速に確認し、主要購入導線の連携も確かめたい。層の選び方はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "計算規則はUnit、連携点はIntegration/Component、少数の導線はWeb E2Eを検討する",
+          "meaning": "計算規則はUnit、連携点はIntegration/Component、少数の導線はWeb E2Eを検討する",
+          "reason": "各層の責務と費用を分け、必要なE2Eだけ残せます。"
+        },
+        {
+          "value": "B",
+          "label": "全入力値をWeb E2Eだけにする",
+          "meaning": "全入力値をWeb E2Eだけにする",
+          "reason": "遅く保守負荷の高い層へ全条件を集中させてしまいます。"
+        },
+        {
+          "value": "C",
+          "label": "すべてUnitにし、画面導線は確認しない",
+          "meaning": "すべてUnitにし、画面導線は確認しない",
+          "reason": "利用者導線や層間連携の問題を確認できません。"
+        },
+        {
+          "value": "D",
+          "label": "テスト層は既存ファイルの場所だけで決める",
+          "meaning": "テスト層は既存ファイルの場所だけで決める",
+          "reason": "ファイル配置はリスクや期待結果の適切な検証方法を決めません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M04-Q03",
+      "objective_ids": [
+        "M04-03"
+      ],
+      "question": "月に何度も実行し、安定した仕様を守る重要条件があります。自動化判断に使う観点はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "AIが生成できたかだけで決める",
+          "meaning": "AIが生成できたかだけで決める",
+          "reason": "生成可能性は保守負荷や再実行価値、リスクの代わりになりません。"
+        },
+        {
+          "value": "B",
+          "label": "再実行価値、失敗時の影響、安定性、保守負荷を比較する",
+          "meaning": "再実行価値、失敗時の影響、安定性、保守負荷を比較する",
+          "reason": "便益と壊れやすさ・維持コストを合わせて判断できます。"
+        },
+        {
+          "value": "C",
+          "label": "ファイル数を均等にして自動化する",
+          "meaning": "ファイル数を均等にして自動化する",
+          "reason": "均等な件数はリスクや利用頻度に基づく優先度を示しません。"
+        },
+        {
+          "value": "D",
+          "label": "一度手動で通ったら必ず自動化する",
+          "meaning": "一度手動で通ったら必ず自動化する",
+          "reason": "再実行の便益が保守コストを上回るか確認する必要があります。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M04-Q04",
+      "objective_ids": [
+        "M04-04"
+      ],
+      "question": "仕様に購入上限が記載されず、再現した画面では数量が拒否されました。正しい報告はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "拒否されたので仕様上の上限を確定する",
+          "meaning": "拒否されたので仕様上の上限を確定する",
+          "reason": "観測一回だけでは仕様が定めていない上限値を決められません。"
+        },
+        {
+          "value": "B",
+          "label": "実装が必ず不具合なので即時に修正する",
+          "meaning": "実装が必ず不具合なので即時に修正する",
+          "reason": "仕様不明と製品不具合を分け、追加根拠を確認する必要があります。"
+        },
+        {
+          "value": "C",
+          "label": "AIに値を決めてもらい確定値として登録する",
+          "meaning": "AIに値を決めてもらい確定値として登録する",
+          "reason": "AIの補完は正式な仕様根拠になりません。"
+        },
+        {
+          "value": "D",
+          "label": "仕様上の未決と観測結果を分けて記録し、必要な確認を残す",
+          "meaning": "仕様上の未決と観測結果を分けて記録し、必要な確認を残す",
+          "reason": "確認済み事実と業務判断が必要な事項を混同しません。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    }
+  ]
+}

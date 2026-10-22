@@ -1,0 +1,5 @@
+# M10 開始サンプル：証拠を結び付ける
+
+M10ではM07で確認したPlaywright specと、M09で学んだ最小workflowを使います。Workflowを有効化する前に差分、permissions、testDir、対象branchを確認し、Secretやdeployがないことを確かめます。
+
+CI成功の証拠には対象PR HEADの完全なSHA、同じSHAを実行したRun/Check、必要なArtifactを記録します。古いRun、別SHA、AIの成功報告だけでは現在の変更を検証した証拠になりません。

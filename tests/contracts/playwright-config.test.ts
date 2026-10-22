@@ -2,6 +2,7 @@ import type { PlaywrightTestConfig } from "@playwright/test";
 
 const originalDeployedBaseUrl = process.env.DEPLOYED_BASE_URL;
 const originalLocalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+const originalChromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 const localBaseUrl = "http://127.0.0.1:4173";
 
 function webServerAsObject(ws: PlaywrightTestConfig["webServer"]) {
@@ -9,12 +10,20 @@ function webServerAsObject(ws: PlaywrightTestConfig["webServer"]) {
   return ws;
 }
 
-async function loadPlaywrightConfig(deployedBaseUrl: string | undefined) {
+async function loadPlaywrightConfig(
+  deployedBaseUrl: string | undefined,
+  chromiumExecutable: string | undefined = undefined,
+) {
   process.env.PLAYWRIGHT_BASE_URL = localBaseUrl;
   if (deployedBaseUrl === undefined) {
     delete process.env.DEPLOYED_BASE_URL;
   } else {
     process.env.DEPLOYED_BASE_URL = deployedBaseUrl;
+  }
+  if (chromiumExecutable === undefined) {
+    delete process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  } else {
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE = chromiumExecutable;
   }
   vi.resetModules();
   return (await import("../../playwright.config")).default;
@@ -37,6 +46,11 @@ afterEach(() => {
   } else {
     process.env.PLAYWRIGHT_BASE_URL = originalLocalBaseUrl;
   }
+  if (originalChromiumExecutable === undefined) {
+    delete process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  } else {
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE = originalChromiumExecutable;
+  }
   vi.resetModules();
 });
 
@@ -50,6 +64,25 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("Playwright local and deployed target boundary", () => {
+  it("uses an explicitly configured Chromium executable for Chromium projects only", async () => {
+    const executablePath = "C:/tools/chromium/chrome.exe";
+    const config = await loadPlaywrightConfig(undefined, executablePath);
+    const chromiumProjects = config.projects?.filter(
+      ({ name }) => name !== "firefox-smoke" && name !== "webkit-smoke",
+    );
+
+    expect(chromiumProjects?.length).toBeGreaterThan(0);
+    for (const project of chromiumProjects ?? []) {
+      expect(project.use?.launchOptions).toEqual({ executablePath });
+    }
+    expect(config.projects?.find(({ name }) => name === "firefox-smoke")?.use?.launchOptions).toBe(
+      undefined,
+    );
+    expect(config.projects?.find(({ name }) => name === "webkit-smoke")?.use?.launchOptions).toBe(
+      undefined,
+    );
+  });
+
   it("starts the local web server when DEPLOYED_BASE_URL is not set", async () => {
     const config = await loadPlaywrightConfig(undefined);
     const ws = webServerAsObject(config.webServer);

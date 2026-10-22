@@ -50,7 +50,7 @@
       "question": "ローカルではcommit AのspecがPASSしました。現在のworkspaceは変更され、別のspecを実行したあとにsummaryだけを見ています。M06の記録として必要な対応はどれですか。",
       "options": [
         { "value": "A", "label": "最新のsummaryをcommit Aの証拠として保存する", "meaning": "別Runの結果を前のSHAへ流用する", "reason": "対象specや実行状態が異なり、同じRunを示していません。" },
-        { "value": "B", "label": "実行コマンド、対象spec、現在の変更状態、結果とログを同じRunとして記録する", "meaning": "コマンドと証拠の対象を照合する", "reason": "同じ実行を指す要素を対応付けて記録できます。" },
+        { "value": "B", "label": "現在のspecとworkspaceのrevisionで再実行し、コマンド、対象spec、結果、ログを同じRunとして記録する", "meaning": "現在の変更と実行証拠を照合する", "reason": "以前のcommitや別specのPASSを、現在のworkspaceの証拠に流用しません。" },
         { "value": "C", "label": "別Runでも同じPRなら結果をまとめる", "meaning": "Runと対象SHA・specの違いを無視する", "reason": "PRが同じでもテスト対象や実行証拠が異なることがあります。" },
         { "value": "D", "label": "ログを残さずAIの説明だけを記録する", "meaning": "実際のRunを確認しない", "reason": "AIの説明だけでは実行結果を裏付けられません。" }
       ],

@@ -28,7 +28,26 @@ function readQuiz(moduleId: string): { questions: { correct_value: string }[] } 
   ) as { questions: { correct_value: string }[] };
 }
 
+const moduleIds = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
+
 test.describe("AI協働QAの公開クイズ画面", () => {
+  for (const moduleId of moduleIds) {
+    test(`${moduleId}の全問題を完了し、採点・復習を表示する`, async ({ page }) => {
+      const quiz = readQuiz(moduleId);
+      await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+      await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
+      await page.getByRole("button", { name: "回答を始める" }).click();
+      await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
+      await chooseCorrectAnswers(page, quiz);
+      await page.getByRole("button", { name: "結果を確認" }).click();
+      await expect(
+        page.getByText(`${quiz.questions.length} / ${quiz.questions.length}問正解（100%）`),
+      ).toBeVisible();
+      await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
+      await expect(page.getByRole("link", { name: "教材の復習先" }).first()).toBeVisible();
+    });
+  }
+
   test("一問ずつ回答し、全問終了後に結果・解説・復習先を表示して再開できる", async ({ page }) => {
     const quiz = readQuiz("M02");
     await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M02.html");
@@ -125,5 +144,22 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
     expect(accessibility.violations.map((violation) => violation.id)).toEqual([]);
+  });
+
+  test("形式が壊れたJSONを受け入れず、クイズ開始を拒否する", async ({ page }) => {
+    await page.route("**/M10.json", async (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          schema_version: 1,
+          module_id: "M10",
+          questions: [{ id: "M10-Q01", question: "broken", options: [] }],
+        }),
+      }),
+    );
+    await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M10.html");
+    await expect(page.getByRole("alert")).toContainText("クイズデータの形式が正しくありません");
+    await expect(page.getByRole("button", { name: "回答を始める" })).toHaveCount(0);
   });
 });

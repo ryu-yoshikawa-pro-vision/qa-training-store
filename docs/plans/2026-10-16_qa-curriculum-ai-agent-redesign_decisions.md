@@ -141,3 +141,18 @@
 - PRのmerge、branch削除、PR #198の変更
 
 この文書の項目を完了へ変更するときは、**対象の実在パス、revision、実行結果、確認した判断主体**を対応する詳細Planに記録する。Planがあるだけで「実装完了」としない。
+
+## 2026-10-23 実装作業の検証結果
+
+ここからはPR #199の実装作業で得た開発証拠であり、実地検証の合否を示さない。
+
+| 対象 | 開発中に確認した結果 | 状態 |
+| --- | --- | --- |
+| M00〜M10の公開教材・クイズ | 全11 moduleの教材・クイズ53問・実技/提出素材を作成。新課程validatorと知識グラフの構造検証が通過 | 公開成果物あり。内容の独立レビューと非公開評価資料は未完了 |
+| 22状態と参照グラフ | M00〜M10のstart/end JSON、公開入力、検証CLI・影響検索を追加。入力欠落・revision違い・参照不整合等をfixture契約テストで確認 | 構造検証PASS。意味レビューは未完了 |
+| Web・旧課程非回帰 | `verify`のunit/integration/repository/component/contracts、buildを実行。Chromium 51件で既存Webと新課程クイズを確認 | ローカルPASS。必須CIはpush後に別途確認 |
+| 同期・単一moduleロード | 固定SHA・blob・許可範囲・機密拒否・部分失敗・再実行・上書き防止を契約テストで確認 | fixture PASS。外部Templateは未作成 |
+| M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`から3つのSkill-local runtimeを読取り確認。`condition_structure.py`の`test_requirements[]`は5キーを許可し、`materialize_coverage.py`はartifact modeでcurrent TCNを要求し、`case_structure.py`はartifact modeのTCN/Case対応を検査する | 契約確認は完了。Cartの実在Authority/Risk/Scope Machine Entityを通じた実行証拠は開発環境になく、`opencode` CLIも見つからないため通し統合は`BLOCKED`。fixtureは代替にしていない。Zen無料モデル/認証は再確認していない |
+| M05→M06 / Phase 2 runner | M05/M06教材と専用configを作成。M06の3つの公開specは学習者用TODO素材で、専用runnerの実行結果は3件FAIL。M07は修正前の意図したAssertion失敗を確認し、修正後scaffoldもTODOでFAIL | 完成版実技の開発受入は未達 |
+| 非公開評価・グラフ内容 | 公開ルーブリックは追加。非公開模範/採点テストの保存先・権限・管理担当は未指定。知識グラフ58ノードは`draft_requires_content_review` | 成果物と意味レビューは未完了。未指定値を決めず保持 |
+| 実地検証 | 初心者/受講者、評価担当者、Template由来の2コアCodespace、所要時間・容量・無料枠は未確認 | 全量実装後の独立工程。実装工程のBLOCKED理由ではない |

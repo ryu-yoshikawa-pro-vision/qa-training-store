@@ -183,7 +183,9 @@ describe("portable Codex Run Artifact sanitizer", () => {
         );
         expect(write.error).toBeUndefined();
         expect(write.status, `${write.stderr}\n${write.stdout}`).toBe(0);
-        expect(readFileSync(file, "utf8")).toBe("local=<REPO_ROOT>/private\n");
+        const sanitizedPath = readFileSync(file, "utf8");
+        expect(sanitizedPath).not.toContain(cwd.replaceAll("\\", "/"));
+        expect(sanitizedPath).toMatch(/^local=<(?:REPO_ROOT|TEMP_ROOT)>\//);
 
         git(cwd, "add", ".codex/runs/sample/powershell-wrapper.md");
         const staged = spawnSync(

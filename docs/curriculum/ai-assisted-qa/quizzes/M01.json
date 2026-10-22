@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "module_id": "M01",
+  "questions": [
+    {
+      "id": "M01-Q01",
+      "objective_ids": [
+        "M01-01"
+      ],
+      "question": "テストがすべてPASSだったとき、品質について言えることとして最も適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "実行した条件で失敗を検出しなかった証拠だが、品質全体の保証ではない",
+          "meaning": "実行した条件で失敗を検出しなかった証拠だが、品質全体の保証ではない",
+          "reason": "テストの範囲と限界を示し、未確認条件を残せます。"
+        },
+        {
+          "value": "B",
+          "label": "製品のすべての利用条件に問題がないと証明できた",
+          "meaning": "製品のすべての利用条件に問題がないと証明できた",
+          "reason": "実行していない条件や未知の問題まで証明することはできません。"
+        },
+        {
+          "value": "C",
+          "label": "仕様の正しさと利用者満足が保証された",
+          "meaning": "仕様の正しさと利用者満足が保証された",
+          "reason": "テスト結果だけで仕様の妥当性や利用者の評価は確定しません。"
+        },
+        {
+          "value": "D",
+          "label": "今後の回帰テストは不要になった",
+          "meaning": "今後の回帰テストは不要になった",
+          "reason": "変更後の振舞いを確認するテストは継続して必要です。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M01-Q02",
+      "objective_ids": [
+        "M01-02"
+      ],
+      "question": "新しい購入導線の未知の問題を探し、その後に確定済み条件を繰り返し確認したい。方法の組合せはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "どちらも画面録画だけで代用する",
+          "meaning": "どちらも画面録画だけで代用する",
+          "reason": "記録はできますが、探索や再現可能な比較の代わりにはなりません。"
+        },
+        {
+          "value": "B",
+          "label": "未知の問題も全件を一度だけ自動実行する",
+          "meaning": "未知の問題も全件を一度だけ自動実行する",
+          "reason": "探索的な判断を自動テストだけで代替できるとは限りません。"
+        },
+        {
+          "value": "C",
+          "label": "未知条件は手動探索、確定条件は自動回帰を検討する",
+          "meaning": "未知条件は手動探索、確定条件は自動回帰を検討する",
+          "reason": "目的に応じて探索と反復確認の強みを使い分けます。"
+        },
+        {
+          "value": "D",
+          "label": "確定条件は毎回人が手で行い、探索は不要にする",
+          "meaning": "確定条件は毎回人が手で行い、探索は不要にする",
+          "reason": "手動だけでは再実行の負荷が高く、未知の条件も見落とすことがあります。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M01-Q03",
+      "objective_ids": [
+        "M01-03"
+      ],
+      "question": "テスト活動の流れとAI・人間の責任の説明として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "AIが仕様と合格を決め、人は結果を転記する",
+          "meaning": "AIが仕様と合格を決め、人は結果を転記する",
+          "reason": "期待結果や合否は正本と証拠から人が責任を持って判断します。"
+        },
+        {
+          "value": "B",
+          "label": "分析・設計・実行・評価・改善を行い、AI案は人が根拠と結果に照らして確認する",
+          "meaning": "分析・設計・実行・評価・改善を行い、AI案は人が根拠と結果に照らして確認する",
+          "reason": "AIを補助に使いつつ、根拠・妥当性・意思決定を人が確認します。"
+        },
+        {
+          "value": "C",
+          "label": "実行前にすべての改善を済ませ、その後は評価しない",
+          "meaning": "実行前にすべての改善を済ませ、その後は評価しない",
+          "reason": "改善には実行結果と評価が必要で、工程を省略すると効果を判断できません。"
+        },
+        {
+          "value": "D",
+          "label": "仕様を読まずにテストを作り、PASSなら分析を完了する",
+          "meaning": "仕様を読まずにテストを作り、PASSなら分析を完了する",
+          "reason": "期待結果の根拠がなく、テスト成功も分析の代わりにはなりません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M01-Q04",
+      "objective_ids": [
+        "M01-04"
+      ],
+      "question": "すべての入力組合せを画面E2Eにしない理由として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "E2Eは一切役に立たない",
+          "meaning": "E2Eは一切役に立たない",
+          "reason": "利用者導線の確認など、E2Eが適した重要な目的があります。"
+        },
+        {
+          "value": "B",
+          "label": "件数を減らせばテスト設計が不要になる",
+          "meaning": "件数を減らせばテスト設計が不要になる",
+          "reason": "範囲を選ぶときもリスクと期待結果に基づく設計が必要です。"
+        },
+        {
+          "value": "C",
+          "label": "テストは必ず一つの層だけに置くべきだから",
+          "meaning": "テストは必ず一つの層だけに置くべきだから",
+          "reason": "層を組み合わせることがあり、単一層に固定する根拠はありません。"
+        },
+        {
+          "value": "D",
+          "label": "E2Eは比較的遅く状態準備や保守も必要なので、層ごとに適した範囲を選ぶ",
+          "meaning": "E2Eは比較的遅く状態準備や保守も必要なので、層ごとに適した範囲を選ぶ",
+          "reason": "低い層で安価に確認できる条件と、導線全体を確認する条件を分けます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    }
+  ]
+}

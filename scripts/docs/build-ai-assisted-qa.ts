@@ -194,6 +194,18 @@ const QUIZ_JS = `(async()=>{
     if(file.startsWith("docs/spec/")&&file.endsWith(".md"))return "/docs/spec/"+file.slice("docs/spec/".length).replace(/\\.md$/i,".html")+fragment;
     return "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/"+file+fragment;
   };
+  const validQuestion=(question)=>{
+    if(!question||typeof question!=="object"||typeof question.id!=="string"||!new RegExp("^"+moduleId+"-Q[0-9]{2}$").test(question.id))return false;
+    if(typeof question.question!=="string"||!question.question.trim()||!Array.isArray(question.objective_ids)||question.objective_ids.length===0||question.objective_ids.some((id)=>typeof id!=="string"||!id.startsWith(moduleId+"-")))return false;
+    if(!Array.isArray(question.options)||question.options.length!==4)return false;
+    const values=question.options.map((option)=>option&&option.value);
+    if(["A","B","C","D"].some((value)=>values.filter((candidate)=>candidate===value).length!==1))return false;
+    if(question.options.some((option)=>!option||[option.label,option.meaning,option.reason].some((value)=>typeof value!=="string"||!value.trim())))return false;
+    if(!["A","B","C","D"].includes(question.correct_value))return false;
+    if(!Array.isArray(question.source_refs)||question.source_refs.length===0||question.source_refs.some((reference)=>typeof reference!=="string"||!reference.trim()))return false;
+    if(typeof question.review_path!=="string"||!new RegExp("^docs/curriculum/ai-assisted-qa/modules/"+moduleId+"/README\\.md(?:#.+)?$").test(question.review_path))return false;
+    return true;
+  };
   const renderQuestion=()=>{
     clearError();
     const question=quiz.questions[state.currentIndex];
@@ -240,7 +252,7 @@ const QUIZ_JS = `(async()=>{
     const response=await fetch(quizFile);
     if(!response.ok)throw new Error("クイズデータを読み込めませんでした。ページを再読み込みしてください。");
     quiz=await response.json();
-    if(quiz.schema_version!==1||quiz.module_id!==moduleId||!Array.isArray(quiz.questions)||quiz.questions.length===0)throw new Error("クイズデータの形式が正しくありません。");
+    if(quiz.schema_version!==1||quiz.module_id!==moduleId||!Array.isArray(quiz.questions)||quiz.questions.length===0||quiz.questions.some((question)=>!validQuestion(question))||new Set(quiz.questions.map((question)=>question.id)).size!==quiz.questions.length)throw new Error("クイズデータの形式が正しくありません。");
     for(const question of quiz.questions){if(!Array.isArray(question.options)||question.options.length!==4||!question.options.some((option)=>option.value===question.correct_value))throw new Error("問題または選択肢に不整合があります。");}
     let saved=null;try{const raw=localStorage.getItem(storageKey);if(raw)saved=JSON.parse(raw);}catch{storageAvailable=false;}
     if(saved&&saved.revision!==revision){try{localStorage.removeItem(storageKey);}catch{}saved=null;setText(storageMessage,"クイズの版が更新されたため、以前の回答は引き継ぎません。新しい版で始めてください。");}

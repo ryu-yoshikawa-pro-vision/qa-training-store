@@ -9,6 +9,8 @@ const GRAPH_PATH = `${COURSE_ROOT}/knowledge-graph.json`;
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const QUESTION_ID_PATTERN = /^(M(?:0[0-9]|10))-Q[0-9]{2}$/;
 const OPTION_VALUES = ["A", "B", "C", "D"] as const;
+const PINNED_SKILL_REFERENCE =
+  "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324";
 
 type QuizOption = {
   value: string;
@@ -36,6 +38,8 @@ type QuizDocument = {
 export type AiAssistedQaValidationResult = {
   modules: string[];
   questionCount: number;
+  objectiveCount: number;
+  stateCount: number;
 };
 
 function requireCondition(condition: unknown, message: string): asserts condition {
@@ -78,6 +82,13 @@ function validateMarkdownReference(rootDir: string, reference: string, descripti
 function validateSourceReference(rootDir: string, reference: string, questionId: string): void {
   requireNonEmptyString(reference, `${questionId}.source_refs`);
   if (/^https:\/\//i.test(reference)) return;
+  if (reference.startsWith("ryu-yoshikawa-pro-vision/qa-workflow-skills@")) {
+    requireCondition(
+      reference === PINNED_SKILL_REFERENCE,
+      `${questionId}の外部Skill参照がPlan固定revisionと一致しません: ${reference}`,
+    );
+    return;
+  }
   requireCondition(
     !/^[a-z][a-z0-9+.-]*:/i.test(reference),
     `${questionId}で許可されないURL schemeです`,
@@ -160,6 +171,10 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       .filter((node) => node.type === "learning_objective" && typeof node.id === "string")
       .map((node) => node.id as string),
   );
+  requireCondition(
+    objectiveIds.size === 51,
+    `知識グラフの学習項目は51件必要です: ${objectiveIds.size}`,
+  );
   const quizDirectory = repositoryPath(rootDir, QUIZ_ROOT);
   requireCondition(fs.existsSync(quizDirectory), `クイズディレクトリがありません: ${QUIZ_ROOT}`);
 
@@ -168,13 +183,22 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
     .filter((entry) => entry.isFile() && /^M(?:0[0-9]|10)\.json$/.test(entry.name))
     .map((entry) => entry.name)
     .sort();
-  requireCondition(quizFiles.length > 0, "新課程のクイズJSONがありません");
+  const requiredModules = Array.from(
+    { length: 11 },
+    (_, index) => `M${String(index).padStart(2, "0")}`,
+  );
+  requireCondition(
+    JSON.stringify(quizFiles.map((name) => name.slice(0, -5))) === JSON.stringify(requiredModules),
+    "M00〜M10の確認クイズを各1ファイル用意してください",
+  );
 
   const seenQuestionIds = new Set<string>();
+  const coveredObjectiveIds = new Set<string>();
   let questionCount = 0;
+  let stateCount = 0;
   const modules: string[] = [];
-  for (const fileName of quizFiles) {
-    const moduleId = fileName.slice(0, -".json".length);
+  for (const moduleId of requiredModules) {
+    const fileName = `${moduleId}.json`;
     requireCondition(MODULE_ID_PATTERN.test(moduleId), `不正なモジュールIDです: ${moduleId}`);
     const quizPath = `${QUIZ_ROOT}/${fileName}`;
     const modulePath = `${COURSE_ROOT}/modules/${moduleId}/README.md`;
@@ -196,12 +220,151 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       validateQuestion(rootDir, moduleId, question, objectiveIds);
       requireCondition(!seenQuestionIds.has(question.id), `問題IDが重複しています: ${question.id}`);
       seenQuestionIds.add(question.id);
+      for (const objectiveId of question.objective_ids) coveredObjectiveIds.add(objectiveId);
       questionCount += 1;
+    }
+
+    const inputPath = `training/ai-assisted-qa-course/inputs/${moduleId}/start.md`;
+    const exercisePath = `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`;
+    const submissionPath = `training/ai-assisted-qa-course/exercises/${moduleId}/submission-template.md`;
+    for (const requiredPath of [inputPath, exercisePath, submissionPath]) {
+      const absolutePath = repositoryPath(rootDir, requiredPath);
+      requireCondition(
+        fs.existsSync(absolutePath),
+        `${moduleId}の公開演習素材がありません: ${requiredPath}`,
+      );
+      requireCondition(
+        fs.statSync(absolutePath).isFile() &&
+          fs.readFileSync(absolutePath, "utf8").trim().length > 40,
+        `${requiredPath}が空か短すぎます`,
+      );
+    }
+    const exerciseText = fs.readFileSync(repositoryPath(rootDir, exercisePath), "utf8");
+    requireCondition(
+      /提出|提出物/.test(exerciseText),
+      `${moduleId}の演習に提出物の指示がありません`,
+    );
+    const moduleObjectiveIds = [...objectiveIds].filter((objectiveId) =>
+      objectiveId.startsWith(`${moduleId}-`),
+    );
+    requireCondition(
+      moduleObjectiveIds.length > 0,
+      `${moduleId}の学習項目が知識グラフにありません`,
+    );
+
+    for (const stateName of ["start", "end"] as const) {
+      const statePath = `training/ai-assisted-qa-course/states/${moduleId}/${stateName}.json`;
+      const stateAbsolute = repositoryPath(rootDir, statePath);
+      requireCondition(
+        fs.existsSync(stateAbsolute),
+        `${moduleId}/${stateName}の公開状態契約がありません`,
+      );
+      const state = JSON.parse(fs.readFileSync(stateAbsolute, "utf8")) as {
+        schema_version?: number;
+        module_id?: string;
+        state?: string;
+        revision?: string;
+        source_sha?: string | null;
+        source_sha_resolution?: string;
+        public_contract?: boolean;
+        read_only?: boolean;
+        inputs?: { artifact_id?: string; public_fallback?: string; optional?: boolean }[];
+        expected?: { required_paths?: string[]; objective_ids?: string[] };
+        checks?: { id?: string; mode?: string; condition?: string }[];
+        references?: string[];
+        confidentiality?: {
+          public?: boolean;
+          contains_model_answers?: boolean;
+          contains_private_assessment_tests?: boolean;
+        };
+      };
+      requireCondition(
+        state.schema_version === 1 && state.module_id === moduleId && state.state === stateName,
+        `${statePath}のID/版が不正です`,
+      );
+      requireCondition(
+        state.revision === "ai-assisted-qa-course-v1",
+        `${statePath}のrevisionが不正です`,
+      );
+      requireCondition(
+        state.source_sha === null && typeof state.source_sha_resolution === "string",
+        `${statePath}は同期時の確定SHA束縛を宣言してください`,
+      );
+      requireCondition(
+        state.public_contract === true && state.read_only === true,
+        `${statePath}は公開の読取専用契約である必要があります`,
+      );
+      requireCondition(
+        state.confidentiality?.public === true &&
+          state.confidentiality.contains_model_answers === false &&
+          state.confidentiality.contains_private_assessment_tests === false,
+        `${statePath}に非公開資料が混入する可能性があります`,
+      );
+      requireCondition(
+        state.expected?.required_paths?.length,
+        `${statePath}に必須パスがありません`,
+      );
+      requireCondition(
+        JSON.stringify([...(state.expected?.objective_ids ?? [])].sort()) ===
+          JSON.stringify([...moduleObjectiveIds].sort()),
+        `${statePath}の学習項目が知識グラフと一致しません`,
+      );
+      requireCondition(
+        Array.isArray(state.checks) &&
+          state.checks.length >= 3 &&
+          state.checks.every((check) => check.id && check.mode && check.condition),
+        `${statePath}に照合条件がありません`,
+      );
+      requireCondition(
+        Array.isArray(state.references) && state.references.length >= 2,
+        `${statePath}に参照がありません`,
+      );
+      for (const reference of state.references ?? [])
+        validateSourceReference(rootDir, reference, `${moduleId}/${stateName}`);
+      if (stateName === "start") {
+        requireCondition(
+          Array.isArray(state.inputs) && state.inputs.length > 0,
+          `${statePath}に入力契約がありません`,
+        );
+        for (const input of state.inputs ?? []) {
+          if (input.public_fallback) {
+            const fallback = repositoryPath(
+              rootDir,
+              `training/ai-assisted-qa-course/${input.public_fallback}`,
+            );
+            requireCondition(
+              fs.existsSync(fallback),
+              `${statePath}の公開開始入力がありません: ${input.public_fallback}`,
+            );
+          }
+        }
+      }
+      stateCount += 1;
     }
     modules.push(moduleId);
   }
 
-  return { modules, questionCount };
+  requireCondition(
+    coveredObjectiveIds.size === objectiveIds.size,
+    `確認クイズから参照されない学習項目があります: ${[...objectiveIds]
+      .filter((id) => !coveredObjectiveIds.has(id))
+      .sort()
+      .join(", ")}`,
+  );
+  for (const rubricPath of [
+    "training/ai-assisted-qa-course/assessment/phase-1-rubric.md",
+    "training/ai-assisted-qa-course/assessment/phase-2-rubric.md",
+    "training/ai-assisted-qa-course/assessment/phase-3-rubric.md",
+  ]) {
+    const absolutePath = repositoryPath(rootDir, rubricPath);
+    requireCondition(
+      fs.existsSync(absolutePath) && fs.readFileSync(absolutePath, "utf8").trim().length > 80,
+      `フェーズ別公開評価基準がありません: ${rubricPath}`,
+    );
+  }
+  requireCondition(stateCount === 22, `開始・終了状態は22件必要です: ${stateCount}`);
+
+  return { modules, questionCount, objectiveCount: coveredObjectiveIds.size, stateCount };
 }
 
 function isMainModule(): boolean {

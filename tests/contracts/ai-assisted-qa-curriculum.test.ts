@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -57,6 +57,53 @@ describe("AI-assisted QA knowledge graph", () => {
     );
     const result = JSON.parse(output) as { ok?: boolean; objectives?: number };
     expect(result).toMatchObject({ ok: true, objectives: 51 });
+  });
+
+  it("generates a 51-row objective map with linked lesson, quiz answer, practice, assessment, and review evidence", () => {
+    const output = execFileSync(
+      process.execPath,
+      ["scripts/training/knowledge-graph.mjs", "table"],
+      { cwd: repositoryRoot, encoding: "utf8" },
+    );
+    expect(output).toContain(
+      "| Phase | Learning item | Knowledge | Lesson section | Level | Level 2 evidence | Quiz: answer and explanation | Practical exercise and submission | Phase rubric |",
+    );
+    expect(
+      output.split(/\r?\n/).filter((line) => /^\| P[123] \| M(?:0[0-9]|10)-\d{2} \|/.test(line)),
+    ).toHaveLength(51);
+    expect(output).toContain("M10-Q01");
+    expect(output).toContain("training/ai-assisted-qa-course/exercises/M00/submission-template.md");
+  });
+
+  it("requires manual review for curriculum-relevant files without graph nodes", () => {
+    fs.mkdirSync(path.join(repositoryRoot, "output"), { recursive: true });
+    const outputDirectory = fs.mkdtempSync(
+      path.join(repositoryRoot, "output", "ai-qa-impact-contract-"),
+    );
+    const listPath = path.join(outputDirectory, "changed-files.txt");
+    fs.writeFileSync(listPath, "tests/contracts/ai-assisted-qa-next-module.test.ts\n", "utf8");
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [
+          "scripts/training/knowledge-graph.mjs",
+          "impact",
+          "--changed-files",
+          path.relative(repositoryRoot, listPath),
+        ],
+        { cwd: repositoryRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+      expect(result.status).toBe(2);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: false,
+        status: "manual_review_required",
+        unmapped: ["tests/contracts/ai-assisted-qa-next-module.test.ts"],
+      });
+    } catch (error) {
+      throw new Error(`Changed-file impact check could not run: ${String(error)}`);
+    } finally {
+      fs.rmSync(outputDirectory, { recursive: true, force: true });
+    }
   });
 });
 

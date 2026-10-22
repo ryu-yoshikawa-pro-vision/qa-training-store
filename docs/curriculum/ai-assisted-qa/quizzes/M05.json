@@ -5,7 +5,7 @@
     {
       "id": "M05-Q01",
       "objective_ids": ["M05-01"],
-      "question": "CodespacesでNode.jsは導入済みです。学習用リポジトリにある`package.json`の`training:web:exercise` scriptを実行するとき、通常使うものはどれですか。",
+      "question": "CodespacesでNode.jsは導入済みです。学習用リポジトリにある`package.json`の`training:ai-assisted-qa:test` scriptを実行するとき、通常使うものはどれですか。",
       "options": [
         { "value": "A", "label": "pnpm", "meaning": "リポジトリ定義のscriptを実行する", "reason": "Node.jsが実行環境、`package.json`がscriptの定義、pnpmがコマンド起動に使われます。" },
         { "value": "B", "label": "Playwrightのブラウザ画面", "meaning": "ブラウザ操作でpackage scriptを起動する", "reason": "ブラウザはE2Eの実行対象であり、リポジトリのscript起動コマンドではありません。" },

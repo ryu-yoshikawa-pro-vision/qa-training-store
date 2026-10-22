@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "module_id": "M08",
+  "questions": [
+    {
+      "id": "M08-Q01",
+      "objective_ids": [
+        "M08-01"
+      ],
+      "question": "ファイル変更を次のcommitへ入れる前の説明として正しいものはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "working treeはcommit済みのremoteだけを指す",
+          "meaning": "working treeはcommit済みのremoteだけを指す",
+          "reason": "working treeには作業中の未commit変更が含まれます。"
+        },
+        {
+          "value": "B",
+          "label": "stageは変更をGitHubへpush済みにする操作",
+          "meaning": "stageは変更をGitHubへpush済みにする操作",
+          "reason": "stageは次のcommit対象を選ぶ操作で、remote更新ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "working treeの変更を確認し、選択したものをstageしてからcommitする",
+          "meaning": "working treeの変更を確認し、選択したものをstageしてからcommitする",
+          "reason": "各段階の状態と共有操作を区別できます。"
+        },
+        {
+          "value": "D",
+          "label": "branchを切り替えると未確認の差分も自動的に安全になる",
+          "meaning": "branchを切り替えると未確認の差分も自動的に安全になる",
+          "reason": "branch変更は差分内容や対象範囲の確認を代替しません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M08-Q02",
+      "objective_ids": [
+        "M08-02"
+      ],
+      "question": "AIが複数ファイルを変更しました。commit対象を決める安全な手順はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "すべてを一括stageして後から考える",
+          "meaning": "すべてを一括stageして後から考える",
+          "reason": "Secretや無関係な変更がcommitへ混ざる可能性があります。"
+        },
+        {
+          "value": "B",
+          "label": "statusとdiffで範囲を確認し、必要なファイルだけstageしてstaged diffを再確認する",
+          "meaning": "statusとdiffで範囲を確認し、必要なファイルだけstageしてstaged diffを再確認する",
+          "reason": "変更内容とcommit対象を二段階で確認できます。"
+        },
+        {
+          "value": "C",
+          "label": "AIが変更したファイル名だけを見てcommitする",
+          "meaning": "AIが変更したファイル名だけを見てcommitする",
+          "reason": "ファイル名では中身のSecret、誤変更、不要差分を判断できません。"
+        },
+        {
+          "value": "D",
+          "label": "作業前からある変更は問答無用で除外する",
+          "meaning": "作業前からある変更は問答無用で除外する",
+          "reason": "現在のtaskに必要な変更かをdiffと権限の範囲で判断します。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M08-Q03",
+      "objective_ids": [
+        "M08-03"
+      ],
+      "question": "PRレビューで仕様・コード・テストのつながりを確認する方法はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "タイトルだけで変更内容を承認する",
+          "meaning": "タイトルだけで変更内容を承認する",
+          "reason": "タイトルに期待結果やテスト証拠はありません。"
+        },
+        {
+          "value": "B",
+          "label": "全ての変更行に同じコメントを付ける",
+          "meaning": "全ての変更行に同じコメントを付ける",
+          "reason": "同一コメントは要件との追跡や具体的なレビューになりません。"
+        },
+        {
+          "value": "C",
+          "label": "CIの緑色だけで仕様適合も確認済みとする",
+          "meaning": "CIの緑色だけで仕様適合も確認済みとする",
+          "reason": "CIは実装の意味的な妥当性を全て判断できません。"
+        },
+        {
+          "value": "D",
+          "label": "仕様IDとdiff、対象テスト、実行証拠、未確認事項を対応付ける",
+          "meaning": "仕様IDとdiff、対象テスト、実行証拠、未確認事項を対応付ける",
+          "reason": "変更の根拠と検証範囲を追跡できます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M08-Q04",
+      "objective_ids": [
+        "M08-04"
+      ],
+      "question": "AIレビューが「将来の拡張に備えて全テストを汎用Page Objectへ移す」と提案しました。採否判断として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "現在の重複・変更頻度・保守負荷と具体的便益を確認して判断する",
+          "meaning": "現在の重複・変更頻度・保守負荷と具体的便益を確認して判断する",
+          "reason": "将来の可能性だけで不要な抽象化を増やさず、実状から判断します。"
+        },
+        {
+          "value": "B",
+          "label": "AIレビューなので必ず採用する",
+          "meaning": "AIレビューなので必ず採用する",
+          "reason": "自動提案もdiff、仕様、保守上の根拠で検証が必要です。"
+        },
+        {
+          "value": "C",
+          "label": "提案に一つでも誤りがあればレビュー全体を無視する",
+          "meaning": "提案に一つでも誤りがあればレビュー全体を無視する",
+          "reason": "正しい指摘が含まれる可能性を個別に確認できなくなります。"
+        },
+        {
+          "value": "D",
+          "label": "コード量が減れば影響や費用を問わず採用する",
+          "meaning": "コード量が減れば影響や費用を問わず採用する",
+          "reason": "短さだけでは理解しやすさや変更リスクを保証しません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    }
+  ]
+}

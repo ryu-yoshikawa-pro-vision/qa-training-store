@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "module_id": "M01",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v1",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "inputs": [
+    {
+      "artifact_id": "M01-result-01",
+      "path": "workspace/M01/submission.md"
+    }
+  ],
+  "environment": ["static product specification"],
+  "expected": {
+    "required_paths": ["workspace/M01/submission.md"],
+    "objective_ids": ["M01-01", "M01-02", "M01-03", "M01-04"],
+    "phase": "P1",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M01-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M01-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M01-END-03",
+      "mode": "human-review",
+      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M01.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "confidentiality": {
+    "public": true,
+    "contains_model_answers": false,
+    "contains_private_assessment_tests": false
+  }
+}

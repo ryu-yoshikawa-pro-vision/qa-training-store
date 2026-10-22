@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "module_id": "M09",
+  "questions": [
+    {
+      "id": "M09-Q01",
+      "objective_ids": [
+        "M09-01"
+      ],
+      "question": "GitHub Actionsのworkflowで、job内のstepを実行する計算環境はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Trigger",
+          "meaning": "Trigger",
+          "reason": "Triggerはworkflowを起動する条件です。"
+        },
+        {
+          "value": "B",
+          "label": "Runner",
+          "meaning": "Runner",
+          "reason": "Runnerがjobのstepを実行します。"
+        },
+        {
+          "value": "C",
+          "label": "Artifact",
+          "meaning": "Artifact",
+          "reason": "Artifactは保存・共有される実行成果物です。"
+        },
+        {
+          "value": "D",
+          "label": "Check",
+          "meaning": "Check",
+          "reason": "Checkは結果を報告する状態で、計算環境ではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M09-Q02",
+      "objective_ids": [
+        "M09-02"
+      ],
+      "question": "現在のPR HEADはdef456ですが、CI Artifact内のtarget-sha.txtにはabc123と記録されています。どう扱いますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "workflow名がPRと同じであることだけ",
+          "meaning": "workflow名がPRと同じであることだけ",
+          "reason": "同じ名前でも別commitの実行結果かもしれません。"
+        },
+        {
+          "value": "B",
+          "label": "Artifactがダウンロード可能であることだけ",
+          "meaning": "Artifactがダウンロード可能であることだけ",
+          "reason": "取得可能でも対象SHAが異なる場合は現在の検証になりません。"
+        },
+        {
+          "value": "C",
+          "label": "branch名が同じであること",
+          "meaning": "branch名が同じであること",
+          "reason": "branch名は進むため、同じcommitである証明になりません。"
+        },
+        {
+          "value": "D",
+          "label": "Runのhead SHAがPR HEADと一致し、ArtifactがそのRun由来であること",
+          "meaning": "Runのhead SHAがPR HEADと一致し、ArtifactがそのRun由来であること",
+          "reason": "Artifactの記録が現在のPR HEADと異なるため、その実行は現在の変更を検証した証拠になりません。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M09-Q03",
+      "objective_ids": [
+        "M09-03"
+      ],
+      "question": "CI結果でBuild stepが失敗し、Test stepは開始されていません。最初に報告する状態はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Build failureとし、該当step logを調査する。Testは未実行と分ける",
+          "meaning": "Build failureとし、該当step logを調査する。Testは未実行と分ける",
+          "reason": "実行済みと未実行を区別し、原因箇所へ進めます。"
+        },
+        {
+          "value": "B",
+          "label": "Test failureとしてケースの期待値を修正する",
+          "meaning": "Test failureとしてケースの期待値を修正する",
+          "reason": "Testが始まっておらず、Assertion原因とはまだ判断できません。"
+        },
+        {
+          "value": "C",
+          "label": "Test PASSと報告する",
+          "meaning": "Test PASSと報告する",
+          "reason": "未実行をPASSと読み替えてはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "全workflowを再実行し、元のlogを捨てる",
+          "meaning": "全workflowを再実行し、元のlogを捨てる",
+          "reason": "原因調査に必要な最初の証拠を失う可能性があります。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M09-Q04",
+      "objective_ids": [
+        "M09-04"
+      ],
+      "question": "Runnerの料金条件が不明な組織で、private repositoryのlarger runnerを使う提案が出ました。どう判断しますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "一般に無料と考えてすぐ有効にする",
+          "meaning": "一般に無料と考えてすぐ有効にする",
+          "reason": "料金と利用条件は組織設定やrunner種別で変わり、推測できません。"
+        },
+        {
+          "value": "B",
+          "label": "料金を無視して常に最速のrunnerを選ぶ",
+          "meaning": "料金を無視して常に最速のrunnerを選ぶ",
+          "reason": "コストや権限を考慮せずに選ぶのは適切ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "公式条件と組織の契約・設定を確認し、確認できるまで未決として扱う",
+          "meaning": "公式条件と組織の契約・設定を確認し、確認できるまで未決として扱う",
+          "reason": "現在の利用条件を根拠で確かめられます。"
+        },
+        {
+          "value": "D",
+          "label": "Runner設定を避ければCI料金は必ずゼロと説明する",
+          "meaning": "Runner設定を避ければCI料金は必ずゼロと説明する",
+          "reason": "他の料金条件まで含めて未確認の断定をしています。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M09-Q05",
+      "objective_ids": [
+        "M09-05"
+      ],
+      "question": "教材用workflowに必要な権限を設定する方針として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "contents: writeとdeploy secretを最初から付ける",
+          "meaning": "contents: writeとdeploy secretを最初から付ける",
+          "reason": "課題実行に不要な書込権限とSecretを増やします。"
+        },
+        {
+          "value": "B",
+          "label": "PRを操作できる管理者tokenを使う",
+          "meaning": "PRを操作できる管理者tokenを使う",
+          "reason": "テスト実行に不要な強い権限を持ち込みます。"
+        },
+        {
+          "value": "C",
+          "label": "権限を明示せず既定の全権限に任せる",
+          "meaning": "権限を明示せず既定の全権限に任せる",
+          "reason": "実行できる操作の範囲を教材で確認できません。"
+        },
+        {
+          "value": "D",
+          "label": "必要最小のcontents: readを基本とし、Secretとdeployを使わない",
+          "meaning": "必要最小のcontents: readを基本とし、Secretとdeployを使わない",
+          "reason": "課題に必要な読み取りへ限定し、公開・運用境界を守ります。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    }
+  ]
+}

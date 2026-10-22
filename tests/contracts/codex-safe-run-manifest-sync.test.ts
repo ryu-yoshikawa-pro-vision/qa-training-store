@@ -298,14 +298,17 @@ function createFixture(options: FixtureOptions): Fixture {
 }
 
 function removeFixture(fixture: Fixture) {
-  // WSL can briefly keep a Windows-mounted working directory busy after Bash exits.
+  // Windows and WSL can briefly keep the fixture directory busy after Bash exits.
   const waitBuffer = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
   for (let retry = 0; ; retry += 1) {
     try {
       fs.rmSync(fixture.root, { recursive: true, force: true });
       return;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EPERM" || retry >= 2) {
+      if (
+        !new Set(["EPERM", "EBUSY"]).has((error as NodeJS.ErrnoException).code ?? "") ||
+        retry >= 2
+      ) {
         throw error;
       }
       Atomics.wait(waitBuffer, 0, 0, 2_500);

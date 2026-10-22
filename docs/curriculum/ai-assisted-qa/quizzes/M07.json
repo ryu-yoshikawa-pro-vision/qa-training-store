@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "module_id": "M07",
+  "questions": [
+    {
+      "id": "M07-Q01",
+      "objective_ids": [
+        "M07-01"
+      ],
+      "question": "期待値と実際の値が異なる一回のRunだけがあります。原因を切り分ける最初の記録として有用なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "テスト、製品、環境、flakyの仮説とRun/Reset/ログの対応",
+          "meaning": "テスト、製品、環境、flakyの仮説とRun/Reset/ログの対応",
+          "reason": "複数仮説を残し、追加証拠で切り分けできます。"
+        },
+        {
+          "value": "B",
+          "label": "Timeoutを延長して成功した結果だけ",
+          "meaning": "Timeoutを延長して成功した結果だけ",
+          "reason": "原因が直ったのか、待ち時間で隠れたのか区別できません。"
+        },
+        {
+          "value": "C",
+          "label": "失敗をすべて製品障害と分類する",
+          "meaning": "失敗をすべて製品障害と分類する",
+          "reason": "テストの誤りや環境障害の可能性を除外できません。"
+        },
+        {
+          "value": "D",
+          "label": "AIの最初の説明を確定原因にする",
+          "meaning": "AIの最初の説明を確定原因にする",
+          "reason": "AIの説明はRun証拠や再現性を代替しません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M07-Q02",
+      "objective_ids": [
+        "M07-02"
+      ],
+      "question": "Trace、Screenshot、log、Runの関係を説明しているものはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "どれか一つがあれば他の証拠を調べる必要はない",
+          "meaning": "どれか一つがあれば他の証拠を調べる必要はない",
+          "reason": "各証拠には異なる情報と限界があり、対象Runとの対応も要ります。"
+        },
+        {
+          "value": "B",
+          "label": "Screenshotだけで操作順や内部状態の全てが分かる",
+          "meaning": "Screenshotだけで操作順や内部状態の全てが分かる",
+          "reason": "画像一枚だけで実行順や内部状態は確定できません。"
+        },
+        {
+          "value": "C",
+          "label": "同じRun IDと時刻に結び付け、各証拠が示す範囲を説明する",
+          "meaning": "同じRun IDと時刻に結び付け、各証拠が示す範囲を説明する",
+          "reason": "Runと証拠の由来を保ち、観測できない事項も分けられます。"
+        },
+        {
+          "value": "D",
+          "label": "修正前と修正後のTraceを同じRunとして記録する",
+          "meaning": "修正前と修正後のTraceを同じRunとして記録する",
+          "reason": "別実行の比較を同一Runとすると履歴と因果を誤ります。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M07-Q03",
+      "objective_ids": [
+        "M07-03"
+      ],
+      "question": "テストが時々失敗するためRetryを増やす提案を受けました。適切な判断はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Retryを増やしてgreenになれば原因解決とする",
+          "meaning": "Retryを増やしてgreenになれば原因解決とする",
+          "reason": "再試行で症状を隠している可能性があり、原因証拠がありません。"
+        },
+        {
+          "value": "B",
+          "label": "Timeoutを最大値にして今後の分析を省く",
+          "meaning": "Timeoutを最大値にして今後の分析を省く",
+          "reason": "長い待機は実際の問題や誤Assertionを解決しません。"
+        },
+        {
+          "value": "C",
+          "label": "Assertionを削除して失敗数を減らす",
+          "meaning": "Assertionを削除して失敗数を減らす",
+          "reason": "期待結果を弱め、守るべき仕様を確認しなくなります。"
+        },
+        {
+          "value": "D",
+          "label": "Reset、ログ、Trace、複数Runを確認し原因を調べた上で必要最小の修正を選ぶ",
+          "meaning": "Reset、ログ、Trace、複数Runを確認し原因を調べた上で必要最小の修正を選ぶ",
+          "reason": "再現条件と原因を確認し、単なる症状隠しを避けます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M07-Q04",
+      "objective_ids": [
+        "M07-04"
+      ],
+      "question": "間違ったAssertionを訂正した。修正が妥当だと説明する証拠の組合せはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "同じRunの結果を修正前と修正後の両方に使う",
+          "meaning": "同じRunの結果を修正前と修正後の両方に使う",
+          "reason": "一つの実行で別状態の比較はできません。"
+        },
+        {
+          "value": "B",
+          "label": "修正前後の別Run、最小差分、仕様根拠、各結果を記録する",
+          "meaning": "修正前後の別Run、最小差分、仕様根拠、各結果を記録する",
+          "reason": "変更と結果を別々に追え、期待値を維持したか確認できます。"
+        },
+        {
+          "value": "C",
+          "label": "修正後の緑色表示だけを保存する",
+          "meaning": "修正後の緑色表示だけを保存する",
+          "reason": "どの変更と環境で実行したか、修正前との比較がありません。"
+        },
+        {
+          "value": "D",
+          "label": "失敗ログを消し、修正理由を省略する",
+          "meaning": "失敗ログを消し、修正理由を省略する",
+          "reason": "検証過程と未解決事項が確認できなくなります。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    },
+    {
+      "id": "M07-Q05",
+      "objective_ids": [
+        "M07-05"
+      ],
+      "question": "同じReset手順が3つのspecで重複していますが、今後も変更される見込みです。Helperを選ぶ判断として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "重複の実態と共通契約を確認し、保守負荷より便益が高い場合に小さく共有する",
+          "meaning": "重複の実態と共通契約を確認し、保守負荷より便益が高い場合に小さく共有する",
+          "reason": "実在する重複と維持コストに基づいて必要な抽象化を選びます。"
+        },
+        {
+          "value": "B",
+          "label": "将来の可能性があれば大きな汎用POMを先に作る",
+          "meaning": "将来の可能性があれば大きな汎用POMを先に作る",
+          "reason": "現在必要な責務を越え、調査・保守を複雑にします。"
+        },
+        {
+          "value": "C",
+          "label": "すべてのhelperを削除する",
+          "meaning": "すべてのhelperを削除する",
+          "reason": "有用な重複削減や一貫したResetを失う可能性があります。"
+        },
+        {
+          "value": "D",
+          "label": "重複数に関係なくAIの提案をそのまま採用する",
+          "meaning": "重複数に関係なくAIの提案をそのまま採用する",
+          "reason": "抽象化の必要性と副作用を本人が確認していません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+    }
+  ]
+}

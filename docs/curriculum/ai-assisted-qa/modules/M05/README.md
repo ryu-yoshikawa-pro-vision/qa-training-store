@@ -12,7 +12,25 @@
 4. **Playwright**のLocator、Action、AssertionをCaseの前提・操作・期待結果に対応させます。
 5. 指定された1つの新課程specを実行し、Config、対象サーバー、ログ、結果保存先を確認します。
 
+Node.jsはブラウザ内のJavaScriptとは異なり、ターミナルやPlaywright runnerなどブラウザ外のプログラムを実行します。`package.json`の`scripts`は実行可能なコマンド、`dependencies`と`devDependencies`は必要なパッケージです。`pnpm install`は依存を導入し、`pnpm run <script>`は登録された処理を起動します。教材をコピーする`pnpm course:load M05`とテストを走らせるコマンドは別の目的です。
+
 ## コードを読む
+
+最初は短い値と関数で読み方を練習します。配列は複数の値、objectは名前付きのプロパティをまとめます。条件分岐は条件によって処理を変え、関数は名前付きの処理を再利用します。
+
+```ts
+const quantities: number[] = [1, 2, 3];
+const setup = { limit: 2 };
+function exceedsLimit(value: number): boolean {
+  return value > setup.limit;
+}
+const requestedQuantity = quantities[2];
+if (requestedQuantity !== undefined && exceedsLimit(requestedQuantity)) {
+  console.log("上限を超える");
+}
+```
+
+配列の位置に値があるとは限らないため、取り出した値が`undefined`でないことを確かめてから関数へ渡します。`import`/`export`はファイル間で値や関数を共有します。TypeScriptの型は値の形を確認する手がかりですが、実行時の結果を保証しません。構文エラーはコードの形、型エラーは宣言と値の不一致、実行時エラーは処理中の失敗、Assertion失敗は期待結果との不一致です。値を1つ変えて条件がどう変化するかを説明してから実行します。
 
 ```ts
 import { expect, test } from "@playwright/test";
