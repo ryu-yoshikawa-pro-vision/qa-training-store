@@ -59,10 +59,10 @@ pnpm course:sync --source-sha <40文字の確定SHA> --target ../ai-assisted-qa-
 
 ## 公開Web閲覧と学習用Templateの分担
 
-[Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)では、既存の`scripts/docs/build-docs.ts`を拡張し、**新課程の教材閲覧・一問ずつのクイズ・全問終了後の結果と復習**を静的ページとして公開する。元の`docs/curriculum/ai-assisted-qa/`の教材・クイズMarkdownを共通正本とし、手編集のWeb専用問題データは作らない。旧`/docs/curriculum/`の公開ページは維持する。
+[Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)では、既存の`scripts/docs/build-docs.ts`を拡張し、**これから新規制作する新課程M00〜M10の教材閲覧・一問ずつのクイズ・全問終了後の結果と復習**を静的ページとして公開する。**新規制作する`docs/curriculum/ai-assisted-qa/`の教材・クイズMarkdown**をWebと学習用Templateの共通正本とし、旧課程のMarkdownからの一括変換や手編集のWeb専用問題データは作らない。旧`/docs/curriculum/`の公開ページは維持する。
 
 - **公開Web**：GitHubログイン前でも閲覧でき、モジュールの前提・目標・学習順序・実技への案内を表示する。管理用の既存`docs/curriculum/ai-assisted-qa/README.md`は受講者入口に流用せず、受講者用`start-here.md`から独立URLへ生成する。Webクイズの途中回答はローカルブラウザ内にのみ保存し、個人GitHubや公開リポジトリへ同期しない。
-- **学習用Template**：CodespacesでAI/Skill・Playwrightの実技を行うため、許可リスト内のMarkdown教材・クイズ・開始入力・未完成課題と必要runtimeを配布する。WebページそのものをTemplateへ重複配布・編集可能な第二正本にしない。学習者による`course:load Mxx`の単位・上書き防止・自動進行禁止は維持する。
+- **学習用Template**：CodespacesでAI/Skill・Playwrightの実技を行うため、**新規作成した新課程の**Markdown教材・クイズ・開始入力・未完成課題と必要runtimeを許可リストに従って配布する。WebページそのものをTemplateへ重複配布・編集可能な第二正本にしない。学習者による`course:load Mxx`の単位・上書き防止・自動進行禁止は維持する。
 - **更新と整合**：Webは正本の公開ビルド時の教材版、Templateは管理者が同期した確定SHAに基づく。学習者はWebの最新版と本人がロードした教材の版を照合でき、**Webで再回答・再読込してもCodespaces側の過去成果物や修了評価を勝手に更新しない**。
 - **非公開資料**：修了課題の模範解答、非公開採点テスト、学習者の提出物や個人情報を公開ページ・ビルド出力・Webクイズに含めない。公開の学習用四択の解説は秘匿しない。
 
