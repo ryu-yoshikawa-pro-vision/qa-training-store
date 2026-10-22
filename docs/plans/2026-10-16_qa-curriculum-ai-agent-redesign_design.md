@@ -78,7 +78,7 @@ Phase 3の重点は「テスト自動化を別環境で継続実行できるこ�
 
 ## 受講者向けWeb閲覧・学習導線
 
-[Web閲覧・学習体験Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)に従い、**これから新規制作する新課程M00〜M10の教材・クイズ・公開解説Markdownを公開Webで利用できる**構成とし、モジュールごとの四択確認クイズを**1問ずつ回答→全問終了後の得点・解説・復習**で利用できるようにする。公開の本文・クイズはGitHubログインやCodespacesの起動前から閲覧できる。Web上の正誤・得点と、Codespacesで提出する実技・正式な修了判定は独立させる。
+[Web閲覧・学習体験Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)に従い、**これから新規制作する新課程M00〜M10の教材Markdownと、問題・正答・公開解説を含むクイズJSONを公開Webで利用できる**構成とし、モジュールごとの四択確認クイズを**1問ずつ回答→全問終了後の得点・解説・復習**で利用できるようにする。公開の本文・クイズはGitHubログインやCodespacesの起動前から閲覧できる。Web上の正誤・得点と、Codespacesで提出する実技・正式な修了判定は独立させる。
 
 - **学習の開始**：受講者専用の`docs/curriculum/ai-assisted-qa/start-here.md`をWeb新課程の入口とし、目的・受講範囲・前提・費用・環境、Phase 1のみで終了する経路を明示する。**既存`README.md`は知識グラフの運用案内であり、受講者向けトップに使わない**。
 - **現在地と次の行動**：Phase→モジュール→教材本文→確認クイズ→復習→実技→提出・次のモジュールへの入口を明確にし、前後への戻り・学習目標・開始条件と終了条件を表示する。未作成教材を完成済みとして見せない。
@@ -111,7 +111,7 @@ Phase 3の重点は「テスト自動化を別環境で継続実行できるこ�
 ```text
 docs/curriculum/
   test-automation/                   # 旧課程。変更しない／新課程へ一括転用しない
-  ai-assisted-qa/                    # 新課程。下記教材・クイズは今後新規作成
+  ai-assisted-qa/                    # 新課程。教材Markdown・クイズJSONは今後新規作成
     README.md                        # 知識グラフ管理案内（既存。維持）
     start-here.md                    # Web公開の受講者入口・3フェーズ・受講案内
     learning-objectives.md           # 各フェーズの能力と学習項目
@@ -120,7 +120,7 @@ docs/curriculum/
       M00/README.md ... M04/README.md  # Phase 1
       M05/README.md ... M07/README.md  # Phase 2
       M08/README.md ... M10/README.md  # Phase 3（選択）
-    quizzes/                         # 学習用問題・公開解説。修了課題の模範解答は置かない
+    quizzes/                         # M00.json ... M10.json：問題・正答・公開解説の唯一の正本
     assessments/                     # Phase 1/2/3 の独立した総合演習
     optional/native/                 # 本件の3フェーズとは別の選択教材
 training/
@@ -136,7 +136,7 @@ workspace/M00/                        # 受講者作業領域
 runtime/ など                         # Scenario Shop実行に必要な最小配布物
 ```
 
-初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。公開Webで閲覧・一問ずつの確認クイズ・解説を扱い、個人Codespacesで実技を行う。元の公開リポジトリと受講者の作業リポジトリを分け、配布物から実技・修了課題の模範解答を除外する。公開済み解説は秘密扱いできないため、修了評価は初見条件と本人の説明で確認する。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
+初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。公開Webで新規の教材Markdownを閲覧し、JSONを入力とする一問ずつの確認クイズ・解説を扱い、個人Codespacesで実技を行う。元の公開リポジトリと受講者の作業リポジトリを分け、配布物から実技・修了課題の模範解答を除外する。公開済み解説は秘密扱いできないため、修了評価は初見条件と本人の説明で確認する。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
 
 ## 実装と受入検証
 
