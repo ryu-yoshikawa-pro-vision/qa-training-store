@@ -271,10 +271,10 @@ describe("AI-assisted QA distribution contract", () => {
         }),
       ]),
     );
-    expect(m06.match(/expect\.fail\("TODO:/g)).toHaveLength(3);
+    expect(m06.match(/throw new Error\("TODO:/g)).toHaveLength(3);
     expect(m06).not.toMatch(/toHaveValue\(|toBeVisible\(/);
     expect(m07Before).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
-    expect(m07After).toContain('expect.fail("TODO:');
+    expect(m07After).toContain('throw new Error("TODO:');
     expect(m07After).not.toContain("セラミックマグ");
   });
 

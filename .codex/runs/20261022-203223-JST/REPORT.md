@@ -65,3 +65,15 @@
   - Result: なし
   - 親Agentの判断: なし
 - Progress: 50% (6/12)
+
+## 2026-10-23 01:12 (JST)
+
+- Summary: exact-head Web CIで配布契約テストの古いTODO表現期待が失敗したため、根拠を確認して1回の限定修復を実施。新しいcommitでのCI再実行はこれから。
+- Finding: `must_fix`。Web CI run `39807961104` / SHA `2038511c2cf02effd23a6c394fbba1e0d608d53b` の失敗は、公開M06/M07 scaffoldが`expect.fail("TODO:")`から`throw new Error("TODO:")`へ変更された一方、`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`だけが旧表記を要求していたため。GitHub logではこの1 assertionがVitest failureの直接原因で、他49 contract filesはPASS。
+- Repair plan / scope: M06の3 scaffoldとM07 scaffoldに対する同じTODO契約を保ったまま、該当テストの2 assertionを実際の`throw new Error("TODO:")`表記へ更新。許可ファイルは`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`のみ。
+- Changes: 上記2 assertionを更新。学習者scaffoldや解答内容は変更していない。
+- Validation: focused distribution contract 8/8 PASS、対象Prettier/ESLint PASS、`git diff --check` PASS。全`pnpm.cmd run test:contracts`は752 passed / 31 failed / 2 skipped（5 files failed）。失敗は既存Codex Hook/native command/MCP runner系で、`Connection closed`、一時directoryの`UnauthorizedAccessException`、未利用可能な`bash`のstdout undefined、子process/report生成不能を確認。コースdistribution contractはPASS。CI Linuxで今回のassertion以外は成功しており、今回の修正とWindows sandbox環境failureは分離した。
+- Remaining delta: 新しいSHAのWeb/Mobile CIは未確認。M06/M07完成版Playwright受入、M02→M03実統合、Phase 3有効実行、評価資料/内容レビューの未達は引き続き残る。
+- Decision: `continue`。この1 iterationのソース修正をcommit/pushし、新HEADの必須CIを確認する。Windows legacy contract suiteの失敗は本iterationで変更範囲外かつ環境上の拒否根拠が明示されているため、回避・無効化をせず未解決として報告する。
+- Subagent: なし。
+- Progress: 50% (6/12)

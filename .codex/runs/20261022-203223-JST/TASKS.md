@@ -6,7 +6,7 @@
 - [x] 3. 全11モジュールのWeb/quiz validatorとChromium回帰E2Eを実装・検証。
 - [x] 4. 22状態データ/validator、51 objectiveを含む知識グラフ構造と影響検索を実装・構造検証。
 - [x] 5. 同期/単一モジュールload/checkを実装し、ローカルfixture契約を検証。
-- [x] 6. `pnpm.cmd run verify`、build/typecheck/lint/contract suite、旧課程を含むChromium E2Eを実行し結果を分類。
+- [x] 6. 標準`verify`と旧課程を含むChromium E2Eを実行・分類。配布契約を含む全contract suiteも再実行し、新課程8件はPASS、既存Windows Hook/native/MCP/ACL境界31件のFAILを確認。
 - [ ] 7. M02→M03の固定Skill実統合受入を実施（実在Authority/Risk/Scope entityとOpenCode実行経路待ち）。
 - [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。
 - [ ] 9. Phase 3 CIの有効な実行経路、対象SHA、Artifactを検証（現在は無効化sampleまで）。
