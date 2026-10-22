@@ -4,7 +4,7 @@
 
 新課程M00〜M10の教材を、GitHubやCodespacesの起動前でも**公開Webページから閲覧**できるようにする。各モジュールの確認クイズは、**1問ずつ回答し、全問終了後に結果と解説を確認**できる形式とする。
 
-教材・クイズの内容の正本は引き続き`docs/curriculum/ai-assisted-qa/`のMarkdownとし、公開Webは閲覧・練習の入口である。**現存する`docs/curriculum/ai-assisted-qa/README.md`は知識グラフの管理用説明であり、受講者の入口には使わない。** 受講者用の`start-here.md`を新たに作り、Webの新課程トップへ対応付ける。管理用READMEは既存参照とともに維持し、受講者向けナビゲーションからは外す。**Webクイズの点数は知識確認の参考であり、Level 2・フェーズの正式修了を自動判定しない**。実技、提出物、本人の根拠判断、評価者の確認は[評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)に従う。
+**Webで表示する教材本文・確認クイズ・公開解説は、これから`docs/curriculum/ai-assisted-qa/`に新規制作する新課程M00〜M10用のMarkdownが正本**である。現存する旧課程`docs/curriculum/test-automation/`のMarkdown・104問を新課程の教材として利用・一括変換しない。公開Webは新規教材の閲覧・練習の入口とする。**現存する`docs/curriculum/ai-assisted-qa/README.md`は知識グラフの管理用説明であり、受講者の入口には使わない。** 受講者用の`start-here.md`を新たに作り、Webの新課程トップへ対応付ける。管理用READMEは既存参照とともに維持し、受講者向けナビゲーションからは外す。**Webクイズの点数は知識確認の参考であり、Level 2・フェーズの正式修了を自動判定しない**。実技、提出物、本人の根拠判断、評価者の確認は[評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)に従う。
 
 旧課程の`/docs/curriculum/`とその公開ページは維持する。新課程は独立した`/docs/curriculum/ai-assisted-qa/`配下に公開し、旧課程のURLや本文を置き換えない。**既存の公開カリキュラム入口からも新課程の入口を発見できるリンクを追加**し、受講者が直接URLを知らなくても到達できるようにする。旧課程Markdown本文を改変せず、生成ページ共通のヘッダー等の最小変更で実現する。
 
@@ -30,15 +30,15 @@
 
 ## データ・公開・実装方針
 
-- **一次情報**：[クイズPlan](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)の`quizzes/Mxx.md`（設問）と`quizzes/answers/Mxx.md`（学習用の公開解説）を使う。Web専用の手入力JSON・問題DBを正本として増やさず、ビルド時に表示用データを生成する。Markdownの問題ID・A〜D・正答・説明・根拠・復習先を対応させる。新課程のモジュール学習項目・教材節との関係は[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)と照合する。
-- **既存基盤を再利用**：`scripts/docs/build-docs.ts`、`scripts/spec/markdown.ts`、`build:web`が公開中の旧課程`/docs/curriculum/`を生成している。そこに**新課程の独立URL群**と確認クイズ用の最小限のHTML/CSS/ブラウザJavaScriptを追加する。旧ナビゲーション・ビルド・公開Smokeを壊さない。新規Webアプリ、React画面の全面複製、CMS、認証、サーバーAPI、成績DB、学習管理サービス、外部の問題表示サービスは作らない。
+- **一次情報（今後制作）**：[クイズPlan](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)に従い新規作成する`docs/curriculum/ai-assisted-qa/modules/Mxx/README.md`（教材本文）、`docs/curriculum/ai-assisted-qa/quizzes/Mxx.md`（設問）と`docs/curriculum/ai-assisted-qa/quizzes/answers/Mxx.md`（学習用の公開解説）を使う。Web専用の手入力JSON・問題DBを正本として増やさず、ビルド時に表示用データを生成する。Markdownの問題ID・A〜D・正答・説明・根拠・復習先を対応させる。新課程のモジュール学習項目・教材節との関係は[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)と照合する。
+- **既存基盤のみ再利用**：`scripts/docs/build-docs.ts`、`scripts/spec/markdown.ts`、`build:web`が公開中の旧課程`/docs/curriculum/`を生成している。**再利用対象は静的HTMLの生成・リンク解決・公開経路であり、旧課程の教材本文・クイズ・修了評価ではない。**そこに**新課程の独立URL群**と確認クイズ用の最小限のHTML/CSS/ブラウザJavaScriptを追加する。旧ナビゲーション・ビルド・公開Smokeを壊さない。新規Webアプリ、React画面の全面複製、CMS、認証、サーバーAPI、成績DB、学習管理サービス、外部の問題表示サービスは作らない。
 - **公開データの限界**：公開クイズの正答・解説は公開教材であり、静的配信ファイルやGitHubから閲覧可能なため**秘匿・不正防止の保証はしない**。Web上では結果確定後に解説を表示する。非公開修了課題の模範解答・評価用テスト・個人の提出物は公開ビルド・配布物・Git履歴へ入れない。静的ページに認証情報・個人情報を埋め込まない。
 - **URLの例**：入口`/docs/curriculum/ai-assisted-qa/`、モジュール`/docs/curriculum/ai-assisted-qa/modules/M03/`（最終的な静的HTMLの表記に合わせる）、確認クイズ`/docs/curriculum/ai-assisted-qa/quizzes/M03.html`。旧課程`/docs/curriculum/`とURLを衝突させない。
 - **配布の扱い**：既存の管理者用許可リスト同期はMarkdown教材・未完成実技を配布する責務のままとし、Web閲覧は正本の公開ビルドが担当する。学習用Templateでも教材・クイズをMarkdownで読めるように維持し、Web UIが使えない場合でもCodespacesでの実技を妨げない。二つの正本を作らない。
 
 ## 実装手順と受入条件
 
-1. 既存`scripts/docs/build-docs.ts`の旧課程生成・静的URL・仕様リンク・画像処理・公開Smokeを確認し、新課程の教材ページとナビゲーションを追加する。**存在しないM00〜M10の実教材を完成として表示しない**。教材が揃ったモジュールから、前提・学習範囲・必要な実技が見えるようにする。
+1. 既存`scripts/docs/build-docs.ts`の旧課程生成・静的URL・仕様リンク・画像処理・公開Smokeを確認する。**新規制作する新課程用の教材・問題・公開解説**を入力として、新課程の教材ページとナビゲーションを追加する。**存在しないM00〜M10の実教材を完成として表示しない**。教材が揃ったモジュールから、前提・学習範囲・必要な実技が見えるようにする。
 2. 公開クイズMarkdownの安定した構造を検証し、設問・解説からWeb表示用データを生成する。学習用クイズの公開解説のみ使い、修了課題の非公開模範を読み込まない。破損・不足・複数正答・リンク切れをビルドで拒否する。
 3. 1問表示→回答→次/前→全問回答→結果→問題別解説→復習→再挑戦と、中断・再開／revision相違／保存不可の経路をブラウザで検証する。誤答しても「クイズ失敗＝正式修了不可」と機械判定しない。
 4. M00〜M10の教材ページ、各クイズと解説、Phase 1だけでの終了とPhase 3選択、Codespaces起動/ロード案内、正式評価へのリンクを、**Gitやプログラミング未経験の人が講師の補足なしで辿れるか**検証する。教材のわかりにくさ・ページ迷子・実技開始の迷いを記録して修正する。
