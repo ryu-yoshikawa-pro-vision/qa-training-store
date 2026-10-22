@@ -37,7 +37,7 @@ describe("Expo dependency maintenance workflow contracts", () => {
   });
 
   it("runs on the planned triggers with bounded permissions and main safety guards", () => {
-    expect(workflow).toContain('cron: "0 0 * * 1"');
+    expect(workflow).toContain('    - cron: "0 8 * * *"\n      timezone: "Asia/Tokyo"');
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/^\s+(pull_request|push):/m);
     expect(topLevelBlockLines(workflow, "permissions")).toEqual([
