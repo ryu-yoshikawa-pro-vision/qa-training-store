@@ -47,7 +47,7 @@
 - **学習目標・Level 2**：[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)と[習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)。
 - **知識・参照関係**：[`knowledge-graph.json`](../curriculum/ai-assisted-qa/knowledge-graph.json)、[完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)、[運用README](../curriculum/ai-assisted-qa/README.md)。
 - **QA workflowのSkill本体**：別リポジトリ`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`。このリポジトリの`.agents/skills/`の汎用Skillとは区別する。
-- **公開Webとクイズ操作**：[Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)。既存静的公開基盤を拡張し、教材Markdownを正本とする。
+- **公開Webとクイズ操作**：[Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)。既存静的公開基盤を拡張し、教材本文はMarkdown、クイズ・正答・公開解説はモジュール別JSONを正本とする。
 - **正式な教材・問題・課題ファイル**：今後作成する`docs/curriculum/ai-assisted-qa/`と`training/ai-assisted-qa-course/`の実ファイル。存在しない成果物を完成済みと扱わない。
 
 ## 文書を変更するとき
