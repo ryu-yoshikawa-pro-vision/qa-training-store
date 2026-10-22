@@ -21,7 +21,7 @@
 | カリキュラムの目標 | AIと協働してテスト分析・設計・自動化・実行・改善し、AIの結果を根拠で判断できるようにする。対象者は開発未経験者も含むQA担当者 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
 | 3フェーズ・学習順序 | Phase 1は分析・設計、Phase 2はPlaywright、Phase 3はGitHub・CI。フェーズごとに独立して修了でき、Phase 3は選択 | [3フェーズ構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
 | 学習用リポジトリへの分離 | `qa-training-store`は公開の教材正本として維持。受講者の課題作業用に別リポジトリを設け、正解の先読みを防ぐため公開範囲を分ける | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
-| Web公開とインタラクティブな確認クイズ | **これから新規制作する新課程M00〜M10のMarkdown教材・四択問題・公開解説をWebに掲載し、各モジュールで一問ずつ回答→全問終了後の結果・正誤解説・復習**を実装する。既存から再利用するのは静的Web公開処理であり、旧課程の教材・104問ではない。公開Web閲覧・クイズはGitHubログインを必須にしない。実技は従来どおり本人のCodespacesで行う | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
+| Web公開とインタラクティブな確認クイズ | **これから新規制作する新課程M00〜M10の教材Markdownと四択問題・正答・公開解説を格納したモジュール別JSONからWebを生成し、各モジュールで一問ずつ回答→全問終了後の結果・正誤解説・復習**を実装する。既存から再利用するのは静的Web公開処理であり、旧課程の教材・104問ではない。公開Web閲覧・クイズはGitHubログインを必須にしない。実技は従来どおり本人のCodespacesで行う | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
 | 受講者によるモジュール単位ロード | **ロードするのは学習者本人**。M00〜M10から指定した1モジュールだけをロードし、他モジュールへ自動で進まない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | QA workflow Skillの参照先 | **`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`**を対象とする。このリポジトリ内の別用途のSkillを混同しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Planの到達点 | **完成形まで設計する**。一部の機能や評価だけを完成条件として扱わない。実装済みでないことは実装状態として正しく記録する | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
@@ -46,7 +46,7 @@
 | 22状態の実データ共有 | 11モジュール×開始/終了の22個の論理状態は維持。共通する公開可能な設定・Seed等は同一ID/revisionで参照し、公開サンプルと非公開模範の実体は分離。前後の本人成果物と公開サンプルは同じ入力契約に適合する別IDを許す | [状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 対応関係の正本 | 学習目標・習熟の説明はPlan、教材・問題・評価の本文は各実ファイル、**ID間の関係はJSONグラフ**。Markdown対応表は生成物とし、二重の手動更新を防ぐ | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
 | 新旧カリキュラムの分離 | 旧17レッスン・104問・旧validator・正式回帰の契約は維持。新課程の同期/Playwright/CIは専用経路に分離する | [調査](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md) |
-| クイズと評価 | 四択は原則正解1つ、A〜Dの意味・正誤理由・根拠・復習先を記載。Webでは一問ずつ回答し、全問終了後に集計・解説・復習。全必須観点Level 2以上でフェーズ修了。クイズ得点・AIの自己申告だけでは合格にしない | [クイズ](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| クイズと評価 | **モジュール別JSONをクイズの唯一の正本**とする。四択は原則正解1つ、A〜Dの意味・正誤理由・根拠・復習先を同じJSON内に記載。Webでは一問ずつ回答し、全問終了後に集計・解説・復習。全必須観点Level 2以上でフェーズ修了。クイズ得点・AIの自己申告だけでは合格にしない | [クイズ](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 知識グラフ | JSONと読取り専用CLIを採用。51学習項目、教材・問題・実技・22状態・仕様・Skill・評価を結び、仕様やSkill改訂時の影響を追う。未登録変更を「影響なし」にしない | [知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
 | Phase 3 | Phase 2の既存specを再利用。専用workflowを選択者が明示的に有効化し、対象SHA・Run・Check・Artifactと権限を確認する | [実行環境・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 
@@ -54,7 +54,7 @@
 
 | 採用事項 | 設計済みの内容 | 詳細の正本 |
 | --- | --- | --- |
-| WebとCodespacesの役割分担 | 既存の静的Docs生成を使い、学習者用`start-here.md`からモジュール・クイズ・復習を閲覧する。既存`README.md`は知識グラフ管理用のまま保持。途中回答は版付きで本人のブラウザ内にのみ保存し、公開履歴・評価記録へ自動送信しない。正式な実技・採点資料は分離 | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
+| WebとCodespacesの役割分担 | 既存の静的Docs生成を使い、学習者用`start-here.md`からモジュール・JSON生成クイズ・復習を閲覧する。既存`README.md`は知識グラフ管理用のまま保持。途中回答は版付きで本人のブラウザ内にのみ保存し、公開履歴・評価記録へ自動送信しない。正式な実技・採点資料は分離 | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
 | 教材の内容品質 | 必要な前提、具体的な導出過程、誤りと理由、誘導演習、別条件での独立適用、観測・復習を内容で確認。ページ数・問題数を一律に固定しない | [3フェーズ構成・教材品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
 | 技法ごとの演習対象 | Cartだけに固定せず、既存の在庫分類・検索条件・ロール・注文等を候補から選ぶ。正式仕様、Seed、観測・Resetの成立を確認してから採用。製品の新機能は不足が証明された場合のみ検討 | [演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | 実技模範と採点 | 完成成果物に加えて判断・導出過程、必須条件、誤答・部分的正答・正しい別解、評価不能を判定できる資料を作る。公開の学習例と非公開修了模範は区別 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
