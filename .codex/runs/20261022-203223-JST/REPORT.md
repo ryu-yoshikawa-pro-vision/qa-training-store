@@ -66,6 +66,25 @@
   - 親Agentの判断: なし
 - Progress: 50% (6/12)
 
+## 記録訂正（2026-10-23 02:41 JST）
+
+- 上記02:40 checkpointはREPORT追記時に誤って01:12 checkpointより前へ挿入された。記載された検証は01:12 checkpointより後に実施した結果であり、時系列上は01:12の後に読む。
+- 02:40時点で完了済みの追跡タスクは1〜6と9の7件であり、同checkpoint末尾の`8/12`は誤り。正しくは`7/12`。残件はM02→M03統合、M05→M06受入、非公開評価資料、内容妥当性レビュー、最終Plan照合/PR反映。
+
+## 2026-10-23 02:40 (JST)
+
+- Summary: Phase 3用の無効workflow sampleにPlaywright browser導入が欠けていたため修正。新課程契約・Web build・全11クイズE2Eは通過。全体Planの実装完了条件は未達。
+- Finding: `must_fix`。workflowはPlaywrightを呼ぶが、依存導入後にChromium browserを取得していなかった。Playwright公式CI手順はCIでbrowserとOS依存を導入してからテストを実行するため、このsampleは標準GitHub Runner上で起動できない可能性がある。
+- Repair plan / scope: `training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled`へ`pnpm exec playwright install --with-deps chromium`を依存導入後・テスト前に追加し、distribution contractで順序を固定する。M09の学習用例にも同じstepを反映する。許可ファイルは当該workflow、`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`、M09 README。
+- Changes: Playwright ChromiumとLinux依存のセットアップstep、順序契約を追加。Phase 3 workflowは無効sampleのままとし、Templateでの自動有効化や権限拡張はしていない。
+- Validation: 新課程distribution contract 8/8 PASS。`pnpm.cmd run build:web` PASS（新課程12 page/11 quiz pageを含む）。新課程quiz Chromium E2E 17/17 PASS。`pnpm.cmd run build:spec` PASS。`pnpm.cmd run verify`はformat、markdown/text lint、全validator、ESLint 0 errors/63 warnings、typecheck3系統、security、unit 66、integration 111、repository 147、Web component 103、Native component 64までPASS後、contractsで5 files/31 tests FAIL、45 files/752 tests PASS、2 skipped。失敗原因は既知のWindows Hook/PowerShell起動・temp ACL、Codex child process、MCP stdio、bash不在。個別失敗を現在変更へ結び付ける証拠はない。新課程distribution contractは同suiteでPASS。
+- M06/M07の限定的な開発probe: 一時のM06製品動作spec 3/3 PASS（通常追加、上限拒否・数量保持、low-stock Mサイズ3点）。M07は公開の意図的Assertion失敗を別Runで再現し、暫定修正spec 1件PASS。テストsourceは一時作成後に削除し、非公開解答をGit/PRに追加していない。これらは完全なM06/M07教材受入ではなく、公開TODO scaffoldも未完成のまま。
+- CI: 現在の変更前のPR SHA `f0a94db63ec90bb312c3931751a30a01f9886b14`ではWeb CI run `39812318011`とMobile App CI run `39812317688`がsuccess。追加修正のcommit/push後に新SHAで再確認が必要。`git fetch origin`はsandboxの`.git/FETCH_HEAD`書込拒否で失敗したが、GitHub APIと既存origin tracking refはPR head `f0a94db...`を返し、ローカルhead/branchが一致している。
+- ブロッカー / 残作業: M02→M03実Skill統合は実在Authority/Risk/Scope EntityとOpenCode CLI経路がなくBLOCKED。M06/M07完成版の開発受入、全11モジュールの非公開模範/採点資料、58 knowledge nodeと教材の内容妥当性レビューは未完了。非公開資料の保存先/権限/管理担当は未指定。外部Templateでの実行・実受講者/評価者試行・無料枠等の実地検証は実装後の独立工程であり、このRunの実装BLOCKED理由ではない。
+- Decision: `continue`。限定差分をcommit/pushし、新しいPR headの必須CIを確認する。workflow sampleのブラウザー導入不足は解消。
+- Subagent: なし。
+- Progress: 8/12 (plus final-head CI is a separate completion gate)
+
 ## 2026-10-23 01:12 (JST)
 
 - Summary: exact-head Web CIで配布契約テストの古いTODO表現期待が失敗したため、根拠を確認して1回の限定修復を実施。新しいcommitでのCI再実行はこれから。
@@ -77,3 +96,8 @@
 - Decision: `continue`。この1 iterationのソース修正をcommit/pushし、新HEADの必須CIを確認する。Windows legacy contract suiteの失敗は本iterationで変更範囲外かつ環境上の拒否根拠が明示されているため、回避・無効化をせず未解決として報告する。
 - Subagent: なし。
 - Progress: 50% (6/12)
+
+## 2026-10-23 02:42 (JST) 記録訂正
+
+- 02:40の検証checkpointとその直後に追加した訂正が、apply patchの誤った挿入位置により本来の01:12 checkpointより前に現れている。実際の作業順は01:12の後に02:40の検証・修正であり、これが最終の時系列訂正。
+- 02:40 checkpoint末尾の進捗`8/12`は誤記。該当時点で完了済みの追跡タスクは1〜6と9の7件で、正しくは`7/12`。実装完了の主張ではなく、M02→M03統合、M05→M06受入、非公開評価資料、内容妥当性レビュー、最終Plan照合/PR反映が残る。

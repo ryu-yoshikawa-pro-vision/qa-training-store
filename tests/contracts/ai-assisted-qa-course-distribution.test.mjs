@@ -308,6 +308,13 @@ describe("AI-assisted QA distribution contract", () => {
     expect(workflow).toContain("persist-credentials: false");
     expect(workflow).toContain('test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"');
     expect(workflow).toContain("EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}");
+    const browserInstallIndex = workflow.indexOf(
+      "pnpm exec playwright install --with-deps chromium",
+    );
+    expect(browserInstallIndex).toBeGreaterThan(workflow.indexOf("pnpm install --frozen-lockfile"));
+    expect(browserInstallIndex).toBeLessThan(
+      workflow.indexOf("pnpm run training:ai-assisted-qa:test"),
+    );
     expect(workflow).toContain(
       "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
     );

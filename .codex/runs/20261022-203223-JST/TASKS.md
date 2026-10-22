@@ -8,12 +8,11 @@
 - [x] 5. 同期/単一モジュールload/checkを実装し、ローカルfixture契約を検証。
 - [x] 6. 標準`verify`と旧課程を含むChromium E2Eを実行・分類。配布契約を含む全contract suiteも再実行し、新課程8件はPASS、既存Windows Hook/native/MCP/ACL境界31件のFAILを確認。
 - [ ] 7. M02→M03の固定Skill実統合受入を実施（実在Authority/Risk/Scope entityとOpenCode実行経路待ち）。
-- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。
-- [ ] 9. Phase 3 CIの有効な実行経路、対象SHA、Artifactを検証（現在は無効化sampleまで）。
+- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。暫定M06の製品動作probe 3/3、M07の意図的失敗/別Run修正probe 1件ずつは確認したが、学習用scaffoldの完成評価ではない。
+- [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
 - [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
 - [ ] 11. 58 tentative knowledge nodesと教材内容の独立した妥当性レビューを完了。
-- [ ] 12. 完成成果物のPlan照合、PR本文更新、通常push、最新head必須CI確認。
-- [ ] 8. PR本文/Run Reportを更新、commit/push、最新SHA CI確認。
+- [ ] 12. Plan照合とRun Reportを更新し、通常commit/push。PR本文は最新headの実装状態・検証・未達へ同期する。
 
 ## 完了処理の参照先
 - Progress: `docs/reference/run-artifacts.md`
