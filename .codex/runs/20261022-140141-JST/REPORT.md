@@ -47,3 +47,15 @@
 - Blockers: Scenario Shop実データによる固定Skill通し実行、M05/M06実技入力と22状態、代表教材の人間レビュー/初心者試行/独立採点再現性、残り8モジュール、完全なGraph接続・同期/ロード、Codespaces実測、全suite成功は未達または未確認。詳細はTASKSのBlocked欄。
 - Git lifecycle: この記録は最終commit前。次は作業ブランチ上でcommit/通常pushし、PR #199本文を実装範囲と未完了条件に合わせて更新後、最新headのWeb CI/Mobile App CIを一度だけ待つ。
 - Progress: 44% (4/9)。これは8個の追跡タスク中4完了に、未確認の必須CI確認1件を加えたRepository所定の進捗であり、カリキュラム全体の完了率ではない。
+
+## 2026-10-22 16:43 (JST)
+
+- Repair loop iteration 2 — Input finding: SHA `f56e4db8457e5f12b5caa2c5e62c6e870c7a6235` のWeb CI `Vitest (contracts)`で新課程契約suiteが失敗。Job logの原因はPlaywright Chromium executable未導入のVitest jobから`chromium.launch()`を実行したこと（browser executable missing）。CIのChromium E2E required job自体は成功していた。
+- Triage: `must_fix`。新課程のブラウザ動作を標準Chromium E2Eへ配置し、Vitest contractsにbrowser installation依存を持ち込まないのが最小修正。
+- Repair plan / allowed_files: `tests/contracts/ai-assisted-qa-curriculum.test.ts`からブラウザ操作5件を`e2e/web/ai-assisted-qa-course.spec.ts`へ移動し、root `playwright.config.ts`のChromium projectと`package.json`の`test:e2e:chromium`へ登録する。許可ファイルはこの4ファイルのみ。`.github/workflows/ci.yml`は変更しない。
+- Changes: 上記4ファイルを修正。Vitest側には静的生成・SHA/JSON/境界・Graph確認のみを残し、Chromium E2E側で一問回答、結果/解説、空回答拒否、版変更破棄、途中再開、375px keyboard/axeを検証する。
+- Validation PASS: 新課程/Playwright config/CI workflow focused contract `pnpm.cmd exec vitest run tests/contracts/ci-workflow.test.ts tests/contracts/playwright-config.test.ts tests/contracts/ai-assisted-qa-curriculum.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` は26/26。単独新課程contractは3/3。`pnpm.cmd exec playwright test e2e/web/ai-assisted-qa-course.spec.ts --project=chromium` は、既存distをloopback 8081で別起動し、`DEPLOYED_BASE_URL`を設定したローカルChromeで5/5 pass。`pnpm.cmd run format:check`、変更対象ESLint、`typecheck`、`lint:markdown`（0 issue）、`lint:text`（変更Markdown 0）もpass。
+- Validation boundary: root PlaywrightのwebServer自動起動では5件のassertionが全pass後、Windowsのchild-server終了が45秒超停滞したためそのrunnerを停止。別起動済みdistへ接続した同一5件はPlaywright process exit 0で完了。再実行した`pnpm.cmd run test:contracts`も既存Hook/sanitizer/command-wrapper/CI-waiterの環境失敗を出した後、追加出力が止まり、完了summaryまで到達しなかったため停止。終了コード1は中断によるもので、全contract suiteの完了結果として扱わない。
+- Remaining delta: 新しいSHAのCIで`Vitest (contracts)`とChromium E2Eの統合を確認する。ローカル全contract/verifyはWindows Harness/sandbox境界で未完了。代表実技・人による受入・全モジュールのPlan条件も引き続き未達。
+- Decision: `continue`（bounded iteration 2）。修正分をcommit/pushし、新しいheadで必須CIを確認する。失敗時は次のfindingを根本原因で分類し、同一failureの盲目的なretryはしない。
+- Progress: 44% (4/9)。追跡タスク4/8と未完了の必須CI確認1件を含むRepository所定の進捗。全体Planの完成率ではない。

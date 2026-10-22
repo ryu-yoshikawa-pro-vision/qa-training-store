@@ -43,6 +43,7 @@ export default defineConfig({
         /accessibility\.spec\.ts/,
         /reset-boundary\.spec\.ts/,
         /ui-ux-improvements\.spec\.ts/,
+        /ai-assisted-qa-course\.spec\.ts/,
       ],
       use: { ...devices["Desktop Chrome"] },
     },
