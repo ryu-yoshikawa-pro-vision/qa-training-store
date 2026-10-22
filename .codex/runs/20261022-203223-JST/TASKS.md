@@ -12,7 +12,9 @@
 - [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
 - [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
 - [ ] 11. 58 tentative knowledge nodesと教材内容の独立した妥当性レビューを完了。
-- [ ] 12. Plan照合とRun Reportを更新し、通常commit/push。PR本文は最新headの実装状態・検証・未達へ同期する。
+- [x] 12. Plan照合とRun Reportを更新し、実装状態・検証・未達を記録してcommit/push、PR本文へ同期。実装全体の未達項目はタスク7/10/11に残す。
+
+- Progress: 9/12追跡項目。これは全カリキュラムの実装完了を意味しない。
 
 ## 完了処理の参照先
 - Progress: `docs/reference/run-artifacts.md`

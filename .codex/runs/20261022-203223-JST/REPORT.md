@@ -146,3 +146,11 @@
 - Git/PR: 次に公開対象ファイルだけをcommitし、通常push後にlocal/origin/PR headを照合する。M05/M06ローカル検証残置物はstageしない。新commit SHAのCIは未確認。
 - Progress: 8/12追跡項目相当（1-6, 8-9）。Plan実装全体は未完了。
 - 自己レビュー: 高リスクの同期/ロード、path・symlink・receipt/revision照合、非公開物除外と変更テストを確認し、今回の差分にmust-fix指摘は見つからなかった。実行主体が指定されていない独立した内容レビューや固定Skill実統合は別の未完了条件として保持。
+
+## 2026-10-23 06:32 JST
+
+- PR commit `08515e4802b3ac48f44eaf6112b4d7f986fee359`のCI: Web CI run `39853739623` success、Mobile App CI run `39853739482` success。両runのhead SHAはこのcommitと一致。
+- Web Artifacts: `web-dist-automation`、`spec-site-automation`等を確認。Mobile Artifacts: `native-android-apk-39853739482`、`native-android-production-apk-39853739482`、`native-android-runtime-evidence-39853739482`、`native-ios-app-39853739482`、`native-ios-production-app-39853739482`、各build evidenceを確認し、全てのartifact `head_sha`が`08515e4802b3ac48f44eaf6112b4d7f986fee359`。
+- CI waiterは約2分で最終結果を返さなかったため停止し、GitHub APIのworkflow runs/jobs/artifactsを照合して終端successを確認した。CodeRabbit statusもsuccess。
+- これは実装commit `08515e48`に対するCI結果。Run/TASKSの最終記録を別のdocs commitへ反映した後はhead SHAが変わるため、その新headのCIは改めて確認する。
+- 実装完了条件は引き続き未達: M02→M03実Skill統合、非公開模範/採点資料、58 knowledge nodeの独立レビューが未完了。これらは実地検証待ちには移さない。
