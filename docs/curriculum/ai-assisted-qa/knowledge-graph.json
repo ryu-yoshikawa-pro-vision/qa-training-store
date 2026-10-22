@@ -279,11 +279,11 @@
     {
       "id": "M03-03",
       "type": "learning_objective",
-      "title": "デシジョンテーブルで条件と動作を対応させる",
+      "title": "仕様からデシジョンテーブルの条件・動作・実行可能なルールを導き、Caseへ変換する",
       "module": "M03",
       "cognitive_target": "適用",
-      "evaluation_hint": "条件表の穴の判定",
-      "level2": "条件表の穴・矛盾を見つけ、**仕様にない動作を断定せず未決とする**",
+      "evaluation_hint": "本人による条件表・Caseの導出と、穴・矛盾・実行不能な組合せの判定",
+      "level2": "**完成表の点検だけでなく**、未演習の条件から本人がルール・期待動作・Caseを導ける。穴・矛盾・到達不能を見分け、**仕様にない動作を断定せず未決とする**",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan"
     },
@@ -411,10 +411,10 @@
     {
       "id": "M06-01",
       "type": "learning_objective",
-      "title": "自分がロードしたM06の課題で、Phase 1のケースに対応するPlaywrightコードをAIと作る",
+      "title": "自分がロードしたM06の課題で、異なる検証責務を持つPhase 1の複数Caseに対応するPlaywrightコードをAIと作る",
       "module": "M06",
       "cognitive_target": "適用",
-      "evaluation_hint": "`workspace/M06`の受講者作成spec。完成済み実技回答は配布しない",
+      "evaluation_hint": "`workspace/M06`の複数Caseに対応する受講者作成テストと業務Assertion。完成済み実技回答は配布しない",
       "level2": "新しいCaseで**Case→操作/Assertionの対応**を確認・修正できる。AI生成だけでは不合格",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan"
@@ -466,10 +466,10 @@
     {
       "id": "M07-01",
       "type": "learning_objective",
-      "title": "Test/Product/Environment/Flaky等の原因候補を証拠から区別する",
+      "title": "Test/Product/Environment/Flaky等の異なる原因構造を証拠から区別する",
       "module": "M07",
       "cognitive_target": "判断",
-      "evaluation_hint": "失敗分析",
+      "evaluation_hint": "原因構造の異なる複数の失敗素材の診断と追加検証の判断",
       "level2": "**確認済みの事実と可能性**を分け、区別する追加検証を提案できる",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan"
