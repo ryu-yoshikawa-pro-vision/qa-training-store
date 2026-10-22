@@ -6,7 +6,7 @@
 
 教材・クイズの内容の正本は引き続き`docs/curriculum/ai-assisted-qa/`のMarkdownとし、公開Webは閲覧・練習の入口である。**現存する`docs/curriculum/ai-assisted-qa/README.md`は知識グラフの管理用説明であり、受講者の入口には使わない。** 受講者用の`start-here.md`を新たに作り、Webの新課程トップへ対応付ける。管理用READMEは既存参照とともに維持し、受講者向けナビゲーションからは外す。**Webクイズの点数は知識確認の参考であり、Level 2・フェーズの正式修了を自動判定しない**。実技、提出物、本人の根拠判断、評価者の確認は[評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)に従う。
 
-旧課程の`/docs/curriculum/`とその公開ページは維持する。新課程は独立した`/docs/curriculum/ai-assisted-qa/`配下に公開し、旧課程のURLや本文を置き換えない。
+旧課程の`/docs/curriculum/`とその公開ページは維持する。新課程は独立した`/docs/curriculum/ai-assisted-qa/`配下に公開し、旧課程のURLや本文を置き換えない。**既存の公開カリキュラム入口からも新課程の入口を発見できるリンクを追加**し、受講者が直接URLを知らなくても到達できるようにする。旧課程Markdown本文を改変せず、生成ページ共通のヘッダー等の最小変更で実現する。
 
 ## 受講者が辿る導線
 
