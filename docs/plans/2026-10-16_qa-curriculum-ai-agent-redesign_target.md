@@ -44,7 +44,7 @@
 | 役割 | パス・扱い |
 | --- | --- |
 | 旧教材 | `docs/curriculum/test-automation/`：**不変更** |
-| 新教材の正本 | `docs/curriculum/ai-assisted-qa/`：README・modules・学習用quizzes/answers・assessments。**修了課題の模範解答は公開しない** |
+| 新教材の正本 | `docs/curriculum/ai-assisted-qa/`：管理用README、受講者用start-here、教材Markdown、モジュール別クイズJSON（公開正答・解説を含む）、assessments。**修了課題の模範解答は公開しない** |
 | 旧Trainer | `training/playwright/`、`training/workbook/`：既存の提出形式・コードは不変更 |
 | 既存探索QA | `training/agentic-qa/`：Scored Challenge等。新課程として上書きしない |
 | 新Trainerの正本 | `training/ai-assisted-qa-course/`：配布可能な未完成spec・課題素材と実行手順だけ |
