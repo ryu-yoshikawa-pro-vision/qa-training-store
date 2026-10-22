@@ -78,7 +78,8 @@ function validate(graph) {
     if (seenEdges.has(key)) fail("Duplicate relation: " + key);
     seenEdges.add(key);
   }
-  const mapIds = [...readFileSync(mapPath, "utf8").matchAll(/^\|\s*(M\d\d-\d\d)\s*\|/gm)].map((m) => m[1]);
+  const mapText = readFileSync(mapPath, "utf8");
+  const mapIds = [...mapText.matchAll(/^\|\s*(M\d\d-\d\d)\s*\|/gm)].map((m) => m[1]);
   if (
     !unique(mapIds) ||
     !sameSet(
@@ -102,8 +103,10 @@ function validate(graph) {
       fail("Unused knowledge node: " + node.id);
   }
   for (const node of graph.nodes.filter((n) => n.type === "module")) {
-    if (!graph.edges.some((e) => e.from === node.id && e.to === node.phase && e.relation === "part_of"))
-      fail("Missing phase: " + node.id);
+    const hasPhaseRelation = graph.edges.some(
+      (e) => e.from === node.id && e.to === node.phase && e.relation === "part_of",
+    );
+    if (!hasPhaseRelation) fail("Missing phase: " + node.id);
   }
   const visiting = new Set(),
     done = new Set();
