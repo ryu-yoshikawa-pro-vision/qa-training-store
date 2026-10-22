@@ -7,7 +7,10 @@ import { dirname, resolve, relative, isAbsolute, sep } from "node:path";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const graphPath = resolve(root, "docs/curriculum/ai-assisted-qa/knowledge-graph.json");
-const mapPath = resolve(root, "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md");
+const mapPath = resolve(
+  root,
+  "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+);
 const permittedTypes = new Set([
   "phase",
   "module",
@@ -189,7 +192,8 @@ try {
     console.log(JSON.stringify({ ok: true, ...counts }, null, 2));
   else if (args[0] === "impact" && args.length === 2)
     console.log(JSON.stringify({ ok: true, ...impact(graph, args[1]) }, null, 2));
-  else fail("Usage: node scripts/training/knowledge-graph.mjs validate | impact <node-id|repo-path>");
+  else
+    fail("Usage: node scripts/training/knowledge-graph.mjs validate | impact <node-id|repo-path>");
 } catch (error) {
   console.error("knowledge-graph: " + error.message);
   process.exitCode = 1;
