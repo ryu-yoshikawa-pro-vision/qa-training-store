@@ -19,12 +19,13 @@
 | 2 | [3フェーズの構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) | 対象者、M00〜M10、各フェーズの到達目標、共通環境 |
 | 3 | [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md) | 51学習項目、理解・適用・判断、学習項目ID |
 | 4 | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) | 未経験者向け導入、前提知識、各モジュールの演習、Level 2で確認する行動 |
-| 5 | [クイズと解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | 四択問題、正答・誤答説明、認知水準、復習先、問題の妥当性検証 |
-| 6 | [評価と修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | 提出物、自己確認、正式な評価、Level 0〜3、各フェーズの独立修了 |
-| 7 | [教材同期・モジュールロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) | 配布許可リスト、管理者同期、学習者による1モジュールロード、教材更新、上書き防止 |
-| 8 | [Scenario Shop・実行環境・Skill・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) | Build/Serve、Seed/Reset、Playwright、外部Skillの工程依存、選択Phase 3のCI |
-| 9 | [モジュールの開始・終了基準状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) | 各11モジュールの開始・終了データ、公開開始入力、非公開模範、フェーズ間の入力契約 |
-| 10 | [知識グラフの完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) | 学習項目と知識・教材・評価・状態・仕様・Skillの関係、改訂時の影響追跡 |
+| 5 | [Web閲覧・受講者の学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) | 公開ページの受講導線、モジュール閲覧、一問ずつのクイズと最終結果・復習・再開、既存静的公開基盤の利用 |
+| 7 | [クイズと解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | 四択問題、正答・誤答説明、認知水準、復習先、問題の妥当性検証 |
+| 7 | [評価と修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | 提出物、自己確認、正式な評価、Level 0〜3、各フェーズの独立修了 |
+| 8 | [教材同期・モジュールロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) | 配布許可リスト、管理者同期、学習者による1モジュールロード、教材更新、上書き防止 |
+| 9 | [Scenario Shop・実行環境・Skill・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) | Build/Serve、Seed/Reset、Playwright、外部Skillの工程依存、選択Phase 3のCI |
+| 10 | [モジュールの開始・終了基準状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) | 各11モジュールの開始・終了データ、公開開始入力、非公開模範、フェーズ間の入力契約 |
+| 11 | [知識グラフの完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) | 学習項目と知識・教材・評価・状態・仕様・Skillの関係、改訂時の影響追跡 |
 
 ## 作業別の参照先
 
@@ -32,6 +33,7 @@
 | --- | --- | --- |
 | 目的・対象範囲の変更 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md) | [3フェーズの構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | モジュールの教材・順序の改訂 | [教材の内容品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) | [演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
+| Web教材・ナビゲーション・クイズUI | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)、[クイズ](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | [教材品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 問題・実技・合否判定 | [クイズ](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md)、[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md) |
 | 開始時の正しさ・成果物引継ぎ | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md)、[同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 同期・ロード・公開範囲 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) | [実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[調査](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md) |
@@ -45,6 +47,7 @@
 - **学習目標・Level 2**：[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)と[習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)。
 - **知識・参照関係**：[`knowledge-graph.json`](../curriculum/ai-assisted-qa/knowledge-graph.json)、[完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)、[運用README](../curriculum/ai-assisted-qa/README.md)。
 - **QA workflowのSkill本体**：別リポジトリ`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`。このリポジトリの`.agents/skills/`の汎用Skillとは区別する。
+- **公開Webとクイズ操作**：[Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)。既存静的公開基盤を拡張し、教材Markdownを正本とする。
 - **正式な教材・問題・課題ファイル**：今後作成する`docs/curriculum/ai-assisted-qa/`と`training/ai-assisted-qa-course/`の実ファイル。存在しない成果物を完成済みと扱わない。
 
 ## 文書を変更するとき
