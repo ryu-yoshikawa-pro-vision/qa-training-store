@@ -17,7 +17,7 @@
 
 - **ID間の対応・依存関係の正本**：`docs/curriculum/ai-assisted-qa/knowledge-graph.json`（UTF-8 JSON）。リレーショナルDB・グラフDB・閲覧用Webアプリは追加しない。教材本文や正しい期待結果はJSONに複写しない。
 - **学習目標・水準**：`..._learning-map.md`と`..._progression.md`が要求の正本。JSONへ必要なID・短い説明・参照先を持つが、長文教材を複写しない。
-- **教材・クイズ・実技・評価**：実装した各Markdown、spec、評価基準のファイルが内容の正本。JSONにはIDとパス、必要なrevision、関係だけを持つ。
+- **教材・クイズ・実技・評価**：教材本文はMarkdown、学習用クイズの問題・正答・公開解説は`quizzes/Mxx.json`、実技はspec等、評価基準は各実ファイルが内容の正本。**関係グラフJSONはクイズ内容を複製せず**、各問題のIDと当該JSON内の位置・参照先、必要なrevisionと関係のみを持つ。
 - **製品仕様**：`docs/spec/`を正本とし、変更経路・元のGit SHAと必要な文書/BR/ACを参照する。
 - **Skill**：`ryu-yoshikawa-pro-vision/qa-workflow-skills`の`skills/<skill>/SKILL.md`を正本とし、commit SHAとSkillで参照するhelperの存在・依存を確認する。`qa-training-store/.agents/skills/`の汎用Skillは対象に含めない。
 - **非公開評価**：模範解答・非公開テスト・学習者個別の結果は非公開保存先の正本だけで管理する。公開グラフには、採点基準の公開可能な識別子・期待される評価観点だけを記録する。
