@@ -52,3 +52,16 @@
   - Result: なし
   - 親Agentの判断: なし
 - Progress: 25% (2/8)
+
+## 2026-10-23 00:43 (JST)
+
+- Summary: M00〜M10の公開素材と複数の共通機能を実装し、リポジトリ標準verifyと旧課程を含むChromium E2Eは成功。Plan全体の実装完了条件は未達。
+- Changes: Run task listを実装成果物・未達受入に分けて更新。ローカルcommit `744115a994bbbbf988e5b6ca6a52908315662fb2` を作成し、現在はPR headへ未push。
+- 判断 / 理由: 公開教材ファイルが存在しても、M02→M03実統合、M06/M07完成版Playwright受入、知識内容レビュー、非公開採点資料を完成したとは扱わない。外部保存先などを推測しない。
+- Validation: `pnpm.cmd run verify` PASS（unit 66、integration 111、repository 147、Web component 103、Native component 64、contracts 800 passed/4 skipped、build:web/build:spec成功）。全既存/新課程Chromium E2E 51/51 PASS。course validator 11 modules/53問、knowledge graph 255 nodes/580 edges/51 objectives/22 states、distribution contract 8/8 PASS。M06 dedicated実技3件は公開scaffoldのTODOでFAIL、M07修復後もTODOでFAIL。固定Skill revisionのsource contractは確認したが実Entityを使うruntime統合は未実行。
+- ブロッカー / 残作業: 実在Authority/Risk/Scope Machine EntityとOpenCode CLI実行経路、非公開資料の保存先/権限/担当者、58 knowledge nodesの内容レビュー根拠が不足。Phase 3は無効化workflow sampleと契約までで、対象SHA/Artifactを有効な実行で検証していない。PR本文、通常push、最新headのCI確認は未完了。初心者/実受講者、評価担当者、新規Codespace、時間/容量/無料枠の実地検証は後工程。
+- Subagent:
+  - Delegation: なし
+  - Result: なし
+  - 親Agentの判断: なし
+- Progress: 50% (6/12)

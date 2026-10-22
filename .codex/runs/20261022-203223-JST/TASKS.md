@@ -2,12 +2,17 @@
 
 ## Now（現在）
 - [x] 1. PR/base/head/worktreeおよび全体・詳細Planを確認し、既存実装との差を整理。
-- [ ] 2. M02→M03、M05→M06代表教材と開発検証を完成。
-- [ ] 3. M00〜M10全教材・クイズ・演習・評価基準を完成。
-- [ ] 4. 22状態、validator、知識グラフと影響検索を完成。
+- [x] 2. M00〜M10の公開レッスン、クイズ53問、演習/提出テンプレート、公開rubricの初稿を作成。
+- [x] 3. 全11モジュールのWeb/quiz validatorとChromium回帰E2Eを実装・検証。
+- [x] 4. 22状態データ/validator、51 objectiveを含む知識グラフ構造と影響検索を実装・構造検証。
 - [x] 5. 同期/単一モジュールload/checkを実装し、ローカルfixture契約を検証。
-- [ ] 6. Web全11モジュール・Chromium E2EとPhase 3 CIサンプルは実装済み。Phase 2のM06/M07専用実行は開始素材のTODOで停止するため未完了。
-- [ ] 7. 全必須開発検証、旧課程非回帰、成果物とPlanの照合を行い原因修正・再検証。
+- [x] 6. `pnpm.cmd run verify`、build/typecheck/lint/contract suite、旧課程を含むChromium E2Eを実行し結果を分類。
+- [ ] 7. M02→M03の固定Skill実統合受入を実施（実在Authority/Risk/Scope entityとOpenCode実行経路待ち）。
+- [ ] 8. M05→M06代表教材の開発受入と、M06/M07完成版Phase 2 Playwright実行を完了。
+- [ ] 9. Phase 3 CIの有効な実行経路、対象SHA、Artifactを検証（現在は無効化sampleまで）。
+- [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
+- [ ] 11. 58 tentative knowledge nodesと教材内容の独立した妥当性レビューを完了。
+- [ ] 12. 完成成果物のPlan照合、PR本文更新、通常push、最新head必須CI確認。
 - [ ] 8. PR本文/Run Reportを更新、commit/push、最新SHA CI確認。
 
 ## 完了処理の参照先
@@ -20,7 +25,8 @@ checkbox完了はfinal commit前のtask進捗であり全体完了ではない�
 
 ## Discovered（発見事項）
 - 開始時: M02/M03/M05/M06のみ。7 module欠落、22状態/同期・ロード未実装。既存quizは4 moduleのみ。
-- 実地検証未実施は実装DoD外だが教材/機能/開発検証はDoD内。
+- 実装後: M00〜M10公開素材、quiz 53問、state 22件、distribution/sync/load、KG構造、Web/E2Eが追加済み。素材の存在・構造検証はPlan全体の教材/評価受入を意味しない。
+- 実地検証未実施は実装DoD外だが、教材/機能/開発検証はDoD内。
 
 ## Blocked（ブロック中）
 - M02→M03固定Skillの通し統合は`BLOCKED`。Cart BR/AC・Risk資料はあるが、対象revisionから作成された実在のAuthority、Product Risk、Scope Machine Entityが現在の開発環境で確認できず、IDやfixtureを代用できない。現在のWindows環境に`opencode` CLI実行ファイルも見つからなかった。OpenCode Zenの利用可否・認証は再検証していない。
