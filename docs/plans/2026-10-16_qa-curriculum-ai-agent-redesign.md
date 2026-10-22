@@ -44,7 +44,7 @@
 
 **新課程M00〜M10は、公開Webページから教材本文を閲覧できるようにする。** 各モジュールの確認クイズは**1問ずつ回答し、全問終了後に得点・正誤・全選択肢の解説・復習先を確認**できるようにする。Web閲覧・学習クイズはGitHubログイン不要とし、実技の開始時だけ個人学習用リポジトリとCodespacesへ案内する。旧課程のWebページは維持する。
 
-**既存の静的ドキュメント生成処理だけを再利用**して新課程の独立URLを作る。**教材本文・確認クイズ・公開解説は新課程M00〜M10向けに新規制作するMarkdownを内容の正本**とし、既存カリキュラムのMarkdownや問題をWeb化・移植したものとして扱わない。受講者の導線（フェーズ選択→モジュール→教材→クイズ→解説・復習→Codespaces実技→修了評価）、中断・再開、教材revision、アクセシビリティ、公開/非公開の境界と受入検証は[Web閲覧・学習体験Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)で定義する。Webのクイズ結果を正式な修了認定や学習用リポジトリの成果物へ自動反映しない。
+**既存の静的ドキュメント生成処理だけを再利用**して新課程の独立URLを作る。**教材本文は新課程M00〜M10向けに新規制作するMarkdown、確認クイズ・正答・公開解説は新規制作するモジュール別JSONをそれぞれ内容の正本**とし、既存カリキュラムのMarkdownや問題をWeb化・移植したものとして扱わない。受講者の導線（フェーズ選択→モジュール→教材→クイズ→解説・復習→Codespaces実技→修了評価）、中断・再開、教材revision、アクセシビリティ、公開/非公開の境界と受入検証は[Web閲覧・学習体験Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)で定義する。Webのクイズ結果を正式な修了認定や学習用リポジトリの成果物へ自動反映しない。
 
 ## モジュール別の正しい開始・終了状態
 
@@ -71,7 +71,7 @@
 ## 既存カリキュラムとは独立して作る
 
 - 旧教材：`docs/curriculum/test-automation/`の17レッスン、104問、C01〜C12、旧修了判定は**変更しない**。
-- 新教材の**正本（今後新規制作）**：`docs/curriculum/ai-assisted-qa/`にM00〜M10の教材本文、確認クイズ・公開解説、実技・修了基準を新規作成する。**既存の`docs/curriculum/test-automation/`の教材本文・104問を新課程の内容として転用・一括変換しない。** 現存する`ai-assisted-qa/README.md`と`knowledge-graph.json`は知識グラフの管理用であり、完成教材ではない。**配布用の教材は別リポジトリで生成**する。実技の完成回答や非公開評価用テストは公開正本へcommitしない。
+- 新教材の**正本（今後新規制作）**：`docs/curriculum/ai-assisted-qa/`にM00〜M10の教材本文、確認クイズ・公開解説、実技・修了基準を新規作成する。**既存の`docs/curriculum/test-automation/`の教材本文・104問を新課程の内容として転用・一括変換しない。** 現存する`ai-assisted-qa/README.md`と`knowledge-graph.json`は知識グラフの管理用であり、完成教材ではない。**Webページと学習用Templateは同じ新課程Markdown教材とJSONクイズを使用し、配布用の教材は別リポジトリで生成**する。実技の完成回答や非公開評価用テストは公開正本へcommitしない。
 - 新実技の正本：必要な素材・未完成specを`training/ai-assisted-qa-course/`に配置し、同期許可リストで必要なものだけ配布する。既存`training/playwright/`、`training/agentic-qa/`、旧Training Copyの契約を壊さない。
 - 仕様・テスト対象はScenario Shopの`docs/spec/`等を参照し、製品の正式な仕様・Seed・回帰テストを不用意に変更しない。
 - **今回の更新はPlanの完成仕様の修正**に限定する。PR #199に既に追加されている知識グラフJSON・運用README・読取り専用CLIは保持し、完成仕様で未実装の契約は今後の実装対象に含める。新教材・同期/ロードスクリプト・テスト実技・製品コード・CIの実装へは進まず、PR #198も変更しない。
@@ -85,8 +85,8 @@
 1. PR #199のHEADとPR #198、`.devcontainer/devcontainer.json`、`docs/guides/codespaces.md`、`docs/spec/`、既存教材・Training・validator・CIの状態を確認する。**OpenCode Zen無料モデルの利用可否・認証は確認済み**として再検証せず、2コアCodespacesとSkill・Playwrightの実行、費用・データ保護に必要な経路のみ検証する。
 2. 公開の教材正本から別の公開学習用Templateへの**同期・ロード・起動経路の最小技術検証**を先に実施する。許可リスト、確定SHA、完成解答の除外、1モジュール単位のロード、上書き防止、学習用リポジトリ単体でのScenario Shop起動の成立を確認する。教材の内容品質が未確認のまま、全11モジュール分の配布・教材を完成扱いしない。**本Planの段階ではリポジトリを作成しない**。
 3. 新教材ディレクトリを作り、**受講者用の`start-here.md`とWeb公開ページ**で**Phase 1のみ／Phase 1〜2／全3フェーズ**の受講経路と修了の違いを示す（既存の`README.md`は知識グラフ運用用として保持する）。共通の開始手順は**学習用リポジトリ作成→本人の2コアCodespace作成・確認→CLI・AI認証・Skill確認→学習者がM00をロード**とする。Phase 1・2でGitコマンド・PR・CI操作を要求しない。
-4. [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)の静的表示経路とクイズ一問ずつの操作・結果画面を代表教材で実証する。ページ遷移・復習導線・モバイル/キーボード操作・途中回答の再開を確認し、問題・解説の正本はMarkdownのまま維持する。
-5. [教材の内容品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[模範と採点基準](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を先に確定する。**M02→M03とM05→M06の連続工程**で、代表教材・解説付き完成例・独立演習・非公開模範・採点基準を制作して内容レビューと初心者の自習試行を行う。教材の誤り、未学習の前提、模写だけで成立する課題、正しい別解を判定できない評価基準を解消してから、全11モジュールの教材を本格制作する。問題数・文章量を先に固定せず、各モジュールの必要な説明・クイズ/解説・復習先・実技を作る。
+4. [教材の内容品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[模範と採点基準](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を踏まえ、**M02→M03とM05→M06の連続工程**の代表教材Markdown・対応する**新課程クイズJSON（問題・正答・解説）**・独立演習・非公開模範・採点基準を先に制作する。問題数・文章量を先に固定せず、必要な説明・確認・復習先を作る。
+5. [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md)に沿って、**手順4で制作した代表教材とクイズJSON**で静的表示・一問ずつの回答・最終結果・復習・途中再開を実証する。**初心者の自習試行**でWebからCodespaces実技への移動、説明と解説、模範・評価基準までを確認し、教材の誤り、未学習の前提、模写だけで成立する課題、正しい別解を判定できない基準を修正する。その後に全11モジュールの教材制作へ展開する。手順2の最小技術検証には専用の仮データを使用してよいが、完成教材・習熟の証拠として扱わない。
 6. Phase 1の**誘導付きのAI操作→自分で依頼→初見の仕様分析・設計**の流れを作る。実在するSkillの発見・使用条件・依存と、AIの誤った推論の見抜き方を教材にする。特にM02→M03では、**検証責務と機械入力を分け、条件設計の`direct`から技法runtime・CI生成の`artifact`・Case・最終証拠検証までの入力契約**を守る。仕様・上流参照が未確定の場合やSkillの`ready`だけでは完成とせず、BLOCKED・不整合と区別する。
 7. Phase 1の成果物（仕様根拠・Risk/Condition/Case・採否理由）をCodespaceの作業フォルダに保存し、Gitを知らない受講者でもダウンロードして保全・引継ぎできる形式と手順を用意する。Phase 1修了時にPlaywrightやGit操作を要求しない。
 8. Phase 2は**Codespacesに導入済みのNode.js/pnpm/Playwright/Chromium**を使い、設定・実行方法と最小構成の再現を教える。専用spec・結果パス・ポート境界を確認し、実装・Reset→実行→失敗分析・保守まで**CI不要で**成立する総合演習を作る。Devcontainer全体の再構築を修了要件にしない。
