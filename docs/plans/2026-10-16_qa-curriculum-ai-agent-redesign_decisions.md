@@ -21,7 +21,7 @@
 | カリキュラムの目標 | AIと協働してテスト分析・設計・自動化・実行・改善し、AIの結果を根拠で判断できるようにする。対象者は開発未経験者も含むQA担当者 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
 | 3フェーズ・学習順序 | Phase 1は分析・設計、Phase 2はPlaywright、Phase 3はGitHub・CI。フェーズごとに独立して修了でき、Phase 3は選択 | [3フェーズ構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
 | 学習用リポジトリへの分離 | `qa-training-store`は公開の教材正本として維持。受講者の課題作業用に別リポジトリを設け、正解の先読みを防ぐため公開範囲を分ける | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
-| Web公開とインタラクティブな確認クイズ | **新課程M00〜M10のWeb閲覧と、各モジュールで一問ずつ回答→全問終了後の結果・正誤解説・復習**を実装する。公開Web閲覧・クイズはGitHubログインを必須にしない。実技は従来どおり本人のCodespacesで行う | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
+| Web公開とインタラクティブな確認クイズ | **これから新規制作する新課程M00〜M10のMarkdown教材・四択問題・公開解説をWebに掲載し、各モジュールで一問ずつ回答→全問終了後の結果・正誤解説・復習**を実装する。既存から再利用するのは静的Web公開処理であり、旧課程の教材・104問ではない。公開Web閲覧・クイズはGitHubログインを必須にしない。実技は従来どおり本人のCodespacesで行う | [Web閲覧・学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) |
 | 受講者によるモジュール単位ロード | **ロードするのは学習者本人**。M00〜M10から指定した1モジュールだけをロードし、他モジュールへ自動で進まない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | QA workflow Skillの参照先 | **`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`**を対象とする。このリポジトリ内の別用途のSkillを混同しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Planの到達点 | **完成形まで設計する**。一部の機能や評価だけを完成条件として扱わない。実装済みでないことは実装状態として正しく記録する | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
