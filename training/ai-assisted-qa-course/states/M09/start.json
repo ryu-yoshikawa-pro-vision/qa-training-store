@@ -22,6 +22,9 @@
   "expected": {
     "required_paths": [
       "inputs/M09/start.md",
+      "inputs/M09/public-sample-handoff.md",
+      "course/modules/M09/inputs/public-sample-handoff.md",
+      "course/modules/M09/inputs/workflow-starter.yml.disabled",
       "course/templates/phase3/course-e2e.workflow.yml.disabled",
       "workspace/M09/submission.md",
       "workspace/M09/failure-cases.md",
@@ -40,7 +43,7 @@
     {
       "id": "M09-START-02",
       "mode": "read-only",
-      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
+      "condition": "use the distinct public-sample-handoff as the M08-like history/PR fallback; start.md is guidance only and the disabled workflow starter remains a separately required module input"
     },
     {
       "id": "M09-START-03",
@@ -64,10 +67,10 @@
     "contains_private_assessment_tests": false
   },
   "public_fallback": {
-    "artifact_id": "M09-public-start-01",
-    "revision": "M09-public-start-v1",
+    "artifact_id": "M09-public-handoff-01",
+    "revision": "M09-public-handoff-v1",
     "contract_id": "M08-to-M09-handoff-v1",
-    "path": "inputs/M09/start.md",
+    "path": "inputs/M09/public-sample-handoff.md",
     "public": true
   }
 }

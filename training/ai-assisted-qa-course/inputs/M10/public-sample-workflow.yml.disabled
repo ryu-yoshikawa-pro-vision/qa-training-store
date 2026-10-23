@@ -1,0 +1,41 @@
+# Disabled M09-style workflow sample. Keep this file under workspace/M10/public-sample/.
+# It is inert here. A learner must review scope and permissions before intentionally
+# placing an approved workflow under .github/workflows/.
+name: AI QA course handoff sample
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  course-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify target SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - run: mkdir -p output/training/ai-assisted-qa
+      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt
+      - run: pnpm run build:web
+      - run: pnpm run training:ai-assisted-qa:test
+        env:
+          PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: course-playwright-results
+          path: output/training/ai-assisted-qa/
+          if-no-files-found: ignore

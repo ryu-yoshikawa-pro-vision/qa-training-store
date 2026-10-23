@@ -25,12 +25,27 @@
       "from_module": "M07",
       "optional": true,
       "same_input_contract": true
+    },
+    {
+      "artifact_id": "M07-result-03",
+      "path": "workspace/M07/phase2-handoff.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "from_module": "M07",
+      "optional": true,
+      "same_input_contract": true
     }
   ],
   "environment": ["personal learning repository"],
   "expected": {
     "required_paths": [
       "inputs/M08/start.md",
+      "inputs/M08/public-sample-handoff.json",
+      "inputs/M08/public-sample-config.md",
+      "inputs/M08/public-sample-dependencies.md",
+      "inputs/M08/public-sample-reset.md",
+      "inputs/M08/public-sample-run-evidence.md",
+      "inputs/M08/public-sample-spec.ts",
       "workspace/M08/submission.md",
       "workspace/M08/review-candidate.md",
       "workspace/M08/local-only-run.log"
@@ -75,7 +90,7 @@
     "artifact_id": "M08-public-start-01",
     "revision": "M08-public-start-v1",
     "contract_id": "M07-to-M08-handoff-v1",
-    "path": "inputs/M08/start.md",
+    "path": "inputs/M08/public-sample-handoff.json",
     "public": true
   }
 }

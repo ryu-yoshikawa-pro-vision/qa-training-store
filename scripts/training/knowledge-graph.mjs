@@ -41,6 +41,7 @@ const relations = {
   requires: [
     ["module", "module"],
     ["knowledge", "knowledge"],
+    ["module_state", "artifact"],
   ],
   requires_knowledge: [["learning_objective", "knowledge"]],
   applies_to: [["learning_objective", "test_target"]],
@@ -84,10 +85,15 @@ function objectiveRows() {
     (match) => match[1],
   );
 }
-function validate(graph) {
+export function validate(graph) {
   if (graph.schema_version !== 1) fail("Unknown graph schema_version");
   if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges))
     fail("Graph must contain nodes and edges");
+  const stateContractManifest = JSON.parse(
+    readFileSync(resolve(root, "training/course-sync/manifest.json"), "utf8"),
+  );
+  if (typeof stateContractManifest.state_contract_revision !== "string")
+    fail("Course state contract revision is missing");
   const ids = graph.nodes.map((node) => node.id);
   if (ids.some((id) => typeof id !== "string" || !id) || !unique(ids))
     fail("Node IDs must be unique nonempty strings");
@@ -209,8 +215,114 @@ function validate(graph) {
         data.read_only !== true
       )
         fail("State contract differs from graph: " + module.id + " " + stateName);
+      if (
+        state.revision !== data.revision ||
+        data.revision !== stateContractManifest.state_contract_revision
+      )
+        fail(
+          "State revision differs from graph or course manifest: " + module.id + " " + stateName,
+        );
       if (data.source_sha !== null && !/^[a-f0-9]{40}$/.test(data.source_sha || ""))
         fail("Invalid state source SHA: " + module.id + " " + stateName);
+      if (stateName === "start") {
+        const requiredInputs = data.expected?.required_paths?.filter((file) =>
+          file.startsWith("inputs/" + module.id + "/"),
+        );
+        if (!requiredInputs?.length)
+          fail("Start state must declare its module input paths: " + module.id);
+        const fallback = data.public_fallback;
+        if (
+          !fallback ||
+          fallback.public !== true ||
+          typeof fallback.artifact_id !== "string" ||
+          typeof fallback.revision !== "string" ||
+          typeof fallback.contract_id !== "string" ||
+          !requiredInputs.includes(fallback.path)
+        )
+          fail("Start state must declare a public fallback input contract: " + module.id);
+        for (const inputPath of requiredInputs) {
+          const inputName = inputPath.slice(("inputs/" + module.id + "/").length);
+          const coursePath = `course/modules/${module.id}/inputs/${inputName}`;
+          const localSources = stateContractManifest.local_files.filter(
+            (item) => item.module_id === module.id && item.target_path === coursePath,
+          );
+          if (localSources.length !== 1)
+            fail("Start input must map to one course-sync source: " + module.id + " " + inputPath);
+          const loadedTargets = stateContractManifest.load_files.filter(
+            (item) => item.module_id === module.id && item.source_path === coursePath,
+          );
+          if (loadedTargets.length !== 1)
+            fail("Start input must map to one module-load target: " + module.id + " " + inputPath);
+          const sourcePath = localSources[0].source_path;
+          const targetPath = loadedTargets[0].target_path;
+          const artifacts = graph.nodes.filter(
+            (node) =>
+              node.type === "artifact" &&
+              node.module === module.id &&
+              node.path === sourcePath &&
+              node.destination === targetPath,
+          );
+          if (artifacts.length !== 1)
+            fail(
+              "Start input has no unique graph artifact contract: " + module.id + " " + inputPath,
+            );
+          const artifact = artifacts[0];
+          if (
+            !graph.edges.some(
+              (edge) =>
+                edge.from === state.id && edge.relation === "requires" && edge.to === artifact.id,
+            )
+          )
+            fail(
+              "Start state is not linked to its public input artifact: " +
+                module.id +
+                " " +
+                inputPath,
+            );
+          if (
+            inputPath === fallback.path &&
+            (artifact.public !== true || artifact.private !== false)
+          )
+            fail("Public fallback artifact classification differs from its state: " + module.id);
+        }
+      }
+      if (stateName === "end") {
+        if (!Array.isArray(data.outputs) || data.outputs.length === 0)
+          fail("End state must declare its output artifact contracts: " + module.id);
+        for (const output of data.outputs) {
+          const matches = graph.nodes.filter(
+            (node) =>
+              node.type === "artifact" &&
+              node.module === module.id &&
+              node.destination === output.path,
+          );
+          if (matches.length !== 1)
+            fail(
+              "State output has no unique graph artifact contract: " +
+                module.id +
+                " " +
+                output.path,
+            );
+          const artifact = matches[0];
+          if (
+            !graph.edges.some((edge) => {
+              const producer = byId.get(edge.from);
+              return (
+                edge.to === artifact.id &&
+                edge.relation === "produces" &&
+                producer?.type === "exercise" &&
+                producer.module === module.id
+              );
+            })
+          )
+            fail(
+              "State output artifact has no producing module exercise: " +
+                module.id +
+                " " +
+                output.path,
+            );
+        }
+      }
     }
     const hasLesson = graph.edges.some(
       (edge) =>
@@ -362,6 +474,13 @@ function impact(graph, query) {
       if (module) addModule(module.from, target.id, module.relation);
     }
     if (target.type === "artifact") {
+      for (const edge of graph.edges.filter(
+        (item) => item.to === target.id && item.relation === "requires",
+      )) {
+        const state = byId.get(edge.from);
+        if (state?.type === "module_state" && state.state === "start")
+          addModule(state.module, target.id, "start_state_input");
+      }
       for (const edge of graph.edges.filter(
         (item) => item.to === target.id && item.relation === "produces",
       )) {

@@ -21,7 +21,7 @@ const settings = resolveAiAssistedQaPlaywrightSettings(repositoryRoot, {
 });
 if (!fs.existsSync(settings.testDir) || !fs.statSync(settings.testDir).isDirectory()) {
   throw new Error(
-    `新課程のテスト対象がありません: ${path.relative(repositoryRoot, settings.testDir)}。先に指定したM05、M06またはM07をロードしてください。`,
+    `新課程のテスト対象がありません: ${path.relative(repositoryRoot, settings.testDir)}。先に指定したM05、M06、M07、M08またはM10をロードしてください。`,
   );
 }
 

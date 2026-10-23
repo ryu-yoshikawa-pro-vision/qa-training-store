@@ -56,6 +56,12 @@
       "path": "workspace/M09/submission.md",
       "revision": "M09-result-v1",
       "contract_id": "M09-to-M10-handoff-v1"
+    },
+    {
+      "artifact_id": "M09-result-02",
+      "path": "workspace/M09/course-e2e.workflow.yml.disabled",
+      "revision": "M09-workflow-v1",
+      "contract_id": "M09-to-M10-handoff-v1"
     }
   ]
 }

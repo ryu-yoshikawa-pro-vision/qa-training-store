@@ -16,11 +16,29 @@
       "from_module": "M09",
       "optional": true,
       "same_input_contract": true
+    },
+    {
+      "artifact_id": "M09-result-02",
+      "path": "workspace/M09/course-e2e.workflow.yml.disabled",
+      "revision": "M09-workflow-v1",
+      "contract_id": "M09-to-M10-handoff-v1",
+      "from_module": "M09",
+      "optional": true,
+      "same_input_contract": true
     }
   ],
   "environment": ["Phase 2 spec", "personal repository", "course-only workflow"],
   "expected": {
-    "required_paths": ["inputs/M10/start.md"],
+    "required_paths": [
+      "inputs/M10/start.md",
+      "inputs/M10/public-sample-handoff.json",
+      "inputs/M10/public-sample-config.md",
+      "inputs/M10/public-sample-dependencies.md",
+      "inputs/M10/public-sample-reset.md",
+      "inputs/M10/public-sample-run-evidence.md",
+      "inputs/M10/public-sample-spec.ts",
+      "inputs/M10/public-sample-workflow.yml.disabled"
+    ],
     "objective_ids": ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05"],
     "phase": "P3",
     "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
@@ -61,7 +79,7 @@
     "artifact_id": "M10-public-start-01",
     "revision": "M10-public-start-v1",
     "contract_id": "M09-to-M10-handoff-v1",
-    "path": "inputs/M10/start.md",
+    "path": "inputs/M10/public-sample-handoff.json",
     "public": true
   }
 }

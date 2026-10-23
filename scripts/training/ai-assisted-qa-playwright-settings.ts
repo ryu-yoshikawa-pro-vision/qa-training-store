@@ -11,7 +11,7 @@ export type AiAssistedQaPlaywrightSettings = {
 };
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
-const COURSE_MODULES = ["M05", "M06", "M07"] as const;
+const COURSE_MODULES = ["M05", "M06", "M07", "M08", "M10"] as const;
 
 export function resolveAiAssistedQaPlaywrightSettings(
   repositoryRoot: string,
@@ -49,9 +49,7 @@ export function resolveAiAssistedQaPlaywrightSettings(
     );
   });
   if (!allowed) {
-    throw new Error(
-      "新課程Playwrightの対象はworkspace/M05、workspace/M06またはworkspace/M07配下に限ります",
-    );
+    throw new Error("新課程Playwrightの対象はworkspace/M05、M06、M07、M08またはM10配下に限ります");
   }
   return { baseUrl: parsedUrl.toString().replace(/\/$/, ""), testDir };
 }

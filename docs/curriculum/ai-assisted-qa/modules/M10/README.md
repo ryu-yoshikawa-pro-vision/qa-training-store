@@ -19,6 +19,8 @@ M10ではPhase 2で動作確認した同じspecを使い、Git差分からPull R
 
 [`assessment/phase-3-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-3-rubric.md)の公開観点で、差分の選択、安全なworkflow、同一SHAの証拠、失敗分類、未確認事項を確認します。本人はCIが確認した内容と保証しない内容を分けます。未提示条件で、別SHAの成功Runを現在の合格証拠にできるかも判断します。
 
+M09の本人成果物があれば修正したdisabled workflow案を使い、なければM10専用fallbackを使います。fallbackにはM07相当の安全なspec・Config・依存/Reset参照・実行結果と、M09の無効化workflow見本を同梱します。workflowはworkspace/M10/public-sample/内に置き、.github/workflows/へ自動配置・有効化しません。M10ロードはM10の成果物だけを配置します。
+
 ## 確認と復習
 
 [M10の確認クイズ](../../quizzes/M10.json)を回答します。SHA・Run・Artifactのいずれかが一致しない場合は、その組を証拠として採用せず、現在のHEADで検証を再実行します。

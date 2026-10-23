@@ -16,7 +16,7 @@ Traceは一回の実行で観測した画面・操作の証拠で、全データ
 
 ## 3種類の診断素材
 
-- **テストコード側**：Locatorは合っているがAssertionが案内文だけを確認している。Caseの業務結果を観測していない点を指摘し、テスト側の修正案を作ります。
+- **テストコード側**：公開specのLocatorが存在しない見出し「存在しない商品」を指定し、Assertionがその見出しの表示を期待しています。LocatorとAssertionのどこで失敗したかを実行証拠から確認し、Caseに必要な業務結果を観測する修正案を作ります。
 - **Seed/環境側**：必要なscenario Resetが呼ばれず、カートに前のデータが残っている。まずResetの実行結果と対象scenarioを確かめ、製品不具合と決めつけません。
 - **タイミング/Flaky側**：UI更新を待つ固定時間が環境によって足りない。web-first assertionや対象イベントを確認し、再現性とログを調べます。Timeoutを延ばすだけでは原因修正としません。
 
@@ -29,6 +29,10 @@ Helper、Fixture、Page Object Modelは再利用や変更集中に役立つ場�
 ## Phase 2総合演習・評価
 
 Phase 2ルーブリックは [`assessment/phase-2-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-2-rubric.md) です。M06のspecを再利用し、Case→spec→Assertion→Run→根拠を対応させ、少なくとも3種類の原因構造を診断します。未提示断片に対する本人確認を含めます。修正前後のRunがそろわない課題は修正済みにしません。
+
+## Phase 3への引継ぎ
+
+修了時は`workspace/M07/phase2-handoff.md`に、動作確認したspec、Playwright Config、`package.json`とlockfile、既存Reset helper、実行コマンド、修正前後の別Runと結果・SHAを記録します。ロードされるのは未記入テンプレートです。M07終了状態は診断記録・修正spec・handoff記録の存在と共通contract/revisionを照合し、内容の妥当性は公開Phase 2 rubricで別に確認します。
 
 ## 確認と復習
 

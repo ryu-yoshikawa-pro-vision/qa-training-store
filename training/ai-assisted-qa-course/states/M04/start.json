@@ -29,7 +29,7 @@
   ],
   "environment": ["public specifications", "Phase 1 rubric"],
   "expected": {
-    "required_paths": ["inputs/M04/start.md"],
+    "required_paths": ["inputs/M04/start.md", "inputs/M04/public-review-cases.md"],
     "objective_ids": ["M04-01", "M04-02", "M04-03", "M04-04"],
     "phase": "P1",
     "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
@@ -67,10 +67,10 @@
     "contains_private_assessment_tests": false
   },
   "public_fallback": {
-    "artifact_id": "M04-public-start-01",
-    "revision": "M04-public-start-v1",
+    "artifact_id": "M04-public-review-cases-01",
+    "revision": "M04-public-review-cases-v1",
     "contract_id": "M03-to-M04-handoff-v1",
-    "path": "inputs/M04/start.md",
+    "path": "inputs/M04/public-review-cases.md",
     "public": true
   }
 }

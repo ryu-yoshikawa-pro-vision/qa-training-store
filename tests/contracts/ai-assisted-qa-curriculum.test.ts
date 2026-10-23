@@ -13,16 +13,24 @@ const outputRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-assisted-qa-site-"));
 const docsOutput = path.join(outputRoot, "docs");
 
 describe("AI-assisted QA Playwright boundary", () => {
-  it("uses loopback port 8082 and only M05-M07 workspace paths", () => {
+  it("uses loopback port 8082 and only declared course workspace paths", () => {
     const m05Settings = resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
       testRoot: "workspace/M05/specs",
     });
-    const settings = resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
-      testRoot: "workspace/M07/specs",
-    });
+    const allowedSettings = ["M06", "M07", "M08", "M10"].map((moduleId) =>
+      resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
+        testRoot: `workspace/${moduleId}/public-sample`,
+      }),
+    );
     expect(m05Settings.testDir).toBe(path.resolve("C:/training/course/workspace/M05/specs"));
-    expect(settings.baseUrl).toBe("http://127.0.0.1:8082");
-    expect(settings.testDir).toBe(path.resolve("C:/training/course/workspace/M07/specs"));
+    expect(allowedSettings.map((settings) => settings.testDir)).toEqual(
+      ["M06", "M07", "M08", "M10"].map((moduleId) =>
+        path.resolve(`C:/training/course/workspace/${moduleId}/public-sample`),
+      ),
+    );
+    expect(allowedSettings.every((settings) => settings.baseUrl === "http://127.0.0.1:8082")).toBe(
+      true,
+    );
 
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
@@ -43,12 +51,17 @@ describe("AI-assisted QA Playwright boundary", () => {
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "training/playwright/exercises",
       }),
-    ).toThrow(/workspace\/M05、workspace\/M06またはworkspace\/M07/);
+    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
+    expect(() =>
+      resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
+        testRoot: "workspace/M09/public-sample",
+      }),
+    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "workspace/M06/../../training/playwright",
       }),
-    ).toThrow(/workspace\/M05、workspace\/M06またはworkspace\/M07/);
+    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
   });
 });
 

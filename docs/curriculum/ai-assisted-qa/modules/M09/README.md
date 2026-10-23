@@ -6,7 +6,7 @@ CIは指定イベントでRunner上の手順を実行する仕組みです。wor
 
 ## workflowを読む
 
-演習で使うGitHub Actionsファイルは `training/ai-assisted-qa-course/templates/phase3/` に置き、同期時は無効サンプルのままです。学習用Templateでは `course/templates/phase3/course-e2e.workflow.yml.disabled` として読めます。学習者がPhase 3を選択した場合だけ自分の作業用リポジトリで有効化します。workflowは新課程specに限定し、`permissions: contents: read`、Secretなし、deployなしを基本とします。対象SHAとRunを確認できる情報を保存します。
+完成見本は course/templates/phase3/course-e2e.workflow.yml.disabled、M09で修正する未完成案は workspace/M09/course-e2e.workflow.yml.disabled です。未完成案ではPR HEADの照合、Playwright browserの導入、対象SHAと実行結果Artifactの対応を補います。修正後も.disabledを保ち、Templateの.github/workflows/には配置・有効化しません。Phase 3を選ぶ学習者が自分の作業用リポジトリで実行するかは、その環境・権限を確認したうえで別途判断します。workflowは新課程specに限定し、permissions: contents: read、Secretなし、deployなしを基本とします。
 
 ```yaml
 name: AI QA course checks
@@ -29,6 +29,8 @@ jobs:
 ```
 
 このworkflowは`pull_request`のmerge commitではなく`github.event.pull_request.head.sha`をcheckoutします。GitHub Actionsの既定ではmerge commitがcheckoutされるため、受講者はPR HEADとテスト対象を明示して照合します。同期対象の無効サンプルはcheckout直後に`git rev-parse HEAD`をArtifactへ記録し、専用のPlaywright結果と同じRunから保存します。教材例は読み方を示す短い抜粋です。完全な無効サンプルは必要なNode/pnpm準備、Build/Serve/Playwright依存、Artifact保存を含み、契約テストで検証します。Templateではworkflowを有効化しません。古いSHAの成功Runを現在のHEADの証拠に使いません。
+
+M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`の合成branch履歴とレビュー可能なPR記録を前工程契約の代替入力として読みます。`TRAINING-*`は教材内IDで、実commit、GitHub PR、Run、Artifactの証拠ではありません。未完成workflow starterと完成見本は別入力です。
 
 ## 失敗調査・費用・権限
 

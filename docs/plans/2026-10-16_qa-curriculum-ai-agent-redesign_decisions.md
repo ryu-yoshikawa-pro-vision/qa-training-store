@@ -84,8 +84,8 @@
 - **入力形式**：`condition_structure`の`metadata`は17キー、`input`は15キー、`test_requirements[]`の1行は5キー。`test_requirements[]`へ検証責務本文の独自フィールドを追加しない。current TR Entityを持たない`requirement_dispositions[]`を有効な処理として扱わない。
 - **拒否・成功の区別**：`run_cli()`は一部の`invalid_input`で終了コード0を返す。返されたenvelope、参照の完全性、current Entity、必要な技法結果・Case、最終evidence gateと意味上の仕様整合を確認する。
 - **既存CI**：[Validate Deterministic Output Evalsの実行](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/actions/runs/38994981607)は当該固定commitで`success`（2026-10-17 UTC）と確認した。ただし**今回のCartのM02成果物からの混合modeの通し受入を実施した証拠ではない**。テスト総数の細部や教材固有のPASSは断定しない。
-- **部分実行（2026-10-23）**：`qa-training-store` HEAD `55f41bb8a111939aac59fd9b92b3903cdd7fca34`にあるCart仕様とRisk資料から正規化した入力を用い、固定Skillの`authority_entities.py`→`risk_matrix.py`→`analysis_entities.py`→`condition_structure(direct)`まで実行した。Authority/Risk EntityとScope参照の正規契約、envelope、fingerprintを[実行記録](../../training/ai-assisted-qa-course/integrations/M02-M03-contract.md#2026-10-23-source-backed-deterministic-smoke)に記載した。正規化は手作業であり、fixture・OpenCode出力・技法選択ではない。
-- **未実行**：OpenCode CLIがないため、モデル依存の意味分析・技法選択とそのruntime、`materialize_coverage(artifact)`、`case_structure`、同じartifact群の最終`verify_runtime_evidence(valid=true)`は未確認。今回確認できた決定論的な部分経路をM02→M03全体の受入PASSとして扱わない。
+- **source-backed deterministic開発実行（2026-10-23）**：PR開始HEAD `b8f8642c45c6622b227c5c08f8756129eb037d00`の正式Cart/Risk入力と固定Skill commitを用い、Authority/Risk生成、`condition_structure(direct)`、BVA runtime、TDR、`materialize_coverage(artifact)`、Case生成、condition-design/case-design両runtime verifierまで実行した。2つのverifierは`valid=true`で、fingerprintとEntity数は[実行記録](../../training/ai-assisted-qa-course/integrations/M02-M03-contract.md#2026-10-23-source-backed-deterministic-downstream-run)に記録した。意味判断とBVA選択はsourceに基づく人手入力であり、OpenCode出力ではない。
+- **未実行**：OpenCode CLIのモデル依存意味分析・技法選択を実行していない。したがって、それらのモデル出力に続く一貫したSkill経路としてのM02→M03受入は未完了である。人が与えたsource-backed意味判断を使った決定論的runtime成功だけでM02→M03全体の受入PASSとしない。
 - **採用判断**：初心者の学習では`direct`を**条件設計の入口のみ**に採用。途中で`artifact`を使う必要があることは既知。新しいモジュールやSkill内部のruntimeを追加せず、通し受入で契約が成立しない場合に理由と最小の対応を判断する。
 
 ## 残確認事項：運営開始までに指定する内容
@@ -149,11 +149,27 @@
 
 | 対象 | 開発中に確認した結果 | 状態 |
 | --- | --- | --- |
-| M00〜M10の公開教材・クイズ | 全11 moduleを、51学習項目・58知識ノード、本文、設問/4選択肢/正答/解説/出典/復習先、実技/提出物、Phase rubricに沿ってsource-based二度目レビューした。Cart教材の低在庫上限とScope参照の食い違いを修正し、全objectiveが教材・knowledge・quiz・exercise・rubricへ対応することも確認 | 実装者による二度目レビューと修正は完了。独立した別レビュー担当者の確認と非公開評価資料は未完了。knowledge nodeは`draft_requires_content_review`を維持 |
-| 22状態と参照グラフ | M00〜M10のstart/end JSON、公開入力、検証CLI・影響検索を追加。入力欠落・revision違い・参照不整合等をfixture契約テストで確認 | 構造検証PASS。意味レビューは未完了 |
-| Web・旧課程非回帰 | 開始SHA `55f41bb8a111939aac59fd9b92b3903cdd7fca34`のWeb CI run `39858260489`とMobile App CI run `39858260599`はsuccess。CIのrequired Chromium job `120102478773`とcontract/runtime-contract jobsもsuccess。ローカル`verify`は755 passed /31 failed /2 skippedでFAIL。ローカルE2EはWindowsのPlaywright管理webServer終了時に最終summary/exitを返さないが、同じ17件を外部静的serverから実行すると17/17・exit 0 | hosted CI successとWindowsローカルverify/Playwright終了問題は別の証拠。verify failureを一律にPASSや無関係として扱わず、詳細はactive Run reportに記録 |
+| M00〜M10の公開教材・クイズ | 全11 moduleを、51学習項目・58知識ノード、本文、設問/4選択肢/正答/解説/出典/復習先、実技/提出物、Phase rubricに沿ってsource-based二度目レビューした。Cart教材の低在庫上限とScope参照の食い違いを修正し、全objectiveが教材・knowledge・quiz・exercise・rubricへ対応することも確認 | 独立AIレビューでM04公開review入力不足とM07 README/実specの不一致を指摘。M04へ承認済みCaseと未レビュー候補の公開fixtureを追加して単一module配布・状態・グラフ・契約テストへ接続し、M07説明を実際の不正Locatorへ整合。レビュー指摘を回帰テストに固定した。AIレビューは人間のドメイン担当者による承認や実地評価ではない。58 knowledge nodeは正式担当者の確認を表さない`draft_requires_content_review`を維持 |
+| 22状態と参照グラフ | M00〜M10のstart/end JSON、公開入力、検証CLI・影響検索を実装。M09開始状態へ合成PR履歴handoff、M04開始状態へレビューCase fallbackを追加し、それぞれ異なるartifact ID/revision、既存handoff contract、許可list、単一module load、知識グラフへ接続。全start stateの必須入力をmanifestの同期元・単一module load先・artifact node・`module_state requires artifact` edgeへ接続し、M10 Reset入力も追加。workflow starterは別入力として保護 | 22状態・286 nodes・611 edges・51 objectives・58 knowledge・47 artifact nodesの構造検証PASS。distribution/course/graph focused contracts 29/29 PASS。構造検証を教材の意味上の妥当性とは扱わない |
+| Web・旧課程非回帰 | PR開始SHA `b8f8642c45c6622b227c5c08f8756129eb037d00`のWeb CI run `39880421985`とMobile App CI run `39880422052`は同一SHAでsuccess。現作業ツリーの`pnpm run test`は767 passed /31 failed /2 skipped、5件の既存Codex Hook・artifact sanitizer・task wrapper・MCP contract filesでfailure、うち1 fileはWindows `bash` spawnの`stdout`未定義で0 tests。いずれの対象ファイルも今回のdiff外。`verify`は`workspace/M06/acceptance-probe.spec.ts`の整形で最初の`format:check`が止まるため、tracked変更はPrettier済みでも全`verify`はPASSしていない | Chromium 51件の外部静的server runは4 workersでM01/M05の初問表示assertion 2件と300秒後のworker強制終了を観測。両assertionは同一SHA/build・Chrome・serverで単独実行すると各1/1 PASSし、新課程17件は1 workerで17/17・exit 0。51件の1 worker runは51完了dot・error context 0の後に300秒worker強制終了となり、summary/exitを得られず中断したためPASSとはしない。CI・標準`verify`・各Playwright経路は別の証拠として扱う |
 | 同期・単一moduleロード | 固定SHA・blob・許可範囲・機密拒否・部分失敗・再実行・上書き防止を契約テストで確認 | fixture PASS。外部Templateは未作成 |
-| M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`のAuthority helper、Risk matrix、analysis join、condition structureをsource-backed Cart入力で実行。Authority/Risk Entityを生成し、Scopeは`SCOPE-...`参照としてdirectへ渡した | 決定論的部分経路は実行済み。OpenCode CLIがないため意味分析・技法選択runtime以降、materialize/Case/最終evidence gateは未実行で、統合受入は未完了 |
-| M05→M06 / Phase 2 runner | M05/M06教材と専用configを作成。M06の3つの公開specは学習者用TODO素材で、専用runnerの実行結果は3件FAIL。M07は修正前の意図したAssertion失敗を確認し、修正後scaffoldもTODOでFAIL | 完成版実技の開発受入は未達 |
-| 非公開評価・グラフ内容 | 公開ルーブリックは追加。実装者の二度目レビューで既知のCart/Scope不整合を修正。非公開模範/採点テストの保存先・権限・管理担当は未指定。knowledge node 58件は`draft_requires_content_review` | 別レビュー担当者による意味レビューと非公開資料は未完了。未指定値やレビュー完了状態を推測で設定しない |
+| M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`の主要scriptのGit blobを固定commit treeと照合。source-backed `SCOPE-001`低在庫系列と公開fallback `SCOPE-101`系列の両方でAuthority/Risk/Scope参照をcurrent TCNへ継承し、技法runtime、TDR、materialize、Case、condition-design/case-design最終evidence gateまで同一入力系列で実行 | 両系列の決定論的runtimeと最終gateは`valid=true`。`SCOPE-001`の上限3に2/3/4、`SCOPE-101`の上限5に4/5/6を照合した。意味分析と技法選択は正式sourceに基づく人手入力で、OpenCode出力ではない。CLIがないためモデル依存の意味分析・技法選択は未実施であり、M02→M03のAI統合受入全体は未完了 |
+| M05→M06 / Phase 2 runner | M05教材の修正済みLocator specをローカル開発probe 1/1、M06のSeed/Reset・追加・上限拒否・数量保持・low-stock在庫3 specを独立したローカル開発probe 3/3で実行。Chromeを明示し、既存の外部静的serverを利用。user-provided ignored probe filesは作業ツリーに保持してcommit対象外 | 開発用の代表specはPASS。公開M06 TODO specは学習者が完成させるscaffoldであり、probeのPASSを完成済み公開spec・受講者受入とは扱わない |
+| 非公開評価・グラフ内容 | 公開ルーブリックは追加。実装者の二度目レビューに加え、独立AI reviewerが全11モジュールの意味上の対応を静的確認。M04のreview input不足、M07 READMEとLocator/assertionの不一致、全11開始状態のfallback artifact edge不足を指摘し、教材・テスト・graphへ反映。M03 default fallbackと低在庫演習の違いは両方の入力条件が本文に明記された意図的な区別と判断 | 58 knowledge nodeのうち、正式担当者の確認を要するものは`draft_requires_content_review`を維持。AI reviewは人間の正式ドメイン確認・採点・実地受入ではない。非公開模範/採点テストの保存先・権限・管理担当は未指定で未作成。 |
 | 実地検証 | 初心者/受講者、評価担当者、Template由来の2コアCodespace、所要時間・容量・無料枠は未確認 | 全量実装後の独立工程。実装工程のBLOCKED理由ではない |
+
+### 2026-10-23 独立AI開発レビューの追加記録
+
+- **レビュー主体と範囲**：別のAI reviewerによる読み取り専用の内容・契約レビュー。M00〜M10全11モジュール、51学習項目、58知識ノード、53設問の全選択肢・正答・解説・出典・復習先、教材本文、演習、22状態、公開rubricを対象にした。正式仕様、参照されたSeed/Reset、固定Skill revision、状態・同期manifestを照合した。人間のドメイン担当者による承認や受講者による評価とは区別する。
+- **発見と反映**：
+
+| 対象 | 指摘と根拠 | 修正・開発確認 |
+| --- | --- | --- |
+| `M03-01` / `M03-02` | 知識グラフは同値分割の目標`M03-01`を、境界値だけを説明する教材節へ結び付けていた。 | `M03-01`を同値分割の教材節へ変更し、境界値の`M03-02`は境界値節に接続した。知識グラフvalidatorと契約テストを再実行。 |
+| M03 Cart数量 | `docs/spec/features/cart.md`のBR-CART-001と`src/application/use-cases/cart-use-cases.ts`の追加経路を照らすと、既存数量への追加分と、絶対値の数量更新を教材が混同し得た。 | M03 READMEに追加要求量と加算後合計の関係、絶対値更新、0の削除、上限超過の拒否を分けて説明した。 |
+| M10開始状態 | Reset入力は単一module manifestで配布・loadされていたが、M10 startの`expected.required_paths`に含まれていなかった。 | `inputs/M10/public-sample-reset.md`を必須入力に追加し、知識グラフの公開artifact nodeと`STATE-M10-START requires` edgeを追加した。 |
+| 状態参照照合 | `course:check`はsource pathまたは一部aliasのみを実在ファイルとして見ており、M03のmanifest remap済みRisk CSVと固定Skill revision参照を解決できなかった。 | distribution manifestのsource→target mappingと配布hashを照合するよう修正。Skill参照はpin一致、対象moduleへ割り当てられた各`SKILL.md`配布entry、同期済みhashを検証する。M03の正例、別revision拒否、Skill改変拒否をcontract testへ追加した。 |
+| 知識グラフのMarkdown表エスケープ | CodeQLの既存PR注記は、セル値に含まれるバックスラッシュと表区切りの未処理を指摘していた。 | 現在の`markdownCell`は先にバックスラッシュを二重化してから表区切りと改行を変換する。Windows形式パス、表区切り、CRLFの回帰testを追加して出力を固定した。 |
+
+- **開発検証**：distribution/curriculum/knowledge-graph contracts 30/30 PASS、M00〜M10/53問の課程validator PASS、22状態を含むknowledge graph validate PASS（286 nodes/611 edges/51 objectives/58 knowledge/47 artifacts）、curriculum validator PASS、M03ページを含むWeb build PASS、新課程Web Chromium E2E 17/17 PASS（外部静的server、exit 0）。
+- **判定境界**：レビュー担当はAIであり、人間による正式な内容承認ではない。追加指摘は修正したが、58 knowledge nodeは`draft_requires_content_review`を維持する。非公開模範・採点資料は、保存先・アクセス権・管理担当が指定されていないため未作成。レビューで実施していない人間受講・採点・Codespaces実地検証をPASSとは扱わない。

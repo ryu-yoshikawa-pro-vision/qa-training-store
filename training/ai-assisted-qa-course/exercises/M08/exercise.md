@@ -7,10 +7,11 @@
 ## 手順
 
 1. `review-candidate.md`のTODOを自分の言葉で補い、`git status`でworking tree、branch、現在位置を確認します。
-2. `git diff`で変更理由、削除、無関係な差分を確認します。`local-only-run.log`は実行結果ではなく提出・stage対象にしないことを確認します。
-3. `review-candidate.md`だけstageし、`git diff --staged`にそのファイルだけがあることを再確認します。
-4. commit messageに目的を表し、変更範囲を短く説明します。
-5. PR案では仕様ID、コード、テスト、未確認事項を対応付けます。AIレビューは根拠とdiffで採否を決めます。
+2. `git check-ignore -v workspace/M08/local-only-run.log`で`workspace/.gitignore`の規則と対象パスを確認し、`git status --ignored --short workspace/M08/local-only-run.log`で練習用ログが存在するが無視されていることを確かめます。`.gitignore`だけではすでに追跡されているファイルを外せない点も説明します。
+3. `git diff`で変更理由、削除、無関係な差分を確認します。`local-only-run.log`は実行結果ではなく提出・stage対象にしないことを確認します。
+4. `review-candidate.md`だけstageし、`git diff --staged`にそのファイルだけがあることを再確認します。
+5. commit messageに目的を表し、変更範囲を短く説明します。
+6. PR案では仕様ID、コード、テスト、未確認事項を対応付けます。AIレビューは根拠とdiffで採否を決めます。
 
 ## 提出物
 

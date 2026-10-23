@@ -9,7 +9,11 @@
   "read_only": true,
   "environment": ["M06 spec", "Run logs and Trace"],
   "expected": {
-    "required_paths": ["workspace/M07/diagnosis.md", "workspace/M07/repaired-assertion.spec.ts"],
+    "required_paths": [
+      "workspace/M07/diagnosis.md",
+      "workspace/M07/repaired-assertion.spec.ts",
+      "workspace/M07/phase2-handoff.md"
+    ],
     "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
     "phase": "P2",
     "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
@@ -56,6 +60,12 @@
     {
       "artifact_id": "M07-result-02",
       "path": "workspace/M07/repaired-assertion.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1"
+    },
+    {
+      "artifact_id": "M07-result-03",
+      "path": "workspace/M07/phase2-handoff.md",
       "revision": "M07-result-v1",
       "contract_id": "M07-to-M08-handoff-v1"
     }

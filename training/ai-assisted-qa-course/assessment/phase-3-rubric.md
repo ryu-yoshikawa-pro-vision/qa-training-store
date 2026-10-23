@@ -16,7 +16,7 @@ Phase 3は受講者の選択制ですが、カリキュラムの教材・課題�
 | 目標 | 確認する証拠 | 到達しない例 |
 |---|---|---|
 | M08-01 | working tree・stage・commit・branchの状態を説明する | ローカル差分とremote履歴を混同する |
-| M08-02 | diffを確認し、必要な対象だけをstage/commitする | Secretや生成物を確認せず含める |
+| M08-02 | diffと`.gitignore`を確認し、`git check-ignore`でローカルログの規則を説明して、必要な対象だけをstage/commitする | Secretや生成物を確認せず含める、または`.gitignore`が追跡済みファイルを外すと思い込む |
 | M08-03 | PRで仕様・コード・テストの対応を追う | 根拠なしの承認をする |
 | M08-04 | AIレビューの誤り・過剰設計をdiffと根拠で判断する | AIの指摘を無条件採用する |
 | M09-01 | workflow/trigger/job/runner/step/build/testを説明する | YAMLを読まず起動成功だけを見る |

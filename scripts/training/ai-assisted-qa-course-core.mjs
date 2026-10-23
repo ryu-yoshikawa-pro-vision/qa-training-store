@@ -14,6 +14,7 @@ const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const FORBIDDEN_PATH =
   /(?:^|\/)(?:\.git|\.codex|node_modules|output|evals|secrets?|private|answer-keys?|model-answers?)(?:\/|$)|(?:^|\/)\.env(?:\.|$)/i;
+const GITHUB_WORKFLOW_PATH = /(?:^|\/)\.github\/workflows(?:\/|$)/i;
 
 function fail(message) {
   throw new Error(message);
@@ -39,6 +40,12 @@ function normalizeRelativePath(value, description = "path") {
   )
     fail(`${description} escapes its root: ${value}`);
   if (FORBIDDEN_PATH.test(value)) fail(`${description} is prohibited: ${value}`);
+  return value;
+}
+
+function assertNotWorkflowPath(value, description) {
+  if (GITHUB_WORKFLOW_PATH.test(value))
+    fail(`${description} is prohibited by the course distribution contract: ${value}`);
   return value;
 }
 
@@ -77,9 +84,13 @@ export function validateCourseManifest(manifest) {
   if (
     !Array.isArray(manifest.local_files) ||
     !Array.isArray(manifest.external_skill_files) ||
-    !Array.isArray(manifest.load_files)
+    !Array.isArray(manifest.load_files) ||
+    !Array.isArray(manifest.forbidden_paths) ||
+    !manifest.forbidden_paths.includes(".github/workflows/**")
   )
-    fail("Course manifest must contain local_files, external_skill_files, and load_files");
+    fail(
+      "Course manifest must contain local_files, external_skill_files, load_files, and the .github/workflows/** prohibition",
+    );
   if (
     manifest.external_skill_source?.repository !== "ryu-yoshikawa-pro-vision/qa-workflow-skills" ||
     manifest.external_skill_source?.commit !== "7cc6cba7772de549841a39d71694cbafbc783324"
@@ -87,8 +98,14 @@ export function validateCourseManifest(manifest) {
     fail("The external Skill source must remain pinned to the Plan revision");
   const destinations = new Set();
   for (const entry of [...manifest.local_files, ...manifest.external_skill_files]) {
-    const source = normalizeRelativePath(entry.source_path, "source_path");
-    const target = normalizeRelativePath(entry.target_path, "target_path");
+    const source = assertNotWorkflowPath(
+      normalizeRelativePath(entry.source_path, "source_path"),
+      "source_path",
+    );
+    const target = assertNotWorkflowPath(
+      normalizeRelativePath(entry.target_path, "target_path"),
+      "target_path",
+    );
     if (destinations.has(target)) fail(`duplicate distribution target: ${target}`);
     destinations.add(target);
     if (
@@ -147,8 +164,14 @@ export function validateCourseManifest(manifest) {
   for (const entry of manifest.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
       fail(`invalid load module_id: ${entry.module_id}`);
-    normalizeRelativePath(entry.source_path, "load source_path");
-    normalizeRelativePath(entry.target_path, "load target_path");
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.source_path, "load source_path"),
+      "load source_path",
+    );
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.target_path, "load target_path"),
+      "load target_path",
+    );
   }
   return {
     modules: MODULE_IDS.length,
@@ -449,6 +472,28 @@ function readDistribution(root) {
     fail("course distribution manifest has no state contract revision");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
+  for (const entry of distribution.files) {
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.source_path, "distribution source_path"),
+      "distribution source_path",
+    );
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.target_path, "distribution target_path"),
+      "distribution target_path",
+    );
+  }
+  for (const entry of distribution.load_files) {
+    if (!MODULE_ID_PATTERN.test(entry.module_id))
+      fail(`invalid load module_id: ${entry.module_id}`);
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.source_path, "load source_path"),
+      "load source_path",
+    );
+    assertNotWorkflowPath(
+      normalizeRelativePath(entry.target_path, "load target_path"),
+      "load target_path",
+    );
+  }
   return distribution;
 }
 
@@ -859,15 +904,50 @@ function statePathAliases(relativePath, moduleId) {
   return [];
 }
 
-function stateReferenceExists(root, moduleId, reference) {
+function stateReferenceExists(root, moduleId, reference, distribution) {
   if (typeof reference !== "string" || !reference.trim()) return false;
   const sourcePath = reference.split("#", 1)[0];
+  const skillReference = /^([^/]+\/[^@]+)@([a-f0-9]{40})$/.exec(sourcePath);
+  if (skillReference) {
+    const pinnedSource = distribution.external_skill_source;
+    if (
+      skillReference[1] !== pinnedSource?.repository ||
+      skillReference[2] !== pinnedSource?.commit
+    )
+      return false;
+    const moduleSkillEntries = distribution.files.filter((file) => {
+      const skillPath = /^skills\/([^/]+)\/SKILL\.md$/.exec(file.source_path ?? "");
+      const moduleUsesSkill = Array.isArray(file.module_id)
+        ? file.module_id.includes(moduleId)
+        : file.module_id === moduleId;
+      return (
+        file.origin === "external-skill" &&
+        moduleUsesSkill &&
+        skillPath &&
+        file.target_path === `.agents/skills/${skillPath[1]}/SKILL.md`
+      );
+    });
+    if (moduleSkillEntries.length === 0) return false;
+    return moduleSkillEntries.every((entry) => {
+      try {
+        verifiedCourseSource(root, distribution, entry.target_path);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
   if (path.isAbsolute(sourcePath) || sourcePath.includes("..")) return false;
-  const candidates = [sourcePath, ...statePathAliases(sourcePath, moduleId)];
+  const mappedTargets = distribution.files
+    .filter((file) => file.source_path === sourcePath)
+    .map((file) => file.target_path);
+  const candidates = [
+    ...new Set([sourcePath, ...statePathAliases(sourcePath, moduleId), ...mappedTargets]),
+  ];
   return candidates.some((candidate) => {
     try {
-      const absolute = resolveWithin(root, candidate);
-      return fs.existsSync(absolute) && fs.statSync(absolute).isFile();
+      verifiedCourseSource(root, distribution, candidate);
+      return true;
     } catch {
       return false;
     }
@@ -908,7 +988,7 @@ export function checkState({ root, moduleId, stateName }) {
   )
     reasons.push("公開状態に非公開評価資料を含める設定があります");
   for (const reference of state.references ?? []) {
-    if (!stateReferenceExists(targetRoot, moduleId, reference))
+    if (!stateReferenceExists(targetRoot, moduleId, reference, distribution))
       reasons.push(`状態の参照先がありません: ${reference}`);
   }
   if (!Array.isArray(state.references) || state.references.length === 0)

@@ -165,6 +165,12 @@
       "role": "input"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
+      "target_path": "course/modules/M03/inputs/public-risk-input.csv",
+      "module_id": "M03",
+      "role": "input"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/exercises/M03/exercise.md",
       "target_path": "course/exercises/M03/exercise.md",
       "module_id": "M03",
@@ -203,6 +209,12 @@
     {
       "source_path": "training/ai-assisted-qa-course/inputs/M04/start.md",
       "target_path": "course/modules/M04/inputs/start.md",
+      "module_id": "M04",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
+      "target_path": "course/modules/M04/inputs/public-review-cases.md",
       "module_id": "M04",
       "role": "input"
     },
@@ -351,6 +363,18 @@
       "role": "submission-template"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/exercises/M07/handoff-template.md",
+      "target_path": "course/exercises/M07/handoff-template.md",
+      "module_id": "M07",
+      "role": "submission-template"
+    },
+    {
+      "source_path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "target_path": "course/exercises/M07/handoff-smoke.spec.ts",
+      "module_id": "M07",
+      "role": "sample"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/states/M07/start.json",
       "target_path": "course/states/M07/start.json",
       "module_id": "M07",
@@ -377,6 +401,42 @@
     {
       "source_path": "training/ai-assisted-qa-course/inputs/M08/start.md",
       "target_path": "course/modules/M08/inputs/start.md",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-handoff.json",
+      "target_path": "course/modules/M08/inputs/public-sample-handoff.json",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-config.md",
+      "target_path": "course/modules/M08/inputs/public-sample-config.md",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-dependencies.md",
+      "target_path": "course/modules/M08/inputs/public-sample-dependencies.md",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
+      "target_path": "course/modules/M08/inputs/public-sample-reset.md",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-run-evidence.md",
+      "target_path": "course/modules/M08/inputs/public-sample-run-evidence.md",
+      "module_id": "M08",
+      "role": "input"
+    },
+    {
+      "source_path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "target_path": "course/modules/M08/inputs/public-sample-spec.ts",
       "module_id": "M08",
       "role": "input"
     },
@@ -435,6 +495,18 @@
       "role": "input"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/inputs/M09/public-sample-handoff.md",
+      "target_path": "course/modules/M09/inputs/public-sample-handoff.md",
+      "module_id": "M09",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M09/workflow-starter.yml.disabled",
+      "target_path": "course/modules/M09/inputs/workflow-starter.yml.disabled",
+      "module_id": "M09",
+      "role": "exercise-input"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/exercises/M09/exercise.md",
       "target_path": "course/exercises/M09/exercise.md",
       "module_id": "M09",
@@ -479,6 +551,48 @@
     {
       "source_path": "training/ai-assisted-qa-course/inputs/M10/start.md",
       "target_path": "course/modules/M10/inputs/start.md",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-handoff.json",
+      "target_path": "course/modules/M10/inputs/public-sample-handoff.json",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-config.md",
+      "target_path": "course/modules/M10/inputs/public-sample-config.md",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-dependencies.md",
+      "target_path": "course/modules/M10/inputs/public-sample-dependencies.md",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-run-evidence.md",
+      "target_path": "course/modules/M10/inputs/public-sample-run-evidence.md",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
+      "target_path": "course/modules/M10/inputs/public-sample-reset.md",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      "target_path": "course/modules/M10/inputs/public-sample-workflow.yml.disabled",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
+      "source_path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "target_path": "course/modules/M10/inputs/public-sample-spec.ts",
       "module_id": "M10",
       "role": "input"
     },
@@ -1455,6 +1569,18 @@
       "kind": "submission-template"
     },
     {
+      "module_id": "M07",
+      "source_path": "course/exercises/M07/handoff-template.md",
+      "target_path": "workspace/M07/phase2-handoff.md",
+      "kind": "submission-template"
+    },
+    {
+      "module_id": "M07",
+      "source_path": "course/exercises/M07/handoff-smoke.spec.ts",
+      "target_path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "kind": "exercise-code"
+    },
+    {
       "module_id": "M08",
       "source_path": "course/exercises/M08/submission-template.md",
       "target_path": "workspace/M08/submission.md",
@@ -1473,6 +1599,42 @@
       "kind": "exercise-file"
     },
     {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-handoff.json",
+      "target_path": "workspace/M08/public-sample/handoff.json",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-config.md",
+      "target_path": "workspace/M08/public-sample/config.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-dependencies.md",
+      "target_path": "workspace/M08/public-sample/dependencies.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-reset.md",
+      "target_path": "workspace/M08/public-sample/reset.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-run-evidence.md",
+      "target_path": "workspace/M08/public-sample/run-evidence.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M08",
+      "source_path": "course/modules/M08/inputs/public-sample-spec.ts",
+      "target_path": "workspace/M08/public-sample/handoff-smoke.spec.ts",
+      "kind": "exercise-code"
+    },
+    {
       "module_id": "M09",
       "source_path": "course/exercises/M09/submission-template.md",
       "target_path": "workspace/M09/submission.md",
@@ -1486,15 +1648,63 @@
     },
     {
       "module_id": "M09",
-      "source_path": "course/templates/phase3/course-e2e.workflow.yml.disabled",
+      "source_path": "course/modules/M09/inputs/workflow-starter.yml.disabled",
       "target_path": "workspace/M09/course-e2e.workflow.yml.disabled",
       "kind": "disabled-workflow-sample"
+    },
+    {
+      "module_id": "M09",
+      "source_path": "course/modules/M09/inputs/public-sample-handoff.md",
+      "target_path": "workspace/M09/public-sample/handoff.md",
+      "kind": "exercise-file"
     },
     {
       "module_id": "M10",
       "source_path": "course/exercises/M10/submission-template.md",
       "target_path": "workspace/M10/submission.md",
       "kind": "submission-template"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-handoff.json",
+      "target_path": "workspace/M10/public-sample/handoff.json",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-config.md",
+      "target_path": "workspace/M10/public-sample/config.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-dependencies.md",
+      "target_path": "workspace/M10/public-sample/dependencies.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-reset.md",
+      "target_path": "workspace/M10/public-sample/reset.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-run-evidence.md",
+      "target_path": "workspace/M10/public-sample/run-evidence.md",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-spec.ts",
+      "target_path": "workspace/M10/public-sample/handoff-smoke.spec.ts",
+      "kind": "exercise-code"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/public-sample-workflow.yml.disabled",
+      "target_path": "workspace/M10/public-sample/course-e2e.workflow.yml.disabled",
+      "kind": "disabled-workflow-sample"
     },
     {
       "module_id": "M06",
@@ -1642,6 +1852,12 @@
     },
     {
       "module_id": "M03",
+      "source_path": "course/modules/M03/inputs/public-risk-input.csv",
+      "target_path": "workspace/M03/public-sample/risk-input.csv",
+      "kind": "exercise-file"
+    },
+    {
+      "module_id": "M03",
       "source_path": "course/exercises/M03/exercise.md",
       "target_path": "course/exercises/M03/exercise.md",
       "kind": "course-material"
@@ -1675,6 +1891,12 @@
       "source_path": "course/modules/M04/inputs/start.md",
       "target_path": "course/modules/M04/inputs/start.md",
       "kind": "course-material"
+    },
+    {
+      "module_id": "M04",
+      "source_path": "course/modules/M04/inputs/public-review-cases.md",
+      "target_path": "workspace/M04/public-sample/review-cases.md",
+      "kind": "exercise-file"
     },
     {
       "module_id": "M04",

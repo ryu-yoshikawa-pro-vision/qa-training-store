@@ -8,6 +8,8 @@ Phase 3の選択受講者向けに、学習用リポジトリ内で変更を安�
 
 Working treeは現在のファイル、stageは次のcommitへ含める選択、commitはローカル履歴、branchは変更系列、remoteはGitHub上の共有先です。`git status`で状態を見て、`git diff`で変更内容を確認します。変更ファイルを一括追加する前に、教材と無関係なログ・Trace・認証情報・生成物がないか確かめます。
 
+`workspace/.gitignore`はGitの追跡対象から外すファイルやパターンを指定します。この教材では`/M08/local-only-run.log`だけを除外します。`git check-ignore -v workspace/M08/local-only-run.log`で一致した規則を確認し、`git status --ignored --short workspace/M08/local-only-run.log`でファイルが存在するが通常の変更一覧から除外されていることを確かめます。`.gitignore`は、すでに追跡中のファイルを自動で追跡解除する規則ではありません。対象範囲を確認してから必要なファイルだけstageします。
+
 練習の流れは「変更→status→diff→必要ファイルのみstage→差分再確認→commit→個人remoteへpush→PR作成」です。各段階の状態を確認します。PRには目的、仕様/Case ID、変更したspec、実行コマンドと結果、未確認事項を書き、同じSHAに対応する根拠を示します。
 
 ## AIレビューの採否
@@ -19,6 +21,8 @@ AIの指摘は対象diff、正式仕様、実行証拠に照らします。正�
 `workspace/M08/review-candidate.md`のTODOを補い、`workspace/M08/local-only-run.log`が合成メモで実行証拠ではないことを確認します。前者だけをstageし、`status`と`diff --staged`で後者が含まれていないことを確認します。次にCase ID・仕様根拠・対象spec・実行状態を含むPR説明を作成し、AI指摘を根拠で評価します。実際の共有操作は個人用学習リポジトリの権限が確定した実地工程で行います。
 
 提出は `workspace/M08/submission.md` に状態遷移・差分・レビュー根拠を記録します。GitHubアカウント権限やRunner利用可否を教材内で成功済みと扱いません。
+
+開始時にM07の本人handoffを使えない場合は、M08専用の`inputs/M08/public-sample-*`一式を参照します。このサンプルには動作確認済みspec、Config・依存・Resetの出典とrevision、実行条件と結果を含みます。`course:load M08`はそれらを`workspace/M08/public-sample/`へ配置し、M07をロードしたり、その成果物を修復・上書きしたりしません。M08用Configはこのmodule-local sampleだけを対象にします。
 
 ## 確認と復習
 

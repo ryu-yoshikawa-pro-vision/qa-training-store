@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -148,11 +149,22 @@ function courseFixture() {
             path: `inputs/${moduleId}/start.md`,
             public: true,
           },
-          expected: { required_paths: [`inputs/${moduleId}/start.md`] },
+          expected: {
+            required_paths: [
+              `inputs/${moduleId}/start.md`,
+              ...(moduleId === "M03" ? ["inputs/M03/public-risk-input.csv"] : []),
+            ],
+          },
           checks: [{ id: `${moduleId}-START`, mode: "read-only", condition: "check inputs" }],
           references: [
             `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
             `docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.json`,
+            ...(moduleId === "M03"
+              ? [
+                  "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
+                  "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324",
+                ]
+              : []),
           ],
           confidentiality: {
             public: true,
@@ -188,6 +200,11 @@ function courseFixture() {
           references: [
             `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
             `docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.json`,
+            ...(moduleId === "M03"
+              ? [
+                  "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324",
+                ]
+              : []),
           ],
           confidentiality: {
             public: true,
@@ -233,6 +250,25 @@ function courseFixture() {
         target_path: targetPath,
         kind: "course-material",
       });
+    if (moduleId === "M03") {
+      const sourcePath = "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv";
+      const targetPath = "course/modules/M03/inputs/public-risk-input.csv";
+      const content = "risk_id,impact,likelihood\nRISK-CART-001,high,medium\n";
+      writeFixtureFile(source, sourcePath, content);
+      localFiles.push({
+        source_path: sourcePath,
+        target_path: targetPath,
+        module_id: moduleId,
+        role: "input",
+      });
+      distributionBytes.set(targetPath, Buffer.from(content));
+      loadFiles.push({
+        module_id: moduleId,
+        source_path: targetPath,
+        target_path: targetPath,
+        kind: "course-material",
+      });
+    }
     loadFiles.push({
       module_id: moduleId,
       source_path: `course/exercises/${moduleId}/submission-template.md`,
@@ -290,7 +326,7 @@ function courseFixture() {
       blob_sha: blobSha(bytes),
       size: bytes.length,
       skill,
-      module_ids: [`M${String(index).padStart(2, "0")}`],
+      module_ids: index === 4 ? ["M03", "M04"] : [`M${String(index).padStart(2, "0")}`],
     };
   });
   const manifest = {
@@ -364,6 +400,232 @@ describe("AI-assisted QA distribution contract", () => {
         ],
       }),
     ).toThrow(/prohibited/);
+  });
+
+  it("loads the M03 public risk row only with M03 and requires it for the independent fallback", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const state = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M03/start.json"),
+        "utf8",
+      ),
+    );
+    const input = manifest.local_files.find(
+      (entry) =>
+        entry.source_path === "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
+    );
+    expect(state.expected.required_paths).toContain("inputs/M03/public-risk-input.csv");
+    expect(input).toMatchObject({
+      target_path: "course/modules/M03/inputs/public-risk-input.csv",
+      module_id: "M03",
+      role: "input",
+    });
+    expect(manifest.load_files).toContainEqual({
+      module_id: "M03",
+      source_path: "course/modules/M03/inputs/public-risk-input.csv",
+      target_path: "workspace/M03/public-sample/risk-input.csv",
+      kind: "exercise-file",
+    });
+    const csv = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv"),
+      "utf8",
+    );
+    const sourceRiskCsv = fs.readFileSync(
+      path.join(repositoryRoot, "training/workbook/01_target-risk.csv"),
+      "utf8",
+    );
+    const bundledLines = csv.trim().split(/\r?\n/);
+    const sourceRiskLines = sourceRiskCsv
+      .trim()
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("TARGET-CART-001,"));
+    expect(csv.trim().split(/\r?\n/)).toHaveLength(2);
+    expect(sourceRiskLines).toHaveLength(1);
+    expect(bundledLines).toEqual([sourceRiskCsv.trim().split(/\r?\n/)[0], sourceRiskLines[0]]);
+    expect(csv).toContain(
+      "TARGET-CART-001,docs/spec/features/cart.md,BR-CART-001,AC-CART-001,RISK-CART-001",
+    );
+  });
+
+  it("loads a distinct M04 public review input without publishing a completed review", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const state = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M04/start.json"),
+        "utf8",
+      ),
+    );
+    const sourcePath = "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md";
+    const input = manifest.local_files.find((entry) => entry.source_path === sourcePath);
+    const cases = fs.readFileSync(path.join(repositoryRoot, sourcePath), "utf8");
+
+    expect(state.expected.required_paths).toContain("inputs/M04/public-review-cases.md");
+    expect(state.public_fallback).toEqual({
+      artifact_id: "M04-public-review-cases-01",
+      revision: "M04-public-review-cases-v1",
+      contract_id: "M03-to-M04-handoff-v1",
+      path: "inputs/M04/public-review-cases.md",
+      public: true,
+    });
+    expect(input).toMatchObject({
+      target_path: "course/modules/M04/inputs/public-review-cases.md",
+      module_id: "M04",
+      role: "input",
+    });
+    expect(manifest.load_files).toContainEqual({
+      module_id: "M04",
+      source_path: "course/modules/M04/inputs/public-review-cases.md",
+      target_path: "workspace/M04/public-sample/review-cases.md",
+      kind: "exercise-file",
+    });
+    expect(cases).toContain("CASE-CART-BASE-01");
+    expect(cases).toContain("CASE-CART-CANDIDATE-01");
+    expect(cases).toContain("CASE-CART-CANDIDATE-02A / CASE-CART-CANDIDATE-02B");
+    expect(cases).toContain("CASE-CART-CANDIDATE-03");
+    expect(cases).toContain("M04のレビュー回答、採点資料、完成したM04提出物ではありません");
+    expect(cases).not.toMatch(/模範解答|採点基準の解説|正答一覧/);
+  });
+
+  it("keeps the M07 failure explanation aligned with the executable failing Locator", () => {
+    const readme = fs.readFileSync(
+      path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/modules/M07/README.md"),
+      "utf8",
+    );
+    const spec = fs.readFileSync(
+      path.join(repositoryRoot, "workspace/M07/failure-assertion.spec.ts"),
+      "utf8",
+    );
+
+    expect(spec).toContain('name: "存在しない商品"');
+    expect(spec).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
+    expect(readme).toContain("存在しない見出し「存在しない商品」");
+    expect(readme).toContain("LocatorとAssertionのどこで失敗したか");
+    expect(readme).not.toContain("Locatorは合っているがAssertionが案内文だけを確認している");
+  });
+
+  it("ships complete M08 and M10 public handoff bundles within their single-module loads", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const m07End = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M07/end.json"),
+        "utf8",
+      ),
+    );
+    const m08Start = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M08/start.json"),
+        "utf8",
+      ),
+    );
+    expect(m07End.outputs).toContainEqual(
+      expect.objectContaining({
+        artifact_id: "M07-result-03",
+        path: "workspace/M07/phase2-handoff.md",
+        contract_id: "M07-to-M08-handoff-v1",
+      }),
+    );
+    expect(m08Start.inputs.map((input) => input.artifact_id)).toContain("M07-result-03");
+
+    for (const moduleId of ["M08", "M10"]) {
+      const state = JSON.parse(
+        fs.readFileSync(
+          path.join(repositoryRoot, `training/ai-assisted-qa-course/states/${moduleId}/start.json`),
+          "utf8",
+        ),
+      );
+      if (moduleId === "M10") {
+        expect(state.expected.required_paths).toContain("inputs/M10/public-sample-reset.md");
+      }
+      for (const requiredPath of state.expected.required_paths.filter((item) =>
+        item.startsWith(`inputs/${moduleId}/`),
+      )) {
+        const targetPath = `course/modules/${moduleId}/inputs/${requiredPath.slice(`inputs/${moduleId}/`.length)}`;
+        expect(
+          manifest.local_files.some(
+            (file) =>
+              file.module_id === moduleId &&
+              file.role === "input" &&
+              file.target_path === targetPath,
+          ),
+          `${moduleId} fallback input ${targetPath} is allowlisted`,
+        ).toBe(true);
+        expect(
+          manifest.load_files.some(
+            (file) => file.module_id === moduleId && file.source_path === targetPath,
+          ),
+          `${moduleId} fallback input ${targetPath} is loaded`,
+        ).toBe(true);
+      }
+      for (const file of manifest.load_files.filter(
+        (entry) => entry.module_id === moduleId && entry.target_path.startsWith("workspace/"),
+      )) {
+        expect(file.target_path.startsWith(`workspace/${moduleId}/`), file.target_path).toBe(true);
+      }
+
+      const sampleSpec = manifest.load_files.find(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.target_path === `workspace/${moduleId}/public-sample/handoff-smoke.spec.ts`,
+      );
+      expect(sampleSpec?.source_path).toBe(
+        `course/modules/${moduleId}/inputs/public-sample-spec.ts`,
+      );
+      const sampleConfig = fs.readFileSync(
+        path.join(
+          repositoryRoot,
+          `training/ai-assisted-qa-course/inputs/${moduleId}/public-sample-config.md`,
+        ),
+        "utf8",
+      );
+      expect(sampleConfig).toContain(`workspace/${moduleId}/public-sample/`);
+    }
+
+    const m10Workflow = manifest.load_files.find(
+      (entry) => entry.module_id === "M10" && entry.kind === "disabled-workflow-sample",
+    );
+    expect(m10Workflow?.target_path).toBe(
+      "workspace/M10/public-sample/course-e2e.workflow.yml.disabled",
+    );
+    expect(m10Workflow?.target_path).not.toContain(".github/workflows/");
+    const m10WorkflowSource = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
+      "utf8",
+    );
+    expect(m10WorkflowSource).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+
+    const ignoreRoot = path.join(fixtureRoot, "m08-gitignore-contract");
+    fs.mkdirSync(path.join(ignoreRoot, "workspace"), { recursive: true });
+    fs.writeFileSync(
+      path.join(ignoreRoot, "workspace/.gitignore"),
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/templates/workspace.gitignore"),
+        "utf8",
+      ),
+    );
+    execFileSync("git", ["init", "--quiet"], { cwd: ignoreRoot });
+    const ignoredLog = spawnSync(
+      "git",
+      [
+        "-C",
+        ignoreRoot,
+        "check-ignore",
+        "--no-index",
+        "--verbose",
+        "workspace/M08/local-only-run.log",
+      ],
+      { encoding: "utf8" },
+    );
+    expect(ignoredLog.status).toBe(0);
+    expect(ignoredLog.stdout).toContain("/M08/local-only-run.log");
+    const unrelatedLog = spawnSync(
+      "git",
+      ["-C", ignoreRoot, "check-ignore", "--no-index", "workspace/M08/actual-run.log"],
+      { encoding: "utf8" },
+    );
+    expect(unrelatedLog.status).toBe(1);
   });
 
   it("maps every lesson and start-guide link to an allowlisted distribution file", () => {
@@ -460,6 +722,185 @@ describe("AI-assisted QA distribution contract", () => {
     expect(m07Before).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
     expect(m07After).toContain('throw new Error("TODO:');
     expect(m07After).not.toContain("セラミックマグ");
+  });
+
+  it("hands off the corrected M09 disabled workflow to M10 without activating it", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const readState = (moduleId, state) =>
+      JSON.parse(
+        fs.readFileSync(
+          path.join(
+            repositoryRoot,
+            "training/ai-assisted-qa-course/states",
+            moduleId,
+            `${state}.json`,
+          ),
+          "utf8",
+        ),
+      );
+    const m09Start = readState("M09", "start");
+    const m09End = readState("M09", "end");
+    const m10Start = readState("M10", "start");
+    const artifact = m09End.outputs.find((item) => item.artifact_id === "M09-result-02");
+    const input = m10Start.inputs.find((item) => item.artifact_id === "M09-result-02");
+    const starterPath = "training/ai-assisted-qa-course/inputs/M09/workflow-starter.yml.disabled";
+    const handoffPath = "training/ai-assisted-qa-course/inputs/M09/public-sample-handoff.md";
+    const starter = fs.readFileSync(path.join(repositoryRoot, starterPath), "utf8");
+    const handoff = fs.readFileSync(path.join(repositoryRoot, handoffPath), "utf8");
+    const starterEntry = manifest.local_files.find((item) => item.source_path === starterPath);
+    const handoffEntry = manifest.local_files.find((item) => item.source_path === handoffPath);
+    const workspaceEntry = manifest.load_files.find(
+      (item) => item.module_id === "M09" && item.target_path === artifact?.path,
+    );
+
+    expect(starterEntry).toMatchObject({
+      target_path: "course/modules/M09/inputs/workflow-starter.yml.disabled",
+      module_id: "M09",
+      role: "exercise-input",
+    });
+    expect(m09Start.expected.required_paths).toContain(starterEntry.target_path);
+    expect(m09Start.expected.required_paths).toContain(handoffEntry.target_path);
+    expect(m09Start.public_fallback).toMatchObject({
+      artifact_id: "M09-public-handoff-01",
+      revision: "M09-public-handoff-v1",
+      contract_id: "M08-to-M09-handoff-v1",
+      path: "inputs/M09/public-sample-handoff.md",
+      public: true,
+    });
+    expect(m09Start.expected.required_paths).toContain(m09Start.public_fallback.path);
+    expect(m09Start.checks[1].condition).toContain(
+      "public-sample-handoff as the M08-like history/PR fallback",
+    );
+    expect(m09Start.checks[1].condition).toContain("start.md is guidance only");
+    expect(m09Start.checks[1].condition).toContain("separately required module input");
+    expect(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M09/start.md"),
+        "utf8",
+      ),
+    ).toContain("workflow-starter.yml.disabledは別の必須演習入力");
+    expect(handoff).toContain("artifact ID: `M09-public-handoff-01`");
+    expect(handoff).toContain("training PR ID: `TRAINING-PR-M08-01`");
+    expect(handoff).toContain("実在のGit commit、GitHub PR、CI Run");
+    expect(handoff).toContain("TRAINING-COMMIT-02");
+    expect(starter).toContain("ref: ${{ github.sha }}");
+    expect(starter).not.toContain("playwright install");
+    expect(workspaceEntry).toMatchObject({
+      source_path: starterEntry.target_path,
+      target_path: "workspace/M09/course-e2e.workflow.yml.disabled",
+    });
+    expect(
+      manifest.load_files.find(
+        (item) => item.module_id === "M09" && item.source_path === handoffEntry.target_path,
+      ),
+    ).toMatchObject({
+      target_path: "workspace/M09/public-sample/handoff.md",
+      kind: "exercise-file",
+    });
+    expect(artifact).toMatchObject({
+      path: workspaceEntry.target_path,
+      revision: "M09-workflow-v1",
+      contract_id: "M09-to-M10-handoff-v1",
+    });
+    expect(input).toMatchObject({
+      path: artifact.path,
+      revision: artifact.revision,
+      contract_id: artifact.contract_id,
+      from_module: "M09",
+      optional: true,
+      same_input_contract: true,
+    });
+    expect(artifact.path.endsWith(".disabled")).toBe(true);
+    expect(manifest.forbidden_paths).toContain(".github/workflows/**");
+    expect(
+      manifest.local_files.some((item) => item.target_path.startsWith(".github/workflows/")),
+    ).toBe(false);
+  });
+
+  it("rejects GitHub workflow source and target paths before distribution or module load", async () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const firstLocalFile = manifest.local_files[0];
+    const firstLoadFile = manifest.load_files[0];
+
+    expect(() =>
+      validateCourseManifest({
+        ...manifest,
+        local_files: [
+          ...manifest.local_files,
+          { ...firstLocalFile, source_path: ".github/workflows/source.yml" },
+        ],
+      }),
+    ).toThrow(/source_path is prohibited by the course distribution contract/);
+    expect(() =>
+      validateCourseManifest({
+        ...manifest,
+        local_files: [
+          ...manifest.local_files,
+          { ...firstLocalFile, target_path: ".github/workflows/activate.yml" },
+        ],
+      }),
+    ).toThrow(/target_path is prohibited by the course distribution contract/);
+    expect(() =>
+      validateCourseManifest({
+        ...manifest,
+        load_files: [
+          ...manifest.load_files,
+          { ...firstLoadFile, target_path: ".github/workflows/activate.yml" },
+        ],
+      }),
+    ).toThrow(/load target_path is prohibited by the course distribution contract/);
+
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "9".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const distributionPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const baselineDistribution = JSON.parse(fs.readFileSync(distributionPath, "utf8"));
+    const mutations = [
+      {
+        collection: "load_files",
+        field: "source_path",
+        value: ".github/workflows/source.yml",
+        message: "load source_path is prohibited",
+      },
+      {
+        collection: "load_files",
+        field: "target_path",
+        value: ".github/workflows/activate.yml",
+        message: "load target_path is prohibited",
+      },
+      {
+        collection: "files",
+        field: "source_path",
+        value: ".github/workflows/source.yml",
+        message: "distribution source_path is prohibited",
+      },
+      {
+        collection: "files",
+        field: "target_path",
+        value: ".github/workflows/distributed.yml",
+        message: "distribution target_path is prohibited",
+      },
+    ];
+    for (const mutation of mutations) {
+      const distribution = structuredClone(baselineDistribution);
+      distribution[mutation.collection][0][mutation.field] = mutation.value;
+      fs.writeFileSync(distributionPath, JSON.stringify(distribution));
+      expect(() =>
+        loadModule({
+          root: fixture.target,
+          moduleId: "M00",
+          now: new Date("2026-10-22T01:05:00.000Z"),
+        }),
+      ).toThrow(mutation.message);
+      expect(fs.existsSync(path.join(fixture.target, ".github/workflows"))).toBe(false);
+    }
   });
 
   it("keeps Phase 3 disabled and records the exact PR-head SHA with its artifacts", () => {
@@ -600,6 +1041,77 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/existing learner files differ/);
     expect(fs.readFileSync(m05Spec, "utf8")).toContain("Learner edit");
     expect(fs.existsSync(path.join(fixture.target, "workspace/M06/submission.md"))).toBe(false);
+  });
+
+  it("resolves M03 source references through pinned distribution mappings", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "c".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    loadModule({
+      root: fixture.target,
+      moduleId: "M03",
+      now: new Date("2026-10-22T01:05:00.000Z"),
+    });
+
+    expect(checkState({ root: fixture.target, moduleId: "M03", stateName: "start" })).toMatchObject(
+      {
+        status: "ready",
+        sourceSha,
+        input: { source: "module-public-sample" },
+      },
+    );
+    const end = checkState({ root: fixture.target, moduleId: "M03", stateName: "end" });
+    expect(end.status).toBe("insufficient");
+    expect(end.reasons.some((reason) => reason.includes("状態の参照先がありません"))).toBe(false);
+
+    const skillPath = path.join(fixture.target, ".agents/skills/test-condition-design/SKILL.md");
+    fs.appendFileSync(skillPath, "tampered\n");
+    expect(checkState({ root: fixture.target, moduleId: "M03", stateName: "start" })).toMatchObject(
+      {
+        status: "mismatch",
+        reasons: [expect.stringContaining("状態の参照先がありません")],
+      },
+    );
+  });
+
+  it("rejects an M03 reference to a different Skill revision", async () => {
+    const fixture = courseFixture();
+    const statePath = "training/ai-assisted-qa-course/states/M03/start.json";
+    const state = JSON.parse(fs.readFileSync(path.join(fixture.source, statePath), "utf8"));
+    state.references[state.references.length - 1] =
+      "ryu-yoshikawa-pro-vision/qa-workflow-skills@8cc6cba7772de549841a39d71694cbafbc783324";
+    writeFixtureFile(fixture.source, statePath, JSON.stringify(state));
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "d".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    loadModule({
+      root: fixture.target,
+      moduleId: "M03",
+      now: new Date("2026-10-22T01:06:00.000Z"),
+    });
+
+    expect(checkState({ root: fixture.target, moduleId: "M03", stateName: "start" })).toMatchObject(
+      {
+        status: "mismatch",
+        reasons: [
+          expect.stringContaining("qa-workflow-skills@8cc6cba7772de549841a39d71694cbafbc783324"),
+        ],
+      },
+    );
   });
 
   it("checks all 22 module states without modifying state or learner files", async () => {
