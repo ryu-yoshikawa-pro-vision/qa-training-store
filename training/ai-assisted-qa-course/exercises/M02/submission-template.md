@@ -4,6 +4,7 @@
 
 - Scenario Shop仕様revision:
 - BR/AC:
+- Scope参照・意味・出典・仕様revision:
 - 観測した事実と参照元:
 
 ## Role / State / Data / Journey

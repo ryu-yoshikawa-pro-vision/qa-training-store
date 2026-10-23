@@ -93,9 +93,9 @@ pnpm course:load M03
 
 ## M03の公開開始サンプルとSkillの配布
 
-- **M03の`inputs/`**には、先行修了課題と条件が異なる**正しいM02相当の検証責務Markdown**、対応BR/AC・Role/State/Data・Risk・Scope・優先度、採用した正式仕様/Skill revisionを含める。**Authority/Product Riskの実際のEntityが必要な演習では、その固定commitの現行入力から再現できる資料・手順**を一緒に配布する。説明用の架空ID・空のEntity contentを真正な実行根拠として使用しない。
+- **M03の`inputs/`**には、先行修了課題と条件が異なる**正しいM02相当の検証責務Markdown**、対応BR/AC・Role/State/Data・Risk・Scope・優先度、採用した正式仕様/Skill revisionを含める。Scopeは固定Skill上のMachine Entityではなく、意味・正式な出典・仕様revisionを持つ`SCOPE-...`参照である。**Authority/Product Riskの実際のEntityが必要な演習では、その固定commitの現行入力から再現できる資料・手順**を一緒に配布する。説明用の架空ID・空のEntity contentを真正な実行根拠として使用しない。
 - **機械入力の準備**はM03の手順として、M02の検証責務から`test_requirements[]`と`test_conditions[]`の参照を対応付ける。配布する実行例は`condition_structure(direct)`から技法runtime、`materialize_coverage(artifact)`、`case_structure`まで必要な**Skill-local scripts・referencesと共有`runtime_contract.py`**が揃う構成にする。Skill正本と教材側の複製が版違いなら開始判定を通さない。
-- **開始判定**では、検証責務・仕様BR/AC・Risk・Scope・Authorityの対応、必要な参照元とrevision、Skillと補助ファイルの存在を確認する。実在・current性が不明な参照は`確認不能`または`不足・不整合`として扱い、**見かけ上の`ready`や終了コード0をPASSにしない**。
+- **開始判定**では、検証責務・仕様BR/AC・Risk・Scope参照・Authorityの対応、必要な参照元とrevision、Skillと補助ファイルの存在を確認する。Authority/Risk Entityの実在・current性、Scope参照の意味・出典・revisionが不明な場合は`確認不能`または`不足・不整合`として扱い、**見かけ上の`ready`や終了コード0をPASSにしない**。
 - **教材の公開範囲**は開始入力・未完成技法/Caseテンプレート・検証方法に限り、M03自身または先行フェーズの非公開修了課題の完成Case・採点用テストは配布しない。追加の自動復旧や学習者の過去成果物の書換えは行わない。
 - この条件は**M03の新課程入力による通し受入が成功して初めて充足**する。固定commitの既存CI成功や`SKILL.md`の存在をもってM03の配布・実行を検証済みと宣言しない。
 

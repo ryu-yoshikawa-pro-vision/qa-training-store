@@ -46,7 +46,7 @@ M02の`analysis.md`から、正式なBR/AC、Risk、Scope、検証責務、対�
 
 初回の条件設計は、固定commit `7cc6cba7772de549841a39d71694cbafbc783324`の`test-condition-design` Skillを`direct` modeで開始します。実行の順序は次のとおりです。
 
-1. 正式な仕様を参照してM02の実在するAuthority/Risk/Scope参照を確定します。未確定の参照を推測で作りません。
+1. 正式な仕様からAuthority Machine Entityを固定Skillの正規helperで生成し、Product Riskは実際のRisk入力と`risk_matrix`結果から作成します。ScopeはMachine Entity型ではありません。M02の成果物で意味・出典・参照した仕様revisionを定義した`SCOPE-...`参照を使い、Scope Entityがあるように装わないでください。
 2. `condition_structure.py`の`direct`入力を作り、Skillのruntimeで検証します。M02の文章を`test_requirements[]`へ複製したり、契約にないキーを追加したりしません。
 3. Skillが選んだ技法を確認し、その入力契約で実際のモデルruntimeを実行します。
 4. 現行runtime結果と実行時metadataを`current_model_result_row(envelope, metadata)`で検証してから、`materialize_coverage.py`の`artifact`入力を作ります。
@@ -70,7 +70,7 @@ Level 2では、条件の異なる課題で本人が導出し、AI案とruntime�
 | --- | --- | --- |
 | 技法の適用 | 同値分割、境界値、条件表、状態遷移から必要なものを選び、選択理由と限界を説明する | 例題の表を写す、全条件へ無理由に全技法を適用する |
 | 条件とCaseの導出 | 初見条件からID、前提、操作、期待結果、観測方法を作り、Risk→Condition→Caseを追跡する | 期待結果にBR/ACの根拠がない |
-| 上流参照 | 実在するAuthority、Product Risk、Scopeを確認し、TCN・CI・Caseまで欠落や誤modeがない | IDらしい文字列や`ready`だけで参照確認済みとする |
+| 上流参照 | current Authority / Product Risk Entityと、M02で定義した出典・revision付きScope参照を確認し、TCN・CI・Caseまで欠落や誤modeがない | Authority / Riskの生成結果を確認しない、Scope参照をEntityと誤認する、または`ready`だけで確認済みとする |
 | runtimeの証拠 | 固定Skill revisionで選択技法を実行し、`materialize_coverage(artifact)`、Case、最終`verify_runtime_evidence valid=true`まで同一artifact群で確認する | 終了コード0、AIの自己申告、古い結果を成功扱いする |
 | 意味上の妥当性 | 仕様に合う期待結果、正しい別解、未決事項、実行不能な条件を根拠とともに説明する | 技術検証PASSだけで設計の正しさもPASSとする |
 

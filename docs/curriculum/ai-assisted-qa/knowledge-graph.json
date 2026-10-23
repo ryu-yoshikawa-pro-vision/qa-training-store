@@ -11,7 +11,7 @@
   "known_limitations": [
     "The graph records public curriculum and assessment contracts; it does not store private model answers, private scoring tests, learner results, or secrets.",
     "Human review of curriculum meaning and learner field validation are separate from automated structural validation.",
-    "The actual pinned-Skill runtime integration must be evidenced with valid Authority, Product Risk, and Scope entities; structural fixtures do not substitute for that evidence.",
+    "A source-backed deterministic smoke has generated current Authority and Product Risk Machine Entities and reached condition_structure(direct). The model-dependent technique runtime, materialize_coverage, Case generation, and final verify_runtime_evidence gate remain unverified for the curriculum input. Scope is a source-backed reference string, not a separate Machine Entity; structural fixtures do not substitute for runtime evidence.",
     "External Template creation and private evaluation-material storage remain unassigned and are not created by this repository."
   ],
   "nodes": [

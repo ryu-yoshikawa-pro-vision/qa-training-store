@@ -84,7 +84,8 @@
 - **入力形式**：`condition_structure`の`metadata`は17キー、`input`は15キー、`test_requirements[]`の1行は5キー。`test_requirements[]`へ検証責務本文の独自フィールドを追加しない。current TR Entityを持たない`requirement_dispositions[]`を有効な処理として扱わない。
 - **拒否・成功の区別**：`run_cli()`は一部の`invalid_input`で終了コード0を返す。返されたenvelope、参照の完全性、current Entity、必要な技法結果・Case、最終evidence gateと意味上の仕様整合を確認する。
 - **既存CI**：[Validate Deterministic Output Evalsの実行](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/actions/runs/38994981607)は当該固定commitで`success`（2026-10-17 UTC）と確認した。ただし**今回のCartのM02成果物からの混合modeの通し受入を実施した証拠ではない**。テスト総数の細部や教材固有のPASSは断定しない。
-- **未実行**：固定SkillでCartの具体的な仕様・Risk・Scopeを使った`condition_structure(direct)`→`materialize_coverage(artifact)`→`case_structure`の受け渡し、および最終証拠検証は未確認。各スクリプトの実装を確認した事実と、新しい入力で成功した事実を区別する。
+- **部分実行（2026-10-23）**：`qa-training-store` HEAD `55f41bb8a111939aac59fd9b92b3903cdd7fca34`にあるCart仕様とRisk資料から正規化した入力を用い、固定Skillの`authority_entities.py`→`risk_matrix.py`→`analysis_entities.py`→`condition_structure(direct)`まで実行した。Authority/Risk EntityとScope参照の正規契約、envelope、fingerprintを[実行記録](../../training/ai-assisted-qa-course/integrations/M02-M03-contract.md#2026-10-23-source-backed-deterministic-smoke)に記載した。正規化は手作業であり、fixture・OpenCode出力・技法選択ではない。
+- **未実行**：OpenCode CLIがないため、モデル依存の意味分析・技法選択とそのruntime、`materialize_coverage(artifact)`、`case_structure`、同じartifact群の最終`verify_runtime_evidence(valid=true)`は未確認。今回確認できた決定論的な部分経路をM02→M03全体の受入PASSとして扱わない。
 - **採用判断**：初心者の学習では`direct`を**条件設計の入口のみ**に採用。途中で`artifact`を使う必要があることは既知。新しいモジュールやSkill内部のruntimeを追加せず、通し受入で契約が成立しない場合に理由と最小の対応を判断する。
 
 ## 残確認事項：運営開始までに指定する内容
@@ -148,11 +149,11 @@
 
 | 対象 | 開発中に確認した結果 | 状態 |
 | --- | --- | --- |
-| M00〜M10の公開教材・クイズ | 全11 moduleの教材・クイズ53問・実技/提出素材を作成。新課程validatorと知識グラフの構造検証が通過 | 公開成果物あり。内容の独立レビューと非公開評価資料は未完了 |
+| M00〜M10の公開教材・クイズ | 全11 moduleを、51学習項目・58知識ノード、本文、設問/4選択肢/正答/解説/出典/復習先、実技/提出物、Phase rubricに沿ってsource-based二度目レビューした。Cart教材の低在庫上限とScope参照の食い違いを修正し、全objectiveが教材・knowledge・quiz・exercise・rubricへ対応することも確認 | 実装者による二度目レビューと修正は完了。独立した別レビュー担当者の確認と非公開評価資料は未完了。knowledge nodeは`draft_requires_content_review`を維持 |
 | 22状態と参照グラフ | M00〜M10のstart/end JSON、公開入力、検証CLI・影響検索を追加。入力欠落・revision違い・参照不整合等をfixture契約テストで確認 | 構造検証PASS。意味レビューは未完了 |
-| Web・旧課程非回帰 | `verify`のunit/integration/repository/component/contracts、buildを実行。Chromium 51件で既存Webと新課程クイズを確認 | ローカルPASS。必須CIはpush後に別途確認 |
+| Web・旧課程非回帰 | 開始SHA `55f41bb8a111939aac59fd9b92b3903cdd7fca34`のWeb CI run `39858260489`とMobile App CI run `39858260599`はsuccess。CIのrequired Chromium job `120102478773`とcontract/runtime-contract jobsもsuccess。ローカル`verify`は755 passed /31 failed /2 skippedでFAIL。ローカルE2EはWindowsのPlaywright管理webServer終了時に最終summary/exitを返さないが、同じ17件を外部静的serverから実行すると17/17・exit 0 | hosted CI successとWindowsローカルverify/Playwright終了問題は別の証拠。verify failureを一律にPASSや無関係として扱わず、詳細はactive Run reportに記録 |
 | 同期・単一moduleロード | 固定SHA・blob・許可範囲・機密拒否・部分失敗・再実行・上書き防止を契約テストで確認 | fixture PASS。外部Templateは未作成 |
-| M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`から3つのSkill-local runtimeを読取り確認。`condition_structure.py`の`test_requirements[]`は5キーを許可し、`materialize_coverage.py`はartifact modeでcurrent TCNを要求し、`case_structure.py`はartifact modeのTCN/Case対応を検査する | 契約確認は完了。Cartの実在Authority/Risk/Scope Machine Entityを通じた実行証拠は開発環境になく、`opencode` CLIも見つからないため通し統合は`BLOCKED`。fixtureは代替にしていない。Zen無料モデル/認証は再確認していない |
+| M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`のAuthority helper、Risk matrix、analysis join、condition structureをsource-backed Cart入力で実行。Authority/Risk Entityを生成し、Scopeは`SCOPE-...`参照としてdirectへ渡した | 決定論的部分経路は実行済み。OpenCode CLIがないため意味分析・技法選択runtime以降、materialize/Case/最終evidence gateは未実行で、統合受入は未完了 |
 | M05→M06 / Phase 2 runner | M05/M06教材と専用configを作成。M06の3つの公開specは学習者用TODO素材で、専用runnerの実行結果は3件FAIL。M07は修正前の意図したAssertion失敗を確認し、修正後scaffoldもTODOでFAIL | 完成版実技の開発受入は未達 |
-| 非公開評価・グラフ内容 | 公開ルーブリックは追加。非公開模範/採点テストの保存先・権限・管理担当は未指定。知識グラフ58ノードは`draft_requires_content_review` | 成果物と意味レビューは未完了。未指定値を決めず保持 |
+| 非公開評価・グラフ内容 | 公開ルーブリックは追加。実装者の二度目レビューで既知のCart/Scope不整合を修正。非公開模範/採点テストの保存先・権限・管理担当は未指定。knowledge node 58件は`draft_requires_content_review` | 別レビュー担当者による意味レビューと非公開資料は未完了。未指定値やレビュー完了状態を推測で設定しない |
 | 実地検証 | 初心者/受講者、評価担当者、Template由来の2コアCodespace、所要時間・容量・無料枠は未確認 | 全量実装後の独立工程。実装工程のBLOCKED理由ではない |

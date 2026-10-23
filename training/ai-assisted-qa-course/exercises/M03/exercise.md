@@ -6,11 +6,11 @@ M02提出物またはこのモジュールの別ID公開サンプル、Cart仕�
 
 ## 手順
 
-1. Authority、Product Risk、Scopeの実在ID・参照先・revisionを確認します。存在しないIDを作って埋めないでください。
+1. 固定Skillのhelper/runtimeからcurrent Authority / Product Risk Entityを生成し、出力された参照とfingerprintを記録します。Scopeは別のEntityではないため、M02で意味・出典・revisionを定義した`SCOPE-...`参照と各行の整合を確認します。`TARGET-CART-001`をScopeとして流用しません。
 2. 固定Skillの入力契約で `condition_structure(direct)` を実行し、未知キー、誤mode、未解決参照の失敗を区別します。
-3. 技法runtimeが実際に選んだ技法を適用します。境界条件は仕様から導き、未指定の購入上限は未決に残します。
+3. 技法runtimeが実際に選んだ技法を適用します。公開開始サンプルでは在庫20・購入上限5から上限5と6の境界を導きます。本人の別条件で値が未指定なら未決に残します。
 4. `materialize_coverage(artifact)`でcurrent CIを作り、Caseを生成してTR→TCN→CI→Case→BR/ACの参照を照合します。
-5. `verify_runtime_evidence` の `valid=true` と同一artifact群の証拠を確認します。終了コード0やreadyだけでは合格にしません。
+5. `verify_runtime_evidence` の `valid=true` と同一artifact群の証拠を確認します。終了コード0やreadyだけでは合格にしません。モデル/技法runtimeの生成を実行していない場合は、決定論的helperの成功と分けて報告します。
 
 ## 提出物
 

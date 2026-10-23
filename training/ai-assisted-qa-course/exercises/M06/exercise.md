@@ -8,7 +8,7 @@
 
 1. 各testの前にResetを呼び、defaultまたはlow-stockを指定します。
 2. 通常追加はカート行と数量を、上限超過は拒否メッセージと変更前数量を確認します。
-3. low-stockでは対象variantの在庫3と数量上限を確認し、Seedが保証しない値は仮定しません。
+3. low-stockでは対象variantの在庫3、default datasetから引き継ぐ購入上限5、有効上限3を確認します。実行時のカート数量はReset後に確認し、未確認値を仮定しません。
 4. 3回の実行で状態が独立することを確認し、失敗時はRun、Trace、Screenshotを対応付けます。
 5. 表示だけのAssertionが業務期待を証明するかレビューします。
 

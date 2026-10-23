@@ -3,7 +3,8 @@
 ## Condition Design
 
 - 固定Skill revision / Skill名 / mode:
-- Authority・Risk・Scopeの実在参照先とcurrent revision:
+- Authority・Product Risk Entityの出力参照/fingerprintとsource revision:
+- Scope参照の意味・正式な出典・仕様revision（Scopeは独立Entityではない）:
 - 入力artifact ID・fingerprint:
 - 技法と選定理由・適用限界:
 - current TCN / Model:

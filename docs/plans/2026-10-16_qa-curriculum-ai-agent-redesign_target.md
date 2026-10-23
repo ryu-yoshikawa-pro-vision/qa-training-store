@@ -162,19 +162,19 @@
 | 工程・スクリプト | mode・必要な入力 | 検証する結果 |
 | --- | --- | --- |
 | M02の検証責務 | 人が読めるMarkdown等。TR相当ID、BR/AC、リスク・Scope、期待する成立条件、優先度、未決 | 仕様正本に根拠があり、未決は推測で補完されていない |
-| `condition_structure.py` | **`direct`**。`metadata`17キー、`input`15キー、`test_requirements[]`各行5キー。前工程の実在するAuthority/Risk・Scope参照と`test_conditions[]`の根拠を確認 | current TR Entityは必須ではない。ただし未解決のAuthority/Risk依存を省略して`ready`になり得るため、M02の参照集合とTCN/Model出力を独立照合 |
+| `condition_structure.py` | **`direct`**。`metadata`17キー、`input`15キー、`test_requirements[]`各行5キー。前工程のcurrent Authority/Risk Entity、M02が定義する意味・出典・revision付きScope参照と`test_conditions[]`の根拠を確認 | current TR Entityは必須ではない。ただし未解決のAuthority/Risk依存を省略して`ready`になり得るため、M02の参照集合とTCN/Model出力を独立照合 |
 | 選択した技法のruntime | その技法の`model_key`、確定TCN/Model、入力・データ要求。**適用した技法だけ**実行 | 実際の決定論的結果、currentなModel/技法結果 |
 | `materialize_coverage.py` | **`artifact`必須**。`artifact:materialize_coverage:<TCN-ID>`と対応する`scope_key`、current TCN/Model・技法結果 | CI、親TCN・Scope・fingerprint、カバレッジとテストデータ要求 |
 | `case_structure.py` | **独立したmode指定が必要**。current TR Entityがない初回例はdirect候補。current TCN/CIなどを実際に渡し、固定commitの実行で採用modeを確定 | CIが最低1件、TCN/CI/TR/期待結果Authority・必要データの対応が成立 |
 | `verify_runtime_evidence` | 正規化した入力と実際の各runtime Input/Result・Machine Entity・成果物Markdown。通常の全件生成は`partial_rerun=false`、`previous_artifact_markdown=null` | **`valid=true`**と必要なruntime単位、依存/freshnessの整合。意味上の仕様適合は別途レビュー |
 
 - **機械入力と教材本文を混ぜない**：M02の検証責務の文章はMarkdown等の正本に置く。`test_requirements[]`の行へ`description`・`br_refs`等の未知キーを足さず、`tr_id`・`priority`・`authority_refs`・`risk_refs`・`scope_refs`だけにする。requiredは[学習順序の入力契約](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)で定義する。
-- **根拠の実在性を別に確認**：BR/ACとAuthority EntityのIDを同一視しない。Authorityは`spec-analysis`、Product Riskは`test-analysis`の実際の成果物に基づき、Scopeの参照先・版も確認する。`test_requirements[]`から`test_conditions[]`へTR・Authority・Risk・Scopeの参照が欠けた場合、**directでreadyでも失敗とする**。TR Machine Entityへの依存はdirectで必須ではない。
+- **根拠の実在性を別に確認**：BR/ACとAuthority EntityのIDを同一視しない。Authorityは`spec-analysis`、Product Riskは`test-analysis`の実際の成果物に基づき、Scopeの参照先・版も確認する。固定revisionのScopeは独立したMachine Entityではなく、`SCOPE-...`形式の参照文字列である。`test_requirements[]`から`test_conditions[]`へTR・Authority・Risk・Scopeの参照が欠けた場合、**directでreadyでも失敗とする**。TR Machine Entityへの依存はdirectで必須ではない。
 - **Dispositionを誤用しない**：`requirement_dispositions[]`はmodeに関係なく対象のcurrent TR Entityが必要。通常の初回direct例では空配列とし、仕様未確定・未対応はM02の未決として保持する。勝手にdispositionで閉じたことにしない。
 - **成功の判断**：`run_cli`の終了コード0は一部`invalid_input`でも返るため成功条件にしない。結果envelope、`runtime_status`・`support_status`・`result_status`・`deterministic_generated`、未解決事項、生成Entity、最終evidence gateを確認する。実行のない仮想fingerprint・Machine Entityは作らない。
 - **学習者に要求する範囲**：受講者は検証責務、根拠、技法、条件/ケース、期待結果、AI成果物の採否を判断する。17キーのmetadata、fingerprintの計算、runtime内部の契約を暗記させない。Skill・エージェントが生成したJSONと実行結果は、既存runtimeで検証する。
 
-**未実行の受入項目**：実際のCart BR/ACと確認済みAuthority/Risk/Scopeから、`condition_structure(direct)`→技法→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→最終証拠検証まで通るかは、**PR #199の新課程入力について未確認**。固定commitの既存CI成功は流用しない。特に**direct生成TCNからartifact materializeとCaseへの接続**が成立しなければ原因と最小限の代替経路を調査する。新しいruntimeやモジュールの追加を先に決めない。
+**未実行の受入項目**：実際のCart BR/AC、Authority/Risk runtime出力、M02が定義するScope参照から、`condition_structure(direct)`→技法→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→最終証拠検証まで通るかは、**PR #199の新課程入力について確認する**。Scopeを存在しないMachine Entityとして扱わない。固定commitの既存CI成功は流用しない。特に**direct生成TCNからartifact materializeとCaseへの接続**が成立しなければ原因と最小限の代替経路を調査する。新しいruntimeやモジュールの追加を先に決めない。
 
 - 学習用Templateに必要なSkillは**使用するSkill Package全体（`SKILL.md`、`references/`、`assets/`、必要なSkill-local `scripts/`）**を同一の固定commitから同期する。ファイル単位のコピー漏れを検出する。外部の共有評価ランタイム`scripts/skills/evals/`は、今回の演習が明示的に必要としない限り配布しない。
 - Skill-localの決定論的runtimeは**Python 3.11標準ライブラリ**を前提とすることを確認した。開発時はPython helperの入力/出力契約をfixture・契約テストで検証する。Codespaces側でPython 3.11以上・Skill-localのscriptが呼び出せるかは、全11モジュールの実装完了後に実地検証する。開発専用の大量のテスト依存は持ち込まない。

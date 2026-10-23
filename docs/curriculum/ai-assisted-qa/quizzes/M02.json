@@ -19,15 +19,15 @@
     {
       "id": "M02-Q02",
       "objective_ids": ["M02-03"],
-      "question": "`low-stock`のSeed処理は特定のvariantの在庫を3にします。この事実だけから確定できる内容はどれですか。",
+      "question": "`low-stock`はdefault datasetから始まり、variant `variant-basic-shirt-02`の在庫を3へ上書きします。default datasetの同variantは`purchaseLimit`が5です。`BR-CART-001`から導ける内容はどれですか。",
       "options": [
-        { "value": "A", "label": "カートにその商品が3個入っている", "meaning": "在庫数とカート数量を同じ状態とみなす", "reason": "Seed処理が設定するのは在庫であり、カート数量ではありません。" },
-        { "value": "B", "label": "商品購入上限も3である", "meaning": "在庫数から購入上限を推測する", "reason": "購入上限は別のデータです。Seedの在庫変更だけでは決まりません。" },
-        { "value": "C", "label": "Reset後の対象variantの在庫が3である", "meaning": "Seedが明示的に設定する状態を記録する", "reason": "Seed実装で明示された在庫状態です。カートなどは別途照合します。" },
-        { "value": "D", "label": "上限超過時に画面が数量を補正する", "meaning": "SeedからUIの振る舞いまで推測する", "reason": "振る舞いはBR/ACで定められ、Seedの存在だけでは確認できません。" }
+        { "value": "A", "label": "カートにその商品が3個入っている", "meaning": "在庫数とカート数量を同じ状態とみなす", "reason": "在庫3はカート内数量を示しません。現在数量はReset後に確認します。" },
+        { "value": "B", "label": "購入上限は5で、有効上限も5である", "meaning": "購入上限だけで有効上限を決める", "reason": "在庫3も有効上限に使うため、`min(3, 5, 99) = 3`です。" },
+        { "value": "C", "label": "購入上限は5で、有効上限は3である", "meaning": "Seedの上書きと既定値を仕様へ適用する", "reason": "在庫3と購入上限5をBR-CART-001の式へ当てはめると3です。" },
+        { "value": "D", "label": "上限超過時に画面が数量を補正する", "meaning": "SeedからUIの振る舞いまで推測する", "reason": "AC-CART-001は超過操作を拒否し、変更前の数量を維持すると定めています。" }
       ],
       "correct_value": "C",
-      "source_refs": ["src/seeds/scenarios.ts", "docs/spec/state-and-scenarios.md"],
+      "source_refs": ["src/seeds/default-dataset.ts", "src/seeds/scenarios.ts", "docs/spec/features/cart.md", "docs/spec/state-and-scenarios.md"],
       "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限"
     },
     {
@@ -61,15 +61,15 @@
     {
       "id": "M02-Q05",
       "objective_ids": ["M02-05"],
-      "question": "仕様に在庫数と「上限超過時は変更前の数量を維持する」とありますが、演習資料に購入上限と現在数量がありません。分析で取るべき対応はどれですか。",
+      "question": "`low-stock`のReset後に、カートの現在数量をまだ確認していません。分析で取るべき対応はどれですか。",
       "options": [
         { "value": "A", "label": "一般的な値を選び、仕様で決まっていたことにする", "meaning": "不足データを事実のように補う", "reason": "推測で作った値を正式な条件として扱えません。" },
-        { "value": "B", "label": "仕様根拠と確定できる動作を記録し、値を未決として残す", "meaning": "既知と未確定を分離する", "reason": "正式仕様で決まる期待と、演習条件で不足する値を区別します。" },
+        { "value": "B", "label": "仕様とSeedから有効上限3を記録し、現在数量はReset後に確認する", "meaning": "確認済みの上限と未確認の現在状態を分ける", "reason": "在庫3と購入上限5は有効上限3を定めますが、カート数量はReset後の状態を確認するまで分かりません。" },
         { "value": "C", "label": "画面を1回操作して、未指定の値を仕様とみなす", "meaning": "観測から正式な業務ルールを推論する", "reason": "観測結果だけでは未記載の仕様値を確定できません。" },
         { "value": "D", "label": "不足値をAIに選ばせ、回答を採用する", "meaning": "AIの補完を根拠として使う", "reason": "AIが選んだ値にも正式な根拠が必要です。" }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/features/cart.md", "docs/curriculum/ai-assisted-qa/modules/M02/README.md#演習検証責務を書く"],
+      "source_refs": ["docs/spec/features/cart.md", "src/seeds/default-dataset.ts", "src/seeds/scenarios.ts", "docs/curriculum/ai-assisted-qa/modules/M02/README.md#演習検証責務を書く"],
       "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#演習検証責務を書く"
     }
   ]
