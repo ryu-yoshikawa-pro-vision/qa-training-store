@@ -16,7 +16,7 @@
     ],
     "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
     "phase": "P2",
-    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
   },
   "checks": [
     {
@@ -45,11 +45,6 @@
     "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
     "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
   ],
-  "confidentiality": {
-    "public": true,
-    "contains_model_answers": false,
-    "contains_private_assessment_tests": false
-  },
   "outputs": [
     {
       "artifact_id": "M07-result-01",
@@ -69,5 +64,11 @@
       "revision": "M07-result-v1",
       "contract_id": "M07-to-M08-handoff-v1"
     }
-  ]
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
 }

@@ -348,16 +348,59 @@ export function validate(graph) {
   const assessments = graph.nodes.filter((node) => node.type === "assessment");
   if (assessments.length !== 3) fail("There must be one public assessment rubric for each phase");
   for (const phase of phases) {
-    if (
-      !assessments.some(
-        (node) =>
-          node.phase === phase &&
-          graph.edges.some(
-            (edge) => edge.from === node.id && edge.to === phase && edge.relation === "part_of",
-          ),
-      )
-    )
-      fail("Missing phase assessment: " + phase);
+    const assessment = assessments.find(
+      (node) =>
+        node.phase === phase &&
+        graph.edges.some(
+          (edge) => edge.from === node.id && edge.to === phase && edge.relation === "part_of",
+        ),
+    );
+    if (!assessment) fail("Missing phase assessment: " + phase);
+
+    const phaseModules = graph.nodes.filter(
+      (node) => node.type === "module" && node.phase === phase,
+    );
+    const materials = assessment.reference_materials;
+    if (!Array.isArray(materials) || materials.length !== phaseModules.length * 3)
+      fail(
+        "Each module assessment needs solution, scoring, and completed-state references: " + phase,
+      );
+    const materialIds = new Set();
+    for (const module of phaseModules) {
+      for (const kind of ["reference_solution", "scoring_test", "completed_state"]) {
+        const material = materials.find(
+          (item) => item.module_id === module.id && item.kind === kind,
+        );
+        const directory =
+          kind === "reference_solution"
+            ? "reference-solutions"
+            : kind === "scoring_test"
+              ? "scoring-tests"
+              : "completed-states";
+        const extension = kind === "reference_solution" ? "md" : "json";
+        const expectedPath =
+          "training/ai-assisted-qa-course/assessment/" +
+          directory +
+          "/" +
+          module.id +
+          "." +
+          extension;
+        const materialPath = material && safeLocalPath(material.path);
+        if (
+          !material ||
+          typeof material.id !== "string" ||
+          materialIds.has(material.id) ||
+          material.path !== expectedPath ||
+          material.revision !== "assessment-reference-v1" ||
+          material.public !== true ||
+          material.included_in_learner_package !== false ||
+          !materialPath ||
+          !existsSync(materialPath)
+        )
+          fail("Invalid or missing public assessment reference: " + module.id + " " + kind);
+        materialIds.add(material.id);
+      }
+    }
   }
   const visiting = new Set(),
     done = new Set();

@@ -24,7 +24,7 @@
 | 7 | [評価と修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | 提出物、自己確認、正式な評価、Level 0〜3、各フェーズの独立修了 |
 | 8 | [教材同期・モジュールロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) | 配布許可リスト、管理者同期、学習者による1モジュールロード、教材更新、上書き防止 |
 | 9 | [Scenario Shop・実行環境・Skill・CI](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) | Build/Serve、Seed/Reset、Playwright、外部Skillの工程依存、選択Phase 3のCI |
-| 10 | [モジュールの開始・終了基準状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) | 各11モジュールの開始・終了データ、公開開始入力、非公開模範、フェーズ間の入力契約 |
+| 10 | [モジュールの開始・終了基準状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) | 各11モジュールの開始・終了データ、公開開始入力、公開の模範/採点資料、フェーズ間の入力契約 |
 | 11 | [知識グラフの完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) | 学習項目と知識・教材・評価・状態・仕様・Skillの関係、改訂時の影響追跡 |
 
 ## 作業別の参照先
@@ -56,4 +56,4 @@
 2. 方針の決定・変更、運営側の指定、実装検証の結果が変わった場合は[決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)を更新する。確認者のいない事項を「合意済み」へ移さない。
 3. モジュール・知識・教材・仕様・Skill・評価の対応が変わる場合は[知識グラフの改訂手順](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に従って影響を確認する。
 4. Planを分割・統合・移動した場合は、この一覧と[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の入口を更新する。
-5. 公開Planには、非公開評価資料の実体、非公開の保存場所・アクセス方法、Secret、学習者個人の記録を記載しない。
+5. 模範解答・採点用テスト・完成状態データは公開リポジトリ内の通常ファイルとして内容をレビューできるようにし、学習用Template/同期/ロード/Web Build/公開Artifactからは除外する。この除外は秘密保持ではない。評価時に初めて提示する具体的条件と学習者個人の評価記録は事前公開しない。

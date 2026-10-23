@@ -12,7 +12,7 @@
     "required_paths": ["workspace/M01/submission.md"],
     "objective_ids": ["M01-01", "M01-02", "M01-03", "M01-04"],
     "phase": "P1",
-    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
   },
   "checks": [
     {
@@ -41,11 +41,6 @@
     "docs/curriculum/ai-assisted-qa/quizzes/M01.json",
     "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
   ],
-  "confidentiality": {
-    "public": true,
-    "contains_model_answers": false,
-    "contains_private_assessment_tests": false
-  },
   "outputs": [
     {
       "artifact_id": "M01-result-01",
@@ -53,5 +48,11 @@
       "revision": "M01-result-v1",
       "contract_id": "M01-to-M02-handoff-v1"
     }
-  ]
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
 }

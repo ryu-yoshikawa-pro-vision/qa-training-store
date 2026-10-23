@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "module_id": "M08",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v2",
+  "reference_only": true,
+  "human_evaluation": "not_performed",
+  "objective_ids": ["M08-01", "M08-02", "M08-03", "M08-04"],
+  "knowledge_ids": ["K-M08-01", "K-M08-02", "K-M08-03", "K-M08-04"],
+  "start_state_path": "training/ai-assisted-qa-course/states/M08/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M08/end.json",
+  "artifacts": [
+    {
+      "id": "M08-result-01",
+      "path": "workspace/M08/submission.md",
+      "revision": "M08-result-v1",
+      "contract_id": "M08-to-M09-handoff-v1",
+      "expected_data": {
+        "inspect_status": true,
+        "inspect_staged_diff": true,
+        "stage_only_required": true,
+        "secret_included": false,
+        "gitignore_untracks_existing": false
+      }
+    },
+    {
+      "id": "M08-result-02",
+      "path": "workspace/M08/review-candidate.md",
+      "revision": "M08-result-v1",
+      "contract_id": "M08-to-M09-handoff-v1",
+      "expected_data": {
+        "inspect_status": true,
+        "inspect_staged_diff": true,
+        "stage_only_required": true,
+        "secret_included": false,
+        "gitignore_untracks_existing": false
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M08-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M08.md"
+    },
+    {
+      "id": "M08-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M08/README.md; training/ai-assisted-qa-course/exercises/M08/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M08.json; training/ai-assisted-qa-course/states/M08/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-reporting/SKILL.md"
+    },
+    {
+      "id": "M08-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M08.json"
+    },
+    {
+      "id": "M08-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M08.json"
+    }
+  ]
+}

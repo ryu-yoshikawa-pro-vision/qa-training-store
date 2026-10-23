@@ -749,14 +749,6 @@
   ],
   "external_skill_files": [
     {
-      "source_path": "skills/adversarial-review/SKILL.md",
-      "target_path": ".agents/skills/adversarial-review/SKILL.md",
-      "blob_sha": "2a30d0a370ce34363201f757efd96c3e5b6b1f6a",
-      "size": 4891,
-      "skill": "adversarial-review",
-      "module_ids": ["M04"]
-    },
-    {
       "source_path": "skills/adversarial-review/assets/output-template.md",
       "target_path": ".agents/skills/adversarial-review/assets/output-template.md",
       "blob_sha": "50dc2431e49a48ac906888630b01741320cc194d",
@@ -805,12 +797,52 @@
       "module_ids": ["M04"]
     },
     {
-      "source_path": "skills/e2e-test-execution/SKILL.md",
-      "target_path": ".agents/skills/e2e-test-execution/SKILL.md",
-      "blob_sha": "914e7be8da46a19ca2122111eb90a8546ee2b384",
-      "size": 6183,
-      "skill": "e2e-test-execution",
-      "module_ids": ["M06"]
+      "source_path": "skills/adversarial-review/SKILL.md",
+      "target_path": ".agents/skills/adversarial-review/SKILL.md",
+      "blob_sha": "2a30d0a370ce34363201f757efd96c3e5b6b1f6a",
+      "size": 4891,
+      "skill": "adversarial-review",
+      "module_ids": ["M04"]
+    },
+    {
+      "source_path": "skills/coverage-analysis/assets/output-template.md",
+      "target_path": ".agents/skills/coverage-analysis/assets/output-template.md",
+      "blob_sha": "7771f15452c2771110a51fe9c2ce5417035ceede",
+      "size": 5578,
+      "skill": "coverage-analysis",
+      "module_ids": ["M03", "M04"]
+    },
+    {
+      "source_path": "skills/coverage-analysis/references/guidance.md",
+      "target_path": ".agents/skills/coverage-analysis/references/guidance.md",
+      "blob_sha": "ad96d07dbe8414b9da7d1ab0a0f8cea09b053b5f",
+      "size": 13041,
+      "skill": "coverage-analysis",
+      "module_ids": ["M03", "M04"]
+    },
+    {
+      "source_path": "skills/coverage-analysis/scripts/runtime_contract.py",
+      "target_path": ".agents/skills/coverage-analysis/scripts/runtime_contract.py",
+      "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
+      "size": 271676,
+      "skill": "coverage-analysis",
+      "module_ids": ["M03", "M04"]
+    },
+    {
+      "source_path": "skills/coverage-analysis/scripts/traceability.py",
+      "target_path": ".agents/skills/coverage-analysis/scripts/traceability.py",
+      "blob_sha": "4397e3702d1aa3142d0f0ac949aba9904612ce52",
+      "size": 25202,
+      "skill": "coverage-analysis",
+      "module_ids": ["M03", "M04"]
+    },
+    {
+      "source_path": "skills/coverage-analysis/SKILL.md",
+      "target_path": ".agents/skills/coverage-analysis/SKILL.md",
+      "blob_sha": "a781562393e1dd4e36f97140457c100f76c91242",
+      "size": 5827,
+      "skill": "coverage-analysis",
+      "module_ids": ["M03", "M04"]
     },
     {
       "source_path": "skills/e2e-test-execution/assets/output-template.md",
@@ -829,11 +861,11 @@
       "module_ids": ["M06"]
     },
     {
-      "source_path": "skills/e2e-test-implementation/SKILL.md",
-      "target_path": ".agents/skills/e2e-test-implementation/SKILL.md",
-      "blob_sha": "3a080c38b00f8ebe74f9d1606435c5b47b120289",
-      "size": 3930,
-      "skill": "e2e-test-implementation",
+      "source_path": "skills/e2e-test-execution/SKILL.md",
+      "target_path": ".agents/skills/e2e-test-execution/SKILL.md",
+      "blob_sha": "914e7be8da46a19ca2122111eb90a8546ee2b384",
+      "size": 6183,
+      "skill": "e2e-test-execution",
       "module_ids": ["M06"]
     },
     {
@@ -853,11 +885,11 @@
       "module_ids": ["M06"]
     },
     {
-      "source_path": "skills/e2e-test-inspection/SKILL.md",
-      "target_path": ".agents/skills/e2e-test-inspection/SKILL.md",
-      "blob_sha": "a0d4700708cf3391c5c382cfe62f6403eb507105",
-      "size": 4004,
-      "skill": "e2e-test-inspection",
+      "source_path": "skills/e2e-test-implementation/SKILL.md",
+      "target_path": ".agents/skills/e2e-test-implementation/SKILL.md",
+      "blob_sha": "3a080c38b00f8ebe74f9d1606435c5b47b120289",
+      "size": 3930,
+      "skill": "e2e-test-implementation",
       "module_ids": ["M06"]
     },
     {
@@ -877,12 +909,12 @@
       "module_ids": ["M06"]
     },
     {
-      "source_path": "skills/e2e-test-reporting/SKILL.md",
-      "target_path": ".agents/skills/e2e-test-reporting/SKILL.md",
-      "blob_sha": "1919d59f7fc7bf126243714e5892d3e8984ab286",
-      "size": 3248,
-      "skill": "e2e-test-reporting",
-      "module_ids": ["M07"]
+      "source_path": "skills/e2e-test-inspection/SKILL.md",
+      "target_path": ".agents/skills/e2e-test-inspection/SKILL.md",
+      "blob_sha": "a0d4700708cf3391c5c382cfe62f6403eb507105",
+      "size": 4004,
+      "skill": "e2e-test-inspection",
+      "module_ids": ["M06"]
     },
     {
       "source_path": "skills/e2e-test-reporting/assets/output-template.md",
@@ -901,11 +933,11 @@
       "module_ids": ["M07"]
     },
     {
-      "source_path": "skills/e2e-test-result-analysis/SKILL.md",
-      "target_path": ".agents/skills/e2e-test-result-analysis/SKILL.md",
-      "blob_sha": "b06147079aaebf98e506ee91f7c4b57f34495e62",
-      "size": 2836,
-      "skill": "e2e-test-result-analysis",
+      "source_path": "skills/e2e-test-reporting/SKILL.md",
+      "target_path": ".agents/skills/e2e-test-reporting/SKILL.md",
+      "blob_sha": "1919d59f7fc7bf126243714e5892d3e8984ab286",
+      "size": 3248,
+      "skill": "e2e-test-reporting",
       "module_ids": ["M07"]
     },
     {
@@ -925,12 +957,12 @@
       "module_ids": ["M07"]
     },
     {
-      "source_path": "skills/qa-workflow/SKILL.md",
-      "target_path": ".agents/skills/qa-workflow/SKILL.md",
-      "blob_sha": "2327c04937fbc61e14c4ba1f545c063bd545c195",
-      "size": 15312,
-      "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "source_path": "skills/e2e-test-result-analysis/SKILL.md",
+      "target_path": ".agents/skills/e2e-test-result-analysis/SKILL.md",
+      "blob_sha": "b06147079aaebf98e506ee91f7c4b57f34495e62",
+      "size": 2836,
+      "skill": "e2e-test-result-analysis",
+      "module_ids": ["M07"]
     },
     {
       "source_path": "skills/qa-workflow/assets/project-context-template.md",
@@ -1005,12 +1037,12 @@
       "module_ids": ["M00"]
     },
     {
-      "source_path": "skills/spec-analysis/SKILL.md",
-      "target_path": ".agents/skills/spec-analysis/SKILL.md",
-      "blob_sha": "1df56d6683ca1be353bb48d3d53b7a6b48661ef4",
-      "size": 5145,
-      "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "source_path": "skills/qa-workflow/SKILL.md",
+      "target_path": ".agents/skills/qa-workflow/SKILL.md",
+      "blob_sha": "2327c04937fbc61e14c4ba1f545c063bd545c195",
+      "size": 15312,
+      "skill": "qa-workflow",
+      "module_ids": ["M00"]
     },
     {
       "source_path": "skills/spec-analysis/assets/output-template.md",
@@ -1173,11 +1205,11 @@
       "module_ids": ["M02"]
     },
     {
-      "source_path": "skills/test-analysis/SKILL.md",
-      "target_path": ".agents/skills/test-analysis/SKILL.md",
-      "blob_sha": "fb44a3a69a5585f96b51b4b19440fe3221cf4e29",
-      "size": 7571,
-      "skill": "test-analysis",
+      "source_path": "skills/spec-analysis/SKILL.md",
+      "target_path": ".agents/skills/spec-analysis/SKILL.md",
+      "blob_sha": "1df56d6683ca1be353bb48d3d53b7a6b48661ef4",
+      "size": 5145,
+      "skill": "spec-analysis",
       "module_ids": ["M02"]
     },
     {
@@ -1253,12 +1285,12 @@
       "module_ids": ["M02"]
     },
     {
-      "source_path": "skills/test-case-design/SKILL.md",
-      "target_path": ".agents/skills/test-case-design/SKILL.md",
-      "blob_sha": "7e5e696c07859940496c61ef9641c8a30396fdf5",
-      "size": 5678,
-      "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "source_path": "skills/test-analysis/SKILL.md",
+      "target_path": ".agents/skills/test-analysis/SKILL.md",
+      "blob_sha": "fb44a3a69a5585f96b51b4b19440fe3221cf4e29",
+      "size": 7571,
+      "skill": "test-analysis",
+      "module_ids": ["M02"]
     },
     {
       "source_path": "skills/test-case-design/assets/output-template.md",
@@ -1301,11 +1333,11 @@
       "module_ids": ["M03"]
     },
     {
-      "source_path": "skills/test-condition-design/SKILL.md",
-      "target_path": ".agents/skills/test-condition-design/SKILL.md",
-      "blob_sha": "204badcfcd5d991ef4f13d3a45c9e88e43643a21",
-      "size": 7547,
-      "skill": "test-condition-design",
+      "source_path": "skills/test-case-design/SKILL.md",
+      "target_path": ".agents/skills/test-case-design/SKILL.md",
+      "blob_sha": "7e5e696c07859940496c61ef9641c8a30396fdf5",
+      "size": 5678,
+      "skill": "test-case-design",
       "module_ids": ["M03"]
     },
     {
@@ -1499,6 +1531,54 @@
       "size": 10247,
       "skill": "test-condition-design",
       "module_ids": ["M03"]
+    },
+    {
+      "source_path": "skills/test-condition-design/SKILL.md",
+      "target_path": ".agents/skills/test-condition-design/SKILL.md",
+      "blob_sha": "204badcfcd5d991ef4f13d3a45c9e88e43643a21",
+      "size": 7547,
+      "skill": "test-condition-design",
+      "module_ids": ["M03"]
+    },
+    {
+      "source_path": "skills/test-requirement-design/assets/output-template.md",
+      "target_path": ".agents/skills/test-requirement-design/assets/output-template.md",
+      "blob_sha": "0ce81815dd3fe02f94073645b34d04fe6179a83a",
+      "size": 1446,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
+    },
+    {
+      "source_path": "skills/test-requirement-design/references/guidance.md",
+      "target_path": ".agents/skills/test-requirement-design/references/guidance.md",
+      "blob_sha": "ccf845f16eae26c0dc8b612d2fee3430121ec9b4",
+      "size": 9572,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
+    },
+    {
+      "source_path": "skills/test-requirement-design/scripts/requirement_structure.py",
+      "target_path": ".agents/skills/test-requirement-design/scripts/requirement_structure.py",
+      "blob_sha": "82ff56a84084dce05b275c9f9c0bdab3d1cb0df3",
+      "size": 25807,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
+    },
+    {
+      "source_path": "skills/test-requirement-design/scripts/runtime_contract.py",
+      "target_path": ".agents/skills/test-requirement-design/scripts/runtime_contract.py",
+      "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
+      "size": 271676,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
+    },
+    {
+      "source_path": "skills/test-requirement-design/SKILL.md",
+      "target_path": ".agents/skills/test-requirement-design/SKILL.md",
+      "blob_sha": "356acb73cf881b9a67aef1f063ec2c7b32fec59f",
+      "size": 4914,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
     }
   ],
   "load_files": [
@@ -2151,6 +2231,9 @@
     "**/*secret*",
     "**/*answer-key*",
     "**/*model-answer*",
+    "training/ai-assisted-qa-course/assessment/reference-solutions/**",
+    "training/ai-assisted-qa-course/assessment/scoring-tests/**",
+    "training/ai-assisted-qa-course/assessment/completed-states/**",
     ".github/workflows/**"
   ],
   "notes": [

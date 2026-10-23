@@ -129,11 +129,41 @@ describe("AI-assisted QA static learning course", () => {
     const validation = validateAiAssistedQa(repositoryRoot);
     expect(validation.modules).toEqual(expect.arrayContaining(["M02", "M03", "M05", "M06"]));
     expect(validation.questionCount).toBeGreaterThan(0);
+    expect(validation.assessmentFiles).toBe(33);
     buildAiAssistedQaSite(repositoryRoot, docsOutput);
   }, 120_000);
 
   afterAll(async () => {
     fs.rmSync(outputRoot, { recursive: true, force: true });
+  });
+
+  it("aligns the public M02 Cart risk reference with the canonical workbook ID", () => {
+    const answer = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/assessment/reference-solutions/M02.md",
+      ),
+      "utf8",
+    );
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          repositoryRoot,
+          "training/ai-assisted-qa-course/assessment/scoring-tests/M02.json",
+        ),
+        "utf8",
+      ),
+    ) as { decision_rules?: string[]; cases?: { response?: string }[] };
+    const riskRows = fs
+      .readFileSync(path.join(repositoryRoot, "training/workbook/01_target-risk.csv"), "utf8")
+      .split(/\r?\n/)
+      .filter((row) => row.includes(",RISK-CART-001,"));
+
+    expect(riskRows).toHaveLength(1);
+    expect(answer).toContain("RISK-CART-001");
+    expect(answer).not.toContain("Risk-CART-001");
+    expect(scoring.decision_rules?.join(" ")).toContain("RISK-CART-001");
+    expect(scoring.cases?.[0]?.response).toContain("RISK-CART-001");
   });
 
   it("builds the staged course and pins the quiz revision to the exact JSON bytes", () => {
@@ -156,5 +186,38 @@ describe("AI-assisted QA static learning course", () => {
     expect(html).toContain(`data-revision="${revision}"`);
     expect(html).not.toContain("correct_value");
     expect(html).toContain("quiz.js");
+  });
+
+  it("keeps public assessment source files out of the built Web bundle", () => {
+    const visit = (directory: string): string[] =>
+      fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const absolute = path.join(directory, entry.name);
+        return entry.isDirectory() ? visit(absolute) : [absolute];
+      });
+    const builtFiles = visit(docsOutput);
+    for (const relativePath of [
+      "reference-solutions/M00.md",
+      "scoring-tests/M00.json",
+      "completed-states/M00.json",
+    ]) {
+      expect(
+        builtFiles.some((filePath) => filePath.replaceAll("\\", "/").includes(relativePath)),
+      ).toBe(false);
+    }
+    const publicAnswerHeading =
+      fs
+        .readFileSync(
+          path.join(
+            repositoryRoot,
+            "training/ai-assisted-qa-course/assessment/reference-solutions/M00.md",
+          ),
+          "utf8",
+        )
+        .split(/\r?\n/, 1)[0] ?? "";
+    expect(
+      builtFiles.some((filePath) =>
+        fs.readFileSync(filePath, "utf8").includes(publicAnswerHeading),
+      ),
+    ).toBe(false);
   });
 });

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module_id": "M01",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v2",
+  "reference_only": true,
+  "human_evaluation": "not_performed",
+  "objective_ids": ["M01-01", "M01-02", "M01-03", "M01-04"],
+  "knowledge_ids": ["K-M01-01", "K-M01-02", "K-M01-03", "K-M01-04"],
+  "start_state_path": "training/ai-assisted-qa-course/states/M01/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M01/end.json",
+  "artifacts": [
+    {
+      "id": "M01-result-01",
+      "path": "workspace/M01/submission.md",
+      "revision": "M01-result-v1",
+      "contract_id": "M01-to-M02-handoff-v1",
+      "expected_data": {
+        "purpose": "cart quantity cap",
+        "observable_result": true,
+        "source_required": true,
+        "levels": ["unit", "integration", "component", "e2e"]
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M01-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M01.md"
+    },
+    {
+      "id": "M01-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M01/README.md; training/ai-assisted-qa-course/exercises/M01/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M01.json; training/ai-assisted-qa-course/states/M01/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md"
+    },
+    {
+      "id": "M01-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M01.json"
+    },
+    {
+      "id": "M01-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M01.json"
+    }
+  ]
+}

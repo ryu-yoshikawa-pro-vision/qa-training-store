@@ -166,10 +166,11 @@ function courseFixture() {
                 ]
               : []),
           ],
-          confidentiality: {
-            public: true,
-            contains_model_answers: false,
-            contains_private_assessment_tests: false,
+          distribution: {
+            public_source: true,
+            includes_reference_solutions: false,
+            includes_scoring_tests: false,
+            includes_completed_states: false,
           },
         }),
       ],
@@ -206,10 +207,11 @@ function courseFixture() {
                 ]
               : []),
           ],
-          confidentiality: {
-            public: true,
-            contains_model_answers: false,
-            contains_private_assessment_tests: false,
+          distribution: {
+            public_source: true,
+            includes_reference_solutions: false,
+            includes_scoring_tests: false,
+            includes_completed_states: false,
           },
         }),
       ],
@@ -308,8 +310,10 @@ function courseFixture() {
     "qa-workflow",
     "spec-analysis",
     "test-analysis",
+    "test-requirement-design",
     "test-condition-design",
     "test-case-design",
+    "coverage-analysis",
     "adversarial-review",
     "e2e-test-implementation",
     "e2e-test-execution",
@@ -326,7 +330,14 @@ function courseFixture() {
       blob_sha: blobSha(bytes),
       size: bytes.length,
       skill,
-      module_ids: index === 4 ? ["M03", "M04"] : [`M${String(index).padStart(2, "0")}`],
+      module_ids:
+        skill === "test-requirement-design"
+          ? ["M02", "M03"]
+          : skill === "coverage-analysis"
+            ? ["M03", "M04"]
+            : index === 4
+              ? ["M03", "M04"]
+              : [`M${String(index).padStart(2, "0")}`],
     };
   });
   const manifest = {
@@ -359,6 +370,9 @@ function courseFixture() {
       "**/*secret*",
       "**/*answer-key*",
       "**/*model-answer*",
+      "training/ai-assisted-qa-course/assessment/reference-solutions/**",
+      "training/ai-assisted-qa-course/assessment/scoring-tests/**",
+      "training/ai-assisted-qa-course/assessment/completed-states/**",
       ".github/workflows/**",
     ],
   };
@@ -382,7 +396,7 @@ describe("AI-assisted QA distribution contract", () => {
   it("keeps the Plan-pinned external Skill allowlist complete and excludes evals", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const result = validateCourseManifest(manifest);
-    expect(result).toMatchObject({ modules: 11, externalSkillFiles: 94 });
+    expect(result).toMatchObject({ modules: 11, externalSkillFiles: 104 });
     expect(
       manifest.local_files
         .filter((entry) => entry.target_path.startsWith("workspace/"))
@@ -400,6 +414,52 @@ describe("AI-assisted QA distribution contract", () => {
         ],
       }),
     ).toThrow(/prohibited/);
+  });
+
+  it("keeps public assessment references out of learner sync and load allowlists", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const excluded = [
+      "training/ai-assisted-qa-course/assessment/reference-solutions/**",
+      "training/ai-assisted-qa-course/assessment/scoring-tests/**",
+      "training/ai-assisted-qa-course/assessment/completed-states/**",
+    ];
+    expect(manifest.forbidden_paths).toEqual(expect.arrayContaining(excluded));
+    const entries = [
+      ...manifest.local_files,
+      ...manifest.external_skill_files,
+      ...manifest.load_files,
+    ];
+    for (const entry of entries) {
+      for (const value of [entry.source_path, entry.target_path]) {
+        expect(value).not.toMatch(
+          /(?:^|\/)assessment\/(?:reference-solutions|scoring-tests|completed-states)(?:\/|$)/i,
+        );
+      }
+    }
+    for (const pathValue of [
+      "training/ai-assisted-qa-course/assessment/reference-solutions/M00.md",
+      "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json",
+      "training/ai-assisted-qa-course/assessment/completed-states/M00.json",
+    ]) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          local_files: [
+            ...manifest.local_files,
+            { source_path: pathValue, target_path: pathValue, module_id: "M00" },
+          ],
+        }),
+      ).toThrow(/prohibited/);
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          load_files: [
+            ...manifest.load_files,
+            { module_id: "M00", source_path: pathValue, target_path: pathValue },
+          ],
+        }),
+      ).toThrow(/prohibited/);
+    }
   });
 
   it("loads the M03 public risk row only with M03 and requires it for the independent fallback", () => {
@@ -974,6 +1034,26 @@ describe("AI-assisted QA distribution contract", () => {
     expect(firstSync.copied.length).toBeGreaterThan(0);
     expect(repeatedSync.copied).toEqual([]);
     expect(repeatedSync.unchanged).toBe(repeatedSync.fileCount);
+    const generatedDistribution = JSON.parse(
+      fs.readFileSync(path.join(fixture.target, ".course/distribution-manifest.json"), "utf8"),
+    );
+    expect(generatedDistribution.distribution).toEqual({
+      public_source: true,
+      includes_reference_solutions: false,
+      includes_scoring_tests: false,
+      includes_completed_states: false,
+      includes_secrets: false,
+    });
+    expect(generatedDistribution.confidentiality).toBeUndefined();
+    expect(
+      [...generatedDistribution.files, ...generatedDistribution.load_files].some((entry) =>
+        [entry.source_path, entry.target_path].some((value) =>
+          /(?:^|\/)assessment\/(?:reference-solutions|scoring-tests|completed-states)(?:\/|$)/i.test(
+            value,
+          ),
+        ),
+      ),
+    ).toBe(false);
     expectMarkdownLinksResolve(fixture.target, "course/modules/M00/README.md");
     expectMarkdownLinksResolve(fixture.target, "course/start-here.md");
     expect(

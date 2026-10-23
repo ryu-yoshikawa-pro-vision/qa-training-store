@@ -52,7 +52,7 @@
     ],
     "objective_ids": ["M08-01", "M08-02", "M08-03", "M08-04"],
     "phase": "P3",
-    "previous_artifact_policy": "use valid learner artifact or this module\u0027s separately identified public sample"
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
   },
   "checks": [
     {
@@ -63,7 +63,7 @@
     {
       "id": "M08-START-02",
       "mode": "read-only",
-      "condition": "select this module\u0027s distinct public fallback if prior artifact is missing or invalid"
+      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
     },
     {
       "id": "M08-START-03",
@@ -81,16 +81,17 @@
     "docs/curriculum/ai-assisted-qa/quizzes/M08.json",
     "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
   ],
-  "confidentiality": {
-    "public": true,
-    "contains_model_answers": false,
-    "contains_private_assessment_tests": false
-  },
   "public_fallback": {
     "artifact_id": "M08-public-start-01",
     "revision": "M08-public-start-v1",
     "contract_id": "M07-to-M08-handoff-v1",
     "path": "inputs/M08/public-sample-handoff.json",
     "public": true
+  },
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
   }
 }

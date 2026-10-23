@@ -9,10 +9,10 @@
     "external_skills_repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills"
   },
   "known_limitations": [
-    "The graph records public curriculum and assessment contracts; it does not store private model answers, private scoring tests, learner results, or secrets.",
+    "The graph records public assessment-material IDs, paths, revisions, and evaluation links without duplicating reference-solution/scoring/completed-state bodies; it does not store learner results or secrets.",
     "Human review of curriculum meaning and learner field validation are separate from automated structural validation.",
     "A source-backed deterministic development run generated Authority and Product Risk Machine Entities, reached condition_structure(direct), ran a manually selected BVA runtime, materialized coverage, generated Cases, and passed the condition-design and case-design verify_runtime_evidence gates on the same artifact chain. The meaning analysis and technique choice were human-authored from formal sources, not OpenCode model output; the model-dependent integration acceptance therefore remains incomplete. Scope is a source-backed reference string, not a separate Machine Entity; structural fixtures do not substitute for runtime evidence.",
-    "External Template creation and private evaluation-material storage remain unassigned and are not created by this repository."
+    "External learner Template creation, personal learner-result storage, and formal evaluator assignment remain unassigned. Public assessment files are stored in this repository."
   ],
   "nodes": [
     {
@@ -23,6 +23,17 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/exercises/M00/submission-template.md",
       "destination": "workspace/M00/submission.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M00-INPUT-START",
+      "type": "artifact",
+      "title": "M00 public start input start.md",
+      "module": "M00",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M00/start.md",
+      "destination": "course/modules/M00/inputs/start.md",
       "public": true,
       "private": false
     },
@@ -38,6 +49,17 @@
       "private": false
     },
     {
+      "id": "ART-M01-INPUT-START",
+      "type": "artifact",
+      "title": "M01 public start input start.md",
+      "module": "M01",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M01/start.md",
+      "destination": "course/modules/M01/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M02-01",
       "type": "artifact",
       "title": "M02 artifact analysis.md",
@@ -45,6 +67,17 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/exercises/M02/submission-template.md",
       "destination": "workspace/M02/analysis.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M02-INPUT-START",
+      "type": "artifact",
+      "title": "M02 public start input start.md",
+      "module": "M02",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M02/start.md",
+      "destination": "course/modules/M02/inputs/start.md",
       "public": true,
       "private": false
     },
@@ -67,6 +100,28 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/exercises/M03/submission-template.md",
       "destination": "workspace/M03/cases.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M03-INPUT-PUBLIC-RISK-INPUT",
+      "type": "artifact",
+      "title": "M03 public start input public-risk-input.csv",
+      "module": "M03",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
+      "destination": "workspace/M03/public-sample/risk-input.csv",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M03-INPUT-START",
+      "type": "artifact",
+      "title": "M03 public start input start.md",
+      "module": "M03",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M03/start.md",
+      "destination": "course/modules/M03/inputs/start.md",
       "public": true,
       "private": false
     },
@@ -104,6 +159,17 @@
       "private": false
     },
     {
+      "id": "ART-M04-INPUT-START",
+      "type": "artifact",
+      "title": "M04 public start input start.md",
+      "module": "M04",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M04/start.md",
+      "destination": "course/modules/M04/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M05-01",
       "type": "artifact",
       "title": "M05 artifact submission.md",
@@ -126,6 +192,17 @@
       "private": false
     },
     {
+      "id": "ART-M05-INPUT-START",
+      "type": "artifact",
+      "title": "M05 public start input start.md",
+      "module": "M05",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M05/start.md",
+      "destination": "course/modules/M05/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M06-01",
       "type": "artifact",
       "title": "M06 artifact submission.md",
@@ -144,6 +221,17 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "workspace/M06/cart-cases.spec.ts",
       "destination": "workspace/M06/cart-cases.spec.ts",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M06-INPUT-START",
+      "type": "artifact",
+      "title": "M06 public start input start.md",
+      "module": "M06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M06/start.md",
+      "destination": "course/modules/M06/inputs/start.md",
       "public": true,
       "private": false
     },
@@ -192,6 +280,17 @@
       "private": false
     },
     {
+      "id": "ART-M07-INPUT-START",
+      "type": "artifact",
+      "title": "M07 public start input start.md",
+      "module": "M07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M07/start.md",
+      "destination": "course/modules/M07/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M08-01",
       "type": "artifact",
       "title": "M08 artifact submission.md",
@@ -210,6 +309,83 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/exercises/M08/review-candidate.md",
       "destination": "workspace/M08/review-candidate.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-CONFIG",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-config.md",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-config.md",
+      "destination": "workspace/M08/public-sample/config.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-DEPENDENCIES",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-dependencies.md",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-dependencies.md",
+      "destination": "workspace/M08/public-sample/dependencies.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-HANDOFF",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-handoff.json",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-handoff.json",
+      "destination": "workspace/M08/public-sample/handoff.json",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-RESET",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-reset.md",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
+      "destination": "workspace/M08/public-sample/reset.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-RUN-EVIDENCE",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-run-evidence.md",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-run-evidence.md",
+      "destination": "workspace/M08/public-sample/run-evidence.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-SPEC",
+      "type": "artifact",
+      "title": "M08 public start input public-sample-spec.ts",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "destination": "workspace/M08/public-sample/handoff-smoke.spec.ts",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M08-INPUT-START",
+      "type": "artifact",
+      "title": "M08 public start input start.md",
+      "module": "M08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/start.md",
+      "destination": "course/modules/M08/inputs/start.md",
       "public": true,
       "private": false
     },
@@ -247,6 +423,17 @@
       "private": false
     },
     {
+      "id": "ART-M09-INPUT-START",
+      "type": "artifact",
+      "title": "M09 public start input start.md",
+      "module": "M09",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M09/start.md",
+      "destination": "course/modules/M09/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M10-01",
       "type": "artifact",
       "title": "M10 artifact submission.md",
@@ -258,6 +445,94 @@
       "private": false
     },
     {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-CONFIG",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-config.md",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-config.md",
+      "destination": "workspace/M10/public-sample/config.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-DEPENDENCIES",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-dependencies.md",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-dependencies.md",
+      "destination": "workspace/M10/public-sample/dependencies.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-HANDOFF",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-handoff.json",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-handoff.json",
+      "destination": "workspace/M10/public-sample/handoff.json",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-RESET",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-reset.md",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
+      "destination": "workspace/M10/public-sample/reset.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-RUN-EVIDENCE",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-run-evidence.md",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-run-evidence.md",
+      "destination": "workspace/M10/public-sample/run-evidence.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-SPEC",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-spec.ts",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
+      "destination": "workspace/M10/public-sample/handoff-smoke.spec.ts",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-WORKFLOW-YML",
+      "type": "artifact",
+      "title": "M10 public start input public-sample-workflow.yml.disabled",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      "destination": "workspace/M10/public-sample/course-e2e.workflow.yml.disabled",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M10-INPUT-START",
+      "type": "artifact",
+      "title": "M10 public start input start.md",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/start.md",
+      "destination": "course/modules/M10/inputs/start.md",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ASSESS-P1",
       "type": "assessment",
       "title": "P1 public assessment rubric",
@@ -265,7 +540,144 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/assessment/phase-1-rubric.md",
       "public": true,
-      "private": false
+      "private": false,
+      "reference_materials": [
+        {
+          "id": "COMPLETED_STATE-M00",
+          "module_id": "M00",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M00.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M01",
+          "module_id": "M01",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M01.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M02",
+          "module_id": "M02",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M02.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M03",
+          "module_id": "M03",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M03.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M04",
+          "module_id": "M04",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M04.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M00",
+          "module_id": "M00",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M00.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M01",
+          "module_id": "M01",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M01.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M02",
+          "module_id": "M02",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M02.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M03",
+          "module_id": "M03",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M03.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M04",
+          "module_id": "M04",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M04.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M00",
+          "module_id": "M00",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M01",
+          "module_id": "M01",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M01.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M02",
+          "module_id": "M02",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M02.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M03",
+          "module_id": "M03",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M03.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M04",
+          "module_id": "M04",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M04.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        }
+      ]
     },
     {
       "id": "ASSESS-P2",
@@ -275,7 +687,90 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/assessment/phase-2-rubric.md",
       "public": true,
-      "private": false
+      "private": false,
+      "reference_materials": [
+        {
+          "id": "COMPLETED_STATE-M05",
+          "module_id": "M05",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M05.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M06",
+          "module_id": "M06",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M06.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M07",
+          "module_id": "M07",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M07.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M05",
+          "module_id": "M05",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M05.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M06",
+          "module_id": "M06",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M06.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M07",
+          "module_id": "M07",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M07.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M05",
+          "module_id": "M05",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M06",
+          "module_id": "M06",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M06.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M07",
+          "module_id": "M07",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        }
+      ]
     },
     {
       "id": "ASSESS-P3",
@@ -285,7 +780,90 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/assessment/phase-3-rubric.md",
       "public": true,
-      "private": false
+      "private": false,
+      "reference_materials": [
+        {
+          "id": "COMPLETED_STATE-M08",
+          "module_id": "M08",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M08.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M09",
+          "module_id": "M09",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M09.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "COMPLETED_STATE-M10",
+          "module_id": "M10",
+          "kind": "completed_state",
+          "path": "training/ai-assisted-qa-course/assessment/completed-states/M10.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M08",
+          "module_id": "M08",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M08.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M09",
+          "module_id": "M09",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M09.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "REFERENCE_SOLUTION-M10",
+          "module_id": "M10",
+          "kind": "reference_solution",
+          "path": "training/ai-assisted-qa-course/assessment/reference-solutions/M10.md",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M08",
+          "module_id": "M08",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M08.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M09",
+          "module_id": "M09",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M09.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        },
+        {
+          "id": "SCORING_TEST-M10",
+          "module_id": "M10",
+          "kind": "scoring_test",
+          "path": "training/ai-assisted-qa-course/assessment/scoring-tests/M10.json",
+          "revision": "assessment-reference-v1",
+          "public": true,
+          "included_in_learner_package": false
+        }
+      ]
     },
     {
       "id": "EX-M00",
@@ -2453,6 +3031,16 @@
       "source_revision_kind": "git_commit"
     },
     {
+      "id": "S-TEST-REQUIREMENTS",
+      "type": "skill",
+      "title": "test-requirement-design",
+      "repo": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      "path": "skills/test-requirement-design/SKILL.md",
+      "ref": "7cc6cba7772de549841a39d71694cbafbc783324",
+      "status": "path_verified_runtime_unverified",
+      "source_revision_kind": "git_commit"
+    },
+    {
       "id": "STATE-M00-END",
       "type": "module_state",
       "title": "M00 end state",
@@ -2715,281 +3303,6 @@
       "path": "training/ai-assisted-qa-course/states/M10/start.json",
       "public_contract": true,
       "private_data": false
-    },
-    {
-      "id": "ART-M00-INPUT-START",
-      "type": "artifact",
-      "title": "M00 public start input start.md",
-      "module": "M00",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M00/start.md",
-      "destination": "course/modules/M00/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M01-INPUT-START",
-      "type": "artifact",
-      "title": "M01 public start input start.md",
-      "module": "M01",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M01/start.md",
-      "destination": "course/modules/M01/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M02-INPUT-START",
-      "type": "artifact",
-      "title": "M02 public start input start.md",
-      "module": "M02",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M02/start.md",
-      "destination": "course/modules/M02/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M03-INPUT-START",
-      "type": "artifact",
-      "title": "M03 public start input start.md",
-      "module": "M03",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M03/start.md",
-      "destination": "course/modules/M03/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M03-INPUT-PUBLIC-RISK-INPUT",
-      "type": "artifact",
-      "title": "M03 public start input public-risk-input.csv",
-      "module": "M03",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
-      "destination": "workspace/M03/public-sample/risk-input.csv",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M04-INPUT-START",
-      "type": "artifact",
-      "title": "M04 public start input start.md",
-      "module": "M04",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M04/start.md",
-      "destination": "course/modules/M04/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M05-INPUT-START",
-      "type": "artifact",
-      "title": "M05 public start input start.md",
-      "module": "M05",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M05/start.md",
-      "destination": "course/modules/M05/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M06-INPUT-START",
-      "type": "artifact",
-      "title": "M06 public start input start.md",
-      "module": "M06",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M06/start.md",
-      "destination": "course/modules/M06/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M07-INPUT-START",
-      "type": "artifact",
-      "title": "M07 public start input start.md",
-      "module": "M07",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M07/start.md",
-      "destination": "course/modules/M07/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-START",
-      "type": "artifact",
-      "title": "M08 public start input start.md",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/start.md",
-      "destination": "course/modules/M08/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-HANDOFF",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-handoff.json",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-handoff.json",
-      "destination": "workspace/M08/public-sample/handoff.json",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-CONFIG",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-config.md",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-config.md",
-      "destination": "workspace/M08/public-sample/config.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-DEPENDENCIES",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-dependencies.md",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-dependencies.md",
-      "destination": "workspace/M08/public-sample/dependencies.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-RESET",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-reset.md",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
-      "destination": "workspace/M08/public-sample/reset.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-RUN-EVIDENCE",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-run-evidence.md",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-run-evidence.md",
-      "destination": "workspace/M08/public-sample/run-evidence.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M08-INPUT-PUBLIC-SAMPLE-SPEC",
-      "type": "artifact",
-      "title": "M08 public start input public-sample-spec.ts",
-      "module": "M08",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
-      "destination": "workspace/M08/public-sample/handoff-smoke.spec.ts",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M09-INPUT-START",
-      "type": "artifact",
-      "title": "M09 public start input start.md",
-      "module": "M09",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M09/start.md",
-      "destination": "course/modules/M09/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-START",
-      "type": "artifact",
-      "title": "M10 public start input start.md",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/start.md",
-      "destination": "course/modules/M10/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-HANDOFF",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-handoff.json",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-handoff.json",
-      "destination": "workspace/M10/public-sample/handoff.json",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-CONFIG",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-config.md",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-config.md",
-      "destination": "workspace/M10/public-sample/config.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-DEPENDENCIES",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-dependencies.md",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-dependencies.md",
-      "destination": "workspace/M10/public-sample/dependencies.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-RESET",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-reset.md",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M08/public-sample-reset.md",
-      "destination": "workspace/M10/public-sample/reset.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-RUN-EVIDENCE",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-run-evidence.md",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-run-evidence.md",
-      "destination": "workspace/M10/public-sample/run-evidence.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-SPEC",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-spec.ts",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "workspace/M07/public-sample/handoff-smoke.spec.ts",
-      "destination": "workspace/M10/public-sample/handoff-smoke.spec.ts",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-INPUT-PUBLIC-SAMPLE-WORKFLOW-YML",
-      "type": "artifact",
-      "title": "M10 public start input public-sample-workflow.yml.disabled",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      "destination": "workspace/M10/public-sample/course-e2e.workflow.yml.disabled",
-      "public": true,
-      "private": false
     }
   ],
   "edges": [
@@ -3375,6 +3688,11 @@
     },
     {
       "from": "EX-M02",
+      "relation": "uses_skill",
+      "to": "S-TEST-REQUIREMENTS"
+    },
+    {
+      "from": "EX-M02",
       "relation": "uses_target",
       "to": "F-CART"
     },
@@ -3427,6 +3745,11 @@
       "from": "EX-M03",
       "relation": "uses_skill",
       "to": "S-TEST-CONDITIONS"
+    },
+    {
+      "from": "EX-M03",
+      "relation": "uses_skill",
+      "to": "S-TEST-REQUIREMENTS"
     },
     {
       "from": "EX-M03",
@@ -3712,11 +4035,6 @@
       "from": "EX-M09",
       "relation": "produces",
       "to": "ART-M09-02"
-    },
-    {
-      "from": "STATE-M09-START",
-      "relation": "requires",
-      "to": "ART-M09-03"
     },
     {
       "from": "EX-M10",
@@ -4203,6 +4521,11 @@
     },
     {
       "from": "LESSON-M02",
+      "relation": "uses_skill",
+      "to": "S-TEST-REQUIREMENTS"
+    },
+    {
+      "from": "LESSON-M02",
       "relation": "uses_target",
       "to": "F-CART"
     },
@@ -4245,6 +4568,11 @@
       "from": "LESSON-M03",
       "relation": "uses_skill",
       "to": "S-TEST-CONDITIONS"
+    },
+    {
+      "from": "LESSON-M03",
+      "relation": "uses_skill",
+      "to": "S-TEST-REQUIREMENTS"
     },
     {
       "from": "LESSON-M03",
@@ -4719,6 +5047,11 @@
     },
     {
       "from": "M02",
+      "relation": "may_use_skill",
+      "to": "S-TEST-REQUIREMENTS"
+    },
+    {
+      "from": "M02",
       "to": "P1",
       "relation": "part_of",
       "status": "defined"
@@ -4856,6 +5189,11 @@
     },
     {
       "from": "M03",
+      "relation": "may_use_skill",
+      "to": "S-TEST-REQUIREMENTS"
+    },
+    {
+      "from": "M03",
       "to": "P1",
       "relation": "part_of",
       "status": "defined"
@@ -4970,11 +5308,6 @@
       "from": "M04",
       "relation": "has_start_state",
       "to": "STATE-M04-START"
-    },
-    {
-      "from": "STATE-M04-START",
-      "relation": "requires",
-      "to": "ART-M04-03"
     },
     {
       "from": "M04",
@@ -6234,12 +6567,17 @@
     {
       "from": "STATE-M03-START",
       "relation": "requires",
-      "to": "ART-M03-INPUT-START"
+      "to": "ART-M03-INPUT-PUBLIC-RISK-INPUT"
     },
     {
       "from": "STATE-M03-START",
       "relation": "requires",
-      "to": "ART-M03-INPUT-PUBLIC-RISK-INPUT"
+      "to": "ART-M03-INPUT-START"
+    },
+    {
+      "from": "STATE-M04-START",
+      "relation": "requires",
+      "to": "ART-M04-03"
     },
     {
       "from": "STATE-M04-START",
@@ -6264,22 +6602,17 @@
     {
       "from": "STATE-M08-START",
       "relation": "requires",
-      "to": "ART-M08-INPUT-START"
-    },
-    {
-      "from": "STATE-M08-START",
-      "relation": "requires",
-      "to": "ART-M08-INPUT-PUBLIC-SAMPLE-HANDOFF"
-    },
-    {
-      "from": "STATE-M08-START",
-      "relation": "requires",
       "to": "ART-M08-INPUT-PUBLIC-SAMPLE-CONFIG"
     },
     {
       "from": "STATE-M08-START",
       "relation": "requires",
       "to": "ART-M08-INPUT-PUBLIC-SAMPLE-DEPENDENCIES"
+    },
+    {
+      "from": "STATE-M08-START",
+      "relation": "requires",
+      "to": "ART-M08-INPUT-PUBLIC-SAMPLE-HANDOFF"
     },
     {
       "from": "STATE-M08-START",
@@ -6297,19 +6630,19 @@
       "to": "ART-M08-INPUT-PUBLIC-SAMPLE-SPEC"
     },
     {
+      "from": "STATE-M08-START",
+      "relation": "requires",
+      "to": "ART-M08-INPUT-START"
+    },
+    {
+      "from": "STATE-M09-START",
+      "relation": "requires",
+      "to": "ART-M09-03"
+    },
+    {
       "from": "STATE-M09-START",
       "relation": "requires",
       "to": "ART-M09-INPUT-START"
-    },
-    {
-      "from": "STATE-M10-START",
-      "relation": "requires",
-      "to": "ART-M10-INPUT-START"
-    },
-    {
-      "from": "STATE-M10-START",
-      "relation": "requires",
-      "to": "ART-M10-INPUT-PUBLIC-SAMPLE-HANDOFF"
     },
     {
       "from": "STATE-M10-START",
@@ -6320,6 +6653,11 @@
       "from": "STATE-M10-START",
       "relation": "requires",
       "to": "ART-M10-INPUT-PUBLIC-SAMPLE-DEPENDENCIES"
+    },
+    {
+      "from": "STATE-M10-START",
+      "relation": "requires",
+      "to": "ART-M10-INPUT-PUBLIC-SAMPLE-HANDOFF"
     },
     {
       "from": "STATE-M10-START",
@@ -6340,6 +6678,11 @@
       "from": "STATE-M10-START",
       "relation": "requires",
       "to": "ART-M10-INPUT-PUBLIC-SAMPLE-WORKFLOW-YML"
+    },
+    {
+      "from": "STATE-M10-START",
+      "relation": "requires",
+      "to": "ART-M10-INPUT-START"
     }
   ],
   "source_revisions": {

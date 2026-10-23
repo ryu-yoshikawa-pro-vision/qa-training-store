@@ -90,4 +90,4 @@ node scripts/training/knowledge-graph.mjs impact --changed-files changed-files.t
 
 受講者が実行する`course:load Mxx`は、教材管理側のグラフ改訂とは別処理です。**グラフの全件を受講者へ配布する必要はない**ため、同期許可リストはグラフを受講者用Templateへ含めません。管理者の`course:sync`はmanifestに明示したファイルだけを固定SHAから配布します。
 
-公開グラフへ**修了課題の模範解答、非公開採点用テスト、受講者個人の評価記録、APIキー**を登録しない。問題・実技が実装された後に、それらへの参照を追加する場合も、公開情報の範囲とスキーマ変更を先に検討します。
+公開グラフには、公開評価資料のID・パス・revision・評価対象との関係を登録し、模範解答・採点用テスト・完成状態の本文は複製しません。これらの評価資料はpublicな`qa-training-store`の`training/ai-assisted-qa-course/assessment/`に通常ファイルとして保存し、学習用配布から除外します。この除外は秘密保持ではありません。受講者個人の評価記録やAPIキーは公開グラフ・評価資料へ登録しません。

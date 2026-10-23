@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "module_id": "M07",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v2",
+  "reference_only": true,
+  "human_evaluation": "not_performed",
+  "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
+  "knowledge_ids": ["K-M07-01", "K-M07-02", "K-M07-03", "K-M07-04", "K-M07-05"],
+  "start_state_path": "training/ai-assisted-qa-course/states/M07/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M07/end.json",
+  "artifacts": [
+    {
+      "id": "M07-result-01",
+      "path": "workspace/M07/diagnosis.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "expected_data": {
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
+        "retry_is_root_cause_fix": false,
+        "separate_before_after_runs": true,
+        "synthetic_sample_label_required": true
+      }
+    },
+    {
+      "id": "M07-result-02",
+      "path": "workspace/M07/repaired-assertion.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "expected_data": {
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
+        "retry_is_root_cause_fix": false,
+        "separate_before_after_runs": true,
+        "synthetic_sample_label_required": true
+      }
+    },
+    {
+      "id": "M07-result-03",
+      "path": "workspace/M07/phase2-handoff.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "expected_data": {
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
+        "retry_is_root_cause_fix": false,
+        "separate_before_after_runs": true,
+        "synthetic_sample_label_required": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M07-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M07.md"
+    },
+    {
+      "id": "M07-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M07/README.md; training/ai-assisted-qa-course/exercises/M07/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M07.json; training/ai-assisted-qa-course/states/M07/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-inspection/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-result-analysis/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-reporting/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md"
+    },
+    {
+      "id": "M07-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json"
+    },
+    {
+      "id": "M07-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M07.json"
+    }
+  ],
+  "live_evaluation_condition": {
+    "required": true,
+    "conditions_prepublished": false,
+    "prompt": null
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "module_id": "M04",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v2",
+  "reference_only": true,
+  "human_evaluation": "not_performed",
+  "objective_ids": ["M04-01", "M04-02", "M04-03", "M04-04"],
+  "knowledge_ids": ["K-M04-01", "K-M04-02", "K-M04-03", "K-M04-04"],
+  "start_state_path": "training/ai-assisted-qa-course/states/M04/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M04/end.json",
+  "artifacts": [
+    {
+      "id": "M04-result-01",
+      "path": "workspace/M04/review.md",
+      "revision": "M04-result-v1",
+      "contract_id": "M04-to-M05-handoff-v1",
+      "expected_data": {
+        "public_findings": ["unsupported_expected_result", "duplicate_case", "missing_boundary"],
+        "levels": ["unit", "integration", "component", "e2e"],
+        "decisions": ["Automate", "Later", "Do not automate"]
+      }
+    },
+    {
+      "id": "M04-result-02",
+      "path": "workspace/M04/submission.md",
+      "revision": "M04-result-v1",
+      "contract_id": "M04-to-M05-handoff-v1",
+      "expected_data": {
+        "public_findings": ["unsupported_expected_result", "duplicate_case", "missing_boundary"],
+        "levels": ["unit", "integration", "component", "e2e"],
+        "decisions": ["Automate", "Later", "Do not automate"]
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M04-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M04.md"
+    },
+    {
+      "id": "M04-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M04/README.md; training/ai-assisted-qa-course/exercises/M04/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M04.json; training/ai-assisted-qa-course/states/M04/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-analysis/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/coverage-analysis/SKILL.md"
+    },
+    {
+      "id": "M04-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M04.json"
+    },
+    {
+      "id": "M04-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M04.json"
+    }
+  ],
+  "live_evaluation_condition": {
+    "required": true,
+    "conditions_prepublished": false,
+    "prompt": null
+  }
+}

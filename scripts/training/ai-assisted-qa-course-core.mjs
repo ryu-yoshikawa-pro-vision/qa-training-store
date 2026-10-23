@@ -13,8 +13,13 @@ const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).pa
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const FORBIDDEN_PATH =
-  /(?:^|\/)(?:\.git|\.codex|node_modules|output|evals|secrets?|private|answer-keys?|model-answers?)(?:\/|$)|(?:^|\/)\.env(?:\.|$)/i;
+  /(?:^|\/)(?:\.git|\.codex|node_modules|output|evals|secrets?|private|answer-keys?|model-answers?)(?:\/|$)|(?:^|\/)assessment\/(?:reference-solutions|scoring-tests|completed-states)(?:\/|$)|(?:^|\/)\.env(?:\.|$)/i;
 const GITHUB_WORKFLOW_PATH = /(?:^|\/)\.github\/workflows(?:\/|$)/i;
+const REQUIRED_ASSESSMENT_EXCLUSIONS = [
+  "training/ai-assisted-qa-course/assessment/reference-solutions/**",
+  "training/ai-assisted-qa-course/assessment/scoring-tests/**",
+  "training/ai-assisted-qa-course/assessment/completed-states/**",
+];
 
 function fail(message) {
   throw new Error(message);
@@ -86,10 +91,11 @@ export function validateCourseManifest(manifest) {
     !Array.isArray(manifest.external_skill_files) ||
     !Array.isArray(manifest.load_files) ||
     !Array.isArray(manifest.forbidden_paths) ||
-    !manifest.forbidden_paths.includes(".github/workflows/**")
+    !manifest.forbidden_paths.includes(".github/workflows/**") ||
+    REQUIRED_ASSESSMENT_EXCLUSIONS.some((item) => !manifest.forbidden_paths.includes(item))
   )
     fail(
-      "Course manifest must contain local_files, external_skill_files, load_files, and the .github/workflows/** prohibition",
+      "Course manifest must include local_files, external_skill_files, load_files, workflow prohibition, and all assessment distribution exclusions",
     );
   if (
     manifest.external_skill_source?.repository !== "ryu-yoshikawa-pro-vision/qa-workflow-skills" ||
@@ -127,8 +133,10 @@ export function validateCourseManifest(manifest) {
     "qa-workflow",
     "spec-analysis",
     "test-analysis",
+    "test-requirement-design",
     "test-condition-design",
     "test-case-design",
+    "coverage-analysis",
     "adversarial-review",
     "e2e-test-implementation",
     "e2e-test-execution",
@@ -412,10 +420,12 @@ export async function syncCourse({
     created_by_sync: "course:sync",
     files: filesForDistribution,
     load_files: manifest.load_files,
-    confidentiality: {
-      contains_model_answers: false,
-      contains_private_assessment_tests: false,
-      contains_secrets: false,
+    distribution: {
+      public_source: true,
+      includes_reference_solutions: false,
+      includes_scoring_tests: false,
+      includes_completed_states: false,
+      includes_secrets: false,
     },
   };
   const manifestBytes = Buffer.from(`${JSON.stringify(distribution, null, 2)}\n`, "utf8");
@@ -472,6 +482,14 @@ function readDistribution(root) {
     fail("course distribution manifest has no state contract revision");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
+  if (
+    distribution.distribution?.public_source !== true ||
+    distribution.distribution?.includes_reference_solutions !== false ||
+    distribution.distribution?.includes_scoring_tests !== false ||
+    distribution.distribution?.includes_completed_states !== false ||
+    distribution.distribution?.includes_secrets !== false
+  )
+    fail("course distribution manifest violates the public-source and learner-package boundary");
   for (const entry of distribution.files) {
     assertNotWorkflowPath(
       normalizeRelativePath(entry.source_path, "distribution source_path"),
@@ -983,10 +1001,12 @@ export function checkState({ root, moduleId, stateName }) {
   if (state.source_sha !== distribution.source_sha)
     reasons.push("状態source_shaと配布source_shaが一致しません");
   if (
-    state.confidentiality?.contains_model_answers !== false ||
-    state.confidentiality?.contains_private_assessment_tests !== false
+    state.distribution?.public_source !== true ||
+    state.distribution?.includes_reference_solutions !== false ||
+    state.distribution?.includes_scoring_tests !== false ||
+    state.distribution?.includes_completed_states !== false
   )
-    reasons.push("公開状態に非公開評価資料を含める設定があります");
+    reasons.push("状態契約の公開範囲または評価資料の分離設定が不正です");
   for (const reference of state.references ?? []) {
     if (!stateReferenceExists(targetRoot, moduleId, reference, distribution))
       reasons.push(`状態の参照先がありません: ${reference}`);

@@ -44,13 +44,13 @@
 | 役割 | パス・扱い |
 | --- | --- |
 | 旧教材 | `docs/curriculum/test-automation/`：**不変更** |
-| 新教材の正本 | `docs/curriculum/ai-assisted-qa/`：管理用README、受講者用start-here、教材Markdown、モジュール別クイズJSON（公開正答・解説を含む）、assessments。**修了課題の模範解答は公開しない** |
+| 新教材・評価資料の正本 | `docs/curriculum/ai-assisted-qa/`：管理用README、受講者用start-here、教材Markdown、公開正答・解説付きクイズJSON。模範解答・採点用テスト・完成状態データは`training/ai-assisted-qa-course/assessment/`へ通常ファイルとして公開し、学習用Template/同期/ロード/Web Buildからは除外する。この除外は秘密保持ではない |
 | 旧Trainer | `training/playwright/`、`training/workbook/`：既存の提出形式・コードは不変更 |
 | 既存探索QA | `training/agentic-qa/`：Scored Challenge等。新課程として上書きしない |
 | 新Trainerの正本 | `training/ai-assisted-qa-course/`：配布可能な未完成spec・課題素材と実行手順だけ |
 | 教材の同期定義 | `training/course-sync/manifest.json`（配布許可リスト）、`scripts/training/sync-ai-assisted-qa.ts`（管理者用・実装予定） |
 | 学習用リポジトリ | **別の公開Template**を生成・管理し、学習者のCodespacesで`pnpm course:load Mxx`を本人が実行。教材・作業領域を分離 |
-| 非公開評価資料 | 実技・修了課題の模範解答や必要な評価用テストはアクセス制限された別の保存先。公開Git履歴にも入れない |
+| 模範・採点・完成状態資料 | `training/ai-assisted-qa-course/assessment/reference-solutions/Mxx.md`、`scoring-tests/Mxx.json`、`completed-states/Mxx.json`等の通常ファイルとしてpublic Git上でレビュー可能にする。学習用Template/同期/ロード/Web Build/公開Artifactからは配布許可リストで除外する。これは秘密保持ではない |
 | 製品仕様・Seed | `docs/spec/`、`src/seeds/`：新旧が共通参照する正本 |
 | 旧validator・旧修了確認 | `scripts/validate-curriculum.ts`、`scripts/training/check-completion.ts`：変更しない |
 | 新validator | 必要なら `scripts/ai-assisted-qa/` に置く。新課程の構造・問題/解答・実行結果のみ対象 |
@@ -80,7 +80,7 @@
 
 - 教材管理者が確定した配布元commitと許可リストから**別の公開学習用Template**を更新する。`qa-training-store`全体のcloneや旧`prepare-training-copy.ts`の出力をそのまま配布しない。受講者による同期スクリプトの実行は想定しない。
 - **学習者本人**が`pnpm course:load M03`のように**1モジュールIDを指定**し、必要な課題ファイルを`workspace/M03/`へロードする。過去の成果物・編集済みファイルを上書きせず、他モジュールを自動ロードしない。ロードのためにGitコマンド・ネットワークアクセス・CIは要求しない。
-- 配布済みの他モジュールは、ロード前でもAIから参照可能である。**秘密にするべき修了課題の正答・模範コード・評価用テストを公開Git履歴や配布対象へ入れない**。通常の学習用クイズの公開解説と非公開評価資料を区別する。
+- 配布済みの他モジュールは、ロード前でもAIから参照可能である。模範解答・採点用テストは公開Git上で閲覧できる通常ファイルにする一方、学習者向け配布許可リストへ含めない。これは秘密保持ではない。通常の学習用クイズの公開解説、完成評価資料、評価時に初めて提示する具体的条件を区別する。
 - 学習者の作業フォルダと課題素材・実行環境を分ける。学習者の成果物はモジュール間で参照可能にし、同期・再ロードで消さない。新しい受講者リポジトリへの作成・push自体は**本PRで行わない**。
 
 ## Phase 1：CodespacesでのAI操作・テスト設計
@@ -203,11 +203,11 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | 検証 | 合格条件 |
 | --- | --- |
 | 教材分離 | 旧`docs/curriculum/test-automation/**`に差分0。新教材だけで一連の導線が成立 |
-| 学習項目とクイズ | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に基づき、**M00前の開始ガイドと51項目すべての説明・演習・Level 2判定・復習先**がある。公開クイズの解説と非公開の修了解答を区別 |
+| 学習項目とクイズ | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に基づき、**M00前の開始ガイドと51項目すべての説明・演習・Level 2判定・復習先**がある。公開クイズ、公開模範・採点資料、評価時に初めて提示する条件を区別 |
 | 共通開始 | 本人の支払主体・Codespaces無料枠・2コアの選択・起動を確認。**OpenCode Zen無料モデルの利用可否・認証可否は確認済みとして再検証しない**。`qa-workflow-skills`とPython helperの実行、個人Secretの安全な取扱いを確認 |
-| 教材同期 | 許可リストから学習用Templateを生成し、非公開解答・完成spec・Secret・正式workflowを除外。同期元SHAを記録 |
+| 教材同期 | 許可リストから学習用Templateを生成し、公開模範・採点資料・完成spec・Secret・正式workflowを除外。同期元SHAを記録。この配布除外は秘密保持ではない |
 | 学習者ロード | 本人が`course:load Mxx`で指定した1モジュールだけをロード。未知ID拒否・既存成果物の上書き防止・他モジュールの非変更 |
-| 開始・終了基準状態 | **M00〜M10の正しい開始・終了の実データと検証条件**を作り、前後の成果物ID・revisionの矛盾、入力欠落、別解の扱い、模範解答の非公開を確認 |
+| 開始・終了基準状態 | **M00〜M10の正しい開始・終了の実データと検証条件**を作り、前後の成果物ID・revisionの矛盾、入力欠落、別解の扱い、公開完成状態と学習者配布の分離を確認 |
 | Phase 1 | **学習用Templateからの個人リポジトリ・GitHubログインは必要**だが、Git/PR/Playwright/CI操作なしでM00〜M04を一つずつロードし、分析→設計→独立修了できる |
 | Phase 2 | **学習用リポジトリ単体**の2コアCodespacesでBuild/Serve/Seed/Reset→Node/pnpm/Playwright→専用spec実行→診断・改善→独立修了がGit/PR/CIなしで行える。8081/8082/6080・結果保存先が正しく、旧training specや正式回帰を混ぜない |
 | M02→M03の固定Skill受入 | 実在するCartのAuthority/Risk/ScopeとTR相当の検証責務1件から、condition_structure(direct)→選択技法→materialize_coverage(artifact)→case_structure→最終evidence gateを実行。参照欠落、Disposition誤用、mode不一致、未解決、終了コード0のinvalid_inputを成功にしない |

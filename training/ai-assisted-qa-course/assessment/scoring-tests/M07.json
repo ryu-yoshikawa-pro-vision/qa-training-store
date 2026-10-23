@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "module_id": "M07",
+  "revision": "assessment-reference-v1",
+  "skill_source": {
+    "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+    "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "skills": [
+      "e2e-test-inspection",
+      "e2e-test-result-analysis",
+      "e2e-test-reporting",
+      "adversarial-review"
+    ]
+  },
+  "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
+  "knowledge_ids": ["K-M07-01", "K-M07-02", "K-M07-03", "K-M07-04", "K-M07-05"],
+  "sources": [
+    "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+    "training/ai-assisted-qa-course/exercises/M07/exercise.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
+    "training/ai-assisted-qa-course/states/M07/end.json",
+    "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-inspection/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-result-analysis/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-reporting/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md"
+  ],
+  "decision_rules": [
+    "複数原因仮説を証拠の時系列で比較する",
+    "Trace/Screenshot/log/Runの由来と限界を説明する",
+    "Retry/timeoutと原因修正を区別する",
+    "仕様を弱めない最小差分と別Runを示す"
+  ],
+  "criteria": [
+    {
+      "id": "M07-CR-01",
+      "objective_ids": ["M07-01"],
+      "knowledge_ids": ["K-M07-01"],
+      "required_evidence": [
+        "「Test/Product/Environment/Flaky等の異なる原因構造を証拠から区別する」を示す提出物の箇所",
+        "知識の行動証拠: Test/Product/Environment/Flakyを混同しない"
+      ],
+      "pass_conditions": [
+        "学習目標「Test/Product/Environment/Flaky等の異なる原因構造を証拠から区別する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「失敗の原因分類と事実・仮説」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M07-CR-02",
+      "objective_ids": ["M07-02"],
+      "knowledge_ids": ["K-M07-02"],
+      "required_evidence": [
+        "「Trace・Screenshot・ログ・Runの関係と限界を説明する」を示す提出物の箇所",
+        "知識の行動証拠: 失敗箇所と原因候補の証拠を探す"
+      ],
+      "pass_conditions": [
+        "学習目標「Trace・Screenshot・ログ・Runの関係と限界を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「Trace・スクリーンショット・ログ」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M07-CR-03",
+      "objective_ids": ["M07-03"],
+      "knowledge_ids": ["K-M07-03"],
+      "required_evidence": [
+        "「RetryやTimeout延長を原因修正と混同しない」を示す提出物の箇所",
+        "知識の行動証拠: 固定待機を根拠なく増やさない"
+      ],
+      "pass_conditions": [
+        "学習目標「RetryやTimeout延長を原因修正と混同しない」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「Retry・Timeoutと原因修正」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M07-CR-04",
+      "objective_ids": ["M07-04"],
+      "knowledge_ids": ["K-M07-04"],
+      "required_evidence": [
+        "「AIが提案した修正の最小性、仕様の維持、修正前後の別実行を検証する」を示す提出物の箇所",
+        "知識の行動証拠: 最小修正と新しい実行証拠を確認する"
+      ],
+      "pass_conditions": [
+        "学習目標「AIが提案した修正の最小性、仕様の維持、修正前後の別実行を検証する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「AIパッチのレビューと修正前後の別Run」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M07-CR-05",
+      "objective_ids": ["M07-05"],
+      "knowledge_ids": ["K-M07-05"],
+      "required_evidence": [
+        "「Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ」を示す提出物の箇所",
+        "知識の行動証拠: 重複・保守費用に応じて抽象化を選ぶ"
+      ],
+      "pass_conditions": [
+        "学習目標「Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「Helper・POM・Fixtureの適用判断」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "M07-CAL-01",
+      "type": "correct",
+      "response": "確認できたRun/traceから原因候補を絞り、仕様を維持する最小修正と前後の別Runを証拠付きで提示する。",
+      "evidence": [
+        "reference-solutions/M07.md",
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+        "training/ai-assisted-qa-course/exercises/M07/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "根拠・成果物・期待結果が一貫する。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M07-CAL-02",
+      "type": "incorrect",
+      "response": "Retryとtimeoutを増やしgreenになっただけで原因解消とする。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+        "training/ai-assisted-qa-course/exercises/M07/exercise.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "仕様または責務境界に反する。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M07-CAL-03",
+      "type": "partial",
+      "response": "traceを添付するが対象操作・期待結果・原因仮説に結び付けない。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+        "training/ai-assisted-qa-course/exercises/M07/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "妥当な要素はあるが必須根拠や証拠が不足する。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M07-CAL-04",
+      "type": "acceptable-alternative",
+      "response": "限定的retryを再現診断に使っても最終合否や修正証明と分ける。",
+      "evidence": ["docs/curriculum/ai-assisted-qa/modules/M07/README.md"],
+      "expected_decision": "pass_with_reason",
+      "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M07-CAL-05",
+      "type": "ungradable",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M07/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "public_calibration_only"
+    }
+  ],
+  "evaluation_policy": {
+    "automated_scope": "自動検証は構造、参照ID、出典、網羅性、配布境界のみを確認する。意味上の正しさや本人の習熟は自動合格判定しない。",
+    "human_final_approval": "pending_after_implementation",
+    "live_condition": {
+      "required": true,
+      "conditions_prepublished": false,
+      "selection_rule": "実際の総合評価では評価担当者が評価時に新しい具体条件を選ぶ。条件本文・具体値は事前資料に記録しない。公開casesは校正fixtureだけとする。"
+    }
+  }
+}

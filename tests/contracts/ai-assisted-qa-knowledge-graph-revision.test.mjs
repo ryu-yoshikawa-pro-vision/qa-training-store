@@ -16,6 +16,17 @@ describe("AI-assisted QA module-state revisions", () => {
     expect(validate(graph)).toMatchObject({ moduleStates: 22 });
   });
 
+  it("maps each module's public assessment files by ID, path, and revision", () => {
+    const graph = JSON.parse(fs.readFileSync(graphPath, "utf8"));
+    expect(validate(graph)).toMatchObject({ moduleStates: 22, assessments: 3 });
+    const references = graph.nodes
+      .filter((node) => node.type === "assessment")
+      .flatMap((node) => node.reference_materials);
+    expect(references).toHaveLength(33);
+    expect(references.every((item) => item.public && !item.included_in_learner_package)).toBe(true);
+    expect(references.every((item) => item.revision === "assessment-reference-v1")).toBe(true);
+  });
+
   it("rejects a state revision that differs from its graph node", () => {
     const graph = JSON.parse(fs.readFileSync(graphPath, "utf8"));
     const state = graph.nodes.find((node) => node.type === "module_state");
