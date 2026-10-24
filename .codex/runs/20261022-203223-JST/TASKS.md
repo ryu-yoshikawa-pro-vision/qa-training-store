@@ -12,9 +12,9 @@
 - [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
 - [x] 10. 模範解答・採点用テスト・完成状態データはpublicな`qa-training-store`に通常ファイルで保持する方針へ整合。reference-solutions/scoring-tests/completed-states各11件（計33件）を確認し、M03/M04の完成回答・校正例を正式仕様と照合。Template/同期/load/Web Buildからの除外契約は維持し、秘密保持とは説明しない。
 - [x] 11. 58 tentative knowledge nodesと教材内容を正式仕様・設問/選択肢/解説・演習・評価基準と照合し、別AI reviewerによる独立開発レビューを実施。M03教材/知識グラフ/状態参照解決とM10 Reset開始入力の指摘を修正して契約テスト・validatorを再実行。レビュー記録を決定事項へ追記した。AIレビューは人間による正式ドメイン承認を意味しないため、58 nodeは`draft_requires_content_review`を維持。
-- [ ] 12. Plan照合とRun Reportを更新し、実装状態・検証・未達を記録してcommit/push、PR本文へ同期し、最新headの必須CIを確認。実装全体の未達項目はタスク7/10に残す。
+- [x] 12. 6件のレビュー修正・開発検証・未達をRun Reportへ記録し、対象32追跡ファイルをcommit/pushしてPR本文へ反映。PR全体の未完了Task 7を残し、最新headのCI確認はpush後の独立gateとする。
 
-- Progress: 10/12追跡項目。これは全カリキュラムの実装完了を意味しない。
+- Progress: 92% (11/12) — これは全カリキュラムの実装完了を意味しない。
 
 ## 完了処理の参照先
 - Progress: `docs/reference/run-artifacts.md`

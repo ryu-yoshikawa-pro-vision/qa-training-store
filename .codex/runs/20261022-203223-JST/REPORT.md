@@ -199,3 +199,14 @@
 - 未実行: 全Contracts suiteと標準51-case Chromium suiteは、先行記録済みWindows Hook/ACL/MCP/spawnおよびPlaywright worker終了境界があるため今回再実行していない。今回影響するdistribution/curriculum contractと新課程17-case E2E、Phase 2/3対象E2Eは個別に実行済み。過去のWeb/Mobile CIは開始SHA向けなので今回の変更のCI証拠とは扱わない。
 - 次: explicit tracked diffのみをstageしてcommit・通常pushし、PR本文を本差分と検証状態に更新。push後に最新SHAをGitHub PRと照合し、規定のrequired-CI waiterでWeb CI/Mobile App CIを1回確認する。CI evidenceを含む追加commitは作らない。M02→M03 OpenCode model-dependent受入、外部Template指定、実地検証はPR全体の未完了項目として残る。
 - Progress: 10/12 tracking tasks complete; このreview batchの実装・ローカル検証は完了、commit/push/PR/最新CIは未完了。PR全体のカリキュラム実装完了とは扱わない。
+
+## 2026-10-24 — PR #199 複数モデルレビュー6件の修正
+
+- 開始HEAD / PR head: `1b0d5bd111675555438052ff4c7a3b46c0048161`。作業tree内の既存差分はレビュー修正32追跡ファイルと保護対象の未追跡4領域に分離して確認。PRはopen、base `main`、指定branchと一致。
+- 修正: M03-Q04をCart `active -> abandoned`許可 / `abandoned -> active`禁止に整合し、M09-Q02でPR HEAD・Run対象SHA・Artifact内SHAの一致確認を採点。M04 Candidate-01は`CASE-CART-BASE-01`へ統合、02A/Bは一件を正規化、03は操作前数量を推測せずLaterにする。M03に8ルールの完全decision tableを加え、case listと分離。M06固定3 Caseへの入力元/revision・Phase 1本人Case比較・公開fallbackとPhase 1修了の分離を教材/計画/評価へ反映。53問の復習先を説明見出しへ揃え、出力HTMLのアンカー契約テストを追加。
+- 開発検証PASS: `validate:ai-assisted-qa`（M00-M10/53問/評価資料33件）、`validate:curriculum`（22文書/4 workbook）、knowledge graph validate（287 nodes/617 edges/51 objectives/58 knowledge/53 quiz/22 states/47 artifacts）、AI QA curriculum/distribution/graph revision contracts 40/40、changed-file Prettier、ESLint、`typecheck:training`、Markdown lint、text lint、security scan、`git diff --check`。
+- 開発E2E PASS: public quiz Chromium 17/17、M06 fixed Playwright 3/3。既定Playwright Chromium executableの不足をtraceで確認し、設定/timeoutを変更せず、インストール済みChromeとbuild済みdist/loopback serverの専用経路で確認。
+- Commit / push: `7f359073151b9ffcaae4851bfefb44e39f95ef51`を`docs/plan-ai-agent-qa-curriculum-redesign`へ通常push。local HEAD、origin tracking、PR HEADが一致。PRはopen。
+- push後の必須CI結果はRun Artifactへ追記せず、GitHub Actions、PR本文、ユーザー報告で記録する。
+- 保護対象: `workspace/M05/validation/`、`workspace/M06/acceptance-probe.spec.ts`、`workspace/M08/`、`workspace/M10/`は変更/stage/commitしていない。
+- 全体未完了: M02->M03 OpenCode model-dependent統合受入はこの修正対象外で未完了。外部Template、受講者/評価担当者、Codespaces実地検証も未実施。
