@@ -8,10 +8,20 @@ export type AiAssistedQaPlaywrightEnvironment = {
 export type AiAssistedQaPlaywrightSettings = {
   baseUrl: string;
   testDir: string;
+  testArea: "workspace" | "assessment";
 };
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
-const COURSE_MODULES = ["M05", "M06", "M07", "M08", "M10"] as const;
+const WORKSPACE_MODULES = ["M05", "M06", "M07", "M08", "M10"] as const;
+const ASSESSMENT_MODULES = ["M05", "M06", "M07"] as const;
+
+function isWithin(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))
+  );
+}
 
 export function resolveAiAssistedQaPlaywrightSettings(
   repositoryRoot: string,
@@ -38,18 +48,21 @@ export function resolveAiAssistedQaPlaywrightSettings(
   }
 
   const testDir = path.resolve(repositoryRoot, environment.testRoot?.trim() || "workspace/M06");
-  const allowedRoots = COURSE_MODULES.map((moduleId) =>
+  const workspaceRoots = WORKSPACE_MODULES.map((moduleId) =>
     path.resolve(repositoryRoot, "workspace", moduleId),
   );
-  const allowed = allowedRoots.some((allowedRoot) => {
-    const relative = path.relative(allowedRoot, testDir);
-    return (
-      relative === "" ||
-      (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))
+  const assessmentRoots = ASSESSMENT_MODULES.map((moduleId) =>
+    path.resolve(repositoryRoot, "training/ai-assisted-qa-course/assessment/playwright", moduleId),
+  );
+  const testArea = workspaceRoots.some((root) => isWithin(testDir, root))
+    ? "workspace"
+    : assessmentRoots.some((root) => isWithin(testDir, root))
+      ? "assessment"
+      : null;
+  if (testArea === null) {
+    throw new Error(
+      "新課程Playwrightはworkspace/M05・M06・M07・M08・M10またはassessment/playwright/M05・M06・M07配下だけを許可します",
     );
-  });
-  if (!allowed) {
-    throw new Error("新課程Playwrightの対象はworkspace/M05、M06、M07、M08またはM10配下に限ります");
   }
-  return { baseUrl: parsedUrl.toString().replace(/\/$/, ""), testDir };
+  return { baseUrl: parsedUrl.toString().replace(/\/$/, ""), testDir, testArea };
 }

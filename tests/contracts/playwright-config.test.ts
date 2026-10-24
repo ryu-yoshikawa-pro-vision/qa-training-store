@@ -29,6 +29,17 @@ async function loadPlaywrightConfig(
   return (await import("../../playwright.config")).default;
 }
 
+async function loadTrainingPlaywrightConfig(chromiumExecutable: string | undefined = undefined) {
+  process.env.PLAYWRIGHT_BASE_URL = localBaseUrl;
+  if (chromiumExecutable === undefined) {
+    delete process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  } else {
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE = chromiumExecutable;
+  }
+  vi.resetModules();
+  return (await import("../../playwright.training.config")).default;
+}
+
 function deployedSmokeProject(config: Awaited<ReturnType<typeof loadPlaywrightConfig>>) {
   const project = config.projects?.find(({ name }) => name === "deployed-smoke");
   expect(project).toBeDefined();
@@ -81,6 +92,19 @@ describe("Playwright local and deployed target boundary", () => {
     expect(config.projects?.find(({ name }) => name === "webkit-smoke")?.use?.launchOptions).toBe(
       undefined,
     );
+  });
+
+  it("passes the configured Chromium executable through both Training projects", async () => {
+    const executablePath = "C:/tools/chromium/chrome.exe";
+    const config = await loadTrainingPlaywrightConfig(executablePath);
+
+    expect(config.projects?.map(({ name }) => name)).toEqual([
+      "training-chromium",
+      "training-mobile-chromium",
+    ]);
+    for (const project of config.projects ?? []) {
+      expect(project.use?.launchOptions).toEqual({ executablePath });
+    }
   });
 
   it("starts the local web server when DEPLOYED_BASE_URL is not set", async () => {

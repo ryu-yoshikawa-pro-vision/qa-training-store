@@ -715,6 +715,12 @@ describe("AI-assisted QA distribution contract", () => {
 
   it("distributes the M05 reading exercise and incomplete Phase 2 specs without publishing answers", () => {
     const manifest = loadCourseManifest(repositoryRoot);
+    const assessmentSpecPaths = [
+      "training/ai-assisted-qa-course/assessment/playwright/M05/product-link.spec.ts",
+      "training/ai-assisted-qa-course/assessment/playwright/M06/cart-cases.spec.ts",
+      "training/ai-assisted-qa-course/assessment/playwright/M07/expected-failure/intentional-assertion.spec.ts",
+      "training/ai-assisted-qa-course/assessment/playwright/M07/repaired/repaired-assertion.spec.ts",
+    ];
     const m05Path = "workspace/M05/product-link.spec.ts";
     const m06Path = "workspace/M06/cart-cases.spec.ts";
     const m07BeforePath = "workspace/M07/failure-assertion.spec.ts";
@@ -762,6 +768,15 @@ describe("AI-assisted QA distribution contract", () => {
         }),
       ]),
     );
+    for (const assessmentSpecPath of assessmentSpecPaths) {
+      expect(fs.existsSync(path.join(repositoryRoot, assessmentSpecPath))).toBe(true);
+      expect(manifest.local_files.some((item) => item.source_path === assessmentSpecPath)).toBe(
+        false,
+      );
+      expect(manifest.load_files.some((item) => item.source_path === assessmentSpecPath)).toBe(
+        false,
+      );
+    }
     expect(manifest.load_files).toContainEqual({
       module_id: "M05",
       source_path: "course/exercises/M05/product-link.spec.ts",

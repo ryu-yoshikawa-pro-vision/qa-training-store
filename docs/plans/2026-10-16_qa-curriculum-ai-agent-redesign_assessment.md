@@ -51,11 +51,15 @@
 training/ai-assisted-qa-course/assessment/
   README.md
   reference-solutions/M00.md ... M10.md
+  playwright/M05/product-link.spec.ts
+  playwright/M06/cart-cases.spec.ts
+  playwright/M07/expected-failure/intentional-assertion.spec.ts
+  playwright/M07/repaired/repaired-assertion.spec.ts
   scoring-tests/M00.json ... M10.json
   completed-states/M00.json ... M10.json
 ```
 
-公開した資料を見られることは前提とし、情報の秘匿性や学習用配布物からの除外を秘密保持と説明しない。`training/course-sync/manifest.json`の既存許可リストを維持し、上記3ディレクトリとその内容は学習用Template、同期、module load、Web Build、公開Artifactへ含めない。この配布契約をmanifest/loader/build testsで確認する。暗号化アーカイブ、age、復号スクリプト、鍵管理、暗号化専用CIは設けない。
+公開した資料を見られることは前提とし、情報の秘匿性や学習用配布物からの除外を秘密保持と説明しない。`training/course-sync/manifest.json`の既存許可リストを維持し、`assessment/`全体とその内容は学習用Template、同期、module load、Web Build、公開Artifactへ含めない。この配布契約をmanifest/loader/build testsで確認する。`assessment/playwright/M05`〜`M07`は既存の新課程専用Playwright Configでローカル実行できる評価用完成specであり、学習者用workspaceの未完成課題とは分離する。暗号化アーカイブ、age、復号スクリプト、鍵管理、暗号化専用CIは設けない。
 
 M04/M07/M10の本人判断確認で評価時に初めて提示する具体的条件は、この公開リポジトリ、模範、採点用テスト、完成状態データ、公開Planへ事前登録しない。評価担当者が評価時に既習範囲内の条件を選び、公開ルーブリックに沿って判断の根拠を確認する。公開資料を事前に閲覧できることを許容し、模範の暗記や秘匿性だけで合否を決めない。
 
@@ -167,6 +171,8 @@ M04・M07・M10の正式な修了判定では、**受講者の提出済み実技
 | 診断と保守 | テストコード、初期状態・環境、タイミング・Flaky等の異なる3系統の失敗を証拠から診断し、必要な修正は別Runで確認できる。製品不具合など修正対象外は根拠付きで報告する | 原因ごとの失敗証拠と仮説・追加検証、修正可能な課題の前後Run、差分・採否理由 |
 
 **総合演習（M07終了時）**：**学習者がロードした未完成課題から**Phase 1の承認済みケースに対応するE2Eを構築・実行し、さらに未演習の条件または故意に不適切なテストspecの診断・修正を行う。テストの不具合を直すために製品本体を変更しない。
+
+**開発用の完成spec**：M05の正しい商品Locator、M06の3 Cart Case、M07の意図的Assertion failureとその修正版を`assessment/playwright/`に保存する。既存の新課程専用Configと`training:ai-assisted-qa:test`で8082 loopbackに対して実行し、M07のbefore/afterは別test root・別Runとする。M07 before-runは正しいAssertion failureを終了コード1で検出し、修正版は終了コード0になることを確認する。完成specはmanifest、ロード、Web Buildから除外し、受講者の未完成workspace素材を置き換えない。
 
 **必要な環境**：同じ**学習用リポジトリ**のCodespaceに導入済みのNode.js/pnpm/Playwright/Chromium、Build/Serve可能なScenario Shop、テスト対象と許可されたAIエージェント。**Git/PR/GitHub Actions/CI操作は不要**。Git CLIを使った差分確認は許可するが、必須にはしない。
 

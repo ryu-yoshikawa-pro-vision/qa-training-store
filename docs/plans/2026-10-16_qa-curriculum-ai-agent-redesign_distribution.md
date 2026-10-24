@@ -19,6 +19,7 @@ qa-training-store/                                  # 公開・教材とScenario
   docs/curriculum/ai-assisted-qa/                    # 教材Markdown、クイズJSON（正答・解説込み）
   training/ai-assisted-qa-course/                    # 課題素材・未完成spec・公開の評価資料
     assessment/reference-solutions/M00.md ... M10.md
+    assessment/playwright/M05/ ... M07/  # 評価用の完成spec
     assessment/scoring-tests/M00.json ... M10.json
     assessment/completed-states/M00.json ... M10.json
   training/course-sync/manifest.json                 # 配布対象を明示する許可リスト
@@ -52,7 +53,7 @@ pnpm course:sync --source-sha <40文字の確定SHA> --target ../ai-assisted-qa-
 
 - `training/course-sync/manifest.json`を**配布許可リスト**の正本とする。共通の実行環境・依存ファイル、各モジュールの教材・課題・必要な仕様断片、ロード用スクリプトとその補助ファイルを**必要な範囲で明示**する。ファイル対応先とモジュール帰属を追える構造にする。配布元のcommit SHAを記録する。
 - 同期処理は**実在する固定SHAの内容**を対象とし、意図しない未commit変更を混ぜない。存在しないファイル・意図しない配布範囲・禁止パス・シンボリックリンクによる領域逸脱を検出した場合は停止する。
-- 学習者配布から明示的に除外するもの：`training/ai-assisted-qa-course/assessment/reference-solutions/**`、`assessment/scoring-tests/**`、`assessment/completed-states/**`。この配布除外は資料を秘密にする仕組みではない。その他、旧教材の完成済み回答や不要な完成spec、`.env`、認証情報、`.git/`、開発用の不要なworkflow、ビルド成果物、`node_modules/`、元リポジトリのPlan全文も許可しない。
+- 学習者配布から明示的に除外するもの：`training/ai-assisted-qa-course/assessment/**`。模範解答、評価用完成Playwright spec、採点用テスト、完成状態を含む。この配布除外は資料を秘密にする仕組みではない。その他、旧教材の完成済み回答や不要な完成spec、`.env`、認証情報、`.git/`、開発用の不要なworkflow、ビルド成果物、`node_modules/`、元リポジトリのPlan全文も許可しない。
 - **学習用のクイズJSONは問題・正答・公開解説を一体で配布**し、Webまたは必要に応じてそこから生成する閲覧用Markdownから学べるようにする。一方、**実技・修了課題の完成解答は配布しない**。修了課題の模範・採点資料はpublicなGit上に置く一方、学習者向け配布物からは除外する。これは秘密保持ではなく、学習者の本人判断は評価時に初めて提示する条件で確認する。公開正答へのリンクを残す場合、AIが参照する可能性も明示する。
 - 同期先への変更は管理者が差分を確認して適用する。**スクリプトはcommit・push・公開設定変更を自動で行わない**。同期先に存在する学習者の`workspace/`・提出物を削除・上書きしない。公開Templateの更新は管理者が行い、既存の受講者個人リポジトリへ自動同期しない。
 - 正本に重複する教材を手で保守しない。`training/course-sync/`には設定・契約テスト等を置き、配布物はスクリプトで生成する。全面クローンや旧`prepare-training-copy.ts`の結果をそのまま公開しない。
@@ -112,7 +113,7 @@ Phase 2を成立させるには、学習用リポジトリのCodespacesから**�
 
 - `qa-training-store`にある製品・仕様・Seed/Resetを正本として維持する。配布先に入れる製品関連ファイルは**学習用ランタイムとして生成するコピー**であり、二重に開発・保守する正本にはしない。
 - 同期許可リストへ、Build/Serve/Testに必要な依存・設定・静的ファイル・Seed/Resetを、**実行可能な依存の閉包**として列挙する。既存`package.json`は`pnpm@10.34.5`、`build:web`は画像/フォント準備・`expo export --platform web`・文書生成を含む。**`package.json`・lockfile・Expoのimport先・public/assets・実行設定・配布先の起動スクリプトまで追跡**し、確定SHAから生成する。元リポジトリ全体のcloneや正式回帰spec・旧workflow・模範実装は配布しない。実在ファイル一覧は実装時の静的import/起動経路から確定し、manifestに追加した各パスの必要理由を記録する。
-- `playwright.training.config.ts`は既存の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`output/training/playwright/`を使用する。**新課程専用Config**はPhase 2の`workspace/M06/`・`workspace/M07/`内の指定specに加え、単独ロード後もPhase 3学習を続けられるよう`workspace/M08/public-sample/`・`workspace/M10/public-sample/`内のmodule-local公開fallbackだけを許可し、結果を`output/training/ai-assisted-qa/`に分離する。M05の基礎実技は同じ安全なloopback Configで実行する。任意path、M09その他のworkspace、旧`training/playwright`は許可しない。Build/Serveは既存の`scripts/serve-web-dist.ts`の安全なloopback起動を再利用する。**8082はテスト専用のlocalhost、8081は通常Web、6080はprivate noVNC**とし、不要な公開ポートを増やさない。
+- `playwright.training.config.ts`は既存の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`output/training/playwright/`を使用する。**新課程専用Config**はPhase 2の`workspace/M05/`〜`M07/`内の指定specに加え、単独ロード後もPhase 3学習を続けられるよう`workspace/M08/public-sample/`・`workspace/M10/public-sample/`内のmodule-local公開fallbackと、開発者向けの`training/ai-assisted-qa-course/assessment/playwright/M05`〜`M07`だけを許可し、結果を`output/training/ai-assisted-qa/`に分離する。評価用specの許可はこの正本リポジトリ内の開発実行向けであり、Template/同期/ロード/Web Buildには含めない。任意path、M09その他のworkspace、`assessment/playwright`のM00〜M04/M08〜M10、旧`training/playwright`は許可しない。Build/Serveは既存の`scripts/serve-web-dist.ts`の安全なloopback起動を再利用する。**8082はテスト専用のlocalhost、8081は通常Web、6080はprivate noVNC**とし、不要な公開ポートを増やさない。
 - 既存devcontainerの**Node 24のイメージとChromium導入処理**から必要な部分だけ再利用し、開発中に`package.json`・`pnpm-lock.yaml`・Playwright Configと配布ファイルの整合を静的/契約テストとCIで確認する。実際の2コアCodespaceでの初回導入・アプリ起動・Reset・E2E通し実行は、全11モジュールと関連機能の実装完了後に行う。未実施・不合格だけでは実装完了を止めず、運用開始判断へ記録する。
 - 公開Templateが元リポジトリのコードを含む以上、正式仕様・既存実装そのものは学習者とAIに見える。それでも**評価用の模範テストコード・完成した実技回答を入れない**ことで転記リスクを減らす。
 

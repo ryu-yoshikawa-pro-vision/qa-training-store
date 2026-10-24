@@ -25,16 +25,21 @@ if (!fs.existsSync(settings.testDir) || !fs.statSync(settings.testDir).isDirecto
   );
 }
 
-const workspaceRoot = path.resolve(repositoryRoot, "workspace");
-const realWorkspaceRoot = fs.realpathSync(workspaceRoot);
+const allowedTestRoot = path.resolve(
+  repositoryRoot,
+  settings.testArea === "workspace"
+    ? "workspace"
+    : "training/ai-assisted-qa-course/assessment/playwright",
+);
+const realAllowedTestRoot = fs.realpathSync(allowedTestRoot);
 const realTestDir = fs.realpathSync(settings.testDir);
-const realRelative = path.relative(realWorkspaceRoot, realTestDir);
+const realRelative = path.relative(realAllowedTestRoot, realTestDir);
 if (
   realRelative === ".." ||
   realRelative.startsWith(`..${path.sep}`) ||
   path.isAbsolute(realRelative)
 ) {
-  throw new Error("新課程Playwrightのテスト対象がsymlink経由でworkspace外を指しています");
+  throw new Error("新課程Playwrightのテスト対象がsymlink経由で許可領域外を指しています");
 }
 
 process.env.PLAYWRIGHT_BASE_URL = settings.baseUrl;

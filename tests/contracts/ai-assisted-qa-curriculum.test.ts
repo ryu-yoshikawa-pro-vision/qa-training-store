@@ -13,13 +13,18 @@ const outputRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-assisted-qa-site-"));
 const docsOutput = path.join(outputRoot, "docs");
 
 describe("AI-assisted QA Playwright boundary", () => {
-  it("uses loopback port 8082 and only declared course workspace paths", () => {
+  it("uses loopback port 8082 and only declared learner or assessment paths", () => {
     const m05Settings = resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
       testRoot: "workspace/M05/specs",
     });
     const allowedSettings = ["M06", "M07", "M08", "M10"].map((moduleId) =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: `workspace/${moduleId}/public-sample`,
+      }),
+    );
+    const assessmentSettings = ["M05", "M06", "M07"].map((moduleId) =>
+      resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
+        testRoot: `training/ai-assisted-qa-course/assessment/playwright/${moduleId}`,
       }),
     );
     expect(m05Settings.testDir).toBe(path.resolve("C:/training/course/workspace/M05/specs"));
@@ -31,6 +36,15 @@ describe("AI-assisted QA Playwright boundary", () => {
     expect(allowedSettings.every((settings) => settings.baseUrl === "http://127.0.0.1:8082")).toBe(
       true,
     );
+    expect(assessmentSettings.map((settings) => settings.testDir)).toEqual(
+      ["M05", "M06", "M07"].map((moduleId) =>
+        path.resolve(
+          `C:/training/course/training/ai-assisted-qa-course/assessment/playwright/${moduleId}`,
+        ),
+      ),
+    );
+    expect(assessmentSettings.every((settings) => settings.testArea === "assessment")).toBe(true);
+    expect(m05Settings.testArea).toBe("workspace");
 
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
@@ -51,17 +65,27 @@ describe("AI-assisted QA Playwright boundary", () => {
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "training/playwright/exercises",
       }),
-    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
+    ).toThrow(/許可します/);
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "workspace/M09/public-sample",
       }),
-    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
+    ).toThrow(/許可します/);
     expect(() =>
       resolveAiAssistedQaPlaywrightSettings("C:/training/course", {
         testRoot: "workspace/M06/../../training/playwright",
       }),
-    ).toThrow(/workspace\/M05、M06、M07、M08またはM10/);
+    ).toThrow(/許可します/);
+    for (const testRoot of [
+      "training/ai-assisted-qa-course/assessment/playwright",
+      "training/ai-assisted-qa-course/assessment/playwright/M04",
+      "training/ai-assisted-qa-course/assessment/scoring-tests",
+      "training/ai-assisted-qa-course/assessment/playwright/M06/../../scoring-tests",
+    ]) {
+      expect(() =>
+        resolveAiAssistedQaPlaywrightSettings("C:/training/course", { testRoot }),
+      ).toThrow(/許可します/);
+    }
   });
 });
 
@@ -199,6 +223,10 @@ describe("AI-assisted QA static learning course", () => {
       "reference-solutions/M00.md",
       "scoring-tests/M00.json",
       "completed-states/M00.json",
+      "assessment/playwright/M05/product-link.spec.ts",
+      "assessment/playwright/M06/cart-cases.spec.ts",
+      "assessment/playwright/M07/expected-failure/intentional-assertion.spec.ts",
+      "assessment/playwright/M07/repaired/repaired-assertion.spec.ts",
     ]) {
       expect(
         builtFiles.some((filePath) => filePath.replaceAll("\\", "/").includes(relativePath)),
