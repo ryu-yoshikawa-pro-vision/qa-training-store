@@ -215,6 +215,35 @@
       "expected_decision": "ungradable",
       "rationale": "証拠不足なので正誤を推測しない。",
       "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-06",
+      "type": "revision-mismatch",
+      "response": "Authority/Risk/Scopeを区別し、在庫3の2/3/4に期待結果とBR/AC根拠を付け、独立Caseから条件とRiskへ逆追跡する。 (submission metadata: ai-assisted-qa-course-v1; current required revision: ai-assisted-qa-course-v2).",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。 Revision mismatch: request a submission against the required revision before evaluating it.",
+      "fixture_scope": "module_reference_calibration",
+      "provided_revision": "ai-assisted-qa-course-v1",
+      "expected_revision": "ai-assisted-qa-course-v2"
+    },
+    {
+      "id": "M03-CAL-07",
+      "type": "required-evidence-missing",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M03/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration",
+      "missing_required_evidence": [
+        "workspace/M03/condition-design.md",
+        "workspace/M03/cases.md",
+        "evidence/run-record.md"
+      ]
     }
   ],
   "evaluation_policy": {

@@ -688,6 +688,48 @@ describe("AI-assisted QA distribution contract", () => {
     expect(unrelatedLog.status).toBe(1);
   });
 
+  it("keeps M08 Git evidence out of the selected commit paths in a temporary repository", () => {
+    const fixture = path.join(fixtureRoot, "m08-staged-diff-contract");
+    const runGit = (args) => execFileSync("git", args, { cwd: fixture, encoding: "utf8" });
+    const intendedPaths = ["workspace/M08/review-candidate.md", "workspace/M08/submission.md"];
+    fs.mkdirSync(fixture, { recursive: true });
+    fs.mkdirSync(path.join(fixture, "workspace"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixture, "workspace/.gitignore"),
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/templates/workspace.gitignore"),
+        "utf8",
+      ),
+    );
+    runGit(["init", "--quiet"]);
+    runGit(["config", "user.name", "Assessment Contract"]);
+    runGit(["config", "user.email", "assessment-contract@example.invalid"]);
+    writeFixtureFile(fixture, "README.md", "M08 temporary Git contract fixture\n");
+    runGit(["add", "--", "README.md", "workspace/.gitignore"]);
+    runGit(["commit", "--quiet", "-m", "temporary M08 baseline"]);
+
+    writeFixtureFile(fixture, intendedPaths[0], "reviewed sample candidate\n");
+    writeFixtureFile(fixture, intendedPaths[1], "reviewed submission\n");
+    writeFixtureFile(fixture, "workspace/M08/local-only-run.log", "synthetic local run log\n");
+    writeFixtureFile(fixture, "out-of-scope.txt", "not part of the submission\n");
+
+    const initialStatus = runGit(["status", "--short", "--ignored", "--untracked-files=all"]);
+    expect(initialStatus).toContain("?? workspace/M08/review-candidate.md");
+    expect(initialStatus).toContain("?? workspace/M08/submission.md");
+    expect(initialStatus).toContain("?? out-of-scope.txt");
+    expect(initialStatus).toContain("!! workspace/M08/local-only-run.log");
+
+    runGit(["add", "--", ...intendedPaths]);
+    const selectedPaths = runGit(["diff", "--cached", "--name-only"]).trim().split(/\r?\n/).sort();
+    expect(selectedPaths).toEqual([...intendedPaths].sort());
+    expect(runGit(["diff", "--cached", "--check"])).toBe("");
+
+    runGit(["add", "--", "out-of-scope.txt"]);
+    const mixedPaths = runGit(["diff", "--cached", "--name-only"]).trim().split(/\r?\n/).sort();
+    expect(mixedPaths).toContain("out-of-scope.txt");
+    expect(mixedPaths).not.toEqual([...intendedPaths].sort());
+  });
+
   it("maps every lesson and start-guide link to an allowlisted distribution file", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const targetBySource = new Map(

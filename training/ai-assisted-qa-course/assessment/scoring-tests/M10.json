@@ -209,6 +209,31 @@
       "expected_decision": "ungradable",
       "rationale": "証拠不足なので正誤を推測しない。",
       "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M10-CAL-06",
+      "type": "revision-mismatch",
+      "response": "対象範囲とworkflowを確認し、同一SHAに結ばれたRun/Check/Artifactだけを使って結果と未確認を分ける。 (submission metadata: ai-assisted-qa-course-v1; current required revision: ai-assisted-qa-course-v2).",
+      "evidence": [
+        "reference-solutions/M10.md",
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md",
+        "training/ai-assisted-qa-course/exercises/M10/exercise.md"
+      ],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。 Revision mismatch: request a submission against the required revision before evaluating it.",
+      "fixture_scope": "public_calibration_only",
+      "provided_revision": "ai-assisted-qa-course-v1",
+      "expected_revision": "ai-assisted-qa-course-v2"
+    },
+    {
+      "id": "M10-CAL-07",
+      "type": "required-evidence-missing",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M10/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "public_calibration_only",
+      "missing_required_evidence": ["workspace/M10/submission.md", "evidence/run-record.md"]
     }
   ],
   "evaluation_policy": {

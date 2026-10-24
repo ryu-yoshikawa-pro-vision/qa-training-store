@@ -33,6 +33,8 @@ const REQUIRED_SCORING_CASE_TYPES = [
   "partial",
   "acceptable-alternative",
   "ungradable",
+  "revision-mismatch",
+  "required-evidence-missing",
 ];
 
 type QuizOption = {
@@ -237,6 +239,9 @@ function validateAssessmentPackage(
       evidence?: string[];
       expected_decision?: string;
       rationale?: string;
+      provided_revision?: string;
+      expected_revision?: string;
+      missing_required_evidence?: string[];
     }[];
     evaluation_policy?: {
       automated_scope?: string;
@@ -347,6 +352,23 @@ function validateAssessmentPackage(
       `${scoringPath}に構造不完全な採点例があります`,
     );
     caseTypes.add(example.type);
+    if (example.type === "revision-mismatch")
+      requireCondition(
+        typeof example.provided_revision === "string" &&
+          example.provided_revision.length > 0 &&
+          typeof example.expected_revision === "string" &&
+          example.expected_revision.length > 0 &&
+          example.provided_revision !== example.expected_revision &&
+          example.expected_decision === "ungradable",
+        `${scoringPath}/${example.id} must mark a revision mismatch as ungradable and identify distinct revisions`,
+      );
+    if (example.type === "required-evidence-missing")
+      requireCondition(
+        Array.isArray(example.missing_required_evidence) &&
+          example.missing_required_evidence.length > 0 &&
+          example.expected_decision === "ungradable",
+        `${scoringPath}/${example.id} must mark missing required evidence as ungradable and list the missing evidence`,
+      );
   }
   requireCondition(
     REQUIRED_SCORING_CASE_TYPES.every((type) => caseTypes.has(type)),

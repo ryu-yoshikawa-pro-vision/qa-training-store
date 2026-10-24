@@ -190,6 +190,44 @@ describe("AI-assisted QA static learning course", () => {
     expect(scoring.cases?.[0]?.response).toContain("RISK-CART-001");
   });
 
+  it("calibrates revision mismatch and missing required evidence without automating learner judgment", () => {
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      const scoring = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            repositoryRoot,
+            `training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`,
+          ),
+          "utf8",
+        ),
+      ) as {
+        cases?: {
+          type?: string;
+          expected_decision?: string;
+          provided_revision?: string;
+          expected_revision?: string;
+          missing_required_evidence?: string[];
+        }[];
+        evaluation_policy?: { automated_scope?: string };
+      };
+      const revisionMismatch = scoring.cases?.find(
+        (example) => example.type === "revision-mismatch",
+      );
+      const missingEvidence = scoring.cases?.find(
+        (example) => example.type === "required-evidence-missing",
+      );
+
+      expect(revisionMismatch?.provided_revision).toBeTruthy();
+      expect(revisionMismatch?.expected_revision).toBeTruthy();
+      expect(revisionMismatch?.provided_revision).not.toBe(revisionMismatch?.expected_revision);
+      expect(revisionMismatch?.expected_decision).toBe("ungradable");
+      expect(missingEvidence?.missing_required_evidence?.length).toBeGreaterThan(0);
+      expect(missingEvidence?.expected_decision).toBe("ungradable");
+      expect(scoring.evaluation_policy?.automated_scope).toContain("意味上");
+    }
+  });
+
   it("builds the staged course and pins the quiz revision to the exact JSON bytes", () => {
     expect(fs.existsSync(path.join(docsOutput, "curriculum/ai-assisted-qa/index.html"))).toBe(true);
     expect(
