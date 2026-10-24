@@ -1,0 +1,2 @@
+target_id,spec_ref,br_ids,ac_ids,risk_id,risk_description,impact,likelihood,priority
+TARGET-CART-001,docs/spec/features/cart.md,BR-CART-001,AC-CART-001,RISK-CART-001,購入上限を超える数量がCartに成立すると購入金額と在庫が壊れる,高,中,高

@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "module_id": "M06",
+  "revision": "assessment-reference-v1",
+  "skill_source": {
+    "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+    "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "skills": [
+      "e2e-test-inspection",
+      "e2e-test-implementation",
+      "e2e-test-execution",
+      "e2e-test-reporting"
+    ]
+  },
+  "objective_ids": ["M06-01", "M06-02", "M06-03", "M06-04", "M06-05"],
+  "knowledge_ids": ["K-M06-01", "K-M06-02", "K-M06-03", "K-M06-04", "K-M06-05"],
+  "sources": [
+    "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+    "training/ai-assisted-qa-course/exercises/M06/exercise.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M06.json",
+    "training/ai-assisted-qa-course/states/M06/end.json",
+    "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-inspection/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-implementation/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-execution/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-reporting/SKILL.md",
+    "docs/spec/features/cart.md",
+    "docs/spec/README.md"
+  ],
+  "decision_rules": [
+    "異なる責務のCart Caseを複数実装する",
+    "M06開始入力の出所/path/revisionを記録し、本人Caseがあるときは固定3 Caseとの一致・相違を照合する",
+    "公開fallbackでもM06の実装技能は評価するが、M03/M04またはPhase 1の本人修了とは扱わない",
+    "各testのSeed/Resetで独立性を示す",
+    "Assertionを仕様期待結果に結ぶ",
+    "コマンド・SHA・Run・ログで結果を識別する"
+  ],
+  "criteria": [
+    {
+      "id": "M06-CR-01",
+      "objective_ids": ["M06-01"],
+      "knowledge_ids": ["K-M06-01"],
+      "required_evidence": [
+        "固定3 Caseの入力元/path/revision、Case ID、BR/AC、Role/State/Dataを記録し、spec/testへ対応させた提出箇所",
+        "本人のPhase 1成果物がある場合は固定演習Caseとの条件・期待結果の一致または差と理由を記録し、ない/無効の場合はinputs/M06/start.mdと公開specの配布元revisionを使った記録",
+        "fallbackを利用した場合にM06の実装能力とPhase 1の修了を区別した判断",
+        "知識の行動証拠: 前提・操作・期待結果をコードと結び付ける"
+      ],
+      "pass_conditions": [
+        "固定された正常追加、上限超過の拒否と数量保持、low-stock境界の3 Caseを仕様根拠・Seed/Reset・Locator/Action/Assertionへ結び付けている",
+        "開始入力の出所、対象revision、Case ID、BR/AC、spec/test、Runが追跡できる",
+        "本人Caseがあるときは固定Caseと条件が同じか異なるかを正しく判断し、本人成果物がない場合はfallbackでM06を独立して進める。fallbackはPhase 1の修了根拠にしない",
+        "対応する知識「CaseとPlaywright specの対応」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "3件の実装は正しいが入力元/revisionまたは本人Caseとの比較の記録が不完全である",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "公開fallbackを本人のPhase 1設計CaseまたはPhase 1修了の証拠として報告する",
+        "本人の過去の成果物を自動コピー、修復、上書きする",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M06-CR-02",
+      "objective_ids": ["M06-02"],
+      "knowledge_ids": ["K-M06-02"],
+      "required_evidence": [
+        "「Seed/Reset・ブラウザContextを使ってテストの独立性を確保する」を示す提出物の箇所",
+        "知識の行動証拠: 実行順に依存しない前提を準備する"
+      ],
+      "pass_conditions": [
+        "学習目標「Seed/Reset・ブラウザContextを使ってテストの独立性を確保する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「テストデータ・Seed/Reset・ブラウザコンテキスト」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M06-CR-03",
+      "objective_ids": ["M06-03"],
+      "knowledge_ids": ["K-M06-01", "K-M06-03"],
+      "required_evidence": [
+        "「Locator・Assertionが仕様の期待結果を確認するか検証する」を示す提出物の箇所",
+        "知識の行動証拠: 前提・操作・期待結果をコードと結び付ける；仕様と観測点が一致するか見直す"
+      ],
+      "pass_conditions": [
+        "学習目標「Locator・Assertionが仕様の期待結果を確認するか検証する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「CaseとPlaywright specの対応、業務結果を検証するAssertion」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M06-CR-04",
+      "objective_ids": ["M06-04"],
+      "knowledge_ids": ["K-M06-04"],
+      "required_evidence": [
+        "「実行コマンドと結果・ログ・Receipt等の証拠を対応付ける」を示す提出物の箇所",
+        "知識の行動証拠: テスト実行と結果証拠を結び付ける"
+      ],
+      "pass_conditions": [
+        "学習目標「実行コマンドと結果・ログ・Receipt等の証拠を対応付ける」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「実行ログ・Report・Traceの対応」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M06-CR-05",
+      "objective_ids": ["M06-05"],
+      "knowledge_ids": ["K-M06-05"],
+      "required_evidence": [
+        "「未実行、環境障害、失敗、成功を区別する」を示す提出物の箇所",
+        "知識の行動証拠: 実行した事実と障害の区別を行う"
+      ],
+      "pass_conditions": [
+        "学習目標「未実行、環境障害、失敗、成功を区別する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「PASS・FAIL・未実行・BLOCKED」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "M06-CAL-01",
+      "type": "correct",
+      "response": "各testをResetで独立させ、正常追加・超過拒否/数量維持・low-stock上限を別Caseで確認し実行証拠を結ぶ。",
+      "evidence": [
+        "reference-solutions/M06.md",
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "根拠・成果物・期待結果が一貫する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-02",
+      "type": "incorrect",
+      "response": "一つのtestで状態を使い回し、表示があるだけで3 Case成功とする。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "仕様または責務境界に反する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-03",
+      "type": "partial",
+      "response": "3 CaseはあるがResetまたはRunと対象SHAの対応がない。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "妥当な要素はあるが必須根拠や証拠が不足する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-04",
+      "type": "acceptable-alternative",
+      "response": "fixtureで同じ前処理・分離・後処理を保証できる。",
+      "evidence": ["docs/curriculum/ai-assisted-qa/modules/M06/README.md"],
+      "expected_decision": "pass_with_reason",
+      "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-05",
+      "type": "ungradable",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M06/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-06",
+      "type": "revision-mismatch",
+      "response": "各testをResetで独立させ、正常追加・超過拒否/数量維持・low-stock上限を別Caseで確認し実行証拠を結ぶ。 (submission metadata: ai-assisted-qa-course-v1; current required revision: ai-assisted-qa-course-v2).",
+      "evidence": [
+        "reference-solutions/M06.md",
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md"
+      ],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。 Revision mismatch: request a submission against the required revision before evaluating it.",
+      "fixture_scope": "module_reference_calibration",
+      "provided_revision": "ai-assisted-qa-course-v1",
+      "expected_revision": "ai-assisted-qa-course-v2"
+    },
+    {
+      "id": "M06-CAL-07",
+      "type": "required-evidence-missing",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M06/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration",
+      "missing_required_evidence": [
+        "workspace/M06/submission.md",
+        "workspace/M06/cart-cases.spec.ts",
+        "evidence/run-record.md"
+      ]
+    },
+    {
+      "id": "M06-CAL-08",
+      "type": "correct",
+      "response": "本人のM03/M04成果物がないため、inputs/M06/start.mdと公開未完成specをfallbackとして選び、配布元revisionを記録する。固定3 Caseを独立実装し、Case/BR/AC/Reset/Assertion/Runを追跡する。この結果はM06の実装技能を示すが、Phase 1の本人設計や修了は示さない。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md",
+        "training/ai-assisted-qa-course/states/M06/start.json"
+      ],
+      "expected_decision": "pass",
+      "rationale": "公開fallbackによるM06の独立学習とPhase 1本人成果物の判定を分離している。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-09",
+      "type": "incorrect",
+      "response": "公開fallbackの固定3 CaseがPASSしたため、受講者本人がM03でCaseを設計・承認し、Phase 1を修了したものとして採点する。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/assessment/phase-2-rubric.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "公開サンプルの実行は本人のPhase 1設計や修了を証明しない。",
+      "fixture_scope": "module_reference_calibration"
+    }
+  ],
+  "evaluation_policy": {
+    "automated_scope": "自動検証は構造、参照ID、出典、網羅性、配布境界のみを確認する。意味上の正しさや本人の習熟は自動合格判定しない。",
+    "human_final_approval": "pending_after_implementation"
+  }
+}

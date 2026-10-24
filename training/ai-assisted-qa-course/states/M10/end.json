@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "module_id": "M10",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v2",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["Phase 2 spec", "personal repository", "course-only workflow"],
+  "expected": {
+    "required_paths": ["workspace/M10/submission.md"],
+    "objective_ids": ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05"],
+    "phase": "P3",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M10-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M10-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M10-END-03",
+      "mode": "human-review",
+      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    },
+    {
+      "id": "M10-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M10/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M10.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M10-result-01",
+      "path": "workspace/M10/submission.md",
+      "revision": "M10-result-v1",
+      "contract_id": "M10-completion-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
+}

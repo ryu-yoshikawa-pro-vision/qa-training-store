@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "module_id": "M01",
+  "revision": "assessment-reference-v1",
+  "skill_source": {
+    "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+    "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "skills": ["qa-workflow"]
+  },
+  "objective_ids": ["M01-01", "M01-02", "M01-03", "M01-04"],
+  "knowledge_ids": ["K-M01-01", "K-M01-02", "K-M01-03", "K-M01-04"],
+  "sources": [
+    "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+    "training/ai-assisted-qa-course/exercises/M01/exercise.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M01.json",
+    "training/ai-assisted-qa-course/states/M01/end.json",
+    "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md"
+  ],
+  "decision_rules": [
+    "目的・対象・入力・期待結果の根拠を分ける",
+    "探索・回帰・自動化の利点と限界を比べる",
+    "工程ごとの人とAIの責務を説明する",
+    "テストレベルを費用・観測範囲で選ぶ"
+  ],
+  "criteria": [
+    {
+      "id": "M01-CR-01",
+      "objective_ids": ["M01-01"],
+      "knowledge_ids": ["K-M01-01"],
+      "required_evidence": [
+        "「テストの目的と品質保証、確認対象と期待結果を説明する」を示す提出物の箇所",
+        "知識の行動証拠: テスト対象、期待される振る舞い、観測事実を区別する"
+      ],
+      "pass_conditions": [
+        "学習目標「テストの目的と品質保証、確認対象と期待結果を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「テスト目的と期待結果・観測結果」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M01-CR-02",
+      "objective_ids": ["M01-02"],
+      "knowledge_ids": ["K-M01-02"],
+      "required_evidence": [
+        "「手動探索・自動化・リグレッションの役割と限界を区別する」を示す提出物の箇所",
+        "知識の行動証拠: それぞれの利点・制約・用途を比較する"
+      ],
+      "pass_conditions": [
+        "学習目標「手動探索・自動化・リグレッションの役割と限界を区別する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「探索的テスト・自動化・リグレッション」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M01-CR-03",
+      "objective_ids": ["M01-03"],
+      "knowledge_ids": ["K-M01-03"],
+      "required_evidence": [
+        "「分析→設計→実行→評価→改善とAI/人間の担当を説明する」を示す提出物の箇所",
+        "知識の行動証拠: 分析・設計・実行・評価における判断主体を説明する"
+      ],
+      "pass_conditions": [
+        "学習目標「分析→設計→実行→評価→改善とAI/人間の担当を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「テスト工程と人間・AIの責任」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M01-CR-04",
+      "objective_ids": ["M01-04"],
+      "knowledge_ids": ["K-M01-04"],
+      "required_evidence": [
+        "「高価なE2Eをすべての条件へ適用しない理由を説明する」を示す提出物の箇所",
+        "知識の行動証拠: 必要なテスト層と実行費用を比較する"
+      ],
+      "pass_conditions": [
+        "学習目標「高価なE2Eをすべての条件へ適用しない理由を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「Unit・Integration・Component・E2Eの役割」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "M01-CAL-01",
+      "type": "correct",
+      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。",
+      "evidence": [
+        "reference-solutions/M01.md",
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+        "training/ai-assisted-qa-course/exercises/M01/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "根拠・成果物・期待結果が一貫する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M01-CAL-02",
+      "type": "incorrect",
+      "response": "ケース数を品質保証と同一視し、全条件をブラウザE2Eへ追加する。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+        "training/ai-assisted-qa-course/exercises/M01/exercise.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "仕様または責務境界に反する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M01-CAL-03",
+      "type": "partial",
+      "response": "探索と自動化の違いは示すが、期待結果の出典や人の判断責任が欠ける。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+        "training/ai-assisted-qa-course/exercises/M01/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "妥当な要素はあるが必須根拠や証拠が不足する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M01-CAL-04",
+      "type": "acceptable-alternative",
+      "response": "ピラミッド図を使わず、速度・費用・切り分けの比較をCart例で説明する。",
+      "evidence": ["docs/curriculum/ai-assisted-qa/modules/M01/README.md"],
+      "expected_decision": "pass_with_reason",
+      "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M01-CAL-05",
+      "type": "ungradable",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M01/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M01-CAL-06",
+      "type": "revision-mismatch",
+      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。 (submission metadata: ai-assisted-qa-course-v1; current required revision: ai-assisted-qa-course-v2).",
+      "evidence": [
+        "reference-solutions/M01.md",
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
+        "training/ai-assisted-qa-course/exercises/M01/exercise.md"
+      ],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。 Revision mismatch: request a submission against the required revision before evaluating it.",
+      "fixture_scope": "module_reference_calibration",
+      "provided_revision": "ai-assisted-qa-course-v1",
+      "expected_revision": "ai-assisted-qa-course-v2"
+    },
+    {
+      "id": "M01-CAL-07",
+      "type": "required-evidence-missing",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M01/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration",
+      "missing_required_evidence": ["workspace/M01/submission.md", "evidence/run-record.md"]
+    }
+  ],
+  "evaluation_policy": {
+    "automated_scope": "自動検証は構造、参照ID、出典、網羅性、配布境界のみを確認する。意味上の正しさや本人の習熟は自動合格判定しない。",
+    "human_final_approval": "pending_after_implementation"
+  }
+}

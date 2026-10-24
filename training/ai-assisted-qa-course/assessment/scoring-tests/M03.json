@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "module_id": "M03",
+  "revision": "assessment-reference-v1",
+  "skill_source": {
+    "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+    "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
+    "skills": [
+      "qa-workflow",
+      "spec-analysis",
+      "test-analysis",
+      "test-requirement-design",
+      "test-condition-design",
+      "test-case-design",
+      "coverage-analysis",
+      "adversarial-review"
+    ]
+  },
+  "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
+  "knowledge_ids": ["K-M03-01", "K-M03-02", "K-M03-03", "K-M03-04", "K-M03-05"],
+  "sources": [
+    "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+    "training/ai-assisted-qa-course/exercises/M03/exercise.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+    "training/ai-assisted-qa-course/states/M03/end.json",
+    "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/spec-analysis/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-analysis/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-requirement-design/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-condition-design/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-case-design/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/coverage-analysis/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md",
+    "docs/spec/features/cart.md",
+    "docs/spec/README.md",
+    "training/workbook/01_target-risk.csv",
+    "training/ai-assisted-qa-course/integrations/M02-M03-contract.md"
+  ],
+  "decision_rules": [
+    "TRから条件・Coverage・Caseまで追跡する",
+    "Authority/Risk/Scopeを正しいID・役割で参照する",
+    "在庫3のBVA 2/3/4と仕様上の結果を示す",
+    "独立Caseとcoverageの対象・除外・根拠を閉じる"
+  ],
+  "criteria": [
+    {
+      "id": "M03-CR-01",
+      "objective_ids": ["M03-01"],
+      "knowledge_ids": ["K-M03-01"],
+      "required_evidence": [
+        "「同値分割から代表条件を選び、選んだ理由を説明する」を示す提出物の箇所",
+        "知識の行動証拠: 代表値と同等と扱える条件・限界を示す",
+        "BR-CART-002で有効SKUの上限内/超過と、非公開・権限不足・無効SKU・在庫0を別クラスにする理由"
+      ],
+      "pass_conditions": [
+        "学習目標「同値分割から代表条件を選び、選んだ理由を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「同値分割と代表値」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M03-CR-02",
+      "objective_ids": ["M03-02"],
+      "knowledge_ids": ["K-M03-02"],
+      "required_evidence": [
+        "「境界値を求め、数量・在庫などの期待結果を仕様から導く」を示す提出物の箇所",
+        "知識の行動証拠: 仕様の境界直前・直後と不変条件を確認する",
+        "low-stockの有効上限3、絶対数量2/3/4、数量4拒否後も操作前数量2を維持する期待結果"
+      ],
+      "pass_conditions": [
+        "学習目標「境界値を求め、数量・在庫などの期待結果を仕様から導く」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「境界値と拒否後の状態」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M03-CR-03",
+      "objective_ids": ["M03-03"],
+      "knowledge_ids": ["K-M03-03"],
+      "required_evidence": [
+        "「仕様からデシジョンテーブルの条件・動作・実行可能なルールを導き、Caseへ変換する」を示す提出物の箇所",
+        "知識の行動証拠: 条件行とルール列を持つ表で条件を組み合わせ、各ルールの期待動作とCaseを対応させる",
+        "BR-STOREFRONT-002の同一facet OR・異なるfacet ANDを8ルールで評価し、期待結果集合を導く検索条件表",
+        "論理上の組合せ、正式仕様が禁止する組合せ、実データで実行可能か、仕様が未決の条件を区別する根拠",
+        "BR-CART-003/AC-CART-003のCart再検証例を組合せ表ではなく個別Case一覧として扱い、未定義の複合条件を断定しない"
+      ],
+      "pass_conditions": [
+        "学習目標「仕様からデシジョンテーブルの条件・動作・実行可能なルールを導き、Caseへ変換する」が具体例・判断・実行可能な成果物で満たされる",
+        "条件を抽出し、各条件行とルール列の全組合せを評価して、仕様から期待動作を導いている",
+        "明示された制約による到達不能と、Seedにデータがない/未確認、仕様上未決を区別し、根拠なく組合せを削除しない",
+        "ルールから前提・入力・操作・期待結果・BR/AC・実行可能性を備えたCaseへ変換し、検索件数や表示動作など仕様にない結果を作らない",
+        "Cart再検証の行を条件組合せの模範と誤認せず、Case一覧として目的を区別している",
+        "対応する知識「デシジョンテーブル」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "条件を組み合わせず個別Case列挙だけを完成したデシジョンテーブルとして提出する",
+        "実データに存在しないことだけで論理ルールを不可能と決める、または未定義の動作を確定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M03-CR-04",
+      "objective_ids": ["M03-04"],
+      "knowledge_ids": ["K-M03-04"],
+      "required_evidence": [
+        "「状態遷移と事前・事後状態をテスト条件として表現する」を示す提出物の箇所",
+        "知識の行動証拠: 事前状態・イベント・事後状態をモデル化する",
+        "ログイン統合前後の会員数量、除外理由、cart version、guest cart abandoned状態の観測"
+      ],
+      "pass_conditions": [
+        "学習目標「状態遷移と事前・事後状態をテスト条件として表現する」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「状態遷移と禁止遷移」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    },
+    {
+      "id": "M03-CR-05",
+      "objective_ids": ["M03-05"],
+      "knowledge_ids": ["K-M03-05"],
+      "required_evidence": [
+        "「Risk→Condition→Case→BR/ACを追跡し、期待結果の根拠を示す」を示す提出物の箇所",
+        "知識の行動証拠: 期待結果とテストケースの出典をたどれるようにする",
+        "各Case IDからCart BR/AC、正式Seed/Reset、Risk、固定Skill参照までの対応"
+      ],
+      "pass_conditions": [
+        "学習目標「Risk→Condition→Case→BR/ACを追跡し、期待結果の根拠を示す」が具体例・判断・実行可能な成果物で満たされる",
+        "対応する知識「仕様・リスク・テスト条件・ケースの追跡」が正本と矛盾せず、出典・観測・判断が区別される",
+        "根拠・期待結果・提出物を追跡できる"
+      ],
+      "partial_credit": [
+        "中心判断は正しいが出典または観測証拠が一部不足する",
+        "他の必須観点は満たし、補足が必要な箇所を特定できる"
+      ],
+      "reject_if": [
+        "正式仕様と矛盾する期待結果を断定する",
+        "観測していない処理やCIを成功と報告する",
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "M03-CAL-01",
+      "type": "correct",
+      "response": "Authority/Risk/Scopeを区別し、在庫3の2/3/4に期待結果とBR/AC根拠を付け、独立Caseから条件とRiskへ逆追跡する。",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "根拠・成果物・期待結果が一貫する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-02",
+      "type": "incorrect",
+      "response": "架空Scope Entityを作り、TARGET-CART-001をScopeと呼び、4を3へ丸めて受け入れる。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "仕様または責務境界に反する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-03",
+      "type": "partial",
+      "response": "2/3/4は選ぶが数量保持、出典ID、独立性のいずれかが不足する。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "妥当な要素はあるが必須根拠や証拠が不足する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-04",
+      "type": "acceptable-alternative",
+      "response": "同値分割や状態遷移を補助に使っても、選択理由とBVA結果を保持する。",
+      "evidence": ["docs/curriculum/ai-assisted-qa/modules/M03/README.md"],
+      "expected_decision": "pass_with_reason",
+      "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-05",
+      "type": "ungradable",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M03/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-06",
+      "type": "revision-mismatch",
+      "response": "Authority/Risk/Scopeを区別し、在庫3の2/3/4に期待結果とBR/AC根拠を付け、独立Caseから条件とRiskへ逆追跡する。 (submission metadata: ai-assisted-qa-course-v1; current required revision: ai-assisted-qa-course-v2).",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。 Revision mismatch: request a submission against the required revision before evaluating it.",
+      "fixture_scope": "module_reference_calibration",
+      "provided_revision": "ai-assisted-qa-course-v1",
+      "expected_revision": "ai-assisted-qa-course-v2"
+    },
+    {
+      "id": "M03-CAL-07",
+      "type": "required-evidence-missing",
+      "response": "「完了しました。すべて成功です。」成果物、対象SHA、出力ログ、根拠は添付されていない。",
+      "evidence": ["training/ai-assisted-qa-course/states/M03/end.json"],
+      "expected_decision": "ungradable",
+      "rationale": "証拠不足なので正誤を推測しない。",
+      "fixture_scope": "module_reference_calibration",
+      "missing_required_evidence": [
+        "workspace/M03/condition-design.md",
+        "workspace/M03/cases.md",
+        "evidence/run-record.md"
+      ]
+    },
+    {
+      "id": "M03-CAL-08",
+      "type": "correct",
+      "response": "BR-CART-002のEQPでは上限内の有効SKUを代表させ、上限超過分、非公開、ランク不足、無効SKU、在庫0を異なる除外理由のクラスに分ける。代表例だけでは境界や各理由の全データを証明しない限界も記す。",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/spec/features/cart.md",
+        "src/seeds/scenarios.ts",
+        "src/seeds/default-dataset.ts"
+      ],
+      "expected_decision": "pass",
+      "rationale": "同じ統合ルールを通る入力だけをまとめ、結果の異なる除外原因を分離する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-09",
+      "type": "correct",
+      "response": "low-stockのvariant-basic-shirt-02は在庫3、購入上限5、全体上限99のため有効上限3。数量2と3は受け入れ、操作前2から絶対数量4への変更は全体拒否して2を保つ。4を3へ丸めず、追加数量とも混同しない。",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/spec/features/cart.md",
+        "src/seeds/scenarios.ts",
+        "training/ai-assisted-qa-course/exercises/M03/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "有効境界と絶対数量更新、拒否後不変条件が一致する。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-10",
+      "type": "correct",
+      "response": "価格変更は未承認ならcheckoutを止め、承認後も他条件は再検証する。在庫0、公開停止、購入権限不足もcheckoutを止める。複数不成立の優先順や表示文言は仕様にないため期待値に作らず確認事項とする。",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/spec/features/cart.md",
+        "docs/spec/state-and-scenarios.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "BR/ACで導ける単一条件を実行可能Caseにし、規定されない組合せを未決にする。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M03-CAL-11",
+      "type": "correct",
+      "response": "ログイン前は会員cart数量2とguest cart数量2が別々に存在し、low-stockの上限は3。ログイン後は会員cart数量3、guestの超過1点と除外理由、cart version、guest cartのabandonedを観測する。",
+      "evidence": [
+        "reference-solutions/M03.md",
+        "docs/spec/features/cart.md",
+        "docs/spec/state-and-scenarios.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "事前状態・イベント・事後状態をAC-CART-002の確認項目へ対応させる。",
+      "fixture_scope": "module_reference_calibration"
+    }
+  ],
+  "evaluation_policy": {
+    "automated_scope": "自動検証は構造、参照ID、出典、網羅性、配布境界のみを確認する。意味上の正しさや本人の習熟は自動合格判定しない。",
+    "human_final_approval": "pending_after_implementation"
+  }
+}

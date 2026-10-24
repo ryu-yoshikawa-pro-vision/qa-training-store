@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "module_id": "M03",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v2",
+  "reference_only": true,
+  "human_evaluation": "not_performed",
+  "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
+  "knowledge_ids": ["K-M03-01", "K-M03-02", "K-M03-03", "K-M03-04", "K-M03-05"],
+  "start_state_path": "training/ai-assisted-qa-course/states/M03/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M03/end.json",
+  "artifacts": [
+    {
+      "id": "M03-result-01",
+      "path": "workspace/M03/condition-design.md",
+      "revision": "M03-result-v1",
+      "contract_id": "M03-to-M04-handoff-v1",
+      "expected_data": {
+        "scope_ref": "SCOPE-001",
+        "scope_is_machine_entity": false,
+        "risk_id": "RISK-CART-001",
+        "target_id": "TARGET-CART-001",
+        "low_stock": 3,
+        "purchase_limit": 5,
+        "effective_limit": 3,
+        "bva": [
+          {
+            "value": 2,
+            "expected": "accepted"
+          },
+          {
+            "value": 3,
+            "expected": "accepted"
+          },
+          {
+            "value": 4,
+            "expected": "rejected_preserving_prior_quantity"
+          }
+        ]
+      }
+    },
+    {
+      "id": "M03-result-02",
+      "path": "workspace/M03/cases.md",
+      "revision": "M03-result-v1",
+      "contract_id": "M03-to-M04-handoff-v1",
+      "expected_data": {
+        "scope_ref": "SCOPE-001",
+        "scope_is_machine_entity": false,
+        "risk_id": "RISK-CART-001",
+        "target_id": "TARGET-CART-001",
+        "low_stock": 3,
+        "purchase_limit": 5,
+        "effective_limit": 3,
+        "bva": [
+          {
+            "value": 2,
+            "expected": "accepted"
+          },
+          {
+            "value": 3,
+            "expected": "accepted"
+          },
+          {
+            "value": 4,
+            "expected": "rejected_preserving_prior_quantity"
+          }
+        ]
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M03-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M03.md"
+    },
+    {
+      "id": "M03-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M03/README.md; training/ai-assisted-qa-course/exercises/M03/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M03.json; training/ai-assisted-qa-course/states/M03/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/spec-analysis/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-analysis/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-requirement-design/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-condition-design/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/test-case-design/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/coverage-analysis/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/adversarial-review/SKILL.md; docs/spec/features/cart.md; docs/spec/README.md; training/workbook/01_target-risk.csv; training/ai-assisted-qa-course/integrations/M02-M03-contract.md"
+    },
+    {
+      "id": "M03-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M03.json"
+    },
+    {
+      "id": "M03-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M03.json"
+    }
+  ]
+}

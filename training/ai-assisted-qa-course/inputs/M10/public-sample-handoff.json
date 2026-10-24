@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifact_id": "M10-public-start-01",
+  "revision": "M10-public-start-v1",
+  "contract_id": "M09-to-M10-handoff-v1",
+  "public": true,
+  "module_id": "M10",
+  "purpose": "M07相当の安全なspec実行証拠とM09のworkflow学習素材をまとめたPhase 3開始サンプル。",
+  "artifacts": {
+    "spec": "workspace/M10/public-sample/handoff-smoke.spec.ts",
+    "config": "playwright.ai-assisted-qa.config.ts",
+    "dependencies": ["package.json", "pnpm-lock.yaml"],
+    "reset": "training/playwright/support/reset-scenario.ts",
+    "run_evidence": "workspace/M10/public-sample/run-evidence.md",
+    "disabled_workflow": "workspace/M10/public-sample/course-e2e.workflow.yml.disabled"
+  },
+  "workflow_policy": "教材内の無効化見本。workspace外の.github/workflowsへ自動配置・有効化しない。",
+  "source_integrity": "各参照は固定SHAで同期された配布manifestのSHA-256と照合する。"
+}

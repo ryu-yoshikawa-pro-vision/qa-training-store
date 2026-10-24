@@ -22,6 +22,10 @@ const webServerCommand =
     : "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts";
 const skipTrainingWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER === "true";
 const trainingTestRoot = process.env.PLAYWRIGHT_TEST_ROOT?.trim();
+const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?.trim();
+const chromiumLaunchOptions = chromiumExecutable
+  ? { launchOptions: { executablePath: chromiumExecutable } }
+  : {};
 
 export default defineConfig({
   testDir: "./training/playwright",
@@ -58,12 +62,12 @@ export default defineConfig({
     {
       name: "training-chromium",
       testMatch: /.*\.spec\.ts$/,
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], ...chromiumLaunchOptions },
     },
     {
       name: "training-mobile-chromium",
       testMatch: /.*\.spec\.ts$/,
-      use: { ...devices["Pixel 7"] },
+      use: { ...devices["Pixel 7"], ...chromiumLaunchOptions },
     },
   ],
 });

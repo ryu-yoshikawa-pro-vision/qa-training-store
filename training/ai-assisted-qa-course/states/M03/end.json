@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "module_id": "M03",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v2",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["pinned Skill package revision", "Python 3.11 standard library"],
+  "expected": {
+    "required_paths": ["workspace/M03/condition-design.md", "workspace/M03/cases.md"],
+    "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
+    "phase": "P1",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M03-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M03-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M03-END-03",
+      "mode": "human-review",
+      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+    },
+    {
+      "id": "M03-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M03-result-01",
+      "path": "workspace/M03/condition-design.md",
+      "revision": "M03-result-v1",
+      "contract_id": "M03-to-M04-handoff-v1"
+    },
+    {
+      "artifact_id": "M03-result-02",
+      "path": "workspace/M03/cases.md",
+      "revision": "M03-result-v1",
+      "contract_id": "M03-to-M04-handoff-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
+}
