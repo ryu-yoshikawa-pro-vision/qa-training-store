@@ -38,7 +38,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
     },
     {
       "id": "M07-Q02",
@@ -76,7 +76,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材"
     },
     {
       "id": "M07-Q03",
@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
     },
     {
       "id": "M07-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
     },
     {
       "id": "M07-Q05",
@@ -190,7 +190,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#保守性の判断"
     }
   ]
 }

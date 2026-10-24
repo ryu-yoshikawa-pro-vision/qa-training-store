@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildAiAssistedQaSite } from "../../scripts/docs/build-ai-assisted-qa";
 import { resolveAiAssistedQaPlaywrightSettings } from "../../scripts/training/ai-assisted-qa-playwright-settings";
 import { validateAiAssistedQa } from "../../scripts/training/validate-ai-assisted-qa";
+import { slugHeading } from "../../scripts/spec/slug-heading";
 
 const repositoryRoot = process.cwd();
 const outputRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-assisted-qa-site-"));
@@ -152,7 +153,7 @@ describe("AI-assisted QA static learning course", () => {
   beforeAll(() => {
     const validation = validateAiAssistedQa(repositoryRoot);
     expect(validation.modules).toEqual(expect.arrayContaining(["M02", "M03", "M05", "M06"]));
-    expect(validation.questionCount).toBeGreaterThan(0);
+    expect(validation.questionCount).toBe(53);
     expect(validation.assessmentFiles).toBe(33);
     buildAiAssistedQaSite(repositoryRoot, docsOutput);
   }, 120_000);
@@ -229,6 +230,10 @@ describe("AI-assisted QA static learning course", () => {
       "min(3, 5, 99) = 3",
       "数量2を維持",
       "BR-CART-003",
+      "BR-STOREFRONT-002",
+      "(カテゴリA OR カテゴリB) AND ブランドX",
+      "| R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 |",
+      "Cart再検証のCase一覧",
       "cart version",
       "abandoned",
       "SCOPE-001",
@@ -272,8 +277,47 @@ describe("AI-assisted QA static learning course", () => {
       "BR-CART-001",
       "AC-CART-001",
       "RISK-CART-001",
+      "CASE-CART-BASE-01",
+      "既存Caseへ統合",
     ])
       expect(m04).toContain(judgment);
+
+    expect(m04).toContain("Candidate-01単独では **Do not automate**");
+    expect(m04).toContain("値を2とするなら、Candidate-01および`CASE-CART-BASE-01`と同じ検証");
+    expect(m04).not.toContain("前提修正後はIntegrationへ追加する");
+  });
+
+  it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
+    const assessmentRoot = "training/ai-assisted-qa-course/assessment";
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, `${assessmentRoot}/scoring-tests/M06.json`),
+        "utf8",
+      ),
+    ) as {
+      criteria?: { id?: string; required_evidence?: string[]; pass_conditions?: string[] }[];
+      cases?: { id?: string; expected_decision?: string; response?: string }[];
+    };
+    const criterion = scoring.criteria?.find((candidate) => candidate.id === "M06-CR-01");
+    const fallbackExample = scoring.cases?.find((candidate) => candidate.id === "M06-CAL-08");
+    const falseCompletionExample = scoring.cases?.find(
+      (candidate) => candidate.id === "M06-CAL-09",
+    );
+    const startState = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/states/M06/start.json"),
+        "utf8",
+      ),
+    ) as { public_fallback?: { path?: string }; expected?: { previous_artifact_policy?: string } };
+
+    expect(criterion?.required_evidence?.join(" ")).toContain("revision");
+    expect(criterion?.required_evidence?.join(" ")).toContain("fallback");
+    expect(criterion?.pass_conditions?.join(" ")).toContain("Phase 1");
+    expect(fallbackExample?.expected_decision).toBe("pass");
+    expect(fallbackExample?.response).toContain("Phase 1");
+    expect(falseCompletionExample?.expected_decision).toBe("fail");
+    expect(startState.public_fallback?.path).toBe("inputs/M06/start.md");
+    expect(startState.expected?.previous_artifact_policy).toContain("public sample");
   });
 
   it("calibrates revision mismatch and missing required evidence without automating learner judgment", () => {
@@ -334,6 +378,53 @@ describe("AI-assisted QA static learning course", () => {
     expect(html).toContain(`data-revision="${revision}"`);
     expect(html).not.toContain("correct_value");
     expect(html).toContain("quiz.js");
+  });
+
+  it("links all 53 quiz review paths to explanatory headings in the emitted module pages", () => {
+    const curriculumRoot = "docs/curriculum/ai-assisted-qa";
+    const quizRoot = path.join(repositoryRoot, curriculumRoot, "quizzes");
+    const genericReviewAnchors = new Set(
+      ["確認と復習", "確認クイズ", "参考"].map((heading) => slugHeading(heading)),
+    );
+    const quizScript = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/quizzes/quiz.js"),
+      "utf8",
+    );
+    expect(quizScript).toContain("safeHref(question.review_path)");
+    expect(quizScript).toContain(
+      'return "/docs/curriculum/ai-assisted-qa/modules/"+moduleMatch[1]+"/"+fragment;',
+    );
+
+    let questionCount = 0;
+    for (let moduleNumber = 0; moduleNumber <= 10; moduleNumber += 1) {
+      const moduleId = `M${String(moduleNumber).padStart(2, "0")}`;
+      const quiz = JSON.parse(fs.readFileSync(path.join(quizRoot, `${moduleId}.json`), "utf8")) as {
+        questions: {
+          id: string;
+          review_path: string;
+        }[];
+      };
+      const lesson = fs.readFileSync(
+        path.join(docsOutput, "curriculum/ai-assisted-qa/modules", moduleId, "index.html"),
+        "utf8",
+      );
+      const emittedAnchors = new Set(
+        [...lesson.matchAll(/<h[1-6] id="([^"]+)"/g)].map((match) => match[1]),
+      );
+
+      for (const question of quiz.questions) {
+        questionCount += 1;
+        const [sourcePath, encodedFragment] = question.review_path.split("#", 2);
+        expect(question.id).toMatch(new RegExp(`^${moduleId}-Q\\d{2}$`));
+        expect(sourcePath).toBe(`${curriculumRoot}/modules/${moduleId}/README.md`);
+        expect(encodedFragment).toBeTruthy();
+
+        const fragment = decodeURIComponent(encodedFragment ?? "");
+        expect(genericReviewAnchors.has(fragment)).toBe(false);
+        expect(emittedAnchors.has(fragment)).toBe(true);
+      }
+    }
+    expect(questionCount).toBe(53);
   });
 
   it("keeps public assessment source files out of the built Web bundle", () => {

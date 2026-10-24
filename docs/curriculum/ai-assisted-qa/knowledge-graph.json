@@ -2001,7 +2001,7 @@
     {
       "id": "M06-01",
       "type": "learning_objective",
-      "title": "自分がロードしたM06の課題で、異なる検証責務を持つPhase 1の複数Caseに対応するPlaywrightコードをAIと作る",
+      "title": "M06の異なる検証責務を持つCaseに対応するPlaywrightコードをAIと作り、Phase 1本人Caseがある場合は対応関係も確認する",
       "module": "M06",
       "cognitive_target": "適用",
       "evaluation_hint": "`workspace/M06`の複数Caseに対応する受講者作成テストと業務Assertion。完成済み実技回答は配布しない",

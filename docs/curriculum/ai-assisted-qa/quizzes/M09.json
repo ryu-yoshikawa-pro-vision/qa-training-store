@@ -38,7 +38,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#workflowを読む"
     },
     {
       "id": "M09-Q02",
@@ -67,16 +67,16 @@
         },
         {
           "value": "D",
-          "label": "Runのhead SHAがPR HEADと一致し、ArtifactがそのRun由来であること",
-          "meaning": "Runのhead SHAがPR HEADと一致し、ArtifactがそのRun由来であること",
-          "reason": "Artifactの記録が現在のPR HEADと異なるため、その実行は現在の変更を検証した証拠になりません。"
+          "label": "target-sha.txtのabc123がPR HEADのdef456と不一致なので採用しない。Runの対象SHAとArtifact内のSHAを照合し、def456の結果がなければ未確認とする",
+          "meaning": "PR HEAD、Runの対象SHA、Artifact内のSHAをすべて一致確認する",
+          "reason": "target-sha.txtのabc123は現在のPR HEAD def456を証明しません。同じRun由来かも確認し、現在のHEADに対応する結果がない間はPASSにせず未確認とします。"
         }
       ],
       "correct_value": "D",
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#対象shaとrunのartifactを照合する"
     },
     {
       "id": "M09-Q03",
@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最初の失敗箇所から結果を分類する"
     },
     {
       "id": "M09-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#runner費用を確認する"
     },
     {
       "id": "M09-Q05",
@@ -190,7 +190,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最小権限を設定する"
     }
   ]
 }

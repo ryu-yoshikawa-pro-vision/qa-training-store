@@ -162,19 +162,19 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **前提**：M05でTypeScriptの最小コードを読んで小修正でき、1本のspecを実行できる。
 
-**順序**：Phase 1のCase選択→Seed/Resetと事前条件→Locator/Action/Assertionへの変換→単独・再実行→コード・ログ・証拠とCaseの照合。
+**順序**：Phase 1本人Caseが有効ならその参照ID・BR/AC・revisionを記録し、M06固定演習Caseとの一致/相違を照合する。前工程の本人成果物がない/契約に合わない場合はM06の公開fallbackを選び、そのpath・配布元revisionを記録する。どちらの入力でも、Seed/Resetと事前条件→Locator/Action/Assertionへの変換→単独・再実行→コード・ログ・証拠とCaseの照合を行う。fallback利用はPhase 1本人の修了を示さない。
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
-| M06-01 | Caseの前提・操作・期待結果をAIに渡し、未完成specを完成させる | 新しいCaseで**Case→操作/Assertionの対応**を確認・修正できる。AI生成だけでは不合格 |
+| M06-01 | 固定演習Caseの前提・操作・期待結果をAIに渡して未完成specを完成させ、入力元とrevisionを記録する。本人のPhase 1 Caseがある場合は同じ責務かを照合する | **Case→操作/Assertion**を確認・修正し、本人Caseとの一致/差またはfallback利用を説明できる。fallbackだけでPhase 1を修了扱いしない。AI生成だけでは不合格 |
 | M06-02 | Seed/ResetとBrowser Context、実行順依存・残存データを確認する | 単独実行・再実行で結果を確認し、**状態の共有による誤成功や失敗**を説明・防止できる |
 | M06-03 | LocatorとAssertionが仕様上の期待結果を観測するかレビューする | 無関係でもPASSするAssertionを見抜き、**Caseの観測対象へ修正**できる |
 | M06-04 | CLI、対象spec、実行結果、ログ、Trace/Report/Receiptを紐付ける | **同じ実行を指す**コマンド・結果・証拠を示し、別RunのPASSを流用しない |
 | M06-05 | 未実行/環境BLOCKED/FAIL/PASSを区別する | エラーの発生場所と実行有無に基づき分類し、AIの自己申告だけでPASSにしない |
 
-**実践範囲**：承認済みCaseから、**正常な業務結果、拒否・異常時の不変条件、境界またはRole/State差**を含む、意味の異なる**3件以上のCase**をE2Eとして実装・レビュー・実行する。件数だけを満たすため、同じ条件の値を変えたCaseを重複させない。Caseとtest/specの対応で数え、specファイル数は条件にしない。少なくとも異なる初期条件を扱い、各Caseの正式仕様・Seed/Reset・操作・業務Assertionを本人が説明する。採用する実行可能な題材は[対象設計](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)に従って決める。すべてのCaseをE2E化する必要はない。
+**実践範囲**：公開入力の固定3 Caseまたは有効な本人Caseをもとに、**正常な業務結果、拒否・異常時の不変条件、境界またはRole/State差**を含む、意味の異なる**3件以上のCase**をE2Eとして実装・レビュー・実行する。件数だけを満たすため、同じ条件の値を変えたCaseを重複させない。本人Caseがある場合は固定演習Caseとの一致・相違を記録し、公開fallbackから開始した場合はM06能力のみを評価する。fallbackをPhase 1本人の設計・修了証拠にしない。Caseとtest/specの対応で数え、specファイル数は条件にしない。少なくとも異なる初期条件を扱い、各Caseの正式仕様・Seed/Reset・操作・業務Assertionを本人が説明する。採用する実行可能な題材は[対象設計](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)に従って決める。すべてのCaseをE2E化する必要はない。
 
-**次への条件**：上記の異なるCaseを新課程専用specに実装し、Reset後の単独・再実行、状態共有に依存しないこと、仕様上意味のあるAssertionとCaseごとの証拠を提出できる。AI生成コードのPASSだけでは不足とする。
+**次への条件**：入力元・revisionとCase ID/BR/ACからspecまで追跡でき、上記の異なるCaseを新課程専用specに実装し、Reset後の単独・再実行、状態共有に依存しないこと、仕様上意味のあるAssertionとCaseごとの証拠を提出できる。fallback利用はM06を独立して評価する入力経路であり、Phase 1の修了判定とは分ける。AI生成コードのPASSだけでは不足とする。
 
 ### M07 失敗分析と保守
 

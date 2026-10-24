@@ -21,6 +21,8 @@
   ],
   "decision_rules": [
     "欠落・重複・根拠なし期待結果を公開入力で検出する",
+    "誤った期待結果を正式仕様に基づき訂正した後、既存の正規Caseと条件・操作・期待結果を比較する",
+    "Candidate-03は操作前数量を推測で補わずLaterとし、値を設定・観測した後も既存Caseとの重複を確認する",
     "指摘に重大度・仕様根拠・影響・修正先がある",
     "自動化判断に再実行価値と費用を含む",
     "仕様不明と再現確認済みの製品欠陥を分ける"
@@ -33,7 +35,7 @@
       "required_evidence": [
         "「AIのケース案にある欠落・重複・根拠がない期待結果を判定する」を示す提出物の箇所",
         "知識の行動証拠: AIが作ったCaseを仕様の根拠でレビューする",
-        "Candidate-01の自動補正期待を拒否し、Candidate-02A/Bの同一条件を根拠に統合、Candidate-03の不足前提を特定する"
+        "Candidate-01の誤った自動補正期待を訂正し、訂正後はCASE-CART-BASE-01と同じ正規Caseを使って重複追加しない。Candidate-02A/Bを統合し、Candidate-03の不足前提を推測せず指摘する"
       ],
       "pass_conditions": [
         "学習目標「AIのケース案にある欠落・重複・根拠がない期待結果を判定する」が具体例・判断・実行可能な成果物で満たされる",
@@ -81,7 +83,7 @@
       "required_evidence": [
         "「Automate/Later/Do not automateを対象リスクと再実行価値から選ぶ」を示す提出物の箇所",
         "知識の行動証拠: Automate/Later/Do not automateの採否理由を示す",
-        "Candidate-01/02AをAutomate、重複02BをDo not automate、前提欠落のCandidate-03を修正までLaterとする理由"
+        "Candidate-01は訂正後にCASE-CART-BASE-01へ統合して新規追加しない。Candidate-02Aを一件Automateし、重複02BをDo not automateする。Candidate-03は前提が設定・観測できるまでLaterとし、操作前数量2ならBASE-01へ統合する理由"
       ],
       "pass_conditions": [
         "学習目標「Automate/Later/Do not automateを対象リスクと再実行価値から選ぶ」が具体例・判断・実行可能な成果物で満たされる",
@@ -105,7 +107,7 @@
       "required_evidence": [
         "「仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す」を示す提出物の箇所",
         "知識の行動証拠: 未確定条件を正解にせず確認事項として記録する",
-        "Candidate-03の操作前数量を既知値としてセット・観測できない限り、拒否後保持を未確認とする"
+        "Candidate-03の操作前数量を推測せず、明示的に設定・観測できるまで拒否後保持を未確認とする。数量2を選ぶ場合はCASE-CART-BASE-01との重複を照合する"
       ],
       "pass_conditions": [
         "学習目標「仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す」が具体例・判断・実行可能な成果物で満たされる",
@@ -211,14 +213,14 @@
     {
       "id": "M04-CAL-08",
       "type": "correct",
-      "response": "CASE-CART-CANDIDATE-01はBR-CART-001/AC-CART-001に反し、操作前数量2から絶対数量6への変更は全体拒否して2を維持する。上限5へ丸めない。RISK-CART-001の在庫・金額影響は高く、状態保持はIntegrationでAutomateする。",
+      "response": "CASE-CART-CANDIDATE-01の期待結果をBR-CART-001/AC-CART-001に従い、操作前数量2から絶対数量6への変更全体を拒否して2を維持するよう訂正する。訂正後はCASE-CART-BASE-01と条件・操作・期待結果が同じなので、Candidate-01を別テストとして追加しない。正規Case BASE-01で状態保持をIntegrationにより一件Automateする。",
       "evidence": [
         "reference-solutions/M04.md",
         "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
         "docs/spec/features/cart.md"
       ],
       "expected_decision": "pass",
-      "rationale": "誤ったオラクルを仕様で訂正し、影響・根拠・低費用で安定した検証層を対応させる。",
+      "rationale": "期待結果の訂正と自動化対象の選定を分け、既存の正規Caseとの重複を除いている。",
       "fixture_scope": "public_calibration_only"
     },
     {
@@ -237,20 +239,20 @@
     {
       "id": "M04-CAL-10",
       "type": "correct",
-      "response": "Candidate-03は操作前数量がないため拒否後保持を観測できない。default Seedで数量2をセットして観測し、絶対数量6へ変更する修正案を作る。前提が準備できない間は未決/Laterとし、製品バグやAC達成と断定しない。",
+      "response": "Candidate-03は操作前数量がないため拒否後保持を観測できない。値を推測せず、前提値を明示してReset後に観測できるまで未決/Laterとする。値を2にした場合は絶対数量6への変更がCASE-CART-BASE-01と重複するため既存Caseへ統合し、新規テストを追加しない。別の値で独立Caseを作る場合は、その条件が必要な仕様上の理由とcoverage上の便益を示す。",
       "evidence": [
         "reference-solutions/M04.md",
         "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
         "docs/spec/features/cart.md"
       ],
       "expected_decision": "pass",
-      "rationale": "欠けた状態を推測せず、ACの不変条件を確認できる前提と観測を追加する。",
+      "rationale": "未指定値を補作せず、準備後にも正規Caseとの重複を確認している。",
       "fixture_scope": "public_calibration_only"
     },
     {
       "id": "M04-CAL-11",
       "type": "correct",
-      "response": "Candidate-01はIntegrationでAutomate、02Aは一件のみ残してAutomate、重複02BはDo not automate、前提未確定の03は修正までLaterとする。影響の大きさ、反復頻度、データ安定性、準備・保守費用を理由にする。",
+      "response": "Candidate-01は期待結果を訂正した後にCASE-CART-BASE-01と重複するため別テストを追加せず、正規Case BASE-01だけをIntegrationでAutomateする。Candidate-02Aは一件残してAutomateし、重複02BはDo not automateとする。Candidate-03は前提値が設定・観測できるまでLaterとし、値が2ならBASE-01へ統合する。反復頻度、影響、安定性、準備・保守費用を根拠にする。",
       "evidence": [
         "reference-solutions/M04.md",
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md",

@@ -55,10 +55,10 @@ AI操作は「実例を真似る→依頼を自作する→初見課題で成果
 | ID | 学習内容 | 評価 |
 | --- | --- | --- |
 | M05 | **Node.jsの役割→pnpmとpackage.json→TypeScriptの最小構文→Playwright**の順に、学習用Codespaces・Config・testDir・ポート・出力・Locator・Assertion・待機を学ぶ | **既存環境の意味を説明し、新課程用の最小テストを実行**。devcontainer全体の再構築は不要 |
-| M06 | Phase 1のケースとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行 | 期待結果に合ったE2E、実行ログ・差分、再現性 |
+| M06 | 固定演習Caseとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行。Phase 1本人Caseがある場合は条件・期待結果を照合し、ない場合は公開fallbackとrevisionを記録 | 期待結果に合ったE2E、入力元・Case→spec→Runの追跡、実行ログ・差分、再現性。fallbackはPhase 1修了を示さない |
 | M07 | Trace・Screenshot・Error、Test/Product/Environment/Flakyの切り分け、最小修正、Helper/POM/Fixtureの要否 | **Phase 2総合演習**：未演習の条件でテストを作り、実行・失敗分析・修正・再実行 |
 
-学習者本人がモジュールIDを指定して順次ロードし、**Phase 1で作成したケースを再利用**する。M05では短いTypeScriptコードを自力で読解・部分修正・実行できる状態を確認し、M06の新規Case実装、M07の失敗分析へ段階的に進む。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
+学習者本人がモジュールIDを指定して順次ロードする。M06開始時に有効なPhase 1本人Caseがあれば出所・revisionを記録して固定演習Caseと照合し、ない/無効の場合は公開fallbackを使う。fallbackの利用はPhase 1の本人修了とは別に扱う。M05では短いTypeScriptコードを自力で読解・部分修正・実行できる状態を確認し、M06のCase実装、M07の失敗分析へ段階的に進む。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
 
 ### Phase 3：GitHubとCIで継続実行（M08〜M10、選択）
 

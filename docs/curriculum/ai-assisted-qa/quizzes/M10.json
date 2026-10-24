@@ -38,7 +38,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#diffと公開対象を確認する"
     },
     {
       "id": "M10-Q02",
@@ -76,7 +76,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象specとworkflowを限定する"
     },
     {
       "id": "M10-Q03",
@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する"
     },
     {
       "id": "M10-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する"
     },
     {
       "id": "M10-Q05",
@@ -190,7 +190,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する"
     }
   ]
 }

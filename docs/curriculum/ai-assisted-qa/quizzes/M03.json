@@ -28,7 +28,7 @@
       ],
       "correct_value": "B",
       "source_refs": ["docs/spec/features/cart.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
     },
     {
       "id": "M03-Q03",
@@ -47,16 +47,16 @@
     {
       "id": "M03-Q04",
       "objective_ids": ["M03-04"],
-      "question": "仕様には状態AからBへの遷移が定義されていますが、BからAへ戻る操作は書かれていません。テスト設計で適切な扱いはどれですか。",
+      "question": "正式仕様はCartの`active → abandoned`を許可し、`abandoned`を終端状態としています。`abandoned → active`を求める操作はどう扱いますか。",
       "options": [
-        { "value": "A", "label": "利用者が望みそうなのでBからAも可能とする", "meaning": "仕様にない遷移を追加する", "reason": "妥当そうに見えることだけで未定義の遷移を期待結果にできません。" },
-        { "value": "B", "label": "定義済みのA→Bを確認し、B→Aは未決として扱う", "meaning": "定義された遷移と未定義の遷移を区別する", "reason": "定義済みの前提・事後状態は検証でき、未記載の動作は確定しません。" },
-        { "value": "C", "label": "すべての状態が相互に遷移できるとする", "meaning": "遷移表の欠落を自由な移動とみなす", "reason": "状態遷移の仕様がない経路を成功として追加できません。" },
-        { "value": "D", "label": "状態遷移テストは使わない", "meaning": "一つの未定義経路で技法全体を捨てる", "reason": "仕様で定義されたA→Bの条件はテストできます。" }
+        { "value": "A", "label": "利用者が望みそうなのでactiveへ戻せるとする", "meaning": "終端状態からの禁止遷移を追加する", "reason": "利用者の期待だけで正式仕様の禁止を上書きできません。" },
+        { "value": "B", "label": "abandonedからの復帰は仕様上禁止とし、禁止規則も適用できない別の変更だけ未決として確認する", "meaning": "許可遷移、明示的な禁止、真に未確定な変更を区別する", "reason": "activeからabandonedへの遷移は許可されていますが、abandonedは終端状態です。明示的な一般禁止があるため逆方向を未決にはしません。" },
+        { "value": "C", "label": "遷移表にない変更はすべて許可する", "meaning": "未記載を成功条件と取り違える", "reason": "明示された遷移規則と矛盾する変更は許可できません。" },
+        { "value": "D", "label": "仕様にない変更は一般規則を確認せずすべて未決とする", "meaning": "適用できる禁止規則を無視する", "reason": "遷移表に個別の記載がなくても、終端状態からの変更を禁じる一般規則が適用されます。" }
       ],
       "correct_value": "B",
       "source_refs": ["docs/spec/state-and-scenarios.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#演習条件からcaseへ"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#状態遷移操作前後の状態をつなぐ"
     },
     {
       "id": "M03-Q05",

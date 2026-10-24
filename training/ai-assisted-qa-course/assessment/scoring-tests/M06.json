@@ -29,6 +29,8 @@
   ],
   "decision_rules": [
     "異なる責務のCart Caseを複数実装する",
+    "M06開始入力の出所/path/revisionを記録し、本人Caseがあるときは固定3 Caseとの一致・相違を照合する",
+    "公開fallbackでもM06の実装技能は評価するが、M03/M04またはPhase 1の本人修了とは扱わない",
     "各testのSeed/Resetで独立性を示す",
     "Assertionを仕様期待結果に結ぶ",
     "コマンド・SHA・Run・ログで結果を識別する"
@@ -39,20 +41,27 @@
       "objective_ids": ["M06-01"],
       "knowledge_ids": ["K-M06-01"],
       "required_evidence": [
-        "「自分がロードしたM06の課題で、異なる検証責務を持つPhase 1の複数Caseに対応するPlaywrightコードをAIと作る」を示す提出物の箇所",
+        "固定3 Caseの入力元/path/revision、Case ID、BR/AC、Role/State/Dataを記録し、spec/testへ対応させた提出箇所",
+        "本人のPhase 1成果物がある場合は固定演習Caseとの条件・期待結果の一致または差と理由を記録し、ない/無効の場合はinputs/M06/start.mdと公開specの配布元revisionを使った記録",
+        "fallbackを利用した場合にM06の実装能力とPhase 1の修了を区別した判断",
         "知識の行動証拠: 前提・操作・期待結果をコードと結び付ける"
       ],
       "pass_conditions": [
-        "学習目標「自分がロードしたM06の課題で、異なる検証責務を持つPhase 1の複数Caseに対応するPlaywrightコードをAIと作る」が具体例・判断・実行可能な成果物で満たされる",
+        "固定された正常追加、上限超過の拒否と数量保持、low-stock境界の3 Caseを仕様根拠・Seed/Reset・Locator/Action/Assertionへ結び付けている",
+        "開始入力の出所、対象revision、Case ID、BR/AC、spec/test、Runが追跡できる",
+        "本人Caseがあるときは固定Caseと条件が同じか異なるかを正しく判断し、本人成果物がない場合はfallbackでM06を独立して進める。fallbackはPhase 1の修了根拠にしない",
         "対応する知識「CaseとPlaywright specの対応」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
       "partial_credit": [
         "中心判断は正しいが出典または観測証拠が一部不足する",
+        "3件の実装は正しいが入力元/revisionまたは本人Caseとの比較の記録が不完全である",
         "他の必須観点は満たし、補足が必要な箇所を特定できる"
       ],
       "reject_if": [
         "正式仕様と矛盾する期待結果を断定する",
+        "公開fallbackを本人のPhase 1設計CaseまたはPhase 1修了の証拠として報告する",
+        "本人の過去の成果物を自動コピー、修復、上書きする",
         "観測していない処理やCIを成功と報告する",
         "必須成果物・根拠・対象revisionが欠けるのに合格とする"
       ]
@@ -234,6 +243,31 @@
         "workspace/M06/cart-cases.spec.ts",
         "evidence/run-record.md"
       ]
+    },
+    {
+      "id": "M06-CAL-08",
+      "type": "correct",
+      "response": "本人のM03/M04成果物がないため、inputs/M06/start.mdと公開未完成specをfallbackとして選び、配布元revisionを記録する。固定3 Caseを独立実装し、Case/BR/AC/Reset/Assertion/Runを追跡する。この結果はM06の実装技能を示すが、Phase 1の本人設計や修了は示さない。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md",
+        "training/ai-assisted-qa-course/states/M06/start.json"
+      ],
+      "expected_decision": "pass",
+      "rationale": "公開fallbackによるM06の独立学習とPhase 1本人成果物の判定を分離している。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-09",
+      "type": "incorrect",
+      "response": "公開fallbackの固定3 CaseがPASSしたため、受講者本人がM03でCaseを設計・承認し、Phase 1を修了したものとして採点する。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/assessment/phase-2-rubric.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "公開サンプルの実行は本人のPhase 1設計や修了を証明しない。",
+      "fixture_scope": "module_reference_calibration"
     }
   ],
   "evaluation_policy": {

@@ -38,7 +38,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#画面とファイルの基本"
     },
     {
       "id": "M00-Q02",
@@ -76,7 +76,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
     },
     {
       "id": "M00-Q03",
@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#依頼の作り方"
     },
     {
       "id": "M00-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
     }
   ]
 }

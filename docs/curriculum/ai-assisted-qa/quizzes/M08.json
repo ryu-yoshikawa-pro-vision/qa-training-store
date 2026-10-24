@@ -38,7 +38,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#working-treeからpull-requestまで"
     },
     {
       "id": "M08-Q02",
@@ -76,7 +76,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#working-treeからpull-requestまで"
     },
     {
       "id": "M08-Q03",
@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#仕様差分テストと証拠を結び付ける"
     },
     {
       "id": "M08-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#%E7%A2%BA%E8%AA%8D%E3%81%A8%E5%BE%A9%E7%BF%92"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#aiレビューの採否"
     }
   ]
 }

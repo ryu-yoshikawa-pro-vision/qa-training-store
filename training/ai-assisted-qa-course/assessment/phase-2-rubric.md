@@ -20,7 +20,7 @@
 | M05-03 | 表示と業務期待を分け、不変条件を確認する | 画面が見えたことだけを成功条件にする |
 | M05-04 | 型・構文・実行・Assertion・待機の失敗を分類する | 固定Timeoutで症状を隠す |
 | M05-05 | testDir、8082、通常8081、6080、出力先を設定から確認する | 異なる環境のPortを取り違える |
-| M06-01 | 3つのCase IDを異なるPlaywright検証へ結ぶ | 1つの浅い表示確認を複製する |
+| M06-01 | 固定3 Caseの入力元/path/revision、Case ID、BR/AC、spec/testを記録し、Locator/Action/業務Assertionへ結ぶ。本人のPhase 1 Caseがあれば条件・期待結果の対応と差を示す | 入力元が不明、異なる条件を同一Caseとみなす、fallback利用だけでPhase 1能力を認定する |
 | M06-02 | Reset/Context後の独立実行を複数回示す | 前のテストの状態に依存する |
 | M06-03 | locator/assertionがBR/ACの期待を確認する理由 | 弱いAssertionでPASSを作る |
 | M06-04 | コマンド、Run、出力、Traceを対応付ける | 結果にRunや対象がない |
@@ -33,4 +33,4 @@
 
 ## Phase 2修了の読み方
 
-M06の実行証拠は専用のPlaywright経路で採取し、意味上のCase妥当性は別にレビューします。M07のbefore/afterは別Runとして残します。実受講者による試行と正式評価担当者による採点は実装完了後の実地検証に属します。
+M06の実行証拠は専用のPlaywright経路で採取し、意味上のCase妥当性は別にレビューします。本人のPhase 1成果物があれば固定3 Caseとの対応を確認します。本人成果物がない場合も公開fallbackでM06を独立評価できますが、fallbackの成功でM03/M04またはPhase 1を修了扱いにしません。M07のbefore/afterは別Runとして残します。実受講者による試行と正式評価担当者による採点は実装完了後の実地検証に属します。

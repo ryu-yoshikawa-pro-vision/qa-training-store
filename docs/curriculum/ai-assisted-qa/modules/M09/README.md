@@ -35,7 +35,21 @@ M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`�
 
 ## 失敗調査・費用・権限
 
-依存導入、Build、サーバー起動、Test、Artifactのどこで止まったかをログから特定します。公開リポジトリの標準Runnerとprivate/larger runnerの費用条件は利用時にGitHubの最新条件を確認します。教材は無料枠を約束しません。公開実行前に個人データやSecretをcommitしないことを確認します。
+### 対象SHAとRunのArtifactを照合する
+
+現在のPR HEAD、実際にworkflowが実行したRunのhead SHA、Artifact内の`target-sha.txt`を照合します。Artifactは同じRunから取得し、そのRun/Checkの結果と結び付けます。3つのSHAが一致しないArtifactは現在のPR HEADの成功証拠に使いません。現在HEADに一致するRunやArtifactが見つからない場合は未確認と報告し、古いPASSを引き継ぎません。
+
+### 最初の失敗箇所から結果を分類する
+
+依存導入、Build、サーバー起動、Test、Artifact保存のどこで最初に失敗したか、Runのstepとlogで確認します。Buildが失敗してTestが始まっていなければ、Build failureとTest未実行を分けて記録します。原因を特定する前に期待値を変更したり、再実行で最初の失敗logを置き換えたりしません。
+
+### Runner費用を確認する
+
+Runnerの料金は公開/非公開repository、runner種別、契約、組織設定で条件が異なります。利用時点の公式条件と対象組織の契約・設定を確認し、確認できない場合は未決として扱います。一般論から無料と断定しません。
+
+### 最小権限を設定する
+
+課題workflowは必要な操作だけを許可し、基本は`permissions: contents: read`とします。読み取りだけのテストに書込token、Secret、deploy権限を追加しません。追加権限が必要な場合は操作と理由を明示し、教材の範囲を越える設定は有効化しません。
 
 ## 演習と提出
 

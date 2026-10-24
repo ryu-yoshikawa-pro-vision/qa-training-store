@@ -11,7 +11,7 @@
 | Phase 1 / M00〜M02 | Codespaces内で開く`docs/spec/features/cart.md`等の仕様資料、商品一覧・Cartの条件表 | Codespace・OpenCode CLIの初回操作→AIへの自分の依頼、BR/AC・Role/State・Riskの区別 |
 | Phase 1 / M03 | `BR-CART-001`、`default`、`low-stock`、`out-of-stock`の**仕様・条件資料** | 境界値・期待結果を配布資料で設計。実際のSeed/Playwright実行は不要 |
 | Phase 1 / M04 | `cart-with-invalid-items`、`BR-CART-003`、**未演習の条件** | AIの設計案をレビューし、初見条件の自動化候補とCaseを確定（Phase 1独立総合演習） |
-| Phase 2 / M05〜M06 | Phase 1のCase、Cart、`training/playwright/support/reset-scenario.ts` | Codespacesに導入済みのNode.js/Playwrightの設定理解、コード作成・Reset・Codespace内実行 |
+| Phase 2 / M05〜M06 | Phase 1の本人Caseが有効な場合はそのCase、ない/無効な場合は各モジュールの公開fallback、Cart、`training/playwright/support/reset-scenario.ts` | Codespacesに導入済みのNode.js/Playwrightの設定理解、コード作成・Reset・Codespace内実行。fallback利用はPhase 1本人修了と区別 |
 | Phase 2 / M07 | 既存`diagnostic-cart.spec.ts`、`c10-locator-maintenance.spec.ts`、未演習条件 | 誤ったAssertionの原因特定・最小修正・前後別Run（Phase 2独立総合演習） |
 | Phase 3（選択）/ M08〜M09 | Phase 2のspec、Training用の隔離コピー | Git差分・PR・対象SHAのCIと証拠 |
 | Phase 3（選択）/ M10 | Phase 2で作ったspecとテスト実行環境 | **再実装せずCIへ組み込み**、対象SHA・Run/Artifact・失敗時対応を評価（Phase 3総合演習） |
@@ -28,7 +28,7 @@
 | M03 | Cart数量（`BR-CART-001`）、在庫分類（`BR-ADMININV-001`）、検索条件（`BR-STOREFRONT-002`）、必要に応じて注文状態 | 境界値と状態分類、条件の組合せ、状態遷移から適した技法を選ぶ。**少なくとも主要な設計能力で、説明に使用した条件とは異なる条件・判断構造を確認する** |
 | M04 | Cart統合・再検証（`BR-CART-002〜003`）または別機能の仕様 | AI案の不足・重複・誤期待結果、未決事項、自動化とテスト層の採否を判断する |
 | M05 | 商品表示など、前提が少なく期待結果が明確な短いWeb操作 | TypeScript・Locator・Assertionの意味を理解してからM06へ進む |
-| M06 | Phase 1の承認済みCaseに対応するCart等と、実行可能性を確認した別条件の候補 | 正常結果・拒否時の不変条件・境界またはRole/State差を含む複数Caseについて、Case→Seed/Reset→Locator/Action/Assertion→実行証拠を確認する |
+| M06 | 公開fallbackの固定3 Cart Case。Phase 1の本人Caseが有効な場合は出所・revisionを記録して固定Caseと照合 | 正常結果・拒否時の不変条件・境界またはRole/State差を含む3 Caseについて、Case→Seed/Reset→Locator/Action/Assertion→実行証拠を確認する。本人Caseとの対応/差またはfallback利用を記録し、fallbackをPhase 1修了と扱わない |
 | M07 | 既存のCart診断specと、原因・証拠が異なる失敗素材 | テストコード、初期状態・環境、タイミング・Flakyなど異なる原因を証拠から診断する。修正可能な課題で前後の別Runを比較し、製品不具合は修正を強制しない |
 | M08〜M10 | M06〜M07の承認済みspec・実行結果 | 教育対象をGit/PR/CIへ移し、テストケースの再設計を重複して要求しない |
 
