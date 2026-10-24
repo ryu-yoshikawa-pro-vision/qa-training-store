@@ -27,7 +27,7 @@
 - **管理者による同期**：`training/course-sync/manifest.json`を配布許可リストとして、確定commitから必要な教材・課題・実行環境だけを**別の公開学習用Templateリポジトリ**へ用意する。公開の模範解答・採点用テスト・完成状態データ・正式回帰spec・Secret・不要workflowを含めない。評価資料は`training/ai-assisted-qa-course/assessment/`配下の通常ファイルとしてこの公開リポジトリでレビューできる。スクリプトによる自動commit/pushは行わない。
 - **学習者によるロード**：Codespacesで学習者本人が`pnpm course:load M03`等を実行し、**指定した1モジュールの課題だけ**を`workspace/M03/`へ準備する。先行モジュールの成果物を使い回し、再ロード時も編集済みファイルを消さない。他モジュールの自動ロード・課題の自動回答は行わない。
 - `qa-training-store`はpublicであり、模範解答・採点用テスト・完成状態データは通常のMarkdown/JSON/TypeScript等で`training/ai-assisted-qa-course/assessment/`へ保存し、GitHub上の通常差分とPRレビューで確認できる。公開資料を見られることを前提に、学習用Template・同期/ロード・Web Build・公開Artifactには配布許可リストで含めない。この配布除外は秘密保持ではない。M04/M07/M10で評価時に初めて提示する具体的条件は事前に教材・Plan・公開評価資料へ書かず、評価担当者がその時点で提示する。本人の判断と根拠を確認し、模範の暗記や秘匿性だけに依存しない。
-- **学習用リポジトリだけでPhase 2のScenario ShopをBuild/Serve→Seed/Reset→Playwright実行できることが前提**。必要な製品ランタイムは正本から生成・同期し、製品全体の別正本や旧Training Copyの無差別な複製を作らない。具体的な依存ファイルは実装時に確認する。
+- **管理者が固定SHAからScenario ShopをBuildして検証済み成果物を同期し、学習者リポジトリでは配布済み`course/shop/`をServe→Seed/Reset→Playwright実行できることが前提**。受講者側でフルBuildは行わない。必要な製品ランタイムは正本から生成・同期し、製品全体の別正本や旧Training Copyの無差別な複製を作らない。具体的な依存ファイルは実装時に確認する。
 
 詳細は[教材同期・モジュール単位ロード設計](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)を参照する。
 

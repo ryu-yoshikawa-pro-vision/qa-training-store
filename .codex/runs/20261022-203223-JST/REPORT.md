@@ -182,3 +182,20 @@
 - 未完了: M02→M03のOpenCode model依存意味分析・技法選択とそれを含む統合受入。非公開模範/採点用test/完成状態は保存先・アクセス権・管理担当が未指定で未作成。58 knowledge nodeの人間ドメイン確認と正式評価担当者による確認は未実施。外部Templateの名称・作成先・管理権限は未指定。初心者/実受講者、評価担当者、新規2-core Codespaces、時間/容量/無料枠、運用開始判断は実装完了後の独立実地検証であり、今回の実装BLOCKED理由にはしていない。
 - Git/PR: このcheckpointはcommit/push前。次にRun記録とPR本文を含む明示した公開pathだけをstageし、通常commit/pushの後、local/origin/PR headを照合して最新headのWeb CI/Mobile App CIを確認する。CI証拠をpush後にRun artifactへ追記しない。
 - Progress: 9/12 tracking tasks complete (75%); this is not Plan implementation completion.
+
+## 2026-10-24 — PR #199 全体レビュー5件の実装・検証
+
+- 開始SHA/PR HEAD: `9958fcfdd26ee28ab32735d0de7d0a0c08ac0fbf`。開始時にGitHub PR情報でPR #199がopen、base `main`、head branch `docs/plan-ai-agent-qa-curriculum-redesign`、head SHA一致を確認。既存の未コミット差分を保持し、protectedな`workspace/M05/validation/`、`workspace/M06/acceptance-probe.spec.ts`、`workspace/M08/`、`workspace/M10/`は変更・stageしていない。
+- 指摘1（Build/Serve/Test）: 管理者が固定SHAからBuild/同期し、受講者は配布済みShopをServe/Testする責務へPlan・M09/M10教材・workflow sampleを整合。Playwright Configは`.course`または`course/shop`を検出したら配布検証CLIを先に実行し、manifest/hash/state revision/Shop file setを確認してから8082を使う。manifest不整合や配布物欠落は失敗。WindowsのConfigロードで`.mjs`直接importが失敗したため、CLI経由へ修正し、fixture上のPlaywright `--list`でprebuilt branchを検証した。
+- 指摘2（Phase 2からPhase 3へのhandoff）: Phase 2のignoreを維持し、M08にM07 specの内容・ignore規則を確認した後に`git add -f -- workspace/M07/repaired-assertion.spec.ts`だけをstageする手順、stage list/diff確認、Phase 2のGit非依存を記載。実一時Git fixtureで通常addによる混入なし、対象specだけのforce-add、ログ/Trace/Secret除外、import維持、M07/M10 root指定を確認。
+- 指摘3（M03/M04模範・採点）: M03にEQP/BVA/decision table/state transitionの完成例とCase IDを追加。M04に3候補の修正・根拠・重大度・検証層・Automate/Later/Do not automate判断を記載。公開演習入力・Cart BR/AC/Seedと照合し、未定義の複合条件は確認事項のままにした。M03 Skill contract linkの相対pathも修正。M03/M04校正JSONと本文の対応contractを追加。
+- 指摘4（開始状態）: `ready`を配布・構造一致と定義し、`execution.status: unverified`と環境要件をCLIへ出す。validator/contractで正常、欠落、revision/hash/path異常、環境未確認を検証。
+- 指摘5（公開評価資料）: M04 READMEの旧非公開保存方針を除去。決定事項は既存Plan/decisionsと一致し、個人別の提出・成績記録保存先、アクセス権、管理担当、正式評価担当者は未指定のまま。assessmentのreference-solutions/scoring-tests/completed-statesを各11件（計33件）確認。公開資料の配布除外を秘密保持とは説明しない。
+- 仕様・教材レビュー: `docs/spec/features/cart.md`、`src/domain/services/cart.ts`、`src/domain/policies/permissions.ts`、`src/seeds/scenarios.ts`、M04 public review input、M03/M04 exercise/scoringを照合。絶対数量2/3/4と在庫3、会員ランクgold/platinum、`overflowQuantity`、price approval、guest `abandoned`、cart versionの根拠を確認。OpenCode出力や未実施runtimeを模範のPASSとは扱っていない。
+- PASS: `validate:ai-assisted-qa`（M00-M10/53問/33評価資料）、`validate:curriculum`（22文書/4 workbook）、`validate:skills`（6 Skill packages/15 Markdown/28 links）、`validate:spec`と`validate:spec-visuals:final`、Knowledge graph validate（287 nodes/617 edges/51 objectives/58 knowledge/53 quiz/22 states/47 artifacts）、変更Markdown lint（562 files/0 issues）、changed text lint（11 Markdown）、full text scan（227 Markdown）、changed-file ESLint、3系統typecheck、security static check（236 runtime/420 credential scan）、targeted Prettier/YAML、`build:web`（12新課程pages/11 quiz pages）、`build:spec`（22 pages）。
+- PASS: distribution/curriculum contracts 30/30。Unit 66/66、Integration 111/111、Repository contract 147/147、Web component 103/103、Native component 64/64。
+- PASS: 公開クイズChromium E2E 17/17（build済み`dist`をloopback server 8081で配信）。専用AI QA ConfigでM05 1/1、M06 3/3、M08 public sample 1/1、M10 public sample 1/1（`dist`静的配信を8082で使用）。これらはローカル開発環境検証であり、Codespaces/Template/受講者実地検証ではない。
+- 未PASS: `pnpm.cmd run verify`は`format:check`でprotected untracked `workspace/M06/acceptance-probe.spec.ts`を報告してexit 1。保護ファイルと`.prettierignore`は変更せず、対象ファイルのformatと残りgateを個別実行した。
+- 未実行: 全Contracts suiteと標準51-case Chromium suiteは、先行記録済みWindows Hook/ACL/MCP/spawnおよびPlaywright worker終了境界があるため今回再実行していない。今回影響するdistribution/curriculum contractと新課程17-case E2E、Phase 2/3対象E2Eは個別に実行済み。過去のWeb/Mobile CIは開始SHA向けなので今回の変更のCI証拠とは扱わない。
+- 次: explicit tracked diffのみをstageしてcommit・通常pushし、PR本文を本差分と検証状態に更新。push後に最新SHAをGitHub PRと照合し、規定のrequired-CI waiterでWeb CI/Mobile App CIを1回確認する。CI evidenceを含む追加commitは作らない。M02→M03 OpenCode model-dependent受入、外部Template指定、実地検証はPR全体の未完了項目として残る。
+- Progress: 10/12 tracking tasks complete; このreview batchの実装・ローカル検証は完了、commit/push/PR/最新CIは未完了。PR全体のカリキュラム実装完了とは扱わない。

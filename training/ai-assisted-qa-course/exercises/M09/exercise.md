@@ -7,9 +7,9 @@ workspace/M09/public-sample/handoff.mdの合成branch/commit/PR履歴か、契�
 ## 手順
 
 1. 本人のM08成果物を使うか、合成handoffを前工程契約の代替入力として使うかを記録します。`TRAINING-*`を実在IDや修了記録と読み替えません。
-2. course/templates/phase3/course-e2e.workflow.yml.disabledを読み、Trigger、権限、PR HEAD、Build、Browser、Test、Artifactを特定します。
-3. workspace/M09/course-e2e.workflow.yml.disabledを完成見本と比較します。github.shaによるcheckoutがPR HEADを保証しないこと、Browser導入と対象SHA/結果Artifactの対応が欠けていることを説明します。
-4. workspace内の案を修正し、PRのhead SHAをcheckout・記録し、必要なBrowserと新課程専用specを実行し、同じRunの証拠をArtifactにします。
+2. course/templates/phase3/course-e2e.workflow.yml.disabledを読み、Trigger、権限、PR HEAD、事前ビルド済みShopのServe、Browser、Test、Artifactを特定します。
+3. workspace/M09/course-e2e.workflow.yml.disabledを完成見本と比較します。github.shaによるcheckoutがPR HEADを保証しないこと、Browser導入と対象SHA/結果Artifactの対応が欠けていることを説明します。受講者workflowに`build:web`を追加しないことも確認します。
+4. workspace内の案を修正し、PRのhead SHAをcheckout・記録し、必要なBrowserと`PLAYWRIGHT_TEST_ROOT: workspace/M07`の新課程専用specを実行し、同じRunの証拠をArtifactにします。
 5. permissions: contents: readを基本にし、Secret不要、deployなし、対象spec限定の理由を記録します。
 6. 修正後のworkflow案は.disabledを保ち、.github/workflows/へ移動・有効化しません。Templateにも自動配置しません。
 7. PR HEAD、Run、Check、Artifact、Artifact内のtarget-sha.txtを対応付けます。未実行ならその証拠は未確認と記録します。

@@ -7,6 +7,7 @@ import {
   loadModule,
   syncCourse,
   validateCourseManifest,
+  verifySyncedCourseDistribution,
 } from "./ai-assisted-qa-course-core.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -19,7 +20,7 @@ function option(args, name) {
 
 function printState(result) {
   const labels = {
-    ready: "開始可能／構造一致",
+    ready: "配布・構造一致（実行環境は未確認）",
     insufficient: "不足・未達",
     mismatch: "不整合",
     unverifiable: "確認不能",
@@ -32,6 +33,14 @@ function printState(result) {
 
 async function main() {
   const [command, ...args] = process.argv.slice(2);
+  if (command === "verify-distribution") {
+    if (args.length > 0) throw new Error("verify-distribution accepts no arguments");
+    const result = verifySyncedCourseDistribution({ root: process.cwd() });
+    console.log(
+      JSON.stringify({ message: "学習用の固定配布物を検証しました", ...result }, null, 2),
+    );
+    return;
+  }
   if (command === "sync") {
     const sourceSha = option(args, "--source-sha");
     const target = option(args, "--target");
@@ -67,7 +76,7 @@ async function main() {
     return;
   }
   throw new Error(
-    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end",
+    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end | node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
   );
 }
 

@@ -2,11 +2,11 @@
 
 ## このモジュールで学ぶこと
 
-CIは指定イベントでRunner上の手順を実行する仕組みです。workflowは自動化の定義、triggerは起動条件、jobは実行単位、stepはjob内の処理です。Build→Serve→Testの順序と、失敗した最初のstepを追います。ローカルとCIの環境差、対象SHA、Run、Artifactを一緒に確認します。
+CIは指定イベントでRunner上の手順を実行する仕組みです。workflowは自動化の定義、triggerは起動条件、jobは実行単位、stepはjob内の処理です。管理者が固定SHAからScenario Shopをビルドして同期し、受講者のworkflowは配布済みの`course/shop/`をServeしてTestします。受講者側で`build:web`を実行しません。ローカルとCIの環境差、対象SHA、Run、Artifactを一緒に確認します。
 
 ## workflowを読む
 
-完成見本は course/templates/phase3/course-e2e.workflow.yml.disabled、M09で修正する未完成案は workspace/M09/course-e2e.workflow.yml.disabled です。未完成案ではPR HEADの照合、Playwright browserの導入、対象SHAと実行結果Artifactの対応を補います。修正後も.disabledを保ち、Templateの.github/workflows/には配置・有効化しません。Phase 3を選ぶ学習者が自分の作業用リポジトリで実行するかは、その環境・権限を確認したうえで別途判断します。workflowは新課程specに限定し、permissions: contents: read、Secretなし、deployなしを基本とします。
+完成見本は`course/templates/phase3/course-e2e.workflow.yml.disabled`、M09で修正する未完成案は`workspace/M09/course-e2e.workflow.yml.disabled`です。未完成案ではPR HEADの照合、Playwright browserの導入、対象SHAと実行結果Artifactの対応を補います。M07の本人specを使うときは`PLAYWRIGHT_TEST_ROOT: workspace/M07`を明記します。M10専用fallbackを使う場合は`workspace/M10/public-sample`を指定します。どちらも同じ同期済みShopを使い、受講者側のフルBuildは行いません。修正後も`.disabled`を保ち、Templateの`.github/workflows/`には配置・有効化しません。Phase 3を選ぶ学習者が自分の作業用リポジトリで実行するかは、その環境・権限を確認したうえで別途判断します。workflowは新課程specに限定し、`permissions: contents: read`、Secretなし、deployなしを基本とします。
 
 ```yaml
 name: AI QA course checks
@@ -24,11 +24,12 @@ jobs:
           persist-credentials: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm run build:web
       - run: pnpm run training:ai-assisted-qa:test
+        env:
+          PLAYWRIGHT_TEST_ROOT: workspace/M07
 ```
 
-このworkflowは`pull_request`のmerge commitではなく`github.event.pull_request.head.sha`をcheckoutします。GitHub Actionsの既定ではmerge commitがcheckoutされるため、受講者はPR HEADとテスト対象を明示して照合します。同期対象の無効サンプルはcheckout直後に`git rev-parse HEAD`をArtifactへ記録し、専用のPlaywright結果と同じRunから保存します。教材例は読み方を示す短い抜粋です。完全な無効サンプルは必要なNode/pnpm準備、Build/Serve/Playwright依存、Artifact保存を含み、契約テストで検証します。Templateではworkflowを有効化しません。古いSHAの成功Runを現在のHEADの証拠に使いません。
+このworkflowは`pull_request`のmerge commitではなく`github.event.pull_request.head.sha`をcheckoutします。GitHub Actionsの既定ではmerge commitがcheckoutされるため、受講者はPR HEADとテスト対象を明示して照合します。Playwright Configは同期manifestと`course/shop/`内のファイルを検証し、固定revisionが合わない場合はspec実行前に失敗します。同期対象の無効サンプルはcheckout直後に`git rev-parse HEAD`をArtifactへ記録し、専用のPlaywright結果と同じRunから保存します。教材例は読み方を示す短い抜粋です。完全な無効サンプルは必要なNode/pnpm準備、事前ビルド済みShopのServe、Playwright依存、Artifact保存を含み、契約テストで検証します。Templateではworkflowを有効化しません。古いSHAの成功Runを現在のHEADの証拠に使いません。
 
 M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`の合成branch履歴とレビュー可能なPR記録を前工程契約の代替入力として読みます。`TRAINING-*`は教材内IDで、実commit、GitHub PR、Run、Artifactの証拠ではありません。未完成workflow starterと完成見本は別入力です。
 

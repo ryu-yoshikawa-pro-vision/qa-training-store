@@ -24,7 +24,7 @@ M03のCaseを仕様に照らしてレビューし、何をどのテスト層で�
 
 ## 評価と引継ぎ
 
-Phase 1の公開ルーブリックは [`assessment/phase-1-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-1-rubric.md) です。仕様・Risk・Caseの追跡、AI案の採否、未決の扱いを判定します。非公開の修了課題解答・採点テストはこの公開教材に含めません。正式評価担当者と非公開資料の保存先は運営側の指定後に確定します。
+Phase 1の公開ルーブリックは [`assessment/phase-1-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-1-rubric.md) です。仕様・Risk・Caseの追跡、AI案の採否、未決の扱いを判定します。公開候補への模範回答、採点用テスト、完成状態データはpublicな`qa-training-store`内に通常ファイルとして置き、Git差分とPRレビューで確認できます。学習用Template/同期/ロード/Web Buildへの配布除外は秘密保持を意味せず、公開資料は転記防止の仕組みではありません。実際の評価で提示する未提示条件は事前公開せず、評価時に担当者が選びます。正式評価担当者と個人別の評価記録の保存先・権限・管理担当は未指定のまま保持します。
 
 ## 確認と復習
 

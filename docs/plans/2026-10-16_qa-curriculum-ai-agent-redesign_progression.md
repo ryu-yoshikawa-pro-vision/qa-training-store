@@ -145,7 +145,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 2. **pnpm**：`package.json`の`scripts`、`dependencies`と`devDependencies`、`pnpm-lock.yaml`。依存導入と実行の違い。M00でコピーした`pnpm course:load M00`の意味。
 3. **TypeScript**：`const`/`let`、文字列・数値・真偽値、配列・オブジェクト・プロパティ、比較と`if`、関数・引数・戻り値、`import`/`export`、型と型エラー、`async`/`await`。題材は短いテスト関連コードに限定。
 4. **Playwright**：`test`、`page`、`goto`、Locator、Action、`expect`、自動待機。最小specを読んで一箇所変更する。
-5. **実行経路**：学習者個人のCodespacesでScenario ShopをBuild/Serve、Seed/Resetを確認。8081（通常Web）/8082（Training実行）/6080（Private noVNC）、Config、テスト結果・Traceの関係。
+5. **実行経路**：管理者は固定SHAからScenario ShopをBuild・検証・同期する。学習者のCodespacesでは配布済み`course/shop/`を8082でServeし、Seed/ResetとPlaywrightを実行する。受講者側で製品のフルBuildはしない。8081（通常Web）/8082（Training実行）/6080（Private noVNC）、Config、テスト結果・Traceの関係を学ぶ。
 6. **失敗の読み方**：構文エラー、型エラー、実行時エラー、Assertion失敗をそれぞれ短い例で観察する。
 
 | ID | 必要な理解・演習 | Level 2の判定 |
@@ -194,7 +194,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **Phase 2修了**：M06で**意味の異なる複数条件のE2E実装・独立実行**を確認したうえで、M07では上記の**異種原因の診断と必要な改善**を通常演習の証拠から確認する。総合演習では新しいCaseまたは故意に誤ったspecについて、AIと協働して実装・Reset・実行・原因調査・改善を行い、**Case→spec→Assertion→結果→根拠**を対応付ける。M05の読解やM06の独立性を欠いたまま、Traceを見ただけで合格にしない。Git/CIは不要。
 
-**Phase 3への引継ぎ**：動くspec、Config、依存関係、Reset、コマンド、直近実行結果・未解決事項をGitなしで保全。
+**Phase 3への引継ぎ**：動くspec、Config、依存関係、Reset、コマンド、直近実行結果・未解決事項をGitなしで保全する。Phase 2はGit操作なしで完了できる。Phase 3を選ぶ場合だけM07本人の`workspace/M07/repaired-assertion.spec.ts`を対象として確認し、M08でspec単体を明示的に追跡対象へ移す。
 
 ---
 
@@ -204,12 +204,12 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **前提**：Phase 2で動くspecと、その実行証拠を保全済み。
 
-**順序**：ファイル変更と差分→stage/commit/branch→個人リポジトリへの共有→PR→AIレビューの採否。
+**順序**：ファイル変更と差分→stage/commit/branch→個人リポジトリへの共有→PR→AIレビューの採否。Phase 2成果物はignoreされたままなので、M07 specを使うときは`git check-ignore -v workspace/M07/repaired-assertion.spec.ts`で規則を確認し、内容からログ/Trace/Secretが混入しないことを読んでから、その一ファイルだけ`git add -f -- workspace/M07/repaired-assertion.spec.ts`でstageする。stage後の名前・差分・`git diff --cached --check`を確認し、`workspace/M07/`の一括追加はしない。Phase 3を選ばない受講者はGit操作を行わない。
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
 | M08-01 | Working tree/stage/commit/branch/remote、VS Code上の変更とGit履歴を区別 | 課題ファイルの変更→stage→commit→pushの**各時点の状態**を説明できる |
-| M08-02 | `git status`/`git diff`/`.gitignore`を使い不要なファイル・Secretを除外 | **必要なspec・設定だけ**をdiffで選択してcommitできる |
+| M08-02 | `git status`/`git diff`/`.gitignore`/`git check-ignore`でignoreと差分を確認し、指定したM07 specだけを明示stageする | **必要なspecだけ**を選択してcommitでき、ログ/Trace/Secret等を除外できる |
 | M08-03 | PRの目的、変更対象、関連仕様ID、テスト結果、レビュー方法を確認 | 自分の変更をPRとして示し、**何を検証した変更か**を説明できる |
 | M08-04 | AIレビューの誤指摘・見落とし・不要な抽象化を評価 | 指摘を根拠から採否判断できる。指摘数の多さを習熟基準にしない |
 
@@ -219,11 +219,11 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **前提**：M08でcommit・PRと対象の差分を理解できる。
 
-**順序**：workflow/trigger/job/runner→依存導入→Build/Serve/Test→Run/SHA/Artifact→失敗ログ・権限・料金→品質ゲート。
+**順序**：workflow/trigger/job/runner→依存導入とBrowser→同期済みShopのServe/Test→Run/SHA/Artifact→失敗ログ・権限・料金→品質ゲート。Buildは管理者が固定SHA同期時に行い、学習者workflowには`build:web`を置かない。
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
-| M09-01 | YAMLの最小構文、event/job/step/runner、Build/Serve/Testの順番を学ぶ | 短いworkflowを読み**いつ・何を・どのRunnerで動かすか**説明できる |
+| M09-01 | YAMLの最小構文、event/job/step/runner、事前Build/同期・配布済みShop Serve・Testの分担を学ぶ | 短いworkflowを読み**いつ・何を・どのRunnerで動かし、誰がBuildするか**説明できる |
 | M09-02 | commit SHAとRun/Check/Artifactの関係を確認 | **別SHAの成功Runを現在HEADの証拠にせず**一致する証拠を示せる |
 | M09-03 | install/build/server/test/artifactの失敗段階をログから追う | 失敗Runで**最初に見るJob/stepと該当ログ**を特定できる |
 | M09-04 | 公開標準Runner、private/larger runnerの料金と品質ゲートを比較 | リスク・所要時間・費用から**最低限のゲートを選択**できる |
@@ -235,12 +235,12 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **前提**：M08でGit/PR、M09でCIと対象SHAを理解済み。
 
-**順序**：Phase 2のspec再利用→差分確認とcommit/PR→CI実行→SHA/Run/Artifactの照合→失敗調査→報告。
+**順序**：Phase 2の同じspec再利用→差分確認とcommit/PR→CIで同期済みShopを使った実行→SHA/Run/Artifactの照合→失敗調査→報告。M07 specがあれば`PLAYWRIGHT_TEST_ROOT: workspace/M07`、本人成果物がないときはM10専用fallbackに`workspace/M10/public-sample`を明示する。どちらも過去の本人ファイルを修正・上書きしない。
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
-| M10-01 | Phase 2のspec・Config・Reset・依存を確認しGitへ追加する | 不要なログやSecretを除外し、**公開するコードと理由**を説明できる |
-| M10-02 | 専用の最小Actions workflowを実行し、CodespacesとCIの違いを確認 | **同じPhase 2のspec**をCIで動かし、再現に必要な設定を説明できる |
+| M10-01 | Phase 2のspec・Config・Reset・依存を確認し、本人が選んだspec一つをGitへ追加する | 不要なログやSecretを除外し、**公開するコードと理由**を説明できる |
+| M10-02 | 専用の最小Actions workflowを実行し、CodespacesとCIの違いを確認 | **同じPhase 2のspecと配布済みShop**をCIで動かし、再現に必要な設定を説明できる |
 | M10-03 | PR HEAD、SHA、Run/Check/Artifactを対応付ける | HEAD更新後に古いRunを使わず、**現在SHAに対応する証拠**を示せる |
 | M10-04 | CI固有の失敗とテスト・製品の失敗を区別する | 失敗例で**原因を区別する最初の調査対象**を選び必要なら別Runで確かめる |
 | M10-05 | AI提案の採否と、CIで保証できる範囲・未確認事項を報告する | 実行の保証範囲と残リスクを**過大に表現せず**説明できる |
@@ -306,7 +306,7 @@ M00〜M10の各IDに対応する細かい理解事項は[基準グラフ](../cur
 | Playwright失敗調査 | Trace閲覧だけで原因確定となり得た | M07は事実/仮説→証拠→最小修正→別Runまで確認 |
 | CodespacesとGitの依存 | 環境としてGitHubを使うこととGit習得を混同し得た | Phase 1/2はGit・PR・CI不要、M08から段階的に学ぶ |
 | 課題の答えの混入 | 公開クイズの解説と修了課題の模範解答が混同され得た | 模範解答・採点用テスト・完成状態はpublicな正本リポジトリで公開レビュー可能とし、学習用Template/同期/ロード/Web配布からは除外する。配布除外は秘密保持ではない |
-| 別リポジトリの実行 | 教材だけ配布しても製品・Seed/Resetが動く保証がない | 学習者リポジトリ単体でBuild/Serve/Seed/Reset/Playwrightを実証する |
+| 別リポジトリの実行 | 教材だけ配布しても製品・Seed/Resetが動く保証がない | 管理者が固定SHAからBuild/同期し、学習者リポジトリでは配布済みShopをServe/Seed/Reset/Playwright実行する。受講者Buildは要求しない |
 | 学習範囲の肥大化 | 初心者対応を理由に一般開発教育へ拡張し得た | TypeScriptの高度な型・Node.js内部・網羅的Git・必須POM・Native/Maestroを共通の修了条件にしない |
 | 無料枠と工数 | 2コア完走の起動時間・費用が未測定 | **根拠なく時間・問題数を固定せず**、実際の学習時間・ストレージ・課題で評価する |
 

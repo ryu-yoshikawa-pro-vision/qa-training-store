@@ -32,7 +32,8 @@
       "knowledge_ids": ["K-M04-01"],
       "required_evidence": [
         "「AIのケース案にある欠落・重複・根拠がない期待結果を判定する」を示す提出物の箇所",
-        "知識の行動証拠: AIが作ったCaseを仕様の根拠でレビューする"
+        "知識の行動証拠: AIが作ったCaseを仕様の根拠でレビューする",
+        "Candidate-01の自動補正期待を拒否し、Candidate-02A/Bの同一条件を根拠に統合、Candidate-03の不足前提を特定する"
       ],
       "pass_conditions": [
         "学習目標「AIのケース案にある欠落・重複・根拠がない期待結果を判定する」が具体例・判断・実行可能な成果物で満たされる",
@@ -55,7 +56,8 @@
       "knowledge_ids": ["K-M04-02"],
       "required_evidence": [
         "「Unit、Integration、Component、Web E2Eの検証範囲と費用を区別する」を示す提出物の箇所",
-        "知識の行動証拠: 確認したい振る舞いと費用から層を選ぶ"
+        "知識の行動証拠: 確認したい振る舞いと費用から層を選ぶ",
+        "上限拒否と数量不変をIntegrationで確認し、画面メッセージが対象の場合だけUI層を補う判断"
       ],
       "pass_conditions": [
         "学習目標「Unit、Integration、Component、Web E2Eの検証範囲と費用を区別する」が具体例・判断・実行可能な成果物で満たされる",
@@ -78,7 +80,8 @@
       "knowledge_ids": ["K-M04-03"],
       "required_evidence": [
         "「Automate/Later/Do not automateを対象リスクと再実行価値から選ぶ」を示す提出物の箇所",
-        "知識の行動証拠: Automate/Later/Do not automateの採否理由を示す"
+        "知識の行動証拠: Automate/Later/Do not automateの採否理由を示す",
+        "Candidate-01/02AをAutomate、重複02BをDo not automate、前提欠落のCandidate-03を修正までLaterとする理由"
       ],
       "pass_conditions": [
         "学習目標「Automate/Later/Do not automateを対象リスクと再実行価値から選ぶ」が具体例・判断・実行可能な成果物で満たされる",
@@ -101,7 +104,8 @@
       "knowledge_ids": ["K-M04-04"],
       "required_evidence": [
         "「仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す」を示す提出物の箇所",
-        "知識の行動証拠: 未確定条件を正解にせず確認事項として記録する"
+        "知識の行動証拠: 未確定条件を正解にせず確認事項として記録する",
+        "Candidate-03の操作前数量を既知値としてセット・観測できない限り、拒否後保持を未確認とする"
       ],
       "pass_conditions": [
         "学習目標「仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す」が具体例・判断・実行可能な成果物で満たされる",
@@ -203,6 +207,58 @@
         "workspace/M04/submission.md",
         "evidence/run-record.md"
       ]
+    },
+    {
+      "id": "M04-CAL-08",
+      "type": "correct",
+      "response": "CASE-CART-CANDIDATE-01はBR-CART-001/AC-CART-001に反し、操作前数量2から絶対数量6への変更は全体拒否して2を維持する。上限5へ丸めない。RISK-CART-001の在庫・金額影響は高く、状態保持はIntegrationでAutomateする。",
+      "evidence": [
+        "reference-solutions/M04.md",
+        "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
+        "docs/spec/features/cart.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "誤ったオラクルを仕様で訂正し、影響・根拠・低費用で安定した検証層を対応させる。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M04-CAL-09",
+      "type": "correct",
+      "response": "Candidate-02Aと02BはID以外の条件・操作・期待・根拠が同じなので02Aを残し02Bを除く。参照を02Aへ移し、上限内数量2のcoverageが残ることを確認してから統合する。02Aは一件Automate、重複02BはDo not automate。",
+      "evidence": [
+        "reference-solutions/M04.md",
+        "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
+        "training/ai-assisted-qa-course/exercises/M04/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "同値の重複を除きつつ、追跡参照と条件coverageを維持する。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M04-CAL-10",
+      "type": "correct",
+      "response": "Candidate-03は操作前数量がないため拒否後保持を観測できない。default Seedで数量2をセットして観測し、絶対数量6へ変更する修正案を作る。前提が準備できない間は未決/Laterとし、製品バグやAC達成と断定しない。",
+      "evidence": [
+        "reference-solutions/M04.md",
+        "training/ai-assisted-qa-course/inputs/M04/public-review-cases.md",
+        "docs/spec/features/cart.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "欠けた状態を推測せず、ACの不変条件を確認できる前提と観測を追加する。",
+      "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M04-CAL-11",
+      "type": "correct",
+      "response": "Candidate-01はIntegrationでAutomate、02Aは一件のみ残してAutomate、重複02BはDo not automate、前提未確定の03は修正までLaterとする。影響の大きさ、反復頻度、データ安定性、準備・保守費用を理由にする。",
+      "evidence": [
+        "reference-solutions/M04.md",
+        "docs/curriculum/ai-assisted-qa/modules/M04/README.md",
+        "training/ai-assisted-qa-course/exercises/M04/exercise.md"
+      ],
+      "expected_decision": "pass",
+      "rationale": "具体Caseと検証層・再実行価値・費用・未確定の扱いが対応する。",
+      "fixture_scope": "public_calibration_only"
     }
   ],
   "evaluation_policy": {

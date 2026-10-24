@@ -10,11 +10,11 @@
 - [ ] 7. M02→M03のモデル依存統合受入を完了する。source-backed `SCOPE-001`/`SCOPE-101`のAuthority/Risk生成、`condition_structure(direct)`、選択したBVA、TDR、materialize、Case、condition/case双方の最終evidence gate `valid=true`までの決定論的開発経路は実行・記録済み。OpenCode CLIの正規モデル実行経路がこのWindows環境から利用できず、モデル依存の意味分析・技法選択出力は未実行。Codex判断による統合結果への置換はしていない。
 - [x] 8. M05→M06代表教材の開発受入とPhase 2専用Playwright経路を開発環境で確認。M05意図的Locator失敗と別の修正版1/1、M06公式Cart 3 Case 3/3、M07意図的Assertion失敗と修正後別Run 1/1を証拠付きで確認。受講者が完成するM06/M07のTODO scaffoldは公開入力として維持し、人間受入は実地検証工程へ分離。
 - [x] 9. Phase 3 workflow sampleの最小権限・対象SHA・target-sha.txt・Artifact契約を検証し、Playwright browser installを追加。外部学習repoでの実行は実装後の実地工程へ分離。
-- [ ] 10. 非公開模範/採点用テストを安全な保存先・権限・担当者の指定後に作成。
+- [x] 10. 模範解答・採点用テスト・完成状態データはpublicな`qa-training-store`に通常ファイルで保持する方針へ整合。reference-solutions/scoring-tests/completed-states各11件（計33件）を確認し、M03/M04の完成回答・校正例を正式仕様と照合。Template/同期/load/Web Buildからの除外契約は維持し、秘密保持とは説明しない。
 - [x] 11. 58 tentative knowledge nodesと教材内容を正式仕様・設問/選択肢/解説・演習・評価基準と照合し、別AI reviewerによる独立開発レビューを実施。M03教材/知識グラフ/状態参照解決とM10 Reset開始入力の指摘を修正して契約テスト・validatorを再実行。レビュー記録を決定事項へ追記した。AIレビューは人間による正式ドメイン承認を意味しないため、58 nodeは`draft_requires_content_review`を維持。
 - [ ] 12. Plan照合とRun Reportを更新し、実装状態・検証・未達を記録してcommit/push、PR本文へ同期し、最新headの必須CIを確認。実装全体の未達項目はタスク7/10に残す。
 
-- Progress: 9/12追跡項目。これは全カリキュラムの実装完了を意味しない。
+- Progress: 10/12追跡項目。これは全カリキュラムの実装完了を意味しない。
 
 ## 完了処理の参照先
 - Progress: `docs/reference/run-artifacts.md`
@@ -33,7 +33,7 @@ checkbox完了はfinal commit前のtask進捗であり全体完了ではない�
 
 ## Blocked（ブロック中）
 - M02→M03のAIモデル統合受入は部分的に`BLOCKED`。固定scriptのsource-backed `SCOPE-001`/`SCOPE-101`系列でAuthority/Risk/Scope参照、direct、BVA、TDR、materialize、Case、condition/case両final evidence gate `valid=true`を決定論的に実行済み。意味分析・技法選択は人手で正式sourceから導出しておりOpenCode出力ではない。Windows環境のOpenCode CLI正規起動経路を確認できず、モデル依存ステップだけ未実行。Zen利用可否・認証は再検証せず、有料モデルへ切り替えていない。詳細fingerprintはM02-M03 integration contractに記録。
-- 全11モジュールの非公開模範解答・採点用テストは未作成。実際の保存先、アクセス権、管理担当が未指定であり、安全な保存先を推測できない。
+- 模範解答・採点用テスト・完成状態データはpublicな通常ファイルで、学習用配布からの除外は秘密保持ではない。学習者個人の提出/成績記録の保存先・アクセス権・管理担当と正式評価担当者は未指定のまま。
 - 51項目/58知識/53問と本文・演習・評価基準の開発レビューは、実装者の再確認に加えて別AI reviewerが実施。M03とM10、状態参照resolverの具体的指摘を修正済み。AIレビューは人間の正式ドメイン承認ではないため、58 knowledge nodeは`draft_requires_content_review`のまま。
 - ローカルE2EではWindows上でPlaywright管理webServerを使用すると17/17件が成功表示後もsummary/終了コードが返らない。外部静的serverから同じ17件を実行するとexit 0。Playwright設定差し替えはこの挙動を解消せず、変更を保持せず戻した。
-- 外部学習用Templateの作成先・管理権限、非公開模範・採点資料の保管先/アクセス権/管理担当、正式評価担当者、受講者Codespaces条件は未指定。外部Templateや秘密保管先は作成していない。実地検証は全量実装後の独立工程であり、本Runの実装ブロッカーではない。
+- 外部学習用Templateの作成先・管理権限、学習者個人の提出/成績記録の保存先・アクセス権/管理担当、正式評価担当者、受講者Codespaces条件は未指定。外部Templateは作成していない。実地検証は全量実装後の独立工程であり、本Runの実装ブロッカーではない。

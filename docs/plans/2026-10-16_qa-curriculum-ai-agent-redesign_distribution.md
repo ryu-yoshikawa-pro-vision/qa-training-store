@@ -102,18 +102,18 @@ pnpm course:load M03
 
 ## ロードの開始判定と教材revision
 
-- `pnpm course:load Mxx`は、**学習者が指定した1モジュール**だけを配置し、配置後に公開の`start.json`と照合する。チェック結果は`開始可能`、`不足・不整合`、`確認不能`に分類し、項目・必要revision・使用する入力元を表示する。読み取り専用の開始/終了判定を独立して再確認できる`pnpm course:check Mxx --state start|end`も用意し、**終了チェックの構造判定だけでLevel 2を認定しない**。
+- `pnpm course:load Mxx`は、**学習者が指定した1モジュール**だけを配置し、配置後に公開の`start.json`と照合する。チェック結果は配布・構造の`ready`、`insufficient`、`mismatch`、`unverifiable`に分類し、項目・必要revision・使用する入力元を表示する。`ready`は必要ファイルと参照の一致を表すだけで、実行環境の利用可能性を保証しない。`pnpm course:check Mxx --state start|end`は実行環境の必須項目を`unverified`として併記し、Node.js/pnpm/Playwright/Seed/Reset等を実行したと誤認させない。**終了チェックの構造判定だけでLevel 2を認定しない**。
 - コピー先を事前に検証し、対象外パスやシンボリックリンク、衝突を拒否する。複数ファイルのコピーに失敗したら**配布済みの内容を破壊せず、どこまで配置されたかを報告**する。同じsource SHAで再実行しても編集済みファイルを変更しないことを検証する。
 - **配布用Template**は確定したmanifest・source SHAで管理者が更新する。GitHub Templateから作成した学習者個人リポジトリへ、その後の更新を自動反映しない。配布元revisionと、学習者が実際に受講しているrevisionを記録し、**受講中は無断更新しない**。更新時は教材・開始/終了状態・評価の差分を確認し、新版で学習を開始する時点から明示的に適用する。
 - **Phase 1・2の提出物**は`workspace/Mxx/submission.md`（学習項目・仕様根拠・入力元・AIの採否・未確定事項）と必要な`evidence/`・コードを揃え、CodespacesからGitのcommitを要求せずにダウンロード・共有できる。**公開Git履歴へ個人の提出物を自動保存しない**。
 
 ## Scenario Shopを別リポジトリから利用する
 
-Phase 2を成立させるには、学習用リポジトリのCodespacesから**実際にScenario Shopを起動し、Seed/Resetを行ってPlaywrightを実行できること**が必要である。教材だけを同期しても不十分。
+Phase 2を成立させるには、管理者が製品リポジトリの固定SHAからScenario Shopをビルド・検証・同期し、学習用リポジトリのCodespacesからは**配布済み`course/shop/`を起動し、Seed/Resetを行ってPlaywrightを実行できること**が必要である。受講者側で製品のフルビルドを再実行しない。教材だけを同期しても不十分。
 
 - `qa-training-store`にある製品・仕様・Seed/Resetを正本として維持する。配布先に入れる製品関連ファイルは**学習用ランタイムとして生成するコピー**であり、二重に開発・保守する正本にはしない。
-- 同期許可リストへ、Build/Serve/Testに必要な依存・設定・静的ファイル・Seed/Resetを、**実行可能な依存の閉包**として列挙する。既存`package.json`は`pnpm@10.34.5`、`build:web`は画像/フォント準備・`expo export --platform web`・文書生成を含む。**`package.json`・lockfile・Expoのimport先・public/assets・実行設定・配布先の起動スクリプトまで追跡**し、確定SHAから生成する。元リポジトリ全体のcloneや正式回帰spec・旧workflow・模範実装は配布しない。実在ファイル一覧は実装時の静的import/起動経路から確定し、manifestに追加した各パスの必要理由を記録する。
-- `playwright.training.config.ts`は既存の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`output/training/playwright/`を使用する。**新課程専用Config**はPhase 2の`workspace/M05/`〜`M07/`内の指定specに加え、単独ロード後もPhase 3学習を続けられるよう`workspace/M08/public-sample/`・`workspace/M10/public-sample/`内のmodule-local公開fallbackと、開発者向けの`training/ai-assisted-qa-course/assessment/playwright/M05`〜`M07`だけを許可し、結果を`output/training/ai-assisted-qa/`に分離する。評価用specの許可はこの正本リポジトリ内の開発実行向けであり、Template/同期/ロード/Web Buildには含めない。任意path、M09その他のworkspace、`assessment/playwright`のM00〜M04/M08〜M10、旧`training/playwright`は許可しない。Build/Serveは既存の`scripts/serve-web-dist.ts`の安全なloopback起動を再利用する。**8082はテスト専用のlocalhost、8081は通常Web、6080はprivate noVNC**とし、不要な公開ポートを増やさない。
+- 同期許可リストへ、学習者のServe/Testに必要な依存・設定・事前生成した静的ファイル・Seed/Resetを、**実行可能な依存の閉包**として列挙する。Scenario ShopのBuildは管理者が固定SHAをCheckoutして行い、受講者へは検証済み静的出力を`course/shop/`へ配布する。既存`build:web`は画像/フォント準備・`expo export --platform web`・文書生成を含むため、受講者workflowで再実行しない。**`package.json`・lockfile・必要なruntime import先・public/assets・Serve設定・Seed/Resetの配布経路まで追跡**する。元リポジトリ全体のcloneや正式回帰spec・旧workflow・模範実装は配布しない。実在ファイル一覧は実装時の静的import/起動経路から確定し、manifestに追加した各パスの必要理由を記録する。
+- **新課程専用Config**は既存の`PLAYWRIGHT_TEST_ROOT`を使い、Phase 2の`workspace/M05/`〜`M07/`内の指定specに加え、Phase 3用の本人M07 spec、`workspace/M08/public-sample/`・`workspace/M10/public-sample/`内のmodule-local公開fallbackと、開発者向けの`training/ai-assisted-qa-course/assessment/playwright/M05`〜`M07`だけを許可する。結果は`output/training/ai-assisted-qa/`に分離する。評価用specの許可はこの正本リポジトリ内の開発実行向けであり、Template/同期/ロード/Web Buildには含めない。任意path、M09その他のworkspace、`assessment/playwright`のM00〜M04/M08〜M10、旧`training/playwright`は許可しない。`course/shop/`または`.course/`が存在する環境ではdistribution manifest、22状態のsource SHA/revision、全配布ファイルのhash、Shopの不足・余剰・symlinkをテスト開始前に検証する。不一致時は失敗させ、manifestがない同期状態から製品フルBuildへ黙って切り替えない。Buildは管理者同期時だけ行い、Serveは既存の`scripts/serve-web-dist.ts`の安全なloopback起動を再利用する。**8082はテスト専用のlocalhost、8081は通常Web、6080はprivate noVNC**とし、不要な公開ポートを増やさない。
 - 既存devcontainerの**Node 24のイメージとChromium導入処理**から必要な部分だけ再利用し、開発中に`package.json`・`pnpm-lock.yaml`・Playwright Configと配布ファイルの整合を静的/契約テストとCIで確認する。実際の2コアCodespaceでの初回導入・アプリ起動・Reset・E2E通し実行は、全11モジュールと関連機能の実装完了後に行う。未実施・不合格だけでは実装完了を止めず、運用開始判断へ記録する。
 - 公開Templateが元リポジトリのコードを含む以上、正式仕様・既存実装そのものは学習者とAIに見える。それでも**評価用の模範テストコード・完成した実技回答を入れない**ことで転記リスクを減らす。
 
@@ -121,7 +121,7 @@ Phase 2を成立させるには、学習用リポジトリのCodespacesから**�
 
 Phase 1・2と同じ**学習者個人のリポジトリ**を継続利用する。ここで初めてbranch・commit・PR・GitHub Actionsを教材で扱い、Phase 2の成果物を対象とした専用CIを実行する。**Phase 3専用workflowは、公開Template内では実行対象外の教材テンプレートに置く**。M09/M10で受講者が対象spec・権限を確認して`.github/workflows/`へ有効化する。最小権限は`permissions: contents: read`を基本とし、Secret不要・deployなし・Artifactは必要なテスト証拠のみとする。旧Training Copy生成処理は元リポジトリを丸ごと複製し、旧workflowを有効にするため、この同期・ロードには流用しない。新課程の実行範囲を明示した小さなworkflowと検証契約を用いる。
 
-公開リポジトリであるため、受講者自身の実技・ログ・個人情報を公開commitへ入れる前に確認させる。Phase 1・2の`workspace/`は原則としてGit管理対象から除外し、Phase 3で提出対象としたコード・記録だけを意図的にcommitする手順を用意する。
+公開リポジトリであるため、受講者自身の実技・ログ・個人情報を公開commitへ入れる前に確認させる。Phase 1・2の`workspace/`は原則としてGit管理対象から除外し、Phase 2修了にGit操作を要求しない。Phase 3でM07の本人specを使う場合は、ignore状態と内容を確認したうえで`workspace/M07/repaired-assertion.spec.ts`だけを個別に強制stageし、stage後の一覧と差分を確認する。`workspace/M07/`の一括追加は行わない。Phase 3 workflowは同じspecに`PLAYWRIGHT_TEST_ROOT: workspace/M07`を指定する。M07成果物がない場合はM10専用fallbackを使い、そのworkflowには`workspace/M10/public-sample`を明示する。
 
 ## 必須の検証と未確定事項
 
@@ -139,7 +139,8 @@ Phase 1・2と同じ**学習者個人のリポジトリ**を継続利用する�
 | 学習者の操作 | 公開Webで受講範囲を選び教材と確認クイズを利用し、実技は**受講開始ガイドで**M00をロードするだけならGit・GitHub API・CIの操作を必要としない。M00前にターミナル・pnpmの知識を問わない。AIの自動進行を要求しない |
 | 学習用配布の境界 | publicな正本リポジトリの模範・採点・完成状態資料は、学習用Template/同期/ロード/Web Build/公開Artifactに含まれない。配布除外は秘密保持ではなく、同期・ロード・build契約テストで確認する |
 | Phase 1の実施 | ロードした仕様・Skillから分析・設計を行い、完成例の転記なしに独立修了できる |
-| Phase 2の実施 | **学習用リポジトリ単体**でSetup→Build/Serve→Seed/Reset→Playwright→結果確認できる機能・教材・実行契約を作り、自動/契約テストとCIで検証する。実際の2コアCodespaceでの通し確認は全量実装後に行う |
+| Phase 2の実施 | 管理者の固定SHA Build・検証・同期と、学習用リポジトリ単体でのSetup→配布済みShop Serve→Seed/Reset→Playwright→結果確認を区別する。受講者側にフルBuildを要求せず、manifest/artifact不整合の事前拒否を自動/契約テストとCIで確認する。実際の2コアCodespaceでの通し確認は全量実装後に行う |
+| Phase 3のspec引継ぎ | M07 specはPhase 2ではignoreされたまま保全し、Phase 3では本人が選んだspecだけを個別stageする。M07本人specとM10 fallbackで別のtest rootがworkflowへ明示され、relative importと同一specのローカル/CI実行を維持する |
 | Phase 3の実施 | 学習用リポジトリの明示したコードだけをPR/CIで実行し、旧・正式workflowを発火させない |
 | 無料運用 | 無料AIモデル・公開標準Runner等の利用経路を開発時の契約で確認し、実際の2コア利用量・無料枠は全量実装後に実測する。超過・利用不能なら運用開始を保留し、自動課金しない |
 

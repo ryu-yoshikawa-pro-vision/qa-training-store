@@ -526,6 +526,84 @@ function verifiedCourseSource(root, distribution, sourcePath) {
   return bytes;
 }
 
+export function verifySyncedCourseDistribution({ root }) {
+  const targetRoot = path.resolve(root);
+  const distribution = readDistribution(targetRoot);
+  const filesByTarget = new Map();
+  for (const entry of distribution.files) {
+    const targetPath = normalizeRelativePath(entry.target_path, "distribution target_path");
+    if (filesByTarget.has(targetPath)) fail(`duplicate distribution target: ${targetPath}`);
+    if (!/^[a-f0-9]{64}$/.test(entry.sha256 ?? ""))
+      fail(`distributed file has no valid SHA-256: ${targetPath}`);
+    const absolute = assertNoSymlinkPath(targetRoot, targetPath, true);
+    if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isFile())
+      fail(`distributed file is missing or not a regular file: ${targetPath}`);
+    const bytes = fs.readFileSync(absolute);
+    if (sha256(bytes) !== entry.sha256) fail(`distributed file changed after sync: ${targetPath}`);
+    filesByTarget.set(targetPath, { entry, bytes });
+  }
+
+  for (const moduleId of MODULE_IDS) {
+    for (const stateName of ["start", "end"]) {
+      const statePath = `course/states/${moduleId}/${stateName}.json`;
+      const stateFile = filesByTarget.get(statePath);
+      if (!stateFile) fail(`pinned module state is missing from the distribution: ${statePath}`);
+      let state;
+      try {
+        state = JSON.parse(stateFile.bytes.toString("utf8"));
+      } catch (error) {
+        fail(`pinned module state is invalid JSON: ${statePath}: ${error.message}`);
+      }
+      if (
+        state.module_id !== moduleId ||
+        state.state !== stateName ||
+        state.source_sha !== distribution.source_sha ||
+        state.revision !== distribution.state_contract_revision
+      )
+        fail(`pinned module state SHA or revision does not match the distribution: ${statePath}`);
+    }
+  }
+
+  const shopFiles = new Set(
+    [...filesByTarget.keys()].filter((targetPath) => targetPath.startsWith("course/shop/")),
+  );
+  if (!shopFiles.has("course/shop/index.html"))
+    fail("pinned Scenario Shop distribution has no course/shop/index.html");
+  const shopRoot = assertNoSymlinkPath(targetRoot, "course/shop", true);
+  if (!fs.existsSync(shopRoot) || !fs.lstatSync(shopRoot).isDirectory())
+    fail("pinned Scenario Shop distribution directory is missing");
+
+  const observedShopFiles = new Set();
+  const visitShop = (directory, relativeDirectory = "") => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
+      const targetPath = `course/shop/${relativePath}`;
+      const absolute = assertNoSymlinkPath(targetRoot, targetPath, true);
+      if (entry.isSymbolicLink()) fail(`symlink is prohibited in the pinned Shop: ${targetPath}`);
+      if (entry.isDirectory()) {
+        visitShop(absolute, relativePath);
+        continue;
+      }
+      if (!entry.isFile()) fail(`unsupported filesystem entry in the pinned Shop: ${targetPath}`);
+      if (!shopFiles.has(targetPath)) fail(`unmanifested file in the pinned Shop: ${targetPath}`);
+      observedShopFiles.add(targetPath);
+    }
+  };
+  visitShop(shopRoot);
+  for (const targetPath of shopFiles) {
+    if (!observedShopFiles.has(targetPath))
+      fail(`manifested Shop file is missing from course/shop: ${targetPath}`);
+  }
+
+  return {
+    source_sha: distribution.source_sha,
+    state_contract_revision: distribution.state_contract_revision,
+    distribution_files_verified: filesByTarget.size,
+    shop_files_verified: shopFiles.size,
+    state_files_verified: MODULE_IDS.length * 2,
+  };
+}
+
 function latestLoadReceipt(root, moduleId) {
   const receiptRoot = assertNoSymlinkPath(root, ".course-load", true);
   if (!fs.existsSync(receiptRoot)) return { status: "missing" };
@@ -987,8 +1065,23 @@ export function checkState({ root, moduleId, stateName }) {
     const status = /changed after sync|not included|invalid|JSON/.test(message)
       ? "mismatch"
       : "unverifiable";
-    return { status, moduleId, state: stateName, reasons: [message] };
+    return {
+      status,
+      moduleId,
+      state: stateName,
+      reasons: [message],
+      execution: {
+        status: "unverified",
+        required: [],
+        note: "course:check does not execute or verify runtime requirements",
+      },
+    };
   }
+  const execution = {
+    status: "unverified",
+    required: Array.isArray(state.environment) ? state.environment : [],
+    note: "course:check checks files, revisions, and references only; it does not execute runtime requirements",
+  };
   const reasons = [];
   const missing = [];
   const unchanged = [];
@@ -1110,6 +1203,7 @@ export function checkState({ root, moduleId, stateName }) {
       reasons,
       missing,
       input,
+      execution,
     };
   if (missing.length || unchanged.length)
     return {
@@ -1122,6 +1216,7 @@ export function checkState({ root, moduleId, stateName }) {
       unchanged,
       input,
       assessment: "構造照合のみです。Level 2は人が別途評価します",
+      execution,
     };
   return {
     status: "ready",
@@ -1131,6 +1226,7 @@ export function checkState({ root, moduleId, stateName }) {
     reasons: [],
     missing: [],
     input,
+    execution,
     assessment:
       stateName === "end"
         ? "構造照合のみです。Level 2は人が別途評価します"

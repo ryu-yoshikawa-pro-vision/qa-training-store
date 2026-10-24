@@ -11,6 +11,7 @@ import {
   loadModule,
   syncCourse,
   validateCourseManifest,
+  verifySyncedCourseDistribution,
 } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 
 const repositoryRoot = process.cwd();
@@ -728,6 +729,90 @@ describe("AI-assisted QA distribution contract", () => {
     const mixedPaths = runGit(["diff", "--cached", "--name-only"]).trim().split(/\r?\n/).sort();
     expect(mixedPaths).toContain("out-of-scope.txt");
     expect(mixedPaths).not.toEqual([...intendedPaths].sort());
+
+    const handoffFixture = path.join(fixtureRoot, "m07-phase3-handoff-contract");
+    const runHandoffGit = (args) =>
+      execFileSync("git", args, { cwd: handoffFixture, encoding: "utf8" });
+    const handoffSpec = "workspace/M07/repaired-assertion.spec.ts";
+    fs.mkdirSync(path.join(handoffFixture, "workspace"), { recursive: true });
+    fs.writeFileSync(
+      path.join(handoffFixture, "workspace/.gitignore"),
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/templates/workspace.gitignore"),
+        "utf8",
+      ),
+    );
+    runHandoffGit(["init", "--quiet"]);
+    writeFixtureFile(handoffFixture, "README.md", "M07 Phase 2 handoff contract fixture\n");
+    runHandoffGit(["add", "--", "README.md", "workspace/.gitignore"]);
+    runHandoffGit([
+      "-c",
+      "user.name=Assessment Contract",
+      "-c",
+      "user.email=assessment-contract@example.invalid",
+      "commit",
+      "--quiet",
+      "-m",
+      "temporary handoff baseline",
+    ]);
+    const specSource = fs.readFileSync(path.join(repositoryRoot, handoffSpec), "utf8");
+    writeFixtureFile(handoffFixture, handoffSpec, specSource);
+    writeFixtureFile(handoffFixture, "workspace/M07/other.spec.ts", "not selected\n");
+    writeFixtureFile(handoffFixture, "workspace/M07/run.log", "synthetic log\n");
+    writeFixtureFile(handoffFixture, "workspace/M07/trace.zip", "synthetic trace\n");
+    writeFixtureFile(handoffFixture, "workspace/M07/.env.local", "SYNTHETIC_SECRET=value\n");
+
+    const ignoredSpec = spawnSync(
+      "git",
+      ["-C", handoffFixture, "check-ignore", "--no-index", "--verbose", handoffSpec],
+      { encoding: "utf8" },
+    );
+    expect(ignoredSpec.status).toBe(0);
+    expect(ignoredSpec.stdout).toContain("/M07/");
+    runHandoffGit(["add", "--all"]);
+    expect(runHandoffGit(["diff", "--cached", "--name-only"]).trim()).toBe("");
+
+    runHandoffGit(["add", "-f", "--", handoffSpec]);
+    expect(runHandoffGit(["diff", "--cached", "--name-only"]).trim()).toBe(handoffSpec);
+    expect(runHandoffGit(["diff", "--cached", "--check"])).toBe("");
+    const stagedSpec = runHandoffGit(["show", `:${handoffSpec}`]);
+    expect(stagedSpec).toContain('from "../../training/playwright/support/reset-scenario"');
+    for (const excluded of ["other.spec.ts", "run.log", "trace.zip", ".env.local"])
+      expect(runHandoffGit(["diff", "--cached", "--name-only"])).not.toContain(excluded);
+
+    const phase3Workflow = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled",
+      ),
+      "utf8",
+    );
+    const m09Starter = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/inputs/M09/workflow-starter.yml.disabled",
+      ),
+      "utf8",
+    );
+    const m10Fallback = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
+      "utf8",
+    );
+    expect(phase3Workflow).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M07");
+    expect(m09Starter).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M07");
+    expect(m10Fallback).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+    const m07Lesson = fs.readFileSync(
+      path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/modules/M07/README.md"),
+      "utf8",
+    );
+    const m07Exercise = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/exercises/M07/exercise.md"),
+      "utf8",
+    );
+    expect(`${m07Lesson}\n${m07Exercise}`).not.toMatch(/git add|git commit|pull request/i);
   });
 
   it("maps every lesson and start-guide link to an allowlisted distribution file", () => {
@@ -1046,6 +1131,8 @@ describe("AI-assisted QA distribution contract", () => {
         .filter((name) => /\.ya?ml$/i.test(name)),
     ).toEqual([]);
     expect(workflow).toContain("permissions:\n  contents: read");
+    expect(workflow).not.toContain("pnpm run build:web");
+    expect(workflow).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M07");
     expect(workflow).toContain("ref: ${{ github.event.pull_request.head.sha }}");
     expect(workflow).toContain("persist-credentials: false");
     expect(workflow).toContain('test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"');
@@ -1065,6 +1152,145 @@ describe("AI-assisted QA distribution contract", () => {
     expect(workflow).toContain("path: output/training/ai-assisted-qa/");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/contents:\s+write|secrets\.|deploy:/i);
+
+    const m09Starter = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/inputs/M09/workflow-starter.yml.disabled",
+      ),
+      "utf8",
+    );
+    expect(m09Starter).not.toContain("pnpm run build:web");
+    expect(m09Starter).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M07");
+    const m10Fallback = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
+      "utf8",
+    );
+    expect(m10Fallback).not.toContain("pnpm run build:web");
+    expect(m10Fallback).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+  });
+
+  it("verifies the complete pinned distribution before serving a prebuilt Shop", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "b".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(verified).toMatchObject({
+      source_sha: sourceSha,
+      state_contract_revision: "ai-assisted-qa-course-v2",
+      shop_files_verified: 1,
+      state_files_verified: 22,
+    });
+    const verifyCommand = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
+    const cliVerification = execFileSync(process.execPath, [verifyCommand, "verify-distribution"], {
+      cwd: fixture.target,
+      encoding: "utf8",
+    });
+    expect(JSON.parse(cliVerification)).toMatchObject({
+      source_sha: sourceSha,
+      shop_files_verified: 1,
+    });
+    expect(fs.existsSync(path.join(fixture.target, "src"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, "app"))).toBe(false);
+
+    writeFixtureFile(
+      fixture.target,
+      "workspace/M07/distribution-config.spec.ts",
+      'import { test } from "@playwright/test";\ntest("synced config can enumerate a workspace spec", () => {});\n',
+    );
+    for (const relativePath of [
+      "playwright.ai-assisted-qa.config.ts",
+      "scripts/training/ai-assisted-qa-course.mjs",
+      "scripts/training/ai-assisted-qa-course-core.mjs",
+      "scripts/training/ai-assisted-qa-playwright-settings.ts",
+    ]) {
+      const destination = path.join(fixture.target, relativePath);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.copyFileSync(path.join(repositoryRoot, relativePath), destination);
+    }
+    fs.symlinkSync(
+      path.join(repositoryRoot, "node_modules"),
+      path.join(fixture.target, "node_modules"),
+      "junction",
+    );
+    const configEnumeration = spawnSync(
+      process.execPath,
+      [
+        path.join(repositoryRoot, "node_modules/@playwright/test/cli.js"),
+        "test",
+        "--config=playwright.ai-assisted-qa.config.ts",
+        "--project=ai-assisted-qa-chromium",
+        "--list",
+      ],
+      {
+        cwd: fixture.target,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PLAYWRIGHT_BASE_URL: "http://127.0.0.1:8082",
+          PLAYWRIGHT_TEST_ROOT: "workspace/M07",
+        },
+      },
+    );
+    expect(configEnumeration.status, configEnumeration.stderr || configEnumeration.stdout).toBe(0);
+    expect(configEnumeration.stdout).toContain("distribution-config.spec.ts");
+    expect(configEnumeration.stdout).toContain("学習用の固定配布物を検証しました");
+
+    const shopIndex = path.join(fixture.target, "course/shop/index.html");
+    const originalShop = fs.readFileSync(shopIndex);
+    fs.appendFileSync(shopIndex, "modified after sync");
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /changed after sync: course\/shop\/index\.html/,
+    );
+    const tamperedCliVerification = spawnSync(
+      process.execPath,
+      [verifyCommand, "verify-distribution"],
+      { cwd: fixture.target, encoding: "utf8" },
+    );
+    expect(tamperedCliVerification.status).not.toBe(0);
+    expect(tamperedCliVerification.stderr).toContain("changed after sync: course/shop/index.html");
+    fs.writeFileSync(shopIndex, originalShop);
+
+    const unexpectedShopFile = path.join(fixture.target, "course/shop/unmanifested.txt");
+    fs.writeFileSync(unexpectedShopFile, "outside the pinned build\n");
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /unmanifested file in the pinned Shop/,
+    );
+    fs.rmSync(unexpectedShopFile);
+
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const originalManifest = fs.readFileSync(manifestPath, "utf8");
+    const wrongSource = JSON.parse(originalManifest);
+    wrongSource.source_sha = "c".repeat(40);
+    fs.writeFileSync(manifestPath, JSON.stringify(wrongSource));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /state SHA or revision does not match/,
+    );
+
+    const invalidPath = JSON.parse(originalManifest);
+    invalidPath.files.find((entry) => entry.target_path === "course/shop/index.html").target_path =
+      "course/shop/../outside.html";
+    fs.writeFileSync(manifestPath, JSON.stringify(invalidPath));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /distribution target_path escapes its root/,
+    );
+
+    fs.writeFileSync(manifestPath, originalManifest);
+    fs.rmSync(shopIndex);
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /distributed file is missing or not a regular file: course\/shop\/index\.html/,
+    );
   });
 
   it("binds the fixed SHA, loads one module, preserves learner edits, and checks states read-only", async () => {
@@ -1132,6 +1358,26 @@ describe("AI-assisted QA distribution contract", () => {
       status: "ready",
       sourceSha,
       input: { source: "module-public-sample" },
+      execution: {
+        status: "unverified",
+        required: [],
+      },
+    });
+    const cliOutput = execFileSync(
+      process.execPath,
+      [
+        path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs"),
+        "check",
+        "M00",
+        "--state",
+        "start",
+      ],
+      { cwd: fixture.target, encoding: "utf8" },
+    );
+    expect(JSON.parse(cliOutput)).toMatchObject({
+      status: "ready",
+      status_label: "配布・構造一致（実行環境は未確認）",
+      execution: { status: "unverified" },
     });
     expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" }).status).toBe(
       "insufficient",

@@ -190,6 +190,92 @@ describe("AI-assisted QA static learning course", () => {
     expect(scoring.cases?.[0]?.response).toContain("RISK-CART-001");
   });
 
+  it("keeps the completed M03 and M04 public answers aligned with their scoring examples", () => {
+    const courseRoot = "training/ai-assisted-qa-course/assessment";
+    const m03Path = path.join(repositoryRoot, `${courseRoot}/reference-solutions/M03.md`);
+    const m04Path = path.join(repositoryRoot, `${courseRoot}/reference-solutions/M04.md`);
+    const m03 = fs.readFileSync(m03Path, "utf8");
+    const m04 = fs.readFileSync(m04Path, "utf8");
+    const m03Scoring = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, `${courseRoot}/scoring-tests/M03.json`), "utf8"),
+    ) as { cases?: { id?: string; response?: string; expected_decision?: string }[] };
+    const m04Scoring = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, `${courseRoot}/scoring-tests/M04.json`), "utf8"),
+    ) as { cases?: { id?: string; response?: string; expected_decision?: string }[] };
+
+    for (const caseId of [
+      "M03-EQP-01",
+      "M03-EQP-02",
+      "M03-EQP-03",
+      "M03-EQP-04",
+      "M03-EQP-05",
+      "M03-EQP-06",
+      "M03-BVA-02",
+      "M03-BVA-03",
+      "M03-BVA-04",
+      "M03-DT-01",
+      "M03-DT-02",
+      "M03-DT-03",
+      "M03-DT-04",
+      "M03-DT-05",
+      "M03-DT-06",
+      "M03-ST-01",
+      "M03-ST-02",
+    ])
+      expect(m03).toContain(caseId);
+
+    for (const evidence of [
+      "variant-basic-shirt-02",
+      "min(3, 5, 99) = 3",
+      "数量2を維持",
+      "BR-CART-003",
+      "cart version",
+      "abandoned",
+      "SCOPE-001",
+      "TARGET-CART-001",
+    ])
+      expect(m03).toContain(evidence);
+
+    const m03ReferenceLink = m03.match(/\]\((\.\.\/\.\.\/integrations\/M02-M03-contract\.md)\)/);
+    expect(m03ReferenceLink).not.toBeNull();
+    expect(fs.existsSync(path.resolve(path.dirname(m03Path), m03ReferenceLink?.[1] ?? ""))).toBe(
+      true,
+    );
+
+    const expectedM03Calibration = ["M03-CAL-08", "M03-CAL-09", "M03-CAL-10", "M03-CAL-11"];
+    const expectedM04Calibration = ["M04-CAL-08", "M04-CAL-09", "M04-CAL-10", "M04-CAL-11"];
+    for (const [scoring, caseIds, answer] of [
+      [m03Scoring, expectedM03Calibration, m03],
+      [m04Scoring, expectedM04Calibration, m04],
+    ] as const) {
+      for (const caseId of caseIds) {
+        const example = scoring.cases?.find((candidate) => candidate.id === caseId);
+        expect(example?.expected_decision).toBe("pass");
+        expect(example?.response).toBeTruthy();
+        for (const term of (example?.response ?? "").match(
+          /(?:M03|M04)-[A-Z]+-\d{2}|BR-CART-\d{3}|AC-CART-\d{3}|CASE-CART-CANDIDATE-\d{2}[AB]?|variant-basic-shirt-\d{2}|数量\d|Integration|Automate|Later|Do not automate|abandoned|ungradable/g,
+        ) ?? [])
+          expect(answer).toContain(term);
+      }
+    }
+
+    for (const candidate of [
+      "CASE-CART-CANDIDATE-01",
+      "CASE-CART-CANDIDATE-02A / 02B",
+      "CASE-CART-CANDIDATE-03",
+    ])
+      expect(m04).toContain(candidate);
+    for (const judgment of [
+      "Automate",
+      "Later",
+      "Do not automate",
+      "BR-CART-001",
+      "AC-CART-001",
+      "RISK-CART-001",
+    ])
+      expect(m04).toContain(judgment);
+  });
+
   it("calibrates revision mismatch and missing required evidence without automating learner judgment", () => {
     for (let index = 0; index <= 10; index += 1) {
       const moduleId = `M${String(index).padStart(2, "0")}`;

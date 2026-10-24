@@ -25,8 +25,9 @@ jobs:
         env:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt
-      - run: pnpm run build:web
       - run: pnpm run training:ai-assisted-qa:test
+        env:
+          PLAYWRIGHT_TEST_ROOT: workspace/M07
       - uses: actions/upload-artifact@v4
         if: always()
         with:

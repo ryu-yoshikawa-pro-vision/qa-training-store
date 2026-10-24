@@ -19,5 +19,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build:web
       - run: pnpm run training:ai-assisted-qa:test
+        env:
+          PLAYWRIGHT_TEST_ROOT: workspace/M07

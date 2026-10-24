@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { defineConfig, devices } from "@playwright/test";
 import { resolveAiAssistedQaPlaywrightSettings } from "./scripts/training/ai-assisted-qa-playwright-settings";
 
@@ -10,10 +11,25 @@ const syncedDistributionManifest = path.join(
   ".course",
   "distribution-manifest.json",
 );
-if (fs.existsSync(syncedDistributionManifest)) {
+const hasCourseMetadata = fs.existsSync(path.dirname(syncedDistributionManifest));
+const hasSyncedShop = fs.existsSync(syncedShopPath);
+const useSyncedCourse = hasCourseMetadata || hasSyncedShop;
+if (useSyncedCourse) {
+  execFileSync(
+    process.execPath,
+    [
+      path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs"),
+      "verify-distribution",
+    ],
+    { cwd: repositoryRoot, stdio: "inherit" },
+  );
   process.env.PLAYWRIGHT_USE_PREBUILT_DIST = "true";
   process.env.WEB_SERVER_DIST_ROOT = syncedShopPath;
   process.env.WEB_SERVER_PORT = "8082";
+} else if (process.env.PLAYWRIGHT_USE_PREBUILT_DIST === "true") {
+  throw new Error(
+    `事前ビルド済みScenario Shopを要求しましたが、同期manifestがありません: ${syncedDistributionManifest}`,
+  );
 }
 const settings = resolveAiAssistedQaPlaywrightSettings(repositoryRoot, {
   baseUrl: process.env.PLAYWRIGHT_BASE_URL,
