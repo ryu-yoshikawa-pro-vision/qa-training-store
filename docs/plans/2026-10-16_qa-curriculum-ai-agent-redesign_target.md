@@ -29,7 +29,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 | Phase 1 / M04 | `cart-with-invalid-items`、`BR-CART-003`、**未演習の条件** | AIの設計案をレビューし、初見条件の自動化候補とCaseを確定（Phase 1独立総合演習） |
 | Phase 2 / M05〜M06 | Phase 1の本人Caseが有効な場合はそのCase、ない/無効な場合は各モジュールの公開fallback、Cart、`training/playwright/support/reset-scenario.ts` | Codespacesに導入済みのNode.js/Playwrightの設定理解、コード作成・Reset・Codespace内実行。fallback利用はPhase 1本人修了と区別 |
 | Phase 2 / M07 | 既存`diagnostic-cart.spec.ts`、`c10-locator-maintenance.spec.ts`、未演習条件 | 誤ったAssertionの原因特定・最小修正・前後別Run（Phase 2独立総合演習） |
-| Phase 3（選択）/ M08〜M09 | Phase 2のspec、Training用の隔離コピー | Git差分・PR・対象SHAのCIと証拠 |
+| Phase 3（選択）/ M08〜M09 | Phase 2のspec、本人の非公開repoと隔離された無効workflow | Git差分・PR、安全なworkflow読解・修正。合成証拠と実Runの違いを説明し、M10の準備をする |
 | Phase 3（選択）/ M10 | Phase 2で作ったspecとテスト実行環境 | **再実装せずCIへ組み込み**、対象SHA・Run/Artifact・失敗時対応を評価（Phase 3総合演習） |
 
 これらは**演習候補**であって、実際にすべて動作検証済みという意味ではない。Phase 1の初見条件は仕様資料上で解ける内容に限定する。Phase 2で使う未演習条件には実行可能なSeed/Resetと既知の期待動作が必要。Phase 3はPhase 2のspecをそのまま使う。
@@ -46,7 +46,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 | M05 | 商品表示など、前提が少なく期待結果が明確な短いWeb操作 | TypeScript・Locator・Assertionの意味を理解してからM06へ進む |
 | M06 | 公開fallbackの固定3 Cart Case。Phase 1の本人Caseが有効な場合は出所・revisionを記録して固定Caseと照合 | 正常結果・拒否時の不変条件・境界またはRole/State差を含む3 Caseについて、Case→Seed/Reset→Locator/Action/Assertion→実行証拠を確認する。本人Caseとの対応/差またはfallback利用を記録し、fallbackをPhase 1修了と扱わない |
 | M07 | 既存のCart診断specと、原因・証拠が異なる失敗素材 | テストコード、初期状態・環境、タイミング・Flakyなど異なる原因を証拠から診断する。修正可能な課題で前後の別Runを比較し、製品不具合は修正を強制しない |
-| M08〜M10 | M06〜M07の承認済みspec・実行結果 | 教育対象をGit/PR/CIへ移し、テストケースの再設計を重複して要求しない |
+| M08〜M10 | M06〜M07の承認済みspec・実行結果 | M09の無効workflow学習からM10の手動有効化・実CI実行へ移り、既存specを再利用する |
 
 演習の採用前に、各候補について**(1) 学習項目と技法、(2) 正式仕様・BR/AC・操作種別、(3) 初期Role/State/DataとSeed、(4) 操作、(5) 期待結果・操作後の不変条件、(6) 観測箇所・テスト層、(7) Reset/再実行、(8) 仕様・環境のrevision、(9) 実行確認の状態**を対応させる。対応のID・参照関係は[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に従い、独立した手動台帳を正本として増やさない。
 
@@ -79,7 +79,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 - **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コアCodespacesのPlaywright技術受入は今回PRで行う。
 - 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。Codespacesの起動ログ、必要コマンドと教材の実行環境を確認してから演習する。OpenCode CLI個人認証・無料モデル・必要Skillを初回に確認し、不成立ならBLOCKEDとする。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
 - **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合は受講/運用開始を保留し、実装工程のBLOCKED理由にはせず、無断で有料環境へ変更しない。
-- OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。受講者の初回起動時にモデル・個人認証を確認する。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
+- OpenCodeは既存の**CLI**を標準とし、**OpenCode CLIの無料モデルの提供・接続は将来保証されない**ため、受講者の初回起動時にモデル・個人認証・必要Skillを確認する。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
 - GitHub Codespacesの**8081（通常Web）と6080（noVNC）はPrivate**のままにし、5901を外部公開しない。Training用Playwrightの8082は専用テストサーバーで、8081をTraining実行先として使わない。コード生成`codegen`と実際のE2E実行対象の違いを教材で示す。
 - 学習終了時はCodespaceを停止し、不要なCodespace・Artifactの保存量を確認する。**Phase 1で設計Markdown、Phase 2でspec・設定・結果・ログ**をGit操作なしでダウンロード・保全できる機能と手順を用意し、開発時は自動/契約テストで確認する。削除・利用枠超過・再構築に伴うデータ消失に備え、段階的にバックアップする。所要時間・実際のストレージ消費・無料枠内の完走可否は全11モジュールと関連機能の実装完了後に実測し、実装完了の条件にはしない。
 

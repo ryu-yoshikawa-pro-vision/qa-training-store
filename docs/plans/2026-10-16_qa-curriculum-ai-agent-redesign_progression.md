@@ -245,9 +245,9 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
 | M09-01 | YAMLの最小構文、event/job/step/runner、事前Build/同期・配布済みShop Serve・Testの分担を学ぶ | 短いworkflowを読み**いつ・何を・どのRunnerで動かし、誰がBuildするか**説明できる |
-| M09-02 | commit SHAとRun/Check/Artifactの関係を確認 | **別SHAの成功Runを現在HEADの証拠にせず**一致する証拠を示せる |
+| M09-02 | commit SHAとRun/Check/Artifactの関係を説明し、無効workflow・合成ログを実行証拠と混同しない | **実行していない内容は未確認**と報告し、実Runの照合はM10で行える |
 | M09-03 | install/build/server/test/artifactの失敗段階をログから追う | 失敗Runで**最初に見るJob/stepと該当ログ**を特定できる |
-| M09-04 | 公開標準Runner、private/larger runnerの料金と品質ゲートを比較 | リスク・所要時間・費用から**最低限のゲートを選択**できる |
+| M09-04 | 本人の非公開リポジトリの無料Actions条件、品質ゲート、trigger・実行対象を比較し最小CIを設計する | リスク・所要時間・無料枠から**必要十分なtrigger・制限**を説明できる |
 | M09-05 | 権限・Secret・外部公開・製品正式CIとの分離 | 危険なworkflowや過剰な権限を見抜き、**必要な範囲へ抑えられる** |
 
 **次への条件**：新課程専用workflowの対象spec・起動条件・対象SHA・実行結果を説明できる。新規テストケースの設計を再要求しない。
@@ -261,7 +261,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
 | M10-01 | Phase 2のspec・Config・Reset・依存を確認し、本人が選んだspec一つをGitへ追加する | 不要なログやSecretを除外し、**公開するコードと理由**を説明できる |
-| M10-02 | 専用の最小Actions workflowを実行し、CodespacesとCIの違いを確認 | **同じPhase 2のspecと配布済みShop**をCIで動かし、再現に必要な設定を説明できる |
+| M10-02 | 無効な専用workflowを本人が安全に手動有効化し、対象spec・HEAD SHAに紐付いた実Runを取得する | 差分/権限/無料枠の事前確認、`.github/workflows/`への有効化、実Run/Artifact・後片付けを示す |
 | M10-03 | PR HEAD、SHA、Run/Check/Artifactを対応付ける | HEAD更新後に古いRunを使わず、**現在SHAに対応する証拠**を示せる |
 | M10-04 | CI固有の失敗とテスト・製品の失敗を区別する | 失敗例で**原因を区別する最初の調査対象**を選び必要なら別Runで確かめる |
 | M10-05 | AI提案の採否と、CIで保証できる範囲・未確認事項を報告する | 実行の保証範囲と残リスクを**過大に表現せず**説明できる |

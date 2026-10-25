@@ -72,9 +72,9 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 | 教材の内容品質 | 必要な前提、具体的な導出過程、誤りと理由、誘導演習、別条件での独立適用、観測・復習を内容で確認。ページ数・問題数を一律に固定しない | [3フェーズ構成・教材品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) |
 | 技法ごとの演習対象 | Cartだけに固定せず、既存の在庫分類・検索条件・ロール・注文等を候補から選ぶ。正式仕様、Seed、観測・Resetの成立を確認してから採用。製品の新機能は不足が証明された場合のみ検討 | [演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | 実技模範と採点 | 完成成果物に加えて判断・導出過程、必須条件、誤答・部分的正答・正しい別解、評価不能を判定できる公開資料を作る。学習用開始例と完成資料は配布境界で区別する。評価条件を公開可能とし当日の追加質問・条件変更で本人判断を測る | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
-| 代表教材の先行検証 | M02→M03とM05→M06で教材・独立演習・模範・採点基準を先行制作し、正式仕様との照合、コード/教材レビュー、自動・契約検証の結果を反映してから全11モジュールへ展開する。初心者試行・実受講者・実際のCodespacesによる実地検証は全量実装後に行い、展開開始条件にしない | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
+| 代表教材の先行検証 | M02→M03とM05→M06で教材・独立演習・模範・採点基準を先行制作し、正式仕様との照合、コード/教材レビュー、自動・契約検証の結果を反映してから全11モジュールへ展開する。初心者試行・実受講者・実際の受講者による学習効果試行はPR後に行い、展開開始条件にしない | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
 
-上記は**Planで採用した設計**であり、教材の制作や実地検証の実施済みを示すものではない。開発時のレビューと自動検証、実装完了後の実地検証、運用開始判断を区別する。
+上記は**Planで採用した設計**であり、教材の制作や実地検証の実施済みを示すものではない。開発時のレビューと自動検証、今回PRのTemplate技術受入、後続の実受講者試行と運用開始判断を区別する。
 
 **Plan上の採用事項は実装済みという意味ではない。** 特に公開開始入力、22基準状態、評価用の実技、同期・ロード、専用CI、知識グラフの完成契約は、実ファイルと受入検証を必要とする。
 
@@ -99,7 +99,7 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 - **既存CI**：[Validate Deterministic Output Evalsの実行](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/actions/runs/38994981607)は当該固定commitで`success`（2026-10-17 UTC）と確認した。ただし**今回のCartのM02成果物からの混合modeの通し受入を実施した証拠ではない**。テスト総数の細部や教材固有のPASSは断定しない。
 - **source-backed deterministic開発実行（2026-10-23）**：PR開始HEAD `b8f8642c45c6622b227c5c08f8756129eb037d00`の正式Cart/Risk入力と固定Skill commitを用い、Authority/Risk生成、`condition_structure(direct)`、BVA runtime、TDR、`materialize_coverage(artifact)`、Case生成、condition-design/case-design両runtime verifierまで実行した。2つのverifierは`valid=true`で、fingerprintとEntity数は[実行記録](../../training/ai-assisted-qa-course/integrations/M02-M03-contract.md#2026-10-23-source-backed-deterministic-downstream-run)に記録した。意味判断とBVA選択はsourceに基づく人手入力であり、OpenCode出力ではない。
 - **未実行**：OpenCode CLIのモデル依存意味分析・技法選択を実行していない。したがって、それらのモデル出力に続く一貫したSkill経路としてのM02→M03受入は未完了である。人が与えたsource-backed意味判断を使った決定論的runtime成功だけでM02→M03全体の受入PASSとしない。
-- **採用判断**：初心者の学習では`direct`を**条件設計の入口のみ**に採用。途中で`artifact`を使う必要があることは既知。新しいモジュールやSkill内部のruntimeを追加せず、通し受入で契約が成立しない場合に理由と最小の対応を判断する。
+- **採用判断**：AI・開発未経験者の学習では`direct`を**条件設計の入口のみ**に採用。途中で`artifact`を使う必要があることは既知。新しいモジュールやSkill内部のruntimeを追加せず、通し受入で契約が成立しない場合に理由と最小の対応を判断する。
 
 ## 残確認事項：運営開始までに指定する内容
 
