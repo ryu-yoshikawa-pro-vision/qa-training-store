@@ -148,7 +148,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 - **Playwright**：既存`playwright.training.config.ts`の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`reuseExistingServer`、report/Traceの構成を参考にする。ただし、旧`training/playwright`のspecを走らせないため、**新課程専用Config**は指定した`workspace/M05`、`workspace/M06`、`workspace/M07`の実技と、`workspace/M08/public-sample`・`workspace/M10/public-sample`のmodule-local公開fallbackだけを学習者用経路として許可し、結果を`output/training/ai-assisted-qa/`へ保存する。評価用完成specを開発時に実行するため、同Configは`training/ai-assisted-qa-course/assessment/playwright/M05`〜`M07`も追加の限定許可対象とする。これらはpublicな評価資料であり秘密ではないが、manifest、同期、ロード、Web Buildから除外する。M05はTypeScript/Playwright基礎、M06/M07はPhase 2、M08/M10はPhase 3で前工程のspecがない場合の公開sampleに使う。任意path、M09その他のworkspace、旧`training/playwright`、`assessment/playwright`のM00〜M04/M08〜M10は許可しない。環境・CIともに対象specと出力先を確認する。
 - **Seed/Reset**：既存`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__`の準備を待ち、`reset({scenario})`の後で`getMetadata().scenario`を照合する。新課程から再利用する場合も**テストモードで同APIが公開されること**を確認し、学習者が作るspecの開始前に必要なResetを行う。既存のReset契約と重複する独自処理は作らない。
 - **開発中の受入**：許可リスト、依存閉包、起動設定、Reset契約、Playwright設定・spec・結果保存先をソース/契約テストで検証し、リポジトリCIでBuild・自動テストと旧Trainingとの出力分離を確認する。設定不足、テスト失敗、仕様不整合を実装未完了として修正する。
-- **実装完了後の実地検証**：実際の学習用Templateから作成した個人リポジトリの新規2コアCodespaceで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行し証拠を残す。実際のCodespaceで未実施・失敗であることだけでは実装完了や他モジュール実装を止めない。運用開始は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の別判断とする。
+- **今回PRでの技術受入**：実際の学習用Templateから作成した個人非公開リポジトリの新規2コアCodespaceで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行し証拠を残す。今回PRで必要なCodespaces技術受入が失敗した場合は実装未完了とする。実受講者の学習効果試行は後続に分離する。運用開始は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の別判断とする。
 
 ## qa-workflow-skillsの工程別利用
 
@@ -212,7 +212,7 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | --- | --- |
 | 教材分離 | 旧`docs/curriculum/test-automation/**`に差分0。新教材だけで一連の導線が成立 |
 | 学習項目とクイズ | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に基づき、**M00前の開始ガイドと51項目すべての説明・演習・Level 2判定・復習先**がある。公開クイズ、公開模範・採点資料、評価時に初めて提示する条件を区別 |
-| 共通開始 | 本人の支払主体・Codespaces無料枠・2コアの選択・起動を確認。**OpenCode Zen無料モデルの利用可否・認証可否は確認済みとして再検証しない**。`qa-workflow-skills`とPython helperの実行、個人Secretの安全な取扱いを確認 |
+| 共通開始 | 本人の支払主体・Codespaces無料枠・2コアの選択・起動を確認。**OpenCode CLIの認証・無料モデル接続・必要Skillは受講者初回起動で確認し、失敗した場合はBLOCKED**。`qa-workflow-skills`とPython helperの実行、個人Secretの安全な取扱いを確認 |
 | 教材同期 | 許可リストから学習用Templateを生成し、公開模範・採点資料・完成spec・Secret・正式workflowを除外。同期元SHAを記録。この配布除外は秘密保持ではない |
 | 学習者ロード | 本人が`course:load Mxx`で指定した1モジュールだけをロード。未知ID拒否・既存成果物の上書き防止・他モジュールの非変更 |
 | 開始・終了基準状態 | **M00〜M10の正しい開始・終了の実データと検証条件**を作り、前後の成果物ID・revisionの矛盾、入力欠落、別解の扱い、公開完成状態と学習者配布の分離を確認 |
