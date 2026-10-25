@@ -1,5 +1,11 @@
 # AI協働テスト自動化カリキュラム：決定事項・残確認事項
 
+## 2026-10-25のユーザー確定事項
+
+68問と最終確認2問から確定した対象・到達能力・評価方法・配布方法・PR完了範囲は[2026-10-25改善Plan](./2026-10-25_202700_ai-assisted-qa-curriculum-learning-experience-rework.md)と各詳細Planに反映する。テスト実施・設計経験者の日本語自習、全11モジュールの演習・質疑・操作証拠、M04/M07/M10でのまとめての正式評価、Page Object/fixtureの本人設計、業務CIの設計・最小権限判断を必須とする。
+
+公開Templateから本人の非公開リポジトリを作り、無料の2コアCodespacesと非公開Actionsの消費・課金防止を確認する。今回PRでTemplate作成とPlaywright技術受入を行い、受講者個人のOpenCodeモデル統合は初回確認でBLOCKED可。教材のAI内容評価には根拠・校正例・不合格/判定不能を設ける。公開の評価条件を認め、秘匿を前提にした合否は廃止する。実受講者試行は今回PR外。正式担当者の実名、個人の提出先、保存先・権限は運用開始前の未指定事項であり、架空の値を記載しない。
+
 ## この文書の扱い
 
 [文書インデックス](./2026-10-16_qa-curriculum-ai-agent-redesign_index.md)から参照する、PR #199の**設計判断と未完了の確認事項の管理表**。内容はこのPRのPlanと確認済みの既存実装に基づく。ここに書かれた概要だけで仕様・実装を決めず、各項目の参照先を正本とする。
@@ -161,7 +167,7 @@
 | M02→M03固定Skill | commit `7cc6cba7772de549841a39d71694cbafbc783324`の主要scriptのGit blobを固定commit treeと照合。source-backed `SCOPE-001`低在庫系列と公開fallback `SCOPE-101`系列の両方でAuthority/Risk/Scope参照をcurrent TCNへ継承し、技法runtime、TDR、materialize、Case、condition-design/case-design最終evidence gateまで同一入力系列で実行 | 両系列の決定論的runtimeと最終gateは`valid=true`。`SCOPE-001`の上限3に2/3/4、`SCOPE-101`の上限5に4/5/6を照合した。意味分析と技法選択は正式sourceに基づく人手入力で、OpenCode出力ではない。CLIがないためモデル依存の意味分析・技法選択は未実施であり、M02→M03のAI統合受入全体は未完了 |
 | M05→M06 / Phase 2 runner | M05教材の修正済みLocator specをローカル開発probe 1/1、M06のSeed/Reset・追加・上限拒否・数量保持・low-stock在庫3 specを独立したローカル開発probe 3/3で実行。Chromeを明示し、既存の外部静的serverを利用。user-provided ignored probe filesは作業ツリーに保持してcommit対象外 | 開発用の代表specはPASS。公開M06 TODO specは学習者が完成させるscaffoldであり、probeのPASSを完成済み公開spec・受講者受入とは扱わない |
 | assessment完成specのローカル実行 (2026-10-24 JST) | 新課程専用Config、Build済みdist、loopback 8082、既存Chromeを明示して実行。M05完成spec 1/1 exit 0。M06 3 Caseを別々のResetで2 Run実行し、各3/3 exit 0。M07の誤ったheading Assertionは別rootでmarker付き1件FAIL/exit 1となり、Trace・Screenshot・Videoを記録。修正版は別root・別Runで1/1 exit 0。結果はignoredな`output/training/ai-assisted-qa-local-20261024/`に保存。標準E2E 51件は4 workerと1 workerの両方で全ケースの`ok`表示に達したが、最終summary/exit codeを返さず、終了処理のidle後に停止したためsuite PASSとは扱わない | M05/M06/M07の完成specの開発実行は確認済み。M07前後は別Runで期待した結果を確認した。標準51件E2Eはケース表示とプロセス終了が未完了のためPASSではなく、実装後の人間受入・Codespaces確認とも区別する |
-| 評価資料・グラフ内容 | 公開ルーブリックを追加。実装者の二度目レビューに加え、独立AI reviewerが全11モジュールの意味上の対応を静的確認。M04のreview input不足、M07 READMEとLocator/assertionの不一致、全11開始状態のfallback artifact edge不足を指摘し、教材・テスト・graphへ反映。M03 default fallbackと低在庫演習の違いは両方の入力条件が本文に明記された意図的な区別と判断 | 58 knowledge nodeは人間の正式承認まで`draft_requires_content_review`を維持。AI reviewは人間の正式ドメイン確認・採点・実地受入ではない。2026-10-24のユーザー指示で模範・採点・完成状態データはpublicな通常ファイルとし、学習用Template/同期/ロード/Web Build/Artifactから除外する方針へ訂正した。具体的な評価時提示条件は先行公開しない。 |
+| 評価資料・グラフ内容 | 公開ルーブリックを追加。実装者の二度目レビューに加え、独立AI reviewerが全11モジュールの意味上の対応を静的確認。M04のreview input不足、M07 READMEとLocator/assertionの不一致、全11開始状態のfallback artifact edge不足を指摘し、教材・テスト・graphへ反映。M03 default fallbackと低在庫演習の違いは両方の入力条件が本文に明記された意図的な区別と判断 | 58 knowledge nodeは人間の正式承認まで`draft_requires_content_review`を維持。AI reviewは人間の正式ドメイン確認・採点・実地受入ではない。2026-10-24のユーザー指示で模範・採点・完成状態データはpublicな通常ファイルとし、学習用Template/同期/ロード/Web Build/Artifactから除外する方針へ訂正した。評価条件の公開を認め、当日の追加質問・条件変更で本人判断を確認する。 |
 | 実地検証 | 初心者/受講者、評価担当者、Template由来の2コアCodespace、所要時間・容量・無料枠は未確認 | 全量実装後の独立工程。実装工程のBLOCKED理由ではない |
 
 ### 2026-10-23 独立AI開発レビューの追加記録

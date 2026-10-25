@@ -9,6 +9,8 @@
 - [PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)：変更履歴とレビュー
 - [PR #198](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/198)：本PRのbaseに相当する既存仕様・教材の見直し
 
+- [教材・演習・Web導線の改善Plan](./2026-10-25_202700_ai-assisted-qa-curriculum-learning-experience-rework.md)：確定70回答と新しい完了条件
+
 **読む順序**：作業を始めるときは「全体Plan → 決定事項・残確認事項 → 対象領域の詳細Plan」。全部を毎回読む必要はない。変更前には関連Planと、実際の仕様・コード・テストを確認する。
 
 ## 詳細Planの一覧
@@ -18,7 +20,7 @@
 | 1 | [調査・既存課程との境界](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md) | 既存実装で確認した事実、新旧カリキュラムの分離、採用理由と未検証事項 |
 | 2 | [3フェーズの構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md) | 対象者、M00〜M10、各フェーズの到達目標、共通環境 |
 | 3 | [学習項目と理解水準](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md) | 51学習項目、理解・適用・判断、学習項目ID |
-| 4 | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) | 未経験者向け導入、前提知識、各モジュールの演習、Level 2で確認する行動 |
+| 4 | [学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md) | テスト経験者向け導入、開発・AIの前提知識、各モジュールの演習、Level 2で確認する行動 |
 | 5 | [Web閲覧・受講者の学習体験](./2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md) | 公開ページの受講導線、モジュール閲覧、一問ずつのクイズと最終結果・復習・再開、既存静的公開基盤の利用 |
 | 6 | [クイズと解説](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md) | 四択問題、正答・誤答説明、認知水準、復習先、問題の妥当性検証 |
 | 7 | [評価と修了条件](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) | 提出物、自己確認、正式な評価、Level 0〜3、各フェーズの独立修了 |
@@ -56,4 +58,4 @@
 2. 方針の決定・変更、運営側の指定、実装検証の結果が変わった場合は[決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)を更新する。確認者のいない事項を「合意済み」へ移さない。
 3. モジュール・知識・教材・仕様・Skill・評価の対応が変わる場合は[知識グラフの改訂手順](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)に従って影響を確認する。
 4. Planを分割・統合・移動した場合は、この一覧と[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の入口を更新する。
-5. 模範解答・採点用テスト・完成状態データは公開リポジトリ内の通常ファイルとして内容をレビューできるようにし、学習用Template/同期/ロード/Web Build/公開Artifactからは除外する。この除外は秘密保持ではない。評価時に初めて提示する具体的条件と学習者個人の評価記録は事前公開しない。
+5. 模範解答・採点用テスト・完成状態データは公開リポジトリ内の通常ファイルとして内容をレビューできるようにし、学習用Template/同期/ロード/Web Build/公開Artifactからは除外する。この除外は秘密保持ではない。評価条件は公開してよい。正式評価では追加質問・条件変更で本人の判断を確認する。学習者個人の評価記録は公開しない。

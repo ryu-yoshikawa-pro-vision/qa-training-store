@@ -1,5 +1,13 @@
 # 新課程のScenario Shop演習・実行・CI分離設計
 
+## 今回確定した演習対象と実行環境（2026-10-25）
+
+Scenario Shopの`docs/spec/`と実装済み機能を棚卸しし、**対象機能すべて**に正式仕様・Risk・TR・Condition・Caseの対応、または根拠付きの対象外・未決・BLOCKEDを付ける。最低カバレッジは**対象機能の分析・設計上の扱い100%**。全条件組合せ・全Caseの100%実行や全E2E化は求めず、自動化採用はリスク・費用・効果で判断する。各機能における判断の妥当性を`coverage-analysis`と仕様正本で確認する。
+
+Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必要なケースでPage Object/fixtureによる保守設計を実装・判断する。Phase 3では本人所有の非公開リポジトリでworkflowのtrigger・jobs・permissions・Secret・Artifact・SHA・無料枠・運用判断を含めCIを設計する。固定qa-workflow-skillsはQA成果物を扱う全工程で必須とし、環境・Git・CI自体には無理に適用しない。障害時の追加指示・手動対応も評価する。
+
+今回PRで公開Templateを作成し、Template由来の個人非公開リポジトリ・新規2コアCodespacesでPlaywrightまで技術受入する。OpenCode個人モデルは初回起動時確認、受講者による教材効果試行はPR外。
+
 ## 結論
 
 **Phase 1は別の学習用リポジトリのCodespacesでAIによるテスト分析・設計、Phase 2は同じCodespaceでPlaywright実装・実行、Phase 3は同じ個人リポジトリでGitHub・CI（選択）**とする。各フェーズに独立した実技・修了判定を用意する。新旧の教材・評価・受講者コード・CIの実行経路を分離し、テスト対象としてのScenario Shopと正式仕様・Seedは共用する。**新課程のために製品本体へ故意の不具合を導入せず、製品機能の追加も原則として行わない。** 既存のデータと演習で不足することが具体的に確認できた場合は、まず新課程側の教材・専用Seed経路から最小の変更を検討する。それでも必要な操作・状態を再現できないと確認した場合に限り、正式仕様・既存回帰への影響を評価したうえで製品機能の追加を検討する。
@@ -81,7 +89,7 @@
 - 教材管理者が確定した配布元commitと許可リストから**別の公開学習用Template**を更新する。`qa-training-store`全体のcloneや旧`prepare-training-copy.ts`の出力をそのまま配布しない。受講者による同期スクリプトの実行は想定しない。
 - **学習者本人**が`pnpm course:load M03`のように**1モジュールIDを指定**し、必要な課題ファイルを`workspace/M03/`へロードする。過去の成果物・編集済みファイルを上書きせず、他モジュールを自動ロードしない。ロードのためにGitコマンド・ネットワークアクセス・CIは要求しない。
 - 配布済みの他モジュールは、ロード前でもAIから参照可能である。模範解答・採点用テストは公開Git上で閲覧できる通常ファイルにする一方、学習者向け配布許可リストへ含めない。これは秘密保持ではない。通常の学習用クイズの公開解説、完成評価資料、評価時に初めて提示する具体的条件を区別する。
-- 学習者の作業フォルダと課題素材・実行環境を分ける。学習者の成果物はモジュール間で参照可能にし、同期・再ロードで消さない。新しい受講者リポジトリへの作成・push自体は**本PRで行わない**。
+- 学習者の作業フォルダと課題素材・実行環境を分ける。学習者の成果物はモジュール間で参照可能にし、同期・再ロードで消さない。今回PRでは公開Templateを作成し、個人非公開リポジトリのPlaywright受入を行う。受講者の個人成果物を自動pushしない。
 
 ## Phase 1：CodespacesでのAI操作・テスト設計
 
@@ -119,7 +127,7 @@
 1. 同期する学習用Templateには、必要なら**Phase 3専用の最小workflowテンプレート**を置く。ただし、`qa-training-store`の正式workflowや旧Training Copyのworkflowを有効な状態で同期しない。
 2. Phase 3を選択した受講者が、Phase 2で動作したspecをGitで管理し、専用のGitHub Actionsを作成・有効化する。Phase 1・2の自動実行・CI利用を必須にしない。
 3. 専用workflowは新課程のテストだけを対象にし、Secret不要・権限最小化・デプロイ経路なし・対象SHAとRun/Artifactの対応を確認する。
-4. **公開の学習用リポジトリ＋標準GitHub-hosted Runner**を無料利用の第一候補とする。個人情報やSecret、不要な学習者成果物を公開commitしない。private/larger runnerの利用を無料と決めつけない。
+4. **本人の非公開リポジトリ＋標準GitHub-hosted Runner**を無料利用の第一候補とする。個人情報やSecret、不要な学習者成果物を公開commitしない。private/larger runnerの利用を無料と決めつけない。
 5. 実際のGitHub権限・Runner・workflow実行が利用不能ならPhase 3の実技をBLOCKEDにする。すでに完了したPhase 1・2の評価は維持する。
 
 ## 知識グラフからテスト対象とSkillを見直す
@@ -214,7 +222,7 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | 実行証拠 | 新課程専用のログ・report・Artifact。未実行と成功を区別 |
 | 旧Trainer | 旧`training:web:baseline`、旧validator・修了確認の契約は維持 |
 | Phase 3専用CI | **選択受講者だけ**個人の学習用リポジトリで新workflowを作成・有効化し、旧コピーのallowlistや正式workflowを変更しない |
-| Phase 3のCI | 公開学習用リポジトリと標準Runnerの無料条件・安全性を確認し、新課程の対象SHAとRun/Check/Artifactを対応させる。権限・Secret・デプロイを制限し、Phase 1・2の合否とは独立 |
+| Phase 3のCI | 本人の非公開リポジトリと標準Runnerの無料枠・課金防止・安全性を確認し、新課程の対象SHAとRun/Check/Artifactを対応させる。権限・Secret・デプロイを制限し、Phase 1・2の合否とは独立 |
 | 仕様とSeed | 必須課題の期待結果が正式BR/ACで根拠付けられ、既存データが破壊されない |
 | フェーズ別総合演習 | M04で設計、M07でCodespaces内E2E、M10でCI実行を**それぞれ別の修了条件で確認**。各段階で成果物のダウンロード・保全ができ、後続フェーズ未受講を不合格にしない |
 

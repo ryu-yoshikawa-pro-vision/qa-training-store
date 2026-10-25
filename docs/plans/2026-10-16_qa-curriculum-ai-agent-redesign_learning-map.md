@@ -1,5 +1,11 @@
 # 新課程の学習項目と必要な理解水準
 
+## 確定した能力と現行51目標の照合（2026-10-25）
+
+現在の51学習目標は照合の基準値であり、改訂後の固定上限ではない。Phase 1の未知仕様の分析・質問整理と第三者引継ぎ、Phase 2の本人によるE2E新規構成・Page Object/fixtureの設計、Phase 3の業務CI設計・権限制御・運用判断について、既存目標IDとLevel 2を対応させる。評価対象が欠ける場合は新IDを追加して既存の参照と履歴を破壊しない。
+
+学習目標ごとに具体的な説明例・条件変更の本人判断課題・実操作/質疑の証拠・評価基準・復習先を追跡する。Scenario Shopの全対象機能について仕様・Risk/TR/Condition/Caseの扱いを確認し、自動化対象は優先度と理由で選ぶ。
+
 ## この文書の役割
 
 この表が**新しいカリキュラムの学習目標の正本**となる。[知識グラフ](../curriculum/ai-assisted-qa/knowledge-graph.json)には各目標を達成するための理解事項を分解し、複数目標の共通知識と先行知識を表す。登録済みの58理解事項は、[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)で定義した全知識・教材・評価対応を満たすよう精査・修正する。知識の名称が存在するだけで網羅や習熟を認定しない。各項目の**前提・教材順序・演習とLevel 2の具体的判定**は[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に定義する。教材の正本は公開の`qa-training-store`に置き、別の学習用Templateへ許可対象だけを同期する。**受講者本人がモジュールを1つずつロード**して進める。Phase 1（M00〜M04）、Phase 2（M05〜M07）、Phase 3（M08〜M10、選択）を独立して評価する。旧17レッスンの項目や65問を引き継ぐための対照表ではない。各学習項目について何を教え、何を確認するのかを決め、[全体構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)・[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)・[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)の間で漏れを防ぐ。
