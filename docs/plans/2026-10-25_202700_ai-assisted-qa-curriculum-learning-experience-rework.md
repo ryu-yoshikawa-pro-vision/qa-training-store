@@ -9,7 +9,7 @@
 | M07 | 重複・保守変更があるspecでPage Objectと標準fixtureの小規模実装、差分、前後別Runを確認する。不要な条件の不採用理由も示す | 言葉での採否だけ、過剰なPOM、未実行 |
 | M09/M10 | 無効workflowのレビュー後、本人非公開repoで無料枠・権限・対象を確認して専用CIのみ手動有効化。実Run/ArtifactとSHA照合、別のtrigger・権限条件への設計判断 | 合成ログ/旧Runの流用、無断課金 |
 
-Scenario Shopは正式仕様のWeb・管理・Nativeを棚卸しし、分類済み率と採用した機能の実質的分析・設計済み率をそれぞれ100%とする。Nativeの分析を省略せず、Web PlaywrightとNative実行を区別する。自動化率100%は求めず、除外・未決・BLOCKEDの理由を確認する。
+Scenario Shopは正式仕様のWeb・管理・Nativeを棚卸しし、全サポート機能について分類済み率100%と仕様根拠・主要リスク・検証責務の基本分析済み率100%を要求し、詳細Condition/Caseの設計深度をリスク・教育目標から決定する。Nativeの分析を省略せず、Web PlaywrightとNative実行を区別する。自動化率100%は求めず、除外・未決・BLOCKEDの理由を確認する。
 
 全目標の教材・演習・評価の意味的一致は既存`scoring-tests/Mxx.json`とグラフ、校正例を活用してAIで検査する。対象SHA・仕様根拠・ファイル節、pass/fail/ungradable・理由・再確認を記録し、根拠なしPASSを採用しない。fail/ungradableは人が確認する。1演習は複数目標に対応できるが、各目標の証拠と合否は個別に残す。
 
