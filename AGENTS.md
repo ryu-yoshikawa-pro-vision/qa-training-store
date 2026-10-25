@@ -5,6 +5,8 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 ## 1. 基本原則と常駐契約
 
 - 関係のない変更を行わない。ただし、品質ゲートfailureに対してRepository-wide repair policyが適用される場合は、その契約に従う。
+- ドキュメントと既存コードの書き方（命名、構成、記述パターン）が食い違う場合は、関連する既存コードの書き方に従う。仕様・要件・セキュリティ・公開契約・テストとの不整合は、この規則で正当化せず、関連する正本と照合する。
+- 作業中に発見したドキュメントと既存コードの食い違いは、修正の有無にかかわらず最終返答ですべて列挙する。対象ファイル、相違内容、対応内容または未対応の理由を示す。発見しなかった場合はその旨を報告する。
 - Repositoryの既存Skill、Harness、validator、rules、Hookを優先し、同じ契約を別文書へコピーしてSSOTを増やさない。
 - default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。force push、未承認の破壊的操作、command-based deletionは行わない。
 - delete / rename / move、Git mutation、外部副作用、権限・credentialを伴う操作は、既存のSafety / Git safety契約と必要な承認に従う。
