@@ -1,5 +1,13 @@
 # 新課程のScenario Shop演習・実行・CI分離設計
 
+## 全対象機能のカバレッジ算出契約（2026-10-26）
+
+`docs/spec/product-scope.md`、`docs/spec/features/*.md`、`roles-and-permissions.md`、`state-and-scenarios.md`、`screen-catalog.md`と実装側の指定正本から、正式にサポートされるWeb（デスクトップ/モバイル）・管理者・Nativeの機能動作を抽出する。仕様書のファイル数を機能数とせず、Role/State/操作/期待結果が異なる動作は必要な粒度で区別する。正式に対象外の機能は分母とは別に根拠付きで記録する。
+
+**分類済み率**＝分類と理由を付けたサポート機能動作÷全サポート機能動作。100%を必須とする。ただし「対象外」「未決」「BLOCKED」の登録は分析完了ではない。**分析・設計済み率**＝正式に分析対象とした動作のうち仕様BR/AC・Risk・TR・Condition・Caseの意味的対応、または特定の検証責務を採用しない根拠を確認した動作÷分析対象の全動作。こちらも100%を必須とし、IDだけの紐付けは不可。学習対象外・未決・BLOCKEDは理由・影響・再検討先を残し、分析済みの分子に含めない。Nativeも製品分析では棚卸しし、Web Playwrightの必須実行範囲とは区別する。全Caseの自動化は要求しない。
+
+M06の別CaseからのE2EとM07のPage Object/fixture保守変更には、実行可能な正式仕様・Seed/Reset・期待結果を先に確認する。Phase 3ではCI条件変更の実技と同一HEADの実Runを評価し、単なるworkflowレビューで実行成功としない。
+
 ## 今回確定した演習対象と実行環境（2026-10-25）
 
 Scenario Shopの`docs/spec/`と実装済み機能を棚卸しし、**対象機能すべて**に正式仕様・Risk・TR・Condition・Caseの対応、または根拠付きの対象外・未決・BLOCKEDを付ける。最低カバレッジは**対象機能の分析・設計上の扱い100%**。全条件組合せ・全Caseの100%実行や全E2E化は求めず、自動化採用はリスク・費用・効果で判断する。各機能における判断の妥当性を`coverage-analysis`と仕様正本で確認する。
@@ -68,10 +76,10 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 
 ## Codespacesの共通環境・無料枠管理（Phase 1〜3）
 
-- **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コア利用の実機安定性は全量実装後の実地検証で確認する。
-- 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。Codespacesの起動ログ、必要コマンドと教材の実行環境を確認してから演習する。OpenCode Zen無料モデルの認証可否は再検証しない。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
+- **標準は学習用Templateから作成した個人リポジトリのGitHub Codespaces、2コア**。受講者はGitHubにログインし、**Templateから自分のリポジトリを作って**Codespaceを作成する。**現行`.devcontainer/devcontainer.json`には`hostRequirements`の設定がなく、2コアは固定されていない**。作成時にMachine typeを確認し2コアを選ぶ。2コアCodespacesのPlaywright技術受入は今回PRで行う。
+- 同期元の既存`.devcontainer/devcontainer.json`のNode.js 24、pnpm、Chromium、OpenCode CLI、Codex CLI、GitHub CLI、desktop-liteを**学習用リポジトリの実行環境へ必要に応じて再利用する**。**全環境を新規実装・再導入しない**。Codespacesの起動ログ、必要コマンドと教材の実行環境を確認してから演習する。OpenCode CLI個人認証・無料モデル・必要Skillを初回に確認し、不成立ならBLOCKEDとする。既存手順は[Codespaces利用ガイド](../guides/codespaces.md)を参照する。
 - **GitHub Free個人無料枠は120コア時間/月、15 GB-month/月**（2コアなら計算上約60起動時間/月）。組織アカウントにはCodespaces無料枠がないため、受講者本人がCodespaceの所有者・支払主体であることと、残量・支出上限を事前に確認する。単純に「リポジトリが公開だから無償」と判定しない。ストレージは停止中も消費する。費用・認証・利用権限が満たせない場合は受講/運用開始を保留し、実装工程のBLOCKED理由にはせず、無断で有料環境へ変更しない。
-- OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。モデルの利用可否・認証可否を再検証する工程は設けない。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
+- OpenCodeは既存の**CLI**を標準とし、**OpenCode Zenの無料モデルが利用可能であることは確認済み**とする。受講者の初回起動時にモデル・個人認証を確認する。VS Code拡張は必須にしない。`OPENCODE_API_KEY`は**個人のCodespaces Secret**で扱い、Secret・認証キャッシュを配布物・公開PR・ログへ保存しない。有料モデルや有料の自動切替は学習経路に含めない。Codespacesの本人無料枠・所要時間は別に管理する。
 - GitHub Codespacesの**8081（通常Web）と6080（noVNC）はPrivate**のままにし、5901を外部公開しない。Training用Playwrightの8082は専用テストサーバーで、8081をTraining実行先として使わない。コード生成`codegen`と実際のE2E実行対象の違いを教材で示す。
 - 学習終了時はCodespaceを停止し、不要なCodespace・Artifactの保存量を確認する。**Phase 1で設計Markdown、Phase 2でspec・設定・結果・ログ**をGit操作なしでダウンロード・保全できる機能と手順を用意し、開発時は自動/契約テストで確認する。削除・利用枠超過・再構築に伴うデータ消失に備え、段階的にバックアップする。所要時間・実際のストレージ消費・無料枠内の完走可否は全11モジュールと関連機能の実装完了後に実測し、実装完了の条件にはしない。
 

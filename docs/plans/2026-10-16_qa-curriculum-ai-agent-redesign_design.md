@@ -1,5 +1,9 @@
 # 新規AI協働テスト自動化カリキュラム：3フェーズ設計
 
+## 到達能力と実技の対応（2026-10-26）
+
+Phase 1は未知仕様の質問・未決・影響と第三者への引継ぎを実技で測る。Phase 2は既存TODOを埋める技能と別CaseからE2Eを新規構成する技能を区別し、Page ObjectおよびPlaywright標準fixtureについて適切な実装・変更・再実行を扱う。Phase 3は専用CIの安全な有効化・実Runだけでなく、制約変更へのCI設計判断を測る。総合演習で複数IDを評価する場合もID別の証拠を残す。
+
 ## 確定した到達基準と自習方法（2026-10-25）
 
 対象はテスト実施または設計の経験者。完全なIT・テスト未経験者は対象外とする。開発ツール・AI・コード・Gitは未経験でもよい。各モジュールは日本語で自習できる説明・実操作・別条件演習・自己確認を用意する。
@@ -24,9 +28,9 @@ Phase 1は未知仕様への質問整理・4技法・第三者へ引き継げる
 
 ## 全フェーズ共通の学習環境と開始手順
 
-**別の公開学習用Templateリポジトリから受講者本人が作成したリポジトリのGitHub Codespaces（2コア選択）**を標準とし、Phase 1・2は同じCodespace内でVS Code・ターミナル・OpenCode CLIを利用する。2コアは**設定済み・固定済みではない**ため受講者が作成時に確認する。既存の`.devcontainer/devcontainer.json`はNode.js 24、pnpm、Playwright/Chromium、OpenCode CLI、Codex CLI、GUI用desktop-liteを準備する**配布元の参考実装**である。開発中は同期対象・依存・起動設定を静的/契約テストとCIで確認し、実際の学習用リポジトリと新規2コアCodespaceでの通し確認は全11モジュールと関連機能の実装完了後に行う。変更する前に[既存ガイド](../guides/codespaces.md)と既存実装を確認する。
+**別の公開学習用Templateリポジトリから受講者本人が作成したリポジトリのGitHub Codespaces（2コア選択）**を標準とし、Phase 1・2は同じCodespace内でVS Code・ターミナル・OpenCode CLIを利用する。2コアは**設定済み・固定済みではない**ため受講者が作成時に確認する。既存の`.devcontainer/devcontainer.json`はNode.js 24、pnpm、Playwright/Chromium、OpenCode CLI、Codex CLI、GUI用desktop-liteを準備する**配布元の参考実装**である。開発中は同期対象・依存・起動設定を静的/契約テストとCIで確認し、実際の学習用リポジトリと新規2コアCodespaceでの通し確認は今回PRの技術受入で行う。変更する前に[既存ガイド](../guides/codespaces.md)と既存実装を確認する。
 
-開始前に、(1) **学習用Templateからの個人リポジトリ作成**、GitHubアカウント・Codespaceの作成権限と**費用の支払主体**、(2) 2コア選択・残り無料利用枠／保存容量・課金停止条件、(3) Codespace作成のログ・基本コマンドの起動、(4) **利用確認済みのOpenCode Zen無料モデル**を選択し、個人Secretを安全に設定する（利用可否・認証可否の再検証はしない）、(5) `qa-workflow-skills`のSkillとPython helperの実行可否、(6) 学習者本人による`course:load M00`での課題ロードを確認する。**これらは初期セットアップの健全性確認**であり、それだけでPhase 1の学習目標を達成したとは評価しない。
+開始前に、(1) **学習用Templateからの個人リポジトリ作成**、GitHubアカウント・Codespaceの作成権限と**費用の支払主体**、(2) 2コア選択・残り無料利用枠／保存容量・課金停止条件、(3) Codespace作成のログ・基本コマンドの起動、(4) **利用確認済みのOpenCode Zen無料モデル**を選択し、個人Secretを安全に設定する（利用可否・個人認証を初回起動で確認し、不成立はBLOCKED）、(5) `qa-workflow-skills`のSkillとPython helperの実行可否、(6) 学習者本人による`course:load M00`での課題ロードを確認する。**これらは初期セットアップの健全性確認**であり、それだけでPhase 1の学習目標を達成したとは評価しない。
 
 GitHub Freeの個人利用枠は120コア時間/月・15 GB-month/月（2コアで理論上最大約60稼働時間/月）だが、使用残量や組織側の支払設定で変わる。所要時間は未実測。Codespaceを使い終えたら停止し、保存容量・残り無料枠を確認して必要な成果物をエクスポートする。**無料を保証した教材として案内しない**。登録・モデル・料金条件が合わなければ受講/運用開始を保留し、本人の承認なく有料手段で続行しない。
 
@@ -146,8 +150,8 @@ runtime/ など                         # Scenario Shop実行に必要な最小�
 
 ## 実装と受入検証
 
-- **OpenCode Zen無料モデルの利用可否・認証可否は再検証しない。** `qa-workflow-skills`の実際のSkill発見・Python helperの実行と成果物は実演で確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
-- 開発中は、Phase 1・2の配布・保存・評価契約、Phase 2のNode/Playwright・Scenario Shop Build/Serve/Seed/Reset、Phase 3専用CIの設定と旧Training/正式workflowとの分離を、自動・契約テスト、ビルド、リポジトリCIで検証する。個人所有の**2コア新規Codespace**、本人による導入・ロード・成果物保全、実際のRunner権限/無料条件の通し確認は全量実装後の実地検証へ置く。
+- **OpenCode CLIの無料モデル・個人認証・必要Skillは受講者の初回起動で確認する。** `qa-workflow-skills`の実際のSkill発見・Python helperの実行と成果物は実演で確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
+- 開発中は、Phase 1・2の配布・保存・評価契約、Phase 2のNode/Playwright・Scenario Shop Build/Serve/Seed/Reset、Phase 3専用CIの設定と旧Training/正式workflowとの分離を、自動・契約テスト、ビルド、リポジトリCIで検証する。実公開Template由来の2コア新規Codespaceでload・Serve/Reset・Playwrightと結果保全を今回PRで検証する。個人の課金状況と受講効果は後続で確認する。
 - Phase 3未受講をPhase 2の不合格条件にしない。Phase 1ではGitコマンド・PR・CIの操作なしで進められることを実装時の契約テストでも確認する。
 - **実装完了条件は、Planで定義した全教材・確認問題と解説・実技・修了評価・学習用同期/ロード・知識グラフと関連機能を作り、開発時の自動/静的/契約/CI検証および正式仕様との整合確認を通過すること**である。既存PRにある知識グラフJSON・運用ガイド・検証CLIが存在するだけでは実装完了としない。実地検証と運用開始判断は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)に定義する別工程とする。
 

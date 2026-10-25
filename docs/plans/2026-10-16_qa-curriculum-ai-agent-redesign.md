@@ -1,5 +1,19 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 追加の実装・評価契約（2026-10-26）
+
+- Phase 1：M02/M04で未知仕様の重要な質問・未決の期待結果・影響を判断し、根拠と対応責任を引継ぎ資料へ残す。
+- Phase 2：M06で既存3 CaseのTODO補完とは別に、未使用Caseから短いE2Eを本人がAIと構成・実行する。M07ではPage ObjectとPlaywright標準fixtureの適用判断・最小実装・変更前後の別Runを確認する。どのspecも一律にPOM化させない。
+- 選択Phase 3：M09では専用workflowの`.disabled`を維持し、M10で本人が無料枠・権限・対象specを確認して手動で有効化、PR HEADの実Run/Artifactを照合する。trigger・権限・費用・失敗時対応を変更する設計判断も本人が行う。
+- 全11モジュールの証拠は学習目標ID単位で対応付け、各Phase末のM04/M07/M10で評価者がまとめて正式判定する。総合演習を複数IDの根拠に共有してよいが、IDごとの観測・未確認・BLOCKEDを区別する。
+- 製品の正式なWeb・管理・Native機能を棚卸しし、機能分類100%と採用機能の意味的な分析・設計100%を別に計測する。Native機能は分析対象に含めるが共通11モジュールのPlaywright実行対象はWebとする。
+
+## 判定根拠と今回PRの受入（2026-10-26）
+
+既存の`knowledge-graph.json`、`assessment/scoring-tests/Mxx.json`、教材Markdown、公式仕様と固定Skill revisionを正本として再利用する。AIによる教材レビューは学習目標ごとに出典ファイル・節・入力SHAと、説明・実例・本人の判断・演習・評価の具体的な合否条件を照合する。pass/fail/ungradableと根拠を記録し、既存の正答・誤答・正しい別解・部分達成・版不一致・証拠不足の校正例で確認する。根拠不足のPASSを採用せず、fail/ungradableは人が確認する。新しい評価DBやサービスは作らない。
+
+**今回PRの必須技術受入**は公開Templateの実作成→本人所有の非公開リポジトリ→新規2コアCodespace→配布SHA・許可リスト→1モジュールload・非破壊性→Serve/Reset→Playwright実行と証拠保全。未実施・失敗はPR完了としない。実受講者の学習効果試行、正式評価担当者による実採点、受講者個人のOpenCodeモデル・認証は別時点。モデル・必要Skillは受講者初回起動で確認し、失敗ならBLOCKEDとする。Templateの作成先/所有者/権限は実作成前に確認し、設計時点では未指定のまま扱う。
+
 ## 2026-10-25確定の教育・実装方針
 
 受講対象は**テスト実施またはテスト設計の経験者**。IT・テスト完全未経験者を対象にしない。PC基本操作は前提とするが、プログラミング、Git、Playwright、AIエージェントは未経験でよい。日本語の完全自習を基本とし、講師の口頭説明を前提にしない。
@@ -74,10 +88,10 @@
 
 - **受講者本人のGitHub個人アカウントで学習用リポジトリとCodespaceを所有**し、その無料枠を利用する方針とする。利用前にCodespaceの**所有者・支払主体**と残量を確認する。組織の公開`qa-training-store`に直接Codespaceを作成した場合と、個人所有リポジトリで作成した場合を混同しない。
 - GitHub Free個人アカウントの目安は**120コア時間/月、15 GB-month/月**（2026-10-16時点）。**2コアなら計算上最大約60起動時間/月**だが、他Codespaceとの共用・保存容量・個人の設定・支払条件によって変わる。無料を保証する時間数ではない。
-- **2コアを標準として作成時に選択・確認**する。現行`.devcontainer/devcontainer.json`に`hostRequirements`はなく、**2コアに明示固定されていない**。`hostRequirements.cpus: 2`は最小要件であり上限固定ではないので、費用対策だけを理由に追加しない。4コア以上への変更を標準手順に入れない。2コアCodespacesでの教材・外部Skill・Playwrightの通し実行は**未検証**。OpenCode Zen無料モデルの利用可否は確認済みであり、再検証しない。
+- **2コアを標準として作成時に選択・確認**する。現行`.devcontainer/devcontainer.json`に`hostRequirements`はなく、**2コアに明示固定されていない**。`hostRequirements.cpus: 2`は最小要件であり上限固定ではないので、費用対策だけを理由に追加しない。4コア以上への変更を標準手順に入れない。2コアCodespacesでの教材・外部Skill・Playwrightの通し実行は**未検証**。過去のOpenCode無料モデルの利用実績を現在の個人認証・接続の保証とはせず、受講者が初回起動で確認する。
 - 作成前に利用者の**予算／利用上限・請求設定**を確認し、無料枠超過で課金が発生しない設定または運用を選ぶ。料金を発生させる必要がある場合は演習を停止し、無断で上位マシン・有料プラン・有料モデルへ移行しない。学習終了時はCodespaceを停止し、保存容量と不要環境の整理、成果物の持ち出し方法を案内する。
 - **OpenCode CLIと無料モデルを標準利用する。モデル接続・個人認証は受講者の初回起動時に確認し、失敗時はBLOCKEDとする。開発側は未実施のモデル統合成功を保証しない。** Codespacesでは個人`OPENCODE_API_KEY`をSecret経由で扱い、APIキー・認証キャッシュを教材・ログ・GitHubへ保存しない。有料モデルや有料自動切替を学習経路に含めず、受講者の明示的な同意なしに課金経路へ変更しない。
-- Phase 3は**標準GitHub-hosted runnerを用いる公開学習用リポジトリ**を第一候補とする。公開リポジトリの標準Runnerは無料だが、受講者用のコピー、書込権限、workflow有効化、Artifact保存の利用条件を確認する。private repository／larger runner／有料サービスを必須にしない。
+- Phase 3では本人の**非公開リポジトリと標準GitHub-hosted runner**を使い、非公開Actionsの無料枠・Artifact容量・課金制御を利用前に確認する。有料Runnerへ無断変更しない。
 - 各フェーズについて、受講者の実測**Codespace起動時間・ストレージ使用量・セットアップ成否**を記録し、無料枠内で成立するか判断する。現時点では学習時間・消費量・受講者全員の無料利用は**未確認**。無料条件が成立しない場合はBLOCKEDとして扱い、勝手な課金で解消しない。
 
 参考：[GitHubのプラン別使用量](https://docs.github.com/ja/billing/reference/product-usage-included)、[Codespaces課金](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)、[Codespaces利用ガイド](../guides/codespaces.md)、[OpenCode Zen料金](https://opencode.ai/docs/zen/)、[GitHub Actionsの課金](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
@@ -96,7 +110,7 @@
 
 ## 実装作業の順序
 
-1. PR #199のHEADとPR #198、`.devcontainer/devcontainer.json`、`docs/guides/codespaces.md`、`docs/spec/`、既存教材・Training・validator・CIの状態を確認する。**OpenCode Zen無料モデルの利用可否・認証は確認済み**として再検証せず、既存ソース・依存・自動/契約テストから開発時に確認できる経路を検証する。受講者の2コアCodespaces利用、費用、実運用データの実測は全量実装後の実地検証へ置く。
+1. PR #199のHEADとPR #198、`.devcontainer/devcontainer.json`、`docs/guides/codespaces.md`、`docs/spec/`、既存教材・Training・validator・CIの状態を確認する。開発側の決定論的Skill検証と、受講者の個人認証・モデル確認を分離し、既存ソース・依存・自動/契約テストから開発時に確認できる経路を検証する。実Template・2コアCodespacesのPlaywright技術受入は今回PRで行い、個人の無料枠・学習効果試行は後続で確認する。
 2. 公開の教材正本から学習用Templateへの**同期・ロード・起動経路の最小開発検証**を先に行う。許可リスト、確定SHA、完成解答の除外、1モジュール単位のロード、上書き防止、Scenario Shop起動を、fixture・契約テスト・ローカルビルド/自動実行で確認する。まずfixtureで契約検証し、今回のPRで実Template・新規2コアCodespacesのPlaywright技術受入も行う。教材の内容品質が未確認のまま全11モジュール分を完成扱いしない。**今回のPRでは公開Templateを作成して技術受入する**。
 3. 新教材ディレクトリを作り、**受講者用の`start-here.md`とWeb公開ページ**で**Phase 1のみ／Phase 1〜2／全3フェーズ**の受講経路と修了の違いを示す（既存の`README.md`は知識グラフ運用用として保持する）。共通の開始手順は**学習用リポジトリ作成→本人の2コアCodespace作成・確認→CLI・AI認証・Skill確認→学習者がM00をロード**とする。Phase 1・2でGitコマンド・PR・CI操作を要求しない。
 4. [教材の内容品質](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)、[学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[演習対象](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[模範と採点基準](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)を踏まえ、**M02→M03とM05→M06の連続工程**の代表教材Markdown・対応する**新課程クイズJSON（問題・正答・解説）**・独立演習・公開模範解答・採点基準を先に制作する。問題数・文章量を先に固定せず、必要な説明・確認・復習先を作る。

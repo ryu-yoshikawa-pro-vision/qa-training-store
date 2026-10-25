@@ -1,5 +1,20 @@
 # AI協働QAカリキュラム：初学者向け教材・演習・Web導線の全面改善Plan
 
+## 3モデルのレビューを踏まえた受入条件（2026-10-26）
+
+| 学習段階 | 必須演習・合格根拠 | 避ける誤判定 |
+| --- | --- | --- |
+| M02/M04 | 未知仕様から重要な質問・未決・期待結果の保留・根拠・影響を示し、第三者引継ぎを作成する | AI推測による仕様補完を正答扱い |
+| M06 | 既存3 CaseのTODOに加え、別Web Caseから空の短いE2EをAIと構成・実行・再実行する | TODO補完だけで自力構成と認定 |
+| M07 | 重複・保守変更があるspecでPage Objectと標準fixtureの小規模実装、差分、前後別Runを確認する。不要な条件の不採用理由も示す | 言葉での採否だけ、過剰なPOM、未実行 |
+| M09/M10 | 無効workflowのレビュー後、本人非公開repoで無料枠・権限・対象を確認して専用CIのみ手動有効化。実Run/ArtifactとSHA照合、別のtrigger・権限条件への設計判断 | 合成ログ/旧Runの流用、無断課金 |
+
+Scenario Shopは正式仕様のWeb・管理・Nativeを棚卸しし、分類済み率と採用した機能の実質的分析・設計済み率をそれぞれ100%とする。Nativeの分析を省略せず、Web PlaywrightとNative実行を区別する。自動化率100%は求めず、除外・未決・BLOCKEDの理由を確認する。
+
+全目標の教材・演習・評価の意味的一致は既存`scoring-tests/Mxx.json`とグラフ、校正例を活用してAIで検査する。対象SHA・仕様根拠・ファイル節、pass/fail/ungradable・理由・再確認を記録し、根拠なしPASSを採用しない。fail/ungradableは人が確認する。1演習は複数目標に対応できるが、各目標の証拠と合否は個別に残す。
+
+開始前のWeb/Codespaces revision不一致はBLOCKED、途中のWeb更新は固定版の参照・互換性を確認してから対応し、本人ファイルを無断同期しない。公開Template→本人非公開repo→2コアCodespace→load・Serve/Reset・Playwright・証拠保全は今回PRの必須技術受入。個人OpenCode認証・無料モデルは受講者初回確認、実受講者の試行はPR後。未承認の80%閾値をクイズの合否条件にしない。
+
 - 作成日時：2026-10-25 20:27 JST
 - 対象PR：[PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)
 - 対象branch：docs/plan-ai-agent-qa-curriculum-redesign
@@ -505,7 +520,7 @@ Windowsローカルの保護対象未追跡ファイルによる既知の全veri
 
 **運用開始を判断する追加条件**：
 
-- 外部Template/Codespacesで、M02→M03のOpenCodeモデル依存の統合を含む必要な実地動作が確認されている。
+- 実Templateの2コアCodespaceで配布・load・Serve/Reset・Playwrightを技術受入する。OpenCodeモデル依存連携・個人認証は受講者初回に確認し、失敗時はBLOCKED。
 - 実際の対象となるテスト経験受講者が教材と操作手順を追えるか試行し、実際に問題となった迷い・欠落を修正した。
 - 正式評価担当者、提出先、非公開評価記録の保存先・権限、再提出・BLOCKED対応が決定・共有されている。
 - 評価担当者が同じ証拠を見て、正しい別解と不足・未確認を一貫して判断できる。

@@ -1,5 +1,9 @@
 # AI協働テスト自動化カリキュラム：決定事項・残確認事項
 
+## 現行判断の優先事項（2026-10-26）
+
+M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化・Run実証を本人のLevel 2条件とする。機能棚卸しはWeb/Nativeを含む公式製品スコープに基づき、分類済みと設計済みを別々に判定する。既存評価JSON/グラフと校正例を利用し、新しい採点基盤は作らない。実Template・2コアCodespace受入は今回PR必須で、実受講者の試行と個人認証は後続。
+
 ## 2026-10-25のユーザー確定事項
 
 68問と最終確認2問から確定した対象・到達能力・評価方法・配布方法・PR完了範囲は[2026-10-25改善Plan](./2026-10-25_202700_ai-assisted-qa-curriculum-learning-experience-rework.md)と各詳細Planに反映する。テスト実施・設計経験者の日本語自習、全11モジュールの演習・質疑・操作証拠、M04/M07/M10でのまとめての正式評価、Page Object/fixtureの本人設計、業務CIの設計・最小権限判断を必須とする。
@@ -17,7 +21,7 @@
 - **既存実装で確認した事実**：参照したファイル・commit時点の挙動。新課程での動作成功を保証しない。
 - **運営上の指定待ち**：実際の名称・担当者・保存先など、運営する人による選定を要する事項。
 - **開発工程での実装・検証待ち**：教材・機能・データ・評価基準の未作成、必須の自動/静的/契約検証など、実装完了に必要な未達事項。
-- **実装完了後の実地検証・運用判断待ち**：全量実装後に実際の受講者・評価担当者・実環境で確認する事項と、運営担当者による指定を要する事項。未実施だけでは実装未完了や実装工程のBLOCKEDとしない。
+- **実装完了後の実地検証・運用判断待ち**：受講者・評価担当者による実地試行と運営上の指定事項。実Template由来の2コアCodespaceでのPlaywright技術受入は今回PR必須であり、ここに含めない。
 
 確認事項を解消したら、**証拠とともに該当するPlanを更新してから、この表の状態を更新**する。未実行をPASSにしない。
 
@@ -34,7 +38,7 @@
 | 受講者によるモジュール単位ロード | **ロードするのは学習者本人**。M00〜M10から指定した1モジュールだけをロードし、他モジュールへ自動で進まない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | QA workflow Skillの参照先 | **`ryu-yoshikawa-pro-vision/qa-workflow-skills/skills/`**を対象とする。このリポジトリ内の別用途のSkillを混同しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Planの到達点 | **完成形まで設計する**。一部の機能や評価だけを完成条件として扱わない。実装済みでないことは実装状態として正しく記録する | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
-| OpenCode Zen | **無料モデルが利用可能なことは確認済み**。利用可否・認証可否の再検証を作業に含めない。Secretの保護や意図しない有料モデルへの切替防止は維持 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
+| OpenCode Zen | 以前の無料モデル利用実績を現在の保証としない。受講者初回起動時にモデル・個人認証・必要Skillを確認し、不成立はBLOCKEDとする。Secretの保護や意図しない有料モデルへの切替防止は維持 | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md) |
 | 各モジュールの正解状態 | M00〜M10の各開始・終了の**実データと照合条件を作る**。先行成果物が失われても、後続モジュールが必要とする正しい入力で着手できる設計とする | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 復旧機能は作らない | 本人ファイルの自動復元、復旧コマンド、他モジュールの無断ロードは対象外。基準データ・判定契約は作る | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 
@@ -168,7 +172,7 @@
 | M05→M06 / Phase 2 runner | M05教材の修正済みLocator specをローカル開発probe 1/1、M06のSeed/Reset・追加・上限拒否・数量保持・low-stock在庫3 specを独立したローカル開発probe 3/3で実行。Chromeを明示し、既存の外部静的serverを利用。user-provided ignored probe filesは作業ツリーに保持してcommit対象外 | 開発用の代表specはPASS。公開M06 TODO specは学習者が完成させるscaffoldであり、probeのPASSを完成済み公開spec・受講者受入とは扱わない |
 | assessment完成specのローカル実行 (2026-10-24 JST) | 新課程専用Config、Build済みdist、loopback 8082、既存Chromeを明示して実行。M05完成spec 1/1 exit 0。M06 3 Caseを別々のResetで2 Run実行し、各3/3 exit 0。M07の誤ったheading Assertionは別rootでmarker付き1件FAIL/exit 1となり、Trace・Screenshot・Videoを記録。修正版は別root・別Runで1/1 exit 0。結果はignoredな`output/training/ai-assisted-qa-local-20261024/`に保存。標準E2E 51件は4 workerと1 workerの両方で全ケースの`ok`表示に達したが、最終summary/exit codeを返さず、終了処理のidle後に停止したためsuite PASSとは扱わない | M05/M06/M07の完成specの開発実行は確認済み。M07前後は別Runで期待した結果を確認した。標準51件E2Eはケース表示とプロセス終了が未完了のためPASSではなく、実装後の人間受入・Codespaces確認とも区別する |
 | 評価資料・グラフ内容 | 公開ルーブリックを追加。実装者の二度目レビューに加え、独立AI reviewerが全11モジュールの意味上の対応を静的確認。M04のreview input不足、M07 READMEとLocator/assertionの不一致、全11開始状態のfallback artifact edge不足を指摘し、教材・テスト・graphへ反映。M03 default fallbackと低在庫演習の違いは両方の入力条件が本文に明記された意図的な区別と判断 | 58 knowledge nodeは人間の正式承認まで`draft_requires_content_review`を維持。AI reviewは人間の正式ドメイン確認・採点・実地受入ではない。2026-10-24のユーザー指示で模範・採点・完成状態データはpublicな通常ファイルとし、学習用Template/同期/ロード/Web Build/Artifactから除外する方針へ訂正した。評価条件の公開を認め、当日の追加質問・条件変更で本人判断を確認する。 |
-| 実地検証 | 初心者/受講者、評価担当者、Template由来の2コアCodespace、所要時間・容量・無料枠は未確認 | 全量実装後の独立工程。実装工程のBLOCKED理由ではない |
+| 技術受入と実受講者試行 | 今回PRでTemplate由来2コアCodespaceのPlaywright受入。実受講者と評価者による学習・採点試行、個人利用量の実測は後続 | 技術受入の未実施はPR完了を妨げる |
 
 ### 2026-10-23 独立AI開発レビューの追加記録
 
