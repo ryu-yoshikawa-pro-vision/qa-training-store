@@ -139,7 +139,7 @@ M04・M07・M10の正式な修了判定では、**受講者の提出済み実技
 
 ## 共通の受講開始条件（修了評価とは別）
 
-- 受講者は**学習用Templateから作成した個人リポジトリ**で本人の無料枠を利用する2コアCodespaceを作成する。これは将来の受講開始時に行う環境確認であり、教材・機能の実装完了条件ではない。実際のTemplate/Codespaceでの検証と、所有者・支払主体・残りコア時間・ストレージ・課金停止条件の確認は全11モジュールと関連機能の実装完了後に行い、無料利用が成立しない場合は有料へ無断移行せず運用開始を保留する。
+- 受講者は公開Templateから本人の非公開リポジトリを作り、無料枠の2コアCodespaceを利用する。個別の利用可能枠・支払主体・モデル認証・必要Skill動作は受講者の初回起動時に確認し、不成立はBLOCKEDとする。**公開Templateと2コアCodespaceの配布/load・Serve/Reset・Playwrightの技術受入は今回PRの実装完了条件**とし、未実施・失敗を後続の受講者試行へ送らない。
 - 既存devcontainerの起動・Node.js/pnpm、受講範囲に応じたPlaywright/Chromiumと外部Skillの動作を確認する。**受講者ごとにOpenCode CLIの無料モデル・個人認証・必要Skillの初回動作を確認し、不成立はBLOCKEDとする**。Secretを安全に管理し、有料モデルへの自動切替や無断課金を避ける。
 - `qa-workflow-skills`の必要なSkillとPython helperを認識・実行でき、AIに与える権限を制限できることを確認する。**学習者本人による`course:load M00`などの1モジュール単位ロードと再実行時の上書き防止**も確認する。個人情報・APIキーを教材や共有ログに保存しない。
 - 各フェーズ終了時の成果物のダウンロード／保全とCodespace停止方法を示す。無料枠到達・容量不足・接続不能は**環境BLOCKED**として扱い、学習成果のLevelを推測で合格・不合格にしない。
@@ -194,7 +194,7 @@ M04・M07・M10の正式な修了判定では、**受講者の提出済み実技
 
 **開発用の完成spec**：M05の正しい商品Locator、M06の3 Cart Case、M07の意図的Assertion failureとその修正版を`assessment/playwright/`に保存する。既存の新課程専用Configと`training:ai-assisted-qa:test`で8082 loopbackに対して実行し、M07のbefore/afterは別test root・別Runとする。M07 before-runは正しいAssertion failureを終了コード1で検出し、修正版は終了コード0になることを確認する。完成specはmanifest、ロード、Web Buildから除外し、受講者の未完成workspace素材を置き換えない。
 
-**必要な環境**：同じ**学習用リポジトリ**のCodespaceに導入済みのNode.js/pnpm/Playwright/Chromium、Build/Serve可能なScenario Shop、テスト対象と許可されたAIエージェント。**Git/PR/GitHub Actions/CI操作は不要**。Git CLIを使った差分確認は許可するが、必須にはしない。
+**必要な環境**：同じ学習者用リポジトリのCodespaceにあるNode.js/pnpm/Playwright/Chromium、管理者Build済み`course/shop/`のServe/Reset、専用Configと許可されたAIエージェント。Phase 2にGit/PR/CI操作は不要。受講者に製品フルBuildを要求しない。
 
 **修了の意味**：Codespaces内で再現性のあるWeb自動化を構築・実装・実行・改善できる。GitHub/CI運用は未認定。環境が利用できない場合はその実行部分をBLOCKEDとし、架空の成功証拠で合格させない。
 

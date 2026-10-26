@@ -35,13 +35,13 @@ qa-training-store/                                  # 公開・教材とScenario
     assessment/scoring-tests/M00.json ... M10.json
     assessment/completed-states/M00.json ... M10.json
   training/course-sync/manifest.json                 # 配布対象を明示する許可リスト
-  scripts/training/sync-ai-assisted-qa.ts            # 管理者用同期スクリプト
+  scripts/training/ai-assisted-qa-course.mjs           # 管理者sync・学習者load/checkの既存CLI
 
 学習用リポジトリ/                                   # 新設予定・公開Template
   .devcontainer/                                     # Codespaces用
   course/modules/M00/ ... M10/                       # 配布済み教材（ロード前でも参照可能）
   course/manifest.json                               # 配布元commit・モジュール資産一覧
-  scripts/load-module.ts                             # 学習者が実行するロードスクリプト
+  scripts/training/ai-assisted-qa-course-core.mjs      # 既存の許可リスト同期・非破壊ロード
   runtime/ など                                      # Scenario Shopの実行に必要な配布物
   workspace/M00/ ...                                 # 学習者による作業成果（都度ロード）
 
@@ -162,7 +162,7 @@ Phase 3ではignore・差分・importを確認し、M07本人specと必要なPag
 
 **開発工程で確認する事項**：build/import/asset依存の閉包からmanifest許可パスを導出し、fixture・契約・失敗系テストで、固定SHA・許可外/機密ファイル拒否・部分失敗・再実行・非破壊性・1モジュールロードを検証する。ローカルビルドとCIで必要ファイルの不足や実行経路の破損を検出する。実際のTemplateの名称・作成権限や2コアCodespacesでの実動作を、fixture検証の代替として報告しない。
 
-**今回PRの技術受入と後続の試行**：指定を受けた学習用TemplateでBuild/Serve/Testと管理者同期を行い、そこから作成した個人リポジトリの2コアCodespaceで本人が1モジュールをロードし、編集済み成果物の保持、別モジュールの非ロード、実技実行・保存ができるか確認する。個人の提出・評価記録の保存先・権限・管理担当、Templateの実名・作成権限、各受講者の無料枠・所要時間は未指定のまま保持し、推測して外部リポジトリや保存先を作成しない。公開模範・採点資料は本リポジトリ内へ通常ファイルとして保存済みとし、保存先未指定を理由に未作成にはしない。未指定事項は運用開始判断まで保持する。
+**今回PRの技術受入と後続の試行**：管理者が固定SHAから製品Build・検証・同期し、実公開Templateから作成した非公開repoの新規2コアCodespaceで、受講者相当の操作による1モジュールload・非破壊再ロード・配布済みShopのServe/Reset・Playwright/結果保全を確認する。個人の提出・評価記録の保存先・権限、Templateの実名・作成権限、各受講者の無料枠・所要時間は未指定のまま保持する。
 
 設計上の公開開始入力と公開模範の用途分離、学習者配布境界、個人別成果物の保存先契約、出力先、同期更新手順は維持する。**OpenCode CLIのモデル接続・個人認証・必要Skillは受講者初回起動で確認し、失敗した場合はBLOCKEDとする。**
 

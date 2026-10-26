@@ -46,7 +46,7 @@ Scenario Shopは正式仕様のWeb・管理・Nativeを棚卸しし、全サポ�
 
 ### 全対象機能のカバレッジ
 
-`docs/spec/`、Scenario Shopの実装、Seed/Resetと既存機能を確認し、受講で分析する全対象機能の一覧を確定する。各機能の仕様、Role/State/Data、Risk、TR、Condition、Caseと期待結果の根拠を追跡し、対象外・未決・BLOCKEDも理由付きで管理する。最低基準は**対象機能100%に分析・設計の扱いを記録**することとし、全条件組合せや全CaseのE2E実装を100%求めない。自動化の採否・選択したテスト層・優先度を理由付きで説明する。
+`docs/spec/`、Scenario Shop実装とSeed/Resetから全サポート機能動作を抽出し、正式BR/ACまたはUI契約、Role/State/Data、主要Risk、TR、Conditionの扱い、Caseの採否理由を追跡する。**全サポート動作の分類済み率100%と基本分析済み率100%の両方**を最低基準とし、未決・BLOCKED・単なる分類は分析済みにしない。詳細CaseとE2E化の深さはRisk/教育目標/費用から決める。対象外の明示・未決理由・残リスクも記録し、公式対象外を別に区分する。
 
 ### Web、教材・図、AI教材レビュー
 

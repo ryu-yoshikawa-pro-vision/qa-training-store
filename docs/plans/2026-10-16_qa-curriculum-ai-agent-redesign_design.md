@@ -138,7 +138,7 @@ training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled
 ## 実装と受入検証
 
 - **OpenCode CLIの無料モデル・個人認証・必要Skillは受講者の初回起動で確認する。** `qa-workflow-skills`の実際のSkill発見・Python helperの実行と成果物は実演で確認する。使用済みと自己報告されたSkillを無条件に信頼しない。
-- 開発中は、Phase 1・2の配布・保存・評価契約、Phase 2のNode/Playwright・Scenario Shop Build/Serve/Seed/Reset、Phase 3専用CIの設定と旧Training/正式workflowとの分離を、自動・契約テスト、ビルド、リポジトリCIで検証する。実公開Template由来の2コア新規Codespaceでload・Serve/Reset・Playwrightと結果保全を今回PRで検証する。個人の課金状況と受講効果は後続で確認する。
+- 開発中はPhase 1・2の配布・保存・評価契約、**管理者のBuild/同期と学習者の配布済みShop Serve/Reset/Playwright**、Phase 3専用CIと既存正式workflowの分離を契約テスト・CIで検証する。実公開Templateからの新規2コアCodespace実Run・成果物保全は今回PRで技術受入し、実受講者の習熟試行は後続とする。
 - Phase 3未受講をPhase 2の不合格条件にしない。Phase 1ではGitコマンド・PR・CIの操作なしで進められることを実装時の契約テストでも確認する。
 - **実装完了条件は、Planで定義した全教材・確認問題と解説・実技・修了評価・学習用同期/ロード・知識グラフと関連機能を作り、開発時の自動/静的/契約/CI検証および正式仕様との整合確認を通過すること**である。既存PRにある知識グラフJSON・運用ガイド・検証CLIが存在するだけでは実装完了としない。実地検証と運用開始判断は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)に定義する別工程とする。
 

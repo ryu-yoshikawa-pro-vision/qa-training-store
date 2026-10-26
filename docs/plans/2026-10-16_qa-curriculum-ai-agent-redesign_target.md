@@ -72,7 +72,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 | 旧Trainer | `training/playwright/`、`training/workbook/`：既存の提出形式・コードは不変更 |
 | 既存探索QA | `training/agentic-qa/`：Scored Challenge等。新課程として上書きしない |
 | 新Trainerの正本 | `training/ai-assisted-qa-course/`：配布可能な未完成spec・課題素材と実行手順だけ |
-| 教材の同期定義 | `training/course-sync/manifest.json`（配布許可リスト）、`scripts/training/sync-ai-assisted-qa.ts`（管理者用・実装予定） |
+| 教材の同期定義 | `training/course-sync/manifest.json`（配布許可リスト）、`scripts/training/ai-assisted-qa-course.mjs`（`course:sync`/`course:load`/`course:check`を提供）、`scripts/training/ai-assisted-qa-course-core.mjs`（共通実装）。既存処理の拡張が正本であり新たな同期スクリプトは作らない |
 | 学習用リポジトリ | **別の公開Template**を生成・管理し、学習者のCodespacesで`pnpm course:load Mxx`を本人が実行。教材・作業領域を分離 |
 | 模範・採点・完成状態資料 | `training/ai-assisted-qa-course/assessment/reference-solutions/Mxx.md`、`scoring-tests/Mxx.json`、`completed-states/Mxx.json`等の通常ファイルとしてpublic Git上でレビュー可能にする。学習用Template/同期/ロード/Web Build/公開Artifactからは配布許可リストで除外する。これは秘密保持ではない |
 | 製品仕様・Seed | `docs/spec/`、`src/seeds/`：新旧が共通参照する正本 |
@@ -120,9 +120,9 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 
 **Phase 2はCodespacesを使用するがGitコマンド・PR・CIの操作なしで独立して完結する。** そのまま旧コマンドを呼ぶだけでは新課程の専用specを検証したことにならない。
 
-1. **同期した学習用リポジトリ単体のCodespaces**でNode.js/pnpm・Playwright/Chromium、Scenario ShopのBuild/Serve・Seed/Reset・Config・対象サーバーを実行可能にしてから、構成の意味を受講者に確認させる。構成を理解して必要な設定・実行を再現することを評価し、devcontainerの全面再構築・Git/PR操作を要求しない。
+1. **管理者が固定SHAでBuildして同期した学習用リポジトリ**のCodespacesにおいて、Node.js/pnpm・Playwright/Chromiumと配布済みShopのServe/Seed/Reset・Config・対象サーバーを実行できるようにする。学習者が実行条件を理解・再現できることを評価し、製品のフルBuild・devcontainer全再構築・Git/PR操作を要求しない。
 2. 同期元の`training/ai-assisted-qa-course/playwright/`等から**未完成spec・課題素材だけ**を配布し、受講者がロードした`workspace/M06/`等に自分のspecを作る。正式回帰specや完成例は配布しない。
-3. 学習用リポジトリのBuild/Serve/Test・必要なSeed/Resetを同期元の確定SHAから再現する。**テスト対象と結果出力先を旧課程とは別**にする。必要なら新しい`playwright.ai-assisted-qa.config.ts`を作り、旧`playwright.training.config.ts`の設定を安全に参照する。設定を丸ごと複製しないことを優先する。
+3. 管理者側の固定SHA Build/検証/同期と、学習者側の配布済み`course/shop/`のServe/Seed/Reset/Playwrightを分離する。**テスト対象と出力先を旧課程とは別**にし、既存`playwright.ai-assisted-qa.config.ts`と`playwright.training.config.ts`の境界を維持する。既存Configを再作成・無条件コピーしない。
 4. 同期元の既存`reset-scenario.ts`と依存するファイルを**配布可能な形で**参照・同期し使用できるか検証する。使えなければ理由を示したうえで、必要最小限の新課程専用helperを追加する。
 5. Webの主対象は既存Cart。数量・在庫・Role/Stateの実際の仕様ID、画面、Seedと一致することを確認する。
 6. 新課程のspecを実行するCLIコマンドを明示し、Training serverの**8082**と通常Webの**8081**を混同しない。codegenの表示にはPrivateの6080を使う場合があるが、画面録画の成功をE2Eの成功に読み替えない。`training:web:exercise`を新課程のコマンドに読み替えない。
