@@ -8,9 +8,17 @@
 
 M06の別CaseからのE2EとM07のPage Object/fixture保守変更には、実行可能な正式仕様・Seed/Reset・期待結果を先に確認する。Phase 3ではCI条件変更の実技と同一HEADの実Runを評価し、単なるworkflowレビューで実行成功としない。
 
+## 全サポート機能の分母・分析/設計・検証契約
+
+母集団は`docs/spec/product-scope.md`のWeb（desktop/mobile）・管理画面・Nativeで正式にサポートされる動作。BR/ACだけでなく`screen-catalog.md`、`ui-ux-contract.md`、レスポンシブ・キーボード/アクセシビリティ、Empty/Loading/Conflict等のUI状態を含む。仕様ファイル数・画面数をそのまま機能数とせず、既存の画面/仕様IDとplatform、role、state、action、期待結果の組合せから追跡可能な安定IDを作る。同義のUI記載や単なるviewport寸法差は重複計上せず、検証責務の異なる動作・状態は別件とする。公式に対象外の動作は別一覧で根拠を残す。
+
+**全サポート動作を分母**に、分類済み率100%と、正式仕様・Role/State/Data・主要Risk・TR・Conditionの扱い・Caseの採否理由を確認した基本分析済み率100%を独立して要求する。未決/BLOCKED・「対象外」登録のみ・IDの存在のみでは分析成功に計上しない。Condition/Caseを詳細設計しない動作にも、理由・代替確認と残リスクを残す。具体的なCase数・技法の適用深さ・Playwright E2E化はRisk、実行可能性、教育目標に従って変える。Nativeの製品分析を外さず、WebのPlaywright必須実行と混同しない。
+
+**実装受入**：既存仕様・知識グラフと導出したMarkdown/JSONで漏れ・重複を確認し、未分類1件、Risk/TR/Condition/Caseの採否理由欠落1件が100%に達しない負例と、同義記載を二重計上しない正例を契約テストにする。専用DBを増設しない。
+
 ## 今回確定した演習対象と実行環境（2026-10-25）
 
-Scenario Shopの`docs/spec/`と実装済み機能を棚卸しし、**対象機能すべて**に正式仕様・Risk・TR・Condition・Caseの対応、または根拠付きの対象外・未決・BLOCKEDを付ける。最低カバレッジは**対象機能の分析・設計上の扱い100%**。全条件組合せ・全Caseの100%実行や全E2E化は求めず、自動化採用はリスク・費用・効果で判断する。各機能における判断の妥当性を`coverage-analysis`と仕様正本で確認する。
+最低基準は**全サポート動作の分類済み率100%と基本分析済み率100%**。正式仕様・Risk・TR・Conditionの扱い・Caseの採否理由を揃え、未分析・未決・BLOCKEDを分析済みへ計上しない。詳細Condition/Caseと自動化の採用はリスク・教育目標・費用により選び、各動作の判断を既存の`coverage-analysis`と仕様正本で確認する。
 
 Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必要なケースでPage Object/fixtureによる保守設計を実装・判断する。Phase 3では本人所有の非公開リポジトリでworkflowのtrigger・jobs・permissions・Secret・Artifact・SHA・無料枠・運用判断を含めCIを設計する。固定qa-workflow-skillsはQA成果物を扱う全工程で必須とし、環境・Git・CI自体には無理に適用しない。障害時の追加指示・手動対応も評価する。
 
@@ -156,7 +164,7 @@ Phase 2では実行可能な別条件のCaseから本人がE2Eを構成し、必
 - **Playwright**：既存`playwright.training.config.ts`の`PLAYWRIGHT_TEST_ROOT`、`PLAYWRIGHT_BASE_URL`、`webServer`、`reuseExistingServer`、report/Traceの構成を参考にする。ただし、旧`training/playwright`のspecを走らせないため、**新課程専用Config**は指定した`workspace/M05`、`workspace/M06`、`workspace/M07`の実技と、`workspace/M08/public-sample`・`workspace/M10/public-sample`のmodule-local公開fallbackだけを学習者用経路として許可し、結果を`output/training/ai-assisted-qa/`へ保存する。評価用完成specを開発時に実行するため、同Configは`training/ai-assisted-qa-course/assessment/playwright/M05`〜`M07`も追加の限定許可対象とする。これらはpublicな評価資料であり秘密ではないが、manifest、同期、ロード、Web Buildから除外する。M05はTypeScript/Playwright基礎、M06/M07はPhase 2、M08/M10はPhase 3で前工程のspecがない場合の公開sampleに使う。任意path、M09その他のworkspace、旧`training/playwright`、`assessment/playwright`のM00〜M04/M08〜M10は許可しない。環境・CIともに対象specと出力先を確認する。
 - **Seed/Reset**：既存`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__`の準備を待ち、`reset({scenario})`の後で`getMetadata().scenario`を照合する。新課程から再利用する場合も**テストモードで同APIが公開されること**を確認し、学習者が作るspecの開始前に必要なResetを行う。既存のReset契約と重複する独自処理は作らない。
 - **開発中の受入**：許可リスト、依存閉包、起動設定、Reset契約、Playwright設定・spec・結果保存先をソース/契約テストで検証し、リポジトリCIでBuild・自動テストと旧Trainingとの出力分離を確認する。設定不足、テスト失敗、仕様不整合を実装未完了として修正する。
-- **今回PRでの技術受入**：実際の学習用Templateから作成した個人非公開リポジトリの新規2コアCodespaceで`pnpm install --frozen-lockfile`、指定ビルド、8082起動、Reset、M06/M07の指定1 spec、結果保存まで実行し証拠を残す。今回PRで必要なCodespaces技術受入が失敗した場合は実装未完了とする。実受講者の学習効果試行は後続に分離する。運用開始は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)の別判断とする。
+- **今回PRでの技術受入**：実公開Template→本人所有の非公開repo→新規2コアCodespaceで固定SHA/allowlistを検証、1モジュール`course:load`・非破壊再ロード、**管理者Build済み`course/shop/`の8082 Serve/Reset**、M06/M07指定specのPlaywright実Run・結果保全を確認する。受講者に製品フルBuildや`build:web`を求めない。未実施・失敗はPR未完了とする。
 
 ## qa-workflow-skillsの工程別利用
 
@@ -225,7 +233,7 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | 学習者ロード | 本人が`course:load Mxx`で指定した1モジュールだけをロード。未知ID拒否・既存成果物の上書き防止・他モジュールの非変更 |
 | 開始・終了基準状態 | **M00〜M10の正しい開始・終了の実データと検証条件**を作り、前後の成果物ID・revisionの矛盾、入力欠落、別解の扱い、公開完成状態と学習者配布の分離を確認 |
 | Phase 1 | **学習用Templateからの個人リポジトリ・GitHubログインは必要**だが、Git/PR/Playwright/CI操作なしでM00〜M04を一つずつロードし、分析→設計→独立修了できる |
-| Phase 2 | **学習用リポジトリ単体**の2コアCodespacesでBuild/Serve/Seed/Reset→Node/pnpm/Playwright→専用spec実行→診断・改善→独立修了がGit/PR/CIなしで行える。8081/8082/6080・結果保存先が正しく、旧training specや正式回帰を混ぜない |
+| Phase 2 | **学習用リポジトリ単体**の2コアCodespacesで配布済みShopのServe/Seed/Reset→Node/pnpm/Playwright→専用spec実行→診断・改善→独立修了をGit/PR/CIなしで行う。8081/8082/6080・出力先を分離し旧specを走らせない |
 | M02→M03の固定Skill受入 | 実在するCartのAuthority/Risk/ScopeとTR相当の検証責務1件から、condition_structure(direct)→選択技法→materialize_coverage(artifact)→case_structure→最終evidence gateを実行。参照欠落、Disposition誤用、mode不一致、未解決、終了コード0のinvalid_inputを成功にしない |
 | 実行証拠 | 新課程専用のログ・report・Artifact。未実行と成功を区別 |
 | 旧Trainer | 旧`training:web:baseline`、旧validator・修了確認の契約は維持 |

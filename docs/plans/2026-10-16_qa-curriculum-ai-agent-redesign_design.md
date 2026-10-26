@@ -68,7 +68,7 @@ AI操作は「実例を真似る→依頼を自作する→初見課題で成果
 | M06 | 固定演習Caseとコードの対応、AIによる実装、Seed/Reset・独立性・Web画面と仕様の確認、ローカル実行。Phase 1本人Caseがある場合は条件・期待結果を照合し、ない場合は公開fallbackとrevisionを記録 | 期待結果に合ったE2E、入力元・Case→spec→Runの追跡、実行ログ・差分、再現性。fallbackはPhase 1修了を示さない |
 | M07 | Trace・Screenshot・Error、Test/Product/Environment/Flakyの切り分け、最小修正、Helper/POM/Fixtureの要否 | **Phase 2総合演習**：未演習の条件でテストを作り、実行・失敗分析・修正・再実行 |
 
-学習者本人がモジュールIDを指定して順次ロードする。M06開始時に有効なPhase 1本人Caseがあれば出所・revisionを記録して固定演習Caseと照合し、ない/無効の場合は公開fallbackを使う。fallbackの利用はPhase 1の本人修了とは別に扱う。M05では短いTypeScriptコードを自力で読解・部分修正・実行できる状態を確認し、M06のCase実装、M07の失敗分析へ段階的に進む。Phase 2ではCodespacesに導入済みのPlaywright Configや実行環境を理解して新課程のspecを実行できることを必須とし、既存ConfigやAI出力を単にコピーしただけでは達成としない。一方、TypeScript全文法やPOM導入、devcontainer全体の再構築を全員に要求しない。**Git/PR/CIの操作を行わず、Codespace内のPlaywright実行証拠だけで修了**する。
+一方、TypeScript全文法やdevcontainer全体の再構築、**全specのPOM化**は要求しない。M07の重複/保守変更課題ではPage Objectと標準fixtureの小規模実装・別Run・不要な場合の不採用理由を必須にする。Phase 2にGit/PR/CI操作は不要。
 
 ### Phase 3：GitHubとCIで継続実行（M08〜M10、選択）
 
@@ -116,37 +116,24 @@ Phase 3の重点は「テスト自動化を別環境で継続実行できるこ�
 
 **開発時の内容レビュー**では、正式仕様・学習順序・教材の説明・模範と評価基準を照合し、未学習の前提、根拠のない期待結果、判断過程の欠落、手本の模写だけで成立する演習を不合格とする。構造Validator・知識グラフの参照整合は必要だが、これらを内容品質の確認に代えない。代表モジュールはこのレビューとコードレビュー、自動検証を通過してから全11モジュールへ展開する。実際の対象受講者による試行、受講者の回答観察、評価担当者の採点再現性確認は全量実装後の実地検証として別に行う。
 
-## 新旧の配置
+## 新旧の配置と採用実装
+
+現行HEADに存在する以下を再利用する。`scripts/training/sync-ai-assisted-qa.ts`、`scripts/load-module.ts`、新`runtime/`管理機構は過去の未採用案であり新設しない。
 
 ```text
-docs/curriculum/
-  test-automation/                   # 旧課程。変更しない／新課程へ一括転用しない
-  ai-assisted-qa/                    # 新課程。教材Markdown・クイズJSONは今後新規作成
-    README.md                        # 知識グラフ管理案内（既存。維持）
-    start-here.md                    # Web公開の受講者入口・3フェーズ・受講案内
-    learning-objectives.md           # 各フェーズの能力と学習項目
-    assessment-rubric.md             # フェーズ別の知識・実技評価
-    modules/
-      M00/README.md ... M04/README.md  # Phase 1
-      M05/README.md ... M07/README.md  # Phase 2
-      M08/README.md ... M10/README.md  # Phase 3（選択）
-    quizzes/                         # M00.json ... M10.json：問題・正答・公開解説の唯一の正本
-    assessments/                     # Phase 1/2/3 の独立した総合演習
-    optional/native/                 # 本件の3フェーズとは別の選択教材
-training/
-  ai-assisted-qa-course/             # 課題用の未完成コード
-  course-sync/manifest.json          # 学習者へ配布する範囲の許可リスト
-scripts/training/
-  sync-ai-assisted-qa.ts              # 管理者用の同期処理（実装予定）
-
-# 別の公開学習用Templateリポジトリへ同期
-course/modules/M00/ ... M10/          # 配布済み教材
-scripts/load-module.ts                # 学習者用モジュール単位ロード
-workspace/M00/                        # 受講者作業領域
-runtime/ など                         # Scenario Shop実行に必要な最小配布物
+docs/curriculum/ai-assisted-qa/                 # 教材・クイズ・目標・知識グラフ
+training/ai-assisted-qa-course/                  # 演習・状態・採点正本・Template素材
+training/course-sync/manifest.json               # 配布許可リスト
+scripts/training/ai-assisted-qa-course.mjs        # 管理者syncと本人load/check
+scripts/training/ai-assisted-qa-course-core.mjs   # 配布・ロード共通処理
+scripts/training/validate-ai-assisted-qa.ts       # 教材・評価の契約検査
+scripts/training/knowledge-graph.mjs              # グラフ検証
+playwright.ai-assisted-qa.config.ts               # 新課程専用Playwright
+scripts/serve-web-dist.ts                         # 配布済みShopのServe
+training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled
 ```
 
-初心者がたどる導線は**学習者が選んだフェーズの終了時点で完結**すること。公開Webで新規の教材Markdownを閲覧し、JSONを入力とする一問ずつの確認クイズ・解説を扱い、個人Codespacesで実技を行う。元の公開リポジトリと受講者の作業リポジトリを分け、配布物から実技・修了課題の模範解答を除外する。公開済み解説や評価条件を秘密扱いせず、修了評価は追加条件・質疑と本人の説明で確認する。Phase 1・2の作業はCodespaces上で完結し、受講者にgit clone・branch・PR操作を要求しない。Codespaceの初回作成は共通前提、学習成果はGit操作なしで持ち出せるようにする。実務の題材としてScenario Shopの製品・仕様・Seedは共通参照してよいが、新課程の教材・判定は旧課程と独立する。
+公開Templateの配布先は`course/modules/Mxx/`、`course/exercises/Mxx/`、`course/shop/`、`workspace/Mxx/`等で、manifestと単一モジュールロードに従う。製品Buildは管理者が同期時に行い、学習者は配布済みShopをServe/ResetしてPlaywrightを実行する。M07のPage Object/fixture等の実コードはM08以降でimport先とともに扱う。
 
 ## 実装と受入検証
 
@@ -159,4 +146,4 @@ runtime/ など                         # Scenario Shop実行に必要な最小�
 
 実装完了後、実際の受講者が公開Webの入口から選択Phaseの終了まで進み、教材の説明・クイズ/復習・実技への移動・成果物の保全/再開を講師の補足なしで行えるかを確認する。途中で迷った画面、理解できない用語、未学習の前提、評価基準で判断できない回答を記録し、受講者が必要な行動と根拠を見つけられることを期待結果とする。M04/M07/M10は、実際の評価担当者が未提示条件への本人判断を確認し、公開ルーブリックで正答・部分的正答・正しい別解・評価不能を一貫して扱えるかも確認する。
 
-実際の2コアCodespaceでのBuild/Serve/Seed/Reset/Playwright、Skill/Python helper、ロード・上書き防止・保存の通し確認、起動時間/ストレージ/無料枠の実測も実施する。これらのうち実Template由来2コアCodespaceでのロード・Serve/Reset・Playwrightの技術受入は今回PRの完了条件に含め、未実施・失敗なら完了としない。学習者本人による習熟試行・個人モデル接続・正式採点は後続の運用確認とする。運用開始は結果と運営体制を別途判断し、Templateの作成先/権限、個人の提出・評価記録の保存先/権限、実際の評価担当者は指定がないまま決めない。公開模範・採点資料の保存先は本リポジトリ内の`training/ai-assisted-qa-course/assessment/`とする。
+今回PRの2コアCodespace技術受入では**管理者がBuild済みの`course/shop/`をServe/Reset**してPlaywrightを実行する。管理者のBuild/同期は別の開発受入で確認する。実受講者による習熟試行・個人認証は後続に分離する。
