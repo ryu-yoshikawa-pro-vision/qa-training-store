@@ -1,5 +1,9 @@
 # AI協働テスト自動化カリキュラムPlan：文書インデックス
 
+## 2026-10-26の優先要件
+
+受講者に講師を必須とせず、**自己学習・AIの質問対応・実技・復習・AI＋機械検証によるPhase正式評価・再評価**を自分で完了できることが優先要件。教材はBackward Designによる到達能力と評価の整合、Merrill/Worked Examplesと段階練習、説明・フィードバック・別条件の実践を持つ。人間によるPhase末の正式採点を要求する旧方針は撤回し、学習者の正式AI採点に置き換える。変更する資料の参照順は`_design.md`→`_progression.md`→`_assessment.md`→`_distribution.md`/`_web-learning.md`→`_states.md`/`_knowledge-graph.md`。実受講者効果試行は別工程、AI採点校正/誤PASS拒否は今回PR必須。
+
 ## 正本の参照順と旧記録の扱い
 
 教育の到達能力と合否は`_learning-map.md`・`_progression.md`・`_assessment.md`、同期と実行経路は`_distribution.md`・`_target.md`・`_design.md`、運用との境界は`_decisions.md`と2026-10-25改善Planを参照する。`_research.md`は過去の調査記録であり、現行コードと異なる旧パス・未実装記述を作業指示として採用しない。新旧の記述が実際に矛盾する場合は一方を黙って選ばず、関連Planを更新して整合させる。
