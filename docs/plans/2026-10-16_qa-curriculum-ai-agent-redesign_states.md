@@ -6,6 +6,39 @@
 
 評価には教材/状態/仕様/固定Skill/公開rubricのrevisionを固定し、本人の`workspace/`に個人の履歴を保全する。再評価で旧結果を上書きせず差分と再確認したIDを記録する。モジュール単位のロードは自動進行・個人ファイル復元・先行Phaseの修了認定を行わない。AIが使えない場合は評価をBLOCKEDとするが、講師への対面採点を必須の代替手段にはしない。
 
+## 旧評価資料・終了状態とValidatorの移行契約（2026-10-26レビュー反映）
+
+**移行範囲**：`assessment/scoring-tests/M00.json`〜`M10.json`の11件（51 objective/criterion）、`states/M00/end.json`〜`M10/end.json`の11件、Phase rubric 3件と該当教材・提出テンプレート、`scripts/training/validate-ai-assisted-qa.ts`、`scripts/training/ai-assisted-qa-course-core.mjs`の表示、既存配布/課程契約テストを**同一仕様変更**として更新する。開始状態11件と`assessment/completed-states/`11件は、実際に変更が必要なものだけ触れ、模範完成状態の`reference_only`と「人間評価未実施」という**歴史的事実**は不正に書換えない。旧課程のCompletion ReceiptやValidatorは変更しない。
+
+| 現行フィールド/処理 | 移行後の扱い |
+| --- | --- |
+| `scoring.evaluation_policy.human_final_approval: pending_after_implementation` | **正式採点の必須条件から撤廃**。別セッションAI意味評価、Nodeの構造/Run照合、校正済みモデルの規則を`evaluation_policy`で規定する |
+| `evaluation_policy.live_condition.selection_rule` | 「人間評価担当者が出題」から「仕様根拠の検証できる条件を評価制御側が選び、本人回答を先に固定」へ変更。未決仕様をAIが確定させない |
+| `end.json`の`checks[].mode: human-review` | **学習者の終了状態では意味評価を実行しない**。状態チェックは構造/参照と「正式評価に必要な証拠の所在」の契約を表し、実際のLevelは別の正式AI評価結果で判定する。旧modeを`file-exists`等へ一律格下げせず、正式評価参照が必要なものは専用の既知mode/参照項目を定義してValidator・coreテストとセットで更新 |
+| `criteria`・`required_evidence`・`decision_rules`・`pass_conditions`・`reject_if` | 現行の意味条件・正しい別解の許容は維持。各目標の実際の提出場所、仕様根拠、判断/Runの検証条件を不足部分に具体的に追加 |
+| `cases[].expected_decision` | 既存の`pass/fail/partial/pass_with_reason/ungradable`を**校正例専用**として維持。本人の0〜3や実行状態へ暗黙変換しない |
+| Phase rubricの「Level 0：未確認/未実行」 | **Level 0=実際に評価できたが理解/判断を示せない**、未実行=`not_run`、評価不能=`ungradable`、環境障害=`blocked`に分離。Level 1〜3とPhase集計は評価Planに従う |
+| `validate-ai-assisted-qa.ts`の旧`human_final_approval`必須判定 | 新ポリシー・有効な目標ID・mode/Level/校正・禁止パス・配布revisionを検査する条件へ変更。テストが移行済み仕様と矛盾しないこと |
+
+**移行順**：新評価結果Schema/Phase集計・状態modeの仕様を確定→データ/Validator/契約テストを同一変更で移行→M03の評価対象統一、M06/M07のLevel 2条件を補完→M03/M06/M07/M10の決定論的実証拠とAI校正→全51 IDの正例/負例と旧課程回帰。移行途中にValidatorが失敗しても成功と報告せず、旧版と新版を混ぜたまま正式修了評価を有効化しない。
+
+**M03の確認済み矛盾**：現行`scoring-tests/M03.json`の`M03-CR-03`は`BR-STOREFRONT-002`の商品検索（同一facet OR・異なるfacet ANDの8ルール）を正式なデシジョンテーブルとしている。一方、`phase-1-rubric.md`の`M03-03`は`BR-CART-003/AC-CART-003`のcheckout条件表を要求し、同一目標の合否対象が異なる。**正式評価対象は現行教材と`M03-CR-03`の検索条件表へ統一する**。Cart側は別のCase/仕様上の未決を区別する例として維持し、未定義の組合せを表の正解にしない。M03教材、ルーブリック、模範、校正例の参照ID/判断を照合し、検索表を正しく作った受講者がCart表の不在だけで不合格とならないことを確認する。
+
+**M06/M07の必須実技**：M06は固定3 Cart CaseのTODO補完だけではLevel 2にしない。**別Caseから新規spec/testを構成し、正式BR/AC・業務Assertion・Reset後の独立Run/再Run**を照合する。M07は失敗分類/Assertion修正に加え、実際の重複がある条件で小さいPage Objectと標準fixtureを**実装**してspecから利用し、保守変更前後の別Runを提出する。不要な箇所へ無条件に抽象化を広げず、適用しない箇所と理由も説明する。教材、scoring-tests、Phase 2 rubric、各end状態・提出テンプレートを同時に改訂する。M06/M07の従来の課題・正答例は削除しない。
+
+**M10の必須実CI**：学習者が料金・権限・対象specとimportの依存閉包を検査して専用workflowだけを有効化し、本人の最新PR HEADと一致するGitHub ActionsのRun/Check/Artifactを実際に取得したときだけ実行証拠として認める。M09の無効workflowの設計演習や以前のRunではM10のLevel 2にしない。
+
+### 実行証拠の取得・検証と信頼限界
+
+全Phase共通の証拠には`evidence_id`・module/phase・対象spec/test/Case/BR/AC・入力元・教材/製品/Skillのrevision・コード/設定/証拠のSHA-256・実行条件・開始/終了時刻・実行コマンド・exit・実際の結果・必要なTrace/Artifactへの参照を**取得可能な範囲で**記録する。全学習項目へRunを要求するのではなく、**実行する技能の必須条件**を評価器の機械的検証へ接続する。本人が任意に書いた`PASS`文章・手入力のRun ID・AIの「実行済み」報告だけを真正な実行証拠としない。
+
+- **M03**：固定Skill commitとTCN/Model、技法runtime、Coverage/CI、Case、最終`verify_runtime_evidence`の`valid=true`およびcurrent/freshness/closure参照をSkill契約で検証。単なるexit 0や過去結果、意味的に不当な期待結果ではLevel 2不可。
+- **M06**：採点器が受入済みのPlaywright専用Config・許可されたspec/依存を通じて必要な新規実行を起動し、ResetとCase/Assertionの対応、test ID、コードハッシュ、結果を照合する。古いログ/別spec、固定TODOのみ、失敗を勝手にPASSとした結果は拒否。
+- **M07**：修正/保守前後の差分と**別Run**を照合。POM/fixtureのimport先と実際の使用、業務Assertionが弱くなっていないことを検証し、別Runを同一IDで流用できないようにする。意図的失敗specの期待FAILと、修正後の実PASSを混同しない。
+- **M10**：本人の非公開リポジトリの**実際のGitHub API**から最新PR head SHA、workflow path、Run ID/attempt、Check、ArtifactのSHA/結果を取得し、対象specと本人成果物の同一性を確認する。`pull_request`のmerge refとPR headを区別し、旧SHA・別workflow・偽ログ・無効workflowのみ・取得不能なArtifactは非達成扱いにする。Tokenは安全に取り扱いAI送信しない。
+
+Node.jsの限定した証拠取得/実行処理と、権限のないAI意味評価を分離する。自分のCodespaceのローカルログを自分で書換えられる以上、完全な改ざん防止は保証できない。**必要なRunを評価処理から新たに実行して証拠を採取**するか、GitHub等の照合可能な取得元で確認し、過剰な署名基盤や中央監査サーバーは追加しない。取得条件が成立しない場合は`not_run`/`ungradable`/`blocked`を理由で区別し、正式PASSにしない。
+
 ## 追加する終了証拠と拒否条件
 
 M06の`end.json`と提出物では、固定3 Caseとは別の新規spec、そのCaseの仕様・期待結果、Reset後の単独/再実行への参照がない限り修了証拠にしない。M07はPage ObjectとPlaywright標準fixtureの実装・参照import・保守差分・別Runを追跡可能にし、名称が違っても妥当な実装を拒否しない。M10は対象spec/依存コードと専用workflowの有効化差分、現PR HEADのRun/Check/Artifact・費用/権限・変更条件の判断が必要で、旧Runや合成証拠では完了しない。終了状態の構造チェックとLevel 2の人間による意味判断は分離する。
