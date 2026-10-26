@@ -25,7 +25,7 @@
 - [x] 18. 校正fixtureを拡充し、51目標/58知識/53設問と教材・解説・演習・採点の独立開発内容レビューを反映。人間の知識ノード最終承認はPlanどおり後工程。
 - [ ] 19. OpenCode CLI 2.0.22実モデルでPhase別校正、権限制御、重大誤PASSゼロを実証する（このWindowsローカル環境にはCLI実行ファイルがなく、Zen/認証は再確認しない）。
 - [ ] 20. 実Template→非公開学習repo→新規2コアCodespaceでLoad/Serve/Reset/Playwright/実AI評価・再評価を技術受入する（作成先/権限/支出条件への回答待ち）。
-- [ ] 21. 関連テスト・品質ゲート・正式仕様/旧課程非回帰・最新HEAD CIを完了し、Run・PR本文・commit/pushを同期する。現状: Unit/Integration/Repository/Web/Native suiteはPASS、全contractsはWindows環境依存31 failure、`verify`は保護対象workspaceファイルのformatで停止、標準51-case Chromiumは成功表示後に終了コードなし。commit/push/最新SHA CIは未完了。
+- [ ] 21. 関連テスト・品質ゲート・正式仕様/旧課程非回帰・最新HEAD CIを完了し、Run・PR本文・commit/pushを同期する。Unit/Integration/Repository/Web/Native suiteはPASS、全contractsはWindows環境依存31 failure、`verify`は保護対象workspaceファイルのformatで停止、標準51-case Chromiumは成功表示後に終了コードなし。commit `7f5c6e2d` の通常pushとPR本文更新は完了。正確なHEAD SHAを指定したCI waiterは15分超応答がなく停止したため、CI結果は未確認。
 
 - Progress (current checklist): 81% (17/21). This is task-list progress only; the curriculum and required acceptances remain incomplete. Tasks 7, 19, 20, and 21 remain open.
 
