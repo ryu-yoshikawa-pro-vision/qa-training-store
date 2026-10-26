@@ -120,7 +120,7 @@ M06の新規E2E、M07のPage Object/fixture、M10の実Runを本人Level 2条件
 | 対象 | 必要な指定 | 状態・扱い |
 | --- | --- | --- |
 | 学習用Templateの実体 | 公開リポジトリ名、作成するアカウント、管理・更新権限 | **今回PRで作成**。具体的なリポジトリ名・所有アカウントと管理権限は作成時に確定する |
-| 学習者の提出・評価記録 | 実際の保存先、アクセス権、管理担当 | **未指定**。公開教材・評価資料とは分離し、運用開始まで指定を待つ |
+| 学習者の提出・評価記録 | 本人の`workspace/Mxx/`と非公開`workspace/.course-assessments/`、Git操作不要のエクスポートを既定の保存・保全方法とする。本人がアクセスし、AI評価と決定論的検証の結果・版・履歴を保持する | **設計確定、実装・受入待ち**。中央保存先・管理担当者・外部提出窓口の指定は不要。Codespace停止と履歴の永続保存は別なので、受講者向けにエクスポート手順を提供して検証する |
 | 正式修了の評価担当 | **人間の評価担当者は不要**。本人がOpenCodeからAI/決定論的な正式評価を起動する。個人非公開workspaceに証拠とモデル/校正/採点版の結果・再評価を保存する | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 各受講者のCodespaces運用 | 本人の所有/支払主体、2コア選択、無料枠の残量、課金停止条件 | **受講開始時の確認**。無断課金でBLOCKEDを解消しない |
 
@@ -186,7 +186,7 @@ Templateの作成アカウント・リポジトリ名・権限と、受講者の
 | M05→M06 / Phase 2 runner | M05教材の修正済みLocator specをローカル開発probe 1/1、M06のSeed/Reset・追加・上限拒否・数量保持・low-stock在庫3 specを独立したローカル開発probe 3/3で実行。Chromeを明示し、既存の外部静的serverを利用。user-provided ignored probe filesは作業ツリーに保持してcommit対象外 | 開発用の代表specはPASS。公開M06 TODO specは学習者が完成させるscaffoldであり、probeのPASSを完成済み公開spec・受講者受入とは扱わない |
 | assessment完成specのローカル実行 (2026-10-24 JST) | 新課程専用Config、Build済みdist、loopback 8082、既存Chromeを明示して実行。M05完成spec 1/1 exit 0。M06 3 Caseを別々のResetで2 Run実行し、各3/3 exit 0。M07の誤ったheading Assertionは別rootでmarker付き1件FAIL/exit 1となり、Trace・Screenshot・Videoを記録。修正版は別root・別Runで1/1 exit 0。結果はignoredな`output/training/ai-assisted-qa-local-20261024/`に保存。標準E2E 51件は4 workerと1 workerの両方で全ケースの`ok`表示に達したが、最終summary/exit codeを返さず、終了処理のidle後に停止したためsuite PASSとは扱わない | M05/M06/M07の完成specの開発実行は確認済み。M07前後は別Runで期待した結果を確認した。標準51件E2Eはケース表示とプロセス終了が未完了のためPASSではなく、実装後の人間受入・Codespaces確認とも区別する |
 | 評価資料・グラフ内容 | 公開ルーブリックを追加。実装者の二度目レビューに加え、独立AI reviewerが全11モジュールの意味上の対応を静的確認。M04のreview input不足、M07 READMEとLocator/assertionの不一致、全11開始状態のfallback artifact edge不足を指摘し、教材・テスト・graphへ反映。M03 default fallbackと低在庫演習の違いは両方の入力条件が本文に明記された意図的な区別と判断 | 58 knowledge nodeは人間の正式承認まで`draft_requires_content_review`を維持。AI reviewは人間の正式ドメイン確認・採点・実地受入ではない。2026-10-24のユーザー指示で模範・採点・完成状態データはpublicな通常ファイルとし、学習用Template/同期/ロード/Web Build/Artifactから除外する方針へ訂正した。評価条件の公開を認め、当日の追加質問・条件変更で本人判断を確認する。 |
-| 技術受入と実受講者試行 | 今回PRでTemplate由来2コアCodespaceのPlaywright受入。実受講者と評価者による学習・採点試行、個人利用量の実測は後続 | 技術受入の未実施はPR完了を妨げる |
+| 技術受入と実受講者試行 | 今回PR内で公開Template由来の2コアCodespaceによる配布・Serve/Reset・Playwright実Runと、独立AI正式評価・校正・復習/再評価まで技術受入する。実受講者による講師なしの学習・修了の試行と個人利用量の実測はPR後 | 技術受入の未実施・失敗はPR完了を妨げる。人間の正式採点者は設けない |
 
 ### 2026-10-23 独立AI開発レビューの追加記録
 
