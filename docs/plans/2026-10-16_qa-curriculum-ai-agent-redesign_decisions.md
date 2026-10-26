@@ -2,13 +2,21 @@
 
 ## 現行判断の優先事項（2026-10-26）
 
-M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化・Run実証を本人のLevel 2条件とする。機能棚卸しはWeb/Nativeを含む公式製品スコープに基づき、分類済みと設計済みを別々に判定する。既存評価JSON/グラフと校正例を利用し、新しい採点基盤は作らない。実Template・2コアCodespace受入は今回PR必須で、実受講者の試行と個人認証は後続。
+M06の新規E2E、M07のPage Object/fixture、M10の実Runを本人Level 2条件として保持。全11モジュールの教え方とAIチューター・独立したAI意味評価を新しい必須要件へ追加。全サポート機能の基本分析、実Template/2コア受入、実受講者試行との区別も維持する。
+
+## 講師不要の自己学習・AI修了の決定変更（2026-10-26）
+
+最新の要件は、受講者が講師・評価者の割当を待たずに全モジュールを自己学習し、AIチューター・具体的なフィードバック・決定論的な実行検証・校正済みAI意味評価でM04/M07/M10の正式修了まで本人が完結できること。専任研修担当者による口頭確認・人間の正式採点を必須とする**過去の決定は撤回する**。開発者による教材の人間レビューは別の品質管理として記録できるが、受講者の習熟認定ゲートにはしない。
+
+教育の構造はBackward Design・Constructive Alignment、実務課題中心のMerrill、解説付き完成例・熟達者の判断過程の可視化、支援付き練習→部分補完→未知条件の独立実践、誤解別フィードバック、想起・再学習・再評価を全11モジュールへ適用する。概念・操作・判断の授業では適切な形を選び、全授業へ一律の見出し数・問題数を押し付けない。
+
+正式評価は既存の`scripts/training/ai-assisted-qa-course.mjs`、`course:check`、公開採点JSONとPhaseルーブリック、`workspace/Mxx/`を再利用する。ファイル/参照判定と本人の意味評価を分け、OpenCode CLIの**別セッション**で読取り専用採点を行い、ID別のLevel・証拠・版・モデル・校正結果・再評価を本人の非公開workspaceへ残す。無料モデルが使えない・誤PASSが校正で発生する場合はBLOCKED/判定不能で停止し、人間採点への必須切替や無断課金を設けない。
 
 ## 2026-10-25のユーザー確定事項
 
-68問と最終確認2問から確定した対象・到達能力・評価方法・配布方法・PR完了範囲は[2026-10-25改善Plan](./2026-10-25_202700_ai-assisted-qa-curriculum-learning-experience-rework.md)と各詳細Planに反映する。テスト実施・設計経験者の日本語自習、全11モジュールの演習・質疑・操作証拠、M04/M07/M10でのまとめての正式評価、Page Object/fixtureの本人設計、業務CIの設計・最小権限判断を必須とする。
+既存の質問で確定した対象・3Phase・11モジュール・到達能力・教材配布の範囲は維持する。**専任研修担当者がM04/M07/M10で正式採点する旧条件だけは、後日の『完全自己学習・AI評価』要件に従い置換**する。受講者はPhase末にAI評価を実行し自分で再評価できる。
 
-公開Templateから本人の非公開リポジトリを作り、無料の2コアCodespacesと非公開Actionsの消費・課金防止を確認する。今回PRでTemplate作成とPlaywright技術受入を行い、受講者個人のOpenCodeモデル統合は初回確認でBLOCKED可。教材のAI内容評価には根拠・校正例・不合格/判定不能を設ける。公開の評価条件を認め、秘匿を前提にした合否は廃止する。実受講者試行は今回PR外。正式担当者の実名、個人の提出先、保存先・権限は運用開始前の未指定事項であり、架空の値を記載しない。
+公開Templateから個人非公開repo・2コアCodespaceを用意し、OpenCodeの個人認証・無料モデル・必要Skillを初回に確認する。独立した学習支援とAI正式評価をCLI内で実行し、費用・Secret・Prompt Injectionに配慮する。教材品質AIレビューと受講者AI採点を混同しない。実受講者による学習効果試行はPR外。
 
 ## この文書の扱い
 
@@ -21,7 +29,7 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 - **既存実装で確認した事実**：参照したファイル・commit時点の挙動。新課程での動作成功を保証しない。
 - **運営上の指定待ち**：実際の名称・担当者・保存先など、運営する人による選定を要する事項。
 - **開発工程での実装・検証待ち**：教材・機能・データ・評価基準の未作成、必須の自動/静的/契約検証など、実装完了に必要な未達事項。
-- **実装完了後の実地検証・運用判断待ち**：受講者・評価担当者による実地試行と運営上の指定事項。実Template由来の2コアCodespaceでのPlaywright技術受入は今回PR必須であり、ここに含めない。
+- **実装完了後の実地検証・運用判断待ち**：実受講者の完全自習とAI採点・再評価の試行、個人の費用/容量の実測。実Templateから2コアでPlaywrightまでの技術受入と、AI採点の校正・誤PASS検出は今回PRで必要とする。
 
 確認事項を解消したら、**証拠とともに該当するPlanを更新してから、この表の状態を更新**する。未実行をPASSにしない。
 
@@ -50,13 +58,13 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 | 前工程の成果物がない場合 | 各モジュールに**先行修了課題と異なる条件の検証済み公開開始入力**を同梱。本人成果物とサンプルは**同じ入力契約・別の成果物ID/revision**。復旧や先行修了の認定はしない | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 基準状態と評価資料 | 11モジュール×開始/終了の22状態。模範・採点用テスト・完成状態は公開リポジトリの通常ファイルとし、`start.json`/`end.json`は契約、開始サンプルは学習素材として別管理。学習用Template/Web等への配布除外は秘密保持ではない | [開始・終了状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 状態判定 | ロード後の開始判定と読取り専用`course:check Mxx --state start`または`course:check Mxx --state end`を設計。状態が整合しても本人のLevel 2は自動認定しない | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
-| 提出と修了 | `workspace/Mxx/submission.md`、必要な`evidence/`・コードを提出。自己確認と、評価担当者による正式修了判定を分け、正しい別解を許容する。受講者の成績は公開しない | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 提出と修了 | `workspace/Mxx/submission.md`、`evidence/`、コードを本人が保存する。M04/M07/M10でAI評価と決定論的証拠検証を本人が起動し、全必須目標IDのLevel 2以上をもって正式修了とする。判定不能・BLOCKEDは修了扱いにしない。人の評価承認は不要 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 教材更新 | 公開Templateの後続更新は、受講中の個人リポジトリへ自動反映しない。配布元revisionを保持し、明示的に更新した場合だけ差分を適用 | [同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md) |
 | 実行環境 | 本人所有の非公開repo・2コアCodespacesを標準とする。Phase 1/2でGit/PR/CI操作は不要。**管理者がBuildして`course/shop/`へ同期し、本人はServe/Reset/Playwrightを行う**。M09は無効workflowの学習、M10で初めて実CIを有効化する | [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | M05〜M07の評価用完成spec | 実行可能な完成specをpublicな`assessment/playwright/M05`〜`M07`へ置き、既存の新課程専用Playwright Configで開発実行する。M07の意図的失敗と修正版は別test root・別Run。学習者の未完成workspace素材、同期・ロード・Web配布とは分ける | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)、[同期・ロード](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[実行環境](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | Skillの使用順 | 学習目標に必要なSkill Packageだけを使う。M06は`e2e-test-inspection`→`e2e-test-implementation`→`e2e-test-execution`の前提を確認。全Skillの習熟やworkflow全工程の実行を強制しない | [実行環境とSkill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
 | M02→M03の入力とSkill経路 | M02の**人間可読の検証責務本文**と、M03で用意する厳密なruntime JSONを分離。条件設計の入口は`condition_structure(direct)`、技法runtime後のCI生成は**`materialize_coverage(artifact)`必須**。Caseはcurrent TR Entityの有無に合うmodeを固定commitの通し実行で検証する。directは上流参照欠落を許容し得るため、Authority/Risk/Scope・TCNへの継承を別途照合する | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)、[Skill](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md) |
-| 直接の本人判断評価 | M04・M07・M10の正式修了で、評価担当者が公開課題について新しい条件変更・誤りを1件示し、AI生成回答に依存せず本人が根拠と判断を説明したことを確認する。通常演習はAI利用可 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
+| 直接の本人判断評価 | M04/M07/M10のAI評価器が既習範囲の小さい未知条件や不適切案を提示し、本人の回答・実行・根拠を別セッションで照合する。1問で全IDを認定しない。通常演習はAI協働可 | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 22状態の実データ共有 | 11モジュール×開始/終了の22個の論理状態は維持。共通する公開可能な設定・Seed等は同一ID/revisionで参照し、学習用開始サンプルと公開完成状態資料は用途別に管理する。前後の本人成果物と公開サンプルは同じ入力契約に適合する別IDを許す | [状態](./2026-10-16_qa-curriculum-ai-agent-redesign_states.md) |
 | 対応関係の正本 | 学習目標・習熟の説明はPlan、教材・問題・評価の本文は各実ファイル、**ID間の関係はJSONグラフ**。Markdown対応表は生成物とし、二重の手動更新を防ぐ | [学習項目](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)、[知識グラフ](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md) |
 | 新旧カリキュラムの分離 | 旧17レッスン・104問・旧validator・正式回帰の契約は維持。新課程の同期/Playwright/CIは専用経路に分離する | [調査](./2026-10-16_qa-curriculum-ai-agent-redesign_research.md) |
@@ -107,10 +115,10 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 | --- | --- | --- |
 | 学習用Templateの実体 | 公開リポジトリ名、作成するアカウント、管理・更新権限 | **今回PRで作成**。具体的なリポジトリ名・所有アカウントと管理権限は作成時に確定する |
 | 学習者の提出・評価記録 | 実際の保存先、アクセス権、管理担当 | **未指定**。公開教材・評価資料とは分離し、運用開始まで指定を待つ |
-| 正式修了の評価担当 | 評価担当者の割当、提出物を受け取る経路、判定記録の実際の保存先 | **未指定**。評価責任・提出形式・Level 2基準は[評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)で設計済み |
+| 正式修了の評価担当 | **人間の評価担当者は不要**。本人がOpenCodeからAI/決定論的な正式評価を起動する。個人非公開workspaceに証拠とモデル/校正/採点版の結果・再評価を保存する | [評価](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md) |
 | 各受講者のCodespaces運用 | 本人の所有/支払主体、2コア選択、無料枠の残量、課金停止条件 | **受講開始時の確認**。無断課金でBLOCKEDを解消しない |
 
-これらは運営に必要な値の指定であり、**カリキュラム全体の設計を未確定に戻すものではない**。公開する模範解答・採点用テスト・完成状態データの制作と検証は、正式評価担当者やTemplateの指定を待たずに進める。学習者個人の提出・評価記録の実際の保存先と管理者は、運用開始まで未指定のまま保持する。
+Template名/所有者、受講者の費用・個人認証は所定時点での確認事項。人間の評価担当者・中央の提出窓口/DBは不要。本人の非公開workspaceに版付き評価履歴を保存し、Gitなしでエクスポートできるようにする。
 
 ## 残確認事項：開発工程の実装・検証で完了に必要な内容
 
@@ -128,7 +136,7 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 
 上記の未作成成果物、未実装機能、失敗中/未実施の必須開発テストを実地検証待ちへ移してはならない。これらは実装未完了として扱う。OpenCode CLIの個人認証と無料モデルの接続・Skill動作は各受講者の初回起動で確認し、失敗はBLOCKEDとする。
 
-人間による教材・評価内容・知識ノードの最終承認は、全11モジュールと関連機能の実装完了後に行う独立工程であり、実装完了条件や実装工程のBLOCKED理由にはしない。実装工程では正式仕様・固定Skillとの照合、開発レビュー、別AIレビュー、必要な自動/契約テストを完了させる。人間の承認前は`draft_requires_content_review`等の状態を維持し、未承認を承認済みと表示しない。正式な評価担当者の指定は運用開始までの未指定事項として残す。
+教材品質の人間による独立レビューを行った場合は承認状態を正しく記録するが、本人のAI評価による修了を人間の担当者待ちにしない。開発時のAI採点校正・誤PASS拒否・独立セッション・証拠検証は必須とし、完成していないものをPR完了としない。
 
 ## 今回PRで行う技術受入と後続の試行
 
@@ -137,13 +145,13 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 | **今回PR**：実Template・Codespaces | 公開Templateから個人の非公開リポジトリを新規作成し、2コアCodespacesで配布SHA、Skill用資産、1モジュールロード、非破壊性、8082 Serve/Reset、Playwright実行・結果保全を確認する | 成功Run/実行環境/変更対象SHAの記録がある |
 | **今回PR**：教材・評価 | 全目標の教材節・演習・条件変更・質疑・操作証拠・公開ルーブリック・復習が対応。契約テストと校正例を使った根拠付きAIレビューを行う | 不合格・判定不能を解消し、未実行を成功としない |
 | **受講開始時**：OpenCode | 本人のAPIキー・無料モデル接続と必要Skillの利用を確認する | 成功かBLOCKEDを記録 |
-| **PR後**：実受講者試行 | テスト経験者の完全自習、実評価担当者のPhase末採点、費用・容量・所要時間を検証する | 今回PRの完了条件にしない。結果は継続改善に利用 |
+| **PR後**：実受講者試行 | QA経験者が講師なしで学習→AIチューター→独立AI評価→再学習・再評価できるか、所要時間・誤判定・無料モデルの可用性・容量を検証 | 今回PR完了とは別の効果検証として改善に使う |
 
-正式評価担当者の実名・提出物の非公開保存先・権限・再提出窓口は運用まで未指定とし、仮のURLを作らない。
+正式評価担当者や外部提出窓口の指定は不要。本人の個人workspaceで成績・根拠・再評価履歴を保存し、公開repo/Web/グラフへ個人データを送信しない。Template・課金等の実運用値を架空のURLやアカウントで補わない。
 
 ## 運用開始判断に必要な未指定事項
 
-学習用Templateのリポジトリ名・作成アカウント・管理権限、正式評価担当者、学習者個人の提出・評価記録の保存先と管理者、受講者ごとの支払主体・費用条件は未指定のまま保持する。模範解答・採点用テスト・完成状態データの保存場所はpublicな当リポジトリ内の`training/ai-assisted-qa-course/assessment/`に確定している。未指定事項を理由に資料制作を止めず、Templateは今回PRの実装工程で作成し、作成先・管理権限をその時点で確認する。
+Templateの作成アカウント・リポジトリ名・権限と、受講者の料金条件は必要な時点で指定する。正式な人的採点担当、中央の評価記録保存先、提出窓口は**必須要件から除外**。本人の評価結果は非公開workspace/エクスポートで保全する。Templateを作成する前に権限と所有者を確認する。
 
 ## 当初のPlan策定時点で行っていなかったこと（履歴）
 
@@ -188,4 +196,4 @@ M06の新規E2EとM07のPage Object/fixture実装、M10でのCI手動有効化�
 | 知識グラフのMarkdown表エスケープ | CodeQLの既存PR注記は、セル値に含まれるバックスラッシュと表区切りの未処理を指摘していた。 | 現在の`markdownCell`は先にバックスラッシュを二重化してから表区切りと改行を変換する。Windows形式パス、表区切り、CRLFの回帰testを追加して出力を固定した。 |
 
 - **開発検証**：distribution/curriculum/knowledge-graph contracts 30/30 PASS、M00〜M10/53問の課程validator PASS、22状態を含むknowledge graph validate PASS（286 nodes/611 edges/51 objectives/58 knowledge/47 artifacts）、curriculum validator PASS、M03ページを含むWeb build PASS、新課程Web Chromium E2E 17/17 PASS（外部静的server、exit 0）。
-- **判定境界**：開発中の独立レビューは人間による最終承認ではない。58 knowledge nodeは人間承認後の状態を維持する。模範・採点資料は公開リポジトリ内の通常ファイルとして作成し、個人別評価記録の保存先・権限や評価担当者は指定待ちとする。レビューで実施していない人間受講・採点・Codespaces実地検証をPASSとは扱わない。
+- **判定境界**：開発時の独立レビューは教材品質の確認で、本人のAIによる正式習熟認定とは別。58 knowledge nodeの人間承認状態は実際の内容レビューに従い維持する。未実施の受講者試行・人間レビュー・Codespace実行をPASS扱いにしない。
