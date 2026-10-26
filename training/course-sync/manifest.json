@@ -1,7 +1,111 @@
 {
   "schema_version": 1,
   "source_sha": "${SOURCE_SHA}",
-  "state_contract_revision": "ai-assisted-qa-course-v2",
+  "state_contract_revision": "ai-assisted-qa-course-v3",
+  "assessment_asset_allowlist": [
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json",
+      "asset_type": "scoring",
+      "module_id": "M00",
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M01.json",
+      "asset_type": "scoring",
+      "module_id": "M01",
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M02.json",
+      "asset_type": "scoring",
+      "module_id": "M02",
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M03.json",
+      "asset_type": "scoring",
+      "module_id": "M03",
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M04.json",
+      "asset_type": "scoring",
+      "module_id": "M04",
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json",
+      "asset_type": "scoring",
+      "module_id": "M05",
+      "phase_id": "P2"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M06.json",
+      "asset_type": "scoring",
+      "module_id": "M06",
+      "phase_id": "P2"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json",
+      "asset_type": "scoring",
+      "module_id": "M07",
+      "phase_id": "P2"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M08.json",
+      "asset_type": "scoring",
+      "module_id": "M08",
+      "phase_id": "P3"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M09.json",
+      "asset_type": "scoring",
+      "module_id": "M09",
+      "phase_id": "P3"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/scoring-tests/M10.json",
+      "asset_type": "scoring",
+      "module_id": "M10",
+      "phase_id": "P3"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/phase-1-rubric.md",
+      "asset_type": "rubric",
+      "module_id": null,
+      "phase_id": "P1"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/phase-2-rubric.md",
+      "asset_type": "rubric",
+      "module_id": null,
+      "phase_id": "P2"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/assessment/phase-3-rubric.md",
+      "asset_type": "rubric",
+      "module_id": null,
+      "phase_id": "P3"
+    },
+    {
+      "source_path": "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+      "asset_type": "formal_source",
+      "module_id": null,
+      "phase_ids": ["P1", "P2", "P3"]
+    },
+    {
+      "source_path": "docs/spec/README.md",
+      "asset_type": "formal_source",
+      "module_id": null,
+      "phase_ids": ["P1", "P2"]
+    },
+    {
+      "source_path": "training/workbook/01_target-risk.csv",
+      "asset_type": "formal_source",
+      "module_id": null,
+      "phase_ids": ["P1"]
+    }
+  ],
   "external_skill_source": {
     "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
     "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
@@ -555,6 +659,12 @@
       "role": "input"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json",
+      "target_path": "course/modules/M10/inputs/ci-run-evidence.template.json",
+      "module_id": "M10",
+      "role": "input"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/inputs/M10/public-sample-handoff.json",
       "target_path": "course/modules/M10/inputs/public-sample-handoff.json",
       "module_id": "M10",
@@ -743,6 +853,36 @@
     {
       "source_path": "scripts/training/ai-assisted-qa-course-core.mjs",
       "target_path": "scripts/training/ai-assisted-qa-course-core.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-assessment-core.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-assessment-core.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-assessment.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-assessment.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-course-tutor-core.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-course-tutor-core.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-course-tutor.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-course-tutor.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-github-run-evidence.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-github-run-evidence.mjs",
       "module_id": null,
       "role": "runtime"
     }
@@ -1743,6 +1883,12 @@
       "source_path": "course/exercises/M10/submission-template.md",
       "target_path": "workspace/M10/submission.md",
       "kind": "submission-template"
+    },
+    {
+      "module_id": "M10",
+      "source_path": "course/modules/M10/inputs/ci-run-evidence.template.json",
+      "target_path": "workspace/M10/ci-run-evidence.json",
+      "kind": "exercise-file"
     },
     {
       "module_id": "M10",

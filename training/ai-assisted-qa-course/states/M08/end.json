@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "M08",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
@@ -31,8 +31,8 @@
     },
     {
       "id": "M08-END-03",
-      "mode": "human-review",
-      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+      "mode": "read-only",
+      "condition": "This module check validates only its own artifacts and references. P3 formal assessment is available only at terminal module M10 and does not change this module-level structural result."
     },
     {
       "id": "M08-END-04",
@@ -64,5 +64,30 @@
     "includes_reference_solutions": false,
     "includes_scoring_tests": false,
     "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P3",
+    "terminal_module_id": "M10",
+    "required_objective_ids": [
+      "M08-01",
+      "M08-02",
+      "M08-03",
+      "M08-04",
+      "M09-01",
+      "M09-02",
+      "M09-03",
+      "M09-04",
+      "M09-05",
+      "M10-01",
+      "M10-02",
+      "M10-03",
+      "M10-04",
+      "M10-05"
+    ],
+    "entry_command": "pnpm course:assess M10 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P3/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M10",
+    "assessment_is_terminal_only": true
   }
 }

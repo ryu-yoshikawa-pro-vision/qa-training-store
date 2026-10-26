@@ -2,14 +2,14 @@
   "schema_version": 1,
   "module_id": "M10",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
   "read_only": true,
   "environment": ["Phase 2 spec", "personal repository", "course-only workflow"],
   "expected": {
-    "required_paths": ["workspace/M10/submission.md"],
+    "required_paths": ["workspace/M10/submission.md", "workspace/M10/ci-run-evidence.json"],
     "objective_ids": ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05"],
     "phase": "P3",
     "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
@@ -18,7 +18,7 @@
     {
       "id": "M10-END-01",
       "mode": "read-only",
-      "condition": "required submission files and artifact identifiers exist"
+      "condition": "required submission files and PR/Run/Check/Artifact identifiers exist; course:assess verifies exact current PR HEAD and actual Playwright result"
     },
     {
       "id": "M10-END-02",
@@ -27,8 +27,8 @@
     },
     {
       "id": "M10-END-03",
-      "mode": "human-review",
-      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+      "mode": "phase-assessment-reference",
+      "condition": "This read-only end-state check does not rate mastery. P3 objectives are evaluated together by course:assess M10; Node.js finalizes only after calibrated AI candidate, evidence/version validation, and all required objective checks."
     },
     {
       "id": "M10-END-04",
@@ -47,6 +47,12 @@
       "path": "workspace/M10/submission.md",
       "revision": "M10-result-v1",
       "contract_id": "M10-completion-v1"
+    },
+    {
+      "artifact_id": "M10-result-02",
+      "path": "workspace/M10/ci-run-evidence.json",
+      "revision": "M10-run-evidence-v1",
+      "contract_id": "M10-current-pr-run-evidence-v1"
     }
   ],
   "distribution": {
@@ -54,5 +60,30 @@
     "includes_reference_solutions": false,
     "includes_scoring_tests": false,
     "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P3",
+    "terminal_module_id": "M10",
+    "required_objective_ids": [
+      "M08-01",
+      "M08-02",
+      "M08-03",
+      "M08-04",
+      "M09-01",
+      "M09-02",
+      "M09-03",
+      "M09-04",
+      "M09-05",
+      "M10-01",
+      "M10-02",
+      "M10-03",
+      "M10-04",
+      "M10-05"
+    ],
+    "entry_command": "pnpm course:assess M10 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P3/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M10",
+    "assessment_is_terminal_only": true
   }
 }

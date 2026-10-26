@@ -75,7 +75,11 @@ export default defineConfig({
   expect: { timeout: 7_500 },
   retries: process.env.CI ? 2 : 0,
   outputDir: path.join(outputRoot, "test-results"),
-  reporter: [["list"], ["html", { open: "never", outputFolder: path.join(outputRoot, "report") }]],
+  reporter: [
+    ["list"],
+    ["json", { outputFile: path.join(outputRoot, "playwright-result.json") }],
+    ["html", { open: "never", outputFolder: path.join(outputRoot, "report") }],
+  ],
   use: {
     baseURL: settings.baseUrl,
     ...(chromiumExecutable ? { launchOptions: { executablePath: chromiumExecutable } } : {}),

@@ -14,7 +14,20 @@
 - [x] 11. 58 tentative knowledge nodesと教材内容を正式仕様・設問/選択肢/解説・演習・評価基準と照合し、別AI reviewerによる独立開発レビューを実施。M03教材/知識グラフ/状態参照解決とM10 Reset開始入力の指摘を修正して契約テスト・validatorを再実行。レビュー記録を決定事項へ追記した。AIレビューは人間による正式ドメイン承認を意味しないため、58 nodeは`draft_requires_content_review`を維持。
 - [x] 12. 6件のレビュー修正・開発検証・未達をRun Reportへ記録し、対象32追跡ファイルをcommit/pushしてPR本文へ反映。PR全体の未完了Task 7を残し、最新headのCI確認はpush後の独立gateとする。
 
-- Progress: 92% (11/12) — これは全カリキュラムの実装完了を意味しない。
+- Historical checkpoint before the 2026-10-26 scope expansion: 92% (11/12) — this was not full curriculum completion.
+
+## 2026-10-26継続（最新Planの追加受入範囲）
+- [x] 13. 最新HEAD、PR本文/base、詳細Planの正式AI評価・AIチューター・実Template/Codespaces受入条件を再確認。
+- [x] 14. 11 scoring JSON、11 end state、3 phase rubric、教材/提出導線、Validator/contract testsをAI自己評価とNode確定へ一体移行。公開評価資料33件と個人記録のGit/Template/Web/Artifact除外を検証。
+- [x] 15. `course:assess`入口、独立OpenCode read-only session、fail-closed実行/出力パーサ、AI候補/Node確定結果の分離を実装。OpenCode実行自体のモデル受入はTask 19。
+- [x] 16. Phase別全objective検査、証拠/Run検証、live condition、対話回答保存、atomic private attempts、resume/history/export/retakeを実装。ライブ課題対象の採点には回答証拠IDを必須化し、欠落拒否testを追加。
+- [x] 17. M00-M10の公開AIチューター案内、復習→再評価導線、個人データGit/Artifact/Web除外を完成。
+- [x] 18. 校正fixtureを拡充し、51目標/58知識/53設問と教材・解説・演習・採点の独立開発内容レビューを反映。人間の知識ノード最終承認はPlanどおり後工程。
+- [ ] 19. OpenCode CLI 2.0.22実モデルでPhase別校正、権限制御、重大誤PASSゼロを実証する（このWindowsローカル環境にはCLI実行ファイルがなく、Zen/認証は再確認しない）。
+- [ ] 20. 実Template→非公開学習repo→新規2コアCodespaceでLoad/Serve/Reset/Playwright/実AI評価・再評価を技術受入する（作成先/権限/支出条件への回答待ち）。
+- [ ] 21. 関連テスト・品質ゲート・正式仕様/旧課程非回帰・最新HEAD CIを完了し、Run・PR本文・commit/pushを同期する。現状: Unit/Integration/Repository/Web/Native suiteはPASS、全contractsはWindows環境依存31 failure、`verify`は保護対象workspaceファイルのformatで停止、標準51-case Chromiumは成功表示後に終了コードなし。commit/push/最新SHA CIは未完了。
+
+- Progress (current checklist): 81% (17/21). This is task-list progress only; the curriculum and required acceptances remain incomplete. Tasks 7, 19, 20, and 21 remain open.
 
 ## 完了処理の参照先
 - Progress: `docs/reference/run-artifacts.md`

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runAssessmentCli } from "./ai-assisted-qa-assessment.mjs";
+import { runTutorCli } from "./ai-assisted-qa-course-tutor.mjs";
 import {
   checkState,
   loadCourseManifest,
@@ -75,8 +77,10 @@ async function main() {
     printState(checkState({ root: process.cwd(), moduleId, stateName }));
     return;
   }
+  if (command === "assess") return runAssessmentCli(args);
+  if (command === "tutor") return runTutorCli(args);
   throw new Error(
-    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end | node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end | pnpm course:assess M04|M07|M10 --model provider/model-id | pnpm course:tutor Mxx --model provider/model-id | node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
   );
 }
 

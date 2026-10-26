@@ -124,7 +124,7 @@ function courseFixture() {
           schema_version: 1,
           module_id: moduleId,
           state: "start",
-          revision: "ai-assisted-qa-course-v2",
+          revision: "ai-assisted-qa-course-v3",
           source_sha: null,
           public_contract: true,
           read_only: true,
@@ -182,7 +182,7 @@ function courseFixture() {
           schema_version: 1,
           module_id: moduleId,
           state: "end",
-          revision: "ai-assisted-qa-course-v2",
+          revision: "ai-assisted-qa-course-v3",
           source_sha: null,
           public_contract: true,
           read_only: true,
@@ -198,7 +198,24 @@ function courseFixture() {
             },
           ],
           expected: { required_paths: [`workspace/${moduleId}/submission.md`] },
-          checks: [{ id: `${moduleId}-END`, mode: "read-only", condition: "check submission" }],
+          checks: [
+            {
+              id: `${moduleId}-END`,
+              mode:
+                index === 4 || index === 7 || index === 10
+                  ? "phase-assessment-reference"
+                  : "read-only",
+              condition: "check submission",
+            },
+          ],
+          phase_assessment: {
+            phase_id: index <= 4 ? "P1" : index <= 7 ? "P2" : "P3",
+            terminal_module_id: index <= 4 ? "M04" : index <= 7 ? "M07" : "M10",
+            required_at_terminal_module: index <= 4 ? "M04" : index <= 7 ? "M07" : "M10",
+            assessment_is_terminal_only: true,
+            mastery_status: "not_evaluated_by_course_check",
+            entry_command: index === 4 || index === 7 || index === 10 ? "pnpm course:assess" : null,
+          },
           references: [
             `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
             `docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.json`,
@@ -341,10 +358,77 @@ function courseFixture() {
               : [`M${String(index).padStart(2, "0")}`],
     };
   });
+  for (const sourcePath of [
+    "scripts/training/ai-assisted-qa-course.mjs",
+    "scripts/training/ai-assisted-qa-course-core.mjs",
+    "scripts/training/ai-assisted-qa-assessment-core.mjs",
+    "scripts/training/ai-assisted-qa-assessment.mjs",
+    "scripts/training/ai-assisted-qa-course-tutor-core.mjs",
+    "scripts/training/ai-assisted-qa-course-tutor.mjs",
+    "scripts/training/ai-assisted-qa-github-run-evidence.mjs",
+  ]) {
+    const content = fs.readFileSync(path.join(repositoryRoot, sourcePath));
+    writeFixtureFile(source, sourcePath, content);
+    localFiles.push({
+      source_path: sourcePath,
+      target_path: sourcePath,
+      module_id: null,
+      role: "runtime",
+    });
+    distributionBytes.set(sourcePath, content);
+  }
+  const assessmentAssetAllowlist = [
+    ...Array.from({ length: 11 }, (_, index) => {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      return {
+        source_path: `training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`,
+        asset_type: "scoring",
+        module_id: moduleId,
+        phase_id: index <= 4 ? "P1" : index <= 7 ? "P2" : "P3",
+      };
+    }),
+    ...[1, 2, 3].map((phase) => ({
+      source_path: `training/ai-assisted-qa-course/assessment/phase-${phase}-rubric.md`,
+      asset_type: "rubric",
+      module_id: null,
+      phase_id: `P${phase}`,
+    })),
+    {
+      source_path: "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+      asset_type: "formal_source",
+      module_id: null,
+      phase_ids: ["P1", "P2", "P3"],
+    },
+    {
+      source_path: "docs/spec/README.md",
+      asset_type: "formal_source",
+      module_id: null,
+      phase_ids: ["P1", "P2"],
+    },
+    {
+      source_path: "training/workbook/01_target-risk.csv",
+      asset_type: "formal_source",
+      module_id: null,
+      phase_ids: ["P1"],
+    },
+  ];
+  for (const asset of assessmentAssetAllowlist) {
+    const content =
+      asset.asset_type === "scoring"
+        ? JSON.stringify({
+            schema_version: 1,
+            module_id: asset.module_id,
+            revision: "assessment-reference-v1",
+          })
+        : asset.asset_type === "rubric"
+          ? `# ${asset.phase_id} rubric\n`
+          : `pinned source: ${asset.source_path}\n`;
+    writeFixtureFile(source, asset.source_path, content);
+  }
   const manifest = {
     schema_version: 1,
     source_sha: "${SOURCE_SHA}",
-    state_contract_revision: "ai-assisted-qa-course-v2",
+    state_contract_revision: "ai-assisted-qa-course-v3",
     external_skill_source: {
       repository: "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       commit: "7cc6cba7772de549841a39d71694cbafbc783324",
@@ -353,6 +437,7 @@ function courseFixture() {
     local_files: localFiles,
     external_skill_files: externalSkillFiles,
     load_files: loadFiles,
+    assessment_asset_allowlist: assessmentAssetAllowlist,
     generated: {
       shop_build: {
         command: "fixture",
@@ -437,6 +522,13 @@ describe("AI-assisted QA distribution contract", () => {
         );
       }
     }
+    for (const asset of manifest.assessment_asset_allowlist.filter(
+      (item) => item.asset_type !== "rubric",
+    )) {
+      expect(entries.some((entry) => entry.source_path === asset.source_path)).toBe(false);
+      expect(entries.some((entry) => entry.target_path === asset.source_path)).toBe(false);
+    }
+    expect(manifest.local_files.filter((entry) => entry.role === "assessment").length).toBe(3);
     for (const pathValue of [
       "training/ai-assisted-qa-course/assessment/reference-solutions/M00.md",
       "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json",
@@ -687,6 +779,30 @@ describe("AI-assisted QA distribution contract", () => {
       { encoding: "utf8" },
     );
     expect(unrelatedLog.status).toBe(1);
+    for (const learnerPrivateFile of [
+      "workspace/M10/ci-run-evidence.json",
+      "workspace/M10/submission.md",
+    ]) {
+      const ignored = spawnSync(
+        "git",
+        ["-C", ignoreRoot, "check-ignore", "--no-index", learnerPrivateFile],
+        { encoding: "utf8" },
+      );
+      expect(ignored.status, learnerPrivateFile).toBe(0);
+    }
+    expect(
+      spawnSync(
+        "git",
+        [
+          "-C",
+          ignoreRoot,
+          "check-ignore",
+          "--no-index",
+          "workspace/M10/public-sample/handoff-smoke.spec.ts",
+        ],
+        { encoding: "utf8" },
+      ).status,
+    ).toBe(1);
   });
 
   it("keeps M08 Git evidence out of the selected commit paths in a temporary repository", () => {
@@ -1188,7 +1304,7 @@ describe("AI-assisted QA distribution contract", () => {
     const verified = verifySyncedCourseDistribution({ root: fixture.target });
     expect(verified).toMatchObject({
       source_sha: sourceSha,
-      state_contract_revision: "ai-assisted-qa-course-v2",
+      state_contract_revision: "ai-assisted-qa-course-v3",
       shop_files_verified: 1,
       state_files_verified: 22,
     });
@@ -1275,7 +1391,7 @@ describe("AI-assisted QA distribution contract", () => {
     wrongSource.source_sha = "c".repeat(40);
     fs.writeFileSync(manifestPath, JSON.stringify(wrongSource));
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-      /state SHA or revision does not match/,
+      /source SHA does not match the course pin/,
     );
 
     const invalidPath = JSON.parse(originalManifest);
@@ -1387,7 +1503,7 @@ describe("AI-assisted QA distribution contract", () => {
     fs.appendFileSync(submission, "Learner evidence\n");
     expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" })).toMatchObject({
       status: "ready",
-      assessment: "構造照合のみです。Level 2は人が別途評価します",
+      assessment: "構造照合のみです。Phase末の正式AI評価は別にcourse:assessで起動します",
     });
     expect(() =>
       loadModule({

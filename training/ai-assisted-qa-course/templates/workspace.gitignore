@@ -8,3 +8,8 @@
 /M06/
 /M07/
 /M08/local-only-run.log
+/.course-assessments/
+/.course-assessment-tmp/
+/course-assessment-exports/
+/M10/ci-run-evidence.json
+/M10/submission.md

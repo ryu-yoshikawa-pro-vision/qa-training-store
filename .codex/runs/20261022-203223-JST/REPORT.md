@@ -210,3 +210,27 @@
 - push後の必須CI結果はRun Artifactへ追記せず、GitHub Actions、PR本文、ユーザー報告で記録する。
 - 保護対象: `workspace/M05/validation/`、`workspace/M06/acceptance-probe.spec.ts`、`workspace/M08/`、`workspace/M10/`は変更/stage/commitしていない。
 - 全体未完了: M02->M03 OpenCode model-dependent統合受入はこの修正対象外で未完了。外部Template、受講者/評価担当者、Codespaces実地検証も未実施。
+## 2026-10-26 継続作業開始
+
+- Summary: 最新依頼・最新Planへの再適合を開始。前回Runの92%は旧作業範囲内のチェックリスト値であり、今回の正式AI評価/実Template受入を含む完了率ではないと明記した。
+- 確認: ローカルbranch `docs/plan-ai-agent-qa-curriculum-redesign`、HEAD `f468e2f10f33a2dc4c384d32489465ba69e7a23c`。GitHub PR APIでもPR #199 OPEN、base `main`、head SHAが同じ。worktreeの保護対象未追跡ファイルは `workspace/M05/validation/`、`workspace/M06/acceptance-probe.spec.ts`、`workspace/M08/`、`workspace/M10/`。変更・stageしていない。
+- CI: 指定SHAのworkflow runsを取得。Web CIはsuccess、Mobile App CIは実行中。旧SHAのCI結果を現在SHAの証拠には使わない。
+- 現状差分: `course:sync/load/check`と全11 moduleの教材・53 quiz・22状態・51 objective/58 knowledge graph・33公開評価資料・Phase 2専用Playwright経路は既存。`course:assess`、評価モデル校正、AI candidate/Node finalizer、本人再評価/履歴保存、実OpenCode受入は未実装。scoring JSON 11件は旧`human_final_approval`契約、全11 end stateに`human-review`が残る。
+- 実行環境: ローカルNode.js v22.20.0、`pnpm`あり。`opencode`コマンドは見つからず、ユーザー指示に従いOpenCode Zen/認証を再検証していない。PRの最新PlanはOpenCode 2.0.22の実モデル校正と実Template由来2-core Codespaceを技術受入に含める。Template名/所有者/作成権限と費用上限をユーザーへ質問し、回答待ちの間もローカル実装を続ける。
+- Scope update: PLAN/TASKSに2026-10-26の確定追加受入を追記。旧progress値は過去のcheckpointとして保持し、現在タスクリストは12/21 (57%)。これはカリキュラム達成率ではない。
+- Reference: OpenCode公式CLI/Agent v2資料で`opencode run --agent --model --format json`、`OPENCODE_CONFIG_CONTENT`、V2のordered `permissions` (`shell`, `edit`, `subagent`等)を確認。CLI出力はJSON event streamであり、評価候補JSONとして直接信用しない前提。
+- 未達: scoring/state/rubric移行、formal assessment runtime、AI tutor workflow、開発テスト、実モデル校正、実Template/Codespace技術受入、最新SHA必須CI完了。
+
+## 2026-10-27 — PR #199 実装受入の継続・自己レビュー
+
+- 開始HEAD / PR HEAD: `f468e2f10f33a2dc4c384d32489465ba69e7a23c`。対象branchは`docs/plan-ai-agent-qa-curriculum-redesign`、baseは`main`。既存の保護対象untracked領域`workspace/M05/validation/`、`workspace/M06/acceptance-probe.spec.ts`、`workspace/M08/`、`workspace/M10/`は編集・stage対象に含めない。
+- 実装: `course:assess`のPhase別入力/証拠/Run検証、校正・read-only OpenCode evaluator、Node finalizer、個人別private attempt/resume/history/export/retake、AI tutorのモジュール限定read-only起動、M10のGitHub Run/Check/Artifact/target SHA/Playwright結果検証を追加。公開資料33件、全11 moduleのscoring/end-state/rubricを接続し、web/distributionからの除外は保持。
+- 自己レビュー修正: 校正済みAI候補が条件変更への回答を証拠として引用しなくても対象objectiveを採点できる抜けを確認。ライブ課題対象objectiveが`assessed`なら`E-<objective>-LIVE`の参照を必須化し、欠落拒否contract testを追加。AI判断はなおモデル実行・校正が必要で、決定論的validatorだけで意味評価成功とはしない。
+- 開発検証PASS: `pnpm.cmd exec vitest run tests/contracts/ai-assisted-qa-course-distribution.test.mjs tests/contracts/ai-assisted-qa-curriculum.test.ts tests/contracts/ai-assisted-qa-assessment.test.mjs tests/contracts/ai-assisted-qa-course-tutor.test.mjs tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs --no-file-parallelism --maxWorkers=1 --testTimeout=30000` 48/48。修正後のassessment/tutor/GitHub evidence contracts 17/17。`validate:ai-assisted-qa` M00-M10/53問/33資料、knowledge graph 288 nodes/619 edges/51 objectives/58 knowledge/22 states、`validate:curriculum` 22 docs/4 workbooks、`validate:skills` 6 packages/15 Markdown/28 links、`validate:spec`、`validate:spec-visuals:final`、`typecheck`全3系統、`lint` 0 error (64 existing warnings)、security scan 236 runtime/420 credential files、Markdown lint、changed/full text lint、image manifest validation、`build:spec` 22 pages、`build:web` 12新課程pages/11 quiz pagesを確認。
+- 開発E2E PASS: build済み`dist`から公開クイズM00-M10を含むChromium 17/17、専用ConfigでM05 reference 1/1、M06 Cart 3/3、M07 intentional failureは`M07_INTENTIONAL_ASSERTION_FAILURE`で期待どおり拒否、別rootの修正版1/1、M08/M10 public handoff各1/1。これらはローカル開発実行でありTemplate/Codespaces実地受入ではない。dist走査でassessment/scoring/completed/reference/CI evidenceの禁止パスと内容markerは0件。
+- 旧製品E2E: `pnpm.cmd run test:e2e:chromium`は明示Chrome・外部静的serverで51件すべての成功行を表示。しかしsummary/終了コードが返らず待機後に中断したため、suite PASSには計上しない。
+- 全体`pnpm.cmd run test`: unit 66/66、integration 111/111、repository 147/147、Web component 103/103、Native component 64/64 PASS。全contractsは5 filesで31 failed / 797 passed / 2 skipped: Hook/logging 18件（`.codex/logs`/`pwsh.exe` EACCES・ログ未作成）、native wrapper 9件（Windows temp ACL/PowerShell output）、artifact sanitizer 1件（Temp ACL）、CI waiter MCP 3件（`Connection closed`）、manifest-sync setup 1 suite / 0 test（bash spawnでstdoutがundefined）。今回の課程contract 48/48は同じRunで独立PASS。これらを一律に環境免責せず、failureの実出力と今回差分に無関係な既存pathであることを分類。timeout延長・skipは行っていない。
+- `pnpm.cmd run verify`: 初回に今回変更した33ファイルのPrettier差分を発見し、保護対象を除いてformat修正。再実行は唯一`workspace/M06/acceptance-probe.spec.ts`のformat違反で先頭gate停止。これは保護対象の既存untracked learner testのため編集・除外せず。後続gateは上記のとおり個別実行し、標準verify全体PASSとは報告しない。
+- 未完了/BLOCKED: 固定Skill M02→M03のOpenCodeモデル依存意味分析/技法選択を含む統合受入。Windows環境に`opencode` CLIがなく、モデル実行・Phase別校正・正式AI評価/再評価を実行できない。OpenCode Zen/認証はユーザー指示どおり再確認せず、有料モデルへfallbackしていない。公開Template→非公開repo→新規2-core CodespaceはTemplate名/所有者/作成先/権限/無料枠または支出条件の指定がなく未作成・未受入。人間の知識node最終承認は実装ブロッカーではなく、実受講者の学習効果試行はPR後。
+- Git/PR: 本sectionはcommit前の検証記録。次に protected/unrelated workspaceを除外した明示file listだけをstageし、commit/通常push、PR本文更新、PR/local/origin SHA照合を行う。最新SHA Web/Mobile CIはpush後に確認する。実モデル/Template技術受入がBLOCKEDのためPR全体は未完了。
+- Progress: 17/21 tracking tasks complete (81%); checklist progress only. Task 7 (M02→M03 model integration), 19 (OpenCode live-model calibration), 20 (Template/2-core Codespace), and 21 (full gates/exact-head CI/PR lifecycle) remain open.

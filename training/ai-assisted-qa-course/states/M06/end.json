@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "M06",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
@@ -27,8 +27,8 @@
     },
     {
       "id": "M06-END-03",
-      "mode": "human-review",
-      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+      "mode": "read-only",
+      "condition": "This module check validates only its own artifacts and references. P2 formal assessment is available only at terminal module M07 and does not change this module-level structural result."
     },
     {
       "id": "M06-END-04",
@@ -60,5 +60,31 @@
     "includes_reference_solutions": false,
     "includes_scoring_tests": false,
     "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P2",
+    "terminal_module_id": "M07",
+    "required_objective_ids": [
+      "M05-01",
+      "M05-02",
+      "M05-03",
+      "M05-04",
+      "M05-05",
+      "M06-01",
+      "M06-02",
+      "M06-03",
+      "M06-04",
+      "M06-05",
+      "M07-01",
+      "M07-02",
+      "M07-03",
+      "M07-04",
+      "M07-05"
+    ],
+    "entry_command": "pnpm course:assess M07 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P2/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M07",
+    "assessment_is_terminal_only": true
   }
 }

@@ -35,6 +35,7 @@ const REQUIRED_SCORING_CASE_TYPES = [
   "ungradable",
   "revision-mismatch",
   "required-evidence-missing",
+  "prompt-injection",
 ];
 
 type QuizOption = {
@@ -242,10 +243,25 @@ function validateAssessmentPackage(
       provided_revision?: string;
       expected_revision?: string;
       missing_required_evidence?: string[];
+      calibration_expected_decisions?: string[];
     }[];
     evaluation_policy?: {
       automated_scope?: string;
-      human_final_approval?: string;
+      formal_assessment?: {
+        required?: boolean;
+        phase_id?: string;
+        terminal_module_id?: string;
+        candidate_evaluator?: string;
+        finalizer?: string;
+        human_final_approval_required?: boolean;
+        result_path?: string;
+      };
+      calibration?: {
+        required?: boolean;
+        scope?: string;
+        critical_false_passes_allowed?: number;
+        retain_expected_decision_labels_as?: string;
+      };
       live_condition?: {
         required?: boolean;
         conditions_prepublished?: boolean;
@@ -352,6 +368,13 @@ function validateAssessmentPackage(
       `${scoringPath}に構造不完全な採点例があります`,
     );
     caseTypes.add(example.type);
+    if (example.type === "acceptable-alternative")
+      requireCondition(
+        Array.isArray(example.calibration_expected_decisions) &&
+          example.calibration_expected_decisions.includes("pass_with_reason") &&
+          example.calibration_expected_decisions.includes("pass"),
+        `${scoringPath}/${example.id} must allow a valid alternative without forcing one label`,
+      );
     if (example.type === "revision-mismatch")
       requireCondition(
         typeof example.provided_revision === "string" &&
@@ -369,6 +392,12 @@ function validateAssessmentPackage(
           example.expected_decision === "ungradable",
         `${scoringPath}/${example.id} must mark missing required evidence as ungradable and list the missing evidence`,
       );
+    if (example.type === "prompt-injection")
+      requireCondition(
+        example.expected_decision === "ungradable" &&
+          example.evidence.some((item) => item.includes(`/states/${moduleId}/end.json`)),
+        `${scoringPath}/${example.id} must reject prompt-injection claims without learner evidence`,
+      );
   }
   requireCondition(
     REQUIRED_SCORING_CASE_TYPES.every((type) => caseTypes.has(type)),
@@ -376,16 +405,38 @@ function validateAssessmentPackage(
   );
   requireCondition(
     typeof scoring.evaluation_policy?.automated_scope === "string" &&
-      scoring.evaluation_policy.automated_scope.includes("構造") &&
-      scoring.evaluation_policy.human_final_approval === "pending_after_implementation",
-    `${scoringPath}が自動検証と人間の最終承認を区別していません`,
+      scoring.evaluation_policy.automated_scope.includes("Node.js validates") &&
+      scoring.evaluation_policy.formal_assessment?.required === true &&
+      scoring.evaluation_policy.formal_assessment.human_final_approval_required === false &&
+      scoring.evaluation_policy.formal_assessment.candidate_evaluator?.includes("OpenCode") &&
+      scoring.evaluation_policy.formal_assessment.finalizer?.includes("Node.js") &&
+      scoring.evaluation_policy.calibration?.required === true &&
+      scoring.evaluation_policy.calibration.critical_false_passes_allowed === 0 &&
+      scoring.evaluation_policy.calibration.scope?.includes("model id") &&
+      scoring.evaluation_policy.calibration.scope.includes("prompt SHA-256"),
+    `${scoringPath}がNode.js確定・独立AI候補・モデル校正を分離していません`,
   );
-  if (["M04", "M07", "M10"].includes(moduleId))
+  const moduleNumber = Number(moduleId.slice(1));
+  const expectedPhase = moduleNumber <= 4 ? "P1" : moduleNumber <= 7 ? "P2" : "P3";
+  const terminalModule = expectedPhase === "P1" ? "M04" : expectedPhase === "P2" ? "M07" : "M10";
+  requireCondition(
+    scoring.evaluation_policy.formal_assessment?.phase_id === expectedPhase &&
+      scoring.evaluation_policy.formal_assessment.terminal_module_id === terminalModule &&
+      scoring.evaluation_policy.formal_assessment.result_path ===
+        `workspace/.course-assessments/${expectedPhase}/attempts/<assessment_id>/result.json`,
+    `${scoringPath}のPhase評価集約先が不正です`,
+  );
+  if (moduleId === terminalModule)
     requireCondition(
       scoring.evaluation_policy.live_condition?.required === true &&
         scoring.evaluation_policy.live_condition.conditions_prepublished === false &&
         typeof scoring.evaluation_policy.live_condition.selection_rule === "string",
       `${scoringPath}が評価時に提示する本人判断条件を適切に分離していません`,
+    );
+  else
+    requireCondition(
+      scoring.evaluation_policy.live_condition === undefined,
+      `${scoringPath}はPhase末のlive conditionを非終端moduleへ要求してはいけません`,
     );
 
   const completed = JSON.parse(fs.readFileSync(stateAbsolute, "utf8")) as {
@@ -395,7 +446,7 @@ function validateAssessmentPackage(
     objective_ids?: string[];
     knowledge_ids?: string[];
     reference_only?: boolean;
-    human_evaluation?: string;
+    source_state_revision?: string;
     artifacts?: {
       id?: string;
       path?: string;
@@ -414,8 +465,8 @@ function validateAssessmentPackage(
     `${statePath}が公開基準データとして宣言されていません`,
   );
   requireCondition(
-    completed.human_evaluation === "not_performed",
-    `${statePath}が実施していない人間評価を示しています`,
+    completed.source_state_revision === "ai-assisted-qa-course-v3",
+    `${statePath}のsource end-state revisionが一致しません`,
   );
   requireCondition(
     JSON.stringify(sortedUnique(completed.objective_ids ?? [])) ===
@@ -464,8 +515,8 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
     forbidden_paths?: string[];
   };
   requireCondition(
-    courseManifest.state_contract_revision === "ai-assisted-qa-course-v2",
-    "course distribution state contract revision must be v2",
+    courseManifest.state_contract_revision === "ai-assisted-qa-course-v3",
+    "course distribution state contract revision must be v3",
   );
   const graphAbsolute = repositoryPath(rootDir, GRAPH_PATH);
   const graph = JSON.parse(fs.readFileSync(graphAbsolute, "utf8")) as {
@@ -710,7 +761,17 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
           revision?: string;
           contract_id?: string;
         }[];
-        expected?: { required_paths?: string[]; objective_ids?: string[] };
+        expected?: { required_paths?: string[]; objective_ids?: string[]; phase?: string };
+        phase_assessment?: {
+          phase_id?: string;
+          terminal_module_id?: string;
+          required_objective_ids?: string[];
+          required_at_terminal_module?: string;
+          assessment_is_terminal_only?: boolean;
+          entry_command?: string;
+          result_root?: string;
+          mastery_status?: string;
+        };
         checks?: { id?: string; mode?: string; condition?: string }[];
         references?: string[];
         distribution?: {
@@ -725,7 +786,7 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
         `${statePath}のID/版が不正です`,
       );
       requireCondition(
-        state.revision === "ai-assisted-qa-course-v2",
+        state.revision === "ai-assisted-qa-course-v3",
         `${statePath}のrevisionが不正です`,
       );
       requireCondition(
@@ -758,6 +819,56 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
           state.checks.every((check) => check.id && check.mode && check.condition),
         `${statePath}に照合条件がありません`,
       );
+      if (stateName === "end") {
+        const modulePhase = graph.nodes?.find(
+          (node) => node.type === "module" && node.id === moduleId,
+        )?.phase;
+        const terminalByPhase = { P1: "M04", P2: "M07", P3: "M10" } as const;
+        const terminalModule =
+          modulePhase && modulePhase in terminalByPhase
+            ? terminalByPhase[modulePhase as keyof typeof terminalByPhase]
+            : undefined;
+        const modulesForPhase = new Set(
+          (graph.nodes ?? [])
+            .filter((node) => node.type === "module" && node.phase === modulePhase)
+            .map((node) => node.id),
+        );
+        const phaseObjectiveIds = (graph.nodes ?? [])
+          .filter(
+            (node) =>
+              node.type === "learning_objective" &&
+              typeof node.id === "string" &&
+              modulesForPhase.has(node.id.slice(0, 3)),
+          )
+          .map((node) => node.id as string)
+          .sort();
+        const phaseAssessment = state.phase_assessment;
+        requireCondition(
+          Boolean(
+            modulePhase &&
+            terminalModule &&
+            phaseAssessment?.phase_id === modulePhase &&
+            phaseAssessment.terminal_module_id === terminalModule &&
+            phaseAssessment.required_at_terminal_module === terminalModule &&
+            phaseAssessment.assessment_is_terminal_only === true &&
+            phaseAssessment.entry_command ===
+              `pnpm course:assess ${terminalModule} --model provider/model-id` &&
+            phaseAssessment.result_root ===
+              `workspace/.course-assessments/${modulePhase}/attempts` &&
+            phaseAssessment.mastery_status === "not_evaluated_by_course_check" &&
+            JSON.stringify([...(phaseAssessment.required_objective_ids ?? [])].sort()) ===
+              JSON.stringify(phaseObjectiveIds),
+          ),
+          `${statePath}のPhase終端評価参照が知識グラフ/Phase契約と一致しません`,
+        );
+        const hasTerminalAssessmentCheck = state.checks?.some(
+          (check) => check.mode === "phase-assessment-reference",
+        );
+        requireCondition(
+          hasTerminalAssessmentCheck === (moduleId === terminalModule),
+          `${statePath}はPhase終端moduleだけを正式評価の入口として参照してください`,
+        );
+      }
       requireCondition(
         Array.isArray(state.references) && state.references.length >= 2,
         `${statePath}に参照がありません`,

@@ -1,5 +1,7 @@
 # M05：Node.js・TypeScript・Playwrightの最小基礎
 
+> **AIチューター**：CodespacesでM05をロードした後に `pnpm course:tutor M05 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM05の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
 ## このモジュールで学ぶこと
 
 学習用リポジトリにあるNode.jsとpnpmを使って、短いTypeScriptとPlaywrightのspecを読み、説明し、一箇所を修正して再実行します。開発環境全体の再構築や高度なTypeScriptは学習範囲に含みません。

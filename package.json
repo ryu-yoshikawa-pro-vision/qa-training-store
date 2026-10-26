@@ -53,6 +53,8 @@
     "course:sync": "node scripts/training/ai-assisted-qa-course.mjs sync",
     "course:load": "node scripts/training/ai-assisted-qa-course.mjs load",
     "course:check": "node scripts/training/ai-assisted-qa-course.mjs check",
+    "course:assess": "node scripts/training/ai-assisted-qa-course.mjs assess",
+    "course:tutor": "node scripts/training/ai-assisted-qa-course.mjs tutor",
     "training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium",
     "training:web:exercise:with-receipt": "tsx scripts/training/run-playwright-with-receipt.ts",
     "training:web:mobile": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-mobile-chromium",

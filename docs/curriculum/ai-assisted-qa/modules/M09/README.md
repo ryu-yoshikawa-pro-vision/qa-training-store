@@ -1,5 +1,7 @@
 # M09：CIと品質ゲート
 
+> **AIチューター**：CodespacesでM09をロードした後に `pnpm course:tutor M09 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM09の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
 ## このモジュールで学ぶこと
 
 CIは指定イベントでRunner上の手順を実行する仕組みです。workflowは自動化の定義、triggerは起動条件、jobは実行単位、stepはjob内の処理です。管理者が固定SHAからScenario Shopをビルドして同期し、受講者のworkflowは配布済みの`course/shop/`をServeしてTestします。受講者側で`build:web`を実行しません。ローカルとCIの環境差、対象SHA、Run、Artifactを一緒に確認します。

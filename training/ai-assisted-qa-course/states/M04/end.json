@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "M04",
   "state": "end",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
@@ -27,8 +27,8 @@
     },
     {
       "id": "M04-END-03",
-      "mode": "human-review",
-      "condition": "meaning, evidence, decisions and alternatives meet Level 2 rubric"
+      "mode": "phase-assessment-reference",
+      "condition": "This read-only end-state check does not rate mastery. P1 objectives are evaluated together by course:assess M04; Node.js finalizes only after calibrated AI candidate, evidence/version validation, and all required objective checks."
     },
     {
       "id": "M04-END-04",
@@ -60,5 +60,38 @@
     "includes_reference_solutions": false,
     "includes_scoring_tests": false,
     "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P1",
+    "terminal_module_id": "M04",
+    "required_objective_ids": [
+      "M00-01",
+      "M00-02",
+      "M00-03",
+      "M00-04",
+      "M01-01",
+      "M01-02",
+      "M01-03",
+      "M01-04",
+      "M02-01",
+      "M02-02",
+      "M02-03",
+      "M02-04",
+      "M02-05",
+      "M03-01",
+      "M03-02",
+      "M03-03",
+      "M03-04",
+      "M03-05",
+      "M04-01",
+      "M04-02",
+      "M04-03",
+      "M04-04"
+    ],
+    "entry_command": "pnpm course:assess M04 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P1/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M04",
+    "assessment_is_terminal_only": true
   }
 }

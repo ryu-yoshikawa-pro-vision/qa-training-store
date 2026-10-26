@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "M08",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,

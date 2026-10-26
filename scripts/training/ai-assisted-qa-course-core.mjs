@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 export const COURSE_MANIFEST_PATH = "training/course-sync/manifest.json";
 export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
-const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v2";
+const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v3";
 const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
@@ -20,6 +20,87 @@ const REQUIRED_ASSESSMENT_EXCLUSIONS = [
   "training/ai-assisted-qa-course/assessment/scoring-tests/**",
   "training/ai-assisted-qa-course/assessment/completed-states/**",
 ];
+const ASSESSMENT_MAX_BYTES = 1024 * 1024;
+const PHASE_TERMINALS = Object.freeze({ P1: "M04", P2: "M07", P3: "M10" });
+const ASSESSMENT_ASSET_PATH_PATTERN =
+  /^(?:training\/ai-assisted-qa-course\/assessment\/(?:scoring-tests\/M(?:0[0-9]|10)\.json|phase-[1-3]-rubric\.md)|docs\/curriculum\/ai-assisted-qa\/knowledge-graph\.json|docs\/spec\/README\.md|training\/workbook\/01_target-risk\.csv)$/;
+const FORMAL_SOURCE_ASSET_PHASES = Object.freeze({
+  "docs/curriculum/ai-assisted-qa/knowledge-graph.json": ["P1", "P2", "P3"],
+  "docs/spec/README.md": ["P1", "P2"],
+  "training/workbook/01_target-risk.csv": ["P1"],
+});
+
+function assessmentPhaseForModule(moduleId) {
+  const number = Number(moduleId.slice(1));
+  return number <= 4 ? "P1" : number <= 7 ? "P2" : "P3";
+}
+
+function validateAssessmentAssetEntry(entry, sourceSha, label = "assessment asset") {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    !ASSESSMENT_ASSET_PATH_PATTERN.test(entry.source_path ?? "")
+  )
+    fail(`${label} path is not in the fixed assessment allowlist`);
+  const scoringMatch = entry.source_path.match(/scoring-tests\/(M(?:0[0-9]|10))\.json$/);
+  const rubricMatch = entry.source_path.match(/phase-([1-3])-rubric\.md$/);
+  const formalSourcePhases = FORMAL_SOURCE_ASSET_PHASES[entry.source_path];
+  const expectedModule = scoringMatch?.[1] ?? null;
+  const expectedPhase = expectedModule
+    ? assessmentPhaseForModule(expectedModule)
+    : rubricMatch
+      ? `P${rubricMatch[1]}`
+      : undefined;
+  if (formalSourcePhases) {
+    if (
+      entry.asset_type !== "formal_source" ||
+      entry.module_id !== null ||
+      JSON.stringify(entry.phase_ids) !== JSON.stringify(formalSourcePhases)
+    )
+      fail(
+        `${label} formal source metadata does not match its allowlisted path: ${entry.source_path}`,
+      );
+  } else if (
+    entry.module_id !== expectedModule ||
+    entry.phase_id !== expectedPhase ||
+    entry.asset_type !== (expectedModule ? "scoring" : "rubric")
+  )
+    fail(`${label} metadata does not match its allowlisted path: ${entry.source_path}`);
+  if (sourceSha && entry.source_sha !== sourceSha)
+    fail(`${label} source SHA does not match the course pin: ${entry.source_path}`);
+  if (entry.sha256 !== undefined && !/^[a-f0-9]{64}$/.test(entry.sha256))
+    fail(`${label} has no valid SHA-256: ${entry.source_path}`);
+  if (entry.git_blob_sha !== undefined && !/^[a-f0-9]{40}$/.test(entry.git_blob_sha))
+    fail(`${label} has no valid Git blob SHA: ${entry.source_path}`);
+  if (
+    entry.bytes !== undefined &&
+    (!Number.isSafeInteger(entry.bytes) || entry.bytes <= 0 || entry.bytes > ASSESSMENT_MAX_BYTES)
+  )
+    fail(`${label} size is invalid: ${entry.source_path}`);
+}
+
+function validateAssessmentAssetSet(assets, sourceSha, label = "assessment assets") {
+  if (!Array.isArray(assets) || assets.length !== 17)
+    fail(`${label} must contain 11 scoring files, 3 phase rubrics, and 3 formal source references`);
+  const paths = new Set();
+  for (const asset of assets) {
+    validateAssessmentAssetEntry(asset, sourceSha, label);
+    if (paths.has(asset.source_path))
+      fail(`${label} contains a duplicate path: ${asset.source_path}`);
+    paths.add(asset.source_path);
+  }
+  const expected = [
+    ...MODULE_IDS.map(
+      (moduleId) => `training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`,
+    ),
+    ...[1, 2, 3].map(
+      (phase) => `training/ai-assisted-qa-course/assessment/phase-${phase}-rubric.md`,
+    ),
+    ...Object.keys(FORMAL_SOURCE_ASSET_PHASES),
+  ];
+  if (expected.some((sourcePath) => !paths.has(sourcePath)))
+    fail(`${label} does not match the complete fixed-path allowlist`);
+}
 
 function fail(message) {
   throw new Error(message);
@@ -90,6 +171,7 @@ export function validateCourseManifest(manifest) {
     !Array.isArray(manifest.local_files) ||
     !Array.isArray(manifest.external_skill_files) ||
     !Array.isArray(manifest.load_files) ||
+    !Array.isArray(manifest.assessment_asset_allowlist) ||
     !Array.isArray(manifest.forbidden_paths) ||
     !manifest.forbidden_paths.includes(".github/workflows/**") ||
     REQUIRED_ASSESSMENT_EXCLUSIONS.some((item) => !manifest.forbidden_paths.includes(item))
@@ -97,6 +179,7 @@ export function validateCourseManifest(manifest) {
     fail(
       "Course manifest must include local_files, external_skill_files, load_files, workflow prohibition, and all assessment distribution exclusions",
     );
+  validateAssessmentAssetSet(manifest.assessment_asset_allowlist);
   if (
     manifest.external_skill_source?.repository !== "ryu-yoshikawa-pro-vision/qa-workflow-skills" ||
     manifest.external_skill_source?.commit !== "7cc6cba7772de549841a39d71694cbafbc783324"
@@ -181,10 +264,21 @@ export function validateCourseManifest(manifest) {
       "load target_path",
     );
   }
+  for (const asset of manifest.assessment_asset_allowlist) {
+    if (asset.asset_type === "rubric") continue;
+    if (
+      manifest.local_files.some((file) => file.source_path === asset.source_path) ||
+      manifest.load_files.some((file) => file.source_path === asset.source_path)
+    )
+      fail(
+        `assessment source is reference-only and must not be copied or loaded: ${asset.source_path}`,
+      );
+  }
   return {
     modules: MODULE_IDS.length,
     externalSkillFiles: manifest.external_skill_files.length,
     loadFiles: manifest.load_files.length,
+    assessmentAssetReferences: manifest.assessment_asset_allowlist.length,
   };
 }
 
@@ -218,6 +312,72 @@ function readCommittedFile(root, sourceSha, sourcePath) {
   const working = fs.readFileSync(workingPath);
   if (!working.equals(committed)) fail(`worktree differs from pinned source SHA: ${sourcePath}`);
   return committed;
+}
+
+function assessmentSourceAbsolute(root, sourcePath) {
+  if (!ASSESSMENT_ASSET_PATH_PATTERN.test(sourcePath))
+    fail(`assessment source path is not allowlisted: ${sourcePath}`);
+  const absolute = path.resolve(root, ...sourcePath.split("/"));
+  const relative = path.relative(path.resolve(root), absolute);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+    fail(`assessment source path escapes the repository: ${sourcePath}`);
+  let current = path.resolve(root);
+  for (const part of sourcePath.split("/")) {
+    current = path.join(current, part);
+    if (!fs.existsSync(current)) continue;
+    if (fs.lstatSync(current).isSymbolicLink())
+      fail(`assessment source must not use a symbolic link: ${sourcePath}`);
+  }
+  if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isFile())
+    fail(`assessment source must be a regular file: ${sourcePath}`);
+  return absolute;
+}
+
+function readPinnedAssessmentSource(root, sourceSha, entry, allowUncommittedFixture) {
+  const absolute = assessmentSourceAbsolute(root, entry.source_path);
+  let bytes;
+  let blobSha;
+  if (allowUncommittedFixture) {
+    bytes = fs.readFileSync(absolute);
+    blobSha = gitBlobSha(bytes);
+  } else {
+    const treeEntry = git(root, ["ls-tree", sourceSha, "--", entry.source_path]);
+    const match = treeEntry.match(/^100644 blob ([a-f0-9]{40})\t(.+)$/);
+    if (!match || match[2] !== entry.source_path)
+      fail(`assessment source must be a regular pinned Git blob: ${entry.source_path}`);
+    blobSha = match[1];
+    bytes = execFileSync("git", ["show", `${sourceSha}:${entry.source_path}`], {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    if (!fs.readFileSync(absolute).equals(bytes))
+      fail(`assessment worktree differs from pinned source SHA: ${entry.source_path}`);
+  }
+  if (bytes.length === 0 || bytes.length > ASSESSMENT_MAX_BYTES)
+    fail(`assessment source size is invalid: ${entry.source_path}`);
+  if (entry.asset_type === "scoring") {
+    let scoring;
+    try {
+      scoring = JSON.parse(bytes.toString("utf8"));
+    } catch (error) {
+      fail(`pinned scoring JSON is invalid: ${entry.source_path}: ${error.message}`);
+    }
+    if (
+      scoring.schema_version !== 1 ||
+      scoring.module_id !== entry.module_id ||
+      scoring.revision !== "assessment-reference-v1"
+    )
+      fail(`pinned scoring JSON has an invalid schema/module/revision: ${entry.source_path}`);
+  } else if (bytes.includes(Buffer.from("<html", "ascii"))) {
+    fail(`pinned phase rubric unexpectedly contains HTML: ${entry.source_path}`);
+  }
+  return {
+    ...entry,
+    source_sha: sourceSha,
+    sha256: sha256(bytes),
+    git_blob_sha: blobSha,
+    bytes: bytes.length,
+  };
 }
 
 function bindStateSourceSha(bytes, sourcePath, sourceSha) {
@@ -396,6 +556,10 @@ export async function syncCourse({
       module_id: entry.module_ids,
     });
   }
+  const assessmentAssets = manifest.assessment_asset_allowlist.map((entry) =>
+    readPinnedAssessmentSource(sourceRoot, sourceSha, entry, allowUncommittedFixture),
+  );
+  validateAssessmentAssetSet(assessmentAssets, sourceSha);
   const buildRoot = shopBuildRoot ? path.resolve(shopBuildRoot) : sourceRoot;
   if (buildShop || fs.existsSync(path.join(buildRoot, "dist")))
     files.push(...expandBuildOutput(buildRoot, manifest));
@@ -420,6 +584,7 @@ export async function syncCourse({
     created_by_sync: "course:sync",
     files: filesForDistribution,
     load_files: manifest.load_files,
+    assessment_assets: assessmentAssets,
     distribution: {
       public_source: true,
       includes_reference_solutions: false,
@@ -482,6 +647,7 @@ function readDistribution(root) {
     fail("course distribution manifest has no state contract revision");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
+  validateAssessmentAssetSet(distribution.assessment_assets, distribution.source_sha);
   if (
     distribution.distribution?.public_source !== true ||
     distribution.distribution?.includes_reference_solutions !== false ||
@@ -512,7 +678,104 @@ function readDistribution(root) {
       "load target_path",
     );
   }
+  for (const asset of distribution.assessment_assets) {
+    if (
+      Object.hasOwn(asset, "content") ||
+      Object.hasOwn(asset, "body") ||
+      Object.hasOwn(asset, "bytes_base64")
+    )
+      fail(`assessment distribution metadata must not contain asset content: ${asset.source_path}`);
+    if (
+      asset.asset_type !== "rubric" &&
+      (distribution.files.some((file) => file.source_path === asset.source_path) ||
+        distribution.load_files.some((file) => file.source_path === asset.source_path))
+    )
+      fail(`assessment source must not be copied or loaded: ${asset.source_path}`);
+  }
   return distribution;
+}
+
+export function assessmentAssetsForPhase({ root, phaseId }) {
+  if (!Object.hasOwn(PHASE_TERMINALS, phaseId)) fail("assessment phase must be P1, P2, or P3");
+  const distribution = readDistribution(path.resolve(root));
+  return distribution.assessment_assets.filter(
+    (asset) => asset.phase_id === phaseId || asset.phase_ids?.includes(phaseId),
+  );
+}
+
+async function readResponseLimited(response, maxBytes) {
+  const contentLength = Number(response.headers?.get?.("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes)
+    fail("assessment response exceeds the allowed size");
+  if (response.body?.getReader) {
+    const reader = response.body.getReader();
+    const chunks = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) {
+          await reader.cancel();
+          fail("assessment response exceeds the allowed size");
+        }
+        chunks.push(Buffer.from(value));
+      }
+    } finally {
+      reader.releaseLock?.();
+    }
+    return Buffer.concat(chunks, size);
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > maxBytes) fail("assessment response exceeds the allowed size");
+  return bytes;
+}
+
+export async function fetchPinnedAssessmentAsset({ asset, sourceSha, fetchImpl = fetch }) {
+  validateAssessmentAssetEntry(asset, sourceSha);
+  if (!SHA_PATTERN.test(sourceSha) || !/^[a-f0-9]{64}$/.test(asset.sha256 ?? ""))
+    fail("assessment source SHA and expected content hash must be fixed");
+  const expectedUrl = `https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-training-store/${sourceSha}/${asset.source_path}`;
+  let response;
+  try {
+    response = await fetchImpl(expectedUrl, {
+      method: "GET",
+      redirect: "manual",
+      headers: { Accept: "application/json, text/plain", "User-Agent": "qa-training-course" },
+    });
+  } catch (error) {
+    fail(
+      `pinned assessment fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (
+    response.status !== 200 ||
+    response.redirected === true ||
+    (response.url && response.url !== expectedUrl)
+  )
+    fail(`pinned assessment fetch returned a redirect or non-200 response: ${asset.source_path}`);
+  const contentType = response.headers?.get?.("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("text/html") || contentType.includes("xhtml"))
+    fail(`pinned assessment fetch returned HTML: ${asset.source_path}`);
+  const bytes = await readResponseLimited(response, ASSESSMENT_MAX_BYTES);
+  if (bytes.length !== asset.bytes || sha256(bytes) !== asset.sha256)
+    fail(`pinned assessment content hash or size does not match metadata: ${asset.source_path}`);
+  if (asset.asset_type === "scoring") {
+    let scoring;
+    try {
+      scoring = JSON.parse(bytes.toString("utf8"));
+    } catch {
+      fail(`pinned scoring asset is not valid JSON: ${asset.source_path}`);
+    }
+    if (
+      scoring.schema_version !== 1 ||
+      scoring.module_id !== asset.module_id ||
+      scoring.revision !== "assessment-reference-v1"
+    )
+      fail(`pinned scoring asset schema/module/revision mismatch: ${asset.source_path}`);
+  }
+  return bytes;
 }
 
 function verifiedCourseSource(root, distribution, sourcePath) {
@@ -524,6 +787,17 @@ function verifiedCourseSource(root, distribution, sourcePath) {
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
   return bytes;
+}
+
+export function readVerifiedCourseSource({ root, sourcePath }) {
+  const targetRoot = path.resolve(root);
+  const distribution = readDistribution(targetRoot);
+  const entry = distribution.files.find((file) => file.source_path === sourcePath);
+  if (!entry) fail(`source is not part of the verified course package: ${sourcePath}`);
+  const bytes = verifiedCourseSource(targetRoot, distribution, entry.target_path);
+  if (entry.blob_sha && gitBlobSha(bytes) !== entry.blob_sha)
+    fail(`external Skill blob SHA mismatch: ${sourcePath}`);
+  return { bytes, targetPath: entry.target_path, metadata: entry };
 }
 
 export function verifySyncedCourseDistribution({ root }) {
@@ -601,6 +875,7 @@ export function verifySyncedCourseDistribution({ root }) {
     distribution_files_verified: filesByTarget.size,
     shop_files_verified: shopFiles.size,
     state_files_verified: MODULE_IDS.length * 2,
+    assessment_asset_references: distribution.assessment_assets.length,
   };
 }
 
@@ -1093,6 +1368,49 @@ export function checkState({ root, moduleId, stateName }) {
     reasons.push("公開・読み取り専用の状態契約がありません");
   if (state.source_sha !== distribution.source_sha)
     reasons.push("状態source_shaと配布source_shaが一致しません");
+  const phaseAssessment =
+    stateName === "end" && state.phase_assessment
+      ? {
+          phaseId: state.phase_assessment.phase_id,
+          terminalModuleId: state.phase_assessment.terminal_module_id,
+          requiredAtTerminalModule: state.phase_assessment.required_at_terminal_module,
+          availableHere: moduleId === state.phase_assessment.terminal_module_id,
+          status: "not_evaluated_by_course_check",
+          command:
+            moduleId === state.phase_assessment.terminal_module_id
+              ? state.phase_assessment.entry_command
+              : undefined,
+        }
+      : undefined;
+  if (stateName === "end") {
+    const phaseId = assessmentPhaseForModule(moduleId);
+    const terminalModuleId = PHASE_TERMINALS[phaseId];
+    if (
+      state.phase_assessment?.phase_id !== phaseId ||
+      state.phase_assessment?.terminal_module_id !== terminalModuleId ||
+      state.phase_assessment?.required_at_terminal_module !== terminalModuleId ||
+      state.phase_assessment?.assessment_is_terminal_only !== true ||
+      state.phase_assessment?.mastery_status !== "not_evaluated_by_course_check"
+    )
+      reasons.push("Phase正式評価の終端・状態参照契約が不正です");
+    const hasTerminalCheck = state.checks?.some(
+      (check) => check.mode === "phase-assessment-reference",
+    );
+    if (hasTerminalCheck !== (moduleId === terminalModuleId))
+      reasons.push("正式評価の入口はPhase終端moduleだけに設定できます");
+  }
+  if (
+    !Array.isArray(state.checks) ||
+    state.checks.some(
+      (check) =>
+        typeof check.id !== "string" ||
+        !check.id ||
+        !["read-only", "phase-assessment-reference"].includes(check.mode) ||
+        typeof check.condition !== "string" ||
+        !check.condition,
+    )
+  )
+    reasons.push("状態照合条件のID/mode/conditionが不正です");
   if (
     state.distribution?.public_source !== true ||
     state.distribution?.includes_reference_solutions !== false ||
@@ -1215,7 +1533,8 @@ export function checkState({ root, moduleId, stateName }) {
       missing,
       unchanged,
       input,
-      assessment: "構造照合のみです。Level 2は人が別途評価します",
+      phaseAssessment,
+      assessment: "構造照合のみです。正式評価はPhase終端のcourse:assessで行います",
       execution,
     };
   return {
@@ -1226,10 +1545,11 @@ export function checkState({ root, moduleId, stateName }) {
     reasons: [],
     missing: [],
     input,
+    phaseAssessment,
     execution,
     assessment:
       stateName === "end"
-        ? "構造照合のみです。Level 2は人が別途評価します"
+        ? "構造照合のみです。Phase末の正式AI評価は別にcourse:assessで起動します"
         : "開始前提を照合しました。本人の先行モジュール修了は認定しません",
   };
 }

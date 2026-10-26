@@ -2,9 +2,8 @@
   "schema_version": 1,
   "module_id": "M05",
   "revision": "assessment-reference-v1",
-  "source_state_revision": "ai-assisted-qa-course-v2",
+  "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "human_evaluation": "not_performed",
   "objective_ids": ["M05-01", "M05-02", "M05-03", "M05-04", "M05-05"],
   "knowledge_ids": [
     "K-M05-01",

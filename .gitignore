@@ -30,3 +30,8 @@ DerivedData/
 .codex/tmp/
 .npmrc
 .expo-local-export/
+/workspace/.course-assessments/
+/workspace/.course-assessment-tmp/
+/workspace/course-assessment-exports/
+/workspace/M10/ci-run-evidence.json
+/workspace/M10/submission.md

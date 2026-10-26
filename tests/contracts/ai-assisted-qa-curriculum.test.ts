@@ -354,7 +354,12 @@ describe("AI-assisted QA static learning course", () => {
       expect(revisionMismatch?.expected_decision).toBe("ungradable");
       expect(missingEvidence?.missing_required_evidence?.length).toBeGreaterThan(0);
       expect(missingEvidence?.expected_decision).toBe("ungradable");
-      expect(scoring.evaluation_policy?.automated_scope).toContain("意味上");
+      expect(scoring.evaluation_policy?.automated_scope).toContain(
+        "OpenCode returns candidate judgments only",
+      );
+      expect(scoring.evaluation_policy?.automated_scope).toContain(
+        "ignores any AI-supplied completion or pass flag",
+      );
     }
   });
 

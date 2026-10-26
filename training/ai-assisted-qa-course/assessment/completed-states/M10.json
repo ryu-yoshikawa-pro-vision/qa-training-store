@@ -2,9 +2,8 @@
   "schema_version": 1,
   "module_id": "M10",
   "revision": "assessment-reference-v1",
-  "source_state_revision": "ai-assisted-qa-course-v2",
+  "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "human_evaluation": "not_performed",
   "objective_ids": ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05"],
   "knowledge_ids": ["K-M10-01", "K-M10-02", "K-M10-03", "K-M10-04", "K-M10-05"],
   "start_state_path": "training/ai-assisted-qa-course/states/M10/start.json",
@@ -17,9 +16,27 @@
       "contract_id": "M10-completion-v1",
       "expected_data": {
         "commit_sha_required": true,
-        "run_check_artifact_same_sha": true,
+        "run_associated_with_current_pull_request": true,
+        "check_linked_to_exact_run": true,
+        "artifact_target_sha_equals_current_pull_request_head": true,
+        "workflow_run_sha_may_be_pull_request_merge_sha": true,
         "unrun_is_not_pass": true,
         "live_condition_prompt": null
+      }
+    },
+    {
+      "id": "M10-result-02",
+      "path": "workspace/M10/ci-run-evidence.json",
+      "revision": "M10-run-evidence-v1",
+      "contract_id": "M10-current-pr-run-evidence-v1",
+      "expected_data": {
+        "access_token_in_file": false,
+        "pull_request_head_sha_matches_local_head": true,
+        "workflow_run_is_pull_request_event": true,
+        "check_is_linked_to_exact_run": true,
+        "artifact_target_sha_matches_pull_request_head": true,
+        "playwright_expected_is_positive": true,
+        "playwright_unexpected_flaky_skipped_are_zero": true
       }
     }
   ],

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "M10",
   "state": "start",
-  "revision": "ai-assisted-qa-course-v2",
+  "revision": "ai-assisted-qa-course-v3",
   "source_sha": null,
   "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
   "public_contract": true,
@@ -31,6 +31,7 @@
   "expected": {
     "required_paths": [
       "inputs/M10/start.md",
+      "inputs/M10/ci-run-evidence.template.json",
       "inputs/M10/public-sample-handoff.json",
       "inputs/M10/public-sample-config.md",
       "inputs/M10/public-sample-dependencies.md",

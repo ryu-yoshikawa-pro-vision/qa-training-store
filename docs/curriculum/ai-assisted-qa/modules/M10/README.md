@@ -1,8 +1,10 @@
 # M10：Phase 3総合演習
 
+> **AIチューター**：CodespacesでM10をロードした後に `pnpm course:tutor M10 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM10の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
 ## このモジュールで学ぶこと
 
-M10ではPhase 2で動作確認した同じspecを使い、Git差分からPull Request、専用CI、現在のHEADに一致するRun/Check/Artifactまでつなぎます。テストケース一式を作り直す課題ではありません。Phase 3を受講しない場合、Phase 1・2の修了状態は変わりません。
+M10ではPhase 2で動作確認した同じspecを使い、Git差分からPull Request、専用CI、PRの現在HEADに結び付くRun/Check/Artifactまでつなぎます。workflowのRun/CheckがPR merge SHA上に現れる場合があるため、PR head SHA、Runが示すSHA、Artifact内のtarget-shaを区別して確認します。テストケース一式を作り直す課題ではありません。Phase 3を受講しない場合、Phase 1・2の修了状態は変わりません。
 
 ## 通し演習の流れ
 
@@ -22,7 +24,7 @@ workflowは必要なPlaywright specとBrowserだけを指定します。Native s
 
 1. PR HEADとworkflow runの対象SHAを照合し、実際の結果とArtifactを確かめる。未実行なら未実行と報告する。
 
-PR HEAD、Runの対象SHA、Artifact内の`target-sha.txt`が同じ実行を指すか確認します。不一致のArtifactや古いPASSは現在のPRの成功証拠に使わず、一致する結果がない場合は未確認とします。
+PRの現在HEAD、pull_requestイベントのRun、同じRunに属する成功Check、Artifact内の`target-sha.txt`とPlaywright JSONを照合します。GitHubがRun/CheckにPR merge SHAを記録しても、それをPR headと取り違えず、Artifactのtarget SHAが現在のPR headと完全一致することを確認します。不一致のArtifactや古いPASSは現在のPRの成功証拠に使わず、一致する結果がない場合は未確認とします。
 
 ### CI失敗の最初の段階を分類する
 
@@ -34,9 +36,11 @@ PR HEAD、Runの対象SHA、Artifact内の`target-sha.txt`が同じ実行を指�
 
 ## Phase 3修了評価
 
-[`assessment/phase-3-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-3-rubric.md)の公開観点で、差分の選択、安全なworkflow、同一SHAの証拠、失敗分類、未確認事項を確認します。本人はCIが確認した内容と保証しない内容を分けます。未提示条件で、別SHAの成功Runを現在の合格証拠にできるかも判断します。
+[`assessment/phase-3-rubric.md`](../../../../../training/ai-assisted-qa-course/assessment/phase-3-rubric.md)の公開観点で、差分の選択、安全なworkflow、PR headとRun/Check/Artifactの結び付き、失敗分類、未確認事項を確認します。本人はCIが確認した内容と保証しない内容を分けます。別PRや古いSHAの成功Runは現在の合格証拠にできません。
 
-M07の本人成果物があれば`workspace/M07/repaired-assertion.spec.ts`をそのまま使い、`PLAYWRIGHT_TEST_ROOT: workspace/M07`を指定します。本人の過去のファイルは修正・上書きしません。M07成果物がない場合はM10専用fallbackを選び、`PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample`を指定します。fallbackにはM07相当の安全なspec・Config・依存/Reset参照・実行結果と、M09の無効化workflow見本を同梱します。いずれの経路も同期済み`course/shop/`をServeし、学習者側で`build:web`を実行しません。workflowは`workspace/M10/public-sample/`内に置き、`.github/workflows/`へ自動配置・有効化しません。M10ロードはM10の成果物だけを配置します。
+M07の本人成果物があれば`workspace/M07/repaired-assertion.spec.ts`をそのまま使い、`test_file`をこのpath、`test_root`を`workspace/M07`に設定します。本人の過去ファイルは修正・上書きしません。M07成果物がない場合はM10専用fallbackを選び、`test_file`を`workspace/M10/public-sample/handoff-smoke.spec.ts`、`test_root`を`workspace/M10/public-sample`にします。fallbackにはM07相当の安全なspec・Config・依存/Reset参照・実行結果と、M09の無効化workflow見本を同梱します。いずれの経路も同期済み`course/shop/`をServeし、学習者側で`build:web`を実行しません。workflowは本人が`.github/workflows/`へ配置して有効化します。M10ロード自体はM10の成果物だけを配置し、他モジュールを自動ロードしません。
+
+正式評価で実Run/Check/Artifactを照合するときは`workspace/M10/ci-run-evidence.json`へ本人repo、PR番号、PR head SHA、Run IDと選択specを記録します。GitHub API tokenは対象repoの読取り権限だけとし、環境変数から与えます。Tokenはファイル・提出物・AIプロンプトへ含めません。`course:check`の構造一致だけではCI証拠を認定しません。
 
 ### 結果と未確認事項を報告する
 
