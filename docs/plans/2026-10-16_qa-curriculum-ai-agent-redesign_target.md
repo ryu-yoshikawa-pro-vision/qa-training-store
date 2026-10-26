@@ -8,6 +8,18 @@
 
 **実装/受入**：有効モデルを固定して校正の正答・誤答・別解・部分達成・未実行・旧Run・Prompt Injection入り証拠を繰返し実行し、重大な誤PASSがあれば修正/再校正する。実際の非公開Codespaceで説明→練習→提出→AI採点→理由・不足ID・復習→再評価の経路を通し、Phase 1/2でGit操作や外部の採点者を必要としない。モデルの無料可用性・費用は保証せず、その確認条件と再開方法を教材で示す。
 
+## OpenCodeの実装方式・権限・採点失敗の受入（2026-10-26レビュー反映）
+
+現在のDevcontainerは`@opencode/cli@2.0.22`を導入しているが、**実行方法/権限形式の導入版での検証は未実施**。公式の`opencode run --model provider/model-id --agent <評価専用> --format json`は候補とする。ただし`--format json`が返すのは**実行イベント**であり、モデルの回答が学習目標別Schemaに適合する保証ではない。Node.jsがイベントの終了条件、stderr、exit code、timeout、重複/欠落イベント、採点候補を抽出し、独自Schemaへ検証する。CLIで安全に成立しない場合にのみ公式SDK v2の構造化出力の利用を評価する。**CLIとSDKの両方を必須にしない**。導入版で`--continue`/`--session`を指定しない独立セッションと、既存学習セッション/共有サーバ/設定からの文脈・ツール継承がないことを確認する。
+
+**Permissionの重要な版差**：OpenCode V1の`permission`/`bash`/`task`とV2の`permissions`/`shell`/`subagent`は同一設定ではない。現在のインストール版の実際の`opencode --version`・ヘルプ・解決設定・評価Agent権限を確認し、使用版に対応する形式で**deny-first**（編集・Shell・Web・MCP・Skill・子Agent/外部ディレクトリを拒否）を構成する。ドキュメント上の例を版を確認せず貼り付けない。`--auto`、不明なツールの黙示許可、学習側のAgent既定権限をそのまま使う方法は不採用。評価処理は証拠の読込みを含めてNode側で収集し、評価Agentはツール実行なしで限定入力を解釈する設計を優先する。
+
+**モデルと失敗処理**：`--model`で受講者が認証した利用可能な無料モデルIDを明示し、`opencode models --refresh --verbose`等の実際の利用条件・料金・モデルの認証状態を初回と起動時に確認する。名称や認証済みというだけで無料を保証しない。不存在、費用不明/有料、認証失敗、429、入力上限、タイムアウト、起動・イベント解析/Schema失敗、Session権限不足では正式採点を実行/確定しない。料金・認証・環境制限は`blocked`、回答・仕様・形式を判定できない場合は`ungradable`、本人がまだ操作/回答していなければ`not_run`を使い分ける。再実行時に高額モデルへ黙って切り替えたり、校正なしの別モデルへ自動fallbackしない。モデル変更時は校正をやり直す。
+
+**実機/受入手順**：公開Template由来の非公開2コアCodespaceで、実導入版、モデルの明示、最小権限の解決結果、独立セッション、非対話JSONイベントのパース、外部へ送る最小化済み入力、停止・timeout・料金制限、重大な誤PASSの拒否、本人の再開/再評価まで確認。評価コマンドがShell/編集/Web取得に成功してしまう負例、意図しない既存セッションを引き継ぐ負例、Secret混入や自動有料切替の負例を必須とする。コード・CIだけの成功で認定しない。
+
+公式確認の出発点：`https://opencode.ai/docs/cli/`、`https://opencode.ai/docs/permissions/`、`https://opencode.ai/v2/docs/permissions`。公式文書にある機能と、対象2.0.22/Codespacesで**実際に通過した動作**を別に報告する。
+
 ## 全対象機能のカバレッジ算出契約（2026-10-26）
 
 `docs/spec/product-scope.md`、`docs/spec/features/*.md`、`roles-and-permissions.md`、`state-and-scenarios.md`、`screen-catalog.md`と実装側の指定正本から、正式にサポートされるWeb（デスクトップ/モバイル）・管理者・Nativeの機能動作を抽出する。仕様書のファイル数を機能数とせず、Role/State/操作/期待結果が異なる動作は必要な粒度で区別する。正式に対象外の機能は分母とは別に根拠付きで記録する。
