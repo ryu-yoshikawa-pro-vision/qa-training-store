@@ -39,7 +39,7 @@
 | マシン | `hostRequirements`は未設定。リポジトリで2コアに固定していない | **作成時に2コアを選び確認**する。最小必要コア指定は上限固定でないため本設計では追加しない |
 | Codespaces無料枠 | GitHub Freeの**個人**アカウントは120コア時間/月、15 GB-month/月。組織のプランにはCodespaces無料枠がない | 受講者本人の所有・支払主体と残量・予算設定を開始前に確認する。2コアなら理論上最大約60時間/月だが個人の残量は未確認 |
 | `docs/guides/codespaces.md` | 初回作成、個人Codespaces Secret、OpenCode CLI、Playwright codegen・6080画面転送、停止方法を記載 | 既存手順を参照し、初心者向けの**講義導線だけ**新設する |
-| OpenCode Zen | **無料モデルの利用可否は確認済み**。個人`OPENCODE_API_KEY`はCodespaces Secretで扱う | **Zen無料モデルを標準とし、利用可否・認証可否の再検証を要求しない**。有料モデルへの自動切替を行わず、Secretを教材・ログ・GitHubへ保存しない |
+| OpenCode Zen | **2026-10-16時点の調査記録**：無料モデルの利用実績があり、個人`OPENCODE_API_KEY`をCodespaces Secretで扱う想定だった | **現在の実装指示としては採用しない**。OpenCode CLIの個人認証・無料モデルと必要Skillは受講者初回起動時に実確認し、失敗時はBLOCKED。有料への無断切替・Secret記録は禁止 |
 | `qa-workflow-skills` | 独立リポジトリ。SkillにPython helper等の実行依存がある | 使用するrevisionと必要なSkill/補助ファイルをCodespaceで認識・実行できるか検証 |
 | Playwright Training | `playwright.training.config.ts`は8082専用、出力は`output/training/playwright/`。通常Web表示は8081、noVNCは6080 | 新課程specと結果先を旧Trainingから分離し、誤接続を防ぐ |
 | GitHub Actions | 公開リポジトリの標準GitHub-hosted runnerは無料。private repositoryの無料枠・保存容量は別条件 | Phase 3は公開の書込可能なTraining Copyと標準Runnerを第一候補にする。権限と支払主体は実機確認 |
@@ -77,7 +77,7 @@
 - **評価**：各モジュールの`workspace/Mxx/submission.md`と必要な`evidence/`を提出とし、自己確認と担当者による正式な修了判定を分離する。模範との文字列一致だけでなく、別解と根拠を許容する。
 - **Template更新**：GitHub Templateは個人リポジトリの作成時点のファイルを複製するが、元Templateの後続変更は既存学習者リポジトリへ自動反映しない。学習中は配布元SHAを維持し、新版は明示的な更新・差分確認後に適用する。
 - **CI**：Phase 3の専用workflowはTemplateの標準有効workflowには置かず、教材テンプレートから受講者が明示的に有効化する。旧Trainerと正式回帰workflowの発火を避ける。
-- **実装でのみ確定できること**：manifestに列挙する最終ファイル一覧とその依存閉包、2コアの実行時間、各受講者のCodespaces無料残量は、現物で検証・計測する。確認済みOpenCode Zen無料モデルの利用可否は再検証しない。
+- **実装で確定すること**：manifestで許可する最終ファイルとimport閉包、実公開Templateからの2コアCodespace技術受入。受講者個人の無料枠・OpenCodeモデル/認証/必要Skillは本人初回起動時に確認する。2026-10-16のモデル動作実績を現在の接続保証にはしない。
 - **運営側の指定を要するもの**：実際に使用する学習用Templateのリポジトリ名・作成権限、学習者個人の提出/評価記録の保存・管理方法、正式修了の評価担当者の割当。模範解答・採点用テスト・完成状態資料はpublicな当リポジトリへ通常ファイルとして保存し、配布許可リストに含めない。未提示条件の具体的な提示内容は評価担当者が評価時に選び、事前にリポジトリへ登録しない。設計上の入出力・評価契約は既に定義されており、これら未指定事項は資料制作を止めない。
 
 ## 既存課程との比較で採用するもの・しないもの
@@ -92,7 +92,7 @@
 1. 新課程の教材・問題・評価基準を`docs/curriculum/ai-assisted-qa/`に作り、旧 `docs/curriculum/test-automation/` の既存ファイル差分を0件にする。
 2. 旧 `validate:curriculum`、`training:completion:check`の公開入力・出力契約を変更しない。新しい合否ロジックは別に作るか、最小構成では受講者向けの公開ルーブリックによる確認とする。
 3. `training/ai-assisted-qa-course/`の新spec・演習が旧 `training:web:exercise` / `training:web:diagnostic` / 正式 `e2e/web/` に混入しないことを対象列挙で確かめる。また、同期後の**学習者リポジトリへ模範解答・不要な正式specが配布されない**ことを検証する。
-4. Product Code、Seed、Specの正本を維持し、必要なランタイム配布物を確定SHAから生成する。**学習用リポジトリだけでBuild/Serve/Reset/Playwrightを実行できるか**確認したうえで、旧課程と正式回帰の期待結果が引き続き成立することを確認する。必要性がない限り変更しない。
+4. Product Code、Seed、Specの正本を維持する。管理者が固定SHAからBuild・検証・同期し、学習者用の配布済み`course/shop/`を**本人の非公開repo内でServe/Reset/Playwright実行できること**を確認する。旧課程・製品回帰の期待結果も維持する。
 5. **Codespaces作成にGitHubログインは必要**だが、Phase 1ではPlaywrightとGit操作を、Phase 2ではGit/PR/CI操作を修了条件にしないことを、起動・教材・採点まで確認する。Phase 3の追加資産をPhase 1/2の必須前提へ混ぜない。
 6. 新旧どちらのREADMEを開いても、それぞれの学習経路・評価・成果物の所在が一意に分かるようにする。新課程から旧課程へ参照リンクを張るのはよいが、旧課程を新課程の必修入口にしない。
 
