@@ -1,5 +1,11 @@
 # 全モジュールの開始・終了基準状態
 
+## 追加する終了証拠と拒否条件
+
+M06の`end.json`と提出物では、固定3 Caseとは別の新規spec、そのCaseの仕様・期待結果、Reset後の単独/再実行への参照がない限り修了証拠にしない。M07はPage ObjectとPlaywright標準fixtureの実装・参照import・保守差分・別Runを追跡可能にし、名称が違っても妥当な実装を拒否しない。M10は対象spec/依存コードと専用workflowの有効化差分、現PR HEADのRun/Check/Artifact・費用/権限・変更条件の判断が必要で、旧Runや合成証拠では完了しない。終了状態の構造チェックとLevel 2の人間による意味判断は分離する。
+
+変更時は`states/Mxx/end.json`、`exercises/Mxx`、提出テンプレート、公開ルーブリック、`assessment/scoring-tests/Mxx.json`、`training/course-sync/manifest.json`、関連Validator/契約テストを同じ要件に更新する。22状態の数は増やさない。
+
 ## 追加実技と22開始・終了状態の関係
 
 開始/終了状態の機械判定は受講者の習熟判定ではない。M04の未知仕様・保留・引継ぎ、M06の別Case新規specと単独/再実行、M07のPage Object/fixture保守改善と前後Run、M10の有効化済み専用CIと現HEADの実Run/Artifactを、対応する終了時の成果物・実行証拠へ紐付ける。既存fallbackで前のPhaseが修了したと誤認定しない。未実行/BLOCKED/未達/PASSとLevel 2を別に記録する。

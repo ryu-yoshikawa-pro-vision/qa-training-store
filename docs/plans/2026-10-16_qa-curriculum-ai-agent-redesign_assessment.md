@@ -1,5 +1,13 @@
 # 新課程の評価・各フェーズの修了基準
 
+## 合否の具体化とAI校正ラベル
+
+全51目標について既存`scoring-tests/Mxx.json`、公開Phase別ルーブリック、実演習を照合し、対象固有の`required_evidence`・`decision_rules`・`pass_conditions`・`reject_if`で客観的に判定できるか検証する。汎用文言だけで判定できない項目を具体化し、M02/M04/M06/M07/M10の新しい能力は必ず更新する。1実技で複数IDを評価してよいが、ID別の証拠と不足は判別する。51件の独立試験や新評価DBは作らない。
+
+校正例の`expected_decision`（`pass`/`fail`/`partial`/`pass_with_reason`/`ungradable`）は**例示回答の判定**であり、教材品質AIレビューの3値（`pass`/`fail`/`ungradable`）ではない。`pass_with_reason`は条件を満たす正しい別解、`partial`は一部正しいがLevel 2に不足、`fail`は根拠付き不適合、`ungradable`は必須証拠・版の欠落などで判定不能とする。部分的達成を教材品質PASSに換算しない。AIレビューの判定記録には入力SHA・評価した教材/仕様/Skillの節・目標ID・校正例ID・根拠・人間の確認結果・再実行結果を残す。
+
+必須の負例は、M06の固定TODOだけ、M07のPOM/fixture採否説明だけ、M10の未実行・旧Run・別SHA、M04の未確定仕様を推測で確定した答案、欠けた出典をPASSにした判定。実行/提出の不足は未達/BLOCKED/未実行/判定不能を区別し、AIの教材レビューを学習者の自動修了に転用しない。
+
 ## 学習目標の証拠・再評価とAI教材レビューの実施（2026-10-26）
 
 全11モジュールの`workspace/Mxx/submission.md`で、各目標IDから(1)仕様・教材・SkillとSHA、(2)別条件の本人判断と短い質疑回答、(3)成果物path・実行コマンド・操作/Run証拠、(4)未確認/BLOCKEDを参照できるようにする。一つの演習を複数IDへ使ってよいが、証拠不足のIDを一律達成にしない。M04/M07/M10の正式評価時に該当Phase全IDについて採点と不足を記録し、必要な追質問・実操作で不足を確認する。最低1件の変更質問だけで全IDを認定しない。未達とBLOCKEDは区別し、再提出・再評価は元の履歴を保持して不足IDと新しい証拠を追記する。
@@ -176,13 +184,13 @@ M04・M07・M10の正式な修了判定では、**受講者の提出済み実技
 
 | 観点 | Level 2の合格条件 | 主な証拠 |
 | --- | --- | --- |
-| 自動化環境 | 同期済み学習用リポジトリのCodespacesでNode.js/pnpm/PlaywrightとScenario ShopのBuild/Serve/Seed/Resetを理解し、新課程用Config・テスト対象・実行コマンド・結果先を設定して実行できる | `package.json`、Config、Codespaces内の実行記録。devcontainer全体の再構築は不要 |
+| 自動化環境 | 学習者の2コアCodespacesでNode.js/pnpm/Playwrightと**管理者Build済みの`course/shop/`をServe/Seed/Reset**して実行できる | 配布物・専用Config・実行コマンド/Run。製品フルBuildは受講者に要求しない |
 | コード理解 | **Node.js/pnpmの実行経路、TypeScriptの変数・配列・オブジェクト・関数・型・import/export・async/await**、Locator/Action/Assertion、待機と期待結果を理解し、短いコードを説明・部分修正できる | コード読解、本人の採否と変更前後 |
-| テストの実装 | Phase 1のCaseから正常結果・拒否時の不変条件・境界または状態差を含む意味の異なる3件以上をPlaywrightで検証し、Resetと独立性を確保する | Caseとtest/specの対応、Seed/Reset、業務Assertion、単独・再実行の証拠 |
+| テストの実装 | 固定3 CaseのTODO完成に加え、正式仕様付き別Web Caseから新規の短いspecを本人がAIと構成し、Reset・業務Assertion・単独/再実行で確認する | 既存3 Case、新規spec、Case→spec→Runと期待結果の根拠。TODOのみは未達 |
 | 実行結果 | ローカルで対象テストを実行し、PASS/FAIL/BLOCKEDとRun・Trace等の証拠を対応付けられる | 実行コマンド、ログ、Report/Trace |
-| 診断と保守 | テストコード、初期状態・環境、タイミング・Flaky等の異なる3系統の失敗を証拠から診断し、必要な修正は別Runで確認できる。製品不具合など修正対象外は根拠付きで報告する | 原因ごとの失敗証拠と仮説・追加検証、修正可能な課題の前後Run、差分・採否理由 |
+| 診断と保守 | 異なる原因の失敗を証拠から切分け、仕様を弱めず修正・別Runを行う。重複・変更要求の課題でPage Objectと標準fixtureを最小実装して変更前後を確認し、不要な抽象化の不採用理由も示す | 原因と反証、実コード/import差分、前後の別Run、業務Assertion維持 |
 
-**総合演習（M07終了時）**：**学習者がロードした未完成課題から**Phase 1の承認済みケースに対応するE2Eを構築・実行し、さらに未演習の条件または故意に不適切なテストspecの診断・修正を行う。テストの不具合を直すために製品本体を変更しない。
+**総合演習（M07終了時）**：既存3 Caseに加え、正式仕様に合う別Web Caseから新規E2Eを構築・実行し、意図的な失敗の診断・修正、Page Object/fixtureの必要な最小実装と保守変更・別Runを行う。Phase 1本人成果物がない場合も公開fallbackでPhase 2を評価できるが、Phase 1の修了には換算しない。テストの不具合を直すために製品本体を変更しない。
 
 **開発用の完成spec**：M05の正しい商品Locator、M06の3 Cart Case、M07の意図的Assertion failureとその修正版を`assessment/playwright/`に保存する。既存の新課程専用Configと`training:ai-assisted-qa:test`で8082 loopbackに対して実行し、M07のbefore/afterは別test root・別Runとする。M07 before-runは正しいAssertion failureを終了コード1で検出し、修正版は終了コード0になることを確認する。完成specはmanifest、ロード、Web Buildから除外し、受講者の未完成workspace素材を置き換えない。
 
@@ -201,12 +209,12 @@ Phase 2でCodespaces内で動作確認したspec、環境設定、依存関係�
 | 観点 | Level 2の合格条件 | 主な証拠 |
 | --- | --- | --- |
 | Git/GitHub | 許可された作業コピーでbranch、commit、PRを作り、AI変更を差分からレビューできる | Git差分、PR、本人の採否理由 |
-| CI構築 | Phase 2のテストをCI用に起動し、依存導入・Build/Serve/Test・Artifactを適切に構成できる | 新課程用workflow、Run |
-| 実行証拠 | 対象PR/commit SHAとRun/Check/Artifactが一致することを確認できる | GitHub Actionsの実際の結果 |
+| CI構築 | M09で`.disabled`の設計を確認し、M10で対象specとimport依存を個別stage、料金・権限確認後に専用workflowを有効化、PR HEADに対応するGitHub実Runを取得し、条件変更への設計判断ができる | workflow有効化diff、依存コード、GitHub Run/Check/Artifact・無料枠と権限の確認記録。未実行は未達/BLOCKED |
+| 実行証拠 | `pull_request`で実行されたcheckout HEAD SHA、Run/Check/Artifactを照合し、成功/失敗/未実行を識別できる | 現PR HEAD、実際のRun IDとURL、Artifact内target-sha・テスト結果。PR merge refの`GITHUB_SHA`と混同しない |
 | 失敗調査 | CI環境差・対象のテスト不備・実行未完了を切り分け、必要な対応を示せる | 失敗ログ・変更内容・再実行 |
 | 安全性・運用 | 権限・Secret・正式CIとの境界を守り、品質ゲートと未確認事項を説明できる | workflowレビュー・最終評価 |
 
-**総合演習（M10終了時）**：Phase 2で成功したPlaywright specを**同じ受講者個人の学習用リポジトリでGit管理し**、新課程専用のCIから実行して証拠を確認する。新たなテストケースの再実装を修了条件としない。既存CIの成功を、新しい対象SHAの成功として流用しない。
+**総合演習（M10終了時）**：Phase 2のspecと必要なimport依存を本人の非公開repoで個別管理し、費用/権限を確認して専用workflowを手動有効化。`pull_request`の現HEADに対応する実Run/Check/Artifactと、異なるtrigger/権限・失敗条件でのCI判断を確認する。新たなテストケースの再実装を修了条件としない。既存CIの成功を、新しい対象SHAの成功として流用しない。
 
 **必要な環境**：受講者本人の書込可能な**学習用GitHubリポジトリ**と標準GitHub-hosted Runner・workflow権限等。**本人の非公開リポジトリの標準Runner**を前提とし、無料枠の分数・Artifactの保存量・課金制限を事前確認する。使えない場合はBLOCKEDとするが、Phase 2修了を取り消さない。
 

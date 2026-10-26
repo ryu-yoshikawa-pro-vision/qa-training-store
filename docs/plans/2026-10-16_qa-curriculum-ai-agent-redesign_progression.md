@@ -73,6 +73,8 @@
 
 **次への条件**：何を何の根拠で確認するか示せる。技法によるケース設計はまだ要求しない。
 
+**M02/M04の初見仕様課題**：既知Cartのレビューだけでは修了できない。正式な別機能の不完全な仕様断片から、重要な質問・仕様根拠・未決の影響・確定できない期待結果・次の確認先・第三者への引継ぎを提出する。実装者は題材を正式BR/AC・Role/State・Seed/Resetから選び、評価者は条件を変えた短い質疑で本人判断を確認する。
+
 ### M02 仕様とリスク分析
 
 **順序**：BR/ACと観測→Role/State/Data/Journey→Seed/Resetの意味→Impact/Likelihood→AI分析案の点検。
@@ -187,7 +189,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
-| M06-01 | 固定演習Caseの前提・操作・期待結果をAIに渡して未完成specを完成させ、入力元とrevisionを記録する。本人のPhase 1 Caseがある場合は同じ責務かを照合する | **Case→操作/Assertion**を確認・修正し、本人Caseとの一致/差またはfallback利用を説明できる。fallbackだけでPhase 1を修了扱いしない。AI生成だけでは不合格 |
+| M06-01 | 固定3 CaseのTODO補完に加えて正式仕様・Seed/Resetのある別の未演習Web Caseから本人がAIと空のspecを構成し、操作・Locator・業務Assertionを選ぶ。本人Caseがない場合は別IDの公開fallbackを使いPhase 1修了と区別する | 固定3 Caseと新Caseの相違・出典を説明し、新specを単独実行/Reset後再実行、Case→spec→Assertion→Runを証明。TODOのみ・同等Case転記・未実行ではLevel 2未達 |
 | M06-02 | Seed/ResetとBrowser Context、実行順依存・残存データを確認する | 単独実行・再実行で結果を確認し、**状態の共有による誤成功や失敗**を説明・防止できる |
 | M06-03 | LocatorとAssertionが仕様上の期待結果を観測するかレビューする | 無関係でもPASSするAssertionを見抜き、**Caseの観測対象へ修正**できる |
 | M06-04 | CLI、対象spec、実行結果、ログ、Trace/Report/Receiptを紐付ける | **同じ実行を指す**コマンド・結果・証拠を示し、別RunのPASSを流用しない |
@@ -195,7 +197,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 **実践範囲**：公開入力の固定3 Caseまたは有効な本人Caseをもとに、**正常な業務結果、拒否・異常時の不変条件、境界またはRole/State差**を含む、意味の異なる**3件以上のCase**をE2Eとして実装・レビュー・実行する。件数だけを満たすため、同じ条件の値を変えたCaseを重複させない。本人Caseがある場合は固定演習Caseとの一致・相違を記録し、公開fallbackから開始した場合はM06能力のみを評価する。fallbackをPhase 1本人の設計・修了証拠にしない。Caseとtest/specの対応で数え、specファイル数は条件にしない。少なくとも異なる初期条件を扱い、各Caseの正式仕様・Seed/Reset・操作・業務Assertionを本人が説明する。採用する実行可能な題材は[対象設計](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)に従って決める。すべてのCaseをE2E化する必要はない。
 
-**次への条件**：入力元・revisionとCase ID/BR/ACからspecまで追跡でき、上記の異なるCaseを新課程専用specに実装し、Reset後の単独・再実行、状態共有に依存しないこと、仕様上意味のあるAssertionとCaseごとの証拠を提出できる。fallback利用はM06を独立して評価する入力経路であり、Phase 1の修了判定とは分ける。AI生成コードのPASSだけでは不足とする。
+**次への条件**：固定3 CaseのTODOを実装し、別の未演習Web Caseから新規specを本人が構成する。双方の入力元・revision・BR/AC、Reset後の単独・再実行、業務Assertionと各Runを追跡する。TODO補完のみは完了不可。fallback利用はM06を独立して評価する入力経路であり、Phase 1の修了判定とは分ける。AI生成コードのPASSだけでは不足とする。
 
 ### M07 失敗分析と保守
 
@@ -209,13 +211,13 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 | M07-02 | Trace/スクリーンショット/標準出力/reportを読んで失敗点へたどる | 別Runの証拠から**問題の操作・Assertion**を特定し、画像だけで断定できない点も示せる |
 | M07-03 | RetryやTimeout延長と原因修正の違いを整理 | タイミング失敗に対して**原因の切分けを先に選び**、無根拠な固定待機を増やさない |
 | M07-04 | AIパッチを仕様・差分・影響から評価し、修正前後の別Runを確認 | **原因に必要な最小修正**を行い、修正後の実行を新たな証拠として示せる |
-| M07-05 | 実際の重複・保守負荷に応じてHelper/POM/Fixtureを選ぶ | 抽象化が必要/不要の**両方を具体的に判断**できる。可能性だけでPOMを作らない |
+| M07-05 | 重複・保守変更のある複数specでPage ObjectとPlaywright標準fixtureの必要性を判断し、小規模な実装・変更・再実行を行う。不要な場面では不採用理由も示す | Page Object/fixtureの実コードとimport依存、前後の差分・別Run、業務Assertionの維持・保守効果を説明。採否の説明のみ・未実装・未実行はLevel 2未達 |
 
 **実践範囲**：本人が、少なくとも**3つの異なる原因構造**を持つ失敗素材を証拠から診断する。対象には、(1) Locator・Assertionなどのテストコード側、(2) Seed・初期状態または実行環境側、(3) タイミング・Flakyなどの再現性に関わる原因を含める。製品不具合も仕様と観測の不一致から区別するが、演習のために製品本体へ故意の不具合を作らない。実行可能な修正課題では**少なくとも1件**について、本人が失敗を再現し、原因を裏付ける証拠を得て、必要な最小修正と修正前後の**別Run**を示す。修正すべきでない製品・環境側の問題や再現困難な例では、提供されたログ・Trace等から追加検証・報告を判断してよい。原因名の暗記やRetry成功だけでは完了しない。
 
-**Phase 2修了**：M06で**意味の異なる複数条件のE2E実装・独立実行**を確認したうえで、M07では上記の**異種原因の診断と必要な改善**を通常演習の証拠から確認する。総合演習では新しいCaseまたは故意に誤ったspecについて、AIと協働して実装・Reset・実行・原因調査・改善を行い、**Case→spec→Assertion→結果→根拠**を対応付ける。M05の読解やM06の独立性を欠いたまま、Traceを見ただけで合格にしない。Git/CIは不要。
+**Phase 2修了**：M06の固定3 Caseと別Caseからの新規E2E・独立実行、M07の異種原因の診断・修正、Page Objectと標準fixtureの小規模実装・保守変更・前後別Run、不採用が適切な場面での判断を確認する。総合演習では新しいCaseまたは故意に誤ったspecについて、AIと協働して実装・Reset・実行・原因調査・改善を行い、**Case→spec→Assertion→結果→根拠**を対応付ける。M05の読解やM06の独立性を欠いたまま、Traceを見ただけで合格にしない。Git/CIは不要。
 
-**Phase 3への引継ぎ**：動くspec、Config、依存関係、Reset、コマンド、直近実行結果・未解決事項をGitなしで保全する。Phase 2はGit操作なしで完了できる。Phase 3を選ぶ場合だけM07本人の`workspace/M07/repaired-assertion.spec.ts`を対象として確認し、M08でspec単体を明示的に追跡対象へ移す。
+**Phase 3への引継ぎ**：動くspec、Config、Page Object/fixtureを含むimport依存、Reset、コマンド、直近Run・未解決事項をGitなしで保全する。Phase 2はGit不要。Phase 3ではspec単体ではなく、実行に必要な依存ファイルも確認して個別stageする。
 
 ---
 
@@ -230,7 +232,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
 | M08-01 | Working tree/stage/commit/branch/remote、VS Code上の変更とGit履歴を区別 | 課題ファイルの変更→stage→commit→pushの**各時点の状態**を説明できる |
-| M08-02 | `git status`/`git diff`/`.gitignore`/`git check-ignore`でignoreと差分を確認し、指定したM07 specだけを明示stageする | **必要なspecだけ**を選択してcommitでき、ログ/Trace/Secret等を除外できる |
+| M08-02 | `git status`/`git diff`/`git check-ignore`でignoreと差分を確認し、M07本人specと実行に必要なPage Object・fixture・helper等のimport先だけをパス指定でstageする | クリーンcheckoutでも同じspecを実行できる必要ファイルだけをcommitし、ログ・Trace・Secret・個人記録を除外できる |
 | M08-03 | PRの目的、変更対象、関連仕様ID、テスト結果、レビュー方法を確認 | 自分の変更をPRとして示し、**何を検証した変更か**を説明できる |
 | M08-04 | AIレビューの誤指摘・見落とし・不要な抽象化を評価 | 指摘を根拠から採否判断できる。指摘数の多さを習熟基準にしない |
 
@@ -245,7 +247,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
 | M09-01 | YAMLの最小構文、event/job/step/runner、事前Build/同期・配布済みShop Serve・Testの分担を学ぶ | 短いworkflowを読み**いつ・何を・どのRunnerで動かし、誰がBuildするか**説明できる |
-| M09-02 | commit SHAとRun/Check/Artifactの関係を説明し、無効workflow・合成ログを実行証拠と混同しない | **実行していない内容は未確認**と報告し、実Runの照合はM10で行える |
+| M09-02 | commit SHA、Run/Check/Artifactの関係を無効workflowと公開ログ例から判断する | M09は`.disabled`のままとし、合成証拠・未実行を実Run成功と報告しない。実Run取得はM10で行う |
 | M09-03 | install/build/server/test/artifactの失敗段階をログから追う | 失敗Runで**最初に見るJob/stepと該当ログ**を特定できる |
 | M09-04 | 本人の非公開リポジトリの無料Actions条件、品質ゲート、trigger・実行対象を比較し最小CIを設計する | リスク・所要時間・無料枠から**必要十分なtrigger・制限**を説明できる |
 | M09-05 | 権限・Secret・外部公開・製品正式CIとの分離 | 危険なworkflowや過剰な権限を見抜き、**必要な範囲へ抑えられる** |
