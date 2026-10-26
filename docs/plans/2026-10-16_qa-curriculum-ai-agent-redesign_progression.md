@@ -135,7 +135,7 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 2. **選んだ技法だけ**の既存runtimeを実行し、実際に生成されたmodel Entityと技法結果・テストデータ要求を確認する。
 3. `materialize_coverage.py`は**`input_mode="artifact"`が必須**。実在するcurrent TCN/Model/技法結果を渡してCIを生成し、親TCN・カバレッジ・Scope・モデル依存とfingerprintの整合を確認する。`condition_structure`のdirectから続けてすべてをdirectで実行しない。
 4. `test-case-design/scripts/case_structure.py`は**その実行のcurrent TR Entityの有無など、実際のmode契約に従って選択**する。TR Entityのない初回教材ではdirectを候補とするが、**固定commitによる通し検証で可否を確定**する。最低1件のCI、CIの親TCNとCaseのTCN集合、TCN由来のTR集合、期待結果のAuthority、前提/操作/結果・必要データを照合する。後続がartifactだからといってcurrent TR EntityのないCaseを無条件にartifactで呼ばない。
-5. `verify_runtime_evidence`で実際の正規化入力、runtime Input/Result、Machine Entity、freshnessと必要なruntime単位を照合する。通常の全件生成では`partial_rerun=false`、`previous_artifact_markdown=null`とする。結果は**`valid=true`**が必要で、さらに仕様とテスト技法の**意味的な妥当性を人が確認**する。
+5. `verify_runtime_evidence`で正規化入力、runtime Input/Result、Machine Entity、freshnessと必要なruntime単位を検証する。通常の全件生成は`partial_rerun=false`・`previous_artifact_markdown=null`。`valid=true`を必要とし、**テスト技法・Case/期待結果の意味上の妥当性は、本人の根拠と校正済みAI評価で別に判定**する。
 
 **成功判定は終了コード0や`runtime_status=ok`、`result_status=ready`だけに依存しない。** SkillのCLIは`invalid_input`でも終了コード0を返す場合がある。正常系では結果envelope、`support_status`、`deterministic_generated`、未解決violations、必要なcurrent Entityと最終evidence gateを確認する。誤mode・Authority/Risk/Scope欠落・TR参照欠落・未確定責務・未実行/不一致は成功と報告しない。
 

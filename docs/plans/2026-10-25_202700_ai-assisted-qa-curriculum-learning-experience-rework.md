@@ -11,7 +11,7 @@
 
 Scenario Shopは正式仕様のWeb・管理・Nativeを棚卸しし、全サポート機能について分類済み率100%と仕様根拠・主要リスク・検証責務の基本分析済み率100%を要求し、詳細Condition/Caseの設計深度をリスク・教育目標から決定する。Nativeの分析を省略せず、Web PlaywrightとNative実行を区別する。自動化率100%は求めず、除外・未決・BLOCKEDの理由を確認する。
 
-全目標の教材・演習・評価の意味的一致は既存`scoring-tests/Mxx.json`とグラフ、校正例を活用してAIで検査する。対象SHA・仕様根拠・ファイル節、pass/fail/ungradable・理由・再確認を記録し、根拠なしPASSを採用しない。fail/ungradableは人が確認する。1演習は複数目標に対応できるが、各目標の証拠と合否は個別に残す。
+全目標の教材・演習・評価の意味上一致は公開採点JSON・知識グラフ・校正例を使って根拠付きで開発時に確認する。受講者の本人Level 2評価は別のOpenCode AI評価器＋決定論的検証で行い、採点の校正不合格・証拠欠落・未実行・版違いは合格としない。
 
 開始前のWeb/Codespaces revision不一致はBLOCKED、途中のWeb更新は固定版の参照・互換性を確認してから対応し、本人ファイルを無断同期しない。公開Template→本人非公開repo→2コアCodespace→load・Serve/Reset・Playwright・証拠保全は今回PRの必須技術受入。個人OpenCode認証・無料モデルは受講者初回確認、実受講者の試行はPR後。未承認の80%閾値をクイズの合否条件にしない。
 

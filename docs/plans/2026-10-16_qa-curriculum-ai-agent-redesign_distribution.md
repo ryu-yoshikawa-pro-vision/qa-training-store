@@ -55,7 +55,7 @@ qa-training-store/                                  # 公開・教材とScenario
 
 ```
 
-模範解答・採点用テスト・完成状態データは、publicな`qa-training-store`へ通常のMarkdown/JSON/TypeScript等としてcommitし、Git差分・PRレビューで内容を確認できる。公開資料は閲覧可能である。`training/course-sync/manifest.json`の許可リストと各ビルド経路では評価資料を学習用Template、`course:sync`/`course:load`、Web Build、公開Artifactへ含めない。この配布除外は秘密保持を意味しない。実際の評価担当者、個人の提出・評価記録の保存先と権限は未指定のまま保持する。暗号化アーカイブ、age、復号スクリプト、鍵管理、暗号化専用CIは設けない。
+模範解答・採点用テスト・完成状態データはpublicな`qa-training-store`へ通常ファイルとして保存し、固定source SHA・manifestと契約テストで評価資料をTemplate/Web Buildから除外する。学習者が正式評価する際は固定版の**公開正本を読取り専用取得し検証**するが、学習用に模範/校正例を自動埋め込まない。これは秘密保持ではない。個別の正式評価結果と再評価履歴は本人の非公開workspaceに保存し、中央の提出先・評価担当者の指定は不要。暗号化アーカイブや新DBは作らない。
 
 ## 知識グラフとの境界
 

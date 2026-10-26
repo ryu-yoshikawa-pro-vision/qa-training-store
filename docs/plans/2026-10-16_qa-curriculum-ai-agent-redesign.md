@@ -20,9 +20,9 @@ M02/M04の初見仕様質問・引継ぎ、M06の別Case新規E2E、M07のPage O
 
 ## 判定根拠と今回PRの受入（2026-10-26）
 
-既存の`knowledge-graph.json`、`assessment/scoring-tests/Mxx.json`、教材Markdown、公式仕様と固定Skill revisionを正本として再利用する。AIによる教材レビューは学習目標ごとに出典ファイル・節・入力SHAと、説明・実例・本人の判断・演習・評価の具体的な合否条件を照合する。pass/fail/ungradableと根拠を記録し、既存の正答・誤答・正しい別解・部分達成・版不一致・証拠不足の校正例で確認する。根拠不足のPASSを採用せず、fail/ungradableは人が確認する。新しい評価DBやサービスは作らない。
+既存の`knowledge-graph.json`、公開の`assessment/scoring-tests/Mxx.json`、教材Markdown・正本仕様と固定Skillを再利用する。AIによる教材品質レビューでは出典、学習目標、具体例・練習・本人判断・評価の整合を校正例で確認し、fail/ungradableは根拠に従って修正・再検証する。**学習者の正式AI採点とは結果・セッションを分離**する。新しい成績DB/LMSの設置は既定とせず、受講者の非公開workspaceを利用する。
 
-**今回PRの必須技術受入**は公開Templateの実作成→本人所有の非公開リポジトリ→新規2コアCodespace→配布SHA・許可リスト→1モジュールload・非破壊性→Serve/Reset→Playwright実行と証拠保全。未実施・失敗はPR完了としない。実受講者の学習効果試行、正式評価担当者による実採点、受講者個人のOpenCodeモデル・認証は別時点。モデル・必要Skillは受講者初回起動で確認し、失敗ならBLOCKEDとする。Templateの作成先/所有者/権限は実作成前に確認し、設計時点では未指定のまま扱う。
+**今回PRの必須技術受入**は実公開Template→本人所有の非公開repo→新規2コアCodespace→固定SHA・配布許可リスト→単一モジュールload・非破壊性→配布済みShop Serve/Reset→Playwright実Run/証拠保全と、AIチューター/独立AI正式評価・校正・安全性・再評価の通し確認。未実施・失敗をPR完了としない。実受講者による習熟効果試行と個人ごとのモデル認証/費用確認は後続/受講初回とする。人間による正式採点を後続の必須工程に残さない。
 
 ## 2026-10-25確定の教育・実装方針
 
