@@ -90,7 +90,7 @@ docs/curriculum/ai-assisted-qa/
 | M06 | Caseとspecの対応、Seed/Reset、独立性、Assertionの保証範囲、実行証拠 | 9問 | 異なる業務条件を持つ複数CaseのE2E実装・再実行 |
 | M07 | 失敗原因、Trace・ログ、事実と仮説、Retry、修正案と保守判断 | 11問 | 原因が異なる診断と、適切な修正・別Runの確認 |
 | M08 | Git状態、差分、commit・PR、Secret除外、AIレビュー | 8問 | 安全な変更管理・PR・差分の本人確認 |
-| M09 | workflow・YAML、SHA・Run、失敗step、権限・費用・品質ゲート | 11問 | 実際のCIと実行証拠の照合 |
+| M09 | workflow・YAML、SHA/Runの読み方、失敗step、権限・費用・品質ゲート | 11問 | `.disabled`のCI設計と合成ログをレビューし、未実行を実Run成功と誤認しない。実CIの有効化・照合はM10で行う |
 | M10 | ローカルとCIの差、SHA不一致、失敗分類、Artifact、保証範囲 | 8問 | 既存specのCI統合とPhase 3総合判断 |
 
 上表の合計は**106問程度の制作目安**であって、106問あれば学習項目を評価済みとする意味ではない。各モジュールの問題を実際に決める際は、対応学習項目・理解事項、問題が問う具体的な判断、問題ID、実技で代替する観点とその証拠、採用問題数の理由を[知識グラフと実在する教材・問題・実技の対応](./2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)から確認する。独立した新しい管理台帳は作らない。

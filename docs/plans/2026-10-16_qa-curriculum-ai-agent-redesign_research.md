@@ -1,5 +1,9 @@
 # 調査結果と既存課程からの分離
 
+## 調査当時の記録と現行の採用方針
+
+本書の調査記録（2026-10-16頃）にある「未確認」「未実装」「モデル検証不要」「本人がBuild」等は当時の状況を示す。現在の採用仕様や実装を上書きしない。既存の`scripts/training/ai-assisted-qa-course.mjs`、`ai-assisted-qa-course-core.mjs`、`training/course-sync/manifest.json`を再利用し、現時点の決定事項は`_decisions.md`・`_design.md`・`_target.md`・`_assessment.md`・2026-10-25改善Planと実コードで確認する。過去の実績を今回HEADの受入成功と混同しない。
+
 ## 調査対象と確認済みの事実
 
 調査時点：2026-10-16。旧課程の基準はPR #198 HEAD `36803c29efd1df8f09ef7b7d533759f79dc9893f`。新課程の実装前には差分・現行コードを再確認する。
