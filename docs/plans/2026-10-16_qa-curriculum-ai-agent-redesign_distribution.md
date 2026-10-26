@@ -131,9 +131,13 @@ Phase 2を成立させるには、管理者が製品リポジトリの固定SHA�
 
 ## Phase 3の学習
 
-Phase 1・2と同じ**学習者個人のリポジトリ**を継続利用する。ここで初めてbranch・commit・PR・GitHub Actionsを教材で扱い、Phase 2の成果物を対象とした専用CIを実行する。**Phase 3専用workflowは、公開Template内では実行対象外の教材テンプレートに置く**。M09/M10で受講者が対象spec・権限を確認して`.github/workflows/`へ有効化する。最小権限は`permissions: contents: read`を基本とし、Secret不要・deployなし・Artifactは必要なテスト証拠のみとする。旧Training Copy生成処理は元リポジトリを丸ごと複製し、旧workflowを有効にするため、この同期・ロードには流用しない。新課程の実行範囲を明示した小さなworkflowと検証契約を用いる。
+M09では専用workflowを`.disabled`のままレビューし、M10で初めて対象spec・権限・費用を確認して必要な専用workflowだけを`.github/workflows/`へ手動で有効化する。
 
-本人リポジトリが非公開でも、Secret・不要なログ・個人情報をcommitへ入れないよう確認させる。Phase 1・2の`workspace/`は原則としてGit管理対象から除外し、Phase 2修了にGit操作を要求しない。Phase 3でM07の本人specを使う場合は、ignore状態と内容を確認したうえで`workspace/M07/repaired-assertion.spec.ts`だけを個別に強制stageし、stage後の一覧と差分を確認する。`workspace/M07/`の一括追加は行わない。Phase 3 workflowは同じspecに`PLAYWRIGHT_TEST_ROOT: workspace/M07`を指定する。M07成果物がない場合はM10専用fallbackを使い、そのworkflowには`workspace/M10/public-sample`を明示する。
+Phase 3ではignore・差分・importを確認し、M07本人specと必要なPage Object/fixture/helper/設定の依存閉包のみを個別stageする。`workspace/M07/`の一括追加は禁止し、ログ/Trace/Secret/個人記録を含めない。クリーンcheckout後のimport解決と実行を確認し、CIの`PLAYWRIGHT_TEST_ROOT`を対象specに合わせる。M07本人specがない場合は別IDのM10公開fallbackを使う。
+
+### 今回PRの公開Template・2コア技術受入
+
+管理者が固定SHAからBuild・検証した製品を`course/shop/`へ許可リストで配布する。今回PRでは、公開Template→本人所有の非公開repo→新規2コアCodespace→配布SHA/許可ファイル検証→1モジュールload/非破壊再ロード→**配布済みShopの8082 Serve/Reset**→Playwright実Run→結果・成果物保全を確認する。受講者の製品フルBuildは要求しない。担当、SHA、実コマンド・exit/Run・保存物を記録し、失敗・未実施の場合はPR未完了とする。本人個別OpenCode認証・実受講者試行は別時点とする。
 
 ## 必須の検証と未確定事項
 
