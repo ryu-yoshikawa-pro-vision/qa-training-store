@@ -47,11 +47,11 @@
     {
       "id": "M06-Q04",
       "objective_ids": ["M06-04"],
-      "question": "ローカルではcommit AのspecがPASSしました。現在のworkspaceは変更され、別のspecを実行したあとにsummaryだけを見ています。M06の記録として必要な対応はどれですか。",
+      "question": "以前のspecはPASSしましたが、現在は内容を変更し、別のspecを実行した後のsummaryだけが残っています。M06の記録として必要な対応はどれですか。",
       "options": [
-        { "value": "A", "label": "最新のsummaryをcommit Aの証拠として保存する", "meaning": "別Runの結果を前のSHAへ流用する", "reason": "対象specや実行状態が異なり、同じRunを示していません。" },
-        { "value": "B", "label": "現在のspecとworkspaceのrevisionで再実行し、コマンド、対象spec、結果、ログを同じRunとして記録する", "meaning": "現在の変更と実行証拠を照合する", "reason": "以前のcommitや別specのPASSを、現在のworkspaceの証拠に流用しません。" },
-        { "value": "C", "label": "別Runでも同じPRなら結果をまとめる", "meaning": "Runと対象SHA・specの違いを無視する", "reason": "PRが同じでもテスト対象や実行証拠が異なることがあります。" },
+        { "value": "A", "label": "別のspecのsummaryを現在のspecの証拠として保存する", "meaning": "別Runの結果を流用する", "reason": "対象specや実行状態が異なり、同じRunを示していません。" },
+        { "value": "B", "label": "現在のspecを再実行し、入力版、コマンド、対象spec、結果、ログを同じRunとして記録する", "meaning": "現在の変更と実行証拠を照合する", "reason": "以前の版や別specのPASSを、現在のworkspaceの証拠に流用しません。" },
+        { "value": "C", "label": "同じworkspaceなら別Runの結果を区別せずまとめる", "meaning": "Runと対象specの違いを無視する", "reason": "同じworkspaceでもテスト対象や実行証拠が異なることがあります。" },
         { "value": "D", "label": "ログを残さずAIの説明だけを記録する", "meaning": "実際のRunを確認しない", "reason": "AIの説明だけでは実行結果を裏付けられません。" }
       ],
       "correct_value": "B",

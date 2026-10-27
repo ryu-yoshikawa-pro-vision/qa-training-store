@@ -287,6 +287,18 @@
       "role": "submission-template"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/exercises/M03/condition-runtime-evidence-template.json",
+      "target_path": "course/exercises/M03/condition-runtime-evidence-template.json",
+      "module_id": "M03",
+      "role": "submission-template"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/exercises/M03/case-runtime-evidence-template.json",
+      "target_path": "course/exercises/M03/case-runtime-evidence-template.json",
+      "module_id": "M03",
+      "role": "submission-template"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/states/M03/start.json",
       "target_path": "course/states/M03/start.json",
       "module_id": "M03",
@@ -797,6 +809,18 @@
       "role": "incomplete-spec"
     },
     {
+      "source_path": "training/ai-assisted-qa-course/inputs/M06/new-case.spec.ts",
+      "target_path": "course/exercises/M06/new-case.spec.ts",
+      "module_id": "M06",
+      "role": "incomplete-spec"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/inputs/M07/maintenance.spec.ts",
+      "target_path": "course/exercises/M07/maintenance.spec.ts",
+      "module_id": "M07",
+      "role": "incomplete-spec"
+    },
+    {
       "source_path": "workspace/M07/failure-assertion.spec.ts",
       "target_path": "course/exercises/M07/failure-assertion.spec.ts",
       "module_id": null,
@@ -865,6 +889,12 @@
     {
       "source_path": "scripts/training/ai-assisted-qa-assessment.mjs",
       "target_path": "scripts/training/ai-assisted-qa-assessment.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "scripts/training/ai-assisted-qa-run-evidence.mjs",
+      "target_path": "scripts/training/ai-assisted-qa-run-evidence.mjs",
       "module_id": null,
       "role": "runtime"
     },
@@ -1753,6 +1783,18 @@
       "kind": "submission-template"
     },
     {
+      "module_id": "M03",
+      "source_path": "course/exercises/M03/condition-runtime-evidence-template.json",
+      "target_path": "workspace/M03/condition-runtime-evidence.json",
+      "kind": "submission-template"
+    },
+    {
+      "module_id": "M03",
+      "source_path": "course/exercises/M03/case-runtime-evidence-template.json",
+      "target_path": "workspace/M03/case-runtime-evidence.json",
+      "kind": "submission-template"
+    },
+    {
       "module_id": "M04",
       "source_path": "course/exercises/M04/submission-template.md",
       "target_path": "workspace/M04/review.md",
@@ -1936,6 +1978,18 @@
       "module_id": "M06",
       "source_path": "course/exercises/M06/cart-cases.spec.ts",
       "target_path": "workspace/M06/cart-cases.spec.ts",
+      "kind": "exercise-code"
+    },
+    {
+      "module_id": "M06",
+      "source_path": "course/exercises/M06/new-case.spec.ts",
+      "target_path": "workspace/M06/new-case.spec.ts",
+      "kind": "exercise-code"
+    },
+    {
+      "module_id": "M07",
+      "source_path": "course/exercises/M07/maintenance.spec.ts",
+      "target_path": "workspace/M07/maintenance.spec.ts",
       "kind": "exercise-code"
     },
     {

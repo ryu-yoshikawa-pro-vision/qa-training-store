@@ -272,6 +272,25 @@
       "scope": "exact model id + OpenCode version + evaluator prompt SHA-256 + pinned scoring/rubric asset hashes",
       "critical_false_passes_allowed": 0,
       "retain_expected_decision_labels_as": "public calibration-fixture labels only; never convert them directly to learner Level 0-3"
+    },
+    "execution_evidence": {
+      "schema_version": 1,
+      "kind": "playwright-run-record",
+      "required_runs": [
+        {
+          "spec": "product-link.spec.ts",
+          "label": "before",
+          "minimum_tests": 1,
+          "expected_outcome": "failed",
+          "require_trace": true
+        },
+        {
+          "spec": "product-link.spec.ts",
+          "label": "after",
+          "minimum_tests": 1,
+          "expected_outcome": "passed"
+        }
+      ]
     }
   }
 }

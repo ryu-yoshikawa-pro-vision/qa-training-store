@@ -9,5 +9,7 @@
 - Trace / Screenshot / logが示すこと・示さないこと:
 - AI提案と最小修正差分:
 - Retry/Timeoutを原因修正にしなかった理由:
-- Helper/POM/Fixtureが必要か、その根拠:
+- 重複した操作と、Page Object・標準fixtureへ移した責務:
+- 保守演習の変更前後の別Run・対象spec・結果:
+- 抽象化を採用しない別例と、その根拠:
 - 未解決事項:

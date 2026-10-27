@@ -82,7 +82,7 @@ M02成果物を使えない場合もM03単独で始められるよう、`inputs/
 2. `condition_structure.py`の`direct`入力を作り、Skillのruntimeで検証します。M02の文章を`test_requirements[]`へ複製したり、契約にないキーを追加したりしません。
 3. Skillが選んだ技法を確認し、その入力契約で実際のモデルruntimeを実行します。
 4. 現行runtime結果と実行時metadataを`current_model_result_row(envelope, metadata)`で検証してから、`materialize_coverage.py`の`artifact`入力を作ります。
-5. Case Skillへ条件を渡し、最後に`verify_runtime_evidence`で有効な証拠を確認します。
+5. Case Skillへ条件を渡し、最後に`verify_runtime_evidence`で有効な証拠を確認します。condition / Caseの各request JSONをworkspace内へ保存し、requestが参照するartifact全文を現在の提出物と一致させます。
 
 `ready`、終了コード0、AIの自己申告だけでは完了としません。上流参照の欠落、未解決事項、mode不一致、古いruntime結果、`invalid_input`を成功として扱いません。17個のmetadata key、15個の条件入力key、fingerprintなどの内部契約を受講者が暗記する必要はありません。エージェントとruntimeが生成したJSON・実行結果を本人が根拠に照らして判断します。
 
@@ -106,7 +106,7 @@ Level 2では、条件の異なる課題で本人が導出し、AI案とruntime�
 | runtimeの証拠 | 固定Skill revisionで選択技法を実行し、`materialize_coverage(artifact)`、Case、最終`verify_runtime_evidence valid=true`まで同一artifact群で確認する | 終了コード0、AIの自己申告、古い結果を成功扱いする |
 | 意味上の妥当性 | 仕様に合う期待結果、正しい別解、未決事項、実行不能な条件を根拠とともに説明する | 技術検証PASSだけで設計の正しさもPASSとする |
 
-runtime証拠の有効性と、テスト設計の意味上の妥当性は別々に判定します。片方が未実施・無効なら、M03のLevel 2を認定しません。
+runtime証拠は`workspace/M03/condition-runtime-evidence.json`と`workspace/M03/case-runtime-evidence.json`に保存します。`course:assess M04`は配布元のSHA検証済みPython 3.11 helperで両方を再検証し、requestのartifactが現在の提出物と一致しなければ受理しません。runtime証拠の有効性と、テスト設計の意味上の妥当性は別々に判定します。片方が未実施・無効なら、M03のLevel 2を認定しません。
 
 ## 次へ進む条件
 

@@ -49,26 +49,26 @@
       "options": [
         {
           "value": "A",
-          "label": "workflow名がPRと同じであることだけ",
-          "meaning": "workflow名がPRと同じであることだけ",
+          "label": "同じworkflow名なので、古いArtifactを現在のHEADの証拠にする",
+          "meaning": "workflow名だけで対象版を判断する",
           "reason": "同じ名前でも別commitの実行結果かもしれません。"
         },
         {
           "value": "B",
-          "label": "Artifactがダウンロード可能であることだけ",
-          "meaning": "Artifactがダウンロード可能であることだけ",
+          "label": "Artifactが取得できたので、その結果を現在のHEADに適用する",
+          "meaning": "取得できることだけで対象版を判断する",
           "reason": "取得可能でも対象SHAが異なる場合は現在の検証になりません。"
         },
         {
           "value": "C",
-          "label": "branch名が同じであること",
-          "meaning": "branch名が同じであること",
+          "label": "同じbranchのRunなので、SHAの違いを無視して採用する",
+          "meaning": "branch名だけで対象版を判断する",
           "reason": "branch名は進むため、同じcommitである証明になりません。"
         },
         {
           "value": "D",
-          "label": "target-sha.txtのabc123がPR HEADのdef456と不一致なので採用しない。Runの対象SHAとArtifact内のSHAを照合し、def456の結果がなければ未確認とする",
-          "meaning": "PR HEAD、Runの対象SHA、Artifact内のSHAをすべて一致確認する",
+          "label": "不一致のArtifactを採用せず、現在のHEADに対応するRunを確認する",
+          "meaning": "現在のPR HEADとArtifactの対象を照合し、同じRunの由来を確認する",
           "reason": "target-sha.txtのabc123は現在のPR HEAD def456を証明しません。同じRun由来かも確認し、現在のHEADに対応する結果がない間はPASSにせず未確認とします。"
         }
       ],

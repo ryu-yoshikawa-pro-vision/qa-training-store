@@ -33,12 +33,12 @@
     {
       "id": "M03-Q03",
       "objective_ids": ["M03-03"],
-      "question": "商品検索で同じfacetの条件はOR、異なるfacetの条件はANDです。色を赤または青、サイズをMにしたとき、条件の組合せをどう表しますか。",
+      "question": "商品検索で同じfacetの条件はOR、異なるfacetの条件はANDです。カテゴリAまたはBと、ブランドXを選んだとき、条件の組合せをどう表しますか。",
       "options": [
-        { "value": "A", "label": "色が赤または青、かつサイズがM", "meaning": "同一facet内のORとfacet間のANDを適用する", "reason": "同じ色facetはOR、色とサイズという別facet間はANDです。" },
-        { "value": "B", "label": "色が赤かつ青、またはサイズがM", "meaning": "同じfacetをANDにし、facet間をORにする", "reason": "仕様のOR/ANDの適用範囲を逆にしています。" },
-        { "value": "C", "label": "色が赤または青、またはサイズがM", "meaning": "すべての条件をORにする", "reason": "異なるfacet間はANDで結びます。" },
-        { "value": "D", "label": "赤、青、Mをひとつの同値クラスとして扱う", "meaning": "異なる属性を同じ条件とみなす", "reason": "色とサイズは別のfacetで、条件の意味も異なります。" }
+        { "value": "A", "label": "カテゴリAまたはB、かつブランドX", "meaning": "同一facet内のORとfacet間のANDを適用する", "reason": "同じカテゴリfacetはOR、カテゴリとブランドという別facet間はANDです。" },
+        { "value": "B", "label": "カテゴリAかつB、またはブランドX", "meaning": "同じfacetをANDにし、facet間をORにする", "reason": "仕様のOR/ANDの適用範囲を逆にしています。" },
+        { "value": "C", "label": "カテゴリAまたはB、またはブランドX", "meaning": "すべての条件をORにする", "reason": "異なるfacet間はANDで結びます。" },
+        { "value": "D", "label": "カテゴリA、B、ブランドXをひとつの同値クラスとして扱う", "meaning": "異なる属性を同じ条件とみなす", "reason": "カテゴリとブランドは別のfacetで、条件の意味も異なります。" }
       ],
       "correct_value": "A",
       "source_refs": ["docs/spec/features/storefront.md"],
@@ -61,7 +61,7 @@
     {
       "id": "M03-Q05",
       "objective_ids": ["M03-01", "M03-05"],
-      "question": "M02で検討した数量上限の条件とは別に、商品検索の色とサイズの条件を設計します。適切な最初の判断はどれですか。",
+      "question": "M02で検討した数量上限の条件とは別に、商品検索の価格と在庫の条件を設計します。適切な最初の判断はどれですか。",
       "options": [
         { "value": "A", "label": "前の課題で使った境界値分析を必ず再利用する", "meaning": "題材が変わっても同じ技法を固定する", "reason": "検索条件の組合せでは条件表など、別の技法が適する場合があります。" },
         { "value": "B", "label": "仕様の条件構造を見て、必要な技法と限界を選ぶ", "meaning": "技法選択を仕様と目的に結び付ける", "reason": "技法は問題の条件構造に応じて選び、その理由を説明します。" },

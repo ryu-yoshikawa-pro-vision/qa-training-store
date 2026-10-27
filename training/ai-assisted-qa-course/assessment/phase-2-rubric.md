@@ -20,7 +20,7 @@
 | M05-03 | 表示と業務期待を分け、不変条件を確認する | 画面が見えたことだけを成功条件にする |
 | M05-04 | 型・構文・実行・Assertion・待機の失敗を分類する | 固定Timeoutで症状を隠す |
 | M05-05 | testDir、8082、通常8081、6080、出力先を設定から確認する | 異なる環境のPortを取り違える |
-| M06-01 | 固定3 Caseの入力元/path/revision、Case ID、BR/AC、spec/testを記録し、Locator/Action/業務Assertionへ結ぶ。本人のPhase 1 Caseがあれば条件・期待結果の対応と差を示す | 入力元が不明、異なる条件を同一Caseとみなす、fallback利用だけでPhase 1能力を認定する |
+| M06-01 | 固定3 Caseを仕様・specへ結び、別Caseから新規specを構成してReset・操作・業務Assertionと単独実行・再実行を示す。本人のPhase 1 Caseがあれば条件・期待結果の対応と差を示す | 固定3 Caseの補完だけで新規構成を認定する、入力元が不明、fallbackだけでPhase 1能力を認定する |
 | M06-02 | Reset/Context後の独立実行を複数回示す | 前のテストの状態に依存する |
 | M06-03 | locator/assertionがBR/ACの期待を確認する理由 | 弱いAssertionでPASSを作る |
 | M06-04 | コマンド、Run、出力、Traceを対応付ける | 結果にRunや対象がない |
@@ -29,7 +29,7 @@
 | M07-02 | Trace/Screenshot/log/Runの由来と限界 | 別Runの証拠を混ぜる |
 | M07-03 | RetryやTimeoutを原因修正と呼ばない | Retry成功だけで不具合を閉じる |
 | M07-04 | 最小差分と独立した修正前後Runを示す | 期待を弱めたり同じRunを使い回す |
-| M07-05 | Helper/POM/Fixtureの便益と保守負荷を比較する | 将来拡張だけを理由に抽象化する |
+| M07-05 | 重複する操作をPage Objectへ、testごとのResetを標準fixtureへ移し、変更前後の別Runと維持したAssertionを示す。不要な例では不採用理由を示す | 採否の説明だけで実装・別Runを省く、将来拡張だけを理由に一律抽象化する |
 
 ## Phase 2修了の読み方
 

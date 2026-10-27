@@ -363,6 +363,7 @@ function courseFixture() {
     "scripts/training/ai-assisted-qa-course-core.mjs",
     "scripts/training/ai-assisted-qa-assessment-core.mjs",
     "scripts/training/ai-assisted-qa-assessment.mjs",
+    "scripts/training/ai-assisted-qa-run-evidence.mjs",
     "scripts/training/ai-assisted-qa-course-tutor-core.mjs",
     "scripts/training/ai-assisted-qa-course-tutor.mjs",
     "scripts/training/ai-assisted-qa-github-run-evidence.mjs",

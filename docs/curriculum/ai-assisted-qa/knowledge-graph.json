@@ -225,6 +225,17 @@
       "private": false
     },
     {
+      "id": "ART-M06-03",
+      "type": "artifact",
+      "title": "M06 artifact new-case.spec.ts",
+      "module": "M06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M06/new-case.spec.ts",
+      "destination": "workspace/M06/new-case.spec.ts",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M06-INPUT-START",
       "type": "artifact",
       "title": "M06 public start input start.md",
@@ -276,6 +287,17 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/exercises/M07/handoff-template.md",
       "destination": "workspace/M07/phase2-handoff.md",
+      "public": true,
+      "private": false
+    },
+    {
+      "id": "ART-M07-05",
+      "type": "artifact",
+      "title": "M07 artifact maintenance.spec.ts",
+      "module": "M07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M07/maintenance.spec.ts",
+      "destination": "workspace/M07/maintenance.spec.ts",
       "public": true,
       "private": false
     },
@@ -1774,11 +1796,11 @@
     {
       "id": "M02-05",
       "type": "learning_objective",
-      "title": "AIの仕様分析案について欠落・推測・誤読を見つける",
+      "title": "AI分析案の誤読・欠落・推測と未決を区別し、確認質問と影響を説明する",
       "module": "M02",
       "cognitive_target": "判断",
       "evaluation_hint": "AI案のレビュー",
-      "level2": "誤りを正本に照合し、修正すべき点と未決事項を分けられる",
+      "level2": "誤りを正本に照合し、未決の質問・保留する期待結果と後続への影響を示す",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
@@ -1914,11 +1936,11 @@
     {
       "id": "M04-04",
       "type": "learning_objective",
-      "title": "仕様の不明点と製品不具合を混同せず、確認が必要な判断を残す",
+      "title": "未知仕様の質問・未決・期待結果の保留を判断し第三者へ引き継ぐ",
       "module": "M04",
       "cognitive_target": "判断",
       "evaluation_hint": "不確定な事例の判定",
-      "level2": "不明点を正解にせず**確認事項と次の行動**を残せる",
+      "level2": "質問、保留する期待結果、影響するCaseと次の確認先を第三者に引き継ぐ",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
@@ -2012,11 +2034,11 @@
     {
       "id": "M06-01",
       "type": "learning_objective",
-      "title": "M06の異なる検証責務を持つCaseに対応するPlaywrightコードをAIと作り、Phase 1本人Caseがある場合は対応関係も確認する",
+      "title": "固定3 Caseに加え別CaseからReset・操作・Locator・Assertionを選び短いE2Eを構成する",
       "module": "M06",
       "cognitive_target": "適用",
       "evaluation_hint": "`workspace/M06`の複数Caseに対応する受講者作成テストと業務Assertion。完成済み実技回答は配布しない",
-      "level2": "新しいCaseで**Case→操作/Assertionの対応**を確認・修正できる。AI生成だけでは不合格",
+      "level2": "別Caseから新規specを構成し、Reset・操作・業務Assertionと単独実行・再実行を説明できる。AI生成だけでは不合格",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
@@ -2145,11 +2167,11 @@
     {
       "id": "M07-05",
       "type": "learning_objective",
-      "title": "Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ",
+      "title": "重複・変更要求に応じてPage Objectと標準fixtureの採否・小規模実装・変更・再実行を行う",
       "module": "M07",
       "cognitive_target": "判断",
       "evaluation_hint": "保守改善演習",
-      "level2": "抽象化が必要/不要の**両方を具体的に判断**できる。可能性だけでPOMを作らない",
+      "level2": "重複する操作とResetをPage Object・標準fixtureにまとめ、別Runで前後を確認し、不要な例では不採用理由を説明する",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
@@ -2271,7 +2293,7 @@
     {
       "id": "M09-04",
       "type": "learning_objective",
-      "title": "公開リポジトリの標準Runnerとprivate/larger runnerの料金条件を区別し、品質ゲートをリスク・実行速度・コストから選ぶ",
+      "title": "本人非公開repoの費用・trigger・対象を考慮して品質ゲートを設計する",
       "module": "M09",
       "cognitive_target": "判断",
       "evaluation_hint": "無料条件と最小CI構成の説明",
@@ -2285,7 +2307,7 @@
     {
       "id": "M09-05",
       "type": "learning_objective",
-      "title": "Trainingの権限・Secret・正式デプロイの境界を判断する",
+      "title": "workflowの最小permissions・Secret不要化・他CI分離を判断し制約変更に対応する",
       "module": "M09",
       "cognitive_target": "判断",
       "evaluation_hint": "安全性レビュー",
@@ -2320,11 +2342,11 @@
     {
       "id": "M10-02",
       "type": "learning_objective",
-      "title": "受講者のテストを実行する最小のGitHub Actions workflowを構築し、ローカルとの差を説明する",
+      "title": "専用workflowを安全に手動有効化し、実Runを得るCIを本人が構成・変更する",
       "module": "M10",
       "cognitive_target": "適用",
       "evaluation_hint": "CI設定と初回Run",
-      "level2": "**同じPhase 2のspec**をCIで動かし、再現に必要な設定を説明できる",
+      "level2": "費用・権限を確認し、同じPhase 2のspecをCIで動かし、条件変更への対応と実Runを示す",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
@@ -2348,7 +2370,7 @@
     {
       "id": "M10-04",
       "type": "learning_objective",
-      "title": "CI環境だけの失敗とテスト自体の問題を区別し、必要な改善・再実行を判断する",
+      "title": "CI固有の失敗とテスト・製品の失敗を区別し、変更条件で停止・再実行・後片付けを判断する",
       "module": "M10",
       "cognitive_target": "判断",
       "evaluation_hint": "失敗時の調査と差分",
@@ -3894,6 +3916,11 @@
     },
     {
       "from": "EX-M06",
+      "relation": "produces",
+      "to": "ART-M06-03"
+    },
+    {
+      "from": "EX-M06",
       "relation": "uses_skill",
       "to": "S-E2E-EXECUTION"
     },
@@ -3961,6 +3988,11 @@
       "from": "EX-M07",
       "relation": "produces",
       "to": "ART-M07-04"
+    },
+    {
+      "from": "EX-M07",
+      "relation": "produces",
+      "to": "ART-M07-05"
     },
     {
       "from": "EX-M07",

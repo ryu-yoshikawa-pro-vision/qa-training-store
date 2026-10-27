@@ -129,11 +129,13 @@
       "objective_ids": ["M07-05"],
       "knowledge_ids": ["K-M07-05"],
       "required_evidence": [
-        "「Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ」を示す提出物の箇所",
+        "重複・変更要求に応じたPage Objectと標準fixtureの採否と実装を示す提出物の箇所",
+        "重複に対するPage ObjectとPlaywright標準fixtureの実装、差分、変更前後の別Runと維持したAssertion",
         "知識の行動証拠: 重複・保守費用に応じて抽象化を選ぶ"
       ],
       "pass_conditions": [
-        "学習目標「Helper/POM/Fixtureを、実際の重複と保守負荷から必要な場合だけ選ぶ」が具体例・判断・実行可能な成果物で満たされる",
+        "重複する画面操作とtestごとのResetを適切にまとめ、別Runで変更前後の業務Assertionを確認し、不要な条件での不採用理由を説明する",
+        "学習目標の採否・小規模実装・変更・再実行が具体例と本人の判断で満たされる",
         "対応する知識「Helper・POM・Fixtureの適用判断」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -142,6 +144,7 @@
         "他の必須観点は満たし、補足が必要な箇所を特定できる"
       ],
       "reject_if": [
+        "採否の説明だけでPage Objectと標準fixtureの実装・別Runを省く",
         "正式仕様と矛盾する期待結果を断定する",
         "観測していない処理やCIを成功と報告する",
         "必須成果物・根拠・対象revisionが欠けるのに合格とする"
@@ -152,7 +155,7 @@
     {
       "id": "M07-CAL-01",
       "type": "correct",
-      "response": "確認できたRun/traceから原因候補を絞り、仕様を維持する最小修正と前後の別Runを証拠付きで提示する。",
+      "response": "確認できたRun/traceから原因候補を絞り、仕様を維持する最小修正と前後の別Runを示す。別の重複した2 testでは共通操作をPage Objectへ、各testのResetを標準fixtureへ移し、数量Assertionを残して前後の別Runを示す。単発操作への不採用理由も説明する。",
       "evidence": [
         "reference-solutions/M07.md",
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
@@ -189,7 +192,7 @@
     {
       "id": "M07-CAL-04",
       "type": "acceptable-alternative",
-      "response": "限定的retryを再現診断に使っても最終合否や修正証明と分ける。",
+      "response": "限定的retryを再現診断に使っても最終合否や修正証明と分ける。重複した2 testはPage Objectと標準fixtureで分離し、個別の数量Assertionと前後の別Runを示す。単発操作への抽象化は採用しない。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M07/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
@@ -232,6 +235,7 @@
         "workspace/M07/diagnosis.md",
         "workspace/M07/repaired-assertion.spec.ts",
         "workspace/M07/phase2-handoff.md",
+        "workspace/M07/maintenance.spec.ts",
         "evidence/run-record.md"
       ]
     },
@@ -261,6 +265,37 @@
       "scope": "exact model id + OpenCode version + evaluator prompt SHA-256 + pinned scoring/rubric asset hashes",
       "critical_false_passes_allowed": 0,
       "retain_expected_decision_labels_as": "public calibration-fixture labels only; never convert them directly to learner Level 0-3"
+    },
+    "execution_evidence": {
+      "schema_version": 1,
+      "kind": "playwright-run-record",
+      "required_runs": [
+        {
+          "spec": "repaired-assertion.spec.ts",
+          "label": "before",
+          "minimum_tests": 1,
+          "expected_outcome": "failed",
+          "require_trace": true
+        },
+        {
+          "spec": "repaired-assertion.spec.ts",
+          "label": "after",
+          "minimum_tests": 1,
+          "expected_outcome": "passed"
+        },
+        {
+          "spec": "maintenance.spec.ts",
+          "label": "before",
+          "minimum_tests": 2,
+          "expected_outcome": "passed"
+        },
+        {
+          "spec": "maintenance.spec.ts",
+          "label": "after",
+          "minimum_tests": 2,
+          "expected_outcome": "passed"
+        }
+      ]
     },
     "live_condition": {
       "required": true,

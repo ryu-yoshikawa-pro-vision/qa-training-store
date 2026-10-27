@@ -2,6 +2,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAssessmentCli } from "./ai-assisted-qa-assessment.mjs";
+import { runAiAssistedQaSpecCli } from "./ai-assisted-qa-run-evidence.mjs";
 import { runTutorCli } from "./ai-assisted-qa-course-tutor.mjs";
 import {
   checkState,
@@ -78,9 +79,16 @@ async function main() {
     return;
   }
   if (command === "assess") return runAssessmentCli(args);
+  if (command === "run") {
+    const distribution = verifySyncedCourseDistribution({ root: process.cwd() });
+    return runAiAssistedQaSpecCli(args, {
+      root: process.cwd(),
+      sourceSha: distribution.source_sha,
+    });
+  }
   if (command === "tutor") return runTutorCli(args);
   throw new Error(
-    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end | pnpm course:assess M04|M07|M10 --model provider/model-id | pnpm course:tutor Mxx --model provider/model-id | node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+    "Usage: pnpm course:sync --source-sha <full-sha> --target <existing-dir> | pnpm course:load Mxx | pnpm course:check Mxx --state start|end | pnpm course:run M05|M06|M07 <allowed-spec.spec.ts> --label main|initial|repeat|before|after | pnpm course:assess M04|M07|M10 --model provider/model-id | pnpm course:tutor Mxx --model provider/model-id | node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
   );
 }
 

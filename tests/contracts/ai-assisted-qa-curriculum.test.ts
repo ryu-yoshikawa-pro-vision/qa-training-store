@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { buildAiAssistedQaSite } from "../../scripts/docs/build-ai-assisted-qa";
 import { resolveAiAssistedQaPlaywrightSettings } from "../../scripts/training/ai-assisted-qa-playwright-settings";
 import { validateAiAssistedQa } from "../../scripts/training/validate-ai-assisted-qa";
@@ -160,6 +160,61 @@ describe("AI-assisted QA static learning course", () => {
 
   afterAll(async () => {
     fs.rmSync(outputRoot, { recursive: true, force: true });
+  });
+
+  it("rejects duplicate calibration case IDs before a model is invoked", () => {
+    const scoringPath = path.join(
+      repositoryRoot,
+      "training/ai-assisted-qa-course/assessment/scoring-tests/M03.json",
+    );
+    const scoring = JSON.parse(fs.readFileSync(scoringPath, "utf8")) as {
+      cases: { id: string }[];
+    };
+    scoring.cases.push({ ...scoring.cases[0]! });
+    const readFile = fs.readFileSync;
+    const spy = vi.spyOn(fs, "readFileSync").mockImplementation((...args) => {
+      if (String(args[0]) === scoringPath) return JSON.stringify(scoring);
+      return readFile(...args);
+    });
+    try {
+      expect(() => validateAiAssistedQa(repositoryRoot)).toThrow(/重複する採点例ID/);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("connects the new M06 and M07 exercises to learner-owned required files", () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, "training/course-sync/manifest.json"), "utf8"),
+    ) as { load_files: { module_id: string; target_path: string }[] };
+    for (const [moduleId, fileName] of [
+      ["M06", "new-case.spec.ts"],
+      ["M07", "maintenance.spec.ts"],
+    ]) {
+      const target = `workspace/${moduleId}/${fileName}`;
+      const endState = JSON.parse(
+        fs.readFileSync(
+          path.join(repositoryRoot, `training/ai-assisted-qa-course/states/${moduleId}/end.json`),
+          "utf8",
+        ),
+      ) as { expected: { required_paths: string[] } };
+      expect(
+        manifest.load_files.some(
+          (entry) => entry.module_id === moduleId && entry.target_path === target,
+        ),
+      ).toBe(true);
+      expect(endState.expected.required_paths).toContain(target);
+    }
+    const starter = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M06/new-case.spec.ts"),
+      "utf8",
+    );
+    expect(starter).toContain('throw new Error("TODO:');
+    const maintenance = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M07/maintenance.spec.ts"),
+      "utf8",
+    );
+    expect(maintenance).not.toContain("base.extend");
   });
 
   it("aligns the public M02 Cart risk reference with the canonical workbook ID", () => {

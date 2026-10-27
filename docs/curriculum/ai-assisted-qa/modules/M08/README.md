@@ -25,6 +25,16 @@ stage後の一覧がこの一ファイルだけであることを確認します
 
 練習の流れは「変更→status→diff→必要ファイルのみstage→差分再確認→commit→個人remoteへpush→PR作成」です。各段階の状態を確認します。PRには目的、仕様/Case ID、変更したspec、実行コマンドと結果、未確認事項を書き、同じSHAに対応する根拠を示します。
 
+### 学習用リポジトリで一件ずつ記録する
+
+次はPhase 3を選び、本人の学習用リポジトリと共有先の権限を確認した後の例です。リポジトリ直下のターミナルで`git status`を読み、既存の変更や現在のbranchを確認します。練習用branchがまだなければ`git switch -c practice/course-review`で作成できます。同名branchが既にある場合は内容を確認し、別名を選びます。
+
+練習前に`git status --short`と`git diff --cached --name-only`を実行します。既存の差分やstage済みファイルが見つかったら、stash・reset・削除で片付けず、教材用の変更へ混ぜないよう作業を止めます。空であれば`git switch -c practice/m08-review`で学習用branchを作り、`git branch --show-current`で移動先を確認します。同名branchがある場合は、別名を使う前にそのbranchの履歴と状態を確認してください。
+
+`workspace/M08/review-candidate.md`を編集したら、`git diff -- workspace/M08/review-candidate.md`で差分を読みます。このファイルだけを`git add -- workspace/M08/review-candidate.md`でstageし、`git diff --cached --name-only`と`git diff --cached`で対象と内容を再確認します。意図しないファイルがある場合はcommitを進めず、何がstageされたかを確認します。問題がなければ`git commit -m "学習用レビューを記録"`で記録し、`git status`と`git log -1 --oneline`で状態を確認します。
+
+共有する際は`git remote -v`で本人の共有先を確認し、許可されたbranchをその共有先へpushします。GitHub上ではbaseとhead、変更ファイル、PR説明を確認してから作成します。認証エラーや権限不足はSecretを貼り付けて解決しようとせず、権限と認証方法を確認します。commitやPRを作っただけでは、対象のテストが実行されたことにはなりません。
+
 ## AIレビューの採否
 
 AIの指摘は対象diff、正式仕様、実行証拠に照らします。正しい指摘は採用し、誤った指摘は根拠とともに退けます。意図しない全面整形や必要性のない抽象化は採用しません。指摘数は品質の尺度ではありません。
@@ -35,7 +45,7 @@ PRレビューでは仕様IDから変更したdiff、対象テスト、同じ変
 
 ## 演習と提出
 
-`workspace/M08/review-candidate.md`のTODOを補い、`workspace/M08/local-only-run.log`が合成メモで実行証拠ではないことを確認します。前者だけをstageし、`status`と`diff --staged`で後者が含まれていないことを確認します。次にCase ID・仕様根拠・対象spec・実行状態を含むPR説明を作成し、AI指摘を根拠で評価します。実際の共有操作は個人用学習リポジトリの権限が確定した実地工程で行います。
+`workspace/M08/review-candidate.md`のTODOを補い、`workspace/M08/local-only-run.log`が合成メモで実行証拠ではないことを確認します。練習用branchを作り、前者だけをstageしてcommitします。`status`、`diff --staged`、commit後の履歴を確認し、後者が変更・stage・commitに含まれていないことを示します。次にCase ID・仕様根拠・対象spec・実行状態を含むPR説明を作成し、AI指摘を根拠で評価します。pushやPR作成はこの練習では行いません。実際の共有操作は個人用学習リポジトリの権限が確定した実地工程で行います。
 
 Phase 3を選ばない場合は、上記のM07 spec追加やGit操作を行わずにPhase 2を終了できます。
 

@@ -61,16 +61,16 @@
     {
       "id": "M02-Q05",
       "objective_ids": ["M02-05"],
-      "question": "`low-stock`のReset後に、カートの現在数量をまだ確認していません。分析で取るべき対応はどれですか。",
+      "question": "架空の仕様には「利用できない入力は受け付けない」とだけあり、AIが「拒否すると以前の値を消す」と提案しました。関連する正式な説明も見つからない場合、どう扱いますか。",
       "options": [
-        { "value": "A", "label": "一般的な値を選び、仕様で決まっていたことにする", "meaning": "不足データを事実のように補う", "reason": "推測で作った値を正式な条件として扱えません。" },
-        { "value": "B", "label": "仕様とSeedから有効上限3を記録し、現在数量はReset後に確認する", "meaning": "確認済みの上限と未確認の現在状態を分ける", "reason": "在庫3と購入上限5は有効上限3を定めますが、カート数量はReset後の状態を確認するまで分かりません。" },
-        { "value": "C", "label": "画面を1回操作して、未指定の値を仕様とみなす", "meaning": "観測から正式な業務ルールを推論する", "reason": "観測結果だけでは未記載の仕様値を確定できません。" },
-        { "value": "D", "label": "不足値をAIに選ばせ、回答を採用する", "meaning": "AIの補完を根拠として使う", "reason": "AIが選んだ値にも正式な根拠が必要です。" }
+        { "value": "A", "label": "以前の値を消すことを期待結果として確定する", "meaning": "AIの補完を仕様として採用する", "reason": "提示された断片には拒否後の値の扱いがありません。" },
+        { "value": "B", "label": "拒否後の扱いを質問し、期待結果と影響するCaseを回答まで保留する", "meaning": "未決の仕様と後続への影響を記録する", "reason": "不足する挙動を確認し、回答前に推測を期待結果へ変えません。" },
+        { "value": "C", "label": "一度の画面観測を仕様として確定する", "meaning": "観測から未記載の業務ルールを確定する", "reason": "観測は事実ですが、未記載の期待結果の根拠にはなりません。" },
+        { "value": "D", "label": "AIに最もありそうな挙動を選ばせ、質問せず採用する", "meaning": "推測で不足する仕様を埋める", "reason": "AIが選んだ挙動にも正式な根拠が必要です。" }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/features/cart.md", "src/seeds/default-dataset.ts", "src/seeds/scenarios.ts", "docs/curriculum/ai-assisted-qa/modules/M02/README.md#演習検証責務を書く"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#seedとresetで実行時の状態を確認する"
+      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"
     }
   ]
 }

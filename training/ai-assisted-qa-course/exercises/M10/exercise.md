@@ -12,6 +12,7 @@ M07のテスト、M09から引き継いだ修正済みworkflow案（ない場合
 4. Artifact内のtarget-sha.txtが現在のPR HEADと完全一致すること、CheckとArtifactが同じRunに属することを確認します。
 5. CI-only failureとspec failureをログで分け、再実行の理由と採否を報告します。
 6. AI提案の変更と人が確認した範囲、未確認事項を記録します。
+7. 失敗時に何を確認するまで再実行しないか、費用・権限・trigger条件が変わった場合に何を停止または見直すかを記録します。不要になったworkflowのtriggerを止める手順も、本人のrepoで行える範囲に限定して説明します。
 
 ## 提出物
 

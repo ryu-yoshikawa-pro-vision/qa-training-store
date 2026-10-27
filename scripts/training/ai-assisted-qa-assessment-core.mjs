@@ -409,8 +409,20 @@ export function finalizeAssessment({
   now = new Date().toISOString(),
 }) {
   const objectives = candidate.objectives.map((item) => ({ ...item }));
+  const deterministicChecksValid =
+    Array.isArray(deterministicChecks) &&
+    deterministicChecks.length > 0 &&
+    deterministicChecks.every(
+      (check) =>
+        check &&
+        typeof check.id === "string" &&
+        check.id.trim() &&
+        ["passed", "blocked", "ungradable"].includes(check.status),
+    ) &&
+    new Set(deterministicChecks.map((check) => check.id)).size === deterministicChecks.length;
   const completed =
     calibration?.status === "passed" &&
+    deterministicChecksValid &&
     deterministicChecks.every((check) => check.status === "passed") &&
     objectives.every((item) => item.status === "assessed" && item.level >= 2);
   const hasBlocked =
@@ -418,6 +430,7 @@ export function finalizeAssessment({
     deterministicChecks.some((check) => check.status === "blocked");
   const hasUngradable =
     objectives.some((item) => item.status === "ungradable") ||
+    !deterministicChecksValid ||
     deterministicChecks.some((check) => check.status === "ungradable");
   const status = completed
     ? "complete"

@@ -9,7 +9,12 @@
   "read_only": true,
   "environment": ["pinned Skill package revision", "Python 3.11 standard library"],
   "expected": {
-    "required_paths": ["workspace/M03/condition-design.md", "workspace/M03/cases.md"],
+    "required_paths": [
+      "workspace/M03/condition-design.md",
+      "workspace/M03/cases.md",
+      "workspace/M03/condition-runtime-evidence.json",
+      "workspace/M03/case-runtime-evidence.json"
+    ],
     "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
     "phase": "P1",
     "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
@@ -34,11 +39,17 @@
       "id": "M03-END-04",
       "mode": "read-only",
       "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    },
+    {
+      "id": "M03-END-05",
+      "mode": "read-only",
+      "condition": "the fixed Skill runtime verification requests are saved beside the learner's condition and Case artifacts; course:assess reruns the pinned Python 3.11 verifier and does not accept a recorded valid=true claim alone"
     }
   ],
   "references": [
     "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
     "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+    "training/ai-assisted-qa-course/exercises/M03/exercise.md",
     "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
     "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324"
   ],

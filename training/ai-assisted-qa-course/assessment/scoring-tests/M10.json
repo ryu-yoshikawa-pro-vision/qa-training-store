@@ -66,11 +66,11 @@
       "objective_ids": ["M10-02"],
       "knowledge_ids": ["K-M10-02"],
       "required_evidence": [
-        "「受講者のテストを実行する最小のGitHub Actions workflowを構築し、ローカルとの差を説明する」を示す提出物の箇所",
+        "費用・権限を事前確認した専用workflowの有効化差分、現在のPR HEADと実Run、変更条件への対応",
         "知識の行動証拠: 手元とRunnerの差を確認する"
       ],
       "pass_conditions": [
-        "学習目標「受講者のテストを実行する最小のGitHub Actions workflowを構築し、ローカルとの差を説明する」が具体例・判断・実行可能な成果物で満たされる",
+        "本人が許可された学習repoで専用workflowを有効化し、対象specと実Runを示し、制約変更に応じた判断を説明する",
         "対応する知識「CIの再現環境とテスト実行」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -115,11 +115,11 @@
       "objective_ids": ["M10-04"],
       "knowledge_ids": ["K-M10-04"],
       "required_evidence": [
-        "「CI環境だけの失敗とテスト自体の問題を区別し、必要な改善・再実行を判断する」を示す提出物の箇所",
+        "失敗stepと証拠を用いた環境・テスト・製品の切分け、条件変更時の停止・再実行・不要trigger停止の判断",
         "知識の行動証拠: 環境・テスト・アプリの失敗を区別する"
       ],
       "pass_conditions": [
-        "学習目標「CI環境だけの失敗とテスト自体の問題を区別し、必要な改善・再実行を判断する」が具体例・判断・実行可能な成果物で満たされる",
+        "最初の失敗段階から追加確認を選び、条件変更に応じた停止・再実行と不要なtriggerの停止を説明する",
         "対応する知識「CI障害の再現と原因切分け」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -161,7 +161,7 @@
     {
       "id": "M10-CAL-01",
       "type": "correct",
-      "response": "対象範囲とworkflowを確認し、同一SHAに結ばれたRun/Check/Artifactだけを使って結果と未確認を分ける。",
+      "response": "本人の学習repoで費用・権限を確認して専用workflowを有効化し、対象specの実Runと同じRunのCheck/Artifactを確認する。Artifactのtarget SHAを現在のPR HEADと照合し、merge SHAを区別する。条件変更時の停止・再実行と不要trigger停止、未確認事項を説明する。",
       "evidence": [
         "reference-solutions/M10.md",
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md",
@@ -198,7 +198,7 @@
     {
       "id": "M10-CAL-04",
       "type": "acceptable-alternative",
-      "response": "必要十分な別CI構成を選び、証明できない範囲を明記する。",
+      "response": "許可された別CI構成で対象specを実行し、現在のPR HEADと同じRunのCheck/Artifactの対応、最小権限、停止条件と証明できない範囲を示す。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M10/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",

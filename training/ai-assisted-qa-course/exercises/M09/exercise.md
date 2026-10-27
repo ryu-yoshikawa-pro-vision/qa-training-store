@@ -14,6 +14,8 @@ workspace/M09/public-sample/handoff.mdの合成branch/commit/PR履歴か、契�
 6. 修正後のworkflow案は.disabledを保ち、.github/workflows/へ移動・有効化しません。Templateにも自動配置しません。
 7. PR HEAD、Run、Check、Artifact、Artifact内のtarget-sha.txtを対応付けます。未実行ならその証拠は未確認と記録します。
 8. 合成ログのBuild失敗、Test失敗、Artifact未生成を区別し、最初に調べるstepを選びます。Runner条件・料金の未確認事項も分けます。
+9. 本人の非公開repoを想定し、PR更新の回数、選択するRunner、対象spec、利用枠の確認先を記録します。手動triggerへ変更した場合の費用と未検証期間を比較し、失敗時に停止または再実行する条件を説明します。
+10. 提案されたworkflowに書込権限やSecretがある場合、それぞれの必要性を確認して不要な権限を除きます。別のCIを同時に起動する変更条件でも、対象と権限を再確認します。
 
 ## 提出物
 

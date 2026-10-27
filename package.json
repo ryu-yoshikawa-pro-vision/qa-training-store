@@ -53,6 +53,7 @@
     "course:sync": "node scripts/training/ai-assisted-qa-course.mjs sync",
     "course:load": "node scripts/training/ai-assisted-qa-course.mjs load",
     "course:check": "node scripts/training/ai-assisted-qa-course.mjs check",
+    "course:run": "node scripts/training/ai-assisted-qa-course.mjs run",
     "course:assess": "node scripts/training/ai-assisted-qa-course.mjs assess",
     "course:tutor": "node scripts/training/ai-assisted-qa-course.mjs tutor",
     "training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium",

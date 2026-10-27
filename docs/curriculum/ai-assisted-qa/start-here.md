@@ -19,10 +19,22 @@ M00〜M10を順番に進みます。Phase 3は選択制です。Phase 1・2の�
 ## 共通の始め方
 
 1. 管理者から案内された個人用学習リポジトリと、利用条件を確認します。
-2. 自分の利用枠で2コアのCodespaceを作成できることを確認します。利用枠や費用が確認できないときは開始せず、管理者へ確認してください。
-3. Codespaces内で案内されたCLI、Skill、必要な環境を確認します。APIキーや認証キャッシュを教材・ログ・共有ファイルへ書き込みません。
-4. 学習者本人が一度に1つのモジュールだけをロードし、作業結果を確認します。再ロード時に編集済みファイルを上書きしないことを確かめてください。
-5. M00から始め、選択する最終フェーズに応じて順に進みます。ロード成功は環境準備の確認であり、技能修了ではありません。
+2. テンプレートから準備する場合は、案内されたTemplate repositoryで **Use this template → Create a new repository** を選び、個人アカウントのPrivate repositoryを作ります。テンプレート画面から直接「Open in a codespace」を選ぶ未公開Codespaceは、マシン種別を選べません。すでに個人用学習リポジトリを案内されている場合は、この手順を飛ばします。
+3. 作成した学習リポジトリを開き、**Code → Codespaces**からCodespaceを作ります。設定を選べる画面では案内されたdev containerと **2-core** を選び、作成前に表示される支払者を確認します。2-coreが選べない、支払者が想定と異なる、利用枠・費用が分からない場合は作成せずBLOCKEDとして管理者へ確認してください。より大きなマシンを代わりに選ばないでください。
+4. ブラウザー版VS Codeが開いたら、M00の説明に沿ってエクスプローラー、エディター、ターミナル、Portsを確認します。案内されたCLI、Skill、必要な環境を確認し、APIキーや認証キャッシュを教材・ログ・共有ファイルへ書き込みません。
+5. 学習者本人が一度に1つのモジュールだけをロードし、作業結果を確認します。再ロード時に編集済みファイルを上書きしないことを確かめてください。
+6. M00から始め、選択する最終フェーズに応じて順に進みます。ロード成功は環境準備の確認であり、技能修了ではありません。
+
+Codespaceのタブを閉じるだけでは実行中のVMは停止しません。終了時は[Codespaces一覧](https://github.com/codespaces)を開き、対象Codespaceのメニューから **Stop codespace** を選びます。停止中は計算資源の利用は止まりますが、保存領域の費用・無料枠条件は別に確認してください。ポートを共有するときは、課題で必要な場合を除きPublicにせずPrivateのままにします。
+
+| ブラウザー版VS Codeの場所 | 役割・最初の確認 |
+| --- | --- |
+| 左端のActivity Bar / Explorer | ファイル一覧。`workspace/M00/`と提出物の場所を探します |
+| 中央のEditor | 開いたファイルを編集します。未保存の印が消えたことを見てから別ファイルへ移ります |
+| 下部のTerminal | コマンドとその出力。`pwd`で現在位置を確かめてから相対パスを使います |
+| 下部のPorts | 転送されたポートと公開範囲。6080は教材のPrivate/noVNC用途で、Publicへ変更しません |
+
+GitHubの画面名や利用枠は変更されることがあるため、開始時に[リポジトリからCodespaceを作成する手順](https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codespace-for-a-repository)、[マシン種別の変更と確認](https://docs.github.com/en/codespaces/customizing-your-codespace/changing-the-machine-type-for-your-codespace)、[利用枠を確認する手順](https://docs.github.com/en/codespaces/troubleshooting/troubleshooting-included-usage)、[Codespaceの停止](https://docs.github.com/en/codespaces/developing-in-a-codespace/stopping-and-starting-a-codespace)、[転送ポートの公開範囲](https://docs.github.com/en/codespaces/managing-codespaces-for-your-organization/restricting-the-visibility-of-forwarded-ports)を確認してください。
 
 教材やクイズを読むためのGitHubログインは不要です。Codespacesで実技を始める場合はGitHubアカウントが必要です。費用、権限、認証、環境の問題がある場合は、技能の未達と分けてBLOCKEDとして記録します。
 

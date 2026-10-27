@@ -9,10 +9,21 @@ Node.js、pnpm、`package.json`、TypeScript、Playwrightの順に用語を確�
 1. `const`、文字列、配列、オブジェクト、基本型、条件分岐を例で読みます。
 2. 関数と戻り値、import/export、`async` / `await`がテストで果たす役割を説明します。
 3. Locatorで要素を特定し、Actionで操作し、Assertionで期待結果を確かめる短いspecを読みます。
-4. 最初にspecを実行し、Locatorの失敗行と実際に観測できたことを記録します。
-5. 商品一覧にあるMugの詳細リンクのアクセシブル名を確認し、Locatorの名前だけを修正して再実行します。Assertionが詳細リンク先を確認していることを説明し、Assertionを弱めてPASSを作らないでください。
+4. 修正前に次を実行し、別Runとして保存します。終了コードが1で、対象Locatorの失敗が記録されたことを確認してください。
+
+   ```bash
+   pnpm course:run M05 product-link.spec.ts --label before
+   ```
+
+5. 商品一覧にあるMugの詳細リンクのアクセシブル名を確認し、Locatorの名前だけを修正して次のRunを実行します。Assertionが詳細リンク先を確認していることを説明し、Assertionを弱めてPASSを作らないでください。
+
+   ```bash
+   pnpm course:run M05 product-link.spec.ts --label after
+   ```
+
+   修正前後のRunは異なる`run_id`とspec SHAを持ち、両方のJSON reportは`workspace/M05/evidence/runs/`に残ります。終了コード0だけでなく、assessmentがreportとspec snapshotを照合します。
 6. ConfigのtestDir、8082の専用test server、8081の通常web、6080のPrivate/noVNC、出力先を確認します。
 
 ## 提出物
 
-`workspace/M05/submission.md`に修正差分、修正前後の実行コマンドと結果、失敗の分類、testDir/base URL/出力先、表示Assertionが保証する範囲を書きます。M05の実行は`PLAYWRIGHT_TEST_ROOT=workspace/M05 pnpm run training:ai-assisted-qa:test`です。
+`workspace/M05/submission.md`に修正差分、修正前後の実行コマンドと結果、失敗の分類、testDir/base URL/出力先、表示Assertionが保証する範囲を書きます。`course:run`は固定された新課程Configで指定specを実行し、spec snapshot、Playwright JSON report、report内のattachmentを一意のRun directoryへ保存します。

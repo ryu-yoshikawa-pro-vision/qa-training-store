@@ -9,7 +9,11 @@
   "read_only": true,
   "environment": ["Scenario Shop build", "Seed/Reset", "Chromium", "dedicated Playwright config"],
   "expected": {
-    "required_paths": ["workspace/M06/submission.md", "workspace/M06/cart-cases.spec.ts"],
+    "required_paths": [
+      "workspace/M06/submission.md",
+      "workspace/M06/cart-cases.spec.ts",
+      "workspace/M06/new-case.spec.ts"
+    ],
     "objective_ids": ["M06-01", "M06-02", "M06-03", "M06-04", "M06-05"],
     "phase": "P2",
     "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
@@ -51,6 +55,12 @@
     {
       "artifact_id": "M06-result-02",
       "path": "workspace/M06/cart-cases.spec.ts",
+      "revision": "M06-result-v1",
+      "contract_id": "M06-to-M07-handoff-v1"
+    },
+    {
+      "artifact_id": "M06-result-03",
+      "path": "workspace/M06/new-case.spec.ts",
       "revision": "M06-result-v1",
       "contract_id": "M06-to-M07-handoff-v1"
     }

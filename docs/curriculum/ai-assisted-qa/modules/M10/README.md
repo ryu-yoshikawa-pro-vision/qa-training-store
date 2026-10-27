@@ -26,6 +26,8 @@ workflowは必要なPlaywright specとBrowserだけを指定します。Native s
 
 PRの現在HEAD、pull_requestイベントのRun、同じRunに属する成功Check、Artifact内の`target-sha.txt`とPlaywright JSONを照合します。GitHubがRun/CheckにPR merge SHAを記録しても、それをPR headと取り違えず、Artifactのtarget SHAが現在のPR headと完全一致することを確認します。不一致のArtifactや古いPASSは現在のPRの成功証拠に使わず、一致する結果がない場合は未確認とします。
 
+例えばPRを更新する前のRunが成功し、その後にcommitを追加した場合、古いRunは前の版の証拠です。PRの現在HEADとRunの対象を確認し、同じRunのArtifactにある`target-sha.txt`とPlaywright結果を読みます。新しいHEADの結果がまだない場合は「新HEADのCIは未確認」と書き、古い成功を転記しません。Runが失敗または未開始なら、その状態と最初の失敗stepを分けて記録します。
+
 ### CI失敗の最初の段階を分類する
 
 1. CIだけの失敗、テストの問題、製品の問題を最初のログから区別し、必要なら別Runで調べる。

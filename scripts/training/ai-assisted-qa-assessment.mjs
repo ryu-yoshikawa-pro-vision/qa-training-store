@@ -34,6 +34,10 @@ import {
   validateCandidate,
 } from "./ai-assisted-qa-assessment-core.mjs";
 import { verifyGitHubRunEvidence } from "./ai-assisted-qa-github-run-evidence.mjs";
+import {
+  verifyM03SkillRuntimeEvidence,
+  verifyModuleRunEvidence,
+} from "./ai-assisted-qa-run-evidence.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const WORKSPACE = path.join(ROOT, "workspace");
@@ -165,8 +169,29 @@ async function loadPhaseInputs(phaseId) {
     }
   }
   const evidence = [];
+  const evidenceByPath = new Map();
   const deterministicChecks = [];
   let totalEvidenceBytes = 0;
+  const snapshotEvidence = (moduleId, relativePath) => {
+    const existing = evidenceByPath.get(relativePath);
+    if (existing) return existing;
+    const snapshot = resolveWorkspaceFile(relativePath);
+    totalEvidenceBytes += snapshot.bytes.length;
+    if (totalEvidenceBytes > MAX_EVIDENCE_TOTAL_BYTES)
+      fail("phase evidence exceeds the total model-input size limit");
+    const evidenceId = `E-${moduleId}-${String(evidence.length + 1).padStart(3, "0")}`;
+    const item = {
+      evidence_id: evidenceId,
+      module_id: moduleId,
+      path: snapshot.path,
+      sha256: snapshot.sha256,
+      size: snapshot.bytes.length,
+      text: snapshot.text,
+    };
+    evidence.push(item);
+    evidenceByPath.set(relativePath, item);
+    return item;
+  };
   for (const moduleId of phase.modules) {
     const sourcePath = `training/ai-assisted-qa-course/states/${moduleId}/end.json`;
     const stateBytes = readVerifiedCourseSource({ root: ROOT, sourcePath }).bytes;
@@ -189,20 +214,51 @@ async function loadPhaseInputs(phaseId) {
       fail(
         `${moduleId} end-state evidence is ${check.status}; run course:check ${moduleId} --state end and repair only this learner-owned module`,
       );
-    for (const requiredPath of endState.expected.required_paths) {
-      const snapshot = resolveWorkspaceFile(requiredPath);
-      totalEvidenceBytes += snapshot.bytes.length;
-      if (totalEvidenceBytes > MAX_EVIDENCE_TOTAL_BYTES)
-        fail("phase evidence exceeds the total model-input size limit");
-      const evidenceId = `E-${moduleId}-${String(evidence.length + 1).padStart(3, "0")}`;
-      evidence.push({
-        evidence_id: evidenceId,
-        module_id: moduleId,
-        path: snapshot.path,
-        sha256: snapshot.sha256,
-        size: snapshot.bytes.length,
-        text: snapshot.text,
+    for (const requiredPath of endState.expected.required_paths)
+      snapshotEvidence(moduleId, requiredPath);
+    const runEvidence = verifyModuleRunEvidence({
+      workspaceRoot: WORKSPACE,
+      moduleId,
+      scoring: scoringByModule.get(moduleId),
+      sourceSha: distribution.source_sha,
+    });
+    if (runEvidence.checks.length > 0 || ["M05", "M06", "M07"].includes(moduleId)) {
+      deterministicChecks.push({
+        id: `${moduleId}-PLAYWRIGHT-RUN-EVIDENCE`,
+        method:
+          "course:run receipt, immutable source snapshot, SHA-256-linked Playwright JSON report, attachment containment, required outcome and separate ordered before/after runs",
+        status: runEvidence.status,
+        checks: runEvidence.checks,
+        reasons: runEvidence.reasons ?? [],
       });
+      for (const evidencePath of runEvidence.evidence) snapshotEvidence(moduleId, evidencePath);
+    }
+    if (moduleId === "M03") {
+      const scoring = scoringByModule.get(moduleId);
+      const executionEvidence = scoring.evaluation_policy?.execution_evidence;
+      if (!executionEvidence || typeof executionEvidence.source_path !== "string")
+        fail("M03 pinned scoring contract is missing the fixed Skill runtime verifier source");
+      const runtimeSource = readVerifiedCourseSource({
+        root: ROOT,
+        sourcePath: executionEvidence.source_path,
+      });
+      const pin = distribution.external_skill_source;
+      const runtimeProof = verifyM03SkillRuntimeEvidence({
+        workspaceRoot: WORKSPACE,
+        scoring,
+        runtimeContractPath: path.join(ROOT, runtimeSource.targetPath),
+        runtimeContractSha256: sha256(runtimeSource.bytes),
+        externalSkillSource: [pin.repository, pin.commit],
+      });
+      deterministicChecks.push({
+        id: "M03-PINNED-SKILL-RUNTIME-EVIDENCE",
+        method:
+          "Python 3.11 read-only execution of the verified external Skill runtime_contract.py against each current M03 artifact and original request bytes",
+        status: runtimeProof.status,
+        checks: runtimeProof.checks,
+        reasons: runtimeProof.reasons ?? [],
+      });
+      for (const evidencePath of runtimeProof.evidence) snapshotEvidence(moduleId, evidencePath);
     }
   }
   if (phaseId === "P3") {

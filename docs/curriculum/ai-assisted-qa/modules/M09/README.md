@@ -39,7 +39,7 @@ M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`�
 
 ### 対象SHAとRunのArtifactを照合する
 
-現在のPR HEAD、実際にworkflowが実行したRunのhead SHA、Artifact内の`target-sha.txt`を照合します。Artifactは同じRunから取得し、そのRun/Checkの結果と結び付けます。3つのSHAが一致しないArtifactは現在のPR HEADの成功証拠に使いません。現在HEADに一致するRunやArtifactが見つからない場合は未確認と報告し、古いPASSを引き継ぎません。
+現在のPR HEADと、同じRunから取得したArtifact内の`target-sha.txt`を照合し、Run・Check・Artifactの由来と結果を結び付けます。GitHubがRun/CheckにPRのmerge SHAを記録する場合は、そのSHAをPR headと取り違えず、同じRunと対象PRの対応を確認します。Artifactのtarget SHAが現在のPR HEADと一致しなければ成功証拠に使いません。一致する証拠が見つからない場合は未確認と報告し、古いPASSを引き継ぎません。
 
 ### 最初の失敗箇所から結果を分類する
 
@@ -48,6 +48,10 @@ M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`�
 ### Runner費用を確認する
 
 Runnerの料金は公開/非公開repository、runner種別、契約、組織設定で条件が異なります。利用時点の公式条件と対象組織の契約・設定を確認し、確認できない場合は未決として扱います。一般論から無料と断定しません。
+
+たとえばPRへのpushごとにworkflowが動き、1日5回更新するなら1日5回分の実行が候補です。1回あたりの所要時間と利用するRunner、他のworkflowも確認し、契約の無料枠・上限と比較します。この計算は回数の見積もりで、実際の請求額を保証しません。条件が確認できないときはworkflowを有効化せず、対象者に確認します。
+
+次に、変更が少ない間だけ手動実行にする提案を考えてください。自動で検出できる頻度が下がること、誰がいつ実行するか、PRへ反映されるまでの未確認期間を記録し、費用とリスクを比較します。費用だけでなく品質ゲートの目的から選びます。
 
 ### 最小権限を設定する
 

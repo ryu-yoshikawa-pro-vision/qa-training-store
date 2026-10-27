@@ -44,6 +44,16 @@
         "separate_before_after_runs": true,
         "synthetic_sample_label_required": true
       }
+    },
+    {
+      "id": "M07-result-04",
+      "path": "workspace/M07/maintenance.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "expected_data": {
+        "page_object_and_standard_fixture": true,
+        "separate_before_after_runs": true
+      }
     }
   ],
   "checks": [

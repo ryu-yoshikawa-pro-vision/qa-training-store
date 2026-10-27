@@ -21,7 +21,7 @@
   ],
   "decision_rules": [
     "Trigger/Workflow/Job/Runner/Step/Artifactの責務を説明する",
-    "Run/Check/Artifactの対象SHAを一致させる",
+    "PR HEADとArtifactのtarget SHAを照合し、Run/Check/Artifactの由来とmerge SHAを区別する",
     "失敗段階から調査ログを選ぶ",
     "料金・権限・Secret・deploy境界を示す"
   ],
@@ -100,11 +100,11 @@
       "objective_ids": ["M09-04"],
       "knowledge_ids": ["K-M09-04"],
       "required_evidence": [
-        "「公開リポジトリの標準Runnerとprivate/larger runnerの料金条件を区別し、品質ゲートをリスク・実行速度・コストから選ぶ」を示す提出物の箇所",
+        "本人非公開repoの利用枠・trigger・実行対象・Run数を確認し、リスクと費用から品質ゲートを選ぶ判断と根拠",
         "知識の行動証拠: 無料条件と必要な検査のバランスを判断する"
       ],
       "pass_conditions": [
-        "学習目標「公開リポジトリの標準Runnerとprivate/larger runnerの料金条件を区別し、品質ゲートをリスク・実行速度・コストから選ぶ」が具体例・判断・実行可能な成果物で満たされる",
+        "変更条件に応じてtrigger・対象・費用と未確認事項を見直し、失敗時の停止や再実行を判断する",
         "対応する知識「標準Runnerの料金と品質ゲート」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -123,11 +123,11 @@
       "objective_ids": ["M09-05"],
       "knowledge_ids": ["K-M09-05"],
       "required_evidence": [
-        "「Trainingの権限・Secret・正式デプロイの境界を判断する」を示す提出物の箇所",
+        "workflowの最小permissions、Secret不要化、他CIとの分離を確認し、制約変更に応じて見直した判断",
         "知識の行動証拠: Secretや正式workflowを保護する"
       ],
       "pass_conditions": [
-        "学習目標「Trainingの権限・Secret・正式デプロイの境界を判断する」が具体例・判断・実行可能な成果物で満たされる",
+        "過剰権限を修正し、必要な操作・権限とSecret不要の根拠を示す",
         "対応する知識「最小権限とCIのセキュリティ境界」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -146,7 +146,7 @@
     {
       "id": "M09-CAL-01",
       "type": "correct",
-      "response": "workflow構造、対象SHA、失敗step、Artifact出所と必要権限を同じRunの証拠で説明する。",
+      "response": "workflowのtriggerと対象specを示し、非公開repoの利用枠と予想Run数を確認して品質ゲートを選ぶ。最小permissions・Secret不要・他CI分離と、条件変更時の停止や再実行を説明する。Run/Check/Artifactの由来とtarget SHA、失敗stepを区別する。",
       "evidence": [
         "reference-solutions/M09.md",
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md",
@@ -183,7 +183,7 @@
     {
       "id": "M09-CAL-04",
       "type": "acceptable-alternative",
-      "response": "必要境界と証跡を保つ単一Job構成でも理由を説明すればよい。",
+      "response": "同じ対象spec、最小権限、SHAと証跡を維持する単一Job構成を選び、非公開repoの利用枠・trigger頻度と未検証期間を比較して理由を説明する。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M09/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",

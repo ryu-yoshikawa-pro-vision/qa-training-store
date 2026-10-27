@@ -247,6 +247,23 @@ function validateAssessmentPackage(
     }[];
     evaluation_policy?: {
       automated_scope?: string;
+      execution_evidence?: {
+        schema_version?: number;
+        kind?: string;
+        source_path?: string;
+        required_runs?: {
+          spec?: string;
+          label?: string;
+          minimum_tests?: number;
+          expected_outcome?: string;
+          require_trace?: boolean;
+        }[];
+        required_verifications?: {
+          skill?: string;
+          evidence_path?: string;
+          artifact_path?: string;
+        }[];
+      };
       formal_assessment?: {
         required?: boolean;
         phase_id?: string;
@@ -355,6 +372,7 @@ function validateAssessmentPackage(
     `${scoringPath}の評価例が不足しています`,
   );
   const caseTypes = new Set<string>();
+  const caseIds = new Set<string>();
   for (const example of scoring.cases) {
     requireCondition(
       typeof example.id === "string" &&
@@ -367,6 +385,15 @@ function validateAssessmentPackage(
         typeof example.rationale === "string",
       `${scoringPath}に構造不完全な採点例があります`,
     );
+    requireCondition(
+      !caseIds.has(example.id),
+      `${scoringPath}に重複する採点例IDがあります: ${example.id}`,
+    );
+    requireCondition(
+      example.id.startsWith(`${moduleId}-`),
+      `${scoringPath}に別モジュールの採点例IDがあります: ${example.id}`,
+    );
+    caseIds.add(example.id);
     caseTypes.add(example.type);
     if (example.type === "acceptable-alternative")
       requireCondition(
@@ -437,6 +464,85 @@ function validateAssessmentPackage(
     requireCondition(
       scoring.evaluation_policy.live_condition === undefined,
       `${scoringPath}はPhase末のlive conditionを非終端moduleへ要求してはいけません`,
+    );
+  const executionEvidence = scoring.evaluation_policy.execution_evidence;
+  const expectedPlaywrightRuns: Record<string, unknown[]> = {
+    M05: [
+      {
+        spec: "product-link.spec.ts",
+        label: "before",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
+      },
+      {
+        spec: "product-link.spec.ts",
+        label: "after",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+    ],
+    M06: [
+      { spec: "cart-cases.spec.ts", label: "main", minimum_tests: 3, expected_outcome: "passed" },
+      { spec: "new-case.spec.ts", label: "initial", minimum_tests: 1, expected_outcome: "passed" },
+      { spec: "new-case.spec.ts", label: "repeat", minimum_tests: 1, expected_outcome: "passed" },
+    ],
+    M07: [
+      {
+        spec: "repaired-assertion.spec.ts",
+        label: "before",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
+      },
+      {
+        spec: "repaired-assertion.spec.ts",
+        label: "after",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+      {
+        spec: "maintenance.spec.ts",
+        label: "before",
+        minimum_tests: 2,
+        expected_outcome: "passed",
+      },
+      { spec: "maintenance.spec.ts", label: "after", minimum_tests: 2, expected_outcome: "passed" },
+    ],
+  };
+  if (moduleId === "M03")
+    requireCondition(
+      executionEvidence?.schema_version === 1 &&
+        executionEvidence.kind === "pinned-skill-runtime-contract" &&
+        executionEvidence.source_path ===
+          "skills/test-condition-design/scripts/runtime_contract.py" &&
+        JSON.stringify(executionEvidence.required_verifications) ===
+          JSON.stringify([
+            {
+              skill: "test-condition-design",
+              evidence_path: "workspace/M03/condition-runtime-evidence.json",
+              artifact_path: "workspace/M03/condition-design.md",
+            },
+            {
+              skill: "test-case-design",
+              evidence_path: "workspace/M03/case-runtime-evidence.json",
+              artifact_path: "workspace/M03/cases.md",
+            },
+          ]),
+      `${scoringPath}は2つの固定Skill runtime検証を要求してください`,
+    );
+  else if (Object.hasOwn(expectedPlaywrightRuns, moduleId))
+    requireCondition(
+      executionEvidence?.schema_version === 1 &&
+        executionEvidence.kind === "playwright-run-record" &&
+        JSON.stringify(executionEvidence.required_runs) ===
+          JSON.stringify(expectedPlaywrightRuns[moduleId]),
+      `${scoringPath}は対象moduleの修正前後/再実行Run証拠を正確に要求してください`,
+    );
+  else
+    requireCondition(
+      executionEvidence === undefined,
+      `${scoringPath}は実行証拠を必要としないmoduleに実行条件を追加してはいけません`,
     );
 
   const completed = JSON.parse(fs.readFileSync(stateAbsolute, "utf8")) as {

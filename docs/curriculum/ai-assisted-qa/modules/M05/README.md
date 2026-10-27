@@ -34,6 +34,12 @@ if (requestedQuantity !== undefined && exceedsLimit(requestedQuantity)) {
 
 配列の位置に値があるとは限らないため、取り出した値が`undefined`でないことを確かめてから関数へ渡します。`import`/`export`はファイル間で値や関数を共有します。TypeScriptの型は値の形を確認する手がかりですが、実行時の結果を保証しません。構文エラーはコードの形、型エラーは宣言と値の不一致、実行時エラーは処理中の失敗、Assertion失敗は期待結果との不一致です。値を1つ変えて条件がどう変化するかを説明してから実行します。
 
+上の例を左から追うと、配列の添字は0から始まるので`quantities[2]`は3です。`exceedsLimit(3)`は`3 > 2`を評価し、`true`なので文を表示します。`setup.limit`を3に変えると`3 > 3`は`false`になり、表示されません。数値の代わりに文字列`"3"`を`exceedsLimit`へ渡すと、宣言された引数の型と一致しないため型検査で指摘されます。型の警告を消すだけで期待する業務結果が正しいとは限りません。
+
+`export`は他ファイルへ公開する宣言、`import`はその宣言を利用する入口です。Playwrightの`test`と`expect`はパッケージからimportします。ブラウザ操作は完了まで時間がかかるため、`async`関数で`await`を付けて順番に待ちます。例えばページを開く前に画面のボタンを押すのではなく、`await page.goto(...)`の後で`await ...click()`します。
+
+自分で確認するには、上の配列の先頭を選ぶと`requestedQuantity`がいくつになり、条件が真か偽かを書いてから読み直します。添字3には値がないため`undefined`です。値がないまま数値として使おうとしたら、配列の長さと分岐を確認します。
+
 ```ts
 import { expect, test } from "@playwright/test";
 
@@ -68,10 +74,13 @@ PlaywrightのWeb-first Assertionは、条件が満たされるまで設定範囲
 
 学習者は`workspace/M05/product-link.spec.ts`を読み、商品一覧にあるMugへのリンクをLocatorが選べない失敗を確認します。商品一覧で実際のアクセシブル名を確かめ、Locatorの名前だけを修正して再実行します。Assertionが詳細リンク先まで確認する意味を説明します。弱いAssertionへの置換や製品コードの変更はしません。変更前後の差と結果は`workspace/M05/submission.md`へ記録します。
 
-M05は次の専用コマンドで実行します。
+実行証拠を残すには、M05の指定specを同じコマンドで修正前後に実行します。初回の失敗もreceipt、spec snapshot、JSON reportとともに保存されます。
+
+receiptの`source_sha`は検証済み配布manifestの課程revision、`spec_sha256`はそのRunで実行した学習者specです。assessmentは両方を区別して検証し、現在の配布revision以外のreceiptを受け付けません。
 
 ```bash
-PLAYWRIGHT_TEST_ROOT=workspace/M05 pnpm run training:ai-assisted-qa:test
+pnpm course:run M05 product-link.spec.ts --label before
+pnpm course:run M05 product-link.spec.ts --label after
 ```
 
 Phase 2では新課程の専用Configを使い、テスト対象は`workspace/M05`、`workspace/M06`または`workspace/M07`だけです。通常Webの8081、Training専用テストサーバーの8082、PrivateのnoVNC 6080を混同しません。
@@ -86,7 +95,7 @@ Phase 2では新課程の専用Configを使い、テスト対象は`workspace/M0
 | TypeScriptの基礎 | 別の短いコードで変数、配列、object、関数、型、import/export、async/awaitを説明し、一箇所を安全に修正する | 例を写しただけで変更箇所や型を説明できない |
 | LocatorとAssertion | Caseに合うLocatorを選び、可視性確認が業務動作まで保証しない範囲を説明する | Locatorが見つかったことを業務結果の証拠とする |
 | 待機と診断 | エラーの種類に応じて確認箇所を選び、固定時間待機を根拠なしに追加しない | タイムアウトへ固定待機だけを足す |
-| 専用実行 | 新課程Configで指定された1 specを動かし、対象workspace、loopback 8082、結果先と同じ実行の証拠を示す | 旧Training specや別RunのPASSを使う |
+| 専用実行 | `course:run`で新課程Configの指定specを動かし、対象workspace、loopback 8082、結果先、同じRunのreportとspec SHAを示す | 旧Training specや別RunのPASSを使う |
 
 修正前後の差分と本人の説明を確認します。AIがコードを書いたことや、コマンドを実行できたことだけでは到達としません。
 

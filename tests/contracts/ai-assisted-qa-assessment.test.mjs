@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -15,13 +16,27 @@ import {
   parseAssessmentArgs,
   parseOpenCodeJsonEvents,
   parseStrictJsonResponse,
+  sha256,
   validateCandidate,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
+import {
+  runAiAssistedQaSpecCli,
+  verifyM03SkillRuntimeEvidence,
+  verifyModuleRunEvidence,
+} from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-qa-assessment-contract-"));
 
 afterAll(() => {
   fs.rmSync(tempRoot, { recursive: true, force: true });
+});
+
+it("requires a verified distribution SHA before course:run can access learner files", () => {
+  expect(() =>
+    runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {
+      root: path.join(tempRoot, "missing-source-sha"),
+    }),
+  ).toThrow("course:run requires the verified distribution source SHA");
 });
 
 function expected() {
@@ -62,6 +77,135 @@ function candidate(overrides = {}) {
       ...(overrides.objective?.[index] ?? {}),
     })),
   };
+}
+
+function writeM05RunEvidence(
+  root,
+  sourceSha = "a".repeat(40),
+  runIds = ["123e4567-e89b-42d3-a456-426614174000", "123e4567-e89b-42d3-a456-426614174001"],
+) {
+  const workspaceRoot = path.join(root, "workspace");
+  const moduleRoot = path.join(workspaceRoot, "M05");
+  const specPath = path.join(moduleRoot, "product-link.spec.ts");
+  const relative = (filePath) => path.relative(root, filePath).split(path.sep).join("/");
+  const command = [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "product-link.spec.ts",
+    "--config=playwright.ai-assisted-qa.config.ts",
+    "--project=ai-assisted-qa-chromium",
+    "--retries=0",
+  ].join(" ");
+  const run = ({ label, code, outcome, exitCode, time, runId, withTrace = false }) => {
+    const runRoot = path.join(moduleRoot, "evidence", "runs", runId);
+    fs.mkdirSync(runRoot, { recursive: true });
+    const spec = Buffer.from(code);
+    fs.writeFileSync(specPath, spec);
+    const snapshotPath = path.join(runRoot, "spec-snapshot.ts");
+    const reportPath = path.join(runRoot, "playwright-result.json");
+    const receiptPath = path.join(runRoot, "run-evidence.json");
+    fs.writeFileSync(snapshotPath, spec);
+    const tracePath = path.join(runRoot, "test-results", "trace.zip");
+    const attachments = [];
+    if (withTrace) {
+      fs.mkdirSync(path.dirname(tracePath), { recursive: true });
+      fs.writeFileSync(tracePath, "trace fixture");
+      attachments.push({
+        name: "trace",
+        contentType: "application/zip",
+        path: tracePath,
+      });
+    }
+    const report = {
+      suites: [
+        {
+          specs: [
+            {
+              file: specPath,
+              title: "product link",
+              tests: [
+                {
+                  expectedStatus: "passed",
+                  results: [
+                    {
+                      status: outcome === "passed" ? "passed" : "failed",
+                      attachments,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const reportBytes = Buffer.from(JSON.stringify(report));
+    fs.writeFileSync(reportPath, reportBytes);
+    fs.writeFileSync(
+      receiptPath,
+      JSON.stringify({
+        schema_version: 1,
+        kind: "ai-assisted-qa-playwright-run",
+        producer: "course:run",
+        run_id: runId,
+        module_id: "M05",
+        source_sha: sourceSha,
+        spec_path: "workspace/M05/product-link.spec.ts",
+        spec_sha256: sha256(spec),
+        source_snapshot_path: relative(snapshotPath),
+        source_snapshot_sha256: sha256(spec),
+        label,
+        project: "ai-assisted-qa-chromium",
+        command,
+        started_at: time,
+        finished_at: new Date(Date.parse(time) + 1000).toISOString(),
+        exit_code: exitCode,
+        outcome,
+        report_path: relative(reportPath),
+        report_sha256: sha256(reportBytes),
+        tests: [
+          {
+            title: "product link",
+            status: outcome === "passed" ? "passed" : "failed",
+            expected_status: "passed",
+          },
+        ],
+        attachments: withTrace
+          ? [
+              {
+                path: "test-results/trace.zip",
+                size: fs.statSync(tracePath).size,
+                name: "trace",
+                content_type: "application/zip",
+              },
+            ]
+          : [],
+        spec_unchanged_during_run: true,
+        environment_error: null,
+      }),
+    );
+    return reportPath;
+  };
+  const before = run({
+    label: "before",
+    code: 'test("broken product link", async () => expect(true).toBe(false));\n',
+    outcome: "failed",
+    exitCode: 1,
+    time: "2026-10-27T00:00:00.000Z",
+    runId: runIds[0],
+    withTrace: true,
+  });
+  const after = run({
+    label: "after",
+    code: 'test("fixed product link", async () => expect(true).toBe(true));\n',
+    outcome: "passed",
+    exitCode: 0,
+    time: "2026-10-27T00:00:02.000Z",
+    runId: runIds[1],
+  });
+  return { workspaceRoot, reportPath: after, beforeReportPath: before };
 }
 
 describe("AI-assisted QA formal assessment contracts", () => {
@@ -311,12 +455,273 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(
       finalizeAssessment({ ...args, deterministicChecks: [{ id: "M00-END", status: "blocked" }] }),
     ).toMatchObject({ status: "blocked", completed: false });
+    expect(finalizeAssessment({ ...args, deterministicChecks: [] })).toMatchObject({
+      status: "ungradable",
+      completed: false,
+    });
+    expect(
+      finalizeAssessment({
+        ...args,
+        deterministicChecks: [
+          { id: "M00-END", status: "passed" },
+          { id: "M00-END", status: "passed" },
+        ],
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
     const belowLevel = structuredClone(normalized);
     belowLevel.objectives[1].level = 1;
     expect(finalizeAssessment({ ...args, candidate: belowLevel })).toMatchObject({
       status: "incomplete",
       completed: false,
     });
+  });
+
+  it("requires same-run Playwright reports and source snapshots for Phase 2 evidence", () => {
+    const { workspaceRoot, reportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "playwright-proof"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+            {
+              spec: "product-link.spec.ts",
+              label: "after",
+              minimum_tests: 1,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    const verified = verifyModuleRunEvidence({
+      workspaceRoot,
+      moduleId: "M05",
+      scoring,
+      sourceSha: "a".repeat(40),
+    });
+    expect(verified.status).toBe("passed");
+    expect(verified.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "passed", outcome: "failed", test_count: 1 }),
+        expect.objectContaining({ status: "passed", outcome: "passed", test_count: 1 }),
+      ]),
+    );
+    fs.appendFileSync(reportPath, " ");
+    expect(
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      }),
+    ).toMatchObject({ status: "ungradable" });
+  });
+
+  it("rejects Playwright receipts from a different course distribution revision", () => {
+    const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "stale-playwright-proof"));
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+          ],
+        },
+      },
+    };
+    expect(
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "b".repeat(40),
+      }),
+    ).toMatchObject({ status: "ungradable" });
+  });
+
+  it("ignores historical receipts when current-revision Playwright runs are present", () => {
+    const root = path.join(tempRoot, "mixed-revision-playwright-proof");
+    const { workspaceRoot } = writeM05RunEvidence(root, "a".repeat(40));
+    writeM05RunEvidence(root, "b".repeat(40), [
+      "223e4567-e89b-42d3-a456-426614174000",
+      "223e4567-e89b-42d3-a456-426614174001",
+    ]);
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+            {
+              spec: "product-link.spec.ts",
+              label: "after",
+              minimum_tests: 1,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    expect(
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "b".repeat(40),
+      }).status,
+    ).toBe("passed");
+  });
+
+  it("does not accept Phase 2 completion when required execution receipts are absent", () => {
+    const workspaceRoot = path.join(tempRoot, "missing-playwright-proof", "workspace");
+    fs.mkdirSync(path.join(workspaceRoot, "M06"), { recursive: true });
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "cart-cases.spec.ts",
+              label: "main",
+              minimum_tests: 3,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    expect(
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M06",
+        scoring,
+        sourceSha: "a".repeat(40),
+      }),
+    ).toMatchObject({ status: "ungradable" });
+  });
+
+  it("reruns both pinned M03 Skill verifiers against the current learner artifacts", () => {
+    const root = path.join(tempRoot, "m03-runtime-proof");
+    const workspaceRoot = path.join(root, "workspace");
+    const moduleRoot = path.join(workspaceRoot, "M03");
+    const helperPath = path.join(
+      root,
+      ".agents",
+      "skills",
+      "test-condition-design",
+      "scripts",
+      "runtime_contract.py",
+    );
+    fs.mkdirSync(moduleRoot, { recursive: true });
+    fs.mkdirSync(path.dirname(helperPath), { recursive: true });
+    fs.writeFileSync(helperPath, "pinned helper fixture\n");
+    const artifacts = new Map([
+      ["condition-design.md", "condition design artifact\n"],
+      ["cases.md", "case design artifact\n"],
+    ]);
+    for (const [name, content] of artifacts) fs.writeFileSync(path.join(moduleRoot, name), content);
+    const requests = [
+      {
+        skill: "test-condition-design",
+        evidence: "condition-runtime-evidence.json",
+        artifact: "condition-design.md",
+      },
+      { skill: "test-case-design", evidence: "case-runtime-evidence.json", artifact: "cases.md" },
+    ];
+    for (const request of requests) {
+      fs.writeFileSync(
+        path.join(moduleRoot, request.evidence),
+        JSON.stringify({
+          operation: "verify_runtime_evidence",
+          skill: request.skill,
+          normalized_skill_input: {},
+          artifact_markdown: artifacts.get(request.artifact),
+          previous_artifact_markdown: null,
+          partial_rerun: false,
+        }),
+      );
+    }
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "pinned-skill-runtime-contract",
+          source_path: "skills/test-condition-design/scripts/runtime_contract.py",
+          required_verifications: requests.map((request) => ({
+            skill: request.skill,
+            evidence_path: "workspace/M03/" + request.evidence,
+            artifact_path: "workspace/M03/" + request.artifact,
+          })),
+        },
+      },
+    };
+    const executedSkills = [];
+    const spawn = (_command, args, options) => {
+      if (args.at(-1) === "--version") return { status: 0, stdout: "Python 3.11.9\n", stderr: "" };
+      const request = JSON.parse(options.input.toString("utf8"));
+      executedSkills.push(request.skill);
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          valid: true,
+          issues: [],
+          missing: [],
+          extra: [],
+          incomplete_pairs: [],
+          duplicates: [],
+          missing_entities: [],
+          extra_entities: [],
+          duplicate_entities: [],
+          expected_runtime_units: ["unit"],
+          actual_runtime_units: ["unit"],
+        }),
+        stderr: "",
+      };
+    };
+    const verify = () =>
+      verifyM03SkillRuntimeEvidence({
+        workspaceRoot,
+        scoring,
+        runtimeContractPath: helperPath,
+        runtimeContractSha256: sha256(fs.readFileSync(helperPath)),
+        externalSkillSource: [
+          "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+          "7cc6cba7772de549841a39d71694cbafbc783324",
+        ],
+        spawn,
+      });
+    expect(verify()).toMatchObject({
+      status: "passed",
+      checks: [{ status: "passed" }, { status: "passed" }],
+    });
+    expect(executedSkills).toEqual(["test-condition-design", "test-case-design"]);
+    fs.appendFileSync(path.join(moduleRoot, "condition-design.md"), " changed after runtime\n");
+    expect(verify()).toMatchObject({ status: "ungradable" });
   });
 
   it("keeps assessment attempt paths contained and result files immutable", () => {

@@ -28,6 +28,8 @@
 
 ## Runtime証拠
 
+- 固定Skillの実行request: `workspace/M03/condition-runtime-evidence.json` / `workspace/M03/case-runtime-evidence.json`
+- `artifact_markdown`と現在の提出artifactの一致、および`course:assess M04`による再検証:
 - condition_structure(direct)結果:
 - 技法runtime結果:
 - materialize_coverage(artifact)結果:

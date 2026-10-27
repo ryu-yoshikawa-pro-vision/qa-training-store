@@ -32,11 +32,13 @@
       "knowledge_ids": ["K-M08-01"],
       "required_evidence": [
         "「Working tree、stage、commit、branchの違いとGitHubへの共有手順を理解する」を示す提出物の箇所",
-        "知識の行動証拠: ファイル状態と履歴を区別する"
+        "作業前・stage前後・commit後の状態とbranch名、commit履歴を実行結果から対応付ける",
+        "push / PRはローカルbranch・commitと別の共有操作であり、実施状態を混同していない"
       ],
       "pass_conditions": [
-        "学習目標「Working tree、stage、commit、branchの違いとGitHubへの共有手順を理解する」が具体例・判断・実行可能な成果物で満たされる",
+        "学習目標「Working tree、stage、commit、branchの違いとGitHubへの共有手順を理解する」が、実際のbranch / working tree / stage / commitの状態遷移と共有手順の説明で満たされる",
         "対応する知識「Gitのworking tree・stage・commit・branch」が正本と矛盾せず、出典・観測・判断が区別される",
+        "実行していないpushやPRを完了済みと報告しない",
         "根拠・期待結果・提出物を追跡できる"
       ],
       "partial_credit": [
@@ -55,11 +57,14 @@
       "knowledge_ids": ["K-M08-02"],
       "required_evidence": [
         "「学習者個人のリポジトリでAIの変更範囲を`git diff`から確認し、対象外やSecretを含めずcommitする」を示す提出物の箇所",
-        "知識の行動証拠: Secretやログを除いて差分を選ぶ"
+        "作業前のstatus、変更diff、stage対象一覧、cached diff、commit後のSHA / status",
+        "ignore規則と、追跡済みファイルへの`.gitignore`の限界を示す確認結果",
+        "Secret / 生成物 / 合成run logを除外し、指定されたreview-candidateだけをcommitした証拠"
       ],
       "pass_conditions": [
-        "学習目標「学習者個人のリポジトリでAIの変更範囲を`git diff`から確認し、対象外やSecretを含めずcommitする」が具体例・判断・実行可能な成果物で満たされる",
+        "学習目標「学習者個人のリポジトリでAIの変更範囲を`git diff`から確認し、対象外やSecretを含めずcommitする」が、個人の学習repository内での指定branch・一ファイルstage・cached diff確認・commitの実行証拠で満たされる",
         "対応する知識「git status・diff・gitignoreと公開情報」が正本と矛盾せず、出典・観測・判断が区別される",
+        "commitにはreview-candidateだけが含まれ、local-only-run.log、Secret、生成物、既存差分を含まない",
         "根拠・期待結果・提出物を追跡できる"
       ],
       "partial_credit": [
@@ -78,10 +83,11 @@
       "knowledge_ids": ["K-M08-03"],
       "required_evidence": [
         "「PRで仕様・コード・テストの対応をレビューする」を示す提出物の箇所",
-        "知識の行動証拠: 変更の目的・仕様とテスト結果を説明する"
+        "PR説明草稿のSpec/Case ID、変更diff、対象spec、Run/結果、未確認事項の対応表",
+        "この実技でpush / PR作成をしていない場合、その状態を正しく報告する"
       ],
       "pass_conditions": [
-        "学習目標「PRで仕様・コード・テストの対応をレビューする」が具体例・判断・実行可能な成果物で満たされる",
+        "学習目標「PRで仕様・コード・テストの対応をレビューする」が、PR草稿上で仕様・コード・テスト・実行結果の参照関係を具体的に説明することで満たされる",
         "対応する知識「PRとレビュー可能な変更説明」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],
@@ -101,10 +107,11 @@
       "knowledge_ids": ["K-M08-04"],
       "required_evidence": [
         "「AIによるレビューの誤指摘・不要な抽象化を検証する」を示す提出物の箇所",
-        "知識の行動証拠: 根拠のある指摘と過剰設計を区別する"
+        "AIレビューの指摘ごとのdiff/spec根拠、採用・拒否・保留の決定理由",
+        "一箇所の変更を抽象化する/しない別条件で、保守性と追加複雑性を比較する"
       ],
       "pass_conditions": [
-        "学習目標「AIによるレビューの誤指摘・不要な抽象化を検証する」が具体例・判断・実行可能な成果物で満たされる",
+        "学習目標「AIによるレビューの誤指摘・不要な抽象化を検証する」が、根拠のある指摘と誤指摘をdiff/specに照らして選別し、不要な抽象化を理由付きで退けることで満たされる",
         "対応する知識「AIレビューの指摘の採否」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる"
       ],

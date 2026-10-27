@@ -42,6 +42,16 @@
           "low-stock effective cap"
         ]
       }
+    },
+    {
+      "id": "M06-result-03",
+      "path": "workspace/M06/new-case.spec.ts",
+      "revision": "M06-result-v1",
+      "contract_id": "M06-to-M07-handoff-v1",
+      "expected_data": {
+        "each_test_resets": true,
+        "case_purposes": ["remove the only cart item"]
+      }
     }
   ],
   "checks": [
