@@ -25,7 +25,17 @@ type NavigationGroup = { label: string; items: NavigationItem[] };
 type CourseBuildResult = { coursePages: number; quizPages: number };
 
 function sourceUrlForBuild(rootDir: string): string {
-  const sha = execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
+  // Pull-request jobs may check out an ephemeral merge commit. Prefer the PR
+  // head commit so review links remain usable after the next PR update.
+  let sha: string | undefined;
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath) {
+    const event = JSON.parse(fs.readFileSync(eventPath, "utf8")) as {
+      pull_request?: { head?: { sha?: string } };
+    };
+    sha = event.pull_request?.head?.sha;
+  }
+  sha ??= execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
     cwd: rootDir,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],

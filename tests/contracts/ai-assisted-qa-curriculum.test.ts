@@ -386,10 +386,18 @@ describe("AI-assisted QA static learning course", () => {
   });
 
   it("exposes all 11 modules' exercise materials and Phase rubrics at the exact built revision", () => {
-    const headSha = execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
-      cwd: repositoryRoot,
-      encoding: "utf8",
-    }).trim();
+    const eventPath = process.env.GITHUB_EVENT_PATH;
+    const event = eventPath
+      ? (JSON.parse(fs.readFileSync(eventPath, "utf8")) as {
+          pull_request?: { head?: { sha?: string } };
+        })
+      : undefined;
+    const headSha =
+      event?.pull_request?.head?.sha ??
+      execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
     expect(headSha).toMatch(/^[a-f0-9]{40}$/);
     const baseUrl = `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/${headSha}`;
     const courseRoot = "training/ai-assisted-qa-course";
