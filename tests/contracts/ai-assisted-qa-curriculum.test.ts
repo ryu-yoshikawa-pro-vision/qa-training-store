@@ -385,6 +385,46 @@ describe("AI-assisted QA static learning course", () => {
     expect(html).toContain("quiz.js");
   });
 
+  it("exposes all 11 modules' exercise materials and Phase rubrics at the exact built revision", () => {
+    const headSha = execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    }).trim();
+    expect(headSha).toMatch(/^[a-f0-9]{40}$/);
+    const baseUrl = `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/${headSha}`;
+    const courseRoot = "training/ai-assisted-qa-course";
+
+    for (let index = 0; index <= 10; index += 1) {
+      const id = `M${String(index).padStart(2, "0")}`;
+      const phase = index <= 4 ? 1 : index <= 7 ? 2 : 3;
+      const html = fs.readFileSync(
+        path.join(docsOutput, "curriculum/ai-assisted-qa/modules", id, "index.html"),
+        "utf8",
+      );
+
+      for (const relativePath of [
+        `${courseRoot}/exercises/${id}/exercise.md`,
+        `${courseRoot}/inputs/${id}/start.md`,
+        `${courseRoot}/exercises/${id}/submission-template.md`,
+        `${courseRoot}/assessment/phase-${phase}-rubric.md`,
+      ]) {
+        expect(fs.existsSync(path.join(repositoryRoot, relativePath))).toBe(true);
+        expect(html).toContain(`href="${baseUrl}/${relativePath}"`);
+      }
+      expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html"`);
+      expect(html).not.toContain("/blob/main/");
+      expect(html).not.toContain("/assessment/reference-solutions/");
+      expect(html).not.toContain("/assessment/scoring-tests/");
+    }
+    const quizJs = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/quizzes/quiz.js"),
+      "utf8",
+    );
+    expect(quizJs).toContain(`${baseUrl}/`);
+    expect(quizJs).not.toContain("/blob/main/");
+    expect(quizJs).not.toContain("__COURSE_SOURCE_URL__");
+  });
+
   it("links all 53 quiz review paths to explanatory headings in the emitted module pages", () => {
     const curriculumRoot = "docs/curriculum/ai-assisted-qa";
     const quizRoot = path.join(repositoryRoot, curriculumRoot, "quizzes");

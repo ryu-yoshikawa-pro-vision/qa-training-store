@@ -168,3 +168,31 @@ test("published curriculum mobile navigation smoke", async ({ page }) => {
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
 });
+
+test("published AI-assisted QA modules, quizzes, and curriculum review links smoke", async ({
+  page,
+}) => {
+  await page.goto("/docs/curriculum/ai-assisted-qa/");
+  await expect(
+    page.getByRole("heading", { name: "AI協働テスト自動化カリキュラム", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.primary-navigation a[href^="/docs/curriculum/ai-assisted-qa/modules/"]'),
+  ).toHaveCount(11);
+
+  for (let index = 0; index <= 10; index += 1) {
+    const moduleId = `M${String(index).padStart(2, "0")}`;
+    const phase = index <= 4 ? 1 : index <= 7 ? 2 : 3;
+    await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
+    await expect(page.locator("article h1")).toContainText(`${moduleId}：`);
+    for (const label of ["演習手順", "演習開始入力", "提出物テンプレート", `Phase ${phase}の評価基準`]) {
+      await expect(page.getByRole("link", { name: new RegExp(label) })).toHaveAttribute(
+        "href",
+        /^https:\/\/github\.com\/ryu-yoshikawa-pro-vision\/qa-training-store\/blob\/[a-f0-9]{40}\/training\/ai-assisted-qa-course\//,
+      );
+    }
+    await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+    await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
+    await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
+  }
+});
