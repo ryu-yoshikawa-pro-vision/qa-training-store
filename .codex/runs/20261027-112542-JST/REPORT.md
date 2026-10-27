@@ -89,3 +89,12 @@
 - Blocker: `pnpm run verify`は保護対象workspaceファイルのformatで停止。必須`wait_for_required_ci`はツール一覧に存在しないため、push後のexact-head CIは手動pollingせずBLOCKED。
 - Next: 差分とstage対象を確認し、通常commit/push・PR本文更新へ進む。実Template/2-core Codespaceおよび実モデル受入は最後に実施。
 - Progress: 44% (4/9)
+
+## 2026-10-27 18:45 JST 実装push・PR本文更新
+
+- Summary: カリキュラム不足修正と評価実行証拠の実装を通常commit/pushし、PR #199本文を現HEADに合わせて更新した。
+- Changes: implementation commit `71b0776ba8ff02462b72cac1fe681569143ac3f3`。85 files changed。PR本文のソース固定リンクを現HEADへ更新し、前回HEADのWeb/Mobile CIとPages smokeを履歴として分離。現在headのexact-head CIと再デプロイは未確認と明記した。
+- Validation: staged Prettier/ESLint、security:check（236 runtime / 420 credential scan）、Run Artifact sanitizationによりcommit成功。主要5 contract suites 58/58、新課程Chromium E2E 17/17 exit 0。push後にlocal/upstream/PR headが一致。
+- Blocker: `wait_for_required_ci`が利用可能ツールに存在しないため、Web CI/Mobile App CI exact-head確認はBLOCKED。手動ポーリングへ代替しない。旧製品Chromium回帰34件は成功表示後にprocess summary/exit codeなし。`pnpm run verify`は保護workspaceのformat違反で停止。
+- Deferred: 実Template・2-core Codespace技術受入とOpenCode実モデルの正式評価/校正/再評価はユーザー指示どおり最後に実施する。
+- Progress: 56% (5/9)

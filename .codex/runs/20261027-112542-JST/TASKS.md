@@ -9,7 +9,7 @@
 - [ ] 5. 決定論的な実技・回帰検証と受講者視点の確認を実施する。
 - [ ] 6. 実Template・2コアCodespace技術受入を実施する。
 - [ ] 7. 最後にOpenCode実モデルの統合・校正・正式評価・再評価を確認する。
-- [ ] 8. 変更とRun成果物を確認し、commit・通常push・PR本文更新を行う。
+- [x] 8. 変更とRun成果物を確認し、commit・通常push・PR本文更新を行う。
 
 ## Discovered
 - コース用Template repositoryは所有者の公開Repository 53件に見当たらず、既存の`codex-templates`は無関係。実Templateは最終受入時に専用repositoryとして作成する必要がある。
