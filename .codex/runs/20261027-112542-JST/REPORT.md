@@ -280,3 +280,12 @@ working-tree statusは開始前と同じ (REPORT/TASKSの既存index/worktree差
 - Validation: 新規回帰case 1/1 PASS、pre-commit quality Contract 26/26 PASS、実staged差分の `pnpm.cmd run quality:staged` PASS。
 - 最初のcommit試行はpre-commit Hookの上記checkで停止したためcommit SHAは発生していない。変更後はHook単体を通過した。commit全体（security/artifact sanitizer）とpushは次の試行で確認する。
 - Progress: 55% (5/9)。
+
+## 2026-10-28 Exact-head CI finding and repair
+
+- Commit `3fc43a8ca64aca9e7b9fd2a303b94f443e6d4d92` was pushed normally to the PR branch. Local HEAD, upstream ref, and PR #199 head matched.
+- Required-CI waiter was invoked once for this exact SHA. Web run `40668701970` returned failure; Mobile App run `40668702390` was still in progress when the waiter returned. This is not a successful exact-head CI result.
+- Web jobs for lint/typecheck/security/build/contracts and core Chromium E2E passed; `production-smoke` failed at `e2e/web/smoke.spec.ts:194` because it still expected public GitHub blob URLs while the changed course builder correctly serves learner resources from `/docs/curriculum/ai-assisted-qa/resources/`. The output HTML URL exactly matched the new internal distribution route. This is a stale E2E expectation, not a missing resource.
+- Repair: smoke now asserts the internal resource route and fetches each module's four resource URLs, expecting HTTP 200. Targeted Prettier, root TypeScript noEmit, and `git diff --check` PASS. New-head CI will be invoked once after this repair commit; no retry is being counted against the old SHA.
+- PR body still references the preceding commit and will be synchronized after the repaired head's CI status is available.
+- Progress: 55% (5/9); remaining local browser/aggregate and downstream live acceptance states remain as previously recorded.

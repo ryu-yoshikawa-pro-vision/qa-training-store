@@ -73,3 +73,10 @@ Progress: 55% (5/9)。実画面、aggregate verify、PR同期が残る。実Temp
 - [x] 1MiB超asset Contract 1/1とHook suite 26/26 PASS。
 - [x] 実staged差分のquality:staged PASS。Hook policyは維持。
 - [ ] commit全Hook、push、PR同期、新head exact-CI。
+
+## 2026-10-28 Exact-head CI repair
+
+- [x] Web CI failureを特定: production-smokeの教材resource link期待値が旧仕様。
+- [x] internal `/resources/` URLとHTTP 200を検証するE2Eへ修正。
+- [x] Prettier、TypeScript、diff check PASS。
+- [ ] repaired commit push、PR本文同期、新HEAD required CI。

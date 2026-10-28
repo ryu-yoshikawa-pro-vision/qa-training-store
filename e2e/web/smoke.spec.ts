@@ -191,10 +191,13 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
       "提出物テンプレート",
       `Phase ${phase}の評価基準`,
     ]) {
-      await expect(page.getByRole("link", { name: new RegExp(label) })).toHaveAttribute(
-        "href",
-        /^https:\/\/github\.com\/ryu-yoshikawa-pro-vision\/qa-training-store\/blob\/[a-f0-9]{40}\/training\/ai-assisted-qa-course\//,
+      const link = page.getByRole("link", { name: new RegExp(label) });
+      const href = await link.getAttribute("href");
+      expect(href).toMatch(
+        /^\/docs\/curriculum\/ai-assisted-qa\/resources\/training\/ai-assisted-qa-course\//,
       );
+      const response = await page.request.get(new URL(href ?? "", page.url()).toString());
+      expect(response.status(), `${moduleId}: ${label}`).toBe(200);
     }
     await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
     await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
