@@ -10,9 +10,14 @@ const powerShellWrapperPath = path.join(repoRoot, "scripts", "codex-safe.ps1");
 const bashWrapperPath = path.join(repoRoot, "scripts", "codex-safe.sh");
 const collectorPowerShellPath = path.join(repoRoot, "scripts", "collect-run-artifacts.ps1");
 const collectorPythonPath = path.join(repoRoot, "scripts", "collect-run-artifacts.py");
+const bashProbe =
+  process.platform === "win32" ? spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }) : null;
 const bashRunsInWsl =
-  process.platform === "win32" &&
-  spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }).stdout.trim().startsWith("Linux");
+  bashProbe !== null &&
+  bashProbe.error === undefined &&
+  bashProbe.status === 0 &&
+  typeof bashProbe.stdout === "string" &&
+  bashProbe.stdout.trim().startsWith("Linux");
 
 function toBashPath(value: string) {
   const normalized = value.replaceAll("\\", "/");

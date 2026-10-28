@@ -1,6 +1,6 @@
 # 51目標の対応表と内容照合結果
 
-下表は知識グラフから生成した51目標の教材・クイズ・演習・提出・評価対応表です。2026-10-27に各行の目標、教材節、Level 2証拠、クイズ解説、演習・提出先、Phase rubricと対応する採点契約を実物で照合しました。次の表に、目標別にまとめた照合結果と修正・残る実証範囲を記録します。これは教材資料間の整合確認であり、実受講者の習熟、実Template/Codespace、または実モデルによる評価の成功を示しません。
+下表は知識グラフから生成した51目標の構造対応表です。ID・リンクの存在だけでは教材の充足を証明しません。後続の実読監査では、各目標について教材本文、開始入力、課題、提出形式、模範、クイズの誤答理由、partial/reject条件を含むobjective別scoring criterion、Phase rubricを照合します。判定の「充足」は教材・課題・評価資料の意味上の整合を指し、実受講者の習熟を意味しません。実受講者の習熟、実Template/Codespace、実モデル評価は別の証拠として扱います。
 
 ## 51目標の内容照合
 
@@ -37,7 +37,97 @@
 | M09-04 / M09-05 | M09教材の費用例・演習手順9/10・提出欄・Phase 3 rubricと`M09-CR-04/05`を、非公開repo・trigger・権限変更のPlanに合わせた | 条件変更への本人判断と実repoの利用枠確認は未実施 |
 | M10-02 / M10-04 | M10教材・演習手順7・提出欄・Phase 3 rubricと`M10-CR-02/04`に、実workflowの有効化、停止・再実行・不要trigger停止を反映した | 実PR・CIと条件変更への適用は最終工程で未実施 |
 
-以下の一覧は自動生成された参照です。上記以外の行は内容レビューの完了を示しません。
+## 目標別の実読監査
+
+判定は51目標それぞれについて、教材本文、開始入力、課題、提出形式、模範、クイズの誤答理由、objective別scoring criterion、Phase rubricを読んで行った。判定の「充足」は教材・課題・評価資料の意味上の整合を指し、実受講者の習熟を意味しない。実受講者の習熟、実Template/Codespace、実モデル評価は別の証拠として扱う。
+
+### M00 学習環境と安全なAI利用
+
+- **M00-01 — 充足**。到達行動はCodespace/VS Codeの画面を確認し、ファイルを保存して開き直し、terminalの現在位置・相対path・CLI結果を説明すること。READMEの「Codespaceを用意」「画面とファイル」「一つのファイルを作って保存する」で前提と手順を解説し、別ファイル作成・編集・保存・再読込を練習する。提出は操作対象pathと確認結果、M00-Q01／M00-CR-01で評価。保存後の再確認手順は追加済み。実Codespace操作は未検証。
+- **M00-02 — 充足**。チャットとagent、Skillの発見・依存・許可条件、無料モデルとSecretを区別する。READMEの「エージェント、Skill、権限」に固定qa-workflow Skillのread-only例と危険な許可を避ける根拠があり、exerciseは安全な依頼で実出力と再読込を確認し、未実行/BLOCKEDを記録する。配布外adversarial-review参照を固定配布Skillへ修正し、M00-Q02／M00-CR-02へ整合済み。Codespace内Skill runtimeとモデル接続は未検証。
+- **M00-03 — 充足**。目的・参照資料・許可範囲・成果物・完了条件を指定する依頼を作る。README「依頼の作り方」の修正版を完成例にし、手本を試してから別目的の依頼を本人が作り、出力と完了条件を照合する。M00-Q03／M00-CR-03で根拠・許可・成果物の対応を評価。本人の実モデル評価は未検証。
+- **M00-04 — 充足**。Secret/個人情報、reload時の上書き、AI差分、6080公開範囲、Codespace停止と無料枠を判断する。README「演習と提出」の変更前後確認・再ロード、危険な変更を許さない依頼と停止例を練習し、観測と判断を提出する。M00-Q04／M00-CR-04で安全・費用の根拠を確認。作業ファイル保全は明示済み。実Templateと費用枠は未検証。
+
+### M01 QAと自動化の基礎
+
+- **M01-01 — 充足**。テスト目的、確認対象、仕様上の期待と観測を分ける。README「期待結果と観測事実」は上限3・現在数量2・要求4の完成例で拒否後の数量維持を示し、本人は別数量を期待・観測・未実行へ分けて提出する。M01-Q01／M01-CR-01は保証範囲と未実行を含め評価。修正不要。実受講者の理解度は後続試行。
+- **M01-02 — 充足**。探索・回帰・自動化の目的と限界を比較する。READMEとexerciseは未知の購入導線の探索と確定条件の反復を対比し、価格計算/拒否の候補を手動・自動へ分類する。M01-Q02／M01-CR-02は目的・再現性・費用・限界を評価し、理由付きの別判断を認める。実受講者の習熟は未計測。
+- **M01-03 — 充足**。分析→設計→実行→評価→改善とAI/人の責務を説明する。README「テスト工程と役割」は段階ごとの判断例、exerciseは担当を工程へ分類する。M01-Q03／M01-CR-03で期待値・未確認事項・修了判断をAI任せにしない理由を評価。実受講者の応答は未計測。
+- **M01-04 — 充足**。Unit/Integration/Component/Web E2Eの観測範囲と費用から層を選ぶ。READMEの小関数対購入導線例を使い、exerciseで価格関数とbrowser導線の層・限界を比較する。M01-Q04／M01-CR-04はE2Eをすべてへ使わない理由を評価。修正不要。
+
+### M02 仕様とリスク分析
+
+- **M02-01 — 充足**。BR/AC、実装、観測、AI推測の権威を区別する。README「用語と根拠」とカート上限例で仕様根拠・観測・仮説を分け、開始素材とexerciseで別断片を出典分類して提出する。M02-Q01／M02-CR-01はAI出力を仕様と誤認しないことを評価。修正不要。
+- **M02-02 — 充足**。Role/State/Data/Journeyを操作前後の条件へ結ぶ。カート例で利用者・cart状態・SKU/数量・操作経路を整理し、開始素材の別条件を提出する。M02-Q03／M02-CR-02は各観点と前提を個別確認し、欠けた値の推測を拒否する。実データ準備はTemplate受入待ち。
+- **M02-03 — 充足**。SeedとResetが保証する初期状態と保証外を調べる。README「SeedとResetで実行時の状態を確認する」はseed名だけで状態を決めずmetadata/正本を見る。別Seedを選び初期状態を提出し、M02-Q02／M02-CR-03で保証範囲を評価。実CodespaceでのResetは未検証。
+- **M02-04 — 充足**。Impact・Likelihood・Priorityと優先理由を説明する。README「Riskを仮説として評価する」とRisk入力の比較例から影響・可能性を事実と仮説に分け順位付けし、M02-Q04／M02-CR-04が判断根拠を評価。未定義の数値を捏造しない。
+- **M02-05 — 充足**。不完全仕様の誤読・欠落・未決、質問と影響を区別する。README「答えがない仕様から質問を作る」、公開断片、exerciseのhandoff欄で回答待ち期待値を保留し次の確認先を記録する。質問/保留が不足していた教材・提出・M02-Q05・M02-CR-05を一体修正済み。新条件を用いる実モデル校正は後続。
+
+### M03 テスト設計
+
+- **M03-01 — 充足**。同値分割の前提・代表値・限界を学ぶ。READMEは数量1〜3、0、4以上をRole/State/SKU/在庫/上限と合わせて説明し、別条件のCart例を本人が分類する。M03-Q05／M03-CR-01は同結果となる根拠と異なる除外理由の混同を評価。
+- **M03-02 — 充足**。仕様から有効上限と境界期待値を導く。在庫3・購入上限5から3を算出し、変更前2に対する2/3/4の期待を例示する。exerciseは別条件で実行可能性まで記録し、M03-Q01/Q02／M03-CR-02は超過拒否・変更前数量維持を評価。default上限流用/自動補正の誤記は修正済み。
+- **M03-03 — 充足**。BR-STOREFRONT-002から同一facet OR・異facet ANDの8ルールを導き、実行可能性を分ける。READMEのCategory/Brand表からexerciseのBrand/在庫条件を本人が導く。M03-Q03／M03-CR-03は全組合せ、到達不能とデータなし/未決の区別、Case化を評価。以前の別条件不一致と正本にないfacet要求を修正済み。外部Skill runtimeは未検証。
+- **M03-04 — 充足**。事前状態・操作・事後状態・禁止/未決遷移を表現する。READMEの数量更新/削除/拒否表とcart統合例を完成例にし、別遷移を提出する。M03-Q04／M03-CR-04で根拠を評価。仕様にない結果を作る記述は現行本文にない。
+- **M03-05 — 充足**。Risk→Condition→Case→BR/ACの意味上の根拠を追う。READMEのCart再検証表とCase提出テンプレートが例、演習は別RiskからCaseを導く。M03-Q02/Q05／M03-CR-05とPhase 1 rubricがID列挙だけの提出を拒否する。Skill統合runtimeは後続受入。
+
+### M04 設計レビューと自動化対象選定
+
+- **M04-01 — 充足**。AI案の誤期待、前提欠落、重複を仕様でレビューする。READMEの上限超過案、公開候補、reference-solutionが修正版・根拠を示す。別候補をreview.mdへ記録し、M04-Q01／M04-CR-01で根拠と影響を評価。
+- **M04-02 — 充足**。Unit/Integration/Component/Web E2Eの観測範囲と費用を比較する。READMEの永続状態と画面表示の例、演習の層選択・費用理由が揃う。M04-Q02／M04-CR-02とPhase 1 rubricはリスク・feedback・保守費用を評価。
+- **M04-03 — 充足**。Automate/Later/Do not automateを頻度・安定性・再実行価値・保守負荷で選ぶ。READMEの判断順と公開Case模範が三分類を比較し、別候補を本人が分類する。M04-Q03／M04-CR-03で理由を評価し、全件自動化を求めない。
+- **M04-04 — 充足**。未決仕様の質問・影響・保留期待値・次の確認先を第三者へ引き継ぐ。README/演習のhandoff手順と提出欄を別条件で練習し、M04-Q04／M04-CR-04に連携する。旧「人間評価者待ち」記述を本人起動の評価と未決handoffへ修正済み。実モデルの新条件評価は未実施。
+
+### M05 TypeScriptとPlaywright入門
+
+- **M05-01 — 充足**。Node.js→pnpm/package.json→TypeScript→Playwrightの順に変数・配列・object・条件・function・型・import/export・async/awaitを学ぶ。README「実行の流れ」「コードを読む」の注釈specを使い、短い値/型/functionを一箇所変更して再実行しreceiptを提出する。M05-Q01/Q02／M05-CR-01が理解と証拠を評価。
+- **M05-02 — 充足**。Locator/Action/Assertionを完成specで区別する。READMEのrole locatorと操作・業務assertionを読み、exerciseで選び実行する。M05-Q03／M05-CR-02で意味と仕様対応を評価。
+- **M05-03 — 充足**。表示と業務上の期待・Assertionの保証範囲を見分ける。READMEは弱い表示assertionと業務結果を対比し、本人は弱いassertionを根拠付きでレビューする。M05-Q04／M05-CR-03で評価。
+- **M05-04 — 充足**。固定wait/autowait、構文・型・runtime・assertion failureを分ける。README「待機と失敗の読み分け」に診断例があり、壊れたspecから最初の失敗と修正方向を提出する。M05-Q02/Q05／M05-CR-04が固定wait追加のみの修正を拒否する。
+- **M05-05 — 充足**。Playwright Config、testDir・結果出力先、通常Web 8081/専用test server 8082/noVNC 6080を区別する。READMEの実技節とconfig例を読み、演習で設定・結果・AI差分を確認する。M05-Q06／M05-CR-05が対象と出力を評価。Template上のport確認は未検証。
+
+### M06 E2E実装と実行
+
+- **M06-01 — 充足**。Caseの前提・操作・期待から新規specを構成する。README「Caseからコードへ」「実装の順序」で例を示し、固定3 Caseに加えCASE-CART-004削除Caseをstarterから実装し単独/再実行する。提出はCase/BR/AC/Reset/Locator/Action/Assertion/Runを結ぶ。M06-Q03/Q06／M06-CR-01。完成例の単独Run・再実行各1件PASS、受講者Codespaceは未確認。
+- **M06-02 — 充足**。Seed/Reset・ContextでCase独立性を作る。固定例と削除例が各test前Resetを行い、再実行で不変条件を確かめる。M06-Q01／M06-CR-02で開始state/Reset/反復を評価。Reset保証外を推測しない。
+- **M06-03 — 充足**。Locator/業務Assertionが仕様期待を確かめるか判断する。数量・超過拒否・削除後明細なしの例を用い、本人のspecをBR/ACへ結ぶ。M06-Q02/Q03／M06-CR-03で弱い表示確認を拒否する。
+- **M06-04 — 充足**。コマンド・結果・Run/receipt・log/Trace/attachmentを結ぶ。course:runはsource_shaとspec_sha256を分け、M06-Q04／M06-CR-04と負例契約で現行配布SHA以外を拒否する。receipt照合不足を実装し契約テストで確認済み。外部Templateの証拠取得は未確認。
+- **M06-05 — 充足**。success/failure/not-run/environment blockedを区別する。README「判定の注意」と課題の診断欄で未実行を記録し、M06-Q05/Q06／M06-CR-05は証拠のないPASSを拒否する。障害時の実Codespace復旧は未検証。
+
+### M07 失敗分析と保守
+
+- **M07-01 — 充足**。Test assertion、Reset/製品条件、遅延/flakyの原因仮説を証拠から分ける。README「3種類の診断素材」とfailure-cases A/B/Cは実行可能な誤Assertionと説明用ログを明確に分け、追加証拠を選ばせる。M07-Q01／M07-CR-01で原因断定を抑止する。
+- **M07-02 — 充足**。Trace/Screenshot/log/Runが示すことと限界を説明する。README「失敗を追う手順」とAの実行でerror/Traceを特定し、B/Cでは不足証拠と次の操作を書く。M07-Q02／M07-CR-02で資料を成功証拠と誤認しない。
+- **M07-03 — 充足**。Retry/Timeoutは根本原因修正ではないと判断する。遅延例はretryで結果が変わってもflakyと断定せず、Reset・連続Run・時刻・応答を比較する。M07-Q03／M07-CR-03がtimeout延長のみの提案を拒否する。
+- **M07-04 — 充足**。最小修正で仕様とAssertionを保ち、別Runで前後比較する。exerciseは意図的failureをbefore/after labelで実行し、Trace/差分/結果を提出する。M07-Q04／M07-CR-04。修正版は別RunでPASS、対象specは2/2 PASS。
+- **M07-05 — 充足**。Page Object/標準fixtureの採否・実装・再実行を学ぶ。README「保守性の判断」はbase.extend、page/runWith fixture引数、CartPage/importを説明し、共通化する操作と各testに残す数量assertionの理由を示す。重複2件の前後課題と抽象化しない別例、M07-Q05／M07-CR-05で評価。fixture callback名修正後、before/after各2件PASS。Template上は未検証。
+
+### M08 Git・PRレビュー
+
+- **M08-01 — 充足**。working tree/stage/commit/branchと共有順を学ぶ。READMEの状態説明と別変更例に対し、exerciseはstatus・branch・staged diff・commit後status/historyまで手順化する。M08-Q01／M08-CR-01で概念を区別。本人repo操作は未実施。
+- **M08-02 — 充足**。diffから安全な変更だけ選びSecret/生成物/ローカルログを外す。review-candidateとlocal-only-run.logの区別、gitignore/check-ignore、単一path stageとstaged diffを練習しcommit SHAを提出する。M08-Q02／M08-CR-02。isolated repository契約で許可外pathの負例も確認済み。実受講者commitは未確認。
+- **M08-03 — 充足**。PRで仕様・code・test・Run・SHA・未確認事項を関連付ける。README「仕様・差分・テストと証拠を結び付ける」とexerciseのPR説明案で練習し、M08-Q03／M08-CR-03で対応を評価。外部PR作成を課題必須にしない理由を明記。実GitHub PRレビューは未実施。
+- **M08-04 — 充足**。AI指摘をdiff/仕様/Runで判断し、誤指摘・不要な抽象化を退ける。README「AIレビューの採否」とM08-Q04の汎用Page Object案を完成例に、本人は根拠付き採否を提出する。M08-CR-04で理由を評価。実モデルの指摘は未検証。
+
+### M09 CI workflowと品質ゲート
+
+- **M09-01 — 充足**。Trigger/event/Workflow/Job/Runner/Step/Build/Testを読む。READMEの短いworkflow例とdisabled完成見本を説明し、starterとの差から起動条件・処理・runnerを提出する。M09-Q01／M09-CR-01で評価。
+- **M09-02 — 充足**。PR HEAD、Run/Check、Artifact、target-shaの由来を照合する。READMEはmerge SHAとPR headを区別し、exerciseでHEAD checkoutと同Run Artifactを修正する。M09-Q02／M09-CR-02。誤った一律SHA一致の記述を修正済み。本人private repoのRunは未検証。
+- **M09-03 — 充足**。Build/Test/Artifactの最初の失敗stepと未実行を区別する。failure-casesの合成Build failure、Assertion failure、Artifact未生成を読み、実Runで確認すべきlogと仮説を分ける。M09-Q03／M09-CR-03。synthetic logを実証拠と誤認しない。
+- **M09-04 — 充足**。非公開repo/runner/trigger/頻度から費用と品質ゲートを設計する。READMEは1日5回を回数見積りとして示し、手動triggerの費用と未検証期間も比較し、公式枠・組織契約が不明なら保留する。M09-Q04／M09-CR-04。実組織の料金/枠は未検証。
+- **M09-05 — 充足**。最小権限、Secret不要化、deploy/他CIの分離を判断する。disabled starterをcontents:read・限定spec・Artifactへ直す練習と条件変更の再レビューを課す。M09-Q05／M09-CR-05。実repo権限変更は未実施。
+
+### M10 Phase 3総合運用
+
+- **M10-01 — 充足**。Phase 2成果物と変更範囲を選びSecret/ログ/不要fileを除く。README「diffと公開対象」は本人M07成果物/M10公開fallbackの2経路を示し、exerciseは対象diffを選ぶ。M10-Q01／M10-CR-01で評価。fallbackを本人修了と混同しない。実個人repoへの共有は未実施。
+- **M10-02 — 充足**。対象spec・runner・最小権限で専用workflowを組み実Runへ進む条件を説明する。READMEは同一Playwright spec・事前build済みShop・deploy/Secretなしを例示し、exerciseで環境差とworkflowを作る。M10-Q02／M10-CR-02で評価。実Template/private repoでのworkflow有効化とRunは今回意図的に未実施。
+- **M10-03 — 充足**。現在HEAD・Run/Check/Artifact・target-sha・Playwright JSONを同一Runで照合する。ci-run-evidence templateへrepo/PR/SHA/Run/specを記録し、M10-Q03／M10-CR-03で成功/失敗/未実行を区別する。証拠validatorと負例は実装済み。本人repo API evidenceは未検証。
+- **M10-04 — 充足**。CI環境failureとspec/product failure、再実行条件とtrigger cleanupを判断する。READMEとexerciseはbrowser起動前failure、Build/Test段階、別Run・停止・片付けの例を示す。M10-Q04／M10-CR-04で最初の異常・調査・再実行理由を評価。本人workflowの条件変更は未検証。
+- **M10-05 — 充足**。AI変更の採否、確認範囲、残リスクを過大表現せず報告する。README「結果と未確認事項」とsubmissionの仕様・diff・SHA・Run・未確認欄を使い、M10-Q05／M10-CR-05で根拠を評価。AI自己申告で修了しない。実モデル採点・校正・再評価は未実施。
+
+**目標別集計（教材・課題・模範・評価資料の内容監査）**：充足 51、教材不足 0、資料間不整合 0、内容未読 0。実受講者の習熟度は評価していません。実Template/2コアCodespace、OpenCode実モデル、AI Tutor/正式採点・校正/再評価、本人private repoのGitHub CIを必要とする技術証拠は未検証のまま最終受入へ残します。
+
+以下の一覧は自動生成された構造参照です。目標別の意味監査は上記の各行が根拠であり、下表だけを内容レビューの証拠として扱いません。
 
 | Phase | Learning item | Knowledge | Lesson section | Level | Level 2 evidence | Quiz: answer and explanation | Practical exercise and submission | Phase rubric | Review destination |
 |---|---|---|---|---|---|---|---|---|---|
