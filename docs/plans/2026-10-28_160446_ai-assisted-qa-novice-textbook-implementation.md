@@ -58,7 +58,7 @@
   - [x] 6. objective semantics、公開境界、link/asset、responsive UI、quiz stateを検知するContract/E2Eを補う。Contract 60/60 PASS。拡張E2Eの実行結果は後段にBLOCKEDで記録する。
   - [ ] 7. M00/M05の実画面16枚を取得・確認した。M01/M03の詳細画面と拡張後の全11教材・全11クイズdesktop/mobile再確認は未完了。
   - [ ] 8. 必要なvalidator/build/targeted E2Eは一部PASS。拡張後E2Eとaggregate `pnpm run verify`は実行環境制約があり、完了条件を満たさない。
-  - [ ] 9. objective audit補足、Run、PR本文、commit/push、PR head同期、exact-head CI確認が未完了。
+  - [x] 9. objective audit補足、Run、commit/push、PR本文更新、head照合、exact-head CI確認を実施。実装commit `32886618f3016454b3d983b0009c94ad3d354cce` のWeb CI/Mobile App CIはともにsuccess。
 
 ## 6. 検証方法
 
@@ -72,9 +72,8 @@
 
 ## 8. 成果物
 
-- 変更済み（未commit）: M00〜M10 README、`start-here.md`、画像assets、共通Web builder/Markdown CSS、ContractとWeb E2E、未経験者向け改善Plan。
-- 変更済み（未commit）: 既存objective auditへ本補足を追記。51目標の既存行は保持する。
-- 未更新: active Runの`TASKS.md`/`REPORT.md`、PR本文。Runの`run.json`は編集しない。
+- commit/push済み: M00〜M10 README、`start-here.md`、画像assets、共通Web builder/Markdown CSS、ContractとWeb E2E、未経験者向け改善Plan。CI起因のsmoke/a11y修正を含む実装head `32886618f3016454b3d983b0009c94ad3d354cce` はWeb/Mobile App CIともsuccess。
+- commit/push済み: 既存objective auditへの補足、active Runの`TASKS.md`/`REPORT.md`。PR本文も現headへ同期済み。Runの`run.json`は編集していない。
 - 証跡: ローカル生成物`output/playwright/ai-assisted-qa/`の16画面はM00/M05の表示確認用。M01/M03の詳細画面および外部ツールの実操作画面は未取得。
 
 ## 9. 備考
@@ -85,7 +84,7 @@
 
 ## 10. 2026-10-28 実施状況
 
-- Progress: 55% (5/9)。完了はobjective/Plan対応、11教材改稿、既存演習・評価契約照合、Web共通導線、構造/公開境界Contract強化。実画面取得、拡張画面レビュー、aggregate verify、Run/PR/GitHub同期は残る。
+- Progress: 67% (6/9)。完了はobjective/Plan対応、11教材改稿、既存演習・評価契約照合、Web共通導線、Contract/E2E、Run/PR/GitHub同期とexact-head CI。実画面取得、追加画面レビュー、aggregate verifyは残る。
 - 23件の検証可能なSVGと3件の学習イラストPNGを追加し、11章すべてに本文内の図・代替テキスト・説明を置いた。実GitHub/Codespaces/VS Code/Actions操作画面は作成画像で代替せず、未取得とする。
-- 現行HEAD `70ffd6c4c1fe84cc0e9802fb186f125e087dfa36` に対するPR/CI成功記録は、今回のworking-tree差分を検証しない。新しいPR headでのCI確認は未実施。
-- Next: 画面接続可能なE2E環境を確立してM01/M03を含む拡張実画面レビューを完了し、aggregate verifyとRun/PR同期を再開する。
+- 実装head `32886618f3016454b3d983b0009c94ad3d354cce` のrequired CIはexpected/observed SHA一致で完了。[Web CI 40672135590](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/40672135590)、[Mobile App CI 40672135604](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/40672135604) ともcompleted / success。PR本文はこのheadに同期済み。
+- Next: M01/M03を含む追加実画面レビューと実GitHub/Codespaces/VS Code/Actions画面の取得、aggregate `pnpm run verify`を実施できる環境を確立する。未完了条件はPASSと扱わない。

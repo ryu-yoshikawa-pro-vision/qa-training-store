@@ -298,3 +298,10 @@ working-tree statusは開始前と同じ (REPORT/TASKSの既存index/worktree差
 - Local validation after repair: related Contract 5 suite 60/60 PASS; curriculum validator 22 docs/4 workbooks PASS; AI course validator M00-M10/53 questions/33 assessment files PASS; Docs build 22 spec/25 legacy/12 new/11 quizzes PASS; root TypeScript, Prettier, `git diff --check` PASS.
 - Repaired smoke label/path and keyboard-focus changes are not yet committed at this checkpoint. Old SHA's CI remains failure; final head must be validated after a new commit. The local Browser environment is still unable to finish the expanded run, so CI is required for the new a11y behavior.
 - Progress: 55% (5/9). PR body and exact-head success are pending; live Template/2-core Codespace and OpenCode model acceptance remain deferred.
+
+## 2026-10-28 implementation PR sync checkpoint
+
+- Implementation/smoke head `32886618f3016454b3d983b0009c94ad3d354cce` に対するexact-head waiterはsuccess。Web CI `40672135590`、Mobile App CI `40672135604` はexpected/observed SHA一致、completed/success。
+- PR #199本文を日本語で更新し、現headの教材/クイズ原本リンク、実行者区別、検証結果、残件を反映。merge/closeはしていない。
+- New Planの現在状態をProgress 67% (6/9)へ更新。Task 9のPR同期は実装head `32886618` で完了。Task 3/7/8は実画面・詳細レビュー・aggregate verifyが残るため未完了。Task 6/7のTemplate/Codespaceとlive model acceptanceも別工程のまま。
+- Plan/Runの最終状態を記録するdocumentation-only commitをこれから作成し、その新headのrequired CIは別SHAとして確認する。
