@@ -14,6 +14,7 @@ function runGit(args, root, encoding = null) {
   const options = {
     cwd: root,
     stdio: ["ignore", "pipe", "ignore"],
+    maxBuffer: 32 * 1024 * 1024,
   };
   if (encoding === "utf8") return execFileSync("git", args, { ...options, encoding });
   return execFileSync("git", args, options);

@@ -182,3 +182,37 @@
 | P3 | M10-03 | K-M10-03 現行PR HEADと検証証拠 | docs/curriculum/ai-assisted-qa/modules/M10/README.md — 通し演習の流れ | 適用・判断 | HEAD更新後に古いRunを使わず、**現在SHAに対応する証拠**を示せる | M10-Q03: CIがPASSしましたが、Artifact内のtarget-sha.txtが現在のPR HEADと異なります。現在のPRをどう報告しますか。 — 正答 B: 現在のPR HEADに一致するtarget-sha.txtと同じRunのCheck/Artifactを確認するまで未確認とする。解説: SHAの一致を条件にして検証済み範囲を正しく報告できます。 | training/ai-assisted-qa-course/exercises/M10/exercise.md → training/ai-assisted-qa-course/exercises/M10/submission-template.md → workspace/M10/submission.md; training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json → workspace/M10/ci-run-evidence.json | CIの実証拠 → training/ai-assisted-qa-course/assessment/phase-3-rubric.md | docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する |
 | P3 | M10-04 | K-M10-04 CI障害の再現と原因切分け | docs/curriculum/ai-assisted-qa/modules/M10/README.md — 通し演習の流れ | 判断 | 失敗例で**原因を区別する最初の調査対象**を選び必要なら別Runで確かめる | M10-Q04: PlaywrightはローカルでPASSし、CIではbrowser起動前に失敗しました。次の判断として適切なのはどれですか。 — 正答 D: 該当Runとstep logから起動・依存・browser条件を調べ、spec結果と分ける。解説: 失敗段階と環境差に基づいて追加調査できます。 | training/ai-assisted-qa-course/exercises/M10/exercise.md → training/ai-assisted-qa-course/exercises/M10/submission-template.md → workspace/M10/submission.md; training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json → workspace/M10/ci-run-evidence.json | 失敗時の調査と差分 → training/ai-assisted-qa-course/assessment/phase-3-rubric.md | docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する |
 | P3 | M10-05 | K-M10-05 AIによる修正・判断と残リスク報告 | docs/curriculum/ai-assisted-qa/modules/M10/README.md — Phase 3修了評価 | 判断 | 実行の保証範囲と残リスクを**過大に表現せず**説明できる | M10-Q05: AIがCI提案とコード修正を作りました。最終報告に含めるべき内容はどれですか。 — 正答 C: 採否の理由、確認したdiff/仕様、対象SHAとCI証拠、未確認事項。解説: 判断の根拠と検証範囲を明確にできます。 | training/ai-assisted-qa-course/exercises/M10/exercise.md → training/ai-assisted-qa-course/exercises/M10/submission-template.md → workspace/M10/submission.md; training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json → workspace/M10/ci-run-evidence.json | Phase 3修了レビュー → training/ai-assisted-qa-course/assessment/phase-3-rubric.md | docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する |
+
+## 2026-10-28 未経験者向け教本・Web体験の補足監査
+
+### 対象と維持契約
+
+この補足は既存の51目標別実読監査を置き換えず、HEAD `70ffd6c4c1fe84cc0e9802fb186f125e087dfa36`からの今回の未コミット差分を追加確認する。M00〜M10、51 objective ID、3 Phase、Phase正式評価契約、53問の確認クイズは変更していない。今回の検証では`validate:curriculum`、`validate:ai-assisted-qa`、5つの関連Contract（60/60 PASS）を実行した。
+
+### 教材で見つけて修正した不足
+
+実画面の実読で、全11教材に「このモジュールで学ぶこと」の見出しはあるものの、説明本文が空であることを確認した。M00〜M10それぞれに、学ぶ理由、到達点、前提/前章と復習先、準備/環境を章固有の内容で追加し、全11章を確認するContractを加えた。`start-here.md`には必要なPC操作と不要な事前知識、AIチューターが任意であること、実習環境の準備主体を明記した。各章のAIチューター案内は導入の後へ移し、本文と練習だけで進められると表示する。
+
+図と本文の誤読を防ぐため、M00の学習イラストを概念図と明示し、操作画面の代替ではないことをcaption/altで示した。M09の図もGitHub実画面と誤解させないワークフロー図の説明に改めた。本文・例・段階演習の対応は、既存の51目標別表（M00-01〜M10-05）、quiz explanation、objective別scoring criteria、Phase rubricの対応を維持して確認した。
+
+### 図版・配布・画面
+
+- 追加素材は検証可能なSVG 23件、学習用PNG 3件。SVGは条件・状態・順序を正確に示す技術図、PNGはM00/M01/M05の概念補助イラストとして使い、各章本文に図の意味と読み方を記した。画像生成で実際のGitHub/Codespaces/VS Code/Actions画面は作っていない。
+- builderは許可リスト内の学習用演習資料と画像だけを配布し、模範解答、採点JSON、完成状態、Secretsは配布しない。公開配布Contractと画像配信Contractは60件の関連Contract成功に含む。
+- 本文・クイズでヘッダー、章/節ナビ、現在地、目次、前後移動、教材/クイズ/復習/配布資料リンクを共通化した。クイズの一問表示、四択、回答前の正答非表示、保存・再開、JSON revision照合、結果・理由、誤答復習、再挑戦の挙動は維持した。
+- 可視HTMLの検索で`SHA-256:`、`source_sha`、`spec_sha256`、`fingerprint`、非公開資料のpathが見つからないことを確認した。内部revisionはHTML/JavaScriptの検証・保存状態に残し、画面本文に表示しない。開始ガイド末尾のliteral `\n`も検出されない。
+- 前回の実ブラウザー証跡: 全11教材の図/内部リンク/章ナビと全11クイズのmobile導線を確認したE2E 1件がPASS。M00/M05の教材、クイズ開始/設問/結果のdesktop/mobile画面16枚を取得し、M00教材desktopとM05クイズ結果mobileを目視した。画像は`output/playwright/ai-assisted-qa/`にある。この16枚はローカルで生成された教材画面であり、外部ツールの操作画面ではない。
+- M01/M03の詳細画面、今回追加した全ページWCAG走査と全11クイズmobile結果の再確認は未完了。今回の拡張E2EはPlaywrightのffmpeg不在で初回起動できず、その後ブラウザーから`127.0.0.1`のローカルserverへ`ERR_NETWORK_ACCESS_DENIED`となった。別server設定の試行もrunnerの最終結果前に中断した。これらをPASSやassertion failureに数えず、拡張E2EはBLOCKEDとする。
+- GitHub、Codespaces、VS Code、Actionsの認証済み実操作画面は取得できていない。実画面取得を未完了と記録し、架空画像で補わない。Template/2-core CodespaceとOpenCode実モデル受入（Run Task 6/7）も今回実施せず、別の未完了条件として維持する。
+
+### 検証状態
+
+- PASS: `node_modules/.bin/tsx.cmd scripts/validate-curriculum.ts`、`node_modules/.bin/tsx.cmd scripts/training/validate-ai-assisted-qa.ts`、`node_modules/.bin/tsx.cmd scripts/docs/build-docs.ts`。
+- PASS: `node_modules/.bin/vitest.cmd run tests/contracts/ai-assisted-qa-course-distribution.test.mjs tests/contracts/ai-assisted-qa-curriculum.test.ts tests/contracts/ai-assisted-qa-assessment.test.mjs tests/contracts/ai-assisted-qa-course-tutor.test.mjs tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs --no-file-parallelism --maxWorkers=1 --testTimeout=30000 --hookTimeout=30000`（5 files / 60 tests）。
+- PASS: `node_modules/.bin/tsc.cmd --noEmit --project tsconfig.json`、変更対象Prettier check、`git diff --check`。
+- PASS: 全生成HTMLのvisible textにSHA-256等を含まない検索。PR headの`70ffd6c4c1fe84cc0e9802fb186f125e087dfa36`に対する既存Web CI/Mobile App CIは成功とGitHub connectorで確認したが、今回の作業ツリーは未commitであり、このCIは今回の差分を検証しない。
+- NOT PASS: `pnpm run verify`はこの差分に対してaggregate PASSしていない。既存Runの環境記録ではCorepack registry到達不能と、保護対象workspaceを含むfull verifyの停止が残る。今回の結果を全体verify成功へ読み替えない。
+
+### 残作業
+
+audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示/a11yを再実行する。実環境の操作画面取得は可能性を再確認し、取得不能ならBLOCKEDを保持する。その後、明示ファイルだけをcommitし通常push、PR #199本文を新headへ更新し、新head限定のWeb CI/Mobile App CIを待つ。保護対象の未追跡`workspace/`ファイルは変更・stageしない。

@@ -28,6 +28,13 @@ function readQuiz(moduleId: string): { questions: { correct_value: string }[] } 
   ) as { questions: { correct_value: string }[] };
 }
 
+async function expectCoursePageAccessible(page: import("@playwright/test").Page): Promise<void> {
+  const accessibility = await new axeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(accessibility.violations.map((violation) => violation.id)).toEqual([]);
+}
+
 const moduleIds = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 
 test.describe("AI協働QAの公開クイズ画面", () => {
@@ -36,8 +43,16 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       const quiz = readQuiz(moduleId);
       await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
       await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
+      await expect(page.locator(".primary-navigation a[aria-current='page']")).toContainText(
+        moduleId,
+      );
+      await expect(page.locator(".module-progress")).toContainText(moduleId);
+      await expect(page.locator(".module-pager")).toBeVisible();
+      expect(await page.locator("body").innerText()).not.toContain("SHA-256:");
+      expect(await page.locator("body").innerText()).not.toMatch(/[a-f0-9]{64}/i);
       await page.getByRole("button", { name: "回答を始める" }).click();
       await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
+      await expectCoursePageAccessible(page);
       await chooseCorrectAnswers(page, quiz);
       await page.getByRole("button", { name: "結果を確認" }).click();
       await expect(
@@ -47,6 +62,142 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       await expect(page.getByRole("link", { name: "教材の復習先" }).first()).toBeVisible();
     });
   }
+
+  test("全教材・全クイズをdesktop/mobileで表示し、導線・アクセシビリティ・横幅を確認する", async ({
+    page,
+  }) => {
+    for (let index = 0; index < moduleIds.length; index += 1) {
+      const moduleId = moduleIds[index];
+      if (moduleId === undefined) throw new Error(`モジュール ${index} がありません`);
+      await page.setViewportSize({ width: 1365, height: 900 });
+      await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
+      await expect(page.locator(".module-progress")).toContainText(moduleId);
+      await expect(page.locator(".primary-navigation a[aria-current='page']")).toContainText(
+        moduleId,
+      );
+      await expect(
+        page.locator(".course-resources a[href*='/resources/training/']").first(),
+      ).toBeVisible();
+      await expect(page.locator(".module-pager")).toBeVisible();
+      const images = page.locator(".document-body img");
+      await expect(images).toHaveCount(
+        moduleId === "M03"
+          ? 3
+          : moduleId === "M00" || moduleId === "M01" || moduleId === "M05"
+            ? 3
+            : 2,
+      );
+      expect(
+        await images.evaluateAll((nodes) =>
+          nodes.every(
+            (node) => node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0,
+          ),
+        ),
+      ).toBe(true);
+      await expectCoursePageAccessible(page);
+      const visibleText = await page.locator("body").innerText();
+      expect(visibleText).not.toContain("SHA-256:");
+      expect(visibleText).not.toContain("source_sha");
+      expect(visibleText).not.toContain("spec_sha256");
+      expect(visibleText).not.toMatch(/[a-f0-9]{64}/i);
+
+      await page.setViewportSize({ width: 375, height: 812 });
+      await expect(page.locator(".mobile-primary-navigation")).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await expectCoursePageAccessible(page);
+    }
+
+    for (const moduleId of moduleIds) {
+      const quiz = readQuiz(moduleId);
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+      await expect(page.locator(".module-progress")).toContainText(moduleId);
+      await page.getByRole("button", { name: "回答を始める" }).click();
+      await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
+      await expectCoursePageAccessible(page);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      const visibleText = await page.locator("body").innerText();
+      expect(visibleText).not.toContain("SHA-256:");
+      expect(visibleText).not.toContain("source_sha");
+      expect(visibleText).not.toContain("spec_sha256");
+      await chooseCorrectAnswers(page, quiz);
+      await page.getByRole("button", { name: "結果を確認" }).click();
+      await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await expectCoursePageAccessible(page);
+    }
+  });
+
+  test("M00/M01/M03/M05の教材とクイズをdesktop/mobileで撮影する", async ({ page }) => {
+    const screenshotDirectory = path.join(repositoryRoot, "output", "playwright", "ai-assisted-qa");
+    fs.mkdirSync(screenshotDirectory, { recursive: true });
+
+    for (const moduleId of ["M00", "M01", "M03", "M05"]) {
+      await page.setViewportSize({ width: 1365, height: 900 });
+      await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-lesson-desktop.png`),
+        fullPage: true,
+      });
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-lesson-mobile.png`),
+        fullPage: true,
+      });
+
+      await page.setViewportSize({ width: 1365, height: 900 });
+      await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-start-desktop.png`),
+        fullPage: true,
+      });
+      await page.getByRole("button", { name: "回答を始める" }).click();
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-question-desktop.png`),
+        fullPage: true,
+      });
+      const quiz = readQuiz(moduleId);
+      await chooseCorrectAnswers(page, quiz);
+      await expect(page.getByRole("button", { name: "結果を確認" })).toBeEnabled();
+      await page.getByRole("button", { name: "結果を確認" }).click();
+      await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-result-desktop.png`),
+        fullPage: true,
+      });
+
+      await page.evaluate((id) => localStorage.removeItem(`ai-assisted-qa-quiz:${id}`), moduleId);
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.reload();
+      await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-start-mobile.png`),
+        fullPage: true,
+      });
+      await page.getByRole("button", { name: "回答を始める" }).click();
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-question-mobile.png`),
+        fullPage: true,
+      });
+      await chooseCorrectAnswers(page, quiz);
+      await expect(page.getByRole("button", { name: "結果を確認" })).toBeEnabled();
+      await page.getByRole("button", { name: "結果を確認" }).click();
+      await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `${moduleId}-quiz-result-mobile.png`),
+        fullPage: true,
+      });
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+  });
 
   test("一問ずつ回答し、全問終了後に結果・解説・復習先を表示して再開できる", async ({ page }) => {
     const quiz = readQuiz("M02");

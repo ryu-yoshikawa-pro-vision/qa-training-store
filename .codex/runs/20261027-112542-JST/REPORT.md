@@ -253,3 +253,30 @@ working-tree statusは開始前と同じ (REPORT/TASKSの既存index/worktree差
 - Task 5: 上記のユーザー提供contract PASS、既存のChromium/assessment/監査証拠、今回のその他のlocal validators・tests・buildを合わせ、決定論的な範囲を完了とする。aggregate `pnpm run verify` のexit 1とorigin修正後のMCP suite停止は別の未解決実行環境evidenceとして明記し、PASSとは表現しない。旧45 contract failureに対するtest修正は行っていない。
 - Task 6（実Template/2-core Codespace）とTask 7（OpenCode実モデル正式評価）はユーザー指定どおり後段へ保留。commit後は通常push、PR本文同期、新head exact-CI waiterを実行する。Run artifactはcommit前に固定し、新head CIはPR本文と最終報告へ記録する。
 - Progress: 67% (6/9) at the pre-push Run freeze; exact-head CI remains the ninth item and will be reported after push.
+
+## 2026-10-28 教本/Web追補検証
+
+- Current baseline: local branch/upstream `docs/plan-ai-agent-qa-curriculum-redesign` at `70ffd6c4c1fe84cc0e9802fb186f125e087dfa36`; PR #199 OPEN at same SHA before this uncommitted follow-up. Existing CI for that SHA does not cover these changes.
+- Evidence: all 11 chapter introductions now explain purpose, outcome, prerequisites/previous chapter, and preparation; a curriculum Contract verifies their non-empty content. 23 SVG and 3 PNG assets; current build produced 12 new curriculum pages and 11 quiz pages. Existing 51 objective rows and Phase contracts retained.
+- PASS: five curriculum-related Contract files, 60/60 tests; curriculum validator; AI-assisted-QA validator (M00-M10/53 questions/33 assessment files); `tsc --noEmit --project tsconfig.json`; docs build; targeted Prettier; Markdownlint (565 files/0 issues); `git diff --check`; generated-page search found no visible `SHA-256:`, `source_sha`, `spec_sha256`, private assessment paths, or trailing literal `\n`.
+- Browser evidence from earlier completed local run: all-11 lesson/quiz mobile route test 1/1 PASS; M00/M05 lesson and quiz start/question/result desktop/mobile screenshots 16/16 saved under `output/playwright/ai-assisted-qa/`. M00 desktop and M05 mobile quiz result were visually inspected.
+- BLOCKED: added expanded axe coverage/mobile quiz-result replay/M01-M03 detailed screenshots did not complete locally. First runner setup lacked Playwright ffmpeg; a subsequent browser navigation to loopback returned `ERR_NETWORK_ACCESS_DENIED`; a further runner attempt was interrupted without final summary. Do not call the expanded E2E PASS.
+- BLOCKED: aggregate `pnpm run verify` has no PASS evidence for this diff; prior Run records Corepack registry and protected workspace constraints. Actual GitHub/Codespaces/VS Code/Actions operation screenshots were not acquired. No simulated screen was substituted. Template/2-core Codespace and OpenCode live-model Tasks 6/7 remain untouched.
+- Protected untracked `workspace/M05/validation/`, `workspace/M06/acceptance-probe.spec.ts`, `workspace/M08/`, and `workspace/M10/` remain unstaged/unchanged. `run.json` was not edited.
+- Next: resolve an allowed browser/test environment, complete detailed screens and aggregate validation as possible, then stage only the reviewed explicit file allowlist, commit/push PR #199, update its body, and wait once for exact-head Web CI/Mobile App CI.
+## 2026-10-28 修正ループ追補: クイズ配色と配布Contract
+
+- Self-review finding: quiz CSSがOSのdark preference用ルールを持つ一方、後置される共有Markdown CSSはlight固定だったため、クイズ本文と回答/結果パーツの配色が混在し得た。
+- 修正: `scripts/docs/build-ai-assisted-qa.ts` のquiz CSSからdark media ruleと重複するページ全体の色/レイアウト指定を除去し、共通light stylesheetの上でクイズ部品だけを定義。生成CSS Contractでlight固定とdark rule不在を検査。lesson表示本文にも64桁hex文字列の非表示検査を追加。
+- Validation: curriculum Contract 16/16 PASS。関連5 Contract suiteは1件のESM dependency resolution failureを調査し、配布fixtureを既存の `node_modules` junction方式へ戻した後、単独case 1/1 PASS、全5 suite 60/60 PASS。TypeScript noEmit PASS、対象Prettier PASS、Docs build（spec 22/legacy curriculum 25/new curriculum 12/quiz 11）PASS、`git diff --check` PASS。
+- 初回のmanaged sandbox実行はVitest TEMP cache renameのEPERMで0 tests。昇格したローカル検証では一時fixture用junctionが機能した。これは実行環境の差と区別して記録する。
+- Full `pnpm run verify` は今回の追補後には再実行していない。前回のaggregate検証結果は本REPORTの過去checkpointに記載し、PASSへ読み替えない。拡張Browser E2Eはlocal network access denied/ffmpeg不在により未確認のまま。Workspace内の保護未追跡ファイルはstage対象外とし、今回のContract実行による元作業ツリー変更はGit status上なし。
+- Progress: 55% (5/9)。実画面の残capture、aggregate/E2E環境の解消、PR同期とexact-head CIが残る。
+
+## 2026-10-28 修正ループ追補: staged asset buffer
+
+- Commit前Hookは1MiB超のPNGをstage-zero blobから読む際、`execFileSync` の既定maxBufferを超え `could not inspect index content` で停止した。原因はpre-commit quality readerの固定出力上限であり、indexやworkspaceの破損ではない。
+- `scripts/pre-commit-quality-check.mjs` のgit read maxBufferを32MiBへ設定し、`tests/contracts/pre-commit-quality.test.ts` に1.2MB PNG相当blobの回帰Contractを追加。Prettier/ESLint判定条件は緩和していない。
+- Validation: 新規回帰case 1/1 PASS、pre-commit quality Contract 26/26 PASS、実staged差分の `pnpm.cmd run quality:staged` PASS。
+- 最初のcommit試行はpre-commit Hookの上記checkで停止したためcommit SHAは発生していない。変更後はHook単体を通過した。commit全体（security/artifact sanitizer）とpushは次の試行で確認する。
+- Progress: 55% (5/9)。

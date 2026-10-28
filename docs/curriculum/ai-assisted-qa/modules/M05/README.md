@@ -1,8 +1,29 @@
 # M05：Node.js・TypeScript・Playwrightの最小基礎
 
-> **AIチューター**：CodespacesでM05をロードした後に `pnpm course:tutor M05 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM05の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
-
 ## このモジュールで学ぶこと
+
+- **目的と必要な理由：** テストコードを読んで、決められたテストを安全に実行できるようになります。AIの説明だけでなく、コードと実行結果を自分で確かめるためです。
+- **到達点：** 変数・配列・関数などの役割を例から追い、Locator、操作、Assertionを区別し、待機や失敗の最初の確認先を選べます。
+- **前提と前章とのつながり：** M04までの期待結果とレビュー判断を、テストコードで確かめます。必要なJavaScript/TypeScriptやNode.js用語はこの章で説明するため、プログラミング経験は不要です。
+- **準備するもの：** Codespacesの学習用リポジトリ、package.json、本文で指定するサンプルspecを使います。まず読む順番を練習し、最初から新しいテストを作る必要はありません。
+
+> **任意の補助：** 本文と演習だけで学べます。AIチューターを使わなくても進められます。利用する場合はCodespacesでM05をロードした後に `pnpm course:tutor M05 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM05の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
+## 図で全体の流れをつかむ
+
+図の番号を左から追い、各段階で「何を根拠に決めるか」「何を見て確認するか」を本文の説明と結び付けてください。図は要約です。具体的な条件・例外・手順は続く節と演習で確認します。
+
+![テスト実行の経路とコードの読み方](../../assets/figures/M05/01-runner-flow.svg)
+
+*図：各段階がどの入力を受け、何を返すかを追います。*
+
+![テスト実行の経路とコードの読み方：実践の手順](../../assets/figures/M05/02-code-to-assertion.svg)
+
+*図：値を予測してから操作とAssertionを読みます。可視性の確認だけで業務結果を証明できるかも考えます。*
+
+![Playwrightのテスト実行とブラウザー・結果レポートの関係を表す概念図](../../assets/m05-test-execution-flow.png)
+
+*概念図：実行結果は、指定した対象・条件・レポートを確認して解釈します。*
 
 学習用リポジトリにあるNode.jsとpnpmを使って、短いTypeScriptとPlaywrightのspecを読み、説明し、一箇所を修正して再実行します。開発環境全体の再構築や高度なTypeScriptは学習範囲に含みません。
 
@@ -70,13 +91,21 @@ PlaywrightのWeb-first Assertionは、条件が満たされるまで設定範囲
 | Assertion失敗 | Caseの期待結果と画面で観測した事実 |
 | 接続・起動失敗 | ConfigのURL、対象サーバー、実行環境 |
 
+## はじめてのコードを読む順番
+
+1. 実行前に`package.json`の`scripts`で、教材が呼ぶ処理名を探します。`node --version`でNode.jsが使えることも確かめます。環境を作り直したり、依存を勝手に追加したりしません。
+2. 例の配列・オブジェクト・関数を一行ずつ読み、`quantities[2]`の値、`3 > 2`の結果、実行される文を紙に書いてから答え合わせします。
+3. `page.goto`、Locator、click、`expect`を順番に指で追い、各行がCaseの「対象ページ」「操作」「期待」のどれに当たるかを書きます。
+4. 演習のLocatorが見つからないときは、まず画面のアクセシブル名とページが開けているかを確認します。Assertionを消す、固定時間を足す、製品を変更する前に、最初のエラーとCaseの期待へ戻ります。
+5. 最後に別のリンク名へ条件を変え、Locatorの変更箇所・実行対象・観測結果を自分で説明します。実行できないときは、型・Locator・Assertion・接続のどの段階で止まったかを記録します。
+
 ## 実技と確認
 
 学習者は`workspace/M05/product-link.spec.ts`を読み、商品一覧にあるMugへのリンクをLocatorが選べない失敗を確認します。商品一覧で実際のアクセシブル名を確かめ、Locatorの名前だけを修正して再実行します。Assertionが詳細リンク先まで確認する意味を説明します。弱いAssertionへの置換や製品コードの変更はしません。変更前後の差と結果は`workspace/M05/submission.md`へ記録します。
 
 実行証拠を残すには、M05の指定specを同じコマンドで修正前後に実行します。初回の失敗もreceipt、spec snapshot、JSON reportとともに保存されます。
 
-receiptの`source_sha`は検証済み配布manifestの課程revision、`spec_sha256`はそのRunで実行した学習者specです。assessmentは両方を区別して検証し、現在の配布revision以外のreceiptを受け付けません。
+実行ツールは、そのRunで使った教材版とspecを内部記録へ結び付けます。版が合わない記録は正式評価に使えません。受講者はハッシュ値を計算する必要はありません。実行したspec、結果、画面やレポートが同じRunのものかを確認します。
 
 ```bash
 pnpm course:run M05 product-link.spec.ts --label before
@@ -95,7 +124,7 @@ Phase 2では新課程の専用Configを使い、テスト対象は`workspace/M0
 | TypeScriptの基礎 | 別の短いコードで変数、配列、object、関数、型、import/export、async/awaitを説明し、一箇所を安全に修正する | 例を写しただけで変更箇所や型を説明できない |
 | LocatorとAssertion | Caseに合うLocatorを選び、可視性確認が業務動作まで保証しない範囲を説明する | Locatorが見つかったことを業務結果の証拠とする |
 | 待機と診断 | エラーの種類に応じて確認箇所を選び、固定時間待機を根拠なしに追加しない | タイムアウトへ固定待機だけを足す |
-| 専用実行 | `course:run`で新課程Configの指定specを動かし、対象workspace、loopback 8082、結果先、同じRunのreportとspec SHAを示す | 旧Training specや別RunのPASSを使う |
+| 専用実行 | `course:run`で新課程Configの指定specを動かし、対象workspace、loopback 8082、結果先、同じRunのreportとspecの写しを示す | 旧Training specや別RunのPASSを使う |
 
 修正前後の差分と本人の説明を確認します。AIがコードを書いたことや、コマンドを実行できたことだけでは到達としません。
 

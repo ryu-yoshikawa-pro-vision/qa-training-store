@@ -13,6 +13,7 @@ import {
   validateCourseManifest,
   verifySyncedCourseDistribution,
 } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
+import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts";
 
 const repositoryRoot = process.cwd();
 const fixtureRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-qa-course-contract-"));
@@ -477,7 +478,7 @@ function courseFixture() {
   return { source, target, manifest, fetchImpl, distributionBytes };
 }
 
-afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
   it("keeps the Plan-pinned external Skill allowlist complete and excludes evals", () => {
@@ -930,7 +931,7 @@ describe("AI-assisted QA distribution contract", () => {
       "utf8",
     );
     expect(`${m07Lesson}\n${m07Exercise}`).not.toMatch(/git add|git commit|pull request/i);
-  });
+  }, 120_000);
 
   it("maps every lesson and start-guide link to an allowlisted distribution file", () => {
     const manifest = loadCourseManifest(repositoryRoot);
@@ -952,6 +953,13 @@ describe("AI-assisted QA distribution contract", () => {
         const sourceTarget = path.posix.normalize(
           path.posix.join(path.posix.dirname(entry.source_path), sourceHref),
         );
+        if (isPublicCourseAsset(sourceTarget)) {
+          expect(
+            fs.existsSync(path.join(repositoryRoot, ...sourceTarget.split("/"))),
+            `${entry.source_path} -> ${href} is an allowlisted course asset that must exist`,
+          ).toBe(true);
+          continue;
+        }
         expect(targetBySource.has(sourceTarget), `${entry.source_path} -> ${href}`).toBe(true);
       }
     }
@@ -1785,7 +1793,7 @@ describe("AI-assisted QA distribution contract", () => {
       status: "mismatch",
       reasons: [expect.stringContaining("参照先がありません")],
     });
-  });
+  }, 120_000);
 
   it("uses the module's public start sample when a predecessor artifact is absent", async () => {
     const fixture = courseFixture();

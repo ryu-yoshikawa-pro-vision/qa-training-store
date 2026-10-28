@@ -1,14 +1,31 @@
 # M06：E2E実装と実行
 
-> **AIチューター**：CodespacesでM06をロードした後に `pnpm course:tutor M06 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM06の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
-
 ## このモジュールで学ぶこと
+
+- **目的と必要な理由：** 一つの確認条件を、繰り返しても同じように結果を確かめられるブラウザーテストへ変えます。実行ごとの状態の違いによる見誤りを減らすためです。
+- **到達点：** 用意されたケースと雛形から、開始状態、操作、期待結果をspecに対応させ、単独実行と再実行の証拠を残せます。
+- **前提と前章とのつながり：** M05で学ぶコードの読み方とテスト実行を使います。必要なら[M05を復習](../M05/README.md)してください。製品コードやアプリを一から作る課題ではありません。
+- **準備するもの：** 指定されたケース、テスト用データ、workspaceの未完成specを使います。開始前に対象ファイルとテストコマンドを確認し、変更範囲を課題内に限定します。
+
+> **任意の補助：** 本文と演習だけで学べます。AIチューターを使わなくても進められます。利用する場合はCodespacesでM06をロードした後に `pnpm course:tutor M06 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM06の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
+## 図で全体の流れをつかむ
+
+図の番号を左から追い、各段階で「何を根拠に決めるか」「何を見て確認するか」を本文の説明と結び付けてください。図は要約です。具体的な条件・例外・手順は続く節と演習で確認します。
+
+![独立したケースとspecへの対応づけ](../../assets/figures/M06/01-independent-case.svg)
+
+*図：ケースごとに初期状態から始め、単独で再実行できることを確認します。*
+
+![独立したケースとspecへの対応づけ：実践の手順](../../assets/figures/M06/02-requirement-to-spec.svg)
+
+*図：要件・操作・期待・実行証拠が同じケースを指しているか照合します。*
 
 - M06の固定3 Caseを実行可能なE2E specへ対応付け、別Caseから新しいspecも構成する。Phase 1の本人Caseがある場合は対応関係も確認する。
 - 入力がPhase 1の本人成果物かM06公開fallbackか、そのpath・revisionを記録する。
 - Caseの前提に合うSeed/Resetを使い、各テストを独立して再実行する。
 - LocatorとAssertionが仕様上の期待結果を実際に確認するかレビューする。
-- 実行コマンド、対象SHA、Run、結果、ログやTraceを同じ実行の証拠として示す。
+- 実行コマンド、対象spec、Run、結果、ログやTraceを同じ実行の証拠として示す。
 - 未実行、環境障害、失敗、成功を区別し、AIの自己申告だけでPASSにしない。
 
 ## 到達条件
@@ -47,7 +64,7 @@ import { resetScenario } from "../../training/playwright/support/reset-scenario"
 4. Caseの前提を作るResetを各テストに用意し、共有状態による偶然の成功を防ぎます。
 5. Caseの操作に対応するActionと、期待結果を確認する業務Assertionを実装します。
 6. `pnpm course:run M06 cart-cases.spec.ts --label main`で固定3 Caseを実行し、3件の結果とRunの証拠を確認します。
-7. 同じspecを単独実行・再実行し、結果が安定しているかを確認します。`course:run`は毎回異なる`run_id`、検証済み配布manifestの`source_sha`、specの`spec_sha256`、JSON reportと結果を保存します。
+7. 同じspecを単独実行・再実行し、結果が安定しているかを確認します。実行ツールは毎回異なる実行記録と、使用した教材版・spec・JSON report・結果を内部で対応付けて保存します。受講者は実行画面に示された実行記録から、同じspecの前後結果を確認します。
 
 旧`training/playwright`のspecや正式回帰specを新課程の実技として実行しません。新課程の実行は専用Configから`workspace/M06`内のspecだけを対象にし、結果を`output/training/ai-assisted-qa/`へ保存します。通常のWebポート8081をTrainingの実行先にせず、専用8082を使います。
 
@@ -64,7 +81,7 @@ import { resetScenario } from "../../training/playwright/support/reset-scenario"
 5. 実行ごとのコマンド、状態、結果、ログ・Traceを対応付け、未実行や環境障害を明示します。
 6. `new-case.spec.ts`の別Caseを構成し、単独で実行・再実行します。入力、Reset、削除前後のAssertion、各Runの結果と根拠を提出します。
 
-別Caseを作成したら、`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`で単独実行・再実行します。レポートとspec snapshotは`workspace/M06/evidence/runs/<run_id>/`に個別保存され、`course:assess M07`はrequired run、対象spec、SHA、結果を決定論的に照合します。Configは`workspace/M06`または`workspace/M07`以外、loopback以外、8082以外を拒否します。
+別Caseを作成したら、`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`で単独実行・再実行します。レポートとspecの写しは`workspace/M06/evidence/runs/<run_id>/`に個別保存され、`course:assess M07`は必要なRun、対象spec、結果を自動で照合します。Configは`workspace/M06`または`workspace/M07`以外、loopback以外、8082以外を拒否します。
 
 公開する演習素材には完成済みの実技解答を含めません。受講者がCaseやspecをAIに作らせただけでは達成とせず、本人が対応関係、誤ったAssertion、実行結果を説明できることを確認します。
 
@@ -77,7 +94,7 @@ Phase 2の実装確認では、意味の異なる3件以上のCaseを対象に�
 | Caseとの対応・入力元 | 固定3 Caseについて入力元/path/revision、Case ID、BR/AC、spec/test、Action、Assertionを記録する。本人Caseがある場合は一致/相違を根拠で示し、fallbackの場合はPhase 1修了と区別する | 入力元が不明、条件の異なるCaseを同一と扱う、fallbackを本人のPhase 1成果物または修了証拠とする |
 | 新規Case | 別Caseからspecを構成し、Reset、操作、業務Assertion、単独実行と再実行を結び付ける | 固定3 CaseのTODO補完だけで新規構成を認定する |
 | 状態と独立性 | Seed/Resetの保証範囲を照合し、テストごとに状態を準備して単独実行・再実行する | 実行順や共有状態による偶然のPASS |
-| 実行証拠 | 対象SHA・spec・サーバー・Run・結果・Trace/Reportが同じ実行を指す | 別実行のPASSやログだけを流用する |
+| 実行証拠 | 対象spec・サーバー・Run・結果・Trace/Reportが同じ実行を指す | 別実行のPASSやログだけを流用する |
 | 結果の分類 | 未実行、環境BLOCKED、FAIL、PASSを実行事実から分けて報告する | 終了コードやAIの説明だけでPASSを宣言する |
 | 安全な修正 | テスト側の不備を最小差分で直し、製品コードは変更せず修正後の別Runを示す | 学習テストを通すために製品を変える |
 
@@ -87,7 +104,7 @@ Level 2は本人のCase判断、修正理由、再実行証拠が揃った場合
 
 PASSは、その実行でspecが成功したことを示します。AssertionがCaseの期待結果を確認していない場合、PASSでも仕様検証の証拠にはなりません。コマンドの終了コードだけでなく、対象spec、対象サーバー、レポート、Runが一致することを確認します。製品不具合、テスト不具合、環境障害は分けて報告し、学習用テストの失敗を直すために製品コードを変更しません。
 
-配布元のrevisionやSHAはロード時に示された版と記録を使って確認できます。実行receiptの`source_sha`が現在の配布manifestと一致しない場合、assessmentはその証拠を受理しません。Phase 2でGitのcommit、PR、CIを操作する必要はありません。編集したspecの`spec_sha256`と、その内容を使った実行記録を対応付けてください。
+教材とspecの版は実行ツールが記録と照合します。版が異なる実行記録は正式評価に使えません。受講者は値を計算せず、実行したspecと実行記録の対応を確認してください。Phase 2でGitのcommit、PR、CIを操作する必要はありません。
 
 ## 確認クイズ
 

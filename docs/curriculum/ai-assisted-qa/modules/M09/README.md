@@ -1,14 +1,33 @@
 # M09：CIと品質ゲート
 
-> **AIチューター**：CodespacesでM09をロードした後に `pnpm course:tutor M09 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM09の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
-
 ## このモジュールで学ぶこと
+
+- **目的と必要な理由：** CI（継続的インテグレーション）が、どの変更に対して何を実行したかを確かめます。古いRunや別のcommitの成功を現在の確認結果と取り違えないためです。
+- **到達点：** workflow、起動条件、job、stepの関係を読み、失敗した段階、対象commit、RunとArtifactの対応、費用と権限を説明できます。
+- **前提と前章とのつながり：** M08のbranch、commit、Pull Requestの考え方を使います。必要なら[M08を復習](../M08/README.md)してください。YAMLやCIの経験は不要です。
+- **準備するもの：** この章の.disabledのままのworkflow例と合成ログを使います。課題ではworkflowを有効化せず、実行画面がない場合も実行済みと報告しません。
+
+> **任意の補助：** 本文と演習だけで学べます。AIチューターを使わなくても進められます。利用する場合はCodespacesでM09をロードした後に `pnpm course:tutor M09 --model provider/model-id` を実行できます。利用条件を確認して起動し、質問にはToken・API key・個人情報を含めないでください。チューターはM09の公開資料と本人の成果物を読み取り専用で使い、正式評価やファイル変更は行いません。
+
+## 図で全体の流れをつかむ
+
+図の番号を左から追い、各段階で「何を根拠に決めるか」「何を見て確認するか」を本文の説明と結び付けてください。図は要約です。具体的な条件・例外・手順は続く節と演習で確認します。
+
+![CIのworkflow実行段階と失敗ログの見方](../../assets/figures/M09/01-workflow-run.svg)
+
+*図：PRのcommitからRun、job、stepへ進み、最初の失敗を探します。*
+
+![最初の失敗段階を見つけArtifactを同じRunと照合する手順](../../assets/figures/M09/02-log-diagnosis.svg)
+
+*図：Artifactは名前だけで判断せず、作成元のRunとcommitを照合します。*
 
 CIは指定イベントでRunner上の手順を実行する仕組みです。workflowは自動化の定義、triggerは起動条件、jobは実行単位、stepはjob内の処理です。管理者が固定SHAからScenario Shopをビルドして同期し、受講者のworkflowは配布済みの`course/shop/`をServeしてTestします。受講者側で`build:web`を実行しません。ローカルとCIの環境差、対象SHA、Run、Artifactを一緒に確認します。
 
 ## workflowを読む
 
 完成見本は`course/templates/phase3/course-e2e.workflow.yml.disabled`、M09で修正する未完成案は`workspace/M09/course-e2e.workflow.yml.disabled`です。未完成案ではPR HEADの照合、Playwright browserの導入、対象SHAと実行結果Artifactの対応を補います。M07の本人specを使うときは`PLAYWRIGHT_TEST_ROOT: workspace/M07`を明記します。M10専用fallbackを使う場合は`workspace/M10/public-sample`を指定します。どちらも同じ同期済みShopを使い、受講者側のフルBuildは行いません。修正後も`.disabled`を保ち、Templateの`.github/workflows/`には配置・有効化しません。Phase 3を選ぶ学習者が自分の作業用リポジトリで実行するかは、その環境・権限を確認したうえで別途判断します。workflowは新課程specに限定し、`permissions: contents: read`、Secretなし、deployなしを基本とします。
+
+GitHubの実行画面を調べるときは、自分のリポジトリで **Actions** を開き、対象workflow、branch、PR、実行commitを確認します。Runを開いたらJobs一覧から失敗したjobを選び、stepを上から順に見て最初に止まった箇所とその直前のログを読みます。成功していても **Artifacts** を開き、対象commitの記録とテスト結果が同じRunから作られたことを確認します。教材の`.disabled`ファイルは実行画面に現れないため、誤ってworkflowとして有効化せず、公開された合成ログで画面上の確認順を練習します。
 
 ```yaml
 name: AI QA course checks
@@ -45,6 +64,8 @@ M08の実成果物がない場合は、`workspace/M09/public-sample/handoff.md`�
 
 依存導入、Build、サーバー起動、Test、Artifact保存のどこで最初に失敗したか、Runのstepとlogで確認します。Buildが失敗してTestが始まっていなければ、Build failureとTest未実行を分けて記録します。原因を特定する前に期待値を変更したり、再実行で最初の失敗logを置き換えたりしません。
 
+初回は合成ログの一行目から読み、最初のerrorに印を付けます。次に、Build失敗・Test失敗・Artifact未生成を別々に分類し、まだ実行されていない工程には「未実行」と書きます。最後に別のworkflow断片を読み、triggerと権限を自分で確認してから、実行可否と理由を提出メモにまとめます。
+
 ### Runner費用を確認する
 
 Runnerの料金は公開/非公開repository、runner種別、契約、組織設定で条件が異なります。利用時点の公式条件と対象組織の契約・設定を確認し、確認できない場合は未決として扱います。一般論から無料と断定しません。
@@ -70,4 +91,3 @@ Runnerの料金は公開/非公開repository、runner種別、契約、組織設
 - [M09の学習項目と基準](../../../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md)
 - [Phase 3無効workflow見本](../../../../../training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled)
 - [GitHub Actionsのpull_requestイベントとSHA](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
-- [開始・終了状態契約](../../../../../training/ai-assisted-qa-course/states/M09/start.json)

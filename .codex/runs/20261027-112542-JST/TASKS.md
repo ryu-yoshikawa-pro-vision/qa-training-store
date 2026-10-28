@@ -44,3 +44,32 @@
 - Aggregate `pnpm run verify` は一時cloneでexit 1。contract suiteに4件（Hook launcher 1、MCP waiter 3）の失敗があり、他のverify前段はPASS。これはPASSにせず、user-supplied直接実行と分離して報告する。旧contract testsは修正していない。
 - Task 6/7は実Template/2-core CodespaceおよびOpenCode実モデル受入として後段へ保留。
 - Task 8の対象は明示した5 tracked filesのみ。Protected workspaceはstage対象外。Run artifactは本commit前に固定し、push後の新head CI結果はPR本文と最終報告に記録する。
+
+## 2026-10-28 追補: 未経験者向け教本/Web体験
+
+- [x] 1. 51目標の既存監査と受講前提を照合し、今回のPlanへ反映。
+- [x] 2. M00〜M10の章導入、図、練習/復習導線を更新。全章で空だった「このモジュールで学ぶこと」を章固有の内容で補った。
+- [ ] 3. SVG 23件/PNG 3件を追加済み。実GitHub/Codespaces/VS Code/Actions画面は未取得、BLOCKED。
+- [x] 4. 既存の演習・提出・quiz・scoring・Phase評価対応を51目標監査とContractで照合。
+- [x] 5. 教材/quiz共通shell・nav・resource allowlistを実装し、可視SHA-256とliteral `\n`を除去。
+- [x] 6. curriculum/distribution/assessment/tutor/Run-evidence Contract 5 suite、60/60 PASS。TypeScript、lint、Prettier、docs build PASS。
+- [ ] 7. 全11章/クイズの拡張a11y/desktop/mobile再レビュー。M00/M05の前回画面16枚はPASS・目視確認済み。M01/M03の詳細画面は未取得。
+- [ ] 8. `pnpm run verify` aggregate PASSと拡張後E2E未確認。ffmpeg不足/Chromeのlocal network access deniedで実行環境を切り分け中。
+- [ ] 9. audit/Plan更新は実施。Run追記・明示stage・commit/push・PR本文更新・新head exact CIは未完了。
+
+Progress: 55% (5/9)。実画面、aggregate verify、PR同期が残る。実Template/2-core CodespaceとOpenCode実モデル受入（旧Task 6/7）は今回実施せず、未完了のまま維持。
+## 2026-10-28 修正ループ追補
+
+- [x] quiz CSSのlight/dark配色競合を解消し、生成CSS Contractを追加。
+- [x] lesson可視本文のraw 64桁SHA様文字列の非表示Contractを追加。
+- [x] 配布ContractのESM dependency fixtureを既存junction方式に戻し、関連5 suite 60/60 PASS。
+- [x] TypeScript、Prettier、Docs build、diff checkを再確認。
+- [ ] 拡張画面capture / local Browser E2E（実行環境BLOCKED）。
+- [ ] aggregate `pnpm run verify`、commit/push、PR本文同期、新head exact-CI。
+
+## 2026-10-28 Commit Hook修正
+
+- [x] PNG stage blobを読めるように品質Hookの固定出力buffer上限を調整。
+- [x] 1MiB超asset Contract 1/1とHook suite 26/26 PASS。
+- [x] 実staged差分のquality:staged PASS。Hook policyは維持。
+- [ ] commit全Hook、push、PR同期、新head exact-CI。

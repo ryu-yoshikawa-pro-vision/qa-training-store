@@ -162,6 +162,27 @@ describe("AI-assisted QA static learning course", () => {
     fs.rmSync(outputRoot, { recursive: true, force: true });
   });
 
+  it("gives all 11 lessons a concrete beginner-facing orientation", () => {
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      const lesson = fs.readFileSync(
+        path.join(repositoryRoot, `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`),
+        "utf8",
+      );
+      const section =
+        /^## このモジュールで学ぶこと\r?\n([\s\S]*?)(?=^## )/m.exec(lesson)?.[1] ?? "";
+      expect(section.trim(), `${moduleId} has a non-empty learning orientation`).not.toBe("");
+      for (const label of [
+        "目的と必要な理由",
+        "到達点",
+        "前提と前章とのつながり",
+        "準備するもの",
+      ]) {
+        expect(section, `${moduleId} explains ${label}`).toContain(`**${label}：**`);
+      }
+    }
+  });
+
   it("rejects duplicate calibration case IDs before a model is invoked", () => {
     const scoringPath = path.join(
       repositoryRoot,
@@ -437,24 +458,31 @@ describe("AI-assisted QA static learning course", () => {
     );
     expect(html).toContain(`data-revision="${revision}"`);
     expect(html).not.toContain("correct_value");
+    expect(html).not.toContain("SHA-256:");
+    expect(html).toContain('class="primary-navigation"');
+    expect(html).toContain('class="module-progress"');
+    expect(html).toContain('class="module-pager"');
     expect(html).toContain("quiz.js");
+
+    const lesson = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/modules/M02/index.html"),
+      "utf8",
+    );
+    expect(lesson).toContain('name="course-source-revision"');
+    expect(lesson).not.toContain("SHA-256:");
+    expect(lesson).not.toContain("source_sha");
+    expect(lesson).not.toContain("spec_sha256");
+
+    const quizCss = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/quizzes/quiz.css"),
+      "utf8",
+    );
+    expect(quizCss).toContain("color-scheme: light;");
+    expect(quizCss).not.toContain("prefers-color-scheme:dark");
+    expect(quizCss).not.toContain("color-scheme:light dark");
   });
 
-  it("exposes all 11 modules' exercise materials and Phase rubrics at the exact built revision", () => {
-    const eventPath = process.env.GITHUB_EVENT_PATH;
-    const event = eventPath
-      ? (JSON.parse(fs.readFileSync(eventPath, "utf8")) as {
-          pull_request?: { head?: { sha?: string } };
-        })
-      : undefined;
-    const headSha =
-      event?.pull_request?.head?.sha ??
-      execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-      }).trim();
-    expect(headSha).toMatch(/^[a-f0-9]{40}$/);
-    const baseUrl = `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/${headSha}`;
+  it("routes all public learner materials internally and excludes protected assessment data", () => {
     const courseRoot = "training/ai-assisted-qa-course";
 
     for (let index = 0; index <= 10; index += 1) {
@@ -472,20 +500,64 @@ describe("AI-assisted QA static learning course", () => {
         `${courseRoot}/assessment/phase-${phase}-rubric.md`,
       ]) {
         expect(fs.existsSync(path.join(repositoryRoot, relativePath))).toBe(true);
-        expect(html).toContain(`href="${baseUrl}/${relativePath}"`);
+        expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/resources/${relativePath}"`);
+        expect(
+          fs.existsSync(path.join(docsOutput, "curriculum/ai-assisted-qa/resources", relativePath)),
+        ).toBe(true);
       }
       expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html"`);
+      expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/objectives.html"`);
+      expect(html).toContain(`aria-current="page">${id}：`);
+      expect(html).toContain('class="module-pager"');
       expect(html).not.toContain("/blob/main/");
       expect(html).not.toContain("/assessment/reference-solutions/");
       expect(html).not.toContain("/assessment/scoring-tests/");
+      expect(html).not.toContain("/assessment/completed-states/");
+      expect(html).not.toContain("SHA-256:");
     }
     const quizJs = fs.readFileSync(
       path.join(docsOutput, "curriculum/ai-assisted-qa/quizzes/quiz.js"),
       "utf8",
     );
-    expect(quizJs).toContain(`${baseUrl}/`);
-    expect(quizJs).not.toContain("/blob/main/");
+    expect(quizJs).toContain(
+      "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+    );
+    expect(quizJs).toContain("/docs/curriculum/ai-assisted-qa/resources/");
     expect(quizJs).not.toContain("__COURSE_SOURCE_URL__");
+
+    const objectiveMap = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/objectives.html"),
+      "utf8",
+    );
+    expect([...objectiveMap.matchAll(/data-objective-id="M(?:0[0-9]|10)-\d{2}"/g)]).toHaveLength(
+      51,
+    );
+    expect(objectiveMap).not.toContain("correct_value");
+    expect(objectiveMap).not.toContain("scoring-tests");
+    expect(objectiveMap).not.toContain("reference-solutions");
+  });
+
+  it("copies every authored course illustration with alternative text and safe HTML", () => {
+    for (let index = 0; index <= 10; index += 1) {
+      const id = `M${String(index).padStart(2, "0")}`;
+      const lesson = fs.readFileSync(
+        path.join(docsOutput, "curriculum/ai-assisted-qa/modules", id, "index.html"),
+        "utf8",
+      );
+      const imageCount = [...lesson.matchAll(/<img\b/g)].length;
+      expect(imageCount).toBeGreaterThanOrEqual(id === "M03" ? 3 : 2);
+      expect(lesson).not.toMatch(/<img\b(?![^>]*\balt=)[^>]*>/i);
+      expect(lesson).toContain(`/assets/figures/${id}/`);
+    }
+    for (const image of [
+      "m00-agent-boundary.png",
+      "m01-expected-observed.png",
+      "m05-test-execution-flow.png",
+    ]) {
+      expect(fs.existsSync(path.join(docsOutput, "curriculum/ai-assisted-qa/assets", image))).toBe(
+        true,
+      );
+    }
   });
 
   it("links all 53 quiz review paths to explanatory headings in the emitted module pages", () => {
