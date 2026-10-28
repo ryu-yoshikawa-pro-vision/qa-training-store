@@ -209,7 +209,7 @@ function pageHtml(
     resolveCurriculumLink(rootDir, parsed.relativePath, target);
   const imageTarget = (target: string): string =>
     resolveCurriculumImage(rootDir, parsed.relativePath, target);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop テスト自動化カリキュラム</a> · <a href="/docs/curriculum/ai-assisted-qa/">AI協働テスト自動化カリキュラム</a></div></header><main><nav class="primary-navigation" aria-label="カリキュラムナビゲーション">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop テスト自動化カリキュラム</a> · <a href="/docs/curriculum/ai-assisted-qa/">AI協働テスト自動化カリキュラム</a></div></header><main><nav class="primary-navigation" aria-label="カリキュラムナビゲーション" tabindex="0">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
 }
 
 export type BuildDocsResult = {

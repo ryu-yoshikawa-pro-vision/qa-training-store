@@ -460,6 +460,8 @@ describe("AI-assisted QA static learning course", () => {
     expect(html).not.toContain("correct_value");
     expect(html).not.toContain("SHA-256:");
     expect(html).toContain('class="primary-navigation"');
+    expect(html).toMatch(/<nav class="primary-navigation"[^>]*tabindex="0"/);
+    expect(html).toMatch(/<nav class="toc"[^>]*tabindex="0"/);
     expect(html).toContain('class="module-progress"');
     expect(html).toContain('class="module-pager"');
     expect(html).toContain("quiz.js");

@@ -187,8 +187,8 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
     await expect(page.locator("article h1")).toContainText(`${moduleId}：`);
     for (const label of [
       "演習手順",
-      "演習開始入力",
-      "提出物テンプレート",
+      "演習開始ガイド",
+      "提出テンプレート",
       `Phase ${phase}の評価基準`,
     ]) {
       const link = page.getByRole("link", { name: new RegExp(label) });

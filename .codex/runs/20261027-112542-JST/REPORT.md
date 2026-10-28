@@ -289,3 +289,12 @@ working-tree statusは開始前と同じ (REPORT/TASKSの既存index/worktree差
 - Repair: smoke now asserts the internal resource route and fetches each module's four resource URLs, expecting HTTP 200. Targeted Prettier, root TypeScript noEmit, and `git diff --check` PASS. New-head CI will be invoked once after this repair commit; no retry is being counted against the old SHA.
 - PR body still references the preceding commit and will be synchronized after the repaired head's CI status is available.
 - Progress: 55% (5/9); remaining local browser/aggregate and downstream live acceptance states remain as previously recorded.
+
+## 2026-10-28 second exact-head CI repair
+
+- Commit `dfbe59c7bb0e580d8a31b40207e1f76fb253d636` のPR headを対象にrequired-CI waiterを1回実行。Web run `40670048637` failure、Mobile App run `40670048736` は返却時in progress。head SHAは期待値/観測値一致。
+- Web production-smokeの再失敗は、E2Eが「演習開始入力」「提出物テンプレート」を探す一方、builderの表示名が「演習開始ガイド」「提出テンプレート」だったため。E2E labelを生成済み教材HTMLの実名へ揃える。
+- Required Chromium E2Eは52 passed / 1 failed。axeの `scrollable-region-focusable` は本文画面にある縦スクロールナビ/目次と横スクロール表/コードブロックがキーボードフォーカスを受けられないことを示した。lesson, quiz, objective map, legacy docsのoverflow regionへ `tabindex=0` を追加。axe assertionは失敗時にrule idとtargetを出すよう改善。
+- Local validation after repair: related Contract 5 suite 60/60 PASS; curriculum validator 22 docs/4 workbooks PASS; AI course validator M00-M10/53 questions/33 assessment files PASS; Docs build 22 spec/25 legacy/12 new/11 quizzes PASS; root TypeScript, Prettier, `git diff --check` PASS.
+- Repaired smoke label/path and keyboard-focus changes are not yet committed at this checkpoint. Old SHA's CI remains failure; final head must be validated after a new commit. The local Browser environment is still unable to finish the expanded run, so CI is required for the new a11y behavior.
+- Progress: 55% (5/9). PR body and exact-head success are pending; live Template/2-core Codespace and OpenCode model acceptance remain deferred.

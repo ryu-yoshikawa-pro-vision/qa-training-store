@@ -188,13 +188,13 @@ function renderTable(
     );
   const header = rows[0] ?? [];
   const body = rows.slice(2);
-  return `<table><thead><tr>${header.map((cell) => `<th>${renderInline(cell, linkTarget, imageTarget)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${header.map((_cell, index) => `<td>${renderInline(row[index] ?? "", linkTarget, imageTarget)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return `<table tabindex="0"><thead><tr>${header.map((cell) => `<th>${renderInline(cell, linkTarget, imageTarget)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${header.map((_cell, index) => `<td>${renderInline(row[index] ?? "", linkTarget, imageTarget)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
 function renderToc(headings: MarkdownHeading[]): string {
   const entries = headings.filter((heading) => heading.level === 2 || heading.level === 3);
   if (entries.length === 0) return "";
-  return `<aside class="toc" aria-label="目次"><strong>目次</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></aside>`;
+  return `<nav class="toc" aria-label="目次" tabindex="0"><strong>目次</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></nav>`;
 }
 
 export function renderMarkdown(
@@ -226,7 +226,7 @@ export function renderMarkdown(
         index += 1;
       }
       output.push(
-        `<pre><code class="language-${escapeHtml(language || "text")}">${escapeHtml(code.join("\n"))}</code></pre>`,
+        `<pre tabindex="0"><code class="language-${escapeHtml(language || "text")}">${escapeHtml(code.join("\n"))}</code></pre>`,
       );
       index += 1;
       continue;

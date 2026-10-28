@@ -367,12 +367,12 @@ function renderObjectiveMap(
       return `<section><h2>${escapeHtml(phase.label)}</h2>${moduleSections}</section>`;
     })
     .join("");
-  const toc = `<aside class="toc" aria-label="学習項目の目次"><strong>モジュール</strong><ul>${MODULE_IDS
+  const toc = `<nav class="toc" aria-label="学習項目の目次" tabindex="0"><strong>モジュール</strong><ul>${MODULE_IDS
     .map((moduleId) => `<li><a href="#${moduleId}">${escapeHtml(titles.get(moduleId) ?? moduleId)}</a></li>`)
     .join("")}</ul></aside>`;
   const body = `<div class="document-body"><h1>51件の学習項目マップ</h1><p>この一覧は、固定された51件の学習目標をモジュール別に確認するための案内です。項目を読んだことやクイズの得点だけで技能の修了とはなりません。本文の例、演習、Phase評価基準で、説明・操作・別条件への適用を確認してください。</p>${groups}</div>`;
   const navigationHtml = renderNavigation(navigation);
-  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav>`;
+  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav></details>`;
   const absolutePath = path.join(rootDir, ...LEARNING_MAP_PATH.split("/"));
   const revision = createHash("sha256").update(fs.readFileSync(absolutePath)).digest("hex");
@@ -416,7 +416,7 @@ function renderCoursePage(
   }
   const currentPath = moduleId === undefined ? parsed.relativePath : `${MODULE_ROOT}/${moduleId}/README.md`;
   const navigationHtml = renderNavigation(navigation, currentPath);
-  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
+  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
   const pageAdditions = [
     moduleId === undefined ? "" : moduleProgressHtml(moduleId, navigation),
@@ -439,11 +439,11 @@ function quizHtml(
   const escapedRevision = escapeHtml(revision);
   const modulePath = `${MODULE_ROOT}/${moduleId}/README.md`;
   const navigationHtml = renderNavigation(navigation, modulePath);
-  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
+  const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
   const progress = moduleProgressHtml(moduleId, navigation);
   const pager = modulePagerHtml(moduleId, navigation, "quiz");
-  const contentsNavigation = `<aside class="toc" aria-label="このページの項目"><strong>このページ</strong><ul><li><a href="#start-title">取り組み方</a></li><li><a href="#question-title">問題に回答</a></li><li><a href="#result-title">結果と復習</a></li><li><a href="${COURSE_URL}/modules/${escapedModuleId}/">教材本文</a></li><li><a href="${COURSE_URL}/objectives.html">学習項目マップ</a></li></ul></aside>`;
+  const contentsNavigation = `<nav class="toc" aria-label="このページの項目" tabindex="0"><strong>このページ</strong><ul><li><a href="#start-title">取り組み方</a></li><li><a href="#question-title">問題に回答</a></li><li><a href="#result-title">結果と復習</a></li><li><a href="${COURSE_URL}/modules/${escapedModuleId}/">教材本文</a></li><li><a href="${COURSE_URL}/objectives.html">学習項目マップ</a></li></ul></nav>`;
   const documentBody = `<div class="document-body">${progress}<h1>${escapedModuleId}の確認クイズ</h1><p>${escapedTitle}</p><p>全${questionCount}問です。各問で最も適切な答えを1つ選び、「次へ」で進みます。前の問題に戻って回答を見直せます。全問に回答すると、正誤・選択肢ごとの理由・教材の復習先が表示されます。</p><p id="storage-message" role="status" aria-live="polite"></p><div id="quiz-error" role="alert" hidden></div><section id="start-panel" aria-labelledby="start-title"><h2 id="start-title">取り組み方</h2><p>まず本文の例を思い出し、選択肢を比べてください。途中でページを閉じても、同じブラウザーで同じ教材版を開けば回答を再開できます。</p><button id="start-button" type="button">回答を始める</button><button id="resume-button" type="button" hidden>続きから再開</button><button id="restart-start-button" type="button" hidden>最初からやり直す</button></section><section id="question-panel" aria-labelledby="question-title" hidden><p id="progress" role="status" aria-live="polite"></p><form id="answer-form"><fieldset><legend id="question-title"></legend><div id="choices"></div></fieldset><p id="answer-error" role="alert" hidden>回答を1つ選んでから進んでください。</p><div class="quiz-controls"><button id="previous-button" type="button">前へ</button><button id="next-button" type="button">次へ</button><button id="finish-button" type="button" disabled>結果を確認</button></div></form></section><section id="result-panel" aria-labelledby="result-title" hidden><h2 id="result-title">結果</h2><p id="score" role="status" aria-live="polite"></p><div id="results"></div><p>クイズの得点だけで正式な修了を判定しません。間違えた項目は教材を読み直し、別条件の演習でも説明できるか確かめてください。</p><button id="retry-button" type="button">このクイズを最初からやり直す</button></section>${pager}</div>`;
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="quiz-revision" content="${escapedRevision}"><title>${escapedModuleId}の確認クイズ — AI協働テスト自動化カリキュラム</title><link rel="stylesheet" href="quiz.css"><script src="quiz.js" defer></script></head><body data-module-id="${escapedModuleId}" data-quiz-file="${escapedModuleId}.json" data-revision="${escapedRevision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${contentsNavigation}${documentBody}</article></main></body></html>\n`;
 }

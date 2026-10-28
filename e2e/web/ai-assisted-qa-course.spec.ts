@@ -32,7 +32,12 @@ async function expectCoursePageAccessible(page: import("@playwright/test").Page)
   const accessibility = await new axeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
-  expect(accessibility.violations.map((violation) => violation.id)).toEqual([]);
+  expect(
+    accessibility.violations.map((violation) => ({
+      id: violation.id,
+      targets: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
 }
 
 const moduleIds = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);

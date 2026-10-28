@@ -80,3 +80,11 @@ Progress: 55% (5/9)。実画面、aggregate verify、PR同期が残る。実Temp
 - [x] internal `/resources/` URLとHTTP 200を検証するE2Eへ修正。
 - [x] Prettier、TypeScript、diff check PASS。
 - [ ] repaired commit push、PR本文同期、新HEAD required CI。
+
+## 2026-10-28 second CI repair
+
+- [x] production-smokeの教材リンク表示名をbuilderの実表示と一致。
+- [x] lesson/quiz/objective/legacyのoverflow regionをkeyboard focus可能にする。
+- [x] axe failure diagnosticsに対象nodeを含める。
+- [x] 関連Contract 60/60、curriculum/AI curriculum validator、Docs build、TypeScript/Prettier/diff check PASS。
+- [ ] repaired headをcommit/push、PR本文を更新、required CI確認。
