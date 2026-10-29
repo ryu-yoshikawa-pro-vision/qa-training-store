@@ -4,73 +4,373 @@
   "questions": [
     {
       "id": "M03-Q01",
-      "objective_ids": ["M03-02"],
+      "objective_ids": [
+        "M03-02"
+      ],
       "question": "在庫3、購入上限5、全体上限99の商品があります。カートに2個あり、さらに2個を追加しようとしました。`BR-CART-001`と`AC-CART-001`に合う期待結果はどれですか。",
       "options": [
-        { "value": "A", "label": "4個にする", "meaning": "要求された追加をそのまま受け入れる", "reason": "合計4個は在庫3を超えます。" },
-        { "value": "B", "label": "3個に自動補正する", "meaning": "許容上限へ数量を丸める", "reason": "仕様は上限への自動補正を認めていません。" },
-        { "value": "C", "label": "追加を拒否し、元の2個を維持する", "meaning": "上限超過操作を拒否して不変条件を守る", "reason": "有効上限は3です。4個になる追加を拒否し、現在数量を維持します。" },
-        { "value": "D", "label": "0個にする", "meaning": "拒否時にカート明細を削除する", "reason": "0指定は削除ですが、この操作は上限超過の追加です。" }
+        {
+          "value": "A",
+          "label": "4個にする",
+          "meaning": "要求された追加をそのまま受け入れる",
+          "reason": "合計4個は在庫3を超えます。"
+        },
+        {
+          "value": "B",
+          "label": "3個に自動補正する",
+          "meaning": "許容上限へ数量を丸める",
+          "reason": "仕様は上限への自動補正を認めていません。"
+        },
+        {
+          "value": "C",
+          "label": "追加を拒否し、元の2個を維持する",
+          "meaning": "上限超過操作を拒否して不変条件を守る",
+          "reason": "有効上限は3です。4個になる追加を拒否し、現在数量を維持します。"
+        },
+        {
+          "value": "D",
+          "label": "0個にする",
+          "meaning": "拒否時にカート明細を削除する",
+          "reason": "0指定は削除ですが、この操作は上限超過の追加です。"
+        }
       ],
       "correct_value": "C",
-      "source_refs": ["docs/spec/features/cart.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値"
+      "source_refs": [
+        "docs/spec/features/cart.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値",
+      "knowledge_ids": [
+        "K-M03-02"
+      ]
     },
     {
       "id": "M03-Q02",
-      "objective_ids": ["M03-02", "M03-05"],
+      "objective_ids": [
+        "M03-02"
+      ],
       "question": "同じSKUがカートの2明細に分かれて表示される状態を条件として扱います。数量上限を判定するとき、まず確認すべき値はどれですか。",
       "options": [
-        { "value": "A", "label": "各明細の数量を別々に上限と比べる", "meaning": "同一SKUの行を独立商品とみなす", "reason": "BR-CART-001は同一SKUの数量を合算します。" },
-        { "value": "B", "label": "同一SKUの数量を合算して上限と比べる", "meaning": "仕様にある集計単位で条件を作る", "reason": "同一SKU単位の合計が上限を超えないことを確認します。" },
-        { "value": "C", "label": "異なるSKUの数量もすべて合算する", "meaning": "カート全体を一つの商品として扱う", "reason": "仕様は各SKUの数量を判定対象としています。" },
-        { "value": "D", "label": "画面の合計金額を数量の代わりに使う", "meaning": "金額と個数を混同する", "reason": "上限条件は数量に関する仕様です。" }
+        {
+          "value": "A",
+          "label": "各明細の数量を別々に上限と比べる",
+          "meaning": "同一SKUの行を独立商品とみなす",
+          "reason": "BR-CART-001は同一SKUの数量を合算します。"
+        },
+        {
+          "value": "B",
+          "label": "同一SKUの数量を合算して上限と比べる",
+          "meaning": "仕様にある集計単位で条件を作る",
+          "reason": "同一SKU単位の合計が上限を超えないことを確認します。"
+        },
+        {
+          "value": "C",
+          "label": "異なるSKUの数量もすべて合算する",
+          "meaning": "カート全体を一つの商品として扱う",
+          "reason": "仕様は各SKUの数量を判定対象としています。"
+        },
+        {
+          "value": "D",
+          "label": "画面の合計金額を数量の代わりに使う",
+          "meaning": "金額と個数を混同する",
+          "reason": "上限条件は数量に関する仕様です。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/features/cart.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
+      "source_refs": [
+        "docs/spec/features/cart.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる",
+      "knowledge_ids": [
+        "K-M03-02"
+      ]
     },
     {
       "id": "M03-Q03",
-      "objective_ids": ["M03-03"],
+      "objective_ids": [
+        "M03-03"
+      ],
       "question": "商品検索で同じfacetの条件はOR、異なるfacetの条件はANDです。カテゴリAまたはBと、ブランドXを選んだとき、条件の組合せをどう表しますか。",
       "options": [
-        { "value": "A", "label": "カテゴリAまたはB、かつブランドX", "meaning": "同一facet内のORとfacet間のANDを適用する", "reason": "同じカテゴリfacetはOR、カテゴリとブランドという別facet間はANDです。" },
-        { "value": "B", "label": "カテゴリAかつB、またはブランドX", "meaning": "同じfacetをANDにし、facet間をORにする", "reason": "仕様のOR/ANDの適用範囲を逆にしています。" },
-        { "value": "C", "label": "カテゴリAまたはB、またはブランドX", "meaning": "すべての条件をORにする", "reason": "異なるfacet間はANDで結びます。" },
-        { "value": "D", "label": "カテゴリA、B、ブランドXをひとつの同値クラスとして扱う", "meaning": "異なる属性を同じ条件とみなす", "reason": "カテゴリとブランドは別のfacetで、条件の意味も異なります。" }
+        {
+          "value": "A",
+          "label": "カテゴリAまたはB、かつブランドX",
+          "meaning": "同一facet内のORとfacet間のANDを適用する",
+          "reason": "同じカテゴリfacetはOR、カテゴリとブランドという別facet間はANDです。"
+        },
+        {
+          "value": "B",
+          "label": "カテゴリAかつB、またはブランドX",
+          "meaning": "同じfacetをANDにし、facet間をORにする",
+          "reason": "仕様のOR/ANDの適用範囲を逆にしています。"
+        },
+        {
+          "value": "C",
+          "label": "カテゴリAまたはB、またはブランドX",
+          "meaning": "すべての条件をORにする",
+          "reason": "異なるfacet間はANDで結びます。"
+        },
+        {
+          "value": "D",
+          "label": "カテゴリA、B、ブランドXをひとつの同値クラスとして扱う",
+          "meaning": "異なる属性を同じ条件とみなす",
+          "reason": "カテゴリとブランドは別のfacetで、条件の意味も異なります。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["docs/spec/features/storefront.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル"
+      "source_refs": [
+        "docs/spec/features/storefront.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル",
+      "knowledge_ids": [
+        "K-M03-03"
+      ]
     },
     {
       "id": "M03-Q04",
-      "objective_ids": ["M03-04"],
+      "objective_ids": [
+        "M03-04"
+      ],
       "question": "正式仕様はCartの`active → abandoned`を許可し、`abandoned`を終端状態としています。`abandoned → active`を求める操作はどう扱いますか。",
       "options": [
-        { "value": "A", "label": "利用者が望みそうなのでactiveへ戻せるとする", "meaning": "終端状態からの禁止遷移を追加する", "reason": "利用者の期待だけで正式仕様の禁止を上書きできません。" },
-        { "value": "B", "label": "abandonedからの復帰は仕様上禁止とし、禁止規則も適用できない別の変更だけ未決として確認する", "meaning": "許可遷移、明示的な禁止、真に未確定な変更を区別する", "reason": "activeからabandonedへの遷移は許可されていますが、abandonedは終端状態です。明示的な一般禁止があるため逆方向を未決にはしません。" },
-        { "value": "C", "label": "遷移表にない変更はすべて許可する", "meaning": "未記載を成功条件と取り違える", "reason": "明示された遷移規則と矛盾する変更は許可できません。" },
-        { "value": "D", "label": "仕様にない変更は一般規則を確認せずすべて未決とする", "meaning": "適用できる禁止規則を無視する", "reason": "遷移表に個別の記載がなくても、終端状態からの変更を禁じる一般規則が適用されます。" }
+        {
+          "value": "A",
+          "label": "利用者が望みそうなのでactiveへ戻せるとする",
+          "meaning": "終端状態からの禁止遷移を追加する",
+          "reason": "利用者の期待だけで正式仕様の禁止を上書きできません。"
+        },
+        {
+          "value": "B",
+          "label": "abandonedからの復帰は仕様上禁止とし、禁止規則も適用できない別の変更だけ未決として確認する",
+          "meaning": "許可遷移、明示的な禁止、真に未確定な変更を区別する",
+          "reason": "activeからabandonedへの遷移は許可されていますが、abandonedは終端状態です。明示的な一般禁止があるため逆方向を未決にはしません。"
+        },
+        {
+          "value": "C",
+          "label": "遷移表にない変更はすべて許可する",
+          "meaning": "未記載を成功条件と取り違える",
+          "reason": "明示された遷移規則と矛盾する変更は許可できません。"
+        },
+        {
+          "value": "D",
+          "label": "仕様にない変更は一般規則を確認せずすべて未決とする",
+          "meaning": "適用できる禁止規則を無視する",
+          "reason": "遷移表に個別の記載がなくても、終端状態からの変更を禁じる一般規則が適用されます。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/state-and-scenarios.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#状態遷移操作前後の状態をつなぐ"
+      "source_refs": [
+        "docs/spec/state-and-scenarios.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#状態遷移操作前後の状態をつなぐ",
+      "knowledge_ids": [
+        "K-M03-04"
+      ]
     },
     {
       "id": "M03-Q05",
-      "objective_ids": ["M03-01", "M03-05"],
+      "objective_ids": [
+        "M03-05"
+      ],
       "question": "M02で検討した数量上限の条件とは別に、商品検索の価格と在庫の条件を設計します。適切な最初の判断はどれですか。",
       "options": [
-        { "value": "A", "label": "前の課題で使った境界値分析を必ず再利用する", "meaning": "題材が変わっても同じ技法を固定する", "reason": "検索条件の組合せでは条件表など、別の技法が適する場合があります。" },
-        { "value": "B", "label": "仕様の条件構造を見て、必要な技法と限界を選ぶ", "meaning": "技法選択を仕様と目的に結び付ける", "reason": "技法は問題の条件構造に応じて選び、その理由を説明します。" },
-        { "value": "C", "label": "AIが最初に提案した技法をそのまま採用する", "meaning": "AIの選択を独立に確認しない", "reason": "本人が仕様と目的に照らして採否を確認する必要があります。" },
-        { "value": "D", "label": "すべての条件を全組合せで試す", "meaning": "組合せ数や実行可能性を検討しない", "reason": "必要な網羅性、到達可能なデータ、検証コストを考慮します。" }
+        {
+          "value": "A",
+          "label": "前の課題で使った境界値分析を必ず再利用する",
+          "meaning": "題材が変わっても同じ技法を固定する",
+          "reason": "検索条件の組合せでは条件表など、別の技法が適する場合があります。"
+        },
+        {
+          "value": "B",
+          "label": "仕様の条件構造を見て、必要な技法と限界を選ぶ",
+          "meaning": "技法選択を仕様と目的に結び付ける",
+          "reason": "技法は問題の条件構造に応じて選び、その理由を説明します。"
+        },
+        {
+          "value": "C",
+          "label": "AIが最初に提案した技法をそのまま採用する",
+          "meaning": "AIの選択を独立に確認しない",
+          "reason": "本人が仕様と目的に照らして採否を確認する必要があります。"
+        },
+        {
+          "value": "D",
+          "label": "すべての条件を全組合せで試す",
+          "meaning": "組合せ数や実行可能性を検討しない",
+          "reason": "必要な網羅性、到達可能なデータ、検証コストを考慮します。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/features/storefront.md", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル"
+      "source_refs": [
+        "docs/spec/features/storefront.md",
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル",
+      "knowledge_ids": [
+        "K-M03-06"
+      ]
+    },
+    {
+      "id": "M03-Q06",
+      "objective_ids": [
+        "M03-05"
+      ],
+      "knowledge_ids": [
+        "K-M03-06"
+      ],
+      "question": "複数の条件の真偽の組合せで検索結果が変わります。条件構造の分析に適した技法はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "境界値分析のみ",
+          "meaning": "境界値分析のみ",
+          "reason": "境界値は主に数値や範囲の境界を確認する技法です。"
+        },
+        {
+          "value": "B",
+          "label": "デシジョンテーブル",
+          "meaning": "デシジョンテーブル",
+          "reason": "複数条件の真偽の組合せと期待結果をルールごとに整理できます。"
+        },
+        {
+          "value": "C",
+          "label": "状態遷移のみ",
+          "meaning": "状態遷移のみ",
+          "reason": "状態遷移は状態とイベントを扱い、条件表の代替ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "ランダムな画面操作",
+          "meaning": "ランダムな画面操作",
+          "reason": "ランダム操作では組合せに対する期待結果を整理できません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-06"
+    },
+    {
+      "id": "M03-Q07",
+      "objective_ids": [
+        "M03-03"
+      ],
+      "knowledge_ids": [
+        "K-M03-07"
+      ],
+      "question": "条件Aとその否定が同時に真となる行と、Seedが不足している行をどう扱いますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "両方とも仕様で禁止されているとみなす",
+          "meaning": "両方とも仕様で禁止されているとみなす",
+          "reason": "論理矛盾とテストデータ不足は別の状態です。"
+        },
+        {
+          "value": "B",
+          "label": "両方の行を削除する",
+          "meaning": "両方の行を削除する",
+          "reason": "条件を削除する前に論理構造とデータの有無を区別する必要があります。"
+        },
+        {
+          "value": "C",
+          "label": "前者は論理上の到達不能、後者はデータ不足として区別する",
+          "meaning": "前者は論理上の到達不能、後者はデータ不足として区別する",
+          "reason": "Aかつ非Aは論理的に到達不能ですが、Seed不足は実行準備の問題です。"
+        },
+        {
+          "value": "D",
+          "label": "前者はデータ追加で実現できる",
+          "meaning": "前者はデータ追加で実現できる",
+          "reason": "Aと非Aはデータを追加しても同時には成立しません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-07"
+    },
+    {
+      "id": "M03-Q08",
+      "objective_ids": [
+        "M03-05"
+      ],
+      "knowledge_ids": [
+        "K-M03-08"
+      ],
+      "question": "Skill runtimeの検証がPASSしました。これだけで保証できる範囲はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "期待結果の仕様根拠",
+          "meaning": "期待結果の仕様根拠",
+          "reason": "機械検証のPASSだけでは期待結果の仕様根拠は保証されません。"
+        },
+        {
+          "value": "B",
+          "label": "すべてのリスク網羅",
+          "meaning": "すべてのリスク網羅",
+          "reason": "runtime成功と全リスクの網羅は同義ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "設計判断の正しさ",
+          "meaning": "設計判断の正しさ",
+          "reason": "設計の意味的妥当性についての判断責任は残ります。"
+        },
+        {
+          "value": "D",
+          "label": "検証対象の機械契約だけであり意味面は別途確認が必要",
+          "meaning": "検証対象の機械契約だけであり意味面は別途確認が必要",
+          "reason": "対象となる機械契約の成立と、意味上の妥当性は別に確認します。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-08"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-08"
+    },
+    {
+      "id": "M03-Q09",
+      "objective_ids": [
+        "M03-01"
+      ],
+      "knowledge_ids": [
+        "K-M03-01"
+      ],
+      "question": "数量入力は0以下を拒否、1〜3を許可、4以上を上限超過として拒否する仕様です。3つの同値クラスから代表値を1つずつ選ぶ組合せはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "1・2・3",
+          "meaning": "許可範囲の値だけを選ぶ",
+          "reason": "いずれも1〜3の有効クラスであり、拒否される2クラスを確認できません。"
+        },
+        {
+          "value": "B",
+          "label": "0・2・4",
+          "meaning": "下限外・有効・上限外を選ぶ",
+          "reason": "0は下限外、2は有効、4は上限超過で3つの異なる同値クラスを代表します。"
+        },
+        {
+          "value": "C",
+          "label": "0・-1・4",
+          "meaning": "拒否される値を複数選ぶ",
+          "reason": "0と-1は同じ下限外クラスです。有効な1〜3のクラスを代表していません。"
+        },
+        {
+          "value": "D",
+          "label": "2・3・4",
+          "meaning": "有効な値を重複して選ぶ",
+          "reason": "2と3は同じ有効クラスであり、下限外のクラスを代表していません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
     }
   ]
 }

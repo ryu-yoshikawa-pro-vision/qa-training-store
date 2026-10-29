@@ -4,87 +4,503 @@
   "questions": [
     {
       "id": "M05-Q01",
-      "objective_ids": ["M05-01"],
+      "objective_ids": [
+        "M05-01"
+      ],
       "question": "CodespacesでNode.jsは導入済みです。学習用リポジトリにある`package.json`の`training:ai-assisted-qa:test` scriptを実行するとき、通常使うものはどれですか。",
       "options": [
-        { "value": "A", "label": "pnpm", "meaning": "リポジトリ定義のscriptを実行する", "reason": "Node.jsが実行環境、`package.json`がscriptの定義、pnpmがコマンド起動に使われます。" },
-        { "value": "B", "label": "Playwrightのブラウザ画面", "meaning": "ブラウザ操作でpackage scriptを起動する", "reason": "ブラウザはE2Eの実行対象であり、リポジトリのscript起動コマンドではありません。" },
-        { "value": "C", "label": "TypeScriptの型注釈", "meaning": "型情報を実行コマンドとして使う", "reason": "型注釈は実行scriptではありません。" },
-        { "value": "D", "label": "GitHub Actions", "meaning": "ローカルCodespacesの操作にCIを必須にする", "reason": "Phase 2はCodespaces内でGitHub Actionsを使わずに実行できます。" }
+        {
+          "value": "A",
+          "label": "pnpm",
+          "meaning": "リポジトリ定義のscriptを実行する",
+          "reason": "Node.jsが実行環境、`package.json`がscriptの定義、pnpmがコマンド起動に使われます。"
+        },
+        {
+          "value": "B",
+          "label": "Playwrightのブラウザ画面",
+          "meaning": "ブラウザ操作でpackage scriptを起動する",
+          "reason": "ブラウザはE2Eの実行対象であり、リポジトリのscript起動コマンドではありません。"
+        },
+        {
+          "value": "C",
+          "label": "TypeScriptの型注釈",
+          "meaning": "型情報を実行コマンドとして使う",
+          "reason": "型注釈は実行scriptではありません。"
+        },
+        {
+          "value": "D",
+          "label": "GitHub Actions",
+          "meaning": "ローカルCodespacesの操作にCIを必須にする",
+          "reason": "Phase 2はCodespaces内でGitHub Actionsを使わずに実行できます。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["package.json", "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実行の流れ"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実行の流れ"
+      "source_refs": [
+        "package.json",
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実行の流れ"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実行の流れ",
+      "knowledge_ids": [
+        "K-M05-02"
+      ]
     },
     {
       "id": "M05-Q02",
-      "objective_ids": ["M05-01", "M05-04"],
+      "objective_ids": [
+        "M05-01",
+        "M05-04"
+      ],
       "question": "`async`関数の中で`await page.goto('/products')`を実行する意味として最も適切なものはどれですか。",
       "options": [
-        { "value": "A", "label": "ページ移動が始まる前にテストを終了する", "meaning": "awaitを終了命令として扱う", "reason": "awaitは処理を終了する命令ではありません。" },
-        { "value": "B", "label": "非同期のページ移動処理が完了するのを待つ", "meaning": "完了を待って次の処理へ進む", "reason": "awaitはその非同期処理の完了を待ってから次へ進みます。" },
-        { "value": "C", "label": "TypeScriptの型を実行時に確定する", "meaning": "型注釈をブラウザ操作に結び付ける", "reason": "型と非同期処理の完了は別の概念です。" },
-        { "value": "D", "label": "固定時間だけ待つ", "meaning": "awaitを時間待機と同一視する", "reason": "awaitは指定した非同期処理を待ち、任意の固定時間を追加しません。" }
+        {
+          "value": "A",
+          "label": "ページ移動が始まる前にテストを終了する",
+          "meaning": "awaitを終了命令として扱う",
+          "reason": "awaitは処理を終了する命令ではありません。"
+        },
+        {
+          "value": "B",
+          "label": "非同期のページ移動処理が完了するのを待つ",
+          "meaning": "完了を待って次の処理へ進む",
+          "reason": "awaitはその非同期処理の完了を待ってから次へ進みます。"
+        },
+        {
+          "value": "C",
+          "label": "TypeScriptの型を実行時に確定する",
+          "meaning": "型注釈をブラウザ操作に結び付ける",
+          "reason": "型と非同期処理の完了は別の概念です。"
+        },
+        {
+          "value": "D",
+          "label": "固定時間だけ待つ",
+          "meaning": "awaitを時間待機と同一視する",
+          "reason": "awaitは指定した非同期処理を待ち、任意の固定時間を追加しません。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む", "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
+        "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
+      "knowledge_ids": [
+        "K-M05-06"
+      ]
     },
     {
       "id": "M05-Q03",
-      "objective_ids": ["M05-02"],
+      "objective_ids": [
+        "M05-02"
+      ],
       "question": "`page.getByRole('button', { name: '検索' })`がコードにあります。この式の役割はどれですか。",
       "options": [
-        { "value": "A", "label": "ボタンをクリックする", "meaning": "LocatorとActionを同じものとみなす", "reason": "この式は対象を表すLocatorを作り、クリックは別のActionです。" },
-        { "value": "B", "label": "検索ボタンを探すLocatorを作る", "meaning": "画面要素の参照を作る", "reason": "roleと名前を使って要素を特定するLocatorです。" },
-        { "value": "C", "label": "検索結果が正しいことを保証する", "meaning": "要素選択を業務結果のAssertionとみなす", "reason": "結果の正しさを確認するAssertionは含まれていません。" },
-        { "value": "D", "label": "検索条件をサーバーへ保存する", "meaning": "Locatorをデータ更新処理とみなす", "reason": "Locatorは画面要素を指し、サーバーへ保存する処理ではありません。" }
+        {
+          "value": "A",
+          "label": "ボタンをクリックする",
+          "meaning": "LocatorとActionを同じものとみなす",
+          "reason": "この式は対象を表すLocatorを作り、クリックは別のActionです。"
+        },
+        {
+          "value": "B",
+          "label": "検索ボタンを探すLocatorを作る",
+          "meaning": "画面要素の参照を作る",
+          "reason": "roleと名前を使って要素を特定するLocatorです。"
+        },
+        {
+          "value": "C",
+          "label": "検索結果が正しいことを保証する",
+          "meaning": "要素選択を業務結果のAssertionとみなす",
+          "reason": "結果の正しさを確認するAssertionは含まれていません。"
+        },
+        {
+          "value": "D",
+          "label": "検索条件をサーバーへ保存する",
+          "meaning": "Locatorをデータ更新処理とみなす",
+          "reason": "Locatorは画面要素を指し、サーバーへ保存する処理ではありません。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["https://playwright.dev/docs/locators", "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      "source_refs": [
+        "https://playwright.dev/docs/locators",
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
+      "knowledge_ids": [
+        "K-M05-07"
+      ]
     },
     {
       "id": "M05-Q04",
-      "objective_ids": ["M05-03"],
+      "objective_ids": [
+        "M05-03"
+      ],
       "question": "`await expect(button).toBeVisible()`が成功しました。このAssertionが直接示すことはどれですか。",
       "options": [
-        { "value": "A", "label": "ボタンが表示されていた", "meaning": "可視性のみを確認したと解釈する", "reason": "toBeVisibleはLocatorの要素が表示されることを確認します。" },
-        { "value": "B", "label": "ボタンを押した後の商品が購入された", "meaning": "可視性から業務処理の成功を推測する", "reason": "クリックも購入結果の確認も行っていません。" },
-        { "value": "C", "label": "注文データが保存された", "meaning": "UIの可視性から永続化を推測する", "reason": "保存データはこのAssertionの対象ではありません。" },
-        { "value": "D", "label": "Caseに書かれたすべての期待結果を満たした", "meaning": "一つのAssertionでCase全体を確認したとみなす", "reason": "Assertionが保証する範囲は可視性だけです。" }
+        {
+          "value": "A",
+          "label": "ボタンが表示されていた",
+          "meaning": "可視性のみを確認したと解釈する",
+          "reason": "toBeVisibleはLocatorの要素が表示されることを確認します。"
+        },
+        {
+          "value": "B",
+          "label": "ボタンを押した後の商品が購入された",
+          "meaning": "可視性から業務処理の成功を推測する",
+          "reason": "クリックも購入結果の確認も行っていません。"
+        },
+        {
+          "value": "C",
+          "label": "注文データが保存された",
+          "meaning": "UIの可視性から永続化を推測する",
+          "reason": "保存データはこのAssertionの対象ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "Caseに書かれたすべての期待結果を満たした",
+          "meaning": "一つのAssertionでCase全体を確認したとみなす",
+          "reason": "Assertionが保証する範囲は可視性だけです。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["https://playwright.dev/docs/test-assertions", "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      "source_refs": [
+        "https://playwright.dev/docs/test-assertions",
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
+      "knowledge_ids": [
+        "K-M05-08"
+      ]
     },
     {
       "id": "M05-Q05",
-      "objective_ids": ["M05-04"],
+      "objective_ids": [
+        "M05-04"
+      ],
       "question": "画面の表示が遅いとき、固定の`waitForTimeout`を追加する前に最初に確認することはどれですか。",
       "options": [
-        { "value": "A", "label": "Locator、Action、期待結果、失敗ログ", "meaning": "失敗が起きた場所と仕様上の原因を調べる", "reason": "対象の誤りや期待値の不一致を確認してから対処を選びます。" },
-        { "value": "B", "label": "待機時間を十分に長くする", "meaning": "原因を調べずタイミングだけを隠す", "reason": "固定待機は誤ったLocatorや期待結果を解決しません。" },
-        { "value": "C", "label": "すべてのAssertionを削除する", "meaning": "失敗を成功扱いにする", "reason": "検証を削除するとCaseの期待結果を確認できません。" },
-        { "value": "D", "label": "AIにPASSと報告させる", "meaning": "実行結果の代わりに自己申告を使う", "reason": "AIの報告は実行や証拠の代わりになりません。" }
+        {
+          "value": "A",
+          "label": "Locator、Action、期待結果、失敗ログ",
+          "meaning": "失敗が起きた場所と仕様上の原因を調べる",
+          "reason": "対象の誤りや期待値の不一致を確認してから対処を選びます。"
+        },
+        {
+          "value": "B",
+          "label": "待機時間を十分に長くする",
+          "meaning": "原因を調べずタイミングだけを隠す",
+          "reason": "固定待機は誤ったLocatorや期待結果を解決しません。"
+        },
+        {
+          "value": "C",
+          "label": "すべてのAssertionを削除する",
+          "meaning": "失敗を成功扱いにする",
+          "reason": "検証を削除するとCaseの期待結果を確認できません。"
+        },
+        {
+          "value": "D",
+          "label": "AIにPASSと報告させる",
+          "meaning": "実行結果の代わりに自己申告を使う",
+          "reason": "AIの報告は実行や証拠の代わりになりません。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["https://playwright.dev/docs/test-assertions", "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け"
+      "source_refs": [
+        "https://playwright.dev/docs/test-assertions",
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け",
+      "knowledge_ids": [
+        "K-M05-09"
+      ]
     },
     {
       "id": "M05-Q06",
-      "objective_ids": ["M05-05"],
+      "objective_ids": [
+        "M05-05"
+      ],
       "question": "新課程専用specをCodespaces内で実行します。Planに沿ったTrainingテスト対象ポートと結果の扱いはどれですか。",
       "options": [
-        { "value": "A", "label": "通常Webの8081を使い、旧Training結果へ保存する", "meaning": "通常Webを新課程specの専用環境にする", "reason": "Phase 2のTrainingは専用8082を使い、新課程の結果先を分けます。" },
-        { "value": "B", "label": "Training専用8082を使い、指定workspaceのspecと新課程結果先を確認する", "meaning": "隔離された新課程Configの対象と出力を確認する", "reason": "専用8082とworkspace内の対象spec、専用結果先を使います。" },
-        { "value": "C", "label": "Private noVNCの6080をテストサーバーにする", "meaning": "ブラウザ表示用ポートをアプリサーバーとみなす", "reason": "6080はnoVNCであり、Trainingのテストサーバーではありません。" },
-        { "value": "D", "label": "ポートを確認せず全specを実行する", "meaning": "対象範囲・環境を確認しない", "reason": "実行対象、サーバー、出力先が限定された新課程Configを確認します。" }
+        {
+          "value": "A",
+          "label": "通常Webの8081を使い、旧Training結果へ保存する",
+          "meaning": "通常Webを新課程specの専用環境にする",
+          "reason": "Phase 2のTrainingは専用8082を使い、新課程の結果先を分けます。"
+        },
+        {
+          "value": "B",
+          "label": "Training専用8082を使い、指定workspaceのspecと新課程結果先を確認する",
+          "meaning": "隔離された新課程Configの対象と出力を確認する",
+          "reason": "専用8082とworkspace内の対象spec、専用結果先を使います。"
+        },
+        {
+          "value": "C",
+          "label": "Private noVNCの6080をテストサーバーにする",
+          "meaning": "ブラウザ表示用ポートをアプリサーバーとみなす",
+          "reason": "6080はnoVNCであり、Trainingのテストサーバーではありません。"
+        },
+        {
+          "value": "D",
+          "label": "ポートを確認せず全specを実行する",
+          "meaning": "対象範囲・環境を確認しない",
+          "reason": "実行対象、サーバー、出力先が限定された新課程Configを確認します。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_target.md", "playwright.ai-assisted-qa.config.ts", "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実技と確認"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実技と確認"
+      "source_refs": [
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_target.md",
+        "playwright.ai-assisted-qa.config.ts",
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実技と確認"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実技と確認",
+      "knowledge_ids": [
+        "K-M05-10"
+      ]
+    },
+    {
+      "id": "M05-Q07",
+      "objective_ids": [
+        "M05-01"
+      ],
+      "knowledge_ids": [
+        "K-M05-11"
+      ],
+      "question": "`const a = [2, 5, 8]; console.log(a[1]);`の出力はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "2",
+          "meaning": "2",
+          "reason": "添字0の要素は2です。"
+        },
+        {
+          "value": "B",
+          "label": "5",
+          "meaning": "5",
+          "reason": "JavaScript/TypeScriptの添字は0から始まり、添字1は5を示します。"
+        },
+        {
+          "value": "C",
+          "label": "8",
+          "meaning": "8",
+          "reason": "8は添字2の要素です。"
+        },
+        {
+          "value": "D",
+          "label": "undefined",
+          "meaning": "undefined",
+          "reason": "添字1の要素は存在するためundefinedにはなりません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-11"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-11"
+    },
+    {
+      "id": "M05-Q08",
+      "objective_ids": [
+        "M05-01"
+      ],
+      "knowledge_ids": [
+        "K-M05-12"
+      ],
+      "question": "`const cart = { quantity: 2 }; cart.quantity = 4; console.log(cart.quantity);`の出力はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "2",
+          "meaning": "2",
+          "reason": "2はプロパティを更新する前の値です。"
+        },
+        {
+          "value": "B",
+          "label": "4",
+          "meaning": "4",
+          "reason": "quantityへ4を代入したため、更新後の値は4です。"
+        },
+        {
+          "value": "C",
+          "label": "quantity",
+          "meaning": "quantity",
+          "reason": "quantityはプロパティ名であって出力される値ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "undefined",
+          "meaning": "undefined",
+          "reason": "quantityプロパティは定義されておりundefinedではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-12"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-12"
+    },
+    {
+      "id": "M05-Q09",
+      "objective_ids": [
+        "M05-01"
+      ],
+      "knowledge_ids": [
+        "K-M05-13"
+      ],
+      "question": "`const q = 2; console.log(q >= 3 ? '上限' : '範囲内');`の出力はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "上限",
+          "meaning": "上限",
+          "reason": "2は3以上ではないため『上限』の分岐は選ばれません。"
+        },
+        {
+          "value": "B",
+          "label": "2",
+          "meaning": "2",
+          "reason": "三項演算子の選択結果は数量そのものではありません。"
+        },
+        {
+          "value": "C",
+          "label": "範囲内",
+          "meaning": "範囲内",
+          "reason": "比較は偽なのでコロンの右側にある『範囲内』を出力します。"
+        },
+        {
+          "value": "D",
+          "label": "true",
+          "meaning": "true",
+          "reason": "出力されるのは真偽値ではなく選択された文字列です。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-13"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-13"
+    },
+    {
+      "id": "M05-Q10",
+      "objective_ids": [
+        "M05-01"
+      ],
+      "knowledge_ids": [
+        "K-M05-14"
+      ],
+      "question": "`function sum(a: number, b: number) { return a + b; } console.log(sum(2, 3));`の出力はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "2",
+          "meaning": "2",
+          "reason": "2は第1引数であり戻り値ではありません。"
+        },
+        {
+          "value": "B",
+          "label": "3",
+          "meaning": "3",
+          "reason": "3は第2引数であり戻り値ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "23",
+          "meaning": "23",
+          "reason": "両引数はnumberなので文字列結合ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "5",
+          "meaning": "5",
+          "reason": "2と3をnumberとして加算し、戻り値5を出力します。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-14"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-14"
+    },
+    {
+      "id": "M05-Q11",
+      "objective_ids": [
+        "M05-02"
+      ],
+      "knowledge_ids": [
+        "K-M05-15"
+      ],
+      "question": "`<button aria-label='購入'>追加</button>`からアクセシブル名で対象を探すLocatorはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "page.getByRole('button', { name: '追加' })",
+          "meaning": "page.getByRole('button', { name: '追加' })",
+          "reason": "aria-labelがあるためアクセシブル名は表示テキスト『追加』ではありません。"
+        },
+        {
+          "value": "B",
+          "label": "page.getByRole('button', { name: '購入' })",
+          "meaning": "page.getByRole('button', { name: '購入' })",
+          "reason": "対象はbuttonで、aria-labelによるアクセシブル名が『購入』です。"
+        },
+        {
+          "value": "C",
+          "label": "page.getByText('購入ボタン')",
+          "meaning": "page.getByText('購入ボタン')",
+          "reason": "この要素に『購入ボタン』という文字列は含まれません。"
+        },
+        {
+          "value": "D",
+          "label": "page.getByRole('link', { name: '購入' })",
+          "meaning": "page.getByRole('link', { name: '購入' })",
+          "reason": "button要素はlinkロールではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-15"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-15"
+    },
+    {
+      "id": "M05-Q12",
+      "objective_ids": [
+        "M05-04"
+      ],
+      "knowledge_ids": [
+        "K-M05-16"
+      ],
+      "question": "TypeScriptの`const n: number = '3';`は型検査でどう扱われますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "型検査が成功し業務結果も保証される",
+          "meaning": "型検査が成功し業務結果も保証される",
+          "reason": "代入型が一致せず型検査に失敗します。業務の正しさも別の検証です。"
+        },
+        {
+          "value": "B",
+          "label": "文字列が常にnumberへ変換される",
+          "meaning": "文字列が常にnumberへ変換される",
+          "reason": "stringは型注釈numberと一致しません。"
+        },
+        {
+          "value": "C",
+          "label": "number型へstringを代入しているので型エラーになる",
+          "meaning": "number型へstringを代入しているので型エラーになる",
+          "reason": "number型にstring値を代入するので型エラーです。"
+        },
+        {
+          "value": "D",
+          "label": "Assertionエラーとしてだけ検出される",
+          "meaning": "Assertionエラーとしてだけ検出される",
+          "reason": "これは静的な型検査のエラーで、業務Assertion失敗とは異なります。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-16"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-16"
     }
   ]
 }

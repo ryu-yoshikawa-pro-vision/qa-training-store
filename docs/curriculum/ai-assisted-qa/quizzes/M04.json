@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#caseレビューの順番"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#caseレビューの順番",
+      "knowledge_ids": [
+        "K-M04-01"
+      ]
     },
     {
       "id": "M04-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断",
+      "knowledge_ids": [
+        "K-M04-02"
+      ]
     },
     {
       "id": "M04-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断",
+      "knowledge_ids": [
+        "K-M04-03"
+      ]
     },
     {
       "id": "M04-Q04",
@@ -152,7 +161,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#仕様未決と観測結果を分ける"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#仕様未決と観測結果を分ける",
+      "knowledge_ids": [
+        "K-M04-04"
+      ]
     }
   ]
 }

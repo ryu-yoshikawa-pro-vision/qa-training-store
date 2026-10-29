@@ -49,6 +49,7 @@ const relations = {
   teaches: [["lesson", "knowledge"]],
   evaluates: [
     ["quiz", "learning_objective"],
+    ["quiz", "knowledge"],
     ["exercise", "learning_objective"],
     ["assessment", "learning_objective"],
   ],
@@ -156,10 +157,10 @@ export function validate(graph) {
   const objectives = graph.nodes.filter((node) => node.type === "learning_objective");
   if (
     !unique(mapIds) ||
-    mapIds.length !== 51 ||
+    mapIds.length < 51 ||
     !sameSet(new Set(mapIds), new Set(objectives.map((node) => node.id)))
   )
-    fail("Learning objective IDs differ from the 51 canonical learning-map rows");
+    fail("Learning objective IDs differ from the canonical learning-map rows");
   for (const node of objectives) {
     const module = node.id.slice(0, 3);
     if (
@@ -498,8 +499,14 @@ function impact(graph, query) {
     }
     for (const edge of graph.edges.filter(
       (item) => item.from === target.id && item.relation === "evaluates",
-    ))
-      addObjective(edge.to, target.id, "evaluates");
+    )) {
+      const evaluated = byId.get(edge.to);
+      if (evaluated?.type === "learning_objective") addObjective(edge.to, target.id, "evaluates");
+      if (evaluated?.type === "knowledge") {
+        for (const objectiveId of objectivesForKnowledge(graph, edge.to))
+          addObjective(objectiveId, target.id, "evaluates_knowledge");
+      }
+    }
     for (const edge of graph.edges.filter(
       (item) => item.from === target.id && item.relation === "teaches",
     )) {

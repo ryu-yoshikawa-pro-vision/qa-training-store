@@ -340,18 +340,44 @@ function loadPublicLearningObjectives(rootDir: string): LearningObjective[] {
     rows.push({ id, moduleId, summary, level });
   }
   const counts = MODULE_IDS.map((id) => rows.filter((row) => row.moduleId === id).length);
-  if (rows.length !== 51 || counts.some((count, index) => count !== EXPECTED_OBJECTIVE_COUNTS[index])) {
-    throw new Error(`公開学習項目は51件必要です。現在: ${rows.length}件 (${counts.join(", ")})`);
+  if (rows.length < 51 || counts.some((count, index) => count < EXPECTED_OBJECTIVE_COUNTS[index])) {
+    throw new Error(`公開学習項目が既存基準を下回っています。現在: ${rows.length}件 (${counts.join(", ")})`);
   }
   if (new Set(rows.map((row) => row.id)).size !== rows.length) throw new Error("公開学習項目IDが重複しています");
   return rows;
 }
+
+const OBJECTIVE_MAP_CSS = "\n.knowledge-list{margin:.7rem 0 1.25rem;padding-left:1.1rem}.knowledge-list li{margin:.7rem 0;padding:.7rem .85rem;border:1px solid #cbd5e1;border-radius:.5rem;list-style:none}.knowledge-list p{margin:.35rem 0}.knowledge-self-check{font:inherit;font-size:.85rem;cursor:pointer;padding:.35rem .6rem;border:1px solid #526b85;border-radius:.4rem;background:transparent;color:inherit}.knowledge-self-check[aria-pressed=\"true\"]{border-color:#167446}.knowledge-links a{margin-right:.85rem}.knowledge-summary{color:#445469;font-size:.85rem}.objective-module details{margin-top:.5rem}.objective-module summary{cursor:pointer;font-weight:600}.knowledge-status{display:block;margin:.4rem 0;font-size:.85rem}@media(max-width:36rem){.knowledge-list{padding-left:0}.knowledge-list li{padding:.6rem}.knowledge-self-check{max-width:100%;white-space:normal}}\n";
+const OBJECTIVE_MAP_JS = "(()=>{\nconst model=JSON.parse(document.getElementById(\"knowledge-map-data\").textContent);\nconst byId=new Map(model.nodes.map(node=>[node.id,node]));\nconst statusMessage=document.getElementById(\"knowledge-storage-status\");\nconst getSaved=(key)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch{return null;}};\nconst refresh=(button)=>{\n  const node=byId.get(button.dataset.knowledgeId);\n  if(!node)return;\n  const entry=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n  const current=entry&&entry.revision===node.revision&&entry.checked===true;\n  const stale=entry&&entry.revision!==node.revision;\n  button.setAttribute(\"aria-pressed\",current?\"true\":\"false\");\n  button.textContent=current?\"本人確認済み（正式評価ではありません）\":stale?\"定義が変更されました：再確認\":\"本人確認：未確認\";\n};\nfor(const button of document.querySelectorAll(\"button[data-knowledge-id]\")){\n  refresh(button);\n  button.addEventListener(\"click\",()=>{\n    const node=byId.get(button.dataset.knowledgeId);\n    if(!node)return;\n    const current=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n    const checked=!(current&&current.revision===node.revision&&current.checked===true);\n    try{localStorage.setItem(\"ai-assisted-qa-knowledge:\"+node.id,JSON.stringify({revision:node.revision,checked,updated_at:new Date().toISOString()}));statusMessage.textContent=\"本人の確認状況をこのブラウザに保存しました。正式評価には影響しません。\";refresh(button);}\n    catch{statusMessage.textContent=\"このブラウザでは学習状況を保存できません。設定と空き容量を確認してください。\";}\n  });\n}\nconst scores=new Map();\nfor(const quiz of model.quizzes){\n const stored=getSaved(\"ai-assisted-qa-quiz:\"+quiz.module);\n if(!stored||stored.revision!==quiz.revision||stored.resultStatus!==\"completed\")continue;\n for(const question of quiz.questions){\n   const answer=stored.answers&&stored.answers[question.id];\n   if(![\"A\",\"B\",\"C\",\"D\"].includes(answer))continue;\n   for(const id of question.knowledge_ids){\n     const value=scores.get(id)||{correct:0,total:0};\n     value.total++;\n     if(answer===question.correct_value)value.correct++;\n     scores.set(id,value);\n   }\n }\n}\nfor(const node of model.nodes){\n for(const label of document.querySelectorAll('[data-knowledge-quiz=\"'+node.id+'\"]')){\n   const score=scores.get(node.id);\n   label.textContent=score?\"このブラウザのクイズ確認：\"+score.correct+\" / \"+score.total+\"問正解\":\"クイズ結果：未確認\";\n }\n}\n})();";
 
 function renderObjectiveMap(
   rootDir: string,
   navigation: NavigationGroup[],
   objectives: LearningObjective[],
 ): string {
+  const graph = JSON.parse(
+    fs.readFileSync(path.join(rootDir, ...`${COURSE_ROOT}/knowledge-graph.json`.split("/")), "utf8"),
+  ) as {
+    nodes: { id: string; type: string; module?: string; title: string; can_do?: string; review_path?: string }[];
+    edges: { from: string; relation: string; to: string }[];
+  };
+  const knowledgeById = new Map(graph.nodes.filter((node) => node.type === "knowledge").map((node) => [node.id, node]));
+  const knowledgeByObjective = new Map<string, string[]>();
+  for (const edge of graph.edges.filter((edge) => edge.relation === "requires_knowledge")) {
+    knowledgeByObjective.set(edge.from, [...(knowledgeByObjective.get(edge.from) ?? []), edge.to]);
+  }
+  const questionIndex = new Map<string, { id: string; module: string }[]>();
+  const quizData = MODULE_IDS.map((module) => {
+    const quizPath = path.join(rootDir, ...`${QUIZ_ROOT}/${module}.json`.split("/"));
+    const bytes = fs.readFileSync(quizPath);
+    const quiz = JSON.parse(bytes.toString("utf8")) as { questions: { id: string; knowledge_ids: string[]; correct_value: string }[] };
+    for (const question of quiz.questions) {
+      for (const id of question.knowledge_ids) questionIndex.set(id, [...(questionIndex.get(id) ?? []), { id: question.id, module }]);
+    }
+    return { module, revision: createHash("sha256").update(bytes).digest("hex"), questions: quiz.questions.map((question) => ({ id: question.id, correct_value: question.correct_value, knowledge_ids: question.knowledge_ids })) };
+  });
+  const publicNodes = [...knowledgeById.values()].map((node) => ({ id: node.id, revision: createHash("sha256").update([node.id, node.title, node.can_do ?? ""].join("|")).digest("hex") }));
+  const knowledgeData = JSON.stringify({ nodes: publicNodes, quizzes: quizData }).replace(/</g, "\\u003c");
   const titles = new Map(navigation.flatMap((group) => group.items.map((item) => [item.label.slice(0, 3), item.label] as const)));
   const groups = navigation
     .map((phase) => {
@@ -360,7 +386,18 @@ function renderObjectiveMap(
           const moduleId = item.label.slice(0, 3);
           const rows = objectives.filter((objective) => objective.moduleId === moduleId);
           return `<section class="objective-module" id="${moduleId}"><h3><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></h3><ol>${rows
-            .map((objective) => `<li data-objective-id="${escapeHtml(objective.id)}"><strong>${escapeHtml(objective.id)} · ${escapeHtml(objective.level)}</strong><p>${escapeHtml(objective.summary)}</p></li>`)
+            .map((objective) => {
+              const nodes = (knowledgeByObjective.get(objective.id) ?? []).map((id) => knowledgeById.get(id)).filter((node) => node !== undefined);
+              const details = nodes.map((node) => {
+                const id = escapeHtml(node.id);
+                const revision = publicNodes.find((candidate) => candidate.id === node.id)?.revision ?? "";
+                const fragment = node.review_path?.split("#")[1];
+                const lessonHref = `${COURSE_URL}/modules/${moduleId}/${fragment ? `#${encodeURIComponent(fragment)}` : ""}`;
+                const quizLinks = (questionIndex.get(node.id) ?? []).map((question) => `<a href="${COURSE_URL}/quizzes/${question.module}.html">${escapeHtml(question.id)}の確認クイズ</a>`).join("");
+                return `<li data-knowledge-node="${id}"><strong>${id}：${escapeHtml(node.title)}</strong><p>${escapeHtml(node.can_do ?? "")}</p><p class="knowledge-links"><a href="${escapeHtml(lessonHref)}">教材と復習先</a><a href="${COURSE_URL}/resources/training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md">演習手順</a>${quizLinks}</p><small class="knowledge-status" data-knowledge-quiz="${id}">クイズ結果：未確認</small><button type="button" class="knowledge-self-check" data-knowledge-id="${id}" data-revision="${revision}" aria-pressed="false">本人確認：未確認</button></li>`;
+              }).join("");
+              return `<li data-objective-id="${escapeHtml(objective.id)}"><strong>${escapeHtml(objective.id)} · ${escapeHtml(objective.level)}</strong><p>${escapeHtml(objective.summary)}</p><details><summary>理解ノード（${nodes.length}件）</summary><ul class="knowledge-list">${details}</ul></details></li>`;
+            })
             .join("")}</ol></section>`;
         })
         .join("");
@@ -370,13 +407,13 @@ function renderObjectiveMap(
   const toc = `<nav class="toc" aria-label="学習項目の目次" tabindex="0"><strong>モジュール</strong><ul>${MODULE_IDS
     .map((moduleId) => `<li><a href="#${moduleId}">${escapeHtml(titles.get(moduleId) ?? moduleId)}</a></li>`)
     .join("")}</ul></nav>`;
-  const body = `<div class="document-body"><h1>51件の学習項目マップ</h1><p>この一覧は、固定された51件の学習目標をモジュール別に確認するための案内です。項目を読んだことやクイズの得点だけで技能の修了とはなりません。本文の例、演習、Phase評価基準で、説明・操作・別条件への適用を確認してください。</p>${groups}</div>`;
+  const body = `<div class="document-body"><h1>${objectives.length}件の学習項目マップ</h1><p>各目標を理解ノードへ分けて、説明・練習・確認状況をモジュール別に確認できます。項目を読んだことやクイズの得点だけで技能の修了とはなりません。本文の例、演習、Phase評価基準で、説明・操作・別条件への適用を確認してください。</p>${groups}</div>`;
   const navigationHtml = renderNavigation(navigation);
   const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav></details>`;
   const absolutePath = path.join(rootDir, ...LEARNING_MAP_PATH.split("/"));
   const revision = createHash("sha256").update(fs.readFileSync(absolutePath)).digest("hex");
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>51件の学習項目マップ — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html" aria-current="page">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${toc}${body}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>${objectives.length}件の学習項目マップ — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}${OBJECTIVE_MAP_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html" aria-current="page">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${toc}${body}</article></main><p id="knowledge-storage-status" role="status" aria-live="polite"></p><script id="knowledge-map-data" type="application/json">${knowledgeData}</script><script>${OBJECTIVE_MAP_JS}</script></body></html>\n`;
 }
 
 function renderCoursePage(
@@ -483,7 +520,7 @@ const QUIZ_JS = `(async()=>{
   };
   const validQuestion=(question)=>{
     if(!question||typeof question!=="object"||typeof question.id!=="string"||!new RegExp("^"+moduleId+"-Q[0-9]{2}$").test(question.id))return false;
-    if(typeof question.question!=="string"||!question.question.trim()||!Array.isArray(question.objective_ids)||question.objective_ids.length===0||question.objective_ids.some((id)=>typeof id!=="string"||!id.startsWith(moduleId+"-")))return false;
+    if(typeof question.question!=="string"||!question.question.trim()||!Array.isArray(question.objective_ids)||question.objective_ids.length===0||question.objective_ids.some((id)=>typeof id!=="string"||!id.startsWith(moduleId+"-"))||!Array.isArray(question.knowledge_ids)||question.knowledge_ids.length===0||question.knowledge_ids.some((id)=>typeof id!=="string"||!id.startsWith("K-"+moduleId+"-")))return false;
     if(!Array.isArray(question.options)||question.options.length!==4)return false;
     const values=question.options.map((option)=>option&&option.value);
     if(["A","B","C","D"].some((value)=>values.filter((candidate)=>candidate===value).length!==1))return false;
@@ -525,7 +562,7 @@ const QUIZ_JS = `(async()=>{
         const meaning=document.createElement("p");setText(meaning,"意味: "+option.meaning);item.append(meaning);
         const reason=document.createElement("p");setText(reason,"この条件での理由: "+option.reason);item.append(reason);section.append(item);
       }
-      const objectives=document.createElement("p");setText(objectives,"学習項目: "+question.objective_ids.join(", "));section.append(objectives);
+      const objectives=document.createElement("p");setText(objectives,"学習項目: "+question.objective_ids.join(", ")+" / 理解ノード: "+question.knowledge_ids.join(", "));section.append(objectives);
       const sourceLine=document.createElement("p");setText(sourceLine,"根拠: ");
       for(const reference of question.source_refs){const link=document.createElement("a");link.href=safeHref(reference);link.textContent=reference;sourceLine.append(link,document.createTextNode(" "));}section.append(sourceLine);
       const review=document.createElement("p");const reviewLink=document.createElement("a");reviewLink.href=safeHref(question.review_path);reviewLink.textContent="教材の復習先";review.append(reviewLink);section.append(review);
@@ -542,7 +579,7 @@ const QUIZ_JS = `(async()=>{
     if(quiz.schema_version!==1||quiz.module_id!==moduleId||!Array.isArray(quiz.questions)||quiz.questions.length===0||quiz.questions.some((question)=>!validQuestion(question))||new Set(quiz.questions.map((question)=>question.id)).size!==quiz.questions.length)throw new Error("クイズデータの形式が正しくありません。");
     for(const question of quiz.questions){if(!Array.isArray(question.options)||question.options.length!==4||!question.options.some((option)=>option.value===question.correct_value))throw new Error("問題または選択肢に不整合があります。");}
     let saved=null;try{const raw=localStorage.getItem(storageKey);if(raw)saved=JSON.parse(raw);}catch{storageAvailable=false;}
-    if(saved&&saved.revision!==revision){try{localStorage.removeItem(storageKey);}catch{}saved=null;setText(storageMessage,"クイズの版が更新されたため、以前の回答は引き継ぎません。新しい版で始めてください。");}
+    if(saved&&saved.revision!==revision){try{const archiveKey="ai-assisted-qa-quiz-history:"+moduleId;const history=JSON.parse(localStorage.getItem(archiveKey)||"[]");if(Array.isArray(history)){history.push(saved);localStorage.setItem(archiveKey,JSON.stringify(history));}localStorage.removeItem(storageKey);}catch{}saved=null;setText(storageMessage,"クイズの版が更新されました。旧版の履歴は同じブラウザ内に保存し、新しい版で確認してください。");}
     const questionIds=new Set(quiz.questions.map((question)=>question.id));
     const savedAnswersValid=saved?.answers&&typeof saved.answers==="object"&&Object.entries(saved.answers).every(([id,value])=>questionIds.has(id)&&["A","B","C","D"].includes(value));
     if(saved&&saved.revision===revision&&savedAnswersValid&&Number.isInteger(saved.currentIndex)&&["in_progress","completed"].includes(saved.resultStatus)){
@@ -557,7 +594,7 @@ const QUIZ_JS = `(async()=>{
     byId("restart-start-button").addEventListener("click",()=>{state={answers:{},currentIndex:0,resultStatus:"in_progress"};begin();});
     byId("previous-button").addEventListener("click",()=>{if(state.currentIndex>0){state.currentIndex--;saveState();renderQuestion();}});
     byId("next-button").addEventListener("click",()=>{const question=quiz.questions[state.currentIndex];if(!state.answers[question.id]){byId("answer-error").hidden=false;byId("choices").querySelector("input")?.focus();return;}state.currentIndex++;saveState();renderQuestion();});
-    byId("finish-button").addEventListener("click",()=>{if(!allAnswered()){byId("answer-error").hidden=false;return;}state.resultStatus="completed";saveState();renderResults();});
+    byId("finish-button").addEventListener("click",()=>{if(!allAnswered()){byId("answer-error").hidden=false;return;}state.resultStatus="completed";saveState();try{const archiveKey="ai-assisted-qa-quiz-history:"+moduleId;const history=JSON.parse(localStorage.getItem(archiveKey)||"[]");if(Array.isArray(history)){history.push({revision,answers:{...state.answers},resultStatus:"completed",completed_at:new Date().toISOString()});localStorage.setItem(archiveKey,JSON.stringify(history));}}catch{}renderResults();});
     byId("retry-button").addEventListener("click",()=>{state={answers:{},currentIndex:0,resultStatus:"in_progress"};try{localStorage.removeItem(storageKey);}catch{}byId("start-button").hidden=false;byId("resume-button").hidden=true;byId("restart-start-button").hidden=true;setPanel("start");byId("start-button").focus();});
   }catch(error){showError(error instanceof Error?error.message:"クイズを表示できませんでした。");startPanel.hidden=true;questionPanel.hidden=true;resultPanel.hidden=true;}
 })();`;

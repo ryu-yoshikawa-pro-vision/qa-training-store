@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#期待結果と観測事実"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#期待結果と観測事実",
+      "knowledge_ids": [
+        "K-M01-01"
+      ]
     },
     {
       "id": "M01-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#3-探索回帰自動化を選ぶ"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#3-探索回帰自動化を選ぶ",
+      "knowledge_ids": [
+        "K-M01-02"
+      ]
     },
     {
       "id": "M01-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割",
+      "knowledge_ids": [
+        "K-M01-03"
+      ]
     },
     {
       "id": "M01-Q04",
@@ -152,7 +161,51 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割",
+      "knowledge_ids": [
+        "K-M01-04"
+      ]
+    },
+    {
+      "id": "M01-Q05",
+      "objective_ids": [
+        "M01-01"
+      ],
+      "knowledge_ids": [
+        "K-M01-05"
+      ],
+      "question": "数量3を期待しましたが数量2が観測され、原因は未調査です。適切な報告はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "原因は状態管理バグと確定する",
+          "meaning": "原因は状態管理バグと確定する",
+          "reason": "観測だけでは根本原因を断定できません。"
+        },
+        {
+          "value": "B",
+          "label": "期待数量3・観測数量2・原因未確定を別々に記録する",
+          "meaning": "期待数量3・観測数量2・原因未確定を別々に記録する",
+          "reason": "期待数量と観測数量、未確定な原因を分離して報告します。"
+        },
+        {
+          "value": "C",
+          "label": "期待数量を2に書き換える",
+          "meaning": "期待数量を2に書き換える",
+          "reason": "観測結果によって仕様に基づく期待値を書き換えてはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "観測条件を省いて原因だけ報告する",
+          "meaning": "観測条件を省いて原因だけ報告する",
+          "reason": "再現条件と客観的観測を省くと第三者が追跡できません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M01/README.md#k-m01-05"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#k-m01-05"
     }
   ]
 }

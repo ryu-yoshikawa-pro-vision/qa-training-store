@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順",
+      "knowledge_ids": [
+        "K-M07-01"
+      ]
     },
     {
       "id": "M07-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材",
+      "knowledge_ids": [
+        "K-M07-02"
+      ]
     },
     {
       "id": "M07-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#33-なぜ待機時間の延長やリトライで解決してはいけないのか"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#33-なぜ待機時間の延長やリトライで解決してはいけないのか",
+      "knowledge_ids": [
+        "K-M07-03"
+      ]
     },
     {
       "id": "M07-Q04",
@@ -152,7 +161,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#42-before-runとafter-runを比較する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#42-before-runとafter-runを比較する",
+      "knowledge_ids": [
+        "K-M07-04"
+      ]
     },
     {
       "id": "M07-Q05",
@@ -190,7 +202,92 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#保守性の判断"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#保守性の判断",
+      "knowledge_ids": [
+        "K-M07-05"
+      ]
+    },
+    {
+      "id": "M07-Q06",
+      "objective_ids": [
+        "M07-05"
+      ],
+      "knowledge_ids": [
+        "K-M07-06"
+      ],
+      "question": "Page Objectへ操作を移す際に適切な設計はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "業務Assertionを削除する",
+          "meaning": "業務Assertionを削除する",
+          "reason": "操作の共通化はAssertionの削除を意味しません。"
+        },
+        {
+          "value": "B",
+          "label": "すべてのCase期待をPage Objectに隠す",
+          "meaning": "すべてのCase期待をPage Objectに隠す",
+          "reason": "すべてのCase固有の期待を隠すと検証責務が分かりにくくなります。"
+        },
+        {
+          "value": "C",
+          "label": "画面操作の共通化と業務期待結果の検証を区別する",
+          "meaning": "画面操作の共通化と業務期待結果の検証を区別する",
+          "reason": "共通操作と各Caseに固有の業務期待結果の確認は別責務です。"
+        },
+        {
+          "value": "D",
+          "label": "同じ画面なら無条件で共通化する",
+          "meaning": "同じ画面なら無条件で共通化する",
+          "reason": "同じ画面だからといって共通化が常に有利とは限りません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-06"
+    },
+    {
+      "id": "M07-Q07",
+      "objective_ids": [
+        "M07-05"
+      ],
+      "knowledge_ids": [
+        "K-M07-07"
+      ],
+      "question": "Playwright fixtureでテスト間の独立性を検証する方法はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "fixtureのスコープと各テスト前Resetを確認する",
+          "meaning": "fixtureのスコープと各テスト前Resetを確認する",
+          "reason": "fixtureのスコープとResetのタイミングを確認することで初期状態を確保します。"
+        },
+        {
+          "value": "B",
+          "label": "順序固定だけでReset不要とする",
+          "meaning": "順序固定だけでReset不要とする",
+          "reason": "テスト順を固定しても状態の引き継ぎは解消しません。"
+        },
+        {
+          "value": "C",
+          "label": "前テストで残った状態を再利用する",
+          "meaning": "前テストで残った状態を再利用する",
+          "reason": "前テストで変更した状態を使うと独立実行できません。"
+        },
+        {
+          "value": "D",
+          "label": "Retry成功で独立性を保証する",
+          "meaning": "Retry成功で独立性を保証する",
+          "reason": "Retryが成功しても各テストの初期状態が正しい証拠にはなりません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-07"
     }
   ]
 }

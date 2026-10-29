@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#workflowを読む"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#workflowを読む",
+      "knowledge_ids": [
+        "K-M09-01"
+      ]
     },
     {
       "id": "M09-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#対象shaとrunのartifactを照合する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#対象shaとrunのartifactを照合する",
+      "knowledge_ids": [
+        "K-M09-02"
+      ]
     },
     {
       "id": "M09-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最初の失敗箇所から結果を分類する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最初の失敗箇所から結果を分類する",
+      "knowledge_ids": [
+        "K-M09-03"
+      ]
     },
     {
       "id": "M09-Q04",
@@ -152,7 +161,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#runner費用を確認する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#runner費用を確認する",
+      "knowledge_ids": [
+        "K-M09-04"
+      ]
     },
     {
       "id": "M09-Q05",
@@ -190,7 +202,92 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最小権限を設定する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最小権限を設定する",
+      "knowledge_ids": [
+        "K-M09-05"
+      ]
+    },
+    {
+      "id": "M09-Q06",
+      "objective_ids": [
+        "M09-01"
+      ],
+      "knowledge_ids": [
+        "K-M09-06"
+      ],
+      "question": "GitHub Actions workflowの`steps`を記載する場所はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "on直下",
+          "meaning": "on直下",
+          "reason": "onはworkflowのイベント条件です。"
+        },
+        {
+          "value": "B",
+          "label": "jobs内の各jobの下",
+          "meaning": "jobs内の各jobの下",
+          "reason": "stepsはjobs内の各jobに記述します。"
+        },
+        {
+          "value": "C",
+          "label": "permissions直下",
+          "meaning": "permissions直下",
+          "reason": "permissionsはGITHUB_TOKENの権限を指定するための設定です。"
+        },
+        {
+          "value": "D",
+          "label": "artifact直下",
+          "meaning": "artifact直下",
+          "reason": "Artifactというトップレベル項目でstepsを指定する構造ではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-06"
+    },
+    {
+      "id": "M09-Q07",
+      "objective_ids": [
+        "M09-04"
+      ],
+      "knowledge_ids": [
+        "K-M09-07"
+      ],
+      "question": "CIの実行費用が懸念されるとき、最初に検討すべき要素はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "全テスト無効化",
+          "meaning": "全テスト無効化",
+          "reason": "全テスト停止は未検証期間を増やす判断です。"
+        },
+        {
+          "value": "B",
+          "label": "料金を推測して放置",
+          "meaning": "料金を推測して放置",
+          "reason": "料金の推測だけでは実行可能性が判断できません。"
+        },
+        {
+          "value": "C",
+          "label": "trigger頻度・対象spec・未検証期間・課金条件",
+          "meaning": "trigger頻度・対象spec・未検証期間・課金条件",
+          "reason": "trigger頻度・対象spec・課金・未検証期間のトレードオフを確認します。"
+        },
+        {
+          "value": "D",
+          "label": "結果をPASSに固定する",
+          "meaning": "結果をPASSに固定する",
+          "reason": "結果の偽装は検証の代わりになりません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-07"
     }
   ]
 }

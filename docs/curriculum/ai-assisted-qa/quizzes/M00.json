@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#画面とファイルの基本"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#画面とファイルの基本",
+      "knowledge_ids": [
+        "K-M00-02"
+      ]
     },
     {
       "id": "M00-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限",
+      "knowledge_ids": [
+        "K-M00-03"
+      ]
     },
     {
       "id": "M00-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#依頼の作り方"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#依頼の作り方",
+      "knowledge_ids": [
+        "K-M00-05"
+      ]
     },
     {
       "id": "M00-Q04",
@@ -152,7 +161,92 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限",
+      "knowledge_ids": [
+        "K-M00-06"
+      ]
+    },
+    {
+      "id": "M00-Q05",
+      "objective_ids": [
+        "M00-04"
+      ],
+      "knowledge_ids": [
+        "K-M00-07"
+      ],
+      "question": "Codespaceを停止してファイルを保存しました。GitHubのRemoteへ変更が公開されたと言えますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "停止時に自動公開される",
+          "meaning": "停止時に自動公開される",
+          "reason": "Codespaceの停止だけではGitHubへpushされません。"
+        },
+        {
+          "value": "B",
+          "label": "ブラウザを閉じれば公開される",
+          "meaning": "ブラウザを閉じれば公開される",
+          "reason": "ブラウザを閉じてもRemoteには送信されません。"
+        },
+        {
+          "value": "C",
+          "label": "保存とRemoteへのpushは異なるため公開されたとは言えない",
+          "meaning": "保存とRemoteへのpushは異なるため公開されたとは言えない",
+          "reason": "保存とRemoteへの反映は別操作で、必要に応じてcommit・pushを行います。"
+        },
+        {
+          "value": "D",
+          "label": "Codespace停止で保存ファイルも消去される",
+          "meaning": "Codespace停止で保存ファイルも消去される",
+          "reason": "保存済みファイルが停止によって必ず消えるわけではありません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-07"
+    },
+    {
+      "id": "M00-Q06",
+      "objective_ids": [
+        "M00-02"
+      ],
+      "knowledge_ids": [
+        "K-M00-08"
+      ],
+      "question": "ポート公開範囲とAIサービスの料金条件を確認できません。どの対応が適切ですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "公開範囲を広げて試す",
+          "meaning": "公開範囲を広げて試す",
+          "reason": "公開範囲が不明なまま設定を拡大すると意図せず公開する危険があります。"
+        },
+        {
+          "value": "B",
+          "label": "利用条件と権限を確認するまで保留する",
+          "meaning": "利用条件と権限を確認するまで保留する",
+          "reason": "公開権限や費用が確認できない場合は操作を保留します。"
+        },
+        {
+          "value": "C",
+          "label": "料金を推測して実行する",
+          "meaning": "料金を推測して実行する",
+          "reason": "利用枠や料金を推測して実行してはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "公開URLを誰でも閲覧できるとみなして共有する",
+          "meaning": "公開URLを誰でも閲覧できるとみなして共有する",
+          "reason": "共有前に公開設定とアクセス権の確認が必要です。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-08"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-08"
     }
   ]
 }

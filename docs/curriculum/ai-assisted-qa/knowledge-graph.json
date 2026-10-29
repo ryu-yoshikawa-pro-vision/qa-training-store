@@ -467,6 +467,17 @@
       "private": false
     },
     {
+      "id": "ART-M10-CI-RUN-EVIDENCE",
+      "type": "artifact",
+      "title": "M10 learner PR and Run evidence input template",
+      "module": "M10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json",
+      "destination": "workspace/M10/ci-run-evidence.json",
+      "public": true,
+      "private": false
+    },
+    {
       "id": "ART-M10-INPUT-PUBLIC-SAMPLE-CONFIG",
       "type": "artifact",
       "title": "M10 public start input public-sample-config.md",
@@ -551,17 +562,6 @@
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "training/ai-assisted-qa-course/inputs/M10/start.md",
       "destination": "course/modules/M10/inputs/start.md",
-      "public": true,
-      "private": false
-    },
-    {
-      "id": "ART-M10-CI-RUN-EVIDENCE",
-      "type": "artifact",
-      "title": "M10 learner PR and Run evidence input template",
-      "module": "M10",
-      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
-      "path": "training/ai-assisted-qa-course/inputs/M10/ci-run-evidence.template.json",
-      "destination": "workspace/M10/ci-run-evidence.json",
       "public": true,
       "private": false
     },
@@ -1090,6 +1090,24 @@
       "status": "draft_requires_content_review"
     },
     {
+      "id": "K-M00-07",
+      "type": "knowledge",
+      "title": "Codespaceの停止と作業保存の違い",
+      "module": "M00",
+      "can_do": "Codespaceの停止・ブラウザ閉鎖・保存・Remote反映を別の操作として説明できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-07"
+    },
+    {
+      "id": "K-M00-08",
+      "type": "knowledge",
+      "title": "ポート公開範囲と利用枠の安全確認",
+      "module": "M00",
+      "can_do": "公開ポートとモデル利用条件・費用を確認し、不明な場合には操作を停止できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-08"
+    },
+    {
       "id": "K-M01-01",
       "type": "knowledge",
       "title": "テスト目的と期待結果・観測結果",
@@ -1120,6 +1138,15 @@
       "module": "M01",
       "can_do": "必要なテスト層と実行費用を比較する",
       "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M01-05",
+      "type": "knowledge",
+      "title": "根拠を分けた欠陥報告",
+      "module": "M01",
+      "can_do": "期待結果・観測・推測・未実行を区別し、第三者が追跡できる欠陥報告を作れる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#k-m01-05"
     },
     {
       "id": "K-M02-01",
@@ -1162,6 +1189,33 @@
       "status": "draft_requires_content_review"
     },
     {
+      "id": "K-M02-06",
+      "type": "knowledge",
+      "title": "数量追加と更新の期待結果の違い",
+      "module": "M02",
+      "can_do": "同じ制約でも追加と更新の差を区別し、初期値から仕様に基づく期待結果を計算できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-06"
+    },
+    {
+      "id": "K-M02-07",
+      "type": "knowledge",
+      "title": "Seed・Resetの保証範囲",
+      "module": "M02",
+      "can_do": "Seedの初期データ、Resetの保証、以前のテストで変化した状態を区別できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-07"
+    },
+    {
+      "id": "K-M02-08",
+      "type": "knowledge",
+      "title": "検証責務と仕様revisionの出典",
+      "module": "M02",
+      "can_do": "リスクと仕様から検証責務を導き、出典・対象範囲・revisionを示せる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-08"
+    },
+    {
       "id": "K-M03-01",
       "type": "knowledge",
       "title": "同値分割と代表値",
@@ -1200,6 +1254,33 @@
       "module": "M03",
       "can_do": "期待結果とテストケースの出典をたどれるようにする",
       "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M03-06",
+      "type": "knowledge",
+      "title": "条件構造に基づく技法選択",
+      "module": "M03",
+      "can_do": "テスト条件とリスクから技法を選び、不採用の理由も説明できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-06"
+    },
+    {
+      "id": "K-M03-07",
+      "type": "knowledge",
+      "title": "ルールの到達不能とテストデータ不足",
+      "module": "M03",
+      "can_do": "論理的な到達不能、データの未準備、未決仕様を区別できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-07"
+    },
+    {
+      "id": "K-M03-08",
+      "type": "knowledge",
+      "title": "Skillの機械検証と意味的妥当性",
+      "module": "M03",
+      "can_do": "runtimeの成功と期待結果の根拠・設計の意味的な正しさを区別できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#k-m03-08"
     },
     {
       "id": "K-M04-01",
@@ -1314,6 +1395,60 @@
       "status": "draft_requires_content_review"
     },
     {
+      "id": "K-M05-11",
+      "type": "knowledge",
+      "title": "配列とインデックス",
+      "module": "M05",
+      "can_do": "配列の添字と要素を追い、添字を変えた結果を説明できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-11"
+    },
+    {
+      "id": "K-M05-12",
+      "type": "knowledge",
+      "title": "オブジェクトとプロパティ",
+      "module": "M05",
+      "can_do": "プロパティ参照・変更の結果を説明し、配列の添字と混同しない",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-12"
+    },
+    {
+      "id": "K-M05-13",
+      "type": "knowledge",
+      "title": "条件分岐と比較",
+      "module": "M05",
+      "can_do": "条件式の真偽から実行経路と結果を説明できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-13"
+    },
+    {
+      "id": "K-M05-14",
+      "type": "knowledge",
+      "title": "関数の引数と戻り値",
+      "module": "M05",
+      "can_do": "引数・戻り値・関数の関係を説明し、短い関数を変更して結果を確認できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-14"
+    },
+    {
+      "id": "K-M05-15",
+      "type": "knowledge",
+      "title": "HTMLからのLocator選択",
+      "module": "M05",
+      "can_do": "Role・アクセシブル名から一意のLocatorを選び、実行して確認できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-15"
+    },
+    {
+      "id": "K-M05-16",
+      "type": "knowledge",
+      "title": "型検査・実行・Assertionの失敗区分",
+      "module": "M05",
+      "can_do": "型検査の成功と業務正しさを区別し、構文・型・実行・Assertionの失敗を分類できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#k-m05-16"
+    },
+    {
       "id": "K-M06-01",
       "type": "knowledge",
       "title": "CaseとPlaywright specの対応",
@@ -1352,6 +1487,24 @@
       "module": "M06",
       "can_do": "実行した事実と障害の区別を行う",
       "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M06-06",
+      "type": "knowledge",
+      "title": "別Caseから新規specを構成する",
+      "module": "M06",
+      "can_do": "別CaseのReset・Action・Locator・業務Assertionを選んで新規specを作成し、単独実行できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-06"
+    },
+    {
+      "id": "K-M06-07",
+      "type": "knowledge",
+      "title": "Locatorと業務Assertionの役割区分",
+      "module": "M06",
+      "can_do": "一意の要素選択・Action成立・仕様上の業務結果を別々に検証できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-07"
     },
     {
       "id": "K-M07-01",
@@ -1394,6 +1547,24 @@
       "status": "draft_requires_content_review"
     },
     {
+      "id": "K-M07-06",
+      "type": "knowledge",
+      "title": "Page Objectへの操作共通化",
+      "module": "M07",
+      "can_do": "画面操作をPage Objectへまとめ、仕様Assertionの責務を保持して別Runで検証できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-06"
+    },
+    {
+      "id": "K-M07-07",
+      "type": "knowledge",
+      "title": "fixtureと各テストのReset",
+      "module": "M07",
+      "can_do": "fixtureのスコープを理解し、各テスト前Resetとテスト間独立性を確認できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#k-m07-07"
+    },
+    {
       "id": "K-M08-01",
       "type": "knowledge",
       "title": "Gitのworking tree・stage・commit・branch",
@@ -1424,6 +1595,15 @@
       "module": "M08",
       "can_do": "根拠のある指摘と過剰設計を区別する",
       "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M08-05",
+      "type": "knowledge",
+      "title": "ローカルcommitとRemote・PRの違い",
+      "module": "M08",
+      "can_do": "ローカルbranch・commit・push・PR・CIを区別して未実行の操作を完了扱いしない",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#k-m08-05"
     },
     {
       "id": "K-M09-01",
@@ -1466,6 +1646,24 @@
       "status": "draft_requires_content_review"
     },
     {
+      "id": "K-M09-06",
+      "type": "knowledge",
+      "title": "workflow YAMLの構造",
+      "module": "M09",
+      "can_do": "event・job・step・Runnerと対象specの関係を読み、workflowを修正できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-06"
+    },
+    {
+      "id": "K-M09-07",
+      "type": "knowledge",
+      "title": "CI実行頻度・範囲・費用",
+      "module": "M09",
+      "can_do": "trigger頻度、検証範囲、費用、未検証期間の関係から安全な実行方針を選べる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-07"
+    },
+    {
       "id": "K-M10-01",
       "type": "knowledge",
       "title": "実技資産の選択とGit公開範囲",
@@ -1504,6 +1702,24 @@
       "module": "M10",
       "can_do": "保証されたことと未確認事項を説明する",
       "status": "draft_requires_content_review"
+    },
+    {
+      "id": "K-M10-06",
+      "type": "knowledge",
+      "title": "Artifactの対象specと結果の完全性",
+      "module": "M10",
+      "can_do": "同一RunのSHA・実行対象spec・PASS/FAIL/SKIP・Artifactを照合できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-06"
+    },
+    {
+      "id": "K-M10-07",
+      "type": "knowledge",
+      "title": "CIの停止と再実行可否",
+      "module": "M10",
+      "can_do": "失敗原因・費用・権限・後続影響に基づきtrigger停止と再実行を判断できる",
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-07"
     },
     {
       "id": "LESSON-M00",
@@ -2477,6 +2693,26 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M00-Q05",
+      "type": "quiz",
+      "title": "M00-Q05 quiz",
+      "module": "M00",
+      "question_id": "M00-Q05",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M00.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M00-Q06",
+      "type": "quiz",
+      "title": "M00-Q06 quiz",
+      "module": "M00",
+      "question_id": "M00-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M00.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M01-Q01",
       "type": "quiz",
       "title": "M01-Q01 quiz",
@@ -2512,6 +2748,16 @@
       "title": "M01-Q04 quiz",
       "module": "M01",
       "question_id": "M01-Q04",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M01.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M01-Q05",
+      "type": "quiz",
+      "title": "M01-Q05 quiz",
+      "module": "M01",
+      "question_id": "M01-Q05",
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/curriculum/ai-assisted-qa/quizzes/M01.json",
       "source_revision_kind": "repository_commit"
@@ -2567,6 +2813,36 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M02-Q06",
+      "type": "quiz",
+      "title": "M02-Q06 quiz",
+      "module": "M02",
+      "question_id": "M02-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M02.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M02-Q07",
+      "type": "quiz",
+      "title": "M02-Q07 quiz",
+      "module": "M02",
+      "question_id": "M02-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M02.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M02-Q08",
+      "type": "quiz",
+      "title": "M02-Q08 quiz",
+      "module": "M02",
+      "question_id": "M02-Q08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M02.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M03-Q01",
       "type": "quiz",
       "title": "M03-Q01 quiz",
@@ -2612,6 +2888,46 @@
       "title": "M03-Q05 quiz",
       "module": "M03",
       "question_id": "M03-Q05",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M03-Q06",
+      "type": "quiz",
+      "title": "M03-Q06 quiz",
+      "module": "M03",
+      "question_id": "M03-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M03-Q07",
+      "type": "quiz",
+      "title": "M03-Q07 quiz",
+      "module": "M03",
+      "question_id": "M03-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M03-Q08",
+      "type": "quiz",
+      "title": "M03-Q08 quiz",
+      "module": "M03",
+      "question_id": "M03-Q08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M03-Q09",
+      "type": "quiz",
+      "title": "M03-Q09 quiz",
+      "module": "M03",
+      "question_id": "M03-Q09",
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
       "source_revision_kind": "repository_commit"
@@ -2717,6 +3033,66 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M05-Q07",
+      "type": "quiz",
+      "title": "M05-Q07 quiz",
+      "module": "M05",
+      "question_id": "M05-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M05-Q08",
+      "type": "quiz",
+      "title": "M05-Q08 quiz",
+      "module": "M05",
+      "question_id": "M05-Q08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M05-Q09",
+      "type": "quiz",
+      "title": "M05-Q09 quiz",
+      "module": "M05",
+      "question_id": "M05-Q09",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M05-Q10",
+      "type": "quiz",
+      "title": "M05-Q10 quiz",
+      "module": "M05",
+      "question_id": "M05-Q10",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M05-Q11",
+      "type": "quiz",
+      "title": "M05-Q11 quiz",
+      "module": "M05",
+      "question_id": "M05-Q11",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M05-Q12",
+      "type": "quiz",
+      "title": "M05-Q12 quiz",
+      "module": "M05",
+      "question_id": "M05-Q12",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M06-Q01",
       "type": "quiz",
       "title": "M06-Q01 quiz",
@@ -2777,6 +3153,26 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M06-Q07",
+      "type": "quiz",
+      "title": "M06-Q07 quiz",
+      "module": "M06",
+      "question_id": "M06-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M06.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M06-Q08",
+      "type": "quiz",
+      "title": "M06-Q08 quiz",
+      "module": "M06",
+      "question_id": "M06-Q08",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M06.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M07-Q01",
       "type": "quiz",
       "title": "M07-Q01 quiz",
@@ -2827,6 +3223,26 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M07-Q06",
+      "type": "quiz",
+      "title": "M07-Q06 quiz",
+      "module": "M07",
+      "question_id": "M07-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M07-Q07",
+      "type": "quiz",
+      "title": "M07-Q07 quiz",
+      "module": "M07",
+      "question_id": "M07-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M08-Q01",
       "type": "quiz",
       "title": "M08-Q01 quiz",
@@ -2862,6 +3278,16 @@
       "title": "M08-Q04 quiz",
       "module": "M08",
       "question_id": "M08-Q04",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M08.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M08-Q05",
+      "type": "quiz",
+      "title": "M08-Q05 quiz",
+      "module": "M08",
+      "question_id": "M08-Q05",
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/curriculum/ai-assisted-qa/quizzes/M08.json",
       "source_revision_kind": "repository_commit"
@@ -2917,6 +3343,26 @@
       "source_revision_kind": "repository_commit"
     },
     {
+      "id": "QUIZ-M09-Q06",
+      "type": "quiz",
+      "title": "M09-Q06 quiz",
+      "module": "M09",
+      "question_id": "M09-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M09.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M09-Q07",
+      "type": "quiz",
+      "title": "M09-Q07 quiz",
+      "module": "M09",
+      "question_id": "M09-Q07",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M09.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
       "id": "QUIZ-M10-Q01",
       "type": "quiz",
       "title": "M10-Q01 quiz",
@@ -2962,6 +3408,26 @@
       "title": "M10-Q05 quiz",
       "module": "M10",
       "question_id": "M10-Q05",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M10.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M10-Q06",
+      "type": "quiz",
+      "title": "M10-Q06 quiz",
+      "module": "M10",
+      "question_id": "M10-Q06",
+      "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
+      "path": "docs/curriculum/ai-assisted-qa/quizzes/M10.json",
+      "source_revision_kind": "repository_commit"
+    },
+    {
+      "id": "QUIZ-M10-Q07",
+      "type": "quiz",
+      "title": "M10-Q07 quiz",
+      "module": "M10",
+      "question_id": "M10-Q07",
       "repo": "ryu-yoshikawa-pro-vision/qa-training-store",
       "path": "docs/curriculum/ai-assisted-qa/quizzes/M10.json",
       "source_revision_kind": "repository_commit"
@@ -4522,6 +4988,16 @@
     },
     {
       "from": "LESSON-M00",
+      "relation": "teaches",
+      "to": "K-M00-07"
+    },
+    {
+      "from": "LESSON-M00",
+      "relation": "teaches",
+      "to": "K-M00-08"
+    },
+    {
+      "from": "LESSON-M00",
       "relation": "uses_skill",
       "to": "S-QA-WORKFLOW"
     },
@@ -4549,6 +5025,11 @@
       "from": "LESSON-M01",
       "relation": "teaches",
       "to": "K-M01-04"
+    },
+    {
+      "from": "LESSON-M01",
+      "relation": "teaches",
+      "to": "K-M01-05"
     },
     {
       "from": "LESSON-M02",
@@ -4579,6 +5060,21 @@
       "from": "LESSON-M02",
       "relation": "teaches",
       "to": "K-M02-05"
+    },
+    {
+      "from": "LESSON-M02",
+      "relation": "teaches",
+      "to": "K-M02-06"
+    },
+    {
+      "from": "LESSON-M02",
+      "relation": "teaches",
+      "to": "K-M02-07"
+    },
+    {
+      "from": "LESSON-M02",
+      "relation": "teaches",
+      "to": "K-M02-08"
     },
     {
       "from": "LESSON-M02",
@@ -4629,6 +5125,21 @@
       "from": "LESSON-M03",
       "relation": "teaches",
       "to": "K-M03-05"
+    },
+    {
+      "from": "LESSON-M03",
+      "relation": "teaches",
+      "to": "K-M03-06"
+    },
+    {
+      "from": "LESSON-M03",
+      "relation": "teaches",
+      "to": "K-M03-07"
+    },
+    {
+      "from": "LESSON-M03",
+      "relation": "teaches",
+      "to": "K-M03-08"
     },
     {
       "from": "LESSON-M03",
@@ -4741,6 +5252,36 @@
       "to": "K-M05-10"
     },
     {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-11"
+    },
+    {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-12"
+    },
+    {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-13"
+    },
+    {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-14"
+    },
+    {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-15"
+    },
+    {
+      "from": "LESSON-M05",
+      "relation": "teaches",
+      "to": "K-M05-16"
+    },
+    {
       "from": "LESSON-M06",
       "relation": "part_of",
       "to": "M06"
@@ -4769,6 +5310,16 @@
       "from": "LESSON-M06",
       "relation": "teaches",
       "to": "K-M06-05"
+    },
+    {
+      "from": "LESSON-M06",
+      "relation": "teaches",
+      "to": "K-M06-06"
+    },
+    {
+      "from": "LESSON-M06",
+      "relation": "teaches",
+      "to": "K-M06-07"
     },
     {
       "from": "LESSON-M06",
@@ -4822,6 +5373,16 @@
     },
     {
       "from": "LESSON-M07",
+      "relation": "teaches",
+      "to": "K-M07-06"
+    },
+    {
+      "from": "LESSON-M07",
+      "relation": "teaches",
+      "to": "K-M07-07"
+    },
+    {
+      "from": "LESSON-M07",
       "relation": "uses_skill",
       "to": "S-E2E-REPORTING"
     },
@@ -4856,6 +5417,11 @@
       "to": "K-M08-04"
     },
     {
+      "from": "LESSON-M08",
+      "relation": "teaches",
+      "to": "K-M08-05"
+    },
+    {
       "from": "LESSON-M09",
       "relation": "part_of",
       "to": "M09"
@@ -4884,6 +5450,16 @@
       "from": "LESSON-M09",
       "relation": "teaches",
       "to": "K-M09-05"
+    },
+    {
+      "from": "LESSON-M09",
+      "relation": "teaches",
+      "to": "K-M09-06"
+    },
+    {
+      "from": "LESSON-M09",
+      "relation": "teaches",
+      "to": "K-M09-07"
     },
     {
       "from": "LESSON-M10",
@@ -4916,27 +5492,14 @@
       "to": "K-M10-05"
     },
     {
-      "from": "M00",
-      "relation": "has_end_state",
-      "to": "STATE-M00-END"
+      "from": "LESSON-M10",
+      "relation": "teaches",
+      "to": "K-M10-06"
     },
     {
-      "from": "M00",
-      "relation": "has_start_state",
-      "to": "STATE-M00-START"
-    },
-    {
-      "from": "M00",
-      "to": "S-QA-WORKFLOW",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M00",
-      "to": "P1",
-      "relation": "part_of",
-      "status": "defined"
+      "from": "LESSON-M10",
+      "relation": "teaches",
+      "to": "K-M10-07"
     },
     {
       "from": "M00-01",
@@ -4981,6 +5544,11 @@
       "status": "draft"
     },
     {
+      "from": "M00-02",
+      "relation": "requires_knowledge",
+      "to": "K-M00-08"
+    },
+    {
       "from": "M00-03",
       "to": "M00",
       "relation": "part_of",
@@ -5023,25 +5591,31 @@
       "status": "draft"
     },
     {
-      "from": "M01",
+      "from": "M00-04",
+      "relation": "requires_knowledge",
+      "to": "K-M00-07"
+    },
+    {
+      "from": "M00",
       "relation": "has_end_state",
-      "to": "STATE-M01-END"
+      "to": "STATE-M00-END"
     },
     {
-      "from": "M01",
+      "from": "M00",
       "relation": "has_start_state",
-      "to": "STATE-M01-START"
+      "to": "STATE-M00-START"
     },
     {
-      "from": "M01",
+      "from": "M00",
+      "to": "S-QA-WORKFLOW",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M00",
       "to": "P1",
       "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M01",
-      "to": "M00",
-      "relation": "requires",
       "status": "defined"
     },
     {
@@ -5055,6 +5629,11 @@
       "to": "K-M01-01",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M01-01",
+      "relation": "requires_knowledge",
+      "to": "K-M01-05"
     },
     {
       "from": "M01-02",
@@ -5089,6 +5668,137 @@
     {
       "from": "M01-04",
       "to": "K-M01-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M01",
+      "relation": "has_end_state",
+      "to": "STATE-M01-END"
+    },
+    {
+      "from": "M01",
+      "relation": "has_start_state",
+      "to": "STATE-M01-START"
+    },
+    {
+      "from": "M01",
+      "to": "P1",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M01",
+      "to": "M00",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "M02-01",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-01",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-01",
+      "to": "K-M02-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-01",
+      "relation": "requires_knowledge",
+      "to": "K-M02-06"
+    },
+    {
+      "from": "M02-02",
+      "to": "F-CHECKOUT",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-02",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-02",
+      "to": "K-M02-02",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-03",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-03",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-03",
+      "to": "K-M02-03",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-03",
+      "relation": "requires_knowledge",
+      "to": "K-M02-07"
+    },
+    {
+      "from": "M02-04",
+      "to": "F-CART",
+      "relation": "applies_to",
+      "status": "example_only",
+      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
+    },
+    {
+      "from": "M02-04",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-04",
+      "to": "K-M02-04",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-04",
+      "relation": "requires_knowledge",
+      "to": "K-M02-08"
+    },
+    {
+      "from": "M02-05",
+      "to": "M02",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M02-05",
+      "to": "K-M02-01",
+      "relation": "requires_knowledge",
+      "status": "draft"
+    },
+    {
+      "from": "M02-05",
+      "to": "K-M02-05",
       "relation": "requires_knowledge",
       "status": "draft"
     },
@@ -5130,148 +5840,6 @@
     {
       "from": "M02",
       "to": "M01",
-      "relation": "requires",
-      "status": "defined"
-    },
-    {
-      "from": "M02-01",
-      "to": "F-CART",
-      "relation": "applies_to",
-      "status": "example_only",
-      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
-    },
-    {
-      "from": "M02-01",
-      "to": "M02",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M02-01",
-      "to": "K-M02-01",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M02-02",
-      "to": "F-CHECKOUT",
-      "relation": "applies_to",
-      "status": "example_only",
-      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
-    },
-    {
-      "from": "M02-02",
-      "to": "M02",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M02-02",
-      "to": "K-M02-02",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M02-03",
-      "to": "F-CART",
-      "relation": "applies_to",
-      "status": "example_only",
-      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
-    },
-    {
-      "from": "M02-03",
-      "to": "M02",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M02-03",
-      "to": "K-M02-03",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M02-04",
-      "to": "F-CART",
-      "relation": "applies_to",
-      "status": "example_only",
-      "reason": "学習課題例であり、この機能を正式な修了試験対象として確定したものではない"
-    },
-    {
-      "from": "M02-04",
-      "to": "M02",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M02-04",
-      "to": "K-M02-04",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M02-05",
-      "to": "M02",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M02-05",
-      "to": "K-M02-01",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M02-05",
-      "to": "K-M02-05",
-      "relation": "requires_knowledge",
-      "status": "draft"
-    },
-    {
-      "from": "M03",
-      "relation": "has_end_state",
-      "to": "STATE-M03-END"
-    },
-    {
-      "from": "M03",
-      "relation": "has_start_state",
-      "to": "STATE-M03-START"
-    },
-    {
-      "from": "M03",
-      "to": "S-COVERAGE",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M03",
-      "to": "S-TEST-CASES",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M03",
-      "to": "S-TEST-CONDITIONS",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M03",
-      "relation": "may_use_skill",
-      "to": "S-TEST-REQUIREMENTS"
-    },
-    {
-      "from": "M03",
-      "to": "P1",
-      "relation": "part_of",
-      "status": "defined"
-    },
-    {
-      "from": "M03",
-      "to": "M02",
       "relation": "requires",
       "status": "defined"
     },
@@ -5333,6 +5901,11 @@
       "status": "draft"
     },
     {
+      "from": "M03-03",
+      "relation": "requires_knowledge",
+      "to": "K-M03-07"
+    },
+    {
       "from": "M03-04",
       "to": "F-CHECKOUT",
       "relation": "applies_to",
@@ -5371,31 +5944,60 @@
       "status": "draft"
     },
     {
-      "from": "M04",
+      "from": "M03-05",
+      "relation": "requires_knowledge",
+      "to": "K-M03-06"
+    },
+    {
+      "from": "M03-05",
+      "relation": "requires_knowledge",
+      "to": "K-M03-08"
+    },
+    {
+      "from": "M03",
       "relation": "has_end_state",
-      "to": "STATE-M04-END"
+      "to": "STATE-M03-END"
     },
     {
-      "from": "M04",
+      "from": "M03",
       "relation": "has_start_state",
-      "to": "STATE-M04-START"
+      "to": "STATE-M03-START"
     },
     {
-      "from": "M04",
-      "to": "S-REVIEW",
+      "from": "M03",
+      "to": "S-COVERAGE",
       "relation": "may_use_skill",
       "status": "candidate",
       "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
     },
     {
-      "from": "M04",
+      "from": "M03",
+      "to": "S-TEST-CASES",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M03",
+      "to": "S-TEST-CONDITIONS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M03",
+      "relation": "may_use_skill",
+      "to": "S-TEST-REQUIREMENTS"
+    },
+    {
+      "from": "M03",
       "to": "P1",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M04",
-      "to": "M03",
+      "from": "M03",
+      "to": "M02",
       "relation": "requires",
       "status": "defined"
     },
@@ -5462,24 +6064,31 @@
       "status": "draft"
     },
     {
-      "from": "M05",
+      "from": "M04",
       "relation": "has_end_state",
-      "to": "STATE-M05-END"
+      "to": "STATE-M04-END"
     },
     {
-      "from": "M05",
+      "from": "M04",
       "relation": "has_start_state",
-      "to": "STATE-M05-START"
+      "to": "STATE-M04-START"
     },
     {
-      "from": "M05",
-      "to": "P2",
+      "from": "M04",
+      "to": "S-REVIEW",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M04",
+      "to": "P1",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M05",
-      "to": "M04",
+      "from": "M04",
+      "to": "M03",
       "relation": "requires",
       "status": "defined"
     },
@@ -5532,6 +6141,26 @@
       "status": "draft"
     },
     {
+      "from": "M05-01",
+      "relation": "requires_knowledge",
+      "to": "K-M05-11"
+    },
+    {
+      "from": "M05-01",
+      "relation": "requires_knowledge",
+      "to": "K-M05-12"
+    },
+    {
+      "from": "M05-01",
+      "relation": "requires_knowledge",
+      "to": "K-M05-13"
+    },
+    {
+      "from": "M05-01",
+      "relation": "requires_knowledge",
+      "to": "K-M05-14"
+    },
+    {
       "from": "M05-02",
       "to": "F-STOREFRONT",
       "relation": "applies_to",
@@ -5549,6 +6178,11 @@
       "to": "K-M05-07",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M05-02",
+      "relation": "requires_knowledge",
+      "to": "K-M05-15"
     },
     {
       "from": "M05-03",
@@ -5588,6 +6222,11 @@
       "status": "draft"
     },
     {
+      "from": "M05-04",
+      "relation": "requires_knowledge",
+      "to": "K-M05-16"
+    },
+    {
       "from": "M05-05",
       "to": "M05",
       "relation": "part_of",
@@ -5606,38 +6245,24 @@
       "status": "draft"
     },
     {
-      "from": "M06",
+      "from": "M05",
       "relation": "has_end_state",
-      "to": "STATE-M06-END"
+      "to": "STATE-M05-END"
     },
     {
-      "from": "M06",
+      "from": "M05",
       "relation": "has_start_state",
-      "to": "STATE-M06-START"
+      "to": "STATE-M05-START"
     },
     {
-      "from": "M06",
-      "to": "S-E2E-EXECUTION",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M06",
-      "to": "S-E2E-IMPLEMENTATION",
-      "relation": "may_use_skill",
-      "status": "candidate",
-      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
-    },
-    {
-      "from": "M06",
+      "from": "M05",
       "to": "P2",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M06",
-      "to": "M05",
+      "from": "M05",
+      "to": "M04",
       "relation": "requires",
       "status": "defined"
     },
@@ -5659,6 +6284,11 @@
       "to": "K-M06-01",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M06-01",
+      "relation": "requires_knowledge",
+      "to": "K-M06-06"
     },
     {
       "from": "M06-02",
@@ -5705,6 +6335,11 @@
       "status": "draft"
     },
     {
+      "from": "M06-03",
+      "relation": "requires_knowledge",
+      "to": "K-M06-07"
+    },
+    {
       "from": "M06-04",
       "to": "M06",
       "relation": "part_of",
@@ -5729,38 +6364,38 @@
       "status": "draft"
     },
     {
-      "from": "M07",
+      "from": "M06",
       "relation": "has_end_state",
-      "to": "STATE-M07-END"
+      "to": "STATE-M06-END"
     },
     {
-      "from": "M07",
+      "from": "M06",
       "relation": "has_start_state",
-      "to": "STATE-M07-START"
+      "to": "STATE-M06-START"
     },
     {
-      "from": "M07",
-      "to": "S-E2E-REPORTING",
+      "from": "M06",
+      "to": "S-E2E-EXECUTION",
       "relation": "may_use_skill",
       "status": "candidate",
       "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
     },
     {
-      "from": "M07",
-      "to": "S-E2E-RESULT-ANALYSIS",
+      "from": "M06",
+      "to": "S-E2E-IMPLEMENTATION",
       "relation": "may_use_skill",
       "status": "candidate",
       "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
     },
     {
-      "from": "M07",
+      "from": "M06",
       "to": "P2",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M07",
-      "to": "M06",
+      "from": "M06",
+      "to": "M05",
       "relation": "requires",
       "status": "defined"
     },
@@ -5832,24 +6467,48 @@
       "status": "draft"
     },
     {
-      "from": "M08",
+      "from": "M07-05",
+      "relation": "requires_knowledge",
+      "to": "K-M07-06"
+    },
+    {
+      "from": "M07-05",
+      "relation": "requires_knowledge",
+      "to": "K-M07-07"
+    },
+    {
+      "from": "M07",
       "relation": "has_end_state",
-      "to": "STATE-M08-END"
+      "to": "STATE-M07-END"
     },
     {
-      "from": "M08",
+      "from": "M07",
       "relation": "has_start_state",
-      "to": "STATE-M08-START"
+      "to": "STATE-M07-START"
     },
     {
-      "from": "M08",
-      "to": "P3",
+      "from": "M07",
+      "to": "S-E2E-REPORTING",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M07",
+      "to": "S-E2E-RESULT-ANALYSIS",
+      "relation": "may_use_skill",
+      "status": "candidate",
+      "reason": "Skillの配置は確認済みだが課程からの起動・利用可否は実機未検証"
+    },
+    {
+      "from": "M07",
+      "to": "P2",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M08",
-      "to": "M07",
+      "from": "M07",
+      "to": "M06",
       "relation": "requires",
       "status": "defined"
     },
@@ -5864,6 +6523,11 @@
       "to": "K-M08-01",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M08-01",
+      "relation": "requires_knowledge",
+      "to": "K-M08-05"
     },
     {
       "from": "M08-02",
@@ -5902,24 +6566,24 @@
       "status": "draft"
     },
     {
-      "from": "M09",
+      "from": "M08",
       "relation": "has_end_state",
-      "to": "STATE-M09-END"
+      "to": "STATE-M08-END"
     },
     {
-      "from": "M09",
+      "from": "M08",
       "relation": "has_start_state",
-      "to": "STATE-M09-START"
+      "to": "STATE-M08-START"
     },
     {
-      "from": "M09",
+      "from": "M08",
       "to": "P3",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M09",
-      "to": "M08",
+      "from": "M08",
+      "to": "M07",
       "relation": "requires",
       "status": "defined"
     },
@@ -5934,6 +6598,11 @@
       "to": "K-M09-01",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M09-01",
+      "relation": "requires_knowledge",
+      "to": "K-M09-06"
     },
     {
       "from": "M09-02",
@@ -5972,6 +6641,11 @@
       "status": "draft"
     },
     {
+      "from": "M09-04",
+      "relation": "requires_knowledge",
+      "to": "K-M09-07"
+    },
+    {
       "from": "M09-05",
       "to": "M09",
       "relation": "part_of",
@@ -5984,24 +6658,24 @@
       "status": "draft"
     },
     {
-      "from": "M10",
+      "from": "M09",
       "relation": "has_end_state",
-      "to": "STATE-M10-END"
+      "to": "STATE-M09-END"
     },
     {
-      "from": "M10",
+      "from": "M09",
       "relation": "has_start_state",
-      "to": "STATE-M10-START"
+      "to": "STATE-M09-START"
     },
     {
-      "from": "M10",
+      "from": "M09",
       "to": "P3",
       "relation": "part_of",
       "status": "defined"
     },
     {
-      "from": "M10",
-      "to": "M09",
+      "from": "M09",
+      "to": "M08",
       "relation": "requires",
       "status": "defined"
     },
@@ -6042,6 +6716,11 @@
       "status": "draft"
     },
     {
+      "from": "M10-03",
+      "relation": "requires_knowledge",
+      "to": "K-M10-06"
+    },
+    {
       "from": "M10-04",
       "to": "M10",
       "relation": "part_of",
@@ -6052,6 +6731,11 @@
       "to": "K-M10-04",
       "relation": "requires_knowledge",
       "status": "draft"
+    },
+    {
+      "from": "M10-04",
+      "relation": "requires_knowledge",
+      "to": "K-M10-07"
     },
     {
       "from": "M10-05",
@@ -6066,6 +6750,33 @@
       "status": "draft"
     },
     {
+      "from": "M10",
+      "relation": "has_end_state",
+      "to": "STATE-M10-END"
+    },
+    {
+      "from": "M10",
+      "relation": "has_start_state",
+      "to": "STATE-M10-START"
+    },
+    {
+      "from": "M10",
+      "to": "P3",
+      "relation": "part_of",
+      "status": "defined"
+    },
+    {
+      "from": "M10",
+      "to": "M09",
+      "relation": "requires",
+      "status": "defined"
+    },
+    {
+      "from": "QUIZ-M00-Q01",
+      "relation": "evaluates",
+      "to": "K-M00-02"
+    },
+    {
       "from": "QUIZ-M00-Q01",
       "relation": "evaluates",
       "to": "M00-01"
@@ -6074,6 +6785,11 @@
       "from": "QUIZ-M00-Q01",
       "relation": "part_of",
       "to": "M00"
+    },
+    {
+      "from": "QUIZ-M00-Q02",
+      "relation": "evaluates",
+      "to": "K-M00-03"
     },
     {
       "from": "QUIZ-M00-Q02",
@@ -6088,6 +6804,11 @@
     {
       "from": "QUIZ-M00-Q03",
       "relation": "evaluates",
+      "to": "K-M00-05"
+    },
+    {
+      "from": "QUIZ-M00-Q03",
+      "relation": "evaluates",
       "to": "M00-03"
     },
     {
@@ -6098,12 +6819,52 @@
     {
       "from": "QUIZ-M00-Q04",
       "relation": "evaluates",
+      "to": "K-M00-06"
+    },
+    {
+      "from": "QUIZ-M00-Q04",
+      "relation": "evaluates",
       "to": "M00-04"
     },
     {
       "from": "QUIZ-M00-Q04",
       "relation": "part_of",
       "to": "M00"
+    },
+    {
+      "from": "QUIZ-M00-Q05",
+      "relation": "evaluates",
+      "to": "K-M00-07"
+    },
+    {
+      "from": "QUIZ-M00-Q05",
+      "relation": "evaluates",
+      "to": "M00-04"
+    },
+    {
+      "from": "QUIZ-M00-Q05",
+      "relation": "part_of",
+      "to": "M00"
+    },
+    {
+      "from": "QUIZ-M00-Q06",
+      "relation": "evaluates",
+      "to": "K-M00-08"
+    },
+    {
+      "from": "QUIZ-M00-Q06",
+      "relation": "evaluates",
+      "to": "M00-02"
+    },
+    {
+      "from": "QUIZ-M00-Q06",
+      "relation": "part_of",
+      "to": "M00"
+    },
+    {
+      "from": "QUIZ-M01-Q01",
+      "relation": "evaluates",
+      "to": "K-M01-01"
     },
     {
       "from": "QUIZ-M01-Q01",
@@ -6118,12 +6879,22 @@
     {
       "from": "QUIZ-M01-Q02",
       "relation": "evaluates",
+      "to": "K-M01-02"
+    },
+    {
+      "from": "QUIZ-M01-Q02",
+      "relation": "evaluates",
       "to": "M01-02"
     },
     {
       "from": "QUIZ-M01-Q02",
       "relation": "part_of",
       "to": "M01"
+    },
+    {
+      "from": "QUIZ-M01-Q03",
+      "relation": "evaluates",
+      "to": "K-M01-03"
     },
     {
       "from": "QUIZ-M01-Q03",
@@ -6138,12 +6909,37 @@
     {
       "from": "QUIZ-M01-Q04",
       "relation": "evaluates",
+      "to": "K-M01-04"
+    },
+    {
+      "from": "QUIZ-M01-Q04",
+      "relation": "evaluates",
       "to": "M01-04"
     },
     {
       "from": "QUIZ-M01-Q04",
       "relation": "part_of",
       "to": "M01"
+    },
+    {
+      "from": "QUIZ-M01-Q05",
+      "relation": "evaluates",
+      "to": "K-M01-05"
+    },
+    {
+      "from": "QUIZ-M01-Q05",
+      "relation": "evaluates",
+      "to": "M01-01"
+    },
+    {
+      "from": "QUIZ-M01-Q05",
+      "relation": "part_of",
+      "to": "M01"
+    },
+    {
+      "from": "QUIZ-M02-Q01",
+      "relation": "evaluates",
+      "to": "K-M02-01"
     },
     {
       "from": "QUIZ-M02-Q01",
@@ -6158,12 +6954,22 @@
     {
       "from": "QUIZ-M02-Q02",
       "relation": "evaluates",
-      "to": "M02-03"
+      "to": "K-M02-01"
+    },
+    {
+      "from": "QUIZ-M02-Q02",
+      "relation": "evaluates",
+      "to": "M02-01"
     },
     {
       "from": "QUIZ-M02-Q02",
       "relation": "part_of",
       "to": "M02"
+    },
+    {
+      "from": "QUIZ-M02-Q03",
+      "relation": "evaluates",
+      "to": "K-M02-02"
     },
     {
       "from": "QUIZ-M02-Q03",
@@ -6178,12 +6984,22 @@
     {
       "from": "QUIZ-M02-Q04",
       "relation": "evaluates",
+      "to": "K-M02-04"
+    },
+    {
+      "from": "QUIZ-M02-Q04",
+      "relation": "evaluates",
       "to": "M02-04"
     },
     {
       "from": "QUIZ-M02-Q04",
       "relation": "part_of",
       "to": "M02"
+    },
+    {
+      "from": "QUIZ-M02-Q05",
+      "relation": "evaluates",
+      "to": "K-M02-05"
     },
     {
       "from": "QUIZ-M02-Q05",
@@ -6196,6 +7012,56 @@
       "to": "M02"
     },
     {
+      "from": "QUIZ-M02-Q06",
+      "relation": "evaluates",
+      "to": "K-M02-06"
+    },
+    {
+      "from": "QUIZ-M02-Q06",
+      "relation": "evaluates",
+      "to": "M02-01"
+    },
+    {
+      "from": "QUIZ-M02-Q06",
+      "relation": "part_of",
+      "to": "M02"
+    },
+    {
+      "from": "QUIZ-M02-Q07",
+      "relation": "evaluates",
+      "to": "K-M02-07"
+    },
+    {
+      "from": "QUIZ-M02-Q07",
+      "relation": "evaluates",
+      "to": "M02-03"
+    },
+    {
+      "from": "QUIZ-M02-Q07",
+      "relation": "part_of",
+      "to": "M02"
+    },
+    {
+      "from": "QUIZ-M02-Q08",
+      "relation": "evaluates",
+      "to": "K-M02-08"
+    },
+    {
+      "from": "QUIZ-M02-Q08",
+      "relation": "evaluates",
+      "to": "M02-04"
+    },
+    {
+      "from": "QUIZ-M02-Q08",
+      "relation": "part_of",
+      "to": "M02"
+    },
+    {
+      "from": "QUIZ-M03-Q01",
+      "relation": "evaluates",
+      "to": "K-M03-02"
+    },
+    {
       "from": "QUIZ-M03-Q01",
       "relation": "evaluates",
       "to": "M03-02"
@@ -6208,17 +7074,22 @@
     {
       "from": "QUIZ-M03-Q02",
       "relation": "evaluates",
-      "to": "M03-02"
+      "to": "K-M03-02"
     },
     {
       "from": "QUIZ-M03-Q02",
       "relation": "evaluates",
-      "to": "M03-05"
+      "to": "M03-02"
     },
     {
       "from": "QUIZ-M03-Q02",
       "relation": "part_of",
       "to": "M03"
+    },
+    {
+      "from": "QUIZ-M03-Q03",
+      "relation": "evaluates",
+      "to": "K-M03-03"
     },
     {
       "from": "QUIZ-M03-Q03",
@@ -6233,6 +7104,11 @@
     {
       "from": "QUIZ-M03-Q04",
       "relation": "evaluates",
+      "to": "K-M03-04"
+    },
+    {
+      "from": "QUIZ-M03-Q04",
+      "relation": "evaluates",
       "to": "M03-04"
     },
     {
@@ -6243,7 +7119,7 @@
     {
       "from": "QUIZ-M03-Q05",
       "relation": "evaluates",
-      "to": "M03-01"
+      "to": "K-M03-06"
     },
     {
       "from": "QUIZ-M03-Q05",
@@ -6254,6 +7130,71 @@
       "from": "QUIZ-M03-Q05",
       "relation": "part_of",
       "to": "M03"
+    },
+    {
+      "from": "QUIZ-M03-Q06",
+      "relation": "evaluates",
+      "to": "K-M03-06"
+    },
+    {
+      "from": "QUIZ-M03-Q06",
+      "relation": "evaluates",
+      "to": "M03-05"
+    },
+    {
+      "from": "QUIZ-M03-Q06",
+      "relation": "part_of",
+      "to": "M03"
+    },
+    {
+      "from": "QUIZ-M03-Q07",
+      "relation": "evaluates",
+      "to": "K-M03-07"
+    },
+    {
+      "from": "QUIZ-M03-Q07",
+      "relation": "evaluates",
+      "to": "M03-03"
+    },
+    {
+      "from": "QUIZ-M03-Q07",
+      "relation": "part_of",
+      "to": "M03"
+    },
+    {
+      "from": "QUIZ-M03-Q08",
+      "relation": "evaluates",
+      "to": "K-M03-08"
+    },
+    {
+      "from": "QUIZ-M03-Q08",
+      "relation": "evaluates",
+      "to": "M03-05"
+    },
+    {
+      "from": "QUIZ-M03-Q08",
+      "relation": "part_of",
+      "to": "M03"
+    },
+    {
+      "from": "QUIZ-M03-Q09",
+      "relation": "evaluates",
+      "to": "K-M03-01"
+    },
+    {
+      "from": "QUIZ-M03-Q09",
+      "relation": "evaluates",
+      "to": "M03-01"
+    },
+    {
+      "from": "QUIZ-M03-Q09",
+      "relation": "part_of",
+      "to": "M03"
+    },
+    {
+      "from": "QUIZ-M04-Q01",
+      "relation": "evaluates",
+      "to": "K-M04-01"
     },
     {
       "from": "QUIZ-M04-Q01",
@@ -6268,12 +7209,22 @@
     {
       "from": "QUIZ-M04-Q02",
       "relation": "evaluates",
+      "to": "K-M04-02"
+    },
+    {
+      "from": "QUIZ-M04-Q02",
+      "relation": "evaluates",
       "to": "M04-02"
     },
     {
       "from": "QUIZ-M04-Q02",
       "relation": "part_of",
       "to": "M04"
+    },
+    {
+      "from": "QUIZ-M04-Q03",
+      "relation": "evaluates",
+      "to": "K-M04-03"
     },
     {
       "from": "QUIZ-M04-Q03",
@@ -6288,6 +7239,11 @@
     {
       "from": "QUIZ-M04-Q04",
       "relation": "evaluates",
+      "to": "K-M04-04"
+    },
+    {
+      "from": "QUIZ-M04-Q04",
+      "relation": "evaluates",
       "to": "M04-04"
     },
     {
@@ -6298,12 +7254,22 @@
     {
       "from": "QUIZ-M05-Q01",
       "relation": "evaluates",
+      "to": "K-M05-02"
+    },
+    {
+      "from": "QUIZ-M05-Q01",
+      "relation": "evaluates",
       "to": "M05-01"
     },
     {
       "from": "QUIZ-M05-Q01",
       "relation": "part_of",
       "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q02",
+      "relation": "evaluates",
+      "to": "K-M05-06"
     },
     {
       "from": "QUIZ-M05-Q02",
@@ -6319,6 +7285,11 @@
       "from": "QUIZ-M05-Q02",
       "relation": "part_of",
       "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q03",
+      "relation": "evaluates",
+      "to": "K-M05-07"
     },
     {
       "from": "QUIZ-M05-Q03",
@@ -6333,12 +7304,22 @@
     {
       "from": "QUIZ-M05-Q04",
       "relation": "evaluates",
+      "to": "K-M05-08"
+    },
+    {
+      "from": "QUIZ-M05-Q04",
+      "relation": "evaluates",
       "to": "M05-03"
     },
     {
       "from": "QUIZ-M05-Q04",
       "relation": "part_of",
       "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q05",
+      "relation": "evaluates",
+      "to": "K-M05-09"
     },
     {
       "from": "QUIZ-M05-Q05",
@@ -6353,12 +7334,112 @@
     {
       "from": "QUIZ-M05-Q06",
       "relation": "evaluates",
+      "to": "K-M05-10"
+    },
+    {
+      "from": "QUIZ-M05-Q06",
+      "relation": "evaluates",
       "to": "M05-05"
     },
     {
       "from": "QUIZ-M05-Q06",
       "relation": "part_of",
       "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q07",
+      "relation": "evaluates",
+      "to": "K-M05-11"
+    },
+    {
+      "from": "QUIZ-M05-Q07",
+      "relation": "evaluates",
+      "to": "M05-01"
+    },
+    {
+      "from": "QUIZ-M05-Q07",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q08",
+      "relation": "evaluates",
+      "to": "K-M05-12"
+    },
+    {
+      "from": "QUIZ-M05-Q08",
+      "relation": "evaluates",
+      "to": "M05-01"
+    },
+    {
+      "from": "QUIZ-M05-Q08",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q09",
+      "relation": "evaluates",
+      "to": "K-M05-13"
+    },
+    {
+      "from": "QUIZ-M05-Q09",
+      "relation": "evaluates",
+      "to": "M05-01"
+    },
+    {
+      "from": "QUIZ-M05-Q09",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q10",
+      "relation": "evaluates",
+      "to": "K-M05-14"
+    },
+    {
+      "from": "QUIZ-M05-Q10",
+      "relation": "evaluates",
+      "to": "M05-01"
+    },
+    {
+      "from": "QUIZ-M05-Q10",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q11",
+      "relation": "evaluates",
+      "to": "K-M05-15"
+    },
+    {
+      "from": "QUIZ-M05-Q11",
+      "relation": "evaluates",
+      "to": "M05-02"
+    },
+    {
+      "from": "QUIZ-M05-Q11",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M05-Q12",
+      "relation": "evaluates",
+      "to": "K-M05-16"
+    },
+    {
+      "from": "QUIZ-M05-Q12",
+      "relation": "evaluates",
+      "to": "M05-04"
+    },
+    {
+      "from": "QUIZ-M05-Q12",
+      "relation": "part_of",
+      "to": "M05"
+    },
+    {
+      "from": "QUIZ-M06-Q01",
+      "relation": "evaluates",
+      "to": "K-M06-02"
     },
     {
       "from": "QUIZ-M06-Q01",
@@ -6373,12 +7454,27 @@
     {
       "from": "QUIZ-M06-Q02",
       "relation": "evaluates",
+      "to": "K-M06-03"
+    },
+    {
+      "from": "QUIZ-M06-Q02",
+      "relation": "evaluates",
       "to": "M06-03"
     },
     {
       "from": "QUIZ-M06-Q02",
       "relation": "part_of",
       "to": "M06"
+    },
+    {
+      "from": "QUIZ-M06-Q03",
+      "relation": "evaluates",
+      "to": "K-M06-01"
+    },
+    {
+      "from": "QUIZ-M06-Q03",
+      "relation": "evaluates",
+      "to": "K-M06-03"
     },
     {
       "from": "QUIZ-M06-Q03",
@@ -6394,6 +7490,11 @@
       "from": "QUIZ-M06-Q03",
       "relation": "part_of",
       "to": "M06"
+    },
+    {
+      "from": "QUIZ-M06-Q04",
+      "relation": "evaluates",
+      "to": "K-M06-04"
     },
     {
       "from": "QUIZ-M06-Q04",
@@ -6408,12 +7509,22 @@
     {
       "from": "QUIZ-M06-Q05",
       "relation": "evaluates",
+      "to": "K-M06-05"
+    },
+    {
+      "from": "QUIZ-M06-Q05",
+      "relation": "evaluates",
       "to": "M06-05"
     },
     {
       "from": "QUIZ-M06-Q05",
       "relation": "part_of",
       "to": "M06"
+    },
+    {
+      "from": "QUIZ-M06-Q06",
+      "relation": "evaluates",
+      "to": "K-M06-01"
     },
     {
       "from": "QUIZ-M06-Q06",
@@ -6431,6 +7542,41 @@
       "to": "M06"
     },
     {
+      "from": "QUIZ-M06-Q07",
+      "relation": "evaluates",
+      "to": "K-M06-06"
+    },
+    {
+      "from": "QUIZ-M06-Q07",
+      "relation": "evaluates",
+      "to": "M06-01"
+    },
+    {
+      "from": "QUIZ-M06-Q07",
+      "relation": "part_of",
+      "to": "M06"
+    },
+    {
+      "from": "QUIZ-M06-Q08",
+      "relation": "evaluates",
+      "to": "K-M06-07"
+    },
+    {
+      "from": "QUIZ-M06-Q08",
+      "relation": "evaluates",
+      "to": "M06-03"
+    },
+    {
+      "from": "QUIZ-M06-Q08",
+      "relation": "part_of",
+      "to": "M06"
+    },
+    {
+      "from": "QUIZ-M07-Q01",
+      "relation": "evaluates",
+      "to": "K-M07-01"
+    },
+    {
       "from": "QUIZ-M07-Q01",
       "relation": "evaluates",
       "to": "M07-01"
@@ -6439,6 +7585,11 @@
       "from": "QUIZ-M07-Q01",
       "relation": "part_of",
       "to": "M07"
+    },
+    {
+      "from": "QUIZ-M07-Q02",
+      "relation": "evaluates",
+      "to": "K-M07-02"
     },
     {
       "from": "QUIZ-M07-Q02",
@@ -6453,12 +7604,22 @@
     {
       "from": "QUIZ-M07-Q03",
       "relation": "evaluates",
+      "to": "K-M07-03"
+    },
+    {
+      "from": "QUIZ-M07-Q03",
+      "relation": "evaluates",
       "to": "M07-03"
     },
     {
       "from": "QUIZ-M07-Q03",
       "relation": "part_of",
       "to": "M07"
+    },
+    {
+      "from": "QUIZ-M07-Q04",
+      "relation": "evaluates",
+      "to": "K-M07-04"
     },
     {
       "from": "QUIZ-M07-Q04",
@@ -6473,12 +7634,52 @@
     {
       "from": "QUIZ-M07-Q05",
       "relation": "evaluates",
+      "to": "K-M07-05"
+    },
+    {
+      "from": "QUIZ-M07-Q05",
+      "relation": "evaluates",
       "to": "M07-05"
     },
     {
       "from": "QUIZ-M07-Q05",
       "relation": "part_of",
       "to": "M07"
+    },
+    {
+      "from": "QUIZ-M07-Q06",
+      "relation": "evaluates",
+      "to": "K-M07-06"
+    },
+    {
+      "from": "QUIZ-M07-Q06",
+      "relation": "evaluates",
+      "to": "M07-05"
+    },
+    {
+      "from": "QUIZ-M07-Q06",
+      "relation": "part_of",
+      "to": "M07"
+    },
+    {
+      "from": "QUIZ-M07-Q07",
+      "relation": "evaluates",
+      "to": "K-M07-07"
+    },
+    {
+      "from": "QUIZ-M07-Q07",
+      "relation": "evaluates",
+      "to": "M07-05"
+    },
+    {
+      "from": "QUIZ-M07-Q07",
+      "relation": "part_of",
+      "to": "M07"
+    },
+    {
+      "from": "QUIZ-M08-Q01",
+      "relation": "evaluates",
+      "to": "K-M08-01"
     },
     {
       "from": "QUIZ-M08-Q01",
@@ -6493,12 +7694,22 @@
     {
       "from": "QUIZ-M08-Q02",
       "relation": "evaluates",
+      "to": "K-M08-02"
+    },
+    {
+      "from": "QUIZ-M08-Q02",
+      "relation": "evaluates",
       "to": "M08-02"
     },
     {
       "from": "QUIZ-M08-Q02",
       "relation": "part_of",
       "to": "M08"
+    },
+    {
+      "from": "QUIZ-M08-Q03",
+      "relation": "evaluates",
+      "to": "K-M08-03"
     },
     {
       "from": "QUIZ-M08-Q03",
@@ -6513,12 +7724,37 @@
     {
       "from": "QUIZ-M08-Q04",
       "relation": "evaluates",
+      "to": "K-M08-04"
+    },
+    {
+      "from": "QUIZ-M08-Q04",
+      "relation": "evaluates",
       "to": "M08-04"
     },
     {
       "from": "QUIZ-M08-Q04",
       "relation": "part_of",
       "to": "M08"
+    },
+    {
+      "from": "QUIZ-M08-Q05",
+      "relation": "evaluates",
+      "to": "K-M08-05"
+    },
+    {
+      "from": "QUIZ-M08-Q05",
+      "relation": "evaluates",
+      "to": "M08-01"
+    },
+    {
+      "from": "QUIZ-M08-Q05",
+      "relation": "part_of",
+      "to": "M08"
+    },
+    {
+      "from": "QUIZ-M09-Q01",
+      "relation": "evaluates",
+      "to": "K-M09-01"
     },
     {
       "from": "QUIZ-M09-Q01",
@@ -6533,12 +7769,22 @@
     {
       "from": "QUIZ-M09-Q02",
       "relation": "evaluates",
+      "to": "K-M09-02"
+    },
+    {
+      "from": "QUIZ-M09-Q02",
+      "relation": "evaluates",
       "to": "M09-02"
     },
     {
       "from": "QUIZ-M09-Q02",
       "relation": "part_of",
       "to": "M09"
+    },
+    {
+      "from": "QUIZ-M09-Q03",
+      "relation": "evaluates",
+      "to": "K-M09-03"
     },
     {
       "from": "QUIZ-M09-Q03",
@@ -6553,6 +7799,11 @@
     {
       "from": "QUIZ-M09-Q04",
       "relation": "evaluates",
+      "to": "K-M09-04"
+    },
+    {
+      "from": "QUIZ-M09-Q04",
+      "relation": "evaluates",
       "to": "M09-04"
     },
     {
@@ -6563,12 +7814,52 @@
     {
       "from": "QUIZ-M09-Q05",
       "relation": "evaluates",
+      "to": "K-M09-05"
+    },
+    {
+      "from": "QUIZ-M09-Q05",
+      "relation": "evaluates",
       "to": "M09-05"
     },
     {
       "from": "QUIZ-M09-Q05",
       "relation": "part_of",
       "to": "M09"
+    },
+    {
+      "from": "QUIZ-M09-Q06",
+      "relation": "evaluates",
+      "to": "K-M09-06"
+    },
+    {
+      "from": "QUIZ-M09-Q06",
+      "relation": "evaluates",
+      "to": "M09-01"
+    },
+    {
+      "from": "QUIZ-M09-Q06",
+      "relation": "part_of",
+      "to": "M09"
+    },
+    {
+      "from": "QUIZ-M09-Q07",
+      "relation": "evaluates",
+      "to": "K-M09-07"
+    },
+    {
+      "from": "QUIZ-M09-Q07",
+      "relation": "evaluates",
+      "to": "M09-04"
+    },
+    {
+      "from": "QUIZ-M09-Q07",
+      "relation": "part_of",
+      "to": "M09"
+    },
+    {
+      "from": "QUIZ-M10-Q01",
+      "relation": "evaluates",
+      "to": "K-M10-01"
     },
     {
       "from": "QUIZ-M10-Q01",
@@ -6583,12 +7874,22 @@
     {
       "from": "QUIZ-M10-Q02",
       "relation": "evaluates",
+      "to": "K-M10-02"
+    },
+    {
+      "from": "QUIZ-M10-Q02",
+      "relation": "evaluates",
       "to": "M10-02"
     },
     {
       "from": "QUIZ-M10-Q02",
       "relation": "part_of",
       "to": "M10"
+    },
+    {
+      "from": "QUIZ-M10-Q03",
+      "relation": "evaluates",
+      "to": "K-M10-03"
     },
     {
       "from": "QUIZ-M10-Q03",
@@ -6603,6 +7904,11 @@
     {
       "from": "QUIZ-M10-Q04",
       "relation": "evaluates",
+      "to": "K-M10-04"
+    },
+    {
+      "from": "QUIZ-M10-Q04",
+      "relation": "evaluates",
       "to": "M10-04"
     },
     {
@@ -6613,10 +7919,45 @@
     {
       "from": "QUIZ-M10-Q05",
       "relation": "evaluates",
+      "to": "K-M10-05"
+    },
+    {
+      "from": "QUIZ-M10-Q05",
+      "relation": "evaluates",
       "to": "M10-05"
     },
     {
       "from": "QUIZ-M10-Q05",
+      "relation": "part_of",
+      "to": "M10"
+    },
+    {
+      "from": "QUIZ-M10-Q06",
+      "relation": "evaluates",
+      "to": "K-M10-06"
+    },
+    {
+      "from": "QUIZ-M10-Q06",
+      "relation": "evaluates",
+      "to": "M10-03"
+    },
+    {
+      "from": "QUIZ-M10-Q06",
+      "relation": "part_of",
+      "to": "M10"
+    },
+    {
+      "from": "QUIZ-M10-Q07",
+      "relation": "evaluates",
+      "to": "K-M10-07"
+    },
+    {
+      "from": "QUIZ-M10-Q07",
+      "relation": "evaluates",
+      "to": "M10-04"
+    },
+    {
+      "from": "QUIZ-M10-Q07",
       "relation": "part_of",
       "to": "M10"
     },
@@ -6718,6 +8059,11 @@
     {
       "from": "STATE-M10-START",
       "relation": "requires",
+      "to": "ART-M10-CI-RUN-EVIDENCE"
+    },
+    {
+      "from": "STATE-M10-START",
+      "relation": "requires",
       "to": "ART-M10-INPUT-PUBLIC-SAMPLE-CONFIG"
     },
     {
@@ -6754,11 +8100,6 @@
       "from": "STATE-M10-START",
       "relation": "requires",
       "to": "ART-M10-INPUT-START"
-    },
-    {
-      "from": "STATE-M10-START",
-      "relation": "requires",
-      "to": "ART-M10-CI-RUN-EVIDENCE"
     }
   ],
   "source_revisions": {

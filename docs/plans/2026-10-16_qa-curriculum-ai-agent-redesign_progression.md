@@ -14,7 +14,7 @@
 | M05 | TypeScriptの最小構文→非同期→Locator/Action/Assertion | 短い別specの読解・修正・実Run |
 | M06 | 短い完成spec→Reset/Assertion小実験→固定3Case→別Case | 別Caseからの新規E2E、業務Assertion、独立・再Run |
 | M07 | 観測と仮説→失敗証拠→最小修正→Page Object/fixture保守 | 別原因診断・実コードと前後別Run |
-| M08 | Git状態図→status/diff→必要な依存だけstage→PR | 機密を除く必要差分とPR |
+| M08 | Git状態図→status/diff→必要な依存だけstage→ローカルcommit→PRの説明 | 機密を除く必要差分とcommit・PR案 |
 | M09 | 無効workflowの行解説→権限・費用・Run構造 | 別制約への安全な設計変更 |
 | M10 | 有効化前確認→専用CI手動起動→現HEAD/Run/Artifact→復旧 | 本人の実RunとCI運用判断 |
 
@@ -251,9 +251,9 @@ M02は**何を検証すべきか**を仕様とリスクから整理し、M03は*
 
 | ID | 必要な理解・演習 | Level 2の判定 |
 | --- | --- | --- |
-| M08-01 | Working tree/stage/commit/branch/remote、VS Code上の変更とGit履歴を区別 | 課題ファイルの変更→stage→commit→pushの**各時点の状態**を説明できる |
+| M08-01 | Working tree/stage/commit/branch/remote、VS Code上の変更とGit履歴を区別 | 課題ファイルの変更→stage→commitまで本人が実行し、push・PRは未実施として状態の違いを説明できる |
 | M08-02 | `git status`/`git diff`/`git check-ignore`でignoreと差分を確認し、M07本人specと実行に必要なPage Object・fixture・helper等のimport先だけをパス指定でstageする | クリーンcheckoutでも同じspecを実行できる必要ファイルだけをcommitし、ログ・Trace・Secret・個人記録を除外できる |
-| M08-03 | PRの目的、変更対象、関連仕様ID、テスト結果、レビュー方法を確認 | 自分の変更をPRとして示し、**何を検証した変更か**を説明できる |
+| M08-03 | PRの目的、変更対象、関連仕様ID、テスト結果、レビュー方法を確認 | 自分の変更のPR説明案を作り、**何を検証した変更か**を説明できる。実PRの作成・CI実行はM10で確認する |
 | M08-04 | AIレビューの誤指摘・見落とし・不要な抽象化を評価 | 指摘を根拠から採否判断できる。指摘数の多さを習熟基準にしない |
 
 **次への条件**：学習者個人の同じリポジトリでPhase 2成果物を安全に変更管理できる。CIはM09で学ぶ。
@@ -333,7 +333,7 @@ M00〜M10の各IDに対応する細かい理解事項は[基準グラフ](../cur
 | M05→M06 | 短いTypeScript specを読んで一部修正・実行 | ケースからE2E全体を実装すること |
 | M06→M07 | Case→spec→Assertion→実行証拠を対応付ける | 原因切分け・保守改善の独立実施 |
 | Phase 2→M08 | 実行済みspecとConfig・結果を保全 | Gitの状態やPR |
-| M08→M09 | 差分を確認し安全にcommit/PR作成 | GitHub Actionsの実行 |
+| M08→M09 | 差分を確認し安全にローカルcommit・PR案を作成 | GitHub Actionsの構成・権限・料金を学ぶ |
 | M09→M10 | workflowと対象SHA・Run・Artifactを説明 | 独立したCI総合演習 |
 
 ## 飛躍・漏れ・目的逸脱の点検

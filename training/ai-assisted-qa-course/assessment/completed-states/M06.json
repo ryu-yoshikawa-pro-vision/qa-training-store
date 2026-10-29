@@ -4,8 +4,22 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": ["M06-01", "M06-02", "M06-03", "M06-04", "M06-05"],
-  "knowledge_ids": ["K-M06-01", "K-M06-02", "K-M06-03", "K-M06-04", "K-M06-05"],
+  "objective_ids": [
+    "M06-01",
+    "M06-02",
+    "M06-03",
+    "M06-04",
+    "M06-05"
+  ],
+  "knowledge_ids": [
+    "K-M06-01",
+    "K-M06-02",
+    "K-M06-03",
+    "K-M06-04",
+    "K-M06-05",
+    "K-M06-06",
+    "K-M06-07"
+  ],
   "start_state_path": "training/ai-assisted-qa-course/states/M06/start.json",
   "end_state_path": "training/ai-assisted-qa-course/states/M06/end.json",
   "artifacts": [
@@ -50,7 +64,9 @@
       "contract_id": "M06-to-M07-handoff-v1",
       "expected_data": {
         "each_test_resets": true,
-        "case_purposes": ["remove the only cart item"]
+        "case_purposes": [
+          "remove the only cart item"
+        ]
       }
     }
   ],

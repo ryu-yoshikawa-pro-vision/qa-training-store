@@ -4,87 +4,340 @@
   "questions": [
     {
       "id": "M06-Q01",
-      "objective_ids": ["M06-02"],
+      "objective_ids": [
+        "M06-02"
+      ],
       "question": "2つのテストが同じカート状態を必要とします。後のテストが前のテストの操作結果に依存しないようにする方法はどれですか。",
       "options": [
-        { "value": "A", "label": "各テストの前提に合うSeed/Resetを行う", "meaning": "テストごとに開始状態を作る", "reason": "各テストを指定状態から始めることで、順序依存を防ぎます。" },
-        { "value": "B", "label": "前のテストが成功したときだけ次を実行する", "meaning": "順序依存を残す", "reason": "先行テストの成功が次の開始条件になっています。" },
-        { "value": "C", "label": "失敗時に同じテストを自動再試行する", "meaning": "状態の共有をretryで隠す", "reason": "再試行は再現性や独立性の代わりではありません。" },
-        { "value": "D", "label": "テスト順を固定する", "meaning": "依存を実行順に埋め込む", "reason": "順番を変えられないテストは独立していません。" }
+        {
+          "value": "A",
+          "label": "各テストの前提に合うSeed/Resetを行う",
+          "meaning": "テストごとに開始状態を作る",
+          "reason": "各テストを指定状態から始めることで、順序依存を防ぎます。"
+        },
+        {
+          "value": "B",
+          "label": "前のテストが成功したときだけ次を実行する",
+          "meaning": "順序依存を残す",
+          "reason": "先行テストの成功が次の開始条件になっています。"
+        },
+        {
+          "value": "C",
+          "label": "失敗時に同じテストを自動再試行する",
+          "meaning": "状態の共有をretryで隠す",
+          "reason": "再試行は再現性や独立性の代わりではありません。"
+        },
+        {
+          "value": "D",
+          "label": "テスト順を固定する",
+          "meaning": "依存を実行順に埋め込む",
+          "reason": "順番を変えられないテストは独立していません。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["https://playwright.dev/docs/best-practices", "training/playwright/support/reset-scenario.ts"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#2-毎回同じ状態から始めるテストの独立性"
+      "source_refs": [
+        "https://playwright.dev/docs/best-practices",
+        "training/playwright/support/reset-scenario.ts"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#2-毎回同じ状態から始めるテストの独立性",
+      "knowledge_ids": [
+        "K-M06-02"
+      ]
     },
     {
       "id": "M06-Q02",
-      "objective_ids": ["M06-03"],
+      "objective_ids": [
+        "M06-03"
+      ],
       "question": "Caseは数量上限超過時に追加を拒否し、元の数量を維持することを求めます。specは「カート見出しが表示される」を確認してPASSでした。この結果から言えることはどれですか。",
       "options": [
-        { "value": "A", "label": "上限超過が拒否され、数量も維持された", "meaning": "無関係な可視性AssertionをCase全体の証拠とする", "reason": "見出しの表示は数量変更の拒否や数量維持を確認しません。" },
-        { "value": "B", "label": "カート見出しが表示されたが、Caseの期待結果は未確認", "meaning": "Assertionの保証範囲とCaseを分ける", "reason": "そのAssertionが直接確認したのは見出しの可視性だけです。" },
-        { "value": "C", "label": "PlaywrightのPASSが出たので仕様も正しい", "meaning": "技術的PASSを内容妥当性と同じにする", "reason": "PASSでもAssertionがCaseの期待結果を検証しない場合があります。" },
-        { "value": "D", "label": "テスト実行はなかったとみなす", "meaning": "無関係なAssertionを未実行と分類する", "reason": "specは実行されていますが、対象の期待結果を確認できていません。" }
+        {
+          "value": "A",
+          "label": "上限超過が拒否され、数量も維持された",
+          "meaning": "無関係な可視性AssertionをCase全体の証拠とする",
+          "reason": "見出しの表示は数量変更の拒否や数量維持を確認しません。"
+        },
+        {
+          "value": "B",
+          "label": "カート見出しが表示されたが、Caseの期待結果は未確認",
+          "meaning": "Assertionの保証範囲とCaseを分ける",
+          "reason": "そのAssertionが直接確認したのは見出しの可視性だけです。"
+        },
+        {
+          "value": "C",
+          "label": "PlaywrightのPASSが出たので仕様も正しい",
+          "meaning": "技術的PASSを内容妥当性と同じにする",
+          "reason": "PASSでもAssertionがCaseの期待結果を検証しない場合があります。"
+        },
+        {
+          "value": "D",
+          "label": "テスト実行はなかったとみなす",
+          "meaning": "無関係なAssertionを未実行と分類する",
+          "reason": "specは実行されていますが、対象の期待結果を確認できていません。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/spec/features/cart.md", "docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#3-仕様どおりのassertionを選ぶ"
+      "source_refs": [
+        "docs/spec/features/cart.md",
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#3-仕様どおりのassertionを選ぶ",
+      "knowledge_ids": [
+        "K-M06-03"
+      ]
     },
     {
       "id": "M06-Q03",
-      "objective_ids": ["M06-01", "M06-03"],
+      "objective_ids": [
+        "M06-01",
+        "M06-03"
+      ],
       "question": "レビュー時にCase→specの対応を説明します。最もよい対応記録はどれですか。",
       "options": [
-        { "value": "A", "label": "Caseの前提、操作、期待結果、仕様根拠を、Reset・Action・業務Assertionへ結び付ける", "meaning": "テスト全体の導出を追跡可能にする", "reason": "各要素とCaseの条件・根拠が対応しています。" },
-        { "value": "B", "label": "specファイル名とテスト成功の有無だけを書く", "meaning": "内部の対応を記録しない", "reason": "ファイル名とPASSだけではCaseの期待結果を確認したか分かりません。" },
-        { "value": "C", "label": "AIが作ったコメントをそのまま正解とする", "meaning": "本人のレビューを省略する", "reason": "AIのコメントと実際のAssertionの一致を人が確認する必要があります。" },
-        { "value": "D", "label": "Resetは一度だけ実行し、全Caseに使い回す", "meaning": "状態の独立性を確かめない", "reason": "各Caseの前提を作り直し、テスト間の状態共有を避けます。" }
+        {
+          "value": "A",
+          "label": "Caseの前提、操作、期待結果、仕様根拠を、Reset・Action・業務Assertionへ結び付ける",
+          "meaning": "テスト全体の導出を追跡可能にする",
+          "reason": "各要素とCaseの条件・根拠が対応しています。"
+        },
+        {
+          "value": "B",
+          "label": "specファイル名とテスト成功の有無だけを書く",
+          "meaning": "内部の対応を記録しない",
+          "reason": "ファイル名とPASSだけではCaseの期待結果を確認したか分かりません。"
+        },
+        {
+          "value": "C",
+          "label": "AIが作ったコメントをそのまま正解とする",
+          "meaning": "本人のレビューを省略する",
+          "reason": "AIのコメントと実際のAssertionの一致を人が確認する必要があります。"
+        },
+        {
+          "value": "D",
+          "label": "Resetは一度だけ実行し、全Caseに使い回す",
+          "meaning": "状態の独立性を確かめない",
+          "reason": "各Caseの前提を作り直し、テスト間の状態共有を避けます。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M06/README.md#演習", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#演習",
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む",
+      "knowledge_ids": [
+        "K-M06-01",
+        "K-M06-03"
+      ]
     },
     {
       "id": "M06-Q04",
-      "objective_ids": ["M06-04"],
+      "objective_ids": [
+        "M06-04"
+      ],
       "question": "以前のspecはPASSしましたが、現在は内容を変更し、別のspecを実行した後のsummaryだけが残っています。M06の記録として必要な対応はどれですか。",
       "options": [
-        { "value": "A", "label": "別のspecのsummaryを現在のspecの証拠として保存する", "meaning": "別Runの結果を流用する", "reason": "対象specや実行状態が異なり、同じRunを示していません。" },
-        { "value": "B", "label": "現在のspecを再実行し、入力版、コマンド、対象spec、結果、ログを同じRunとして記録する", "meaning": "現在の変更と実行証拠を照合する", "reason": "以前の版や別specのPASSを、現在のworkspaceの証拠に流用しません。" },
-        { "value": "C", "label": "同じworkspaceなら別Runの結果を区別せずまとめる", "meaning": "Runと対象specの違いを無視する", "reason": "同じworkspaceでもテスト対象や実行証拠が異なることがあります。" },
-        { "value": "D", "label": "ログを残さずAIの説明だけを記録する", "meaning": "実際のRunを確認しない", "reason": "AIの説明だけでは実行結果を裏付けられません。" }
+        {
+          "value": "A",
+          "label": "別のspecのsummaryを現在のspecの証拠として保存する",
+          "meaning": "別Runの結果を流用する",
+          "reason": "対象specや実行状態が異なり、同じRunを示していません。"
+        },
+        {
+          "value": "B",
+          "label": "現在のspecを再実行し、入力版、コマンド、対象spec、結果、ログを同じRunとして記録する",
+          "meaning": "現在の変更と実行証拠を照合する",
+          "reason": "以前の版や別specのPASSを、現在のworkspaceの証拠に流用しません。"
+        },
+        {
+          "value": "C",
+          "label": "同じworkspaceなら別Runの結果を区別せずまとめる",
+          "meaning": "Runと対象specの違いを無視する",
+          "reason": "同じworkspaceでもテスト対象や実行証拠が異なることがあります。"
+        },
+        {
+          "value": "D",
+          "label": "ログを残さずAIの説明だけを記録する",
+          "meaning": "実際のRunを確認しない",
+          "reason": "AIの説明だけでは実行結果を裏付けられません。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意",
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む",
+      "knowledge_ids": [
+        "K-M06-04"
+      ]
     },
     {
       "id": "M06-Q05",
-      "objective_ids": ["M06-05"],
+      "objective_ids": [
+        "M06-05"
+      ],
       "question": "Playwrightを起動した後、接続エラーでテスト本体が始まりませんでした。正しい状態の分類はどれですか。",
       "options": [
-        { "value": "A", "label": "PASS", "meaning": "テストが動いていなくても成功とする", "reason": "テスト本体が実行されておらず、合格証拠がありません。" },
-        { "value": "B", "label": "アプリの不具合", "meaning": "接続エラーを製品の機能不具合と決める", "reason": "実行開始前の環境エラーだけでは製品挙動を評価できません。" },
-        { "value": "C", "label": "環境BLOCKEDまたは未実行として原因を記録する", "meaning": "実行障害と機能失敗を分ける", "reason": "テスト本体が動かなかった理由を環境・起動経路で調べます。" },
-        { "value": "D", "label": "Assertion失敗", "meaning": "検証条件が実行され失敗したとする", "reason": "Assertionまで到達していないため、Assertion失敗ではありません。" }
+        {
+          "value": "A",
+          "label": "PASS",
+          "meaning": "テストが動いていなくても成功とする",
+          "reason": "テスト本体が実行されておらず、合格証拠がありません。"
+        },
+        {
+          "value": "B",
+          "label": "アプリの不具合",
+          "meaning": "接続エラーを製品の機能不具合と決める",
+          "reason": "実行開始前の環境エラーだけでは製品挙動を評価できません。"
+        },
+        {
+          "value": "C",
+          "label": "環境BLOCKEDまたは未実行として原因を記録する",
+          "meaning": "実行障害と機能失敗を分ける",
+          "reason": "テスト本体が動かなかった理由を環境・起動経路で調べます。"
+        },
+        {
+          "value": "D",
+          "label": "Assertion失敗",
+          "meaning": "検証条件が実行され失敗したとする",
+          "reason": "Assertionまで到達していないため、Assertion失敗ではありません。"
+        }
       ],
       "correct_value": "C",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#5-テスト結果の4つの状態を正しく区別する"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#判定の注意",
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#5-テスト結果の4つの状態を正しく区別する",
+      "knowledge_ids": [
+        "K-M06-05"
+      ]
     },
     {
       "id": "M06-Q06",
-      "objective_ids": ["M06-01", "M06-05"],
+      "objective_ids": [
+        "M06-01",
+        "M06-05"
+      ],
       "question": "受講者が書いたspecの失敗を直すとき、対象がテストコードと判明しました。Planに沿う対応はどれですか。",
       "options": [
-        { "value": "A", "label": "学習用specを修正し、別のRunで実行結果を確かめる", "meaning": "問題の原因に合う範囲だけを修正する", "reason": "テストコードの問題を直し、修正前後のRunを区別します。" },
-        { "value": "B", "label": "製品コードを変更してテストをPASSにする", "meaning": "製品を課題用に変更する", "reason": "テストの不具合を解消するために製品コードを変更しません。" },
-        { "value": "C", "label": "実行せずにPASSと記録する", "meaning": "修正の検証を省略する", "reason": "修正後の結果は新しい実行で確認する必要があります。" },
-        { "value": "D", "label": "Assertionを削除して成功扱いにする", "meaning": "期待結果の検証をなくす", "reason": "Assertionを消すとCaseの期待結果を確認できません。" }
+        {
+          "value": "A",
+          "label": "学習用specを修正し、別のRunで実行結果を確かめる",
+          "meaning": "問題の原因に合う範囲だけを修正する",
+          "reason": "テストコードの問題を直し、修正前後のRunを区別します。"
+        },
+        {
+          "value": "B",
+          "label": "製品コードを変更してテストをPASSにする",
+          "meaning": "製品を課題用に変更する",
+          "reason": "テストの不具合を解消するために製品コードを変更しません。"
+        },
+        {
+          "value": "C",
+          "label": "実行せずにPASSと記録する",
+          "meaning": "修正の検証を省略する",
+          "reason": "修正後の結果は新しい実行で確認する必要があります。"
+        },
+        {
+          "value": "D",
+          "label": "Assertionを削除して成功扱いにする",
+          "meaning": "期待結果の検証をなくす",
+          "reason": "Assertionを消すとCaseの期待結果を確認できません。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md", "docs/curriculum/ai-assisted-qa/modules/M06/README.md#演習"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#4-固定3-caseと別caseの実装"
+      "source_refs": [
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md",
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#演習"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#4-固定3-caseと別caseの実装",
+      "knowledge_ids": [
+        "K-M06-01"
+      ]
+    },
+    {
+      "id": "M06-Q07",
+      "objective_ids": [
+        "M06-01"
+      ],
+      "knowledge_ids": [
+        "K-M06-06"
+      ],
+      "question": "新しいCaseからPlaywright specを作る際、最初に揃えるべきものはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Case IDだけ",
+          "meaning": "Case IDだけ",
+          "reason": "Case IDだけでは初期条件や期待結果を実装できません。"
+        },
+        {
+          "value": "B",
+          "label": "前テストの状態の引継ぎ",
+          "meaning": "前テストの状態の引継ぎ",
+          "reason": "前テストへの状態依存は独立性を損ないます。"
+        },
+        {
+          "value": "C",
+          "label": "Retry回数",
+          "meaning": "Retry回数",
+          "reason": "Retry回数はCaseの要件を実装する代わりになりません。"
+        },
+        {
+          "value": "D",
+          "label": "Reset・操作・Locator・業務Assertionと期待結果",
+          "meaning": "Reset・操作・Locator・業務Assertionと期待結果",
+          "reason": "Caseの初期状態・操作・対象・業務結果をspecの各処理に結び付けます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-06"
+    },
+    {
+      "id": "M06-Q08",
+      "objective_ids": [
+        "M06-03"
+      ],
+      "knowledge_ids": [
+        "K-M06-07"
+      ],
+      "question": "Locatorが一意でクリックも成功しました。仕様上のカート数量が正しいと断定できますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "クリック成功で数量も保証される",
+          "meaning": "クリック成功で数量も保証される",
+          "reason": "Locatorとクリックの成功だけでは業務結果の数量は確認していません。"
+        },
+        {
+          "value": "B",
+          "label": "数量を確認する別のAssertionが必要",
+          "meaning": "数量を確認する別のAssertionが必要",
+          "reason": "Caseの数量を別のAssertionで確認する必要があります。"
+        },
+        {
+          "value": "C",
+          "label": "LocatorだけでDB永続化を保証する",
+          "meaning": "LocatorだけでDB永続化を保証する",
+          "reason": "一意の要素選択はデータ永続化の証明ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "業務結果は検証不要",
+          "meaning": "業務結果は検証不要",
+          "reason": "テストの期待結果に対応するAssertionを省略できません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#k-m06-07"
     }
   ]
 }

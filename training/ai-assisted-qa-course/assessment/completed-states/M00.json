@@ -4,8 +4,22 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": ["M00-01", "M00-02", "M00-03", "M00-04"],
-  "knowledge_ids": ["K-M00-01", "K-M00-02", "K-M00-03", "K-M00-04", "K-M00-05", "K-M00-06"],
+  "objective_ids": [
+    "M00-01",
+    "M00-02",
+    "M00-03",
+    "M00-04"
+  ],
+  "knowledge_ids": [
+    "K-M00-01",
+    "K-M00-02",
+    "K-M00-03",
+    "K-M00-04",
+    "K-M00-05",
+    "K-M00-06",
+    "K-M00-07",
+    "K-M00-08"
+  ],
   "start_state_path": "training/ai-assisted-qa-course/states/M00/start.json",
   "end_state_path": "training/ai-assisted-qa-course/states/M00/end.json",
   "artifacts": [
@@ -15,9 +29,17 @@
       "revision": "M00-result-v1",
       "contract_id": "M00-to-M01-handoff-v1",
       "expected_data": {
-        "prompt_fields": ["purpose", "source", "scope", "deliverable", "completion"],
+        "prompt_fields": [
+          "purpose",
+          "source",
+          "scope",
+          "deliverable",
+          "completion"
+        ],
         "secret_included": false,
-        "changed_paths": ["workspace/M00/submission.md"]
+        "changed_paths": [
+          "workspace/M00/submission.md"
+        ]
       }
     }
   ],

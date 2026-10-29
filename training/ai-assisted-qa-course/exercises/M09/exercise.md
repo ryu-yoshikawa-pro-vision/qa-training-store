@@ -20,3 +20,10 @@ workspace/M09/public-sample/handoff.mdの合成branch/commit/PR履歴か、契�
 ## 提出物
 
 workspace/M09/submission.mdにworkflowの読解、最小権限、証拠対応、ログ分類、未確認事項を記録します。修正した.disabled workflow案はworkspace/M09/course-e2e.workflow.yml.disabledに残し、M10への独立した成果物として引き継ぎます。実際にRunがないときは、Run/Check/Artifactを実行済みと報告しません。
+
+## 理解ノード別の確認
+
+既存のworkflow設計・実Runの証拠を利用して次の能力を個別に確認し、本人が未実行の場合は未確認として記録してください。
+
+- **K-M09-06**：event・job・step・Runnerと対象specの関係を読み、workflowを修正できる
+- **K-M09-07**：trigger頻度、検証範囲、費用、未検証期間の関係から安全な実行方針を選べる

@@ -41,3 +41,10 @@ pnpm course:run M07 maintenance.spec.ts --label after
 ## 提出物
 
 `workspace/M07/diagnosis.md`に診断と保守演習のbefore/afterの別Run ID、証拠、原因、差分、未解決事項を記録します。編集した`workspace/M07/maintenance.spec.ts`も提出します。
+
+## 理解ノード別の確認
+
+既存の演習と提出物を利用して、次の能力を別々に確認してください。本人が実行していない操作を完了と報告せず、未確認を明示します。
+
+- **K-M07-06**：画面操作をPage Objectへまとめ、仕様Assertionの責務を保持して別Runで検証できる
+- **K-M07-07**：fixtureのスコープを理解し、各テスト前Resetとテスト間独立性を確認できる

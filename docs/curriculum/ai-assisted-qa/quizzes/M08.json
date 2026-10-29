@@ -38,45 +38,51 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#72-working-treestagecommitの三つを区別する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#72-working-treestagecommitの三つを区別する",
+      "knowledge_ids": [
+        "K-M08-01"
+      ]
     },
     {
       "id": "M08-Q02",
       "objective_ids": [
         "M08-02"
       ],
-    "question": "AIが複数ファイルを変更し、練習用のlocal-only-run.logもあります。commit対象を決める安全な手順はどれですか。",
+      "question": "AIが複数ファイルを変更し、練習用のlocal-only-run.logもあります。commit対象を決める安全な手順はどれですか。",
       "options": [
         {
           "value": "A",
-        "label": "すべてを一括stageして後から考える",
-        "meaning": "すべてを一括stageして後から考える",
-        "reason": "Secretや無関係な変更がcommitへ混ざる可能性があります。"
+          "label": "すべてを一括stageして後から考える",
+          "meaning": "すべてを一括stageして後から考える",
+          "reason": "Secretや無関係な変更がcommitへ混ざる可能性があります。"
         },
         {
           "value": "B",
-        "label": "git check-ignoreでログの規則を確認し、statusとdiffを見て必要なファイルだけstageし、staged diffを再確認する",
-        "meaning": "git check-ignoreでログの規則を確認し、statusとdiffを見て必要なファイルだけstageし、staged diffを再確認する",
-        "reason": "ignore規則の適用先を確かめたうえで変更内容とcommit対象を二段階で確認できます。"
+          "label": "git check-ignoreでログの規則を確認し、statusとdiffを見て必要なファイルだけstageし、staged diffを再確認する",
+          "meaning": "git check-ignoreでログの規則を確認し、statusとdiffを見て必要なファイルだけstageし、staged diffを再確認する",
+          "reason": "ignore規則の適用先を確かめたうえで変更内容とcommit対象を二段階で確認できます。"
         },
         {
           "value": "C",
           "label": "AIが変更したファイル名だけを見てcommitする",
           "meaning": "AIが変更したファイル名だけを見てcommitする",
-        "reason": "ファイル名では中身のSecret、誤変更、不要差分を判断できません。"
+          "reason": "ファイル名では中身のSecret、誤変更、不要差分を判断できません。"
         },
         {
           "value": "D",
           "label": "作業前からある変更は問答無用で除外する",
           "meaning": "作業前からある変更は問答無用で除外する",
-        "reason": "現在のtaskに必要な変更かをdiffと権限の範囲で判断します。"
+          "reason": "現在のtaskに必要な変更かをdiffと権限の範囲で判断します。"
         }
       ],
       "correct_value": "B",
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#42-指定したファイルだけをstageに追加する手順"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#42-指定したファイルだけをstageに追加する手順",
+      "knowledge_ids": [
+        "K-M08-02"
+      ]
     },
     {
       "id": "M08-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#仕様差分テストと証拠を結び付ける"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#仕様差分テストと証拠を結び付ける",
+      "knowledge_ids": [
+        "K-M08-03"
+      ]
     },
     {
       "id": "M08-Q04",
@@ -152,7 +161,51 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#aiレビューの採否"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#aiレビューの採否",
+      "knowledge_ids": [
+        "K-M08-04"
+      ]
+    },
+    {
+      "id": "M08-Q05",
+      "objective_ids": [
+        "M08-01"
+      ],
+      "knowledge_ids": [
+        "K-M08-05"
+      ],
+      "question": "ローカルcommitを作成したがpushしていません。現在の状況はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "PRが自動作成された",
+          "meaning": "PRが自動作成された",
+          "reason": "ローカルcommitのみではPRは作成されません。"
+        },
+        {
+          "value": "B",
+          "label": "Remote CIが必ず実行済み",
+          "meaning": "Remote CIが必ず実行済み",
+          "reason": "pushしていないためRemote CIを実行したとは言えません。"
+        },
+        {
+          "value": "C",
+          "label": "ローカルにcommitはあるがRemote反映とPRは未実施",
+          "meaning": "ローカルにcommitはあるがRemote反映とPRは未実施",
+          "reason": "push・PR作成はcommitとは別の操作であり未実施です。"
+        },
+        {
+          "value": "D",
+          "label": "GitHubのレビューが完了した",
+          "meaning": "GitHubのレビューが完了した",
+          "reason": "commitだけでレビューが完了するわけではありません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md#k-m08-05"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#k-m08-05"
     }
   ]
 }

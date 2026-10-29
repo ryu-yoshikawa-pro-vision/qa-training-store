@@ -48,6 +48,7 @@ type QuizOption = {
 type QuizQuestion = {
   id: string;
   objective_ids: string[];
+  knowledge_ids: string[];
   question: string;
   options: QuizOption[];
   correct_value: string;
@@ -135,6 +136,8 @@ function validateQuestion(
   moduleId: string,
   question: QuizQuestion,
   objectiveIds: Set<string>,
+  knowledgeIds: Set<string>,
+  graphEdges: { from?: string; relation?: string; to?: string }[],
 ): void {
   requireCondition(
     question !== null && typeof question === "object",
@@ -156,6 +159,22 @@ function validateQuestion(
     );
   }
 
+  requireCondition(
+    Array.isArray(question.knowledge_ids) && question.knowledge_ids.length > 0,
+    `${question.id}.knowledge_idsが空です`,
+  );
+  for (const knowledgeId of question.knowledge_ids) {
+    requireCondition(
+      knowledgeIds.has(knowledgeId) &&
+        graphEdges.some(
+          (edge) =>
+            edge.from === `QUIZ-${question.id}` &&
+            edge.relation === "evaluates" &&
+            edge.to === knowledgeId,
+        ),
+      `${question.id}と理解ノードの対応が不正です: ${knowledgeId}`,
+    );
+  }
   requireCondition(
     Array.isArray(question.options) && question.options.length === 4,
     `${question.id}は4択ではありません`,
@@ -650,8 +669,8 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       .map((node) => node.id as string),
   );
   requireCondition(
-    objectiveIds.size === 51,
-    `知識グラフの学習項目は51件必要です: ${objectiveIds.size}`,
+    objectiveIds.size >= 51,
+    `知識グラフの学習項目が既存契約の51件より少なくなっています: ${objectiveIds.size}`,
   );
   const knowledgeByModule = new Map<string, string[]>();
   for (const node of graph.nodes ?? []) {
@@ -670,8 +689,8 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
     objectiveKnowledge.set(edge.from, [...(objectiveKnowledge.get(edge.from) ?? []), edge.to]);
   }
   requireCondition(
-    [...knowledgeByModule.values()].reduce((sum, items) => sum + items.length, 0) === 58,
-    "知識グラフに58件のknowledge nodeが必要です",
+    [...knowledgeByModule.values()].reduce((sum, items) => sum + items.length, 0) >= 58,
+    "知識グラフの理解ノードが既存契約の58件より少なくなっています",
   );
   const allModules = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
   const assessmentMaterials = (graph.nodes ?? [])
@@ -780,7 +799,18 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
     );
 
     for (const question of quiz.questions) {
-      validateQuestion(rootDir, moduleId, question, objectiveIds);
+      validateQuestion(
+        rootDir,
+        moduleId,
+        question,
+        objectiveIds,
+        new Set(knowledgeByModule.get(moduleId) ?? []),
+        graph.edges ?? [],
+      );
+      requireCondition(
+        graph.nodes?.some((node) => node.id === `QUIZ-${question.id}` && node.type === "quiz"),
+        `問題の知識グラフノードがありません: ${question.id}`,
+      );
       requireCondition(!seenQuestionIds.has(question.id), `問題IDが重複しています: ${question.id}`);
       seenQuestionIds.add(question.id);
       for (const objectiveId of question.objective_ids) coveredObjectiveIds.add(objectiveId);

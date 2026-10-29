@@ -4,8 +4,23 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
-  "knowledge_ids": ["K-M03-01", "K-M03-02", "K-M03-03", "K-M03-04", "K-M03-05"],
+  "objective_ids": [
+    "M03-01",
+    "M03-02",
+    "M03-03",
+    "M03-04",
+    "M03-05"
+  ],
+  "knowledge_ids": [
+    "K-M03-01",
+    "K-M03-02",
+    "K-M03-03",
+    "K-M03-04",
+    "K-M03-05",
+    "K-M03-06",
+    "K-M03-07",
+    "K-M03-08"
+  ],
   "start_state_path": "training/ai-assisted-qa-course/states/M03/start.json",
   "end_state_path": "training/ai-assisted-qa-course/states/M03/end.json",
   "artifacts": [

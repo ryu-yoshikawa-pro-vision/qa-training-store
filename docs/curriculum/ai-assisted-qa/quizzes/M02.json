@@ -4,73 +4,336 @@
   "questions": [
     {
       "id": "M02-Q01",
-      "objective_ids": ["M02-01"],
+      "objective_ids": [
+        "M02-01"
+      ],
       "question": "正式仕様は数量上限を超える追加を拒否し、現在の数量を維持すると定めています。一方、画面では追加成功に見え、AIも成功が正しいと報告しました。期待結果の根拠として優先するものはどれですか。",
       "options": [
-        { "value": "A", "label": "画面で見えた結果", "meaning": "観測事実を根拠にする", "reason": "画面の観測は重要ですが、仕様で定めた期待結果を置き換えません。" },
-        { "value": "B", "label": "AIの最終報告", "meaning": "AIの説明を正しいとみなす", "reason": "AIの自己報告だけでは、仕様との一致を確認できません。" },
-        { "value": "C", "label": "正式仕様のBR/AC", "meaning": "期待結果を定める正本を使う", "reason": "BR/ACが期待結果の根拠です。画面と異なる場合は差異を報告します。" },
-        { "value": "D", "label": "既存E2Eの期待値", "meaning": "既存テストの記述を正解とみなす", "reason": "既存テストにも誤ったAssertionがあり得るため、仕様と照合します。" }
+        {
+          "value": "A",
+          "label": "画面で見えた結果",
+          "meaning": "観測事実を根拠にする",
+          "reason": "画面の観測は重要ですが、仕様で定めた期待結果を置き換えません。"
+        },
+        {
+          "value": "B",
+          "label": "AIの最終報告",
+          "meaning": "AIの説明を正しいとみなす",
+          "reason": "AIの自己報告だけでは、仕様との一致を確認できません。"
+        },
+        {
+          "value": "C",
+          "label": "正式仕様のBR/AC",
+          "meaning": "期待結果を定める正本を使う",
+          "reason": "BR/ACが期待結果の根拠です。画面と異なる場合は差異を報告します。"
+        },
+        {
+          "value": "D",
+          "label": "既存E2Eの期待値",
+          "meaning": "既存テストの記述を正解とみなす",
+          "reason": "既存テストにも誤ったAssertionがあり得るため、仕様と照合します。"
+        }
       ],
       "correct_value": "C",
-      "source_refs": ["docs/spec/README.md", "docs/spec/features/cart.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限"
+      "source_refs": [
+        "docs/spec/README.md",
+        "docs/spec/features/cart.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限",
+      "knowledge_ids": [
+        "K-M02-01"
+      ]
     },
     {
       "id": "M02-Q02",
-      "objective_ids": ["M02-03"],
+      "objective_ids": [
+        "M02-01"
+      ],
       "question": "`low-stock`はdefault datasetから始まり、variant `variant-basic-shirt-02`の在庫を3へ上書きします。default datasetの同variantは`purchaseLimit`が5です。`BR-CART-001`から導ける内容はどれですか。",
       "options": [
-        { "value": "A", "label": "カートにその商品が3個入っている", "meaning": "在庫数とカート数量を同じ状態とみなす", "reason": "在庫3はカート内数量を示しません。現在数量はReset後に確認します。" },
-        { "value": "B", "label": "購入上限は5で、有効上限も5である", "meaning": "購入上限だけで有効上限を決める", "reason": "在庫3も有効上限に使うため、`min(3, 5, 99) = 3`です。" },
-        { "value": "C", "label": "購入上限は5で、有効上限は3である", "meaning": "Seedの上書きと既定値を仕様へ適用する", "reason": "在庫3と購入上限5をBR-CART-001の式へ当てはめると3です。" },
-        { "value": "D", "label": "上限超過時に画面が数量を補正する", "meaning": "SeedからUIの振る舞いまで推測する", "reason": "AC-CART-001は超過操作を拒否し、変更前の数量を維持すると定めています。" }
+        {
+          "value": "A",
+          "label": "カートにその商品が3個入っている",
+          "meaning": "在庫数とカート数量を同じ状態とみなす",
+          "reason": "在庫3はカート内数量を示しません。現在数量はReset後に確認します。"
+        },
+        {
+          "value": "B",
+          "label": "購入上限は5で、有効上限も5である",
+          "meaning": "購入上限だけで有効上限を決める",
+          "reason": "在庫3も有効上限に使うため、`min(3, 5, 99) = 3`です。"
+        },
+        {
+          "value": "C",
+          "label": "購入上限は5で、有効上限は3である",
+          "meaning": "Seedの上書きと既定値を仕様へ適用する",
+          "reason": "在庫3と購入上限5をBR-CART-001の式へ当てはめると3です。"
+        },
+        {
+          "value": "D",
+          "label": "上限超過時に画面が数量を補正する",
+          "meaning": "SeedからUIの振る舞いまで推測する",
+          "reason": "AC-CART-001は超過操作を拒否し、変更前の数量を維持すると定めています。"
+        }
       ],
       "correct_value": "C",
-      "source_refs": ["src/seeds/default-dataset.ts", "src/seeds/scenarios.ts", "docs/spec/features/cart.md", "docs/spec/state-and-scenarios.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限"
+      "source_refs": [
+        "src/seeds/default-dataset.ts",
+        "src/seeds/scenarios.ts",
+        "docs/spec/features/cart.md",
+        "docs/spec/state-and-scenarios.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限",
+      "knowledge_ids": [
+        "K-M02-01"
+      ]
     },
     {
       "id": "M02-Q03",
-      "objective_ids": ["M02-02"],
+      "objective_ids": [
+        "M02-02"
+      ],
       "question": "会員がカート内の数量を変更するケースを整理します。操作する利用者の区分、操作前のカート状態、対象数量をそれぞれ何として記録しますか。",
       "options": [
-        { "value": "A", "label": "Role、State、Data", "meaning": "利用者・開始状態・対象データを分ける", "reason": "会員はRole、操作前のカートはState、対象数量はDataです。" },
-        { "value": "B", "label": "Data、Journey、Role", "meaning": "データと操作経路を入れ替える", "reason": "この順では利用者と状態・データの分類が一致しません。" },
-        { "value": "C", "label": "State、Role、Journey", "meaning": "利用者を状態、数量を操作経路とする", "reason": "Roleは利用者区分であり、Journeyは一連の操作です。" },
-        { "value": "D", "label": "Journey、Data、State", "meaning": "個別の値と一連の操作を混同する", "reason": "数量はData、操作前のカートはStateです。" }
+        {
+          "value": "A",
+          "label": "Role、State、Data",
+          "meaning": "利用者・開始状態・対象データを分ける",
+          "reason": "会員はRole、操作前のカートはState、対象数量はDataです。"
+        },
+        {
+          "value": "B",
+          "label": "Data、Journey、Role",
+          "meaning": "データと操作経路を入れ替える",
+          "reason": "この順では利用者と状態・データの分類が一致しません。"
+        },
+        {
+          "value": "C",
+          "label": "State、Role、Journey",
+          "meaning": "利用者を状態、数量を操作経路とする",
+          "reason": "Roleは利用者区分であり、Journeyは一連の操作です。"
+        },
+        {
+          "value": "D",
+          "label": "Journey、Data、State",
+          "meaning": "個別の値と一連の操作を混同する",
+          "reason": "数量はData、操作前のカートはStateです。"
+        }
       ],
       "correct_value": "A",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M02/README.md#用語と根拠"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#3-条件を4つの観点で整理する-rolestatedatajourney"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#用語と根拠"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#3-条件を4つの観点で整理する-rolestatedatajourney",
+      "knowledge_ids": [
+        "K-M02-02"
+      ]
     },
     {
       "id": "M02-Q04",
-      "objective_ids": ["M02-04"],
+      "objective_ids": [
+        "M02-04"
+      ],
       "question": "本番の発生率データはありませんが、数量上限の誤りは購入可能な数量を誤らせます。Likelihoodを記録するとき、適切な扱いはどれですか。",
       "options": [
-        { "value": "A", "label": "実測値として発生率を記録する", "meaning": "未測定の発生率を事実にする", "reason": "測定値がないため、数値を実測結果として書けません。" },
-        { "value": "B", "label": "影響と区別した評価上の仮説として理由を添える", "meaning": "LikelihoodとImpactの根拠を分ける", "reason": "比較用の評価と測定事実を区別し、根拠を示せます。" },
-        { "value": "C", "label": "ImpactとLikelihoodを同じ説明にまとめる", "meaning": "起きやすさと影響の大きさを一つにする", "reason": "優先度の理由を判断できるよう、別々に扱います。" },
-        { "value": "D", "label": "発生率が不明ならRiskを記録しない", "meaning": "不確実性がある評価を除外する", "reason": "未確認と記録しつつ、影響など根拠のある観点で優先順位を付けられます。" }
+        {
+          "value": "A",
+          "label": "実測値として発生率を記録する",
+          "meaning": "未測定の発生率を事実にする",
+          "reason": "測定値がないため、数値を実測結果として書けません。"
+        },
+        {
+          "value": "B",
+          "label": "影響と区別した評価上の仮説として理由を添える",
+          "meaning": "LikelihoodとImpactの根拠を分ける",
+          "reason": "比較用の評価と測定事実を区別し、根拠を示せます。"
+        },
+        {
+          "value": "C",
+          "label": "ImpactとLikelihoodを同じ説明にまとめる",
+          "meaning": "起きやすさと影響の大きさを一つにする",
+          "reason": "優先度の理由を判断できるよう、別々に扱います。"
+        },
+        {
+          "value": "D",
+          "label": "発生率が不明ならRiskを記録しない",
+          "meaning": "不確実性がある評価を除外する",
+          "reason": "未確認と記録しつつ、影響など根拠のある観点で優先順位を付けられます。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限", "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#riskを仮説として評価する"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限",
+        "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#riskを仮説として評価する",
+      "knowledge_ids": [
+        "K-M02-04"
+      ]
     },
     {
       "id": "M02-Q05",
-      "objective_ids": ["M02-05"],
+      "objective_ids": [
+        "M02-05"
+      ],
       "question": "架空の仕様には「利用できない入力は受け付けない」とだけあり、AIが「拒否すると以前の値を消す」と提案しました。関連する正式な説明も見つからない場合、どう扱いますか。",
       "options": [
-        { "value": "A", "label": "以前の値を消すことを期待結果として確定する", "meaning": "AIの補完を仕様として採用する", "reason": "提示された断片には拒否後の値の扱いがありません。" },
-        { "value": "B", "label": "拒否後の扱いを質問し、期待結果と影響するCaseを回答まで保留する", "meaning": "未決の仕様と後続への影響を記録する", "reason": "不足する挙動を確認し、回答前に推測を期待結果へ変えません。" },
-        { "value": "C", "label": "一度の画面観測を仕様として確定する", "meaning": "観測から未記載の業務ルールを確定する", "reason": "観測は事実ですが、未記載の期待結果の根拠にはなりません。" },
-        { "value": "D", "label": "AIに最もありそうな挙動を選ばせ、質問せず採用する", "meaning": "推測で不足する仕様を埋める", "reason": "AIが選んだ挙動にも正式な根拠が必要です。" }
+        {
+          "value": "A",
+          "label": "以前の値を消すことを期待結果として確定する",
+          "meaning": "AIの補完を仕様として採用する",
+          "reason": "提示された断片には拒否後の値の扱いがありません。"
+        },
+        {
+          "value": "B",
+          "label": "拒否後の扱いを質問し、期待結果と影響するCaseを回答まで保留する",
+          "meaning": "未決の仕様と後続への影響を記録する",
+          "reason": "不足する挙動を確認し、回答前に推測を期待結果へ変えません。"
+        },
+        {
+          "value": "C",
+          "label": "一度の画面観測を仕様として確定する",
+          "meaning": "観測から未記載の業務ルールを確定する",
+          "reason": "観測は事実ですが、未記載の期待結果の根拠にはなりません。"
+        },
+        {
+          "value": "D",
+          "label": "AIに最もありそうな挙動を選ばせ、質問せず採用する",
+          "meaning": "推測で不足する仕様を埋める",
+          "reason": "AIが選んだ挙動にも正式な根拠が必要です。"
+        }
       ],
       "correct_value": "B",
-      "source_refs": ["docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る",
+      "knowledge_ids": [
+        "K-M02-05"
+      ]
+    },
+    {
+      "id": "M02-Q06",
+      "objective_ids": [
+        "M02-01"
+      ],
+      "knowledge_ids": [
+        "K-M02-06"
+      ],
+      "question": "数量2、購入上限3のカートで2個の追加と数量3への更新を別々に行います。上限超過を拒否する仕様なら正しい結果はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "追加・更新とも数量4になる",
+          "meaning": "追加・更新とも数量4になる",
+          "reason": "数量2に2個を追加すると4となり、上限3を超えて拒否されます。"
+        },
+        {
+          "value": "B",
+          "label": "追加は拒否して2を維持し、数量3への更新は可能",
+          "meaning": "追加は拒否して2を維持し、数量3への更新は可能",
+          "reason": "追加は数量4になるので拒否し2を維持。数量3への更新は上限内です。"
+        },
+        {
+          "value": "C",
+          "label": "追加は必ず数量3に切り詰められる",
+          "meaning": "追加は必ず数量3に切り詰められる",
+          "reason": "拒否仕様であり、数量を3へ自動的に切り詰める仕様ではありません。"
+        },
+        {
+          "value": "D",
+          "label": "追加・更新のどちらも初期化する",
+          "meaning": "追加・更新のどちらも初期化する",
+          "reason": "どちらも初期化する根拠はありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-06"
+    },
+    {
+      "id": "M02-Q07",
+      "objective_ids": [
+        "M02-03"
+      ],
+      "knowledge_ids": [
+        "K-M02-07"
+      ],
+      "question": "Test Aで状態が変化しました。Test Bで同じSeedがあるだけで開始時数量を断定できますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Seedだけで前テストの変更が消える",
+          "meaning": "Seedだけで前テストの変更が消える",
+          "reason": "Seedの存在だけでは前テストの変更が解消されたと証明できません。"
+        },
+        {
+          "value": "B",
+          "label": "ブラウザ再表示でSeedが復元される",
+          "meaning": "ブラウザ再表示でSeedが復元される",
+          "reason": "ページ再表示とReset処理は同義ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "Resetの保証と実際の状態の確認が必要",
+          "meaning": "Resetの保証と実際の状態の確認が必要",
+          "reason": "Resetの保証範囲とTest B開始時の観測を照合します。"
+        },
+        {
+          "value": "D",
+          "label": "前Testの期待結果を流用できる",
+          "meaning": "前Testの期待結果を流用できる",
+          "reason": "前Testの期待結果を新Testの観測結果として再利用できません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-07"
+    },
+    {
+      "id": "M02-Q08",
+      "objective_ids": [
+        "M02-04"
+      ],
+      "knowledge_ids": [
+        "K-M02-08"
+      ],
+      "question": "新たな検証責務TRについて第三者が出典を追跡できる記録はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "TR名だけ",
+          "meaning": "TR名だけ",
+          "reason": "TR名だけでは根拠となる仕様を復元できません。"
+        },
+        {
+          "value": "B",
+          "label": "AIが提案したことだけ",
+          "meaning": "AIが提案したことだけ",
+          "reason": "AIの提案元は正式な仕様の参照先を代替しません。"
+        },
+        {
+          "value": "C",
+          "label": "優先度だけ",
+          "meaning": "優先度だけ",
+          "reason": "優先度だけでは適用範囲が分かりません。"
+        },
+        {
+          "value": "D",
+          "label": "仕様・受入条件・対象範囲・revisionとの対応",
+          "meaning": "仕様・受入条件・対象範囲・revisionとの対応",
+          "reason": "仕様・AC・scope・revisionとの対応があれば根拠を追跡できます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-08"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#k-m02-08"
     }
   ]
 }

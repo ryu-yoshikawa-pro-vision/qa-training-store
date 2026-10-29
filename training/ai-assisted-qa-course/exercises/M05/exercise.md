@@ -27,3 +27,35 @@ Node.js、pnpm、`package.json`、TypeScript、Playwrightの順に用語を確�
 ## 提出物
 
 `workspace/M05/submission.md`に修正差分、修正前後の実行コマンドと結果、失敗の分類、testDir/base URL/出力先、表示Assertionが保証する範囲を書きます。`course:run`は固定された新課程Configで指定specを実行し、spec snapshot、Playwright JSON report、report内のattachmentを一意のRun directoryへ保存します。
+
+## 理解ノード別の追加確認
+
+既存の演習で得られた証拠を再利用できます。各理解ノードについて本人の判断・操作・結果を区別し、未実施は未実施として記録してください。
+
+- **K-M05-11**：配列の添字と要素を追い、添字を変えた結果を説明できる
+- **K-M05-12**：プロパティ参照・変更の結果を説明し、配列の添字と混同しない
+- **K-M05-13**：条件式の真偽から実行経路と結果を説明できる
+- **K-M05-14**：引数・戻り値・関数の関係を説明し、短い関数を変更して結果を確認できる
+- **K-M05-15**：Role・アクセシブル名から一意のLocatorを選び、実行して確認できる
+- **K-M05-16**：型検査の成功と業務正しさを区別し、構文・型・実行・Assertionの失敗を分類できる
+
+### TypeScriptの短いコード演習
+
+Locator修正だけでは、配列・オブジェクト・関数などの理解を確認できません。以下のコードを自分の学習用作業領域で作成し、`pnpm exec tsx`で実行してください。既存の演習specは上書きしません。
+
+```ts
+const quantities = [2, 4];
+const cart = { quantity: quantities[1] };
+function label(quantity: number): string {
+  return quantity >= 3 ? "上限を再確認" : "範囲内";
+}
+console.log(label(cart.quantity));
+```
+
+1. 実行前に出力を予測し、実行結果と比較します。
+2. `quantities[1]`を`quantities[0]`へ変更した場合の出力を説明し、再実行します。
+3. 関数の条件を変更し、引数・戻り値・分岐がどのように変わるか記録します。
+4. `export`と`import`で関数を別の学習用ファイルから呼び、同じ結果になるか確認します。
+5. 不正な型の引数を与えた場合のTypeScriptの診断と、業務Assertionが検証する対象の違いを説明します。
+
+保存場所、実行コマンド、実行結果、どの理解ノードを確認したかを提出します。新たな学習用ファイルは指定されたworkspaceだけで扱い、正式なspecや配布テンプレートを無断で変更しません。

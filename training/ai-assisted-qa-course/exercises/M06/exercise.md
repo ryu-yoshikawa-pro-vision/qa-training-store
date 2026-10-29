@@ -31,3 +31,10 @@
 ## 提出物
 
 `workspace/M06/submission.md`、固定Caseのspec、別Caseの`workspace/M06/new-case.spec.ts`、実行証拠。各テストを入力元・revision・Case ID・BR/AC・Role/State/Data・spec/test・期待結果・業務Assertion・Seed/Reset・Runまで追跡できるようにします。本人Caseと固定Caseが一致しない場合は差と非対応理由を記録し、fallback使用時はPhase 1修了を主張しません。
+
+## 理解ノード別の確認
+
+既存の演習と提出物を利用して、次の能力を別々に確認してください。本人が実行していない操作を完了と報告せず、未確認を明示します。
+
+- **K-M06-06**：別CaseのReset・Action・Locator・業務Assertionを選んで新規specを作成し、単独実行できる
+- **K-M06-07**：一意の要素選択・Action成立・仕様上の業務結果を別々に検証できる

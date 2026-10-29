@@ -38,7 +38,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#diffと公開対象を確認する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#diffと公開対象を確認する",
+      "knowledge_ids": [
+        "K-M10-01"
+      ]
     },
     {
       "id": "M10-Q02",
@@ -76,7 +79,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象specとworkflowを限定する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象specとworkflowを限定する",
+      "knowledge_ids": [
+        "K-M10-02"
+      ]
     },
     {
       "id": "M10-Q03",
@@ -114,7 +120,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する",
+      "knowledge_ids": [
+        "K-M10-03"
+      ]
     },
     {
       "id": "M10-Q04",
@@ -152,7 +161,10 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する",
+      "knowledge_ids": [
+        "K-M10-04"
+      ]
     },
     {
       "id": "M10-Q05",
@@ -190,7 +202,92 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する",
+      "knowledge_ids": [
+        "K-M10-05"
+      ]
+    },
+    {
+      "id": "M10-Q06",
+      "objective_ids": [
+        "M10-03"
+      ],
+      "knowledge_ids": [
+        "K-M10-06"
+      ],
+      "question": "Artifactのtarget SHAは一致しましたが要求したspecとは異なるspecが実行されました。適切な報告はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "指定specは未確認であり実行対象を照合し直す",
+          "meaning": "指定specは未確認であり実行対象を照合し直す",
+          "reason": "要求specが実行されていないため、その検証は未確認と報告します。"
+        },
+        {
+          "value": "B",
+          "label": "SHA一致で全てPASSと認定する",
+          "meaning": "SHA一致で全てPASSと認定する",
+          "reason": "SHA一致だけでは指定specを実行したことは示せません。"
+        },
+        {
+          "value": "C",
+          "label": "別specでも同じ検証として扱う",
+          "meaning": "別specでも同じ検証として扱う",
+          "reason": "違うspecの結果を要求specの成功証拠に流用できません。"
+        },
+        {
+          "value": "D",
+          "label": "緑色CheckならSKIPもPASSとみなす",
+          "meaning": "緑色CheckならSKIPもPASSとみなす",
+          "reason": "SKIPは実行してPASSしたことを意味しません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-06"
+    },
+    {
+      "id": "M10-Q07",
+      "objective_ids": [
+        "M10-04"
+      ],
+      "knowledge_ids": [
+        "K-M10-07"
+      ],
+      "question": "CIの依存導入が失敗しテストは未実行です。適切な次の判断はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Assertionを変更する",
+          "meaning": "Assertionを変更する",
+          "reason": "テストが始まっていないためAssertion修正の根拠がありません。"
+        },
+        {
+          "value": "B",
+          "label": "原因・権限・費用を確認して再実行可否を判断する",
+          "meaning": "原因・権限・費用を確認して再実行可否を判断する",
+          "reason": "依存導入の失敗を調査し、権限と費用を確認して再実行を判断します。"
+        },
+        {
+          "value": "C",
+          "label": "FAILのRunをPASSと報告する",
+          "meaning": "FAILのRunをPASSと報告する",
+          "reason": "FAILのRunをPASSとして報告できません。"
+        },
+        {
+          "value": "D",
+          "label": "利用枠が不明でも無制限に再試行する",
+          "meaning": "利用枠が不明でも無制限に再試行する",
+          "reason": "料金不明のまま無制限の再試行は避けます。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-07"
     }
   ]
 }

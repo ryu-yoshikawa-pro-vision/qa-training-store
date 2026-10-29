@@ -17,3 +17,9 @@
 ## 提出物
 
 `workspace/M08/submission.md`に作業前のstatus、練習branch、diff/staged diff、commit SHA、commit後のstatus、選択理由、レビュー指摘の採否を記録します。Secret・生成物・`local-only-run.log`がstageまたはcommitに含まれないことを確かめます。pushやPR作成は本人のリポジトリ・権限に従います。
+
+## 理解ノード別の確認
+
+既存の演習と提出物を利用して、次の能力を別々に確認してください。本人が実行していない操作を完了と報告せず、未確認を明示します。
+
+- **K-M08-05**：ローカルbranch・commit・push・PR・CIを区別して未実行の操作を完了扱いしない
