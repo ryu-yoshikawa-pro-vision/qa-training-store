@@ -18,6 +18,7 @@ import {
   parseStrictJsonResponse,
   sha256,
   validateCandidate,
+  validateSavedChallenge,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import {
   runAiAssistedQaSpecCli,
@@ -51,8 +52,13 @@ function expected() {
       "M00-02": ["E-M00-002"],
     },
     reviewPathsByObjective: {
-      "M00-01": ["course/modules/M00/README.md", "workspace/M00/submission.md"],
-      "M00-02": ["course/modules/M00/README.md", "workspace/M00/submission.md"],
+      "M00-01": ["course/modules/M00/README.md", "workspace/M00/submission.md", "course/modules/M00/README.md#k-m00-01"],
+      "M00-02": ["course/modules/M00/README.md", "workspace/M00/submission.md", "course/modules/M00/README.md#k-m00-03"],
+    },
+    knowledgeNodeIdsByObjective: { "M00-01": ["K-M00-01"], "M00-02": ["K-M00-03"] },
+    knowledgeReviewPathsByNode: {
+      "K-M00-01": "course/modules/M00/README.md#k-m00-01",
+      "K-M00-03": "course/modules/M00/README.md#k-m00-03",
     },
   };
 }
@@ -312,7 +318,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
         scoring: {
           module_id: moduleId,
           objective_ids: [objectiveId],
-          sources: ["course/modules/" + moduleId + "/README.md"],
+          sources: ["docs/curriculum/ai-assisted-qa/modules/" + moduleId + "/README.md"],
           criteria: [
             {
               id: moduleId + "-CR-01",
@@ -322,7 +328,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
           ],
         },
         sourceMaterials: [
-          { path: "course/modules/" + moduleId + "/README.md", sha256: "b".repeat(64) },
+          { path: "docs/curriculum/ai-assisted-qa/modules/" + moduleId + "/README.md", sha256: "b".repeat(64) },
         ],
       });
       expect(challenge.objective_ids).toEqual([objectiveId]);
@@ -342,6 +348,31 @@ describe("AI-assisted QA formal assessment contracts", () => {
         }),
       ).toThrow(/terminal module/);
     }
+  });
+
+  it("rejects changed live challenges and unrelated source selections on resume", () => {
+    const uuid = "123e4567-e89b-42d3-a456-426614174000";
+    const source = "docs/curriculum/ai-assisted-qa/modules/M07/README.md";
+    const graphSource = "docs/curriculum/ai-assisted-qa/knowledge-graph.json";
+    const scoring = {
+      module_id: "M07", objective_ids: ["M07-01"], sources: [source, graphSource],
+      criteria: [{ id: "M07-CR-01", objective_ids: ["M07-01"], required_evidence: ["Diagnose failed test"] }],
+    };
+    const sourceMaterials = [
+      { path: source, sha256: "b".repeat(64) },
+      { path: graphSource, sha256: "c".repeat(64) },
+    ];
+    const context = { phaseId: "P2", scoring, sourceMaterials, sourceSha: "a".repeat(40), assessmentId: uuid };
+    const challenge = createLiveChallenge({
+      ...context, id: uuid, randomIndex: () => 0,
+    });
+    expect(validateSavedChallenge(challenge, context)).toEqual(challenge);
+    expect(() => validateSavedChallenge({ ...challenge, condition: challenge.condition + " altered" }, context))
+      .toThrow(/differs/);
+    expect(() => validateSavedChallenge({ ...challenge, source_path: graphSource }, context))
+      .toThrow(/invalid objective, source, or condition/);
+    expect(() => validateSavedChallenge({ ...challenge, source_sha: "f".repeat(40) }, context))
+      .toThrow(/differs/);
   });
 
   it("accepts only terminal modules with one explicit model and safe read actions", () => {
@@ -404,6 +435,26 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const injectedFlag = candidate();
     injectedFlag.objectives[0].completed = true;
     expect(() => validateCandidate(injectedFlag, context)).toThrow(/unsupported fields/);
+  });
+
+  it("requires a concrete failure reason and maps only allowed knowledge nodes", () => {
+    const context = expected();
+    expect(() => validateCandidate(candidate({ objective: [{ level: 1, gaps: [] }] }), context))
+      .toThrow(/explain unmet criteria/);
+    expect(() => validateCandidate(candidate({
+      objective: [{ level: 1, gaps: ["insufficient explanation"], unmet_knowledge_nodes: ["K-M05-14"] }],
+    }), context)).toThrow(/unrelated knowledge node/);
+    const partial = validateCandidate(candidate({
+      objective: [{ level: 1, gaps: ["No independent explanation"], unmet_knowledge_nodes: ["K-M00-01"] }],
+    }), context);
+    expect(partial.objectives[0].review_paths).toContain("course/modules/M00/README.md#k-m00-01");
+    expect(partial.objectives[0].unmet_knowledge_nodes).toEqual(["K-M00-01"]);
+    expect(() => validateCandidate(candidate({
+      objective: [{ review_paths: ["course/modules/M00/README.md#unknown"] }],
+    }), context)).toThrow(/review path/);
+    expect(() => validateCandidate(candidate({
+      objective: [{ unmet_knowledge_nodes: ["K-M00-01"] }],
+    }), context)).toThrow(/passing objective/);
   });
 
   it("requires an assessed live-challenge objective to cite the learner answer evidence", () => {

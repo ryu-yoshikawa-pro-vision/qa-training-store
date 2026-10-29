@@ -32,6 +32,7 @@ import {
   parseStrictJsonResponse,
   sha256,
   validateCandidate,
+  validateSavedChallenge,
 } from "./ai-assisted-qa-assessment-core.mjs";
 import { verifyGitHubRunEvidence } from "./ai-assisted-qa-github-run-evidence.mjs";
 import {
@@ -60,9 +61,11 @@ const ASSESSOR_SYSTEM = [
   "Judge each required objective independently using only its pinned criterion, allowed evidence IDs, rubric, and cited source excerpts.",
   "Use status assessed with Level 0-3 only when verified evidence supports a judgment. Use not_run, ungradable, or blocked with a null Level when appropriate.",
   "A Level 2 requires the learner's independent explanation and appropriate objective evidence. A sample, quiz score, model claim, successful tool run, or the answer to one challenge does not prove other objectives.",
+  "For assessed Level 0 or 1, give at least one concrete unmet gap; never return an empty gaps array for a failing objective.",
+  "Return unmet_knowledge_nodes only for specific demonstrated deficiencies using IDs from allowed_knowledge_node_ids_by_objective. Use [] if uncertain. Never invent node IDs or URLs.",
   "Give a concise rationale, unmet gaps, and a review path inside the objective's module. Never decide Phase completion.",
   "Return exactly one JSON object with schema_version:1, the supplied assessment_id and phase_id, and one objectives entry for every supplied required objective ID.",
-  "Each objective entry must contain only objective_id,status,level,criterion_ids,evidence_ids,rationale,gaps,review_paths. Do not return completed or pass fields.",
+  "Each objective entry must contain only objective_id,status,level,criterion_ids,evidence_ids,rationale,gaps,review_paths,unmet_knowledge_nodes. Do not return completed or pass fields.",
   "Do not include Markdown fences or any text outside the JSON object.",
 ].join("\n");
 
@@ -295,6 +298,15 @@ async function loadPhaseInputs(phaseId) {
   const criteriaByObjective = {};
   const objectiveEvidenceIds = {};
   const reviewPathsByObjective = {};
+  const knowledgeNodeIdsByObjective = {};
+  const knowledgeReviewPathsByNode = {};
+  const graphSource = sourceMaterials.get("docs/curriculum/ai-assisted-qa/knowledge-graph.json");
+  if (!graphSource) fail("pinned knowledge graph is missing from Phase assessment");
+  const knowledgeById = new Map(
+    (JSON.parse(graphSource.text).nodes ?? [])
+      .filter((node) => node.type === "knowledge")
+      .map((node) => [node.id, node]),
+  );
   for (const moduleId of phase.modules) {
     const scoring = scoringByModule.get(moduleId);
     const evidenceIds = evidence
@@ -305,16 +317,35 @@ async function loadPhaseInputs(phaseId) {
       root: ROOT,
       sourcePath: lessonSource,
     }).targetPath;
+    const exerciseSource = `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`;
+    const exerciseTarget = scoring.sources?.includes(exerciseSource)
+      ? readVerifiedCourseSource({ root: ROOT, sourcePath: exerciseSource }).targetPath
+      : null;
     for (const objectiveId of scoring.objective_ids) {
-      criteriaByObjective[objectiveId] = scoring.criteria
-        .filter((criterion) => criterion.objective_ids.includes(objectiveId))
-        .map((criterion) => criterion.id);
+      const criteria = scoring.criteria.filter((item) => item.objective_ids.includes(objectiveId));
+      criteriaByObjective[objectiveId] = criteria.map((item) => item.id);
+      const knowledgeIds = [...new Set(criteria.flatMap((item) => item.knowledge_ids ?? []))];
+      if (knowledgeIds.some((id) => knowledgeById.get(id)?.module !== moduleId))
+        fail(`pinned scoring has an invalid knowledge node for ${objectiveId}`);
+      knowledgeNodeIdsByObjective[objectiveId] = knowledgeIds;
       objectiveEvidenceIds[objectiveId] = [...evidenceIds];
+      const nodePaths = knowledgeIds.flatMap((id) => {
+        const sourceReviewPath = knowledgeById.get(id)?.review_path;
+        const prefix = `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md#`;
+        if (typeof sourceReviewPath !== "string" || !sourceReviewPath.startsWith(prefix))
+          return [];
+        const fragment = sourceReviewPath.slice(prefix.length);
+        if (!/^[\p{L}\p{N}_-]+$/u.test(fragment))
+          fail(`pinned knowledge review anchor is unsafe for ${id}`);
+        const reviewPath = `${lessonTarget}#${fragment}`;
+        knowledgeReviewPathsByNode[id] = reviewPath;
+        return [reviewPath];
+      });
       reviewPathsByObjective[objectiveId] = [
         lessonTarget,
-        ...evidence
-          .filter((item) => item.module_id === moduleId)
-          .map((item) => item.path.replace(/^workspace\//, "workspace/")),
+        ...(exerciseTarget ? [exerciseTarget] : []),
+        ...nodePaths,
+        ...evidence.filter((item) => item.module_id === moduleId).map((item) => item.path),
       ];
     }
   }
@@ -342,6 +373,8 @@ async function loadPhaseInputs(phaseId) {
     criteriaByObjective,
     objectiveEvidenceIds,
     reviewPathsByObjective,
+    knowledgeNodeIdsByObjective,
+    knowledgeReviewPathsByNode,
     evidence,
     deterministicChecks,
   };
@@ -646,6 +679,7 @@ function buildAssessmentPrompt({ inputs, challenge, answer, assessmentId }) {
     criteria_by_objective: inputs.criteriaByObjective,
     allowed_evidence_ids_by_objective: inputs.objectiveEvidenceIds,
     allowed_review_paths_by_objective: inputs.reviewPathsByObjective,
+    allowed_knowledge_node_ids_by_objective: inputs.knowledgeNodeIdsByObjective,
   };
   const text = `Perform an independent objective-by-objective assessment using this pinned data. The answer to the live challenge applies only to its listed objective.\n${JSON.stringify(payload)}`;
   if (Buffer.byteLength(text, "utf8") > MAX_MODEL_INPUT_BYTES)
@@ -677,7 +711,15 @@ function saveSummary(attemptDirectory, result) {
         `- 評価基準: ${objective.criterion_ids?.join(", ") ?? "未指定"}`,
         `- 確認した証拠: ${evidence.join(", ") || "未確認"}`,
         `- 不足: ${objective.gaps?.join("; ") || "なし"}`,
-        `- 復習先: ${objective.review_paths?.join(", ") ?? "未指定"}`,
+        `- 要復習の理解ノード: ${objective.unmet_knowledge_nodes?.join(", ") || "特定なし（目標単位で確認）"}`,
+        `- 復習先: ${objective.review_paths?.map((reviewPath) =>
+          `[${reviewPath}](../../../../../${encodeURI(reviewPath)})`
+        ).join(", ") || "未指定"}`,
+        `- 次の確認: ${objective.status === "assessed" && objective.level < 2
+          ? "不足箇所を教材で復習し、既存演習を別条件で確かめてから新しい試行で再評価してください。"
+          : objective.status !== "assessed"
+            ? "未実行・証拠不足・環境障害を確認し、実施可能になってから新しい試行で再評価してください。"
+            : "必要に応じて教材で確認してください。"}`,
       ].join("\n");
     })
     .join("\n\n");
@@ -951,6 +993,7 @@ async function prepareAttempt(request) {
     criteria_by_objective: inputs.criteriaByObjective,
     prepared_at: new Date().toISOString(),
     fingerprint: sha256(stableInputFingerprint(inputs)),
+    challenge_sha256: sha256(JSON.stringify(challenge)),
   };
   atomicWriteJson(path.join(attemptDirectory, "input-manifest.json"), inputManifest);
   atomicWriteJson(path.join(attemptDirectory, "challenge.json"), challenge);
@@ -1084,6 +1127,15 @@ async function resumeAttempt(request) {
     fail(
       "assessment evidence, source SHA, or asset hashes changed after preparation; create a new assessment",
     );
+  if (inputManifest.challenge_sha256 !== sha256(JSON.stringify(savedChallenge)))
+    fail("saved live challenge changed after preparation; create a new assessment");
+  validateSavedChallenge(savedChallenge, {
+    phaseId: request.phase,
+    scoring: inputs.scoringByModule.get(ASSESSMENT_PHASES[request.phase].terminal),
+    sourceMaterials: inputs.sourceMaterials,
+    sourceSha: inputs.sourceSha,
+    assessmentId: request.resumeId,
+  });
   const answerPath = path.join(attemptDirectory, "answers.md");
   const answer = readChallengeAnswer(answerPath, savedChallenge);
   const answerReceiptPath = path.join(attemptDirectory, "challenge-answer.json");
@@ -1182,6 +1234,8 @@ async function resumeAttempt(request) {
           ]),
         ),
         reviewPathsByObjective: inputs.reviewPathsByObjective,
+        knowledgeNodeIdsByObjective: inputs.knowledgeNodeIdsByObjective,
+        knowledgeReviewPathsByNode: inputs.knowledgeReviewPathsByNode,
       });
     }
   } catch (error) {

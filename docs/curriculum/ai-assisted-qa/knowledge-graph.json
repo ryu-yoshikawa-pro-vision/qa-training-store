@@ -2511,7 +2511,7 @@
       "module": "M08",
       "cognitive_target": "判断",
       "evaluation_hint": "PRレビュー記録",
-      "level2": "自分の変更をPRとして示し、**何を検証した変更か**を説明できる",
+      "level2": "自分の変更についてPR説明草稿を作り、**何を検証した変更か**を仕様・差分・テスト結果と結び付けて説明できる。実PR作成の有無を区別する",
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [

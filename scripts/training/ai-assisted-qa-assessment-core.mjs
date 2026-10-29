@@ -33,6 +33,7 @@ const OBJECTIVE_FIELDS = new Set([
   "rationale",
   "gaps",
   "review_paths",
+  "unmet_knowledge_nodes",
 ]);
 
 function fail(message) {
@@ -123,6 +124,17 @@ export function buildAssessmentAgentConfig({ modelId, agentId, systemPrompt }) {
   };
 }
 
+function liveChallengeSources(scoring, sourceMaterials, terminalModuleId) {
+  const allowed = new Set([
+    `docs/curriculum/ai-assisted-qa/modules/${terminalModuleId}/README.md`,
+    `training/ai-assisted-qa-course/exercises/${terminalModuleId}/exercise.md`,
+  ]);
+  return (scoring.sources ?? [])
+    .filter((sourcePath) => allowed.has(sourcePath))
+    .map((sourcePath) => sourceMaterials.find((item) => item.path === sourcePath))
+    .filter(Boolean);
+}
+
 export function createLiveChallenge({
   phaseId,
   scoring,
@@ -146,9 +158,7 @@ export function createLiveChallenge({
     fail("terminal scoring asset contains an invalid live objective ID");
   const criterion = scoring.criteria?.find((item) => item.objective_ids?.includes(objectiveId));
   const dimensions = LIVE_CHALLENGE_DIMENSIONS[phaseId];
-  const sourceCandidates = (scoring.sources ?? [])
-    .map((sourcePath) => sourceMaterials.find((item) => item.path === sourcePath))
-    .filter(Boolean);
+  const sourceCandidates = liveChallengeSources(scoring, sourceMaterials, phase.terminal);
   if (
     !criterion ||
     !Array.isArray(criterion.required_evidence) ||
@@ -180,6 +190,40 @@ export function createLiveChallenge({
     condition,
     condition_sha256: sha256(condition),
   };
+}
+
+// Rebuild persisted questions against pinned inputs rather than trusting an editable JSON file.
+export function validateSavedChallenge(challenge, { phaseId, scoring, sourceMaterials, sourceSha, assessmentId }) {
+  const phase = ASSESSMENT_PHASES[phaseId];
+  if (!phase || !challenge || typeof challenge !== "object" || Array.isArray(challenge))
+    fail("saved live challenge is missing or invalid");
+  if (challenge.id !== `CH-${phaseId}-${assessmentId}` ||
+      !Array.isArray(challenge.objective_ids) || challenge.objective_ids.length !== 1)
+    fail("saved live challenge identity does not match the prepared attempt");
+  const objectiveIndex = scoring?.objective_ids?.indexOf(challenge.objective_ids[0]) ?? -1;
+  const criterion = scoring?.criteria?.find((item) => item.objective_ids?.includes(challenge.objective_ids[0]));
+  const sources = liveChallengeSources(scoring ?? {}, sourceMaterials ?? [], phase.terminal);
+  const indexes = [
+    objectiveIndex,
+    sources.findIndex((item) => item.path === challenge.source_path),
+    LIVE_CHALLENGE_DIMENSIONS[phaseId].indexOf(challenge.variation_dimension),
+    criterion?.required_evidence?.indexOf(challenge.target_requirement) ?? -1,
+  ];
+  if (indexes.some((index) => index < 0))
+    fail("saved live challenge references an invalid objective, source, or condition");
+  const nextIndex = (length) => {
+    const index = indexes.shift();
+    if (index === undefined || index >= length)
+      fail("saved live challenge selector is outside pinned inputs");
+    return index;
+  };
+  const rebuilt = createLiveChallenge({
+    phaseId, scoring, sourceMaterials, sourceSha, id: assessmentId, randomIndex: nextIndex,
+  });
+  if (Object.keys(challenge).length !== Object.keys(rebuilt).length ||
+      Object.keys(rebuilt).some((key) => challenge[key] !== rebuilt[key]))
+    fail("saved live challenge differs from its pinned condition or source SHA");
+  return rebuilt;
 }
 
 export function parseAssessmentArgs(args) {
@@ -362,8 +406,19 @@ export function validateCandidate(candidate, expected) {
     if (typeof objective.rationale !== "string" || !objective.rationale.trim())
       fail(`AI candidate has no rationale for ${objective.objective_id}`);
     assertNoSecretText(objective.rationale, `AI rationale for ${objective.objective_id}`);
-    if (!Array.isArray(objective.gaps) || objective.gaps.some((gap) => typeof gap !== "string"))
+    if (!Array.isArray(objective.gaps) ||
+        objective.gaps.some((gap) => typeof gap !== "string" || !gap.trim()))
       fail(`AI candidate gaps are malformed for ${objective.objective_id}`);
+    if (objective.status === "assessed" && objective.level < 2 && objective.gaps.length === 0)
+      fail(`AI candidate must explain unmet criteria for ${objective.objective_id}`);
+    const unmetKnowledgeNodes = objective.unmet_knowledge_nodes ?? [];
+    const allowedKnowledgeNodes = expected.knowledgeNodeIdsByObjective?.[objective.objective_id] ?? [];
+    if (!Array.isArray(unmetKnowledgeNodes) ||
+        new Set(unmetKnowledgeNodes).size !== unmetKnowledgeNodes.length ||
+        unmetKnowledgeNodes.some((id) => typeof id !== "string" || !allowedKnowledgeNodes.includes(id)))
+      fail(`AI candidate references an unrelated knowledge node for ${objective.objective_id}`);
+    if (objective.status === "assessed" && objective.level >= 2 && unmetKnowledgeNodes.length > 0)
+      fail(`AI candidate cannot report unmet knowledge nodes for a passing objective: ${objective.objective_id}`);
     if (!Array.isArray(objective.review_paths) || objective.review_paths.length === 0)
       fail(`AI candidate has no review path for ${objective.objective_id}`);
     const moduleId = objective.objective_id.slice(0, 3);
@@ -372,8 +427,9 @@ export function validateCandidate(candidate, expected) {
       !Array.isArray(allowedReviewPaths) ||
       objective.review_paths.some(
         (reviewPath) =>
-          !SAFE_REVIEW_PATH.test(reviewPath) ||
           !allowedReviewPaths.includes(reviewPath) ||
+          !(SAFE_REVIEW_PATH.test(reviewPath) ||
+            /^course\/modules\/M(?:0[0-9]|10)\/README\.md#[\p{L}\p{N}_-]+$/u.test(reviewPath)) ||
           (!reviewPath.startsWith(`course/modules/${moduleId}/`) &&
             !reviewPath.startsWith(`course/exercises/${moduleId}/`) &&
             !reviewPath.startsWith(`workspace/${moduleId}/`)),
@@ -382,7 +438,15 @@ export function validateCandidate(candidate, expected) {
       fail(`AI candidate review path is outside the objective module: ${objective.objective_id}`);
     for (const gap of objective.gaps)
       assertNoSecretText(gap, `AI gap for ${objective.objective_id}`);
-    byId.set(objective.objective_id, objective);
+    const verifiedNodePaths = unmetKnowledgeNodes
+      .map((id) => expected.knowledgeReviewPathsByNode?.[id])
+      .filter((reviewPath) => typeof reviewPath === "string" &&
+        allowedReviewPaths.includes(reviewPath));
+    byId.set(objective.objective_id, {
+      ...objective,
+      unmet_knowledge_nodes: unmetKnowledgeNodes,
+      review_paths: [...new Set([...objective.review_paths, ...verifiedNodePaths])],
+    });
   }
   if (
     byId.size !== expected.objectiveIds.length ||
