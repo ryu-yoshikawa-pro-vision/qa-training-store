@@ -51,3 +51,7 @@
 6. **P06 増やしたtestを再実行して証拠を照合（M06-02・04・05）**：`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`を実行します。**CASE-CART-004とCASE-CART-005の2件以上**が両RunでPASSし、spec SHA・配布SHA・Run ID・report内の実行test数が一致することを確認します。追加Caseの失敗はAssertionを削って隠さず原因・修正・再実行を記録します。
 
 **完了条件**：固定3件とは別に新規の数量変更Caseを実装し、CASE-CART-004と005を独立に実行した証拠が必要です。P05で実行可能な本人Caseがある場合はそれも実装し、実行不能なら理由と代替を示します。数量0を選択できない現行UIへ存在しない操作を強要しません。
+
+### 固定Skillとの協働
+
+`e2e-test-implementation`へCASE-CART-005とBR/AC・許可する編集範囲を伝え、生成案と本人実装の差分をレビューしてください。`e2e-test-execution`・`e2e-test-reporting`を利用できる環境では、実際の`course:run`を根拠に報告案とreceipt/report/SHAを照合します。Skillが実行不能なら理由を記録してBLOCKEDとし、チューターの説明や自己申告をSkillの実行成功として扱いません。

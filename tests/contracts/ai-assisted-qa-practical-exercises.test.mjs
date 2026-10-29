@@ -19,9 +19,7 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       const scoring = JSON.parse(
         read(`training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`),
       );
-      const state = JSON.parse(
-        read(`training/ai-assisted-qa-course/states/${moduleId}/end.json`),
-      );
+      const state = JSON.parse(read(`training/ai-assisted-qa-course/states/${moduleId}/end.json`));
 
       expect(distributedFiles.has(exercisePath)).toBe(true);
       expect(distributedFiles.has(templatePath)).toBe(true);
@@ -51,11 +49,9 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
     );
     const required = scoring.evaluation_policy.execution_evidence.required_runs;
     for (const label of ["initial", "repeat"]) {
-      expect(
-        required.find(
-          (entry) => entry.spec === "new-case.spec.ts" && entry.label === label,
-        )?.minimum_tests,
-      ).toBeGreaterThanOrEqual(2);
+      const run = required.find((entry) => entry.label === label);
+      expect(run?.spec).toBe("new-case.spec.ts");
+      expect(run?.minimum_tests).toBeGreaterThanOrEqual(2);
     }
     expect(exercise).toContain("CASE-CART-005");
     expect(exercise).toContain("数量0");
@@ -70,16 +66,9 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       read("training/ai-assisted-qa-course/assessment/scoring-tests/M07.json"),
     );
     const required = scoring.evaluation_policy.execution_evidence.required_runs;
-    expect(
-      required.find(
-        (entry) => entry.spec === "maintenance.spec.ts" && entry.label === "before",
-      )?.minimum_tests,
-    ).toBe(2);
-    expect(
-      required.find(
-        (entry) => entry.spec === "maintenance.spec.ts" && entry.label === "after",
-      )?.minimum_tests,
-    ).toBeGreaterThanOrEqual(3);
+    const maintenance = required.filter((entry) => entry.spec === "maintenance.spec.ts");
+    expect(maintenance.find((entry) => entry.label === "before")?.minimum_tests).toBe(2);
+    expect(maintenance.find((entry) => entry.label === "after")?.minimum_tests).toBe(3);
     const reference = read(
       "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts",
     );

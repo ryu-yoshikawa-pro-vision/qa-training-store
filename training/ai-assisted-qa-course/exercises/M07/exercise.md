@@ -61,3 +61,7 @@ pnpm course:run M07 maintenance.spec.ts --label after
 6. **P06 再実行と変更の範囲を確かめる（M07-02・04・05）**：従来の2件のbefore Runを保全し、変更後の`pnpm course:run M07 maintenance.spec.ts --label after`では**3件以上PASS**することを確認します。条件・順番を変えてもResetが独立する理由を説明します。Run/Traceがなければ未検証、実Runで失敗が残ればそのまま報告します。**証拠**：before/afterのRun ID、件数、spec SHA、失敗診断、残る制約。
 
 **完了条件**：P05は説明だけでなく新しいtestのコードと実行結果を提出します。P02/P03の合成ログは診断計画であり、再現性を実証した結果ではありません。
+
+### 固定Skillとの協働
+
+`e2e-test-inspection`・`e2e-test-result-analysis`に実失敗AのspecとTraceを提示し、原因仮説を本人が仕様・前後Runで確認してください。`adversarial-review`で「Assertionを弱める」「Retryだけ追加」の提案を検査し、`e2e-test-reporting`で合成B/Cを実行済みと誤記していないか確認します。利用できないSkillは未実行/BLOCKEDと記録し、モデル未接続を本人の失敗診断成功へ読み替えません。
