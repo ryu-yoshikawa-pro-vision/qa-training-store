@@ -68,74 +68,74 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     });
   }
 
-  test("全教材・全クイズをdesktop/mobileで表示し、導線・アクセシビリティ・横幅を確認する", async ({
-    page,
-  }) => {
-    for (let index = 0; index < moduleIds.length; index += 1) {
-      const moduleId = moduleIds[index];
-      if (moduleId === undefined) throw new Error(`モジュール ${index} がありません`);
-      await page.setViewportSize({ width: 1365, height: 900 });
-      await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
-      await expect(page.locator(".module-progress")).toContainText(moduleId);
-      await expect(page.locator(".primary-navigation a[aria-current='page']")).toContainText(
-        moduleId,
-      );
-      await expect(
-        page.locator(".course-resources a[href*='/resources/training/']").first(),
-      ).toBeVisible();
-      await expect(page.locator(".module-pager")).toBeVisible();
-      const images = page.locator(".document-body img");
-      const imageCounts: Record<string, number> = { M00: 3, M01: 3, M03: 4, M05: 4, M09: 3 };
-      const expectedImages = imageCounts[moduleId] ?? 2;
-      await expect(images).toHaveCount(expectedImages);
-      for (let imageIndex = 0; imageIndex < expectedImages; imageIndex += 1) {
-        const image = images.nth(imageIndex);
-        // Browser-native lazy loading starts only when an image approaches the viewport.
-        await image.scrollIntoViewIfNeeded();
-        await expect
-          .poll(() => image.evaluate((node) => (node as HTMLImageElement).complete))
-          .toBe(true);
-        await expect
-          .poll(() => image.evaluate((node) => (node as HTMLImageElement).naturalWidth))
-          .toBeGreaterThan(0);
-      }
-      await expectCoursePageAccessible(page);
-      const visibleText = await page.locator("body").innerText();
-      expect(visibleText).not.toContain("SHA-256:");
-      expect(visibleText).not.toMatch(/(?:source_sha|spec_sha256)\s*[:=]\s*[a-f0-9]{40,64}\b/i);
-      expect(visibleText).not.toMatch(/[a-f0-9]{64}/i);
+  for (const moduleId of moduleIds) {
+    test(
+      moduleId +
+        " 全教材・全クイズをdesktop/mobileで表示し、導線・アクセシビリティ・横幅を確認する",
+      async ({ page }) => {
+        await page.setViewportSize({ width: 1365, height: 900 });
+        await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
+        await expect(page.locator(".module-progress")).toContainText(moduleId);
+        await expect(page.locator(".primary-navigation a[aria-current='page']")).toContainText(
+          moduleId,
+        );
+        await expect(
+          page.locator(".course-resources a[href*='/resources/training/']").first(),
+        ).toBeVisible();
+        await expect(page.locator(".module-pager")).toBeVisible();
+        const images = page.locator(".document-body img");
+        const imageCounts: Record<string, number> = { M00: 3, M01: 3, M03: 4, M05: 4, M09: 3 };
+        const expectedImages = imageCounts[moduleId] ?? 2;
+        await expect(images).toHaveCount(expectedImages);
+        for (let imageIndex = 0; imageIndex < expectedImages; imageIndex += 1) {
+          const image = images.nth(imageIndex);
+          // Browser-native lazy loading starts only when an image approaches the viewport.
+          await image.scrollIntoViewIfNeeded();
+          await expect
+            .poll(() => image.evaluate((node) => (node as HTMLImageElement).complete))
+            .toBe(true);
+          await expect
+            .poll(() => image.evaluate((node) => (node as HTMLImageElement).naturalWidth))
+            .toBeGreaterThan(0);
+        }
+        await expectCoursePageAccessible(page);
+        const visibleText = await page.locator("body").innerText();
+        expect(visibleText).not.toContain("SHA-256:");
+        expect(visibleText).not.toMatch(/(?:source_sha|spec_sha256)\s*[:=]\s*[a-f0-9]{40,64}\b/i);
+        expect(visibleText).not.toMatch(/[a-f0-9]{64}/i);
 
-      await page.setViewportSize({ width: 375, height: 812 });
-      await expect(page.locator(".mobile-primary-navigation")).toBeVisible();
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      await expectCoursePageAccessible(page);
-    }
+        await page.setViewportSize({ width: 375, height: 812 });
+        await expect(page.locator(".mobile-primary-navigation")).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        await expectCoursePageAccessible(page);
 
-    for (const moduleId of moduleIds) {
-      const quiz = readQuiz(moduleId);
-      await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
-      await expect(page.locator(".module-progress")).toContainText(moduleId);
-      await page.getByRole("button", { name: "回答を始める" }).click();
-      await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
-      await expectCoursePageAccessible(page);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      const visibleText = await page.locator("body").innerText();
-      expect(visibleText).not.toContain("SHA-256:");
-      expect(visibleText).not.toMatch(/(?:source_sha|spec_sha256)\s*[:=]\s*[a-f0-9]{40,64}\b/i);
-      await chooseCorrectAnswers(page, quiz);
-      await page.getByRole("button", { name: "結果を確認" }).click();
-      await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      await expectCoursePageAccessible(page);
-    }
-  });
+        const quiz = readQuiz(moduleId);
+        await page.setViewportSize({ width: 375, height: 812 });
+        await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+        await expect(page.locator(".module-progress")).toContainText(moduleId);
+        await page.getByRole("button", { name: "回答を始める" }).click();
+        await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
+        await expectCoursePageAccessible(page);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        const quizVisibleText = await page.locator("body").innerText();
+        expect(quizVisibleText).not.toContain("SHA-256:");
+        expect(quizVisibleText).not.toMatch(
+          /(?:source_sha|spec_sha256)\s*[:=]\s*[a-f0-9]{40,64}\b/i,
+        );
+        await chooseCorrectAnswers(page, quiz);
+        await page.getByRole("button", { name: "結果を確認" }).click();
+        await expect(page.locator(".result-question")).toHaveCount(quiz.questions.length);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        await expectCoursePageAccessible(page);
+      },
+    );
+  }
 
   test("学習マップの本人確認が同一ブラウザに保存され、正式評価と分離される", async ({ page }) => {
     await page.goto("/docs/curriculum/ai-assisted-qa/objectives.html");

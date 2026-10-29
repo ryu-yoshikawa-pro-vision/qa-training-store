@@ -332,8 +332,7 @@ async function loadPhaseInputs(phaseId) {
       const nodePaths = knowledgeIds.flatMap((id) => {
         const sourceReviewPath = knowledgeById.get(id)?.review_path;
         const prefix = `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md#`;
-        if (typeof sourceReviewPath !== "string" || !sourceReviewPath.startsWith(prefix))
-          return [];
+        if (typeof sourceReviewPath !== "string" || !sourceReviewPath.startsWith(prefix)) return [];
         const fragment = sourceReviewPath.slice(prefix.length);
         if (!/^[\p{L}\p{N}_-]+$/u.test(fragment))
           fail(`pinned knowledge review anchor is unsafe for ${id}`);
@@ -712,14 +711,18 @@ function saveSummary(attemptDirectory, result) {
         `- 確認した証拠: ${evidence.join(", ") || "未確認"}`,
         `- 不足: ${objective.gaps?.join("; ") || "なし"}`,
         `- 要復習の理解ノード: ${objective.unmet_knowledge_nodes?.join(", ") || "特定なし（目標単位で確認）"}`,
-        `- 復習先: ${objective.review_paths?.map((reviewPath) =>
-          `[${reviewPath}](../../../../../${encodeURI(reviewPath)})`
-        ).join(", ") || "未指定"}`,
-        `- 次の確認: ${objective.status === "assessed" && objective.level < 2
-          ? "不足箇所を教材で復習し、既存演習を別条件で確かめてから新しい試行で再評価してください。"
-          : objective.status !== "assessed"
-            ? "未実行・証拠不足・環境障害を確認し、実施可能になってから新しい試行で再評価してください。"
-            : "必要に応じて教材で確認してください。"}`,
+        `- 復習先: ${
+          objective.review_paths
+            ?.map((reviewPath) => `[${reviewPath}](../../../../../${encodeURI(reviewPath)})`)
+            .join(", ") || "未指定"
+        }`,
+        `- 次の確認: ${
+          objective.status === "assessed" && objective.level < 2
+            ? "不足箇所を教材で復習し、既存演習を別条件で確かめてから新しい試行で再評価してください。"
+            : objective.status !== "assessed"
+              ? "未実行・証拠不足・環境障害を確認し、実施可能になってから新しい試行で再評価してください。"
+              : "必要に応じて教材で確認してください。"
+        }`,
       ].join("\n");
     })
     .join("\n\n");

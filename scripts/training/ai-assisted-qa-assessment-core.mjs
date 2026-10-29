@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 export const ASSESSMENT_PHASES = Object.freeze({
   P1: { terminal: "M04", modules: ["M00", "M01", "M02", "M03", "M04"] },
@@ -193,15 +194,23 @@ export function createLiveChallenge({
 }
 
 // Rebuild persisted questions against pinned inputs rather than trusting an editable JSON file.
-export function validateSavedChallenge(challenge, { phaseId, scoring, sourceMaterials, sourceSha, assessmentId }) {
+export function validateSavedChallenge(
+  challenge,
+  { phaseId, scoring, sourceMaterials, sourceSha, assessmentId },
+) {
   const phase = ASSESSMENT_PHASES[phaseId];
   if (!phase || !challenge || typeof challenge !== "object" || Array.isArray(challenge))
     fail("saved live challenge is missing or invalid");
-  if (challenge.id !== `CH-${phaseId}-${assessmentId}` ||
-      !Array.isArray(challenge.objective_ids) || challenge.objective_ids.length !== 1)
+  if (
+    challenge.id !== `CH-${phaseId}-${assessmentId}` ||
+    !Array.isArray(challenge.objective_ids) ||
+    challenge.objective_ids.length !== 1
+  )
     fail("saved live challenge identity does not match the prepared attempt");
   const objectiveIndex = scoring?.objective_ids?.indexOf(challenge.objective_ids[0]) ?? -1;
-  const criterion = scoring?.criteria?.find((item) => item.objective_ids?.includes(challenge.objective_ids[0]));
+  const criterion = scoring?.criteria?.find((item) =>
+    item.objective_ids?.includes(challenge.objective_ids[0]),
+  );
   const sources = liveChallengeSources(scoring ?? {}, sourceMaterials ?? [], phase.terminal);
   const indexes = [
     objectiveIndex,
@@ -218,10 +227,14 @@ export function validateSavedChallenge(challenge, { phaseId, scoring, sourceMate
     return index;
   };
   const rebuilt = createLiveChallenge({
-    phaseId, scoring, sourceMaterials, sourceSha, id: assessmentId, randomIndex: nextIndex,
+    phaseId,
+    scoring,
+    sourceMaterials,
+    sourceSha,
+    id: assessmentId,
+    randomIndex: nextIndex,
   });
-  if (Object.keys(challenge).length !== Object.keys(rebuilt).length ||
-      Object.keys(rebuilt).some((key) => challenge[key] !== rebuilt[key]))
+  if (!isDeepStrictEqual(challenge, rebuilt))
     fail("saved live challenge differs from its pinned condition or source SHA");
   return rebuilt;
 }
@@ -406,19 +419,28 @@ export function validateCandidate(candidate, expected) {
     if (typeof objective.rationale !== "string" || !objective.rationale.trim())
       fail(`AI candidate has no rationale for ${objective.objective_id}`);
     assertNoSecretText(objective.rationale, `AI rationale for ${objective.objective_id}`);
-    if (!Array.isArray(objective.gaps) ||
-        objective.gaps.some((gap) => typeof gap !== "string" || !gap.trim()))
+    if (
+      !Array.isArray(objective.gaps) ||
+      objective.gaps.some((gap) => typeof gap !== "string" || !gap.trim())
+    )
       fail(`AI candidate gaps are malformed for ${objective.objective_id}`);
     if (objective.status === "assessed" && objective.level < 2 && objective.gaps.length === 0)
       fail(`AI candidate must explain unmet criteria for ${objective.objective_id}`);
     const unmetKnowledgeNodes = objective.unmet_knowledge_nodes ?? [];
-    const allowedKnowledgeNodes = expected.knowledgeNodeIdsByObjective?.[objective.objective_id] ?? [];
-    if (!Array.isArray(unmetKnowledgeNodes) ||
-        new Set(unmetKnowledgeNodes).size !== unmetKnowledgeNodes.length ||
-        unmetKnowledgeNodes.some((id) => typeof id !== "string" || !allowedKnowledgeNodes.includes(id)))
+    const allowedKnowledgeNodes =
+      expected.knowledgeNodeIdsByObjective?.[objective.objective_id] ?? [];
+    if (
+      !Array.isArray(unmetKnowledgeNodes) ||
+      new Set(unmetKnowledgeNodes).size !== unmetKnowledgeNodes.length ||
+      unmetKnowledgeNodes.some(
+        (id) => typeof id !== "string" || !allowedKnowledgeNodes.includes(id),
+      )
+    )
       fail(`AI candidate references an unrelated knowledge node for ${objective.objective_id}`);
     if (objective.status === "assessed" && objective.level >= 2 && unmetKnowledgeNodes.length > 0)
-      fail(`AI candidate cannot report unmet knowledge nodes for a passing objective: ${objective.objective_id}`);
+      fail(
+        `AI candidate cannot report unmet knowledge nodes for a passing objective: ${objective.objective_id}`,
+      );
     if (!Array.isArray(objective.review_paths) || objective.review_paths.length === 0)
       fail(`AI candidate has no review path for ${objective.objective_id}`);
     const moduleId = objective.objective_id.slice(0, 3);
@@ -428,8 +450,10 @@ export function validateCandidate(candidate, expected) {
       objective.review_paths.some(
         (reviewPath) =>
           !allowedReviewPaths.includes(reviewPath) ||
-          !(SAFE_REVIEW_PATH.test(reviewPath) ||
-            /^course\/modules\/M(?:0[0-9]|10)\/README\.md#[\p{L}\p{N}_-]+$/u.test(reviewPath)) ||
+          !(
+            SAFE_REVIEW_PATH.test(reviewPath) ||
+            /^course\/modules\/M(?:0[0-9]|10)\/README\.md#[\p{L}\p{N}_-]+$/u.test(reviewPath)
+          ) ||
           (!reviewPath.startsWith(`course/modules/${moduleId}/`) &&
             !reviewPath.startsWith(`course/exercises/${moduleId}/`) &&
             !reviewPath.startsWith(`workspace/${moduleId}/`)),
@@ -440,8 +464,9 @@ export function validateCandidate(candidate, expected) {
       assertNoSecretText(gap, `AI gap for ${objective.objective_id}`);
     const verifiedNodePaths = unmetKnowledgeNodes
       .map((id) => expected.knowledgeReviewPathsByNode?.[id])
-      .filter((reviewPath) => typeof reviewPath === "string" &&
-        allowedReviewPaths.includes(reviewPath));
+      .filter(
+        (reviewPath) => typeof reviewPath === "string" && allowedReviewPaths.includes(reviewPath),
+      );
     byId.set(objective.objective_id, {
       ...objective,
       unmet_knowledge_nodes: unmetKnowledgeNodes,
