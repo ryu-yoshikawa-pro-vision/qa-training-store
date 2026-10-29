@@ -190,7 +190,7 @@ describe("AI-assisted QA static learning course", () => {
       expect(page).toContain(`data-knowledge-id="${node.id}"`);
     }
     expect(page).toContain("ai-assisted-qa-knowledge:");
-    expect(page).toContain("ai-assisted-qa-quiz:");
+    expect(page).toContain("ai-assisted-qa-knowledge-quiz:");
     expect(page).toContain("正式評価ではありません");
     expect(page).toContain("ブラウザ");
     expect(page).not.toContain("exportKnowledgeHistory");

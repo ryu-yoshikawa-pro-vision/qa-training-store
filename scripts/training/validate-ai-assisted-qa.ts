@@ -819,10 +819,16 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       requireCondition(!seenQuestionIds.has(question.id), `問題IDが重複しています: ${question.id}`);
       seenQuestionIds.add(question.id);
       const graphKnowledgeIds = (graph.edges ?? [])
-        .filter((edge) => edge.from === `QUIZ-${question.id}` && edge.relation === "evaluates" && edge.to?.startsWith("K-"))
+        .filter(
+          (edge) =>
+            edge.from === `QUIZ-${question.id}` &&
+            edge.relation === "evaluates" &&
+            edge.to?.startsWith("K-"),
+        )
         .map((edge) => edge.to as string);
       requireCondition(
-        JSON.stringify(sortedUnique(graphKnowledgeIds)) === JSON.stringify(sortedUnique(question.knowledge_ids)),
+        JSON.stringify(sortedUnique(graphKnowledgeIds)) ===
+          JSON.stringify(sortedUnique(question.knowledge_ids)),
         `${question.id}の理解ノード参照が知識グラフと一致しません`,
       );
       for (const objectiveId of question.objective_ids) coveredObjectiveIds.add(objectiveId);
