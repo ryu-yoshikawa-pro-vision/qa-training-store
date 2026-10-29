@@ -72,3 +72,7 @@ console.log(label(cart.quantity));
 6. **P06** Locatorのbefore/after Runに加え、短コードの構文・型・実行の失敗を各1件調べる（M05-04・05）。
 
 練習用ファイルは`workspace/M05/`内に保存し、既存の`pnpm exec tsx`等を使用します。製品コードとConfigは変更せず、実行していない内容は未実行と記録してください。
+
+### 固定Skillと本人の判断
+
+固定Skillの`e2e-test-inspection`を使える場合は、P05のLocator候補と実画面・失敗Runを入力して検査し、修正の必要性を本人が判断します。`e2e-test-implementation`に変更案を依頼するときは`workspace/M05/product-link.spec.ts`以外の書込みを禁止し、差分・前後のRunで検証します。起動していないSkillやAIの自己申告を実行証拠に含めません。

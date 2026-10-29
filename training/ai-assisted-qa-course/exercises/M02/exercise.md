@@ -38,3 +38,7 @@
 6. **P06 SeedとReset（M02-03・05）**：defaultとlow-stockまたはcart-with-invalid-itemsについて、仕様とSeed/Resetの実装を調べる。初期データと実行時Cart数量を分け、実行可能性と不足入力を示す。
 
 P01〜P06からM03でテスト設計する複数の候補を選び、検証責務、Risk、Scope、仕様revision、未決事項を`analysis.md`へ記録します。
+
+### 固定Skillと本人の判断
+
+固定Skillの`spec-analysis`・`test-analysis`・`test-requirement-design`が利用できる場合は、正式仕様・対象Scopeを示して候補分析を生成し、本人のP01〜P06の判断と照合します。Skill名とrevision、入力、生成結果、誤読の採否、修正したTR、未実行の理由を`analysis.md`に記録します。AIチューターの読取り専用回答を固定Skillの実行済み成果物として扱いません。
