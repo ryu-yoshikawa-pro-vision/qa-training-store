@@ -191,7 +191,7 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
       "提出テンプレート",
       `Phase ${phase}の評価基準`,
     ]) {
-      const link = page.getByRole("link", { name: new RegExp(label) });
+      const link = page.getByRole("link", { name: label, exact: true });
       const href = await link.getAttribute("href");
       expect(href).toMatch(
         /^\/docs\/curriculum\/ai-assisted-qa\/resources\/training\/ai-assisted-qa-course\//,

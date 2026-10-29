@@ -85,20 +85,16 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       ).toBeVisible();
       await expect(page.locator(".module-pager")).toBeVisible();
       const images = page.locator(".document-body img");
-      await expect(images).toHaveCount(
-        moduleId === "M03"
-          ? 3
-          : moduleId === "M00" || moduleId === "M01" || moduleId === "M05"
-            ? 3
-            : 2,
-      );
-      expect(
-        await images.evaluateAll((nodes) =>
-          nodes.every(
-            (node) => node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0,
-          ),
-        ),
-      ).toBe(true);
+      const expectedImages = ({ M00: 3, M01: 3, M03: 4, M05: 4, M09: 3 } as Record<string, number>)[moduleId] ?? 2;
+      await expect(images).toHaveCount(expectedImages);
+      for (let imageIndex = 0; imageIndex < expectedImages; imageIndex += 1) {
+        const image = images.nth(imageIndex);
+        // Browser-native lazy loading starts only when an image approaches the viewport.
+        await image.scrollIntoViewIfNeeded();
+        await expect.poll(() =>
+          image.evaluate((node) => node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0),
+        ).toBe(true);
+      }
       await expectCoursePageAccessible(page);
       const visibleText = await page.locator("body").innerText();
       expect(visibleText).not.toContain("SHA-256:");
