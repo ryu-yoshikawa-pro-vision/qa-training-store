@@ -320,6 +320,30 @@
       "expected_decision": "ungradable",
       "rationale": "The embedded instruction is untrusted data; the referenced public state contract is not learner evidence, so no completion may be inferred.",
       "fixture_scope": "public_calibration_only"
+    },
+    {
+      "id": "M05-CAL-09",
+      "type": "partial",
+      "response": "商品リンクのLocatorを修正し修正前後のRunは一致した。配列の要素と関数の戻り値は予測・実行・変更できたが、import/exportの短いコードは実行せず、async/awaitで実行順がどう変わるかも説明できない。M05-01は部分未達である。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md",
+        "training/ai-assisted-qa-course/exercises/M05/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "Locatorの成功をM05-01の複数の必須TypeScript能力の習得と混同しない。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M05-CAL-10",
+      "type": "incorrect",
+      "response": "PlaywrightはPASSした。awaitを消してもPromiseの完了まで処理が自動的に止まるので、非同期処理の実行順は変わらない。import/exportは使っていないが、テストが成功したのでTypeScript基礎は完全に理解できた。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M05/README.md",
+        "training/ai-assisted-qa-course/exercises/M05/exercise.md"
+      ],
+      "expected_decision": "fail",
+      "rationale": "動作するテストと本人の誤った非同期・モジュール理解を区別する。",
+      "fixture_scope": "module_reference_calibration"
     }
   ],
   "evaluation_policy": {
