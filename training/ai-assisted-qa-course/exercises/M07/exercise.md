@@ -48,3 +48,16 @@ pnpm course:run M07 maintenance.spec.ts --label after
 
 - **K-M07-06**：画面操作をPage Objectへまとめ、仕様Assertionの責務を保持して別Runで検証できる
 - **K-M07-07**：fixtureのスコープを理解し、各テスト前Resetとテスト間独立性を確認できる
+
+## 反復実践 P01〜P06：異なる失敗と保守判断
+
+既存のbefore/after RunとPage Object/fixture演習を維持します。実在するRunと教材用の合成ログは必ず区別してください。
+
+1. **P01** 誤Assertionの失敗Runを取得し、Trace・期待結果・仕様ID・最小修正・別Runを示す（M07-01〜04）。
+2. **P02** `failure-cases.md`のReset条件不一致について、必要なReset引数・scenario metadata・同一Run内の追加証拠を順序付きで調べる。合成ログを実行結果として提出しない（M07-01・02）。
+3. **P03** Retryで結果が変わる合成例について、Test/Product/Environment/Flakyの競合仮説を作り、どのRun・Trace・アプリ応答で区別するか記録する（M07-01〜03）。
+4. **P04** `maintenance.spec.ts`の2 testから重複操作を小さいPage Objectに、テストごとのResetを標準fixtureに移し、数量1・2の業務Assertionを保持する（M07-04・05）。
+5. **P05** 共有コードが1箇所だけの別例と、複数testで共通のLocatorが変わった例を比較し、抽象化の採否・費用・変更範囲を理由付きで決める（M07-05）。
+6. **P06** 保守のbefore/after別Runを実行し、テスト順序や再実行で状態が残らないか確認する。設計の変更ではない場合と仕様期待を変えた場合を区別する（M07-02・04・05）。
+
+`diagnosis.md`へ仮説・次に取得する証拠・変更前後のRun・残課題を記載します。実環境で再現できない失敗は、実行不能/合成資料による分析と明示します。
