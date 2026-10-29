@@ -4,13 +4,7 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": [
-    "M07-01",
-    "M07-02",
-    "M07-03",
-    "M07-04",
-    "M07-05"
-  ],
+  "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
   "knowledge_ids": [
     "K-M07-01",
     "K-M07-02",
@@ -29,12 +23,7 @@
       "revision": "M07-result-v1",
       "contract_id": "M07-to-M08-handoff-v1",
       "expected_data": {
-        "diagnosis_classes": [
-          "test",
-          "product",
-          "environment",
-          "flaky"
-        ],
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
         "retry_is_root_cause_fix": false,
         "separate_before_after_runs": true,
         "synthetic_sample_label_required": true
@@ -46,12 +35,7 @@
       "revision": "M07-result-v1",
       "contract_id": "M07-to-M08-handoff-v1",
       "expected_data": {
-        "diagnosis_classes": [
-          "test",
-          "product",
-          "environment",
-          "flaky"
-        ],
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
         "retry_is_root_cause_fix": false,
         "separate_before_after_runs": true,
         "synthetic_sample_label_required": true
@@ -63,12 +47,7 @@
       "revision": "M07-result-v1",
       "contract_id": "M07-to-M08-handoff-v1",
       "expected_data": {
-        "diagnosis_classes": [
-          "test",
-          "product",
-          "environment",
-          "flaky"
-        ],
+        "diagnosis_classes": ["test", "product", "environment", "flaky"],
         "retry_is_root_cause_fix": false,
         "separate_before_after_runs": true,
         "synthetic_sample_label_required": true

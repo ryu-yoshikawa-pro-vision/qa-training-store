@@ -111,9 +111,18 @@ describe("AI-assisted QA knowledge graph", () => {
     expect(output).toContain(
       "| Phase | Learning item | Knowledge | Lesson section | Level | Level 2 evidence | Quiz: answer and explanation | Practical exercise and submission | Phase rubric |",
     );
+    const graph = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/knowledge-graph.json"),
+        "utf8",
+      ),
+    ) as { nodes: { type: string }[] };
+    const expectedObjectiveCount = graph.nodes.filter(
+      (node) => node.type === "learning_objective",
+    ).length;
     expect(
       output.split(/\r?\n/).filter((line) => /^\| P[123] \| M(?:0[0-9]|10)-\d{2} \|/.test(line)),
-    ).toHaveLength(JSON.parse(fs.readFileSync(path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/knowledge-graph.json"), "utf8")).nodes.filter((node: { type: string }) => node.type === "learning_objective").length);
+    ).toHaveLength(expectedObjectiveCount);
     expect(output).toContain("M10-Q01");
     expect(output).toContain("training/ai-assisted-qa-course/exercises/M00/submission-template.md");
   });

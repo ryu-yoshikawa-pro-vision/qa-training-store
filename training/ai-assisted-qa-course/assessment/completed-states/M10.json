@@ -4,13 +4,7 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": [
-    "M10-01",
-    "M10-02",
-    "M10-03",
-    "M10-04",
-    "M10-05"
-  ],
+  "objective_ids": ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05"],
   "knowledge_ids": [
     "K-M10-01",
     "K-M10-02",

@@ -340,7 +340,7 @@ function loadPublicLearningObjectives(rootDir: string): LearningObjective[] {
     rows.push({ id, moduleId, summary, level });
   }
   const counts = MODULE_IDS.map((id) => rows.filter((row) => row.moduleId === id).length);
-  if (rows.length < 51 || counts.some((count, index) => count < EXPECTED_OBJECTIVE_COUNTS[index])) {
+  if (rows.length < 51 || counts.some((count, index) => count < (EXPECTED_OBJECTIVE_COUNTS[index] ?? 0))) {
     throw new Error(`公開学習項目が既存基準を下回っています。現在: ${rows.length}件 (${counts.join(", ")})`);
   }
   if (new Set(rows.map((row) => row.id)).size !== rows.length) throw new Error("公開学習項目IDが重複しています");
@@ -348,7 +348,7 @@ function loadPublicLearningObjectives(rootDir: string): LearningObjective[] {
 }
 
 const OBJECTIVE_MAP_CSS = "\n.knowledge-list{margin:.7rem 0 1.25rem;padding-left:1.1rem}.knowledge-list li{margin:.7rem 0;padding:.7rem .85rem;border:1px solid #cbd5e1;border-radius:.5rem;list-style:none}.knowledge-list p{margin:.35rem 0}.knowledge-self-check{font:inherit;font-size:.85rem;cursor:pointer;padding:.35rem .6rem;border:1px solid #526b85;border-radius:.4rem;background:transparent;color:inherit}.knowledge-self-check[aria-pressed=\"true\"]{border-color:#167446}.knowledge-links a{margin-right:.85rem}.knowledge-summary{color:#445469;font-size:.85rem}.objective-module details{margin-top:.5rem}.objective-module summary{cursor:pointer;font-weight:600}.knowledge-status{display:block;margin:.4rem 0;font-size:.85rem}@media(max-width:36rem){.knowledge-list{padding-left:0}.knowledge-list li{padding:.6rem}.knowledge-self-check{max-width:100%;white-space:normal}}\n";
-const OBJECTIVE_MAP_JS = "(()=>{\nconst model=JSON.parse(document.getElementById(\"knowledge-map-data\").textContent);\nconst byId=new Map(model.nodes.map(node=>[node.id,node]));\nconst statusMessage=document.getElementById(\"knowledge-storage-status\");\nconst getSaved=(key)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch{return null;}};\nconst refresh=(button)=>{\n  const node=byId.get(button.dataset.knowledgeId);\n  if(!node)return;\n  const entry=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n  const current=entry&&entry.revision===node.revision&&entry.checked===true;\n  const stale=entry&&entry.revision!==node.revision;\n  button.setAttribute(\"aria-pressed\",current?\"true\":\"false\");\n  button.textContent=current?\"本人確認済み（正式評価ではありません）\":stale?\"定義が変更されました：再確認\":\"本人確認：未確認\";\n};\nfor(const button of document.querySelectorAll(\"button[data-knowledge-id]\")){\n  refresh(button);\n  button.addEventListener(\"click\",()=>{\n    const node=byId.get(button.dataset.knowledgeId);\n    if(!node)return;\n    const current=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n    const checked=!(current&&current.revision===node.revision&&current.checked===true);\n    try{localStorage.setItem(\"ai-assisted-qa-knowledge:\"+node.id,JSON.stringify({revision:node.revision,checked,updated_at:new Date().toISOString()}));statusMessage.textContent=\"本人の確認状況をこのブラウザに保存しました。正式評価には影響しません。\";refresh(button);}\n    catch{statusMessage.textContent=\"このブラウザでは学習状況を保存できません。設定と空き容量を確認してください。\";}\n  });\n}\nconst scores=new Map();\nfor(const quiz of model.quizzes){\n const stored=getSaved(\"ai-assisted-qa-quiz:\"+quiz.module);\n if(!stored||stored.revision!==quiz.revision||stored.resultStatus!==\"completed\")continue;\n for(const question of quiz.questions){\n   const answer=stored.answers&&stored.answers[question.id];\n   if(![\"A\",\"B\",\"C\",\"D\"].includes(answer))continue;\n   for(const id of question.knowledge_ids){\n     const value=scores.get(id)||{correct:0,total:0};\n     value.total++;\n     if(answer===question.correct_value)value.correct++;\n     scores.set(id,value);\n   }\n }\n}\nfor(const node of model.nodes){\n for(const label of document.querySelectorAll('[data-knowledge-quiz=\"'+node.id+'\"]')){\n   const score=scores.get(node.id);\n   label.textContent=score?\"このブラウザのクイズ確認：\"+score.correct+\" / \"+score.total+\"問正解\":\"クイズ結果：未確認\";\n }\n}\n})();";
+const OBJECTIVE_MAP_JS = "(()=>{\nconst model=JSON.parse(document.getElementById(\"knowledge-map-data\").textContent);\nconst byId=new Map(model.nodes.map(node=>[node.id,node]));\nconst statusMessage=document.getElementById(\"knowledge-storage-status\");\nconst getSaved=(key)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch{return null;}};\nconst refresh=(button)=>{\n  const node=byId.get(button.dataset.knowledgeId);\n  if(!node)return;\n  const entry=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n  const current=entry&&entry.revision===node.revision&&entry.checked===true;\n  const stale=entry&&entry.revision!==node.revision;\n  button.setAttribute(\"aria-pressed\",current?\"true\":\"false\");\n  button.textContent=current?\"本人確認済み（正式評価ではありません）\":stale?\"定義が変更されました：再確認\":\"本人確認：未確認\";\n};\nfor(const button of document.querySelectorAll(\"button[data-knowledge-id]\")){\n  refresh(button);\n  button.addEventListener(\"click\",()=>{\n    const node=byId.get(button.dataset.knowledgeId);\n    if(!node)return;\n    const current=getSaved(\"ai-assisted-qa-knowledge:\"+node.id);\n    const checked=!(current&&current.revision===node.revision&&current.checked===true);\n    try{localStorage.setItem(\"ai-assisted-qa-knowledge:\"+node.id,JSON.stringify({revision:node.revision,checked,updated_at:new Date().toISOString()}));statusMessage.textContent=\"本人の確認状況をこのブラウザに保存しました。正式評価には影響しません。\";refresh(button);}\n    catch{statusMessage.textContent=\"このブラウザでは学習状況を保存できません。設定と空き容量を確認してください。\";}\n  });\n}\nconst scores=new Map();\nfor(const quiz of model.quizzes){\n const stored=getSaved(\"ai-assisted-qa-knowledge-quiz:\"+quiz.module);\n if(!stored||stored.revision!==quiz.revision||!stored.results)continue;\n for(const [id,value] of Object.entries(stored.results)){\n   if(!value||!Number.isInteger(value.correct)||!Number.isInteger(value.total)||value.correct<0||value.correct>value.total)continue;\n   const previous=scores.get(id)||{correct:0,total:0};\n   scores.set(id,{correct:previous.correct+value.correct,total:previous.total+value.total});\n }\n}\nfor(const node of model.nodes){\n for(const label of document.querySelectorAll('[data-knowledge-quiz=\"'+node.id+'\"]')){\n   const score=scores.get(node.id);\n   label.textContent=score?\"このブラウザのクイズ確認：\"+score.correct+\" / \"+score.total+\"問正解\":\"クイズ結果：未確認\";\n }\n}\n})();";
 
 function renderObjectiveMap(
   rootDir: string,
@@ -370,11 +370,11 @@ function renderObjectiveMap(
   const quizData = MODULE_IDS.map((module) => {
     const quizPath = path.join(rootDir, ...`${QUIZ_ROOT}/${module}.json`.split("/"));
     const bytes = fs.readFileSync(quizPath);
-    const quiz = JSON.parse(bytes.toString("utf8")) as { questions: { id: string; knowledge_ids: string[]; correct_value: string }[] };
+    const quiz = JSON.parse(bytes.toString("utf8")) as { questions: { id: string; knowledge_ids: string[] }[] };
     for (const question of quiz.questions) {
       for (const id of question.knowledge_ids) questionIndex.set(id, [...(questionIndex.get(id) ?? []), { id: question.id, module }]);
     }
-    return { module, revision: createHash("sha256").update(bytes).digest("hex"), questions: quiz.questions.map((question) => ({ id: question.id, correct_value: question.correct_value, knowledge_ids: question.knowledge_ids })) };
+    return { module, revision: createHash("sha256").update(bytes).digest("hex") };
   });
   const publicNodes = [...knowledgeById.values()].map((node) => ({ id: node.id, revision: createHash("sha256").update([node.id, node.title, node.can_do ?? ""].join("|")).digest("hex") }));
   const knowledgeData = JSON.stringify({ nodes: publicNodes, quizzes: quizData }).replace(/</g, "\\u003c");
@@ -549,9 +549,10 @@ const QUIZ_JS = `(async()=>{
     setPanel("question");
   };
   const renderResults=()=>{
-    const results=byId("results");results.replaceChildren();let score=0;
+    const results=byId("results");results.replaceChildren();let score=0;const knowledgeScores={};
     for(const question of quiz.questions){
       const selected=state.answers[question.id],correct=selected===question.correct_value;if(correct)score++;
+      for(const id of question.knowledge_ids){const entry=knowledgeScores[id]||{correct:0,total:0};entry.total++;if(correct)entry.correct++;knowledgeScores[id]=entry;}
       const section=document.createElement("section");section.className="result-question";
       const title=document.createElement("h3");setText(title,question.id+" · "+(correct?"正解":"不正解"));section.append(title);
       const prompt=document.createElement("p");setText(prompt,question.question);section.append(prompt);
@@ -568,6 +569,7 @@ const QUIZ_JS = `(async()=>{
       const review=document.createElement("p");const reviewLink=document.createElement("a");reviewLink.href=safeHref(question.review_path);reviewLink.textContent="教材の復習先";review.append(reviewLink);section.append(review);
       results.append(section);
     }
+    if(storageAvailable){try{localStorage.setItem("ai-assisted-qa-knowledge-quiz:"+moduleId,JSON.stringify({revision,results:knowledgeScores}));}catch{storageAvailable=false;}}
     const percentage=Math.round(score/quiz.questions.length*100);
     setText(byId("score"),score+" / "+quiz.questions.length+"問正解（"+percentage+"%）");setPanel("result");
   };

@@ -4,19 +4,8 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": [
-    "M08-01",
-    "M08-02",
-    "M08-03",
-    "M08-04"
-  ],
-  "knowledge_ids": [
-    "K-M08-01",
-    "K-M08-02",
-    "K-M08-03",
-    "K-M08-04",
-    "K-M08-05"
-  ],
+  "objective_ids": ["M08-01", "M08-02", "M08-03", "M08-04"],
+  "knowledge_ids": ["K-M08-01", "K-M08-02", "K-M08-03", "K-M08-04", "K-M08-05"],
   "start_state_path": "training/ai-assisted-qa-course/states/M08/start.json",
   "end_state_path": "training/ai-assisted-qa-course/states/M08/end.json",
   "artifacts": [

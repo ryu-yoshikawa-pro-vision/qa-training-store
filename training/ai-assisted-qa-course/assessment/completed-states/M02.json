@@ -4,13 +4,7 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": [
-    "M02-01",
-    "M02-02",
-    "M02-03",
-    "M02-04",
-    "M02-05"
-  ],
+  "objective_ids": ["M02-01", "M02-02", "M02-03", "M02-04", "M02-05"],
   "knowledge_ids": [
     "K-M02-01",
     "K-M02-02",
@@ -30,10 +24,7 @@
       "revision": "M02-result-v1",
       "contract_id": "M02-to-M03-handoff-v1",
       "expected_data": {
-        "authority_ids": [
-          "AUTH-CART-BR-001",
-          "AUTH-CART-AC-001"
-        ],
+        "authority_ids": ["AUTH-CART-BR-001", "AUTH-CART-AC-001"],
         "risk_id": "RISK-CART-001",
         "impact": "high",
         "likelihood": "medium",
