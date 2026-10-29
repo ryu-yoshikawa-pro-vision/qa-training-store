@@ -73,7 +73,6 @@ console.log(label(cart.quantity));
 
 **完了確認**：P01〜P04は実行した新規スクリプトの出力を残し、P05/P06は既存Locator修正の再掲ではなく別の要素・別の判断を記録します。練習用短コードの出力をPlaywrightの`course:run`と混同しません。
 
-
 ### 固定Skillと本人の判断
 
 固定Skillの`e2e-test-inspection`を使える場合は、P05のLocator候補と実画面・失敗Runを入力して検査し、修正の必要性を本人が判断します。`e2e-test-implementation`に変更案を依頼するときは`workspace/M05/product-link.spec.ts`以外の書込みを禁止し、差分・前後のRunで検証します。起動していないSkillやAIの自己申告を実行証拠に含めません。
