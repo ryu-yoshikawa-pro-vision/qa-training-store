@@ -138,6 +138,7 @@ function validateQuestion(
   objectiveIds: Set<string>,
   knowledgeIds: Set<string>,
   graphEdges: { from?: string; relation?: string; to?: string }[],
+  objectiveKnowledge: Map<string, string[]>,
 ): void {
   requireCondition(
     question !== null && typeof question === "object",
@@ -166,6 +167,9 @@ function validateQuestion(
   for (const knowledgeId of question.knowledge_ids) {
     requireCondition(
       knowledgeIds.has(knowledgeId) &&
+        question.objective_ids.some((objectiveId) =>
+          (objectiveKnowledge.get(objectiveId) ?? []).includes(knowledgeId),
+        ) &&
         graphEdges.some(
           (edge) =>
             edge.from === `QUIZ-${question.id}` &&
@@ -806,6 +810,7 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
         objectiveIds,
         new Set(knowledgeByModule.get(moduleId) ?? []),
         graph.edges ?? [],
+        objectiveKnowledge,
       );
       requireCondition(
         graph.nodes?.some((node) => node.id === `QUIZ-${question.id}` && node.type === "quiz"),
@@ -813,6 +818,13 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       );
       requireCondition(!seenQuestionIds.has(question.id), `問題IDが重複しています: ${question.id}`);
       seenQuestionIds.add(question.id);
+      const graphKnowledgeIds = (graph.edges ?? [])
+        .filter((edge) => edge.from === `QUIZ-${question.id}` && edge.relation === "evaluates" && edge.to?.startsWith("K-"))
+        .map((edge) => edge.to as string);
+      requireCondition(
+        JSON.stringify(sortedUnique(graphKnowledgeIds)) === JSON.stringify(sortedUnique(question.knowledge_ids)),
+        `${question.id}の理解ノード参照が知識グラフと一致しません`,
+      );
       for (const objectiveId of question.objective_ids) coveredObjectiveIds.add(objectiveId);
       questionCount += 1;
     }

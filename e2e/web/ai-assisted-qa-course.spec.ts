@@ -135,6 +135,24 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     }
   });
 
+  test("学習マップの本人確認が同一ブラウザに保存され、正式評価と分離される", async ({ page }) => {
+    await page.goto("/docs/curriculum/ai-assisted-qa/objectives.html");
+    const objective = page.locator('[data-objective-id="M05-01"]');
+    await objective.locator("summary").click();
+    const node = page.locator('[data-knowledge-node="K-M05-11"]');
+    const button = node.getByRole("button", { name: "本人確認：未確認" });
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await button.click();
+    await expect(node.getByRole("button")).toHaveAttribute("aria-pressed", "true");
+    await expect(node).toContainText("正式評価ではありません");
+
+    await page.reload();
+    await page.locator('[data-objective-id="M05-01"] summary').click();
+    const restored = page.locator('[data-knowledge-node="K-M05-11"]');
+    await expect(restored.getByRole("button")).toHaveAttribute("aria-pressed", "true");
+    await expect(restored).toContainText("本人確認済み");
+  });
+
   test("M00/M01/M03/M05の教材とクイズをdesktop/mobileで撮影する", async ({ page }) => {
     const screenshotDirectory = path.join(repositoryRoot, "output", "playwright", "ai-assisted-qa");
     fs.mkdirSync(screenshotDirectory, { recursive: true });

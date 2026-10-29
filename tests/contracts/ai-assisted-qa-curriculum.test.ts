@@ -163,6 +163,31 @@ describe("AI-assisted QA static learning course", () => {
     fs.rmSync(outputRoot, { recursive: true, force: true });
   });
 
+  it("renders every knowledge node with an explicit self-check and linked review path", () => {
+    const graph = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/knowledge-graph.json"),
+        "utf8",
+      ),
+    ) as { nodes: { id: string; type: string }[] };
+    const page = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/objectives.html"),
+      "utf8",
+    );
+    const nodes = graph.nodes.filter((node) => node.type === "knowledge");
+    expect(nodes.length).toBeGreaterThanOrEqual(58);
+    for (const node of nodes) {
+      expect(page).toContain(`data-knowledge-node="${node.id}"`);
+      expect(page).toContain(`data-knowledge-id="${node.id}"`);
+    }
+    expect(page).toContain("ai-assisted-qa-knowledge:");
+    expect(page).toContain("ai-assisted-qa-quiz:");
+    expect(page).toContain("正式評価ではありません");
+    expect(page).toContain("ブラウザ");
+    expect(page).not.toContain("exportKnowledgeHistory");
+    expect(page).not.toContain("syncKnowledgeHistory");
+  });
+
   it("gives all 11 lessons a concrete beginner-facing orientation", () => {
     const graph = JSON.parse(
       fs.readFileSync(
