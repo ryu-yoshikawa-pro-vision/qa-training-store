@@ -38,3 +38,16 @@
 
 - **K-M06-06**：別CaseのReset・Action・Locator・業務Assertionを選んで新規specを作成し、単独実行できる
 - **K-M06-07**：一意の要素選択・Action成立・仕様上の業務結果を別々に検証できる
+
+## 反復実践 P01〜P06：CaseからE2Eへ
+
+既存の固定3件とCASE-CART-004を維持します。以下の結果・元Case・BR/AC・Runを`submission.md`へ記録してください。新規specは既定の`new-case.spec.ts`へ別testを追加することで、既存の専用`course:run`を利用できます。追加前の実行証拠は保全します。
+
+1. **P01** 固定3 Caseについて、各Reset、Locator、Action、業務Assertion、前後Runを確認する（M06-01〜03）。
+2. **P02** CASE-CART-004の削除操作を`new-case.spec.ts`へ自力で実装し、単独・再実行する（M06-01・02）。
+3. **P03** BR-CART-001の「数量0なら削除」をCASE-CART-004の削除ボタンと区別し、別testとして追加する。UI操作が対応しなければ実装不能の根拠を記録する（M06-01・03）。
+4. **P04** low-stockの上限ちょうどと超過について、操作前数量と拒否後の数量維持を別testまたは追加Assertionで確かめる（M06-01・03）。
+5. **P05** M04で承認した本人Caseを1件選び、固定Caseとの差、必要なTest Data、Reset、Locator、業務Assertionを説明して`new-case.spec.ts`へ追加する。前工程がない場合は公開fallbackから同等の別条件を選び、前工程修了を主張しない（M06-01・05）。
+6. **P06** 追加後の`new-case.spec.ts`を`--label initial`と`--label repeat`で再実行し、全testの結果・spec SHA・Run ID・失敗修正を照合する（M06-02・04・05）。
+
+P05の入力が現行Shopで実行できない場合は別の承認済みCaseを選び直し、未解決の仕様・データ不足は記録します。実行結果を創作せず、Assertionを弱めてPASSにしないでください。
