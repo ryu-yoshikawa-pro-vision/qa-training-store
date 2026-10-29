@@ -27,3 +27,16 @@ workspace/M09/submission.mdにworkflowの読解、最小権限、証拠対応、
 
 - **K-M09-06**：event・job・step・Runnerと対象specの関係を読み、workflowを修正できる
 - **K-M09-07**：trigger頻度、検証範囲、費用、未検証期間の関係から安全な実行方針を選べる
+
+## 反復実践 P01〜P06：CIの設計条件を変える
+
+既定の無効化workflowを安全な作業領域で比較・修正します。M09では実行せず、合成ログを本物のCI結果とみなしません。
+
+1. **P01** `workflow-starter.yml.disabled`のtrigger・job・step・runner・権限を読解し、足りない設定を完成見本と比較する（M09-01）。
+2. **P02** PR head SHAのcheckoutとArtifactの`target-sha.txt`を対応付け、別SHAの成功を現在の確認と呼ばない（M09-02）。
+3. **P03** `failure-cases.md`からBuild、Browser準備、Test、Artifact保存の各段階を分類し、最初に調べるstepを選ぶ（M09-03）。
+4. **P04** pushごとに実行する案と手動起動案を、検証頻度・実行対象・利用枠・未検証期間で比較する（M09-04）。
+5. **P05** 書込み権限やSecretを追加するAI案を、必要な操作と照合して採否する。無関係なworkflowやdeployは含めない（M09-05）。
+6. **P06** 対象specが増える場合、Runnerが変わる場合、料金条件が不明になる場合に、起動条件と停止条件をそれぞれ設計し直す（M09-01〜05）。
+
+各課題で判断前後のworkflow差分・理由・条件を`submission.md`へ残します。完成案は引き続き`.disabled`を維持してM10へ渡します。
