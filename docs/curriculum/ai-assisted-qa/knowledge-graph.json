@@ -1047,7 +1047,8 @@
       "title": "VS Codeの基本操作とファイルの保存",
       "module": "M00",
       "can_do": "別ファイルを開き、保存結果と変更箇所を確かめる",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#2-ファイルとコマンドを扱う"
     },
     {
       "id": "K-M00-02",
@@ -1055,7 +1056,8 @@
       "title": "現在のディレクトリ・相対パス・コマンドの結果",
       "module": "M00",
       "can_do": "実行場所とコマンドの成功・失敗を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#画面とファイルの基本"
     },
     {
       "id": "K-M00-03",
@@ -1063,7 +1065,8 @@
       "title": "Chatとエージェントの操作権限",
       "module": "M00",
       "can_do": "ファイル読取り・編集・実行の許可範囲を判断する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
     },
     {
       "id": "K-M00-04",
@@ -1071,7 +1074,8 @@
       "title": "Agent Skillsと補助スクリプト",
       "module": "M00",
       "can_do": "Skillの入口・依存と実際の動作を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#3a-実践aiエージェントを起動して使う"
     },
     {
       "id": "K-M00-05",
@@ -1079,7 +1083,8 @@
       "title": "AIへの依頼と結果の検証",
       "module": "M00",
       "can_do": "根拠・変更対象・完了条件を指定し、AIの結果を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#依頼の作り方"
     },
     {
       "id": "K-M00-06",
@@ -1087,7 +1092,8 @@
       "title": "Secret・公開ポート・無料枠・成果物保全",
       "module": "M00",
       "can_do": "危険な操作を避け、作業と請求の境界を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
     },
     {
       "id": "K-M00-07",
@@ -1113,7 +1119,8 @@
       "title": "テスト目的と期待結果・観測結果",
       "module": "M01",
       "can_do": "テスト対象、期待される振る舞い、観測事実を区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#期待結果と観測事実"
     },
     {
       "id": "K-M01-02",
@@ -1121,7 +1128,8 @@
       "title": "探索的テスト・自動化・リグレッション",
       "module": "M01",
       "can_do": "それぞれの利点・制約・用途を比較する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#3-探索回帰自動化を選ぶ"
     },
     {
       "id": "K-M01-03",
@@ -1129,7 +1137,8 @@
       "title": "テスト工程と人間・AIの責任",
       "module": "M01",
       "can_do": "分析・設計・実行・評価における判断主体を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割"
     },
     {
       "id": "K-M01-04",
@@ -1137,7 +1146,8 @@
       "title": "Unit・Integration・Component・E2Eの役割",
       "module": "M01",
       "can_do": "必要なテスト層と実行費用を比較する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M01/README.md#テスト工程と役割"
     },
     {
       "id": "K-M01-05",
@@ -1154,7 +1164,8 @@
       "title": "BR/ACと仕様の正本",
       "module": "M02",
       "can_do": "正式仕様、観測、AI推測から期待結果の根拠を選ぶ",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#例カート数量の上限"
     },
     {
       "id": "K-M02-02",
@@ -1162,7 +1173,8 @@
       "title": "Role・State・Data・Journey",
       "module": "M02",
       "can_do": "前提条件と操作後の状態を把握する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#3-条件を4つの観点で整理する-rolestatedatajourney"
     },
     {
       "id": "K-M02-03",
@@ -1170,7 +1182,8 @@
       "title": "Seed/Resetとテストデータの独立性",
       "module": "M02",
       "can_do": "初期状態に対して保証される条件を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#4-seedとresetを読む-テストの出発点を理解する"
     },
     {
       "id": "K-M02-04",
@@ -1178,7 +1191,8 @@
       "title": "影響・発生可能性・優先度",
       "module": "M02",
       "can_do": "証拠を基に重点確認対象を選ぶ",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#riskを仮説として評価する"
     },
     {
       "id": "K-M02-05",
@@ -1186,7 +1200,8 @@
       "title": "AI分析の誤りと未確定事項",
       "module": "M02",
       "can_do": "誤読・条件欠落と未決事項を分類する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M02/README.md#答えがない仕様から質問を作る"
     },
     {
       "id": "K-M02-06",
@@ -1221,7 +1236,8 @@
       "title": "同値分割と代表値",
       "module": "M03",
       "can_do": "代表値と同等と扱える条件・限界を示す",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
     },
     {
       "id": "K-M03-02",
@@ -1229,7 +1245,8 @@
       "title": "境界値と拒否後の状態",
       "module": "M03",
       "can_do": "仕様の境界直前・直後と不変条件を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例数量上限の境界値"
     },
     {
       "id": "K-M03-03",
@@ -1237,7 +1254,8 @@
       "title": "デシジョンテーブル",
       "module": "M03",
       "can_do": "条件組合せ・期待動作・不可能な組合せを整理する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#例検索条件のデシジョンテーブル"
     },
     {
       "id": "K-M03-04",
@@ -1245,7 +1263,8 @@
       "title": "状態遷移と禁止遷移",
       "module": "M03",
       "can_do": "事前状態・イベント・事後状態をモデル化する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#状態遷移操作前後の状態をつなぐ"
     },
     {
       "id": "K-M03-05",
@@ -1253,7 +1272,8 @@
       "title": "仕様・リスク・テスト条件・ケースの追跡",
       "module": "M03",
       "can_do": "期待結果とテストケースの出典をたどれるようにする",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#7-リスクテスト条件テストケース仕様根拠のトレーサビリティ"
     },
     {
       "id": "K-M03-06",
@@ -1288,7 +1308,8 @@
       "title": "テストケースの欠落・誤り・重複",
       "module": "M04",
       "can_do": "AIが作ったCaseを仕様の根拠でレビューする",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#caseレビューの順番"
     },
     {
       "id": "K-M04-02",
@@ -1296,7 +1317,8 @@
       "title": "実施対象に合うテスト層の選択",
       "module": "M04",
       "can_do": "確認したい振る舞いと費用から層を選ぶ",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断"
     },
     {
       "id": "K-M04-03",
@@ -1304,7 +1326,8 @@
       "title": "自動化の採否と保守性",
       "module": "M04",
       "can_do": "Automate/Later/Do not automateの採否理由を示す",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#テスト層と自動化判断"
     },
     {
       "id": "K-M04-04",
@@ -1312,7 +1335,8 @@
       "title": "不確実な仕様と判断保留",
       "module": "M04",
       "can_do": "未確定条件を正解にせず確認事項として記録する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M04/README.md#仕様未決と観測結果を分ける"
     },
     {
       "id": "K-M05-01",
@@ -1320,7 +1344,8 @@
       "title": "Node.js・Webサーバー・ブラウザの役割",
       "module": "M05",
       "can_do": "テストの実行環境と対象アプリを区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#1-プログラムと実行環境の基礎知識"
     },
     {
       "id": "K-M05-02",
@@ -1328,7 +1353,8 @@
       "title": "pnpm・package.json・依存関係とスクリプト",
       "module": "M05",
       "can_do": "依存導入とコマンド実行の違いを説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実行の流れ"
     },
     {
       "id": "K-M05-03",
@@ -1336,7 +1362,8 @@
       "title": "TypeScriptの変数・基本型・配列・オブジェクト",
       "module": "M05",
       "can_do": "短いコードの値と型を追う",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#2-変数と値データに名前を付ける"
     },
     {
       "id": "K-M05-04",
@@ -1344,7 +1371,8 @@
       "title": "条件分岐・関数・引数と戻り値",
       "module": "M05",
       "can_do": "短いテスト関連コードを修正する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#4-関数と型繰り返す処理に名前を付ける"
     },
     {
       "id": "K-M05-05",
@@ -1352,7 +1380,8 @@
       "title": "import/exportとモジュール",
       "module": "M05",
       "can_do": "別ファイルの関数やライブラリを参照する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#5-ファイルをまたいだ機能の共有import-と-export"
     },
     {
       "id": "K-M05-06",
@@ -1360,7 +1389,8 @@
       "title": "async/awaitと非同期の実行順",
       "module": "M05",
       "can_do": "待つ必要のある処理と結果の順序を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
     },
     {
       "id": "K-M05-07",
@@ -1368,7 +1398,8 @@
       "title": "Playwrightのtest・page・LocatorとAction",
       "module": "M05",
       "can_do": "画面操作対象を識別し、動作を構成する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
     },
     {
       "id": "K-M05-08",
@@ -1376,7 +1407,8 @@
       "title": "Assertionの保証範囲",
       "module": "M05",
       "can_do": "可視性と業務結果が同じではないことを判断する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
     },
     {
       "id": "K-M05-09",
@@ -1384,7 +1416,8 @@
       "title": "自動待機・Web-first assertionと失敗の分類",
       "module": "M05",
       "can_do": "構文・型・実行時・Assertionエラーを区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け"
     },
     {
       "id": "K-M05-10",
@@ -1392,7 +1425,8 @@
       "title": "Playwright Config・port・report・Trace",
       "module": "M05",
       "can_do": "実際に動いたspecと結果の保存先を照合する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#実技と確認"
     },
     {
       "id": "K-M05-11",
@@ -1454,7 +1488,8 @@
       "title": "CaseとPlaywright specの対応",
       "module": "M06",
       "can_do": "前提・操作・期待結果をコードと結び付ける",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む"
     },
     {
       "id": "K-M06-02",
@@ -1462,7 +1497,8 @@
       "title": "テストデータ・Seed/Reset・ブラウザコンテキスト",
       "module": "M06",
       "can_do": "実行順に依存しない前提を準備する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#2-毎回同じ状態から始めるテストの独立性"
     },
     {
       "id": "K-M06-03",
@@ -1470,7 +1506,8 @@
       "title": "業務結果を検証するAssertion",
       "module": "M06",
       "can_do": "仕様と観測点が一致するか見直す",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#3-仕様どおりのassertionを選ぶ"
     },
     {
       "id": "K-M06-04",
@@ -1478,7 +1515,8 @@
       "title": "実行ログ・Report・Traceの対応",
       "module": "M06",
       "can_do": "テスト実行と結果証拠を結び付ける",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む"
     },
     {
       "id": "K-M06-05",
@@ -1486,7 +1524,8 @@
       "title": "PASS・FAIL・未実行・BLOCKED",
       "module": "M06",
       "can_do": "実行した事実と障害の区別を行う",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#5-テスト結果の4つの状態を正しく区別する"
     },
     {
       "id": "K-M06-06",
@@ -1512,7 +1551,8 @@
       "title": "失敗の原因分類と事実・仮説",
       "module": "M07",
       "can_do": "Test/Product/Environment/Flakyを混同しない",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
     },
     {
       "id": "K-M07-02",
@@ -1520,7 +1560,8 @@
       "title": "Trace・スクリーンショット・ログ",
       "module": "M07",
       "can_do": "失敗箇所と原因候補の証拠を探す",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材"
     },
     {
       "id": "K-M07-03",
@@ -1528,7 +1569,8 @@
       "title": "Retry・Timeoutと原因修正",
       "module": "M07",
       "can_do": "固定待機を根拠なく増やさない",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#33-なぜ待機時間の延長やリトライで解決してはいけないのか"
     },
     {
       "id": "K-M07-04",
@@ -1536,7 +1578,8 @@
       "title": "AIパッチのレビューと修正前後の別Run",
       "module": "M07",
       "can_do": "最小修正と新しい実行証拠を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#42-before-runとafter-runを比較する"
     },
     {
       "id": "K-M07-05",
@@ -1544,7 +1587,8 @@
       "title": "Helper・POM・Fixtureの適用判断",
       "module": "M07",
       "can_do": "重複・保守費用に応じて抽象化を選ぶ",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#保守性の判断"
     },
     {
       "id": "K-M07-06",
@@ -1570,7 +1614,8 @@
       "title": "Gitのworking tree・stage・commit・branch",
       "module": "M08",
       "can_do": "ファイル状態と履歴を区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#72-working-treestagecommitの三つを区別する"
     },
     {
       "id": "K-M08-02",
@@ -1578,7 +1623,8 @@
       "title": "git status・diff・gitignoreと公開情報",
       "module": "M08",
       "can_do": "Secretやログを除いて差分を選ぶ",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#42-指定したファイルだけをstageに追加する手順"
     },
     {
       "id": "K-M08-03",
@@ -1586,7 +1632,8 @@
       "title": "PRとレビュー可能な変更説明",
       "module": "M08",
       "can_do": "変更の目的・仕様とテスト結果を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#仕様差分テストと証拠を結び付ける"
     },
     {
       "id": "K-M08-04",
@@ -1594,7 +1641,8 @@
       "title": "AIレビューの指摘の採否",
       "module": "M08",
       "can_do": "根拠のある指摘と過剰設計を区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#aiレビューの採否"
     },
     {
       "id": "K-M08-05",
@@ -1611,7 +1659,8 @@
       "title": "GitHub Actionsのevent・job・step・runner",
       "module": "M09",
       "can_do": "workflowの実行条件・処理順を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#workflowを読む"
     },
     {
       "id": "K-M09-02",
@@ -1619,7 +1668,8 @@
       "title": "SHA・Run・Check・Artifactの対応",
       "module": "M09",
       "can_do": "古いSHAの成功結果を流用しない",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#対象shaとrunのartifactを照合する"
     },
     {
       "id": "K-M09-03",
@@ -1627,7 +1677,8 @@
       "title": "CI失敗ログと処理段階",
       "module": "M09",
       "can_do": "依存導入・起動・実行のどこで失敗したか調べる",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最初の失敗箇所から結果を分類する"
     },
     {
       "id": "K-M09-04",
@@ -1635,7 +1686,8 @@
       "title": "標準Runnerの料金と品質ゲート",
       "module": "M09",
       "can_do": "無料条件と必要な検査のバランスを判断する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#runner費用を確認する"
     },
     {
       "id": "K-M09-05",
@@ -1643,7 +1695,8 @@
       "title": "最小権限とCIのセキュリティ境界",
       "module": "M09",
       "can_do": "Secretや正式workflowを保護する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最小権限を設定する"
     },
     {
       "id": "K-M09-06",
@@ -1669,7 +1722,8 @@
       "title": "実技資産の選択とGit公開範囲",
       "module": "M10",
       "can_do": "Phase 2のspecだけを安全にcommitする",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#diffと公開対象を確認する"
     },
     {
       "id": "K-M10-02",
@@ -1677,7 +1731,8 @@
       "title": "CIの再現環境とテスト実行",
       "module": "M10",
       "can_do": "手元とRunnerの差を確認する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象specとworkflowを限定する"
     },
     {
       "id": "K-M10-03",
@@ -1685,7 +1740,8 @@
       "title": "現行PR HEADと検証証拠",
       "module": "M10",
       "can_do": "最新SHAのRun/Artifactを示す",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する"
     },
     {
       "id": "K-M10-04",
@@ -1693,7 +1749,8 @@
       "title": "CI障害の再現と原因切分け",
       "module": "M10",
       "can_do": "環境・テスト・アプリの失敗を区別する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する"
     },
     {
       "id": "K-M10-05",
@@ -1701,7 +1758,8 @@
       "title": "AIによる修正・判断と残リスク報告",
       "module": "M10",
       "can_do": "保証されたことと未確認事項を説明する",
-      "status": "draft_requires_content_review"
+      "status": "draft_requires_content_review",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する"
     },
     {
       "id": "K-M10-06",
