@@ -588,7 +588,8 @@ pre code {
 }
 
 .canonical-image-link {
-  display: inline-block;
+  display: block;
+  width: 100%;
   max-width: 100%;
   border: 1px solid var(--border);
   padding: 0.25rem;
@@ -597,6 +598,7 @@ pre code {
 
 .canonical-image-link img {
   display: block;
+  width: 100%;
   max-width: 100%;
   height: auto;
 }

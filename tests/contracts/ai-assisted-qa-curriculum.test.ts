@@ -163,6 +163,12 @@ describe("AI-assisted QA static learning course", () => {
   });
 
   it("gives all 11 lessons a concrete beginner-facing orientation", () => {
+    const graph = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/knowledge-graph.json"),
+        "utf8",
+      ),
+    ) as { nodes: { id: string; module: string; type: string }[] };
     for (let index = 0; index <= 10; index += 1) {
       const moduleId = `M${String(index).padStart(2, "0")}`;
       const lesson = fs.readFileSync(
@@ -170,16 +176,25 @@ describe("AI-assisted QA static learning course", () => {
         "utf8",
       );
       const section =
-        /^## このモジュールで学ぶこと\r?\n([\s\S]*?)(?=^## )/m.exec(lesson)?.[1] ?? "";
+        /^## この章でできるようになること\r?\n([\s\S]*?)(?=^## )/m.exec(lesson)?.[1] ?? "";
       expect(section.trim(), `${moduleId} has a non-empty learning orientation`).not.toBe("");
-      for (const label of [
-        "目的と必要な理由",
-        "到達点",
-        "前提と前章とのつながり",
-        "準備するもの",
-      ]) {
-        expect(section, `${moduleId} explains ${label}`).toContain(`**${label}：**`);
-      }
+
+      const objectivesTable = /^\|\s*学習目標(?:ID)?\s*\|/m.exec(section);
+      expect(objectivesTable, `${moduleId} has a learning-objective table`).not.toBeNull();
+      const orientation = objectivesTable ? section.slice(0, objectivesTable.index).trim() : "";
+      expect(orientation.length, `${moduleId} keeps its explanatory introduction`).toBeGreaterThan(
+        200,
+      );
+
+      const objectiveIds = [
+        ...section.matchAll(/^\|\s*(?:\*\*)?(M\d{2}-\d{2})(?:\*\*)?\s*\|/gm),
+      ].map((match) => match[1]);
+      const expectedObjectiveIds = graph.nodes
+        .filter((node) => node.type === "learning_objective" && node.module === moduleId)
+        .map((node) => node.id);
+      expect(objectiveIds, `${moduleId} lists every existing learning objective`).toEqual(
+        expectedObjectiveIds,
+      );
     }
   });
 
@@ -540,6 +555,17 @@ describe("AI-assisted QA static learning course", () => {
   });
 
   it("copies every authored course illustration with alternative text and safe HTML", () => {
+    const m03Lesson = fs.readFileSync(
+      path.join(docsOutput, "curriculum/ai-assisted-qa/modules/M03/index.html"),
+      "utf8",
+    );
+    const imageLinkStyle = m03Lesson.match(/\.canonical-image-link\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    const imageStyle = m03Lesson.match(/\.canonical-image-link img\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    expect(imageLinkStyle).toContain("display: block;");
+    expect(imageLinkStyle).toContain("width: 100%;");
+    expect(imageStyle).toContain("width: 100%;");
+    expect(imageStyle).toContain("height: auto;");
+
     for (let index = 0; index <= 10; index += 1) {
       const id = `M${String(index).padStart(2, "0")}`;
       const lesson = fs.readFileSync(
@@ -568,6 +594,20 @@ describe("AI-assisted QA static learning course", () => {
     const genericReviewAnchors = new Set(
       ["確認と復習", "確認クイズ", "参考"].map((heading) => slugHeading(heading)),
     );
+    const focusedReviewHeadings = new Map([
+      ["M01-Q02", "3. 探索、回帰、自動化を選ぶ"],
+      ["M02-Q03", "3. 条件を4つの観点で整理する — Role・State・Data・Journey"],
+      ["M06-Q01", "2. 毎回同じ状態から始める（テストの独立性）"],
+      ["M06-Q02", "3. 仕様どおりのAssertionを選ぶ"],
+      ["M06-Q03", "6. 実行証拠（Evidence）を読む"],
+      ["M06-Q04", "6. 実行証拠（Evidence）を読む"],
+      ["M06-Q05", "5. テスト結果の4つの状態を正しく区別する"],
+      ["M06-Q06", "4. 固定3 Caseと別Caseの実装"],
+      ["M07-Q03", "3.3 なぜ「待機時間の延長」や「リトライ」で解決してはいけないのか？"],
+      ["M07-Q04", "4.2 before Runとafter Runを比較する"],
+      ["M08-Q01", "7.2 working tree、stage、commitの三つを区別する"],
+      ["M08-Q02", "4.2 指定したファイルだけをstageに追加する手順"],
+    ]);
     const quizScript = fs.readFileSync(
       path.join(docsOutput, "curriculum/ai-assisted-qa/quizzes/quiz.js"),
       "utf8",
@@ -604,6 +644,12 @@ describe("AI-assisted QA static learning course", () => {
         const fragment = decodeURIComponent(encodedFragment ?? "");
         expect(genericReviewAnchors.has(fragment)).toBe(false);
         expect(emittedAnchors.has(fragment)).toBe(true);
+        const focusedHeading = focusedReviewHeadings.get(question.id);
+        if (focusedHeading !== undefined) {
+          expect(fragment, `${question.id} links to its explanatory section`).toBe(
+            slugHeading(focusedHeading),
+          );
+        }
       }
     }
     expect(questionCount).toBe(53);

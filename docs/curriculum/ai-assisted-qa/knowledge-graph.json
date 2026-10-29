@@ -1622,7 +1622,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "画面とファイルの基本"
+        "1. 学習場所を知る",
+        "2. ファイルとコマンドを扱う"
       ]
     },
     {
@@ -1636,7 +1637,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "エージェント、Skill、権限"
+        "3. AIに作業を依頼する前に",
+        "3A. 実践：AIエージェントを起動して使う"
       ]
     },
     {
@@ -1650,7 +1652,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "依頼の作り方"
+        "3. AIに作業を依頼する前に"
       ]
     },
     {
@@ -1664,7 +1666,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習と提出"
+        "3. AIに作業を依頼する前に",
+        "4. 再ロードと作業成果の保全"
       ]
     },
     {
@@ -1685,7 +1688,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "期待結果と観測事実"
+        "2. 期待結果と観測結果を分ける"
       ]
     },
     {
@@ -1699,7 +1702,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "テスト工程と役割"
+        "3. 探索、回帰、自動化を選ぶ"
       ]
     },
     {
@@ -1713,7 +1716,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "テスト工程と役割"
+        "4. テスト活動はどうつながるか"
       ]
     },
     {
@@ -1727,7 +1730,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "テスト工程と役割"
+        "5. テスト層と確認できる範囲"
       ]
     },
     {
@@ -1748,7 +1751,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "用語と根拠"
+        "1. 仕様を調べる理由 — 「動いていること」と「正しいこと」は違う",
+        "2. Cart（カート）の正式仕様を使って考える"
       ]
     },
     {
@@ -1762,7 +1766,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "例：カート数量の上限"
+        "3. 条件を4つの観点で整理する — Role・State・Data・Journey"
       ]
     },
     {
@@ -1776,7 +1780,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "例：カート数量の上限"
+        "4. SeedとResetを読む — テストの出発点を理解する"
       ]
     },
     {
@@ -1790,7 +1794,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "提出する作業メモ"
+        "5. リスクと優先順位 — Impact・Likelihood・Priority"
       ]
     },
     {
@@ -1804,7 +1808,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習：検証責務を書く"
+        "6. AIの分析案をレビューする — 誤読・推測・未決事項の扱い方"
       ]
     },
     {
@@ -1825,7 +1829,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "同値分割：同じ結果になる値をまとめる"
+        "2. 同値分割法：同じ振る舞いになる入力をまとめる"
       ]
     },
     {
@@ -1839,7 +1843,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "例：数量上限の境界値"
+        "3. 境界値分析：境目を詳しく調べる"
       ]
     },
     {
@@ -1853,7 +1857,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "例：検索条件のデシジョンテーブル"
+        "5. デシジョンテーブル：条件の組み合わせを漏らさない"
       ]
     },
     {
@@ -1867,7 +1871,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習：条件からCaseへ"
+        "4. 状態遷移：操作前後の状態変化を捉える"
       ]
     },
     {
@@ -1881,7 +1885,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習：条件からCaseへ"
+        "7. リスク・テスト条件・テストケース・仕様根拠のトレーサビリティ"
       ]
     },
     {
@@ -1902,7 +1906,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Caseレビューの順番"
+        "2. AIの提案を正式仕様で検証する",
+        "3. 実践演習：AIにケースをレビューさせ、人間が採否を決める（M04-01）"
       ]
     },
     {
@@ -1916,7 +1921,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "テスト層と自動化判断"
+        "4. テスト層を選ぶ（Unit / Integration / Component / Web E2E）"
       ]
     },
     {
@@ -1930,7 +1935,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "テスト層と自動化判断"
+        "5. 自動化対象の選定（Automate / Later / Do not automate）"
       ]
     },
     {
@@ -1944,7 +1949,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Caseレビューの順番"
+        "6. 仕様が未確定なときの対処と引継ぎ（M04-04）"
       ]
     },
     {
@@ -1965,7 +1970,12 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "実行の流れ"
+        "1. プログラムと実行環境の基礎知識",
+        "2. 変数と値：データに名前を付ける",
+        "3. 配列・オブジェクト・条件分岐",
+        "4. 関数と型：繰り返す処理に名前を付ける",
+        "5. ファイルをまたいだ機能の共有（import と export）",
+        "6. 非同期処理：処理の完了を待つ（`async` と `await`）"
       ]
     },
     {
@@ -1979,7 +1989,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "コードを読む"
+        "6A. Web画面の裏側を知る：HTMLとLocatorの基礎",
+        "7. Playwrightで画面を確かめる基本構造"
       ]
     },
     {
@@ -1993,7 +2004,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "コードを読む"
+        "7. Playwrightで画面を確かめる基本構造",
+        "10. 【手順付き実技】既存のLocatorを修正してテストを成功させる（M05-02〜M05-05）"
       ]
     },
     {
@@ -2007,7 +2019,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "待機と失敗の読み分け"
+        "8. エラーを種類別に読み解く",
+        "10. 【手順付き実技】既存のLocatorを修正してテストを成功させる（M05-02〜M05-05）"
       ]
     },
     {
@@ -2021,7 +2034,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "実技と確認"
+        "9. 学習用の実行環境とポート契約"
       ]
     },
     {
@@ -2042,7 +2055,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "実装の順序"
+        "4. 固定3 Caseと別Caseの実装"
       ]
     },
     {
@@ -2056,7 +2069,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習"
+        "2. 毎回同じ状態から始める（テストの独立性）"
       ]
     },
     {
@@ -2070,7 +2083,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "演習"
+        "3. 仕様どおりのAssertionを選ぶ"
       ]
     },
     {
@@ -2084,7 +2097,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "評価基準"
+        "6. 実行証拠（Evidence）を読む"
       ]
     },
     {
@@ -2098,7 +2111,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "判定の注意"
+        "5. テスト結果の4つの状態を正しく区別する"
       ]
     },
     {
@@ -2119,7 +2132,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "3種類の診断素材"
+        "1. テストがFAIL（失敗）になったら",
+        "7. さらに理解を深める：失敗の原因を証拠で絞り込む"
       ]
     },
     {
@@ -2133,7 +2147,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "3種類の診断素材"
+        "2. Trace、Screenshot、ログをどう使うか"
       ]
     },
     {
@@ -2147,7 +2161,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "3種類の診断素材"
+        "3. RetryとTimeoutの正しい扱い"
       ]
     },
     {
@@ -2161,7 +2175,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "失敗を追う手順"
+        "4. 修正前後の別Runで効果を確かめる"
       ]
     },
     {
@@ -2175,7 +2189,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "保守性の判断"
+        "5. テストコードを保守しやすくする（共通化の基礎）",
+        "6. 保守演習のbefore / after（M07-05）"
       ]
     },
     {
@@ -2196,7 +2211,9 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Working treeからPull Requestまで"
+        "2. `git status`から始める現状把握",
+        "3. 練習用branchを作る",
+        "5. commitとプルリクエスト（PR）"
       ]
     },
     {
@@ -2210,7 +2227,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Working treeからPull Requestまで"
+        "4. 差分（diff）を読み、記録対象を選ぶ（stage）"
       ]
     },
     {
@@ -2224,7 +2241,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Working treeからPull Requestまで"
+        "5. commitとプルリクエスト（PR）"
       ]
     },
     {
@@ -2238,7 +2255,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "AIレビューの採否"
+        "6. AIレビューを検証する"
       ]
     },
     {
@@ -2259,7 +2276,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "workflowを読む"
+        "2. GitHub Actionsとworkflowの基本用語",
+        "3. 設定ファイル（YAML）の読み方"
       ]
     },
     {
@@ -2273,7 +2291,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "workflowを読む"
+        "5. Run・Check・Artifactとコミットの対応関係"
       ]
     },
     {
@@ -2287,7 +2305,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "失敗調査・費用・権限"
+        "6. 失敗ログの最初の場所（初因）を特定する"
       ]
     },
     {
@@ -2301,7 +2319,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "失敗調査・費用・権限"
+        "7. クラウド利用費用と最小権限の原則"
       ]
     },
     {
@@ -2315,7 +2333,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "失敗調査・費用・権限"
+        "7. クラウド利用費用と最小権限の原則",
+        "8. M09での作業ルールと失敗分析実習"
       ]
     },
     {
@@ -2336,7 +2355,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "通し演習の流れ"
+        "2. Phase 2の成果物を選ぶ",
+        "3. Gitの差分を確認してPR（プルリクエスト）を作る"
       ]
     },
     {
@@ -2350,7 +2370,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "通し演習の流れ"
+        "1. 最初にCIを実行してよい「安全条件」を確認する",
+        "4. 専用ワークフローを安全に有効化する"
       ]
     },
     {
@@ -2364,7 +2385,7 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "通し演習の流れ"
+        "5. PR headとRunの対象を照合する"
       ]
     },
     {
@@ -2378,7 +2399,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "通し演習の流れ"
+        "6. 失敗・未実行・環境差を正確に切り分ける",
+        "7. 実行を止める・後片付けをする"
       ]
     },
     {
@@ -2392,7 +2414,8 @@
       "plan_ref": "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
       "status": "defined_in_plan",
       "lesson_sections": [
-        "Phase 3修了評価"
+        "8. AIの提案を客観的にレビューする",
+        "11. Phase 3の提出と正式修了評価"
       ]
     },
     {

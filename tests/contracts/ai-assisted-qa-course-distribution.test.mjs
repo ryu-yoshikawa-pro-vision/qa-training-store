@@ -1274,7 +1274,17 @@ describe("AI-assisted QA distribution contract", () => {
     );
     expect(workflow).toContain("pnpm run training:ai-assisted-qa:test");
     expect(workflow).toContain("uses: actions/upload-artifact@v4");
-    expect(workflow).toContain("path: output/training/ai-assisted-qa/");
+    const artifactPathBlock =
+      /^          path: \|\r?\n((?:            .+\r?\n?)+)/m.exec(workflow)?.[1] ?? "";
+    expect(
+      artifactPathBlock
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((artifactPath) => artifactPath.trim()),
+    ).toEqual([
+      "output/training/ai-assisted-qa/playwright-result.json",
+      "output/training/ai-assisted-qa/target-sha.txt",
+    ]);
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/contents:\s+write|secrets\.|deploy:/i);
 
@@ -1344,11 +1354,6 @@ describe("AI-assisted QA distribution contract", () => {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.copyFileSync(path.join(repositoryRoot, relativePath), destination);
     }
-    fs.symlinkSync(
-      path.join(repositoryRoot, "node_modules"),
-      path.join(fixture.target, "node_modules"),
-      "junction",
-    );
     const configEnumeration = spawnSync(
       process.execPath,
       [
@@ -1363,6 +1368,7 @@ describe("AI-assisted QA distribution contract", () => {
         encoding: "utf8",
         env: {
           ...process.env,
+          NODE_PATH: path.join(repositoryRoot, "node_modules"),
           PLAYWRIGHT_BASE_URL: "http://127.0.0.1:8082",
           PLAYWRIGHT_TEST_ROOT: "workspace/M07",
         },

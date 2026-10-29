@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="476" viewBox="0 0 1260 476" role="img" aria-label="GitHub ActionsのworkflowがPlaywrightを起動し、Playwrightの専用configのwebServerが学習用Webアプリをポート8082で起動する責務の図">
+<title>GitHub ActionsのworkflowがPlaywrightを起動し、Playwrightの専用configのwebServerが学習用Webアプリをポート8082で起動する責務の図</title>
+<defs><marker id="arrowhead" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#2563EB" /></marker></defs>
+<rect x="1" y="1" width="1258" height="474" rx="20" fill="#F8FBFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="34" y="56" fill="#17324D" font-size="30" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">CIで「テスト対象のWebサーバー」はどこで起動するか</text>
+<text x="34" y="96" fill="#52677D" font-size="21" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">workflowのStepと、Playwright設定のwebServerを区別します。</text>
+<rect x="36" y="145" width="256" height="160" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="52" y="184" fill="#17324D" font-size="23" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">GitHub Actions</text>
+<text x="52" y="227" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">workflow (.yml)</text>
+<text x="52" y="267" fill="#52677D" font-size="17" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">対象specだけを起動</text>
+<rect x="350" y="145" width="257" height="160" rx="16" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="366" y="184" fill="#17324D" font-size="23" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Playwright</text>
+<text x="366" y="227" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">専用configを読む</text>
+<text x="366" y="267" fill="#52677D" font-size="17" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">webServerの設定を解釈</text>
+<rect x="665" y="145" width="252" height="160" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="681" y="184" fill="#17324D" font-size="23" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Scenario Shop</text>
+<text x="681" y="227" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">localhost:8082</text>
+<text x="681" y="267" fill="#52677D" font-size="17" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">テスト対象をServe</text>
+<rect x="976" y="145" width="252" height="160" rx="16" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="992" y="184" fill="#17324D" font-size="23" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">実行結果</text>
+<text x="992" y="227" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Playwright JSON</text>
+<text x="992" y="267" fill="#52677D" font-size="17" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">対象SHAを記録</text>
+<path d="M295,226 L344,226" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<path d="M610,226 L659,226" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<path d="M921,226 L970,226" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="34" y="349" width="1190" height="95" rx="14" fill="#DBF6FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="54" y="384" fill="#17324D" font-size="21" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">注意：専用Playwright configのwebServerが起動・停止を管理します。</text>
+<text x="54" y="416" fill="#52677D" font-size="19" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">workflowに別のServeコマンドを無断追加すると、ポート競合などの原因になります。</text>
+</svg>

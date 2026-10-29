@@ -114,7 +114,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#33-なぜ待機時間の延長やリトライで解決してはいけないのか"
     },
     {
       "id": "M07-Q04",
@@ -152,7 +152,7 @@
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#失敗を追う手順"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#42-before-runとafter-runを比較する"
     },
     {
       "id": "M07-Q05",

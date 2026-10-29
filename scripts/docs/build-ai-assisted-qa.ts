@@ -369,7 +369,7 @@ function renderObjectiveMap(
     .join("");
   const toc = `<nav class="toc" aria-label="学習項目の目次" tabindex="0"><strong>モジュール</strong><ul>${MODULE_IDS
     .map((moduleId) => `<li><a href="#${moduleId}">${escapeHtml(titles.get(moduleId) ?? moduleId)}</a></li>`)
-    .join("")}</ul></aside>`;
+    .join("")}</ul></nav>`;
   const body = `<div class="document-body"><h1>51件の学習項目マップ</h1><p>この一覧は、固定された51件の学習目標をモジュール別に確認するための案内です。項目を読んだことやクイズの得点だけで技能の修了とはなりません。本文の例、演習、Phase評価基準で、説明・操作・別条件への適用を確認してください。</p>${groups}</div>`;
   const navigationHtml = renderNavigation(navigation);
   const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html" aria-current="page">51件の学習項目マップ</a></p></nav>`;
