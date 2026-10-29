@@ -507,8 +507,8 @@ function validateAssessmentPackage(
     ],
     M06: [
       { spec: "cart-cases.spec.ts", label: "main", minimum_tests: 3, expected_outcome: "passed" },
-      { spec: "new-case.spec.ts", label: "initial", minimum_tests: 1, expected_outcome: "passed" },
-      { spec: "new-case.spec.ts", label: "repeat", minimum_tests: 1, expected_outcome: "passed" },
+      { spec: "new-case.spec.ts", label: "initial", minimum_tests: 2, expected_outcome: "passed" },
+      { spec: "new-case.spec.ts", label: "repeat", minimum_tests: 2, expected_outcome: "passed" },
     ],
     M07: [
       {
@@ -530,7 +530,7 @@ function validateAssessmentPackage(
         minimum_tests: 2,
         expected_outcome: "passed",
       },
-      { spec: "maintenance.spec.ts", label: "after", minimum_tests: 2, expected_outcome: "passed" },
+      { spec: "maintenance.spec.ts", label: "after", minimum_tests: 3, expected_outcome: "passed" },
     ],
   };
   if (moduleId === "M03")
