@@ -22,7 +22,7 @@ M02/M04は未知仕様からの質問・影響・期待結果の保留・第三�
 
 ## この文書の役割
 
-この表が**新しいカリキュラムの学習目標の正本**となる。[知識グラフ](../curriculum/ai-assisted-qa/knowledge-graph.json)には各目標を達成するための理解事項を分解し、複数目標の共通知識と先行知識を表す。登録済みの58理解事項は、[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)で定義した全知識・教材・評価対応を満たすよう精査・修正する。知識の名称が存在するだけで網羅や習熟を認定しない。各項目の**前提・教材順序・演習とLevel 2の具体的判定**は[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に定義する。教材の正本は公開の`qa-training-store`に置き、別の学習用Templateへ許可対象だけを同期する。**受講者本人がモジュールを1つずつロード**して進める。Phase 1（M00〜M04）、Phase 2（M05〜M07）、Phase 3（M08〜M10、選択）を独立して評価する。旧17レッスンの項目や65問を引き継ぐための対照表ではない。各学習項目について何を教え、何を確認するのかを決め、[全体構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)・[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)・[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)の間で漏れを防ぐ。
+この表が**新しいカリキュラムの学習目標の正本**となる。[知識グラフ](../curriculum/ai-assisted-qa/knowledge-graph.json)には各目標を達成するための理解事項を分解し、複数目標の共通知識と先行知識を表す。改訂前の58件から追加・細分化した現行82理解ノードは、[知識グラフ完成仕様](./2026-10-16_qa-curriculum-ai-agent-redesign_knowledge-graph.md)で定義した全知識・教材・評価対応を満たすよう精査・修正する。知識の名称が存在するだけで網羅や習熟を認定しない。各項目の**前提・教材順序・演習とLevel 2の具体的判定**は[学習順序・習熟基準](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)に定義する。教材の正本は公開の`qa-training-store`に置き、別の学習用Templateへ許可対象だけを同期する。**受講者本人がモジュールを1つずつロード**して進める。Phase 1（M00〜M04）、Phase 2（M05〜M07）、Phase 3（M08〜M10、選択）を独立して評価する。旧17レッスンの項目や65問を引き継ぐための対照表ではない。各学習項目について何を教え、何を確認するのかを決め、[全体構成](./2026-10-16_qa-curriculum-ai-agent-redesign_design.md)・[クイズ設計](./2026-10-16_qa-curriculum-ai-agent-redesign_quizzes.md)・[評価設計](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)の間で漏れを防ぐ。
 
 評価水準：
 

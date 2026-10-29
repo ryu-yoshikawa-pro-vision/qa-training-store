@@ -655,6 +655,7 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
       module?: string;
       phase?: string;
       path?: string;
+      review_path?: string;
       reference_materials?: {
         id?: string;
         module_id?: string;
@@ -680,6 +681,12 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
   for (const node of graph.nodes ?? []) {
     if (node.type !== "knowledge" || typeof node.id !== "string" || typeof node.module !== "string")
       continue;
+    requireNonEmptyString(node.review_path, `${node.id}.review_path`);
+    requireCondition(
+      node.review_path.startsWith(`${COURSE_ROOT}/modules/${node.module}/README.md#`),
+      `${node.id}の復習先が対応するモジュールを参照していません`,
+    );
+    validateMarkdownReference(rootDir, node.review_path, `${node.id}.review_path`);
     knowledgeByModule.set(node.module, [...(knowledgeByModule.get(node.module) ?? []), node.id]);
   }
   const objectiveKnowledge = new Map<string, string[]>();

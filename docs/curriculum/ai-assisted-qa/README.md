@@ -2,7 +2,7 @@
 
 このディレクトリは、[PR #199のPlan](../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_index.md)に従い、AI協働テスト自動化カリキュラムの知識と参照関係を管理します。
 
-- [`knowledge-graph.json`](./knowledge-graph.json)：3フェーズ、11モジュール、51学習項目を、教材、53問の公開クイズ、実技、評価、22状態、成果物、仕様、Skillへ接続する基準グラフ。
+- [`knowledge-graph.json`](./knowledge-graph.json)：3フェーズ、11モジュール、51学習項目を、教材、78問の公開クイズ、実技、評価、22状態、成果物、仕様、Skillへ接続する基準グラフ。
 - `scripts/training/knowledge-graph.mjs`：グラフ整合性検証、Markdown一覧出力、単一参照または複数変更ファイルの影響検索。
 - `training/course-sync/manifest.json`：同期対象の明示的な許可リスト。qa-workflow-skillsのSkillはPlan固定commit `7cc6cba7772de549841a39d71694cbafbc783324`から取得し、`evals`は含めません。
 - [学習順序・習熟基準Plan](../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)：受講者が何を学んでLevel 2へ到達するかの説明・演習基準。
@@ -24,8 +24,8 @@
 | --- | --- | --- |
 | `phase` / `module` | 受講段階と学習順序 | Planで定義済み |
 | `learning_objective` | M00-01等の学習目標。Level 2基準付き | 51項目はPlanで定義済み |
-| `knowledge` | 学習目標を達成するための理解事項。細分化は必要な範囲だけ | 既存58件を維持し、目標・教材・評価へ接続 |
-| `lesson` / `quiz` | 実在するモジュール教材と個別クイズ問題 | 全11教材、53問、51目標を接続 |
+| `knowledge` | 学習目標を達成するための理解事項。細分化は必要な範囲だけ | 82件（既存58件＋追加24件）を目標・教材・評価へ接続 |
+| `lesson` / `quiz` | 実在するモジュール教材と個別クイズ問題 | 全11教材、78問、51目標を接続 |
 | `exercise` / `assessment` | 実技と公開フェーズ評価基準 | 全11実技と3フェーズの評価基準を接続 |
 | `module_state` / `artifact` | 開始・終了状態契約と公開成果物契約 | 22状態と学習者の提出テンプレートを接続 |
 | `test_target` | 演習に関係するScenario Shopの機能と正式仕様ファイル | 参照する実技・教材から追跡 |
