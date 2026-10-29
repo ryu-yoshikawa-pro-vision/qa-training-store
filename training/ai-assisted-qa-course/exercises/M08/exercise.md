@@ -23,3 +23,16 @@
 既存の演習と提出物を利用して、次の能力を別々に確認してください。本人が実行していない操作を完了と報告せず、未確認を明示します。
 
 - **K-M08-05**：ローカルbranch・commit・push・PR・CIを区別して未実行の操作を完了扱いしない
+
+## 反復実践 P01〜P06：安全な差分管理
+
+実習は本人の練習branchだけで行います。既存の未コミット変更は勝手に消さず、Secret・他者の変更をstageしないでください。pushとPR作成はM10で扱います。
+
+1. **P01** `git status`、`git diff`、`git diff --cached`で作業中・stage済み・commit済みを区別する（M08-01）。
+2. **P02** 練習用`local-only-run.log`のignore理由を`git check-ignore`で調べる。`.gitignore`と追跡済みファイルの違いを説明する（M08-02）。
+3. **P03** `review-candidate.md`と別の不要な練習差分が混在した場合を想定し、必要な1ファイルのみstageしてstaged diffを検査する。不要差分は削除しない（M08-02）。
+4. **P04** branch名が既存のとき、またはstageに知らない変更が残るときは、既存状態を確認して安全な別branch・停止判断を行う（M08-01・02）。
+5. **P05** AIレビューの提案を2件考え、仕様や実diffの根拠がある改善と将来想定だけの抽象化を採否する（M08-04）。
+6. **P06** Case ID、仕様ID、変更箇所、実施Run、未検証範囲を含むPR草稿を作る。実PR・CIを実行していないことを明記する（M08-03）。
+
+`submission.md`には作業前後のstatus・branch・対象commit SHA・stage対象・採否を記録します。
