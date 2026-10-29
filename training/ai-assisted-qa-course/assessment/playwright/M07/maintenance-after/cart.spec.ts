@@ -29,3 +29,11 @@ test("数量を2へ変更できる", async ({ page, cart }) => {
   await page.getByLabel("数量").selectOption("2");
   await expect(page.getByLabel("数量")).toHaveValue("2");
 });
+
+test("数量2への変更はカートを開き直しても維持される", async ({ page, cart }) => {
+  await cart.addMug();
+  await page.getByLabel("数量").selectOption("2");
+  await expect(page.getByLabel("数量")).toHaveValue("2");
+  await page.reload();
+  await expect(page.getByLabel("数量")).toHaveValue("2");
+});

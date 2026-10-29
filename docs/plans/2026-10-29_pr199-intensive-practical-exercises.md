@@ -22,3 +22,12 @@ M02分析→M03設計→M04レビュー→M06本人Case実装→M07保守の引�
 `tests/contracts/ai-assisted-qa-practical-exercises.test.mjs`で11章のP01〜P06、提出欄、配布manifest、end-stateを確認する。構造PASSは受講者の習熟を証明しない。`course:check`は構造、`course:tutor`はヒント、`course:assess`は正式評価である。追加実践の意味的な正しさは既存のルーブリックと本人の証拠で確認し、未実行・BLOCKED・不合格を区別する。
 
 実Template→本人Private repo→2コアCodespaces、OpenCode実モデルの校正と再評価、実受講者の学習効果は、この文書では成功とみなさず既存PRの受入条件を維持する。
+
+
+## 2026-10-30 重複解消と内容の拡充
+
+前回のP01〜P06には既存演習の言い換えが多かったため、**課題数66は維持し、各課題の具体的条件・独立した操作・提出証拠を変更**した。M00〜M04は別の仕様・境界・未知条件を本人が導出する課題に、M05は独立した短コード・型と非同期の診断に、M06は新しいCASE-CART-005の数量1→2更新に、M07は保守後3件目の再表示Caseに変更した。M08では2件目の選択stage/commit、M09では別のdisabled workflow案、M10では実CIの条件変更・費用判断を扱う。
+
+学習者に配布する11件の提出テンプレートは具体的な証拠をP番号別に示し、11件のscoring JSONでは該当学習目標への必須の独立判断と未実行の区別を記載した。M06の新規specはinitial/repeatで各2件以上、M07のmaintenance afterは3件以上のPASSが必要。これらはRunnerの固定証拠と別に意味上の正しさを正式AI評価する。
+
+Cart仕様の数量0削除は、現行Webの数量selectには0が存在しないため、存在しないUI操作を強制せず業務規則とテスト層を検討する課題に修正した。全サポート機能の分類・基本分析100%、公開Template・2コアCodespaces・実OpenCode校正と受講者の通し実行は**今回の教材改訂だけでは達成しておらず、既存のPR受入条件として残る**。実証なしのPASSやAIの自己申告を受入結果へ変換しない。

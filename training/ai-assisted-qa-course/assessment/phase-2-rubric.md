@@ -38,3 +38,7 @@ M06の実行証拠は専用のPlaywright経路で採取し、意味上のCase妥
 ## 反復実践の扱い
 
 M05〜M07のP01〜P06について、コードの実行前予測、変更前後、本人が観測した実結果と失敗時の調査を記録します。短コードの実行結果と正式なPlaywright Runは区別します。M06では固定3 Caseと削除Caseに加えて、M04で承認した本人Caseまたは明示された代替条件から別testを構成した根拠・実行を確認します。M07では合成ログを実在Runと混同せず、Page Object・fixture適用前後の別RunとAssertionの維持を確認します。記録欄だけを埋めたこと、AI生成コードの無検証実行、古いRunの引用はLevel 2を保証しません。
+
+## 追加した実技の評価基準
+
+M05は既存の短コード例・壊れたLocatorを直すだけでなく、参照とcopy、独立の関数入力、構文/型/実行の違い、Promiseとawaitを予測・実行し、実出力と修正理由を残す。M06は固定3 Caseとは別に、削除`CASE-CART-004`と数量1→2の更新`CASE-CART-005`を`new-case.spec.ts`へ実装し、**initial/repeatの各Runで少なくとも2件PASS**する。M07は保守前の2件を保全し、Page Object/fixture適用後にカート再表示の3番目のtestを追加し、**after Runで少なくとも3件PASS**する。数量0を現行Cart UIのselectから入力するE2Eは要求せず、仕様上の削除規則と実画面の削除操作を区別する。別の学習用コード実行は`course:run`の本物のRunを代替しない。各P欄と実spec・Run・SHAの内容が合わなければLevel 2にしない。

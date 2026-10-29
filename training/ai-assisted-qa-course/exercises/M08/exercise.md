@@ -24,15 +24,15 @@
 
 - **K-M08-05**：ローカルbranch・commit・push・PR・CIを区別して未実行の操作を完了扱いしない
 
-## 反復実践 P01〜P06：安全な差分管理
+## 反復実践：別の差分と安全なレビュー判断（P01〜P06）
 
-実習は本人の練習branchだけで行います。既存の未コミット変更は勝手に消さず、Secret・他者の変更をstageしないでください。pushとPR作成はM10で扱います。
+基礎課題の1回目のcommitを終えた後、**別の変更を自分で作り、選択的stageをやり直す**演習です。本人の練習branchだけで操作し、他人の変更や既存の未コミット差分を勝手に破棄しません。push/PR作成はM10の実地課題です。
 
-1. **P01** `git status`、`git diff`、`git diff --cached`で作業中・stage済み・commit済みを区別する（M08-01）。
-2. **P02** 練習用`local-only-run.log`のignore理由を`git check-ignore`で調べる。`.gitignore`と追跡済みファイルの違いを説明する（M08-02）。
-3. **P03** `review-candidate.md`と別の不要な練習差分が混在した場合を想定し、必要な1ファイルのみstageしてstaged diffを検査する。不要差分は削除しない（M08-02）。
-4. **P04** branch名が既存のとき、またはstageに知らない変更が残るときは、既存状態を確認して安全な別branch・停止判断を行う（M08-01・02）。
-5. **P05** AIレビューの提案を2件考え、仕様や実diffの根拠がある改善と将来想定だけの抽象化を採否する（M08-04）。
-6. **P06** Case ID、仕様ID、変更箇所、実施Run、未検証範囲を含むPR草稿を作る。実PR・CIを実行していないことを明記する（M08-03）。
+1. **P01 2回目の変更を作る（M08-01・02）**：`review-candidate.md`に「このレビューで未確認のCaseとRun」を1行追加します。別の練習用メモ`workspace/M08/private-note.md`には公開してはいけない**架空の無害なマーカー**を書きます（実Secretは禁止）。`git status --short`で2ファイルの違いを確認します。**証拠**：本人のdiffと、公開しないファイルの理由。
+2. **P02 必要な変更だけをstage（M08-02）**：`git add -- workspace/M08/review-candidate.md`だけを実行し、`git diff --cached --name-only`と`git diff --cached --check`で差分を検証します。private-noteを追加したりcommitへ含めたりしません。**証拠**：stage前後のファイル一覧と除外理由。
+3. **P03 誤ったstageを想定して停止（M08-02）**：**架空の例**として、stage済み一覧に`workspace/M08/private-note.md`が含まれていた場合を検討します。既存の追跡対象を消さずに何を確認するか、誰に確認するか、commitしない条件を書きます。実際のSecretや他者ファイルで危険操作を試しません。**証拠**：禁止条件と安全な復旧方針。
+4. **P04 2つ目のcommitを検証（M08-01・03）**：stageが期待どおりのときだけ学習用の2回目のcommitを作成し、直前のcommitと内容・SHAを比較します。作業treeに公開しない練習メモが残る場合、cleanと誤記しません。**証拠**：`git log -2 --oneline`、`git show --stat HEAD`、残る未追跡ファイル。
+5. **P05 AIからのPRレビューを採否（M08-04）**：架空提案A「Run未実行でもCI成功と書く」、B「仕様IDと実際のRun IDをPR説明に対応付ける」を比較します。どの事実を根拠に採用・拒否するかを、実`diff`と本人のRunに照らして記録します。**証拠**：2提案の採否と修正文。
+6. **P06 第三者への引継ぎをやり直す（M08-03）**：2回目のcommitの差分だけに限定したPR説明草稿を作り、最初のcommitの変更や未実行CIと混同していないかレビューします。M09へ渡す対象ファイル、依存、Run、未確認事項を具体化します。**証拠**：新旧のPR草稿とM09への引継ぎ。
 
-`submission.md`には作業前後のstatus・branch・対象commit SHA・stage対象・採否を記録します。
+**完了条件**：2回目の小さな変更を本人が選択stageしてcommitしたことを確認します。ローカルcommit、実際のpush、PR、CIを別状態として記録してください。

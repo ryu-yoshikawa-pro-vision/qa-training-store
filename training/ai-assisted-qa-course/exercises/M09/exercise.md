@@ -28,15 +28,15 @@ workspace/M09/submission.mdにworkflowの読解、最小権限、証拠対応、
 - **K-M09-06**：event・job・step・Runnerと対象specの関係を読み、workflowを修正できる
 - **K-M09-07**：trigger頻度、検証範囲、費用、未検証期間の関係から安全な実行方針を選べる
 
-## 反復実践 P01〜P06：CIの設計条件を変える
+## 反復実践：条件を変えたworkflow案を安全に設計する（P01〜P06）
 
-既定の無効化workflowを安全な作業領域で比較・修正します。M09では実行せず、合成ログを本物のCI結果とみなしません。
+元の`course-e2e.workflow.yml.disabled`はM10へ渡す基準案として保全します。以下では**別条件のworkflow案を個人workspace内の別名`.disabled`ファイルとして作り、差分・理由・未実行を残す**演習です。M09では`.github/workflows/`に配置せず、CIも起動しません。
 
-1. **P01** `workflow-starter.yml.disabled`のtrigger・job・step・runner・権限を読解し、足りない設定を完成見本と比較する（M09-01）。
-2. **P02** PR head SHAのcheckoutとArtifactの`target-sha.txt`を対応付け、別SHAの成功を現在の確認と呼ばない（M09-02）。
-3. **P03** `failure-cases.md`からBuild、Browser準備、Test、Artifact保存の各段階を分類し、最初に調べるstepを選ぶ（M09-03）。
-4. **P04** pushごとに実行する案と手動起動案を、検証頻度・実行対象・利用枠・未検証期間で比較する（M09-04）。
-5. **P05** 書込み権限やSecretを追加するAI案を、必要な操作と照合して採否する。無関係なworkflowやdeployは含めない（M09-05）。
-6. **P06** 対象specが増える場合、Runnerが変わる場合、料金条件が不明になる場合に、起動条件と停止条件をそれぞれ設計し直す（M09-01〜05）。
+1. **P01 別の起動条件を設計（M09-01・04）**：基準案のtrigger、job、steps、permissionsを読んだ後、`workspace/M09/trigger-review.yml.disabled`に「手動起動だけ」とする別案を作ります。Pushごとの実行案と比較して、検証されない期間・不要なRun・学習者が必要とする操作を記録します。**証拠**：両YAMLのdiffと選択理由。
+2. **P02 PR HEADとmerge SHAの混同を修正（M09-02）**：架空提案「PRで`github.sha`をそのままcheckoutし、これを現在のPR HEADと記録する」をレビューします。`pull_request.head.sha`等の対象コミット指定とcheckout結果の記録、Artifact内`target-sha.txt`の対応を基準workflowで確かめます。**証拠**：誤った対象と正しい対象の図、影響する証拠。
+3. **P03 初見ログの原因箇所を特定（M09-03）**：合成ログとは別に、架空ケースA「Browserインストール失敗でtest未起動」、B「test PASSだがArtifact upload失敗」、C「checkoutが別SHA」を検討し、最初に見るstep、残っている証拠、再実行前の確認を整理します。**証拠**：3行の診断表（失敗step・Run・未確認・次の操作）。
+4. **P04 CI費用の条件変更（M09-04）**：架空条件「1日3回のpush」「通常は週2回だけ変更」「GitHub-hosted Runnerの残量不明」について、push連動と手動起動のリスクを比較します。無料枠を数値で推測せず、Run分数・保存量・支払主体の実画面の確認先とBLOCKED条件を明記します。**証拠**：頻度変更前後の判断・利用条件。
+5. **P05 権限を増やすAI提案を拒否（M09-05）**：架空提案「Artifact保存のため`permissions: write-all`とdeploy用Secretを追加」を、専用workflowの実際の責務と照合します。必要な権限を1件ずつ説明し、不要な権限・Secret・第三者Action変更を拒否します。**証拠**：採否、修正後の権限YAML、理由。
+6. **P06 M10で検証可能な引継ぎを作る（M09-01〜05）**：基準の`.disabled`案に戻り、M07の実spec path、固定Shop Serve、Browser、対象SHA、test JSON、Artifact名、権限、起動・停止条件を再確認します。上の別条件案をそのまま有効化せず、**M10本人repoで実行する前に必要な確認事項**を提出します。**証拠**：基準workflowの最終diffと未確認一覧。
 
-各課題で判断前後のworkflow差分・理由・条件を`submission.md`へ残します。完成案は引き続き`.disabled`を維持してM10へ渡します。
+**完了条件**：別条件のYAMLを1件以上作って差分を説明し、M10へ渡す基準案は引き続き`.disabled`です。合成ログ・YAML設計を実CI成功として報告しません。

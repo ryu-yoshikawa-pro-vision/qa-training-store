@@ -39,15 +39,15 @@
 - **K-M06-06**：別CaseのReset・Action・Locator・業務Assertionを選んで新規specを作成し、単独実行できる
 - **K-M06-07**：一意の要素選択・Action成立・仕様上の業務結果を別々に検証できる
 
-## 反復実践 P01〜P06：CaseからE2Eへ
+## 反復実践：新しいCaseを実際に追加・実行する（P01〜P06）
 
-既存の固定3件とCASE-CART-004を維持します。以下の結果・元Case・BR/AC・Runを`submission.md`へ記録してください。新規specは既定の`new-case.spec.ts`へ別testを追加することで、既存の専用`course:run`を利用できます。追加前の実行証拠は保全します。
+既存の**固定3 Caseと削除Case**を先に完了します。P01〜P06はその再掲ではなく、業務Assertionを変える判断と**追加の別test**を含みます。編集するspecは`workspace/M06/new-case.spec.ts`、観測の記録は`submission.md`です。Resetはtestごとに行い、既定の`course:run`から追加testも実行します。
 
-1. **P01** 固定3 Caseについて、各Reset、Locator、Action、業務Assertion、前後Runを確認する（M06-01〜03）。
-2. **P02** CASE-CART-004の削除操作を`new-case.spec.ts`へ自力で実装し、単独・再実行する（M06-01・02）。
-3. **P03** BR-CART-001の「数量0なら削除」をCASE-CART-004の削除ボタンと区別し、別testとして追加する。UI操作が対応しなければ実装不能の根拠を記録する（M06-01・03）。
-4. **P04** low-stockの上限ちょうどと超過について、操作前数量と拒否後の数量維持を別testまたは追加Assertionで確かめる（M06-01・03）。
-5. **P05** M04で承認した本人Caseを1件選び、固定Caseとの差、必要なTest Data、Reset、Locator、業務Assertionを説明して`new-case.spec.ts`へ追加する。前工程がない場合は公開fallbackから同等の別条件を選び、前工程修了を主張しない（M06-01・05）。
-6. **P06** 追加後の`new-case.spec.ts`を`--label initial`と`--label repeat`で再実行し、全testの結果・spec SHA・Run ID・失敗修正を照合する（M06-02・04・05）。
+1. **P01 新しい数量変更Caseを作る（M06-01〜03）**：固定3件が終わったら、`BR-CART-001`の別責務として**`CASE-CART-005: 追加済みのマグを数量1から2に更新する`**を新規testとして`new-case.spec.ts`に実装します。`default`のReset→マグを1点追加→Cartで数量1を確認→数量2を選択→Cartで数量2を確認します。**証拠**：Case ID、初期状態、本人が選んだLocator/Action/Assertion、最初の失敗があればその結果。
+2. **P02 数量更新と削除の違いを確かめる（M06-01・03）**：既存CASE-CART-004は削除ボタン、P01は数量selectによる更新です。`cart-page.tsx`では数量selectが1以上であることを読み、**Web UIから数量0へ変更できるというE2Eは作りません**。`BR-CART-001`の数量0削除規則を確認できる層・呼出経路と、UIで検証済みと言えない範囲を記録します。**証拠**：仕様/コード出典、2つの操作経路、どの層のどのCaseが不足するか。
+3. **P03 有効上限の見える範囲を調べる（M06-03）**：`default`のマグと`low-stock`のシャツMについて、商品詳細の購入上限表示・数量選択肢・カート側の数量選択肢を実画面で比較します。「選択肢がない」ことと「APIが拒否して数量を保持する」ことを別のAssertionに分け、必要なら**新しいtest**を追加します。**証拠**：2状態の観測、各Assertionの証明範囲。
+4. **P04 Reset/Contextの独立性を試す（M06-02・04）**：P01の数量2を確認した後、CASE-CART-004を続けて実行する場合と、逆順に実行する場合で、各testの開始時状態をどのように保証するか説明します。テスト順序・前のCart状態に依存するコードを見つけたら自分で修正します。**証拠**：Reset位置、独立している根拠、少なくとも1回の再実行結果。
+5. **P05 M04の本人CaseをE2Eへ転用（M06-01・05）**：M04で承認したCaseがUI/Seedで実行可能なら、固定3件・削除・数量変更と**異なる条件**をもう1 testとして追加します。例えば在庫違い・別Roleなどのうち、仕様・Reset・観測が確認できたもののみ採用します。M04成果物がない、または実行不能なら公開fallbackを使い、**既知の数量1→2 Caseが代替の実技入力**である旨を明示します。未実行を実施済みにしません。**証拠**：元Case、採否、本人実装かfallbackか、実行可能性。
+6. **P06 増やしたtestを再実行して証拠を照合（M06-02・04・05）**：`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`を実行します。**CASE-CART-004とCASE-CART-005の2件以上**が両RunでPASSし、spec SHA・配布SHA・Run ID・report内の実行test数が一致することを確認します。追加Caseの失敗はAssertionを削って隠さず原因・修正・再実行を記録します。
 
-P05の入力が現行Shopで実行できない場合は別の承認済みCaseを選び直し、未解決の仕様・データ不足は記録します。実行結果を創作せず、Assertionを弱めてPASSにしないでください。
+**完了条件**：固定3件とは別に新規の数量変更Caseを実装し、CASE-CART-004と005を独立に実行した証拠が必要です。P05で実行可能な本人Caseがある場合はそれも実装し、実行不能なら理由と代替を示します。数量0を選択できない現行UIへ存在しない操作を強要しません。
