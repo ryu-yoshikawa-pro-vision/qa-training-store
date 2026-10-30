@@ -256,7 +256,7 @@ function CheckoutPaymentContent() {
     const cart = await services.cart.getCart();
     return { session, total: cart.totalAmount };
   }, [services]);
-  const [method, setMethod] = useState<PaymentMethodCode>("TEST-SUCCESS");
+  const [methodOverride, setMethod] = useState<PaymentMethodCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const headingRef = useRouteHeadingFocus(
@@ -266,6 +266,7 @@ function CheckoutPaymentContent() {
   if (state.error !== null || state.value === null) {
     return <CheckoutLoadError href="/checkout/address" />;
   }
+  const method = methodOverride ?? state.value.session.paymentMethodCode ?? "TEST-SUCCESS";
   const submit = async () => {
     setSubmitting(true);
     setError(null);
