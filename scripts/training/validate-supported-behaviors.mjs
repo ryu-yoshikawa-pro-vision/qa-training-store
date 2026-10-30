@@ -318,6 +318,13 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     });
   }
   equalSets(stateSources, new Set(spec.states.keys()), "non-default UI states");
+  const behaviorById = new Map(document.behaviors.map((item) => [item.id, item]));
+  for (const state of document.behaviors.filter((item) => item.kind === "state")) {
+    const owner = behaviorById.get(state.covered_by);
+    assert(owner?.kind === "action", `unlinked state condition: ${state.id}`);
+    assert(owner.screen === state.screen, `state condition crosses screen: ${state.id}`);
+    assert(owner.state_refs?.includes(state.id), `reverse state link missing: ${state.id}`);
+  }
   equalSets(
     new Set(document.use_case_methods.map((item) => item.id)),
     new Set(methods.keys()),
@@ -333,26 +340,31 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     );
     assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
   }
-  const analyzed = document.behaviors.filter(completeAnalysis).length;
-  const blocked = document.behaviors.filter((item) => item.analysis_status === "blocked").length;
+  const operations = document.behaviors.filter((item) => item.kind !== "state");
+  const analyzed = operations.filter(completeAnalysis).length;
+  const blocked = operations.filter((item) => item.analysis_status === "blocked").length;
+  const unreviewedStates = document.behaviors.filter(
+    (item) => item.kind === "state" && !completeAnalysis(item),
+  ).length;
   return {
     screens: spec.screens.size,
     screen_actions: actionSources.size,
     screen_action_segments: [...actionGroups.values()].reduce((a, b) => a + b, 0),
     non_default_states: stateSources.size,
+    unreviewed_state_conditions: unreviewedStates,
     br_ac: spec.rules.size,
     use_case_methods: methods.size,
-    supported_total: document.behaviors.length,
-    classified: document.behaviors.length,
+    supported_total: operations.length,
+    classified: operations.length,
     basically_analyzed: analyzed,
-    requires_review: document.behaviors.length - analyzed - blocked,
+    requires_review: operations.length - analyzed - blocked,
     blocked,
     classified_rate: 100,
     basic_analysis_rate:
-      document.behaviors.length === 0
+      operations.length === 0
         ? 0
-        : Math.round((analyzed / document.behaviors.length) * 10000) / 100,
-    complete: analyzed === document.behaviors.length && blocked === 0,
+        : Math.round((analyzed / operations.length) * 10000) / 100,
+    complete: analyzed === operations.length && blocked === 0 && unreviewedStates === 0,
   };
 }
 

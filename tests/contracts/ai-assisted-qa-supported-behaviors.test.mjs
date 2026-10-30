@@ -22,12 +22,13 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
+      unreviewed_state_conditions: 20,
       br_ac: 46,
       use_case_methods: 76,
-      supported_total: 208,
-      classified: 208,
+      supported_total: 188,
+      classified: 188,
       basically_analyzed: 0,
-      requires_review: 208,
+      requires_review: 188,
       classified_rate: 100,
       basic_analysis_rate: 0,
       complete: false,
@@ -48,6 +49,12 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
+  it("rejects a state condition linked to a different screen", () => {
+    const changed = mutated((next) => {
+      next.behaviors.find((item) => item.kind === "state").covered_by = "UC-AUTH-LOGOUT";
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(/state condition crosses screen/);
+  });
   it("does not certify semantic analysis merely because required fields are nonempty", () => {
     const changed = mutated((next) => {
       next.behaviors[0].analysis_status = "analyzed";

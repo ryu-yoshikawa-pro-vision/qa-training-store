@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "source_commit": "383efc9107ef3d5f78c5659473277166c1bba2de",
-  "coverage_contract": "Scenario Shop正式仕様・実装の機能動作（画面操作、状態別の異なる期待結果、Use Case固有操作）のみを分母に計上。BR/AC、Role、状態遷移、UX等の横断規則はrequirementsに分離し、同一操作を機能として二重計上しない。",
+  "coverage_contract": "サポート動作は画面操作172件と独立Use Case動作16件の計188件（暫定）。UI状態20件は対応する動作の状態別検証条件として追跡し、二重加算しない。BR/AC・Role・状態遷移・UX等の横断規則79件はrequirementsに保持する。",
   "source_paths": [
     "docs/spec/features/storefront.md",
     "docs/spec/features/authentication.md",
@@ -68,7 +68,10 @@
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-HOME-S-empty-catalog"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-02",
@@ -316,7 +319,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-HOME-A01-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
@@ -354,7 +359,10 @@
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
@@ -390,7 +398,10 @@
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
@@ -566,7 +577,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products",
@@ -598,7 +611,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-01",
@@ -780,7 +795,10 @@
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
@@ -890,7 +908,10 @@
       "platform_roles": {
         "web": "guest,customer（operator/adminは購入操作を行わない）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
@@ -922,7 +943,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock",
@@ -954,7 +977,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A01-01",
@@ -1100,7 +1125,10 @@
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      }
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-SEARCH-S-no-results"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A02-02",
@@ -1168,7 +1196,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-SEARCH-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-CATEGORY-A01-01",
@@ -1334,7 +1364,10 @@
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-AUTH-LOGIN-S-validation-error"
+      ]
     },
     {
       "id": "SCREEN-AUTH-LOGIN-A02-02",
@@ -1394,7 +1427,9 @@
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-AUTH-LOGIN-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-A01-01",
@@ -1456,7 +1491,10 @@
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-AUTH-SIGNUP-S-validation-error"
+      ]
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-A02-02",
@@ -1547,7 +1585,9 @@
         "AC-AUTH-002"
       ],
       "related_use_cases": [],
-      "platform_basis": "正式仕様の'not-applicable'は視覚リファレンス省略を意味する。サインアップフォームの入力検証自体は機能として対象。"
+      "platform_basis": "正式仕様の'not-applicable'は視覚リファレンス省略を意味する。サインアップフォームの入力検証自体は機能として対象。",
+      "covered_by": "SCREEN-AUTH-SIGNUP-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-AUTH-ACCOUNT-PROFILE-A01-01",
@@ -1704,6 +1744,9 @@
       ],
       "related_use_cases": [
         "CartUseCases.getCart"
+      ],
+      "state_refs": [
+        "SCREEN-STOREFRONT-CART-S-empty"
       ]
     },
     {
@@ -1768,7 +1811,10 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-STOREFRONT-CART-S-invalid-items"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-A02-01",
@@ -1900,7 +1946,9 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-CART-A01-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-STOREFRONT-CART-S-invalid-items",
@@ -1932,7 +1980,9 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-STOREFRONT-CART-A01-03",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESSES-A01-01",
@@ -2098,7 +2148,10 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-CHECKOUT-ADDRESSES-S-empty"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESSES-S-empty",
@@ -2130,7 +2183,9 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-CHECKOUT-ADDRESSES-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
@@ -2231,6 +2286,9 @@
       ],
       "related_use_cases": [
         "CheckoutOrderUseCases.getActive"
+      ],
+      "state_refs": [
+        "SCREEN-CHECKOUT-ADDRESS-S-resume-notice"
       ]
     },
     {
@@ -2329,7 +2387,9 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-CHECKOUT-PAYMENT-A01-01",
@@ -2621,7 +2681,10 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-CHECKOUT-CONFIRM-S-stale-cart"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
@@ -2717,7 +2780,9 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-CHECKOUT-CONFIRM-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-CHECKOUT-PROCESSING-A01-01",
@@ -3231,7 +3296,10 @@
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ORDERS-LIST-S-empty"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-A02-02",
@@ -3321,7 +3389,9 @@
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ORDERS-LIST-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A01-01",
@@ -3414,7 +3484,10 @@
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ORDERS-DETAIL-S-reviewable"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A02-01",
@@ -3504,7 +3577,9 @@
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ORDERS-DETAIL-A01-03",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-A01-01",
@@ -3569,6 +3644,9 @@
       ],
       "related_use_cases": [
         "CustomerReviewUseCases.update"
+      ],
+      "state_refs": [
+        "SCREEN-REVIEWS-EDITOR-S-published"
       ]
     },
     {
@@ -3659,7 +3737,9 @@
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-REVIEWS-EDITOR-A01-02",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ADMIN-REVIEWS-A01-01",
@@ -3907,7 +3987,10 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning",
@@ -3937,7 +4020,9 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ADMIN-DASHBOARD-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A01-01",
@@ -3999,7 +4084,10 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ADMIN-PRODUCTS-S-many-products"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A01-03",
@@ -4121,7 +4209,9 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ADMIN-PRODUCTS-A01-02",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-NEW-A01-01",
@@ -4492,7 +4582,10 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-04",
@@ -4552,7 +4645,9 @@
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ADMIN-CATEGORIES-A01-01",
@@ -4959,7 +5054,10 @@
         "AC-ADMININV-001",
         "AC-ADMININV-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "state_refs": [
+        "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-INVENTORIES-A02-02",
@@ -5019,7 +5117,9 @@
         "AC-ADMININV-001",
         "AC-ADMININV-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "covered_by": "SCREEN-ADMIN-INVENTORIES-A02-01",
+      "coverage_role": "action_state_condition"
     },
     {
       "id": "SCREEN-ADMIN-ORDERS-A01-01",
@@ -8839,6 +8939,7 @@
     "既存の形式的271行から機能動作を分離し、未登録のUse Case固有操作を追記した。全実装・Seedの意味確認は継続中。",
     "関連するUse Caseの関数網羅は検査するが、単にsource pathや非空のRiskを持つだけで基本分析済みにしない。",
     "UIの全画面記述と全public Use Caseについて漏れを検出するが、全実装の任意の内部関数の網羅を証明するものではない。",
-    "SCREEN-AUTH-SIGNUP validation-error の'-'は視覚参照の対象外であり、機能非対応ではない。Platformのサポートと視覚要件を混同しない。"
+    "SCREEN-AUTH-SIGNUP validation-error の'-'は視覚参照の対象外であり、機能非対応ではない。Platformのサポートと視覚要件を混同しない。",
+    "非default UI状態20件を、同一画面の操作へcovered_byで関連付けた。状態の検証責務は維持するが、同じ動作の別状態を別操作として二重計上しない。"
   ]
 }
