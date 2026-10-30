@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 30,
-      requires_review: 158,
+      basically_analyzed: 32,
+      requires_review: 156,
       classified_rate: 100,
-      basic_analysis_rate: 15.96,
+      basic_analysis_rate: 17.02,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -148,6 +148,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
       const action = data.behaviors.find((item) => item.id === id);
       expect(action?.analysis_status).toBe("analyzed");
       expect(action?.related_use_cases).toContain("CheckoutOrderUseCases.setPayment");
+      expect(action?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(action?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("audits incomplete and stale payment sessions on both platforms", () => {
+    for (const id of [
+      "SCREEN-CHECKOUT-PAYMENT-A02-01",
+      "SCREEN-CHECKOUT-PAYMENT-A02-02",
+    ]) {
+      const action = data.behaviors.find((item) => item.id === id);
+      expect(action?.analysis_status).toBe("analyzed");
+      expect(action?.related_use_cases).toContain("CheckoutOrderUseCases.getActive");
       expect(action?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(action?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
