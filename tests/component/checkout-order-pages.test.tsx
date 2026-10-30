@@ -249,6 +249,77 @@ describe("checkout and order pages", () => {
     expect(routerPush).toHaveBeenCalledWith("/checkout/payment");
   });
 
+  it("restores the previously selected non-default shipping address on resume", async () => {
+    const savedAddress = {
+      ...confirmation.address,
+      id: "address-work",
+      userId: "user",
+      label: "勤務先",
+      postalCode: "1500001",
+      city: "渋谷区",
+      isDefault: false,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      version: 1,
+    };
+    account.listAddresses.mockResolvedValueOnce([
+      {
+        ...savedAddress,
+        id: "address-home",
+        label: "自宅",
+        postalCode: confirmation.address.postalCode,
+        city: confirmation.address.city,
+        isDefault: true,
+      },
+      savedAddress,
+    ]);
+    checkout.start.mockResolvedValueOnce({
+      result: "resumed",
+      session: {
+        ...session,
+        addressSnapshot: {
+          ...confirmation.address,
+          postalCode: savedAddress.postalCode,
+          city: savedAddress.city,
+        },
+      },
+    });
+
+    render(<CheckoutAddressPage />);
+    expect(await screen.findByRole("radio", { name: /勤務先/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /自宅/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "この配送先を使用" }));
+    await waitFor(() =>
+      expect(checkout.setAddress).toHaveBeenCalledWith({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: session.version,
+        address: {
+          ...confirmation.address,
+          postalCode: savedAddress.postalCode,
+          city: savedAddress.city,
+        },
+      }),
+    );
+  });
+
+  it("requires a new address selection if the saved snapshot no longer matches", async () => {
+    checkout.start.mockResolvedValueOnce({
+      result: "resumed",
+      session: {
+        ...session,
+        addressSnapshot: { ...confirmation.address, city: "変更前の市区町村" },
+      },
+    });
+    render(<CheckoutAddressPage />);
+    const button = await screen.findByRole("button", { name: "この配送先を使用" });
+    expect(button).toBeDisabled();
+    expect(
+      screen.getByText("以前の配送先が変更または削除されています。配送先を選び直してください。"),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: /自宅/ }));
+    expect(button).toBeEnabled();
+  });
+
   it("does not advance to payment when saving a delivery address fails", async () => {
     checkout.setAddress.mockRejectedValueOnce(new Error("failed to save address"));
     render(<CheckoutAddressPage />);
