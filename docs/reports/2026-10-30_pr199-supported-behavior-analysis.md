@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、39件は仕様・実装・Seedの照合済み、149件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、41件は仕様・実装・Seedの照合済み、147件は追加レビューが残る.PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、39件が`analyzed`（20.74%）、149件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、41件が`analyzed`（21.81%）、147件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -191,3 +191,13 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 - Web/Native表示・失敗導線、Use Caseの拒否・注文/決済/在庫不変の回帰テストコードを追加した。ただし現行HEADの実行PASS、Android実機や正本スクリーンショットとの一致、実Template/Codespaces/OpenCode技術受入は未確認。
 
 **基本分析39/188件（20.74%）、未分析149件、状態別条件17/20件未レビュー**。188件は最終分母ではない。配送先入力のWeb/Native差`SCREEN-CHECKOUT-ADDRESS-A01-01`も未決。
+
+## 注文完了画面の注文番号と履歴導線の個別監査（2026-10-31）
+
+`SCREEN-CHECKOUT-COMPLETE-A01-02`と`A01-03`を、BR-CHECKOUT-003/AC-CHECKOUT-003、`CheckoutOrderUseCases.getMyOrder`の本人所有権、`resolveCheckoutResultKind`の最新決済試行、Web/Native結果画面、`default` Seedの注文実値と照合した。`default-dataset.ts`には本人`user-customer-regular`の`paid`注文`order-paid`（業務注文番号`ORD-20260701-0002`）があり、`payment_failed`/`payment-processing`は成功扱いしない反例となる。Seedの初期ログインはguestなので、本人でのログインが必要。
+
+- Webは`orderNumber`を表示し、本人の注文詳細`/orders/{orderId}`へ遷移する。Nativeは以前、業務注文番号ではなく内部`orderId`を「注文ID」として表示していた。Nativeの成功画面を`orderNumber`表示へ修正し、既存Maestroの`native-complete-order-id`テストIDは互換性のため維持した。
+- Web/Nativeのcomponentテストに、業務注文番号の表示、内部IDの非表示、Web注文詳細リンク、Native注文一覧への遷移を追加した。欠落/他人の注文IDを拒否する既存テストと併せて検証対象を定義した。
+- 2操作を`analyzed`へ更新。**基本分析41/188件（21.81%）、要レビュー147件、非default状態条件17/20件未レビュー**。188件は暫定分母。コード・テストはCI/Android実機・正本画面比較のPASSを未実証。別途確認する。
+
+CI調査では、HEAD `d22e366` のAndroid production-validation jobでNDK 27.1.12297006のインストールが`Error on ZipFile unknown archive`となりGradle構成に失敗した。これはアプリコードのコンパイルエラーではなくSDKアーカイブ取得・展開の失敗であり、CI再実行/再現状況で原因を切り分ける。再実行成功を確認するまではAndroid CIをPASSにしない。

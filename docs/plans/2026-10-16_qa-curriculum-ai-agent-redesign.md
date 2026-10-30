@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文完了の番号表示・履歴導線（継続作業）
+
+- `SCREEN-CHECKOUT-COMPLETE-A01-02`/`A01-03`を正式BR/AC、Use Caseの本人所有権、Web/Native UI、`default` Seedの`order-paid`/`ORD-20260701-0002`と照合。Nativeの内部orderId表示を顧客向け注文番号に修正し、Web/Native componentテストと分析契約を追加した。
+- **基本分析41/188件（21.81%）、未分析147件、状態別条件17/20件未レビュー**。188件は暫定。CI/実機・正本画面比較、配送先選択の仕様差、公開Template→非公開2コアCodespaces、OpenCode実モデル校正は未完了。
+- HEAD `d22e366` のAndroid production-validation CIでNDK 27.1.12297006のZipアーカイブ不正を確認。SDKインストール起因であり、再実行成功は未確認。
+
+
 ## 2026-10-31 注文確認の価格・明細・Cart競合（継続作業）
 
 - `SCREEN-CHECKOUT-CONFIRM-A01-01`/`A01-03`/`A02-01`/`A02-02`/`A02-03`と`S-stale-cart`を仕様・Pricing・Use Case・Dexie/SQLite・Web/Native・Seedで照合。NativeのSKU選択肢・商品小計・会員割引・送料の表示不足を補い、Web/Nativeに古いCart・価格変更時のカート確認導線を追加した。

@@ -6145,30 +6145,29 @@
       "source_line": 187,
       "source_text": "決済完了、注文番号、および注文履歴への導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,決済成功結果。Customer本人/他人・activeセッション・versionを区別する。対象動作: 注文番号を表示",
+      "role": "active customer (本人の注文に限る。guest/operator/admin、停止・退会済みは不可)",
+      "scenario": "default Seedのregular@example.comでログインし、paid注文order-paidを表示。失敗注文order-payment-failedとpayment-processingを反例にする",
+      "data": "default Seed: user-customer-regularのpaid注文id=order-paid、注文番号ORD-20260701-0002。注文番号と内部orderIdを区別し、getMyOrderの所有者検証と最新決済試行succeededを照合",
       "action": "注文番号を表示",
-      "expected": "完了した本人注文の注文番号だけを表示し、他人の注文番号を表示しない",
+      "expected": "Web/Androidとも本人のpaid注文の業務注文番号ORD-20260701-0002を表示し、内部orderIdを注文番号として表示しない。決済失敗・処理中は完了表示しない",
       "rule_refs": [],
       "route": "`/checkout/complete`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "注文番号を表示について、完了した本人注文の注文番号だけを表示し、他人の注文番号を表示しないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と注文番号を表示の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "注文番号を表示の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "内部orderIdを顧客向け注文番号として誤表示、他人の注文情報露出、未決済注文の完了誤表示",
+      "test_condition": "default Seedのpaid注文でWeb/NativeにorderNumberが表示され内部orderIdが表示されないこと、失敗・処理中の注文は成功画面に出ないこと、他人orderIdのgetMyOrderが拒否されることを確認",
+      "test_responsibility": "getMyOrderの所有者照合→最新決済状態resolveCheckoutResultKind→Web/Native結果画面→表示または遷移を追跡する",
+      "case_policy": "paid/succeeded正常、payment_failed/failed、pending_payment/processing、他人注文/欠落orderIdを区分。画面リファレンス・Android実機は別受入",
+      "case_selection_reason": "内部IDと顧客向け注文番号の混同は注文照会・問い合わせで誤認を生むため、正本Seedの両ID差分で検証する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md BR-CHECKOUT-003/AC-CHECKOUT-003/SCREEN-CHECKOUT-COMPLETE、default-dataset.ts:401-475のpaid注文（order-paid / ORD-20260701-0002）、CheckoutOrderUseCases.getMyOrder:397-403の本人検証、resolveCheckoutResultKind:49-67の成功条件、Web OrderResultContent:578-665、Native NativeCheckoutResultScreen:1115-1164を照合。Nativeが内部orderIdを「注文ID」と表示していた差を業務注文番号へ修正。Web/Native componentテスト追加。テスト実行・実機画面比較は未実証",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "注文番号と注文履歴のプラットフォーム別表示/遷移およびSeed実値を監査済み。CIと画面リファレンス・Android実機は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 570,
@@ -6180,7 +6179,10 @@
         "signature": "default: {",
         "scenario": "default",
         "applicable": true,
-        "alternatives": [],
+        "alternatives": [
+          "payment-processing",
+          "payment-declined"
+        ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
           "line": 33,
@@ -6188,7 +6190,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 397,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 475,
+          "reason": "paid/payment_failed注文と顧客向け注文番号・内部IDの別値"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 397,
+          "end_line": 403,
+          "reason": "本人以外の注文取得を拒否"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 578,
+          "end_line": 665,
+          "reason": "Webの決済結果判定・注文番号・本人注文詳細へのリンク"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1115,
+          "end_line": 1164,
+          "reason": "Nativeの決済結果判定・注文番号・注文一覧遷移"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 448,
+          "end_line": 490,
+          "reason": "Nativeの注文番号表示・注文一覧遷移・成功状態の反例"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 470,
+          "end_line": 510,
+          "reason": "Webの注文番号と本人注文詳細リンク"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-COMPLETE-A01-03",
@@ -6198,30 +6250,29 @@
       "source_line": 187,
       "source_text": "決済完了、注文番号、および注文履歴への導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,決済成功結果。Customer本人/他人・activeセッション・versionを区別する。対象動作: 注文履歴へ遷移",
+      "role": "active customer (本人の注文に限る。guest/operator/admin、停止・退会済みは不可)",
+      "scenario": "default Seedのregular@example.comでログインし、paid注文order-paidを表示。失敗注文order-payment-failedとpayment-processingを反例にする",
+      "data": "default Seed: user-customer-regularのpaid注文id=order-paid、注文番号ORD-20260701-0002。注文番号と内部orderIdを区別し、getMyOrderの所有者検証と最新決済試行succeededを照合",
       "action": "注文履歴へ遷移",
-      "expected": "注文履歴への導線が本人注文に対応し、決済未完了状態を成功扱いしない",
+      "expected": "成功した本人注文からWebは本人の注文詳細（/orders/{orderId}）、Androidは注文一覧（/orders）へ遷移できる。他人の注文IDはgetMyOrderで拒否される",
       "rule_refs": [],
       "route": "`/checkout/complete`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "注文履歴へ遷移について、注文履歴への導線が本人注文に対応し、決済未完了状態を成功扱いしないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と注文履歴へ遷移の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "注文履歴へ遷移の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "注文履歴へのリンク切れ、別ユーザーの注文詳細への誤誘導、失敗注文を成功扱いする",
+      "test_condition": "default Seedのpaid注文でWeb注文詳細リンクが対象orderIdを使い、Nativeの注文一覧ボタンが/ordersへ遷移すること、失敗・他人注文では成功導線にならないことを確認",
+      "test_responsibility": "getMyOrderの所有者照合→最新決済状態resolveCheckoutResultKind→Web/Native結果画面→表示または遷移を追跡する",
+      "case_policy": "paid/succeeded正常、payment_failed/failed、pending_payment/processing、他人注文/欠落orderIdを区分。画面リファレンス・Android実機は別受入",
+      "case_selection_reason": "画面が完了しても注文照会へ到達できなければ購入後の確認を失うため、Web/Native別の実リンクと所有者境界を検証する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md BR-CHECKOUT-003/AC-CHECKOUT-003/SCREEN-CHECKOUT-COMPLETE、default-dataset.ts:401-475のpaid注文（order-paid / ORD-20260701-0002）、CheckoutOrderUseCases.getMyOrder:397-403の本人検証、resolveCheckoutResultKind:49-67の成功条件、Web OrderResultContent:578-665、Native NativeCheckoutResultScreen:1115-1164を照合。Nativeが内部orderIdを「注文ID」と表示していた差を業務注文番号へ修正。Web/Native componentテスト追加。テスト実行・実機画面比較は未実証",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "注文番号と注文履歴のプラットフォーム別表示/遷移およびSeed実値を監査済み。CIと画面リファレンス・Android実機は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 570,
@@ -6233,7 +6284,10 @@
         "signature": "default: {",
         "scenario": "default",
         "applicable": true,
-        "alternatives": [],
+        "alternatives": [
+          "payment-processing",
+          "payment-declined"
+        ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
           "line": 33,
@@ -6241,7 +6295,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 397,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 475,
+          "reason": "paid/payment_failed注文と顧客向け注文番号・内部IDの別値"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 397,
+          "end_line": 403,
+          "reason": "本人以外の注文取得を拒否"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 578,
+          "end_line": 665,
+          "reason": "Webの決済結果判定・注文番号・本人注文詳細へのリンク"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1115,
+          "end_line": 1164,
+          "reason": "Nativeの決済結果判定・注文番号・注文一覧遷移"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 448,
+          "end_line": 490,
+          "reason": "Nativeの注文番号表示・注文一覧遷移・成功状態の反例"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 470,
+          "end_line": 510,
+          "reason": "Webの注文番号と本人注文詳細リンク"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-FAILED-A01-01",

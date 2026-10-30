@@ -462,6 +462,22 @@ describe("Native customer purchase screens", () => {
     },
   );
 
+  it("shows the public order number and opens the customer's order history", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ orderId: nativePaidOrder.orderId });
+    const getMyOrder = jest.fn().mockResolvedValue(nativePaidOrder);
+    runtime({ checkout: { getMyOrder } });
+
+    const screen = await render(<NativeCheckoutCompleteScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-complete-screen")).toBeTruthy());
+    expect(screen.getByTestId("native-complete-order-id")).toHaveTextContent(
+      `注文番号：${nativePaidOrder.orderNumber}`,
+    );
+    expect(screen.queryByText(`注文ID：${nativePaidOrder.orderId}`)).toBeNull();
+    expect(getMyOrder).toHaveBeenCalledWith(nativePaidOrder.orderId);
+    await act(async () => fireEvent.press(screen.getByTestId("native-complete-orders")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/orders");
+  });
+
   it("uses the result boundary when orderId is missing without looking up an order", async () => {
     mockUseLocalSearchParams.mockReturnValue({});
     const getMyOrder = jest.fn();

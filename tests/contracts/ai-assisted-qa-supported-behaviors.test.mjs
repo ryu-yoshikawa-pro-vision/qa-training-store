@@ -204,6 +204,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
+  it("audits the completed-order number and history links against the owned order", () => {
+    for (const id of ["SCREEN-CHECKOUT-COMPLETE-A01-02", "SCREEN-CHECKOUT-COMPLETE-A01-03"]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.getMyOrder");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+  });
+
   it("detects changed implementation and Seed evidence", () => {
     const badCode = mutated((next) => {
       next.behaviors[0].implementation_evidence.signature = "not the actual source line";

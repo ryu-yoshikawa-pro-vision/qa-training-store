@@ -1153,7 +1153,7 @@ function NativeCheckoutResultScreen() {
         <Text style={styles.heading}>注文完了</Text>
         <Text style={styles.body}>ご注文を受け付けました。</Text>
         <Text style={styles.body} testID="native-complete-order-id">
-          注文ID：{order.orderId}
+          注文番号：{order.orderNumber}
         </Text>
         <NativeButton
           label="注文一覧を見る"

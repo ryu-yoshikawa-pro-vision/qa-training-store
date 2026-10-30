@@ -482,6 +482,16 @@ describe("checkout and order pages", () => {
     expect(screen.queryByRole("button", { name: "支払いを再試行" })).not.toBeInTheDocument();
   });
 
+  it("shows the customer-facing order number and links to the owned order detail", async () => {
+    render(<CheckoutCompletePage />);
+    expect(await screen.findByText(detail.orderNumber)).toBeVisible();
+    expect(screen.getByRole("link", { name: "注文詳細" })).toHaveAttribute(
+      "href",
+      `/orders/${detail.orderId}`,
+    );
+    expect(checkout.getMyOrder).toHaveBeenCalledWith(detail.orderId);
+  });
+
   it("uses the persisted failed state even when the complete route is requested", async () => {
     checkout.getMyOrder.mockResolvedValue(failedDetail);
     render(<CheckoutCompletePage />);
