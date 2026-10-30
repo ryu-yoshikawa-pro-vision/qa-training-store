@@ -384,9 +384,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     blocked,
     classified_rate: 100,
     basic_analysis_rate:
-      operations.length === 0
-        ? 0
-        : Math.round((analyzed / operations.length) * 10000) / 100,
+      operations.length === 0 ? 0 : Math.round((analyzed / operations.length) * 10000) / 100,
     complete: analyzed === operations.length && blocked === 0 && unreviewedStates === 0,
   };
 }

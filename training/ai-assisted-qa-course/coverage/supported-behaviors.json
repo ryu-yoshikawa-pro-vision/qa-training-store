@@ -11334,7 +11334,7 @@
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "郵便番号から配送先候補を提示するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "basic_analysis_review": "AccountUseCases.suggestAddressはrequireCustomerを呼ばず、住所補完辞書に委譲する。画面は顧客配送先編集に限定されてもUse Case自体の認可はないため、Role表記と仕様上のアクセス境界を要確認。静的辞書は郵便番号の数字以外を除去し、1000001/1500001/5300001に候補を返す。",
       "related_use_cases": [
         "AccountUseCases.suggestAddress"
       ],
@@ -11618,17 +11618,17 @@
       "source_text": "async duplicate(productId: string): Promise<ProductDuplicateFormDto> {",
       "platform": "web",
       "role": "operator,admin",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "既存商品、SKU/画像/バリアント、原本version",
+      "scenario": "正常/元商品不存在/管理権限不足",
+      "data": "product-aggregate-edit: 既存商品ID・バリアント価格・SKU・stock・imagesを持つ商品。変更前の一覧・件数、役割Operator/Admin・Customerを照合",
       "action": "既存商品を複製して新規登録フォームを準備する",
-      "expected": "商品情報を新規用下書きフォームへ展開し、複製操作だけでは商品を保存しない",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "管理者が既存商品を複製する",
-      "test_responsibility": "既存商品を複製して新規登録フォームを準備するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "既存商品を複製して新規登録フォームを準備するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "expected": "getEditで取得した元商品のproductCodeと各variantのskuを空にし、initialStockQuantityを0にする。画像アセット参照と価格・販売期間は複製し、元商品を変更せず、この操作だけでは新規商品をDBへ作成しない。権限不足・存在しないIDは拒否",
+      "risk": "元商品上書き、SKU/商品コードの衝突、在庫の意図しない持越し、権限境界逸脱",
+      "test_condition": "複製前後の商品件数と元商品のversion・stockを比較し、プレビュー用DTOのSKU空欄・商品コード空欄・初期在庫0・画像参照・価格の保持を確認する。Customerと不存在IDを拒否",
+      "test_responsibility": "商品複製はフォーム用DTOの生成であり作成/保存ではないこと、入力初期化項目と元商品非変更を区別する",
+      "case_policy": "複製成功、元商品不存在、非Staffの3条件。価格/SKU/画像の非空ケースを採用",
+      "case_selection_reason": "公開SKU重複・元データ破壊・在庫持越しを防ぐため、複製DTOと保存状態を分離して検証",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "商品編集の実装(262-282行)、getEditのStaffチェック、product-aggregate-edit Seedと管理仕様を照合。保存しないDTO変換契約として確認",
       "related_use_cases": [
         "AdminProductUseCases.duplicate"
       ],
@@ -11662,7 +11662,20 @@
         "path": "src/application/use-cases/admin-product-use-cases.ts",
         "line": 260,
         "signature": "async duplicate(productId: string): Promise<ProductDuplicateFormDto> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 260,
+          "end_line": 283,
+          "reason": "識別子を空欄にし初期在庫0・画像の複製のみ"
+        }
+      ]
     },
     {
       "id": "UC-AUTH-LOGOUT",
@@ -11801,7 +11814,7 @@
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "商品の公開レビューを一覧表示するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "basic_analysis_review": "CatalogUseCases.listReviewsはレビュー問い合わせのpage>=1/pageSize=20を要求するが、customerGateway経路では空配列・total 0を返す。Web経路ではlistPublishedを利用。Nativeでレビュー一覧を表示する仕様かを明確化し、Platformと期待結果を経路別に分割する必要がある。",
       "related_use_cases": [
         "CatalogUseCases.listReviews"
       ],
@@ -11905,17 +11918,17 @@
       "source_text": "async getDetail(reviewId: string): Promise<AdminReviewDetailDto> {",
       "platform": "web",
       "role": "operator,admin",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "公開/非公開/削除済レビュー、管理/顧客Role",
+      "scenario": "Staff正常/Customer権限外/レビュー不存在",
+      "data": "hidden-reviewsまたはdefaultのpublished/hiddenレビューID、存在しないID、Customer/Operator/Admin、ユーザー/商品/履歴のSeed",
       "action": "管理者がレビュー詳細を参照する",
-      "expected": "Operator/Adminが指定レビューのID・状態・投稿内容・versionを参照できる",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "管理者がレビューIDを指定して詳細を取得する",
-      "test_responsibility": "管理者がレビュー詳細を参照するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "管理者がレビュー詳細を参照するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "expected": "Operator/AdminだけがレビューをIDで取得する。レビュー不存在はNOT_FOUNDとして拒否する。投稿内容・rating・status・version・商品名・ユーザー名/メールと状態変更履歴を同一レビューに対応させて返す",
+      "risk": "権限外レビュー閲覧・個人情報露出・別レビューの履歴誤紐付け",
+      "test_condition": "Operator/Adminで既存hidden/publishedを取得し、原本のレビューID・userId・productId・履歴・versionと一致するか照合。Customer/Guestと不存在IDで拒否を確認",
+      "test_responsibility": "管理画面レビュー詳細の所有物・履歴・権限をWeb管理APIで確認する",
+      "case_policy": "既存レビューのStaff閲覧、非Staffの拒否、存在しないIDの拒否を代表Caseとして採用",
+      "case_selection_reason": "レビュー本文とユーザーメールの漏えい防止、誤った履歴表示防止のため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "AdminReviewUseCases.getDetail 366-390行のrequireStaff/NOT_FOUND・関連ユーザー/商品/履歴取得とdefault/hidden-reviewsのレビューSeedを照合",
       "related_use_cases": [
         "AdminReviewUseCases.getDetail"
       ],
@@ -11949,7 +11962,20 @@
         "path": "src/application/use-cases/review-user-use-cases.ts",
         "line": 366,
         "signature": "async getDetail(reviewId: string): Promise<AdminReviewDetailDto> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 366,
+          "end_line": 390,
+          "reason": "Staffゲート、関連リソース・履歴・状態を取得"
+        }
+      ]
     },
     {
       "id": "UC-CART-MERGE",
@@ -12026,17 +12052,17 @@
       "source_text": "async bulkChangeStatus(",
       "platform": "web",
       "role": "operator,admin",
-      "scenario": "正常/一部失敗/入力境界",
-      "data": "現在ページの選択商品1〜50件、重複/対象外ID、各商品のexpectedVersion、公開要件を満たす/満たさない商品",
+      "scenario": "部分成功/全成功/選択0件・51件・重複/権限外/version競合",
+      "data": "admin-bulk-partial-failure: publishedへ変更できる商品と拒否される商品、0/1/50/51件、重複ID、各IDのexpectedVersion有無、Customer/Operator/Admin",
       "action": "複数商品を公開/非公開へ一括変更する",
-      "expected": "許可された商品だけ公開/非公開を変更し、version不一致や公開条件未達の失敗を対象ごとに返す",
-      "risk": "不完全商品の公開、競合更新、変更失敗の見落とし",
-      "test_condition": "公開可能商品/不完全商品を混ぜて一括実行し、成功/失敗ごとの状態とversionを確認",
-      "test_responsibility": "複数商品を公開/非公開へ一括変更するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "複数商品を公開/非公開へ一括変更するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "正式仕様・実装分岐と利用可能Seedの全条件照合を完了してから分析済みに変更する",
+      "expected": "Staffだけに許可する。ID数1〜50件で重複なしなら各商品にchangeStatusを順次適用する。成功IDをsucceededIds、失敗商品IDとmessageKeyをfailuresへ個別収集し、部分失敗時も他の成功を巻き戻さない。0/51件・重複IDは処理前に一括拒否する",
+      "risk": "権限外の大量変更、無効商品公開、部分失敗の隠蔽、古いversionによる意図しない上書き",
+      "test_condition": "1件/50件/0件/51件/重複と、現在version・古いversion混在、公開条件不備を用意。succeededIdsとfailuresおよび対象ごとの状態が一致するか確認する",
+      "test_responsibility": "入力前提の一括拒否と、対象ごとに進む部分成功を別の契約として区別する",
+      "case_policy": "有効1件・50件境界、0/51件・重複拒否、同一要求内の成功/競合混在を採用",
+      "case_selection_reason": "一括変更は原子的処理ではなく対象単位の結果を返すため、部分失敗で成功が消えたり失敗が隠れたりしないことを確認",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "AdminProductUseCases.bulkChangeStatus 223-251行の件数/重複検証、個別changeStatusとper-ID catch、admin-bulk-partial-failure Seedの競合指定を照合",
       "related_use_cases": [
         "AdminProductUseCases.bulkChangeStatus"
       ],
@@ -12071,7 +12097,20 @@
         "path": "src/application/use-cases/admin-product-use-cases.ts",
         "line": 223,
         "signature": "async bulkChangeStatus("
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 223,
+          "end_line": 251,
+          "reason": "0・51・重複拒否、順次成功/失敗を返す"
+        }
+      ]
     },
     {
       "id": "UC-ADMIN-BULK-REVIEW-VISIBILITY",
@@ -12082,17 +12121,17 @@
       "source_text": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {",
       "platform": "web",
       "role": "operator,admin",
-      "scenario": "正常/一部失敗/入力境界",
-      "data": "選択レビュー1〜50件、各expectedVersion、published/hidden/deleted、対象の一部欠落・競合",
+      "scenario": "1/50件成功、0/51件拒否、一部version競合・deleted拒否",
+      "data": "default/hidden-reviews: publishedとhiddenレビュー、expectedVersionsあり/なし、1/50/0/51件、deleted ID、Operator/AdminとCustomer",
       "action": "複数レビューの公開状態を一括変更する",
-      "expected": "対象ごとに許可されたpublished/hidden変更のみ反映し、失敗件数と商品レビュー集計を整合させる",
-      "risk": "削除済レビューの再公開、部分失敗の隠蔽、公開集計誤差",
-      "test_condition": "正常/不一致version/削除済の混合選択で一括変更を実行し、個別成功と失敗、集計結果を確認",
-      "test_responsibility": "複数レビューの公開状態を一括変更するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "複数レビューの公開状態を一括変更するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "正式仕様・実装分岐と利用可能Seedの全条件照合を完了してから分析済みに変更する",
+      "expected": "Staffの1〜50件に対してchangeVisibilityを1件ずつ実行する。対象ごとの成功/失敗・error.code/messageKey/retryableを返し、成功/失敗合計とresultsが一致する。published/hidden間の許可遷移のみ適用し、deleted・古いversionは拒否する。0件・51件は一括拒否する",
+      "risk": "削除済レビューの再公開、集計の誤更新、部分失敗の無視、権限外一括変更",
+      "test_condition": "1/50/0/51件、成功とversion競合・deletedを混在させ、レビュー状態・集計・件別の結果と合計が一致することを確認",
+      "test_responsibility": "個別変更のtransactionによるレビューサマリー更新と、非原子的な一括結果の整合を確認する",
+      "case_policy": "一括成功、上限0/51、削除済、競合・一部成功、非Staffを採用",
+      "case_selection_reason": "個々のエラーを全体成功として誤報告せず、公開集計の整合を守るため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "AdminReviewUseCases.bulkChangeVisibility 441-479行のStaff・件数・per-ID status/errors とchangeVisibility 392-438行のversion/state/summary transaction、default Seedを照合",
       "related_use_cases": [
         "AdminReviewUseCases.bulkChangeVisibility"
       ],
@@ -12127,7 +12166,20 @@
         "path": "src/application/use-cases/review-user-use-cases.ts",
         "line": 441,
         "signature": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 479,
+          "reason": "versionとstateの保護、レビューサマリーの更新、1件ずつ結果格納"
+        }
+      ]
     }
   ],
   "requirements": [

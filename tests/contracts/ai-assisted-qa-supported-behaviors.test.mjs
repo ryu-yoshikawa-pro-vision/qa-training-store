@@ -15,15 +15,6 @@ const mutated = (edit) => {
 };
 
 describe("サポート機能の仕様と実装の追跡", () => {
-  it("TEMP diagnostic: dump exact formatter output", async () => {
-    const prettier = await import("prettier");
-    const sourceFile = path.join(root, "scripts/training/validate-supported-behaviors.mjs");
-    const source = fs.readFileSync(sourceFile, "utf8");
-    const settings = await prettier.resolveConfig(sourceFile);
-    const formatted = await prettier.format(source, { ...settings, filepath: sourceFile });
-    console.log("FORMATTED_SOURCE_BASE64=" + Buffer.from(formatted).toString("base64"));
-  });
-
   it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const result = validateCoverage({ root });
     expect(result).toMatchObject({
@@ -36,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 8,
-      requires_review: 180,
+      basically_analyzed: 12,
+      requires_review: 176,
       classified_rate: 100,
-      basic_analysis_rate: 4.26,
+      basic_analysis_rate: 6.38,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
