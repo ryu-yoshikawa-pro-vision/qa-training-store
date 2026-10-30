@@ -296,47 +296,57 @@ describe("Native SQLite Node runtime contract", () => {
     database.close();
   });
 
-  it("rolls back Native price acceptance when the quantity exceeds remaining stock", async () => {
+  it("rolls back earlier Native price updates when a later item exceeds stock", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);
     await seedNativeDataset(
       database as unknown as SQLiteDatabase,
-      createScenarioDataset("default"),
+      createScenarioDataset("regular-member"),
     );
-    const item = await database.getFirstAsync<Row>(
+    const second = await database.getFirstAsync<Row>(
       "SELECT variant_id FROM cart_items WHERE id = ?",
-      "cart-item-regular-shirt",
+      "cart-item-member-mug",
     );
-    expect(item).not.toBeNull();
+    expect(second).not.toBeNull();
     await database.runAsync(
-      "UPDATE cart_items SET quantity = 2, unit_effective_price_at_add = 999 WHERE id = ?",
-      "cart-item-regular-shirt",
+      "UPDATE cart_items SET unit_effective_price_at_add = 999 WHERE id = ?",
+      "cart-item-member-shirt",
+    );
+    await database.runAsync(
+      "UPDATE cart_items SET quantity = 2 WHERE id = ?",
+      "cart-item-member-mug",
     );
     await database.runAsync(
       "UPDATE product_variants SET stock_quantity = 1 WHERE id = ?",
-      item!.variant_id,
+      second!.variant_id,
     );
     const repositories = createNativeCustomerApplicationRepositories(
       database as unknown as SQLiteDatabase,
     );
     await expect(
       repositories.carts.acceptPriceChangesAndTouchCart({
-        cartId: "cart-regular-active",
+        cartId: "cart-member-user-customer-regular",
         cartExpectedVersion: 1,
-        itemExpectedVersions: { "cart-item-regular-shirt": 1 },
+        itemExpectedVersions: { "cart-item-member-shirt": 1, "cart-item-member-mug": 1 },
         now: "2026-07-15T03:00:00.000Z",
       }),
     ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
     expect(
       await database.getFirstAsync<Row>(
-        "SELECT quantity, unit_effective_price_at_add, version FROM cart_items WHERE id = ?",
-        "cart-item-regular-shirt",
+        "SELECT unit_effective_price_at_add, version FROM cart_items WHERE id = ?",
+        "cart-item-member-shirt",
       ),
-    ).toMatchObject({ quantity: 2, unit_effective_price_at_add: 999, version: 1 });
+    ).toMatchObject({ unit_effective_price_at_add: 999, version: 1 });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT quantity, version FROM cart_items WHERE id = ?",
+        "cart-item-member-mug",
+      ),
+    ).toMatchObject({ quantity: 2, version: 1 });
     expect(
       await database.getFirstAsync<Row>(
         "SELECT version FROM carts WHERE id = ?",
-        "cart-regular-active",
+        "cart-member-user-customer-regular",
       ),
     ).toMatchObject({ version: 1 });
     database.close();
