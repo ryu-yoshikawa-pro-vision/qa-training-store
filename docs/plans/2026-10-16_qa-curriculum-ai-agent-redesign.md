@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 Checkout再開・置換と住所選択復元
+
+- `SCREEN-CHECKOUT-ADDRESS-A02-01`（再開）と`A02-03`（置換）をWeb/Nativeの画面、Checkout Use Case、Dexie/SQLite、`checkout-resume`/`checkout-replaced` Seed、関連テストで照合した。状態別`resume-notice`は既存動作の検証条件のまま維持する。
+- Webは再開時に保存済み住所のSnapshotを無視して既定住所を選んでいたため、非既定住所を復元し、元の住所が変更・削除されていた場合は明示的な再選択を要求するよう修正。Nativeでも既存Sessionの住所入力が復元されることをテストに追加した。
+- Nativeで`replaced`が`started`として案内されていた問題を修正し、新規開始/置換の表示差をテストで確認した。旧SessionはRepositoryで放棄し、新Sessionは住所・支払方法なしで作成する。
+- 基本分析は**28/188件（14.89%）、確認待ち160件、状態別条件18/20件未レビュー**。配送先選択のWeb/Native仕様差`A01-01`と旧セッション一般案内`A02-02`は保留し、全マージ前受入の必要条件は変更しない。
+
 ## 2026-10-31 Checkout住所入力の境界検証
 
 - `SCREEN-CHECKOUT-ADDRESS-A01-02`について、Web/Nativeの配送先保存成功後だけ決済画面へ進み、Sessionの`version`と`unlockedStep`が変わることを仕様・両Repository・Seed・関連UIテストで照合した。
