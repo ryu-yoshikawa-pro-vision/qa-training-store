@@ -618,6 +618,9 @@ describe("Native customer purchase screens", () => {
     );
     await act(async () => {
       fireEvent.changeText(screen.getByTestId("native-checkout-postal-code"), "123");
+    });
+    expect(screen.getByTestId("native-checkout-postal-code").props.value).toBe("123");
+    await act(async () => {
       fireEvent.press(screen.getByTestId("native-checkout-address-next"));
     });
 
