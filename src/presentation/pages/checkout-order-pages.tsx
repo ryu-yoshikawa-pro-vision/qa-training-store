@@ -236,6 +236,7 @@ function CheckoutAddressContent() {
             total={state.value.total}
             label="この配送先を使用"
             disabled={selected === undefined || submitting}
+            busy={submitting}
             onClick={() => void submit()}
           />
         </div>
@@ -310,6 +311,7 @@ function CheckoutPaymentContent() {
           total={state.value.total}
           label={`${formatYen(state.value.total)}を確認する`}
           disabled={submitting}
+          busy={submitting}
           onClick={() => void submit()}
         />
       </div>
@@ -391,6 +393,7 @@ function CheckoutConfirmContent() {
           total={state.value.totalAmount}
           label={`${formatYen(state.value.totalAmount)}を支払う`}
           disabled={submitting}
+          busy={submitting}
           onClick={() => void submit()}
         />
       </div>
@@ -422,12 +425,14 @@ function CheckoutActionSummary({
   total,
   label,
   disabled,
+  busy = false,
   onClick,
   confirmation,
 }: {
   total: number;
   label: string;
   disabled: boolean;
+  busy?: boolean;
   onClick: () => void;
   confirmation?: CheckoutConfirmationDto;
 }) {
@@ -457,7 +462,7 @@ function CheckoutActionSummary({
         </p>
       </details>
       <button className="button button--primary" disabled={disabled} onClick={onClick}>
-        {disabled ? "処理中…" : label}
+        {busy ? "処理中…" : label}
       </button>
     </aside>
   );
