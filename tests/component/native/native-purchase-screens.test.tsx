@@ -569,6 +569,27 @@ describe("Native customer purchase screens", () => {
     },
   );
 
+  it("restores the previously entered shipping snapshot on Native checkout resume", async () => {
+    const resumedAddress = { ...address, postalCode: "1500001", city: "渋谷区" };
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: resumedAddress,
+          unlockedStep: "payment",
+        }),
+      },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-postal-code").props.value).toBe("1500001"),
+    );
+    expect(screen.getByTestId("native-checkout-city").props.value).toBe("渋谷区");
+    expect(screen.getByTestId("native-checkout-session-resumed")).toBeTruthy();
+  });
+
   it("selects a saved delivery address before advancing checkout", async () => {
     const setAddress = jest.fn().mockResolvedValue({
       ...checkoutSession,
