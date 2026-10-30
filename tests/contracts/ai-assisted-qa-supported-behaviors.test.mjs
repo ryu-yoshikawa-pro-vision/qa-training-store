@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 20,
-      requires_review: 168,
+      basically_analyzed: 21,
+      requires_review: 167,
       classified_rate: 100,
-      basic_analysis_rate: 10.64,
+      basic_analysis_rate: 11.17,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -80,8 +80,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
+    const setting = data.behaviors.find(
+      (item) => item.id === "SCREEN-CHECKOUT-ADDRESSES-A01-04",
+    );
+    expect(setting?.analysis_status).toBe("analyzed");
+    expect(setting?.action).toBe("既定の配送先に設定する");
+    expect(setting?.related_use_cases).toContain("AccountUseCases.updateAddress");
+    expect(setting?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(setting?.audit_branch_refs?.length).toBeGreaterThan(0);
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESSES-A01-04")
+      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")
         ?.analysis_status,
     ).toBe("review_required");
   });
