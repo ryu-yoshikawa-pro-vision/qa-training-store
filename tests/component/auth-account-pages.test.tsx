@@ -320,29 +320,27 @@ describe("auth and account pages", () => {
     ["regular", "一般会員", "0%", "商品小計5,000円以上で送料無料"],
     ["gold", "ゴールド会員", "5%", "商品小計5,000円以上で送料無料"],
     ["platinum", "プラチナ会員", "10%", "いつでも送料無料"],
-  ] as const)("renders the %s member's benefits without exposing user ID", async (
-    membershipRank,
-    rankLabel,
-    discount,
-    shippingBenefit,
-  ) => {
-    account.getProfile.mockResolvedValueOnce({
-      id: "private-customer-id",
-      email: "regular@example.com",
-      displayName: "一般テスト会員",
-      phone: "09000000000",
-      role: "customer",
-      membershipRank,
-      accountStatus: "active",
-      actionVersion: 7,
-    });
-    render(<ProfilePage />);
-    expect(await screen.findByText(rankLabel)).toBeVisible();
-    expect(screen.getByText("利用中")).toBeVisible();
-    expect(screen.getByText(discount)).toBeVisible();
-    expect(screen.getByText(shippingBenefit)).toBeVisible();
-    expect(screen.queryByText("private-customer-id")).not.toBeInTheDocument();
-  });
+  ] as const)(
+    "renders the %s member's benefits without exposing user ID",
+    async (membershipRank, rankLabel, discount, shippingBenefit) => {
+      account.getProfile.mockResolvedValueOnce({
+        id: "private-customer-id",
+        email: "regular@example.com",
+        displayName: "一般テスト会員",
+        phone: "09000000000",
+        role: "customer",
+        membershipRank,
+        accountStatus: "active",
+        actionVersion: 7,
+      });
+      render(<ProfilePage />);
+      expect(await screen.findByText(rankLabel)).toBeVisible();
+      expect(screen.getByText("利用中")).toBeVisible();
+      expect(screen.getByText(discount)).toBeVisible();
+      expect(screen.getByText(shippingBenefit)).toBeVisible();
+      expect(screen.queryByText("private-customer-id")).not.toBeInTheDocument();
+    },
+  );
 
   it("updates Profile with the hidden actionVersion", async () => {
     render(<ProfilePage />);
