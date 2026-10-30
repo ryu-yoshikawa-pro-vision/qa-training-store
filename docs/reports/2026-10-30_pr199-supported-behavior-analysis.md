@@ -156,6 +156,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 - `PAYMENT_METHODS`は`TEST-SUCCESS`、`TEST-DECLINED`、`TEST-INSUFFICIENT`、`TEST-AUTH-FAILED`の4種類。UIのTypeScript型だけでは実行時の不正コードを拒否できないため、Application境界に許可リスト検証を追加。未許可コードは`VALIDATION`で拒否し、Sessionの決済方法・version・ステップを不変に保つ統合テストを追加した。
 - Webの決済方法保存は以前`try/finally`のみで、保存失敗時にエラー表示がなく未処理Promiseが発生し得た。Nativeと同じく失敗時に画面へエラーを表示し、`/checkout/confirm`へ進まず、再試行可能にする修正とcomponentテストを追加した。
 - 配送先の再選択が必要な場合、共通サマリーボタンが`disabled`だけで「処理中…」と表示していた。送信中`busy`と操作不能`disabled`を分離し、住所未選択時は操作名を保持するよう修正した。
+- NativeのCheckout復帰処理が、保存領域の読み取り失敗など予期しない`getActive`エラーまで新Session開始に変換していた。復帰対象を`CHECKOUT_STEP_INCOMPLETE`/`CART_VERSION_CHANGED`/`CHECKOUT_EXPIRED`に限定し、`STORAGE_READ_FAILED`時はCart取得・Session新規作成をせずエラーを表示するcomponentテストを追加した。
 - CI `41088684235`の実ログを調査。契約テストの失敗は37件の実装行参照の古さと、既に分析済みの再開操作を未分析と期待するテストが原因。実装行37件、Use Case証拠7件、公開メソッド7件の参照を実ソース署名に合わせて更新し、契約テストを修正した。componentテストの失敗は無選択時のボタン表示名の誤り。Style QualityはNative/Web/契約テストのPrettier形式違反が原因で、対象を修正した。これらの最新CI成功は未確認であり、古いCIのPASSに読み替えない。
 
 **現時点：基本分析30/188件（15.96%）、確認待ち158件、非default状態条件18/20件未レビュー。** 188件は暫定分母。Android実機・正本画面リファレンス・実Template/非公開2コアCodespaces/OpenCode実モデル校正の必須受入は未完了。
