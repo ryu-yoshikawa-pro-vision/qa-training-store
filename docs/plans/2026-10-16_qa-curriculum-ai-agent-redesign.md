@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文状態2件の追加監査とCI原因分離（SUT変更なし）
+
+- `SCREEN-ORDERS-LIST-S-empty`と`SCREEN-ORDERS-DETAIL-S-reviewable`を仕様・本人Role・Use Case→Dexie/Review Repository→Web/Native UI・既存Seed実値で読み取り監査し、状態別条件を分析済みにした。**基本分析46/188（残り142）、状態条件7/20（残り13）**。親操作は別途レビューし、188件の分母は未確定。
+- `out-of-stock`のSKUとWebの初期選択・disabled分岐は比較Case成立性の再検証対象として未分析維持。製品コード・正式仕様・Seed・製品テストを変更しない。
+- Web CI 41107879887はStyle Qualityで学習用contractと製品Native画面の書式違反。学習用contractの整形を調整し、製品Native画面は承認なしに触れない。複数のE2E失敗は`actions/download-artifact`の5回リトライ後失敗であり、テストAssertionの失敗ではない。Mobile CIはsuccess。新HEADのCI成功は未確認。
+- 次回は新HEADの学習用formatter/contract結果を確認し、製品Nativeの書式違反は許可待ちとして記録。残る状態条件13件と基本操作142件の証拠監査、既存PRの製品差分仕分け、実Template/Private 2-core Codespaces/OpenCode校正を継続する。
+
 ## 2026-10-31 Web empty状態2件と製品不整合の分離（製品変更なし）
 
 - `SCREEN-STOREFRONT-HOME-S-empty-catalog`と`SCREEN-STOREFRONT-CART-S-empty`を正式BR/AC・Use Case・Dexie・Web/Native・既存Seed実値・既存componentの読み取りで監査し、状態条件を分析済みにした。**基本分析46/188（24.47%）、未分析142、状態条件5/20レビュー済み・15件未レビュー**。188件は暫定。

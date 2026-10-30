@@ -7287,30 +7287,32 @@
       "source_line": 35,
       "source_text": "注文が存在しない旨とストアフロントへの導線を表示する。",
       "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "empty",
-      "data": "Seed/入力: orders-empty。通常状態から条件を変更し表示と操作を比較",
+      "role": "customer（orders-empty Seedでregular@example.com本人Sessionを自動作成。guest/staffはCustomerPageで対象外）",
+      "scenario": "orders-empty（注文0件）とdefaultのregular customer注文あり状態を比較。Web desktop視覚条件",
+      "data": "orders-emptyのcreateScenarioDatasetはdefaultからorders/orderItems/payments/shipments/orderHistories/sequences/reviewsを空にし、初期Sessionをregular@example.comへ設定。defaultではregular customer本人の複数注文が存在する。/ordersでlistMyOrdersの本人注文0件を取得",
       "action": "empty状態を表示・処理",
-      "expected": "注文が存在しない旨とストアフロントへの導線を表示する。",
+      "expected": "Web /ordersでCustomerのlistMyOrdersがitems=[]を返した場合『注文履歴はありません』と空StatePanelを表示し、StatePanel既定の『ホームへ戻る』リンク（/）を表示する。注文カード・注文詳細リンクは表示しない。defaultの本人注文ありでは注文カードが表示される。Androidにも空案内はあるが当該視覚必須はWeb desktopのみ",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "SCREEN-ORDERS-LIST-A02-01を対象にorders-emptyを準備し「注文が存在しない旨とストアフロントへの導線を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ORDERS-LIST-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "空注文で他人の注文を代替表示する情報漏えい、空表示からの復帰導線欠落、loading/errorをemptyと混同、Seedの初期Session誤認",
+      "test_condition": "orders-empty Reset→初期regular@example.comで/ordersを開き、listMyOrders→DexieOrderRepository.listByUser(user.id)の0件を確認。Webで『注文履歴はありません』、ホームへのhref=/、注文カード0件を確認。default Reset→regular本人注文が1件以上の対照、guest/staffはCustomerPage拒否を別途確認。実ブラウザ・視覚正本のPASSは未確認",
+      "test_responsibility": "SCREEN-ORDERS-LIST-A02-01のWeb空状態。CustomerPage→CheckoutOrderUseCases.listMyOrders→DexieOrderRepository.listByUser→OrdersContent→StatePanel既定の/導線を追跡",
+      "case_policy": "orders-empty本人0件とdefault本人複数件を採用。loading/error/権限拒否は別状態・別Caseとして区別。Androidは機能確認の補助であり当該視覚正本の必須外",
+      "case_selection_reason": "既存orders-empty Seedで0件が確定し、defaultの本人注文ありと非破壊で対比できる。本人所有権と空画面からの回復導線を同時に監査できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "orders.md:20-35、CheckoutOrderUseCases.listMyOrders:385-395、DexieOrderRepository.listByUser:117-141、OrdersContent:672-698、StatePanel:29-62、metadata.ts:240-249、scenarios.ts:80-91、default-dataset.ts:400-470を読み取り照合。既存製品テストは変更せず、CIでの当該視覚受入は未確認",
       "requirement_refs": [
         "BR-ORDER-001",
         "BR-ORDER-002",
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.listMyOrders"
+      ],
       "covered_by": "SCREEN-ORDERS-LIST-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Role・Use Case・Dexie Repository・Web/Native UI・既存Seed実値を読み取り監査。E2E/視覚実行は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 672,
@@ -7330,7 +7332,75 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.listMyOrders",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 385,
+          "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 20,
+          "end_line": 35,
+          "reason": "customer空状態の視覚要件とBR/AC"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 385,
+          "end_line": 395,
+          "reason": "requireCustomer後に本人user.idで注文一覧取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 117,
+          "end_line": 143,
+          "reason": "userIdによる本人注文抽出と0件のpageItems"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 672,
+          "end_line": 699,
+          "reason": "items.length===0の空StatePanelと注文カード非表示"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 29,
+          "end_line": 65,
+          "reason": "action省略時の既定ホームリンク"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 80,
+          "end_line": 91,
+          "reason": "orders-emptyで注文・関連レコードを全削除"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 240,
+          "end_line": 250,
+          "reason": "regular@example.com本人Sessionと/ordersの初期状態"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 470,
+          "reason": "defaultに本人注文を複数作成する比較基準"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1215,
+          "end_line": 1248,
+          "reason": "Android空案内を確認（視覚必須外）"
+        }
+      ]
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A01-01",
@@ -7629,30 +7699,32 @@
       "source_line": 69,
       "source_text": "配達完了となった商品のレビュー投稿導線を表示する。",
       "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "reviewable",
-      "data": "Seed/入力: reviewable-orders。通常状態から条件を変更し表示と操作を比較",
+      "role": "customer（reviewable-ordersの初期Sessionはguest。regular@example.comでログイン後に本人の配達済み注文を開く）",
+      "scenario": "reviewable-ordersで配達済みorder-deliveredの未投稿明細を選ぶ。defaultとのレビュー状態差分を比較。Web desktop必須",
+      "data": "default Seedはuser-customer-regular所有のorder-deliveredに9件の配達済みレビュー付き明細とhidden/deletedの追加明細を生成。reviewable-ordersはreviewsを先頭6件へsliceし履歴を連動フィルタするため、order-delivered-item-7〜9にReviewがなくなる。初期Sessionはguestなのでregular@example.comでログインが必要",
       "action": "reviewable状態を表示・処理",
-      "expected": "配達完了となった商品のレビュー投稿導線を表示する。",
+      "expected": "Web /orders/order-deliveredの本人注文詳細でgetMyCustomerOrderがdeliveredかつReviewなしの明細をNOT_POSTEDへ分類すると『レビューを投稿』リンク（/reviews/{orderItemId}）を表示。レビューありのPUBLISHEDは『レビューを編集（公開中）』、未配達でReviewなしはNOT_ELIGIBLEとなり投稿リンクなし。削除済みReviewはDELETEDとなり再投稿不可。Androidの同状態の専用視覚正本は要求外",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "SCREEN-ORDERS-DETAIL-A01-03を対象にreviewable-ordersを準備し「配達完了となった商品のレビュー投稿導線を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ORDERS-DETAIL-A01-03の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "reviewableに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未配達のレビュー投稿許可、他人の注文明細リンク露出、既存レビューの二重投稿、削除済みレビュー再投稿、guest初期Sessionで誤った画面比較",
+      "test_condition": "reviewable-orders Reset→regular@example.comでログイン→/orders/order-deliveredを開く。getMyCustomerOrderのorder-delivered-item-7〜9はNOT_POSTED、/reviews/{orderItemId}リンクが現れることを確認。先頭6明細はPUBLISHEDで編集導線。default対照では同じ明細のレビューあり状態を比較。未配達注文でNOT_ELIGIBLE、他人/guestでアクセス拒否を別Caseに分離。既存componentの状態マトリクスはコード証拠であり、実ブラウザPASSは未確認",
+      "test_responsibility": "SCREEN-ORDERS-DETAIL-A01-03のレビュー可否状態。CustomerPage→CheckoutOrderUseCases.getMyCustomerOrder→ReviewRepository.findByOrderItem→deriveCustomerReviewState→OrderDetailContentのリンク表示を追跡",
+      "case_policy": "配達済み未投稿/公開済み/削除済み/未配達を採用。本人所有権を独立境界として確認し、Web desktopのみを視覚必須とする",
+      "case_selection_reason": "既存reviewable-orders Seedがレビュー有無を同一配達済み注文に作り、状態別導線の誤PASSと権限漏れを再現しやすい。製品側のSeed改変を必要としない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "orders.md:52-69、CheckoutOrderUseCases.getMyCustomerOrder:406-416、customer-review-state.ts:4-15、OrderDetailContent:722-782、default-dataset.ts:400-534、scenarios.ts:96-104、checkout-order-pages.test.tsx:540-580を読み取り照合。reviewable-orders初期guestを明示。実ブラウザ・視覚正本のPASSは未確認",
       "requirement_refs": [
         "BR-ORDER-001",
         "BR-ORDER-002",
         "AC-ORDER-001",
         "AC-ORDER-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyCustomerOrder"
+      ],
       "covered_by": "SCREEN-ORDERS-DETAIL-A01-03",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・配達状態・本人所有権・Use Case・Review Repository・Web/Native・Seedレビュー6件残しの実値を照合。実行受入は別",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 722,
@@ -7672,7 +7744,69 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyCustomerOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 406,
+          "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 52,
+          "end_line": 69,
+          "reason": "reviewableはcustomer/Web desktop必須"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 398,
+          "end_line": 416,
+          "reason": "本人注文の取得と明細単位のレビュー状態導出"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 4,
+          "end_line": 15,
+          "reason": "deliveredかつReviewなしをNOT_POSTEDへ分類"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 722,
+          "end_line": 781,
+          "reason": "NOT_POSTEDの投稿導線とPUBLISHED/HIDDEN/DELETEDの表示分岐"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 534,
+          "reason": "配達済みorder-deliveredと9レビューの実値"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 96,
+          "end_line": 104,
+          "reason": "reviewable-ordersでレビューを先頭6件へ絞る"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 273,
+          "end_line": 283,
+          "reason": "初期guestと推奨regular@example.com"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 539,
+          "end_line": 581,
+          "reason": "既存のレビュー状態別component期待（今回未実行）"
+        }
+      ]
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-A01-01",

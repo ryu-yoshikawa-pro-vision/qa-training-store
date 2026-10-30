@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 注文の空状態・レビュー投稿可能状態の監査（SUT変更なし）
+
+- **基本分析46/188件（24.47%）、残り142件、状態条件7/20件レビュー済み・残り13件。** 分母188件は暫定。状態条件2件を追加で証拠付き分析したが、親操作の分析済み件数には加算しない。
+- `SCREEN-ORDERS-LIST-S-empty`：`orders.md:20-35`、`CheckoutOrderUseCases.listMyOrders:385-395`、`DexieOrderRepository.listByUser:117-143`、`OrdersContent:672-699`、`StatePanel:29-65`、`orders-empty` Seed（orders/orderItems/payments/shipments等を0件、regular本人Session）を照合。Webは「注文履歴はありません」と既定のホーム(/)導線を表示する。defaultの本人注文ありと対比較する。Native空表示は存在するが専用視覚必須はWeb desktopのみ。
+- `SCREEN-ORDERS-DETAIL-S-reviewable`：`orders.md:52-69`、`getMyCustomerOrder:406-416`、`deriveCustomerReviewState`、Webの`OrderDetailContent`、`reviewable-orders` Seedの`reviews.slice(0,6)`を照合。配達済み`order-delivered`の7〜9番目の明細は未投稿となり「レビューを投稿」へ、先頭6件は編集へ分岐。初期Sessionはguestなのでregular本人でログインする。未配達/削除済み/他人の注文は別の拒否・境界Case。
+- **追加の未決事項（修正なし）**：`out-of-stock` Seedは`variant-basic-shirt-02`を0件にするが、Webの商品詳細は在庫ありvariantを初期選択し、0件variantの選択ボタンをdisabledにする。該当variantだけを選んで空在庫表示を検証するCaseはそのままでは成立しない可能性がある。既存の`product-out-of-stock`はdefaultから0件なので、比較対象とシナリオの対象SKUを明示してから状態を判定する。現時点で`SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`は`review_required`を維持し、製品・Seedは変更しない。
+- [前HEAD Web CI 41107879887](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41107879887)はfailure。Style Qualityの実ログで学習用`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`と変更禁止の製品`src/presentation/native/native-purchase-screens.tsx`のPrettier違反を確認。学習用contractのimport/テスト名を整えたが、このHEADでPrettier PASSは未証明。E2Eの複数失敗はPlaywright開始前の`actions/download-artifact`が5回リトライ後失敗した外部Artifact取得障害。製品テストのAssertion失敗とは判定しない。前HEAD Mobile CIはsuccess。
+- 新HEADのformatter/contract/CIと実ブラウザ・Android正本、実Template→Private 2-core Codespaces→OpenCode校正は別途確認する。過去にPRへ含まれた製品修正は保持し、変更境界外の修正は実施しない。
+
 ## 2026-10-31 Web empty状態2件の証拠付き監査（SUT変更なし）
 
 - **基本分析 46/188件（24.47%）、残り142件。状態別条件 5/20件レビュー済み、残り15件。** 188件は暫定分母であり、重複・漏れの最終確定は未了。
