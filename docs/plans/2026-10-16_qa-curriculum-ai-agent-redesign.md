@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 プロフィール表示のWeb・Native契約整合
+
+- `SCREEN-AUTH-ACCOUNT-PROFILE`の本人情報、会員ランク、アカウント状態、顧客以外の操作・内部IDの非表示の4操作を正式仕様/Use Case/Seedで照合し、基本分析済みを25/188件（13.30%）、未分析163件へ更新。状態別条件19/20件は未レビュー。
+- Nativeプロフィールは会員ランク・共通の割引率・送料特典・アカウント状態の表示が欠けていたため、Webと同じ辞書・価格計算で表示し、Web/Nativeの3ランク別componentテストを追加した。
+- `active`顧客は「利用中」を表示するが、`suspended`/`withdrawn`は`SessionIdentityResolver`で拒否する。DTO内の`id`はUIへ表示しない。
+- 現行HEADのCI成功およびAndroid実機・正本画面リファレンス受入は別途確認する。実Template/非公開Codespaces/OpenCode実モデル校正と全件分析の必須条件は維持する。
+
 ## 2026-10-31 既定住所設定と注文時住所選択の責務分離
 
 - `SCREEN-CHECKOUT-ADDRESSES-A01-04`は`/account/addresses`での「既定にする」操作。画面仕様の文言を修正し、Web/Nativeとも`AccountUseCases.updateAddress`と既定住所再割当Repositoryを根拠として台帳・回帰テストを更新した。
