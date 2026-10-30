@@ -3711,7 +3711,7 @@
       "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
       "case_selection_reason": "配送先を選択の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:25-39の『選択』はscreen-catalog.mdの/​account/addressesへ紐付くが、実際のWeb addresses-page.tsxは配送先選択ボタンなし。checkout-order-pages.tsx:175-232では別SCREEN-CHECKOUT-ADDRESSが選択を担当する。Nativeも別経路。重複/画面契約を確認するまで分析済みにしない。",
+      "basic_analysis_review": "checkout-and-payment.md:25-39の『選択』はscreen-catalog.mdの/account/addressesへ紐付くが、実際のWeb addresses-page.tsxは配送先選択ボタンなし。checkout-order-pages.tsx:175-232では別SCREEN-CHECKOUT-ADDRESSが選択を担当する。Nativeも別経路。重複/画面契約を確認するまで分析済みにしない。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -3755,7 +3755,7 @@
       "platform": "web,android",
       "role": "customer",
       "scenario": "defaultとregular-memberの配送先0件、および自身の住所1件作成後。Web表示の未登録状態とAndroidの未登録案内",
-      "data": "default/regular-memberはdefault-dataset.ts:774でuserAddresses=[]。active顧客の本人住所0件でWeb/N​​ative画面を開き、同一セッションで住所を1件追加後に再読込する",
+      "data": "default/regular-memberはdefault-dataset.ts:774でuserAddresses=[]。active顧客の本人住所0件でWeb/Native画面を開き、同一セッションで住所を1件追加後に再読込する",
       "action": "配送先未登録の案内・追加導線",
       "expected": "本人住所が0件の場合Webでは『配送先が登録されていません』のStatePanelと同画面の追加フォーム・『登録する』操作を表示し、Nativeでは『登録済みの住所はありません。』と新規住所フォームを表示する。1件以上では空状態を消す。/account/addresses画面自体ではチェックアウトの配送先選択/決済を実行しない",
       "rule_refs": [],
