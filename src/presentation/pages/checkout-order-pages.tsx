@@ -149,11 +149,7 @@ function CheckoutAddressContent() {
   if (state.error !== null || state.value === null)
     return <CheckoutLoadError retry={state.retry} />;
   const savedSnapshot = state.value.checkout.session.addressSnapshot;
-  const selected =
-    state.value.addresses.find((item) => item.id === selectedId) ??
-    (savedSnapshot === null
-      ? (state.value.addresses.find((item) => item.isDefault) ?? state.value.addresses[0])
-      : state.value.addresses.find((item) => matchesAddressSnapshot(item, savedSnapshot)));
+  const selected = resolveSelectedAddress(state.value.addresses, selectedId, savedSnapshot);
   const needsReselection =
     savedSnapshot !== null && selectedId === null && selected === undefined;
   const submit = async () => {
@@ -813,6 +809,20 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
       )}
     </div>
   );
+}
+
+function resolveSelectedAddress(
+  addresses: UserAddress[],
+  selectedId: string | null,
+  snapshot: ShippingAddressSnapshot | null,
+): UserAddress | undefined {
+  if (selectedId !== null) {
+    return addresses.find((item) => item.id === selectedId);
+  }
+  if (snapshot !== null) {
+    return addresses.find((item) => matchesAddressSnapshot(item, snapshot));
+  }
+  return addresses.find((item) => item.isDefault) ?? addresses[0];
 }
 
 function matchesAddressSnapshot(saved: UserAddress, snapshot: ShippingAddressSnapshot): boolean {
