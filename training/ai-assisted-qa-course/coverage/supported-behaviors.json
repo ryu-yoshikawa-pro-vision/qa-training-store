@@ -3466,7 +3466,7 @@
       "related_use_cases": [
         "AccountUseCases.listAddresses"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "Web/Nativeの顧客一覧・本人分離・順序とSeedの住所0件を確認済み。全Case実行は別判定。",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3530,32 +3530,27 @@
       "source_line": 31,
       "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,regular-member,配送先0件/本人住所/他人住所。Customer本人/他人・activeセッション・versionを区別する。対象動作: 配送先を追加",
+      "role": "customer",
+      "scenario": "default/regular-memberの配送先0件。本人1件目、本人2～5件目、6件目、makeDefault=true/false、guest/operator/adminと停止済みCustomerを区別",
+      "data": "default/regular-memberのuserAddressesは空。regular@example.comのactive顧客セッションを用意し、100-0001・090-0000-0000等の有効な入力を使用。本人の1～5件を操作で生成し、6件目・郵便番号6/8桁・電話番号9桁を拒否Caseとする",
       "action": "配送先を追加",
-      "expected": "本人が有効な住所情報を入力すると配送先が追加され、他人の所有物にならない",
+      "expected": "active customerのみ本人userIdで住所を追加でき、7桁郵便番号/10～11桁電話番号を正規化する。1件目はmakeDefault=falseでも既定、2件目以降は指定時だけ既定を切り替え旧既定のversionを増加。作成住所のversion=1、本人上限は5件。6件目・入力不正・非顧客は拒否し既存住所を変更しない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "配送先を追加について、本人が有効な住所情報を入力すると配送先が追加され、他人の所有物にならないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と配送先を追加の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "配送先を追加の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "他人の所有者への紐付け、6件制限の突破、複数既定住所、入力不正の保存、既定住所更新だけ成功する部分commit",
+      "test_condition": "Web /account/addresses とNative住所管理の追加操作からAccountUseCases.createAddressを呼ぶ。0→1→2→5件のisDefault/userId/versionと数字正規化を検証し、6件目・不正入力・guest/operator/admin・停止済み顧客を拒否して前後不変を確認する",
+      "test_responsibility": "顧客認可と入力検証をUse Caseで、最大5件・既定再割当・atomicな更新をDexie/SQLite Repositoryで確認する。住所追加自体に決済確定・在庫更新を含めない",
+      "case_policy": "1件目強制既定、非既定追加、既定切替、5件目成功/6件目拒否、必須/長さ/郵便/電話、別Role拒否を採用。チェックアウトセッションの期限切れと決済は対象外",
+      "case_selection_reason": "初期住所0件のSeedで最初の既定付与を、5→6件の境界で制限を検証できる。所有者・version・原子性は個人住所の誤保存を防ぐため必須",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:25-39の配送先追加契約、roles-and-permissions.md:17-19、addresses-page.tsx:198-239と:330-340、native-purchase-screens.tsx:461-493、AccountUseCases:88-97/125-183、DexieAddressRepository:153-199、NativeAddressRepository:614-668、default-dataset.ts:774の住所0件を照合。Web/Nativeとも同一顧客Use Caseを使用。決済は別操作。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "AccountUseCases.createAddress"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3584,6 +3579,31 @@
           "line": 88,
           "signature": "async createAddress(request: CreateAddressRequest): Promise<UserAddress> {"
         }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 88,
+          "end_line": 97,
+          "reason": "Customer認可と入力正規化・本人userId付与"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 153,
+          "end_line": 199,
+          "reason": "Webの上限5件・既定再割当・トランザクション"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 614,
+          "end_line": 668,
+          "reason": "Androidの上限5件・既定再割当・トランザクション"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
@@ -3594,32 +3614,27 @@
       "source_line": 31,
       "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,regular-member,配送先0件/本人住所/他人住所。Customer本人/他人・activeセッション・versionを区別する。対象動作: 配送先を編集",
+      "role": "customer",
+      "scenario": "regular-memberの本人住所を2件以上作成。非既定住所の更新・既定への昇格、既定住所の編集、別顧客所有のID、存在しないID、旧version、不正入力、非顧客を区別",
+      "data": "初期userAddressesは0件なのでregular@example.comで自宅・勤務先、gold@example.comで第三者住所を作成。編集対象addressId/expectedVersionを保持し、同一versionと旧version、makeDefault=true/falseを用いる",
       "action": "配送先を編集",
-      "expected": "本人の既存配送先だけを編集でき、他人の住所ID・不正入力は拒否する",
+      "expected": "active customerのみ、住所IDの所有者とexpectedVersionが一致し、全入力が有効な場合に本人の既存住所を更新してversionを1増やす。既定住所は編集時makeDefault=falseでも既定を保持し、非既定を既定へ昇格した場合は旧既定をfalseとしてversionも増加する。他人ID・存在しないID・旧version・不正入力は拒否し変更を残さない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "配送先を編集について、本人の既存配送先だけを編集でき、他人の住所ID・不正入力は拒否することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と配送先を編集の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "配送先を編集の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "住所を他人IDで変更、競合を上書き、既定が0件/複数件になる、同時更新で変更の一部だけ保存する",
+      "test_condition": "2件以上を作成してWeb/Nativeの編集画面で住所本文・既定フラグを変更し、本人のIDとversion変化、既定昇格による旧既定のversion増加、makeDefault=false時の既定保持を比較。他人ID・旧version・存在しないID・不正郵便/電話・guest/operator/adminでは変更不変を検証する",
+      "test_responsibility": "Use Caseの顧客認可・入力正規化、Repositoryの所有権/expectedVersion、既定再割当とtransactionの原子性をWeb/Native両経路で検証する。決済セッションとは独立",
+      "case_policy": "本人非既定更新・既定を保持する更新・既定昇格、他人ID、存在しないID、旧version、入力不正、非顧客を選定。住所登録5件上限は作成操作で扱う",
+      "case_selection_reason": "住所情報と既定状態の更新は同じtransactionに含まれるため、所有者・競合・既定再割当を個別に区別する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:25-39、roles-and-permissions.md:17-19、Web addresses-page.tsx:39-73,128-159,198-239、Native native-purchase-screens.tsx:450-516、AccountUseCases:99-109,125-183、DexieAddressRepository:201-249、NativeAddressRepository:670-718、default-dataset.ts:774を照合。本人のみ更新、旧version拒否、既定保持・昇格、Web/Nativeを区別。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "AccountUseCases.updateAddress"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3648,6 +3663,31 @@
           "line": 99,
           "signature": "async updateAddress(request: UpdateAddressRequest): Promise<UserAddress> {"
         }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 99,
+          "end_line": 109,
+          "reason": "本人Customer・入力validation・expectedVersion"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 201,
+          "end_line": 249,
+          "reason": "Web所有者・競合と既定住所更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 670,
+          "end_line": 718,
+          "reason": "Native所有者・競合・既定住所更新"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
@@ -3671,7 +3711,7 @@
       "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
       "case_selection_reason": "配送先を選択の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "checkout-and-payment.md:25-39の『選択』はscreen-catalog.mdの/​account/addressesへ紐付くが、実際のWeb addresses-page.tsxは配送先選択ボタンなし。checkout-order-pages.tsx:175-232では別SCREEN-CHECKOUT-ADDRESSが選択を担当する。Nativeも別経路。重複/画面契約を確認するまで分析済みにしない。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -3681,7 +3721,7 @@
         "AC-CHECKOUT-003"
       ],
       "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "仕様・画面経路に不整合を確認。/account/addressesは追加/編集/削除の住所管理で、ラジオ選択→この配送先を使用は/checkout/address（SCREEN-CHECKOUT-ADDRESS）。既存の画面別対象が重複していないか整理するまでreview_requiredを維持。",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3713,33 +3753,28 @@
       "source_line": 32,
       "source_text": "未登録時にチェックアウトへ進むための登録導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,regular-member,配送先0件/本人住所/他人住所。Customer本人/他人・activeセッション・versionを区別する。対象動作: 配送先未登録の案内・追加導線",
+      "role": "customer",
+      "scenario": "defaultとregular-memberの配送先0件、および自身の住所1件作成後。Web表示の未登録状態とAndroidの未登録案内",
+      "data": "default/regular-memberはdefault-dataset.ts:774でuserAddresses=[]。active顧客の本人住所0件でWeb/N​​ative画面を開き、同一セッションで住所を1件追加後に再読込する",
       "action": "配送先未登録の案内・追加導線",
-      "expected": "配送先が0件の場合は登録の案内と追加フォームへ進む導線を表示する",
+      "expected": "本人住所が0件の場合Webでは『配送先が登録されていません』のStatePanelと同画面の追加フォーム・『登録する』操作を表示し、Nativeでは『登録済みの住所はありません。』と新規住所フォームを表示する。1件以上では空状態を消す。/account/addresses画面自体ではチェックアウトの配送先選択/決済を実行しない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "配送先未登録の案内・追加導線について、配送先が0件の場合は登録の案内と追加フォームへ進む導線を表示することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と配送先未登録の案内・追加導線の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "配送先未登録の案内・追加導線の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "初期Seedの0件状態で住所登録に進めない、存在しない住所を注文で使用、住所管理とチェックアウトの選択操作を混同して判定する",
+      "test_condition": "住所0件のactive customerでWeb /account/addressesを開き空案内と下の登録フォーム/CTA、Androidのnative-address-emptyと新規住所フォームを確認。住所1件作成後の空状態消滅を比較し、注文/決済がこの画面で作られないことを確認する",
+      "test_responsibility": "0件の表示と追加操作を分け、Web/Nativeの表示差をそのまま仕様に反映する。チェックアウトの未登録状態リンクは/checkout/address画面の別責務",
+      "case_policy": "0件表示、1件追加後の消滅、Roleガード、Web/Nativeの案内差を確認。未登録での購入確定は別のSCREEN-CHECKOUT-ADDRESSで扱う",
+      "case_selection_reason": "初期Seedが住所0件であり、アプリを最初に使う顧客が住所を登録できることを確認するため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:25-39とscreen-catalog.md:25-26、Web addresses-page.tsx:100-110,198-239、Android native-purchase-screens.tsx:518-524,582-644、初期Seed default-dataset.ts:774を照合。Webでは直接リンクでなく同画面下部のフォームが登録導線。Nativeではテキスト案内と入力フォーム。/checkout/addressのリンクは別画面。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [],
       "state_refs": [
         "SCREEN-CHECKOUT-ADDRESSES-S-empty"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3761,7 +3796,32 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 100,
+          "end_line": 110,
+          "reason": "Webの空案内"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 198,
+          "end_line": 239,
+          "reason": "同画面の追加フォーム"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 518,
+          "end_line": 644,
+          "reason": "Native空状態と新規住所フォーム"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESSES-S-empty",
@@ -3771,32 +3831,27 @@
       "source_line": 39,
       "source_text": "未登録状態の案内と追加フォームへの導線を表示する。",
       "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "empty",
-      "data": "Seed/入力: defaultで本人の配送先0件。通常状態から条件を変更し表示と操作を比較",
+      "role": "customer",
+      "scenario": "defaultのcustomer本人住所0件。regular-memberで住所1件を作成した後の通常状態と比較",
+      "data": "default DatasetのuserAddresses=[]。Web /account/addressesへ有効なregular customerでアクセス。比較状態はcreateAddressで本人住所を1件作る",
       "action": "empty状態を表示・処理",
-      "expected": "未登録状態の案内と追加フォームへの導線を表示する。",
+      "expected": "Webデスクトップのempty状態は『配送先が登録されていません』とフォームから登録する説明を表示し、同じ画面に入力フォームと登録ボタンを残す。本人住所を1件以上用意すると空案内を消して登録済み住所を表示する。チェックアウトのラジオ選択UIはこの画面に存在しない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "SCREEN-CHECKOUT-ADDRESSES-A02-01を対象にdefaultで本人の配送先0件を準備し「未登録状態の案内と追加フォームへの導線を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-CHECKOUT-ADDRESSES-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "住所0件の初回利用で追加できない、空状態のまま更新できない、別画面のチェックアウト選択UIを誤って期待する",
+      "test_condition": "defaultの顧客本人住所0件からWeb desktopで住所空案内、フォーム、登録ボタンを確認。1件追加後に再読込して空案内がなくなることを比較。component testとWeb実動作を別に判定する",
+      "test_responsibility": "SCREEN-CHECKOUT-ADDRESSES-A02-01に紐付くWebデスクトップ固有empty UI。Androidでも空の文言はあるが正式視覚リファレンスはWebのみである",
+      "case_policy": "0件/1件の対比較。未ログイン時はRouteGuardを独立に検証し、注文・決済の作成を対象外にする",
+      "case_selection_reason": "非default UI状態20件のうち、指定default Seedの住所0件を実際に生成できるため成立条件と表示差を個別に確認する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:25-39の非default empty行、screen-catalog.md:25、Web addresses-page.tsx:100-110,198-239、default-dataset.ts:774を照合。Nativeにemptyテキストはあるがこの視覚状態の必須プラットフォームはWebデスクトップ。空状態と新規登録フォームの共存を確認するcomponent testを追加。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [],
       "covered_by": "SCREEN-CHECKOUT-ADDRESSES-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3816,7 +3871,32 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 25,
+          "end_line": 39,
+          "reason": "正式UI状態emptyの条件とWeb必須"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 100,
+          "end_line": 110,
+          "reason": "空状態の表示条件"
+        },
+        {
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "start_line": 336,
+          "end_line": 355,
+          "reason": "0件での空案内とフォームの回帰Case"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
@@ -11306,7 +11386,7 @@
       "requirement_refs": [
         "ROLE-ACCESS"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "Web/Nativeで住所削除、本人分離、versionと既定再割当をレビュー済み。全Case実行は別判定。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 152,
@@ -11386,7 +11466,7 @@
       "requirement_refs": [
         "ROLE-ACCESS"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "Use Case顧客認可・固定郵便番号辞書、Web画面とSeedをレビュー済み。全Case実行は別判定。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 152,
@@ -11526,7 +11606,7 @@
       "requirement_refs": [
         "BR-ADMINCAT-002"
       ],
-      "analysis_progress": "全件更新と50件取得の食い違いを確認。51件以上のカテゴリ作成可否・仕様/UI経路・例外条件の判断待ち",
+      "analysis_progress": "50件境界の取得と全件並べ替えの仕様・実装・Seedを照合済み。51件回帰テストはCIで別判定。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 75,
@@ -11862,7 +11942,7 @@
         "BR-CART-001",
         "BR-CART-003"
       ],
-      "analysis_progress": "Web/Nativeの同一Repository経路確認済み。価格承諾時の数量超過、ブロック中UI、transaction失敗の前後不変性を追加レビュー",
+      "analysis_progress": "Web/Nativeの価格承諾、数量上限とtransaction、Seedを照合済み。回帰テストと実機確認は別判定。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 207,
