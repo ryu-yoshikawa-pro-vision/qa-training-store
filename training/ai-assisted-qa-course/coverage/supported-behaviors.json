@@ -5053,30 +5053,29 @@
       "source_line": 126,
       "source_text": "注文内容、配送先、価格、決済方法を最終確認する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 配送先を確認",
+      "role": "customer",
+      "scenario": "regular-member の本人が住所と支払方法を保存したCheckout Session。初期default Seedは住所・支払方法が未設定なので、start→setAddress→setPaymentで画面を成立させる",
+      "data": "regular-memberのCartからstart→setAddress→setPayment。配送先は宛名・郵便番号・都道府県・市区町村・番地と任意の建物名/部屋番号を含むSnapshotを保存。Webは登録済み住所、Nativeは直接入力/登録住所選択という差を確認条件として分ける",
       "action": "配送先を確認",
-      "expected": "選択した本人配送先が注文予定配送先と一致し、別人の住所を使用しない",
+      "expected": "Web/Native両方でセッションに保存された配送先Snapshotの宛名・郵便番号・都道府県・市区町村・番地・建物名/部屋番号を確認できる。他人のSessionはUse Caseで拒否する。Nativeの直接入力許可は配送先選択A01-01で別途判断する",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "配送先を確認について、選択した本人配送先が注文予定配送先と一致し、別人の住所を使用しないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と配送先を確認の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "配送先を確認の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "配送先の建物名や宛名が表示されず誤配送に気づかない、他人の配送先を使用する",
+      "test_condition": "任意の建物名を含む住所を保存してWeb/Nativeの注文確認UIにSnapshot主要項目が表示されることを確認。本人以外のSession拒否はUse Caseで検証し、住所の直接入力可否は別途仕様判断に残す",
+      "test_responsibility": "CheckoutOrderUseCases.getConfirmationおよびDexie/SQLite getConfirmationの本人・Cart version・入力完了の確認を正本とし、Web/Nativeの情報表示と不正状態での非確定を照合する",
+      "case_policy": "保存済みSnapshotの表示、未設定/Cart不一致/他人Sessionの拒否、WebとAndroidの表示差を採用。支払結果・在庫更新の網羅は処理中/完了/失敗の別動作に分離する",
+      "case_selection_reason": "注文確定直前に配送先または支払方法を確認できない状態は誤配送・意図しない決済につながるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:123-139・BR/AC、CheckoutOrderUseCases.getConfirmation:184-191、Dexie CheckoutRepository.getConfirmation:723-808、SQLite NativeCheckoutRepository.getConfirmation:1851以降、Web CheckoutConfirmContent:335-407、Native NativeCheckoutConfirmScreen:947以降、regular-member Seed、既存統合/Componentテストを照合。Nativeの表示漏れと取得エラー永続Loading、Webの建物名表示漏れを修正し回帰テストを追加",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation"
+      ],
+      "analysis_progress": "正本仕様・Use Case・Web/Native・Dexie/SQLite・Seed・関連テストを照合。Native確認画面に支払方法・宛名・郵便番号・建物名表示と取得エラー導線を追加し、Webの建物名表示も補完。テスト実行・Android実機受入は別判定。住所の直接入力可否はA01-01に残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 327,
@@ -5100,7 +5099,44 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 215,
+          "reason": "住所と支払方法の確定前検証と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "Web側本人・入力完了・Cart版検証と表示DTO"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1904,
+          "reason": "Native側本人・入力完了・Cart版検証"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1065,
+          "reason": "Nativeの注文確認Snapshot表示・取得失敗/Step未完了への導線"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 552,
+          "end_line": 660,
+          "reason": "確認情報表示、確認取得失敗、Step未完了の回帰テスト"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A01-03",
@@ -5167,30 +5203,29 @@
       "source_line": 126,
       "source_text": "注文内容、配送先、価格、決済方法を最終確認する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済方法を確認",
+      "role": "customer",
+      "scenario": "regular-member の本人が住所と支払方法を保存したCheckout Session。初期default Seedは住所・支払方法が未設定なので、start→setAddress→setPaymentで画面を成立させる",
+      "data": "regular-memberのCartからstart→setAddress→setPaymentでTEST-DECLINEDを保存し、確認画面に保持する。TEST-SUCCESSほか3失敗方法と表示を照合し、未設定のままgetConfirmationを実行する負例を分離",
       "action": "決済方法を確認",
-      "expected": "選択済みのモック決済方法が表示され、未設定なら注文確定に進めない",
+      "expected": "Web/Native両方で選択済み決済方法（TEST-DECLINED等）を確認画面に表示し、意図せずTEST-SUCCESSへ変更しない。未設定のままならCHECKOUT_STEP_INCOMPLETEで確認/注文確定を拒否する",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済方法を確認について、選択済みのモック決済方法が表示され、未設定なら注文確定に進めないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済方法を確認の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済方法を確認の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "失敗決済を成功決済と誤認、支払方法未設定で注文確定、Nativeで確認取得失敗時に永続Loadingとなる",
+      "test_condition": "TEST-DECLINEDの保存後Web/Native注文確認UI表示と選択画面に戻ったときの復元を検証。未保存支払方法やCart version不一致で確認を拒否し、Nativeでは永続Loadingにせず修正導線を示す",
+      "test_responsibility": "CheckoutOrderUseCases.getConfirmationおよびDexie/SQLite getConfirmationの本人・Cart version・入力完了の確認を正本とし、Web/Nativeの情報表示と不正状態での非確定を照合する",
+      "case_policy": "保存済みSnapshotの表示、未設定/Cart不一致/他人Sessionの拒否、WebとAndroidの表示差を採用。支払結果・在庫更新の網羅は処理中/完了/失敗の別動作に分離する",
+      "case_selection_reason": "注文確定直前に配送先または支払方法を確認できない状態は誤配送・意図しない決済につながるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:123-139・BR/AC、CheckoutOrderUseCases.getConfirmation:184-191、Dexie CheckoutRepository.getConfirmation:723-808、SQLite NativeCheckoutRepository.getConfirmation:1851以降、Web CheckoutConfirmContent:335-407、Native NativeCheckoutConfirmScreen:947以降、regular-member Seed、既存統合/Componentテストを照合。Nativeの表示漏れと取得エラー永続Loading、Webの建物名表示漏れを修正し回帰テストを追加",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation"
+      ],
+      "analysis_progress": "正本仕様・Use Case・Web/Native・Dexie/SQLite・Seed・関連テストを照合。Native確認画面に支払方法・宛名・郵便番号・建物名表示と取得エラー導線を追加し、Webの建物名表示も補完。テスト実行・Android実機受入は別判定。住所の直接入力可否はA01-01に残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 327,
@@ -5214,7 +5249,44 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 215,
+          "reason": "住所と支払方法の確定前検証と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "Web側本人・入力完了・Cart版検証と表示DTO"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1904,
+          "reason": "Native側本人・入力完了・Cart版検証"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1065,
+          "reason": "Nativeの注文確認Snapshot表示・取得失敗/Step未完了への導線"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 552,
+          "end_line": 660,
+          "reason": "確認情報表示、確認取得失敗、Step未完了の回帰テスト"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A02-01",

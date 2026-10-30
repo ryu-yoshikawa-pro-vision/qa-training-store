@@ -382,6 +382,12 @@ function CheckoutConfirmContent() {
               {state.value.address.prefecture}
               {state.value.address.city}
               {state.value.address.addressLine1}
+              {state.value.address.addressLine2 !== null && (
+                <>
+                  <br />
+                  {state.value.address.addressLine2}
+                </>
+              )}
               <br />
               {state.value.address.recipientName} 様
             </address>

@@ -49,6 +49,10 @@ const CHECKOUT_RETURN_PATHS: Record<
   confirm: "/checkout/confirm",
 };
 
+function nativePaymentMethodLabel(code: string): string {
+  return code === "TEST-SUCCESS" ? "成功" : code.replace("TEST-", "失敗：");
+}
+
 function usePurchaseServices() {
   const { ready, error, retry, services } = useNativeRuntime();
   return { ready, error, retry, services: ready ? services : null };
@@ -922,7 +926,7 @@ export function NativeCheckoutPaymentScreen() {
         {PAYMENT_METHODS.map((candidate) => (
           <NativeButton
             key={candidate}
-            label={candidate === "TEST-SUCCESS" ? "成功" : candidate.replace("TEST-", "失敗：")}
+            label={nativePaymentMethodLabel(candidate)}
             variant={method === candidate ? "primary" : "secondary"}
             onPress={() => setMethod(candidate)}
             testID={`native-payment-method-${candidate}`}
@@ -949,12 +953,21 @@ export function NativeCheckoutConfirmScreen() {
   const services = state.services;
   const setMessage = state.setMessage;
   useEffect(() => {
-    if (services !== null)
-      void services.checkout
-        .getConfirmation()
-        .then(setConfirmation)
-        .catch((caught: unknown) => setMessage(asPurchaseError(caught).message));
-  }, [services, setMessage]);
+    if (services === null || state.session === null) return;
+    let cancelled = false;
+    setConfirmation(null);
+    void services.checkout
+      .getConfirmation(state.session.id)
+      .then((result) => {
+        if (!cancelled) setConfirmation(result);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setMessage(asPurchaseError(caught).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [services, state.session, setMessage]);
   if (!state.ready || services === null)
     return <RuntimePanel title="確認を初期化できません" error={state.error} retry={state.retry} />;
   const submit = () => {
@@ -972,7 +985,23 @@ export function NativeCheckoutConfirmScreen() {
       .catch((caught: unknown) => state.setMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
-  if (confirmation === null) return <NativeStatePanel title="注文内容を読み込み中…" />;
+  if (confirmation === null) {
+    if (state.message !== null) {
+      return (
+        <NativeStatePanel
+          title="注文内容を確認できません"
+          body={state.message}
+          action={
+            <NativeButton
+              label="配送先からやり直す"
+              onPress={() => router.replace("/checkout/address")}
+            />
+          }
+        />
+      );
+    }
+    return <NativeStatePanel title="注文内容を読み込み中…" />;
+  }
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-confirm-screen">
       <Text style={styles.heading}>Checkout：確認</Text>
@@ -987,10 +1016,15 @@ export function NativeCheckoutConfirmScreen() {
               </Text>
             </View>
           ))}
+          <Text style={styles.body}>配送先：{confirmation.address.recipientName} 様</Text>
           <Text style={styles.body}>
-            配送先：{confirmation.address.prefecture}
+            〒{confirmation.address.postalCode} {confirmation.address.prefecture}
             {confirmation.address.city}
             {confirmation.address.addressLine1}
+            {confirmation.address.addressLine2 ?? ""}
+          </Text>
+          <Text style={styles.body}>
+            支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
           </Text>
           <Text style={[styles.price, { marginTop: nativeSpacing.sm }]}>
             合計 {formatNativeYen(confirmation.totalAmount)}

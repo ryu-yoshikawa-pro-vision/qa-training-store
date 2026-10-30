@@ -559,8 +559,8 @@ describe("Native customer purchase screens", () => {
       checkoutActionVersion: checkoutSession.version,
       cartVersion: checkoutSession.cartVersion,
       items: [],
-      address,
-      paymentMethodCode: "TEST-SUCCESS",
+      address: { ...address, addressLine2: "青山ビル101" },
+      paymentMethodCode: "TEST-DECLINED",
       subtotalAmount: 0,
       discountAmount: 0,
       shippingAmount: 0,
@@ -571,7 +571,7 @@ describe("Native customer purchase screens", () => {
       checkout: {
         getActive: jest.fn().mockResolvedValue({
           ...checkoutSession,
-          paymentMethodCode: "TEST-SUCCESS",
+          paymentMethodCode: "TEST-DECLINED",
           unlockedStep: "confirm",
         }),
         getConfirmation: jest.fn().mockReturnValue(confirmationPromise),
@@ -584,6 +584,57 @@ describe("Native customer purchase screens", () => {
     expect(resolveConfirmation).toBeDefined();
     await act(async () => resolveConfirmation?.(confirmation));
     await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
+    expect(screen.getByText("配送先：Native Customer 様")).toBeTruthy();
+    expect(screen.getByText(/青山ビル101/)).toBeTruthy();
+    expect(screen.getByText("支払方法：失敗：DECLINED")).toBeTruthy();
+  });
+
+  it("shows a recovery action instead of an endless loading state when confirmation fails", async () => {
+    const getConfirmation = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
+        retryable: false,
+      }),
+    );
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-DECLINED",
+          unlockedStep: "confirm",
+        }),
+        getConfirmation,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByText("注文内容を確認できません")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull();
+    expect(screen.getByText("配送先からやり直す")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText("配送先からやり直す")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/checkout/address");
+    expect(getConfirmation).toHaveBeenCalledWith(checkoutSession.id);
+  });
+
+  it("does not load confirmation when the required checkout step is locked", async () => {
+    const getConfirmation = jest.fn();
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockRejectedValue(
+          new ApplicationError({
+            code: "CHECKOUT_STEP_INCOMPLETE",
+            messageKey: "checkout.confirm.locked",
+            retryable: false,
+          }),
+        ),
+        getConfirmation,
+      },
+    });
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByText("注文内容を確認できません")).toBeTruthy());
+    expect(getConfirmation).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull();
   });
 
   it.each([

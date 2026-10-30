@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、32件は仕様・実装・Seedの照合済み、156件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、34件は仕様・実装・Seedの照合済み、154件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、32件が`analyzed`（17.02%）、156件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、34件が`analyzed`（18.09%）、154件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -168,3 +168,14 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 `SCREEN-CHECKOUT-PAYMENT-A02-01`（住所未保存のセッション拒否）と`A02-02`（Cart version不一致の拒否）は、`checkout-and-payment.md`、`CheckoutOrderUseCases.getActive('payment')`・`setPayment`、Web/Nativeのエラー画面、`regular-member`・`cart-version-invalidates-checkout` Seedで照合した。住所未設定なら`CHECKOUT_STEP_INCOMPLETE`、Cart version不一致なら`CART_VERSION_CHANGED`を返し、Sessionの`paymentMethodCode`・`version`・`unlockedStep`を更新しない。統合テストに保存状態不変を追加し、Web/Nativeでも支払確認への非遷移を検証するCaseを追加した。
 
 この2件を`analyzed`に更新し、**基本分析32/188件（17.02%）、要レビュー156件、非default状態18/20件未レビュー**。自動テストの結果・Android実機・正式な画面リファレンスと、実Template/非公開Codespaces/OpenCode実モデル校正の受入は別管理とする。今回の修正時点でCIの最終PASSは確認していない。
+
+## 注文確認の配送先と決済方法表示（2026-10-31）
+
+`SCREEN-CHECKOUT-CONFIRM-A01-02`（配送先表示）と`A01-04`（選択済み決済方法表示）を、BR-CHECKOUT-002/AC-CHECKOUT-002、`CheckoutOrderUseCases.getConfirmation`、Dexie/SQLite、Web/Native UI、regular-member Seed、既存テストと照合した。
+
+- Webの確認画面は配送先の`addressLine2`（建物名/部屋番号）を表示しておらず、Nativeは宛名・郵便番号・建物名/部屋番号に加えて支払方法も表示していなかった。両画面の注文確定前表示を補強した。
+- Nativeの確認データ取得は確認Stepの検証より先に動作し得た。また取得に失敗すると`confirmation=null`のまま読み込み表示から抜けず、画面下のエラーに到達しなかった。確認Stepの有効性を確認してから取得し、失敗時はエラーと配送先へ戻る操作を表示するよう修正した。
+- Webの建物名表示、Nativeの`TEST-DECLINED`/住所Snapshot表示・取得失敗・Step未完了をcomponentテストへ追加。これはテストコードの追加と仕様監査の記録であり、実行PASSやAndroid実機受入の証明ではない。
+- `SCREEN-CHECKOUT-ADDRESS-A01-01`の「登録済み住所必須か、Native直接入力を許すか」は未決のまま維持。確認画面で保存済みSnapshotを正しく表示することとは分けて扱う。
+
+**基本分析34/188件（18.09%）、要レビュー154件、状態別条件18/20件未レビュー**。188件は暫定分母であり、完了判定ではない。

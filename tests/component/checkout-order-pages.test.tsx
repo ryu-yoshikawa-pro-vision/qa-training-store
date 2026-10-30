@@ -343,6 +343,19 @@ describe("checkout and order pages", () => {
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
   });
 
+  it("shows the full saved shipping address on confirmation", async () => {
+    checkout.getConfirmation.mockResolvedValueOnce({
+      ...confirmation,
+      address: { ...confirmation.address, addressLine2: "青山ビル101" },
+      paymentMethodCode: "TEST-DECLINED",
+    });
+    render(<CheckoutConfirmPage />);
+    expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
+    expect(screen.getByText("青山ビル101")).toBeVisible();
+    expect(screen.getByText("山田太郎 様")).toBeVisible();
+    expect(screen.getByText("テスト決済（利用拒否）")).toBeVisible();
+  });
+
   it("restores the previously saved payment method when returning from confirmation", async () => {
     checkout.getActive.mockResolvedValueOnce({
       ...session,

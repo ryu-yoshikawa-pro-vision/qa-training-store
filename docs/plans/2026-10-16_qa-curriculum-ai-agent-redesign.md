@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文確認のNative表示とエラー導線（継続作業）
+
+- `SCREEN-CHECKOUT-CONFIRM-A01-02`（配送先）と`A01-04`（決済方法）をWeb/Native・Use Case・Dexie/SQLite・Seedと照合。Webの建物名/部屋番号表示、Nativeの宛名・郵便番号・建物名・支払方法の表示漏れを補完した。
+- Nativeの注文確認データは確認Step成立後に取得するよう統一し、取得失敗・未完了Stepを永続Loadingではなくエラーと配送先へ戻る導線で表示する。Web/Nativeの回帰テストを追加した。実行PASSは別判定とする。
+- **基本分析34/188件（18.09%）、要レビュー154件、状態別条件18/20件未レビュー**。配送先入力のWeb/Native仕様差、注文確認の残り操作、Android実機・正本画面リファレンス、実公開Template→非公開2コアCodespaces→OpenCode実モデル校正と全機能分析100%は未完了。CIの完了待ちは行わない。
+
+
 ## 2026-10-31 決済画面の復元と前提ステップ検証
 
 - `CheckoutPaymentContent`と`NativeCheckoutPaymentScreen`は以前に保存した`paymentMethodCode`を参照せず、再表示時に`TEST-SUCCESS`へ戻していた。両画面で保存済み値を初期選択に使用し、明示的な再選択があればUI操作を優先するよう修正。Web/Nativeの`TEST-DECLINED`再表示・保存テストを追加した。
