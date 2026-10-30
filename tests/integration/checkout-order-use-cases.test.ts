@@ -152,6 +152,64 @@ describe("checkout and customer order application integration", () => {
     });
   });
 
+  it("rejects incomplete checkout addresses and preserves the session", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const invalidCases = [
+      { value: { ...address, recipientName: " " }, errors: { recipientName: "validation.required" } },
+      { value: { ...address, postalCode: "123" }, errors: { postalCode: "validation.postalCode" } },
+      { value: { ...address, prefecture: "" }, errors: { prefecture: "validation.required" } },
+      { value: { ...address, city: " " }, errors: { city: "validation.required" } },
+      { value: { ...address, addressLine1: "" }, errors: { addressLine1: "validation.required" } },
+      { value: { ...address, phone: "090123" }, errors: { phone: "validation.phone" } },
+    ];
+    for (const invalid of invalidCases) {
+      await expect(
+        useCases.setAddress({
+          checkoutSessionId: started.session.id,
+          checkoutExpectedVersion: started.session.version,
+          address: invalid.value,
+        }),
+      ).rejects.toMatchObject({ code: "VALIDATION", fieldErrors: invalid.errors });
+      expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+        addressSnapshot: null,
+        version: started.session.version,
+        unlockedStep: "address",
+      });
+    }
+  });
+
+  it("normalizes checkout address input before persisting the snapshot", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const updated = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address: {
+        ...address,
+        recipientName: "  山田太郎  ",
+        postalCode: "100-0001",
+        prefecture: " 東京都 ",
+        city: " 千代田区 ",
+        addressLine1: " 1-1 ",
+        addressLine2: "  ",
+        phone: "090-0000-0000",
+      },
+    });
+    expect(updated.addressSnapshot).toEqual(address);
+    expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+      addressSnapshot: address,
+      version: started.session.version + 1,
+      unlockedStep: "payment",
+    });
+  });
+
   it("creates consistent snapshots and decrements stock exactly once after success", async () => {
     const checkout = await readyCheckout("TEST-SUCCESS");
     const confirmation = await useCases.getConfirmation(checkout.id);
