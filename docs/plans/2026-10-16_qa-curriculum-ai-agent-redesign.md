@@ -309,3 +309,9 @@ M02/M04の初見仕様質問・引継ぎ、M06の別Case新規E2E、M07のPage O
 - low-stockはTシャツMを明示選択（初期Sでは不可）、在庫3/購入上限5/数量候補1〜3を対照。no-resultsは既存many-productsと未一致検索語で再現する。正式仕様の`search-empty`という固定Seed名は現行Seed登録に存在しないため、再現条件差異を調査レポートへ記録。製品仕様/Seedは変更しない。
 - 前HEAD Web CI 41124666661はStyle QualityのPrettier違反（学習用contract、変更禁止の製品Native画面）で失敗。学習用contractの整形のみ本PRで対応し、製品Native画面は未修正。最新HEADのCIを再確認する。既存PRの製品変更は保持し、承認なくrevert/別PR化しない。
 - 実公開Template→Private 2-core Codespaces、OpenCode実モデル校正、全11モジュールと全操作のマージ前受入は引き続き未達。
+
+## 2026-10-31 ログインvalidation-errorの教材受入分析
+
+- `SCREEN-AUTH-LOGIN-S-validation-error`を`authentication.md:9-35`のBR/ACとWeb必須状態、`auth-pages.tsx:21-35/101-181`のRHF/Zod、`form-error-summary.tsx:15-47`、`AuthUseCases.login:52-62`、既存componentテスト`auth-account-pages.test.tsx:138-181`、default Seedのguest初期状態と照合した。空2項目、invalid-email＋有効password、同一エラー再submit、入力修正の境界を分離。無効送信はUse Case/Repositoryへ到達しない。**状態条件12/20レビュー済み（残り8）、基本操作46/188（残り142）**。親ログイン操作は未分析。
+- 前HEAD [Web CI 41132431772](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41132431772)はStyle QualityでFAIL（学習用contractと既存製品Native画面の2ファイル）、他のWeb契約/単体/統合/コンポーネント/主要E2Eは成功。Mobile CI 41132432188はsuccess。学習用contractの長いoptional-chain式を整形し、今回のCIで再検証する。製品Native画面は変更禁止のため未修正。
+- 188操作は暫定分母。今回の判定はソースと既存テストの証拠付き基本分析であり、実ブラウザ・画面正本の受入PASSではない。既存PRの製品差分は保持。公開Template/Private 2-core Codespaces/OpenCode実モデル校正は未完了。
