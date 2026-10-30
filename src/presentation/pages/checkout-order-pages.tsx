@@ -9,7 +9,7 @@ import {
   PAYMENT_METHODS,
   resolveCheckoutResultKind,
 } from "@/application/use-cases/checkout-order-use-cases";
-import type { PaymentMethodCode, UserAddress } from "@/domain/contracts";
+import type { PaymentMethodCode, ShippingAddressSnapshot, UserAddress } from "@/domain/contracts";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { formatYen } from "@/presentation/components/product-card";
 import { ProductImage } from "@/presentation/components/product-image";
@@ -148,10 +148,14 @@ function CheckoutAddressContent() {
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null)
     return <CheckoutLoadError retry={state.retry} />;
+  const savedSnapshot = state.value.checkout.session.addressSnapshot;
   const selected =
     state.value.addresses.find((item) => item.id === selectedId) ??
-    state.value.addresses.find((item) => item.isDefault) ??
-    state.value.addresses[0];
+    (savedSnapshot === null
+      ? (state.value.addresses.find((item) => item.isDefault) ?? state.value.addresses[0])
+      : state.value.addresses.find((item) => matchesAddressSnapshot(item, savedSnapshot)));
+  const needsReselection =
+    savedSnapshot !== null && selectedId === null && selected === undefined;
   const submit = async () => {
     if (selected === undefined) return;
     setSubmitting(true);
@@ -181,6 +185,11 @@ function CheckoutAddressContent() {
         </p>
       )}
       <TrainingNotice />
+      {needsReselection && state.value.addresses.length > 0 && (
+        <p className="operation-message" role="status">
+          以前の配送先が変更または削除されています。配送先を選び直してください。
+        </p>
+      )}
       {error && (
         <p role="alert" className="operation-error">
           {error}
@@ -789,6 +798,18 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
         </Link>
       )}
     </div>
+  );
+}
+
+function matchesAddressSnapshot(saved: UserAddress, snapshot: ShippingAddressSnapshot): boolean {
+  return (
+    saved.recipientName === snapshot.recipientName &&
+    saved.postalCode === snapshot.postalCode &&
+    saved.prefecture === snapshot.prefecture &&
+    saved.city === snapshot.city &&
+    saved.addressLine1 === snapshot.addressLine1 &&
+    saved.addressLine2 === snapshot.addressLine2 &&
+    saved.phone === snapshot.phone
   );
 }
 
