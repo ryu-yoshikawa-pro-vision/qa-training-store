@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、25件は仕様・実装・Seedの照合済み、163件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、26件は仕様・実装・Seedの照合済み、162件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、25件が`analyzed`（13.30%）、163件が`review_required`。状態別検証条件20件も未レビューとして保持する。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、26件が`analyzed`（13.83%）、162件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -127,3 +127,13 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 `checkout-resume` Seedは`regular@example.com`、Cart version=1と同versionのactive `checkout-active`セッション（unlockedStep=address、version=1）を生成。固定時計2026-07-01T03:00:00Zから24時間有効。Webの`CheckoutOrderUseCases.start`→`CheckoutAddressContent`→`claimCheckoutNotice`を追跡し、初回の再開通知、同Session reloadでの非表示、Seed Reset後の再表示、Cart版変更による置換通知の区別を確認した。`e2e/web/ui-ux-improvements.spec.ts` Flow C（141-155行）にも同条件の期待結果がある。**既存E2Eの存在を最新HEADのPASSとは扱わない。**
 
 この状態条件1件を`analyzed`へ変更。**基本操作25/188（13.30%）、残163件、状態別条件18/20件未レビュー**。親のWeb/Native再開操作は入力復元やプラットフォーム差の精査が残るため`review_required`のまま。分母188件は暫定、Template/Codespaces/OpenCode受入も未完了。
+
+## Checkout配送先入力と決済ステップ遷移の追加監査（2026-10-31）
+
+`SCREEN-CHECKOUT-ADDRESS-A01-02`を仕様、Web・Native UI、`CheckoutOrderUseCases.setAddress`、Dexie・SQLite Repository、`regular-member` Seedで照合した。Webは本人が登録した配送先を選択して保存し、Nativeは保存済み住所の反映または直接入力した住所Snapshotを保存する。両経路とも正常な保存後だけ`/checkout/payment`へ遷移し、Sessionの`version`を1増加して`unlockedStep=payment`にする。保存が失敗した場合はエラーを表示して前画面を維持し、注文・決済は作らない。
+
+確認過程で、`CheckoutOrderUseCases`の住所検証が文字数上限だけを確認し、必須項目の空欄、郵便番号の桁数、電話番号の桁数を拒否しない不備を発見した。Nativeの直接入力から不正な住所SnapshotがSessionへ保存され得たため、顧客の`AccountUseCases`と同様に入力値の正規化（前後空白、郵便・電話の数字化）と必須/形式/長さ検証を追加した。異常値が保存されずSessionのversion/stepが変わらないこと、有効なハイフン付き郵便・電話を正規化保存できることを統合テストへ追加。Web/Nativeの画面に保存失敗時の非遷移テストも加えた。
+
+`SCREEN-CHECKOUT-ADDRESS-A01-01`の操作自体は**引き続き`review_required`**とした。Webは登録済み住所がなければ選択できないが、Nativeは保存済み住所が0件でもフォームに固定の初期住所が入り、直接入力のまま進める。正式な画面仕様には「配送先を選択」とあるものの、登録済み住所を必須とするか、Nativeの自由入力を許可するかまでは書かれていない。今回の形式検証修正で不正な値は拒否するが、登録済み必須という仕様判断までは代行しない。Web・Nativeの受入期待を確定してから分析を完了させる。
+
+分析集計は**26/188件（13.83%）**、残り162件、非default状態別条件18/20件未レビュー。CI成功・Android実機・画面リファレンス受入と、実Template/Codespaces/OpenCode受入は別に確認する。
