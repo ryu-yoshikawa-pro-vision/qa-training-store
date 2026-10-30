@@ -242,6 +242,36 @@ describe("Native customer purchase screens", () => {
     },
   );
 
+  it.each([
+    ["regular", "一般会員", "0%", "商品小計5,000円以上で送料無料"],
+    ["gold", "ゴールド会員", "5%", "商品小計5,000円以上で送料無料"],
+    ["platinum", "プラチナ会員", "10%", "いつでも送料無料"],
+  ] as const)(
+    "shows account status, %s membership benefits, and no internal account ID",
+    async (membershipRank, rankLabel, discount, shippingBenefit) => {
+      const getProfile = jest.fn().mockResolvedValue({
+        id: "user-customer-regular",
+        email: "regular@example.com",
+        displayName: "一般テスト会員",
+        phone: "09000000000",
+        role: "customer",
+        membershipRank,
+        accountStatus: "active",
+        actionVersion: 1,
+      });
+      runtime({ account: { getProfile } });
+
+      const screen = await render(<NativeProfileScreen />);
+      await waitFor(() => expect(screen.getByTestId("native-profile-benefits")).toBeTruthy());
+      expect(screen.getByText("アカウント状態：利用中")).toBeTruthy();
+      expect(screen.getByText(`会員ランク：${rankLabel}`)).toBeTruthy();
+      expect(screen.getByText(`会員割引：${discount}`)).toBeTruthy();
+      expect(screen.getByText(`送料特典：${shippingBenefit}`)).toBeTruthy();
+      expect(screen.queryByText("user-customer-regular")).toBeNull();
+      expect(screen.queryByText("管理者")).toBeNull();
+    },
+  );
+
   it("shows a retry state when profile loading fails", async () => {
     const getProfile = jest.fn().mockRejectedValue(new Error("profile unavailable"));
     runtime({ account: { getProfile } });
