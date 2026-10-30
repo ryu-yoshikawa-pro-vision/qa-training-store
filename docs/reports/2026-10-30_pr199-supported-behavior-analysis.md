@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 Web empty状態2件の証拠付き監査（SUT変更なし）
+
+- **基本分析 46/188件（24.47%）、残り142件。状態別条件 5/20件レビュー済み、残り15件。** 188件は暫定分母であり、重複・漏れの最終確定は未了。
+- `SCREEN-STOREFRONT-HOME-S-empty-catalog`：正式`storefront.md:25-39`、`CatalogUseCases.getHome`、Dexie公開候補/カテゴリー件数、`HomeContent`の単一empty表示、`empty-catalog`の全商品消去、既存componentテストを照合。Guest/CustomerのWeb desktopのみを必須視覚条件とし、defaultとの0/1件対比較をテスト条件に記録。既存componentの存在は実行PASSではない。
+- `SCREEN-STOREFRONT-CART-S-empty`：正式`cart.md:21-39`、`CartUseCases.getCart`のGuest空Cart生成、Dexie所有者、Web/Native、default Datasetのregular customerに明細1件がある実値、既存componentを照合。Guest初期0件とCustomer最後の明細削除後0件を分けた。Nativeの空案内は確認したが正式視覚必須はWeb desktop。
+- **製品不整合候補（重大度Medium、再現実行未確認）**：`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`の正式仕様`storefront.md:73`は『元の画面に戻る導線』を要求するが、Web `catalog-list-page.tsx:502-525`は無条件の0件状態で`action={null}`。既存`catalog-pages.test.tsx:305-313`もCTAなしを期待。学習上は仕様/実装/既存テストの相違を発見するレビュー題材として使用可能。ただし正しい期待結果を未決のまま固定しない。修正は教材の必須条件ではなく、学習専用の比較Caseで代替可能。製品コード/正式仕様/既存製品テストは変更せず、Issue化・別PRはユーザー承認待ち。
+- [Web CI 41102991995](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41102991995) は前HEADでcompleted/failure。Style Qualityの実ログは`src/presentation/native/native-purchase-screens.tsx`（製品SUT・変更禁止）と`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`（学習用）のPrettier違反を指す。Code Quality、contract、integration、component、required E2Eは同Runでsuccessだが、全体CIはFAIL。今回は学習用契約の期待件数と状態回帰を更新したもののPrettier実行環境がないため整形PASSは未証明。製品ファイルの整形は明示承認まで実施しない。Mobile CI 41102992168 は確認時点でiOS Automation Buildがin_progress（他のAndroid/Native Static/Maestroはsuccess）。新HEADのCIは別途確認する。
+- SUT実行・実ブラウザ/Android画面正本・実公開Template→非公開2コアCodespaces・OpenCode実モデル校正は未完了。次は残る状態条件と親操作の照合を進め、製品差異を修正と混同しない。
+
 ## 判定
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
@@ -32,7 +41,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、46件が`analyzed`（24.47%）、142件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、46件が`analyzed`（24.47%）、142件が`review_required`。状態別条件は15/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 

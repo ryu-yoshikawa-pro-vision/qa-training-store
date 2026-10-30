@@ -1,5 +1,13 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 Web empty状態2件と製品不整合の分離（製品変更なし）
+
+- `SCREEN-STOREFRONT-HOME-S-empty-catalog`と`SCREEN-STOREFRONT-CART-S-empty`を正式BR/AC・Use Case・Dexie・Web/Native・既存Seed実値・既存componentの読み取りで監査し、状態条件を分析済みにした。**基本分析46/188（24.47%）、未分析142、状態条件5/20レビュー済み・15件未レビュー**。188件は暫定。
+- `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`は正式仕様の『戻る導線』とWeb無CTAの相違を検出。重大度Medium候補、教材では未解決の期待結果として扱い、製品・正式仕様・既存テストを変更しない。修正の必要性/Issue化はユーザー判断待ち。
+- 前HEADのWeb CI 41102991995はStyle Qualityで学習用契約テストと製品Native画面のPrettier違反。後者は変更境界外のため勝手に整形しない。前HEADの他のcontract/component/integration/E2Eは成功だが全体FAIL。今回の契約変更と新HEADのformat/CI成功は未検証。
+- 次は残る15状態条件と142動作の証拠監査、既存PR混在製品差分の仕分け、公開Template/Private 2-core Codespaces/OpenCode実モデル受入。全受入条件を満たすまで完了としない。
+
+
 ## 2026-10-31 決済処理・結果画面の分析（製品コード変更なし）
 
 - `SCREEN-CHECKOUT-PROCESSING-A01-01`/`A02-01`、`SCREEN-CHECKOUT-COMPLETE-A01-01`、`SCREEN-CHECKOUT-FAILED-A02-01`/`A02-02`を仕様・Use Case・Web/Native・Seed・既存テストから監査し、具体的なRole/State/Data/期待結果/リスク/Case選定と実装参照を台帳に記録。今回は製品・正式仕様・既存Seed/テストを変更しない。

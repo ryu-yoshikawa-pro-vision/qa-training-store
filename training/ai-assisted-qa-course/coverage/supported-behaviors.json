@@ -486,20 +486,20 @@
       "source_line": 39,
       "source_text": "公開商品が存在しない旨を単一のエンプティ状態として表示・説明する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "empty-catalog",
-      "data": "Seed/入力: empty-catalog。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer。operator/adminはWeb公開閲覧をguest相当で行うが、正式empty視覚状態の必須Roleはguest/customer",
+      "scenario": "empty-catalog（Web desktop）。比較はdefaultの公開商品あり状態",
+      "data": "empty-catalogはinitialSession=guest、products/productVariants/productImages=[],categoriesは残るが公開可能商品のvisibleProductCount=0。固定Clock=2026-07-01T03:00:00Z。customer比較は有効顧客でログイン後に同Seedを利用",
       "action": "empty-catalog状態を表示・処理",
-      "expected": "公開商品が存在しない旨を単一のエンプティ状態として表示・説明する。",
+      "expected": "Web /でCatalogUseCases.getHomeの各カテゴリーvisibleProductCount合計が0なら、単一StatePanel『表示できる商品がありません』と説明、/guideへの『学習Guideを見る』リンク、再試行ボタンを表示し、通常のカテゴリ/商品セクションを表示しない。商品を見る（/products）導線はheroに残る。Androidのempty専用視覚正本は要求されない",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-HOME-A01-01を対象にempty-catalogを準備し「公開商品が存在しない旨を単一のエンプティ状態として表示・説明する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-HOME-A01-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "empty-catalogに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "0件なのに空状態が出ない、複数の空パネル、非公開商品の露出、学習Guide/再試行への導線喪失",
+      "test_condition": "empty-catalog Reset→Web desktop / をguestで開き、StatePanelが1個、空案内・/guideリンク・再試行が存在し、カテゴリから探す/商品カードがないことを確認。defaultへReset後は公開商品の表示と空案内非表示を比較。customerで同条件も確認。既存component testはモックDTOの検証であり、Seed実ブラウザPASSではない",
+      "test_responsibility": "SCREEN-STOREFRONT-HOME-A01-01のWeb非default状態条件。getHome→DexieStorefrontCatalogQueryRepositoryの公開候補→カテゴリーvisibleProductCount→HomeContentの分岐を確認する",
+      "case_policy": "空候補0件と通常候補1件以上、guestとcustomerを採用。Nativeのempty視覚一致は正式必須外。エラー/ロード中は別状態でありemptyと混同しない",
+      "case_selection_reason": "公開商品0件での情報露出防止と学習導線は初期教材で再現でき、defaultとの差分が明確。親操作の公開権限・価格等の全条件は別途分析する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:25-39、CatalogUseCases.getHome:80-84、DexieStorefrontCatalogQueryRepository.getHome/listNavigationCategories:393-430、HomeContent:21-43/100-115、metadata.ts:86-95、scenarios.ts:39-40/173-193、catalog-pages.test.tsx:216-232を照合。空Seedは商品を全消去するがカテゴリーは残るためvisibleProductCount=0が判定根拠。component test存在を実行PASSとみなさない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -508,10 +508,12 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getHome"
+      ],
       "covered_by": "SCREEN-STOREFRONT-HOME-A01-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Web UI・Use Case・Repository・固定Seed・既存component testを読み取り監査。実ブラウザ/Android実行・視覚比較は未実施",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -531,7 +533,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getHome",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 80,
+          "signature": "async getHome(): Promise<HomeCatalogDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 25,
+          "end_line": 39,
+          "reason": "Web desktopのempty視覚条件とRole"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "getHomeのViewer/ClockとRepository呼出し"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 393,
+          "end_line": 430,
+          "reason": "公開候補とカテゴリーのvisibleProductCount集計"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 100,
+          "end_line": 115,
+          "reason": "単一emptyパネルとGuide/再試行"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 173,
+          "end_line": 193,
+          "reason": "empty-catalogの全商品/関連データ消去"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 216,
+          "end_line": 232,
+          "reason": "既存componentのempty分岐確認（実行PASS未判定）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
@@ -929,13 +981,13 @@
       "expected": "表示可能な商品がない理由と元の画面に戻る導線を表示する。",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01を対象にempty-catalogを準備し「表示可能な商品がない理由と元の画面に戻る導線を表示する。」を確認する",
+      "risk": "正式empty画面で復旧リンクがないため初学者が商品探索へ戻れない。条件付き0件と全商品0件の案内を混同する恐れ（教材導線・UX影響、重大度Medium候補）",
+      "test_condition": "empty-catalog Reset→Web desktop /products (page=1/フィルタなし) で0件案内と元の画面への戻り導線の有無を確認。フィルタで0件となる別条件では『条件をすべて解除』があることを対比較。実ブラウザ実行と視覚正本比較は未実施",
       "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-LIST-A01-01の状態別期待結果を検証",
       "case_policy": "基準状態と非default状態の対比較",
       "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "storefront.md:68-74では『表示可能な商品がない理由と元の画面に戻る導線』が必須。一方CatalogListContent:282-288/502-525ではunfiltered /productsの0件はStatePanel action=nullで戻り導線なし。catalog-pages.test.tsx:305-313も無CTAを明示的に期待。仕様と現実の不一致候補のためreview_requiredを維持。SUT修正・正式仕様変更・Issue作成は行わず、ユーザー判断待ち",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -947,7 +999,7 @@
       "related_use_cases": [],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様/Seed/UI/既存componentを照合し、unfiltered emptyの復旧導線不一致を検出。製品変更禁止のため未決として記録。実ブラウザ再現/受入は別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -3461,20 +3513,20 @@
       "source_line": 39,
       "source_text": "カートが空である旨と商品を探すための導線を表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "empty",
-      "data": "Seed/入力: defaultでカート明細0件。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer。default初期Guestはactive Cartなし、getCartで空Cartを生成。regular customerのdefaultは既存active Cartに明細1件があるため、customer空状態には最後の明細削除が必要",
+      "scenario": "defaultのGuest（空Cart）と、default regular customerの最終明細削除後の0件。比較はdefault regular customerの1件",
+      "data": "default Datasetにregular userのactive Cart（cart-regular-active）と明細cart-item-regular-shirt 1件があるがGuest active Cartはない。GuestでgetCartするとgetOrCreateActiveByGuestが空Cartを生成。Customerは自分のCartの最後の明細を削除してitems=[]にする",
       "action": "empty状態を表示・処理",
-      "expected": "カートが空である旨と商品を探すための導線を表示する。",
+      "expected": "Web /cartのgetCart DTOでitems.length=0なら『カートは空です』『商品を選んでカートへ追加してください。』と『商品を見る』(/products)を単一StatePanelで表示し、数量・価格・購入手続きの明細UIを表示しない。itemsが1件以上なら明細表示へ切替。Nativeにも空案内はあるがこの視覚状態の正式必須はWeb desktopのみ",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "SCREEN-STOREFRONT-CART-A01-01を対象にdefaultでカート明細0件を準備し「カートが空である旨と商品を探すための導線を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-CART-A01-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "空Cartなのに購入手続きへ進める、空状態の復旧導線欠落、regular customerのSeedを空と誤認、別ユーザーの明細混入",
+      "test_condition": "default Reset→Guest /cart→getCartが空active Cartを作ることとWebの空案内/商品を見る(/products)を確認。regular@example.comでのdefault初期1明細と、最後の明細を削除した後の0件を比較。operator/adminはRouteGuardで別途拒否。component testのDTO 0件と実Seed操作のPASSは分離する",
+      "test_responsibility": "SCREEN-STOREFRONT-CART-A01-01のWeb空状態。CartUseCases.getCart→Guest/Customer所有Cart→CartContent items.length===0→StatePanelの導線を確認する",
+      "case_policy": "Guest初期0件、Customer初期1件→最終明細削除後0件を採用。Guest/Customer所有者分離を確認。価格/数量異常は別状態・親操作へ分離",
+      "case_selection_reason": "既存default Seedだけで0件/1件の対比較が可能。空Cartからの購入誤遷移と商品探索導線の品質を検証できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "cart.md:21-39、CartUseCases.getCart:82-116、DexieCartRepository.getOrCreateActiveByGuest:79-101、CartContent:59-93、default-dataset.ts:705-726/794-795、cart-page.test.tsx:87-100を照合。default regular customerは空ではない点を条件に反映。実ブラウザ/Nativeの実行成功は未確認",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -3483,10 +3535,12 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CartUseCases.getCart"
+      ],
       "covered_by": "SCREEN-STOREFRONT-CART-A01-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Web/Native UI・Use Case・Repository・Seed実値・既存component testを読み取り監査。実行/視覚受入は別",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -3506,7 +3560,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 21,
+          "end_line": 39,
+          "reason": "Web必須empty状態とGuest/Customer Role"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "Cartの所有者解決と空Cart生成"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 79,
+          "end_line": 101,
+          "reason": "Guest active Cartの新規作成と初期状態"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 75,
+          "end_line": 93,
+          "reason": "空明細時の案内と/products復旧リンク"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 705,
+          "end_line": 726,
+          "reason": "regular customerの初期Cartが1件である実値"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 87,
+          "end_line": 100,
+          "reason": "0件DTOに対する既存componentテスト（実行PASS未判定）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-S-invalid-items",

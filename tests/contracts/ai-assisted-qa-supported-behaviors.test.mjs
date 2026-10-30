@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 17,
+      unreviewed_state_conditions: 15,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -237,6 +237,24 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
+  });
+
+  it("audits the home and guest Cart empty states without accepting the catalog return-link discrepancy", () => {
+    for (const id of [
+      "SCREEN-STOREFRONT-HOME-S-empty-catalog",
+      "SCREEN-STOREFRONT-CART-S-empty",
+    ]) {
+      const state = data.behaviors.find((item) => item.id === id);
+      expect(state?.analysis_status).toBe("analyzed");
+      expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(state?.audit_branch_refs?.length).toBeGreaterThan(0);
+      expect(state?.related_use_cases?.length).toBeGreaterThan(0);
+    }
+    const unresolved = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+    );
+    expect(unresolved?.analysis_status).toBe("review_required");
+    expect(unresolved?.basic_analysis_review).toContain("action=null");
   });
 
   it("detects changed implementation and Seed evidence", () => {
