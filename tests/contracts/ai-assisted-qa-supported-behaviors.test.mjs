@@ -105,4 +105,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
       /analysis lacks verified evidence/,
     );
   });
+  it("prints temporary Prettier output for two new files", async () => {
+    const prettier = await import("prettier");
+    for (const filename of [
+      "scripts/training/validate-supported-behaviors.mjs",
+      "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs",
+    ]) {
+      const file = path.join(root, filename);
+      const formatted = await prettier.format(fs.readFileSync(file, "utf8"), {
+        ...((await prettier.resolveConfig(file)) ?? {}),
+        filepath: file,
+      });
+      console.log("PRETTIER_SOURCE_BEGIN:" + filename + ":" + JSON.stringify(formatted) +
+        ":PRETTIER_SOURCE_END");
+    }
+  });
 });

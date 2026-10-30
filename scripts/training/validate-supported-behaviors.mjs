@@ -91,7 +91,7 @@ function specSources(root) {
   ].sort();
 }
 
-function useCaseSources(root) {
+function listUseCaseFiles(root) {
   const dir = path.join(root, "src/application/use-cases");
   return fs.readdirSync(dir)
     .filter((name) => name.endsWith("-use-cases.ts"))
@@ -213,7 +213,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
   assert(document?.schema_version === 2, "unsupported coverage schema");
 
   const specs = specSources(root);
-  const useCases = useCaseSources(root);
+  const useCases = listUseCaseFiles(root);
   equalSets(new Set(document.source_paths), new Set(specs), "spec source inventory");
   equalSets(new Set(document.method_source_paths), new Set(useCases), "Use Case source inventory");
 
