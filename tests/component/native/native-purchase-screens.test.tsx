@@ -376,6 +376,41 @@ describe("Native customer purchase screens", () => {
     );
   });
 
+  it("restores the previously saved Native payment method on revisit", async () => {
+    const setPayment = jest.fn().mockResolvedValue({
+      ...checkoutSession,
+      paymentMethodCode: "TEST-DECLINED",
+      unlockedStep: "confirm",
+      version: 4,
+    });
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-DECLINED",
+          unlockedStep: "confirm",
+          version: 3,
+        }),
+        setPayment,
+      },
+    });
+    const screen = await render(<NativeCheckoutPaymentScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-payment-session-ready")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-checkout-payment-next"));
+    });
+    await waitFor(() =>
+      expect(setPayment).toHaveBeenCalledWith({
+        checkoutSessionId: checkoutSession.id,
+        checkoutExpectedVersion: 3,
+        paymentMethodCode: "TEST-DECLINED",
+      }),
+    );
+    expect(mockRouterPush).toHaveBeenCalledWith("/checkout/confirm");
+  });
+
   it("selects a payment method and advances the checkout step", async () => {
     const setPayment = jest.fn().mockResolvedValue({
       ...checkoutSession,
