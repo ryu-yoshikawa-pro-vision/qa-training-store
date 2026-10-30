@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 0,
-      requires_review: 188,
+      basically_analyzed: 8,
+      requires_review: 180,
       classified_rate: 100,
-      basic_analysis_rate: 0,
+      basic_analysis_rate: 4.26,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -49,11 +49,23 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
+  it("detects changed implementation and Seed evidence", () => {
+    const badCode = mutated((next) => {
+      next.behaviors[0].implementation_evidence.signature = "not the actual source line";
+    });
+    expect(() => validateCoverage({ root, data: badCode })).toThrow(/changed implementation/);
+
+    const badSeed = mutated((next) => {
+      next.behaviors[0].seed_evidence.transform.signature = "unknown transformation";
+    });
+    expect(() => validateCoverage({ root, data: badSeed })).toThrow(/changed seed transform/);
+  });
+
   it("rejects a state condition linked to a different screen", () => {
     const changed = mutated((next) => {
       next.behaviors.find((item) => item.kind === "state").covered_by = "UC-AUTH-LOGOUT";
     });
-    expect(() => validateCoverage({ root, data: changed })).toThrow(/state condition crosses screen/);
+    expect(() => validateCoverage({ root, data: changed })).toThrow(/unlinked state condition/);
   });
   it("does not certify semantic analysis merely because required fields are nonempty", () => {
     const changed = mutated((next) => {

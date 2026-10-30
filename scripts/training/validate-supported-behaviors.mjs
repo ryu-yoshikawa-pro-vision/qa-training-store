@@ -76,6 +76,28 @@ function checkSource(entry, root, allowedPaths) {
   }
 }
 
+function verifyAuditSource(entry, root) {
+  const implementation = entry.implementation_evidence;
+  const seed = entry.seed_evidence;
+  assert(implementation && seed, `analysis evidence missing: ${entry.id}`);
+  assert(
+    /^(?:src\\/(?:presentation\\/pages|application\\/use-cases)\\/|app\\/)/.test(
+      implementation.path,
+    ),
+    `invalid implementation source: ${entry.id}`,
+  );
+  const validateLine = (ref, label) => {
+    assert(Number.isInteger(ref?.line) && ref.line > 0, `invalid ${label}: ${entry.id}`);
+    const actual = readLines(root, ref.path)[ref.line - 1]?.trim();
+    assert(actual === ref.signature, `changed ${label}: ${entry.id}`);
+  };
+  validateLine(implementation, "implementation");
+  assert(seed.path === "src/seeds/metadata.ts", `invalid seed source: ${entry.id}`);
+  assert(seed.transform?.path === "src/seeds/scenarios.ts", `invalid seed transform: ${entry.id}`);
+  validateLine(seed, "seed");
+  validateLine(seed.transform, "seed transform");
+}
+
 function specSources(root) {
   const dir = path.join(root, "docs/spec/features");
   const featureFiles = fs
@@ -253,6 +275,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     assert(!behaviorIds.has(item.id), `duplicate behavior ID: ${item.id}`);
     behaviorIds.add(item.id);
     checkSource(item, root, allowedPaths);
+    verifyAuditSource(item, root);
     assert(
       ["review_required", "analyzed", "blocked"].includes(item.analysis_status),
       `invalid analysis state: ${item.id}`,
