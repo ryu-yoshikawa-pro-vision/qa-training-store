@@ -296,6 +296,40 @@ describe("auth and account application integration", () => {
     });
   });
 
+  it("checks the customer role before suggesting an address from a postal code", async () => {
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    await expect(account.suggestAddress("100-0001")).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    await database.sessions.add({
+      id: "operator-session",
+      userId: "user-operator",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "operator-session";
+    await expect(account.suggestAddress("100-0001")).rejects.toMatchObject({
+      code: "VALIDATION",
+      messageKey: "account.customerOnly",
+    });
+    await database.sessions.add({
+      id: "customer-session",
+      userId: "user-customer-regular",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "customer-session";
+    await expect(account.suggestAddress("100-0001")).resolves.toMatchObject({
+      postalCode: "1000001",
+      prefecture: "東京都",
+    });
+    await expect(account.suggestAddress("999-9999")).resolves.toBeNull();
+  });
+
   it("keeps exactly one default address and deterministically reassigns it", async () => {
     await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
     sessionStore.value = "session-user-customer-regular";
