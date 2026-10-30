@@ -159,7 +159,10 @@ describe("checkout and customer order application integration", () => {
       .first();
     const started = await useCases.start({ cartVersion: cart!.version });
     const invalidCases = [
-      { value: { ...address, recipientName: " " }, errors: { recipientName: "validation.required" } },
+      {
+        value: { ...address, recipientName: " " },
+        errors: { recipientName: "validation.required" },
+      },
       { value: { ...address, postalCode: "123" }, errors: { postalCode: "validation.postalCode" } },
       { value: { ...address, prefecture: "" }, errors: { prefecture: "validation.required" } },
       { value: { ...address, city: " " }, errors: { city: "validation.required" } },
