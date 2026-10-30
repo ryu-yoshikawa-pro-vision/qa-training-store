@@ -684,7 +684,9 @@ export function NativeAddressesScreen() {
 function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
   const { ready, error, retry, services } = usePurchaseServices();
   const [session, setSession] = useState<CheckoutSession | null>(null);
-  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | "replaced" | null>(null);
+  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | "replaced" | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
