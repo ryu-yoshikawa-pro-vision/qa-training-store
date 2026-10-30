@@ -886,13 +886,14 @@ export function NativeCheckoutAddressScreen() {
 
 export function NativeCheckoutPaymentScreen() {
   const state = useCheckoutSession("payment");
-  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("TEST-SUCCESS");
+  const [methodOverride, setMethod] = useState<(typeof PAYMENT_METHODS)[number] | null>(null);
   const [busy, setBusy] = useState(false);
   if (!state.ready || state.services === null)
     return (
       <RuntimePanel title="支払いを初期化できません" error={state.error} retry={state.retry} />
     );
   const services = state.services;
+  const method = methodOverride ?? state.session?.paymentMethodCode ?? "TEST-SUCCESS";
   const submit = () => {
     if (state.session === null) return;
     setBusy(true);
