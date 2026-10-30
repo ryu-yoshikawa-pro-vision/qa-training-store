@@ -249,6 +249,17 @@ describe("checkout and order pages", () => {
     expect(routerPush).toHaveBeenCalledWith("/checkout/payment");
   });
 
+  it("does not advance to payment when saving a delivery address fails", async () => {
+    checkout.setAddress.mockRejectedValueOnce(new Error("failed to save address"));
+    render(<CheckoutAddressPage />);
+    expect(await screen.findByRole("heading", { name: "配送先を選択" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "この配送先を使用" }));
+    expect(
+      await screen.findByText("配送先を保存できませんでした。最新のカートを確認してください。"),
+    ).toBeVisible();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
   it("renders snapshot totals and prevents a second confirmation click", async () => {
     render(<CheckoutConfirmPage />);
     expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
