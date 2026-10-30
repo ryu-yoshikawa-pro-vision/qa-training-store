@@ -370,11 +370,11 @@ function CheckoutConfirmContent() {
       <CheckoutLoadError
         href={reviewCart ? "/cart" : "/checkout/payment"}
         retry={state.retry}
-        body={
-          reviewCart
-            ? "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。"
-            : undefined
-        }
+        {...(reviewCart
+          ? {
+              body: "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+            }
+          : {})}
       />
     );
   }

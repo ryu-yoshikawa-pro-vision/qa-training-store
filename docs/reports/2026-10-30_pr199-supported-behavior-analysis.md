@@ -201,3 +201,7 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 - 2操作を`analyzed`へ更新。**基本分析41/188件（21.81%）、要レビュー147件、非default状態条件17/20件未レビュー**。188件は暫定分母。コード・テストはCI/Android実機・正本画面比較のPASSを未実証。別途確認する。
 
 CI調査では、HEAD `d22e366` のAndroid production-validation jobでNDK 27.1.12297006のインストールが`Error on ZipFile unknown archive`となりGradle構成に失敗した。これはアプリコードのコンパイルエラーではなくSDKアーカイブ取得・展開の失敗であり、CI再実行/再現状況で原因を切り分ける。再実行成功を確認するまではAndroid CIをPASSにしない。
+
+### 前HEADのWeb CI失敗の根拠と修正（2026-10-31）
+
+Web CI [41099183628](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41099183628)の実ログでは、TypeScript `TS2375`（`CheckoutLoadError`へ`body: undefined`を明示的に渡した）、Componentの住所表示テスト（`<address>`の複数テキストノードを単独の完全一致で探していた）、Required E2E 06（古いCartを検出した際の案内文を更新前の文言で期待）が失敗していた。任意`body`の省略、`<address>`要素のテキスト検証、Cart再確認メッセージと`/cart`リンクを確認するE2Eへ修正した。Style QualityではNative画面・Web component・台帳contractの3ファイルにPrettier違反があり、**この時点で完全解消の確認は未了**。最新CIで再判定する。構造contractの分析件数期待値も41/188へ同期した。

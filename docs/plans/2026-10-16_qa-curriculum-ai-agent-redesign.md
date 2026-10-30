@@ -1,5 +1,10 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 前HEADのWeb CI失敗対応（継続作業）
+
+- Web CI 41099183628の実ログでTS2375、配送先`<address>`の文字列検索、古いCart時のE2E期待文言の不一致を確認し、TypeScript/Component/Required E2Eを修正。分析契約の集計期待値も41/188へ同期した。
+- Native画面・Web component・台帳契約のPrettier違反3ファイル、およびAndroid NDK取得/展開失敗は最新CIで再確認が必要。未実行をPASSにしない。
+
 ## 2026-10-31 注文完了の番号表示・履歴導線（継続作業）
 
 - `SCREEN-CHECKOUT-COMPLETE-A01-02`/`A01-03`を正式BR/AC、Use Caseの本人所有権、Web/Native UI、`default` Seedの`order-paid`/`ORD-20260701-0002`と照合。Nativeの内部orderId表示を顧客向け注文番号に修正し、Web/Native componentテストと分析契約を追加した。

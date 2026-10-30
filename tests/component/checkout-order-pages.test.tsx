@@ -404,7 +404,10 @@ describe("checkout and order pages", () => {
     render(<CheckoutConfirmPage />);
     const submit = await screen.findByRole("button", { name: "¥2,500を支払う" });
     fireEvent.click(submit);
-    expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute("href", "/cart");
+    expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute(
+      "href",
+      "/cart",
+    );
     expect(screen.getByRole("button", { name: "¥2,500を支払う" })).toBeDisabled();
     expect(routerReplace).not.toHaveBeenCalled();
     expect(checkout.beginOrder).toHaveBeenCalledTimes(1);
@@ -418,8 +421,12 @@ describe("checkout and order pages", () => {
     });
     render(<CheckoutConfirmPage />);
     expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
-    expect(screen.getByText("青山ビル101")).toBeVisible();
-    expect(screen.getByText("山田太郎 様")).toBeVisible();
+    const address = screen.getByText(
+      (_, element) =>
+        element?.tagName === "ADDRESS" && element.textContent?.includes("青山ビル101") === true,
+    );
+    expect(address).toHaveTextContent("青山ビル101");
+    expect(address).toHaveTextContent("山田太郎 様");
     expect(screen.getByText("テスト決済（利用拒否）")).toBeVisible();
   });
 
