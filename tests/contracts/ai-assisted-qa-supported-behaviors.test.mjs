@@ -314,6 +314,24 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(parent?.analysis_status).toBe("review_required");
   });
 
+  it("audits Signup validation and published review state without certifying parent actions", () => {
+    for (const [id, useCase] of [
+      ["SCREEN-AUTH-SIGNUP-S-validation-error", "AuthUseCases.register"],
+      ["SCREEN-REVIEWS-EDITOR-S-published", "CustomerReviewUseCases.getEligibility"],
+    ]) {
+      const state = data.behaviors.find((item) => item.id === id);
+      expect(state?.analysis_status).toBe("analyzed");
+      expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(state?.related_use_cases).toContain(useCase);
+      expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
+    }
+    for (const id of ["SCREEN-AUTH-SIGNUP-A02-01", "SCREEN-REVIEWS-EDITOR-A01-02"]) {
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
+        "review_required",
+      );
+    }
+  });
+
   it("detects changed implementation and Seed evidence", () => {
     const badCode = mutated((next) => {
       next.behaviors[0].implementation_evidence.signature = "not the actual source line";

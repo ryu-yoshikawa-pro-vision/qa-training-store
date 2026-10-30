@@ -3030,32 +3030,34 @@
       "source_path": "docs/spec/features/authentication.md",
       "source_line": 69,
       "source_text": "入力エラーと修正方法を表示する。",
-      "platform": "web,android",
-      "role": "`guest`",
-      "scenario": "validation-error",
-      "data": "Seed/入力: defaultで未入力・形式不正。通常状態から条件を変更し表示と操作を比較",
+      "platform": "web-desktop（機能上の入力検証を監査。Androidの専用validation-error視覚正本は要求されていない）",
+      "role": "guest（default Resetの初期Session）。登録成功後のcustomer状態は親操作で別途検証",
+      "scenario": "default Reset→guest→Web /signupで空送信・不正メール・短いpassword・確認不一致・注意事項未同意を入力駆動で発生。固定Seedの変換は不要",
+      "data": "default初期guest。email='' / invalid-email、displayName='' / 101文字相当の上限超過、password長さ下限未満、confirmation不一致、noticeAccepted=falseを個別・複合で比較。新規登録APIを呼ばないためDB/Sessionは不変",
       "action": "validation-error状態を表示・処理",
-      "expected": "入力エラーと修正方法を表示する。",
+      "expected": "Web /signupはZod/RHFの送信前検証でemail形式、表示名必須/上限、password長さ、確認一致、注意事項同意を検査。無効な送信ではFormErrorSummary(role=alert)のフィールド別#リンクとaria-invalidを表示し、AuthUseCases.registerおよびUser/Session Repositoryへ到達しない。入力修正後の再送信と、既存メール重複のUse Case拒否は親操作の別条件",
       "rule_refs": [],
       "route": "`/signup`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "SCREEN-AUTH-SIGNUP-A02-01を対象にdefaultで未入力・形式不正を準備し「入力エラーと修正方法を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-AUTH-SIGNUP-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "validation-errorに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "無効入力がUser/Session作成へ到達する、確認不一致・未同意のまま登録される、入力エラーの修正先が不明、内部情報露出",
+      "test_condition": "default Reset→guest→Web /signup→空入力submitでemail/displayName/password/noticeAcceptedのエラー・summaryリンク・aria-invalid・auth.register非呼出しを確認。invalid-email、passwordMin-1、確認不一致、表示名上限+1、同意falseを個別に比較。修正時に値保持・エラー解消を確認し、登録成功/既存メール重複は親A01/A02で別検証。実ブラウザ/視覚画像一致は未受入",
+      "test_responsibility": "SCREEN-AUTH-SIGNUP-A02-01のWeb pre-UseCase入力拒否状態。SignupPage→signupSchema→RHF→FormErrorSummary、無効入力時のAuthUseCases.register非到達とdefault guestを監査",
+      "case_policy": "空入力、形式不正、passwordMin-1/一致不一致、displayName上限+1、未同意、修正後の再submitを採用。Native専用視覚正本の欠如を機能非対応とは扱わない",
+      "case_selection_reason": "Zod/RHFの独立境界を直接検証し、既存componentの未同意/上限拒否を根拠にする。default Seedで再現可能で学習専用Seed追加は不要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:58-71/112-120、auth-pages.tsx:36-67/220-319、form-error-summary.tsx:15-47、auth-use-cases.ts:121-134/224-252、auth-account-pages.test.tsx:239-316、metadata.ts:75-82、scenarios.ts:29-39を照合。既存componentは未同意・表示名上限の拒否を確認するが、全入力組合せの実E2E PASSは未確認",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AuthUseCases.register"
+      ],
       "platform_basis": "正式仕様の'not-applicable'は視覚リファレンス省略を意味する。サインアップフォームの入力検証自体は機能として対象。",
       "covered_by": "SCREEN-AUTH-SIGNUP-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "Webのsignup validation-error状態を仕様→Zod/RHF→FormErrorSummary→Use Case/Repository非到達とdefault Seedで読み取り監査。親の登録・重複・Android視覚は未分析",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 220,
@@ -3075,7 +3077,81 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.register",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 121,
+          "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 58,
+          "end_line": 71,
+          "reason": "Signup入力とvalidation-error状態。not-applicableは視覚正本の省略"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "認証・Role・内部情報の非露出"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 36,
+          "end_line": 67,
+          "reason": "email/password/displayName/確認一致/注意事項のZod条件"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 220,
+          "end_line": 319,
+          "reason": "RHF resolver/summary/aria-invalidと有効submitのみregister呼出し"
+        },
+        {
+          "path": "src/presentation/components/form-error-summary.tsx",
+          "start_line": 15,
+          "end_line": 47,
+          "reason": "role=alert・各入力への修正リンク・focusTrigger"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 121,
+          "end_line": 135,
+          "reason": "有効な送信後にのみユーザー検索・登録へ進むUse Case境界"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 224,
+          "end_line": 252,
+          "reason": "Use Case側のemail/length/表示名再検証"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 82,
+          "reason": "default Seedの初期guest"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 39,
+          "reason": "default dataset再利用。追加Seed不要"
+        },
+        {
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "start_line": 239,
+          "end_line": 316,
+          "reason": "未同意・表示名上限で登録Use Caseを呼ばない既存component"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-ACCOUNT-PROFILE-A01-01",
@@ -8379,31 +8455,34 @@
       "source_path": "docs/spec/features/reviews.md",
       "source_line": 35,
       "source_text": "既存レビューの編集状態を表示する。",
-      "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "published",
-      "data": "Seed/入力: reviewable-orders。通常状態から条件を変更し表示と操作を比較",
+      "platform": "web-desktop（published状態の必須視覚条件。Androidのdefault画面は別受入）",
+      "role": "customer本人（reviewable-ordersの初期guestからregular@example.comでログイン）。staff・他人の注文は対象外",
+      "scenario": "reviewable-orders Reset→初期guest→regular本人でログイン→配達済みorder-deliveredの既存reviewがある明細から/reviews/{orderItemId}へ。未投稿明細と対比較",
+      "data": "reviewable-ordersはdefault配達済み注文の既存レビュー9件から先頭6件を保持し、後続3件を未投稿にする。regular本人のpublished reviewが付いた明細を選ぶ。review version=1、rating/title/bodyを既存値として初期表示",
       "action": "published状態を表示・処理",
-      "expected": "既存レビューの編集状態を表示する。",
+      "expected": "本人の配達済み明細のpublished reviewはCustomerReviewUseCases.getEligibility→ReviewRepository.findByOrderItem→reviewState=PUBLISHED、eligible=true、existingReviewありとなる。Webは『レビューを編集』、既存rating/title/body、レビュー状態『公開中』、更新・削除操作を表示。更新はreviewIdとexpectedVersionを渡し、statusを自動変更せず競合versionは拒否。未投稿/hidden/deleted/他人の明細を同一状態として扱わない",
       "rule_refs": [],
       "route": "`/reviews/[orderItemId]`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "SCREEN-REVIEWS-EDITOR-A01-02を対象にreviewable-ordersを準備し「既存レビューの編集状態を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-REVIEWS-EDITOR-A01-02の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "publishedに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "他人のreview編集、既存値喪失、重複投稿、Version競合無視、hidden/deletedをpublishedとして誤表示、公開集計の破損",
+      "test_condition": "reviewable-orders Reset→regular本人ログイン→既存publishedの配達済み明細を開く。getEligibilityのPUBLISHED/既存review値とWeb編集見出し・初期rating/title/body・『公開中』・更新/削除ボタンを確認。更新時expectedVersion一致、Version不一致拒否とstatus維持をUse Case/Repositoryで照合。未投稿の後続明細では『レビューを投稿』、deletedでは拒否を対比較。既存component/integrationは読み取り根拠であり、実ブラウザ視覚PASSではない",
+      "test_responsibility": "SCREEN-REVIEWS-EDITOR-A01-02のpublished状態条件。CustomerReviewUseCases.getEligibility→DexieReviewRepository→CustomerReviewContentの初期値・更新導線、reviewable-orders Seedの既存6件を追跡",
+      "case_policy": "published既存/未投稿/hidden/deleted/非本人の代表条件と、version一致/競合を採用。画面の視覚正本比較は別受入",
+      "case_selection_reason": "既存reviewable-orders Seedに既存6件と未投稿3件があり追加fixture不要。Use Case/RepositoryとUIの編集分岐を再現可能な条件に落とし込める",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "reviews.md:7-35/86-100、review-user-use-cases.ts:62-103/163-187、order-review-repositories.ts:306-315、review-user-pages.tsx:57-88/138-243、scenarios.ts:96-103、default-dataset.ts:408-415/509-531、metadata.ts:273-283、review-user-use-cases.test.ts:55-110/152-181、review-user-pages.test.tsx:255-274を照合。既存componentは削除確認、integrationは更新とPUBLISHED導出を扱うが実Web視覚受入は未実行",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CustomerReviewUseCases.getEligibility",
+        "CustomerReviewUseCases.update"
+      ],
       "covered_by": "SCREEN-REVIEWS-EDITOR-A01-02",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "publishedの本人既存review→Use Case→Dexie→Web編集分岐とSeed実値を読み取り監査。親操作・実ブラウザ正本一致は未受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 57,
@@ -8423,7 +8502,111 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CustomerReviewUseCases.getEligibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 62,
+          "signature": "async getEligibility(orderItemId: string): Promise<ReviewEligibilityDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.update",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 163,
+          "signature": "async update(request: UpdateReviewRequest): Promise<ReviewResultDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 7,
+          "end_line": 35,
+          "reason": "BR-REVIEW-001/002とpublished Web編集状態"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 85,
+          "end_line": 100,
+          "reason": "AC-REVIEW-001/002の本人資格と公開集計"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 62,
+          "end_line": 103,
+          "reason": "本人注文・配達状態・既存review→PUBLISHEDの導出"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 163,
+          "end_line": 187,
+          "reason": "本人更新とexpectedVersion・公開集計"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 315,
+          "reason": "orderItemIdから既存reviewを取得するRepository"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 57,
+          "end_line": 88,
+          "reason": "getEligibility取得後に既存rating/title/bodyを反映"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 138,
+          "end_line": 243,
+          "reason": "published既存時の編集・更新・削除導線"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 96,
+          "end_line": 103,
+          "reason": "reviewable-ordersで先頭6件の既存reviewを保持"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 408,
+          "end_line": 415,
+          "reason": "レビュー生成配列の初期化"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 509,
+          "end_line": 531,
+          "reason": "配達済み注文にpublishedレビューを生成"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 273,
+          "end_line": 283,
+          "reason": "reviewable-ordersの初期guestとregularログイン導線"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 55,
+          "end_line": 110,
+          "reason": "既存reviewの作成・更新・削除・Version契約"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 152,
+          "end_line": 181,
+          "reason": "defaultの既存publishedと未配達・deleted対照"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 255,
+          "end_line": 274,
+          "reason": "既存review削除確認のUI契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-REVIEWS-A01-01",
