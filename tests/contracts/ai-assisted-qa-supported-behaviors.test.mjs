@@ -15,6 +15,15 @@ const mutated = (edit) => {
 };
 
 describe("サポート機能の仕様と実装の追跡", () => {
+  it("TEMP diagnostic: dump exact formatter output", async () => {
+    const prettier = await import("prettier");
+    const sourceFile = path.join(root, "scripts/training/validate-supported-behaviors.mjs");
+    const source = fs.readFileSync(sourceFile, "utf8");
+    const settings = await prettier.resolveConfig(sourceFile);
+    const formatted = await prettier.format(source, { ...settings, filepath: sourceFile });
+    console.log("FORMATTED_SOURCE_BASE64=" + Buffer.from(formatted).toString("base64"));
+  });
+
   it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const result = validateCoverage({ root });
     expect(result).toMatchObject({
