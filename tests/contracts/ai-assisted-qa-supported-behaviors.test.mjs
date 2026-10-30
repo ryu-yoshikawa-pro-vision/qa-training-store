@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 12,
-      requires_review: 176,
+      basically_analyzed: 14,
+      requires_review: 174,
       classified_rate: 100,
-      basic_analysis_rate: 6.38,
+      basic_analysis_rate: 7.45,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -46,6 +46,20 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "UC-ADMIN-BULK-REVIEW-VISIBILITY",
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
+    }
+  });
+
+  it("preserves evidence-backed address analysis and unresolved boundaries", () => {
+    for (const id of ["SCREEN-CHECKOUT-ADDRESSES-A01-01", "UC-ACCOUNT-DELETE-ADDRESS"]) {
+      const item = data.behaviors.find((behavior) => behavior.id === id);
+      expect(item?.analysis_status).toBe("analyzed");
+      expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(item?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+    for (const id of ["UC-CART-ACCEPT-PRICES", "UC-ADMIN-REORDER-CATEGORIES"]) {
+      expect(data.behaviors.find((behavior) => behavior.id === id)?.analysis_status).toBe(
+        "review_required",
+      );
     }
   });
 
