@@ -2,7 +2,7 @@
 
 ## 2026-10-31 Signup入力検証・公開済みレビュー編集状態の証拠監査（SUT変更なし）
 
-- **基本分析31/172（残り141）、状態条件14/20（残り6）。** 188動作は暫定分母。状態2件のみを分析し、親操作は未分析のまま維持する。今回の読み取り監査をブラウザ/Nativeの実行PASSや視覚正本一致とは扱わない。
+- **基本分析46/188（残り142）、状態条件14/20（残り6）。** 188動作は暫定分母。状態2件のみを分析し、親操作は未分析のまま維持する。今回の読み取り監査をブラウザ/Nativeの実行PASSや視覚正本一致とは扱わない。
 - `SCREEN-AUTH-SIGNUP-S-validation-error`：正式authentication BR/AC、default Seed初期guest、SignupPageのZod/RHF・FormErrorSummary、AuthUseCases.registerのDB/Session境界、既存componentの未同意/表示名上限拒否を照合。空/形式不正/パスワード下限/確認不一致/注意事項未同意を独立Case化。正式表のnot-applicableは視覚リファレンス省略であり機能非対応ではない。Webのpre-UseCase拒否を分析し、Android専用視覚受入や親登録成功/重複は未完了。
 - `SCREEN-REVIEWS-EDITOR-S-published`：reviews BR/AC、CustomerReviewUseCases.getEligibility/update→DexieReviewRepository→Web CustomerReviewContent、reviewable-orders Seed（初期guest・regular本人ログイン後、既存published 6件/未投稿3件）を照合。既存レビューの値・PUBLISHED表示・更新/削除・expectedVersion、未投稿/deletedとの対照を定義。既存component/integrationソースは監査したが実画面・正本比較は未実施。
 - [Web CI 41138483817](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41138483817) は前HEADでcompleted/failure。Style Quality実ログは製品Native画面と学習用contractのPrettier違反。その他のCode Quality/contract/integration/component/required E2Eは成功。製品Nativeは変更禁止につき未修正。学習用contractのformatterは新HEAD CIで再検証する。[Mobile CI 41138483798](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41138483798) はsuccess。

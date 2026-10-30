@@ -2,9 +2,9 @@
 
 ## 2026-10-31 Signup検証・公開レビュー編集の状態監査（SUT変更なし）
 
-- `SCREEN-AUTH-SIGNUP-S-validation-error`と`SCREEN-REVIEWS-EDITOR-S-published`を正式BR/AC→Web UI→Use Case→Dexie/Seed実値と既存テストで照合し、状態別条件のみ分析済みに変更。**基本分析31/172（残り141）、状態条件14/20（残り6）。** 親操作は未分析、188件は暫定分母。
+- `SCREEN-AUTH-SIGNUP-S-validation-error`と`SCREEN-REVIEWS-EDITOR-S-published`を正式BR/AC→Web UI→Use Case→Dexie/Seed実値と既存テストで照合し、状態別条件のみ分析済みに変更。**基本分析46/188（残り142）、状態条件14/20（残り6）。** 親操作は未分析、188件は暫定分母。
 - Signupの未入力/不正/未同意は登録Use Caseへ到達しない。レビューは本人配達済みの既存publishedと未投稿/削除を区別し、expectedVersionを確認。既存製品・正式仕様・Seed・製品テストは変更せず、実ブラウザ/Native正本は未受入。
-- 前HEAD Web CI 41138483817はStyle Quality失敗（製品Native画面と学習用contractのPrettier）。製品Nativeは変更禁止。学習用contractの新HEAD検証は未了。Mobile CI 41138483798は成功。残り6状態条件・基本操作141件の証拠監査、PR混在製品差分仕分け、実Template/Private 2-core Codespaces/OpenCode校正を継続。
+- 前HEAD Web CI 41138483817はStyle Quality失敗（製品Native画面と学習用contractのPrettier）。製品Nativeは変更禁止。学習用contractの新HEAD検証は未了。Mobile CI 41138483798は成功。残り6状態条件・基本動作142件の証拠監査、PR混在製品差分仕分け、実Template/Private 2-core Codespaces/OpenCode校正を継続。
 
 
 ## 2026-10-31 大量商品と管理画面レスポンシブの状態監査（SUT変更なし）
