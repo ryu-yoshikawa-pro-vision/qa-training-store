@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 9,
+      unreviewed_state_conditions: 8,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -256,10 +256,8 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
       expect(state?.related_use_cases?.length).toBe(1);
     }
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A02-01")
-        ?.analysis_status,
-    ).toBe("review_required");
+    const pendingOrderAction = data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A02-01");
+    expect(pendingOrderAction?.analysis_status).toBe("review_required");
   });
 
   it("audits pagination and the staff-only mobile warning without SUT changes", () => {
@@ -291,14 +289,27 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
       expect(state?.related_use_cases?.length).toBe(1);
     }
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05")
-        ?.analysis_status,
-    ).toBe("review_required");
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-01")
-        ?.analysis_status,
-    ).toBe("review_required");
+    const pendingProductAction = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
+    );
+    expect(pendingProductAction?.analysis_status).toBe("review_required");
+    const pendingSearchAction = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-01",
+    );
+    expect(pendingSearchAction?.analysis_status).toBe("review_required");
+  });
+
+  it("audits Web login validation without certifying the parent login action", () => {
+    const state = data.behaviors.find(
+      (item) => item.id === "SCREEN-AUTH-LOGIN-S-validation-error",
+    );
+    expect(state?.analysis_status).toBe("analyzed");
+    expect(state?.platform).toBe("web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）");
+    expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(state?.related_use_cases).toContain("AuthUseCases.login");
+    expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
+    const parent = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01");
+    expect(parent?.analysis_status).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {
