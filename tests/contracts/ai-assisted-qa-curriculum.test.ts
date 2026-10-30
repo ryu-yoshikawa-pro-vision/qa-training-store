@@ -577,7 +577,6 @@ describe("AI-assisted QA static learning course", () => {
     }
   });
 
-
   it("keeps M06 and M07 learner instructions aligned with Playwright scoring runs", () => {
     const readLesson = (moduleId: string): string =>
       fs.readFileSync(
@@ -605,10 +604,10 @@ describe("AI-assisted QA static learning course", () => {
     const m06 = readLesson("M06");
     const m06Runs = readScoring("M06").evaluation_policy.execution_evidence.required_runs;
     for (const label of ["initial", "repeat"]) {
-      expect(
-        m06Runs.find((run) => run.spec === "new-case.spec.ts" && run.label === label)
-          ?.minimum_tests,
-      ).toBe(2);
+      const run = m06Runs.find(
+        (entry) => entry.spec === "new-case.spec.ts" && entry.label === label,
+      );
+      expect(run?.minimum_tests).toBe(2);
     }
     expect(m06).toContain("CASE-CART-004");
     expect(m06).toContain("CASE-CART-005");
@@ -618,14 +617,14 @@ describe("AI-assisted QA static learning course", () => {
 
     const m07 = readLesson("M07");
     const m07Runs = readScoring("M07").evaluation_policy.execution_evidence.required_runs;
-    expect(
-      m07Runs.find((run) => run.spec === "maintenance.spec.ts" && run.label === "before")
-        ?.minimum_tests,
-    ).toBe(2);
-    expect(
-      m07Runs.find((run) => run.spec === "maintenance.spec.ts" && run.label === "after")
-        ?.minimum_tests,
-    ).toBe(3);
+    const before = m07Runs.find(
+      (entry) => entry.spec === "maintenance.spec.ts" && entry.label === "before",
+    );
+    const after = m07Runs.find(
+      (entry) => entry.spec === "maintenance.spec.ts" && entry.label === "after",
+    );
+    expect(before?.minimum_tests).toBe(2);
+    expect(after?.minimum_tests).toBe(3);
     expect(m07).toContain("3件目");
     expect(m07).toContain("3件以上");
     expect(m07).toContain("M07演習ページ");
