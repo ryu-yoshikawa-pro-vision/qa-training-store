@@ -629,7 +629,10 @@ export class CheckoutOrderUseCases {
     if (!/^\d{7}$/.test(normalized.postalCode)) {
       fieldErrors.postalCode = "validation.postalCode";
     }
-    if (normalized.prefecture.length === 0 || normalized.prefecture.length > INPUT_LIMITS.prefecture) {
+    if (
+      normalized.prefecture.length === 0 ||
+      normalized.prefecture.length > INPUT_LIMITS.prefecture
+    ) {
       fieldErrors.prefecture = "validation.required";
     }
     if (normalized.city.length === 0 || normalized.city.length > INPUT_LIMITS.city) {
