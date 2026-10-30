@@ -217,6 +217,7 @@ function completeAnalysis(behavior) {
 export function validateCoverage({ root = ROOT, data } = {}) {
   const document = data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
   assert(document?.schema_version === 2, "unsupported coverage schema");
+  assert(/^[0-9a-f]{40}$/.test(document.source_commit), "invalid pinned source SHA");
 
   const specs = specSources(root);
   const useCases = listUseCaseFiles(root);
@@ -290,7 +291,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
       stateSources.add(`${item.source_path}:${item.source_line}`);
     }
     const fingerprint = [
-      item.kind === "use_case" ? item.id : item.screen,
+      item.screen ?? item.source_path,
       item.action,
       item.role,
       item.platform,

@@ -264,7 +264,6 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 
 変更に応じて`pnpm run validate:curriculum`、`pnpm run test:contracts`、新課程専用のvalidatorとPlaywright実行、Training Copy検証を実行する。**旧の成功結果を新課程のPASSとして報告しない**。実行できない場合は対象・原因・状態を明記する。
 
-
 ## 2026-10-30：機能分析台帳の誤った完了判定を訂正
 
 旧台帳の271行と、正式対象外を除いた270行は、独立した機能動作の分母ではなかった。画面操作へBR/AC・Role/State・UXの横断契約を合算し、基本分析を文字列の存在のみで判定していた。これを完了証拠として流用しない。
