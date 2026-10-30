@@ -126,9 +126,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(next?.related_use_cases).toContain("CheckoutOrderUseCases.setAddress");
     expect(next?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(next?.audit_branch_refs?.length).toBeGreaterThan(0);
-    const selection = data.behaviors.find(
-      (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01",
-    );
+    const selection = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01");
     expect(selection?.analysis_status).toBe("review_required");
   });
 
