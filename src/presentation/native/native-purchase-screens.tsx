@@ -25,6 +25,8 @@ import {
   PAYMENT_METHODS,
   resolveCheckoutResultKind,
 } from "@/application/use-cases/checkout-order-use-cases";
+import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
+import { labels } from "@/presentation/content/dictionary";
 import { resolveCustomerLoginDestination } from "@/presentation/return-to";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -353,6 +355,27 @@ export function NativeProfileScreen() {
     <PurchaseKeyboardScrollView testID="native-profile-screen">
       <Text style={styles.heading}>アカウント</Text>
       <Text style={styles.body}>{profile.email}</Text>
+      <View
+        style={{ gap: nativeSpacing.xs, marginTop: nativeSpacing.md }}
+        testID="native-profile-benefits"
+      >
+        <Text style={styles.subheading}>会員ランクと特典</Text>
+        <Text style={styles.body} testID="native-profile-account-status">
+          アカウント状態：{labels.account(profile.accountStatus)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-membership-rank">
+          会員ランク：{profile.membershipRank === null ? "—" : labels.rank(profile.membershipRank)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-discount">
+          会員割引：{Math.round(membershipDiscountRate(profile.membershipRank) * 100)}%
+        </Text>
+        <Text style={styles.body} testID="native-profile-shipping-benefit">
+          送料特典：
+          {profile.membershipRank === "platinum"
+            ? "いつでも送料無料"
+            : `商品小計${FREE_SHIPPING_THRESHOLD.toLocaleString("ja-JP")}円以上で送料無料`}
+        </Text>
+      </View>
       <View style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}>
         <PurchaseTextInput
           value={displayName}
