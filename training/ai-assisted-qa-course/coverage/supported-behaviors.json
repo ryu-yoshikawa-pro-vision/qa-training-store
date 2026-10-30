@@ -3444,7 +3444,7 @@
       "screen": "SCREEN-CHECKOUT-ADDRESSES",
       "source_path": "docs/spec/features/checkout-and-payment.md",
       "source_line": 31,
-      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
+      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・既定の配送先設定を行う。",
       "platform": "web,android",
       "role": "customer",
       "scenario": "default（0件）・regular-member（本人セッション、0件）から配送先を作成。本人複数件・別顧客の複数件・顧客以外のRoleを準備",
@@ -3528,7 +3528,7 @@
       "screen": "SCREEN-CHECKOUT-ADDRESSES",
       "source_path": "docs/spec/features/checkout-and-payment.md",
       "source_line": 31,
-      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
+      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・既定の配送先設定を行う。",
       "platform": "web,android",
       "role": "customer",
       "scenario": "default/regular-memberの配送先0件。本人1件目、本人2～5件目、6件目、makeDefault=true/false、guest/operator/adminと停止済みCustomerを区別",
@@ -3612,7 +3612,7 @@
       "screen": "SCREEN-CHECKOUT-ADDRESSES",
       "source_path": "docs/spec/features/checkout-and-payment.md",
       "source_line": 31,
-      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
+      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・既定の配送先設定を行う。",
       "platform": "web,android",
       "role": "customer",
       "scenario": "regular-memberの本人住所を2件以上作成。非既定住所の更新・既定への昇格、既定住所の編集、別顧客所有のID、存在しないID、旧version、不正入力、非顧客を区別",
@@ -3696,32 +3696,29 @@
       "screen": "SCREEN-CHECKOUT-ADDRESSES",
       "source_path": "docs/spec/features/checkout-and-payment.md",
       "source_line": 31,
-      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
+      "source_text": "顧客自身の配送先を一覧表示し、追加・編集・既定の配送先設定を行う。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,regular-member,配送先0件/本人住所/他人住所。Customer本人/他人・activeセッション・versionを区別する。対象動作: 配送先を選択",
-      "action": "配送先を選択",
-      "expected": "選択した本人の配送先IDが注文手続きへ渡り、別人の住所を使用できない",
+      "role": "customer",
+      "scenario": "regular-memberの本人住所0件から、本人の既定住所と非既定住所を2件以上作成。Webの「既定にする」とNativeの同名操作、旧version、guest/operator/admin・本人以外のIDを区別",
+      "data": "regular-member/defaultのuserAddressesは初期0件。regular@example.comで既定「自宅」と非既定「勤務先」を作成。本人の非既定addressId・expectedVersionと全入力項目を指定しmakeDefault=trueで更新する。第三者gold@example.comのIDや旧versionを拒否Caseへ使う",
+      "action": "既定の配送先に設定する",
+      "expected": "有効なcustomer本人の非既定住所に対する「既定にする」は、AccountUseCases.updateAddressの所有権/expectedVersion検証を通り、対象住所をisDefault=true・version+1に変更し、それまでの既定住所をisDefault=false・version+1へ切り替える。旧version、他人ID、存在しないID、guest/operator/adminは拒否し既定を変更しない。/account/addressesでは注文時の配送先選択・決済セッションを変更しない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "配送先を選択について、選択した本人の配送先IDが注文手続きへ渡り、別人の住所を使用できないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と配送先を選択の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "配送先を選択の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:25-39の『選択』はscreen-catalog.mdの/account/addressesへ紐付くが、実際のWeb addresses-page.tsxは配送先選択ボタンなし。checkout-order-pages.tsx:175-232では別SCREEN-CHECKOUT-ADDRESSが選択を担当する。Nativeも別経路。重複/画面契約を確認するまで分析済みにしない。",
+      "risk": "既定住所が複数件になる/0件になる、他人の住所へ意図せず切替、古い画面のversionで更新を上書き、注文時の住所選択と住所管理を混同",
+      "test_condition": "2件以上の本人住所を用意。Web AddressesPageの非既定住所の「既定にする」とNativeの同名操作から、AccountUseCases.updateAddress({addressId,expectedVersion,makeDefault:true,...})までの経路を確認。旧/新既定双方のisDefaultとversionを比較し、旧versionと本人以外・非顧客では全住所不変を検証する",
+      "test_responsibility": "画面の既定切替ボタン、Use Caseの顧客認可、Web/DexieとNative/SQLiteの既定再割当transaction・所有者・楽観的versionを検証する。checkout.setAddressの配送先選択は別操作として追跡する",
+      "case_policy": "2件の既定切替、古いversion、他人所有ID、存在しないID、guest/operator/admin拒否を対象。住所の新規作成・編集フォーム・Checkoutでの住所選択は各別操作に分離する",
+      "case_selection_reason": "既定住所設定は両プラットフォームで明示的なボタンを持ち、配送先選択とは別の更新処理を行う。既存の画面操作を削除するのではなく、実装にある独立UI操作として正しく分析する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:25-39のSCREEN-CHECKOUT-ADDRESSESとSCREEN-CHECKOUT-ADDRESSを区別。Web addresses-page.tsx:135-165は「既定にする」からaccount.updateAddressを呼び、Native native-purchase-screens.tsx:494-516,550-557も同様。AccountUseCases:99-108,125-130、DexieAddressRepository:201-249、NativeAddressRepository:670-718、Seed default-dataset.ts:774の初期住所0件を照合。Web Integration testで既定昇格/旧version拒否を追加。決済時の住所選択はcheckout-order-pages.tsx:151-230の別画面にある。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "仕様・画面経路に不整合を確認。/account/addressesは追加/編集/削除の住所管理で、ラジオ選択→この配送先を使用は/checkout/address（SCREEN-CHECKOUT-ADDRESS）。既存の画面別対象が重複していないか整理するまでreview_requiredを維持。",
+      "related_use_cases": [
+        "AccountUseCases.updateAddress"
+      ],
+      "analysis_progress": "仕様の画面責務を修正し、管理画面の既定住所切替としてWeb/Native・Use Case・Repository・Seedを確認済み。Checkoutの配送先選択は別画面の別操作としてレビュー。全Caseの実機成功は別途判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -3743,7 +3740,45 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AccountUseCases.updateAddress",
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "line": 99,
+          "signature": "async updateAddress(request: UpdateAddressRequest): Promise<UserAddress> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 135,
+          "end_line": 165,
+          "reason": "Web管理画面の既定住所切替ボタン"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 494,
+          "end_line": 557,
+          "reason": "Native管理画面の既定住所切替操作"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 201,
+          "end_line": 249,
+          "reason": "Webの旧既定version更新と新既定の競合検証"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 670,
+          "end_line": 718,
+          "reason": "Nativeの同一操作のtransaction"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESSES-A02-01",
