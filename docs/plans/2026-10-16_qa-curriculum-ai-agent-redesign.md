@@ -1,5 +1,13 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 配送先操作と空状態の監査
+
+- 台帳の基本分析は20/188件（10.64%）、要レビュー168件。非default状態別条件は1/20件を分析済み、19件未レビュー。188件の最終分母は未確定。
+- 配送先追加・編集について、Use Caseの顧客認可と入力検証、Web/Dexie・Native/SQLiteの所有者、既定住所、version競合、5件上限、初期Seed住所0件を照合した。
+- 配送先未登録案内とWebデスクトップのempty状態は初期Seedと画面表示を照合し、Webの空案内と同画面の追加フォームを確認するcomponentテストを追加した。
+- `SCREEN-CHECKOUT-ADDRESSES-A01-04`は`/account/addresses`に選択操作がなく、`/checkout/address`に別画面の住所選択が存在する。画面契約の重複・誤分類の可能性を解決するまで`review_required`とする。
+- Web CIの成功とMobile CIの状態は最新HEADごとに確認し、実公開Template/非公開Codespaces/OpenCodeモデル校正の全マージ前受入とは区別する。
+
 ## 2026-10-30 機能分析の追加監査（引き継ぎ後）
 
 - [分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)とschema v2台帳で、画面操作172件＋独立Use Case操作16件＝暫定188件、状態別条件20件の分離を維持。
