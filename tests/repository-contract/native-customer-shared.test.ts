@@ -296,6 +296,49 @@ describe("Native SQLite Node runtime contract", () => {
     database.close();
   });
 
+  it("rolls back Native price acceptance when the quantity exceeds remaining stock", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(database as unknown as SQLiteDatabase, createScenarioDataset("default"));
+    const item = await database.getFirstAsync<Row>(
+      "SELECT variant_id FROM cart_items WHERE id = ?",
+      "cart-item-regular-shirt",
+    );
+    expect(item).not.toBeNull();
+    await database.runAsync(
+      "UPDATE cart_items SET quantity = 2, unit_effective_price_at_add = 999 WHERE id = ?",
+      "cart-item-regular-shirt",
+    );
+    await database.runAsync(
+      "UPDATE product_variants SET stock_quantity = 1 WHERE id = ?",
+      item!.variant_id,
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    await expect(
+      repositories.carts.acceptPriceChangesAndTouchCart({
+        cartId: "cart-regular-active",
+        cartExpectedVersion: 1,
+        itemExpectedVersions: { "cart-item-regular-shirt": 1 },
+        now: "2026-07-15T03:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT quantity, unit_effective_price_at_add, version FROM cart_items WHERE id = ?",
+        "cart-item-regular-shirt",
+      ),
+    ).toMatchObject({ quantity: 2, unit_effective_price_at_add: 999, version: 1 });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT version FROM carts WHERE id = ?",
+        "cart-regular-active",
+      ),
+    ).toMatchObject({ version: 1 });
+    database.close();
+  });
+
   it("translates SQLite lock errors at the Native transaction boundary", async () => {
     const lockedDatabase = {
       withExclusiveTransactionAsync: async () => {
