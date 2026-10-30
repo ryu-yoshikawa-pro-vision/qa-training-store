@@ -1,5 +1,11 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 決済画面の復元と前提ステップ検証
+
+- `CheckoutPaymentContent`と`NativeCheckoutPaymentScreen`は以前に保存した`paymentMethodCode`を参照せず、再表示時に`TEST-SUCCESS`へ戻していた。両画面で保存済み値を初期選択に使用し、明示的な再選択があればUI操作を優先するよう修正。Web/Nativeの`TEST-DECLINED`再表示・保存テストを追加した。
+- `SCREEN-CHECKOUT-PAYMENT-A02-01`（住所未設定セッション）と`A02-02`（Cart version不一致）をWeb/Native・Use Case・Seed・Repository・関連テストで監査した。未完了状態は`CHECKOUT_STEP_INCOMPLETE`、旧Cart状態は`CART_VERSION_CHANGED`で決済画面を拒否し、Sessionの決済方法・version・ステップを更新しない統合テストを追加した。
+- **基本分析32/188件（17.02%）、未分析156件、非default状態条件18/20件未レビュー**。CI/実機/画面リファレンスは別途判定。実Template→非公開2コアCodespaces、OpenCode実モデル校正、全11モジュール・全機能の完了条件を維持する。
+
 ## 2026-10-31 決済方法選択・確認遷移とCI原因の修正
 
 - `SCREEN-CHECKOUT-PAYMENT-A01-01`と`A01-02`を正式BR/AC・Web/Native・Use Case・Dexie/SQLite・Seed・回帰テストで照合。許可する4モック決済コード以外はApplication境界で拒否するよう修正し、未許可コードがSessionを変更しない統合テストを追加した。
