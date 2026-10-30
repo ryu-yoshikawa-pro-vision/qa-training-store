@@ -2717,20 +2717,20 @@
       "source_line": 91,
       "source_text": "顧客本人のプロフィール、会員ランク、アカウント状態を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: regular-member,gold-member,platinum-member,suspended-user。操作: 本人プロフィールを表示。正常・不許可・変化前後の入力を区別する",
+      "role": "customer",
+      "scenario": "regular-member/gold-member/platinum-memberのactive customer、guest・operator・admin、suspended/withdrawnの無効顧客セッションを区別",
+      "data": "default Seedのregular@example.com/gold@example.com/platinum@example.com、各memberシナリオの本人セッション。表示名・電話番号・email・rank・accountStatusを本人Userから取得する。operator/admin/guestの別セッションも用意",
       "action": "本人プロフィールを表示",
-      "expected": "ログイン中の顧客自身のプロフィールだけを表示し、他人のアカウント情報を表示しない",
+      "expected": "WebとAndroidでactive customer本人のメールアドレス・表示名・電話番号の編集値を、AccountUseCases.getProfileの現セッションUserから表示する。別顧客のUser情報を照会しない。guestはAUTHENTICATION_REQUIRED、非customerはcustomerOnly、停止/退会済みは認証境界で拒否しプロフィールを表示しない",
       "rule_refs": [],
       "route": "`/account/profile`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "本人プロフィールを表示に対して、ログイン中の顧客自身のプロフィールだけを表示し、他人のアカウント情報を表示しないことをUI/業務状態で照合する",
-      "test_responsibility": "本人プロフィールを表示のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "本人プロフィールを表示の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "顧客以外や失効セッションへの個人情報表示、他人の氏名・メール・電話の露出、Web/Nativeで別人のセッション情報を表示する",
+      "test_condition": "本人regular/gold/platinumのProfile画面とAccountUseCases.getProfileの結果を比較。別顧客に切り替えた後は表示が本人データへ替わり、guest/operator/admin・suspended/withdrawnは取得失敗して個人データを表示しない。Webの編集欄とNativeの表示値を確認する",
+      "test_responsibility": "Use CaseのSessionIdentityResolver.requireCurrentEntity→requireCustomerによる本人認証/顧客認可、Web RouteGuard、AndroidのAccountUseCase取得と表示項目を検証する",
+      "case_policy": "有効顧客3ランク、guest/operator/admin、停止/退会済み、切替前後の他人データ隔離。Profile保存のversion競合は別UC-ACCOUNT-UPDATE-PROFILEで検証する",
+      "case_selection_reason": "本人データの表示は個人情報を扱うため、表示項目と認可、失効状態の分岐を通常のランク差に優先して確認する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:85-98、roles-and-permissions.md:17-23、Web profile-page.tsx:20-63、Native native-purchase-screens.tsx:291-375、AccountUseCases.getProfile:52-54/requireCustomer:125-131、SessionIdentityResolver:27-63、User Seedとregular/gold/platinumシナリオを確認。getProfileは本人セッションから顧客だけにDTOを返す。停止/退会済みは閲覧可能状態ではない。",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
@@ -2738,10 +2738,9 @@
         "AC-AUTH-002"
       ],
       "related_use_cases": [
-        "AccountUseCases.getProfile",
-        "AuthUseCases.getCurrentUser"
+        "AccountUseCases.getProfile"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/profile-page.tsx",
         "line": 20,
@@ -2779,6 +2778,37 @@
           "line": 203,
           "signature": "async getCurrentUser(): Promise<CurrentUserDto | null> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 52,
+          "end_line": 54,
+          "reason": "本人顧客DTOの取得"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 63,
+          "reason": "セッション由来の本人User・無効状態の拒否"
+        },
+        {
+          "path": "src/presentation/pages/profile-page.tsx",
+          "start_line": 20,
+          "end_line": 63,
+          "reason": "Webの顧客限定と本人表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 291,
+          "end_line": 375,
+          "reason": "Nativeの本人DTOとプロフィール欄"
+        }
       ]
     },
     {
@@ -2789,28 +2819,28 @@
       "source_line": 91,
       "source_text": "顧客本人のプロフィール、会員ランク、アカウント状態を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: regular-member,gold-member,platinum-member,suspended-user。操作: 会員ランクを表示。正常・不許可・変化前後の入力を区別する",
+      "role": "customer",
+      "scenario": "regular-member、gold-member、platinum-member。3種類のランクと割引・送料条件をWeb/Android表示で比較。管理者ランクは顧客ランクとして表示しない",
+      "data": "User Seedのregular/gold/platinum会員で本人ログイン。membershipDiscountRateはregular=0%、gold=5%、platinum=10%。FREE_SHIPPING_THRESHOLD=5000円、platinumは無条件送料無料",
       "action": "会員ランクを表示",
-      "expected": "本人の会員ランクregular/gold/platinumが正しく表示され、権限ランクと混同しない",
+      "expected": "Web/Androidとも本人membershipRankを一般会員/ゴールド会員/プラチナ会員と表示し、会員割引を0%/5%/10%、送料特典をregular・goldでは商品小計5,000円以上で送料無料、platinumではいつでも送料無料と表示する。Role operator/adminはこの画面を利用できない",
       "rule_refs": [],
       "route": "`/account/profile`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "会員ランクを表示に対して、本人の会員ランクregular/gold/platinumが正しく表示され、権限ランクと混同しないことをUI/業務状態で照合する",
-      "test_responsibility": "会員ランクを表示のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "会員ランクを表示の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ランクによる表示差の欠落、WebとNativeの割引率・送料条件不一致、管理者Roleを会員ランクと混同、異なる価格ルールの表示",
+      "test_condition": "Web/Nativeを3ランクのシナリオで表示し、ランク名、0/5/10%の割引率、5,000円閾値/platinum送料無料条件を共通pricing.tsと比較。顧客以外のRole拒否と表示データに内部IDが含まれないことも確認する",
+      "test_responsibility": "Use Caseが返した本人membershipRank、共通labels.rankとmembershipDiscountRate/FREE_SHIPPING_THRESHOLDの計算、WebとAndroidのUI一致を検証する。実注文時の値引き計算はカート/価格契約で独立検証する",
+      "case_policy": "regular/gold/platinumの3Caseを全て採用。admin/operatorは顧客ランク判定に含めず、画面認可で拒否する",
+      "case_selection_reason": "正本3ランクごとに割引率と送料条件が変わり、Nativeでこれらの表示が欠落していたため、プラットフォーム共通の振る舞いとしてテストする",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:85-98のWeb/Android必須状態、Web profile-page.tsx:69-87、Native native-purchase-screens.tsxのプロフィール、shared pricing.ts:3-15、labels辞書のrank、regular/gold/platinum Seedを照合。Androidで不足していたランク/会員割引/送料特典表示を同じ共通関数で追加し、Web/Nativeの3ランクcomponentテストを追加。",
       "requirement_refs": [
-        "BR-AUTH-001",
         "BR-AUTH-002",
-        "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AccountUseCases.getProfile"
+      ],
+      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/profile-page.tsx",
         "line": 20,
@@ -2835,7 +2865,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/profile-page.tsx",
+          "start_line": 69,
+          "end_line": 88,
+          "reason": "Webの会員ランク/割引/送料特典"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 353,
+          "end_line": 390,
+          "reason": "Nativeへ追加したランク/割引/送料特典の表示"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 15,
+          "reason": "共通割引率と送料閾値"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 245,
+          "end_line": 300,
+          "reason": "Nativeでの全3ランク表示回帰"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-ACCOUNT-PROFILE-A01-03",
@@ -2845,28 +2906,29 @@
       "source_line": 91,
       "source_text": "顧客本人のプロフィール、会員ランク、アカウント状態を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: regular-member,gold-member,platinum-member,suspended-user。操作: アカウント状態を表示。正常・不許可・変化前後の入力を区別する",
+      "role": "customer",
+      "scenario": "regular/gold/platinumのactive会員画面、suspended-user/withdrawn-userによるログイン拒否。停止/退会済みを通常プロフィール画面へ表示できることは要求しない",
+      "data": "Seedのactive顧客3名にaccountStatus=active、suspended@example.comにsuspended、withdrawn@example.comにwithdrawnを用意。各Scenario initialSessionを確認し、SessionIdentityResolverの状態検査を使用する",
       "action": "アカウント状態を表示",
-      "expected": "本人のアカウント状態を正しく表示し、suspended/withdrawnのログイン制限を破らない",
+      "expected": "active customerのWeb/Androidプロフィールには「アカウント状態：利用中」を表示する。停止中・退会済みのユーザーはSessionIdentityResolver.requireCurrentEntityがACCOUNT_SUSPENDED/ACCOUNT_WITHDRAWNで拒否し、プロフィール内容を表示しない。管理RoleもcustomerOnlyで拒否する",
       "rule_refs": [],
       "route": "`/account/profile`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "アカウント状態を表示に対して、本人のアカウント状態を正しく表示し、suspended/withdrawnのログイン制限を破らないことをUI/業務状態で照合する",
-      "test_responsibility": "アカウント状態を表示のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "アカウント状態を表示の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "利用停止・退会済みユーザーがプロフィールにアクセスできる、Nativeでアカウント状態を表示せずWebと異なる、内部状態コードを誤表示する",
+      "test_condition": "active顧客3ランクはWeb/Nativeに「利用中」表示を確認。suspended-user、withdrawn-userではgetProfile拒否と画面の個人データ非表示を確認。inactive statusをactiveと誤表示しない",
+      "test_responsibility": "Use Caseの無効状態拒否と表示可能なactive状態を区別し、共通labels.accountでWebとAndroidの表示を一致させる",
+      "case_policy": "activeを正常表示Case、suspended/withdrawnを取得拒否Caseとして採用。停止ユーザーのプロフィール可視化は正式な認証規則に反するため期待しない",
+      "case_selection_reason": "仕様はアカウント状態の表示とログイン拒否の双方を持つ。停止/退会ユーザーを画面表示対象と誤解しないため別分岐に分ける",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:9-15,85-98,116-126、Web profile-page.tsx:74-78、Native native-purchase-screens.tsxの状態表示、dictionary.ts accountLabels、SessionIdentityResolver:41-58、Seedのactive/suspended/withdrawn Users、各Scenarioを照合。Nativeには不足していた状態ラベルを追加。無効状態は通常表示せず認証段階で拒否する。",
       "requirement_refs": [
         "BR-AUTH-001",
-        "BR-AUTH-002",
         "AC-AUTH-001",
-        "AC-AUTH-002"
+        "BR-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AccountUseCases.getProfile"
+      ],
+      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/profile-page.tsx",
         "line": 20,
@@ -2891,7 +2953,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 41,
+          "end_line": 58,
+          "reason": "inactive account拒否"
+        },
+        {
+          "path": "src/presentation/pages/profile-page.tsx",
+          "start_line": 69,
+          "end_line": 79,
+          "reason": "Webのアカウント状態表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 353,
+          "end_line": 374,
+          "reason": "Nativeのアカウント状態表示"
+        },
+        {
+          "path": "src/presentation/content/dictionary.ts",
+          "start_line": 90,
+          "end_line": 102,
+          "reason": "利用中/利用停止中/退会済みラベル"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
@@ -2901,28 +2994,29 @@
       "source_line": 92,
       "source_text": "顧客権限以外の機能や内部IDは表示しない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: regular-member,gold-member,platinum-member,suspended-user。操作: 他ロールの機能・内部IDを表示しない。正常・不許可・変化前後の入力を区別する",
+      "role": "customer",
+      "scenario": "active customer、guest、operator、admin、suspended/withdrawnのセッションでWeb/Androidのプロフィール画面とUse Caseを確認",
+      "data": "Seedの顧客regular/gold/platinumとoperator@example.com/admin@example.comを分けて認証。内部ID=User.id、管理用Roleと権限変更操作は画面に出さない。WebとNativeの同一AccountUseCases.getProfileを使用する",
       "action": "他ロールの機能・内部IDを表示しない",
-      "expected": "顧客画面に管理用のロール変更・内部識別子・別ユーザー情報の操作を表示しない",
+      "expected": "顧客プロフィール画面では氏名・メール・電話・ランク/特典と顧客向け住所管理・ログアウト等のみを表示し、userId/セッションIDや管理者用のユーザー操作・Role変更UIを描画しない。guestは認証要求、operator/adminは顧客専用認可で拒否し、顧客データに到達できない",
       "rule_refs": [],
       "route": "`/account/profile`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "他ロールの機能・内部IDを表示しないに対して、顧客画面に管理用のロール変更・内部識別子・別ユーザー情報の操作を表示しないことをUI/業務状態で照合する",
-      "test_responsibility": "他ロールの機能・内部IDを表示しないのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "他ロールの機能・内部IDを表示しないの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "内部識別子・他人プロフィールの露出、Role変更や管理者操作への画面導線、UI RouteGuardに依存したUse Case認可漏れ",
+      "test_condition": "Web/Nativeでactive customerのプロフィールを表示して内部User.id・Role変更/管理者操作が出ないことを確認。guest/operator/admin/停止ユーザーのgetProfile拒否も確認し、NativeのID未表示をcomponentテストで確認する",
+      "test_responsibility": "Web RouteGuard、AccountUseCases.requireCustomer、NativeのgetProfile拒否時UI、内部DTOのIDが存在してもUIテキストへ出さないことを確認する。管理者画面自体のアクセス制御は別SCREENで検証する",
+      "case_policy": "顧客の見せる項目と内部ID・管理機能の非表示、guest/operator/admin拒否を対象。IDがDTOに存在する事実自体をUI表示の不具合と混同しない",
+      "case_selection_reason": "管理用Roleと個人アカウントを分離する正式契約であり、Web/Nativeの見た目だけでなくUse Case認可も実装されているため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:85-98,122-126、roles-and-permissions.md:17-23、Web profile-page.tsx:20-28,53-128、Native native-purchase-screens.tsx:291-390、AccountUseCases.requireCustomer:125-131、SessionIdentityResolver:41-63を照合。DTOはidを内部に持つが、Web/Native画面の表示文言には採用しない。UIだけでなくUse Caseが顧客以外を拒否する。",
       "requirement_refs": [
-        "BR-AUTH-001",
         "BR-AUTH-002",
-        "AC-AUTH-001",
-        "AC-AUTH-002"
+        "AC-AUTH-002",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AccountUseCases.getProfile"
+      ],
+      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/profile-page.tsx",
         "line": 20,
@@ -2947,7 +3041,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/profile-page.tsx",
+          "start_line": 20,
+          "end_line": 28,
+          "reason": "Webの顧客RouteGuard"
+        },
+        {
+          "path": "src/presentation/pages/profile-page.tsx",
+          "start_line": 53,
+          "end_line": 128,
+          "reason": "Webに顧客向け表示のみ"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 291,
+          "end_line": 395,
+          "reason": "Native顧客用プロフィール操作/ID非表示"
+        },
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 125,
+          "end_line": 131,
+          "reason": "顧客認可の強制"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-A01-01",
