@@ -162,6 +162,51 @@ describe("checkout and customer order application integration", () => {
     });
   });
 
+  it("refuses the payment step until a shipping address is saved", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    await expect(useCases.getActive("payment")).rejects.toMatchObject({
+      code: "CHECKOUT_STEP_INCOMPLETE",
+    });
+    expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+      addressSnapshot: null,
+      unlockedStep: "address",
+      version: started.session.version,
+    });
+  });
+
+  it("refuses a stale Cart on the payment step without changing the chosen method", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const addressed = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    await database.carts.update(cart!.id, { version: cart!.version + 1 });
+    await expect(useCases.getActive("payment")).rejects.toMatchObject({
+      code: "CART_VERSION_CHANGED",
+    });
+    await expect(
+      useCases.setPayment({
+        checkoutSessionId: addressed.id,
+        checkoutExpectedVersion: addressed.version,
+        paymentMethodCode: "TEST-SUCCESS",
+      }),
+    ).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+    expect(await database.checkout_sessions.get(addressed.id)).toMatchObject({
+      paymentMethodCode: null,
+      unlockedStep: "payment",
+      version: addressed.version,
+    });
+  });
+
   it("revalidates checkout address text limits at the Application boundary", async () => {
     const cart = await database.carts
       .where("[userId+status]")
