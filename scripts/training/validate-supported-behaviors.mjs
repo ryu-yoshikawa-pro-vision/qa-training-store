@@ -147,10 +147,7 @@ function validateEntries(data, root) {
   const { sources, expected, screenIds, actionSourcesByScreen } = sourceContract(root);
   assert(data?.schema_version === 1, "invalid coverage schema");
   assert(Array.isArray(data.entries), "coverage entries are missing");
-  assert(
-    /^[0-9a-f]{40}$/.test(data.source_commit),
-    "source_commit must be the full pinned commit",
-  );
+  assert(/^[0-9a-f]{40}$/.test(data.source_commit), "source_commit must be the full pinned commit");
   assert(
     Array.isArray(data.source_paths) &&
       data.source_paths.length === SOURCES.length &&
