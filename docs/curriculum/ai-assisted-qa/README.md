@@ -97,3 +97,14 @@ node scripts/training/knowledge-graph.mjs impact --changed-files changed-files.t
 公開学習マップの`objectives.html`では、正式学習目標の下に理解ノードを表示します。教材の対応箇所、演習、関連する確認クイズを確認できます。本人の自己確認とクイズ結果は、そのブラウザのローカル保存領域だけで管理します。別ブラウザへの引継ぎ・同期機能はありません。ブラウザの履歴やサイトデータを削除すると学習記録を復旧できない場合があります。
 
 クイズ結果は独立した実技・正式評価の合格とは異なります。Phase評価の結果は個人の学習用workspaceで管理します。
+
+## 公開Webの3ページ構成
+
+各モジュール（M00〜M10）は、テキスト・演習・クイズの独立したHTMLページを公開する。
+
+- テキスト：`/docs/curriculum/ai-assisted-qa/modules/Mxx/`。概念・図解・コード例・解説付きの短い練習を読む。
+- 演習：`/docs/curriculum/ai-assisted-qa/modules/Mxx/exercise.html`。正本`training/ai-assisted-qa-course/exercises/Mxx/exercise.md`から生成し、手順付き実技・反復課題P01〜P06・提出内容を確認する。
+- クイズ：`/docs/curriculum/ai-assisted-qa/quizzes/Mxx.html`。正本の問題JSONから生成し、正誤・解説・復習先を示す。
+
+3ページの上部に共通の切替リンクを配置する。配布用Markdown・入力・提出テンプレート・Phase評価基準のファイルを残し、実際の操作と提出は個人のCodespacesで行う。クイズ得点と教材閲覧は正式修了判定の代わりにしない。
+

@@ -150,6 +150,163 @@ function resolveCourseLink(rootDir: string, fromPath: string, target: string, so
   } else if (resolved.startsWith(`${COURSE_ROOT}/assets/`)) {
     if (!isPublicCourseAsset(resolved)) throw new Error(`公開対象外の教材画像です: ${resolved}`);
     href = `${COURSE_URL}/${resolved.slice(`${COURSE_ROOT}/`.length)}`;
+  } else if (
+    new RegExp(`^${TRAINING_ROOT}/exercises/M(?:0[0-9]|10)/exercise\\.mdimport { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  MARKDOWN_CSS,
+  escapeHtml,
+  isExternalLink,
+  parseMarkdownFile,
+  renderMarkdown,
+  type ParsedMarkdown,
+} from "../spec/markdown";
+import { validateAiAssistedQa } from "../training/validate-ai-assisted-qa";
+
+const COURSE_ROOT = "docs/curriculum/ai-assisted-qa";
+const MODULE_ROOT = `${COURSE_ROOT}/modules`;
+const QUIZ_ROOT = `${COURSE_ROOT}/quizzes`;
+const COURSE_ENTRY = `${COURSE_ROOT}/start-here.md`;
+const COURSE_URL = "/docs/curriculum/ai-assisted-qa";
+const SOURCE_REPOSITORY_URL = "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob";
+const SPEC_ROOT = "docs/spec";
+const LEARNING_MAP_PATH = "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md";
+const TRAINING_ROOT = "training/ai-assisted-qa-course";
+const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
+const EXPECTED_OBJECTIVE_COUNTS = [4, 4, 5, 5, 4, 5, 5, 5, 4, 5, 5];
+const COURSE_ASSETS = new Set([
+  `${COURSE_ROOT}/assets/m00-agent-boundary.png`,
+  `${COURSE_ROOT}/assets/m01-expected-observed.png`,
+  `${COURSE_ROOT}/assets/m05-test-execution-flow.png`,
+]);
+
+type NavigationItem = { label: string; canonicalPath: string; href: string };
+type NavigationGroup = { label: string; items: NavigationItem[] };
+type CourseBuildResult = { coursePages: number; quizPages: number };
+
+function sourceUrlForBuild(rootDir: string): string {
+  // Pull-request jobs may check out an ephemeral merge commit. Prefer the PR
+  // head commit so review links remain usable after the next PR update.
+  let sha: string | undefined;
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath) {
+    const event = JSON.parse(fs.readFileSync(eventPath, "utf8")) as {
+      pull_request?: { head?: { sha?: string } };
+    };
+    sha = event.pull_request?.head?.sha;
+  }
+  sha ??= execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
+    cwd: rootDir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+  if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error("教材の配布元commit SHAを確定できません");
+  return `${SOURCE_REPOSITORY_URL}/${sha}`;
+}
+
+function listMarkdown(rootDir: string): string[] {
+  const courseAbsolute = path.join(rootDir, ...COURSE_ROOT.split("/"));
+  const result: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of fs
+      .readdirSync(directory, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name))) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (
+        entry.isFile() &&
+        entry.name.endsWith(".md") &&
+        path.relative(courseAbsolute, absolute).split(path.sep).join("/") !== "README.md"
+      ) {
+        result.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
+      }
+    }
+  };
+  if (fs.existsSync(courseAbsolute)) visit(courseAbsolute);
+  return result.sort((left, right) => left.localeCompare(right));
+}
+
+function resolveRepositoryPath(rootDir: string, fromPath: string, target: string): string {
+  const root = path.resolve(rootDir);
+  const absolute = path.resolve(root, path.dirname(fromPath), target);
+  const relative = path.relative(root, absolute);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`新課程のリンクがリポジトリ外へ移動しています: ${target}`);
+  }
+  if (!fs.existsSync(absolute)) throw new Error(`新課程のリンク先がありません: ${target}`);
+  const realRoot = fs.realpathSync(root);
+  const realTarget = fs.realpathSync(absolute);
+  const realRelative = path.relative(realRoot, realTarget);
+  if (realRelative === ".." || realRelative.startsWith(`..${path.sep}`) || path.isAbsolute(realRelative)) {
+    throw new Error(`新課程のリンクがsymlink経由でリポジトリ外へ移動しています: ${target}`);
+  }
+  return relative.split(path.sep).join("/");
+}
+
+function courseOutputPath(relativePath: string): string {
+  if (relativePath === COURSE_ENTRY) return "index.html";
+  const moduleReadme = new RegExp(`^${MODULE_ROOT}/(M(?:0[0-9]|10))/README\\.md$`).exec(relativePath);
+  if (moduleReadme?.[1] !== undefined) return `modules/${moduleReadme[1]}/index.html`;
+  return relativePath.replace(`${COURSE_ROOT}/`, "").replace(/\.md$/i, ".html");
+}
+
+function courseUrlForMarkdown(relativePath: string): string {
+  if (relativePath === COURSE_ENTRY) return `${COURSE_URL}/`;
+  const moduleReadme = new RegExp(`^${MODULE_ROOT}/(M(?:0[0-9]|10))/README\\.md$`).exec(relativePath);
+  if (moduleReadme?.[1] !== undefined) return `${COURSE_URL}/modules/${moduleReadme[1]}/`;
+  return `${COURSE_URL}/${courseOutputPath(relativePath)}`;
+}
+
+function isPublicLearnerResource(relativePath: string): boolean {
+  return (
+    /^training\/ai-assisted-qa-course\/(?:exercises|inputs)\/M(?:0[0-9]|10)\/.+/.test(relativePath) ||
+    /^training\/ai-assisted-qa-course\/assessment\/phase-[1-3]-rubric\.md$/.test(relativePath) ||
+    relativePath === `${TRAINING_ROOT}/integrations/M02-M03-contract.md` ||
+    relativePath === `${TRAINING_ROOT}/templates/phase3/course-e2e.workflow.yml.disabled`
+  );
+}
+
+export function isPublicCourseAsset(relativePath: string): boolean {
+  return (
+    COURSE_ASSETS.has(relativePath) ||
+    /^docs\/curriculum\/ai-assisted-qa\/assets\/figures\/M(?:0[0-9]|10)\/[a-z0-9-]+\.svg$/.test(relativePath)
+  );
+}
+
+function resourceUrl(relativePath: string): string {
+  return `${COURSE_URL}/resources/${relativePath}`;
+}
+
+function resolveCourseLink(rootDir: string, fromPath: string, target: string, sourceUrl: string): string {
+  if (isExternalLink(target)) return target;
+  const [filePart = "", fragment] = target.split("#", 2);
+  if (filePart === "") return fragment === undefined ? "" : `#${fragment}`;
+  const resolved = resolveRepositoryPath(rootDir, fromPath, filePart);
+  let href: string;
+  if (resolved === COURSE_ENTRY) {
+    href = `${COURSE_URL}/`;
+  } else if (resolved.startsWith(`${MODULE_ROOT}/`) && resolved.endsWith("/README.md")) {
+    const moduleId = resolved.slice(MODULE_ROOT.length + 1, -"/README.md".length);
+    href = `${COURSE_URL}/modules/${moduleId}/`;
+  } else if (resolved.startsWith(`${QUIZ_ROOT}/`) && /^M(?:0[0-9]|10)\.json$/.test(path.posix.basename(resolved))) {
+    href = `${COURSE_URL}/quizzes/${path.posix.basename(resolved, ".json")}.html`;
+  } else if (resolved.startsWith(`${COURSE_ROOT}/`) && resolved.endsWith(".md")) {
+    href = courseUrlForMarkdown(resolved);
+  } else if (resolved === `${SPEC_ROOT}/README.md`) {
+    href = "/docs/spec/";
+  } else if (resolved.startsWith(`${SPEC_ROOT}/`) && resolved.endsWith(".md")) {
+    href = `/docs/spec/${resolved.slice(`${SPEC_ROOT}/`.length).replace(/\.md$/i, ".html")}`;
+  } else if (resolved === LEARNING_MAP_PATH) {
+    href = `${COURSE_URL}/objectives.html`;
+  } else if (resolved.startsWith(`${COURSE_ROOT}/assets/`)) {
+    if (!isPublicCourseAsset(resolved)) throw new Error(`公開対象外の教材画像です: ${resolved}`);
+    href = `${COURSE_URL}/${resolved.slice(`${COURSE_ROOT}/`.length)}`;
+).test(resolved)
+  ) {
+    const moduleId = path.posix.basename(path.posix.dirname(resolved));
+    href = exercisePageUrl(moduleId);
   } else if (resolved.startsWith(`${TRAINING_ROOT}/`)) {
     if (!isPublicLearnerResource(resolved)) throw new Error(`受講者へ公開しない教材資料へのリンクです: ${resolved}`);
     href = resourceUrl(resolved);
@@ -511,6 +668,8 @@ const QUIZ_JS = `(async()=>{
     if(moduleMatch)return "/docs/curriculum/ai-assisted-qa/modules/"+moduleMatch[1]+"/"+fragment;
     if(file==="docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md")return "/docs/curriculum/ai-assisted-qa/objectives.html"+fragment;
     if(file.startsWith("training/ai-assisted-qa-course/")){
+      const exerciseMatch=/^training\\/ai-assisted-qa-course\\/exercises\\/(M(?:0[0-9]|10))\\/exercise\\.md$/.exec(file);
+      if(exerciseMatch)return "/docs/curriculum/ai-assisted-qa/modules/"+exerciseMatch[1]+"/exercise.html"+fragment;
       const learnerResource=/^training\\/ai-assisted-qa-course\\/(?:exercises|inputs)\\/M(?:0[0-9]|10)\\/.+/.test(file)||/^training\\/ai-assisted-qa-course\\/assessment\\/phase-[1-3]-rubric\\.md$/.test(file)||file==="training/ai-assisted-qa-course/integrations/M02-M03-contract.md";
       return learnerResource?"/docs/curriculum/ai-assisted-qa/resources/"+file+fragment:"#";
     }

@@ -534,6 +534,54 @@ describe("AI-assisted QA static learning course", () => {
     expect(quizCss).not.toContain("color-scheme:light dark");
   });
 
+  it("publishes separate text, exercise and quiz pages for all eleven modules", () => {
+    for (let index = 0; index <= 10; index += 1) {
+      const id = `M${String(index).padStart(2, "0")}`;
+      const directory = path.join(docsOutput, "curriculum/ai-assisted-qa");
+      const lesson = fs.readFileSync(
+        path.join(directory, "modules", id, "index.html"),
+        "utf8",
+      );
+      const exercise = fs.readFileSync(
+        path.join(directory, "modules", id, "exercise.html"),
+        "utf8",
+      );
+      const quiz = fs.readFileSync(path.join(directory, "quizzes", `${id}.html`), "utf8");
+      const exerciseSource = fs.readFileSync(
+        path.join(repositoryRoot, `training/ai-assisted-qa-course/exercises/${id}/exercise.md`),
+      );
+      const exerciseRevision = createHash("sha256").update(exerciseSource).digest("hex");
+
+      for (const html of [lesson, exercise, quiz]) {
+        expect(html).toContain('class="module-sections"');
+        expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/modules/${id}/"`);
+        expect(html).toContain(
+          `href="/docs/curriculum/ai-assisted-qa/modules/${id}/exercise.html"`,
+        );
+        expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html"`);
+        expect(html).toContain('class="module-pager"');
+      }
+      expect(lesson).toContain(`<a href="/docs/curriculum/ai-assisted-qa/modules/${id}/" aria-current="page">テキスト</a>`);
+      expect(exercise).toContain(
+        `<a href="/docs/curriculum/ai-assisted-qa/modules/${id}/exercise.html" aria-current="page">演習</a>`,
+      );
+      expect(quiz).toContain(
+        `<a href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html" aria-current="page">クイズ</a>`,
+      );
+      expect(exercise).toContain(`name="course-source-revision" content="${exerciseRevision}"`);
+      expect(exercise).toContain("P01");
+      expect(exercise).toContain("P06");
+      expect(exercise).toContain("提出");
+      expect(exercise).toContain("次はクイズへ");
+      expect(lesson).toContain("次は演習へ");
+      expect(exercise).not.toContain("/assessment/scoring-tests/");
+      expect(exercise).not.toContain("/assessment/reference-solutions/");
+      expect(exercise).not.toContain("/assessment/completed-states/");
+      expect(exercise).not.toContain('id="question-panel"');
+      expect(quiz).toContain('id="question-panel"');
+    }
+  });
+
   it("routes all public learner materials internally and excludes protected assessment data", () => {
     const courseRoot = "training/ai-assisted-qa-course";
 
