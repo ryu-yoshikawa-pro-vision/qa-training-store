@@ -463,6 +463,40 @@ describe("checkout and customer order application integration", () => {
     );
   });
 
+  it.each([
+    ["cart version", "CART_VERSION_CHANGED"],
+    ["product price", "PRICE_CHANGED"],
+  ] as const)(
+    "rejects a stale %s on confirmation and order creation without mutation",
+    async (change, code) => {
+      const checkout = await readyCheckout("TEST-SUCCESS");
+      const sessionBefore = await database.checkout_sessions.get(checkout.id);
+      const orderCount = await database.orders.count();
+      const paymentCount = await database.payments.count();
+      const stockBefore = await database.product_variants.get("variant-basic-shirt-02");
+      if (change === "cart version") {
+        const cart = await database.carts.get(checkout.cartId);
+        await database.carts.update(checkout.cartId, { version: cart!.version + 1 });
+      } else {
+        await database.product_variants.update("variant-basic-shirt-02", { regularPrice: 9999 });
+      }
+      await expect(useCases.getConfirmation(checkout.id)).rejects.toMatchObject({ code });
+      await expect(
+        useCases.beginOrder({
+          checkoutSessionId: checkout.id,
+          checkoutActionVersion: checkout.version,
+        }),
+      ).rejects.toMatchObject({ code });
+      expect(await database.checkout_sessions.get(checkout.id)).toEqual(sessionBefore);
+      expect(await database.orders.count()).toBe(orderCount);
+      expect(await database.payments.count()).toBe(paymentCount);
+      expect((await database.product_variants.get("variant-basic-shirt-02"))!.stockQuantity).toBe(
+        stockBefore!.stockQuantity,
+      );
+      expect(gateway.calls).toHaveLength(0);
+    },
+  );
+
   it("does not create an order when price or rank revalidation fails", async () => {
     const checkout = await readyCheckout("TEST-SUCCESS");
     const orderCount = await database.orders.count();

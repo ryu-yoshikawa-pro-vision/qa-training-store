@@ -4095,7 +4095,7 @@
       "analysis_progress": "Webは本人の登録済み住所だけを選択するが、Nativeは住所0件でも初期値が入力され、任意のSnapshotを直接確定できる。Use Caseの住所文字数/必須/郵便/電話検証は修正済み。保存済み住所必須か直接入力許可か正式受入契約が未確定のため、仕様を独断で決定せずreview_requiredを維持",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4167,7 +4167,7 @@
       "analysis_progress": "Web/Nativeのステップ遷移・Use Caseの住所入力とセッション検証・RepositoryとSeedを照合。CIと実機の実行受入は別判定。Native自由入力の仕様妥当性は親の配送先選択操作で引き続きレビュー",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4266,7 +4266,7 @@
       "analysis_progress": "Web/Nativeの再開経路・保存済み住所復元・Seed/Repositoryを照合し、Webの保存済み非既定住所を誤って既定へ切り替える不具合を修正。CIと実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4363,7 +4363,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4429,7 +4429,7 @@
       "analysis_progress": "checkout-replaced Seed・Web/Native Repository・Use Case・通知UIを照合。Nativeでreplacedをstartedと誤表示する不整合を修正して回帰テストを追加。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4519,7 +4519,7 @@
       "analysis_progress": "正式仕様、Web UI/Use Case、Seedの実値と既存E2Eを照合済み。親操作のWeb/Native入力復元と実行結果は未判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 107,
+        "line": 126,
         "signature": "export function CheckoutAddressPage() {"
       },
       "seed_evidence": {
@@ -4619,7 +4619,7 @@
       "analysis_progress": "4モック決済方法の選択とApplication/Repositoryの永続化境界を照合。実行時未許可コードの拒否を実装・統合テスト追加。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 243,
+        "line": 262,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4729,7 +4729,7 @@
       "analysis_progress": "保存成功時だけ確認画面へ遷移することをWeb/Native/Use Case/Repository/Seedで照合。Webの保存失敗未処理を修正。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 243,
+        "line": 262,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4831,7 +4831,7 @@
       "analysis_progress": "正式仕様・Web/Native・Application/Repository・Seedを照合し、不完全Sessionの決済拒否と非遷移テストを追加。CIと実機結果は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 243,
+        "line": 262,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4920,7 +4920,7 @@
       "analysis_progress": "固定SeedとApplication/RepositoryのCart version境界、Web/Nativeの拒否表示と統合テストを照合済み。CI/実機の最終結果は別に確認",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 243,
+        "line": 262,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4987,35 +4987,32 @@
       "source_line": 126,
       "source_text": "注文内容、配送先、価格、決済方法を最終確認する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 最終注文内容を確認",
+      "role": "customer",
+      "scenario": "regular-memberの本人がCartからstart→setAddress→setPaymentで確認画面を開く。2点以上の明細や複数SKUを追加する場合は検証前にcart versionの整合を取る",
+      "data": "default/regular-member Seedのcustomer、カートの商品ID・SKU・数量・カート版と確認DTOのitemsを比較。Web/Nativeの表示明細はproductName・optionValue・数量・lineTotalAmountを使う",
       "action": "最終注文内容を確認",
-      "expected": "注文予定の商品・数量・金額が現在の本人カートと一致するスナップショットで表示される",
+      "expected": "本人カートから算出した確認DTOの各明細（商品名/選択肢/数量/明細額）とWeb・Native表示が一致する。未完了Checkoutは確認画面を表示しない",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "最終注文内容を確認について、注文予定の商品・数量・金額が現在の本人カートと一致するスナップショットで表示されることを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と最終注文内容を確認の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "最終注文内容を確認の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "数量やSKUの取り違え、誤注文、購入前に明細総額の不一致を見逃す",
+      "test_condition": "regular-memberで有効Sessionを作り、2点のSKUオプションと明細額をUIに表示し、getConfirmationが現行CartDtoと同じ商品の数量/金額を返すことを確認する",
+      "test_responsibility": "CartRepository.getCartDto→CheckoutRepository.getConfirmation→Web/Native確認UIに同じSKU/数量/金額が渡ることを観測する",
+      "case_policy": "正常明細の一致と未完了Session拒否を採用。Cart変更および価格変更の拒否はA02-01/A02-02に分離",
+      "case_selection_reason": "利用者が確定前に購入商品・数量と明細額を照合できることが注文間違い防止の条件になる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正本checkout-and-payment.md:9-22,120-153,BR-CHECKOUT-002/AC-CHECKOUT-002、CheckoutOrderUseCases.getConfirmation:184-191/beginOrder:193-316、Dexie getConfirmation:723-808、Native SQLite:1851-1948、Pricing calculateOrderTotals:72-102、Web/Native確認画面、default/regular-member/checkout-replaced/cart-version-invalidates-checkout Seedを照合。確認表示とCart/価格競合拒否のComponent/統合回帰テストを追加。実行成功・実機受入とは分離する",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "CheckoutOrderUseCases.getConfirmation"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "Web/Nativeの確認明細と金額内訳の差異、Cart/価格競合時の確定拒否と戻り先を監査し変更。実装・回帰テストコードを追加済み。CI結果・実機・スクリーンショット正本の検証は未了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5042,6 +5039,55 @@
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "line": 184,
           "signature": "async getConfirmation(checkoutSessionId?: string): Promise<CheckoutConfirmationDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1064,
+          "reason": "Nativeの注文明細・割引・送料・確定失敗時のカート修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "WebのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1948,
+          "reason": "NativeのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
         }
       ]
     },
@@ -5078,7 +5124,7 @@
       "analysis_progress": "正本仕様・Use Case・Web/Native・Dexie/SQLite・Seed・関連テストを照合。Native確認画面に支払方法・宛名・郵便番号・建物名表示と取得エラー導線を追加し、Webの建物名表示も補完。テスト実行・Android実機受入は別判定。住所の直接入力可否はA01-01に残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5146,33 +5192,31 @@
       "source_line": 126,
       "source_text": "注文内容、配送先、価格、決済方法を最終確認する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 価格を確認",
+      "role": "customer",
+      "scenario": "regular-member/会員ランクgold/セール開催時に商品価格と送料を確認する。価格差はカート未承諾と確定時の変化で別条件",
+      "data": "regular-memberの2点・単価2000円を例とした確認DTOは小計4000円、割引0円、送料500円、合計4500円。UI Componentでは会員割引200円のDTOを作り、小計4000・割引200・送料500・合計4300円の表示整合を確認。税の独立明細は現行Pricing契約に存在しない",
       "action": "価格を確認",
-      "expected": "現在カートと注文確認の適用価格・割引・送料および合計金額が一致している",
+      "expected": "Web/Nativeの確認画面が商品小計・会員割引・送料・合計の各確認DTO値を表示し、totalAmount=subtotalAmount-discountAmount+shippingAmountを満たす。税の独立表示は仕様にないため要求しない",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "価格を確認について、現在価格・税・割引・送料の適用条件がカートと一致する金額で確認できることを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と価格を確認の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "価格を確認の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "会員割引・送料の表示欠落、明細の二重割引、合計と確定額の差異",
+      "test_condition": "PricingServiceで算出した確認DTOのsubtotalAmount/discountAmount/shippingAmount/totalAmountとWeb/Native表示を比較。会員ランクによる割引額と送料条件をカートDTOと一致させ、独立の税明細を仮定しない",
+      "test_responsibility": "PricingService.calculateOrderTotalsとRepository確認DTO、Web注文サマリー/Native内訳・合計を照合する",
+      "case_policy": "通常価格・会員割引・送料無料の境界はPricing Serviceの既存テストを利用し、画面層では確認DTOの全内訳の表示を代表Caseに採用",
+      "case_selection_reason": "Nativeは合計のみ表示していたため、確定前の割引・送料の説明不足を検出する必要がある",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正本checkout-and-payment.md:9-22,120-153,BR-CHECKOUT-002/AC-CHECKOUT-002、CheckoutOrderUseCases.getConfirmation:184-191/beginOrder:193-316、Dexie getConfirmation:723-808、Native SQLite:1851-1948、Pricing calculateOrderTotals:72-102、Web/Native確認画面、default/regular-member/checkout-replaced/cart-version-invalidates-checkout Seedを照合。確認表示とCart/価格競合拒否のComponent/統合回帰テストを追加。実行成功・実機受入とは分離する",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation"
+      ],
+      "analysis_progress": "Web/Nativeの確認明細と金額内訳の差異、Cart/価格競合時の確定拒否と戻り先を監査し変更。実装・回帰テストコードを追加済み。CI結果・実機・スクリーンショット正本の検証は未了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5193,7 +5237,56 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1064,
+          "reason": "Nativeの注文明細・割引・送料・確定失敗時のカート修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "WebのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1948,
+          "reason": "NativeのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A01-04",
@@ -5228,7 +5321,7 @@
       "analysis_progress": "正本仕様・Use Case・Web/Native・Dexie/SQLite・Seed・関連テストを照合。Native確認画面に支払方法・宛名・郵便番号・建物名表示と取得エラー導線を追加し、Webの建物名表示も補完。テスト実行・Android実機受入は別判定。住所の直接入力可否はA01-01に残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5296,36 +5389,37 @@
       "source_line": 127,
       "source_text": "カート情報が古い場合や価格の不一致が発生している場合は注文を確定せず、修正のための導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 古いカートを拒否",
+      "role": "customer",
+      "scenario": "regular-memberの有効Checkout Session（address/payment/confirm済）を用意し、確認時または確認表示後にCart.versionを+1変更。cart-version-invalidates-checkout Seedの旧Session version1/Cart version2も比較",
+      "data": "cart-version-invalidates-checkout SeedではCheckoutSession.cartVersion1、Cart.version2、unlockedStep=addressであり、確認画面の直接表示検証にはconfirmまで進んだ別SessionへCart版変更を追加する",
       "action": "古いカートを拒否",
-      "expected": "カートversion変更後の古い注文確認は拒否され、確定済みとして扱わない",
+      "expected": "getConfirmationとbeginOrderがCART_VERSION_CHANGEDを返し、Checkout Session・注文・決済・在庫は変わらず、Web/Nativeからカートへ戻って修正できる。確認済み画面からの確定でも注文を作らない",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "古いカートを拒否について、カートversion変更後の古い注文確認は拒否され、確定済みとして扱わないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と古いカートを拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "古いカートを拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "変更前の数量・明細で注文作成、決済の多重実行、無効Cartから在庫を引き当てる",
+      "test_condition": "2経路（確認読込前/読込後）でCart versionを変更し、getConfirmation/beginOrder拒否、注文/決済未作成と在庫・Checkout Session不変、Web/Native修正導線を検証",
+      "test_responsibility": "CheckoutOrderUseCases.getActive/getConfirmation/開始確定のCart version比較と画面の拒否・復旧を照合する",
+      "case_policy": "Cart更新直後の確認参照拒否、既表示画面からの確定拒否、修正導線を採用。セッション置換は住所画面A02-03で別管理",
+      "case_selection_reason": "古いCart版からの確定は金額・数量・在庫の不整合を直接生むため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正本checkout-and-payment.md:9-22,120-153,BR-CHECKOUT-002/AC-CHECKOUT-002、CheckoutOrderUseCases.getConfirmation:184-191/beginOrder:193-316、Dexie getConfirmation:723-808、Native SQLite:1851-1948、Pricing calculateOrderTotals:72-102、Web/Native確認画面、default/regular-member/checkout-replaced/cart-version-invalidates-checkout Seedを照合。確認表示とCart/価格競合拒否のComponent/統合回帰テストを追加。実行成功・実機受入とは分離する",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation",
+        "CheckoutOrderUseCases.beginOrder"
+      ],
       "state_refs": [
         "SCREEN-CHECKOUT-CONFIRM-S-stale-cart"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "Web/Nativeの確認明細と金額内訳の差異、Cart/価格競合時の確定拒否と戻り先を監査し変更。実装・回帰テストコードを追加済み。CI結果・実機・スクリーンショット正本の検証は未了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5346,7 +5440,56 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1064,
+          "reason": "Nativeの注文明細・割引・送料・確定失敗時のカート修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "WebのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1948,
+          "reason": "NativeのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
@@ -5356,33 +5499,32 @@
       "source_line": 127,
       "source_text": "カート情報が古い場合や価格の不一致が発生している場合は注文を確定せず、修正のための導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 価格不一致を拒否",
+      "role": "customer",
+      "scenario": "本人が確認画面を開く前/開いた後に商品の通常価格を変更する。Cart版は据え置き、追加した単価と現在単価の差を発生させる。sale-active/expired-saleの時刻差分も同じPricing分岐で評価する",
+      "data": "defaultのvariant-basic-shirt-02を単価2000円でCartに追加した状態からregularPrice=9999円に更新。Cart.versionは変更しない。既存統合テストでbeginOrderのPRICE_CHANGEDを確認している",
       "action": "価格不一致を拒否",
-      "expected": "注文開始前に価格が変わった場合は拒否し、旧価格の支払い・在庫確定をしない",
+      "expected": "getConfirmationとbeginOrderはPRICE_CHANGEDで注文・決済を作らず、Checkout Session・在庫は変更しない。Web/Nativeはカートへ戻る修正導線を提供し、旧価格の確定を許さない",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "価格不一致を拒否について、注文開始前に価格が変わった場合は拒否し、旧価格の支払い・在庫確定をしないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と価格不一致を拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "価格不一致を拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "カート承諾前の商品価格で決済、差額の無断請求、販売価格の切替時刻の取り違え",
+      "test_condition": "Cart版は維持したまま商品価格のみ変更し、getConfirmation/beginOrderの拒否、注文/決済/在庫の不変、Web/Nativeのカート確認リンクと非遷移を検証",
+      "test_responsibility": "effectiveUnitPriceとCartItem.unitEffectivePriceAtAddの比較を基準に、Web/NativeのRepositoryエラーをUse Caseが伝播し、UIで修正できることを確認",
+      "case_policy": "通常価格差での拒否、提示中に価格変更したケースを採用。割引率の変化だけでは商品価格変更と混同しない",
+      "case_selection_reason": "価格差があっても購入できると、ユーザーが確認した支払額と実際の確定額が異なるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正本checkout-and-payment.md:9-22,120-153,BR-CHECKOUT-002/AC-CHECKOUT-002、CheckoutOrderUseCases.getConfirmation:184-191/beginOrder:193-316、Dexie getConfirmation:723-808、Native SQLite:1851-1948、Pricing calculateOrderTotals:72-102、Web/Native確認画面、default/regular-member/checkout-replaced/cart-version-invalidates-checkout Seedを照合。確認表示とCart/価格競合拒否のComponent/統合回帰テストを追加。実行成功・実機受入とは分離する",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation",
+        "CheckoutOrderUseCases.beginOrder"
+      ],
+      "analysis_progress": "Web/Nativeの確認明細と金額内訳の差異、Cart/価格競合時の確定拒否と戻り先を監査し変更。実装・回帰テストコードを追加済み。CI結果・実機・スクリーンショット正本の検証は未了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5403,7 +5545,56 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1064,
+          "reason": "Nativeの注文明細・割引・送料・確定失敗時のカート修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "WebのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1948,
+          "reason": "NativeのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A02-03",
@@ -5413,33 +5604,32 @@
       "source_line": 127,
       "source_text": "カート情報が古い場合や価格の不一致が発生している場合は注文を確定せず、修正のための導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,cart-version-invalidates-checkout,sale-active,checkout-replaced。Customer本人/他人・activeセッション・versionを区別する。対象動作: 修正導線を表示",
+      "role": "customer",
+      "scenario": "確認画面の直前または確定操作時にCart version不一致/PRICE_CHANGEDを再現し、Web/Nativeのエラー表示からカート/配送先へ戻る",
+      "data": "Cart.version変更ならCART_VERSION_CHANGED、商品通常価格変更ならPRICE_CHANGED、支払未保存ならCHECKOUT_STEP_INCOMPLETE。確認画面のread失敗とsubmit失敗をそれぞれ注入する",
       "action": "修正導線を表示",
-      "expected": "変更されたカートまたは住所・決済ステップへ戻れる修正導線を表示する",
+      "expected": "WebでCart/価格変化を検知したらカートへ戻るリンクを出し、未完了Step時は支払画面へ戻る。Nativeでは読み込み失敗時も無限Loadingにせずカート/配送先への導線を出し、確定失敗時もカートを確認できる",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "修正導線を表示について、変更されたカートまたは住所・決済ステップへ戻れる修正導線を表示することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と修正導線を表示の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "修正導線を表示の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "修正不能のエラー画面、戻る先で再びエラーが出るループ、古い明細の再注文",
+      "test_condition": "WebのgetConfirmationとbeginOrderにCART_VERSION_CHANGED/PRICE_CHANGEDを注入し、カート導線と非確定を検証。NativeのgetConfirmation/beginOrderの失敗でカート・配送先復旧導線を確認",
+      "test_responsibility": "アプリケーションの失敗コードをWeb UIで区別し、Nativeは画面状態にかかわらず安全なカート確認に戻れることを検証",
+      "case_policy": "読み込み前失敗と確定時失敗、Web/Nativeの導線を選定。詳細な文言の翻訳・非Cartの通信失敗は別条件で扱う",
+      "case_selection_reason": "古いCart/価格から戻れる導線がないと正しい条件での購入手続きを再開できないため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正本checkout-and-payment.md:9-22,120-153,BR-CHECKOUT-002/AC-CHECKOUT-002、CheckoutOrderUseCases.getConfirmation:184-191/beginOrder:193-316、Dexie getConfirmation:723-808、Native SQLite:1851-1948、Pricing calculateOrderTotals:72-102、Web/Native確認画面、default/regular-member/checkout-replaced/cart-version-invalidates-checkout Seedを照合。確認表示とCart/価格競合拒否のComponent/統合回帰テストを追加。実行成功・実機受入とは分離する",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation",
+        "CheckoutOrderUseCases.beginOrder"
+      ],
+      "analysis_progress": "Web/Nativeの確認明細と金額内訳の差異、Cart/価格競合時の確定拒否と戻り先を監査し変更。実装・回帰テストコードを追加済み。CI結果・実機・スクリーンショット正本の検証は未了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5460,7 +5650,56 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 947,
+          "end_line": 1064,
+          "reason": "Nativeの注文明細・割引・送料・確定失敗時のカート修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 723,
+          "end_line": 808,
+          "reason": "WebのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1851,
+          "end_line": 1948,
+          "reason": "NativeのcartDtoとブロック条件・確認DTOの金額生成"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
@@ -5469,36 +5708,35 @@
       "source_path": "docs/spec/features/checkout-and-payment.md",
       "source_line": 134,
       "source_text": "不一致の内容を説明し、カートまたは該当するステップへ戻す。",
-      "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "stale-cart",
-      "data": "Seed/入力: cart-version-invalidates-checkout。通常状態から条件を変更し表示と操作を比較",
+      "platform": "web",
+      "role": "customer",
+      "scenario": "cart-version-invalidates-checkoutのCustomerでCart.version2と旧Checkout.cartVersion1が不一致。SeedのunlockedStep=addressは確認画面まで開けないため、confirm済みSessionを作成してからCart.versionを変更する条件も追加",
+      "data": "checkoutScenario(dataset,true)で旧Session cartVersion1/Cart version2。確認表示ケースはregular-memberでstart→setAddress→setPayment後にCart version+1。WebのgetConfirmation/読込エラーにCART_VERSION_CHANGEDを返す",
       "action": "stale-cart状態を表示・処理",
-      "expected": "不一致の内容を説明し、カートまたは該当するステップへ戻す。",
+      "expected": "Webで古い注文確認を表示/確定せず、更新されたCartの確認と手続きのやり直しを案内する。未作成の注文・決済・在庫は変わらず、非default状態の視覚証拠は実ブラウザ受入で別途確認する",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "SCREEN-CHECKOUT-CONFIRM-A02-01を対象にcart-version-invalidates-checkoutを準備し「不一致の内容を説明し、カートまたは該当するステップへ戻す。」を確認する",
-      "test_responsibility": "対応操作SCREEN-CHECKOUT-CONFIRM-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "stale-cartに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "古いCartでの確定、確認できない画面からの再試行ループ",
+      "test_condition": "固定Seedと確認済みSessionへの版変更を区別し、getConfirmation失敗で『カートを確認』へのリンクがあり、beginOrderが拒否されることを検証。視覚正本の一致はAndroidと分離してWebで確認",
+      "test_responsibility": "Web CheckoutLoadError/CheckoutConfirmContentとUse Case/RepositoryのCART_VERSION_CHANGEDを照合し、S-stale-cartはA02-01の状態別条件としてのみ数える",
+      "case_policy": "Cart版変更後の確認ページ表示拒否と修正リンクを採用。価格差分はA02-02に区別し重複分母としない",
+      "case_selection_reason": "通常時にはないCartの不一致状態から、意図しない注文確定を防ぎ安全にカートへ戻ることを確認するため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:126-153のstale-cart画面契約、checkoutScenario(dataset,true):367-395の旧Cart/Session差、getConfirmation/UseCase・Web/Native Repository・WebのCheckoutLoadError、関連回帰テストを照合。Seedの未完了Stepと確認画面上の版不一致再現条件を混同しない",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getConfirmation",
+        "CheckoutOrderUseCases.beginOrder"
+      ],
       "covered_by": "SCREEN-CHECKOUT-CONFIRM-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様とWeb UIの古いCart導線、Cart-versionの固定Seedと確定直前にVersionを変更するテスト入力を分離。視覚正本との実ブラウザ比較は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 327,
+        "line": 346,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5515,7 +5753,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 354,
+          "end_line": 476,
+          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 184,
+          "end_line": 218,
+          "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 466,
+          "end_line": 499,
+          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-replacedとcart-version-invalidates-checkoutに共通の固定Cart版差"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PROCESSING-A01-01",
@@ -5553,7 +5822,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 476,
+        "line": 523,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5618,7 +5887,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 476,
+        "line": 523,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5681,7 +5950,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 476,
+        "line": 523,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5737,7 +6006,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 476,
+        "line": 523,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5793,7 +6062,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 476,
+        "line": 523,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5849,7 +6118,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 523,
+        "line": 570,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -5902,7 +6171,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 523,
+        "line": 570,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -5955,7 +6224,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 523,
+        "line": 570,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -6008,7 +6277,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 527,
+        "line": 574,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6066,7 +6335,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 527,
+        "line": 574,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6129,7 +6398,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 527,
+        "line": 574,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6185,7 +6454,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 527,
+        "line": 574,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6241,7 +6510,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 527,
+        "line": 574,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6297,7 +6566,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6360,7 +6629,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6419,7 +6688,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6475,7 +6744,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6531,7 +6800,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6589,7 +6858,7 @@
       "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 625,
+        "line": 672,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6643,7 +6912,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6710,7 +6979,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6767,7 +7036,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6821,7 +7090,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6875,7 +7144,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6931,7 +7200,7 @@
       "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 675,
+        "line": 722,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {

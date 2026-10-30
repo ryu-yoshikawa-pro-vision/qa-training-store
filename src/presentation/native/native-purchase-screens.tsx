@@ -992,10 +992,14 @@ export function NativeCheckoutConfirmScreen() {
           title="注文内容を確認できません"
           body={state.message}
           action={
-            <NativeButton
-              label="配送先からやり直す"
-              onPress={() => router.replace("/checkout/address")}
-            />
+            <View style={{ gap: nativeSpacing.sm }}>
+              <NativeButton label="カートを確認する" onPress={() => router.replace("/cart")} />
+              <NativeButton
+                label="配送先からやり直す"
+                variant="secondary"
+                onPress={() => router.replace("/checkout/address")}
+              />
+            </View>
           }
         />
       );
@@ -1012,7 +1016,8 @@ export function NativeCheckoutConfirmScreen() {
             <View key={item.variantId} style={{ marginBottom: nativeSpacing.sm }}>
               <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.body}>
-                {item.quantity}点　{formatNativeYen(item.lineTotalAmount)}
+                {item.optionValue ?? "単一SKU"}・{item.quantity}点　
+                {formatNativeYen(item.lineTotalAmount)}
               </Text>
             </View>
           ))}
@@ -1026,6 +1031,13 @@ export function NativeCheckoutConfirmScreen() {
           <Text style={styles.body}>
             支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
           </Text>
+          <Text style={styles.body}>
+            商品小計：{formatNativeYen(confirmation.subtotalAmount)}
+          </Text>
+          <Text style={styles.body}>
+            会員割引：-{formatNativeYen(confirmation.discountAmount)}
+          </Text>
+          <Text style={styles.body}>送料：{formatNativeYen(confirmation.shippingAmount)}</Text>
           <Text style={[styles.price, { marginTop: nativeSpacing.sm }]}>
             合計 {formatNativeYen(confirmation.totalAmount)}
           </Text>
@@ -1038,6 +1050,14 @@ export function NativeCheckoutConfirmScreen() {
         testID="native-checkout-confirm-submit"
       />
       <ErrorMessage message={state.message} />
+      {state.message !== null && (
+        <NativeButton
+          label="カートを確認する"
+          variant="secondary"
+          onPress={() => router.replace("/cart")}
+          testID="native-checkout-confirm-review-cart"
+        />
+      )}
     </ScrollView>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 
 const routerPush = vi.fn();
 const routerReplace = vi.fn();
@@ -341,6 +342,72 @@ describe("checkout and order pages", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(checkout.beginOrder).toHaveBeenCalledTimes(1));
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
+  });
+
+  it("shows quantity, subtotal, discount, shipping and total from the confirmation DTO", async () => {
+    checkout.getConfirmation.mockResolvedValueOnce({
+      ...confirmation,
+      items: [
+        {
+          ...confirmation.items[0]!,
+          quantity: 2,
+          lineSubtotalAmount: 4000,
+          lineDiscountAmount: 200,
+          lineTotalAmount: 3800,
+        },
+      ],
+      subtotalAmount: 4000,
+      discountAmount: 200,
+      shippingAmount: 500,
+      totalAmount: 4300,
+    });
+    render(<CheckoutConfirmPage />);
+    expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
+    expect(screen.getByText("M・数量 2")).toBeVisible();
+    expect(screen.getByText("¥3,800")).toBeVisible();
+    expect(screen.getByText("¥4,000")).toBeVisible();
+    expect(screen.getByText("-¥200")).toBeVisible();
+    expect(screen.getByText("¥500")).toBeVisible();
+    expect(screen.getAllByText("¥4,300").length).toBeGreaterThan(0);
+  });
+
+  it.each(["CART_VERSION_CHANGED", "PRICE_CHANGED"] as const)(
+    "routes a %s confirmation load failure to the cart",
+    async (code) => {
+      checkout.getConfirmation.mockRejectedValueOnce(
+        new ApplicationError({
+          code,
+          messageKey: "checkout.cart.invalid",
+          retryable: false,
+        }),
+      );
+      render(<CheckoutConfirmPage />);
+      expect(
+        await screen.findByText(
+          "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+        ),
+      ).toBeVisible();
+      expect(screen.getByRole("link", { name: "戻って確認する" })).toHaveAttribute("href", "/cart");
+      expect(screen.queryByRole("button", { name: /を支払う/ })).not.toBeInTheDocument();
+      expect(checkout.beginOrder).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps the confirmation page on a stale-price submit error and links to the cart", async () => {
+    checkout.beginOrder.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "PRICE_CHANGED",
+        messageKey: "checkout.cart.invalid",
+        retryable: false,
+      }),
+    );
+    render(<CheckoutConfirmPage />);
+    const submit = await screen.findByRole("button", { name: "¥2,500を支払う" });
+    fireEvent.click(submit);
+    expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute("href", "/cart");
+    expect(screen.getByRole("button", { name: "¥2,500を支払う" })).toBeDisabled();
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(checkout.beginOrder).toHaveBeenCalledTimes(1);
   });
 
   it("shows the full saved shipping address on confirmation", async () => {

@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文確認の価格・明細・Cart競合（継続作業）
+
+- `SCREEN-CHECKOUT-CONFIRM-A01-01`/`A01-03`/`A02-01`/`A02-02`/`A02-03`と`S-stale-cart`を仕様・Pricing・Use Case・Dexie/SQLite・Web/Native・Seedで照合。NativeのSKU選択肢・商品小計・会員割引・送料の表示不足を補い、Web/Nativeに古いCart・価格変更時のカート確認導線を追加した。
+- `getConfirmation`と`beginOrder`に対してCart版/商品価格変更を注入し、Session、注文、決済、在庫が不変であることを検査する統合テスト、およびWeb/Nativeの表示・非確定のcomponentテストを追加した。CI実行PASSとAndroid実機受入は別判定。
+- **基本分析39/188件（20.74%）、要レビュー149件、状態別条件17/20件未レビュー**。固定Seedの`stale-cart`は住所Stepのため確認画面の実再現と区別。配送先直接入力のWeb/Native仕様差、全機能レビュー、Android画面リファレンス、実公開Template→非公開2コアCodespaces→OpenCode実モデル校正は未達。CI完了待ちは行わない。
+
+
 ## 2026-10-31 注文確認のNative表示とエラー導線（継続作業）
 
 - `SCREEN-CHECKOUT-CONFIRM-A01-02`（配送先）と`A01-04`（決済方法）をWeb/Native・Use Case・Dexie/SQLite・Seedと照合。Webの建物名/部屋番号表示、Nativeの宛名・郵便番号・建物名・支払方法の表示漏れを補完した。

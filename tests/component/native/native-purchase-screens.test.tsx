@@ -558,14 +558,29 @@ describe("Native customer purchase screens", () => {
       checkoutSessionId: checkoutSession.id,
       checkoutActionVersion: checkoutSession.version,
       cartVersion: checkoutSession.cartVersion,
-      items: [],
+      items: [
+        {
+          variantId: "variant-basic-shirt-02",
+          productName: "ベーシックTシャツ",
+          sku: "BASIC-02",
+          optionValue: "M",
+          quantity: 2,
+          unitEffectivePrice: 2000,
+          unitDiscountAmount: 100,
+          viewerUnitPrice: 1900,
+          lineSubtotalAmount: 4000,
+          lineDiscountAmount: 200,
+          lineTotalAmount: 3800,
+          image: { assetId: "asset-shirt-front", path: "/images/shirt.webp", altText: "Tシャツ" },
+        },
+      ],
       address: { ...address, addressLine2: "青山ビル101" },
       paymentMethodCode: "TEST-DECLINED",
-      subtotalAmount: 0,
-      discountAmount: 0,
-      shippingAmount: 0,
-      totalAmount: 0,
-      membershipRank: "regular",
+      subtotalAmount: 4000,
+      discountAmount: 200,
+      shippingAmount: 500,
+      totalAmount: 4300,
+      membershipRank: "gold",
     };
     runtime({
       checkout: {
@@ -587,6 +602,12 @@ describe("Native customer purchase screens", () => {
     expect(screen.getByText("配送先：Native Customer 様")).toBeTruthy();
     expect(screen.getByText(/青山ビル101/)).toBeTruthy();
     expect(screen.getByText("支払方法：失敗：DECLINED")).toBeTruthy();
+    expect(screen.getByText("ベーシックTシャツ")).toBeTruthy();
+    expect(screen.getByText(/M・2点/)).toBeTruthy();
+    expect(screen.getByText("商品小計：¥4,000")).toBeTruthy();
+    expect(screen.getByText("会員割引：-¥200")).toBeTruthy();
+    expect(screen.getByText("送料：¥500")).toBeTruthy();
+    expect(screen.getByText("合計 ¥4,300")).toBeTruthy();
   });
 
   it("shows a recovery action instead of an endless loading state when confirmation fails", async () => {
@@ -612,9 +633,62 @@ describe("Native customer purchase screens", () => {
     await waitFor(() => expect(screen.getByText("注文内容を確認できません")).toBeTruthy());
     expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull();
     expect(screen.getByText("配送先からやり直す")).toBeTruthy();
+    expect(screen.getByText("カートを確認する")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText("カートを確認する")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/cart");
     await act(async () => fireEvent.press(screen.getByText("配送先からやり直す")));
     expect(mockRouterReplace).toHaveBeenCalledWith("/checkout/address");
     expect(getConfirmation).toHaveBeenCalledWith(checkoutSession.id);
+  });
+
+  it("keeps the order unconfirmed and offers the cart after a price change during submission", async () => {
+    const confirmation: CheckoutConfirmationDto = {
+      checkoutSessionId: checkoutSession.id,
+      checkoutActionVersion: 3,
+      cartVersion: checkoutSession.cartVersion,
+      items: [],
+      address,
+      paymentMethodCode: "TEST-SUCCESS",
+      subtotalAmount: 2000,
+      discountAmount: 0,
+      shippingAmount: 500,
+      totalAmount: 2500,
+      membershipRank: "regular",
+    };
+    const beginOrder = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "PRICE_CHANGED",
+        messageKey: "checkout.cart.invalid",
+        retryable: false,
+      }),
+    );
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-SUCCESS",
+          unlockedStep: "confirm",
+          version: 3,
+        }),
+        getConfirmation: jest.fn().mockResolvedValue(confirmation),
+        beginOrder,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
+    await act(async () => fireEvent.press(screen.getByTestId("native-checkout-confirm-submit")));
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-confirm-review-cart")).toBeTruthy(),
+    );
+    expect(beginOrder).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).not.toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: "/checkout/processing" }),
+    );
+    await act(async () =>
+      fireEvent.press(screen.getByTestId("native-checkout-confirm-review-cart")),
+    );
+    expect(mockRouterReplace).toHaveBeenCalledWith("/cart");
   });
 
   it("does not load confirmation when the required checkout step is locked", async () => {

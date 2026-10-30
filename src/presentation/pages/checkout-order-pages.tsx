@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocalSearchParams, useRouter, type Href } from "expo-router";
+import { ApplicationError } from "@/application/errors";
 import type {
   CheckoutConfirmationDto,
   CustomerOrderDetailDto,
@@ -82,12 +83,30 @@ function TrainingNotice() {
   );
 }
 
-function CheckoutLoadError({ retry, href = "/cart" }: { retry?: () => void; href?: Href }) {
+function checkoutNeedsCartReview(error: unknown): boolean {
+  return (
+    error instanceof ApplicationError &&
+    (error.code === "CART_VERSION_CHANGED" ||
+      error.code === "PRICE_CHANGED" ||
+      error.code === "INSUFFICIENT_STOCK" ||
+      error.code === "INVALID_STATE")
+  );
+}
+
+function CheckoutLoadError({
+  retry,
+  href = "/cart",
+  body = "カートまたは前のステップが更新されました。内容を確認してください。",
+}: {
+  retry?: () => void;
+  href?: Href;
+  body?: string;
+}) {
   return (
     <StatePanel
       kind="error"
       title="購入手続きを続けられません"
-      body="カートまたは前のステップが更新されました。内容を確認してください。"
+      body={body}
       action={
         <div className="inline-actions">
           {retry && (
@@ -337,25 +356,42 @@ function CheckoutConfirmContent() {
   const router = useRouter();
   const state = useAsyncValue(() => services.checkout.getConfirmation(), [services]);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<{
+    message: string;
+    reviewCart: boolean;
+  } | null>(null);
   const headingRef = useRouteHeadingFocus(
     state.loaded && state.error === null && state.value !== null,
   );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) {
-    return <CheckoutLoadError href="/checkout/payment" retry={state.retry} />;
+    const reviewCart = checkoutNeedsCartReview(state.error);
+    return (
+      <CheckoutLoadError
+        href={reviewCart ? "/cart" : "/checkout/payment"}
+        retry={state.retry}
+        body={
+          reviewCart
+            ? "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。"
+            : undefined
+        }
+      />
+    );
   }
   const submit = async () => {
     setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
     try {
       const result = await services.checkout.beginOrder({
         checkoutSessionId: state.value!.checkoutSessionId,
         checkoutActionVersion: state.value!.checkoutActionVersion,
       });
       router.replace(`/checkout/processing?orderId=${encodeURIComponent(result.orderId)}`);
-    } catch {
-      setError("注文を確定できませんでした。カートの価格・在庫を確認してください。");
+    } catch (caught: unknown) {
+      setSubmitError({
+        message: "注文を確定できませんでした。カートの価格・在庫を確認してください。",
+        reviewCart: checkoutNeedsCartReview(caught),
+      });
       setSubmitting(false);
     }
   };
@@ -366,10 +402,15 @@ function CheckoutConfirmContent() {
         注文内容を確認
       </h1>
       <TrainingNotice />
-      {error && (
+      {submitError !== null && (
         <p role="alert" className="operation-error">
-          {error}
+          {submitError.message}
         </p>
+      )}
+      {submitError?.reviewCart === true && (
+        <Link href="/cart" className="button button--secondary">
+          カートを確認する
+        </Link>
       )}
       <div className="checkout-layout">
         <div className="checkout-confirmation">
@@ -403,7 +444,7 @@ function CheckoutConfirmContent() {
           confirmation={state.value}
           total={state.value.totalAmount}
           label={`${formatYen(state.value.totalAmount)}を支払う`}
-          disabled={submitting}
+          disabled={submitting || submitError?.reviewCart === true}
           busy={submitting}
           onClick={() => void submit()}
         />

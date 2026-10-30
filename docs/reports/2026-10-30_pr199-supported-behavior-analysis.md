@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、34件は仕様・実装・Seedの照合済み、154件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、39件は仕様・実装・Seedの照合済み、149件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、34件が`analyzed`（18.09%）、154件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、39件が`analyzed`（20.74%）、149件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -179,3 +179,15 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 - `SCREEN-CHECKOUT-ADDRESS-A01-01`の「登録済み住所必須か、Native直接入力を許すか」は未決のまま維持。確認画面で保存済みSnapshotを正しく表示することとは分けて扱う。
 
 **基本分析34/188件（18.09%）、要レビュー154件、状態別条件18/20件未レビュー**。188件は暫定分母であり、完了判定ではない。
+
+## 注文確認の明細・金額・Cart競合・修正導線の監査（2026-10-31）
+
+`SCREEN-CHECKOUT-CONFIRM-A01-01`（商品/数量）、`A01-03`（価格内訳）、`A02-01`（古いCart）、`A02-02`（価格変更）、`A02-03`（修正導線）と状態別条件`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`を正本仕様、Use Case、Dexie/SQLite、Pricing、Web/Native、Seedと照合した。
+
+- Webは商品名・SKU選択肢・数量・明細額、小計・割引・送料・合計を表示する。Nativeは商品名・数量・明細額・合計のみだったため、SKU選択肢、商品小計、会員割引、送料を確認画面へ追加した。確認DTOに税の独立項目はないため、台帳の「税」を現行仕様として断定しない。
+- `getConfirmation`と`beginOrder`はCart版の不一致を`CART_VERSION_CHANGED`、商品現在価格とCart追加時の単価差を`PRICE_CHANGED`として拒否する。2種類の競合を確認画面アクセス前/確認後に発生させ、Checkout Session・注文・決済・在庫を変更しない統合テストを追加した。
+- Webの確認データ取得失敗時は以前`/checkout/payment`への固定戻り先で、古いCart状態から復旧できなかった。Cart版/価格変更などの既知エラー時はカートへ戻し、確認画面を表示済みで確定失敗した場合もカート確認リンクを表示する。Nativeも確認画面の読み込み失敗・確定失敗時にカートへ戻る操作を用意した。
+- `cart-version-invalidates-checkout` Seedは旧Sessionが住所Stepで止まるため、これだけで確認画面のstale-cart表示を実証したことにはならない。新Sessionを確認可能な状態に進めた後にCart版を変更する条件を回帰テストへ追加した。視覚リファレンスの実ブラウザ比較は未実施。
+- Web/Native表示・失敗導線、Use Caseの拒否・注文/決済/在庫不変の回帰テストコードを追加した。ただし現行HEADの実行PASS、Android実機や正本スクリーンショットとの一致、実Template/Codespaces/OpenCode技術受入は未確認。
+
+**基本分析39/188件（20.74%）、未分析149件、状態別条件17/20件未レビュー**。188件は最終分母ではない。配送先入力のWeb/Native差`SCREEN-CHECKOUT-ADDRESS-A01-01`も未決。
