@@ -705,7 +705,12 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           });
           return;
         }
-        if (requiredStep !== "address") {
+        const recoverableCheckoutError =
+          caught instanceof ApplicationError &&
+          (caught.code === "CHECKOUT_STEP_INCOMPLETE" ||
+            caught.code === "CART_VERSION_CHANGED" ||
+            caught.code === "CHECKOUT_EXPIRED");
+        if (requiredStep !== "address" || !recoverableCheckoutError) {
           setMessage(asPurchaseError(caught).message);
           return;
         }
