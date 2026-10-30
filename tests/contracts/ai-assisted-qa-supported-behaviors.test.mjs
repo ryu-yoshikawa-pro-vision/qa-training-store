@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 41,
-      requires_review: 147,
+      basically_analyzed: 46,
+      requires_review: 142,
       classified_rate: 100,
-      basic_analysis_rate: 21.81,
+      basic_analysis_rate: 24.47,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -68,6 +68,31 @@ describe("サポート機能の仕様と実装の追跡", () => {
       data.behaviors.find((entry) => entry.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")
         ?.analysis_status,
     ).toBe("review_required");
+  });
+
+  it("keeps SUT unchanged while auditing payment processing and persisted result boundaries", () => {
+    for (const id of [
+      "SCREEN-CHECKOUT-PROCESSING-A01-01",
+      "SCREEN-CHECKOUT-PROCESSING-A02-01",
+      "SCREEN-CHECKOUT-COMPLETE-A01-01",
+      "SCREEN-CHECKOUT-FAILED-A02-01",
+      "SCREEN-CHECKOUT-FAILED-A02-02",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.related_use_cases?.length).toBeGreaterThan(0);
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+    for (const id of [
+      "SCREEN-CHECKOUT-FAILED-A01-01",
+      "SCREEN-CHECKOUT-FAILED-A01-02",
+      "SCREEN-CHECKOUT-FAILED-A01-03",
+    ]) {
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
+        "review_required",
+      );
+    }
   });
 
   it("requires audited checkout confirmation and keeps address-input scope unresolved", () => {

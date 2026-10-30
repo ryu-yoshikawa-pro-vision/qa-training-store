@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、41件は仕様・実装・Seedの照合済み、147件は追加レビューが残る.PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、46件は仕様・実装・Seedの照合済み、142件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、41件が`analyzed`（21.81%）、147件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、46件が`analyzed`（24.47%）、142件が`review_required`。状態別条件は17/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -179,6 +179,27 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 - `SCREEN-CHECKOUT-ADDRESS-A01-01`の「登録済み住所必須か、Native直接入力を許すか」は未決のまま維持。確認画面で保存済みSnapshotを正しく表示することとは分けて扱う。
 
 **基本分析34/188件（18.09%）、要レビュー154件、状態別条件18/20件未レビュー**。188件は暫定分母であり、完了判定ではない。
+
+## 決済処理中・完了・失敗の基本分析（2026-10-31、製品変更なし）
+
+今回は`SCREEN-CHECKOUT-PROCESSING-A01-01`/`A02-01`、`SCREEN-CHECKOUT-COMPLETE-A01-01`、`SCREEN-CHECKOUT-FAILED-A02-01`/`A02-02`の5動作を監査し、`analyzed`へ変更した。根拠は`checkout-and-payment.md`の`BR-CHECKOUT-003`/`AC-CHECKOUT-003`、`CheckoutOrderUseCases.beginOrder`/`resumePayment`/`getMyOrder`と`resolveCheckoutResultKind`、Web/Native結果画面、`default`/`payment-processing` Seed、既存component/integrationテストである。
+
+- `payment-processing` Seedは`order-payment-failed`を`pending_payment`、`payment.status=processing`に変更する。初期ログインはguestなので、画面確認には`regular@example.com`でのログインが別途必要。決済開始ではpending_paymentの注文とprocessingの支払試行を作り、処理画面から同じorderIdで`resumePayment`する。
+- 決済完了画面はURL名ではなく`getMyOrder`で読み込んだ本人注文の状態と最新決済試行を`resolveCheckoutResultKind`で判定する。Web/Nativeの既存componentテストには、成功URLで失敗注文を開いた場合とその逆の反例がある。
+- 重複`beginOrder`は既存Checkout SessionのorderIdに集約される。既存統合テストでは順次実行した2回の注文開始で同一結果となり、成功確定後の再`resumePayment`で在庫やGateway実行が重複しないことを検証する。**同時並列のGateway実行や実端末での重複タップまでは実証していない**。
+- 拒否決済（DECLINED/INSUFFICIENT/AUTH_FAILED）は`finalizeFailure`、支払い直前の在庫不足は`OUT_OF_STOCK`分岐へ進み、注文は`payment_failed`になる。既存統合テストの在庫不変・Shipment未作成・在庫不足時の履歴なしの検査を確認した。
+
+### 未解決の製品仕様・実装差異（このPRでは修正しない）
+
+- `SCREEN-CHECKOUT-FAILED-A01-01`：画面仕様の`payment-declined`状態は「失敗理由と再試行アクション」を要求する。しかしWebは「支払いを完了できませんでした」、Nativeは「支払いに失敗しました」と汎用表示で、最新`paymentAttempts.errorDisplayKey`等に応じた拒否理由の表示を確認できない。失敗理由表示の検証は保留する。
+- `SCREEN-CHECKOUT-FAILED-A01-02`：Webは4種類のテスト決済方法を選んで再試行できるが、Nativeは`TEST-SUCCESS`での再試行を固定する。プラットフォームで異なる選択契約が仕様上意図されたものか未決なので、分析済みとしない。
+- `SCREEN-CHECKOUT-FAILED-A01-03`：仕様では「カート画面や注文内容確認への導線」が必要だが、Webの失敗画面は「注文詳細」「買い物を続ける」、Nativeの失敗画面は成功テストによる再試行のみで、カートまたは確認へ直接戻るアクションを確認できない。
+- Webの`OrderResultContent.retry()`は`try/finally`のみで、`retryPayment`がrejectすると画面に失敗理由を表示する`catch`がない。決済再試行失敗時の操作可能性とエラーハンドリングを追加調査対象とする。
+
+上記は読み取り監査による問題候補であり、実ブラウザ/Android実機での再現、CI結果、影響範囲の最終判定は未完了。製品の修正はせず、必要なら別Issue/別PRへ切り出す判断を求める。
+
+**基本分析46/188件（24.47%）、未分析142件、非default状態条件17/20件未レビュー。** 残り全件の分析と、学習用Template→2コアCodespaces→OpenCode校正等の受入は継続する。
+
 
 ## 注文確認の明細・金額・Cart競合・修正導線の監査（2026-10-31）
 

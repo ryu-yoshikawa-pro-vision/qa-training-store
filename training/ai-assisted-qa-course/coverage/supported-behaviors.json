@@ -5794,32 +5794,29 @@
       "source_line": 160,
       "source_text": "決済処理中の状態を表示し、再読み込みや再開の導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-processing,payment-declined,default。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済処理中を表示",
+      "role": "active customer（本人の処理中注文のみ）",
+      "scenario": "payment-processing Seedをresetした後regular@example.comでログインし、order-payment-failedの処理中注文を参照。通常決済開始はdefaultからstart→setAddress→setPayment→beginOrderで作る",
+      "data": "payment-processing Seedはorder-payment-failedのorderStatusをpending_payment、payment.statusをprocessingにする。metadataでは初期guestなので事前ログインが必要。beginOrderは注文をpending_payment、支払試行をprocessingで作成し、resumePaymentが結果を確定する",
       "action": "決済処理中を表示",
-      "expected": "注文決済中はpending_payment等の実際の処理状態を表示し、成功完了を先取りしない",
+      "expected": "Web/Nativeは決済処理中に処理中の案内を表示し、本人orderIdのresumePaymentで確定した結果だけを完了または失敗画面へ渡す。画面を開いた時点で成功とは断定しない",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済処理中を表示について、注文決済中はpending_payment等の実際の処理状態を表示し、成功完了を先取りしないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済処理中を表示の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済処理中を表示の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "決済前の完了誤表示、再開の誤った注文ID、処理失敗後に処理中画面が残る",
+      "test_condition": "payment-processingで本人ログイン後に処理中画面を開き、Web/Nativeの処理中表示とresumePayment(orderId)の呼出しを確認する。success/failureの結果に従う遷移を検証し、画面リファレンスの比較は実行時に追加",
+      "test_responsibility": "beginOrderのpending_payment/processing作成、決済画面の再開API、最終状態によるWeb/Native遷移を照合する",
+      "case_policy": "pending_payment/processingを正例、paid/succeededとpayment_failed/failedの結果遷移を代表例にする。重複確定はA02-01に分離する",
+      "case_selection_reason": "処理途中の状態と支払確定を同一視すると、顧客が未確定の注文を確定済みと誤認するため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
       "related_use_cases": [
-        "CheckoutOrderUseCases.beginOrder"
+        "CheckoutOrderUseCases.beginOrder",
+        "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 523,
@@ -5848,7 +5845,56 @@
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "line": 193,
           "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.resumePayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 319,
+          "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
         }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 286,
+          "end_line": 301,
+          "reason": "payment-processing Seedのpending_payment/processingへの変更"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 193,
+          "end_line": 319,
+          "reason": "開始時のorder/payment状態と注文処理中DTO"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 319,
+          "end_line": 338,
+          "reason": "処理中決済を再開し最終結果を返す"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 523,
+          "end_line": 567,
+          "reason": "Webは処理中画面を表示し、結果判定後に遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1065,
+          "end_line": 1105,
+          "reason": "Nativeは処理中表示と再開ボタンを提供"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 525,
+          "end_line": 535,
+          "reason": "Webの処理中表示、再開API呼出し、成功結果遷移"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
@@ -5924,30 +5970,29 @@
       "source_line": 161,
       "source_text": "処理中の二重確定、再試行、キャンセルを禁止する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-processing,payment-declined,default。Customer本人/他人・activeセッション・versionを区別する。対象動作: 二重確定を拒否",
+      "role": "active customer（本人のCheckout Sessionおよび注文に限る）",
+      "scenario": "regular-memberの本人カートからTEST-SUCCESSでconfirm→beginOrderを同じcheckoutSessionIdとcheckoutActionVersionで2度送信し、同じorderIdを返すか検証。処理完了後は同じorderIdでresumePaymentを再実行する",
+      "data": "beginOrderはCheckout Session.orderIdが存在すればexistingPaymentResultを返す。初回でorder.status=pending_payment、payment.status=processing、idempotency key=orderId-attempt-1。処理後に同じorderIdでresumePaymentすると保存済み結果を返す",
       "action": "二重確定を拒否",
-      "expected": "同一決済結果を二度確定せず、注文と在庫の重複変更を発生させない",
+      "expected": "同じSessionからの重複注文開始は既存orderId/paymentIdへ集約される。決済確定後の再開は注文・決済試行・在庫履歴を重複させない。異なるセッションや並列異常時の保証を実行したとは扱わない",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "二重確定を拒否について、同一決済結果を二度確定せず、注文と在庫の重複変更を発生させないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と二重確定を拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "二重確定を拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "複数注文・二重請求・在庫二重減算が発生する",
+      "test_condition": "beginOrderを同じSession/Versionで2回呼び戻り値と注文・決済件数が一致すること、resumePaymentを2回呼んでも支払Gateway回数=1・在庫減算1回・履歴件数の重複がないことを確認する。並列Gateway呼出しの競合は別途実行検証",
+      "test_responsibility": "Use Caseのconverted Session→existingPaymentResult→resumePaymentの保存済み結果の分岐、transactionの成功確定と在庫履歴を追跡する",
+      "case_policy": "重複beginOrderと再開後の重複resumePaymentを採用。画面のbusy無効化も確認し、未実施の同時並列呼出し結果は受入保留とする",
+      "case_selection_reason": "二重確定は決済・在庫・注文整合性への影響が大きく、UI操作抑止だけでなくUse Case境界を検証する必要がある",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.beginOrder",
+        "CheckoutOrderUseCases.resumePayment"
+      ],
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 523,
@@ -5970,7 +6015,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.beginOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 193,
+          "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.resumePayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 319,
+          "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 193,
+          "end_line": 224,
+          "reason": "二重beginOrderにおけるorderId既存分岐"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 319,
+          "end_line": 339,
+          "reason": "完了済みpaymentの再開ではgatewayを再実行しない"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 418,
+          "end_line": 512,
+          "reason": "成功確定時の在庫減算とpayment状態検査"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 289,
+          "end_line": 364,
+          "reason": "成功再開後の二重在庫減算防止とgateway呼出し1回"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 411,
+          "end_line": 427,
+          "reason": "同一Checkoutの重複注文作成を同一orderIdへ集約"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PROCESSING-A02-02",
@@ -6092,30 +6187,29 @@
       "source_line": 187,
       "source_text": "決済完了、注文番号、および注文履歴への導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,決済成功結果。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済完了を表示",
+      "role": "active customer（本人注文のみ。guest・スタッフ・他人注文は対象外）",
+      "scenario": "default Seedのregular@example.comでログインし、order-paid（paid/succeeded）を取得。order-payment-failed（payment_failed/failed）およびpayment-processing（pending_payment/processing）を反例にする",
+      "data": "default Seedのorder-paidはorderStatus=paid、最新payment.status=succeeded。order-payment-failedはpayment_failed/failed。payment-processingはorder-payment-failedをpending_payment/processingへ変更する。画面入力orderIdを本人照合した結果だけを表示する",
       "action": "決済完了を表示",
-      "expected": "モック決済が成功して注文が完了した場合のみ成功状態を表示する",
+      "expected": "Web/NativeはgetMyOrderの本人注文かつ最新決済がsucceeded、注文状態がpending_payment/payment_failed以外のときだけ成功画面を表示する。失敗/処理中を成功表示せず、権限外・欠落orderIdは注文情報を表示しない",
       "rule_refs": [],
       "route": "`/checkout/complete`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済完了を表示について、モック決済が成功して注文が完了した場合のみ成功状態を表示することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済完了を表示の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済完了を表示の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未決済の注文を成功と誤認させる、別人の注文情報を表示する、支払いの再実行判断を誤らせる",
+      "test_condition": "paid/succeeded・payment_failed/failed・pending_payment/processingの保存状態を区分し、Web/Native双方で結果画面の実表示が保存値に従うこと、他人注文/欠落IDで非表示になることを確認。画面リファレンスとの視覚比較は別途受入",
+      "test_responsibility": "getMyOrderの本人検証→resolveCheckoutResultKind→Web/Nativeの結果画面の条件分岐を結ぶ。payment gateway結果だけで成功とみなさない",
+      "case_policy": "paid/succeededを正例、failed/processingと他人/欠落orderIdを反例に選ぶ。配送完了等のsucceeded後状態を含める。画面表示の技術受入と視覚正本の一致は分離",
+      "case_selection_reason": "支払結果の誤表示は購入者の再購入や重複操作を招くため、URL名ではなく保存された注文・決済状態から判定する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 570,
@@ -6135,7 +6229,63 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 397,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 17,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003: 成功/拒否/処理中の在庫と注文の境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 556,
+          "reason": "default Seedのpaid/payment_failed注文とsucceeded/failed決済、order-paid/order-payment-failed"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 63,
+          "end_line": 78,
+          "reason": "orderStatusと最新payment.statusからcomplete/failed/nullを決める"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 570,
+          "end_line": 665,
+          "reason": "Webで注文の状態を再取得し、保存済み結果に応じて表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1107,
+          "end_line": 1197,
+          "reason": "Nativeで本人注文の保存済み状態に応じて画面を分岐"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 486,
+          "end_line": 521,
+          "reason": "Webのroute名と保存状態の反例、および不正orderIdの表示拒否"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 448,
+          "end_line": 503,
+          "reason": "Nativeのroute名と保存状態の反例、本人注文番号と不正ID拒否"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-COMPLETE-A01-02",
@@ -6532,30 +6682,28 @@
       "source_line": 214,
       "source_text": "決済失敗時に、在庫や注文を完了・成功状態へ変更しない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-declined,checkout-resume,在庫変更前後。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済失敗時の在庫維持",
+      "role": "active customer（本人の注文・決済試行）",
+      "scenario": "defaultからTEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILEDで注文を作成し、gatewayがfailedを返す場合と、TEST-SUCCESSでも処理直前に在庫0へ変更する場合を分ける",
+      "data": "default Seedのorder-payment-failedはpayment_failed/failedとDECLINED。gatewayの3種拒否時はfinalizeFailureへ分岐し、inventoryへ触れない。成功Gatewayでも在庫不足の場合はOUT_OF_STOCKでpayment_failedにする",
       "action": "決済失敗時の在庫維持",
-      "expected": "失敗確定では在庫の減算・配送準備を実行せず、注文の完了情報を書き込まない",
+      "expected": "失敗時は支払試行がfailed、注文がpayment_failedになり、対象SKUの在庫は減算されず、shipmentや在庫引当履歴を作らない。成功注文としての画面を出さない",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済失敗時の在庫維持について、失敗確定では在庫の減算・配送準備を実行せず、注文の完了情報を書き込まないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済失敗時の在庫維持の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済失敗時の在庫維持の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "購入できていない商品の在庫を減らす、未払注文で出荷処理を開始する、再試行時に在庫整合を失う",
+      "test_condition": "3決済拒否コードと決済後在庫不足を分け、注文/payment状態・SKU stockQuantity・shipmentの不在・inventory_historyの不変を確認。default Seedの失敗注文と状態を照合する",
+      "test_responsibility": "resumePayment→finalizeFailure/在庫不足分岐→payment_failedを確認し、画面は保存済み失敗状態から失敗表示になることを確認する",
+      "case_policy": "DECLINED/INSUFFICIENT/AUTH_FAILED、成功決済直前の在庫不足を代表として選ぶ。再試行成功は別動作へ分離",
+      "case_selection_reason": "支払失敗時の在庫確保・配送開始は商品を売り止めてしまうため、在庫不変を業務の主要検証責務とする",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.resumePayment"
+      ],
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 574,
@@ -6578,7 +6726,51 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.resumePayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 319,
+          "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 418,
+          "end_line": 547,
+          "reason": "明示拒否と在庫不足でpaidにせず、inventory更新を避ける"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 556,
+          "reason": "payment_failed/failedとDECLINEDの初期Seed"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 363,
+          "end_line": 411,
+          "reason": "3決済拒否での在庫不変/Shipmentなしと在庫不足によるFailed遷移"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 586,
+          "end_line": 662,
+          "reason": "Webの結果表示はfailedの状態を参照"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1115,
+          "end_line": 1198,
+          "reason": "Nativeの結果表示はfailedの状態を参照"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-FAILED-A02-02",
@@ -6588,30 +6780,29 @@
       "source_line": 214,
       "source_text": "決済失敗時に、在庫や注文を完了・成功状態へ変更しない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-declined,checkout-resume,在庫変更前後。Customer本人/他人・activeセッション・versionを区別する。対象動作: 失敗注文を成功扱いしない",
+      "role": "active customer（本人注文の最新決済結果のみ）",
+      "scenario": "default Seedのorder-payment-failedを失敗例、order-paidを成功例として別々にgetMyOrderで取得する。payment-processingでは成功表示が出ないことも反例",
+      "data": "default order-payment-failedはpayment_failed/failed/DECLINED、order-paidはpaid/succeeded。resolveCheckoutResultKindはorderStatusと最新payment.statusの組を判定し、画面パス名は判定に使わない",
       "action": "失敗注文を成功扱いしない",
-      "expected": "payment_failedの注文をpaidやdeliveredとして表示・集計しない",
+      "expected": "payment_failed/failedは失敗表示・再試行導線となり、paid/succeededに誤認しない。Web/NativeともURLが/checkout/completeでも保存された失敗状態で表示する。pending_payment/processingは完了にも失敗にも誤分類しない",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "失敗注文を成功扱いしないについて、payment_failedの注文をpaidやdeliveredとして表示・集計しないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と失敗注文を成功扱いしないの結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "失敗注文を成功扱いしないの不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "支払い失敗の誤成功表示、未払注文の配送・レビュー処理、不正な再試行判断",
+      "test_condition": "paid/succeeded、payment_failed/failed、pending_payment/processingの状態を入力し、resolveCheckoutResultKindとWeb/Nativeの表示が一致することを確認。URLに失敗/成功を指定しても保存状態を優先し、権限外orderIdを非表示にする",
+      "test_responsibility": "getMyOrderで本人の注文取得→resolveCheckoutResultKindで保存状態判定→Web/Native結果画面への経路を確認。注文履歴への影響は別Caseで確認",
+      "case_policy": "失敗・成功のルート逆転と処理中を採用。実在する失敗理由テキストの検証はFAILED-A01-01で別途保留",
+      "case_selection_reason": "経路名だけで完了表示すると、失敗注文を顧客が成功と誤解するため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 574,
@@ -6634,7 +6825,63 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 397,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 17,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003: 成功/拒否/処理中の在庫と注文の境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 556,
+          "reason": "default Seedのpaid/payment_failed注文とsucceeded/failed決済、order-paid/order-payment-failed"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 63,
+          "end_line": 78,
+          "reason": "orderStatusと最新payment.statusからcomplete/failed/nullを決める"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 570,
+          "end_line": 665,
+          "reason": "Webで注文の状態を再取得し、保存済み結果に応じて表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1107,
+          "end_line": 1197,
+          "reason": "Nativeで本人注文の保存済み状態に応じて画面を分岐"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 486,
+          "end_line": 521,
+          "reason": "WebでURLの成功/失敗名を無視して保存状態で判定"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 448,
+          "end_line": 465,
+          "reason": "NativeでURLの成功/失敗名を無視して保存状態で判定"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-A01-01",
