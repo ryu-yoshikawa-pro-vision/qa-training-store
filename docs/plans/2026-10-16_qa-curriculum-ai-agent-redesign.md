@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 Checkout住所入力の境界検証
+
+- `SCREEN-CHECKOUT-ADDRESS-A01-02`について、Web/Nativeの配送先保存成功後だけ決済画面へ進み、Sessionの`version`と`unlockedStep`が変わることを仕様・両Repository・Seed・関連UIテストで照合した。
+- `CheckoutOrderUseCases.setAddress`の住所入力に必須項目/郵便番号/電話番号の検証不足があり、Nativeの直接入力から不正な住所Snapshotを保存できたため、値の正規化と拒否条件を補強。無効値でのSession不変と有効なハイフン付き入力、Web/Native UIの保存エラー非遷移を回帰テストに追加した。
+- `SCREEN-CHECKOUT-ADDRESS-A01-01`は登録済み住所必須のWebと直接入力可能なNativeの仕様差が未決のため`review_required`を維持。上記入力形式の不具合修正だけで仕様差まで解決したとは扱わない。
+- **基本分析26/188件（13.83%）、未分析162件、非default状態条件18/20件未レビュー**。188件は暫定。CI/Android実機と実Template→Private repo→2コアCodespaces/OpenCodeのマージ前受入は別途必要。
+
 ## 2026-10-31 Checkout再開通知の状態別監査
 
 - `SCREEN-CHECKOUT-ADDRESS-S-resume-notice`のWeb限定視覚条件を、正式仕様・Role・Use Case・sessionStorage通知・checkout-resume Seedの固定Clock/Cart version・既存E2Eで照合し分析済みに変更。
