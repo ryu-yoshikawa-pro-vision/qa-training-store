@@ -496,12 +496,16 @@ function renderCoursePage(
   const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
   const pageAdditions = [
-    moduleId === undefined ? "" : moduleProgressHtml(moduleId, navigation),
-    moduleId === undefined ? "" : moduleTabsHtml(moduleId, pageKind),
     resourcesHtml,
     moduleId === undefined ? "" : modulePagerHtml(moduleId, navigation, pageKind),
   ].join("");
-  const body = injectIntoDocumentBody(renderMarkdown(parsed, linkTarget, imageTarget), pageAdditions);
+  const content = injectIntoDocumentBody(renderMarkdown(parsed, linkTarget, imageTarget), pageAdditions);
+  const body =
+    moduleId === undefined
+      ? content
+      : content.replace('<div class="document-body">', () =>
+          `<div class="document-body">${moduleProgressHtml(moduleId, navigation)}${moduleTabsHtml(moduleId, pageKind)}`,
+        );
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>${escapeHtml(title)} — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}${MODULE_TABS_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${body}</article></main></body></html>\n`;
 }
 
