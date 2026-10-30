@@ -343,6 +343,28 @@ describe("checkout and order pages", () => {
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
   });
 
+  it("restores the previously saved payment method when returning from confirmation", async () => {
+    checkout.getActive.mockResolvedValueOnce({
+      ...session,
+      paymentMethodCode: "TEST-DECLINED",
+      unlockedStep: "confirm",
+      version: 3,
+    });
+    render(<CheckoutPaymentPage />);
+    expect(
+      await screen.findByRole("radio", { name: /テスト決済（利用拒否）/ }),
+    ).toBeChecked();
+    expect(screen.getByRole("radio", { name: /テスト決済（成功）/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "¥2,500を確認する" }));
+    await waitFor(() =>
+      expect(checkout.setPayment).toHaveBeenCalledWith({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: 3,
+        paymentMethodCode: "TEST-DECLINED",
+      }),
+    );
+  });
+
   it("keeps payment open and displays an error when saving the method fails", async () => {
     checkout.setPayment.mockRejectedValueOnce(new Error("stale checkout version"));
     render(<CheckoutPaymentPage />);
