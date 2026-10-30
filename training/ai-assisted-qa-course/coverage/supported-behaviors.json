@@ -1749,20 +1749,20 @@
       "source_line": 115,
       "source_text": "残り在庫数と購入上限数を表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "low-stock",
-      "data": "Seed/入力: low-stock。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer。Web desktopの必須視覚条件。operator/adminの購入権限はこの状態条件の対象外",
+      "scenario": "low-stock Seed（初期guest）で /products/product-basic-shirt のMサイズを明示選択。defaultのM=10点/S=20点/L=0点と対比",
+      "data": "low-stockはdefaultをcloneしvariant-basic-shirt-02（ベーシックTシャツ/M、P-0001-02）のstockQuantityだけ10→3に変更。S=20/L=0は不変。全SKU purchaseLimit=5。固定Clock BASE_CLOCK、初期Session guest。Webで商品詳細を開くと初期選択は在庫あり先頭のSなのでMへ切替が必須",
       "action": "low-stock状態を表示・処理",
-      "expected": "残り在庫数と購入上限数を表示する。",
+      "expected": "WebでM選択後に「残り3点」と「1回の購入上限は5点です。」を表示し、数量候補は1〜3、カート追加は有効。S選択では「在庫20点」、数量1〜5。Lは在庫切れ表示・選択不可。リセットでdefaultのM=10点へ戻る",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05を対象にlow-stockを準備し「残り在庫数と購入上限数を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "low-stockに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "初期Sを見たままlow-stockのMを確認したと誤認、在庫数と購入上限の混同、4点以上の数量選択、0在庫SKUの誤追加",
+      "test_condition": "low-stock Reset→guestでWeb desktop /products/product-basic-shirt→M選択。CatalogUseCases.getProductDetail→DexieProductQueryRepository.getDetailでvariant-basic-shirt-02のstockQuantity=3/purchaseLimit=5を照合。画面の残り3点/上限5点、数量option1〜3、追加ボタン活性を確認。Sは20点/option1〜5、Lはdisabled。default ResetでM=10点を対照。既存componentテストはDTOモックであり実SeedとブラウザE2EのPASSではない",
+      "test_responsibility": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05の状態別境界。SeedのMだけを変更→getProductDetailのDTO→WebのselectedVariant/maximumQuantity/UIを追跡",
+      "case_policy": "low-stock M=3/上限5、default M=10/上限5、S=20、L=0、数量3と4の境界を採用。Androidのlow-stock専用視覚正本は要求外",
+      "case_selection_reason": "固定SeedでSKU単位の在庫3と購入上限5の差を再現でき、UIの数量上限の誤実装を製品コード変更なしに検出できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:108-115/BR-STOREFRONT-003/AC-STOREFRONT-003、metadata.ts:119-128、scenarios.ts:44-46、default-dataset.ts:67-82/294-323、CatalogUseCases.getProductDetail:108-124、DexieProductQueryRepository.getDetail:184-223、ProductDetailView:66-100/191-265、catalog-pages.test.tsx:361-370を照合。Seed実値はソース導出で、実ブラウザ/Android視覚受入PASSは未実施",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1771,10 +1771,12 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail"
+      ],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "正式BR/AC・Web UI・Use Case・Dexie・既存Seed SKU実値と数量境界を読み取り監査。実行E2E/視覚比較は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -1794,7 +1796,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 108,
+          "end_line": 115,
+          "reason": "low-stockのWeb desktop必須状態・Role・表示契約"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "BR-STOREFRONT-003の在庫・購入上限・未選択拒否"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 119,
+          "end_line": 128,
+          "reason": "low-stockの初期guestと対象導線"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 39,
+          "end_line": 46,
+          "reason": "M SKUのみstockQuantity=3へ変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 82,
+          "reason": "ベーシックTシャツ3 variantと初期stock"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 323,
+          "reason": "S/M/L在庫20/10/0とpurchaseLimit=5"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 124,
+          "reason": "閲覧者条件を付けた詳細取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 184,
+          "end_line": 223,
+          "reason": "DTOのSKU在庫・購入上限を保持"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 66,
+          "end_line": 100,
+          "reason": "初期S選択と選択SKUの在庫境界"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 265,
+          "reason": "M選択/残り3点/購入上限5点/数量1〜3"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 361,
+          "end_line": 370,
+          "reason": "低在庫DTOの表示契約（実Seed実行ではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A01-01",
@@ -2116,20 +2198,20 @@
       "source_line": 155,
       "source_text": "条件に一致する商品がない旨を表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "no-results",
-      "data": "Seed/入力: many-productsで一致しない検索語。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer。Web desktop /search の必須状態。管理者の公開閲覧はguest相当だが当該視覚正本はguest/customer",
+      "scenario": "many-products Seed（初期guest）+ /search?q=ZZZ-NO-MATCH-2026（未一致入力）。正式仕様表記のsearch-emptyは現行Seed登録なしのため入力駆動の代替として扱う",
+      "data": "many-productsは公開商品LOAD-0001〜LOAD-1000を生成。検索語ZZZ-NO-MATCH-2026は名称/商品コード/カテゴリー/ブランド/SKUの固定生成文字列と一致しない。guestで/ search?q=ZZZ-NO-MATCH-2026（空白なしの/search）を開き、比較としてq=負荷テスト商品を使用。search-empty専用Seedはmetadata/scenariosに存在しない",
       "action": "no-results状態を表示・処理",
-      "expected": "条件に一致する商品がない旨を表示する。",
+      "expected": "guest/customerの未一致キーワードでCatalogUseCases.searchのtotal=0、items=[]となり、Web /searchで「条件に一致するデータがありません」と「条件をすべて解除」を表示。解除後は/searchへ戻り検索語なしの結果に復帰。未一致は通信/ロード失敗やempty-catalogとは区別",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-SEARCH-A02-01を対象にmany-productsで一致しない検索語を準備し「条件に一致する商品がない旨を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-SEARCH-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "no-resultsに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ゼロ件を通信エラーと誤認、キーワードがリセットされず空状態に固定、公開条件外の商品が検索結果に漏れる、正式仕様のsearch-emptyシナリオを実在するSeedと誤記",
+      "test_condition": "many-products Reset→初期guest→Web desktop /search?q=ZZZ-NO-MATCH-2026を開き、CatalogUseCases.search→DexieProductQueryRepository.matchesSearch/searchでtotal=0,items.length=0を照合。filter-empty文言と解除CTAを確認、クリックで/searchへ戻り検索語なしの公開1000件と比較。customerでも同条件を確認。現行正式仕様のsearch-empty固定Seedは未登録であり、視覚正本の再現と実E2Eは別途受入",
+      "test_responsibility": "SCREEN-STOREFRONT-SEARCH-A02-01の状態条件。入力検索語→閲覧者フィルター→Repositoryゼロ件→StatePanel filter-empty→条件解除を監査",
+      "case_policy": "未一致キーワード/一致キーワード、guest/customer、検索条件解除、loading/errorとの差を採用。未登録のsearch-emptyをSeedとして捏造せず、入力駆動の再現と正式シナリオ差異を分離",
+      "case_selection_reason": "既存many-products Seedだけで決定的なゼロ件と非ゼロ件を比較できるため、学習専用Seed追加なしで検索空状態の基本分析が成立。正式シナリオ名不整合は技術受入の未解決として記録",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:143-155/BR-STOREFRONT-002/AC-STOREFRONT-002、CatalogListContent:133-160/297-319/502-525、CatalogUseCases.search:86-93、Dexie matchesSearch:56-95/search:101-127/buildCandidates:249-314、scenarios.ts:424-445、metadata.ts:97-106、catalog-pages.test.tsx:315-324を照合。正式仕様にsearch-emptyとあるがmetadata/scenariosに同名Seedなし。代替入力の基本分析のみ完了、専用シナリオ/正本画像・実E2E受入は未解決",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2138,10 +2220,12 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "covered_by": "SCREEN-STOREFRONT-SEARCH-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Use Case・Dexie・Web UI・既存Seedから入力駆動のゼロ件を読み取り監査。正式search-emptyシナリオの不一致は報告し、SUT変更なし",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -2161,7 +2245,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 143,
+          "end_line": 155,
+          "reason": "no-results必須Web状態と正式search-empty表記"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 12,
+          "end_line": 17,
+          "reason": "BR-STOREFRONT-002のキーワードとファセットAND"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 97,
+          "end_line": 106,
+          "reason": "many-products初期guest・検索導線"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 40,
+          "reason": "登録シナリオ分岐にsearch-emptyなし"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 445,
+          "reason": "1000件固定名・コードの生成"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "Viewer/Clockを伴う検索委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 95,
+          "reason": "正規化検索語の部分一致とフィルター"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "0件時のtotal/items/page返却"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 133,
+          "end_line": 160,
+          "reason": "URL qを検索Requestへ反映"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 502,
+          "end_line": 525,
+          "reason": "0件時のfilter-emptyと解除CTA"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 315,
+          "end_line": 324,
+          "reason": "検索ゼロ件の既存component契約（実Seed実行ではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CATEGORY-A01-01",

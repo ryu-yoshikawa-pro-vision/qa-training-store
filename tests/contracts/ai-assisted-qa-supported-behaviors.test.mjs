@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 11,
+      unreviewed_state_conditions: 9,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -278,6 +278,27 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "review_required",
       );
     }
+  });
+
+  it("audits low stock and search zero results without modifying the SUT", () => {
+    for (const id of [
+      "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock",
+      "SCREEN-STOREFRONT-SEARCH-S-no-results",
+    ]) {
+      const state = data.behaviors.find((item) => item.id === id);
+      expect(state?.analysis_status).toBe("analyzed");
+      expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
+      expect(state?.related_use_cases?.length).toBe(1);
+    }
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05")
+        ?.analysis_status,
+    ).toBe("review_required");
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-01")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {

@@ -252,3 +252,12 @@ CI調査では、HEAD `d22e366` のAndroid production-validation jobでNDK 27.1.
 ### 前HEADのWeb CI失敗の根拠と修正（2026-10-31）
 
 Web CI [41099183628](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41099183628)の実ログでは、TypeScript `TS2375`（`CheckoutLoadError`へ`body: undefined`を明示的に渡した）、Componentの住所表示テスト（`<address>`の複数テキストノードを単独の完全一致で探していた）、Required E2E 06（古いCartを検出した際の案内文を更新前の文言で期待）が失敗していた。任意`body`の省略、`<address>`要素のテキスト検証、Cart再確認メッセージと`/cart`リンクを確認するE2Eへ修正した。Style QualityではNative画面・Web component・台帳contractの3ファイルにPrettier違反があり、**この時点で完全解消の確認は未了**。最新CIで再判定する。構造contractの分析件数期待値も41/188へ同期した。
+
+## 低在庫と検索ゼロ件の状態別基本分析（2026-10-31、SUT変更なし）
+
+- `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock`：`low-stock`は`variant-basic-shirt-02`（ベーシックTシャツM）の在庫だけ10→3へ変換する。S=20、L=0、購入上限5は不変。Webの初期選択は在庫あり先頭のSなので、Mを**明示選択**して初めて「残り3点」、上限5点、数量選択1〜3を検証できる。正式`BR-STOREFRONT-003`/`AC-STOREFRONT-003`、`CatalogUseCases.getProductDetail`→Dexie `getDetail`→`ProductDetailView`、既存Seedとcomponentテストを読み取り監査。既存componentテストはDTOモックであり、実Seed/ブラウザ実行PASSではない。
+- `SCREEN-STOREFRONT-SEARCH-S-no-results`：`many-products` Seedの公開1000件に対し、`/search?q=ZZZ-NO-MATCH-2026`を入力すると検索対象の固定文字列に一致せず、`CatalogUseCases.search`→Dexie `matchesSearch`→`pageItems`でtotal=0/items=[]、Webの`filter-empty`と「条件をすべて解除」へ進む。解除後`/search`へ戻る。正式`BR-STOREFRONT-002`/`AC-STOREFRONT-002`、既存componentテストを照合。guest/customerと一致検索語の対照をCaseに採用。
+- **未解決の仕様・Seed対応差異**：正式`storefront.md`のno-results行は条件を`search-empty`とするが、`src/seeds/metadata.ts`/`scenarios.ts`に同名固定シナリオは存在しない。重大度Low〜Medium（再現手順・画面正本技術受入への影響）。既存`many-products`と検索語の入力で基本分析は成立するが、`search-empty`固定Seedの存在や視覚/E2E受入をPASSとはしない。教材では「入力で再現する代替条件」として明示できる。正式シナリオの整合修正は製品/仕様/Seed変更禁止のため提案に留める。新たなSeedが本当に必要かは視覚受入手順を確認してから判断する。
+- **基本分析46/188件（残り142）、状態条件11/20レビュー済み（残り9）**。188件は暫定。状態条件2件は親操作の基本分析に加算せず、親`SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05`/`SCREEN-STOREFRONT-SEARCH-A02-01`は未分析を維持。実ブラウザ・Native・視覚正本受入は未実施。
+- 直前HEAD `620d15e2`の[Web CI 41124666661](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41124666661)はStyle Quality失敗。実ログでは`src/presentation/native/native-purchase-screens.tsx`（SUT変更禁止）と`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`（学習用）のPrettier違反。後者は本更新後のCIで再確認し、残れば学習用範囲内で修正する。その他Web unit/integration/component/contracts、E2E各jobは成功。前HEAD Mobile CI 41124666760は成功。新HEADでの成功は別途確認。
+- PR既存差分には製品Use Case/Repository/UI、正式`docs/spec/features/checkout-and-payment.md`、既存component/integrationテストが含まれる。**これらは過去差分として保持・仕分け対象とし、本更新では一切変更していない**。製品不整合をIssue化/別PR化する場合は事前承認を待つ。

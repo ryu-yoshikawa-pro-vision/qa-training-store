@@ -302,3 +302,10 @@ M02/M04の初見仕様質問・引継ぎ、M06の別Case新規E2E、M07のPage O
 **実装完了**：全11モジュールの教材・クイズ/公開解説・実技・開始/終了基準データ・評価基準・模範解答・採点用テスト・完成状態データ、公開Web、許可リスト同期、1モジュール単位ロード、知識グラフ、必要な検証/CI機能を作成する。模範・採点・完成状態は公開Git上の通常ファイルとし、学習用Template/同期/ロード/Web Build/公開Artifactには含めない。これは配布境界であり秘密保持ではない。学習者個人の提出・評価記録と、評価時に初めて示す具体的条件は公開リポジトリへ保存しない。Web/データ/ロード/状態/評価の自動・契約テスト、静的検証、ビルド、CI、正式仕様との意味上の照合、旧課程/製品の非回帰検証を通過し、Phase 1・2ではGitHubログイン以外のGit/PR/CI操作を求めず、Phase 1にPlaywright、Phase 2にCIを修了条件として要求しない。M02→M03の固定Skill契約等の必須統合検証を省略しない。**PR #199の完了前に**実公開Template→本人の非公開リポジトリ→新規2コアCodespaceでload・Serve/Reset・Playwright実Run・証拠保全と、校正済みOpenCode正式AI評価・結果保存・再評価の通し技術受入を完了する。**実際の受講者による学習効果試行のみ**PR後の独立工程とし、人間の正式採点・承認は要求しない。
 
 **PR #199の実装範囲**：本Planが定めるM00〜M10の教材・評価資料・状態データ・知識グラフ・Web/同期/ロード/CI機能と開発用検証を完成させる。外部学習用Templateの実体作成は作成先・管理権限の指定後に行う。merge、force push、branch削除、PR closeは行わない。
+
+## 2026-10-31 低在庫・検索ゼロ件の状態別監査（SUT変更なし）
+
+- `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock`と`SCREEN-STOREFRONT-SEARCH-S-no-results`を正式BR/AC、Web UI、Use Case、Dexie、既存Seedとcomponentテストで読み取り監査し、状態別基本分析を完了。**基本操作46/188（残り142）、状態条件11/20（残り9）**。分母188は暫定、実行E2E/視覚受入PASSではない。
+- low-stockはTシャツMを明示選択（初期Sでは不可）、在庫3/購入上限5/数量候補1〜3を対照。no-resultsは既存many-productsと未一致検索語で再現する。正式仕様の`search-empty`という固定Seed名は現行Seed登録に存在しないため、再現条件差異を調査レポートへ記録。製品仕様/Seedは変更しない。
+- 前HEAD Web CI 41124666661はStyle QualityのPrettier違反（学習用contract、変更禁止の製品Native画面）で失敗。学習用contractの整形のみ本PRで対応し、製品Native画面は未修正。最新HEADのCIを再確認する。既存PRの製品変更は保持し、承認なくrevert/別PR化しない。
+- 実公開Template→Private 2-core Codespaces、OpenCode実モデル校正、全11モジュールと全操作のマージ前受入は引き続き未達。
