@@ -119,3 +119,11 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 - **情報の非表示**：両UIとも内部`user.id`やRole変更・管理用操作を表示しない。DTO内部にIDが存在することとユーザー向け表示を分け、Web/NativeのcomponentテストでID非表示と各ランク表示を確認するCaseを追加した。
 
 これら4件の仕様・Use Case・Seedの分岐が照合できたため、台帳上の基本分析を`analyzed`にした。**基本分析25/188（13.30%）、要レビュー163件、非default状態19件未レビュー**。Native実機・最新CIの成功は別途確認し、分析記録だけで受入完了としない。
+
+## Checkout再開通知のWeb限定状態を個別監査（2026-10-31）
+
+`SCREEN-CHECKOUT-ADDRESS-S-resume-notice`は`SCREEN-CHECKOUT-ADDRESS-A02-01`の非default状態条件であり、独立動作として二重計上しない。正式仕様では`web-desktop`のみ必須。Roleはactive Customerで、guest/operator/adminおよび停止・退会済み顧客は購入不可。
+
+`checkout-resume` Seedは`regular@example.com`、Cart version=1と同versionのactive `checkout-active`セッション（unlockedStep=address、version=1）を生成。固定時計2026-07-01T03:00:00Zから24時間有効。Webの`CheckoutOrderUseCases.start`→`CheckoutAddressContent`→`claimCheckoutNotice`を追跡し、初回の再開通知、同Session reloadでの非表示、Seed Reset後の再表示、Cart版変更による置換通知の区別を確認した。`e2e/web/ui-ux-improvements.spec.ts` Flow C（141-155行）にも同条件の期待結果がある。**既存E2Eの存在を最新HEADのPASSとは扱わない。**
+
+この状態条件1件を`analyzed`へ変更。**基本操作25/188（13.30%）、残163件、状態別条件18/20件未レビュー**。親のWeb/Native再開操作は入力復元やプラットフォーム差の精査が残るため`review_required`のまま。分母188件は暫定、Template/Codespaces/OpenCode受入も未完了。

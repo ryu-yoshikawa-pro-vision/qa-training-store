@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 19,
+      unreviewed_state_conditions: 18,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -104,6 +104,21 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
+  });
+
+  it("audits the Web-only checkout resume state without certifying its parent", () => {
+    const state = data.behaviors.find(
+      (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
+    );
+    expect(state?.analysis_status).toBe("analyzed");
+    expect(state?.covered_by).toBe("SCREEN-CHECKOUT-ADDRESS-A02-01");
+    expect(state?.platform).toBe("web-desktop");
+    expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(state?.audit_branch_refs?.length).toBeGreaterThan(0);
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {

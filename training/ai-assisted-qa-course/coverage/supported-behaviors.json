@@ -4388,20 +4388,20 @@
       "source_line": 73,
       "source_text": "再開されたチェックアウトセッションであることを一度だけ通知する。",
       "platform": "web-desktop",
-      "role": "`customer`",
-      "scenario": "resume-notice",
-      "data": "Seed/入力: checkout-resume。通常状態から条件を変更し表示と操作を比較",
+      "role": "active customer（regular@example.com）。guest/operator/adminおよびsuspended/withdrawnはCheckout不可",
+      "scenario": "checkout-resume。BASE_CLOCK=2026-07-01T03:00:00Z、Checkout期限は2026-07-02T03:00:00Z",
+      "data": "checkout-resumeは本人regular customerのactive CheckoutSession（checkout-active、cartVersion=1、version=1、unlockedStep=address）を作り、Cart version=1と一致する。defaultは既存Checkoutなし、checkout-replacedはCart version=2に変更",
       "action": "resume-notice状態を表示・処理",
-      "expected": "再開されたチェックアウトセッションであることを一度だけ通知する。",
+      "expected": "Web /checkout/addressでstartOrResumeがresumedを返すと『以前の購入手続きを再開しました。』をrole=statusで初回だけ表示。同じCheckout Session IDと通知種別ではsessionStorageによってreload時に非表示。SeedをResetすると再表示し、replacedは別文言を表示。Nativeのonce-only視覚条件は正式要求外",
       "rule_refs": [],
       "route": "`/checkout/address`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "SCREEN-CHECKOUT-ADDRESS-A02-01を対象にcheckout-resumeを準備し「再開されたチェックアウトセッションであることを一度だけ通知する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-CHECKOUT-ADDRESS-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "resume-noticeに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "再開と置換の混同、同じ通知のリロード反復、古いCart状態の再開と誤認、非顧客の購入導線へのアクセス",
+      "test_condition": "checkout-resumeでReset→Web desktop /checkout/addressの再開文言とrole=status→同session reloadで非表示→同Seed再Resetで再表示→checkout-replacedで置換文言を確認。Cart/Checkout version一致、期限、本人Customer認可をUse CaseとSeedで照合する。E2Eの存在と実行PASSは別に扱う",
+      "test_responsibility": "Web CheckoutAddressContentのstart/resumed結果とclaimCheckoutNoticeのsessionStorageキー（session ID＋種別）をUI/単体・E2Eで検証。Customer認可とCart versionはCheckoutOrderUseCases、Native基本再開は親操作で別途確認",
+      "case_policy": "Web resume初回、同セッションreload、Seed Reset、Cart version不一致によるreplacedの4条件。非顧客拒否はRole契約、Native再開の基本動作は親操作で扱う",
+      "case_selection_reason": "購入状態を示す通知の一度限り性と置換との差は実利用の混乱を防ぐ。固定Seedと既存Web E2Eで正常・再読込・Reset・変更条件が再現可能",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "正式画面checkout-and-payment.md:59-73、Role:5-23、CheckoutOrderUseCases.start:108-138、CheckoutAddressContent:118-146/178-182、claimCheckoutNotice:153-160、metadata.ts:306-316とBASE_CLOCK、scenarios.ts:107-111/367-395、ui-ux-improvements.spec.ts:141-155を照合。Web限定状態の成立条件と反例を確認した。最新HEADのE2E実行成功とは区別",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -4413,7 +4413,7 @@
       "related_use_cases": [],
       "covered_by": "SCREEN-CHECKOUT-ADDRESS-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "正式仕様、Web UI/Use Case、Seedの実値と既存E2Eを照合済み。親操作のWeb/Native入力復元と実行結果は未判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -4433,7 +4433,50 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 59,
+          "end_line": 73,
+          "reason": "Web desktop必須の再開通知状態"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 108,
+          "end_line": 138,
+          "reason": "Customer認可・Cart版確認・startOrResume"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 118,
+          "end_line": 146,
+          "reason": "resumed/replacedの通知分岐"
+        },
+        {
+          "path": "src/presentation/browser/one-time-notice.web.ts",
+          "start_line": 153,
+          "end_line": 160,
+          "reason": "同Sessionと種別の一度限り通知"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "version1/2とactive Checkoutの生成"
+        },
+        {
+          "path": "e2e/web/ui-ux-improvements.spec.ts",
+          "start_line": 141,
+          "end_line": 155,
+          "reason": "初回/reload/Reset/置換の回帰期待結果"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PAYMENT-A01-01",

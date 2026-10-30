@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 Checkout再開通知の状態別監査
+
+- `SCREEN-CHECKOUT-ADDRESS-S-resume-notice`のWeb限定視覚条件を、正式仕様・Role・Use Case・sessionStorage通知・checkout-resume Seedの固定Clock/Cart version・既存E2Eで照合し分析済みに変更。
+- **基本分析25/188（13.30%）、未分析163件、状態別条件18/20件未レビュー**。親`SCREEN-CHECKOUT-ADDRESS-A02-01`はWeb/Native入力復元などが未監査。
+- 最新HEADのE2E/CI成功、暫定分母の確定、実Template/非公開2コアCodespaces/OpenCode実モデル校正は未完了。
+
+
 ## 2026-10-31 プロフィール表示のWeb・Native契約整合
 
 - `SCREEN-AUTH-ACCOUNT-PROFILE`の本人情報、会員ランク、アカウント状態、顧客以外の操作・内部IDの非表示の4操作を正式仕様/Use Case/Seedで照合し、基本分析済みを25/188件（13.30%）、未分析163件へ更新。状態別条件19/20件は未レビュー。
