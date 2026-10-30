@@ -81,8 +81,8 @@ function verifyAuditSource(entry, root) {
   const seed = entry.seed_evidence;
   assert(implementation && seed, `analysis evidence missing: ${entry.id}`);
   assert(
-    /^(?:src\\/(?:presentation\\/pages|application\\/use-cases)\\/|app\\/)/.test(
-      implementation.path,
+    ["src/presentation/pages/", "src/application/use-cases/", "app/"].some((prefix) =>
+      implementation.path.startsWith(prefix),
     ),
     `invalid implementation source: ${entry.id}`,
   );
