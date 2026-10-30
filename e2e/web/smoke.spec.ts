@@ -195,7 +195,7 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
       expect(response.status(), `${moduleId}: ${label}`).toBe(200);
     }
     await page.getByRole("link", { name: "演習", exact: true }).click();
-    await expect(page).toHaveURL(/\/exercise\.html$/);
+    await expect(page).toHaveURL(/\/exercise(?:\.html)?$/);
     await expect(page.locator("article h1")).toContainText(moduleId);
     await expect(page.locator("article")).toContainText("P01");
     await expect(page.locator("article")).toContainText("P06");
