@@ -4235,35 +4235,35 @@
       "source_line": 66,
       "source_text": "再開、置換、古い状態に関する通知と、次に行うアクションを表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,checkout-replaced,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: セッション再開を通知",
+      "role": "customer",
+      "scenario": "checkout-resumeのregular customerによるactive CheckoutSessionの同Cart/version再開。Webの初回/再読込時の通知、戻ったときに非既定住所を保存済みSnapshotとして保持、登録済み住所が変更・削除された場合、NativeのSession復元を区別",
+      "data": "checkout-resume Seedはsession-checkout、checkout-active(version1)、Cart version1、期限2026-07-02T03:00Z、固定時計2026-07-01T03:00Z。本人住所0件なので保存済みSnapshot復元のUI Caseでは2件のテスト住所と選択済みの非既定住所Snapshotを追加操作で用意する",
       "action": "セッション再開を通知",
-      "expected": "有効な進行中セッションを再開した場合は再開状態と残っている入力を提示する",
+      "expected": "同User/Cart/versionで期限内のactive Sessionは新しいSessionを作らず同じid/versionで再開する。Webでは初回のみ再開Noticeを表示し、保存済み住所Snapshotと一致する現在の本人住所を再選択する。一致しなくなったら既定住所へ勝手に切り替えず選び直しを要求する。Nativeは再開Noticeを表示し、保存した配送先の全入力欄を復元する。以前の入力が不正に変更されず、再開時の注文・決済・在庫更新は起こらない",
       "rule_refs": [],
       "route": "`/checkout/address`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "セッション再開を通知について、有効な進行中セッションを再開した場合は再開状態と残っている入力を提示することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移とセッション再開を通知の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "セッション再開を通知の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "再開時に配送先がデフォルトへ無断変更される、削除・編集後の住所を気づかず確定する、別セッションや別ユーザーの情報を復元する、WebとNativeの再開時状態がずれる",
+      "test_condition": "checkout-resume SeedでWebの初回Notice→reload時非表示、Session ID/version不変を確認。2件の住所で非既定の選択済みSnapshotを再開しラジオ選択維持、保存済み住所変更時は非選択・次ステップ不可、明示選択後に進行可能を検証。NativeではgetActiveがaddressSnapshotを返すとき郵便番号/住所欄とresumed通知が復元されることを確認",
+      "test_responsibility": "CheckoutOrderUseCases.start/getActiveはactive Session、本人とCart versionを検査し、Web checkout-order-pagesのsnapshotマッチングとsessionStorage one-time Notice、Native useCheckoutSessionのgetActive/入力復元を別々に確認する",
+      "case_policy": "期限内同Cart/versionの再開、Web初回/再読込、Web非既定復元・不一致時再選択、Native保存入力復元、期限切れ/Cart不一致は置換・旧セッション別操作へ分離",
+      "case_selection_reason": "Webの旧実装はSessionの住所Snapshotを参照せず常に既定住所を選んでいた。再開時の配送先誤変更を防ぐため、非既定住所と住所変更後のケースを必須とする",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:9-12,60-79、Web checkout-order-pages.tsx:115-155と保存済みSnapshot復元、one-time-notice.web.ts、Native native-purchase-screens.tsx:684-791と住所欄反映、Dexie startOrResume:630-669・Native SQLite startOrResume:1723-1779、checkout-resume Seed scenarios.ts:367-396、E2E ui-ux-improvements.spec.ts:141-149、Web/Native componentの復元テストを照合。Webの選択復元欠落を修正。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
+        "CheckoutOrderUseCases.start",
         "CheckoutOrderUseCases.getActive"
       ],
       "state_refs": [
         "SCREEN-CHECKOUT-ADDRESS-S-resume-notice"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "Web/Nativeの再開経路・保存済み住所復元・Seed/Repositoryを照合し、Webの保存済み非既定住所を誤って既定へ切り替える不具合を修正。CIと実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -4293,6 +4293,37 @@
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "line": 141,
           "signature": "async getActive(requiredStep: CheckoutStep = \"address\"): Promise<CheckoutSession> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 630,
+          "end_line": 669,
+          "reason": "同Cart/versionのactive Sessionを再開"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 115,
+          "end_line": 235,
+          "reason": "Webの一度限り再開通知・保存済み非既定住所の復元・変更時再選択"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 684,
+          "end_line": 790,
+          "reason": "Androidの既存Sessionと住所入力の復元"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 396,
+          "reason": "checkout-resume SeedのSession/Cart versionとClock"
         }
       ]
     },
@@ -4370,30 +4401,32 @@
       "source_line": 66,
       "source_text": "再開、置換、古い状態に関する通知と、次に行うアクションを表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,checkout-replaced,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: セッション置換を通知",
+      "role": "customer",
+      "scenario": "checkout-replacedとcart-version-invalidates-checkout Seedのregular customer。Cart version2に対し旧active CheckoutSession.cartVersion1。期限内Cart変更時と24h期限切れ置換、前Sessionの更新拒否を区別",
+      "data": "checkout-replaced Seed: session-checkout、checkout-active(id)、旧cartVersion1・version1、Cart current version2、fixed clock 2026-07-01T03:00Z。Webのcheckout.startは新Sessionを返す。NativeはgetActiveでcart版不一致を検出しstartで置換する。旧Session ID/新Session IDを比較",
       "action": "セッション置換を通知",
-      "expected": "既存セッションが置換された場合は以前のセッションでは注文を確定できないと説明する",
+      "expected": "旧active Sessionは期限内にCart version不一致ならstatus=abandonedになりversionを加算、新SessionはaddressSnapshot=null、unlockedStep=address、version1、24h期限で作成される。Webは新Sessionごとに『カートの更新により、購入手続きを最新の内容へ置き換えました。』を通知し、Nativeも『Checkoutを開始しました』と誤表示せず同様の置換通知を表示する。旧Session IDでの住所更新・決済確定は不可",
       "rule_refs": [],
       "route": "`/checkout/address`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "セッション置換を通知について、既存セッションが置換された場合は以前のセッションでは注文を確定できないと説明することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移とセッション置換を通知の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "セッション置換を通知の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "古いセッションから注文や決済を確定、置換したのに古い配送先を無断再利用、Androidで通常開始と表示して再入力が必要な理由を説明しない",
+      "test_condition": "checkout-replaced Seedでstart結果replaced、old Session abandoned/new Session active、old IDによるsetAddress拒否、Webの置換通知、Nativeの置換通知と新規開始との区別、新Sessionの住所なし/支払未指定を検証。正常な新Sessionでは初期配送先から再設定できることを確認",
+      "test_responsibility": "Use Caseは現在Cart versionを使い、Dexie/SQLite startOrResumeが旧Sessionを放棄して新規を作成する。Web once NoticeとNative Session origin表示が結果種別に対応する。旧Sessionの操作拒否はApplication/Repositoryで確認する",
+      "case_policy": "Cart変更置換、前Session使用拒否、Web/Native置換通知、created/resumedとの表示差、期限切れ置換を採用。セッション再開時の入力保持はA02-01、旧状態の案内一般はA02-02に区別",
+      "case_selection_reason": "Cart更新時に旧Sessionを無効化する規則は注文内容の確定を守る。Androidではreplacedがstartedと扱われていたため表示分岐も追加テストする",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:9-18,60-74、checkout-replaced Seed scenarios.ts:367-395のCart version2/旧Session version1、Dexie CheckoutRepository.startOrResume:630-669、SQLite NativeCheckoutRepository.startOrResume:1723-1779、Web checkout-order-pages.tsx:118-147、Native native-purchase-screens.tsx:684-789と置換通知追加、e2e/ui-ux-improvements.spec.ts:141-155、既存Checkout integrationとNative新規/置換回帰テストを照合。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.start",
+        "CheckoutOrderUseCases.getActive"
+      ],
+      "analysis_progress": "checkout-replaced Seed・Web/Native Repository・Use Case・通知UIを照合。Nativeでreplacedをstartedと誤表示する不整合を修正して回帰テストを追加。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -4417,7 +4450,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "Cart版と旧Session版の不一致"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 630,
+          "end_line": 669,
+          "reason": "Webの旧Session放棄と新Session作成"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1723,
+          "end_line": 1779,
+          "reason": "Nativeの旧Session放棄と新Session作成"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 684,
+          "end_line": 794,
+          "reason": "Androidのcreated/replaced/resumed通知の区別"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
