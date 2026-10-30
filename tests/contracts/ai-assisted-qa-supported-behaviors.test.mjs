@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 25,
-      requires_review: 163,
+      basically_analyzed: 26,
+      requires_review: 162,
       classified_rate: 100,
-      basic_analysis_rate: 13.3,
+      basic_analysis_rate: 13.83,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -118,6 +118,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01")?.analysis_status,
     ).toBe("review_required");
+  });
+
+  it("audits payment-step navigation while retaining the platform selection question", () => {
+    const next = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-02");
+    expect(next?.analysis_status).toBe("analyzed");
+    expect(next?.related_use_cases).toContain("CheckoutOrderUseCases.setAddress");
+    expect(next?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(next?.audit_branch_refs?.length).toBeGreaterThan(0);
+    const selection = data.behaviors.find(
+      (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01",
+    );
+    expect(selection?.analysis_status).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {
