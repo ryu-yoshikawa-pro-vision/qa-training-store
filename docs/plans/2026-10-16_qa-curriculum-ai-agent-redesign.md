@@ -4,6 +4,7 @@
 
 - `SCREEN-CHECKOUT-PAYMENT-A01-01`と`A01-02`を正式BR/AC・Web/Native・Use Case・Dexie/SQLite・Seed・回帰テストで照合。許可する4モック決済コード以外はApplication境界で拒否するよう修正し、未許可コードがSessionを変更しない統合テストを追加した。
 - Webの`setPayment`失敗が未処理Promiseになり得る問題を修正し、エラーを表示して確認画面へ進まないcomponentテストを追加。配送先が再選択待ちで無効化されたボタンの表示名が「処理中…」になる問題も、送信中`busy`と`disabled`の分離で修正。
+- NativeのCheckout復帰処理は予期しないストレージ読み取り失敗でも新Sessionを開始していたため、復帰可能な古い/未完了Sessionのエラーだけに限定し、予期しない失敗では新規作成せず画面エラーを出すcomponentテストを追加した。
 - Web CI `41088684235`の失敗ログから、台帳の実装行参照37件、Use Case証拠7件、公開Use Caseメソッド7件の古い行番号を特定して署名一致位置へ再固定。既分析済みの再開操作を未分析と期待する契約テストも修正。Style Qualityの3ファイルとcomponentテストの失敗原因を修正したが、最新HEADのCI成功は未確認。
 - **基本分析30/188件（15.96%）、残り158件、状態別条件18/20件未レビュー**。188件の分母最終確定、11モジュール・正式AI評価・実Template→非公開2コアCodespaces→OpenCode実モデル校正を含むマージ前受入は引き続き未完了。
 
