@@ -306,7 +306,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
       (item) => item.id === "SCREEN-AUTH-LOGIN-S-validation-error",
     );
     expect(state?.analysis_status).toBe("analyzed");
-    expect(state?.platform).toBe("web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）");
+    expect(state?.platform).toBe(
+      "web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）",
+    );
     expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(state?.related_use_cases).toContain("AuthUseCases.login");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
@@ -314,7 +316,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(parent?.analysis_status).toBe("review_required");
   });
 
-  it("audits Signup validation and published review state without certifying parent actions", () => {
+  it("audits Signup validation and published review state", () => {
     for (const [id, useCase] of [
       ["SCREEN-AUTH-SIGNUP-S-validation-error", "AuthUseCases.register"],
       ["SCREEN-REVIEWS-EDITOR-S-published", "CustomerReviewUseCases.getEligibility"],
