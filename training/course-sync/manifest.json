@@ -113,6 +113,24 @@
   },
   "local_files": [
     {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-repo-README.md",
+      "target_path": "README.md",
+      "module_id": null,
+      "role": "learner-repository-guide"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-repo.gitignore",
+      "target_path": ".gitignore",
+      "module_id": null,
+      "role": "repository-protection"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-devcontainer.json",
+      "target_path": ".devcontainer/devcontainer.json",
+      "module_id": null,
+      "role": "learner-runtime"
+    },
+    {
       "source_path": "training/ai-assisted-qa-course/templates/workspace.gitignore",
       "target_path": "workspace/.gitignore",
       "module_id": null,

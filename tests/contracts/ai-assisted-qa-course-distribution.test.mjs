@@ -484,6 +484,37 @@ describe("AI-assisted QA distribution contract", () => {
   it("keeps the Plan-pinned external Skill allowlist complete and excludes evals", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const result = validateCourseManifest(manifest);
+    const learnerFiles = {
+      "README.md": "training/ai-assisted-qa-course/templates/learner-repo-README.md",
+      ".gitignore": "training/ai-assisted-qa-course/templates/learner-repo.gitignore",
+      ".devcontainer/devcontainer.json":
+        "training/ai-assisted-qa-course/templates/learner-devcontainer.json",
+    };
+    for (const [targetPath, sourcePath] of Object.entries(learnerFiles)) {
+      expect(manifest.local_files).toContainEqual({
+        source_path: sourcePath,
+        target_path: targetPath,
+        module_id: null,
+        role:
+          targetPath === "README.md"
+            ? "learner-repository-guide"
+            : targetPath === ".gitignore"
+              ? "repository-protection"
+              : "learner-runtime",
+      });
+      expect(fs.existsSync(path.join(repositoryRoot, sourcePath))).toBe(true);
+    }
+    const devcontainer = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, learnerFiles[".devcontainer/devcontainer.json"]),
+        "utf8",
+      ),
+    );
+    expect(devcontainer.forwardPorts).toContain(8082);
+    expect(devcontainer.postCreateCommand).toContain("playwright install --with-deps chromium");
+    expect(devcontainer.postCreateCommand).toContain("@opencode/cli@2.0.22");
+    expect(devcontainer.postCreateCommand).not.toContain("@openai/codex");
+    expect(manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/"))).toBe(false);
     expect(result).toMatchObject({ modules: 11, externalSkillFiles: 104 });
     expect(
       manifest.local_files

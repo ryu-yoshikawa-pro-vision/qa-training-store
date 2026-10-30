@@ -76,7 +76,7 @@
     "validate:spec-visuals:final": "tsx scripts/spec/validate-all.ts --visuals-final",
     "apply:android-spec-visuals": "tsx scripts/spec/android-visual-capture.ts apply-batch",
     "validate:curriculum": "tsx scripts/validate-curriculum.ts",
-    "validate:ai-assisted-qa": "tsx scripts/training/validate-ai-assisted-qa.ts",
+    "validate:ai-assisted-qa": "tsx scripts/training/validate-ai-assisted-qa.ts && node scripts/training/validate-supported-behaviors.mjs",
     "build:spec": "tsx scripts/spec/build-spec.ts",
     "build:docs": "tsx scripts/docs/build-docs.ts",
     "promote:spec-visuals": "tsx scripts/spec/promote-web-visuals.ts",
