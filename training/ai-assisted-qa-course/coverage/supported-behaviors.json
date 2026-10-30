@@ -11369,17 +11369,17 @@
       "source_text": "async suggestAddress(postalCode: string): Promise<AddressSuggestion | null> {",
       "platform": "web,android",
       "role": "customer",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "実在する郵便番号、不正形式、候補なし",
+      "scenario": "regular-memberのactive customer、guest、operator、admin、存在しない郵便番号。既定住所は初期Seed 0件でよい",
+      "data": "固定辞書1000001/1500001/5300001と9999999、ハイフン付郵便番号。regular-memberの顧客セッションとoperator・未ログインを用意",
       "action": "郵便番号から配送先候補を提示する",
-      "expected": "有効な郵便番号に該当する住所候補を表示し、不正・未検出時は誤った住所を採用しない",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "顧客が有効/不正な郵便番号を入力する",
-      "test_responsibility": "郵便番号から配送先候補を提示するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "郵便番号から配送先候補を提示するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "AccountUseCases.suggestAddressはrequireCustomerを呼ばず、住所補完辞書に委譲する。画面は顧客配送先編集に限定されてもUse Case自体の認可はないため、Role表記と仕様上のアクセス境界を要確認。静的辞書は郵便番号の数字以外を除去し、1000001/1500001/5300001に候補を返す。",
+      "expected": "有効なcustomerだけが固定辞書から候補を得る。数字以外を除去した郵便番号が登録済みなら該当住所、未登録ならnull。guestはAUTHENTICATION_REQUIRED、operator/adminはcustomerOnlyで拒否し、配送先自体は作成・更新しない",
+      "risk": "顧客専用操作をUse Case認可なしで実行可能にすること、誤った住所候補、未確定住所の意図しない保存",
+      "test_condition": "Webの顧客用配送先画面から候補提示を操作する。Use Case単体のguest/operator/customer、100-0001、未登録番号の結果と住所データ不変を照合する",
+      "test_responsibility": "WebのRouteGuardとUse Case内の顧客認可の両方を確認し、郵便番号辞書照会と住所保存操作を区別する。Androidは同一Use Caseが提供されるが補完UIは確認できない",
+      "case_policy": "辞書命中・未登録・ハイフン付き、guest/operator/admin拒否を採用。オンライン住所検索や保存は含めない",
+      "case_selection_reason": "正式なUse Case認可契約に対し補完操作だけ顧客境界が抜けていたため、UI経路と認可を別々に検証する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "docs/spec/roles-and-permissions.md:17-19、Web addresses-page.tsxのRouteGuardと郵便番号補完、AccountUseCases.suggestAddress:120-123、BundledStaticAddressLookup:4-30、regular-member Seedを照合。Use CaseにrequireCustomer()を追加し、guest/operator/customerの統合テストを追加。Nativeの呼出し口はあるがNative UIに補完操作があるとの主張はしない。",
       "related_use_cases": [
         "AccountUseCases.suggestAddress"
       ],
@@ -11413,7 +11413,32 @@
         "path": "src/application/use-cases/account-use-cases.ts",
         "line": 120,
         "signature": "async suggestAddress(postalCode: string): Promise<AddressSuggestion | null> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 120,
+          "end_line": 132,
+          "reason": "認可・候補取得"
+        },
+        {
+          "path": "src/infrastructure/address-lookup/static-address-lookup.ts",
+          "start_line": 4,
+          "end_line": 30,
+          "reason": "固定郵便番号辞書と数字正規化"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 294,
+          "end_line": 340,
+          "reason": "顧客/非顧客の境界回帰"
+        }
+      ]
     },
     {
       "id": "UC-ADMIN-CHANGE-CATEGORY-STATUS",
