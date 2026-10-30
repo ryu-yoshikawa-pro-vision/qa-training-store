@@ -216,6 +216,7 @@ export type BuildDocsResult = {
   specificationPages: number;
   curriculumPages: number;
   aiCoursePages: number;
+  exercisePages: number;
   quizPages: number;
 };
 
@@ -252,6 +253,7 @@ export function buildDocs(rootDir = process.cwd()): BuildDocsResult {
     specificationPages,
     curriculumPages: curriculumPaths.length,
     aiCoursePages: aiCourse.coursePages,
+    exercisePages: aiCourse.exercisePages,
     quizPages: aiCourse.quizPages,
   };
 }
@@ -266,6 +268,6 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   const result = buildDocs();
   console.log(
-    `Built ${result.specificationPages} specification page(s), ${result.curriculumPages} legacy curriculum page(s), ${result.aiCoursePages} new curriculum page(s), and ${result.quizPages} quiz page(s) in dist/docs`,
+    `Built ${result.specificationPages} specification page(s), ${result.curriculumPages} legacy curriculum page(s), ${result.aiCoursePages} new curriculum page(s), ${result.exercisePages} exercise page(s), and ${result.quizPages} quiz page(s) in dist/docs`,
   );
 }

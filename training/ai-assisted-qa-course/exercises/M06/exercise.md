@@ -19,7 +19,7 @@
 
 5. 表示だけのAssertionが業務期待を証明するかレビューします。
 6. 別Case `CASE-CART-004`：defaultをResetし、ゲストとしてマグを1点追加し、カートの明細を削除します。削除前に対象商品と数量1を確認し、削除後は対象明細がなく、カートが空であることを確認します。Cart仕様の機能範囲と`empty`画面状態を読み、画面操作と期待結果を対応させます。`BR-CART-001`の数量0の規則と、画面の削除ボタンによる操作を同じ実行だと決めつけません。
-7. `new-case.spec.ts`のTODOを自分で実装し、次のコマンドで単独実行と再実行を行います。出力先を分けることで前のRunの結果を上書きしません。Resetと各Runの結果・対象specを対応付けます。失敗時は最初のエラー、サーバー、Reset、LocatorとAssertionを順に確認し、期待を弱めず修正します。
+7. `new-case.spec.ts`のTODOを自分で実装し、P01の数量更新`CASE-CART-005`を削除`CASE-CART-004`とは**別のtest**として追加します。両方を実装した後、次のコマンドで単独実行と再実行を行います。出力先を分けることで前のRunの結果を上書きしません。Resetと各Runの結果・対象specを対応付けます。失敗時は最初のエラー、サーバー、Reset、LocatorとAssertionを順に確認し、期待を弱めず修正します。
 
    ```bash
    pnpm course:run M06 new-case.spec.ts --label initial
@@ -30,7 +30,7 @@
 
 ## 提出物
 
-`workspace/M06/submission.md`、固定Caseのspec、別Caseの`workspace/M06/new-case.spec.ts`、実行証拠。各テストを入力元・revision・Case ID・BR/AC・Role/State/Data・spec/test・期待結果・業務Assertion・Seed/Reset・Runまで追跡できるようにします。本人Caseと固定Caseが一致しない場合は差と非対応理由を記録し、fallback使用時はPhase 1修了を主張しません。
+`workspace/M06/submission.md`、固定Caseのspec、削除004と数量更新005を含む`workspace/M06/new-case.spec.ts`、各Runの実行証拠。各テストを入力元・revision・Case ID・BR/AC・Role/State/Data・spec/test・期待結果・業務Assertion・Seed/Reset・Runまで追跡できるようにします。本人Caseと固定Caseが一致しない場合は差と非対応理由を記録し、fallback使用時はPhase 1修了を主張しません。
 
 ## 理解ノード別の確認
 

@@ -480,7 +480,11 @@ function renderCoursePage(
     const rubricPath = `${TRAINING_ROOT}/assessment/phase-${phase}-rubric.md`;
     const links = moduleResources.map((relativePath) => {
       const relativeLabel = relativePath.slice(`${TRAINING_ROOT}/`.length);
-      return `<li><a href="${escapeHtml(resourceUrl(relativePath))}">${escapeHtml(learnerResourceLabel(relativePath))}</a><small>${escapeHtml(relativeLabel)}</small></li>`;
+      const href =
+        relativePath === `${TRAINING_ROOT}/exercises/${moduleId}/exercise.md`
+          ? exercisePageUrl(moduleId)
+          : resourceUrl(relativePath);
+      return `<li><a href="${escapeHtml(href)}">${escapeHtml(learnerResourceLabel(relativePath))}</a><small>${escapeHtml(relativeLabel)}</small></li>`;
     });
     links.push(`<li><a href="${escapeHtml(resourceUrl(rubricPath))}">Phase ${phase}の評価基準</a></li>`);
     if (moduleId === "M03") {
@@ -503,9 +507,13 @@ function renderCoursePage(
   const body =
     moduleId === undefined
       ? content
-      : content.replace('<div class="document-body">', () =>
-          `<div class="document-body">${moduleProgressHtml(moduleId, navigation)}${moduleTabsHtml(moduleId, pageKind)}`,
-        );
+      : content.replace('<div class="document-body">', () => {
+          const learnerNote =
+            pageKind === "lesson"
+              ? `<p class="module-guide">本文の練習と解説は理解を深めるための例です。実施・提出する課題の手順、P01〜P06と証拠の条件は<a href="${escapeHtml(exercisePageUrl(moduleId))}">${moduleId}の演習ページ</a>で確認してください。</p>`
+              : "";
+          return `<div class="document-body">${moduleProgressHtml(moduleId, navigation)}${moduleTabsHtml(moduleId, pageKind)}${learnerNote}`;
+        });
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>${escapeHtml(title)} — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}${MODULE_TABS_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${body}</article></main></body></html>\n`;
 }
 

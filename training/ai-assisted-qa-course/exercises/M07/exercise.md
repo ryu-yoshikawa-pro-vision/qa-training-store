@@ -22,7 +22,7 @@
 4. RetryやTimeout延長を原因修正と呼ばず、Trace、Screenshot、ログが示す範囲と限界を記録します。
 5. `workspace/M07/maintenance.spec.ts`の2件を単独実行し、変更前Runを記録します。両testのResetと「マグ追加→カート表示」の重複を探します。
 6. テストごとのResetをPlaywright標準fixtureへ移し、重複する画面操作を小さなPage Objectへまとめます。追加ボタンのLocatorには完全一致を指定し、変更箇所を1か所に集めます。数量1・数量2のAssertionは各testに残し、仕様の確認を弱めません。
-7. 同じ2件を別Runで実行し、修正前後のspec・コマンド・結果を記録します。1件だけの操作で抽象化が不要な別例も挙げ、採用しない理由を説明します。失敗時はReset、Locator、AssertionとTraceを確認し、結果を推測しません。
+7. 既存2件を共通化した後、P05にある「数量を2へ更新してCartを開き直す」**3件目のtest**を追加します。各testが独立してResetを実行し、業務Assertionを維持していることを確認します。変更前後のspec・コマンド・結果を記録し、1件だけの操作で抽象化が不要な別例も挙げます。失敗時はReset、Locator、AssertionとTraceを確認し、結果を推測しません。
 
 変更前にCodespacesのターミナルで次を実行し、2件の結果を記録します。
 
@@ -30,7 +30,7 @@
 pnpm course:run M07 maintenance.spec.ts --label before
 ```
 
-Page Objectとfixtureを実装した後、次のコマンドを実行します。出力先を分け、変更前の結果を上書きせず、両Runで2件がそれぞれPASSしたことを確認します。
+Page Objectとfixtureの実装後に**3件目の回帰testを追加してから**、次のコマンドを実行します。出力先を分けて変更前の結果を上書きせず、`before`は2件PASS、`after`は3件以上PASSを確認します。`after`で2件だけPASSしても正式な証拠条件を満たしません。
 
 ```bash
 pnpm course:run M07 maintenance.spec.ts --label after

@@ -185,12 +185,9 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
     const phase = index <= 4 ? 1 : index <= 7 ? 2 : 3;
     await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
     await expect(page.locator("article h1")).toContainText(`${moduleId}：`);
-    for (const label of [
-      "演習手順",
-      "演習開始ガイド",
-      "提出テンプレート",
-      `Phase ${phase}の評価基準`,
-    ]) {
+    const sectionLinks = page.locator("article .module-sections");
+    await expect(sectionLinks.locator('a[aria-current="page"]')).toHaveText("テキスト");
+    for (const label of ["演習開始ガイド", "提出テンプレート", `Phase ${phase}の評価基準`]) {
       const link = page.getByRole("link", { name: label, exact: true });
       const href = await link.getAttribute("href");
       expect(href).toMatch(
@@ -199,8 +196,22 @@ test("published AI-assisted QA modules, quizzes, and curriculum review links smo
       const response = await page.request.get(new URL(href ?? "", page.url()).toString());
       expect(response.status(), `${moduleId}: ${label}`).toBe(200);
     }
-    await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
+    await sectionLinks.getByRole("link", { name: "演習", exact: true }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/exercise\\.html$`),
+    );
+    await expect(page.locator("article h1")).toContainText(moduleId);
+    await expect(page.locator("article .module-sections a[aria-current='page']")).toHaveText("演習");
+    await expect(page.locator("article .document-body")).toContainText("P01");
+    await expect(page.locator("article .document-body")).toContainText("P06");
+    const submitted = page.getByRole("link", { name: "提出テンプレート", exact: true });
+    await expect(submitted).toHaveAttribute("href", /\/resources\/training\/ai-assisted-qa-course\//);
+    await page.locator("article .module-sections").getByRole("link", { name: "クイズ" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}\\.html$`),
+    );
     await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
+    await expect(page.locator("article .module-sections a[aria-current='page']")).toHaveText("クイズ");
     await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
   }
 });

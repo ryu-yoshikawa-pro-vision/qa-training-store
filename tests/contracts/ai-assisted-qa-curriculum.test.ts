@@ -560,6 +560,7 @@ describe("AI-assisted QA static learning course", () => {
         expect(html).toContain('class="module-pager"');
       }
       expect(lesson).toContain(`href="${lessonUrl}" aria-current="page">テキスト</a>`);
+      expect(lesson).toContain(`<a href="${exerciseUrl}">${id}の演習ページ</a>`);
       expect(exercise).toContain(`href="${exerciseUrl}" aria-current="page">演習</a>`);
       expect(quiz).toContain(`href="${quizUrl}" aria-current="page">クイズ</a>`);
       expect(exercise).toContain(`name="course-source-revision" content="${revision}"`);
@@ -576,6 +577,60 @@ describe("AI-assisted QA static learning course", () => {
     }
   });
 
+
+  it("keeps M06 and M07 learner instructions aligned with Playwright scoring runs", () => {
+    const readLesson = (moduleId: string): string =>
+      fs.readFileSync(
+        path.join(docsOutput, "curriculum/ai-assisted-qa/modules", moduleId, "index.html"),
+        "utf8",
+      );
+    const readScoring = (moduleId: string) =>
+      JSON.parse(
+        fs.readFileSync(
+          path.join(
+            repositoryRoot,
+            "training/ai-assisted-qa-course/assessment/scoring-tests",
+            `${moduleId}.json`,
+          ),
+          "utf8",
+        ),
+      ) as {
+        evaluation_policy: {
+          execution_evidence: {
+            required_runs: { spec: string; label: string; minimum_tests: number }[];
+          };
+        };
+      };
+
+    const m06 = readLesson("M06");
+    const m06Runs = readScoring("M06").evaluation_policy.execution_evidence.required_runs;
+    for (const label of ["initial", "repeat"]) {
+      expect(
+        m06Runs.find((run) => run.spec === "new-case.spec.ts" && run.label === label)
+          ?.minimum_tests,
+      ).toBe(2);
+    }
+    expect(m06).toContain("CASE-CART-004");
+    expect(m06).toContain("CASE-CART-005");
+    expect(m06).toContain("2件以上");
+    expect(m06).toContain("画面を開き直しても数量2");
+    expect(m06).toContain("M06演習ページ");
+
+    const m07 = readLesson("M07");
+    const m07Runs = readScoring("M07").evaluation_policy.execution_evidence.required_runs;
+    expect(
+      m07Runs.find((run) => run.spec === "maintenance.spec.ts" && run.label === "before")
+        ?.minimum_tests,
+    ).toBe(2);
+    expect(
+      m07Runs.find((run) => run.spec === "maintenance.spec.ts" && run.label === "after")
+        ?.minimum_tests,
+    ).toBe(3);
+    expect(m07).toContain("3件目");
+    expect(m07).toContain("3件以上");
+    expect(m07).toContain("M07演習ページ");
+  });
+
   it("routes all public learner materials internally and excludes protected assessment data", () => {
     const courseRoot = "training/ai-assisted-qa-course";
 
@@ -587,8 +642,11 @@ describe("AI-assisted QA static learning course", () => {
         "utf8",
       );
 
+      const exerciseSourcePath = `${courseRoot}/exercises/${id}/exercise.md`;
+      expect(fs.existsSync(path.join(repositoryRoot, exerciseSourcePath))).toBe(true);
+      expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/modules/${id}/exercise.html"`);
+
       for (const relativePath of [
-        `${courseRoot}/exercises/${id}/exercise.md`,
         `${courseRoot}/inputs/${id}/start.md`,
         `${courseRoot}/exercises/${id}/submission-template.md`,
         `${courseRoot}/assessment/phase-${phase}-rubric.md`,
