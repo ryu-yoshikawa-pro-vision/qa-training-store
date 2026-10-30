@@ -170,6 +170,14 @@ export class CheckoutOrderUseCases {
   async setPayment(request: SetCheckoutPaymentRequest): Promise<CheckoutSession> {
     const [user, now] = await Promise.all([this.requireCustomer(), this.now()]);
     await this.assertSessionForMutation(request.checkoutSessionId, user.id, now);
+    if (!PAYMENT_METHODS.includes(request.paymentMethodCode)) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "validation.form",
+        retryable: false,
+        fieldErrors: { paymentMethodCode: "validation.invalid" },
+      });
+    }
     return this.checkouts.setPayment({ ...request, userId: user.id, now });
   }
 
