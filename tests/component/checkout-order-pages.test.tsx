@@ -343,6 +343,18 @@ describe("checkout and order pages", () => {
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
   });
 
+  it("keeps payment open and displays an error when saving the method fails", async () => {
+    checkout.setPayment.mockRejectedValueOnce(new Error("stale checkout version"));
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByRole("heading", { name: "支払方法" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "¥2,500を確認する" }));
+    expect(
+      await screen.findByText("支払方法を保存できませんでした。最新のカートを確認してください。"),
+    ).toBeVisible();
+    expect(routerPush).not.toHaveBeenCalledWith("/checkout/confirm");
+    expect(screen.getByRole("button", { name: "¥2,500を確認する" })).toBeEnabled();
+  });
+
   it("explains each deterministic payment outcome before selection", async () => {
     render(<CheckoutPaymentPage />);
     expect(await screen.findByRole("heading", { name: "支払方法" })).toBeVisible();
