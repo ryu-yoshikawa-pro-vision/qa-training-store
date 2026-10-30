@@ -11483,17 +11483,17 @@
       "source_text": "async reorderCategories(request: ReorderCategoriesRequest): Promise<CategoryAdminListItem[]> {",
       "platform": "web",
       "role": "operator,admin",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "並び替え対象の複数カテゴリー、重複/欠落ID",
+      "scenario": "default（既存4カテゴリー）と、Staffの新規作成で51件以上に拡張した状態。重複ID・一部ID欠落・未知ID・旧version・権限外",
+      "data": "default Seedはカテゴリー4件（sortOrder 10刻み、version=1）。Staffで47件追加して合計51件を作り、全ID・各version・並べ替え順序を入力。0件/重複/欠落/旧versionの拒否条件も分離する",
       "action": "カテゴリーの並び順を更新する",
-      "expected": "指定した有効な順序が保存され、欠落・重複・不正順序は拒否される",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "管理者がカテゴリーの順序を変更する",
-      "test_responsibility": "カテゴリーの並び順を更新するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "カテゴリーの並び順を更新するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "AdminMasterUseCases.reorderCategories:137-148はStaff認可後、DexieCategoryRepository.reorder:415-443へ全ID/expectedVersionsを渡す。Repositoryは全カテゴリーの順序・versionを検査しtransaction内でsortOrderを10刻みに更新。ただしlistAllCategoriesForReorder:150-153の取得先がpageSize:50固定（basic-repositories.ts:445-454）で、51件以上を作成できる場合は全IDを送れない。初期Seedは4カテゴリー。上限の正式仕様、画面上の並び替えUI経路、51件以上の扱いが未確認なのでreview_requiredのまま。",
+      "expected": "operator/adminのみが全カテゴリー（51件以上も含む）の順序を読み込み、全IDと各最新versionの指定に成功すると全件のsortOrderを10刻みで再採番してversionを進める。ID欠落・重複・未知ID・旧versionは保存を拒否し順序を保持する。非Staffは拒否する",
+      "risk": "取得50件固定による51件目以降の欠落と全件更新失敗、並び順喪失、競合更新上書き、非Staffによる変更",
+      "test_condition": "defaultの4件と51件（既存4件＋新規47件）で一覧件数と順序を確認し、逆順を全件保存して再取得したsortOrderとversionを比較。ID欠落・重複・未知ID、旧version、guest/customerの拒否では全件の状態不変を確認する",
+      "test_responsibility": "Staff認可、並び替え対象の全件取得、ID集合完全性とversionの競合拒否、sortOrder再採番・transaction原子性を検証する",
+      "case_policy": "既定4件と51件を正常Caseとし、欠落/重複/未知ID、旧version、非Staffを拒否Caseに含める。50件以上を恒久的に仕様対象外とはしない",
+      "case_selection_reason": "初期Seedの4件だけでは先頭50件取得の不具合を検出できず、実際の全件並び替え操作を完遂できなくなるため51件を境界Caseに採用",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md SCREEN-ADMIN-CATEGORIES、admin-master-pages.tsx:275-298、AdminMasterUseCases:137-153、DexieCategoryRepository.searchForAdmin:330-362/reorder:415-443/listAllForReorder:445-462、Seed default-dataset.ts:37-42,683-692を照合。列挙は50件ずつ全ページを結合するよう修正し、51件で更新可能であることを確かめる統合テストを追加。テストの実行結果はCIと別途確認する。",
       "related_use_cases": [
         "AdminMasterUseCases.reorderCategories",
         "AdminMasterUseCases.listAllCategoriesForReorder"
@@ -11534,7 +11534,32 @@
         "path": "src/application/use-cases/admin-master-use-cases.ts",
         "line": 137,
         "signature": "async reorderCategories(request: ReorderCategoriesRequest): Promise<CategoryAdminListItem[]> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 275,
+          "end_line": 298,
+          "reason": "UIの全ID/expectedVersions送信と表示順編集"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 415,
+          "end_line": 462,
+          "reason": "全件更新、50件ページをまたぐ取得、version検査"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 83,
+          "end_line": 130,
+          "reason": "4件の従来ケースと51件境界回帰"
+        }
+      ]
     },
     {
       "id": "UC-ADMIN-CHANGE-BRAND-STATUS",
@@ -11794,21 +11819,22 @@
       "source_text": "async acceptPriceChanges(request: AcceptPriceChangesRequest): Promise<CartDto> {",
       "platform": "web,android",
       "role": "guest,customer",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "旧価格/新価格、カートversion、在庫変化",
+      "scenario": "regular-member（保存済価格と現在価格を異なる値にする）、cart-with-invalid-items。価格変更のみの正常条件、在庫/購入上限超過、価格以外の購入不可、競合version、非顧客Role",
+      "data": "regular-memberの既存Cart（cart-item-regular-shirt）を利用して追加時価格を999、現在価格を2000として価格差を作る。明細数量2・現時点のSKU在庫1で超過状態を作成。cartVersionと全明細itemVersionを入力に含める",
       "action": "変更されたカート価格を確認・承諾する",
-      "expected": "承諾後に最新の価格へ更新されるが、数量と在庫上限の不正は承認扱いにしない",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "価格変更済みのカートを表示して承諾する",
-      "test_responsibility": "変更されたカート価格を確認・承諾するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "変更されたカート価格を確認・承諾するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "Web/NativeともCartUseCasesはRepository-backedで初期化（native-runtime.ts:162-171）。acceptPriceChanges:220-238はcartVersion/itemVersionを受けtransaction内で各行の現行価格を再登録する。Dexie/SQLiteのRepositoryは公開状態・SKU有効性・在庫0・権限を検査するが、DexieのassertPurchasableForCart:553-578には「数量>在庫/購入上限」の直接判定がない。画面のWebとNativeは異なるボタン制御。価格承諾時に数量超過を拒否するという期待と保存挙動、Checkoutでの別再検証の責務を仕様・テストで確認する必要があり未分析のまま。",
+      "expected": "guest/customerの購入可能な明細がすべて現行の在庫・購入上限・99以内で、cartVersionと全itemVersionが一致する場合に限り最新価格へ更新し、明細versionと親Cart versionを進める。価格以外の購入不可状態や数量超過、旧versionでは操作全体を拒否して価格・数量・versionを維持する。operator/adminは拒否する",
+      "risk": "価格変更の承諾操作で在庫/購入上限超過の購入状態を確定すること、Nativeだけが他の購入不可理由を無視すること、価格・親Cartの部分更新、古いversionでの上書き",
+      "test_condition": "正常な価格変更だけのCartを承諾しPRICE_CHANGED解消と価格・version更新を検証。別条件でitem quantity 2/stock 1、古いcartVersion/itemVersion、非公開/無効SKU、権限外Roleを入力し、Web/Native Repository双方で拒否と親子の更新前後不変を確認する",
+      "test_responsibility": "価格承諾と購入可能性確認を分離しない。Web/Nativeの共通上限計算maximumCartQuantity、全明細version、atomicな更新・拒否を検証し、Checkout最終確定は別操作として扱う",
+      "case_policy": "正常な価格差、数量超過、別のブロック要因、旧親/明細version、管理Role拒否を採用。51件等のカテゴリー境界は別責務。Web/Nativeの呼び出し分岐を区別する",
+      "case_selection_reason": "数量上限を超えるケースでは価格承諾で旧価格だけ書き換えないことが重要。NativeのUI防止だけに依存せず、Repositoryで拒否する必要があるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "cart.md BR-CART-001/003、Web cart-page.tsx:95-140、Native native-screens.tsx:938-958、CartUseCases:220-238、Dexie CartRepository:277-318、SQLite NativeCartRepository:1378-1431、Seed metadata.ts:152-161,207-216とscenarios.ts:50,74-75、default-dataset.ts:705-726を照合。両Repositoryへ数量・最大許容量検査を追加し、Native画面も非価格ブロック時に承諾不可とした。Web/Nativeの回帰テストを追加。CI/実端末実行の証拠とは分けて扱う。",
       "related_use_cases": [
         "CartUseCases.acceptPriceChanges"
       ],
       "requirement_refs": [
+        "BR-CART-001",
         "BR-CART-003"
       ],
       "analysis_progress": "Web/Nativeの同一Repository経路確認済み。価格承諾時の数量超過、ブロック中UI、transaction失敗の前後不変性を追加レビュー",
@@ -11838,7 +11864,32 @@
         "path": "src/application/use-cases/cart-use-cases.ts",
         "line": 220,
         "signature": "async acceptPriceChanges(request: AcceptPriceChangesRequest): Promise<CartDto> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 277,
+          "end_line": 320,
+          "reason": "価格承諾時の数量/在庫・購入上限、全件version検査"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1378,
+          "end_line": 1433,
+          "reason": "Nativeの同一検査・transactionによる拒否時のロールバック"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 938,
+          "end_line": 958,
+          "reason": "非価格要因がある場合は承諾UIを無効化"
+        }
+      ]
     },
     {
       "id": "UC-CATALOG-LIST-REVIEWS",
