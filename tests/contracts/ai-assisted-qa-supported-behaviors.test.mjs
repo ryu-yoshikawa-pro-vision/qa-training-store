@@ -22,15 +22,15 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 20,
+      unreviewed_state_conditions: 19,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 17,
-      requires_review: 171,
+      basically_analyzed: 20,
+      requires_review: 168,
       classified_rate: 100,
-      basic_analysis_rate: 9.04,
+      basic_analysis_rate: 10.64,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -66,6 +66,24 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(item?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
+  });
+
+  it("requires audited address creation, editing and empty-state evidence", () => {
+    for (const id of [
+      "SCREEN-CHECKOUT-ADDRESSES-A01-02",
+      "SCREEN-CHECKOUT-ADDRESSES-A01-03",
+      "SCREEN-CHECKOUT-ADDRESSES-A02-01",
+      "SCREEN-CHECKOUT-ADDRESSES-S-empty",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESSES-A01-04")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {
