@@ -569,6 +569,30 @@ describe("Native customer purchase screens", () => {
     },
   );
 
+  it("does not start a replacement checkout after an unexpected Native storage read error", async () => {
+    const getActive = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "STORAGE_READ_FAILED",
+        messageKey: "storage.read.failed",
+        retryable: true,
+      }),
+    );
+    const start = jest.fn();
+    const getCart = jest.fn();
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      cart: { getCart },
+      checkout: { getActive, start },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(start).not.toHaveBeenCalled();
+    expect(getCart).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("native-checkout-address-session-ready")).toBeNull();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
   it("restores the previously entered shipping snapshot on Native checkout resume", async () => {
     const resumedAddress = { ...address, postalCode: "1500001", city: "渋谷区" };
     runtime({
