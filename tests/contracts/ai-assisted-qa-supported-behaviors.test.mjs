@@ -106,7 +106,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
-  it("audits the Web-only checkout resume state without certifying its parent", () => {
+  it("audits the Web-only checkout resume state and its independently reviewed parent", () => {
     const state = data.behaviors.find(
       (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
     );
@@ -117,7 +117,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(0);
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits payment-step navigation while retaining the platform selection question", () => {
@@ -131,10 +131,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits session resume and replacement without certifying address selection policy", () => {
-    for (const id of [
-      "SCREEN-CHECKOUT-ADDRESS-A02-01",
-      "SCREEN-CHECKOUT-ADDRESS-A02-03",
-    ]) {
+    for (const id of ["SCREEN-CHECKOUT-ADDRESS-A02-01", "SCREEN-CHECKOUT-ADDRESS-A02-03"]) {
       const action = data.behaviors.find((item) => item.id === id);
       expect(action?.analysis_status).toBe("analyzed");
       expect(action?.related_use_cases).toContain("CheckoutOrderUseCases.start");
