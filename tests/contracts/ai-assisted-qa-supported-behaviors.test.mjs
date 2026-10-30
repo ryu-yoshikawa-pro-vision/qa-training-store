@@ -80,9 +80,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    const setting = data.behaviors.find(
-      (item) => item.id === "SCREEN-CHECKOUT-ADDRESSES-A01-04",
-    );
+    const setting = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESSES-A01-04");
     expect(setting?.analysis_status).toBe("analyzed");
     expect(setting?.action).toBe("既定の配送先に設定する");
     expect(setting?.related_use_cases).toContain("AccountUseCases.updateAddress");
