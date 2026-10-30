@@ -4619,7 +4619,7 @@
       "analysis_progress": "4モック決済方法の選択とApplication/Repositoryの永続化境界を照合。実行時未許可コードの拒否を実装・統合テスト追加。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 244,
+        "line": 243,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4729,7 +4729,7 @@
       "analysis_progress": "保存成功時だけ確認画面へ遷移することをWeb/Native/Use Case/Repository/Seedで照合。Webの保存失敗未処理を修正。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 244,
+        "line": 243,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4831,7 +4831,7 @@
       "analysis_progress": "正式仕様・Web/Native・Application/Repository・Seedを照合し、不完全Sessionの決済拒否と非遷移テストを追加。CIと実機結果は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 244,
+        "line": 243,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4920,7 +4920,7 @@
       "analysis_progress": "固定SeedとApplication/RepositoryのCart version境界、Web/Nativeの拒否表示と統合テストを照合済み。CI/実機の最終結果は別に確認",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 244,
+        "line": 243,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
