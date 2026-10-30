@@ -4589,35 +4589,37 @@
       "source_line": 99,
       "source_text": "モック決済オプションを選択し、確認画面へ進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済方法を選択",
+      "role": "customer",
+      "scenario": "regular-member Seedの本人顧客が有効なCartからCheckoutを開始し、有効な配送先を保存してpaymentステップに到達する。checkout-resumeはaddressで止まるため追加操作で住所保存が必要。旧checkoutExpectedVersion、Cart変更、期限切れ、他人のSessionを区別",
+      "data": "regular-member Seedはuser-customer-regularの本人Sessionと有効なCartを用意する。checkout-resume Seedはcheckout-active(version1, cartVersion1, unlockedStep=address, addressSnapshot=null)、固定時計2026-07-01T03:00Z、期限2026-07-02T03:00Z。有効住所（例：〒1000001、東京都千代田区1-1、09000000000）をsetAddressで保存後に検証する。許可する決済コードはTEST-SUCCESS/TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILED",
       "action": "決済方法を選択",
-      "expected": "顧客本人が許可されたモック決済方法だけを選択・保存できる",
+      "expected": "本人Customerは4種類のローカルモック決済コードのみをUIで選択できる。Web/Nativeの選択はsetPayment成功時にCheckout Sessionへ保存され、paymentMethodCodeが選択値、version+1、unlockedStep=confirmとなる。Application境界でも許可外コードをVALIDATIONで拒否し、Session・注文・決済を変更しない。選択自体は外部決済・在庫減算を発生させない",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済方法を選択について、顧客本人が許可されたモック決済方法だけを選択・保存できることを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済方法を選択の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済方法を選択の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未許可の決済コードの永続化、他人のセッションへの支払設定、確認画面に進む前の誤決済・在庫変更、Web/Nativeで許可選択肢が食い違う",
+      "test_condition": "4種類のコードのWeb/Native選択とsetPayment送信値を確認。存在しないTEST-UNKNOWNはUse CaseでVALIDATIONとなりsession.version/unlockedStep/paymentMethodCodeが不変。未保存住所、他人Session、旧version、期限切れ、Cart変更を拒否。保存成功前は注文/決済レコードを作らない",
+      "test_responsibility": "Web CheckoutPaymentContentとNativeCheckoutPaymentScreenのUIはPAYMENT_METHODSから選択し、Use Caseが許可リスト・本人・有効セッション・Cart versionを検証。Dexie/SQLiteは住所必須とexpectedVersionを再確認しSessionを更新する",
+      "case_policy": "4つの許可コードを同値クラス、未許可コード、住所未保存、旧version/Cart変更、他人のSessionを境界として選択。モック決済の成功・失敗確定は別の注文実行操作へ分離",
+      "case_selection_reason": "コードのTypeScript unionは実行時検証にならないため、UI列挙だけでなくUse Caseで不正コードを拒否する回帰テストを必要とする",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:17-23,93-106、PAYMENT_METHODS(4種類)とCheckoutOrderUseCases.getActive/setPayment、Dexie/SQLite setPayment、Web/Native Payment UI、regular-member/checkout-resume Seedを照合。実行時未許可コードを拒否するUse Case修正と統合テストを追加。CI実行受入は未判定",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
+        "CheckoutOrderUseCases.getActive",
         "CheckoutOrderUseCases.setPayment"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "4モック決済方法の選択とApplication/Repositoryの永続化境界を照合。実行時未許可コードの拒否を実装・統合テスト追加。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 247,
+        "line": 244,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4644,6 +4646,49 @@
           "line": 170,
           "signature": "async setPayment(request: SetCheckoutPaymentRequest): Promise<CheckoutSession> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 141,
+          "end_line": 181,
+          "reason": "本人・Cart/Session version・決済方法の許可リストを検査"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 695,
+          "end_line": 721,
+          "reason": "Webの住所・version条件と決済選択の永続化"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1815,
+          "end_line": 1849,
+          "reason": "Nativeの同一決済保存契約"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 244,
+          "end_line": 326,
+          "reason": "Webの決済オプション選択、保存失敗の画面維持、成功時遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 882,
+          "end_line": 935,
+          "reason": "Nativeの決済選択と保存成功・失敗時の分岐"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 55,
+          "reason": "default/regular-memberのSeed生成・固定状態"
+        }
       ]
     },
     {
@@ -4654,33 +4699,37 @@
       "source_line": 99,
       "source_text": "モック決済オプションを選択し、確認画面へ進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: 確認画面へ遷移",
+      "role": "customer",
+      "scenario": "regular-member Seedの本人顧客が有効なCartからCheckoutを開始し、有効な配送先を保存してpaymentステップに到達する。checkout-resumeはaddressで止まるため追加操作で住所保存が必要。旧checkoutExpectedVersion、Cart変更、期限切れ、他人のSessionを区別",
+      "data": "regular-member Seedはuser-customer-regularの本人Sessionと有効なCartを用意する。checkout-resume Seedはcheckout-active(version1, cartVersion1, unlockedStep=address, addressSnapshot=null)、固定時計2026-07-01T03:00Z、期限2026-07-02T03:00Z。有効住所（例：〒1000001、東京都千代田区1-1、09000000000）をsetAddressで保存後に検証する。許可する決済コードはTEST-SUCCESS/TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILED",
       "action": "確認画面へ遷移",
-      "expected": "住所と決済方法が有効でカート版が一致した場合だけ注文確認へ遷移する",
+      "expected": "有効な本人のactive Checkout Sessionで住所保存済み、現Cart versionとexpectedVersionが一致し、許可された支払方法の保存が成功した場合だけWeb/Nativeは/checkout/confirmへ遷移する。保存後はunlockedStep=confirm、paymentMethodCodeとversion+1が永続化される。失敗時はpayment画面に留まりエラーを提示し、セッション・注文・決済を変更しない",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "確認画面へ遷移について、住所と決済方法が有効でカート版が一致した場合だけ注文確認へ遷移することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と確認画面へ遷移の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "確認画面へ遷移の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "非同期保存失敗後の確認画面遷移、未処理Promiseによる無通知エラー、未保存住所・期限切れ・旧Cart版での不正な確認画面進入、重複注文",
+      "test_condition": "有効SessionでsetPayment成功後にWeb router.pushとNative router.pushが/checkout/confirmを呼ぶ。setPayment失敗時は両画面にエラーを表示し遷移しない。未保存住所/他人Session/旧version/Cart版不一致/期限切れは拒否しSessionと注文/決済を変更しない。確認画面直URLはgetActive('confirm')で未完了ステップを拒否",
+      "test_responsibility": "Web/NativeのPayment submitはsetPaymentのPromise成功後のみ遷移し、失敗を画面エラーにする。Use Caseは本人・有効Cart/Session、Dexie/SQLiteは住所・versionを検証しconfirmへステップ解放する。注文作成は別のbeginOrderで行う",
+      "case_policy": "正常な4コードの保存後遷移、保存失敗、住所未設定、他人/旧version/期限切れ/Cart変更、確認URL直アクセスを選定。実際の決済結果と在庫変化は注文確定の操作へ分離",
+      "case_selection_reason": "以前のWeb payment submitはfinallyのみでsetPayment拒否を捕捉せず、未処理Promiseになりユーザーへ復旧情報が出なかったため、失敗時の画面維持と通知を回帰テストで固定する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:13-23,93-106、CheckoutOrderUseCases.getActive/setPayment、Dexie/SQLite setPayment、Web/NativeのPayment UIとregular-member/checkout-resume Seedを照合。Webの保存失敗未処理を修正しcomponent回帰テストを追加。CI・Android実機は未判定",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getActive",
+        "CheckoutOrderUseCases.setPayment"
+      ],
+      "analysis_progress": "保存成功時だけ確認画面へ遷移することをWeb/Native/Use Case/Repository/Seedで照合。Webの保存失敗未処理を修正。CI/実機は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 247,
+        "line": 244,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4700,7 +4749,50 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 141,
+          "end_line": 181,
+          "reason": "本人・Cart/Session version・決済方法の許可リストを検査"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 695,
+          "end_line": 721,
+          "reason": "Webの住所・version条件と決済選択の永続化"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1815,
+          "end_line": 1849,
+          "reason": "Nativeの同一決済保存契約"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 244,
+          "end_line": 326,
+          "reason": "Webの決済オプション選択、保存失敗の画面維持、成功時遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 882,
+          "end_line": 935,
+          "reason": "Nativeの決済選択と保存成功・失敗時の分岐"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 55,
+          "reason": "default/regular-memberのSeed生成・固定状態"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PAYMENT-A02-01",
@@ -4736,7 +4828,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 247,
+        "line": 244,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4792,7 +4884,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 247,
+        "line": 244,
         "signature": "export function CheckoutPaymentPage() {"
       },
       "seed_evidence": {
@@ -4850,7 +4942,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -4875,7 +4967,7 @@
         {
           "id": "CheckoutOrderUseCases.getConfirmation",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 176,
+          "line": 184,
           "signature": "async getConfirmation(checkoutSessionId?: string): Promise<CheckoutConfirmationDto> {"
         }
       ]
@@ -4914,7 +5006,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -4971,7 +5063,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5028,7 +5120,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5088,7 +5180,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5145,7 +5237,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5202,7 +5294,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5261,7 +5353,7 @@
       "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 320,
+        "line": 327,
         "signature": "export function CheckoutConfirmPage() {"
       },
       "seed_evidence": {
@@ -5316,7 +5408,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 466,
+        "line": 476,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5340,7 +5432,7 @@
         {
           "id": "CheckoutOrderUseCases.beginOrder",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 185,
+          "line": 193,
           "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {"
         }
       ]
@@ -5381,7 +5473,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 466,
+        "line": 476,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5405,7 +5497,7 @@
         {
           "id": "CheckoutOrderUseCases.resumePayment",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 311,
+          "line": 319,
           "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
         }
       ]
@@ -5444,7 +5536,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 466,
+        "line": 476,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5500,7 +5592,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 466,
+        "line": 476,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5556,7 +5648,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 466,
+        "line": 476,
         "signature": "export function CheckoutProcessingPage() {"
       },
       "seed_evidence": {
@@ -5612,7 +5704,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 513,
+        "line": 523,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -5665,7 +5757,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 513,
+        "line": 523,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -5718,7 +5810,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 513,
+        "line": 523,
         "signature": "export function CheckoutCompletePage() {"
       },
       "seed_evidence": {
@@ -5771,7 +5863,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 517,
+        "line": 527,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -5829,7 +5921,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 517,
+        "line": 527,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -5853,7 +5945,7 @@
         {
           "id": "CheckoutOrderUseCases.retryPayment",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 332,
+          "line": 340,
           "signature": "async retryPayment(request: RetryPaymentRequest): Promise<OrderProcessingDto> {"
         }
       ]
@@ -5892,7 +5984,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 517,
+        "line": 527,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -5948,7 +6040,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 517,
+        "line": 527,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6004,7 +6096,7 @@
       "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 517,
+        "line": 527,
         "signature": "export function CheckoutFailedPage() {"
       },
       "seed_evidence": {
@@ -6060,7 +6152,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6086,7 +6178,7 @@
         {
           "id": "CheckoutOrderUseCases.listMyOrders",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 377,
+          "line": 385,
           "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
         }
       ]
@@ -6123,7 +6215,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6182,7 +6274,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6238,7 +6330,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6294,7 +6386,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6352,7 +6444,7 @@
       "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 615,
+        "line": 625,
         "signature": "export function OrdersPage() {"
       },
       "seed_evidence": {
@@ -6406,7 +6498,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6430,13 +6522,13 @@
         {
           "id": "CheckoutOrderUseCases.getMyOrder",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 389,
+          "line": 397,
           "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
         },
         {
           "id": "CheckoutOrderUseCases.getMyCustomerOrder",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "line": 398,
+          "line": 406,
           "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
         }
       ]
@@ -6473,7 +6565,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6530,7 +6622,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6584,7 +6676,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6638,7 +6730,7 @@
       "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -6694,7 +6786,7 @@
       "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
-        "line": 665,
+        "line": 675,
         "signature": "export function OrderDetailPage({ orderId }: { orderId: string }) {"
       },
       "seed_evidence": {
@@ -14885,49 +14977,49 @@
     {
       "id": "CheckoutOrderUseCases.getConfirmation",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 176,
+      "source_line": 184,
       "signature": "async getConfirmation(checkoutSessionId?: string): Promise<CheckoutConfirmationDto> {",
       "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01"
     },
     {
       "id": "CheckoutOrderUseCases.beginOrder",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 185,
+      "source_line": 193,
       "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {",
       "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A01-01"
     },
     {
       "id": "CheckoutOrderUseCases.resumePayment",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 311,
+      "source_line": 319,
       "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {",
       "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A01-02"
     },
     {
       "id": "CheckoutOrderUseCases.retryPayment",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 332,
+      "source_line": 340,
       "signature": "async retryPayment(request: RetryPaymentRequest): Promise<OrderProcessingDto> {",
       "behavior_id": "SCREEN-CHECKOUT-FAILED-A01-02"
     },
     {
       "id": "CheckoutOrderUseCases.listMyOrders",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 377,
+      "source_line": 385,
       "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {",
       "behavior_id": "SCREEN-ORDERS-LIST-A01-01"
     },
     {
       "id": "CheckoutOrderUseCases.getMyOrder",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 389,
+      "source_line": 397,
       "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {",
       "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01"
     },
     {
       "id": "CheckoutOrderUseCases.getMyCustomerOrder",
       "source_path": "src/application/use-cases/checkout-order-use-cases.ts",
-      "source_line": 398,
+      "source_line": 406,
       "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {",
       "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01"
     },
