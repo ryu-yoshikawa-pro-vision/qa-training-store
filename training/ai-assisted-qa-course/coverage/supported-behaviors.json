@@ -3446,27 +3446,22 @@
       "source_line": 31,
       "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,regular-member,配送先0件/本人住所/他人住所。Customer本人/他人・activeセッション・versionを区別する。対象動作: 本人配送先一覧",
+      "role": "customer",
+      "scenario": "default（0件）・regular-member（本人セッション、0件）から配送先を作成。本人複数件・別顧客の複数件・顧客以外のRoleを準備",
+      "data": "default/regular-memberのuserAddressesは初期0件。regular@example.comで本人住所を2件作成し、別顧客gold@example.comでも住所を作成。本人のuserIdによる一覧と、他人住所が混入しないことを確認する",
       "action": "本人配送先一覧",
-      "expected": "有効な顧客本人が登録した配送先だけを一覧表示し、他人の住所を表示しない",
+      "expected": "有効なcustomer本人の住所だけをcreatedAt昇順・同日時はid昇順で返す。0件なら空配列。別顧客の住所は返さず、guest/operator/adminの呼出しはrequireCustomerで拒否する。一覧取得自体は住所や注文を変更しない",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "本人配送先一覧について、有効な顧客本人が登録した配送先だけを一覧表示し、他人の住所を表示しないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と本人配送先一覧の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "本人配送先一覧の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "配送先氏名・住所・電話番号の他人への漏えい、顧客以外の閲覧、一覧順序の不安定化",
+      "test_condition": "Web /account/addressesの読込とNative配送先一覧からAccountUseCases.listAddressesへ到達し、regular-memberから作成した本人の0/1/複数件と別顧客の件数を比較。権限外RoleのUse Case拒否、読込前後の保存内容不変を確認する",
+      "test_responsibility": "配送先一覧の所有者分離、0件、複数件の順序、Use Caseの顧客認可。チェックアウトの注文・決済処理はこの操作の責務へ混同しない",
+      "case_policy": "0件／本人複数件＋他人住所／guest・operator・adminの拒否を採用。並び順同日時のID境界を追加確認し、決済成功・在庫減算は別操作で扱う",
+      "case_selection_reason": "配送先は個人情報を含むため本人分離と認可を必須にし、初期Seedに住所がないためデータ生成を明示する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "画面仕様checkout-and-payment.md:25-39、Web addresses-page.tsx、Native native-purchase-screens.tsx、AccountUseCases.listAddresses:83-86/requireCustomer:124-130、DexieAddressRepository.listByUser:143-150、NativeAddressRepository.listByUser:606-612、default-dataset.ts:774（住所0件）を照合。表示内容と注文確定は別契約として確認。",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "AccountUseCases.listAddresses"
@@ -3499,6 +3494,31 @@
           "path": "src/application/use-cases/account-use-cases.ts",
           "line": 83,
           "signature": "async listAddresses(): Promise<UserAddress[]> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 83,
+          "end_line": 86,
+          "reason": "本人customer認可とuserId指定一覧"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 143,
+          "end_line": 151,
+          "reason": "Webの本人住所抽出と安定順序"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 606,
+          "end_line": 612,
+          "reason": "Androidの本人住所抽出と安定順序"
         }
       ]
     },
@@ -11269,17 +11289,17 @@
       "source_text": "async deleteAddress(request: DeleteAddressRequest) {",
       "platform": "web,android",
       "role": "customer",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "本人/他人の配送先ID、登録済配送先",
+      "scenario": "regular-member（住所0件から本人用に2件以上を作成）。既定住所削除/非既定住所削除/最終1件削除/別顧客住所/旧version/存在しないID",
+      "data": "regular-memberでregular@example.comの本人住所を自宅・勤務先・実家として作成。初期userAddressesは0件。gold@example.comの別顧客住所を別途生成し、addressId・expectedVersion・isDefault・createdAtを用意する",
       "action": "本人の配送先を削除する",
-      "expected": "指定した本人の配送先だけが削除され、他人の住所への操作は拒否される",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "顧客が自身の既存配送先を指定して削除する",
-      "test_responsibility": "本人の配送先を削除するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "本人の配送先を削除するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "expected": "有効な顧客本人の指定住所をexpectedVersion一致時だけ削除する。既定住所の削除後は残る最初のcreatedAt/id順の住所を既定にしてversionを増やし、最後の1件ならnewDefaultAddressId=null。非既定住所削除では既定は変更しない。存在しない住所、他人住所、古いversion、顧客以外は拒否し、住所一覧は変更しない",
+      "risk": "他人の住所削除と個人情報/配送設定の破壊、既定住所の不整合、旧versionの上書き、Web/Androidでの順序差",
+      "test_condition": "本人住所を複数件作成してdefault削除後の返却deletedId/newDefaultAddressId、残件のisDefaultとversionを比較。非default、最終住所、他人住所、旧expectedVersion、存在しないID、guest/operator/adminの拒否を別々に確認する",
+      "test_responsibility": "Use Caseのcustomer認可、Repositoryの所有権・楽観的競合検証・transaction内削除と既定住所再割当、WebとNativeの同一結果",
+      "case_policy": "正常は非default/既定/最終住所の3条件。拒否は他人住所、存在しないID、旧version、非顧客。Seedが住所0件なので操作で必要な住所を作成し、許可・拒否前後の一覧を検証",
+      "case_selection_reason": "配送先の誤削除と既定住所の誤更新は注文先の個人情報・正しさに影響するため、所有権、競合、既定の再割当を分離する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "AccountUseCases.deleteAddress:111-118、requireCustomer:124-130、DexieAddressRepository.deleteOwnedAndReassignDefault:251-285、NativeAddressRepository:724-756、両listByUserのcreatedAt/id順、auth-account.test.ts:294-336を照合。初期Seedに住所がないため作成を前提とする。正常・競合/所有者拒否の実装分岐を確認（全Case実行の主張ではない）。",
       "related_use_cases": [
         "AccountUseCases.deleteAddress"
       ],
@@ -11313,7 +11333,32 @@
         "path": "src/application/use-cases/account-use-cases.ts",
         "line": 111,
         "signature": "async deleteAddress(request: DeleteAddressRequest) {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 111,
+          "end_line": 129,
+          "reason": "顧客認可・所有者IDをRepositoryへ引渡し"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 251,
+          "end_line": 285,
+          "reason": "Dexieトランザクション、所有者、version、既定再割当"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 724,
+          "end_line": 756,
+          "reason": "SQLiteトランザクション、所有者、version、既定再割当"
+        }
+      ]
     },
     {
       "id": "UC-ACCOUNT-SUGGEST-ADDRESS",
@@ -11448,7 +11493,7 @@
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "カテゴリーの並び順を更新するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "basic_analysis_review": "AdminMasterUseCases.reorderCategories:137-148はStaff認可後、DexieCategoryRepository.reorder:415-443へ全ID/expectedVersionsを渡す。Repositoryは全カテゴリーの順序・versionを検査しtransaction内でsortOrderを10刻みに更新。ただしlistAllCategoriesForReorder:150-153の取得先がpageSize:50固定（basic-repositories.ts:445-454）で、51件以上を作成できる場合は全IDを送れない。初期Seedは4カテゴリー。上限の正式仕様、画面上の並び替えUI経路、51件以上の扱いが未確認なのでreview_requiredのまま。",
       "related_use_cases": [
         "AdminMasterUseCases.reorderCategories",
         "AdminMasterUseCases.listAllCategoriesForReorder"
@@ -11456,7 +11501,7 @@
       "requirement_refs": [
         "BR-ADMINCAT-002"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "全件更新と50件取得の食い違いを確認。51件以上のカテゴリ作成可否・仕様/UI経路・例外条件の判断待ち",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 75,
@@ -11759,14 +11804,14 @@
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "変更されたカート価格を確認・承諾するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
+      "basic_analysis_review": "Web/NativeともCartUseCasesはRepository-backedで初期化（native-runtime.ts:162-171）。acceptPriceChanges:220-238はcartVersion/itemVersionを受けtransaction内で各行の現行価格を再登録する。Dexie/SQLiteのRepositoryは公開状態・SKU有効性・在庫0・権限を検査するが、DexieのassertPurchasableForCart:553-578には「数量>在庫/購入上限」の直接判定がない。画面のWebとNativeは異なるボタン制御。価格承諾時に数量超過を拒否するという期待と保存挙動、Checkoutでの別再検証の責務を仕様・テストで確認する必要があり未分析のまま。",
       "related_use_cases": [
         "CartUseCases.acceptPriceChanges"
       ],
       "requirement_refs": [
         "BR-CART-003"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "Web/Nativeの同一Repository経路確認済み。価格承諾時の数量超過、ブロック中UI、transaction失敗の前後不変性を追加レビュー",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 207,
