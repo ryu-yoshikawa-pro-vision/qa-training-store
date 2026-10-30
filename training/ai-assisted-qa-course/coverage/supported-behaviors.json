@@ -40,7 +40,7 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "公開商品を表示",
@@ -64,7 +64,11 @@
       ],
       "related_use_cases": [
         "CatalogUseCases.getHome"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-02",
@@ -74,7 +78,7 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "主要カテゴリーを案内",
@@ -96,7 +100,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-03",
@@ -106,7 +114,7 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "新着商品を案内",
@@ -128,7 +136,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-04",
@@ -138,7 +150,7 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "セールを案内",
@@ -160,7 +172,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-05",
@@ -170,7 +186,7 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "会員ランク特典を案内",
@@ -192,7 +208,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A02-01",
@@ -202,7 +222,7 @@
       "source_line": 32,
       "source_text": "既存のロール規約に従い、ゲストと顧客それぞれに利用可能な導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "ゲスト用の導線を提供",
@@ -224,7 +244,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A02-02",
@@ -234,7 +258,7 @@
       "source_line": 32,
       "source_text": "既存のロール規約に従い、ゲストと顧客それぞれに利用可能な導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "顧客用の導線を提供",
@@ -256,7 +280,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-S-empty-catalog",
@@ -298,7 +326,7 @@
       "source_line": 65,
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "公開商品の一覧を表示",
@@ -322,7 +350,11 @@
       ],
       "related_use_cases": [
         "CatalogUseCases.search"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
@@ -332,7 +364,7 @@
       "source_line": 65,
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "ページネーション",
@@ -354,7 +386,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
@@ -364,7 +400,7 @@
       "source_line": 65,
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "ファセットによる絞り込み",
@@ -386,7 +422,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-04",
@@ -396,7 +436,7 @@
       "source_line": 65,
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "ソート",
@@ -418,7 +458,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A02-01",
@@ -428,7 +472,7 @@
       "source_line": 66,
       "source_text": "各商品カードから商品詳細画面や購入への導線を提供する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "商品詳細へ遷移",
@@ -450,7 +494,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A02-02",
@@ -460,7 +508,7 @@
       "source_line": 66,
       "source_text": "各商品カードから商品詳細画面や購入への導線を提供する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "購入導線を提示",
@@ -482,7 +530,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
@@ -556,7 +608,7 @@
       "source_line": 106,
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "画像を表示",
@@ -580,7 +632,11 @@
       ],
       "related_use_cases": [
         "CatalogUseCases.getProductDetail"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
@@ -590,7 +646,7 @@
       "source_line": 106,
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "価格・セールを表示",
@@ -612,7 +668,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-03",
@@ -622,7 +682,7 @@
       "source_line": 106,
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "レビューサマリーを表示",
@@ -644,7 +704,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04",
@@ -654,7 +718,7 @@
       "source_line": 106,
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "バリエーションを表示",
@@ -676,7 +740,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
@@ -686,7 +754,7 @@
       "source_line": 106,
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "在庫・購入上限を表示",
@@ -708,7 +776,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
@@ -718,7 +790,7 @@
       "source_line": 107,
       "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "有効なバリエーションを選択",
@@ -740,7 +812,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer（operator/adminは購入操作を行わない）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02",
@@ -750,7 +826,7 @@
       "source_line": 107,
       "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "カートに追加",
@@ -774,7 +850,11 @@
       ],
       "related_use_cases": [
         "CartUseCases.addItem"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer（operator/adminは購入操作を行わない）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
@@ -784,7 +864,7 @@
       "source_line": 107,
       "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "選択不能・在庫切れの追加を拒否",
@@ -806,7 +886,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer（operator/adminは購入操作を行わない）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
@@ -880,7 +964,7 @@
       "source_line": 147,
       "source_text": "商品名、商品コード、検索サジェスト、フィルターを用いて公開商品を検索する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "商品名・商品コードで検索",
@@ -902,7 +986,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A01-02",
@@ -912,7 +1000,7 @@
       "source_line": 147,
       "source_text": "商品名、商品コード、検索サジェスト、フィルターを用いて公開商品を検索する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "検索サジェスト",
@@ -936,7 +1024,11 @@
       ],
       "related_use_cases": [
         "CatalogUseCases.suggest"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A01-03",
@@ -946,7 +1038,7 @@
       "source_line": 147,
       "source_text": "商品名、商品コード、検索サジェスト、フィルターを用いて公開商品を検索する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "検索ファセット",
@@ -968,7 +1060,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A02-01",
@@ -978,7 +1074,7 @@
       "source_line": 148,
       "source_text": "該当する検索結果がない場合、検索条件を見直すための導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "検索結果なしを表示",
@@ -1000,7 +1096,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A02-02",
@@ -1010,7 +1110,7 @@
       "source_line": 148,
       "source_text": "該当する検索結果がない場合、検索条件を見直すための導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "条件見直し導線",
@@ -1032,7 +1132,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-S-no-results",
@@ -1074,7 +1178,7 @@
       "source_line": 181,
       "source_text": "指定したカテゴリーに属する公開商品を一覧表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "カテゴリーの商品一覧を表示",
@@ -1098,7 +1202,11 @@
       ],
       "related_use_cases": [
         "CatalogUseCases.getCategoryName"
-      ]
+      ],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-CATEGORY-A02-01",
@@ -1108,7 +1216,7 @@
       "source_line": 182,
       "source_text": "閲覧者条件に合致しない商品を表示結果に含めない。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "閲覧権限を満たさない商品を除外",
@@ -1130,7 +1238,11 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-AUTH-LOGIN-A01-01",
@@ -1413,7 +1525,7 @@
       "source_path": "docs/spec/features/authentication.md",
       "source_line": 69,
       "source_text": "入力エラーと修正方法を表示する。",
-      "platform": "-",
+      "platform": "web,android",
       "role": "`guest`",
       "scenario": "validation-error",
       "data": "`default`",
@@ -1434,7 +1546,8 @@
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_basis": "正式仕様の'not-applicable'は視覚リファレンス省略を意味する。サインアップフォームの入力検証自体は機能として対象。"
     },
     {
       "id": "SCREEN-AUTH-ACCOUNT-PROFILE-A01-01",
@@ -5438,7 +5551,7 @@
       "source_line": 42,
       "source_text": "ゲスト、カスタマー、オペレーター、管理者が、Scenario Shopの利用方法、固定アカウント、ロール、会員ランク特典を確認できる。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "利用方法・固定アカウント情報",
@@ -5453,7 +5566,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A01-02",
@@ -5463,7 +5580,7 @@
       "source_line": 42,
       "source_text": "ゲスト、カスタマー、オペレーター、管理者が、Scenario Shopの利用方法、固定アカウント、ロール、会員ランク特典を確認できる。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "ロールとランク特典を案内",
@@ -5478,7 +5595,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-01",
@@ -5488,7 +5609,7 @@
       "source_line": 43,
       "source_text": "仕様の読み方と、安全に初期状態へ戻すリセット機能への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "仕様の確認方法",
@@ -5503,7 +5624,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-02",
@@ -5513,7 +5638,7 @@
       "source_line": 43,
       "source_text": "仕様の読み方と、安全に初期状態へ戻すリセット機能への導線を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "リセットへの導線",
@@ -5528,7 +5653,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-SUPPORTING-TERMS-A01-01",
@@ -5688,7 +5817,7 @@
       "source_line": 37,
       "source_text": "ロールまたは権限の不足によりアクセスできないルートであることを説明する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "アクセス権限不足を示す",
@@ -5703,7 +5832,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A02-01",
@@ -5713,7 +5846,7 @@
       "source_line": 39,
       "source_text": "利用者が安全にストアフロントやアクセス可能な導線へ戻れるアクションを表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer / Operator / Admin",
+      "role": "platform_rolesを参照",
       "scenario": "default",
       "data": "基本seedと関連する商品・アカウント",
       "action": "安全な画面へ戻る",
@@ -5728,7 +5861,11 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
       "requirement_refs": [],
-      "related_use_cases": []
+      "related_use_cases": [],
+      "platform_roles": {
+        "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      }
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-01",
@@ -5953,7 +6090,9 @@
       "related_use_cases": [
         "AccountUseCases.updateProfile"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "ROLE-ACCESS"
+      ]
     },
     {
       "id": "UC-ACCOUNT-DELETE-ADDRESS",
@@ -5978,7 +6117,9 @@
       "related_use_cases": [
         "AccountUseCases.deleteAddress"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "ROLE-ACCESS"
+      ]
     },
     {
       "id": "UC-ACCOUNT-SUGGEST-ADDRESS",
@@ -6003,7 +6144,9 @@
       "related_use_cases": [
         "AccountUseCases.suggestAddress"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "ROLE-ACCESS"
+      ]
     },
     {
       "id": "UC-ADMIN-CHANGE-CATEGORY-STATUS",
@@ -6028,7 +6171,9 @@
       "related_use_cases": [
         "AdminMasterUseCases.changeCategoryActiveState"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-ADMINCAT-001"
+      ]
     },
     {
       "id": "UC-ADMIN-REORDER-CATEGORIES",
@@ -6054,7 +6199,9 @@
         "AdminMasterUseCases.reorderCategories",
         "AdminMasterUseCases.listAllCategoriesForReorder"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-ADMINCAT-002"
+      ]
     },
     {
       "id": "UC-ADMIN-CHANGE-BRAND-STATUS",
@@ -6079,7 +6226,9 @@
       "related_use_cases": [
         "AdminMasterUseCases.changeBrandActiveState"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-ADMINCAT-001"
+      ]
     },
     {
       "id": "UC-ADMIN-DELETE-DRAFT",
@@ -6104,7 +6253,9 @@
       "related_use_cases": [
         "AdminProductUseCases.deleteDraft"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-ADMINCAT-002"
+      ]
     },
     {
       "id": "UC-ADMIN-DUPLICATE-PRODUCT",
@@ -6129,7 +6280,9 @@
       "related_use_cases": [
         "AdminProductUseCases.duplicate"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-ADMINCAT-002"
+      ]
     },
     {
       "id": "UC-AUTH-LOGOUT",
@@ -6154,7 +6307,9 @@
       "related_use_cases": [
         "AuthUseCases.logout"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-AUTH-001"
+      ]
     },
     {
       "id": "UC-CART-ACCEPT-PRICES",
@@ -6179,7 +6334,9 @@
       "related_use_cases": [
         "CartUseCases.acceptPriceChanges"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-CART-003"
+      ]
     },
     {
       "id": "UC-CATALOG-LIST-REVIEWS",
@@ -6204,7 +6361,9 @@
       "related_use_cases": [
         "CatalogUseCases.listReviews"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-REVIEW-002"
+      ]
     },
     {
       "id": "UC-REVIEW-DELETE",
@@ -6229,7 +6388,9 @@
       "related_use_cases": [
         "CustomerReviewUseCases.delete"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-REVIEW-002"
+      ]
     },
     {
       "id": "UC-ADMIN-REVIEW-DETAIL",
@@ -6254,7 +6415,9 @@
       "related_use_cases": [
         "AdminReviewUseCases.getDetail"
       ],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-REVIEW-002"
+      ]
     },
     {
       "id": "UC-CART-MERGE",
@@ -6277,7 +6440,9 @@
       "analysis_status": "review_required",
       "basic_analysis_review": "仕様と実装の連携、利用可能なSeed、対応するRole/Stateを最終照合する必要がある。",
       "related_use_cases": [],
-      "requirement_refs": []
+      "requirement_refs": [
+        "BR-CART-002"
+      ]
     }
   ],
   "requirements": [
@@ -8043,7 +8208,7 @@
       "source_path": "docs/spec/product-scope.md",
       "source_line": 15,
       "source_text": "ネイティブアプリは、カスタマー向けのゲストストアフロント、カート、ログイン、アカウント、住所、チェックアウト、決済、注文、レビューを対象とします。ネイティブ環境での管理画面およびゲストチェックアウトは対象外です。Androidはビルドおよびランタイム／Maestroによる自動テストを保証範囲とし、iOSは自動化・本番シミュレータビルド、ビルド時メタデータ、本番ガード、成果物検証を対象とするビルド限定契約とします。",
-      "platform": "web,android",
+      "platform": "android,ios-build",
       "role": "正式仕様による",
       "scenario": "正常/異常/境界",
       "data": "正式契約の対象データ・Role/State/Platform",
@@ -8055,7 +8220,8 @@
       "case_policy": "許可/拒否・境界状態の代表Caseを選定",
       "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
       "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "rule_refs": [],
+      "platform_basis": "Androidランタイム/自動テストとiOSビルド限定は異なる保証範囲"
     },
     {
       "id": "SCOPE-EXCLUDED",
@@ -8616,6 +8782,7 @@
   "notes": [
     "既存の形式的271行から機能動作を分離し、未登録のUse Case固有操作を追記した。全実装・Seedの意味確認は継続中。",
     "関連するUse Caseの関数網羅は検査するが、単にsource pathや非空のRiskを持つだけで基本分析済みにしない。",
-    "UIの全画面記述と全public Use Caseについて漏れを検出するが、全実装の任意の内部関数の網羅を証明するものではない。"
+    "UIの全画面記述と全public Use Caseについて漏れを検出するが、全実装の任意の内部関数の網羅を証明するものではない。",
+    "SCREEN-AUTH-SIGNUP validation-error の'-'は視覚参照の対象外であり、機能非対応ではない。Platformのサポートと視覚要件を混同しない。"
   ]
 }

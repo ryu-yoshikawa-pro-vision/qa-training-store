@@ -106,4 +106,25 @@ describe("サポート機能の仕様と実装の追跡", () => {
       /analysis lacks verified evidence/,
     );
   });
+  it("rejects invalid requirement references and platform-role mappings", () => {
+    const unknown = mutated((next) => {
+      next.behaviors.find((item) => item.id === "UC-REVIEW-DELETE").requirement_refs = [
+        "UNKNOWN-REQUIREMENT",
+      ];
+    });
+    expect(() => validateCoverage({ root, data: unknown })).toThrow(
+      /unknown requirement reference/,
+    );
+    const role = mutated((next) => {
+      const item = next.behaviors.find(
+        (behavior) => behavior.id === "SCREEN-STOREFRONT-HOME-A01-01",
+      );
+      item.platform_roles = null;
+      item.role = "platform_rolesを参照";
+    });
+    expect(() => validateCoverage({ root, data: role })).toThrow(
+      /missing platform-specific role/,
+    );
+  });
+
 });

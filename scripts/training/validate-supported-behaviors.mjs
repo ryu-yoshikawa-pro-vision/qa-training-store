@@ -269,6 +269,15 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     ]) {
       assert(typeof item[field] === "string" && item[field].trim(), `missing ${field}: ${item.id}`);
     }
+    for (const ref of item.requirement_refs ?? []) {
+      assert(requirementIds.has(ref), `unknown requirement reference: ${item.id} -> ${ref}`);
+    }
+    if (item.role === "platform_rolesを参照") {
+      assert(
+        item.platform_roles?.web && item.platform_roles?.android,
+        `missing platform-specific role: ${item.id}`,
+      );
+    }
     if (item.kind === "action" || item.kind === "state") {
       assert(spec.screens.has(item.screen), `unknown screen: ${item.id}`);
     }
