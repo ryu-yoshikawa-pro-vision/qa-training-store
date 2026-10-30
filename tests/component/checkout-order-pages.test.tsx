@@ -365,6 +365,18 @@ describe("checkout and order pages", () => {
     );
   });
 
+  it("does not offer payment confirmation for an incomplete checkout", async () => {
+    checkout.getActive.mockRejectedValueOnce(new Error("checkout address missing"));
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByText("購入手続きを続けられません")).toBeVisible();
+    expect(screen.getByRole("link", { name: "戻って確認する" })).toHaveAttribute(
+      "href",
+      "/checkout/address",
+    );
+    expect(screen.queryByRole("button", { name: "¥2,500を確認する" })).not.toBeInTheDocument();
+    expect(checkout.setPayment).not.toHaveBeenCalled();
+  });
+
   it("keeps payment open and displays an error when saving the method fails", async () => {
     checkout.setPayment.mockRejectedValueOnce(new Error("stale checkout version"));
     render(<CheckoutPaymentPage />);
