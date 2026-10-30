@@ -261,3 +261,9 @@ Web CI [41099183628](https://github.com/ryu-yoshikawa-pro-vision/qa-training-sto
 - **基本分析46/188件（残り142）、状態条件11/20レビュー済み（残り9）**。188件は暫定。状態条件2件は親操作の基本分析に加算せず、親`SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05`/`SCREEN-STOREFRONT-SEARCH-A02-01`は未分析を維持。実ブラウザ・Native・視覚正本受入は未実施。
 - 直前HEAD `620d15e2`の[Web CI 41124666661](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41124666661)はStyle Quality失敗。実ログでは`src/presentation/native/native-purchase-screens.tsx`（SUT変更禁止）と`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`（学習用）のPrettier違反。後者は本更新後のCIで再確認し、残れば学習用範囲内で修正する。その他Web unit/integration/component/contracts、E2E各jobは成功。前HEAD Mobile CI 41124666760は成功。新HEADでの成功は別途確認。
 - PR既存差分には製品Use Case/Repository/UI、正式`docs/spec/features/checkout-and-payment.md`、既存component/integrationテストが含まれる。**これらは過去差分として保持・仕分け対象とし、本更新では一切変更していない**。製品不整合をIssue化/別PR化する場合は事前承認を待つ。
+
+## 2026-10-31 ログイン入力検証状態の読み取り監査（SUT変更なし）
+
+- `SCREEN-AUTH-LOGIN-S-validation-error`を`authentication.md:9-35`のBR/ACとWeb必須状態、`auth-pages.tsx:21-35/101-181`のRHF/Zod、`form-error-summary.tsx:15-47`、`AuthUseCases.login:52-62`、既存componentテスト`auth-account-pages.test.tsx:138-181`、default Seedのguest初期状態と照合した。空2項目、invalid-email＋有効password、同一エラー再submit、入力修正の境界を分離。無効送信はUse Case/Repositoryへ到達しない。**状態条件12/20レビュー済み（残り8）、基本操作46/188（残り142）**。親ログイン操作は未分析。
+- 前HEAD [Web CI 41132431772](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41132431772)はStyle QualityでFAIL（学習用contractと既存製品Native画面の2ファイル）、他のWeb契約/単体/統合/コンポーネント/主要E2Eは成功。Mobile CI 41132432188はsuccess。学習用contractの長いoptional-chain式を整形し、今回のCIで再検証する。製品Native画面は変更禁止のため未修正。
+- 188操作は暫定分母。今回の判定はソースと既存テストの証拠付き基本分析であり、実ブラウザ・画面正本の受入PASSではない。既存PRの製品差分は保持。公開Template/Private 2-core Codespaces/OpenCode実モデル校正は未完了。
