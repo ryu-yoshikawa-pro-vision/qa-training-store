@@ -263,3 +263,14 @@ Phase 1の初見の分析・設計課題、Phase 2の初見のPlaywright課題�
 | フェーズ別総合演習 | M04で設計、M07でCodespaces内E2E、M10でCI実行を**それぞれ別の修了条件で確認**。各段階で成果物のダウンロード・保全ができ、後続フェーズ未受講を不合格にしない |
 
 変更に応じて`pnpm run validate:curriculum`、`pnpm run test:contracts`、新課程専用のvalidatorとPlaywright実行、Training Copy検証を実行する。**旧の成功結果を新課程のPASSとして報告しない**。実行できない場合は対象・原因・状態を明記する。
+
+
+## 2026-10-30：機能分析台帳の誤った完了判定を訂正
+
+旧台帳の271行と、正式対象外を除いた270行は、独立した機能動作の分母ではなかった。画面操作へBR/AC・Role/State・UXの横断契約を合算し、基本分析を文字列の存在のみで判定していた。これを完了証拠として流用しない。
+
+`training/ai-assisted-qa-course/coverage/supported-behaviors.json`（schema version 2）では、画面操作、状態別の異なる期待結果、画面に明記されていなかったUse Case固有動作の候補と、関連するBR/AC・横断契約を分離する。公開Use Caseのメソッドを追跡し、変更によるマッピング漏れをCIで検出する。現在の動作候補206件は全件で仕様・実装・Seedの照合レビューが残るため、**基本分析100%は未達**とする。
+
+現行のPlanに定義された全サポート動作の分類済み率・基本分析済み率100%の基準は変更しない。正式な分母は全画面・実装・Use Case・Seed/シナリオの意味上の照合で確定し、同義項目を重複計上せず、未決/BLOCKEDを未達として報告する。コードやNodeの契約検査のPASSだけで完了としない。
+
+公開Templateの配布元は`qa-training-store`内で維持する。外部の公開Templateは未作成であり、別リポジトリ作成の権限・公開設定、配布実体、個人用Privateリポジトリの2コアCodespaces受入を行うまで完了扱いにしない。

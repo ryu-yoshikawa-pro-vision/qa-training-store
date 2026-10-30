@@ -7,87 +7,102 @@ import {
 } from "../../scripts/training/validate-supported-behaviors.mjs";
 
 const root = process.cwd();
-const source = JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
+const data = JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
+const mutated = (edit) => {
+  const next = structuredClone(data);
+  edit(next);
+  return next;
+};
 
-function changed(edit) {
-  const clone = structuredClone(source);
-  edit(clone);
-  return clone;
-}
-
-describe("AI協働QA 全サポート動作の分類・基本分析", () => {
-  it("covers all 38 screens, their behavior declarations, states, BR/AC and global contracts", () => {
+describe("サポート機能の仕様と実装の追跡", () => {
+  it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const result = validateCoverage({ root });
     expect(result).toMatchObject({
-      status: "analyzed",
       screens: 38,
-      total: 271,
-      supported_total: 270,
-      classified_supported: 270,
-      basically_analyzed_supported: 270,
-      by_kind: {
-        action: 172,
-        state: 20,
-        rule: 46,
-        permission: 8,
-        transition: 12,
-        ui: 4,
-        scope: 9,
-      },
-      unclassified: 0,
+      screen_actions: 73,
+      screen_action_segments: 172,
+      non_default_states: 20,
+      br_ac: 46,
+      use_case_methods: 76,
+      supported_total: 206,
+      classified: 206,
+      basically_analyzed: 0,
+      requires_review: 206,
+      classified_rate: 100,
+      basic_analysis_rate: 0,
+      complete: false,
     });
-    expect(result.classified).toBe(result.total);
-    expect(result.basically_analyzed).toBe(result.total);
-  });
-
-  it("detects a missing action, non-default state and business rule", () => {
-    for (const kind of ["action", "state", "rule"]) {
-      const altered = changed((data) => {
-        data.entries.splice(
-          data.entries.findIndex((entry) => entry.kind === kind),
-          1,
-        );
-        data.counts[kind] -= 1;
-      });
-      expect(() => validateCoverage({ root, data: altered })).toThrow(
-        new RegExp(`unclassified ${kind}`),
-      );
-    }
-  });
-
-  it("rejects missing risk, test responsibility, Case decision and source drift", () => {
-    for (const field of [
-      "risk",
-      "test_condition",
-      "test_responsibility",
-      "case_policy",
-      "case_selection_reason",
+    expect(data.requirements).toHaveLength(79);
+    for (const id of [
+      "UC-AUTH-LOGOUT",
+      "UC-ADMIN-DUPLICATE-PRODUCT",
+      "UC-ADMIN-DELETE-DRAFT",
+      "UC-REVIEW-DELETE",
+      "UC-CART-ACCEPT-PRICES",
+      "UC-ACCOUNT-DELETE-ADDRESS",
+      "UC-ADMIN-REORDER-CATEGORIES",
     ]) {
-      const altered = changed((data) => {
-        data.entries[0][field] = "";
-      });
-      expect(() => validateCoverage({ root, data: altered })).toThrow(
-        new RegExp(`missing analysis ${field}`),
-      );
+      expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
-    const drift = changed((data) => {
-      data.entries[0].source_text = "仕様にない操作を追加";
-    });
-    expect(() => validateCoverage({ root, data: drift })).toThrow(/source drift/);
   });
 
-  it("rejects duplicate entries and missing cross-cutting permission rules", () => {
-    const duplicate = changed((data) => {
-      data.entries.push(structuredClone(data.entries[0]));
+  it("does not certify semantic analysis merely because required fields are nonempty", () => {
+    const changed = mutated((next) => {
+      next.behaviors[0].analysis_status = "analyzed";
     });
-    expect(() => validateCoverage({ root, data: duplicate })).toThrow(/duplicate behavior ID/);
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /analysis lacks verified evidence/,
+    );
+  });
 
-    const missing = changed((data) => {
-      data.entries = data.entries.filter((entry) => entry.id !== "ROLE-ACCESS");
-      data.counts.permission -= 1;
+  it("rejects a missing split action even when its source line has remaining actions", () => {
+    const changed = mutated((next) => {
+      next.behaviors.splice(next.behaviors.findIndex((item) => item.kind === "action"), 1);
     });
-    expect(() => validateCoverage({ root, data: missing })).toThrow(
-      /cross-cutting requirement not classified/,
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /unclassified action subcases/,
+    );
+  });
+
+  it("rejects missing business rules, non-default states and Use Case method mappings", () => {
+    const rule = mutated((next) => {
+      next.requirements = next.requirements.filter((item) => item.id !== "BR-CART-001");
+    });
+    expect(() => validateCoverage({ root, data: rule })).toThrow(/BR\/AC missing/);
+
+    const state = mutated((next) => {
+      next.behaviors = next.behaviors.filter((item) => item.kind !== "state");
+    });
+    expect(() => validateCoverage({ root, data: state })).toThrow(/non-default UI states missing/);
+
+    const method = mutated((next) => {
+      next.use_case_methods = next.use_case_methods.filter(
+        (entry) => entry.id !== "CustomerReviewUseCases.delete",
+      );
+    });
+    expect(() => validateCoverage({ root, data: method })).toThrow(
+      /public Use Case methods missing/,
+    );
+  });
+
+  it("rejects duplicate behavior semantics even if its identifier is different", () => {
+    const changed = mutated((next) => {
+      const clone = structuredClone(next.behaviors[0]);
+      clone.id = "OTHER-ID";
+      next.behaviors.push(clone);
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /duplicate equivalent behavior/,
+    );
+  });
+
+  it("does not accept a missing review evidence for an analyzed record", () => {
+    const changed = mutated((next) => {
+      next.behaviors[0].analysis_status = "analyzed";
+      next.behaviors[0].reviewed_against = ["specification"];
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /analysis lacks verified evidence/,
     );
   });
 });
