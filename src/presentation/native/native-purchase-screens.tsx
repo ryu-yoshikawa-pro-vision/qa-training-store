@@ -684,7 +684,7 @@ export function NativeAddressesScreen() {
 function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
   const { ready, error, retry, services } = usePurchaseServices();
   const [session, setSession] = useState<CheckoutSession | null>(null);
-  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | null>(null);
+  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | "replaced" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
@@ -711,7 +711,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           const cart = await services.cart.getCart();
           const started = await services.checkout.start({ cartVersion: cart.cartVersion });
           setSession(started.session);
-          setSessionOrigin(started.result === "resumed" ? "resumed" : "started");
+          setSessionOrigin(started.result === "created" ? "started" : started.result);
         } catch (startError) {
           setMessage(asPurchaseError(startError).message);
         }
@@ -785,6 +785,11 @@ export function NativeCheckoutAddressScreen() {
       {state.sessionOrigin === "resumed" && (
         <Text style={styles.productMeta} testID="native-checkout-session-resumed">
           Checkoutを再開しました
+        </Text>
+      )}
+      {state.sessionOrigin === "replaced" && (
+        <Text style={styles.productMeta} testID="native-checkout-session-replaced">
+          カートの更新により、購入手続きを最新の内容へ置き換えました。
         </Text>
       )}
       {savedAddresses.length > 0 && (
