@@ -22,6 +22,9 @@ describe("AI協働QA 全サポート動作の分類・基本分析", () => {
       status: "analyzed",
       screens: 38,
       total: 271,
+      supported_total: 270,
+      classified_supported: 270,
+      basically_analyzed_supported: 270,
       by_kind: {
         action: 172,
         state: 20,

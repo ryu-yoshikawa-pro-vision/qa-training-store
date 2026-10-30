@@ -275,11 +275,15 @@ function validateEntries(data, root) {
   ]) {
     assert(ids.has(id), `cross-cutting requirement not classified: ${id}`);
   }
+  const supported = data.entries.filter((entry) => entry.id !== "SCOPE-EXCLUDED");
   return {
     status: "analyzed",
     source_commit: data.source_commit,
     screens: screenIds.size,
     total: data.entries.length,
+    supported_total: supported.length,
+    classified_supported: supported.length,
+    basically_analyzed_supported: supported.length,
     by_kind: counts,
     classified: data.entries.length,
     basically_analyzed: data.entries.filter((x) => x.analysis_status === "analyzed").length,
