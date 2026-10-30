@@ -363,9 +363,7 @@ describe("auth and account pages", () => {
     render(<AddressesPage />);
     expect(await screen.findByRole("heading", { name: "登録済み配送先（0/5）" })).toBeVisible();
     expect(screen.getByText("配送先が登録されていません")).toBeVisible();
-    expect(
-      screen.getByText("登録フォームから最初の配送先を登録してください。"),
-    ).toBeVisible();
+    expect(screen.getByText("登録フォームから最初の配送先を登録してください。")).toBeVisible();
     expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
     expect(screen.getByRole("button", { name: "登録する" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "この配送先を使用" })).not.toBeInTheDocument();
