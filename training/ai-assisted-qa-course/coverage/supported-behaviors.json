@@ -4079,7 +4079,7 @@
       "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
       "case_selection_reason": "注文配送先を選択の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "Web checkout-order-pages.tsx:114-230とNative native-purchase-screens.tsx:712-850、CheckoutOrderUseCases.setAddress、正本checkout-and-payment.md:60-74を照合。仕様の『配送先を選択』には登録済み必須・任意住所入力可否の明示がなく、プラットフォーム間の振舞いが異なる。検証条件と仕様判断を残す。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -4092,7 +4092,7 @@
         "CheckoutOrderUseCases.start",
         "CheckoutOrderUseCases.setAddress"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "Webは本人の登録済み住所だけを選択するが、Nativeは住所0件でも初期値が入力され、任意のSnapshotを直接確定できる。Use Caseの住所文字数/必須/郵便/電話検証は修正済み。保存済み住所必須か直接入力許可か正式受入契約が未確定のため、仕様を独断で決定せずreview_requiredを維持",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -4139,30 +4139,32 @@
       "source_line": 65,
       "source_text": "チェックアウトセッションで使用する配送先を選択し、決済画面へ進める。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,checkout-replaced,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: 次の決済ステップに遷移",
+      "role": "customer",
+      "scenario": "regular-memberで顧客の有効なCartとCheckoutSessionを開始。Webでは本人の登録済み配送先を作成して選択、Nativeでは保存済み住所の反映または有効な直接入力。旧checkoutExpectedVersion、期限切れ、cartVersion変更、無効配送先を区別",
+      "data": "regular-memberはログイン済み顧客Cartを用意するが住所は初期0件。Webのcheckout/addressで本人住所を登録し、Nativeでは登録済み住所か直接入力した有効な住所Snapshotを準備。checkoutSessionId/version・cartVersion・expiresAt・postalCode/phoneの境界値を検証する",
       "action": "次の決済ステップに遷移",
-      "expected": "配送先選択が成功し、セッションとカート版が整合する場合だけ決済選択へ進む",
+      "expected": "Webの「この配送先を使用」およびNativeの「次へ：支払い」は、有効なcustomer本人のactive CheckoutSession、現Cart version、checkoutExpectedVersion、入力住所の必須項目/長さ/郵便番号/電話番号が正しい場合だけsetAddressを保存する。住所Snapshotとversion+1、unlockedStep=paymentを永続化してから/checkout/paymentへ進む。失敗時は画面に留まりエラーを表示し、sessionの住所・version・ステップと注文/決済を変更しない",
       "rule_refs": [],
       "route": "`/checkout/address`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "次の決済ステップに遷移について、配送先選択が成功し、セッションとカート版が整合する場合だけ決済選択へ進むことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と次の決済ステップに遷移の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "次の決済ステップに遷移の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "所有権外Checkoutの書換え、期限/旧version/Cart変更時の誤遷移、無効住所の保存、住所が保存できていないのに決済へ遷移、Web/Nativeの入力差に起因する欠落",
+      "test_condition": "active customerのregular-memberでsession開始とAddress保存前後を比較。Webの本人登録済み住所、Nativeの保存済み反映/直接入力で成功後にpaymentへ遷移しSnapshot・version・unlockedStepを確認。空欄・郵便番号6/8桁・電話番号9桁/12桁、旧version、別ユーザーCheckout ID、期限切れ、Cart version変更では拒否・前後不変・非遷移を検証する",
+      "test_responsibility": "Web/Nativeの次へCTAはsetAddress成功後にのみ遷移し、Use CaseはCustomer/Session/Cart/期限/住所入力を検証する。Dexie/SQLite Repositoryのversion更新と次ステップ解放を確認する。実注文/決済作成とNative直接入力の許容方針は独立論点",
+      "case_policy": "正常Web本人保存済み住所、Native保存済み住所/直接入力、入力必須/正規化、旧version・期限切れ・カート不一致、非顧客/他人IDと保存失敗時の非遷移を採用。住所管理の既定切替と決済結果確定は別Case",
+      "case_selection_reason": "WebとNativeはUIの入力方法が異なるが、同一CheckoutOrderUseCases.setAddressで決済ステップを解放する。更新失敗時の遷移と不正住所保存は注文配送先の正確性に影響する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:60-74、roles-and-permissions.md:7-22、Web checkout-order-pages.tsx:114-230、Native native-purchase-screens.tsx:661-850、CheckoutOrderUseCases.start:108-139/setAddress:163-168/validateAddress、DexieCheckoutSessionRepository.setAddress:671-693、NativeCheckoutSessionRepository.setAddress:1782-1813、regular-member Seed/初期住所0件とWeb/Native component/integrationテストを照合。Use Caseの文字数のみの検証を必須項目/郵便・電話正規化に修正。記録は実機E2E成功を意味しない。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.start",
+        "CheckoutOrderUseCases.setAddress"
+      ],
+      "analysis_progress": "Web/Nativeのステップ遷移・Use Caseの住所入力とセッション検証・RepositoryとSeedを照合。CIと実機の実行受入は別判定。Native自由入力の仕様妥当性は親の配送先選択操作で引き続きレビュー",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -4186,7 +4188,44 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 150,
+          "end_line": 231,
+          "reason": "Webの有効配送先選択・保存成功時だけpaymentへ遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 712,
+          "end_line": 850,
+          "reason": "Nativeの保存済み選択/直接入力・保存成功時だけpaymentへ遷移"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 163,
+          "end_line": 169,
+          "reason": "Use Caseの本人Session検査・入力検証・保存"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 671,
+          "end_line": 693,
+          "reason": "Webの住所保存とversion/step遷移"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1782,
+          "end_line": 1813,
+          "reason": "Androidの住所保存とversion/step遷移"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
