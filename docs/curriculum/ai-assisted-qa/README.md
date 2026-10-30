@@ -107,4 +107,3 @@ node scripts/training/knowledge-graph.mjs impact --changed-files changed-files.t
 - クイズ：`/docs/curriculum/ai-assisted-qa/quizzes/Mxx.html`。正本の問題JSONから生成し、正誤・解説・復習先を示す。
 
 3ページの上部に共通の切替リンクを配置する。配布用Markdown・入力・提出テンプレート・Phase評価基準のファイルを残し、実際の操作と提出は個人のCodespacesで行う。クイズ得点と教材閲覧は正式修了判定の代わりにしない。
-
