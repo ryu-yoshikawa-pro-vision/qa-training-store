@@ -299,7 +299,10 @@ describe("Native SQLite Node runtime contract", () => {
   it("rolls back Native price acceptance when the quantity exceeds remaining stock", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);
-    await seedNativeDataset(database as unknown as SQLiteDatabase, createScenarioDataset("default"));
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
     const item = await database.getFirstAsync<Row>(
       "SELECT variant_id FROM cart_items WHERE id = ?",
       "cart-item-regular-shirt",
