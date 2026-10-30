@@ -514,6 +514,23 @@ describe("Native customer purchase screens", () => {
     expect(retryPayment).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the Native payment step locked when the Cart version changed", async () => {
+    const getActive = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
+        retryable: false,
+      }),
+    );
+    const start = jest.fn();
+    runtime({ checkout: { getActive, start } });
+    const screen = await render(<NativeCheckoutPaymentScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-payment-session-ready")).toBeNull();
+    expect(start).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalledWith("/checkout/confirm");
+  });
+
   it("does not expose the Payment ready marker without a valid checkout session", async () => {
     runtime({
       checkout: {
