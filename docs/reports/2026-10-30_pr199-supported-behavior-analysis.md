@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、21件は仕様・実装・Seedの照合済み、167件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、25件は仕様・実装・Seedの照合済み、163件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、21件が`analyzed`（11.17%）、167件が`review_required`。状態別検証条件20件も未レビューとして保持する。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、25件が`analyzed`（13.30%）、163件が`review_required`。状態別検証条件20件も未レビューとして保持する。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -108,3 +108,14 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 - Webの統合テストへ、非既定住所を既定へ昇格し、旧既定のversion更新と古いversionでの再更新拒否を確認するCaseを追加した。CI成功・Native実機受入は別途判定する。
 
 以上により基本分析**21/188（11.17%）**、残り167件、非default状態別条件19件未レビュー。機能母集団の最終確定・全対象受入は引き続き未達。
+
+## アカウントプロフィールの4操作を追加分析（2026-10-31）
+
+`SCREEN-AUTH-ACCOUNT-PROFILE`の本人プロフィール、会員ランク、アカウント状態、管理者機能・内部IDの非表示を、`authentication.md`、`roles-and-permissions.md`、`AccountUseCases.getProfile`、Web/Native UI、Seedの3種類の会員シナリオで照合した。
+
+- **本人情報**：`SessionIdentityResolver.requireCurrentEntity`と`AccountUseCases.requireCustomer`で本人・active顧客に限定し、Web/Androidともメール・表示名・電話番号を本人のDTOから表示する。guest、operator/admin、suspended/withdrawnは認証・権限で拒否される。
+- **ランクと特典**：Webが表示する一般/ゴールド/プラチナ、割引率0/5/10%、送料閾値5,000円・プラチナ無条件無料の表示が、以前のNativeにはなかった。Native画面に共通`labels.rank`、`membershipDiscountRate`、`FREE_SHIPPING_THRESHOLD`を用いた表示を追加した。
+- **アカウント状態**：Webでは`active`を「利用中」と表示していたが、Nativeでは項目自体が欠落していた。Nativeに`labels.account`による「アカウント状態：利用中」を追加した。停止/退会済みの状態はプロフィールを見せず、Use Caseが拒否する契約を維持した。
+- **情報の非表示**：両UIとも内部`user.id`やRole変更・管理用操作を表示しない。DTO内部にIDが存在することとユーザー向け表示を分け、Web/NativeのcomponentテストでID非表示と各ランク表示を確認するCaseを追加した。
+
+これら4件の仕様・Use Case・Seedの分岐が照合できたため、台帳上の基本分析を`analyzed`にした。**基本分析25/188（13.30%）、要レビュー163件、非default状態19件未レビュー**。Native実機・最新CIの成功は別途確認し、分析記録だけで受入完了としない。
