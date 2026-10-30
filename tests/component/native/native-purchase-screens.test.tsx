@@ -534,6 +534,41 @@ describe("Native customer purchase screens", () => {
     await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
   });
 
+  it.each([
+    ["created", "native-checkout-session-started", "native-checkout-session-replaced"],
+    ["replaced", "native-checkout-session-replaced", "native-checkout-session-started"],
+  ] as const)(
+    "distinguishes %s checkout session recovery from the other notice",
+    async (result, expectedNotice, absentNotice) => {
+      const getActive = jest.fn().mockRejectedValue(
+        new ApplicationError({
+          code: "CHECKOUT_STEP_INCOMPLETE",
+          messageKey: "checkout.start.required",
+          retryable: false,
+        }),
+      );
+      const start = jest.fn().mockResolvedValue({
+        result,
+        session: { ...checkoutSession, addressSnapshot: null, unlockedStep: "address" },
+      });
+      runtime({
+        account: { listAddresses: jest.fn().mockResolvedValue([]) },
+        cart: { getCart: jest.fn().mockResolvedValue({ cartVersion: 1 }) },
+        checkout: { getActive, start },
+      });
+
+      const screen = await render(<NativeCheckoutAddressScreen />);
+      await waitFor(() => expect(screen.getByTestId(expectedNotice)).toBeTruthy());
+      expect(screen.queryByTestId(absentNotice)).toBeNull();
+      expect(start).toHaveBeenCalledWith({ cartVersion: 1 });
+      if (result === "replaced") {
+        expect(
+          screen.getByText("カートの更新により、購入手続きを最新の内容へ置き換えました。"),
+        ).toBeTruthy();
+      }
+    },
+  );
+
   it("selects a saved delivery address before advancing checkout", async () => {
     const setAddress = jest.fn().mockResolvedValue({
       ...checkoutSession,
