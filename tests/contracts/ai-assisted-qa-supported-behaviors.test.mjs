@@ -89,8 +89,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(setting?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(setting?.audit_branch_refs?.length).toBeGreaterThan(0);
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")
-        ?.analysis_status,
+      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")?.analysis_status,
     ).toBe("review_required");
   });
 
