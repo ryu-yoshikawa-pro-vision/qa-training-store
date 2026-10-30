@@ -598,6 +598,40 @@ describe("Native customer purchase screens", () => {
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/payment");
   });
 
+  it("keeps Native checkout on the address step after invalid direct input", async () => {
+    const setAddress = jest.fn().mockRejectedValue(new Error("invalid shipping address"));
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: null,
+          unlockedStep: "address",
+        }),
+        setAddress,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId("native-checkout-postal-code"), "123");
+      fireEvent.press(screen.getByTestId("native-checkout-address-next"));
+    });
+
+    await waitFor(() =>
+      expect(setAddress).toHaveBeenCalledWith(
+        expect.objectContaining({ address: expect.objectContaining({ postalCode: "123" }) }),
+      ),
+    );
+    expect(screen.getByTestId("native-purchase-error")).toHaveTextContent(
+      "invalid shipping address",
+    );
+    expect(mockRouterPush).not.toHaveBeenCalledWith("/checkout/payment");
+  });
+
   it("renders order payment, shipment, address, price, and item snapshots", async () => {
     mockUseLocalSearchParams.mockReturnValue({ orderId: "order-native-test" });
     const getMyCustomerOrder = jest.fn().mockResolvedValue({
