@@ -4,7 +4,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、26件は仕様・実装・Seedの照合済み、162件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、28件は仕様・実装・Seedの照合済み、160件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
@@ -32,7 +32,7 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 
 `node scripts/training/validate-supported-behaviors.mjs`は構造の不一致をエラーにし、分類済み・基本分析済み・未レビュー・BLOCKEDを別々に報告する。基本分析は`analysis_status=analyzed`に加え、Role/Platform/State/Data、期待結果、Risk、TR、Condition、Case選定・除外理由、関連BR/AC、仕様・実装・Seedレビューの証拠が必要となる。
 
-**188件中、26件が`analyzed`（13.83%）、162件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
+**188件中、28件が`analyzed`（14.89%）、160件が`review_required`。状態別条件は18/20件が未レビューとして残る。** 旧台帳の共通文言、同一文章の期待結果、機能単位のリスク、未解決のRole/Platform組合せだけでは分析済みにしない。仕様上の分析が成立しない項目はBLOCKEDを残し、勝手に分母から取り除かない。
 
 完了判定は`node scripts/training/validate-supported-behaviors.mjs --require-complete`で行う。CIの通常検証は構造の整合性を確認するが、**CIの成功を「内容のレビュー完了」と読み替えない**。
 
@@ -137,3 +137,14 @@ UI状態20件は既存操作の状態別条件として追跡し、二重に加�
 `SCREEN-CHECKOUT-ADDRESS-A01-01`の操作自体は**引き続き`review_required`**とした。Webは登録済み住所がなければ選択できないが、Nativeは保存済み住所が0件でもフォームに固定の初期住所が入り、直接入力のまま進める。正式な画面仕様には「配送先を選択」とあるものの、登録済み住所を必須とするか、Nativeの自由入力を許可するかまでは書かれていない。今回の形式検証修正で不正な値は拒否するが、登録済み必須という仕様判断までは代行しない。Web・Nativeの受入期待を確定してから分析を完了させる。
 
 分析集計は**26/188件（13.83%）**、残り162件、非default状態別条件18/20件未レビュー。CI成功・Android実機・画面リファレンス受入と、実Template/Codespaces/OpenCode受入は別に確認する。
+
+## チェックアウト再開とセッション置換の追加分析（2026-10-31）
+
+`SCREEN-CHECKOUT-ADDRESS-A02-01`（セッション再開通知）と`SCREEN-CHECKOUT-ADDRESS-A02-03`（置換通知）を仕様、Web/Native、Use Case、Dexie/SQLite、固定Seedで照合した。状態別条件の`SCREEN-CHECKOUT-ADDRESS-S-resume-notice`は別の操作として二重加算しない。
+
+- 同じ顧客・Cart/versionで期限内のCheckout Sessionは`resumed`として同じセッションを返す。Webの通知は`sessionStorage`で同一Session/通知種別につき初回のみ。Nativeは`getActive`を使い既存の配送先入力を復元する。
+- Webの再開画面は以前の`addressSnapshot`を参照せず、常に既定住所を選択していた。非既定住所で進行して戻ると意図しない配送先変更になり得るため、Snapshotに一致する登録住所を復元し、一致する住所がない場合は既定住所へ無断で変更せず再選択を要求するよう修正した。Web componentテストで非既定住所の復元と、変更・削除された住所を検出するCaseを追加した。
+- `checkout-replaced` Seedは旧Sessionの`cartVersion=1`、現Cart`version=2`を生成する。Use Caseの`start`とDexie/SQLiteの`startOrResume`は旧Sessionを`abandoned`にし、新Sessionを住所・支払方法なしで作成する。Webは置換通知を表示するが、Nativeでは以前`replaced`を`started`へ潰して「Checkoutを開始しました」と表示していた。Nativeで置換を独立の結果として保持し、通知とcomponentテストを追加した。
+- `SCREEN-CHECKOUT-ADDRESS-A01-01`のWeb「保存済み住所の選択」/Native「自由入力」の仕様差と、旧Session全般の案内操作`A02-02`は未分析として残す。今回の修正はその仕様判断を代行しない。
+
+以上で**基本分析28/188（14.89%）、確認待ち160件、状態別条件18/20件未レビュー**。新しい回帰テストと画面改修はCI・実機の最終PASSを別途確認する。
