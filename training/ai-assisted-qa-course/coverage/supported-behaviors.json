@@ -2691,31 +2691,33 @@
       "source_path": "docs/spec/features/authentication.md",
       "source_line": 35,
       "source_text": "必須入力項目の不足をサマリー表示で説明する。",
-      "platform": "web-desktop",
-      "role": "`guest`",
-      "scenario": "validation-error",
-      "data": "Seed/入力: defaultで未入力・形式不正。通常状態から条件を変更し表示と操作を比較",
+      "platform": "web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）",
+      "role": "guest（default Seedの初期Session）。customer/operator/adminログイン成功後の挙動は別操作",
+      "scenario": "default Resetでguest、/loginで未入力またはinvalid-emailを送信してvalidation-errorへ。認証成功/失敗のAPI呼出しとは区別",
+      "data": "default Seed初期Session=guest。email=''、password=''のsubmitで必須/形式エラーを発生。email='invalid-email'＋password='testpass1'ではメール形式のみエラー。メール修正と再submitでsummary項目数・focusを比較。DB/Sessionの変換は不要",
       "action": "validation-error状態を表示・処理",
-      "expected": "必須入力項目の不足をサマリー表示で説明する。",
+      "expected": "Web /loginのフォーム送信前Zod/RHF検証で、未入力ならメール形式とパスワード必須のエラーをFormErrorSummary(role=alert)にリンク付きで表示し、#email/#passwordへ修正誘導。invalid-email＋有効なpasswordならメール1件だけ表示。aria-invalid=true、summaryにfocus、同じエラーで再submitしてもfocusを戻す。invalid入力ではAuthUseCases.loginを呼ばずSession/Repositoryを変更しない",
       "rule_refs": [],
       "route": "`/login`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "SCREEN-AUTH-LOGIN-A02-01を対象にdefaultで未入力・形式不正を準備し「必須入力項目の不足をサマリー表示で説明する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-AUTH-LOGIN-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "validation-errorに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未入力/不正メールを認証Use Caseへ渡す、エラー内容や修正先が不明、同一エラー再submitでfocusが戻らない、入力値喪失、誤ログイン/Session作成",
+      "test_condition": "default Reset→guestでWeb /login→空email/passwordで送信。summary role=alert・2件の#email/#passwordリンク・aria-invalid・focus・auth.login非呼出しを確認。次にinvalid-email＋testpass1で送信してメール1件、再submitでsummary再focus、入力値保持を確認。valid@example.comへ修正時にパスワード1件だけ残る対照も既存componentで確認。実ブラウザ/正本画像比較は別受入",
+      "test_responsibility": "SCREEN-AUTH-LOGIN-A02-01の入力検証状態。RHF/Zodのpre-UseCase拒否→FormErrorSummary/リンク/FocusのWeb経路とdefault Seed guestを確認。AuthUseCases.login→UserRepository/SessionRepositoryは有効送信時だけの別経路",
+      "case_policy": "空2項目（複数エラー）/invalid-email＋有効password（1件）/同じ1件で再submit/メール修正で件数変化の4条件を比較。Androidのvalidation-error画像は必須視覚条件ではない",
+      "case_selection_reason": "仕様で必須のサマリーと修正導線をWebで直接観測でき、既存componentが未呼出し・focus・入力保持を検証。default Seedだけで再現でき専用Seedは不要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:9-22/28-35、auth-pages.tsx:21-35/101-180、form-error-summary.tsx:15-47、auth-account-pages.test.tsx:138-181、auth-use-cases.ts:52-62、metadata.ts:75-82、scenarios.ts:33-39を照合。Zod/RHF invalid submitはauth.loginに到達せずRepository操作も発生しない。Seedは初期guestを提供するのみ。実ブラウザE2E/視覚正本PASSは未実施",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AuthUseCases.login"
+      ],
       "covered_by": "SCREEN-AUTH-LOGIN-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "正式Web validation-error状態をZod/RHF→FormErrorSummary→Use Case非呼出し境界と既存component・default Seedで読み取り監査。実ブラウザ/視覚正本は未受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 101,
@@ -2735,7 +2737,75 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.login",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 52,
+          "signature": "async login(request: LoginRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "BR-AUTH-001/002・入力失敗と認証情報の非露出"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 28,
+          "end_line": 53,
+          "reason": "login validation-errorのguest/default・Web必須サマリーと視覚正本"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 21,
+          "end_line": 35,
+          "reason": "Zodのemail形式/password必須バリデーション"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 181,
+          "reason": "RHF resolver/submitCount・summary・invalid時のUse Case非呼出し"
+        },
+        {
+          "path": "src/presentation/components/form-error-summary.tsx",
+          "start_line": 15,
+          "end_line": 47,
+          "reason": "alert、修正先リンク、submitCount focus"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 62,
+          "reason": "有効なsubmitで初めてRepositoryを検索するUse Case境界"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 82,
+          "reason": "default初期guestと固定アカウントの存在"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 39,
+          "reason": "defaultは既存dataset clone・追加データ不要"
+        },
+        {
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "start_line": 138,
+          "end_line": 181,
+          "reason": "1件error再submitでfocus、入力保持、複数→単数の検証"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-A01-01",
