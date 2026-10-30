@@ -113,6 +113,34 @@ describe("checkout and customer order application integration", () => {
     return withPayment;
   }
 
+  it("rejects unsupported payment methods without advancing the checkout session", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const withAddress = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    await expect(
+      useCases.setPayment({
+        checkoutSessionId: withAddress.id,
+        checkoutExpectedVersion: withAddress.version,
+        paymentMethodCode: "TEST-UNKNOWN" as "TEST-SUCCESS",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { paymentMethodCode: "validation.invalid" },
+    });
+    expect(await database.checkout_sessions.get(withAddress.id)).toMatchObject({
+      version: withAddress.version,
+      unlockedStep: "payment",
+      paymentMethodCode: null,
+    });
+  });
+
   it("starts, resumes, replaces, and rejects a cart version changed after start", async () => {
     const cart = await database.carts
       .where("[userId+status]")
