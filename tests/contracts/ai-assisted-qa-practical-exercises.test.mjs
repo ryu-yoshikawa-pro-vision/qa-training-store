@@ -54,6 +54,17 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       expect(run?.minimum_tests).toBeGreaterThanOrEqual(2);
     }
     expect(exercise).toContain("CASE-CART-005");
+    expect(exercise).toContain("ページを再読み込み→Cartで数量2が保持される");
+    const submission = read("training/ai-assisted-qa-course/exercises/M06/submission-template.md");
+    expect(submission).toMatch(/^\| CASE-CART-005 \|/m);
+    expect(submission).toContain("再読み込み後の数量保持");
+    for (const id of ["M06-CAL-01", "M06-CAL-04", "M06-CAL-08"]) {
+      expect(scoring.cases.find((item) => item.id === id)?.response).toContain("CASE-CART-005");
+    }
+    expect(scoring.cases.find((item) => item.id === "M06-CAL-12")).toMatchObject({
+      type: "partial",
+      expected_decision: "partial",
+    });
     expect(exercise).toContain("数量0");
     expect(exercise).toContain("Web UIから数量0へ変更できるというE2Eは作りません");
     expect(
@@ -73,5 +84,12 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts",
     );
     expect(reference.match(/test\("/g)?.length).toBeGreaterThanOrEqual(3);
+    for (const id of ["M07-CAL-01", "M07-CAL-04"]) {
+      expect(scoring.cases.find((item) => item.id === id)?.response).toContain("3本目");
+    }
+    expect(scoring.cases.find((item) => item.id === "M07-CAL-10")).toMatchObject({
+      type: "partial",
+      expected_decision: "partial",
+    });
   });
 });

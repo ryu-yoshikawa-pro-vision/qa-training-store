@@ -188,7 +188,7 @@
     {
       "id": "M06-CAL-01",
       "type": "correct",
-      "response": "各testをResetで独立させ、正常追加・超過拒否/数量維持・low-stock上限を別Caseで確認する。別の削除Caseも新規specに構成し、削除前後の業務結果と単独実行・再実行の証拠を結ぶ。",
+      "response": "各testをResetで独立させ、固定3 Case（正常追加・超過拒否と数量維持・low-stock上限）を確認する。別testのCASE-CART-004では削除前後の業務結果を検証し、CASE-CART-005では数量1から2への変更とページ再読み込み後の数量保持を検証する。追加2 Caseの単独実行と再実行の証拠をそれぞれ結ぶ。",
       "evidence": [
         "reference-solutions/M06.md",
         "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
@@ -225,7 +225,7 @@
     {
       "id": "M06-CAL-04",
       "type": "acceptable-alternative",
-      "response": "固定3 Caseと別の削除Caseの新規specを構成し、fixtureで同じ前処理・分離・後処理を保証する。削除前後の業務結果と単独実行・再実行を示す。",
+      "response": "固定3 Caseを維持し、fixtureでtestごとのReset・分離を保証する。別のCASE-CART-004で削除前後の業務結果を、CASE-CART-005で数量1→2と再読み込み後の保持を独立したtestで確認し、initial/repeatの別Runを示す。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M06/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
@@ -274,7 +274,7 @@
     {
       "id": "M06-CAL-08",
       "type": "correct",
-      "response": "本人のM03/M04成果物がないため、inputs/M06/start.mdと公開未完成specをfallbackとして選び、配布元revisionを記録する。固定3 Caseと別の削除Caseの新規specを独立実装し、Case/BR/AC/Reset/Assertionと単独実行・再実行を追跡する。この結果はM06の実装技能を示すが、Phase 1の本人設計や修了は示さない。",
+      "response": "本人のM03/M04成果物がないため、inputs/M06/start.mdと公開未完成specをfallbackとして選び、配布元revisionを記録する。固定3 Caseに加えてCASE-CART-004（削除）とCASE-CART-005（数量1→2と再表示後の保持）を別testで実装し、Case/BR/AC/Reset/Assertionとinitial/repeatの実行を追跡する。これはM06の技能証拠であり、Phase 1本人設計や修了の証拠ではない。",
       "evidence": [
         "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
         "training/ai-assisted-qa-course/exercises/M06/exercise.md",
@@ -315,6 +315,18 @@
       ],
       "expected_decision": "partial",
       "rationale": "実行が成功しても別Caseの必須の業務Assertionが不足している。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M06-CAL-12",
+      "type": "partial",
+      "response": "固定3 CaseとCASE-CART-004の削除testはそれぞれPASSし、Reset、業務Assertion、RunとSHAも対応する。しかし数量1→2へ変更して再表示後の保持を確認するCASE-CART-005は作成・実行していない。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md",
+        "training/ai-assisted-qa-course/exercises/M06/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "CASE-CART-005の実装・実行証拠がなく、現行の必須Caseを達成していない。",
       "fixture_scope": "module_reference_calibration"
     }
   ],

@@ -495,7 +495,12 @@ function renderCoursePage(
     links.push(`<li><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></li>`);
     resourcesHtml = `<section class="course-resources" aria-label="演習・評価資料へのリンク"><h2>このモジュールの資料</h2><p>資料は教材と同じ配布版です。実技は個人用Codespaceで行います。評価基準は到達を確認する観点を示し、クイズの得点だけで修了を決めません。</p><ul>${links.join("")}</ul></section>`;
   }
-  const currentPath = moduleId === undefined ? parsed.relativePath : `${MODULE_ROOT}/${moduleId}/README.md`;
+  const currentPath =
+    moduleId === undefined
+      ? parsed.relativePath
+      : pageKind === "lesson"
+        ? `${MODULE_ROOT}/${moduleId}/README.md`
+        : undefined;
   const navigationHtml = renderNavigation(navigation, currentPath);
   const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
@@ -527,8 +532,7 @@ function quizHtml(
   const escapedModuleId = escapeHtml(moduleId);
   const escapedTitle = escapeHtml(title);
   const escapedRevision = escapeHtml(revision);
-  const modulePath = `${MODULE_ROOT}/${moduleId}/README.md`;
-  const navigationHtml = renderNavigation(navigation, modulePath);
+  const navigationHtml = renderNavigation(navigation);
   const pageNavigation = `<nav class="primary-navigation" aria-label="新カリキュラム" tabindex="0">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav>`;
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
   const progress = moduleProgressHtml(moduleId, navigation);
@@ -648,7 +652,7 @@ const QUIZ_JS = `(async()=>{
     const savedAnswersValid=saved?.answers&&typeof saved.answers==="object"&&Object.entries(saved.answers).every(([id,value])=>questionIds.has(id)&&["A","B","C","D"].includes(value));
     if(saved&&saved.revision===revision&&savedAnswersValid&&Number.isInteger(saved.currentIndex)&&["in_progress","completed"].includes(saved.resultStatus)){
       state={answers:saved.answers,currentIndex:Math.min(Math.max(saved.currentIndex,0),quiz.questions.length-1),resultStatus:saved.resultStatus};
-      if(state.resultStatus==="completed"&&allAnswered()){renderResults();return;}
+      // Restore the result only after all controls have registered their event listeners.
       byId("start-button").hidden=true;byId("resume-button").hidden=false;byId("restart-start-button").hidden=false;
       setText(byId("resume-button"),"続きから再開（第"+(state.currentIndex+1)+"問）");
     }
@@ -660,6 +664,7 @@ const QUIZ_JS = `(async()=>{
     byId("next-button").addEventListener("click",()=>{const question=quiz.questions[state.currentIndex];if(!state.answers[question.id]){byId("answer-error").hidden=false;byId("choices").querySelector("input")?.focus();return;}state.currentIndex++;saveState();renderQuestion();});
     byId("finish-button").addEventListener("click",()=>{if(!allAnswered()){byId("answer-error").hidden=false;return;}state.resultStatus="completed";saveState();try{const archiveKey="ai-assisted-qa-quiz-history:"+moduleId;const history=JSON.parse(localStorage.getItem(archiveKey)||"[]");if(Array.isArray(history)){history.push({revision,answers:{...state.answers},resultStatus:"completed",completed_at:new Date().toISOString()});localStorage.setItem(archiveKey,JSON.stringify(history));}}catch{}renderResults();});
     byId("retry-button").addEventListener("click",()=>{state={answers:{},currentIndex:0,resultStatus:"in_progress"};try{localStorage.removeItem(storageKey);}catch{}byId("start-button").hidden=false;byId("resume-button").hidden=true;byId("restart-start-button").hidden=true;setPanel("start");byId("start-button").focus();});
+    if(state.resultStatus==="completed"&&allAnswered())renderResults();
   }catch(error){showError(error instanceof Error?error.message:"クイズを表示できませんでした。");startPanel.hidden=true;questionPanel.hidden=true;resultPanel.hidden=true;}
 })();`;
 

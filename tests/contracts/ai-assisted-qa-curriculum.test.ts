@@ -563,6 +563,8 @@ describe("AI-assisted QA static learning course", () => {
       expect(lesson).toContain(`<a href="${exerciseUrl}">${id}の演習ページ</a>`);
       expect(exercise).toContain(`href="${exerciseUrl}" aria-current="page">演習</a>`);
       expect(quiz).toContain(`href="${quizUrl}" aria-current="page">クイズ</a>`);
+      expect(exercise).not.toContain(`href="${lessonUrl}" aria-current="page">`);
+      expect(quiz).not.toContain(`href="${lessonUrl}" aria-current="page">`);
       expect(exercise).toContain(`name="course-source-revision" content="${revision}"`);
       expect(exercise).toContain("P01");
       expect(exercise).toContain("P06");

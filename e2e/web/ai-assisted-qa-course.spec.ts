@@ -48,9 +48,8 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       const quiz = readQuiz(moduleId);
       await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
       await expect(page.getByRole("heading", { name: `${moduleId}の確認クイズ` })).toBeVisible();
-      await expect(page.locator(".primary-navigation a[aria-current='page']")).toContainText(
-        moduleId,
-      );
+      await expect(page.locator(".primary-navigation a[aria-current='page']")).toHaveCount(0);
+      await expect(page.locator(".module-sections a[aria-current='page']")).toHaveText("クイズ");
       await expect(page.locator(".module-progress")).toContainText(moduleId);
       await expect(page.locator(".module-pager")).toBeVisible();
       expect(await page.locator("body").innerText()).not.toContain("SHA-256:");
@@ -243,6 +242,11 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     await expect(
       page.getByText(`${quiz.questions.length} / ${quiz.questions.length}問正解（100%）`),
     ).toBeVisible();
+    await page.getByRole("button", { name: "このクイズを最初からやり直す" }).click();
+    await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
+    await page.getByRole("button", { name: "回答を始める" }).click();
+    await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
+    await expect(page.locator('input[type="radio"]:checked')).toHaveCount(0);
   });
 
   test("未回答の問題を飛ばせない", async ({ page }) => {

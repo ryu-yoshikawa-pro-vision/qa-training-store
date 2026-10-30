@@ -177,7 +177,7 @@
     {
       "id": "M07-CAL-01",
       "type": "correct",
-      "response": "確認できたRun/traceから原因候補を絞り、仕様を維持する最小修正と前後の別Runを示す。別の重複した2 testでは共通操作をPage Objectへ、各testのResetを標準fixtureへ移し、数量Assertionを残して前後の別Runを示す。単発操作への不採用理由も説明する。",
+      "response": "Run/Traceから原因候補を特定して仕様を維持する修正を行い、before/afterの別Runで確認する。保守対象の2 testは共通操作をPage Objectへ、ResetをPlaywright標準fixtureへ移し、3本目に数量2変更後の再表示で保持を確認する独立testを追加する。変更後の3件以上のPASSと、単発操作を抽象化しない判断も示す。",
       "evidence": [
         "reference-solutions/M07.md",
         "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
@@ -214,7 +214,7 @@
     {
       "id": "M07-CAL-04",
       "type": "acceptable-alternative",
-      "response": "限定的retryを再現診断に使っても最終合否や修正証明と分ける。重複した2 testはPage Objectと標準fixtureで分離し、個別の数量Assertionと前後の別Runを示す。単発操作への抽象化は採用しない。",
+      "response": "限定的retryを診断に利用しても、最終合否や修正証拠と混同しない。共通操作をPage Object、各testのResetを標準fixtureへ移し、数量の業務Assertionを残す。再表示後の数量保持を検証する3本目を追加し、変更後3件以上のPASSと変更前後の別Runを示す。単発操作を抽象化しない理由を述べる。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M07/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
@@ -280,6 +280,18 @@
       ],
       "expected_decision": "partial",
       "rationale": "修正結果のPASSではPOMとfixtureの複合能力をすべて満たしたとはいえない。",
+      "fixture_scope": "module_reference_calibration"
+    },
+    {
+      "id": "M07-CAL-10",
+      "type": "partial",
+      "response": "失敗原因を分析し、修正前後のRunで期待結果を確認した。Page Objectと標準fixtureで既存2 testを独立化し、after Runも2件PASSした。しかし3本目の数量変更後にCartを再表示して保持を確認するtestは未実装である。",
+      "evidence": [
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+        "training/ai-assisted-qa-course/exercises/M07/exercise.md"
+      ],
+      "expected_decision": "partial",
+      "rationale": "既存2 testの保守はできているが、保守後3件目の実装・実行が不足している。",
       "fixture_scope": "module_reference_calibration"
     }
   ],
