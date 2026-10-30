@@ -4802,30 +4802,33 @@
       "source_line": 100,
       "source_text": "不完全なセッションやカートバージョンの不一致を安全に処理する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: 不完全セッションを拒否",
+      "role": "customer",
+      "scenario": "regular-memberの本人有効CartでCheckoutを開始するが配送先未保存の状態。guest、operator/admin、停止/退会の顧客、他人セッション、存在しないセッション、住所保存済みの正常状態を区別する",
+      "data": "regular-member Seedのactive customer/session/Cartを利用。CheckoutOrderUseCases.start後のSession(version1,unlockedStep=address,addressSnapshot=null)を不完全状態とする。正常CaseではsetAddress後、unlockedStep=paymentへ遷移する",
       "action": "不完全セッションを拒否",
-      "expected": "住所未選択や期限切れなど不完全なチェックアウトセッションの確定を拒否する",
+      "expected": "住所未保存でunlockedStep=addressのSessionへ/checkout/paymentからアクセスしても、CheckoutOrderUseCases.getActive('payment')はCHECKOUT_STEP_INCOMPLETEを返す。Webは『購入手続きを続けられません』と配送先画面への戻り先を表示して決済オプション/確認ボタンを描画しない。Nativeはエラー表示し、ready markerを出さずsetPaymentへ進めない。セッションの住所・version・ステップ、注文・決済は変更しない。顧客以外・他人のsessionは認証/認可・所有権で拒否する",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "不完全セッションを拒否について、住所未選択や期限切れなど不完全なチェックアウトセッションの確定を拒否することを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と不完全セッションを拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "不完全セッションを拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "住所未保存の注文確定、未解放の決済ステップへの直接URLアクセス、Nativeのready誤表示、前ステップ未完了で不正な支払方法を保存",
+      "test_condition": "regular-memberでstart直後のcheckout.getActive('payment')拒否とSession不変を確認。Web /checkout/paymentで不完全Sessionはエラー・配送先戻りLinkで確認ボタン非表示、Nativeはpayment ready marker非表示でsubmit不可。setAddress成功後は遷移可能、guest/operator/adminや他人sessionは別の認可Caseとして確認する",
+      "test_responsibility": "CheckoutOrderUseCases.getActive(requiredStep='payment')がunlockedStepをSTEP_ORDERで検査する。Web CheckoutPaymentContentとNative useCheckoutSession('payment')のエラー表示/非遷移を確認し、Repositoryに不正な更新がないことを統合テストで検証する",
+      "case_policy": "未保存住所、正常住所保存済み、guest/他人/管理Role、不正セッションと直接URLアクセスの状態を採用。Cart version不一致はA02-02で独立検証する",
+      "case_selection_reason": "未完了ステップを直接参照可能なため、画面表示だけでなくApplication境界と保存状態の非変更を検証する。Nativeにも同じセッション制約が必要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:93-117、roles-and-permissions.md:1-25、Web checkout-order-pages.tsx:244-325、Native native-purchase-screens.tsx:684-735/878-939、CheckoutOrderUseCases.getActive:138-161とSessionIdentityResolver、regular-member Seed（初期住所なし）、integration checkout-order-use-cases.test.tsのstep guardとWeb/Nativeの不完全セッションcomponent testを照合。実行成功は別に判定",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.start",
+        "CheckoutOrderUseCases.getActive",
+        "CheckoutOrderUseCases.setAddress"
+      ],
+      "analysis_progress": "正式仕様・Web/Native・Application/Repository・Seedを照合し、不完全Sessionの決済拒否と非遷移テストを追加。CIと実機結果は別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 244,
@@ -4848,7 +4851,38 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 136,
+          "end_line": 163,
+          "reason": "requiredStep=paymentの状態検査とCart versionの順序"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 244,
+          "end_line": 274,
+          "reason": "Webの未完了Sessionエラーと配送先への戻り先"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 882,
+          "end_line": 939,
+          "reason": "Nativeの未完了セッション表示とready marker制御"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 150,
+          "end_line": 185,
+          "reason": "住所未保存状態の拒否・Session不変を追加検証"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PAYMENT-A02-02",
@@ -4858,30 +4892,32 @@
       "source_line": 100,
       "source_text": "不完全なセッションやカートバージョンの不一致を安全に処理する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: default,checkout-resume,cart-version-invalidates-checkout。Customer本人/他人・activeセッション・versionを区別する。対象動作: 古いカートバージョンを拒否",
+      "role": "customer",
+      "scenario": "cart-version-invalidates-checkout Seedの顧客本人セッションでCart current version2に対しCheckoutSession cartVersion1の不整合。住所保存済みPaymentステップからCartを更新したケースでも同じ拒否を確認",
+      "data": "cart-version-invalidates-checkout Seed: session-checkout, checkout-activeはcartVersion1、Cartはversion2、固定時刻2026-07-01T03:00Z。統合テストではregular-memberでstart→setAddress後にDBのCart versionを+1して不一致を再現する",
       "action": "古いカートバージョンを拒否",
-      "expected": "カート変更後の古いversionを拒否し、古い価格・数量の注文作成をしない",
+      "expected": "CheckoutOrderUseCases.getActive('payment')とsetPaymentは現在のCart versionとセッションのcartVersionが一致しない場合CART_VERSION_CHANGEDを返し、保存済みpaymentMethodCode、unlockedStep、versionを変更しない。Webは配送先へ戻る導線を表示し支払方法選択画面に進めず、Nativeはエラー表示して決済ready markerを出さない。旧Sessionで注文・支払確定できない",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "古いカートバージョンを拒否について、カート変更後の古いversionを拒否し、古い価格・数量の注文作成をしないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と古いカートバージョンを拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "古いカートバージョンを拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "カート変更後に旧価格・旧数量で決済、別商品の注文、stale Sessionから未検証の支払方法保存、誤って新しい支払方法を確定する",
+      "test_condition": "固定Seedとregular-member状態を用意し、Cart.version+1後にgetActive('payment')・setPaymentがCART_VERSION_CHANGEDを返すこと、checkout_sessionsのversionとpaymentMethodCode/unlockedStepが不変なことを確認。Webのエラー境界、NativeでgetActive拒否したときの非ready・start非実行・confirm非遷移を確認する",
+      "test_responsibility": "CheckoutOrderUseCases.assertCartVersion/ assertSessionForMutation、CheckoutPaymentContentとNative useCheckoutSession('payment')、Dexie/SQLiteのCheckoutSession/Cart整合性、固定Seedの不一致再現を検証する",
+      "case_policy": "Cart version一致・不一致、旧version mutation拒否、別Userセッション・期限切れは関連セッションCaseと区別して採用。既存決済結果の再実行は別の注文確定Case",
+      "case_selection_reason": "Cart変更時に旧Sessionから決済すると商品の価格/在庫の再検証規則に違反するため、状態の不一致による保存拒否とUI非遷移の双方が必要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "checkout-and-payment.md:13-18,93-117、CheckoutOrderUseCases.getActive:138-161/setPayment/ assertSessionForMutation:575-608, Dexie/SQLite checkoutSessionRepository、cart-version-invalidates-checkout Seed scenarios.ts:367-395（Cart2/Session1）、integration checkout-order-use-cases.test.tsのCart version拒否とWeb/Native componentのエラー境界を照合。最新実行PASSは別に確認",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
-        "BR-CHECKOUT-003",
         "AC-CHECKOUT-001",
         "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getActive",
+        "CheckoutOrderUseCases.setPayment"
+      ],
+      "analysis_progress": "固定SeedとApplication/RepositoryのCart version境界、Web/Nativeの拒否表示と統合テストを照合済み。CI/実機の最終結果は別に確認",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 244,
@@ -4904,7 +4940,44 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 138,
+          "end_line": 183,
+          "reason": "getActive('payment')のCart version照合とsetPayment検査"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 580,
+          "end_line": 620,
+          "reason": "保存前の本人SessionとCart version検査"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 396,
+          "reason": "Cart version2と旧Session version1のSeed"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 162,
+          "end_line": 230,
+          "reason": "支払方法更新前のCart version拒否・状態不変"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 684,
+          "end_line": 733,
+          "reason": "Native payment画面はversion不一致からcheckoutを再開始しない"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
