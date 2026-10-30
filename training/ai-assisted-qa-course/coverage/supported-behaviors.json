@@ -1029,20 +1029,20 @@
       "source_line": 74,
       "source_text": "多数の商品が存在する場合に、ページネーションによって閲覧・移動できる。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "many-products",
-      "data": "Seed/入力: many-products。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer。operator/adminのWeb公開閲覧はguest相当だが、当該視覚正本の必須Roleはguest/customer",
+      "scenario": "many-products（初期guest）とdefault（公開商品が少数）の比較。Web desktop /products",
+      "data": "many-products Seedはdefaultを空Catalog化後、publishedかつrequiredRank=nullのLOAD-0001〜LOAD-1000商品、各3 active SKU（計3000）、各主画像・レビューサマリーを生成。初期Sessionはguest、ClockはBASE_CLOCK。pageSize=20、無フィルターで1000件・50ページ。0在庫variantがあってもinStockOnly=falseでは商品自体を除外しない",
       "action": "many-products状態を表示・処理",
-      "expected": "多数の商品が存在する場合に、ページネーションによって閲覧・移動できる。",
+      "expected": "Web /productsでguest/customerの公開候補1000件を20件ずつ表示し、1 / 50ページで「前へ」が無効・「次へ」が有効。次へで?page=2に遷移し、2 / 50ページ・異なる20件を表示。50ページで次へ無効、前へ有効。ソート・絞り込み時はtotalとpageを再計算し、変更時はpage=1へ戻す。defaultでは50ページにならない。Androidのmany-products専用視覚正本は要求外",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02を対象にmany-productsを準備し「多数の商品が存在する場合に、ページネーションによって閲覧・移動できる。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-LIST-A01-02の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "many-productsに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ページ重複・欠落、総件数と表示件数の不一致、非公開/会員ランク制限商品の混入、フィルター変更後のページ残留、1000件の性能退化",
+      "test_condition": "many-products Reset→guestでWeb desktop /productsを開き、CatalogUseCases.search→DexieProductQueryRepository.searchのtotal=1000,page=1,pageSize=20,items.length=20とページ1/50を確認。次へで?page=2・別商品20件・前へ有効、50ページで次へ無効。defaultへResetして件数・ページ数を対比。customerログイン、フィルター/ソート後の件数・page=1復帰、51ページ直接指定時の空結果を境界Caseとして区別。既存E2E実行/視覚一致は未確認",
+      "test_responsibility": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02の状態条件。Seed→CatalogUseCases.search→DexieProductQueryRepository.buildCandidates/search→pageItems→CatalogListContent/Pagination→URL query更新を監査",
+      "case_policy": "1000件のguest無条件1/2/50ページ、default対照、customer、フィルター後のpage resetを採用。0在庫SKUを商品全体の非公開と混同しない。51ページは入力境界の独立Case。Androidのmany-products視覚は必須外",
+      "case_selection_reason": "既存Seedが1000件と固定20件ページを再現可能にし、欠落/重複・権限混入・ページ境界の高リスクを追加Seedなしで評価できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:63-74/212-216、CatalogUseCases.search:86-94/151-168、DexieProductQueryRepository.search:101-127/buildCandidates:249-314、pageItems:10-25、CatalogListContent:132-160/534-539、Pagination:76-101、scenarios.ts:424-537、metadata.ts:97-106を照合。1000件/20件/50ページはソース導出であり実ブラウザでの実行PASS・正本画像一致は未確認",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1051,10 +1051,12 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Web UI・Use Case・Dexie Repository・既存Seed生成実値・ページ境界を読み取り監査。E2E/視覚/負荷実行は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -1074,7 +1076,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "many-productsのWeb desktop必須状態とRole/ページ要件"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 212,
+          "end_line": 216,
+          "reason": "AC-STOREFRONT-002の総件数・ページ・ソート整合"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 537,
+          "reason": "1000公開商品/各3 active SKU/固定画像・レビュー生成"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 97,
+          "end_line": 106,
+          "reason": "many-productsの初期guest・/products"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 94,
+          "reason": "ViewerとClockを使った検索呼出し"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "閲覧可能候補の絞り込み、決定的ソートとページ抽出"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 314,
+          "reason": "公開条件・有効SKUを満たす商品候補生成"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/repository-helpers.ts",
+          "start_line": 10,
+          "end_line": 25,
+          "reason": "page=1基準のslice、total保持"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 132,
+          "end_line": 160,
+          "reason": "URL pageと固定20件/ページをUse Caseに渡す"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 534,
+          "end_line": 539,
+          "reason": "total/pageSizeのページ数とURL更新"
+        },
+        {
+          "path": "src/presentation/patterns/admin-patterns.tsx",
+          "start_line": 76,
+          "end_line": 101,
+          "reason": "1ページ/最終ページの前後ボタン無効化"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-01",
@@ -8579,30 +8661,32 @@
       "source_line": 35,
       "source_text": "1024px未満では専用の警告メッセージを表示する。",
       "platform": "web-mobile, web-small-mobile",
-      "role": "`operator, admin`",
-      "scenario": "admin-mobile-warning",
-      "data": "Seed/入力: default、width=1023px/1024px。通常状態から条件を変更し表示と操作を比較",
+      "role": "active operator/admin。guest/customer、停止アカウントはRouteGuard staffで拒否。Native管理画面は対象外",
+      "scenario": "default Seedでoperator@example.comまたはadmin@example.comとしてログイン後、/adminを幅1023px/1024pxで比較。admin-mobile-warningは別Seedではなくレスポンシブ条件",
+      "data": "default Seedにactive operator/adminの固定アカウントがある（default-dataset.ts:771-772）。初期Sessionはguestなのでstaffログイン必須。画面幅1023/1024の境界、390/320のmobile、通常desktopを準備。admin Overviewの取得はAdminMasterUseCases.getOverview→requireStaff",
       "action": "admin-mobile-warning状態を表示・処理",
-      "expected": "1024px未満では専用の警告メッセージを表示する。",
+      "expected": "Web /adminの幅1023px以下で.admin-sidebarと.admin-mainをdisplay:none、.admin-viewport-warningをdisplay:blockとし、role=statusの「管理画面はデスクトップで利用してください」、1,024px以上必要の説明、ストアへ戻る(/)とstaffログアウトを表示。幅1024px以上では警告を非表示にして管理概要・ナビゲーションを表示。guest/customerはstaffルート拒否。警告は操作UIの代替であり製品の権限付与ではない",
       "rule_refs": [],
       "route": "`/admin`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "SCREEN-ADMIN-DASHBOARD-A02-01を対象にdefault、width=1023px/1024pxを準備し「1024px未満では専用の警告メッセージを表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ADMIN-DASHBOARD-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "admin-mobile-warningに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "狭幅で編集操作UIが残る誤操作、警告の非表示/境界ずれ、staff以外への管理情報露出、戻る/ログアウト不能、mobileの横はみ出し",
+      "test_condition": "default Reset→operator/adminでログイン→/adminを1023px/1024pxで比較。1023pxでは警告role=status、必要幅、/リンク、ログアウトが見え、admin-main/sidebarがCSS非表示。1024pxでは警告非表示で管理概要が見える。390px/320pxの横はみ出し、guest/customerの/forbidden拒否も別Caseで確認。既存componentはDOM構造を監査したのみで、CSS境界のブラウザPASSは未確認",
+      "test_responsibility": "SCREEN-ADMIN-DASHBOARD-A02-01のレスポンシブ状態。AppFrame→AdminShell→admin.cssの@media max-width:1023px、RouteGuard staff→AdminOverviewPage→AdminMasterUseCases.getOverviewを監査",
+      "case_policy": "1023/1024pxの境界値、390/320pxの代表mobile、operator/adminとguest/customerを採用。Webのみ。CSS display:noneとDOM上の存在を混同しない",
+      "case_selection_reason": "固定SeedのstaffアカウントとCSS閾値で追加データなしに再現でき、管理操作の狭幅抑止と認可境界を同時に監査できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:22-35、AppFrame:41-46、AdminShell:23-110、admin.css:302-309/397-410、RouteGuard:48-55、AdminOverviewPage:27-45、AdminMasterUseCases.getOverview:58-61/requireStaff:241-248、default-dataset.ts:771-772、logout-button.test.tsx:155-185を照合。CSS境界/実ブラウザ/視覚正本の実行成功は未確認",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminMasterUseCases.getOverview"
+      ],
       "covered_by": "SCREEN-ADMIN-DASHBOARD-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Role・Web AppFrame/AdminShell・CSS閾値・Use Case・default Seed固定staff・既存componentを読み取り監査。実ブラウザ/視覚比較は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 27,
@@ -8622,7 +8706,81 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminMasterUseCases.getOverview",
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "line": 58,
+          "signature": "async getOverview(): Promise<AdminOverview> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 22,
+          "end_line": 35,
+          "reason": "admin-mobile-warningのWeb Role/視覚要件"
+        },
+        {
+          "path": "src/presentation/shells/app-frame.tsx",
+          "start_line": 41,
+          "end_line": 46,
+          "reason": "/adminルートのAdminShell適用"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 23,
+          "end_line": 110,
+          "reason": "警告文・status・戻る/ログアウトと通常管理UI"
+        },
+        {
+          "path": "src/presentation/styles/admin.css",
+          "start_line": 302,
+          "end_line": 309,
+          "reason": "通常幅の警告非表示"
+        },
+        {
+          "path": "src/presentation/styles/admin.css",
+          "start_line": 397,
+          "end_line": 410,
+          "reason": "1023px以下の管理UI非表示・警告表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 48,
+          "end_line": 55,
+          "reason": "active staff限定の認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 27,
+          "end_line": 45,
+          "reason": "StaffPage経由の管理概要表示"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 58,
+          "end_line": 61,
+          "reason": "getOverviewとrequireStaff"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 768,
+          "end_line": 775,
+          "reason": "active operator/adminの固定アカウント"
+        },
+        {
+          "path": "tests/component/logout-button.test.tsx",
+          "start_line": 155,
+          "end_line": 185,
+          "reason": "既存componentで警告内LogoutとRole差分（CSS実行ではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A01-01",

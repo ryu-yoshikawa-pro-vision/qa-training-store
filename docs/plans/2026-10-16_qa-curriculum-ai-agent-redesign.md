@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 大量商品と管理画面レスポンシブの状態監査（SUT変更なし）
+
+- `SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products`と`SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning`を正式BR/AC、Use Case→Repository→Web UI、既存Seed実値・Role/viewport境界で監査し、状態別条件を分析済みにした。**基本分析46/188（残り142）、状態条件9/20（残り11）**。親操作は未分析を維持し、分母188は暫定。
+- many-productsは1000商品・20件/ページ・50ページ、1023px以下の管理画面は警告へ切り替わる。既存の学習用契約テストに2状態の証拠必須チェックを追加。既存製品コード・正式仕様・Seed・製品テストは変更しない。
+- 前HEAD Web CI 41117026769はStyle Qualityの学習用contractと製品Native画面のPrettier違反でFAIL。学習用contractのimportを修正したが、製品Native画面は許可なく変更しない。前HEAD Mobile CI 41117026808はsuccess。最新HEADのCI/ブラウザ視覚受入は要確認。
+- 次回はCI結果・学習用contractのformatを確認し、残る状態条件11件と基本操作142件を証拠監査。製品差分仕分けと実Template/Private 2-core Codespaces/OpenCode校正も未完了。
+
 ## 2026-10-31 注文状態2件の追加監査とCI原因分離（SUT変更なし）
 
 - `SCREEN-ORDERS-LIST-S-empty`と`SCREEN-ORDERS-DETAIL-S-reviewable`を仕様・本人Role・Use Case→Dexie/Review Repository→Web/Native UI・既存Seed実値で読み取り監査し、状態別条件を分析済みにした。**基本分析46/188（残り142）、状態条件7/20（残り13）**。親操作は別途レビューし、188件の分母は未確定。

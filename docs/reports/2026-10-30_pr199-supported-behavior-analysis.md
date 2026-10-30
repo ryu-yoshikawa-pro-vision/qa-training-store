@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 大量商品ページング・管理画面モバイル警告の状態監査（SUT変更なし）
+
+- **基本分析46/188件（24.47%）、残り142件、状態条件9/20件レビュー済み・残り11件。** 188件は引き続き暫定分母。状態2件のみを追加分析し、親操作の基本分析へは二重計上しない。
+- `SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products`：正式`BR-STOREFRONT-002/AC-STOREFRONT-002`、`CatalogUseCases.search`、Dexie検索/ページ抽出、Web `CatalogListContent`と`Pagination`、既存`many-products` Seedを照合。Seedは公開1000商品・各3有効SKU、初期guest。無フィルターでは20件/ページ・計50ページとなる。1→2→50ページとdefault比較、フィルター後のpage reset、51ページ入力の境界Caseを定義した。**実ブラウザのページングPASS/視覚正本一致は未確認**。
+- `SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning`：正式管理ダッシュボードのresponsive条件、`AppFrame`→`AdminShell`、`admin.css`の1023px以下表示切替、`RouteGuard staff`、`AdminMasterUseCases.getOverview`、default Seedのactive operator/adminと既存componentを照合。1023pxでは警告・ストア戻り・ログアウト、1024pxでは通常管理UIの境界を定義。初期guestのままでは管理画面を検証できず、staffログインが必要。**CSSブラウザ/モバイル正本比較は未確認**。
+- 前HEAD `b23b2f9`の[Web CI 41117026769](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41117026769)はStyle QualityでFAIL（学習用contractのimportと既存製品Native画面のPrettier違反）。学習用contractのimportをPrettier標準の単一行に戻し、状態集計と専用contractを同期。**Native製品画面は変更禁止につき未修正**。同HEADの[Mobile CI 41117026808](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41117026808)はsuccess（Android/Maestroを含む）。最新HEADのCIはpush後に別途確認する。
+- 既存PRの製品変更は保持し、今回の変更は学習用台帳・契約テスト・調査レポート・Planに限定。実Template/非公開2コアCodespaces/OpenCode実モデル校正と全機能分析100%は未達。
+
 ## 2026-10-31 注文の空状態・レビュー投稿可能状態の監査（SUT変更なし）
 
 - **基本分析46/188件（24.47%）、残り142件、状態条件7/20件レビュー済み・残り13件。** 分母188件は暫定。状態条件2件を追加で証拠付き分析したが、親操作の分析済み件数には加算しない。
