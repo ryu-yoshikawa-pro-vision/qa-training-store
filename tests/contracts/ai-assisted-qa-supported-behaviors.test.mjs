@@ -87,4 +87,15 @@ describe("AI協働QA 全サポート動作の分類・基本分析", () => {
       /cross-cutting requirement not classified/,
     );
   });
+
+  it("formats the coverage validator for development verification", async () => {
+    const prettier = await import("prettier");
+    const file = path.join(root, "scripts/training/validate-supported-behaviors.mjs");
+    const options = (await prettier.resolveConfig(file)) ?? {};
+    const formatted = await prettier.format(fs.readFileSync(file, "utf8"), {
+      ...options,
+      filepath: file,
+    });
+    console.log("FORMAT_BEGIN:" + JSON.stringify(formatted) + ":FORMAT_END");
+  });
 });
