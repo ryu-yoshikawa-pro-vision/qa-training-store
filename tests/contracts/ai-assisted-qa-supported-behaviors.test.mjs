@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { COVERAGE_PATH, validateCoverage } from "../../scripts/training/validate-supported-behaviors.mjs";
+import {
+  COVERAGE_PATH,
+  validateCoverage,
+} from "../../scripts/training/validate-supported-behaviors.mjs";
 
 const root = process.cwd();
 const data = JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
@@ -93,10 +96,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("requires audited checkout confirmation and keeps address-input scope unresolved", () => {
-    for (const id of [
-      "SCREEN-CHECKOUT-CONFIRM-A01-02",
-      "SCREEN-CHECKOUT-CONFIRM-A01-04",
-    ]) {
+    for (const id of ["SCREEN-CHECKOUT-CONFIRM-A01-02", "SCREEN-CHECKOUT-CONFIRM-A01-04"]) {
       const entry = data.behaviors.find((item) => item.id === id);
       expect(entry?.analysis_status).toBe("analyzed");
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -214,10 +214,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits incomplete and stale payment sessions on both platforms", () => {
-    for (const id of [
-      "SCREEN-CHECKOUT-PAYMENT-A02-01",
-      "SCREEN-CHECKOUT-PAYMENT-A02-02",
-    ]) {
+    for (const id of ["SCREEN-CHECKOUT-PAYMENT-A02-01", "SCREEN-CHECKOUT-PAYMENT-A02-02"]) {
       const action = data.behaviors.find((item) => item.id === id);
       expect(action?.analysis_status).toBe("analyzed");
       expect(action?.related_use_cases).toContain("CheckoutOrderUseCases.getActive");
@@ -237,10 +234,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits home and Cart empty states, retaining catalog discrepancy", () => {
-    for (const id of [
-      "SCREEN-STOREFRONT-HOME-S-empty-catalog",
-      "SCREEN-STOREFRONT-CART-S-empty",
-    ]) {
+    for (const id of ["SCREEN-STOREFRONT-HOME-S-empty-catalog", "SCREEN-STOREFRONT-CART-S-empty"]) {
       const state = data.behaviors.find((item) => item.id === id);
       expect(state?.analysis_status).toBe("analyzed");
       expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -255,10 +249,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits empty orders and reviewable order states without SUT changes", () => {
-    for (const id of [
-      "SCREEN-ORDERS-LIST-S-empty",
-      "SCREEN-ORDERS-DETAIL-S-reviewable",
-    ]) {
+    for (const id of ["SCREEN-ORDERS-LIST-S-empty", "SCREEN-ORDERS-DETAIL-S-reviewable"]) {
       const state = data.behaviors.find((item) => item.id === id);
       expect(state?.analysis_status).toBe("analyzed");
       expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -282,10 +273,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
       expect(state?.related_use_cases?.length).toBe(1);
     }
-    for (const id of [
-      "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
-      "SCREEN-ADMIN-DASHBOARD-A02-01",
-    ]) {
+    for (const id of ["SCREEN-STOREFRONT-PRODUCT-LIST-A01-02", "SCREEN-ADMIN-DASHBOARD-A02-01"]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
         "review_required",
       );
