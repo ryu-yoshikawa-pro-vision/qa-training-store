@@ -535,40 +535,34 @@ describe("AI-assisted QA static learning course", () => {
   });
 
   it("publishes separate text, exercise and quiz pages for all eleven modules", () => {
+    const outputRoot = path.join(docsOutput, "curriculum/ai-assisted-qa");
     for (let index = 0; index <= 10; index += 1) {
       const id = `M${String(index).padStart(2, "0")}`;
-      const directory = path.join(docsOutput, "curriculum/ai-assisted-qa");
-      const lesson = fs.readFileSync(
-        path.join(directory, "modules", id, "index.html"),
-        "utf8",
-      );
+      const lessonUrl = `/docs/curriculum/ai-assisted-qa/modules/${id}/`;
+      const exerciseUrl = `${lessonUrl}exercise.html`;
+      const quizUrl = `/docs/curriculum/ai-assisted-qa/quizzes/${id}.html`;
+      const lesson = fs.readFileSync(path.join(outputRoot, "modules", id, "index.html"), "utf8");
       const exercise = fs.readFileSync(
-        path.join(directory, "modules", id, "exercise.html"),
+        path.join(outputRoot, "modules", id, "exercise.html"),
         "utf8",
       );
-      const quiz = fs.readFileSync(path.join(directory, "quizzes", `${id}.html`), "utf8");
-      const exerciseSource = fs.readFileSync(
-        path.join(repositoryRoot, `training/ai-assisted-qa-course/exercises/${id}/exercise.md`),
+      const quiz = fs.readFileSync(path.join(outputRoot, "quizzes", `${id}.html`), "utf8");
+      const source = fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/exercises", id, "exercise.md"),
       );
-      const exerciseRevision = createHash("sha256").update(exerciseSource).digest("hex");
+      const revision = createHash("sha256").update(source).digest("hex");
 
       for (const html of [lesson, exercise, quiz]) {
         expect(html).toContain('class="module-sections"');
-        expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/modules/${id}/"`);
-        expect(html).toContain(
-          `href="/docs/curriculum/ai-assisted-qa/modules/${id}/exercise.html"`,
-        );
-        expect(html).toContain(`href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html"`);
+        for (const url of [lessonUrl, exerciseUrl, quizUrl]) {
+          expect(html).toContain(`href="${url}"`);
+        }
         expect(html).toContain('class="module-pager"');
       }
-      expect(lesson).toContain(`<a href="/docs/curriculum/ai-assisted-qa/modules/${id}/" aria-current="page">テキスト</a>`);
-      expect(exercise).toContain(
-        `<a href="/docs/curriculum/ai-assisted-qa/modules/${id}/exercise.html" aria-current="page">演習</a>`,
-      );
-      expect(quiz).toContain(
-        `<a href="/docs/curriculum/ai-assisted-qa/quizzes/${id}.html" aria-current="page">クイズ</a>`,
-      );
-      expect(exercise).toContain(`name="course-source-revision" content="${exerciseRevision}"`);
+      expect(lesson).toContain(`href="${lessonUrl}" aria-current="page">テキスト</a>`);
+      expect(exercise).toContain(`href="${exerciseUrl}" aria-current="page">演習</a>`);
+      expect(quiz).toContain(`href="${quizUrl}" aria-current="page">クイズ</a>`);
+      expect(exercise).toContain(`name="course-source-revision" content="${revision}"`);
       expect(exercise).toContain("P01");
       expect(exercise).toContain("P06");
       expect(exercise).toContain("提出");

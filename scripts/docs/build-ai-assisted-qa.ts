@@ -31,7 +31,7 @@ const COURSE_ASSETS = new Set([
 
 type NavigationItem = { label: string; canonicalPath: string; href: string };
 type NavigationGroup = { label: string; items: NavigationItem[] };
-type CourseBuildResult = { coursePages: number; quizPages: number };
+type CourseBuildResult = { coursePages: number; exercisePages: number; quizPages: number };
 
 function sourceUrlForBuild(rootDir: string): string {
   // Pull-request jobs may check out an ephemeral merge commit. Prefer the PR
@@ -124,6 +124,10 @@ export function isPublicCourseAsset(relativePath: string): boolean {
 
 function resourceUrl(relativePath: string): string {
   return `${COURSE_URL}/resources/${relativePath}`;
+}
+
+function exercisePageUrl(moduleId: string): string {
+  return `${COURSE_URL}/modules/${moduleId}/exercise.html`;
 }
 
 function resolveCourseLink(rootDir: string, fromPath: string, target: string, sourceUrl: string): string {
@@ -151,159 +155,7 @@ function resolveCourseLink(rootDir: string, fromPath: string, target: string, so
     if (!isPublicCourseAsset(resolved)) throw new Error(`公開対象外の教材画像です: ${resolved}`);
     href = `${COURSE_URL}/${resolved.slice(`${COURSE_ROOT}/`.length)}`;
   } else if (
-    new RegExp(`^${TRAINING_ROOT}/exercises/M(?:0[0-9]|10)/exercise\\.mdimport { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import {
-  MARKDOWN_CSS,
-  escapeHtml,
-  isExternalLink,
-  parseMarkdownFile,
-  renderMarkdown,
-  type ParsedMarkdown,
-} from "../spec/markdown";
-import { validateAiAssistedQa } from "../training/validate-ai-assisted-qa";
-
-const COURSE_ROOT = "docs/curriculum/ai-assisted-qa";
-const MODULE_ROOT = `${COURSE_ROOT}/modules`;
-const QUIZ_ROOT = `${COURSE_ROOT}/quizzes`;
-const COURSE_ENTRY = `${COURSE_ROOT}/start-here.md`;
-const COURSE_URL = "/docs/curriculum/ai-assisted-qa";
-const SOURCE_REPOSITORY_URL = "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob";
-const SPEC_ROOT = "docs/spec";
-const LEARNING_MAP_PATH = "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md";
-const TRAINING_ROOT = "training/ai-assisted-qa-course";
-const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
-const EXPECTED_OBJECTIVE_COUNTS = [4, 4, 5, 5, 4, 5, 5, 5, 4, 5, 5];
-const COURSE_ASSETS = new Set([
-  `${COURSE_ROOT}/assets/m00-agent-boundary.png`,
-  `${COURSE_ROOT}/assets/m01-expected-observed.png`,
-  `${COURSE_ROOT}/assets/m05-test-execution-flow.png`,
-]);
-
-type NavigationItem = { label: string; canonicalPath: string; href: string };
-type NavigationGroup = { label: string; items: NavigationItem[] };
-type CourseBuildResult = { coursePages: number; quizPages: number };
-
-function sourceUrlForBuild(rootDir: string): string {
-  // Pull-request jobs may check out an ephemeral merge commit. Prefer the PR
-  // head commit so review links remain usable after the next PR update.
-  let sha: string | undefined;
-  const eventPath = process.env.GITHUB_EVENT_PATH;
-  if (eventPath) {
-    const event = JSON.parse(fs.readFileSync(eventPath, "utf8")) as {
-      pull_request?: { head?: { sha?: string } };
-    };
-    sha = event.pull_request?.head?.sha;
-  }
-  sha ??= execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
-    cwd: rootDir,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
-  if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error("教材の配布元commit SHAを確定できません");
-  return `${SOURCE_REPOSITORY_URL}/${sha}`;
-}
-
-function listMarkdown(rootDir: string): string[] {
-  const courseAbsolute = path.join(rootDir, ...COURSE_ROOT.split("/"));
-  const result: string[] = [];
-  const visit = (directory: string): void => {
-    for (const entry of fs
-      .readdirSync(directory, { withFileTypes: true })
-      .sort((left, right) => left.name.localeCompare(right.name))) {
-      const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(absolute);
-      else if (
-        entry.isFile() &&
-        entry.name.endsWith(".md") &&
-        path.relative(courseAbsolute, absolute).split(path.sep).join("/") !== "README.md"
-      ) {
-        result.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
-      }
-    }
-  };
-  if (fs.existsSync(courseAbsolute)) visit(courseAbsolute);
-  return result.sort((left, right) => left.localeCompare(right));
-}
-
-function resolveRepositoryPath(rootDir: string, fromPath: string, target: string): string {
-  const root = path.resolve(rootDir);
-  const absolute = path.resolve(root, path.dirname(fromPath), target);
-  const relative = path.relative(root, absolute);
-  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new Error(`新課程のリンクがリポジトリ外へ移動しています: ${target}`);
-  }
-  if (!fs.existsSync(absolute)) throw new Error(`新課程のリンク先がありません: ${target}`);
-  const realRoot = fs.realpathSync(root);
-  const realTarget = fs.realpathSync(absolute);
-  const realRelative = path.relative(realRoot, realTarget);
-  if (realRelative === ".." || realRelative.startsWith(`..${path.sep}`) || path.isAbsolute(realRelative)) {
-    throw new Error(`新課程のリンクがsymlink経由でリポジトリ外へ移動しています: ${target}`);
-  }
-  return relative.split(path.sep).join("/");
-}
-
-function courseOutputPath(relativePath: string): string {
-  if (relativePath === COURSE_ENTRY) return "index.html";
-  const moduleReadme = new RegExp(`^${MODULE_ROOT}/(M(?:0[0-9]|10))/README\\.md$`).exec(relativePath);
-  if (moduleReadme?.[1] !== undefined) return `modules/${moduleReadme[1]}/index.html`;
-  return relativePath.replace(`${COURSE_ROOT}/`, "").replace(/\.md$/i, ".html");
-}
-
-function courseUrlForMarkdown(relativePath: string): string {
-  if (relativePath === COURSE_ENTRY) return `${COURSE_URL}/`;
-  const moduleReadme = new RegExp(`^${MODULE_ROOT}/(M(?:0[0-9]|10))/README\\.md$`).exec(relativePath);
-  if (moduleReadme?.[1] !== undefined) return `${COURSE_URL}/modules/${moduleReadme[1]}/`;
-  return `${COURSE_URL}/${courseOutputPath(relativePath)}`;
-}
-
-function isPublicLearnerResource(relativePath: string): boolean {
-  return (
-    /^training\/ai-assisted-qa-course\/(?:exercises|inputs)\/M(?:0[0-9]|10)\/.+/.test(relativePath) ||
-    /^training\/ai-assisted-qa-course\/assessment\/phase-[1-3]-rubric\.md$/.test(relativePath) ||
-    relativePath === `${TRAINING_ROOT}/integrations/M02-M03-contract.md` ||
-    relativePath === `${TRAINING_ROOT}/templates/phase3/course-e2e.workflow.yml.disabled`
-  );
-}
-
-export function isPublicCourseAsset(relativePath: string): boolean {
-  return (
-    COURSE_ASSETS.has(relativePath) ||
-    /^docs\/curriculum\/ai-assisted-qa\/assets\/figures\/M(?:0[0-9]|10)\/[a-z0-9-]+\.svg$/.test(relativePath)
-  );
-}
-
-function resourceUrl(relativePath: string): string {
-  return `${COURSE_URL}/resources/${relativePath}`;
-}
-
-function resolveCourseLink(rootDir: string, fromPath: string, target: string, sourceUrl: string): string {
-  if (isExternalLink(target)) return target;
-  const [filePart = "", fragment] = target.split("#", 2);
-  if (filePart === "") return fragment === undefined ? "" : `#${fragment}`;
-  const resolved = resolveRepositoryPath(rootDir, fromPath, filePart);
-  let href: string;
-  if (resolved === COURSE_ENTRY) {
-    href = `${COURSE_URL}/`;
-  } else if (resolved.startsWith(`${MODULE_ROOT}/`) && resolved.endsWith("/README.md")) {
-    const moduleId = resolved.slice(MODULE_ROOT.length + 1, -"/README.md".length);
-    href = `${COURSE_URL}/modules/${moduleId}/`;
-  } else if (resolved.startsWith(`${QUIZ_ROOT}/`) && /^M(?:0[0-9]|10)\.json$/.test(path.posix.basename(resolved))) {
-    href = `${COURSE_URL}/quizzes/${path.posix.basename(resolved, ".json")}.html`;
-  } else if (resolved.startsWith(`${COURSE_ROOT}/`) && resolved.endsWith(".md")) {
-    href = courseUrlForMarkdown(resolved);
-  } else if (resolved === `${SPEC_ROOT}/README.md`) {
-    href = "/docs/spec/";
-  } else if (resolved.startsWith(`${SPEC_ROOT}/`) && resolved.endsWith(".md")) {
-    href = `/docs/spec/${resolved.slice(`${SPEC_ROOT}/`.length).replace(/\.md$/i, ".html")}`;
-  } else if (resolved === LEARNING_MAP_PATH) {
-    href = `${COURSE_URL}/objectives.html`;
-  } else if (resolved.startsWith(`${COURSE_ROOT}/assets/`)) {
-    if (!isPublicCourseAsset(resolved)) throw new Error(`公開対象外の教材画像です: ${resolved}`);
-    href = `${COURSE_URL}/${resolved.slice(`${COURSE_ROOT}/`.length)}`;
-).test(resolved)
+    new RegExp(`^${TRAINING_ROOT}/exercises/M(?:0[0-9]|10)/exercise\\.md$`).test(resolved)
   ) {
     const moduleId = path.posix.basename(path.posix.dirname(resolved));
     href = exercisePageUrl(moduleId);
@@ -373,10 +225,28 @@ function moduleProgressHtml(moduleId: string, navigation: NavigationGroup[]): st
   return `<p class="module-progress">全${items.length}モジュール中 ${index + 1}番目 · ${escapeHtml(group.label)} · ${moduleId}</p>`;
 }
 
+function moduleTabsHtml(
+  moduleId: string,
+  currentPage: "lesson" | "exercise" | "quiz",
+): string {
+  const pages = [
+    { id: "lesson", title: "テキスト", href: `${COURSE_URL}/modules/${moduleId}/` },
+    { id: "exercise", title: "演習", href: exercisePageUrl(moduleId) },
+    { id: "quiz", title: "クイズ", href: `${COURSE_URL}/quizzes/${moduleId}.html` },
+  ];
+  const links = pages
+    .map((page) => {
+      const active = page.id === currentPage ? ' aria-current="page"' : "";
+      return `<a href="${escapeHtml(page.href)}"${active}>${page.title}</a>`;
+    })
+    .join("");
+  return `<nav class="module-sections" aria-label="${moduleId}の学習ページ">${links}</nav>`;
+}
+
 function modulePagerHtml(
   moduleId: string,
   navigation: NavigationGroup[],
-  currentPage: "lesson" | "quiz",
+  currentPage: "lesson" | "exercise" | "quiz",
 ): string {
   const items = navigation.flatMap((group) => group.items);
   const index = items.findIndex((item) => item.canonicalPath === `${MODULE_ROOT}/${moduleId}/README.md`);
@@ -387,13 +257,18 @@ function modulePagerHtml(
     item === undefined
       ? `<span class="pager-edge" aria-disabled="true">${label}</span>`
       : `<a rel="${relation}" href="${escapeHtml(item.href)}">${label} · ${escapeHtml(item.label.slice(0, 3))}</a>`;
-  const currentLabel = currentPage === "lesson" ? "この教材" : "このクイズ";
-  const companion = currentPage === "lesson"
-    ? `<a href="${COURSE_URL}/quizzes/${moduleId}.html">${moduleId}の確認クイズ</a>`
-    : `<a href="${COURSE_URL}/modules/${moduleId}/">${moduleId}の教材</a>`;
-  return `<nav class="module-pager" aria-label="モジュール間の移動">${itemLink(previous, "前の教材", "prev")}<span aria-current="page">${currentLabel} · ${moduleId}</span>${itemLink(next, "次の教材", "next")}${companion}</nav>`;
+  const currentLabel =
+    currentPage === "lesson" ? "テキスト" : currentPage === "exercise" ? "演習" : "クイズ";
+  const nextStep =
+    currentPage === "lesson"
+      ? `<a href="${escapeHtml(exercisePageUrl(moduleId))}">次は演習へ</a>`
+      : currentPage === "exercise"
+        ? `<a href="${COURSE_URL}/quizzes/${moduleId}.html">次はクイズへ</a>`
+        : next === undefined
+          ? ""
+          : `<a href="${escapeHtml(next.href)}">次のテキストへ</a>`;
+  return `<nav class="module-pager" aria-label="モジュール間の移動">${itemLink(previous, "前の教材", "prev")}<span aria-current="page">${currentLabel} · ${moduleId}</span>${itemLink(next, "次の教材", "next")}${nextStep}</nav>`;
 }
-
 function injectIntoDocumentBody(markup: string, additions: string): string {
   const closingIndex = markup.lastIndexOf("</div>");
   if (closingIndex < 0) throw new Error("教材本文の表示領域を見つけられません");
@@ -579,6 +454,7 @@ function renderCoursePage(
   navigation: NavigationGroup[],
   sourceUrl: string,
   publicResources: string[],
+  pageKind: "lesson" | "exercise" = "lesson",
 ): string {
   const title = parsed.headings.find((heading) => heading.level === 1)?.text;
   if (title === undefined) throw new Error(`新課程MarkdownにH1がありません: ${parsed.relativePath}`);
@@ -586,7 +462,14 @@ function renderCoursePage(
   const imageTarget = (target: string): string => resolveCourseLink(rootDir, parsed.relativePath, target, sourceUrl);
   const sourcePath = path.join(rootDir, ...parsed.relativePath.split("/"));
   const revision = createHash("sha256").update(fs.readFileSync(sourcePath)).digest("hex");
-  const moduleId = currentModuleId(parsed.relativePath);
+  const moduleId =
+    pageKind === "exercise"
+      ? new RegExp(`^${TRAINING_ROOT}/exercises/(M(?:0[0-9]|10))/exercise\\.md$`).exec(
+          parsed.relativePath,
+        )?.[1]
+      : currentModuleId(parsed.relativePath);
+  if (pageKind === "exercise" && moduleId === undefined)
+    throw new Error(`演習ページの正本が不正です: ${parsed.relativePath}`);
   let resourcesHtml = "";
   if (moduleId !== undefined && /^M(?:0[0-9]|10)$/.test(moduleId)) {
     const phase = Number(moduleId.slice(1)) <= 4 ? 1 : Number(moduleId.slice(1)) <= 7 ? 2 : 3;
@@ -614,11 +497,12 @@ function renderCoursePage(
   const mobileNavigation = `<details class="mobile-primary-navigation"><summary>新カリキュラムのモジュール</summary><nav aria-label="新カリキュラム">${navigationHtml}<p><a href="${COURSE_URL}/objectives.html">51件の学習項目マップ</a></p></nav></details>`;
   const pageAdditions = [
     moduleId === undefined ? "" : moduleProgressHtml(moduleId, navigation),
+    moduleId === undefined ? "" : moduleTabsHtml(moduleId, pageKind),
     resourcesHtml,
-    moduleId === undefined ? "" : modulePagerHtml(moduleId, navigation, "lesson"),
+    moduleId === undefined ? "" : modulePagerHtml(moduleId, navigation, pageKind),
   ].join("");
   const body = injectIntoDocumentBody(renderMarkdown(parsed, linkTarget, imageTarget), pageAdditions);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>${escapeHtml(title)} — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${body}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="course-source-revision" content="${revision}"><title>${escapeHtml(title)} — AI協働テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}${MODULE_TABS_CSS}</style></head><body data-course-revision="${revision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${body}</article></main></body></html>\n`;
 }
 
 function quizHtml(
@@ -638,9 +522,16 @@ function quizHtml(
   const progress = moduleProgressHtml(moduleId, navigation);
   const pager = modulePagerHtml(moduleId, navigation, "quiz");
   const contentsNavigation = `<nav class="toc" aria-label="このページの項目" tabindex="0"><strong>このページ</strong><ul><li><a href="#start-title">取り組み方</a></li><li><a href="#question-title">問題に回答</a></li><li><a href="#result-title">結果と復習</a></li><li><a href="${COURSE_URL}/modules/${escapedModuleId}/">教材本文</a></li><li><a href="${COURSE_URL}/objectives.html">学習項目マップ</a></li></ul></nav>`;
-  const documentBody = `<div class="document-body">${progress}<h1>${escapedModuleId}の確認クイズ</h1><p>${escapedTitle}</p><p>全${questionCount}問です。各問で最も適切な答えを1つ選び、「次へ」で進みます。前の問題に戻って回答を見直せます。全問に回答すると、正誤・選択肢ごとの理由・教材の復習先が表示されます。</p><p id="storage-message" role="status" aria-live="polite"></p><div id="quiz-error" role="alert" hidden></div><section id="start-panel" aria-labelledby="start-title"><h2 id="start-title">取り組み方</h2><p>まず本文の例を思い出し、選択肢を比べてください。途中でページを閉じても、同じブラウザーで同じ教材版を開けば回答を再開できます。</p><button id="start-button" type="button">回答を始める</button><button id="resume-button" type="button" hidden>続きから再開</button><button id="restart-start-button" type="button" hidden>最初からやり直す</button></section><section id="question-panel" aria-labelledby="question-title" hidden><p id="progress" role="status" aria-live="polite"></p><form id="answer-form"><fieldset><legend id="question-title"></legend><div id="choices"></div></fieldset><p id="answer-error" role="alert" hidden>回答を1つ選んでから進んでください。</p><div class="quiz-controls"><button id="previous-button" type="button">前へ</button><button id="next-button" type="button">次へ</button><button id="finish-button" type="button" disabled>結果を確認</button></div></form></section><section id="result-panel" aria-labelledby="result-title" hidden><h2 id="result-title">結果</h2><p id="score" role="status" aria-live="polite"></p><div id="results"></div><p>クイズの得点だけで正式な修了を判定しません。間違えた項目は教材を読み直し、別条件の演習でも説明できるか確かめてください。</p><button id="retry-button" type="button">このクイズを最初からやり直す</button></section>${pager}</div>`;
+  const documentBody = `<div class="document-body">${progress}${moduleTabsHtml(moduleId, "quiz")}<h1>${escapedModuleId}の確認クイズ</h1><p>${escapedTitle}</p><p>全${questionCount}問です。各問で最も適切な答えを1つ選び、「次へ」で進みます。前の問題に戻って回答を見直せます。全問に回答すると、正誤・選択肢ごとの理由・教材の復習先が表示されます。</p><p id="storage-message" role="status" aria-live="polite"></p><div id="quiz-error" role="alert" hidden></div><section id="start-panel" aria-labelledby="start-title"><h2 id="start-title">取り組み方</h2><p>まず本文の例を思い出し、選択肢を比べてください。途中でページを閉じても、同じブラウザーで同じ教材版を開けば回答を再開できます。</p><button id="start-button" type="button">回答を始める</button><button id="resume-button" type="button" hidden>続きから再開</button><button id="restart-start-button" type="button" hidden>最初からやり直す</button></section><section id="question-panel" aria-labelledby="question-title" hidden><p id="progress" role="status" aria-live="polite"></p><form id="answer-form"><fieldset><legend id="question-title"></legend><div id="choices"></div></fieldset><p id="answer-error" role="alert" hidden>回答を1つ選んでから進んでください。</p><div class="quiz-controls"><button id="previous-button" type="button">前へ</button><button id="next-button" type="button">次へ</button><button id="finish-button" type="button" disabled>結果を確認</button></div></form></section><section id="result-panel" aria-labelledby="result-title" hidden><h2 id="result-title">結果</h2><p id="score" role="status" aria-live="polite"></p><div id="results"></div><p>クイズの得点だけで正式な修了を判定しません。間違えた項目は教材を読み直し、別条件の演習でも説明できるか確かめてください。</p><button id="retry-button" type="button">このクイズを最初からやり直す</button></section>${pager}</div>`;
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="quiz-revision" content="${escapedRevision}"><title>${escapedModuleId}の確認クイズ — AI協働テスト自動化カリキュラム</title><link rel="stylesheet" href="quiz.css"><script src="quiz.js" defer></script></head><body data-module-id="${escapedModuleId}" data-quiz-file="${escapedModuleId}.json" data-revision="${escapedRevision}"><header><div class="brand"><a href="${COURSE_URL}/">AI協働テスト自動化カリキュラム</a> · <a href="${COURSE_URL}/objectives.html">学習項目マップ</a> · <a href="/docs/curriculum/">旧カリキュラム</a></div></header><main>${pageNavigation}${mobileNavigation}<article>${contentsNavigation}${documentBody}</article></main></body></html>\n`;
 }
+
+const MODULE_TABS_CSS = `
+.module-sections{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 1.5rem;padding:.5rem;border:1px solid #cbd5e1;border-radius:.75rem;background:#f4f7fb}
+.module-sections a{display:inline-block;padding:.55rem 1rem;border-radius:.45rem;text-decoration:none;color:#233b58;font-weight:600}
+.module-sections a[aria-current="page"]{color:#fff;background:#1a527f}
+.module-sections a:focus-visible{outline:3px solid #1266c5;outline-offset:2px}
+`;
 
 const QUIZ_CSS = `:root{font-family:system-ui,sans-serif}button{font:inherit;padding:.6rem 1rem;margin:.35rem 0;cursor:pointer;border:1px solid #53657a;border-radius:.35rem;background:#fff;color:#182230}button:disabled{cursor:not-allowed;opacity:.55}:focus-visible{outline:3px solid #1266c5;outline-offset:3px}fieldset{border:1px solid #9aaabd;border-radius:.5rem;padding:1rem;margin:1rem 0}legend{font-weight:700;padding:0 .25rem}.answer-option{display:flex;gap:.7rem;align-items:flex-start;padding:.7rem;border-radius:.35rem}.answer-option input{margin-top:.4rem}.quiz-controls{display:flex;gap:.6rem;flex-wrap:wrap}#quiz-error,#answer-error{padding:.7rem;background:#fff0ed;border-left:4px solid #a32112;color:#65170f}.result-question{padding:1rem 0;border-top:1px solid #ccd4df}.result-option{margin:.6rem 0;padding:.6rem;background:#fff;border-radius:.35rem}.correct-answer{border-left:4px solid #167446}.wrong-answer{border-left:4px solid #a32112}code{overflow-wrap:anywhere}small{color:#445469}@media(max-width:36rem){button{width:100%}}`;
 
@@ -779,6 +670,21 @@ export function buildAiAssistedQaSite(rootDir = process.cwd(), outputDir = path.
     fs.writeFileSync(outputAbsolute, renderCoursePage(rootDir, parsed, navigation, sourceUrl, publicResources), "utf8");
   }
 
+  for (const moduleId of validation.modules) {
+    const sourcePath = `${TRAINING_ROOT}/exercises/${moduleId}/exercise.md`;
+    const parsed = parseMarkdownFile(
+      path.join(rootDir, ...sourcePath.split("/")),
+      sourcePath,
+    );
+    const target = path.join(courseOutputRoot, "modules", moduleId, "exercise.html");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(
+      target,
+      renderCoursePage(rootDir, parsed, navigation, sourceUrl, publicResources, "exercise"),
+      "utf8",
+    );
+  }
+
   fs.writeFileSync(path.join(courseOutputRoot, "objectives.html"), renderObjectiveMap(rootDir, navigation, learningObjectives), "utf8");
 
   const quizOutput = path.join(courseOutputRoot, "quizzes");
@@ -800,9 +706,13 @@ export function buildAiAssistedQaSite(rootDir = process.cwd(), outputDir = path.
       "utf8",
     );
   }
-  fs.writeFileSync(path.join(quizOutput, "quiz.css"), `${QUIZ_CSS}\n${MARKDOWN_CSS}\n`, "utf8");
+  fs.writeFileSync(path.join(quizOutput, "quiz.css"), `${QUIZ_CSS}\n${MARKDOWN_CSS}\n${MODULE_TABS_CSS}\n`, "utf8");
   fs.writeFileSync(path.join(quizOutput, "quiz.js"), QUIZ_JS.replace("__COURSE_SOURCE_URL__", sourceUrl), "utf8");
-  return { coursePages: markdownPaths.length, quizPages: validation.modules.length };
+  return {
+    coursePages: markdownPaths.length,
+    exercisePages: validation.modules.length,
+    quizPages: validation.modules.length,
+  };
 }
 
 type QuizDocument = { questions: unknown[] };
