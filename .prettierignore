@@ -27,3 +27,6 @@ pnpm-lock.yaml
 *.md
 *.toml
 *.py
+
+# Generated inventory: formatting is checked by its source-coverage validator
+training/ai-assisted-qa-course/coverage/supported-behaviors.json

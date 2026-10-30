@@ -514,7 +514,9 @@ describe("AI-assisted QA distribution contract", () => {
     expect(devcontainer.postCreateCommand).toContain("playwright install --with-deps chromium");
     expect(devcontainer.postCreateCommand).toContain("@opencode/cli@2.0.22");
     expect(devcontainer.postCreateCommand).not.toContain("@openai/codex");
-    expect(manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/"))).toBe(false);
+    expect(
+      manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/")),
+    ).toBe(false);
     expect(result).toMatchObject({ modules: 11, externalSkillFiles: 104 });
     expect(
       manifest.local_files

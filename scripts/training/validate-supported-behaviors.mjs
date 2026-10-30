@@ -3,8 +3,48 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const COVERAGE_PATH =
-  "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
+export const COVERAGE_PATH = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
+
+const EXPECTED_ACTION_COUNTS = {
+  "SCREEN-STOREFRONT-HOME": [5, 2],
+  "SCREEN-STOREFRONT-PRODUCT-LIST": [4, 2],
+  "SCREEN-STOREFRONT-PRODUCT-DETAIL": [5, 3],
+  "SCREEN-STOREFRONT-SEARCH": [3, 2],
+  "SCREEN-STOREFRONT-CATEGORY": [1, 1],
+  "SCREEN-AUTH-LOGIN": [2, 2],
+  "SCREEN-AUTH-SIGNUP": [1, 3],
+  "SCREEN-AUTH-ACCOUNT-PROFILE": [3, 1],
+  "SCREEN-STOREFRONT-CART": [3, 3],
+  "SCREEN-CHECKOUT-ADDRESSES": [4, 1],
+  "SCREEN-CHECKOUT-ADDRESS": [2, 3],
+  "SCREEN-CHECKOUT-PAYMENT": [2, 2],
+  "SCREEN-CHECKOUT-CONFIRM": [4, 3],
+  "SCREEN-CHECKOUT-PROCESSING": [2, 3],
+  "SCREEN-CHECKOUT-COMPLETE": [3],
+  "SCREEN-CHECKOUT-FAILED": [3, 2],
+  "SCREEN-ORDERS-LIST": [2, 3],
+  "SCREEN-ORDERS-DETAIL": [3, 2],
+  "SCREEN-REVIEWS-EDITOR": [2, 2],
+  "SCREEN-ADMIN-REVIEWS": [2, 3],
+  "SCREEN-ADMIN-DASHBOARD": [2, 1],
+  "SCREEN-ADMIN-PRODUCTS": [3, 2],
+  "SCREEN-ADMIN-PRODUCT-NEW": [3, 1],
+  "SCREEN-ADMIN-PRODUCT-DETAIL": [5, 4],
+  "SCREEN-ADMIN-CATEGORIES": [4],
+  "SCREEN-ADMIN-BRANDS": [4],
+  "SCREEN-ADMIN-INVENTORIES": [4, 2],
+  "SCREEN-ADMIN-ORDERS": [2, 1],
+  "SCREEN-ADMIN-ORDER-DETAIL": [2, 1],
+  "SCREEN-ADMIN-USERS": [2, 3],
+  "SCREEN-ADMIN-USER-DETAIL": [4, 3],
+  "SCREEN-SUPPORTING-GUIDE": [2, 2],
+  "SCREEN-SUPPORTING-TERMS": [1, 1],
+  "SCREEN-SUPPORTING-PRIVACY": [1, 1],
+  "SCREEN-SUPPORTING-COMMERCE": [1, 1],
+  "SCREEN-BOUNDARY-FORBIDDEN": [1, 1],
+  "SCREEN-TEST-CONTROL": [4, 1],
+  "SCREEN-BOUNDARY-NOT-FOUND": [2, 1],
+};
 
 const BASE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SOURCES = [
@@ -51,6 +91,7 @@ function readSources(root) {
 function sourceContract(root) {
   const sources = readSources(root);
   const expected = { action: new Set(), state: new Set(), rule: new Set() };
+  const actionSourcesByScreen = new Map();
   const screenIds = new Set();
   for (const [file, lines] of sources) {
     if (file.endsWith("screen-catalog.md")) {
@@ -85,7 +126,10 @@ function sourceContract(root) {
       }
       if (!screen) continue;
       if (/^(機能|機能一覧)$/.test(subsection ?? "") && /^[-*]\s+/.test(line)) {
-        expected.action.add(sourceKey(file, i + 1));
+        const key = sourceKey(file, i + 1);
+        expected.action.add(key);
+        if (!actionSourcesByScreen.has(screen)) actionSourcesByScreen.set(screen, []);
+        actionSourcesByScreen.get(screen).push(key);
       }
       if (
         /^(主要なUI状態|重要なUI状態)$/.test(subsection ?? "") &&
@@ -96,11 +140,11 @@ function sourceContract(root) {
       }
     }
   }
-  return { sources, expected, screenIds };
+  return { sources, expected, screenIds, actionSourcesByScreen };
 }
 
 function validateEntries(data, root) {
-  const { sources, expected, screenIds } = sourceContract(root);
+  const { sources, expected, screenIds, actionSourcesByScreen } = sourceContract(root);
   assert(data?.schema_version === 1, "invalid coverage schema");
   assert(Array.isArray(data.entries), "coverage entries are missing");
   assert(
@@ -117,6 +161,7 @@ function validateEntries(data, root) {
   const ids = new Set();
   const actual = { action: new Set(), state: new Set(), rule: new Set() };
   const coveredScreens = new Set();
+  const actionCounts = new Map();
   const counts = {};
   for (const entry of data.entries) {
     assert(typeof entry.id === "string" && entry.id.length > 0, "missing behavior ID");
@@ -124,7 +169,10 @@ function validateEntries(data, root) {
     ids.add(entry.id);
     const lines = sources.get(entry.source_path);
     assert(lines, `unsupported evidence source: ${entry.id}`);
-    assert(Number.isInteger(entry.source_line) && entry.source_line > 0, `invalid line: ${entry.id}`);
+    assert(
+      Number.isInteger(entry.source_line) && entry.source_line > 0,
+      `invalid line: ${entry.id}`,
+    );
     const source = lines[entry.source_line - 1]?.trim();
     assert(source, `source line missing: ${entry.id}`);
     if (entry.kind === "action") {
@@ -134,7 +182,9 @@ function validateEntries(data, root) {
         source.replace(/^[-*]\s+/, "") === entry.source_text,
         `action source drift: ${entry.id}`,
       );
-      actual.action.add(sourceKey(entry.source_path, entry.source_line));
+      const key = sourceKey(entry.source_path, entry.source_line);
+      actual.action.add(key);
+      actionCounts.set(key, (actionCounts.get(key) ?? 0) + 1);
     } else if (entry.kind === "state") {
       assert(entry.screen && screenIds.has(entry.screen), `invalid state screen: ${entry.id}`);
       coveredScreens.add(entry.screen);
@@ -176,6 +226,16 @@ function validateEntries(data, root) {
     const extra = setDifference(actual[kind], expected[kind]);
     assert(missing.length === 0, `unclassified ${kind}: ${missing.join(", ")}`);
     assert(extra.length === 0, `invalid ${kind} sources: ${extra.join(", ")}`);
+  }
+  for (const [screen, sources] of actionSourcesByScreen) {
+    const expectedCounts = EXPECTED_ACTION_COUNTS[screen];
+    assert(expectedCounts?.length === sources.length, `unclassified action groups: ${screen}`);
+    sources.forEach((key, index) => {
+      assert(
+        actionCounts.get(key) === expectedCounts[index],
+        `unclassified action subcases: ${screen}, ${key}`,
+      );
+    });
   }
   const missingScreens = setDifference(screenIds, coveredScreens);
   assert(missingScreens.length === 0, `unclassified screens: ${missingScreens.join(", ")}`);
@@ -231,8 +291,7 @@ function validateEntries(data, root) {
 }
 
 export function validateCoverage({ root = BASE, data } = {}) {
-  const content =
-    data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
+  const content = data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
   return validateEntries(content, root);
 }
 

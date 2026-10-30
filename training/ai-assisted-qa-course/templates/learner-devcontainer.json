@@ -8,10 +8,7 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": [
-        "sst-dev.opencode",
-        "ms-playwright.playwright"
-      ]
+      "extensions": ["sst-dev.opencode", "ms-playwright.playwright"]
     }
   },
   "waitFor": "postCreateCommand",
@@ -19,10 +16,7 @@
     "OPENCODE_DISABLE_AUTOUPDATE": "true"
   },
   "postCreateCommand": "bash -lc 'set -e; sudo corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; sudo npm install --global @opencode/cli@2.0.22'",
-  "forwardPorts": [
-    8082,
-    6080
-  ],
+  "forwardPorts": [8082, 6080],
   "portsAttributes": {
     "6080": {
       "label": "Playwright Desktop",
