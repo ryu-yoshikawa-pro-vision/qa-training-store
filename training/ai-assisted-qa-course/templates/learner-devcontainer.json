@@ -13,7 +13,8 @@
   },
   "waitFor": "postCreateCommand",
   "containerEnv": {
-    "OPENCODE_DISABLE_AUTOUPDATE": "true"
+    "OPENCODE_DISABLE_AUTOUPDATE": "true",
+    "HUSKY": "0"
   },
   "postCreateCommand": "bash -lc 'set -e; sudo corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; sudo npm install --global @opencode/cli@2.0.22'",
   "forwardPorts": [8082, 6080],

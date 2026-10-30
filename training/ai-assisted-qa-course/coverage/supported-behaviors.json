@@ -6443,6 +6443,62 @@
       "requirement_refs": [
         "BR-CART-002"
       ]
+    },
+    {
+      "id": "UC-ADMIN-BULK-CHANGE-PRODUCT-STATUS",
+      "kind": "use_case",
+      "screen": null,
+      "source_path": "src/application/use-cases/admin-product-use-cases.ts",
+      "source_line": 223,
+      "source_text": "async bulkChangeStatus(",
+      "platform": "web",
+      "role": "operator,admin",
+      "scenario": "正常/一部失敗/入力境界",
+      "data": "現在ページの選択商品1〜50件、重複/対象外ID、各商品のexpectedVersion、公開要件を満たす/満たさない商品",
+      "action": "複数商品を公開/非公開へ一括変更する",
+      "expected": "許可された商品だけ公開/非公開を変更し、version不一致や公開条件未達の失敗を対象ごとに返す",
+      "risk": "不完全商品の公開、競合更新、変更失敗の見落とし",
+      "test_condition": "公開可能商品/不完全商品を混ぜて一括実行し、成功/失敗ごとの状態とversionを確認",
+      "test_responsibility": "一括操作の実行前後、件別の成功/失敗、versionと業務状態を比較する",
+      "case_policy": "一括成功、一部失敗、入力制限を別Caseとして確認",
+      "case_selection_reason": "一括操作結果の表示と実際の複数件状態更新は異なる検証責務のため",
+      "analysis_status": "review_required",
+      "basic_analysis_review": "正式仕様・実装分岐と利用可能Seedの全条件照合を完了してから分析済みに変更する",
+      "related_use_cases": [
+        "AdminProductUseCases.bulkChangeStatus"
+      ],
+      "requirement_refs": [
+        "BR-ADMINCAT-001",
+        "AC-ADMINCAT-001"
+      ]
+    },
+    {
+      "id": "UC-ADMIN-BULK-REVIEW-VISIBILITY",
+      "kind": "use_case",
+      "screen": null,
+      "source_path": "src/application/use-cases/review-user-use-cases.ts",
+      "source_line": 441,
+      "source_text": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {",
+      "platform": "web",
+      "role": "operator,admin",
+      "scenario": "正常/一部失敗/入力境界",
+      "data": "選択レビュー1〜50件、各expectedVersion、published/hidden/deleted、対象の一部欠落・競合",
+      "action": "複数レビューの公開状態を一括変更する",
+      "expected": "対象ごとに許可されたpublished/hidden変更のみ反映し、失敗件数と商品レビュー集計を整合させる",
+      "risk": "削除済レビューの再公開、部分失敗の隠蔽、公開集計誤差",
+      "test_condition": "正常/不一致version/削除済の混合選択で一括変更を実行し、個別成功と失敗、集計結果を確認",
+      "test_responsibility": "一括操作の実行前後、件別の成功/失敗、versionと業務状態を比較する",
+      "case_policy": "一括成功、一部失敗、入力制限を別Caseとして確認",
+      "case_selection_reason": "一括操作結果の表示と実際の複数件状態更新は異なる検証責務のため",
+      "analysis_status": "review_required",
+      "basic_analysis_review": "正式仕様・実装分岐と利用可能Seedの全条件照合を完了してから分析済みに変更する",
+      "related_use_cases": [
+        "AdminReviewUseCases.bulkChangeVisibility"
+      ],
+      "requirement_refs": [
+        "BR-REVIEW-002",
+        "AC-REVIEW-002"
+      ]
     }
   ],
   "requirements": [
@@ -8475,7 +8531,7 @@
       "source_path": "src/application/use-cases/admin-product-use-cases.ts",
       "source_line": 223,
       "signature": "async bulkChangeStatus(",
-      "behavior_id": "SCREEN-ADMIN-PRODUCTS-A01-03"
+      "behavior_id": "UC-ADMIN-BULK-CHANGE-PRODUCT-STATUS"
     },
     {
       "id": "AdminProductUseCases.deleteDraft",
@@ -8741,7 +8797,7 @@
       "source_path": "src/application/use-cases/review-user-use-cases.ts",
       "source_line": 441,
       "signature": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {",
-      "behavior_id": "SCREEN-ADMIN-REVIEWS-A01-02"
+      "behavior_id": "UC-ADMIN-BULK-REVIEW-VISIBILITY"
     },
     {
       "id": "AdminUserUseCases.search",

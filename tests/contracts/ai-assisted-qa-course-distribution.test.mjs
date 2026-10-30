@@ -510,6 +510,7 @@ describe("AI-assisted QA distribution contract", () => {
         "utf8",
       ),
     );
+    expect(devcontainer.containerEnv?.HUSKY).toBe("0");
     expect(devcontainer.forwardPorts).toContain(8082);
     expect(devcontainer.postCreateCommand).toContain("playwright install --with-deps chromium");
     expect(devcontainer.postCreateCommand).toContain("@opencode/cli@2.0.22");

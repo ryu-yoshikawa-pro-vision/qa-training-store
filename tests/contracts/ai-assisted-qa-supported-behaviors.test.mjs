@@ -24,10 +24,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       non_default_states: 20,
       br_ac: 46,
       use_case_methods: 76,
-      supported_total: 206,
-      classified: 206,
+      supported_total: 208,
+      classified: 208,
       basically_analyzed: 0,
-      requires_review: 206,
+      requires_review: 208,
       classified_rate: 100,
       basic_analysis_rate: 0,
       complete: false,
@@ -41,6 +41,8 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "UC-CART-ACCEPT-PRICES",
       "UC-ACCOUNT-DELETE-ADDRESS",
       "UC-ADMIN-REORDER-CATEGORIES",
+      "UC-ADMIN-BULK-CHANGE-PRODUCT-STATUS",
+      "UC-ADMIN-BULK-REVIEW-VISIBILITY",
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
