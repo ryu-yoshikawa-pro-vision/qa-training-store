@@ -57,11 +57,12 @@ describe("サポート機能の仕様と実装の追跡", () => {
 
   it("rejects a missing split action even when its source line has remaining actions", () => {
     const changed = mutated((next) => {
-      next.behaviors.splice(next.behaviors.findIndex((item) => item.kind === "action"), 1);
+      next.behaviors.splice(
+        next.behaviors.findIndex((item) => item.kind === "action"),
+        1,
+      );
     });
-    expect(() => validateCoverage({ root, data: changed })).toThrow(
-      /unclassified action subcases/,
-    );
+    expect(() => validateCoverage({ root, data: changed })).toThrow(/unclassified action subcases/);
   });
 
   it("rejects missing business rules, non-default states and Use Case method mappings", () => {
@@ -104,20 +105,5 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(() => validateCoverage({ root, data: changed })).toThrow(
       /analysis lacks verified evidence/,
     );
-  });
-  it("prints temporary Prettier output for two new files", async () => {
-    const prettier = await import("prettier");
-    for (const filename of [
-      "scripts/training/validate-supported-behaviors.mjs",
-      "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs",
-    ]) {
-      const file = path.join(root, filename);
-      const formatted = await prettier.format(fs.readFileSync(file, "utf8"), {
-        ...((await prettier.resolveConfig(file)) ?? {}),
-        filepath: file,
-      });
-      console.log("PRETTIER_SOURCE_BEGIN:" + filename + ":" + JSON.stringify(formatted) +
-        ":PRETTIER_SOURCE_END");
-    }
   });
 });

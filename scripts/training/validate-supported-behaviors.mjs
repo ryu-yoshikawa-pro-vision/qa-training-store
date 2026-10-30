@@ -78,7 +78,8 @@ function checkSource(entry, root, allowedPaths) {
 
 function specSources(root) {
   const dir = path.join(root, "docs/spec/features");
-  const featureFiles = fs.readdirSync(dir)
+  const featureFiles = fs
+    .readdirSync(dir)
     .filter((name) => name.endsWith(".md"))
     .map((name) => `docs/spec/features/${name}`);
   return [
@@ -93,7 +94,8 @@ function specSources(root) {
 
 function listUseCaseFiles(root) {
   const dir = path.join(root, "src/application/use-cases");
-  return fs.readdirSync(dir)
+  return fs
+    .readdirSync(dir)
     .filter((name) => name.endsWith("-use-cases.ts"))
     .map((name) => `src/application/use-cases/${name}`)
     .sort();
@@ -136,10 +138,7 @@ function collectSpec(root, paths) {
       if (/^(機能|機能一覧)$/.test(subsection ?? "") && /^[-*]\s+/.test(line)) {
         actions.set(key, screen);
       }
-      if (
-        /^(主要なUI状態|重要なUI状態)$/.test(subsection ?? "") &&
-        /^\| `[^`]+` \|/.test(line)
-      ) {
+      if (/^(主要なUI状態|重要なUI状態)$/.test(subsection ?? "") && /^\| `[^`]+` \|/.test(line)) {
         const slug = line.split("|")[1]?.trim().replaceAll("`", "");
         if (slug !== "default") states.set(key, `${screen}:${slug}`);
       }
@@ -193,23 +192,30 @@ function completeAnalysis(behavior) {
     "case_policy",
     "case_selection_reason",
   ];
-  return required.every(
-    (field) =>
-      typeof behavior[field] === "string" &&
-      behavior[field].trim() &&
-      !["-", "scopeによる", "正式仕様による", "基本seedと関連する商品・アカウント",
-        "正式BR/ACの入力条件", "正式契約の対象データ・Role/State/Platform"]
-        .includes(behavior[field]),
-  ) && Array.isArray(behavior.requirement_refs) &&
+  return (
+    required.every(
+      (field) =>
+        typeof behavior[field] === "string" &&
+        behavior[field].trim() &&
+        ![
+          "-",
+          "scopeによる",
+          "正式仕様による",
+          "基本seedと関連する商品・アカウント",
+          "正式BR/ACの入力条件",
+          "正式契約の対象データ・Role/State/Platform",
+        ].includes(behavior[field]),
+    ) &&
+    Array.isArray(behavior.requirement_refs) &&
     behavior.requirement_refs.length > 0 &&
     behavior.reviewed_against?.includes("implementation") &&
     behavior.reviewed_against?.includes("specification") &&
-    behavior.reviewed_against?.includes("seed");
+    behavior.reviewed_against?.includes("seed")
+  );
 }
 
 export function validateCoverage({ root = ROOT, data } = {}) {
-  const document = data ??
-    JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
+  const document = data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
   assert(document?.schema_version === 2, "unsupported coverage schema");
 
   const specs = specSources(root);
@@ -246,12 +252,22 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     assert(!behaviorIds.has(item.id), `duplicate behavior ID: ${item.id}`);
     behaviorIds.add(item.id);
     checkSource(item, root, allowedPaths);
-    assert(["review_required", "analyzed", "blocked"].includes(item.analysis_status),
-      `invalid analysis state: ${item.id}`);
-    for (const field of ["action", "expected", "role", "platform", "risk",
-      "test_condition", "test_responsibility", "case_policy", "case_selection_reason"]) {
-      assert(typeof item[field] === "string" && item[field].trim(),
-        `missing ${field}: ${item.id}`);
+    assert(
+      ["review_required", "analyzed", "blocked"].includes(item.analysis_status),
+      `invalid analysis state: ${item.id}`,
+    );
+    for (const field of [
+      "action",
+      "expected",
+      "role",
+      "platform",
+      "risk",
+      "test_condition",
+      "test_responsibility",
+      "case_policy",
+      "case_selection_reason",
+    ]) {
+      assert(typeof item[field] === "string" && item[field].trim(), `missing ${field}: ${item.id}`);
     }
     if (item.kind === "action" || item.kind === "state") {
       assert(spec.screens.has(item.screen), `unknown screen: ${item.id}`);
@@ -283,21 +299,28 @@ export function validateCoverage({ root = ROOT, data } = {}) {
       .filter(([, screenId]) => screenId === screen)
       .map(([sourceKey]) => sourceKey);
     const expected = EXPECTED_ACTION_COUNTS[screen];
-    assert(expected?.length === sourceKeys.length,
-      `unclassified action groups: ${screen}`);
+    assert(expected?.length === sourceKeys.length, `unclassified action groups: ${screen}`);
     sourceKeys.forEach((key, index) => {
-      assert(actionGroups.get(key) === expected[index],
-        `unclassified action subcases: ${screen} ${key}`);
+      assert(
+        actionGroups.get(key) === expected[index],
+        `unclassified action subcases: ${screen} ${key}`,
+      );
     });
   }
   equalSets(stateSources, new Set(spec.states.keys()), "non-default UI states");
-  equalSets(new Set(document.use_case_methods.map((item) => item.id)),
-    new Set(methods.keys()), "public Use Case methods");
+  equalSets(
+    new Set(document.use_case_methods.map((item) => item.id)),
+    new Set(methods.keys()),
+    "public Use Case methods",
+  );
   for (const item of document.use_case_methods) {
     const method = methods.get(item.id);
-    assert(item.source_path === method?.source_path &&
-      item.source_line === method?.source_line &&
-      item.signature === method?.signature, `Use Case changed: ${item.id}`);
+    assert(
+      item.source_path === method?.source_path &&
+        item.source_line === method?.source_line &&
+        item.signature === method?.signature,
+      `Use Case changed: ${item.id}`,
+    );
     assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
   }
   const analyzed = document.behaviors.filter(completeAnalysis).length;
@@ -315,8 +338,10 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     requires_review: document.behaviors.length - analyzed - blocked,
     blocked,
     classified_rate: 100,
-    basic_analysis_rate: document.behaviors.length === 0 ? 0 :
-      Math.round((analyzed / document.behaviors.length) * 10000) / 100,
+    basic_analysis_rate:
+      document.behaviors.length === 0
+        ? 0
+        : Math.round((analyzed / document.behaviors.length) * 10000) / 100,
     complete: analyzed === document.behaviors.length && blocked === 0,
   };
 }
