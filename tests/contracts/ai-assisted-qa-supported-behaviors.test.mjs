@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 16,
-      requires_review: 172,
+      basically_analyzed: 17,
+      requires_review: 171,
       classified_rate: 100,
-      basic_analysis_rate: 8.51,
+      basic_analysis_rate: 9.04,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -56,7 +56,11 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(item?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    for (const id of ["UC-CART-ACCEPT-PRICES", "UC-ADMIN-REORDER-CATEGORIES"]) {
+    for (const id of [
+      "UC-CART-ACCEPT-PRICES",
+      "UC-ADMIN-REORDER-CATEGORIES",
+      "UC-ACCOUNT-SUGGEST-ADDRESS",
+    ]) {
       const item = data.behaviors.find((behavior) => behavior.id === id);
       expect(item?.analysis_status).toBe("analyzed");
       expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
