@@ -1393,7 +1393,11 @@ class NativeCartRepository implements CartRepository {
         const variant = await new NativeInventoryRepository(context).getVariant(item.variantId);
         if (variant === null) throw nativeNotFound("errors.variant.notFound");
         await repository.assertPurchasable(cart, variant);
-        if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > maximumCartQuantity(variant)) {
+        if (
+          !Number.isInteger(item.quantity) ||
+          item.quantity < 1 ||
+          item.quantity > maximumCartQuantity(variant)
+        ) {
           throw new ApplicationError({
             code: "QUANTITY_LIMIT_EXCEEDED",
             messageKey: "cart.quantity.limit",
