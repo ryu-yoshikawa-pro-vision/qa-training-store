@@ -263,6 +263,7 @@ function CheckoutPaymentContent() {
   }, [services]);
   const [method, setMethod] = useState<PaymentMethodCode>("TEST-SUCCESS");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const headingRef = useRouteHeadingFocus(
     state.loaded && state.error === null && state.value !== null,
   );
@@ -272,6 +273,7 @@ function CheckoutPaymentContent() {
   }
   const submit = async () => {
     setSubmitting(true);
+    setError(null);
     try {
       await services.checkout.setPayment({
         checkoutSessionId: state.value!.session.id,
@@ -279,6 +281,8 @@ function CheckoutPaymentContent() {
         paymentMethodCode: method,
       });
       router.push("/checkout/confirm");
+    } catch {
+      setError("支払方法を保存できませんでした。最新のカートを確認してください。");
     } finally {
       setSubmitting(false);
     }
@@ -290,6 +294,11 @@ function CheckoutPaymentContent() {
         支払方法
       </h1>
       <TrainingNotice />
+      {error && (
+        <p role="alert" className="operation-error">
+          {error}
+        </p>
+      )}
       <div className="checkout-layout">
         <section className="selection-list" aria-label="テスト支払方法">
           {PAYMENT_METHODS.map((code) => (
