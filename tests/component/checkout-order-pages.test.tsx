@@ -351,9 +351,7 @@ describe("checkout and order pages", () => {
       version: 3,
     });
     render(<CheckoutPaymentPage />);
-    expect(
-      await screen.findByRole("radio", { name: /テスト決済（利用拒否）/ }),
-    ).toBeChecked();
+    expect(await screen.findByRole("radio", { name: /テスト決済（利用拒否）/ })).toBeChecked();
     expect(screen.getByRole("radio", { name: /テスト決済（成功）/ })).not.toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "¥2,500を確認する" }));
     await waitFor(() =>
