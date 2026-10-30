@@ -150,8 +150,7 @@ function CheckoutAddressContent() {
     return <CheckoutLoadError retry={state.retry} />;
   const savedSnapshot = state.value.checkout.session.addressSnapshot;
   const selected = resolveSelectedAddress(state.value.addresses, selectedId, savedSnapshot);
-  const needsReselection =
-    savedSnapshot !== null && selectedId === null && selected === undefined;
+  const needsReselection = savedSnapshot !== null && selectedId === null && selected === undefined;
   const submit = async () => {
     if (selected === undefined) return;
     setSubmitting(true);
