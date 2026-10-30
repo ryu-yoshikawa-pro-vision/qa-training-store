@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 既存PR混在SUT差分の一次仕分け（変更・revertなし）
+
+- GitHub PR #199のbase `main`（`05943b5a37ff`）とHEAD `f9fede3e220a`のAPI差分290ファイルから、**製品実装9ファイル、正式製品仕様1ファイル、既存製品テスト9ファイル、製品workflow差分0ファイル**を抽出した。これはPR全履歴の混在差分であり、今回の作業で新規変更したファイルではない。機能別の必要性・個別コミット由来・移設方針は未確定。
+- 製品実装9件：`src/application/use-cases/account-use-cases.ts`、`src/application/use-cases/checkout-order-use-cases.ts`、`src/infrastructure/database/dexie/basic-repositories.ts`、`src/infrastructure/database/dexie/cart-checkout-repositories.ts`、`src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`src/presentation/native/native-purchase-screens.tsx`、`src/presentation/native/native-screens.tsx`、`src/presentation/pages/checkout-order-pages.tsx`、`src/presentation/pages/product-detail-page.tsx`。
+- 正式仕様1件：`docs/spec/features/checkout-and-payment.md`。
+- 既存製品テスト9件：`tests/component/auth-account-pages.test.tsx`、`tests/component/catalog-pages.test.tsx`、`tests/component/checkout-order-pages.test.tsx`、`tests/component/native/native-purchase-screens.test.tsx`、`tests/integration/admin-master-use-cases.test.ts`、`tests/integration/auth-account.test.ts`、`tests/integration/cart-use-cases.test.ts`、`tests/integration/checkout-order-use-cases.test.ts`、`tests/repository-contract/native-customer-shared.test.ts`。
+- この仕分けはファイルパスによる一次分類であり、各差分の意味・必要性・セキュリティ評価を確定するものではない。ユーザーの承認なしに製品側の追加修正、revert、Issue/別PR作成はしない。後続ではコミット別の由来と学習目的との関係を精査し、分離が必要な場合のみ提案する。
+
+
 ## 2026-10-31 Signup入力検証・公開済みレビュー編集状態の証拠監査（SUT変更なし）
 
 - **基本分析46/188（残り142）、状態条件14/20（残り6）。** 188動作は暫定分母。状態2件のみを分析し、親操作は未分析のまま維持する。今回の読み取り監査をブラウザ/Nativeの実行PASSや視覚正本一致とは扱わない。

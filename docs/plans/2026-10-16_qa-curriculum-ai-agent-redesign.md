@@ -1,5 +1,10 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 既存PRのSUT混在差分・一次分類
+
+- base→HEADのPR変更290ファイル中、製品実装9・正式仕様1・既存製品テスト9・製品workflow 0をAPIの変更ファイル一覧から抽出。詳細な19パスは[全機能分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に記録。既存混在差分は保持し、個別の必要性/履歴/分離可否を次回以降に監査。追加の製品変更、revert、別PRは承認まで実施しない。
+
+
 ## 2026-10-31 Signup検証・公開レビュー編集の状態監査（SUT変更なし）
 
 - `SCREEN-AUTH-SIGNUP-S-validation-error`と`SCREEN-REVIEWS-EDITOR-S-published`を正式BR/AC→Web UI→Use Case→Dexie/Seed実値と既存テストで照合し、状態別条件のみ分析済みに変更。**基本分析46/188（残り142）、状態条件14/20（残り6）。** 親操作は未分析、188件は暫定分母。
