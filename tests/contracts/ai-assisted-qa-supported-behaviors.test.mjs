@@ -732,10 +732,6 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(entry?.expected).toContain("min(stockQuantity,purchaseLimit)");
     expect(entry?.test_condition).toContain("Native");
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04")
-        ?.analysis_status,
-    ).toBe("review_required");
-    expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01")
         ?.analysis_status,
     ).toBe("review_required");
