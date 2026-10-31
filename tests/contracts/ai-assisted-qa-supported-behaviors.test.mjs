@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 74,
-      requires_review: 114,
+      basically_analyzed: 75,
+      requires_review: 113,
       classified_rate: 100,
-      basic_analysis_rate: 39.36,
+      basic_analysis_rate: 39.89,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -47,6 +47,31 @@ describe("サポート機能の仕様と実装の追跡", () => {
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
+  });
+
+  it("audits 12/13 variant presentation and stock-zero Web/Native differences without runtime PASS", () => {
+    const item = data.behaviors.find(
+      (entry) => entry.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04",
+    );
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
+    expect(item?.test_condition).toContain("P-0010");
+    expect(item?.test_condition).toContain("P-0011");
+    expect(item?.test_condition).toContain("P-0006");
+    expect(item?.expected).toContain("Native");
+    expect(item?.basic_analysis_review).toContain("実Web/Android/視覚");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/application/use-cases/catalog-use-cases.ts",
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/presentation/pages/product-detail-page.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/presentation/native/native-variation-selection.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
   });
 
   it("audits Cart removal ownership, version checks, and empty-state transition on Web/Native", () => {
