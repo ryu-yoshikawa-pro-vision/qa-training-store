@@ -24,10 +24,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 51,
-      requires_review: 137,
+      basically_analyzed: 54,
+      requires_review: 134,
       classified_rate: 100,
-      basic_analysis_rate: 27.13,
+      basic_analysis_rate: 28.72,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -90,6 +90,23 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "review_required",
       );
     }
+  });
+
+  it("audits customer order list empty, processing, and failed states", () => {
+    for (const id of [
+      "SCREEN-ORDERS-LIST-A02-01",
+      "SCREEN-ORDERS-LIST-A02-02",
+      "SCREEN-ORDERS-LIST-A02-03",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02")?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits customer order detail ownership, snapshots, and review eligibility", () => {

@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 注文一覧の空・処理中・失敗の3動作（SUT変更なし）
+
+- `SCREEN-ORDERS-LIST-A02-01`/`A02-02`/`A02-03`を`orders.md`の注文一覧の状態契約、`CheckoutOrderUseCases.listMyOrders`、Dexie/SQLiteの本人注文抽出、Web/Native画面、`orders-empty`/`payment-processing`/`payment-declined` Seedとdefaultを照合。個々の入力・期待値・リスク・Case選定根拠を分析台帳へ追加した。
+- **空**：`orders-empty`は初期Sessionがregular本人で、注文・決済・配送・注文履歴を0件にする。Webは「注文履歴はありません」とホームへの復帰リンク、Nativeは「注文はありません」と説明文を表示する。default初期guestでは本人ログインが必要で、本人の注文5件を比較に使う。空状態の正式視覚正本はWeb desktopのみ。
+- **処理中**：`payment-processing`はorder-payment-failedの保存状態を`pending_payment/processing`へ変更する（初期guestのためregularへログインが必要）。Web一覧は`pending_payment`を「支払い待ち」、Nativeは`pending_payment`をそのまま表示する。paidとの区別を確認条件とする。
+- **失敗**：`payment-declined`はdefaultの`payment_failed/failed/DECLINED`注文を使う（初期guest）。Web一覧は「支払い失敗」、Nativeは`payment_failed`と表示し、paid注文を成功側の対照とする。
+- **製品不整合候補（未修正）**：Native注文一覧は`order.status`の内部文字列をそのまま表示し、Webの「支払い待ち」「支払い失敗」と異なる。状態としては区別されているが、Nativeで利用者向けラベルとして妥当か未確認。加えて`SCREEN-ORDERS-LIST-A01-02`は正式仕様が一覧内の支払い・配送・タイムラインを要求する一方、現行一覧はorderStatus中心のため引き続き`review_required`。明示承認なくSUTを修正しない。
+- **基本分析54/188件（28.72%）、未分析134件、状態別条件15/20件分析済み（残り5件）**。188は暫定分母。ソース分析・既存Seedの静的確認を実ブラウザ/Android実機・正本比較のPASSと混同しない。既存の製品実装・正式仕様・Seed/Reset・製品用テストは変更していない。
+
 ## 2026-10-31 注文詳細の本人境界・Snapshot・レビュー状態（製品変更なし）
 
 - `SCREEN-ORDERS-DETAIL-A01-03`/`A02-01`/`A02-02`を、`orders.md`のBR-ORDER-001/AC-ORDER-001、`CheckoutOrderUseCases.getMyOrder/getMyCustomerOrder/beginOrder`、Dexie/SQLite、Web/Android、`default`/`reviewable-orders` Seedおよび既存テストと照合した。基本分析**51/188件（27.13%）、未分析137件**。先行の同時作業で状態別条件は**15/20件分析済み（残り5件）**。188件は暫定分母。
@@ -72,7 +81,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、51件は仕様・実装・Seedの照合済み、137件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、54件は仕様・実装・Seedの照合済み、134件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 

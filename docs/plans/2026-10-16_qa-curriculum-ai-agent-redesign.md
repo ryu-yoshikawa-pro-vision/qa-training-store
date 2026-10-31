@@ -1,5 +1,11 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文一覧の状態別3動作を基本分析（製品変更なし）
+
+- `SCREEN-ORDERS-LIST-A02-01`、`A02-02`、`A02-03`を正式`orders.md`、本人認可、`listMyOrders`、Dexie/SQLite、Web/Native、`orders-empty`/`payment-processing`/`payment-declined` Seedとdefaultで証拠付き監査。分析台帳・専用契約テスト・レポートを更新。**基本分析54/188件（28.72%、未分析134件）、状態別条件15/20件（未分析5件）**。
+- Web一覧は状態の日本語ラベル、Native一覧は内部状態値の直接表示。Nativeでの表現の妥当性は未決であり製品は修正しない。支払い/配送/タイムラインを一覧で示す契約（`SCREEN-ORDERS-LIST-A01-02`）も未分析を維持。
+- 実ブラウザ・Native実機・正本画面比較、公開Template/Private 2-core Codespaces/OpenCode実モデル校正は未受入。過去のSUT混在差分は保持し、今後もPRの作業境界に従う。
+
 ## 2026-10-31 注文詳細の本人境界・Snapshot・レビュー可否（SUT変更なし）
 
 - `SCREEN-ORDERS-DETAIL-A01-03`/`A02-01`/`A02-02`を仕様・Use Case→Dexie/SQLite→Web/Android・default/reviewable-orders Seedから照合して分析台帳/専用契約テスト/調査レポートに記録。**基本分析51/188（27.13%、残り137）、状態条件15/20（残り5）**。

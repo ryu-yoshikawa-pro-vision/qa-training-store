@@ -7698,31 +7698,32 @@
       "source_line": 28,
       "source_text": "空状態、処理中、失敗をそれぞれ個別のステータス表示として扱う。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-empty,orders-phase1-statuses,payment-processing,payment-declined。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 空状態",
+      "role": "active customer（orders-empty Seedはregular@example.comが初期ログイン、他人の注文は除外）",
+      "scenario": "orders-empty Seedの本人注文0件とdefault Seedでregular@example.comでログインした本人注文5件を対比する。Nativeは機能表示を確認し、空状態の正式視覚正本はWeb desktopのみ",
+      "data": "orders-empty Seedはorders/orderItems/orderHistories/payments/shipments/checkoutSessionsを0件にし、初期Sessionをregular@example.comへ設定。default Seedは初期guestでregular本人の注文5件を保持。listMyOrders→Dexie/SQLite listByUser(user.id)が本人注文だけ取得",
       "action": "空状態",
-      "expected": "本人注文が0件なら注文なし状態を表示し、他人の注文を代用表示しない",
+      "expected": "注文0件の場合Webは『注文履歴はありません』と既定ホームリンクhref=/を、Nativeは『注文はありません』『購入した注文がここに表示されます。』を示す。注文カードは0件。本人注文が1件以上のdefaultでは注文カードを表示する。他人の注文を流用して空欄を埋めない",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "空状態の事前状態・実施後を比較し、本人注文が0件なら注文なし状態を表示し、他人の注文を代用表示しないことを確認する",
-      "test_responsibility": "空状態の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "空状態の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "本人注文がないとき他人の注文を表示する漏えい、空一覧をloading/errorと混同する、ホーム復帰導線の欠落",
+      "test_condition": "orders-empty Reset→regular@example.com初期Session→/ordersで0件とWeb/Nativeの文言を確認。Webでは注文詳細リンクがなくホームリンクを持つ。default Reset→本人regularログイン後はカード表示。未認証/staffの保護は別Case、Web desktopの視覚比較は別受入",
+      "test_responsibility": "orders-emptyのデータ変換とSession→listMyOrders認証と本人抽出→Web/Nativeのzero/nonzero分岐を追跡する",
+      "case_policy": "本人0件（orders-empty）・本人複数（default）を代表Caseにし、loading/error/権限拒否は異なる状態として扱う。S-emptyの視覚条件とA02-01の動作条件は別集計",
+      "case_selection_reason": "固定Seedで注文数0/5が確定し、UIと本人所有権の境界を非破壊で再現できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "docs/spec/features/orders.mdの空/処理中/失敗状態、本人注文のUse Case、Dexie/SQLiteの保存状態、Web/Native一覧、Seed metadata/変換/defaultデータを読み取り照合。実ブラウザ・Android実機・視覚正本のPASSは未確認。製品・正式仕様・既存Seed/製品テストは変更しない。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.listMyOrders"
+      ],
       "state_refs": [
         "SCREEN-ORDERS-LIST-S-empty"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "UI動作ごとの本人Session、Seedの実値、状態表示の差と反例を証拠付きで分析。Nativeの内部状態値表示は未決の製品差としてレポートへ記録",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 672,
@@ -7730,24 +7731,101 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 240,
+        "signature": "\"orders-empty\": {",
+        "scenario": "orders-empty",
         "applicable": true,
         "alternatives": [
-          "payment-declined",
-          "payment-processing",
-          "orders-empty",
-          "orders-phase1-statuses"
+          "default"
         ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 80,
+          "signature": "case \"orders-empty\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "本人Sessionがregular、注文と関連レコードが全空となるSeed。defaultとの0件/複数件対照"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.listMyOrders",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 385,
+          "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 18,
+          "end_line": 35,
+          "reason": "注文一覧の空/処理中/失敗状態と必要プラットフォーム"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 385,
+          "end_line": 395,
+          "reason": "requireCustomer後、本人user.idによる注文一覧取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 145,
+          "end_line": 168,
+          "reason": "Dexieで本人の注文のみ抽出し保存済みorderStatusを返す"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2220,
+          "end_line": 2261,
+          "reason": "SQLiteでもuser_idを条件にして本人の注文をDTOへ変換"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web用のpayment_failed/paid/pending_payment状態ラベル"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 672,
+          "end_line": 720,
+          "reason": "Webの0件と注文ありの分岐、注文status・詳細リンク"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1215,
+          "end_line": 1254,
+          "reason": "Nativeの0件と注文あり分岐、order.statusの直接表示"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 240,
+          "end_line": 250,
+          "reason": "orders-emptyの初期regular会員Session"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 80,
+          "end_line": 92,
+          "reason": "注文・支払・配送・履歴とレビューを削除するorders-empty変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 471,
+          "reason": "defaultのregular本人の5状態注文を用いた対照"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 53,
+          "end_line": 85,
+          "reason": "WebのStatePanel空状態はaction未指定ならホームリンクを自動生成"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-A02-02",
@@ -7757,28 +7835,29 @@
       "source_line": 28,
       "source_text": "空状態、処理中、失敗をそれぞれ個別のステータス表示として扱う。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-empty,orders-phase1-statuses,payment-processing,payment-declined。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 処理中",
+      "role": "active customer（payment-processing Seedは初期guest。regular@example.comで本人ログインが必要）",
+      "scenario": "payment-processing Seedからregular@example.comでログインして/ordersを開き、order-payment-failedがpending_paymentへ変わった状態を確認。default Seedのorder-paid（paid/succeeded）と比較",
+      "data": "payment-processing Seedはdefaultのorder-payment-failedのstatus=payment_failedと決済status=failedを、order.status=pending_payment・payment.status=processingへ更新し、PAYMENT_RETRY_STARTED履歴を追加する。初期Session guest。OrderListItem.statusはorders.statusが元値",
       "action": "処理中",
-      "expected": "payment_processingやpending_paymentは処理中として表示し、支払い完了と区別する",
+      "expected": "Webではpending_paymentを『支払い待ち』、paidを『発送準備待ち』として別状態に表示する。Nativeではpending_payment/paidの内部文字列を表示するが同じ値にはならない。処理中注文は成功済み注文と誤表示しない",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "処理中の事前状態・実施後を比較し、payment_processingやpending_paymentは処理中として表示し、支払い完了と区別することを確認する",
-      "test_responsibility": "処理中の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "処理中の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未確定注文を支払済み・発送準備待ちと誤認させる、再決済/重複購入の誤操作、Seedの初期guestを本人データなしと誤認する",
+      "test_condition": "payment-processing Reset→regular会員ログイン→order-payment-failedの一覧ステータスがpending_paymentで、Webが『支払い待ち』、Nativeがpending_paymentを表示することを観測。defaultのpaid注文はWeb『発送準備待ち』/Native paid。処理中表示は決済の最終確定を示さないと確認",
+      "test_responsibility": "paymentProcessing Seedのstatus変換→CheckoutOrderUseCases.listMyOrders→Dexie/SQLiteでの保存済みstatus→Web/Native UIラベルを追跡する",
+      "case_policy": "pending_payment/processingとpaid/succeededの比較に絞り、実際のGateway遷移と決済多重確定はcheckout processing画面の独立Caseへ分離。Nativeの非ローカライズは差として記録",
+      "case_selection_reason": "pending_paymentは処理未確定でありpaidとの誤認が購入後の問い合わせや再購入につながる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "docs/spec/features/orders.mdの空/処理中/失敗状態、本人注文のUse Case、Dexie/SQLiteの保存状態、Web/Native一覧、Seed metadata/変換/defaultデータを読み取り照合。実ブラウザ・Android実機・視覚正本のPASSは未確認。製品・正式仕様・既存Seed/製品テストは変更しない。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "BR-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.listMyOrders"
+      ],
+      "analysis_progress": "UI動作ごとの本人Session、Seedの実値、状態表示の差と反例を証拠付きで分析。Nativeの内部状態値表示は未決の製品差としてレポートへ記録",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 672,
@@ -7786,24 +7865,95 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 229,
+        "signature": "\"payment-processing\": {",
+        "scenario": "payment-processing",
         "applicable": true,
         "alternatives": [
-          "payment-declined",
-          "payment-processing",
-          "orders-empty",
-          "orders-phase1-statuses"
+          "default"
         ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 78,
+          "signature": "case \"payment-processing\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default失敗注文をpending_payment/processingに変えるSeed。ログインはguest→regularの別操作"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.listMyOrders",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 385,
+          "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 18,
+          "end_line": 35,
+          "reason": "注文一覧の空/処理中/失敗状態と必要プラットフォーム"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 385,
+          "end_line": 395,
+          "reason": "requireCustomer後、本人user.idによる注文一覧取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 145,
+          "end_line": 168,
+          "reason": "Dexieで本人の注文のみ抽出し保存済みorderStatusを返す"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2220,
+          "end_line": 2261,
+          "reason": "SQLiteでもuser_idを条件にして本人の注文をDTOへ変換"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web用のpayment_failed/paid/pending_payment状態ラベル"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 672,
+          "end_line": 720,
+          "reason": "Webの0件と注文ありの分岐、注文status・詳細リンク"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1215,
+          "end_line": 1254,
+          "reason": "Nativeの0件と注文あり分岐、order.statusの直接表示"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 229,
+          "end_line": 239,
+          "reason": "payment-processingはguest初期Session、regular本人のログイン要"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 286,
+          "end_line": 302,
+          "reason": "payment_failed/failedをpending_payment/processingに変更するSeed変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 468,
+          "reason": "defaultにfailedとpaidの比較注文を作成"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-A02-03",
@@ -7813,28 +7963,29 @@
       "source_line": 28,
       "source_text": "空状態、処理中、失敗をそれぞれ個別のステータス表示として扱う。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-empty,orders-phase1-statuses,payment-processing,payment-declined。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 失敗状態",
+      "role": "active customer（本人のpayment_failed注文のみ参照。payment-declinedは初期guest→regular会員ログイン）",
+      "scenario": "payment-declined Seedのorder-payment-failedをregular@example.comでログインして/ordersに表示。default Seedのorder-paidを成功済み注文として対比する",
+      "data": "payment-declinedはdefault Seedをそのまま返す。defaultはuser-customer-regularにorder-payment-failed/payment.status=failed/errorCode=DECLINEDとorder-paid/payment.status=succeededを持つ。listMyOrdersはorders.statusからOrderListItem.statusを作る",
       "action": "失敗状態",
-      "expected": "payment_failedは失敗状態として表示し、成功時の配送・完了案内をしない",
+      "expected": "Webのpayment_failed注文の表示は『支払い失敗』でpaid注文の『発送準備待ち』とは区別される。Nativeはpayment_failed/paidの内部status文字列を区別して表示する。未払注文の一覧カードで配送完了・支払完了を示さず、詳細や再試行の契約は別画面で確認する",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "失敗状態の事前状態・実施後を比較し、payment_failedは失敗状態として表示し、成功時の配送・完了案内をしないことを確認する",
-      "test_responsibility": "失敗状態の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "失敗状態の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "失敗決済を成功と誤表示し配送準備を期待させる、失敗への復旧判断を妨げる、内部値露出によるNative表示の理解困難",
+      "test_condition": "payment-declined Reset→regular本人ログイン→order-payment-failedのstatus=payment_failed、Web『支払い失敗』/Native payment_failedを確認。defaultのorder-paidを同時比較し、成功状態への誤分類がないことを照合。実ブラウザ/Android正本の確認は別途",
+      "test_responsibility": "payment-declined Seedのfailed Order/Payment→listMyOrders→Dexie/SQLiteのstatus抽出→Web/Native表示の区分を追跡する",
+      "case_policy": "failed/DECLINEDとpaid/succeededの代表対照を選び、FAILED画面の再試行権限や失敗理由の粒度は独立Case。Native非ローカライズは未解決候補として記録",
+      "case_selection_reason": "顧客向け注文一覧が失敗と成功を混同すると支払・配送状況への誤認を生む",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "docs/spec/features/orders.mdの空/処理中/失敗状態、本人注文のUse Case、Dexie/SQLiteの保存状態、Web/Native一覧、Seed metadata/変換/defaultデータを読み取り照合。実ブラウザ・Android実機・視覚正本のPASSは未確認。製品・正式仕様・既存Seed/製品テストは変更しない。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "BR-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.listMyOrders"
+      ],
+      "analysis_progress": "UI動作ごとの本人Session、Seedの実値、状態表示の差と反例を証拠付きで分析。Nativeの内部状態値表示は未決の製品差としてレポートへ記録",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 672,
@@ -7842,24 +7993,95 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 218,
+        "signature": "\"payment-declined\": {",
+        "scenario": "payment-declined",
         "applicable": true,
         "alternatives": [
-          "payment-declined",
-          "payment-processing",
-          "orders-empty",
-          "orders-phase1-statuses"
+          "default"
         ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 76,
+          "signature": "case \"payment-declined\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "payment-declinedはdefault注文と支払失敗の既存値を利用し、初期guestをregularに切替えて確認"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.listMyOrders",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 385,
+          "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 18,
+          "end_line": 35,
+          "reason": "注文一覧の空/処理中/失敗状態と必要プラットフォーム"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 385,
+          "end_line": 395,
+          "reason": "requireCustomer後、本人user.idによる注文一覧取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 145,
+          "end_line": 168,
+          "reason": "Dexieで本人の注文のみ抽出し保存済みorderStatusを返す"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2220,
+          "end_line": 2261,
+          "reason": "SQLiteでもuser_idを条件にして本人の注文をDTOへ変換"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web用のpayment_failed/paid/pending_payment状態ラベル"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 672,
+          "end_line": 720,
+          "reason": "Webの0件と注文ありの分岐、注文status・詳細リンク"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1215,
+          "end_line": 1254,
+          "reason": "Nativeの0件と注文あり分岐、order.statusの直接表示"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 218,
+          "end_line": 228,
+          "reason": "payment-declinedの初期guestと推奨本人ユーザー"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 76,
+          "end_line": 79,
+          "reason": "payment-declinedはdefaultを変更せず返す"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 566,
+          "reason": "defaultにpayment_failed/failed/DECLINEDとpaid/succeededを保存"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-S-empty",
