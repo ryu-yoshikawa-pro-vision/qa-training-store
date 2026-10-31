@@ -1,5 +1,12 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 Cart invalid-items分析と管理在庫ステータス差分（SUT変更なし）
+
+- `SCREEN-STOREFRONT-CART-S-invalid-items`を正式BR/AC、固定Seedのregular所有4明細、Use Case→Dexie→Web、既存E2Eのログイン前提から分析。初期guestでは空Cart。状態条件15/20（残り5）、基本分析48/188（残り140）。実ブラウザ/視覚正本は未受入。
+- `SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`はSKU状態の仕様分類とWeb有効/無効Badge、Repositoryのavailable>=1/low=1..5重複を不整合候補として記録し、未分析維持。製品変更/Issue化は承認待ち。詳細は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)。
+- CIと公開Template→Private 2-core Codespaces/OpenCode実モデル校正は未受入。学習用台帳/契約/レポート/Plan以外を変更しない。
+
+
 ## 2026-10-31 決済再開と本人注文一覧・CIの確認（製品変更なし）
 
 - `SCREEN-CHECKOUT-PROCESSING-A01-02`と`SCREEN-ORDERS-LIST-A01-01`の本人認証・Seedの初期guest・Use Case→Repository→Web/Android表示・同じorderIdの再開を監査して台帳/契約テスト/調査レポートを更新。製品コード・正式仕様・Seed・製品用テストは変更しない。
