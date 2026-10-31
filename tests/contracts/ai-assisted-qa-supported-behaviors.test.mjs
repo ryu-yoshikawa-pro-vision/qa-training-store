@@ -15,6 +15,27 @@ const mutated = (edit) => {
 };
 
 describe("サポート機能の仕様と実装の追跡", () => {
+  it("temporarily reports exact formatter differences in CI", async () => {
+    if (!process.env.CI) return;
+    const prettier = await import("prettier");
+    const { spawnSync } = await import("node:child_process");
+    const file = path.join(root, "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs");
+    const formatted = await prettier.format(fs.readFileSync(file, "utf8"), {
+      ...(await prettier.resolveConfig(file)),
+      filepath: file,
+    });
+    const temporary = path.join(root, ".training-prettier-diagnostic.tmp");
+    try {
+      fs.writeFileSync(temporary, formatted);
+      const difference = spawnSync("diff", ["-u", file, temporary], { encoding: "utf8" });
+      console.log("TRAINING_PRETTIER_DIAGNOSTIC_BEGIN");
+      console.log(difference.stdout.slice(0, 18000));
+      console.log("TRAINING_PRETTIER_DIAGNOSTIC_END");
+    } finally {
+      if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    }
+  });
+
   it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const result = validateCoverage({ root });
     expect(result).toMatchObject({
