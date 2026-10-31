@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## ログイン拒否文言・安全なreturnToの基本分析（検証待ち）
+
+- **対象と正式契約**：`SCREEN-AUTH-LOGIN-A02-01`の拒否理由と遷移を`docs/spec/features/authentication.md`の`BR-AUTH-001/002`・`AC-AUTH-001/002`、`roles-and-permissions.md`と照合。無効な資格・suspended/withdrawnはセッション非生成、内部ハッシュ/actor IDの非露出、customerは安全な内部returnToのみ、operator/adminは管理系のRole分離が期待結果。実Run/製品適合は別判定。
+- **Webの実装経路**：`LoginPage`はZod入力検証→`AuthUseCases.login`→User/Session Repository（Dexie）→`useAuthError`のエラーコード別日本語表示。未知メール・誤パスワードは`AUTHENTICATION_FAILED`、停止/退会は`ACCOUNT_SUSPENDED/WITHDRAWN`、保存失敗は`STORAGE_WRITE_FAILED`、transaction失敗は`LOGIN_TRANSACTION_FAILED`。認証成功後は`currentReturnTo()`→`resolveCustomerLoginDestination`→`refreshIdentity`→`router.replace`。複数`returnTo`値は配列として拒否される。
+- **許可リストと境界**：`src/presentation/return-to.ts`の`parseCustomerReturnPath`は`/cart`、`/checkout/address`、`/checkout/payment`、`/checkout/confirm`の4パスのみ許可し、外部URL、`//`、バックスラッシュ、`?`/`#`、`../`、不正なURLエンコード、重複パラメータ、未知パスを拒否して`/`へ戻す。payment/confirmは`checkout.getActive(step)`でアクセスを確認し、`CHECKOUT_STEP_INCOMPLETE`・`CHECKOUT_EXPIRED`・`CART_VERSION_CHANGED`なら`/checkout/address`へ戻す。保存読込失敗など別種の例外は握り潰さずエラー表示し、リダイレクトしない。
+- **Nativeとの差分・採否**：`NativeLoginScreen`も共通`resolveCustomerLoginDestination`とCheckout段階チェックを使用し、非customerは`/`へ戻す（Nativeに管理画面なし）。Webのエラーコード別日本語表示と異なり、Nativeは`asPurchaseError`を経由するため、停止/退会・保存失敗の利用者文言が内部情報を含まないことは実Android画面/エラー経路の確認待ち。既存Web componentはCheckout段階不一致3種のaddress fallbackと`STORAGE_READ_FAILED`時の遷移抑止を確認済み。独立Caseとして、正規4パス・無効URL/多重値/二重エンコード・Role別遷移・Checkout有効/失効・認証拒否/保存障害時の非遷移とセッション非生成を採用。外部公開URLへの実アクセスは不要で、mock/router spyと既存Seedを優先する。
+- **リスク・未受入・判定**：open redirect（High）、権限越境（High）、失敗理由の情報露出（Medium）、Checkout再開誤誘導（Medium）。静的な許可リストとWeb一部componentテストは確認したが、Native実エラー表示・全入力境界の実Run、認証失敗時の画面/Session統合証拠が不足するため、**`SCREEN-AUTH-LOGIN-A02-01`は`review_required`のまま**。基本分析済み件数は変更せず77/188、状態条件18/20。SUT・正式仕様・既存Seed/製品テストには変更を加えない。
+
 ## 認証資格・Role/Statusの静的基本分析（SUT変更なし）
 
 - **対象・経路**：`SCREEN-AUTH-LOGIN-A01-01/A01-02`を正式`authentication.md:9-28/116-126`のBR-AUTH-001/002・AC-AUTH-001/002と`roles-and-permissions.md:5-23`に照合。Web `LoginPage:101-174` / Native `NativeLoginScreen:156-237`→`AuthUseCases.login:52-110`（パスワード照合・事前/transaction内の状態再確認）→Web Dexie/Native SQLiteのUser/Session Repository、既存session保護は`SessionIdentityResolver:28-73`とRole権限ポリシーへ追跡。
