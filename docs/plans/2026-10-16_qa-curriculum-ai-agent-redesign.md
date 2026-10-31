@@ -4,9 +4,9 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用契約CIの台帳同期・Prettier | **旧HEADの失敗原因修正済み／新HEAD検証待ち** | [Web CI 41162762603](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41162762603)で `out-of-stock` の旧 `review_required` Assertionと台帳の `analyzed` が衝突（34件中1件失敗）。[修正commit 78d98df](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/78d98df6e29e41711d6fa683740e40d45545debb)では状態の証拠と親操作の未分析を個別にAssert。Style Qualityは学習用contractと製品Nativeの2ファイルで失敗 | 新HEADでVitest・Prettierを実ログ検証し、学習用書式のみ再修正。製品Nativeは触らない |
-| P0 | 製品Native書式によるWeb CI阻害 | BLOCKED（製品変更承認待ち） | [Web CI 41161207133](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41161207133)のStyle Qualityログで`src/presentation/native/native-purchase-screens.tsx`のみPrettier失敗。SUT変更禁止のため未修正 | 製品変更の承認がない限り編集せず、原因と影響を報告 |
-| P1 | 非default状態の個別基本分析 | 進行中 | **18/20レビュー済み・残り2**。未確認は商品一覧empty、管理在庫stock-boundaries。商品詳細out-of-stockは既存単一SKU在庫0の商品で静的基本分析済み（実地受入は別）。状態別実ブラウザ/視覚受入は別条件 | 商品一覧emptyと管理在庫stock-boundariesの仕様差を整理し、商品詳細out-of-stockの実ブラウザ・視覚受入を別途実施 |
+| P0 | 学習用contractのPrettier | **実原因特定・重複Assertion整理済み／新HEAD検証待ち** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のVitest contractsはsuccess。Style Qualityのみ学習用contractと製品Nativeの2ファイルがPrettier失敗 | 学習用contractの整形を次HEADのFormat checkで検証。製品Nativeは無断変更しない |
+| P0 | 製品Native書式によるWeb CI阻害 | **BLOCKED（製品変更承認待ち）** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のStyle Quality実ログで`src/presentation/native/native-purchase-screens.tsx`がPrettier失敗。SUT変更禁止 | 影響報告のみ、承認までは編集・revertしない |
+| P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **54/188操作分析済み・残り134**、188は暫定分母。正式BR/AC、Role/Platform/State、Use Case→Repository→UI、Seed実値、証拠の一致が必要 | 未分析操作をリスク順に個別監査、分母再検証 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
