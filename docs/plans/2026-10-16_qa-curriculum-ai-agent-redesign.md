@@ -352,3 +352,10 @@ M02/M04の初見仕様質問・引継ぎ、M06の別Case新規E2E、M07のPage O
 - `SCREEN-AUTH-LOGIN-S-validation-error`を`authentication.md:9-35`のBR/ACとWeb必須状態、`auth-pages.tsx:21-35/101-181`のRHF/Zod、`form-error-summary.tsx:15-47`、`AuthUseCases.login:52-62`、既存componentテスト`auth-account-pages.test.tsx:138-181`、default Seedのguest初期状態と照合した。空2項目、invalid-email＋有効password、同一エラー再submit、入力修正の境界を分離。無効送信はUse Case/Repositoryへ到達しない。**状態条件12/20レビュー済み（残り8）、基本操作46/188（残り142）**。親ログイン操作は未分析。
 - 前HEAD [Web CI 41132431772](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41132431772)はStyle QualityでFAIL（学習用contractと既存製品Native画面の2ファイル）、他のWeb契約/単体/統合/コンポーネント/主要E2Eは成功。Mobile CI 41132432188はsuccess。学習用contractの長いoptional-chain式を整形し、今回のCIで再検証する。製品Native画面は変更禁止のため未修正。
 - 188操作は暫定分母。今回の判定はソースと既存テストの証拠付き基本分析であり、実ブラウザ・画面正本の受入PASSではない。既存PRの製品差分は保持。公開Template/Private 2-core Codespaces/OpenCode実モデル校正は未完了。
+
+## 2026-10-31 管理商品many-productsとCI契約追従（SUT変更なし）
+
+- `SCREEN-ADMIN-PRODUCTS-S-many-products`の既存Seed 1000商品・3000SKU、staff専用Use Case、Dexieの20件/ページ、Webフィルターを照合。基本分析54/188（残り134）、状態別16/20（残り4）。188は暫定分母であり、実ブラウザ/視覚正本のPASSではない。
+- page50での公開状態/ランク/在庫/価格/並び順変更は`setPage(1)`を呼ばないため、結果が空に見える不整合候補を調査レポートに記録。親フィルター操作は未分析のまま、製品は変更しない。
+- 前HEAD Web CI 41152309756の契約失敗は注文空状態の古い`review_required`期待値が原因。学習用contractの重複した旧Assertionを削除し、3状態の新しい監査Assertionを保持。Style Qualityの学習用/製品Native違反は別管理し、後者は変更禁止範囲として保持。新HEADでのCI成功は別途実証する。
+- 実Template、非公開2コアCodespaces、OpenCode実モデル校正、全操作100%とPlanのマージ前受入条件は未達。

@@ -10141,30 +10141,32 @@
       "source_line": 73,
       "source_text": "多数の商品一覧とフィルターを表示する。",
       "platform": "web-desktop",
-      "role": "`operator, admin`",
-      "scenario": "many-products",
-      "data": "Seed/入力: many-products。通常状態から条件を変更し表示と操作を比較",
+      "role": "operator/admin（many-products Reset後はguestのためstaffログインが必要）。Nativeはこの状態の必須対象外",
+      "scenario": "many-products SeedをResetし、operator@example.comまたはadmin@example.comでログインしてWeb desktop /admin/productsへ",
+      "data": "many-productsはdefaultから空の商品集合を作り、LOAD-0001〜LOAD-1000のpublished商品1000件、各active SKU A/B/C計3000件を生成。初期Session guest、全商品requiredRank=null、stockQuantity=number%21、商品コードLOAD-####。管理一覧はpageSize=20、50ページ。defaultでは商品件数が少ない対照を取る",
       "action": "many-products状態を表示・処理",
-      "expected": "多数の商品一覧とフィルターを表示する。",
+      "expected": "staff本人で商品管理一覧に1000件を20件ずつ50ページ表示し、検索・公開状態・会員ランク・在庫・価格・並び順のフィルターUIを利用できる。guest/customerはstaff画面を閲覧できない。ページ移動後の絞り込みでページ番号が自動的に1へ戻ることは現行実装から保証できず、別途不整合候補として保留する",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "SCREEN-ADMIN-PRODUCTS-A01-02を対象にmany-productsを準備し「多数の商品一覧とフィルターを表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ADMIN-PRODUCTS-A01-02の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "many-productsに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "大量商品でページ件数・最終ページ・絞り込みが誤る、staff以外に管理情報が露出する、50ページから絞り込み後にページ番号が残り結果が空に見える",
+      "test_condition": "many-products Reset→guestからoperator/adminログイン→Web desktop /admin/products。AdminProductUseCases.searchのrequireStaffとDexieAdminProductQueryRepository.search→pageItemsを確認。初期1000件・pageSize20・50ページ、1/2/50ページと最終ページの20件、LOAD-0001の検索結果、公開状態/ランク/在庫/価格/並び順の条件を対照。keyword変更はsetPage(1)だが他フィルターは現行UIでsetPage(1)しないため、page50→絞り込み時の空表示を不整合候補として実ブラウザで再現確認する。default Resetとguest/customer拒否を別Caseにする。実ブラウザ/視覚正本は未実行",
+      "test_responsibility": "SCREEN-ADMIN-PRODUCTS-A01-02の状態別条件として、1000件のSeed→staff Use Case→Dexieフィルター/ページング→Web表示を検証。親フィルター動作の全面合格は宣言しない",
+      "case_policy": "正常:1000件/20件×50ページ・staff両ロール。境界:1/50/51ページ・検索後のページ番号。拒否:guest/customer。対照:default件数。フィルター組合せと空表示は親操作の未決事項",
+      "case_selection_reason": "既存Seedで1000商品/3000SKUを再現でき、一覧ページングと権限を検証できる。フィルター変更時のページリセット欠落候補を成功条件に混ぜないため親操作は未分析維持",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:59-73のstaff・Web desktop・many-products状態、scenarios.ts:424-600の1000商品/3SKU生成、metadata.ts:97-106の初期guest、AdminProductUseCases.search:80-103のrequireStaff、DexieAdminProductQueryRepository.search:417-507の検索・20件ページング、AdminProductsContent:56-270のFilterBar/ResourceTable/Paginationを読み取り照合。フィルターのpage reset差は製品不整合候補、実ブラウザ・視覚受入は未実施",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminProductUseCases.search"
+      ],
       "covered_by": "SCREEN-ADMIN-PRODUCTS-A01-02",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "正式BR/AC・staff権限・Seed実値・Use Case→Dexie→Webの基本分析完了。page50→フィルター変更時の実ブラウザ再現と画面正本比較は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -10182,9 +10184,83 @@
           "line": 27,
           "signature": "if (scenario === \"many-products\") {"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "many-products生成1000商品/各3SKUと初期guest、staffログイン後の管理一覧。固定Seed/正式Seedは読み取り専用"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.search",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 80,
+          "signature": "async search("
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 59,
+          "end_line": 73,
+          "reason": "staff専用商品管理、many-productsのWeb desktop状態"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 97,
+          "end_line": 106,
+          "reason": "many-productsの登録・初期guest・導線"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 449,
+          "reason": "1000件のpublished商品とSKU3種の生成"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 600,
+          "end_line": 627,
+          "reason": "生成商品/3000SKUをSeedへ格納"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 80,
+          "end_line": 102,
+          "reason": "staff認可と検索条件/20件ページサイズ"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 417,
+          "end_line": 507,
+          "reason": "商品集計、フィルター、並び順、ページング"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 56,
+          "end_line": 85,
+          "reason": "20件ページと検索条件のUse Case呼出し"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 112,
+          "end_line": 172,
+          "reason": "各FilterBarとkeywordのみpage reset"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 210,
+          "end_line": 270,
+          "reason": "20件のResourceTableとPagination"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 89,
+          "end_line": 166,
+          "reason": "管理一覧の既存componentモックとフィルター表示（実Seed E2Eではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-NEW-A01-01",

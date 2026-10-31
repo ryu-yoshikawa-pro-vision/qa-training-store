@@ -335,10 +335,22 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
       expect(state?.related_use_cases?.length).toBe(1);
     }
-    const pendingOrderAction = data.behaviors.find(
-      (item) => item.id === "SCREEN-ORDERS-LIST-A02-01",
+  });
+
+  it("audits staff-only many-products while retaining unresolved filter behavior", () => {
+    const state = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-PRODUCTS-S-many-products",
     );
-    expect(pendingOrderAction?.analysis_status).toBe("review_required");
+    expect(state?.analysis_status).toBe("analyzed");
+    expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(state?.related_use_cases).toContain("AdminProductUseCases.search");
+    expect(state?.audit_branch_refs?.length).toBeGreaterThan(7);
+    expect(state?.test_condition).toContain("1000");
+    expect(state?.test_condition).toContain("50");
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCTS-A01-02")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits pagination and the staff-only mobile warning without SUT changes", () => {

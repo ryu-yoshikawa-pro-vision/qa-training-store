@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 管理商品1000件の状態分析と契約CI修正（SUT変更なし）
+
+- `SCREEN-ADMIN-PRODUCTS-S-many-products`：正式`admin-catalog.md:59-73`、`many-products` Seedの1000 published商品・各3 active SKU（計3000）・初期guest、staffログイン、`AdminProductUseCases.search`→Dexie`DexieAdminProductQueryRepository.search`→Webの20件/ページ・50ページとFilterBarを照合。状態別の**基本分析**を完了。実ブラウザ/視覚正本のPASSではない。
+- **不整合候補（Medium、SUT変更なし）**：`AdminProductsContent`はkeyword変更のみ`setPage(1)`を実行し、公開状態/ランク/在庫/価格/並び順の変更時は現在ページを維持する。50ページ目から少数に絞ると空ページに見える可能性がある。再現条件：many-products Reset→staffログイン→50ページ→公開状態や在庫条件を変更。対象は`src/presentation/pages/admin-product-pages.tsx:56-172`。影響：絞り込み結果の誤認。教材では仕様・実装差のリスク分析題材に使えるが、学習成立に製品修正は必須でない。実ブラウザでの再現・仕様側の意図確認は未完、親`SCREEN-ADMIN-PRODUCTS-A01-02`は`review_required`維持。Issue/別PR化は承認待ち。
+- **前HEAD CIの実原因**：[Web CI 41152309756](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41152309756)は契約テスト`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs:341`が`SCREEN-ORDERS-LIST-A02-01`を古い`review_required`と期待したが、最新台帳は根拠付き`analyzed`のため失敗。古いAssertionを削除し、既存の3状態個別監査Assertionを正本とする。Style Qualityは学習用contractと変更禁止の製品Native画面の2件のPrettier違反。学習用の整形はCI再確認、製品Nativeは修正しない。
+- **最新台帳の再集計**：基本分析54/188（残り134）、状態別条件16/20（残り4）。188は暫定分母。全11モジュール、実Template→Private 2-core Codespaces→OpenCode実モデル校正、全マージ前受入は未達。
+
 ## 2026-10-31 注文一覧の空・処理中・失敗の3動作（SUT変更なし）
 
 - `SCREEN-ORDERS-LIST-A02-01`/`A02-02`/`A02-03`を`orders.md`の注文一覧の状態契約、`CheckoutOrderUseCases.listMyOrders`、Dexie/SQLiteの本人注文抽出、Web/Native画面、`orders-empty`/`payment-processing`/`payment-declined` Seedとdefaultを照合。個々の入力・期待値・リスク・Case選定根拠を分析台帳へ追加した。
