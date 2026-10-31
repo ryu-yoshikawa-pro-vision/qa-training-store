@@ -32,19 +32,19 @@
 | --- | --- | --- |
 | `src/application/use-cases/account-use-cases.ts` | 認証・認可の境界、既存呼出し元と回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/application/use-cases/checkout-order-use-cases.ts` | 住所・支払方法の検証とSession/Cart整合 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | **51件のページ境界を静的/統合テスト監査済み。並行更新時の一貫性・製品変更としてのPR適合性は未確定、処理方針保留** |
 | `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
 | `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | **Native SQLite契約の静的根拠・Web CI確認済み、実Mobile再検証待ち／判断保留** |
 | `src/presentation/native/native-purchase-screens.tsx` | Native会員/Checkout/決済画面、書式・UI回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/native/native-screens.tsx` | 価格承諾操作の非価格問題時の禁止条件 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。実画面・表示解釈・PR適合性は未確定、処理方針保留** |
 | `docs/spec/features/checkout-and-payment.md` | 既存の仕様変更の妥当性（本更新では空行だけ修正） | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/component/auth-account-pages.test.tsx` | 会員表示・認証のcomponent証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `tests/component/catalog-pages.test.tsx` | 在庫表示の境界値証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/component/catalog-pages.test.tsx` | 在庫表示の境界値証拠 | **低在庫3/設定上限5の表示アサーションを確認。実画面と数量上限の独立証拠は未確認、処理方針保留** |
 | `tests/component/checkout-order-pages.test.tsx` | Checkout導線・表示のcomponent証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | **既存4件＋47件で51件取得・全ID逆順並べ替えを検証、Web CI成功。並行更新負例は未実行、処理方針保留** |
 | `tests/integration/auth-account.test.ts` | 住所候補の認可境界 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
 | `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
@@ -57,6 +57,19 @@
 - **追加回帰**：`tests/integration/cart-use-cases.test.ts:218-250`は既存defaultの明細を数量2・在庫1・旧価格999に設定し、承諾拒否と明細/Cart version不変を検証。`tests/repository-contract/native-customer-shared.test.ts:299-352`はregular-memberの2明細を使い、後続のマグ数量超過時に先行Tシャツの価格更新もrollbackされることをSQLite契約で検証。PR差分の実装2＋テスト2は同じ変更目的として扱い、4件の独立問題として数えない。
 - **CIと未検証**：HEAD `aeb5b796b78985993debb29a618a01213f4adfa6`の[Web CI 41196968544](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41196968544)はVitest integration/repository/contracts、`verify`、`validate`を含む必須jobが成功。ただし**Mobile CIはPR branchで自動起動一時停止中**。実Android/iOS/Maestroでの再検証、コミット単位の変更由来、他の金額/決済回帰とPR #199の教材目的との整合の最終判断は未完了。Web CIの成功をNative実機PASSへ流用しない。
 - **製品適合・影響・処理方針**：数量上限を超えた価格承諾の拒否とデータ不変は静的実装・契約上の確認ができ、重大度はデータ/購入整合性に関わる**Medium〜High候補**。当該追加ガード自体の不適合は未立証。教材は既存`cart-with-invalid-items`・`regular-member`等のSeedと独立の期待値で継続可能で、製品変更を教材成立の前提にはしない。**現時点の処理方針は判断保留**（安全性の実Mobile確認とPR整合・変更由来が不足）。最終的には「本PRに残す／製品用別PRへ分離する／取り消す」を根拠で決定し、実際のrevert・分離・変更は明示承認まで実行しない。
+
+### カテゴリー全件取得と51件並べ替えの既存差分監査（実装1＋テスト1）
+
+- **由来・目的**：[commit `3c3fb8c`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/3c3fb8c48beacce3c06fa139f4112ed07af23afd)で`DexieCategoryRepository.listAllForReorder`を従来の先頭50件取得から50件単位の全ページ取得に変更。関連する`tests/integration/admin-master-use-cases.test.ts`のPR差分は、既存4カテゴリーに47件を追加して51件取得・全IDの逆順並べ替えを確認する。両ファイルを同一の製品変更目的として扱う。
+- **仕様・認可・データ根拠**：`docs/spec/features/admin-catalog.md`の管理カタログ、`AdminMasterUseCases.listAllCategoriesForReorder`の`requireStaff()`、`DexieCategoryRepository.searchForAdmin`の`sort_order`/ページ処理、`reorder`の全ID一致・version検証・Dexieトランザクションを静的に確認。今回の差分に認可ガードの削除は見られない。51件は既存default＋テスト内生成で成立し、既存Seedの改変は不要。
+- **実証と限界**：[現HEADのWeb CI 41201740053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41201740053)でVitest integration、contracts、`validate`が成功。ただしこのテストは同時書込中の複数ページ取得のスナップショット一貫性、途中の作成/削除・version競合、実ブラウザでの並べ替え操作を検証していない。Web CI成功をこれらのPASSと解釈しない。
+- **製品適合・教材・処理方針**：50件を超える並べ替えの取りこぼし防止という必要性は静的/テストで裏付けられるが、運用中の並行更新安全性とPR #199の教材目的との整合は未確定。重大度はデータ並び順の整合に関するMedium候補。教材は既存の少数カテゴリー/通常管理操作で継続可能であり、本修正は教材成立の必須条件ではない。**処理方針は判断保留**。別製品PRへの分離を検討対象とするが、実行には明示承認が必要。
+
+### 低在庫上限表示の既存差分監査（実装1＋テスト1）
+
+- **由来・仕様**：[commit `744115a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/744115a994bbbbf988e5b6ca6a52908315662fb2)で`ProductDetailView`の上限案内条件を`stockQuantity > purchaseLimit`から「SKU選択済みかつ在庫が正数」へ変更。正式`BR-STOREFRONT-003`と`storefront.md`の`low-stock`状態は残在庫と購入上限の両表示を要求する。関連`tests/component/catalog-pages.test.tsx`の追加テストは在庫3・設定購入上限5で「残り3点」「1回の購入上限は5点です。」を確認する。
+- **実装・数量の意味**：`src/presentation/pages/product-detail-page.tsx:90-100/239-255`の数量選択上限は`Math.min(stockQuantity, purchaseLimit)`で3、案内に表示する`purchaseLimit`は設定値5。カートの`maximumCartQuantity`は在庫・設定上限・99の最小値を使用する。**案内の5点と実際の選択可能数3点は別概念**であり、表示が誤りと断定しない。ユーザーが5点購入可能と誤認するかは実画面/仕様解釈の追加確認が必要。
+- **実証・未決・処理方針**：[現HEADのWeb CI 41201740053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41201740053)でVitest component、contracts、`validate`成功。Web低在庫の実画面・視覚正本、在庫3で4点追加を拒否する独立E2E、Native表示との期待値統一は未受入。重大度Low〜MediumのUX解釈候補。教材は既存`low-stock`/default Seedで検証可能、追加Seed不要。**処理方針は判断保留**。既存SUT・正式仕様・製品テストは今回変更しない。
 
 ### 処理方針の決定規則
 
