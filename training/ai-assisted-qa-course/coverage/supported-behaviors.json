@@ -42,18 +42,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: 公開商品を表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "data": "default Seed（BASE_CLOCK=2026-07-01T03:00:00Z）でguestが閲覧できる公開・rank制限なし・active SKUありのP-0001/P-0002/P-0005/P-0006/P-0010/P-0011。P-0003はgold以上、P-0004はplatinum以上。P-0007 unpublished、P-0008 draft、P-0009 discontinuedは除外。P-0006は公開・在庫0でも閲覧対象。gold-member/platinum-memberで会員ランク境界、empty-catalogで0件、expired-saleで時刻境界を比較",
       "action": "公開商品を表示",
-      "expected": "閲覧者のランクと公開条件を満たす商品だけがホームの商品領域へ表示され、非公開・ランク不足の商品は出ない",
+      "expected": "CatalogUseCases.getHomeがviewer/clockをWeb DexieまたはNative SQLiteへ渡し、公開・ランク・active SKU条件を満たす候補のみnewProducts（最大8件）/saleProducts（最大8件）に返す。Web/Native Homeの商品カードは返却候補のみ表示し、guestにgold/platinum限定商品やunpublished/draft/discontinuedを表示しない。在庫0の公開商品は閲覧できるが購入可とは扱わない。empty-catalog時Webは空パネル、Nativeは商品セクション0件として別に確認",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開商品を表示の前後で、閲覧者のランクと公開条件を満たす商品だけがホームの商品領域へ表示され、非公開・ランク不足の商品は出ないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "公開商品を表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "公開商品を表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未公開・上位会員限定商品の露出、SKU無効商品の誤表示、在庫0の閲覧と購入可否の混同、Web/Native候補集合の差、時刻境界のセール誤表示",
+      "test_condition": "default Reset→guestでP-0001/0002/0005/0006/0010/0011が候補、P-0003/0004/0007/0008/0009が除外されることをgetHome DTOとWeb/Native商品カードのproductIdで照合。goldでP-0003追加、platinumでP-0004追加。empty-catalogでは商品0件、expired-saleでは販売期間外のセール表示なしを確認。P-0006は詳細閲覧とCart追加拒否を別Caseにする。実ブラウザ/Android/視覚比較は別受入",
+      "test_responsibility": "BR-STOREFRONT-001/AC-001のviewer-awareな候補集合をUse Case→Dexie/SQLite→Home UIへ追跡し、公開状態/会員ランク/active SKU/時刻と画面表示を照合する。購入可否・empty視覚は別Case",
+      "case_policy": "guest/regular/gold/platinum、default/empty-catalog/expired-sale、公開/非公開/draft/discontinued、active SKUあり/なし、在庫0、0/6/7/8件境界を代表Caseとして採用",
+      "case_selection_reason": "情報露出と購入可否の重大な誤判定を検出するため、guestで閲覧可能6商品と除外5商品を実Seed値で固定し、gold/platinum差、在庫0閲覧、emptyと期間境界を追加。新Seed不要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-39/190-205、roles-and-permissions.md:5-16、CatalogUseCases.getHome:80-84、canViewerSeeProduct:15-32、Dexie buildCandidates:249-283/getHome:393-415、Native SQLite visibleProducts:779-792/buildCandidates:605-631/getHome:214-258、Web HomePage:21-45/108-162、NativeHomeScreen:31-115、default-dataset.ts:67-245、metadata.ts:75-101、既存repository-contract storefront-catalog.test.ts:64-103を静的照合。Web/Android実Run・視覚正本のPASSは未主張",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -72,7 +72,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-HOME-S-empty-catalog"
       ],
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "Web/NativeのUse Case→Repository→Home UIと正式BR/AC・既存Seedの実値を証拠付きで静的基本分析済み。実ブラウザ/Android/視覚受入は別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -103,6 +103,103 @@
           "path": "src/application/use-cases/catalog-use-cases.ts",
           "line": 80,
           "signature": "async getHome(): Promise<HomeCatalogDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "公開・ランク条件とHome表示契約"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 190,
+          "end_line": 205,
+          "reason": "AC-STOREFRONT-001の閲覧者別除外"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customerと管理者の閲覧権限"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "viewer/clockのRepository引渡し"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 15,
+          "end_line": 32,
+          "reason": "公開状態と会員ランクの可視判定"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 283,
+          "reason": "Web公開/rank/active SKU候補"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 393,
+          "end_line": 415,
+          "reason": "Web Home商品DTOの組立"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 631,
+          "reason": "Native候補とactive SKU"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 779,
+          "end_line": 792,
+          "reason": "Native公開/rankフィルタ"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 214,
+          "end_line": 258,
+          "reason": "Native Home商品DTO"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 21,
+          "end_line": 162,
+          "reason": "Web Homeの商品カードと空表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 31,
+          "end_line": 115,
+          "reason": "Native Homeの商品セクション"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "公開/非公開/rank/在庫0の固定商品"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default/empty-catalogの初期guest"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 103,
+          "reason": "既存のplatinum8商品/guest除外契約"
         }
       ]
     },
