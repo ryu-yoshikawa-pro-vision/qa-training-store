@@ -450,8 +450,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
     const parent = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03");
     expect(parent?.analysis_status).toBe("review_required");
+    const outOfStock = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
+    );
+    expect(outOfStock?.analysis_status).toBe("analyzed");
+    expect(outOfStock?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(outOfStock?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
+    expect(outOfStock?.seed_evidence?.scenario).toBe("out-of-stock");
+    expect(outOfStock?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock")
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03")
         ?.analysis_status,
     ).toBe("review_required");
   });
