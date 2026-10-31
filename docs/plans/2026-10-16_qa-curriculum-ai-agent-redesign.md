@@ -4,14 +4,16 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用contractのPrettier | **実原因特定・重複Assertion整理済み／新HEAD検証待ち** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のVitest contractsはsuccess。Style Qualityのみ学習用contractと製品Nativeの2ファイルがPrettier失敗 | 学習用contractの整形を次HEADのFormat checkで検証。製品Nativeは無断変更しない |
+| P0 | 学習用contractのPrettier/契約期待値 | **実原因調査中／CI診断待ち** | [Web CI 41166820603](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41166820603)はVitest contracts成功、Style Qualityで学習用contractと製品Nativeの2ファイル違反。学習用診断commit `d4e5ddaf`の[Web CI 41169187496](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41169187496)で整形差分を取得中。分析2件追加に伴い契約期待値56/188へ同期が必要 | CI診断ログから学習用contractを正規Prettierで整形し、一時診断を撤去、件数/親操作Assertionを更新して再検証 |
 | P0 | 製品Native書式によるWeb CI阻害 | **BLOCKED（製品変更承認待ち）** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のStyle Quality実ログで`src/presentation/native/native-purchase-screens.tsx`がPrettier失敗。SUT変更禁止 | 影響報告のみ、承認までは編集・revertしない |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
-| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **54/188操作分析済み・残り134**、188は暫定分母。正式BR/AC、Role/Platform/State、Use Case→Repository→UI、Seed実値、証拠の一致が必要 | 未分析操作をリスク順に個別監査、分母再検証 |
+| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **56/188操作分析済み・残り132**、188は暫定分母。Web/Nativeのページネーション・検索0件の親操作2件を仕様・Use Case・Dexie・Seedと照合。実地E2E/視覚は未実施 | 次は残る132件をリスク順に個別監査、分母再検証。仕様差がある状態2件は未分析を維持 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
 | P1 | M00〜M10教材・実践・正式評価・Skill連携 | 進行中・実地受入待ち | [評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)と[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の全マージ前条件。過去の自動/契約PASSを維持し、実地未実施を区別 | 51目標/11モジュールの証拠・演習/評価/配布・非回帰を精査 |
 | P2 | 過去PR混在製品差分・製品不整合候補 | 進行中（修正は禁止） | [調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)の既存製品実装9/正式仕様1/製品テスト9パス一次仕分け、商品一覧empty/在庫分類/ページング/out-of-stock等の未決候補。承認なくrevert/Issue化しない | 再現条件・重大度・教材影響・修正要否を記録し判断を提案 |
+
+**2026-10-31 13:36 JSTの更新**：`SCREEN-STOREFRONT-PRODUCT-LIST-A01-02`と`SCREEN-STOREFRONT-SEARCH-A02-01`を、Web/Native両方の操作条件、CatalogUseCases.search→Dexie検索・ページ分割、既存many-products Seed、正式BR/ACと照合して基本分析済みに変更。状態条件18/20は不変（商品一覧empty/管理在庫stock-boundariesは仕様差未決）。静的基本分析をE2E・Native実行・視覚受入のPASSとは扱わない。学習用contractの旧期待値は新件数への同期待ち。
 
 **状態の意味**：分析済みは静的な証拠付き基本分析であり、実行E2E・Native・視覚・Template・正式AI評価のPASSを意味しない。CIの偶発障害、学習用修正可能項目、製品承認待ち、外部サービス受入は別に扱う。履歴はGit commitと本Planの既存節、個別証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に保持する。ユーザー承認のない製品改修・merge/force push/branch削除/Issue・PR close/release/tagは禁止。
 
