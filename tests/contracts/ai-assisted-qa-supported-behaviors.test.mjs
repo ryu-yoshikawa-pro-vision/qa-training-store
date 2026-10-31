@@ -615,7 +615,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
         ]),
       );
     }
-    expect(data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01")?.analysis_status).toBe("review_required");
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01")?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits Web login validation without certifying the parent login action", () => {
