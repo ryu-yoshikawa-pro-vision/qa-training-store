@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildSpecSite } from "../spec/build-spec";
+import { buildAiAssistedQaSite } from "./build-ai-assisted-qa";
 import {
   MARKDOWN_CSS,
   escapeHtml,
@@ -208,12 +209,15 @@ function pageHtml(
     resolveCurriculumLink(rootDir, parsed.relativePath, target);
   const imageTarget = (target: string): string =>
     resolveCurriculumImage(rootDir, parsed.relativePath, target);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop テスト自動化カリキュラム</a></div></header><main><nav class="primary-navigation" aria-label="カリキュラムナビゲーション">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop テスト自動化カリキュラム</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="/docs/curriculum/"${homeCurrent}>Scenario Shop テスト自動化カリキュラム</a> · <a href="/docs/curriculum/ai-assisted-qa/">AI協働テスト自動化カリキュラム</a></div></header><main><nav class="primary-navigation" aria-label="カリキュラムナビゲーション" tabindex="0">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
 }
 
 export type BuildDocsResult = {
   specificationPages: number;
   curriculumPages: number;
+  aiCoursePages: number;
+  exercisePages: number;
+  quizPages: number;
 };
 
 export function buildDocs(rootDir = process.cwd()): BuildDocsResult {
@@ -244,7 +248,14 @@ export function buildDocs(rootDir = process.cwd()): BuildDocsResult {
     fs.writeFileSync(outputAbsolute, pageHtml(rootDir, parsed, navigation), "utf8");
   }
   copyCurriculumAssets(rootDir, path.join(docsOutput, "curriculum"));
-  return { specificationPages, curriculumPages: curriculumPaths.length };
+  const aiCourse = buildAiAssistedQaSite(rootDir, docsOutput);
+  return {
+    specificationPages,
+    curriculumPages: curriculumPaths.length,
+    aiCoursePages: aiCourse.coursePages,
+    exercisePages: aiCourse.exercisePages,
+    quizPages: aiCourse.quizPages,
+  };
 }
 
 function isMainModule(): boolean {
@@ -257,6 +268,6 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   const result = buildDocs();
   console.log(
-    `Built ${result.specificationPages} specification page(s) and ${result.curriculumPages} curriculum page(s) in dist/docs`,
+    `Built ${result.specificationPages} specification page(s), ${result.curriculumPages} legacy curriculum page(s), ${result.aiCoursePages} new curriculum page(s), ${result.exercisePages} exercise page(s), and ${result.quizPages} quiz page(s) in dist/docs`,
   );
 }

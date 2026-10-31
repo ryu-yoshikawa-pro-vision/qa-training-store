@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "module_id": "M07",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["M06 spec", "Run logs and Trace"],
+  "expected": {
+    "required_paths": [
+      "workspace/M07/diagnosis.md",
+      "workspace/M07/repaired-assertion.spec.ts",
+      "workspace/M07/phase2-handoff.md",
+      "workspace/M07/maintenance.spec.ts"
+    ],
+    "objective_ids": ["M07-01", "M07-02", "M07-03", "M07-04", "M07-05"],
+    "phase": "P2",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M07-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M07-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M07-END-03",
+      "mode": "phase-assessment-reference",
+      "condition": "This read-only end-state check does not rate mastery. P2 objectives are evaluated together by course:assess M07; Node.js finalizes only after calibrated AI candidate, evidence/version validation, and all required objective checks."
+    },
+    {
+      "id": "M07-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M07/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M07.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M07-result-01",
+      "path": "workspace/M07/diagnosis.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1"
+    },
+    {
+      "artifact_id": "M07-result-02",
+      "path": "workspace/M07/repaired-assertion.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1"
+    },
+    {
+      "artifact_id": "M07-result-03",
+      "path": "workspace/M07/phase2-handoff.md",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1"
+    },
+    {
+      "artifact_id": "M07-result-04",
+      "path": "workspace/M07/maintenance.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P2",
+    "terminal_module_id": "M07",
+    "required_objective_ids": [
+      "M05-01",
+      "M05-02",
+      "M05-03",
+      "M05-04",
+      "M05-05",
+      "M06-01",
+      "M06-02",
+      "M06-03",
+      "M06-04",
+      "M06-05",
+      "M07-01",
+      "M07-02",
+      "M07-03",
+      "M07-04",
+      "M07-05"
+    ],
+    "entry_command": "pnpm course:assess M07 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P2/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M07",
+    "assessment_is_terminal_only": true
+  }
+}

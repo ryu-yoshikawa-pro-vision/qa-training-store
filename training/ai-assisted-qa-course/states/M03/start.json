@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "module_id": "M03",
+  "state": "start",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "inputs": [
+    {
+      "artifact_id": "M02-result-01",
+      "path": "workspace/M02/analysis.md",
+      "revision": "M02-result-v1",
+      "contract_id": "M02-to-M03-handoff-v1",
+      "from_module": "M02",
+      "optional": true,
+      "same_input_contract": true
+    }
+  ],
+  "environment": ["pinned Skill package revision", "Python 3.11 standard library"],
+  "expected": {
+    "required_paths": ["inputs/M03/start.md", "inputs/M03/public-risk-input.csv"],
+    "objective_ids": ["M03-01", "M03-02", "M03-03", "M03-04", "M03-05"],
+    "phase": "P1",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M03-START-01",
+      "mode": "read-only",
+      "condition": "required tools, references and source revisions are present"
+    },
+    {
+      "id": "M03-START-02",
+      "mode": "read-only",
+      "condition": "select this module's distinct public fallback if prior artifact is missing or invalid"
+    },
+    {
+      "id": "M03-START-03",
+      "mode": "read-only",
+      "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M03-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M03/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M03.json",
+    "training/ai-assisted-qa-course/inputs/M03/public-risk-input.csv",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324"
+  ],
+  "public_fallback": {
+    "artifact_id": "M03-public-start-01",
+    "revision": "M03-public-start-v1",
+    "contract_id": "M02-to-M03-handoff-v1",
+    "path": "inputs/M03/start.md",
+    "public": true
+  },
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
+}

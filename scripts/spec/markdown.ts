@@ -188,13 +188,13 @@ function renderTable(
     );
   const header = rows[0] ?? [];
   const body = rows.slice(2);
-  return `<table><thead><tr>${header.map((cell) => `<th>${renderInline(cell, linkTarget, imageTarget)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${header.map((_cell, index) => `<td>${renderInline(row[index] ?? "", linkTarget, imageTarget)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return `<table tabindex="0"><thead><tr>${header.map((cell) => `<th>${renderInline(cell, linkTarget, imageTarget)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${header.map((_cell, index) => `<td>${renderInline(row[index] ?? "", linkTarget, imageTarget)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
 function renderToc(headings: MarkdownHeading[]): string {
   const entries = headings.filter((heading) => heading.level === 2 || heading.level === 3);
   if (entries.length === 0) return "";
-  return `<aside class="toc" aria-label="目次"><strong>目次</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></aside>`;
+  return `<nav class="toc" aria-label="目次" tabindex="0"><strong>目次</strong><ul>${entries.map((heading) => `<li class="toc-level-${heading.level}"><a href="#${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a></li>`).join("")}</ul></nav>`;
 }
 
 export function renderMarkdown(
@@ -226,7 +226,7 @@ export function renderMarkdown(
         index += 1;
       }
       output.push(
-        `<pre><code class="language-${escapeHtml(language || "text")}">${escapeHtml(code.join("\n"))}</code></pre>`,
+        `<pre tabindex="0"><code class="language-${escapeHtml(language || "text")}">${escapeHtml(code.join("\n"))}</code></pre>`,
       );
       index += 1;
       continue;
@@ -518,6 +518,65 @@ pre code {
   grid-column: 1 / -1;
 }
 
+.module-progress {
+  display: inline-block;
+  margin: 0 0 1rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.module-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.module-pager a,
+.module-pager span {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.module-pager [aria-current="page"] {
+  background: #fef3c7;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.module-pager .pager-edge {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.course-resources {
+  margin-top: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+}
+
+.course-resources li + li {
+  margin-top: 0.5rem;
+}
+
+.course-resources small {
+  display: block;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .toc ul {
   list-style: none;
   padding: 0;
@@ -529,7 +588,8 @@ pre code {
 }
 
 .canonical-image-link {
-  display: inline-block;
+  display: block;
+  width: 100%;
   max-width: 100%;
   border: 1px solid var(--border);
   padding: 0.25rem;
@@ -538,6 +598,7 @@ pre code {
 
 .canonical-image-link img {
   display: block;
+  width: 100%;
   max-width: 100%;
   height: auto;
 }
@@ -591,6 +652,16 @@ blockquote {
     max-height: none;
     overflow: visible;
     margin-bottom: 1.25rem;
+  }
+
+  .module-pager {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .module-pager a,
+  .module-pager span {
+    width: 100%;
   }
 }
 `;

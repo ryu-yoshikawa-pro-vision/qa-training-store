@@ -108,6 +108,23 @@ describe("admin overview and master application integration", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("lists and reorders all categories when more than 50 exist", async () => {
+    for (let index = 0; index < 47; index += 1) {
+      await useCases.createCategory({ name: `追加カテゴリ${index}` });
+    }
+    const all = await useCases.listAllCategoriesForReorder();
+    expect(all).toHaveLength(51);
+    const reversed = [...all].reverse();
+    const updated = await useCases.reorderCategories({
+      orderedIds: reversed.map((item) => item.categoryId),
+      expectedVersions: Object.fromEntries(reversed.map((item) => [item.categoryId, item.version])),
+    });
+    expect(updated).toHaveLength(51);
+    expect((await useCases.listAllCategoriesForReorder()).map((item) => item.categoryId)).toEqual(
+      reversed.map((item) => item.categoryId),
+    );
+  });
+
   it("blocks deactivation referenced by a published product without changing the category", async () => {
     const category = (await useCases.searchCategories()).items.find(
       (item) => item.publishedProductCount > 0,

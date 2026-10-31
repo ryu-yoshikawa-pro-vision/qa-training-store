@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "module_id": "M09",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["GitHub Actions course workflow"],
+  "expected": {
+    "required_paths": [
+      "workspace/M09/submission.md",
+      "workspace/M09/failure-cases.md",
+      "workspace/M09/course-e2e.workflow.yml.disabled"
+    ],
+    "objective_ids": ["M09-01", "M09-02", "M09-03", "M09-04", "M09-05"],
+    "phase": "P3",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M09-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M09-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M09-END-03",
+      "mode": "read-only",
+      "condition": "This module check validates only its own artifacts and references. P3 formal assessment is available only at terminal module M10 and does not change this module-level structural result."
+    },
+    {
+      "id": "M09-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M09/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M09.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M09-result-01",
+      "path": "workspace/M09/submission.md",
+      "revision": "M09-result-v1",
+      "contract_id": "M09-to-M10-handoff-v1"
+    },
+    {
+      "artifact_id": "M09-result-02",
+      "path": "workspace/M09/course-e2e.workflow.yml.disabled",
+      "revision": "M09-workflow-v1",
+      "contract_id": "M09-to-M10-handoff-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P3",
+    "terminal_module_id": "M10",
+    "required_objective_ids": [
+      "M08-01",
+      "M08-02",
+      "M08-03",
+      "M08-04",
+      "M09-01",
+      "M09-02",
+      "M09-03",
+      "M09-04",
+      "M09-05",
+      "M10-01",
+      "M10-02",
+      "M10-03",
+      "M10-04",
+      "M10-05"
+    ],
+    "entry_command": "pnpm course:assess M10 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P3/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M10",
+    "assessment_is_terminal_only": true
+  }
+}

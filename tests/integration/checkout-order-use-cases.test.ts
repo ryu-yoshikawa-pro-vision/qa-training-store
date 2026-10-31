@@ -113,6 +113,34 @@ describe("checkout and customer order application integration", () => {
     return withPayment;
   }
 
+  it("rejects unsupported payment methods without advancing the checkout session", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const withAddress = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    await expect(
+      useCases.setPayment({
+        checkoutSessionId: withAddress.id,
+        checkoutExpectedVersion: withAddress.version,
+        paymentMethodCode: "TEST-UNKNOWN" as "TEST-SUCCESS",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { paymentMethodCode: "validation.invalid" },
+    });
+    expect(await database.checkout_sessions.get(withAddress.id)).toMatchObject({
+      version: withAddress.version,
+      unlockedStep: "payment",
+      paymentMethodCode: null,
+    });
+  });
+
   it("starts, resumes, replaces, and rejects a cart version changed after start", async () => {
     const cart = await database.carts
       .where("[userId+status]")
@@ -134,6 +162,51 @@ describe("checkout and customer order application integration", () => {
     });
   });
 
+  it("refuses the payment step until a shipping address is saved", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    await expect(useCases.getActive("payment")).rejects.toMatchObject({
+      code: "CHECKOUT_STEP_INCOMPLETE",
+    });
+    expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+      addressSnapshot: null,
+      unlockedStep: "address",
+      version: started.session.version,
+    });
+  });
+
+  it("refuses a stale Cart on the payment step without changing the chosen method", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const addressed = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    await database.carts.update(cart!.id, { version: cart!.version + 1 });
+    await expect(useCases.getActive("payment")).rejects.toMatchObject({
+      code: "CART_VERSION_CHANGED",
+    });
+    await expect(
+      useCases.setPayment({
+        checkoutSessionId: addressed.id,
+        checkoutExpectedVersion: addressed.version,
+        paymentMethodCode: "TEST-SUCCESS",
+      }),
+    ).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+    expect(await database.checkout_sessions.get(addressed.id)).toMatchObject({
+      paymentMethodCode: null,
+      unlockedStep: "payment",
+      version: addressed.version,
+    });
+  });
+
   it("revalidates checkout address text limits at the Application boundary", async () => {
     const cart = await database.carts
       .where("[userId+status]")
@@ -149,6 +222,67 @@ describe("checkout and customer order application integration", () => {
     ).rejects.toMatchObject({
       code: "VALIDATION",
       fieldErrors: { addressLine1: "validation.required" },
+    });
+  });
+
+  it("rejects incomplete checkout addresses and preserves the session", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const invalidCases = [
+      {
+        value: { ...address, recipientName: " " },
+        errors: { recipientName: "validation.required" },
+      },
+      { value: { ...address, postalCode: "123" }, errors: { postalCode: "validation.postalCode" } },
+      { value: { ...address, prefecture: "" }, errors: { prefecture: "validation.required" } },
+      { value: { ...address, city: " " }, errors: { city: "validation.required" } },
+      { value: { ...address, addressLine1: "" }, errors: { addressLine1: "validation.required" } },
+      { value: { ...address, phone: "090123" }, errors: { phone: "validation.phone" } },
+    ];
+    for (const invalid of invalidCases) {
+      await expect(
+        useCases.setAddress({
+          checkoutSessionId: started.session.id,
+          checkoutExpectedVersion: started.session.version,
+          address: invalid.value,
+        }),
+      ).rejects.toMatchObject({ code: "VALIDATION", fieldErrors: invalid.errors });
+      expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+        addressSnapshot: null,
+        version: started.session.version,
+        unlockedStep: "address",
+      });
+    }
+  });
+
+  it("normalizes checkout address input before persisting the snapshot", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const updated = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address: {
+        ...address,
+        recipientName: "  山田太郎  ",
+        postalCode: "100-0001",
+        prefecture: " 東京都 ",
+        city: " 千代田区 ",
+        addressLine1: " 1-1 ",
+        addressLine2: "  ",
+        phone: "090-0000-0000",
+      },
+    });
+    expect(updated.addressSnapshot).toEqual(address);
+    expect(await database.checkout_sessions.get(started.session.id)).toMatchObject({
+      addressSnapshot: address,
+      version: started.session.version + 1,
+      unlockedStep: "payment",
     });
   });
 
@@ -328,6 +462,40 @@ describe("checkout and customer order application integration", () => {
       histories.find((history) => history.reasonCode === "PAYMENT_SUCCEEDED")!.createdAt,
     );
   });
+
+  it.each([
+    ["cart version", "CART_VERSION_CHANGED"],
+    ["product price", "PRICE_CHANGED"],
+  ] as const)(
+    "rejects a stale %s on confirmation and order creation without mutation",
+    async (change, code) => {
+      const checkout = await readyCheckout("TEST-SUCCESS");
+      const sessionBefore = await database.checkout_sessions.get(checkout.id);
+      const orderCount = await database.orders.count();
+      const paymentCount = await database.payments.count();
+      const stockBefore = await database.product_variants.get("variant-basic-shirt-02");
+      if (change === "cart version") {
+        const cart = await database.carts.get(checkout.cartId);
+        await database.carts.update(checkout.cartId, { version: cart!.version + 1 });
+      } else {
+        await database.product_variants.update("variant-basic-shirt-02", { regularPrice: 9999 });
+      }
+      await expect(useCases.getConfirmation(checkout.id)).rejects.toMatchObject({ code });
+      await expect(
+        useCases.beginOrder({
+          checkoutSessionId: checkout.id,
+          checkoutActionVersion: checkout.version,
+        }),
+      ).rejects.toMatchObject({ code });
+      expect(await database.checkout_sessions.get(checkout.id)).toEqual(sessionBefore);
+      expect(await database.orders.count()).toBe(orderCount);
+      expect(await database.payments.count()).toBe(paymentCount);
+      expect((await database.product_variants.get("variant-basic-shirt-02"))!.stockQuantity).toBe(
+        stockBefore!.stockQuantity,
+      );
+      expect(gateway.calls).toHaveLength(0);
+    },
+  );
 
   it("does not create an order when price or rank revalidation fails", async () => {
     const checkout = await readyCheckout("TEST-SUCCESS");

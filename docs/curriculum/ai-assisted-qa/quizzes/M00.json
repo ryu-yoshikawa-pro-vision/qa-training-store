@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "module_id": "M00",
+  "questions": [
+    {
+      "id": "M00-Q01",
+      "objective_ids": [
+        "M00-01"
+      ],
+      "question": "VS Codeで相対パスのファイルが見つからず、作業を始める前に実行場所を確かめたい。最初にすることはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "別のフォルダーを推測して開く",
+          "meaning": "別のフォルダーを推測して開く",
+          "reason": "場所を確かめず移動すると、意図しないファイルを編集する可能性があります。"
+        },
+        {
+          "value": "B",
+          "label": "現在位置を表示してから相対パスを確認する",
+          "meaning": "現在位置を表示してから相対パスを確認する",
+          "reason": "相対パスは現在位置を起点にするため、実行場所の確認が先です。"
+        },
+        {
+          "value": "C",
+          "label": "同じコマンドを何度も実行する",
+          "meaning": "同じコマンドを何度も実行する",
+          "reason": "場所が違えば繰り返しても解決せず、結果の説明もできません。"
+        },
+        {
+          "value": "D",
+          "label": "エージェントに全ファイルを検索させる",
+          "meaning": "エージェントに全ファイルを検索させる",
+          "reason": "検索範囲と変更権限を確認せず、広い探索を依頼する必要はありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#画面とファイルの基本",
+      "knowledge_ids": [
+        "K-M00-02"
+      ]
+    },
+    {
+      "id": "M00-Q02",
+      "objective_ids": [
+        "M00-02"
+      ],
+      "question": "チャットとエージェントの違いを安全に説明しているものはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "両方とも提案文を返すだけでファイルは読めない",
+          "meaning": "両方とも提案文を返すだけでファイルは読めない",
+          "reason": "エージェントには許可された範囲でファイル参照やツール実行が可能です。"
+        },
+        {
+          "value": "B",
+          "label": "Skillを呼べば全操作が自動的に承認される",
+          "meaning": "Skillを呼べば全操作が自動的に承認される",
+          "reason": "Skillは手順を示しますが、権限や危険操作の許可を代替しません。"
+        },
+        {
+          "value": "C",
+          "label": "エージェントは許可された範囲でツールを実行でき、変更前に範囲を確認する",
+          "meaning": "エージェントは許可された範囲でツールを実行でき、変更前に範囲を確認する",
+          "reason": "実行権限があるため、目的・対象ファイル・差分の確認が必要です。"
+        },
+        {
+          "value": "D",
+          "label": "Skill名が表示されたら実行証拠は不要",
+          "meaning": "Skill名が表示されたら実行証拠は不要",
+          "reason": "表示名や自己申告だけでは、実際の処理と結果を確認できません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限",
+      "knowledge_ids": [
+        "K-M00-03"
+      ]
+    },
+    {
+      "id": "M00-Q03",
+      "objective_ids": [
+        "M00-03"
+      ],
+      "question": "初めてAIエージェントへ作業を頼むとき、依頼に含めるべき情報の組合せはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "目的、参照資料、許可範囲、成果物、完了確認",
+          "meaning": "目的、参照資料、許可範囲、成果物、完了確認",
+          "reason": "必要な根拠と権限、期待する出力、検証方法がそろいます。"
+        },
+        {
+          "value": "B",
+          "label": "目的だけを伝え、必要な資料や範囲は推測させる",
+          "meaning": "目的だけを伝え、必要な資料や範囲は推測させる",
+          "reason": "未指定の資料や編集場所をエージェントが誤って補う恐れがあります。"
+        },
+        {
+          "value": "C",
+          "label": "成果物の形式だけを伝え、成功条件は任せる",
+          "meaning": "成果物の形式だけを伝え、成功条件は任せる",
+          "reason": "見た目が合っても、求めた品質や根拠が満たされたか分かりません。"
+        },
+        {
+          "value": "D",
+          "label": "全リポジトリを変更できる権限と曖昧な目的を与える",
+          "meaning": "全リポジトリを変更できる権限と曖昧な目的を与える",
+          "reason": "作業範囲を限定できず、無関係な変更を発見しにくくなります。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#依頼の作り方",
+      "knowledge_ids": [
+        "K-M00-05"
+      ]
+    },
+    {
+      "id": "M00-Q04",
+      "objective_ids": [
+        "M00-04"
+      ],
+      "question": "AIがAPIキーを会話ログへ貼って検証する提案をしました。安全な対応はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "テスト後にログを消せば貼ってよい",
+          "meaning": "テスト後にログを消せば貼ってよい",
+          "reason": "ログが複製・保存される可能性があり、事後削除を保護策にできません。"
+        },
+        {
+          "value": "B",
+          "label": "キーを短くして会話へ貼る",
+          "meaning": "キーを短くして会話へ貼る",
+          "reason": "一部でも認証情報の開示となり、必要な検証方法ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "無料枠があると考えて実行を続ける",
+          "meaning": "無料枠があると考えて実行を続ける",
+          "reason": "利用枠や費用条件が未確認なら、課金を推測して操作してはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "貼付けを拒否し、Secretを使わない代替か管理者への確認を選ぶ",
+          "meaning": "貼付けを拒否し、Secretを使わない代替か管理者への確認を選ぶ",
+          "reason": "Secretを会話へ出さず、権限と費用条件を安全に確認できます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限",
+      "knowledge_ids": [
+        "K-M00-06"
+      ]
+    },
+    {
+      "id": "M00-Q05",
+      "objective_ids": [
+        "M00-04"
+      ],
+      "knowledge_ids": [
+        "K-M00-07"
+      ],
+      "question": "Codespaceを停止してファイルを保存しました。GitHubのRemoteへ変更が公開されたと言えますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "停止時に自動公開される",
+          "meaning": "停止時に自動公開される",
+          "reason": "Codespaceの停止だけではGitHubへpushされません。"
+        },
+        {
+          "value": "B",
+          "label": "ブラウザを閉じれば公開される",
+          "meaning": "ブラウザを閉じれば公開される",
+          "reason": "ブラウザを閉じてもRemoteには送信されません。"
+        },
+        {
+          "value": "C",
+          "label": "保存とRemoteへのpushは異なるため公開されたとは言えない",
+          "meaning": "保存とRemoteへのpushは異なるため公開されたとは言えない",
+          "reason": "保存とRemoteへの反映は別操作で、必要に応じてcommit・pushを行います。"
+        },
+        {
+          "value": "D",
+          "label": "Codespace停止で保存ファイルも消去される",
+          "meaning": "Codespace停止で保存ファイルも消去される",
+          "reason": "保存済みファイルが停止によって必ず消えるわけではありません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-07"
+    },
+    {
+      "id": "M00-Q06",
+      "objective_ids": [
+        "M00-02"
+      ],
+      "knowledge_ids": [
+        "K-M00-08"
+      ],
+      "question": "ポート公開範囲とAIサービスの料金条件を確認できません。どの対応が適切ですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "公開範囲を広げて試す",
+          "meaning": "公開範囲を広げて試す",
+          "reason": "公開範囲が不明なまま設定を拡大すると意図せず公開する危険があります。"
+        },
+        {
+          "value": "B",
+          "label": "利用条件と権限を確認するまで保留する",
+          "meaning": "利用条件と権限を確認するまで保留する",
+          "reason": "公開権限や費用が確認できない場合は操作を保留します。"
+        },
+        {
+          "value": "C",
+          "label": "料金を推測して実行する",
+          "meaning": "料金を推測して実行する",
+          "reason": "利用枠や料金を推測して実行してはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "公開URLを誰でも閲覧できるとみなして共有する",
+          "meaning": "公開URLを誰でも閲覧できるとみなして共有する",
+          "reason": "共有前に公開設定とアクセス権の確認が必要です。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-08"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#k-m00-08"
+    }
+  ]
+}

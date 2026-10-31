@@ -235,6 +235,19 @@ describe("staged Prettier and ESLint contract", () => {
     });
   }, 60_000);
 
+  it("reads staged assets larger than the default child-process output buffer", () => {
+    withFixture((root) => {
+      const assetPath = path.join(root, "assets", "course-image.png");
+      fs.mkdirSync(path.dirname(assetPath), { recursive: true });
+      fs.writeFileSync(assetPath, Buffer.alloc(1_200_000, 0x61));
+      git(root, ["add", "--", "assets/course-image.png"]);
+
+      const result = runChecker(root);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("PASS: staged Prettier and ESLint checks");
+    });
+  }, 60_000);
+
   it("passes warning-only ESLint output", () => {
     withFixture((root) => {
       writeFile(root, "warning.js", "const unused = 1;\n");

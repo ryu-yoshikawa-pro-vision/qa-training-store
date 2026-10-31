@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "module_id": "M09",
+  "state": "start",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "inputs": [
+    {
+      "artifact_id": "M08-result-01",
+      "path": "workspace/M08/submission.md",
+      "revision": "M08-result-v1",
+      "contract_id": "M08-to-M09-handoff-v1",
+      "from_module": "M08",
+      "optional": true,
+      "same_input_contract": true
+    }
+  ],
+  "environment": ["GitHub Actions course workflow"],
+  "expected": {
+    "required_paths": [
+      "inputs/M09/start.md",
+      "inputs/M09/public-sample-handoff.md",
+      "course/modules/M09/inputs/public-sample-handoff.md",
+      "course/modules/M09/inputs/workflow-starter.yml.disabled",
+      "course/templates/phase3/course-e2e.workflow.yml.disabled",
+      "workspace/M09/submission.md",
+      "workspace/M09/failure-cases.md",
+      "workspace/M09/course-e2e.workflow.yml.disabled"
+    ],
+    "objective_ids": ["M09-01", "M09-02", "M09-03", "M09-04", "M09-05"],
+    "phase": "P3",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M09-START-01",
+      "mode": "read-only",
+      "condition": "required tools, references and source revisions are present"
+    },
+    {
+      "id": "M09-START-02",
+      "mode": "read-only",
+      "condition": "use the distinct public-sample-handoff as the M08-like history/PR fallback; start.md is guidance only and the disabled workflow starter remains a separately required module input"
+    },
+    {
+      "id": "M09-START-03",
+      "mode": "read-only",
+      "condition": "do not overwrite or restore learner artifacts"
+    },
+    {
+      "id": "M09-START-04",
+      "mode": "read-only",
+      "condition": "loaded source SHA, predecessor artifact IDs and revisions, or distinct same-contract public fallback are verified"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M09/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M09.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "public_fallback": {
+    "artifact_id": "M09-public-handoff-01",
+    "revision": "M09-public-handoff-v1",
+    "contract_id": "M08-to-M09-handoff-v1",
+    "path": "inputs/M09/public-sample-handoff.md",
+    "public": true
+  },
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  }
+}

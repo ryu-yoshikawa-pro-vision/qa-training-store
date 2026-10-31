@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "module_id": "M02",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["docs/spec", "Scenario Shop seed/reset references"],
+  "expected": {
+    "required_paths": ["workspace/M02/analysis.md"],
+    "objective_ids": ["M02-01", "M02-02", "M02-03", "M02-04", "M02-05"],
+    "phase": "P1",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M02-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M02-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M02-END-03",
+      "mode": "read-only",
+      "condition": "This module check validates only its own artifacts and references. P1 formal assessment is available only at terminal module M04 and does not change this module-level structural result."
+    },
+    {
+      "id": "M02-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M02/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M02.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M02-result-01",
+      "path": "workspace/M02/analysis.md",
+      "revision": "M02-result-v1",
+      "contract_id": "M02-to-M03-handoff-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P1",
+    "terminal_module_id": "M04",
+    "required_objective_ids": [
+      "M00-01",
+      "M00-02",
+      "M00-03",
+      "M00-04",
+      "M01-01",
+      "M01-02",
+      "M01-03",
+      "M01-04",
+      "M02-01",
+      "M02-02",
+      "M02-03",
+      "M02-04",
+      "M02-05",
+      "M03-01",
+      "M03-02",
+      "M03-03",
+      "M03-04",
+      "M03-05",
+      "M04-01",
+      "M04-02",
+      "M04-03",
+      "M04-04"
+    ],
+    "entry_command": "pnpm course:assess M04 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P1/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M04",
+    "assessment_is_terminal_only": true
+  }
+}

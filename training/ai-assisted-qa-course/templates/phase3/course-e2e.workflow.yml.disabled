@@ -1,0 +1,38 @@
+name: AI QA course checks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  course-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: mkdir -p output/training/ai-assisted-qa
+      - run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt
+      - run: pnpm run training:ai-assisted-qa:test -- workspace/M07/repaired-assertion.spec.ts
+        env:
+          PLAYWRIGHT_TEST_ROOT: workspace/M07
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: course-playwright-results
+          path: |
+            output/training/ai-assisted-qa/playwright-result.json
+            output/training/ai-assisted-qa/target-sha.txt
+          if-no-files-found: error

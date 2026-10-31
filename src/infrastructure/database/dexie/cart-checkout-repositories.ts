@@ -289,6 +289,17 @@ export class DexieCartRepository implements CartRepository {
       );
       const variant = fromVariantRecord(variantRecord);
       await this.assertPurchasableForCart(cart, variant);
+      if (
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1 ||
+        item.quantity > maximumCartQuantity(variant)
+      ) {
+        throw new ApplicationError({
+          code: "QUANTITY_LIMIT_EXCEEDED",
+          messageKey: "cart.quantity.limit",
+          retryable: false,
+        });
+      }
       updatedItems.push({
         ...item,
         unitEffectivePriceAtAdd: effectiveUnitPrice(variant, input.now),
