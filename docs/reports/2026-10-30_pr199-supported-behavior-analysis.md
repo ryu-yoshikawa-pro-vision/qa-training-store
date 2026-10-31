@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 Home公開商品の閲覧集合監査（SUT変更なし）
+
+- **対象・根拠**：`SCREEN-STOREFRONT-HOME-A01-01`。正式`storefront.md:9-39/190-205`のBR-STOREFRONT-001/AC-001、`roles-and-permissions.md:5-16`、`CatalogUseCases.getHome:80-84`、`canViewerSeeProduct:15-32`、Web Dexie `storefront-repositories.ts:249-283/393-415`、Native SQLite `native-customer-repositories.ts:605-631/779-792/214-258`、Web Home `home-page.tsx:21-162`、Native Home `native-screens.tsx:31-115`を読み取り照合。両Repositoryは公開状態・会員ランク・active SKUで候補を限定し、Homeの新着/セールDTOへ反映する。
+- **Seed実値と採否**：default guestの公開・ランク制限なし・active SKUありはP-0001/0002/0005/0006/0010/0011。gold以上のP-0003、platinum以上のP-0004、unpublished/draft/discontinuedのP-0007/0008/0009はguestから除外。既存`default-dataset.ts:67-245`と`storefront-catalog.test.ts:64-103`でplatinum8商品とguest除外を対照。**P-0006は在庫0でも公開閲覧可**であり、Cart追加拒否は別操作として評価する。gold/platinum、empty-catalog、expired-saleを境界Caseとし、新Seedは不要。
+- **判定**：A01-01のみ`analyzed`へ変更し、基本操作**68/188（36.17%、残り120）**、状態条件**18/20（残り2）**。分母188は暫定、ID重複/漏れの最終監査未完。Homeカテゴリー0件表示差、会員特典Native表示差、商品一覧empty CTA、管理在庫stock-boundariesは未決のまま。静的基本分析は実ブラウザ/Android/視覚正本のPASSではない。製品本体・正式仕様・既存Seed/Reset・製品用テスト/workflowは変更していない。
+- **CI切り分け**：直前HEAD `499b4d33cb9e`の[Web CI 41187424065](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41187424065)ではVitest contracts、Training runtime、Code Quality、主要E2EとPrettierは成功。Style Qualityは**正式製品仕様`checkout-and-payment.md:279-280`のMD032/MD022のみ失敗**、verify/validateは連動失敗。[Mobile CI 41187424030](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41187424030)は確認時Android Runtime/Maestro・iOS実行中。新HEADのCIは別途検証する。正式仕様の書式修正は明示承認待ち。
+
 ## 2026-10-31 最新Web CIのMarkdown lint失敗切り分け（製品仕様変更なし）
 
 - HEAD `64674dda816735e7d694ab52924877985f0bc78a`の[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)を実ログで確認。Style QualityはPrettierを通過し、Markdown lintで14件（PlanのMD012×7、分析レポートのMD012×4/MD034×1、正式製品仕様`checkout-and-payment.md:279-280`のMD032/MD022×2）を検出。契約・Training runtime・unit/integration/repository/component・主要Chromium E2Eは成功。`verify`/`validate`はStyle失敗に連動しFAIL。Mobile CI 41174095704は確認時pending。
