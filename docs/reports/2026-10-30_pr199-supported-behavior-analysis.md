@@ -1,5 +1,10 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 最新Web CIのMarkdown lint失敗切り分け（製品仕様変更なし）
+
+- HEAD `64674dda816735e7d694ab52924877985f0bc78a`の[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)を実ログで確認。Style QualityはPrettierを通過し、Markdown lintで14件（PlanのMD012×7、分析レポートのMD012×4/MD034×1、正式製品仕様`checkout-and-payment.md:279-280`のMD032/MD022×2）を検出。契約・Training runtime・unit/integration/repository/component・主要Chromium E2Eは成功。`verify`/`validate`はStyle失敗に連動しFAIL。Mobile CI 41174095704は確認時pending。
+- 学習用Plan/分析レポートの余剰空行とメール表記だけを修正し、**正式仕様の2件は変更禁止SUTとしてBLOCKED**に分離。正式仕様の書式のみの変更もユーザー明示承認が必要。今回の修正commit以降のCI結果は別途確認し、旧HEADの成功を流用しない。
+
 ## 2026-10-31 商品詳細の在庫切れを既存単一SKU商品で基本分析（SUT変更なし）
 
 - `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`：正式`storefront.md:100-115`のguest/customer・Web desktop在庫切れ表示と購入不可の状態を、既存`out-of-stock` Seedの実値から監査。SeedはTシャツMだけ10→0へ変更するが、**default datasetにもpublished・単一active SKU在庫0の`product-out-of-stock`（スポーツボトル/P-0006）が元から存在**する（`default-dataset.ts:149-164/275-326`）。既存商品を直接`/products/product-out-of-stock`で開けば、TシャツS=20の自動選択を回避して状態Caseを構成できる。学習用fixtureや既存Seedの追加・変更は不要。
@@ -42,10 +47,9 @@
 
 ## 2026-10-31 Cart invalid-items分析と管理在庫ステータス不整合候補（SUT変更なし）
 
-- **分析済み**：`SCREEN-STOREFRONT-CART-S-invalid-items`。正式`BR-CART-003/AC-CART-003`、`cart-with-invalid-items` Seedの4明細（価格変更・非公開・在庫0・inactive SKU）、`CartUseCases.getCart/removeItem/acceptPriceChanges`、Dexie `getCartDto`、Web `CartContent`と既存E2Eセットアップを照合。初期guestでは不正明細は見えず、**regular@example.comでログイン後に/cartへ遷移**する必要がある。非価格問題の削除→価格同意→Checkout解放の順序をCase化。既存テストのソース確認は実行PASS/視覚正本一致を意味しない。
+- **分析済み**：`SCREEN-STOREFRONT-CART-S-invalid-items`。正式`BR-CART-003/AC-CART-003`、`cart-with-invalid-items` Seedの4明細（価格変更・非公開・在庫0・inactive SKU）、`CartUseCases.getCart/removeItem/acceptPriceChanges`、Dexie `getCartDto`、Web `CartContent`と既存E2Eセットアップを照合。初期guestでは不正明細は見えず、**`regular@example.com`でログイン後に/cartへ遷移**する必要がある。非価格問題の削除→価格同意→Checkout解放の順序をCase化。既存テストのソース確認は実行PASS/視覚正本一致を意味しない。
 - **未決・Medium候補（製品変更なし）**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`の`BR-ADMININV-001/AC-ADMININV-001`はSKU 0→out_of_stock、1〜5→low_stock、6以上→availableの表示・件数を要求。一方`DexieInventoryRepository.search`（`src/infrastructure/database/dexie/product-repositories.ts:601-647`）のフィルターは`out=0`、`low=1..5`、`available>=1`でlowとavailableが重複。`AdminInventoriesContent`（`src/presentation/pages/admin-operations-pages.tsx:78-185`）の「状態」列は`ActiveBadge(item.isActive)`で有効/無効を表示し、在庫分類を表示しない。再現候補：operator/adminでdefault/low-stock Reset→/admin/inventories、在庫0/1/5/6を準備し分類・件数・「在庫あり」/「低在庫」フィルターを比較。既存Seedで4境界が全て揃うか・実ブラウザでの再現は未確認。影響は在庫判断と教材の境界値オラクル。仕様/実装差分レビュー演習には利用可能だが、教材の基本分析のための製品修正は必須でない。視覚受入の期待値確定には判断が必要。状態は`review_required`維持。Issue化・別PR化は承認待ち。
 - **進捗**：基本分析48/188（残り140）、状態条件15/20（残り5）。188は暫定分母。今回変更は学習用台帳・契約テスト・レポート・Planのみ。
-
 
 ## 2026-10-31 決済再開・本人注文一覧の分析とWeb CI失敗の切り分け（SUT変更なし）
 
@@ -63,7 +67,6 @@
 - 既存製品テスト9件：`tests/component/auth-account-pages.test.tsx`、`tests/component/catalog-pages.test.tsx`、`tests/component/checkout-order-pages.test.tsx`、`tests/component/native/native-purchase-screens.test.tsx`、`tests/integration/admin-master-use-cases.test.ts`、`tests/integration/auth-account.test.ts`、`tests/integration/cart-use-cases.test.ts`、`tests/integration/checkout-order-use-cases.test.ts`、`tests/repository-contract/native-customer-shared.test.ts`。
 - この仕分けはファイルパスによる一次分類であり、各差分の意味・必要性・セキュリティ評価を確定するものではない。ユーザーの承認なしに製品側の追加修正、revert、Issue/別PR作成はしない。後続ではコミット別の由来と学習目的との関係を精査し、分離が必要な場合のみ提案する。
 
-
 ## 2026-10-31 Signup入力検証・公開済みレビュー編集状態の証拠監査（SUT変更なし）
 
 - **基本分析46/188（残り142）、状態条件14/20（残り6）。** 188動作は暫定分母。状態2件のみを分析し、親操作は未分析のまま維持する。今回の読み取り監査をブラウザ/Nativeの実行PASSや視覚正本一致とは扱わない。
@@ -71,7 +74,6 @@
 - `SCREEN-REVIEWS-EDITOR-S-published`：reviews BR/AC、CustomerReviewUseCases.getEligibility/update→DexieReviewRepository→Web CustomerReviewContent、reviewable-orders Seed（初期guest・regular本人ログイン後、既存published 6件/未投稿3件）を照合。既存レビューの値・PUBLISHED表示・更新/削除・expectedVersion、未投稿/deletedとの対照を定義。既存component/integrationソースは監査したが実画面・正本比較は未実施。
 - [Web CI 41138483817](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41138483817) は前HEADでcompleted/failure。Style Quality実ログは製品Native画面と学習用contractのPrettier違反。その他のCode Quality/contract/integration/component/required E2Eは成功。製品Nativeは変更禁止につき未修正。学習用contractのformatterは新HEAD CIで再検証する。[Mobile CI 41138483798](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41138483798) はsuccess。
 - 過去のPR内製品変更は保持。公開Template/Private 2-core Codespaces/OpenCode実モデル校正、全機能の漏れ・重複の最終確定、全マージ前受入条件は未完了。
-
 
 ## 2026-10-31 大量商品ページング・管理画面モバイル警告の状態監査（SUT変更なし）
 
@@ -298,7 +300,6 @@ Webの`CheckoutPaymentContent`とNativeの`NativeCheckoutPaymentScreen`では、
 上記は読み取り監査による問題候補であり、実ブラウザ/Android実機での再現、CI結果、影響範囲の最終判定は未完了。製品の修正はせず、必要なら別Issue/別PRへ切り出す判断を求める。
 
 **基本分析46/188件（24.47%）、未分析142件、非default状態条件17/20件未レビュー。** 残り全件の分析と、学習用Template→2コアCodespaces→OpenCode校正等の受入は継続する。
-
 
 ## 注文確認の明細・金額・Cart競合・修正導線の監査（2026-10-31）
 
