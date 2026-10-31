@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- |
 | P0 | 学習用contract/Prettier/契約期待値 | **完了（現HEADで検証済み）** | [Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)（`64674dda`）でVitest contracts、Training runtime contracts、Style QualityのFormat checkは成功。Style Qualityの失敗は後段Markdown lintのみ | 新たな学習用contract失敗が発生した場合のみ再開 |
 | P0 | 製品NativeのPrettier書式 | **完了（承認済み書式変更・現HEADで検証済み）** | `src/presentation/native/native-purchase-screens.tsx`の既承認の書式修正が反映され、[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)のFormat checkを通過。機能変更の新規承認ではない | 再発時は製品SUT変更境界を守って切り分け |
-| P0 | Markdown lint（学習用Plan/調査レポート） | **修正中・CI検証待ち** | [Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)で全14件：PlanのMD012が7件、レポートのMD012が4件・MD034が1件。対象は学習用文書なので本PRで修正可能 | 余剰空行とメール表記を修正し新HEADのMarkdown lintを確認 |
+| P0 | Markdown lint（学習用Plan/調査レポート） | **完了（実CIで学習用12件解消）** | [Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)（HEAD `75ef0472`）の実ログは全571 Markdown中、**正式仕様1ファイルの2件のみ**。Plan MD012×7とレポートMD012×4/MD034×1は解消 | 新たな学習用Markdown lintが再発した場合のみ再開 |
 | P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | 同CIで`docs/spec/features/checkout-and-payment.md:279-280`にMD032/MD022の2件。正式仕様は読み取り専用SUTであり本PR内で無断変更しない | 修正範囲と書式のみの影響を報告し、明示承認があれば別途実施 |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **59/188操作分析済み・残り129**、188は暫定分母。Web/Nativeのページネーション・検索0件の親操作2件を仕様・Use Case・Dexie・Seedと照合。実地E2E/視覚は未実施 | 次は残る129件をリスク順に個別監査、分母再検証。仕様差がある状態2件は未分析を維持 |
@@ -21,7 +21,7 @@
 
 **2026-10-31 14時台のHome商品監査**：`SCREEN-STOREFRONT-HOME-A01-03/A01-04`を正式BR/AC、`CatalogUseCases.getHome`、Dexie/Native SQLiteの公開・ランク・時刻判定、Web/Nativeセクション分割、default/expired-sale Seedと既存契約テストに照合し静的基本分析済み。**59/188、残り129、状態18/20**。ホームのカテゴリーはWebで0件非表示/最大6件、Nativeで0件を含む全active表示という差を検出し、`A01-02`は未分析のまま。実ブラウザ/Android/視覚受入未実施。最新HEADのCIは別途判定。
 
-**最新CI（HEAD `64674dda`）**：[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)はStyle QualityのMarkdown lint 14件（学習用12、正式仕様2）のためFAIL。Format check、Vitest contracts、Training runtime、unit/integration/repository/component、主要Chromium E2Eは成功。`verify`/`validate`はStyle失敗に連動してFAIL。Mobile CI 41174095704は確認時pending。学習用Markdownのみ修正し、正式仕様は承認待ちとする。
+**最新の検証（HEAD `75ef0472`）**：[Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)のStyle Quality実ログで、Markdown lintは**正式製品仕様`checkout-and-payment.md:279-280`のMD032/MD022計2件だけ**。学習用Plan/レポートの計12件は解消済み。旧HEAD `64674dda`のWeb CI 41174095705はMarkdown lint 14件（学習用12、正式仕様2）でFAIL、Format check、Vitest contracts、Training runtime、unit/integration/repository/component、主要Chromium E2EはPASS。正式仕様は書式のみでも承認待ち。新commitのCIは別途確認する。
 
 **状態の意味**：分析済みは静的な証拠付き基本分析であり、実行E2E・Native・視覚・Template・正式AI評価のPASSを意味しない。CIの偶発障害、学習用修正可能項目、製品承認待ち、外部サービス受入は別に扱う。履歴はGit commitと本Planの既存節、個別証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に保持する。ユーザー承認のない製品改修・merge/force push/branch削除/Issue・PR close/release/tagは禁止。
 
