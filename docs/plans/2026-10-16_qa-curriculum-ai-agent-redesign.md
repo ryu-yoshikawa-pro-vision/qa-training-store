@@ -4,16 +4,18 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用contract/Prettier/契約期待値 | **検証待ち（現HEADの契約未確認）** | [Web CI 41185258860](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41185258860)（`9c99ebaf`）でVitest contracts、Training runtime contracts、Code Quality、主要E2EとFormat checkは成功。Style Qualityは正式仕様Markdown lintのみ失敗 | 新たな学習用contract失敗が発生した場合のみ再開 |
+| P0 | 学習用contract/Prettier/契約期待値 | **前HEAD検証済み・新HEAD検証待ち** | [Web CI 41187424065](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41187424065)（`499b4d33`）でVitest contracts、Training runtime、Code Quality、主要E2E、Prettierが成功。Style Qualityは正式仕様Markdown lintのみ失敗。新規学習用contractの追加分は新HEADで再検証 | 新HEADの契約/Formatを確認し、学習用再発時のみ本PRで修正 |
 | P0 | 製品NativeのPrettier書式 | **完了（承認済み書式変更・現HEADで検証済み）** | `src/presentation/native/native-purchase-screens.tsx`の既承認の書式修正が反映され、[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)のFormat checkを通過。機能変更の新規承認ではない | 再発時は製品SUT変更境界を守って切り分け |
 | P0 | Markdown lint（学習用Plan/調査レポート） | **完了（実CIで学習用12件解消）** | [Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)（HEAD `75ef0472`）の実ログは全571 Markdown中、**正式仕様1ファイルの2件のみ**。Plan MD012×7とレポートMD012×4/MD034×1は解消 | 新たな学習用Markdown lintが再発した場合のみ再開 |
-| P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | 同CIで`docs/spec/features/checkout-and-payment.md:279-280`にMD032/MD022の2件。正式仕様は読み取り専用SUTであり本PR内で無断変更しない | 修正範囲と書式のみの影響を報告し、明示承認があれば別途実施 |
+| P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | [Web CI 41187424065](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41187424065)のStyle Quality実ログで`docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022の2件のみ。製品SUTは読み取り専用 | 修正範囲と影響を報告済み。明示承認までは正式仕様に触れない |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
-| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **67/188操作分析済み・残り121**、188は暫定分母。今回の商品一覧購入導線はWeb/Nativeの詳細遷移と直接購入を区別。商品詳細の在庫/購入上限も既存Seedで静的照合。実地E2E/視覚は未実施 | 残り121件をリスク順に個別監査。13バリエーションのWeb/Native表示差とHome会員特典のNative表示範囲は未決として別調査 |
+| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **68/188操作分析済み・残り120**、状態18/20、188は暫定分母。Home公開商品をguest/会員ランク/公開状態/active SKU/在庫0で静的照合。実ブラウザ/Android/視覚受入は未実施。詳細は[調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md) | 残り120件をリスク順に個別監査。Homeカテゴリー/会員特典、13 SKUのWeb/Native差、状態2件は未決として分離 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
 | P1 | M00〜M10教材・実践・正式評価・Skill連携 | 進行中・実地受入待ち | [評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)と[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の全マージ前条件。過去の自動/契約PASSを維持し、実地未実施を区別 | 51目標/11モジュールの証拠・演習/評価/配布・非回帰を精査 |
 | P2 | 過去PR混在製品差分・製品不整合候補 | 進行中（修正は禁止） | [調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)の既存製品実装9/正式仕様1/製品テスト9パス一次仕分け、商品一覧empty/在庫分類/ページング/out-of-stock等の未決候補。承認なくrevert/Issue化しない | 再現条件・重大度・教材影響・修正要否を記録し判断を提案 |
+
+**2026-10-31 Home公開商品監査**：`SCREEN-STOREFRONT-HOME-A01-01`を正式BR/AC、Use Case→Web Dexie/Native SQLite→Home UI、default Seedの公開/会員ランク/active SKU/在庫0実値と照合し、静的基本分析済みへ更新。**68/188（36.17%、残り120）、状態18/20（残り2）**、分母暫定。前HEAD `499b4d33`のWeb CI 41187424065は正式仕様Markdown lint MD032/MD022のみ失敗、Vitest contracts/Training runtime/主要E2E成功。Mobile CI 41187424030は確認時実行中。新HEADのCIは未検証。SUT変更なし。詳細証拠は調査レポートと台帳。
 
 **2026-10-31 18時台の商品一覧購入導線監査**：`SCREEN-STOREFRONT-PRODUCT-LIST-A02-02`を正式BR/AC、`CatalogUseCases.search/getProductDetail`、Web Dexie/Native SQLiteの公開/rank条件、Web画像/商品名LinkとNativeカードLink、既存default/gold/platinum/empty/many-products Seedの実値と照合。**直接購入ではなく詳細画面への入口**と確定し、在庫0の詳細閲覧とCart追加可否を分離。基本分析**67/188（35.64%、残り121）**、非default状態**18/20（残り2）**、分母は暫定。前HEAD `9c99ebafd9f3`のWeb CI 41185258860は正式仕様Markdown lintのみ失敗、Vitest contracts/主要E2E成功。Mobile CI 41185258865はAndroid Runtime/Maestro/iOS成功。新HEADのCIは未確認。SUTは変更していない。詳細証拠は調査レポートと台帳。
 
