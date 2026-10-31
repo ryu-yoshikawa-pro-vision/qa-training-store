@@ -10,7 +10,7 @@ PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが
 
 ## 現在の全機能分析（最新台帳参照）
 
-`SCREEN-STOREFRONT-CART-A02-03`のカート明細削除を、正式BR/AC・所有者/Version・Web Dexie/Native SQLite・既存default/invalid-items Seedと照合して静的基本分析済み。**70/188操作（残り118）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
+`SCREEN-STOREFRONT-CATEGORY-A01-01`のカテゴリー商品一覧を、正式BR/AC・Web/Nativeの閲覧者別絞込・4カテゴリーの既存Seed実値と照合して静的基本分析済み。Nativeの固定カテゴリー見出しと正式UI契約との差は製品改善レポートで未確認管理。**71/188操作（残り117）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
 
 ## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
 

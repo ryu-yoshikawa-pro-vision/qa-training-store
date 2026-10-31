@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 70,
-      requires_review: 118,
+      basically_analyzed: 71,
+      requires_review: 117,
       classified_rate: 100,
-      basic_analysis_rate: 37.23,
+      basic_analysis_rate: 37.77,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -63,6 +63,28 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
         "src/presentation/pages/cart-page.tsx",
         "src/presentation/native/native-screens.tsx",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
+  });
+
+  it("audits category isolation and documents Native category-heading divergence", () => {
+    const item = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-CATEGORY-A01-01");
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toEqual(
+      expect.arrayContaining(["CatalogUseCases.search", "CatalogUseCases.getCategoryName"]),
+    );
+    expect(item?.test_condition).toContain("P-0007");
+    expect(item?.test_condition).toContain("P-0003");
+    expect(item?.test_condition).toContain("P-0006");
+    expect(item?.basic_analysis_review).toContain("カテゴリの商品");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/presentation/pages/catalog-list-page.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
         "src/seeds/default-dataset.ts",
       ]),
     );

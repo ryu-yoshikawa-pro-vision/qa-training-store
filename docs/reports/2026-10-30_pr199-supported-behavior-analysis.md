@@ -6,6 +6,12 @@
 
 `analysis_status=analyzed`は基本分析の成立であり製品の仕様適合PASSではない。製品不適合が確認されても、必要な分析・根拠を揃えれば基本分析は成立し得る。期待仕様や証拠が未確定の項目を分析済みにせず、製品適合の不適合・未確認は改善候補側に分離して記録する。
 
+## 2026-10-31 カテゴリー一覧の公開/rank境界とNative見出し差を静的基本分析（SUT変更なし）
+
+- **対象**：`SCREEN-STOREFRONT-CATEGORY-A01-01`。正式`storefront.md:9-18/175-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`を基準に、Web/Nativeの`/categories/[categoryId]`→`CatalogListPage`/`NativeCatalogScreen`→`CatalogUseCases.search`→Dexie/SQLiteの`categoryIds`フィルター・閲覧者別候補・20件/pageを照合。Webは`getCategoryName`で実名を見出し表示、不明IDはnot-found。Nativeは商品検索/絞込は行うがheadingが固定「カテゴリの商品」で、正式default状態のカテゴリー名表示との差を確認。
+- **既存Seedの実値**：default guestではファッション=`P-0001`のみ（unpublished `P-0007`除外）、ホーム・キッチン=`P-0002/P-0005`（draft `P-0008`除外）、スポーツ=`P-0006/P-0011`（gold `P-0003`除外）、バッグ・小物=`P-0010`（platinum `P-0004`/discontinued `P-0009`除外）。gold/platinum既存SeedでP-0003/P-0004の閲覧境界を比較。在庫0のP-0006は閲覧可。empty-catalogはカテゴリー自体が空なので、存在するカテゴリーの0商品Caseには流用しない。新Seed不要。
+- **判定**：操作1件を`analyzed`とし**基本分析71/188（37.77%、残り117）**、状態条件**18/20（残り2）**。これは静的基本分析のみ。Nativeのカテゴリー名差は製品適合未確認の改善候補として別レポートへ記録し、実Android・Web視覚正本/不明IDのRunは未実施。正式仕様・製品コード・Seed・既存製品テストは変更しない。
+
 ## 2026-10-31 カート明細削除の所有者・version・空状態を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-CART-A02-03`。正式`cart.md:7-44/75-93`（BR-CART-001/003、AC-CART-001/003）と`roles-and-permissions.md:5-16`を基準に、`CartUseCases.removeItem:195-217`→Dexie `deleteItemAndTouchCart:255-277` / Native SQLite `deleteItemAndTouchCart:1345-1378`→Web `CartContent:180-218` / Native `NativeCartScreen:790-899`を照合。両UIはcart/item versionを送信し、所有者・item所属・versionを検証して削除、更新後DTOから残明細と合計を表示する。Webの数量0経由削除とは別の明示ボタン操作。
