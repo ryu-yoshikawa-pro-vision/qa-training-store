@@ -758,19 +758,19 @@
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: 公開商品の一覧を表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / gold-member / empty-catalog / many-products（Web/Android guest/customer、staff Webはguest閲覧相当）",
+      "data": "default Seed: publishedでランク制限なしのproduct-basic-shirt(P-0001)/product-mug(P-0002)、在庫0だがpublishedのproduct-out-of-stock(P-0006)を表示候補。guestではgoldのproduct-running-shoes(P-0003)、platinumのproduct-premium-bag(P-0004)、unpublished/draft/discontinuedのP-0007/8/9を除外。gold-memberでは許可範囲が増加。empty-catalogで0件、many-productsで1000公開商品/20件×50ページ",
       "action": "公開商品の一覧を表示",
-      "expected": "公開条件と閲覧ランクを満たす商品だけが一覧へ表示される",
+      "expected": "CatalogUseCases.searchはviewer/nowとpageSize=20をDexie ProductQueryRepositoryまたはNative CustomerCatalogGateway→SQLiteへ渡す。published・requiredRank・active SKUを満たす商品だけをProductListItemへ変換し、Web /productsは商品カードと合計件数、Nativeはnative-product-card-{productId}と合計件数を描画。公開かつ在庫0は一覧から排除しない。empty-catalogのWeb戻るCTA欠落は別状態S-emptyの未解決仕様差であり本操作のPASSに含めない",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開商品の一覧を表示の前後で、公開条件と閲覧ランクを満たす商品だけが一覧へ表示されることを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "公開商品の一覧を表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "公開商品の一覧を表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "非公開・会員ランク制限商品漏出、在庫0の誤除外、Web/Native候補集合の不一致、検索結果と表示件数のずれ、空状態CTAの誤PASS",
+      "test_condition": "default Reset→guest Web /productsとNative一覧でP-0001/P-0002/P-0006を確認し、P-0003/4/7/8/9の非表示を照合。regular/gold/platinum閲覧集合、active SKUなしの商品除外、商品カードIDとtotal、many-productsの先頭/末尾20件とページ数50、empty-catalogの0件を代表Caseにする。S-emptyの戻るCTAは仕様差未解決として別判定。実Web/Android/視覚のRun証拠は未取得",
+      "test_responsibility": "BR-STOREFRONT-001の公開・rank条件をCatalogUseCases.search→Dexie/Native SQLite buildCandidates→Web/Nativeカードの集合・totalまで追跡。ページング/ファセット/ソートとemptyの復旧CTAは独立操作/状態に分離",
+      "case_policy": "guest/regular/gold/platinum、公開/未公開/draft/discontinued、active SKU有無、公開在庫0、default/empty/many-productsを採用。検索/フィルター/ページ操作とempty CTAは別Case群",
+      "case_selection_reason": "アクセス制御漏洩を最優先に、表示集合の公開/会員rank境界・在庫0・件数の代表条件を既存Seedで固定できるため。実機・視覚正本の受入は未実施",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-17/63-74、permissions.ts:11-31、CatalogUseCases.search:86-93、Dexie storefront-repositories.ts:101-127/249-334、Native SQLite native-customer-repositories.ts:184-210/260-290とgateway、Web CatalogListContent:111-160/430-539、Native NativeCatalogScreen:119-289、default-dataset.ts:67-208、既存default/empty/many-products Seedを静的照合。empty CTA差は未決、実E2E/Native/視覚受入は未PASS",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -789,7 +789,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"
       ],
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "公開・ランク・active SKU・0在庫をWeb/Native Use Case→Repository→UIとSeed実値に照合した静的基本分析。空状態の仕様差と実行受入は別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -819,6 +819,91 @@
           "path": "src/application/use-cases/catalog-use-cases.ts",
           "line": 86,
           "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 17,
+          "reason": "公開条件/ランク/ファセットの正式BR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "商品一覧とempty状態の正式契約"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 11,
+          "end_line": 31,
+          "reason": "publishedと会員rankの閲覧可否"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "viewer/clockをWeb RepositoryまたはNative Gatewayへ渡す"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "Web候補絞り込み・合計・ページング"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 334,
+          "reason": "published/rank/active SKU候補と商品DTO"
+        },
+        {
+          "path": "src/application/native/guest-storefront.ts",
+          "start_line": 55,
+          "end_line": 79,
+          "reason": "Native Catalog gatewayの認可とRepositoryへの委譲"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 184,
+          "end_line": 210,
+          "reason": "Native候補のソート・同順位順"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 260,
+          "end_line": 290,
+          "reason": "Native検索候補・合計件数・ページ分割"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 111,
+          "end_line": 160,
+          "reason": "Web検索入力とUse Case呼出し"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 430,
+          "end_line": 539,
+          "reason": "Webカード・件数・空状態とCTA分岐"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 289,
+          "reason": "Native検索とカード/0件表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 208,
+          "reason": "公開/ランク制限/非公開/在庫0の固定商品"
         }
       ]
     },
@@ -1492,19 +1577,19 @@
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: 画像を表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / out-of-stock / platinum-member（guest/regular/gold/platinumの閲覧差、Web/Android）",
+      "data": "default Seed: product-basic-shirt(P-0001)は主画像asset-shirt-frontと背面asset-shirt-back（sortOrder10/20、altText付き）、product-mug(P-0002)は主画像1件。product-out-of-stock(P-0006)は在庫0でも公開画像の対象。gold必須P-0003、platinum必須P-0004、非公開P-0007/8/9を閲覧拒否の反例にする。画像assetが見つからない場合はplaceholder.svgを使う",
       "action": "画像を表示",
-      "expected": "対象商品に関連付いた画像だけが代替テキスト付きで表示され、他商品の画像を混ぜない",
+      "expected": "CatalogUseCases.getProductDetail(productId)が公開/requiredRank/active SKUを満たす商品の画像のみ返す。Web Dexie getDetailはproductIdに紐付く画像をsortOrder順に返し、Webはprimary（なければ先頭）をaltText付きで表示、2件以上ならサムネイル選択と拡大Dialogを提供。Native SQLiteは同一productIdのimagesを返すが画面はprimaryImageのみをaltText付き表示し、Webのギャラリー操作はNative必須としない。非公開/ランク不足/存在しないIDの画像を表示しない",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "画像を表示の前後で、対象商品に関連付いた画像だけが代替テキスト付きで表示され、他商品の画像を混ぜないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "画像を表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "画像を表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "他商品の画像・非公開画像の露出、主画像とサムネイルのID混同、altText欠落、asset欠損で画面が壊れる、Web/Native差の誤った同一視",
+      "test_condition": "default ResetでguestのP-0001をWeb /products/product-basic-shirtとNative詳細で開き、Web主画像front/背面backの切替・拡大/閉じる・altText・sortOrderとNative主画像frontのID/altTextを照合。P-0002単一画像ではサムネイルなし、P-0006は在庫0でも画像を表示。guestのP-0003/4とP-0007/8/9は画像非表示/拒否、gold/platinumで閲覧可否を対照。存在しないIDはnot-found。実Webクリック/Android/視覚は未実施",
+      "test_responsibility": "getProductDetail→Dexie getDetail/Native SQLite getProductDetailのproductId・images/primaryImage・assetSnapshotをWeb galleryとNativeProductImageまで追跡。画像の表示を価格・在庫・購入操作の成否から独立判定",
+      "case_policy": "2画像/1画像/在庫0/画像asset欠損、guest/会員rank/非公開/未知ID、Webサムネイル・Dialog/Native主画像を採用。Nativeギャラリー未実装は要件外として区別",
+      "case_selection_reason": "同一productIdへの画像紐付けと非許可データの露出防止を、既存Seedの2画像Tシャツ・単一画像マグ・在庫0・rank制限で再現できるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-22/104-116、CatalogUseCases.getProductDetail:108-126、Dexie storefront-repositories.ts:185-246/249-315、Native SQLite native-customer-repositories.ts:337-405、Web ProductDetailView:62-143、Native NativeProductDetailScreen:586-650、default-dataset.ts:67-208/335-357を照合。Web画像ギャラリーとNative主画像のみの差を明示。実E2E/Native/視覚受入は未PASS",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1520,7 +1605,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "商品ID・主/副画像・altText・公開/rank境界をWeb/Native Use Case→Repository→UI・Seedと照合した静的基本分析。画像切替実行と視覚正本は別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -1552,6 +1637,79 @@
           "path": "src/application/use-cases/catalog-use-cases.ts",
           "line": 108,
           "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "公開閲覧条件・商品詳細のBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 104,
+          "end_line": 116,
+          "reason": "商品詳細画像・状態の正式契約"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "IDとviewerによる詳細取得・拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 185,
+          "end_line": 246,
+          "reason": "Web画像をproductIdで取得しsortOrder順・altTextを返す"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 315,
+          "reason": "公開/rank/active SKUの候補制御"
+        },
+        {
+          "path": "src/application/native/guest-storefront.ts",
+          "start_line": 67,
+          "end_line": 83,
+          "reason": "Native gatewayの詳細取得委譲"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 337,
+          "end_line": 405,
+          "reason": "Native画像・閲覧許可・altText/assetSnapshot"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 62,
+          "end_line": 143,
+          "reason": "Web主画像・サムネイル・DialogとaltText"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 650,
+          "reason": "Native詳細のproductId・primaryImage表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 208,
+          "reason": "公開/会員rank/非公開/在庫0商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 335,
+          "end_line": 357,
+          "reason": "Tシャツ主画像/背面画像とaltTextの固定Seed"
         }
       ]
     },
