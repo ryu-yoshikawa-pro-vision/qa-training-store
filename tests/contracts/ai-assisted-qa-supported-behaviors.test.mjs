@@ -605,7 +605,12 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(8);
     }
     const category = data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-HOME-A01-02");
-    expect(category?.analysis_status).toBe("review_required");
+    expect(category?.analysis_status).toBe("analyzed");
+    expect(category?.related_use_cases).toContain("CatalogUseCases.getHome");
+    expect(category?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(category?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(category?.audit_branch_refs?.length).toBeGreaterThan(10);
+    expect(category?.case_selection_reason).toContain("未決");
   });
 
   it("audits catalog visibility and product images across Web and Native", () => {
