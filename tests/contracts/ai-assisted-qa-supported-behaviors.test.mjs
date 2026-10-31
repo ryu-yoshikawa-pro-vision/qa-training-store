@@ -166,8 +166,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")
-        ?.analysis_status,
+      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")?.analysis_status,
     ).toBe("review_required");
   });
 
@@ -348,8 +347,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.test_condition).toContain("1000");
     expect(state?.test_condition).toContain("50");
     expect(
-      data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCTS-A01-02")
-        ?.analysis_status,
+      data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCTS-A01-02")?.analysis_status,
     ).toBe("review_required");
   });
 
@@ -395,7 +393,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
   it("audits Web login validation without certifying the parent login action", () => {
     const state = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-S-validation-error");
     expect(state?.analysis_status).toBe("analyzed");
-    expect(state?.platform).toBe("web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）");
+    expect(state?.platform).toBe(
+      "web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）",
+    );
     expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(state?.related_use_cases).toContain("AuthUseCases.login");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
@@ -467,7 +467,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
 
   it("rejects a missing split action even when its source line has remaining actions", () => {
     const changed = mutated((next) => {
-      next.behaviors.splice(next.behaviors.findIndex((item) => item.kind === "action"), 1);
+      next.behaviors.splice(
+        next.behaviors.findIndex((item) => item.kind === "action"),
+        1,
+      );
     });
     expect(() => validateCoverage({ root, data: changed })).toThrow(/unclassified action subcases/);
   });
@@ -531,15 +534,5 @@ describe("サポート機能の仕様と実装の追跡", () => {
       item.role = "platform_rolesを参照";
     });
     expect(() => validateCoverage({ root, data: role })).toThrow(/missing platform-specific role/);
-  });
-
-  it("temporary PR199 learning-only Prettier diagnostic", async () => {
-    const prettier = await import("prettier");
-    const target = path.join(root, "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs");
-    const formatted = await prettier.format(fs.readFileSync(target, "utf8"), {
-      ...(await prettier.resolveConfig(target)),
-      filepath: target,
-    });
-    console.log("PR199_FORMATTED_JSON=" + JSON.stringify(formatted));
   });
 });
