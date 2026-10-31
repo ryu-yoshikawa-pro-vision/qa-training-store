@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 71,
-      requires_review: 117,
+      basically_analyzed: 72,
+      requires_review: 116,
       classified_rate: 100,
-      basic_analysis_rate: 37.77,
+      basic_analysis_rate: 38.3,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -81,6 +81,27 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
       expect.arrayContaining([
+        "src/presentation/pages/catalog-list-page.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
+  });
+
+  it("audits category visibility exclusions across Web and Native without asserting runtime PASS", () => {
+    const item = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-CATEGORY-A02-01");
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(item?.test_condition).toContain("P-0007");
+    expect(item?.test_condition).toContain("P-0003");
+    expect(item?.test_condition).toContain("P-0006");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.basic_analysis_review).toContain("実Web/Android/視覚");
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/domain/policies/permissions.ts",
         "src/presentation/pages/catalog-list-page.tsx",
         "src/presentation/native/native-screens.tsx",
         "src/infrastructure/database/dexie/storefront-repositories.ts",
