@@ -4953,28 +4953,31 @@
       "source_line": 28,
       "source_text": "ログインの拒否理由は利用者向け文言で表示し、安全な内部リダイレクト先のみを採用して遷移する。",
       "platform": "web,android",
-      "role": "Guest",
+      "role": "guestからの認証成功：customer（regular/gold/platinum）、operator/admin。停止・退会・不正資格は認証拒否",
       "scenario": "default",
-      "data": "対象Seed/条件: default,suspended-user,withdrawn-user。操作: 安全な内部リダイレクト。正常・不許可・変化前後の入力を区別する",
+      "data": "default Seedのactive regular@example.com、operator/admin、suspended@example.com、withdrawn@example.comを対照。returnToは/ cart相当ではなく正確な/cart、/checkout/address、/checkout/payment、/checkout/confirmのみ許可。checkout段階の有効/失効は既存Checkout Use Caseで作成し、追加Seedなし",
       "action": "安全な内部リダイレクト",
-      "expected": "認証成功後の遷移先は内部の許可されたパスだけとし、外部URL・禁止ルートへ飛ばない",
+      "expected": "認証成功customerは4件の完全一致allowlist内部パスだけへ遷移。未指定/外部URL/管理ルート/親参照/クエリ/ハッシュ/バックスラッシュ/不正percent encoding/複数returnToは/へfallback。payment/confirmは本人Checkoutの有効Stepのみ許可し、期限切れ・未完・Cart version変化は/checkout/address。Web operator/adminは/admin、Native非customerは/。認証拒否や予期しないCheckout読取障害では遷移しない",
       "rule_refs": [],
       "route": "`/login`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "安全な内部リダイレクトに対して、認証成功後の遷移先は内部の許可されたパスだけとし、外部URL・禁止ルートへ飛ばないことをUI/業務状態で照合する",
-      "test_responsibility": "安全な内部リダイレクトのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "安全な内部リダイレクトの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "外部open redirect（High）、管理画面への権限越境（High）、失効Checkoutへの不正復帰と誤注文（Medium）、例外握り潰しによる誤遷移（Medium）",
+      "test_condition": "default guest→active customerで/cartと/checkout/addressへ遷移、既存有効Checkoutで/paymentと/confirmへ復帰。/admin、//evil.example、https://evil.example、/cart/../admin、/cart?next=、/cart#hash、backslash、invalid encoding、重複returnTo配列、二重encodeを拒否して/。Checkout未完/失効/Cart version差は/address、STORAGE_READ_FAILEDは遷移せずエラー表示。operator/adminはWeb /admin・Native /。停止/退会/不正資格はセッション非生成（拒否理由のUI検証はA02-01別操作）。実ブラウザ/Androidと全分岐実Runは別受入",
+      "test_responsibility": "authentication.md BR-AUTH-001/002・AC-AUTH-001/002→Web LoginPage/NativeLoginScreen→AuthUseCases.login→Web Dexie/Native SQLite Session/User→共通parseCustomerReturnPath/resolveCustomerLoginDestination→CheckoutOrderUseCases.getActive→router.replaceをRole/State/Data別に静的追跡。単体/既存componentの実証範囲と未実行E2Eを区別",
+      "case_policy": "allowlist4正常、外部・管理・相対・encode・多重パラメータの拒否、customerとoperator/admin、Checkout有効/未完/失効/version差、予期しないStorage障害を独立Case採用。認証失敗文言・Session不変はA02-01へ分離",
+      "case_selection_reason": "open redirect/権限越境と失効Checkoutの誤復帰を防ぐため、パーサの完全一致許可とRole分岐、Checkout Stepの実状態を独立検証。Web/Nativeの同一共通関数利用とPlatform別staff遷移を区別し、二重計上しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:9-28/116-126、return-to.ts:3-64のallowlistとdecode/拒否条件、auth-pages.tsx:53-58/101-177の複数returnToとWeb Role分岐、native-purchase-screens.tsx:156-193のNative分岐、AuthUseCases.login:52-110、CheckoutOrderUseCases.getActive:141-、default-dataset.ts/metadata.tsのactive/staff/suspended/withdrawn、既存unit ui-ux-flow-contracts.test.ts:21-36、Web component auth-account-pages.test.tsx:182-238、Native component native-purchase-screens.test.tsx:167-219を静的照合。unitは一部の許可/拒否とaddress fallback、componentはstorage障害とstep fallback/Native roleを確認。全無効値・実Web/Android E2E/実セッションのPASSは未主張。A02-01拒否文言はreview_required",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AuthUseCases.login",
+        "CheckoutOrderUseCases.getActive"
+      ],
+      "analysis_progress": "A02-02安全な内部リダイレクトはBR/AC・Web/Native共通parser・Checkout Step・Role/Seed・既存unit/componentを証拠付き静的基本分析済み。実Runと製品適合は別受入。A02-01のエラー文言/Session実証は未完",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 101,
@@ -4997,7 +5000,115 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.login",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 52,
+          "signature": "async login(request: LoginRequest): Promise<LoginResult> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.getActive",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 141,
+          "signature": "async getActive(requiredStep: CheckoutStep = \"address\"): Promise<CheckoutSession> {"
+        }
+      ],
+      "platform_roles": {
+        "web": "guest→active customerは許可された購入パスのみ、operator/adminは/admin、認証拒否は遷移なし",
+        "android": "guest→active customerは共通allowlistの購入パスのみ、operator/adminはNative管理対象外で/、認証拒否は遷移なし"
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 28,
+          "reason": "BR-AUTH-001/002と安全な内部遷移契約"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 116,
+          "end_line": 126,
+          "reason": "AC-AUTH-001/002とRole境界"
+        },
+        {
+          "path": "src/presentation/return-to.ts",
+          "start_line": 3,
+          "end_line": 64,
+          "reason": "4パス許可リスト・入力拒否・Checkout step fallback"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 53,
+          "end_line": 58,
+          "reason": "WebのreturnTo多重値検出"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 177,
+          "reason": "Web認証後のRole別遷移とCheckout障害処理"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 156,
+          "end_line": 193,
+          "reason": "Native共通parser利用とstaff拒否・例外時非遷移"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 110,
+          "reason": "資格・アカウント状態確認とSession生成"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 141,
+          "end_line": 172,
+          "reason": "本人Checkout Stepの取得"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default guest/固定アカウント初期状態"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 185,
+          "end_line": 207,
+          "reason": "停止・退会の固定シナリオ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 680,
+          "end_line": 790,
+          "reason": "固定アカウントRole/StatusとCheckout Seed"
+        },
+        {
+          "path": "tests/unit/ui-ux-flow-contracts.test.ts",
+          "start_line": 21,
+          "end_line": 36,
+          "reason": "許可・拒否・encode・多重値とfallbackの既存unit"
+        },
+        {
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "start_line": 182,
+          "end_line": 238,
+          "reason": "Web Checkout障害・失効時遷移の既存component"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 167,
+          "end_line": 219,
+          "reason": "Native認証とStorage障害・管理Roleの既存component"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-LOGIN-S-validation-error",

@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 77,
-      requires_review: 111,
+      basically_analyzed: 78,
+      requires_review: 110,
       classified_rate: 100,
-      basic_analysis_rate: 40.96,
+      basic_analysis_rate: 41.49,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -618,6 +618,30 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01")?.analysis_status,
     ).toBe("review_required");
+  });
+
+  it("keeps login refusal separate from the evidence-backed safe returnTo analysis", () => {
+    const refusal = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01");
+    const redirect = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-02");
+    expect(refusal?.action).toBe("ログイン拒否理由の表示");
+    expect(refusal?.analysis_status).toBe("review_required");
+    expect(redirect?.action).toBe("安全な内部リダイレクト");
+    expect(redirect?.analysis_status).toBe("analyzed");
+    expect(redirect?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(redirect?.related_use_cases).toEqual(
+      expect.arrayContaining(["AuthUseCases.login", "CheckoutOrderUseCases.getActive"]),
+    );
+    expect(redirect?.test_condition).toContain("STORAGE_READ_FAILED");
+    expect(redirect?.test_condition).toContain("重複returnTo");
+    expect(redirect?.basic_analysis_review).toContain("実Web/Android E2E");
+    expect(redirect?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/presentation/return-to.ts",
+        "src/presentation/pages/auth-pages.tsx",
+        "src/presentation/native/native-purchase-screens.tsx",
+        "tests/unit/ui-ux-flow-contracts.test.ts",
+      ]),
+    );
   });
 
   it("audits Web login validation without certifying the parent login action", () => {
