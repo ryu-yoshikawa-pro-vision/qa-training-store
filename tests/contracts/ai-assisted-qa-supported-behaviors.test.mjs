@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 66,
-      requires_review: 122,
+      basically_analyzed: 67,
+      requires_review: 121,
       classified_rate: 100,
-      basic_analysis_rate: 35.11,
+      basic_analysis_rate: 35.64,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -394,6 +394,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(detailNavigation?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
     expect(detailNavigation?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(detailNavigation?.audit_branch_refs?.length).toBeGreaterThan(8);
+    const purchaseEntry = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-A02-02",
+    );
+    expect(purchaseEntry?.analysis_status).toBe("analyzed");
+    expect(purchaseEntry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(purchaseEntry?.related_use_cases).toEqual([
+      "CatalogUseCases.search",
+      "CatalogUseCases.getProductDetail",
+    ]);
+    expect(purchaseEntry?.audit_branch_refs?.length).toBeGreaterThan(10);
+    expect(purchaseEntry?.expected).toContain("直接購入ボタンではない");
+    expect(purchaseEntry?.test_condition).toContain("Native");
+    expect(purchaseEntry?.test_condition).toContain("P-0006");
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")?.analysis_status,
     ).toBe("review_required");
