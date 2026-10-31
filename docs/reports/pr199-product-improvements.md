@@ -39,7 +39,7 @@
 | `src/presentation/native/native-purchase-screens.tsx` | Native会員特典、Checkout再開/置換、決済方法復元、確認画面・注文番号 | **PR差分全13 hunkを静的監査済み**（下記）。既存製品テストとの整合は確認したが、実Mobile・変更由来・安全性/PR適合は未確定、処理方針保留 |
 | `src/presentation/native/native-screens.tsx` | 価格承諾操作の非価格問題時の禁止条件 | **追加1 hunkの静的監査済み。非価格問題を併発する場合に価格承諾ボタンを無効化。BR-CART-003と既存Repository拒否条件に整合するが、混在状態のNative実Run・変更由来・PR適合は未確認／処理方針保留** |
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | **PR差分全hunk・導入commit・仕様/Use Case/既存componentを静的監査済み**。実Web/Native・金額/本人認可・例外別復旧は未受入、処理方針保留 |
-| `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。実画面・表示解釈・PR適合性は未確定、処理方針保留** |
+| `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。製品用別PRへ分離する処理方針のみ決定（実行承認待ち）。実画面・表示解釈・製品受入は未確定** |
 | `docs/spec/features/checkout-and-payment.md` | 既存の仕様変更の妥当性（後続の空行修正とは区別） | **mainとの差分全体を静的監査済み**。配送先一覧の文言変更＋再開/支払/確認の意味を持つ23行追加。正式仕様の変更として妥当性・承認/PR整合は未決、処理方針保留 |
 | `tests/component/auth-account-pages.test.tsx` | 会員特典表示・住所emptyのcomponent証拠 | **追加2 hunkを静的監査済み。既存Web UI/価格計算・仕様と整合。製品用別PRへ分離する処理方針（実行は承認待ち）。実Native/視覚/認可E2Eは未受入** |
 | `tests/component/catalog-pages.test.tsx` | 在庫表示の境界値証拠 | **低在庫3/設定上限5の表示アサーションを確認。実画面と数量上限の独立証拠は未確認、処理方針保留** |
@@ -70,7 +70,7 @@
 
 - **由来・仕様**：[commit `744115a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/744115a994bbbbf988e5b6ca6a52908315662fb2)で`ProductDetailView`の上限案内条件を`stockQuantity > purchaseLimit`から「SKU選択済みかつ在庫が正数」へ変更。正式`BR-STOREFRONT-003`と`storefront.md`の`low-stock`状態は残在庫と購入上限の両表示を要求する。関連`tests/component/catalog-pages.test.tsx`の追加テストは在庫3・設定購入上限5で「残り3点」「1回の購入上限は5点です。」を確認する。
 - **実装・数量の意味**：`src/presentation/pages/product-detail-page.tsx:90-100/239-255`の数量選択上限は`Math.min(stockQuantity, purchaseLimit)`で3、案内に表示する`purchaseLimit`は設定値5。カートの`maximumCartQuantity`は在庫・設定上限・99の最小値を使用する。**案内の5点と実際の選択可能数3点は別概念**であり、表示が誤りと断定しない。ユーザーが5点購入可能と誤認するかは実画面/仕様解釈の追加確認が必要。
-- **実証・未決・処理方針**：[現HEADのWeb CI 41201740053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41201740053)でVitest component、contracts、`validate`成功。Web低在庫の実画面・視覚正本、在庫3で4点追加を拒否する独立E2E、Native表示との期待値統一は未受入。重大度Low〜MediumのUX解釈候補。教材は既存`low-stock`/default Seedで検証可能、追加Seed不要。**処理方針は判断保留**。既存SUT・正式仕様・製品テストは今回変更しない。
+- **実証・未決・処理方針**：[現HEADのWeb CI 41201740053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41201740053)でVitest component、contracts、`validate`成功。Web低在庫の実画面・視覚正本、在庫3で4点追加を拒否する独立E2E、Native表示との期待値統一は未受入。重大度Low〜MediumのUX解釈候補。教材は既存`low-stock`/default Seedで検証可能、追加Seed不要。**処理方針は「製品用別PRへ分離する」と決定（実行は明示承認待ち）**。`744115a`の製品UI 1 hunkと対応するcomponent 1 Caseは独立した在庫表示改善であり、PR #199の教材・全サポート動作分析を成立させるための必須変更ではない。認証/本人データ/金額計算/Repository/Seed/決済ロジックはこの2 hunkで変更せず、数量選択上限は既存の`Math.min(stockQuantity, purchaseLimit)`を維持する。現HEAD `bf29cbaec6270910d276108c2f4d84e3517173b6`の[Web CI 41239603805](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41239603805)ではVitest component、Style Quality、契約・統合、Chromium E2E、`verify`/`validate`を含む必須jobが成功（Extended E2E mobile-chromiumはskippedでPASS算入しない）。ただし低在庫の実画面/視覚正本、実Android/iOSと製品PRとしての回帰受入は未実証。**本回では方針を記録するだけで、revert・移設・別PR作成・製品変更を行わない。**
 
 ### 郵便番号住所候補の顧客ロール境界（実装1＋統合テスト一部）
 
