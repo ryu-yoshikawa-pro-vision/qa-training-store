@@ -21,8 +21,7 @@
 | 商品詳細の多SKU・out-of-stock導線（演習条件） | 13 SKUのWeb select/Native chips差。out-of-stock SeedのTシャツMのみ0だがWebは在庫ありSを初期選択。defaultに単一在庫0商品あり | 既存SeedとUI静的照合、実画面確認は別 | 製品修正せず既存単一SKU商品で代替可 | 真の不具合と単なるSeed選択差を分ける |
 | Nativeカテゴリー画面の実名見出し（仕様/UI差候補） | `storefront.md:175-191`はdefaultカテゴリー名表示を要求。Web `CatalogListPage:240-300`は`getCategoryName`で実名、Native `NativeCatalogScreen:119-205`は固定「カテゴリの商品」 | **静的差異確認**、Android実画面・視覚正本との照合未実施。適合判断未確定、重大度Low〜Medium候補 | 商品の絞込自体は成立するが、どのカテゴリーを閲覧中か分かりにくい。教材はWeb/Native比較のレビュー題材として使用可、製品修正は教材の基本分析に不要 | Native実画面と正式視覚正本を確認。製品コードは変更せず、必要なら承認後に製品用別PRを提案。既存Issue重複は検索語一致なし・最終確認待ち |
 | 検索対象範囲の解釈（仕様未決） | 実装は商品名/商品コード以外にカテゴリー・ブランド・SKUにも部分一致。正式な想定範囲は未確定 | 静的分析、実検索未受入 | 未確定の検索対象を仕様上の正解にしない | 正式仕様の対象範囲と実挙動を確認 |
-
-| Checkout配送先の郵便番号/電話の非数字除去（入力品質・仕様解釈） | `CheckoutOrderUseCases.validateAddress`は`replace(/\\D/g, "")`後に7桁/10〜11桁を判定。`100-0001`/`090-0000-0000`の正規化は追加統合テストで確認。数字以外の任意文字混入も除去され得るが、許容入力文字の正式境界は未確定 | 静的確認。任意文字混入の実入力・Web/Android・下位保存の独立実Runは未確認。製品不適合とは未判定 | 住所の誤入力受理・入力エラーの不一致が起こり得る。教材の正常/不正入力は既存Seedと正当なハイフン入力で成立 | 許容文字契約とWeb/Native UIの入力制約、負例（`abc1000001`等）を独立確認。製品改修せず判断保留 |
+| Checkout配送先の郵便番号/電話の非数字除去（入力品質・仕様解釈） | `CheckoutOrderUseCases.validateAddress`は`replace(/\D/g, "")`後に7桁/10〜11桁を判定。`100-0001`/`090-0000-0000`の正規化は追加統合テストで確認。数字以外の任意文字混入も除去され得るが、許容入力文字の正式境界は未確定 | 静的確認。任意文字混入の実入力・Web/Android・下位保存の独立実Runは未確認。製品不適合とは未判定 | 住所の誤入力受理・入力エラーの不一致が起こり得る。教材の正常/不正入力は既存Seedと正当なハイフン入力で成立 | 許容文字契約とWeb/Native UIの入力制約、負例（`abc1000001`等）を独立確認。製品改修せず判断保留 |
 
 この一覧は既存の分析記録からの整理であり、独立した実ブラウザ/Androidの再現証拠を新たに取得したことは意味しない。重大度と製品適合は各行の根拠・影響・実証に基づいて今後確定する。緊急性の高いセキュリティ/データ問題は発見した実行回で優先報告し、その他は定期実行で現在状態を報告する。
 
@@ -85,7 +84,7 @@
 - **対象・由来**：PR差分`src/application/use-cases/checkout-order-use-cases.ts`の`setAddress`、`setPayment`、`validateAddress`（当該ファイルのPR差分は2 hunk）と`tests/integration/checkout-order-use-cases.test.ts`の対応追加Caseを確認。変更を最初に導入したcommitの特定は未完了。統合テストにはSession再開/置換、stale Cart、注文直前再検証等の別意味単位も含まれるため、**テストファイル全体は部分監査**とする。
 - **正式要求と実装**：`docs/spec/features/checkout-and-payment.md`の`BR-CHECKOUT-001/002`、`AC-CHECKOUT-001/002`、同仕様の「支払方法選択と確認画面への遷移」、`BR-AUTH-002`を参照。`setAddress`は`requireCustomer`・本人Session照合の後、氏名/都道府県/市区町村/住所のtrim、郵便番号/電話の非数字除去、必須/長さ/桁数を検証し、正規化後SnapshotをRepositoryへ渡す。`setPayment`は4種の`PAYMENT_METHODS`以外を`VALIDATION`で拒否し、Repositoryへの更新前に停止する。PR差分内で本人ガードやCart version検証を取り除く変更はない。
 - **実テスト・CI証拠**：追加統合Caseは不正な決済コードを拒否して`version/unlockedStep/paymentMethodCode`不変、空欄/短い郵便番号/電話を拒否して`addressSnapshot/version`不変、`100-0001`と`090-0000-0000`の正規化保存を確認する。HEAD `cf8718dce6b913e18af940735c7367e5ef27f3d1`の[Web CI 41205964167](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41205964167)ではVitest integration/contracts、`validate`等の実jobが成功。ただしこの成功は各テストの単独実行ログやWeb/Android実画面の証拠ではない。
-- **未決・リスク**：`replace(/\\D/g, "")`はハイフン以外の非数字も除去するため、例えば`abc1000001`を`1000001`へ正規化し得る。これは静的に成立する入力品質の**仕様解釈候補**であり、正式許容文字・Web/Native UI入力制約・Repositoryの追加検証・実再現を確認するまで製品不適合とは判定しない。重大度Low〜Medium候補。決済の無効コード拒否は仕様と整合するが、直接Use Case呼出し以外の画面復旧・旧Session/並行更新・Native実Runは未受入。
+- **未決・リスク**：`replace(/\D/g, "")`はハイフン以外の非数字も除去するため、例えば`abc1000001`を`1000001`へ正規化し得る。これは静的に成立する入力品質の**仕様解釈候補**であり、正式許容文字・Web/Native UI入力制約・Repositoryの追加検証・実再現を確認するまで製品不適合とは判定しない。重大度Low〜Medium候補。決済の無効コード拒否は仕様と整合するが、直接Use Case呼出し以外の画面復旧・旧Session/並行更新・Native実Runは未受入。
 - **教材と処理方針**：正常な住所と不正入力、決済コード拒否の教材は既存default/regular-memberと統合テストで成立し、新Seedや製品修正を必須としない。**処理方針は判断保留**（変更由来、実UI/Native回帰、入力契約、PR目的との整合の証拠不足）。revert/分離/製品機能変更は明示承認まで行わない。
 
 ### 処理方針の決定規則
