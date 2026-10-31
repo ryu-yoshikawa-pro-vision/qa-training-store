@@ -15,27 +15,6 @@ const mutated = (edit) => {
 };
 
 describe("サポート機能の仕様と実装の追跡", () => {
-  it("temporarily reports exact formatter differences in CI", async () => {
-    if (!process.env.CI) return;
-    const prettier = await import("prettier");
-    const { spawnSync } = await import("node:child_process");
-    const file = path.join(root, "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs");
-    const formatted = await prettier.format(fs.readFileSync(file, "utf8"), {
-      ...(await prettier.resolveConfig(file)),
-      filepath: file,
-    });
-    const temporary = path.join(root, ".training-prettier-diagnostic.tmp");
-    try {
-      fs.writeFileSync(temporary, formatted);
-      const difference = spawnSync("diff", ["-u", file, temporary], { encoding: "utf8" });
-      console.log("TRAINING_PRETTIER_DIAGNOSTIC_BEGIN");
-      console.log(difference.stdout.slice(0, 18000));
-      console.log("TRAINING_PRETTIER_DIAGNOSTIC_END");
-    } finally {
-      if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
-    }
-  });
-
   it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const result = validateCoverage({ root });
     expect(result).toMatchObject({
@@ -48,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 54,
-      requires_review: 134,
+      basically_analyzed: 56,
+      requires_review: 132,
       classified_rate: 100,
-      basic_analysis_rate: 28.72,
+      basic_analysis_rate: 29.79,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -343,9 +322,8 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.test_condition).toContain("product-basic-shirt");
     expect(state?.test_condition).toContain("disabled");
     expect(
-      data.behaviors.find(
-        (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
-      )?.analysis_status,
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03")
+        ?.analysis_status,
     ).toBe("review_required");
   });
 
@@ -402,11 +380,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
       expect(state?.related_use_cases?.length).toBe(1);
     }
-    for (const id of ["SCREEN-STOREFRONT-PRODUCT-LIST-A01-02", "SCREEN-ADMIN-DASHBOARD-A02-01"]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
-      );
-    }
+    const pagination = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+    );
+    expect(pagination?.analysis_status).toBe("analyzed");
+    expect(pagination?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(pagination?.audit_branch_refs?.length).toBeGreaterThan(8);
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits low stock and search zero results without modifying the SUT", () => {
@@ -424,10 +407,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
       (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
     );
     expect(pendingProductAction?.analysis_status).toBe("review_required");
-    const pendingSearchAction = data.behaviors.find(
+    const searchAction = data.behaviors.find(
       (item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-01",
     );
-    expect(pendingSearchAction?.analysis_status).toBe("review_required");
+    expect(searchAction?.analysis_status).toBe("analyzed");
+    expect(searchAction?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(searchAction?.audit_branch_refs?.length).toBeGreaterThan(8);
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-02")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits Web login validation without certifying the parent login action", () => {
