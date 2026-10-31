@@ -1,5 +1,13 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## Mobile CIの一時停止とマージ前の必須再検証（PR #199）
+
+PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが次のcommitによってcancelされ、最終結果を得にくい。このPRのhead branchに限り、`.github/workflows/native-ci.yml`の`pull_request`トリガーを**一時的に削除**する。default branch `main`側のworkflowは変更せず、他PRへの自動実行は維持する。`workflow_dispatch`は残すため、必要ならPR branchの現在HEADを指定して手動でフル実行できる。**一時停止はCI成功を意味しない。** Web CI・学習用検証は従来どおり継続する。
+
+**マージ前の必須条件**：全機能分析・教材・実地受入など他の残タスクを進め、マージ準備の段階で（1）同workflowの`pull_request`トリガーを元どおりに復元、（2）その変更をPR #199のbranchへ通常push、（3）復元後の最終HEADに対応するMobile App CIのAndroid/Native Static/iOS/Maestro等、実際に要求される全jobの結果を確認、（4）Web CIの必須`validate`を含む他のマージ前受入条件も確認する。**復元とMobile App CIの最終成功が確認できるまで本PRはマージ可能と報告しない。** workflowの一時停止変更を`main`に取り込まない。途中で本PRのHEADが変わったら、原則として新HEADで再実行する。
+
+定期タスク2件は本ルールを共有し、一時停止中にMobile CIを起動させるためだけの変更・自動的なトリガー復元を繰り返さない。他の未達条件を解消して最終受入へ進むときは、必要な復元と検証を優先する。外部理由で手動実行・復元が不能ならBLOCKEDとし、古いRunの成功やskippedを最終PASSへ流用しない。
+
 ## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
