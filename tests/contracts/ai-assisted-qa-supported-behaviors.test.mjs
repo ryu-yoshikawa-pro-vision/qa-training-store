@@ -532,4 +532,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
     });
     expect(() => validateCoverage({ root, data: role })).toThrow(/missing platform-specific role/);
   });
+
+  it("temporary PR199 learning-only Prettier diagnostic", async () => {
+    const prettier = await import("prettier");
+    const target = path.join(root, "tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs");
+    const formatted = await prettier.format(fs.readFileSync(target, "utf8"), {
+      ...(await prettier.resolveConfig(target)),
+      filepath: target,
+    });
+    console.log("PR199_FORMATTED_JSON=" + JSON.stringify(formatted));
+  });
 });
