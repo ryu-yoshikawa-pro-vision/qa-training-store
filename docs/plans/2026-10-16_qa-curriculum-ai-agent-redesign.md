@@ -4,7 +4,7 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用contract/Prettier/契約期待値 | **修正済み・現HEAD検証待ち** | [Web CI 41188808294](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41188808294)で「先頭の分析済み行を再度analyzedにする」無効な負例が失敗。修正後の[Web CI 41191253053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191253053)では契約57ファイル/906テスト成功、PrettierはHome監査の1式のみ差分。`bce91c30`で診断を撤去し書式修正 | 現HEADで契約/Formatを再確認し、失敗時のみ再開 |
+| P0 | 学習用contract/Prettier/契約期待値 | **修正完了（検証済み）** | [Web CI 41191506043](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191506043)（`72fdad85`）でVitest contracts、Format check、Training runtime、Code Qualityが成功。Style Qualityは正式仕様Markdown MD032/MD022の2件のみ失敗。負例の意味を修正し、Prettier一時診断は撤去 | 新HEADで再発時のみ再開。正式仕様Markdownは別P0のBLOCKEDを維持 |
 | P0 | 製品NativeのPrettier書式 | **完了（承認済み書式変更・現HEADで検証済み）** | `src/presentation/native/native-purchase-screens.tsx`の既承認の書式修正が反映され、[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)のFormat checkを通過。機能変更の新規承認ではない | 再発時は製品SUT変更境界を守って切り分け |
 | P0 | Markdown lint（学習用Plan/調査レポート） | **完了（実CIで学習用12件解消）** | [Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)（HEAD `75ef0472`）の実ログは全571 Markdown中、**正式仕様1ファイルの2件のみ**。Plan MD012×7とレポートMD012×4/MD034×1は解消 | 新たな学習用Markdown lintが再発した場合のみ再開 |
 | P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | [Web CI 41187424065](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41187424065)のStyle Quality実ログで`docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022の2件のみ。製品SUTは読み取り専用 | 修正範囲と影響を報告済み。明示承認までは正式仕様に触れない |
