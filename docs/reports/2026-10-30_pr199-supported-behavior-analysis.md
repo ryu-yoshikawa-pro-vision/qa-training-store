@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 商品詳細の12/13 SKU境界・Web/Nativeバリエーション表示を静的基本分析（SUT変更なし）
+
+- **対象**：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04`。正式`storefront.md:17-23/102-115`のBR-STOREFRONT-001/003・AC-001/003と`roles-and-permissions.md:5-16`を基準に、`CatalogUseCases.getProductDetail:109-120`→Dexie `getDetail:184-235/buildCandidates:249-283` / SQLite `getProductDetail:340-409`→Web `ProductDetailView:187-224` / Native `NativeProductDetailScreen:586-701`を照合。両Repositoryは閲覧者条件とactive SKUを適用して詳細DTOを返す。
+- **固定Seedと期待**：default guestのP-0010（12色カラーポーチ、12 SKU）とP-0011（13サイズトレーニングウェア、13 SKU）を境界Caseに採用。P-0001（TシャツS20/M10/L0）、P-0006（単一SKU在庫0）を購入不可・選択可否の対照にする。P-0003/0004のrank制限、P-0007/0008/0009の公開状態除外も確認対象。default SeedのSKUは全てactiveであり、inactive SKU負例の実行は未受入。既存Seedは変更しない。
+- **Platform差と未決**：Webは12件以下をbuttons、13件以上をselectとし、在庫0をdisabled表示する（既存component `catalog-pages.test.tsx:336-359`）。Nativeは13件でもchipsを並べ、`native-variation-selection.ts:3-16`では複数SKUの初期選択なし・在庫0の選択は可能・追加不可とする。正式UI契約の13件以上selectをNativeへ適用するかは製品適合判断として未確認。実Android画面・視覚正本の比較が必要であり、基本分析と製品PASSを混同しない。
+- **判定**：当該操作1件を証拠付き`analyzed`に変更。**基本操作75/188（39.89%、残113）、非default状態18/20（残2）**、分母188は暫定。学習用契約テストを更新。実Web/Android・視覚正本・inactive SKUの負例は未実施であり、製品本体・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
+
 ## 検索サジェストの可視候補・2文字/8件境界を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-SEARCH-A01-02`。正式`storefront.md:9-23/141-155`（BR-STOREFRONT-001/002、AC-001/002、2文字以上/最大8件）とRole規約を基準に、Web `StorefrontShell:41-79`→`SearchCombobox:53-88/103-153`、Native `NativeSearchWithInitial:369-385/460-499`→`CatalogUseCases.suggest:95-106`→Dexie `suggest:130-181/buildCandidates:249-283` / SQLite `suggest:275-332/buildCandidates:605-631`を照合。両Repositoryは閲覧者に可視な商品から商品候補と、可視商品を持つactiveカテゴリー/ブランド候補を構成し、最大8件を返す。
