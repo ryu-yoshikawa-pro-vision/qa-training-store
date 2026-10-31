@@ -16,7 +16,7 @@
 | 商品一覧emptyの戻り導線（仕様不整合候補） | `storefront.md`のemptyは戻る導線要求、Web `catalog-list-page.tsx`は無条件の0件で`action={null}` | 静的照合、実画面未検証 | 教材のレビュー題材には使用可。別の条件で代替可能 | 仕様と画面の差を再現確認し、仕様適合は未確定 |
 | 管理商品絞り込みとページ位置（UI動作候補） | `AdminProductsContent`はkeyword以外のフィルターでpage1へ戻らない可能性 | 静的分析、50ページ目からの実再現未実施 | 対象データの見落としを招く可能性、教材の必須修正ではない | many-productsで再現し影響を確定 |
 | 注文一覧のNative状態ラベル（UX/仕様判断） | Nativeは内部statusを表示、Webは日本語表示。正式なPlatform別契約は未確定 | 静的な表示差を確認 | Web/Nativeの検証条件を混同しない | 利用者向け表示契約を調査、未決は保持 |
-| 決済失敗の理由・復旧・再試行（仕様差・不具合候補） | 失敗理由の汎用表示、Web/Native再試行選択差、復旧導線・reject時表示は分析レポート参照 | 一部コード静的照合、実ブラウザ/Android未検証 | M06/M07の誤った期待結果を防止 | 実再現と仕様判断を分け、確定まで製品修正しない |
+| 決済失敗の理由・復旧・再試行（仕様差・不具合候補） | 失敗理由の汎用表示、Web/Native再試行選択差に加え、Native注文確認の`beginOrder`失敗後はカート導線を出すが確定ボタン自体は再押下可能（WebはCart/価格等の特定エラーで無効化）。Repository側の重複防止とは別論点 | 静的UI差のみ確認。実ブラウザ/Android、二重注文・決済発生は未確認 | M06/M07の誤った期待結果を防止。金額・注文の安全性は実Run待ち | エラー種別別の再押下、二重確定防止、実際の注文/決済/在庫不変を確認。製品修正せず適合判断保留 |
 | Homeカテゴリー0件・会員特典のWeb/Native差（仕様判断） | Home DTOは両Repositoryでactiveカテゴリーと可視商品件数を返す。Web `home-page.tsx:100-143`は可視件数0を非表示・先頭最大6件、Native `native-screens.tsx:100-110`は0件を含む全activeカテゴリーをLink表示。別論点の会員特典はWeb表示/Native不在の静的候補 | 仕様上の「主要カテゴリー」0件/件数上限とNative会員特典契約は未決。defaultの4カテゴリーは全て1件以上、empty-catalogはカテゴリー自体0件であり差の実再現なし。製品適合未確認 | 基本分析はRole/Seed/経路の証拠付きで成立。0件導線・会員特典のPlatform期待値を教材の正解に固定しない | 既存Issue重複と正式UI/視覚正本、activeカテゴリー商品0件の独立実Runを確認。SUT変更なし |
 | 商品詳細の多SKU・out-of-stock導線（演習条件） | 13 SKUのWeb select/Native chips差。out-of-stock SeedのTシャツMのみ0だがWebは在庫ありSを初期選択。defaultに単一在庫0商品あり | 既存SeedとUI静的照合、実画面確認は別 | 製品修正せず既存単一SKU商品で代替可 | 真の不具合と単なるSeed選択差を分ける |
 | Nativeカテゴリー画面の実名見出し（仕様/UI差候補） | `storefront.md:175-191`はdefaultカテゴリー名表示を要求。Web `CatalogListPage:240-300`は`getCategoryName`で実名、Native `NativeCatalogScreen:119-205`は固定「カテゴリの商品」 | **静的差異確認**、Android実画面・視覚正本との照合未実施。適合判断未確定、重大度Low〜Medium候補 | 商品の絞込自体は成立するが、どのカテゴリーを閲覧中か分かりにくい。教材はWeb/Native比較のレビュー題材として使用可、製品修正は教材の基本分析に不要 | Native実画面と正式視覚正本を確認。製品コードは変更せず、必要なら承認後に製品用別PRを提案。既存Issue重複は検索語一致なし・最終確認待ち |
@@ -36,7 +36,7 @@
 | `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | **51件のページ境界を静的/統合テスト監査済み。並行更新時の一貫性・製品変更としてのPR適合性は未確定、処理方針保留** |
 | `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
 | `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | **Native SQLite契約の静的根拠・Web CI確認済み、実Mobile再検証待ち／判断保留** |
-| `src/presentation/native/native-purchase-screens.tsx` | Native会員/Checkout/決済画面、書式・UI回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/presentation/native/native-purchase-screens.tsx` | Native会員特典、Checkout再開/置換、決済方法復元、確認画面・注文番号 | **追加hunkの静的部分監査済み**（下記）。既存製品テストとの整合は確認したが、実Mobile・変更由来・安全性/PR適合は未確定、処理方針保留 |
 | `src/presentation/native/native-screens.tsx` | 価格承諾操作の非価格問題時の禁止条件 | **追加1 hunkの静的監査済み。非価格問題を併発する場合に価格承諾ボタンを無効化。BR-CART-003と既存Repository拒否条件に整合するが、混在状態のNative実Run・変更由来・PR適合は未確認／処理方針保留** |
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。実画面・表示解釈・PR適合性は未確定、処理方針保留** |
@@ -112,6 +112,13 @@
 - **実証・リスク・教材**：現HEADの[Web CI 41213242608](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41213242608)の`Vitest (component)`成功を確認。ただしテスト個別ログ、実ブラウザでの保存・再開、非本人注文ID拒否、Native同等性、視覚正本は未受入。重大度はCheckout状態/金額・所有権に関わるMedium〜Highの回帰影響候補で、当該追加テストの不適合は静的には未立証。教材は正式BR/ACと既存Seed・学習専用テストで独立に構成可能。
 - **処理方針**：この追加hunkは学習用ではなく**既存製品componentテスト**であり、PR #199の教材・分析目的から独立する。製品用別PRへ分離する**方針のみ決定**する。実際の移設・revert・別PR作成は明示承認待ち。mockテストの成功を実Web/Native受入PASSへ流用しない。
 
+### Native会員・Checkout表示/回復の既存差分（実装1＋既存componentテスト1、静的部分監査）
+
+- **対象と差分**：PRの`src/presentation/native/native-purchase-screens.tsx`追加hunkを、`tests/component/native/native-purchase-screens.test.tsx`の追加テストと照合。会員ランク/割引率/送料特典表示、Checkout sessionの`created/resumed/replaced`区別、住所Stepに限定した既知エラー回復、支払方法の再訪時復元、確認画面のSKU/配送先/小計/割引/送料/支払方法、注文完了時の公開`orderNumber`表示が対象。正式`BR-CHECKOUT-001/002/003`・`AC-CHECKOUT-001/002/003`、`src/application/use-cases/checkout-order-use-cases.ts`、`src/domain/services/pricing.ts`を参照し、UIが契約を勝手に拡張したとは断定しない。
+- **回復・認可境界**：`useCheckoutSession:689-742`は`AUTHENTICATION_REQUIRED`でLoginへ遷移し、`CHECKOUT_STEP_INCOMPLETE/CART_VERSION_CHANGED/CHECKOUT_EXPIRED`だけを住所Stepの`checkout.start`へ回復する。Payment/Confirmでは任意の再開始を行わず、Sessionがない間は確定操作を実行しない。確認画面`getConfirmation(state.session.id)`の失敗は読み込み中のままにせずカート/住所へ誘導する。既存componentテストはmockの`getActive`失敗・`getConfirmation`失敗・決済方法復元を検査するが、本人認可・実DB状態・Android実操作の証明ではない。
+- **残るリスク**：Native確認画面`beginOrder`の失敗後はエラーとカート導線が出る一方、`native-checkout-confirm-submit`の`disabled`は`busy`のみで、Webの`checkoutNeedsCartReview`による再確定禁止と差がある。**二重注文が発生すると断定できない**。Use Case/Repositoryのversion・冪等性、価格変更・stale Cart・通信失敗の独立負例と実Mobileで確認が必要。注文番号の公開表示は内部`orderId`の非表示という目的と整合するが、実本人注文へのリンク・視覚正本は未検証。
+- **実証・処理方針**：HEAD `532e7eb1e8f0542e01eff7ac70f2d1472128c232`の[Web CI 41220046799](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41220046799)は`Vitest (component)`を含む必須Web jobs成功。ただしNative Jest個別実行、Android/iOS/Maestro、価格/注文の実回帰、変更コミット単位の由来、今回の教材目的への必要性は未確定。**製品適合・処理方針は判断保留**。学習用のレビュー題材として扱えても製品修正の承認にはならず、既存差分の移設・revertも行わない。
+
 ### 処理方針の決定規則
 
 - 各変更目的について、必要性（正式仕様・不具合・テスト）、安全性（認証/認可・データ整合・個人情報・回帰）、PR #199の教材目的との整合、代替手段、コミットと関連テストを監査する。
@@ -124,6 +131,6 @@
 
 ## 現在の受入・管理上の注意
 
-- 全サポート動作の暫定分母188件、基本分析71件、非default状態18/20件という数値は、必ず[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)の**最新内容から再集計**する。本文中の数値は初期整理時の参考であり、進捗の正本ではない。
+- 全サポート動作の暫定分母・基本分析済み件数・非default状態の件数は、必ず[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)の**最新内容から再集計**する。過去の集計値は進捗の正本ではない。
 - 製品改善の未修正候補だけで分析の達成を拒否しない。ただし、分析に必要な仕様・証拠が未決なら基本分析未完、教材実行が阻害されるなら教材受入未完を維持する。
 - PR本文は現行の主要な未解決事項と成果/受入状態のみ。調査の時系列履歴はGit履歴と全機能分析レポートへ残す。
