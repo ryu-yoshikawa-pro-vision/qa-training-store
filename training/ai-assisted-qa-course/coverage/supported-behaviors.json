@@ -211,20 +211,20 @@
       "source_line": 31,
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
-      "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: 主要カテゴリーを案内。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "role": "Web guest/active customer（regular/gold/platinum）、operator/adminはguest相当の閲覧。Android guest/active customerのみ。停止/退会顧客は有効セッションとして扱わない",
+      "scenario": "default guestで4有効カテゴリーを表示、gold-member/platinum-memberで可視件数差、empty-catalogではカテゴリー自体が0件。activeカテゴリーの商品0件は既存empty-catalogで直接作れないため未実行の追加境界",
+      "data": "default Seed: category-apparel=ファッション（guest P-0001の1件、unpublished P-0007除外）、category-home=ホーム・キッチン（P-0002/P-0005の2件、draft P-0008除外）、category-sports=スポーツ（P-0006/P-0011の2件、gold P-0003はguest除外）、category-accessories=バッグ・小物（P-0010の1件、platinum P-0004除外、discontinued P-0009除外）。goldはスポーツ3件、platinumはスポーツ3件・バッグ2件。4カテゴリーの表示順はsortOrder/id。empty-catalogはカテゴリー自体0件。新Seed不要",
       "action": "主要カテゴリーを案内",
-      "expected": "有効なカテゴリーの案内から、対象カテゴリーの商品一覧へ遷移できる",
+      "expected": "CatalogUseCases.getHome(viewer,clock)→Web Dexie listNavigationCategories / Native SQLite getHomeでactiveカテゴリーをsortOrder/id順に返し、visibleProductCountは公開/rank/active SKU条件を満たす商品だけをcategoryIdで数える。Web Homeは0件カテゴリーを除外し先頭最大6件を`/categories/{categoryId}`へLink、商品全体0件ではempty panel。Native Homeは0件を含むactiveカテゴリーを`/categories/{categoryId}`へLinkし名称と件数を表示。遷移後はCatalogUseCases.searchがcategoryIds固定で閲覧者別商品を返す。0件activeカテゴリーのWeb/Native表示差は正式『主要カテゴリー』の詳細定義未決のため製品適合未確定",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "主要カテゴリーを案内の前後で、有効なカテゴリーの案内から、対象カテゴリーの商品一覧へ遷移できることを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "主要カテゴリーを案内の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "主要カテゴリーを案内の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "閲覧権限外商品数の漏えい、会員ランク別件数の誤表示、非activeカテゴリーの露出、カテゴリーID誤遷移、WebとNativeの0件カテゴリー導線差、empty-catalogの誤った0件状態流用",
+      "test_condition": "default Reset→guestで4カテゴリーをファッション1/ホーム・キッチン2/スポーツ2/バッグ・小物1件の順にHome DTOとWeb/Androidのカテゴリーリンク・表示件数で確認。各リンクでcategoryId一致の商品一覧へ遷移し、P-0007/0008/0009/0003/0004がguest件数に含まれないことを確認。goldでスポーツ3件、platinumでバッグ2件に変わることを確認。empty-catalogはカテゴリ0件（Web empty panel、Native category chips 0）であり、activeカテゴリー商品0件の直接代用にはしない。0件activeカテゴリーを後日学習専用fixture等で検証する場合も正式仕様の解釈を先に確認。実Web/Android/視覚Runは未実施",
+      "test_responsibility": "BR-STOREFRONT-001/002、AC-001/002とRole/State/DataをHome UI→CatalogUseCases.getHome→Dexie/SQLite activeカテゴリー/公開候補/件数→カテゴリーroute→CatalogUseCases.searchに追跡。公開状態/rankとカテゴリーリンクを同時に検証し、0件activeカテゴリーのPlatform表示差は適合未決として分離",
+      "case_policy": "default guest4カテゴリーのID/順序/件数と遷移、gold/platinumのrank境界、非公開/draft/discontinued除外、在庫0のP-0006閲覧可能、empty-catalogのカテゴリ0件を採用。activeカテゴリー商品0件・7件目カテゴリー・非activeカテゴリーは既存Seedで直接成立せず実Run/視覚確認を別受入に残す。商品詳細・購入操作は別Case",
+      "case_selection_reason": "既存defaultの4カテゴリーと公開/rank差を固定値で検証でき、情報露出と誤遷移の主要リスクを評価できる。Webは0件を隠しNativeは表示する差を仕様適合PASSとせず、未決のUI契約を製品改善レポートへ分離。既存Seedを改変せず分析成立",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-18/23-39/206-216、roles-and-permissions.md:5-16、CatalogUseCases.getHome/search:80-93、Dexie getHome/listNavigationCategories:393-431、Native SQLite getHome:214-258、Web HomePage:21-45/100-143、NativeHomeScreen:31-115、category route/検索、default-dataset.ts:37-42/67-245、metadata.ts:75-101、scenarios.ts:25-53、repository-contract storefront-catalog.test.ts:64-103を静的照合。WebはvisibleProductCount>0で最大6カテゴリー、Nativeはactive全件（0件含む）を表示。0件activeカテゴリーの正式UI契約は未決、実Web/Android/視覚Run・製品適合は未確認",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -233,12 +233,15 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getHome",
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "正式BR/AC・Role/State/DataとWeb/Native Home→Use Case→Repository→カテゴリーrouteを既存Seedの4カテゴリー実値で基本分析済み。0件activeカテゴリー表示差と実Runは別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -263,7 +266,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getHome",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 80,
+          "signature": "async getHome(): Promise<HomeCatalogDto> {"
+        },
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "閲覧者別候補とHome主要カテゴリー契約"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 206,
+          "end_line": 216,
+          "reason": "閲覧者条件とファセットのAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "Roleとrank境界"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 93,
+          "reason": "getHome/searchのviewer/clock委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 393,
+          "end_line": 431,
+          "reason": "Web activeカテゴリーと可視商品件数"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 214,
+          "end_line": 258,
+          "reason": "Native activeカテゴリーと可視商品件数"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 21,
+          "end_line": 45,
+          "reason": "Web Home DTO読込"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 100,
+          "end_line": 143,
+          "reason": "Web空状態/0件除外/最大6件/Link"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 31,
+          "end_line": 115,
+          "reason": "Native Home active全カテゴリーのLink"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 205,
+          "reason": "Native categoryId絞込"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 37,
+          "end_line": 42,
+          "reason": "4カテゴリー実IDと名前"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "商品category/status/rankの実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default/emptyシナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 53,
+          "reason": "default/member/emptyの変換"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 103,
+          "reason": "既存Homeカテゴリ名/商品候補契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-03",

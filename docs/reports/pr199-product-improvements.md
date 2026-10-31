@@ -17,7 +17,7 @@
 | 管理商品絞り込みとページ位置（UI動作候補） | `AdminProductsContent`はkeyword以外のフィルターでpage1へ戻らない可能性 | 静的分析、50ページ目からの実再現未実施 | 対象データの見落としを招く可能性、教材の必須修正ではない | many-productsで再現し影響を確定 |
 | 注文一覧のNative状態ラベル（UX/仕様判断） | Nativeは内部statusを表示、Webは日本語表示。正式なPlatform別契約は未確定 | 静的な表示差を確認 | Web/Nativeの検証条件を混同しない | 利用者向け表示契約を調査、未決は保持 |
 | 決済失敗の理由・復旧・再試行（仕様差・不具合候補） | 失敗理由の汎用表示、Web/Native再試行選択差、復旧導線・reject時表示は分析レポート参照 | 一部コード静的照合、実ブラウザ/Android未検証 | M06/M07の誤った期待結果を防止 | 実再現と仕様判断を分け、確定まで製品修正しない |
-| Homeカテゴリー・会員特典のWeb/Native差（仕様判断） | 0件カテゴリーの表示と会員特典/Role導線にWeb/Native差がある | 静的分析。Platform意図は未確定 | 演習の期待結果を固定しない | Platform別BR/ACと画面正本を照合 |
+| Homeカテゴリー0件・会員特典のWeb/Native差（仕様判断） | Home DTOは両Repositoryでactiveカテゴリーと可視商品件数を返す。Web `home-page.tsx:100-143`は可視件数0を非表示・先頭最大6件、Native `native-screens.tsx:100-110`は0件を含む全activeカテゴリーをLink表示。別論点の会員特典はWeb表示/Native不在の静的候補 | 仕様上の「主要カテゴリー」0件/件数上限とNative会員特典契約は未決。defaultの4カテゴリーは全て1件以上、empty-catalogはカテゴリー自体0件であり差の実再現なし。製品適合未確認 | 基本分析はRole/Seed/経路の証拠付きで成立。0件導線・会員特典のPlatform期待値を教材の正解に固定しない | 既存Issue重複と正式UI/視覚正本、activeカテゴリー商品0件の独立実Runを確認。SUT変更なし |
 | 商品詳細の多SKU・out-of-stock導線（演習条件） | 13 SKUのWeb select/Native chips差。out-of-stock SeedのTシャツMのみ0だがWebは在庫ありSを初期選択。defaultに単一在庫0商品あり | 既存SeedとUI静的照合、実画面確認は別 | 製品修正せず既存単一SKU商品で代替可 | 真の不具合と単なるSeed選択差を分ける |
 | Nativeカテゴリー画面の実名見出し（仕様/UI差候補） | `storefront.md:175-191`はdefaultカテゴリー名表示を要求。Web `CatalogListPage:240-300`は`getCategoryName`で実名、Native `NativeCatalogScreen:119-205`は固定「カテゴリの商品」 | **静的差異確認**、Android実画面・視覚正本との照合未実施。適合判断未確定、重大度Low〜Medium候補 | 商品の絞込自体は成立するが、どのカテゴリーを閲覧中か分かりにくい。教材はWeb/Native比較のレビュー題材として使用可、製品修正は教材の基本分析に不要 | Native実画面と正式視覚正本を確認。製品コードは変更せず、必要なら承認後に製品用別PRを提案。既存Issue重複は検索語一致なし・最終確認待ち |
 | 検索対象範囲の解釈（仕様未決） | 実装は商品名/商品コード以外にカテゴリー・ブランド・SKUにも部分一致。正式な想定範囲は未確定 | 静的分析、実検索未受入 | 未確定の検索対象を仕様上の正解にしない | 正式仕様の対象範囲と実挙動を確認 |

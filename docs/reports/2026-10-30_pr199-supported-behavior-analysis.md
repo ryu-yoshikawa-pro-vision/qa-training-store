@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## Home主要カテゴリー導線と閲覧者別件数の静的基本分析（SUT変更なし）
+
+- **対象**：`SCREEN-STOREFRONT-HOME-A01-02`。正式`storefront.md:9-18/23-39/206-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`を基準に、Web `HomePage:21-45/100-143`・Native `NativeHomeScreen:31-115`→`CatalogUseCases.getHome:80-84`→Dexie `getHome/listNavigationCategories:393-431` / SQLite `getHome:214-258`→`/categories/{categoryId}`→`CatalogUseCases.search:86-93`を照合。両RepositoryはactiveカテゴリーをsortOrder/id順に返し、可視件数は公開/rank/active SKU候補から計算する。
+- **Seed実値・Case**：default guestのファッション1（P-0001）、ホーム・キッチン2（P-0002/P-0005）、スポーツ2（P-0006/P-0011）、バッグ・小物1（P-0010）を名称・ID・件数・リンクで照合。P-0007 unpublished、P-0008 draft、P-0009 discontinued、guestに対するgold P-0003/platinum P-0004は除外。goldでスポーツ3、platinumでバッグ2。empty-catalogはカテゴリー自体が0件であり、**activeカテゴリーの商品0件**の直接Caseではない。既存Seed変更なし。
+- **Platform差・未決**：Webは`visibleProductCount>0`で先頭最大6カテゴリーだけを表示し、商品総数0ではempty panel。Nativeはactiveカテゴリーを件数0でもLink表示する。現defaultの4カテゴリーは全て可視件数1以上のため差を実再現できない。「主要カテゴリー」の正式0件/最大件数契約は未決であり、製品適合をPASS/FAILに固定しない。実Web/Android・視覚正本・リンク遷移の実Runは別受入。
+- **判定**：この動作1件のBR/AC・Role/State/Data・Risk/TR・Condition/Case採否を証拠化し`analyzed`へ更新。**基本分析73/188（38.83%、残115）、非default状態18/20（残2）**。これは静的基本分析のみで製品適合・実Run成功ではない。0件activeカテゴリーの検証は正式期待値確定後に必要性を判断し、学習専用fixture以外のSUT変更を行わない。
+
 ## カテゴリー内の閲覧権限除外を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-CATEGORY-A02-01`。正式`storefront.md:9-18/175-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`、`permissions.ts:15-32`を照合。Web/Androidのカテゴリーroute→`CatalogListPage`/`NativeCatalogScreen`→`CatalogUseCases.search`→Dexie/SQLiteの公開・会員rank・active SKU候補→categoryId一致の検索結果を追跡した。両Repositoryは閲覧不可商品を候補構築段階で除外し、カテゴリー絞込と20件/pageを適用する。Nativeの固定カテゴリー見出しは既存の別の製品適合候補として維持。

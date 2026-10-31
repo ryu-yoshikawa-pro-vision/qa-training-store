@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 72,
-      requires_review: 116,
+      basically_analyzed: 73,
+      requires_review: 115,
       classified_rate: 100,
-      basic_analysis_rate: 38.3,
+      basic_analysis_rate: 38.83,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -122,6 +122,28 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "src/presentation/native/native-screens.tsx",
         "src/infrastructure/database/dexie/storefront-repositories.ts",
         "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
+  });
+
+  it("audits Home category links and viewer-specific counts without claiming 0-count parity", () => {
+    const item = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-HOME-A01-02");
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toEqual(
+      expect.arrayContaining(["CatalogUseCases.getHome", "CatalogUseCases.search"]),
+    );
+    expect(item?.test_condition).toContain("ファッション1");
+    expect(item?.test_condition).toContain("スポーツ3");
+    expect(item?.test_condition).toContain("activeカテゴリー商品0件");
+    expect(item?.expected).toContain("0件を含む");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/presentation/pages/home-page.tsx",
+        "src/presentation/native/native-screens.tsx",
         "src/seeds/default-dataset.ts",
       ]),
     );

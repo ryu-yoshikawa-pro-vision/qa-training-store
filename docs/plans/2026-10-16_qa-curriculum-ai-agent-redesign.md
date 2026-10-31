@@ -10,7 +10,7 @@ PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが
 
 ## 現在の全機能分析（最新台帳参照）
 
-`SCREEN-STOREFRONT-CATEGORY-A01-01/A02-01`のカテゴリー商品一覧と閲覧権限外商品の除外を、正式BR/AC・Web/Nativeの公開/rank/active SKU・4カテゴリーの既存Seed実値と照合して静的基本分析済み。Nativeの固定カテゴリー見出しと正式UI契約との差は製品改善レポートで未確認管理。**72/188操作（残り116）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
+`SCREEN-STOREFRONT-CATEGORY-A01-01/A02-01`のカテゴリー商品一覧・権限除外と`SCREEN-STOREFRONT-HOME-A01-02`の主要カテゴリー導線を、正式BR/AC・Web/Nativeの公開/rank/active SKU・4カテゴリーの既存Seed実値と照合して静的基本分析済み。Native固定カテゴリー見出し、およびHomeのWeb 0件非表示/最大6件とNative 0件含む全件表示の仕様解釈差は製品改善レポートで未確認管理。**73/188操作（残り115）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
 
 ## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
 
