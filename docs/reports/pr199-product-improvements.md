@@ -30,7 +30,7 @@
 
 | 既存差分ファイル | 監査する変更目的・影響 | 現状 |
 | --- | --- | --- |
-| `src/application/use-cases/account-use-cases.ts` | 認証・認可の境界、既存呼出し元と回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/application/use-cases/account-use-cases.ts` | 郵便番号住所候補の顧客認可ガード | **BR-AUTH-002と実装・統合テストを静的監査済み。実Web/Native導線・変更由来・PR整合は未確定、処理方針保留** |
 | `src/application/use-cases/checkout-order-use-cases.ts` | 住所・支払方法の検証とSession/Cart整合 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | **51件のページ境界を静的/統合テスト監査済み。並行更新時の一貫性・製品変更としてのPR適合性は未確定、処理方針保留** |
 | `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
@@ -45,7 +45,7 @@
 | `tests/component/checkout-order-pages.test.tsx` | Checkout導線・表示のcomponent証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | **既存4件＋47件で51件取得・全ID逆順並べ替えを検証、Web CI成功。並行更新負例は未実行、処理方針保留** |
-| `tests/integration/auth-account.test.ts` | 住所候補の認可境界 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/integration/auth-account.test.ts` | 住所候補の認可境界、既定配送先変更の原子性 | **住所候補のguest/operator/customer/未登録郵便番号を監査済み。既定配送先切替・古いversion拒否の追加テストは別意味単位で未監査、ファイル全体は部分監査** |
 | `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
 | `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | **後続明細失敗時の先行更新rollbackを契約テストで確認、実Mobile再検証待ち／判断保留** |
@@ -70,6 +70,13 @@
 - **由来・仕様**：[commit `744115a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/744115a994bbbbf988e5b6ca6a52908315662fb2)で`ProductDetailView`の上限案内条件を`stockQuantity > purchaseLimit`から「SKU選択済みかつ在庫が正数」へ変更。正式`BR-STOREFRONT-003`と`storefront.md`の`low-stock`状態は残在庫と購入上限の両表示を要求する。関連`tests/component/catalog-pages.test.tsx`の追加テストは在庫3・設定購入上限5で「残り3点」「1回の購入上限は5点です。」を確認する。
 - **実装・数量の意味**：`src/presentation/pages/product-detail-page.tsx:90-100/239-255`の数量選択上限は`Math.min(stockQuantity, purchaseLimit)`で3、案内に表示する`purchaseLimit`は設定値5。カートの`maximumCartQuantity`は在庫・設定上限・99の最小値を使用する。**案内の5点と実際の選択可能数3点は別概念**であり、表示が誤りと断定しない。ユーザーが5点購入可能と誤認するかは実画面/仕様解釈の追加確認が必要。
 - **実証・未決・処理方針**：[現HEADのWeb CI 41201740053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41201740053)でVitest component、contracts、`validate`成功。Web低在庫の実画面・視覚正本、在庫3で4点追加を拒否する独立E2E、Native表示との期待値統一は未受入。重大度Low〜MediumのUX解釈候補。教材は既存`low-stock`/default Seedで検証可能、追加Seed不要。**処理方針は判断保留**。既存SUT・正式仕様・製品テストは今回変更しない。
+
+### 郵便番号住所候補の顧客ロール境界（実装1＋統合テスト一部）
+
+- **正式要求と変更目的**：`docs/spec/features/authentication.md`の`BR-AUTH-002`/`AC-AUTH-002`は顧客データと購入導線を`customer`に限定する。PR差分の`src/application/use-cases/account-use-cases.ts`は`suggestAddress(postalCode)`の静的住所候補検索前に`await this.requireCustomer()`を追加した。既存の`SessionIdentityResolver.requireCurrentEntity`は未認証を`AUTHENTICATION_REQUIRED`で拒否し、`requireCustomer`は非customerを`account.customerOnly`で拒否する。住所辞書`src/infrastructure/address-lookup/static-address-lookup.ts`は3件の固定郵便番号で、外部API・個人情報照会ではない。
+- **追加回帰の範囲**：`tests/integration/auth-account.test.ts`の新規ケースは未認証→拒否、operator→拒否、customerの`100-0001`→東京都/1000001、未知の`999-9999`→nullを検証。最新HEAD `9d20757a06713796ade89026c80af190927a1e4c`の[Web CI 41203998824](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41203998824)ではVitest integration・contracts・`validate`が成功。ただしこの統合テストの成功は実Web/Android画面の導線や実認証セッションのE2E受入を意味しない。
+- **安全性・影響・未決**：非customerからの住所候補利用を拒否するガードの追加は要求上妥当で、現時点で認可緩和や外部情報漏えいを示す証拠はない。逆に既存のguest向け呼出しがこのガードで影響を受けないか、Web/Nativeの全呼出し元とUI表示を独立確認していない。重大度は認可境界としてMedium候補。教材は既存の`regular-member`とゲスト/スタッフのロール差で成立し、製品修正を必須としない。
+- **処理方針**：**判断保留**。変更を導入したcommitの特定、全呼出し元・実画面の回帰、教材目的との整合を確認してから「本PRに残す／別PRへ分離／取り消す」を決定する。実装のrevert・分離・変更は明示承認まで行わない。なお同じ統合テストファイルに追加された「既定配送先の原子的切替と古いversion拒否」は別の意味単位であり、本節の監査完了数に含めない。
 
 ### 処理方針の決定規則
 
