@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 学習用契約の負例退行とPrettier差分の修復（SUT変更なし）
+
+- **原因**：[Web CI 41188808294](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41188808294)の契約失敗1件は、既に`analyzed`になった`behaviors[0]`を再度`analyzed`にする無効なmutationであり、validatorの退行ではない。対象は`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の「required fields nonempty」負例。意味的な未検証を表す非空の汎用`case_selection_reason="正式仕様による"`へ変更し、検証関数が`analysis lacks verified evidence`を返すことを確認した。
+- **CI証拠**：修正・一時診断HEAD `d6b1b932`の[Web CI 41191253053](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191253053)でVitest contractsは**57ファイル・906テスト成功/15 skipped**。同HEADのFormat checkはHome公開商品の監査テストに残った`data.behaviors.find`の改行のみ不一致。CI上のPrettier正規差分を採取した。
+- **対応と境界**：commit `bce91c30`で正規書式に修正し、一時診断テストと一時ファイル処理を撤去。製品実装・正式仕様・既存Seed/Reset・製品用テスト/workflowは変更しない。最終HEADのFormat/契約の再PASSは新しいCIで別途確認する。正式仕様Markdown MD032/MD022の承認待ちは別P0として維持する。分析台帳は変更せず、**基本操作68/188（残り120）、状態条件18/20（残り2）**、分母暫定を保持。
+
 ## 2026-10-31 Home公開商品の閲覧集合監査（SUT変更なし）
 
 - **対象・根拠**：`SCREEN-STOREFRONT-HOME-A01-01`。正式`storefront.md:9-39/190-205`のBR-STOREFRONT-001/AC-001、`roles-and-permissions.md:5-16`、`CatalogUseCases.getHome:80-84`、`canViewerSeeProduct:15-32`、Web Dexie `storefront-repositories.ts:249-283/393-415`、Native SQLite `native-customer-repositories.ts:605-631/779-792/214-258`、Web Home `home-page.tsx:21-162`、Native Home `native-screens.tsx:31-115`を読み取り照合。両Repositoryは公開状態・会員ランク・active SKUで候補を限定し、Homeの新着/セールDTOへ反映する。
