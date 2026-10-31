@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 73,
-      requires_review: 115,
+      basically_analyzed: 74,
+      requires_review: 114,
       classified_rate: 100,
-      basic_analysis_rate: 38.83,
+      basic_analysis_rate: 39.36,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -109,6 +109,27 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "src/seeds/default-dataset.ts",
       ]),
     );
+  });
+
+  it("audits viewer-scoped search suggestions on Web and Android without claiming runtime PASS", () => {
+    const item = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-SEARCH-A01-02");
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toContain("CatalogUseCases.suggest");
+    expect(item?.test_condition).toContain("P-0007");
+    expect(item?.test_condition).toContain("8件上限");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/presentation/shells/storefront-shell.tsx",
+        "src/presentation/components/search-combobox.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/application/use-cases/catalog-use-cases.ts",
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
+    expect(item?.basic_analysis_review).toContain("実Web/Android/視覚");
   });
 
   it("audits name/code search against viewer visibility on Web and Android", () => {

@@ -3486,18 +3486,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "対象Seed/条件: default,many-products,empty-catalog。操作: 検索サジェスト。正常・不許可・変化前後の入力を区別する",
+      "data": "default guest: P-0001（ベーシックTシャツ/商品コードP-0001）は2文字以上の名称/コードでproduct候補。P-0003 gold限定、P-0004 platinum限定、P-0007 unpublished、P-0008 draft、P-0009 discontinuedはguest候補から除外。カテゴリー/ブランド候補は公開・rank・active SKUの可視商品を1件以上持つものに限定。gold-member/platinum-memberで会員rank境界、empty-catalogで0件。2文字未満/最大8件/最新入力の競合を独立検証",
       "action": "検索サジェスト",
-      "expected": "入力した検索語に応じた閲覧可能な商品の候補だけを表示し、非公開商品を提案しない",
+      "expected": "Web StorefrontShellのSearchComboboxは2文字以上で150ms後にCatalogUseCases.suggest({keyword,limit:8})を呼び、product/category/brand候補をそれぞれ商品詳細/カテゴリー/ブランド検索へ遷移させる。Android NativeSearchWithInitialは入力変化で同Use Caseを呼び候補chipを表示。Use Caseはviewer/clockをWeb Dexie/Native SQLiteへ渡し、両Repositoryは公開・rank・active SKUで可視候補を構築して商品名/コードの部分一致、可視商品に属するactiveカテゴリー/ブランドの部分一致を返し、最大8件に制限。2文字未満は空配列。静的基本分析であり実ブラウザ/AndroidのPASSではない",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "検索サジェストに対して、入力した検索語に応じた閲覧可能な商品の候補だけを表示し、非公開商品を提案しないことをUI/業務状態で照合する",
-      "test_responsibility": "検索サジェストのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "検索サジェストの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "検索候補から未公開/上位rank限定商品・カテゴリー・ブランドの存在が漏えい、2文字閾値/8件上限違反、入力更新競合による古い候補表示、候補種別の誤遷移、Web/Androidの正規化差",
+      "test_condition": "default Reset→guestで「ベーシックTシャツ」「P-0001」のproduct候補を確認し、P-0003/P-0004/P-0007/P-0008/P-0009の候補を除外。公開商品を持たないカテゴリー/ブランドは候補に含めず、gold/platinumでは該当rank限定商品を追加。1文字入力は0件、2文字入力で検索、8件上限、空結果、入力A→Bの遅延応答による古い候補破棄、product/category/brand各選択の遷移をWeb/Androidで確認。empty-catalogは0件、実Runと視覚比較は別受入",
+      "test_responsibility": "BR-STOREFRONT-001/002、AC-001/002、storefront.md:23の2文字/最大8件契約をWeb StorefrontShell→SearchComboboxおよびNativeSearchWithInitial→CatalogUseCases.suggest→Dexie/SQLite可視候補/商品・カテゴリー・ブランド検索→候補遷移まで追跡。実UI/Android/視覚は別受入",
+      "case_policy": "default guestで商品名/商品コード、2文字未満/2文字以上/8件上限/0件、product/category/brand候補、rank別guest/gold/platinum、非公開/draft/discontinued、入力連打・遅延応答を採用。empty-catalogと既存member Seedを使用し新Seed不要",
+      "case_selection_reason": "未公開・会員限定商品の候補経由露出が高リスクのため既存Seedの可視6商品と除外5商品を使用し、カテゴリー/ブランド候補も可視商品の集合から派生することを両Repositoryで照合。UIの2文字/8件・競合/遷移は学習用実行Caseに残す",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-23/141-155/206-217、roles-and-permissions.md:5-16、Web StorefrontShell:41-79→SearchCombobox:53-88/103-153、Android NativeSearchWithInitial:369-385/460-499、CatalogUseCases.suggest:95-106、Dexie suggest:130-181/buildCandidates:249-283、Native SQLite suggest:275-332/buildCandidates:605-631、default-dataset.ts:67-245、metadata.ts:75-101、scenarios.ts:25-55を静的照合。2文字未満は空、最大8件、可視候補からproduct/category/brandを生成。実Web/Android/視覚/競合Runと製品適合は別管理",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -3513,7 +3513,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "検索サジェストのWeb/Android UI→Use Case→Repository、2文字/最大8件、guest/rank/非公開除外、既存Seedを静的基本分析済み。実Runと分母最終監査は未完",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -3542,6 +3542,109 @@
           "path": "src/application/use-cases/catalog-use-cases.ts",
           "line": 95,
           "signature": "async suggest(request: SearchSuggestionRequest): Promise<SearchSuggestion[]> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者条件と2文字/最大8件の正式契約"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 141,
+          "end_line": 155,
+          "reason": "検索UIとサジェスト操作"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customer/rank境界"
+        },
+        {
+          "path": "src/presentation/shells/storefront-shell.tsx",
+          "start_line": 41,
+          "end_line": 79,
+          "reason": "Web検索候補のUse Case呼出しと遷移先"
+        },
+        {
+          "path": "src/presentation/components/search-combobox.tsx",
+          "start_line": 53,
+          "end_line": 88,
+          "reason": "Web 2文字閾値/150ms debounce/最新要求優先"
+        },
+        {
+          "path": "src/presentation/components/search-combobox.tsx",
+          "start_line": 103,
+          "end_line": 153,
+          "reason": "Web候補選択/空状態"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 369,
+          "end_line": 385,
+          "reason": "Android候補取得と最新要求優先"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 460,
+          "end_line": 499,
+          "reason": "Android候補入力/表示/選択"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 95,
+          "end_line": 106,
+          "reason": "入力閾値とviewer/clock委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 130,
+          "end_line": 181,
+          "reason": "Web商品/カテゴリー/ブランド候補と8件上限"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 283,
+          "reason": "Web公開/rank/active SKU候補"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 275,
+          "end_line": 332,
+          "reason": "Native商品/カテゴリー/ブランド候補"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 631,
+          "reason": "Native可視商品候補"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "P-0001/0003/0004/0007/0008/0009実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default/empty/member Seed登録"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "default/empty/member変換"
         }
       ]
     },
