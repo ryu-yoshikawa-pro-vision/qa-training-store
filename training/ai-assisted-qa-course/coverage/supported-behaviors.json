@@ -4012,20 +4012,20 @@
       "source_line": 40,
       "source_text": "購入できない理由と修正用のアクションを表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "invalid-items",
-      "data": "Seed/入力: cart-with-invalid-items。通常状態から条件を変更し表示と操作を比較",
+      "role": "Web desktopのguest/customer。固定Seed初期Sessionはguestだが不正4明細はregular本人のactive Cartに属するため、regular@example.comでログイン後に/cartを開く",
+      "scenario": "cart-with-invalid-items Reset→regular@example.comでログイン→/cart。対照はdefault regularの正常明細1件と初期guestの空Cart",
+      "data": "Seedのregular active Cartを4明細に置換：mugの追加時価格999（現行1500）=PRICE_CHANGED、product-unpublished=UNPUBLISHED、product-out-of-stock=OUT_OF_STOCK、product-draftのinactive SKU=INACTIVE。初期guestには不正Cartが見えない",
       "action": "invalid-items状態を表示・処理",
-      "expected": "購入できない理由と修正用のアクションを表示する。",
+      "expected": "Web /cartで4原因別のメッセージを表示。非価格問題が残る間は価格同意ボタンをdisabled、購入手続きはaria-disabled=trueで遷移不可。明細削除で非価格問題を解消後、価格同意してblockingIssuesを空にすればCheckout可能",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "SCREEN-STOREFRONT-CART-A01-03を対象にcart-with-invalid-itemsを準備し「購入できない理由と修正用のアクションを表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-CART-A01-03の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "invalid-itemsに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "guest初期状態をinvalid-itemsとして誤PASS、原因別メッセージ欠落、非価格問題を価格同意で迂回、購入不可SKUのCheckout、他人のCart参照",
+      "test_condition": "Reset(cart-with-invalid-items)直後guest /cartは空→regularでログイン→4明細のPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVEと修正案内を確認。非価格問題が残る間は価格同意不可・Checkout aria-disabled。非価格問題を削除→価格同意可能→同意後blockingIssues=[]をDTO/Webで確認。実ブラウザ/視覚正本PASSは別途",
+      "test_responsibility": "SCREEN-STOREFRONT-CART-A01-03のWeb非default状態。CartUseCases.getCart→DexieCartRepository.getCartDto→CartContentの原因別修正/削除・Checkout遮断",
+      "case_policy": "固定Seed4原因、guest/regular所有権、非価格問題解消→価格同意、正常default対照を採用。Native実行は別",
+      "case_selection_reason": "既存Seedで4原因・所有者前提・修正/同意順序・Checkout拒否を追加fixtureなしで検証可能",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "cart.md:7-25/33-44/85-91、metadata.ts:207-216、default-dataset.ts:705-726/794-795、scenarios.ts:260-286、CartUseCases.getCart:82-116、DexieCartRepository.getCartDto:448-539、CartContent:14-20/99-143/250-276、ui-review.spec.ts:814-825を照合。初期guestでなくregularログイン後の4原因。実ブラウザ/視覚正本のPASS未確認",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -4034,10 +4034,14 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CartUseCases.getCart",
+        "CartUseCases.removeItem",
+        "CartUseCases.acceptPriceChanges"
+      ],
       "covered_by": "SCREEN-STOREFRONT-CART-A01-03",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様/Role・Seed4明細・Use Case→Dexie DTO→Webと既存E2Eセットアップを読み取り監査。実ブラウザ/視覚受入は未実施",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -4057,7 +4061,99 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.removeItem",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 195,
+          "signature": "async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.acceptPriceChanges",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 220,
+          "signature": "async acceptPriceChanges(request: AcceptPriceChangesRequest): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 44,
+          "reason": "BR-CART-003とWeb invalid-items状態"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 85,
+          "end_line": 91,
+          "reason": "AC-CART-003 Checkout遮断"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 207,
+          "end_line": 216,
+          "reason": "初期guestと推奨regular"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 705,
+          "end_line": 726,
+          "reason": "regular本人のactive Cart"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 260,
+          "end_line": 286,
+          "reason": "4種類の不正明細"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "本人/guestのCart解決"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 448,
+          "end_line": 539,
+          "reason": "DTO問題分類とblockingIssues"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 14,
+          "end_line": 20,
+          "reason": "原因別日本語案内"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 99,
+          "end_line": 143,
+          "reason": "価格同意の順序"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 250,
+          "end_line": 276,
+          "reason": "Checkout遮断"
+        },
+        {
+          "path": "e2e/web/ui-review.spec.ts",
+          "start_line": 814,
+          "end_line": 825,
+          "reason": "既存E2Eがregularログインを明示（実行PASSとは別）"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESSES-A01-01",
