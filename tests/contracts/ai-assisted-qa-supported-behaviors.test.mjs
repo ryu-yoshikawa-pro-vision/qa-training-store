@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 68,
-      requires_review: 120,
+      basically_analyzed: 69,
+      requires_review: 119,
       classified_rate: 100,
-      basic_analysis_rate: 36.17,
+      basic_analysis_rate: 36.7,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -47,6 +47,22 @@ describe("サポート機能の仕様と実装の追跡", () => {
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
+  });
+
+  it("audits name/code search against viewer visibility on Web and Android", () => {
+    const search = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-SEARCH-A01-01");
+    expect(search?.analysis_status).toBe("analyzed");
+    expect(search?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(search?.test_condition).toContain("P-0001");
+    expect(search?.audit_branch_refs?.map((entry) => entry.path)).toEqual(
+      expect.arrayContaining([
+        "src/presentation/pages/catalog-list-page.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
   });
 
   it("audits Home product visibility without treating out-of-stock as hidden", () => {
