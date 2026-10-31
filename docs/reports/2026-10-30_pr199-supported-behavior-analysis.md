@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 Cart invalid-items分析と管理在庫ステータス不整合候補（SUT変更なし）
+
+- **分析済み**：`SCREEN-STOREFRONT-CART-S-invalid-items`。正式`BR-CART-003/AC-CART-003`、`cart-with-invalid-items` Seedの4明細（価格変更・非公開・在庫0・inactive SKU）、`CartUseCases.getCart/removeItem/acceptPriceChanges`、Dexie `getCartDto`、Web `CartContent`と既存E2Eセットアップを照合。初期guestでは不正明細は見えず、**regular@example.comでログイン後に/cartへ遷移**する必要がある。非価格問題の削除→価格同意→Checkout解放の順序をCase化。既存テストのソース確認は実行PASS/視覚正本一致を意味しない。
+- **未決・Medium候補（製品変更なし）**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`の`BR-ADMININV-001/AC-ADMININV-001`はSKU 0→out_of_stock、1〜5→low_stock、6以上→availableの表示・件数を要求。一方`DexieInventoryRepository.search`（`src/infrastructure/database/dexie/product-repositories.ts:601-647`）のフィルターは`out=0`、`low=1..5`、`available>=1`でlowとavailableが重複。`AdminInventoriesContent`（`src/presentation/pages/admin-operations-pages.tsx:78-185`）の「状態」列は`ActiveBadge(item.isActive)`で有効/無効を表示し、在庫分類を表示しない。再現候補：operator/adminでdefault/low-stock Reset→/admin/inventories、在庫0/1/5/6を準備し分類・件数・「在庫あり」/「低在庫」フィルターを比較。既存Seedで4境界が全て揃うか・実ブラウザでの再現は未確認。影響は在庫判断と教材の境界値オラクル。仕様/実装差分レビュー演習には利用可能だが、教材の基本分析のための製品修正は必須でない。視覚受入の期待値確定には判断が必要。状態は`review_required`維持。Issue化・別PR化は承認待ち。
+- **進捗**：基本分析48/188（残り140）、状態条件15/20（残り5）。188は暫定分母。今回変更は学習用台帳・契約テスト・レポート・Planのみ。
+
+
 ## 2026-10-31 決済再開・本人注文一覧の分析とWeb CI失敗の切り分け（SUT変更なし）
 
 - `SCREEN-CHECKOUT-PROCESSING-A01-02`（再読み込み・再開）と`SCREEN-ORDERS-LIST-A01-01`（本人注文一覧）をBR/AC・Use Case・Dexie/SQLite・Web/Android・固定Seedの実値と照合。本人Order IDを用いる`resumePayment`と、本人IDで絞る`listMyOrders`の経路を、台帳に具体的な入力・期待結果・リスク・Case採否根拠とともに記録した。
