@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 商品詳細の在庫切れを既存単一SKU商品で基本分析（SUT変更なし）
+
+- `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`：正式`storefront.md:100-115`のguest/customer・Web desktop在庫切れ表示と購入不可の状態を、既存`out-of-stock` Seedの実値から監査。SeedはTシャツMだけ10→0へ変更するが、**default datasetにもpublished・単一active SKU在庫0の`product-out-of-stock`（スポーツボトル/P-0006）が元から存在**する（`default-dataset.ts:149-164/275-326`）。既存商品を直接`/products/product-out-of-stock`で開けば、TシャツS=20の自動選択を回避して状態Caseを構成できる。学習用fixtureや既存Seedの追加・変更は不要。
+- `CatalogUseCases.getProductDetail`→Dexie `getDetail/buildCandidates`はpublished/active SKUを条件とし、stock0だけでは商品を除外しない（`catalog-use-cases.ts:100-118`、`storefront-repositories.ts:184-225/248-326`）。Web `ProductDetailView`は単一SKU0で「在庫切れ」、数量selectとカート追加buttonのdisabled、送料無料・購入上限案内の非表示を構成（`product-detail-page.tsx:66-100/191-265`）。TシャツはS20を初期選択し、M0/L0は「（在庫切れ）」・disabledの対照Case。既存component `catalog-pages.test.tsx:350-359`は全SKU0のmockであり、固定Seed実ブラウザのPASSではない。
+- **状態条件の証拠付き基本分析を`analyzed`へ変更**。基本操作は54/188件（残り134）、状態条件は**18/20件（残り2）**。親`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`はCart Use Caseの拒否・状態不変と実ブラウザ受入が未検証のため`review_required`維持。Web desktop視覚正本と実カート不変のRunは未実施でPASS扱いしない。既存製品実装・正式仕様・Seed/Reset・製品用テストは変更していない。
+- [Web CI 41161207133](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41161207133)の最新HEADのjobsを確認。Vitest contracts・integration・component・主要Chromium E2E等は成功したが、Style Qualityは`src/presentation/native/native-purchase-screens.tsx`のみPrettier違反で失敗。学習用contract書式は通過。製品側の書式修正は承認待ちで行わない。Mobile CI 41161207028は確認時にiOS buildとAndroid Maestroが進行中。新しいcommitのCIは別途確認する。
+
 ## 2026-10-31 販売終了の確認ダイアログ状態を監査（SUT変更なし）
 
 - `SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm`は正式`admin-catalog.md:124-149`でoperator/admin・Web desktopの確認状態。既存`product-aggregate-edit`は`scenarios.ts:122-123`でdefault datasetを保持し、`metadata.ts:350-359`ではadmin Sessionを初期設定。公開済み`product-basic-shirt`と非公開`product-unpublished`を正例、`product-draft`・`product-discontinued`をトリガー非表示の負例とする。

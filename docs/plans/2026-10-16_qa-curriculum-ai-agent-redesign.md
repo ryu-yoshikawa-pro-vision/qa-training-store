@@ -4,9 +4,9 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用契約CIの台帳同期・Prettier | 進行中・検証待ち | [Web CI 41155913403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41155913403)で未レビュー状態5期待/実値4、学習用contract書式失敗。今回期待値3（状態1件追加後）へ更新。最新HEADのPASSは未確認 | 最新Web CIのcontracts/styleログで再判定、学習用のみ修正 |
-| P0 | 製品Native書式によるWeb CI阻害 | BLOCKED（製品変更承認待ち） | 同CIの`src/presentation/native/native-purchase-screens.tsx`はPrettier失敗。SUT変更禁止のため未修正 | 原因と影響を維持し、承認なく修正しない |
-| P1 | 非default状態の個別基本分析 | 進行中 | **17/20レビュー済み・残り3**。未確認は商品一覧empty、商品詳細out-of-stock、管理在庫stock-boundaries。状態別実ブラウザ/視覚受入は別条件 | out-of-stockのSeed/UI不一致を実再現、他2件の仕様差を整理 |
+| P0 | 学習用契約CIの台帳同期・Prettier | 前HEADで完了／新HEADは検証待ち | [Web CI 41161207133](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41161207133)でVitest contracts成功・学習用contract書式違反なし。状態分析18/20へ更新した新HEADのCIは未実行 | 新HEADのcontractとStyle Qualityを確認、学習用の失敗のみ修正 |
+| P0 | 製品Native書式によるWeb CI阻害 | BLOCKED（製品変更承認待ち） | [Web CI 41161207133](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41161207133)のStyle Qualityログで`src/presentation/native/native-purchase-screens.tsx`のみPrettier失敗。SUT変更禁止のため未修正 | 製品変更の承認がない限り編集せず、原因と影響を報告 |
+| P1 | 非default状態の個別基本分析 | 進行中 | **18/20レビュー済み・残り2**。未確認は商品一覧empty、管理在庫stock-boundaries。商品詳細out-of-stockは既存単一SKU在庫0の商品で静的基本分析済み（実地受入は別）。状態別実ブラウザ/視覚受入は別条件 | 商品一覧emptyと管理在庫stock-boundariesの仕様差を整理し、商品詳細out-of-stockの実ブラウザ・視覚受入を別途実施 |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **54/188操作分析済み・残り134**、188は暫定分母。正式BR/AC、Role/Platform/State、Use Case→Repository→UI、Seed実値、証拠の一致が必要 | 未分析操作をリスク順に個別監査、分母再検証 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
@@ -14,6 +14,12 @@
 | P2 | 過去PR混在製品差分・製品不整合候補 | 進行中（修正は禁止） | [調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)の既存製品実装9/正式仕様1/製品テスト9パス一次仕分け、商品一覧empty/在庫分類/ページング/out-of-stock等の未決候補。承認なくrevert/Issue化しない | 再現条件・重大度・教材影響・修正要否を記録し判断を提案 |
 
 **状態の意味**：分析済みは静的な証拠付き基本分析であり、実行E2E・Native・視覚・Template・正式AI評価のPASSを意味しない。CIの偶発障害、学習用修正可能項目、製品承認待ち、外部サービス受入は別に扱う。履歴はGit commitと本Planの既存節、個別証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に保持する。ユーザー承認のない製品改修・merge/force push/branch削除/Issue・PR close/release/tagは禁止。
+
+## 2026-10-31 商品詳細out-of-stockの単一SKU固定Seed再利用（SUT変更なし）
+
+- 既存`out-of-stock` SeedのTシャツMだけ0化する状態に加え、default datasetに`product-out-of-stock`（publishedスポーツボトル、単一SKU在庫0）があることを確認。`/products/product-out-of-stock`でWebの「在庫切れ」・数量/追加disabledを静的に照合し、TシャツS20/M0/L0の初期選択差を対照Caseにする。製品Seed/製品コードの追加・変更なし。
+- `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`を根拠付き`analyzed`に更新。**基本操作54/188（残り134）、状態条件18/20（残り2）**。親`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`はCart不変・拒否の実行受入が残るため未分析維持。実ブラウザ・Web desktop視覚正本・実カート不変性は未受入。
+- Web CI 41161207133は学習用contracts PASS、Style Qualityは変更禁止のNative製品画面のみPrettier失敗。新HEADのCIは別途確認。詳細は[調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)。
 
 ## 2026-10-31 注文一覧の状態別3動作を基本分析（製品変更なし）
 

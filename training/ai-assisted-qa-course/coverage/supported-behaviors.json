@@ -1694,20 +1694,20 @@
       "source_line": 114,
       "source_text": "在庫切れである旨と、カートに追加できない理由を表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "out-of-stock",
-      "data": "Seed/入力: out-of-stock。通常状態から条件を変更し表示と操作を比較",
+      "role": "guest/customer（Web desktop）。default/out-of-stockとも初期guestで商品詳細を閲覧可能",
+      "scenario": "out-of-stock Reset→/products/product-out-of-stock（スポーツボトル・唯一のSKUが0）。対照として同じSeedの/product-basic-shirtはS=20、M=0、L=0でSが初期選択される",
+      "data": "out-of-stockはdefault datasetを複製しbasic-shirtのM（variant-basic-shirt-02）を10→0に変更。既存defaultのpublished product-out-of-stock（P-0006/スポーツボトル）は単一active SKUが0のため、追加fixture・製品Seed改変なしに在庫切れ画面を再現可能。basic-shirt S=20/M=0/L=0はSKUごとの選択不能を検証",
       "action": "out-of-stock状態を表示・処理",
-      "expected": "在庫切れである旨と、カートに追加できない理由を表示する。",
+      "expected": "スポーツボトル詳細では唯一のSKU在庫0を選択し「在庫切れ」を表示、数量selectと「カートに追加」buttonをdisabledにし、送料無料/購入上限案内を出さない。basic-shirtでは在庫ありSを初期選択、M/Lに「（在庫切れ）」とdisabledを表示し、Sの購入は可能。在庫切れSKUはカートへ追加できない",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03を対象にout-of-stockを準備し「在庫切れである旨と、カートに追加できない理由を表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "out-of-stockに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "在庫0のSKUを購入可能と誤認・カートに追加する危険、単一SKU在庫0と複数SKUの一部在庫0を同一ケースにして誤PASSする危険、Seed名称と対象商品IDの取り違え",
+      "test_condition": "out-of-stock Reset（初期guest）→Web desktop /products/product-out-of-stockを直接開く→公開済みスポーツボトル/単一SKU在庫0/「在庫切れ」表示、数量select disabled、カート追加button disabled、送料無料・購入上限非表示、カート不変を確認。対照: /products/product-basic-shirtではS=20を初期選択、M=0/L=0は「（在庫切れ）」かつdisabled、Sの追加可能を確認。regular customerでも同じ在庫制約。既存componentは全SKU0のDTO mockであり実Seed+ブラウザの実行PASSではない。Web desktop視覚正本と実カート不変性は別途受入",
+      "test_responsibility": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03の状態別『在庫0では購入不可』に限定。親操作のSKU別の無効化・Use Caseの拒否・Cart不変性は独立して分析・実行する",
+      "case_policy": "単一SKU0（スポーツボトル）を正例、複数SKUの一部0（TシャツM/L）と在庫ありSを対照、guest/customerのRole差とカート不変を代表Caseに採用。視覚・ブラウザ・Use Caseの実Runは未実施",
+      "case_selection_reason": "既存の公開単一SKU在庫0と一部SKU在庫0が同一Seed内にあり、UIの初期選択とdisabled分岐を製品Seed・製品コードを変更せず分離できる。静的な基本分析と実地受入を区別する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:104-115のWeb desktop在庫切れ状態とBR/AC、metadata.ts:108-117、scenarios.ts:41-46、default-dataset.ts:149-164/275-326、CatalogUseCases.getProductDetail:100-118、DexieStorefrontCatalogQueryRepository.getDetail/buildCandidates（stock0でもpublishedかつactive SKUなら候補を維持）、ProductDetailView:66-100/191-265、catalog-pages.test.tsx:350-359を静的照合。既存componentのDTO mockは固定Seedの実行証拠ではない。商品IDを直接指定する代替が成立するが、視覚正本/実ブラウザ/実Cart拒否は未受入",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1716,10 +1716,13 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail",
+        "CartUseCases.addItem"
+      ],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "仕様・Seed実値・CatalogUseCases→Dexie query→Web UI・既存componentを照合し、単一SKU在庫0と一部SKU在庫0の代表Caseを分離。実地/視覚受入と親操作は未完了",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -1731,15 +1734,97 @@
         "signature": "\"out-of-stock\": {",
         "scenario": "out-of-stock",
         "applicable": true,
-        "alternatives": [],
+        "alternatives": [
+          "default"
+        ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
           "line": 41,
           "signature": "case \"out-of-stock\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "out-of-stockのMを0にする変換と、default dataset内の単一SKU在庫0の商品を別々に確認。初期guest、公開状態、active SKUを含めて検証"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 100,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 115,
+          "reason": "guest/customer、Web desktop、在庫切れ表示・購入不可の状態契約"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 108,
+          "end_line": 117,
+          "reason": "out-of-stock初期guestと固定Seedの用途"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 30,
+          "end_line": 46,
+          "reason": "out-of-stockはbasic-shirt Mを0にするがdefault商品も維持"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 149,
+          "end_line": 164,
+          "reason": "publishedスポーツボトルの唯一SKUの初期在庫0"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 275,
+          "end_line": 326,
+          "reason": "単一SKUのvariantIdとbasic-shirt S20/M10/L0の生成"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 100,
+          "end_line": 118,
+          "reason": "閲覧者の権限境界と商品詳細取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "getDetailが在庫0SKUをDTOへ保持"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 248,
+          "end_line": 326,
+          "reason": "published/activeを絞り込むがstock0では除外しない"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 66,
+          "end_line": 100,
+          "reason": "初期選択は在庫ありSKU優先"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 265,
+          "reason": "SKU選択不能・在庫切れ文言・数量/カート追加disabled"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 350,
+          "end_line": 359,
+          "reason": "全SKU0のDTO mockでdisabled UIを確認する既存component（固定Seedではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock",

@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 3,
+      unreviewed_state_conditions: 2,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -307,6 +307,24 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
     expect(unresolved?.analysis_status).toBe("review_required");
     expect(unresolved?.basic_analysis_review).toContain("action=null");
+  });
+
+  it("audits a zero-stock single-SKU product without changing the SUT", () => {
+    const state = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
+    );
+    expect(state?.analysis_status).toBe("analyzed");
+    expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(state?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
+    expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
+    expect(state?.test_condition).toContain("product-out-of-stock");
+    expect(state?.test_condition).toContain("product-basic-shirt");
+    expect(state?.test_condition).toContain("disabled");
+    expect(
+      data.behaviors.find(
+        (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+      )?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("audits invalid Cart ownership and preserves unresolved inventory status", () => {
