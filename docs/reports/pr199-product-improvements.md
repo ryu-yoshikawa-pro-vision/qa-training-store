@@ -22,6 +22,8 @@
 | Nativeカテゴリー画面の実名見出し（仕様/UI差候補） | `storefront.md:175-191`はdefaultカテゴリー名表示を要求。Web `CatalogListPage:240-300`は`getCategoryName`で実名、Native `NativeCatalogScreen:119-205`は固定「カテゴリの商品」 | **静的差異確認**、Android実画面・視覚正本との照合未実施。適合判断未確定、重大度Low〜Medium候補 | 商品の絞込自体は成立するが、どのカテゴリーを閲覧中か分かりにくい。教材はWeb/Native比較のレビュー題材として使用可、製品修正は教材の基本分析に不要 | Native実画面と正式視覚正本を確認。製品コードは変更せず、必要なら承認後に製品用別PRを提案。既存Issue重複は検索語一致なし・最終確認待ち |
 | 検索対象範囲の解釈（仕様未決） | 実装は商品名/商品コード以外にカテゴリー・ブランド・SKUにも部分一致。正式な想定範囲は未確定 | 静的分析、実検索未受入 | 未確定の検索対象を仕様上の正解にしない | 正式仕様の対象範囲と実挙動を確認 |
 
+| Checkout配送先の郵便番号/電話の非数字除去（入力品質・仕様解釈） | `CheckoutOrderUseCases.validateAddress`は`replace(/\\D/g, "")`後に7桁/10〜11桁を判定。`100-0001`/`090-0000-0000`の正規化は追加統合テストで確認。数字以外の任意文字混入も除去され得るが、許容入力文字の正式境界は未確定 | 静的確認。任意文字混入の実入力・Web/Android・下位保存の独立実Runは未確認。製品不適合とは未判定 | 住所の誤入力受理・入力エラーの不一致が起こり得る。教材の正常/不正入力は既存Seedと正当なハイフン入力で成立 | 許容文字契約とWeb/Native UIの入力制約、負例（`abc1000001`等）を独立確認。製品改修せず判断保留 |
+
 この一覧は既存の分析記録からの整理であり、独立した実ブラウザ/Androidの再現証拠を新たに取得したことは意味しない。重大度と製品適合は各行の根拠・影響・実証に基づいて今後確定する。緊急性の高いセキュリティ/データ問題は発見した実行回で優先報告し、その他は定期実行で現在状態を報告する。
 
 ## PR #199に既に混在する製品差分（19ファイル）
@@ -31,7 +33,7 @@
 | 既存差分ファイル | 監査する変更目的・影響 | 現状 |
 | --- | --- | --- |
 | `src/application/use-cases/account-use-cases.ts` | 郵便番号住所候補の顧客認可ガード | **BR-AUTH-002と実装・統合テストを静的監査済み。実Web/Native導線・変更由来・PR整合は未確定、処理方針保留** |
-| `src/application/use-cases/checkout-order-use-cases.ts` | 住所・支払方法の検証とSession/Cart整合 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/application/use-cases/checkout-order-use-cases.ts` | 住所正規化/必須検証・許可決済コードの境界 | **PR差分全hunkと正式BR/AC・関連統合テストを静的監査済み。非数字文字の許容範囲、実Web/Native、変更由来・PR整合は未確定／処理方針保留** |
 | `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | **51件のページ境界を静的/統合テスト監査済み。並行更新時の一貫性・製品変更としてのPR適合性は未確定、処理方針保留** |
 | `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
 | `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | **Native SQLite契約の静的根拠・Web CI確認済み、実Mobile再検証待ち／判断保留** |
@@ -47,7 +49,7 @@
 | `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | **既存4件＋47件で51件取得・全ID逆順並べ替えを検証、Web CI成功。並行更新負例は未実行、処理方針保留** |
 | `tests/integration/auth-account.test.ts` | 住所候補の認可境界、既定配送先変更の原子性 | **住所候補のguest/operator/customer/未登録郵便番号を監査済み。既定配送先切替・古いversion拒否の追加テストは別意味単位で未監査、ファイル全体は部分監査** |
 | `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
-| `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | **住所の必須/正規化と決済コード拒否の追加Caseは監査済み。その他の追加Caseは未監査のためファイル全体は部分監査** |
 | `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | **後続明細失敗時の先行更新rollbackを契約テストで確認、実Mobile再検証待ち／判断保留** |
 
 ### 価格変更承諾時の数量上限・トランザクション（既存差分4ファイルの意味単位監査）
@@ -77,6 +79,14 @@
 - **追加回帰の範囲**：`tests/integration/auth-account.test.ts`の新規ケースは未認証→拒否、operator→拒否、customerの`100-0001`→東京都/1000001、未知の`999-9999`→nullを検証。最新HEAD `9d20757a06713796ade89026c80af190927a1e4c`の[Web CI 41203998824](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41203998824)ではVitest integration・contracts・`validate`が成功。ただしこの統合テストの成功は実Web/Android画面の導線や実認証セッションのE2E受入を意味しない。
 - **安全性・影響・未決**：非customerからの住所候補利用を拒否するガードの追加は要求上妥当で、現時点で認可緩和や外部情報漏えいを示す証拠はない。逆に既存のguest向け呼出しがこのガードで影響を受けないか、Web/Nativeの全呼出し元とUI表示を独立確認していない。重大度は認可境界としてMedium候補。教材は既存の`regular-member`とゲスト/スタッフのロール差で成立し、製品修正を必須としない。
 - **処理方針**：**判断保留**。変更を導入したcommitの特定、全呼出し元・実画面の回帰、教材目的との整合を確認してから「本PRに残す／別PRへ分離／取り消す」を決定する。実装のrevert・分離・変更は明示承認まで行わない。なお同じ統合テストファイルに追加された「既定配送先の原子的切替と古いversion拒否」は別の意味単位であり、本節の監査完了数に含めない。
+
+### Checkout住所・支払方法のApplication境界（実装1ファイル監査完了＋統合テスト一部）
+
+- **対象・由来**：PR差分`src/application/use-cases/checkout-order-use-cases.ts`の`setAddress`、`setPayment`、`validateAddress`（当該ファイルのPR差分は2 hunk）と`tests/integration/checkout-order-use-cases.test.ts`の対応追加Caseを確認。変更を最初に導入したcommitの特定は未完了。統合テストにはSession再開/置換、stale Cart、注文直前再検証等の別意味単位も含まれるため、**テストファイル全体は部分監査**とする。
+- **正式要求と実装**：`docs/spec/features/checkout-and-payment.md`の`BR-CHECKOUT-001/002`、`AC-CHECKOUT-001/002`、同仕様の「支払方法選択と確認画面への遷移」、`BR-AUTH-002`を参照。`setAddress`は`requireCustomer`・本人Session照合の後、氏名/都道府県/市区町村/住所のtrim、郵便番号/電話の非数字除去、必須/長さ/桁数を検証し、正規化後SnapshotをRepositoryへ渡す。`setPayment`は4種の`PAYMENT_METHODS`以外を`VALIDATION`で拒否し、Repositoryへの更新前に停止する。PR差分内で本人ガードやCart version検証を取り除く変更はない。
+- **実テスト・CI証拠**：追加統合Caseは不正な決済コードを拒否して`version/unlockedStep/paymentMethodCode`不変、空欄/短い郵便番号/電話を拒否して`addressSnapshot/version`不変、`100-0001`と`090-0000-0000`の正規化保存を確認する。HEAD `cf8718dce6b913e18af940735c7367e5ef27f3d1`の[Web CI 41205964167](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41205964167)ではVitest integration/contracts、`validate`等の実jobが成功。ただしこの成功は各テストの単独実行ログやWeb/Android実画面の証拠ではない。
+- **未決・リスク**：`replace(/\\D/g, "")`はハイフン以外の非数字も除去するため、例えば`abc1000001`を`1000001`へ正規化し得る。これは静的に成立する入力品質の**仕様解釈候補**であり、正式許容文字・Web/Native UI入力制約・Repositoryの追加検証・実再現を確認するまで製品不適合とは判定しない。重大度Low〜Medium候補。決済の無効コード拒否は仕様と整合するが、直接Use Case呼出し以外の画面復旧・旧Session/並行更新・Native実Runは未受入。
+- **教材と処理方針**：正常な住所と不正入力、決済コード拒否の教材は既存default/regular-memberと統合テストで成立し、新Seedや製品修正を必須としない。**処理方針は判断保留**（変更由来、実UI/Native回帰、入力契約、PR目的との整合の証拠不足）。revert/分離/製品機能変更は明示承認まで行わない。
 
 ### 処理方針の決定規則
 
