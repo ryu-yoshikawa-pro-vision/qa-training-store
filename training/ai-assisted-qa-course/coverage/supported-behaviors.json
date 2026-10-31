@@ -6401,32 +6401,29 @@
       "source_line": 160,
       "source_text": "決済処理中の状態を表示し、再読み込みや再開の導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-processing,payment-declined,default。Customer本人/他人・activeセッション・versionを区別する。対象動作: 再読み込み・再開の案内",
+      "role": "active customer（本人のprocessing注文のみ。guest・スタッフ・他人注文は対象外）",
+      "scenario": "payment-processing Seedにresetしてregular@example.comでログインし、order-payment-failedを処理中画面に渡す。正常結果や既に完了済みの注文はdefault Seedから別に作る",
+      "data": "payment-processingはSeed内のorder-payment-failedをpending_payment/processingへ更新。metadataのinitialSession=guestなので事前ログインが必要。両UIはURLのorderIdをresumePaymentへ渡す。完了済みの決済ならUse CaseはGatewayを再実行せず保存済み結果を返す",
       "action": "再読み込み・再開の案内",
-      "expected": "処理中画面を再読み込みしても同一注文IDに基づいて状態を再照会し、安全な再開導線を示す",
+      "expected": "Webは初回表示時に同じorderIdでresumePaymentを実行し、失敗時は「再開する」ボタンで再照会する。Androidは初回処理および「再開する」ボタンで同じorderIdを使用し、処理中はボタンを無効化する。処理済み注文は既存結果を再利用し、本人以外のorderIdを拒否する",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "再読み込み・再開の案内について、処理中画面を再読み込みしても同一注文IDに基づいて状態を再照会し、安全な再開導線を示すことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と再読み込み・再開の案内の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "再読み込み・再開の案内の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "再読み込みによる別の注文への誤接続、Gateway重複実行、失敗後に復旧できない読み込み画面、他人注文の再開",
+      "test_condition": "同一orderIdのprocessing注文をWeb/Androidの処理画面に渡し、resumePayment(orderId)と再開操作の呼出しを観測する。処理済み注文への再照会は新規Gateway実行を起こさないこと、他人orderIdはUse Caseで拒否されることを確認する",
+      "test_responsibility": "画面がURLのorderIdと同じ値でCheckoutOrderUseCases.resumePaymentを呼ぶこと、Use Caseの本人検証/processing状態/最終結果分岐を確認する",
+      "case_policy": "処理中初回表示、取得失敗後の再開、処理済み注文の再照会、他人orderIdを代表条件に採用。同時並列Gateway呼び出しやAndroid実機表示は別受入",
+      "case_selection_reason": "購入者が画面再読み込み後に別の決済試行を発生させず、同一注文を復旧できる必要がある",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "BR/AC、画面仕様、Use Case→Dexie/SQLite→Web/Android、default/関連Seedの初期セッションと実値を照合。上記audit_branch_refsの分岐根拠を確認。SUTを修正せず、今回のテスト実行・実機/視覚正本は未受入",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
-        "AC-CHECKOUT-003"
+        "AC-CHECKOUT-003",
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち",
+      "analysis_progress": "仕様・実装・Seedのソース照合済み。新規製品テストは追加しない。受入用の再現実行と実機比較は未実施",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 523,
@@ -6456,6 +6453,55 @@
           "line": 319,
           "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
         }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 286,
+          "end_line": 301,
+          "reason": "payment-processingが旧failed注文をpending_payment/processingへ変換する"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 229,
+          "end_line": 239,
+          "reason": "initialSession=guestなので本人ログインを検証条件へ含める"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 523,
+          "end_line": 569,
+          "reason": "WebのorderIdを使った初期resumePaymentと失敗後の再開ボタン"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1065,
+          "end_line": 1106,
+          "reason": "AndroidのorderIdに基づく初回/手動再開とbusyによる無効化"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 319,
+          "end_line": 339,
+          "reason": "本人の注文検査・latestPayment.statusに応じた保存結果返却・gateway charge"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 525,
+          "end_line": 535,
+          "reason": "WebのresumePayment(orderId)と処理完了への遷移を検査する既存テスト"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 289,
+          "end_line": 359,
+          "reason": "再resumePayment後のGateway呼出し数と在庫重複防止の検証"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
@@ -7387,30 +7433,29 @@
       "source_line": 27,
       "source_text": "カスタマー自身の注文番号、合計金額、支払い、配送、タイムラインを一覧表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-empty,orders-phase1-statuses,payment-processing,payment-declined。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 本人の注文一覧",
+      "role": "active customer（本人の注文だけ。guest・operator・adminには顧客注文一覧を許可しない）",
+      "scenario": "default Seedの初期guestからregular@example.comでログインし、order-paid、order-payment-failed等、本人の既存注文を一覧表示する。orders-emptyは空状態条件の別Caseに使う",
+      "data": "default Seedにuser-customer-regularが所有するorder-paid（注文番号ORD-20260701-0002）、order-payment-failed等の5状態の注文がある。注文番号と合計額は保存済みorderNumber/totalAmount。listMyOrdersは認証済みuser.idを使い、Dexie/SQLite双方でuserIdの注文のみ抽出し20件ずつcreated_descで返す",
       "action": "本人の注文一覧",
-      "expected": "ログイン顧客本人の注文だけを一覧表示し、注文番号と金額が注文スナップショットに一致する",
+      "expected": "Web/Androidの注文一覧は認証済み本人の注文番号・保存済み合計金額・注文ステータスを表示し、各行から本人の注文詳細へ移動できる。他人の注文IDの情報を混ぜず、状態別の履歴明細は詳細画面の別操作で検証する",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "本人の注文一覧の事前状態・実施後を比較し、ログイン顧客本人の注文だけを一覧表示し、注文番号と金額が注文スナップショットに一致することを確認する",
-      "test_responsibility": "本人の注文一覧の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "本人の注文一覧の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "他の顧客の注文番号/金額漏洩、本人注文の欠落、商品変更後の過去注文額の誤表示",
+      "test_condition": "regular@example.comのSeed注文を列挙し、保存されたorderNumber、status、totalAmountとWeb/Androidの表示を照合する。2人目のユーザーの注文を追加しても抽出されないこと、戻り値はcreated_desc・pageSize20を満たすことを確認する",
+      "test_responsibility": "requireCustomer→CheckoutOrderUseCases.listMyOrders→Dexie/SQLite OrderRepository.listByUser(userId)→Web/Android注文一覧の表示を結び、本人所有権とスナップショット項目を検証する",
+      "case_policy": "本人の複数注文を正常Case、他人注文を負例、20件のページ境界を追加条件に選ぶ。空状態やprocessing/failedの具体表示と画面リファレンスは別の状態条件へ分離",
+      "case_selection_reason": "本人以外の注文番号・金額を見せないことは顧客の個人情報と注文履歴の主要受入条件になる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "BR/AC、画面仕様、Use Case→Dexie/SQLite→Web/Android、default/関連Seedの初期セッションと実値を照合。上記audit_branch_refsの分岐根拠を確認。SUTを修正せず、今回のテスト実行・実機/視覚正本は未受入",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "CheckoutOrderUseCases.listMyOrders"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "仕様・実装・Seedのソース照合済み。新規製品テストは追加しない。受入用の再現実行と実機比較は未実施",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 672,
@@ -7442,6 +7487,55 @@
           "line": 385,
           "signature": "async listMyOrders(query?: Partial<MyOrderSearchQuery>): Promise<Page<OrderListItem>> {"
         }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 557,
+          "reason": "本人所有の複数ステータス注文、保存済みorderNumber/totalAmountを生成"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 86,
+          "reason": "defaultは初期guest・推奨会員regular@example.com"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 385,
+          "end_line": 396,
+          "reason": "requireCustomerの本人idをRepositoryへ渡しデフォルトpageSize20を指定"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 145,
+          "end_line": 168,
+          "reason": "DexieでuserIdを指定しorderNumber/totalAmountのSnapshot値をDTO化"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2220,
+          "end_line": 2261,
+          "reason": "SQLiteでuser_idをSQL条件としソート・20件ページを返す"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 672,
+          "end_line": 714,
+          "reason": "Webの本人注文一覧に注文番号・金額・状態・詳細リンクを表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1215,
+          "end_line": 1254,
+          "reason": "Androidで本人注文一覧に注文番号・金額・状態と詳細リンクを表示"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {

@@ -1,5 +1,11 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 決済再開と本人注文一覧・CIの確認（製品変更なし）
+
+- `SCREEN-CHECKOUT-PROCESSING-A01-02`と`SCREEN-ORDERS-LIST-A01-01`の本人認証・Seedの初期guest・Use Case→Repository→Web/Android表示・同じorderIdの再開を監査して台帳/契約テスト/調査レポートを更新。製品コード・正式仕様・Seed・製品用テストは変更しない。
+- 前HEAD Web CI 41144863754の契約テスト失敗は状態別未レビューの期待値8に対する実値6。学習用契約の期待値を更新。Style Qualityでは学習用契約と製品NativeにPrettier違反が残り、後者は修正禁止。両者とも最新HEADでのPASSは未確認。前HEAD Mobile CI 41144863940は成功。
+- **基本分析48/188（25.53%、残り140）、状態別条件14/20（残り6）**。188件は暫定。Processing再試行/キャンセルと注文一覧の支払い・配送・タイムライン表示の未決差分、既存PRの製品差分仕分け、公開Template/Private 2-core Codespaces/OpenCode実モデル校正は継続対象。
+
 ## 2026-10-31 既存PRのSUT混在差分・一次分類
 
 - base→HEADのPR変更290ファイル中、製品実装9・正式仕様1・既存製品テスト9・製品workflow 0をAPIの変更ファイル一覧から抽出。詳細な19パスは[全機能分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に記録。既存混在差分は保持し、個別の必要性/履歴/分離可否を次回以降に監査。追加の製品変更、revert、別PRは承認まで実施しない。

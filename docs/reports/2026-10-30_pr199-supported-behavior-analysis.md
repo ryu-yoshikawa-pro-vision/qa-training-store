@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 決済再開・本人注文一覧の分析とWeb CI失敗の切り分け（SUT変更なし）
+
+- `SCREEN-CHECKOUT-PROCESSING-A01-02`（再読み込み・再開）と`SCREEN-ORDERS-LIST-A01-01`（本人注文一覧）をBR/AC・Use Case・Dexie/SQLite・Web/Android・固定Seedの実値と照合。本人Order IDを用いる`resumePayment`と、本人IDで絞る`listMyOrders`の経路を、台帳に具体的な入力・期待結果・リスク・Case採否根拠とともに記録した。
+- `payment-processing` Seedは初期guestでありregular会員ログインが必要。`default`も初期guestなので本人注文一覧を直接検証できない。既存テストのソース確認は実ブラウザ/実機のPASSを意味しない。
+- `SCREEN-CHECKOUT-PROCESSING-A02-02`は処理中の再試行禁止と`retryPayment`の既存試行返却の関係、`A02-03`はキャンセルUI不存在だけで負例受入まで断定できない点を未決事項として維持。`SCREEN-ORDERS-LIST-A01-02`は正式仕様が一覧内に支払い/配送/タイムラインを要求する一方、Web/Native一覧では注文status・金額のみを表示しており、詳細画面への移譲が正しいか未決。
+- Web CI [41144863754](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41144863754) の実ログで、学習用`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の状態集計期待値8に対して実値6、Style Qualityの`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`と製品Native画面のPrettier違反を確認。学習用契約テストの件数を6に修正するが、書式・最新CIのPASSは未確認。製品Native画面は変更しない。Mobile App CI [41144863940](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41144863940) は成功。
+- **基本分析48/188件（25.53%）、未分析140件、状態別条件14/20件分析済み（未分析6件）。** 188件は暫定分母。PR内に以前から混在するSUT差分は保持し、製品修正・正式Seed/仕様・製品テストの変更は今回実施しない。
+
 ## 2026-10-31 既存PR混在SUT差分の一次仕分け（変更・revertなし）
 
 - GitHub PR #199のbase `main`（`05943b5a37ff`）とHEAD `f9fede3e220a`のAPI差分290ファイルから、**製品実装9ファイル、正式製品仕様1ファイル、既存製品テスト9ファイル、製品workflow差分0ファイル**を抽出した。これはPR全履歴の混在差分であり、今回の作業で新規変更したファイルではない。機能別の必要性・個別コミット由来・移設方針は未確定。
@@ -48,7 +56,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、46件は仕様・実装・Seedの照合済み、142件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、48件は仕様・実装・Seedの照合済み、140件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
