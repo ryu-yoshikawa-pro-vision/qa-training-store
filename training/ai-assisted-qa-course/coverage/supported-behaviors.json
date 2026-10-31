@@ -15417,24 +15417,27 @@
       "platform": "web",
       "role": "Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 最終管理者の変更を拒否",
+      "data": "default Seedはactive admin=user-adminが1名、active operator=user-operatorが1名、sessions=[]。管理者として認証した本人のrole/status変更は自己変更ガードで拒否。別管理者を用意するにはoperatorをadminへ昇格させ、active adminが2名の状態を作る。countActiveAdminsはrole=adminかつaccountStatus=activeだけを数える。最終管理者ガードの非self負例には通常Seedとは別の制御された状態が必要",
       "action": "最終管理者の変更を拒否",
-      "expected": "最後のactive Adminを降格・停止する処理を拒否し、管理者がゼロにならない",
+      "expected": "AdminUserUseCases.changeRoleは最後のactive adminをoperatorへ降格する場合、changeSuspensionは最後のactive adminをsuspendedへ変更する場合にLAST_ADMIN_PROTECTEDを返し、transaction内で更新・セッション削除を実施しない。本人変更はSELF_CHANGE_FORBIDDENを優先する。Web UIは本人の役割/状態変更をdisabledにし、拒否コードは具体的な日本語理由へ変換する。実Run/製品適合は未確認",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "最終管理者の変更を拒否実施前後で、最後のactive Adminを降格・停止する処理を拒否し、管理者がゼロにならないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、最終管理者の変更を拒否の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "最終管理者の変更を拒否が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "最後のactive admin喪失（High）、権限自己破壊（High）、並行変更とversion競合（High）、UI上の保護理由とUse Case結果の不一致（Medium）",
+      "test_condition": "defaultでuser-admin本人の降格/停止を要求しSELF_CHANGE_FORBIDDENとuser/version/session不変を確認。operatorを別adminへ昇格させ2名で片方を降格/停止し、active adminが1名残ることを確認。非selfのLAST_ADMIN_PROTECTED分岐は制御fixtureで対象だけがactive adminとなる条件を作り、role変更/停止双方が拒否されDB・version・session・admin件数が不変であることを確認。旧version CONFLICT、withdrawn拒否、UI disabled/エラー表示を独立Caseとし、同時更新は別の実行証拠を要する",
+      "test_responsibility": "BR-ADMINUSER-001/AC-ADMINUSER-001、Web admin guard→AdminUserDetailForm→AdminUserUseCases.changeRole/changeSuspension→Dexie User/Session Repositoryを照合。UI自己変更禁止とApplicationの最後の管理者数検証を別境界として検査",
+      "case_policy": "本人のrole/status変更拒否、2管理者から1管理者への許可変更、最後の管理者降格/停止の非self負例、version競合、withdrawn、Operatorの権限拒否を採用。既存defaultと学習専用fixtureを優先し、正式Seed・製品テストは変更しない",
+      "case_selection_reason": "既存integrationテストの名称にはlast adminが含まれるが、実際の負例は本人変更・customer role・withdrawnに限定され、LAST_ADMIN_PROTECTED分岐を直接実行していない。componentはmockのLAST_ADMIN_PROTECTED文言のみ検証。静的なガード存在と実際の非self負例PASSを混同しない",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "admin-users.md:7-15/49-51/78-84、roles-and-permissions.md:5-23、review-user-use-cases.ts:567-635/708-715、basic-repositories.ts:108-112、review-user-pages.tsx:618-830、default-dataset.ts:730-774、review-user-use-cases integration:322-360、review-user-pages component:485-505を静的照合。最後のadmin保護はApplicationに存在するが、非self条件でのLAST_ADMIN_PROTECTED実Run・DB不変・並行更新・UI最終admin事前表示の証拠がない。analysis_status=review_required維持、製品適合は未確認",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.changeRole",
+        "AdminUserUseCases.changeSuspension"
+      ],
+      "analysis_progress": "正式BR/AC、Role/Status、default Seed実値、Web UI→Application→Dexie countActiveAdminsの静的追跡を実施。既存integrationの実負例不足とcomponent mockの限界を識別。非self最後のadmin実Runが必要で基本分析未完",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -15457,7 +15460,93 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.changeRole",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 567,
+          "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeSuspension",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 600,
+          "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 7,
+          "end_line": 15,
+          "reason": "最後の管理者保護とUIの拒否理由"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 49,
+          "end_line": 51,
+          "reason": "ユーザー詳細の変更禁止UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 78,
+          "end_line": 84,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Admin限定権限とaccountStatus遷移"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 567,
+          "end_line": 635,
+          "reason": "本人ガード・last admin判定・transactionとsession無効化"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 708,
+          "end_line": 715,
+          "reason": "LAST_ADMIN_PROTECTEDエラー"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 108,
+          "end_line": 112,
+          "reason": "active admin件数の算出"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 618,
+          "end_line": 830,
+          "reason": "Web admin guard・本人変更disabled・拒否理由"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 774,
+          "reason": "初期admin 1名とoperator 1名"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 300,
+          "end_line": 360,
+          "reason": "既存integrationはself/customer/withdrawn拒否まで、last admin非self負例なし"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 485,
+          "end_line": 505,
+          "reason": "LAST_ADMIN_PROTECTEDの表示はmockによる検証"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A01-01",

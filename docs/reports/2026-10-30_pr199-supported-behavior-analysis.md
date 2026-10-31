@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 最終管理者保護の静的境界と負例証拠不足（未受入）
+
+- **対象と正式契約**：`SCREEN-ADMIN-USER-DETAIL-A02-03`。正式`admin-users.md:7-15/49-51/78-84`の`BR-ADMINUSER-001/AC-ADMINUSER-001`は最後の管理者の降格・停止を拒否し、UI上でも変更可能と誤認させないことを要求する。ユーザー管理はactive adminのみ（`roles-and-permissions.md:5-23`）。
+- **Web→Use Case→Repository**：`AdminUserDetailForm:618-830`は本人の役割/状態変更をdisabledにし、`LAST_ADMIN_PROTECTED`を具体的な日本語理由で表示する。`AdminUserUseCases.changeRole:567-597`はadmin→operator、`changeSuspension:600-635`はadmin→suspendedで`countActiveAdmins() <= 1`をtransaction内で判定。`DexieUserRepository.countActiveAdmins:108-112`はactive adminのみを数える。拒否時には更新/セッション削除の前で例外となる設計。
+- **固定SeedとCase採否**：defaultは`user-admin`が唯一のactive admin、`user-operator`がactive operator、初期sessionsは空。本人の降格/停止は`SELF_CHANGE_FORBIDDEN`が先行するため、defaultの本人拒否を`LAST_ADMIN_PROTECTED`分岐の実行証拠に代用しない。operatorをadminへ昇格した2管理者状態での許可変更、制御fixtureによる非self最後のadmin降格/停止拒否、version競合、withdrawn、UI文言とDB/session不変を独立Caseとして採用。
+- **既存テストと不足**：`tests/integration/review-user-use-cases.test.ts:322-360`はテスト名にlast adminを含むが、実際のassertionは本人降格・customer role・withdrawn拒否であり、非selfの`LAST_ADMIN_PROTECTED`分岐を直接検証していない。`tests/component/review-user-pages.test.tsx:485-505`は同コードのエラーメッセージをmockで確認するだけ。これは現時点の**テスト証拠不足**であり、製品の管理者喪失不具合が発生したとの断定ではない。
+- **判定**：最終管理者喪失リスクHigh、UI/実Run証拠未充足。`analysis_status=review_required`を維持し、基本分析77/188・状態18/20は変更しない。学習用契約/fixtureでの追加検証を検討し、既存製品コード・正式仕様・Seed・既存製品テストには触れない。
+
 ## ログイン拒否文言・安全なreturnToの基本分析（検証待ち）
 
 - **対象と正式契約**：`SCREEN-AUTH-LOGIN-A02-01`の拒否理由と遷移を`docs/spec/features/authentication.md`の`BR-AUTH-001/002`・`AC-AUTH-001/002`、`roles-and-permissions.md`と照合。無効な資格・suspended/withdrawnはセッション非生成、内部ハッシュ/actor IDの非露出、customerは安全な内部returnToのみ、operator/adminは管理系のRole分離が期待結果。実Run/製品適合は別判定。
