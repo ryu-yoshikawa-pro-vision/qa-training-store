@@ -10,7 +10,7 @@ PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが
 
 ## 現在の全機能分析（最新台帳参照）
 
-`SCREEN-STOREFRONT-CATEGORY-A01-01`のカテゴリー商品一覧を、正式BR/AC・Web/Nativeの閲覧者別絞込・4カテゴリーの既存Seed実値と照合して静的基本分析済み。Nativeの固定カテゴリー見出しと正式UI契約との差は製品改善レポートで未確認管理。**71/188操作（残り117）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
+`SCREEN-STOREFRONT-CATEGORY-A01-01/A02-01`のカテゴリー商品一覧と閲覧権限外商品の除外を、正式BR/AC・Web/Nativeの公開/rank/active SKU・4カテゴリーの既存Seed実値と照合して静的基本分析済み。Nativeの固定カテゴリー見出しと正式UI契約との差は製品改善レポートで未確認管理。**72/188操作（残り116）、非default状態18/20（残り2）**。188は暫定分母であり、実ブラウザ/Android/視覚受入は別途。詳細証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)と台帳。Mobile CIはPR branchのみ一時停止中で、マージ前にpull_request復元・最終HEADの全必須job成功が必要。
 
 ## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
 
@@ -21,7 +21,7 @@ PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが
 | P0 | Markdown lint（学習用Plan/調査レポート） | **完了（実CIで学習用12件解消）** | [Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)（HEAD `75ef0472`）の実ログは全571 Markdown中、**正式仕様1ファイルの2件のみ**。Plan MD012×7とレポートMD012×4/MD034×1は解消 | 新たな学習用Markdown lintが再発した場合のみ再開 |
 | P0 | 正式製品仕様のMarkdown lint | **完了（現行Web CIで確認済み）** | `docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022を意味不変の空行修正。[Web CI 41196968544](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41196968544)のStyle Quality・`validate`成功 | 後続HEADで再発した場合のみ再調査。正式仕様の機能変更許可ではない |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
-| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **71/188操作分析済み・残り117**、状態18/20、188は暫定分母。Home公開商品と検索の商品名/商品コードをguest/会員ランク/公開状態/active SKU/在庫0で静的照合。実ブラウザ/Android/視覚受入は未実施。詳細は[調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md) | 残り117件をリスク順に個別監査。Homeカテゴリー/会員特典、検索対象category/brand/SKUの正式範囲、13 SKUのWeb/Native差、状態2件は未決として分離 |
+| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **72/188操作分析済み・残り116**、状態18/20、188は暫定分母。Home公開商品と検索の商品名/商品コードをguest/会員ランク/公開状態/active SKU/在庫0で静的照合。実ブラウザ/Android/視覚受入は未実施。詳細は[調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md) | 残り116件をリスク順に個別監査。Homeカテゴリー/会員特典、検索対象category/brand/SKUの正式範囲、13 SKUのWeb/Native差、状態2件は未決として分離 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
 | P1 | M00〜M10教材・実践・正式評価・Skill連携 | 進行中・実地受入待ち | [評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)と[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の全マージ前条件。過去の自動/契約PASSを維持し、実地未実施を区別 | 51目標/11モジュールの証拠・演習/評価/配布・非回帰を精査 |
