@@ -667,19 +667,19 @@
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: ページネーション。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "many-products Seed（初期guest）で公開1000件・3,000 SKUをWeb/Nativeでページング。defaultを対照。Web視覚正本とNative機能受入は別管理",
+      "data": "既存many-products SeedでLOAD-0001〜1000、requiredRank=null、各active SKU3件、pageSize=20。guest/customer、1/2/50/51ページ、default対照、フィルター変更後page=1を分ける",
       "action": "ページネーション",
-      "expected": "ページの移動で商品集合が重複なく更新され、条件に一致する総件数とページ位置が矛盾しない",
+      "expected": "Web/Nativeともtotal1000・pageSize20・1/50→2/50→50/50で重複なく商品集合を表示し、先頭の前へ/最終の次へは無効。WebはURL ?page=2、Nativeはpage stateを変更",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "ページネーションの前後で、ページの移動で商品集合が重複なく更新され、条件に一致する総件数とページ位置が矛盾しないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "ページネーションの成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "ページネーションの誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ページ重複/欠落、件数不一致、権限外商品露出、境界で無効ボタン動作、フィルター後ページ残留",
+      "test_condition": "many-products Reset→guest→Web /productsとNative商品一覧でtotal=1000,pageSize=20,1/50の20商品IDを確認。2/50で別20件、50/50で次へ無効、戻るで49/50。default・customer・51ページ直指定・フィルター後page=1を対照。実E2E/Android/視覚一致は未実施",
+      "test_responsibility": "CatalogUseCases.search→DexieProductQueryRepository.search/buildCandidates→pageItems→Web URL PaginationとNativeCatalogResultSummaryを照合",
+      "case_policy": "1/2/50/51の境界、guest/customer、default対照、フィルター後再計算。Web視覚とNative機能の受入を分ける",
+      "case_selection_reason": "既存1000件Seedで20件×50ページの境界・重複・権限漏れを追加Seedなしで評価できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:63-74/212-216、CatalogUseCases.search:86-93、Dexie search:101-127/buildCandidates:249-314、pageItems:10-25、Web:133-160/534-539、Native:119-176/1143-1177、scenarios.ts:424-450、metadata.ts:97-106を照合。実行PASSではない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -688,7 +688,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
@@ -696,7 +698,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products"
       ],
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "正式仕様・Use Case・Repository・Web/Native・既存Seedの静的基本分析完了。実地受入と未決事項は別追跡",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -704,23 +706,99 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 97,
+        "signature": "\"many-products\": {",
+        "scenario": "many-products",
         "applicable": true,
-        "alternatives": [
-          "empty-catalog",
-          "many-products",
-          "gold-member"
-        ],
+        "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 27,
+          "signature": "if (scenario === \"many-products\") {"
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 450,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 97,
+          "end_line": 106,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 314,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/repository-helpers.ts",
+          "start_line": 10,
+          "end_line": 25,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 133,
+          "end_line": 160,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 534,
+          "end_line": 539,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 176,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1143,
+          "end_line": 1177,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
@@ -2161,19 +2239,19 @@
       "source_text": "該当する検索結果がない場合、検索条件を見直すための導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,many-products,empty-catalog。操作: 検索結果なしを表示。正常・不許可・変化前後の入力を区別する",
+      "scenario": "many-products Seed（初期guest）+未一致語ZZZ-NO-MATCH-2026。Web /search?q=...とNative検索欄を比較。正式search-empty Seedは未登録",
+      "data": "既存many-productsはLOAD-0001〜1000の公開商品。未一致語ZZZ-NO-MATCH-2026、非0件対照の「負荷テスト商品」、guest/customer。専用search-empty Seedなし",
       "action": "検索結果なしを表示",
-      "expected": "一致する商品が0件の時は商品カードを表示せず、検索結果なしの状態を表示する",
+      "expected": "CatalogUseCases.searchでtotal=0,items=[]。Webは「条件に一致するデータがありません」と解除CTA、Nativeは「該当する商品がありません」を表示。loading/errorや未検索とは区別",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "検索結果なしを表示に対して、一致する商品が0件の時は商品カードを表示せず、検索結果なしの状態を表示することをUI/業務状態で照合する",
-      "test_responsibility": "検索結果なしを表示のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "検索結果なしを表示の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "0件をエラーと誤表示、権限外商品露出、未登録Seedを実在と誤認、Web/Native文言を混同",
+      "test_condition": "many-products Reset→guestでWeb /search?q=ZZZ-NO-MATCH-2026、Native検索欄へ同語を入力。total=0/items=[]、Web filter-emptyと解除CTA、Native空結果文言を区別。customer/非0件/エラー・loadingを対照。条件解除操作A02-02・正式search-empty差・実E2Eは別管理",
+      "test_responsibility": "Web/Native入力→CatalogUseCases.search→Dexie matchesSearch/buildCandidates→空結果→各UIのゼロ件表示を照合",
+      "case_policy": "未一致/一致語、guest/customer、Web/Native別文言、loading/error差。条件解除操作はA02-02で別判定",
+      "case_selection_reason": "既存1000件Seedと決定的未一致語で0件/非0件を比較でき、製品やSeedを変更しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:141-155、CatalogUseCases.search:86-93、Dexie matchesSearch:56-95/search:101-127、Web:133-160/502-525、Native:295-350/566-581、scenarios.ts:424-450、component:315-324を照合。Web視覚/Native実行は未受入",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2182,7 +2260,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
@@ -2190,7 +2270,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-SEARCH-S-no-results"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "正式仕様・Use Case・Repository・Web/Native・既存Seedの静的基本分析完了。実地受入と未決事項は別追跡",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -2198,22 +2278,99 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 97,
+        "signature": "\"many-products\": {",
+        "scenario": "many-products",
         "applicable": true,
-        "alternatives": [
-          "empty-catalog",
-          "many-products"
-        ],
+        "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 27,
+          "signature": "if (scenario === \"many-products\") {"
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 141,
+          "end_line": 155,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 97,
+          "end_line": 106,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 450,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 95,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 133,
+          "end_line": 160,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 502,
+          "end_line": 525,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 295,
+          "end_line": 350,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 566,
+          "end_line": 581,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 315,
+          "end_line": 324,
+          "reason": "当該操作の仕様・実装・Seed・境界条件を読み取り照合"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A02-02",
