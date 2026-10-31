@@ -3201,18 +3201,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "対象Seed/条件: default,many-products,empty-catalog。操作: 商品名・商品コードで検索。正常・不許可・変化前後の入力を区別する",
+      "data": "default guest: P-0001 ベーシックTシャツ、P-0002 セラミックマグ、P-0005/P-0006/P-0010/P-0011は公開・rank制限なし。P-0003 gold限定、P-0004 platinum限定、P-0007 unpublished/P-0008 draft/P-0009 discontinuedはguest検索から除外。gold-member/platinum-memberで閲覧ランク境界、empty-catalogで0件、many-productsで20件/page境界。検索語は商品名（ベーシックTシャツ）・商品コード（P-0001）・不存在語を区別",
       "action": "商品名・商品コードで検索",
-      "expected": "商品名または商品コードの一致条件で、閲覧可能な公開商品だけを結果に表示する",
+      "expected": "Web `/search?q=...` はCatalogListPage(mode=search)からCatalogUseCases.searchへkeyword/フィルター/20件pageを渡す。AndroidはNativeCatalogScreenの入力/検索buttonから同Use Caseへ渡す。Dexie/SQLiteは公開・会員ランク・active SKUの候補集合を先に作り、正規化検索語の部分一致を適用して商品カード/件数を返す。商品名または商品コードでP-0001を検索でき、guestにはP-0003/0004/0007/0008/0009を表示しない。実装の検索対象にはcategory/brand/SKUも含まれるが、その正式仕様上の扱いは別途確認",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "商品名・商品コードで検索に対して、商品名または商品コードの一致条件で、閲覧可能な公開商品だけを結果に表示することをUI/業務状態で照合する",
-      "test_responsibility": "商品名・商品コードで検索のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "商品名・商品コードで検索の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "非公開/上位ランク商品の検索経由漏えい、名前と商品コードの片方だけ検索不能、全角・大小文字正規化差、Web/Androidの入力/件数差、空結果/ページ境界誤り、仕様に明記されないcategory/brand/SKU一致の解釈",
+      "test_condition": "default guestで「ベーシックTシャツ」と「P-0001」を個別検索し同じproduct-basic-shirtのみが候補になること、P-0003/P-0004および非公開3商品が出ないことをUse Case DTOとWeb/AndroidカードIDで確認。gold/platinumではランク限定商品名/コードをそれぞれ正例化。empty-catalogと不存在語は0件、many-productsでは20件境界とpage2、空白trim・正規化の代表値を確認。実ブラウザ/Android/視覚比較は別受入",
+      "test_responsibility": "BR-STOREFRONT-001/002・AC-001/002の検索語/閲覧者/ページ条件をWeb/Native UI→CatalogUseCases.search→Dexie/SQLiteの候補/keyword判定→商品IDとtotalへ追跡し、検索対象拡張の仕様解釈を未決として分離",
+      "case_policy": "商品名と商品コードの個別正例、guest/gold/platinum、published/未公開/draft/discontinued、active SKU有無、空結果、20/21件ページ、正規化/空白入力を代表Caseに採用。既存default/gold-member/platinum-member/empty-catalog/many-productsを使用",
+      "case_selection_reason": "商品コード検索の契約と閲覧者別の情報露出を優先し、P-0001の名称/コード2入力とguest除外5商品を実Seedで固定する。ページと空結果は既存シナリオで分離し新Seedを追加しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-18/141-155/206-217、roles-and-permissions.md:5-16、CatalogUseCases.search:86-93、Web CatalogListPage:111-159/286-312、NativeCatalogScreen:140-207、Dexie matchesSearch:56-96/search:101-127/buildCandidates:249-283、Native SQLite matchesSearch:144-179/search:259-272/buildCandidates:605-631、default-dataset.ts:67-245、metadata.ts:75-101、scenarios.ts:25-46を静的照合。検索対象のcategory/brand/SKU拡張は未決として記録。実ブラウザ/Android/視覚PASSは未主張",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -3221,12 +3221,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "商品名/商品コードの検索、閲覧者可視条件、Web/Android UI→Use Case→Repository、既存Seed実値を証拠付き静的基本分析済み。検索対象拡張の正式仕様判断と実Runは別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -3249,7 +3251,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 18,
+          "reason": "閲覧者/検索条件BR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 141,
+          "end_line": 155,
+          "reason": "検索画面の入力/結果契約"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 206,
+          "end_line": 217,
+          "reason": "AC閲覧条件/ページング"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customer/Staff閲覧権限"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 111,
+          "end_line": 159,
+          "reason": "Web検索keyword/20件page"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 286,
+          "end_line": 312,
+          "reason": "Web検索フォーム"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 140,
+          "end_line": 207,
+          "reason": "Android検索input/button"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "viewer/clock/検索引渡し"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 127,
+          "reason": "Web検索一致/ソート/ページ"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 283,
+          "reason": "Web公開/rank/active SKU候補"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 144,
+          "end_line": 179,
+          "reason": "Android検索一致"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 272,
+          "reason": "Android検索page/total"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 631,
+          "reason": "Android候補"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "商品名/コード/公開/rank実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default/empty-catalogシナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 46,
+          "reason": "default/empty/member変換"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A01-02",
