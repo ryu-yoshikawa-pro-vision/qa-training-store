@@ -430,9 +430,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.related_use_cases).toContain("AdminProductUseCases.changeStatus");
     expect(state?.test_condition).toContain("changeStatus未呼出し");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
-    const parent = data.behaviors.find(
-      (item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
-    );
+    const parent = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03");
     expect(parent?.analysis_status).toBe("review_required");
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock")
