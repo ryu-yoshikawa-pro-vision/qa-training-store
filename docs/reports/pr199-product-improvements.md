@@ -32,8 +32,8 @@
 | `src/application/use-cases/account-use-cases.ts` | 認証・認可の境界、既存呼出し元と回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/application/use-cases/checkout-order-use-cases.ts` | 住所・支払方法の検証とSession/Cart整合 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
+| `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | **Native SQLite契約の静的根拠・Web CI確認済み、実Mobile再検証待ち／判断保留** |
 | `src/presentation/native/native-purchase-screens.tsx` | Native会員/Checkout/決済画面、書式・UI回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/native/native-screens.tsx` | 価格承諾操作の非価格問題時の禁止条件 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
@@ -45,9 +45,17 @@
 | `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/integration/auth-account.test.ts` | 住所候補の認可境界 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
 | `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | **後続明細失敗時の先行更新rollbackを契約テストで確認、実Mobile再検証待ち／判断保留** |
+
+### 価格変更承諾時の数量上限・トランザクション（既存差分4ファイルの意味単位監査）
+
+- **仕様と必要性**：正式`docs/spec/features/cart.md`の`BR-CART-001/003`・`AC-CART-001/003`は在庫・購入上限・99の最小値超過を拒否し、価格変更を承諾するまではCheckoutを遮断する。`src/domain/services/cart.ts`の`maximumCartQuantity`はその最小値を返す。価格承諾だけで在庫不足の明細を有効化しないガードは仕様上の安全性に関係する。
+- **変更と根拠**：PR差分ではDexie `src/infrastructure/database/dexie/cart-checkout-repositories.ts:289-320`、Native SQLite `src/infrastructure/database/sqlite/native-customer-application-repositories.ts:1381-1425`の`acceptPriceChangesAndTouchCart`へ、数量が整数かつ1以上・`maximumCartQuantity(variant)`以下である検証を追加し、違反は`QUANTITY_LIMIT_EXCEEDED`で拒否する。Dexieは全明細検証後に`bulkPut`し、Nativeは`context.write`の排他トランザクション内で更新する。既存の所有者・公開・version検証を省略する差分はこの4ファイルの当該hunkでは確認されない。
+- **追加回帰**：`tests/integration/cart-use-cases.test.ts:218-250`は既存defaultの明細を数量2・在庫1・旧価格999に設定し、承諾拒否と明細/Cart version不変を検証。`tests/repository-contract/native-customer-shared.test.ts:299-352`はregular-memberの2明細を使い、後続のマグ数量超過時に先行Tシャツの価格更新もrollbackされることをSQLite契約で検証。PR差分の実装2＋テスト2は同じ変更目的として扱い、4件の独立問題として数えない。
+- **CIと未検証**：HEAD `aeb5b796b78985993debb29a618a01213f4adfa6`の[Web CI 41196968544](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41196968544)はVitest integration/repository/contracts、`verify`、`validate`を含む必須jobが成功。ただし**Mobile CIはPR branchで自動起動一時停止中**。実Android/iOS/Maestroでの再検証、コミット単位の変更由来、他の金額/決済回帰とPR #199の教材目的との整合の最終判断は未完了。Web CIの成功をNative実機PASSへ流用しない。
+- **製品適合・影響・処理方針**：数量上限を超えた価格承諾の拒否とデータ不変は静的実装・契約上の確認ができ、重大度はデータ/購入整合性に関わる**Medium〜High候補**。当該追加ガード自体の不適合は未立証。教材は既存`cart-with-invalid-items`・`regular-member`等のSeedと独立の期待値で継続可能で、製品変更を教材成立の前提にはしない。**現時点の処理方針は判断保留**（安全性の実Mobile確認とPR整合・変更由来が不足）。最終的には「本PRに残す／製品用別PRへ分離する／取り消す」を根拠で決定し、実際のrevert・分離・変更は明示承認まで実行しない。
 
 ### 処理方針の決定規則
 
