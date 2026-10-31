@@ -41,12 +41,12 @@
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。実画面・表示解釈・PR適合性は未確定、処理方針保留** |
 | `docs/spec/features/checkout-and-payment.md` | 既存の仕様変更の妥当性（本更新では空行だけ修正） | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
-| `tests/component/auth-account-pages.test.tsx` | 会員表示・認証のcomponent証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/component/auth-account-pages.test.tsx` | 会員特典表示・住所emptyのcomponent証拠 | **追加2 hunkを静的監査済み。既存Web UI/価格計算・仕様と整合。製品用別PRへ分離する処理方針（実行は承認待ち）。実Native/視覚/認可E2Eは未受入** |
 | `tests/component/catalog-pages.test.tsx` | 在庫表示の境界値証拠 | **低在庫3/設定上限5の表示アサーションを確認。実画面と数量上限の独立証拠は未確認、処理方針保留** |
 | `tests/component/checkout-order-pages.test.tsx` | Checkout導線・表示のcomponent証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
 | `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | **既存4件＋47件で51件取得・全ID逆順並べ替えを検証、Web CI成功。並行更新負例は未実行、処理方針保留** |
-| `tests/integration/auth-account.test.ts` | 住所候補の認可境界、既定配送先変更の原子性 | **住所候補のguest/operator/customer/未登録郵便番号を監査済み。既定配送先切替・古いversion拒否の追加テストは別意味単位で未監査、ファイル全体は部分監査** |
+| `tests/integration/auth-account.test.ts` | 住所候補の認可境界、既定配送先変更の原子性 | **追加2 hunkとも静的監査済み。既定配送先の原子的切替・旧version拒否はWeb Dexie/Native SQLite実装と整合。実Native/同時更新負例・変更由来は未確認、処理方針保留** |
 | `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
 | `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | **住所の必須/正規化と決済コード拒否の追加Caseは監査済み。その他の追加Caseは未監査のためファイル全体は部分監査** |
 | `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | **後続明細失敗時の先行更新rollbackを契約テストで確認、実Mobile再検証待ち／判断保留** |
@@ -86,6 +86,18 @@
 - **実テスト・CI証拠**：追加統合Caseは不正な決済コードを拒否して`version/unlockedStep/paymentMethodCode`不変、空欄/短い郵便番号/電話を拒否して`addressSnapshot/version`不変、`100-0001`と`090-0000-0000`の正規化保存を確認する。HEAD `cf8718dce6b913e18af940735c7367e5ef27f3d1`の[Web CI 41205964167](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41205964167)ではVitest integration/contracts、`validate`等の実jobが成功。ただしこの成功は各テストの単独実行ログやWeb/Android実画面の証拠ではない。
 - **未決・リスク**：`replace(/\D/g, "")`はハイフン以外の非数字も除去するため、例えば`abc1000001`を`1000001`へ正規化し得る。これは静的に成立する入力品質の**仕様解釈候補**であり、正式許容文字・Web/Native UI入力制約・Repositoryの追加検証・実再現を確認するまで製品不適合とは判定しない。重大度Low〜Medium候補。決済の無効コード拒否は仕様と整合するが、直接Use Case呼出し以外の画面復旧・旧Session/並行更新・Native実Runは未受入。
 - **教材と処理方針**：正常な住所と不正入力、決済コード拒否の教材は既存default/regular-memberと統合テストで成立し、新Seedや製品修正を必須としない。**処理方針は判断保留**（変更由来、実UI/Native回帰、入力契約、PR目的との整合の証拠不足）。revert/分離/製品機能変更は明示承認まで行わない。
+
+### 既定配送先の原子的切替・旧version拒否（統合テスト追加hunk監査）
+
+- **要求と入力**：正式`checkout-and-payment.md:25-39`は顧客本人の配送先一覧・追加/編集・既定設定を要求し、`authentication.md`の`BR-AUTH-002`は顧客データをcustomerに限定する。`AccountUseCases.createAddress/updateAddress`は`requireCustomer`と入力検証を経てRepositoryへ本人userIdとexpectedVersionを渡す。追加`tests/integration/auth-account.test.ts:383-438`は既存`regular-member` Seedのcustomerで自宅/勤務先を生成し、初回住所だけが既定、勤務先への切替後は両者version=2、旧version再送は`CONFLICT`、一覧不変を確認する。
+- **Web/Native実装経路**：Web `DexieAddressRepository.updateAndReassignDefault`（`basic-repositories.ts:196-238`）はuserId照合・version照合・旧既定解除と新既定設定を単一Dexie transactionで実施。Native `NativeAddressRepository.updateAndReassignDefault`（`native-customer-application-repositories.ts:672-724`）も`context.write`内で本人照合、version検証、既定切替を実施。`addresses-page.tsx:135-165`と`native-purchase-screens.tsx:494-516`は本人のaddressId/versionを`updateAddress`へ渡す。Native側の追加独立テスト・実Android・競合タイミング/注入失敗rollbackの実Runは未確認。
+- **判断**：追加統合テストの静的意味と現HEADの[Web CI 41208324870](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41208324870)のVitest integration成功を確認。ただしWeb CIはNative SQLite実機のPASSではない。今回のPR差分は統合テスト追加であり、住所Repositoryの実装は既存SUTとして読み取りのみ。認可/データ整合上の明確な回帰は静的に見つからないが、PR教材目的との整合・変更commit由来・実Mobile証拠が不足するため**処理方針は判断保留**。製品変更は行わない。
+
+### 会員特典と配送先emptyのcomponent追加2 hunk監査
+
+- **仕様・実装**：`authentication.md:BR-AUTH-002/SCREEN-AUTH-ACCOUNT-PROFILE`は本人の会員ランク/状態と内部ID非露出を要求。`profile-page.tsx:71-85`は`membershipDiscountRate`と`FREE_SHIPPING_THRESHOLD=5000`を参照し、regular=0%、gold=5%、platinum=10%、platinumのみ無条件送料無料を表示する。`checkout-and-payment.md:25-39`は配送先emptyの案内と登録導線を要求し、`addresses-page.tsx:102-110/198-239`は0/5件表示・空案内と同画面の追加フォームを提供する。Checkout配送先選択とは別画面。
+- **追加テストの意味**：`tests/component/auth-account-pages.test.tsx:316-347`は3会員ランクの表示・private-customer-id非露出をmock DTOで検証。同ファイル`:359-369`は配送先0件の案内/フォーム/登録ボタンと「この配送先を使用」非表示を検証。現HEADの[Web CI 41208324870](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41208324870)でVitest component成功。mockのため実ログイン/実データ・Android表示・視覚正本の受入には代替不可。
+- **製品適合・処理方針**：追加2 hunkは既存製品画面の回帰テストであり、教材専用fixture/評価/分析テストではない。既存の製品表示と仕様に整合し、当該テストを単独で製品用別PRへ**分離する処理方針を採用**する（実際の移設・revert・別PR作成はユーザー明示承認待ち）。製品UI/仕様/テストの新たな変更は行わない。
 
 ### 処理方針の決定規則
 
