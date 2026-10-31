@@ -1548,19 +1548,19 @@
       "source_text": "各商品カードから商品詳細画面や購入への導線を提供する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: 購入導線を提示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / gold-member / platinum-member / empty-catalog / many-products（固定Clock、guest→rank別customer）",
+      "data": "default Seedの公開P-0001（S/M/L=20/10/0）、公開・在庫0のP-0006、gold限定P-0003、platinum限定P-0004、非公開P-0007、draft P-0008、販売終了P-0009を対照。gold/platinumは既存会員シナリオ、many-productsは20件/ページの遷移対象、empty-catalogは商品カード0件。新規Seed不要",
       "action": "購入導線を提示",
-      "expected": "閲覧可能な商品の購入導線から詳細・SKU選択へ進める。公開不可商品に購入導線を出さない",
+      "expected": "CatalogUseCases.searchのviewer/clock適用後、公開・rank許可・active SKUを持つProductListItemだけにWebの画像/商品名LinkとNativeのカードLinkを提示し、同一productIdの詳細へ遷移する。Webカードの「詳細を見る」はaria-hidden装飾で直接購入ボタンではない。Nativeもカード全体が詳細へのLink。SKU選択/在庫確認/Cart追加は商品詳細側の別操作であり、一覧で即購入・注文確定しない。在庫0でも公開P-0006は詳細閲覧可、追加可とはみなさない。未公開/権限外P-0003/P-0004/P-0007〜P-0009はguest一覧に出ない",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "購入導線を提示の前後で、閲覧可能な商品の購入導線から詳細・SKU選択へ進める。公開不可商品に購入導線を出さないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "購入導線を提示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "購入導線を提示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "一覧の公開/ランク条件漏れで権限外商品への購入導線露出、商品ID不一致で誤商品購入、在庫0を購入可能と誤認、Web装飾文言を即購入ボタンと誤判定、Nativeカードの詳細遷移を未検証でPASSとする危険",
+      "test_condition": "default Reset→guestでWeb /productsとNative商品一覧のP-0001画像/商品名/カードから /products/product-basic-shirt に遷移するIDを照合。P-0006（在庫0）は詳細遷移を許容するが購入操作は別判定。P-0003/P-0004と非公開P-0007・draft P-0008・販売終了P-0009はguestのカード非表示、gold/platinumでrank可視集合が変化する対照を置く。many-productsの1/2ページから各IDへ、empty-catalogではカード0を確認。詳細SKU選択/Cart不変性と実Web/Android/視覚は別受入",
+      "test_responsibility": "CatalogUseCases.search→Web Dexie/Native SQLiteの可視候補→ProductCard/NativeProductCardの同一productId Link→CatalogUseCases.getProductDetailを追跡。一覧の「購入導線」は詳細へ進む入口に限定し、SKU選択/追加成功は詳細画面のA02操作へ分離。既存A02-01（詳細遷移）と同じ実行証拠を再利用しても機能分母の二重追加はしない",
+      "case_policy": "guest/regular/gold/platinum、公開/非公開/draft/販売終了、在庫0/正、default/empty/many-products、page1/page2の代表Case。Web画像/商品名とNativeカードを別UI経路で照合",
+      "case_selection_reason": "公開・rank/在庫の既存固定Seedで「閲覧可≠購入可」と詳細遷移のID整合を区別でき、Web/Native双方の入口を静的追跡できる。SKU選択・Cart追加は親操作と別責務のため本件の分析完了に混同しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-32/59-74、CatalogUseCases.search:86-93/getProductDetail:108-126、Dexie storefront-repositories.ts:101-127/249-314、Native SQLite native-customer-repositories.ts:259-273/784-795、Web catalog-list-page.tsx:122-162/527-532・product-card.tsx:10-40、Native native-screens.tsx:119-175/278-290/1023-1053、default-dataset.ts:67-244、metadata.ts:75-105、repository-contract storefront-catalog.test.ts:64-103を静的照合。直接購入ボタンはなく詳細遷移であり、実ブラウザ/Android/視覚/Cart操作は未受入",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1569,12 +1569,15 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search",
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "BR/AC・viewer/rank・Web/Native検索→Repository→商品カード→詳細遷移・既存Seed実値を証拠付きで静的基本分析済み。即購入・在庫0追加・実Runは別判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -1598,7 +1601,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        },
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 32,
+          "reason": "閲覧者条件とホーム/一覧/詳細の公開・購入導線"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 59,
+          "end_line": 74,
+          "reason": "商品一覧のカード→詳細/購入導線、default/empty/many-products"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "viewer/clockをWeb/Native検索へ渡す"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "詳細遷移先の閲覧権限を再評価する"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "Web一覧候補/ページと同一ProductListItem"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 314,
+          "reason": "公開/rank/active SKUで一覧候補を制限"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 273,
+          "reason": "Native一覧の検索候補とページ境界"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 784,
+          "end_line": 795,
+          "reason": "Native公開/rankフィルタ"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 527,
+          "end_line": 532,
+          "reason": "Web商品一覧のカード表示"
+        },
+        {
+          "path": "src/presentation/components/product-card.tsx",
+          "start_line": 10,
+          "end_line": 40,
+          "reason": "画像/商品名Linkと装飾的「詳細を見る」・在庫0表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 278,
+          "end_line": 290,
+          "reason": "Native一覧の各カード表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1023,
+          "end_line": 1053,
+          "reason": "Nativeカード全体の詳細Linkと在庫0表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 244,
+          "reason": "P-0001/P-0003/P-0004/P-0006/P-0007〜P-0009の公開・rank・在庫の実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 105,
+          "reason": "default/empty/many-productsの既存シナリオ"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 103,
+          "reason": "guest/platinum可視集合とgold価格の既存Repository契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
