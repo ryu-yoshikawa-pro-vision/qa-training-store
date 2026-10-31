@@ -128,7 +128,7 @@
 
 ### Checkout正式仕様の既存意味変更（仕様1ファイル、main差分静的監査）
 
-- **差分と由来**：`main`の263行と現HEADの286行を比較。配送先一覧の「追加・編集・選択」を「追加・編集・既定の配送先設定」へ変更（[commit `1cff33a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/1cff33a90a28）。末尾に配送先Snapshotの再開/置換、Native直接入力の未決事項、異常時のSession再作成禁止、4種のモック支払方法、保存/遷移、確認前のCart version/価格再検証など**意味のある23行**を追加（`d05ae49`/`4d2b903`/`9b6b64b`/`d22e366`）。後続のMarkdown空行整形とは異なり**純粋な書式修正ではない**。
+- **差分と由来**：`main`の263行と現HEADの286行を比較。配送先一覧の「追加・編集・選択」を「追加・編集・既定の配送先設定」へ変更（[commit `1cff33a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/1cff33a90a28)）。末尾に配送先Snapshotの再開/置換、Native直接入力の未決事項、異常時のSession再作成禁止、4種のモック支払方法、保存/遷移、確認前のCart version/価格再検証など**意味のある23行**を追加（`d05ae49`/`4d2b903`/`9b6b64b`/`d22e366`）。後続のMarkdown空行整形とは異なり**純粋な書式修正ではない**。
 - **仕様/実装の整合と限界**：既存`BR-CHECKOUT-001/002/003`、`CheckoutOrderUseCases`、Web `checkout-order-pages.tsx`、Native `native-purchase-screens.tsx`、Web/Native component・統合テストと概ね整合。ただしWebは登録済み住所選択、Nativeは直接入力可という差の正式な許容方針は本文自体でも未決。新記述が製品仕様として承認済みか、単に既存動作の説明かは別途確認が必要。正本視覚・実Web/Android受入も未完了。
 - **リスク・教材・方針**：未決のPlatform差を教材の正解に固定しない。正式仕様の意味変更を本PRの教材作業へ暗黙に含めない。**処理方針は判断保留**（要求妥当性、変更承認、分離先と既存差分依存が未確定）。仕様の意味変更・revertは実行しない。
 
