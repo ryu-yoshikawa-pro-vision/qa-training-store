@@ -4561,18 +4561,18 @@
       "platform": "web,android",
       "role": "Guest",
       "scenario": "default",
-      "data": "対象Seed/条件: default,suspended-user,withdrawn-user。操作: 資格情報でログイン。正常・不許可・変化前後の入力を区別する",
+      "data": "default Resetのguest（sessions=[]）。regular/gold/platinumはactive customer、operator/adminはactive staff。suspended@example.comとwithdrawn@example.comはcustomerの非active固定Seed。正しいtestpass1、未知メール/誤パスワード/上限超過、guest Cart有無、storage/transaction失敗を別条件にする。既存default Seedのみ使用",
       "action": "資格情報でログイン",
-      "expected": "正しいメールアドレスとパスワードで許可されたユーザーだけのセッションを作り、失敗入力では生成しない",
+      "expected": "Web/Native Loginはemail/passwordをAuthUseCases.loginへ渡し、正しい資格かつactiveのcustomer/operator/adminのみRole付きsessionを生成する。customerだけguest Cart merge、staffはmergeしない。未知メール/誤パスワード/上限超過/suspended/withdrawnでは新規sessionを作らない。Web staffは/admin、Native非customerは/へ戻しNative管理画面は提供しない。実Android/視覚は別受入",
       "rule_refs": [],
       "route": "`/login`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "資格情報でログインに対して、正しいメールアドレスとパスワードで許可されたユーザーだけのセッションを作り、失敗入力では生成しないことをUI/業務状態で照合する",
-      "test_responsibility": "資格情報でログインのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "資格情報でログインの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "不正ログイン・停止/退会のセッション発行、Role越境、失敗時session pointer残留、guest Cart混合、Web/Native遷移差",
+      "test_condition": "default Reset後sessions=[]、regular@example.com/operator@example.com/admin@example.comをtestpass1でログインしてrole/session.userId、customerのみCart mergeを照合。suspended@example.com/withdrawn@example.com、未知メール/誤パスワード/長さ超過ではsession count=0・pointer null。gold/platinumのRoleとRankを確認。Web/Nativeのフォーム入力・遷移は別Case、Native実Run/視覚は未受入",
+      "test_responsibility": "BR-AUTH-001/002・AC-AUTH-001/002に対してWeb/Native Login→AuthUseCases.login→Dexie/SQLite User/Session Repositoryの資格・active・Role・session境界を追跡し、認証拒否時のsession非生成を独立検証",
+      "case_policy": "active customer/operator/admin、suspended/withdrawn、未知メール/誤パスワード、入力上限、guest Cart有無を採用。失敗文言/安全redirect/実Androidは別操作・受入",
+      "case_selection_reason": "認証とsessionの誤成功は高リスク。固定SeedのRole×Statusと既存Web integrationで成功・拒否・session不変を照合し、NativeはRepository/UIを静的確認。新Seed不要、実Run成功は未主張",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:9-28/116-126、roles-and-permissions.md:5-23、AuthUseCases.login:52-110/assertLoginAllowed:200-224、Dexie/SQLite User/Session、Web LoginPage:101-174、NativeLoginScreen:156-237、default-dataset.ts:730-774、auth-account integration:99-147を照合。Native実端末は未実行、製品PASSとはしない",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
@@ -4582,7 +4582,7 @@
       "related_use_cases": [
         "AuthUseCases.login"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "正式BR/AC・Role/Status・Web/Native画面→AuthUseCases.login→両Repository・固定Seedを証拠付き静的基本分析。実Android/視覚は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 101,
@@ -4612,6 +4612,115 @@
           "line": 52,
           "signature": "async login(request: LoginRequest): Promise<LoginResult> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 28,
+          "reason": "BR-AUTH-001/002と画面入力"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 116,
+          "end_line": 126,
+          "reason": "AC-AUTH-001/002"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role/Status境界"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 110,
+          "reason": "資格情報検証・transaction内の状態再確認・セッション生成"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 200,
+          "end_line": 224,
+          "reason": "suspended/withdrawn拒否"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 28,
+          "end_line": 73,
+          "reason": "既存セッション・状態検証"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 36,
+          "end_line": 56,
+          "reason": "購入/管理/ユーザー管理の権限境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 34,
+          "end_line": 50,
+          "reason": "Web User Repository"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 115,
+          "end_line": 132,
+          "reason": "Web Session Repository"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 461,
+          "end_line": 480,
+          "reason": "Native User Repository"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 562,
+          "end_line": 579,
+          "reason": "Native Session Repository"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 174,
+          "reason": "Web LoginPage"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 156,
+          "end_line": 237,
+          "reason": "NativeLoginScreen"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 774,
+          "reason": "固定ユーザーのRole/Status"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 86,
+          "reason": "default guest"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 99,
+          "end_line": 147,
+          "reason": "active/停止/退会とsession countの既存Web integration"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 168,
+          "end_line": 218,
+          "reason": "Native loginと非customer分岐mock"
+        }
       ]
     },
     {
@@ -4624,26 +4733,28 @@
       "platform": "web,android",
       "role": "Guest",
       "scenario": "default",
-      "data": "対象Seed/条件: default,suspended-user,withdrawn-user。操作: アカウント状態・ロールを確認。正常・不許可・変化前後の入力を区別する",
+      "data": "default guest Resetでactive regular/gold/platinum customer、active operator/admin、suspended/withdrawn customerの固定Seedを使用。suspended-user/withdrawn-userは初期sessionが存在する可能性があるため、ログイン拒否はdefault Resetで実施し、既存sessionからの保護操作拒否は別条件",
       "action": "アカウント状態・ロールを確認",
-      "expected": "active状態とロールを検証し、suspended/withdrawnまたは不許可の権限による保護操作を拒否する",
+      "expected": "AuthUseCases.loginはパスワード照合後とtransaction内再取得後の双方でsuspended/withdrawnを拒否。SessionIdentityResolver.requireCurrentEntityは保存sessionのユーザー状態を再確認しactive以外を拒否。canCheckoutはactive customerのみ、canManageStoreはoperator/admin、canManageUsersはadminのみ許可。Web staffは/admin、Native非customerは/へ遷移しNative管理機能は対象外。競合状態変更・実Androidは別受入",
       "rule_refs": [],
       "route": "`/login`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "アカウント状態・ロールを確認に対して、active状態とロールを検証し、suspended/withdrawnまたは不許可の権限による保護操作を拒否することをUI/業務状態で照合する",
-      "test_responsibility": "アカウント状態・ロールを確認のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "アカウント状態・ロールを確認の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ログインとtransaction間の状態変更、停止後sessionによる操作、customerの管理権限越境、staffのcheckout、Native role分岐",
+      "test_condition": "default Resetからactive regular@example.com/operator@example.com/admin@example.comでRole・session.userIdを確認。suspended@example.com/withdrawn@example.comはtestpass1でもACCOUNT_SUSPENDED/ACCOUNT_WITHDRAWN、session count=0。既存sessionの停止はrequireCurrentEntityで保護操作を拒否、customer checkout/staff store/admin usersのRole境界を独立確認。Native staffの/遷移はmock証拠、実Android/同時変更は未受入",
+      "test_responsibility": "BR-AUTH-001/002・AC-AUTH-001/002のRole×StatusをAuthUseCases.login二重検証・SessionIdentityResolver・権限ポリシー・Web/Native遷移へ分割し、UI表示だけで認可成功としない",
+      "case_policy": "active customer各Rank、operator/admin、suspended/withdrawn、ログイン中の状態変更、既存session状態変化、Role越境を採用。実Android/競合実Runは別受入",
+      "case_selection_reason": "停止/退会・Role越境は不正セッションとデータ漏洩リスクが高いため固定Seed全Roleと拒否2状態を採用。Use Caseの事前/transaction内再確認と保護操作時の再検証を分離。実Run成功は未主張",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:9-19/116-126、roles-and-permissions.md:5-23、AuthUseCases.login:52-110/assertLoginAllowed:200-224、SessionIdentityResolver:28-73、permissions.ts:36-56、Web LoginPage:101-174、NativeLoginScreen:156-237、default-dataset.ts:730-774、integration/auth-account.test.ts:99-131を照合。Native実端末未実行、製品PASSではない",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AuthUseCases.login"
+      ],
+      "analysis_progress": "正式BR/AC・Role/Status・権限ポリシー・Web/Native経路・固定Seedの静的基本分析。実Android/競合変更は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 101,
@@ -4666,7 +4777,116 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 28,
+          "reason": "BR-AUTH-001/002と画面入力"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 116,
+          "end_line": 126,
+          "reason": "AC-AUTH-001/002"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role/Status境界"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 110,
+          "reason": "資格情報検証・transaction内の状態再確認・セッション生成"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 200,
+          "end_line": 224,
+          "reason": "suspended/withdrawn拒否"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 28,
+          "end_line": 73,
+          "reason": "既存セッション・状態検証"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 36,
+          "end_line": 56,
+          "reason": "購入/管理/ユーザー管理の権限境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 34,
+          "end_line": 50,
+          "reason": "Web User Repository"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 115,
+          "end_line": 132,
+          "reason": "Web Session Repository"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 461,
+          "end_line": 480,
+          "reason": "Native User Repository"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 562,
+          "end_line": 579,
+          "reason": "Native Session Repository"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 174,
+          "reason": "Web LoginPage"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 156,
+          "end_line": 237,
+          "reason": "NativeLoginScreen"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 774,
+          "reason": "固定ユーザーのRole/Status"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 86,
+          "reason": "default guest"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 99,
+          "end_line": 147,
+          "reason": "active/停止/退会とsession countの既存Web integration"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 168,
+          "end_line": 218,
+          "reason": "Native loginと非customer分岐mock"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-LOGIN-A02-01",

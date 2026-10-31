@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 75,
-      requires_review: 113,
+      basically_analyzed: 77,
+      requires_review: 111,
       classified_rate: 100,
-      basic_analysis_rate: 39.89,
+      basic_analysis_rate: 40.96,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -596,6 +596,26 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-02")?.analysis_status,
     ).toBe("review_required");
+  });
+
+  it("audits credential and Role/Status login boundaries without Native runtime PASS", () => {
+    for (const id of ["SCREEN-AUTH-LOGIN-A01-01", "SCREEN-AUTH-LOGIN-A01-02"]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.related_use_cases).toContain("AuthUseCases.login");
+      expect(entry?.test_condition).toContain("suspended@example.com");
+      expect(entry?.test_condition).toContain("withdrawn@example.com");
+      expect(entry?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+        expect.arrayContaining([
+          "src/application/use-cases/auth-use-cases.ts",
+          "src/infrastructure/database/dexie/basic-repositories.ts",
+          "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "src/seeds/default-dataset.ts",
+        ]),
+      );
+    }
+    expect(data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01")?.analysis_status).toBe("review_required");
   });
 
   it("audits Web login validation without certifying the parent login action", () => {

@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 認証資格・Role/Statusの静的基本分析（SUT変更なし）
+
+- **対象・経路**：`SCREEN-AUTH-LOGIN-A01-01/A01-02`を正式`authentication.md:9-28/116-126`のBR-AUTH-001/002・AC-AUTH-001/002と`roles-and-permissions.md:5-23`に照合。Web `LoginPage:101-174` / Native `NativeLoginScreen:156-237`→`AuthUseCases.login:52-110`（パスワード照合・事前/transaction内の状態再確認）→Web Dexie/Native SQLiteのUser/Session Repository、既存session保護は`SessionIdentityResolver:28-73`とRole権限ポリシーへ追跡。
+- **固定Seed・Case**：default guestのsessions=[]、active regular/gold/platinum customer、active operator/admin、suspended@example.com・withdrawn@example.comを利用。正しい`testpass1`の成功・停止/退会拒否、未知メール/誤パスワード/入力上限、session生成と失敗時の非生成、customerのみguest Cart mergeを独立条件にする。Web staffは`/admin`、Native非customerは`/`へ分岐し、Native管理画面は対象外。既存Web integration `tests/integration/auth-account.test.ts:99-147`とNative component mock `tests/component/native/native-purchase-screens.test.tsx:168-218`を参照。新Seed・製品コード/テスト変更なし。
+- **判定・未受入**：2操作を`analyzed`へ更新し、**77/188（40.96%、残111）、非default状態18/20（残2）**。これは静的基本分析であり、Native実端末・Web/Android E2E・視覚・ログイン中の状態競合・製品適合PASSを意味しない。拒否文言と安全なredirectの`SCREEN-AUTH-LOGIN-A02-01`は`review_required`維持。
+
 ## 商品詳細の12/13 SKU境界・Web/Nativeバリエーション表示を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04`。正式`storefront.md:17-23/102-115`のBR-STOREFRONT-001/003・AC-001/003と`roles-and-permissions.md:5-16`を基準に、`CatalogUseCases.getProductDetail:109-120`→Dexie `getDetail:184-235/buildCandidates:249-283` / SQLite `getProductDetail:340-409`→Web `ProductDetailView:187-224` / Native `NativeProductDetailScreen:586-701`を照合。両Repositoryは閲覧者条件とactive SKUを適用して詳細DTOを返す。
