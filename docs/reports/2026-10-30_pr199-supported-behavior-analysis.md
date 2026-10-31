@@ -411,3 +411,9 @@ Web CI [41099183628](https://github.com/ryu-yoshikawa-pro-vision/qa-training-sto
 - **Seedと反例**：既存default `default-dataset.ts:67-244`のP-0001（公開・在庫20/10/0）、P-0006（公開・在庫0）では詳細遷移を許可し、在庫0の購入可否は詳細画面の別Caseで検証する。guestに対するgold限定P-0003、platinum限定P-0004、非公開P-0007、draft P-0008、販売終了P-0009は一覧カードを出さない。既存`gold-member`/`platinum-member`でrank差、`empty-catalog`でカード0、`many-products`でページ1/2のID遷移を対照。新Seed不要。既存`storefront-catalog.test.ts:64-103`の閲覧集合を静的根拠に使用。
 - **判定と残る検証**：A02-02を`analyzed`へ変更し、基本分析**67/188（35.64%、残り121）**、非default状態**18/20（残り2）**。188は暫定分母。A02-01の詳細遷移と実行証拠を共有しても分母を二重追加せず、SKU選択・Cart追加・在庫0拒否は別操作。実Web/Android/視覚/Cart不変性の受入は未実施。製品実装・正式仕様・Seed/Reset・既存製品テスト/workflowを変更していない。
 - **現HEAD直前のCI**：`9c99ebafd9f3`の[Web CI 41185258860](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41185258860)は正式製品仕様`checkout-and-payment.md:279-280`のMarkdown MD032/MD022のみでStyle Quality失敗、Vitest contracts/Training runtime/Code Quality/主要E2Eは成功。[Mobile CI 41185258865](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41185258865)はAndroid Runtime/Maestro/iOSを含め成功。新HEADのCIは別途確認する。正式仕様書式修正は承認待ち。
+
+## 2026-10-31 Home会員ランク案内のWeb/Native差（未決・製品変更なし）
+
+- **対象/根拠**：`SCREEN-STOREFRONT-HOME-A01-05`。正式`docs/spec/features/storefront.md:23-32`はホームで会員ランク案内を表示し、`default`のWeb/Android画面を必須としている。Web `src/presentation/pages/home-page.tsx:165-183`には一般/ゴールド/プラチナの特典パネルがあり、割引率は`membershipDiscountRate`、送料無料閾値は`FREE_SHIPPING_THRESHOLD`を参照。一方、確認したNative `src/presentation/native/native-screens.tsx:31-115`のホーム描画には会員特典パネルやランク別案内が見当たらず、商品検索/カテゴリー/新着/セールのみ表示する。Nativeの別画面・ナビゲーションから案内可能か、正式契約がNative Homeに同一表示を要求するかは未検証。
+- **再現/影響/重大度**：既存`default` guestと`gold-member`/ `platinum-member`でWeb/Android Homeの案内を対照し、表示の有無と商品価格のランク適用を別々に確認する。重大度Low〜Medium候補（案内不足・教材のプラットフォーム別期待結果に影響、価格計算自体の不具合は未立証）。会員特典表示の差は教材の不整合発見演習に利用可能だが、製品修正が教材受入に必須とは未立証。
+- **判定**：実Android表示・視覚正本・仕様適用範囲の判断が残るため`A01-05`は`review_required`を維持。既存SUTを修正せず、製品Issue化/別PRは明示承認待ち。基本分析の分子/分母は変更しない。
