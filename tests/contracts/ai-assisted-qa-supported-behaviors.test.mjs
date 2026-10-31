@@ -392,11 +392,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(detailNavigation?.analysis_status).toBe("analyzed");
     expect(detailNavigation?.related_use_cases).toContain("CatalogUseCases.search");
     expect(detailNavigation?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
-    expect(detailNavigation?.reviewed_against).toEqual([
-      "specification",
-      "implementation",
-      "seed",
-    ]);
+    expect(detailNavigation?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(detailNavigation?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")?.analysis_status,

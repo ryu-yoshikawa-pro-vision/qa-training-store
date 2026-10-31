@@ -1031,12 +1031,8 @@ export function NativeCheckoutConfirmScreen() {
           <Text style={styles.body}>
             支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
           </Text>
-          <Text style={styles.body}>
-            商品小計：{formatNativeYen(confirmation.subtotalAmount)}
-          </Text>
-          <Text style={styles.body}>
-            会員割引：-{formatNativeYen(confirmation.discountAmount)}
-          </Text>
+          <Text style={styles.body}>商品小計：{formatNativeYen(confirmation.subtotalAmount)}</Text>
+          <Text style={styles.body}>会員割引：-{formatNativeYen(confirmation.discountAmount)}</Text>
           <Text style={styles.body}>送料：{formatNativeYen(confirmation.shippingAmount)}</Text>
           <Text style={[styles.price, { marginTop: nativeSpacing.sm }]}>
             合計 {formatNativeYen(confirmation.totalAmount)}
