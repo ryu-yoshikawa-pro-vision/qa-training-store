@@ -120,7 +120,6 @@
 - **実証・処理方針**：HEAD `532e7eb1e8f0542e01eff7ac70f2d1472128c232`の[Web CI 41220046799](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41220046799)は`Vitest (component)`を含む必須Web jobs成功。ただしNative Jest個別実行、Android/iOS/Maestro、価格/注文の実回帰、変更コミット単位の由来、今回の教材目的への必要性は未確定。**製品適合・処理方針は判断保留**。学習用のレビュー題材として扱えても製品修正の承認にはならず、既存差分の移設・revertも行わない。
 - **Native componentテストの全6 hunk追加差分監査**：`tests/component/native/native-purchase-screens.test.tsx`の会員rank別特典/内部ID非表示、保存済み決済方法復元、公開注文番号と注文履歴導線、Cart version不一致時の決済Step遮断、確認DTOの明細/配送先/金額・失敗時の復帰、Checkout `created/replaced`表示と予期しないStorageエラー時の自動再開始禁止、保存住所Snapshot復元、無効な直接入力の画面滞留を確認。既存の確認画面loadingテストは`PRICE_CHANGED`時の`beginOrder` mock拒否・カート導線へ置換され、別の確認取得失敗テストが追加されているため、単純なテスト追加だけではない。`native-purchase-screens.tsx:689-742/940-1061`、`checkout-order-use-cases.ts:141-215`、`checkout-and-payment.md`のBR/ACと静的に照合。特に`beginOrder`は本人Session/期待version/Cart versionをtransaction内で確認するが、componentテストはUse Case・DB・決済・在庫をmockしており実際の一回性/原子性を証明しない。無効住所テストも`setAddress`のError mockであり入力バリデーションの実行証拠ではない。Native確認画面の`disabled={busy}`は失敗後の再押下を一律禁止しないため、実Nativeで価格変更/通信失敗/再押下の負例を残す。**テスト1ファイルの全6 hunk静的監査は完了。製品実装もPR差分全13 hunkを確認したが、製品適合と処理方針は判断保留**。製品SUT・既存テストは変更していない。
 
-
 - **Native実装の全13 hunkの意味単位確認（現HEAD `93e052a`）**：追加import（割引・送料無料閾値・accountラベル）、決済ラベル関数、プロフィール特典、`sessionOrigin`のreplaced追加、住所Stepのみの既知エラー再開始、置換通知、決済方法のSession保存値復元、確認DTO取得時のSession ID指定・非同期取消、確認取得失敗時のCart/住所復旧、SKU・住所・支払方法・小計/割引/送料、注文失敗時のCart導線、公開注文番号への切替をPR patch全体で照合。特に`methodOverride ?? session.paymentMethodCode ?? TEST-SUCCESS`は画面で選び直した値を優先するため、同一画面でSessionが切り替わった際の古いoverride残存は実操作で確認が必要。確認画面の再押下は`busy`だけで禁止され、`beginOrder`側には本人・Session version・Cart version・既存orderのガードがあるものの、通信結果不明時の実一回性は未実証。新たな製品修正権限は発生しない。
 
 ### Web Checkout画面の既存差分（実装1ファイル、全hunk静的監査）
@@ -135,7 +134,6 @@
 - **差分と由来**：`main`の263行と現HEADの286行を比較。配送先一覧の「追加・編集・選択」を「追加・編集・既定の配送先設定」へ変更（[commit `1cff33a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/1cff33a90a28)）。末尾に配送先Snapshotの再開/置換、Native直接入力の未決事項、異常時のSession再作成禁止、4種のモック支払方法、保存/遷移、確認前のCart version/価格再検証など**意味のある23行**を追加（`d05ae49`/`4d2b903`/`9b6b64b`/`d22e366`）。後続のMarkdown空行整形とは異なり**純粋な書式修正ではない**。
 - **仕様/実装の整合と限界**：既存`BR-CHECKOUT-001/002/003`、`CheckoutOrderUseCases`、Web `checkout-order-pages.tsx`、Native `native-purchase-screens.tsx`、Web/Native component・統合テストと概ね整合。ただしWebは登録済み住所選択、Nativeは直接入力可という差の正式な許容方針は本文自体でも未決。新記述が製品仕様として承認済みか、単に既存動作の説明かは別途確認が必要。正本視覚・実Web/Android受入も未完了。
 - **リスク・教材・方針**：未決のPlatform差を教材の正解に固定しない。正式仕様の意味変更を本PRの教材作業へ暗黙に含めない。**処理方針は判断保留**（要求妥当性、変更承認、分離先と既存差分依存が未確定）。仕様の意味変更・revertは実行しない。
-
 
 ### Checkout統合テストの全追加差分（4 hunk・6 Case）
 
