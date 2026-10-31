@@ -36,7 +36,7 @@
 | `src/infrastructure/database/dexie/basic-repositories.ts` | カテゴリー全件取得・並び替え・ページ境界 | **51件のページ境界を静的/統合テスト監査済み。並行更新時の一貫性・製品変更としてのPR適合性は未確定、処理方針保留** |
 | `src/infrastructure/database/dexie/cart-checkout-repositories.ts` | 価格承諾時の数量上限と原子性 | **数量上限の静的根拠・Web回帰CI確認済み、処理方針は判断保留**（下記監査参照） |
 | `src/infrastructure/database/sqlite/native-customer-application-repositories.ts` | Native価格承諾の数量上限、Web同等性 | **Native SQLite契約の静的根拠・Web CI確認済み、実Mobile再検証待ち／判断保留** |
-| `src/presentation/native/native-purchase-screens.tsx` | Native会員特典、Checkout再開/置換、決済方法復元、確認画面・注文番号 | **追加hunkの静的部分監査済み**（下記）。既存製品テストとの整合は確認したが、実Mobile・変更由来・安全性/PR適合は未確定、処理方針保留 |
+| `src/presentation/native/native-purchase-screens.tsx` | Native会員特典、Checkout再開/置換、決済方法復元、確認画面・注文番号 | **PR差分全13 hunkを静的監査済み**（下記）。既存製品テストとの整合は確認したが、実Mobile・変更由来・安全性/PR適合は未確定、処理方針保留 |
 | `src/presentation/native/native-screens.tsx` | 価格承諾操作の非価格問題時の禁止条件 | **追加1 hunkの静的監査済み。非価格問題を併発する場合に価格承諾ボタンを無効化。BR-CART-003と既存Repository拒否条件に整合するが、混在状態のNative実Run・変更由来・PR適合は未確認／処理方針保留** |
 | `src/presentation/pages/checkout-order-pages.tsx` | 住所復元・決済選択/再試行・Checkout導線 | **PR差分全hunk・導入commit・仕様/Use Case/既存componentを静的監査済み**。実Web/Native・金額/本人認可・例外別復旧は未受入、処理方針保留 |
 | `src/presentation/pages/product-detail-page.tsx` | 低在庫の購入上限表示 | **在庫3/設定上限5の表示と数量選択上限3を静的/コンポーネントテスト監査済み。実画面・表示解釈・PR適合性は未確定、処理方針保留** |
@@ -44,11 +44,11 @@
 | `tests/component/auth-account-pages.test.tsx` | 会員特典表示・住所emptyのcomponent証拠 | **追加2 hunkを静的監査済み。既存Web UI/価格計算・仕様と整合。製品用別PRへ分離する処理方針（実行は承認待ち）。実Native/視覚/認可E2Eは未受入** |
 | `tests/component/catalog-pages.test.tsx` | 在庫表示の境界値証拠 | **低在庫3/設定上限5の表示アサーションを確認。実画面と数量上限の独立証拠は未確認、処理方針保留** |
 | `tests/component/checkout-order-pages.test.tsx` | Checkout導線・表示のcomponent証拠 | **追加全hunkの静的監査済み。配送先復元・stale Cart・金額・決済方法復元・注文番号等のmock UI契約。製品用別PRへ分離する処理方針のみ決定（実行承認待ち）。実ブラウザ/本人認可・Native受入は未確認** |
-| `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | 一次分類済み、個別の安全性・必要性・PR適合性は未確定 |
+| `tests/component/native/native-purchase-screens.test.tsx` | Native画面の表示・機能の回帰証拠 | **追加全6 hunkを静的監査済み**。Native UI mockによる状態・回復・表示検査であり、実Mobile・本人認可・PR適合は未確定、処理方針保留 |
 | `tests/integration/admin-master-use-cases.test.ts` | カテゴリー大量件数・並び替えの回帰 | **既存4件＋47件で51件取得・全ID逆順並べ替えを検証、Web CI成功。並行更新負例は未実行、処理方針保留** |
 | `tests/integration/auth-account.test.ts` | 住所候補の認可境界、既定配送先変更の原子性 | **追加2 hunkとも静的監査済み。既定配送先の原子的切替・旧version拒否はWeb Dexie/Native SQLite実装と整合。実Native/同時更新負例・変更由来は未確認、処理方針保留** |
 | `tests/integration/cart-use-cases.test.ts` | 数量上限拒否・データ不変 | **在庫1・明細数量2の拒否とversion不変を確認、Web CI成功／判断保留** |
-| `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | **住所の必須/正規化と決済コード拒否の追加Caseは監査済み。その他の追加Caseは未監査のためファイル全体は部分監査** |
+| `tests/integration/checkout-order-use-cases.test.ts` | Checkout Session・決済の回帰 | **PR差分全4 hunk・追加6 Caseを静的監査済み**。住所必須/正規化、決済コード拒否、未完了Step、stale Cart、確認/注文時の金額・version変化を検証。実UI/Native・同時操作は未受入、処理方針保留 |
 | `tests/repository-contract/native-customer-shared.test.ts` | Native SQLiteの失敗時rollback | **後続明細失敗時の先行更新rollbackを契約テストで確認、実Mobile再検証待ち／判断保留** |
 
 ### 価格変更承諾時の数量上限・トランザクション（既存差分4ファイルの意味単位監査）
@@ -112,13 +112,16 @@
 - **実証・リスク・教材**：現HEADの[Web CI 41213242608](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41213242608)の`Vitest (component)`成功を確認。ただしテスト個別ログ、実ブラウザでの保存・再開、非本人注文ID拒否、Native同等性、視覚正本は未受入。重大度はCheckout状態/金額・所有権に関わるMedium〜Highの回帰影響候補で、当該追加テストの不適合は静的には未立証。教材は正式BR/ACと既存Seed・学習専用テストで独立に構成可能。
 - **処理方針**：この追加hunkは学習用ではなく**既存製品componentテスト**であり、PR #199の教材・分析目的から独立する。製品用別PRへ分離する**方針のみ決定**する。実際の移設・revert・別PR作成は明示承認待ち。mockテストの成功を実Web/Native受入PASSへ流用しない。
 
-### Native会員・Checkout表示/回復の既存差分（実装1は部分監査、既存componentテスト1は全hunk静的監査）
+### Native会員・Checkout表示/回復の既存差分（実装・既存componentテストとも全追加hunk静的監査）
 
 - **対象と差分**：PRの`src/presentation/native/native-purchase-screens.tsx`追加hunkを、`tests/component/native/native-purchase-screens.test.tsx`の追加テストと照合。会員ランク/割引率/送料特典表示、Checkout sessionの`created/resumed/replaced`区別、住所Stepに限定した既知エラー回復、支払方法の再訪時復元、確認画面のSKU/配送先/小計/割引/送料/支払方法、注文完了時の公開`orderNumber`表示が対象。正式`BR-CHECKOUT-001/002/003`・`AC-CHECKOUT-001/002/003`、`src/application/use-cases/checkout-order-use-cases.ts`、`src/domain/services/pricing.ts`を参照し、UIが契約を勝手に拡張したとは断定しない。
 - **回復・認可境界**：`useCheckoutSession:689-742`は`AUTHENTICATION_REQUIRED`でLoginへ遷移し、`CHECKOUT_STEP_INCOMPLETE/CART_VERSION_CHANGED/CHECKOUT_EXPIRED`だけを住所Stepの`checkout.start`へ回復する。Payment/Confirmでは任意の再開始を行わず、Sessionがない間は確定操作を実行しない。確認画面`getConfirmation(state.session.id)`の失敗は読み込み中のままにせずカート/住所へ誘導する。既存componentテストはmockの`getActive`失敗・`getConfirmation`失敗・決済方法復元を検査するが、本人認可・実DB状態・Android実操作の証明ではない。
 - **残るリスク**：Native確認画面`beginOrder`の失敗後はエラーとカート導線が出る一方、`native-checkout-confirm-submit`の`disabled`は`busy`のみで、Webの`checkoutNeedsCartReview`による再確定禁止と差がある。**二重注文が発生すると断定できない**。Use Case/Repositoryのversion・冪等性、価格変更・stale Cart・通信失敗の独立負例と実Mobileで確認が必要。注文番号の公開表示は内部`orderId`の非表示という目的と整合するが、実本人注文へのリンク・視覚正本は未検証。
 - **実証・処理方針**：HEAD `532e7eb1e8f0542e01eff7ac70f2d1472128c232`の[Web CI 41220046799](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41220046799)は`Vitest (component)`を含む必須Web jobs成功。ただしNative Jest個別実行、Android/iOS/Maestro、価格/注文の実回帰、変更コミット単位の由来、今回の教材目的への必要性は未確定。**製品適合・処理方針は判断保留**。学習用のレビュー題材として扱えても製品修正の承認にはならず、既存差分の移設・revertも行わない。
-- **Native componentテストの全6 hunk追加差分監査**：`tests/component/native/native-purchase-screens.test.tsx`の会員rank別特典/内部ID非表示、保存済み決済方法復元、公開注文番号と注文履歴導線、Cart version不一致時の決済Step遮断、確認DTOの明細/配送先/金額・失敗時の復帰、Checkout `created/replaced`表示と予期しないStorageエラー時の自動再開始禁止、保存住所Snapshot復元、無効な直接入力の画面滞留を確認。既存の確認画面loadingテストは`PRICE_CHANGED`時の`beginOrder` mock拒否・カート導線へ置換され、別の確認取得失敗テストが追加されているため、単純なテスト追加だけではない。`native-purchase-screens.tsx:689-742/940-1061`、`checkout-order-use-cases.ts:141-215`、`checkout-and-payment.md`のBR/ACと静的に照合。特に`beginOrder`は本人Session/期待version/Cart versionをtransaction内で確認するが、componentテストはUse Case・DB・決済・在庫をmockしており実際の一回性/原子性を証明しない。無効住所テストも`setAddress`のError mockであり入力バリデーションの実行証拠ではない。Native確認画面の`disabled={busy}`は失敗後の再押下を一律禁止しないため、実Nativeで価格変更/通信失敗/再押下の負例を残す。**テスト1ファイルの全hunk静的監査は完了、製品実装1ファイルは部分監査のまま、製品適合と処理方針は判断保留**。製品SUT・既存テストは変更していない。
+- **Native componentテストの全6 hunk追加差分監査**：`tests/component/native/native-purchase-screens.test.tsx`の会員rank別特典/内部ID非表示、保存済み決済方法復元、公開注文番号と注文履歴導線、Cart version不一致時の決済Step遮断、確認DTOの明細/配送先/金額・失敗時の復帰、Checkout `created/replaced`表示と予期しないStorageエラー時の自動再開始禁止、保存住所Snapshot復元、無効な直接入力の画面滞留を確認。既存の確認画面loadingテストは`PRICE_CHANGED`時の`beginOrder` mock拒否・カート導線へ置換され、別の確認取得失敗テストが追加されているため、単純なテスト追加だけではない。`native-purchase-screens.tsx:689-742/940-1061`、`checkout-order-use-cases.ts:141-215`、`checkout-and-payment.md`のBR/ACと静的に照合。特に`beginOrder`は本人Session/期待version/Cart versionをtransaction内で確認するが、componentテストはUse Case・DB・決済・在庫をmockしており実際の一回性/原子性を証明しない。無効住所テストも`setAddress`のError mockであり入力バリデーションの実行証拠ではない。Native確認画面の`disabled={busy}`は失敗後の再押下を一律禁止しないため、実Nativeで価格変更/通信失敗/再押下の負例を残す。**テスト1ファイルの全6 hunk静的監査は完了。製品実装もPR差分全13 hunkを確認したが、製品適合と処理方針は判断保留**。製品SUT・既存テストは変更していない。
+
+
+- **Native実装の全13 hunkの意味単位確認（現HEAD `93e052a`）**：追加import（割引・送料無料閾値・accountラベル）、決済ラベル関数、プロフィール特典、`sessionOrigin`のreplaced追加、住所Stepのみの既知エラー再開始、置換通知、決済方法のSession保存値復元、確認DTO取得時のSession ID指定・非同期取消、確認取得失敗時のCart/住所復旧、SKU・住所・支払方法・小計/割引/送料、注文失敗時のCart導線、公開注文番号への切替をPR patch全体で照合。特に`methodOverride ?? session.paymentMethodCode ?? TEST-SUCCESS`は画面で選び直した値を優先するため、同一画面でSessionが切り替わった際の古いoverride残存は実操作で確認が必要。確認画面の再押下は`busy`だけで禁止され、`beginOrder`側には本人・Session version・Cart version・既存orderのガードがあるものの、通信結果不明時の実一回性は未実証。新たな製品修正権限は発生しない。
 
 ### Web Checkout画面の既存差分（実装1ファイル、全hunk静的監査）
 
@@ -132,6 +135,13 @@
 - **差分と由来**：`main`の263行と現HEADの286行を比較。配送先一覧の「追加・編集・選択」を「追加・編集・既定の配送先設定」へ変更（[commit `1cff33a`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/1cff33a90a28)）。末尾に配送先Snapshotの再開/置換、Native直接入力の未決事項、異常時のSession再作成禁止、4種のモック支払方法、保存/遷移、確認前のCart version/価格再検証など**意味のある23行**を追加（`d05ae49`/`4d2b903`/`9b6b64b`/`d22e366`）。後続のMarkdown空行整形とは異なり**純粋な書式修正ではない**。
 - **仕様/実装の整合と限界**：既存`BR-CHECKOUT-001/002/003`、`CheckoutOrderUseCases`、Web `checkout-order-pages.tsx`、Native `native-purchase-screens.tsx`、Web/Native component・統合テストと概ね整合。ただしWebは登録済み住所選択、Nativeは直接入力可という差の正式な許容方針は本文自体でも未決。新記述が製品仕様として承認済みか、単に既存動作の説明かは別途確認が必要。正本視覚・実Web/Android受入も未完了。
 - **リスク・教材・方針**：未決のPlatform差を教材の正解に固定しない。正式仕様の意味変更を本PRの教材作業へ暗黙に含めない。**処理方針は判断保留**（要求妥当性、変更承認、分離先と既存差分依存が未確定）。仕様の意味変更・revertは実行しない。
+
+
+### Checkout統合テストの全追加差分（4 hunk・6 Case）
+
+- **全hunkと期待値**：`tests/integration/checkout-order-use-cases.test.ts`のPR差分は、(1) 未許可`TEST-UNKNOWN`の決済コード拒否・Session version/step/payment不変、(2) 住所未保存のPayment Step拒否、(3) Cart version更新後の`getActive(payment)`と`setPayment`拒否・Session不変、(4) 氏名/郵便番号/都道府県/市区町村/番地/電話の必須・形式エラーでSnapshot/step/version不変、(5) 郵便番号・電話の正規化と住所trim、(6) Cart versionまたは商品価格変更時の確認・注文開始拒否とSession/注文数/決済数/在庫数量/gateway呼出し不変、の追加6 Caseを含む。全4 patch hunkを確認した。正式`BR-CHECKOUT-001/002/003`と`CheckoutOrderUseCases.start/getActive/setAddress/setPayment/getConfirmation/beginOrder`の本人照合・version検証・transaction境界に静的に整合する。
+- **安全性・未実行**：現HEAD `93e052aaa92aec60968b16bf138441165583c2a7`の[Web CI 41227393301](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41227393301)ではVitest integration、component、contracts、主要Chromium E2E、Style Quality、verify/validateを含む必須jobが実成功。これは追加Caseごとの独立ログ、別ユーザーSession/同時二重注文/実Android・iOS・Maestro、外部決済の一回性、全金額境界のPASSではない。未許可コードや入力正規化の仕様解釈候補は既存項目に統合し、重複登録しない。
+- **製品適合・処理方針**：追加テストは既存製品の統合回帰であり学習専用契約ではない。金額/認可/注文のMedium〜High回帰リスクに対し静的・Web CIの証拠はあるが、実Native・並行性・コミット由来・他差分への依存・PR目的との整合が未確定のため**判断保留**。分離/revert/製品修正は承認前に実行しない。
 
 ### 処理方針の決定規則
 
