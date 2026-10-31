@@ -1,5 +1,20 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
+
+| 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
+| --- | --- | --- | --- | --- |
+| P0 | 学習用契約CIの台帳同期・Prettier | 進行中・検証待ち | [Web CI 41155913403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41155913403)で未レビュー状態5期待/実値4、学習用contract書式失敗。今回期待値3（状態1件追加後）へ更新。最新HEADのPASSは未確認 | 最新Web CIのcontracts/styleログで再判定、学習用のみ修正 |
+| P0 | 製品Native書式によるWeb CI阻害 | BLOCKED（製品変更承認待ち） | 同CIの`src/presentation/native/native-purchase-screens.tsx`はPrettier失敗。SUT変更禁止のため未修正 | 原因と影響を維持し、承認なく修正しない |
+| P1 | 非default状態の個別基本分析 | 進行中 | **17/20レビュー済み・残り3**。未確認は商品一覧empty、商品詳細out-of-stock、管理在庫stock-boundaries。状態別実ブラウザ/視覚受入は別条件 | out-of-stockのSeed/UI不一致を実再現、他2件の仕様差を整理 |
+| P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **54/188操作分析済み・残り134**、188は暫定分母。正式BR/AC、Role/Platform/State、Use Case→Repository→UI、Seed実値、証拠の一致が必要 | 未分析操作をリスク順に個別監査、分母再検証 |
+| P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
+| P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
+| P1 | M00〜M10教材・実践・正式評価・Skill連携 | 進行中・実地受入待ち | [評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)と[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の全マージ前条件。過去の自動/契約PASSを維持し、実地未実施を区別 | 51目標/11モジュールの証拠・演習/評価/配布・非回帰を精査 |
+| P2 | 過去PR混在製品差分・製品不整合候補 | 進行中（修正は禁止） | [調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)の既存製品実装9/正式仕様1/製品テスト9パス一次仕分け、商品一覧empty/在庫分類/ページング/out-of-stock等の未決候補。承認なくrevert/Issue化しない | 再現条件・重大度・教材影響・修正要否を記録し判断を提案 |
+
+**状態の意味**：分析済みは静的な証拠付き基本分析であり、実行E2E・Native・視覚・Template・正式AI評価のPASSを意味しない。CIの偶発障害、学習用修正可能項目、製品承認待ち、外部サービス受入は別に扱う。履歴はGit commitと本Planの既存節、個別証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に保持する。ユーザー承認のない製品改修・merge/force push/branch削除/Issue・PR close/release/tagは禁止。
+
 ## 2026-10-31 注文一覧の状態別3動作を基本分析（製品変更なし）
 
 - `SCREEN-ORDERS-LIST-A02-01`、`A02-02`、`A02-03`を正式`orders.md`、本人認可、`listMyOrders`、Dexie/SQLite、Web/Native、`orders-empty`/`payment-processing`/`payment-declined` Seedとdefaultで証拠付き監査。分析台帳・専用契約テスト・レポートを更新。**基本分析54/188件（28.72%、未分析134件）、状態別条件15/20件（未分析5件）**。

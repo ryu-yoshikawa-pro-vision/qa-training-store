@@ -11041,30 +11041,33 @@
       "source_line": 134,
       "source_text": "販売終了の確認ダイアログを表示する。",
       "platform": "web-desktop",
-      "role": "`operator, admin`",
-      "scenario": "discontinue-confirm",
-      "data": "Seed/入力: product-aggregate-edit。通常状態から条件を変更し表示と操作を比較",
+      "role": "operator/admin（Web desktop）。product-aggregate-editはadmin初期Session、defaultはguestからstaffログインが必要",
+      "scenario": "product-aggregate-edit Reset→admin本人で /admin/products/product-basic-shirt（published）→販売終了を開く。defaultの同一商品でもstaffログイン後に再現可能",
+      "data": "product-aggregate-editはdefault datasetをそのまま返す。published=product-basic-shirt、unpublished=product-unpublishedは販売終了可能、draft=product-draft/discontinued=product-discontinuedはトリガー対象外。versionはgetEdit DTOから取得",
       "action": "discontinue-confirm状態を表示・処理",
-      "expected": "販売終了の確認ダイアログを表示する。",
+      "expected": "published/unpublishedかつdirty=falseのとき「販売終了」トリガーからrole=alertdialogを開き、タイトル「販売終了にしますか」、不可逆の注意文、危険操作の確定/閉じるを表示。閉じるだけではchangeStatusしない。確定時のみtargetStatus=discontinuedとexpectedVersionでstaff認可・トランザクションへ進む",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03を対象にproduct-aggregate-editを準備し「販売終了の確認ダイアログを表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ADMIN-PRODUCT-DETAIL-A02-03の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "discontinue-confirmに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "確認前の不可逆な販売終了、Dirtyフォームの上書き、誤権限、古いversionによる更新競合、確認後の失敗が画面に説明されない可能性",
+      "test_condition": "product-aggregate-edit Reset→adminの既存SessionでWeb desktop /admin/products/product-basic-shirt→販売終了ボタン→alertdialogのタイトル/不可逆文/確定・閉じるを確認。閉じるでchangeStatus未呼出し/状態不変、再度開き確定した場合のみexpectedVersion付きでchangeStatus→Dexie transactionへ進むことを確認。dirty=trueではトリガー無効。unpublishedでも表示、draft/discontinuedでは非表示。version競合/失敗時のエラーUXは別途実行検証。既存componentのConfirmDialogはmockなので実ダイアログのPASS根拠にしない",
+      "test_responsibility": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03の確認ダイアログ状態に限定。実際の販売終了更新とエラー表示は親操作の独立監査・実地受入に残す",
+      "case_policy": "published/unpublishedの確認表示、閉じる無変更、確定のみ書込み、dirty、draft/discontinued、version競合の代表条件。Web desktop視覚正本は未実行",
+      "case_selection_reason": "既存default商品とstaff Sessionで不可逆操作の事前確認を再現でき、製品コード・正式Seedを変更せずUI→Use Case→Repositoryの書込み境界を確認できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:8-14/124-149、metadata.ts:350-359、scenarios.ts:122-123、default-dataset.ts:69-78/165-204、admin-product-pages.tsx:415-510、confirm-dialog.tsx:23-83、AdminProductUseCases.changeStatus:216-220、既存componentのmock:43-47を読み取り監査。実alertdialog・実Repository書込み・正本画像の実行PASSではない。失敗時のUI説明は別途確認",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.changeStatus"
+      ],
       "covered_by": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "正式BR/AC、既存published/unpublished/draft/discontinued商品、staff認可、React Aria確認ダイアログ、Use Caseのtransaction境界を監査。実ブラウザ/視覚/失敗時UXは未受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -11084,7 +11087,93 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 95,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.changeStatus",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 216,
+          "signature": "async changeStatus(request: ChangeProductStatusRequest) {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 8,
+          "end_line": 14,
+          "reason": "BR-ADMINCAT-001と専用状態変更の業務境界"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 124,
+          "end_line": 149,
+          "reason": "operator/admin・Web desktop・販売終了確認の正本契約"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 350,
+          "end_line": 359,
+          "reason": "product-aggregate-editのadmin初期Session"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 120,
+          "end_line": 124,
+          "reason": "product-aggregate-editはdefaultの集約を保持"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 69,
+          "end_line": 78,
+          "reason": "公開済みベーシックTシャツ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 165,
+          "end_line": 204,
+          "reason": "unpublished/draft/discontinuedの負例"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 415,
+          "end_line": 510,
+          "reason": "staff境界・dirty時disable・販売終了トリガー・targetStatus/expectedVersion"
+        },
+        {
+          "path": "src/presentation/components/confirm-dialog.tsx",
+          "start_line": 23,
+          "end_line": 83,
+          "reason": "alertdialog・閉じる・確定時だけonConfirm・二重押下抑制"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 95,
+          "end_line": 99,
+          "reason": "staff認可されたgetEdit"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 216,
+          "end_line": 220,
+          "reason": "staff認可→transaction changeStatus"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 43,
+          "end_line": 47,
+          "reason": "既存componentはConfirmDialogをmockしており実ダイアログの証拠にはできない"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-CATEGORIES-A01-01",

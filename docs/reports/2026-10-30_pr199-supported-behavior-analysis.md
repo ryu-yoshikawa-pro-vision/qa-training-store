@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 販売終了の確認ダイアログ状態を監査（SUT変更なし）
+
+- `SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm`は正式`admin-catalog.md:124-149`でoperator/admin・Web desktopの確認状態。既存`product-aggregate-edit`は`scenarios.ts:122-123`でdefault datasetを保持し、`metadata.ts:350-359`ではadmin Sessionを初期設定。公開済み`product-basic-shirt`と非公開`product-unpublished`を正例、`product-draft`・`product-discontinued`をトリガー非表示の負例とする。
+- `admin-product-pages.tsx:415-510`のstaff guard/getEdit→`ConfirmDialog`（`confirm-dialog.tsx:23-83`、`role=alertdialog`、不可逆警告・閉じる・確定時のみonConfirm）→`AdminProductUseCases.changeStatus:216-220`（staff認可・transaction・expectedVersion）を追跡。dirty時は販売終了ボタン無効。**確認表示の基本分析だけを`analyzed`**にし、親`SCREEN-ADMIN-PRODUCT-DETAIL-A02-03`の販売終了実行・version競合・失敗UXは`review_required`を維持。
+- 既存`tests/component/admin-product-pages.test.tsx:43-47`はConfirmDialogをmockしており、実ダイアログの実行PASS証拠にはならない。実ブラウザ・視覚正本・Repositoryの状態不変・エラー表示は未実施。製品の改修なし。
+- **別件・未解決候補（Medium）**：`out-of-stock` Seedは`variant-basic-shirt-02`（M）だけ10→0とし、S=20/L=0を維持（`scenarios.ts:41-43`、`default-dataset.ts:296-301`）。Web `ProductDetailView`は在庫あり先頭のSを自動選択し、在庫0のM/Lボタンをdisabledにする（`product-detail-page.tsx:66-100/191-265`）。そのため指定Seedで商品詳細を開くだけでは「在庫切れ」の選択中表示や数量/CTA無効の視覚状態を再現できない可能性。既存componentは全SKU0のDTO mockであり固定Seed実行ではない。正式`storefront.md:108-115`の視覚要件との再現手順差として記録し、`SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`は未分析維持。学習用代替fixtureの必要性は実ブラウザで確認後に判断する。
+- [Web CI 41155913403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41155913403)の実ログはVitest contractsの状態未レビュー期待値5/実値4の不一致と、Style Qualityの学習用contract・変更禁止Native製品画面の2ファイルを示す。学習用contract期待値は今回の状態監査後の3へ更新。製品Nativeは未修正。今回HEADのCI結果は後続確認とし、PASSを先取りしない。
+
 ## 2026-10-31 管理商品1000件の状態分析と契約CI修正（SUT変更なし）
 
 - `SCREEN-ADMIN-PRODUCTS-S-many-products`：正式`admin-catalog.md:59-73`、`many-products` Seedの1000 published商品・各3 active SKU（計3000）・初期guest、staffログイン、`AdminProductUseCases.search`→Dexie`DexieAdminProductQueryRepository.search`→Webの20件/ページ・50ページとFilterBarを照合。状態別の**基本分析**を完了。実ブラウザ/視覚正本のPASSではない。

@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 5,
+      unreviewed_state_conditions: 3,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -393,13 +393,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits Web login validation without certifying the parent login action", () => {
-    const state = data.behaviors.find(
-      (item) => item.id === "SCREEN-AUTH-LOGIN-S-validation-error",
-    );
+    const state = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-S-validation-error");
     expect(state?.analysis_status).toBe("analyzed");
-    expect(state?.platform).toBe(
-      "web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）",
-    );
+    expect(state?.platform).toBe("web-desktop（Androidはdefault画面対象だがvalidation-error視覚正本の必須対象外）");
     expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(state?.related_use_cases).toContain("AuthUseCases.login");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
@@ -423,6 +419,25 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "review_required",
       );
     }
+  });
+
+  it("audits the staff discontinue confirmation without certifying the product mutation", () => {
+    const state = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm",
+    );
+    expect(state?.analysis_status).toBe("analyzed");
+    expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(state?.related_use_cases).toContain("AdminProductUseCases.changeStatus");
+    expect(state?.test_condition).toContain("changeStatus未呼出し");
+    expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
+    const parent = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+    );
+    expect(parent?.analysis_status).toBe("review_required");
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock")
+        ?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {
@@ -454,10 +469,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
 
   it("rejects a missing split action even when its source line has remaining actions", () => {
     const changed = mutated((next) => {
-      next.behaviors.splice(
-        next.behaviors.findIndex((item) => item.kind === "action"),
-        1,
-      );
+      next.behaviors.splice(next.behaviors.findIndex((item) => item.kind === "action"), 1);
     });
     expect(() => validateCoverage({ root, data: changed })).toThrow(/unclassified action subcases/);
   });
