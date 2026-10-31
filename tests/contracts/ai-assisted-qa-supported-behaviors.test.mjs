@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 67,
-      requires_review: 121,
+      basically_analyzed: 68,
+      requires_review: 120,
       classified_rate: 100,
-      basic_analysis_rate: 35.64,
+      basic_analysis_rate: 36.17,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -47,6 +47,22 @@ describe("サポート機能の仕様と実装の追跡", () => {
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
+  });
+
+  it("audits Home product visibility without treating out-of-stock as hidden", () => {
+    const home = data.behaviors.find(
+      (entry) => entry.id === "SCREEN-STOREFRONT-HOME-A01-01",
+    );
+    expect(home?.analysis_status).toBe("analyzed");
+    expect(home?.related_use_cases).toContain("CatalogUseCases.getHome");
+    expect(home?.test_condition).toContain("P-0006");
+    expect(home?.audit_branch_refs?.map((entry) => entry.path)).toEqual(
+      expect.arrayContaining([
+        "src/infrastructure/database/dexie/storefront-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
   });
 
   it("audits confirmation display, stale Cart, price change and correction routes", () => {
