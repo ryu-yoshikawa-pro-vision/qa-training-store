@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 56,
-      requires_review: 132,
+      basically_analyzed: 57,
+      requires_review: 131,
       classified_rate: 100,
-      basic_analysis_rate: 29.79,
+      basic_analysis_rate: 30.32,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -386,6 +386,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(pagination?.analysis_status).toBe("analyzed");
     expect(pagination?.related_use_cases).toContain("CatalogUseCases.search");
     expect(pagination?.audit_branch_refs?.length).toBeGreaterThan(8);
+    const detailNavigation = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-A02-01",
+    );
+    expect(detailNavigation?.analysis_status).toBe("analyzed");
+    expect(detailNavigation?.related_use_cases).toContain("CatalogUseCases.search");
+    expect(detailNavigation?.related_use_cases).toContain("CatalogUseCases.getProductDetail");
+    expect(detailNavigation?.reviewed_against).toEqual([
+      "specification",
+      "implementation",
+      "seed",
+    ]);
+    expect(detailNavigation?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")?.analysis_status,
     ).toBe("review_required");
