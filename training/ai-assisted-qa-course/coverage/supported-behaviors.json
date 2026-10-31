@@ -931,19 +931,19 @@
       "source_text": "各商品カードから商品詳細画面や購入への導線を提供する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: 商品詳細へ遷移。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default Seedのguest→Web /products・Native商品一覧。regular/goldログイン、many-productsの2ページ目、out-of-stock表示、empty-catalogを対照。画面正本/実端末実行は別受入",
+      "data": "default: publishedのproduct-basic-shirt(P-0001)/product-mug(P-0002)を正例、product-unpublished(P-0007)/product-draft(P-0008)/product-discontinued(P-0009)とguestのgold必須product-running-shoes(P-0003)を非表示反例、publishedかつ在庫0のproduct-out-of-stock(P-0006)を詳細遷移可能な対照。guest/regular/gold、many-products 2ページ目",
       "action": "商品詳細へ遷移",
-      "expected": "各商品カードから当該商品IDの詳細に遷移し、別商品の詳細を開かない",
+      "expected": "CatalogUseCases.searchの許可済みProductListItem.productIdをカードのhrefへそのまま渡し、Webは画像・商品名の両Link、NativeはPressable Linkで /products/{productId} へ遷移。動的ルートのgetProductDetail(productId)で同一IDを取得する。未公開/ランク不足商品は一覧にカードを作らず、直接URLでの拒否は商品詳細側の別契約。在庫0の公開商品も詳細リンクを表示する",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "商品詳細へ遷移の前後で、各商品カードから当該商品IDの詳細に遷移し、別商品の詳細を開かないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "商品詳細へ遷移の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "商品詳細へ遷移の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "別商品のIDを開く誤リンク、権限外商品カードの露出、画像/商品名の片側だけ誤遷移、ページ変更後の古いID、在庫0を非公開と誤認",
+      "test_condition": "default Reset→guestのWeb /productsでベーシックTシャツとセラミックマグの画像・商品名から各IDへ遷移し、画面のproductId/商品名を照合。Native商品カードのnative-product-card-{productId}を押し同じIDの詳細を確認。guestではgold必須/非公開3種のカードなし、regular/goldで表示差を確認。published在庫0は詳細へ進めるが購入操作は別判定。many-products 2ページ目の先頭/末尾ID、empty-catalogのカード0を反例。実E2E/Android/視覚は未実施",
+      "test_responsibility": "CatalogUseCases.search→DexieProductQueryRepository.buildCandidates(canViewerSeeProduct,active SKU)→Web ProductCard/NativeProductCardのproductId→CatalogUseCases.getProductDetailを同一IDで追跡。カードの公開条件と詳細画面の所有IDを分けて確認",
+      "case_policy": "guest/regular/gold、公開2商品、gold制限、unpublished/draft/discontinued、在庫0公開、ページ2のID、Web画像/商品名とNativeカードを代表Caseに採用。直接URL拒否と購入可能性は別操作",
+      "case_selection_reason": "表示集合の許可条件だけでなく、検索DTOのproductIdがWeb/Nativeリンクで別商品へすり替わらないことを検証するため。既存default/many-products/empty-catalogのみで再現可能",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:63-74/208-216、CatalogUseCases.search:86-93/getProductDetail:108-126、Dexie storefront-repositories.ts:101-127/249-334、permissions.ts:11-31、Web CatalogListContent:525-532→ProductCard:11-37、Native NativeCatalogScreen:278-289→NativeProductCard:1023-1054→NativeProductDetailScreen:586-608、default-dataset.ts:67-208、metadata.ts:75-106、scenarios.ts:20-45を照合。実E2E・Native実機・視覚正本PASSは未主張",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -952,12 +952,15 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search",
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "仕様/BR/AC、閲覧者ランク、Seed実値、Web/Nativeのカードhrefと詳細Use Caseの静的基本分析完了。実ブラウザ/Android/視覚受入は未実施",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -981,7 +984,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        },
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "商品一覧カードの詳細導線とRole/Platform"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 11,
+          "end_line": 31,
+          "reason": "published/requiredRankに基づく閲覧許可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "検索結果の絞り込みとページング"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 334,
+          "reason": "許可済み候補とproductIdを生成"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 525,
+          "end_line": 532,
+          "reason": "Webの検索結果をProductCardへ渡す"
+        },
+        {
+          "path": "src/presentation/components/product-card.tsx",
+          "start_line": 11,
+          "end_line": 37,
+          "reason": "Web画像・商品名の同一productIdリンク"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 278,
+          "end_line": 289,
+          "reason": "Native一覧の同一IDカード描画"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1023,
+          "end_line": 1054,
+          "reason": "Nativeカード全体の同一ID Link"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "動的productIdの詳細取得と非許可時拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 208,
+          "reason": "公開・ランク制限・未公開・在庫0の具体例"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A02-02",
