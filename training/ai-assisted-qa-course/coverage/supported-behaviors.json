@@ -2359,19 +2359,19 @@
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: 在庫・購入上限を表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / low-stock / out-of-stock / gold-member（固定Clock・初期guest、必要に応じて会員ログイン）",
+      "data": "既存default SeedのP-0001 TシャツS/M/L=20/10/0、全SKU purchaseLimit=5。low-stockはMだけ3、out-of-stockはMだけ0（Sは20のまま）。P-0005タオルは単一SKU3、P-0006ボトルは単一SKU0。Nativeは複数SKUで初期未選択、単一SKUは初期選択。既存Seed以外は不要",
       "action": "在庫・購入上限を表示",
-      "expected": "SKU別在庫とmin(在庫,購入上限,99)の購入可能数量が一致し、在庫0では購入不可を表示する",
+      "expected": "Webは選択SKU在庫0で「在庫切れ」/数量・追加disabled、1〜5で「残りN点」、6以上で「在庫 N点」、在庫正なら購入上限5を表示。数量候補は1〜min(stockQuantity,purchaseLimit)。Nativeは複数SKU初期未選択で在庫確認案内、選択後は0/1〜5/6以上の在庫表示と最大購入可能数min(stock,purchaseLimit)を表示、追加は1回1点（Web数量selectと同一視しない）。在庫0のNative SKUは選択可能でも追加disabled",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "在庫・購入上限を表示の前後で、SKU別在庫とmin(在庫,購入上限,99)の購入可能数量が一致し、在庫0では購入不可を表示することを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "在庫・購入上限を表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "在庫・購入上限を表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "SKUを取り違えた在庫/購入上限表示、在庫0の誤追加、低在庫で上限超過、Web/Nativeの初期選択・数量UI差を偽PASSとする危険",
+      "test_condition": "default Reset→guestでP-0001をWeb表示（初期S20・数量1〜5）、M10・L0 disabledを対照。low-stock Reset→Mを明示選択して残り3/上限5/数量1〜3、out-of-stock Reset→M0だが初期S20のままを確認。P-0005単一SKU3/P-0006単一SKU0を境界にする。Native defaultではP-0001初期未選択→Mを選び在庫10・最大5を表示、P-0006は初期選択0・追加disabled、Native追加は1点固定。実Web/Android/視覚/カート不変性は別受入",
+      "test_responsibility": "BR-STOREFRONT-003→CatalogUseCases.getProductDetail→Web Dexie/Native SQLite SKU DTO→Web selectedVariant/quantityとNative selectedVariant/maximumQuantityを追跡。状態別low-stock/out-of-stockは親操作と二重計上しない",
+      "case_policy": "Web default S20/M10/L0、low-stock M3、out-of-stock M0、単一SKU P-0005=3/P-0006=0、Native初期未選択と1点追加、数量0/1/3/5/6/20・上限5の代表Case",
+      "case_selection_reason": "既存Seedで在庫0/3/10/20と購入上限5の決定的オラクルを作成でき、Webの数量selectとNativeの1点追加の差を区別して境界違反を検出可能。新Seedや製品修正不要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-25/100-115、CatalogUseCases.getProductDetail:108-126、Dexie getDetail:185-233、Native SQLite getProductDetail:340-405、Web ProductDetailView:66-100/191-265、Native native-screens.tsx:590-744、native-variation-selection.ts:1-15、default-dataset.ts:67-82/140-161/270-330、scenarios.ts:39-46、既存low-stock状態の証拠を照合。Web/Android実Run・視覚受入は未実施",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2380,7 +2380,9 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
@@ -2388,7 +2390,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock"
       ],
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "正式BR/AC・SKU在庫実値・Web/Native差・既存Seedの0/3/10/20と上限5を静的基本分析済み。実行E2E/視覚・カート不変性は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -2414,7 +2416,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "BR-STOREFRONT-003のSKU在庫・上限・未選択の拒否"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 115,
+          "reason": "商品詳細のWeb/Native機能とlow-stock/out-of-stock状態"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewer/clockに応じた商品詳細DTO取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 185,
+          "end_line": 233,
+          "reason": "Web DTOにSKU在庫と購入上限を保持"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 340,
+          "end_line": 405,
+          "reason": "Native SQLiteの同じSKU数量と上限"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 66,
+          "end_line": 100,
+          "reason": "Web初期S選択・数量min(stock,purchaseLimit)"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 265,
+          "reason": "Webの在庫0/1〜5/6以上、数量候補とdisabled"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 590,
+          "end_line": 744,
+          "reason": "Native初期未選択、在庫・上限表示、1点追加"
+        },
+        {
+          "path": "src/presentation/native/native-variation-selection.ts",
+          "start_line": 1,
+          "end_line": 15,
+          "reason": "Native単一SKUのみ初期選択、在庫0追加拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 82,
+          "reason": "P-0001 S/M/Lの基本SKU"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 140,
+          "end_line": 161,
+          "reason": "単一SKU低在庫/在庫0商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 270,
+          "end_line": 330,
+          "reason": "SKU実値S20/M10/L0とpurchaseLimit5"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 39,
+          "end_line": 46,
+          "reason": "out-of-stock/low-stockはMだけ0/3へ変更"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
