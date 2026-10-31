@@ -1058,19 +1058,19 @@
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: ファセットによる絞り込み。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / gold-member / empty-catalog / many-products（Web/Android guest/customer）",
+      "data": "default SeedのP-0001（apparel/basics）、P-0002（home/basics）、P-0005（home/life）、P-0006（sports/active、在庫0）、P-0011（sports/active、13 SKU/価格3500〜4700）を対照。goldのみP-0003（sports/active）追加、非公開P-0007/8/9は候補から除外。empty-catalog=0件、many-products=1000件。固定BASE_CLOCKでsale-active/expired-saleの期間差を確認",
       "action": "ファセットによる絞り込み",
-      "expected": "カテゴリー・ブランド等のファセットを指定すると同一ファセット内OR、異なるファセット間ANDで結果が絞られる",
+      "expected": "CatalogUseCases.search→Web Dexie/Native SQLiteは公開・viewer rank・active SKUの候補に、同一ファセット内OR（categoryIds、brandIds）、異なるファセット間AND（カテゴリ/ブランド/価格/在庫/セール/最低評価/keyword）を適用。価格はactive SKUのviewer価格のいずれかが閉区間内、在庫は購入可能SKU>0、セールは固定時刻で有効、評価はpublishedCount>0かつ平均値が閾値以上。合計と20件ページは絞込後の集合、各facet件数は自ファセット条件だけ除外して他条件を維持。Web/Nativeの選択値は同じ検索条件へ反映される",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "ファセットによる絞り込みの前後で、カテゴリー・ブランド等のファセットを指定すると同一ファセット内OR、異なるファセット間ANDで結果が絞られることを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "ファセットによる絞り込みの成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "ファセットによる絞り込みの誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "同一ファセットORをANDと誤実装、異種ファセットAND漏れ、非公開/会員制限商品が件数に混入、在庫0/期限切れSale/価格SKU境界の誤計上、Web/Nativeのフィルター結果差",
+      "test_condition": "default Reset→guestのWeb/Nativeでカテゴリhome+sports（同一OR）、ブランドbasics+active（同一OR）、両群ANDを適用しP-0002/P-0006/P-0011と非該当P-0001/P-0005を対照。gold-memberでP-0003追加、非公開P-0007/8/9は常に除外。P-0011の価格4600〜4800は最小表示価格3500でもactive SKU4700で一致、P-0006は在庫あり条件で除外。評価4以上・sale-active/expired-sale・empty-catalog・many-productsで件数/0件/20件ページを検査。facet件数は自群選択を除外し他群条件を維持する。実ブラウザ/Nativeタップ/視覚のRunは別受入",
+      "test_responsibility": "CatalogUseCases.searchのviewer/now→Dexie/Native候補・matchesSearch・createFacets→Web URLチェックボックス/Native chip→結果/件数を静的追跡。フィルター結果0件の復旧CTAはS-emptyの未決状態と分離",
+      "case_policy": "同一群2選択OR、異種2群AND、guest/goldの公開境界、active SKU価格のいずれか一致、在庫0、sale時刻境界、rating 4、0件/1000件を代表Caseとする",
+      "case_selection_reason": "BR-STOREFRONT-001/002の権限と組合せ論理を既存default/gold/empty/many-products Seedと既存Repository contractで再現でき、製品Seedを変更せずWeb/Native双方を照合できるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-22/63-74、CatalogUseCases.search:86-93、Dexie matchesSearch/createFacets、Native SQLite matchesSearch/createFacets、Web/NativeフィルターUI、default/gold/empty/many-products Seedの公開/rank・価格・状態を静的照合。実Web/Android操作・視覚正本PASSではない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1079,12 +1079,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "カテゴリ/ブランド内OR・異種AND・facet自群除外・viewer/rank/active SKU/価格/在庫/評価をWeb/Native/既存Seedと照合した静的基本分析。0件CTAと実行受入は別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -1108,7 +1110,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "BR-STOREFRONT-001/002/003と閲覧・ファセット・価格条件"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "商品一覧のフィルター/ソート/状態契約"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "検索入力検証とviewer/clockをWeb Repository/Native Gatewayへ渡す"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 127,
+          "reason": "Webの検索条件AND/同一カテゴリ・ブランド配列OR、ソートとページング"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 380,
+          "reason": "Webの公開/rank/active SKU候補とファセット件数"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 144,
+          "end_line": 210,
+          "reason": "Nativeの条件照合と決定的ソート"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 276,
+          "reason": "Native検索の候補絞込・ソート・pageSize20"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 685,
+          "reason": "Nativeの公開候補/active SKU/価格・評価サマリー"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 723,
+          "end_line": 779,
+          "reason": "Nativeファセットの自ファセット除外集計"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 122,
+          "end_line": 235,
+          "reason": "Web URLパラメータ→ProductSearchRequest/replaceQuery"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 330,
+          "end_line": 505,
+          "reason": "Webカテゴリ/ブランド/在庫/セール/評価/価格とソート操作"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 289,
+          "reason": "Nativeフィルター・ソート状態、ページ1へのリセット、検索"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1056,
+          "end_line": 1160,
+          "reason": "NativeファセットUIのカテゴリ/ブランド複数選択"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 240,
+          "reason": "P-0001/2/3/5/6/10/11のカテゴリ・ブランド・価格・公開/rank・時刻"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 54,
+          "reason": "default/empty/many-products/gold-member既存Seed入口"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 156,
+          "reason": "Web Repositoryのrank、ファセット自除外、価格範囲・ratingソート既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-04",
@@ -1119,19 +1231,19 @@
       "source_text": "公開条件を満たす商品を一覧表示し、ページネーション、フィルター、ソート機能によって探索できるようにする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,many-products,empty-catalog,gold-member。対象: ソート。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / gold-member / many-products（Web/Android guest/customer、BASE_CLOCK固定）",
+      "data": "default SeedのP-0011（2026-06-30/価格3500〜4700）、P-0010（2026-06-29/有効Sale1500）、P-0005（価格900）、P-0006（価格1200/在庫0）、P-0002（価格1500）を新着/価格の順序差に利用。gold-memberはviewer割引とP-0003閲覧許可を追加。many-productsは1000件/20件ページ、empty-catalogは0件。固定時計と既存レビューサマリーでrating順を確認",
       "action": "ソート",
-      "expected": "ソート条件の変更で同じ検索結果集合の表示順だけが変わり、公開条件は変わらない",
+      "expected": "CatalogUseCases.search→Dexie/Nativeは同じ公開・rank・active SKU/フィルター適用後の集合だけをnewest（publishedAt降順）、price_asc/price_desc（active SKUの最小viewer価格昇降）、rating_desc（平均評価降順→公開レビュー件数降順）で並べ、同順位はproductCode昇順で固定する（NativeはproductCodeまで同じ場合idを追加）。ソート変更でtotal/閲覧権限・検索集合を変えず、Web select/Native sort chipはpage=1へ戻して20件単位で表示する",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "ソートの前後で、ソート条件の変更で同じ検索結果集合の表示順だけが変わり、公開条件は変わらないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "ソートの成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "ソートの誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "ソート変更による権限漏出・結果欠落、最低価格と価格フィルター判定の混同、レビュー平均丸め順・同順位不安定、ページ2のまま空結果、Web/Nativeでの順序差",
+      "test_condition": "default Reset→guestのWeb/NativeでnewestのP-0011→P-0010順、price_ascのP-0005（900）→P-0006（1200）とP-0002/P-0010（1500）のproductCode同順位、price_descの逆方向、rating_descの平均値→公開件数→productCode順を確認。gold-memberの価格割引/上位rank商品追加、P-0007/8/9非公開除外、many-productsでpage2からsort変更後page1・total不変・20件、empty-catalogで0件を対照。ソート前後の集合IDを全ページで照合。実ブラウザ/Nativeタップ/視覚は別受入",
+      "test_responsibility": "CatalogUseCases.search→Web Dexie/Native SQLiteのソートキー/決定的tie-break→Web select/Native chip→ページ1/totalを静的照合。ファセット条件変更とempty CTAの判定は別操作/状態",
+      "case_policy": "newest/price_asc/price_desc/rating_desc、同価格productCode同順位、review平均/件数同順位、guest/gold、0/20/1000件、page2からの変更を採用",
+      "case_selection_reason": "固定publishedAt・SKU価格・レビューサマリーを持つ既存Seedで4ソートの異なる順位と同順位を区別でき、BRの公開条件と順序安定化契約を製品変更なしで確認できるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:16-22/63-74、CatalogUseCases.search:86-93、Dexie search:101-127、Native sortCandidates:184-210/search:259-276、Web CatalogListContent:122-235/485-505、Native NativeCatalogScreen:119-289、default/many-products/gold Seed、既存Repository contractを静的照合。実Web/Android操作・視覚正本PASSではない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1140,12 +1252,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "4種のソートキー・productCode同順位・viewer最小価格・page1復帰と20件分割をWeb/Native/既存Seedと照合した静的基本分析。実行受入は別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -1169,7 +1283,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "BR-STOREFRONT-001/002/003と閲覧・ファセット・価格条件"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 63,
+          "end_line": 74,
+          "reason": "商品一覧のフィルター/ソート/状態契約"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "検索入力検証とviewer/clockをWeb Repository/Native Gatewayへ渡す"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 127,
+          "reason": "Webの検索条件AND/同一カテゴリ・ブランド配列OR、ソートとページング"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 380,
+          "reason": "Webの公開/rank/active SKU候補とファセット件数"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 144,
+          "end_line": 210,
+          "reason": "Nativeの条件照合と決定的ソート"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 276,
+          "reason": "Native検索の候補絞込・ソート・pageSize20"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 685,
+          "reason": "Nativeの公開候補/active SKU/価格・評価サマリー"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 723,
+          "end_line": 779,
+          "reason": "Nativeファセットの自ファセット除外集計"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 122,
+          "end_line": 235,
+          "reason": "Web URLパラメータ→ProductSearchRequest/replaceQuery"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 330,
+          "end_line": 505,
+          "reason": "Webカテゴリ/ブランド/在庫/セール/評価/価格とソート操作"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 289,
+          "reason": "Nativeフィルター・ソート状態、ページ1へのリセット、検索"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1056,
+          "end_line": 1160,
+          "reason": "NativeファセットUIのカテゴリ/ブランド複数選択"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 240,
+          "reason": "P-0001/2/3/5/6/10/11のカテゴリ・ブランド・価格・公開/rank・時刻"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 54,
+          "reason": "default/empty/many-products/gold-member既存Seed入口"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 156,
+          "reason": "Web Repositoryのrank、ファセット自除外、価格範囲・ratingソート既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-A02-01",
