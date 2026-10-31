@@ -11054,7 +11054,7 @@
       "case_policy": "published/unpublishedの確認表示、閉じる無変更、確定のみ書込み、dirty、draft/discontinued、version競合の代表条件。Web desktop視覚正本は未実行",
       "case_selection_reason": "既存default商品とstaff Sessionで不可逆操作の事前確認を再現でき、製品コード・正式Seedを変更せずUI→Use Case→Repositoryの書込み境界を確認できる",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "admin-catalog.md:8-14/124-149、metadata.ts:350-359、scenarios.ts:122-123、default-dataset.ts:69-78/165-204、admin-product-pages.tsx:415-510、confirm-dialog.tsx:23-83、AdminProductUseCases.changeStatus:216-220、既存componentのmock:43-47を読み取り監査。実alertdialog・実Repository書込み・正本画像の実行PASSではない。失敗時のUI説明は別途確認",
+      "basic_analysis_review": "admin-catalog.md:8-14/124-149、metadata.ts:350-359、scenarios.ts:122-123、default-dataset.ts:69-78/165-204、admin-product-pages.tsx:415-510、confirm-dialog.tsx:23-83、AdminProductUseCases.getEdit:104-108/changeStatus:216-220、既存componentのmock:43-47を読み取り監査。実alertdialog・実Repository書込み・正本画像の実行PASSではない。失敗時のUI説明は別途確認",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -11091,7 +11091,7 @@
         {
           "id": "AdminProductUseCases.getEdit",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
-          "line": 95,
+          "line": 104,
           "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
         },
         {
@@ -11157,8 +11157,8 @@
         },
         {
           "path": "src/application/use-cases/admin-product-use-cases.ts",
-          "start_line": 95,
-          "end_line": 99,
+          "start_line": 104,
+          "end_line": 108,
           "reason": "staff認可されたgetEdit"
         },
         {
