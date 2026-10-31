@@ -4042,20 +4042,20 @@
       "source_line": 182,
       "source_text": "閲覧者条件に合致しない商品を表示結果に含めない。",
       "platform": "web,android",
-      "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,gold-member,empty-catalog。操作: 閲覧権限を満たさない商品を除外。正常・不許可・変化前後の入力を区別する",
+      "role": "guest、active customer（regular/gold/platinum）、Web operator/adminはguest相当の閲覧。Androidはguest/customerのみ。本人ランク不足・未公開商品は候補から除外",
+      "scenario": "default guestの4カテゴリー、gold-member/platinum-memberの会員ランク境界。empty-catalogはカテゴリー自体を消すためカテゴリー内0件の直接証拠にはしない",
+      "data": "default Seed: apparelのP-0001は表示、P-0007 unpublished除外。homeのP-0002/P-0005は表示、P-0008 draft除外。sportsのP-0006（在庫0）/P-0011は表示、gold限定P-0003はguest除外。accessoriesのP-0010は表示、platinum限定P-0004とdiscontinued P-0009はguest除外。gold/platinum Seedでrank境界を確認。公開状態と在庫0の閲覧可否を混同しない",
       "action": "閲覧権限を満たさない商品を除外",
-      "expected": "同カテゴリーに属していても未公開・ランク不足・非活性の条件に該当する商品は結果から除外する",
+      "expected": "Web/AndroidのカテゴリーrouteはcategoryIdを固定してCatalogUseCases.searchを呼び、viewer/nowに応じてDexie/SQLiteの候補集合からpublishedかつ会員ランクを満たしactive SKUを持つ商品だけを残し、さらにcategoryId一致で20件/pageのitems/totalへ反映する。guestにはP-0003/P-0004/P-0007/P-0008/P-0009を返さず、在庫0でも公開中のP-0006は閲覧可能。Webの実カテゴリー名とAndroid固定見出しの仕様差は別の製品適合候補として未解決管理し、この除外分析のPASSとは扱わない",
       "rule_refs": [],
       "route": "`/categories/[categoryId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "閲覧権限を満たさない商品を除外に対して、同カテゴリーに属していても未公開・ランク不足・非活性の条件に該当する商品は結果から除外することをUI/業務状態で照合する",
-      "test_responsibility": "閲覧権限を満たさない商品を除外のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "閲覧権限を満たさない商品を除外の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "guestへのgold/platinum限定商品露出、unpublished/draft/discontinuedの漏出、inactive SKUの誤表示、別カテゴリーの商品混入、在庫0の閲覧と購入可否の誤判定、Web/Android候補差",
+      "test_condition": "default guestでcategory-apparelはP-0001のみ（P-0007除外）、category-homeはP-0002/P-0005（P-0008除外）、category-sportsはP-0006/P-0011（P-0003除外）、category-accessoriesはP-0010（P-0004/P-0009除外）をWeb/Androidのsearch DTOとUIの商品ID/totalで照合。gold-memberのsportsにP-0003、platinum-memberのaccessoriesにP-0004が加わることを確認。P-0006 stock0は閲覧可だがCart追加拒否は別Case。未公開・rank不足・inactive SKU・不明categoryId・20件/pageを独立負例として検証。実ブラウザ/Android/視覚Runは未実施",
+      "test_responsibility": "BR-STOREFRONT-001/002、AC-STOREFRONT-001/002のviewer/rank/statusとcategoryIdの境界をroute→Web/Native UI→CatalogUseCases.search→Dexie/SQLite候補フィルタ→商品ID/totalで追跡し、情報露出を負例で検証する。Native見出し差と実Runは製品適合・技術受入へ分離",
+      "case_policy": "default guestの4カテゴリーとP-0001〜P-0011の公開/rank/非公開境界、gold/platinum Seed、active SKU、stock0閲覧、Web/Native候補集合を採用。0件・ページ境界・未知categoryIdは別操作/状態で補完。empty-catalogはカテゴリーそのものがないため直接のカテゴリー0件Caseに流用しない。新Seed不要",
+      "case_selection_reason": "実Seedに同カテゴリー内の公開/非公開と会員ランク不足が共存するため、商品ID単位で漏出を検出できる。stock0 P-0006を含めることで閲覧可と購入不可を分離し、権限境界を高リスク優先で検証できる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-18/175-216、roles-and-permissions.md:5-16、permissions.ts:15-32、Web CatalogListPage:111-178/240-300、Native NativeCatalogScreen:119-205/275-290、CatalogUseCases.search:86-93、Dexie matchesSearch/buildCandidates:56-96/249-283、SQLite matchesSearch/buildCandidates/visibleProducts:144-179/605-631/779-792、default-dataset.ts:67-245、metadata.ts:75-101、scenarios.ts:25-53を静的照合。Native固定headingは既存製品改善候補であり、本分析の製品適合PASSではない。実Web/Android/視覚・権限負例Runは未実施",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -4064,12 +4064,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "BR/AC・Role/State/Data・Web/Native UI→Use Case→Repository・既存Seedの4カテゴリー/rank/公開状態/在庫0を静的基本分析済み。実Run・製品適合・Native heading差は別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -4092,7 +4094,141 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 18,
+          "reason": "公開・rank・カテゴリーのBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 175,
+          "end_line": 216,
+          "reason": "カテゴリー画面とACの正式契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customer/staffの閲覧境界"
+        },
+        {
+          "path": "app/categories/[categoryId].tsx",
+          "start_line": 1,
+          "end_line": 6,
+          "reason": "Web category route"
+        },
+        {
+          "path": "app/categories/[categoryId].native.tsx",
+          "start_line": 1,
+          "end_line": 6,
+          "reason": "Native category route"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 111,
+          "end_line": 178,
+          "reason": "Web categoryId固定・search・getCategoryName"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 240,
+          "end_line": 300,
+          "reason": "Web not-foundとカテゴリー名heading"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 119,
+          "end_line": 205,
+          "reason": "Native categoryId固定と固定headingの差"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 275,
+          "end_line": 290,
+          "reason": "Native商品結果とempty"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "検索Use Caseのviewer/clock委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 127,
+          "reason": "Webカテゴリー一致/ページング"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 283,
+          "reason": "Web公開/rank/active SKU候補"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 144,
+          "end_line": 179,
+          "reason": "Nativeカテゴリー一致"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 272,
+          "reason": "Native商品ページング"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 605,
+          "end_line": 631,
+          "reason": "Native公開候補"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 33,
+          "end_line": 38,
+          "reason": "4カテゴリー名とID"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "11商品のcategory/status/rank/stock実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 101,
+          "reason": "default/emptyシナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 53,
+          "reason": "default/member変換"
+        },
+        {
+          "path": "src/domain/policies/permissions.ts",
+          "start_line": 15,
+          "end_line": 32,
+          "reason": "publishedと会員ランクの閲覧ガード"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-LOGIN-A01-01",
