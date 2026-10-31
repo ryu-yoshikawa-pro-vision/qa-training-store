@@ -4,7 +4,7 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用contractのPrettier/契約期待値 | **完了（学習用範囲）** | [Web CI 41169915396](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41169915396)（HEAD `6e4eac8`）で**Vitest contracts/Training runtime contracts/Code Quality success**。Style QualityはfailureだがFormat check実ログの違反は製品Nativeの`native-purchase-screens.tsx`のみ。学習用contractのPrettier違反は消滅、一時診断撤去済み | 学習用は再修正不要。製品Nativeの別P0 BLOCKEDは承認まで維持。新HEADのCIは別途確認 |
+| P0 | 学習用contractのPrettier/契約期待値 | **修正済み・最新HEAD検証待ち** | [Web CI 41172716587](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41172716587)（HEAD `5e8f6546`）でHome新規contractのPrettier違反を検出。`72167dce`で学習用2箇所の折返しを修正。旧HEAD `6e4eac8`での学習用成功は維持するが、新分析追加後のPASSとは扱わない。製品Nativeの既知違反は別P0 BLOCKED | [最新Web CI 41172788904](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41172788904)のStyle/Vitestを再確認し、学習用のみ再修正。製品Nativeは変更禁止 |
 | P0 | 製品Native書式によるWeb CI阻害 | **BLOCKED（製品変更承認待ち）** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のStyle Quality実ログで`src/presentation/native/native-purchase-screens.tsx`がPrettier失敗。SUT変更禁止 | 影響報告のみ、承認までは編集・revertしない |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **59/188操作分析済み・残り129**、188は暫定分母。Web/Nativeのページネーション・検索0件の親操作2件を仕様・Use Case・Dexie・Seedと照合。実地E2E/視覚は未実施 | 次は残る129件をリスク順に個別監査、分母再検証。仕様差がある状態2件は未分析を維持 |
