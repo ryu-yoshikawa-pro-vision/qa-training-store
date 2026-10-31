@@ -6,7 +6,6 @@
 - **Seed・Case**：default guestの`P-0001`（ベーシックTシャツ/商品コード）を商品名・コードの独立正例とし、gold限定`P-0003`、platinum限定`P-0004`、unpublished`P-0007`、draft`P-0008`、discontinued`P-0009`をguest候補から除外。gold/platinumでrank差、empty-catalogで0件を確認する条件を定義。1文字/2文字、8件上限、product/category/brand選択先、連続入力での旧応答排除を実行Caseに残す。新Seed不要。
 - **判定**：当該操作1件のRole/State/Data・Risk/TR・Condition/Case採否を証拠化して`analyzed`へ更新。**基本分析74/188（39.36%、残114）、非default状態18/20（残2）**。分母は暫定。これは静的基本分析であり製品適合、Web/Android実Run、視覚正本のPASSではない。製品本体・正式仕様・既存Seed/製品テストは変更しない。
 
-
 ## Home主要カテゴリー導線と閲覧者別件数の静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-HOME-A01-02`。正式`storefront.md:9-18/23-39/206-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`を基準に、Web `HomePage:21-45/100-143`・Native `NativeHomeScreen:31-115`→`CatalogUseCases.getHome:80-84`→Dexie `getHome/listNavigationCategories:393-431` / SQLite `getHome:214-258`→`/categories/{categoryId}`→`CatalogUseCases.search:86-93`を照合。両RepositoryはactiveカテゴリーをsortOrder/id順に返し、可視件数は公開/rank/active SKU候補から計算する。
