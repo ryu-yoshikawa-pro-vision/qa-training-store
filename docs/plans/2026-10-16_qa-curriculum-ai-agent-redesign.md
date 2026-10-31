@@ -4,8 +4,10 @@
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
-| P0 | 学習用contractのPrettier/契約期待値 | **修正済み・最新HEAD検証待ち** | [Web CI 41172716587](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41172716587)（HEAD `5e8f6546`）でHome新規contractのPrettier違反を検出。`72167dce`で学習用2箇所の折返しを修正。旧HEAD `6e4eac8`での学習用成功は維持するが、新分析追加後のPASSとは扱わない。製品Nativeの既知違反は別P0 BLOCKED | [最新Web CI 41172788904](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41172788904)のStyle/Vitestを再確認し、学習用のみ再修正。製品Nativeは変更禁止 |
-| P0 | 製品Native書式によるWeb CI阻害 | **BLOCKED（製品変更承認待ち）** | [Web CI 41164447696](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41164447696)のStyle Quality実ログで`src/presentation/native/native-purchase-screens.tsx`がPrettier失敗。SUT変更禁止 | 影響報告のみ、承認までは編集・revertしない |
+| P0 | 学習用contract/Prettier/契約期待値 | **完了（現HEADで検証済み）** | [Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)（`64674dda`）でVitest contracts、Training runtime contracts、Style QualityのFormat checkは成功。Style Qualityの失敗は後段Markdown lintのみ | 新たな学習用contract失敗が発生した場合のみ再開 |
+| P0 | 製品NativeのPrettier書式 | **完了（承認済み書式変更・現HEADで検証済み）** | `src/presentation/native/native-purchase-screens.tsx`の既承認の書式修正が反映され、[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)のFormat checkを通過。機能変更の新規承認ではない | 再発時は製品SUT変更境界を守って切り分け |
+| P0 | Markdown lint（学習用Plan/調査レポート） | **修正中・CI検証待ち** | [Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)で全14件：PlanのMD012が7件、レポートのMD012が4件・MD034が1件。対象は学習用文書なので本PRで修正可能 | 余剰空行とメール表記を修正し新HEADのMarkdown lintを確認 |
+| P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | 同CIで`docs/spec/features/checkout-and-payment.md:279-280`にMD032/MD022の2件。正式仕様は読み取り専用SUTであり本PR内で無断変更しない | 修正範囲と書式のみの影響を報告し、明示承認があれば別途実施 |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **59/188操作分析済み・残り129**、188は暫定分母。Web/Nativeのページネーション・検索0件の親操作2件を仕様・Use Case・Dexie・Seedと照合。実地E2E/視覚は未実施 | 次は残る129件をリスク順に個別監査、分母再検証。仕様差がある状態2件は未分析を維持 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
@@ -18,6 +20,8 @@
 **2026-10-31 14時台の継続監査**：`SCREEN-STOREFRONT-PRODUCT-LIST-A02-01`（商品カード→商品詳細）を、Web画像/商品名Link・NativeカードLinkの`productId`、`CatalogUseCases.search/getProductDetail`、Dexieの閲覧条件、default Seedの公開/ランク制限/未公開/在庫0、many-productsのページ境界に照合し、静的基本分析済みへ更新。**57/188、残り131、状態18/20**。商品詳細への直接URL拒否・購入可能性・実ブラウザ/Android/視覚受入は別管理。製品SUTは変更なし。詳細は調査レポートと台帳を参照。
 
 **2026-10-31 14時台のHome商品監査**：`SCREEN-STOREFRONT-HOME-A01-03/A01-04`を正式BR/AC、`CatalogUseCases.getHome`、Dexie/Native SQLiteの公開・ランク・時刻判定、Web/Nativeセクション分割、default/expired-sale Seedと既存契約テストに照合し静的基本分析済み。**59/188、残り129、状態18/20**。ホームのカテゴリーはWebで0件非表示/最大6件、Nativeで0件を含む全active表示という差を検出し、`A01-02`は未分析のまま。実ブラウザ/Android/視覚受入未実施。最新HEADのCIは別途判定。
+
+**最新CI（HEAD `64674dda`）**：[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)はStyle QualityのMarkdown lint 14件（学習用12、正式仕様2）のためFAIL。Format check、Vitest contracts、Training runtime、unit/integration/repository/component、主要Chromium E2Eは成功。`verify`/`validate`はStyle失敗に連動してFAIL。Mobile CI 41174095704は確認時pending。学習用Markdownのみ修正し、正式仕様は承認待ちとする。
 
 **状態の意味**：分析済みは静的な証拠付き基本分析であり、実行E2E・Native・視覚・Template・正式AI評価のPASSを意味しない。CIの偶発障害、学習用修正可能項目、製品承認待ち、外部サービス受入は別に扱う。履歴はGit commitと本Planの既存節、個別証拠は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に保持する。ユーザー承認のない製品改修・merge/force push/branch削除/Issue・PR close/release/tagは禁止。
 
@@ -45,7 +49,6 @@
 - `SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`はSKU状態の仕様分類とWeb有効/無効Badge、Repositoryのavailable>=1/low=1..5重複を不整合候補として記録し、未分析維持。製品変更/Issue化は承認待ち。詳細は[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)。
 - CIと公開Template→Private 2-core Codespaces/OpenCode実モデル校正は未受入。学習用台帳/契約/レポート/Plan以外を変更しない。
 
-
 ## 2026-10-31 決済再開と本人注文一覧・CIの確認（製品変更なし）
 
 - `SCREEN-CHECKOUT-PROCESSING-A01-02`と`SCREEN-ORDERS-LIST-A01-01`の本人認証・Seedの初期guest・Use Case→Repository→Web/Android表示・同じorderIdの再開を監査して台帳/契約テスト/調査レポートを更新。製品コード・正式仕様・Seed・製品用テストは変更しない。
@@ -56,13 +59,11 @@
 
 - base→HEADのPR変更290ファイル中、製品実装9・正式仕様1・既存製品テスト9・製品workflow 0をAPIの変更ファイル一覧から抽出。詳細な19パスは[全機能分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)に記録。既存混在差分は保持し、個別の必要性/履歴/分離可否を次回以降に監査。追加の製品変更、revert、別PRは承認まで実施しない。
 
-
 ## 2026-10-31 Signup検証・公開レビュー編集の状態監査（SUT変更なし）
 
 - `SCREEN-AUTH-SIGNUP-S-validation-error`と`SCREEN-REVIEWS-EDITOR-S-published`を正式BR/AC→Web UI→Use Case→Dexie/Seed実値と既存テストで照合し、状態別条件のみ分析済みに変更。**基本分析46/188（残り142）、状態条件14/20（残り6）。** 親操作は未分析、188件は暫定分母。
 - Signupの未入力/不正/未同意は登録Use Caseへ到達しない。レビューは本人配達済みの既存publishedと未投稿/削除を区別し、expectedVersionを確認。既存製品・正式仕様・Seed・製品テストは変更せず、実ブラウザ/Native正本は未受入。
 - 前HEAD Web CI 41138483817はStyle Quality失敗（製品Native画面と学習用contractのPrettier）。製品Nativeは変更禁止。学習用contractの新HEAD検証は未了。Mobile CI 41138483798は成功。残り6状態条件・基本動作142件の証拠監査、PR混在製品差分仕分け、実Template/Private 2-core Codespaces/OpenCode校正を継続。
-
 
 ## 2026-10-31 大量商品と管理画面レスポンシブの状態監査（SUT変更なし）
 
@@ -84,7 +85,6 @@
 - `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`は正式仕様の『戻る導線』とWeb無CTAの相違を検出。重大度Medium候補、教材では未解決の期待結果として扱い、製品・正式仕様・既存テストを変更しない。修正の必要性/Issue化はユーザー判断待ち。
 - 前HEADのWeb CI 41102991995はStyle Qualityで学習用契約テストと製品Native画面のPrettier違反。後者は変更境界外のため勝手に整形しない。前HEADの他のcontract/component/integration/E2Eは成功だが全体FAIL。今回の契約変更と新HEADのformat/CI成功は未検証。
 - 次は残る15状態条件と142動作の証拠監査、既存PR混在製品差分の仕分け、公開Template/Private 2-core Codespaces/OpenCode実モデル受入。全受入条件を満たすまで完了としない。
-
 
 ## 2026-10-31 決済処理・結果画面の分析（製品コード変更なし）
 
@@ -115,20 +115,17 @@
 - **基本分析41/188件（21.81%）、未分析147件、状態別条件17/20件未レビュー**。188件は暫定。CI/実機・正本画面比較、配送先選択の仕様差、公開Template→非公開2コアCodespaces、OpenCode実モデル校正は未完了。
 - HEAD `d22e366` のAndroid production-validation CIでNDK 27.1.12297006のZipアーカイブ不正を確認。SDKインストール起因であり、再実行成功は未確認。
 
-
 ## 2026-10-31 注文確認の価格・明細・Cart競合（継続作業）
 
 - `SCREEN-CHECKOUT-CONFIRM-A01-01`/`A01-03`/`A02-01`/`A02-02`/`A02-03`と`S-stale-cart`を仕様・Pricing・Use Case・Dexie/SQLite・Web/Native・Seedで照合。NativeのSKU選択肢・商品小計・会員割引・送料の表示不足を補い、Web/Nativeに古いCart・価格変更時のカート確認導線を追加した。
 - `getConfirmation`と`beginOrder`に対してCart版/商品価格変更を注入し、Session、注文、決済、在庫が不変であることを検査する統合テスト、およびWeb/Nativeの表示・非確定のcomponentテストを追加した。CI実行PASSとAndroid実機受入は別判定。
 - **基本分析39/188件（20.74%）、要レビュー149件、状態別条件17/20件未レビュー**。固定Seedの`stale-cart`は住所Stepのため確認画面の実再現と区別。配送先直接入力のWeb/Native仕様差、全機能レビュー、Android画面リファレンス、実公開Template→非公開2コアCodespaces→OpenCode実モデル校正は未達。CI完了待ちは行わない。
 
-
 ## 2026-10-31 注文確認のNative表示とエラー導線（継続作業）
 
 - `SCREEN-CHECKOUT-CONFIRM-A01-02`（配送先）と`A01-04`（決済方法）をWeb/Native・Use Case・Dexie/SQLite・Seedと照合。Webの建物名/部屋番号表示、Nativeの宛名・郵便番号・建物名・支払方法の表示漏れを補完した。
 - Nativeの注文確認データは確認Step成立後に取得するよう統一し、取得失敗・未完了Stepを永続Loadingではなくエラーと配送先へ戻る導線で表示する。Web/Nativeの回帰テストを追加した。実行PASSは別判定とする。
 - **基本分析34/188件（18.09%）、要レビュー154件、状態別条件18/20件未レビュー**。配送先入力のWeb/Native仕様差、注文確認の残り操作、Android実機・正本画面リファレンス、実公開Template→非公開2コアCodespaces→OpenCode実モデル校正と全機能分析100%は未完了。CIの完了待ちは行わない。
-
 
 ## 2026-10-31 決済画面の復元と前提ステップ検証
 
