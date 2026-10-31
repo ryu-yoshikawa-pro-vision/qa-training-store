@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 製品改善候補の管理先と判定の区別（現行方針）
+
+本レポートは全サポート動作の分析経路・実装/仕様/Seedの証拠を残す。PR #199の分析中に発見した製品不具合・仕様不整合・UX/性能/保守性/セキュリティ等の**現在の候補一覧・適合判定・対応方針**は[製品改善レポート](./pr199-product-improvements.md)で管理し、同じ問題を実行ごとに重複登録しない。本ファイルの日時付き記録は当時の証拠であり、書式修正を含めた現行の変更権限は[全体Planの「変更対象と製品改善管理」](../plans/2026-10-16_qa-curriculum-ai-agent-redesign.md)に従う。
+
+`analysis_status=analyzed`は基本分析の成立であり製品の仕様適合PASSではない。製品不適合が確認されても、必要な分析・根拠を揃えれば基本分析は成立し得る。期待仕様や証拠が未確定の項目を分析済みにせず、製品適合の不適合・未確認は改善候補側に分離して記録する。
+
 ## 2026-10-31 商品名・商品コード検索の基本分析（SUT変更なし）
 
 - **対象と根拠**：`SCREEN-STOREFRONT-SEARCH-A01-01`を正式`storefront.md:9-18/141-155/206-217`（BR-STOREFRONT-001/002、AC-001/002）、`roles-and-permissions.md:5-16`、Web `CatalogListPage:111-159/286-312`、Android `NativeCatalogScreen:140-207`、`CatalogUseCases.search:86-93`、Dexie `matchesSearch:56-96/search:101-127/buildCandidates:249-283`、SQLite `matchesSearch:144-179/search:259-272/buildCandidates:605-631`と静的照合。Webは`/search?q=...`、Nativeは検索入力/ボタンから同Use Caseを呼ぶ。双方のRepositoryは閲覧者別公開候補を先に限定してから正規化キーワードを部分一致判定する。

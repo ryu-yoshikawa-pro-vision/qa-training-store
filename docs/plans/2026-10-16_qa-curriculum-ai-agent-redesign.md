@@ -7,13 +7,13 @@
 | P0 | 学習用contract/Prettier/契約期待値 | **修正完了（直前HEADの実CIで検証済み・新HEADは再検証待ち）** | [Web CI 41191741974](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191741974)（`1484dbb62543`）でVitest contracts、Format check、Training runtime、Code Quality、主要Chromium E2Eが成功。Style Qualityは正式仕様Markdown MD032/MD022の2件のみ失敗。負例の意味を修正し、Prettier一時診断は撤去 | 新HEADで再発時のみ再開。正式仕様Markdownは別P0のBLOCKEDを維持 |
 | P0 | 製品NativeのPrettier書式 | **完了（承認済み書式変更・現HEADで検証済み）** | `src/presentation/native/native-purchase-screens.tsx`の既承認の書式修正が反映され、[Web CI 41174095705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174095705)のFormat checkを通過。機能変更の新規承認ではない | 再発時は製品SUT変更境界を守って切り分け |
 | P0 | Markdown lint（学習用Plan/調査レポート） | **完了（実CIで学習用12件解消）** | [Web CI 41174727987](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41174727987)（HEAD `75ef0472`）の実ログは全571 Markdown中、**正式仕様1ファイルの2件のみ**。Plan MD012×7とレポートMD012×4/MD034×1は解消 | 新たな学習用Markdown lintが再発した場合のみ再開 |
-| P0 | 正式製品仕様のMarkdown lint | **BLOCKED（変更禁止・承認待ち）** | [Web CI 41191741974](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191741974)のStyle Quality実ログで`docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022の2件のみ。製品SUTは読み取り専用 | 修正範囲と影響を報告済み。明示承認までは正式仕様に触れない |
+| P0 | 正式製品仕様のMarkdown lint | **書式修正を今回の限定例外として実施・新HEAD CI待ち** | `docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022 2件を空行のみで修正。実行前CIの原因は確認済み | 新HEADのStyle Quality・Markdown lintを確認し、成功を先取りしない |
 | P1 | 非default状態の個別基本分析 | **18/20・残り2（うち2件仕様差を調査）** | 商品一覧emptyは戻るCTA欠落、管理在庫stock-boundariesは`available>=1`と正式`available>=6`の差、SKU有効Badgeと在庫分類ラベルの差。実ブラウザ/視覚比較は未実施 | 両状態はreview_requiredを維持。既存Seed/通常在庫調整で0/1/5/6を検証し、製品修正は承認待ち |
 | P1 | 全サポート操作の漏れ・重複と基本分析 | 進行中 | **69/188操作分析済み・残り119**、状態18/20、188は暫定分母。Home公開商品と検索の商品名/商品コードをguest/会員ランク/公開状態/active SKU/在庫0で静的照合。実ブラウザ/Android/視覚受入は未実施。詳細は[調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md) | 残り119件をリスク順に個別監査。Homeカテゴリー/会員特典、検索対象category/brand/SKUの正式範囲、13 SKUのWeb/Native差、状態2件は未決として分離 |
 | P1 | 実Template→本人Private repo→2-core Codespaces | BLOCKED（作成先・公開範囲・支払主体の確認待ち） | 実Templateの公開、許可リスト・秘匿確認、本人所有のPrivate repo、2-coreでload/Serve/Reset/Playwright証拠が必要。fixtureの契約成功は代替不可 | 外部作成の明示承認まで公開・課金を伴う操作を行わない |
 | P1 | OpenCode実モデル正式評価校正 | 検証待ち | 実モデルの正/誤/誤PASS拒否・証拠欠落・再評価、保存・モデルID・実Run証拠が必要 | 実接続と評価結果の保存/校正を検証。実行不可はBLOCKED記録 |
 | P1 | M00〜M10教材・実践・正式評価・Skill連携 | 進行中・実地受入待ち | [評価Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md)と[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)の全マージ前条件。過去の自動/契約PASSを維持し、実地未実施を区別 | 51目標/11モジュールの証拠・演習/評価/配布・非回帰を精査 |
-| P2 | 過去PR混在製品差分・製品不整合候補 | 進行中（修正は禁止） | [調査レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)の既存製品実装9/正式仕様1/製品テスト9パス一次仕分け、商品一覧empty/在庫分類/ページング/out-of-stock等の未決候補。承認なくrevert/Issue化しない | 再現条件・重大度・教材影響・修正要否を記録し判断を提案 |
+| P2 | 既存製品差分19ファイル・改善候補 | **個別の安全性・必要性と処理方針を監査中** | 製品実装9/正式仕様1/既存製品テスト9を[製品改善レポート](../reports/pr199-product-improvements.md)で追跡。製品適合と基本分析を分離 | 根拠が揃えば方針を自動決定。revert/分離/製品機能変更の実行は別途明示承認待ち |
 
 **2026-10-31 Home公開商品監査**：`SCREEN-STOREFRONT-HOME-A01-01`を正式BR/AC、Use Case→Web Dexie/Native SQLite→Home UI、default Seedの公開/会員ランク/active SKU/在庫0実値と照合し、静的基本分析済みへ更新。**68/188（36.17%、残り120）、状態18/20（残り2）**、分母暫定。前HEAD `499b4d33`のWeb CI 41187424065は正式仕様Markdown lint MD032/MD022のみ失敗、Vitest contracts/Training runtime/主要E2E成功。Mobile CI 41187424030は確認時実行中。新HEADのCIは未検証。SUT変更なし。詳細証拠は調査レポートと台帳。
 
@@ -104,17 +104,17 @@
 - 決済失敗画面の理由表示、Nativeの再試行方法固定、カート/確認への復旧導線、Web再試行失敗のcatch欠落を不整合候補として調査レポートに記載し、`SCREEN-CHECKOUT-FAILED-A01-01`/`A01-02`/`A01-03`を未分析に維持。実機・実ブラウザの再現と別対応の判断が必要。
 - **基本分析46/188件（24.47%）、要レビュー142件、状態別条件17/20件未レビュー**。分析のソース確認と自動テストの実行成功、Android視覚正本/実公開Template・2コアCodespaces/OpenCode受入は別。後続タスクの製品変更禁止は先頭の作業境界に従う。
 
-## PR #199の変更対象と製品不具合の扱い（2026-10-31確定）
+## PR #199の変更対象と製品改善管理（2026-10-31確定・以降の作業に適用）
 
-**この節は今後の継続タスクにも適用する。** PR #199の目的は、AI協働QAカリキュラム（M00〜M10の教材・演習・評価・学習環境）と、Scenario Shop全サポート動作の証拠付き分析・教材としての技術的受入を完成させることである。全機能の分類・基本分析100%という既存目標は変更しない。
+PR #199の目的はM00〜M10の教材・演習・評価・学習環境整備、およびScenario Shop全サポート動作の分類・証拠付き基本分析と教材の技術的受入である。分類・基本分析100%を維持する。製品全体を別途監査する作業は追加しないが、**この分析の過程で根拠を得た製品改善候補は種類を問わず記録する**。
 
-- **変更可能**：新課程の教材、クイズ、演習、評価、知識グラフ、分析台帳・調査レポート、配布・ロード・学習用Template、学習専用のfixture/Seed・Playwright/契約テスト、これらに必要な専用ツール/CI・Plan。既存の機能とSeedを先に再利用し、学習目標に対する不足を確認した範囲で学習用データを追加する。
-- **原則読み取り専用**：Scenario Shopの製品実装（`src/presentation/**`、`src/application/**`、`src/infrastructure/**`、`app/**`等）、正式製品仕様（`docs/spec/**`）、既存の正式Seed/Reset（`src/seeds/**`等）、製品用Component/Integration/E2E/Maestroテスト、正式製品用workflow。機能不具合を発見しても、PR #199でこれらを自動修正しない。名称・ディレクトリだけで判定せず、変更目的が製品動作か学習専用かも確認する。
-- **不整合を発見した場合**：仕様BR/AC、再現条件、根拠となるコード・テスト、利用者への影響・リスク、教材や演習の成立への影響、代替手段を分析台帳・調査レポートに記録する。未確定仕様は未確定のまま扱う。製品修正が必要と判断しても、Issueや別PRへの切り出しを提案し、ユーザーの明示承認前に製品実装・正式仕様・既存製品テストを変更しない。セキュリティ上の問題は優先して報告する。
-- **CI失敗時**：新課程・専用ツール・分析台帳・専用テストの失敗は本PRで修正する。製品本体や正式製品テストの修正が必要な場合は、失敗の原因と必要な対応を報告し、勝手に製品側を修正しない。未実行のテストはPASSにしない。
-- **既存の混在差分**：2026-10-30〜31に本PRへ追加した製品側の修正は現状維持とし、必要性・影響を別途仕分ける。今の方針だけを根拠にrevert・移設・別PR作成は行わない。以降の履歴に製品修正の記載があっても、それを今後の同種修正の許可とは解釈しない。
-
-上記の境界を越える必要が生じた場合は、学習上の必要性、既存機能/Seedでの代替、変更ファイル・回帰範囲を示し、明示的な承認を得てから実施する。
+- **変更できるもの**：新課程の教材、問題、演習、評価、知識グラフ、学習専用fixture/Seed・Playwright・契約テスト、分析台帳、Plan、レポート、配布・ロード・学習用Templateと専用ツール/CI。既存機能・Seedを先に再利用する。
+- **原則読み取り専用**：Scenario Shop製品実装（`src/presentation/**`、`src/application/**`、`src/infrastructure/**`、`app/**`等）、正式仕様`docs/spec/**`、正式Seed/Reset、製品用component/integration/E2E/Maestroテストとworkflow。不具合・仕様差を見つけても機能修正や仕様変更を自動実行しない。重大なセキュリティ問題も優先報告し、製品コードを無断変更しない。
+- **書式修正の限定例外**：`docs/spec/**`のMarkdownに限り、CI/lint等で必要性が確認でき、空行・インデント等の変更が文意、BR/AC、識別子、期待結果、Markdownの意味を変えないと差分で確認できる場合は必要最小限を修正してよい。Markdown lint・format・関連検証を行い、新HEADで結果を確認する。製品コード・製品テストの書式修正には適用しない。機能変更・仕様変更を「書式」の名目で実施しない。
+- **候補の記録**：仕様不整合・機能不具合・UI/UX・性能・保守性・セキュリティ・テスト容易性などを、確認済み事実と仮説に分け、対象、BR/AC・コード・再現/未再現、影響、重大度、教材の成立と代替、既存Issueとの重複、対応方針を[製品改善レポート](../reports/pr199-product-improvements.md)へ追記ではなく同一論点を更新する。詳細分析の根拠は[全機能分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)とリンクする。新規GitHub Issueは原則作成せず、必要なら提案する。
+- **分析と適合を分離**：`analysis_status=analyzed`はBR/AC・Role/State/Data・Risk/TR・Condition/Case採否と証拠に基づく**基本分析の成立**を示し、製品の仕様適合、実ブラウザ/Android、視覚正本、E2E PASSは意味しない。製品不具合が確定していても分析の要件が全て揃えば基本分析は成立し得る。一方、仕様の期待が未確定、再現・影響・検証責務に必要な根拠が欠ける、BLOCKEDで分析できない項目は`review_required`/`blocked`を維持する。製品の適合・不適合・未確認はレポートに別記し、`analyzed`を製品PASSに換算しない。既存Validatorの完了要件を緩めない。
+- **既存19ファイルの製品差分**：既存の製品実装9、正式仕様1、既存製品テスト9を[製品改善レポート](../reports/pr199-product-improvements.md)で変更目的ごとに根拠・安全性・必要性・PR目的との整合・回帰・機密保護を監査する。安全性と必要性が確定したものは「本PRに残す／別PRへ分離する／取り消す」の処理方針を自動決定してよい。不十分なものは判断保留とし、根拠なしに安全と断定しない。**方針決定と実行権限は別**であり、既存差分のrevert・移設・別PR作成・製品機能変更はユーザーの別途明示承認まで実行しない。処理方針と最終実処理はマージ前に確定・検証する。
+- **CI・完了判断**：学習専用側の原因は本PRで修正し、製品側は上記書式例外以外を無断変更しない。基本分析全件完了と製品適合は別判定とし、製品の未修正候補だけでは分析・教材全体の完了を妨げない。ただし教材の実行を阻害する問題は技術的受入の未達として残す。改善候補の収集は本PRの全機能分析・教材受入の完了まで継続する。重大事象はその実行回で優先報告し、その他は定期報告する。PR本文には現在の主要な未解決事項と受入状態だけを残し、経過・履歴は蓄積しない。
 
 ## 2026-10-31 前HEADのWeb CI失敗対応（継続作業）
 

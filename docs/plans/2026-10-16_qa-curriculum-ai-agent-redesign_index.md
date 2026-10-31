@@ -18,7 +18,8 @@ Planに追加したPhase別の実技、機能分母、AI教材レビュー、Tem
 
 - [全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)：目的、範囲、3フェーズ、実装順序、全体の完了条件
 - [決定事項・残確認事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)：合意済みの方針、Plan採用事項、開発工程で必要な検証、実装完了後の実地検証、運用開始までの指定待ち
-- [PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)：変更履歴とレビュー
+- [PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)：現在の受入状況、変更履歴とレビュー
+- [製品改善候補](../reports/pr199-product-improvements.md)：全機能分析中に発見した製品問題、製品適合の判定、既存19ファイルの監査と処理方針
 - [PR #198](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/198)：本PRのbaseに相当する既存仕様・教材の見直し
 
 - [教材・演習・Web導線の改善Plan](./2026-10-25_202700_ai-assisted-qa-curriculum-learning-experience-rework.md)：確定70回答と新しい完了条件
