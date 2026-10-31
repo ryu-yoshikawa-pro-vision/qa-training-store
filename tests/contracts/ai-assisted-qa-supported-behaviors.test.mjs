@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 69,
-      requires_review: 119,
+      basically_analyzed: 70,
+      requires_review: 118,
       classified_rate: 100,
-      basic_analysis_rate: 36.7,
+      basic_analysis_rate: 37.23,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -47,6 +47,25 @@ describe("サポート機能の仕様と実装の追跡", () => {
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
+  });
+
+  it("audits Cart removal ownership, version checks, and empty-state transition on Web/Native", () => {
+    const item = data.behaviors.find((entry) => entry.id === "SCREEN-STOREFRONT-CART-A02-03");
+    expect(item?.analysis_status).toBe("analyzed");
+    expect(item?.related_use_cases).toContain("CartUseCases.removeItem");
+    expect(item?.test_condition).toContain("cart-item-regular-shirt");
+    expect(item?.test_condition).toContain("cartVersion");
+    expect(item?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(item?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/application/use-cases/cart-use-cases.ts",
+        "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+        "src/presentation/pages/cart-page.tsx",
+        "src/presentation/native/native-screens.tsx",
+        "src/seeds/default-dataset.ts",
+      ]),
+    );
   });
 
   it("audits name/code search against viewer visibility on Web and Android", () => {

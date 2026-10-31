@@ -6,6 +6,12 @@
 
 `analysis_status=analyzed`は基本分析の成立であり製品の仕様適合PASSではない。製品不適合が確認されても、必要な分析・根拠を揃えれば基本分析は成立し得る。期待仕様や証拠が未確定の項目を分析済みにせず、製品適合の不適合・未確認は改善候補側に分離して記録する。
 
+## 2026-10-31 カート明細削除の所有者・version・空状態を静的基本分析（SUT変更なし）
+
+- **対象**：`SCREEN-STOREFRONT-CART-A02-03`。正式`cart.md:7-44/75-93`（BR-CART-001/003、AC-CART-001/003）と`roles-and-permissions.md:5-16`を基準に、`CartUseCases.removeItem:195-217`→Dexie `deleteItemAndTouchCart:255-277` / Native SQLite `deleteItemAndTouchCart:1345-1378`→Web `CartContent:180-218` / Native `NativeCartScreen:790-899`を照合。両UIはcart/item versionを送信し、所有者・item所属・versionを検証して削除、更新後DTOから残明細と合計を表示する。Webの数量0経由削除とは別の明示ボタン操作。
+- **SeedとCase**：defaultの`regular@example.com`は`cart-regular-active`に`cart-item-regular-shirt`1件（TシャツM×1、version=1）を保持。削除後は0件・Cart version+1・空案内と商品探索導線を検証。Guestは初期Cartが空なので商品追加後に削除。既存`cart-with-invalid-items`は初期guestだが不正4明細はregular本人所有のためログイン後に非価格問題3件を削除し、価格変更が残る間はCheckout遮断を確認。他人itemId/存在しないitemId/古いcart・item versionでは状態不変を負例にする。既存Seedで足りるため追加なし。
+- **判定**：本操作1件を`analyzed`に更新し、**基本分析70/188（37.23%、残り118）**、非default状態**18/20（残り2）**。188は分母監査前の暫定値。学習用契約テストを新集計と具体的監査根拠へ同期。実Web/Android実行・視覚正本・負例の実Runは未検証であり、製品適合PASSとは扱わない。製品コード/正式仕様/既存Seed/製品テスト/workflowは変更しない。
+
 ## 2026-10-31 商品名・商品コード検索の基本分析（SUT変更なし）
 
 - **対象と根拠**：`SCREEN-STOREFRONT-SEARCH-A01-01`を正式`storefront.md:9-18/141-155/206-217`（BR-STOREFRONT-001/002、AC-001/002）、`roles-and-permissions.md:5-16`、Web `CatalogListPage:111-159/286-312`、Android `NativeCatalogScreen:140-207`、`CatalogUseCases.search:86-93`、Dexie `matchesSearch:56-96/search:101-127/buildCandidates:249-283`、SQLite `matchesSearch:144-179/search:259-272/buildCandidates:605-631`と静的照合。Webは`/search?q=...`、Nativeは検索入力/ボタンから同Use Caseを呼ぶ。双方のRepositoryは閲覧者別公開候補を先に限定してから正規化キーワードを部分一致判定する。

@@ -5343,20 +5343,20 @@
       "source_line": 32,
       "source_text": "在庫数、購入上限数、公開状態、価格を再検証し、問題がある明細の修正や削除を行えるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,cart-with-invalid-items,low-stock,guest-cart-merge-overflow。操作: 明細を削除。正常・不許可・変化前後の入力を区別する",
+      "role": "guest（defaultで空Cart→商品追加）またはactive customer（default regular@example.comで初期1明細）。operator/adminはCartルート対象外。Web/Android双方",
+      "scenario": "default Guestの商品追加後/regular customerの初期Cart1件→削除、cart-with-invalid-itemsでregularログイン後の問題明細削除",
+      "data": "default Seed: regular userのactive Cart cart-regular-activeにcart-item-regular-shirt（TシャツM×1、追加時価格2000、cart/item version=1）。初期Guestにはactive Cartなし。cart-with-invalid-itemsではregular本人のCartが価格変更・非公開・在庫0・inactive SKUの4明細に置換され、初期Sessionはguestのためregularログインが必要",
       "action": "明細を削除",
-      "expected": "削除した明細はカートと合計から取り除かれ、他の明細・別ユーザーのカートは変化しない",
+      "expected": "Web/Native Cart画面の明細ごとの「削除」はitemIdとcartExpectedVersion/itemExpectedVersionをCartUseCases.removeItemへ渡す。Web Dexieでは本人/guestのactive Cartを特定してitem所属・両versionを検査し、該当itemを削除・Cart versionを1増やして再取得したCart DTOを返す。Native SQLiteもcart_idで所属を制限しversionを検査して同様に削除する。残る明細と小計/合計は再計算され、最後の1件を削除すると空状態へ遷移する。他人のCart itemId、古いversion、存在しないitemは拒否され変更しない",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "明細を削除に対して、削除した明細はカートと合計から取り除かれ、他の明細・別ユーザーのカートは変化しないことをUI/業務状態で照合する",
-      "test_responsibility": "明細を削除のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "明細を削除の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "他人Cart明細の削除、cart/item version競合時の誤消去、削除後の合計残存、最後の明細削除後の空状態/購入導線の誤表示、invalid-itemsの未解消状態をCheckout可能と誤認",
+      "test_condition": "default Reset→regular@example.comでログイン→cart-item-regular-shirt 1件のcartId/itemId/versionと金額を取得→Web/Nativeの削除でitems=[]・cartVersion+1・小計0・空案内/商品探索導線を確認。別途Guestで公開商品をCart追加→削除しowner境界を確認。cart-with-invalid-items Reset→regularログイン→非価格問題3明細を個別削除し、価格変更明細は残る/Checkout遮断を維持することを確認。異なるownerのitemId・旧cartVersion/旧itemVersion・不明itemIdの負例は変更前後のDB/DTO不変で検証。既存テストのソース確認と実Web/Android Run PASSは区別",
+      "test_responsibility": "CartUseCases.removeItem→Web Dexie/Native SQLiteの本人所有Cart・item所属・楽観ロック→Cart DTO→Web/Native削除ボタンと空状態/金額の更新を追跡。ログイン時Cart統合、価格同意、数量0は別Caseとして分離",
+      "case_policy": "default regular初期1件→0件、Guest追加→0件、invalid-items regularの4→3→1件、他人itemId/存在しないitemId、cart/item version競合を採用。最後の削除・非価格問題削除を代表境界とし、新Seed不要",
+      "case_selection_reason": "既存defaultとcart-with-invalid-itemsだけで本人所有・最後の1件・4原因別削除・version不一致・金額更新を代表できる。誤削除とCheckout誤許可の重大リスクを独立に検出するため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "cart.md:7-44/75-93、roles-and-permissions.md:5-16、CartUseCases.removeItem:195-217、Dexie deleteItemAndTouchCart:255-277、Native SQLite deleteItemAndTouchCart:1345-1378、Web CartContent:32-60/75-93/180-218、NativeCartScreen:790-899、default-dataset.ts:705-726、scenarios.ts:260-286、既存cart-use-cases.test.ts:139-157を静的照合。実ブラウザ/Android/視覚と負例の実Runは未受入",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -5366,9 +5366,10 @@
         "AC-CART-003"
       ],
       "related_use_cases": [
-        "CartUseCases.removeItem"
+        "CartUseCases.removeItem",
+        "CartUseCases.getCart"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "正式BR/AC・Role/State/Data、Use Case→Dexie/SQLite→Web/Native、既存Seed実値、成功/失敗/所有者/version/空状態を静的基本分析済み。実Runと製品適合は独立判定",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -5398,6 +5399,73 @@
           "path": "src/application/use-cases/cart-use-cases.ts",
           "line": 195,
           "signature": "async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 44,
+          "reason": "BR-CART-001/003・Guest/Customer・削除とUI契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customerとstaffのCart権限"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 195,
+          "end_line": 217,
+          "reason": "所有者解決・Web/Native removeItem委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 255,
+          "end_line": 277,
+          "reason": "Web item所属/version照合・削除・Cart version更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1345,
+          "end_line": 1378,
+          "reason": "Native item/cart所属とversion・削除"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 180,
+          "end_line": 218,
+          "reason": "Web削除ボタン・version送信・DTO更新"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 790,
+          "end_line": 899,
+          "reason": "Native削除操作・空状態・version送信"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 705,
+          "end_line": 726,
+          "reason": "regularの固定Cart1件とitem version"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 260,
+          "end_line": 286,
+          "reason": "invalid-itemsのregular所有Cart4明細"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 139,
+          "end_line": 157,
+          "reason": "数量0→削除とCart versionの既存テスト（実行未確認）"
         }
       ]
     },
