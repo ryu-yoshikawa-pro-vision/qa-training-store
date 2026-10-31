@@ -1946,19 +1946,19 @@
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: 価格・セールを表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / sale-active / expired-sale / gold-member / platinum-member（guest・regularも対照）",
+      "data": "defaultのP-0003 ランニングシューズはgold以上、通常8000円/セール6400円、saleStart=2026-06-30T03:00Z、saleEnd=2026-07-02T03:00Z。BASE_CLOCK=2026-07-01T03:00Z。goldの5%引きは6080円、platinumの10%引きは5760円。expired-saleでは通常8000円からgold7600円へ復帰。guestはrank制限でP-0003閲覧不可。P-0001 Tシャツは2000円/セールなし、P-0002マグは1500円で対照。既存Seed/Sessionのみ利用",
       "action": "価格・セールを表示",
-      "expected": "閲覧者ランク・固定時刻・セール期間に応じた現在価格が表示され、期限外のセール価格を適用しない",
+      "expected": "CatalogUseCases.getProductDetailがviewerとclockをWeb Dexie/Native SQLiteへ渡し、セールは開始時刻を含み終了時刻を含まず、activeSalePriceは期間外null。goldのP-0003は通常8000/セール6400/会員6080円、platinumは5760円、expired-saleのgoldは7600円。Webは通常/Sale/会員価格を分けて表示、Nativeは通常/Sale/販売価格を分ける。閲覧不可商品は価格を露出しない",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "価格・セールを表示の前後で、閲覧者ランク・固定時刻・セール期間に応じた現在価格が表示され、期限外のセール価格を適用しないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "価格・セールを表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "価格・セールを表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "会員ランク別価格の過大請求/過少請求、期限終了セールの残留、開始/終了境界の誤り、非許可商品の価格露出、Web/Nativeの表示差誤認",
+      "test_condition": "default Resetでgold-memberのP-0003詳細をWeb/Nativeで開き、通常8000・Sale6400・viewer6080をDTOと表示で照合。platinum-memberは5760、expired-sale（終了ちょうど2026-07-02T03:00Z）ではgoldログイン後7600でSale非表示。開始直前/開始ちょうど/終了直前は固定時計を既存テスト制御で設定して境界を確認。guestのP-0003は拒否、P-0001の非セール2000、選択SKU変更時の価格追随を対照。実ブラウザ/Android・視覚/決済金額は別受入",
+      "test_responsibility": "BR-STOREFRONT-003/AC-003の価格時刻/ランク計算とWeb/Native表示を静的照合。SKU選択・Cartの価格確定や実E2Eは別操作として独立判定",
+      "case_policy": "guest/gold/platinum、sale-active/expired-sale、開始含む/終了含まず、セールなし、SKU変更、Web/Nativeの差を代表Caseとして採用",
+      "case_selection_reason": "固定P-0003の8000/6400とrank割引5%/10%、固定clock/expired-saleで再現可能であり追加Seedを要しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-22/100-116/218-222、CatalogUseCases.getProductDetail:108-126、pricing.ts:6-49、Dexie getDetail:185-246、Native SQLite getProductDetail:340-414、Web ProductDetailView:101-105/167-184、NativeProductDetailScreen:586-668、default Seedと既存gold/expired-saleシナリオを照合。静的基本分析であり実操作・視覚/Android/購入価格のPASSではない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -1967,12 +1967,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "価格/会員割引/セール開始・終了とWeb/Native表示を正式BR/AC・既存Seed・Use Case→Repository→UIで静的照合。実Runは別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -1998,7 +2000,105 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "公開・rank・時刻・価格のBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 116,
+          "reason": "商品詳細の機能/プラットフォーム/状態"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 218,
+          "end_line": 222,
+          "reason": "BR-003の価格/バリエーションAC"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewerと固定clockをRepository/Native gatewayへ伝達"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 185,
+          "end_line": 246,
+          "reason": "Webの商品詳細取得とviewer別価格・レビューサマリー"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 340,
+          "end_line": 414,
+          "reason": "Native SQLiteのviewer/price/review summary"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 61,
+          "end_line": 190,
+          "reason": "Webの商品詳細価格・評価の表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 673,
+          "reason": "Nativeの商品詳細価格・評価の表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "固定商品のrank・通常価格・sale・在庫"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 326,
+          "reason": "SKU価格とセールの開始/終了の固定値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 12,
+          "reason": "固定BASE_CLOCK"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "default/sale-active/expired-sale/会員rankシナリオ"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 6,
+          "end_line": 49,
+          "reason": "sale開始含む/終了含まず・会員割引の端数切捨て"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 88,
+          "end_line": 104,
+          "reason": "gold P-0003のviewer6080円の既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-03",
@@ -2009,19 +2109,19 @@
       "source_text": "商品画像、価格、セール情報、レビューサマリー、バリエーション、在庫状況、購入上限数を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: レビューサマリーを表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / hidden-reviews（guest/customer・Web/Native）",
+      "data": "default SeedのP-0001はpublished2件/評価合計9/平均4.5/4★1件+5★1件、P-0002はpublished3件/合計11/平均11/3=3.666…（画面3.7）/2★1件+4★1件+5★1件。P-0002のhiddenレビュー1件・deletedレビュー1件はpublished集計から除外。レビュー0件商品は平均0/全分布0。既存SeedのreviewSummariesとpublished/hidden/deleted実値を使用",
       "action": "レビューサマリーを表示",
-      "expected": "publishedのレビューのみを評価件数・平均・分布に集計し、hidden/deletedを含めない",
+      "expected": "CatalogUseCases.getProductDetail→Dexie/Native SQLiteはpublishedCount/ratingTotal/ratingAverage/rating1〜5Countを同一商品に返す。Webは評価平均1桁・件数・5段階分布と件数比率を表示、Nativeは平均1桁・件数のみ表示（NativeにWeb分布UIを要求しない）。P-0001は4.5/2件、P-0002は3.7/3件でhidden/deleted各1件を加算しない。0件は0.0/0件、0除算しない",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "レビューサマリーを表示の前後で、publishedのレビューのみを評価件数・平均・分布に集計し、hidden/deletedを含めないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "レビューサマリーを表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "レビューサマリーを表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "hidden/deletedの件数/評価露出、集計の不整合・ゼロ除算、他商品の集計混入、Web/Nativeの表示責務混同",
+      "test_condition": "default ResetでguestのP-0001とP-0002詳細をWeb/Nativeで開き、Webは4.5/2件・5★1/4★1、3.7/3件・5★1/4★1/2★1と分布百分率を照合。Nativeは平均/件数のみ確認。P-0002のhidden/deleted各1件は件数/平均/一覧に含まない。レビュー0件商品で0.0/0件と分布0%を確認。publishedレビューの編集/非公開化による再集計は別Use Caseとして判定。実操作/Android/視覚は未受入",
+      "test_responsibility": "Seedの公開/非公開/削除状態とレビュー集計DTO→Web/Native表示を追跡し、公開件数・平均・分布・ゼロ件境界を区別。レビュー投稿/非公開変更の実操作は別受入",
+      "case_policy": "published2件・3件、hidden/deleted各1件、0件、平均小数/5段階分布、Web/Native責務差を代表Caseとして採用",
+      "case_selection_reason": "既存default SeedにP-0001/P-0002の集計とhidden/deleted反例が揃い、追加学習Seedなしで判定可能",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:100-116、CatalogUseCases.getProductDetail:108-126、Dexie getDetail:185-246、Native SQLite getProductDetail:340-414、default-dataset.ts:354-380/505-535/629-660、reviews.ts:1-45、Web ProductDetailView:163-165/327-348、NativeProductDetailScreen:651-654を静的照合。実Web/Android/視覚およびレビュー変更操作のPASSではない",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2030,12 +2130,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "published/hidden/deletedと0件の集計・Web分布/Native平均表示を正式BR/AC・既存Seed・Use Case→Repository→UIで静的照合。実Runは別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -2061,7 +2163,129 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 22,
+          "reason": "公開・rank・時刻・価格のBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 116,
+          "reason": "商品詳細の機能/プラットフォーム/状態"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 218,
+          "end_line": 222,
+          "reason": "BR-003の価格/バリエーションAC"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewerと固定clockをRepository/Native gatewayへ伝達"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 185,
+          "end_line": 246,
+          "reason": "Webの商品詳細取得とviewer別価格・レビューサマリー"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 340,
+          "end_line": 414,
+          "reason": "Native SQLiteのviewer/price/review summary"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 61,
+          "end_line": 190,
+          "reason": "Webの商品詳細価格・評価の表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 673,
+          "reason": "Nativeの商品詳細価格・評価の表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "固定商品のrank・通常価格・sale・在庫"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 326,
+          "reason": "SKU価格とセールの開始/終了の固定値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 12,
+          "reason": "固定BASE_CLOCK"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "default/sale-active/expired-sale/会員rankシナリオ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 354,
+          "end_line": 380,
+          "reason": "公開集計の2件/3件/平均と分布"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 505,
+          "end_line": 535,
+          "reason": "publishedレビューのSeed生成"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 629,
+          "end_line": 660,
+          "reason": "hidden/deletedの明示的除外対照"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 1,
+          "end_line": 45,
+          "reason": "公開レビュー差分のみを集計し件数/分布整合性を検証"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 327,
+          "end_line": 348,
+          "reason": "Web平均/件数/分布とゼロ件除算防止"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 144,
+          "end_line": 154,
+          "reason": "P-0002の平均11/3の既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-04",
