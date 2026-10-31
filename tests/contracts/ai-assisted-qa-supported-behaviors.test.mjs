@@ -474,19 +474,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits Home newest and active Sale products across Web and Native", () => {
-    for (const id of [
-      "SCREEN-STOREFRONT-HOME-A01-03",
-      "SCREEN-STOREFRONT-HOME-A01-04",
-    ]) {
+    for (const id of ["SCREEN-STOREFRONT-HOME-A01-03", "SCREEN-STOREFRONT-HOME-A01-04"]) {
       const entry = data.behaviors.find((item) => item.id === id);
       expect(entry?.analysis_status).toBe("analyzed");
       expect(entry?.related_use_cases).toContain("CatalogUseCases.getHome");
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(8);
     }
-    const category = data.behaviors.find(
-      (item) => item.id === "SCREEN-STOREFRONT-HOME-A01-02",
-    );
+    const category = data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-HOME-A01-02");
     expect(category?.analysis_status).toBe("review_required");
   });
 
