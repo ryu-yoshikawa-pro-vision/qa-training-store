@@ -2620,18 +2620,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: バリエーションを表示。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "data": "default guestで公開P-0010(12色カラーポーチ、12 SKU)とP-0011(13サイズトレーニングウェア、13 SKU)を比較。P-0001のTシャツS/M/Lは在庫20/10/0、P-0006は単一SKU在庫0。gold/platinumでrank限定P-0003/P-0004、unpublished/draft/discontinuedのP-0007/0008/0009は非表示。default SKUは全てisActive=trueでありinactive SKUの実Seed証拠はない。",
       "action": "バリエーションを表示",
-      "expected": "対象商品に属するSKU・選択肢を表示し、非活性のSKUは選択可能な購入候補として扱わない",
+      "expected": "CatalogUseCases.getProductDetailがviewer/nowをDexie/SQLiteへ渡し、公開・会員rankとactive SKUに一致するProductDetail.variantsのみ返す。WebはvariationNameあり・12 SKU以下でbuttons、13 SKU以上でselect、stock0 optionをdisabled表示。Nativeは全variantをchip表示し、複数SKUでは初期未選択、stock0でも選択は可能だがCart追加不可。正式UI契約の13以上selectとNative chipsの差は製品適合未確認として別管理し、静的基本分析の成立と混同しない。",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "バリエーションを表示の前後で、対象商品に属するSKU・選択肢を表示し、非活性のSKUは選択可能な購入候補として扱わないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "バリエーションを表示の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "バリエーションを表示の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "非公開/rank限定商品またはinactive SKUの露出、12/13件境界での選択UI差、stock0を購入可能と誤認、Web/Native選択/購入可否の混同、13件Native UIの正式契約との差",
+      "test_condition": "default Reset→guestでP-0010は12選択肢、P-0011は13選択肢を詳細DTOとWeb buttons/selectで照合。Nativeは両方chipであることを実Androidで別検証。P-0001はS20/M10/L0を表示しWeb Lをdisabled、Native L選択後は追加disabled。P-0006単一SKU0は両UIで購入不可。gold/platinumのP-0003/0004閲覧境界、guestでP-0007/0008/0009除外。inactive SKUは既存Seedにないため学習専用fixture/契約Caseの必要性を検討し、既存Seed変更しない。実ブラウザ/Android/視覚正本は未受入。",
+      "test_responsibility": "BR-STOREFRONT-001/003・AC-001/003に対してUse Case→Dexie/SQLiteの閲覧可否とactive SKUを検証し、Web 12/13 UI境界・Native chips・stock0の選択/追加の差を独立した条件として採否記録する。",
+      "case_policy": "採用：guestのP-0010(12)/P-0011(13)、P-0001(S20/M10/L0)、P-0006(stock0)、gold/platinum rank境界、Web/Native UI差。別責務：Cart追加時の所有者/在庫version拒否。inactive SKUは既存Seedにないため学習専用fixtureによる負例の必要性を別判定。",
+      "case_selection_reason": "正式な12/13境界を既存2商品で検証でき、Web/Native差を誤PASSにしない。stock0はP-0001/P-0006で固定再現可能。公開/rankとactive SKUはRepositoryの候補構築を根拠にし、実行未確認の条件を成功としないため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:17-23/102-115、roles-and-permissions.md:5-16、CatalogUseCases.getProductDetail:109-120、Dexie getDetail/buildCandidates:184-235/249-283、SQLite getProductDetail:340-409、Web ProductDetailView:187-224、NativeProductDetailScreen:586-701/native-variation-selection.ts:3-16、default-dataset.ts:213-245/293-327、scenarios.ts:25-62、Web component:336-359を静的照合。Webは12以下buttons/13以上select、Nativeは13でもchips。正式13件以上selectのPlatform適用は製品適合未確認として改善候補に残す。実Web/Android/視覚のPASSは未主張。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2640,12 +2640,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "BR/AC・Role/State/Data・Use Case→両Repository→Web/Native・Seedの静的基本分析済み。Native 13 SKU表示の製品適合、inactive SKU負例、実Web/Android/視覚受入は別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -2671,7 +2673,110 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 17,
+          "end_line": 23,
+          "reason": "BR-STOREFRONT-003と12/13件UI境界"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 102,
+          "end_line": 115,
+          "reason": "商品詳細のバリエーション/状態契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "guest/customerと会員ランク境界"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 109,
+          "end_line": 120,
+          "reason": "閲覧者/時刻を付けて詳細取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 184,
+          "end_line": 235,
+          "reason": "Web可視候補とactive SKUのみの詳細DTO"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 283,
+          "reason": "Web公開/rank/active SKU絞込"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 340,
+          "end_line": 409,
+          "reason": "Native詳細の権限/active SKU/DTO"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 23,
+          "end_line": 49,
+          "reason": "Web詳細取得と権限分岐"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 187,
+          "end_line": 224,
+          "reason": "Web 12以下buttons/13以上selectと在庫0disabled"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 620,
+          "reason": "Native詳細取得/初期variant"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 660,
+          "end_line": 701,
+          "reason": "Native全SKU chipsと追加不可表示"
+        },
+        {
+          "path": "src/presentation/native/native-variation-selection.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "Native単一SKU初期選択・選択/追加判定"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 213,
+          "end_line": 245,
+          "reason": "defaultのP-0010(12)/P-0011(13)"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 293,
+          "end_line": 327,
+          "reason": "TシャツS/M/L stock20/10/0とactive SKU"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 62,
+          "reason": "default/out-of-stock/low-stockの固定変換"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 336,
+          "end_line": 359,
+          "reason": "Web 12/13境界と在庫0component証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
