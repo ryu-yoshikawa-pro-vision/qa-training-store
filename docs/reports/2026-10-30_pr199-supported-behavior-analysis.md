@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 商品名・商品コード検索の基本分析（SUT変更なし）
+
+- **対象と根拠**：`SCREEN-STOREFRONT-SEARCH-A01-01`を正式`storefront.md:9-18/141-155/206-217`（BR-STOREFRONT-001/002、AC-001/002）、`roles-and-permissions.md:5-16`、Web `CatalogListPage:111-159/286-312`、Android `NativeCatalogScreen:140-207`、`CatalogUseCases.search:86-93`、Dexie `matchesSearch:56-96/search:101-127/buildCandidates:249-283`、SQLite `matchesSearch:144-179/search:259-272/buildCandidates:605-631`と静的照合。Webは`/search?q=...`、Nativeは検索入力/ボタンから同Use Caseを呼ぶ。双方のRepositoryは閲覧者別公開候補を先に限定してから正規化キーワードを部分一致判定する。
+- **既存Seed実値とCase**：default guestでは`P-0001`（ベーシックTシャツ）の名称/商品コードを独立正例とし、`P-0003` gold限定・`P-0004` platinum限定・`P-0007` unpublished・`P-0008` draft・`P-0009` discontinuedを検索結果から除外。gold/platinum、empty-catalog、many-productsの既存シナリオで会員境界・0件・20件/pageを検証条件化。新Seed不要。**実装はカテゴリー名/ブランド名/SKUでも一致する**ため、正式な検索対象範囲は仕様解釈未決（現時点で不具合断定・修正しない）。
+- **判定と制約**：対象1件だけを静的`analyzed`へ変更。基本操作**69/188（36.70%、残り119）**、非default状態**18/20（残り2）**、188は暫定分母。契約テストにWeb/Android/両Repository/Seed参照を追加。実ブラウザ・Android・視覚正本のPASSは未主張。製品本体・正式仕様・既存Seed/Reset・既存製品テスト/workflowは未変更。
+- **現HEAD直前のCI原因切り分け**：[Web CI 41191741974](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191741974)（`1484dbb62543`）はVitest contracts/Training runtime/Code Quality/Format/主要E2E成功、Style Qualityの**正式仕様`docs/spec/features/checkout-and-payment.md:279-280`のMD032/MD022のみ失敗**、verify/validateは連動失敗。[Mobile CI 41191741980](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41191741980)は確認時Android Runtime/MaestroとiOSが実行中。新commitのCIは別途検証し、旧HEADのPASSを流用しない。
+
 ## 2026-10-31 学習用契約の負例退行とPrettier差分の修復（SUT変更なし）
 
 - **原因**：[Web CI 41188808294](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41188808294)の契約失敗1件は、既に`analyzed`になった`behaviors[0]`を再度`analyzed`にする無効なmutationであり、validatorの退行ではない。対象は`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の「required fields nonempty」負例。意味的な未検証を表す非空の汎用`case_selection_reason="正式仕様による"`へ変更し、検証関数が`analysis lacks verified evidence`を返すことを確認した。
