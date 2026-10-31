@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  COVERAGE_PATH,
-  validateCoverage,
-} from "../../scripts/training/validate-supported-behaviors.mjs";
+import { COVERAGE_PATH, validateCoverage } from "../../scripts/training/validate-supported-behaviors.mjs";
 
 const root = process.cwd();
 const data = JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
@@ -27,10 +24,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 48,
-      requires_review: 140,
+      basically_analyzed: 51,
+      requires_review: 137,
       classified_rate: 100,
-      basic_analysis_rate: 25.53,
+      basic_analysis_rate: 27.13,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -88,6 +85,29 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "SCREEN-CHECKOUT-FAILED-A01-01",
       "SCREEN-CHECKOUT-FAILED-A01-02",
       "SCREEN-CHECKOUT-FAILED-A01-03",
+    ]) {
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
+        "review_required",
+      );
+    }
+  });
+
+  it("audits customer order detail ownership, snapshots, and review eligibility", () => {
+    for (const id of [
+      "SCREEN-ORDERS-DETAIL-A01-03",
+      "SCREEN-ORDERS-DETAIL-A02-01",
+      "SCREEN-ORDERS-DETAIL-A02-02",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.getMyCustomerOrder");
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+    }
+    for (const id of [
+      "SCREEN-ORDERS-DETAIL-A01-01",
+      "SCREEN-ORDERS-DETAIL-A01-02",
+      "SCREEN-ORDERS-LIST-A01-02",
     ]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
         "review_required",

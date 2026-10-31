@@ -8116,31 +8116,32 @@
       "source_line": 61,
       "source_text": "注文スナップショット、支払い、配送、タイムライン、レビュー投稿可否を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,reviewable-orders,orders-phase1-statuses。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: レビュー投稿可否を示す",
+      "role": "active customer（本人の配達済み注文・注文明細。guest/他人注文は表示不可）",
+      "scenario": "reviewable-orders Seedを読み込み、初期guestからregular@example.comでログイン。本人のorder-deliveredを表示し、未投稿明細7～9と投稿済明細1～6、defaultの既存レビューと比較する",
+      "data": "reviewable-orders SeedはdefaultのReviewsを先頭6件に減らし、order-deliveredの7～9番目明細をレビューなしにする。CheckoutOrderUseCases.getMyCustomerOrderは本人注文を取得し、各明細のReview状態とorderStatusからNOT_POSTED/PUBLISHED/HIDDEN/DELETED/NOT_ELIGIBLEを求める",
       "action": "レビュー投稿可否を示す",
-      "expected": "配達完了・本人明細で未投稿の場合にレビュー投稿可能と示し、未配達・削除済では許可しない",
+      "expected": "配達完了・本人所有・未投稿の明細はWebで『レビューを投稿』、Nativeで『レビューを書く』を選べる。PUBLISHED/HIDDENはWebの編集リンク、DELETEDはWebの再投稿不可表示、未配達は投稿ボタンなし。Nativeで非NOT_POSTEDの状態はテキスト表示になり、Web同等の編集導線とは断定しない",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "レビュー投稿可否を示すの事前状態・実施後を比較し、配達完了・本人明細で未投稿の場合にレビュー投稿可能と示し、未配達・削除済では許可しないことを確認する",
-      "test_responsibility": "レビュー投稿可否を示すの所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "レビュー投稿可否を示すの誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未配達または他人の明細へ投稿できる、削除済レビューを二重投稿する、公開/非公開の編集導線を取り違える",
+      "test_condition": "reviewable-orders Reset→regular会員ログイン→order-deliveredの未投稿明細7～9の投稿リンクと先頭6の編集状態を確認。未配達/削除済みを反例にし、WebとNativeのUI差、別画面Review Use Case側の権限検査を分離して検証する",
+      "test_responsibility": "getMyOrderの本人検査→getMyCustomerOrderのfindByOrderItemとderiveCustomerReviewState→Web/Nativeの注文詳細の状態分岐を追跡する",
+      "case_policy": "未投稿/公開/非公開/削除済/未配達を代表状態とし、独立stateのS-reviewableにあるデータの再利用はするが動作分析の完了とは別に判定する。NativeにWeb同等の編集アクションを要求するかは未決",
+      "case_selection_reason": "配達完了条件と既存レビュー状態で表示可能な操作が変わり、誤ったリンクは不正投稿や二重投稿を招くため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyCustomerOrder"
+      ],
       "state_refs": [
         "SCREEN-ORDERS-DETAIL-S-reviewable"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 722,
@@ -8148,22 +8149,95 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 273,
+        "signature": "\"reviewable-orders\": {",
+        "scenario": "reviewable-orders",
         "applicable": true,
         "alternatives": [
-          "orders-phase1-statuses",
-          "reviewable-orders"
+          "default"
         ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 98,
+          "signature": "case \"reviewable-orders\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "6件以外のReviewが削除されるSeed変換と、order-deliveredの明細別状態を照合。初期guestからのログインを要求"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyCustomerOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 406,
+          "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 5,
+          "end_line": 12,
+          "reason": "BR-ORDER-001の注文Snapshotと本人向けUI要求"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 397,
+          "end_line": 416,
+          "reason": "本人の注文所有権検査とレビュー状態付きCustomerOrderの取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 60,
+          "end_line": 139,
+          "reason": "Dexieの永続Order/OrderItem/Payment/Shipment/Status履歴をDTOへ反映"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2145,
+          "end_line": 2218,
+          "reason": "SQLiteのOrderItem/Payment/Shipment/Timelineを永続行から復元"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 576,
+          "reason": "default Seedの本人のpayment_failed/paid/preparing/shipped/delivered注文とSnapshot"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 722,
+          "end_line": 858,
+          "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1257,
+          "end_line": 1398,
+          "reason": "Nativeの本人OrderDetail表示と支払/配送/商品/レビュー導線"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 4,
+          "end_line": 15,
+          "reason": "配達済み/未配達とReview状態を5種類へ分類"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 98,
+          "end_line": 104,
+          "reason": "Reviewの先頭6件だけを維持するScenario変換"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 558,
+          "end_line": 581,
+          "reason": "Webのレビュー状態別表示の既存componentテスト"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A02-01",
@@ -8173,28 +8247,30 @@
       "source_line": 62,
       "source_text": "カスタマー本人の注文のみを表示し、その後に商品情報が変更されてもスナップショットの内容は変更しない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,reviewable-orders,orders-phase1-statuses。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 他人の注文を拒否",
+      "role": "active customer（注文のownerであるuserIdに一致することが必要）",
+      "scenario": "default Seedのorder-paid等のowner=user-customer-regularを、regular@example.com本人ログインと別ユーザーのログイン状態で開き分ける。初期guestでは保護ページに直接入れない",
+      "data": "default Seedにはuser-customer-regularのorder-paid/order-delivered等がある。getMyCustomerOrderはgetMyOrderを呼び、orders.getById(orderId)がnullまたはorder.userId !== currentUser.idでNOT_FOUNDを投げる。WebではOrderDetailContentがnot-found、Nativeではエラーメッセージ付き読み込み状態になる経路を持つ",
       "action": "他人の注文を拒否",
-      "expected": "他人の注文IDにアクセスした場合は内容を表示せず権限拒否または未検出として扱う",
+      "expected": "本人のorderIdだけ注文番号・住所・支払履歴・明細を返す。他人/存在しないorderIdではOrderDetailDtoを返さず、Webはnot-found境界を表示する。Nativeは現在のコードでErrorMessageを表示するが注文内容は表示しない。画面上の無限読み込みと区別がつくかは実機確認待ち",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "他人の注文を拒否の事前状態・実施後を比較し、他人の注文IDにアクセスした場合は内容を表示せず権限拒否または未検出として扱うことを確認する",
-      "test_responsibility": "他人の注文を拒否の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "他人の注文を拒否の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "別顧客の住所・支払方法・購入履歴の閲覧、存在有無の推測、Nativeの回復不能な表示",
+      "test_condition": "本人regularと別認証ユーザーで同じorder-paid IDを要求し、本人のみ成功、他人はNOT_FOUNDでDTO不返却を検証。Web/Nativeの不正orderId画面で明細/住所が表示されないことを確認し、Nativeの読み込み失敗UIは実機で別判定",
+      "test_responsibility": "CustomerPage/Native purchase serviceの認証からgetMyCustomerOrder→getMyOrderのownerチェック→Dexie/SQLiteのGetById→画面のエラー境界を追う",
+      "case_policy": "本人・他人・存在しない注文ID・guestを代表条件とし、URL知識だけでは情報を表示できないことを採用。Order画面のトークン/認証失効時の具体的な見え方は実機受入へ分離",
+      "case_selection_reason": "配送先住所と注文履歴は個人情報を含むため、注文IDを知っている別人にも返却してはいけない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyCustomerOrder",
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 722,
@@ -8217,7 +8293,81 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyCustomerOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 406,
+          "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 397,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 5,
+          "end_line": 12,
+          "reason": "BR-ORDER-001の注文Snapshotと本人向けUI要求"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 397,
+          "end_line": 416,
+          "reason": "本人の注文所有権検査とレビュー状態付きCustomerOrderの取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 60,
+          "end_line": 139,
+          "reason": "Dexieの永続Order/OrderItem/Payment/Shipment/Status履歴をDTOへ反映"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2145,
+          "end_line": 2218,
+          "reason": "SQLiteのOrderItem/Payment/Shipment/Timelineを永続行から復元"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 576,
+          "reason": "default Seedの本人のpayment_failed/paid/preparing/shipped/delivered注文とSnapshot"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 722,
+          "end_line": 858,
+          "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1257,
+          "end_line": 1398,
+          "reason": "Nativeの本人OrderDetail表示と支払/配送/商品/レビュー導線"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 728,
+          "end_line": 739,
+          "reason": "Webの注文詳細がgetMyCustomerOrderのerror/nullでnot-foundとなる"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1257,
+          "end_line": 1285,
+          "reason": "Nativeの注文詳細でエラーを受けてもorder内容を表示しない"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A02-02",
@@ -8227,28 +8377,29 @@
       "source_line": 62,
       "source_text": "カスタマー本人の注文のみを表示し、その後に商品情報が変更されてもスナップショットの内容は変更しない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,reviewable-orders,orders-phase1-statuses。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 過去注文スナップショットを維持",
+      "role": "active customer（本人の購入完了後に保存された過去注文）",
+      "scenario": "default Seedのorder-paid（orderNumber=ORD-20260701-0002）を表示した後、商品マスタの表示名・販売価格・画像・会員住所を変更する検証データを準備し、同じorderIdの注文詳細を再取得。注文の更新はせず商品マスタのみ変える",
+      "data": "default Seedのorder_itemsにはproductNameSnapshot、skuSnapshot、unitEffectivePrice、lineTotalAmount、画像path等、ordersにはmembershipRankSnapshot・shippingAddressSnapshot・subtotal/discount/shipping/totalAmountがある。作成時beginOrderは商品・SKU・価格・配送先を注文に複製する。DexieとSQLite getDetailは注文/明細の保存済み列からDTOを組み立てる",
       "action": "過去注文スナップショットを維持",
-      "expected": "購入後に商品価格・名前が変更されても過去注文の金額・SKU・名前を維持する",
+      "expected": "注文作成後に現在の商品名、SKUの価格、画像、既定住所、会員ランクを変えても、注文詳細のproductName/sku/lineTotalAmount・配送先・金額・会員ランク・保存画像pathは変わらない。Web/Nativeとも注文の保存値を表示し、最新の商品マスタへの再参照で上書きしない",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "過去注文スナップショットを維持の事前状態・実施後を比較し、購入後に商品価格・名前が変更されても過去注文の金額・SKU・名前を維持することを確認する",
-      "test_responsibility": "過去注文スナップショットを維持の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "過去注文スナップショットを維持の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "後日の商品改定で過去請求額や注文商品が変わり、返品・問い合わせ・監査履歴に不整合が生じる",
+      "test_condition": "本人の同一orderIdについて変更前のOrderDetailDtoを保存し、商品マスタの商品名/価格/画像、住所/ランクを変更後にgetMyCustomerOrderとWeb/Nativeを再取得・表示。購入当時の保存値が一致し、現在の商品マスタだけが変化したことを確認。既存componentの固定DTO表示テストは動的変更の検証とは別",
+      "test_responsibility": "beginOrderのSnapshot保存→OrderRepository.getDetailのスナップショット列→getMyCustomerOrder→Web/Nativeの注文詳細表示をつなぎ、商品マスタ変更後にも値が不変なことを照合する",
+      "case_policy": "商品名/単価/SKU/画像/配送先/会員ランク変更の組合せで正常Snapshotを検証し、状態遷移によるorderStatus・shipment更新とは混同しない。実行・UIの視覚正本比較は未完了",
+      "case_selection_reason": "保存済み注文を現在の商品情報から再計算すると、過去の顧客承諾額や証拠が破壊されるため",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
       "requirement_refs": [
         "BR-ORDER-001",
-        "BR-ORDER-002",
-        "AC-ORDER-001",
-        "AC-ORDER-002"
+        "AC-ORDER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.beginOrder",
+        "CheckoutOrderUseCases.getMyCustomerOrder"
+      ],
+      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 722,
@@ -8271,7 +8422,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.beginOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 193,
+          "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.getMyCustomerOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 406,
+          "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 5,
+          "end_line": 12,
+          "reason": "BR-ORDER-001の注文Snapshotと本人向けUI要求"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 397,
+          "end_line": 416,
+          "reason": "本人の注文所有権検査とレビュー状態付きCustomerOrderの取得"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 60,
+          "end_line": 139,
+          "reason": "Dexieの永続Order/OrderItem/Payment/Shipment/Status履歴をDTOへ反映"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2145,
+          "end_line": 2218,
+          "reason": "SQLiteのOrderItem/Payment/Shipment/Timelineを永続行から復元"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 576,
+          "reason": "default Seedの本人のpayment_failed/paid/preparing/shipped/delivered注文とSnapshot"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 722,
+          "end_line": 858,
+          "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1257,
+          "end_line": 1398,
+          "reason": "Nativeの本人OrderDetail表示と支払/配送/商品/レビュー導線"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 239,
+          "end_line": 282,
+          "reason": "beginOrderが商品名/コード/価格/画像と配送先・ランクを保存Snapshotへ複製"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 538,
+          "end_line": 556,
+          "reason": "Webの価格・配送先・支払履歴・Timeline保存DTO表示テスト"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 911,
+          "end_line": 980,
+          "reason": "Nativeの金額・配送先・SKU・支払/配送Snapshot表示テスト"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-S-reviewable",

@@ -1,5 +1,11 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-10-31 注文詳細の本人境界・Snapshot・レビュー可否（SUT変更なし）
+
+- `SCREEN-ORDERS-DETAIL-A01-03`/`A02-01`/`A02-02`を仕様・Use Case→Dexie/SQLite→Web/Android・default/reviewable-orders Seedから照合して分析台帳/専用契約テスト/調査レポートに記録。**基本分析51/188（27.13%、残り137）、状態条件15/20（残り5）**。
+- Web注文詳細の建物名/電話/会員ランク表示とNativeのタイムライン・編集導線の差は未決事項として記録。`SCREEN-ORDERS-DETAIL-A01-01`/`A01-02`は未分析を維持。商品マスタ後日変更によるSnapshot不変の実行受入も未確認。
+- SUTコード・正式仕様・既存Seed/Reset・製品用テストには触れず、前HEADとの分析台帳の競合は新HEADへ統合した。実機・正本画像比較、公開Template/Private 2-core Codespaces/OpenCode校正の受入は継続。
+
 ## 2026-10-31 Cart invalid-items分析と管理在庫ステータス差分（SUT変更なし）
 
 - `SCREEN-STOREFRONT-CART-S-invalid-items`を正式BR/AC、固定Seedのregular所有4明細、Use Case→Dexie→Web、既存E2Eのログイン前提から分析。初期guestでは空Cart。状態条件15/20（残り5）、基本分析48/188（残り140）。実ブラウザ/視覚正本は未受入。

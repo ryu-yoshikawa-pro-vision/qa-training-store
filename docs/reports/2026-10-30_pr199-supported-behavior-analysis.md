@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-10-31 注文詳細の本人境界・Snapshot・レビュー状態（製品変更なし）
+
+- `SCREEN-ORDERS-DETAIL-A01-03`/`A02-01`/`A02-02`を、`orders.md`のBR-ORDER-001/AC-ORDER-001、`CheckoutOrderUseCases.getMyOrder/getMyCustomerOrder/beginOrder`、Dexie/SQLite、Web/Android、`default`/`reviewable-orders` Seedおよび既存テストと照合した。基本分析**51/188件（27.13%）、未分析137件**。先行の同時作業で状態別条件は**15/20件分析済み（残り5件）**。188件は暫定分母。
+- レビュー投稿可否：`reviewable-orders`は既存Reviewを先頭6件へ減らし、配達済み注文の未投稿明細7〜9に`NOT_POSTED`と投稿導線を与える。WebのPUBLISHED/HIDDENには編集リンクがあるが、Nativeは非NOT_POSTEDを状態テキストとして表示する。Web同等の編集導線がNative必須かは未決。
+- 他人注文：`getMyCustomerOrder`は`getMyOrder`の本人所有権検査を必ず経由し、他人や存在しない注文IDでは詳細DTOを返さない。Webはnot-found境界、Nativeは注文内容を出さず読み込み状態とエラー文を表示する。Nativeの失敗時の明瞭な復旧は実機受入待ち。
+- 過去注文：`beginOrder`は商品名/SKU/価格/画像path、配送先、ランクを保存し、Dexie/SQLite`getDetail`は保存値から表示DTOを組み立てる。購入後の商品マスタ変更を注入して不変性を確かめる実行テストは未確認であり、テスト条件に明記した。
+- **未解決の製品差（修正なし）**：`SCREEN-ORDERS-DETAIL-A01-01`のWeb表示は配送先の建物名/電話・会員ランクの明示表示がなく、Nativeにはある。`A01-02`ではWebは支払履歴・配送状況・タイムラインを表示するが、Nativeはタイムラインを表示しない。正式な表示範囲が未決なので両操作を`review_required`として保持する。新たなSUT変更/Issue作成はしない。
+- 今回の結果は読み取り監査であり、実ブラウザ/Android・視覚正本のPASS、実Template/Private 2-core Codespaces/OpenCode校正は未達。
+
 ## 2026-10-31 Cart invalid-items分析と管理在庫ステータス不整合候補（SUT変更なし）
 
 - **分析済み**：`SCREEN-STOREFRONT-CART-S-invalid-items`。正式`BR-CART-003/AC-CART-003`、`cart-with-invalid-items` Seedの4明細（価格変更・非公開・在庫0・inactive SKU）、`CartUseCases.getCart/removeItem/acceptPriceChanges`、Dexie `getCartDto`、Web `CartContent`と既存E2Eセットアップを照合。初期guestでは不正明細は見えず、**regular@example.comでログイン後に/cartへ遷移**する必要がある。非価格問題の削除→価格同意→Checkout解放の順序をCase化。既存テストのソース確認は実行PASS/視覚正本一致を意味しない。
@@ -63,7 +72,7 @@
 
 以前の「270/270で分類・基本分析100%」は撤回する。BR/AC・状態遷移・横断規則を画面操作と別々の機能として合算しており、実装側の一部操作が漏れていた。また、汎用文言を記載した行まで`analyzed`と見なしていたため、受入基準に適合していなかった。
 
-今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、48件は仕様・実装・Seedの照合済み、140件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
+今回、機能動作と根拠規則を分け、公開Use Caseを調査した。**正規化した188件の動作候補の分類追跡は実施したが、51件は仕様・実装・Seedの照合済み、137件は追加レビューが残る。PRの「全サポート機能の分類・基本分析100%」は未達である。**
 
 ## 今回確認した母集団
 
