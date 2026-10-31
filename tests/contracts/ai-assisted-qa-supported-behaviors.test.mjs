@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { COVERAGE_PATH, validateCoverage } from "../../scripts/training/validate-supported-behaviors.mjs";
+import {
+  COVERAGE_PATH,
+  validateCoverage,
+} from "../../scripts/training/validate-supported-behaviors.mjs";
 
 const root = process.cwd();
 const data = JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
