@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## カテゴリー内の閲覧権限除外を静的基本分析（SUT変更なし）
+
+- **対象**：`SCREEN-STOREFRONT-CATEGORY-A02-01`。正式`storefront.md:9-18/175-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`、`permissions.ts:15-32`を照合。Web/Androidのカテゴリーroute→`CatalogListPage`/`NativeCatalogScreen`→`CatalogUseCases.search`→Dexie/SQLiteの公開・会員rank・active SKU候補→categoryId一致の検索結果を追跡した。両Repositoryは閲覧不可商品を候補構築段階で除外し、カテゴリー絞込と20件/pageを適用する。Nativeの固定カテゴリー見出しは既存の別の製品適合候補として維持。
+- **既存Seed実値とCase**：default guestでファッションP-0001のみ（unpublished P-0007除外）、ホーム・キッチンP-0002/P-0005（draft P-0008除外）、スポーツP-0006/P-0011（gold限定P-0003除外）、バッグ・小物P-0010（platinum限定P-0004、discontinued P-0009除外）。gold-memberでP-0003、platinum-memberでP-0004の追加を検証条件化。在庫0のP-0006は公開閲覧可、Cart追加拒否は別Case。empty-catalogはカテゴリー自体を削除するため、既存カテゴリー内0件の直接証拠に流用しない。追加Seedは不要。
+- **判定**：当該操作のみ`analyzed`へ更新。**基本分析72/188（38.30%、残り116）、非default状態18/20（残り2）**。188は分母最終監査前の暫定値。学習用契約テストの集計と証拠チェックを同期。静的分析は製品適合・実Web/Android/視覚/権限負例のRun PASSではない。製品本体・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
+
 ## 製品改善候補の管理先と判定の区別（現行方針）
 
 本レポートは全サポート動作の分析経路・実装/仕様/Seedの証拠を残す。PR #199の分析中に発見した製品不具合・仕様不整合・UX/性能/保守性/セキュリティ等の**現在の候補一覧・適合判定・対応方針**は[製品改善レポート](./pr199-product-improvements.md)で管理し、同じ問題を実行ごとに重複登録しない。本ファイルの日時付き記録は当時の証拠であり、書式修正を含めた現行の変更権限は[全体Planの「変更対象と製品改善管理」](../plans/2026-10-16_qa-curriculum-ai-agent-redesign.md)に従う。
