@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 57,
-      requires_review: 131,
+      basically_analyzed: 59,
+      requires_review: 129,
       classified_rate: 100,
-      basic_analysis_rate: 30.32,
+      basic_analysis_rate: 31.38,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -471,6 +471,23 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
     const parent = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03");
     expect(parent?.analysis_status).toBe("review_required");
+  });
+
+  it("audits Home newest and active Sale products across Web and Native", () => {
+    for (const id of [
+      "SCREEN-STOREFRONT-HOME-A01-03",
+      "SCREEN-STOREFRONT-HOME-A01-04",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.related_use_cases).toContain("CatalogUseCases.getHome");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(8);
+    }
+    const category = data.behaviors.find(
+      (item) => item.id === "SCREEN-STOREFRONT-HOME-A01-02",
+    );
+    expect(category?.analysis_status).toBe("review_required");
   });
 
   it("detects changed implementation and Seed evidence", () => {

@@ -177,19 +177,19 @@
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: 新着商品を案内。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / empty-catalog / gold-member",
+      "data": "default Seedの公開商品8件（guestはgold/platinum制限商品を除外）。product-variation-13/P-0011とproduct-variation-12/P-0010が先頭、公開・ランク制限・在庫0を対照。empty-catalogでは0件、gold-memberではランクに応じて候補集合が変化。BASE_CLOCK=2026-07-01T03:00:00Z",
       "action": "新着商品を案内",
-      "expected": "新着商品領域から対象の公開商品詳細・一覧へ遷移できる",
+      "expected": "CatalogUseCases.getHomeのviewer-awareなnewProducts（公開・閲覧ランク・active SKU条件適用後、publishedAt降順、同順位productCode順、最大8件）をWeb/Nativeのおすすめ先頭4件と新着残り4件へ分割する。各カードは同一productIdの商品詳細へ遷移し、空データで偽商品を表示しない",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "新着商品を案内の前後で、新着商品領域から対象の公開商品詳細・一覧へ遷移できることを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "新着商品を案内の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "新着商品を案内の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未公開/上位会員限定商品の露出、新着順とおすすめ領域の混同、Web/NativeでのID差、8件境界での欠落",
+      "test_condition": "default Reset→guestのWeb/Nativeホームで公開・rank許可済み8件以内を確認し、Webのおすすめ4/新着残り4、Nativeの同分割と各カードのproductIdリンクを照合。gold-memberログインで上位ランク商品が加わる差、empty-catalogで商品0件を対照。publishedAt同値はproductCodeで順序を固定。実ブラウザ/Android/視覚比較は別受入",
+      "test_responsibility": "CatalogUseCases.getHome→Web Dexie/Native SQLite→Home UI/商品カードを追跡し、閲覧条件・ID・時刻・空状態の期待と実Run未検証を分離",
+      "case_policy": "guest/gold、default/empty/expired-sale、公開/非公開、期間境界、0/4/8件の代表Caseを採用",
+      "case_selection_reason": "公開候補と表示セクションを分離し、guest/会員ランク・0/4/8件・同日時の決定的順序を代表Caseとして採用。製品Seed追加は不要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-39、CatalogUseCases.getHome:80-84、Dexie storefront-repositories.ts:249-315/393-415、Native SQLite:214-258、Web HomePage:21-162、NativeHomeScreen:31-115、Seed default/expired-saleと既存Repository契約テストを静的照合。Web/Android実Run・視覚正本PASSは未主張",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -198,12 +198,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getHome"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "Web/NativeのUse Case→Repository→UI・正式BR/AC・既存Seed実値を証拠付きで静的基本分析済み。実ブラウザ/Android/視覚受入は別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -228,7 +230,81 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getHome",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 80,
+          "signature": "async getHome(): Promise<HomeCatalogDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "公開商品・閲覧者条件とホーム新着導線"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "viewer/clockをRepositoryまたはNative gatewayへ伝達"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 315,
+          "reason": "published/rank/active SKUによる候補制限"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 393,
+          "end_line": 415,
+          "reason": "publishedAt降順・productCode同順位・newProducts最大8"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 214,
+          "end_line": 258,
+          "reason": "Native SQLiteも同じ候補順序と最大8を生成"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 143,
+          "end_line": 155,
+          "reason": "Webのおすすめ4件と新着残り4件"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 108,
+          "end_line": 115,
+          "reason": "Nativeのおすすめ4件と新着残り4件"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1011,
+          "end_line": 1040,
+          "reason": "NativeカードのproductIdリンクと0件非表示"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "公開/会員ランク/公開日/在庫の固定商品"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 64,
+          "end_line": 97,
+          "reason": "固定8件とguest/platinum閲覧差の既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-04",
@@ -239,19 +315,19 @@
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: セールを案内。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default / sale-active / expired-sale / gold-member",
+      "data": "defaultのP-0010（12色ポーチ）/P-0003（ランニングシューズ、gold以上）等のsalePrice・開始/終了時刻とBASE_CLOCKを比較。sale-activeは既存default系、expired-saleは時計を2026-07-02T03:00:00Zに変更。guestとgoldで可視商品が異なる",
       "action": "セールを案内",
-      "expected": "有効なセール商品への案内が出て、対象外・終了したセールは購入価格として扱われない",
+      "expected": "CatalogUseCases.getHome→Dexie/Nativeのviewer-aware候補から、active SKUに有効なセール期間（saleStartAt<=now<saleEndAt）を持つ商品だけをsaleProductsへ最大8件返す。Webは非空時のみセール商品セクションと/onSale=true一覧導線、Nativeは非空時にセールカードを表示し、各カードは元の商品IDの詳細へ進む。終了済みセール価格を現行価格として扱わない",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "セールを案内の前後で、有効なセール商品への案内が出て、対象外・終了したセールは購入価格として扱われないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "セールを案内の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "セールを案内の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "期限外セールの誤表示、会員制限商品の露出、期間終了境界の価格誤り、セール有無と商品カードの導線不一致",
+      "test_condition": "default/sale-active ResetでguestとgoldのWeb/Nativeホームを対比し、saleProductsの可視商品/最大8件と詳細リンクを確認。expired-sale Resetでは2026-07-02T03:00Zの終了時刻ちょうどで対象セールが非activeになり、WebのセールセクションとNativeの空セクションが非表示になることを確認。終了直前/ちょうど、guest/gold、非公開/無効SKUを反例。実ブラウザ/Android/視覚は別受入",
+      "test_responsibility": "CatalogUseCases.getHome→Web Dexie/Native SQLite→Home UI/商品カードを追跡し、閲覧条件・ID・時刻・空状態の期待と実Run未検証を分離",
+      "case_policy": "guest/gold、default/empty/expired-sale、公開/非公開、期間境界、0/4/8件の代表Caseを採用",
+      "case_selection_reason": "時刻の半開区間・会員ランク・active SKUとセール価格を分離して検証し、セールがない場合に誤って商品を出さないことを優先。既存Seed/固定時刻で代表Caseを作れる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "storefront.md:9-39、CatalogUseCases.getHome:80-84、Dexie storefront-repositories.ts:249-315/393-415、Native SQLite:214-258、Web HomePage:21-162、NativeHomeScreen:31-115、Seed default/expired-saleと既存Repository契約テストを静的照合。Web/Android実Run・視覚正本PASSは未主張",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -260,12 +336,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getHome"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "Web/NativeのUse Case→Repository→UI・正式BR/AC・既存Seed実値を証拠付きで静的基本分析済み。実ブラウザ/Android/視覚受入は別途",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -290,7 +368,93 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getHome",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 80,
+          "signature": "async getHome(): Promise<HomeCatalogDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "閲覧者条件とセール案内の正式契約"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 18,
+          "end_line": 38,
+          "reason": "saleStart<=now<saleEndと有効価格"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "viewerとclockをgetHomeへ注入"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 315,
+          "reason": "公開/ランク/active SKUを満たす候補集合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 393,
+          "end_line": 415,
+          "reason": "hasActiveSaleの抽出・ソート・最大8件"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 214,
+          "end_line": 258,
+          "reason": "NativeのsaleProductsと同じ時刻条件"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 155,
+          "end_line": 162,
+          "reason": "WebのsaleProducts非空表示とセール一覧リンク"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 112,
+          "end_line": 115,
+          "reason": "Nativeのセール商品セクション"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1011,
+          "end_line": 1040,
+          "reason": "Nativeの空セクション非表示とカードリンク"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 50,
+          "reason": "defaultとexpired-saleの時計変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 100,
+          "end_line": 245,
+          "reason": "固定商品・セール価格・ランク"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 88,
+          "end_line": 101,
+          "reason": "guest閲覧制限とgold sale価格の既存契約"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A01-05",
