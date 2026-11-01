@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-STOREFRONT-HOME-A01-05`（会員ランク特典案内の未処理`review_required`）。前対象`UC-CATALOG-LIST-REVIEWS`はWebの公開レビュー抽出・ソート・ページング・default Seedを経路照合し、学習用Vitestの直接Caseを追加。Nativeの画面はレビュー集計のみで一覧Use Caseを公開せず、共通Use CaseのcustomerGateway分岐は空結果を返す。Nativeの一覧表示期待・Role/商品公開制限・実Web/Android・新Caseの実行証拠が未確定のため`review_required`継続。詳細は本Planの「2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS」。
+- **現在の対象**：`SCREEN-STOREFRONT-HOME-A02-01`（ゲスト用導線、台帳`review_required`）。前対象`SCREEN-STOREFRONT-HOME-A01-05`は会員ランク案内とPricingのWeb経路を静的照合し、学習用の表示・金額境界Caseを追加。Androidホームには同案内の描画経路がなく、正式Web/Android契約との差を確認したが実Android/視覚受入は未実証。新Caseの同一HEAD Vitest、Role別Web/Android、DB/Session不変を再開条件として`review_required`を維持。詳細は下記「2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A01-05」。
 - **CI横断**：作業開始時のHEAD `fb2ce856955933391130cb1fa722c00f3666bc98` の[Web CI #41331157796](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41331157796)は確認時点でin_progress。Vitest contracts・Style Qualityはfailure、build-production・production-smoke・component等はsuccess、required Chromium E2Eはin_progress。今回の新Caseを含む変更後HEADのCI成功は未確認。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A01-05（会員ランク特典案内）
+
+- **台帳と正式契約**：現HEADの`supported-behaviors.json`に実在する`SCREEN-STOREFRONT-HOME-A01-05`は`review_required`、Web/Android、default、RoleはWeb guest/customer/operator/admin・Android guest/customer。正式`docs/spec/features/storefront.md:21-32`はホームの会員ランク案内と購入価格の特典整合を要求し、default視覚正本をWeb desktop/Android双方に置く。価格の直接根拠は`BR-STOREFRONT-003`。
+- **Web表示と価格経路（静的事実）**：`app/index.tsx`から`HomePage`→`HomeContent`→`CatalogUseCases.getHome`→`DexieStorefrontCatalogQueryRepository.getHome`。Webの`home-page.tsx:165-183`は商品数が0でも会員特典panelを描画し、一般会員は5,000円以上で送料無料、goldは5%割引、platinumは10%割引・常時送料無料と案内する。文言は`FREE_SHIPPING_THRESHOLD`と`membershipDiscountRate`から生成され、画面内でviewerの現在ランクを表示・強調するわけではない。価格/送料の計算本体は`src/domain/services/pricing.ts`の`calculateOrderTotals`で、割引はSKU単価ごとに切り捨て、送料無料判定は割引前小計5,000円以上、platinumは常時0円。案内と計算は同じ定数/関数を参照するが、画面表示と実Checkoutの一致は実Run未確認。
+- **Android差（未確定の製品適合候補）**：`NativeHomeScreen`（`src/presentation/native/native-screens.tsx:31-117`）は`catalog.getHome`の結果でHero、カテゴリー、新着、セールを表示するが、会員ランク案内の表示処理がない。Nativeの`getHome`はSQLiteのviewer-aware候補を返すものの、案内文を提供するDTO項目はない。正式仕様のWeb/Android共通ホーム契約との差は静的に成立するが、Android視覚正本・実機・受入優先順位を照合するまでは不具合確定としない。SUTは変更しない。
+- **Seed・Role/State/Data**：default Seedはregular/gold/platinumのactive customerを持つ（`src/seeds/default-dataset.ts:730-753`）。guest・管理Roleは購入ランクの適用対象ではない。案内は全Roleへ共通表示されるため、現在のviewerの割引が自動適用されたと誤読させないことを検証する。empty-catalogでもWeb案内は表示される。購入価格はviewer/商品/期間と独立に再確認する。
+- **Risk/TR/Condition/Case採否**：C1=Webの5,000円・5%・10%・送料無料文言とPricing定数の一致（採用）。C2=4,999/5,000円の送料境界、gold/platinumの単価割引切捨て、数量を含む金額計算（採用）。C3=Android会員案内の有無と正式default視覚正本（採用、実機期待待ち）。C4=guest/regular/gold/platinum/管理Roleの案内と実価格・権限の分離（採用）。C5=empty-catalogとgold-member Seedでの表示・導線（採用）。C6=閲覧のみでCart/Order/Sessionを変更しないこと、実Checkout金額との一致（採用、実Web/Android前後snapshot待ち）。
+- **直接検証と判定**：学習用`tests/contracts/ai-assisted-qa-home-membership-benefits.test.tsx`にWebの会員案内文とPricing 4,999/5,000円・各rankの直接Caseを追加。既存`tests/unit/pricing.test.ts`の単価切捨て/送料を再利用し、重複する製品テストは変更しない。追加Caseの依存付きVitest・Prettier、実Web/Android・実Checkout・視覚正本・DB/Session前後は未実施。静的監査とテスト追加だけで`analyzed`/製品適合/実Run PASSへ昇格しない。`review_required`維持。新Case同一HEAD実行、Android実画面と視覚正本、Role別/金額/不変の実証が再開条件。次の共通対象は台帳で実在を確認した`SCREEN-STOREFRONT-HOME-A02-01`。
+- **CI横断**：監査HEAD `b0a932913235`のWeb CI #41333717183はcompleted/failure（Style QualityのFormat check、Vitest contracts、required Chromium E2E、verify、validate）。Unit/Component/Integration等の成功は本CaseのPASSを意味しない。変更後HEADの最終CIは別判定。Mobile CIのPRトリガーは復元しない。
 
 ## 2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS（公開レビュー一覧・Platform境界）
 

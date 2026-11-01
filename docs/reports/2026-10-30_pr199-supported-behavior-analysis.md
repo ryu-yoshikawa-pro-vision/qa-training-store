@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A01-05（会員特典の表示と価格）
+
+- **静的事実**：正式`docs/spec/features/storefront.md:21-32`はWeb/Androidホームの会員ランク案内を要求する。Web `home-page.tsx:165-183`は`FREE_SHIPPING_THRESHOLD`・`membershipDiscountRate`から一般5,000円以上送料無料、gold 5%、platinum 10%・常時送料無料を生成する。Pricingは単価ごとに割引切捨て、割引前小計で送料無料を判定する。`CatalogUseCases.getHome`→Dexie/SQLiteのviewer-awareホームデータ取得は商品公開制御の経路であり、特典の文言生成とは別。
+- **Platform差・未確認**：Android `NativeHomeScreen:31-117`はHero/カテゴリー/商品/セールを表示するが会員特典panelはない。正式default Android視覚正本と実機の期待・表示は未照合で、製品不適合とは断定しない。Web案内は現在のviewerランクを個別表示するものではなく、実Checkoutでの割引・送料・Role別の一致も未確認。
+- **採用Caseと追加物**：C1 Web文言と定数、C2 4,999/5,000円送料と各rankの割引、C3 Android案内/視覚正本、C4 guest/regular/gold/platinum/管理Role、C5 empty-catalog/gold-member、C6 Cart/Order/Session不変・Checkout金額を採用。学習専用`tests/contracts/ai-assisted-qa-home-membership-benefits.test.tsx`にC1/C2の代表Caseを追加。既存`tests/unit/pricing.test.ts`は単価切捨てとrank別送料を検査済み。新CaseのVitest/formatter/実Web/Android/視覚・DB snapshotは未実施。
+- **独立判定・引継ぎ**：`analysis_status=review_required`維持、50/188操作・14/20状態の暫定集計は変更しない。新Case同一HEAD実行、実Web/AndroidのRole別案内と価格、Android視覚正本、前後DB/Sessionを取得後に再判定。次の共通対象`SCREEN-STOREFRONT-HOME-A02-01`。製品SUT・正式仕様・既存Seed/Reset・製品テストは読み取りのみ。
+
 ## 2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS（Web公開レビュー一覧・Native差）
 
 - **事実**：`CatalogUseCases.listReviews`はpage整数1以上/pageSize=20を検証し、Webは`DexieReviewRepository.listPublished`でproductId+publishedのみ取得、newest/評価降順/評価昇順とID tie-breakを適用する。default `product-mug`のpublished 3件（5/4/2）とhidden/deleted各1件を静的に照合。Web商品詳細はpage 1のみ呼び、sort切替UIを持つ。Nativeは`NativeCatalogService`にlistReviewsがなく、商品詳細はreviewSummaryのみ。共通Use CaseのNative gateway分岐は空itemsを返すが、Native UIから呼ばれていない。
