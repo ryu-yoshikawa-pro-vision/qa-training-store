@@ -1,5 +1,11 @@
 # PR #199で発見した製品改善候補・既存製品差分の監査
 
+## 2026-11-01 対応先の更新：製品修正・製品回帰はPR #210
+
+[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199) は本レポートに製品の不具合候補・仕様差・教材への影響と分析証拠を記録し続ける。**製品の変更・正式製品仕様・既存製品テストおよびそれらの受入検証は [#210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210) の `product/scenario-shop-maintenance` が対応先**。#210の [製品側の残課題と検証条件](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/product/scenario-shop-maintenance/docs/plans/2026-11-01_pr210-product-followups.md) に、管理ユーザーRank絞り込み、Checkout入力、認可競合、購入上限縮小、UI/UX差などの製品側作業を引き渡した。
+
+これは**担当PRの移動**であり、#199に必要な全サポート動作の分析・証拠収集・教材の技術的受入を打ち切るものではない。製品不具合候補が未修正であることだけを理由に、基本分析を自動的にBLOCKEDにしない。ただし再現/仕様判断が必要な条件は未完了として保持する。#210の修正・実回帰・正式仕様承認・CIは未受入を維持し、既存19ファイルの配置判断を再び質問しない。
+
 ## 2026-11-01 完了：既存製品19ファイルの分離（以下の監査表は履歴）
 
 ユーザーの明示指示に従い、PR #199の製品実装9、正式製品仕様1、既存製品テスト9ファイルの**既存差分19ファイルを全て**`product/scenario-shop-maintenance`へ分離した。専用ブランチは`main`から作成し、PR #199の元HEAD `a33f3b051426aab561786002cd78f6595e7fe364` の19ファイルの内容をそのまま保持する。PR #199では同19ファイルを`main`へ復元した。
