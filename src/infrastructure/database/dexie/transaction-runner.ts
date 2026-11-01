@@ -95,7 +95,7 @@ const SCOPE_TABLES = {
     "order_items",
     "reviews",
   ],
-  "adjust-inventory": ["product_variants", "inventory_histories"],
+  "adjust-inventory": ["users", "sessions", "product_variants", "inventory_histories"],
   "change-user-access": ["users", "sessions", "checkout_sessions"],
   "create-order": [
     "users",
@@ -122,9 +122,9 @@ const SCOPE_TABLES = {
   ],
   "finalize-payment-failure": ["payments", "orders", "order_status_histories"],
   "retry-payment": ["payments", "orders", "order_status_histories"],
-  "start-order-preparation": ["orders", "order_status_histories", "shipments"],
-  "ship-order": ["orders", "order_status_histories", "shipments"],
-  "complete-delivery": ["orders", "order_status_histories", "shipments"],
+  "start-order-preparation": ["users", "sessions", "orders", "order_status_histories", "shipments"],
+  "ship-order": ["users", "sessions", "orders", "order_status_histories", "shipments"],
+  "complete-delivery": ["users", "sessions", "orders", "order_status_histories", "shipments"],
   "review-change": ["reviews", "review_status_histories", "product_review_summaries"],
 } as const satisfies Record<keyof TransactionScopeMap, readonly ScenarioShopTableName[]>;
 
@@ -187,7 +187,7 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
     "change-category-active-state": ["categories", "products"],
     "change-brand-active-state": ["brands", "products"],
     "delete-draft-product": ["products", "inventory", "reviewSummaries"],
-    "adjust-inventory": ["inventory"],
+    "adjust-inventory": ["inventory", "users", "sessions"],
     "change-user-access": ["users", "sessions", "checkouts"],
     "create-order": [
       "users",
@@ -202,9 +202,9 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
     "finalize-payment-success": ["orders", "payments", "inventory", "shipments"],
     "finalize-payment-failure": ["orders", "payments"],
     "retry-payment": ["orders", "payments"],
-    "start-order-preparation": ["orders", "shipments"],
-    "ship-order": ["orders", "shipments"],
-    "complete-delivery": ["orders", "shipments"],
+    "start-order-preparation": ["orders", "shipments", "users", "sessions"],
+    "ship-order": ["orders", "shipments", "users", "sessions"],
+    "complete-delivery": ["orders", "shipments", "users", "sessions"],
     "review-change": ["reviews", "reviewSummaries"],
   };
   return [...mapping[scope]] as Array<keyof TransactionScopeMap[S] & keyof RepositoryInstances>;

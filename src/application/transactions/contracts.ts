@@ -81,7 +81,11 @@ export interface TransactionScopeMap {
     inventory: InventoryRepository;
     reviewSummaries: ReviewSummaryRepository;
   };
-  "adjust-inventory": { inventory: InventoryRepository };
+  "adjust-inventory": {
+    inventory: InventoryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
   "change-user-access": {
     users: UserRepository;
     sessions: SessionRepository;
@@ -114,14 +118,20 @@ export interface TransactionScopeMap {
   "start-order-preparation": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "ship-order": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "complete-delivery": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "review-change": {
     reviews: ReviewRepository;
