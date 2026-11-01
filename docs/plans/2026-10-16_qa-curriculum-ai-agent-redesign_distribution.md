@@ -203,4 +203,3 @@ Phase 3ではignore・差分・importを確認し、M07本人specと必要なPag
 **未受入・公開保留**：manifestには`LICENSE`・`NOTICE`等の配布対象がなく、両リポジトリのrootで一般的な`LICENSE`/`LICENSE.md`/`NOTICE`の存在を確認できなかった。これだけでは再配布条件を判断できない。外部Skill104件・生成済みShopの第三者依存（画像・フォント・JSバンドル等）の権利と必要な通知を確認する。さらに、実際の`course:sync`生成物、禁止ファイル・Secretの内容検査、同一SHAのShop/依存閉包、公開Templateの設定、2コアCodespacesでのinstall/load/Serve/Reset/Playwright実Run、本人アカウントの無料枠・課金条件は未検証。実環境を作る前の外部公開・費用発生は許可されていない。
 
 従って現時点で言えるのは**転送元実在性・固定外部Skillの整合性という静的検証の成功**までであり、「公開可能」や「Templateの技術受入PASS」を意味しない。上の未解決点を満たした監査結果を提示してから、公開作成の個別承認を求める。
-

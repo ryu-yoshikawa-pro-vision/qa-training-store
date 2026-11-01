@@ -103,8 +103,8 @@ Run `41293093957`の`web-dist-production` Artifactに含まれる`woff`/`woff2`�
 
 | ファイル群（各400/600/700、woff/woff2） | 件数 | `nameID=0` | `nameID=13` | `nameID=14` |
 | --- | ---: | --- | --- | --- |
-| Inter | 6 | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) | なし | https://openfontlicense.org |
-| Noto Sans JP配布ファイル | 6 | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. | なし | http://scripts.sil.org/OFL |
+| Inter | 6 | `Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)` | なし | `https://openfontlicense.org` |
+| Noto Sans JP配布ファイル | 6 | `(c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.` | なし | `http://scripts.sil.org/OFL` |
 
 `@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`のnpm packageはともに`OFL-1.1`。特にNoto Sans JPの**配布フォント内部の著作権表示はAdobe/Source**であり、npmの説明欄にある権利者を根拠なくフォント全量へ上書きしない。実ファイルの改変・別名配布・Reserved Font Name扱いは、該当するOFLの規定と元ファイルの表示を照合する。
 
