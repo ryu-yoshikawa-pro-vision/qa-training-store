@@ -1503,6 +1503,32 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects sync targets inside or above the source checkout without modifying either tree", async () => {
+    const fixture = courseFixture();
+    const nestedTarget = path.join(fixture.source, "learner-inside-source");
+    fs.mkdirSync(nestedTarget);
+    const sourceSha = "9".repeat(40);
+    const options = {
+      root: fixture.source,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    const sourceBefore = snapshotDirectory(fixture.source);
+    await expect(syncCourse({ ...options, target: nestedTarget })).rejects.toThrow(
+      /sync target must be outside the source checkout/,
+    );
+    expect(snapshotDirectory(fixture.source)).toEqual(sourceBefore);
+    const parentTarget = path.dirname(fixture.source);
+    const parentBefore = snapshotDirectory(parentTarget);
+    await expect(syncCourse({ ...options, target: parentTarget })).rejects.toThrow(
+      /sync target must be outside the source checkout/,
+    );
+    expect(snapshotDirectory(parentTarget)).toEqual(parentBefore);
+  });
+
   it("binds the fixed SHA, loads one module, preserves learner edits, and checks states read-only", async () => {
     const fixture = courseFixture();
     const sourceSha = "a".repeat(40);

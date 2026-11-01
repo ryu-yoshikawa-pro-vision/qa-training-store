@@ -517,13 +517,23 @@ export async function syncCourse({
   if (!manifest.source_sha.startsWith("${"))
     fail("manifest source_sha must remain a runtime-bound placeholder");
   const targetRoot = path.resolve(target);
-  if (targetRoot === sourceRoot) fail("sync target must not be the source repository");
   if (
     !fs.existsSync(targetRoot) ||
     !fs.lstatSync(targetRoot).isDirectory() ||
     fs.lstatSync(targetRoot).isSymbolicLink()
   )
     fail("sync target must be an existing, non-symlink directory");
+  const realSourceRoot = fs.realpathSync(sourceRoot);
+  const realTargetRoot = fs.realpathSync(targetRoot);
+  const isWithin = (parent, candidate) => {
+    const relative = path.relative(parent, candidate);
+    return (
+      relative === "" ||
+      (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+    );
+  };
+  if (isWithin(realSourceRoot, realTargetRoot) || isWithin(realTargetRoot, realSourceRoot))
+    fail("sync target must be outside the source checkout");
   if (buildShop)
     execFileSync(process.platform === "win32" ? "pnpm.cmd" : "pnpm", ["run", "build:web"], {
       cwd: sourceRoot,
