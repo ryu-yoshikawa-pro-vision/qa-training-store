@@ -157,6 +157,7 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     });
     expect(await snapshot()).toEqual(before);
   });
+
   it("rejects a changed product price at beginOrder without creating order or payment records", async () => {
     const { checkout, session } = await readyCheckout();
     const displayed = await checkout.getConfirmation(session.id);
@@ -204,5 +205,4 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     const payment = await database.payments.where("orderId").equals(processing.orderId).first();
     expect(payment).toMatchObject({ amount: repriced.totalAmount });
   });
-
 });

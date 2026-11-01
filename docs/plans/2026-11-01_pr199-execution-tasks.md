@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-02`（所有権・金額/配送先・注文確定時の再検証）。HEAD `4f5b5f16232`のWeb CI #41351501411で隔離Dexieの直接契約3/3 PASS（137ms）。同テストの`useCasesFor`がReact Hookと誤認された問題は学習用helperを`makeCheckoutUseCases`へ改名して解消し、HEAD `a982090fc901`のWeb CI #41352130780でCode Quality成功・対象3/3 PASSを確認。C4の価格変更拒否・会員ランク変更後の金額再計算を隔離Dexieの追加2 Caseで特徴付ける（追加CaseのCI未実行）。C5の実Web/Android・DB前後は未受入で、`review_required`を維持する。
+- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-03`（確認画面の価格・会員割引・送料・合計表示）。現行台帳の`review_required`を確認。正式`BR-CHECKOUT-002/AC-CHECKOUT-002`、Web/Android確認DTO表示、Pricing、default/regular-member/gold/送料無料境界、実表示と確定金額の一致を1操作として再照合する。前対象`SCREEN-CHECKOUT-CONFIRM-A01-02`はHEAD `acc713650bf0`のWeb CI #41353642414で隔離Dexie契約**5/5 PASS**（153ms）、Code Quality success。C4の価格変更拒否とC5の会員ランク変更後の無通知再計算を直接確認したが、後者は正式な管理者操作でも利用者の金額再承認でもなくHighの仕様/実Run確認候補。前対象は`review_required`・実Web/Android/DB/Session前後/視覚/アクセシビリティ待ちのまま移行する。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（追加C4/C5直接CIの確定・次操作への引継ぎ）
+
+- **直接証拠**：HEAD `acc713650bf0b4b6c91c86b265117f685f3329e3`の[Web CI #41353642414](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41353642414)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`は**5/5 PASS（153ms）**、Code Quality success。C4は確認表示後にVariant価格を変更すると`beginOrder`が`PRICE_CHANGED`で拒否し、Cart/Checkout/Order/Payment/Sessionの前後snapshotが不変。C5は**学習fixtureでUser.membershipRankのみregular→goldへ変更**した場合、Cart.version/Checkout.actionVersion不変でも確認DTOの合計が変わり、表示時の旧actionVersionによる`beginOrder`が新しい合計でOrder/Paymentを作る挙動を特徴付けた。
+- **正式オラクルとの境界**：正式`BR-CHECKOUT-002/AC-CHECKOUT-002`はカート版または価格変更時のOrder/Payment非作成を要求する。rank変更による割引後の金額変化が同ACの「価格変更」に該当するか、表示後の再承認を必須とするかは明文化・実Web再現を要する。Case 5成功を製品適合PASSや欠陥確定にしない。`CheckoutOrderUseCases.beginOrder`はsession.versionを検証してtransaction内で`getConfirmation`を再取得し、その最新合計をOrder/Paymentへ採用する。**表示時金額との同一性検証は静的に確認できず**、Highの黙示的金額変更候補として保持する。
+- **CI横断**：同HEADのStyle Qualityは学習用契約ファイルを含む6ファイルのPrettier警告でfailure。Vitest contracts全体は**941 PASS/15 failure/1 expected fail/15 skipped**（旧`analyzed`期待と現行`review_required`の不一致等）。required Chromium E2EはCheckout再確認で失敗。新HEADの全必須job成功とは分離し、PASSへ改ざんしない。今回の契約テストは末尾余分な空行とCase間の改行のみを意味不変で整えたが、**変更後HEADのPrettier/CI結果は未受入**。
+- **未受入・再開条件**：実Web desktop/tablet・Androidで表示額→別Session/正式管理者によるrank/価格変更→確定を観測し、利用者再承認の有無、Order/Payment/Cart/Checkout/Session前後、視覚/アクセシビリティと正式期待を照合するまで本IDは`review_required`。基本分析50/188操作・非default14/20状態は変更しない。
+- **次の共通対象**：現行台帳で存在と`review_required`を確認した`SCREEN-CHECKOUT-CONFIRM-A01-03`（価格を確認）。Web/Nativeでsubtotal/discount/shipping/totalの表示とPricing DTO一致、regular/gold・送料無料境界、二重割引・非表示の可能性を確認する。製品SUT/正式仕様/既存Seed/Reset/製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（価格変更拒否・ランク再計算の学習用Case）
 
