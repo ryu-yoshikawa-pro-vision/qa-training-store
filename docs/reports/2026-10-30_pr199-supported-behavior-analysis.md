@@ -1,5 +1,23 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-01 製品差分を#210へ分離した後の分析台帳とCIの不整合
+
+**結論**：PR #199は製品SUTを`main`へ戻したが、`training/ai-assisted-qa-course/coverage/supported-behaviors.json`の一部は分離前の製品仕様・画面実装・Use Caseの参照情報を保持している。これは教材・分析側の再照合事項であり、製品差分を#199に戻して解消してはならない。
+
+**CI実証**：HEAD `8eac68c01578c4e16ba4c0206341d60476dc77e0` の [Web CI #41311831160](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41311831160) では、Style Quality/Code Quality/Training runtime contractsは成功する一方、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の6 Caseが失敗。最初の直接エラーは `source changed: SCREEN-CHECKOUT-ADDRESSES-A01-01` で、残る5 Caseも同じ前段検証に遮られた。6種類の独立した製品不具合ではない。
+
+**現在の台帳と#199 HEAD `c52094672498a58a6ca4ac27995a8f3f1ce877fb` での照合**：
+
+- `docs/spec/features/checkout-and-payment.md:31`：`SCREEN-CHECKOUT-ADDRESSES-A01-01`〜`A01-04`の4件が、分離前の「既定の配送先設定を行う」を含む文言を保持。一方、`main`に戻した正式仕様は「追加・編集・選択へと進める」。**意味が異なる**ため、行番号・文言だけでなく既定住所操作の仕様上の根拠と`analysis_status`を再判定する。
+- `CheckoutOrderUseCases` のメソッド定義：`getConfirmation`、`beginOrder`、`resumePayment`、`retryPayment`、`listMyOrders`、`getMyOrder`、`getMyCustomerOrder`の7件で参照行が旧HEADと異なる。実際のメソッド定義を探して新しい行を検証できたが、**関数の内部実装・副作用の同等性を保証していない**。
+- `src/presentation/pages/checkout-order-pages.tsx`：43件の操作・UI状態の`implementation_evidence.line`が旧HEADの位置を指す。各`signature`の新しい定義行は同ファイル内で検出できたが、画面の挙動、支払再試行、復旧導線や既存の`analysis_status=analyzed`の妥当性は再確認が必要。43件は不適合件数ではなく**再照合対象となる参照の数**。
+
+**対応**：定期タスクは同一の分析台帳に対し、現行`main`の仕様→Web/Native→Use Case→Repository→Seed→Case採否を再照合する。まず根拠が失われた4つの正式仕様参照を再判定し、7つのUse Case定義・43の画面参照を有効な行と実体の証拠に更新する。その後、同じHEADで`pnpm run validate:ai-assisted-qa`と`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`を再実行する。**証拠が不十分な動作は`review_required`のまま保持し、行番号の機械的修正だけで`analyzed`や製品PASSへ昇格しない**。
+
+製品側での修正・回帰検証は [PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210) の [残課題文書](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/product/scenario-shop-maintenance/docs/plans/2026-11-01_pr210-product-followups.md) へ引き渡し済み。#199の基本分析に必要なソース追跡と教材の適合性判定は#199に残す。
+
+
+
 ## Q-24 M05 P03/P05：型検査と複数明細Locatorの教材技術監査（実地受入は未完）
 
 - **原因と影響**：`training/ai-assisted-qa-course/exercises/M05/exercise.md`のP03は型エラーを`pnpm exec tsc --noEmit`などで調べるよう案内していた。しかし`tsconfig.json`の`include`は`app/src/tests/e2e/scripts`等であり`workspace/M05/**`を含まない。`tsconfig.training.json`も`training/**`等に限定する。学習者が`workspace/M05/`に誤型ファイルを作って裸の`tsc --noEmit`を実行すると、対象ファイルを検査しないまま成功し得るため、M05-04の型エラー診断証拠として不適切。
