@@ -1,5 +1,15 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## Q-02 自己降格・自己停止の拒否：管理ユーザー詳細の静的監査（review_required 維持）
+
+- **対象・正式契約**：`SCREEN-ADMIN-USER-DETAIL-A02-01`。正式`docs/spec/features/admin-users.md:9-15/44-51/75-79`の`BR-ADMINUSER-001`/`AC-ADMINUSER-001`は自身の権限を失わせる変更を拒否し、自己ロール/状態変更をUI上で操作可能に見せないことを要求。Web管理者詳細のみの対象で、Native実画面のPASSとは扱わない。
+- **Role/State/Data・Seed**：default `src/seeds/default-dataset.ts:729-775`にはactive admin `user-admin`、active operator `user-operator`、停止/退会customerと`sessions: []`。自己拒否を実証するにはadmin本人としてログインしたSessionを別途作成する。変更対象のUser（role/accountStatus/version）、本人Session、他ユーザーのSession、更新前後のactive admin数を独立して観察する。
+- **Web UI**：`src/presentation/pages/review-user-pages.tsx:618-671/737-829`は`currentUser.id===userId`を`isSelf`とし、本人の役割select/変更ボタンおよび利用停止/再開ボタンをdisabledにして理由を表示する。操作の失敗時は`SELF_CHANGE_FORBIDDEN`を日本語化する。これは静的経路であり、実ブラウザのキーボード操作・アクセシビリティ/表示の実Runではない。
+- **Use Case/原子性**：`src/application/use-cases/review-user-use-cases.ts:573-629`の`AdminUserUseCases.changeRole`は`requireAdmin`後にactor.idと対象userIdが一致すればtransaction前に`SELF_CHANGE_FORBIDDEN`を投げる。`changeSuspension`も本人かつ`suspended`要求をtransaction前に拒否。従ってこの2つの拒否経路では`users.update`/`sessions.deleteByUserId`へ到達しない。非self操作は`change-user-access` transaction内で対象version・状態・最終管理者数を検査し、成功時にSessionを削除する。自己`suspended→active`はこの明示self guardの対象外だが、`requireAdmin`での停止者認可と`canTransitionAccount`の別条件があり、自己再開の可否は独立した実証なしに断定しない。
+- **既存テストと不足**：`tests/integration/review-user-use-cases.test.ts:320-352`は自己role降格の`SELF_CHANGE_FORBIDDEN`をテスト定義として持つが、自己停止の拒否、拒否前後のUser/version/Session不変、他sessionやversion競合は直接assertしていない。`tests/component/review-user-pages.test.tsx`には非selfのロール/停止・Last Admin表示のmock Caseがあるが、本人のrole/statusボタンdisabledの直接Caseは未確認。現HEADのWeb CI [41265352947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41265352947)はsuccess（integration/component job含む）だが、未定義Caseの実証ではない。
+- **Risk/TR・採用Case**：High：自己権限喪失/Session整合、Medium：UI保護理由と直接Use Case呼出しの差。C1 admin本人→operator降格拒否、C2 admin本人→suspended拒否、C3 拒否前後のUser/version/Session/active-admin数不変、C4 UIのrole/status disabledと説明、C5 他admin/別sessionの操作とversion競合を採用。本人active→activeは`canTransitionAccount`で拒否される同値負例、停止adminの自己再開は認可条件を別検討。最終管理者数と並行認可の競合はQ-01の論点を参照し、重複した製品不具合登録をしない。
+- **判定・再開条件**：基本分析の主要な静的経路は確認したが、C2〜C5の独立した実Run/不変性証拠が未取得。製品適合・Web実Run・教材受入は未確認、`analysis_status=review_required`を維持する。追加の学習用契約Case・Web画面実Runと拒否前後snapshotが得られた場合のみ再判定。0分枠は再開条件が変わらなければQ-03（Checkout正式仕様差分の処理方針監査）へ進む。SUT・正式仕様・製品テストは無変更。
+
 ## Q-20 商品詳細のCart追加拒否：Web/Native・原子性・既存契約の静的監査
 
 - **正式契約**：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`を`storefront.md:17-23/102-115/218-222`のBR/AC-STOREFRONT-001/003と`cart.md:9-19/70-86`のBR-CART-001/003・AC-CART-001に照合。guest/active customerのみCart追加可能で、operator/adminは対象外。
