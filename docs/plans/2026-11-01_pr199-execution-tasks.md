@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-STOREFRONT-HOME-A02-02`（顧客用導線、台帳`review_required`）。前対象`SCREEN-STOREFRONT-HOME-A02-01`はWeb/Nativeのguest導線とRole・Session・Catalog閲覧境界を静的照合し、学習用VitestでWeb Heroの4 Role表示を直接Case化。実認可・停止Session・Native実Run・DB/視覚・新Case実行は未証明のため`review_required`を維持。詳細は下記同IDの節。
+- **現在の対象**：`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`（商品一覧empty状態、台帳`review_required`）。前対象`SCREEN-STOREFRONT-HOME-A02-02`はWeb/Nativeの顧客導線・Session/Role/State/閲覧条件を静的照合し、学習用RouteGuard 6 Caseを追加。直接Vitest/実Web・Android/DB・視覚は未実施のため`review_required`維持。詳細は下記同IDの節。
 - **CI横断**：調査HEAD `d7f436286d51`のWeb CI #41334980000はcompleted/failure。Style Quality・Vitest contracts・required Chromium E2E・verify・validateが失敗。新Caseを含む更新HEADのCIは別判定、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,17 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-02（顧客用導線）
+
+- **正式契約・台帳**：現行`supported-behaviors.json`の実在操作`SCREEN-STOREFRONT-HOME-A02-02`は`review_required`、Web/Android・default、期待は「有効な顧客に購入・アカウント導線を表示し、管理操作を案内しない」。正式`docs/spec/features/storefront.md:29-32`のRole別導線とBR/AC-STOREFRONT-001〜003を参照。台帳のテンプレートRiskは公開/Rank/価格を含むが、ホームCTAの成立と購入・認可・価格の成立を混同しない。
+- **Web UI→認可（静的事実）**：`app/index.tsx`→`HomePage`→`HomeContent`は`currentUser.role === "customer"`でHeroの`マイページ`→`/account/profile`を提示し、`商品を見る`→`/products`も維持する。active customerには管理CTAを表示しない（前IDの学習用`ai-assisted-qa-home-guest-actions.test.tsx`がRole別Heroを直接Case化）。遷移先の`RouteGuard access="customer"`はactive customerのみ許可し、guestを`/login`、operator/adminとsuspended/withdrawn customerを`/forbidden`へ送る。`HomeContent`自体はaccountStatusを見ないため、停止/退会の既存Sessionが解決されるとアカウントCTAを提示しつつ遷移先で拒否する静的なUX差がある。情報漏洩・製品不具合は実Run/期待確認前に確定しない。
+- **Session/閲覧データ**：`AuthUseCases.getCurrentUser`→`SessionIdentityResolver.getCurrentEntity`は既存Sessionに対応するUserを状態に関係なく返し、`toCurrentUserDto`はaccountStatusを保持する。一方、`CatalogUseCases.getHome`→`SessionIdentityResolver.getViewer`はactive customer+rankが揃う場合のみcustomer viewerとし、停止/退会・staffはguest viewerへ落とす。従ってCTAのRole分岐と商品閲覧条件は別であり、停止Sessionで会員限定商品が漏れると静的に断定しない。実DB/Session前後の不変性は未証明。
+- **Android差**：`NativeHomeScreen`のHeroはRoleに依らず商品探索/検索の2導線で、顧客アカウントは`NativeShell`ヘッダーの`アカウント`→`/account/profile`、注文はbottom navの`/orders`から到達する。Shellはstaffを対象外にするがcustomerのaccountStatusを直接確認せず、`getCurrentUser`は停止/退会Userを返し得る。Webと導線位置が違うことだけで不適合とはしない。Android実機の認可・停止Session・視覚正本は未確認。
+- **Seed/Case採否**：defaultのactive regular/gold/platinum、suspended/withdrawn customer、operator/adminとguest、gold-member/empty-catalogを対象とする。C1=Web active customerのHeroと管理CTA非表示（既存Case採用）。C2=顧客宛RouteGuardのactive/停止/退会/guest/staff境界（今回学習用直接Case採用）。C3=Native customerのヘッダー・注文navとstaff遮断（採用、実Android待ち）。C4=停止/退会SessionのCTA表示と遷移後の拒否、Rank限定商品非露出（採用、期待/実Run待ち）。C5=default/gold-member/empty-catalogのRole別公開商品・価格・購入可否（採用）。C6=desktop/Android視覚・アクセシビリティとSession/Cart/Order/Guest ID前後不変（採用）。
+- **追加した学習用検証と判定**：`tests/contracts/ai-assisted-qa-home-customer-boundary.test.tsx`にRouteGuardのactive customer 1・停止/退会2・staff2・guest1の計6 Caseを追加。これはHomeのリンクからの実遷移やNative実認可を再現せず、SUTのRouteGuardを直接描画する契約テスト。TSX構文transpile診断0件（依存なしの静的検査）、Prettier/直接Vitest/実Chromium/Android・DB snapshotは未実施。既存のHeroモックCaseと合わせても実Run/製品適合/基本分析完了にはならず`review_required`維持。
+- **再開条件・次**：新Caseの同一HEAD Vitest、Web desktopでのactive/停止/退会/guest/staff遷移とDB/Session前後、Android顧客・停止Session・管理Role遮断、default視覚/アクセシビリティ、Rank/価格の実証が必要。次の台帳掲載順で独立着手可能な`review_required`候補は`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
+- **CI横断**：調査HEAD `cdcc2cdc48bc`のWeb CI #41335786106はcompleted/failure（Style Quality、Vitest contracts 15件の旧`analyzed`期待、required Chromium E2E、verify/validate）。既存Home guest-actions学習Caseはcontract jobの成功群に含まれるが、CI全体のPASSではない。追加Caseの新HEAD CIは独立判定とする。
 
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-01（ゲスト用導線）
 

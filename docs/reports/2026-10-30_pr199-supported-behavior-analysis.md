@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-02（顧客用導線）
+
+- **根拠**：正式`storefront.md:29-32`と台帳のactive customer向けアカウント/購入導線を、Web `HomeContent`、`RouteGuard`、`AuthUseCases.getCurrentUser`、`SessionIdentityResolver.getViewer`、Native `NativeShell`/`NativeHomeScreen`、default Seedと照合。Web Heroはcustomer Roleで`/account/profile`を提示するが、accountStatusを見ない。遷移先RouteGuardはactive customerのみ許可。既存停止SessionでCTAを提示し拒否画面へ遷移する可能性は静的UX差であり、実不具合未確定。Catalog viewerは停止/退会をguestとして扱い、CTA表示を商品情報漏洩の証拠にしない。
+- **採用Case**：C1 Web active customer Heroと管理CTA非表示（前IDの既存Case）、C2 RouteGuard active/停止/退会/guest/staff（学習用6 Case追加）、C3 Native customerアカウント・注文導線とstaff遮断、C4停止/退会Sessionの実遷移・Rank非露出、C5 default/gold-member/empty-catalog、C6視覚・アクセシビリティ・Session/Cart/Order/Guest ID不変。新規`tests/contracts/ai-assisted-qa-home-customer-boundary.test.tsx`は直接Guardのみで、Home→画面の実遷移ではない。
+- **判定・引継ぎ**：TSX構文transpile診断0件。依存付きVitest・Prettier、Web/Android実Run、DB前後、正式視覚は未実施。`review_required`維持、基本分析50/188・状態14/20を変更しない。再開は同一HEAD直接Case実行、Role/State別実遷移、Native/視覚/DB証拠。次の独立候補`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`。調査HEAD `cdcc2cdc48bc`のWeb CI #41335786106はfailure、追加Caseの新HEAD CIは未判定。SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
+
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A01-05（会員特典の表示と価格）
 
 - **静的事実**：正式`docs/spec/features/storefront.md:21-32`はWeb/Androidホームの会員ランク案内を要求する。Web `home-page.tsx:165-183`は`FREE_SHIPPING_THRESHOLD`・`membershipDiscountRate`から一般5,000円以上送料無料、gold 5%、platinum 10%・常時送料無料を生成する。Pricingは単価ごとに割引切捨て、割引前小計で送料無料を判定する。`CatalogUseCases.getHome`→Dexie/SQLiteのviewer-awareホームデータ取得は商品公開制御の経路であり、特典の文言生成とは別。
