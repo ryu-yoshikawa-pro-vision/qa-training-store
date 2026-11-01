@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## Q-22 商品一覧empty：全件0と絞込0の復旧導線・Seed実値の静的監査（review_required 維持）
+
+- **正式契約・対象**：`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`。正式`docs/spec/features/storefront.md:63-74`のempty状態はguest/customer、`empty-catalog`、Web desktop必須視覚で「表示可能な商品がない理由と元の画面に戻る導線」を要求。BR-STOREFRONT-001/AC-STOREFRONT-001。Nativeのdefaultは別の必須視覚状態であり、emptyのAndroid視覚PASSを要求したとは読まない。
+- **Use Case→Repository→Seed**：`CatalogUseCases.search`はviewer/clockを解決しDexie `ProductQueryRepository.search` / Native SQLiteの公開候補・rank・フィルターを経由して`total=0/items=[]`を返す。既存`src/seeds/scenarios.ts:179-197`の`emptyCatalog`は`products/productVariants/productImages`等を消すが、**categories/brandsは削除していない**。したがって`src/seeds/metadata.ts`の「カテゴリが空」という説明はSeed実体と不一致。Web/Native Home Repositoryはactiveカテゴリーを可視商品数0で返し得る。以前の本レポートにあった「empty-catalogはカテゴリー自体0件/削除」の記述を訂正し、追加Seedなしで0商品・activeカテゴリー存続の境界を静的に構成できるとする（実Runは未確認）。
+- **Webの復旧導線の正確な区別**：`catalog-list-page.tsx:270-286/502-529`で、products/page1/無keyword/無filter/無価格範囲なら`showUnfilteredEmptyState=true`、0件時`StatePanel kind=empty`の**パネル内actionはnull**。ただし同画面の`Breadcrumbs`には常にホーム`/`へのリンクがあり、「戻る導線が画面に全くない」とは断定できない。検索語・価格等の絞込0件は`filter-empty`と「条件をすべて解除」ボタンが出る。全件0と絞込0を同一のCTA期待値にしない。
+- **Native・既存テスト**：`NativeCatalogScreen:119-289`は0件時「商品が見つかりません」「検索条件を変えてお試しください。」の`NativeStatePanel`を表示し、当該パネルのactionは指定しない。Nativeの戻る操作/画面遷移は実端末で未検証。`tests/component/catalog-pages.test.tsx:305-337`はWeb無条件0件のパネル内解除ボタン不在と、検索・価格絞込0件の解除ボタン存在をmockでassert。**このテストはBreadcrumbsの「元の画面」適合、実Web/Android、視覚正本一致を証明しない**。
+- **Risk/TR/Condition/Case採否**：Medium候補＝復旧不能と誤認するUX/正式期待の曖昧さ、Low〜Medium候補＝Seed説明と実データの不整合。C1 `empty-catalog` guest→`/products` 0件・パネル内CTAなし・Breadcrumbsから`/`へ復帰、C2 default guest→公開商品あり、C3 defaultに未一致価格条件→解除CTAで一覧へ復帰、C4 Native 0件案内とOS戻る操作、C5 `empty-catalog`のactiveカテゴリー0商品・Web/Native Home差、C6 visual Web desktop正本を採用。C1〜C6は実行済みではない。エラー状態・ロード中・ページ外・カテゴリ別0件を別同値クラスとする。
+- **判定・教材代替・再開条件**：パネル内CTA欠落は静的事実だがBreadcrumbsが正式の「元の画面に戻る導線」を満たすかは未決。製品不適合/実Run PASSは未判定、`analysis_status=review_required`、基本分析79/188・状態18/20は変更しない。教材はC1とC3の比較・仕様解釈レビューを使用し、正解を「不具合確定」に固定しない。実Web画面・視覚正本/戻り操作、Native実行、正式UI解釈の証拠取得時に再判定。既存製品コード/Seed/仕様/テストは無変更。次の独立作業は**Q-23**。
+
 ## Q-21 商品詳細からのCart追加：Role・rank・価格・数量の静的監査（review_required 維持）
 
 - **正式契約・対象**：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02`。正式`docs/spec/features/storefront.md:9-23/102-115/216-222`のBR/AC-STOREFRONT-001/003と`docs/spec/features/cart.md:9-19/70-85`のBR-CART-001/003・AC-CART-001を併用。guest/active customer（regular/gold/platinum）に限り購入可能SKUを追加し、非公開・rank不足・stock0・上限超過は拒否する。operator/admin、停止/退会customerはCart利用不可。商品詳細の閲覧許可とCartへの追加許可は別判定。
@@ -81,14 +90,14 @@
 ## Home主要カテゴリー導線と閲覧者別件数の静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-HOME-A01-02`。正式`storefront.md:9-18/23-39/206-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`を基準に、Web `HomePage:21-45/100-143`・Native `NativeHomeScreen:31-115`→`CatalogUseCases.getHome:80-84`→Dexie `getHome/listNavigationCategories:393-431` / SQLite `getHome:214-258`→`/categories/{categoryId}`→`CatalogUseCases.search:86-93`を照合。両RepositoryはactiveカテゴリーをsortOrder/id順に返し、可視件数は公開/rank/active SKU候補から計算する。
-- **Seed実値・Case**：default guestのファッション1（P-0001）、ホーム・キッチン2（P-0002/P-0005）、スポーツ2（P-0006/P-0011）、バッグ・小物1（P-0010）を名称・ID・件数・リンクで照合。P-0007 unpublished、P-0008 draft、P-0009 discontinued、guestに対するgold P-0003/platinum P-0004は除外。goldでスポーツ3、platinumでバッグ2。empty-catalogはカテゴリー自体が0件であり、**activeカテゴリーの商品0件**の直接Caseではない。既存Seed変更なし。
+- **Seed実値・Case**：default guestのファッション1（P-0001）、ホーム・キッチン2（P-0002/P-0005）、スポーツ2（P-0006/P-0011）、バッグ・小物1（P-0010）を名称・ID・件数・リンクで照合。P-0007 unpublished、P-0008 draft、P-0009 discontinued、guestに対するgold P-0003/platinum P-0004は除外。goldでスポーツ3、platinumでバッグ2。empty-catalogは商品を0件にするがactiveカテゴリーを保持するため、**activeカテゴリーの商品0件**の静的Caseになる（実画面未確認）。既存Seed変更なし。
 - **Platform差・未決**：Webは`visibleProductCount>0`で先頭最大6カテゴリーだけを表示し、商品総数0ではempty panel。Nativeはactiveカテゴリーを件数0でもLink表示する。現defaultの4カテゴリーは全て可視件数1以上のため差を実再現できない。「主要カテゴリー」の正式0件/最大件数契約は未決であり、製品適合をPASS/FAILに固定しない。実Web/Android・視覚正本・リンク遷移の実Runは別受入。
 - **判定**：この動作1件のBR/AC・Role/State/Data・Risk/TR・Condition/Case採否を証拠化し`analyzed`へ更新。**基本分析73/188（38.83%、残115）、非default状態18/20（残2）**。これは静的基本分析のみで製品適合・実Run成功ではない。0件activeカテゴリーの検証は正式期待値確定後に必要性を判断し、学習専用fixture以外のSUT変更を行わない。
 
 ## カテゴリー内の閲覧権限除外を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-CATEGORY-A02-01`。正式`storefront.md:9-18/175-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`、`permissions.ts:15-32`を照合。Web/Androidのカテゴリーroute→`CatalogListPage`/`NativeCatalogScreen`→`CatalogUseCases.search`→Dexie/SQLiteの公開・会員rank・active SKU候補→categoryId一致の検索結果を追跡した。両Repositoryは閲覧不可商品を候補構築段階で除外し、カテゴリー絞込と20件/pageを適用する。Nativeの固定カテゴリー見出しは既存の別の製品適合候補として維持。
-- **既存Seed実値とCase**：default guestでファッションP-0001のみ（unpublished P-0007除外）、ホーム・キッチンP-0002/P-0005（draft P-0008除外）、スポーツP-0006/P-0011（gold限定P-0003除外）、バッグ・小物P-0010（platinum限定P-0004、discontinued P-0009除外）。gold-memberでP-0003、platinum-memberでP-0004の追加を検証条件化。在庫0のP-0006は公開閲覧可、Cart追加拒否は別Case。empty-catalogはカテゴリー自体を削除するため、既存カテゴリー内0件の直接証拠に流用しない。追加Seedは不要。
+- **既存Seed実値とCase**：default guestでファッションP-0001のみ（unpublished P-0007除外）、ホーム・キッチンP-0002/P-0005（draft P-0008除外）、スポーツP-0006/P-0011（gold限定P-0003除外）、バッグ・小物P-0010（platinum限定P-0004、discontinued P-0009除外）。gold-memberでP-0003、platinum-memberでP-0004の追加を検証条件化。在庫0のP-0006は公開閲覧可、Cart追加拒否は別Case。empty-catalogはカテゴリーを保持して商品を削除するため、既存カテゴリー内0件の静的条件として使用可能（実行未確認）。追加Seedは不要。
 - **判定**：当該操作のみ`analyzed`へ更新。**基本分析72/188（38.30%、残り116）、非default状態18/20（残り2）**。188は分母最終監査前の暫定値。学習用契約テストの集計と証拠チェックを同期。静的分析は製品適合・実Web/Android/視覚/権限負例のRun PASSではない。製品本体・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
 
 ## 製品改善候補の管理先と判定の区別（現行方針）
@@ -100,7 +109,7 @@
 ## 2026-10-31 カテゴリー一覧の公開/rank境界とNative見出し差を静的基本分析（SUT変更なし）
 
 - **対象**：`SCREEN-STOREFRONT-CATEGORY-A01-01`。正式`storefront.md:9-18/175-216`（BR-STOREFRONT-001/002、AC-001/002）と`roles-and-permissions.md:5-16`を基準に、Web/Nativeの`/categories/[categoryId]`→`CatalogListPage`/`NativeCatalogScreen`→`CatalogUseCases.search`→Dexie/SQLiteの`categoryIds`フィルター・閲覧者別候補・20件/pageを照合。Webは`getCategoryName`で実名を見出し表示、不明IDはnot-found。Nativeは商品検索/絞込は行うがheadingが固定「カテゴリの商品」で、正式default状態のカテゴリー名表示との差を確認。
-- **既存Seedの実値**：default guestではファッション=`P-0001`のみ（unpublished `P-0007`除外）、ホーム・キッチン=`P-0002/P-0005`（draft `P-0008`除外）、スポーツ=`P-0006/P-0011`（gold `P-0003`除外）、バッグ・小物=`P-0010`（platinum `P-0004`/discontinued `P-0009`除外）。gold/platinum既存SeedでP-0003/P-0004の閲覧境界を比較。在庫0のP-0006は閲覧可。empty-catalogはカテゴリー自体が空なので、存在するカテゴリーの0商品Caseには流用しない。新Seed不要。
+- **既存Seedの実値**：default guestではファッション=`P-0001`のみ（unpublished `P-0007`除外）、ホーム・キッチン=`P-0002/P-0005`（draft `P-0008`除外）、スポーツ=`P-0006/P-0011`（gold `P-0003`除外）、バッグ・小物=`P-0010`（platinum `P-0004`/discontinued `P-0009`除外）。gold/platinum既存SeedでP-0003/P-0004の閲覧境界を比較。在庫0のP-0006は閲覧可。empty-catalogはカテゴリーを保持して商品だけを空にするため、既存カテゴリーの0商品Caseを静的に構成できる（実行未確認）。新Seed不要。
 - **判定**：操作1件を`analyzed`とし**基本分析71/188（37.77%、残り117）**、状態条件**18/20（残り2）**。これは静的基本分析のみ。Nativeのカテゴリー名差は製品適合未確認の改善候補として別レポートへ記録し、実Android・Web視覚正本/不明IDのRunは未実施。正式仕様・製品コード・Seed・既存製品テストは変更しない。
 
 ## 2026-10-31 カート明細削除の所有者・version・空状態を静的基本分析（SUT変更なし）
