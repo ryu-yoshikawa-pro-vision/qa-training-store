@@ -70,7 +70,7 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     await Dexie.delete(name);
   });
 
-  function useCasesFor(sessionId) {
+  function makeCheckoutUseCases(sessionId) {
     return new CheckoutOrderUseCases({
       ...createDexieApplicationRepositories(database),
       transactionRunner: new DexieApplicationTransactionRunner(database),
@@ -93,7 +93,7 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
   }
 
   async function readyCheckout() {
-    const checkout = useCasesFor("training-regular-session");
+    const checkout = makeCheckoutUseCases("training-regular-session");
     const cart = await database.carts.get("cart-regular-active");
     expect(cart).toBeDefined();
     const started = await checkout.start({ cartVersion: cart.version });
@@ -135,14 +135,14 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     const { session } = await readyCheckout();
     const before = await snapshot();
 
-    await expect(useCasesFor(null).getConfirmation(session.id)).rejects.toMatchObject({
+    await expect(makeCheckoutUseCases(null).getConfirmation(session.id)).rejects.toMatchObject({
       code: "AUTHENTICATION_REQUIRED",
     });
     await expect(
-      useCasesFor("training-operator-session").getConfirmation(session.id),
+      makeCheckoutUseCases("training-operator-session").getConfirmation(session.id),
     ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
     await expect(
-      useCasesFor("training-gold-session").getConfirmation(session.id),
+      makeCheckoutUseCases("training-gold-session").getConfirmation(session.id),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await snapshot()).toEqual(before);
   });
