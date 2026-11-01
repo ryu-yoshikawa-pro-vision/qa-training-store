@@ -33,8 +33,14 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 ## 2026-11-01 管理ユーザー更新の認可競合と決済並行再開
 
-- 管理ユーザーのランク・ロール・停止/再開は、認可直後に別の更新で操作者のRole/Sessionが失効すると、以前の認可結果だけで更新し得ることを確認した。対象3経路に対し、同じ `change-user-access` transaction内で操作者のSession/Role/状態を読み直す処理と、失効後に対象User/version・Session・Checkoutが変わらない4つのintegration Caseを追加した。管理商品・在庫・注文・カテゴリー・レビュー等のほかの管理更新経路についても認可とtransactionの分離があり、全体の対応は未完了。
+- 管理ユーザーのランク・ロール・停止/再開は、認可直後に別の更新で操作者のRole/Sessionが失効すると、以前の認可結果だけで更新し得ることを確認した。対象3経路に対し、同じ `change-user-access` transaction内で操作者のSession/Role/状態を読み直す処理と、失効後に対象User/version・Session・Checkoutが変わらない4つのintegration Caseを追加した。ほかの管理更新経路の対策状況は2026-11-02の節で管理し、CI・実画面受入とは区別する。
 - 決済処理の `resumePayment` は同一 `gatewayIdempotencyKey` による重複呼出しを許容し、`finalizePayment` はtransaction内のPayment状態で重複確定を防ぐ設計。片方のGateway応答を保留した並行再開をintegration Caseに追加し、Payment 1件、在庫引当1回、成功履歴1件、同一キーを検証する。追加CaseのCI成功・Native実行は確認待ち。外部Gatewayによる実課金のテストではない。
+
+## 2026-11-02 管理操作の認可競合対策
+
+- 管理ユーザーの3経路に加え、在庫調整、注文の準備開始・出荷・配送完了、商品作成・更新・公開状態変更・下書き削除、レビュー公開状態変更で、対象更新と同じtransaction内に操作者のSession/Role/アカウント状態の再認可を追加した。共通処理は `src/application/identity/session-identity-resolver.ts#assertActorStillAuthorized` を使用する。これらの変更を含む [`525d600`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/525d60062b0cd882dc9d06579878b0ef771f54b5) の [Web CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41321467765) と [Mobile App CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41321467970) は成功した。
+- [`e9bf129`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/e9bf129f51680e76f57bc633bbc322e740e4432a) および [`20b1cce`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/20b1cce5162c3f47d251e9e701791a11ca8be56a) で、カテゴリーの作成・名称変更・並び替え・有効状態変更と、ブランドの作成・名称変更・有効状態変更の7経路に同じ再認可を追加した。既存のカテゴリーRepository内transactionを保持し、外側のtransactionに `users` / `sessions` / `categories` または `brands` を含める。各経路で、認可後・更新前にSessionを失効させてもカテゴリー・ブランド・商品が変化しない7つのintegration Caseを追加した。
+- `20b1cce` のWeb CIではStyle QualityとVitest integrationの成功を直接確認した。Web CI全体、Mobile App CI、実Web/Native端末、独立レビューの最終受入は別途確認する。全管理操作を一律に対応済みとせず、対象外の認可経路や認可後の返却処理は後続レビューで確認する。
 
 ## 高リスク候補：実証を優先する
 
