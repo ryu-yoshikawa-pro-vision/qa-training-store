@@ -1,6 +1,7 @@
 import Dexie from "dexie";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import {
   AdminReviewUseCases,
   AdminUserUseCases,
@@ -349,4 +350,97 @@ describe("review and user administration integration", () => {
       }),
     ).rejects.toMatchObject({ code: "INVALID_STATE" });
   });
+  it.each(["rank", "role", "suspension"] as const)(
+    "rejects %s changes if the acting admin is revoked before the write transaction",
+    async (action) => {
+      database = new ScenarioShopDatabase(`admin-revoked-${action}-${crypto.randomUUID()}`);
+      await loadSeedDataset(database, createScenarioDataset("checkout-resume"), "checkout-resume");
+      const session = await signIn(database, "user-admin");
+      const runner = new DexieApplicationTransactionRunner(database);
+      const transactionRunner: ApplicationTransactionRunner = {
+        async run(scope, work) {
+          if (scope === "change-user-access") {
+            await database.transaction("rw", database.users, database.sessions, async () => {
+              const actor = (await database.users.get("user-admin"))!;
+              await database.users.put({
+                ...actor,
+                role: "operator",
+                version: actor.version + 1,
+              });
+              await database.sessions.where("userId").equals(actor.id).delete();
+            });
+          }
+          return runner.run(scope, work);
+        },
+      };
+      const useCases = new AdminUserUseCases({
+        ...dependencies(database, session),
+        transactionRunner,
+      });
+      const userId = action === "role" ? "user-operator" : "user-customer-regular";
+      const beforeUser = (await database.users.get(userId))!;
+      const beforeSessions = await database.sessions.where("userId").equals(userId).toArray();
+      const beforeCheckouts = await database.checkout_sessions
+        .where("userId")
+        .equals(userId)
+        .toArray();
+      const attempt =
+        action === "rank"
+          ? useCases.changeMembershipRank({
+              userId,
+              rank: "gold",
+              expectedVersion: beforeUser.version,
+            })
+          : action === "role"
+            ? useCases.changeRole({
+                userId,
+                role: "admin",
+                expectedVersion: beforeUser.version,
+              })
+            : useCases.changeSuspension({
+                userId,
+                accountStatus: "suspended",
+                expectedVersion: beforeUser.version,
+              });
+      await expect(attempt).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+      expect(await database.users.get(userId)).toEqual(beforeUser);
+      expect(await database.sessions.where("userId").equals(userId).toArray()).toEqual(
+        beforeSessions,
+      );
+      expect(await database.checkout_sessions.where("userId").equals(userId).toArray()).toEqual(
+        beforeCheckouts,
+      );
+    },
+  );
+
+  it("rejects a role change when the actor is demoted without removing its Session", async () => {
+    database = new ScenarioShopDatabase(`admin-role-revoked-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-admin");
+    const runner = new DexieApplicationTransactionRunner(database);
+    const transactionRunner: ApplicationTransactionRunner = {
+      async run(scope, work) {
+        if (scope === "change-user-access") {
+          const actor = (await database.users.get("user-admin"))!;
+          await database.users.put({ ...actor, role: "operator", version: actor.version + 1 });
+        }
+        return runner.run(scope, work);
+      },
+    };
+    const useCases = new AdminUserUseCases({
+      ...dependencies(database, session),
+      transactionRunner,
+    });
+    const target = (await database.users.get("user-operator"))!;
+    await expect(
+      useCases.changeRole({
+        userId: target.id,
+        role: "admin",
+        expectedVersion: target.version,
+      }),
+    ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+    expect(await database.users.get(target.id)).toEqual(target);
+    expect(await database.sessions.get("user-admin-session")).toBeDefined();
+  });
+
 });

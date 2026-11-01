@@ -540,11 +540,13 @@ export class AdminUserUseCases {
   }
 
   async changeMembershipRank(input: ChangeMembershipRankRequest): Promise<UserAdminDto> {
-    await this.requireAdmin();
+    const actor = await this.requireAdmin();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
-      async ({ users, checkouts }) => {
+      async ({ users, sessions, checkouts }) => {
+        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -567,10 +569,12 @@ export class AdminUserUseCases {
   async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {
     const actor = await this.requireAdmin();
     if (actor.id === input.userId) throw this.selfChange();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions }) => {
+        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -602,10 +606,12 @@ export class AdminUserUseCases {
     if (actor.id === input.userId && input.accountStatus === "suspended") {
       throw this.selfChange();
     }
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions, checkouts }) => {
+        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -637,6 +643,49 @@ export class AdminUserUseCases {
       },
     );
     return this.toDto(updated);
+  }
+
+  // Concurrent role/Session revocation must be observed in the same transaction
+  // as the target update.
+  private async requireAdminInTransaction(
+    actor: User,
+    sessionId: string | null,
+    users: UserRepository,
+    sessions: SessionRepository,
+  ): Promise<void> {
+    const session = sessionId === null ? null : await sessions.get(sessionId);
+    if (session?.userId !== actor.id) {
+      throw new ApplicationError({
+        code: "AUTHENTICATION_REQUIRED",
+        messageKey: "auth.required",
+        retryable: false,
+      });
+    }
+    const currentActor = await users.getById(actor.id);
+    if (currentActor === null) {
+      throw new ApplicationError({
+        code: "AUTHENTICATION_REQUIRED",
+        messageKey: "auth.required",
+        retryable: false,
+      });
+    }
+    if (currentActor.accountStatus !== "active") {
+      throw new ApplicationError({
+        code: currentActor.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
+        messageKey:
+          currentActor.accountStatus === "suspended"
+            ? "auth.account.suspended"
+            : "auth.account.withdrawn",
+        retryable: false,
+      });
+    }
+    if (currentActor.role !== "admin") {
+      throw new ApplicationError({
+        code: "PERMISSION_DENIED",
+        messageKey: "admin.adminOnly",
+        retryable: false,
+      });
+    }
   }
 
   private async requireAdmin() {
