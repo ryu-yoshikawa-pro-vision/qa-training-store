@@ -133,7 +133,13 @@ const SCOPE_TABLES = {
   "start-order-preparation": ["users", "sessions", "orders", "order_status_histories", "shipments"],
   "ship-order": ["users", "sessions", "orders", "order_status_histories", "shipments"],
   "complete-delivery": ["users", "sessions", "orders", "order_status_histories", "shipments"],
-  "review-change": ["reviews", "review_status_histories", "product_review_summaries"],
+  "review-change": [
+    "users",
+    "sessions",
+    "reviews",
+    "review_status_histories",
+    "product_review_summaries",
+  ],
 } as const satisfies Record<keyof TransactionScopeMap, readonly ScenarioShopTableName[]>;
 
 export class DexieApplicationTransactionRunner implements ApplicationTransactionRunner {
@@ -215,7 +221,7 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
     "start-order-preparation": ["orders", "shipments", "users", "sessions"],
     "ship-order": ["orders", "shipments", "users", "sessions"],
     "complete-delivery": ["orders", "shipments", "users", "sessions"],
-    "review-change": ["reviews", "reviewSummaries"],
+    "review-change": ["reviews", "reviewSummaries", "users", "sessions"],
   };
   return [...mapping[scope]] as Array<keyof TransactionScopeMap[S] & keyof RepositoryInstances>;
 }

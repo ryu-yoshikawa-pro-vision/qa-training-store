@@ -442,4 +442,36 @@ describe("review and user administration integration", () => {
     expect(await database.users.get(target.id)).toEqual(target);
     expect(await database.sessions.get("user-admin-session")).toBeDefined();
   });
+
+  it("blocks review visibility updates after staff access is revoked", async () => {
+    database = new ScenarioShopDatabase(`review-actor-revoked-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-operator");
+    const originalRunner = new DexieApplicationTransactionRunner(database);
+    const transactionRunner: ApplicationTransactionRunner = {
+      async run(scope, work) {
+        if (scope === "review-change") {
+          await database.sessions.where("userId").equals("user-operator").delete();
+        }
+        return originalRunner.run(scope, work);
+      },
+    };
+    const adminReviews = new AdminReviewUseCases({
+      ...dependencies(database, session),
+      transactionRunner,
+    });
+    const published = (await database.reviews.where("status").equals("published").first())!;
+    const beforeSummary = await database.product_review_summaries.get(published.productId);
+    const beforeHistory = await database.review_status_histories.toArray();
+    await expect(
+      adminReviews.changeVisibility({
+        reviewId: published.id,
+        targetStatus: "hidden",
+        expectedVersion: published.version,
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    expect(await database.reviews.get(published.id)).toEqual(published);
+    expect(await database.product_review_summaries.get(published.productId)).toEqual(beforeSummary);
+    expect(await database.review_status_histories.toArray()).toEqual(beforeHistory);
+  });
 });

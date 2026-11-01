@@ -19,7 +19,10 @@ import type {
   UserSearchQuery,
 } from "@/application/contracts";
 import { ApplicationError, conflictError, validationError } from "@/application/errors";
-import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import {
+  assertActorStillAuthorized,
+  SessionIdentityResolver,
+} from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { deriveCustomerReviewState } from "@/application/use-cases/customer-review-state";
@@ -395,6 +398,7 @@ export class AdminReviewUseCases {
     expectedVersion: number;
   }): Promise<AdminReviewDetailDto> {
     const actor = await this.requireStaff();
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     const current = await this.reviews.getById(input.reviewId);
     if (current === null) throw this.notFound();
     if (current.version !== input.expectedVersion) throw conflictError();
@@ -408,7 +412,8 @@ export class AdminReviewUseCases {
     const now = await this.now();
     await this.dependencies.transactionRunner.run(
       "review-change",
-      async ({ reviews, reviewSummaries }) => {
+      async ({ reviews, reviewSummaries, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         const summary = await reviewSummaries.getById(current.productId);
         if (summary === null) throw this.notFound();
         await reviews.update(
@@ -546,7 +551,7 @@ export class AdminUserUseCases {
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions, checkouts }) => {
-        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -574,7 +579,7 @@ export class AdminUserUseCases {
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions }) => {
-        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -611,7 +616,7 @@ export class AdminUserUseCases {
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions, checkouts }) => {
-        await this.requireAdminInTransaction(actor, actorSessionId, users, sessions);
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -643,50 +648,6 @@ export class AdminUserUseCases {
       },
     );
     return this.toDto(updated);
-  }
-
-  // Concurrent role/Session revocation must be observed in the same transaction
-  // as the target update.
-  private async requireAdminInTransaction(
-    actor: User,
-    sessionId: string | null,
-    users: UserRepository,
-    sessions: SessionRepository,
-  ): Promise<void> {
-    const session = sessionId === null ? null : await sessions.get(sessionId);
-    if (session?.userId !== actor.id) {
-      throw new ApplicationError({
-        code: "AUTHENTICATION_REQUIRED",
-        messageKey: "auth.required",
-        retryable: false,
-      });
-    }
-    const currentActor = await users.getById(actor.id);
-    if (currentActor === null) {
-      throw new ApplicationError({
-        code: "AUTHENTICATION_REQUIRED",
-        messageKey: "auth.required",
-        retryable: false,
-      });
-    }
-    if (currentActor.accountStatus !== "active") {
-      throw new ApplicationError({
-        code:
-          currentActor.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
-        messageKey:
-          currentActor.accountStatus === "suspended"
-            ? "auth.account.suspended"
-            : "auth.account.withdrawn",
-        retryable: false,
-      });
-    }
-    if (currentActor.role !== "admin") {
-      throw new ApplicationError({
-        code: "PERMISSION_DENIED",
-        messageKey: "admin.adminOnly",
-        retryable: false,
-      });
-    }
   }
 
   private async requireAdmin() {

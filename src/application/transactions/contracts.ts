@@ -144,6 +144,8 @@ export interface TransactionScopeMap {
   "review-change": {
     reviews: ReviewRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
 }
 
