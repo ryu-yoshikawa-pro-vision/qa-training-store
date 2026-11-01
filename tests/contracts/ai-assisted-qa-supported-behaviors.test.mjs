@@ -50,9 +50,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("tracks Signup Web/Native destinations without claiming runtime PASS", () => {
-    const signup = data.behaviors.find(
-      (entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03",
-    );
+    const signup = data.behaviors.find((entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03");
     expect(signup?.analysis_status).toBe("analyzed");
     expect(signup?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(signup?.related_use_cases).toContain("AuthUseCases.register");
