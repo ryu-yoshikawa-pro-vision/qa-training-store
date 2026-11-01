@@ -157,4 +157,52 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     });
     expect(await snapshot()).toEqual(before);
   });
+  it("rejects a changed product price at beginOrder without creating order or payment records", async () => {
+    const { checkout, session } = await readyCheckout();
+    const displayed = await checkout.getConfirmation(session.id);
+    const variantId = displayed.items[0].variantId;
+    const variant = await database.product_variants.get(variantId);
+    expect(variant).toBeDefined();
+    await database.product_variants.update(variantId, { regularPrice: 9999 });
+    const before = await snapshot();
+
+    await expect(
+      checkout.beginOrder({
+        checkoutSessionId: session.id,
+        checkoutActionVersion: displayed.checkoutActionVersion,
+      }),
+    ).rejects.toMatchObject({ code: "PRICE_CHANGED" });
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it("characterizes a membership-rank change after the confirmation was displayed", async () => {
+    const { checkout, session } = await readyCheckout();
+    const displayed = await checkout.getConfirmation(session.id);
+    const beforeCart = await database.carts.get("cart-regular-active");
+    const beforeSession = await database.checkout_sessions.get(session.id);
+
+    // Isolated fixture mutation, not an admin UI/use-case rank-change operation.
+    await database.users.update("user-customer-regular", { membershipRank: "gold" });
+    const repriced = await checkout.getConfirmation(session.id);
+    expect(repriced.checkoutActionVersion).toBe(displayed.checkoutActionVersion);
+    expect(repriced.cartVersion).toBe(displayed.cartVersion);
+    expect(repriced.membershipRank).toBe("gold");
+    expect(repriced.totalAmount).not.toBe(displayed.totalAmount);
+    expect(await database.carts.get("cart-regular-active")).toEqual(beforeCart);
+    expect(await database.checkout_sessions.get(session.id)).toEqual(beforeSession);
+
+    const processing = await checkout.beginOrder({
+      checkoutSessionId: session.id,
+      checkoutActionVersion: displayed.checkoutActionVersion,
+    });
+    const order = await database.orders.get(processing.orderId);
+    expect(order).toMatchObject({
+      totalAmount: repriced.totalAmount,
+      membershipRankSnapshot: "gold",
+    });
+    expect(order.totalAmount).not.toBe(displayed.totalAmount);
+    const payment = await database.payments.where("orderId").equals(processing.orderId).first();
+    expect(payment).toMatchObject({ amount: repriced.totalAmount });
+  });
+
 });

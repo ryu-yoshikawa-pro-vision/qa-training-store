@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-02`（所有権・金額/配送先・注文確定時の再検証）。HEAD `4f5b5f16232`のWeb CI #41351501411で隔離Dexieの直接契約3/3 PASS（137ms）。同テストの`useCasesFor`がReact Hookと誤認されCode Qualityに1 errorを発生させたため、学習用helperを`makeCheckoutUseCases`へ改名（意味不変、修正後CI未検証）。C4の価格/会員ランク変更後の再確定、C5の実Web/Android・DB前後は未受入で、`review_required`を維持する。
+- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-02`（所有権・金額/配送先・注文確定時の再検証）。HEAD `4f5b5f16232`のWeb CI #41351501411で隔離Dexieの直接契約3/3 PASS（137ms）。同テストの`useCasesFor`がReact Hookと誤認された問題は学習用helperを`makeCheckoutUseCases`へ改名して解消し、HEAD `a982090fc901`のWeb CI #41352130780でCode Quality成功・対象3/3 PASSを確認。C4の価格変更拒否・会員ランク変更後の金額再計算を隔離Dexieの追加2 Caseで特徴付ける（追加CaseのCI未実行）。C5の実Web/Android・DB前後は未受入で、`review_required`を維持する。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（価格変更拒否・ランク再計算の学習用Case）
+
+- **対象と実証範囲**：正式`BR-CHECKOUT-002/AC-CHECKOUT-002`の価格変更時のOrder/Payment非作成を、既存3 Caseに追加した学習用隔離Dexie Caseで直接検証する。Case 4は確認表示後にProductVariant.regularPriceを変更し、表示時`checkoutActionVersion`で`beginOrder`を呼び`PRICE_CHANGED`とCart/Checkout/Order/Payment/Session snapshot不変を要求する。
+- **High候補の特徴付け（Case 5）**：表示時regularの確認DTOを取得した後、**学習専用fixtureでのみ**User.membershipRankをgoldへ直接変更する。変更後の確認DTOは同じCart.version/Checkout.actionVersionで合計が変化し、その古いactionVersionで`beginOrder`を呼んだ際のOrder/Payment金額が再計算後の金額になるかを観測する。これは正式な管理者ランク変更Use Caseの実行ではなく、実画面でユーザーが金額変更を承認した証拠でもない。成功しても`AC-CHECKOUT-002`の適合PASSと扱わず、確認表示後の黙示的金額変更が起きるHigh候補として正式期待と実Webを照合する。
+- **直接CI**：追加前HEAD `a982090fc90166ca26e4f9457b6a1a74aa0746bb`の[Web CI #41352130780](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41352130780)で既存対象3/3 PASS（137ms）、Code Quality success。Style Quality、Vitest contracts全体（旧期待15件）、required Chromium E2E、verify、validateはfailure。追加2 Caseの直接Vitest/formatterは**未実行**で、CI最終受入も未達。旧HEAD成功を追加後HEADの成功へ流用しない。
+- **状態と再開条件**：対象`review_required`、基本分析50/188操作・非default14/20状態は維持。次の共通実行も**同ID**で追加Caseの同一HEAD直接CIを確認し、実Web desktop/tablet・Android・金額表示→変更→確定・別Session/正式管理者操作・DB/Session前後・視覚/アクセシビリティを分離して判定する。実Run待ちになったら未完了のまま次の着手可能な1件へ移る。製品SUT/正式仕様/既存Seed/Reset/製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（注文確認の所有権・金額・配送先直接契約）
 
