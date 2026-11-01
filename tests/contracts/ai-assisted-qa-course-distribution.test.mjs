@@ -540,20 +540,32 @@ describe("AI-assisted QA distribution contract", () => {
 
   it("ships an explicit learner MIT license without relicensing third-party fonts", () => {
     const manifest = loadCourseManifest(repositoryRoot);
-    const expected = [
-      ["LICENSE", "training/ai-assisted-qa-course/templates/learner-LICENSE"],
-      ["THIRD_PARTY_NOTICES.md", "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md"],
-      ["licenses/OFL-1.1.txt", "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt"],
-    ];
-    for (const [targetPath, sourcePath] of expected) {
+    const licensingFiles = {
+      LICENSE: "training/ai-assisted-qa-course/templates/learner-LICENSE",
+      "THIRD_PARTY_NOTICES.md":
+        "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md",
+      "licenses/OFL-1.1.txt":
+        "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt",
+    };
+    for (const [targetPath, sourcePath] of Object.entries(licensingFiles)) {
       expect(manifest.local_files).toContainEqual(
-        expect.objectContaining({ source_path: sourcePath, target_path: targetPath, module_id: null }),
+        expect.objectContaining({
+          source_path: sourcePath,
+          target_path: targetPath,
+          module_id: null,
+        }),
       );
       expect(fs.existsSync(path.join(repositoryRoot, sourcePath))).toBe(true);
     }
-    const mit = fs.readFileSync(path.join(repositoryRoot, expected[0][1]), "utf8");
-    const notices = fs.readFileSync(path.join(repositoryRoot, expected[1][1]), "utf8");
-    const ofl = fs.readFileSync(path.join(repositoryRoot, expected[2][1]), "utf8");
+    const mit = fs.readFileSync(path.join(repositoryRoot, licensingFiles.LICENSE), "utf8");
+    const notices = fs.readFileSync(
+      path.join(repositoryRoot, licensingFiles["THIRD_PARTY_NOTICES.md"]),
+      "utf8",
+    );
+    const ofl = fs.readFileSync(
+      path.join(repositoryRoot, licensingFiles["licenses/OFL-1.1.txt"]),
+      "utf8",
+    );
     expect(mit).toContain("MIT License");
     expect(mit).toContain("Copyright (c) 2026 ryu-yoshikawa-pro-vision");
     expect(notices).toContain("OFL-1.1");
