@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（注文状態別の次アクションとversion表示、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDER-DETAIL-A01-01`は正式仕様とUI→Use Case→Dexie→Seedの静的10条件を照合。注文時の配送先・商品・ランクは保存snapshotだが、画面の顧客名/メールは現行Userを参照するため「顧客スナップショット」の正式期待との境界は未確定。別読取による同時更新時の一貫性、Role別情報非露出、実Web/DB snapshotは未実証で`review_required`維持。詳細は下記同ID節。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（注文状態別の次アクションとversion表示、台帳`review_required`）。学習用隔離Dexie契約3 Caseを追加し、静的16/16条件を照合。新規Vitest/formatter・実Web/競合は未実行のため、次回も同IDで直接検証を継続する。直前の`SCREEN-ADMIN-ORDER-DETAIL-A01-01`は正式仕様とUI→Use Case→Dexie→Seedの静的10条件を照合。注文時の配送先・商品・ランクは保存snapshotだが、画面の顧客名/メールは現行Userを参照するため「顧客スナップショット」の正式期待との境界は未確定。別読取による同時更新時の一貫性、Role別情報非露出、実Web/DB snapshotは未実証で`review_required`維持。詳細は下記同ID節。
 - **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（次アクション・操作version）
+
+- **正本・対象**：共通Planの現対象`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（Web/Operator/Admin/default・`review_required`）。正式`docs/spec/features/admin-orders.md`は次アクション、注文アクションversion表示、`paid→preparing→shipped→delivered`と古いversion拒否、Order/Shipment同一トランザクションを要求する。画面表示と更新の製品適合は別判定。
+- **UI→Use Case→Repository**：`AdminOrderDetailContent`は詳細の`orderStatus`と`orderActionVersion`を表示し、`paid`は「発送準備を開始」、`preparing`は配送会社/追跡番号と「発送済みにする」、`shipped`は「配達完了にする」、`pending_payment/payment_failed/delivered`は操作なし案内。各requestに表示中の`orderActionVersion`を渡す。`AdminOperationsUseCases.startPreparation/ship/completeDelivery`はstaff認可後、Dexie transaction内で`requireOrderVersion`（不一致`CONFLICT`）と許可状態を確認し、Order/Shipment/OrderStatusHistoryを更新する。`DexieOrderRepository.getDetail`の`orderActionVersion`はOrder.version。transaction scopeには`orders/order_status_histories/shipments`が含まれる。
+- **Seed/Role/State/Data**：defaultの5注文は`payment_failed/paid/preparing/shipped/delivered`、初期Order.version=1。PaymentとShipmentは別系列で、`paid/payment_failed`はShipmentなし、`preparing`はpending、`shipped`はshipped、`delivered`はdelivered。active operator/adminを許可、guest/customer/停止staffは拒否。更新時のOrder/Shipment/Historyの一貫性とPayment/Session不変を前後snapshotで確認する。
+- **リスクとCase採否**：C1=5状態の表示version・許可ボタン/入力・終端状態の操作なし案内（採用、実Web待ち）。C2=paid→preparing→shipped→deliveredのversion 1→2→3→4、ShipmentとHistoryの原子更新（採用）。C3=古いversion/二重押下・別Session競合時の`CONFLICT`とDB不変（High候補として採用、実並行未確認）。C4=禁止遷移・空白/長さ超過の配送情報・Role拒否と全テーブル不変（採用）。C5=競合失敗後、UIは汎用メッセージのみで`setMutation`を呼ばず自動再取得しないため、古いversionを保持して再試行が連続失敗する可能性（採用、実Web未再現、製品不具合未確定）。C6=desktop/tablet視覚正本、キーボード/スクリーンリーダー、画面更新・再読込、別SessionとDB/Session前後（採用）。
+- **直接証拠・独立判定**：調査HEAD `8be00cea7ca91650ee6f9fab94a28865ba0ab62c`の正式仕様、UI、Use Case、Dexie、Seed、既存Integrationに対する**静的文字列16条件/16一致**（許可状態、version表示/伝播/競合、transaction対象、Seed、既存テスト、失敗時UI）。学習専用`tests/contracts/ai-assisted-qa-admin-order-detail-actions.test.mjs`に隔離Dexieの3 Caseを追加（5状態のread-only、version付き全遷移とstale拒否・Payment/Session不変、禁止遷移/無効入力/非staff拒否とDB不変）。新規JSのimport除外構文解析は成功。**新規Vitest/formatter、Web desktop/tablet、実並行、視覚/アクセシビリティは未実施**。既存Integration jobの成功は新規Caseや実WebのPASSではない。台帳`review_required`、基本分析50/188操作・14/20状態、製品適合/実Run/最終CIを昇格しない。
+- **CI・再開条件・引継ぎ**：調査HEADのWeb CI [#41344697902](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41344697902)はcompleted/failure。Code Quality、integration、unit、repositoryはsuccessだがStyle Quality、Vitest contracts、required Chromium E2E、verify、validateはfailure。新HEADの最終CIは別途判定。次回も**同ID `SCREEN-ADMIN-ORDER-DETAIL-A01-02`**で新規Vitest/formatterの直接結果を確認し、可能なら実Web/競合・DB前後証拠を追加。必要証拠が得られない場合は`review_required`のまま再開条件を残し、台帳で実在を確認した次の操作IDへ移る。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-01（顧客・注文/配送snapshot）
 
