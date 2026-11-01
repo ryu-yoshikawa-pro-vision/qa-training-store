@@ -42,6 +42,10 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 - [`e9bf129`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/e9bf129f51680e76f57bc633bbc322e740e4432a) および [`20b1cce`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/20b1cce5162c3f47d251e9e701791a11ca8be56a) で、カテゴリーの作成・名称変更・並び替え・有効状態変更と、ブランドの作成・名称変更・有効状態変更の7経路に同じ再認可を追加した。既存のカテゴリーRepository内transactionを保持し、外側のtransactionに `users` / `sessions` / `categories` または `brands` を含める。各経路で、認可後・更新前にSessionを失効させてもカテゴリー・ブランド・商品が変化しない7つのintegration Caseを追加した。
 - `20b1cce` のWeb CIではStyle QualityとVitest integrationの成功を直接確認した。Web CI全体、Mobile App CI、実Web/Native端末、独立レビューの最終受入は別途確認する。全管理操作を一律に対応済みとせず、対象外の認可経路や認可後の返却処理は後続レビューで確認する。
 
+## 2026-11-02 Nativeログイン・登録のエラー表示
+
+`src/presentation/native/native-purchase-screens.tsx` の `asPurchaseError` は、`ApplicationError.message` に格納された `messageKey` をそのまま返していた。Webの `auth-pages.tsx#useAuthError` には認証失敗・利用停止・退会・保存失敗などの利用者向けメッセージがあることを確認した。Nativeのログイン・会員登録のエラー表示にも、エラーコードごとの利用者向け日本語と未知の例外の一般的な案内を追加した（[`ce22cf3`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ce22cf3c5d2b0e359249e5415fd51e5a20a434ff)）。Native componentに拒否・保存失敗・会員登録失敗・未知の例外のCaseを追加し、既存のCheckout復帰時の読み取り失敗Caseも表示内容を確認するよう強化した。Nativeのほかの画面が持つ全エラー表示まで対応済みとは扱わない。最新HEADのCIと実端末受入は別途確認する。
+
 ## 高リスク候補：実証を優先する
 
 | 対象 | 静的根拠・現在の限界 | #210側の検証観点 |

@@ -183,25 +183,39 @@ describe("Native customer purchase screens", () => {
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
   }, 15_000);
 
-
   it.each([
-    ["AUTHENTICATION_FAILED", "auth.credentials.invalid", "メールアドレスまたはパスワードが正しくありません。"],
-    ["ACCOUNT_SUSPENDED", "auth.account.suspended", "このアカウントは利用停止中です。管理者へ確認してください。"],
+    [
+      "AUTHENTICATION_FAILED",
+      "auth.credentials.invalid",
+      "メールアドレスまたはパスワードが正しくありません。",
+    ],
+    [
+      "ACCOUNT_SUSPENDED",
+      "auth.account.suspended",
+      "このアカウントは利用停止中です。管理者へ確認してください。",
+    ],
     ["ACCOUNT_WITHDRAWN", "auth.account.withdrawn", "このアカウントは退会済みです。"],
-    ["STORAGE_WRITE_FAILED", "storage.write.failed", "端末へログイン状態を保存できませんでした。設定を確認してください。"],
-  ] as const)("displays a readable login error for %s", async (code, messageKey, expected) => {
-    const login = jest.fn().mockRejectedValue(
-      new ApplicationError({ code, messageKey, retryable: false }),
-    );
-    runtime({ auth: { login } });
-    const view = render(<NativeLoginScreen />);
-    await act(async () => {
-      fireEvent.press(view.getByTestId("native-login-submit"));
-    });
-    await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
-    expect(view.getByTestId("native-purchase-error").props.children).toBe(expected);
-    expect(mockRouterReplace).not.toHaveBeenCalled();
-  });
+    [
+      "STORAGE_WRITE_FAILED",
+      "storage.write.failed",
+      "端末へログイン状態を保存できませんでした。設定を確認してください。",
+    ],
+  ] as const)(
+    "displays a readable login error for %s",
+    async (code, messageKey, expected) => {
+      const login = jest.fn().mockRejectedValue(
+        new ApplicationError({ code, messageKey, retryable: false }),
+      );
+      runtime({ auth: { login } });
+      const view = render(<NativeLoginScreen />);
+      await act(async () => {
+        fireEvent.press(view.getByTestId("native-login-submit"));
+      });
+      await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+      expect(view.getByTestId("native-purchase-error").props.children).toBe(expected);
+      expect(mockRouterReplace).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not expose an internal messageKey on Native registration failure", async () => {
     const register = jest.fn().mockRejectedValue(
@@ -219,6 +233,19 @@ describe("Native customer purchase screens", () => {
     await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
     expect(view.getByTestId("native-purchase-error").props.children).toBe(
       "このメールアドレスはすでに登録されています。",
+    );
+  });
+
+  it("does not expose an unexpected authentication exception to Native users", async () => {
+    const login = jest.fn().mockRejectedValue(new Error("internal credential provider detail"));
+    runtime({ auth: { login } });
+    const view = render(<NativeLoginScreen />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId("native-login-submit"));
+    });
+    await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(view.getByTestId("native-purchase-error").props.children).toBe(
+      "予期しないエラーが発生しました。",
     );
   });
 
