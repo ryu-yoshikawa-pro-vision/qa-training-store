@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A01-01（未検出画面の表示）
+
+- **実在IDと仕様**：`supported-behaviors.json`で`review_required`、Role All、Web/Android、default、`UI-ERROR/UI-A11Y`を確認。`docs/spec/ui-ux-contract.md:25-38`は存在しないルートの明示・ホーム復帰とWeb desktop/Android視覚正本を要求。`screen-catalog.md:45-50`も両プラットフォーム対象。
+- **Web**：`app/+not-found.tsx`→`StatePanel kind="not-found"`→「ページが見つかりません」・URL確認の説明・`Link href="/"`。未検出はloading/error/forbiddenと独立した`StateKind`。Route自体はUse Case/Repository更新を呼ばないが、rootの`AppRuntimeProvider`はruntime初期化を実施するためDB全体の不変を静的に断定しない。
+- **Android**：`app/+not-found.native.tsx`→`NativeUnsupportedScreen`→`NativeStatePanel`・`router.replace("/")`。見出しと戻りはあるが本文は「Native Customerの対象外です」であり、未知URLの説明とずれる候補。`NativeShell`は非customer Roleを先に遮断するため、正式Role Allとの観測差を別Caseにする。製品不具合・実Android表示は未確定。
+- **採用Case**：C1 Web未知URLとホーム復帰、C2 Role別未検出/forbiddenの分離と内部情報非露出、C3 Android deep link・本文・ホーム復帰と視覚正本、C4 Native非customerのShell先行遮断とAll契約（期待仕様確認付き）、C5 キーボード/スクリーンリーダー/見出しフォーカスと320/390/desktop、C6 Session/DB前後とroot初期化副作用の分離。既存Component/E2Eに本操作の直接assertを確認できず、直接テスト・Web/Android実Run・DB snapshot・視覚照合は未実施。
+- **判定**：静的分析のみで`review_required`維持（`analyzed`/製品適合/実Run PASSではない）。再開条件はC1〜C6の独立証拠とAndroid本文・Role期待の確認。次の共通対象は`SCREEN-BOUNDARY-NOT-FOUND-A01-02`。SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
+
 ## 2026-11-02 共通逐次：SCREEN-TEST-CONTROL-A01-02（固定クロックの設定・解除）
 
 - **正式契約・権限**：`docs/spec/state-and-scenarios.md`の`SCREEN-TEST-CONTROL`はAutomation WebのTest-only画面で、シナリオ/クロック/決済遅延/Resetを扱い視覚正本対象外。Web `app/admin/test-control.tsx`→`AdminTestControlPage`→`Guard access="automation-admin"`はactive adminかつautomation/localビルドでのみ操作画面を表示する。productionとguest/customer/operator/停止adminのUI拒否はRouteGuardの責務。ただし`window.__TEST_API__`の`setClock`は画面Guardを通らず、local/automationビルドの`installTestApi`が直接公開するため、公開環境へのテストビルド配置可否を別に確認する。
