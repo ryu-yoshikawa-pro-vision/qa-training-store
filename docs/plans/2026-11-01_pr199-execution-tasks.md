@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-02`（注文確認取得・決済金額/住所のHigh優先再照合候補）。現HEADの学習用注文詳細Caseは4件すべてCI実行でPASSし、対象ファイルは全体Prettier警告5件に含まれない。`SCREEN-ADMIN-ORDER-DETAIL-A01-02`は実Web desktop/tablet・別Session実ブラウザ競合・視覚/アクセシビリティ・DB前後の新証拠待ちとして`review_required`維持。次回はCheckoutの現行台帳/仕様/実装/Seedを再取得し、分析の受入条件を1操作単位で検証する。
+- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-02`（注文確認取得・決済金額/配送先のHigh優先再照合）。現HEADの正式仕様→Web UI→CheckoutOrderUseCases→Dexie→default Seedを再照合し、隔離Dexieの学習用直接Caseを3件追加。新CaseのVitest/formatterと実Web/Androidは未実行のため、同IDを`review_required`/検証待ちのまま引き継ぐ。前対象`SCREEN-ADMIN-ORDER-DETAIL-A01-02`は既存4 CaseのCI成功と実Web未受入を区別して保持する。
 - **CI横断**：HEAD `a487040b69c8`の[Web CI #41348239221](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41348239221)はcompleted/failure。対象`ai-assisted-qa-admin-order-detail-actions.test.mjs`は**4/4 PASS（165ms）**、Style Quality警告は対象外の5ファイル、Vitest contractsは全体15失敗（Checkout再照合後の`review_required`と旧`analyzed`期待の不一致等）、required Chromium E2E・verify・validateもfailure。対象の直接Case成功と全CI/製品適合/実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -47,6 +47,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（注文確認の所有権・金額・配送先直接契約）
+
+- **対象・仕様**：正式`docs/spec/features/checkout-and-payment.md:120-152,244-248`は確認画面で商品・配送先・価格・決済方法を提示し、古いカート/価格不一致では注文・決済を作成しないことを要求。現台帳は製品分離後の`review_required`であり、旧`analyzed`を期待する`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の失敗を根拠なく台帳へ逆反映しない。
+- **UI→Use Case→Repository**：`CheckoutConfirmContent`は`getConfirmation()`の`checkoutActionVersion`と金額/配送先/支払方法を表示し、確定時`beginOrder`へ同versionを渡す。`CheckoutOrderUseCases.getConfirmation`はactive customerを要求し、Session ID指定時は所有者・有効期限・Cart.versionを検証。Dexie `getConfirmation`はaddress/paymentの設定とCart.versionを確認し、現在のUser.membershipRankによるCart DTOから商品/割引/送料/合計を生成する。`beginOrder`は別のcreate-order transaction内で再確認してからOrder/Paymentを作成するため、単なる確認取得と注文確定を混同しない。
+- **Role/State/Data・Risk**：defaultの`cart-regular-active`/`cart-item-regular-shirt`とregular customer、active checkoutのaddress→payment→confirmを学習専用fixtureで構成。C1=正当customerの確認金額・配送先・決済方法・actionVersion一致と参照前後のCart/Checkout/Order/Payment/Session不変（採用）。C2=guest/staff/他customerによる住所・決済情報の非露出と拒否後全snapshot不変（Highデータ保護候補として採用）。C3=Cart.version変更後の確認拒否とOrder/Payment未作成（採用）。C4=価格変更/会員ランク変更・confirm表示後の別Session更新、beginOrder再検証（採用、直接Case未実施）。C5=Web/Androidの表示・戻り導線、視覚・アクセシビリティとDB前後（採用、実Run待ち）。
+- **今回の直接作業**：`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`に隔離Dexie+default Seedの3 Caseを追加（成功読取、Role/所有権拒否、stale Cart拒否）。**作成・静的照合のみで、Vitest/Prettier/Playwright/実端末は未実行**。本契約の成功、製品適合、台帳`analyzed`、実Web PASSは未主張。基本分析50/188・非default14/20はvalidatorでの再確認前につき変更しない。
+- **CI横断・次回**：調査HEAD `8fc4a15a907159c0ac237a63da61bec9e53d4a91`のWeb CI [#41350214804](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41350214804)はcompleted/failure（Style Quality、Vitest contracts、required Chromium E2E、verify、validate失敗）。unit/integration/repository/componentと複数E2Eはsuccessだが、新規Caseの結果には流用しない。次回も**同ID**で追加3 Caseの同一HEAD Vitest/formatter結果を優先確認し、直接実行が不可能なら実Run待ちとして別の実在IDへ進む。製品SUT/正式仕様/既存Seed/Reset/製品テスト/workflowは無変更。
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（追加第4 Caseの直接結果確定・実Run待ち）
 
 - **対象の直接結果**：現HEAD `a487040b69c84c410e0b8039724d65ffdd28132f`の[Web CI #41348239221](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41348239221)のVitest contractsログで`tests/contracts/ai-assisted-qa-admin-order-detail-actions.test.mjs`は**4 Case PASS（165ms）**。新規第4 Caseは別operator Sessionが同一versionを取得し、先行更新後の古いversion更新が`CONFLICT`となり、Order/Shipment/Historyの成功側更新と拒否側全snapshot不変、Payment/Session不変を検査した。隔離Dexieの**逐次interleaving**であり実同時競争・実Webではない。
