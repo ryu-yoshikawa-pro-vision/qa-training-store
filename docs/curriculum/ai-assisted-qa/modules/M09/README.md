@@ -449,6 +449,20 @@ GitHub Actionsの標準的な設定（`on: pull_request` で単にチェック�
 
 本講座のワークフローでは、前述のとおり `ref: ${{ github.event.pull_request.head.sha }}` を明示してPR headをチェックアウトし、さらに実行されたコミットハッシュを `target-sha.txt` というファイルに書き出してArtifactとして保存する契約を採用しています。
 
+#### M09-02：同じ対象に属するRun・Check・Artifactを照合する
+
+M09ではworkflowを有効化しません。閲覧を許された既存の公開Runを読むか、Runがない場合は以下を照合計画として記録します。**Run画面のSHAはイベントのmerge SHAの場合があり、実際にcheckoutしたPR HEADと同一とは限りません。**
+
+1. **対象の正本**：PR番号と確認時点のPR head SHA（40桁）を記録します。PRが更新されたら再取得します。
+2. **Run**：Run URL/ID、workflow、event、実行日時、attempt（再実行回数）、status/conclusionを記録します。`queued`・`in_progress`・`cancelled`を成功としません。
+3. **Check**：PR Checksから対象job（例：`course-e2e`）のDetailsを開き、同じRun/attemptのjob結果か確認します。緑色のバッジだけでは対象specの成功を断定しません。
+4. **checkout**：jobログのcheckout ref、`git rev-parse HEAD`、完成見本の`EXPECTED_HEAD_SHA`照合結果をPR head SHAと比較します。Run画面に表示されたmerge SHAは別項目として記録します。
+5. **Artifact**：同じRunの`course-playwright-results`を開き、`target-sha.txt`がcheckout SHA/PR head SHAと一致するか、対象specのテスト結果JSONが存在するかを確認します。別Run・古いattemptのArtifactを流用しません。
+6. **採否**：PR head、Run/attempt、job Check、checkout SHA、Artifact内SHA、実行spec、結果が追跡でき、必要jobが成功した場合に限り**その範囲のCI証拠**として採用します。Run未実行・Artifact欠落・SHA不一致・Check不明は`未確認`または`不採用`です。製品適合・本人Level 2のPASSにはしません。
+
+完成見本は`if: always()`でArtifact uploadを試みるため、**Artifactが存在してもテストが成功したとは限りません**。
+
+
 #### 過去の成功証拠の流用は絶対禁止
 
 テストの証拠管理において、次のようなミスが非常に多く見られます。
@@ -493,12 +507,12 @@ GitHubのWeb画面上で、Run、Job、Step、Artifact、コミットSHAがそ�
 
 #### 実習確認問題
 
-**問い**：ActionsタブのRun一覧に、緑色の成功マークがついたRunがありました。しかし、そのRunからダウンロードした成果物 `target-sha.txt` を開くと `a1b2c3d` と記録されていました。一方、現在レビュー中のPRの最新コミットは `e5f6g7h` です。このRunは、現在のPRの合格証拠として提出できますか？ 理由とともに答えてください。
+**問い**：ActionsタブのRun一覧に、緑色の成功マークがついたRunがありました。しかし、そのRunからダウンロードした成果物 `target-sha.txt` を開くと `a1b2c3d` と記録されていました。一方、現在レビュー中のPRの最新コミットは `e5f6a7b` です。このRunは、現在のPRの合格証拠として提出できますか？ 理由とともに答えてください。
 
 ##### 解答と解説：PR head SHAの照合
 
 - **正解**：提出できません（採用不可）。
-- **解説**：テストが実行された対象のコミットSHA（`a1b2c3d`）と、現在レビュー対象となっている最新のPR headコミットSHA（`e5f6g7h`）が食い違っているためです。
+- **解説**：テストが実行された対象のコミットSHA（`a1b2c3d`）と、現在レビュー対象となっている最新のPR headコミットSHA（`e5f6a7b`）が食い違っているためです。
   古いコードでテストが成功していても、最新のコミットで別の不具合が混入している可能性があります。現在のPR headコミットを対象として新しく実行されたRunの証拠を待って確認する必要があります。
 
 ## 6. 失敗ログの最初の場所（初因）を特定する

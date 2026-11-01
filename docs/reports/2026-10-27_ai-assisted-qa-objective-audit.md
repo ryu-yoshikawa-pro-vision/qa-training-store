@@ -268,3 +268,11 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **是正**：M09教本の自動/手動trigger比較、P01の別名`.disabled`演習、既存提出欄を連動させ、手動イベントにはPR payloadがないこと、選択ref・checkout SHA・PR HEADの照合可否を本人が説明することを要求。基準workflow・starter・Manifest・採点基準は変更せず、既存`M09-CR-01`のP01/P02独立判断要件を利用する。
 - **検証境界**：教材・演習・提出の参照パスと安全境界を静的照合。M09ではworkflowを有効化せず、実GitHub Actions Run/Check/Artifact、実Private Codespaces、本人判断、正式AI評価は未実施。CIのStyle Quality失敗は`M00.json`のPrettier指摘であり、00分枠が担当する。今回の静的照合はCI PASSとしない。
 - **再開条件・次ID**：M09-01の実受入は本人の別名disabled案・SHAの判断・実提出証拠が揃った場合。Q-33を継続し、次は**M09-02**（PR HEAD・Run/Check/Artifact・`target-sha.txt`の証拠同一性、P02、M09-CR-02）を独立して照合する。
+
+## 2026-11-01 Q-33：M09-02 Run/Check/Artifact・対象SHAの証拠同一性
+
+- **対象と根拠**：M09-02 / M09-CR-02 / P02。読取HEAD `70f70cb7402127efcecebedc2fa2849ef40d10f6`。M09教本5.1/実習5-1、演習P02、提出テンプレート、採点JSON、`training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled`、M10の`ci-run-evidence.template.json`を静的照合。M09ではworkflowを有効化しない。
+- **発見**：Run画面SHAと実checkout SHAの違い、PR更新後の旧成功Run、CheckのjobとRun/attempt、別RunのArtifact、test失敗時に残るArtifactを独立判定する提出証拠が不足。教本の例`e5f6g7h`には16進SHAとして不正な文字があった。
+- **是正**：教本にPR head→Run/attempt→job Check→checkout SHA→同一RunのArtifact `target-sha.txt`→spec/結果の照合手順を追加。P02に負例を加え、既存提出欄に証拠同一性表を追加。例示SHAの不正文字を修正。基準workflow・採点JSON・製品SUT/仕様/Seed/製品テストは無変更。
+- **検証境界**：完成見本は`pull_request.head.sha`でcheckoutし、`EXPECTED_HEAD_SHA`で照合し、`git rev-parse HEAD`を`target-sha.txt`に保存する。uploadは`if: always()`でありArtifact存在だけではtest PASSとならない。今回の静的照合は本人の実Run、Private Codespaces、実モデル校正、正式Level 2の受入ではない。変更後HEADのCIは別途確認する。
+- **再開条件・次ID**：本人の実PR HEAD・Run/attempt・job Check・Artifact/target SHA・対象specの独立証拠と実環境が揃った場合のみ実受入を再開。Q-33継続、次は**M09-03**（初因の失敗step・ログ・P03・M09-CR-03）。

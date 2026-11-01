@@ -6,7 +6,20 @@
 - PR HEADの指定方法と対象SHAの確認方法:
 - permissions / Secret / deploy / spec範囲:
 - Build / Browser / Test / Artifactの役割:
-- Run ID / Check / head SHA / Artifactの対応:
+- Run ID / attempt / job Check / head SHA / checkout SHA / Artifactの対応（M09-02）:
+- Run未実行・合成資料・閲覧可能な公開Runの区別（M09ではCIを起動しない）:
+
+## M09-02 証拠同一性の照合表
+
+本人が確認した実在の証拠だけを記入します。架空条件・未観測項目は`未確認`、Runが存在しない場合は`未実行`とし、URL・SHA・成功を創作しません。
+
+<!-- prettier-ignore -->
+| 条件 | PR head SHA | Run URL/ID・attempt・event | job Check・Details・結果 | checkout SHA（ログ） | 同じRunのArtifact・target-sha.txt・spec/結果 | 採否と不足証拠 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 対象HEAD | 未確認 | 未確認 | 未確認 | 未確認 | 未確認 | 未確認 |
+| PR更新後の旧成功Run | 未確認 | 未確認 | 未確認 | 未確認 | 未確認 | 不採用理由を記録 |
+| merge SHA/別Run/再実行・失敗時Artifact | 未確認 | 未確認 | 未確認 | 未確認 | 未確認 | 未確認 |
+
 - 合成ログの失敗段階と確認するstep:
 - Runner種別 / 料金条件の公開情報上の根拠:
 - 未確認の組織設定・支払条件:
