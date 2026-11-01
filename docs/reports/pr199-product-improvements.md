@@ -170,3 +170,22 @@
 - 全サポート動作の暫定分母・基本分析済み件数・非default状態の件数は、必ず[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)の**最新内容から再集計**する。過去の集計値は進捗の正本ではない。
 - 製品改善の未修正候補だけで分析の達成を拒否しない。ただし、分析に必要な仕様・証拠が未決なら基本分析未完、教材実行が阻害されるなら教材受入未完を維持する。
 - PR本文は現行の主要な未解決事項と成果/受入状態のみ。調査の時系列履歴はGit履歴と全機能分析レポートへ残す。
+
+## 2026-11-01 既存19ファイルの変更目的別判断表
+
+PR #199のbase→HEADの**19ファイルの差分**と本レポートの各hunk監査を照合した。以下の9項目は承認・回帰を行うための意味単位であり、9件の確定不具合を意味しない。複数目的を含むファイル・テストは複数行へ関連付ける。製品SUTの修正、revert、分離、別PR作成はユーザー回答Q10により**保留**。
+
+| 変更目的 | 関連する既存差分 | 確認できた内容 | 完了に不足する証拠・判断 | 現時点の方針 |
+| --- | --- | --- | --- | --- |
+| 顧客の住所候補参照の認可 | `account-use-cases.ts`、`auth-account.test.ts` | `suggestAddress`に`requireCustomer()`追加。追加統合テストがある | guest等の呼出し元・Web/Native回帰、導入背景 | 認可強化の必要性は妥当候補、配置は判断保留 |
+| Checkout住所の必須/正規化・支払コード検証 | `checkout-order-use-cases.ts`、`checkout-order-use-cases.test.ts` | 必須項目・郵便/電話の数字正規化と支払コードの許可確認が追加 | 文字混入の許容範囲、既存保存値、Native/実画面・金額整合 | 仕様判断と負例実証後に個別承認 |
+| Web Checkoutの復旧・表示 | `checkout-order-pages.tsx`、`checkout-order-pages.test.tsx` | 住所/決済方法の復帰、失敗経路、注文表示などの画面差分とcomponent証拠 | stale Cart、本人認可、各失敗での実Web、二重確定の防止 | 製品用変更としての妥当性を独立判断 |
+| Native Checkout/会員表示の復旧 | `native-purchase-screens.tsx`、`native-purchase-screens.test.tsx`、`auth-account-pages.test.tsx` | 画面導線・Session復元・特典表示などの追加hunkとmockテスト | Android実Run、Web同等性、Session/金額・同時再押下 | 製品用変更としての妥当性を独立判断 |
+| 価格変更承諾・数量上限・失敗時原子性 | `dexie/cart-checkout-repositories.ts`、`sqlite/native-customer-application-repositories.ts`、`native-screens.tsx`、`cart-use-cases.test.ts`、`native-customer-shared.test.ts` | Web/Native両Repositoryで承諾時の数量上限ガード追加、Nativeの操作条件追加、契約テスト追加 | 購入上限・version不変の実Web/Android、同時更新とrollback、他Cart問題との併発 | 金額/整合性優先で実証、処理方針保留 |
+| 管理カテゴリーの全件取得・並べ替え | `dexie/basic-repositories.ts`、`admin-master-use-cases.test.ts` | 50件固定から総件数をページ取得し51件のテストを追加 | 途中ページの並行更新、並び順不変、実UI | 製品としての必要性は妥当候補、配置は保留 |
+| 商品詳細の低在庫・購入上限案内 | `product-detail-page.tsx`、`catalog-pages.test.tsx` | 在庫と購入上限案内の表示条件、componentの境界ケースを変更 | Web/Native表示同等性、実画面での期待値、追加数量の拒否 | 既存レポートの**別製品PR分離案**は維持、実行保留 |
+| 会員特典・配送先empty・既定配送先原子性 | `native-purchase-screens.tsx`、`auth-account-pages.test.tsx`、`auth-account.test.ts` | Web UIと既定配送先切替の追加テスト、Nativeの特典/住所導線の差分 | Web/Nativeの必須表示範囲、同時切替・旧version拒否、実表示 | 目的ごとに分割評価、方針保留 |
+| Checkout正式仕様の意味変更 | `docs/spec/features/checkout-and-payment.md` と上記Checkout UI/Use Case/テスト | mainとの差分には再開/支払/確認など意味を持つ追加があり、単なるMarkdown書式差ではない | 正式期待値と導入背景、既存仕様/UX整合、ユーザーによる**意味変更の承認** | 書式例外の対象にせず、承認まで変更保留 |
+
+上表のすべてで静的な差分と関連テストの存在は確認しているが、**実Web/Native回帰・仕様受入を全件完了したものではない**。特に認可、決済/金額、データ不変、同時操作、正式仕様の意味変更を優先し、必要なRunと具体的な処理提案を揃えた変更目的からユーザーへ個別承認を依頼する。現状の分離保留を解除したとは解釈しない。
+
