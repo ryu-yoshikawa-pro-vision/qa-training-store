@@ -65,6 +65,16 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       type: "partial",
       expected_decision: "partial",
     });
+    const completed = JSON.parse(
+      read("training/ai-assisted-qa-course/assessment/completed-states/M06.json"),
+    );
+    const newCaseArtifact = completed.artifacts.find(
+      (artifact) => artifact.path === "workspace/M06/new-case.spec.ts",
+    );
+    expect(newCaseArtifact?.expected_data.case_purposes).toEqual([
+      "remove the only cart item",
+      "update mug quantity from one to two and preserve after reload",
+    ]);
     expect(exercise).toContain("数量0");
     expect(exercise).toContain("Web UIから数量0へ変更できるというE2Eは作りません");
     expect(
