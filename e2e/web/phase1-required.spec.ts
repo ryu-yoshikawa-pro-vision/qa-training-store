@@ -189,8 +189,14 @@ test.describe("Phase 1 required E2E", () => {
     await scenario("cart-version-invalidates-checkout");
     await page.goto("/checkout/confirm");
     await expect(
-      page.getByText("カートまたは前のステップが更新されました。内容を確認してください。"),
+      page.getByText(
+        "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+      ),
     ).toBeVisible();
+    await expect(page.getByRole("link", { name: "戻って確認する" })).toHaveAttribute(
+      "href",
+      "/cart",
+    );
   });
 
   test("07 Order一覧・詳細・処理中Route再読込", async ({ page, scenario }) => {
