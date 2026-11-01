@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## Q-24 M05 P03：型検査の対象漏れを教材側で是正（実地受入は未完）
+
+- **原因と影響**：`training/ai-assisted-qa-course/exercises/M05/exercise.md`のP03は型エラーを`pnpm exec tsc --noEmit`などで調べるよう案内していた。しかし`tsconfig.json`の`include`は`app/src/tests/e2e/scripts`等であり`workspace/M05/**`を含まない。`tsconfig.training.json`も`training/**`等に限定する。学習者が`workspace/M05/`に誤型ファイルを作って裸の`tsc --noEmit`を実行すると、対象ファイルを検査しないまま成功し得るため、M05-04の型エラー診断証拠として不適切。
+- **修正範囲と再利用**：既存TypeScript CLIを再利用し、P03で`p03-type-error.ts`を独立作成して`pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts`と**検査対象を明示**。他の構文/実行時エラーを混ぜず、誤型と修正後の診断・終了コードを残す。新しい依存・製品SUT・既存製品テストは変更しない。
+- **検証と受入境界**：ローカル`tsc 5.8.3`で`canAdd(1, "2", 3, 5)`のTS2345/終了2、`canAdd(1, 2, 3, 5)`の終了0を確認した（教材のCLI引数と同等、GitHub Actions/Codespacesでの実Runではない）。M05商品リンクのSeed `product-mug`/表示名`セラミックマグ`と学習用starterの誤字`セラミックマク`、模範specの`href=/products/product-mug`は静的に一致。Playwrightのbefore/after、Cart P05の実画面、学習者Private 2-core Codespaces、M06/M07実行は未検証。Q-24を継続し、次はM05 P05のCart数量/削除Locatorと実行証拠を優先する。
+
 ## 2026-11-01 Q-32：Cart再検証・旧version・Web/Native差の静的監査（review_required 維持）
 
 - **対象・正式契約**：`SCREEN-STOREFRONT-CART-A02-01`。正式`docs/spec/features/cart.md:9-23/29-32/70-86`のBR-CART-001/003、AC-CART-001/003はguest/active customerのCart表示時とCheckout開始時に公開状態・会員rank・価格・在庫・購入上限を再検証し、問題が残る間はCheckoutを遮断、価格変更は承認後に進行することを要求。operator/adminは`CartUseCases.resolveOwner:240-267`で拒否。画面状態の視覚必須はdefault Web desktop/Android、invalid-items Web desktop（`cart.md:34-40`）。
