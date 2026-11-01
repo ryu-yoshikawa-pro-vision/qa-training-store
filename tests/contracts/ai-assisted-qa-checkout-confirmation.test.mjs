@@ -207,6 +207,59 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     expect(payment).toMatchObject({ amount: repriced.totalAmount });
   });
 
+  describe("SCREEN-CHECKOUT-CONFIRM-A01-04 payment-method snapshot", () => {
+    it("preserves the selected declined method in confirmation and the pending payment", async () => {
+      const { checkout, session } = await readyCheckout();
+      const declined = await checkout.setPayment({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: session.version,
+        paymentMethodCode: "TEST-DECLINED",
+      });
+      const before = await snapshot();
+      const confirmation = await checkout.getConfirmation(declined.id);
+
+      expect(confirmation).toMatchObject({
+        checkoutSessionId: declined.id,
+        checkoutActionVersion: declined.version,
+        paymentMethodCode: "TEST-DECLINED",
+      });
+      expect(await snapshot()).toEqual(before);
+
+      const processing = await checkout.beginOrder({
+        checkoutSessionId: declined.id,
+        checkoutActionVersion: confirmation.checkoutActionVersion,
+      });
+      const payment = await database.payments.where("orderId").equals(processing.orderId).first();
+      const order = await database.orders.get(processing.orderId);
+      expect(payment).toMatchObject({ methodCode: "TEST-DECLINED", status: "processing" });
+      expect(order).toMatchObject({ status: "pending_payment" });
+    });
+
+    it("rejects confirmation and order creation when no payment method was saved", async () => {
+      const checkout = makeCheckoutUseCases("training-regular-session");
+      const cart = await database.carts.get("cart-regular-active");
+      expect(cart).toBeDefined();
+      const started = await checkout.start({ cartVersion: cart.version });
+      const addressed = await checkout.setAddress({
+        checkoutSessionId: started.session.id,
+        checkoutExpectedVersion: started.session.version,
+        address,
+      });
+      const before = await snapshot();
+
+      await expect(checkout.getConfirmation(addressed.id)).rejects.toMatchObject({
+        code: "CHECKOUT_STEP_INCOMPLETE",
+      });
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: addressed.id,
+          checkoutActionVersion: addressed.version,
+        }),
+      ).rejects.toMatchObject({ code: "CHECKOUT_STEP_INCOMPLETE" });
+      expect(await snapshot()).toEqual(before);
+    });
+  });
+
   describe("SCREEN-CHECKOUT-CONFIRM-A01-03 pricing breakdown", () => {
     it("reconciles the default regular-member confirmation DTO with the seed amounts", async () => {
       const { checkout } = await readyCheckout();

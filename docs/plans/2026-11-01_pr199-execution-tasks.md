@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-03`（確認画面の価格・会員割引・送料・合計表示）。現行台帳の`review_required`を確認。正式`BR-CHECKOUT-002/AC-CHECKOUT-002`、Web/Android確認DTO表示、Pricing、default/regular-member/gold/送料無料境界、実表示と確定金額の一致を1操作として再照合する。前対象`SCREEN-CHECKOUT-CONFIRM-A01-02`はHEAD `acc713650bf0`のWeb CI #41353642414で隔離Dexie契約**5/5 PASS**（153ms）、Code Quality success。C4の価格変更拒否とC5の会員ランク変更後の無通知再計算を直接確認したが、後者は正式な管理者操作でも利用者の金額再承認でもなくHighの仕様/実Run確認候補。前対象は`review_required`・実Web/Android/DB/Session前後/視覚/アクセシビリティ待ちのまま移行する。
+- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A01-04`（注文確認の支払方法表示・保持・未設定拒否）。直前`SCREEN-CHECKOUT-CONFIRM-A01-03`はHEAD `23d3f6be50ce`のWeb CI #41357321277で学習用Checkout契約9/9 PASS（A01-03の安定金額Case含む）。ただしWeb/Android実画面・金額/DB/Session前後・視覚/アクセシビリティは未受入で`review_required`継続。A01-04は正式`BR-CHECKOUT-002/AC-CHECKOUT-002`、Web/Native UI→Use Case→Dexie/SQLite、regular-member Seed、保存済み`TEST-DECLINED`と未設定拒否を直接照合する。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-04（決済方法の保持・未設定拒否）
+
+- **台帳・正式オラクル**：現行`supported-behaviors.json`の実在操作`SCREEN-CHECKOUT-CONFIRM-A01-04`は`review_required`。正式`docs/spec/features/checkout-and-payment.md:9-22,120-153,244-248`は注文確定前に決済方法を最終確認し、古いCart/価格の注文・決済非作成を要求。台帳の`TEST-DECLINED`保持とNative表示は検証対象であり、未実証の適合PASSではない。
+- **現行SUTの経路・差分**：Web `src/presentation/pages/checkout-order-pages.tsx`の`CheckoutConfirmContent`は`paymentLabels[state.value.paymentMethodCode]`を「支払方法」セクションに表示し、`/checkout/payment`への変更リンクを持つ。Native `src/presentation/native/native-purchase-screens.tsx`の`NativeCheckoutConfirmScreen`は商品・住所・合計と確定ボタンを表示するが、支払方法の表示は現行mainでは見当たらない。Nativeの`getConfirmation`失敗は`setMessage`だけで`confirmation=null`のままLoadingへ進むため、修正導線の到達性が未検証。両者は製品差分分離前の旧テスト期待を流用せず、製品不具合確定ではなくHighの確認候補として扱う。
+- **Use Case→Repository・Role/State/Data**：`CheckoutOrderUseCases.getConfirmation`はcustomerを要求し、明示Session IDの場合は本人/Cart版を検査。Dexie `cart-checkout-repositories.ts:712-797`とNative SQLite `native-customer-application-repositories.ts:1840-1936`は住所または支払方法がnullなら`CHECKOUT_STEP_INCOMPLETE`、Cart版不一致なら`CART_VERSION_CHANGED`。DTOに`paymentMethodCode`を保持し、`beginOrder`は同値をPayment.methodCodeへ保存。default SeedのCartから`start→setAddress→setPayment`で画面成立条件を作る。
+- **Risk/TR/Condition/Case採否**：C1=保存済み`TEST-DECLINED`が確認DTOからOrder開始後のPayment.methodCodeまで変化せず、開始直後の状態は`processing`（採用、決済結果の成功/失敗は別操作）。C2=支払方法未設定で`getConfirmation`と`beginOrder`が`CHECKOUT_STEP_INCOMPLETE`を返し、Order/Payment/Cart/Checkout/Session不変（採用）。C3=WebとAndroidの選択済み支払方法表示、変更/復帰、失敗時の再試行・修正導線、視覚/アクセシビリティ（採用、実Run待ち）。C4=他人Session/guest/staff、Cart version競合の非露出・非作成（既存Caseを参照、Role別実Run待ち）。
+- **今回の学習用変更**：`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`へC1/C2のDexie隔離契約2件を追加。直接Vitest/Prettier/実Web/Androidは**新HEADでは未実施**。追加テストが通ってもNativeの表示や製品適合はPASSとしない。
+- **CI横断・引継ぎ**：変更前HEAD `23d3f6be50ce`の[Web CI #41357321277](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41357321277)でCheckout契約9/9 PASS、Code Quality success。全体はfailure（Style Qualityの学習用6ファイル、旧`analyzed`期待等によるcontracts 15失敗、required Chromium E2EのCheckout再確認1失敗、verify/validate失敗）。新HEADへの成功流用なし。A01-04は`review_required`、基本分析50/188・非default14/20を維持。次回は**同じA01-04**の直接CI、Web/Android支払方法表示とエラー導線、Role/Cart競合・DB/Session前後を再確認する。製品SUT・正式仕様・既存Seed/Reset・既存製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-03（直接CI証拠と安定金額の学習用契約追加）
 
