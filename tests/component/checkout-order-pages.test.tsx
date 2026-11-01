@@ -371,7 +371,7 @@ describe("checkout and order pages", () => {
     expect(screen.getAllByText("¥4,300").length).toBeGreaterThan(0);
   });
 
-  it.each(["CART_VERSION_CHANGED", "PRICE_CHANGED"] as const)(
+  it.each(["CART_VERSION_CHANGED", "PRICE_CHANGED", "QUANTITY_LIMIT_EXCEEDED"] as const)(
     "routes a %s confirmation load failure to the cart",
     async (code) => {
       checkout.getConfirmation.mockRejectedValueOnce(
@@ -393,25 +393,28 @@ describe("checkout and order pages", () => {
     },
   );
 
-  it("keeps the confirmation page on a stale-price submit error and links to the cart", async () => {
-    checkout.beginOrder.mockRejectedValueOnce(
-      new ApplicationError({
-        code: "PRICE_CHANGED",
-        messageKey: "checkout.cart.invalid",
-        retryable: false,
-      }),
-    );
-    render(<CheckoutConfirmPage />);
-    const submit = await screen.findByRole("button", { name: "¥2,500を支払う" });
-    fireEvent.click(submit);
-    expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute(
-      "href",
-      "/cart",
-    );
-    expect(screen.getByRole("button", { name: "¥2,500を支払う" })).toBeDisabled();
-    expect(routerReplace).not.toHaveBeenCalled();
-    expect(checkout.beginOrder).toHaveBeenCalledTimes(1);
-  });
+  it.each(["PRICE_CHANGED", "QUANTITY_LIMIT_EXCEEDED"] as const)(
+    "blocks confirmation submission on %s and links to the cart",
+    async (code) => {
+      checkout.beginOrder.mockRejectedValueOnce(
+        new ApplicationError({
+          code,
+          messageKey: "checkout.cart.invalid",
+          retryable: false,
+        }),
+      );
+      render(<CheckoutConfirmPage />);
+      const submit = await screen.findByRole("button", { name: "¥2,500を支払う" });
+      fireEvent.click(submit);
+      expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute(
+        "href",
+        "/cart",
+      );
+      expect(screen.getByRole("button", { name: "¥2,500を支払う" })).toBeDisabled();
+      expect(routerReplace).not.toHaveBeenCalled();
+      expect(checkout.beginOrder).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("shows the full saved shipping address on confirmation", async () => {
     checkout.getConfirmation.mockResolvedValueOnce({

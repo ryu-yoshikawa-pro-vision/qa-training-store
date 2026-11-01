@@ -89,6 +89,7 @@ function checkoutNeedsCartReview(error: unknown): boolean {
     (error.code === "CART_VERSION_CHANGED" ||
       error.code === "PRICE_CHANGED" ||
       error.code === "INSUFFICIENT_STOCK" ||
+      error.code === "QUANTITY_LIMIT_EXCEEDED" ||
       error.code === "INVALID_STATE")
   );
 }
