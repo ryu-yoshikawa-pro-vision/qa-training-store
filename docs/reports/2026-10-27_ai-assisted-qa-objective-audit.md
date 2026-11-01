@@ -216,3 +216,12 @@
 ### 残作業
 
 audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示/a11yを再実行する。実環境の操作画面取得は可能性を再確認し、取得不能ならBLOCKEDを保持する。その後、明示ファイルだけをcommitし通常push、PR #199本文を新headへ更新し、新head限定のWeb CI/Mobile App CIを待つ。保護対象の未追跡`workspace/`ファイルは変更・stageしない。
+
+## 2026-11-01 Q-13：M00-01 の配布導線・目標別静的照合
+
+- **対象**：M00-01（現在位置・相対パス、ファイル保存・再表示、コマンド結果）。PR HEAD `05899c9d83b496f24b1ccbd63a01a36e0589fc91` で読取確認。静的監査であり、実受講者の習熟・実Codespace・Skill実Runの合格ではない。
+- **追跡**：学習順序PlanのM00-01 → `docs/curriculum/ai-assisted-qa/modules/M00/README.md`（VS Code/Terminal/保存） → `training/ai-assisted-qa-course/inputs/M00/start.md` → `exercises/M00/exercise.md` のP01/P02/P05 → `exercises/M00/submission-template.md` のP別証拠欄 → `assessment/scoring-tests/M00.json` のM00-CR-01（未実行をLevel 2にしない） → `states/M00/start.json`・`end.json`（M00-result-01）。必要な根拠・提出欄の静的な存在を確認した。
+- **発見1（配布先パス）**：演習冒頭は `inputs/M00/start.md` を参照するが、`training/course-sync/manifest.json` の配布先は `course/modules/M00/inputs/start.md`。P04の `start-here.md` / `M00/README.md` も配布先のルート相対パスを明記していなかった。初学者がファイルを探せないため、演習の参照先を実配布パスに修正。
+- **発見2（初回ロード順序）**：開始入力は最初に `workspace/M00/submission.md` を開くよう案内していたが、`manifest.load_files` は同ファイルを `course:load M00` で作る。実装 `loadModule` は配布元検証後、存在しない対象を新規作成し、既存内容の差異を検出すると上書きせず停止する。開始入力を「開始ガイド→初回ロード成功→提出物を開く」に修正し、失敗を成功と扱わない。
+- **確認方法と限界**：Manifestの`local_files`/`load_files`、CLIの`load`分岐、`loadModule`の存在/競合処理をソース照合。今回、実2-core Codespaceでの配布・初回ロード・再ロード、本人のP01/P02/P05、実モデル/Skillは未実行。以前のWeb CI成功は今回の変更を検証しない。新HEADのCI・配布契約テストを別途確認する。
+- **再開条件・次ID**：M00-01の実環境での初回ロード・保存・再ロード・差分証拠はTemplate/本人Private Codespaceと権限・費用条件が揃った際に再検証。Q-13は継続し、次は**M00-02**（固定qa-workflow Skillの実体/依存、安全な制約付き依頼、P03/P06、M00-CR-02、未実行/BLOCKED判定）を独立照合する。M00-01の実行未受入をPASSにしない。
