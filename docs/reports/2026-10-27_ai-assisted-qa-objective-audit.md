@@ -113,7 +113,7 @@
 
 - **M09-01 — 充足**。Trigger/event/Workflow/Job/Runner/Step/Build/Testを読む。READMEの短いworkflow例とdisabled完成見本を説明し、starterとの差から起動条件・処理・runnerを提出する。M09-Q01／M09-CR-01で評価。
 - **M09-02 — 充足**。PR HEAD、Run/Check、Artifact、target-shaの由来を照合する。READMEはmerge SHAとPR headを区別し、exerciseでHEAD checkoutと同Run Artifactを修正する。M09-Q02／M09-CR-02。誤った一律SHA一致の記述を修正済み。本人private repoのRunは未検証。
-- **M09-03 — 充足**。Build/Test/Artifactの最初の失敗stepと未実行を区別する。failure-casesの合成Build failure、Assertion failure、Artifact未生成を読み、実Runで確認すべきlogと仮説を分ける。M09-Q03／M09-CR-03。synthetic logを実証拠と誤認しない。
+- **M09-03 — 静的整合を再確認、実受入未了**。READMEの旧Case 1〜3（server/install/assertion）解説は配布`failure-cases.md`のA/B/C（Build/Test/Artifact）と不一致。P03も別の架空3条件のみを要求していた。配布ログにstep結果・skipped/always upload・`if-no-files-found: error`を明示し、教材解答・P03の合成3件＋別条件3件・提出診断表を整合。警告文だけで失敗確定せず、SHA不一致をcheckout失敗と同一視しない。`M09-CR-03`は緩和せず、本人実Run/Level 2は未受入。
 - **M09-04 — 充足**。非公開repo/runner/trigger/頻度から費用と品質ゲートを設計する。READMEは1日5回を回数見積りとして示し、手動triggerの費用と未検証期間も比較し、公式枠・組織契約が不明なら保留する。M09-Q04／M09-CR-04。実組織の料金/枠は未検証。
 - **M09-05 — 充足**。最小権限、Secret不要化、deploy/他CIの分離を判断する。disabled starterをcontents:read・限定spec・Artifactへ直す練習と条件変更の再レビューを課す。M09-Q05／M09-CR-05。実repo権限変更は未実施。
 

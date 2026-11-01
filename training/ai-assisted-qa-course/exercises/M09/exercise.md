@@ -13,7 +13,7 @@ workspace/M09/public-sample/handoff.mdの合成branch/commit/PR履歴か、契�
 5. permissions: contents: readを基本にし、Secret不要、deployなし、対象spec限定の理由を記録します。
 6. 修正後のworkflow案は.disabledを保ち、.github/workflows/へ移動・有効化しません。Templateにも自動配置しません。
 7. PR HEAD、Run、Check、Artifact、Artifact内のtarget-sha.txtを対応付けます。未実行ならその証拠は未確認と記録します。
-8. 合成ログのBuild失敗、Test失敗、Artifact未生成を区別し、最初に調べるstepを選びます。Runner条件・料金の未確認事項も分けます。
+8. 合成ログA/B/CのBuild失敗、Test失敗、Artifact保存失敗をstep conclusionと`if-no-files-found`条件から分類します。Test失敗後の`if: always()` uploadを未実行と誤認せず、実Runで確認すべき証拠を記録します。Runner条件・料金の未確認事項も分けます。
 9. 本人の非公開repoを想定し、PR更新の回数、選択するRunner、対象spec、利用枠の確認先を記録します。手動triggerへ変更した場合の費用と未検証期間を比較し、失敗時に停止または再実行する条件を説明します。
 10. 提案されたworkflowに書込権限やSecretがある場合、それぞれの必要性を確認して不要な権限を除きます。別のCIを同時に起動する変更条件でも、対象と権限を再確認します。
 
@@ -34,7 +34,7 @@ workspace/M09/submission.mdにworkflowの読解、最小権限、証拠対応、
 
 1. **P01 別の起動条件を設計（M09-01・04）**：基準案のtrigger、job、steps、runner、permissionsを読んだ後、`workspace/M09/trigger-review.yml.disabled`に「手動起動だけ」とする別案を作ります。`workflow_dispatch`では`github.event.pull_request.head.sha`を取得できないため、**PR用のSHA照合式を残したままtriggerだけ置換しない**でください。手動実行で選ぶref、checkout対象SHA、そのSHAがPR HEADと一致すると主張できる条件・確認先を明記し、PR HEADを確認できなければ未確認とします。Pushごとの実行案と比較して、検証されない期間・不要なRun・学習者が必要とする操作を記録します。**証拠**：両YAMLのdiff、trigger/job/step/runnerの役割、SHAの由来と選択理由。
 2. **P02 PR HEADとmerge SHAの混同を修正（M09-02）**：架空提案「PRで`github.sha`をそのままcheckoutし、これを現在のPR HEADと記録する」をレビューします。基準workflowの`pull_request.head.sha`、checkout後`git rev-parse HEAD`、`EXPECTED_HEAD_SHA`照合、同じRunの`target-sha.txt`を追跡します。PR HEAD更新後の旧成功Run、Run画面のmerge SHA、別Run/再実行attemptのArtifact、test失敗時に残るArtifactを**別条件**として、Run ID/attempt・job Check・checkout SHA・Artifact内SHA・対象spec・採否を記録します。M09では実CIを起動せず、公開Runで観測できない項目は未確認とします。**証拠**：誤/正の対象図、提出欄の照合表、旧成功・別Run・欠落Artifactを不採用にする理由。
-3. **P03 初見ログの原因箇所を特定（M09-03）**：合成ログとは別に、架空ケースA「Browserインストール失敗でtest未起動」、B「test PASSだがArtifact upload失敗」、C「checkoutが別SHA」を検討し、最初に見るstep、残っている証拠、再実行前の確認を整理します。**証拠**：3行の診断表（失敗step・Run・未確認・次の操作）。
+3. **P03 初見ログの原因箇所を特定（M09-03）**：まず`workspace/M09/failure-cases.md`の合成A/B/Cについて、最初の失敗step・実行済み/skipped/不明・根拠行を3行で記録します。次に別条件の架空X「Browser導入失敗でtest未起動」、Y「test PASSだがArtifact upload失敗」、Z「checkoutが別SHA」を検討します。Zはcheckout成功でもSHA不一致で証拠不採用となり得るため、失敗stepを断定しません。**証拠**：合成3行＋別条件3行の診断表（step/conclusion・未実行・根拠・次に確認するRun/設定/操作）。実Run成功の証拠には使いません。
 4. **P04 CI費用の条件変更（M09-04）**：架空条件「1日3回のpush」「通常は週2回だけ変更」「GitHub-hosted Runnerの残量不明」について、push連動と手動起動のリスクを比較します。無料枠を数値で推測せず、Run分数・保存量・支払主体の実画面の確認先とBLOCKED条件を明記します。**証拠**：頻度変更前後の判断・利用条件。
 5. **P05 権限を増やすAI提案を拒否（M09-05）**：架空提案「Artifact保存のため`permissions: write-all`とdeploy用Secretを追加」を、専用workflowの実際の責務と照合します。必要な権限を1件ずつ説明し、不要な権限・Secret・第三者Action変更を拒否します。**証拠**：採否、修正後の権限YAML、理由。
 6. **P06 M10で検証可能な引継ぎを作る（M09-01〜05）**：基準の`.disabled`案に戻り、M07の実spec path、固定Shop Serve、Browser、対象SHA、test JSON、Artifact名、権限、起動・停止条件を再確認します。上の別条件案をそのまま有効化せず、**M10本人repoで実行する前に必要な確認事項**を提出します。**証拠**：基準workflowの最終diffと未確認一覧。
