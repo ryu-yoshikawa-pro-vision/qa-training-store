@@ -46,7 +46,7 @@
 - **M00-01 — 充足**。到達行動はCodespace/VS Codeの画面を確認し、ファイルを保存して開き直し、terminalの現在位置・相対path・CLI結果を説明すること。READMEの「Codespaceを用意」「画面とファイル」「一つのファイルを作って保存する」で前提と手順を解説し、別ファイル作成・編集・保存・再読込を練習する。提出は操作対象pathと確認結果、M00-Q01／M00-CR-01で評価。保存後の再確認手順は追加済み。実Codespace操作は未検証。
 - **M00-02 — 充足**。チャットとagent、Skillの発見・依存・許可条件、無料モデルとSecretを区別する。READMEの「エージェント、Skill、権限」に固定qa-workflow Skillのread-only例と危険な許可を避ける根拠があり、exerciseは安全な依頼で実出力と再読込を確認し、未実行/BLOCKEDを記録する。配布外adversarial-review参照を固定配布Skillへ修正し、M00-Q02／M00-CR-02へ整合済み。Codespace内Skill runtimeとモデル接続は未検証。
 - **M00-03 — 充足**。目的・参照資料・許可範囲・成果物・完了条件を指定する依頼を作る。README「依頼の作り方」の修正版を完成例にし、手本を試してから別目的の依頼を本人が作り、出力と完了条件を照合する。M00-Q03／M00-CR-03で根拠・許可・成果物の対応を評価。本人の実モデル評価は未検証。
-- **M00-04 — 充足**。Secret/個人情報、reload時の上書き、AI差分、6080公開範囲、Codespace停止と無料枠を判断する。README「演習と提出」の変更前後確認・再ロード、危険な変更を許さない依頼と停止例を練習し、観測と判断を提出する。M00-Q04／M00-CR-04で安全・費用の根拠を確認。作業ファイル保全は明示済み。実Templateと費用枠は未検証。
+- **M00-04 — 静的整合を再確認、実受入未了**。Secret/個人情報、reload時の上書き、AI差分、PortsのPrivate表示、Codespace停止と無料枠を判断する。既存`loadModule`は配布元と異なる編集済み`submission.md`を検出すると`existing learner files differ; nothing was overwritten`で停止する。自作`practice.md`/`notes.md`だけでは競合拒否を検証できないため、教材4.1・P05・提出・M00-CR-04に競合拒否の終了結果と前後本文不変を明記。P06の架空危険判断と実Ports/費用確認も分離。既存契約テストは静的に確認、実Codespace/費用・本人Level 2は未受入。
 
 ### M01 QAと自動化の基礎
 
@@ -276,3 +276,10 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **是正**：教本にPR head→Run/attempt→job Check→checkout SHA→同一RunのArtifact `target-sha.txt`→spec/結果の照合手順を追加。P02に負例を加え、既存提出欄に証拠同一性表を追加。例示SHAの不正文字を修正。基準workflow・採点JSON・製品SUT/仕様/Seed/製品テストは無変更。
 - **検証境界**：完成見本は`pull_request.head.sha`でcheckoutし、`EXPECTED_HEAD_SHA`で照合し、`git rev-parse HEAD`を`target-sha.txt`に保存する。uploadは`if: always()`でありArtifact存在だけではtest PASSとならない。今回の静的照合は本人の実Run、Private Codespaces、実モデル校正、正式Level 2の受入ではない。変更後HEADのCIは別途確認する。
 - **再開条件・次ID**：本人の実PR HEAD・Run/attempt・job Check・Artifact/target SHA・対象specの独立証拠と実環境が揃った場合のみ実受入を再開。Q-33継続、次は**M09-03**（初因の失敗step・ログ・P03・M09-CR-03）。
+
+## 2026-11-01 Q-13 M00-04：再ロード競合拒否の期待値と安全確認
+
+- **根拠**：`scripts/training/ai-assisted-qa-course-core.mjs`の`loadModule`はロード対象の既存ファイルと配布元bytesを比較し、不一致なら`existing learner files differ; nothing was overwritten`で停止する。`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`は編集済み`workspace/M00/submission.md`の再ロード拒否と本文保全を確認する既存契約を持つ。`practice.md`/`notes.md`はロード管理対象外。
+- **変更**：M00教材4.1、演習手順7/P05/P06、提出テンプレート、`M00-CR-04`の証拠・判定を同期。本人が提出ファイルの変更前後、非0終了・競合パス、管理対象外の自作ファイルを区別する。架空の危険提案の判断と、実PortsのPrivate・費用/支払者/モデル条件の確認を別証拠にした。
+- **検証境界**：既存契約テストのソースを静的照合。実Codespaces再ロード、実Ports/費用確認、本人の判断、正式AI評価/Level 2は未実行・未受入。製品SUT・正式仕様・Seed/Reset・製品テストは変更しない。
+- **再開条件・次ID**：実Template由来のPrivate 2-core Codespaces、費用/権限の承認と実操作証拠が得られた場合にM00-04実受入を再開。Q-13の次の独立作業は**M01-01**の期待/観測・演習・採点の照合。
