@@ -12,6 +12,7 @@
 
 | 対象・分類 | 確認した根拠・現象 | 現在の確認状態 | 教材・利用者への影響 | 次の調査・対応方針 |
 | --- | --- | --- | --- | --- |
+| Nativeログイン拒否理由の内部キー表示（UI/仕様適合候補） | 正式`authentication.md`は利用者向け理由表示を要求。Web `useAuthError`は日本語へ変換する一方、Native `NativeLoginScreen:192`→`asPurchaseError:1543`→`ErrorMessage:112-121`は`ApplicationError.message`を直接表示し、`errors.ts:6-10`の`message=messageKey`から`auth.account.suspended`等が表示され得る | 静的経路確認。実Android/視覚・全拒否条件のSession非生成・既存Issue重複は未確認。重大度Medium候補、製品不適合の最終判定は保留 | Native受講者が拒否理由を理解しにくい可能性。教材はWeb/Nativeの差を観察するCaseとして扱い、未実証を正解にしない | Q-10：停止/退会/誤資格/Storage失敗のNative実表示、Session/Cart不変、正式期待値と既存Issueを照合。製品コードは変更せず承認待ち |
 | 在庫0/1〜5/6以上の管理在庫分類（仕様不整合） | `BR-ADMININV-001`/`AC-ADMININV-001`は6以上をavailable、Dexieは1以上で判定。UIの状態列は有効/無効Badge | 静的に差異確認、0/1/5/6の実画面未検証 | 在庫判断と境界値演習の正解に影響。未決期待値を固定しない | 実行再現と表示・件数を確認。製品修正は行わない |
 | 商品一覧emptyの戻り導線（仕様不整合候補） | `storefront.md`のemptyは戻る導線要求、Web `catalog-list-page.tsx`は無条件の0件で`action={null}` | 静的照合、実画面未検証 | 教材のレビュー題材には使用可。別の条件で代替可能 | 仕様と画面の差を再現確認し、仕様適合は未確定 |
 | 管理商品絞り込みとページ位置（UI動作候補） | `AdminProductsContent`はkeyword以外のフィルターでpage1へ戻らない可能性 | 静的分析、50ページ目からの実再現未実施 | 対象データの見落としを招く可能性、教材の必須修正ではない | many-productsで再現し影響を確定 |
