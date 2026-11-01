@@ -1,6 +1,7 @@
 import Dexie from "dexie";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CheckoutOrderUseCases } from "../../src/application/use-cases/checkout-order-use-cases";
+import { calculateOrderTotals } from "../../src/domain/services/pricing";
 import { TestClock } from "../../src/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "../../src/infrastructure/database/dexie/database";
 import { createDexieApplicationRepositories } from "../../src/infrastructure/database/dexie/application-repositories";
@@ -205,4 +206,93 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     const payment = await database.payments.where("orderId").equals(processing.orderId).first();
     expect(payment).toMatchObject({ amount: repriced.totalAmount });
   });
+
+  describe("SCREEN-CHECKOUT-CONFIRM-A01-03 pricing breakdown", () => {
+    it("reconciles the default regular-member confirmation DTO with the seed amounts", async () => {
+      const { checkout } = await readyCheckout();
+      const before = await snapshot();
+      const confirmation = await checkout.getConfirmation();
+
+      expect(confirmation.membershipRank).toBe("regular");
+      expect(confirmation).toMatchObject({
+        subtotalAmount: 2000,
+        discountAmount: 0,
+        shippingAmount: 500,
+        totalAmount: 2500,
+      });
+      expect(confirmation.items).toHaveLength(1);
+      expect(confirmation.items[0]).toMatchObject({
+        quantity: 1,
+        lineSubtotalAmount: 2000,
+        lineDiscountAmount: 0,
+        lineTotalAmount: 2000,
+      });
+      expect(await snapshot()).toEqual(before);
+    });
+
+    it("uses the current gold rank once without double-discounting the confirmation lines", async () => {
+      // Isolated learning fixture; not an admin rank-change UI/use-case run.
+      await database.users.update("user-customer-regular", { membershipRank: "gold" });
+      const { checkout } = await readyCheckout();
+      const before = await snapshot();
+      const confirmation = await checkout.getConfirmation();
+
+      expect(confirmation.membershipRank).toBe("gold");
+      expect(confirmation).toMatchObject({
+        subtotalAmount: 2000,
+        discountAmount: 100,
+        shippingAmount: 500,
+        totalAmount: 2400,
+      });
+      expect(confirmation.items[0]).toMatchObject({
+        unitEffectivePrice: 2000,
+        unitDiscountAmount: 100,
+        viewerUnitPrice: 1900,
+        lineSubtotalAmount: 2000,
+        lineDiscountAmount: 100,
+        lineTotalAmount: 1900,
+      });
+      expect(await snapshot()).toEqual(before);
+    });
+
+    it("keeps the shipping threshold on subtotal and rounds membership discount per unit", () => {
+      expect(calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "regular")).toMatchObject({
+        subtotalAmount: 4999,
+        discountAmount: 0,
+        shippingAmount: 500,
+        totalAmount: 5499,
+      });
+      expect(calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "regular")).toMatchObject({
+        subtotalAmount: 5000,
+        discountAmount: 0,
+        shippingAmount: 0,
+        totalAmount: 5000,
+      });
+      expect(calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "gold")).toMatchObject({
+        subtotalAmount: 4999,
+        discountAmount: 249,
+        shippingAmount: 500,
+        totalAmount: 5250,
+      });
+      expect(calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "gold")).toMatchObject({
+        subtotalAmount: 5000,
+        discountAmount: 250,
+        shippingAmount: 0,
+        totalAmount: 4750,
+      });
+      expect(calculateOrderTotals([{ unitEffectivePrice: 2000, quantity: 1 }], "platinum")).toMatchObject({
+        subtotalAmount: 2000,
+        discountAmount: 200,
+        shippingAmount: 0,
+        totalAmount: 1800,
+      });
+      expect(calculateOrderTotals([{ unitEffectivePrice: 101, quantity: 2 }], "gold")).toMatchObject({
+        subtotalAmount: 202,
+        discountAmount: 10,
+        shippingAmount: 500,
+        totalAmount: 692,
+      });
+    });
+  });
+
 });

@@ -47,6 +47,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-03（価格内訳の現行SUT照合・学習用Case追加）
+
+- **対象・状態**：現行分析台帳Blob `c0bc937eccfb` の`SCREEN-CHECKOUT-CONFIRM-A01-03`は`review_required`。正式`docs/spec/features/checkout-and-payment.md:13-15,120-153,244-248`は価格最終確認・変更時の非確定を要求。台帳の「Web/Nativeで小計・割引・送料・合計を表示」は正式仕様本文より詳細な既存分析期待なので、正式オラクルの強さを混同しない。
+- **静的経路**：Web `src/presentation/pages/checkout-order-pages.tsx:319-386,412-453`は確認DTOの小計・会員割引・送料・合計と支払ボタンの合計を表示。Android `src/presentation/native/native-purchase-screens.tsx:907-970`は明細行の金額と合計のみで、小計/割引/送料の独立表示はない。Web/Nativeの差は確定したが、Androidの正式画面参照・アクセシビリティ・仕様上の必須内訳を実証するまで**製品不具合確定ではない**。
+- **Pricing→Repository**：`src/domain/services/pricing.ts:3-15,41-47,72-102`はregular=0%、gold=5%、platinum=10%、**単価ごと切捨て×数量**、送料500円、割引前小計5000円以上またはplatinumで送料無料。`src/infrastructure/database/dexie/cart-checkout-repositories.ts:510-525,712-797`と`src/infrastructure/database/sqlite/native-customer-application-repositories.ts:1574-1645,1844-1936`は同Pricing経由の確認DTOを生成。`CheckoutOrderUseCases.getConfirmation/beginOrder`は別段階であり、表示額と確定額の同一性は前対象A01-02のHigh未決として保持する。
+- **Role/State/Data・Case採否**：C1=default regular会員のSeed `cart-regular-active/cart-item-regular-shirt`（2000円×1）を用い小計2000/割引0/送料500/合計2500、参照後DB不変（採用）。C2=学習専用fixtureでregular→goldに変更し小計2000/割引100/送料500/合計2400、明細単価1900・二重割引なし・参照後DB不変（採用、正式管理者操作の実証ではない）。C3=4999/5000円の送料境界、gold/platinum、単価101円×2の切捨てをPricing契約で固定（採用）。C4=Web/Androidの全内訳表示・支払前の金額説明・スクリーンショット正本・アクセシビリティ・実Web/Native/注文確定金額一致（採用、**実Run待ち**）。
+- **今回の学習用変更**：`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`にA01-03の3 Caseを追加。GitHub上の静的実装照合のみで、**追加CaseのVitest・Prettier・lint・実Web/Androidは未実行/未受入**。旧HEADのCIを追加後HEADへ流用しない。
+- **横断CI**：変更前HEAD `471552d1c6c2`の[Web CI #41355521058](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41355521058)は確認時点でCode Quality success、Vitest contracts failure、Style Quality failure、required Chromium E2E in_progress。他job成功は最終CI受入を意味しない。
+- **再開条件・次の共通対象**：**同じ`SCREEN-CHECKOUT-CONFIRM-A01-03`を継続**。追加3 Caseの同一HEAD CI実行/formatterを確認し、Android画面参照との内訳期待・実Web/Native・表示→確定の金額・DB/Session前後を別判定する。検証待ちへ移す場合も`review_required`を維持し、次の実在IDへ移る。基本分析50/188操作・非default14/20状態を更新しない。製品SUT/正式仕様/Seed/既存製品テスト/workflowは変更しない。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-02（追加C4/C5直接CIの確定・次操作への引継ぎ）
 
 - **直接証拠**：HEAD `acc713650bf0b4b6c91c86b265117f685f3329e3`の[Web CI #41353642414](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41353642414)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`は**5/5 PASS（153ms）**、Code Quality success。C4は確認表示後にVariant価格を変更すると`beginOrder`が`PRICE_CHANGED`で拒否し、Cart/Checkout/Order/Payment/Sessionの前後snapshotが不変。C5は**学習fixtureでUser.membershipRankのみregular→goldへ変更**した場合、Cart.version/Checkout.actionVersion不変でも確認DTOの合計が変わり、表示時の旧actionVersionによる`beginOrder`が新しい合計でOrder/Paymentを作る挙動を特徴付けた。
