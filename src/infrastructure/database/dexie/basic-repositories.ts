@@ -443,14 +443,19 @@ export class DexieCategoryRepository implements CategoryRepository {
   }
 
   async listAllForReorder(): Promise<CategoryAdminListItem[]> {
-    const result = await this.searchForAdmin({
+    const query = {
       keyword: null,
       active: null,
-      sort: "sort_order",
-      page: 1,
-      pageSize: 50,
-    });
-    return result.items;
+      sort: "sort_order" as const,
+      pageSize: 50 as const,
+    };
+    const first = await this.searchForAdmin({ ...query, page: 1 });
+    const items = [...first.items];
+    for (let page = 2; page <= Math.ceil(first.total / query.pageSize); page += 1) {
+      const next = await this.searchForAdmin({ ...query, page });
+      items.push(...next.items);
+    }
+    return items;
   }
 }
 

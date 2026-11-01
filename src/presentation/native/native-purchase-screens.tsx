@@ -25,6 +25,8 @@ import {
   PAYMENT_METHODS,
   resolveCheckoutResultKind,
 } from "@/application/use-cases/checkout-order-use-cases";
+import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
+import { labels } from "@/presentation/content/dictionary";
 import { resolveCustomerLoginDestination } from "@/presentation/return-to";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -46,6 +48,10 @@ const CHECKOUT_RETURN_PATHS: Record<
   payment: "/checkout/payment",
   confirm: "/checkout/confirm",
 };
+
+function nativePaymentMethodLabel(code: string): string {
+  return code === "TEST-SUCCESS" ? "成功" : code.replace("TEST-", "失敗：");
+}
 
 function usePurchaseServices() {
   const { ready, error, retry, services } = useNativeRuntime();
@@ -353,6 +359,27 @@ export function NativeProfileScreen() {
     <PurchaseKeyboardScrollView testID="native-profile-screen">
       <Text style={styles.heading}>アカウント</Text>
       <Text style={styles.body}>{profile.email}</Text>
+      <View
+        style={{ gap: nativeSpacing.xs, marginTop: nativeSpacing.md }}
+        testID="native-profile-benefits"
+      >
+        <Text style={styles.subheading}>会員ランクと特典</Text>
+        <Text style={styles.body} testID="native-profile-account-status">
+          アカウント状態：{labels.account(profile.accountStatus)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-membership-rank">
+          会員ランク：{profile.membershipRank === null ? "—" : labels.rank(profile.membershipRank)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-discount">
+          会員割引：{Math.round(membershipDiscountRate(profile.membershipRank) * 100)}%
+        </Text>
+        <Text style={styles.body} testID="native-profile-shipping-benefit">
+          送料特典：
+          {profile.membershipRank === "platinum"
+            ? "いつでも送料無料"
+            : `商品小計${FREE_SHIPPING_THRESHOLD.toLocaleString("ja-JP")}円以上で送料無料`}
+        </Text>
+      </View>
       <View style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}>
         <PurchaseTextInput
           value={displayName}
@@ -661,7 +688,9 @@ export function NativeAddressesScreen() {
 function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
   const { ready, error, retry, services } = usePurchaseServices();
   const [session, setSession] = useState<CheckoutSession | null>(null);
-  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | null>(null);
+  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | "replaced" | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
@@ -680,7 +709,12 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           });
           return;
         }
-        if (requiredStep !== "address") {
+        const recoverableCheckoutError =
+          caught instanceof ApplicationError &&
+          (caught.code === "CHECKOUT_STEP_INCOMPLETE" ||
+            caught.code === "CART_VERSION_CHANGED" ||
+            caught.code === "CHECKOUT_EXPIRED");
+        if (requiredStep !== "address" || !recoverableCheckoutError) {
           setMessage(asPurchaseError(caught).message);
           return;
         }
@@ -688,7 +722,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           const cart = await services.cart.getCart();
           const started = await services.checkout.start({ cartVersion: cart.cartVersion });
           setSession(started.session);
-          setSessionOrigin(started.result === "resumed" ? "resumed" : "started");
+          setSessionOrigin(started.result === "created" ? "started" : started.result);
         } catch (startError) {
           setMessage(asPurchaseError(startError).message);
         }
@@ -762,6 +796,11 @@ export function NativeCheckoutAddressScreen() {
       {state.sessionOrigin === "resumed" && (
         <Text style={styles.productMeta} testID="native-checkout-session-resumed">
           Checkoutを再開しました
+        </Text>
+      )}
+      {state.sessionOrigin === "replaced" && (
+        <Text style={styles.productMeta} testID="native-checkout-session-replaced">
+          カートの更新により、購入手続きを最新の内容へ置き換えました。
         </Text>
       )}
       {savedAddresses.length > 0 && (
@@ -851,13 +890,14 @@ export function NativeCheckoutAddressScreen() {
 
 export function NativeCheckoutPaymentScreen() {
   const state = useCheckoutSession("payment");
-  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("TEST-SUCCESS");
+  const [methodOverride, setMethod] = useState<(typeof PAYMENT_METHODS)[number] | null>(null);
   const [busy, setBusy] = useState(false);
   if (!state.ready || state.services === null)
     return (
       <RuntimePanel title="支払いを初期化できません" error={state.error} retry={state.retry} />
     );
   const services = state.services;
+  const method = methodOverride ?? state.session?.paymentMethodCode ?? "TEST-SUCCESS";
   const submit = () => {
     if (state.session === null) return;
     setBusy(true);
@@ -886,7 +926,7 @@ export function NativeCheckoutPaymentScreen() {
         {PAYMENT_METHODS.map((candidate) => (
           <NativeButton
             key={candidate}
-            label={candidate === "TEST-SUCCESS" ? "成功" : candidate.replace("TEST-", "失敗：")}
+            label={nativePaymentMethodLabel(candidate)}
             variant={method === candidate ? "primary" : "secondary"}
             onPress={() => setMethod(candidate)}
             testID={`native-payment-method-${candidate}`}
@@ -913,12 +953,21 @@ export function NativeCheckoutConfirmScreen() {
   const services = state.services;
   const setMessage = state.setMessage;
   useEffect(() => {
-    if (services !== null)
-      void services.checkout
-        .getConfirmation()
-        .then(setConfirmation)
-        .catch((caught: unknown) => setMessage(asPurchaseError(caught).message));
-  }, [services, setMessage]);
+    if (services === null || state.session === null) return;
+    let cancelled = false;
+    setConfirmation(null);
+    void services.checkout
+      .getConfirmation(state.session.id)
+      .then((result) => {
+        if (!cancelled) setConfirmation(result);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setMessage(asPurchaseError(caught).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [services, state.session, setMessage]);
   if (!state.ready || services === null)
     return <RuntimePanel title="確認を初期化できません" error={state.error} retry={state.retry} />;
   const submit = () => {
@@ -936,7 +985,27 @@ export function NativeCheckoutConfirmScreen() {
       .catch((caught: unknown) => state.setMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
-  if (confirmation === null) return <NativeStatePanel title="注文内容を読み込み中…" />;
+  if (confirmation === null) {
+    if (state.message !== null) {
+      return (
+        <NativeStatePanel
+          title="注文内容を確認できません"
+          body={state.message}
+          action={
+            <View style={{ gap: nativeSpacing.sm }}>
+              <NativeButton label="カートを確認する" onPress={() => router.replace("/cart")} />
+              <NativeButton
+                label="配送先からやり直す"
+                variant="secondary"
+                onPress={() => router.replace("/checkout/address")}
+              />
+            </View>
+          }
+        />
+      );
+    }
+    return <NativeStatePanel title="注文内容を読み込み中…" />;
+  }
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-confirm-screen">
       <Text style={styles.heading}>Checkout：確認</Text>
@@ -947,15 +1016,24 @@ export function NativeCheckoutConfirmScreen() {
             <View key={item.variantId} style={{ marginBottom: nativeSpacing.sm }}>
               <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.body}>
-                {item.quantity}点　{formatNativeYen(item.lineTotalAmount)}
+                {item.optionValue ?? "単一SKU"}・{item.quantity}点　
+                {formatNativeYen(item.lineTotalAmount)}
               </Text>
             </View>
           ))}
+          <Text style={styles.body}>配送先：{confirmation.address.recipientName} 様</Text>
           <Text style={styles.body}>
-            配送先：{confirmation.address.prefecture}
+            〒{confirmation.address.postalCode} {confirmation.address.prefecture}
             {confirmation.address.city}
             {confirmation.address.addressLine1}
+            {confirmation.address.addressLine2 ?? ""}
           </Text>
+          <Text style={styles.body}>
+            支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
+          </Text>
+          <Text style={styles.body}>商品小計：{formatNativeYen(confirmation.subtotalAmount)}</Text>
+          <Text style={styles.body}>会員割引：-{formatNativeYen(confirmation.discountAmount)}</Text>
+          <Text style={styles.body}>送料：{formatNativeYen(confirmation.shippingAmount)}</Text>
           <Text style={[styles.price, { marginTop: nativeSpacing.sm }]}>
             合計 {formatNativeYen(confirmation.totalAmount)}
           </Text>
@@ -968,6 +1046,14 @@ export function NativeCheckoutConfirmScreen() {
         testID="native-checkout-confirm-submit"
       />
       <ErrorMessage message={state.message} />
+      {state.message !== null && (
+        <NativeButton
+          label="カートを確認する"
+          variant="secondary"
+          onPress={() => router.replace("/cart")}
+          testID="native-checkout-confirm-review-cart"
+        />
+      )}
     </ScrollView>
   );
 }
@@ -1063,7 +1149,7 @@ function NativeCheckoutResultScreen() {
         <Text style={styles.heading}>注文完了</Text>
         <Text style={styles.body}>ご注文を受け付けました。</Text>
         <Text style={styles.body} testID="native-complete-order-id">
-          注文ID：{order.orderId}
+          注文番号：{order.orderNumber}
         </Text>
         <NativeButton
           label="注文一覧を見る"

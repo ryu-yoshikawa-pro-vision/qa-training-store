@@ -296,6 +296,40 @@ describe("auth and account application integration", () => {
     });
   });
 
+  it("checks the customer role before suggesting an address from a postal code", async () => {
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    await expect(account.suggestAddress("100-0001")).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    await database.sessions.add({
+      id: "operator-session",
+      userId: "user-operator",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "operator-session";
+    await expect(account.suggestAddress("100-0001")).rejects.toMatchObject({
+      code: "VALIDATION",
+      messageKey: "account.customerOnly",
+    });
+    await database.sessions.add({
+      id: "customer-session",
+      userId: "user-customer-regular",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "customer-session";
+    await expect(account.suggestAddress("100-0001")).resolves.toMatchObject({
+      postalCode: "1000001",
+      prefecture: "東京都",
+    });
+    await expect(account.suggestAddress("999-9999")).resolves.toBeNull();
+  });
+
   it("keeps exactly one default address and deterministically reassigns it", async () => {
     await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
     sessionStore.value = "session-user-customer-regular";
@@ -347,6 +381,56 @@ describe("auth and account application integration", () => {
     expect(await database.users.get(profile.id)).toMatchObject({
       updatedAt: FIXED_TIME,
     });
+  });
+
+  it("sets a different default address atomically and rejects stale edits", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["default-address", "other-address"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = {
+      recipientName: "一般テスト会員",
+      postalCode: "1000001",
+      prefecture: "東京都",
+      city: "千代田区千代田",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "09000000000",
+      makeDefault: false,
+    };
+    const first = await account.createAddress({ ...request, label: "自宅" });
+    const second = await account.createAddress({ ...request, label: "勤務先" });
+    expect(first.isDefault).toBe(true);
+    expect(second.isDefault).toBe(false);
+
+    const changed = await account.updateAddress({
+      ...second,
+      addressId: second.id,
+      expectedVersion: second.version,
+      makeDefault: true,
+    });
+    expect(changed).toMatchObject({ id: second.id, isDefault: true, version: 2 });
+    expect(await account.listAddresses()).toEqual([
+      expect.objectContaining({ id: first.id, isDefault: false, version: 2 }),
+      expect.objectContaining({ id: second.id, isDefault: true, version: 2 }),
+    ]);
+    await expect(
+      account.updateAddress({
+        ...second,
+        addressId: second.id,
+        expectedVersion: second.version,
+        makeDefault: true,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await account.listAddresses()).toEqual([
+      expect.objectContaining({ id: first.id, isDefault: false, version: 2 }),
+      expect.objectContaining({ id: second.id, isDefault: true, version: 2 }),
+    ]);
   });
 
   it("enforces the shared address label limit at the Application boundary", async () => {

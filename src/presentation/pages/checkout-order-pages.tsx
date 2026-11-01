@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocalSearchParams, useRouter, type Href } from "expo-router";
+import { ApplicationError } from "@/application/errors";
 import type {
   CheckoutConfirmationDto,
   CustomerOrderDetailDto,
@@ -9,7 +10,7 @@ import {
   PAYMENT_METHODS,
   resolveCheckoutResultKind,
 } from "@/application/use-cases/checkout-order-use-cases";
-import type { PaymentMethodCode, UserAddress } from "@/domain/contracts";
+import type { PaymentMethodCode, ShippingAddressSnapshot, UserAddress } from "@/domain/contracts";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { formatYen } from "@/presentation/components/product-card";
 import { ProductImage } from "@/presentation/components/product-image";
@@ -82,12 +83,30 @@ function TrainingNotice() {
   );
 }
 
-function CheckoutLoadError({ retry, href = "/cart" }: { retry?: () => void; href?: Href }) {
+function checkoutNeedsCartReview(error: unknown): boolean {
+  return (
+    error instanceof ApplicationError &&
+    (error.code === "CART_VERSION_CHANGED" ||
+      error.code === "PRICE_CHANGED" ||
+      error.code === "INSUFFICIENT_STOCK" ||
+      error.code === "INVALID_STATE")
+  );
+}
+
+function CheckoutLoadError({
+  retry,
+  href = "/cart",
+  body = "カートまたは前のステップが更新されました。内容を確認してください。",
+}: {
+  retry?: () => void;
+  href?: Href;
+  body?: string;
+}) {
   return (
     <StatePanel
       kind="error"
       title="購入手続きを続けられません"
-      body="カートまたは前のステップが更新されました。内容を確認してください。"
+      body={body}
       action={
         <div className="inline-actions">
           {retry && (
@@ -148,10 +167,9 @@ function CheckoutAddressContent() {
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null)
     return <CheckoutLoadError retry={state.retry} />;
-  const selected =
-    state.value.addresses.find((item) => item.id === selectedId) ??
-    state.value.addresses.find((item) => item.isDefault) ??
-    state.value.addresses[0];
+  const savedSnapshot = state.value.checkout.session.addressSnapshot;
+  const selected = resolveSelectedAddress(state.value.addresses, selectedId, savedSnapshot);
+  const needsReselection = savedSnapshot !== null && selectedId === null && selected === undefined;
   const submit = async () => {
     if (selected === undefined) return;
     setSubmitting(true);
@@ -181,6 +199,11 @@ function CheckoutAddressContent() {
         </p>
       )}
       <TrainingNotice />
+      {needsReselection && state.value.addresses.length > 0 && (
+        <p className="operation-message" role="status">
+          以前の配送先が変更または削除されています。配送先を選び直してください。
+        </p>
+      )}
       {error && (
         <p role="alert" className="operation-error">
           {error}
@@ -227,6 +250,7 @@ function CheckoutAddressContent() {
             total={state.value.total}
             label="この配送先を使用"
             disabled={selected === undefined || submitting}
+            busy={submitting}
             onClick={() => void submit()}
           />
         </div>
@@ -251,8 +275,9 @@ function CheckoutPaymentContent() {
     const cart = await services.cart.getCart();
     return { session, total: cart.totalAmount };
   }, [services]);
-  const [method, setMethod] = useState<PaymentMethodCode>("TEST-SUCCESS");
+  const [methodOverride, setMethod] = useState<PaymentMethodCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const headingRef = useRouteHeadingFocus(
     state.loaded && state.error === null && state.value !== null,
   );
@@ -260,8 +285,10 @@ function CheckoutPaymentContent() {
   if (state.error !== null || state.value === null) {
     return <CheckoutLoadError href="/checkout/address" />;
   }
+  const method = methodOverride ?? state.value.session.paymentMethodCode ?? "TEST-SUCCESS";
   const submit = async () => {
     setSubmitting(true);
+    setError(null);
     try {
       await services.checkout.setPayment({
         checkoutSessionId: state.value!.session.id,
@@ -269,6 +296,8 @@ function CheckoutPaymentContent() {
         paymentMethodCode: method,
       });
       router.push("/checkout/confirm");
+    } catch {
+      setError("支払方法を保存できませんでした。最新のカートを確認してください。");
     } finally {
       setSubmitting(false);
     }
@@ -280,6 +309,11 @@ function CheckoutPaymentContent() {
         支払方法
       </h1>
       <TrainingNotice />
+      {error && (
+        <p role="alert" className="operation-error">
+          {error}
+        </p>
+      )}
       <div className="checkout-layout">
         <section className="selection-list" aria-label="テスト支払方法">
           {PAYMENT_METHODS.map((code) => (
@@ -301,6 +335,7 @@ function CheckoutPaymentContent() {
           total={state.value.total}
           label={`${formatYen(state.value.total)}を確認する`}
           disabled={submitting}
+          busy={submitting}
           onClick={() => void submit()}
         />
       </div>
@@ -321,25 +356,42 @@ function CheckoutConfirmContent() {
   const router = useRouter();
   const state = useAsyncValue(() => services.checkout.getConfirmation(), [services]);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<{
+    message: string;
+    reviewCart: boolean;
+  } | null>(null);
   const headingRef = useRouteHeadingFocus(
     state.loaded && state.error === null && state.value !== null,
   );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) {
-    return <CheckoutLoadError href="/checkout/payment" retry={state.retry} />;
+    const reviewCart = checkoutNeedsCartReview(state.error);
+    return (
+      <CheckoutLoadError
+        href={reviewCart ? "/cart" : "/checkout/payment"}
+        retry={state.retry}
+        {...(reviewCart
+          ? {
+              body: "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+            }
+          : {})}
+      />
+    );
   }
   const submit = async () => {
     setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
     try {
       const result = await services.checkout.beginOrder({
         checkoutSessionId: state.value!.checkoutSessionId,
         checkoutActionVersion: state.value!.checkoutActionVersion,
       });
       router.replace(`/checkout/processing?orderId=${encodeURIComponent(result.orderId)}`);
-    } catch {
-      setError("注文を確定できませんでした。カートの価格・在庫を確認してください。");
+    } catch (caught: unknown) {
+      setSubmitError({
+        message: "注文を確定できませんでした。カートの価格・在庫を確認してください。",
+        reviewCart: checkoutNeedsCartReview(caught),
+      });
       setSubmitting(false);
     }
   };
@@ -350,10 +402,15 @@ function CheckoutConfirmContent() {
         注文内容を確認
       </h1>
       <TrainingNotice />
-      {error && (
+      {submitError !== null && (
         <p role="alert" className="operation-error">
-          {error}
+          {submitError.message}
         </p>
+      )}
+      {submitError?.reviewCart === true && (
+        <Link href="/cart" className="button button--secondary">
+          カートを確認する
+        </Link>
       )}
       <div className="checkout-layout">
         <div className="checkout-confirmation">
@@ -366,6 +423,12 @@ function CheckoutConfirmContent() {
               {state.value.address.prefecture}
               {state.value.address.city}
               {state.value.address.addressLine1}
+              {state.value.address.addressLine2 !== null && (
+                <>
+                  <br />
+                  {state.value.address.addressLine2}
+                </>
+              )}
               <br />
               {state.value.address.recipientName} 様
             </address>
@@ -381,7 +444,8 @@ function CheckoutConfirmContent() {
           confirmation={state.value}
           total={state.value.totalAmount}
           label={`${formatYen(state.value.totalAmount)}を支払う`}
-          disabled={submitting}
+          disabled={submitting || submitError?.reviewCart === true}
+          busy={submitting}
           onClick={() => void submit()}
         />
       </div>
@@ -413,12 +477,14 @@ function CheckoutActionSummary({
   total,
   label,
   disabled,
+  busy = false,
   onClick,
   confirmation,
 }: {
   total: number;
   label: string;
   disabled: boolean;
+  busy?: boolean;
   onClick: () => void;
   confirmation?: CheckoutConfirmationDto;
 }) {
@@ -448,7 +514,7 @@ function CheckoutActionSummary({
         </p>
       </details>
       <button className="button button--primary" disabled={disabled} onClick={onClick}>
-        {disabled ? "処理中…" : label}
+        {busy ? "処理中…" : label}
       </button>
     </aside>
   );
@@ -789,6 +855,32 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
         </Link>
       )}
     </div>
+  );
+}
+
+function resolveSelectedAddress(
+  addresses: UserAddress[],
+  selectedId: string | null,
+  snapshot: ShippingAddressSnapshot | null,
+): UserAddress | undefined {
+  if (selectedId !== null) {
+    return addresses.find((item) => item.id === selectedId);
+  }
+  if (snapshot !== null) {
+    return addresses.find((item) => matchesAddressSnapshot(item, snapshot));
+  }
+  return addresses.find((item) => item.isDefault) ?? addresses[0];
+}
+
+function matchesAddressSnapshot(saved: UserAddress, snapshot: ShippingAddressSnapshot): boolean {
+  return (
+    saved.recipientName === snapshot.recipientName &&
+    saved.postalCode === snapshot.postalCode &&
+    saved.prefecture === snapshot.prefecture &&
+    saved.city === snapshot.city &&
+    saved.addressLine1 === snapshot.addressLine1 &&
+    saved.addressLine2 === snapshot.addressLine2 &&
+    saved.phone === snapshot.phone
   );
 }
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 
 const routerPush = vi.fn();
 const routerReplace = vi.fn();
@@ -249,6 +250,88 @@ describe("checkout and order pages", () => {
     expect(routerPush).toHaveBeenCalledWith("/checkout/payment");
   });
 
+  it("restores the previously selected non-default shipping address on resume", async () => {
+    const savedAddress = {
+      ...confirmation.address,
+      id: "address-work",
+      userId: "user",
+      label: "勤務先",
+      postalCode: "1500001",
+      city: "渋谷区",
+      isDefault: false,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      version: 1,
+    };
+    account.listAddresses.mockResolvedValueOnce([
+      {
+        ...savedAddress,
+        id: "address-home",
+        label: "自宅",
+        postalCode: confirmation.address.postalCode,
+        city: confirmation.address.city,
+        isDefault: true,
+      },
+      savedAddress,
+    ]);
+    checkout.start.mockResolvedValueOnce({
+      result: "resumed",
+      session: {
+        ...session,
+        addressSnapshot: {
+          ...confirmation.address,
+          postalCode: savedAddress.postalCode,
+          city: savedAddress.city,
+        },
+      },
+    });
+
+    render(<CheckoutAddressPage />);
+    expect(await screen.findByRole("radio", { name: /勤務先/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /自宅/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "この配送先を使用" }));
+    await waitFor(() =>
+      expect(checkout.setAddress).toHaveBeenCalledWith({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: session.version,
+        address: {
+          ...confirmation.address,
+          postalCode: savedAddress.postalCode,
+          city: savedAddress.city,
+        },
+      }),
+    );
+  });
+
+  it("requires a new address selection if the saved snapshot no longer matches", async () => {
+    checkout.start.mockResolvedValueOnce({
+      result: "resumed",
+      session: {
+        ...session,
+        addressSnapshot: { ...confirmation.address, city: "変更前の市区町村" },
+      },
+    });
+    render(<CheckoutAddressPage />);
+    const button = await screen.findByRole("button", { name: "この配送先を使用" });
+    expect(button).toBeDisabled();
+    expect(
+      screen.getByText("以前の配送先が変更または削除されています。配送先を選び直してください。"),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: /自宅/ }));
+    expect(button).toBeEnabled();
+  });
+
+  it("does not advance to payment when saving a delivery address fails", async () => {
+    checkout.setAddress.mockRejectedValueOnce(new Error("failed to save address"));
+    render(<CheckoutAddressPage />);
+    expect(await screen.findByRole("heading", { name: "配送先を選択" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "この配送先を使用" }));
+    expect(
+      await screen.findByText("配送先を保存できませんでした。最新のカートを確認してください。"),
+    ).toBeVisible();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
   it("renders snapshot totals and prevents a second confirmation click", async () => {
     render(<CheckoutConfirmPage />);
     expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
@@ -259,6 +342,136 @@ describe("checkout and order pages", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(checkout.beginOrder).toHaveBeenCalledTimes(1));
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
+  });
+
+  it("shows quantity, subtotal, discount, shipping and total from the confirmation DTO", async () => {
+    checkout.getConfirmation.mockResolvedValueOnce({
+      ...confirmation,
+      items: [
+        {
+          ...confirmation.items[0]!,
+          quantity: 2,
+          lineSubtotalAmount: 4000,
+          lineDiscountAmount: 200,
+          lineTotalAmount: 3800,
+        },
+      ],
+      subtotalAmount: 4000,
+      discountAmount: 200,
+      shippingAmount: 500,
+      totalAmount: 4300,
+    });
+    render(<CheckoutConfirmPage />);
+    expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
+    expect(screen.getByText("M・数量 2")).toBeVisible();
+    expect(screen.getByText("¥3,800")).toBeVisible();
+    expect(screen.getByText("¥4,000")).toBeVisible();
+    expect(screen.getByText("-¥200")).toBeVisible();
+    expect(screen.getByText("¥500")).toBeVisible();
+    expect(screen.getAllByText("¥4,300").length).toBeGreaterThan(0);
+  });
+
+  it.each(["CART_VERSION_CHANGED", "PRICE_CHANGED"] as const)(
+    "routes a %s confirmation load failure to the cart",
+    async (code) => {
+      checkout.getConfirmation.mockRejectedValueOnce(
+        new ApplicationError({
+          code,
+          messageKey: "checkout.cart.invalid",
+          retryable: false,
+        }),
+      );
+      render(<CheckoutConfirmPage />);
+      expect(
+        await screen.findByText(
+          "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+        ),
+      ).toBeVisible();
+      expect(screen.getByRole("link", { name: "戻って確認する" })).toHaveAttribute("href", "/cart");
+      expect(screen.queryByRole("button", { name: /を支払う/ })).not.toBeInTheDocument();
+      expect(checkout.beginOrder).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps the confirmation page on a stale-price submit error and links to the cart", async () => {
+    checkout.beginOrder.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "PRICE_CHANGED",
+        messageKey: "checkout.cart.invalid",
+        retryable: false,
+      }),
+    );
+    render(<CheckoutConfirmPage />);
+    const submit = await screen.findByRole("button", { name: "¥2,500を支払う" });
+    fireEvent.click(submit);
+    expect(await screen.findByRole("link", { name: "カートを確認する" })).toHaveAttribute(
+      "href",
+      "/cart",
+    );
+    expect(screen.getByRole("button", { name: "¥2,500を支払う" })).toBeDisabled();
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(checkout.beginOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the full saved shipping address on confirmation", async () => {
+    checkout.getConfirmation.mockResolvedValueOnce({
+      ...confirmation,
+      address: { ...confirmation.address, addressLine2: "青山ビル101" },
+      paymentMethodCode: "TEST-DECLINED",
+    });
+    render(<CheckoutConfirmPage />);
+    expect(await screen.findByRole("heading", { name: "注文内容を確認" })).toBeVisible();
+    const address = screen.getByText(
+      (_, element) =>
+        element?.tagName === "ADDRESS" && element.textContent?.includes("青山ビル101") === true,
+    );
+    expect(address).toHaveTextContent("青山ビル101");
+    expect(address).toHaveTextContent("山田太郎 様");
+    expect(screen.getByText("テスト決済（利用拒否）")).toBeVisible();
+  });
+
+  it("restores the previously saved payment method when returning from confirmation", async () => {
+    checkout.getActive.mockResolvedValueOnce({
+      ...session,
+      paymentMethodCode: "TEST-DECLINED",
+      unlockedStep: "confirm",
+      version: 3,
+    });
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByRole("radio", { name: /テスト決済（利用拒否）/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /テスト決済（成功）/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "¥2,500を確認する" }));
+    await waitFor(() =>
+      expect(checkout.setPayment).toHaveBeenCalledWith({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: 3,
+        paymentMethodCode: "TEST-DECLINED",
+      }),
+    );
+  });
+
+  it("does not offer payment confirmation for an incomplete checkout", async () => {
+    checkout.getActive.mockRejectedValueOnce(new Error("checkout address missing"));
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByText("購入手続きを続けられません")).toBeVisible();
+    expect(screen.getByRole("link", { name: "戻って確認する" })).toHaveAttribute(
+      "href",
+      "/checkout/address",
+    );
+    expect(screen.queryByRole("button", { name: "¥2,500を確認する" })).not.toBeInTheDocument();
+    expect(checkout.setPayment).not.toHaveBeenCalled();
+  });
+
+  it("keeps payment open and displays an error when saving the method fails", async () => {
+    checkout.setPayment.mockRejectedValueOnce(new Error("stale checkout version"));
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByRole("heading", { name: "支払方法" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "¥2,500を確認する" }));
+    expect(
+      await screen.findByText("支払方法を保存できませんでした。最新のカートを確認してください。"),
+    ).toBeVisible();
+    expect(routerPush).not.toHaveBeenCalledWith("/checkout/confirm");
+    expect(screen.getByRole("button", { name: "¥2,500を確認する" })).toBeEnabled();
   });
 
   it("explains each deterministic payment outcome before selection", async () => {
@@ -274,6 +487,16 @@ describe("checkout and order pages", () => {
     render(<CheckoutFailedPage />);
     expect(await screen.findByRole("heading", { name: "ご注文が完了しました" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "支払いを再試行" })).not.toBeInTheDocument();
+  });
+
+  it("shows the customer-facing order number and links to the owned order detail", async () => {
+    render(<CheckoutCompletePage />);
+    expect(await screen.findByText(detail.orderNumber)).toBeVisible();
+    expect(screen.getByRole("link", { name: "注文詳細" })).toHaveAttribute(
+      "href",
+      `/orders/${detail.orderId}`,
+    );
+    expect(checkout.getMyOrder).toHaveBeenCalledWith(detail.orderId);
   });
 
   it("uses the persisted failed state even when the complete route is requested", async () => {

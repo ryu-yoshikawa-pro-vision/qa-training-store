@@ -215,6 +215,40 @@ describe("cart application integration", () => {
     });
   });
 
+  it("rejects price acceptance when the current quantity exceeds stock without changing versions", async () => {
+    await database.sessions.add({
+      id: "regular-session",
+      userId: "user-customer-regular",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    session.value = "regular-session";
+    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    await database.cart_items.update(item.id, {
+      quantity: 2,
+      unitEffectivePriceAtAdd: 999,
+    });
+    await database.product_variants.update(item.variantId, { stockQuantity: 1 });
+    const cartUseCases = useCases([]);
+    const before = await cartUseCases.getCart();
+    expect(before.blockingIssues).toContain("PRICE_CHANGED");
+    await expect(
+      cartUseCases.acceptPriceChanges({
+        cartExpectedVersion: before.cartVersion,
+        itemExpectedVersions: Object.fromEntries(
+          before.items.map((cartItem) => [cartItem.itemId, cartItem.itemVersion]),
+        ),
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(await database.cart_items.get(item.id)).toMatchObject({
+      quantity: 2,
+      unitEffectivePriceAtAdd: 999,
+      version: item.version,
+    });
+    expect(await database.carts.get(before.cartId)).toMatchObject({
+      version: before.cartVersion,
+    });
+  });
+
   it("returns the four invalid-line recovery reasons entirely in Cart DTO", async () => {
     await loadSeedDataset(
       database,
