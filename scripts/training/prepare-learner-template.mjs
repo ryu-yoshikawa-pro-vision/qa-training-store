@@ -13,9 +13,7 @@ function git(...args) {
 function main() {
   const args = process.argv.slice(2);
   if (args.length !== 0 && (args.length !== 2 || args[0] !== "--target" || !args[1])) {
-    throw new Error(
-      "Usage: node scripts/training/prepare-learner-template.mjs [--target <empty-dir>]",
-    );
+    throw new Error("Usage: prepare-learner-template.mjs [--target <empty-dir>]");
   }
   if (git("branch", "--show-current") !== "main") {
     throw new Error("Template preparation must run from the merged main branch");
@@ -26,37 +24,31 @@ function main() {
   const sourceSha = git("rev-parse", "HEAD");
   const target = path.resolve(sourceRoot, args[1] ?? "../ai-assisted-qa-learner");
   if (fs.existsSync(target)) {
-    if (fs.lstatSync(target).isSymbolicLink() || !fs.lstatSync(target).isDirectory()) {
-      throw new Error(
-        "Template destination must be a directory, not a symlink: " + target,
-      );
+    const stat = fs.lstatSync(target);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error("Template destination must be an ordinary directory: " + target);
     }
     if (fs.readdirSync(target).length > 0) {
-      throw new Error(
-        "Template destination must be empty; existing files were not changed: " + target,
-      );
+      throw new Error("Template destination is not empty: " + target);
     }
   } else {
     fs.mkdirSync(target, { recursive: true });
   }
   const courseCli = path.join(sourceRoot, "scripts/training/ai-assisted-qa-course.mjs");
-  execFileSync(
-    process.execPath,
-    [courseCli, "sync", "--source-sha", sourceSha, "--target", target],
-    { cwd: sourceRoot, stdio: "inherit" },
-  );
+  const syncArgs = [courseCli, "sync", "--source-sha", sourceSha, "--target", target];
+  execFileSync(process.execPath, syncArgs, { cwd: sourceRoot, stdio: "inherit" });
   execFileSync(process.execPath, [courseCli, "verify-distribution"], {
     cwd: target,
     stdio: "inherit",
   });
-  console.log(JSON.stringify({ status: "ready-to-copy", source_sha: sourceSha, target }, null, 2));
+  const result = { status: "ready-to-copy", source_sha: sourceSha, target };
+  console.log(JSON.stringify(result, null, 2));
 }
 
 try {
   main();
 } catch (error) {
-  console.error(
-    "Template preparation failed: " + (error instanceof Error ? error.message : String(error)),
-  );
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("Template preparation failed: " + message);
   process.exitCode = 1;
 }
