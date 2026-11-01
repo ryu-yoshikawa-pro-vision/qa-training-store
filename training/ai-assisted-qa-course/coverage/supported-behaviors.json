@@ -15079,13 +15079,15 @@
       "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
       "case_selection_reason": "ユーザーの絞り込みが権限逸脱や不正データ更新を引き起こさないことを示すため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "review_required：主仕様admin-users.mdは絞り込み条件の内訳を固定しないが、補助UI仕様docs/05_ui/ui_specifications.md:169-170,174-183はRole/Rank/Statusと登録日/更新日ソートを要求。Web一覧にはRankとsort選択UIがない。Use Case/RepositoryはmembershipRanksとsortを受け付ける。差分の正式な採否・実Web/認可拒否/DB不変が未証明。静的分析をPASSとしない。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.search"
+      ],
+      "analysis_progress": "2026-11-01 静的照合：UIはkeyword/Role/Statusで検索し、変更時page=1。Use Caseのadmin再認可とDexieのAND条件・rankフィルター・created_desc/updated_descを確認。補助UI仕様のRank絞り込みと登録日/更新日ソートはUI未提供。実Web/Role拒否/DB不変/視覚・正式優先順位判断待ち。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -15108,7 +15110,14 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.search",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 520,
+          "signature": "async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-USERS-A02-01",
