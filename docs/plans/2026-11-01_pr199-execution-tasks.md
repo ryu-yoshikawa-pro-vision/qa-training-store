@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6、台帳`review_required`）。前対象`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`はパンくずホームリンクとStatePanel内CTA欠如を区別し、学習用2 Caseを追加。正式な復帰導線解釈・直接Vitest・実Web/Android・視覚・DBは未受入のため`review_required`維持。詳細は下記同IDの節。
+- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6、台帳`review_required`）。学習用直接Caseを2件追加（うち1件は正式仕様との既知差を`it.fails`で保持）。直接Vitest・実Web/視覚・DB・製品適合は未受入。次回は新HEADの直接Case証拠を確認し、同じ未確認根拠を反復せず次の独立操作へ移る。詳細は下記同IDの節。
 - **CI横断**：調査HEAD `d7f436286d51`のWeb CI #41334980000はcompleted/failure。Style Quality・Vitest contracts・required Chromium E2E・verify・validateが失敗。新Caseを含む更新HEADのCIは別判定、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（在庫フィルター直接契約）
+
+- **正式仕様と静的事実**：`docs/spec/features/admin-inventory.md`のBR-ADMININV-001/AC-ADMININV-001は0=`out_of_stock`、1〜5=`low_stock`、6以上=`available`の排他的分類を要求。Web `AdminInventoriesContent`の「在庫あり/低在庫/在庫切れ」選択→`AdminOperationsUseCases.searchInventory`のstaff認可→`DexieInventoryRepository.search`に到達する。Repositoryは`available`を1以上で判定するため、1/5がlowとavailableに重複する。表の「状態」列は`ActiveBadge(isActive)`であり在庫分類ではない。これは既存の製品差分候補で、製品変更は行わない。
+- **新規学習用Case**：`tests/contracts/ai-assisted-qa-inventory-stock-boundaries.test.mjs`に隔離Dexie+default Seedを用いた2 Caseを追加。テスト内でのみ4 SKUを0/1/5/6に設定し、C1=out/lowの境界を実Repositoryで検証、C2=availableは6のみという正式オラクルを`it.fails`で**既知の期待失敗**として保持する。C2がテストランナー上success扱いでも**製品適合PASSではない**。将来製品側で修正したら`it.fails`を通常Caseに変える必要がある。既存Seed/Resetは変更しない。
+- **未実施・再開条件**：JS構文チェックのみ実施。直接Vitest/Prettier、実Web desktopでのoperator/admin・0/1/5/6の絞り込み件数/ラベル、視覚正本、調整履歴/DB不変性は未実施。対象は`review_required`を維持し、直接テストの同一HEAD実Run・製品専用ブランチの修正有無・実画面の証拠が変わった場合のみ再判定する。CI横断は前HEAD `b831ca63ae15` のWeb CI #41338665920がfailure（Style Quality、Contracts、required Chromium E2E、verify/validate）。新HEADのCIは別判定。基本分析50/188操作・14/20非default状態は未更新、分母監査も未完。
+- **次回**：新CaseのCI結果が得られたら当該Caseの直接判定を更新する。実Web/製品修正の新証拠がなければ本IDの再調査を反復せず、台帳から次の独立した`review_required`操作IDを確定して1件進める。
 
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-PRODUCT-LIST-S-empty（0件時の復帰導線）
 

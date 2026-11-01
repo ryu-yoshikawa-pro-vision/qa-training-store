@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（在庫フィルター直接契約）
+
+- **正式仕様と静的事実**：`docs/spec/features/admin-inventory.md`のBR-ADMININV-001/AC-ADMININV-001は0=`out_of_stock`、1〜5=`low_stock`、6以上=`available`の排他的分類を要求。Web `AdminInventoriesContent`の「在庫あり/低在庫/在庫切れ」選択→`AdminOperationsUseCases.searchInventory`のstaff認可→`DexieInventoryRepository.search`に到達する。Repositoryは`available`を1以上で判定するため、1/5がlowとavailableに重複する。表の「状態」列は`ActiveBadge(isActive)`であり在庫分類ではない。これは既存の製品差分候補で、製品変更は行わない。
+- **新規学習用Case**：`tests/contracts/ai-assisted-qa-inventory-stock-boundaries.test.mjs`に隔離Dexie+default Seedを用いた2 Caseを追加。テスト内でのみ4 SKUを0/1/5/6に設定し、C1=out/lowの境界を実Repositoryで検証、C2=availableは6のみという正式オラクルを`it.fails`で**既知の期待失敗**として保持する。C2がテストランナー上success扱いでも**製品適合PASSではない**。将来製品側で修正したら`it.fails`を通常Caseに変える必要がある。既存Seed/Resetは変更しない。
+- **未実施・再開条件**：JS構文チェックのみ実施。直接Vitest/Prettier、実Web desktopでのoperator/admin・0/1/5/6の絞り込み件数/ラベル、視覚正本、調整履歴/DB不変性は未実施。対象は`review_required`を維持し、直接テストの同一HEAD実Run・製品専用ブランチの修正有無・実画面の証拠が変わった場合のみ再判定する。CI横断は前HEAD `b831ca63ae15` のWeb CI #41338665920がfailure（Style Quality、Contracts、required Chromium E2E、verify/validate）。新HEADのCIは別判定。基本分析50/188操作・14/20非default状態は未更新、分母監査も未完。
+- **次回**：新CaseのCI結果が得られたら当該Caseの直接判定を更新する。実Web/製品修正の新証拠がなければ本IDの再調査を反復せず、台帳から次の独立した`review_required`操作IDを確定して1件進める。
+
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-PRODUCT-LIST-S-empty（0件時の復帰導線）
 
 - **正式期待と既存実装の差（静的事実）**：`docs/spec/features/storefront.md`の商品一覧`empty`状態はguest/customer・`empty-catalog`・Web desktopで「表示可能な商品がない理由と元の画面に戻る導線」を要求する。Web `CatalogListPage`は無条件0件に`StatePanel kind="empty" action={null}`を渡し、StatePanel既定のホームCTAを明示的に消す。一方、ページ全体には`Breadcrumbs`の「ホーム」`href="/"`が残る。したがって「画面に戻る導線が一切ない」は誤り。**パンくずが正式な『元の画面に戻る導線』を満たすかは未決**であり、欠陥/PASSのどちらにも断定しない。
