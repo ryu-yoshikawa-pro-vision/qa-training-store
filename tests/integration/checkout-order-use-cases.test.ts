@@ -530,7 +530,10 @@ describe("checkout and customer order application integration", () => {
       .where("orderId")
       .equals(processing.orderId)
       .count();
-    const orderItemCount = await database.order_items.where("orderId").equals(processing.orderId).count();
+    const orderItemCount = await database.order_items
+      .where("orderId")
+      .equals(processing.orderId)
+      .count();
     expect(inventoryHistoryCount).toBe(orderItemCount);
     const histories = await database.order_status_histories
       .where("orderId")
