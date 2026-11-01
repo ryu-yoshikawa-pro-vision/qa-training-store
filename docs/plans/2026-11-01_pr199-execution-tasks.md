@@ -13,7 +13,7 @@
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A02-01`（自己操作の制限案内）は、主仕様・Web一覧/詳細・Use Case・default Seed・既存テストを静的照合した。**一覧には自己操作の制限説明がなく、詳細では本人の役割/利用状態ボタンが無効で理由文が表示される**。主仕様は一覧画面に境界条件の説明を要求し、詳細画面にも自己変更の操作不能を要求するため、一覧での説明責務を詳細への遷移で満たすかは未決。Use Caseは本人の`changeRole`と自己停止をtransaction前に拒否するが、実Web表示・別Session・DB/version不変は未実証。`review_required`維持、再開条件は一覧/詳細の正式期待値と実Web/拒否前後snapshot・視覚証拠。次回はこの待機対象を反復せず、分析台帳で次の未処理操作IDを確定する（既存の`SCREEN-ADMIN-USER-DETAIL-A02-01`は新証拠がなければ再調査しない）。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A02-02`（退会済みの変更禁止案内）は、正式`BR-ADMINUSER-001/AC-ADMINUSER-001`、Web一覧→詳細、`AdminUserUseCases`、default/withdrawn Seed、既存テストを静的照合。**一覧はwithdrawnバッジと詳細リンクのみで読取専用の説明がなく、詳細には「退会済みユーザーは読取専用です。」と表示し編集セクションを除外する**。Use Caseのrank/role/status変更はいずれもwithdrawnを拒否するが、既存integrationのwithdrawn負例はstatus→activeのみで、rank拒否、前後のUser/version/Session不変、実Webと視覚正本は未実証。一覧単独で説明を要するかも正式期待の確認待ち。`review_required`を維持し、実Web/認可・DB不変・UI責務の証拠が揃ったときのみ再開。**次の共通逐次対象は`SCREEN-ADMIN-USERS-A02-03`（最終管理者保護の案内）**。既存の`SCREEN-ADMIN-USERS-A02-01`と`SCREEN-ADMIN-USER-DETAIL-A02-01`は新証拠がなければ反復しない。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
