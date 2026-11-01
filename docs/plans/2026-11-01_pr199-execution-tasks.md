@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDERS-A01-02`（注文絞り込み、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A01-01`は正式仕様・Web UI→Use Case→Dexie・Seedを静的照合し、注文一覧に決済・配送ステータスの独立列/DTOがない差を確認。実Web・正式な一覧表示期待・DB/Session snapshotは未受入のため`review_required`を維持。次回はA01-02のRole/検索・日付/金額境界を独立に確認する。詳細は下記同IDの節。
+- **現在の対象**：`SCREEN-ADMIN-ORDERS-A02-01`（注文詳細へのversion付き導線、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A01-02`は検索条件とRole/日付/金額/ページングの静的経路を照合し、学習用3 Caseを追加したが実Vitest/Web・正式なPayment/Shipment別フィルター期待は未受入。A01-02は`review_required`を維持し、次回はA02-01の対象ID/画面遷移/version・認可境界を1件確認する。詳細は下記同IDの節。
 - **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A01-02（注文絞り込み・境界）
+
+- **正本と期待の分離**：現HEADの台帳に実在する`SCREEN-ADMIN-ORDERS-A01-02`はWeb、Operator/Admin、default/`orders-phase1-statuses`、`review_required`。台帳は「決済状態・配送状態・検索条件を変更すると対象注文だけ」を期待する。正式`docs/spec/features/admin-orders.md:19-27`は「注文一覧、決済ステータス、配送ステータス、フィルター」を要求するが、**決済・配送それぞれの独立したフィルター操作**を明記しない。正式契約と台帳の解釈を混同しない。
+- **UI→Use Case→Repository（静的事実）**：`app/admin/orders`→`AdminOrdersContent`（`admin-operations-pages.tsx:301-451`）→`AdminOperationsUseCases.searchOrders`（`admin-operations-use-cases.ts:115-133`、`requireStaff`）→`DexieOrderRepository.search`（`order-review-repositories.ts:172-223`）。UIは注文番号/顧客keyword、**Order.statusだけ**の単一select、開始/終了日、最低/最高合計、sort、paginationを提供。Payment.status・Shipment.status専用フィルターはなく、Repositoryも両テーブルを検索条件に使わない。注文一覧の表示列もOrder.statusのみ（前ID A01-01参照）。正式仕様上のフィルター対象範囲と台帳期待は未確定であり、製品不具合確定ではない。
+- **境界と共通原因候補**：Use Caseはkeyword trim/長さだけを検証し、Repositoryは大小文字を無視した番号/メール部分一致、金額の`>= minimumTotal`/`<= maximumTotal`、`createdFrom`以上/`createdTo`**未満**、Order.status、userId、sortを適用し、最後にpageを切り出す。UIの終了日は`YYYY-MM-DDT23:59:59.999Z`を渡すため、その日の**最後の1msが除外される**（Repositoryの排他的上限との静的な接続差）。UIのdateはUTC組立でありローカル日付の期待も未確定。金額の上下限矛盾・非有限値、日付範囲の逆転に対するUse Caseの明示検証はない。さらにfilter変更時に`page`を1へ戻さず、以前のpageが残るため、ヒット件数が減ったとき空ページになる可能性がある。いずれも実Web再現・正式期待未確認の候補として扱う。
+- **Seed/Role/State/Data**：default Seedは`payment_failed/paid/preparing/shipped/delivered`の5注文を同一regular customerに作り、注文日時は2026-07-01の01:00〜05:00 UTC、Paymentはfailed/succeeded、Shipmentはpreparing以降のみ。UIのstaff RouteGuardとUse Caseのstaff認可は別層。guest/customer/停止staffの直接Use Case拒否、operator/adminの表示、Order/Payment/Shipment/Session不変を独立に検証する。
+- **Risk/TR/Condition/Case採否**：C1=operator/adminのstatus・keyword・金額等値境界とOrder/Payment/Shipment非変更（採用）。C2=開始日含む/終了日除くAPI境界とUIの最終1ms・UTC解釈（採用、UI期待は保留）。C3=createdFrom>createdTo、min>max、非有限値/負数、keyword上限の拒否または空結果とDB不変（採用、正式オラクル保留）。C4=filter変更時のpage維持・0件表示とsort tie-break（採用）。C5=guest/customer/停止staffの拒否と保護注文非露出（High候補として採用、実漏洩未確認）。C6=Web desktop/tabletの状態表示、Payment/Shipment別フィルターの正式必要性、キーボード/スクリーンリーダー、DB/Session前後（採用、実Run待ち）。
+- **直接Caseと判定**：既存`tests/integration/admin-operations-use-cases.test.ts`の検索Caseは条件をまとめて渡すが、厳密な対象ID・境界・拒否後の不変をassertしない。学習用`tests/contracts/ai-assisted-qa-admin-order-filters.test.mjs`へ独立Dexie/default Seedの3 Case（複合絞り込みと境界・排他的上限/ページング/不正page・customer/guest/停止staff拒否とOrder/Payment/Shipment/Session不変）を追加。作成したJSは`node --check`構文検査成功。**依存付きVitest/Prettier・実Web desktop/tablet・視覚・アクセシビリティ・正式フィルター解釈は未実施/未確定**。APIの排他的上限の確認CaseはUIの終了日仕様適合を証明しない。台帳`review_required`、基本分析50/188・状態14/20を維持し、製品適合・実Run・最終CIをPASSにしない。
+- **再開と次の共通対象**：新Caseの同一HEAD Vitest/formatter、Webのstatus・金額・日付最終1ms・page2→条件変更、Role別直URL、DB/Session前後、Payment/Shipmentフィルターの正式期待が揃った時に本IDを再判定する。次は台帳に実在する`SCREEN-ADMIN-ORDERS-A02-01`（選択した注文詳細へのversion付き導線）を1件扱う。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A01-01（注文一覧と決済・配送状況）
 

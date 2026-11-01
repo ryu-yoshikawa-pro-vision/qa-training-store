@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A01-02（注文絞り込み）
+
+- **静的照合**：正式`docs/spec/features/admin-orders.md:19-27`、`AdminOrdersContent:301-451`→`AdminOperationsUseCases.searchOrders:115-133`→`DexieOrderRepository.search:172-223`、default Seedの5注文を照合。WebはOrder.statusだけをfilterし、Payment/Shipmentの独立statusフィルターはない。台帳の「決済状態・配送状態」期待と正式仕様のフィルター対象範囲は解釈待ちで、欠陥確定ではない。
+- **重要な境界候補**：Repositoryは日付上限を`< createdTo`とするが、UIは終了日の`23:59:59.999Z`を指定し最終1msを含まない。UTCとユーザーのローカル日付の期待も未確定。金額上下限矛盾・日付逆転の明示検証がなく、filter変更後にpageが維持される。直接実Webでの再現は未確認。Order/Payment/Shipmentを混同しない。
+- **追加Case/採否**：学習用`tests/contracts/ai-assisted-qa-admin-order-filters.test.mjs`に複合条件と境界、排他的上限/ページング、customer/guest/停止staff拒否・Order/Payment/Shipment/Session不変の3 Caseを追加。JS構文`node --check`成功。C1〜C6のうちWeb実操作、入力異常、Role別描画、正式なPayment/Shipment絞り込み要否、視覚/アクセシビリティは未受入。依存付きVitest/Prettierも未実行であり追加をPASSにしない。
+- **判定/再開**：`review_required`継続。基本分析50/188操作・14/20非default状態（現台帳再集計）、増加なし。新Caseの同一HEAD実行、Web desktop/tabletの境界/Role/DB前後と正式期待が必要。次の共通対象は`SCREEN-ADMIN-ORDERS-A02-01`。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
+
+
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（在庫フィルター直接契約）
 
 - **正式仕様と静的事実**：`docs/spec/features/admin-inventory.md`のBR-ADMININV-001/AC-ADMININV-001は0=`out_of_stock`、1〜5=`low_stock`、6以上=`available`の排他的分類を要求。Web `AdminInventoriesContent`の「在庫あり/低在庫/在庫切れ」選択→`AdminOperationsUseCases.searchInventory`のstaff認可→`DexieInventoryRepository.search`に到達する。Repositoryは`available`を1以上で判定するため、1/5がlowとavailableに重複する。表の「状態」列は`ActiveBadge(isActive)`であり在庫分類ではない。これは既存の製品差分候補で、製品変更は行わない。
