@@ -1,5 +1,9 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-11-01 本人確定：B1〜B3はマージ後の別作業
+
+本PRで行うのは教材・Skill・評価・分析と、配布生成元/生成手順/開発環境・CIで可能な検証。B1の実Public Template `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` の作成・コピーは本人が**PRマージ後**に行う。マージ済み `main` で `node scripts/training/prepare-learner-template.mjs` を実行し、生成・検証した内容をコピーする。B3の本人Private repo/2コアCodespaces実受入は**その他全PR作業完了後**に行う。どちらもPRマージ前必須ゲートから外すが未実施をPASSとしない。B2は第三者ライブラリ等以外を本人制作物と確定し、再質問不要。独自部分のMITと第三者NOTICE/Secret検証は維持。以前のPR内公開・実2コア受入時期の記述には本節を優先する。
+
 **PR #199の現在の残タスク・優先順位・毎時0/15/30/45分の作業手順の正本**：[PR #199実行タスク](./2026-11-01_pr199-execution-tasks.md)。本Planは目的・実装/受入条件と過去の判断根拠を保持する。過去時点のHEAD・分析件数・CI結果は現在状態の判定に流用せず、最新の分析台帳とGitHubの実結果を確認する。
 
 ## Mobile CIの一時停止とマージ前の必須再検証（PR #199）

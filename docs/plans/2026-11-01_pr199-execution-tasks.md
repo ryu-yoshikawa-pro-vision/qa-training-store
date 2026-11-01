@@ -1,5 +1,12 @@
 # PR #199：残タスク・優先順位・定期実行の作業手順
 
+## 2026-11-01 本人確定：B1・B2・B3の実施順序（現行・旧規則より優先）
+
+- **B1（本PRでの配布準備は完了）**：公開先 `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` は本人が本PRマージ後に自ら作成・公開する。マージ前の外部リポジトリ作成や公開承認質問は不要。既存の配布manifest・`course:sync`・`verify-distribution`を使用し、マージ済みclean `main` で `node scripts/training/prepare-learner-template.mjs`を実行すると、リポジトリ外の `../ai-assisted-qa-learner/` に完全なコピー元を生成・検証する。生成先の中身を本人が公開先へコピーする。マージ前の固定SHAで生成済みファイルをPR内へ重複保存しない。実配布の検証が済むまでは実Run PASSとしない。
+- **B2（本人の著作権回答は解消）**：外部ライブラリ等の第三者依存物以外の教材・コード・固定Skillは本人が作成したと明示された。制作元・著作権を再質問しない。独自部分のMITを維持し、外部ライブラリ・フォント等の元ライセンス・NOTICE、生成物のSecretと配布禁止対象の技術監査は継続する。
+- **B3（後続受入）**：本人Privateリポジトリ・2コアCodespacesは本PRの**他の全作業が完了した後**に、本人がB1のPublic Templateから実施する。B1実公開もB3実受入も、**本PRマージ前の必須ゲートから除外**する。実行時のみ無料枠・課金設定を本人が確認し、未実行をPASSとしない。
+- 旧節の「PR内Public Template作成」「公開先の再承認」「PR内Private 2コア実Run必須」は本節で置き換える。4定時タスクは分析・教材・配布元監査の実行可能な作業を続ける。製品変更禁止、必要なCI・独立レビュー、PRマージの本人明示指示は維持する。
+
 ## 2026-11-01 共通の逐次実行規則（4定期タスクすべてに適用）
 
 **現行規則**：毎時00・15・30・45分の4実行は、異なる担当枠ではなく同じ1つの未完了作業を順番に引き継ぐ。実行頻度は維持する。下の「過去の担当枠別キュー」のQ-ID割当て、他枠を扱わない規則、各枠単独の自己停止条件は**履歴・参考情報**であり、現在の作業選択に使用しない。Q-ID、既存のPlan、目標ID、Case ID、分析台帳は維持する。
@@ -29,7 +36,7 @@
 
 Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)を正本として扱う。既存4枠のQ-ID・分析・教材・実証の割当てを変えない。スケジュール外の判断は次のとおり。
 
-- **Template・Q-34**：作成候補 `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner`、書込は所有者のみ。生成・公開前監査は許可済み。公開作成は監査後の個別承認待ち。本人Private repo/2コアCodespaces・Private Actionsは無料枠内のみ。利用時の残量と料金条件を確認する。
+- **Template・Q-34 / B1〜B3**：配布元準備は本PRで完了。本人がPRマージ後にPublic Templateを作成・コピーする。本人のPrivate 2コア実受入はPRの他の作業完了後。両者をマージ前ゲートに含めず、公開先・本人著作権・実施順序を再質問しない。外部ライブラリの通知、Secret除外、配布生成・検証は継続。
 - **AI評価・Q-14**：公開素材と受講者の演習回答・コード・必要なRun要約を正式AI評価で外部無料モデルに送信してよい。Token/Secret/個人情報・無関係な資料は禁止。モデル校正・実Run・誤PASS拒否が未達の限り正式修了を認定しない。
 - **製品19ファイル**：目的ごとの監査・方針提案は継続。実際の移設/revert/別PR作成・製品改修は保留。Highが実証されたらマージ判断を停止し、製品修正の方針を優先して別途承認を得る。新規Issueは重複確認済みHighのみ、公開前に内容確認する。未修正セキュリティ問題は公開報告を概要に限る。
 - **未決仕様・マージ**：RankフィルターとCheckout郵便番号/電話番号の許容文字は2026-11-01本人回答で期待仕様を確定（[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)）。実Web/Native、回帰、製品改修は未受入。その他の意味変更はユーザー承認。Web/Nativeは画面・入力・エラー文言も基本同等とし、例外は調査。処理中の二重決済は禁止、同一キーの冪等応答は許容。マージは全条件達成・独立レビュー・ユーザー明示指示後のみ。
@@ -153,12 +160,12 @@ Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent
 - **完了条件**：分析の根拠不足が解消し、再現した製品問題はリスクと教材代替/阻害判断を記録。製品修正は別途承認なしに行わない。
 - **正本**：[製品改善レポート](../reports/pr199-product-improvements.md)。
 
-### P1：学習用公開Template・本人Privateリポジトリ・2コアCodespaces
+### P1：学習用Template配布準備とマージ後の本人作業
 
-- **状態**：**BLOCKED（公開先、権限、費用・支払主体の明示承認待ち）**。
-- **次の作業**：承認を要しない範囲で、`training/course-sync/manifest.json`、固定SHA、公開物/Secret除外、`course:sync`・`course:load`・非破壊再ロード、配布対象/依存を検証。承認後のみ公開Template作成、本人所有のPrivate repoと新規2コアCodespaceでShopの8082 Serve/Seed/Reset/Playwright実Runを確認。
-- **完了条件**：公開範囲・本人の支払主体/無料枠・権限が承認済みで、**実Template由来**の2コア環境におけるload/Serve/Reset/Playwright/結果保全を実証。ローカルfixtureのPASSは代替不可。
-- **正本**：[配布Plan](./2026-10-16_qa-curriculum-ai-agent-redesign_distribution.md)、[Target](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)。
+- **B1準備：完了**。既存manifest/配布元教材・Skill・LICENSE/NOTICEと`course:sync`・`verify-distribution`、マージ済みmainのSHAから外部コピー先を作る`scripts/training/prepare-learner-template.mjs`を用意した。生成物をPR内に二重保存せず、実生成・全Hash/Secret確認は別受入。
+- **B1公開：本人のPRマージ後作業**。本人が公開先を作成し、上記で生成した内容をコピーする。エージェントは公開しない。マージ前ゲート・追加質問から除外。
+- **B2：本人制作物の権利確認完了**。外部ライブラリ等の原ライセンス・NOTICE検査は続ける。
+- **B3：他のPR作業完了後に本人が実施**。Public Template由来Private repo/2コアCodespacesでload/Serve/Reset/Playwright/モデル接続を検証する。無料枠を超える課金は禁止。マージ前の実Runゲートから除外し、未実行と明記。
 
 ### P2（マージ前必須）：既存製品差分19ファイルの処理方針
 
@@ -179,4 +186,4 @@ Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent
 - **変更可能**：教材、演習、評価、学習用fixture/専用Seed・Playwright/契約テスト、分析台帳、調査レポート、Plan、知識グラフ、学習用配布/検証ツールと必要な学習用CI。
 - **無断変更禁止**：既存製品本体（`src/presentation/**`、`src/application/**`、`src/infrastructure/**`、`app/**`等）、正式製品仕様、既存Seed/Reset、既存製品テスト・workflow、過去の製品差分のrevert/移設/別PR化。既存`docs/spec/**`の意味不変なMarkdown書式修正のみ、CI/lint等で必要性を確認した場合の限定例外。
 - **明示承認待ち**：外部Public Template公開・作成先/権限/費用、本人の課金を伴う環境、製品差分の移設/revert/別PR作成、製品の機能・正式仕様変更、新規Issue。merge、force push、branch削除、PR/Issue close、release/tagは禁止。
-- **全タスク完了の判定**：確定分母の全サポート動作が証拠付き基本分析100%、非default状態全件の判断、教材/51学習目標/Skill・正式AI評価の検証、実Template→Private 2コアCodespaces→Playwrightとモデル校正の技術受入、製品差分処理と必要な承認、最新HEADのWeb/Mobile CI・レビュー条件がすべて満たされた場合のみ。実受講者の学習効果検証はこのPR完了条件の外。
+- **PRマージ前の完了判定**：確定分母の全サポート動作の証拠付き基本分析100%、非default状態全件の判断、教材/51学習目標/Skill・正式AI評価の開発環境での検証、配布準備/第三者NOTICE/Secretの監査、製品差分処理・必要承認、最新HEADのWeb/Mobile CI・独立レビューを満たす。**B1実公開とB3実Private 2コアCodespaces受入は本人の指示によりマージ後へ移した**。後続実受入は削除せず未実施として扱う。実受講者の学習効果検証も本PR完了条件の外。

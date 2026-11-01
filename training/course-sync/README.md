@@ -10,39 +10,29 @@
 - `training/ai-assisted-qa-course/templates/learner-devcontainer.json`：配布先の`.devcontainer/devcontainer.json`
 - `scripts/training/ai-assisted-qa-course-core.mjs`：固定SHA/許可リストに基づく`course:sync`と、配布後のハッシュ照合
 - `scripts/training/ai-assisted-qa-course.mjs`：`course:load`、`course:run`、`course:assess`等
+- `scripts/training/prepare-learner-template.mjs`：マージ後にコピー用の外部ディレクトリを生成・ハッシュ検査
 - 管理者Build済みの`dist/**`は`course/shop/**`へコピーする。受講者に製品全Buildを要求しない
 
 別リポジトリに原本を複写して二重管理せず、**確定commitごとに同じ生成手順**を利用します。公開Gitの評価資料は秘密ではありませんが、Template、ロード対象、Web Build/Artifactから除外します。
 
-## 初回生成
+## PRマージ後：コピー元を生成する手順
 
-作成者は所有アカウント、公開リポジトリ名、管理権限、課金条件を作成前に確認します。候補名は`ryu-yoshikawa-pro-vision/qa-training-store-learning-template`です。実在確認後に別名を指定しても構いません。
+公開先 `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` は本人がPRマージ後にGitHub上で作成する。**本PR内ではPublicリポジトリを作成・公開しない。** `training/ai-assisted-qa-course/templates/` はREADME等の配布**元**で、そのままコピーするとShopと固定Skillが欠ける。生成した配布物をPR内に二重保存しない。
 
-ソースの作業ツリーがcleanで、指定commitが現在のHEADである必要があります。`course:sync`は対象ディレクトリを新規作成しないため、別の空ディレクトリを用意します。
-
-```bash
-# qa-training-store の作業ツリー
-pnpm run validate:ai-assisted-qa
-git status --short
-SOURCE_SHA="$(git rev-parse HEAD)"
-mkdir -p ../qa-training-store-learning-template
-pnpm course:sync --source-sha "$SOURCE_SHA" --target ../qa-training-store-learning-template
-cd ../qa-training-store-learning-template
-node scripts/training/ai-assisted-qa-course.mjs verify-distribution
-git init -b main
-git add .
-git commit -m "chore: initialize pinned AI-assisted QA learner template"
-```
-
-`course:sync`は固定SHA・配布許可リスト・評価資料の除外・symlink禁止・衝突時非破壊性を検査します。GitHub上で作成する場合は、別の公開リポジトリへの**新規作成権限**が必要です。以下は初回だけ実行し、既存リポジトリを上書き・force pushしません。
+マージ後、Node.js/pnpmを導入した **cleanなmain** で実行する。
 
 ```bash
-gh repo create ryu-yoshikawa-pro-vision/qa-training-store-learning-template --public --source . --push
-gh api --method PATCH repos/ryu-yoshikawa-pro-vision/qa-training-store-learning-template -F is_template=true
-gh repo view ryu-yoshikawa-pro-vision/qa-training-store-learning-template --json isTemplate,isPrivate,url
+git checkout main
+git pull --ff-only
+pnpm install --frozen-lockfile
+node scripts/training/prepare-learner-template.mjs
 ```
 
-受講者側はこの公開Templateの **Use this template** から個人の非公開リポジトリを作成し、2-core Codespaceを選択します。公開fork→非公開化は利用しません。受講者の答案・Secret・個人評価結果は管理者Templateへ取り込みません。
+生成スクリプトは既定でソース外の `../ai-assisted-qa-learner/` を作り、確定HEADのSHAで既存 `course:sync` を実行する。Shop Web Build、固定Skill104ファイル・教材・LICENSE/NOTICEの配布後に `verify-distribution` でHash等を検証する。生成先が既に空でない場合は上書きせず拒否。任意の別ディレクトリは `--target <空ディレクトリ>` で指定可。**実生成して成功ログがあるまでは配布実Run完了とはしない。**
+
+成功した生成先ディレクトリの**中身を隠しファイルも含めて**、本人が用意した公開リポジトリのルートにコピーする。`.course/distribution-manifest.json` の `source_sha` はマージ後のHEADになり、`README.md`、`LICENSE`、`THIRD_PARTY_NOTICES.md`、`.devcontainer/devcontainer.json`、`course/shop/index.html` 等を含む。公開先はGitHubのTemplateリポジトリに設定する。
+
+本人がマージ後に公開・コピーする方針は確定済みで、再質問しない。B1のPR内配布**準備は完了**。外部ライブラリ等以外は本人制作物として権利確認済み。B3の本人Private repo/2コアCodespacesは他の全PR作業が完了してから後続受入し、無断課金しない。
 
 ## 更新・検証
 

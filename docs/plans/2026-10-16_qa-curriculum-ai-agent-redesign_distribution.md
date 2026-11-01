@@ -1,5 +1,11 @@
 # 新課程の教材同期・モジュール単位ロード設計
 
+## 2026-11-01 更新：本人がマージ後に公開する最終方針（旧記述より優先）
+
+B1は本PRで配布生成元・手順を整備した時点で準備完了。本人が**PRマージ後**に `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` を作成・公開する。正本は `training/course-sync/manifest.json` と `course:sync` であり、マージ済みclean `main` から `node scripts/training/prepare-learner-template.mjs` で `../ai-assisted-qa-learner/` を生成・検証し、その**内容を**本人が公開先へコピーする。別正本となる配布スナップショットはPRへコミットしない。公開承認・所有者名を再質問しない。
+
+B2：外部ライブラリ等の第三者依存物以外は本人が作成した教材・コード・Skillであり、本人著作物の権利確認は完了。独自部分のMITと第三者のライセンス・NOTICEは区別する。B3：本人Private repo/2コアCodespacesの実受入は**PRの他の全作業完了後**。B1実公開とB3実RunはPRマージ前の必須ゲートから除外する（実施前のPASS認定はしない）。無料枠の確認は実行時のみ。
+
 ## 2026-11-01 Template作成・費用・外部送信の承認条件
 
 公開Templateの候補は個人アカウントの `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner`。設定変更・書込権限は所有者のみとする。現在許可されているのは**生成と公開前監査まで**であり、外部GitHubリポジトリの作成・公開は監査結果を提示した後の個別承認を要する。転送リスト、配布されたShop/Skill、依存関係、第三者ライセンス、禁止ファイル・Secretと起動手順を事前監査し、manifestの静的検査だけで公開可能とは判定しない。
@@ -30,13 +36,13 @@ Node.jsの評価処理が`https://api.github.com/repos/ryu-yoshikawa-pro-vision/
 
 ## 実Templateの技術受入とM09→M10の手順
 
-今回PRで公開Templateを作成し、そこから本人所有の非公開リポジトリを新規作成する。新規2コアCodespaceで許可リスト/固定SHA・一モジュールload・既存ファイルの非破壊再ロード・配布済みShopのServe/Reset・Playwrightと実行証拠/成果物保全を確認する。未実施・失敗ならPR完了としない。Templateの作成先・名前・管理権限は実作成の前に確認し、未指定のまま無断作成しない。
+本PRでは配布元・同期手順と開発環境で可能な検証を完成する。Public Templateは本人がPRマージ後に作成・コピーする。Private repo/2コアCodespaceでの実受入は他の全PR作業完了後の本人作業。B1/B3をPRマージ前の必須ゲートにはしないが、実施まで実Run未受入とする。作成先・権限・本人制作物の著作権について再質問しない。
 
 M09では無効な学習専用workflowを修正・レビューして`.disabled`のまま保持する。M10では無料枠とActionsの課金・権限、対象specを確認した後、本人が必要なworkflowだけ`.github/workflows/`へ移して有効化・commit/PR・実Run/Check/Artifactを取得し、現在HEADのSHAと照合する。終わったら不要なtrigger・Artifact・使用量を確認して必要に応じ安全に無効化する。旧/正式workflowは有効化しない。
 
 ## 今回PRでの公開Templateと個人非公開リポジトリ（2026-10-25）
 
-今回のPR実装工程で管理者用の**公開Templateリポジトリを実際に作成**し、固定SHA・配布許可リスト・契約テストで整合を検証する。受講者は公開TemplateからGitHubのTemplate機能で本人所有の**非公開リポジトリ**を作る。公開forkから非公開へ変更する手順は採用しない。Template由来の新規2コアCodespaceで配布物照合・1モジュールload・Serve/Reset・Playwrightと結果保存まで技術受入する。個人のOpenCodeモデル認証は受講者初回確認、学習効果試行は今回PR外。
+今回のPRでは**公開Template生成元と検証手順を準備**し、外部GitHubリポジトリの実作成・公開は本人がPRマージ後に実施する。受講者は公開TemplateからGitHubのTemplate機能で本人所有の**非公開リポジトリ**を作る。公開forkから非公開へ変更する手順は採用しない。Template由来の新規2コアCodespaceで配布物照合・1モジュールload・Serve/Reset・Playwrightと結果保存まで技術受入する。個人のOpenCodeモデル認証は受講者初回確認、学習効果試行は今回PR外。
 
 **Codespace停止はremoteリポジトリへの成果物保存ではない**。Phase 1/2はGit操作なしの安全なエクスポート、削除前の存在確認を行い、Phase 3では意図したspecだけGitで保全する。個人の無料枠のみを使い、非公開GitHub Actionsの実行分数・Artifact保存・課金停止条件を確認する。超過・権限不足はBLOCKEDとする。
 

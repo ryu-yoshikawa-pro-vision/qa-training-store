@@ -1,5 +1,9 @@
 # 新課程のScenario Shop演習・実行・CI分離設計
 
+## 2026-11-01 本人確定：マージ後の公開と実環境受入
+
+配布物の作成手順・必要な検証入口を本PRで用意し、本人が本PR**マージ後**に `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` を公開する。コピー元はマージ済み `main` で `node scripts/training/prepare-learner-template.mjs` により生成する。本人Private repo/2コアCodespacesの実受入は**本PRの他の全作業完了後**に実施するため、マージ前ゲートから除外。外部ライブラリ等以外の教材・コード・Skillは本人作成と確定し、再質問しない。第三者ライセンス・Secret検査は継続。旧節の公開・実Codespaces必須時期は本節が優先する。
+
 ## PR #199におけるScenario Shopの変更境界・改善管理（2026-10-31確定）
 
 Scenario Shopの実装・正式製品仕様・既存Seed/Reset・製品用テストは、新課程から参照するテスト対象（SUT）とする。全機能分析は続けるが、製品の不具合・改善点の発見は製品機能を修正する許可ではない。全機能分析に関連して発見した仕様差、機能不具合、UI/UX、性能、保守性、セキュリティ、テスト容易性などは、既存の分析記録と[製品改善レポート](../reports/pr199-product-improvements.md)で根拠付きに管理し、同じ論点は重複登録しない。製品全体の別途の網羅的改善調査は追加しない。

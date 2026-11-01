@@ -1,5 +1,11 @@
 # PR #199 学習用公開Templateの公開前監査
 
+## 2026-11-01 本人回答と監査の区分（最新）
+
+- **B1：本PRの配布準備は完了**。既存 `course:sync`/manifest/検証処理と、マージ後の `main` からコピー元 `../ai-assisted-qa-learner/` を生成する `scripts/training/prepare-learner-template.mjs`を整備。実Public Template `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` は本人がPRマージ後に作成・コピーするため、公開許可を再質問しない。実生成・コピー・配布ハッシュ検証の実Runは未受入として別管理。
+- **B2：本人制作物の確認は解消**。外部ライブラリ等の第三者依存物以外の教材・コード・固定Skillは本人が制作したと明示された。本人著作物の出典・権利を再質問しない。独自部分に既承認のMITを適用し、外部ライブラリ/フォントの元ライセンス・著作権表示と配布通知の正確さ、Secret・禁止ファイル検査は継続する。
+- **B3：本人Private repo・2コアCodespaces実受入は他の全PR作業が完了してから実施**。マージ後の後続作業であり、PRマージ前ゲートではない。実行時に無料枠を確認し、未実行を実Run PASSとしない。旧節のPR内公開/2コア実受入必須は本節で置き換える。
+
 ## 2026-11-01 配布ライセンスの実装状況（更新）
 
 MIT Licenseの採用承認に従い、学習者用配布元の`training/ai-assisted-qa-course/templates/`に`learner-LICENSE`、`learner-THIRD_PARTY_NOTICES.md`、`learner-OFL-1.1.txt`を追加した。配布manifestのlocalは**137件から140件**へ増加し、それぞれ`LICENSE`、`THIRD_PARTY_NOTICES.md`、`licenses/OFL-1.1.txt`に対応付けた。外部Skill104件の固定参照は変更していない。学習者READMEと配布契約テストにも3ファイルの案内・検査を追加した。[実装commit](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/60b853a17d888afe7139e8fa0e59f4dd17d12d25)、[書式修正commit](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/7a714286118ac9a35616a30eb9330bfe26f8a7c0)を参照する。
