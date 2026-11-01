@@ -27,8 +27,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（注文状態別の次アクションとversion表示、台帳`review_required`）。学習用隔離Dexie契約3 Caseを追加し、静的16/16条件を照合。新規Vitest/formatter・実Web/競合は未実行のため、次回も同IDで直接検証を継続する。直前の`SCREEN-ADMIN-ORDER-DETAIL-A01-01`は正式仕様とUI→Use Case→Dexie→Seedの静的10条件を照合。注文時の配送先・商品・ランクは保存snapshotだが、画面の顧客名/メールは現行Userを参照するため「顧客スナップショット」の正式期待との境界は未確定。別読取による同時更新時の一貫性、Role別情報非露出、実Web/DB snapshotは未実証で`review_required`維持。詳細は下記同ID節。
-- **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（注文状態別の次アクションとversion表示、台帳`review_required`）。HEAD `777d605e016d`のWeb CI #41345765211で学習用隔離Dexie契約3 Caseが直接PASS。さらに別operator Sessionが同じ古いversionで更新した際の`CONFLICT`、Order/Shipment/Historyの単一更新とPayment/Session不変を検査する第4 Caseを追加した。第4 CaseのVitest/formatterと実Web/実並行・視覚は未実行のため、**次回も同ID**で直接結果を確認する。実Web・別Session実ブラウザの受入までは`review_required`維持。
+- **CI横断**：HEAD `777d605e016d`のWeb CI [#41345765211](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41345765211)はcompleted/failure。対象の学習用3 CaseはPASS、Style Qualityは対象外の学習用5ファイルのPrettier、Vitest contractsは既存`review_required`と旧`analyzed`期待の不一致15件、required Chromium E2E・verify・validateはfailure。第4 Caseの直接結果と最終同一HEAD必須CI成功は未受入。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -46,6 +46,12 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（別Sessionの古いversion拒否を追加）
+
+- **直接実行の証拠**：HEAD `777d605e016d46cb5b59eac196e4b399bc520d06` の [Web CI #41345765211](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41345765211) の Vitest (contracts) ログで `tests/contracts/ai-assisted-qa-admin-order-detail-actions.test.mjs` は**3 Case PASS（115ms）**。5注文状態の読取、paid→deliveredの3遷移とstale拒否、禁止遷移/不正配送入力/非staff拒否が隔離Dexieで成功。対象ファイルは同HEADのStyle Quality警告5件には含まれないが、これは本回の独立formatter実行の代用ではない。
+- **追加した直接Case（第4 Case）**：独立した2つのoperator Sessionが同じ `order-paid` version=1 を取得し、1つ目のSessionでpreparingへ更新後、2つ目の古いversionの更新が`CONFLICT`となることを検証する。拒否前後のOrder/Payment/Shipment/History/Sessionの全snapshot同一、成功側のみOrder.version=2・Shipment/Historyが各1件増えることをassert。学習用隔離fixtureのみを変更し、正式仕様・製品SUT・Seed/Reset・既存製品テストは無変更。**逐次的な別Sessionの競合Caseであり、実際の同時トランザクション競争の実証ではない**。
+- **未受入・再開条件**：追加第4 Caseの同一HEAD Vitest/Prettier、Web desktop/tabletの5状態の操作可否・version表示、実ブラウザの別Session競合、DB前後、視覚/アクセシビリティを確認する。対象`review_required`、基本分析50/188・非default14/20、製品適合/実Web/最終CIの未受入を維持。CI横断のStyle Quality 5ファイル・supported-behaviors旧期待15件・required Chromium E2Eの失敗は独立管理し、本IDの作業を止めない。次の共通実行も同IDの直接結果から再開する。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（次アクション・操作version）
 

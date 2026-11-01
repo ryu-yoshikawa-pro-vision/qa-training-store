@@ -40,6 +40,11 @@ describe("AI-assisted QA SCREEN-ADMIN-ORDER-DETAIL-A01-02 action/version contrac
         createdAt: "2026-07-01T03:00:00.000Z",
       },
       {
+        id: "training-second-operator-session",
+        userId: "user-operator",
+        createdAt: "2026-07-01T03:00:00.000Z",
+      },
+      {
         id: "training-customer-session",
         userId: "user-customer-regular",
         createdAt: "2026-07-01T03:00:00.000Z",
@@ -146,6 +151,41 @@ describe("AI-assisted QA SCREEN-ADMIN-ORDER-DETAIL-A01-02 action/version contrac
       status: "delivered",
       version: 4,
     });
+  });
+
+  it("rejects a stale update from another operator session without duplicating writes", async () => {
+    const first = useCasesFor("training-operator-session");
+    const second = useCasesFor("training-second-operator-session");
+    const firstView = await first.getOrder("order-paid");
+    const secondView = await second.getOrder("order-paid");
+    expect(firstView.orderActionVersion).toBe(secondView.orderActionVersion);
+    const before = await snapshot();
+
+    const updated = await first.startPreparation({
+      orderId: firstView.orderId,
+      orderActionVersion: firstView.orderActionVersion,
+    });
+    expect(updated).toMatchObject({
+      orderStatus: "preparing",
+      orderActionVersion: 2,
+      shipment: { status: "pending" },
+    });
+    const afterFirst = await snapshot();
+    await expect(
+      second.startPreparation({
+        orderId: secondView.orderId,
+        orderActionVersion: secondView.orderActionVersion,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await snapshot()).toEqual(afterFirst);
+    expect(afterFirst.orders.find((order) => order.id === "order-paid")).toMatchObject({
+      status: "preparing",
+      version: 2,
+    });
+    expect(afterFirst.histories).toHaveLength(before.histories.length + 1);
+    expect(afterFirst.shipments).toHaveLength(before.shipments.length + 1);
+    expect(afterFirst.payments).toEqual(before.payments);
+    expect(afterFirst.sessions).toEqual(before.sessions);
   });
 
   it("rejects invalid transitions, invalid shipping fields and unauthorized actors without writes", async () => {
