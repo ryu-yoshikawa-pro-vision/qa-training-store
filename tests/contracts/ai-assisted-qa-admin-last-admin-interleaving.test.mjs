@@ -1,4 +1,7 @@
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import Dexie from "dexie";
+import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 import { AdminUserUseCases } from "../../src/application/use-cases/review-user-use-cases";
 import { TestClock } from "../../src/infrastructure/clock/clocks";
@@ -107,4 +110,15 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
       }
     },
   );
+});
+
+// Temporary formatting diagnostic; remove after applying the canonical result.
+it("prints canonical Prettier output for the training contract", async () => {
+  const filename = fileURLToPath(import.meta.url);
+  const original = fs.readFileSync(filename, "utf8");
+  const options = await prettier.resolveConfig(filename);
+  const canonical = await prettier.format(original, { ...options, filepath: filename });
+  if (canonical !== original) {
+    console.log("FORMAT_BEGIN\\n" + canonical + "\\nFORMAT_END");
+  }
 });
