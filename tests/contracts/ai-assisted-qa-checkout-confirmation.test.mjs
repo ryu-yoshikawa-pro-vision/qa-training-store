@@ -247,8 +247,9 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
       });
       expect(restored.version).toBe(changed.version + 1);
       expect((await checkout.getConfirmation(restored.id)).paymentMethodCode).toBe("TEST-SUCCESS");
-      expect(await database.orders.count()).toBe(0);
-      expect(await database.payments.count()).toBe(0);
+      const after = await snapshot();
+      expect(after.orders).toEqual(before.orders);
+      expect(after.payments).toEqual(before.payments);
     });
 
     it("preserves the selected declined method in confirmation and the pending payment", async () => {

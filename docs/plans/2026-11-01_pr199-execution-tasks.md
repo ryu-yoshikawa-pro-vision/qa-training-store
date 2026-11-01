@@ -47,6 +47,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-04（C5のSeed誤期待を修正・直接再実行待ち）
+
+- **直接CI結果と失敗の分離**：HEAD `abab9021cdd39fedb4facaa3c171986555efb2df` の [Web CI #41360433500](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41360433500)で学習用Checkout確認契約は**12件中11 PASS、C5 1 FAIL**。失敗箇所は`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs:250`、`expected 5 to be 0`。default Seedには既存Orderが5件あるため、これはC5の「新規Order/Paymentを作らない」条件を誤って空DB前提で検査した**学習用テストオラクル不備**である。製品SUTの失敗と判定しない。
+- **今回の変更**：C5末尾のOrder/Payment件数ゼロ断定を廃止し、変更前に取得済みの`snapshot()`と、支払方法再選択後のOrder/Payment配列の完全一致を検査する。Seedの既存5注文を維持しつつ、拒否・再選択で注文/決済が増減しないことを確認する。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。**修正後の直接Vitest/formatterは未実行でPASSへ昇格しない**。
+- **独立した横断CI**：同HEADのCode Quality、integration、unit、repository、component、buildはsuccess。Style Qualityは学習用6ファイル（対象契約を含む）でfailure、supported-behaviors旧`analyzed`期待等15件はfailure、required Chromium E2EのCheckout再確認は3試行失敗、verify/validateはfailure。C5の再実行結果と全必須jobの成功を別判定する。
+- **引継ぎ**：対象`SCREEN-CHECKOUT-CONFIRM-A01-04`は`review_required`継続、基本分析50/188操作・非default14/20状態据置。次回も同IDのC5修正後のVitest・formatterを最優先で確認し、Web/Androidの支払方法表示・変更復帰・エラー導線、Role/Cart競合、DB/Session前後、視覚/アクセシビリティを実証する。実Runの再開条件が変わらなければ検証待ちを維持し、台帳に実在する次の1件へ進む。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-04（CI直接証拠と支払方法変更のversion境界）
 
 - **同一HEADの直接証拠**：HEAD `32046fb6308f4619a970d847a2d4d1dcf7504f09` の[Web CI #41358741225](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41358741225)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs` **11/11 PASS（388ms）**。このうちA01-04の保存済み`TEST-DECLINED`保持・未設定拒否の2 Caseが成功。Code Quality success。隔離Dexieの学習用契約であり、実Web/Native表示・正式製品適合・全体CI PASSとは別判定。
