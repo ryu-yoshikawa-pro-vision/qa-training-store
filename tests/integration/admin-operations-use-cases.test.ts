@@ -89,6 +89,32 @@ describe("admin inventory, order, and shipment integration", () => {
     });
   });
 
+  it("separates out, low, and available inventory at 0/1/5/6 stock boundaries", async () => {
+    const variants = (await database.product_variants.toArray()).slice(0, 4);
+    expect(variants).toHaveLength(4);
+    const quantities = [0, 1, 5, 6];
+    for (const [index, variant] of variants.entries()) {
+      await database.product_variants.update(variant.id, {
+        stockQuantity: quantities[index]!,
+      });
+    }
+    const ids = new Set(variants.map((variant) => variant.id));
+    const inventoryIds = async (stockState: "out" | "low" | "available") => {
+      const result = await useCases.searchInventory({
+        stockState,
+        pageSize: 100,
+      });
+      return result.items
+        .filter((item) => ids.has(item.variantId))
+        .map((item) => item.variantId);
+    };
+    expect(await inventoryIds("out")).toEqual([variants[0]!.id]);
+    expect(new Set(await inventoryIds("low"))).toEqual(
+      new Set([variants[1]!.id, variants[2]!.id]),
+    );
+    expect(await inventoryIds("available")).toEqual([variants[3]!.id]);
+  });
+
   it("rolls back invalid stock and stale-version adjustments", async () => {
     const before = await useCases.getInventoryDetail("variant-basic-shirt-02");
     await expect(

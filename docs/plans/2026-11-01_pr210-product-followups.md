@@ -46,6 +46,10 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 `src/presentation/native/native-purchase-screens.tsx` の `asPurchaseError` は、`ApplicationError.message` に格納された `messageKey` をそのまま返していた。Webの `auth-pages.tsx#useAuthError` には認証失敗・利用停止・退会・保存失敗などの利用者向けメッセージがあることを確認した。Nativeのログイン・会員登録のエラー表示にも、エラーコードごとの利用者向け日本語と未知の例外の一般的な案内を追加した（[`ce22cf3`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ce22cf3c5d2b0e359249e5415fd51e5a20a434ff)）。Native componentに拒否・保存失敗・会員登録失敗・未知の例外のCaseを追加し、既存のCheckout復帰時の読み取り失敗Caseも表示内容を確認するよう強化した。Nativeのほかの画面が持つ全エラー表示まで対応済みとは扱わない。最新HEADのCIと実端末受入は別途確認する。
 
+## 2026-11-02 管理在庫の状態分類
+
+`docs/spec/features/admin-inventory.md#BR-ADMININV-001` は0件を `out_of_stock`、1〜5件を `low_stock`、6件以上を `available` とする。SKU単位の在庫を検索する `DexieInventoryRepository.search` の `available` 条件だけが1件以上であり、低在庫と重複していた。SKU在庫一覧の条件を6件以上へ修正し、4境界値を `tests/integration/admin-operations-use-cases.test.ts` に追加した。商品一覧の別契約 `in_stock` (1件以上) は変更しない。最新HEADのCIと実Web画面の受入は確認待ち。
+
 ## 高リスク候補：実証を優先する
 
 | 対象 | 静的根拠・現在の限界 | #210側の検証観点 |
@@ -63,7 +67,7 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 | 候補 | #210で確認すること |
 | --- | --- |
 | Nativeログイン拒否理由が `messageKey` のまま表示される可能性 | 停止・退会・誤資格・保存失敗の実Android表示とSession/Cart不変、Webとの差 |
-| 管理在庫の0/1/5/6以上の区分 | `available>=6`の正式期待とDexieの`>=1`判定、UIに表示する状態の責務 |
+| 管理在庫の0/1/5/6以上の区分 | `BR-ADMININV-001`の分類に合わせ、Dexie SKU一覧の`available`を6以上に修正。0/1/5/6のintegrationテストを追加。最新HEADのCI・実Web表示は確認待ち |
 | 商品一覧empty時の復帰導線 | Web Breadcrumbs、条件解除CTA、Native空状態が正式な「戻る導線」を満たすか |
 | 管理商品絞り込み後のページ位置 | ページ2以降でフィルター変更した際の再検索・結果非表示の有無 |
 | Native注文一覧のステータス表示 | 利用者向け日本語表示と内部status表記のPlatform差 |
