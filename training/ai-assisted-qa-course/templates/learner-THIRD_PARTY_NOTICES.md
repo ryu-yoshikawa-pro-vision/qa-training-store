@@ -13,6 +13,17 @@ Web Buildの `course/shop/_expo/static/css/files/` に含まれる以下のフ�
 
 配布元パッケージ：`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`。OFL公式サイト：https://openfontlicense.org/ 。
 
+## Web JavaScriptに含まれる第三者コード
+
+Web CI Run [41293093957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41293093957) の生成JavaScript `course/shop/_expo/static/js/web/entry-21b4711df1c6db0566115828ee2d23ee.js`には、次の著作権・MITライセンス表示が含まれています。原文の表示を保持し、独自著作物のMITに帰属させません。
+
+| 対象 | 著作権表示 | ライセンス |
+| --- | --- | --- |
+| React / react-dom / react-is / scheduler / use-sync-external-store-shim等 | Copyright (c) Meta Platforms, Inc. and affiliates. | MIT |
+| bezier-easing | Copyright 2014-2015 Gaëtan Renaudeau | MIT |
+
+MITの全文はこの配布物の`LICENSE`にも含まれますが、元の著作権者は上記のとおり別です。Webアプリの生成JSに含まれる依存物のライセンス・通知の**全件検査はまだ未完了**です。
+
 ## その他の配布物
 
 - `.agents/skills/**` は `qa-workflow-skills` の固定commit `7cc6cba7772de549841a39d71694cbafbc783324` から取得します。MIT対象となるのは権利者が許諾可能な自作部分のみです。外部から採用したコード・資料が含まれる場合は、その元ライセンスと表示を維持します。

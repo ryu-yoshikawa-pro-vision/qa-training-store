@@ -121,3 +121,9 @@ Run `41293093957`の`web-dist-production` Artifactに含まれる`woff`/`woff2`�
 [SIL公式OFL FAQ](https://openfontlicense.org/ofl-faq/)では、配布プログラムにバンドルされたOFLフォントについて、ライセンス本文が別ファイルにないことだけでは違反と断定できない。フォント内に参照URLを含める対応も説明されているが、**利用者が参照しやすいOFL全文と著作権表示を別途同梱することを推奨**している。したがって、今回は「独立ライセンスファイル欠如＝違反」と判定せず、実配布前に通知/ライセンス文を用意して、元ファイルの著作権表示と一致することを確認する。
 
 この監査はビルド済みフォントの**静的なメタデータ検査**であり、Template側でのライセンス同梱や2コア実行環境の受入ではない。
+
+## 追加監査：JSバンドル内の第三者著作権表示
+
+Run `41293093957`の`web-dist-production` Artifact（SHA-256 `a005e0167c7f61454d255cbdfbe90b0c99fcaba4ac14713fcddb949324dc3abb`）の`_expo/static/js/web/entry-21b4711df1c6db0566115828ee2d23ee.js`をテキスト検査した。React/React DOM/React IS/scheduler/use-sync-external-store-shim等の`@license React`と`Copyright (c) Meta Platforms, Inc. and affiliates.`、`bezier-easing`の`Copyright 2014-2015 Gaëtan Renaudeau. MIT License.`を確認した。これは実ビルドに含まれる**少なくとも2系統の第三者著作物**の根拠であり、全依存コードの権利者を検出できたことは意味しない。
+
+学習者用`THIRD_PARTY_NOTICES.md`へ著作権者・MITの別個の表示を追加した。元バンドル内の`@license`表示は削除しない。学習者用`LICENSE`に独自コードの著作権者名を記載していても、第三者MITコードがその著作権者へ移転するわけではない。依存物の全量調査・実`course:sync`は引き続き未受入。
