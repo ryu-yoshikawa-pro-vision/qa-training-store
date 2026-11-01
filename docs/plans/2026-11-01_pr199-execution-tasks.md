@@ -27,8 +27,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6、台帳`review_required`）。学習用直接Caseを2件追加（うち1件は正式仕様との既知差を`it.fails`で保持）。直接Vitest・実Web/視覚・DB・製品適合は未受入。次回は新HEADの直接Case証拠を確認し、同じ未確認根拠を反復せず次の独立操作へ移る。詳細は下記同IDの節。
-- **CI横断**：調査HEAD `d7f436286d51`のWeb CI #41334980000はcompleted/failure。Style Quality・Vitest contracts・required Chromium E2E・verify・validateが失敗。新Caseを含む更新HEADのCIは別判定、Mobile CIは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-ORDERS-A01-02`（注文絞り込み、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A01-01`は正式仕様・Web UI→Use Case→Dexie・Seedを静的照合し、注文一覧に決済・配送ステータスの独立列/DTOがない差を確認。実Web・正式な一覧表示期待・DB/Session snapshotは未受入のため`review_required`を維持。次回はA01-02のRole/検索・日付/金額境界を独立に確認する。詳細は下記同IDの節。
+- **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A01-01（注文一覧と決済・配送状況）
+
+- **対象と正本**：台帳の実在操作`SCREEN-ADMIN-ORDERS-A01-01`は`action`、Web、Operator/Admin、default、`review_required`。正式`docs/spec/features/admin-orders.md`の機能一覧は「注文一覧、決済ステータス、配送ステータス、フィルター」を要求し、BR-ADMINORD-001/AC-ADMINORD-001は注文・配送の整合した状態遷移を要求する。A01-01は一覧表示・読取りの受入であり、フィルター詳細はA01-02、遷移/競合更新は詳細画面の別IDとして切り分ける。
+- **Web→Use Case→Repository**：`app/admin/orders`→`AdminOrdersPage`/`AdminOrdersContent`（`src/presentation/pages/admin-operations-pages.tsx:293-455`）→`AdminOperationsUseCases.searchOrders`（`src/application/use-cases/admin-operations-use-cases.ts:115-133`、`requireStaff`）→`DexieOrderRepository.search`（`src/infrastructure/database/dexie/order-review-repositories.ts:172-212`）。一覧表は「注文番号/顧客/状態/商品数/合計/作成日時」の6列で、`OrderStatusBadge(order.status)`を表示する。Repositoryの`AdminOrderListItem`射影は`order.status`のみを返し、`Payment.status`と`Shipment.status`を個別に取得・返却していない。**正式仕様の決済/配送ステータスを独立に一覧表示する期待との静的差**があるが、一覧の「状態」が両者の代替として認められるかは正式期待の確認待ち。製品不具合/情報漏洩と断定せず、製品SUTを修正しない。
+- **Role/Seed/データ**：`StaffPage`の`RouteGuard access="staff"`とUse Caseの`requireStaff`を別の認可層として扱う。default Seedは`payment_failed,paid,preparing,shipped,delivered`の5注文を生成し、`orders-phase1-statuses`はdefaultと同じデータを返す（`src/seeds/scenarios.ts:30-38`）。Paymentはfailed/succeeded、Shipmentはpreparing=pending、shipped=shipped、delivered=delivered（paid/payment_failedにはShipmentなし）。状態の3系列を混同せず、Role別直URLとSession有効性、表示前後のDB不変を別途実証する。
+- **Risk/TR/Condition/Case採否**：C1=operator/adminで5注文の番号・顧客・Order.status・件数/金額をSeedと照合（採用）。C2=paid/preparing/shipped/delivered/payment_failedについてOrder/Payment/Shipmentを別系列で照合し、一覧表示が正式期待を満たすか確認（採用、Mediumの表示欠落候補）。C3=guest/customer/停止staffの直URL拒否・注文情報非露出（採用、High候補だが未再現）。C4=注文詳細へのリンクが対象IDと一致し、他注文のスナップショットを混入しない（採用）。C5=desktop/tabletの視覚・キーボード/スクリーンリーダー・0件/エラーとDB/Sessionの前後snapshot（採用）。C6=既存Integrationの検索結果が実画面の各状態を保証するか区別し、`orders-phase1-statuses`のシナリオ同値性を検査（採用）。日付・金額・ページングの詳細境界はA01-02へ分離。
+- **直接証拠と未受入**：既存`tests/integration/admin-operations-use-cases.test.ts`の「searches orders by customer, status, period, total, sort, and page」は顧客メール・金額ソートを確認するが、Payment/Shipment独立表示とWeb Role別描画をassertしない。調査HEAD `00017e161b0f`のWeb CI #41339877367でVitest integrationはsuccessだが、本IDの実Web/desktop/tablet・負例・DB/Session・視覚/アクセシビリティの直接証拠には流用しない。今回の検証は仕様・UI・Use Case・Repository・Seed・既存テストの静的照合のみで、直接新規Vitest/formatter/Playwrightは未実施。台帳`review_required`、基本分析50/188操作・14/20非default、製品適合・実Run・最終CIは未完了のまま。
+- **再開条件・次**：一覧で決済/配送ステータスを別表示する正式期待の確定、Web operator/adminと拒否Roleの実操作、Order/Payment/Shipmentの同一ID前後snapshot、視覚正本・アクセシビリティ、必要な学習用直接Caseを揃えて本IDを再判定する。待機中の同IDを並列実行せず、次は台帳の実在操作`SCREEN-ADMIN-ORDERS-A01-02`（注文絞り込み）を1件扱う。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（在庫フィルター直接契約）
 
