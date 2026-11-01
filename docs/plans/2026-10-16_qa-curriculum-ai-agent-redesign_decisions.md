@@ -219,3 +219,10 @@ Templateの作成アカウント・リポジトリ名・権限と、受講者の
 
 - **開発検証**：distribution/curriculum/knowledge-graph contracts 30/30 PASS、M00〜M10/53問の課程validator PASS、22状態を含むknowledge graph validate PASS（286 nodes/611 edges/51 objectives/58 knowledge/47 artifacts）、curriculum validator PASS、M03ページを含むWeb build PASS、新課程Web Chromium E2E 17/17 PASS（外部静的server、exit 0）。
 - **判定境界**：開発時の独立レビューは教材品質の確認で、本人のAIによる正式習熟認定とは別。58 knowledge nodeの人間承認状態は実際の内容レビューに従い維持する。未実施の受講者試行・人間レビュー・Codespace実行をPASS扱いにしない。
+
+## 2026-11-01 公開Templateに適用するライセンス方針（追認）
+
+ユーザーは、**自作の学習教材・コード・SkillにMIT Licenseを適用する提案**に同意した。これは公開Templateを作成する個別承認ではなく、既存の`qa-training-store`と`qa-workflow-skills`の全ファイルを一律にMITへ変更する権限でもない。
+
+配布前に、対象ごとの権利者・共同著作者・既存ライセンス・第三者素材を確認し、**許諾可能な自作部分のMIT著作権者表示と本文**を確定する。第三者のInter/Noto Sans JP等のOFL-1.1とその他の依存物のライセンス・著作権表示は別管理し、MITとして再許諾しない。ライセンス通知と実際の生成物の内容検査を終えるまで、Templateの公開作成は保留する。調査の経過と残条件は[公開前監査レポート](../../reports/pr199-learner-template-publication-audit.md)に記録する。
+
