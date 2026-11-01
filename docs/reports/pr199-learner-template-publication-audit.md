@@ -143,3 +143,15 @@ Run `41293093957`の`web-dist-production` Artifact（SHA-256 `a005e0167c7f61454d
 学習者READMEには、`pnpm course:assess M04 --model provider/model-id`（M07/M10も対象）の**外部AI評価**について、選択Phaseの教材/評価基準・本人回答・コード・Run証拠等の限定送信、Secret・個人情報・他Phaseデータの除外、非公開履歴、料金確認、`SEND provider/model-id`による送信前の対話確認を明記した。これは実装の`scripts/training/ai-assisted-qa-assessment.mjs`にある`confirmExternalSend()`と照合済み。受講者向けの通知追加であり、実モデル校正や料金保証を完了扱いにはしない。
 
 **現時点の残条件**：配布元の存在とmanifest登録・CIでの配布契約テストに加え、確定した同一HEADでの`course:sync`実行後に3ファイルと実Shop全件が**実際に**出力され、distribution manifestのhash、禁止パス、symlink、本人の既存ファイル不変、Serve/Reset/Playwrightが成立するか確認する。固定Skill13種類の第三者由来ファイル、Web JSのその他の依存物、画像の権利・著作権者・配布通知は未確定。本人2コアCodespacesの無料枠と実行受入も未完了。公開作成の個別承認が必要であることは変わらない。
+
+## 2026-11-01 再監査：ライセンス通知のビルド版依存と実Web Artifact
+
+固定HEAD `708c7be0d6cb3a97050593f48939e073ef484bca`の[Web CI Run 41297580957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41297580957)は**success**。当該Runの`web-dist-production` Artifact（ID `13080117556`、ZIP SHA-256 `e003e1b3e7b67d0cd0f62777e6206b38ad432517f8d7ec85b1393e91cb49a4c0`）を直接取得し、312ファイル・展開後25,509,496バイトを確認した。
+
+`186`件のHTML/JS/CSS/Markdown/JSON等を対象に、代表的なGitHub Token、AWS Access Key、OpenAIキー、秘密鍵ヘッダー、GCPキー、採点用完成資料パスとsource map指定をパターン検査し、**検出0件**。採点用完成資料の禁止ディレクトリ、`.env`や`.map`に該当する配布ファイル名も検出しなかった。これは典型的な文字列・パスの一次検査であり、Secretや第三者の利用許諾の全件保証ではない。
+
+**ライセンス通知の版ずれを発見・修正**した。旧ArtifactのWeb JSは`entry-21b4711df1c6db0566115828ee2d23ee.js`だったが、今回の実ビルドでは`entry-3428026f221adef0293a1a69747110f6.js`へ変わった。従来の`learner-THIRD_PARTY_NOTICES.md`は旧ハッシュ名を固定記載していたため、学習者が現行Template内で指している実ファイルを見つけられない。通知を`course/shop/_expo/static/js/web/entry-*.js`へ修正し、固定ハッシュの再混入を拒否する配布契約テストを追加した。新JSバンドルでもReact（Meta Platforms）およびbezier-easing（Gaëtan Renaudeau）の著作権表示があることを確認した。これは**全第三者依存の監査完了ではない**。
+
+同じ固定HEADのGit treeと`qa-workflow-skills`固定commit `7cc6cba7772de549841a39d71694cbafbc783324`のGit treeを、配布manifestと再照合した。**local_files 140/140件、external_skill_files 104/104件**の配布元実在、外部Skillの宣言Blob SHA・サイズ、ファイルmode、配布先244件の重複なしを確認した。ライセンス3ファイルもGit Blobとして存在する。これは**配布元の静的整合性**であり、`course:sync`を実行して生成したTemplateの受入ではない。
+
+**残条件**：この環境ではGitHubへ直接`git clone`できず、固定HEADのclean checkoutから実`course:sync`、配布後の全hash検証、Serve/Reset/Playwright、2コアCodespaces実Runは未実施。ライセンス通知の対象となる画像・JS依存・外部Skillの元著作者/再配布条件も全件未確定。最新変更HEADのCIと本実Web ArtifactのHEADを混同しない。公開Template作成、課金、製品コード変更、マージは別承認が必要。
