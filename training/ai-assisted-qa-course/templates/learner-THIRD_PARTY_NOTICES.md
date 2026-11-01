@@ -15,7 +15,7 @@ Web Buildの `course/shop/_expo/static/css/files/` に含まれる以下のフ�
 
 ## Web JavaScriptに含まれる第三者コード
 
-Web CI Run [41293093957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41293093957) の生成JavaScript `course/shop/_expo/static/js/web/entry-21b4711df1c6db0566115828ee2d23ee.js`には、次の著作権・MITライセンス表示が含まれています。原文の表示を保持し、独自著作物のMITに帰属させません。
+Web CI Run [41297580957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41297580957)（対象HEAD `708c7be0d6cb3a97050593f48939e073ef484bca`）の生成JavaScript `course/shop/_expo/static/js/web/entry-*.js`には、次の著作権・MITライセンス表示が含まれています。実際のファイル名にはBuildごとに変わるハッシュが付くため、この通知では固定しません。原文の表示を保持し、独自著作物のMITに帰属させません。
 
 | 対象 | 著作権表示 | ライセンス |
 | --- | --- | --- |
