@@ -23,7 +23,7 @@
 | 検索対象範囲の解釈（仕様未決） | 実装は商品名/商品コード以外にカテゴリー・ブランド・SKUにも部分一致。正式な想定範囲は未確定 | 静的分析、実検索未受入 | 未確定の検索対象を仕様上の正解にしない | 正式仕様の対象範囲と実挙動を確認 |
 | Checkout配送先の郵便番号/電話の非数字除去（入力品質・仕様解釈） | `CheckoutOrderUseCases.validateAddress`は`replace(/\D/g, "")`後に7桁/10〜11桁を判定。`100-0001`/`090-0000-0000`の正規化は追加統合テストで確認。数字以外の任意文字混入も除去され得るが、許容入力文字の正式境界は未確定 | 静的確認。任意文字混入の実入力・Web/Android・下位保存の独立実Runは未確認。製品不適合とは未判定 | 住所の誤入力受理・入力エラーの不一致が起こり得る。教材の正常/不正入力は既存Seedと正当なハイフン入力で成立 | 許容文字契約とWeb/Native UIの入力制約、負例（`abc1000001`等）を独立確認。製品改修せず判断保留 |
 
-| 最終管理者保護の実負例証拠（テスト容易性・権限リスク） | `BR-ADMINUSER-001/AC-ADMINUSER-001`、`AdminUserUseCases.changeRole/changeSuspension`に`countActiveAdmins() <= 1`のガード。既存integrationの「last admin」テストは本人拒否等のみで非self `LAST_ADMIN_PROTECTED`を実行せず、componentはmock文言確認 | 静的ガード確認。非self最後の管理者の降格/停止・DB/session不変・並行更新の実Runなし。製品不具合は未確定、重大度High（成立時の影響） | 管理者喪失を防ぐ境界の学習用負例に重要。既存製品修正を教材の前提にしない | 学習専用fixture/契約で非self分岐と不変条件を実証。既存Issue重複は未確認。製品SUT・既存製品テストは変更しない |
+| 最終管理者保護の非self境界と認可競合（権限リスク・テスト容易性） | `BR-ADMINUSER-001/AC-ADMINUSER-001`。`requireAdmin()`はtransaction前にactive adminを解決し、本人変更を先に拒否。非self対象もactive adminなら安定した整合状態ではactive adminが少なくとも2名で、`countActiveAdmins() <= 1`の分岐には入らない。別管理者の権限/状態が認可後・transaction前に変化する制御interleavingでは分岐到達が可能。既存integrationはself等のみ、componentはmock文言のみ | 静的な到達条件を再評価。学習用`tests/contracts/ai-assisted-qa-admin-last-admin-interleaving.test.mjs`で非selfのrole降格/停止とtarget/version/session不変を制御interleavingで検査するコードを追加。**CI実Runは確認待ち**。実並行リクエスト・認可再確認の安全性は未実証。不具合未確定、影響High候補 | 通常状態のself保護と2管理者→1管理者許可を分離し、誤った非self通常Seedの負例を教材に採用しない。認可時点と更新時点の競合は別リスク | 新規学習用contractのCI実結果・実DB不変を確認し、別セッションでの権限剥奪後操作の成立可否を独立調査。製品修正なし。Issue重複未確認 |
 
 この一覧は既存の分析記録からの整理であり、独立した実ブラウザ/Androidの再現証拠を新たに取得したことは意味しない。重大度と製品適合は各行の根拠・影響・実証に基づいて今後確定する。緊急性の高いセキュリティ/データ問題は発見した実行回で優先報告し、その他は定期実行で現在状態を報告する。
 
