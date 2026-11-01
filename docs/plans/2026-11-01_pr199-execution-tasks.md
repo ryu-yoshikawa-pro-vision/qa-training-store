@@ -1,5 +1,13 @@
 # PR #199：残タスク・優先順位・定期実行の作業手順
 
+## 2026-11-01 製品分離後の参照再整合と分析状態（最新）
+
+HEAD `a3f279d1307302517585e23d4ec9c03d69f38395` で、`training/ai-assisted-qa-course/coverage/supported-behaviors.json` の分離前のCheckout参照を、PR #199が参照する現行`main`に整合させた。**操作50/188件が分析済み、残138件、非default状態14/20件が分析済み、残6件**（全188操作・20状態は分母の最終監査前）。従来の「80/188・18/20」は**#210へ製品差分を分離する前の暫定値**であり、現在の完了数ではない。
+
+修正した参照は、配送先の正式仕様文言4件、画面定義行43件、Use Caseの直接証拠25件、公開メソッド定義行7件。根拠となるCheckout画面実装は#210分離前と内容が異なるため、**既存の分析済み34件（操作30・状態4）を`review_required`へ戻した**。これは修正待ちの製品不具合34件ではない。分析状態は、各動作の現行仕様・UI/Use Case/Repository・Seed・必要なCaseと期待結果を再照合してから更新する。
+
+基本分析の再成立と、製品としての不具合修正・既存19ファイルの分離は別判定。製品修正・実回帰は [PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210) が担当し、PR #199の既存製品SUTは読み取り専用のままにする。再照合した静的分析で成立するものは、実Web/Native PASSと区別して再度`analyzed`にできる。
+
 ## 2026-11-01 完了：製品差分19ファイルの分離（最新決定）
 
 PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存製品テスト9ファイルの計19ファイルを、`main`起点の [`product/scenario-shop-maintenance`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/tree/product/scenario-shop-maintenance) に移した。**PR #199の同19ファイルは`main`の内容へ復元済みで、分離方針の最終判断は完了**。この19ファイルについて「本PRに残す／別PRへ分離／取り消す」を繰り返し判断しない。今後の追加の製品修正、正式製品仕様、既存製品テストの更新は同じ専用ブランチで扱う。製品用PRの作成・`main`へのマージは別指示待ち。
@@ -117,7 +125,7 @@ Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent
 ## 現在状態（2026-11-01の確認に基づく、毎回再集計）
 
 - PR #199はOPEN。前回の確認HEADは `5601231df0bd3ac96a679d80cae15615396758fa`。これは固定の作業対象SHAではない。
-- Scenario Shopの基本分析は**79/188操作**、残**109操作**、非default状態は**18/20**（残2）。188は漏れ・重複の最終監査前の暫定分母。分析済みは製品仕様適合や実Web/Native Run PASSではない。
+- Scenario Shopの基本分析は**50/188操作**、残**138操作**、非default状態は**14/20**（残6）。#210分離後のCheckout参照再整合で34件を証拠再照合待ちに戻した。188は漏れ・重複の最終監査前の暫定分母。分析済みは製品適合・実Web/Native Run PASSではない。
 - M00〜M10（11モジュール・51学習目標）の教材・演習・評価・知識グラフは配置済み。教材内容全量、独立AI評価、実行環境での受入は未完了。
 - 既存製品差分19ファイルの静的監査は完了し、`product/scenario-shop-maintenance`へ分離済み。製品としての実回帰・仕様適合は専用ブランチの後続検証であり、PR #199の分離待ちではない。
 - Web CIの現在HEAD結果は毎回取得する。最後に確認した進行中のRunは[41259747230](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41259747230)。前HEADの成功・失敗を最新HEADへ流用しない。
@@ -134,7 +142,7 @@ Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent
 
 ### P1：全サポート動作の基本分析と分母監査
 
-- **状態**：79/188操作、残109。分類率100%は基本分析率100%を意味しない。分母188は暫定。
+- **状態**：50/188操作、残138（#210分離後に34件を再照合待ちへ変更）。分類率100%は基本分析率100%を意味しない。分母188は暫定。
 - **次の作業**：未分析の高リスク動作から、正式BR/AC、Role/State/Data、Web・Native UI→Use Case→Repository、Seed実値、Risk/TR/Condition/Case採否を個別確認。成立したものだけ`analysis_status=analyzed`へ変更し、個別証拠と契約テストを同期する。未決/不適合候補は製品改善レポートへ記録する。
 - **完了条件**：全サポート動作の漏れ/重複を監査して分母確定、分類100%、**証拠付き基本分析100%**。未決・BLOCKEDを完了扱いしない。詳細Caseの採否・残リスクも追える。
 - **正本**：`training/ai-assisted-qa-course/coverage/supported-behaviors.json`、`scripts/training/validate-supported-behaviors.mjs`、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`、[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)。
