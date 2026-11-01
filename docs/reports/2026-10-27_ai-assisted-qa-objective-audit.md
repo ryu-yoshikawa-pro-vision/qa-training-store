@@ -235,3 +235,11 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **安全境界**：`training/ai-assisted-qa-course/templates/workspace.gitignore`は`/M08/local-only-run.log`を除外し、Manifestは`workspace/.gitignore`として配布する。合成ログを実Run扱いせず、実Secret・生成物のstage/commitを禁じる。製品SUT、既存Seed/Reset、正式仕様、既存製品テストは変更しない。
 - **検証状態**：上記ソース間の参照・文言・Manifestの静的照合のみ。本人Private 2コアCodespaceでの初回ロード、Git status/diff/stage/commit、M08-01〜04の本人Level 2、M10正式評価・実CIは未実行。既存HEADのWeb CI成功を今回の差分のPASSには流用しない。
 - **再開条件・次ID**：Q-33継続。次はM08-03（PR草稿の仕様・変更・テスト・SHAの対応とM09引継ぎ）を独立照合。M08の実操作・受講者判断・Phase 3正式評価はPrivate環境・費用/権限・実Runが揃った際に検証し、未実行を完了扱いしない。
+
+## 2026-11-01 Q-13：M00-02 Skillの実体・起動証拠と採点の静的照合
+
+- **対象**：M00-02 / M00-CR-02、P03/P06。読取HEAD `d5463b24ba40ddc1b66f490bab846b46f21418d2`。学習順序Plan→M00教本→演習/提出→採点JSON→配布Manifest→外部固定Skill `qa-workflow@7cc6cba7772de549841a39d71694cbafbc783324` を照合。静的監査であり、実Codespace・OpenCode・本人Level 2のPASSではない。
+- **発見**：採点JSONはSkillの実際の読み込み・出力・変更有無を要求する一方、教本3A.4はSKILL.mdを説明させるだけでSkillの実起動を立証しない。固定Skillはオーケストレーターであり、scope 0ではruntime dispatch不要。教材に**Skillの明示読み込み、scope 0の停止判断、実ツール証拠と単なる説明の区別**を追記。Python helperや他SkillをM00で実行させない。
+- **確認済み**：Manifestの固定commitと`.agents/skills/qa-workflow`配布先、Skillの`references/guidance.md`・`scripts/artifact_graph.py`・`scripts/workflow_runtime.py`等の依存、P03/P06とM00-CR-02の証拠要求を静的に照合。既存のobjective ID・採点基準は変更せず、教材と演習の実行指示のみ補強。
+- **未受入**：本人Private 2-core Codespaceへの実配布、OpenCode Skillの読み込みログ、モデル/費用/権限、scope 0実応答、無変更の実証、本人のP03/P06判断。Skill起動不可ならBLOCKEDを維持し、SKILL.md読解を実行PASSにしない。
+- **次ID**：Q-13のM00-03（自分で作る安全なAI依頼、P04とM00-CR-03の照合）。M00-02の実受入は環境と証拠が揃った時のみ再開。

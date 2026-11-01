@@ -10,7 +10,7 @@
 2. VS CodeのExplorer・Editor・Terminal・Portsを示し、`pwd`の出力を見てから `pnpm course:load M00` を実行します。`workspace/M00/submission.md`が作られたことを確認します。
 3. `practice.md`と`notes.md`を新規作成し、一文を書いて保存します。各ファイルを開き直して内容を確認します。
 4. 手本の読取り専用依頼をエージェントへ渡し、応答と提出ファイルが一致するか、余計な変更がないか確認します。
-5. `.agents/skills/qa-workflow/SKILL.md`と参照先を読み、入力・実行範囲・helper・停止条件を確認します。その後、READMEにある制約付き読取り専用依頼を実際に実行し、Skill名・配布revision・秘匿情報を除いた応答・変更有無を記録します。Skillが使えない場合や範囲外の操作を提案する場合は停止し、未実行/BLOCKEDとして扱います。
+5. `.agents/skills/qa-workflow/SKILL.md`と固定revision、参照先、Python helperの存在・停止条件を確認します（helperは実行しません）。README 3A.4に従いOpenCodeのSkill機能から`qa-workflow`を明示的に読み込み、scope 0の制約付き依頼を試します。**手順書の説明だけではSkill起動済みとしません**。読み込み証拠、入力、応答、変更前後の状態を記録し、機能・権限・費用が不足すれば未実行/BLOCKEDとします。
 6. 条件を変えた自分の依頼を作り、目的、参照資料、許可範囲、成果物、確認方法を含めます。
 7. `pnpm course:load M00`を再実行して、作成した練習ファイルが保全されたことを開き直して確認します。予想外の上書きや競合があれば、強制せず停止します。
 8. Secretや範囲外ファイルを扱う提案を拒否し、その理由と安全な代替を記録します。6080をPrivateのまま確認し、CodespaceのStop codespace操作と費用・利用枠の確認先を示します。
