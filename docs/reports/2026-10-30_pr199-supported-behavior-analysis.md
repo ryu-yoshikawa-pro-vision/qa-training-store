@@ -1,5 +1,15 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-TEST-CONTROL-A01-01（シナリオ選択・認可・適用境界）
+
+- **正式契約・Role/Platform**：`docs/spec/state-and-scenarios.md`のSCREEN-TEST-CONTROLはAutomation Webでシナリオ/クロック/決済遅延/Resetを扱うTest-only画面、視覚正本は対象外。`docs/spec/screen-catalog.md`はWeb Automationのみ・Adminを指定。`app/admin/test-control.tsx`→`AdminTestControlPage`→`Guard access="automation-admin"`→`RouteGuard`はactive adminかつ`isTestApiBuild()`の場合のみ表示し、未ログインは/login、非許可は/forbidden。`isTestApiBuild`は`automation`と`local`を許し、`production`は拒否する。「Automation Webのみ」という仕様とlocal開発ビルド許可の関係はテスト環境境界として明示して扱う。
+- **選択と適用は別の操作（静的事実）**：`AdminTestControlContent`は`useState<PhaseOneScenario>("default")`で選択を保持し、`PHASE_ONE_SCENARIOS`からoptionを生成。選択変更は`SCENARIO_METADATA[scenario]`のpurpose/guide/initialSession/safeResetPath等のプレビューを切り替えるだけで、`TestControlService.reset`を呼ばない。現在の永続シナリオは別の`getMetadata().scenario`で表示される。適用は別ボタンの確認ダイアログ後`reset({scenario})`を呼び、成功時のみ通知保存と`safeResetPath`へのハード遷移を試みる。台帳expectedの「現在のシナリオを反映する」は**選択中プレビューとReset適用済みmetadataを同一視しない**条件で判定する。
+- **Service/Seed/副作用の境界**：`TestControlService.reset`は`isPhaseOneScenario(input.scenario)`で未知IDを拒否し、既存Dexie DBを閉じて削除、Session/guest IDをclearし、`createScenarioDataset`→`loadSeedDataset`→`restoreSeedIdentity`で再構築、clockを更新する。これはシナリオ「選択」だけの副作用ではなく、別のReset操作に属する。default Seedは初期Guest、active adminアカウントは存在するがSession自動存在は仮定しない。ブラウザの`window.__TEST_API__`はlocal/automation buildに限り公開されるが、`installTestApi`自体は画面のRouteGuardで認可していない。テストビルドの実行先隔離・公開設定を確認するまで、一般公開の攻撃経路/製品脆弱性とは断定しない。
+- **既存証拠と不足**：`tests/component/route-guard.test.tsx`はproduction拒否とlocal/automationのadmin許可をmock条件で検査。`tests/component/review-user-pages.test.tsx`はdefault Reset成功時のreload、二重実行防止、失敗時非遷移、通知保存失敗時の遷移をmockで検査するが、別シナリオの選択のみ・選択前後のDB不変・非admin実Web・本番成果物のTest API非露出は直接検査しない。現HEAD `c8dba151099c0ae3478113886d0794af22b665ec`のWeb CI #41322055915はcompleted/failure（Style Quality、Vitest contracts、Chromium E2E required、verify、validate）。component成功をA01-01実Web PASSへ流用しない。
+- **Risk/TR/Condition/Case採否**：C1=active admin+automation/localで全選択肢とmetadataプレビューを照合（採用）。C2=select変更のみでDB/Session/metadata.scenarioが不変、Resetは未実行（採用）。C3=guest/customer/operator/停止adminとproductionのUI非露出・安全な拒否（採用）。C4=有効な非default選択→確認Reset→再読込後metadata/Seed/Session/guest ID/clockと安全遷移（採用、Reset固有の詳細はA01-04へ分離）。C5=未知scenarioをService直呼出しし拒否・DB不変、失敗Resetで画面遷移なし（採用）。C6=Test APIのbuild境界と外部公開環境での到達性・不正なデータ破壊経路を安全な隔離環境で確認（High候補、採用）。Nativeは本画面の必須プラットフォーム外。
+- **判定/再開条件**：静的な基本経路の照合のみ。C1〜C6の独立直接Case、Web Automation/productionの実Run、選択前後snapshot、Reset後metadata・実DB/Session、公開環境境界の証拠は未取得。現時点で`review_required`を維持し、analyzed/製品適合/実Run PASSにしない。次の共通対象は`SCREEN-TEST-CONTROL-A01-02`（クロック操作）。製品SUT/正式仕様/既存Seed/製品テスト/workflowは変更しない。
+
+
 ## 2026-11-02 共通逐次：SCREEN-BOUNDARY-FORBIDDEN-A01-01（拒否画面・情報非露出）
 
 - **正式期待と静的経路**：`docs/spec/roles-and-permissions.md:31-39`と`docs/spec/screen-catalog.md`はWeb desktop/Android双方で権限不足を説明し、安全な戻り先を示すことを要求。`src/presentation/guards/route-guard.tsx:21-56`は未ログインの保護RouteをLogin（customerはreturnTo付き）、ログイン済みの不許可Role/Stateを`/forbidden`へRedirectし、許可時だけ保護childrenを描画する。`app/forbidden.tsx:5-14`と`src/presentation/components/states.tsx:35-69`はWebで権限拒否の見出し・本文とホーム/管理画面の戻り先を表示する構造。RouteGuard/画面はUse Caseの認可代替ではない。
