@@ -243,3 +243,12 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **確認済み**：Manifestの固定commitと`.agents/skills/qa-workflow`配布先、Skillの`references/guidance.md`・`scripts/artifact_graph.py`・`scripts/workflow_runtime.py`等の依存、P03/P06とM00-CR-02の証拠要求を静的に照合。既存のobjective ID・採点基準は変更せず、教材と演習の実行指示のみ補強。
 - **未受入**：本人Private 2-core Codespaceへの実配布、OpenCode Skillの読み込みログ、モデル/費用/権限、scope 0実応答、無変更の実証、本人のP03/P06判断。Skill起動不可ならBLOCKEDを維持し、SKILL.md読解を実行PASSにしない。
 - **次ID**：Q-13のM00-03（自分で作る安全なAI依頼、P04とM00-CR-03の照合）。M00-02の実受入は環境と証拠が揃った時のみ再開。
+
+## 2026-11-01 Q-33：M08-03 PR草稿の比較範囲・証拠・M09引継ぎ
+
+- **対象**：M08-03 / M08-CR-03、演習P04/P06。読取HEAD `93505779e8b1631467d9be154ec6b4fd0ca0ec9b`。学習順序Plan→M08教本5.2/6.2→演習→提出テンプレート→採点JSON→M08 end state→配布Manifest→M09開始入力・演習を静的照合。受講者の実Git操作や正式評価の合格ではない。
+- **発見（比較範囲の混同）**：従来P06は「2回目のcommitの差分だけに限定したPR説明草稿」を要求したが、GitHubの実PRはbase/headの比較であり、baseに1回目のcommitがなければその変更も含まれる。**単独commitの差分とPR全差分は同じではない**。隔離した一時Git fixtureで`git diff HEAD^ HEAD`は2回目のみ、`git diff HEAD~2...HEAD`は1回目＋2回目を含むことを実行確認（教材本番・本人環境の実Runではない）。
+- **是正**：P06の「単独commitを使うレビュー草稿」と「実PR base/head全差分」を区別。親/HEAD SHAと対象pathを読み取りコマンドで確認させ、仕様/Case ID・2回目diff・関連spec/依存・実テスト/Runまたは未実行・commit SHA・未決の対応表を既存`workspace/M08/submission.md`に追加。架空の仕様ID・サンプルRunを実在証拠として扱わない。採点JSONのM08-CR-03は既存のまま、要求証拠に到達する教材導線を補強。
+- **M09契約**：Manifestは`M08-result-01`=`workspace/M08/submission.md`、`M08-result-02`=`workspace/M08/review-candidate.md`を`M08-to-M09-handoff-v1`で定義。M09は本人の有効なM08成果物または合成`M09-public-handoff-01`を選ぶ。新規handoffファイル/実PR作成を増やさず、既存提出欄でsource・SHA・Run有無・未確認を引き継ぐ。
+- **検証と限界**：一時Git fixtureの2比較コマンドは成功。M08教本・演習・採点・Manifest・M09入力の静的整合を確認したが、本人Private 2コアCodespaceでの実commit/PR/CI、M08-03のLevel 2、M09→M10実CI・正式AI評価は未実行。製品SUT・正式仕様・既存Seed/Reset・既存製品テストは無変更。現HEADのWeb CI失敗の原因調査・修正は00分枠に委ね、今回の学習教材の静的検証をCI成功と扱わない。
+- **再開条件・次ID**：Q-33継続。M08-03の実受入は本人の実Git差分・SHA・草稿・M09引継ぎと実環境が揃った場合に再開。次は**M09-01**（workflow/trigger/job/runner、.disabledの配布案、採点契約の照合）を独立して進める。
