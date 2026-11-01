@@ -1,5 +1,17 @@
 # PR #199：残タスク・優先順位・定期実行の作業手順
 
+## 2026-11-01 承認事項の更新（定期タスクとスケジュール外の分担）
+
+Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)を正本として扱う。既存4枠のQ-ID・分析・教材・実証の割当てを変えない。スケジュール外の判断は次のとおり。
+
+- **Template・Q-34**：作成候補 `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner`、書込は所有者のみ。生成・公開前監査は許可済み。公開作成は監査後の個別承認待ち。本人Private repo/2コアCodespaces・Private Actionsは無料枠内のみ。利用時の残量と料金条件を確認する。
+- **AI評価・Q-14**：公開素材と受講者の演習回答・コード・必要なRun要約を正式AI評価で外部無料モデルに送信してよい。Token/Secret/個人情報・無関係な資料は禁止。モデル校正・実Run・誤PASS拒否が未達の限り正式修了を認定しない。
+- **製品19ファイル**：目的ごとの監査・方針提案は継続。実際の移設/revert/別PR作成・製品改修は保留。Highが実証されたらマージ判断を停止し、製品修正の方針を優先して別途承認を得る。新規Issueは重複確認済みHighのみ、公開前に内容確認する。未修正セキュリティ問題は公開報告を概要に限る。
+- **未決仕様・マージ**：意味変更はユーザー承認。Web/Nativeは画面・入力・エラー文言も基本同等とし、例外は調査。処理中の二重決済は禁止、同一キーの冪等応答は許容。マージは全条件達成・独立レビュー・ユーザー明示指示後のみ。
+
+既存の進捗数値・キューの未完欄は最新台帳・実Runを確認するまで変更しない。この追記は定期作業の完了判定ではない。
+
+
 このファイルを**残タスク・作業優先順位・引継ぎ状態の正本**とする。目的・変更許可・完了基準は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[Target](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)に従う。分析の個別根拠は[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)と[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)、製品問題と既存差分の根拠は[製品改善レポート](../reports/pr199-product-improvements.md)に記録する。PR本文は要約に限り、このファイルと同じ残タスク一覧を重複して保守しない。
 
 ## 作業判断の原則
