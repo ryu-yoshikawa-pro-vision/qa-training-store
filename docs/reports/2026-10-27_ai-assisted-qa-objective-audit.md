@@ -225,3 +225,13 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **発見2（初回ロード順序）**：開始入力は最初に `workspace/M00/submission.md` を開くよう案内していたが、`manifest.load_files` は同ファイルを `course:load M00` で作る。実装 `loadModule` は配布元検証後、存在しない対象を新規作成し、既存内容の差異を検出すると上書きせず停止する。開始入力を「開始ガイド→初回ロード成功→提出物を開く」に修正し、失敗を成功と扱わない。
 - **確認方法と限界**：Manifestの`local_files`/`load_files`、CLIの`load`分岐、`loadModule`の存在/競合処理をソース照合。今回、実2-core Codespaceでの配布・初回ロード・再ロード、本人のP01/P02/P05、実モデル/Skillは未実行。以前のWeb CI成功は今回の変更を検証しない。新HEADのCI・配布契約テストを別途確認する。
 - **再開条件・次ID**：M00-01の実環境での初回ロード・保存・再ロード・差分証拠はTemplate/本人Private Codespaceと権限・費用条件が揃った際に再検証。Q-13は継続し、次は**M00-02**（固定qa-workflow Skillの実体/依存、安全な制約付き依頼、P03/P06、M00-CR-02、未実行/BLOCKED判定）を独立照合する。M00-01の実行未受入をPASSにしない。
+
+## 2026-11-01 Q-33：M08のGit演習と採点契約の静的照合
+
+- **対象**：M08-01/02/04（Q-33の一部）。読取HEAD `6a90e75a10c24b9ebea978aeab8c70193298e620`。学習順序Plan→`docs/curriculum/ai-assisted-qa/modules/M08/README.md`→`training/ai-assisted-qa-course/exercises/M08/exercise.md`→提出テンプレート→`assessment/scoring-tests/M08.json`（M08-CR-01/02/04）→`states/M08/end.json`と配布Manifestを照合した。実学習者の達成、実Codespaces、Git実操作、正式AI評価の受入ではない。
+- **発見1（ロード直後のGit状態）**：Manifestの`load_files`は`workspace/M08/review-candidate.md`等を生成する。配布直後の未追跡`??`が想定されるのに、演習手順2の「状態が空なら」は、正常な未追跡状態まで開始不能と誤読される。開始前の**無関係な差分・stage済み変更がないこと**と、配布した未追跡ファイルの存在を区別する文に修正した。
+- **発見2（未追跡とdiff）**：演習手順4は未追跡ファイルに通常の`git diff`を実行するが、その差分は表示されない。M08教本には説明があるものの演習の実行順に明示がなく、空diffを変更なしと誤認する余地があった。未追跡時の実ファイル閲覧とstage後の`git diff --cached`確認を追加した。
+- **発見3（採点契約との欠落）**：`M08-CR-04`は不要な抽象化を採否し、1箇所の変更と複数箇所での重複を別条件で比較する証拠を要求する。一方P05の提出課題は「未実行CIを成功と偽る／Run IDを対応付ける」の2案のみで、抽象化判断を直接問わなかった。架空提案Cと2条件比較をP05・提出テンプレートに追加し、**既存4 objective IDやrubricは変更していない**。
+- **安全境界**：`training/ai-assisted-qa-course/templates/workspace.gitignore`は`/M08/local-only-run.log`を除外し、Manifestは`workspace/.gitignore`として配布する。合成ログを実Run扱いせず、実Secret・生成物のstage/commitを禁じる。製品SUT、既存Seed/Reset、正式仕様、既存製品テストは変更しない。
+- **検証状態**：上記ソース間の参照・文言・Manifestの静的照合のみ。本人Private 2コアCodespaceでの初回ロード、Git status/diff/stage/commit、M08-01〜04の本人Level 2、M10正式評価・実CIは未実行。既存HEADのWeb CI成功を今回の差分のPASSには流用しない。
+- **再開条件・次ID**：Q-33継続。次はM08-03（PR草稿の仕様・変更・テスト・SHAの対応とM09引継ぎ）を独立照合。M08の実操作・受講者判断・Phase 3正式評価はPrivate環境・費用/権限・実Runが揃った際に検証し、未実行を完了扱いしない。
