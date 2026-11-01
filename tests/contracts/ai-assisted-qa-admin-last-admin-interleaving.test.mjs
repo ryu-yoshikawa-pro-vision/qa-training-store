@@ -3,8 +3,12 @@ import { describe, expect, it } from "vitest";
 import { AdminUserUseCases } from "../../src/application/use-cases/review-user-use-cases";
 import { TestClock } from "../../src/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "../../src/infrastructure/database/dexie/database";
-import { createDexieApplicationRepositories } from "../../src/infrastructure/database/dexie/application-repositories";
-import { DexieApplicationTransactionRunner } from "../../src/infrastructure/database/dexie/transaction-runner";
+import {
+  createDexieApplicationRepositories,
+} from "../../src/infrastructure/database/dexie/application-repositories";
+import {
+  DexieApplicationTransactionRunner,
+} from "../../src/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "../../src/seeds/load-seed";
 import { createScenarioDataset } from "../../src/seeds/scenarios";
 
@@ -15,7 +19,9 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
   it.each(["role", "suspension"])(
     "rejects a non-self last-admin %s change without mutating the target or its sessions",
     async (operation) => {
-      const database = new ScenarioShopDatabase(`training-admin-interleaving-${crypto.randomUUID()}`);
+      const database = new ScenarioShopDatabase(
+        `training-admin-interleaving-${crypto.randomUUID()}`,
+      );
       try {
         await loadSeedDataset(database, createScenarioDataset("default"), "default");
         const originalOperator = await database.users.get("user-operator");
@@ -38,7 +44,9 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
           .equals("user-operator")
           .toArray();
         expect(beforeTarget).toBeDefined();
-        expect(await database.users.filter((user) => user.role === "admin" && user.accountStatus === "active").count()).toBe(2);
+        const activeAdminCount = () =>
+          database.users.filter((user) => user.role === "admin" && user.accountStatus === "active").count();
+        expect(await activeAdminCount()).toBe(2);
 
         const delegate = new DexieApplicationTransactionRunner(database);
         let interleaved = false;
@@ -78,22 +86,18 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
           userId: "user-operator",
           expectedVersion: beforeTarget.version,
         };
-        if (operation === "role") {
-          await expect(useCases.changeRole({ ...command, role: "operator" })).rejects.toMatchObject({
-            code: "LAST_ADMIN_PROTECTED",
-          });
-        } else {
-          await expect(
-            useCases.changeSuspension({ ...command, accountStatus: "suspended" }),
-          ).rejects.toMatchObject({ code: "LAST_ADMIN_PROTECTED" });
-        }
+        const attempted =
+          operation === "role"
+            ? useCases.changeRole({ ...command, role: "operator" })
+            : useCases.changeSuspension({ ...command, accountStatus: "suspended" });
+        await expect(attempted).rejects.toMatchObject({ code: "LAST_ADMIN_PROTECTED" });
 
         expect(interleaved).toBe(true);
         expect(await database.users.get("user-operator")).toEqual(beforeTarget);
         expect(
           await database.sessions.where("userId").equals("user-operator").toArray(),
         ).toEqual(beforeTargetSessions);
-        expect(await database.users.filter((user) => user.role === "admin" && user.accountStatus === "active").count()).toBe(1);
+        expect(await activeAdminCount()).toBe(1);
       } finally {
         const name = database.name;
         database.close();
