@@ -4,13 +4,7 @@
   "revision": "assessment-reference-v1",
   "source_state_revision": "ai-assisted-qa-course-v3",
   "reference_only": true,
-  "objective_ids": [
-    "M06-01",
-    "M06-02",
-    "M06-03",
-    "M06-04",
-    "M06-05"
-  ],
+  "objective_ids": ["M06-01", "M06-02", "M06-03", "M06-04", "M06-05"],
   "knowledge_ids": [
     "K-M06-01",
     "K-M06-02",
