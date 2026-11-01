@@ -47,6 +47,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-04（CI直接証拠と支払方法変更のversion境界）
+
+- **同一HEADの直接証拠**：HEAD `32046fb6308f4619a970d847a2d4d1dcf7504f09` の[Web CI #41358741225](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41358741225)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs` **11/11 PASS（388ms）**。このうちA01-04の保存済み`TEST-DECLINED`保持・未設定拒否の2 Caseが成功。Code Quality success。隔離Dexieの学習用契約であり、実Web/Native表示・正式製品適合・全体CI PASSとは別判定。
+- **今回の独立C5**：支払方法を`TEST-SUCCESS`から`TEST-DECLINED`へ変更するとCheckout versionが進むこと、古いversionによる支払方法の上書き・表示済み確認versionでの`beginOrder`が`CONFLICT`で拒否されDBスナップショット不変となること、最新versionでの再取得・`TEST-SUCCESS`への再選択とOrder/Payment非作成を学習用Caseとして追加。根拠は`CheckoutOrderUseCases.setPayment/getConfirmation/beginOrder`→Dexie `setPayment`の`assertExpectedVersion`とCheckout transaction。**追加C5は新HEADのVitest/Prettier未実行でPASSに加算しない**。
+- **UI/リスク差分**：Web確認は選択済み支払方法ラベルと`/checkout/payment`への変更リンクを表示。Native確認には支払方法ラベル・変更導線がなく、Native支払選択画面は再入場時にも初期`TEST-SUCCESS`で表示する静的経路がある。選択済み`TEST-DECLINED`の誤認・無意識の変更リスクはHighの実機/視覚正本照合候補であり、製品不具合と断定しない。Native確認の`getConfirmation`失敗時はmessageのみ更新され、Loading表示のままになる経路も実機で確認が必要。
+- **横断CI・再開条件**：同RunのWeb CI全体はfailure。Style Qualityは学習用6ファイル（本テストを含む）、Contracts全体は旧`analyzed`期待と現台帳`review_required`の15失敗、required Chromium E2EはCheckout再確認が失敗、verify/validate失敗。対象直接Caseの成功をこれらへ流用しない。A01-04は`review_required`維持、基本分析50/188操作・非default14/20状態を据え置く。次回は**同じA01-04**のC5直接CI/formatter結果を取得し、実Web/Androidの支払方法表示・変更復帰・エラー導線、Role/Cart競合、DB/Session前後を確認する。実環境待ちになったら次の実在する未処理IDを台帳で選ぶ。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-04（決済方法の保持・未設定拒否）
 
 - **台帳・正式オラクル**：現行`supported-behaviors.json`の実在操作`SCREEN-CHECKOUT-CONFIRM-A01-04`は`review_required`。正式`docs/spec/features/checkout-and-payment.md:9-22,120-153,244-248`は注文確定前に決済方法を最終確認し、古いCart/価格の注文・決済非作成を要求。台帳の`TEST-DECLINED`保持とNative表示は検証対象であり、未実証の適合PASSではない。

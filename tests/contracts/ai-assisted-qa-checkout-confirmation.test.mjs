@@ -208,6 +208,49 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
   });
 
   describe("SCREEN-CHECKOUT-CONFIRM-A01-04 payment-method snapshot", () => {
+    it("invalidates a displayed confirmation after the payment method is changed", async () => {
+      const { checkout, session } = await readyCheckout();
+      const displayed = await checkout.getConfirmation(session.id);
+      const changed = await checkout.setPayment({
+        checkoutSessionId: session.id,
+        checkoutExpectedVersion: session.version,
+        paymentMethodCode: "TEST-DECLINED",
+      });
+      expect(changed.version).toBe(session.version + 1);
+      expect(changed.paymentMethodCode).toBe("TEST-DECLINED");
+      const before = await snapshot();
+
+      await expect(
+        checkout.setPayment({
+          checkoutSessionId: session.id,
+          checkoutExpectedVersion: session.version,
+          paymentMethodCode: "TEST-SUCCESS",
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: session.id,
+          checkoutActionVersion: displayed.checkoutActionVersion,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(await snapshot()).toEqual(before);
+
+      const refreshed = await checkout.getConfirmation(changed.id);
+      expect(refreshed).toMatchObject({
+        checkoutActionVersion: changed.version,
+        paymentMethodCode: "TEST-DECLINED",
+      });
+      const restored = await checkout.setPayment({
+        checkoutSessionId: changed.id,
+        checkoutExpectedVersion: changed.version,
+        paymentMethodCode: "TEST-SUCCESS",
+      });
+      expect(restored.version).toBe(changed.version + 1);
+      expect((await checkout.getConfirmation(restored.id)).paymentMethodCode).toBe("TEST-SUCCESS");
+      expect(await database.orders.count()).toBe(0);
+      expect(await database.payments.count()).toBe(0);
+    });
+
     it("preserves the selected declined method in confirmation and the pending payment", async () => {
       const { checkout, session } = await readyCheckout();
       const declined = await checkout.setPayment({
