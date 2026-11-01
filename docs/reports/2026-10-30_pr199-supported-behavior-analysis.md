@@ -22,8 +22,6 @@ PR #199のHEAD `a3f279d1307302517585e23d4ec9c03d69f38395` で、分離による�
 
 製品側での修正・回帰検証は [PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210) の [残課題文書](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/product/scenario-shop-maintenance/docs/plans/2026-11-01_pr210-product-followups.md) へ引き渡し済み。#199の基本分析に必要なソース追跡と教材の適合性判定は#199に残す。
 
-
-
 ## Q-24 M05 P03/P05：型検査と複数明細Locatorの教材技術監査（実地受入は未完）
 
 - **原因と影響**：`training/ai-assisted-qa-course/exercises/M05/exercise.md`のP03は型エラーを`pnpm exec tsc --noEmit`などで調べるよう案内していた。しかし`tsconfig.json`の`include`は`app/src/tests/e2e/scripts`等であり`workspace/M05/**`を含まない。`tsconfig.training.json`も`training/**`等に限定する。学習者が`workspace/M05/`に誤型ファイルを作って裸の`tsc --noEmit`を実行すると、対象ファイルを検査しないまま成功し得るため、M05-04の型エラー診断証拠として不適切。
