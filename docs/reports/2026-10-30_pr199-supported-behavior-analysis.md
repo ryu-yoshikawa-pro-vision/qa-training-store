@@ -1,6 +1,8 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
 ## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A02-02（withdrawn変更拒否）
+- **直接実行証拠（後続CI）**：HEAD `a5db600dd14ee7abd78b88cb542a376e1a5e096f`の[Web CI #41317880819](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41317880819)でVitest contractsの`ai-assisted-qa-admin-withdrawn.test.mjs` **1 Case PASS**。C1〜C4の3拒否・5テーブル前後snapshot不変は学習用Dexie fixture上で実行済み。ただしC5の実Web/視覚・C6の別Role/stale version/実並行は未実証。`review_required`維持、基本分析・製品適合・Web/Native PASSへ昇格しない。同RunのVitest contracts全体は15失敗（分離後に`review_required`へ戻したCheckout/Orderの旧`analyzed`期待）、Style Qualityはadmin学習用契約等3ファイルのPrettier違反、required Chromium E2EはCheckout再確認文言未表示で1 Case失敗。これらは別の横断未受入事項であり、旧期待値を合わせるために台帳をPASSへ戻さない。次の共通対象は既調査A02-03を再開条件待ちとして飛ばし、Highリスクの`SCREEN-BOUNDARY-FORBIDDEN-A01-01`。
+
 
 - **正式期待と実装経路**：`docs/spec/features/admin-users.md:7-15/49-51/78-84`はwithdrawnへのrole/rank/status変更拒否とUI操作不可表示を要求。default Seedの`user-customer-withdrawn`はcustomer/regular/withdrawn。Web `AdminUserDetailForm`は`readOnly = user.accountStatus === "withdrawn"`で変更セクションを隠し、「退会済みユーザーは読取専用です。」と表示する。`AdminUserUseCases.changeMembershipRank`はwithdrawn customerを`INVALID_ROLE`、`changeSuspension`は`INVALID_STATE`で拒否。role変更はcustomer自体が不許可なので、withdrawn専用ガードを単独確認するにはoperator→withdrawnの制御fixtureが必要。
 - **学習用直接Case**：`tests/contracts/ai-assisted-qa-admin-withdrawn.test.mjs`を追加。active adminのSessionを使い、default withdrawn customerのrank/status拒否と、学習専用fixtureでwithdrawn化したoperatorのrole変更拒否を実行する。3操作の拒否コードとUser/version・Session・Checkout・Cart・CartItemの前後snapshot不変を確認する設計。正式Seed・製品SUT・製品テストは変更しない。**Node/Prettier/Vitest/実Webはこのコミット時点では未実行**。fixture上のwithdrawn operatorは正式Seedに存在する状態だと主張しない。
