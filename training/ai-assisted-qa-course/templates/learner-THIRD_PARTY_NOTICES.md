@@ -26,7 +26,7 @@ MITの全文はこの配布物の`LICENSE`にも含まれますが、元の著�
 
 ## その他の配布物
 
-- `.agents/skills/**` は `qa-workflow-skills` の固定commit `7cc6cba7772de549841a39d71694cbafbc783324` から取得します。MIT対象となるのは権利者が許諾可能な自作部分のみです。外部から採用したコード・資料が含まれる場合は、その元ライセンスと表示を維持します。
+- `.agents/skills/**` は[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)の[固定commit `7cc6cba7772de549841a39d71694cbafbc783324`](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/tree/7cc6cba7772de549841a39d71694cbafbc783324)から取得します。MIT対象となるのは権利者が許諾可能な自作部分のみです。外部から採用したコード・資料が含まれる場合は、その元ライセンスと表示を維持します。
 - `course/shop/**` のJS/CSS/画像、依存ライブラリ、その他の第三者素材にはそれぞれの元ライセンスが適用されます。依存物と素材の全件確認は公開前監査の受入条件であり、この文書だけで全件の権利確認が完了したことにはなりません。
 
 公開・再配布前に、実際に生成した `course/shop/**` と配布manifestを照合し、含まれる第三者ファイルの表示とライセンスを確認してください。

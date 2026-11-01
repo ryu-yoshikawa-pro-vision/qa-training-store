@@ -1,5 +1,13 @@
 # AI協働テスト自動化カリキュラム：決定事項・残確認事項
 
+## 2026-11-01 仕様判断・固定Skillの出典に関する回答
+
+2026-11-01の本人回答（参照HEAD `b639e46c673d22fba3baf67ec4fc991f51a598ec`）で以下を確定した。これは期待仕様・出典についての回答であり、**製品本体・正式仕様の意味変更、公開Template作成、課金、マージの承認を兼ねない**。
+
+- **Q1 管理ユーザー一覧**：メール・Role・Rank・Statusの4種類の絞り込みが必要。`docs/05_ui/ui_specifications.md`と一致する。現在の`AdminUsersContent`にはRank入力がなく、`AdminUserUseCases.search`とRepositoryには`membershipRanks`の検索経路がある。`SCREEN-ADMIN-USERS-A01-02`の製品実装差として、基本分析・実Web検証・製品変更の判断を分離して管理する。
+- **Q2 Checkoutの郵便番号・電話番号**：数字と形式上必要なハイフンのみ受理し、英字など想定外の文字はエラーで拒否する。現在の`CheckoutOrderUseCases.validateAddress`の非数字除去による受理可能性は、この期待仕様と差がある。正常なハイフン付き入力と不正文字の拒否、拒否後の保存値不変、Web/Native両経路を検証する。
+- **Q3 外部固定Skillの出典**：本人の制作物は[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)（固定commit `7cc6cba7772de549841a39d71694cbafbc783324`）であり、配布対象13種類・104ファイルは「基本的に自身・権利を管理できる組織による著作物、外部由来の利用条件が必要な部分は別途特定できる」との本人回答を受けた。独自部分へのMIT採用方針は既存の承認どおり。外部由来部分の著作権と元ライセンス、MIT本文の法的な著作権者表示は個別に確認する。
+
 ## 2026-11-01 確定した承認方針
 
 公開Templateは `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` を候補とし、現在は生成・公開前監査のみ許可する。書込権限は所有者に限る。Codespaces・Private Actionsは無料枠のみとし、実利用時に残量を確認する。正式AI評価では公開教材と演習の回答・必要な証拠を外部無料モデルへ送信できる。Secret・個人情報・無関係な資料は送らない。

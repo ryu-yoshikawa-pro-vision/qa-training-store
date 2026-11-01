@@ -27,6 +27,8 @@ Secretや本人の答案・評価記録を公開リポジトリへpushしない�
 
 独自の教材・コード・Skillのうち権利者が許諾できる部分は `LICENSE` のMIT Licenseを参照してください。Webフォントなどの第三者素材は `THIRD_PARTY_NOTICES.md` と `licenses/OFL-1.1.txt` を参照してください。リポジトリ全体・第三者の著作物にMITを一律適用するものではありません。
 
+固定Skillの出典は[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)です。固定commitと第三者素材の取扱いは`THIRD_PARTY_NOTICES.md`を確認してください。
+
 ## 配布版の確認
 
 `.course/distribution-manifest.json`に、配布元commit、配布対象ファイルのSHA-256、固定Skill版、配布済みShopの対応が記録されています。変更したファイルの上書きと無検証の新しい教材版への自動切替は行いません。

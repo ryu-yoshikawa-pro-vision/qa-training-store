@@ -167,3 +167,9 @@ Run `41293093957`の`web-dist-production` Artifact（SHA-256 `a005e0167c7f61454d
 現行の`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`は`courseFixture()`で1件の`dist/index.html`を作り、`syncCourse({allowUncommittedFixture:true, buildShop:false})`で同期・改ざん・非破壊性を検証する。一方、実配布入口の`scripts/training/ai-assisted-qa-course.mjs sync`は`verifySourceCheckout()`で40文字SHA・`HEAD`一致・clean worktreeを要求し、実`build:web`・104ファイルの外部取得・配布manifestのhash記録を実行する。**fixtureの成功を固定HEADでの実配布成功と読み替えない**。受入時には同一HEADで`pnpm course:sync --source-sha <HEAD> --target <空の既存ディレクトリ>`を実行し、その配布先で`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`を実行する。結果に`distribution_files_verified`、`shop_files_verified`、`state_files_verified`、実行環境/終了コード/対象HEADを残す。その他の再同期・load・Serve/Reset/Playwright・実Codespaces受入は別途検証する。
 
 **現時点の判断**：固定Skillの利用許諾と実配布の成功は未受入のまま。公開Template作成と製品workflow改変は実施せず、証拠と承認が揃うまで公開保留を維持する。
+
+## 2026-11-01 本人回答による固定Skillの出典確認
+
+学習者配布対象13種類・104ファイルの配布元は、本人が制作した[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)、固定commit `7cc6cba7772de549841a39d71694cbafbc783324`。本人は「私が作成している」「基本的に自身・権利を管理できる組織による著作物で、外部由来の利用条件が必要な部分は別途特定できる」と回答した。
+
+**出典と作成者申告の確認待ちは解消**。一方、外部から採用したコード・資料ごとの利用条件、著作権表示、MIT本文の法的権利者表記、実配布物と通知の一致は未受入。公開Templateの作成は引き続き個別承認待ち。
