@@ -53,6 +53,28 @@ function nativePaymentMethodLabel(code: string): string {
   return code === "TEST-SUCCESS" ? "成功" : code.replace("TEST-", "失敗：");
 }
 
+function nativeAuthErrorMessage(caught: unknown): string {
+  if (!(caught instanceof ApplicationError)) return "予期しないエラーが発生しました。";
+  switch (caught.code) {
+    case "AUTHENTICATION_FAILED":
+      return "メールアドレスまたはパスワードが正しくありません。";
+    case "ACCOUNT_SUSPENDED":
+      return "このアカウントは利用停止中です。管理者へ確認してください。";
+    case "ACCOUNT_WITHDRAWN":
+      return "このアカウントは退会済みです。";
+    case "EMAIL_ALREADY_EXISTS":
+      return "このメールアドレスはすでに登録されています。";
+    case "STORAGE_WRITE_FAILED":
+      return "端末へログイン状態を保存できませんでした。設定を確認してください。";
+    case "STORAGE_READ_FAILED":
+      return "端末からログイン状態を読み込めませんでした。設定を確認してください。";
+    case "LOGIN_TRANSACTION_FAILED":
+      return "ログイン処理を完了できませんでした。カートは変更されていません。";
+    default:
+      return "処理を完了できませんでした。";
+  }
+}
+
 function usePurchaseServices() {
   const { ready, error, retry, services } = useNativeRuntime();
   return { ready, error, retry, services: ready ? services : null };
@@ -189,7 +211,7 @@ export function NativeLoginScreen() {
         });
         return router.replace(destination);
       })
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setMessage(nativeAuthErrorMessage(caught)))
       .finally(() => setBusy(false));
   };
   return (
@@ -253,7 +275,7 @@ export function NativeSignupScreen() {
     void services.auth
       .register({ email, password, displayName })
       .then(() => router.replace("/account/profile"))
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setMessage(nativeAuthErrorMessage(caught)))
       .finally(() => setBusy(false));
   };
   return (
