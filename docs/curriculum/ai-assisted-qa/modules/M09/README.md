@@ -572,6 +572,8 @@ GitHub Actionsのrunnerは、クラウド上に用意された本物のサーバ
 
 品質保証の現場では、**「開発スピード（早期検知）」「かけられる予算」「人的ミスによるリスク」**のバランスを総合的に考慮して、最適なトリガーを選択します。
 
+**トリガー変更時は対象SHAの意味も確認します。** `pull_request`では`github.sha`がPRのテスト用マージコミットを指す場合があり、提出されたPR HEADを確認するには`github.event.pull_request.head.sha`を区別します。一方、`workflow_dispatch`には`github.event.pull_request`がありません。完成見本の`on`だけを手動起動へ変更しても、PR HEADを指定・照合する式はそのまま使えません。手動起動の`github.sha`は選択したrefのコミットを示すため、**選択ref・実checkout SHA・PR HEADの同一性を推測しない**ことが重要です。PR HEADを検証対象とするなら、対象PRとSHAをGitHub上で別途確認する設計が必要です。M09では`.disabled`のまま比較し、実行・有効化はしません。
+
 ### 7.2 最小権限の原則（Least Privilege）
 
 #### 最小権限を設定する

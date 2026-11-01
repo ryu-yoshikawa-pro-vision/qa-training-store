@@ -260,3 +260,11 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **是正**：既存P04に事前予測、2資料だけの読取り権限、禁止操作、見出し/原文を使う本人検証、資料・workspaceの前後照合を追加。既存提出欄とM00-CR-03を同じ証拠へ揃えた。新規ファイル・objective ID・学習用実行コマンドは追加しない。
 - **検証境界**：両資料にブラウザタブ閉鎖とCodespace停止の区別が実在し、Manifest配布先も一致することを静的に確認。実モデル応答、本人の原文照合・前後差分、Private 2-core Codespace、正式Level 2判定は未実行/未受入。現HEADのWeb CIは変更後のRunで別途判定する。
 - **再開条件・次ID**：M00-03の実受入は本人の実依頼・応答・原文と前後証拠、モデル/権限/費用が揃ってから。Q-13は継続し、次は**M00-04**（Secret・ポート・費用・再ロード保全、P05/P06、M00-CR-04）を照合する。
+
+## 2026-11-01 Q-33：M09-01 手動trigger・対象SHA・採点契約の静的照合
+
+- **対象と根拠**：M09-01 / K-M09-06 / M09-CR-01。M09教材のworkflow/trigger/job/step/runner、P01/P02、提出欄、`course/templates/phase3/course-e2e.workflow.yml.disabled`、`course/modules/M09/inputs/workflow-starter.yml.disabled`のManifest、M09開始/終了状態、Phase 3 rubricを照合。完成見本は`pull_request.head.sha`をcheckout・照合し、starterは`github.sha`を使う意図的な誤りを持つ。実CI/本人のLevel 2を立証するものではない。
+- **発見（静的）**：P01は手動`workflow_dispatch`へ変更する演習だが、PR用完成見本の`github.event.pull_request.head.sha`を手動triggerへ流用した場合のイベントpayload欠落と対象SHAの扱いが明示されていなかった。`workflow_dispatch`の選択ref SHAをPR HEADと同一視すると、M09-CR-01の実行条件の理解とM09-CR-02の証拠追跡を誤評価するおそれがある。実障害発生は未確認。
+- **是正**：M09教本の自動/手動trigger比較、P01の別名`.disabled`演習、既存提出欄を連動させ、手動イベントにはPR payloadがないこと、選択ref・checkout SHA・PR HEADの照合可否を本人が説明することを要求。基準workflow・starter・Manifest・採点基準は変更せず、既存`M09-CR-01`のP01/P02独立判断要件を利用する。
+- **検証境界**：教材・演習・提出の参照パスと安全境界を静的照合。M09ではworkflowを有効化せず、実GitHub Actions Run/Check/Artifact、実Private Codespaces、本人判断、正式AI評価は未実施。CIのStyle Quality失敗は`M00.json`のPrettier指摘であり、00分枠が担当する。今回の静的照合はCI PASSとしない。
+- **再開条件・次ID**：M09-01の実受入は本人の別名disabled案・SHAの判断・実提出証拠が揃った場合。Q-33を継続し、次は**M09-02**（PR HEAD・Run/Check/Artifact・`target-sha.txt`の証拠同一性、P02、M09-CR-02）を独立して照合する。

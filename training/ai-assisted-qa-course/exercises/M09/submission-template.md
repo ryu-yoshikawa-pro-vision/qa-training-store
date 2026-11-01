@@ -1,6 +1,7 @@
 # M09 CI読解・workflow修正の提出
 
-- workflow / trigger / job / runner / step:
+- workflow / trigger / job / runner / step（P01の基準案と手動案の対応）:
+- 手動trigger時の選択ref・checkout SHA・PR HEAD照合の可否（未確認は未確認）:
 - 修正したworkflow案: workspace/M09/course-e2e.workflow.yml.disabled
 - PR HEADの指定方法と対象SHAの確認方法:
 - permissions / Secret / deploy / spec範囲:
@@ -27,7 +28,7 @@
 <!-- prettier-ignore -->
 | 課題 | 提出すべき具体的な証拠 | 予測・判断と根拠 | 本人の操作・AI/Skill案の採否 | 実結果・証拠（Run/SHA/パス）・修正/未決 |
 | --- | --- | --- | --- | --- |
-| P01 | 手動起動の別名disabled YAMLとdiff | 未記入 | 未記入 | 未確認 |
+| P01 | 手動起動の別名disabled YAML、diff、対象ref/SHAの扱い | 未記入 | 未記入 | 未確認 |
 | P02 | PR HEADとmerge SHAを区別した記録案 | 未記入 | 未記入 | 未確認 |
 | P03 | Browser/Test/Artifact/SHAの失敗診断3件 | 未記入 | 未記入 | 未確認 |
 | P04 | 実行頻度・Runner費用・停止条件 | 未記入 | 未記入 | 未確認 |

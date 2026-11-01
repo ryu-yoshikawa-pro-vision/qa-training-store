@@ -32,7 +32,7 @@ workspace/M09/submission.mdにworkflowの読解、最小権限、証拠対応、
 
 元の`course-e2e.workflow.yml.disabled`はM10へ渡す基準案として保全します。以下では**別条件のworkflow案を個人workspace内の別名`.disabled`ファイルとして作り、差分・理由・未実行を残す**演習です。M09では`.github/workflows/`に配置せず、CIも起動しません。
 
-1. **P01 別の起動条件を設計（M09-01・04）**：基準案のtrigger、job、steps、permissionsを読んだ後、`workspace/M09/trigger-review.yml.disabled`に「手動起動だけ」とする別案を作ります。Pushごとの実行案と比較して、検証されない期間・不要なRun・学習者が必要とする操作を記録します。**証拠**：両YAMLのdiffと選択理由。
+1. **P01 別の起動条件を設計（M09-01・04）**：基準案のtrigger、job、steps、runner、permissionsを読んだ後、`workspace/M09/trigger-review.yml.disabled`に「手動起動だけ」とする別案を作ります。`workflow_dispatch`では`github.event.pull_request.head.sha`を取得できないため、**PR用のSHA照合式を残したままtriggerだけ置換しない**でください。手動実行で選ぶref、checkout対象SHA、そのSHAがPR HEADと一致すると主張できる条件・確認先を明記し、PR HEADを確認できなければ未確認とします。Pushごとの実行案と比較して、検証されない期間・不要なRun・学習者が必要とする操作を記録します。**証拠**：両YAMLのdiff、trigger/job/step/runnerの役割、SHAの由来と選択理由。
 2. **P02 PR HEADとmerge SHAの混同を修正（M09-02）**：架空提案「PRで`github.sha`をそのままcheckoutし、これを現在のPR HEADと記録する」をレビューします。`pull_request.head.sha`等の対象コミット指定とcheckout結果の記録、Artifact内`target-sha.txt`の対応を基準workflowで確かめます。**証拠**：誤った対象と正しい対象の図、影響する証拠。
 3. **P03 初見ログの原因箇所を特定（M09-03）**：合成ログとは別に、架空ケースA「Browserインストール失敗でtest未起動」、B「test PASSだがArtifact upload失敗」、C「checkoutが別SHA」を検討し、最初に見るstep、残っている証拠、再実行前の確認を整理します。**証拠**：3行の診断表（失敗step・Run・未確認・次の操作）。
 4. **P04 CI費用の条件変更（M09-04）**：架空条件「1日3回のpush」「通常は週2回だけ変更」「GitHub-hosted Runnerの残量不明」について、push連動と手動起動のリスクを比較します。無料枠を数値で推測せず、Run分数・保存量・支払主体の実画面の確認先とBLOCKED条件を明記します。**証拠**：頻度変更前後の判断・利用条件。
