@@ -1,5 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-PRODUCT-LIST-S-empty（0件時の復帰導線）
+
+- **正式期待と既存実装の差（静的事実）**：`docs/spec/features/storefront.md`の商品一覧`empty`状態はguest/customer・`empty-catalog`・Web desktopで「表示可能な商品がない理由と元の画面に戻る導線」を要求する。Web `CatalogListPage`は無条件0件に`StatePanel kind="empty" action={null}`を渡し、StatePanel既定のホームCTAを明示的に消す。一方、ページ全体には`Breadcrumbs`の「ホーム」`href="/"`が残る。したがって「画面に戻る導線が一切ない」は誤り。**パンくずが正式な『元の画面に戻る導線』を満たすかは未決**であり、欠陥/PASSのどちらにも断定しない。
+- **条件付き0件・Native・Seed**：価格等のフィルター後0件は`StatePanel kind="filter-empty"`の「条件をすべて解除」ボタンが`router.replace("/products")`を呼ぶ。Native一覧の0件表示は「商品が見つかりません」「検索条件を変えてお試しください。」であり、Androidのempty視覚正本は正式必須外だがNative機能の実Runは別判定。`emptyCatalog` Seedは商品・Variant・Review・Cart/Order等を空にするがカテゴリー自体を削除しない。Seedの初期Sessionと、実画面へのログイン・Reset・読み込みを混同しない。
+- **採用Case・Risk/TR**：C1=Web無条件0件の説明とパンくずのホーム遷移、C2=StatePanel内CTAなしと正式『復帰導線』の解釈、C3=価格/検索条件付き0件の解除操作、C4=guest/active customer・`empty-catalog`と検索Repository件数、C5=Native empty表示/遷移、C6=Web desktop視覚・キーボード・DB/Session不変。C1/C3の現行UI挙動は学習用直接Caseを追加したが、**仕様適合の採点オラクルは未確定**。Medium候補：復帰導線の認知可能性。Role別公開条件・DB不変は未実証。
+- **直接証拠と独立判定**：既存`tests/component/catalog-pages.test.tsx`は無条件0件・検索/価格フィルター0件を検査し、HEAD `9ab6c414ed9d`のWeb CI #41337557220ではVitest component jobがsuccess。ただし新規`tests/contracts/ai-assisted-qa-catalog-empty-navigation.test.tsx`の2 Caseは今回追加であり、TSX構文/transpile診断0件のみ、Vitest・Prettier・実Web/Android・視覚・DB snapshotは未実施。既存component成功を新CaseのPASSに流用しない。CI全体はStyle Quality・contracts・required E2E・verify/validate失敗。
+- **判定・再開条件・次**：台帳`analysis_status=review_required`と基本分析50/188・非default 14/20を維持。新Caseの同一HEAD直接Vitest、Web desktopの実操作・視覚・アクセシビリティ、パンくずを復帰導線とみなす正式判断、Native・Role/Seed・DB/Session実証が再開条件。次の独立対象は`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6の閾値と正式仕様差）。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
+
+
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-02（顧客用導線）
 
 - **根拠**：正式`storefront.md:29-32`と台帳のactive customer向けアカウント/購入導線を、Web `HomeContent`、`RouteGuard`、`AuthUseCases.getCurrentUser`、`SessionIdentityResolver.getViewer`、Native `NativeShell`/`NativeHomeScreen`、default Seedと照合。Web Heroはcustomer Roleで`/account/profile`を提示するが、accountStatusを見ない。遷移先RouteGuardはactive customerのみ許可。既存停止SessionでCTAを提示し拒否画面へ遷移する可能性は静的UX差であり、実不具合未確定。Catalog viewerは停止/退会をguestとして扱い、CTA表示を商品情報漏洩の証拠にしない。

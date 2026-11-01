@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`（商品一覧empty状態、台帳`review_required`）。前対象`SCREEN-STOREFRONT-HOME-A02-02`はWeb/Nativeの顧客導線・Session/Role/State/閲覧条件を静的照合し、学習用RouteGuard 6 Caseを追加。直接Vitest/実Web・Android/DB・視覚は未実施のため`review_required`維持。詳細は下記同IDの節。
+- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6、台帳`review_required`）。前対象`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`はパンくずホームリンクとStatePanel内CTA欠如を区別し、学習用2 Caseを追加。正式な復帰導線解釈・直接Vitest・実Web/Android・視覚・DBは未受入のため`review_required`維持。詳細は下記同IDの節。
 - **CI横断**：調査HEAD `d7f436286d51`のWeb CI #41334980000はcompleted/failure。Style Quality・Vitest contracts・required Chromium E2E・verify・validateが失敗。新Caseを含む更新HEADのCIは別判定、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-STOREFRONT-PRODUCT-LIST-S-empty（0件時の復帰導線）
+
+- **正式期待と既存実装の差（静的事実）**：`docs/spec/features/storefront.md`の商品一覧`empty`状態はguest/customer・`empty-catalog`・Web desktopで「表示可能な商品がない理由と元の画面に戻る導線」を要求する。Web `CatalogListPage`は無条件0件に`StatePanel kind="empty" action={null}`を渡し、StatePanel既定のホームCTAを明示的に消す。一方、ページ全体には`Breadcrumbs`の「ホーム」`href="/"`が残る。したがって「画面に戻る導線が一切ない」は誤り。**パンくずが正式な『元の画面に戻る導線』を満たすかは未決**であり、欠陥/PASSのどちらにも断定しない。
+- **条件付き0件・Native・Seed**：価格等のフィルター後0件は`StatePanel kind="filter-empty"`の「条件をすべて解除」ボタンが`router.replace("/products")`を呼ぶ。Native一覧の0件表示は「商品が見つかりません」「検索条件を変えてお試しください。」であり、Androidのempty視覚正本は正式必須外だがNative機能の実Runは別判定。`emptyCatalog` Seedは商品・Variant・Review・Cart/Order等を空にするがカテゴリー自体を削除しない。Seedの初期Sessionと、実画面へのログイン・Reset・読み込みを混同しない。
+- **採用Case・Risk/TR**：C1=Web無条件0件の説明とパンくずのホーム遷移、C2=StatePanel内CTAなしと正式『復帰導線』の解釈、C3=価格/検索条件付き0件の解除操作、C4=guest/active customer・`empty-catalog`と検索Repository件数、C5=Native empty表示/遷移、C6=Web desktop視覚・キーボード・DB/Session不変。C1/C3の現行UI挙動は学習用直接Caseを追加したが、**仕様適合の採点オラクルは未確定**。Medium候補：復帰導線の認知可能性。Role別公開条件・DB不変は未実証。
+- **直接証拠と独立判定**：既存`tests/component/catalog-pages.test.tsx`は無条件0件・検索/価格フィルター0件を検査し、HEAD `9ab6c414ed9d`のWeb CI #41337557220ではVitest component jobがsuccess。ただし新規`tests/contracts/ai-assisted-qa-catalog-empty-navigation.test.tsx`の2 Caseは今回追加であり、TSX構文/transpile診断0件のみ、Vitest・Prettier・実Web/Android・視覚・DB snapshotは未実施。既存component成功を新CaseのPASSに流用しない。CI全体はStyle Quality・contracts・required E2E・verify/validate失敗。
+- **判定・再開条件・次**：台帳`analysis_status=review_required`と基本分析50/188・非default 14/20を維持。新Caseの同一HEAD直接Vitest、Web desktopの実操作・視覚・アクセシビリティ、パンくずを復帰導線とみなす正式判断、Native・Role/Seed・DB/Session実証が再開条件。次の独立対象は`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6の閾値と正式仕様差）。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-02（顧客用導線）
 
