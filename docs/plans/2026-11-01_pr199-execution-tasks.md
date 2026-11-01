@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDERS-A02-01`（注文詳細へのversion付き導線、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A01-02`は検索条件とRole/日付/金額/ページングの静的経路を照合し、学習用3 Caseを追加したが実Vitest/Web・正式なPayment/Shipment別フィルター期待は未受入。A01-02は`review_required`を維持し、次回はA02-01の対象ID/画面遷移/version・認可境界を1件確認する。詳細は下記同IDの節。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-01`（注文詳細の顧客・注文/配送スナップショット、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A02-01`は一覧リンク→詳細Route→staff認可→Use Case→Dexieの静的経路、versionの取得位置を11条件で確認。リンクはorderIdのみを渡し、詳細取得時に現行`order.version`を取得するため、versionがURLに渡るという誤解は排除。実Web・直接Vitest・別Session競合・DB/Session不変は未実証で`review_required`維持。詳細は下記同ID節。
 - **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A02-01（注文詳細へのversion付き導線）
+
+- **対象・正式期待**：台帳`behaviors[156]`の実在する`SCREEN-ADMIN-ORDERS-A02-01`はWeb、Operator/Admin、default、`review_required`。`docs/spec/features/admin-orders.md:19-25`は「注文詳細のバージョン付きアクションへ進める」、`BR-ADMINORD-001/AC-ADMINORD-001`は正しい順序・versionと注文/配送の同時整合を要求。**遷移時にversionをURLへ渡す契約ではない**。遷移自体と配送状態変更の成功を同一CaseのPASSにまとめない。
+- **UI→Route→Use Case→Repository（静的事実）**：`src/presentation/pages/admin-operations-pages.tsx:425-440`の一覧の注文番号`Link href={`/admin/orders/${order.orderId}`}`はorderIdだけを渡す。`app/admin/orders/[orderId].tsx`がroute paramを読み、`AdminOrderDetailPage`の`StaffPage`→`RouteGuard access="staff"`（active operator/admin）→`AdminOrderDetailContent`→`AdminOperationsUseCases.getOrder(orderId)`（独立に`requireStaff`）→`DexieOrderRepository.getById/getDetail`に進む。Repository DTOの`orderActionVersion`は**詳細取得時の`order.version`**であり、詳細画面に表示され、準備/発送/配達のrequestへ渡される。変異時の`requireOrderVersion`は現行versionと照合し不一致を`CONFLICT`として拒否する。
+- **Seed/Role/State/Data**：`default`と`orders-phase1-statuses`は同じ基本datasetを使う。defaultの5注文（`order-payment-failed`/`order-paid`/`order-preparing`/`order-shipped`/`order-delivered`、version初期値1）で、各一覧行→同一orderIdの詳細/現行versionを照合する。guest/customer/停止staffの直URLおよびUse Case直呼出しは、UIのRouteGuardと独立して拒否を確認する。対象外orderIdはUse Caseの`NOT_FOUND`だが、詳細UIは`state.error`を含め`not-found`へ集約するため、権限変更後/Storage障害の誤案内は表示期待のレビュー候補であり、漏洩や製品不具合確定ではない。
+- **Risk/TR/Condition/Case採否**：C1=operator/adminの一覧5件→選択orderId・注文番号・versionの詳細一致（採用）。C2=guest/customer/suspended staffの直URL/Use Case拒否、機微な注文・配送先の非露出（High候補として採用、実漏洩未確認）。C3=不在orderId・不正URL・取得障害の区別と戻り導線（採用、UIの正式文言は保留）。C4=一覧表示後に別Sessionが更新した場合、詳細では最新versionを取得し、古いversionの更新は`CONFLICT`、注文/Shipment不変（採用、実競合未確認）。C5=選択・詳細参照のみではOrder/Payment/Shipment/Session/Historyが不変（採用）。C6=desktop/tabletのリンク、キーボード、スクリーンリーダー、視覚正本、再読込と戻る操作（採用）。`getOrder`は`getById`と`getDetail`を独立並列読取するため、更新が読取間に挟まる場合のsnapshot一貫性は別途再現が必要。顧客表示は現行Userから補完されるため「注文時点の顧客スナップショット」との差は次ID A01-01で切り分ける。
+- **直接検証と判定**：PR HEAD `f760854319526acfa8cc6957e3dc137e70113371`の正式仕様/Route/Guard/Use Case/Dexie/Seedを照合し、一覧Link・orderId・staff二重境界・versionの取得/表示/使用・Seed一致の**静的文字列11条件/11一致**を確認（実行可能なUI/認可/DBテストではない）。既存`tests/integration/admin-operations-use-cases.test.ts`には配送遷移・version検査があるが、一覧リンク→詳細のRole別実Webと前後DB snapshotを直接証明しない。対象の新規Vitest/formatter、Web desktop/tablet、別Session競合、DB/Session不変は**未実施**。台帳`review_required`を維持し、基本分析/製品適合/実WebをPASSへ昇格しない。調査HEADのWeb CI #41342149723はcompleted/failure（Style Quality=Prettier 5ファイル、supported-behaviors契約の旧`analyzed`期待、required Chromium E2EのCheckout再確認、verify/validate）。CIは別の最終受入事項であり作業選択を止めない。
+- **再開・次の1件**：上記C1〜C6の直接Vitest/Playwright・Role/DB・視覚・version競合の証拠と正式なエラー/顧客snapshot期待が揃った際にA02-01を再判定する。次の共通対象は台帳に実在する`SCREEN-ADMIN-ORDER-DETAIL-A01-01`（注文詳細の顧客/配送スナップショット）を1件扱う。製品SUT・正式仕様・既存Seed/Reset・既存製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A01-02（注文絞り込み・境界）
 
