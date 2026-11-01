@@ -122,7 +122,11 @@ export class CheckoutOrderUseCases {
         });
         if (dto.items.length === 0 || dto.blockingIssues.length > 0) {
           throw new ApplicationError({
-            code: dto.blockingIssues.includes("PRICE_CHANGED") ? "PRICE_CHANGED" : "INVALID_STATE",
+            code: dto.blockingIssues.includes("PRICE_CHANGED")
+              ? "PRICE_CHANGED"
+              : dto.blockingIssues.includes("QUANTITY_LIMIT_EXCEEDED")
+                ? "QUANTITY_LIMIT_EXCEEDED"
+                : "INVALID_STATE",
             messageKey: "checkout.cart.invalid",
             retryable: false,
           });

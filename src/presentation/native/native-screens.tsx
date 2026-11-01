@@ -920,7 +920,9 @@ export function NativeCartScreen() {
                     },
                   ]}
                 >
-                  購入前に確認が必要な商品です。
+                  {item.issues.includes("QUANTITY_LIMIT_EXCEEDED")
+                    ? "現在の購入上限を超えています。数量を減らしてください。"
+                    : "購入前に確認が必要な商品です。"}
                 </Text>
               )}
             </View>

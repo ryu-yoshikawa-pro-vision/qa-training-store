@@ -559,6 +559,40 @@ describe("checkout and customer order application integration", () => {
     },
   );
 
+  it("rejects checkout and order creation after a purchase-limit reduction without state changes", async () => {
+    await database.cart_items.update("cart-item-regular-shirt", { quantity: 2 });
+    await database.product_variants.update("variant-basic-shirt-02", {
+      stockQuantity: 10,
+      purchaseLimit: 5,
+    });
+    const checkout = await readyCheckout("TEST-SUCCESS");
+    const sessionBefore = await database.checkout_sessions.get(checkout.id);
+    const cartBefore = await database.carts.get(checkout.cartId);
+    const itemBefore = await database.cart_items.get("cart-item-regular-shirt");
+    const ordersBefore = await database.orders.count();
+    const paymentsBefore = await database.payments.count();
+
+    await database.product_variants.update("variant-basic-shirt-02", { purchaseLimit: 1 });
+    await expect(useCases.start({ cartVersion: cartBefore!.version })).rejects.toMatchObject({
+      code: "QUANTITY_LIMIT_EXCEEDED",
+    });
+    await expect(useCases.getConfirmation(checkout.id)).rejects.toMatchObject({
+      code: "QUANTITY_LIMIT_EXCEEDED",
+    });
+    await expect(
+      useCases.beginOrder({
+        checkoutSessionId: checkout.id,
+        checkoutActionVersion: checkout.version,
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(await database.checkout_sessions.get(checkout.id)).toEqual(sessionBefore);
+    expect(await database.carts.get(checkout.cartId)).toEqual(cartBefore);
+    expect(await database.cart_items.get("cart-item-regular-shirt")).toEqual(itemBefore);
+    expect(await database.orders.count()).toBe(ordersBefore);
+    expect(await database.payments.count()).toBe(paymentsBefore);
+    expect(gateway.calls).toHaveLength(0);
+  });
+
   it("does not create an order when price or rank revalidation fails", async () => {
     const checkout = await readyCheckout("TEST-SUCCESS");
     const orderCount = await database.orders.count();

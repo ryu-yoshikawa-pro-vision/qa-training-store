@@ -493,6 +493,10 @@ export class DexieCartRepository implements CartRepository {
       if (!variant.isActive) issues.push("INACTIVE");
       if (variant.stockQuantity === 0) issues.push("OUT_OF_STOCK");
       else if (item.quantity > variant.stockQuantity) issues.push("INSUFFICIENT_STOCK");
+      const maximumQuantity = maximumCartQuantity(variant);
+      if (item.quantity > maximumQuantity && item.quantity <= variant.stockQuantity) {
+        issues.push("QUANTITY_LIMIT_EXCEEDED");
+      }
       if (item.unitEffectivePriceAtAdd !== currentPrice) issues.push("PRICE_CHANGED");
       lines.push({
         itemId: item.id,
@@ -508,7 +512,7 @@ export class DexieCartRepository implements CartRepository {
           altText: image?.altText ?? `${product.name}の画像`,
         },
         quantity: item.quantity,
-        maximumQuantity: maximumCartQuantity(variant),
+        maximumQuantity,
         unitEffectivePriceAtAdd: item.unitEffectivePriceAtAdd,
         currentUnitEffectivePrice: currentPrice,
         currentViewerUnitPrice: totals.lines[0]?.viewerUnitPrice ?? currentPrice,
@@ -775,7 +779,9 @@ export class DexieCheckoutSessionRepository implements CheckoutSessionRepository
           ? "PRICE_CHANGED"
           : cartDto.blockingIssues.includes("INSUFFICIENT_STOCK")
             ? "INSUFFICIENT_STOCK"
-            : "INVALID_STATE",
+            : cartDto.blockingIssues.includes("QUANTITY_LIMIT_EXCEEDED")
+              ? "QUANTITY_LIMIT_EXCEEDED"
+              : "INVALID_STATE",
         messageKey: "checkout.cart.invalid",
         retryable: false,
       });
