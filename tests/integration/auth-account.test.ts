@@ -489,8 +489,16 @@ describe("auth and account application integration", () => {
     const saved = await account.createAddress(request);
     expect(saved).toMatchObject({ postalCode: "1000001", phone: "0312345678", version: 1 });
     const invalid = [
-      { value: { ...request, postalCode: "100x0001" }, field: "postalCode", key: "validation.postalCode" },
-      { value: { ...request, postalCode: "100--0001" }, field: "postalCode", key: "validation.postalCode" },
+      {
+        value: { ...request, postalCode: "100x0001" },
+        field: "postalCode",
+        key: "validation.postalCode",
+      },
+      {
+        value: { ...request, postalCode: "100--0001" },
+        field: "postalCode",
+        key: "validation.postalCode",
+      },
       { value: { ...request, phone: "03X12345678" }, field: "phone", key: "validation.phone" },
       { value: { ...request, phone: "03--1234-5678" }, field: "phone", key: "validation.phone" },
     ] as const;
@@ -509,12 +517,14 @@ describe("auth and account application integration", () => {
         code: "VALIDATION",
         fieldErrors: { [entry.field]: entry.key },
       });
-      expect(await account.listAddresses()).toEqual([expect.objectContaining({
-        id: saved.id,
-        version: saved.version,
-        postalCode: "1000001",
-        phone: "0312345678",
-      })]);
+      expect(await account.listAddresses()).toEqual([
+        expect.objectContaining({
+          id: saved.id,
+          version: saved.version,
+          postalCode: "1000001",
+          phone: "0312345678",
+        }),
+      ]);
     }
   });
 

@@ -324,7 +324,11 @@ describe("review, user, and test-control pages", () => {
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    await waitFor(() => expect(adminUsers.search).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 2 }),
+      ),
+    );
 
     fireEvent.change(screen.getByLabelText("会員ランク"), { target: { value: "gold" } });
     await waitFor(() =>

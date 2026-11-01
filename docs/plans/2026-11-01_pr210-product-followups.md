@@ -8,6 +8,12 @@
 
 **正本の分担**：個々の操作ID・BR/AC・Role/State/Data・教材への影響と未実行理由は [#199の製品改善レポート](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/reports/pr199-product-improvements.md) と [全機能分析レポート](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/reports/2026-10-30_pr199-supported-behavior-analysis.md) に保持する。この文書では **#210で検証・修正すべき製品経路**と受入条件だけを追跡する。#199の分析が続く間は新証拠を照合して更新し、元の調査を重複して始めない。
 
+## 2026-11-01 仕様確定2件の実装と検証
+
+[コミット `ec5785d2`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ec5785d23604cd26467275037ee605eda3fc3ec6) で管理ユーザー一覧のRankフィルター、Checkoutと保存配送先の入力文字検証、component/integration回帰を追加した。RankはRole・Statusとの併用とページ番号のリセットを検証し、住所は有効なハイフン付き入力を正規化、英字・空白・不正な区切り文字を拒否して保存済み状態を変更しない契約をテストする。配送先登録・編集の`AccountUseCases`でも検証しないと不正値が先に正規化されるため、両境界を変更した。
+
+**実装コミット済みと製品受入は別**。変更直後のWeb CIではVitest integration・componentとCode Qualityが成功したが、追加テストのPrettier違反でStyle Qualityが失敗したため、本追記と同じコミットで書式を修正する。最新HEADの必須CI・Web実画面・Native実機回帰・独立レビューが成功するまでは2項目とも最終受入は未完了とする。
+
 ## 仕様回答済み：製品側の修正対象
 
 | 項目・操作ID | #210 HEADの静的根拠 | #210側で必要な検証・対応 |

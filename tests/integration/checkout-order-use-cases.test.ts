@@ -270,12 +270,36 @@ describe("checkout and customer order application integration", () => {
       address,
     });
     const invalidCases = [
-      { address: { ...address, postalCode: "100a0001" }, field: "postalCode", message: "validation.postalCode" },
-      { address: { ...address, postalCode: "100--0001" }, field: "postalCode", message: "validation.postalCode" },
-      { address: { ...address, postalCode: "100 0001" }, field: "postalCode", message: "validation.postalCode" },
-      { address: { ...address, phone: "090a00000000" }, field: "phone", message: "validation.phone" },
-      { address: { ...address, phone: "090--0000-0000" }, field: "phone", message: "validation.phone" },
-      { address: { ...address, phone: "090 0000 0000" }, field: "phone", message: "validation.phone" },
+      {
+        address: { ...address, postalCode: "100a0001" },
+        field: "postalCode",
+        message: "validation.postalCode",
+      },
+      {
+        address: { ...address, postalCode: "100--0001" },
+        field: "postalCode",
+        message: "validation.postalCode",
+      },
+      {
+        address: { ...address, postalCode: "100 0001" },
+        field: "postalCode",
+        message: "validation.postalCode",
+      },
+      {
+        address: { ...address, phone: "090a00000000" },
+        field: "phone",
+        message: "validation.phone",
+      },
+      {
+        address: { ...address, phone: "090--0000-0000" },
+        field: "phone",
+        message: "validation.phone",
+      },
+      {
+        address: { ...address, phone: "090 0000 0000" },
+        field: "phone",
+        message: "validation.phone",
+      },
     ] as const;
     for (const invalid of invalidCases) {
       await expect(
