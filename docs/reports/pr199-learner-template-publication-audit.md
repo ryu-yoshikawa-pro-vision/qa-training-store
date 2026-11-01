@@ -57,3 +57,25 @@
 ### 公開前に必要な判断
 
 所有者による判断が必要なのは、**自作の教材・Skill・ソースコードを学習者へどの条件で複製・修正・再利用させるか**というライセンス方針である。第三者のOFL通知は確認可能な技術的対応として調査を継続し、ライセンス選択と混同しない。公開作成は引き続き個別承認待ち。
+
+## 追加監査：Web CIの実ビルド成果物（2026-11-01）
+
+`Web CI`のRun [41293093957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41293093957)の`web-dist-production` Artifact（ID `13078780383`）を取得し、ZIPの**全312ファイル（展開後25,506,467バイト）**を静的に走査した。Runの`head_sha`は`c7c4a57deef7fa1afbbfb8a7bd78f2085031dea8`であり、**後続のPlan・本監査文書の変更HEADを検証したものではない**。本Artifactは`dist/**`のWebビルドであり、`course:sync`後の241個の配布元コピー、`.course/distribution-manifest.json`、実TemplateのGit設定は含まない。
+
+| 検査項目 | Artifactの確認結果 | 判定範囲 |
+| --- | --- | --- |
+| Webビルドのファイル実在 | 312件、HTML83件・Markdown50件・WebP103件・CSS6件・woff/woff2計12件など | 実ビルドArtifactの内容を確認 |
+| 配布禁止の典型的なパス | `.env`、`.git/`、`scoring-tests/`、`reference-solutions/`、`completed-states/`、`.github/workflows/`というファイル名を検出せず | ファイル名ベースの検査。内容監査とは別 |
+| 秘密情報を示す典型的な文字列 | 秘密鍵ヘッダー、GitHub Token、AWS Access Key、OpenAI API Key、長いToken/Password代入式、JWT形式をテキストファイル群で検索し**検出0** | パターンベース。すべてのSecret混入がない保証ではない |
+| source map・評価完成資料への文字列参照 | `.map`ファイルなし。`sourceMappingURL`、評価用完成資料パスの指定パターンを検出せず | パターンベースの確認 |
+| メールアドレスらしい文字列 | 抽出した59件のドメインはいずれも`example.com` | 実際のユーザーアドレスが一切ない保証ではない |
+| フォント | Inter 6ファイル、Noto Sans JP 6ファイル。woff内の著作権メタデータとOFL参照URLを確認 | SIL OFLの完全遵守・第三者ライセンス全量の検査ではない |
+| `LICENSE`/`NOTICE`類 | 該当する独立ファイルを検出せず | フォントメタデータに著作権表示とライセンスURLがある。独立ファイルの欠如だけで違反とは判定しない |
+| 旧カリキュラムと講師向け資料 | `docs/curriculum/03_instructor-reference.html`ほか、旧課程と正式仕様ページを同梱 | 公開済み資料であっても**学習者Templateに必要か**は配布範囲の確認が必要 |
+
+**確定した実装上の配布経路**：`package.json`の`build:web`はWebアプリ・フォント・画像と`build:docs`の成果物を作り、`expandBuildOutput()`が`dist/**`を`course/shop/**`へ無差別に追加する。従って、生成物の一覧には新課程だけでなく旧課程の講師向け資料・正式仕様等も含まれる。これを直ちに機密情報漏えいと断定しないが、Q03の「公開に必要な範囲」の審査では**配布する/しないの根拠を示す必要がある**。
+
+**ライセンスについての追加判断**：ユーザーは自作の教材・コード・SkillをMITにする方針に同意済み。ただし、本人以外の著作物には自動適用しない。SILの[OFL FAQ](https://software.sil.org/oflt/)では、バンドルされるフォントはメタデータ内の著作権・ライセンス参照で条件を満たせる場合がある。Artifact中のフォントには著作権表示とOFL URLがあるが、利用者が容易に参照できる表示か、依存パッケージ全体の通知条件を満たすかは未判断。**OFL全文の独立ファイルがないだけで違反と断定しない**。MIT本文・著作権者の確定と第三者NOTICEの整理は公開前に必要。
+
+**今回の新しい結論**：実Web Artifactの一次検査は完了。典型的なSecretや学習者へ渡さない評価完成資料の直接混入を示す証拠は得ていない。ただし、学習者Templateへ配布する実ファイル集合は`dist/**`より大きく、実`course:sync`後の全量検査、ライセンス/配布範囲の判断、2コア環境受入、無料枠、公開作成の個別承認は**未完了**。
+
