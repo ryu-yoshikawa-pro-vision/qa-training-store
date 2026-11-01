@@ -208,35 +208,36 @@ export class AdminOperationsUseCases {
     await this.dependencies.transactionRunner.run(
       "ship-order",
       async ({ orders, shipments, users, sessions }) => {
-      await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
-      const order = await this.requireOrderVersion(
-        orders,
-        request.orderId,
-        request.orderActionVersion,
-      );
-      if (order.status !== "preparing") throw this.invalidTransition();
-      const shipment = await shipments.getByOrder(order.id);
-      if (shipment === null || shipment.status !== "pending") throw this.invalidTransition();
-      await shipments.update(
-        {
-          ...shipment,
-          status: "shipped",
-          carrierName,
-          trackingNumber,
-          shippedAt: now,
-          updatedAt: now,
-        },
-        shipment.version,
-      );
-      await orders.update({ ...order, status: "shipped", updatedAt: now }, order.version);
-      await orders.appendStatusHistory({
-        id: this.dependencies.idGenerator.generate(),
-        orderId: order.id,
-        fromStatus: "preparing",
-        toStatus: "shipped",
-        actorUserId: actor.id,
-        reasonCode: "SHIPPED",
-        createdAt: now,
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        const order = await this.requireOrderVersion(
+          orders,
+          request.orderId,
+          request.orderActionVersion,
+        );
+        if (order.status !== "preparing") throw this.invalidTransition();
+        const shipment = await shipments.getByOrder(order.id);
+        if (shipment === null || shipment.status !== "pending") throw this.invalidTransition();
+        await shipments.update(
+          {
+            ...shipment,
+            status: "shipped",
+            carrierName,
+            trackingNumber,
+            shippedAt: now,
+            updatedAt: now,
+          },
+          shipment.version,
+        );
+        await orders.update({ ...order, status: "shipped", updatedAt: now }, order.version);
+        await orders.appendStatusHistory({
+          id: this.dependencies.idGenerator.generate(),
+          orderId: order.id,
+          fromStatus: "preparing",
+          toStatus: "shipped",
+          actorUserId: actor.id,
+          reasonCode: "SHIPPED",
+          createdAt: now,
+        });
       },
     );
     return this.getOrder(request.orderId);

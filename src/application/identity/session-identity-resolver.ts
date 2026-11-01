@@ -43,8 +43,7 @@ export async function assertActorStillAuthorized(
   }
   if (current.accountStatus !== "active") {
     throw new ApplicationError({
-      code:
-        current.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
+      code: current.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
       messageKey:
         current.accountStatus === "suspended"
           ? "auth.account.suspended"
