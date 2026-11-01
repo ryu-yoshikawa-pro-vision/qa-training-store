@@ -1,5 +1,9 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+## 2026-11-01 確定：PR #199から製品差分を分離
+
+ユーザー指示により、製品実装9・正式製品仕様1・既存製品テスト9ファイルは専用ブランチ`product/scenario-shop-maintenance`へ移した。PR #199の同19ファイルは`main`の内容へ復元済みで、**既存19ファイルの処理方針決定・分離は完了**。今後の製品修正も同ブランチで行う。製品不具合の記録・根拠付き基本分析はこのPRで継続し、製品本体には手を加えない。製品用PR・`main`への統合は別の明示指示待ち。最新方針は[製品専用ブランチ](./2026-11-01_pr199-scenario-shop-product-branch.md)、分離前の個別監査は[製品改善レポート](../reports/pr199-product-improvements.md)を参照する。
+
 ## 2026-11-01 本人確定：B1〜B3はマージ後の別作業
 
 本PRで行うのは教材・Skill・評価・分析と、配布生成元/生成手順/開発環境・CIで可能な検証。B1の実Public Template `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner` の作成・コピーは本人が**PRマージ後**に行う。マージ済み `main` で `node scripts/training/prepare-learner-template.mjs` を実行し、生成・検証した内容をコピーする。B3の本人Private repo/2コアCodespaces実受入は**その他全PR作業完了後**に行う。どちらもPRマージ前必須ゲートから外すが未実施をPASSとしない。B2は第三者ライブラリ等以外を本人制作物と確定し、再質問不要。独自部分のMITと第三者NOTICE/Secret検証は維持。以前のPR内公開・実2コア受入時期の記述には本節を優先する。

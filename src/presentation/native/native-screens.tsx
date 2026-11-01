@@ -939,9 +939,7 @@ export function NativeCartScreen() {
             <NativeButton
               label="最新価格を反映"
               variant="secondary"
-              disabled={
-                busy !== null || cart.blockingIssues.some((issue) => issue !== "PRICE_CHANGED")
-              }
+              disabled={busy !== null}
               onPress={() => {
                 setBusy("price-change");
                 void services.cart

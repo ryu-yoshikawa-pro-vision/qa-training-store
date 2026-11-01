@@ -118,7 +118,6 @@ export class AccountUseCases {
   }
 
   async suggestAddress(postalCode: string): Promise<AddressSuggestion | null> {
-    await this.requireCustomer();
     return this.dependencies.addressLookup.suggest(postalCode);
   }
 
