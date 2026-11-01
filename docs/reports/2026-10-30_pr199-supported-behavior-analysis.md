@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A02-01（自己操作の拒否）
+
+- **正式期待と経路**：正式`docs/spec/features/admin-users.md`の`BR-ADMINUSER-001/AC-ADMINUSER-001`は自己破壊的なrole/status変更の拒否と操作不可表示を要求。default Seedのactive admin `user-admin`を本人Sessionで操作する。Web `AdminUserDetailForm`は本人のrole select/button・status buttonをdisabledにし、日本語理由を表示する。`AdminUserUseCases.changeRole`は自己role変更をtransaction前に拒否し、`changeSuspension`は本人のsuspended要求をtransaction前に拒否する。
+- **追加した直接Case**：`tests/contracts/ai-assisted-qa-admin-self-change.test.mjs`で本人のadmin→operator、active→suspendedをそれぞれ`SELF_CHANGE_FORBIDDEN`とし、本人2 Sessionを含むUser/version・Session・Checkout・Cart全体の前後snapshot不変を検査する。既存integrationの自己role拒否、既存学習用suspensionの自己停止拒否を再利用しつつ、同一fixtureで横断的な副作用不変を補強する。新規Caseは**構文検査のみで実Vitest未実行**、現HEADのCI結果待ち。
+- **採用/未受入**：C1=自己降格拒否とDB不変（学習用直接Case追加）、C2=自己停止拒否とSession/version不変（同Case）、C3=Web desktop/tabletのdisabled・理由・キーボード/視覚正本（未実Run）、C4=非admin/停止actorの直呼出しと拒否後不変（未実Run）、C5=認可後のactor権限失効・別Session競合（High候補、実並行未実証）。静的経路/契約定義と実行成功、製品適合を区別し、`review_required`と基本分析50/188・非default状態14/20を維持する。
+- **CI横断事項**：前HEAD `4dec3b94` の[Web CI #41314654625](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41314654625)ではA01-04学習用suspension契約2件はPASS。ただしStyle Qualityは同ファイルのPrettier、supported-behaviors契約15件は旧80/188・旧analyzed期待と現50/188・review_requiredの不一致、required E2E 1件はCheckout再確認メッセージ未表示で失敗。これらをA02-01のPASSや製品不具合確定には流用しない。次回は台帳のA02-02存在・状態と現HEADの直接Case/CIを確認する。製品SUT/正式仕様/Seed/製品テスト/workflowは無変更。
+
 ## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-04（状態変更）
 
 - **契約・経路**：現行台帳blob `062047d3a286b19341fa897a163f310b8d3cfc6b`に実在し、`analysis_status=review_required`。正式`BR-ADMINUSER-001/AC-ADMINUSER-001`のactive/suspended許可遷移、withdrawn・自己破壊的変更・最終adminの拒否、Session/Checkout無効化説明を確認。Web `review-user-pages.tsx:794-838`は本人の操作disabled、他者は確認ダイアログから`expectedVersion`を送信。`AdminUserUseCases.changeSuspension:600-638`はadmin認可後、Dexie `change-user-access` transactionでversion・状態・最終adminを検査し、User version+1、対象Session全削除、customer停止時のactive Checkout破棄/version+1を行う。Cartはtransaction scope外。

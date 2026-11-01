@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-04`（状態変更）。台帳の実在ID・`review_required`をblob `062047d3a286b19341fa897a163f310b8d3cfc6b`で確認。正式`BR-ADMINUSER-001/AC-ADMINUSER-001`、Web詳細→`AdminUserUseCases.changeSuspension`→Dexie transaction、default/`checkout-resume` Seedを照合。許可/拒否・User version・Session/Checkout/Cart不変性の学習用契約2 Caseを追加したが、**直接Vitest/CI・実Web未実行**。actor権限失効の競合、非admin拒否、最終admin、実Web desktop/tabletの受入は未証明で`review_required`維持。再開条件は新規契約の実Run・追加の拒否/競合/実画面証拠。**次の共通候補は`SCREEN-ADMIN-USER-DETAIL-A02-01`**。詳細は分析レポートの同ID節を参照。
+- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A02-01`（自己ロール降格・自己停止の拒否）。正式`BR-ADMINUSER-001/AC-ADMINUSER-001`、Web詳細の本人操作disabledと`AdminUserUseCases.changeRole/changeSuspension`の`SELF_CHANGE_FORBIDDEN`を照合。default Seedのactive adminに2 Sessionを追加し、自己降格/自己停止の両拒否とUser/version/Session/Checkout/Cart不変を同一fixtureで検査する学習用契約`tests/contracts/ai-assisted-qa-admin-self-change.test.mjs`を追加。**Node構文検査のみ、Vitest・実Webは未実行**。旧HEAD `4dec3b94` のA01-04学習用契約2 CaseはCI PASSだが現HEADへ流用しない。UI desktop/tablet・認可競合・非admin拒否は未受入、`review_required`維持。次候補は台帳の`SCREEN-ADMIN-USER-DETAIL-A02-02`の実在・状態を確認して決定する。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
