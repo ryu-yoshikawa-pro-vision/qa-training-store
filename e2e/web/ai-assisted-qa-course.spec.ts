@@ -367,13 +367,12 @@ test.describe("Scenario Shop未検出境界の学習用回帰", () => {
     }));
     expect(after).toEqual(before);
   });
+
   test("未検出の深いURLをアプリ境界で表示し、既知の拒否画面と区別する", async ({ page }) => {
     await page.goto("/__ai_qa_missing_route__/nested");
     await expect(page.locator("section.state-panel--not-found")).toBeVisible();
     await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
-    await expect(
-      page.getByText("URLが正しいか確認するか、ホームへ戻ってください。"),
-    ).toBeVisible();
+    await expect(page.getByText("URLが正しいか確認するか、ホームへ戻ってください。")).toBeVisible();
     await expect(page.locator("section.state-panel--forbidden")).toHaveCount(0);
 
     await page.reload();
@@ -383,5 +382,4 @@ test.describe("Scenario Shop未検出境界の学習用回帰", () => {
     await expect(page.locator("section.state-panel--forbidden")).toBeVisible();
     await expect(page.locator("section.state-panel--not-found")).toHaveCount(0);
   });
-
 });
