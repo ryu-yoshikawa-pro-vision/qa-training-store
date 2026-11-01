@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 78,
-      requires_review: 110,
+      basically_analyzed: 79,
+      requires_review: 109,
       classified_rate: 100,
-      basic_analysis_rate: 41.49,
+      basic_analysis_rate: 42.02,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -47,6 +47,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
     }
+  });
+
+  it("tracks Signup success destinations separately for Web and Native without claiming runtime PASS", () => {
+    const signup = data.behaviors.find(
+      (entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03",
+    );
+    expect(signup?.analysis_status).toBe("analyzed");
+    expect(signup?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(signup?.related_use_cases).toContain("AuthUseCases.register");
+    expect(signup?.expected).toContain("/account/profile");
+    expect(signup?.expected).toContain("refreshIdentity");
+    expect(signup?.test_condition).toContain("実Web/Android");
+    expect(signup?.basic_analysis_review).toContain("未確認");
   });
 
   it("audits 12/13 variant presentation and stock-zero Web/Native differences without runtime PASS", () => {

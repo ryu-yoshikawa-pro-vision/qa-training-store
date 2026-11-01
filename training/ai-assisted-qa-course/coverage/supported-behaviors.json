@@ -5406,28 +5406,30 @@
       "source_line": 62,
       "source_text": "入力バリデーション結果やアカウントの重複状況を明示し、登録成功時は安全な購入導線の入口へ遷移する。",
       "platform": "web,android",
-      "role": "Guest",
+      "role": "Guest（Web/Androidの未ログイン状態）",
       "scenario": "default",
-      "data": "対象Seed/条件: default,既存メールの重複入力,バリデーション不正入力。操作: 登録成功後の遷移。正常・不許可・変化前後の入力を区別する",
+      "data": "default Seedの初期sessionなし、固定regular@example.com等の既存アカウントとは異なる未登録メール（例: new.user@example.com）、有効な表示名/パスワード。重複メール・不正入力・session保存失敗を拒否Caseとして分離。成功時に新規active customer/regular・sessionとguest Cart mergeを作成",
       "action": "登録成功後の遷移",
-      "expected": "登録成功後は顧客として安全なストアフロントへ遷移し、不許可の管理画面へ進まない",
+      "expected": "正常登録後、AuthUseCases.registerはactive customer/regularの本人sessionを生成し、WebはrefreshIdentity後に内部固定パス「/」へreplace、Nativeは内部固定パス「/account/profile」へreplaceする。外部URL・/adminへは遷移しない。失敗時は遷移せず画面にエラーを示す。WebとNativeの到達先の差を同一URLと誤認しない",
       "rule_refs": [],
       "route": "`/signup`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "登録成功後の遷移に対して、登録成功後は顧客として安全なストアフロントへ遷移し、不許可の管理画面へ進まないことをUI/業務状態で照合する",
-      "test_responsibility": "登録成功後の遷移のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "登録成功後の遷移の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "登録成功前の遷移・未認証Profile表示、誤ったstaff/管理画面への遷移、失敗時の誤遷移、guest Cart merge/Sessionの不整合、Web/Nativeで遷移先が異なることによる教材の誤期待",
+      "test_condition": "default Resetでguest sessionなし→未登録メール/有効表示名・パスワードで登録→WebはrefreshIdentity後「/」、Nativeは「/account/profile」へ遷移することをRole/Session/Cartと照合。重複メール・必須/長さ違反・Session保存失敗では遷移なし・新規DB/Session不変を独立Caseとする。Web確認パスワード・注意事項同意とNativeのフォーム差は別の製品適合候補として扱う。実Web/Android画面と実session遷移は未受入",
+      "test_responsibility": "BR-AUTH-001/002・AC-AUTH-001/002の登録成功/顧客権限境界をWeb SignupPage→AuthUseCases.register→Dexie User/Session/Cart、Native NativeSignupScreen→同Use Case→SQLite経路と固定Seedで静的照合。Web/Nativeの到達先の違いと登録失敗時の遷移禁止を別に検証し、実端末PASSは主張しない",
+      "case_policy": "未登録有効メールの成功（Web「/」/Native「/account/profile」）、既存メール重複、入力不正、Session書込失敗、guest Cartあり/なし、管理Roleの誤生成/外部URL遷移なしを採用。画面上のnotice/confirmation差は未決仕様として製品適合を保留",
+      "case_selection_reason": "登録直後の権限・Session/Cartと遷移先の誤りは本人情報露出・購入導線の誤開放につながる。WebとNativeの実装上異なる安全な内部到達先を固定し、成功と失敗時の不変条件を分ける。default Seedと既存統合テストを再利用し新Seedを増やさない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "authentication.md:5-16/49-67、Web SignupPage auth-pages.tsx:220-278（register→refreshIdentity→router.replace('/')）、Native NativeSignupScreen native-purchase-screens.tsx:240-261（register→router.replace('/account/profile')）、app/signup.native.tsxとapp/account/profile.native.tsx、AuthUseCases.register auth-use-cases.ts:116-181（active customer/regular、transaction内User/Cart/Session作成、失敗時session pointer clear）、default Seed metadata.ts:75-86（guest sessionなし）、integration auth-account.test.ts:222-246（登録・本人情報/Session）、Web component auth-account-pages.test.tsx:246-320（入力前提）を静的照合。Native signup成功遷移の独立component/Android実Runは未確認。Webは確認/注意事項同意が必要だがNativeには同等UIなし。製品適合・視覚・実sessionのPASSではない",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AuthUseCases.register"
+      ],
+      "analysis_progress": "BR/AC・Web/Native画面→共通AuthUseCases.register→Web Dexie/Native SQLite、default Seed、既存統合/componentの静的照合完了。実画面/Android/Session end-to-end・製品適合は別受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 220,
@@ -5447,7 +5449,19 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.register",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 116,
+          "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-S-validation-error",

@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## サインアップ成功後のWeb/Native内部遷移を分離した静的基本分析
+
+- **対象・契約**：`SCREEN-AUTH-SIGNUP-A02-03`。正式`authentication.md:5-16/49-67`の`BR-AUTH-001/002`・`AC-AUTH-001/002`は、登録したactive customerのセッションと安全な購入導線を要求する。登録成功時のWeb/Native同一URLまでは要求していない。
+- **画面→Use Case→Repository**：Web `SignupPage:220-278`は`auth.register`成功後`refreshIdentity()`を待ち`router.replace("/")`。Native `NativeSignupScreen:240-261`は同じ`auth.register`成功後に`router.replace("/account/profile")`し、`app/account/profile.native.tsx`の顧客プロフィールへ進む。共通`AuthUseCases.register:116-181`は未登録メールを再検証し、active customer/regular、本人Session、guest Cart mergeをtransactionで生成する。外部URLや管理画面を遷移先に使用しない。
+- **Role/State/Data・Case採否**：`default` Seedは初期guest sessionなし。未登録メールの正常登録、既存メール重複、入力上限/必須違反、session pointer失敗、guest Cartあり/なしを区別。既存`tests/integration/auth-account.test.ts:222-246`は正規化customer登録を検証し、Web componentは入力検証を確認。Native Signupの実成功遷移を直接検証するcomponent/Android実Runは未確認。失敗時のDB/Session不変と実画面遷移も別受入。
+- **Platform差・製品適合**：Webには確認パスワードと学習環境注意事項の明示同意があり、Nativeの現行Signupには両UIがない。正式仕様が両Platformに同一入力を要求するかは未決。製品改善候補として記録し、修正は行わない。
+- **判定**：BR/AC、Role/State/Data、Web/Native→共通Use Case→Repository、固定Seed、期待結果/Risk/TR/Condition/Case採否の静的根拠が揃ったため`A02-03`を`analyzed`へ変更。**79/188操作（42.02%、残109）、非default状態18/20（残2）**。実Web/Android・視覚・Session/Cart E2E、製品仕様適合PASSとは区別する。
+
 ## 最終管理者保護の静的境界と負例証拠不足（未受入）
 
 - **対象と正式契約**：`SCREEN-ADMIN-USER-DETAIL-A02-03`。正式`admin-users.md:7-15/49-51/78-84`の`BR-ADMINUSER-001/AC-ADMINUSER-001`は最後の管理者の降格・停止を拒否し、UI上でも変更可能と誤認させないことを要求する。ユーザー管理はactive adminのみ（`roles-and-permissions.md:5-23`）。
