@@ -341,9 +341,7 @@ test.describe("AI協働QAの公開クイズ画面", () => {
 });
 
 test.describe("Scenario Shop未検出境界の学習用回帰", () => {
-  test("未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({
-    page,
-  }) => {
+  test("未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: "決定的なシナリオで、確かなテストを。" }),
