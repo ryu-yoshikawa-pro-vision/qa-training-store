@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS（Web公開レビュー一覧・Native差）
+
+- **事実**：`CatalogUseCases.listReviews`はpage整数1以上/pageSize=20を検証し、Webは`DexieReviewRepository.listPublished`でproductId+publishedのみ取得、newest/評価降順/評価昇順とID tie-breakを適用する。default `product-mug`のpublished 3件（5/4/2）とhidden/deleted各1件を静的に照合。Web商品詳細はpage 1のみ呼び、sort切替UIを持つ。Nativeは`NativeCatalogService`にlistReviewsがなく、商品詳細はreviewSummaryのみ。共通Use CaseのNative gateway分岐は空itemsを返すが、Native UIから呼ばれていない。
+- **推論・未確認**：正式レビュー規則はpublishedのみの表示を要求する一方、Androidに本文一覧を必須とする明示契約は未確認。Webの取得Promiseにcatchがないため失敗時のユーザー向け通知が欠ける可能性、商品詳細の閲覧権限をlistReviews自体が再検査しないことによる制限商品のレビュー情報露出可能性は、直接再現・正式期待がなく欠陥と断定しない。
+- **Case採否・証拠**：C1 Web publishedのみとサマリー整合、C2 sort/page/tie、C3不正pageと不変、C4 Role/非公開商品、C5 Androidサマリー/一覧契約、C6非同期失敗/20件超/視覚を採用。学習専用`tests/contracts/ai-assisted-qa-catalog-review-contract.test.ts`へC1〜C3の代表Caseを追加。TypeScript transpile構文診断0件のみ確認。依存付きVitest、Prettier、実Web/Android、Role別拒否・DB/Session実snapshotは未実施。`analysis_status=review_required`継続、製品適合・CI・実Runは未受入。
+- **再開条件・引継ぎ**：直接Vitest/実Web/Androidと正式Platform期待の確定が必要。新証拠が得られるまで同じレビューを繰り返さず、次の共通対象`SCREEN-STOREFRONT-HOME-A01-05`へ移る。製品SUT/正式仕様/Seed/既存テストは読み取りのみ。
+
 ## 2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A01-01（未検出画面の表示）
 
 - **実在IDと仕様**：`supported-behaviors.json`で`review_required`、Role All、Web/Android、default、`UI-ERROR/UI-A11Y`を確認。`docs/spec/ui-ux-contract.md:25-38`は存在しないルートの明示・ホーム復帰とWeb desktop/Android視覚正本を要求。`screen-catalog.md:45-50`も両プラットフォーム対象。

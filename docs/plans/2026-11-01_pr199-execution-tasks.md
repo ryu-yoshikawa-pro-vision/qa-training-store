@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`UC-CATALOG-LIST-REVIEWS`（台帳の次の未処理`review_required`、次の1件）。前対象`SCREEN-BOUNDARY-NOT-FOUND-A02-01`はWeb/Nativeの`+not-found`→アプリ境界UI、Webの拡張子なしURLのSPA fallback、`/forbidden`との区別、Native ShellのRole先行遮断を静的照合。学習用Web E2Eへ未知の深いURLの直アクセス・再読込・拒否画面との差別化を検査する直接Caseを追加した。新Caseの実Chromium・Android deep link/Role・視覚/フォーカス・DB/Session前後は未実施で、A02-01は`review_required`維持。詳細は本Planの「2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A02-01」。
+- **現在の対象**：`SCREEN-STOREFRONT-HOME-A01-05`（会員ランク特典案内の未処理`review_required`）。前対象`UC-CATALOG-LIST-REVIEWS`はWebの公開レビュー抽出・ソート・ページング・default Seedを経路照合し、学習用Vitestの直接Caseを追加。Nativeの画面はレビュー集計のみで一覧Use Caseを公開せず、共通Use CaseのcustomerGateway分岐は空結果を返す。Nativeの一覧表示期待・Role/商品公開制限・実Web/Android・新Caseの実行証拠が未確定のため`review_required`継続。詳細は本Planの「2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS」。
 - **CI横断**：作業開始時のHEAD `fb2ce856955933391130cb1fa722c00f3666bc98` の[Web CI #41331157796](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41331157796)は確認時点でin_progress。Vitest contracts・Style Qualityはfailure、build-production・production-smoke・component等はsuccess、required Chromium E2Eはin_progress。今回の新Caseを含む変更後HEADのCI成功は未確認。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：UC-CATALOG-LIST-REVIEWS（公開レビュー一覧・Platform境界）
+
+- **正本・状態**：`supported-behaviors.json`の実在Use Case ID `UC-CATALOG-LIST-REVIEWS`は`review_required`、Web/Android、Role guest/customer/operator/admin、`BR-REVIEW-002`。正式`docs/spec/features/reviews.md:9-15`はpublishedだけを商品表示・集計対象とする。`docs/spec/features/storefront.md:100-125`はWeb/Androidの商品詳細にレビュー**サマリー**を要求するが、レビュー**本文一覧**のAndroid必須性は明示しない。台帳のWeb/Android一括期待を未確定のまま製品不具合にしない。
+- **Web実装経路**：`app/products/[productId].tsx`→`ProductDetailView`（`product-detail-page.tsx:72-89,309-363`）→`CatalogUseCases.listReviews`（`catalog-use-cases.ts:134-146`）→`DexieReviewRepository.listPublished`（`order-review-repositories.ts:330-350,418-427`）。pageは1以上の整数、pageSizeは20のみ。DBではproductId一致かつstatus=publishedだけを抽出し、newest/rating_desc/rating_ascで並べ、同点はID昇順。Web UIは最初の20件を描画するが次ページ操作を提供しない。非同期取得は`.then`のみで拒否時のエラー表示・再試行はない（実Web障害の有無は未実証）。
+- **Native境界**：`native-runtime.ts:25-34,196-205`の`NativeCatalogService`は`listReviews`を公開しない。`native-screens.tsx:763-775`は`reviewSummary`件数・平均・分布のみ表示する。共通`CatalogUseCases.listReviews`の`customerGateway`経路は空items/total=0を返すが、現在のNative商品詳細UIはそのメソッドを呼ばない。Nativeサマリーを「0件表示」と誤判定しない。将来の一覧要求を勝手に追加しない。
+- **Seedと採用Case**：default Seedの`product-mug`にはpublished 3件（評価5/4/2）、hidden 1件・deleted 1件があり、後者2件は一覧/集計から除外する。C1=Web guest/customerのmug publishedのみ・件数/平均と整合（採用）。C2=newest/rating昇降順・同点ID順・page=2の空items/total維持（採用）。C3=page 0/小数/NaN・pageSize不正のVALIDATIONとDB不変（採用）。C4=Role/非公開・ランク制限商品のレビュー問い合わせと情報非露出（High候補、正式期待・実Run待ち）。C5=NativeのサマリーとWeb本文一覧の仕様境界・Android実表示（採用、期待の確定待ち）。C6=Webの取得失敗・画面切替時の古い結果・アクセシビリティと20件超のUI（採用、負例実Run待ち）。
+- **直接検証と限界**：学習用`tests/contracts/ai-assisted-qa-catalog-review-contract.test.ts`にC1〜C3のうちdefault Seed、3 sort、2ページ目、無効page拒否とDB/サマリー不変のVitestを追加。ローカルTypeScript transpileの構文診断は0件。ただし依存付きVitest/formatter/実Chromium/Androidは未実行であり、テスト追加自体をPASSにしない。製品SUT・正式仕様・既存製品テスト/workflowは変更しない。
+- **再開・次**：同一HEADの新Vitest実行、Web商品詳細で公開/非公開/削除とRole別アクセス・エラー/再試行・20件超の実観測、Native一覧必須性の正式判断と実Androidサマリー、DB前後snapshotが揃った時に本IDを再判定する。それまでは`review_required`を維持し、次の未処理`SCREEN-STOREFRONT-HOME-A01-05`へ逐次移る。CIは最終受入として独立判定する。
 
 ## 2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A02-01（アプリ境界として未検出を表示）
 
