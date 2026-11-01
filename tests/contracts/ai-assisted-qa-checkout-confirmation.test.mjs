@@ -93,6 +93,17 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     };
   }
 
+  async function checkoutSafetySnapshot() {
+    return {
+      ...(await snapshot()),
+      orderItems: await database.order_items.toArray(),
+      orderHistory: await database.order_status_histories.toArray(),
+      sequences: await database.daily_sequences.toArray(),
+      variants: await database.product_variants.toArray(),
+      inventoryHistory: await database.inventory_histories.toArray(),
+    };
+  }
+
   async function readyCheckout() {
     const checkout = makeCheckoutUseCases("training-regular-session");
     const cart = await database.carts.get("cart-regular-active");
@@ -205,6 +216,46 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     expect(order.totalAmount).not.toBe(displayed.totalAmount);
     const payment = await database.payments.where("orderId").equals(processing.orderId).first();
     expect(payment).toMatchObject({ amount: repriced.totalAmount });
+  });
+
+  describe("SCREEN-CHECKOUT-CONFIRM-A02-01 stale cart", () => {
+    it("rejects a stale cart before loading confirmation without writing orders or inventory", async () => {
+      const { checkout, cart, session } = await readyCheckout();
+      await database.carts.update(cart.id, { version: cart.version + 1 });
+      const before = await checkoutSafetySnapshot();
+
+      await expect(checkout.getConfirmation()).rejects.toMatchObject({
+        code: "CART_VERSION_CHANGED",
+      });
+      await expect(checkout.getConfirmation(session.id)).rejects.toMatchObject({
+        code: "CART_VERSION_CHANGED",
+      });
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: session.id,
+          checkoutActionVersion: session.version,
+        }),
+      ).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+      expect(await checkoutSafetySnapshot()).toEqual(before);
+    });
+
+    it("rejects beginOrder after the displayed confirmation becomes stale", async () => {
+      const { checkout, cart, session } = await readyCheckout();
+      const displayed = await checkout.getConfirmation(session.id);
+      await database.carts.update(cart.id, { version: cart.version + 1 });
+      const before = await checkoutSafetySnapshot();
+
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: session.id,
+          checkoutActionVersion: displayed.checkoutActionVersion,
+        }),
+      ).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+      await expect(checkout.getConfirmation(session.id)).rejects.toMatchObject({
+        code: "CART_VERSION_CHANGED",
+      });
+      expect(await checkoutSafetySnapshot()).toEqual(before);
+    });
   });
 
   describe("SCREEN-CHECKOUT-CONFIRM-A01-04 payment-method snapshot", () => {
