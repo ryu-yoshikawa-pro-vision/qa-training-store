@@ -27,8 +27,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-BOUNDARY-NOT-FOUND-A02-01`（未検出をアプリ境界として表示、台帳`review_required`、次の1件）。前対象`SCREEN-BOUNDARY-NOT-FOUND-A01-02`はWeb/Nativeのホーム復帰経路、Root/Shell、Role境界、SPA fallback、default Seed適用範囲を静的照合し、学習用Web E2Eの直接Caseを追加した。Webは`Link href="/"`、Androidは`router.replace("/")`を使用する。Nativeのoperator/adminはShellが未検出画面とホームを先に遮断するため、`All`期待との照合が必要。追加E2E・Android deep link・Role別実Run・DB/Session前後・視覚/フォーカスは未実施で、A01-02は`review_required`維持。詳細は本Planの「2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A01-02」。
-- **CI横断**：確認HEAD `acec24351a7e1e965fc294f637941a326716d6f4`の[Web CI #41327183312](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41327183312)はcompleted/failure。build-production・production-smoke・Vitest componentはsuccessだが、Vitest contracts・Style Quality（Format check）・Chromium E2E required・verify・validateはfailure。成功したproduction-smokeをA02-01の全Role/公開build実証やPR最終PASSへ流用しない。Mobile CIは復元待ち。
+- **現在の対象**：`UC-CATALOG-LIST-REVIEWS`（台帳の次の未処理`review_required`、次の1件）。前対象`SCREEN-BOUNDARY-NOT-FOUND-A02-01`はWeb/Nativeの`+not-found`→アプリ境界UI、Webの拡張子なしURLのSPA fallback、`/forbidden`との区別、Native ShellのRole先行遮断を静的照合。学習用Web E2Eへ未知の深いURLの直アクセス・再読込・拒否画面との差別化を検査する直接Caseを追加した。新Caseの実Chromium・Android deep link/Role・視覚/フォーカス・DB/Session前後は未実施で、A02-01は`review_required`維持。詳細は本Planの「2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A02-01」。
+- **CI横断**：作業開始時のHEAD `fb2ce856955933391130cb1fa722c00f3666bc98` の[Web CI #41331157796](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41331157796)は確認時点でin_progress。Vitest contracts・Style Qualityはfailure、build-production・production-smoke・component等はsuccess、required Chromium E2Eはin_progress。今回の新Caseを含む変更後HEADのCI成功は未確認。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -46,6 +46,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A02-01（アプリ境界として未検出を表示）
+
+- **対象・正式仕様**：台帳`supported-behaviors.json`の操作ID`SCREEN-BOUNDARY-NOT-FOUND-A02-01`は`review_required`、`action`、Web/Android、Role `All`、default。正式`docs/spec/ui-ux-contract.md`の「フレームワーク内部のエントリではなく、ユーザーが直接観測できる境界サーフェス」は未知ルートの専用UIを要求し、`docs/spec/screen-catalog.md`は`+not-found`をWeb/AndroidのBoundaryとして掲載する。A01-01（見出し・本文）とA01-02（ホーム復帰）に対し、本操作は**ルーティング境界での分類・直接到達・再読込**を検証する。
+- **Web経路**：`app/+not-found.tsx`→`StatePanel kind="not-found"`→`section.state-panel--not-found`、見出し「ページが見つかりません」、本文、`Link href="/"`。既知`app/forbidden.tsx`は別の`kind="forbidden"`を用いる。Web rootは`AppRuntimeProvider`→`AppFrame`→`Slot`で、未知URLでもアプリの初期化経路を通る。`scripts/serve-web-dist.ts`は**拡張子なしの未知パス**を`index.html`へSPA fallbackし、拡張子付き未検出ファイルはプレーン404にする。静的アセット404を画面ルートの不具合と混同しない。実デプロイ先の同等設定は未確認。
+- **Native経路・Role差**：`app/+not-found.native.tsx`→`NativeUnsupportedScreen title="ページが見つかりません"`→`NativeStatePanel`。ただし本文はNative Customer対象外の説明を流用する。`NativeRootLayout`→`NativeShell`→`Slot`で、operator/adminは子ルート表示より先にRole対象外パネルを受ける。正式`All`期待とShellの対象Role境界の優先順位は実Android deep linkと期待仕様の照合待ち。画面本文の差を確定不具合と断定しない。
+- **Role/State/DataとCase採否**：C1=Web guest/customer/operator/adminで拡張子なしの未知深いURLへ直接到達しnot-found専用UIを表示、既知forbiddenと区別（採用）。C2=同じ未知URLのブラウザ再読込とローカルSPA fallback、実デプロイ差を照合（採用）。C3=Native guest/customerの未知deep link、operator/adminのShell先行遮断、未検出本文とホーム復帰（採用、Role仕様解釈は保留）。C4=未知URLから内部stack・actor ID等の非露出、キーボード・スクリーンリーダー・視覚正本・フォーカス（採用）。C5=初期化とルート固有の更新を区別し、Session/Guest/DBの前後snapshotを確認（採用）。C6=拡張子付き静的アセット404と拡張子なし画面ルートの境界を分離（採用、全てのファイル404にアプリ画面を要求しない）。
+- **直接Case・独立判定**：既存学習用`e2e/web/ai-assisted-qa-course.spec.ts`のA01-02向けCaseは未知単一路→ホームとGuest/Session pointerを確認する。今回同ファイルへ、**未知の深いURLの直アクセス→not-found専用UI→再読込→既知forbiddenとの区別**を検査する別Caseを追加。仕様・Route・Shell・serverの静的経路は照合したが、新Caseのformatter/Chromium実行、Android実Run、全Role、公開環境、DB/Session snapshot、視覚・アクセシビリティは未実施。テスト追加はPASSではない。基本分析`review_required`、製品適合・Web/Native実Run・CI最終受入はいずれも未完了。
+- **再開条件・次**：同一HEADの新E2E実Run、Web Role/デプロイ別、Android deep linkとShell境界、実際の状態前後・視覚/フォーカスの証拠が揃えばA02-01を再開する。台帳の後続`review_required`候補`UC-CATALOG-LIST-REVIEWS`を次の共通逐次対象とする。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-BOUNDARY-NOT-FOUND-A01-02（安全なホームへの復帰）
 
