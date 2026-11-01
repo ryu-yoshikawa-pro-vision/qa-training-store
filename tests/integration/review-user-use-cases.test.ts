@@ -441,4 +441,5 @@ describe("review and user administration integration", () => {
     ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
     expect(await database.users.get(target.id)).toEqual(target);
     expect(await database.sessions.get("user-admin-session")).toBeDefined();
-  })});
+  });
+});
