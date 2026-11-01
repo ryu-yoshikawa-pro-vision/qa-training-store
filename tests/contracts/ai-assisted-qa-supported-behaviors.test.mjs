@@ -49,7 +49,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
-  it("tracks Signup success destinations separately for Web and Native without claiming runtime PASS", () => {
+  it("tracks Signup Web/Native destinations without claiming runtime PASS", () => {
     const signup = data.behaviors.find(
       (entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03",
     );
