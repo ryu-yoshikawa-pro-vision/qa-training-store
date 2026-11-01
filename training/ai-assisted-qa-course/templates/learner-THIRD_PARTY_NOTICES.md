@@ -8,10 +8,10 @@ Web Buildの `course/shop/_expo/static/css/files/` に含まれる以下のフ�
 
 | フォント | 対象ファイル | 著作権表示（配布ファイル内のメタデータ） | ライセンス |
 | --- | --- | --- | --- |
-| Inter | `inter-latin-{400,600,700}-normal.woff{,2}` | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) | OFL-1.1 |
-| Noto Sans JPとして配布されるファイル | `noto-sans-jp-japanese-{400,600,700}-normal.woff{,2}` | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. | OFL-1.1 |
+| Inter | `inter-latin-{400,600,700}-normal.woff{,2}` | Copyright 2016 The Inter Project Authors (`https://github.com/rsms/inter`) | OFL-1.1 |
+| Noto Sans JPとして配布されるファイル | `noto-sans-jp-japanese-{400,600,700}-normal.woff{,2}` | (c) 2014-2021 Adobe (`http://www.adobe.com/`), with Reserved Font Name 'Source'. | OFL-1.1 |
 
-配布元パッケージ：`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`。OFL公式サイト：https://openfontlicense.org/ 。
+配布元パッケージ：`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`。OFL公式サイト：[OFL公式](https://openfontlicense.org/) 。
 
 ## Web JavaScriptに含まれる第三者コード
 
