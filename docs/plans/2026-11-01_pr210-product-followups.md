@@ -13,7 +13,7 @@
 | 項目・操作ID | #210 HEADの静的根拠 | #210側で必要な検証・対応 |
 | --- | --- | --- |
 | **管理ユーザー一覧の会員Rank絞り込み** `SCREEN-ADMIN-USERS-A01-02` | `src/presentation/pages/review-user-pages.tsx` の `AdminUsersContent` はメール・Role・Statusのみ。 `AdminUserUseCases.search` は `membershipRanks` を受け付ける。 | 2026-11-01の本人回答で **Rankを含む4種の絞り込みが必須**。一覧のRank選択と検索条件・ページ位置、Role/Status併用を検証し、UIとcomponent/統合回帰を整合させる。実Webでの絞込・不正Roleからの拒否も確認する。 |
-| **Checkoutの郵便番号・電話の不要文字の拒否** `SCREEN-CHECKOUT-*` | `src/application/use-cases/checkout-order-use-cases.ts` の `validateAddress` は `replace(/\\D/g, "")` で非数字をすべて取り除いてから長さを検証する。 | 本人回答は **数字と形式上必要なハイフンのみ許可、英字等は拒否**。正常値・ハイフン・英字/記号混入、エラー情報、保存済みSession/Cart/version不変を既存 `tests/integration/checkout-order-use-cases.test.ts` 等で検証。Web/Nativeの入力UIと共通Use Caseの信頼境界を整理する。 |
+| **Checkoutの郵便番号・電話の不要文字の拒否** `SCREEN-CHECKOUT-*` | `src/application/use-cases/checkout-order-use-cases.ts` の `validateAddress` は `replace(/\D/g, "")` で非数字をすべて取り除いてから長さを検証する。 | 本人回答は **数字と形式上必要なハイフンのみ許可、英字等は拒否**。正常値・ハイフン・英字/記号混入、エラー情報、保存済みSession/Cart/version不変を既存 `tests/integration/checkout-order-use-cases.test.ts` 等で検証。Web/Nativeの入力UIと共通Use Caseの信頼境界を整理する。 |
 
 上記2件は **期待仕様が確定**しており、実装との差を静的に確認済み。ただし実Web/Nativeと、どの修正案が安全かの直接検証は未完了。既存の`docs/spec/features/checkout-and-payment.md`に含まれる別の意味変更は、この2件の仕様回答によって自動承認されたものではない。
 
