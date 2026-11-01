@@ -526,9 +526,12 @@ describe("checkout and customer order application integration", () => {
     expect((await database.product_variants.get(item.variantId))!.stockQuantity).toBe(
       beforeVariant.stockQuantity - item.quantity,
     );
-    expect(await database.inventory_histories.where("orderId").equals(processing.orderId).count()).toBe(
-      (await database.order_items.where("orderId").equals(processing.orderId).count()),
-    );
+    const inventoryHistoryCount = await database.inventory_histories
+      .where("orderId")
+      .equals(processing.orderId)
+      .count();
+    const orderItemCount = await database.order_items.where("orderId").equals(processing.orderId).count();
+    expect(inventoryHistoryCount).toBe(orderItemCount);
     const histories = await database.order_status_histories
       .where("orderId")
       .equals(processing.orderId)
