@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-04（状態変更）
+
+- **契約・経路**：現行台帳blob `062047d3a286b19341fa897a163f310b8d3cfc6b`に実在し、`analysis_status=review_required`。正式`BR-ADMINUSER-001/AC-ADMINUSER-001`のactive/suspended許可遷移、withdrawn・自己破壊的変更・最終adminの拒否、Session/Checkout無効化説明を確認。Web `review-user-pages.tsx:794-838`は本人の操作disabled、他者は確認ダイアログから`expectedVersion`を送信。`AdminUserUseCases.changeSuspension:600-638`はadmin認可後、Dexie `change-user-access` transactionでversion・状態・最終adminを検査し、User version+1、対象Session全削除、customer停止時のactive Checkout破棄/version+1を行う。Cartはtransaction scope外。
+- **学習用直接Case追加（実行待ち）**：`tests/contracts/ai-assisted-qa-admin-suspension.test.mjs`に2 Caseを追加。C1=`checkout-resume`のcustomer停止→再開でUser version、対象Session消去、Checkout abandoned/version増加、Cart/Items保持、再開時のCheckout非復活。C2=defaultのwithdrawn/自己停止/stale version/同一状態の拒否とUser/Session/Checkout snapshot不変。既存integrationはoperator昇格後の停止・withdrawn拒否を部分検査するが、この状態横断snapshotは未検証。**今回の新規テストは未実行でありPASSではない**。
+- **追加の採用条件**：C3=非admin/停止actorの直呼出し拒否と不変性（High）、C4=最後のadminと2-admin境界（High）、C5=actor権限剥奪/Session失効後の認可→transaction競合（High）、C6=実Web desktop/tabletの確認・警告・視覚正本。actor再認可はtransaction内で行われず、C5は静的なTOCTOU疑義であって製品不適合の再現ではない。runtime不正status・DB rollbackも未確認。製品修正はPR #210の範囲。
+- **判定・再開**：学習契約の追加と静的照合のみ。実Vitest・実Web/DB・並行証拠が揃うまで`review_required`維持、基本分析50/188・非default状態14/20を増加させない。次の候補は台帳で確認する`SCREEN-ADMIN-USER-DETAIL-A02-01`。製品SUT/正式仕様/Seed/既存製品テスト/workflowは変更しない。
+
 ## 2026-11-01 Checkout台帳参照の修正結果（再分析は継続）
 
 PR #199のHEAD `a3f279d1307302517585e23d4ec9c03d69f38395` で、分離による古い仕様文言・実装の参照を修正した。内訳は**正式仕様の同一行を参照する4動作、画面定義行43件、関連Use Case直接証拠25件、公開Use Case定義行7件**。行・signatureの一致を確認できた参照だけを新しい位置へ更新した。
