@@ -634,7 +634,7 @@ export class CheckoutOrderUseCases {
     ) {
       fieldErrors.recipientName = "validation.required";
     }
-    if (!/^\d{7}$/.test(normalized.postalCode)) {
+    if (!/^(?:\d{7}|\d{3}-\d{4})$/.test(address.postalCode)) {
       fieldErrors.postalCode = "validation.postalCode";
     }
     if (
@@ -655,7 +655,10 @@ export class CheckoutOrderUseCases {
     if ((normalized.addressLine2?.length ?? 0) > INPUT_LIMITS.addressLine2) {
       fieldErrors.addressLine2 = "validation.required";
     }
-    if (!/^\d{10,11}$/.test(normalized.phone)) {
+    if (
+      !/^(?:\d{10,11}|\d{2,4}-\d{1,4}-\d{3,4})$/.test(address.phone) ||
+      !/^\d{10,11}$/.test(normalized.phone)
+    ) {
       fieldErrors.phone = "validation.phone";
     }
     if (Object.keys(fieldErrors).length > 0) {

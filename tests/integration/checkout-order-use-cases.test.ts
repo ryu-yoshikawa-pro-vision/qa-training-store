@@ -258,6 +258,44 @@ describe("checkout and customer order application integration", () => {
     }
   });
 
+  it("rejects invalid checkout postal and phone characters without changing a saved snapshot", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const saved = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    const invalidCases = [
+      { address: { ...address, postalCode: "100a0001" }, field: "postalCode", message: "validation.postalCode" },
+      { address: { ...address, postalCode: "100--0001" }, field: "postalCode", message: "validation.postalCode" },
+      { address: { ...address, postalCode: "100 0001" }, field: "postalCode", message: "validation.postalCode" },
+      { address: { ...address, phone: "090a00000000" }, field: "phone", message: "validation.phone" },
+      { address: { ...address, phone: "090--0000-0000" }, field: "phone", message: "validation.phone" },
+      { address: { ...address, phone: "090 0000 0000" }, field: "phone", message: "validation.phone" },
+    ] as const;
+    for (const invalid of invalidCases) {
+      await expect(
+        useCases.setAddress({
+          checkoutSessionId: saved.id,
+          checkoutExpectedVersion: saved.version,
+          address: invalid.address,
+        }),
+      ).rejects.toMatchObject({
+        code: "VALIDATION",
+        fieldErrors: { [invalid.field]: invalid.message },
+      });
+      expect(await database.checkout_sessions.get(saved.id)).toMatchObject({
+        addressSnapshot: address,
+        version: saved.version,
+        unlockedStep: "payment",
+      });
+    }
+  });
+
   it("normalizes checkout address input before persisting the snapshot", async () => {
     const cart = await database.carts
       .where("[userId+status]")

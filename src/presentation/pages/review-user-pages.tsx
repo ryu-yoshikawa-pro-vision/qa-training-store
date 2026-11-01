@@ -517,6 +517,7 @@ function AdminUsersContent() {
   const { adminUsers } = useApplicationServices();
   const [keyword, setKeyword] = useState("");
   const [role, setRole] = useState<"all" | "customer" | "operator" | "admin">("all");
+  const [rank, setRank] = useState<"all" | "regular" | "gold" | "platinum">("all");
   const [status, setStatus] = useState<"all" | "active" | "suspended" | "withdrawn">("all");
   const [page, setPage] = useState(1);
   const state = useAsyncValue(
@@ -524,10 +525,11 @@ function AdminUsersContent() {
       adminUsers.search({
         keyword: keyword || null,
         roles: role === "all" ? [] : [role],
+        membershipRanks: rank === "all" ? [] : [rank],
         accountStatuses: status === "all" ? [] : [status],
         page,
       }),
-    [adminUsers, keyword, role, status, page],
+    [adminUsers, keyword, role, rank, status, page],
   );
   return (
     <div className="admin-page">
@@ -550,7 +552,13 @@ function AdminUsersContent() {
         </label>
         <label>
           役割
-          <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
+          <select
+            value={role}
+            onChange={(event) => {
+              setRole(event.target.value as typeof role);
+              setPage(1);
+            }}
+          >
             <option value="all">すべて</option>
             <option value="customer">{labels.role("customer")}</option>
             <option value="operator">{labels.role("operator")}</option>
@@ -558,10 +566,28 @@ function AdminUsersContent() {
           </select>
         </label>
         <label>
+          会員ランク
+          <select
+            value={rank}
+            onChange={(event) => {
+              setRank(event.target.value as typeof rank);
+              setPage(1);
+            }}
+          >
+            <option value="all">すべて</option>
+            <option value="regular">{labels.rank("regular")}</option>
+            <option value="gold">{labels.rank("gold")}</option>
+            <option value="platinum">{labels.rank("platinum")}</option>
+          </select>
+        </label>
+        <label>
           状態
           <select
             value={status}
-            onChange={(event) => setStatus(event.target.value as typeof status)}
+            onChange={(event) => {
+              setStatus(event.target.value as typeof status);
+              setPage(1);
+            }}
           >
             <option value="all">すべて</option>
             <option value="active">{labels.account("active")}</option>

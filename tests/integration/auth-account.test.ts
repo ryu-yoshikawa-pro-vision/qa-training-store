@@ -465,6 +465,59 @@ describe("auth and account application integration", () => {
     });
   });
 
+  it("rejects malformed address characters on create and update without changing stored values", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["formatted-address", "unused-address"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = {
+      label: "自宅",
+      recipientName: "一般テスト会員",
+      postalCode: "100-0001",
+      prefecture: "東京都",
+      city: "千代田区",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "03-1234-5678",
+      makeDefault: false,
+    };
+    const saved = await account.createAddress(request);
+    expect(saved).toMatchObject({ postalCode: "1000001", phone: "0312345678", version: 1 });
+    const invalid = [
+      { value: { ...request, postalCode: "100x0001" }, field: "postalCode", key: "validation.postalCode" },
+      { value: { ...request, postalCode: "100--0001" }, field: "postalCode", key: "validation.postalCode" },
+      { value: { ...request, phone: "03X12345678" }, field: "phone", key: "validation.phone" },
+      { value: { ...request, phone: "03--1234-5678" }, field: "phone", key: "validation.phone" },
+    ] as const;
+    for (const entry of invalid) {
+      await expect(account.createAddress(entry.value)).rejects.toMatchObject({
+        code: "VALIDATION",
+        fieldErrors: { [entry.field]: entry.key },
+      });
+      await expect(
+        account.updateAddress({
+          ...entry.value,
+          addressId: saved.id,
+          expectedVersion: saved.version,
+        }),
+      ).rejects.toMatchObject({
+        code: "VALIDATION",
+        fieldErrors: { [entry.field]: entry.key },
+      });
+      expect(await account.listAddresses()).toEqual([expect.objectContaining({
+        id: saved.id,
+        version: saved.version,
+        postalCode: "1000001",
+        phone: "0312345678",
+      })]);
+    }
+  });
+
   it("enforces shared address field limits at the Application boundary", async () => {
     await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
     sessionStore.value = "session-user-customer-regular";
