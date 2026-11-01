@@ -16286,12 +16286,12 @@
       "rule_refs": [],
       "route": "`/forbidden`",
       "risk": "権限外の状態変更と顧客情報露出",
-      "test_condition": "アクセス権限不足を示すで初期状態・拒否・遷移結果を照合する",
+      "test_condition": "C1=guest保護Route→Login/本文非露出、C2=customer→admin・operator→admin/users拒否、C3=admin許可とproduction automation-admin拒否、C4=Web拒否文言・戻り先/視覚、C5=Android拒否文言・戻り先/視覚、C6=停止staff導線/Session・DB不変。C1〜C6の実Runは未実施。",
       "test_responsibility": "アクセス権限不足を示すの認可と境界条件を確認する",
       "case_policy": "有効・無効条件、リセット前後を選定",
       "case_selection_reason": "アクセス権限不足を示すが未許可操作や誤認につながらないことを検査する",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "正式roles-and-permissions.mdとscreen-catalog.mdはWeb/Androidの権限拒否説明を要求。Web Guard/StatePanelは静的照合済み、Androidは「Native前半の対象外」と表示する仕様差候補。停止staffのWeb管理リンクはroleのみ判定するためループ可能性あり（到達未確認）。個別Case/実Web/Android/視覚/DB不変の証拠待ち。review_required維持、製品不具合/PASS未確定。",
       "requirement_refs": [
         "ROLE-ACCESS",
         "UI-ERROR"
@@ -16301,7 +16301,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-02静的監査：Web RouteGuardは未ログイン→Login、Role/State不一致→forbidden、拒否時children非表示。Web StatePanelは権限拒否と戻り先を表示。Android forbiddenはNativeUnsupportedScreenで正式な権限拒否文言と差。実Web/Android・前後snapshot未実証。",
       "implementation_evidence": {
         "path": "app/forbidden.tsx",
         "line": 1,

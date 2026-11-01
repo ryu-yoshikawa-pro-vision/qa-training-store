@@ -1,5 +1,13 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-BOUNDARY-FORBIDDEN-A01-01（拒否画面・情報非露出）
+
+- **正式期待と静的経路**：`docs/spec/roles-and-permissions.md:31-39`と`docs/spec/screen-catalog.md`はWeb desktop/Android双方で権限不足を説明し、安全な戻り先を示すことを要求。`src/presentation/guards/route-guard.tsx:21-56`は未ログインの保護RouteをLogin（customerはreturnTo付き）、ログイン済みの不許可Role/Stateを`/forbidden`へRedirectし、許可時だけ保護childrenを描画する。`app/forbidden.tsx:5-14`と`src/presentation/components/states.tsx:35-69`はWebで権限拒否の見出し・本文とホーム/管理画面の戻り先を表示する構造。RouteGuard/画面はUse Caseの認可代替ではない。
+- **Role/State/Dataと差分**：default Seedはactive customer/operator/admin、suspended/withdrawn customerを含み、初期Sessionはない。Webの管理画面リンクは`app/forbidden.tsx`でroleだけを判定しactiveを確認しないため、停止staffの管理リンク往復は**到達性未確認のリスク候補**。Android `app/forbidden.native.tsx:1-4`は`NativeUnsupportedScreen`を表示し、`src/presentation/native/native-screens.tsx:995-1007`は「Native Customerの対象外」とホーム導線を表示する。正式なAndroid「権限不足」の説明と意味が異なる。Native管理機能が対象外でもAndroid拒否画面自体は正式カタログの対象。実Androidでの再現・製品不具合は未確定。
+- **採用Case**：C1=guest保護Route→Login/保護本文非露出、C2=active customer→admin・operator→admin/usersの拒否と非露出、C3=active adminの許可Routeとproductionのautomation-admin拒否、C4=Web拒否見出し・戻り先・キーボード/視覚正本、C5=Android拒否見出し・戻り先・視覚正本・情報非露出、C6=停止staffのリンク先・セッション失効とDB/Session不変（制御fixture）。既存`tests/component/route-guard.test.tsx`はproduction Test Control拒否と未ログインcustomerのLogin遷移等を部分検査するが、C2/C4/C5/C6の直接証拠ではない。
+- **判定・再開**：静的照合のみで、個別Vitest・Web desktop/Android実Run・視覚比較・前後snapshotは未実施。A01-01は`review_required`を維持し、分析済み/製品適合/実Run PASSとしない。Androidの正式期待と実画面、C1〜C6の実証が得られた場合に再開。製品SUT・正式仕様・既存テストは編集しない。次の独立対象は`SCREEN-BOUNDARY-FORBIDDEN-A02-01`。
+- **CI別判定**：HEAD `e7d68c61d6cc1baeb863fe08a78e7ddc024ca809`の[Web CI #41319135364](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41319135364)はcompleted/failure（Style Quality、Vitest contracts、Chromium E2E required、verify、validate）。対象の実行PASSには流用しない。
+
 ## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A02-02（withdrawn変更拒否）
 - **直接実行証拠（後続CI）**：HEAD `a5db600dd14ee7abd78b88cb542a376e1a5e096f`の[Web CI #41317880819](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41317880819)でVitest contractsの`ai-assisted-qa-admin-withdrawn.test.mjs` **1 Case PASS**。C1〜C4の3拒否・5テーブル前後snapshot不変は学習用Dexie fixture上で実行済み。ただしC5の実Web/視覚・C6の別Role/stale version/実並行は未実証。`review_required`維持、基本分析・製品適合・Web/Native PASSへ昇格しない。同RunのVitest contracts全体は15失敗（分離後に`review_required`へ戻したCheckout/Orderの旧`analyzed`期待）、Style Qualityはadmin学習用契約等3ファイルのPrettier違反、required Chromium E2EはCheckout再確認文言未表示で1 Case失敗。これらは別の横断未受入事項であり、旧期待値を合わせるために台帳をPASSへ戻さない。次の共通対象は既調査A02-03を再開条件待ちとして飛ばし、Highリスクの`SCREEN-BOUNDARY-FORBIDDEN-A01-01`。
 
