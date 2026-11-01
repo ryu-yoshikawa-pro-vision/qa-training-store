@@ -671,7 +671,8 @@ export class AdminUserUseCases {
     }
     if (currentActor.accountStatus !== "active") {
       throw new ApplicationError({
-        code: currentActor.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
+        code:
+          currentActor.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
         messageKey:
           currentActor.accountStatus === "suspended"
             ? "auth.account.suspended"
