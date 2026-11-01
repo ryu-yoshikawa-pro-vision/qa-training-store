@@ -155,3 +155,15 @@ Run `41293093957`の`web-dist-production` Artifact（SHA-256 `a005e0167c7f61454d
 同じ固定HEADのGit treeと`qa-workflow-skills`固定commit `7cc6cba7772de549841a39d71694cbafbc783324`のGit treeを、配布manifestと再照合した。**local_files 140/140件、external_skill_files 104/104件**の配布元実在、外部Skillの宣言Blob SHA・サイズ、ファイルmode、配布先244件の重複なしを確認した。ライセンス3ファイルもGit Blobとして存在する。これは**配布元の静的整合性**であり、`course:sync`を実行して生成したTemplateの受入ではない。
 
 **残条件**：この環境ではGitHubへ直接`git clone`できず、固定HEADのclean checkoutから実`course:sync`、配布後の全hash検証、Serve/Reset/Playwright、2コアCodespaces実Runは未実施。ライセンス通知の対象となる画像・JS依存・外部Skillの元著作者/再配布条件も全件未確定。最新変更HEADのCIと本実Web ArtifactのHEADを混同しない。公開Template作成、課金、製品コード変更、マージは別承認が必要。
+
+## 2026-11-01 固定Skillの許諾根拠とCI検証の限界
+
+`qa-workflow-skills`の固定commit `7cc6cba7772de549841a39d71694cbafbc783324`のGit tree（1,654 entries）を再調査した。ルートと子ディレクトリに一般的な`LICENSE`・`NOTICE`・`COPYING`名のファイルは見つからなかった。学習者へ同期する13種類の`SKILL.md`すべてを確認し、冒頭のfrontmatterに独立した`license:`、著作権者、外部原著作物の帰属は見つからなかった。リポジトリの`README.md`にも全体をMIT等で利用できるという許諾文は見つからなかった。
+
+**この結果は「第三者の著作物が存在する」とも「違法な配布である」とも断定しない。** GitHubの同一ownerやcommit authorは、すべてのファイルに関する著作権者・再利用権の証明ではない。ユーザーが承認したMIT方針は権利者が許諾できる独自部分に限るため、公開前に外部Skill104ファイルの出典・翻案元・含まれる外部コード・権利者を確認し、必要なライセンス本文と原著作権表示を`THIRD_PARTY_NOTICES.md`等へ適切に反映する。確認できないファイルを**自作と推定してMITへ含めない**。
+
+`qa-training-store/.github/workflows/ci.yml`の`Dependency Review` jobには`license-check: false`が設定されている。したがって、[Web CI Run 41299878485](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41299878485)のHEAD `7d75f68357aac23f3c7f4bbdcddbfa979f1bc1d1`での`success`（27成功・2スキップ）は、**コード品質・既存テスト等の成功**であって第三者の著作権/ライセンスの自動受入ではない。既存CI設定は製品用workflowの変更禁止範囲とし、この調査では変更していない。
+
+現行の`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`は`courseFixture()`で1件の`dist/index.html`を作り、`syncCourse({allowUncommittedFixture:true, buildShop:false})`で同期・改ざん・非破壊性を検証する。一方、実配布入口の`scripts/training/ai-assisted-qa-course.mjs sync`は`verifySourceCheckout()`で40文字SHA・`HEAD`一致・clean worktreeを要求し、実`build:web`・104ファイルの外部取得・配布manifestのhash記録を実行する。**fixtureの成功を固定HEADでの実配布成功と読み替えない**。受入時には同一HEADで`pnpm course:sync --source-sha <HEAD> --target <空の既存ディレクトリ>`を実行し、その配布先で`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`を実行する。結果に`distribution_files_verified`、`shop_files_verified`、`state_files_verified`、実行環境/終了コード/対象HEADを残す。その他の再同期・load・Serve/Reset/Playwright・実Codespaces受入は別途検証する。
+
+**現時点の判断**：固定Skillの利用許諾と実配布の成功は未受入のまま。公開Template作成と製品workflow改変は実施せず、証拠と承認が揃うまで公開保留を維持する。
