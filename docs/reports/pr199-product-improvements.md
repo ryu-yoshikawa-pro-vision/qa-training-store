@@ -93,6 +93,8 @@
 - **安全性・影響・未決**：非customerからの住所候補利用を拒否するガードの追加は要求上妥当で、現時点で認可緩和や外部情報漏えいを示す証拠はない。逆に既存のguest向け呼出しがこのガードで影響を受けないか、Web/Nativeの全呼出し元とUI表示を独立確認していない。重大度は認可境界としてMedium候補。教材は既存の`regular-member`とゲスト/スタッフのロール差で成立し、製品修正を必須としない。
 - **処理方針**：**判断保留**。変更を導入したcommitの特定、全呼出し元・実画面の回帰、教材目的との整合を確認してから「本PRに残す／別PRへ分離／取り消す」を決定する。実装のrevert・分離・変更は明示承認まで行わない。なお同じ統合テストファイルに追加された「既定配送先の原子的切替と古いversion拒否」は別の意味単位であり、本節の監査完了数に含めない。
 
+- **追加した呼出し元確認（2026-11-01）**：`app/account/addresses.tsx`は`AddressesPage`へ接続し、当該Webページは`RouteGuard access="customer"`で表示を制限したうえで`account.suggestAddress`を呼ぶ。`src/bootstrap/native-runtime.ts`には同Use Caseの公開ラッパーがあり、Native画面からの実使用・UI表示はまだ未確認。`requireCustomer()`は`SessionIdentityResolver.requireCurrentEntity()`を通す。追加統合ケースは未認証・operator拒否とcustomerの既知/未知郵便番号を検査する。これらは**静的な経路と統合テスト実装の証拠**であり、全画面・実端末の回帰PASSではない。今回、既存のguest向けWeb画面から直接このメソッドを呼ぶ経路は確認されなかったが、検索結果だけで全呼出し元不存在とは断定しない。
+
 ### Checkout住所・支払方法のApplication境界（実装1ファイル監査完了＋統合テスト一部）
 
 - **対象・由来**：PR差分`src/application/use-cases/checkout-order-use-cases.ts`の`setAddress`、`setPayment`、`validateAddress`（当該ファイルのPR差分は2 hunk）と`tests/integration/checkout-order-use-cases.test.ts`の対応追加Caseを確認。変更を最初に導入したcommitの特定は未完了。統合テストにはSession再開/置換、stale Cart、注文直前再検証等の別意味単位も含まれるため、**テストファイル全体は部分監査**とする。
