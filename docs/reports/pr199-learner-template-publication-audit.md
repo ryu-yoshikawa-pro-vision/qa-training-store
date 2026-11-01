@@ -96,3 +96,18 @@ Run `41293093957`から取得した`web-dist-production` ZIP（SHA-256: `a005e01
 削除を実施する前に、Shopからの相対リンク、既存Web appの遷移、Playwright演習と教材の参照先が壊れないかを確認する。配布範囲を見直す場合は`build:web`の生成責務と`expandBuildOutput()`の配布責務を区別する。現時点ではSUTの成果物を無断で減らさず、**公開前監査の判断待ち**とする。
 
 ライセンスについては本人が自作の教材・コード・SkillをMITにする方針を承認済み。ただし独自コード・教材の著作権者と第三者素材の権利確認は未完了のため、既存リポジトリ全体のライセンス変更・第三者Skillの一括再許諾は行わない。公開前に`LICENSE`/必要なNOTICEの実同梱と、`course:sync`生成manifestの内容を検査する。
+
+## 追加確認：実ビルドのフォント著作権メタデータ
+
+Run `41293093957`の`web-dist-production` Artifactに含まれる`woff`/`woff2`の**12ファイル全部**を、OpenType `name` tableの`nameID=0`（Copyright）、`nameID=13`（License description）、`nameID=14`（License URL）で検査した。
+
+| ファイル群（各400/600/700、woff/woff2） | 件数 | `nameID=0` | `nameID=13` | `nameID=14` |
+| --- | ---: | --- | --- | --- |
+| Inter | 6 | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) | なし | https://openfontlicense.org |
+| Noto Sans JP配布ファイル | 6 | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. | なし | http://scripts.sil.org/OFL |
+
+`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`のnpm packageはともに`OFL-1.1`。特にNoto Sans JPの**配布フォント内部の著作権表示はAdobe/Source**であり、npmの説明欄にある権利者を根拠なくフォント全量へ上書きしない。実ファイルの改変・別名配布・Reserved Font Name扱いは、該当するOFLの規定と元ファイルの表示を照合する。
+
+[SIL公式OFL FAQ](https://openfontlicense.org/ofl-faq/)では、配布プログラムにバンドルされたOFLフォントについて、ライセンス本文が別ファイルにないことだけでは違反と断定できない。フォント内に参照URLを含める対応も説明されているが、**利用者が参照しやすいOFL全文と著作権表示を別途同梱することを推奨**している。したがって、今回は「独立ライセンスファイル欠如＝違反」と判定せず、実配布前に通知/ライセンス文を用意して、元ファイルの著作権表示と一致することを確認する。
+
+この監査はビルド済みフォントの**静的なメタデータ検査**であり、Template側でのライセンス同梱や2コア実行環境の受入ではない。
