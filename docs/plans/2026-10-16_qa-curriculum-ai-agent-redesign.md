@@ -1,12 +1,14 @@
 # 新規AI協働テスト自動化カリキュラム構築Plan
 
+**PR #199の現在の残タスク・優先順位・毎時0/15/30/45分の作業手順の正本**：[PR #199実行タスク](./2026-11-01_pr199-execution-tasks.md)。本Planは目的・実装/受入条件と過去の判断根拠を保持する。過去時点のHEAD・分析件数・CI結果は現在状態の判定に流用せず、最新の分析台帳とGitHubの実結果を確認する。
+
 ## Mobile CIの一時停止とマージ前の必須再検証（PR #199）
 
 PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが次のcommitによってcancelされ、最終結果を得にくい。このPRのhead branchに限り、`.github/workflows/native-ci.yml`の`pull_request`トリガーを**一時的に削除**する。default branch `main`側のworkflowは変更せず、他PRへの自動実行は維持する。`workflow_dispatch`は残すため、必要ならPR branchの現在HEADを指定して手動でフル実行できる。**一時停止はCI成功を意味しない。** Web CI・学習用検証は従来どおり継続する。
 
 **マージ前の必須条件**：全機能分析・教材・実地受入など他の残タスクを進め、マージ準備の段階で（1）同workflowの`pull_request`トリガーを元どおりに復元、（2）その変更をPR #199のbranchへ通常push、（3）復元後の最終HEADに対応するMobile App CIのAndroid/Native Static/iOS/Maestro等、実際に要求される全jobの結果を確認、（4）Web CIの必須`validate`を含む他のマージ前受入条件も確認する。**復元とMobile App CIの最終成功が確認できるまで本PRはマージ可能と報告しない。** workflowの一時停止変更を`main`に取り込まない。途中で本PRのHEADが変わったら、原則として新HEADで再実行する。
 
-定期タスク2件は本ルールを共有し、一時停止中にMobile CIを起動させるためだけの変更・自動的なトリガー復元を繰り返さない。他の未達条件を解消して最終受入へ進むときは、必要な復元と検証を優先する。外部理由で手動実行・復元が不能ならBLOCKEDとし、古いRunの成功やskippedを最終PASSへ流用しない。
+毎時0/15/30/45分の定期タスク4件は本ルールを共有し、一時停止中にMobile CIを起動させるためだけの変更・自動的なトリガー復元を繰り返さない。他の未達条件を解消して最終受入へ進むときは、必要な復元と検証を優先する。外部理由で手動実行・復元が不能ならBLOCKEDとし、古いRunの成功やskippedを最終PASSへ流用しない。
 
 ## 現在の全機能分析（最新台帳参照）
 
@@ -14,7 +16,7 @@ PR #199の短い定期作業サイクルでは、長時間動くMobile App CIが
 
 **2026-11-01 認証ログイン基本分析とreturnTo分離監査**：`SCREEN-AUTH-LOGIN-A01-01/A01-02`をBR-AUTH-001/002・AC-AUTH-001/002、Role/Status、Web/Native画面→AuthUseCases.login→Dexie/SQLite、defaultのactive/停止/退会Seedと既存integration/componentで静的照合。**78/188操作（41.49%、残110）、非default状態18/20（残2）**。さらに`SCREEN-AUTH-LOGIN-A02-02`（安全なreturnTo）を共通allowlist・Web/Native Role/Checkout Step・固定Seed・既存unit/componentで静的基本分析済みへ更新。拒否理由のA02-01はreview_required維持。Native実Run/競合状態変更/視覚・製品適合は別受入。SUT変更なし。
 
-## 継続受入タスク台帳（2026-10-31確認、証拠を優先して更新）
+## 受入状況の記録（現在の作業選択は実行タスク正本を参照）
 
 | 優先 | 対象・具体作業 | 状態 | 完了条件・証拠/ブロッカー | 次の対応 |
 | --- | --- | --- | --- | --- |
