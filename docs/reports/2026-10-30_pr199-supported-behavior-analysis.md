@@ -1,10 +1,14 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
-## Q-24 M05 P03：型検査の対象漏れを教材側で是正（実地受入は未完）
+## Q-24 M05 P03/P05：型検査と複数明細Locatorの教材技術監査（実地受入は未完）
 
 - **原因と影響**：`training/ai-assisted-qa-course/exercises/M05/exercise.md`のP03は型エラーを`pnpm exec tsc --noEmit`などで調べるよう案内していた。しかし`tsconfig.json`の`include`は`app/src/tests/e2e/scripts`等であり`workspace/M05/**`を含まない。`tsconfig.training.json`も`training/**`等に限定する。学習者が`workspace/M05/`に誤型ファイルを作って裸の`tsc --noEmit`を実行すると、対象ファイルを検査しないまま成功し得るため、M05-04の型エラー診断証拠として不適切。
 - **修正範囲と再利用**：既存TypeScript CLIを再利用し、P03で`p03-type-error.ts`を独立作成して`pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts`と**検査対象を明示**。他の構文/実行時エラーを混ぜず、誤型と修正後の診断・終了コードを残す。新しい依存・製品SUT・既存製品テストは変更しない。
 - **検証と受入境界**：ローカル`tsc 5.8.3`で`canAdd(1, "2", 3, 5)`のTS2345/終了2、`canAdd(1, 2, 3, 5)`の終了0を確認した（教材のCLI引数と同等、GitHub Actions/Codespacesでの実Runではない）。M05商品リンクのSeed `product-mug`/表示名`セラミックマグ`と学習用starterの誤字`セラミックマク`、模範specの`href=/products/product-mug`は静的に一致。Playwrightのbefore/after、Cart P05の実画面、学習者Private 2-core Codespaces、M06/M07実行は未検証。Q-24を継続し、次はM05 P05のCart数量/削除Locatorと実行証拠を優先する。
+
+- **P05の実装根拠**：正式`docs/spec/features/cart.md`のBR-CART-001/003・AC-CART-001/003はguest/customer Cartの数量・削除と状態再検証を規定。Web `app/cart.tsx`→`src/presentation/pages/cart-page.tsx:145-228`では各`article.cart-item`に`<label>数量<select>`と`<button>削除</button>`を反復表示する。したがって全体のrole/nameだけでは複数明細で曖昧。default Seedの公開`product-mug`（セラミックマグ）と`product-low-stock`（コンパクトタオル、在庫3）はguestの2明細を構成可能と静的判断。既存`training/.../M06/quantity-update.spec.ts`と`remove-item.spec.ts`のreset/add/status経路を再利用した。
+- **P05の教材変更・境界**：P05に2明細の前提、全体と商品明細内のLocator件数、数量値のread-only Assertion、削除を実行しないこと、同名別SKUの追加識別条件を明記。`training/ai-assisted-qa-course/assessment/playwright/M05/cart-locator-inspection.spec.ts`を学習用参照として追加。商品名リンクを含む`article.cart-item`へscopeし、2件→1件を検証する。参照コードは本人の判断/実行証拠の代替ではなく、製品SUT・正式仕様・既存Seed/製品テストは変更しない。
+- **P05の検証と再開条件**：TypeScript 5.8.3の`transpileModule`で構文診断0（型・Playwright実行のPASSではない）。実Shop/Chromium・Private 2-core Codespaces・実行report/Traceは未取得。実ブラウザで2明細の数量/削除Locator件数、scope一意性、数量値、削除未実行を実証し、学習者の独立P05判断とM05 P06のAI案棄却を次に確認する。M05〜M07全体受入は未達。
 
 ## 2026-11-01 Q-32：Cart再検証・旧version・Web/Native差の静的監査（review_required 維持）
 
