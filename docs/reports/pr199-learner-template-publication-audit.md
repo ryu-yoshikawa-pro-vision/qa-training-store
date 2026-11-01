@@ -33,3 +33,28 @@
 - 製品SUT、正式製品仕様、既存Seed/Reset、製品用テストとworkflowは変更しない。
 - 新規Template・Private repo・Codespace・Issueは作成しない。課金・マージ・PR外部公開の操作はしない。
 - 定期実行のQ-34と重複する検証は既存証拠を利用し、本報告の未解決事項をQ-34の次の選択材料にする。作業実施証拠がない項目を完了に更新しない。
+
+## 追加確認：配布物の利用許諾と生成される成果物
+
+### 独自コード・教材・固定Skill
+
+- `qa-training-store` の当該commitのGit tree、および固定`qa-workflow-skills` commitのGit treeを検索したが、一般的な`LICENSE`・`NOTICE`相当のファイルは見つからなかった。これは当該リポジトリが著作権放棄されたという意味ではない。GitHub公式[ライセンスの説明](https://docs.github.com/ja/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)によると、ライセンス不在では既定の著作権が適用される。
+- 配布対象の固定Skillは13種類、計104ファイル。各Skillの`SKILL.md`の冒頭にも独立したライセンス指定は確認できなかった。コード・教材・Skillの利用許諾は、所有者の公開方針と元著作者等の権利を照合して決定する。**MIT等のライセンスを本人の承認なしに追加しない**。
+- 公開Templateの目的は学習者が私有リポジトリを生成して教材やコードを編集することなので、単にリポジトリをPublicにするだけでは、想定する再利用条件を明確にしたことにならない。再配布に含むファイルごとの許諾と表示方法の決定が必要。
+
+### 固定依存フォント
+
+- `pnpm-lock.yaml`の`@fontsource/inter`と`@fontsource/noto-sans-jp`は、ともに`5.3.0`に固定されている。実ビルドでフォントをコピーする実装は`scripts/prepare-font-assets.ts`。
+- Fontsourceが示す[Inter](https://fontsource.org/fonts/inter/about)と[Noto Sans JP](https://fontsource.org/fonts/noto-sans-jp/about)のライセンスは、いずれもSIL OFL 1.1。再配布時には対応する著作権表示とライセンスの同梱が求められる。具体的なコピー済みフォントと通知の有無は**ビルド後の実物を確認するまで未受入**。
+- 独自教材/コードへ選ぶライセンスと第三者フォントのOFLは別に扱い、フォントを独自ライセンスへ置換しない。
+
+### Shop出力の追加確認
+
+- `package.json`の`build:web`は`prepare:font-assets`→画像manifest生成/検証→`expo export --platform web`→`build:docs`の順。`build:docs`は`dist/docs`に正式仕様、旧課程の教材と新課程の公開資料を生成する。`course:sync`は`expandBuildOutput()`で**`dist/**`全体**を`course/shop/**`へコピーする。公開Templateには学習用ShopのJS/CSS/フォントだけでなく公開仕様/教材ページも含まれる想定。
+- この配布対象はファイル名だけの禁止条件では判定し切れないため、固定commitからの実`build:web`後に`dist/**`を列挙し、Secrets、Source Map、第三者の権利表示、不要な個人/組織情報、配布上限・サイズを確認する。現時点では**実ビルドを実行しておらず内容検査は未完**。
+- 学習用Templateの`package.json`は製品リポジトリの`package.json`を配布する指定で、Expo/React Native関連を含む。2コアCodespacesでの`pnpm install --frozen-lockfile`とChromium導入の成否・使用量は**実環境で確認**する。依存削減の変更は、実証前に憶測で行わない。
+
+### 公開前に必要な判断
+
+所有者による判断が必要なのは、**自作の教材・Skill・ソースコードを学習者へどの条件で複製・修正・再利用させるか**というライセンス方針である。第三者のOFL通知は確認可能な技術的対応として調査を継続し、ライセンス選択と混同しない。公開作成は引き続き個別承認待ち。
+
