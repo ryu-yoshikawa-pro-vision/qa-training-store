@@ -2,26 +2,69 @@
 
 このファイルを**残タスク・作業優先順位・引継ぎ状態の正本**とする。目的・変更許可・完了基準は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[Target](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)に従う。分析の個別根拠は[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)と[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)、製品問題と既存差分の根拠は[製品改善レポート](../reports/pr199-product-improvements.md)に記録する。PR本文は要約に限り、このファイルと同じ残タスク一覧を重複して保守しない。
 
-## 毎時0分・15分・30分・45分の実行手順
+## 定期実行の作業選択と引継ぎ
 
-1. **最新を読む**：PR #199の現在HEAD/base、最新CI、未解決レビューThread、本ファイル、直前の作業と関連正本を確認する。記載済みSHA・件数・成功結果を無条件に採用しない。
-2. **競合を避ける**：他の定期実行が同じファイルや課題を変更中なら重複作業を行わず、別の独立タスクを選ぶ。独立タスクも安全に選べなければ変更せず結果を報告する。GitHub上のHEADと対象ファイルを**書き込み直前にも再取得**する。古い内容の上書き、非fast-forward、force pushをしない。チェックと書込みは完全な排他制御ではないため、競合を検知したら再取得してやり直す。
-3. **1回の作業を選ぶ**：下記の「次に着手できる作業」を上から確認し、権限内で完了条件に直接進む**まとまった作業1件**を選ぶ。実行回数を満たすためだけの文書同期、重複テスト、無意味なコミットはしない。検証だけを行う回も認める。
-4. **実施・検証する**：現HEADのCIが失敗なら根本原因を優先し、既存の変更禁止境界を守る。フォーマッター・lint・関連テストを必要な範囲で確認する。実行中のCIがある場合、完了を確認せず次のpushで繰り返しキャンセルしない。
-5. **引き継ぐ**：実際の差分と証拠だけを本ファイルの状態・次の作業へ反映する。個別の根拠は既存台帳・レポートに記録し、PR本文には最新HEAD、進捗、CIの実結果、主要な保留/承認待ち、次の対応と本ファイルのリンクを簡潔に反映する。push後にHEADを再照合する。未完了なら全4タスクを稼働し続け、全受入完了を実証できた場合のみ各定期タスクは**自分自身**を停止する。
+毎時0・15・30・45分は**別々の作業担当枠**とし、同じ操作IDを同時に分析しない。共通の手順は次のとおり。
 
-**作業選択の判断**：最新HEADの必須CIが失敗した場合はP0の修正を先に行う。CIが実行中なら結果を待つ間、独立した分析・調査を進めてもよいが、完了前の連続pushで検証を無効化しない。P1はリスクが高く、かつ証拠と権限が揃った項目を先に進める。承認待ちは勝手に実行せず、他の対応可能項目へ移る。P2でもマージ前必須の未決があるため、最終段階まで放置しない。
+1. PR #199の現HEAD、最新CI/レビュー、分析台帳、本ファイルを取得する。古いSHA・件数・CI結果を流用しない。
+2. 自分の実行時刻の「直近の作業キュー」で**未完了かつ着手可能な最上位1件**を選ぶ。P0のCI失敗は0分枠が担当する。他の枠はそのCI原因を重複修正せず、独立した作業を選ぶ。担当外の作業は原則編集しない。
+3. 記載した対象・根拠・完了条件に従って、関連ファイル、正式仕様、Seed/Use Case/Repository/UI、既存テストを確認する。分析成立時のみ台帳を `analyzed` に変更する。製品適合、実Web/Native Run、学習受入は別の検証とする。
+4. 書込み前に現HEADと変更対象ファイルの最新内容を取得し直す。同一ファイルを他の実行が更新中なら先に書込みしない。コミット/更新のSHA不一致・競合を検知したら旧内容を上書きせず差分を再確認する。**GitHubファイルのSHA確認は作業開始の排他ロックではない**。複数ファイル変更は旧HEADへの上書きを避けて通常pushし、途中で競合したら状態を整合させてから再開する。force push禁止。
+5. 関連のformatter・lint・テストと実CIを確認する。CIが走っている場合は、重複の軽微なコミットでキャンセルを繰り返さない。1件の作業成果と検証をまとめる。成果・障害・未解決点・次のIDは該当行と既存レポートに記録し、**実質的な状態変化があるときだけ**PR本文を現時点の要約へ更新する。無変更の回は無意味な同期コミットを作らず報告する。
+
+**各行の状態**：`未着手`→`進行中`→`完了`、または`BLOCKED`（理由と再開条件必須）。`レビュー待ち`は証拠・正式仕様の未決として保持する。表は作業管理用であり、分析台帳の `analysis_status` と同じ意味ではない。今の担当枠は時刻で固定し、別の担当者IDや予約コミットは作らない。「進行中」だけでは排他制御にならず、古い状態や他の作業Runの存在を確認してから再開する。作業が15分を超えるときは次の枠と同じ共有ファイルを同時更新せず、後から始めた側は独立調査・結果確認に切り替える。
+
+### 直近の作業キュー
+
+表の操作ID・状態は2026-11-01時点の分析台帳 `supported-behaviors.json` を照合済み。**この行の順序は担当枠内での着手順**。最新台帳で既に `analyzed` ならその分析行を飛ばして次へ進む。仕様差・証拠不足は無理に完了にせず、理由を記録して同一行の再調査を無限に繰り返さない。
+
+| 担当枠 | 作業ID・優先 | 対象・状態 | 次の具体的な作業 | 完了/引継ぎの判定 |
+| --- | --- | --- | --- | --- |
+| 毎時0分 | Q-00 / P0 | 最新HEADのWeb CI（条件付き）・結果確認待ち | 最新HEADの必須job結果を確認し、失敗時だけ実ログの原因箇所と再現コマンドを特定。学習用範囲の原因なら修正 | 全必須job成功のRun URL・HEADを記録。実行中なら他枠の作業を止めず、不要なpushを控える |
+| 毎時0分 | Q-01 / P1 | `SCREEN-ADMIN-USER-DETAIL-A02-03`・`review_required` | 最終管理者保護について認可後の操作者権限変更・別session・version/Session不変の実証可能性を確認。制御interleaving契約2件と実並行を区別 | 静的/実行証拠と不足を分析レポート・製品改善レポートへ記録。未実証なら未完を維持 |
+| 毎時0分 | Q-02 / P1 | `SCREEN-ADMIN-USER-DETAIL-A02-01`・`review_required` | 本人によるrole/状態破壊の拒否を、正式admin-users仕様・Web UI・Use Case・Repository・default Seedの自己操作条件で追跡 | Role/State/Data・拒否結果・変更前後の不変性・Case採否が揃ったら基本分析へ |
+| 毎時0分 | Q-03 / P2（マージ前） | 既存Checkout正式仕様の差分・方針一部未決 | `docs/spec/features/checkout-and-payment.md`のmainとの差分、導入commit、製品仕様との整合・教材依存を確認 | 製品改善レポートに方針・証拠・必要承認を記録。無断revert/移設しない |
+| 毎時15分 | Q-10 / P1 | `SCREEN-AUTH-LOGIN-A02-01`・`review_required` | Web/Nativeで停止・退会・資格不一致・Storage障害の利用者向け拒否理由とSession非生成を、正式認証契約と照合 | UI→AuthUseCases→Repository、Seed・負例・Case採否を証拠付き記録 |
+| 毎時15分 | Q-11 / P1 | `SCREEN-AUTH-SIGNUP-A02-02`・`review_required` | 既存メール登録拒否、正規化、DB/Session/guest Cart不変の処理経路と既存integrationを照合 | 重複拒否とデータ非破壊の期待結果・Case採否が根拠付きで揃う |
+| 毎時15分 | Q-12 / P1 | `SCREEN-AUTH-SIGNUP-A02-01`・`review_required` | Web/Nativeの必須・形式・長さ・同意UIの入力差を正式BR/AC・Use Caseに照合 | 入力境界と正式仕様の未決を分離。分析成立分だけ完了 |
+| 毎時15分 | Q-13 / P1 | M00〜M04教材・Skill・Phase 1評価・受入未完 | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)のM00から順に、学習目標IDごとに教材節・開始/終了データ・課題・採点根拠・復習先を検査。M02→M03固定Skillの実Run証拠を分ける | モジュール/目標IDごとの検証済み証拠を記録。5モジュール一括PASSとせず未完の次IDを記載 |
+| 毎時15分 | Q-14 / P1 | M04/M07/M10のOpenCode正式AI評価・校正未受入 | 評価Planの必要な独立セッション・入力Snapshot・決定論的gate・正/負例・再評価を実テストで確認。実モデルの接続/無料条件/権限がなければ停止理由を整理 | 校正済みモデルID・実Run・誤PASS拒否の証拠が得られた部分だけ完了。無断課金しない |
+| 毎時30分 | Q-20 / P1 | `SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`・`review_required` | 在庫0・選択不可SKUのCart追加拒否を、P-0001/P-0006のSeed実値とWeb/Native UI→Use Case→Repositoryで確認 | 商品閲覧と購入拒否を区別し、境界・Case採否を記録 |
+| 毎時30分 | Q-21 / P1 | `SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02`・`review_required` | SKU選択後のCart追加で会員ランク・価格・数量上限・guest/customer差を追跡 | 不正状態の拒否、Cart不変・追加条件を明確にする |
+| 毎時30分 | Q-22 / P1 | `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`・`review_required` | empty状態の正式復旧導線とWeb/Native表示を照合。結果0件・商品全体0件を別条件として扱う | 正式仕様との差と教材代替を記録。UI不適合未確定なら状態未完を維持 |
+| 毎時30分 | Q-23 / P1 | `SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`・`review_required` | 在庫0/1/5/6の分類、Web表示、既存Seed/通常の在庫操作、正式しきい値を照合 | `available>=1`と正式`available>=6`の差を確定。製品修正はしない |
+| 毎時30分 | Q-24 / P1 | M05〜M07教材・Seed/Reset・Playwright技術受入未完 | M05→M06→M07の順に初期入力/課題/完成spec/復習と実Runを照合。新旧Playwright出力先を区別 | 目標ID別の実行証拠・結果/Traceと不足を記録。未実行をPASSにしない |
+| 毎時45分 | Q-30 / P1 | `SCREEN-CHECKOUT-PROCESSING-A02-02`・`review_required` | 処理中の再試行拒否をWeb/Native、Checkout Use Case、session version、既存Seed・契約で照合 | 重複注文・不正再処理の負例と期待結果、Case採否の証拠 |
+| 毎時45分 | Q-31 / P1 | `SCREEN-CHECKOUT-FAILED-A01-02`・`review_required` | 決済失敗後の許可された再試行・stale Cart/Session・未確定結果時の一回性を分析 | 失敗復旧・再試行の境界を説明し、実Run/未決を区別 |
+| 毎時45分 | Q-32 / P1 | `SCREEN-STOREFRONT-CART-A02-01`・`review_required` | 商品公開状態、在庫、価格、会員権限をCart再検証する処理とWeb/Native差を照合 | 旧version拒否とデータ不変・失敗理由のCondition/Case採否を記録 |
+| 毎時45分 | Q-33 / P1 | M08〜M10教材・Phase 3評価・専用CI受入未完 | M08→M09→M10の順にGit/PR/CI証拠、固定HEADのRun/Check/Artifact、受講者の判断・復習/再評価を検査 | 目標ID別に証拠と残件を記録。Private環境・費用条件未達はBLOCKED |
+| 毎時45分 | Q-34 / P1 | 公開Template→本人Private 2コアCodespaces・外部承認待ち | 承認不要のmanifest/Secret除外/`course:sync/load`/非破壊再ロードを検証。公開先・権限・費用の承認は一覧化 | 外部Template作成は明示承認までBLOCKED、内部検証は個別に進める |
+
+### キューを消化した後の補充規則
+
+上記の具体的な行が完了・BLOCKEDで作業できない場合は、分析台帳の `behaviors[]` から**`analysis_status=review_required`のうち担当枠に属する未処理ID**を、台帳内の掲載順に**次の1件**として選ぶ。対象の実在・状態を再確認したうえで、上表と同じ形式（作業ID、操作ID、状態、具体的な次の操作、完了条件、担当枠）で追加し、元の行を維持する。初期キューの行が少なくなった時点で補充し、毎回全109操作の優先度を比較し直さない。BLOCKED対象は理由と再開条件を記録して次のIDへ進む。
+
+担当枠の割当ては**IDの接頭辞**で固定する（下記は優先順に判定し、1 IDを2枠へ割り当てない）。
+
+- **0分**：`SCREEN-ADMIN-DASHBOARD-*`、`SCREEN-ADMIN-USERS-*`、`SCREEN-ADMIN-USER-DETAIL-*`、`SCREEN-BOUNDARY-*`、`SCREEN-TEST-CONTROL-*`、以下で未指定のID。
+- **15分**：`SCREEN-AUTH-*`、`SCREEN-ACCOUNT-*`、`SCREEN-ORDERS-*`、`SCREEN-ADMIN-PRODUCTS-*`、`SCREEN-ADMIN-PRODUCT-NEW-*`、`SCREEN-ADMIN-PRODUCT-DETAIL-*`、`UC-AUTH-*`、`UC-ACCOUNT-*`、`UC-USER-*`。
+- **30分**：`SCREEN-STOREFRONT-*`（ただし`SCREEN-STOREFRONT-CART-*`を除く）、`SCREEN-ADMIN-INVENTORIES-*`、`SCREEN-ADMIN-CATEGORIES-*`、`SCREEN-ADMIN-BRANDS-*`、`UC-CATALOG-*`、`UC-INVENTORY-*`。
+- **45分**：`SCREEN-STOREFRONT-CART-*`、`SCREEN-CHECKOUT-*`、`SCREEN-REVIEWS-*`、`SCREEN-ADMIN-REVIEWS-*`、`SCREEN-ADMIN-ORDERS-*`、`SCREEN-ADMIN-ORDER-DETAIL-*`、`SCREEN-SUPPORTING-*`、`UC-CART-*`、`UC-CHECKOUT-*`、`UC-ORDER-*`、`UC-REVIEW-*`。
+
+接頭辞で割当てを決めるのは**作業の担当**だけであり、製品の正式分類・分母・リスク・テスト深度を変更しない。2026-11-01時点の未分析111 entriesは上の規則で**0分25、15分25、30分25、45分36**に割当て可能（操作109・状態2）。追加・変更された動作は割当ても再計算する。IDごとに必要な根拠・リスク・テスト条件・Case採否は従来どおりすべて検証する。
+
+**その他の受入**：分析以外の仕事は表のQ-03/13/14/24/33/34を細分化して補充する。作業が減っても承認待ちの外部操作や既存製品改修を推測で始めず、残る教材・実評価・配布・既存差分の既存Plan上の全条件を対象に保つ。Mobile App CI復元と最終HEADのフル実行は、他のマージ前条件が整った**マージ準備時に0分枠が担当**する。早期の復元や未実行のPASS扱いは禁止。
 
 ## 現在状態（2026-11-01の確認に基づく、毎回再集計）
 
-- PR #199はOPEN。直近の確認HEADは `e6d3fa3ba601350f0cf37b52e3d49a7a0b9c89fd`。これは固定の作業対象SHAではない。
+- PR #199はOPEN。前回の確認HEADは `5601231df0bd3ac96a679d80cae15615396758fa`。これは固定の作業対象SHAではない。
 - Scenario Shopの基本分析は**79/188操作**、残**109操作**、非default状態は**18/20**（残2）。188は漏れ・重複の最終監査前の暫定分母。分析済みは製品仕様適合や実Web/Native Run PASSではない。
 - M00〜M10（11モジュール・51学習目標）の教材・演習・評価・知識グラフは配置済み。教材内容全量、独立AI評価、実行環境での受入は未完了。
 - 既存製品差分19ファイルの全追加hunkは静的監査済み。処理方針・実回帰・必要な承認が一部未完。
-- Web CIの現在HEAD結果は毎回取得する。最後に確認した進行中のRunは[41259179775](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41259179775)。前HEADの成功・失敗を最新HEADへ流用しない。
+- Web CIの現在HEAD結果は毎回取得する。最後に確認した進行中のRunは[41259747230](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41259747230)。前HEADの成功・失敗を最新HEADへ流用しない。
 - Mobile App CIのPR自動トリガーは**一時停止中・未受入**。マージ前の復元と最終HEADでの必須job成功が必要。未解決レビューThreadは直近の確認で0件。
 
-## 次に着手できる作業（優先順）
+## 全体の受入条件と残課題（作業選択は上記キューを優先）
 
 ### P0：現HEADのWeb CI・レビューで確認された失敗
 
