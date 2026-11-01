@@ -196,3 +196,12 @@ Phase 3ではignore・差分・importを確認し、M07本人specと必要なPag
 設計上の公開開始入力と公開模範の用途分離、学習者配布境界、個人別成果物の保存先契約、出力先、同期更新手順は維持する。**OpenCode CLIのモデル接続・個人認証・必要Skillは受講者初回起動で確認し、失敗した場合はBLOCKEDとする。**
 
 **このPlanの実装完了条件には、教材の同期・ロード機能と、その許可リスト・固定SHA・機密データ拒否・非破壊性・モジュール単位動作を確認する自動/契約テストを含める。** 依存閉包からのmanifest確認、ローカルBuild/Serve/Playwright、fixture上の同期/ロード検証も開発工程で行う。実Templateからの非公開リポジトリ生成と2コアCodespaceでのPlaywright技術受入を今回PRに含め、実受講者の学習効果試行は後続に分ける。このPlanの文書更新時点ではTemplateの作成・同期/ロードのコード実装・mergeは行わない。後続の今回PR実装で公開Templateを作成し検証する。
+
+## 2026-11-01 公開前監査の確認結果（静的検証）
+
+固定PR HEADを基準に、配布manifestの`local_files`137件と、固定された`qa-workflow-skills` commit `7cc6cba7772de549841a39d71694cbafbc783324` の`external_skill_files`104件をGit treeと照合した。配布元241件は全件存在し、外部Skillは104件すべてについて宣言したBlob SHA・サイズが一致。配布元のsymlink、配布先パス重複、先頭`/`または`..`を含む配布先は検出されていない。manifestには`.git/**`、`.env*`、評価用完成資料、既存workflow等の禁止条件がある。
+
+**未受入・公開保留**：manifestには`LICENSE`・`NOTICE`等の配布対象がなく、両リポジトリのrootで一般的な`LICENSE`/`LICENSE.md`/`NOTICE`の存在を確認できなかった。これだけでは再配布条件を判断できない。外部Skill104件・生成済みShopの第三者依存（画像・フォント・JSバンドル等）の権利と必要な通知を確認する。さらに、実際の`course:sync`生成物、禁止ファイル・Secretの内容検査、同一SHAのShop/依存閉包、公開Templateの設定、2コアCodespacesでのinstall/load/Serve/Reset/Playwright実Run、本人アカウントの無料枠・課金条件は未検証。実環境を作る前の外部公開・費用発生は許可されていない。
+
+従って現時点で言えるのは**転送元実在性・固定外部Skillの整合性という静的検証の成功**までであり、「公開可能」や「Templateの技術受入PASS」を意味しない。上の未解決点を満たした監査結果を提示してから、公開作成の個別承認を求める。
+
