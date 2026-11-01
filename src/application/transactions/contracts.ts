@@ -16,6 +16,16 @@ import type {
 } from "@/application/repositories";
 
 export interface TransactionScopeMap {
+  "admin-category-write": {
+    categories: CategoryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
+  "admin-brand-write": {
+    brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
   "register-and-merge-cart": {
     users: UserRepository;
     sessions: SessionRepository;
@@ -77,10 +87,14 @@ export interface TransactionScopeMap {
   "change-category-active-state": {
     categories: CategoryRepository;
     products: ProductRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-brand-active-state": {
     brands: BrandRepository;
     products: ProductRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "delete-draft-product": {
     products: ProductRepository;

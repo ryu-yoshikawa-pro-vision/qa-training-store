@@ -15,7 +15,10 @@ import type {
   UpdateCategoryRequest,
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
-import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import {
+  assertActorStillAuthorized,
+  SessionIdentityResolver,
+} from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type {
@@ -80,23 +83,39 @@ export class AdminMasterUseCases {
   async createCategory(request: CreateCategoryRequest): Promise<CategoryAdminListItem> {
     const actor = await this.requireStaff();
     const name = this.validName(request.name, "category");
-    const created = await this.categories.createAtEnd({
-      categoryId: this.dependencies.idGenerator.generate(),
-      name,
-      actorUserId: actor.id,
-      now: await this.now(),
-    });
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    const now = await this.now();
+    const created = await this.dependencies.transactionRunner.run(
+      "admin-category-write",
+      async ({ categories, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return categories.createAtEnd({
+        categoryId: this.dependencies.idGenerator.generate(),
+        name,
+        actorUserId: actor.id,
+        now,
+        });
+      },
+    );;
     return { ...toCategoryItem(created), publishedProductCount: 0 };
   }
 
   async updateCategory(request: UpdateCategoryRequest): Promise<CategoryAdminListItem> {
     const actor = await this.requireStaff();
-    const updated = await this.categories.updateDetails({
-      ...request,
-      name: this.validName(request.name, "category"),
-      actorUserId: actor.id,
-      now: await this.now(),
-    });
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    const now = await this.now();
+    const updated = await this.dependencies.transactionRunner.run(
+      "admin-category-write",
+      async ({ categories, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return categories.updateDetails({
+        ...request,
+        name: this.validName(request.name, "category"),
+        actorUserId: actor.id,
+        now,
+        });
+      },
+    );;
     const current = await this.categories.searchForAdmin({
       keyword: updated.name,
       active: null,
@@ -111,9 +130,11 @@ export class AdminMasterUseCases {
     request: ChangeCategoryActiveStateRequest,
   ): Promise<CategoryAdminListItem> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     const updated = await this.dependencies.transactionRunner.run(
       "change-category-active-state",
-      async ({ categories, products }) => {
+      async ({ categories, products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         if (
           !request.targetIsActive &&
           (await products.countPublishedByCategoryIds([request.categoryId])) > 0
@@ -136,11 +157,19 @@ export class AdminMasterUseCases {
 
   async reorderCategories(request: ReorderCategoriesRequest): Promise<CategoryAdminListItem[]> {
     const actor = await this.requireStaff();
-    const updated = await this.categories.reorder({
-      ...request,
-      actorUserId: actor.id,
-      now: await this.now(),
-    });
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    const now = await this.now();
+    const updated = await this.dependencies.transactionRunner.run(
+      "admin-category-write",
+      async ({ categories, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return categories.reorder({
+        ...request,
+        actorUserId: actor.id,
+        now,
+        });
+      },
+    );;
     return updated.map((category) => ({
       ...toCategoryItem(category),
       publishedProductCount: 0,
@@ -171,23 +200,39 @@ export class AdminMasterUseCases {
 
   async createBrand(request: CreateBrandRequest): Promise<BrandAdminListItem> {
     const actor = await this.requireStaff();
-    const created = await this.brands.create({
-      brandId: this.dependencies.idGenerator.generate(),
-      name: this.validName(request.name, "brand"),
-      actorUserId: actor.id,
-      now: await this.now(),
-    });
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    const now = await this.now();
+    const created = await this.dependencies.transactionRunner.run(
+      "admin-brand-write",
+      async ({ brands, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return brands.create({
+        brandId: this.dependencies.idGenerator.generate(),
+        name: this.validName(request.name, "brand"),
+        actorUserId: actor.id,
+        now,
+        });
+      },
+    );;
     return { ...toBrandItem(created), publishedProductCount: 0 };
   }
 
   async updateBrand(request: UpdateBrandRequest): Promise<BrandAdminListItem> {
     const actor = await this.requireStaff();
-    const updated = await this.brands.updateDetails({
-      ...request,
-      name: this.validName(request.name, "brand"),
-      actorUserId: actor.id,
-      now: await this.now(),
-    });
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    const now = await this.now();
+    const updated = await this.dependencies.transactionRunner.run(
+      "admin-brand-write",
+      async ({ brands, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return brands.updateDetails({
+        ...request,
+        name: this.validName(request.name, "brand"),
+        actorUserId: actor.id,
+        now,
+        });
+      },
+    );;
     const current = await this.brands.searchForAdmin({
       keyword: updated.name,
       active: null,
@@ -202,9 +247,11 @@ export class AdminMasterUseCases {
     request: ChangeBrandActiveStateRequest,
   ): Promise<BrandAdminListItem> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     const updated = await this.dependencies.transactionRunner.run(
       "change-brand-active-state",
-      async ({ brands, products }) => {
+      async ({ brands, products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         if (
           !request.targetIsActive &&
           (await products.countPublishedByBrandId(request.brandId)) > 0

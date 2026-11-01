@@ -25,6 +25,8 @@ import {
 } from "./order-review-repositories";
 
 const SCOPE_TABLES = {
+  "admin-category-write": ["users", "sessions", "categories"],
+  "admin-brand-write": ["users", "sessions", "brands"],
   "register-and-merge-cart": [
     "users",
     "sessions",
@@ -89,8 +91,8 @@ const SCOPE_TABLES = {
     "product_variants",
     "product_images",
   ],
-  "change-category-active-state": ["categories", "products"],
-  "change-brand-active-state": ["brands", "products"],
+  "change-category-active-state": ["users", "sessions", "categories", "products"],
+  "change-brand-active-state": ["users", "sessions", "brands", "products"],
   "delete-draft-product": [
     "users",
     "sessions",
@@ -184,6 +186,8 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
   scope: S,
 ): Array<keyof TransactionScopeMap[S] & keyof RepositoryInstances> {
   const mapping: Record<keyof TransactionScopeMap, readonly (keyof RepositoryInstances)[]> = {
+    "admin-category-write": ["categories", "users", "sessions"],
+    "admin-brand-write": ["brands", "users", "sessions"],
     "register-and-merge-cart": ["users", "sessions", "carts", "products", "inventory"],
     "login-and-merge-cart": ["users", "sessions", "carts", "products", "inventory"],
     "cart-mutation": ["users", "carts", "products", "inventory"],
@@ -207,8 +211,8 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
       "sessions",
     ],
     "change-product-status": ["products", "inventory", "categories", "brands", "users", "sessions"],
-    "change-category-active-state": ["categories", "products"],
-    "change-brand-active-state": ["brands", "products"],
+    "change-category-active-state": ["categories", "products", "users", "sessions"],
+    "change-brand-active-state": ["brands", "products", "users", "sessions"],
     "delete-draft-product": ["products", "inventory", "reviewSummaries", "users", "sessions"],
     "adjust-inventory": ["inventory", "users", "sessions"],
     "change-user-access": ["users", "sessions", "checkouts"],
