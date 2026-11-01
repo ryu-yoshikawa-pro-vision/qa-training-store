@@ -42,12 +42,10 @@ export async function assertActorStillAuthorized(
     });
   }
   if (current.accountStatus !== "active") {
+    const suspended = current.accountStatus === "suspended";
     throw new ApplicationError({
-      code: current.accountStatus === "suspended" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
-      messageKey:
-        current.accountStatus === "suspended"
-          ? "auth.account.suspended"
-          : "auth.account.withdrawn",
+      code: suspended ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
+      messageKey: suspended ? "auth.account.suspended" : "auth.account.withdrawn",
       retryable: false,
     });
   }

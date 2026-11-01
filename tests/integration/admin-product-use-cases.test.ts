@@ -605,7 +605,7 @@ describe("admin product aggregate application integration", () => {
           ? restricted.create(baseCreate)
           : restricted.changeStatus({
               productId: product.id,
-              targetStatus: "draft",
+              targetStatus: "unpublished",
               expectedVersion: product.version,
             });
       await expect(attempt).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
