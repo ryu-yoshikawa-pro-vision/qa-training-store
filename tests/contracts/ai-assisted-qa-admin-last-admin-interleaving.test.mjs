@@ -45,7 +45,9 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
           .toArray();
         expect(beforeTarget).toBeDefined();
         const activeAdminCount = () =>
-          database.users.filter((user) => user.role === "admin" && user.accountStatus === "active").count();
+          database.users
+            .filter((user) => user.role === "admin" && user.accountStatus === "active")
+            .count();
         expect(await activeAdminCount()).toBe(2);
 
         const delegate = new DexieApplicationTransactionRunner(database);
