@@ -4,9 +4,9 @@
 
 - **対象と正式契約**：`SCREEN-ADMIN-USER-DETAIL-A02-03`。正式`admin-users.md:7-15/49-51/78-84`の`BR-ADMINUSER-001/AC-ADMINUSER-001`は最後の管理者の降格・停止を拒否し、UI上でも変更可能と誤認させないことを要求する。ユーザー管理はactive adminのみ（`roles-and-permissions.md:5-23`）。
 - **Web→Use Case→Repository**：`AdminUserDetailForm:618-830`は本人の役割/状態変更をdisabledにし、`LAST_ADMIN_PROTECTED`を具体的な日本語理由で表示する。`AdminUserUseCases.changeRole:567-597`はadmin→operator、`changeSuspension:600-635`はadmin→suspendedで`countActiveAdmins() <= 1`をtransaction内で判定。`DexieUserRepository.countActiveAdmins:108-112`はactive adminのみを数える。拒否時には更新/セッション削除の前で例外となる設計。
-- **固定SeedとCase採否**：defaultは`user-admin`が唯一のactive admin、`user-operator`がactive operator、初期sessionsは空。本人の降格/停止は`SELF_CHANGE_FORBIDDEN`が先行するため、defaultの本人拒否を`LAST_ADMIN_PROTECTED`分岐の実行証拠に代用しない。operatorをadminへ昇格した2管理者状態での許可変更、制御fixtureによる非self最後のadmin降格/停止拒否、version競合、withdrawn、UI文言とDB/session不変を独立Caseとして採用。
-- **既存テストと不足**：`tests/integration/review-user-use-cases.test.ts:322-360`はテスト名にlast adminを含むが、実際のassertionは本人降格・customer role・withdrawn拒否であり、非selfの`LAST_ADMIN_PROTECTED`分岐を直接検証していない。`tests/component/review-user-pages.test.tsx:485-505`は同コードのエラーメッセージをmockで確認するだけ。これは現時点の**テスト証拠不足**であり、製品の管理者喪失不具合が発生したとの断定ではない。
-- **判定**：最終管理者喪失リスクHigh、UI/実Run証拠未充足。`analysis_status=review_required`を維持し、基本分析77/188・状態18/20は変更しない。学習用契約/fixtureでの追加検証を検討し、既存製品コード・正式仕様・Seed・既存製品テストには触れない。
+- **固定SeedとCase採否・到達可能性**：defaultは`user-admin`が唯一のactive admin、`user-operator`がactive operator、sessionsは空。本人の降格/停止は`SELF_CHANGE_FORBIDDEN`が先行する。actorとtargetが別のactive adminであり、同じ整合した状態を読む通常ケースではactive adminは最低2名なので、非selfの`LAST_ADMIN_PROTECTED`分岐は成立しない。2管理者→1管理者への許可変更と、認可直後・transaction直前にactorのadmin権限が失われる制御interleavingを別Caseに分ける。後者は学習用fixtureで到達性を検査するもので、実並行リクエストの再現とは区別する。version競合、withdrawn、UI文言とtarget DB/session不変を独立Caseとする。
+- **既存テスト・新規学習用検証と不足**：`tests/integration/review-user-use-cases.test.ts:322-360`のlast-admin名のCaseは本人降格・customer role・withdrawn拒否のみで、非selfの`LAST_ADMIN_PROTECTED`を実行しない。componentはmock文言確認のみ。`tests/contracts/ai-assisted-qa-admin-last-admin-interleaving.test.mjs`を追加し、認可後にactorのroleが変わる制御interleaving下で非selfの降格/停止を拒否し、targetのuser/version/sessionを保持する2 Caseを定義した。**現HEADのCI実Run結果は未確認**であり、実並行・画面・実セッションの受入は未達。
+- **判定**：最後の管理者喪失・認可時点差リスクはHigh候補（不具合未確定）。`requireAdmin()`がtransaction外で評価されるため、権限剥奪との競合で再認可されるかは別の安全性検証が必要。`SCREEN-ADMIN-USER-DETAIL-A02-03`は`review_required`を維持。**基本分析78/188・状態18/20**（暫定分母）は変更しない。新規contractの実PASS、DB/session不変と競合検証を確認するまで製品適合・実Run PASSを主張しない。製品コード/正式仕様/既存Seed/既存製品テストは変更しない。
 
 ## ログイン拒否理由（A02-01）と安全な内部returnTo（A02-02）の分離監査
 
