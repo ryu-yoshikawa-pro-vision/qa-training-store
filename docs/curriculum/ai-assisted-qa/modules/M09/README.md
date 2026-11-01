@@ -605,6 +605,16 @@ permissions:
   contents: read
 ```
 
+#### 実際のstepと必要権限を対応付ける（M09-05）
+
+| 処理 | 必要なアクセスと確認先 | 不要な追加 |
+| --- | --- | --- |
+| `actions/checkout`でコードを取得 | `GITHUB_TOKEN`の`contents: read`。完成見本の`persist-credentials: false`はcheckout後にGit認証情報を残さない設定 | `contents: write` |
+| `pnpm install`・Chromium導入・ローカルShopのServe・限定spec実行 | Runner内の処理。実行する依存と外部Actionの出所・版を確認する | deploy用Secret、リポジトリ書込権限 |
+| `actions/upload-artifact@v4`で結果を保存 | 同じRunのArtifactサービスへ結果を送る。通常のArtifact uploadのために`contents: write`を付ける必要はない | `write-all`、公開先へのデプロイ |
+
+`permissions`は主に`GITHUB_TOKEN`の権限を制限するもので、Runner上のコマンドや外部通信をすべて禁止する仕組みではありません。`persist-credentials: false`も**すべてのSecret漏えいを防ぐ保証ではありません**。PR由来のコードや依存スクリプトを実行する前に、イベント（`pull_request` / `pull_request_target`等）、forkからの入力、Action/依存、Secretの受け渡し、ログ・Artifactの出力範囲を別々に確認します。**この学習用workflowはSecretを必要とせず、`pull_request_target`への変更やdeploy用権限の追加を認めません。** 別のCIや公開操作を同じJobへ混ぜず、必要性が生じたら有効化前に責務と権限を再設計します。
+
 #### やってはいけない危険な例
 
 CIの設定エラーや権限不足のエラーに遭遇した際、初学者やAIエージェントが「権限が足りないのが原因かもしれないので、権限を全部許可しておきましょう」として、以下のような設定を提案してくることがあります。

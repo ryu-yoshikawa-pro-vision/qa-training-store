@@ -291,3 +291,10 @@ audit/Plan/Runを最終同期し、拡張E2Eが起動できる環境で実表示
 - **是正**：2つの架空条件を7日間の独立シナリオとし、各更新で1回のみ起動する仮定下の自動Run数を21回/2回と明確化。手動回数は本人の選択として未検証期間と品質ゲートを必須記録。Runner、対象1 spec、除外テスト、job分数・Artifact保存量・Billing/支払主体、費用/権限未確認時のBLOCKEDを教材・P04・既存提出欄に揃えた。料金・無料枠の具体値は推測しない。採点JSONとworkflow、製品SUT/正式仕様/Seed/製品テストは変更しない。
 - **検証境界**：教材/演習/提出/採点の静的整合のみ。実Private 2-core Codespaces、GitHub Billing、本人の選択と実Run、正式Phase 3評価は未実行/未受入。現HEADのWeb CIは別途確認する。
 - **再開条件・次ID**：本人の非公開repoで支払主体・利用枠・権限が確認され、P04の別条件判断と証拠が揃った場合に実受入を再開。Q-33の次は**M09-05**（P05/P06、Secret・権限・他CI分離とM09-CR-05）。
+
+## 2026-11-01 Q-33：M09-05 最小権限・Secret・他CI分離の静的照合
+
+- **対象・根拠**：M09-05 / K-M09-05 / M09-CR-05、P05/P06。読取HEAD `bc77064a4c340ea768097a3e0973596a59f6fad7`。教本7.2、P05/P06、提出テンプレート、採点JSON、完成見本`training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled`、未完成`inputs/M09/workflow-starter.yml.disabled`を照合。完成見本は`contents: read`・`persist-credentials: false`・限定spec・`upload-artifact@v4`、Secret/deployなし。
+- **発見（静的）**：既存P05は`write-all`とSecretを一括拒否するだけで、checkout/依存実行/Artifact uploadの権限境界を個別に説明する提出証拠が不足。`persist-credentials: false`をRunner全体の安全保証と誤解する余地があり、外部PRと`pull_request_target`の危険な組合せや既存CI分離の独立判断がP06に具体化されていなかった。実際の漏えい/権限侵害を確認したものではない。
+- **是正**：教本にstep別の権限・出力先とtoken権限の限界を追加。P05に2つの架空提案の採否、P06に他CI/Secret/Artifactの境界確認、既存提出欄にstep別対応表と有効化前停止条件を追加。`M09-CR-05`、完成見本、実workflow、製品SUT・正式仕様・既存テストは変更しない。
+- **検証境界・再開条件**：教材・演習・提出・採点の静的照合のみ。本人の別条件YAML/判断、実Private 2-core Codespaces、実GitHub Actions、Billing/権限、正式AI評価・Level 2は未実行/未受入。現HEADのWeb CI失敗はStyle Qualityで、0分枠が担当。Q-33継続、次は**M10-01**（Phase 2成果物・PR差分・公開範囲、P01/P02とM10-CR-01）の独立照合。
