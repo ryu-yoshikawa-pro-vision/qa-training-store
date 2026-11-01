@@ -42,7 +42,7 @@
 | 毎時30分 | Q-22 / P1 | `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`・`review_required` | empty状態の正式復旧導線とWeb/Native表示を照合。結果0件・商品全体0件を別条件として扱う | 正式仕様との差と教材代替を記録。UI不適合未確定なら状態未完を維持 |
 | 毎時30分 | Q-23 / P1 | `SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`・`review_required` | 在庫0/1/5/6の分類、Web表示、既存Seed/通常の在庫操作、正式しきい値を照合 | `available>=1`と正式`available>=6`の差を確定。製品修正はしない |
 | 毎時30分 | Q-24 / P1 | M05〜M07教材・Seed/Reset・Playwright技術受入未完 | M05→M06→M07の順に初期入力/課題/完成spec/復習と実Runを照合。新旧Playwright出力先を区別 | 目標ID別の実行証拠・結果/Traceと不足を記録。未実行をPASSにしない |
-| 毎時45分 | Q-30 / P1 | `SCREEN-CHECKOUT-PROCESSING-A02-02`・`review_required` | 処理中の再試行拒否をWeb/Native、Checkout Use Case、session version、既存Seed・契約で照合 | 重複注文・不正再処理の負例と期待結果、Case採否の証拠 |
+| 毎時45分 | Q-30 / P1 | `SCREEN-CHECKOUT-PROCESSING-A02-02`・レビュー待ち（静的監査済み、`review_required`維持） | Web/Nativeの再試行UI不存在、`retryPayment`の処理中既存試行返却、`resumePayment`の同一キー再開を静的照合済み。禁止の意味（明示拒否か冪等返却か）・同時Gateway呼出し・実Web/Nativeは未決。根拠は分析レポート「2026-11-01 Q-30」 | 仕様判断と並列/実Run証拠が揃うまで完了にしない。再開条件を記録し、次の独立作業Q-31へ進む |
 | 毎時45分 | Q-31 / P1 | `SCREEN-CHECKOUT-FAILED-A01-02`・`review_required` | 決済失敗後の許可された再試行・stale Cart/Session・未確定結果時の一回性を分析 | 失敗復旧・再試行の境界を説明し、実Run/未決を区別 |
 | 毎時45分 | Q-32 / P1 | `SCREEN-STOREFRONT-CART-A02-01`・`review_required` | 商品公開状態、在庫、価格、会員権限をCart再検証する処理とWeb/Native差を照合 | 旧version拒否とデータ不変・失敗理由のCondition/Case採否を記録 |
 | 毎時45分 | Q-33 / P1 | M08〜M10教材・Phase 3評価・専用CI受入未完 | M08→M09→M10の順にGit/PR/CI証拠、固定HEADのRun/Check/Artifact、受講者の判断・復習/再評価を検査 | 目標ID別に証拠と残件を記録。Private環境・費用条件未達はBLOCKED |
