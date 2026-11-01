@@ -205,7 +205,9 @@ export class AdminOperationsUseCases {
     ) {
       throw validationError("shipment.fields.required");
     }
-    await this.dependencies.transactionRunner.run("ship-order", async ({ orders, shipments, users, sessions }) => {
+    await this.dependencies.transactionRunner.run(
+      "ship-order",
+      async ({ orders, shipments, users, sessions }) => {
       await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
       const order = await this.requireOrderVersion(
         orders,
@@ -235,8 +237,8 @@ export class AdminOperationsUseCases {
         actorUserId: actor.id,
         reasonCode: "SHIPPED",
         createdAt: now,
-      });
-    });
+      },
+    );
     return this.getOrder(request.orderId);
   }
 

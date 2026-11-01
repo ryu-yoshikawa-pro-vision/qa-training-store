@@ -55,18 +55,24 @@ export interface TransactionScopeMap {
     categories: CategoryRepository;
     brands: BrandRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "update-product-aggregate": {
     products: ProductRepository;
     inventory: InventoryRepository;
     categories: CategoryRepository;
     brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-product-status": {
     products: ProductRepository;
     inventory: InventoryRepository;
     categories: CategoryRepository;
     brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-category-active-state": {
     categories: CategoryRepository;
@@ -80,6 +86,8 @@ export interface TransactionScopeMap {
     products: ProductRepository;
     inventory: InventoryRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "adjust-inventory": {
     inventory: InventoryRepository;

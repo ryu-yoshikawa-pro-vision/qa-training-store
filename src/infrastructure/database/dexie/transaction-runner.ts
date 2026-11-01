@@ -59,7 +59,7 @@ const SCOPE_TABLES = {
     "product_variants",
     "product_images",
   ],
-  "create-product-aggregate": [
+  "create-product-aggregate": ["users", "sessions", 
     "categories",
     "brands",
     "products",
@@ -68,7 +68,7 @@ const SCOPE_TABLES = {
     "inventory_histories",
     "product_review_summaries",
   ],
-  "update-product-aggregate": [
+  "update-product-aggregate": ["users", "sessions", 
     "categories",
     "brands",
     "products",
@@ -76,7 +76,7 @@ const SCOPE_TABLES = {
     "product_images",
     "inventory_histories",
   ],
-  "change-product-status": [
+  "change-product-status": ["users", "sessions", 
     "categories",
     "brands",
     "products",
@@ -85,7 +85,7 @@ const SCOPE_TABLES = {
   ],
   "change-category-active-state": ["categories", "products"],
   "change-brand-active-state": ["brands", "products"],
-  "delete-draft-product": [
+  "delete-draft-product": ["users", "sessions", 
     "products",
     "product_variants",
     "product_images",
@@ -181,12 +181,12 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
       "categories",
       "brands",
       "reviewSummaries",
-    ],
-    "update-product-aggregate": ["products", "inventory", "categories", "brands"],
-    "change-product-status": ["products", "inventory", "categories", "brands"],
+    , "users", "sessions"],
+    "update-product-aggregate": ["products", "inventory", "categories", "brands", "users", "sessions"],
+    "change-product-status": ["products", "inventory", "categories", "brands", "users", "sessions"],
     "change-category-active-state": ["categories", "products"],
     "change-brand-active-state": ["brands", "products"],
-    "delete-draft-product": ["products", "inventory", "reviewSummaries"],
+    "delete-draft-product": ["products", "inventory", "reviewSummaries", "users", "sessions"],
     "adjust-inventory": ["inventory", "users", "sessions"],
     "change-user-access": ["users", "sessions", "checkouts"],
     "create-order": [
