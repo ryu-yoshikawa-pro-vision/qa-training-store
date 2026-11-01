@@ -127,3 +127,19 @@ Run `41293093957`の`web-dist-production` Artifactに含まれる`woff`/`woff2`�
 Run `41293093957`の`web-dist-production` Artifact（SHA-256 `a005e0167c7f61454d255cbdfbe90b0c99fcaba4ac14713fcddb949324dc3abb`）の`_expo/static/js/web/entry-21b4711df1c6db0566115828ee2d23ee.js`をテキスト検査した。React/React DOM/React IS/scheduler/use-sync-external-store-shim等の`@license React`と`Copyright (c) Meta Platforms, Inc. and affiliates.`、`bezier-easing`の`Copyright 2014-2015 Gaëtan Renaudeau. MIT License.`を確認した。これは実ビルドに含まれる**少なくとも2系統の第三者著作物**の根拠であり、全依存コードの権利者を検出できたことは意味しない。
 
 学習者用`THIRD_PARTY_NOTICES.md`へ著作権者・MITの別個の表示を追加した。元バンドル内の`@license`表示は削除しない。学習者用`LICENSE`に独自コードの著作権者名を記載していても、第三者MITコードがその著作権者へ移転するわけではない。依存物の全量調査・実`course:sync`は引き続き未受入。
+
+## 2026-11-01 ライセンス配布実装と受講者への説明の再確認
+
+公開Templateの生成元では、`training/course-sync/manifest.json`に以下を追加済み。静的検証時の宣言は**local_files 140件、external_skill_files 104件**であり、以前の「137件」という値は**新規ライセンス配布ファイル3件の追加前**の値である。
+
+| Template内の配布先 | 配布元 | 用途 |
+| --- | --- | --- |
+| `LICENSE` | `training/ai-assisted-qa-course/templates/learner-LICENSE` | 権利者が許諾可能な独自教材・コード・Skill向けMIT本文 |
+| `THIRD_PARTY_NOTICES.md` | `training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md` | Inter、Noto Sans JP、Web JSから確認したReact・bezier-easing等の別著作権表示 |
+| `licenses/OFL-1.1.txt` | `training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt` | フォント用OFL-1.1本文 |
+
+`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`では、3件のsource/target/role、配布元実在、READMEへの参照を検証するよう更新した。以前は`THIRD_PARTY_NOTICES.md`のファイル名だけ確認していたため、配布元の欠落を検出できなかった。
+
+学習者READMEには、`pnpm course:assess M04 --model provider/model-id`（M07/M10も対象）の**外部AI評価**について、選択Phaseの教材/評価基準・本人回答・コード・Run証拠等の限定送信、Secret・個人情報・他Phaseデータの除外、非公開履歴、料金確認、`SEND provider/model-id`による送信前の対話確認を明記した。これは実装の`scripts/training/ai-assisted-qa-assessment.mjs`にある`confirmExternalSend()`と照合済み。受講者向けの通知追加であり、実モデル校正や料金保証を完了扱いにはしない。
+
+**現時点の残条件**：配布元の存在とmanifest登録・CIでの配布契約テストに加え、確定した同一HEADでの`course:sync`実行後に3ファイルと実Shop全件が**実際に**出力され、distribution manifestのhash、禁止パス、symlink、本人の既存ファイル不変、Serve/Reset/Playwrightが成立するか確認する。固定Skill13種類の第三者由来ファイル、Web JSのその他の依存物、画像の権利・著作権者・配布通知は未確定。本人2コアCodespacesの無料枠と実行受入も未完了。公開作成の個別承認が必要であることは変わらない。
