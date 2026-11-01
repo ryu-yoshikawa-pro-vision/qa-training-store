@@ -538,15 +538,38 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
-  it("includes learner MIT and third-party font licenses in the distribution", () => {
+  it("includes learner MIT and third-party license notices in the distribution", () => {
     const manifest = loadCourseManifest(repositoryRoot);
-    const files = manifest.local_files.map((entry) => entry.target_path);
-    expect(files).toContain("LICENSE");
-    expect(files).toContain("THIRD_PARTY_NOTICES.md");
-    expect(files).toContain("licenses/OFL-1.1.txt");
-    for (const entry of manifest.local_files.filter((item) => item.role === "license")) {
-      expect(fs.existsSync(path.join(repositoryRoot, entry.source_path))).toBe(true);
+    const expected = [
+      {
+        source_path: "training/ai-assisted-qa-course/templates/learner-LICENSE",
+        target_path: "LICENSE",
+        role: "license",
+      },
+      {
+        source_path: "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md",
+        target_path: "THIRD_PARTY_NOTICES.md",
+        role: "license-notice",
+      },
+      {
+        source_path: "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt",
+        target_path: "licenses/OFL-1.1.txt",
+        role: "license",
+      },
+    ];
+    for (const entry of expected) {
+      expect(manifest.local_files).toContainEqual({
+        ...entry,
+        module_id: null,
+      });
+      const content = fs.readFileSync(path.join(repositoryRoot, entry.source_path), "utf8");
+      expect(content.length).toBeGreaterThan(0);
     }
+    const guide = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/templates/learner-repo-README.md"),
+      "utf8",
+    );
+    for (const entry of expected) expect(guide).toContain(`${entry.target_path}`);
   });
 
   it("keeps public assessment references out of learner sync and load allowlists", () => {
