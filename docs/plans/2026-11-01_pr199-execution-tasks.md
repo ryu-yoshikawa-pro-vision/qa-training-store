@@ -13,7 +13,7 @@
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A02-02`（退会済みの変更禁止案内）は、正式`BR-ADMINUSER-001/AC-ADMINUSER-001`、Web一覧→詳細、`AdminUserUseCases`、default/withdrawn Seed、既存テストを静的照合。**一覧はwithdrawnバッジと詳細リンクのみで読取専用の説明がなく、詳細には「退会済みユーザーは読取専用です。」と表示し編集セクションを除外する**。Use Caseのrank/role/status変更はいずれもwithdrawnを拒否するが、既存integrationのwithdrawn負例はstatus→activeのみで、rank拒否、前後のUser/version/Session不変、実Webと視覚正本は未実証。一覧単独で説明を要するかも正式期待の確認待ち。`review_required`を維持し、実Web/認可・DB不変・UI責務の証拠が揃ったときのみ再開。**次の共通逐次対象は`SCREEN-ADMIN-USERS-A02-03`（最終管理者保護の案内）**。既存の`SCREEN-ADMIN-USERS-A02-01`と`SCREEN-ADMIN-USER-DETAIL-A02-01`は新証拠がなければ反復しない。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A02-03`（最終管理者保護の案内）は、正式`BR-ADMINUSER-001/AC-ADMINUSER-001`、一覧/詳細UI、`AdminUserUseCases`、default Seed、学習用制御interleaving契約2件と既存テストを照合した。**defaultはactive adminが1名のみで、本人詳細の変更操作はdisabled。別adminを対象とする安定状態ではactive adminが2名以上あるため、最後のadminの拒否分岐は通常操作だけでは到達しない**。一覧に最終管理者の明示案内はなく、詳細の本人向け説明は自己操作制限であり、最後のadmin専用説明とは異なる。権限/Sessionの競合による拒否と不変性は学習用制御契約2件が最新HEADのVitest contractsで成功したが、実並行/実Web、actor権限剥奪後の更新拒否、一覧の説明責務は未実証。`review_required`を維持し、実証/正式期待の新証拠が得られた場合だけ再開する。**次の共通逐次候補は`SCREEN-ADMIN-USER-DETAIL-A01-01`（次回台帳ID確認後に確定）**。既存のA02-01/A02-02や最終管理者の既調査を新証拠なく繰り返さない。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
