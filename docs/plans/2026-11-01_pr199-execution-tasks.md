@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-01`（注文詳細の顧客・注文/配送スナップショット、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDERS-A02-01`は一覧リンク→詳細Route→staff認可→Use Case→Dexieの静的経路、versionの取得位置を11条件で確認。リンクはorderIdのみを渡し、詳細取得時に現行`order.version`を取得するため、versionがURLに渡るという誤解は排除。実Web・直接Vitest・別Session競合・DB/Session不変は未実証で`review_required`維持。詳細は下記同ID節。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（注文状態別の次アクションとversion表示、台帳`review_required`）。直前の`SCREEN-ADMIN-ORDER-DETAIL-A01-01`は正式仕様とUI→Use Case→Dexie→Seedの静的10条件を照合。注文時の配送先・商品・ランクは保存snapshotだが、画面の顧客名/メールは現行Userを参照するため「顧客スナップショット」の正式期待との境界は未確定。別読取による同時更新時の一貫性、Role別情報非露出、実Web/DB snapshotは未実証で`review_required`維持。詳細は下記同ID節。
 - **CI横断**：調査HEAD `00017e161b0f`のWeb CI #41339877367はcompleted/failure。学習用在庫境界`ai-assisted-qa-inventory-stock-boundaries.test.mjs`は2 Caseともrunner上PASS（うち1件は`it.fails`の期待失敗であり製品適合PASSではない）。Style Qualityは学習用5ファイルのPrettier、Vitest contractsは旧`analyzed`期待と現行`review_required`の不一致15件、required Chromium E2E・verify・validateもfailure。最終同一HEADの全必須CI成功は未受入、Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-01（顧客・注文/配送snapshot）
+
+- **実在ID・正式契約**：台帳`behaviors[157]`の`SCREEN-ADMIN-ORDER-DETAIL-A01-01`はWeb、Operator/Admin、default/`orders-phase1-statuses`、`review_required`。正式`docs/spec/features/admin-orders.md:12-16,46-50`は「顧客スナップショット、注文・配送ステータス、次のアクション、バージョン」を要求する。顧客の現在プロフィールと「注文時点の顧客情報」を同一のオラクルとみなさない。
+- **UI→Use Case→Repository（静的事実）**：`AdminOrderDetailPage`の`StaffPage`→`RouteGuard access="staff"`→`AdminOrderDetailContent`→`AdminOperationsUseCases.getOrder(orderId)`（`requireStaff`）→`DexieOrderRepository.getById/getDetail`。画面は`customer.displayName/email/userId`、`shippingAddress`、`items`、`membershipRankSnapshot`、`paymentAttempts`、`shipment`、`orderStatus`、`orderActionVersion`を描画。RepositoryはOrderの`shippingAddressSnapshot`/`membershipRankSnapshot`とOrderItemの各`*Snapshot`を返す。一方、Use Caseは`users.getById(order.userId)`で**現行UserのdisplayName/email**を取得し、Orderに注文時の顧客名/メールsnapshotは保存されていない。顧客プロフィール変更後の画面は現行User、配送先・商品・ランクは注文時点という異なる時点の値になり得る。正式「顧客スナップショット」が現行顧客概要を許容するか未確定であり、製品不具合とは断定しない。
+- **同時読取・欠損時の境界**：`getOrder`は`getById`と`getDetail`を`Promise.all`で別読取し、その後Userを取得。`getDetail`内もOrderとItem/Payment/Shipment/Historyを別読取する。単一の一貫したDB snapshotを保証する明示transactionは見当たらない。更新が読取間に挟まると顧客/配送/操作versionの時点が混在する可能性があるが、実再現なし。OrderまたはUserが存在しないとUse Caseは`NOT_FOUND`、UIは取得errorを`not-found`にまとめる。認可・Storage障害時の機微情報非露出と誤案内を独立に検証する。
+- **Seed/Role/State/Data**：defaultと`orders-phase1-statuses`は同一基本dataset。regular customerの5注文（payment_failed/paid/preparing/shipped/delivered、初期version 1）を使い、Paymentのfailed/succeededとShipmentのなし/pending/shipped/deliveredを**Order.statusとは別系列**で照合する。guest/customer/suspended operatorの直URLおよびUse Case拒否、active operator/adminの許可を確認する。閲覧だけでOrder/OrderItem/Payment/Shipment/History/User/Sessionが変化しないことを前後比較する。
+- **Risk/TR/Condition/Case採否**：C1=5注文のID・番号・状態・version・支払試行・配送とSeed照合（採用）。C2=住所・商品名/SKU/金額・ランクが注文時snapshotから表示され、現行Product/User変更後も履歴値を保持（採用）。C3=現行User名/メール変更時の表示と「顧客snapshot」の正式期待を区別（採用、正式オラクル保留）。C4=guest/customer/停止staffの直接拒否・機微情報非露出、欠損Order/Userの画面状態（High候補として採用、実漏洩未確認）。C5=別SessionがOrder/Shipment/Userを更新する読取競合時の一貫性、versionとOrder/Shipment不変（採用、実競合未確認）。C6=desktop/tablet視覚正本・キーボード/スクリーンリーダー・再読込とDB/Session前後（採用）。
+- **直接検証と独立判定**：HEAD `d1a489194f8e9b5f2160aa73647997133526d983`の正式仕様・UI・Use Case・Repository・Seedに対し静的文字列10条件/10一致（顧客仕様、UIの現行顧客表示、現行User読取、Order二重読取、配送先/ランク/商品snapshot、Payment/Shipment表示、5状態Seed、staff二重境界）。**これはVitest/実Web/DBのPASSではない**。既存Integrationの注文操作成功は本IDのRole別実画面や混在snapshotを証明しない。今回の直接Vitest・formatter・Playwright/Android・DB前後実Runは未実施。台帳`review_required`、基本分析50/188操作・14/20非default状態を維持する。
+- **CI・再開・次の1件**：調査HEADのWeb CI [#41343801501](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41343801501)はcompleted/failure（Style Quality、Vitest contracts、required Chromium E2E、verify、validate）。integration job成功は本IDの直接受入ではない。再開条件はC1〜C6の隔離Dexie直接Case、現行User変更・注文時snapshotの正式期待、Role別実Web、同時読取再現、DB/Session前後、視覚/アクセシビリティ証拠。次の共通対象は台帳`behaviors[158]`の`SCREEN-ADMIN-ORDER-DETAIL-A01-02`（次アクションとversion表示）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-ORDERS-A02-01（注文詳細へのversion付き導線）
 
