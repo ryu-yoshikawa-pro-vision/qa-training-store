@@ -91,25 +91,36 @@
       "source_path": "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
       "asset_type": "formal_source",
       "module_id": null,
-      "phase_ids": ["P1", "P2", "P3"]
+      "phase_ids": [
+        "P1",
+        "P2",
+        "P3"
+      ]
     },
     {
       "source_path": "docs/spec/README.md",
       "asset_type": "formal_source",
       "module_id": null,
-      "phase_ids": ["P1", "P2"]
+      "phase_ids": [
+        "P1",
+        "P2"
+      ]
     },
     {
       "source_path": "training/workbook/01_target-risk.csv",
       "asset_type": "formal_source",
       "module_id": null,
-      "phase_ids": ["P1"]
+      "phase_ids": [
+        "P1"
+      ]
     }
   ],
   "external_skill_source": {
     "repository": "ryu-yoshikawa-pro-vision/qa-workflow-skills",
     "commit": "7cc6cba7772de549841a39d71694cbafbc783324",
-    "excluded": ["**/evals/**"]
+    "excluded": [
+      "**/evals/**"
+    ]
   },
   "local_files": [
     {
@@ -117,6 +128,24 @@
       "target_path": "README.md",
       "module_id": null,
       "role": "learner-repository-guide"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-LICENSE",
+      "target_path": "LICENSE",
+      "module_id": null,
+      "role": "license"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md",
+      "target_path": "THIRD_PARTY_NOTICES.md",
+      "module_id": null,
+      "role": "license-notice"
+    },
+    {
+      "source_path": "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt",
+      "target_path": "licenses/OFL-1.1.txt",
+      "module_id": null,
+      "role": "license"
     },
     {
       "source_path": "training/ai-assisted-qa-course/templates/learner-repo.gitignore",
@@ -942,7 +971,9 @@
       "blob_sha": "50dc2431e49a48ac906888630b01741320cc194d",
       "size": 1832,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/references/authority-question-probes.md",
@@ -950,7 +981,9 @@
       "blob_sha": "90373784c648daf9e03dddcfe9fd64f3fb3bb228",
       "size": 2000,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/references/coverage-probes.md",
@@ -958,7 +991,9 @@
       "blob_sha": "96e5c709e563c64a75eb833585864014fad0e760",
       "size": 1853,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/references/e2e-testware-probes.md",
@@ -966,7 +1001,9 @@
       "blob_sha": "621953fa3f5e1769d689f1efe97e8c98a39cc905",
       "size": 1695,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/references/guidance.md",
@@ -974,7 +1011,9 @@
       "blob_sha": "e4d03831363734a91476c0502c58ed4fa2f96097",
       "size": 9259,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/references/test-design-probes.md",
@@ -982,7 +1021,9 @@
       "blob_sha": "cc831e2b259e6ca122404bd6da5439978958b2d1",
       "size": 3704,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/adversarial-review/SKILL.md",
@@ -990,7 +1031,9 @@
       "blob_sha": "2a30d0a370ce34363201f757efd96c3e5b6b1f6a",
       "size": 4891,
       "skill": "adversarial-review",
-      "module_ids": ["M04"]
+      "module_ids": [
+        "M04"
+      ]
     },
     {
       "source_path": "skills/coverage-analysis/assets/output-template.md",
@@ -998,7 +1041,10 @@
       "blob_sha": "7771f15452c2771110a51fe9c2ce5417035ceede",
       "size": 5578,
       "skill": "coverage-analysis",
-      "module_ids": ["M03", "M04"]
+      "module_ids": [
+        "M03",
+        "M04"
+      ]
     },
     {
       "source_path": "skills/coverage-analysis/references/guidance.md",
@@ -1006,7 +1052,10 @@
       "blob_sha": "ad96d07dbe8414b9da7d1ab0a0f8cea09b053b5f",
       "size": 13041,
       "skill": "coverage-analysis",
-      "module_ids": ["M03", "M04"]
+      "module_ids": [
+        "M03",
+        "M04"
+      ]
     },
     {
       "source_path": "skills/coverage-analysis/scripts/runtime_contract.py",
@@ -1014,7 +1063,10 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "coverage-analysis",
-      "module_ids": ["M03", "M04"]
+      "module_ids": [
+        "M03",
+        "M04"
+      ]
     },
     {
       "source_path": "skills/coverage-analysis/scripts/traceability.py",
@@ -1022,7 +1074,10 @@
       "blob_sha": "4397e3702d1aa3142d0f0ac949aba9904612ce52",
       "size": 25202,
       "skill": "coverage-analysis",
-      "module_ids": ["M03", "M04"]
+      "module_ids": [
+        "M03",
+        "M04"
+      ]
     },
     {
       "source_path": "skills/coverage-analysis/SKILL.md",
@@ -1030,7 +1085,10 @@
       "blob_sha": "a781562393e1dd4e36f97140457c100f76c91242",
       "size": 5827,
       "skill": "coverage-analysis",
-      "module_ids": ["M03", "M04"]
+      "module_ids": [
+        "M03",
+        "M04"
+      ]
     },
     {
       "source_path": "skills/e2e-test-execution/assets/output-template.md",
@@ -1038,7 +1096,9 @@
       "blob_sha": "88a4d47918f1c0af630ca62725964ecb9e739b62",
       "size": 10785,
       "skill": "e2e-test-execution",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-execution/references/guidance.md",
@@ -1046,7 +1106,9 @@
       "blob_sha": "8ebdb4bcb2cba574119acf86df36408515ebfb31",
       "size": 8031,
       "skill": "e2e-test-execution",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-execution/SKILL.md",
@@ -1054,7 +1116,9 @@
       "blob_sha": "914e7be8da46a19ca2122111eb90a8546ee2b384",
       "size": 6183,
       "skill": "e2e-test-execution",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-implementation/assets/output-template.md",
@@ -1062,7 +1126,9 @@
       "blob_sha": "3825f816ae192fbbde6289c4752914d7bee2e2bd",
       "size": 3667,
       "skill": "e2e-test-implementation",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-implementation/references/guidance.md",
@@ -1070,7 +1136,9 @@
       "blob_sha": "167914cce301d7e88e25040353790b6ba6bdcc21",
       "size": 2098,
       "skill": "e2e-test-implementation",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-implementation/SKILL.md",
@@ -1078,7 +1146,9 @@
       "blob_sha": "3a080c38b00f8ebe74f9d1606435c5b47b120289",
       "size": 3930,
       "skill": "e2e-test-implementation",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-inspection/assets/output-template.md",
@@ -1086,7 +1156,9 @@
       "blob_sha": "145d2813a67cfe2b99f8ea15889d6c3955446287",
       "size": 3777,
       "skill": "e2e-test-inspection",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-inspection/references/guidance.md",
@@ -1094,7 +1166,9 @@
       "blob_sha": "3f0e68681764754e5c16bd854ca0ad7c4b94a179",
       "size": 2187,
       "skill": "e2e-test-inspection",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-inspection/SKILL.md",
@@ -1102,7 +1176,9 @@
       "blob_sha": "a0d4700708cf3391c5c382cfe62f6403eb507105",
       "size": 4004,
       "skill": "e2e-test-inspection",
-      "module_ids": ["M06"]
+      "module_ids": [
+        "M06"
+      ]
     },
     {
       "source_path": "skills/e2e-test-reporting/assets/output-template.md",
@@ -1110,7 +1186,9 @@
       "blob_sha": "8a2bb686cccd076b03e0397462c0dacd58b6b55d",
       "size": 5488,
       "skill": "e2e-test-reporting",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/e2e-test-reporting/references/guidance.md",
@@ -1118,7 +1196,9 @@
       "blob_sha": "8c4310ee150d7ab6123914c2b4d19aac4abb2d05",
       "size": 3408,
       "skill": "e2e-test-reporting",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/e2e-test-reporting/SKILL.md",
@@ -1126,7 +1206,9 @@
       "blob_sha": "1919d59f7fc7bf126243714e5892d3e8984ab286",
       "size": 3248,
       "skill": "e2e-test-reporting",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/e2e-test-result-analysis/assets/output-template.md",
@@ -1134,7 +1216,9 @@
       "blob_sha": "4c5a1d325eed8763faa7fdb3d7b10c5669fd5c23",
       "size": 2507,
       "skill": "e2e-test-result-analysis",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/e2e-test-result-analysis/references/guidance.md",
@@ -1142,7 +1226,9 @@
       "blob_sha": "9edf93d94171508dd0e6cbb19f8ff38b44755995",
       "size": 1936,
       "skill": "e2e-test-result-analysis",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/e2e-test-result-analysis/SKILL.md",
@@ -1150,7 +1236,9 @@
       "blob_sha": "b06147079aaebf98e506ee91f7c4b57f34495e62",
       "size": 2836,
       "skill": "e2e-test-result-analysis",
-      "module_ids": ["M07"]
+      "module_ids": [
+        "M07"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/assets/project-context-template.md",
@@ -1158,7 +1246,9 @@
       "blob_sha": "38ff0facbd8e0a68f6d27d1bb571b07df9458346",
       "size": 5746,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/assets/workflow-state-template.md",
@@ -1166,7 +1256,9 @@
       "blob_sha": "fc1e42e96d709ff83cc05ab92bcd91c9ec76199e",
       "size": 12322,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/references/guidance.md",
@@ -1174,7 +1266,9 @@
       "blob_sha": "fd058a7792901047f01157f65f0fb97a373fc30b",
       "size": 32185,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/artifact_graph.py",
@@ -1182,7 +1276,9 @@
       "blob_sha": "62099d300145a7241485ee4450fea65fb6152ed9",
       "size": 116454,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/downstream_state.py",
@@ -1190,7 +1286,9 @@
       "blob_sha": "12ab4c98778c4fdc756e6760105762a75d1584f9",
       "size": 56819,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/migration_preflight.py",
@@ -1198,7 +1296,9 @@
       "blob_sha": "d94a9a00270f967f339c9038cb9cf628de594566",
       "size": 12317,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/project_context_ids.py",
@@ -1206,7 +1306,9 @@
       "blob_sha": "a0ef14d37537e48e322f905fbc9a1dacb71c180e",
       "size": 14649,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/runtime_contract.py",
@@ -1214,7 +1316,9 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/scripts/workflow_runtime.py",
@@ -1222,7 +1326,9 @@
       "blob_sha": "258e718122981a6350d706e1490ff3a3977f0f80",
       "size": 32743,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/qa-workflow/SKILL.md",
@@ -1230,7 +1336,9 @@
       "blob_sha": "2327c04937fbc61e14c4ba1f545c063bd545c195",
       "size": 15312,
       "skill": "qa-workflow",
-      "module_ids": ["M00"]
+      "module_ids": [
+        "M00"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/output-template.md",
@@ -1238,7 +1346,9 @@
       "blob_sha": "47318915f5e93ae58add871d45cb0252995d1e71",
       "size": 3343,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/00_scope_and_context.md",
@@ -1246,7 +1356,9 @@
       "blob_sha": "196042f7aa53f2e3090044a100e055d30f56f112",
       "size": 984,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/01_ui_structure_and_navigation.md",
@@ -1254,7 +1366,9 @@
       "blob_sha": "98701ea930c0be2542b7b480fbccd5427c80d439",
       "size": 303,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/02_behavior_and_business_rules.md",
@@ -1262,7 +1376,9 @@
       "blob_sha": "99323005c60b8d59ba8bb74f7bb9be0dcdcceab2",
       "size": 1955,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/03_fields_and_validation.md",
@@ -1270,7 +1386,9 @@
       "blob_sha": "4e0af6ad3f88aeb36f6d08100707ea23aaef02fd",
       "size": 427,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/04_flows_and_data.md",
@@ -1278,7 +1396,9 @@
       "blob_sha": "0df5bf095c63f73ba04ca5e1dd0a6cf925f6238d",
       "size": 364,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/05_notifications_and_external_interactions.md",
@@ -1286,7 +1406,9 @@
       "blob_sha": "1909cd948a0341dcaa8ea8f07507358dec401c2d",
       "size": 396,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/06_spec_inconsistencies_and_pending.md",
@@ -1294,7 +1416,9 @@
       "blob_sha": "dcfd09714ceb2a723f8b5054cc4f877c28c6b1b8",
       "size": 276,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/07_current_unknowns.md",
@@ -1302,7 +1426,9 @@
       "blob_sha": "a688526d861608a763a1e89197d668814cb09e6a",
       "size": 296,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/08_repository_implementation_status.md",
@@ -1310,7 +1436,9 @@
       "blob_sha": "f6716267636e385f8140fd12944b5340e0132f25",
       "size": 503,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/09_authority_and_traceability.md",
@@ -1318,7 +1446,9 @@
       "blob_sha": "6e9293b665d861e92e4428fb7bbb324afb23a7f3",
       "size": 1134,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/CHANGELOG.md",
@@ -1326,7 +1456,9 @@
       "blob_sha": "2476e4f1ce57ac1806f36288c9f44c35c76d85f2",
       "size": 15,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/MANIFEST.md",
@@ -1334,7 +1466,9 @@
       "blob_sha": "3fbe74ff5bda6890327622896468ec73ef1aa595",
       "size": 349,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/assets/ui-test-target-analysis/README.md",
@@ -1342,7 +1476,9 @@
       "blob_sha": "b3af3d32e4dd811732d1c9c5b4402faf9c5dcbe8",
       "size": 633,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/references/authority-resolution.md",
@@ -1350,7 +1486,9 @@
       "blob_sha": "8a38930ce63badc928b070eb8920a0274a0532f2",
       "size": 3935,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/references/guidance.md",
@@ -1358,7 +1496,9 @@
       "blob_sha": "8f470ccd656db29f4608ac90900d71d690b68b1d",
       "size": 7608,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/references/ui-test-target-analysis.md",
@@ -1366,7 +1506,9 @@
       "blob_sha": "248bacacae0c281157ad95cb6e17af8395225e13",
       "size": 17962,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/scripts/authority_entities.py",
@@ -1374,7 +1516,9 @@
       "blob_sha": "795488ef22594e2ee100604775544732e9e8afb1",
       "size": 7741,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/scripts/runtime_contract.py",
@@ -1382,7 +1526,9 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/scripts/ui_target_package.py",
@@ -1390,7 +1536,9 @@
       "blob_sha": "153a897a50a11c99ae4ea758c9de52b92c8ae412",
       "size": 217703,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/spec-analysis/SKILL.md",
@@ -1398,7 +1546,9 @@
       "blob_sha": "1df56d6683ca1be353bb48d3d53b7a6b48661ef4",
       "size": 5145,
       "skill": "spec-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/assets/output-template.md",
@@ -1406,7 +1556,9 @@
       "blob_sha": "f32fcfaa3cb11c8bc1a96a6d14461f4f967b579b",
       "size": 3698,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/references/guidance.md",
@@ -1414,7 +1566,9 @@
       "blob_sha": "53002736e04750069e222450dcf174c5b2b32b3c",
       "size": 13384,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/analysis_entities.py",
@@ -1422,7 +1576,9 @@
       "blob_sha": "dcb19375ac6a1f292caa00e8a50529773c7f3915",
       "size": 28149,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/change_impact.py",
@@ -1430,7 +1586,9 @@
       "blob_sha": "5ff64308059ed40fd9e047950fcaae385ab8e58c",
       "size": 5508,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/environment_requirements.py",
@@ -1438,7 +1596,9 @@
       "blob_sha": "9e645a25b48875ecb76b616d116443d3f1426d13",
       "size": 8936,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/risk_matrix.py",
@@ -1446,7 +1606,9 @@
       "blob_sha": "1c9bdcc653b9705c43a1ca20ad1c963033cd85bc",
       "size": 5402,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/runtime_contract.py",
@@ -1454,7 +1616,9 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/runtime_v1_input_reader.py",
@@ -1462,7 +1626,9 @@
       "blob_sha": "e03e8bf581cfe9dc978b2fb002b3cbd750ddebf0",
       "size": 14561,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/scripts/technique_candidates.py",
@@ -1470,7 +1636,9 @@
       "blob_sha": "22be0c0d3efac75032a94e75b9ef86b6d966dc67",
       "size": 2949,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-analysis/SKILL.md",
@@ -1478,7 +1646,9 @@
       "blob_sha": "fb44a3a69a5585f96b51b4b19440fe3221cf4e29",
       "size": 7571,
       "skill": "test-analysis",
-      "module_ids": ["M02"]
+      "module_ids": [
+        "M02"
+      ]
     },
     {
       "source_path": "skills/test-case-design/assets/output-template.md",
@@ -1486,7 +1656,9 @@
       "blob_sha": "407ca23d59f7f687cb8ae79e9deb90b5bb494cf3",
       "size": 2531,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-case-design/references/guidance.md",
@@ -1494,7 +1666,9 @@
       "blob_sha": "5921155389db7b53db53d10df919c526fcd3979f",
       "size": 11363,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-case-design/scripts/case_structure.py",
@@ -1502,7 +1676,9 @@
       "blob_sha": "cf96ad81b43cc55b3338d3a6f43a7d8a6a3f2943",
       "size": 35440,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-case-design/scripts/runtime_contract.py",
@@ -1510,7 +1686,9 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-case-design/scripts/runtime_v1_cutover.py",
@@ -1518,7 +1696,9 @@
       "blob_sha": "eefb91979a23297ceb616e32938fa457e95cd227",
       "size": 13684,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-case-design/SKILL.md",
@@ -1526,7 +1706,9 @@
       "blob_sha": "7e5e696c07859940496c61ef9641c8a30396fdf5",
       "size": 5678,
       "skill": "test-case-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/assets/output-template.md",
@@ -1534,7 +1716,9 @@
       "blob_sha": "bceec69512d0d114aae878f5e764d8fcb326bff2",
       "size": 3725,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/assets/ui-pattern-catalog.json",
@@ -1542,7 +1726,9 @@
       "blob_sha": "afda0e2ae4057bca5d9f374458188643b7ff74eb",
       "size": 6623,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/references/coverage-techniques.md",
@@ -1550,7 +1736,9 @@
       "blob_sha": "642990e74bae042ad09508484700c180cfd2be73",
       "size": 16039,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/references/guidance.md",
@@ -1558,7 +1746,9 @@
       "blob_sha": "a9b9fe98e06864e2a8b123e495994055aa0ef2d4",
       "size": 9819,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/bva.py",
@@ -1566,7 +1756,9 @@
       "blob_sha": "743f14ec198b4b9084717e1df573ed2e0db8753e",
       "size": 8576,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/cause_effect.py",
@@ -1574,7 +1766,9 @@
       "blob_sha": "9f357499965e441d12811aa6b95414edbd60acac",
       "size": 13978,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/classification_tree.py",
@@ -1582,7 +1776,9 @@
       "blob_sha": "5065ba6092d573213b3aa54af9c876944f2f5620",
       "size": 15344,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/combinatorial.py",
@@ -1590,7 +1786,9 @@
       "blob_sha": "2b1eec7b1e869ededb44b4085168760238a4afa0",
       "size": 24619,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/condition_structure.py",
@@ -1598,7 +1796,9 @@
       "blob_sha": "d209e6c64b4d5b97001d3eb0b52d5e1714a0a4fa",
       "size": 48242,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/crud_matrix.py",
@@ -1606,7 +1806,9 @@
       "blob_sha": "76135d8f423b189d2eae44893980ada2e8ffbc41",
       "size": 16148,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/decision_table.py",
@@ -1614,7 +1816,9 @@
       "blob_sha": "7aa5b4790b6ca5a5146bf6a9280309f108447911",
       "size": 20434,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/domain_testing.py",
@@ -1622,7 +1826,9 @@
       "blob_sha": "983e9785a2194bf82ac502f0463bed8839971e3c",
       "size": 15911,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/equivalence_partitions.py",
@@ -1630,7 +1836,9 @@
       "blob_sha": "4a4335ed1278654bce204fa41118b55f8e1f8e28",
       "size": 14191,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/flow_paths.py",
@@ -1638,7 +1846,9 @@
       "blob_sha": "3819ce99efd23efded1d83795242d967d74ece7c",
       "size": 24409,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/grammar_cases.py",
@@ -1646,7 +1856,9 @@
       "blob_sha": "40c2523d89df405d057c1ab1a90cf9e468ef063a",
       "size": 15330,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/materialize_coverage.py",
@@ -1654,7 +1866,9 @@
       "blob_sha": "d9eb62983e0ad54311a133b1775a9b72de011193",
       "size": 84343,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/metamorphic.py",
@@ -1662,7 +1876,9 @@
       "blob_sha": "bc9832449f78f3fa318df1736c8bced3207f93b3",
       "size": 17870,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/random_testing.py",
@@ -1670,7 +1886,9 @@
       "blob_sha": "ec2f50f1c40c6434d372b6779682b51a5d40391e",
       "size": 8258,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/runtime_contract.py",
@@ -1678,7 +1896,9 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/runtime_v1_cutover.py",
@@ -1686,7 +1906,9 @@
       "blob_sha": "123b4c4f726bc73697327171d4398f901701c05d",
       "size": 102814,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/schema_cases.py",
@@ -1694,7 +1916,9 @@
       "blob_sha": "6a41cf24d33f34f696ed2c0c0d7245db868b7910",
       "size": 54811,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/state_transition.py",
@@ -1702,7 +1926,9 @@
       "blob_sha": "6380b8a4ab0f3c12c73e69550c29183ada622d6e",
       "size": 21181,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/test_data_requirements.py",
@@ -1710,7 +1936,9 @@
       "blob_sha": "15acacf1ef174ace68c2e161e13440422cb93b14",
       "size": 16215,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/scripts/ui_pattern_candidates.py",
@@ -1718,7 +1946,9 @@
       "blob_sha": "abb665df237232ad9d0529cb708d9961eb7de597",
       "size": 10247,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-condition-design/SKILL.md",
@@ -1726,7 +1956,9 @@
       "blob_sha": "204badcfcd5d991ef4f13d3a45c9e88e43643a21",
       "size": 7547,
       "skill": "test-condition-design",
-      "module_ids": ["M03"]
+      "module_ids": [
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-requirement-design/assets/output-template.md",
@@ -1734,7 +1966,10 @@
       "blob_sha": "0ce81815dd3fe02f94073645b34d04fe6179a83a",
       "size": 1446,
       "skill": "test-requirement-design",
-      "module_ids": ["M02", "M03"]
+      "module_ids": [
+        "M02",
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-requirement-design/references/guidance.md",
@@ -1742,7 +1977,10 @@
       "blob_sha": "ccf845f16eae26c0dc8b612d2fee3430121ec9b4",
       "size": 9572,
       "skill": "test-requirement-design",
-      "module_ids": ["M02", "M03"]
+      "module_ids": [
+        "M02",
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-requirement-design/scripts/requirement_structure.py",
@@ -1750,7 +1988,10 @@
       "blob_sha": "82ff56a84084dce05b275c9f9c0bdab3d1cb0df3",
       "size": 25807,
       "skill": "test-requirement-design",
-      "module_ids": ["M02", "M03"]
+      "module_ids": [
+        "M02",
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-requirement-design/scripts/runtime_contract.py",
@@ -1758,7 +1999,10 @@
       "blob_sha": "2227f6c8e0da728c512d7993a6f62dd2bfbedee8",
       "size": 271676,
       "skill": "test-requirement-design",
-      "module_ids": ["M02", "M03"]
+      "module_ids": [
+        "M02",
+        "M03"
+      ]
     },
     {
       "source_path": "skills/test-requirement-design/SKILL.md",
@@ -1766,7 +2010,10 @@
       "blob_sha": "356acb73cf881b9a67aef1f063ec2c7b32fec59f",
       "size": 4914,
       "skill": "test-requirement-design",
-      "module_ids": ["M02", "M03"]
+      "module_ids": [
+        "M02",
+        "M03"
+      ]
     }
   ],
   "load_files": [

@@ -538,6 +538,30 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
+  it("ships an explicit learner MIT license without relicensing third-party fonts", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const expected = [
+      ["LICENSE", "training/ai-assisted-qa-course/templates/learner-LICENSE"],
+      ["THIRD_PARTY_NOTICES.md", "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md"],
+      ["licenses/OFL-1.1.txt", "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt"],
+    ];
+    for (const [targetPath, sourcePath] of expected) {
+      expect(manifest.local_files).toContainEqual(
+        expect.objectContaining({ source_path: sourcePath, target_path: targetPath, module_id: null }),
+      );
+      expect(fs.existsSync(path.join(repositoryRoot, sourcePath))).toBe(true);
+    }
+    const mit = fs.readFileSync(path.join(repositoryRoot, expected[0][1]), "utf8");
+    const notices = fs.readFileSync(path.join(repositoryRoot, expected[1][1]), "utf8");
+    const ofl = fs.readFileSync(path.join(repositoryRoot, expected[2][1]), "utf8");
+    expect(mit).toContain("MIT License");
+    expect(mit).toContain("Copyright (c) 2026 ryu-yoshikawa-pro-vision");
+    expect(notices).toContain("OFL-1.1");
+    expect(notices).toContain("The Inter Project Authors");
+    expect(notices).toContain("Adobe");
+    expect(ofl).toContain("SIL OPEN FONT LICENSE Version 1.1");
+  });
+
   it("keeps public assessment references out of learner sync and load allowlists", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const excluded = [

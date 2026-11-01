@@ -13,6 +13,10 @@
 
 Secretや本人の答案・評価記録を公開リポジトリへpushしないでください。Phase 1/2の提出物はGit操作を前提にせずエクスポートし、Codespacesの停止と保全は別操作です。
 
+## 利用許諾
+
+独自の教材・コード・Skillのうち権利者が許諾できる部分は `LICENSE` のMIT Licenseを参照してください。Webフォントなどの第三者素材は `THIRD_PARTY_NOTICES.md` と `licenses/OFL-1.1.txt` を参照してください。リポジトリ全体・第三者の著作物にMITを一律適用するものではありません。
+
 ## 配布版の確認
 
 `.course/distribution-manifest.json`に、配布元commit、配布対象ファイルのSHA-256、固定Skill版、配布済みShopの対応が記録されています。変更したファイルの上書きと無検証の新しい教材版への自動切替は行いません。
