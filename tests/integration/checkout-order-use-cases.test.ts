@@ -485,6 +485,59 @@ describe("checkout and customer order application integration", () => {
     expect(await database.payments.where("orderId").equals(first.orderId).count()).toBe(1);
   });
 
+  it("finalizes one payment and one stock deduction for overlapping resume calls", async () => {
+    const checkout = await readyCheckout("TEST-SUCCESS");
+    const processing = await useCases.beginOrder({
+      checkoutSessionId: checkout.id,
+      checkoutActionVersion: checkout.version,
+    });
+    const item = (await database.order_items.where("orderId").equals(processing.orderId).first())!;
+    const beforeVariant = (await database.product_variants.get(item.variantId))!;
+    let notifyFirstCharge!: () => void;
+    const firstChargeStarted = new Promise<void>((resolve) => {
+      notifyFirstCharge = resolve;
+    });
+    let releaseFirstCharge!: () => void;
+    const holdFirstCharge = new Promise<void>((resolve) => {
+      releaseFirstCharge = resolve;
+    });
+    gateway.charge = async (input) => {
+      gateway.calls.push(input);
+      if (gateway.calls.length === 1) {
+        notifyFirstCharge();
+        await holdFirstCharge;
+      }
+      return { status: "succeeded" };
+    };
+    const first = useCases.resumePayment(processing.orderId);
+    await firstChargeStarted;
+    const second = await useCases.resumePayment(processing.orderId);
+    releaseFirstCharge();
+    const resumed = await first;
+
+    expect(second.orderStatus).toBe("paid");
+    expect(resumed.orderStatus).toBe("paid");
+    expect(new Set(gateway.calls.map((call) => call.gatewayIdempotencyKey))).toEqual(
+      new Set([`${processing.orderId}-attempt-1`]),
+    );
+    const payments = await database.payments.where("orderId").equals(processing.orderId).toArray();
+    expect(payments).toHaveLength(1);
+    expect(payments[0]).toMatchObject({ attemptNumber: 1, status: "succeeded" });
+    expect((await database.product_variants.get(item.variantId))!.stockQuantity).toBe(
+      beforeVariant.stockQuantity - item.quantity,
+    );
+    expect(await database.inventory_histories.where("orderId").equals(processing.orderId).count()).toBe(
+      (await database.order_items.where("orderId").equals(processing.orderId).count()),
+    );
+    const histories = await database.order_status_histories
+      .where("orderId")
+      .equals(processing.orderId)
+      .toArray();
+    expect(histories.filter((history) => history.reasonCode === "PAYMENT_SUCCEEDED")).toHaveLength(
+      1,
+    );
+  });
+
   it("creates a fresh attempt on retry and stores one result-clock value everywhere", async () => {
     gateway.result = { status: "failed", errorCode: "DECLINED" };
     const checkout = await readyCheckout("TEST-DECLINED");

@@ -31,6 +31,11 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 **受入状態**：本変更のコミット後にCI・Native実ビルド・端末上の回帰が成功するまで、製品としての最終受入は未完了。ほかの高リスク候補の不具合確定とは区別する。
 
+## 2026-11-01 管理ユーザー更新の認可競合と決済並行再開
+
+- 管理ユーザーのランク・ロール・停止/再開は、認可直後に別の更新で操作者のRole/Sessionが失効すると、以前の認可結果だけで更新し得ることを確認した。対象3経路に対し、同じ `change-user-access` transaction内で操作者のSession/Role/状態を読み直す処理と、失効後に対象User/version・Session・Checkoutが変わらない4つのintegration Caseを追加した。管理商品・在庫・注文・カテゴリー・レビュー等のほかの管理更新経路についても認可とtransactionの分離があり、全体の対応は未完了。
+- 決済処理の `resumePayment` は同一 `gatewayIdempotencyKey` による重複呼出しを許容し、`finalizePayment` はtransaction内のPayment状態で重複確定を防ぐ設計。片方のGateway応答を保留した並行再開をintegration Caseに追加し、Payment 1件、在庫引当1回、成功履歴1件、同一キーを検証する。追加CaseのCI成功・Native実行は確認待ち。外部Gatewayによる実課金のテストではない。
+
 ## 高リスク候補：実証を優先する
 
 | 対象 | 静的根拠・現在の限界 | #210側の検証観点 |
