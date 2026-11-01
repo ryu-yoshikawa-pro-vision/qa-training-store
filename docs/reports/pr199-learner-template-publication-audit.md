@@ -1,5 +1,15 @@
 # PR #199 学習用公開Templateの公開前監査
 
+## 2026-11-01 配布ライセンスの実装状況（更新）
+
+MIT Licenseの採用承認に従い、学習者用配布元の`training/ai-assisted-qa-course/templates/`に`learner-LICENSE`、`learner-THIRD_PARTY_NOTICES.md`、`learner-OFL-1.1.txt`を追加した。配布manifestのlocalは**137件から140件**へ増加し、それぞれ`LICENSE`、`THIRD_PARTY_NOTICES.md`、`licenses/OFL-1.1.txt`に対応付けた。外部Skill104件の固定参照は変更していない。学習者READMEと配布契約テストにも3ファイルの案内・検査を追加した。[実装commit](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/60b853a17d888afe7139e8fa0e59f4dd17d12d25)、[書式修正commit](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/7a714286118ac9a35616a30eb9330bfe26f8a7c0)を参照する。
+
+**旧記録との差分**：本報告の「local 137件」「LICENSE未指定」は最初の静的監査時点の結果。現在のmanifestには3件の配布指定がある。ただし配布指定の存在は、生成済みTemplateへの実際のコピーと全Hash検証を意味しない。実`course:sync`は未実施。
+
+**公開前の確認**：GitHubアカウント名とGit commitのauthorだけでは著作権者・再許諾権を確定できない。MIT本文の著作権者表記は公開アカウント`ryu-yoshikawa-pro-vision`として準備したが、対象教材・コード・Skillの権利帰属と共同著作者、第三者素材を確認する。Inter/Noto Sans JPのフォントにはMITではなく元のOFL-1.1を適用し、著作権表示とライセンス本文を分けて配布する。ShopのJS/CSS/画像・外部Skill・依存物全体の権利/通知の監査は未完了。
+
+**未達を維持する条件**：CI全体の成功、実配布全件の検証、Template設定と公開の個別承認、本人Private 2コアCodespacesの無料枠確認と実環境受入、独立AI正式評価の校正。製品本体・正式製品仕様は変更していない。
+
 ## 判定と対象
 
 **判定：公開承認待ち（公開可の判定には至らない）。** ユーザー回答Q01〜Q08に従い、対象候補は `ryu-yoshikawa-pro-vision/ai-assisted-qa-learner`、書込・設定変更は所有者のみ。生成・事前監査まで許可されており、GitHub上での作成・公開、本人Private repo・2コアCodespaceの作成や有料利用は今回の監査では実施しない。
