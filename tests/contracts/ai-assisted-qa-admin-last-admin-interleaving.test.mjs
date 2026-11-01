@@ -1,17 +1,10 @@
-import fs from "node:fs";
-import { fileURLToPath } from "node:url";
 import Dexie from "dexie";
-import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 import { AdminUserUseCases } from "../../src/application/use-cases/review-user-use-cases";
 import { TestClock } from "../../src/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "../../src/infrastructure/database/dexie/database";
-import {
-  createDexieApplicationRepositories,
-} from "../../src/infrastructure/database/dexie/application-repositories";
-import {
-  DexieApplicationTransactionRunner,
-} from "../../src/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "../../src/infrastructure/database/dexie/application-repositories";
+import { DexieApplicationTransactionRunner } from "../../src/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "../../src/seeds/load-seed";
 import { createScenarioDataset } from "../../src/seeds/scenarios";
 
@@ -99,9 +92,9 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
 
         expect(interleaved).toBe(true);
         expect(await database.users.get("user-operator")).toEqual(beforeTarget);
-        expect(
-          await database.sessions.where("userId").equals("user-operator").toArray(),
-        ).toEqual(beforeTargetSessions);
+        expect(await database.sessions.where("userId").equals("user-operator").toArray()).toEqual(
+          beforeTargetSessions,
+        );
         expect(await activeAdminCount()).toBe(1);
       } finally {
         const name = database.name;
@@ -110,15 +103,4 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
       }
     },
   );
-});
-
-// Temporary formatting diagnostic; remove after applying the canonical result.
-it("prints canonical Prettier output for the training contract", async () => {
-  const filename = fileURLToPath(import.meta.url);
-  const original = fs.readFileSync(filename, "utf8");
-  const options = await prettier.resolveConfig(filename);
-  const canonical = await prettier.format(original, { ...options, filepath: filename });
-  if (canonical !== original) {
-    console.log("FORMAT_BEGIN\\n" + canonical + "\\nFORMAT_END");
-  }
 });
