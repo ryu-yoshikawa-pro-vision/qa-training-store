@@ -1,5 +1,12 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## Q-20 商品詳細のCart追加拒否：Web/Native・原子性・既存契約の静的監査
+
+- **正式契約**：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`を`storefront.md:17-23/102-115/218-222`のBR/AC-STOREFRONT-001/003と`cart.md:9-19/70-86`のBR-CART-001/003・AC-CART-001に照合。guest/active customerのみCart追加可能で、operator/adminは対象外。
+- **UI→Use Case→Repository**：Web `ProductDetailView:61-100/191-282`はstock0 SKUの選択・追加をdisabled、Native `NativeProductDetailScreen:586-739`と`native-variation-selection.ts:3-16`はstock0を選択できても追加disabled、複数SKUは初期未選択。`CartUseCases.addItem:118-149/240-268`は正整数とownerを検査。Dexie `cart-checkout-repositories.ts:111-205` / Native SQLite `native-customer-application-repositories.ts:1150-1284`はinactive SKU・公開/rank違反・stock0を拒否し、`cart.ts:3-26`は既存数量との合算をstock/purchaseLimit/99で判定する。Webは`cart-mutation` transaction、NativeはSQLite write transactionを使用。
+- **Seed・Case**：P-0001（S20/M10/L0、上限5）、P-0005（単一SKU3）、P-0006（単一SKU0）、guestからP-0003 gold/P-0004 platinum・P-0007/8/9非公開を拒否対照に採用。既存Cart数量4→+1許可/+2拒否、stock3で1/3/4、拒否前後のCart数量/version不変を独立条件とする。`tests/contracts/shared-customer-repository-suite.ts:126-171`はWeb DexieとNative SQLiteの共通Repository契約でstock0・非公開の拒否後Cart DTO不変を検査し、現HEADの[Web CI 41264486838](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41264486838)ではVitest repository/contracts jobが成功。ただしこのRunは実Web/Android画面や実端末の証拠ではない。
+- **未決・次の判定**：default SeedのSKUは全てactiveで、inactive SKU拒否の実負例、99境界、新規Cartで失敗した場合のDB不変、実Web/AndroidのCart version/視覚は未受入。RepositoryでCart行を作成してからSKUを検証するため、拒否時のロールバックはtransaction境界に依存する。共通契約は既存CartのDTO不変を検証するが、新規Cartのロールバックを直接証明しない。**製品不具合と断定せず**、当該親操作は`review_required`を維持。Q-21へ独立作業を移し、必要な学習用fixture/契約Caseを別途検討する。SUT・正式仕様・既存Seed・製品テストは無変更。
+
 ## 2026-11-01 Q-10：ログイン拒否理由のWeb/Native表示とSession非生成の静的監査（レビュー待ち）
 
 - **対象と契約**：`SCREEN-AUTH-LOGIN-A02-01`、正式`docs/spec/features/authentication.md`のBR-AUTH-001/002、AC-AUTH-001/002、および「拒否理由は利用者向け文言、内部ハッシュ・アクターID等を露出しない」というUI契約。Roleはguest→customer/operator/admin、状態はactive/suspended/withdrawn、DataはUser・Session・guest Cartとsession pointer。A02-02のreturnToは別IDであり、ここへ合算しない。

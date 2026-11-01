@@ -37,7 +37,7 @@
 | 毎時15分 | Q-12 / P1 | `SCREEN-AUTH-SIGNUP-A02-01`・`review_required` | Web/Nativeの必須・形式・長さ・同意UIの入力差を正式BR/AC・Use Caseに照合 | 入力境界と正式仕様の未決を分離。分析成立分だけ完了 |
 | 毎時15分 | Q-13 / P1 | M00〜M04教材・Skill・Phase 1評価・受入未完 | [学習順序](./2026-10-16_qa-curriculum-ai-agent-redesign_progression.md)のM00から順に、学習目標IDごとに教材節・開始/終了データ・課題・採点根拠・復習先を検査。M02→M03固定Skillの実Run証拠を分ける | モジュール/目標IDごとの検証済み証拠を記録。5モジュール一括PASSとせず未完の次IDを記載 |
 | 毎時15分 | Q-14 / P1 | M04/M07/M10のOpenCode正式AI評価・校正未受入 | 評価Planの必要な独立セッション・入力Snapshot・決定論的gate・正/負例・再評価を実テストで確認。実モデルの接続/無料条件/権限がなければ停止理由を整理 | 校正済みモデルID・実Run・誤PASS拒否の証拠が得られた部分だけ完了。無断課金しない |
-| 毎時30分 | Q-20 / P1 | `SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`・`review_required` | 在庫0・選択不可SKUのCart追加拒否を、P-0001/P-0006のSeed実値とWeb/Native UI→Use Case→Repositoryで確認 | 商品閲覧と購入拒否を区別し、境界・Case採否を記録 |
+| 毎時30分 | Q-20 / P1 | `SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03`・静的監査済み、`review_required`維持 | Web/Native UI→CartUseCases→Dexie/SQLite、P-0001/0005/0006、共有Repository契約の拒否後Cart DTO不変を監査。新規Cart失敗時のtransaction rollback、inactive SKU/99境界・実Web/Android/視覚は未実証。分析レポート「Q-20」参照 | 未実証の負例・Cart version不変を再開条件とし、次の独立作業Q-21へ進む。未実行をPASSにしない |
 | 毎時30分 | Q-21 / P1 | `SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02`・`review_required` | SKU選択後のCart追加で会員ランク・価格・数量上限・guest/customer差を追跡 | 不正状態の拒否、Cart不変・追加条件を明確にする |
 | 毎時30分 | Q-22 / P1 | `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`・`review_required` | empty状態の正式復旧導線とWeb/Native表示を照合。結果0件・商品全体0件を別条件として扱う | 正式仕様との差と教材代替を記録。UI不適合未確定なら状態未完を維持 |
 | 毎時30分 | Q-23 / P1 | `SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`・`review_required` | 在庫0/1/5/6の分類、Web表示、既存Seed/通常の在庫操作、正式しきい値を照合 | `available>=1`と正式`available>=6`の差を確定。製品修正はしない |
