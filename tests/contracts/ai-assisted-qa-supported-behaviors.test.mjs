@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 79,
-      requires_review: 109,
+      basically_analyzed: 80,
+      requires_review: 108,
       classified_rate: 100,
-      basic_analysis_rate: 42.02,
+      basic_analysis_rate: 42.55,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);

@@ -21,8 +21,6 @@ test("M05 P05 reference: scope Cart controls without deleting items", async ({ p
   const mugRemove = mugLine.getByRole("button", { name: "削除", exact: true });
   await expect(mugRemove).toHaveCount(1);
   await expect(mugRemove).toBeEnabled();
-  await expect(
-    page.getByRole("heading", { name: "コンパクトタオル", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "コンパクトタオル", exact: true })).toBeVisible();
   await expect(page.locator("article.cart-item")).toHaveCount(2);
 });
