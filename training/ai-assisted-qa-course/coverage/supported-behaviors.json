@@ -12123,21 +12123,21 @@
       "source_path": "docs/spec/features/admin-catalog.md",
       "source_line": 27,
       "source_text": "オペレーターおよび管理者が管理対象の概要と主要な管理動線を確認する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,幅1023px/1024px,operator/admin。role=operator/admin、状態・対象ID・versionを区別。操作: 管理メニューへの導線",
+      "platform": "web（管理シェル）。Android Nativeの管理メニューは対象外",
+      "role": "Web: active operator/admin。guest・customer・停止staff・失効Sessionは管理画面の許可対象外。管理者専用のユーザー/テスト制御導線はoperatorに非表示",
+      "scenario": "default Seedでoperator/adminログイン後の1024px以上の管理概要。1023px以下の警告は別操作A02-01・状態S-admin-mobile-warningで扱う",
+      "data": "default Seedのuser-operator（active operator）/user-admin（active admin）と本人Sessionを使用。比較対象はguest・active customer・suspended staff・Session失効。buildKind=production/automation(local)でテスト制御リンクの有無を区別し、幅1023/1024pxを境界とする。ナビゲーションはデータ更新を行わない",
       "action": "管理メニューへの導線",
-      "expected": "管理メニューから本人に許可された商品・在庫・注文・レビュー管理へ遷移できる",
+      "expected": "AppFrameが/admin配下でAdminShellを表示。active operator/adminの基本7リンクは概要(/admin)、商品(/admin/products)、カテゴリ(/admin/categories)、ブランド(/admin/brands)、在庫(/admin/inventories)、注文(/admin/orders)、レビュー(/admin/reviews)。adminのみユーザー(/admin/users)を追加し、adminかつtest API buildのみテスト制御(/admin/test-control)を追加。現在パスのリンクにaria-current=pageを設定。管理先ページはRouteGuard(staff/admin/automation-admin)でアクセス判定し、guestは/login、許可外Role/停止staffは/forbiddenへ遷移。リンク表示は管理操作の実行・DB更新を意味しない",
       "rule_refs": [],
       "route": "`/admin`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "管理メニューへの導線の前後に、管理メニューから本人に許可された商品・在庫・注文・レビュー管理へ遷移できることをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと管理メニューへの導線の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "管理メニューへの導線が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "operatorへの管理者専用リンク露出、URL直接入力による権限逸脱、test-controlの本番露出、遷移先不一致・現在地誤表示、1023/1024pxでの管理操作UI誤露出、無権限画面での情報露出",
+      "test_condition": "C1(default/1024px以上): operatorとadminを別Sessionでログインし基本7リンクの名称・href・遷移先とaria-currentを確認。C2(role): operatorはユーザー/テスト制御リンクなし、adminはユーザーあり。直URLでstaff/admin/automation-adminのRouteGuard拒否も確認。C3(build): adminでproductionはテスト制御なし、automation/localのみリンクあり、直URLのguardも照合。C4(負例): guest/customer/停止staff/失効Sessionのredirectと管理データ非露出、遷移前後のUser/Order/在庫/Review/version不変を確認。C5(境界): 1023px以下は警告でsidebar/mainを非表示、1024px以上はナビを表示（A02-01で視覚受入）。Web実Run/視覚比較は別受入",
+      "test_responsibility": "正式admin-catalog.mdの管理概要/主要導線とRoleを、app/admin/index.tsx→AdminOverviewPage(staff guard)およびroot-layout.web.tsx→AppFrame→AdminShellのLink生成へ追跡。admin/usersはadmin guard、admin/test-controlはautomation-admin guard。管理メニュー選択自体にUse Case/Repository呼出しはなく、遷移先の更新処理・商品公開BR/ACの検証は各別操作に割り当てる",
+      "case_policy": "採用: C1 operator/adminの7基本リンクと遷移、C2 admin専用ユーザーと直URL拒否、C3 test-build/productionの制御導線、C4 guest/customer/停止staff/失効Sessionの拒否・DB不変、C5 1023/1024境界と現在地aria-current。除外: 商品公開・在庫更新・version競合・プレビュー保存（別操作）、Android管理画面（非対応）。実Web/視覚は独立技術受入",
+      "case_selection_reason": "管理メニューは権限別の入口であり、7基本リンク・admin-only 2リンク・直URLの認可を区別することで誤導線/権限逸脱を検出できる。既存default staffとテストbuild設定で代表条件を構成可能。正式BR-ADMINCAT-001/002とAC-001/002はカタログ全体の関連参照であり、ナビの直接受入条件ではないため商品更新のCaseを混入させない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:23-42の管理概要・導線、roles-and-permissions、default-dataset.ts:729-776のactive operator/admin、app/admin/index.tsx:1-3、root-layout.web.tsx:1-17→app-frame.tsx:29-40→admin-shell.tsx:16-106の7基本リンク/role/build分岐/aria-current、route-guard.tsx:25-55のstaff/admin/automation-admin拒否、review-user-pages.tsx:508-515/844-851のadmin-only保護、test-api.web.ts:20-25のbuild判定、admin.css:397-408の1023px境界、logout-button.test.tsxのshell描画、phase1-required.spec.ts:235-315の管理ナビ表示幅を静的照合。既存E2Eは主にadminの表示幅でありoperator別の全リンク遷移/拒否/DB不変を個別実証しない。製品適合・実Web/視覚PASSは未判定",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -12145,7 +12145,7 @@
         "AC-ADMINCAT-002"
       ],
       "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "A01-02の管理メニューについて正式UI文言、Role/State/Data、AppFrame→AdminShell→RouteGuard、Seed、既存テスト、Risk/TR/Condition/Case採否を証拠付きで静的基本分析済み。実ブラウザ/視覚/権限負例/DB不変の受入は別管理。A01-01はreview_required継続、次はA02-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 27,
@@ -12165,7 +12165,89 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "platform_roles": {
+        "web": "operator/admin（active）。guest/customer/suspended staffは拒否。ユーザー導線はadmin限定、テスト制御はadminかつautomation/local build限定"
+      },
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 23,
+          "end_line": 42,
+          "reason": "管理概要/主要導線とviewportの正式UI記述"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 776,
+          "reason": "default active operator/adminとSession前提"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 1,
+          "end_line": 17,
+          "reason": "AppFrameの配置"
+        },
+        {
+          "path": "src/presentation/shells/app-frame.tsx",
+          "start_line": 29,
+          "end_line": 40,
+          "reason": "/admin経路のAdminShell選択"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 16,
+          "end_line": 107,
+          "reason": "リンク一覧・Role/build分岐・aria-current・viewport警告"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "staff/admin/automation-adminの遷移先認可"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 508,
+          "end_line": 515,
+          "reason": "管理ユーザー画面のadmin guard"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 851,
+          "reason": "テスト制御画面のautomation-admin guard"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 20,
+          "end_line": 25,
+          "reason": "test API buildの判定"
+        },
+        {
+          "path": "src/presentation/styles/admin.css",
+          "start_line": 397,
+          "end_line": 408,
+          "reason": "1023px以下のsidebar/main非表示"
+        },
+        {
+          "path": "e2e/web/phase1-required.spec.ts",
+          "start_line": 235,
+          "end_line": 315,
+          "reason": "既存adminナビの1024/1280表示幅E2E（個別role遷移未検証）"
+        },
+        {
+          "path": "tests/component/logout-button.test.tsx",
+          "start_line": 119,
+          "end_line": 151,
+          "reason": "AdminShellの既存表示・logout component確認"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-DASHBOARD-A02-01",
