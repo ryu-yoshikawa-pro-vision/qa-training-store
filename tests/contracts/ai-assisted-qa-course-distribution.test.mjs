@@ -578,7 +578,7 @@ describe("AI-assisted QA distribution contract", () => {
       "utf8",
     );
     expect(notices).toContain("course/shop/_expo/static/js/web/entry-*.js");
-    expect(notices).not.toMatch(/entry-[a-f0-9]{16,}\\.js/);
+    expect(notices).not.toMatch(/entry-[a-f0-9]{16,}\.js/);
     expect(guide).toContain("## 正式AI評価での外部送信");
     expect(guide).toContain("SEND provider/model-id");
   });
