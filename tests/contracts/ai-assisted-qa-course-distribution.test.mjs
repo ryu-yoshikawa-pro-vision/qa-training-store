@@ -570,6 +570,8 @@ describe("AI-assisted QA distribution contract", () => {
       "utf8",
     );
     for (const entry of expected) expect(guide).toContain(`${entry.target_path}`);
+    expect(guide).toContain("## 正式AI評価での外部送信");
+    expect(guide).toContain("SEND provider/model-id");
   });
 
   it("keeps public assessment references out of learner sync and load allowlists", () => {
