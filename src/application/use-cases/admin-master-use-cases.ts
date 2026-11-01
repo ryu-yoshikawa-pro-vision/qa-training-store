@@ -90,13 +90,13 @@ export class AdminMasterUseCases {
       async ({ categories, users, sessions }) => {
         await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         return categories.createAtEnd({
-        categoryId: this.dependencies.idGenerator.generate(),
-        name,
-        actorUserId: actor.id,
-        now,
+          categoryId: this.dependencies.idGenerator.generate(),
+          name,
+          actorUserId: actor.id,
+          now,
         });
       },
-    );;
+    );
     return { ...toCategoryItem(created), publishedProductCount: 0 };
   }
 
@@ -109,13 +109,13 @@ export class AdminMasterUseCases {
       async ({ categories, users, sessions }) => {
         await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         return categories.updateDetails({
-        ...request,
-        name: this.validName(request.name, "category"),
-        actorUserId: actor.id,
-        now,
+          ...request,
+          name: this.validName(request.name, "category"),
+          actorUserId: actor.id,
+          now,
         });
       },
-    );;
+    );
     const current = await this.categories.searchForAdmin({
       keyword: updated.name,
       active: null,
@@ -164,12 +164,12 @@ export class AdminMasterUseCases {
       async ({ categories, users, sessions }) => {
         await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         return categories.reorder({
-        ...request,
-        actorUserId: actor.id,
-        now,
+          ...request,
+          actorUserId: actor.id,
+          now,
         });
       },
-    );;
+    );
     return updated.map((category) => ({
       ...toCategoryItem(category),
       publishedProductCount: 0,
@@ -207,13 +207,13 @@ export class AdminMasterUseCases {
       async ({ brands, users, sessions }) => {
         await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         return brands.create({
-        brandId: this.dependencies.idGenerator.generate(),
-        name: this.validName(request.name, "brand"),
-        actorUserId: actor.id,
-        now,
+          brandId: this.dependencies.idGenerator.generate(),
+          name: this.validName(request.name, "brand"),
+          actorUserId: actor.id,
+          now,
         });
       },
-    );;
+    );
     return { ...toBrandItem(created), publishedProductCount: 0 };
   }
 
@@ -226,13 +226,13 @@ export class AdminMasterUseCases {
       async ({ brands, users, sessions }) => {
         await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         return brands.updateDetails({
-        ...request,
-        name: this.validName(request.name, "brand"),
-        actorUserId: actor.id,
-        now,
+          ...request,
+          name: this.validName(request.name, "brand"),
+          actorUserId: actor.id,
+          now,
         });
       },
-    );;
+    );
     const current = await this.brands.searchForAdmin({
       keyword: updated.name,
       active: null,
