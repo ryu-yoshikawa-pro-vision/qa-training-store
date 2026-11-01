@@ -47,6 +47,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-03（直接CI証拠と安定金額の学習用契約追加）
+
+- **直接CI証拠**：HEAD `b54e47e880e26164458a392b25ef51791c32f056`の[Web CI #41356046200](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41356046200)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`は**8/8 PASS（222ms）**。うちA01-03の既存3 Caseはdefault regular金額・gold内訳/二重割引なし・送料4999/5000/単価切捨て境界を確認。Code Quality success。**直接PASSはWeb/Android表示やPR全体の受入ではない**。
+- **今回の追加C4**：会員ランクgoldを確認表示**前**に学習用fixtureで設定し、表示後は変更せず、確認DTOの小計/割引/送料/合計と`beginOrder`後のOrder/OrderItem/Payment金額が一致する安定金額の対照Caseを追加。前対象A01-02の「表示後ランク変更で無通知再計算」と明確に区別する。追加C4のVitest/Prettier/実Web/Androidは**この変更後HEADでは未実行**でありPASSへ加算しない。対象契約ファイルの既知Prettier警告に対し長いPricingアサーションと末尾空行を整形（formatter直接実行は未実施）。
+- **UI/仕様境界**：Web `CheckoutActionSummary`は小計/会員割引/送料/合計を独立表示し、支払ボタンにも合計を含む。Native `NativeCheckoutConfirmScreen`は商品行金額と合計のみで、小計/割引/送料を個別表示しない。正式`BR-CHECKOUT-002/AC-CHECKOUT-002`は価格最終確認と変更時の非確定を要求するが、独立内訳のNative必須性は正式画面参照・実機/アクセシビリティで未確定。製品SUTは変更しない。
+- **CI横断**：上記HEADのStyle Qualityは学習用6ファイルのPrettier警告、contracts全体は状態期待不一致等15件、required Chromium E2EはCheckout再確認Case失敗。その他の成功jobを全体PASSへ流用しない。Mobile CIはマージ準備までPRトリガー停止・未受入。
+- **引継ぎ**：`SCREEN-CHECKOUT-CONFIRM-A01-03`は`review_required`継続。追加C4の同一HEAD直接CI、Web desktop/tablet・Androidの金額表示と確定額、DB/Session前後、視覚/アクセシビリティ、正式期待の確認が再開条件。基本分析50/188操作・非default14/20状態を据え置く。承認不要な直接検証が終わり実Run待ちへ移る場合のみ、正本で次の実在IDを選ぶ。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A01-03（価格内訳の現行SUT照合・学習用Case追加）
 
 - **対象・状態**：現行分析台帳Blob `c0bc937eccfb` の`SCREEN-CHECKOUT-CONFIRM-A01-03`は`review_required`。正式`docs/spec/features/checkout-and-payment.md:13-15,120-153,244-248`は価格最終確認・変更時の非確定を要求。台帳の「Web/Nativeで小計・割引・送料・合計を表示」は正式仕様本文より詳細な既存分析期待なので、正式オラクルの強さを混同しない。

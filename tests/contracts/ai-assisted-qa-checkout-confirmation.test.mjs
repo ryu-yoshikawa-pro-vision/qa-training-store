@@ -255,38 +255,90 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
       expect(await snapshot()).toEqual(before);
     });
 
+    it("persists the confirmed gold price breakdown in the order lines and payment", async () => {
+      // Stable-rank control case: unlike A01-02 C5, no rank change occurs after display.
+      await database.users.update("user-customer-regular", { membershipRank: "gold" });
+      const { checkout, session } = await readyCheckout();
+      const displayed = await checkout.getConfirmation(session.id);
+      const before = await snapshot();
+      expect(displayed).toMatchObject({
+        subtotalAmount: 2000,
+        discountAmount: 100,
+        shippingAmount: 500,
+        totalAmount: 2400,
+      });
+      expect(await snapshot()).toEqual(before);
+
+      const processing = await checkout.beginOrder({
+        checkoutSessionId: session.id,
+        checkoutActionVersion: displayed.checkoutActionVersion,
+      });
+      const order = await database.orders.get(processing.orderId);
+      const lines = await database.order_items.where("orderId").equals(processing.orderId).toArray();
+      const payment = await database.payments.where("orderId").equals(processing.orderId).first();
+
+      expect(order).toMatchObject({
+        membershipRankSnapshot: "gold",
+        subtotalAmount: displayed.subtotalAmount,
+        discountAmount: displayed.discountAmount,
+        shippingAmount: displayed.shippingAmount,
+        totalAmount: displayed.totalAmount,
+      });
+      expect(lines).toHaveLength(displayed.items.length);
+      expect(lines[0]).toMatchObject({
+        unitEffectivePrice: displayed.items[0].unitEffectivePrice,
+        unitDiscountAmount: displayed.items[0].unitDiscountAmount,
+        lineSubtotalAmount: displayed.items[0].lineSubtotalAmount,
+        lineDiscountAmount: displayed.items[0].lineDiscountAmount,
+        lineTotalAmount: displayed.items[0].lineTotalAmount,
+      });
+      expect(payment).toMatchObject({ amount: displayed.totalAmount });
+    });
+
     it("keeps the shipping threshold on subtotal and rounds membership discount per unit", () => {
-      expect(calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "regular")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "regular"),
+      ).toMatchObject({
         subtotalAmount: 4999,
         discountAmount: 0,
         shippingAmount: 500,
         totalAmount: 5499,
       });
-      expect(calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "regular")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "regular"),
+      ).toMatchObject({
         subtotalAmount: 5000,
         discountAmount: 0,
         shippingAmount: 0,
         totalAmount: 5000,
       });
-      expect(calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "gold")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 4999, quantity: 1 }], "gold"),
+      ).toMatchObject({
         subtotalAmount: 4999,
         discountAmount: 249,
         shippingAmount: 500,
         totalAmount: 5250,
       });
-      expect(calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "gold")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 5000, quantity: 1 }], "gold"),
+      ).toMatchObject({
         subtotalAmount: 5000,
         discountAmount: 250,
         shippingAmount: 0,
         totalAmount: 4750,
       });
-      expect(calculateOrderTotals([{ unitEffectivePrice: 2000, quantity: 1 }], "platinum")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 2000, quantity: 1 }], "platinum"),
+      ).toMatchObject({
         subtotalAmount: 2000,
         discountAmount: 200,
         shippingAmount: 0,
         totalAmount: 1800,
       });
-      expect(calculateOrderTotals([{ unitEffectivePrice: 101, quantity: 2 }], "gold")).toMatchObject({
+      expect(
+        calculateOrderTotals([{ unitEffectivePrice: 101, quantity: 2 }], "gold"),
+      ).toMatchObject({
         subtotalAmount: 202,
         discountAmount: 10,
         shippingAmount: 500,
@@ -294,5 +346,4 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
       });
     });
   });
-
 });
