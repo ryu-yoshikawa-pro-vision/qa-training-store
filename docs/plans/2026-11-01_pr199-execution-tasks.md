@@ -11,7 +11,6 @@ Q01〜Q17と訂正後のQ08は[決定事項](./2026-10-16_qa-curriculum-ai-agent
 
 既存の進捗数値・キューの未完欄は最新台帳・実Runを確認するまで変更しない。この追記は定期作業の完了判定ではない。
 
-
 このファイルを**残タスク・作業優先順位・引継ぎ状態の正本**とする。目的・変更許可・完了基準は[全体Plan](./2026-10-16_qa-curriculum-ai-agent-redesign.md)、[Target](./2026-10-16_qa-curriculum-ai-agent-redesign_target.md)、[決定事項](./2026-10-16_qa-curriculum-ai-agent-redesign_decisions.md)に従う。分析の個別根拠は[分析台帳](../../training/ai-assisted-qa-course/coverage/supported-behaviors.json)と[分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md)、製品問題と既存差分の根拠は[製品改善レポート](../reports/pr199-product-improvements.md)に記録する。PR本文は要約に限り、このファイルと同じ残タスク一覧を重複して保守しない。
 
 ## 作業判断の原則
