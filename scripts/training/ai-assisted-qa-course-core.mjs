@@ -477,7 +477,7 @@ async function externalSkillBytes(entry, commit, fetchImpl) {
   const response = await fetchImpl(url);
   if (!response.ok)
     fail(`fixed-revision Skill download failed (${response.status}): ${entry.source_path}`);
-  const bytes = await readResponseLimited(response, entry.size);
+  const bytes = await readResponseLimited(response, entry.size, "external Skill");
   if (bytes.length !== entry.size || gitBlobSha(bytes) !== entry.blob_sha)
     fail(`fixed-revision Skill content does not match its manifest blob: ${entry.source_path}`);
   return bytes;
@@ -721,10 +721,10 @@ export function assessmentAssetsForPhase({ root, phaseId }) {
   );
 }
 
-async function readResponseLimited(response, maxBytes) {
+async function readResponseLimited(response, maxBytes, label = "assessment") {
   const contentLength = Number(response.headers?.get?.("content-length"));
   if (Number.isFinite(contentLength) && contentLength > maxBytes)
-    fail("assessment response exceeds the allowed size");
+    fail(`${label} response exceeds the allowed size`);
   if (response.body?.getReader) {
     const reader = response.body.getReader();
     const chunks = [];
@@ -736,7 +736,7 @@ async function readResponseLimited(response, maxBytes) {
         size += value.byteLength;
         if (size > maxBytes) {
           await reader.cancel();
-          fail("assessment response exceeds the allowed size");
+          fail(`${label} response exceeds the allowed size`);
         }
         chunks.push(Buffer.from(value));
       }
@@ -746,7 +746,7 @@ async function readResponseLimited(response, maxBytes) {
     return Buffer.concat(chunks, size);
   }
   const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length > maxBytes) fail("assessment response exceeds the allowed size");
+  if (bytes.length > maxBytes) fail(`${label} response exceeds the allowed size`);
   return bytes;
 }
 

@@ -568,7 +568,7 @@ describe("AI-assisted QA distribution contract", () => {
         shopBuildRoot: fixture.source,
         allowUncommittedFixture: true,
       }),
-    ).rejects.toThrow(/assessment response exceeds the allowed size/);
+    ).rejects.toThrow(/external Skill response exceeds the allowed size/);
     expect(bodyRead).toBe(false);
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
