@@ -10184,20 +10184,20 @@
       "source_line": 214,
       "source_text": "決済失敗時に、在庫や注文を完了・成功状態へ変更しない。",
       "platform": "web,android",
-      "role": "active customer（本人注文の最新決済結果のみ）",
-      "scenario": "default Seedのorder-payment-failedを失敗例、order-paidを成功例として別々にgetMyOrderで取得する。payment-processingでは成功表示が出ないことも反例",
-      "data": "default order-payment-failedはpayment_failed/failed/DECLINED、order-paidはpaid/succeeded。resolveCheckoutResultKindはorderStatusと最新payment.statusの組を判定し、画面パス名は判定に使わない",
+      "role": "active customer（本人のOrderのみ。guest/operator/別customerはrequireCustomerとorder.userId照合で拒否。初期guest Seedはregular@example.comで本人ログインして検査）",
+      "scenario": "default Seedのorder-payment-failed（payment_failed/failed/DECLINED）とorder-paid（paid/succeeded）を同一本人で個別取得。payment-processing Seedはorder-payment-failedをpending_payment/processingへ変換し、guest初期Sessionからregular@example.comでログインする。Web/Nativeでcomplete/failed URLを逆転し、欠落/他人orderIdも負例にする",
+      "data": "Dexie OrderRepository.getDetailはOrderとattemptNumber昇順のPaymentを取得してDTO化。resolveCheckoutResultKindは最新Payment（at(-1)）を参照し、payment_failed+failedのみfailed、pending_payment/payment_failed以外+succeededのみcomplete、processingや不整合/Paymentなしはnull。defaultのorder-payment-failedは失敗、order-paidは成功。getMyOrderはCustomer本人所有権を検査してからdetailを返す",
       "action": "失敗注文を成功扱いしない",
-      "expected": "payment_failed/failedは失敗表示・再試行導線となり、paid/succeededに誤認しない。Web/NativeともURLが/checkout/completeでも保存された失敗状態で表示する。pending_payment/processingは完了にも失敗にも誤分類しない",
+      "expected": "保存済み本人Order+最新Paymentを唯一の結果根拠とし、payment_failed/failedは失敗見出し・再試行のみ、paid/succeededは完了見出し・再試行なし。URL名が逆でもWeb/Native両方で同じ結果にする。pending_payment/processing、状態不整合、Payment欠落は成功・失敗のいずれにも分類しない（null→境界表示）。guest/別人/存在しないOrderは結果情報を開示しない",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "支払い失敗の誤成功表示、未払注文の配送・レビュー処理、不正な再試行判断",
-      "test_condition": "paid/succeeded、payment_failed/failed、pending_payment/processingの状態を入力し、resolveCheckoutResultKindとWeb/Nativeの表示が一致することを確認。URLに失敗/成功を指定しても保存状態を優先し、権限外orderIdを非表示にする",
-      "test_responsibility": "getMyOrderで本人の注文取得→resolveCheckoutResultKindで保存状態判定→Web/Native結果画面への経路を確認。注文履歴への影響は別Caseで確認",
-      "case_policy": "失敗・成功のルート逆転と処理中を採用。実在する失敗理由テキストの検証はFAILED-A01-01で別途保留",
-      "case_selection_reason": "経路名だけで完了表示すると、失敗注文を顧客が成功と誤解するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
+      "risk": "High: payment_failed/failedを成功と誤表示して未払注文の配送/再購入判断を誤らせる、他人Orderの番号/金額漏えい。processingや矛盾するOrder/Payment組を完了扱いする危険、getByIdとgetDetailの別読取間で更新が挟まる整合性、実Web/AndroidでURLと保存状態が不一致になる危険",
+      "test_condition": "C1=defaultのpaid/succeededをfailed URLで表示しcomplete/再試行なし（Web/Native component既存Case）。C2=payment_failed/failedをcomplete URLで表示しfailed/再試行あり（Web/Native component既存Case）。C3=pending_payment/processing、Paymentなし、paid/failed等不整合をresolverでnullに分類（現行実装の静的分岐、直接Caseは未実施）。C4=guest/別customer/欠落orderIdのgetMyOrder拒否とUI境界（既存componentの欠落・拒否モック、実Role別Runは未実施）。C5=実Web desktop/Android、逆URL・processing/異常状態、DB/Session不変、視覚/a11y、別Sessionの読取競合を固定HEADで実証",
+      "test_responsibility": "getMyOrder(requireCustomer→orders.getById所有権→orders.getDetail)→Dexie Order/Payment(attemptNumber昇順)またはNative SQLite→resolveCheckoutResultKind(orderStatus/latestPayment.status)→Web OrderResultContent/NativeCheckoutResultScreen。既存Web/Native componentは逆URLと未認可境界、integrationは決済失敗/成功の永続化を検査。C3の直接resolver負例、C5の実Run/DB前後は別受入",
+      "case_policy": "C1/C2（URL逆転と保存状態優先）採用・既存Web/Native component直接証拠。C3（processing・欠落Payment・不整合）採用・静的分岐根拠のみで直接負例未実行。C4（本人/非本人・欠落ID）採用・Use Caseと既存componentモック証拠、実Role別未実施。C5（実画面/DB不変/並列更新/視覚/a11y）実Run待ち。失敗理由文言はFAILED-A01-01、決済拒否時の在庫保護はFAILED-A02-01、再試行はFAILED-A01-02へ分離",
+      "case_selection_reason": "経路名は利用者が改変可能であるため結果のオラクルにできない。paid/failed/processingと最新Paymentの組合せ、逆URL、本人所有権を分けて、未払いの誤成功と他人注文の露出を検出する。実画面・並列競合の未受入は基本分析の成立と区別する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02現行mainのBR-CHECKOUT-003/AC-CHECKOUT-003（docs/spec/features/checkout-and-payment.md:17-23,210-214,250-254）、Role/State/Data、Web OrderResultContent:508-607、Native NativeCheckoutResultScreen:1020-1105、CheckoutOrderUseCases.resolveCheckoutResultKind:63-78/getMyOrder:389-396、Dexie OrderRepository.getDetail:67-129（PaymentをattemptNumber順）、default Seed:400-556とpayment-processing変換:286-303/初期guest metadata:75-84を再照合。既存Web component checkout-order-pages.test.tsx:273-302はfailed URL+paid、complete URL+failed、欠落ID/未認可モックを直接検査。Native component native-purchase-screens.test.tsx:386-419も逆URLと欠落/未認可を検査。HEAD 926263b24658のWeb CI #41377964893でVitest(component) job 125062293084はsuccess、Vitest(integration) job 125062293154もsuccess（ただし全体CIはfailure）。High Risk/TR/Condition/C1-C5の採否を明記し、基本分析のみ成立。C3直接resolver負例、実Web/Android、実Role別、DB/Session前後、getById/getDetail競合、視覚/a11y、製品適合、最終HEAD全必須CIは未受入",
       "requirement_refs": [
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-003",
@@ -10206,7 +10206,7 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.getMyOrder"
       ],
-      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 HEAD 926263b24658で正式仕様/Role/State/Data/Web/Native→getMyOrder→Dexie/最新Payment→resolver/default・payment-processing Seedと既存componentを再照合。基本分析のみanalyzed、操作57/188・状態14/20。実Web/Android・C3直接負例・DB/Session前後・競合・製品適合・最終CIは別未受入。次候補SCREEN-CHECKOUT-FAILED-A01-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 508,
@@ -10242,43 +10242,79 @@
           "path": "docs/spec/features/checkout-and-payment.md",
           "start_line": 17,
           "end_line": 23,
-          "reason": "BR-CHECKOUT-003: 成功/拒否/処理中の在庫と注文の境界"
+          "reason": "BR-CHECKOUT-003の成功/失敗/処理中の区分"
         },
         {
-          "path": "src/seeds/default-dataset.ts",
-          "start_line": 401,
-          "end_line": 556,
-          "reason": "default Seedのpaid/payment_failed注文とsucceeded/failed決済、order-paid/order-payment-failed"
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 210,
+          "end_line": 214,
+          "reason": "失敗画面の正式機能と在庫/注文の成功誤認禁止"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 250,
+          "end_line": 254,
+          "reason": "AC-CHECKOUT-003の決済結果一回性"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "start_line": 63,
           "end_line": 78,
-          "reason": "orderStatusと最新payment.statusからcomplete/failed/nullを決める"
+          "reason": "Orderと最新Paymentからcomplete/failed/nullを決定"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 389,
+          "end_line": 396,
+          "reason": "Customer本人認可と注文所有権の検査"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 67,
+          "end_line": 129,
+          "reason": "Order/Paymentの取得とattemptNumber順DTO化"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 556,
+          "reason": "defaultのpayment_failed/paidとfailed/succeeded実値"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 286,
+          "end_line": 303,
+          "reason": "payment-processingのpending_payment/processing変換"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 84,
+          "reason": "default初期guestと本人ログインの前提"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 570,
-          "end_line": 665,
-          "reason": "Webで注文の状態を再取得し、保存済み結果に応じて表示"
+          "start_line": 508,
+          "end_line": 607,
+          "reason": "Web結果画面の保存状態判定・逆URL・再試行"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1107,
-          "end_line": 1197,
-          "reason": "Nativeで本人注文の保存済み状態に応じて画面を分岐"
+          "start_line": 1020,
+          "end_line": 1105,
+          "reason": "Native結果画面の保存状態判定・逆URL・境界"
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 486,
-          "end_line": 521,
-          "reason": "WebでURLの成功/失敗名を無視して保存状態で判定"
+          "start_line": 273,
+          "end_line": 302,
+          "reason": "Web逆URLと未認可・欠落IDのcomponent直接証拠"
         },
         {
           "path": "tests/component/native/native-purchase-screens.test.tsx",
-          "start_line": 448,
-          "end_line": 465,
-          "reason": "NativeでURLの成功/失敗名を無視して保存状態で判定"
+          "start_line": 386,
+          "end_line": 419,
+          "reason": "Native逆URLと未認可・欠落IDのcomponent直接証拠"
         }
       ],
       "reviewed_against": [
