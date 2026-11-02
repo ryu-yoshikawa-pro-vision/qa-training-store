@@ -573,6 +573,43 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("rejects redirected, mismatched-URL, and HTML Skill downloads before writing files", async () => {
+    for (const scenario of ["redirect", "mismatched-url", "html"]) {
+      const fixture = courseFixture();
+      const first = fixture.manifest.external_skill_files[0];
+      let requestOptions;
+      const fetchImpl = async (url, options) => {
+        if (!url.endsWith(`/${first.source_path}`)) return fixture.fetchImpl(url);
+        requestOptions = options;
+        const response = await fixture.fetchImpl(url);
+        if (scenario === "redirect") return { ...response, ok: false, status: 302 };
+        if (scenario === "mismatched-url")
+          return { ...response, redirected: true, url: "https://example.org/skill" };
+        return {
+          ...response,
+          headers: { get: (name) => (name === "content-type" ? "text/html" : null) },
+        };
+      };
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "b".repeat(40),
+          fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(
+        scenario === "html"
+          ? /fixed-revision Skill download returned HTML/
+          : /fixed-revision Skill download returned a redirect or non-200 response/,
+      );
+      expect(requestOptions).toEqual({ method: "GET", redirect: "manual" });
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
   it("includes learner MIT and third-party license notices in the distribution", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const expected = [

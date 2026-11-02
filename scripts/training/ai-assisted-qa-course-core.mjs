@@ -474,9 +474,16 @@ function atomicWriteNewFile(root, relativePath, bytes) {
 
 async function externalSkillBytes(entry, commit, fetchImpl) {
   const url = `https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/${commit}/${entry.source_path}`;
-  const response = await fetchImpl(url);
-  if (!response.ok)
-    fail(`fixed-revision Skill download failed (${response.status}): ${entry.source_path}`);
+  const response = await fetchImpl(url, { method: "GET", redirect: "manual" });
+  if (
+    response.status !== 200 ||
+    response.redirected === true ||
+    (response.url && response.url !== url)
+  )
+    fail(`fixed-revision Skill download returned a redirect or non-200 response: ${entry.source_path}`);
+  const contentType = response.headers?.get?.("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("text/html") || contentType.includes("xhtml"))
+    fail(`fixed-revision Skill download returned HTML: ${entry.source_path}`);
   const bytes = await readResponseLimited(response, entry.size, "external Skill");
   if (bytes.length !== entry.size || gitBlobSha(bytes) !== entry.blob_sha)
     fail(`fixed-revision Skill content does not match its manifest blob: ${entry.source_path}`);
