@@ -14462,24 +14462,27 @@
       "expected": "商品検索・状態フィルターの結果が入力条件と一致し、対象外商品が選択操作に混入しない",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "フィルターの前後に、商品検索・状態フィルターの結果が入力条件と一致し、対象外商品が選択操作に混入しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionとフィルターの結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "フィルターが不正公開・管理データ破損・競合時の上書きにつながるため",
+      "risk": "High候補: フィルター/ページ変更後もselectedが残り、表示外IDを選択件数に含む一方、bulkは現在表示itemsとの積集合だけを送る。積集合0件で一括操作するとUse CaseがVALIDATIONを投げ、UI側にcatchがない。フィルター/価格/在庫/権限境界と、別staff更新後のversion競合も検証待ち。",
+      "test_condition": "C1 default operator/adminの検索語・status・rank・stock(0/1/5/6)・価格上下限・sortがRepository返却集合と一致すること。C2 many-products 1000件/20件ページと最終50ページ、条件変更時のpage。C3 page1で選択→page2/絞込→表示外IDがbulk targetIdsに入らず、選択件数/ボタン状態/0件拒否のUIが正式期待と一致すること。C4 stale version・別staff更新時のDB/Session/History不変と部分失敗。C5 guest/customer/停止staff/失効Sessionの検索・一括操作拒否と非露出。C6 published在庫0、inactive SKU0、価格上下限逆転/負値/空値を隔離fixtureで確認。C7 desktop/tablet、a11y、画面とDB/Session前後を確認すること。",
+      "test_responsibility": "Web filter state→AdminProductUseCases.search→Dexie query→current-page items→selected集合→bulkChangeStatusのtargetIds/versionを、固定Seedと前後Snapshotで対応付ける。選択件数のUI表示と実際の更新対象を別に判定する。",
+      "case_policy": "C1〜C7を採用（C1通常複合条件、C2 1000件ページ、C3 表示外選択/空target、C4競合、C5認可、C6価格/在庫境界、C7視覚/DB）。商品公開状態の適格性自体はA01-01、bulk成功/失敗件数はA01-03に分離。",
+      "case_selection_reason": "一覧の選択状態が検索条件/ページをまたいで保持される実装のため、UI上の選択件数と送信対象の乖離・0件例外・対象外更新の防止をHigh候補として優先する。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "正式BR-ADMINCAT-001/002・AC-ADMINCAT-001/002、Web filter/selection→search/bulkChangeStatus→Dexie、default11商品/many-products1000件とRoleを静的照合。UIはkeyword変更時のみpage=1へ戻し、status/rank/stock/価格/sort変更ではpageを維持する。selectedは条件/ページ変更でクリアされず、bulkは表示中itemsとの積集合のみを送る。表示外のみ選択された場合、選択件数>0でbulkのtargetIds=0となりUse CaseのVALIDATIONに至る静的経路がある。正式な選択件数・フィルター変更時のpage/空対象エラー期待、C1〜C7の直接実行・DB/Session前後・Role別UI/視覚証拠が未確定。基本分析の正式オラクルが不足するためreview_required維持。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminProductUseCases.search",
+        "AdminProductUseCases.bulkChangeStatus"
+      ],
       "state_refs": [
         "SCREEN-ADMIN-PRODUCTS-S-many-products"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-02: 現HEADで仕様/Role/State/Data、UI→Use Case→Dexie、default/many-products Seed、High候補とC1-C7採否を個別調査。表示外IDのbulk混入は現在表示itemsへのfilterで防ぐ一方、selected件数残留・0件VALIDATION/未捕捉・非keyword条件変更時のpage残留を静的発見。実Run未実施、正式期待/直接Case/DB/Session前後待ち。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -14502,7 +14505,20 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.search",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 80,
+          "signature": "async search("
+        },
+        {
+          "id": "AdminProductUseCases.bulkChangeStatus",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 223,
+          "signature": "async bulkChangeStatus("
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A01-03",

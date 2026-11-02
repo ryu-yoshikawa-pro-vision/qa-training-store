@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-02`（商品フィルターと対象外商品の選択混入防止）。直前`SCREEN-ADMIN-PRODUCTS-A01-01`は正式BR/AC、staff認可、Web→search→Dexie、default 11商品とmany-products 1000件のSeed、表示と公開可否の差を静的調査。`analysis_status=review_required`を維持（操作81/188、非default16/20）：保存statusをそのまま表示し、非公開化を要する後発の参照不整合やactive SKU 0件の価格Infinityは別の正式期待/隔離fixture確認が必要。実Run・製品適合・直接テストは未受入。再開条件は直下のA01-01記録。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-03`（商品一括操作の成功/失敗件数と実際の対象）。直前`SCREEN-ADMIN-PRODUCTS-A01-02`は検索・状態/ランク/在庫/価格/並び順、default11商品・many-products1000件、Web→search→Dexieと選択→bulkChangeStatusを静的照合。表示外IDはbulk対象から除外される一方、selected件数は残り、表示外だけの選択で0件VALIDATION/未捕捉に至る候補と、非keywordフィルター変更時のpage残留を確認。正式期待/直接実行が不足するため`review_required`維持（操作81/188、非default16/20）。再開条件は直下のA01-02記録。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-02（商品フィルターと表示外選択の境界）
+
+- **状態・件数**：基本分析の正式オラクル・直接実行が不足し`review_required`維持。操作**81/188**・非default状態**16/20**（増加0）。`analyzed`/製品適合/実Run PASSではない。次の共通対象は`SCREEN-ADMIN-PRODUCTS-A01-03`。本IDはC1〜C7の再開条件が揃うまで同じ静的調査を繰り返さない。
+- **仕様・Role/State/Data**：`docs/spec/features/admin-catalog.md:8-13,61-83`のBR-ADMINCAT-001/002・AC-ADMINCAT-001/002、staff operator/adminのみの管理画面。default初期guest、staffログインが必要。`default-dataset.ts:67-244`に11商品（published8/unpublished1/draft1/discontinued1、在庫0・rank制限を含む）。`scenarios.ts:424-455`のmany-productsはpublished1000件・20件ページで50ページ。Native管理UIは対象外。
+- **UI→Use Case→Repository**：`admin-product-pages.tsx:56-104,122-215,223-267`でkeyword/status/rank/stock/価格上下限/sortを`AdminProductUseCases.search:80-102`へ渡し、`DexieAdminProductQueryRepository.search:420-507`が商品/カテゴリ/ブランド/SKUを読取ってfilter/sort/pageを適用。keyword変更のみ`setPage(1)`、その他フィルター変更ではpage維持。`selected`はフィルター/ページ変更で消去されず、画面は`selected.size`を表示する一方、bulk送信は`state.value.items.filter(selected.has)`で**現在表示中のIDだけ**に限定し、各IDのversionを送る。`bulkChangeStatus:223-248`は0件/51件以上/重複をVALIDATION拒否する。
+- **High候補（静的経路、実障害未再現）**：page1で商品Aを選択しpage2またはAを除外するフィルターへ移ると、選択表示は1件のままでも送信対象は0件となり、ボタンは有効なまま、bulkは0件VALIDATIONを投げ得る。UIのbulkにcatchがないため結果通知が更新されない候補。逆に表示外IDが実際のbulk更新へ混入する経路は現在のfilterでは見えない。非keywordフィルター変更時のpage残留も空表示/誤解の候補。これは正式仕様違反・情報漏えい・DB破壊の実証ではない。
+- **Risk/TR/Condition/Case採否**：C1 defaultでoperator/admin・keyword/status/rank/stock(0/1/5/6)/価格/並び順、C2 many-products1000件・20件/ページ・最終50ページと条件変更、C3 複数ページ/絞込をまたぐselected・0件bulk・表示件数対送信ID、C4 別staff更新/version競合とDB/History/Session、C5 guest/customer/停止staff/失効SessionとPII非露出、C6 在庫0・active SKU0・価格逆転/空/負値、C7 desktop/tablet・視覚/a11y・検索の非破壊性を採用。bulk結果の件数整合はA01-03、公開適格性はA01-01へ分離。
+- **既存証拠・未受入・再開**：`tests/repository-contract/repositories.test.ts:206-251`はstatus・sort・在庫0の部分証拠、`tests/component/admin-product-pages.test.tsx:184-195`はフィルター露出と一括失敗表示のみで、跨ページ選択/空targetの直接Caseではない。今回の直接Vitest/Prettier/Playwright・実Role別Web・DB/Session/History前後・視覚/a11yは未実施。固定HEADの隔離fixtureでC1〜C7と選択件数/空targetの正式期待を実証するまで基本分析/製品適合/実Runを保留。製品SUT・正式仕様・既存Seed/製品テストは変更しない。
+- **CI独立**：調査HEAD `b0a45c11930b`の[Web CI #41436031408](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41436031408)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Code Quality・Training runtime・UI Reviewはsuccess、required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガー未復元。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-01（商品一覧の保存statusと公開可否境界）
 
