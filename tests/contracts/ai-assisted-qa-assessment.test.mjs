@@ -13,6 +13,7 @@ import {
   createLiveChallenge,
   createAttemptDirectory,
   finalizeAssessment,
+  isPassingCalibration,
   assertNoSecretText,
   parseAssessmentArgs,
   parseOpenCodeJsonEvents,
@@ -37,6 +38,23 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-qa-assessment-contrac
 
 afterAll(() => {
   fs.rmSync(tempRoot, { recursive: true, force: true });
+});
+
+it("never permits a failed or inconsistent calibration to be reused", () => {
+  const passed = {
+    status: "passed",
+    critical_false_passes: 0,
+    mismatches: [],
+  };
+  expect(isPassingCalibration(passed)).toBe(true);
+  for (const calibration of [
+    { ...passed, status: "failed" },
+    { ...passed, critical_false_passes: 1 },
+    { ...passed, mismatches: [{ case_id: "FALSE-PASS" }] },
+    { ...passed, mismatches: null },
+  ]) {
+    expect(isPassingCalibration(calibration)).toBe(false);
+  }
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
@@ -1004,6 +1022,7 @@ it("does not overwrite an immutable assessment result created during publication
   expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual({ completed: false });
   expect(fs.readdirSync(directory)).toEqual(["result.json"]);
 });
+
 it("exports a finalized assessment once without copying unexpected files", () => {
   const root = path.join(tempRoot, "assessment-export");
   const id = "123e4567-e89b-42d3-a456-426614174000";

@@ -620,18 +620,18 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
   const calibrationRoot = path.join(WORKSPACE, ".course-assessments", "calibrations");
   fs.mkdirSync(calibrationRoot, { recursive: true, mode: 0o700 });
   const calibrationPath = path.join(calibrationRoot, `${calibrationId}.json`);
-  if (fs.existsSync(calibrationPath)) {
-    const saved = readJson(calibrationPath, "saved model calibration");
+  const existingCalibration = fs.existsSync(calibrationPath)
+    ? readJson(calibrationPath, "saved model calibration")
+    : null;
+  if (existingCalibration) {
     if (
-      saved.id !== calibrationId ||
-      JSON.stringify(saved.identity) !== JSON.stringify(identity) ||
-      !isPassingCalibration(saved) ||
-      saved.case_count !== calibrationPrompt.expected.size
+      existingCalibration.id !== calibrationId ||
+      JSON.stringify(existingCalibration.identity) !== JSON.stringify(identity) ||
+      existingCalibration.case_count !== calibrationPrompt.expected.size
     )
-      fail(
-        "saved model calibration is invalid or did not pass; an exact recalibration is required",
-      );
-    return saved;
+      fail("saved model calibration identity or case count is invalid");
+    if (isPassingCalibration(existingCalibration)) return existingCalibration;
+    // Keep a legacy failed cache for audit, but retry rather than blocking this model forever.
   }
   const run = await runOpenCode({
     modelId,
@@ -653,10 +653,14 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     candidate_session_id: run.sessionId ?? null,
     created_at: new Date().toISOString(),
   };
-  atomicWriteJson(calibrationPath, calibration);
+  atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
   atomicWriteJson(path.join(attemptDirectory, "calibration-candidate.json"), {
     case_results: evaluated.case_results,
   });
+  // Only successful calibrations can be shared across attempts. Failed calibrations remain
+  // immutable in their attempt directory and a new attempt can recalibrate the same model.
+  if (isPassingCalibration(calibration) && !existingCalibration)
+    atomicWriteJson(calibrationPath, calibration);
   return calibration;
 }
 
