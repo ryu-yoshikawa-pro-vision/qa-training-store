@@ -26,6 +26,14 @@
 - Progress: 88% (7/8)
 - Next: 最新branchと対象差分を再確認後、明示ファイルだけをcommit/pushし、PR #199 / #210の現headに対する必須CIを待つ。
 
+## 2026-11-02 18:58 (JST)
+
+- Summary: push前にPR #199の共有branchが再進行したため、ブランチ安全手順で修正commitを保護し、最新PR branch上へ対象commitだけを移した。
+- Git: 元commit `5b7ea76d`はrescue refsで保持。追加されたorigin commit `72384ea9`はPlanとcoverageのみで、今回の12 formatter対象と重ならず、mainに元commitは含まれないことを確認。最新originから正規PR名のlocal branchを作成し、`5b7ea76d`だけをcherry-pickして現HEADを`f2b7bc3d`とした。merge/rebase/reset/force pushなし。PR API/originは確認時点で`72384ea9`、PR OPEN/base main。
+- CI: origin head `72384ea9`にはWeb CI #41424012641がqueued。最終commit `f2b7bc3d`のCIはpush後に新規実行となるため未確認。
+- Progress: 88% (7/8)
+- Next: push直前のfetch/status/head照合後、明示refspecで通常pushし、PR #199 / #210の正確な最終head CIを待つ。
+
 ## 削除候補
 
 - Codex はファイルやディレクトリを削除しない。
