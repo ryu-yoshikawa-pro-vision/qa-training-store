@@ -856,22 +856,62 @@ function currentPointerPath(phaseId, workspaceRoot = WORKSPACE) {
 }
 
 function updateCurrentPointer(resultPath, result, workspaceRoot = WORKSPACE) {
-  const pointerPath = currentPointerPath(result.phase_id, workspaceRoot);
-  const prior = fs.existsSync(pointerPath)
-    ? readJson(pointerPath, "current assessment pointer")
-    : null;
-  atomicWriteJson(
-    pointerPath,
-    {
-      schema_version: 1,
-      phase_id: result.phase_id,
-      assessment_id: result.assessment_id,
-      previous_assessment_id: prior?.assessment_id ?? null,
-      result_sha256: sha256(fs.readFileSync(resultPath)),
-      updated_at: result.created_at,
-    },
-    { replace: true },
+  const pointerPath = assertAssessmentPath(
+    workspaceRoot,
+    `.course-assessments/${result.phase_id}/current.json`,
   );
+  const lockPath = assertAssessmentPath(
+    workspaceRoot,
+    `.course-assessments/${result.phase_id}/.current-publish.lock`,
+  );
+  if (!Number.isFinite(Date.parse(result.created_at)))
+    fail("assessment result publication timestamp is invalid");
+  try {
+    fs.mkdirSync(lockPath, { mode: 0o700 });
+  } catch (error) {
+    if (error?.code === "EEXIST")
+      fail("assessment pointer publication is locked; check the active process before retrying");
+    throw error;
+  }
+  try {
+    const prior = fs.existsSync(pointerPath)
+      ? readJson(pointerPath, "current assessment pointer")
+      : null;
+    const digest = sha256(fs.readFileSync(resultPath));
+    if (prior) {
+      if (
+        prior.schema_version !== 1 ||
+        prior.phase_id !== result.phase_id ||
+        !ASSESSMENT_ID_PATTERN.test(prior.assessment_id) ||
+        typeof prior.result_sha256 !== "string" ||
+        !/^[a-f0-9]{64}$/.test(prior.result_sha256) ||
+        !Number.isFinite(Date.parse(prior.updated_at))
+      )
+        fail("current assessment pointer is invalid");
+      if (prior.assessment_id === result.assessment_id) {
+        if (prior.result_sha256 !== digest)
+          fail("current assessment pointer does not match immutable result bytes");
+        return;
+      }
+      // Equal timestamps are ambiguous; keep the existing pointer rather than
+      // letting a late resume replace another attempt at the same millisecond.
+      if (Date.parse(prior.updated_at) >= Date.parse(result.created_at)) return;
+    }
+    atomicWriteJson(
+      pointerPath,
+      {
+        schema_version: 1,
+        phase_id: result.phase_id,
+        assessment_id: result.assessment_id,
+        previous_assessment_id: prior?.assessment_id ?? null,
+        result_sha256: digest,
+        updated_at: result.created_at,
+      },
+      { replace: true },
+    );
+  } finally {
+    fs.rmdirSync(lockPath);
+  }
 }
 
 export function reconcileFinalizedAssessment({
@@ -903,25 +943,8 @@ export function reconcileFinalizedAssessment({
     !Number.isFinite(Date.parse(result.created_at))
   )
     fail("saved assessment result differs from the prepared attempt");
-  const pointerPath = assertAssessmentPath(
-    workspaceRoot,
-    `.course-assessments/${phaseId}/current.json`,
-  );
-  const pointer = fs.existsSync(pointerPath)
-    ? readJson(pointerPath, "current assessment pointer")
-    : null;
-  const digest = sha256(fs.readFileSync(resultPath));
-  if (pointer?.assessment_id === assessmentId && pointer.result_sha256 !== digest)
-    fail("current assessment pointer does not match immutable result bytes");
-  // A resumed older assessment must never replace a newer assessment's pointer.
-  const isNewer =
-    pointer?.assessment_id !== assessmentId &&
-    typeof pointer?.updated_at === "string" &&
-    Number.isFinite(Date.parse(pointer.updated_at)) &&
-    Date.parse(pointer.updated_at) > Date.parse(result.created_at);
   saveSummary(attemptDirectory, result);
-  if (!isNewer && pointer?.assessment_id !== assessmentId)
-    updateCurrentPointer(resultPath, result, workspaceRoot);
+  updateCurrentPointer(resultPath, result, workspaceRoot);
   return result;
 }
 

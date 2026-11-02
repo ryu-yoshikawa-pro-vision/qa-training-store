@@ -255,6 +255,23 @@ it("recovers an immutable result after summary and pointer publication were inte
   expect(recover()).toEqual(result);
   expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(newerPointer);
 
+  const equalTimestampPointer = {
+    ...newerPointer,
+    updated_at: result.created_at,
+  };
+  fs.writeFileSync(pointerPath, JSON.stringify(equalTimestampPointer));
+  expect(recover()).toEqual(result);
+  expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(equalTimestampPointer);
+
+  const lockPath = path.join(phaseRoot, ".current-publish.lock");
+  fs.mkdirSync(lockPath);
+  expect(recover).toThrow(/pointer publication is locked/);
+  expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(equalTimestampPointer);
+  fs.rmdirSync(lockPath);
+
+  fs.writeFileSync(pointerPath, JSON.stringify({ ...newerPointer, updated_at: "not-a-date" }));
+  expect(recover).toThrow(/current assessment pointer is invalid/);
+
   fs.writeFileSync(pointerPath, JSON.stringify(pointer));
   fs.writeFileSync(resultPath, JSON.stringify({ ...result, status: "complete" }));
   expect(recover).toThrow(/does not match immutable result bytes/);
