@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A01-01`（処理中表示と再開導線）。直前A02-03は処理中のキャンセルCTA/API非提供、Role/State/Data、Web/Native→Use Case→Dexie/SQLite、Seed、High Risk/TR/Condition/C1〜C4採否を再照合し、**基本分析のみ**`analyzed`（操作54/188、非default状態14/20）。処理中retry/認可の学習用隔離Dexie契約5/5 PASSは取消APIの実行PASSではない。画面離脱/Android戻る/DB前後・並列Gateway・製品適合は別未受入。次回はA01-01の表示/再開/結果別遷移を現行mainで1件再分析する。
-- **CI横断**：HEAD `4a0b490661af`の[Web CI #41372993000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41372993000)はcompleted/failure。対象学習用checkout-processing契約**5/5 PASS**、Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体は旧分析期待等15失敗、Style Qualityは学習用7ファイル（対象契約含む）でfailure、required Chromium E2E・verify/validateもfailure。対象直接Case PASSを全体CI/実Web・Android/製品適合へ流用しない。Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-CHECKOUT-FAILED-A02-01`（決済失敗時の在庫維持、Highの金額・データ保護）。直前A01-01は正式仕様/Role/State/Data、Web/Native→UseCase→Dexie/SQLite→Gateway、Seed、Risk/TR/Condition/C1〜C5採否を再照合し、**基本分析のみ**`analyzed`（操作55/188、非default14/20）。Webの想定外status→complete、failed/例外時実画面、Native busy、並列Gateway・DB/Session前後、視覚/a11y/製品適合は別未受入。次回は実在`review_required`のA02-01を共通キューで1件扱う。
+- **CI横断**：HEAD `114dd6143e7b`の[Web CI #41375288526](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41375288526)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存component/integrationのsuccessをWeb/Android実Runや全体CI PASSへ流用しない。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,12 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A01-01（処理中表示・結果別遷移の基本分析）
+
+- **正式根拠・現行実装**：BR-CHECKOUT-003/AC-CHECKOUT-003、Web `CheckoutProcessingContent:457-505`の処理中表示/自動resume/失敗時再開、Native `NativeCheckoutProcessingScreen:975-1015`の自動・手動resume/busy disabledを照合。Webはpayment_failed→failed、その他→complete、Nativeはpaid→complete/payment_failed→failed/その他→messageであり、想定外statusのWeb誤完了遷移は**静的リスク候補**。UseCase `beginOrder:185-310`はOrder=pending_payment/Payment=processing/Checkout=converted/Cart=consumed、`resumePayment:311-329`は本人・所有者/最新Payment検査後にGateway→`finalizePayment:410-538`。Dexie/SQLite Payment Repositoryとpayment-processing Seedのfailed→processing変換を照合。Seed初期guestは本人ログインが必要。
+- **High Risk・Case採否**：C1=UI処理中表示/自動resume/エラー再開/Native busy（静的採用）。C2=既存component `tests/component/checkout-order-pages.test.tsx:302-315`のWeb見出し→本人orderIdのresume→paid/complete（直接証拠）。C3=既存integration `tests/integration/checkout-order-use-cases.test.ts:155-226`と学習用隔離Dexie processing契約のbeginOrder→順次resume・本人認可/DB不変（直接証拠）。C4=Web/Nativeのpayment_failed/例外/想定外status遷移、Native busy/視覚/a11y（未実施）。C5=Seed本人ログイン、戻る/再読込/別タブ並列GatewayとOrder/Payment/Shipment/Cart/Session/在庫/履歴前後snapshot（実Run待ち）。既存成功Caseを失敗・並列・実端末のPASSへ流用しない。
+- **独立判定・引継ぎ**：仕様→Role/State/Data→UI→UseCase→Repository→Seed→High Risk/TR/Condition/Case採否の基本分析のみ`review_required→analyzed`、操作**54→55/188**、非default状態**14/20**。今回新規Vitest/formatter/実Web/Androidは未実施。製品適合、失敗/例外/想定外status遷移、並列Gateway、DB snapshot、視覚/a11y、同一HEAD全CIは未受入。再開条件は同一HEADの実画面/ログ/DB前後・並列実Runと正式オラクル判断。次の共通対象はHighの在庫保護で台帳実在`review_required`の`SCREEN-CHECKOUT-FAILED-A02-01`。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-03（キャンセル禁止の基本分析）
 

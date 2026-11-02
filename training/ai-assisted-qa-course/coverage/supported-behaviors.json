@@ -8894,20 +8894,20 @@
       "source_line": 160,
       "source_text": "決済処理中の状態を表示し、再読み込みや再開の導線を表示する。",
       "platform": "web,android",
-      "role": "active customer（本人の処理中注文のみ）",
-      "scenario": "payment-processing Seedをresetした後regular@example.comでログインし、order-payment-failedの処理中注文を参照。通常決済開始はdefaultからstart→setAddress→setPayment→beginOrderで作る",
-      "data": "payment-processing Seedはorder-payment-failedのorderStatusをpending_payment、payment.statusをprocessingにする。metadataでは初期guestなので事前ログインが必要。beginOrderは注文をpending_payment、支払試行をprocessingで作成し、resumePaymentが結果を確定する",
+      "role": "active customer（本人の処理中Orderのみ。guest/operator/別customerは画面ガードまたはresumePaymentの本人・所有権検査で拒否）",
+      "scenario": "payment-processing Seedは初期guestなのでreset後regular@example.comで本人ログインしorder-payment-failedのprocessing状態を参照。defaultではregular本人がcart-regular-active→start→setAddress→setPayment→beginOrderを実施。payment-declinedは失敗結果の比較用",
+      "data": "payment-processingは既存failed注文をOrder=pending_payment/Payment=processingへ変換する。defaultのbeginOrderもOrder=pending_payment/Payment=processing（attempt1）、Checkout=converted、Cart=consumedを生成。resumePaymentは本人Orderとlatest Paymentを読み、processingのみGateway→finalizeへ進み、処理済みは保存結果を返す",
       "action": "決済処理中を表示",
-      "expected": "Web/Nativeは決済処理中に処理中の案内を表示し、本人orderIdのresumePaymentで確定した結果だけを完了または失敗画面へ渡す。画面を開いた時点で成功とは断定しない",
+      "expected": "Web/Nativeは決済処理中の未確定状態を表示し、本人orderIdで安全に再開する。確定したpaidは完了、payment_failedは失敗へ遷移し、例外では成功扱いせずエラー/再開導線を提示する。画面表示だけで決済確定や二重課金防止の実Run PASSを主張しない",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "決済前の完了誤表示、再開の誤った注文ID、処理失敗後に処理中画面が残る",
-      "test_condition": "payment-processingで本人ログイン後に処理中画面を開き、Web/Nativeの処理中表示とresumePayment(orderId)の呼出しを確認する。success/failureの結果に従う遷移を検証し、画面リファレンスの比較は実行時に追加",
-      "test_responsibility": "beginOrderのpending_payment/processing作成、決済画面の再開API、最終状態によるWeb/Native遷移を照合する",
-      "case_policy": "pending_payment/processingを正例、paid/succeededとpayment_failed/failedの結果遷移を代表例にする。重複確定はA02-01に分離する",
-      "case_selection_reason": "処理途中の状態と支払確定を同一視すると、顧客が未確定の注文を確定済みと誤認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
+      "risk": "High：未確定注文の誤完了表示、他人Orderの決済/情報露出、並列Gatewayによる二重charge・在庫/履歴の不整合。Webはpayment_failed以外の戻り値をcompleteへ送るため想定外orderStatusの誤遷移候補、Nativeはpaid/payment_failed以外をメッセージ表示に留める。実画面・視覚/a11y・DB前後は未受入",
+      "test_condition": "C1（静的採用）：BR-CHECKOUT-003/AC-CHECKOUT-003、Web CustomerPage→CheckoutProcessingContentの処理中見出し/自動resume/例外時再開、Native Processingの自動/手動resume・busy disabledを照合。C2（既存component採用）：Web見出し→resumePayment(orderId)→paidでcompleteへreplace（tests/component/checkout-order-pages.test.tsx:302-315）。C3（既存integration/学習用契約採用）：beginOrderのpending_payment/processing作成、本人順次resume・Gateway1回/在庫1回、guest/staff/別customer/欠番拒否とDB不変（tests/integration/checkout-order-use-cases.test.ts:155-226、tests/contracts/ai-assisted-qa-checkout-processing.test.mjs）。C4（直接未受入）：Web/Nativeのpayment_failed/例外/想定外statusの画面遷移、Native busyと視覚/a11y。C5（実Run待ち・High）：Seed本人ログイン、戻る/再読込/別タブ並列resume、Order/Payment/Shipment/Cart/Session/在庫/履歴の前後snapshot",
+      "test_responsibility": "正式BR-CHECKOUT-003/AC-CHECKOUT-003→Web CheckoutProcessingContent/NativeCheckoutProcessingScreen→CheckoutOrderUseCases.beginOrder/resumePayment→Dexie/SQLite Order/Payment Repository→MockPaymentGateway→finalizePaymentの結果別遷移を追跡。処理中表示（本ID）と再開認可（A01-02）、二重確定（A02-01）、retry/cancel（A02-02/A02-03）は別受入",
+      "case_policy": "C1は現行main相当SUTの静的基本分析証拠、C2は既存Web component成功Case、C3は既存integrationと隔離Dexieの順次再開/認可Caseを採用。C4は失敗/例外/想定外結果のUI直接Case未実施、C5はWeb/Android/DB snapshot/並列Gateway/視覚・a11y未実施。基本分析を製品適合・実Run・全CI PASSへ流用しない",
+      "case_selection_reason": "決済処理中の誤表示と結果誤遷移は二重決済/顧客誤認のHigh。成功・失敗・例外・未確定・他人Order・並列再開を分離し、既存成功Caseと未実施のNative/失敗/並列Caseを混同しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析受入（2026-11-02、HEAD 114dd6143e7b）：正式checkout-and-payment.md:16-23,154-167,250-254、Web checkout-order-pages.tsx:457-505（自動resume、error時再開、payment_failed→failed/その他→complete）、Native native-purchase-screens.tsx:975-1015（自動/手動resume、busy、paid→complete/payment_failed→failed/その他はmessage）、UseCases beginOrder:185-310/resumePayment:311-329/finalizePayment:410-538、Dexie/SQLite Payment Repository、default/payment-processing Seed（初期guestの本人ログイン前提）、既存component:302-315・integration:155-226・学習用processing契約5件を照合。Role/State/Data・High Risk・C1〜C5採否を個別に記録。Webの想定外status→completeは静的リスク候補であり製品不具合確定ではない。基本分析のみ完了、実Web/Android/失敗遷移/DB・並列Gateway/視覚・a11y/製品適合/全CIは未受入",
       "requirement_refs": [
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-003"
@@ -8916,7 +8916,7 @@
         "CheckoutOrderUseCases.beginOrder",
         "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02：現行mainのUI/UseCase/Repository/SeedとRole/State/Data・High Risk/C1〜C5を再照合し基本分析のみanalyzed（操作55/188、非default14/20）。既存component/integration/学習用契約は一部直接証拠。Web/Nativeのfailed/例外/想定外status、並列Gateway、DB/Session/在庫/履歴前後、視覚/a11y、製品適合、全CIは未受入。再開条件：同一HEAD画面/ログ/DB前後・並列実Runと正式オラクル判断",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 457,
@@ -8955,40 +8955,88 @@
       ],
       "audit_branch_refs": [
         {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 16,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003の処理中/確定と再試行・取消禁止"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 154,
+          "end_line": 167,
+          "reason": "処理中表示・再開とWeb/Android正本状態"
+        },
+        {
           "path": "src/seeds/scenarios.ts",
           "start_line": 286,
           "end_line": 301,
-          "reason": "payment-processing Seedのpending_payment/processingへの変更"
+          "reason": "payment-processing Seedのpending_payment/processing変換"
         },
         {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 193,
-          "end_line": 319,
-          "reason": "開始時のorder/payment状態と注文処理中DTO"
-        },
-        {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 319,
-          "end_line": 338,
-          "reason": "処理中決済を再開し最終結果を返す"
+          "path": "src/seeds/metadata.ts",
+          "start_line": 229,
+          "end_line": 239,
+          "reason": "初期guestと本人ログイン前提"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 523,
-          "end_line": 567,
-          "reason": "Webは処理中画面を表示し、結果判定後に遷移"
+          "start_line": 457,
+          "end_line": 505,
+          "reason": "Webの処理中表示/自動resume/結果別遷移/エラー再開"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1065,
-          "end_line": 1105,
-          "reason": "Nativeは処理中表示と再開ボタンを提供"
+          "start_line": 975,
+          "end_line": 1015,
+          "reason": "Nativeの処理中表示/自動・手動resume/busy/結果別遷移"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 185,
+          "end_line": 329,
+          "reason": "beginOrder processing生成、本人OrderのresumeとGateway"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 410,
+          "end_line": 538,
+          "reason": "Payment/Order/在庫/Shipment/履歴の結果別確定"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 244,
+          "end_line": 273,
+          "reason": "Dexie Payment最新試行/version更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2301,
+          "end_line": 2367,
+          "reason": "Native SQLite Payment最新試行/version更新"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 14,
+          "end_line": 40,
+          "reason": "完了後key cacheとin-flight未排他の静的リスク"
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 525,
-          "end_line": 535,
-          "reason": "Webの処理中表示、再開API呼出し、成功結果遷移"
+          "start_line": 302,
+          "end_line": 315,
+          "reason": "Web processing見出し/resumePayment(orderId)/paid→complete"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 155,
+          "end_line": 226,
+          "reason": "beginOrder処理中と順次resume成功/在庫減算"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-checkout-processing.test.mjs",
+          "start_line": 90,
+          "end_line": 230,
+          "reason": "隔離Dexieの本人順次resume・他Role拒否・retry（UI実Runではない）"
         }
       ],
       "reviewed_against": [
