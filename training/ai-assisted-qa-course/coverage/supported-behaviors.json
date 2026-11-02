@@ -10611,13 +10611,13 @@
       "expected": "Web/Androidの注文一覧は認証済み本人の注文番号・保存済み合計金額・注文ステータスを表示し、各行から本人の注文詳細へ移動できる。他人の注文IDの情報を混ぜず、状態別の履歴明細は詳細画面の別操作で検証する",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "他の顧客の注文番号/金額漏洩、本人注文の欠落、商品変更後の過去注文額の誤表示",
-      "test_condition": "regular@example.comのSeed注文を列挙し、保存されたorderNumber、status、totalAmountとWeb/Androidの表示を照合する。2人目のユーザーの注文を追加しても抽出されないこと、戻り値はcreated_desc・pageSize20を満たすことを確認する",
+      "risk": "他の顧客の注文番号/金額漏洩、本人注文の欠落、商品変更後の過去注文額の誤表示、正式仕様の支払い/配送/タイムライン一覧要求と現行UIの表示差",
+      "test_condition": "C1=default regular本人の5状態注文番号・保存済み合計・状態・詳細リンク、C2=guest/staff/別customerの非露出（requireCustomer/userId絞込、直接負例待ち）、C3=商品変更後もOrder金額Snapshot不変、C4=created_desc・pageSize20/21件境界、C5=正式仕様の支払/配送/タイムライン一覧要求とWeb/Native表示差の正式期待、C6=実Web/AndroidのRole別・DB/Session前後・視覚/a11y。C1-C4は静的根拠、直接再現およびC5-C6は実Run/正式判断待ち。",
       "test_responsibility": "requireCustomer→CheckoutOrderUseCases.listMyOrders→Dexie/SQLite OrderRepository.listByUser(userId)→Web/Android注文一覧の表示を結び、本人所有権とスナップショット項目を検証する",
-      "case_policy": "本人の複数注文を正常Case、他人注文を負例、20件のページ境界を追加条件に選ぶ。空状態やprocessing/failedの具体表示と画面リファレンスは別の状態条件へ分離",
+      "case_policy": "C1=本人5注文正常Case、C2=他人/未認可負例、C3=保存済みSnapshot、C4=20件境界、C5=支払/配送/タイムラインの正式仕様差、C6=実Web/Native・DB不変・視覚を採用。未実施をPASS扱いしない。空状態・processing/failed個別表示は別IDへ分離。",
       "case_selection_reason": "本人以外の注文番号・金額を見せないことは顧客の個人情報と注文履歴の主要受入条件になる",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "BR/AC、画面仕様、Use Case→Dexie/SQLite→Web/Android、default/関連Seedの初期セッションと実値を照合。上記audit_branch_refsの分岐根拠を確認。SUTを修正せず、今回のテスト実行・実機/視覚正本は未受入",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02現行HEAD 0b62ea458eec：BR-ORDER-001/AC-ORDER-001、orders.md:13-36,86-96、default Seed regular本人の5状態(payment_failed/paid/preparing/shipped/delivered)・保存済みorderNumber/totalAmountを照合。Web OrdersContent:614-649/NativeOrdersScreen:1125-1164→CheckoutOrderUseCases.listMyOrders:377-387(requireCustomer:600-610)→Dexie OrderRepository.listByUser:145-168(userId index)／SQLite:2210-2255(user_id SQL)→Order Snapshotの経路を確認。High Riskは他人注文番号/金額非露出・過去注文額・20件ページ・一覧表示仕様差。C1-C6採否はtest_condition/case_policyへ明記。Web/Native一覧は注文番号・注文状態・合計・詳細リンクを表示する一方、正式仕様の支払/配送/タイムライン独立表示との静的差候補あり（製品不具合未確定）。基本分析のみanalyzed。Role別実Run、別顧客/21件境界の直接テスト、DB/Session前後、視覚/a11y、正式表示オラクル、製品適合、最終CIは未受入。",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001",
@@ -10626,7 +10626,7 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.listMyOrders"
       ],
-      "analysis_progress": "仕様・実装・Seedのソース照合済み。新規製品テストは追加しない。受入用の再現実行と実機比較は未実施 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "2026-11-02 基本分析の仕様/Role/State/Data/UI→UseCase→Dexie/SQLite→SeedとHigh Risk/TR/Condition/C1-C6採否を現行HEADで再確認しanalyzed。今回の新規Vitest/formatter/実Web/Android、validator全体再実行は未実施。支払/配送/タイムラインの一覧表示差は実画面と正式判断待ち。別顧客混入、21件境界、商品変更後Snapshot、DB/Session不変、視覚/a11y、全必須CIは独立未受入。再開条件は固定HEADの実Run・比較snapshot・正式オラクル。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 606,

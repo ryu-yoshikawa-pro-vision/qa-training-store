@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-LIST-A01-01`（本人注文一覧の所有権・金額非露出）。直前`SCREEN-CHECKOUT-FAILED-A01-03`は正式仕様/Role/State/Data、Web/Native→getMyOrder/retryPayment/start/getActive/beginOrder→Seedのconsumed Cart/converted Checkout、High Risk/TR/Condition/C1〜C6採否を再照合し**基本分析のみ**`analyzed`（操作59→60/188、非default14/20）。カート/確認への直接CTAはWeb/Nativeに見当たらず静的仕様差候補。実Web/Android、正式復帰UX、DB/Session/Cart前後・並列、視覚/a11y、製品適合は別の検証待ち。次はA01-01を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-LIST-A01-02`（本人注文の状態・詳細導線とSnapshot）。直前`SCREEN-ORDERS-LIST-A01-01`は正式仕様/Role/State/Data、Web/Native→listMyOrders→Dexie/SQLite→default Seed、High Risk/TR/Condition/C1〜C6を再照合し**基本分析のみ**`analyzed`（操作60→61/188、非default14/20）。正式仕様の一覧への支払/配送/タイムライン要求とWeb/Nativeの状態・金額表示には静的差候補。実Role別/21件境界/別人注文非露出/DB・Session前後/視覚・正式オラクルは別の検証待ち。次はA01-02を1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A01-01（本人注文一覧・所有権と金額の基本分析）
+
+- **正式仕様・Role/State/Data**：`docs/spec/features/orders.md:13-36,86-96`のBR-ORDER-001/AC-ORDER-001、Customer本人の注文Snapshot保持と一覧を照合。default Seedは初期guest、regular@example.comで本人ログイン後に5状態（payment_failed/paid/preparing/shipped/delivered）のOrderを所有し、orderNumber/totalAmountは保存済み。別顧客・guest・staff/adminに本人一覧を許可しない。
+- **UI→Use Case→Repository→Seed**：Web `checkout-order-pages.tsx:606-649`/Native `native-purchase-screens.tsx:1125-1164`は`listMyOrders()`の注文番号・状態・合計と本人詳細リンクを表示。`CheckoutOrderUseCases:377-387`は`requireCustomer:600-610`でRoleを制限し現在のuser.idで`listByUser`を呼びpageSize20/created_descを指定。Dexie `order-review-repositories.ts:145-168`はuserId index、SQLite `native-customer-application-repositories.ts:2210-2255`は`WHERE user_id = ?`で抽出しOrder保存値をDTO化。default Seed `default-dataset.ts:400-557`で所有者・番号・金額の生成を確認。
+- **High Risk/TR/Condition/Case採否**：C1=本人5状態注文・番号/金額/詳細リンク（静的採用）、C2=guest/staff/別顧客の番号・金額非露出（Use Case/Repository静的採用、直接負例未実施）、C3=商品変更後も過去Order金額Snapshot不変（保存値経路静的採用）、C4=created_desc・20件ページ境界（コード静的採用、21件実Run待ち）、C5=正式仕様の支払い・配送・タイムライン一覧要求と現行Web/Nativeの状態・金額表示差（静的仕様差候補、正式オラクル待ち）、C6=実Web/AndroidのRole別/DB・Session前後/視覚・a11y（実Run待ち）。空状態・処理中・失敗の個別UIは別IDに分離。
+- **直接検証と受入分離**：今回は正式仕様・実装・Seedの読取り照合と既存validatorの`completeAnalysis`必須欄/3照合フラグ相当の静的確認。新規Vitest/formatter/実Web/Android、validator全体再実行は未実施。作業前HEAD `0b62ea458eec`の[Web CI #41385949926](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41385949926)はcompleted/failure（Component/Integration/Repository/Unit/Code Quality成功、Contracts/Style Quality/required Chromium E2E/verify/validate失敗）。これを当該実Runや変更後CIのPASSに流用しない。
+- **判定・引継ぎ**：基本分析のみ`review_required→analyzed`、操作**60→61/188**、非default状態**14/20**。製品適合・正式表示判断・直接テスト/実端末・DB snapshot・最終HEAD全CIは未受入。再開条件は固定HEADのRole別Web/Androidと21件ページ、別顧客データ混入、Order/Session/DB前後、視覚/a11yおよび一覧表示の正式期待。次の共通対象は`SCREEN-ORDERS-LIST-A01-02`。製品SUT/正式仕様/Seed/既存製品テスト・workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-03（失敗後の安全な復帰導線の基本分析）
 
