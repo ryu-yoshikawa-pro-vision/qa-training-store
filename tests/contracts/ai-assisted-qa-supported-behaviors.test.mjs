@@ -603,10 +603,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(state?.test_condition).toContain("regular");
     expect(state?.test_condition).toContain("aria-disabled");
-    const inventoryBoundaryState = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries");
+    const inventoryBoundaryState = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries",
+    );
     expect(inventoryBoundaryState?.analysis_status).toBe("analyzed");
-    expect(inventoryBoundaryState?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
-    expect(inventoryBoundaryState?.related_use_cases).toContain("AdminOperationsUseCases.searchInventory");
+    expect(inventoryBoundaryState?.reviewed_against).toEqual([
+      "specification",
+      "implementation",
+      "seed",
+    ]);
+    expect(inventoryBoundaryState?.related_use_cases).toContain(
+      "AdminOperationsUseCases.searchInventory",
+    );
     expect(inventoryBoundaryState?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(inventoryBoundaryState?.test_condition).toContain("0/1/5/6");
     expect(inventoryBoundaryState?.case_policy).toContain("C7");
