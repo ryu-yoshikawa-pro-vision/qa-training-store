@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A01-01`（本人配達済み明細のレビュー投稿・認可・重複拒否）。直前`SCREEN-ORDERS-DETAIL-S-reviewable`はreviewable-orders初期guest→regular本人、delivered11明細/Review残6/NOT_POSTED5、Web desktop投稿/編集分岐、Order本人認可、Dexie/SQLite・High Risk/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作70/188維持、非default状態15→16/20）。現HEAD d2374fdeのWeb CI #41402699729ではrequired E2E #08 item-9投稿/編集PASS、UI Review desktop job success。全5リンク・別Role/Session・default cross-owner情報保護・DB/並列・個別視覚画像比較/a11y・Seedカタログ2/3対実値1/5・正式製品適合は未受入。次は既存`SCREEN-REVIEWS-EDITOR-A01-01`のBR-REVIEW-001/AC-REVIEW-001、本人所有権・二重投稿・Case採否を確認。
+- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A01-02`（本人のpublished/hiddenレビュー編集とversion/集計境界）。直前`SCREEN-REVIEWS-EDITOR-A01-01`は正式BR/AC、reviewable-orders初期guest→regular本人、delivered11明細/未投稿5、Web/Native→getEligibility→create→Dexie/SQLite Review/History/Summary、High R1-R7/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作70→71/188、非default16/20維持）。既存integration正常投稿とWeb #08 E2Eは部分証拠。cross-owner情報露出、別Role/Session・並列・DB/Android・視覚/a11y・製品適合・最終CIは未受入。次はA01-02の編集・version競合を個別分析。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A01-01（本人初回レビュー投稿）
+
+- **基本分析のみ**：`review_required→analyzed`、操作70→71/188、非default16/20維持。正式BR-REVIEW-001/002・AC-REVIEW-001/002、Role/State/Data、Web/Native→Use Case→Dexie/SQLite→Seed、High R1-R7/TR1-TR7/C1-C7の採否を台帳に記録。製品適合・実Run PASSではない。
+- **Seed**：reviewable-orders初期guest→regular本人。defaultはdelivered1注文/11明細（published9/hidden1/deleted1）、reviewable-ordersはreviews.slice(0,6)でpublished6/未投稿5（item-7/8/9/hidden/deleted）。reviews-emptyはdelivered注文なし。default hidden/deleted Review.userId=gold対Order.owner=regularの情報保護候補を分離。
+- **実装経路**：Web CustomerReviewPage/NativeReviewScreen→getEligibility（本人Order・delivered・Review有無）→create（rating/title/body検証、transaction内重複再検査）→Review/History null→published/ProductReviewSummary更新。getEligibilityとtransactionの間のowner/status変更や並列二重投稿は未実証。
+- **Case**：C1本人item-9、C2正常入力/境界・Summary、C3二重/並列、C4未配達/既存/deleted/reviews-empty、C5別Role/Session・cross-owner本文非露出、C6 Dexie/SQLite・DB/Session前後・rollback、C7実Web/Android/視覚/a11y。C3/C5/C6/C7の直接Runは未受入。
+- **証拠/CI**：既存integrationの正常投稿→編集→削除/集計・入力上限・未配達/deleted拒否、既存required E2E #08 item-9投稿/編集は部分証拠。今回直接Vitest/Prettier/Playwright未実施。作業前HEAD `e1fb5b465641`の[Web CI #41405841003](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41405841003)はcompleted/failure（Contracts成功、Style Quality・required Chromium E2E・verify/validate失敗）。新HEAD CIは独立判定。
+- **再開条件/次**：固定HEADで別Role/Session、cross-owner情報非露出、同時投稿/owner変化、Dexie/SQLiteのReview/History/Summary/Order/Session前後、実Android・a11yを確認。製品SUT/正式仕様/Seed/既存製品テストは変更しない。次は`SCREEN-REVIEWS-EDITOR-A01-02`。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-S-reviewable（非default Web desktop）
 

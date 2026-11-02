@@ -12223,20 +12223,20 @@
       "source_line": 27,
       "source_text": "配達完了かつ本人の注文明細に対してレビューを作成・編集する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: reviewable-orders,reviews-empty,hidden-reviews。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 配達完了注文のレビューを作成",
+      "role": "active customer本人（reviewable-orders初期guest→regular@example.comでログイン）。別customer、guest、operator/admin、停止Sessionを負例",
+      "scenario": "reviewable-orders Reset→guest→regular本人→/orders/order-delivered→未投稿item-9→/reviews/order-delivered-item-9→初回投稿。default published9/hidden1/deleted1、reviews-empty delivered0、未配達order-paidを対照",
+      "data": "default-dataset.ts:400-675はregular所有delivered1注文/11明細（published9/hidden1/deleted1）。reviewable-ordersはscenarios.ts:98-103でReview先頭6件を残し未投稿5件（item-7/8/9/hidden/deleted）、History filter・Summary再構築。defaultのhidden/deleted Reviewはgold所有でOrderはregular所有。reviews-emptyはdelivered注文を除外",
       "action": "配達完了注文のレビューを作成",
-      "expected": "本人の配達完了となった注文明細に未投稿の時だけレビューを初回登録でき、他人・未配達は拒否する",
+      "expected": "本人regularのdelivered未投稿item-9はNOT_POSTED/eligible=true/existingReview=null。rating1〜5、任意title、非空bodyの正常入力でReview published/version1を1件、History null→publishedを1件、ProductReviewSummaryのpublishedCount/ratingTotal/分布を更新。二重投稿・未配達・他人・guest/staff・deleted再投稿は拒否し関連DB/Sessionを不正変更しない。Web/Android実画面は別途受入",
       "rule_refs": [],
       "route": "`/reviews/[orderItemId]`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "配達完了注文のレビューを作成の事前状態・実施後を比較し、本人の配達完了となった注文明細に未投稿の時だけレビューを初回登録でき、他人・未配達は拒否することを確認する",
-      "test_responsibility": "配達完了注文のレビューを作成の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "配達完了注文のレビューを作成の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1他人明細投稿、R2重複投稿・集計二重加算、R3未配達/deleted再投稿、R4 default cross-owner hidden/deleted Review本文のgetEligibility露出候補、R5 getEligibility→transaction間のowner/status変更・同時投稿、R6 Review/History/Summary部分保存とDexie/SQLite差、R7 Native失敗後Loading。製品不具合は未確定",
+      "test_condition": "TR1/C1=reviewable-orders初期guest→regular本人・delivered item-9のNOT_POSTED/投稿導線。TR2/C2=星1〜5/title空・上限/body空・上限超過と正常published/version1/History/Summary。TR3/C3=同一orderItemId再投稿と別Session並列を拒否、Review/History/Summary一回分。TR4/C4=default未配達order-paid・既存published/hidden/deleted、reviews-emptyの拒否とDB不変。TR5/C5=guest/staff/別customer/停止Session、cross-owner Review本文非露出。TR6/C6=Dexie/SQLiteのOrder/Item/Review/History/Summary/Session前後・rollback・並列。TR7/C7=Web/Android実画面・error復帰・視覚/a11y。C3/C5/C6/C7直接実証未受入",
+      "test_responsibility": "BR-REVIEW-001/AC-REVIEW-001→Web CustomerReviewPage/NativeReviewScreen→CustomerReviewUseCases.requireCustomer→getEligibility（OrderItem→Order.owner/配達状態→Review存在）→create（review-change transaction内で重複再検査）→Dexie/SQLite ReviewRepository・History・ProductReviewSummary。BR-REVIEW-002/AC-REVIEW-002は公開集計不変条件。注文本人認可、Review所有者、並列と画面復帰を分離",
+      "case_policy": "C1本人delivered未投稿、C2正常作成/入力境界と集計、C3二重投稿/並列、C4未配達・既存・deleted・reviews-empty、C5別Role/Sessionとcross-owner情報非露出、C6 Dexie/SQLite・DB/Session前後・transaction、C7 Web/Android/a11yを採用。既存integration正常投稿と#08 Web E2Eは部分証拠。C3/C5/C6/C7をPASSにしない。A01-02編集とA02-01削除は別対象",
+      "case_selection_reason": "本人配達済み明細の初回投稿と未配達/他人/既存/deleted拒否はBR-REVIEW-001/AC-REVIEW-001のHigh認可・集計境界。reviewable-ordersの未投稿5件とdefaultの9/1/1を対照。getEligibilityとtransaction内の重複検査は別時点のため並列・失効・部分保存を追加選定",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD e1fb5b465641: reviews.md:5-14,25-36,80-94のBR/AC、reviewable-orders初期guest→regular本人、default delivered11明細/published9+hidden1+deleted1、reviewable6 published/5未投稿、reviews-empty、Web/Native→getEligibility→create→Dexie/SQLite Review/History/Summaryを再照合。High R1-R7/TR1-TR7/C1-C7を採否し基本分析のみanalyzed。既存integration正常投稿・入力上限/未配達/deleted拒否とWeb required E2E #08 item-9投稿/編集は部分証拠。cross-owner既存Review本文露出、別Role/Session・並列二重投稿・DB/Android/SQLite・rollback・視覚/a11y・製品適合・最終CIは未受入。今回直接Vitest/Prettier/Playwright未実施",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
@@ -12247,7 +12247,7 @@
         "CustomerReviewUseCases.getEligibility",
         "CustomerReviewUseCases.create"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る | 2026-11-02 e1fb5b465641: 現HEADのBR/AC、Role/State/Data、reviewable/default/reviews-empty、Web/Native→Use Case→Dexie/SQLite、High R1-R7/TR1-TR7/C1-C7を再照合し基本分析のみanalyzed。実Run/並列/情報非露出/Android/最終CIは未受入。次はSCREEN-REVIEWS-EDITOR-A01-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 57,
@@ -12283,6 +12283,91 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 106,
           "signature": "async create(request: CreateReviewRequest): Promise<ReviewResultDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 5,
+          "end_line": 14,
+          "reason": "本人delivered明細1件/削除後再投稿不可"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 80,
+          "end_line": 94,
+          "reason": "AC-REVIEW-001の投稿資格"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 96,
+          "end_line": 104,
+          "reason": "reviewable-orders Review6件とSummary再計算"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 675,
+          "reason": "delivered11明細とReview9/1/1の実値"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 273,
+          "end_line": 283,
+          "reason": "reviewable-orders初期guest"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 55,
+          "end_line": 163,
+          "reason": "本人認可/配達/重複確認とtransaction"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 4,
+          "end_line": 15,
+          "reason": "delivered未投稿をNOT_POSTEDへ分類"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 305,
+          "end_line": 338,
+          "reason": "Dexie Review検索・保存"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2440,
+          "end_line": 2520,
+          "reason": "SQLite Review検索・保存"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 57,
+          "end_line": 199,
+          "reason": "Web投稿フォーム・保存・拒否UI"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1320,
+          "end_line": 1450,
+          "reason": "Native投稿・失敗UI"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 55,
+          "end_line": 165,
+          "reason": "正常投稿/集計・入力上限・拒否の部分契約"
+        },
+        {
+          "path": "e2e/web/phase1-required.spec.ts",
+          "start_line": 213,
+          "end_line": 236,
+          "reason": "Web #08 item-9投稿・編集の部分証拠"
         }
       ]
     },
