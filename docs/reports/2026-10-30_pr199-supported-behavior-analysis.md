@@ -1,5 +1,10 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-03
+
+**基本分析のみ analyzed（操作59→60/188、状態14/20）**。正式checkout-and-payment.md:213は失敗後のカート/確認への導線を要求。Web checkout-order-pages.tsx:520-603は再試行/注文詳細/商品一覧のみ、Native native-purchase-screens.tsx:1025-1103は再試行のみで直接復帰CTAが見当たらない。元Cart=consumed・Checkout=converted（default-dataset.ts:422-459）、本人OrderのgetMyOrder・retryPayment、別のactive Cartでのstart/getActiveとbeginOrderの一回性を照合。C1=Web直接CTA、C2=Native直接CTA、C3=元Cart/Checkoutの再利用禁止、C4=他Roleの注文非開示、C5=新規Cart価格/version/在庫とDB不変、C6=実Web/Android/DB前後・視覚/a11y・並列を分離。C1-C4は静的・既存component部分証拠、C5-C6は実Run待ち。**直接テスト・実画面・正式UXオラクル・製品適合・最終CIは未受入**。HEAD `cc86f5ab56be` のWeb CI #41385325452は確認時点で進行中（Style Quality/Contracts失敗）。製品SUT・正式仕様は変更しない。次はSCREEN-ORDERS-LIST-A01-01。
+
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-02（処理中再試行の契約Case追加）
 
 - **対象・正式期待**：正式 `BR-CHECKOUT-003 / AC-CHECKOUT-003` と処理中画面の「再試行・キャンセル禁止」を照合。現行 `CheckoutOrderUseCases.retryPayment` は本人確認と所有権確認後、latest Payment が `processing` なら新規試行を作らず既存 `processingDto` を返す（`src/application/use-cases/checkout-order-use-cases.ts:332-373`）。したがって「例外で拒否」ではなく「新規試行を禁止して既存状態を返却」の実装であり、仕様適合の解釈を明示して検証する。処理済み成功後のretryは `CONFLICT`。 `resumePayment` は別経路でGatewayへ進むため同一視しない。

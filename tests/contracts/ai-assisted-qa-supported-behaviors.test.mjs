@@ -250,6 +250,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "SCREEN-CHECKOUT-FAILED-A02-02",
       "SCREEN-CHECKOUT-FAILED-A01-01",
       "SCREEN-CHECKOUT-FAILED-A01-02",
+      "SCREEN-CHECKOUT-FAILED-A01-03",
     ]) {
       const entry = data.behaviors.find((item) => item.id === id);
       expect(entry?.analysis_status).toBe("analyzed");
@@ -257,11 +258,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.related_use_cases?.length).toBeGreaterThan(0);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    for (const id of ["SCREEN-CHECKOUT-FAILED-A01-03"]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
-      );
-    }
+    const returnAction = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-FAILED-A01-03");
+    expect(returnAction?.risk).toContain("High");
+    expect(returnAction?.test_condition).toContain("C6=");
+    expect(returnAction?.case_policy).toContain("実Run");
   });
 
   it("audits customer order list empty, processing, and failed states", () => {

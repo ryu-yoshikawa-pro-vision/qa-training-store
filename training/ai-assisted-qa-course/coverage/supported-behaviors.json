@@ -10164,20 +10164,20 @@
       "source_line": 213,
       "source_text": "決済拒否の通知、再試行、カート画面や注文内容確認への導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-declined,checkout-resume,在庫変更前後。Customer本人/他人・activeセッション・versionを区別する。対象動作: カート・確認へ戻る",
+      "role": "active Customer本人。default/payment-declined Seedは初期guestのためregular@example.comでログインする。guest/operator/別customerはgetMyOrderで本人注文を取得できない",
+      "scenario": "defaultおよびpayment-declined（defaultをそのまま使用）。regular本人のorder-payment-failed、Order=payment_failed/Payment=failed、元Cart=consumed・元Checkout Session=converted。別の新規active Cartと元Orderを混同しない",
+      "data": "default Seed src/seeds/default-dataset.ts:422-475,543-555はorder-payment-failedのCart status=consumed、Checkout status=converted/orderId=order-payment-failed、Order status=payment_failed、Payment failed/DECLINED。src/seeds/scenarios.ts:76-77のpayment-declinedは無変換、metadata.ts:75-84は初期guest。失敗後の元Orderは再試行可能だが、元のCart/Checkoutを再度activeに戻す実装は確認できない",
       "action": "カート・確認へ戻る",
-      "expected": "失敗後はカートまたは確認画面への安全な戻り先を提示し、他人注文へ飛ばない",
+      "expected": "正式仕様checkout-and-payment.md:213は失敗画面からカートまたは注文内容確認への安全な復帰導線を要求する。現行Web失敗画面は支払再試行・本人注文詳細・商品一覧のみで、カート/確認への直接CTAなし。Native失敗画面はTEST-SUCCESS固定再試行のみ。元Cartはconsumed・Checkoutはconvertedなので、元の確認へ単純遷移して同一注文を再確定させてはならない。新規購入を行う場合は別active Cartと価格/version再検証が必要。製品適合と実Web/Android動作は未判定",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "カート・確認へ戻るについて、失敗後はカートまたは確認画面への安全な戻り先を提示し、他人注文へ飛ばないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移とカート・確認へ戻るの結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "カート・確認へ戻るの不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 決済失敗後の復帰先欠落による再購入・二重注文、converted Checkout/consumed Cartの不正再利用、古い価格/versionの注文確定、別customer注文番号・金額の漏えい。現行Web/Nativeの直接復帰CTA欠落は静的仕様差候補であり製品不具合確定ではない",
+      "test_condition": "C1=本人のpayment_failed OrderからWebの失敗画面を開き、再試行・本人注文詳細・商品一覧のみ存在しカート/確認への直接CTAがないことを静的照合（正式仕様差）。C2=Native失敗画面のTEST-SUCCESS再試行のみ・直接復帰CTAなしを静的照合。C3=Seed元Cart consumed/Checkout convertedとbeginOrderの一回性、start/getActiveのactive Cart/Session要求を照合し元注文の重複作成を禁止。C4=guest/operator/別customer/欠落orderIdでgetMyOrderが非開示、既存component負例とUse Caseを採用。C5=新規active Cartを作る場合の価格/version/在庫再検証、元Order/Payment/Shipment/History不変、元Checkoutの再利用拒否を実行で確認（未実施）。C6=実Web/Androidで復帰UI/戻る・深いリンク/視覚/a11y、DB/Session/Cart全snapshot・並列再試行を確認（未実施）",
+      "test_responsibility": "正式SCREEN-CHECKOUT-FAILED→Web OrderResultContent/NativeCheckoutResultScreen→CheckoutOrderUseCases.getMyOrder(requireCustomer+order.userId)→OrderRepository.getDetail(Dexie/SQLite)。失敗後の実装済み復旧はretryPayment→processingで、元Cart/Checkoutへの復帰Use Caseはない。新規購入導線はCheckoutOrderUseCases.start/getActive→active Cart/SessionとbeginOrderのconverted/orderIdガード。Seedのconsumed/convertedを確認し、C1-C4は静的・既存component/Use Case根拠、C5-C6は実Run待ち",
+      "case_policy": "C1/C2（Web/Native直接復帰CTAの有無）を静的仕様差として採用。C3（元Cart/Checkout再利用・二重注文防止）をSeedとstart/getActive/beginOrderの静的根拠で採用。C4（本人以外の注文非開示）を既存componentとgetMyOrderの根拠で採用。C5（新規購入時の価格/在庫/versionとDB不変）・C6（実Web/Android復帰導線・戻る/視覚/a11y/並列）はHighの独立実Run/正式オラクル待ち。現行UIの欠落を実行PASSや製品不具合確定とは扱わない",
+      "case_selection_reason": "失敗後の復帰は元Orderの再試行と新規Cartからの再購入で契約が異なる。元Cart=consumed/Checkout=convertedを根拠に、直接リンクの存在、所有権、旧注文一回性、新規Cart再検証、実画面を独立Caseへ分離し、静的証拠で実Run/製品適合を代替しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD cc86f5ab56beの正式checkout-and-payment.md:13-23,207-220,244-254、Web checkout-order-pages.tsx:520-603、Native native-purchase-screens.tsx:1025-1103、CheckoutOrderUseCases.start/getActive:108-160、beginOrder:185-210,296-305、retryPayment/getMyOrder:332-396、default Seed:422-475,543-555、scenarios.ts:76-77、metadata.ts:75-84を照合。本人失敗OrderのCart=consumed、Checkout=converted、Payment=failedを確認。Webの注文詳細/商品一覧とNativeの再試行は正式仕様が要求するカート/注文確認への直接導線を満たすとは静的に確認できず、製品UI差候補。C1-C6のRisk/TR/Condition/Case採否を確定し基本分析のみ成立。既存component checkout-order-pages.test.tsx:273-302は失敗画面/逆URL/認可境界の部分根拠だが、カート復帰の実Runはない。実Web/Android、正式復帰UXオラクル、DB/Session/Cart全snapshot、別Session競合、視覚/a11y、製品適合、同一HEAD全CIは未受入。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10186,8 +10186,14 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.getMyOrder",
+        "CheckoutOrderUseCases.retryPayment",
+        "CheckoutOrderUseCases.start",
+        "CheckoutOrderUseCases.getActive",
+        "CheckoutOrderUseCases.beginOrder"
+      ],
+      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 HEAD cc86f5ab56beで正式復帰要件とWeb/Native導線欠落、元Cart consumed/Checkout converted、本人認可と再試行/新規購入境界をC1-C6へ分解して基本分析のみanalyzed。直接復帰UI・実Web/Android・DB snapshot・製品適合は未受入。次はORDERS-LIST-A01-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 508,
@@ -10210,7 +10216,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 13,
+          "end_line": 23,
+          "reason": "価格/Cartの再検証、決済確定と本人認可"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 207,
+          "end_line": 220,
+          "reason": "失敗画面のカート/確認復帰と失敗理由の要求"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 520,
+          "end_line": 603,
+          "reason": "Web失敗結果の導線・retryPayment・本人注文取得"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1025,
+          "end_line": 1103,
+          "reason": "Native失敗結果の本人注文取得・再試行・復帰CTA不存在"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 108,
+          "end_line": 160,
+          "reason": "新規Checkoutのactive Cart/Sessionとversion制約"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 185,
+          "end_line": 210,
+          "reason": "既存orderIdの冪等処理・旧Checkoutのversion/expiry"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 296,
+          "end_line": 305,
+          "reason": "注文作成でCheckout converted/Cart consumed"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 332,
+          "end_line": 396,
+          "reason": "失敗Order再試行と本人所有権"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 422,
+          "end_line": 475,
+          "reason": "失敗OrderのCart/Checkout状態"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 543,
+          "end_line": 555,
+          "reason": "失敗PaymentのDECLINEDとattempt"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 73,
+          "end_line": 79,
+          "reason": "payment-declinedはdefaultのまま"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 84,
+          "reason": "初期guestと本人regular"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 273,
+          "end_line": 302,
+          "reason": "失敗画面/逆URL/本人以外の部分テスト"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-FAILED-A02-01",

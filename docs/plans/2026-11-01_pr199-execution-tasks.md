@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-FAILED-A01-03`（失敗後のカート/確認への安全な復帰導線）。直前`SCREEN-CHECKOUT-FAILED-A01-02`は正式仕様/Role/State/Data、Web/Native→retryPayment/resumePayment→Dexie/Seed、High Risk/TR/Condition/C1〜C7採否を再照合し、現HEAD `45f372f3fe38`の学習用隔離Dexie契約7/7 PASSを直接確認して**基本分析のみ**`analyzed`（操作58→59/188、非default14/20）。実Web/Android・正式なPlatform期待・並列Gateway・Cart/Session変更後の許容境界・SQLite/全DB snapshot・視覚/a11y・製品適合は別の検証待ち。次はA01-03を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-LIST-A01-01`（本人注文一覧の所有権・金額非露出）。直前`SCREEN-CHECKOUT-FAILED-A01-03`は正式仕様/Role/State/Data、Web/Native→getMyOrder/retryPayment/start/getActive/beginOrder→Seedのconsumed Cart/converted Checkout、High Risk/TR/Condition/C1〜C6採否を再照合し**基本分析のみ**`analyzed`（操作59→60/188、非default14/20）。カート/確認への直接CTAはWeb/Nativeに見当たらず静的仕様差候補。実Web/Android、正式復帰UX、DB/Session/Cart前後・並列、視覚/a11y、製品適合は別の検証待ち。次はA01-01を1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-03（失敗後の安全な復帰導線の基本分析）
+
+- **仕様・Role/State/Data**：正式BR-CHECKOUT-001/002/003、AC-CHECKOUT-001/002/003と失敗画面のカート/注文確認への復帰要件（checkout-and-payment.md:13-23,207-220,244-254）。default/payment-declinedは初期guest、regular本人でorder-payment-failedを取得。Seedの元Cart=consumed、Checkout=converted/orderIdあり、Order=payment_failed、Payment=failed/DECLINED。元注文再試行と新規購入を区別する。
+- **Web/Native→Use Case→Repository**：Web OrderResultContent(:520-603)はgetMyOrder→retryPaymentと本人注文詳細/商品一覧のみでカート・確認の直接CTAなし。NativeCheckoutResultScreen(:1025-1103)はTEST-SUCCESS再試行のみで直接CTAなし。getMyOrder(:389-396)は本人認可、retryPayment(:332-373)は元Orderへ新attempt。start/getActive(:108-160)はactive Cart/Sessionを要求し、beginOrder(:185-210,296-305)は元Checkoutをconverted/Cart consumedへ移行、既存orderIdの一回性を維持する。現行UIの直接導線欠落は**静的仕様差候補**で、製品不具合確定・実Run PASSではない。
+- **High Risk/TR/Condition/Case採否**：C1=Web直接復帰CTAの有無（静的採用）、C2=Native同（静的採用）、C3=元Cart/Checkout再利用と二重注文の境界（Seed+Use Case静的採用）、C4=guest/operator/別customer/欠落orderIdの非開示（getMyOrder+既存component部分証拠）、C5=新規active Cartの価格/version/在庫再検証・元Order/Payment/History不変（実Run待ち）、C6=実Web/Androidの戻る/深いリンク・DB/Session/Cart前後・視覚/a11y・別Session競合（実Run待ち）。正式復帰UXオラクルは後続判断待ち。
+- **直接証拠・独立判定**：既存component checkout-order-pages.test.tsx:273-302は失敗表示/逆URL/未認可の部分根拠。今回の直接Vitest/formatter/実Web/Androidは未実施。基本分析の必要根拠とCase採否を個別記録したため**基本分析のみ**`review_required→analyzed`（操作59→60/188、非default14/20）。現HEAD `cc86f5ab56be`のWeb CI #41385325452は確認時点でin_progress（Style Quality/Contracts失敗、required Chromium E2E進行中）。製品適合、実復帰・DB不変、最終HEADのCIは未受入。再開条件は固定HEADのWeb/Android画面・正式UX判断・元/新Cart/Checkout/Order/Payment/Session/在庫の前後証拠。次は`SCREEN-ORDERS-LIST-A01-01`。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-01（決済拒否通知の基本分析）
 
