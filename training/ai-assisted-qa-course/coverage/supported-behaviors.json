@@ -16275,28 +16275,31 @@
       "source_line": 127,
       "source_text": "未保存の変更（Dirty）、プレビュー、販売終了（Discontinue）、削除不可（Delete blocked）などの確認ダイアログやステータスを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: 削除禁止の通知",
+      "role": "active operator/admin（StaffPageとAdminProductUseCases.requireStaff）。guest/customer/停止staff/失効Sessionは直URL/getEdit/deleteDraftで拒否し管理DTO非露出を別Caseで確認。",
+      "scenario": "product-delete-blocked（初期admin、draftにcart参照を追加）を主軸。product-aggregate-edit（初期admin、default商品集約）、default（初期guest→staffログイン）、cross-role-product-lifecycle（初期guest）、inactive-image-existing-linkを対照。",
+      "data": "defaultのproduct-draft（draft、version=1、既存SKU1・在庫10・asset-mug）とproduct-basic-shirt（published）、product-unpublished、product-discontinuedを区別。product-delete-blockedはcart-item-draft-blockerがdraft Variantを参照。未参照draftの成功、cart/order/review参照、非draft、stale version、別staff並列、非初期在庫履歴を持つdraft、Variant 0件の隔離fixtureを比較し、Product/Variant/Image/History/Summary/Cart/Order/Review/Session前後を採取。",
       "action": "削除禁止の通知",
-      "expected": "参照が残るdraftまたは非draftの削除を拒否し、対象商品のデータを保持する",
+      "expected": "draftかつDirty=falseのみ『下書きを削除』ConfirmDialogを表示。取消/Escape/overlayではDB不変、確定時はactive staff再認可とProduct.version CASを経て、cart/order/review参照または非draftならPRODUCT_HAS_REFERENCEで拒否し集約保持。未参照draftのみdelete-draft-product transactionでProduct/Variant/Image/InventoryHistory/ReviewSummaryを削除し、画像アセットbinaryは残す。失敗時は画面に通知し成功時は一覧へ戻る。非draftはUIで削除操作を出さない。",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "削除禁止の通知の前後に、参照が残るdraftまたは非draftの削除を拒否し、対象商品のデータを保持することをUIと集約状態で比較する",
+      "risk": "High R1=非staff/停止Sessionの削除・管理DTO露出、R2=cart/order/review参照見落としと孤児化/DB部分削除、R3=stale version・別staff並列/二重確定、R4=transaction故障/関連表保全、R5=非INITIAL_STOCK在庫履歴が参照blocker対象外で削除時に履歴消失する可能性、R6=Variant 0件でhasBlockingReferenceが早期falseとなりproductId参照検査を飛ばす可能性。Medium R7=全例外を『参照あり』と表示するためversion/書込失敗を誤説明する候補、R8=Dirty/1023-1024px・focus/a11y。R5-R7は実再現前の静的候補で製品不具合確定ではない。",
+      "test_condition": "C1 product-delete-blockedのdraft＋cart-item-draft-blockerで確認→拒否、Product/Variant/Image/InventoryHistory/Summary/Cart/Order/Review/Session全表不変・画面警告。C2 未参照draftで確定→Product/Variant/Image/INITIAL_STOCK History/Summaryのみtransaction削除、asset binaryと無関係商品は保持、一覧遷移。C3 published/unpublished/discontinuedのUI削除非表示とUse Case直呼び拒否、Dirty時disabled、取消/Escape/overlayでdeleteDraft未呼出し・DB不変。C4 active operator/admin許可、guest/customer/停止staff/失効Sessionの直URL/getEdit/deleteDraft拒否・管理DTO非露出。C5 stale version/別staff並列/二重確定/transaction書込故障でCAS・rollbackとSession/全表前後を検証。C6 cart/order/reviewの参照別、Variant 0件でproductId参照が残る場合、非INITIAL_STOCK履歴ありdraftを隔離し削除可否/履歴保護の正式期待を確認。C7 desktop/tablet/1023-1024px、ConfirmDialog alertdialog・focus/keyboard/a11y、成功遷移と各失敗原因の通知を確認。",
       "test_responsibility": "操作対象ID、状態・versionと削除禁止の通知の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "削除禁止の通知が不正公開・管理データ破損・競合時の上書きにつながるため",
+      "case_policy": "採用:C1参照ありdraft拒否と全表不変、C2未参照draft成功・削除対象/asset binary保持、C3非draft/Dirty/取消、C4 Role/Session非露出、C5 version/並列/二重確定/rollback、C6参照種類・Variant0件・非初期在庫履歴の保護境界、C7 viewport/視覚/a11y/失敗理由。除外:公開/非公開/販売終了状態変更（A01-05/A02-03）、通常商品集約保存/preview（A01/A02-02）、SKU個別削除・在庫調整（別ID）、Native非サポート管理。",
+      "case_selection_reason": "TR1=正式BR/AC-ADMINCAT-001/002とroles-and-permissions（削除の個別明文化は限定的）。TR2=Web AdminProductEditContent:415-565とConfirmDialog:23-83のdraft/Dirty/確認・失敗表示。TR3=AdminProductUseCases.deleteDraft:253-258→DexieProductRepository.deleteDraftAggregate:296-318/hasBlockingReference:320-334→transaction-runner:85-96のCAS・参照guard・原子削除。TR4=default/product-delete-blocked Seed scenarios.ts:113-141、metadata.ts:350-370、既存Integration admin-product-use-cases.test.ts:388-431の成功・cart拒否部分証拠。High R1-R6/Medium R7-R8をC1-C7に対応付け、履歴消失/Variant0件/汎用エラーは未再現候補として隔離。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-03 HEAD c06357eeb55d: 正式BR/AC/Role、draft/非draft・Seed参照、Web ConfirmDialog→AdminProductUseCases.deleteDraft(requireStaff/transaction)→DexieProductRepository.deleteDraftAggregate(version CAS/参照guard/関連表削除)を個別読取。25/25ソース断片静的assert成功、既存Integrationの未参照draft成功・cart参照拒否を部分証拠として確認。High R1-R6/Medium R7-R8、TR1-TR4、C1-C7採否を具体化。非初期在庫履歴がblocker判定対象外、Variant0件でorder/review照合を飛ばす経路、UIが全失敗を参照エラーにする候補を発見。実再現・製品不具合認定ではない。直接Vitest/Prettier/Playwright/validator全体、隔離DB/Session全表前後、Role/並列/故障注入、実Web/視覚/a11y、製品適合・最終CIは未受入。今回の更新は単一台帳ファイルの調査証拠追記であり、共通Planとの原子的な基本分析完了反映は行わないためreview_requiredを維持。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.deleteDraft"
+      ],
+      "analysis_progress": "2026-11-03 A02-04調査証拠・C1-C7を具体化、status review_required継続（操作96/188、非default16/20）。単一ファイルの実質調査追記のみ。基本分析完了の台帳+Plan原子更新/validator・直接Run/DB・Session/実Web/製品適合・最終CIは未受入。次回も同じA02-04。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -16321,7 +16324,93 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.deleteDraft",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 253,
+          "signature": "async deleteDraft(productId: string, expectedVersion: number): Promise<void> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 9,
+          "end_line": 19,
+          "reason": "BR-ADMINCAT-001/002とpreview/集約保全"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 120,
+          "end_line": 150,
+          "reason": "商品詳細の削除禁止状態とUI期待"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staffと非staffの管理権限"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 415,
+          "end_line": 565,
+          "reason": "draft/Dirty/確認/成功遷移・失敗通知"
+        },
+        {
+          "path": "src/presentation/components/confirm-dialog.tsx",
+          "start_line": 23,
+          "end_line": 83,
+          "reason": "alertdialog・二重確定・拒否時保持"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 253,
+          "end_line": 258,
+          "reason": "requireStaffとdelete-draft-product transaction"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 296,
+          "end_line": 335,
+          "reason": "version CAS/参照guard・集約削除/Variant0件早期return"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 85,
+          "end_line": 96,
+          "reason": "削除transaction対象の全表"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 113,
+          "end_line": 142,
+          "reason": "product-delete-blocked cart参照追加"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 350,
+          "end_line": 373,
+          "reason": "商品管理シナリオ初期admin/guest"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 385,
+          "end_line": 433,
+          "reason": "未参照draft成功とcart参照拒否の部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm",
