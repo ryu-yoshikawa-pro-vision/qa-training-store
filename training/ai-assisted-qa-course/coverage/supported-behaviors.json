@@ -14687,30 +14687,35 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,many-products,admin-bulk-partial-failure。role=operator/admin、状態・対象ID・versionを区別。操作: 商品登録画面へ遷移",
+      "data": "Role: active operator/admin、guest/customer/停止staff/失効Sessionを拒否。State: default/many-products/admin-bulk-partial-failure、Web desktop/tablet（1024px未満は管理警告の境界）。Data: default初期guest/Sessionなし・11商品（published8/unpublished1/draft1/discontinued1）、staffログイン後に新規空フォーム、activeカテゴリ/ブランド/画像候補を読取る。many-productsは1000商品、bulk-partial-failureの競合制御はこの導線自体に非適用。",
       "action": "商品登録画面へ遷移",
-      "expected": "商品新規作成画面への導線が管理ロールかつ許可された画面幅で利用できる",
+      "expected": "active operator/adminが商品管理の『商品を登録』リンクから/admin/products/newへ遷移し、商品登録の空フォーム・下書き保存と未保存プレビューの別操作を表示すること。guestは/login、customer/停止staffは/forbiddenへ拒否すること。遷移・初期候補読取りだけではProduct/Variant/Image/Stock/Historyを生成・変更せず、createは保存時だけ起動すること。1024px未満の管理UI警告/操作非露出は実Webで別途検証すること。",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品登録画面へ遷移の前後に、商品新規作成画面への導線が管理ロールかつ許可された画面幅で利用できることをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと商品登録画面へ遷移の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "商品登録画面へ遷移が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 非staffの新規商品管理フォーム/管理候補情報露出、画面遷移だけで商品/画像/在庫履歴を書き換える副作用、空フォームの自動保存・誤公開。Medium: 1023/1024pxの管理導線露出、inactiveカテゴリ/ブランド/アセット候補混入、duplicate用sessionStorageの一時ドラフト消費と通常新規導線の混同。",
+      "test_condition": "C1 default初期guest→active operator/adminで/admin/productsの『商品を登録』→/admin/products/new、商品登録見出し/空フォーム/下書き保存。C2 guest/customer/停止staff/失効Sessionで一覧直URL・新規直URLを拒否し管理候補/PII非露出。C3 遷移前後のProduct/Variant/Image/Stock/History/Session snapshot不変、初期候補のRepository読取りのみ。C4 activeカテゴリ/ブランド/画像候補の表示と空候補・読取失敗/loading、duplicate sessionStorageの有無。C5 1023/1024pxとdesktop/tabletの導線、keyboard/focus/a11y/視覚。C6 新規フォームのpreviewはDB非保存、createは明示保存時のみdraft作成（別操作/AC-ADMINCAT-002の境界）。C7 default11商品/many-products1000商品/admin-bulk-partial-failureで導線の不変とbulk制御値非影響を比較。",
+      "test_responsibility": "商品管理のナビゲーションだけを対象に、Role/Session・リンク先・初期フォーム/候補読取り・DB/Session不変を対応付ける。商品作成、画像/Variant保存、公開適格性、プレビュー実行の成功可否は別操作IDへ分離し、遷移の基本分析を業務保存のPASSへ拡張しない。",
+      "case_policy": "採用: C1 operator/adminの通常遷移、C2 guest/customer/停止staff/失効Session直URL拒否、C3 DB/Session/History不変、C4 active候補・空/失敗・duplicateドラフト境界、C5 1023/1024px・keyboard/a11y/視覚、C6 preview非保存と保存時draft作成の操作境界、C7 default/many-products/bulk部分失敗の導線不変。除外: 商品作成・編集・公開/一括変更の実成否（SCREEN-ADMIN-PRODUCT-NEWとA01-03等で検証）、Native管理画面（非サポート）。",
+      "case_selection_reason": "正式admin-catalog.md:61-83/AC-ADMINCAT-001/002のstaff商品管理導線を、Web Link:112-114→new route→StaffPage→候補検索Use Case→Repository読取りと、保存時create transactionを分離。default初期guest/11商品とmany-products1000商品を同値/境界に使用。Highの非staff情報露出と意図しないDB書込みを優先し、静的基本分析とRole別実Web/DB前後・製品適合を独立未受入とする。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 29f2404ca335: admin-catalog.md:61-83,210-220の管理導線/公開/保存境界、admin-product-pages.tsx:48-55,105-115のstaff商品一覧Link→app/admin/products/new.tsx→AdminProductNewPage:337-410のStaffPage/active候補読取/空フォーム、RouteGuard:25-55、AdminMasterUseCases.searchCategories:63/searchBrands:155、AdminProductUseCases.searchImageAssets:111/create:127（createは保存時のみ）を照合。default guest・11商品、many-products1000件、bulk部分失敗Seedの導線非影響を確認。High R1-R7/TR1-R7/C1-C7採否を具体化。既存componentテストの新規プレビュー/保存は部分証拠のみ。12/12のコード文字列・呼出し境界静的検査成功。直接Vitest/Prettier/Playwright、operator/admin実Web・1023/1024・DB/Session前後・視覚/a11y・正式製品適合・最終CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminMasterUseCases.searchCategories",
+        "AdminMasterUseCases.searchBrands",
+        "AdminProductUseCases.searchImageAssets",
+        "AdminProductUseCases.create"
+      ],
+      "analysis_progress": "2026-11-02 A02-01基本分析のみ完了（操作82→83/188、非default16/20）。UIの新規導線と候補Repository読取り/保存時createの境界、Role/State/Data・C1-C7採否を確定。実Web/Role/viewport/DB前後/duplicate/視覚・正式製品適合は検証待ち。次の共通対象SCREEN-ADMIN-PRODUCTS-A02-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
-        "line": 48,
-        "signature": "export function AdminProductsPage() {"
+        "line": 112,
+        "signature": "<Link href=\"/admin/products/new\" className=\"button button--primary\">"
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
@@ -14729,7 +14734,37 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminMasterUseCases.searchCategories",
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "line": 63,
+          "signature": "async searchCategories("
+        },
+        {
+          "id": "AdminMasterUseCases.searchBrands",
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "line": 155,
+          "signature": "async searchBrands("
+        },
+        {
+          "id": "AdminProductUseCases.searchImageAssets",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 111,
+          "signature": "async searchImageAssets("
+        },
+        {
+          "id": "AdminProductUseCases.create",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 127,
+          "signature": "async create(request: CreateProductRequest): Promise<ProductEditDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A02-02",

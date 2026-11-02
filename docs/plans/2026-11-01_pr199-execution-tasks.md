@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A02-01`（商品登録画面へのstaff導線）。直前A01-03は仕様/Role/State/Data、Web→bulkChangeStatus→Dexie、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作82/188・状態16/20）。直接実Run/正式製品適合・表示外selected・Seed制御値の実効性は検証待ち。詳細は直下のA01-03記録。
-- **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A02-02`（商品編集画面へのstaff導線・対象ID隔離）。直前A02-01は正式管理導線/Role/State/Data、Web Link→new route→StaffPage→候補検索/Repository、default11商品/many-products1000商品、C1-C7採否を照合し基本分析のみanalyzed（操作83/188・状態16/20）。直接実Run/DB・Session不変・1023/1024px・duplicateドラフトは検証待ち。詳細は直下のA02-01記録。直前A01-03は仕様/Role/State/Data、Web→bulkChangeStatus→Dexie、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作82/188・状態16/20）。直接実Run/正式製品適合・表示外selected・Seed制御値の実効性は検証待ち。詳細は直下のA01-03記録。
+- **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A02-01（商品登録画面へのstaff導線）
+
+- **判定**：正式`BR-ADMINCAT-001/002・AC-ADMINCAT-001/002`、Role/State/Data、UI→Use Case→Repository読取・Seed、High R1-R7/TR1-R7/C1-C7採否を照合し、基本分析のみ`review_required→analyzed`。操作**82→83/188**、非default状態**16/20**維持。商品登録/プレビュー/公開の業務実行や製品適合PASSではない。
+- **Role/State/Data**：`admin-catalog.md:61-83,210-220`はoperator/adminの登録導線と新規フォーム、保存前プレビューの非永続化を規定。`RouteGuard:25-55`はactive staffのみ許可、guest→/login、customer/停止staff→/forbidden。default Seedは初期guest/Sessionなし・商品11件（published8/unpublished1/draft1/discontinued1）、many-productsは1000商品、admin-bulk-partial-failureはbulk競合制御値のみ。どのSeedでも新規導線自体は商品ID/versionに依存しない。
+- **UI→Use Case→Repository**：`admin-product-pages.tsx:105-115`の「商品を登録」`Link href=/admin/products/new`→`app/admin/products/new.tsx`→`AdminProductNewPage:337-410`の`StaffPage`。初期フォームはactiveカテゴリ/ブランド/画像候補を`AdminMasterUseCases.searchCategories:63/searchBrands:155`・`AdminProductUseCases.searchImageAssets:111`からRepository検索し、空フォームを構成。初期表示に`create`呼出しはなく、`create:127`の集約transactionは「下書きで保存」submit時のみ。duplicate用`sessionStorage`ドラフトは存在時に読出し・削除されるため、空フォームの通常導線と分けて検証する。画面遷移だけでDB変更しないことは実DB前後未実証。
+- **Risk/TR/Condition/Case採否**：C1 operator/adminの一覧→新規画面・空フォーム、C2 guest/customer/停止staff/失効Session直URL拒否と管理候補非露出、C3 遷移前後のProduct/Variant/Image/Stock/History/Session不変、C4 active候補・空/失敗/loadingとduplicateドラフト、C5 1023/1024px・desktop/tablet・keyboard/a11y・視覚、C6 preview非保存と保存時のみdraft生成の境界、C7 default/many-products/bulk部分失敗での導線不変を採用。商品作成・公開・一括変更の成否は別操作IDへ分離。Native管理画面は非対象。
+- **直接検証・未受入**：現HEADの画面Link/RouteGuard/候補検索/保存境界/Seed・既存Componentテストについて**12/12の静的構造チェック成功**。既存`tests/component/admin-product-pages.test.tsx`の「未保存プレビューと下書き保存」は部分証拠で、今回の導線/Role/DB不変の直接実行ではない。直接Vitest/Prettier/Playwright、operator/admin実Web・1023/1024px・DB/Session前後・duplicate消費・視覚/a11y・正式製品適合は未受入。
+- **CI・再開・次**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はfailure（required Chromium E2E、verify/validate）。Contracts/Style Quality/Component等はsuccessだが新HEADの全必須CI成功ではない。固定HEAD隔離fixtureでC1-C7とDB/Session snapshot、Role/viewport・duplicateを実行する時に製品適合を再判定する。**次の共通対象は`SCREEN-ADMIN-PRODUCTS-A02-02`**。SUT・正式仕様・既存Seed/製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-03（一括公開/非公開の結果件数と永続状態）
 
