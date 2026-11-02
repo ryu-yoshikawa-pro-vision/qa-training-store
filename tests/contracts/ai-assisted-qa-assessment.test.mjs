@@ -30,6 +30,7 @@ import {
   persistCalibration,
   readAttemptCalibration,
   readChallengeAnswer,
+  reconcileFinalizedAssessment,
   writeImmutableOpenCodePrompt,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
@@ -204,6 +205,65 @@ it("resumes a verified attempt calibration without trusting missing or altered r
   expect(read).toThrow(/omitted one or more cases/);
   fs.unlinkSync(candidatePath);
   expect(read).toThrow(/incomplete or unsafe saved calibration/);
+});
+
+it("recovers an immutable result after summary and pointer publication were interrupted", () => {
+  const workspaceRoot = path.join(tempRoot, "result-recovery");
+  const phaseId = "P1";
+  const assessmentId = "123e4567-e89b-42d3-a456-426614174000";
+  const sourceSha = "pinned-source";
+  const modelId = "provider/model";
+  const phaseRoot = path.join(workspaceRoot, ".course-assessments", phaseId);
+  const attempt = path.join(phaseRoot, "attempts", assessmentId);
+  fs.mkdirSync(attempt, { recursive: true });
+  const resultPath = path.join(attempt, "result.json");
+  const result = {
+    schema_version: 1,
+    phase_id: phaseId,
+    assessment_id: assessmentId,
+    terminal_module_id: "M04",
+    evaluator: { model_id: modelId },
+    source_sha: sourceSha,
+    status: "incomplete",
+    completed: false,
+    objectives: [],
+    created_at: "2026-11-02T00:00:00.000Z",
+  };
+  atomicWriteJson(resultPath, result);
+  fs.writeFileSync(path.join(attempt, "summary.md"), "awaiting_answer");
+  const recover = () =>
+    reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+  expect(recover()).toEqual(result);
+  expect(fs.readFileSync(path.join(attempt, "summary.md"), "utf8")).toContain("未修了");
+  const pointerPath = path.join(phaseRoot, "current.json");
+  const pointer = JSON.parse(fs.readFileSync(pointerPath, "utf8"));
+  expect(pointer.assessment_id).toBe(assessmentId);
+  expect(pointer.result_sha256).toBe(sha256(fs.readFileSync(resultPath)));
+  expect(recover()).toEqual(result);
+  expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(pointer);
+
+  const newerId = "123e4567-e89b-42d3-a456-426614174001";
+  const newerPointer = {
+    ...pointer,
+    assessment_id: newerId,
+    updated_at: "2026-11-03T00:00:00.000Z",
+  };
+  fs.writeFileSync(pointerPath, JSON.stringify(newerPointer));
+  expect(recover()).toEqual(result);
+  expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(newerPointer);
+
+  fs.writeFileSync(pointerPath, JSON.stringify(pointer));
+  fs.writeFileSync(resultPath, JSON.stringify({ ...result, status: "complete" }));
+  expect(recover).toThrow(/does not match immutable result bytes/);
+  expect(() =>
+    reconcileFinalizedAssessment({
+      workspaceRoot,
+      phaseId,
+      assessmentId,
+      modelId: "other/model",
+      sourceSha,
+    }),
+  ).toThrow(/differs from the prepared attempt/);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {

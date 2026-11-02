@@ -839,18 +839,24 @@ function saveSummary(attemptDirectory, result) {
       : "上記の不足・未実行・判定不能・BLOCKEDを確認し、指定された復習先で学び直してください。再評価では新しい試行を作成し、元の記録を保持します。",
     "",
   ].join("\n");
-  fs.writeFileSync(path.join(attemptDirectory, "summary.md"), text, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
+  // Publish the derived summary by replacing the path itself, never following a
+  // pre-existing symlink into another location containing learner information.
+  const summaryPath = path.join(attemptDirectory, "summary.md");
+  const temporary = path.join(attemptDirectory, `.summary.${randomUUID()}.tmp`);
+  try {
+    fs.writeFileSync(temporary, text, { encoding: "utf8", flag: "wx", mode: 0o600 });
+    fs.renameSync(temporary, summaryPath);
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+  }
 }
 
-function currentPointerPath(phaseId) {
-  return path.join(WORKSPACE, ".course-assessments", phaseId, "current.json");
+function currentPointerPath(phaseId, workspaceRoot = WORKSPACE) {
+  return path.join(workspaceRoot, ".course-assessments", phaseId, "current.json");
 }
 
-function updateCurrentPointer(resultPath, result) {
-  const pointerPath = currentPointerPath(result.phase_id);
+function updateCurrentPointer(resultPath, result, workspaceRoot = WORKSPACE) {
+  const pointerPath = currentPointerPath(result.phase_id, workspaceRoot);
   const prior = fs.existsSync(pointerPath)
     ? readJson(pointerPath, "current assessment pointer")
     : null;
@@ -866,6 +872,54 @@ function updateCurrentPointer(resultPath, result) {
     },
     { replace: true },
   );
+}
+
+export function reconcileFinalizedAssessment({
+  workspaceRoot = WORKSPACE,
+  phaseId,
+  assessmentId,
+  modelId,
+  sourceSha,
+}) {
+  if (!Object.hasOwn(ASSESSMENT_PHASES, phaseId) || !ASSESSMENT_ID_PATTERN.test(assessmentId))
+    fail("saved assessment result identity is invalid");
+  const relative = `.course-assessments/${phaseId}/attempts/${assessmentId}`;
+  const attemptDirectory = assertAssessmentPath(workspaceRoot, relative);
+  const resultPath = assertAssessmentPath(workspaceRoot, `${relative}/result.json`);
+  if (!fs.existsSync(resultPath)) return null;
+  if (!fs.lstatSync(resultPath).isFile())
+    fail("saved assessment result is not a regular file");
+  const result = readJson(resultPath, "saved assessment result");
+  if (
+    result.schema_version !== 1 ||
+    result.phase_id !== phaseId ||
+    result.assessment_id !== assessmentId ||
+    result.terminal_module_id !== ASSESSMENT_PHASES[phaseId].terminal ||
+    result.evaluator?.model_id !== modelId ||
+    result.source_sha !== sourceSha ||
+    typeof result.status !== "string" ||
+    typeof result.completed !== "boolean" ||
+    !Array.isArray(result.objectives) ||
+    typeof result.created_at !== "string" ||
+    !Number.isFinite(Date.parse(result.created_at))
+  )
+    fail("saved assessment result differs from the prepared attempt");
+  const pointerPath = assertAssessmentPath(workspaceRoot, `.course-assessments/${phaseId}/current.json`);
+  const pointer = fs.existsSync(pointerPath)
+    ? readJson(pointerPath, "current assessment pointer")
+    : null;
+  const digest = sha256(fs.readFileSync(resultPath));
+  if (pointer?.assessment_id === assessmentId && pointer.result_sha256 !== digest)
+    fail("current assessment pointer does not match immutable result bytes");
+  // A resumed older assessment must never replace a newer assessment's pointer.
+  const isNewer = pointer?.assessment_id !== assessmentId &&
+    typeof pointer?.updated_at === "string" &&
+    Number.isFinite(Date.parse(pointer.updated_at)) &&
+    Date.parse(pointer.updated_at) > Date.parse(result.created_at);
+  saveSummary(attemptDirectory, result);
+  if (!isNewer && pointer?.assessment_id !== assessmentId)
+    updateCurrentPointer(resultPath, result, workspaceRoot);
+  return result;
 }
 
 function phaseObjectiveFallback(
@@ -1169,8 +1223,6 @@ async function resumeAttempt(request) {
     fs.lstatSync(attemptDirectory).isSymbolicLink()
   )
     fail("resume attempt is missing or unsafe");
-  if (fs.existsSync(path.join(attemptDirectory, "result.json")))
-    fail("a saved assessment result is immutable; start a new assessment to retake");
   const inputManifest = readJson(
     path.join(attemptDirectory, "input-manifest.json"),
     "assessment input manifest",
@@ -1186,6 +1238,27 @@ async function resumeAttempt(request) {
     fail(
       "resume model or Phase differs from the prepared attempt; create a new assessment instead",
     );
+  const reconciled = reconcileFinalizedAssessment({
+    phaseId: request.phase,
+    assessmentId: request.resumeId,
+    modelId: request.modelId,
+    sourceSha: inputManifest.source_sha,
+  });
+  if (reconciled) {
+    console.log(
+      JSON.stringify(
+        {
+          status: reconciled.status,
+          assessment_id: reconciled.assessment_id,
+          completed: reconciled.completed,
+          restored_saved_result: true,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   let inputs;
   try {
     inputs = await loadPhaseInputs(request.phase);
