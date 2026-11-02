@@ -18703,30 +18703,32 @@
       "source_line": 35,
       "source_text": "0、1〜5、6以上をそれぞれ異なるステータスとして表示する。",
       "platform": "web-desktop",
-      "role": "`operator, admin`",
-      "scenario": "stock-boundaries",
-      "data": "Seed/入力: default,low-stock。通常状態から条件を変更し表示と操作を比較",
-      "action": "stock-boundaries状態を表示・処理",
-      "expected": "0、1〜5、6以上をそれぞれ異なるステータスとして表示する。",
+      "role": "active operator/adminのWeb desktopのみ管理SKU一覧・在庫分類を参照可能。guest/customer/停止staff/失効SessionはStaffPageとUse Case requireStaffで拒否し、管理DTOを露出しない。失効Session clearは読取り不変の例外として分離。",
+      "scenario": "独立UI状態stock-boundariesは固定Seed名ではない。default（11商品36SKU、TシャツS/M/L=20/10/0）を基準にlow-stock（M=3）・out-of-stock（M=0）を対照。正式0/1/5/6全境界は追加の隔離fixtureで同一SKUの数量を変更し、Web desktopで比較する。",
+      "data": "default 11商品36SKU、TシャツS/M/L=20/10/0とlow-stock M=3/out-of-stock M=0を固定参照。0/1/5/6の隔離4 SKUではvariantId・SKU・isActive・versionを維持しstockQuantityだけ変更。正式期待out=[0]、low=[1,5]、available=[6]、実Repositoryのavailable=[1,5,6]を区別。商品概要件数、他SKU・Product/Variant/InventoryHistory/Session全表不変は実Runで検証する。",
+      "action": "管理在庫のstock-boundaries独立状態をdefaultと比較し0/1〜5/6以上の分類・表示・件数を検証する",
+      "expected": "正式BR-ADMININV-001/AC-ADMININV-001は0=out_of_stock、1〜5=low_stock、6以上=availableを排他的に分類し、SKU一覧と商品概要の表示・件数が一致すること。現Webは在庫filterの『在庫あり/低在庫/在庫切れ』を持つが、表の『状態』はSKU active/inactiveのActiveBadgeで在庫分類ラベルではない。Dexie available>=1により1/5が重複する既知差を製品適合未受入として記録し、実Web PASSとはしない。",
       "rule_refs": [],
       "route": "`/admin/inventories`",
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SCREEN-ADMIN-INVENTORIES-A02-01を対象にdefault,low-stockを準備し「0、1〜5、6以上をそれぞれ異なるステータスとして表示する。」を確認する",
-      "test_responsibility": "対応操作SCREEN-ADMIN-INVENTORIES-A02-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "stock-boundariesに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/停止staff/失効Sessionへの管理SKU数量・分類DTO漏洩、R2=low1〜5がavailableにも混入する排他性/件数違反、R3=SKU/variantId混同・読取り副作用による他データ破壊。Medium R4=Web『状態』列がactive/inactiveで在庫分類ラベル不在候補、R5=固定Seedに1/5/6の同時網羅がなくfixture誤設定、R6=stock/active/filter/sort/pageと商品概要件数の差、R7=desktop/1023-1024px・keyboard/focus/a11y・loading/error。既知実装差とUI候補は実Web不具合確定ではない。",
+      "test_condition": "TR1/C1 正式admin-inventory BR/ACとstock-boundaries視覚requiredをdefault/low/out Seedおよび隔離0/1/5/6で照合。TR2/C2 Web stock filterのout=[0]、low=[1,5]、正式available=[6]と実Repository available=[1,5,6]の集合・件数を比較（it.failsはPASSでない）。TR3/C3 active operator/adminとguest/customer/停止staff/失効SessionのRoute/Use Case拒否、DTO非露出。TR4/C4 同商品別SKU・active/inactive・keyword・sort・20/21件page・商品概要件数の分離。C5 default対stock-boundariesのWeb状態列/在庫ラベル・視覚画像、1023/1024px・keyboard/focus/a11y。C6 読取り前後の全DB/Session/version/履歴不変と失効Session clear例外・並行更新後再取得。C7 loading/error・負数/非整数fixtureを正常境界と区別。直接Vitest/Playwright/実Web/DB前後未受入。",
+      "test_responsibility": "TR1=admin-inventory.md:5-13,25-35,55-65のBR/ACとstock-boundaries独立Web desktop状態、roles-and-permissions.md:5-19。TR2=admin-operations-pages.tsx:69-110,137-215のStaffPage・stock filter・ActiveBadge/stockQuantity。TR3=AdminOperationsUseCases.searchInventory:57-71/requireStaff:289-299→DexieInventoryRepository.search:601-648の排他分類差。TR4=default-dataset.ts:294-328、scenarios.ts:33-46、学習用境界契約it.failsと既存Integration。親A02-01とは別に状態固有の視覚・対照Caseを受入し、製品適合/実Web/CIと区別する。",
+      "case_policy": "採用:C1 default/low/outと隔離0/1/5/6、C2 正式/Repository集合・件数差とit.fails、C3 Role/Session/DTO非露出、C4 SKU/active/filter/sort/page・商品概要、C5 Web desktop状態ラベル・正本画像/viewport/a11y、C6 全表/Session不変・stale、C7 loading/error/不正fixture。除外:在庫調整・履歴transaction(A01-03/04)、SKU検索操作単体(A01-02)、競合更新(A02-02)、Native管理、製品SUT・正式仕様修正。C1-C7の実Runと製品適合は別途未受入。",
+      "case_selection_reason": "stock-boundariesはA02-01の0/1-5/6+区分と関係するが独立state ID・Web desktop視覚requiredを持つため、defaultとの差分、固定Seedが1/5/6を網羅しない点、UI状態列と在庫filterの違い、正式available>=6対実装>=1を状態固有のC1-C7で検証する。既存it.failsは既知負例でPASS根拠ではない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD 9b618cabebabb90b9f67174324c8968b2771b307: 独立stock-boundaries状態の正式BR/AC・Role/Platform→Web StaffPage/stock filter/ActiveBadge→Use Case requireStaff→Dexie search→default/low/out Seed・隔離0/1/5/6学習契約(it.fails)を再照合。正式available=[6]に対し実装available=[1,5,6]、表『状態』がSKU active/inactiveである既知差を製品適合未受入として記録。High R1-R3/Medium R4-R7、TR1-TR4/C1-C7採否と再開条件を個別確定。静的コード・既存契約の読取り確認であり直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session前後、商品概要件数、視覚/a11y、同一最終HEAD CIは未受入。隔離実Run・正式期待照合で再開。",
       "requirement_refs": [
         "BR-ADMININV-001",
         "BR-ADMININV-002",
         "AC-ADMININV-001",
         "AC-ADMININV-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminOperationsUseCases.searchInventory"
+      ],
       "covered_by": "SCREEN-ADMIN-INVENTORIES-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "元の動作へ紐付けた。指定Seedの生成状態・UI差分を確認する",
+      "analysis_progress": "2026-11-03 stock-boundaries基本分析のみreview_required→analyzed（操作110/188、非default16→17/20）。独立Web desktop状態・default/low/outと0/1/5/6隔離fixture、正式available>=6対実装>=1・ActiveBadgeの違いを証拠付きで整理。実Web/直接Vitest/DB・Session/視覚/製品適合/最終CIは未受入。次の共通対象SCREEN-ADMIN-ORDERS-A01-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 69,
@@ -18748,7 +18750,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 5,
+          "end_line": 13,
+          "reason": "BR-ADMININV-001の0/1-5/6+排他分類"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 25,
+          "end_line": 35,
+          "reason": "独立stock-boundaries状態のRole/Platform/視覚契約"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 55,
+          "end_line": 65,
+          "reason": "AC-ADMININV-001の0/1/5/6・商品概要件数"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active operator/adminのみストア管理可能"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 69,
+          "end_line": 110,
+          "reason": "StaffPageとstockStateを検索Use Caseへ引渡し"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 137,
+          "end_line": 215,
+          "reason": "Web在庫filterとActiveBadge列・stockQuantity"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 57,
+          "end_line": 71,
+          "reason": "requireStaffとstockState/pageSize20"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 289,
+          "end_line": 299,
+          "reason": "Use Case層のactive staff再認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 601,
+          "end_line": 648,
+          "reason": "out=0/low=1-5/available>=1、SKU単位のfilter・sort・page"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 328,
+          "reason": "defaultのTシャツS/M/L=20/10/0とvariantID"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 46,
+          "reason": "low-stock M=3・out-of-stock M=0の変換"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-inventory-stock-boundaries.test.mjs",
+          "start_line": 8,
+          "end_line": 67,
+          "reason": "隔離fixture 0/1/5/6・正式availableのit.fails負例"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 117,
+          "reason": "既存在庫検索Integrationの部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-ORDERS-A01-01",

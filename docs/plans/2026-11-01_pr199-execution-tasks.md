@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（非default在庫分類の独立状態）。直前`SCREEN-ADMIN-INVENTORIES-A02-01`は正式0/1-5/6+分類、active staff認可、Web→Use Case→Dexie、default/low/out Seed、既存it.fails負例を照合し基本分析のみ`analyzed`（操作110/188、非default16/20）。正式available>=6に対しRepository available>=1、Web「状態」はSKU active/inactiveである差を製品適合未受入として維持。次回は独立stateのdefault対stock-boundaries・隔離0/1/5/6・既存契約のreview_required固定期待と受入条件を確認する。
+- **現在の対象**：`SCREEN-ADMIN-ORDERS-A01-01`（管理注文一覧・決済/配送ステータスと認可・件数）。直前`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`は独立Web desktop状態の正式0/1-5/6+分類、active staff、Web→Use Case→Dexie、default/low/out Seed・隔離0/1/5/6の既存it.fails負例を再照合し、基本分析のみ`analyzed`（操作110/188、非default17/20）。正式available>=6に対しRepository available>=1、Web「状態」はSKU active/inactiveという差を製品適合未受入として保持。次回は管理注文一覧A01-01の正式仕様/Role/State/Data・Web→Use Case→Repository・Seed・Risk/TR/Caseを確認する。
 - **CI横断**：作業前HEAD `039502209f161450094c007eaa0f9165ef5dd582`の[Web CI #41515397093](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41515397093)はcompleted/failure。Style Quality/Unit/Integration/Repository/Component/Code Quality等はsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（独立stock-boundaries状態）基本分析受入
+
+- **判定**：`review_required→analyzed`は非default独立状態の基本分析のみ。操作**110/188**（変更なし）、非default状態**16→17/20**。製品適合・実Web/Native・最終CIのPASSではない。
+- **正式仕様・Role/State/Data**：`admin-inventory.md:5-13,25-35,55-65`のBR-ADMININV-001/002・AC-ADMININV-001/002は0=out、1〜5=low、6+=availableの排他的分類、SKU一覧・商品概要件数一致を要求。stock-boundariesは独立Web desktop視覚requiredであり、実在固定Seed名ではない。active operator/adminのみ管理許可。default 11商品36SKU、TシャツS/M/L=20/10/0、low-stock M=3、out-of-stock M=0。境界1/5/6は隔離fixtureで追加する。
+- **経路・既知差**：`admin-operations-pages.tsx:69-110,137-215`のStaffPage/在庫filter（all/available/low/out）・SKU状態ActiveBadge→`AdminOperationsUseCases.searchInventory:57-71`のrequireStaff→`DexieInventoryRepository.search:601-648`のout0/low1-5/**available>=1**。正式available=[6]に対し実装=[1,5,6]。Web表の「状態」はSKU active/inactiveで在庫分類ラベルではない。既存学習用`ai-assisted-qa-inventory-stock-boundaries.test.mjs:8-67`は隔離0/1/5/6と`it.fails`で負例を保持。直接Repository実Runではない。
+- **Risk/TR/Case採否**：High R1非staff管理DTO漏洩、R2分類重複・件数、R3 SKU混入/読取り副作用。Medium R4 UI分類ラベル候補、R5 fixture網羅、R6 filter/sort/page・商品概要、R7 viewport/keyboard/a11y。TR1正式BR/AC・Role、TR2 Web、TR3 Use Case/Dexie、TR4 Seed/既存契約・Integration。採用C1 default/low/outと0/1/5/6、C2 正式/実装集合差、C3 Role/Session、C4 SKU/active/filter/page・概要、C5 独立Web desktop視覚、C6 全表/Session不変、C7 異常・a11y。除外:在庫調整/履歴、単体検索、競合更新、Native管理、製品修正。
+- **直接確認と未受入**：固定HEAD `9b618cabebabb90b9f67174324c8968b2771b307`で正式仕様・UI・Use Case・Dexie・Seed・既存学習用負例を読取り照合。台帳の独立state固有のC1-C7・3照合フラグと学習用契約期待を整合。静的契約・構造検査のみで、直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、商品概要件数、1023/1024px・視覚/a11y、製品適合、同一最終HEAD必須CIは未受入。C1-C7隔離実Runと正式期待で再開。
+- **次の共通対象**：`SCREEN-ADMIN-ORDERS-A01-01`（管理注文一覧）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-A02-01（在庫分類境界）基本分析受入
 

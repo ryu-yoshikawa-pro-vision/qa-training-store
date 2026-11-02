@@ -603,10 +603,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(state?.test_condition).toContain("regular");
     expect(state?.test_condition).toContain("aria-disabled");
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries")
-        ?.analysis_status,
-    ).toBe("review_required");
+    const inventoryBoundaryState = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries");
+    expect(inventoryBoundaryState?.analysis_status).toBe("analyzed");
+    expect(inventoryBoundaryState?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(inventoryBoundaryState?.related_use_cases).toContain("AdminOperationsUseCases.searchInventory");
+    expect(inventoryBoundaryState?.audit_branch_refs?.length).toBeGreaterThan(8);
+    expect(inventoryBoundaryState?.test_condition).toContain("0/1/5/6");
+    expect(inventoryBoundaryState?.case_policy).toContain("C7");
+    expect(inventoryBoundaryState?.basic_analysis_review).toContain("未受入");
   });
 
   it("audits empty orders and reviewable order states without SUT changes", () => {
@@ -847,10 +851,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(8);
       expect(entry?.test_condition).toContain("Native");
     }
-    for (const id of [
-      "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
-      "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries",
-    ]) {
+    for (const id of ["SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
         "review_required",
       );
