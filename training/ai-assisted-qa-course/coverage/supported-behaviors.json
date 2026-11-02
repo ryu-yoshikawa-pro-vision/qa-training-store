@@ -12732,28 +12732,34 @@
       "source_line": 28,
       "source_text": "published、hidden、deletedの状態を表示し、deletedのレビューを再投稿可能に見せない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: reviewable-orders,reviews-empty,hidden-reviews。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 削除済レビューの再投稿を拒否",
+      "role": "Customer本人（default/hidden-reviewsは初期guest→regularログイン）。guest、operator/admin、別customer、停止Sessionは認可負例。defaultのdeleted Review.userId=gold対Order.userId=regularはcross-ownerで本人削除正例に使用不可",
+      "scenario": "default/hidden-reviews（delivered11明細・published9/hidden1/deleted1、初期guest）、reviewable-orders（published6/未投稿5、初期guest）、reviews-empty（配達済0、Review0）。本人deleted→再投稿拒否の正例はreviewable-ordersで本人create→deleteする隔離fixtureを使用",
+      "data": "default deleted=review-deleted / order-delivered-item-deleted、Review.userId=user-customer-gold・Order.userId=user-customer-regular、status=deleted/version1/Historyあり。reviewable-ordersではdeleted明細の既存Reviewをslice(0,6)で除去するため未投稿扱い。本人作成→削除後のReview/History/ProductReviewSummary/Order/Sessionを前後比較し、deleted行を削除して新規投稿できる状態にしてはならない",
       "action": "削除済レビューの再投稿を拒否",
-      "expected": "deletedは終端状態で、本人でも同一明細に新しいレビューを再投稿できない",
+      "expected": "deletedは終端状態。本人でも同一orderItemIdのgetEligibilityはeligible=false、reason=REVIEW_DELETED、reviewState=DELETED、Webは削除済み・再投稿不可の禁止Panel、Nativeは投稿不可Panelで保存UIなし。createはNOT_ELIGIBLE、owner一致deletedのupdateはNOT_ELIGIBLE、admin changeVisibilityはINVALID_STATEで再公開不可。Review/History/Summary/Order/Sessionに不正な追加・改変なし。default cross-ownerではgetEligibilityがReview.userIdを検査せず既存Reviewのrating/title/bodyを返す静的情報露出High候補があり、非露出・実Run PASSではない",
       "rule_refs": [],
       "route": "`/reviews/[orderItemId]`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "削除済レビューの再投稿を拒否の事前状態・実施後を比較し、deletedは終端状態で、本人でも同一明細に新しいレビューを再投稿できないことを確認する",
-      "test_responsibility": "削除済レビューの再投稿を拒否の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "削除済レビューの再投稿を拒否の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=deletedの再投稿・二重Review/公開Summary改変、R2=default cross-owner deleted Reviewのrating/title/bodyをOrder.ownerへ返す情報露出候補、R3=deletedをupdate/admin再公開で復活、R4=version競合・並列投稿・History/Summary部分更新、R5=Web/Native禁止UIと実際のAPI境界の差、R6=guest/staff/別customer/停止Sessionの情報漏洩、R7=reviewable-ordersでdeleted Reviewが除去されるSeed取り違えとSQLite/Dexie差。製品不具合確定・実Run PASSではない",
+      "test_condition": "TR1/C1=default/hidden-reviewsのdeleted itemで本人Order.owner・Review別ownerを区別し、eligible=false/REVIEW_DELETED/DELETEDとexistingReview本文の非露出を実証（現静的経路は漏洩候補）。TR2/C2=reviewable-ordersでowner一致の未投稿itemをcreate→deleteし、同一itemへの再createがNOT_ELIGIBLE、Review1件/deleted維持。TR3/C3=owner一致deletedへのupdate・二重delete、admin deleted→published/hidden、stale version拒否とHistory/Summary不変。TR4/C4=guest/staff/別customer/停止Session・他人OrderでReview/本文/Order非露出。TR5/C5=Dexie/SQLiteでReview/History/ProductReviewSummary（件数・評価合計・分布）/Order/Session前後、並列create・rollbackを比較。TR6/C6=Web/Androidのdeleted禁止Panel・投稿/更新/削除ボタン非表示・視覚/a11y。TR7/C7=defaultとreviewable-orders/reviews-emptyのSeed期待、deleted正例のfixture分離と正式AC一致。C1〜C7採用、直接実Runは未受入",
+      "test_responsibility": "BR-REVIEW-001/002・AC-REVIEW-001/002→Web CustomerReviewContent/NativeReviewScreen→CustomerReviewUseCases.getEligibility（requireCustomer→Order.owner→Review.findByOrderItem→deriveCustomerReviewState）→create（eligible=falseでNOT_ELIGIBLE、transaction内既存Review再検査）/update（requireOwned→deleted拒否）/delete（published/hidden→deleted、History/公開Summary delta）/AdminReviewUseCases.changeVisibility（deleted遷移禁止）→Dexie/SQLite ReviewRepository。default cross-ownerのgetEligibilityはReview.owner未検査で既存DTOを返すため情報保護High候補を独立未受入に保持",
+      "case_policy": "C1 default deleted資格・cross-owner非露出、C2 owner一致create→delete→再投稿拒否、C3 update/delete/admin再公開・version境界、C4 Role/Session認可、C5 Dexie/SQLite DB/History/Summary前後と並列、C6 Web/Android禁止UI/視覚/a11y、C7 Seed差・正式期待を採用。既存integrationのdeleted reason・通常削除は部分証拠であり、再create/DB全体不変/情報非露出のPASSを意味しない",
+      "case_selection_reason": "削除済レビューは仕様上の不可逆な終端状態で、再投稿は公開評価改変・監査History欠損に直結するHigh境界。default deletedのReview.owner不一致を本人削除後の正常fixtureに流用せず、API認可・UI・Seed・公開集計を独立Caseで受け入れる",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 57565392b164: reviews.md BR-REVIEW-001/002・AC-REVIEW-001/002、default deleted cross-owner、reviewable-ordersでdeleted Review除去、Web/Native禁止Panel、getEligibility→create/update/delete/admin visibility→Dexie/SQLiteとdeleted終端policyを照合。High R1-R7/TR1-R7/C1-C7の採否・再開条件を個別確定し基本分析のみanalyzed。既存integrationはdeleted reason/通常削除の部分証拠。default cross-owner既存DTO本文露出候補、本人deletedの再create・別Role/Session・並列・DB/History/Summary/Session前後・SQLite・実Web/Android・視覚/a11y・製品適合・同一HEAD最終CIは未受入。直接Vitest/Prettier/Playwright未実施",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CustomerReviewUseCases.getEligibility",
+        "CustomerReviewUseCases.create",
+        "CustomerReviewUseCases.update",
+        "CustomerReviewUseCases.delete",
+        "AdminReviewUseCases.changeVisibility"
+      ],
+      "analysis_progress": "2026-11-02 HEAD 57565392b164: A02-02の削除終端・再投稿拒否・Seed差・cross-owner Highを静的照合して基本分析のみanalyzed。C1〜C7の直接実証、情報非露出・DB/Session・実Web/Android・製品適合・最終CIは未受入。次はSCREEN-ADMIN-REVIEWS-A01-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 57,
@@ -12775,9 +12781,149 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default deleted=review-deleted / order-delivered-item-deleted、Review.owner=goldとOrder.owner=regularのcross-owner。hidden-reviewsはdefault同内容。reviewable-ordersはReview先頭6件のみでdeleted削除、reviews-emptyはReview0/配達済0。本人deleted再投稿拒否はowner一致の隔離fixtureが必要"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CustomerReviewUseCases.getEligibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 62,
+          "signature": "async getEligibility(orderItemId: string): Promise<ReviewEligibilityDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.create",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 106,
+          "signature": "async create(request: CreateReviewRequest): Promise<ReviewResultDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.update",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 163,
+          "signature": "async update(request: UpdateReviewRequest): Promise<ReviewResultDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.delete",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 193,
+          "signature": "async delete(request: DeleteReviewRequest): Promise<ReviewResultDto> {"
+        },
+        {
+          "id": "AdminReviewUseCases.changeVisibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 392,
+          "signature": "async changeVisibility(input: {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 5,
+          "end_line": 16,
+          "reason": "BR-REVIEW-001/002の再投稿禁止とdeleted終端"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 24,
+          "end_line": 38,
+          "reason": "Editorのdeleted禁止UIとプラットフォーム"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 84,
+          "end_line": 95,
+          "reason": "AC-REVIEW-001/002の投稿資格・公開集計"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 21,
+          "end_line": 27,
+          "reason": "deletedからの状態遷移が空配列"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 38,
+          "reason": "defaultとhidden-reviewsの同一データ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 86,
+          "end_line": 105,
+          "reason": "reviewable-ordersは先頭6 Reviewのみ・reviews-emptyは空"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 590,
+          "end_line": 665,
+          "reason": "default deleted Reviewのcross-ownerとHistory"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 1,
+          "end_line": 15,
+          "reason": "deleted→DELETEDと既存レビュー優先"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 62,
+          "end_line": 160,
+          "reason": "deleted資格/既存DTOとcreate再投稿拒否"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 163,
+          "end_line": 238,
+          "reason": "deleted更新拒否・削除History/公開Summary"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 420,
+          "reason": "管理者によるdeleted再公開禁止"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 57,
+          "end_line": 157,
+          "reason": "Web deleted禁止Panelとフォーム非表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1321,
+          "end_line": 1450,
+          "reason": "Native eligible=false禁止Panelと保存UI非表示"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 356,
+          "reason": "Dexie Review取得/更新・published限定一覧"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2451,
+          "end_line": 2518,
+          "reason": "SQLite Review取得/更新・published限定一覧"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 66,
+          "end_line": 123,
+          "reason": "本人create→update→deleteとSummaryの既存部分証拠"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 157,
+          "end_line": 205,
+          "reason": "default deleted eligibility reasonの既存部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-S-published",
