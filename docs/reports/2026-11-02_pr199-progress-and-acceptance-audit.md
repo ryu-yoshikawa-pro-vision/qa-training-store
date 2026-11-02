@@ -201,3 +201,73 @@ M06のinitial/repeatやM07のbefore/afterなどの実Runを独立に照合する
 そのため、P番号を機械的にすべて採点基準へ追加せず、個々の意味的な要否を
 実行検証と合わせて見直す。クイズの参照整合も内容の正誤や習得を証明しない。
 教材の意味的な51目標全件の受入、実OpenCode校正、実Run受入は未完了。
+
+## 2026-11-02 校正再試行と採点基準の個別照合
+
+### 校正失敗を再試行できない問題
+
+`scripts/training/ai-assisted-qa-assessment.mjs`の`obtainCalibration`は、
+失敗した校正まで共通の`calibrations/<hash>.json`に保存し、
+後続試行では同じhashの失敗校正を拒否していた。
+学習者が同じモデル/固定教材で再試行しても、過去の失敗キャッシュから先へ進めなかった。
+
+[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/7fd9f1fce5a289605eea135a18d9b2a625adfeed)
+で、各試行に`calibration-result.json`と判定明細を残し、
+共通キャッシュへ新規保存するのは全校正条件を満たす成功記録だけに限定した。
+旧版が残した失敗キャッシュは変更せず再校正を許す。
+校正ID・identity・case数が不一致の既存記録は従来どおり拒否し、
+失敗した校正を正式修了へ流用しない。
+
+契約テストでは成功・失敗・誤PASS・不一致記録の`isPassingCalibration`
+判定を確認する。実OpenCodeによる失敗→別試行再校正→成功/失敗の
+全経路、CLI再開と保存の原子的な競合、無料/費用・外部送信承認は未受入。
+
+### P番号差分のうち、修正根拠が確認できた目標
+
+- **M09-01**：演習P01はtriggerの変更設計、P06は基準workflowの引継ぎ。
+  既存採点基準のP02はM09-02のPR HEAD/SHA課題。
+  `M09-CR-01`をP01・P06へ変更した。
+- **M09-04**：演習P01のtrigger/未検証期間、P04の費用比較、
+  P06の安全な終了条件が費用・権限を踏まえた運用判断に必要。
+  `M09-CR-04`をP01・P04・P06へ変更した。
+- **M07-04**：演習P05は新規回帰条件に対する修正の妥当性を観測し、
+  P06が別Runの証拠で検証する。`M07-CR-04`をP04・P05・P06へ変更した。
+
+[M09修正](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/b297a5183e4d6f5d8acca0b3ba4743eecc1c0258)
+と[M07修正](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/35b365182daef2913a51e5c4f31c242d2f4aadae)
+は既存の演習、目標、評価基準の対応だけを変更し、
+製品SUT・正式製品仕様・Playwright対象の追加は行っていない。
+採点基準と演習の一致を検査する契約テストを追加した。
+全51目標の意味的な受入や実モデル校正の成功とは区別する。
+
+### P番号差分の残22目標
+
+以下は静的差分の候補であり、個別の受入条件に照らして最終判定する。
+
+| モジュール | 残る目標ID | 個別に判断する点 |
+| --- | --- | --- |
+| M00 | M00-03 | 演習P03の観測をLevel 2で要求する必要があるか |
+| M02 | M02-02 | P02/P03のリスク分類と根拠が採点済みか |
+| M03 | M03-01〜05 | P05の統合作業とP06の採点配分、Skill実証拠を照合 |
+| M04 | M04-04 | P02のCase採否とP06の結論の関係 |
+| M05 | M05-01〜05 | P03/P05/P06の本人判断とbefore/after実Runの役割分離 |
+| M06 | M06-01〜04 | P01/P02/P04/P06の証拠とinitial/repeat実Runの役割分離 |
+| M07 | M07-02 | P03/P06のTrace・Run観測が他の必須検査で評価されるか |
+| M08 | M08-02、M08-03 | P01/P04のGit差分・運用判断と既存基準 |
+| M09 | M09-02、M09-03 | P06が両目標の独立必須条件か、引継ぎの確認に留まるか |
+
+実行条件が特に重要なM05〜M07は、
+`evaluation_policy.execution_evidence.required_runs`により
+実Runの存在・種別・test数・Trace等を別途検査する。
+P番号の表示が一致しないだけでこの検査を二重化したり、
+受入根拠のない採点基準を機械的に追加したりしない。
+残22目標の判断が終わるまで、教材51目標全件の内容レビューは未完了。
+
+### CIと境界
+
+直前の[Web CI #41450521794](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41450521794)
+ではStyle Qualityが`tests/contracts/ai-assisted-qa-assessment.test.mjs`の
+Prettier違反、required Chromium E2Eが失敗し、Vitest ContractsとCode Qualityは成功。
+新HEADのCIは各実行を独立に確認する。
+この監査でStyle Quality・実モデルの結果は受入済みとしない。
+Codex中断、定期実行4件の現在作業、PR #210製品側の変更境界を維持する。
