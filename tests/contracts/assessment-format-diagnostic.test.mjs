@@ -1,0 +1,56 @@
+import fs from "node:fs";
+import path from "node:path";
+import prettier from "prettier";
+import { it } from "vitest";
+
+it("reports remaining formatting differences without changing files", async () => {
+  for (const relative of [
+    "scripts/training/ai-assisted-qa-assessment.mjs",
+    "tests/contracts/ai-assisted-qa-curriculum.test.ts",
+  ]) {
+    const file = path.resolve(relative);
+    const original = fs.readFileSync(file, "utf8");
+    const formatted = await prettier.format(original, {
+      ...(await prettier.resolveConfig(file)),
+      filepath: file,
+    });
+    const left = original.split("\n");
+    const right = formatted.split("\n");
+    const n = left.length;
+    const m = right.length;
+    const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+    for (let i = n - 1; i >= 0; i -= 1) {
+      for (let j = m - 1; j >= 0; j -= 1) {
+        dp[i][j] =
+          left[i] === right[j]
+            ? 1 + dp[i + 1][j + 1]
+            : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    const patches = [];
+    let i = 0;
+    let j = 0;
+    let current = null;
+    const flush = () => {
+      if (current) patches.push(current);
+      current = null;
+    };
+    while (i < n || j < m) {
+      if (i < n && j < m && left[i] === right[j]) {
+        flush();
+        i += 1;
+        j += 1;
+      } else if (j < m && (i === n || dp[i][j + 1] >= dp[i + 1][j])) {
+        if (!current) current = { line: i, removed: [], added: [] };
+        current.added.push(right[j]);
+        j += 1;
+      } else {
+        if (!current) current = { line: i, removed: [], added: [] };
+        current.removed.push(left[i]);
+        i += 1;
+      }
+    }
+    flush();
+    console.log("PRETTIER_DIFF_JSON=" + JSON.stringify({ relative, patches }));
+  }
+});
