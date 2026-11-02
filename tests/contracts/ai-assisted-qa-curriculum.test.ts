@@ -413,6 +413,36 @@ describe("AI-assisted QA static learning course", () => {
     expect(m04).not.toContain("前提修正後はIntegrationへ追加する");
   });
 
+  it("requires both M10 failure diagnosis and trigger-stop judgment for M10-04", () => {
+    const assessmentRoot = "training/ai-assisted-qa-course/assessment";
+    const scoring = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, assessmentRoot, "scoring-tests/M10.json"), "utf8"),
+    ) as {
+      criteria?: {
+        id: string;
+        knowledge_ids: string[];
+        required_evidence: string[];
+        pass_conditions: string[];
+      }[];
+    };
+    const criterion = scoring.criteria?.find((item) => item.id === "M10-CR-04");
+    const exercise = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/exercises/M10/exercise.md"),
+      "utf8",
+    );
+    const reference = fs.readFileSync(
+      path.join(repositoryRoot, assessmentRoot, "reference-solutions/M10.md"),
+      "utf8",
+    );
+    expect(exercise).toContain("**P05 CI失敗時の調査順（M10-04）**");
+    expect(exercise).toContain("**P06 安全な運用判断と最終報告（M10-04・05）**");
+    expect(criterion?.knowledge_ids).toContain("K-M10-07");
+    expect(criterion?.required_evidence?.join(" ")).toContain("反復実践P05・P06");
+    expect(criterion?.pass_conditions?.join(" ")).toContain("反復実践P05・P06");
+    expect(reference).toContain("K-M10-07 運用停止と再実行の判断");
+    expect(reference).toContain("P06の費用・権限・trigger条件");
+  });
+
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
     const assessmentRoot = "training/ai-assisted-qa-course/assessment";
     const scoring = JSON.parse(
