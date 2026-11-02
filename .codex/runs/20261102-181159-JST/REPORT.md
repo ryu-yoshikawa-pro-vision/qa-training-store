@@ -51,3 +51,10 @@
 - Validation: 全577 Markdown fileの`markdownlint-cli2` 0 issues、`node node_modules/prettier/bin/prettier.cjs --check . --ignore-path .prettierignore` PASS、対象契約10ファイル/133 tests PASS、QA validator PASS、curriculum validator PASS。supported-behaviors validatorは78/188 analyzed、`complete=false`を維持。`pnpm.cmd`はCorepack registry DNS `ENOTFOUND`のため直接CLIで同等ゲートを実行。
 - Progress: 88% (7/8)
 - Next: 3文書とこのRun checkpointだけを明示stageして通常commit/pushし、PR #199 / #210の正確なhead CIを確認する。
+
+## 2026-11-02 19:37 (JST)
+
+- Summary: 通常pushは最新HEADへの並行commitにより`fetch first`で拒否された。remote refは更新せず、ローカルrepair commitを保護して最新PR branchへ移す。
+- Git: `3e0ff1fcb7148e2396682e41cdd96b68fcfb2c20`を`rescue/pr199-markdownlint-20261102`で保持。最新origin/PR HEADは`3e163db602a4dab6f74f774a5d722162256d97b3`（親`2abbad94`）。並行commitはPlanとsupported-behaviors.jsonのみを変更し、Plan内では新Caseを追加。repairの空行削除と接する箇所は新見出し前の重複空行であり、新しいCase本文/coverageを残したうえでMarkdown規約の1空行に揃える。origin/mainはrescue commitを含まない。force push・merge・rebase・resetなし。
+- Progress: 88% (7/8)
+- Next: rescue commit由来の修正だけを最新PR HEADにcherry-pickし、検証後に明示refspecで通常pushする。
