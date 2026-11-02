@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A01-03`（保存前プレビューの表示・入力反映）。直前A01-02は正式BR/AC、Web ProductEditor→create/preview→Dexie/Seed、High R1-R7/TR1-R7/C1-C7を照合し基本分析のみanalyzed（操作86/188・非default16/20）。initialStock負値/非整数の明示検査不足、previewとcreateの検証差、Role別実Web/DB/Session前後/視覚・製品適合は未受入。直前A01-01の入力/保存前非破壊性も実Run待ち。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A02-01`（プレビュー中のDB非書込み・Session/集約不変）。直前`SCREEN-ADMIN-PRODUCT-NEW-A01-03`は正式BR/AC、Web ProductEditor→AdminProductUseCases.preview→参照Repository/Seed、High R1-R5/Medium R6-R7・C1-C7を照合し基本分析のみanalyzed（操作87/188・非default16/20）。previewの限定公開判定と入力変更後のstale表示/応答逆転は静的High候補、直接Vitest/Playwright・Role別実Web・DB/Session前後・製品適合は未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-NEW-A01-03（保存前プレビューの表示・入力反映）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**86→87/188**、非default**16/20**維持。正式`BR/AC-ADMINCAT-001/002`、active operator/admin、default初期guest/既存11商品・product-aggregate-edit、UI→Use Case→参照RepositoryとHigh R1-R5/Medium R6-R7・C1-C7を個別照合。製品適合・実Web/DB/CI PASSではない。
+- **経路と境界**：`AdminProductNewContent:337-413`の`StaffPage`→`ProductEditor:572-1125`の入力state/未保存preview→`AdminProductUseCases.preview:285-439`の`requireStaff`/`validateTextLimits`/assets・brand・category・reviewSummary参照→`previewPublishabilityIssues:564-625`→DTO/画面表示。preview経路にtransactionRunner/createAggregate呼出しは見当たらず、明示submitの`create:127-155`とは別。DB/Session不変は実Run未実証。
+- **High候補・検証の限界**：previewの公開可否issueは画像/primary、active SKU、必須項目、価格・購入上限の一部を検査するが、active master・SKU重複・inactive asset・initialStock負値/小数の全検証ではない。UIは編集時に既存previewをクリアせず、非同期`.then(setPreview)`で応答逆転時に古いpreviewを表示し得る。両者とも静的候補で実障害・製品不具合は未確定。
+- **Case採否**：C1 staffの入力反映/DTO/draft・未保存表示、C2非staff/失効Session拒否、C3画像/active SKU/必須項目のissue、C4 previewとcreate/公開の検証差、C5正常/失敗/連続previewのDB/Session不変・故障注入、C6編集後stale/応答逆転、C7 default/product-aggregate-edit/duplicate・1023/1024px・keyboard/視覚/a11yを採用。draft保存成否・公開成否・既存編集preview・Native管理UIは別操作。
+- **直接確認・残条件**：当該HEADの仕様/UI/Use Case/Seed/既存component/validatorについて**26/26静的断片assert成功**（実テストではない）。既存componentの「previews an unsaved aggregate and creates it as a draft」は表示の部分証拠。直接Vitest/Prettier/Playwright、Role別実Web、Product/Variant/Image/InventoryHistory/ReviewSummary/Sessionの前後、stale応答、視覚/a11y、正式製品適合・同一最終HEAD全CIは未受入。固定HEAD隔離fixtureでC1-C7を再開、SUTは#199で変更しない。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-NEW-A02-01`（プレビュー中の書込み非発生・DB/Session不変）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-NEW-A01-02（新規商品入力バリデーション）
 

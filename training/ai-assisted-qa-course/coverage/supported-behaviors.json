@@ -15184,18 +15184,18 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,product-aggregate-edit,無効な必須アセット。role=operator/admin、状態・対象ID・versionを区別。操作: 保存前プレビュー",
+      "data": "Role: active operator/adminのみ（guest→/login、customer/停止staff→/forbidden、失効SessionはUse Case requireStaffで拒否）。State: default新規フォーム→未保存入力→preview DTO→画面表示、明示submit時だけdraft保存。Data: default初期guest/Sessionなし・既存商品11件、activeカテゴリ/ブランド/画像候補、SKU初期1件・初期在庫0・画像0。product-aggregate-editは既存商品の編集用状態であり新規previewの固定初期値ではない。新規previewのproductIdは仮値preview、保存時の新ID/version1とは分離。",
       "action": "保存前プレビュー",
-      "expected": "フォームで入力した未保存の商品集約をプレビューでき、公開前提が未充足なら違反を表示する",
+      "expected": "active operator/adminが未保存フォームのコード・名称・説明、画像/primary、SKU/価格/初期在庫をpreviewへ反映でき、statusAfterSave=draft、公開可否と未充足条件、DB未保存の文言を表示すること。AdminProductUseCases.previewはstaff再認可後、入力を読み取り/計算してDTOを返し、createAggregate/transactionを呼ばずProduct/Variant/Image/InventoryHistory/ReviewSummary/Sessionを変更しないこと。画像/primaryなし・active SKUなし・必須項目/価格不正はpublishabilityIssuesへ反映するが、previewPublishabilityIssuesはactive master、SKU重複、inactive asset、initialStock負値/小数などcreate/公開の全条件を検査しないため『公開条件を満たす』表示だけで保存・公開適合を確定しない。入力変更後の古いpreview表示・非同期応答逆転は実Web検証待ち。",
       "rule_refs": [],
       "route": "`/admin/products/new`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "保存前プレビューの前後に、フォームで入力した未保存の商品集約をプレビューでき、公開前提が未充足なら違反を表示することをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと保存前プレビューの結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "保存前プレビューが不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: 非staffへの管理データ/preview露出、R2: preview時のProduct/Variant/Image/InventoryHistory/ReviewSummary/Session書込み、R3: previewの限定的なpublishabilityIssuesを完全な公開判定と誤認、R4: active master/SKU重複/inactive asset/initialStock不正などpreviewとcreate/公開の検証差、R5: 入力変更後にpreview stateを消さず非同期then(setPreview)が古い応答を表示し得る静的候補。Medium R6: 画像0/1/3/4・primary0/1/2・SKU/価格/在庫表示の境界、R7: duplicate draft、1023/1024px・keyboard/視覚/a11y。R3-R5は静的候補で製品不具合・実再現は未確定。",
+      "test_condition": "C1 default active operator/adminのフォーム変更→previewでコード/名/説明/画像/primary/価格/複数SKU/stockとdraft・未保存文言の一致。C2 guest/customer/停止staff/失効Sessionの直URL・preview直接呼出し拒否と管理データ非露出。C3 画像0/primaryなし・active SKUなし・必須欠落/不正価格でpublishabilityIssues/画面alertを確認し、画像0のdraft作成可と公開不可を区別。C4 inactive/不存在カテゴリ・ブランド・asset、重複SKU、初期在庫-1/小数、画像1/3/4・primary0/1/2をpreview表示とcreate/公開判定の差として記録し、虚偽の公開可否を検証。C5 preview正常/失敗/連続実行の前後でProduct/Variant/Image/InventoryHistory/ReviewSummary/Sessionと既存11商品の不変、transaction/create非呼出しを隔離fixtureで実証。C6 preview後に入力変更、連続クリック、遅延応答逆転、古いpreviewが残る/更新される条件と誤認防止を実Webで検証。C7 default/product-aggregate-edit/duplicateドラフト、1023/1024px・desktop/tablet・keyboard/alert/視覚/a11yと保存後draft境界を確認。",
+      "test_responsibility": "正式BR/AC-ADMINCAT-001/002→StaffPage/RouteGuard→AdminProductNewContent/ProductEditor onPreview→AdminProductUseCases.preview(requireStaff、asset/category/brand読取り、pricing、previewPublishabilityIssues)→ProductPreviewDto→UI previewをC1-C7で照合。previewはRepository参照のみでtransactionRunner/createAggregateなし（静的経路）。既存componentは表示の部分証拠でDB非書込みの直接実証ではない。C4/C6のHigh候補は隔離実Web/Use Case実Runで再現判断し、製品修正は#199外。",
+      "case_policy": "採用: C1入力反映/DTOと未保存表示、C2 Role/Session拒否、C3公開前提未充足のissue表示、C4 previewとcreate/公開の検証差、C5 DB/Session不変・故障注入、C6 stale preview/非同期逆転、C7 Seed/duplicate/viewport/a11y。除外: draft実保存の成否・原子性（A01-01/02）、公開/状態変更の実成否（別操作）、既存商品編集preview（SCREEN-ADMIN-PRODUCT-DETAIL-A02-02）、Native管理UI（非サポート）。",
+      "case_selection_reason": "正式admin-catalog.md:8-23,95-112,210-220、AdminProductNewContent:337-413、ProductEditor:572-1125、AdminProductUseCases.preview:285-439/previewPublishabilityIssues:564-625/requireStaff:524-534、default/product-aggregate-edit Seedと既存component preview Caseを照合。26/26静的断片assert成功。High R1-R5・Medium R6-R7をTR1-TR7/C1-C7に分け、未保存と公開判定・入力反映の時間的整合を区別。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD e1d5c3198ad8: 正式BR/AC、Role/State/Data、Web onPreview→Use Case preview→asset/category/brand Repository読取り→publishabilityIssues→UIとdefault/product-aggregate-edit Seedを照合。26/26静的断片assert成功。previewはrequireStaff、validateTextLimits、参照読取り/DTO生成でtransactionRunner/createAggregateなし（静的確認）。画像/primary、active SKU、必須項目、価格/購入上限issueは返すがactive master・重複SKU・inactive asset・initialStock負値/小数は同helperで網羅されない。UIは編集時にpreviewを消さず.then(setPreview)するため古い結果表示/応答逆転の静的候補を残す。既存component preview Caseは表示の部分証拠。直接Vitest/Prettier/Playwright、Role別実Web、DB/Session前後、stale応答、1023/1024px、視覚/a11y、製品適合、同一HEAD最終CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -15205,7 +15205,7 @@
       "related_use_cases": [
         "AdminProductUseCases.preview"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-02 A01-03基本分析のみ完了（操作86→87/188、非default16/20）。preview入力反映/issue/未保存表示と限定検証・stale UIのHigh候補をC1-C7に分離。直接実Web/DB/Session・製品適合・最終CIは未受入。次はSCREEN-ADMIN-PRODUCT-NEW-A02-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 337,
@@ -15234,6 +15234,11 @@
           "line": 285,
           "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
