@@ -17582,20 +17582,20 @@
       "source_line": 186,
       "source_text": "ブランドの一覧表示、新規作成、編集、およびバリデーション機能を提供する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,cross-role-product-lifecycle。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ブランド編集",
+      "role": "active operator/adminはStaffPageとAdminMasterUseCases.requireStaffで編集可能。guest/customer/停止staff/失効Sessionは直URLとUse Caseで拒否し、管理DTOを露出させない。",
+      "scenario": "default（初期guest→operator/adminログイン）でbrand-scenario-basicsの名称編集。cross-role-product-lifecycleでRole差。重複名・80/81文字・NFKC・古いversion・別staff並列・20件超の検索ヒット・DB故障は隔離条件。",
+      "data": "default Seed3ブランド（brand-scenario-basics/Scenario Basics、brand-scenario-life/Scenario Life、brand-scenario-active/Scenario Active）はactive/version1。商品11件中published8件（Basics2/Life3/Active3）。Basicsを「 Scenario Basics Plus 」に編集→trim/nameNormalized更新、version2/updatedAt更新、brandId/isActive/createdAt・他2ブランドと商品/Variant/Session不変、公開数2維持。",
       "action": "ブランド編集",
-      "expected": "選択したブランドIDの名称等を更新し、無効な入力とversion競合を拒否する",
+      "expected": "active staffが既存Brand名を編集するとWeb InlineNameEditor→AdminMasterUseCases.updateBrand(requireStaff/validName)→DexieBrandRepository.updateDetailsでbrandIdを維持しname/nameNormalized/updatedAt/versionのみ変更。expectedVersion不一致はCONFLICT、空白・81文字はVALIDATION、正規化重複はDexie uniqueで拒否。成功後searchForAdmin(keyword=updated.name,pageSize20)でDTO再取得しWeb通知/一覧更新。RepositoryのgetById→version照合→putは明示transaction外のため並列CAS原子性は実再現待ち。",
       "rule_refs": [],
       "route": "`/admin/brands`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "ブランド編集実施前後で、選択したブランドIDの名称等を更新し、無効な入力とversion競合を拒否することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ブランド編集の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ブランド編集が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "High R1=非staff/停止Sessionの編集・管理DTO露出、R2=transaction外getById→assertExpectedVersion→putの同時編集lost-update候補、R3=正規化重複/書込失敗時のBrand整合性。Medium R4=空白・80/81文字・NFKC境界、R5=保存後searchForAdmin(pageSize20)で対象が21件目以降となり返却DTO undefinedの候補（UIは戻り値を見ず成功通知し得る）、R6=InlineNameEditorローカル入力・連続保存/古いversion・一般エラー通知、R7=desktop/tablet/1023-1024px・focus/a11y。R2/R5/R6は実再現前の候補で製品不具合確定ではない。",
+      "test_condition": "C1 default brand-scenario-basicsを「 Scenario Basics Plus 」へ変更→trim/nameNormalized/version+1/updatedAt、ID/active/createdAt、他ブランド/商品/Variant/Session全表不変、公開数2。C2 空/空白、80/81文字、NFKC・大小文字・連続空白の重複、拒否時DB不変。C3 stale version/別staff並列CAS・更新消失なし・version連続性。C4 guest/customer/停止staff/失効Sessionの直URL/updateBrand拒否とDTO非露出。C5 DB書込/unique競合と保存後searchForAdmin読取失敗・検索21件以上の返却DTO/UI通知整合。C6 InlineNameEditor入力/保存ボタン/失敗時保持/二重保存/遅延応答/一覧再取得。C7 desktop/tablet/1023-1024px・keyboard/focus/aria-label/a11y。C1-C7実Run未実施。",
+      "test_responsibility": "ブランド名称編集のRole認可、既存ID/version CAS、正規化重複・入力境界、単一Brand更新と関連表/Session不変、保存後DTOとUI通知・再試行をCase別に検証する。",
+      "case_policy": "採用:C1 default既存名称変更/関連表不変、C2 名称境界/正規化重複、C3 stale version/並列CAS、C4 Role/Session/DTO非露出、C5 DB失敗/保存後再読取・21件境界、C6 UI入力/通知/二重保存、C7 viewport/keyboard/a11y。除外:ブランド新規作成(A01-02)、状態変更(A01-04)、カテゴリー、Native管理、製品SUT修正。",
+      "case_selection_reason": "TR1=admin-catalog.md:181-195,211-220とroles-and-permissions.md:5-19の正式BR/AC・Role（ブランド編集固有の詳細ACは限定的）。TR2=admin-master-pages.tsx:353-376,431-543のStaffPage/InlineNameEditor/expectedVersion/通知。TR3=AdminMasterUseCases.updateBrand:183-198/validName:228-237/requireStaff:239-249→DexieBrandRepository.updateDetails:518-531、database.ts:65 uniqueとnormalization.ts:1-3。TR4=default-dataset.ts:44-49,693-705、既存Component:152-173はmaxlength/作成のみ、Integration:130-165は名称上限/一覧/状態変更のみ、Repository Contract:44-65は正規化uniqueのみ。High R1-R3/Medium R4-R7をC1-C7へ対応。固定HEAD 4a3fb6bdで12ファイル50/50静的断片assert・隔離NFKC3/3成功（Vitest/validator本体ではない）。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-03 HEAD 4a3fb6bd9a4c: 基本分析の個別根拠を追加。正式BR/AC・Role/State/Data・Web→Use Case→Dexie/Seed3ブランド/公開8商品、High R1-R3/Medium R4-R7、TR1-TR4/C1-C7の採否と再開条件を整理。12ファイル50/50静的断片assert・隔離NFKC3/3成功。既存Component/Integration/Repositoryは部分証拠でブランド編集の直接実Runではない。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、21件境界、視覚/a11y、製品適合/最終CIは未受入。analyzedへの状態変更は共通Planとの原子的更新・既存validator/契約テスト確認後に判定するためreview_required維持。C1-C7固定HEAD隔離実Runと正式期待照合で再開。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -17605,7 +17605,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.updateBrand"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-03の個別静的根拠・C1-C7/再開条件を整理、review_required継続（操作103/188・非default16/20）。50/50静的断片assert・NFKC3/3。直接Vitest/validator/実Web/DB・Session/並列/製品適合/最終CIは検証待ち。共通対象は同じSCREEN-ADMIN-BRANDS-A01-03。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 431,
@@ -17633,6 +17633,103 @@
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 183,
           "signature": "async updateBrand(request: UpdateBrandRequest): Promise<BrandAdminListItem> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 181,
+          "end_line": 195,
+          "reason": "ブランド管理とdefault UI"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 211,
+          "end_line": 220,
+          "reason": "共通BR/AC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staff/非staff認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 353,
+          "end_line": 376,
+          "reason": "InlineNameEditorローカルstateと保存"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 431,
+          "end_line": 543,
+          "reason": "StaffPage/ブランド名称編集/expectedVersion/通知"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 183,
+          "end_line": 198,
+          "reason": "updateBrandと保存後検索"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 228,
+          "end_line": 249,
+          "reason": "validNameとrequireStaff"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 518,
+          "end_line": 531,
+          "reason": "transaction外version照合とput"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/database.ts",
+          "start_line": 65,
+          "end_line": 65,
+          "reason": "unique nameNormalized"
+        },
+        {
+          "path": "src/domain/services/normalization.ts",
+          "start_line": 1,
+          "end_line": 3,
+          "reason": "NFKC/trim/lowercase/空白正規化"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 44,
+          "end_line": 49,
+          "reason": "default3ブランドID/名称"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 693,
+          "end_line": 705,
+          "reason": "default active/version"
+        },
+        {
+          "path": "tests/component/admin-master-pages.test.tsx",
+          "start_line": 152,
+          "end_line": 173,
+          "reason": "maxlength/作成部分証拠、編集保存は未検証"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 130,
+          "end_line": 165,
+          "reason": "名称上限・一覧・状態変更部分証拠"
+        },
+        {
+          "path": "tests/repository-contract/repositories.test.ts",
+          "start_line": 44,
+          "end_line": 65,
+          "reason": "正規化unique部分証拠"
         }
       ]
     },
