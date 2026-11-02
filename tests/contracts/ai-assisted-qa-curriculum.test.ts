@@ -521,6 +521,30 @@ describe("AI-assisted QA static learning course", () => {
     }
   });
 
+  it("checks evidence coverage for M05 locators, M06 repeat runs, and M07 trace review", () => {
+    const root = "training/ai-assisted-qa-course/assessment/scoring-tests";
+    const requirements = [
+      ["M05", "M05-CR-03", "反復実践P05・P06"],
+      ["M06", "M06-CR-02", "反復実践P04・P06"],
+      ["M06", "M06-CR-03", "反復実践P01・P02・P03"],
+      ["M07", "M07-CR-02", "反復実践P01・P02・P03・P06"],
+    ];
+    for (const [moduleId, criterionId, evidence] of requirements) {
+      const scoring = JSON.parse(
+        fs.readFileSync(path.join(repositoryRoot, root, `${moduleId}.json`), "utf8"),
+      ) as {
+        criteria: {
+          id: string;
+          required_evidence: string[];
+          pass_conditions: string[];
+        }[];
+      };
+      const criterion = scoring.criteria.find((item) => item.id === criterionId);
+      expect(criterion?.required_evidence.join(" ")).toContain(evidence);
+      expect(criterion?.pass_conditions.join(" ")).toContain(evidence);
+    }
+  });
+
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
     const assessmentRoot = "training/ai-assisted-qa-course/assessment";
     const scoring = JSON.parse(
