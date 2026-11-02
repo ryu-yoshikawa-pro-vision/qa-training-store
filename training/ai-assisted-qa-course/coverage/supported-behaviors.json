@@ -11112,12 +11112,12 @@
       "rule_refs": [],
       "route": "`/orders`",
       "risk": "失敗決済を成功と誤表示し配送準備を期待させる、失敗への復旧判断を妨げる、内部値露出によるNative表示の理解困難",
-      "test_condition": "payment-declined Reset→regular本人ログイン→order-payment-failedのstatus=payment_failed、Web『支払い失敗』/Native payment_failedを確認。defaultのorder-paidを同時比較し、成功状態への誤分類がないことを照合。実ブラウザ/Android正本の確認は別途",
-      "test_responsibility": "payment-declined Seedのfailed Order/Payment→listMyOrders→Dexie/SQLiteのstatus抽出→Web/Native表示の区分を追跡する",
-      "case_policy": "failed/DECLINEDとpaid/succeededの代表対照を選び、FAILED画面の再試行権限や失敗理由の粒度は独立Case。Native非ローカライズは未解決候補として記録",
-      "case_selection_reason": "顧客向け注文一覧が失敗と成功を混同すると支払・配送状況への誤認を生む",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "docs/spec/features/orders.mdの空/処理中/失敗状態、本人注文のUse Case、Dexie/SQLiteの保存状態、Web/Native一覧、Seed metadata/変換/defaultデータを読み取り照合。実ブラウザ・Android実機・視覚正本のPASSは未確認。製品・正式仕様・既存Seed/製品テストは変更しない。",
+      "test_condition": "payment-declined Reset→初期guestでは本人一覧非表示→regular@example.com本人ログイン→order-payment-failed(Order.payment_failed, Payment.failed/DECLINED)とorder-paid(Order.paid, Payment.succeeded)を同一一覧で比較。Webは『支払い失敗』dangerと『発送準備待ち』warning、Nativeはpayment_failedとpaidの文字列区別を確認。C1-C3は静的根拠確認、C4=guest/staff/別顧客の非露出、C5=詳細/再試行の責務分離、C6=DB/Session前後snapshot・実Web/Android視覚/a11yを別受入として残す",
+      "test_responsibility": "orders.md:18-35・BR-CHECKOUT-003→payment-declined/default Seedの同一regularユーザーfailed/paid Order・Payment→CheckoutOrderUseCases.listMyOrders(requireCustomer)→Dexie/SQLiteの本人抽出→OrderListItem.status→Web statusTone/日本語ラベル・Native内部値表示を追跡。Payment.errorCodeは一覧DTOにないため理由表示は注文詳細/失敗画面の別Case",
+      "case_policy": "C1 failed/DECLINED vs paid/succeeded、C2 Web表示/tone、C3 Native文字列の代表対照を採用。C4 Role/所有権、C6 非更新・視覚は実Run待ち。C5 再試行・失敗理由・詳細遷移は独立Caseへ分離。Nativeの内部値表示と正式UXの適合は未決の製品差として保持",
+      "case_selection_reason": "High=失敗した支払を成功扱いすると金額/配送判断を誤る。failedとpaidを同一regular Seedに持つため、状態・所有権・Web/Nativeの相違を最小データで比較できる。実Run不足を基本分析の静的完了と混同しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD fe496e0ebd85: 基本分析のみ成立。正式orders.md:18-35は一覧で処理中/失敗を別表示し、BR-ORDER-001/AC-ORDER-001の注文snapshotを要求。BR-CHECKOUT-003は失敗決済をpayment_failedとし在庫を変更しない。Role=active customer、payment-declined metadata.ts:218-228は初期guest→regular@example.com本人ログイン必須。scenarios.ts:76-79はdefault datasetを変更せず、default-dataset.ts:399-557で同一user-customer-regularのorder-payment-failed/Payment.failed/DECLINEDとorder-paid/Payment.succeededを対照にできる。listMyOrders:377-387のrequireCustomer→Dexie:145-169 userId抽出/SQLite:2209-2250 user_id抽出→OrderListItem.statusはOrder.statusを返しPayment.statusを一覧DTOに含めない。Web checkout-order-pages.tsx:40-52,615-647はpayment_failed『支払い失敗』+danger、paid『発送準備待ち』+warning（status-badge.tsx:10-23）。Native native-purchase-screens.tsx:1120-1165はpayment_failed/paidの内部文字列をそのまま表示し、値としては区別できるが利用者向けラベルとしての正式適合は未決。High Risk=失敗を成功と誤認/他人の注文漏洩/復旧妨害。TR1=本人限定、TR2=Seed状態対照、TR3=DTO→Web/Native表示、TR4=Payment/Order不一致時の表示、TR5=非更新、TR6=UX/視覚。C1本人failedとpaid対照、C2 Webラベルとtone、C3 Native文字列、C4 guest/staff/別顧客拒否、C5詳細/再試行への導線の別Case分離、C6 DB/Session不変・視覚/a11yを採用。基本分析は静的照合の受入であり、C4/C6の実Run、別Session、DB前後、Android実機、正式UX判断、製品適合、全CI成功は未受入。SUT/仕様/Seed/既存テストは不変更。",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001",
@@ -11189,15 +11189,15 @@
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 672,
-          "end_line": 720,
-          "reason": "Webの0件と注文ありの分岐、注文status・詳細リンク"
+          "start_line": 615,
+          "end_line": 647,
+          "reason": "Web注文一覧の空状態/failed・paidラベルと詳細導線"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1215,
-          "end_line": 1254,
-          "reason": "Nativeの0件と注文あり分岐、order.statusの直接表示"
+          "start_line": 1120,
+          "end_line": 1165,
+          "reason": "Native注文一覧の読み込み・本人status内部値表示（注文詳細の支払い表示とは別）"
         },
         {
           "path": "src/seeds/metadata.ts",
