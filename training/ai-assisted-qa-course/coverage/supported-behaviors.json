@@ -13247,21 +13247,21 @@
       "source_path": "docs/spec/features/reviews.md",
       "source_line": 61,
       "source_text": "オペレーターおよび管理者がレビューの公開状態と一括操作結果を確認する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,hidden-reviews,admin-bulk-partial-failure。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 一括操作結果を表示",
+      "platform": "web-desktop, web-tablet（管理レビューはNative対象外）",
+      "role": "active operator/adminのみ。default初期guest→staffでログイン。guest/customer/停止・退会staff/Sessionなしは一括処理前に拒否。ループ中の権限失効は各対象の再認可で分離",
+      "scenario": "default/hidden-reviews（初期guest、published9/hidden1/deleted1の11件）、reviews-empty（0件）、admin-bulk-partial-failure（product-mug競合設定のみでレビュー固有の部分失敗Seedではない）。stale version・deleted混在は隔離操作で生成",
+      "data": "defaultのReview 11件はpublished9/hidden1/deleted1。hidden=review-hidden、deleted=review-deletedはReview.userId=gold対Order.userId=regularのcross-owner。staff Sessionでpublishedの異なるreviewId/versionを選び、staleは事前changeVisibilityでversionを進め、deleted/不存在ID/expectedVersions欠落を混在させる。処理前後にReview、StatusHistory、ProductReviewSummary（件数/評価総計/平均/分布/version）、Order、Sessionを照合。1件ごとの独立transactionでありbulk全体の一括rollbackではない",
       "action": "一括操作結果を表示",
-      "expected": "レビュー公開/非公開の一括変更結果について成功件数と失敗件数を実結果と一致させる",
+      "expected": "active operator/adminのtargetIds 1〜50件について、入力順resultsのsuccess/error（CONFLICT/INVALID_STATE/NOT_FOUND等）を数えsucceededCount/failedCountと一致させる。成功対象だけReview.version/status・History・published限定Summaryを原子的に更新し、失敗対象のデータは不変。0件/51件はVALIDATIONとして一括拒否。deleted→published/hidden不可。UIは戻り値から「n件成功、m件失敗」を表示し選択解除・再検索する。ただし完了後getDetail失敗で変更済みでも失敗計上され得るHigh候補と、UI bulk例外未捕捉・複数ページ選択による50超過は実Run/正式期待未確定",
       "rule_refs": [],
       "route": "`/admin/reviews`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "一括操作結果を表示の事前状態・実施後を比較し、レビュー公開/非公開の一括変更結果について成功件数と失敗件数を実結果と一致させることを確認する",
-      "test_responsibility": "一括操作結果を表示の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "一括操作結果を表示の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=guest/customer/停止staffの一括変更・PII露出、High R2=deleted再公開/hiddenの不正遷移、High R3=部分成功時にReview/History/Summaryが不整合、High R4=transaction成功後getDetail失敗で成功更新を失敗計上する可能性、R5=stale version/同時操作/重複IDと成功失敗件数、R6=Webの選択跨ぎ・50超過時の未捕捉Promiseと古い通知、R7=defaultのcross-ownerとadmin-bulk-partial-failureのproduct用設定をレビュー専用Fixtureと誤認。実障害/情報漏えいは未再現",
+      "test_condition": "TR1/C1=staffが異なるpublished2件をhiddenへ一括変更し2成功0失敗、2件のversion/Historyと各ProductSummary減算を比較。TR2/C2=成功1+stale CONFLICT1+deleted INVALID_STATE1+不存在 NOT_FOUND1の混在で入力順resultsと1成功3失敗、失敗対象不変を照合。TR3/C3=guest/customer/停止staff/Sessionなしは処理開始前に拒否、DB/Session非露出・不変。TR4/C4=targetIds 0/50/51、expectedVersions欠落、同一ID重複、複数ページ選択の境界と件数定義。TR5/C5=同時staff操作/権限失効・transaction内CAS、部分失敗のReview/History/Summary/Order/Session snapshotとrollback。TR6/C6=Web desktop/tabletの選択・結果メッセージ・再検索・失敗例外/視覚/a11y。TR7/C7=成功commit後getDetailの失敗注入時にfalse failureが起きないか確認し、正式仕様の件数オラクルと照合。C1-C7採用、直接実Run未受入",
+      "test_responsibility": "正式reviews.md:61-62/92-96→Web AdminReviewsContent.bulk(selected ID→version)→AdminReviewUseCases.bulkChangeVisibility（初回requireStaff、1〜50件、順次changeVisibility、個別catch、結果集計）→changeVisibility（毎件requireStaff、version/transition→review-change transactionでReview/StatusHistory/Summary）→DexieReviewRepository.update CAS→getDetail。deleted終端はstate-transitions、published限定SummaryはapplyPublishedReviewDelta。Webは結果件数表示・選択解除・mutation再検索。Native管理レビューは対象外",
+      "case_policy": "C1 正常2件の順次成功、C2 混在の部分成功/失敗理由と順序、C3 Role/Session拒否、C4 0/50/51・version欠落・重複ID/ページ跨ぎ、C5 transaction/CAS・DB/History/Summary不変・並列、C6 Web結果表示/エラー・desktop/tablet/a11y、C7 commit後detail失敗とfalse failureを採用。全体原子性を誤期待しない。既存integrationは50上限と単一changeVisibilityのみ部分証拠。未実行をPASSにしない",
+      "case_selection_reason": "一括操作の成功/失敗件数は実DB変更・商品公開集計と対応する必要があり、部分成功とcommit後DTO失敗の誤集計はHigh。Role/状態遷移/version/Seedを独立したC1-C7に分け、実行証拠と正式件数オラクルを分離する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 0ca6a828e7eb: reviews.md BR/AC、Web bulkの選択/件数表示、Use Caseの1〜50・逐次個別catch・毎件再認可、Dexie CASとreview-change transaction、published限定Summary、default/hidden/reviews-empty/admin-bulk-partial-failure Seedを照合。C1-C7/High R1-R7の採否を確定して基本分析のみanalyzed。既存integrationは単一visibility/50件上限の部分証拠。直接Vitest/Prettier/Playwright・実Web・別Role/Session・DB前後・同時操作・commit後getDetail障害・視覚/a11y・製品適合・全CIは未受入",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
@@ -13271,7 +13271,7 @@
       "related_use_cases": [
         "AdminReviewUseCases.bulkChangeVisibility"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "2026-11-02: A01-02基本分析のみ完了（操作75→76/188、非default16/20）。部分成功の実結果/DB、50境界、UI未捕捉例外、commit後getDetail false failure候補は実Run・正式判断待ち。次はSCREEN-ADMIN-REVIEWS-A02-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 252,
@@ -13292,7 +13292,7 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default/hidden-reviewsの11レビュー（published9/hidden1/deleted1）、reviews-emptyは0。admin-bulk-partial-failureはproduct-mug設定でレビュー専用の失敗Seedではない。stale/deleted混在は隔離操作で生成"
       },
       "use_case_evidence": [
         {
@@ -13300,6 +13300,85 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 441,
           "signature": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 55,
+          "end_line": 96,
+          "reason": "管理者一括結果/公開状態・BR/AC・Web desktop/tablet"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 260,
+          "end_line": 313,
+          "reason": "selected ID/version、bulk結果メッセージ、UI例外未捕捉"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 375,
+          "end_line": 475,
+          "reason": "複数選択・表示/ページング/再検索"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 480,
+          "reason": "1〜50・逐次処理/個別catch・変更後getDetail"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 482,
+          "end_line": 492,
+          "reason": "active staff再認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 322,
+          "end_line": 327,
+          "reason": "version CASとReview更新"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 26,
+          "end_line": 30,
+          "reason": "deleted終端・published/hidden遷移"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 5,
+          "end_line": 49,
+          "reason": "公開件数/平均/分布の差分と不整合拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 591,
+          "end_line": 665,
+          "reason": "hidden/deletedとcross-owner実Seed"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 104,
+          "reason": "default/hidden-reviews/reviews-empty"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 141,
+          "end_line": 143,
+          "reason": "admin-bulk-partial-failureは商品競合のみ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 242,
+          "end_line": 274,
+          "reason": "単一changeVisibility・50件上限の既存部分証拠"
         }
       ]
     },

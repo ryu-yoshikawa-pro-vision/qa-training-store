@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A01-02`（一括操作結果の成功/失敗件数・部分失敗）。直前`SCREEN-ADMIN-REVIEWS-A01-01`はoperator/admin一覧の認可、published/hidden/deletedと検索/ページング、Web→AdminReviewUseCases.search/getDetail→Dexie、default cross-owner Seed・PII範囲、High R1-R7/TR1-R7/C1-C7を照合して**基本分析のみ**`analyzed`（操作74→75/188、非default16/20維持）。hidden/deleted本文・emailのstaff表示の最小権限/削除後保持は正式判断待ち。Role別実Run・DB/Session前後・Web desktop/tablet・視覚/a11y・製品適合・最終CIは未受入。次はA01-02のbulk成功/失敗・stale version・deleted・部分失敗を個別分析。
+- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A02-01`（publishedレビューの非公開化・集計整合）。直前`SCREEN-ADMIN-REVIEWS-A01-02`は一括結果の1〜50件、成功/失敗混在、逐次transaction/Review・History・Summary、Role/Session、version・deleted・重複ID、Web結果表示とSeed差を照合して**基本分析のみ**`analyzed`（操作75→76/188、非default16/20）。commit後getDetail失敗で変更済みなのに失敗計上されるHigh候補、Web bulk例外未捕捉/50超過、直接Vitest/実Web/DB前後/並列/視覚/a11y/製品適合/最終CIは未受入。次はA02-01のpublished→hiddenと商品集計/履歴の整合を確認。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A01-02（一括操作結果の成功/失敗件数）
+
+- **基本分析のみ**：`review_required→analyzed`、操作75→76/188、非default16/20維持。正式`BR-REVIEW-001/002・AC-REVIEW-001/002`、Web→Use Case→Dexie・Seed・Risk/TR/C1〜C7の採否を照合。製品適合/実Run/最終CI PASSとは分離。
+- **Role/State/Data・Seed**：Web desktop/tabletのactive operator/admin限定、default初期guest→staffログイン。default/hidden-reviewsはpublished9/hidden1/deleted1の11件、reviews-emptyは0件。hidden/deletedのReview.userId=gold対Order.owner=regularのcross-ownerを保持。admin-bulk-partial-failureはproduct-mug競合で、レビューの混在失敗fixtureではない。stale version/削除済み混在は隔離操作で作る。
+- **UI→Use Case→Repository**：`AdminReviewsContent.bulk`はselectedのreviewId/versionを`bulkChangeVisibility`へ渡し、返却されたsucceededCount/failedCountを表示して選択解除・再検索。`bulkChangeVisibility:441-480`は初回staff認可とtargetIds 1〜50件を検証し、順番に`changeVisibility`を呼び各結果を個別catchして入力順に集計する。各`changeVisibility:392-439`は再認可・version/状態検査→`review-change` transaction内でReview更新・StatusHistory追加・published限定ProductReviewSummary差分を実施。Dexie `update:322-327`はversion CAS、`deleted`は終端。**一括全体は単一transactionではなく、成功済み対象は後続失敗で巻き戻さない**。
+- **High候補・仕様境界**：`changeVisibility`はtransaction完了後に`getDetail`を呼ぶため、その後の読取/再認可失敗が起きるとbulkは失敗件数に算入し得るが、変更自体はcommit済みという**結果と永続状態の不一致候補**。直接故障注入・実再現は未実施。Web `bulk`にtry/catchがなく、ページを跨ぐselectedが50件を超えたときの拒否/古い通知も未実証。正式仕様は成功/失敗結果確認と公開集計の一致を要求するが、部分成功時の集計・UIオラクルは実証待ち。
+- **Risk/TR/Case採否**：C1=published2件正常非公開・2成功0失敗/History/Summary、C2=正常1+stale CONFLICT+deleted INVALID_STATE+不存在 NOT_FOUNDの混在・1成功3失敗と失敗対象不変、C3=guest/customer/停止staff・Sessionなしの全体拒否、C4=0/50/51・version欠落/重複ID/ページ跨ぎ、C5=並列・権限失効と各transaction/CAS・DB/Session/Order/History/Summary前後、C6=Web desktop/tablet結果表示/選択解除/再検索/例外・視覚/a11y、C7=commit後getDetail失敗のfalse failureと正式期待を採用。未実行CaseをPASSにしない。
+- **直接証拠・CI**：既存`tests/integration/review-user-use-cases.test.ts:242-274`は単一visibility成功と51件拒否のみの部分証拠。今回の仕様・実装・Seed・validator必須欄/3照合フラグの静的照合は実施。直接Vitest/Prettier/Playwright、実Web/別Role/Session、DB前後/並列/失敗注入、視覚/a11yは未実施。作業前HEAD `0ca6a828e7eb`の[Web CI #41420181765](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41420181765)はcompleted/failure（Contracts/Integration/Code Quality成功、Style Quality・required Chromium E2E・verify/validate失敗）。変更後HEADのCIは別判定。
+- **再開条件と次**：固定HEADで混在bulk結果の実Run、Role別・同時操作・Review/History/Summary/Order/Sessionの前後、commit後読取失敗の結果整合、Webの50超過/失敗表示、視覚/a11y・正式期待を検証する。基本分析のみ完了とし、製品不具合/製品適合は未確定。次は`SCREEN-ADMIN-REVIEWS-A02-01`（published→hidden）。SUT・正式仕様・Seed/Reset・製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A01-01（スタッフ一覧の認可・個人情報境界）
 
