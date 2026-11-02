@@ -271,3 +271,59 @@ Prettier違反、required Chromium E2Eが失敗し、Vitest ContractsとCode Qua
 新HEADのCIは各実行を独立に確認する。
 この監査でStyle Quality・実モデルの結果は受入済みとしない。
 Codex中断、定期実行4件の現在作業、PR #210製品側の変更境界を維持する。
+
+## 2026-11-02 演習番号と正式採点基準の差分25目標の個別判断
+
+前回抽出した25目標の`P01〜P06`参照差は、演習・正式採点基準
+`scoring-tests/*.json`・模範・`evaluation_policy.execution_evidence`
+を照合して次のように判断した。**差分が消えたことは、学習目標の内容、
+実環境での教材成功や実OpenCodeモデルの合格を意味しない。**
+
+### 採点条件に不足があり修正した10目標
+
+| 目標ID | 修正内容と根拠 |
+| --- | --- |
+| M09-01 | P02のPR HEAD確認はM09-02の課題。trigger判断のP01と基準workflow引継ぎのP06を評価 |
+| M09-04 | P04の費用比較に加え、P01のtrigger差分とP06の未確認・停止条件を評価 |
+| M07-04 | P04修正判断、P05の新規回帰条件、P06のbefore/after Runを合わせる |
+| M02-02 | P01の数量、P02の価格・在庫の状態、P03の検索データを別条件として評価 |
+| M08-02 | P01の作業tree差分、P02の選択stage、P03の誤stage停止を対応付ける |
+| M08-03 | P04の2回目commitの実差分と、P06のPR草稿・比較範囲を対応付ける |
+| M05-03 | P05の明細単位Locator・数量Assertion、P06の誤修正拒否を合わせる |
+| M06-02 | P04のReset/Context独立性の判断とP06のinitial/repeat実Runを合わせる |
+| M06-03 | P01の本人作成Case・Locator、P02の画面/APIの限界、P03の上限観測を評価 |
+| M07-02 | P01/P02の診断に加え、P03のTrace仮説・P06のRun比較を評価 |
+
+前回のM09・M07-04修正に続き、今回の修正コミット：
+[M02/M08](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/b3deae73b6ed681c7104285040a3dc682e6d3bdf)、
+[M05/M06/M07](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/3c6c8583174fbc954bef4b32662e0bfa5756be7b)。
+それぞれ`required_evidence`と`pass_conditions`を揃え、
+`tests/contracts/ai-assisted-qa-curriculum.test.ts`へ参照関係の回帰テストを追加した。
+
+### 修正不要と判断した15目標（P番号差分のみ）
+
+| 目標ID | 判断根拠 |
+| --- | --- |
+| M00-03 | P03はAIの参照誤りを指摘する準備。P04単独で独立依頼・AI応答・原文照合・無変更確認を必須判定している |
+| M03-01〜04 | P05は4技法から2題材を選ぶ選択課題。全4目標でP05を強制すると、許可された選択を不合格にする。P01〜04の各技法を個別評価する |
+| M03-05 | P05は技法選択・Caseへの追跡、P06は固定Skill runtimeの成否と限界。課題見出しでP05にM03-05と書かれていないが、Case traceabilityへの関係があるため採点基準を維持する |
+| M04-04 | P02は未確定のUI文言を区別する練習。P06で選定した別Caseの不明条件・保留・第三者引継ぎを独立に評価する |
+| M05-01 | P03はP02のコードに故意の構文・型・実行時エラーを作る関連課題。P01/P02/P04のTS・非同期理解と併せた評価は妥当 |
+| M05-02 | P05の2明細Locatorの対象限定が中心証拠。P06は誤修正拒否だが、同目標のLocator達成にはP05で必要証拠がそろう |
+| M05-04 | P03の3種エラーとP04のPromise順序が本人理解の中心。P06の誤修正棄却はM05-03/05等で扱う |
+| M05-05 | P05の実操作・未操作の区別とP06のbefore/after Run比較を併せ、成功・未実行を区別させる |
+| M06-01 | P01の別Case実装とP05の転用/別条件判断で実装能力を確認。P02は数量0のUI境界の補助分析 |
+| M06-04 | P06でspec・配布SHA・Run ID・report内test数を直接照合。P04の再実行は独立性（M06-02）として別評価する |
+| M09-02 | P02単独でPR HEAD、merge SHA、Run/Check/Artifactの同一性を確認。P06は後続M10向けの総合引継ぎ |
+| M09-03 | P03単独で架空6条件の失敗step・未実行・根拠を分析。P06は後続M10向けの総合引継ぎ |
+
+以上で**P番号差分の候補25目標についての採点範囲の判断は25/25**。
+10目標は採点基準を修正し、15目標は根拠を確認して現状維持とした。
+各目標の学習理解・クイズ正答理由・完成specの技術妥当性・実行証拠の
+**意味的な最終受入は別途必要**。P番号比較だけで51目標の内容レビューを完了扱いしない。
+
+### 追加検証が必要な事項
+
+- 新しい採点文字列の契約テスト、formatter、validatorと、最終HEADでのWeb CIを照合する。
+- M05〜M07のPlaywright実Run（before/after、initial/repeat、Trace、Reset、SHA）がないままLevel 2と判定しない。
+- M03の固定Skill runtimeと、M04/M07/M10の実OpenCodeモデル校正は未受入。別解・誤PASS・Prompt Injectionと実際の習熟を静的チェックで代用しない。
