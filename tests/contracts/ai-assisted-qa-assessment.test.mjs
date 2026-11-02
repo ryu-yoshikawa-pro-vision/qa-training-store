@@ -1009,7 +1009,11 @@ it.skipIf(process.platform === "win32")(
     fs.unlinkSync(path.join(root, "course-assessment-exports"));
 
     fs.renameSync(path.join(root, ".course-assessments"), path.join(root, "moved-attempts"));
-    fs.symlinkSync(path.join(root, "moved-attempts"), path.join(root, ".course-assessments"), "dir");
+    fs.symlinkSync(
+      path.join(root, "moved-attempts"),
+      path.join(root, ".course-assessments"),
+      "dir",
+    );
     expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
   },
 );
