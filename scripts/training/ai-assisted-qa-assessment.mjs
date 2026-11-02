@@ -497,7 +497,7 @@ async function getOpenCodeVersion() {
 
 export function writeImmutableOpenCodePrompt(promptPath, prompt) {
   try {
-    writeImmutableOpenCodePrompt(promptPath, prompt);
+    fs.writeFileSync(promptPath, prompt, { encoding: "utf8", flag: "wx", mode: 0o600 });
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
     const existing = fs.lstatSync(promptPath);
@@ -512,7 +512,7 @@ export function writeImmutableOpenCodePrompt(promptPath, prompt) {
 
 async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, fileName }) {
   const promptPath = path.join(directory, fileName);
-  fs.writeFileSync(promptPath, prompt, { encoding: "utf8", flag: "wx", mode: 0o600 });
+  writeImmutableOpenCodePrompt(promptPath, prompt);
   const environment = buildOpenCodeEnvironment({
     extra: {
       OPENCODE_DB: ":memory:",
