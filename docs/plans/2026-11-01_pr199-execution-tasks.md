@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-DETAIL-A01-02`（支払・配送・タイムラインの表示）。直前`SCREEN-ORDERS-DETAIL-A01-01`は正式BR-ORDER-001/AC-ORDER-001、defaultの本人5状態/保存Order・OrderItem snapshot、Web/Native→getMyCustomerOrder→getMyOrder本人認可→Dexie/SQLiteの保存値・lineNumber昇順、R1-R5/TR1-TR6/C1-C6を照合し**基本分析のみ**`analyzed`（操作65→66/188、非default15/20維持）。商品/User更新後の直接不変性、別Session/実Web/Android・SQLite DB前後・視覚/a11y・同時更新、Web会員rank表示の正式適合は未受入。次はA01-02を1件扱う。
-- **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ORDERS-DETAIL-A01-03`（レビュー投稿可否）。直前`SCREEN-ORDERS-DETAIL-A01-02`はorders.md BR-ORDER-001/002・AC-ORDER-001/002、defaultの本人5状態Payment/Shipment/単一History、Web/Native→getMyCustomerOrder→getMyOrder本人認可→Dexie/SQLiteの同一orderId/attemptNumber/createdAt順DTO、Admin遷移とHigh R1-R6/TR1-TR6/C1-C6を照合し**基本分析のみ**`analyzed`（操作66→67/188、非default15/20維持）。Native timeline非表示・paid Seed Shipment=nullと実決済成功後pendingとの差・Seedの単一履歴/全遷移の差、実Web/Android/SQLite・別Session・並列・DB/Session前後・視覚/a11y・正式UX適合は未受入。次はA01-03を1件扱う。
+- **CI横断**：作業前HEAD `9258ea6170cc`の[Web CI #41396417866](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41396417866)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。対象の既存integration successを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEAD CIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A01-02（支払・配送・timeline）
+
+- **基本分析のみ**：`review_required→analyzed`、操作66→67/188、非default状態15/20維持。正式`orders.md:7-20,58-98`のBR-ORDER-001/002・AC-ORDER-001/002を照合。支払・配送・timelineの静的な実装経路と主要Risk/TR/Case採否を確定したもので、製品適合・実Web/Android/SQLite・実Run PASSではない。
+- **Role/State/Data・Seed**：defaultは初期guest、orders-phase1-statusesは初期operator、reviewable-ordersは初期guest。regular本人でログイン後にOrderDetailを取得。default-dataset.ts:400-590の本人5注文はPayment attempt#1が失敗注文のみfailed/DECLINED、他はsucceeded。Shipmentはfailed/paidでnull、preparingでpending、shippedでshipped、deliveredでdelivered。OrderHistoryは各注文に`fromStatus=null→現在status`の1行だけで、全遷移を保存していない。実決済成功の既存integrationではpaid/Shipment pending/History [pending_payment,paid]が検証され、Seedとの差をCase化。
+- **UI→Use Case→Repository**：Web `checkout-order-pages.tsx:663-779`はPayment method/status、Shipment status/carrier/tracking、timelineを描画。Native `native-purchase-screens.tsx:1168-1300`はPayment status/error keyとShipmentを描画するがtimelineは見当たらない。両者は`getMyCustomerOrder:398-409→getMyOrder:389-396`のrequireCustomer/owner checkを経由し、Dexie `order-review-repositories.ts:68-140`とSQLite `native-customer-application-repositories.ts:2135-2210`がPayment attemptNumber・History createdAt昇順で保存DTOを返す。Admin startPreparation/ship/completeDeliveryはpaid→preparing→shipped→deliveredのOrder/Shipment/Historyをtransaction内で更新。
+- **High Risk/TR/Case採否**：R1=他人の支払・配送・追跡番号漏えい、R2=Order/Payment/Shipment不整合・二重決済、R3=Seedの単一Historyを完全timelineと誤認、R4=Native timeline欠落、R5=並列更新の混在読取り、R6=paid Seed shipment nullと実成功pendingの差。C1=本人5状態の保存値/表示、C2=guest/staff/別customer拒否、C3=許可遷移/Shipment同時更新、C4=Seed履歴と実履歴の差・同時刻順序、C5=Web/Native表示差、C6=実Web/Android/SQLite・別Session・DB/Session前後・並列・視覚/a11yを選定。C1-C5は静的経路と既存integrationの部分証拠のみ。C2/C3/C4/C6の直接実Run、C5の正式UX適合、製品不具合確定は未受入。
+- **直接証拠・CI**：現HEADの既存`tests/integration/checkout-order-use-cases.test.ts:155-224`は実生成注文のpaid/Payment succeeded/Shipment pending/2行Historyの部分証拠であり、今回直接Vitest/formatter/Playwrightは未実施。台帳の188操作/20状態と対象の11必須欄・3照合フラグ・関連Use Case・Case採否を静的チェック。作業前HEAD `9258ea6170cc`のWeb CI #41396417866はcompleted/failure（Contracts/Style Quality/required Chromium E2E/verify/validate失敗）。最終CI受入は独立未完。
+- **再開条件・次**：固定HEADで実Web/Android/SQLiteの5状態・別Role/Session・DB/Session前後、Seed/実遷移Historyの時系列、並列更新、Native timelineとpaid Shipment差の正式UI期待、視覚/a11yを実証する。次の共通対象は`SCREEN-ORDERS-DETAIL-A01-03`。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A01-01（注文snapshot基本分析）
 
