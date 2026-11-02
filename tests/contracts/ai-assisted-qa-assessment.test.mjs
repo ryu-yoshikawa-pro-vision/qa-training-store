@@ -335,6 +335,93 @@ it("does not restore a fabricated completed result without verified evidence", (
   expect(recover).toThrow(/completion status is inconsistent/);
 });
 
+it("restores a completed result only with the matching candidate and passing calibration", () => {
+  const workspaceRoot = path.join(tempRoot, "completed-result-recovery");
+  const phaseId = "P1";
+  const assessmentId = "123e4567-e89b-42d3-a456-426614174003";
+  const sourceSha = "pinned-source";
+  const modelId = "provider/model";
+  const calibrationId = "a".repeat(64);
+  const assetHashes = { curriculum: "pinned-hash" };
+  const candidate = {
+    schema_version: 1,
+    assessment_id: assessmentId,
+    phase_id: phaseId,
+    objectives: [
+      {
+        objective_id: "M04-01",
+        status: "assessed",
+        level: 2,
+        criterion_ids: ["M04-CR-01"],
+        evidence_ids: ["E-M04-01-LIVE"],
+        rationale: "Verified independent explanation",
+        gaps: [],
+        review_paths: ["course/modules/M04/README.md"],
+        unmet_knowledge_nodes: [],
+      },
+    ],
+  };
+  const calibration = {
+    id: calibrationId,
+    status: "passed",
+    critical_false_passes: 0,
+    mismatches: [],
+    identity: {
+      model_id: modelId,
+      opencode_version: "2.0.22",
+      asset_hashes: assetHashes,
+    },
+  };
+  const result = finalizeAssessment({
+    candidate,
+    calibration,
+    sourceSha,
+    versions: {
+      attempt: 1,
+      terminalModuleId: "M04",
+      modelId,
+      openCodeVersion: "2.0.22",
+      asset_hashes: assetHashes,
+    },
+    inputSnapshot: [{ evidence_id: "E-M04-01-LIVE", path: "workspace/M04/answers.md" }],
+    deterministicChecks: [{ id: "M04-END", status: "passed" }],
+    challenge: { id: "CH-P1-1", objective_ids: ["M04-01"] },
+    now: "2026-11-02T00:00:00.000Z",
+  });
+  expect(result.completed).toBe(true);
+  const phaseRoot = path.join(workspaceRoot, ".course-assessments", phaseId);
+  const attempt = path.join(phaseRoot, "attempts", assessmentId);
+  const calibrationDir = path.join(workspaceRoot, ".course-assessments", "calibrations");
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.mkdirSync(calibrationDir, { recursive: true });
+  const candidatePath = path.join(attempt, "validated-candidate.json");
+  const calibrationPath = path.join(calibrationDir, `${calibrationId}.json`);
+  fs.writeFileSync(path.join(attempt, "result.json"), JSON.stringify(result));
+  fs.writeFileSync(
+    path.join(attempt, "input-manifest.json"),
+    JSON.stringify({
+      assessment_id: assessmentId,
+      phase_id: phaseId,
+      source_sha: sourceSha,
+      evaluator_model_id: modelId,
+      objective_ids: ["M04-01"],
+    }),
+  );
+  fs.writeFileSync(candidatePath, JSON.stringify(candidate));
+  fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
+  const recover = () =>
+    reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+  expect(recover().completed).toBe(true);
+  expect(JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8")))
+    .toMatchObject({ assessment_id: assessmentId });
+
+  fs.writeFileSync(candidatePath, JSON.stringify({ ...candidate, objectives: [] }));
+  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  fs.writeFileSync(candidatePath, JSON.stringify(candidate));
+  fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, status: "failed" }));
+  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+});
+
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
   const atLimit = "a".repeat(4 * 1024 * 1024);
   expect(() => assertModelInputSize(atLimit, "calibration prompt")).not.toThrow();
