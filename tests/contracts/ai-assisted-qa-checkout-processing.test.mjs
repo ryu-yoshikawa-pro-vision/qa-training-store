@@ -176,4 +176,60 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
     expect(await database.payments.where("orderId").equals(processing.orderId).count()).toBe(1);
     expect(await database.orders.where("id").equals(processing.orderId).count()).toBe(1);
   });
+
+  it("reuses the processing attempt when retryPayment is requested with a stale order version", async () => {
+    const { checkout, processing } = await createProcessingOrder();
+    const before = await safetySnapshot();
+
+    const result = await checkout.retryPayment({
+      orderId: processing.orderId,
+      orderActionVersion: 0,
+      methodCode: "TEST-DECLINED",
+    });
+    expect(result).toEqual(processing);
+    expect(gatewayCalls).toHaveLength(0);
+    expect(await database.payments.where("orderId").equals(processing.orderId).count()).toBe(1);
+    expect(await safetySnapshot()).toEqual(before);
+  });
+
+  it("rejects unauthorized processing retries without charging or mutating data", async () => {
+    const { processing } = await createProcessingOrder();
+    const request = {
+      orderId: processing.orderId,
+      orderActionVersion: 1,
+      methodCode: "TEST-DECLINED",
+    };
+    const before = await safetySnapshot();
+
+    await expect(makeCheckout(null).retryPayment(request)).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    await expect(makeCheckout("training-operator").retryPayment(request)).rejects.toMatchObject({
+      code: "PERMISSION_DENIED",
+    });
+    await expect(makeCheckout("training-gold").retryPayment(request)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    expect(gatewayCalls).toHaveLength(0);
+    expect(await safetySnapshot()).toEqual(before);
+  });
+
+  it("rejects retryPayment after successful finalization without a new attempt", async () => {
+    const { checkout, processing } = await createProcessingOrder();
+    await checkout.resumePayment(processing.orderId);
+    const order = await database.orders.get(processing.orderId);
+    expect(order).toMatchObject({ status: "paid" });
+    const after = await safetySnapshot();
+
+    await expect(
+      checkout.retryPayment({
+        orderId: processing.orderId,
+        orderActionVersion: order.version,
+        methodCode: "TEST-DECLINED",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(gatewayCalls).toHaveLength(1);
+    expect(await database.payments.where("orderId").equals(processing.orderId).count()).toBe(1);
+    expect(await safetySnapshot()).toEqual(after);
+  });
 });

@@ -59,6 +59,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-02（処理中再試行の契約Case追加）
+
+- **対象・正式期待**：正式 `BR-CHECKOUT-003 / AC-CHECKOUT-003` と処理中画面の「再試行・キャンセル禁止」を照合。現行 `CheckoutOrderUseCases.retryPayment` は本人確認と所有権確認後、latest Payment が `processing` なら新規試行を作らず既存 `processingDto` を返す（`src/application/use-cases/checkout-order-use-cases.ts:332-373`）。したがって「例外で拒否」ではなく「新規試行を禁止して既存状態を返却」の実装であり、仕様適合の解釈を明示して検証する。処理済み成功後のretryは `CONFLICT`。 `resumePayment` は別経路でGatewayへ進むため同一視しない。
+- **UI/Role/State/Data**：Web `CheckoutProcessingContent:465-511` は初回 `resumePayment` と失敗時の「再開する」、Native `NativeCheckoutProcessingScreen:975-1012` は初回自動再開とbusy中disabledの手動「再開する」を持ち、いずれも処理中の新規 `retryPayment` ボタンやキャンセルCTAは静的には確認できない。defaultのregular customerから注文を `processing` に作成し、本人/guest/operator/別customer、stale order version、成功後状態を分離する。固定 `payment-processing` Seedの初期guestはそのまま本人認可の証拠に使わない。
+- **Risk/TR/Condition/Case採否**：High=同一注文への新規Payment attempt・Gateway二重呼出し・在庫二重減算、High=他人注文への再試行。C1（採用）=processing中に古いorder version/別methodで `retryPayment` しても同じDTO、Payment1件・Gateway0回・DB/Session不変。C2（採用）=guest/operator/別customer拒否、Gateway0回・全snapshot不変。C3（採用）=success確定後のretry `CONFLICT`、Payment追加なし・DB不変。C4（実Run待ち）=Web/Androidでprocessing中の再試行・キャンセルUI不在とbusy抑止、戻る/再読込、視覚/アクセシビリティ。C5（実Run待ち）=遅延Gateway中の複数Session/タブ並列resumeの二重charge/最終DB原子性（MockGatewayの完了後cacheだけではin-flight排他を証明しない）。
+- **今回の変更・直接判定**：学習用 `tests/contracts/ai-assisted-qa-checkout-processing.test.mjs` にC1〜C3の隔離Dexie契約3 Caseを追加。既存Seed・製品SUT・正式仕様・既存製品テストは無変更。**新規3 Caseの直接Vitest/formatter/実Web/Androidは未実行でPASSとしない**。基本分析台帳は `review_required` のまま、操作52/188・非default14/20を据え置く。実行証拠と仕様解釈・並列競合を確認してから分析受入を判断する。
+- **独立CI/引継ぎ**：変更前HEAD `795c17647fd6` の [Web CI #41371468229](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41371468229) はcompleted/failure。Code Quality、Unit/Integration/Repository/Component、Training runtime、主要E2Eはsuccess、Style Quality・Contracts全体・required Chromium E2E・verify/validateはfailure。新HEADの結果は別判定。**次回も同じA02-02**で追加3 Caseの実CI/Prettier、並列再開の境界とWeb/Androidの実操作を確認する。実Run待ちに移る場合のみ次の実在ID `SCREEN-CHECKOUT-PROCESSING-A02-03` を検討する。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-01（順次二重確定の基本分析受入）
 
 - **現行SUT根拠**：正式BR-CHECKOUT-003/AC-CHECKOUT-003、Web Confirm→Processing、Native Confirm busy→Processing自動/手動再開、beginOrderのtransaction内Session.orderId既存分岐・converted/consumed、resumePaymentの所有者/processing判定→Gateway→finalizePaymentのPayment状態再確認、Dexie/Native SQLite、default/payment-processing Seedを個別照合。台帳の旧Integration行411-427は実ファイル範囲外だったため277-291（順次beginOrder）と155-226（順次resumePayment）へ修正。
