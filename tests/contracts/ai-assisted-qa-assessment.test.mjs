@@ -25,6 +25,7 @@ import {
 import {
   exportAssessment,
   filterPhaseKnowledgeGraph,
+  persistCalibration,
   readChallengeAnswer,
   writeImmutableOpenCodePrompt,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -55,6 +56,55 @@ it("never permits a failed or inconsistent calibration to be reused", () => {
   ]) {
     expect(isPassingCalibration(calibration)).toBe(false);
   }
+});
+
+it("keeps failed calibrations per attempt and only caches successful calibrations", () => {
+  const root = path.join(tempRoot, "calibration-cache");
+  const cache = path.join(root, "shared.json");
+  const makeAttempt = (name) => {
+    const directory = path.join(root, name);
+    fs.mkdirSync(directory, { recursive: true });
+    return directory;
+  };
+  const failed = { status: "failed", critical_false_passes: 1, mismatches: ["case-1"] };
+  const passed = { status: "passed", critical_false_passes: 0, mismatches: [] };
+  const candidate = [{ case_id: "case-1", decision: "fail" }];
+
+  const first = makeAttempt("first");
+  persistCalibration({
+    calibration: failed,
+    calibrationPath: cache,
+    attemptDirectory: first,
+    caseResults: candidate,
+  });
+  expect(fs.existsSync(cache)).toBe(false);
+  expect(JSON.parse(fs.readFileSync(path.join(first, "calibration-result.json"), "utf8")))
+    .toEqual(failed);
+  expect(JSON.parse(fs.readFileSync(path.join(first, "calibration-candidate.json"), "utf8")))
+    .toEqual({ case_results: candidate });
+
+  const second = makeAttempt("second");
+  persistCalibration({
+    calibration: passed,
+    calibrationPath: cache,
+    attemptDirectory: second,
+    caseResults: candidate,
+  });
+  expect(JSON.parse(fs.readFileSync(cache, "utf8"))).toEqual(passed);
+
+  const legacy = path.join(root, "legacy-failed.json");
+  fs.writeFileSync(legacy, JSON.stringify(failed));
+  const third = makeAttempt("third");
+  persistCalibration({
+    calibration: passed,
+    calibrationPath: legacy,
+    attemptDirectory: third,
+    caseResults: candidate,
+    existingCalibration: failed,
+  });
+  expect(JSON.parse(fs.readFileSync(legacy, "utf8"))).toEqual(failed);
+  expect(JSON.parse(fs.readFileSync(path.join(third, "calibration-result.json"), "utf8")))
+    .toEqual(passed);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {

@@ -604,6 +604,22 @@ function validateCalibrationOutput(output, expected) {
   };
 }
 
+export function persistCalibration({
+  calibration,
+  calibrationPath,
+  attemptDirectory,
+  caseResults,
+  existingCalibration = null,
+}) {
+  atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
+  atomicWriteJson(path.join(attemptDirectory, "calibration-candidate.json"), {
+    case_results: caseResults,
+  });
+  // Failed calibrations remain in their attempt only and do not block future attempts.
+  if (isPassingCalibration(calibration) && !existingCalibration)
+    atomicWriteJson(calibrationPath, calibration);
+}
+
 async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
   const calibrationPrompt = buildCalibrationPrompt(inputs);
   assertModelInputSize(calibrationPrompt.text, "calibration prompt");
@@ -653,14 +669,13 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     candidate_session_id: run.sessionId ?? null,
     created_at: new Date().toISOString(),
   };
-  atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
-  atomicWriteJson(path.join(attemptDirectory, "calibration-candidate.json"), {
-    case_results: evaluated.case_results,
+  persistCalibration({
+    calibration,
+    calibrationPath,
+    attemptDirectory,
+    caseResults: evaluated.case_results,
+    existingCalibration,
   });
-  // Only successful calibrations can be shared across attempts. Failed calibrations remain
-  // immutable in their attempt directory and a new attempt can recalibrate the same model.
-  if (isPassingCalibration(calibration) && !existingCalibration)
-    atomicWriteJson(calibrationPath, calibration);
   return calibration;
 }
 
