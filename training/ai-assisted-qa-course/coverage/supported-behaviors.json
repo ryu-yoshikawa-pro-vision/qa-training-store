@@ -9017,8 +9017,8 @@
       "test_responsibility": "画面がURLのorderIdと同じ値でCheckoutOrderUseCases.resumePaymentを呼ぶこと、Use Caseの本人検証/processing状態/最終結果分岐を確認する",
       "case_policy": "処理中初回表示、取得失敗後の再開、処理済み注文の再照会、他人orderIdを代表条件に採用。同時並列Gateway呼び出しやAndroid実機表示は別受入",
       "case_selection_reason": "購入者が画面再読み込み後に別の決済試行を発生させず、同一注文を復旧できる必要がある",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "BR/AC、画面仕様、Use Case→Dexie/SQLite→Web/Android、default/関連Seedの初期セッションと実値を照合。上記audit_branch_refsの分岐根拠を確認。SUTを修正せず、今回のテスト実行・実機/視覚正本は未受入",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析受入（2026-11-02、現行main相当SUTを再照合）：正式checkout-and-payment.mdのBR-CHECKOUT-003/AC-CHECKOUT-003と処理中画面、Web CheckoutProcessingContentのorderId→resumePayment→complete/failed遷移・失敗時再開、NativeCheckoutProcessingScreenの同一orderId自動/手動再開・busy無効化、CheckoutOrderUseCases.requireCustomer→orders.getById/所有者照合→payments.getLatestByOrder→gateway.charge→finalizePayment、Dexie/SQLiteのOrder/Payment取得・version更新、default/payment-processing Seed（初期guestにつき本人ログイン必須）を照合。High Risk=他人orderIdの情報漏洩・Gateway重複課金/在庫二重減算。C1=guest/operator/別customer/欠番orderId拒否・Gateway0回・全snapshot不変、C2=本人の2 Sessionによる順次再開・Gateway1回・idempotency key一致・再照会時DB不変を採用し、Web CI #41369462199で学習用直接契約2/2 PASSを確認。C3=Web/Androidの実画面/視覚/アクセシビリティ/DB前後・並列Gateway競合は別受入として未実施。静的基本分析の完了は実製品適合・並行安全性・最終CIのPASSを意味しない。",
       "requirement_refs": [
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-003",
@@ -9027,7 +9027,7 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "仕様・実装・Seedのソース照合済み。新規製品テストは追加しない。受入用の再現実行と実機比較は未実施 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "基本分析のRole/State/Data、BR/AC、UI→Use Case→Repository、Seed、High Risk/TR/Condition/Case採否を現行SUTで再照合し、学習用C1/C2がWeb CI #41369462199で2/2 PASS。基本分析のみanalyzed。実Web/Android、並列Gateway/二重タップ、視覚/アクセシビリティ、製品適合・最終CIは未受入。新証拠があればC3から再開。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 457,
@@ -9100,6 +9100,30 @@
           "start_line": 289,
           "end_line": 359,
           "reason": "再resumePayment後のGateway呼出し数と在庫重複防止の検証"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 36,
+          "end_line": 70,
+          "reason": "Dexie OrderRepositoryのgetById/version更新/履歴追加で本人Orderと確定結果を永続化する"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 244,
+          "end_line": 273,
+          "reason": "Dexie PaymentRepositoryのgetLatestByOrderとversion更新の直接根拠"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2304,
+          "end_line": 2365,
+          "reason": "Native SQLite PaymentRepositoryの取得・更新・latest試行参照の分岐根拠"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 410,
+          "end_line": 536,
+          "reason": "成功・失敗・在庫不足時のtransaction内確定と再照会時の処理済み分岐を追跡"
         }
       ],
       "reviewed_against": [

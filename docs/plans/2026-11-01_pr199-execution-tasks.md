@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A01-02`（同一orderIdの再開・本人認可）。学習用契約C1/C2を追加したが直接Vitest/formatter/実Web/Androidは未実施のため、次回も同じIDの直接結果を確認する。実行証拠不足の場合は`review_required`/検証待ちを維持し、別の着手可能な1件へ移る。詳細は直下の2026-11-02 A01-02節。
-- **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
+- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A02-01`（処理中の二重確定拒否）。直前のA01-02は現行SUTのBR/AC・Role/State/Data・Web/Native→Use Case→Dexie/SQLite・Seed・High Risk/TR/Condition/Caseを再照合し、C1/C2直接契約がWeb CI #41369462199で2/2 PASS。基本分析のみ`analyzed`へ移行（操作51/188、状態14/20）。A01-02の実Web/Android・並列Gateway/視覚/アクセシビリティ・製品適合は別の未受入として残す。次回はA02-01を1件扱い、二重確定と再開・再試行の境界を正式仕様と実装から確認する。
+- **CI横断**：変更前HEAD `cdde824310c7`の[Web CI #41369462199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41369462199)はcompleted/failure。A01-02の学習用C1/C2は2/2 PASS（127ms）、Code Quality・Unit/Integration/Component/Repository・主要E2Eはsuccess。一方Contracts全体15失敗（旧集計/固定analyzed期待）、Style Qualityは7ファイル（対象checkout-processing契約を含む）、required Chromium E2E、verify/validateがfailure。対象ファイルのPrettierも未受入で、直接Case成功と区別する。今回の新HEAD CIは別判定。Mobile CIのPRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A01-02（基本分析受入・直接契約結果）
+
+- **現行SUTでの再照合**：正式BR-CHECKOUT-003/AC-CHECKOUT-003、Web `CheckoutProcessingContent`のorderId引継ぎ/初回resume/失敗後再開、Android `NativeCheckoutProcessingScreen`の同一orderId/初回・手動再開/busy無効化、`CheckoutOrderUseCases.resumePayment`のrequireCustomer→Order所有者→latest Payment→Gateway→transaction内finalize、Dexie Order/Payment Repository、Native SQLiteの対応Repository、default/payment-processing Seed（initialSession=guest）を照合。Role/State/Data、High Risk（他人注文/重複課金・在庫二重減算）、TR/Condition/Case採否は台帳の同IDへ個別記録した。
+- **直接Case**：[Web CI #41369462199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41369462199)の学習用 `ai-assisted-qa-checkout-processing.test.mjs` 2/2 PASS（127ms）。C1はguest/operator/他customer/欠番orderIdの拒否・Gateway0回・全snapshot不変、C2は同一本人の別Sessionでの**順次**再開・Gateway1回・idempotency key一致・2回目snapshot不変。これは隔離Dexieの直接契約で、実ブラウザ/Androidや並列Gatewayの安全性を証明しない。
+- **受入分離**：基本分析の要件（正式仕様、Role/State/Data、UI→Use Case→Repository、Seed、Risk/TR/Condition/Caseと採否）を満たしたため、**A01-02の基本分析のみ `review_required→analyzed`**。操作**50→51/188**、非default状態**14/20**。C3の実Web desktop/Androidの処理中・失敗後再開・直URL・重複タップ、視覚/アクセシビリティ、DB/Session前後、真の並列Gateway競合は検証待ち。並列二重chargeの可能性は未再現のHigh候補で、製品不具合/PASSとは断定しない。
+- **横断未受入**：同CIはContracts全体15失敗、Style Quality 7ファイル（本学習用Caseを含む）、required Chromium E2E、verify/validateが失敗。学習用Caseのformatter/ローカルVitestは未実施。既存契約の固定analyzed期待がこのIDでは成立しても、他IDや集計の旧期待を無根拠に修正しない。新HEADのCIは独立判定。次の共通対象は台帳で存在を確認した `SCREEN-CHECKOUT-PROCESSING-A02-01`。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A01-02（本人認可・同一注文再開の学習用契約）
 
