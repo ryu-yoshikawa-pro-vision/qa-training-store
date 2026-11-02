@@ -412,8 +412,9 @@ it("restores a completed result only with the matching candidate and passing cal
   const recover = () =>
     reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
   expect(recover().completed).toBe(true);
-  expect(JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8")))
-    .toMatchObject({ assessment_id: assessmentId });
+  expect(JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8"))).toMatchObject({
+    assessment_id: assessmentId,
+  });
 
   fs.writeFileSync(candidatePath, JSON.stringify({ ...candidate, objectives: [] }));
   expect(recover).toThrow(/lacks consistent verified mastery evidence/);
