@@ -10846,13 +10846,13 @@
       "expected": "注文0件の場合Webは『注文履歴はありません』と既定ホームリンクhref=/を、Nativeは『注文はありません』『購入した注文がここに表示されます。』を示す。注文カードは0件。本人注文が1件以上のdefaultでは注文カードを表示する。他人の注文を流用して空欄を埋めない",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "本人注文がないとき他人の注文を表示する漏えい、空一覧をloading/errorと混同する、ホーム復帰導線の欠落",
-      "test_condition": "orders-empty Reset→regular@example.com初期Session→/ordersで0件とWeb/Nativeの文言を確認。Webでは注文詳細リンクがなくホームリンクを持つ。default Reset→本人regularログイン後はカード表示。未認証/staffの保護は別Case、Web desktopの視覚比較は別受入",
+      "risk": "R1: 本人注文0件で別顧客の注文が混入する個人情報漏えい。R2: 0件をloading/errorと誤認する状態混同。R3: 空状態からストアフロントへ戻れず購入を再開できない導線欠落（Nativeの直接CTA不在は製品適合未判定）。",
+      "test_condition": "TR1/C1: orders-empty Resetでregular本人Session、Order/Item/Payment/Shipment/History/Checkoutが0件→/ordersのWeb空見出し・カード0・StatePanelホームhref=/を照合。TR2/C2: 同SeedのNativeは空見出し・説明・カード0（直接CTAは無し）を照合。TR3/C3: default Resetでguest→regular本人ログイン、本人注文5件と詳細リンクを確認。TR4/C4: defaultで別顧客はregularの注文を取得しないことをDexie/SQLite userId抽出で検証。loading/error/権限拒否、Web desktop視覚と実Androidは別受入。",
       "test_responsibility": "orders-emptyのデータ変換とSession→listMyOrders認証と本人抽出→Web/Nativeのzero/nonzero分岐を追跡する",
-      "case_policy": "本人0件（orders-empty）・本人複数（default）を代表Caseにし、loading/error/権限拒否は異なる状態として扱う。S-emptyの視覚条件とA02-01の動作条件は別集計",
-      "case_selection_reason": "固定Seedで注文数0/5が確定し、UIと本人所有権の境界を非破壊で再現できる",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "docs/spec/features/orders.mdの空/処理中/失敗状態、本人注文のUse Case、Dexie/SQLiteの保存状態、Web/Native一覧、Seed metadata/変換/defaultデータを読み取り照合。実ブラウザ・Android実機・視覚正本のPASSは未確認。製品・正式仕様・既存Seed/製品テストは変更しない。",
+      "case_policy": "C1=本人0件Webの表示とホーム導線、C2=本人0件Nativeの表示と直接CTA有無、C3=本人5件default対照、C4=他顧客への漏えい負例（静的userId条件）。C1/C2の実Web/Androidと視覚比較、C4の別Session実Runは未実施。S-emptyの視覚・状態分析は別ID、loading/error/権限拒否は別Caseとして重複計上しない。",
+      "case_selection_reason": "orders-emptyは注文/支払/配送/履歴/Checkoutを0件へ変換しregular本人Sessionを設定する決定的Seed。defaultはregular本人の5状態注文を保持し、空/非空分岐と所有権の対照を分離できる。WebのStatePanel既定ホームCTAとNativeの直接CTAなしを個別の製品適合論点として残す。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 5f35298b5f85: 正式orders.md:13-35のBR-ORDER-001/AC-ORDER-001・empty状態(Web desktop視覚必須)を確認。Role=active customer、orders-empty metadata.ts:240-250の初期regular Session、scenarios.ts:80-92でorders/orderItems/orderHistories/payments/shipments/checkoutSessionsを空にする実値とdefault-dataset.ts:400-471のregular本人5注文を照合。Web OrdersContent:614-649はlistMyOrders()結果0件でStatePanel empty、states.tsx:53-85はaction未指定でホームhref=/を生成。NativeOrdersScreen:1125-1164は空見出しと説明のみ（直接ホームCTAなし）。Use Case:377-387のrequireCustomer→listByUser(user.id)、Dexie:145-168のwhere(userId)、SQLite:2210-2261のuser_id WHEREで他顧客混入を抑止。R1-R3/TR1-TR4/C1-C4の採否・静的期待を個別確定したため基本分析のみanalyzed。既存ui-review.spec.tsのorders-empty desktop CaseとWeb CI #41388736874 UI Review desktop successを確認したが、当該Case単独のartifact・固定HEAD実Web/Android・視覚/a11y・DB/Session snapshot・正式Native CTA期待は未受入。S-empty stateはreview_requiredを維持。製品適合PASSではない。",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001",
@@ -10864,7 +10864,7 @@
       "state_refs": [
         "SCREEN-ORDERS-LIST-S-empty"
       ],
-      "analysis_progress": "UI動作ごとの本人Session、Seedの実値、状態表示の差と反例を証拠付きで分析。Nativeの内部状態値表示は未決の製品差としてレポートへ記録 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "UI動作ごとの本人Session、Seedの実値、状態表示の差と反例を証拠付きで分析。Nativeの内部状態値表示は未決の製品差としてレポートへ記録 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 5f35298b5f85: orders-empty/defaultの0/5件、Web/Native分岐、本人認可→Dexie/SQLite userId抽出、R1-R3/TR1-TR4/C1-C4を再照合。基本分析のみanalyzed、実Web/Native・S-empty視覚/Native CTA適合は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 606,

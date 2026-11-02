@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-LIST-A02-01`（注文0件の空状態と表示導線）。直前`SCREEN-ORDERS-LIST-A01-02`は正式BR/AC・Role/State/Data、Web/Native一覧→listMyOrders→Dexie/SQLite、default/processing SeedのPayment/Shipment/History、High Risk/TR/Condition/C1〜C6を再照合し**基本分析のみ**`analyzed`（操作61→62/188、非default14/20）。一覧にはorder.statusのみで、正式仕様が要求するPayment/Shipment/Timelineの独立表示は詳細画面側にある静的差候補。Seed Historyは各注文最終状態1行、processingは同時刻履歴のため、時系列・実画面・正式オラクルは別受入待ち。次はA02-01を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-LIST-A02-02`（処理中注文を支払済みと混同しない）。直前`SCREEN-ORDERS-LIST-A02-01`は正式仕様・Role/State/Data、orders-empty/default Seedの0/5件、Web/Native空状態、Use Case→Dexie/SQLite本人抽出、R1-R3/TR1-TR4/C1-C4を照合して**基本分析のみ**`analyzed`（操作62→63/188、非default14/20）。WebはStatePanel既定ホームCTA、Nativeは直接CTAなし。Nativeの正式適合、S-empty視覚/実Run、DB/Session前後は検証待ち。次はA02-02を1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A02-01（注文0件の基本分析）
+
+- **正本と状態**：`docs/spec/features/orders.md:13-35`のBR-ORDER-001/AC-ORDER-001、emptyはWeb desktop視覚必須。対象`SCREEN-ORDERS-LIST-A02-01`を`review_required→analyzed`、操作62→63/188・非default14/20。状態ID`SCREEN-ORDERS-LIST-S-empty`は別受入のため`review_required`のまま。
+- **Role/State/Data/経路**：`orders-empty`は初期regular本人Sessionで注文・明細・決済・配送・履歴・Checkoutが0件、`default`は初期guestでregular本人5注文。Web `OrdersContent`は`listMyOrders`の0件で`StatePanel empty`を表示し既定ホームhref=/が出る。Nativeは「注文はありません」「購入した注文がここに表示されます。」のみで直接ホームCTAなし。`listMyOrders→requireCustomer→listByUser(user.id)`、Dexie `where(userId)`/SQLite `WHERE user_id=?`を再照合。
+- **Risk/TR/Case採否**：R1他人注文漏えい→C4別顧客抽出負例、R2空/loading/error混同→C1/C2の0件表示、R3復帰導線欠落→C1 Webホーム/C2 Native直接CTA差。C3 default本人5件を対照とし、空/非空の分岐を混同しない。既存`e2e/web/ui-review.spec.ts`にorders-empty desktop Caseがあり、監査HEAD `5f35298b5f85`のWeb CI #41388736874でUI Review desktop jobはsuccess（個別Case artifactは未照合）。
+- **未受入・再開条件**：固定HEADの実Web desktop/Android、Web empty視覚正本・a11y、別Session/DB前後、Nativeのストアフロント直接導線に関する正式期待を確認するまで製品適合・実Run PASSにしない。直接Vitest/formatterと新HEAD全CIは未実施。CIは既知のContracts/Style Quality/required Chromium E2E/verify/validate failureを横断未完として保持。次の共通対象は`SCREEN-ORDERS-LIST-A02-02`。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A01-02（支払・配送・タイムラインの基本分析）
 
