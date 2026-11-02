@@ -495,7 +495,7 @@ describe("AI-assisted QA static learning course", () => {
     expect(criterion?.pass_conditions.join(" ")).toContain("反復実践P04・P05・P06");
   });
 
-  it("requires M02 and M08 assessment evidence for multi-condition analysis and Git change review", () => {
+  it("checks M02 and M08 assessment evidence against exercises", () => {
     const root = "training/ai-assisted-qa-course";
     const rules = [
       ["M02", "M02-CR-02", "反復実践P01・P02・P03"],
