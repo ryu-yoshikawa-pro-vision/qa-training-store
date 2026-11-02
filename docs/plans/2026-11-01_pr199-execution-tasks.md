@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDERS-A02-01`（注文詳細のバージョン付き操作への遷移）。直前`SCREEN-ADMIN-ORDERS-A01-02`は正式一覧filter/Role→Web→Use Case→Dexie→default/phase1 Seed5注文・既存学習用契約3Caseを照合し、基本分析のみ`analyzed`（操作112/188、非default17/20）。API上限exclusiveとWeb終了日23:59:59.999Zの最終ms欠落、UTC日付、filter後page残留を未再現リスクとして分離。次回はA02-01の詳細orderId導線・Role・version・別注文隔離を確認する。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-01`（顧客スナップショットと注文・配送状態）。直前`SCREEN-ADMIN-ORDERS-A02-01`は正式BR/AC/Role→注文一覧のorderId Link→Expo Router→StaffPage/getOrder→Dexie Order/Detail→default/phase1 Seed5注文・既存Component/Integrationを照合し、基本分析のみ`analyzed`（操作113/188、非default17/20）。遷移はread-only、version CASは後続配送操作の責務。getOrder二重読取の並列不整合・高速route切替の旧注文混入、Role/DB/Session/実Web・視覚は検証待ち。次回はA01-01の顧客/配送/支払スナップショットの完全性と別注文隔離を確認する。
 - **CI横断**：作業前HEAD `039502209f161450094c007eaa0f9165ef5dd582`の[Web CI #41515397093](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41515397093)はcompleted/failure。Style Quality/Unit/Integration/Repository/Component/Code Quality等はsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDERS-A02-01（注文詳細へのバージョン付き導線）基本分析受入
+
+- **判定**：`review_required→analyzed`はA02-01の基本分析のみ。操作**112→113/188**、非default状態**17/20**（変更なし）。製品適合・実Web/Native・直接Vitest/Playwright・最終CIは未受入。
+- **正式仕様・Role/State/Data**：`admin-orders.md:9-24,50-79`のBR-ADMINORD-001/AC-ADMINORD-001は注文・配送の正しい状態順とversionを規定。active operator/adminだけが顧客スナップショットを閲覧可能。default/phase1は同一5注文（payment_failed/paid/preparing/shipped/delivered、Order.version=1、Payment5/Shipment3、ORD-20260701-0001〜0005）、phase1はoperator初期Session、defaultはguest。別注文ID・不正ID・旧version・並列変更は隔離条件。
+- **Web→Use Case→Repository**：`admin-operations-pages.tsx:436-443`の注文番号Linkは行のorderIdで`/admin/orders/{orderId}`へ進み、`app/admin/orders/[orderId].tsx`がroute paramを詳細画面へ渡す。`StaffPage→getOrder(orderId)`はrequireStaff後にOrder/getDetail/Userを読取り、顧客・注文・支払・配送・操作versionを表示。`paid/preparing/shipped`で状態別次操作ボタン、`payment_failed/delivered`で操作なし。**遷移/読取そのものはversion CASやDB更新をしない**。後続配送操作が表示versionを渡し`requireOrderVersion`で比較し、Order/Shipmentをtransactionで更新する別責務。
+- **Risk/TR/Case採否**：High R1=非staff顧客情報漏洩、R2=別注文ID/旧version混入、R3=読取によるDB/Session変更。Medium R4=getOrderのOrder/getDetail別読取による並列時の不整合候補、R5=route変更直後の旧value表示・応答競合、R6=欠損ID/error、R7=状態別操作、R8=desktop/tablet・a11y。TR1正式仕様/Role、TR2 Web Link/route/詳細UI、TR3 getOrder/Dexie/SessionIdentityResolverと後続version操作の境界、TR4 Seed・既存Component/Integration。採用C1=Seed5件の一覧→詳細ID/顧客/支払/配送/version、C2=状態別ボタン、C3=Role/Session/DTO、C4=欠損ID/高速切替、C5=並列読取/後続stale version、C6=全DB/Session不変、C7=視覚/a11y。除外:一覧filter、詳細表示項目の全量受入、配送更新実行、Native管理、製品修正。
+- **直接照合と未受入**：固定HEAD `87c4bda428aacdc74da833e61c4c2758290ac802`の12ソース静的断片**33/33成功**（直接Vitest/Playwrightではない）。既存Componentの注文Link・version UI、Integrationのversion付き配送操作は部分証拠。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/高速route変更、desktop/tablet/a11y、製品適合・同一最終HEAD全CIは未受入。C1-C7隔離実Runと正式期待で再開。
+- **CI横断**：作業前HEAD `87c4bda428aacdc74da833e61c4c2758290ac802`の[Web CI #41524785549](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41524785549)はcompleted/failure（Style Quality、Contracts、required Chromium E2E、verify、validate failure。Unit/Integration/Component/Repository/Code Quality success）。更新後HEADは独立判定。Mobile PRトリガーは復元しない。
+- **次の共通対象**：`SCREEN-ADMIN-ORDER-DETAIL-A01-01`（顧客スナップショットと注文配送状態）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDERS-A01-02（注文絞り込み）基本分析受入
 
