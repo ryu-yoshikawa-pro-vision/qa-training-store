@@ -887,8 +887,7 @@ export function reconcileFinalizedAssessment({
   const attemptDirectory = assertAssessmentPath(workspaceRoot, relative);
   const resultPath = assertAssessmentPath(workspaceRoot, `${relative}/result.json`);
   if (!fs.existsSync(resultPath)) return null;
-  if (!fs.lstatSync(resultPath).isFile())
-    fail("saved assessment result is not a regular file");
+  if (!fs.lstatSync(resultPath).isFile()) fail("saved assessment result is not a regular file");
   const result = readJson(resultPath, "saved assessment result");
   if (
     result.schema_version !== 1 ||
@@ -904,7 +903,10 @@ export function reconcileFinalizedAssessment({
     !Number.isFinite(Date.parse(result.created_at))
   )
     fail("saved assessment result differs from the prepared attempt");
-  const pointerPath = assertAssessmentPath(workspaceRoot, `.course-assessments/${phaseId}/current.json`);
+  const pointerPath = assertAssessmentPath(
+    workspaceRoot,
+    `.course-assessments/${phaseId}/current.json`,
+  );
   const pointer = fs.existsSync(pointerPath)
     ? readJson(pointerPath, "current assessment pointer")
     : null;
@@ -912,7 +914,8 @@ export function reconcileFinalizedAssessment({
   if (pointer?.assessment_id === assessmentId && pointer.result_sha256 !== digest)
     fail("current assessment pointer does not match immutable result bytes");
   // A resumed older assessment must never replace a newer assessment's pointer.
-  const isNewer = pointer?.assessment_id !== assessmentId &&
+  const isNewer =
+    pointer?.assessment_id !== assessmentId &&
     typeof pointer?.updated_at === "string" &&
     Number.isFinite(Date.parse(pointer.updated_at)) &&
     Date.parse(pointer.updated_at) > Date.parse(result.created_at);

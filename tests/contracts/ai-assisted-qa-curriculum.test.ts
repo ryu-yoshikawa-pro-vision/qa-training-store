@@ -553,7 +553,9 @@ describe("AI-assisted QA static learning course", () => {
     expect(lesson).toContain("構文エラー、実行時例外、準備処理の失敗");
     expect(lesson).toContain("テスト自体が始まっていない場合");
     expect(lesson).toContain("テストのAssertion失敗と分けて");
-    expect(lesson).not.toContain("Assertion：アサーション）が、あらかじめ決められた制限時間内に成立しなかった");
+    expect(lesson).not.toContain(
+      "Assertion：アサーション）が、あらかじめ決められた制限時間内に成立しなかった",
+    );
   });
 
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
