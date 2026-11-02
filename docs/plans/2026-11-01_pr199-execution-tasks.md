@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A01-02`（同一orderIdの再開・本人認可）。前対象`SCREEN-CHECKOUT-CONFIRM-A02-03`はWeb/Nativeの読込失敗・確定失敗の4経路を静的監査済み。実Web/Android、DB/Session/視覚・アクセシビリティ未受入のため`review_required`で検証待ち。詳細は下記の最新節。前対象`SCREEN-CHECKOUT-CONFIRM-A02-02`はHEAD `01d11fa9e18a`の[Web CI #41365175304](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41365175304)で学習用Checkout契約16/16 PASS（538ms、追加C1/C2を含む）。ただし対象ファイルPrettier違反、Web/Androidの修正導線・視覚/アクセシビリティ・sale-active/expired-sale実Runは未受入で`review_required`を維持する。次は台帳に実在するA02-03のWeb読込失敗/確定失敗、Native取得失敗/確定失敗それぞれの安全な復旧導線を1件として検証する。
+- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A01-02`（同一orderIdの再開・本人認可）。学習用契約C1/C2を追加したが直接Vitest/formatter/実Web/Androidは未実施のため、次回も同じIDの直接結果を確認する。実行証拠不足の場合は`review_required`/検証待ちを維持し、別の着手可能な1件へ移る。詳細は直下の2026-11-02 A01-02節。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A01-02（本人認可・同一注文再開の学習用契約）
+
+- **対象・正式根拠**：`SCREEN-CHECKOUT-PROCESSING-A01-02`。正式 `BR-CHECKOUT-003/AC-CHECKOUT-003` は処理中からの再開と注文・決済・在庫・履歴の一度だけの確定を要求。Web `CheckoutProcessingContent` は `resumePayment(orderId)` 後に結果画面へ置換し、失敗時に「再開する」を表示。Native `NativeCheckoutProcessingScreen` は自動再開と手動「再開する」を持つ。Use Case `requireCustomer→orders.getById/owner照合→payments.getLatestByOrder→gateway.charge→finalizePayment` と、既存統合テストの順次再開を照合した。固定 `payment-processing` Seedは初期guestで、本人ログインが別途必要。
+- **Risk/TR/Condition/Case採否**：High=他人のorderIdを指定した際のGateway呼出し/情報漏洩、High=再開後の二重決済・在庫二重減算。C1（採用）=guest/staff/別customer/存在しないorderIdを拒否し、Gateway 0回とOrder/Payment/Checkout/Cart/Session/Stock/History/Sequence不変を比較。C2（採用）=本人の2 Sessionで同一orderIdを順次再開し、Gateway 1回・同じidempotency key・2回目のDB全snapshot不変を比較。C3（実Run待ち）=Web desktop/Androidの処理中表示・戻り/再開、別Role直URL、遅延中の重複タップ、視覚/アクセシビリティ、並列Gateway呼出しの独立実証。C1/C2は隔離Dexie/default Seedを使用し、正式製品Seed/Resetは変更しない。
+- **今回の変更・検証**：学習用 `tests/contracts/ai-assisted-qa-checkout-processing.test.mjs` にC1/C2を新規追加。JS `node --check` はPASS（依存付きVitest・Prettierは未実施）。このテストは順次再開の契約であり、同時並列でGatewayが一度しか呼ばれないことは保証しない。対象は `review_required` / 検証待ちを維持し、基本分析50/188・非default14/20は据え置く。直接Vitest/formatter・実Web/Android・DB/Session/視覚/アクセシビリティの独立証拠が揃った場合に再開。
+- **横断CI**：変更前HEAD `1c1d8c525d48` の [Web CI #41367308251](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41367308251) はcompleted/failure。Style Quality、contracts全体、required Chromium E2E、verify、validateがfailure。Code Quality、unit/integration/repository/component、training runtime、build等はsuccess。新HEADのCIは別判定とし、CI待機のみで次の実質作業を止めない。次回も本IDの直接C1/C2結果を優先し、実Runがない条件は検証待ちとして次の独立対象へ移す。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A02-03（4復旧経路の静的監査）
 
