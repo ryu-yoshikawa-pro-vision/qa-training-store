@@ -13389,21 +13389,21 @@
       "source_path": "docs/spec/features/reviews.md",
       "source_line": 62,
       "source_text": "カスタマーレビューのスナップショットを保持したまま公開／非公開を操作する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,hidden-reviews,admin-bulk-partial-failure。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: レビューを非公開化",
+      "platform": "web-desktop, web-tablet（管理レビューはNative正式画面対象外）",
+      "role": "active operator/adminのみ。default初期guest→staffログイン。guest/customer/停止・退会staff/SessionなしはrequireStaffで拒否。権限失効・同時更新は別途実証",
+      "scenario": "default/hidden-reviews（published9/hidden1/deleted1、初期guest）、reviews-empty（0件）、admin-bulk-partial-failure（商品競合設定のみでレビュー専用ではない）。published→hiddenは隔離操作で作る",
+      "data": "defaultのpublished9件からreviewId/productId/rating/versionを持つ1件を選択。Review(status/version/本文/orderItemId)、ReviewStatusHistory、ProductReviewSummary(publishedCount/ratingTotal/ratingAverage/rating1〜5Count/version)、公開一覧、Order/Sessionの前後を照合。hidden/deletedのReview.userId=gold対Order.userId=regularのcross-ownerを本人正常例に使わない",
       "action": "レビューを非公開化",
-      "expected": "許可されたpublishedレビューだけをhiddenへ変更し、非公開化したレビューを商品表示から除外する",
+      "expected": "staffがpublished→hiddenへ変更するとReview.status=hidden/version+1、本文・評価・注文Snapshot不変、History1件(actor=staff,from=published,to=hidden)を追加。公開集計の件数・評価合計・該当評価分布を各1件減算し平均再計算、商品公開レビューから除外。非staff/hidden/deleted/stale/不存在は拒否しDB/Session不変。Webは成功/失敗通知と再検索。ただしcommit後getDetail失敗時のfalse failureは未実証",
       "rule_refs": [],
       "route": "`/admin/reviews`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "レビューを非公開化の事前状態・実施後を比較し、許可されたpublishedレビューだけをhiddenへ変更し、非公開化したレビューを商品表示から除外することを確認する",
-      "test_responsibility": "レビューを非公開化の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "レビューを非公開化の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff操作・PII露出、High R2=Review/History/Summary部分更新・負数/分布不整合、High R3=commit後getDetail失敗で永続更新済みなのにUI失敗通知、R4=stale/並列staffで二重History・集計減算、R5=hidden/deleted不正遷移、R6=cross-owner Seedの誤用、R7=Web表示・公開商品集計不一致。実不具合確定ではない",
+      "test_condition": "TR1/C1=operator/adminでpublished1件をhiddenにし、Review.version+1、History1件、該当ProductSummaryのpublishedCount-1/ratingTotal-rating/rating別分布-1/平均再計算、公開一覧から除外を確認。TR2/C2=guest/customer/停止・退会staff/Sessionなしを拒否し、Review/History/Summary/Order/SessionとPIIを不変・非露出。TR3/C3=hidden→hidden、deleted→hidden、stale expectedVersion、存在しないreviewIdを拒否し副作用なし。TR4/C4=2staff並列/権限失効でCAS・History・Summary二重更新なし。TR5/C5=Summary欠損/書込失敗のtransaction rollback、commit後getDetail失敗時の永続状態とUI結果の乖離を故障注入で検証。TR6/C6=default/hidden-reviews/reviews-empty/admin-bulk-partial-failureのSeed差とcross-ownerを区別。TR7/C7=Web desktop/tabletの単体非公開ボタン、通知・再検索・商品公開集計・視覚/a11yを確認。C1〜C7採用。直接実Runは未受入",
+      "test_responsibility": "reviews.md BR-REVIEW-002/AC-REVIEW-002→Web AdminReviewsPage Guard(staff)/AdminReviewsContent.change(item,hidden)→AdminReviewUseCases.changeVisibility(requireStaff、version、canTransitionReview)→Dexie review-change transaction(Review/StatusHistory/ProductReviewSummary)→DexieReviewRepository.update(version CAS)、appendStatusHistory、applyPublishedReviewDelta(旧rating→null、count/total/平均/分布)→getDetail(staff再認可)→Web通知・再検索。Dexie listPublishedはpublished限定",
+      "case_policy": "C1正常単体と公開集計、C2認可/Session/PII、C3不正状態/version/不存在、C4並列/CAS、C5 rollbackとcommit後getDetail false failure、C6 Seed差、C7 Web desktop/tablet・公開商品・視覚/a11yを採用。既存integrationの単体hidden/History/count-1は部分証拠で実Run全PASSではない",
+      "case_selection_reason": "公開状態は顧客の可視性と商品の件数・平均・評価分布に影響するHigh整合性境界。正常・認可・状態/version・原子性・通知・Seed・画面を独立Caseに分離して基本分析と製品適合を区別",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 8c36c75fb88d: reviews.md BR/AC、Web staff Guard/単体change、Use Case requireStaff/version/遷移、Dexie review-change transaction・CAS・published限定Summary/公開一覧、default/hidden/reviews-empty/admin-bulk-partial-failure Seedを照合。High R1-R7/TR1-R7/C1-C7を個別確定し基本分析のみanalyzed。既存integrationは単体hidden/History/count-1の部分証拠。直接Vitest/Prettier/Playwright・Role別/DB・Session前後・並列/rollback/故障注入・実Web・視覚/a11y・製品適合・同一HEAD最終CIは未受入",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
@@ -13413,7 +13413,7 @@
       "related_use_cases": [
         "AdminReviewUseCases.changeVisibility"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "2026-11-02: A02-01基本分析のみ完了（操作76→77/188、非default16/20）。直接実Run/DB・Session・並列/故障注入・Web/視覚/a11y・製品適合/最終CIは検証待ち。次はSCREEN-ADMIN-REVIEWS-A02-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 252,
@@ -13434,7 +13434,7 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default/hidden-reviewsはpublished9/hidden1/deleted1、初期guest。reviews-emptyは0。admin-bulk-partial-failureは商品競合。hidden/deletedはcross-ownerで本人正常fixtureに使わない"
       },
       "use_case_evidence": [
         {
@@ -13442,6 +13442,97 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 392,
           "signature": "async changeVisibility(input: {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 8,
+          "end_line": 17,
+          "reason": "BR-REVIEW-002公開限定集計/hidden/deleted終端"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 55,
+          "end_line": 96,
+          "reason": "管理レビューWeb desktop/tablet・AC-REVIEW-002"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 252,
+          "end_line": 318,
+          "reason": "staff Guardと単体change/通知/再検索"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 407,
+          "end_line": 465,
+          "reason": "published行のみ非公開ボタン"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 439,
+          "reason": "staff/version/遷移・transaction・後続getDetail"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 21,
+          "end_line": 30,
+          "reason": "published→hidden/deleted終端"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 93,
+          "end_line": 113,
+          "reason": "review-changeの3テーブル"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 348,
+          "reason": "Review CASとpublished限定一覧"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 5,
+          "end_line": 49,
+          "reason": "件数/総計/平均/分布の差分"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 509,
+          "end_line": 533,
+          "reason": "published9件とHistory"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 629,
+          "end_line": 665,
+          "reason": "hidden/deleted cross-owner"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 105,
+          "reason": "default/hidden/reviews-empty"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 130,
+          "end_line": 145,
+          "reason": "admin-bulk-partial-failureは商品設定"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 242,
+          "end_line": 263,
+          "reason": "単体visibility成功の部分証拠"
         }
       ]
     },
