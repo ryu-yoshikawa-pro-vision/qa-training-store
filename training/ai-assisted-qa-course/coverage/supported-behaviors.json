@@ -20493,26 +20493,31 @@
       "source_line": 24,
       "source_text": "操作者自身、退会済み（withdrawn）、最後の管理者などに対する変更の境界条件を説明する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 最終管理者保護を案内",
+      "role": "Admin（activeのみ。operator/customer/guest/suspended/withdrawnは管理DTO・変更不可）",
+      "scenario": "default（active admin1名の自己保護）／隔離2-admin→actor失権interleaving（非自己last-admin分岐）",
+      "data": "default固定7ユーザー：active admin user-admin1、active operator user-operator1、customer5、初期guest Session、version初期1。active admin Sessionを別途作成。defaultで最後のadminは操作者自身のためSELF_CHANGE_FORBIDDENが先行する。非自己last-admin分岐はoperatorをadminに昇格して2名にした隔離fixtureで、requireAdmin後/transaction前にactorをoperatorへ変更する制御interleavingでのみ検証。2-adminの通常許可変更、stale version、Session失効、DB前後を別条件で区別。",
       "action": "最終管理者保護を案内",
-      "expected": "最後のAdminを削除/降格できるような案内を表示せず、保護理由を示す",
+      "expected": "defaultの最後のactive admin自身のrole admin→operator・status active→suspendedは詳細画面でdisabledと自己変更理由を示し、直接Use CaseもSELF_CHANGE_FORBIDDENで拒否する。非自己last-admin条件は2-admin隔離fixtureでactorの権限が認可後・transaction前に失われる制御interleavingを作り、targetの降格/停止をLAST_ADMIN_PROTECTEDで拒否し、target users/version/sessionsを変えない。実装UIは最後の管理者数を先読みせずisSelfのみでdisabled制御し、専用の最後の管理者理由はUse Caseエラー時に表示するため、正式UI契約との適合・実並列安全性は別途未受入。",
       "rule_refs": [],
       "route": "`/admin/users`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "最終管理者保護を案内実施前後で、最後のAdminを削除/降格できるような案内を表示せず、保護理由を示すことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、最終管理者保護を案内の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "最終管理者保護を案内が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=最後のactive adminの降格/停止による管理不能、R2=UI迂回・stale actor認可の時点差（requireAdminがtransaction外）、R3=拒否後users/version/sessions/checkout_sessionsの副作用。Medium R4=default自己保護がLAST_ADMIN_PROTECTEDより先行し、UIには自己変更理由のみ表示、R5=非自己last-adminの画面事前disabled判定がなくエラー後に理由表示、R6=同時操作/transaction境界の実再現未実施、R7=2-admin通常変更・version CONFLICT優先/Role拒否の分岐、R8=1023/1024px・keyboard/a11y・Session失効時の表示。",
+      "test_condition": "C1 default Seed7件（active admin1、operator1）・guest初期状態からactive admin Sessionを作成し一覧→自己詳細、role/statusのdisabledと自己変更理由を確認。C2 自己role admin→operatorと自己status active→suspendedを直接呼びSELF_CHANGE_FORBIDDEN、users/sessions/checkout_sessions/version不変を確認。C3 隔離2-admin fixtureで非自己targetを作り、actorの権限をrequireAdmin後・transaction前に失効させた制御interleavingでrole降格・status停止がLAST_ADMIN_PROTECTED、target/version/sessions不変となることを確認。C4 通常2-adminで別adminの許可変更、version+1・対象Session無効化・残admin1を確認。C5 operator/customer/guest/非activeからの管理DTO/変更拒否、stale version CONFLICT・withdrawn別条件を確認。C6 真の並列操作、actor失権後の非admin対象変更、transaction失敗/rollback、users/sessions/checkout_sessions全表前後を隔離DBで検証。C7 Web desktop/tablet・1023/1024px・keyboard/a11yで一覧→詳細、事前disabled/事後エラー理由・失効Sessionを確認。",
+      "test_responsibility": "TR1 admin-users.md BR-ADMINUSER-001/AC-ADMINUSER-001の最後の管理者保護とroles-and-permissionsのactive admin制約。TR2 AdminUsersPage Guard・userId詳細リンク→AdminUserDetailFormのisSelf disabled/理由とLAST_ADMIN_PROTECTED catch表示（最後のadmin数の事前判定は未実装）。TR3 AdminUserUseCases.changeRole/changeSuspensionのrequireAdmin→自己拒否→expectedVersion→countActiveAdmins<=1→LAST_ADMIN_PROTECTED→DexieUserRepository version CAS/Session削除の順序。TR4 default Seed admin1/operator1/初期guest、change-user-accessのusers/sessions/checkout_sessions transaction、学習用制御interleaving契約2 Case。自己変更A02-01・withdrawn A02-02・詳細個別操作とは二重計上しない。",
+      "case_policy": "採用C1〜C7：default自己保護と非自己last-adminを別fixtureで切り分ける。C3の制御interleaving role/status 2 Caseは同HEAD Web CI #41540773596で2/2 PASS（対象の学習用契約テストのみ）。C2自己status直接、C4許可変更全表、C5全Role、C6実並列/actor失権、C7実Web・視覚/a11yは未受入。除外：製品SUT/正式仕様/既存製品テストの変更、A02-01/A02-02と詳細独立操作の重複。基本分析は製品適合/実Run/最終CIとは独立判定。",
+      "case_selection_reason": "Highの最後の管理者喪失と認可時点差を、正式BR/AC・Role→一覧/詳細UI→Use Caseの自己拒否/最後のadmin数判定→Dexie transaction/Seed→制御interleaving2 Caseまで追跡し、実証済みと未受入を区別するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析のみ受入。admin-users.md:9-25,43-55,73-79とroles-and-permissions.md:5-24を、AdminUsersPage:508-614のadmin Guard・詳細リンク→AdminUserDetailForm:638-830のisSelf disabled/自己理由・LAST_ADMIN_PROTECTED catch文言→AdminUserUseCases.changeRole:567-598/changeSuspension:600-638のrequireAdmin、自己拒否、version、countActiveAdmins<=1、lastAdmin→DexieUserRepository.update:58-64/version CAS、change-user-access transaction(users/sessions/checkout_sessions)、default Seed7件（active admin1・operator1）と隔離2-admin制御interleavingに照合。固定HEAD bba70cfcb276の正式仕様・UI・Use Case・Seed・Dexie・学習用テストの静的断片34/34一致（文字列照合）。同HEAD Web CI #41540773596の学習用last-admin interleaving契約はrole/status 2/2 PASS、Contracts job全体は別台帳期待不一致でfailure。defaultでは自己変更拒否が先行し、非自己last-adminは隔離interleavingのみ。UI事前保護理由・実並列・actor失権、DB/Session全表前後、直接ローカルVitest/formatter/validator/Playwright、実Web/視覚/a11y、製品適合・全必須CIは未受入。Web CI全体failure（Style/Contracts/required Chromium E2E/verify/validate）。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.search",
+        "AdminUserUseCases.getDetail",
+        "AdminUserUseCases.changeRole",
+        "AdminUserUseCases.changeSuspension"
+      ],
+      "analysis_progress": "2026-11-03: default自己保護と非自己last-admin制御interleavingを区別し、Role/BR/AC・UI・Use Case countActiveAdmins・Seed・Dexieを照合。学習用契約role/status 2/2が同HEAD CIでPASS。基本分析のみanalyzed、実並列/実Web/全DB不変・製品適合・全CIは検証待ち。次SCREEN-ADMIN-USER-DETAIL-A01-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -20535,7 +20540,129 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.search",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 520,
+          "signature": "async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {"
+        },
+        {
+          "id": "AdminUserUseCases.getDetail",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 537,
+          "signature": "async getDetail(userId: string): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeRole",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 567,
+          "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeSuspension",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 600,
+          "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "BR/最後の管理者・自己保護・UI拒否理由"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 42,
+          "end_line": 79,
+          "reason": "詳細画面の変更制限とAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 24,
+          "reason": "active admin専用・非active拒否"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 508,
+          "end_line": 614,
+          "reason": "一覧Guard・userId詳細リンクと状態表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 620,
+          "end_line": 830,
+          "reason": "詳細isSelf disabled・自己理由とLAST_ADMIN_PROTECTED catch表示"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 520,
+          "end_line": 638,
+          "reason": "admin再認可、自己拒否、version、last-admin count、Session削除"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 687,
+          "end_line": 706,
+          "reason": "SELF_CHANGE_FORBIDDEN/LAST_ADMIN_PROTECTEDのエラー"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 26,
+          "end_line": 70,
+          "reason": "非active actor拒否・Session再読取"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 44,
+          "end_line": 103,
+          "reason": "users version CAS・countActiveAdmins"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 77,
+          "end_line": 141,
+          "reason": "change-user-accessのusers/sessions/checkout_sessions transaction"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "default7ユーザー、admin1/operator1・初期version"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default初期guest Session"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-last-admin-interleaving.test.mjs",
+          "start_line": 1,
+          "end_line": 105,
+          "reason": "actor失権の制御interleaving role/status 2 Case・対象不変"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 300,
+          "end_line": 355,
+          "reason": "通常別user変更・自己変更拒否の既存部分証拠"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 355,
+          "end_line": 410,
+          "reason": "非自己admin role操作のUI部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A01-01",

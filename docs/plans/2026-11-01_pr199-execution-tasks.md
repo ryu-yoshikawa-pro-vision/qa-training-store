@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A02-03`（最後の管理者保護・権限/停止の境界）。直前`SCREEN-ADMIN-USERS-A02-02`はwithdrawn読取専用notice・3変更UI非表示・Use Case三種の拒否・Seed/Role/Dexieを照合し、基本分析のみ`analyzed`（操作119/188、非default17/20）。withdrawn rank/role直接Case、実Web/DB/Session・製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
-- **CI横断**：作業前HEAD `c8418d737743474b09450341a5084ed597e28775`の[Web CI #41538028884](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41538028884)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Integration（withdrawn拒否の既存部分Caseを含む）・Unit/Repository/Component/Code Quality等はsuccess。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-01`（管理者ユーザー詳細のRole/DTO認可・読取表示）。直前`SCREEN-ADMIN-USERS-A02-03`はdefault自己保護と非自己last-admin制御interleaving、UI→Use Case→Dexie/Seed、C1〜C7を照合し、基本分析のみ`analyzed`（操作120/188、非default17/20）。同HEAD学習用last-admin契約2/2 PASS、実並列/DB全表・実Web/製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
+- **CI横断**：作業前HEAD `bba70cfcb27636012d5bdb8725a979ba370051bf`の[Web CI #41540773596](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41540773596)はcompleted/failure。学習用last-admin interleaving契約2/2、Integration/Unit/Repository/Component/Code Quality等はsuccess。Style Quality/Contracts（別台帳の固定期待1件）/required Chromium E2E/verify/validateはfailure。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-03（最後の管理者保護・権限時点差）基本分析受入
+
+- **判定**：`review_required→analyzed`はA02-03の基本分析のみ。操作**119→120/188**、非default状態**17/20**。製品適合・実Web/Native・同一最終HEAD全必須CIは未受入。
+- **正式仕様/Role/Seed**：`admin-users.md:9-25,43-55,73-79`は最後のadmin降格/停止・自己変更拒否、拒否理由のUI提示を要求。`roles-and-permissions.md:5-24`はactive admin専用。default7ユーザー（active admin=`user-admin`1、active operator=`user-operator`1、customer5、初期guest Session、version1）。defaultの最後のadmin本人にはSELF_CHANGE_FORBIDDENが先行し、LAST_ADMIN_PROTECTEDを直接観測するには別actorが存在する隔離2-admin fixtureと権限失効interleavingが必要。
+- **UI→Use Case→Repository**：一覧`review-user-pages.tsx:508-614`のadmin Guard/詳細リンク→詳細`:638-830`の`isSelf`によるrole/status disabled・自己理由、`LAST_ADMIN_PROTECTED` catch時の「先に別の管理者を設定」案内を照合。UIはactive admin数を事前判定しない。Use Case`review-user-use-cases.ts:567-638`は`requireAdmin`→自己拒否→target version→`countActiveAdmins()<=1`で`LAST_ADMIN_PROTECTED`→users CAS/対象Session削除。actor再認可がtransaction外のため、権限失効との時点差は実並列未検証リスク。Dexie `change-user-access`はusers/sessions/checkout_sessionsをtransactionで扱う。
+- **Risk/TR/Case採否**：High R1=最後のadmin喪失、R2=UI迂回とactor認可時点差、R3=拒否時DB/Session副作用。Medium R4=defaultで自己理由がlast-admin理由に先行、R5=UIに非自己last-admin事前disabledなし、R6=真の並列/transaction境界、R7=version・Role別、R8=desktop/tablet/a11y。TR1正式BR/AC/Role、TR2一覧→詳細UI、TR3 Use Case count/version/SessionとDexie transaction、TR4 Seed・学習用契約。採用C1 default7件/自己disabled、C2自己role/status直接拒否・DB不変、C3隔離2-admin→actor失権interleaving role/status、C4通常2-admin許可変更、C5非admin/stale/withdrawn、C6実並列/actor失権/rollback・DB全表、C7実Web/1023・1024px/keyboard/a11y。自己制限A02-01、withdrawn A02-02、詳細独立操作は二重計上しない。
+- **直接証拠/未受入**：固定HEAD `bba70cfcb27636012d5bdb8725a979ba370051bf`で正式仕様・Role・UI・Use Case・Dexie・Seed・既存テストの静的断片**34/34一致**（実テストPASSではない）。同HEAD [Web CI #41540773596](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41540773596)の`ai-assisted-qa-admin-last-admin-interleaving.test.mjs`は**2/2 PASS**（role/status、制御interleavingのみ）。Contracts job全体は別の台帳固定期待不一致1件でfailure、Style/required Chromium E2E/verify/validateもfailure。直接ローカルVitest/formatter/validator/Playwright、真の並列・actor失権の非admin対象変更、users/sessions/checkout_sessions全表前後、Role別実Web、視覚/a11y、製品適合・最終CIは未受入。
+- **次の共通対象**：`SCREEN-ADMIN-USER-DETAIL-A01-01`（管理者ユーザー詳細のRole・DTO認可）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-02（withdrawn読取専用・変更禁止案内）基本分析受入
 
