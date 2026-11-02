@@ -130,3 +130,7 @@ M07について、`training/ai-assisted-qa-course/exercises/M07/exercise.md`の�
 - M04/M07/M10の実OpenCodeモデル校正、根拠不足・旧SHA・改ざん・Prompt Injection・不正なLevel 2で最終修了PASSを防げること、非公開履歴の再評価は未受入。
 - 配布のclean main起点生成と実学習用コピー、起動・Reset・Chromium、Secret/NOTICE実検証は未受入。Public Template公開・本人所有Private Codespacesの作成、課金・権限・最終受入は指定どおり後続工程。
 - 教材の残りの意味的な全件レビューは継続。今回のM07修正やJSONの存在確認だけで51目標の内容レビュー完了とはしない。
+
+### Phase別知識グラフの評価ソースの修正（2026-11-02）
+
+`ai-assisted-qa-assessment.mjs`の`filterPhaseKnowledgeGraph`は、対象Phaseの`ASSESS-P1/P2/P3`ノードを選ぶ際に`phaseModules[0].slice(0, 2)`を使っていたため、`M00`→`M0`のような値と`P1`が一致せず、3つの評価ノードをすべて除外していた。さらに`P1/P2/P3`のPhaseノード自体も選択しておらず、`ASSESS-P1 → P1`や`M00 → P1`などの`part_of`リンクも失っていた。`phaseId`を正規の引数として渡し、対象Phaseのassessment/phaseノードとリンクを残し、他Phaseを除外するよう修正した。`tests/contracts/ai-assisted-qa-assessment.test.mjs`にP1/P2/P3の回帰テストを追加。内容の全件受入や実OpenCode校正に代わるものではない。

@@ -128,6 +128,7 @@ export function filterPhaseKnowledgeGraph(text, phaseModules, phaseId) {
   const moduleSet = new Set(phaseModules);
   const nodes = (graph.nodes ?? []).filter((node) => {
     if (node.type === "module") return moduleSet.has(node.id);
+    if (node.type === "phase") return node.id === phaseId;
     if (typeof node.module === "string") return moduleSet.has(node.module);
     if (typeof node.id === "string" && /^(?:M(?:0[0-9]|10))-/.test(node.id))
       return moduleSet.has(node.id.slice(0, 3));

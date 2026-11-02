@@ -59,17 +59,23 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
   const graph = {
     schema_version: 1,
     nodes: [
+      { id: "P1", type: "phase" },
       { id: "ASSESS-P1", type: "assessment", phase: "P1" },
       { id: "M00-01", type: "learning_objective", module: "M00" },
+      { id: "P2", type: "phase" },
       { id: "ASSESS-P2", type: "assessment", phase: "P2" },
       { id: "M05-01", type: "learning_objective", module: "M05" },
+      { id: "P3", type: "phase" },
       { id: "ASSESS-P3", type: "assessment", phase: "P3" },
       { id: "M08-01", type: "learning_objective", module: "M08" },
     ],
     edges: [
       { from: "ASSESS-P1", to: "M00-01", relation: "evaluates" },
+      { from: "ASSESS-P1", to: "P1", relation: "part_of" },
       { from: "ASSESS-P2", to: "M05-01", relation: "evaluates" },
+      { from: "ASSESS-P2", to: "P2", relation: "part_of" },
       { from: "ASSESS-P3", to: "M08-01", relation: "evaluates" },
+      { from: "ASSESS-P3", to: "P3", relation: "part_of" },
     ],
   };
   for (const [phaseId, moduleId] of [["P1", "M00"], ["P2", "M05"], ["P3", "M08"]]) {
@@ -77,11 +83,13 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
       filterPhaseKnowledgeGraph(JSON.stringify(graph), [moduleId], phaseId),
     );
     expect(phase.nodes.map((node) => node.id)).toEqual([
+      phaseId,
       `ASSESS-${phaseId}`,
       `${moduleId}-01`,
     ]);
     expect(phase.edges).toEqual([
       { from: `ASSESS-${phaseId}`, to: `${moduleId}-01`, relation: "evaluates" },
+      { from: `ASSESS-${phaseId}`, to: phaseId, relation: "part_of" },
     ]);
   }
 });
