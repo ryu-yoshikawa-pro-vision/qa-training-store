@@ -14994,18 +14994,18 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,product-aggregate-edit,無効な必須アセット。role=operator/admin、状態・対象ID・versionを区別。操作: 商品新規入力",
+      "data": "Role: active operator/admin（guest→/login、customer/停止staff→/forbidden、失効SessionはUse Case再認可）。State: default新規空フォーム→入力中→未保存preview→明示submit。Data: default初期guest・既存11商品、activeカテゴリ/ブランド/画像候補、空フォームはSKU1件/初期在庫0/画像0、product-aggregate-editはdefaultデータ維持。新規Product ID/versionと既存ID/versionを区別。",
       "action": "商品新規入力",
-      "expected": "商品・SKU・カテゴリー・ブランド・画像等の新規入力を作成し、保存前に既存商品を変更しない",
+      "expected": "staffが商品コード・名称、カテゴリ/ブランド、SKU・価格・初期在庫、画像・primaryを新規フォームへ入力でき、入力中とpreviewではProduct/Variant/Image/InventoryHistory/ReviewSummary/Sessionを変更しないこと。明示『下書きで保存』時だけcreateがstaff再認可・必須/active参照/画像検査を経て、単一transactionで新IDのdraft(version1)、Variant、INITIAL_STOCK履歴、ゼロReviewSummaryを作成し、既存商品は不変であること。公開状態変更は別操作、入力拒否はA01-02、preview詳細はA01-03で独立判定。",
       "rule_refs": [],
       "route": "`/admin/products/new`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品新規入力の前後に、商品・SKU・カテゴリー・ブランド・画像等の新規入力を作成し、保存前に既存商品を変更しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと商品新規入力の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "商品新規入力が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 非staff管理フォーム/候補露出、未保存入力/previewによるDB副作用、部分保存/rollback失敗、inactive master/asset混入。初期在庫の負値/非整数をUI min=0のみで抑制し、Use Case validateMinimumとDexie createAggregateで明示検査が見当たらない静的候補（実再現未確認）。Medium: duplicate sessionStorage混入、SKU/コード重複、画像0/1/3/4・primary境界、1023/1024px/視覚/a11y。",
+      "test_condition": "C1 default active operator/adminで新規フォーム入力と保存前DB/Session不変。C2 guest/customer/停止staff/失効Sessionの直URL・create拒否、管理候補非露出。C3 未保存preview前後のProduct/Variant/Image/InventoryHistory/ReviewSummary/Session snapshot不変とdraft予告。C4 明示submitのdraft/version1・SKU/INITIAL_STOCK/ゼロSummary原子的保存、既存11商品不変、故障注入rollback。C5 active/inactiveカテゴリ/ブランド/asset、SKU空/重複、variationName/optionValue、画像0/1/3/4・primary0/1/2。C6 regularPrice0/負値/小数、purchaseLimit0/1、initialStock -1/0/1/小数/大値をUI制約回避リクエストでも照合。C7 duplicateドラフト有無、default/product-aggregate-edit、1023/1024px・desktop/tablet・keyboard/Dirty/視覚/a11y。",
+      "test_responsibility": "新規フォームstate→preview(読取り)とcreate(書込み)を分離し、RouteGuard→AdminProductUseCases.requireStaff/validateMinimum/validateImages→Dexie createAggregate/transaction→新規ID/version・DB/Session前後をC1-C7で照合。基本分析のみ完了、直接実Run/DB・製品適合は未受入。",
+      "case_policy": "採用: C1 staff両Roleと入力中非破壊性、C2非staff拒否、C3preview非保存、C4draft原子性/rollback、C5active参照・画像・SKU/variation、C6価格/初期在庫/購入上限境界、C7duplicate/viewport/a11y。除外: 公開/一括公開の実成否、入力拒否結果確定（A01-02）、preview詳細の実証（A01-03）、Native管理画面（非サポート）。",
+      "case_selection_reason": "正式admin-catalog.md:8-23,95-112,210-220、AdminProductNewPage:337-410→ProductEditor→AdminProductUseCases.preview/create:127→Dexie createAggregate:~70-130、default/product-aggregate-edit Seedを照合。C1-C7でRole/State/Data・Highの非staff/非破壊・原子性・初期在庫数値境界を個別採否。既存component/transactionテストは部分証拠であり新HEAD直接PASSではない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 調査HEAD 0f2a4bcf27a4: admin-catalog.md:8-23,95-112,210-220、StaffPage/RouteGuard:25-55、AdminProductNewPage:337-410、ProductEditor入力state/preview/submit、AdminProductUseCases.create:127/preview/validateMinimum/validateImages/requireStaff、Dexie createAggregate:~70-130のdraft・Variant・INITIAL_STOCK・ReviewSummary、default guest/11商品とproduct-aggregate-editを照合。関連コード17/17静的断片チェック成功。C1-C7のRole/State/Data/Risk/TR/Case採否を具体化。初期在庫負値/小数の検査不足は静的High候補・実障害未再現。既存component preview/draftとtransactions成功/rollbackは部分証拠。直接Vitest/Prettier/Playwright、Role別実Web、DB/Session前後、故障注入、1023/1024px、視覚/a11y、製品適合、同一HEAD全CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -15013,9 +15013,13 @@
         "AC-ADMINCAT-002"
       ],
       "related_use_cases": [
+        "AdminMasterUseCases.searchCategories",
+        "AdminMasterUseCases.searchBrands",
+        "AdminProductUseCases.searchImageAssets",
+        "AdminProductUseCases.preview",
         "AdminProductUseCases.create"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-02 A01-01基本分析のみ完了（操作84→85/188、非default16/20）。Role/State/Data、入力→preview→create、draft/初期在庫/集計transactionとC1-C7を確定。負値/小数・実Web/DB/Session・視覚/製品適合は未受入。次はSCREEN-ADMIN-PRODUCT-NEW-A01-02。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 337,
@@ -15039,11 +15043,40 @@
       },
       "use_case_evidence": [
         {
+          "id": "AdminMasterUseCases.searchCategories",
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "line": 63,
+          "signature": "async searchCategories("
+        },
+        {
+          "id": "AdminMasterUseCases.searchBrands",
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "line": 155,
+          "signature": "async searchBrands("
+        },
+        {
+          "id": "AdminProductUseCases.searchImageAssets",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 111,
+          "signature": "  async searchImageAssets("
+        },
+        {
+          "id": "AdminProductUseCases.preview",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 280,
+          "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+        },
+        {
           "id": "AdminProductUseCases.create",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 127,
-          "signature": "async create(request: CreateProductRequest): Promise<ProductEditDto> {"
+          "signature": "  async create(request: CreateProductRequest): Promise<ProductEditDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {

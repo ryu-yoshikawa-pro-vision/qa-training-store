@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A01-01`（商品新規入力・保存前のRole/State/Dataと入力境界）。直前A02-02は一覧Link→動的route→getEdit→DexieのID限定読取り、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作84/188・状態16/20）。Highのroute ID切替時の旧フォーム混在/誤ID保存可能性は実Run・DB/Session前後・視覚/a11y待ち。詳細は直下のA02-02記録。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A01-02`（入力バリデーション・active参照・数値境界）。直前A01-01は基本分析のみanalyzed（操作85/188・非default16/20）、実Run/DB前後/負値・小数/視覚・製品適合は未受入。直前A02-02は一覧Link→動的route→getEdit→DexieのID限定読取り、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作84/188・状態16/20）。Highのroute ID切替時の旧フォーム混在/誤ID保存可能性は実Run・DB/Session前後・視覚/a11y待ち。詳細は直下のA02-02記録。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-NEW-A01-01（新規入力と未保存境界）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**84→85/188**、非default**16/20**維持。正式BR/AC-ADMINCAT-001/002、Role/State/Data、Web入力→preview→create→Dexie、High R1-R7/TR1-R7/C1-C7の採否を台帳へ記録。製品適合/実Web/DB/CI PASSではない。
+- **境界とSeed**：default初期guest・既存11商品、staff operator/adminのみ。guestは/login、customer/停止staffは/forbidden、Use Caseで再認可。新規フォームはSKU1件/初期在庫0/画像0、active master候補読取り。入力stateとpreviewは保存せず、明示submit時のみ`AdminProductUseCases.create`→`create-product-aggregate` transaction→Dexieがdraft(version1)、Variant、INITIAL_STOCK履歴、ゼロReviewSummaryを生成。product-aggregate-editはdefaultデータ維持。
+- **High静的候補**：初期在庫入力はHTML `min=0`だが、`validateMinimum`とDexie `createAggregate`に負値/小数の明示検査が見当たらず、制約回避リクエストで不正Stock/Historyが保存される可能性。実障害未再現、SUT無変更。
+- **Case/直接検査**：C1 staff入力と非破壊、C2非staff拒否、C3preview非保存、C4draft原子性/rollback、C5active参照・SKU・画像、C6価格/初期在庫/購入上限境界、C7duplicate/viewport/a11y。既存component preview/draftとtransaction成功/rollbackは部分証拠。コード断片**17/17静的検査成功**、直接Vitest/Prettier/Playwright未実施。
+- **未受入・次**：固定HEAD隔離fixtureでRole別実Web、Product/Variant/Image/InventoryHistory/ReviewSummary/Session前後、負値/小数、故障注入、1023/1024px、視覚/a11y、正式製品適合を確認する。作業開始HEAD `0f2a4bcf27a4`のWeb CI #41445335617はpending、Mobile未受入。**次の共通対象：`SCREEN-ADMIN-PRODUCT-NEW-A01-02`（入力バリデーション）**。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A02-02（商品編集導線と対象ID隔離）
 
