@@ -13700,26 +13700,29 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,hidden-reviews,admin-bulk-partial-failure。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 既存の投稿スナップショットを保持",
+      "data": "default/hidden-reviewsのpublished9・hidden1(review-hidden)・deleted1(review-deleted)をstaff(operator/admin)が単体変更。初期guest→staff認証。対象ReviewのorderItemId/productId/userId/rating/title/body/createdAt、対応OrderItemのproductName/SKU/単価/数量/金額/画像Snapshot、Review.status/version/updatedAt、History、ProductReviewSummary、公開一覧、Order/Sessionを前後比較。review-hidden/deletedはReview.userId=gold対Order.userId=regularのcross-owner Seedであり、本人投稿正常Caseに流用しない。reviews-emptyは0件、admin-bulk-partial-failureは商品競合設定のみ",
       "action": "既存の投稿スナップショットを保持",
-      "expected": "公開状態変更時に投稿時の明細・評価・title・本文のスナップショットを書き換えない",
+      "expected": "operator/adminのpublished→hiddenまたはhidden→publishedでは、Review.status/updatedAt/version(+1)のみ変更し、orderItemId/productId/userId/rating/title/body/createdAtとOrderItem保存Snapshotを不変に保つ。History(from/to/actor)1件とpublished限定Summary(count/total/average/分布)の適切な増減のみ許可し、公開一覧と整合。deleted・同状態・stale version・不存在・非staffは拒否しReview/OrderItem/History/Summary/Order/Sessionを不変に保つ。Webは成功/失敗通知と再検索。rating/title/bodyはcustomer編集Use Caseでは変更可能なので『全期間不変』ではなく『管理者visibility変更による非改変』が対象。commit後getDetail失敗によるfalse failureは実証待ち",
       "rule_refs": [],
       "route": "`/admin/reviews`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "既存の投稿スナップショットを保持の事前状態・実施後を比較し、公開状態変更時に投稿時の明細・評価・title・本文のスナップショットを書き換えないことを確認する",
-      "test_responsibility": "既存の投稿スナップショットを保持の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "既存の投稿スナップショットを保持の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=visibility変更が顧客の投稿本文・評価・OrderItem価格/明細Snapshotを書き換える情報/取引証跡破壊、High R2=非staff・失効Sessionによる非公開本文/PII露出・不正公開、High R3=Review/History/Summaryの部分更新・公開集計二重計上、R4=stale/並列staff・version競合、R5=deleted復活/同状態誤許可、R6=default cross-owner Seedを本人例と誤認、R7=commit後getDetail失敗で永続更新成功とUI失敗通知が乖離。いずれも直接再現未確認",
+      "test_condition": "TR1/C1=defaultのpublishedレビュー1件をstaffがhiddenにし、immutable Review7項目(orderItemId/productId/userId/rating/title/body/createdAt)とOrderItemの価格・明細・画像SnapshotをdeepEqual、status/version/updatedAtのみ許可、History+1、Summary該当ratingを1減算・公開一覧除外。TR2/C2=review-hidden(rating1/version1)をhidden→publishedにし同Snapshot不変、History+1、Summary publishedCount+1/ratingTotal+1/rating1Count+1/平均再計算・公開一覧追加。TR3/C3=guest/customer/停止・退会staff/失効Session拒否とPII非露出・DB/Session不変。TR4/C4=deleted→published/hidden、同状態、stale version、不存在ID拒否・副作用なし。TR5/C5=2staff並列、Summary書込失敗のrollback、commit後getDetail失敗を故障注入しSnapshot/History/SummaryとUI通知を照合。TR6/C6=default/hidden-reviews/reviews-empty/admin-bulk-partial-failureのSeed差・cross-ownerを確認し本人レビュー編集とは分離。TR7/C7=Web desktop/tabletの操作・履歴・成功失敗通知・商品公開集計・視覚/a11y、DB/Session前後を検証。C1〜C7採用、実Run/正式UX適合は未受入",
+      "test_responsibility": "reviews.md BR-REVIEW-001/002・AC-REVIEW-001/002→Web AdminReviewsPage Guard(staff)/AdminReviewsContent.change・bulk→AdminReviewUseCases.changeVisibility(requireStaff、expectedVersion、canTransitionReview)→Dexie transactionRunner.review-change(reviews/review_status_histories/product_review_summaries)→DexieReviewRepository.update({ ...current,status,updatedAt },expectedVersion)でversion+1、History追加、applyPublishedReviewDelta→getDetail→Web通知/再検索。ReviewRepo.updateは現行Reviewの他フィールドをspread保持し、review-change scopeにorders/order_itemsが含まれない。公開一覧はpublished限定。bulkも同じchangeVisibilityを個別に呼ぶため、各件単位の不変性と部分成功を別Caseで確認",
+      "case_policy": "C1 published→hiddenとSnapshot/集計、C2 hidden→publishedとSnapshot/集計、C3 Role/Session/PII、C4 deleted/同状態/stale/不存在、C5 並列/CAS/rollback/commit後getDetail false failure、C6 Seed/cross-owner差、C7 Web desktop/tablet・履歴・公開一覧・視覚/a11yを採用。既存Integrationはpublished→hiddenのHistory/count-1のみの部分証拠。実Run PASSにしない",
+      "case_selection_reason": "投稿済みレビューの内容と購入時OrderItem Snapshotは公開状態操作で改変してはいけないHighデータ保護境界。visibilityで許可されるstatus/version/updatedAt/History/Summary変化と、禁止される投稿/注文Snapshot変化を明確に分離し、正逆遷移・拒否・並列・失敗時のCaseを独立採用",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 2abbad940bea: reviews.md BR-REVIEW-001/002・AC-REVIEW-001/002、Web staff Guard/単体・一括visibility、Use Case requireStaff/version/遷移、Dexie review-changeの3テーブルとReview spread更新・OrderItem非参加、default/hidden/reviews-empty/admin-bulk-partial-failure Seed、既存Integrationの逆方向published→hiddenを照合。immutable Review7項目とOrderItem保存SnapshotをC1/C2で確定しHigh R1-R7/TR1-R7/C1-C7採否を個別整理。基本分析のみanalyzed。直接Vitest/formatter/Playwright・DB/Session前後・並列/rollback/故障注入・実Web/視覚/a11y・製品適合・同一HEAD最終CIは未受入",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "AdminReviewUseCases.changeVisibility",
+        "AdminReviewUseCases.bulkChangeVisibility"
+      ],
+      "analysis_progress": "2026-11-02: A02-03基本分析のみ完了（操作78→79/188、非default16/20）。実Run・DB/Session前後・並列/rollback・Web視覚/a11y・製品適合・最終CIは検証待ち。次はSCREEN-ADMIN-DASHBOARD-A01-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 252,
@@ -13740,9 +13743,113 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default/hidden-reviewsはpublished9/hidden1/deleted1・初期guest→staff。published Reviewはregular本人、hidden/deletedはReview.userId=gold対Order.userId=regularのcross-owner。reviews-emptyは0、admin-bulk-partial-failureは商品競合のみ。Review7項目とOrderItem購入Snapshotをvisibility前後で比較"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminReviewUseCases.changeVisibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 392,
+          "signature": "async changeVisibility(input: {"
+        },
+        {
+          "id": "AdminReviewUseCases.bulkChangeVisibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 442,
+          "signature": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 8,
+          "end_line": 17,
+          "reason": "BR-REVIEW-001/002・hidden/deleted・published限定集計"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 55,
+          "end_line": 96,
+          "reason": "管理レビューSnapshot保持とAC-REVIEW-002"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 252,
+          "end_line": 318,
+          "reason": "staff Guard・単体/bulk操作・通知/再検索"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 408,
+          "end_line": 465,
+          "reason": "レビュー本文/評価/状態とvisibilityボタン"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 470,
+          "reason": "staff/version/遷移・spread Review更新・History/Summary・bulk委譲・getDetail"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 26,
+          "end_line": 30,
+          "reason": "published/hidden可逆・deleted終端"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 125,
+          "end_line": 140,
+          "reason": "review-changeはReview/History/Summaryのみ、OrderItem非参加"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 349,
+          "reason": "Review version CASとpublished限定一覧"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 5,
+          "end_line": 49,
+          "reason": "公開集計の増減・平均・評価分布"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 495,
+          "end_line": 533,
+          "reason": "publishedレビューのReview immutable値"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 595,
+          "end_line": 668,
+          "reason": "OrderItem保存Snapshotとhidden/deleted cross-owner"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 105,
+          "reason": "default/hidden/reviews-empty"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 139,
+          "end_line": 144,
+          "reason": "admin-bulk-partial-failureは商品競合"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 242,
+          "end_line": 263,
+          "reason": "既存published→hidden/History/count-1のみ部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-DASHBOARD-A01-01",

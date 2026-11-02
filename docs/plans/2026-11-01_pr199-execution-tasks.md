@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A02-03`（既存投稿Snapshotの保持）。直前`SCREEN-ADMIN-REVIEWS-A02-02`はhidden→publishedの認可・version・Review/History/Summary・公開一覧・Seed/Case採否を照合し**基本分析のみ**`analyzed`（操作77→78/188、非default16/20）。直接Vitest/実Web/DB/Session・並列・commit後getDetail false failure・視覚/a11y/製品適合/最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-DASHBOARD-A01-01`（管理概要の集約件数・認可/非露出）。直前`SCREEN-ADMIN-REVIEWS-A02-03`はレビューvisibility変更時の投稿7項目・OrderItem購入Snapshot不変、History/Summary許可差分、Role/State/SeedとC1〜C7採否を照合して**基本分析のみ**`analyzed`（操作78→79/188、非default16/20）。直接Vitest/実Web/DB・Session・並列/rollback・視覚/a11y・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A02-03（既存投稿Snapshot保持）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作78→79/188、非default16/20維持。正式`BR-REVIEW-001/002・AC-REVIEW-001/002`、Web desktop/tablet→Use Case→Dexie transaction/Review Repo・default/hidden/reviews-empty/admin-bulk-partial-failure Seedを照合。High R1-R7/TR1-R7/C1-C7の採否を個別記録。実Run/製品適合/最終CI PASSではない。
+- **保持と許可差分**：defaultのpublished9件からregular本人の投稿を選択し、hidden→publishedは`review-hidden`(rating1/version1)をstaffが操作。ReviewのorderItemId/productId/userId/rating/title/body/createdAtの7項目とOrderItemの名称/SKU/価格/数量/画像等の保存Snapshotを変更しない。Use Caseは`{...current,status,updatedAt}`をDexie ReviewRepository.updateへ渡しversion+1。review-change transactionの対象はReview/History/ProductReviewSummaryのみでOrderItemを含まない。History+1とpublished限定Summary(count/total/平均/評価分布)の正しい増減は許可。顧客本人のreview updateはrating/title/bodyを変更し得るため、全期間の投稿不変性ではなく**管理者visibility操作の非改変**が検証対象。
+- **Role/State/Seed**：初期guest→operator/adminログイン。非staff/失効Session拒否、deleted終端、同状態とstale version拒否。default/hidden-reviewsはpublished9/hidden1/deleted1、reviews-emptyは0、admin-bulk-partial-failureは商品競合設定のみ。hidden/deleted Review.userId=gold対Order.userId=regularのcross-owner Seedを本人投稿正常Caseに使わない。公開一覧はpublished限定。
+- **Case採否**：C1 published→hiddenの投稿/OrderItem Snapshot不変・History/Summary減算、C2 hidden→publishedのSnapshot不変・rating1のSummary加算、C3 Role/Session/PII、C4 deleted/同状態/stale/不存在拒否、C5 並列CAS・rollback・commit後getDetail false failure、C6 Seed差/cross-owner、C7 Web desktop/tablet・履歴/公開集計/視覚/a11yを採用。既存integration `review-user-use-cases.test.ts:242-263`はpublished→hiddenのHistory/count-1のみ部分証拠で、Snapshot deepEqual・hidden再公開・実Run全PASSではない。
+- **未受入/再開**：隔離fixtureでC1〜C7の直接Vitest/Playwright、Role別Session、Review/OrderItem/Order/History/Summary/Session前後、同時staff・失効/故障注入、実Web desktop/tablet・視覚/a11yを検証する。commit後getDetailが失敗した際の永続成功とUI失敗通知の乖離はHigh候補で実再現未確認。製品SUT/正式仕様/既存Seed/製品テストは変更しない。
+- **CI独立**：変更前HEAD `2abbad940bea`の[Web CI #41427056299](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41427056299)はcompleted/failure。Contracts/Integration/Code Quality/Training runtime/主要E2E/UI Reviewはsuccess、Style Quality・required Chromium E2E・verify/validateはfailure。新HEADは別判定、Mobile CIは未受入。
+- **次の共通対象**：`SCREEN-ADMIN-DASHBOARD-A01-01`（管理概要・集約件数と認可）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A02-02（hiddenレビューの再公開）
 
