@@ -11239,13 +11239,13 @@
       "expected": "Web /ordersでCustomerのlistMyOrdersがitems=[]を返した場合『注文履歴はありません』と空StatePanelを表示し、StatePanel既定の『ホームへ戻る』リンク（/）を表示する。注文カード・注文詳細リンクは表示しない。defaultの本人注文ありでは注文カードが表示される。Androidにも空案内はあるが当該視覚必須はWeb desktopのみ",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "空注文で他人の注文を代替表示する情報漏えい、空表示からの復帰導線欠落、loading/errorをemptyと混同、Seedの初期Session誤認",
-      "test_condition": "orders-empty Reset→初期regular@example.comで/ordersを開き、listMyOrders→DexieOrderRepository.listByUser(user.id)の0件を確認。Webで『注文履歴はありません』、ホームへのhref=/、注文カード0件を確認。default Reset→regular本人注文が1件以上の対照、guest/staffはCustomerPage拒否を別途確認。実ブラウザ・視覚正本のPASSは未確認",
-      "test_responsibility": "SCREEN-ORDERS-LIST-A02-01のWeb空状態。CustomerPage→CheckoutOrderUseCases.listMyOrders→DexieOrderRepository.listByUser→OrdersContent→StatePanel既定の/導線を追跡",
-      "case_policy": "orders-empty本人0件とdefault本人複数件を採用。loading/error/権限拒否は別状態・別Caseとして区別。Androidは機能確認の補助であり当該視覚正本の必須外",
-      "case_selection_reason": "既存orders-empty Seedで0件が確定し、defaultの本人注文ありと非破壊で対比できる。本人所有権と空画面からの回復導線を同時に監査できる",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "orders.md:20-35、CheckoutOrderUseCases.listMyOrders:385-395、DexieOrderRepository.listByUser:117-141、OrdersContent:672-698、StatePanel:29-62、metadata.ts:240-249、scenarios.ts:80-91、default-dataset.ts:400-470を読み取り照合。既存製品テストは変更せず、CIでの当該視覚受入は未確認",
+      "risk": "High R1: 注文0件の本人画面に他人の注文を混入する情報漏洩。R2: loading/error/未認可をemptyと混同。R3: Web desktopのストアフロント復帰CTA欠落。R4: orders-emptyとdefaultの初期Session・0/5件の誤認。Native直接CTA不在は製品適合未判定。",
+      "test_condition": "TR1/C1: orders-empty Resetの初期regular本人Session→/ordersのitems=[]、Web『注文履歴はありません』、注文カード0件、StatePanel既定ホームhref=/。TR2/C2: default Resetの初期guest→regular本人ログイン後の5注文・詳細リンクを対照。TR3/C3: requireCustomer→Dexie where(userId)/SQLite WHERE user_id=?で別顧客注文を排除（別Session実Runは未受入）。TR4/C4: loading/errorとguest/staffの認可拒否はemptyと別Case。TR5/C5: e2e/web/ui-review.spec.ts:758-773のorders-empty Web desktop視覚Case・正本画像/a11yは個別実行証拠待ち。TR6/C6: Native『注文はありません』『購入した注文がここに表示されます。』は補助機能確認、直接CTAなし、当該視覚requiredはWeb desktopのみ。",
+      "test_responsibility": "注文一覧A02-01と別の非default状態IDとして、orders.md:20-35のempty視覚契約→orders-empty Seed/regular本人Session→CustomerPage→listMyOrders→Dexie/SQLite本人抽出→Web OrdersContent empty分岐→StatePanelホームhref=/、default対照とNative差を個別追跡する",
+      "case_policy": "C1採用=Web desktop空見出し・カード0・ホームhref=/。C2採用=default本人5件対照。C3採用=他人注文の排除（別Session実Run待ち）。C4採用=loading/error/Role拒否をemptyと区別。C5採用=Web desktop正本視覚/a11y（既存Case定義のみ確認、artifact未照合）。C6補助=Native空案内と直接CTAなし（視覚必須外）。BR-ORDER-002/AC-ORDER-002の遷移検証は別ID。実Web/Android・DB/Session前後・製品適合をPASSとしない。",
+      "case_selection_reason": "orders-emptyは初期regular本人Sessionを持ち、Order/Item/Payment/Shipment/History/Checkoutを全0件にする固定Seed。defaultは初期guestだがregular本人5状態注文がありログイン後の非空対照となる。WebのStatePanelはaction省略でホームhref=/を生成する一方、Nativeは空案内のみ。親A02-01の分析を流用するだけでなくS-empty独自の視覚条件とRisk/TR/Case採否を確定。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD c32e52612786: 正式orders.md:20-35のcustomer/empty/orders-empty・Web desktop視覚required・ストアフロント導線を確認。metadata.ts:240-250はregular本人初期Session、scenarios.ts:80-92は注文/決済/配送/履歴/Checkout全0件、default-dataset.ts:400-471はregular本人5注文。checkout-order-use-cases.ts:377-388のrequireCustomer→listByUser(user.id)、Dexie order-review-repositories.ts:145-169のwhere(userId)、SQLite native-customer-application-repositories.ts:2209-2250のWHERE user_id=?を照合。Web checkout-order-pages.tsx:615-650は0件時『注文履歴はありません』、states.tsx:53-85はaction省略で『ホームへ戻る』href=/。Native native-purchase-screens.tsx:1120-1165は空案内のみ・直接CTAなし。e2e/web/ui-review.spec.ts:758-773にorders-empty desktop Case定義。Web CI #41392778936はfailureでUI Review desktop jobのみsuccess、当該Case個別artifact・視覚比較は未確認。R1-R4/TR1-TR6/C1-C6の採否を個別確定し基本分析のみanalyzed。実Web/Android、別Session、DB/Session前後、視覚/a11y、Native CTA正式適合、最終CIは未受入。",
       "requirement_refs": [
         "BR-ORDER-001",
         "BR-ORDER-002",
@@ -11257,7 +11257,7 @@
       ],
       "covered_by": "SCREEN-ORDERS-LIST-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "仕様・Role・Use Case・Dexie Repository・Web/Native UI・既存Seed実値を読み取り監査。E2E/視覚実行は未完了 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "仕様・Role・Use Case・Dexie Repository・Web/Native UI・既存Seed実値を読み取り監査。E2E/視覚実行は未完了 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 c32e52612786: orders-empty/defaultの0/5件・本人Session・Web emptyホームCTA・Native差・Dexie/SQLite本人抽出・R1-R4/TR1-TR6/C1-C6を再照合。基本分析のみanalyzed、実Run/視覚/製品適合未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 606,
@@ -11295,55 +11295,67 @@
           "path": "docs/spec/features/orders.md",
           "start_line": 20,
           "end_line": 35,
-          "reason": "customer空状態の視覚要件とBR/AC"
-        },
-        {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 385,
-          "end_line": 395,
-          "reason": "requireCustomer後に本人user.idで注文一覧取得"
-        },
-        {
-          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
-          "start_line": 117,
-          "end_line": 143,
-          "reason": "userIdによる本人注文抽出と0件のpageItems"
-        },
-        {
-          "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 672,
-          "end_line": 699,
-          "reason": "items.length===0の空StatePanelと注文カード非表示"
-        },
-        {
-          "path": "src/presentation/components/states.tsx",
-          "start_line": 29,
-          "end_line": 65,
-          "reason": "action省略時の既定ホームリンク"
-        },
-        {
-          "path": "src/seeds/scenarios.ts",
-          "start_line": 80,
-          "end_line": 91,
-          "reason": "orders-emptyで注文・関連レコードを全削除"
+          "reason": "empty Web desktop視覚required・ストアフロント復帰"
         },
         {
           "path": "src/seeds/metadata.ts",
           "start_line": 240,
           "end_line": 250,
-          "reason": "regular@example.com本人Sessionと/ordersの初期状態"
+          "reason": "regular本人初期Session"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 80,
+          "end_line": 92,
+          "reason": "関連注文データ全空化"
         },
         {
           "path": "src/seeds/default-dataset.ts",
           "start_line": 400,
-          "end_line": 470,
-          "reason": "defaultに本人注文を複数作成する比較基準"
+          "end_line": 471,
+          "reason": "default本人5注文対照"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 377,
+          "end_line": 388,
+          "reason": "requireCustomer→本人listByUser"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 145,
+          "end_line": 169,
+          "reason": "Dexie本人userId抽出"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2209,
+          "end_line": 2250,
+          "reason": "SQLite本人user_id抽出"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 615,
+          "end_line": 650,
+          "reason": "Web emptyとカード0件"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 53,
+          "end_line": 85,
+          "reason": "既定ホームhref=/"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1215,
-          "end_line": 1248,
-          "reason": "Android空案内を確認（視覚必須外）"
+          "start_line": 1120,
+          "end_line": 1165,
+          "reason": "Native空案内・直接CTAなし"
+        },
+        {
+          "path": "e2e/web/ui-review.spec.ts",
+          "start_line": 758,
+          "end_line": 773,
+          "reason": "orders-empty desktop視覚Case定義"
         }
       ]
     },

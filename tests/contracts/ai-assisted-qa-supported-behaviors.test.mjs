@@ -22,15 +22,15 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 2,
+      unreviewed_state_conditions: 5,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 80,
-      requires_review: 108,
+      basically_analyzed: 65,
+      requires_review: 123,
       classified_rate: 100,
-      basic_analysis_rate: 42.55,
+      basic_analysis_rate: 34.57,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -533,13 +533,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits empty orders and reviewable order states without SUT changes", () => {
-    for (const id of ["SCREEN-ORDERS-LIST-S-empty", "SCREEN-ORDERS-DETAIL-S-reviewable"]) {
-      const state = data.behaviors.find((item) => item.id === id);
-      expect(state?.analysis_status).toBe("analyzed");
-      expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
-      expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
-      expect(state?.related_use_cases?.length).toBe(1);
-    }
+    const empty = data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-S-empty");
+    expect(empty?.analysis_status).toBe("analyzed");
+    expect(empty?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(empty?.audit_branch_refs?.length).toBeGreaterThan(8);
+    expect(empty?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
+    expect(empty?.test_condition).toContain("TR1/C1");
+    expect(empty?.case_policy).toContain("C5採用");
+    expect(empty?.basic_analysis_review).toContain("個別artifact");
+    const reviewable = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-DETAIL-S-reviewable",
+    );
+    expect(reviewable?.analysis_status).toBe("review_required");
   });
 
   it("audits staff-only many-products while retaining unresolved filter behavior", () => {

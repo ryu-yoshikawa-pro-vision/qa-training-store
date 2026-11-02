@@ -1,5 +1,11 @@
 # Scenario Shop 全サポート動作の分類と基本分析（再調査）
 
+## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-S-empty（注文なしのWeb desktop非default状態）
+
+**基本分析のみ`review_required→analyzed`（操作65/188維持、非default14→15/20）**。正式orders.md:20-35はcustomer/orders-emptyのWeb desktop視覚requiredとストアフロント復帰を要求。orders-empty Seedはregular本人初期SessionでOrder/Item/Payment/Shipment/History/Checkoutを0件、defaultは本人5注文。listMyOrders→requireCustomer→Dexie where(userId)/SQLite WHERE user_id=?を確認。Web OrdersContentは『注文履歴はありません』・カード0、StatePanel既定『ホームへ戻る』href=/。Nativeは『注文はありません』と説明のみ、直接CTAなし（当該視覚必須外）。
+
+High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠落。C1=Web空見出し/カード0/href=/、C2=default本人5件、C3=別顧客除外、C4=loading/error/Role分離、C5=Web desktop視覚/a11y、C6=Native差。既存ui-review.spec.ts:758-773にorders-empty desktop Case定義。前HEAD c32e52612786の[Web CI #41392778936](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41392778936)はfailure、UI Review desktop jobはsuccessだが**当該Case個別artifact・画像比較未確認**。直接Vitest/formatter、実Web/Android、別Session、DB/Session前後、Native CTA正式適合・最終CIは未受入。次は`SCREEN-ORDERS-DETAIL-A01-01`。SUT/正式仕様/既存Seed・製品テストは変更しない。
+
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-03
 
 **基本分析のみ analyzed（操作59→60/188、状態14/20）**。正式checkout-and-payment.md:213は失敗後のカート/確認への導線を要求。Web checkout-order-pages.tsx:520-603は再試行/注文詳細/商品一覧のみ、Native native-purchase-screens.tsx:1025-1103は再試行のみで直接復帰CTAが見当たらない。元Cart=consumed・Checkout=converted（default-dataset.ts:422-459）、本人OrderのgetMyOrder・retryPayment、別のactive Cartでのstart/getActiveとbeginOrderの一回性を照合。C1=Web直接CTA、C2=Native直接CTA、C3=元Cart/Checkoutの再利用禁止、C4=他Roleの注文非開示、C5=新規Cart価格/version/在庫とDB不変、C6=実Web/Android/DB前後・視覚/a11y・並列を分離。C1-C4は静的・既存component部分証拠、C5-C6は実Run待ち。**直接テスト・実画面・正式UXオラクル・製品適合・最終CIは未受入**。HEAD `cc86f5ab56be` のWeb CI #41385325452は確認時点で進行中（Style Quality/Contracts失敗）。製品SUT・正式仕様は変更しない。次はSCREEN-ORDERS-LIST-A01-01。
