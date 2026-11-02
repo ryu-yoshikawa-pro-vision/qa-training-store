@@ -155,7 +155,9 @@ it("reuses identical validated candidates but never silently replaces changed re
   fs.mkdirSync(attemptDirectory, { recursive: true });
   const candidate = { schema_version: 1, objectives: [{ objective_id: "M04-01" }] };
   persistValidatedCandidate(attemptDirectory, candidate);
-  expect(() => persistValidatedCandidate(attemptDirectory, structuredClone(candidate))).not.toThrow();
+  expect(() =>
+    persistValidatedCandidate(attemptDirectory, structuredClone(candidate)),
+  ).not.toThrow();
   expect(() =>
     persistValidatedCandidate(attemptDirectory, {
       schema_version: 1,
@@ -184,7 +186,8 @@ it("resumes a verified attempt calibration without trusting missing or altered r
     mismatches: [],
     critical_false_passes: 0,
   };
-  const read = () => readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected });
+  const read = () =>
+    readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected });
   expect(read()).toBeNull();
   persistCalibration({ calibration, calibrationPath: cache, attemptDirectory, caseResults });
   expect(read()).toEqual(calibration);
