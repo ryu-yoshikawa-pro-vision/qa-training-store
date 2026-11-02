@@ -232,4 +232,79 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
     expect(await database.payments.where("orderId").equals(processing.orderId).count()).toBe(1);
     expect(await safetySnapshot()).toEqual(after);
   });
+  it("retries the seeded failed order with a second payment attempt but no second order", async () => {
+    const checkout = makeCheckout("training-regular-a");
+    const failedOrder = await database.orders.get("order-payment-failed");
+    expect(failedOrder).toMatchObject({ status: "payment_failed", userId: "user-customer-regular" });
+    const before = await safetySnapshot();
+
+    const processing = await checkout.retryPayment({
+      orderId: failedOrder.id,
+      orderActionVersion: failedOrder.version,
+      methodCode: "TEST-SUCCESS",
+    });
+    expect(processing).toMatchObject({
+      orderId: failedOrder.id,
+      paymentStatus: "processing",
+    });
+    const attempts = await database.payments
+      .where("orderId")
+      .equals(failedOrder.id)
+      .sortBy("attemptNumber");
+    expect(attempts.map((payment) => [payment.attemptNumber, payment.status])).toEqual([
+      [1, "failed"],
+      [2, "processing"],
+    ]);
+    expect(attempts[1].gatewayIdempotencyKey).toBe(`${failedOrder.id}-attempt-2`);
+    expect(await database.orders.count()).toBe(before.orders.length);
+    expect(await database.carts.toArray()).toEqual(before.carts);
+    expect(await database.checkout_sessions.toArray()).toEqual(before.checkouts);
+    expect(await database.sessions.toArray()).toEqual(before.sessions);
+    expect(await database.product_variants.toArray()).toEqual(before.variants);
+    expect(gatewayCalls).toHaveLength(0);
+
+    const paid = await checkout.resumePayment(processing.orderId);
+    expect(paid).toMatchObject({ orderId: failedOrder.id, orderStatus: "paid" });
+    expect(gatewayCalls).toHaveLength(1);
+    expect(gatewayCalls[0]).toMatchObject({
+      orderId: failedOrder.id,
+      gatewayIdempotencyKey: `${failedOrder.id}-attempt-2`,
+      methodCode: "TEST-SUCCESS",
+    });
+    expect(await database.orders.count()).toBe(before.orders.length);
+    expect(
+      (await database.payments.where("orderId").equals(failedOrder.id).sortBy("attemptNumber"))
+        .map((payment) => payment.status),
+    ).toEqual(["failed", "succeeded"]);
+  });
+
+  it("rejects stale and unauthorized retries of the seeded failed order without mutation", async () => {
+    const failedOrder = await database.orders.get("order-payment-failed");
+    expect(failedOrder).toMatchObject({ status: "payment_failed" });
+    const request = {
+      orderId: failedOrder.id,
+      orderActionVersion: failedOrder.version,
+      methodCode: "TEST-SUCCESS",
+    };
+    const before = await safetySnapshot();
+
+    await expect(makeCheckout(null).retryPayment(request)).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    await expect(makeCheckout("training-operator").retryPayment(request)).rejects.toMatchObject({
+      code: "PERMISSION_DENIED",
+    });
+    await expect(makeCheckout("training-gold").retryPayment(request)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    await expect(
+      makeCheckout("training-regular-a").retryPayment({
+        ...request,
+        orderActionVersion: failedOrder.version - 1,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(gatewayCalls).toHaveLength(0);
+    expect(await safetySnapshot()).toEqual(before);
+  });
+
 });
