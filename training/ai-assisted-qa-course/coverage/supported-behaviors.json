@@ -14130,29 +14130,31 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,幅1023px/1024px,operator/admin。role=operator/admin、状態・対象ID・versionを区別。操作: 1024px未満で管理操作を制限・警告",
+      "data": "default Seed: 初期guest/Sessionなし。active operator(admin@example.comではなくoperator@example.com)とactive admin(admin@example.com)で別Sessionログインし、Web /adminを320/390/767/768/1023/1024pxに変更。状態はadmin-mobile-warning、管理概要は読取り専用で商品/Order/Review/Session/version変更を期待しない。Native管理画面は非対応",
       "action": "1024px未満で管理操作を制限・警告",
-      "expected": "幅1024px未満のWebでは管理フォームを操作させず、専用警告を表示する",
+      "expected": "active operator/adminのWeb /adminでは幅1023px以下で.admin-sidebarと.admin-mainをCSS display:none、.admin-viewport-warningをdisplay:blockにしてrole=statusの「管理画面はデスクトップで利用してください」、1,024px以上必要の説明、ストアへ戻る(/)、ログアウトを視覚・キーボード操作可能にする。1024px以上は警告を隠して管理概要/ナビを表示。guestは/login、customer/停止staffは/forbiddenへ認可拒否。CSS非表示はDOM除去/データ取得停止ではなく、機密データのDOM/通信非露出は別の未受入事項",
       "rule_refs": [],
       "route": "`/admin`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "1024px未満で管理操作を制限・警告の前後に、幅1024px未満のWebでは管理フォームを操作させず、専用警告を表示することをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと1024px未満で管理操作を制限・警告の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "1024px未満で管理操作を制限・警告が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: 狭幅でCSS非表示のadmin-main内に最近注文の顧客email等がDOMとして残り、表示非露出と情報非取得を誤認。High R2: guest/customer/停止staff/失効Sessionへの管理画面・API情報露出。R3: 1023/1024境界の誤判定・端末回転時の管理操作残存。R4: 320/390/767/768pxの警告横はみ出し・見出し/操作不能。R5: 警告内ストア戻り/ログアウト不具合・ログアウト後再侵入。R6: hiddenの管理DOM/非表示操作がKeyboard/ARIAでフォーカス可能になる回帰。R7: 狭幅閲覧だけでgetOverviewの読取りや非意図DB/Session変更を製品適合PASSと誤認",
+      "test_condition": "C1 境界: default+operator/adminの/ adminを1023/1024pxで比較し、1023以下は警告(role=status/見出し/説明)のみ視覚表示、admin-main/sidebar非表示、1024は管理概要表示。C2 Role: guest/customer/停止staff/失効Session直URLとgetOverviewを拒否し管理件数/email非露出。C3 幅: 320/390/767/768/1023pxと端末回転/resizeで警告・戻り/ログアウト・横overflow/44pxターゲット確認。C4 操作: hidden管理リンク/ボタンへのPointer/Tab/ARIAフォーカスを防ぎ管理変更Use Case呼出し0回。C5 戻り/Logout: /へ遷移、Session消去後/admin再侵入拒否。C6 非露出の範囲: CSS display:noneとDOM存在/非存在・getOverview通信・顧客email DOM文字列を別々に計測し正式データ保護期待を確認。C7 無副作用/視覚: Order/Variant/Review/Session/History/version前後と既存Web mobile/small-mobile画像正本・a11y比較。実Web/Playwright/DB前後は未実施",
+      "test_responsibility": "admin-catalog.md:21-35/ui-ux-contract.md:3-5のレスポンシブ契約→app/admin/index.tsx→AdminOverviewPage/StaffPage→RouteGuard staff→AppFrame/AdminShell→admin.css @media(max-width:1023px)のCSS表示分岐を照合。AdminOverviewContentは幅に関係なくuseAsyncValue(adminMaster.getOverview)を呼び、Use CaseはrequireStaff→DexieAdminOverviewRepositoryの読取り。CSSでadmin-main/sidebarを隠すがReact子コンポーネントはマウントされるため、DOM/通信のPII非露出を静的に保証しない。狭幅警告自体はRepository書込みや商品公開/previewを呼ばない",
+      "case_policy": "採用: C1 1023/1024境界とstaff両Role、C2 guest/customer/停止staff/失効Session、C3 320/390/767/768/1023とresize/overflow、C4 非表示操作のPointer/Keyboard/a11y、C5 戻る/Logout後再侵入、C6 DOM/通信PIIとCSS表示の区別、C7 DB/Session不変・視覚正本。除外: Native管理画面（非対応）、商品公開/編集/プレビュー・version競合の業務ロジック（別操作ID）、既存S-admin-mobile-warningの基本分析を二重計上しない",
+      "case_selection_reason": "正式admin-catalog/UI-UXの1024px閾値とactive staff/guest SeedでRole・viewportの同値/境界値を具体化。UIはAdminShell/CSSで切替え、Use Caseは表示幅に依存せず認可後の概要読取りを行う。HighのPII/DOM非露出と単なる視覚非表示を区別して未受入を残す。BR-ADMINCAT-001/002・AC-001/002はカタログ全体の参照であり、警告表示から商品公開/transaction保存をPASS判定しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:21-35/ui-ux-contract.md:3-5の警告/1024px契約、AdminShell:25-110のrole=status/戻る/Logout/通常main、admin.css:302-309,397-410の表示分岐、AdminOverviewPage:23-45→getOverview:58-61→requireStaff、RouteGuard:25-55、default Seed active staff/初期guest、mobile-boundary.spec.ts:20-53のLogout/警告既存E2E、既存S-admin-mobile-warningの独立分析を照合。High R1-R7/TR1-R7/C1-C7を期待/採否へ反映。CSS非表示でも子DOMとgetOverview読取りは残る可能性があり、PIIのDOM/通信非露出は製品適合として未実証。直接Vitest/Playwright・1023/1024pxの両Role実Run・DB/Session前後・画像/a11yは未実施。静的基本分析のみ完了",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminMasterUseCases.getOverview"
+      ],
       "state_refs": [
         "SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "SCREEN-ADMIN-DASHBOARD-A02-01の正式viewport/Role/State/Data、AdminShell→CSS→RouteGuard→getOverview→Dexie・default Seed、High Risk/TR/Condition/C1-C7採否を個別照合し基本分析完了。実ブラウザ、DOM/PII、DB/Session前後、視覚/a11y、製品適合は検証待ち。次はSCREEN-ADMIN-PRODUCTS-A01-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 27,
@@ -14172,7 +14174,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 21,
+          "end_line": 35,
+          "reason": "管理警告の正式操作/状態・Web Role"
+        },
+        {
+          "path": "docs/spec/ui-ux-contract.md",
+          "start_line": 3,
+          "end_line": 5,
+          "reason": "1024px未満の管理操作制限と警告"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 23,
+          "end_line": 45,
+          "reason": "staff RouteGuardと幅非依存のgetOverview読取り"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "active staffのみの管理画面認可"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 110,
+          "reason": "警告role/status、ストア/Logoutとhidden main"
+        },
+        {
+          "path": "src/presentation/styles/admin.css",
+          "start_line": 302,
+          "end_line": 309,
+          "reason": "デスクトップ警告非表示"
+        },
+        {
+          "path": "src/presentation/styles/admin.css",
+          "start_line": 397,
+          "end_line": 410,
+          "reason": "1023px以下のmain/sidebar非表示と警告表示"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 58,
+          "end_line": 61,
+          "reason": "staff認可後の概要読取りと幅非依存"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default guest初期Sessionと固定staffアカウント"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 768,
+          "end_line": 775,
+          "reason": "active operator/admin固定データ"
+        },
+        {
+          "path": "e2e/web/mobile-boundary.spec.ts",
+          "start_line": 20,
+          "end_line": 53,
+          "reason": "狭幅警告とLogout後の再侵入拒否の既存部分E2E"
+        },
+        {
+          "path": "tests/component/logout-button.test.tsx",
+          "start_line": 155,
+          "end_line": 185,
+          "reason": "警告内LogoutとRole差分のcomponent部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-DASHBOARD-S-admin-mobile-warning",

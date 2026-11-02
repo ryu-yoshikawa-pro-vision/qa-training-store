@@ -683,7 +683,13 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(purchaseEntry?.test_condition).toContain("P-0006");
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
+    const warningAction = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01");
+    expect(warningAction?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(warningAction?.related_use_cases).toContain("AdminMasterUseCases.getOverview");
+    expect(warningAction?.audit_branch_refs?.length).toBeGreaterThan(10);
+    expect(warningAction?.test_condition).toContain("1023/1024px");
+    expect(warningAction?.basic_analysis_review).toContain("未実施");
   });
 
   it("audits low stock and search zero results without modifying the SUT", () => {

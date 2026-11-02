@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-DASHBOARD-A02-01`（1023px以下の管理警告と非露出）。直前`SCREEN-ADMIN-DASHBOARD-A01-01`はpaid=1/hidden=1/最近5注文と低在庫active variant 1〜5、staff認可/顧客email、UI→Use Case→Dexie・Seed・High R1-R7/TR1-R7/C1-C7採否を照合し**基本分析のみ**`analyzed`（操作79→80/188、非default16/20）。直接Role別Vitest/Playwright・DB/Session前後・同時更新・視覚/a11y・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-01`（商品一覧・公開状態とstaff認可）。直前`SCREEN-ADMIN-DASHBOARD-A02-01`は正式1024px境界・staff/guest・AdminShell→CSS→RouteGuard→getOverview/Dexie・default Seed・High R1-R7/TR1-R7/C1-C7採否を照合し**基本分析のみ**`analyzed`（操作80→81/188、非default16/20）。CSS非表示とDOM/通信PII非露出を区別。直接Role別Vitest/Playwright・DB/Session前後・視覚/a11y・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-DASHBOARD-A02-01（狭幅警告・管理操作非露出）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作80→81/188、非default16/20維持。正式`admin-catalog.md:21-35`・`ui-ux-contract.md:3-5`、Web `AdminOverviewPage/RouteGuard`→`AppFrame/AdminShell`→`admin.css @media(max-width:1023px)`、`AdminMasterUseCases.getOverview`→Dexie概要読取り、default Seed/active operator/admin・初期guestを照合。High R1-R7/TR1-R7/C1-C7の期待/採否を台帳へ記録。
+- **境界/Role**：1023px以下では`.admin-sidebar/.admin-main{display:none}`、`.admin-viewport-warning{display:block}`、警告`role=status`、1,024px以上必要の説明、ストア(/)/Logoutを表示。1024px以上は警告非表示で管理概要。active operator/adminだけが管理Route/Use Caseを通過し、guest→login、customer/停止staff→forbidden。320/390/767/768/1023/1024pxをC1/C3に採用。Native管理画面は非対応。
+- **High・非露出の限定**：CSS非表示はReact子DOMの削除や`getOverview`の呼出し抑止を意味しない。狭幅でも管理概要の読取りが起き得るため、顧客email/管理件数のDOM・通信非露出は別のHigh検証待ち。狭幅での管理変更UI非表示と認可/データ保護を混同しない。BR/ACの製品公開/transaction保存は本操作からPASSにしない。
+- **Case採否**：C1 1023/1024・operator/admin警告切替、C2 guest/customer/停止staff/失効Session拒否、C3 320/390/767/768/1023・resize/overflow、C4 hidden操作のPointer/Keyboard/ARIA、C5 ストア/Logoutと再侵入拒否、C6 DOM/通信/PII非露出範囲、C7 DB/Session不変・視覚/a11yを採用。商品公開・編集・プレビュー/業務version競合は別ID、状態`S-admin-mobile-warning`を二重計上しない。
+- **既存テスト・未受入**：`e2e/web/mobile-boundary.spec.ts:20-53`は狭幅警告/Logout後拒否の部分証拠。`tests/component/logout-button.test.tsx:155-185`は警告内LogoutのDOM部分証拠。今回直接Vitest/Prettier/Playwright・1023/1024両Role実Web、DOM/通信PII、DB/Session前後、視覚正本/a11y、製品適合は未実施。固定HEAD・隔離fixtureでC1〜C7の実Runと正式データ保護期待を照合して再開する。
+- **CI独立**：作業前HEAD `90c9ca475912`の[Web CI #41432182575](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41432182575)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Component・UI Review mobile/small-mobile・mobile-boundary E2Eはsuccess、required Chromium E2E・verify/validateはfailure。新HEADの全必須CIは独立未受入。Mobile PRトリガーは未復元。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCTS-A01-01`（商品一覧・公開状態/Role/非公開商品データ保護）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-DASHBOARD-A01-01（集約件数・認可/非露出）
 
