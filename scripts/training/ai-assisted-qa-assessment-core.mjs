@@ -604,7 +604,20 @@ export function atomicWriteJson(filePath, value, { replace = false } = {}) {
     fs.fsyncSync(fd);
     fs.closeSync(fd);
     fd = undefined;
-    fs.renameSync(temporaryPath, filePath);
+    if (replace) {
+      fs.renameSync(temporaryPath, filePath);
+    } else {
+      // A rename can overwrite a result created by another resume process after the precheck.
+      // A hard link publishes the fully flushed file only when the destination is still absent.
+      try {
+        fs.linkSync(temporaryPath, filePath);
+      } catch (error) {
+        if (error?.code === "EEXIST")
+          fail(`assessment result already exists and is immutable: ${filePath}`);
+        throw error;
+      }
+      fs.unlinkSync(temporaryPath);
+    }
   } catch (error) {
     if (fd !== undefined) fs.closeSync(fd);
     try {

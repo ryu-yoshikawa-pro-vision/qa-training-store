@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   assertAssessmentPath,
   assertModelInputSize,
@@ -937,4 +937,23 @@ describe("AI-assisted QA formal assessment contracts", () => {
     atomicWriteJson(resultPath, { completed: true }, { replace: true });
     expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual({ completed: true });
   });
+});
+
+it("does not overwrite an immutable assessment result created during publication", () => {
+  const directory = path.join(tempRoot, "concurrent-assessment-result");
+  fs.mkdirSync(directory, { recursive: true });
+  const resultPath = path.join(directory, "result.json");
+  const originalLink = fs.linkSync.bind(fs);
+  const intercepted = vi.spyOn(fs, "linkSync").mockImplementationOnce((source, destination) => {
+    // Another resume process wins the race after existsSync, before publication.
+    fs.writeFileSync(destination, '{"completed":false}\\n', { flag: "wx" });
+    return originalLink(source, destination);
+  });
+  try {
+    expect(() => atomicWriteJson(resultPath, { completed: true })).toThrow(/immutable/);
+  } finally {
+    intercepted.mockRestore();
+  }
+  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual({ completed: false });
+  expect(fs.readdirSync(directory)).toEqual(["result.json"]);
 });
