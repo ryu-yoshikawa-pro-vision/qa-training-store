@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-01`（ブランド一覧）。直前`SCREEN-ADMIN-CATEGORIES-A01-04`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・default Seed4件・High R1-R3/Medium R4-R9・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作101/188、非default16/20）。入力項目別エラー不足、新規失敗時即clear、Unicode境界、編集transaction外CASは実再現待ち。直接Vitest/実Web/DB・Session/製品適合/最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-02`（ブランド新規作成）。直前`SCREEN-ADMIN-BRANDS-A01-01`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・default Seed3ブランド（公開数Basics2/Life3/Active3）・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作102/188、非default16/20）。21件以上のWebページング非露出、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
 - **CI横断**：作業前HEAD `f06c40a42dad`の[Web CI #41491900393](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41491900393)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-01（ブランド一覧）基本分析受入
+
+- **判定**：`SCREEN-ADMIN-BRANDS-A01-01`を`review_required→analyzed`。操作**101→102/188**、非default状態**16/20**。基本分析のみで実Web/製品適合/最終CI PASSではない。
+- **正式仕様・Role/State/Data**：`admin-catalog.md:181-195,211-220`、`roles-and-permissions.md:5-19`とBR/AC-ADMINCAT-001/002。active operator/adminのみ許可。default SeedはScenario Basics/Life/Activeの3ブランド（全件active/version1）、商品11件中published8件、ブランド別公開数Basics2/Life3/Active3。guest/customer/停止staff/失効Session、inactive、0件、20/21件、同名正規化は隔離条件。
+- **経路**：Web `admin-master-pages.tsx:431-568`のStaffPage、keyword入力、name_asc固定、一覧の名称・公開数・有効状態→`AdminMasterUseCases.searchBrands:155-171`のrequireStaff/trim/長さ上限・active/page既定→`DexieBrandRepository.searchForAdmin:473-506`の正規化部分一致、active filter、nameNormalized→ID順、publishedのみの集計、pageItems。Webにはactive filter/ページングUIがなく、Use Caseで指定可能な条件とUIサポートを区別する。検索は読取り経路。
+- **Risk/TR/Case採否**：High R1非staff管理DTO露出、R2非published誤集計、R3読取り副作用。Medium R4検索正規化/active、R5 20/21件・Webページング非露出/ID tie-break、R6 loading/error/empty・viewport/a11y、R7大量データ時性能候補。TR1正式仕様、TR2 Web、TR3 Use Case/Session/Dexie、TR4 Seed/既存テスト。採用C1 default3件/公開数、C2 keyword/active/empty、C3 20/21件・tie-break・UI到達性、C4 Role/Session/DTO非露出、C5 DB/Session不変、C6 publishedのみ、C7視覚/keyboard/a11y。新規作成/編集/バリデーション/状態変更/カテゴリー/Native管理は別操作。
+- **直接確認と未受入**：固定HEAD `b80c3c0e2764`で10ソース**28/28静的断片assert成功**。既存Component/Integrationは部分証拠で直接Vitest/formatter/validator本体/Playwrightは未実施。Role別実Web、DB/Session全表前後、検索20/21件・大量データ、視覚/a11y、製品適合、同一最終HEAD全必須CIは未受入。C1-C7隔離実Runと正式期待を照合して再開。前HEADのWeb CI #41494871129はcompleted/failure（Style/Training runtime/Unit/Integration/Component/Repository等success、Contracts/required Chromium E2E/verify/validate failure）。
+- **次の共通対象**：`SCREEN-ADMIN-BRANDS-A01-02`（ブランド新規作成）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-CATEGORIES-A01-04（カテゴリー入力バリデーション）基本分析受入
 

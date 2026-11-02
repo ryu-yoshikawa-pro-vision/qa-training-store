@@ -17234,20 +17234,20 @@
       "source_line": 186,
       "source_text": "ブランドの一覧表示、新規作成、編集、およびバリデーション機能を提供する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,cross-role-product-lifecycle。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ブランド一覧",
+      "role": "active operator/adminはStaffPage/requireStaffで許可。guest/customer/停止staff/失効Sessionは直URLとUse Case呼出しを拒否し、管理DTO非露出を確認。",
+      "scenario": "default（初期guest→active operator/adminログイン）を主軸。cross-role-product-lifecycle、検索0件、inactiveブランド、21件以上、同名正規化・同順序ID、停止staff/失効Sessionを隔離fixtureで対照。",
+      "data": "default Seedは3ブランド：brand-scenario-basics/Scenario Basics、brand-scenario-life/Scenario Life、brand-scenario-active/Scenario Active。全件active/version1、11商品のうちpublished8件で公開商品数はBasics2/Life3/Active3。unpublished/draft/discontinuedは集計対象外。inactive、20/21件、同名正規化、別Sessionは隔離fixtureで作成。",
       "action": "ブランド一覧",
-      "expected": "管理権限でブランド一覧・状態を表示し、登録済みIDと表示名が一致する",
+      "expected": "/admin/brandsはactive staffのみ。ブランド名・有効状態・公開商品数を名称昇順で表示し、ブランドIDとSeed実値が一致する。Webはkeywordのみ入力してsort=name_ascを固定し、Use Caseはkeyword trim/検索長上限、active=null/true/false、sort=name_asc/updated_desc、page1/pageSize20を受理。DexieはNFKC等の正規化部分一致・active filter・nameNormalized→ID安定順・publishedのみの集計・pageItems。一覧はDB読取りのみ。Webにはページング/active filter UIがないため21件以上は別途実証し、API可能範囲と画面サポートを混同しない。",
       "rule_refs": [],
       "route": "`/admin/brands`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "ブランド一覧実施前後で、管理権限でブランド一覧・状態を表示し、登録済みIDと表示名が一致することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ブランド一覧の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ブランド一覧が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/停止staff/失効Sessionへの管理DTO露出、R2=非published商品の公開数誤算入、R3=一覧読取り副作用/関連DB変更。Medium R4=検索正規化・入力上限・active filter（Use Caseのみ）、R5=20/21件超でWebページング非露出・nameNormalized同値のID tie-break、R6=loading/error/empty・1023/1024px・keyboard/a11y、R7=全Brand/Product toArrayと各ブランドfilterの大量データ時性能（未計測候補）。",
+      "test_condition": "C1 defaultの3ブランド（Basics/Life/Active）、active=true/version1と公開数2/3/3を名称昇順で表示しID一致。C2 keyword trim/正規化/上限・検索0件、Use Caseのactive all/true/falseをUIサポートと区別。C3 20/21件・page1/2・同名正規化時ID tie-break、Webにページ切替がない境界。C4 guest/customer/停止staff/失効Sessionの直URL/Use Case拒否と管理DTO非露出。C5 検索前後のBrand/Product/関連DB全表とactive Session不変。C6 publishedのみ計数しdraft/unpublished/discontinuedを除外。C7 desktop/tablet/1023-1024px・loading/error/empty・keyboard/focus/a11y。",
+      "test_responsibility": "ブランド一覧のstaff認可、Seed3件のID/表示名/公開数、検索・状態/順序/ページングのUIとUse Case差、DB読取り専用性をUI→Use Case→Dexieと実DB前後に対応付ける。",
+      "case_policy": "採用:C1 default3件/公開数、C2 keyword/active/0件、C3 20/21件とtie-break/画面ページング非露出、C4 Role/Session/DTO非露出、C5 DB/Session不変、C6 商品状態別集計、C7 loading/error/viewport/a11y。除外:ブランド新規作成(A01-02)、編集(A01-03)、名称バリデーション(A01-04)、状態変更は別操作、カテゴリー、Native管理。",
+      "case_selection_reason": "TR1=admin-catalog.md:181-195およびBR/AC-ADMINCAT-001/002、roles-and-permissions.md:5-19。TR2=admin-master-pages.tsx:23-25,431-456,489-568のStaffPage/keyword/名称順/状態/公開数（ページングUIなし）。TR3=AdminMasterUseCases.searchBrands:155-171/requireStaff:239-249、SessionIdentityResolver:27-59、DexieBrandRepository.searchForAdmin:473-504の正規化・集計・順序。TR4=default-dataset.ts:45-49,65-236,695-704、seed_catalog.md:38-48の3ブランドと商品11件、Component:95-112/152-170とIntegration:150-179は部分証拠。High R1-R3/Medium R4-R7をC1-C7に対応。実Web/Role/DB不変/21件境界は未受入。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD b80c3c0e2764: 基本分析受入。正式BR/ACとRole、Web StaffPage→AdminMasterUseCases.searchBrands(requireStaff)→DexieBrandRepository.searchForAdmin、default Seed3ブランド/11商品（published8、公開数2/3/3）を照合。28/28ソース断片静的assert成功（直接Vitestではない）。High R1-R3/Medium R4-R7、TR1-TR4、C1-C7採否・再開条件を記録。既存Component/Integrationは部分証拠。Webにactive filter/ページングUIがないため21件以上の表示到達性は実証待ち。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session前後、検索境界/大量データ、視覚/a11y、製品適合、最終HEAD全必須CIは未受入。analyzedは実Run PASSではない。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -17257,7 +17257,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.searchBrands"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-01基本分析analyzed（操作102/188、非default16/20）。28/28静的断片assertと既存テスト部分証拠。C1-C7実Run/DB・Session前後/Role/20/21件/視覚/a11y/製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-BRANDS-A01-02。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 431,
@@ -17285,6 +17285,121 @@
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 155,
           "signature": "async searchBrands("
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 181,
+          "end_line": 195,
+          "reason": "ブランド一覧とdefault状態"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 211,
+          "end_line": 220,
+          "reason": "共通BR/AC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "staff権限"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 23,
+          "end_line": 25,
+          "reason": "StaffPage"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 431,
+          "end_line": 456,
+          "reason": "一覧query/認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 489,
+          "end_line": 568,
+          "reason": "検索/状態/公開数・ページング非露出"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 37,
+          "end_line": 60,
+          "reason": "staff route access"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 155,
+          "end_line": 171,
+          "reason": "requireStaff/検索query"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 239,
+          "end_line": 249,
+          "reason": "staff Role"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "Sessionとactive"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 473,
+          "end_line": 506,
+          "reason": "正規化/集計/順序/ページング"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 45,
+          "end_line": 49,
+          "reason": "3ブランド"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 65,
+          "end_line": 236,
+          "reason": "商品11件と公開8件"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 695,
+          "end_line": 704,
+          "reason": "active/version"
+        },
+        {
+          "path": "docs/07_testability/seed_catalog.md",
+          "start_line": 38,
+          "end_line": 48,
+          "reason": "Seedカタログ"
+        },
+        {
+          "path": "tests/component/admin-master-pages.test.tsx",
+          "start_line": 95,
+          "end_line": 112,
+          "reason": "一覧mock部分証拠"
+        },
+        {
+          "path": "tests/component/admin-master-pages.test.tsx",
+          "start_line": 152,
+          "end_line": 170,
+          "reason": "名称順とフォームの部分証拠"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 150,
+          "end_line": 179,
+          "reason": "名称順・参照ガード部分証拠"
         }
       ]
     },
