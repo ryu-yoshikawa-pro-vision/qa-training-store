@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-01`（管理者ユーザー詳細のRole/DTO認可・読取表示）。直前`SCREEN-ADMIN-USERS-A02-03`はdefault自己保護と非自己last-admin制御interleaving、UI→Use Case→Dexie/Seed、C1〜C7を照合し、基本分析のみ`analyzed`（操作120/188、非default17/20）。同HEAD学習用last-admin契約2/2 PASS、実並列/DB全表・実Web/製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
+- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-01`（管理者ユーザー詳細のRole/DTO認可・読取表示。学習用契約3 Case追加・同HEAD実行待ち、review_required継続）。直前`SCREEN-ADMIN-USERS-A02-03`はdefault自己保護と非自己last-admin制御interleaving、UI→Use Case→Dexie/Seed、C1〜C7を照合し、基本分析のみ`analyzed`（操作120/188、非default17/20）。同HEAD学習用last-admin契約2/2 PASS、実並列/DB全表・実Web/製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
 - **CI横断**：作業前HEAD `bba70cfcb27636012d5bdb8725a979ba370051bf`の[Web CI #41540773596](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41540773596)はcompleted/failure。学習用last-admin interleaving契約2/2、Integration/Unit/Repository/Component/Code Quality等はsuccess。Style Quality/Contracts（別台帳の固定期待1件）/required Chromium E2E/verify/validateはfailure。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-01（管理DTO読取）契約Case追加・実行待ち
+
+- **対象・状態**：`SCREEN-ADMIN-USER-DETAIL-A01-01`を継続。操作`120/188`、非default状態`17/20`（現HEADの台帳を別集計）。`review_required`を維持し、学習用契約3 Caseの同HEAD実行証拠・Risk/TR/Case最終整合後に基本分析を判定する。今回の追加だけで`analyzed`/製品適合/実Web PASSにしない。
+- **BR/AC・Role/State/Data**：`docs/spec/features/admin-users.md`のBR-ADMINUSER-001/AC-ADMINUSER-001と詳細画面契約、`roles-and-permissions.md`のactive admin限定。default Seedは7ユーザー（admin1/operator1/customer5、version1）。admin actor Sessionを隔離DBで作成し、対象のactive customer・withdrawn customer・operator・adminを区別。対象withdrawnは読取可能だが変更禁止。非admin actor、非active actor、失効Session、存在しないtarget IDを別Caseにする。
+- **UI→Use Case→Repository**：一覧`review-user-pages.tsx:594-603`の対象IDリンク→詳細`:618-642`のadmin Guard、`useAsyncValue(() => adminUsers.getDetail(userId))`とloading/not-found→`:689-715`の表示DTO、`:715-830`のwithdrawn読取専用・自己制限。Use Case`review-user-use-cases.ts:537-540`は`requireAdmin`→`requireUser`→`toDto`、`:642-685`はactive admin認可/NOT_FOUNDとuserId/email/displayName/role/rank/status/timestamps/versionのDTO化。Identity Resolver`session-identity-resolver.ts:26-59`は失効Sessionをローカルclear（DB users/sessionsの書込みとは区別）。Dexie`basic-repositories.ts:41-46`はusers.get(id)の読取のみ。
+- **Risk/TR/Case（受入前の暫定整理）**：High R1=非adminへの管理DTO漏洩、R2=対象userId混線/誤表示、R3=読取でのDB・Session意図しない変更。Medium R4=withdrawn対象を変更可能に見せる、R5=非active/失効actorのエラー表示、R6=存在しないIDのnot-found、R7=高速ID切替の非同期旧レスポンス、R8=1023/1024px・keyboard/a11y。TR1正式BR/AC/Role、TR2一覧→詳細UI、TR3 Use Case認可/DTO→Dexie読取、TR4 default Seed/既存component/integration・学習用契約。採用C1=adminから4状態のDTO/versionとDB全表不変、C2=operator/customer/suspended/withdrawn actorの拒否、C3=失効SessionローカルclearとDB不変、C4=missing target NOT_FOUNDとDB不変、C5=withdrawn読取専用・自己disabled、C6=高速ID切替・画面再取得、C7=desktop/tablet・keyboard/a11y。C1〜C4を今回の3学習用契約Caseへまとめ、C5〜C7の実Web/視覚と競合は未受入。変更操作のCAS/version競合はA01-02等の独立IDに委ね、読取IDでPASSを水増ししない。
+- **直接検証と再開条件**：`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`へgetDetail専用3 Caseを追加。全Dexie tableの前後スナップショット、Role/State/ID/DTO/Sessionの拒否を確認する設計。現時点では**直接Vitest/formatter/Playwright未実施・新CaseのCI実行結果未確認**。同一HEADのContracts jobで追加3 Caseの結果とvalidator/formatを確認し、結果に応じて台帳の個別Risk/TR/Case・`reviewed_against`を確定する。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。次回も**同じA01-01**を継続し、CI待機だけで止まらず独立したUI/Seed・Case証拠の確認を進める。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-03（最後の管理者保護・権限時点差）基本分析受入
 

@@ -89,4 +89,52 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     expect(await missing.store.getSessionId()).toBeNull();
     expect(await snapshot()).toEqual(before);
   });
+
+  async function fullDatabaseSnapshot() {
+    return Object.fromEntries(
+      await Promise.all(database.tables.map(async (table) => [table.name, await table.toArray()])),
+    );
+  }
+  it("reads admin detail DTO for active and withdrawn targets without database writes", async () => {
+    const before = await fullDatabaseSnapshot();
+    const admin = forSession("training-user-admin").useCases;
+    for (const [id, role, rank, status] of [
+      ["user-customer-regular", "customer", "regular", "active"],
+      ["user-customer-withdrawn", "customer", "regular", "withdrawn"],
+      ["user-operator", "operator", null, "active"],
+      ["user-admin", "admin", null, "active"],
+    ]) {
+      const detail = await admin.getDetail(id);
+      expect(detail).toMatchObject({
+        userId: id, role, membershipRank: rank, accountStatus: status, version: 1,
+      });
+      expect(detail.email).toContain("@");
+      expect(detail.displayName).not.toBe("");
+      expect(detail).not.toHaveProperty("passwordHash");
+    }
+    expect(await fullDatabaseSnapshot()).toEqual(before);
+  });
+  it("rejects operator and nonactive actors from admin detail without database writes", async () => {
+    const before = await fullDatabaseSnapshot();
+    for (const id of ["user-operator", "user-customer-regular"]) {
+      await expect(forSession(`training-${id}`).useCases.getDetail("user-admin"))
+        .rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+    }
+    await expect(forSession("training-user-customer-suspended").useCases.getDetail("user-admin"))
+      .rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
+    await expect(forSession("training-user-customer-withdrawn").useCases.getDetail("user-admin"))
+      .rejects.toMatchObject({ code: "ACCOUNT_WITHDRAWN" });
+    const missing = forSession("training-missing-session");
+    await expect(missing.useCases.getDetail("user-admin"))
+      .rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    expect(await missing.store.getSessionId()).toBeNull();
+    expect(await fullDatabaseSnapshot()).toEqual(before);
+  });
+  it("rejects a nonexistent detail target without database writes", async () => {
+    const before = await fullDatabaseSnapshot();
+    await expect(forSession("training-user-admin").useCases.getDetail("missing-user"))
+      .rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await fullDatabaseSnapshot()).toEqual(before);
+  });
+
 });
