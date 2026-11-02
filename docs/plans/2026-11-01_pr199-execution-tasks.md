@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A02-02`（withdrawn変更禁止の案内・readOnly境界）。直前`SCREEN-ADMIN-USERS-A02-01`は正式Role→一覧/詳細UIの自己操作制限→Use Case再認可/自己拒否→Dexie/Seed7件を照合し、基本分析のみ`analyzed`（操作118/188、非default17/20）。同HEADの既存Integration9件PASSは部分証拠。自己status直接Case・実Web/全DB・製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
-- **CI横断**：作業前HEAD `d20182bf6c0cadf1754e77208d7800e1edac4acd`の[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。学習用注文詳細4 CaseはContracts job内でPASS。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A02-03`（最後の管理者保護・権限/停止の境界）。直前`SCREEN-ADMIN-USERS-A02-02`はwithdrawn読取専用notice・3変更UI非表示・Use Case三種の拒否・Seed/Role/Dexieを照合し、基本分析のみ`analyzed`（操作119/188、非default17/20）。withdrawn rank/role直接Case、実Web/DB/Session・製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
+- **CI横断**：作業前HEAD `c8418d737743474b09450341a5084ed597e28775`の[Web CI #41538028884](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41538028884)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Integration（withdrawn拒否の既存部分Caseを含む）・Unit/Repository/Component/Code Quality等はsuccess。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-02（withdrawn読取専用・変更禁止案内）基本分析受入
+
+- **判定**：`review_required→analyzed`はA02-02の基本分析のみ。操作**118→119/188**、非default状態**17/20**。製品適合・実Web/Native・最終CIは未受入。
+- **正式仕様・Role/Seed**：`admin-users.md:9-24,43-55,73-79`のBR/ACはwithdrawn変更拒否・UIで操作可能に見せない制約、`roles-and-permissions.md:5-24`はactive admin専用・withdrawnは固定読取専用。defaultは7ユーザー（withdrawn customer=`user-customer-withdrawn`、active admin=`user-admin`、version1）、初期guest Sessionからadmin Sessionを別途用意。`withdrawn-user`シナリオの`session-withdrawn`は退会済本人の拒否用でadmin actorではない。
+- **一覧→詳細UI→Use Case→Dexie**：`review-user-pages.tsx:508-614`のGuard(admin)、withdrawn絞込/状態列と詳細リンク→`:620-830`の`readOnly=user.accountStatus==="withdrawn"`、読取専用notice、rank/role/statusの変更セクション非表示。 `AdminUserUseCases.getDetail`はadmin再認可してDTO読取、`changeMembershipRank`と`changeRole`はwithdrawnをINVALID_ROLE、`changeSuspension`はINVALID_STATEで拒否（version照合後）。`SessionIdentityResolver`は退会済本人をACCOUNT_WITHDRAWNで拒否。`DexieUserRepository.update`はversion CAS、`change-user-access`はusers/sessions/checkout_sessionsのtransaction。拒否時に書込経路へ進まない静的構造は確認、実DB全表不変は未実証。stale version時はCONFLICTが先行し得る。
+- **Risk/TR/Case採否**：High R1=withdrawnの直接変更/復活、R2=本人Sessionからの管理DTO漏洩、R3=拒否後DB/Session副作用。Medium R4=一覧には状態のみで詳細に読取専用理由を表示、R5=rank/roleとstatusのエラー種別差、R6=stale CONFLICT優先、R7=withdrawn staff非default fixture、R8=desktop/tablet/a11y。TR1正式BR/AC/Role、TR2一覧→詳細UI、TR3 Use Case/Dexie、TR4 Seed/既存Integration。採用C1 Seed7件と一覧/詳細、C2 変更UI非表示、C3 rank/role/status直接拒否、C4 users/sessions/checkout_sessions/version不変、C5 非admin/withdrawn本人拒否、C6 stale/並列・synthetic withdrawn staff、C7 実Web/視覚/a11y。自己操作A02-01・最終管理者A02-03は別ID。
+- **直接証拠/未受入**：固定HEAD `c8418d737743474b09450341a5084ed597e28775`で12ソースの静的断片**42/42一致**（実テストPASSではない）。同HEAD [Web CI #41538028884](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41538028884)のIntegration jobはsuccess、既存`review-user-use-cases.test.ts`はwithdrawn→activeのINVALID_STATEを部分確認。withdrawn rank/role直接Case、Role別実Web、拒否時DB/Session全表前後、stale・並列、desktop/tablet・a11y、直接ローカルVitest/formatter/validator本体/Playwright、製品適合・同一最終HEAD全必須CIは未受入。Contracts/Style/required Chromium E2E/verify/validateは失敗、CIをPASSとしない。
+- **次の共通対象**：`SCREEN-ADMIN-USERS-A02-03`（最後の管理者のrole/status変更拒否）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-01（自己操作制限・自己降格/停止拒否）基本分析受入
 

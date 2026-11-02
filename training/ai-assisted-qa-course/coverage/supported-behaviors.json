@@ -20319,26 +20319,32 @@
       "source_line": 24,
       "source_text": "操作者自身、退会済み（withdrawn）、最後の管理者などに対する変更の境界条件を説明する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 退会済の変更禁止を案内",
+      "role": "Admin（active管理者のみ。operator/customer/guest/非activeは管理DTO・変更不可）",
+      "scenario": "default（退会済対象user-customer-withdrawn）／withdrawn-userは退会済本人Sessionの負例",
+      "data": "default固定7ユーザー：withdrawn customer user-customer-withdrawn（withdrawn@example.com、membershipRank=regular、version=1）、active admin user-admin、operator1・customer5。default初期guest Sessionからactive admin Sessionを別途作る。withdrawn-userシナリオのsession-withdrawnは退会済本人用で管理者actorではない。非defaultの退会済operator/adminは隔離fixtureで作成して区別。",
       "action": "退会済の変更禁止を案内",
-      "expected": "withdrawnのユーザーを変更可能として扱わず、読み取り専用の説明を表示する",
+      "expected": "active adminが一覧のwithdrawn状態を選び対象詳細へ進むと、役割・ランク・状態・versionを読取表示し「退会済みユーザーは読取専用です。」を提示する。詳細ではランク/管理役割/利用状態の変更セクションを表示せず、変更操作を可能に見せない。直接Use Case呼出しもwithdrawnへのrank/role変更はINVALID_ROLE、status変更はINVALID_STATEで拒否する（正しいversion時）。拒否時にusers・sessions・checkout_sessions、対象versionが変化しないことを確認する。stale versionは先行CONFLICTとなり得るため別条件。退会済本人SessionはACCOUNT_WITHDRAWNで管理者アクセス不可。",
       "rule_refs": [],
       "route": "`/admin/users`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "退会済の変更禁止を案内実施前後で、withdrawnのユーザーを変更可能として扱わず、読み取り専用の説明を表示することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、退会済の変更禁止を案内の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "退会済の変更禁止を案内が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=withdrawn対象のUI迂回によるランク/役割/状態の復活・権限逸脱、R2=退会済本人Sessionからの管理DTO露出、R3=拒否後users/sessions/checkout_sessions・versionの副作用。Medium R4=一覧にはwithdrawn状態表示のみで読取専用の説明は詳細にある導線差、R5=withdrawnへのrank/roleはINVALID_ROLE・statusはINVALID_STATEでエラー種別が異なる、R6=stale versionが状態拒否より先にCONFLICTとなる優先順位、R7=別Role・非default withdrawn staff fixtureの不足、R8=実Web/1023・1024px・keyboard/a11y未検証。",
+      "test_condition": "C1 default7ユーザーを確認し、active admin Sessionで一覧のwithdrawn絞込→user-customer-withdrawn詳細へ進み、status/role/rank/versionと読取専用案内を確認。C2 withdrawn詳細にランク/管理役割/利用状態の変更UI・ConfirmDialogがないことを確認。C3 直接changeMembershipRank(gold,version1)→INVALID_ROLE、changeRole(operator,version1)→INVALID_ROLE、changeSuspension(active,version1)→INVALID_STATEを確認。C4 拒否前後のusers/sessions/checkout_sessionsとversionが完全不変。C5 guest/operator/customer/suspended/withdrawn本人Sessionで管理DTOと更新拒否（本人はACCOUNT_WITHDRAWN）。C6 stale version・synthetic withdrawn operator/admin・二重/並列を隔離fixtureで検証し、CONFLICT先行を別期待にする。C7 実Web desktop/tablet・keyboard/a11y・Session失効/DB前後とエラー表示を実測する。",
+      "test_responsibility": "TR1 正式admin-users BR/ACとroles-and-permissionsのwithdrawn読取専用/active admin制約。TR2 SCREEN-ADMIN-USERSの状態列とuserIdリンク→AdminUserDetailPage Guard→AdminUserDetailForm readOnly notice・変更3セクション非表示。TR3 AdminUserUseCases.getDetail/changeMembershipRank/changeRole/changeSuspensionのrequireAdmin/withdrawn拒否・version順序→Dexie users CAS/transaction change-user-access(users,sessions,checkout_sessions)。TR4 default Seed7件、withdrawn-user Session、既存Integrationのwithdrawn status拒否。対象への変更禁止はUIだけでなくUse Caseで強制し、一覧に専用案内がない差は製品適合の未受入として分離。",
+      "case_policy": "採用C1〜C5：固定Seedと正式Role/BR/AC、一覧→詳細UI、Use Case/Dexieを照合。既存Integrationのwithdrawn→active INVALID_STATEは部分証拠のみ。C3のrank/role直接拒否、C4全表不変、C5 Role/Session別、C6 synthetic withdrawn staff・stale/並列、C7実Web・視覚/a11yは直接実Run未受入。除外：自己操作制限(A02-01)、最後の管理者(A02-03)、詳細画面個別操作・製品SUT修正。基本分析と製品適合PASSは別判定。",
+      "case_selection_reason": "Highの退会済アカウント変更禁止と認可/DB保全を、正式BR/AC・Role→一覧/詳細readOnly→Use Case三種の拒否→Seed・Dexie/Sessionまで1操作IDで追跡し、状態/エラー別Case採否を確定するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析のみ受入。admin-users.md:9-24,43-55,73-79とroles-and-permissions.md:5-24を、AdminUsersPage:508-614のadmin Guard・withdrawn状態列/userId詳細リンク→AdminUserDetailForm:638-830のreadOnly=withdrawn、読取専用notice、rank/role/status変更セクション非表示→AdminUserUseCases:537-638のrequireAdmin、rank/role=INVALID_ROLE、status=INVALID_STATE（いずれもversion照合後）→DexieUserRepository.update:58-64/version CAS、change-user-access transaction users/sessions/checkout_sessions、default Seed7件（withdrawn customer1・admin1）/withdrawn-user本人Sessionを照合。固定HEAD c8418d737743で12ソース静的断片42/42成立（文字列照合のみ）。同HEAD Web CI #41538028884のIntegration job success、既存review-user-use-cases.test.tsはwithdrawn status拒否の部分証拠。直接Vitest/formatter/validator本体/Playwright、rank/roleのwithdrawn直接Case、拒否時DB全表/Session不変、Role別実Web、stale・並列、desktop/tablet・a11y、製品適合・同一最終HEAD全CIは未受入。CI全体はfailure（Style/Contracts/required Chromium E2E/verify/validate）。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.search",
+        "AdminUserUseCases.getDetail",
+        "AdminUserUseCases.changeMembershipRank",
+        "AdminUserUseCases.changeRole",
+        "AdminUserUseCases.changeSuspension"
+      ],
+      "analysis_progress": "2026-11-03: withdrawn customerの一覧→詳細readOnly案内と3変更UI非表示、Use Caseのrank/role/status拒否・version/transaction・Seed/Roleを照合して基本分析のみanalyzed。直接withdrawn rank/role・全DB/Session前後・実Web/視覚・製品適合は検証待ち。次SCREEN-ADMIN-USERS-A02-03。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -20361,7 +20367,123 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.search",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 520,
+          "signature": "async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {"
+        },
+        {
+          "id": "AdminUserUseCases.getDetail",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 537,
+          "signature": "async getDetail(userId: string): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeMembershipRank",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 542,
+          "signature": "async changeMembershipRank(input: ChangeMembershipRankRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeRole",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 567,
+          "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeSuspension",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 600,
+          "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "withdrawn変更禁止、拒否理由提示、一覧からの境界案内"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 42,
+          "end_line": 79,
+          "reason": "詳細画面の変更禁止・AC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 24,
+          "reason": "active admin専用、withdrawnは固定読取専用"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 508,
+          "end_line": 614,
+          "reason": "一覧Guard、withdrawn絞込/状態列と詳細リンク"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 620,
+          "end_line": 830,
+          "reason": "詳細readOnly noticeとrank/role/status UI非表示"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 520,
+          "end_line": 638,
+          "reason": "admin再認可、withdrawn拒否、version順序とtransaction"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 26,
+          "end_line": 70,
+          "reason": "非active/withdrawn actorの拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 44,
+          "end_line": 68,
+          "reason": "users version CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 104,
+          "end_line": 135,
+          "reason": "change-user-access 3表transaction"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "default withdrawn customer1・active admin1・version1"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 28,
+          "end_line": 75,
+          "reason": "withdrawn-userの本人Session"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default初期guest Session"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 326,
+          "end_line": 355,
+          "reason": "withdrawn status直接拒否の既存部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-USERS-A02-03",
