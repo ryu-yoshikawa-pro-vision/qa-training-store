@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-03`（商品一括操作の成功/失敗件数と実際の対象）。直前`SCREEN-ADMIN-PRODUCTS-A01-02`は検索・状態/ランク/在庫/価格/並び順、default11商品・many-products1000件、Web→search→Dexieと選択→bulkChangeStatusを静的照合。表示外IDはbulk対象から除外される一方、selected件数は残り、表示外だけの選択で0件VALIDATION/未捕捉に至る候補と、非keywordフィルター変更時のpage残留を確認。正式期待/直接実行が不足するため`review_required`維持（操作81/188、非default16/20）。再開条件は直下のA01-02記録。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A02-01`（商品登録画面へのstaff導線）。直前A01-03は仕様/Role/State/Data、Web→bulkChangeStatus→Dexie、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作82/188・状態16/20）。直接実Run/正式製品適合・表示外selected・Seed制御値の実効性は検証待ち。詳細は直下のA01-03記録。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-03（一括公開/非公開の結果件数と永続状態）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**81→82/188**、非default**16/20**維持。正式`BR-ADMINCAT-001/002・AC-ADMINCAT-001/002`、Web desktop/tablet→Use Case→Dexie→Seed、High R1-R7/TR1-R7/C1-C7の採否を台帳へ個別記録。製品適合・実Web/Native・全Case PASSではない。
+- **Role/State/Data・実Seed**：active operator/adminのみ、default初期guest→staffログイン。defaultは11商品（published8/unpublished1/draft1/discontinued1）。many-productsはpublished1000件・20件/頁。admin-bulk-partial-failureはadmin Sessionと`bulkConflictTargetId=product-mug`制御値を設定するが、**この制御値だけではConflictの実再現を証明しない**。隔離fixtureで実効性を検証する。
+- **UI→Use Case→Repository**：Webは`state.value.items.filter(selected.has)`で**現在表示中だけ**のID/versionを送信し、`succeededIds.length/failures.length`と失敗理由を表示、選択解除・再検索。`bulkChangeStatus`はstaff認可、targetIds 0/51件・重複を事前VALIDATION拒否、1〜50件を順次`changeStatus`しper-ID成功/失敗を記録。各`changeStatus`は再認可→個別transaction→Dexie version CAS/状態遷移/公開適格性検査→status/version/publishedAt更新。**一括全体は原子的でなく、成功済みは後続失敗でrollbackしない**。
+- **High・未受入**：非staff公開、active master/SKU/画像/primary不足の不正公開、部分成功の結果/DB乖離、stale/並列staff、ページ跨ぎselected件数と送信targetIdsの乖離、表示外のみ選択時の0件VALIDATION/未捕捉UI例外、50件境界、Seed制御値の実効性。いずれも未再現の製品不具合と断定しない。
+- **Case採否**：C1正常公開/非公開・version、C2 published→unpublished成功1+draft→unpublished拒否1の部分成功、C3 guest/customer/停止staff/失効Session拒否、C4 0/1/50/51件・重複・欠落/stale version、C5 公開適格性・並列CAS・DB/Session/History前後、C6 Web desktop/tablet結果・表示外選択・視覚/a11y、C7 default/many-products/admin-bulk-partial-failureの制御値と故障注入を採用。既存`tests/integration/admin-product-use-cases.test.ts`の部分成功と`tests/component/admin-product-pages.test.tsx`の失敗表示は**部分証拠**のみ。
+- **直接検証/CI**：現HEAD `45a21e312cac`の[Web CI #41437687509](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41437687509)はcompleted/failure。Style Quality、Contracts、Integration、Component、Training runtime、Code Quality、主要UI Reviewはsuccess。required Chromium E2E、verify/validateはfailure。今回直接Vitest/formatter/Playwright、実Web/DB/Session・別Role/並列・視覚/a11yは未実施。CI success jobを新しい直接CaseのPASSと混同しない。Mobile PRトリガー未復元。
+- **再開条件/次**：固定HEAD隔離fixtureでC1-C7の実行・成功/失敗IDと永続Product/version/History/Sessionの前後、ページ跨ぎselected、50件、Role別・並列、Seed制御値、視覚/a11yと正式期待を検証する。製品SUT/正式仕様/既存Seed/製品テストは無変更。**次の共通対象は`SCREEN-ADMIN-PRODUCTS-A02-01`（商品登録画面へのstaff導線）**。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-02（商品フィルターと表示外選択の境界）
 

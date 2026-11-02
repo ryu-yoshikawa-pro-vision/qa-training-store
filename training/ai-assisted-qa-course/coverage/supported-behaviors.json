@@ -14527,21 +14527,21 @@
       "source_path": "docs/spec/features/admin-catalog.md",
       "source_line": 65,
       "source_text": "商品、公開状態、フィルター条件、一括操作の結果を表示する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,many-products,admin-bulk-partial-failure。role=operator/admin、状態・対象ID・versionを区別。操作: 一括操作結果",
+      "platform": "web-desktop, web-tablet（Native管理商品一括操作は非対応）",
+      "role": "active operator/adminのみ。default初期guestはstaffログインが必要。guest/customer/停止staff/失効SessionはUse Case入口と各商品変更時の認可を検証",
+      "scenario": "default（11商品、published8/unpublished1/draft1/discontinued1）/many-products（published1000商品、20件/頁）/admin-bulk-partial-failure（admin Sessionとproduct-mugのbulkConflictTargetId制御値）。version競合・成功/失敗混在は隔離fixtureで実状態を確認",
+      "data": "Web一覧の現在表示itemsから選択productIdとversionを送信。defaultはproduct-mug=published、product-draft=draft、product-unpublished=unpublished、product-discontinued=discontinued。成功と拒否の混在は例としてpublished→unpublished成功+draft→unpublished INVALID_STATE。0/1/50/51件、重複、欠落version、stale version、公開条件不備、Role/Session、別staff競合を分離。many-productsは1000件でもUI送信は表示中最大20件で、ページ跨ぎselectedと送信対象は一致しない場合がある",
       "action": "一括操作結果",
-      "expected": "一括公開/非公開の実行後、対象ごとの成功件数・失敗件数と商品状態を一致させる",
+      "expected": "active staffの1〜50個の重複しないtargetIdsは入力順に各changeStatusを実行し、成功IDはsucceededIds、失敗IDはreason(messageKey)付きfailuresへ分類する。部分成功は成功対象を巻き戻さず、成功件数+失敗件数=送信targetIds件数。0/51件・重複は事前VALIDATIONで全体拒否。公開時はactiveカテゴリ/ブランド/SKU・画像・primary画像の適格性と許可遷移、versionを確認し、不合格対象は不変。Webは結果件数と失敗理由を表示し選択解除・再検索するが、表示外選択による0件送信と未捕捉例外は未受入。実Web/DB/Session/視覚と正式製品適合PASSは別判定",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "一括操作結果の前後に、一括公開/非公開の実行後、対象ごとの成功件数・失敗件数と商品状態を一致させることをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと一括操作結果の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "一括操作結果が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staffによる公開/非公開・管理情報露出、High R2=不完全商品公開（カテゴリ/ブランド/active SKU/画像/primary）、High R3=部分成功件数と永続状態の不一致、High R4=stale version・並列staff更新による上書き、R5=selected.sizeと表示中送信itemsの乖離/0件VALIDATIONのUI未捕捉、R6=50件境界/重複/欠落version・異常理由表示、R7=admin-bulk-partial-failureの制御値を実際のConflict再現証拠と誤認。これらは実再現前のリスクであり製品不具合確定ではない",
+      "test_condition": "TR1/C1=default staffでpublished product-mug→unpublishedとunpublished product-unpublished→publishedの正常/許可遷移を個別に確認し、返却ID/件数、status/version/publishedAt/DB前後を比較。TR2/C2=published→unpublished成功1+draft→unpublished INVALID_STATE失敗1の混在で1成功1失敗、失敗側DB不変・成功側version+1、UI件数/理由と一致。TR3/C3=guest/customer/停止staff/失効Sessionは処理前拒否、途中権限失効は各changeStatus再認可を区別し、DB/Session非破壊。TR4/C4=0/1/50/51件・重複ID・expectedVersions欠落/staleの一括拒否対個別失敗を区別し、件数合計を照合。TR5/C5=draft公開の適格性（activeカテゴリ/ブランド/SKU/画像/primary）、discontinued終端、並列CAS、Product/Variant/Image/History/Session前後を検証。TR6/C6=Web desktop/tabletの選択・部分失敗表示・選択解除/再検索、ページ跨ぎ/フィルター変更でselected表示と送信targetIdsが乖離する0件例外、視覚/a11yを確認。TR7/C7=default/many-products/admin-bulk-partial-failureのSeed実値、bulkConflictTargetIdが実際に使われるかの故障注入と、結果が永続状態に一致することを隔離fixtureで検証。C1-C7採用、直接実Run未受入",
+      "test_responsibility": "admin-catalog.md:61-83,受入基準→StaffPage→AdminProductsContent.bulk（現在表示items∩selected、productId/version、成功/失敗メッセージ）→AdminProductUseCases.bulkChangeStatus（requireStaff、0/51/重複一括拒否、入力順per-ID changeStatus/個別catch）→changeStatus（毎件requireStaff、transactionRunner）→DexieProductRepository.changeStatus（version CAS・許可遷移・公開適格性・status/version/publishedAt更新）。一括全体は単一transactionではなく各商品単位のtransaction。SeedとRole別DB/Session/History snapshot、実Web結果件数と照合する",
+      "case_policy": "C1 正常公開/非公開、C2 混在部分成功・理由/順序、C3 Role/Session/PII、C4 0/1/50/51・重複/欠落version、C5 適格性/並列CAS/DB不変、C6 Web表示/ページ跨ぎ・a11y、C7 Seed制御値の実効性と故障注入を採用。商品検索条件はA01-02、個別公開適格性は商品状態変更IDへ分離。既存integrationは部分成功1件+拒否1件、componentはUI失敗表示の部分証拠で、全Case実行済みではない",
+      "case_selection_reason": "管理商品の公開変更はHighの認可・公開適格性・永続状態整合性に関わる。Use Caseのper-ID結果とWebの現在表示items由来の対象集合が異なる境界を持つため、正常/部分成功/一括拒否/Role/並列/Seedを別Caseとして選び、基本分析と製品適合・実Web PASSを分離する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 45a21e312cac: BR-ADMINCAT-001/002・AC-ADMINCAT-001/002、Web desktop/tabletの選択/件数表示、StaffPage→bulkChangeStatus→Dexie changeStatusと状態遷移、default11商品/many-products1000商品/admin-bulk-partial-failureの制御値を照合。C1-C7/High R1-R7の期待・採否を個別確定し基本分析のみanalyzed。現HEAD Web CI #41437687509のIntegration/Component/Contractsはsuccess（対象の部分成功とUI失敗表示は既存部分証拠）。直接Vitest/formatter/Playwright、全Case実Web・DB/Session/History前後・別Role/並列・Seed制御値の実効性・視覚/a11y・製品適合・最終CIは未受入",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -14551,7 +14551,7 @@
       "related_use_cases": [
         "AdminProductUseCases.bulkChangeStatus"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-02: A01-03基本分析のみ完了（操作81→82/188、非default16/20）。実RunのC1-C7、表示外selected/0件例外、bulkConflictTargetIdの実効性、50件・Role/競合/DB前後、正式製品適合を検証待ち。次の共通対象SCREEN-ADMIN-PRODUCTS-A02-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -14580,6 +14580,100 @@
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 223,
           "signature": "async bulkChangeStatus("
+        }
+      ],
+      "state_refs": [
+        "SCREEN-ADMIN-PRODUCTS-S-many-products"
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 8,
+          "end_line": 15,
+          "reason": "公開適格性・状態遷移のBR"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 61,
+          "end_line": 83,
+          "reason": "管理商品一覧と一括結果・desktop/tablet/Seed"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 208,
+          "end_line": 223,
+          "reason": "AC-ADMINCAT-001/002の公開・保存責務"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 56,
+          "end_line": 115,
+          "reason": "現在表示items∩selected、targetIds/version、件数と理由のUI"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 205,
+          "end_line": 265,
+          "reason": "selected件数・ボタン/ページ/一覧表示"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 213,
+          "end_line": 252,
+          "reason": "認可、1〜50/重複検査、per-ID成功/失敗・個別transaction"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 523,
+          "end_line": 534,
+          "reason": "requireStaffのRole境界"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 248,
+          "end_line": 297,
+          "reason": "version CAS、許可遷移、公開適格性、status/version更新"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "draft/published/unpublished/discontinued遷移"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "11商品・公開/下書き/販売終了・在庫と画像"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 140,
+          "end_line": 144,
+          "reason": "admin-bulk-partial-failureはbulkConflictTargetId制御値を追加"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 425,
+          "end_line": 458,
+          "reason": "many-products 1000件"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 357,
+          "end_line": 414,
+          "reason": "既存部分成功1+拒否1の部分証拠"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 184,
+          "end_line": 195,
+          "reason": "失敗件数・理由の表示の部分証拠"
         }
       ]
     },
