@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A01-01`（スタッフのレビュー一覧・認可/非公開情報保護）。直前`SCREEN-REVIEWS-EDITOR-A02-02`はdeleted再投稿拒否・終端状態、Web/Native→getEligibility/create/update/delete/admin visibility→Dexie/SQLite、default cross-ownerとreviewable-ordersのSeed差、High R1-R7/TR1-R7/C1-C7を照合し**基本分析のみ**`analyzed`（操作73→74/188、非default16/20維持）。cross-owner既存DTO本文露出候補、owner一致deleted再create・別Role/Session・DB/History/Summary/Order/Session前後・並列/SQLite・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。次はA01-01のoperator/admin検索・公開/非公開/削除済みの閲覧範囲と個人情報、ページング・Seed・Use Case/Repositoryを個別照合。
+- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A01-02`（一括操作結果の成功/失敗件数・部分失敗）。直前`SCREEN-ADMIN-REVIEWS-A01-01`はoperator/admin一覧の認可、published/hidden/deletedと検索/ページング、Web→AdminReviewUseCases.search/getDetail→Dexie、default cross-owner Seed・PII範囲、High R1-R7/TR1-R7/C1-C7を照合して**基本分析のみ**`analyzed`（操作74→75/188、非default16/20維持）。hidden/deleted本文・emailのstaff表示の最小権限/削除後保持は正式判断待ち。Role別実Run・DB/Session前後・Web desktop/tablet・視覚/a11y・製品適合・最終CIは未受入。次はA01-02のbulk成功/失敗・stale version・deleted・部分失敗を個別分析。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A01-01（スタッフ一覧の認可・個人情報境界）
+
+- **基本分析のみ**：`review_required→analyzed`、操作74→75/188、非default16/20維持。正式 `BR-REVIEW-001/002・AC-REVIEW-001/002`、Web `AdminReviewsPage/Content`→`AdminReviewUseCases.search/getDetail`→`SessionIdentityResolver.requireCurrentEntity/requireStaff`→`DexieReviewRepository.searchForAdmin`、SeedとRisk/TR/C1〜C7を照合。製品適合/実Run PASSではない。
+- **Role/State/Data**：`/admin/reviews`はWeb desktop/tablet、operator/admin activeのみ。初期guestのdefault/hidden-reviewsにはpublished9/hidden1/deleted1の11 Review、hidden/deletedのReview.owner=goldに対しOrder.owner=regularというcross-owner。reviews-emptyはReview0。admin-bulk-partial-failureはproduct-mugの競合設定でレビュー専用の失敗fixtureではない。
+- **UI→Use Case→Repository**：Webはkeyword(title/body/productName)、status、rating、sort、pageSize50とreviewId/status/rating/title/body/productName/userEmailを表示。Use Caseはactive確認後operator/adminのみ許可、Repositoryは全statusを検索しUser.emailを結合。Native管理検索はunsupported。**hidden/deleted本文・emailをstaffへ表示する最小権限/削除後PII保持の正式期待は未確定**で、実際の漏洩や製品不具合は未確定。
+- **Risk/TR/Case採否**：High R1=非staffへのPII漏洩、R2=cross-owner/削除済情報の誤認、R3=keyword対象の誤解、R4=sort/filter/page境界、R5=削除後PII保持、R6=読取副作用、R7=Seed差。C1=staff正常11件とstatus、C2=guest/customer/停止staff拒否、C3=filter/sort/page、C4=hidden/deletedとemailの正式範囲、C5=Seed差/empty、C6=Review/History/Summary/Order/Session前後、C7=Web desktop/tablet実操作・視覚/a11y。各Caseの期待・採否は分析台帳に記録。
+- **証拠と未受入**：現HEAD `509b1485486c` のWeb CI [#41416246383](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41416246383) はcompleted/failure。Integration・Contractsはjob successだが、既存integrationのadmin published/5-star検索とvisibilityは部分証拠のみ。Style Quality・required Chromium E2E・verify/validateはfailure。今回の直接Vitest/Prettier/Playwright・Role別実Web・DB/Session前後・視覚/a11y・PII方針判断・製品適合・最終CIは未受入。
+- **次の共通対象**：`SCREEN-ADMIN-REVIEWS-A01-02`。一括変更の成功/失敗件数・deleted/古いversion・部分失敗・DB/History/Summary原子性を照合。SUT/正式仕様/既存Seed/既存製品テスト・Mobile CIは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A02-02（deletedレビューの再投稿拒否）
 

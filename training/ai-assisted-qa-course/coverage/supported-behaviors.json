@@ -13092,21 +13092,21 @@
       "source_path": "docs/spec/features/reviews.md",
       "source_line": 61,
       "source_text": "オペレーターおよび管理者がレビューの公開状態と一括操作結果を確認する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,hidden-reviews,admin-bulk-partial-failure。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 公開状態を確認",
+      "platform": "web-desktop, web-tablet（Native管理レビュー検索は正式画面対象外）",
+      "role": "active operator/admin（default/hidden-reviews初期guestからstaffログイン）。guest/customer/停止・退会staff/Sessionなしは拒否。Web desktop/tabletのみ正式対象でNative管理検索は非対応",
+      "scenario": "default/hidden-reviews（初期guest、published9/hidden1/deleted1の11レビュー）、admin-bulk-partial-failure（レビュー初期集合はdefault同一。bulkConflictTargetId=product-mugはレビュー専用の競合fixtureではない）、reviews-empty（レビュー0件）",
+      "data": "defaultのReviewはpublished9/hidden1/deleted1、hidden=review-hidden/deleted=review-deleted、両者Review.userId=gold対Order.userId=regularのcross-owner Seed。operator/adminでログインして一覧を取得し、reviewId/status/rating/title/body/productName/userEmail/versionとtotal/page/pageSizeを照合。searchはOrder.ownerではなくReview.userIdで投稿者を引き、全statusをstaffに返す。guest/customer/停止staffではDTO非返却、DB/Session不変を検証する",
       "action": "公開状態を確認",
-      "expected": "管理権限のある利用者だけがレビューID・状態と対象情報を確認できる",
+      "expected": "active operator/adminのみレビュー一覧のpublished/hidden/deleted、ID・状態・評価・商品・投稿者とページ情報を確認できる。guest/customer/停止・退会staffは非開示。状態/評価/本文・商品keyword、並び順、50件ページングは指定条件と一致する。hidden/deletedの本文と投稿者emailはstaff一覧へ含まれる現行実装であり、最小権限・削除後個人情報保持の正式期待は未確定（情報保護High候補）。一覧表示だけでReview/History/Summary/Order/Sessionを変更しない",
       "rule_refs": [],
       "route": "`/admin/reviews`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "公開状態を確認の事前状態・実施後を比較し、管理権限のある利用者だけがレビューID・状態と対象情報を確認できることを確認する",
-      "test_responsibility": "公開状態を確認の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "公開状態を確認の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=guest/customer/停止staffへのhidden/deleted本文・userEmail漏えい、High R2=deletedやcross-owner Seedの情報表示を本人所有と誤認、R3=keywordがtitle/body/productNameのみでemail対象外の検索期待不一致、R4=status/rating/sort/page条件で誤抽出・重複・ページ範囲外、R5=全statusとPIIをstaffに返す設計の最小権限・削除後保持ポリシー未確定、R6=一覧の読み取りがDB/Session/History/Summaryへ副作用、R7=defaultとhidden-reviews同一/レビュー専用ではないadmin-bulk-partial-failureを取り違え。製品不具合・情報漏えい再現の確定ではない",
+      "test_condition": "TR1/C1=defaultでoperator/adminの本人Sessionから11件（published9/hidden1/deleted1）のstatus/ID/rating/product/emailを検索し、画面とDTO/Repository一致。TR2/C2=guest/customer/停止・退会staff/Sessionなしでsearch/getDetail拒否・DTO非開示、DB/Session不変。TR3/C3=status別9/1/1、rating 1..5、keywordはtitle/body/productNameのみ、sort created_desc/rating_desc/rating_asc/status_ascとID tie-break、page/pageSize 50の件数/境界を比較。TR4/C4=hidden/deleted本文・投稿者email・cross-owner Seedの露出範囲をRole別確認し、削除後PII最小化の正式判断を別受入。TR5/C5=reviews-emptyで0件/空状態、default/hidden-reviews/admin-bulk-partial-failureのSeed差、初期guest→staff切替。TR6/C6=一覧取得前後のReview/History/Summary/Order/Session/Controlをsnapshot比較。TR7/C7=Web desktop/tabletの検索/フィルター/ページング・非公開/削除済表示と視覚/a11y。C1〜C7採用。直接のRole別/実Web/PII判定/DB snapshotは未受入",
+      "test_responsibility": "BR-REVIEW-001/002・AC-REVIEW-001/002とSCREEN-ADMIN-REVIEWS default→Web AdminReviewsPage Guard(access=staff)→AdminReviewsContent.search（keyword/status/rating/sort/pageSize50）→AdminReviewUseCases.search→SessionIdentityResolver.requireCurrentEntity(active)→requireStaff(operator/admin)→DexieReviewRepository.searchForAdmin（全Reviewからstatus/rating/product/keywordを抽出、user/product join、sort/page）→Web ResourceTable(userEmail/title/body/status)。AdminReviewUseCases.getDetailも同staff境界。Native ReviewRepository.searchForAdminはnativeUnsupportedでWeb専用",
+      "case_policy": "C1 operator/admin正常一覧と11件/状態内訳、C2 guest/customer/停止・退会staff拒否と非露出、C3 keyword/status/rating/sort/page境界、C4 hidden/deleted本文・userEmailとcross-owner/削除後PII正式期待、C5 Seed差と空状態、C6 DB/Session/History/Summary不変、C7 Web desktop/tablet実操作・視覚/a11yを採用。既存integrationはadmin published5-star検索・visibility変更の部分証拠のみ。未実行CaseをPASSにしない",
+      "case_selection_reason": "スタッフ一覧は顧客のemailとhidden/deletedのレビュー本文を同時表示するHighデータ保護境界。Web GuardだけでなくUse Case再認可・Repository全status抽出・Seedのcross-owner・検索/ページングを独立Caseで検証し、基本分析と実製品適合/PII方針判断を分離する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 509b1485486c: reviews.md BR/AC、Web AdminReviewsContent/RouteGuard、AdminReviewUseCases.search/getDetail、SessionIdentityResolver(active+staff)、Dexie searchForAdmin、default/hidden-reviews/admin-bulk-partial-failure/reviews-emptyを個別照合。C1-C7/High R1-R7を採否確定し基本分析のみanalyzed。Web一覧はhidden/deleted本文とuserEmailをstaffへ返し、cross-owner Seedも含むため削除後PII/最小権限の正式期待は未確定。既存integration検索と現HEAD integration CI successは部分証拠。直接Vitest/Prettier/Playwright・Role別Web実Run・DB/Session前後・視覚/a11y・製品適合・PII方針判断・全必須CIは未受入",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
@@ -13114,9 +13114,10 @@
         "AC-REVIEW-002"
       ],
       "related_use_cases": [
-        "AdminReviewUseCases.search"
+        "AdminReviewUseCases.search",
+        "AdminReviewUseCases.getDetail"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "2026-11-02 HEAD 509b1485486c: A01-01の基本分析のみ完了（操作74→75/188、非default16/20）。直接Role別・PII非露出・実Web desktop/tablet・DB/Session・視覚/a11y・正式UX/製品適合・最終CIは未受入。次はSCREEN-ADMIN-REVIEWS-A01-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 252,
@@ -13137,7 +13138,7 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default/hidden-reviewsはpublished9/hidden1/deleted1で初期guest。hidden/deleted Review.userId=goldとOrder.userId=regularのcross-owner。admin-bulk-partial-failureはproduct-mug競合設定でレビュー検索の固有失敗fixtureではない。reviews-emptyはReview0。operator/adminへSession切替して観測"
       },
       "use_case_evidence": [
         {
@@ -13145,6 +13146,97 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 349,
           "signature": "async search(query: Partial<ReviewSearchQuery> = {}): Promise<Page<AdminReviewListItem>> {"
+        },
+        {
+          "id": "AdminReviewUseCases.getDetail",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 366,
+          "signature": "async getDetail(reviewId: string): Promise<AdminReviewDetailDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 53,
+          "end_line": 95,
+          "reason": "管理者レビューdefault Web desktop/tablet・BR/AC・公開状態の正式範囲"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 252,
+          "end_line": 287,
+          "reason": "staff Guardと検索入力/ページ50"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 314,
+          "end_line": 477,
+          "reason": "status/rating/keyword/sort、hidden/deleted本文・email表示、ページング"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 20,
+          "end_line": 66,
+          "reason": "Session解決とactive認可"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 336,
+          "end_line": 390,
+          "reason": "AdminReviewUseCases.search/getDetailとstaff再認可"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 482,
+          "end_line": 492,
+          "reason": "operator/adminのみ許可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 352,
+          "end_line": 395,
+          "reason": "全status検索・PII join・keyword対象・sort/page"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2532,
+          "end_line": 2534,
+          "reason": "Native管理検索は非対応"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 68,
+          "end_line": 95,
+          "reason": "default初期guestとstaffログイン前提"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 110,
+          "reason": "default/hidden-reviews/reviews-emptyの変換"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 130,
+          "end_line": 137,
+          "reason": "admin-bulk-partial-failureはproduct-mug競合設定"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 590,
+          "end_line": 668,
+          "reason": "hidden/deleted Reviewのcross-ownerとHistory"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 245,
+          "end_line": 330,
+          "reason": "既存admin検索/visibility integrationの部分証拠"
         }
       ]
     },
