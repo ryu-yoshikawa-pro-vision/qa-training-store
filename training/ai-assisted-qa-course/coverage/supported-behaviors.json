@@ -20672,20 +20672,20 @@
       "source_line": 50,
       "source_text": "ユーザー詳細と、許可されたロール／ランク／ステータスの操作を表示する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ユーザー詳細",
+      "role": "active admin actorのみ（operator/customer/guest/suspended/withdrawn actorは管理DTO読取不可）。対象はactive/withdrawn customer、operator、admin、missing IDを区別。",
+      "scenario": "default Seed7ユーザー（admin actorの隔離Sessionを追加）＋存在しないtarget ID＋非admin/非active/失効actorの隔離Session。実Web/高速ID切替は別受入。",
+      "data": "default固定users7件（admin1、operator1、customer5、withdrawn1、suspended1）、初期version1、初期guest Session。学習用隔離DBにactor Sessionを追加。getDetail対象IDごとにrole/rank/status/version、email/displayNameを確認。全Dexie tableの前後スナップショットとローカルSession clearを分離。",
       "action": "ユーザー詳細",
-      "expected": "Adminのみが対象ユーザーIDの詳細と現在role/rank/statusを表示できる",
+      "expected": "active adminのみ対象userIdのUserAdminDto（userId/email/displayName/role/membershipRank/accountStatus/createdAt/updatedAt/version）を読取表示する。withdrawn対象は読取可能だが変更UIは表示しない。非admin/非active actorは権限/状態エラー、失効SessionはAUTHENTICATION_REQUIREDとローカルclear、存在しない対象はNOT_FOUND。読取および拒否は全Dexie tableを書き換えない。実Webの表示・高速ID切替・視覚は未受入。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "ユーザー詳細実施前後で、Adminのみが対象ユーザーIDの詳細と現在role/rank/statusを表示できることを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ユーザー詳細の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ユーザー詳細が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非admin/非active actorへの管理DTO（email/role/status）漏洩、R2=別userIdの詳細混線・誤表示、R3=読取/拒否でusers/sessions等を誤更新。Medium R4=withdrawn対象の読取専用表示不足、R5=失効actorのエラーとローカルclearの誤認、R6=missing IDのnot-found、R7=高速ID切替で古い非同期レスポンス、R8=1023/1024px・keyboard/a11y。実Web/実並列/製品適合は未確認。",
+      "test_condition": "C1 default Seed7件・active admin Sessionからactive customer/withdrawn customer/operator/adminのDTO全項目・version1と全Dexie table不変。C2 operator/customer/suspended/withdrawn actorから管理DTOを直接要求しPERMISSION_DENIED/ACCOUNT_SUSPENDED/ACCOUNT_WITHDRAWN、DB全表不変。C3 存在しないSessionからAUTHENTICATION_REQUIRED、ローカルSessionのみclear・DB不変。C4 存在しない対象IDはNOT_FOUND・DB不変。C5 一覧→詳細でwithdrawn読取専用、自己操作disabled、保護理由。C6 高速target ID切替/再取得/失効actor・表示の古いレスポンスを検証。C7 Web desktop/tablet・1023/1024px・keyboard/a11yとnot-found/loading/error表示。",
+      "test_responsibility": "TR1 admin-users.md BR-ADMINUSER-001/AC-ADMINUSER-001とroles-and-permissions.mdのactive admin限定・withdrawn固定読取。TR2 AdminUsersPageのadmin Guard・userId詳細リンク→AdminUserDetailPage Guard/useAsyncValue(getDetail)→AdminUserDetailFormのDTO/withdrawn notice・自己disabled。TR3 AdminUserUseCases.getDetailのrequireAdmin→requireUser→toDto、SessionIdentityResolverの状態/Session再認可、DexieUserRepository.getByIdの読取のみ。TR4 default Seed7件/version1・初期guest、学習用隔離DBの3追加getDetail契約Caseと既存Integration/Componentの部分証拠。更新操作のversion CASは別ID。",
+      "case_policy": "採用C1〜C7。C1〜C4は学習用getDetail契約3 Caseでactive/withdrawn/role/状態/不存在/全Dexie table不変を検査し、HEAD 70343cdb1c47のWeb CI #41546194697で対象ファイル全6/6 PASS（追加3 Case含む）。C5〜C7の実Web/画面切替/視覚・a11y、実並列・製品適合は未受入。除外：本読取IDでrole/rank/status変更のCAS・Session無効化をPASS計上しない（A01-02〜04/A02系で検証）。製品SUT/正式仕様/既存製品テストは変更しない。",
+      "case_selection_reason": "Highの管理DTO漏洩と誤対象表示/DB副作用を、正式BR/AC/Role→一覧/詳細Guard→Use Case再認可/DTO→Dexie読取→default Seedと学習用隔離DB契約3 Caseで独立検証し、実Web・製品適合を別受入に保つため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析のみ受入。admin-users.md:9-25,43-79/roles-and-permissions.md:5-24を、AdminUsersPage:508-614のadmin GuardとuserId詳細リンク→AdminUserDetailPage:618-642のGuard・useAsyncValue(getDetail)・loading/not-found→AdminUserDetailForm:689-715のDTO表示/withdrawn読取専用/自己disabled→AdminUserUseCases.getDetail:537-540のrequireAdmin→requireUser→toDto:642-685→SessionIdentityResolver:26-59のactive/失効actor判定とローカルSession clear→DexieUserRepository.getById:41-46のusers.get読取に照合。default Seed7件（admin1/operator1/customer5、version1）・隔離admin Sessionで4対象DTOと非admin/非active/失効actor・missing targetを区別。固定HEAD 70343cdb1c47のWeb CI #41546194697では学習用admin-users-list契約6/6 PASS（getDetail追加3 Case含む、全Dexie table前後不変）。Contracts job全体は別のstaff discontinue状態固定期待1件でfailure、Style Qualityは当該学習用testのPrettierでfailure。直接ローカルVitest/formatter/validator、実Web/DB Session実端末/高速ID切替/1023・1024px/a11y、製品適合、全必須CIは未受入。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -20693,7 +20693,7 @@
       "related_use_cases": [
         "AdminUserUseCases.getDetail"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03: getDetailのRole/State/Data・UI→Use Case→Dexie・default Seed・Risk/TR/C1〜C7採否を個別確定。HEAD 70343cdb1c47の学習用getDetail追加3 Caseを含む契約6/6 PASS。基本分析のみanalyzed（操作121/188、状態17/20）。実Web/高速ID切替/視覚/a11y・製品適合/全必須CIは検証待ち。次SCREEN-ADMIN-USER-DETAIL-A01-02。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -20722,6 +20722,97 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 537,
           "signature": "async getDetail(userId: string): Promise<UserAdminDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "BR/操作制限と管理DTOの対象範囲"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 43,
+          "end_line": 79,
+          "reason": "詳細画面契約とAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 24,
+          "reason": "active adminのみユーザー管理"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 508,
+          "end_line": 614,
+          "reason": "一覧Guard・対象userIdリンク"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 618,
+          "end_line": 715,
+          "reason": "詳細Guard・getDetail・DTO/withdrawn読取表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 715,
+          "end_line": 830,
+          "reason": "自己制限・withdrawn更新UI非表示"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 537,
+          "end_line": 540,
+          "reason": "getDetail requireAdmin→requireUser→toDto"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 685,
+          "reason": "requireAdmin/NOT_FOUNDとDTO属性"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 26,
+          "end_line": 59,
+          "reason": "失効Session local clear・非active拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 41,
+          "end_line": 46,
+          "reason": "users.getById読取のみ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "7ユーザー・role/rank/status/version1"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default初期guest Session"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "start_line": 95,
+          "end_line": 160,
+          "reason": "getDetail追加3 Caseと全Dexie table前後不変"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 300,
+          "end_line": 355,
+          "reason": "管理者Use Caseの既存部分証拠"
         }
       ]
     },
