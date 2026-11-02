@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A02-01`（古いCart versionの注文確認・確定拒否）。直前`SCREEN-CHECKOUT-CONFIRM-A01-04`はHEAD `845f9320aee4`のWeb CI #41361466055で学習用Checkout契約12/12 PASS（C5のdefault Seed件数誤期待修正後）。ただしStyle Quality・全体contracts・required Chromium E2E・実Web/Androidは未受入で`review_required`継続。A02-01は`cart-version-invalidates-checkout`固定Seedと、confirmまで完了後にCart.versionを変更する再現条件を分け、確認前/表示後の`CART_VERSION_CHANGED`・DB/在庫不変・Web/Native修正導線を検証する。
+- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A02-02`（Cart.versionを維持した商品価格変更の拒否）。前対象`SCREEN-CHECKOUT-CONFIRM-A02-01`の追加C1/C2はHEAD `6f278c365324`の[Web CI #41363882700](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41363882700)でCheckout契約14/14 PASS（327ms）。ただし実Web/Androidの修正導線・視覚/アクセシビリティ・製品適合は未受入のためA02-01は`review_required`維持。A02-02は価格変更の確認前/表示後、Cart版不変、`PRICE_CHANGED`拒否、注文・決済・在庫・履歴の不変を学習用契約で検証し、Web/Native修正導線とsale-active/expired-saleの実Runを後続の再開条件にする。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A02-02（通常価格変更の前後拒否を学習用契約化）
+
+- **前対象の直接証拠**：HEAD `6f278c365324a7e143e6760197cadf6ed00d4008` の [Web CI #41363882700](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41363882700)で`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`は**14/14 PASS（327ms）**。追加されたA02-01の確認前・表示後Cart版拒否2 Caseを含む。隔離Dexieの学習用直接契約であり、実Web/Android・製品適合・PR全体のPASSではない。A02-01は実画面のカート復旧・Android取得失敗・視覚/アクセシビリティを再開条件として`review_required`維持。
+- **現対象と根拠**：台帳の実在ID`SCREEN-CHECKOUT-CONFIRM-A02-02`は`review_required`。正式`BR-CHECKOUT-002/AC-CHECKOUT-002`は価格変更時の注文/決済非作成と修正導線を要求。default regular-memberで`start→setAddress→setPayment`後、商品`regularPrice`のみ2000→9999へ変更し、`Cart.version`を据え置く。A02-01のCart版不一致、A01-02の会員ランク変更による割引差とは区別する。
+- **実装経路・Case採否**：Web`CheckoutConfirmContent`→`CheckoutOrderUseCases.getConfirmation/beginOrder`→Dexie`getConfirmation/getCartDto`は`unitEffectivePriceAtAdd`と`effectiveUnitPrice(now)`の差から`PRICE_CHANGED`を返す。C1=確認表示前に価格変更して暗黙/明示`getConfirmation`と`beginOrder`を拒否（採用）。C2=表示後に価格変更して再読込と旧`checkoutActionVersion`での`beginOrder`を拒否（採用）。両CaseでCart版不変、Order/OrderItem/Payment/Checkout/Cart/Session/Stock/InventoryHistory/Sequenceの前後不変を確認。C3=Web/Nativeのカート修正導線・非遷移、sale-active/expired-saleの時刻境界（採用、実Run待ち）。
+- **今回の学習用変更**：`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`にC1/C2の隔離Dexie 2 Caseを追加。Web確認読込失敗は`CheckoutLoadError href="/checkout/payment"`でカートへの直接リンクではなく、確定失敗も汎用警告のみ。Native確認取得失敗は`confirmation=null`のLoadingが残る可能性があり、正式`AC-CHECKOUT-002`との実画面差分候補として記録。製品SUTは変更せず、不具合確定とも扱わない。**追加2 Caseの新HEAD Vitest・Prettier・Web/Android実Runは未実施**でPASSには加算しない。
+- **横断CI・再開条件**：前HEADのWeb CI全体はfailure（contracts全体15失敗：旧`analyzed`期待等、Style Quality学習用6ファイル、required Chromium E2EのCheckout再確認、verify/validate）。Code Quality、unit、integration、repository、component、build等はsuccess。新HEAD全必須CIの成功は未判定。次回は同じA02-02の追加C1/C2直接結果とformatter、Web/Androidの価格変更拒否・修正導線、DB/Session/在庫・視覚/アクセシビリティを確認。実Run待ちに移った場合のみ台帳の次の着手可能なIDへ移る。分析集計50/188操作・非default14/20状態は据え置き、`review_required`をPASSにしない。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A02-01（古いCartの確認前・表示後拒否を学習用契約化）
 

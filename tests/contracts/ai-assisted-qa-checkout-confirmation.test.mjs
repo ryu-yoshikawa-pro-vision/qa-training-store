@@ -218,6 +218,52 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
     expect(payment).toMatchObject({ amount: repriced.totalAmount });
   });
 
+  describe("SCREEN-CHECKOUT-CONFIRM-A02-02 price changes without cart version changes", () => {
+    it("rejects a price change before loading confirmation without changing persisted state", async () => {
+      const { checkout, cart, session } = await readyCheckout();
+      const cartItem = await database.cart_items.where("cartId").equals(cart.id).first();
+      expect(cartItem).toBeDefined();
+      await database.product_variants.update(cartItem.variantId, { regularPrice: 9999 });
+      const unchangedCart = await database.carts.get(cart.id);
+      expect(unchangedCart.version).toBe(cart.version);
+      const before = await checkoutSafetySnapshot();
+
+      await expect(checkout.getConfirmation()).rejects.toMatchObject({
+        code: "PRICE_CHANGED",
+      });
+      await expect(checkout.getConfirmation(session.id)).rejects.toMatchObject({
+        code: "PRICE_CHANGED",
+      });
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: session.id,
+          checkoutActionVersion: session.version,
+        }),
+      ).rejects.toMatchObject({ code: "PRICE_CHANGED" });
+      expect(await checkoutSafetySnapshot()).toEqual(before);
+    });
+
+    it("rejects a price change after displaying confirmation without creating an order", async () => {
+      const { checkout, cart, session } = await readyCheckout();
+      const displayed = await checkout.getConfirmation(session.id);
+      const variantId = displayed.items[0].variantId;
+      await database.product_variants.update(variantId, { regularPrice: 9999 });
+      expect((await database.carts.get(cart.id)).version).toBe(displayed.cartVersion);
+      const before = await checkoutSafetySnapshot();
+
+      await expect(checkout.getConfirmation(session.id)).rejects.toMatchObject({
+        code: "PRICE_CHANGED",
+      });
+      await expect(
+        checkout.beginOrder({
+          checkoutSessionId: session.id,
+          checkoutActionVersion: displayed.checkoutActionVersion,
+        }),
+      ).rejects.toMatchObject({ code: "PRICE_CHANGED" });
+      expect(await checkoutSafetySnapshot()).toEqual(before);
+    });
+  });
+
   describe("SCREEN-CHECKOUT-CONFIRM-A02-01 stale cart", () => {
     it("rejects a stale cart before loading confirmation without writing orders or inventory", async () => {
       const { checkout, cart, session } = await readyCheckout();
