@@ -946,7 +946,7 @@ it("does not overwrite an immutable assessment result created during publication
   const originalLink = fs.linkSync.bind(fs);
   const intercepted = vi.spyOn(fs, "linkSync").mockImplementationOnce((source, destination) => {
     // Another resume process wins the race after existsSync, before publication.
-    fs.writeFileSync(destination, '{"completed":false}\\n', { flag: "wx" });
+    fs.writeFileSync(destination, '{"completed":false}', { flag: "wx" });
     return originalLink(source, destination);
   });
   try {
