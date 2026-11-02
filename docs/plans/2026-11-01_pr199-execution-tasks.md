@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-CATEGORIES-A01-01`（カテゴリー一覧）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A02-04`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・Seed・High R1-R6/Medium R7-R8・TR1-TR4/C1-C7を照合して基本分析のみ`analyzed`（操作97/188、非default16/20）。実Web/DB・Session/直接Vitest・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-CATEGORIES-A01-02`（カテゴリー新規作成）。直前`SCREEN-ADMIN-CATEGORIES-A01-01`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・Seed・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合して基本分析のみ`analyzed`（操作98/188、非default16/20）。実Web/DB・Session/直接Vitest・製品適合・最終CIは未受入。前々回`SCREEN-ADMIN-PRODUCT-DETAIL-A02-04`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・Seed・High R1-R6/Medium R7-R8・TR1-TR4/C1-C7を照合して基本分析のみ`analyzed`（操作97/188、非default16/20）。実Web/DB・Session/直接Vitest・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `89764edcd39e`の[Web CI #41474287000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41474287000)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess、required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-CATEGORIES-A01-01（カテゴリー一覧）基本分析受入
+
+- **判定**：操作ID `SCREEN-ADMIN-CATEGORIES-A01-01`を`review_required→analyzed`。操作**97→98/188**、非default状態**16/20**。基本分析のみで実Web/製品適合/最終CI PASSではない。
+- **仕様・Role/State/Data**：`admin-catalog.md:154-166`と`BR/AC-ADMINCAT-001/002`、`roles-and-permissions.md:5-19`。active operator/admin許可、guest/customer/停止staff/失効Session拒否。default Seedは4カテゴリー（ファッション/ホーム・キッチン/スポーツ/バッグ・小物）、全件active/version1・sortOrder10/20/30/40、商品11件中published8件、カテゴリー別公開商品数1/2/3/2。inactive/検索0件/21件以上/同順位IDは隔離fixture。
+- **経路**：Web `admin-master-pages.tsx:23-25,135-159,209-273`のStaffPage/検索/active/ページ・loading/error、`AdminMasterUseCases.searchCategories:63-78`のrequireStaff/trim/上限/既定sort_order/pageSize20、`SessionIdentityResolver:27-59`のactive/Session、`DexieCategoryRepository.searchForAdmin:330-361`の正規化部分一致・active filter・sortOrder→ID安定順・publishedのみの集計・pageItemsを照合。検索は読取り経路。
+- **Risk/TR/Case**：High R1=非staff管理DTO露出、R2=非published誤集計、R3=読取り副作用。Medium R4=検索正規化/active、R5=20/21件・同順序、R6=loading/error/empty・viewport/a11y、R7=大量データ時性能候補。TR1正式仕様、TR2 Web、TR3 Use Case/Session/Dexie、TR4 Seed/既存テスト。C1 default4件/公開数、C2 keyword/active/empty、C3 page/tie、C4 Role/Session/非露出、C5 DB/Session不変、C6 非published除外、C7視覚/keyboard/a11yを採用。作成/編集/並び替え/状態変更/ブランド/Native管理は別ID。
+- **直接確認と未受入**：固定HEAD `2841ec21fb5b`で**33/33静的ソース断片assert成功**。既存Component/Integrationは部分証拠で今回直接Vitest/formatter/validator本体/Playwrightは未実施。Role別実Web、DB/Session全表前後、検索境界/大量データ、視覚/a11y、製品適合、同一最終HEAD全必須CIは未受入。C1-C7の隔離実Runと正式期待の再確認で再開。
+- **次の共通対象**：`SCREEN-ADMIN-CATEGORIES-A01-02`（カテゴリー新規作成）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-04（下書き削除禁止・参照保護）基本分析受入
 
