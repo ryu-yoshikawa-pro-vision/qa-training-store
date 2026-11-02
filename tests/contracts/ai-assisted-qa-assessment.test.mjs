@@ -987,9 +987,7 @@ it("exports a finalized assessment once without copying unexpected files", () =>
   exportAssessment("P1", id, root);
   const target = path.join(root, "course-assessment-exports", id);
   expect(fs.readdirSync(target).sort()).toEqual(["answers.md", "result.json"]);
-  expect(fs.readFileSync(path.join(target, "answers.md"), "utf8")).toBe(
-    "private learner answer",
-  );
+  expect(fs.readFileSync(path.join(target, "answers.md"), "utf8")).toBe("private learner answer");
   expect(() => exportAssessment("P1", id, root)).toThrow(/already exists/);
 });
 
