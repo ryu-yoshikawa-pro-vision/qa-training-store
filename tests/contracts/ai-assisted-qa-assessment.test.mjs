@@ -26,6 +26,7 @@ import {
   exportAssessment,
   filterPhaseKnowledgeGraph,
   persistCalibration,
+  readAttemptCalibration,
   readChallengeAnswer,
   writeImmutableOpenCodePrompt,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -105,6 +106,45 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   });
   expect(read(legacy)).toEqual(failed);
   expect(read(path.join(third, "calibration-result.json"))).toEqual(passed);
+});
+
+it("resumes a verified attempt calibration without trusting missing or altered records", () => {
+  const root = path.join(tempRoot, "saved-attempt-calibration");
+  const cache = path.join(root, "cache.json");
+  const attemptDirectory = path.join(root, "attempt");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = "calibration-identity";
+  const expected = new Map([["positive", ["pass"]], ["negative", ["fail"]]]);
+  const caseResults = [
+    { case_id: "positive", decision: "pass", rationale: "supported" },
+    { case_id: "negative", decision: "fail", rationale: "missing evidence" },
+  ];
+  const calibration = {
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 2,
+    mismatches: [],
+    critical_false_passes: 0,
+  };
+  const read = () => readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected });
+  expect(read()).toBeNull();
+  persistCalibration({ calibration, calibrationPath: cache, attemptDirectory, caseResults });
+  expect(read()).toEqual(calibration);
+  expect(() =>
+    persistCalibration({ calibration, calibrationPath: cache, attemptDirectory, caseResults }),
+  ).toThrow(/immutable/);
+
+  const resultPath = path.join(attemptDirectory, "calibration-result.json");
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  fs.writeFileSync(resultPath, JSON.stringify({ ...calibration, status: "failed" }));
+  expect(read).toThrow(/does not match its candidate/);
+  fs.writeFileSync(resultPath, JSON.stringify(calibration));
+  fs.writeFileSync(candidatePath, JSON.stringify({ case_results: [] }));
+  expect(read).toThrow(/omitted one or more cases/);
+  fs.unlinkSync(candidatePath);
+  expect(read).toThrow(/incomplete or unsafe saved calibration/);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {

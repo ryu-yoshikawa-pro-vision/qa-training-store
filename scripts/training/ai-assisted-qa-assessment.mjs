@@ -620,6 +620,38 @@ export function persistCalibration({
     atomicWriteJson(calibrationPath, calibration);
 }
 
+export function readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected }) {
+  const recordPath = path.join(attemptDirectory, "calibration-result.json");
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  if (!fs.existsSync(recordPath)) {
+    if (fs.existsSync(candidatePath))
+      fail("assessment has an incomplete saved calibration; start a new assessment");
+    return null;
+  }
+  if (
+    !fs.lstatSync(recordPath).isFile() ||
+    !fs.existsSync(candidatePath) ||
+    !fs.lstatSync(candidatePath).isFile()
+  )
+    fail("assessment has an incomplete or unsafe saved calibration; start a new assessment");
+  const saved = readJson(recordPath, "saved attempt calibration");
+  if (
+    saved.id !== calibrationId ||
+    JSON.stringify(saved.identity) !== JSON.stringify(identity) ||
+    saved.case_count !== expected.size
+  )
+    fail("saved attempt calibration identity or case count differs from pinned inputs");
+  const candidate = readJson(candidatePath, "saved attempt calibration candidate");
+  const verified = validateCalibrationOutput(candidate, expected);
+  if (
+    saved.status !== verified.status ||
+    saved.critical_false_passes !== verified.critical_false_passes ||
+    JSON.stringify(saved.mismatches) !== JSON.stringify(verified.mismatches)
+  )
+    fail("saved attempt calibration result does not match its candidate");
+  return saved;
+}
+
 async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
   const calibrationPrompt = buildCalibrationPrompt(inputs);
   assertModelInputSize(calibrationPrompt.text, "calibration prompt");
@@ -636,6 +668,13 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
   const calibrationRoot = path.join(WORKSPACE, ".course-assessments", "calibrations");
   fs.mkdirSync(calibrationRoot, { recursive: true, mode: 0o700 });
   const calibrationPath = path.join(calibrationRoot, `${calibrationId}.json`);
+  const savedAttempt = readAttemptCalibration({
+    attemptDirectory,
+    calibrationId,
+    identity,
+    expected: calibrationPrompt.expected,
+  });
+  if (savedAttempt) return savedAttempt;
   const existingCalibration = fs.existsSync(calibrationPath)
     ? readJson(calibrationPath, "saved model calibration")
     : null;
