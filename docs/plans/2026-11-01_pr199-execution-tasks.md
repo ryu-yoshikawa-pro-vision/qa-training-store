@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A02-01`（自己操作の制限・High自己降格/停止のUI/Use Case拒否）。直前`SCREEN-ADMIN-USERS-A01-01`は正式Role→Web Guard/列→Use Case→Dexie/Seed7件を照合し基本分析のみ`analyzed`（操作117/188、非default17/20）。隔離Dexie3 Case追加、実CI/実Web/製品適合/最終受入は未完。`SCREEN-ADMIN-USERS-A01-02`はRank/Sort UI仕様差の採否待ち。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A02-02`（withdrawn変更禁止の案内・readOnly境界）。直前`SCREEN-ADMIN-USERS-A02-01`は正式Role→一覧/詳細UIの自己操作制限→Use Case再認可/自己拒否→Dexie/Seed7件を照合し、基本分析のみ`analyzed`（操作118/188、非default17/20）。同HEADの既存Integration9件PASSは部分証拠。自己status直接Case・実Web/全DB・製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。
 - **CI横断**：作業前HEAD `d20182bf6c0cadf1754e77208d7800e1edac4acd`の[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。学習用注文詳細4 CaseはContracts job内でPASS。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A02-01（自己操作制限・自己降格/停止拒否）基本分析受入
+
+- **判定**：`review_required→analyzed`はA02-01の基本分析のみ。操作**117→118/188**、非default状態**17/20**。製品適合・実Web/Native・全必須CIは未受入。
+- **正式仕様/Role/Seed**：`admin-users.md:9-25,43-79`のBR/ACは自己role/status変更、最後の管理者変更、withdrawn変更を拒否し、UIに理由を提示する。`roles-and-permissions.md:5-24`はactive admin専用。default固定7ユーザー（active admin1、operator1、customer5、version1）、初期guest Sessionからadmin Sessionを別途用意。自己role admin→operator、自己status active→suspendedが主条件。
+- **一覧→詳細UI→Use Case→Dexie**：`review-user-pages.tsx:508-614`の一覧はGuard(admin)とuserId詳細リンクを持ち、一覧自体には自己変更操作はない。詳細`:638-830`では`currentUser?.id===userId`でrole/status変更をdisabledにし理由を表示。`AdminUserUseCases.changeRole:567-598`はactor.id自己一致を、`changeSuspension:600-638`は自己suspendedを`SELF_CHANGE_FORBIDDEN`で拒否。requireAdminはSessionIdentityResolverで現Userを再認可し、別userの変更はversion照合/transaction(`change-user-access` users/sessions/checkout_sessions)/Session無効化へ進む。Dexie users.updateはversion CAS。UI actorの表示時点差は実Web/失効Sessionで別検証。
+- **Risk/TR/Case採否**：High R1自己降格/停止、R2 UI迂回、R3失効actor管理操作。Medium R4一覧と詳細の案内位置、R5 actor時点差、R6 stale/二重、R7拒否時DB/Session副作用、R8視覚/a11y。TR1正式BR/AC/Role、TR2一覧→詳細UI、TR3 Use Case/Dexie transaction、TR4 Seed/既存Integration。採用C1 default7件/自己ID、C2自己role拒否、C3自己status拒否、C4非admin拒否、C5別user許可変更、C6 stale/失効/last-admin別fixture、C7実Web/DB/Session/視覚。last-admin/withdrawn・詳細独立操作は別IDとし二重計上しない。
+- **直接証拠/未受入**：固定HEAD `08edfb72141684c4cdac38f80918a0886857c606`で正式仕様・UI・Use Case・Dexie・Seed・既存テストの静的断片**22/22成立**。同HEAD [Web CI #41536232867](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41536232867)のIntegration jobはsuccess、`review-user-use-cases.test.ts` **9/9 PASS**（自己role拒否を含む）。自己statusの専用直接Case、Role別実Web、全DB/Session前後、並列・失効、desktop/tablet/a11y、製品適合は未実施。Web CI全体はfailure（Style/Contracts/required Chromium E2E/verify/validate）、Mobile未受入。旧HEAD結果を新HEADに流用しない。
+- **次の共通対象**：`SCREEN-ADMIN-USERS-A02-02`（withdrawn読取専用と変更禁止の案内）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A01-01（ユーザー一覧・管理DTO認可）基本分析受入
 
