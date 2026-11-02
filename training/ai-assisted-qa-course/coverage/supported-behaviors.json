@@ -16287,8 +16287,8 @@
       "test_responsibility": "操作対象ID、状態・versionと削除禁止の通知の結果を対応付ける",
       "case_policy": "採用:C1参照ありdraft拒否と全表不変、C2未参照draft成功・削除対象/asset binary保持、C3非draft/Dirty/取消、C4 Role/Session非露出、C5 version/並列/二重確定/rollback、C6参照種類・Variant0件・非初期在庫履歴の保護境界、C7 viewport/視覚/a11y/失敗理由。除外:公開/非公開/販売終了状態変更（A01-05/A02-03）、通常商品集約保存/preview（A01/A02-02）、SKU個別削除・在庫調整（別ID）、Native非サポート管理。",
       "case_selection_reason": "TR1=正式BR/AC-ADMINCAT-001/002とroles-and-permissions（削除の個別明文化は限定的）。TR2=Web AdminProductEditContent:415-565とConfirmDialog:23-83のdraft/Dirty/確認・失敗表示。TR3=AdminProductUseCases.deleteDraft:253-258→DexieProductRepository.deleteDraftAggregate:296-318/hasBlockingReference:320-334→transaction-runner:85-96のCAS・参照guard・原子削除。TR4=default/product-delete-blocked Seed scenarios.ts:113-141、metadata.ts:350-370、既存Integration admin-product-use-cases.test.ts:388-431の成功・cart拒否部分証拠。High R1-R6/Medium R7-R8をC1-C7に対応付け、履歴消失/Variant0件/汎用エラーは未再現候補として隔離。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-03 HEAD c06357eeb55d: 正式BR/AC/Role、draft/非draft・Seed参照、Web ConfirmDialog→AdminProductUseCases.deleteDraft(requireStaff/transaction)→DexieProductRepository.deleteDraftAggregate(version CAS/参照guard/関連表削除)を個別読取。25/25ソース断片静的assert成功、既存Integrationの未参照draft成功・cart参照拒否を部分証拠として確認。High R1-R6/Medium R7-R8、TR1-TR4、C1-C7採否を具体化。非初期在庫履歴がblocker判定対象外、Variant0件でorder/review照合を飛ばす経路、UIが全失敗を参照エラーにする候補を発見。実再現・製品不具合認定ではない。直接Vitest/Prettier/Playwright/validator全体、隔離DB/Session全表前後、Role/並列/故障注入、実Web/視覚/a11y、製品適合・最終CIは未受入。今回の更新は単一台帳ファイルの調査証拠追記であり、共通Planとの原子的な基本分析完了反映は行わないためreview_requiredを維持。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD 7a9e96ff8b11: 基本分析受入。正式BR/AC-ADMINCAT-001/002・roles-and-permissions、product-delete-blocked/default/product-aggregate-edit Seed、Web StaffPage/ConfirmDialog→AdminProductUseCases.deleteDraft(requireStaff)→Dexie deleteDraftAggregate(Product.version CAS、cart/order/review参照guard、Product/Variant/Image/InventoryHistory/Summaryのtransaction削除)を照合。41/41ソース断片静的assert成功、既存Integrationは未参照draft成功・cart参照拒否の部分証拠（今回の直接Vitest実行ではない）。High R1-R6/Medium R7-R8、TR1-TR4、C1-C7の採否・期待結果・再開条件を記録。非INITIAL_STOCK履歴のblocker漏れ、Variant0件時のproductId参照照合早期return、全失敗を参照ありと表示する候補は未再現・製品不具合未確定。直接Vitest/Prettier/Playwright/validator全体、隔離DB/Session全表前後、Role/並列/故障注入、実Web/視覚/a11y、製品適合・同一最終HEADのCIは未受入。基本分析の完了と製品PASSを区別する。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -16299,7 +16299,7 @@
         "AdminProductUseCases.getEdit",
         "AdminProductUseCases.deleteDraft"
       ],
-      "analysis_progress": "2026-11-03 A02-04調査証拠・C1-C7を具体化、status review_required継続（操作96/188、非default16/20）。単一ファイルの実質調査追記のみ。基本分析完了の台帳+Plan原子更新/validator・直接Run/DB・Session/実Web/製品適合・最終CIは未受入。次回も同じA02-04。",
+      "analysis_progress": "2026-11-03 A02-04基本分析analyzed（操作97/188、非default16/20）。41/41静的assertと既存Integration部分証拠。C1-C7実Run/DB・Session前後/Role/並列/故障注入/製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-CATEGORIES-A01-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,

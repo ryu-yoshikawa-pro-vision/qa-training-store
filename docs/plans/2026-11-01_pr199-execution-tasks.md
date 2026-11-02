@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-04`（下書き削除禁止・参照保護）。直前A02-03は正式仕様/Role/State/Data・UI→Use Case→Repository/Seed・Risk/TR/C1-C7を個別照合して基本分析のみ`analyzed`（操作96/188、非default16/20）。直接Vitest/Playwright/実Web/DB/Session・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-CATEGORIES-A01-01`（カテゴリー一覧）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A02-04`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・Seed・High R1-R6/Medium R7-R8・TR1-TR4/C1-C7を照合して基本分析のみ`analyzed`（操作97/188、非default16/20）。実Web/DB・Session/直接Vitest・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `89764edcd39e`の[Web CI #41474287000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41474287000)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess、required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-04（下書き削除禁止・参照保護）基本分析受入
+
+- **判定**：同一操作IDを`review_required→analyzed`。操作**96→97/188**、非default状態**16/20**。基本分析のみで製品適合・実Web・最終CIのPASSではない。
+- **正式仕様・Role/State/Data**：`BR/AC-ADMINCAT-001/002`、`admin-catalog.md:9-19,120-150`、`roles-and-permissions.md:5-19`。active operator/adminのStaffPage/Use Case認可、guest/customer/停止staff/失効Sessionの直URL・Use Case拒否/管理DTO非露出を別Case。主軸`product-delete-blocked`（draft Variantに`cart-item-draft-blocker`）、対照`default`/`product-aggregate-edit`/`cross-role-product-lifecycle`。未参照draft、非draft、cart/order/review参照、Variant0件、非初期在庫履歴、古いversion・別staffを隔離する。
+- **経路と削除範囲**：Web `admin-product-pages.tsx:415-565`はdraftかつDirty=falseのみ削除ConfirmDialogを表示し、取消と確定を分離、失敗は警告・成功は商品一覧へ遷移。`ConfirmDialog:23-83`はalertdialog/二重確定抑制。`AdminProductUseCases.deleteDraft:253-258`はstaff再認可と`delete-draft-product` transaction。`DexieProductRepository.deleteDraftAggregate:296-334`はProduct.version CAS、draft/参照guard、Product/Variant/Image/InventoryHistory/Summary削除。アセットbinaryは削除しない。`transaction-runner:85-96`に関連表を含む。
+- **Risk/TR/Case採否**：High R1=認可/管理DTO露出、R2=参照漏れ・孤児化、R3=version/並列、R4=transaction/関連表、R5=非INITIAL_STOCK履歴消失候補、R6=Variant0件時の参照検査早期return候補。Medium R7=汎用「参照あり」エラーによる誤説明候補、R8=Dirty/viewport/focus/a11y。TR1正式BR/AC、TR2 Web/ConfirmDialog、TR3 Use Case/Dexie/transaction、TR4 Seed/既存Integration。採用C1参照draft拒否/全表不変、C2未参照draft成功/asset保持、C3非draft・Dirty・取消、C4 Role/Session、C5 CAS/並列/rollback、C6参照種・Variant0・履歴、C7画面・視覚/a11y/失敗理由。公開状態・SKU削除・在庫調整・Native管理は別ID。
+- **直接検証と残条件**：固定HEAD `7a9e96ff8b11`で9ソース**41/41静的断片assert成功**。既存Integrationは未参照draft削除とcart参照拒否の部分証拠だが今回直接Vitest実行ではない。R5-R7は実再現前で製品不具合確定ではない。直接Vitest/formatter/validator全体/Playwright、Role別実Web、隔離DB・Session全表前後、並列/故障注入、視覚/a11y、製品適合・最終CIは未受入。C1-C7の固定HEAD実Runと正式期待の確認で再開する。
+- **次の共通対象**：`SCREEN-ADMIN-CATEGORIES-A01-01`（カテゴリー一覧）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-03（販売終了確認）基本分析受入
 
