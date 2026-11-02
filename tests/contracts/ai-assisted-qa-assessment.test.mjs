@@ -591,7 +591,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(environment.OPENAI_API_KEY).toBeUndefined();
   });
 
-  it("blocks common provider secrets in learner evidence and answers before model submission", () => {
+  it("blocks provider secrets in learner evidence and answers", () => {
     for (const secretLike of [
       `sk-proj-${"A".repeat(24)}`,
       `sk-ant-api03-${"B".repeat(24)}`,
@@ -605,7 +605,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(() => assertNoSecretText("ordinary answer with no credential")).not.toThrow();
   });
 
-  it("uses documented OpenCode v2 run flags and keeps project instructions out of evaluator sessions", () => {
+  it("isolates evaluator sessions with documented OpenCode v2 flags", () => {
     const promptPath = path.join(tempRoot, "attempt with spaces", "assessment-prompt.md");
     const args = buildOpenCodeRunArgs({
       modelId: "opencode/free-model",
@@ -656,7 +656,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ).toThrow(/system prompt/);
   });
 
-  it("generates a bounded live question only from the terminal module and its pinned source", () => {
+  it("generates live questions from pinned terminal module sources", () => {
     for (const [phaseId, moduleId, objectiveId] of [
       ["P1", "M04", "M04-01"],
       ["P2", "M07", "M07-01"],
