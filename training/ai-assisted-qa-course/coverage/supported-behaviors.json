@@ -17594,8 +17594,8 @@
       "test_responsibility": "ブランド名称編集のRole認可、既存ID/version CAS、正規化重複・入力境界、単一Brand更新と関連表/Session不変、保存後DTOとUI通知・再試行をCase別に検証する。",
       "case_policy": "採用:C1 default既存名称変更/関連表不変、C2 名称境界/正規化重複、C3 stale version/並列CAS、C4 Role/Session/DTO非露出、C5 DB失敗/保存後再読取・21件境界、C6 UI入力/通知/二重保存、C7 viewport/keyboard/a11y。除外:ブランド新規作成(A01-02)、状態変更(A01-04)、カテゴリー、Native管理、製品SUT修正。",
       "case_selection_reason": "TR1=admin-catalog.md:181-195,211-220とroles-and-permissions.md:5-19の正式BR/AC・Role（ブランド編集固有の詳細ACは限定的）。TR2=admin-master-pages.tsx:353-376,431-543のStaffPage/InlineNameEditor/expectedVersion/通知。TR3=AdminMasterUseCases.updateBrand:183-198/validName:228-237/requireStaff:239-249→DexieBrandRepository.updateDetails:518-531、database.ts:65 uniqueとnormalization.ts:1-3。TR4=default-dataset.ts:44-49,693-705、既存Component:152-173はmaxlength/作成のみ、Integration:130-165は名称上限/一覧/状態変更のみ、Repository Contract:44-65は正規化uniqueのみ。High R1-R3/Medium R4-R7をC1-C7へ対応。固定HEAD 4a3fb6bdで12ファイル50/50静的断片assert・隔離NFKC3/3成功（Vitest/validator本体ではない）。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-03 HEAD 4a3fb6bd9a4c: 基本分析の個別根拠を追加。正式BR/AC・Role/State/Data・Web→Use Case→Dexie/Seed3ブランド/公開8商品、High R1-R3/Medium R4-R7、TR1-TR4/C1-C7の採否と再開条件を整理。12ファイル50/50静的断片assert・隔離NFKC3/3成功。既存Component/Integration/Repositoryは部分証拠でブランド編集の直接実Runではない。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、21件境界、視覚/a11y、製品適合/最終CIは未受入。analyzedへの状態変更は共通Planとの原子的更新・既存validator/契約テスト確認後に判定するためreview_required維持。C1-C7固定HEAD隔離実Runと正式期待照合で再開。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD d466e62ef89c: 正式BR/AC・Role/State/Data・Web→Use Case→Dexie/Seed3ブランド/公開8商品、High R1-R3/Medium R4-R7、TR1-TR4/C1-C7の採否・再開条件を照合し基本分析を受入。直前4a3fb6bdで50/50静的断片assert・NFKC3/3、今回15/15 audit source rangeと4 signature、validator completeAnalysis条件・契約テストの動的件数期待を確認。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列CAS/故障注入、21件境界、視覚/a11y、製品適合/最終CIは未受入。R2/R5/R6は未再現のリスク候補。C1-C7隔離実Runと正式期待の照合で再開。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -17605,7 +17605,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.updateBrand"
       ],
-      "analysis_progress": "2026-11-03 A01-03の個別静的根拠・C1-C7/再開条件を整理、review_required継続（操作103/188・非default16/20）。50/50静的断片assert・NFKC3/3。直接Vitest/validator/実Web/DB・Session/並列/製品適合/最終CIは検証待ち。共通対象は同じSCREEN-ADMIN-BRANDS-A01-03。",
+      "analysis_progress": "2026-11-03 ブランド名称編集の基本分析のみ受入（操作104/188、非default16/20）。直接Vitest/validator/実Web/DB・Session/並列/製品適合/最終CIは検証待ち。次の共通対象はSCREEN-ADMIN-BRANDS-A01-04。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 431,

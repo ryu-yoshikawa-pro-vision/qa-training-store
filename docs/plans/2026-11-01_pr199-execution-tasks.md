@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-03`（ブランド名称編集）。直前`SCREEN-ADMIN-BRANDS-A01-02`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie brands.add・default Seed3ブランド/公開8商品・名称NFKC一意制約・High R1-R3/Medium R4-R8・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作103/188、非default16/20）。失敗時入力即clear/二重submit通知順序/検索絞込、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-04`（ブランド有効・無効切替）。直前`SCREEN-ADMIN-BRANDS-A01-03`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie brands.updateDetails・default Seed3ブランド/公開8商品・名称正規化・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作104/188、非default16/20）。transaction外version CAS、21件超の保存後DTO、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
 - **CI横断**：作業前HEAD `ee3ab578da80`の[Web CI #41496638446](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41496638446)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-03（ブランド名称編集）基本分析受入
+
+- **判定**：`SCREEN-ADMIN-BRANDS-A01-03`を`review_required→analyzed`。操作**103→104/188**、非default状態**16/20**。基本分析の静的根拠・Case設計の受入のみで、実Web・製品適合・最終CI PASSではない。
+- **仕様・Role/State/Data**：`admin-catalog.md:181-195,211-220`、`roles-and-permissions.md:5-19`、BR/AC-ADMINCAT-001/002。active operator/adminの編集を許可し、guest/customer/停止staff/失効Sessionを拒否。default Seed3ブランドはactive/version1、公開商品8件（Basics2/Life3/Active3）。brand-scenario-basicsの「 Scenario Basics Plus 」編集でtrim/nameNormalized/version2/updatedAtを期待し、ID/active/createdAt、他ブランド・商品・Variant・Sessionと公開件数2は不変。
+- **経路**：Web `admin-master-pages.tsx:353-376,431-543`のStaffPage/InlineNameEditor/expectedVersion/通知→`AdminMasterUseCases.updateBrand:183-198`のrequireStaff/validName/保存後検索→`DexieBrandRepository.updateDetails:520-531`のgetById/version照合/put、`database.ts:65` unique nameNormalized、`normalization.ts:1-3` NFKC/大小文字/空白正規化。Repositoryのversion照合とputは明示transaction外。保存後のDTO検索はpageSize20。
+- **Risk/TR/Case採否**：High R1=非staff編集・管理DTO露出、R2=同時編集lost-update候補、R3=正規化重複・書込失敗時整合。Medium R4=空白/80・81文字/NFKC、R5=21件目以降の保存後DTO未取得候補、R6=InlineNameEditor入力・二重保存/通知、R7=viewport/focus/a11y。TR1正式BR/AC、TR2 Web、TR3 Use Case/Dexie/Session、TR4 Seed/既存Component/Integration/Repository。採用C1 default編集/関連表不変、C2 入力境界・正規化重複、C3 stale version/並列、C4 Role/Session、C5 DB故障・保存後検索21件、C6 UI入力/通知/二重保存、C7 desktop/tablet/1023-1024px/keyboard/a11y。新規作成(A01-02)、状態変更(A01-04)、カテゴリー/Native管理、製品SUT修正は対象外。
+- **直接照合と未受入**：直前の固定HEAD `4a3fb6bd`で12ファイル50/50静的断片assert・隔離NFKC3/3を記録済み。今回HEAD `d466e62ef89c`で関連15件のaudit source rangeを再照合（15/15）、implementation/Use Case/Seed/transformの4 signatureを確認、validatorのcompleteAnalysis必要11欄・BR/AC参照・3照合フラグを満たすことを確認。既存契約テストは分析件数を動的算出し、A01-03固定status期待なし。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、21件検索境界、視覚/a11y、製品適合・最終CIは未受入。R2/R5/R6は未再現の候補で不具合確定ではない。C1-C7の隔離実Run・正式期待照合で再開。
+- **次の共通対象**：`SCREEN-ADMIN-BRANDS-A01-04`（ブランド有効・無効切替）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-02（ブランド新規作成）基本分析受入
 
