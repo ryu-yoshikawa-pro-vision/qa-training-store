@@ -12550,28 +12550,33 @@
       "source_line": 28,
       "source_text": "published、hidden、deletedの状態を表示し、deletedのレビューを再投稿可能に見せない。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: reviewable-orders,reviews-empty,hidden-reviews。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: レビュー状態を表示",
+      "role": "Customer本人（default/hidden-reviewsは初期guest→regularログイン）。別customer、guest、operator/admin、停止Sessionは認可負例。default hidden/deleted Review.userId=goldとOrder.userId=regularは不一致で本人hidden正例に使用不可",
+      "scenario": "default（published9/hidden1/deleted1）、hidden-reviews（defaultと同内容）、reviewable-orders（published6/未投稿5）、reviews-empty（delivered0）を区別。初期guest→regular@example.comで本人ログイン。本人hiddenの正例はowner一致の隔離学習用fixtureが必要",
+      "data": "defaultはdelivered注文1件/11明細、published9・hidden1・deleted1。hidden/deletedはReview.userId=gold対Order.userId=regularでcross-owner。reviewable-ordersはreviews.slice(0,6)でpublished6/NOT_POSTED5、Summaryをpublishedのみで再構築。reviews-emptyはレビュー0・配達済み注文0。Review.statusとProductReviewSummary(publishedCount/ratingTotal/ratingAverage/1〜5分布)を別々に比較",
       "action": "レビュー状態を表示",
-      "expected": "published/hidden/deletedの正しい状態を示し、hidden・deletedのレビューは公開商品集計に含めない",
+      "expected": "本人のpublished/hidden/deleted状態を区別し、deletedは投稿/編集/再投稿UIを表示しない。公開商品一覧・商品サマリーはpublishedだけを含めhidden/deletedを除外。WebはPUBLISHED=公開中/HIDDEN=非公開/DELETED=削除済みと表示、deletedは理由付き禁止Panel。Nativeは既存Reviewの編集文言のみでpublished/hidden状態名を表示せず、deletedは投稿不可と理由コード表示（正式AC-REVIEW-002の表示期待との差候補）。default cross-owner hidden/deletedはgetEligibilityがOrder.ownerだけを検査してexistingReviewの本文を返す静的情報露出候補であり、製品適合・実Web/Android PASSではない",
       "rule_refs": [],
       "route": "`/reviews/[orderItemId]`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "レビュー状態を表示の事前状態・実施後を比較し、published/hidden/deletedの正しい状態を示し、hidden・deletedのレビューは公開商品集計に含めないことを確認する",
-      "test_responsibility": "レビュー状態を表示の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "レビュー状態を表示の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=default cross-owner Reviewのrating/title/bodyがOrder.ownerへ露出し得る（getEligibilityのReview.userId未検査、既存integrationがhidden eligible=trueを期待）、R2=deleted再投稿・編集誤表示、R3=hidden/deletedの公開一覧/件数/平均/分布混入、R4=admin再公開/削除とSummary/History部分更新・並列version、R5=Native published/hiddenラベル欠落・deleted理由コード表示、R6=guest/staff/別customer/停止Sessionの状態・本文漏洩、R7=default/hidden-reviews/reviewable-ordersのSeed取り違えと実画面・a11y差。いずれも製品不具合確定/実Run PASSではない",
+      "test_condition": "TR1/C1=default本人published9件の代表item-1でWeb公開中とNative編集表示・Review.status/version/本文を比較。TR2/C2=default hidden/deleted各1件のcross-ownerを別customer/本人で取得し本文非露出・deleted再投稿不可を確認、owner一致hidden fixtureを正常例として別検証。TR3/C3=reviewable-orders published6/NOT_POSTED5、reviews-empty配達済0の表示と投稿CTA。TR4/C4=Dexie/SQLite listPublishedとSummary(publishedCount/ratingTotal/平均/1〜5分布)がpublishedのみ、hidden/deleted非混入。TR5/C5=admin published→hidden→publishedとdeleted終端、History・version・Summary delta・rollback/並列。TR6/C6=guest/staff/別customer/停止SessionのOrder/Review非露出、Review/History/Summary/Order/Session前後不変。TR7/C7=Web/Android実画面・deleted禁止導線・Native状態名/理由コード・視覚/a11y。C2/C4/C5/C6/C7の直接実Runは未受入",
+      "test_responsibility": "BR-REVIEW-001/002・AC-REVIEW-001/002→Web CustomerReviewContent（reviewStateLabels・deleted禁止Panel）/NativeReviewScreen（既存レビュー編集文言・eligible false Panel）→CustomerReviewUseCases.getEligibility(requireCustomer→Order.owner確認→Review.findByOrderItem→deriveCustomerReviewState→toResult)→Dexie/SQLite ReviewRepository。公開面はlistPublished(status=published)とReviewSummaryを照合。AdminReviewUseCases.changeVisibilityとCustomerReviewUseCases.deleteはapplyPublishedReviewDeltaとReviewStatusHistoryを更新。default hidden/deletedのcross-ownerではgetEligibilityがReview.ownerを再検査しないため情報保護High候補として実証待ち",
+      "case_policy": "C1 published状態表示、C2 hidden/deleted・cross-owner情報非露出、C3 reviewable-orders/reviews-empty、C4 公開一覧/集計、C5 管理者遷移・削除終端とSummary/History、C6 Role/Session・Dexie/SQLite DB前後、C7 Web/Android/視覚/a11yを採用。既存integrationのpublished/hidden/deletedとReviewSummaryは部分証拠でありcross-owner安全性を保証しない",
+      "case_selection_reason": "レビュー状態表示はdeleted再投稿と非公開本文の情報保護、公開商品評価の正確性に直結するHigh境界。default hidden/deletedのReview.owner不一致を正常hiddenの証拠に流用せず、表示・公開集計・認可を別Caseで扱う",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 399dbe11477a: reviews.md BR-REVIEW-001/002・AC-REVIEW-001/002、default published9/hidden1/deleted1とcross-owner、reviewable-orders published6/未投稿5、reviews-empty delivered0、Web/Native→getEligibility→deriveCustomerReviewState→Dexie/SQLite、公開listPublishedとSummary deltaを静的再照合。High R1-R7/TR1-R7/C1-C7の採否・再開条件を確定し基本分析のみanalyzed。既存integrationはdefault hidden eligible=trueを期待しており情報非露出のPASSではない。本人hidden owner一致・別Role/Session・DB前後・並列/SQLite・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。直接Vitest/Prettier/Playwright未実施",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "CustomerReviewUseCases.getEligibility",
+        "CustomerReviewUseCases.update",
+        "CustomerReviewUseCases.delete",
+        "AdminReviewUseCases.changeVisibility"
+      ],
+      "analysis_progress": "2026-11-02 HEAD 399dbe11477a: A02-01状態表示とpublished限定集計、cross-owner High、Web/Nativeの状態ラベル差を照合して基本分析のみanalyzed。C2/C4/C5/C6/C7実証・製品適合・最終CIは未受入。次はSCREEN-REVIEWS-EDITOR-A02-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 57,
@@ -12593,9 +12598,131 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default published9/hidden1/deleted1、hidden/deleted Review.userId=goldとOrder.userId=regularの不一致。hidden-reviewsはdefault同内容。reviewable-orders published6/未投稿5、reviews-empty配達済0。本人hidden正例は隔離fixture要"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CustomerReviewUseCases.getEligibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 62,
+          "signature": "async getEligibility(orderItemId: string): Promise<ReviewEligibilityDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.update",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 163,
+          "signature": "async update(request: UpdateReviewRequest): Promise<ReviewResultDto> {"
+        },
+        {
+          "id": "CustomerReviewUseCases.delete",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 194,
+          "signature": "async delete(request: DeleteReviewRequest): Promise<ReviewResultDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 5,
+          "end_line": 14,
+          "reason": "BR-REVIEW-001/002と公開状態の仕様"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 24,
+          "end_line": 38,
+          "reason": "Editor状態表示とplatform別視覚条件"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 80,
+          "end_line": 95,
+          "reason": "AC-REVIEW-001/002の状態と集計"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 25,
+          "end_line": 38,
+          "reason": "hidden-reviewsはdefaultと同内容"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 86,
+          "end_line": 105,
+          "reason": "reviews-empty/reviewable-ordersとSummary再構築"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 590,
+          "end_line": 665,
+          "reason": "published9/hidden1/deleted1とcross-owner"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 1,
+          "end_line": 15,
+          "reason": "NOT_POSTED/NOT_ELIGIBLE/DELETED/HIDDEN/PUBLISHED"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 62,
+          "end_line": 103,
+          "reason": "Order.ownerのみ照合し既存Reviewを返すcross-owner候補"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 163,
+          "end_line": 225,
+          "reason": "編集・削除の公開集計/状態遷移"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 374,
+          "end_line": 420,
+          "reason": "管理者の公開非公開遷移・History・Summary"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 91,
+          "end_line": 154,
+          "reason": "Web状態日本語ラベル・deleted禁止Panel"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1321,
+          "end_line": 1450,
+          "reason": "Native既存編集文言・状態名欠落・deleted理由コード"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 356,
+          "reason": "Dexie Review取得・公開のみlistPublished"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2451,
+          "end_line": 2518,
+          "reason": "SQLite Review取得・公開のみlistPublished"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 1,
+          "end_line": 53,
+          "reason": "published限定deltaと件数/平均/分布不変条件"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 157,
+          "end_line": 205,
+          "reason": "default hidden eligible=trueの既存部分証拠・cross-owner安全性は未実証"
+        }
+      ]
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-A02-02",

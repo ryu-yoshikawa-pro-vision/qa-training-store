@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A02-01`（レビュー状態表示とpublished/hidden/deletedの公開集計境界）。直前`SCREEN-REVIEWS-EDITOR-A01-02`は本人published/hidden編集・expectedVersion・Review/Summaryの公開集計条件、Web/Native→Use Case→Dexie/SQLite、default hidden/deletedのcross-owner Seed、High R1-R7/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作71→72/188、非default16/20維持）。既存integration正常更新は部分証拠。hidden本人編集・別Role/Session・並列/SQLite CAS・DB前後・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。次はA02-01の3状態表示と集計境界を個別分析。
+- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A02-02`（deletedレビューの再投稿拒否と終端状態）。直前`SCREEN-REVIEWS-EDITOR-A02-01`はpublished/hidden/deleted表示・公開集計・default cross-owner情報露出候補、Web/Native→getEligibility→Dexie/SQLite、High R1-R7/TR1-TR7/C1-C7を個別照合し**基本分析のみ**`analyzed`（操作72→73/188、非default16/20維持）。Nativeのpublished/hidden状態名欠落、default hidden/deletedのcross-owner、実Web/Android・DB/Session・並列・視覚/a11y・製品適合・最終CIは未受入。次はA02-02の削除済み再投稿拒否。直前`SCREEN-REVIEWS-EDITOR-A01-02`は本人published/hidden編集・expectedVersion・Review/Summaryの公開集計条件、Web/Native→Use Case→Dexie/SQLite、default hidden/deletedのcross-owner Seed、High R1-R7/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作71→72/188、非default16/20維持）。既存integration正常更新は部分証拠。hidden本人編集・別Role/Session・並列/SQLite CAS・DB前後・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。次はA02-01の3状態表示と集計境界を個別分析。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A02-01（レビュー状態表示と公開集計）
+
+- **基本分析のみ**：`review_required→analyzed`、操作72→73/188、非default16/20維持。正式BR-REVIEW-001/002・AC-REVIEW-001/002、Web/Android→getEligibility→deriveCustomerReviewState→Dexie/SQLite、公開listPublishedとSummaryを照合。製品適合・実Run PASSとは分離。
+- **Role/State/Data/Seed**：default初期guest→regular本人、delivered1注文11明細、published9/hidden1/deleted1。hidden/deleted Review.userId=goldに対しOrder.userId=regularのcross-owner Seed。hidden-reviewsはdefaultと同内容、reviewable-ordersはpublished6/未投稿5、reviews-emptyは配達済0・Review0。本人hidden正常例にはowner一致の隔離fixtureが必要。
+- **状態・公開集計**：Webは公開中/非公開/削除済みを表示しdeletedでは保存フォームを出さない。Nativeは既存レビュー編集の文言のみでpublished/hiddenの状態名を明示せず、deletedはreasonコード付き禁止Panel。getEligibilityはOrder.ownerを検査するがexistingReview.userIdは再照合せずReview本文を返すため、default cross-ownerでは情報露出High候補（既存integrationはhidden eligible=trueを期待）。Dexie/SQLite listPublishedはpublishedのみ、Summary再構築とapplyPublishedReviewDeltaもpublishedのみ。管理者のvisibility変更はHistoryとSummaryをtransaction更新、deletedは終端。
+- **Risk/TR/Case採否**：High R1 cross-owner本文露出、R2 deleted再投稿誤許可、R3 hidden/deletedの公開集計混入、R4 管理者遷移・version・部分更新、R5 Native状態名欠落、R6 Role/Session認可、R7 Seed取り違え。C1 published状態、C2 hidden/deleted・cross-owner、C3 reviewable-orders/reviews-empty、C4 公開一覧/件数/平均/分布、C5 visibility/削除/History/rollback、C6 別Role/Session・Dexie/SQLite DB前後、C7 Web/Android/視覚/a11yを採用。各TR/Condition/期待・採否は台帳に記録。
+- **直接証拠・未受入**：既存integration `review-user-use-cases.test.ts:157-205`のpublished/hidden/deletedとcross-owner hidden eligible=true、正式仕様・UI・Use Case・Repository・Seedの静的経路は部分証拠。今回直接Vitest/Prettier/Playwright/実Android未実施。cross-owner非露出・deleted再投稿・公開集計実値・DB/Session・並列・視覚/a11y・製品適合・同一HEAD最終CIは未受入。現HEAD 399dbe11477aのWeb CI #41413750785は開始時queued、結果は別判定。
+- **再開条件・次**：固定HEADでowner一致hidden fixtureとdefault cross-ownerを別Role/Sessionで直接再現し、Review本文非露出・Summary/History/Order/Session前後、Dexie/SQLite、実Web/Androidとa11yを確認。製品SUT/正式仕様/既存Seed/既存製品テストは変更しない。次の共通対象は`SCREEN-REVIEWS-EDITOR-A02-02`。
 
 ## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A01-02（本人レビュー編集・version/集計）
 
