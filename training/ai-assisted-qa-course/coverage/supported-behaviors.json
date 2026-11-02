@@ -18165,20 +18165,20 @@
       "source_line": 27,
       "source_text": "SKU単位の在庫数、ステータス分類、絞り込み、在庫調整、変更履歴を表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,low-stock,storage-write-failure。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 在庫調整",
+      "role": "active operator/adminのみ在庫調整を許可。guest/customer、停止・退会staff、欠落/失効SessionはStaffPageとUse Case requireStaffで拒否し管理SKU/履歴DTOを非露出（失効Session clearは別扱い）。",
+      "scenario": "default SKU36件のうちTシャツM(variant-basic-shirt-02、初期10/version1)を主対象に、low-stock同M=3、out-of-stock同M=0、storage-write-failure制御値、隔離0/1/5/6・並列version・Role別条件を使う。失敗注入の実発火はSeed設定のみでは証明されない。",
+      "data": "default 11商品36 SKU、TシャツS/M/L=20/10/0（初期version1）、初期InventoryHistoryはSKUごとにbefore0/after初期在庫・INITIAL_STOCK・actor=user-admin。active operator/adminがM SKU 10→13(+3、MANUAL_INCREASE、理由「棚卸し訂正」、expectedVersion1)を行えば同SKU version2、History 10→13/+3/actor/時刻/理由/注文nullを期待。別SKU・商品/注文/Sessionは不変。0までの減算、負値・小数・ゼロ・空理由・上限超・stale version、履歴書込失敗を隔離する。",
       "action": "在庫調整",
-      "expected": "許可された非負整数の在庫調整だけを行い、変更理由と履歴を同じトランザクションで保存する",
+      "expected": "Web StaffPageのSKU行から選択したvariantId/versionで増減量・理由コード・理由詳細を送信し、Use Caseがactive staff、非ゼロ整数、非空/長さ制限理由、ORDER_PURCHASE禁止を検査する。Dexie adjust-inventory transaction内でvariant.version CASとstock>=0/整数を検証し、stockQuantity/version更新とInventoryHistory(before/after/delta/reason/actor/orderId=null/time)を同一commitで保存する。失敗時はVariant/Historyをともにロールバック。成功後のgetInventoryDetail再読取はtransaction外なので失敗通知とDB保存済みの不一致候補を別途検証する。",
       "rule_refs": [],
       "route": "`/admin/inventories`",
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "在庫調整実施前後で、許可された非負整数の在庫調整だけを行い、変更理由と履歴を同じトランザクションで保存することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、在庫調整の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "在庫調整が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/停止・失効Sessionからの在庫書込・履歴/DTO露出、R2=負値・非整数・ゼロ・理由不備/理由コードと符号の不一致による不正在庫、R3=stale version/同時更新での更新ロスト、R4=履歴追加失敗で数量だけ保存される原子性破綻、R5=DB更新後のgetInventoryDetail失敗で画面は失敗通知だが数量/履歴は保存済みとなる候補。Medium R6=UIでreasonCode CORRECTION時は正数のみ、直接Use Caseは符号との組合せ検証なし（正式意図未確定）、R7=選択後に他staffが更新したstale version/再表示、R8=storage-write-failure SeedのfailNextWrite制御値だけでは実故障注入の証拠にならない、R9=desktop/tablet・入力label/keyboard/focus/a11y。R5/R6/R7/R8は実再現前の候補で製品不具合確定ではない。",
+      "test_condition": "C1 default operator/adminでTシャツM 10→13(+3、version1→2)、Historyの10→13/delta+3/理由/actor/固定clock/orderId=nullと他SKU/全表・Session不変を照合。C2 MANUAL_DECREASE 10→0、10→負数拒否、0/1/5/6境界・整数/小数/0/NaN/空文字/空白/上限+1、ORDER_PURCHASE拒否、reasonCodeと符号の組合せを隔離。C3 stale expectedVersionと2セッション同時更新でCONFLICT、数量・履歴の二重更新なし。C4 履歴append失敗/variant put失敗を独立に故障注入しtransaction全rollbackと全表・Session前後比較（Seed flagの実発火を別確認）。C5 guest/customer/停止staff/失効Sessionで直URL・Use Case拒否、管理DTO/履歴非露出・DB不変。C6 DB commit成功後getInventoryDetail読取失敗を注入し、成功/失敗通知と実DB差、再試行の重複加算を観測。C7 UIで選択SKU・符号・理由入力/バージョン表示・更新後再読取/履歴、desktop/tablet・keyboard/focus/a11yと競合通知を確認。実Web/DB/故障注入は未実施。",
+      "test_responsibility": "BR-ADMININV-001/002とAC-ADMININV-001/002の非負整数・履歴原子性を、Role/Session→Web調整パネル→AdminOperationsUseCases.adjustInventory→Dexie transaction/updateQuantity→HistoryとSeed実値へ追跡。C1-C7で許可/拒否・CAS・同一transaction・DB不変・UI通知・視覚を分離し、静的分析と実製品適合PASSを混同しない。",
+      "case_policy": "採用:C1 default成功とSKU/履歴照合、C2 境界・入力/理由検証、C3 stale version/並列、C4 put/append失敗原子性、C5 Role/Session/DTO非露出、C6 commit後再読取失敗・重複実行、C7 Web desktop/tablet/入力/通知/a11y。除外:一覧SKU分類(A01-01)、検索(A01-02)、履歴閲覧の単独操作(A01-04)、購入時の在庫減算、Native管理、製品SUT修正。",
+      "case_selection_reason": "TR1=admin-inventory.md:5-19,25-35,55-69の非負整数・同一transaction・AC原子性、roles-and-permissions.md:5-19のactive staff。TR2=admin-operations-pages.tsx:69-133,208-282のStaffPage/selected.variantId/version、符号、理由、成功失敗通知・履歴再読取。TR3=AdminOperationsUseCases.adjustInventory:91-113/requireStaff:289-299→DexieApplicationTransactionRunner:adjust-inventory(product_variants+inventory_histories)→DexieInventoryRepository.updateQuantity:550-591のCAS/stock検査/put/appendHistory。TR4=default-dataset.ts:294-328/初期inventoryHistories、scenarios.ts:33-46,storage-write-failure、Integration admin-operations:61-117、Component admin-operations:107-178。High R1-R5/Medium R6-R9とC1-C7採否を分離。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD 8d37e0190f93: 正式BR/AC・Role/State/Data→Web SKU調整→Use Case整数/理由/認可→Dexie transaction内CAS/stock+History→default/low/out/storage-write-failure Seedを照合。12ソースの直接静的断片チェック62/62成功（初期のvalidator内部フィールド名に関する誤期待1件を除外、テストランナーではない）。既存Integrationは成功・負数・stale version・理由上限、Componentは符号/expectedVersionの部分証拠。High R1-R5/Medium R6-R9、TR1-TR4/C1-C7採否・不足証拠・再開条件を記録。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、故障注入、並列、視覚/a11y、製品適合、最終HEAD必須CIは未受入。C1-C7隔離実Runと正式期待照合で再開。",
       "requirement_refs": [
         "BR-ADMININV-001",
         "BR-ADMININV-002",
@@ -18186,9 +18186,10 @@
         "AC-ADMININV-002"
       ],
       "related_use_cases": [
-        "AdminOperationsUseCases.adjustInventory"
+        "AdminOperationsUseCases.adjustInventory",
+        "AdminOperationsUseCases.getInventoryDetail"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-03基本分析のみanalyzed（操作108/188、非default16/20）。静的62/62・既存Integration/Component部分証拠。負値/小数・CAS・履歴原子性・故障注入/再読取失敗・Role/実Web/DB/Session/視覚・最終CIは検証待ち。次の共通対象SCREEN-ADMIN-INVENTORIES-A01-04。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 69,
@@ -18217,6 +18218,109 @@
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
           "line": 91,
           "signature": "async adjustInventory(request: AdjustInventoryRequest): Promise<InventoryDetail> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "BR-ADMININV-001/002:非負整数と在庫・履歴同一transaction"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 25,
+          "end_line": 35,
+          "reason": "SKU在庫調整と0/1/5/6/versionの状態"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 55,
+          "end_line": 69,
+          "reason": "AC-ADMININV-001/002:分類・原子性/失敗時不変"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staff認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 69,
+          "end_line": 133,
+          "reason": "StaffPageとselected/調整送信/成功失敗通知"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 208,
+          "end_line": 282,
+          "reason": "UIの符号・数量・理由・expectedVersion/履歴表示"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 73,
+          "end_line": 113,
+          "reason": "詳細再読取/整数・理由・Role/transaction"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 289,
+          "end_line": 299,
+          "reason": "requireStaffとUse Case層再認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 540,
+          "end_line": 594,
+          "reason": "CAS/stock>=0/Variant+History書込み"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 60,
+          "end_line": 122,
+          "reason": "adjust-inventoryの2テーブルとDexie rw transaction"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 328,
+          "reason": "default TシャツS/M/L=20/10/0・SKU version"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 625,
+          "end_line": 685,
+          "reason": "SKU別初期InventoryHistory"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 46,
+          "reason": "low/out M SKU数量変更"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 128,
+          "end_line": 138,
+          "reason": "storage-write-failureの制御値のみ"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 117,
+          "reason": "正常調整・stale/負在庫・理由上限の部分証拠"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 107,
+          "end_line": 178,
+          "reason": "Web調整入力とexpectedVersion送信の部分証拠"
         }
       ]
     },

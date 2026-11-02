@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-A01-03`（SKU在庫調整）。直前`SCREEN-ADMIN-INVENTORIES-A01-02`はSKU絞り込みの正式BR/AC・Role/State/Data→Web→Use Case→Dexie→default/low/out Seed、Risk/TR/C1-C7を照合し基本分析のみ`analyzed`（操作107/188、非default16/20）。正式available>=6と現Repository>=1の既知差、filter変更時page未リセットによる空ページ候補を記録。製品適合/実Web/DB・Session/Role/直接Vitest/最終CIは未受入。次回はA01-03の在庫調整・履歴の原子性とversion境界を確認する。
+- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-A01-04`（SKU在庫変更履歴）。直前`SCREEN-ADMIN-INVENTORIES-A01-03`は正式BR/AC・Role/State/Data→Web調整→Use Case認可/整数/理由→Dexie transaction内CAS/在庫・履歴→default/low/out/storage-write-failure Seed、High R1-R5/Medium R6-R9・TR/C1-C7を照合し基本分析のみ`analyzed`（操作108/188、非default16/20）。履歴append失敗、commit後再読取失敗、理由コードと符号、並列CAS、実Web/DB・Session/Role/直接Vitest/最終CIは未受入。次回はA01-04のSKU履歴表示・監査項目・読み取り不変性を確認する。
 - **CI横断**：作業前HEAD `32be03d6c820`の[Web CI #41503580538](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41503580538)はcompleted/failure。Style Quality/Unit/Repository/Integration/Component/Code Quality等はsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-A01-03（SKU在庫調整）基本分析受入
+
+- **判定**：`review_required→analyzed`は基本分析のみ。操作**107→108/188**、非default状態**16/20**。製品適合・実Web/Native・直接Vitest/Playwright・最終CIは未受入。
+- **正式仕様・Role/State/Data**：`admin-inventory.md:5-19,25-35,55-69`のBR-ADMININV-001/002・AC-ADMININV-001/002はSKU非負整数・在庫/履歴同一transactionと失敗時不変を要求。`roles-and-permissions.md:5-19`のactive operator/adminのみ許可。default 11商品36SKU、TシャツS/M/L=20/10/0、初期version1、SKU別INITIAL_STOCK履歴。low/outはM=3/0。storage-write-failureは`failNextWrite:true`制御値のみで、実際の故障注入を証明しない。例: M=10→13(+3)、version1→2、History(before10/after13/delta3/actor/固定時刻/理由/orderId=null)、別SKU・Session不変を期待。
+- **UI→Use Case→Repository**：`admin-operations-pages.tsx:69-133,208-282`はStaffPage/selected.variantId・version/理由コード・数量・理由詳細/通知→`AdminOperationsUseCases.adjustInventory:91-113`のactive staff・非ゼロ整数・空/長さ超理由・ORDER_PURCHASE禁止→`DexieApplicationTransactionRunner`の`adjust-inventory` scope（product_variants+inventory_histories）→`DexieInventoryRepository.updateQuantity:550-591`のexpectedVersion CAS・stock>=0/整数・Variant put+History add。同transactionの正常/拒否経路を静的確認。**commit後のgetInventoryDetail再読取はtransaction外**で、成功済みDBに対する失敗通知の候補。UIはMANUAL_DECREASEで負符号を生成するが、Use Caseは理由コードと符号の一致を直接検証しない候補。
+- **Risk/TR/Case採否**：High R1非staff/Session書込・DTO露出、R2負値/非整数/理由不備、R3 stale version/並列更新、R4 History書込失敗原子性、R5 commit後再読取失敗と重複調整。Medium R6理由コードと符号、R7 stale選択、R8 Seed制御値と実故障注入の混同、R9 viewport/a11y。TR1正式BR/AC/Role、TR2 Web、TR3 Use Case/Dexie transaction、TR4 Seed/既存テスト。採用C1 default正常調整・履歴、C2 減算/0/1/5/6・小数/理由、C3 CAS/並列、C4 put/append失敗原子性、C5 Role/Session、C6 commit後読取失敗、C7 UI/desktop/tablet/keyboard/a11y。除外:一覧分類(A01-01)、filter(A01-02)、履歴閲覧(A01-04)、購入減算、Native管理、製品SUT修正。
+- **直接照合と未受入**：固定HEAD `8d37e0190f93`で12ソースの静的断片**62/62成功**（validatorの内部フィールド名についての誤った追加assert1件は集計から除外）。既存Integrationの正常調整・負在庫・stale version・理由上限とComponentのexpectedVersion送信は部分証拠。直接Vitest/formatter/validator本体/Playwright、Role別実Web、全DB/Session前後、故障注入/並列/視覚・a11y/製品適合/最終CIは未実施・未受入。C1-C7隔離実Runと正式期待の照合で再開。
+- **次の共通対象**：`SCREEN-ADMIN-INVENTORIES-A01-04`（SKU在庫変更履歴）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-A01-02（SKU絞り込み）基本分析受入
 
