@@ -684,7 +684,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01")?.analysis_status,
     ).toBe("analyzed");
-    const warningAction = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01");
+    const warningAction = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-DASHBOARD-A02-01",
+    );
     expect(warningAction?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(warningAction?.related_use_cases).toContain("AdminMasterUseCases.getOverview");
     expect(warningAction?.audit_branch_refs?.length).toBeGreaterThan(10);
