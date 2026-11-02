@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-A01-02`（SKU絞り込み）。直前`SCREEN-ADMIN-INVENTORIES-A01-01`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・default/low/out Seed・既存Integration/Component/学習用既知差契約を照合し基本分析のみ`analyzed`（操作106/188、非default16/20）。在庫ありfilterが正式available>=6と異なりRepositoryでは>=1、一覧の状態列はSKU有効/無効で在庫分類ラベルではない。製品適合/実Web/DB・Session/Role/直接Vitest/最終CIは未受入。次回はA01-02のfilter条件とSKU隔離を検証する。
+- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-A01-03`（SKU在庫調整）。直前`SCREEN-ADMIN-INVENTORIES-A01-02`はSKU絞り込みの正式BR/AC・Role/State/Data→Web→Use Case→Dexie→default/low/out Seed、Risk/TR/C1-C7を照合し基本分析のみ`analyzed`（操作107/188、非default16/20）。正式available>=6と現Repository>=1の既知差、filter変更時page未リセットによる空ページ候補を記録。製品適合/実Web/DB・Session/Role/直接Vitest/最終CIは未受入。次回はA01-03の在庫調整・履歴の原子性とversion境界を確認する。
 - **CI横断**：作業前HEAD `32be03d6c820`の[Web CI #41503580538](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41503580538)はcompleted/failure。Style Quality/Unit/Repository/Integration/Component/Code Quality等はsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-A01-02（SKU絞り込み）基本分析受入
+
+- **判定**：`review_required→analyzed`は基本分析のみ。操作**106→107/188**、非default状態**16/20**。正式製品適合・実Web/Native・直接Vitest・最終CIは未受入。
+- **仕様・Role/State/Data**：`admin-inventory.md:5-19,25-35,55-69`のBR/ACはSKU別検索・在庫分類out=0、low=1〜5、available=6以上。active operator/adminのみ、guest/customer/停止staff/失効Sessionは拒否。default Seed11商品36 SKU、TシャツS/M/L=20/10/0、ボトル0、タオル3、靴5、ポーチ12/ウェア13 SKU各5。low/outでTシャツMを3/0に変更。0/1/5/6は隔離fixtureで補う。
+- **UI→Use Case→Repository**：`admin-operations-pages.tsx:69-108,139-219`はkeyword・stock・active・sort・pageを`AdminOperationsUseCases.searchInventory:57-71`へ渡し、`requireStaff:289-299`で再認可。Dexie `product-repositories.ts:601-648`はSKU/variantId単位、商品名・コード・SKUの部分一致、active/stock積集合、同順位SKU tie-breakと20件ページング。**正式available>=6に対して実装available>=1**でlowも混入し、学習用`it.fails`負例が存在する。**filter/keyword/active変更時pageを1に戻さない**ため、page2以降で絞るとヒットがあっても空ページとなる静的候補（`pageItems:10-25`）。両者とも製品適合PASS/実Web再現扱いにしない。
+- **Risk/TR/Case**：High R1非staff/SessionのDTO露出、R2 SKU/variantId混同、R3並行更新でstale一覧。Medium R4 available分類差、R5 keyword部分一致と複合filter、R6 page残留、R7 sort/20・21件、R8視覚・keyboard/a11y。TR1正式BR/AC・Role、TR2 Web、TR3 Use Case/Dexie/pageItems、TR4 Seed/既存テスト。採用C1 SKU別default、C2 0/1/5/6と既知差、C3 keyword/100・101文字、C4 active×stock×sort、C5 page2・20/21件・再検索、C6 Role/Session/DB不変・並行、C7 desktop/tablet/empty/error/a11y。除外:在庫書込・履歴原子性(A01-03以降)、一覧分類(A01-01)、Native管理、製品SUT変更。
+- **直接照合と未受入**：固定HEAD `3ef2657c0ebbd`で9ソース**45/45静的断片assert**、隔離参照計算でout=[0]、low=[1,5]、現available=[1,5,6]・正式=[6]を確認（実製品コードの直接Vitestではない）。既存Integration/Componentと学習用`it.fails`は部分証拠。直接Vitest/formatter/validator本体/Playwright、Role別実Web、全DB/Session前後、page2の直接再現、視覚/a11y、製品適合、同一最終HEAD必須CIは未実施/未受入。C1-C7実Runと正式期待照合で再開。
+- **CI横断**：前HEAD `3ef2657c0ebbd`の[Web CI #41507931006](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41507931006)はcompleted/failure（Style/Unit/Integration/Repository/Component/Code Quality等success、Contracts/required Chromium E2E/verify/validate failure）。新HEADは別判定、Mobile PRトリガーは復元しない。
+- **次の共通対象**：`SCREEN-ADMIN-INVENTORIES-A01-03`（SKU在庫調整）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-INVENTORIES-A01-01（SKU別在庫と分類）基本分析受入
 

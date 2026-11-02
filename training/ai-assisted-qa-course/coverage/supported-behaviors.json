@@ -17987,28 +17987,30 @@
       "source_line": 27,
       "source_text": "SKU単位の在庫数、ステータス分類、絞り込み、在庫調整、変更履歴を表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,low-stock,storage-write-failure。Operator/Adminの許可差、対象ID、状態versionを確認。操作: SKU絞り込み",
+      "role": "active operator/adminのみStaffPage→Use Case requireStaffで検索許可。guest/customer、停止/退会staff、欠落/失効Sessionは管理一覧DTO非露出（失効Session clearは例外）。",
+      "scenario": "default SKU36件の検索/在庫・有効状態filterを基準に、low-stock（TシャツM=3）、out-of-stock（同M=0）、隔離fixture 0/1/5/6、20/21件とpage2→filter縮小を別条件とする。storage-write-failureは読取filter自体の主条件外。",
+      "data": "default 11商品36 SKU。TシャツP-0001のS/M/L=20/10/0、ボトルP-0006=0、タオルP-0005=3、靴P-0003=5、12色ポーチ/13サイズウェア各5。SKU/variantIdは商品IDと分離し、検索はSKU完全一致ではなく商品名・商品コード・SKUの大文字小文字非区別の部分一致。low/outはvariant-basic-shirt-02だけを3/0へ変更。読取のみでProduct/Variant/InventoryHistory/Session不変を期待し、実DB前後は未検証。",
       "action": "SKU絞り込み",
-      "expected": "指定SKU/在庫条件で一覧が絞られ、無関係なSKUを表示しない",
+      "expected": "Webはkeyword、在庫(all/available/low/out)、SKU有効状態(all/active/inactive)、並び順、ページをsearchInventoryへ渡し、RepositoryがSKU/variantId単位で組合せ絞り込み・20件ページングする。正式BR-ADMININV-001ではout=0、low=1〜5、available=6以上だが現Dexie available>=1のためlowも混入する既知差異を不一致として扱い、製品適合PASSにしない。UIの検索は部分一致でありSKU完全一致ではない。filter変更時pageを1に戻さないため、ページ2以降から絞ると結果が存在しても空ページになる可能性があり実Web再現待ち。",
       "rule_refs": [],
       "route": "`/admin/inventories`",
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SKU絞り込み実施前後で、指定SKU/在庫条件で一覧が絞られ、無関係なSKUを表示しないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、SKU絞り込みの入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "SKU絞り込みが権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/停止・失効Sessionの在庫SKU一覧DTO露出、R2=SKU/variantId混同による無関係SKUの混入・誤認、R3=並行在庫変更中のstale検索結果/状態誤判断。Medium R4=正式available>=6に対しDexie available>=1でlow1〜5混入（学習用it.fails既知差）、R5=filter/keyword/activeの組合せと部分一致の誤認、R6=page2以降でfilter変更してもsetPage(1)しないため空ページ候補、R7=20/21件・同数sortのSKU tie-break・読取途中の更新、R8=desktop/tablet・keyboard/focus/a11y。R4はコード/負例契約上の差、R6は静的経路候補で実Web不具合認定は未実施。",
+      "test_condition": "C1 default SKU36件でP-0001 S/M/L=20/10/0、P-0005=3、P-0006=0をSKU/variantId別に照合し、異SKUが混入しない。C2 隔離0/1/5/6でout=[0]、low=[1,5]、正式available=[6]と現Repository=[1,5,6]の差を記録（it.failsは製品PASSではない）。C3 keywordのSKU完全一致/前方・部分一致/商品名/商品コード/大文字小文字/100・101文字境界、空検索と無関係SKUを比較。C4 active/all/inactive×stock/all/low/out/available×sort(updated/stock asc-desc/productCode)の積集合、同商品別SKU・disabled SKUの分離。C5 20/21件のページ切替・sort tie-break、page2以降でkeyword/stock/active変更時の0件候補、更新後再取得。C6 active operator/admin許可、guest/customer/停止staff/失効Sessionの直URL/Use Case拒否とDTO非露出、検索前後の全DB/Session不変（失効Session clear例外）と並行変更。C7 desktop/tablet/1023・1024px、空/読込/失敗、keyboard/focus/label/aria/a11y・視覚参照。直接実Web/DB全表/Playwright未実施。",
+      "test_responsibility": "SKU別のkeyword/stock/active/sort/page絞り込みとRole/Session、正式0/1/5/6分類との差異、SKU隔離、読取の非破壊性、ページ残留/並行更新/視覚a11yをC1-C7の独立Caseで検証する。",
+      "case_policy": "採用:C1 SKU別default・ID隔離、C2 0/1/5/6と正式available差、C3 keyword部分一致/入力境界、C4 active×stock×sort、C5 20/21件・page残留・更新再検索、C6 Role/Session/DB不変・並行、C7 Web desktop/tablet/empty/error/a11y。除外:在庫数量変更と履歴書込(A01-03以降)、一覧SKU数・分類表示(A01-01)、Native管理、製品SUT/正式仕様の修正。",
+      "case_selection_reason": "TR1=admin-inventory.md:5-19,25-35,55-69のBR-ADMININV-001/002・AC-ADMININV-001/002とroles-and-permissions.md:5-19のactive staff。TR2=admin-operations-pages.tsx:69-108,139-219のStaffPage/keyword/stock/active/sort/page/variantId表示（filter変更でpage resetなし）。TR3=AdminOperationsUseCases.searchInventory:57-71/requireStaff:289-299→DexieInventoryRepository.search:601-648とpageItems:10-25（部分一致・SKU別・0/low/available>=1・sort・page）。TR4=default-dataset.ts:67-240,294-328の11商品36SKU、scenarios.ts:33-46のlow/out変換、Integration admin-operations:61-69、Component admin-operations:107-178、学習用境界契約:8-67のit.fails負例。High R1-R3/Medium R4-R8とC1-C7採否を分離。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD 3ef2657c0ebbd: 正式BR/AC・Role/State/Data→Web StaffPageとkeyword/stock/active/sort/page→Use Case requireStaff→Dexie SKU単位filter・pageItems→default/low/out Seedと既存Integration/Component/学習用it.failsを照合。9ソース45/45静的断片assert、隔離0/1/5/6参照計算で現available=[1,5,6]・正式=[6]を確認（実製品Vitestではない）。High R1-R3/Medium R4-R8、TR1-TR4/C1-C7の採否と再開条件を記録。既知available差とfilter後page残留候補は製品不具合実再現/適合PASSではない。直接Vitest/formatter/validator本体/Playwright、Role別実Web、全DB/Session前後、20/21件・並行、視覚/a11y、最終HEAD CIは未受入。C1-C7実Runと正式期待を照合して再開。",
       "requirement_refs": [
         "BR-ADMININV-001",
         "BR-ADMININV-002",
         "AC-ADMININV-001",
         "AC-ADMININV-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminOperationsUseCases.searchInventory"
+      ],
+      "analysis_progress": "2026-11-03 A01-02基本分析のみanalyzed（操作107/188、非default16/20）。静的45/45と隔離境界参照、既存Integration/Component/学習用it.failsは部分証拠。実Web/DB・Session/Role/ページ残留/製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-INVENTORIES-A01-03。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 69,
@@ -18031,7 +18033,129 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminOperationsUseCases.searchInventory",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 57,
+          "signature": "async searchInventory(query: Partial<InventorySearchQuery> = {}): Promise<Page<InventoryItem>> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "SKU分類BRと一覧絞り込みの正式仕様"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 25,
+          "end_line": 35,
+          "reason": "SKU別操作と0/1/5/6状態"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 55,
+          "end_line": 69,
+          "reason": "正式AC分類/履歴の境界"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staffのみ管理権限"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "staff RouteGuardと禁止ロール"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "失効Session clearとactive拒否"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 69,
+          "end_line": 108,
+          "reason": "filter/search依存とpage state保持"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 139,
+          "end_line": 219,
+          "reason": "UI keyword/stock/active/sort/pageとSKU行"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 57,
+          "end_line": 71,
+          "reason": "検索入力trim/100文字/既定pageSize20"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 289,
+          "end_line": 299,
+          "reason": "requireStaffのUse Case再認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 601,
+          "end_line": 648,
+          "reason": "SKU map/keyword部分一致/filter・available>=1・sort/page"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/repository-helpers.ts",
+          "start_line": 10,
+          "end_line": 25,
+          "reason": "pageItemsでpage超過時空配列"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 240,
+          "reason": "11商品・36SKUの元定義"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 328,
+          "reason": "TシャツS/M/L・SKU採番/数量"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 46,
+          "reason": "low/outのM SKU変更"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 89,
+          "reason": "SKU検索と調整の部分証拠"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 107,
+          "end_line": 178,
+          "reason": "SKU一覧と調整表示の部分証拠（filter直接テストではない）"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-inventory-stock-boundaries.test.mjs",
+          "start_line": 8,
+          "end_line": 67,
+          "reason": "0/1/5/6とavailable既知差のit.fails負例"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-INVENTORIES-A01-03",
