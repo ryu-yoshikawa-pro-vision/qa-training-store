@@ -11775,20 +11775,20 @@
       "source_line": 62,
       "source_text": "カスタマー本人の注文のみを表示し、その後に商品情報が変更されてもスナップショットの内容は変更しない。",
       "platform": "web,android",
-      "role": "active customer（注文のownerであるuserIdに一致することが必要）",
-      "scenario": "default Seedのorder-paid等のowner=user-customer-regularを、regular@example.com本人ログインと別ユーザーのログイン状態で開き分ける。初期guestでは保護ページに直接入れない",
-      "data": "default Seedにはuser-customer-regularのorder-paid/order-delivered等がある。getMyCustomerOrderはgetMyOrderを呼び、orders.getById(orderId)がnullまたはorder.userId !== currentUser.idでNOT_FOUNDを投げる。WebではOrderDetailContentがnot-found、Nativeではエラーメッセージ付き読み込み状態になる経路を持つ",
+      "role": "active customer本人（user.id===Order.userId）。guestは認証拒否、operator/adminは購入権限拒否、別customerはNOT_FOUND",
+      "scenario": "default初期guest→regular@example.com本人ログインでorder-paid（owner=user-customer-regular）を表示。別customer（gold/platinum）Sessionで同じorderIdを指定する負例、guest/staff、存在しないorderIdを比較。reviewable-ordersはレビュー表示差で所有権の別証拠と混同しない",
+      "data": "default-dataset.ts:400-575のorder-payment-failed/order-paid/order-preparing/order-shipped/order-deliveredは全てuser-customer-regular所有。配送先Snapshot・OrderItem・Payment・Shipment・TimelineはgetDetailで注文IDから取得するため、getMyOrderの先行owner検査が個人情報境界。Dexie/SQLite getDetail自体はowner引数を持たない",
       "action": "他人の注文を拒否",
-      "expected": "本人のorderIdだけ注文番号・住所・支払履歴・明細を返す。他人/存在しないorderIdではOrderDetailDtoを返さず、Webはnot-found境界を表示する。Nativeは現在のコードでErrorMessageを表示するが注文内容は表示しない。画面上の無限読み込みと区別がつくかは実機確認待ち",
+      "expected": "本人のみOrderDetailDto（注文番号・配送先・支払試行・明細・履歴）を返す。別customer/不存在IDは共にNOT_FOUNDでDTOなし。guestはAUTHENTICATION_REQUIRED、operator/adminはPERMISSION_DENIED。Web OrderDetailContentはerror/nullをnot-foundへ、Nativeはerror文言を表示するがnullのままLoading文言も残る静的差。DB/Sessionは読取りで不変のはずだが実Run未受入",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "別顧客の住所・支払方法・購入履歴の閲覧、存在有無の推測、Nativeの回復不能な表示",
-      "test_condition": "本人regularと別認証ユーザーで同じorder-paid IDを要求し、本人のみ成功、他人はNOT_FOUNDでDTO不返却を検証。Web/Nativeの不正orderId画面で明細/住所が表示されないことを確認し、Nativeの読み込み失敗UIは実機で別判定",
-      "test_responsibility": "CustomerPage/Native purchase serviceの認証からgetMyCustomerOrder→getMyOrderのownerチェック→Dexie/SQLiteのGetById→画面のエラー境界を追う",
-      "case_policy": "本人・他人・存在しない注文ID・guestを代表条件とし、URL知識だけでは情報を表示できないことを採用。Order画面のトークン/認証失効時の具体的な見え方は実機受入へ分離",
-      "case_selection_reason": "配送先住所と注文履歴は個人情報を含むため、注文IDを知っている別人にも返却してはいけない",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
+      "risk": "High R1=別顧客の住所・支払履歴・購入明細の情報漏えい。High R2=ID推測による存在確認。R3=guest/管理Role/停止Sessionの認可境界。R4=Nativeの失敗時Loading残存と復帰不能UX。R5=getById本人照合とgetDetailの2段階読取り間の競合/所有者変更（現行Seedに変更経路なし）。R6=Reviewの別owner内容が混入する可能性はA01-03で独立追跡",
+      "test_condition": "TR1/C1=本人regularでdefaultの5注文を開き注文番号・住所・Payment・Shipment・明細のDTOを照合（採用、静的Seed）。TR2/C2=別customerの同じorder-paid IDをNOT_FOUNDで拒否しDTO/個人情報非露出（採用、実Run待ち）。TR3/C3=不存在IDも同一NOT_FOUNDで返す（採用、実Run待ち）。TR4/C4=guest AUTHENTICATION_REQUIRED、operator/admin PERMISSION_DENIED、停止Session ACCOUNT_SUSPENDED等を別々に検証（採用、実Run待ち）。TR5/C5=Web not-foundとNative Loading+ErrorMessageを実画面で検査し私的情報を描画しない（採用、Native UX適合未決）。TR6/C6=Dexie/SQLite別SessionでOrder/Payment/Shipment/History/Session前後Snapshotが不変（採用、実Run待ち）。TR7/C7=owner検査とgetDetailの非原子的な2段階読取り/Session失効・並列更新を評価（高リスク条件として採用、実証未実施）",
+      "test_responsibility": "Role/SessionIdentityResolver.requireCurrentEntity→CheckoutOrderUseCases.requireCustomer→getMyCustomerOrder→getMyOrder（getByIdでowner照合後getDetail）→Dexie/SQLiteのOrderDetailDTO→Web StatePanel not-found/Native ErrorMessageを追跡。TR1-TR4はApplication/Repository負例、TR5はUI/視覚/a11y、TR6-TR7はDB/Session・並列の独立実証",
+      "case_policy": "C1-C4は本人/他人/不存在/guest/staff/停止Sessionを別結果として採用し、注文IDの知識だけでは情報を返さない。C5はWeb/Nativeの表示差を採用し正式UX適合は保留。C6はDB非破壊性・別Session、C7は並列境界を採用し実Run待ち。管理注文の閲覧権限・レビュー別ownerは独立操作へ分離。実画面/製品適合/CIを基本分析完了に流用しない",
+      "case_selection_reason": "個人情報（配送先住所・注文金額・支払履歴）のHigh認可を優先。NOT_FOUND同一化とrole別拒否、DTO不返却、DB/Session不変を分ける。静的根拠だけで基本分析の仕様/Role/State/Data/Risk/TR/Condition/Case採否は確定できるが、実行の漏えい有無・Native復旧UXは別受入",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 現HEADのorders.md:58-98（本人のみ/BR-ORDER-001/AC-ORDER-001）、identity/session-identity-resolver.ts:21-59（無Session/停止アカウント）、checkout-order-use-cases.ts:389-409,582-597（本人照合/Role）、Dexie order-review-repositories.ts:68-140・SQLite native-customer-application-repositories.ts:2135-2210（注文IDによる詳細読取り）、default-dataset.ts:400-575（regular所有の5注文）、Web checkout-order-pages.tsx:656-674（not-found）、Native native-purchase-screens.tsx:1160-1195（Loading+ErrorMessage）を再照合。High R1-R6、TR1-TR7/C1-C7の採否を記録し基本分析のみ成立。既存Integration job successは当該負例の直接実行PASSではない。別customer/guest/staff/停止Sessionの実Run、DB/Session前後、実Web/Android/SQLite、並列、視覚/a11y、Native正式UX・製品適合、最終CIは未受入",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001",
@@ -11798,7 +11798,7 @@
         "CheckoutOrderUseCases.getMyCustomerOrder",
         "CheckoutOrderUseCases.getMyOrder"
       ],
-      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "基本分析=analyzed（仕様・Role/State/Data・UI→Use Case→Repository・Seed・High Risk/TR/Condition/Case採否を現HEADで照合）。実認可負例・Web/Native・DB/Session不変・並列・製品適合・最終CIは未受入。次はSCREEN-ORDERS-DETAIL-A02-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 656,
@@ -11838,57 +11838,63 @@
       "audit_branch_refs": [
         {
           "path": "docs/spec/features/orders.md",
-          "start_line": 5,
-          "end_line": 12,
-          "reason": "BR-ORDER-001の注文Snapshotと本人向けUI要求"
+          "start_line": 58,
+          "end_line": 98,
+          "reason": "注文詳細は本人のみ、BR-ORDER-001/AC-ORDER-001"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 21,
+          "end_line": 59,
+          "reason": "無Session・停止アカウントの認証境界"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 397,
-          "end_line": 416,
-          "reason": "本人の注文所有権検査とレビュー状態付きCustomerOrderの取得"
+          "start_line": 389,
+          "end_line": 409,
+          "reason": "getMyOrderの本人userId照合とNOT_FOUND、getMyCustomerOrderの後続DTO"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 582,
+          "end_line": 610,
+          "reason": "requireCustomerの管理Role拒否"
         },
         {
           "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
-          "start_line": 60,
-          "end_line": 139,
-          "reason": "Dexieの永続Order/OrderItem/Payment/Shipment/Status履歴をDTOへ反映"
+          "start_line": 68,
+          "end_line": 140,
+          "reason": "getDetailはorderIdをキーに詳細DTOを構成しownerを直接判定しない"
         },
         {
           "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
-          "start_line": 2145,
-          "end_line": 2218,
-          "reason": "SQLiteのOrderItem/Payment/Shipment/Timelineを永続行から復元"
+          "start_line": 2135,
+          "end_line": 2210,
+          "reason": "SQLite getDetailのorderId読取りと詳細DTO"
         },
         {
           "path": "src/seeds/default-dataset.ts",
           "start_line": 400,
-          "end_line": 576,
-          "reason": "default Seedの本人のpayment_failed/paid/preparing/shipped/delivered注文とSnapshot"
+          "end_line": 575,
+          "reason": "regular本人所有の5注文・Payment・Shipment・History"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 722,
-          "end_line": 858,
-          "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
+          "start_line": 656,
+          "end_line": 674,
+          "reason": "Webのerror/null時not-found、個人情報描画分岐"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1257,
-          "end_line": 1398,
-          "reason": "Nativeの本人OrderDetail表示と支払/配送/商品/レビュー導線"
+          "start_line": 1160,
+          "end_line": 1195,
+          "reason": "NativeのgetMyCustomerOrder拒否時Loading+ErrorMessage"
         },
         {
-          "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 728,
-          "end_line": 739,
-          "reason": "Webの注文詳細がgetMyCustomerOrderのerror/nullでnot-foundとなる"
-        },
-        {
-          "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1257,
-          "end_line": 1285,
-          "reason": "Nativeの注文詳細でエラーを受けてもorder内容を表示しない"
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 308,
+          "end_line": 322,
+          "reason": "CheckoutCompletePageのnot-found部分証拠でありOrderDetail直接の拒否証拠ではない"
         }
       ],
       "reviewed_against": [

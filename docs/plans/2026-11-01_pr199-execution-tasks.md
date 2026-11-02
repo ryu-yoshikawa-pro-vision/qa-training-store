@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-DETAIL-A02-01`（他人の注文拒否・認可）。直前`SCREEN-ORDERS-DETAIL-A01-03`はレビュー可否のRole/State/Data、正式BR-REVIEW-001/AC-REVIEW-001、Web/Native→getMyCustomerOrder→ReviewRepository→deriveCustomerReviewState、Seedの公開/未投稿/hidden/deleted、High R1-R6/TR1-TR7/C1-C7を照合して**基本分析のみ**`analyzed`（操作67→68/188、非default15/20維持）。defaultのReview.userId≠Order.userIdとgetEligibility existingReview露出候補、reviewable-ordersの実Seed 1 delivered/5未投稿対seed_catalog 2/3、実Web/Native/SQLite・別Session/DB前後・視覚/a11y・正式UX/Fixture適合は未受入。次はHigh認可のA02-01を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-DETAIL-A02-02`（商品/ユーザー更新後の注文Snapshot不変）。直前`SCREEN-ORDERS-DETAIL-A02-01`は本人注文認可のRole/State/Data、BR-ORDER-001/AC-ORDER-001、SessionIdentityResolver→requireCustomer→getMyOrderのowner照合→Dexie/SQLite詳細DTO→Web/Native拒否境界、regular所有5注文Seed、High R1-R6/TR1-TR7/C1-C7を再照合して**基本分析のみ**`analyzed`（操作68→69/188、非default15/20維持）。別customer/guest/staff/停止Session・DB/Session前後・並列・実Web/Native/SQLite・Native失敗時Loading・視覚/a11y・正式UX適合は未受入。次はA02-02を1件扱う。
 - **CI横断**：作業前HEAD `28be6bb800c6`の[Web CI #41397369433](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41397369433)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。今回の新HEAD CIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A02-01（本人所有権・他人注文拒否）
+
+- **基本分析のみ**：`review_required→analyzed`、操作68→69/188、非default状態15/20維持。正式`docs/spec/features/orders.md:58-98`の本人限定、BR-ORDER-001/AC-ORDER-001を再照合。注文番号/住所/支払試行/配送/履歴の個人情報保護をHighとして優先。製品適合・実行PASSではない。
+- **Role/State/Data**：default初期guest→regular@example.com本人Sessionで`order-paid`等5注文（`user-customer-regular`所有）。別customer（gold/platinum）による同一orderId指定、guest、operator/admin、停止Session、存在しないorderIdを代表負例とする。Seedには他customer所有注文がないため、別customerでregular所有注文を開く負例は再現候補だが直接Runは未実施。
+- **UI→Use Case→Repository**：`SessionIdentityResolver.requireCurrentEntity`は無SessionでAUTHENTICATION_REQUIRED、停止Accountを拒否。`CheckoutOrderUseCases.requireCustomer`はstaffをPERMISSION_DENIED。`getMyCustomerOrder→getMyOrder`は`orders.getById(orderId)`でowner照合し、他人/不存在をNOT_FOUNDに統一した後に`orders.getDetail`を呼ぶ。Dexie/SQLiteの`getDetail`はorderIdのみで明細・Payment・Shipment・Timelineを組み立てるため、Use Caseの先行認可が重要。Webはerror/nullでnot-found、Nativeはerror表示とLoading文言が併存する静的差。
+- **High Risk/TR/Case採否**：R1他人の住所/支払履歴漏えい、R2 ID推測、R3 guest/staff/停止Session、R4 Native失敗復帰、R5 owner照合とgetDetail間の競合、R6 Review別ownerはA01-03に分離。C1本人5注文DTO、C2別customer拒否、C3不存在IDの同一NOT_FOUND、C4 guest/staff/停止Session別拒否、C5 Web/Native非露出と失敗UI、C6 Dexie/SQLite・DB/Session前後の不変、C7並列/失効境界を採用。C1-C5は静的経路のみ、C2-C7の直接実証・Native UX正式適合は未受入。
+- **直接証拠/CI**：現HEAD`5cf4839b913c`のWeb CI [#41399270908](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41399270908)はcompleted/failure。Integration・Code Quality・Training runtime等はsuccess、Contracts全体・Style Quality・required Chromium E2E・verify/validateはfailure。既存ComponentのCheckoutCompletePage not-foundは部分証拠であり、OrderDetailの他人拒否実Runではない。今回直接Vitest/Prettier/Playwrightは未実施。台帳と契約テストの静的構造整合のみ検査し、実Run PASSは付けない。
+- **再開条件・次**：固定HEADで別customer/guest/staff/停止Session/不存在ID、Web/Android/SQLiteのDTO非露出、DB/Session前後、認証失効/並列、Native Loadingと復帰導線、視覚/a11yを実証。製品修正は#199では実施しない。次は`SCREEN-ORDERS-DETAIL-A02-02`。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A01-03（レビュー投稿可否）
 

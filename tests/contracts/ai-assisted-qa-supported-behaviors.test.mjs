@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 68,
-      requires_review: 120,
+      basically_analyzed: 69,
+      requires_review: 119,
       classified_rate: 100,
-      basic_analysis_rate: 36.17,
+      basic_analysis_rate: 36.7,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -321,14 +321,28 @@ describe("サポート機能の仕様と実装の追跡", () => {
         }),
       ]),
     );
-    for (const id of [
-      "SCREEN-ORDERS-DETAIL-A02-01",
-      "SCREEN-ORDERS-DETAIL-A02-02",
-    ]) {
-      const entry = data.behaviors.find((item) => item.id === id);
-      expect(entry?.analysis_status).toBe("review_required");
-      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
-    }
+    const ownership = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-DETAIL-A02-01",
+    );
+    expect(ownership?.analysis_status).toBe("analyzed");
+    expect(ownership?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(ownership?.related_use_cases).toContain("CheckoutOrderUseCases.getMyOrder");
+    expect(ownership?.risk).toContain("High");
+    expect(ownership?.test_condition).toContain("TR7/C7=");
+    expect(ownership?.basic_analysis_review).toContain("未受入");
+    expect(ownership?.audit_branch_refs?.map((ref) => ref.path)).toEqual(
+      expect.arrayContaining([
+        "src/application/identity/session-identity-resolver.ts",
+        "src/application/use-cases/checkout-order-use-cases.ts",
+        "src/infrastructure/database/dexie/order-review-repositories.ts",
+        "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+      ]),
+    );
+    const snapshotAfterChange = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-DETAIL-A02-02",
+    );
+    expect(snapshotAfterChange?.analysis_status).toBe("review_required");
+    expect(snapshotAfterChange?.audit_branch_refs?.length).toBeGreaterThan(0);
     for (const id of [
       "SCREEN-ORDERS-DETAIL-A01-01",
       "SCREEN-ORDERS-DETAIL-A01-02",
