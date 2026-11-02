@@ -11911,29 +11911,31 @@
       "source_line": 62,
       "source_text": "カスタマー本人の注文のみを表示し、その後に商品情報が変更されてもスナップショットの内容は変更しない。",
       "platform": "web,android",
-      "role": "active customer（本人の購入完了後に保存された過去注文）",
-      "scenario": "default Seedのorder-paid（orderNumber=ORD-20260701-0002）を表示した後、商品マスタの表示名・販売価格・画像・会員住所を変更する検証データを準備し、同じorderIdの注文詳細を再取得。注文の更新はせず商品マスタのみ変える",
-      "data": "default Seedのorder_itemsにはproductNameSnapshot、skuSnapshot、unitEffectivePrice、lineTotalAmount、画像path等、ordersにはmembershipRankSnapshot・shippingAddressSnapshot・subtotal/discount/shipping/totalAmountがある。作成時beginOrderは商品・SKU・価格・配送先を注文に複製する。DexieとSQLite getDetailは注文/明細の保存済み列からDTOを組み立てる",
+      "role": "active customer（default初期guest→regular@example.com本人ログイン。商品変更は別staff Session、住所変更は本人Session。ランク変更は正規操作経路未確定のため隔離fixture）",
+      "scenario": "default Seedの本人order-paid（ORD-20260701-0002、user-customer-regular所有）の保存済みOrder/OrderItem/Payment/SessionとDTOを記録。別staff SessionのAdminProductUseCases.updateで商品名・SKU/価格・画像関連を変更し、本人AccountUseCases.updateAddressで現行住所を変更後に同一orderIdを再取得。ランク変更は正規操作経路未確定につき隔離fixtureに分離",
+      "data": "default-dataset.ts:400-575のregular本人5状態注文のうちorder-paidはmembershipRankSnapshot=regular、shippingAddressSnapshot=一般テスト会員/東京都千代田区、OrderItemにproductNameSnapshot/skuSnapshot/unitEffectivePrice/lineTotalAmount/画像assetId/path/altTextを保持。beginOrder:239-278はProduct/Variant/confirmationから保存Snapshotを複製。Dexie getDetail:68-136/SQLite getDetail:2140-2218はOrder/OrderItem保存列をDTO化し、現行Product/Userマスタを参照しない",
       "action": "過去注文スナップショットを維持",
       "expected": "注文作成後に現在の商品名、SKUの価格、画像、既定住所、会員ランクを変えても、注文詳細のproductName/sku/lineTotalAmount・配送先・金額・会員ランク・保存画像pathは変わらない。Web/Nativeとも注文の保存値を表示し、最新の商品マスタへの再参照で上書きしない",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "後日の商品改定で過去請求額や注文商品が変わり、返品・問い合わせ・監査履歴に不整合が生じる",
-      "test_condition": "本人の同一orderIdについて変更前のOrderDetailDtoを保存し、商品マスタの商品名/価格/画像、住所/ランクを変更後にgetMyCustomerOrderとWeb/Nativeを再取得・表示。購入当時の保存値が一致し、現在の商品マスタだけが変化したことを確認。既存componentの固定DTO表示テストは動的変更の検証とは別",
-      "test_responsibility": "beginOrderのSnapshot保存→OrderRepository.getDetailのスナップショット列→getMyCustomerOrder→Web/Nativeの注文詳細表示をつなぎ、商品マスタ変更後にも値が不変なことを照合する",
-      "case_policy": "商品名/単価/SKU/画像/配送先/会員ランク変更の組合せで正常Snapshotを検証し、状態遷移によるorderStatus・shipment更新とは混同しない。実行・UIの視覚正本比較は未完了",
-      "case_selection_reason": "保存済み注文を現在の商品情報から再計算すると、過去の顧客承諾額や証拠が破壊されるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
+      "risk": "High R1=商品改定が過去の請求額・返品証跡へ混入、R2=住所/会員ランク変更で過去注文情報・割引額が改変、R3=Product/Variant/画像関連の更新で明細Snapshotが置換、R4=保存画像assetId/pathと画像実バイトの不変性を混同（NativeはassetId解決）、R5=他人注文Snapshot漏洩、R6=Order/getDetail独立読取り中の状態遷移による混在。製品不具合は未確定",
+      "test_condition": "TR1/C1=default本人order-paidのOrder/OrderItem/Payment/Session・DTO基準保存。TR2/C2=staff商品更新後も商品名/SKU/単価/明細金額/画像assetId/path/altText不変。TR3/C3=本人住所変更・隔離fixtureランク変更後も旧住所/ランク/注文金額不変。TR4/C4=Webの商品名/SKU/画像path/行合計/配送先とNativeの単価/ランク/住所/画像assetIdを比較、Web rank非表示とNative path非使用は正式UX判断待ち。TR5/C5=guest/staff/別customer/失効Sessionの直接orderId拒否。TR6/C6=Dexie/SQLiteのDB/Session前後でProduct/Userのみ変更しOrder/OrderItem/Payment/Shipment/History/採番不変、lineNumber順維持。TR7/C7=並列Product/User変更・Order遷移中のDTO一貫性、実Web/Android/視覚/a11y。保存列の静的経路のみ確認、C2-C7直接Run未実施",
+      "test_responsibility": "BR-ORDER-001/AC-ORDER-001→beginOrderの保存Snapshot→Dexie/SQLite getDetailの保存列→getMyOrder本人照合/getMyCustomerOrder→Web/Native表示。AdminProductUseCases.updateはproducts.updateAggregate、AccountUseCases.updateAddressはaddresses.updateAndReassignDefaultで過去Order/OrderItemと別経路。UI・実DB・並列・画像実体は独立受入",
+      "case_policy": "採用C1本人order-paid基準、C2商品名/SKU/価格/画像変更後、C3住所/ランク変更後、C4 Web/Native表示差、C5別Role/Session、C6 Dexie/SQLite・DB/Session前後・明細順、C7並列/視覚/a11y。注文状態/Shipmentの許可遷移をSnapshot破壊と誤判定しない。rank正規変更経路・画像実体・Web rank非表示は判断待ち、C2-C7実Run未受入",
+      "case_selection_reason": "過去の顧客承諾額・商品/住所/会員割引の証跡保護はHigh。default本人order-paidの固定Snapshotとstaff商品更新/本人住所更新の独立経路がある。既存integrationは作成時、componentは固定DTO表示であり、更新後不変性の直接実証ではない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 0964099a4740: orders.md:7-12,58-98のBR-ORDER-001/AC-ORDER-001、default初期guest→regular本人order-paid、beginOrder:239-278のSnapshot複製、AdminProductUseCases.update:157-216の商品aggregate更新、AccountUseCases.updateAddress:99-110の住所更新、Dexie getDetail:68-136/SQLite getDetail:2140-2218の保存DTO、Web:663-779/Native:1168-1300の表示を再照合。High R1-R6/TR1-TR7/C1-C7を採否し基本分析のみanalyzed。Web会員rank非表示、Native画像assetId解決、正式rank変更経路、画像実体、他Role/Session、実Product/User変更後のDTO/DB前後、並列、実Web/Android/SQLite・視覚/a11y・正式適合・最終CIは未受入。既存integration:155-224とcomponentは作成時/固定DTOの部分証拠で直接PASSではない",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001"
       ],
       "related_use_cases": [
         "CheckoutOrderUseCases.beginOrder",
-        "CheckoutOrderUseCases.getMyCustomerOrder"
+        "CheckoutOrderUseCases.getMyCustomerOrder",
+        "AdminProductUseCases.update",
+        "AccountUseCases.updateAddress"
       ],
-      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 0964099a4740: 現mainのBR/AC・Role/State/Data・保存Snapshot→DTO→Web/Nativeと商品/住所更新経路、High R1-R6/TR1-TR7/C1-C7を再照合し基本分析のみanalyzed。更新後実Run/画像実体/rank変更経路/並列/実端末/最終CIは未受入。次はSCREEN-ORDERS-DETAIL-S-reviewable",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 656,
@@ -12030,6 +12032,18 @@
           "start_line": 911,
           "end_line": 980,
           "reason": "Nativeの金額・配送先・SKU・支払/配送Snapshot表示テスト"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 157,
+          "end_line": 216,
+          "reason": "商品aggregate更新は過去注文Snapshotと別経路"
+        },
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 99,
+          "end_line": 110,
+          "reason": "本人の現行住所更新は過去配送先Snapshotと別経路"
         }
       ],
       "reviewed_against": [

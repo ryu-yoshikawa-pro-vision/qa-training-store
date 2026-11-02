@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-DETAIL-A02-02`（商品/ユーザー更新後の注文Snapshot不変）。直前`SCREEN-ORDERS-DETAIL-A02-01`は本人注文認可のRole/State/Data、BR-ORDER-001/AC-ORDER-001、SessionIdentityResolver→requireCustomer→getMyOrderのowner照合→Dexie/SQLite詳細DTO→Web/Native拒否境界、regular所有5注文Seed、High R1-R6/TR1-TR7/C1-C7を再照合して**基本分析のみ**`analyzed`（操作68→69/188、非default15/20維持）。別customer/guest/staff/停止Session・DB/Session前後・並列・実Web/Native/SQLite・Native失敗時Loading・視覚/a11y・正式UX適合は未受入。次はA02-02を1件扱う。
-- **CI横断**：作業前HEAD `28be6bb800c6`の[Web CI #41397369433](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41397369433)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。今回の新HEAD CIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ORDERS-DETAIL-S-reviewable`（非defaultの配達済みレビュー投稿導線・Web desktop）。直前`SCREEN-ORDERS-DETAIL-A02-02`は現行BR-ORDER-001/AC-ORDER-001、default本人order-paid、beginOrderのSnapshot保存→Dexie/SQLite保存列→Web/Native表示、商品/住所更新経路、High R1-R6/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作69→70/188、非default15/20維持）。実更新後DTO/DB/Session、rank正規変更経路、画像実体、別Role/Session、並列、実Web/Android/SQLite・視覚/a11y・正式UX適合は未受入。次は既存`SCREEN-ORDERS-DETAIL-S-reviewable`のSeed Review数とWeb desktop導線を確認。
+- **CI横断**：作業前HEAD `0964099a4740`の[Web CI #41400443720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A02-02（商品/ユーザー更新後の注文Snapshot不変）
+
+- **基本分析のみ**：`review_required→analyzed`、操作69→70/188、非default状態15/20維持。正式`orders.md:7-12,58-98`のBR-ORDER-001/AC-ORDER-001を現HEADで照合。製品適合・実Run・CI PASSではない。
+- **Role/State/Data**：default初期guest→regular@example.com本人ログイン。本人`order-paid`（ORD-20260701-0002）を基準に、staffの商品更新`AdminProductUseCases.update`、本人住所更新`AccountUseCases.updateAddress`を別Sessionで行うCaseを選定。ランク変更は正式操作経路未確定につき隔離fixtureに分離。SeedはOrder/OrderItemに商品名/SKU/単価/金額/画像assetId/path/altText・rank=regular・配送先を保存。
+- **UI→Use Case→Repository**：`beginOrder:239-278`はProduct/Variant/confirmationから保存Snapshotを複製。商品更新`admin-product-use-cases.ts:157-216`はproducts.updateAggregate、住所更新`account-use-cases.ts:99-110`はaddresses.updateAndReassignDefault。本人照合`getMyOrder:389-396→getMyCustomerOrder:398-409`→Dexie`order-review-repositories.ts:68-136`/SQLite`native-customer-application-repositories.ts:2140-2218`はOrder/OrderItem保存列からDTO化。Web`checkout-order-pages.tsx:663-779`は商品名/SKU/行合計/画像path/配送先、Native`native-purchase-screens.tsx:1168-1300`は単価/rank/住所と画像assetIdを表示。Web rank非表示・Nativeの保存path非使用から、画像実バイトの不変性は未証明。
+- **High Risk/TR/Condition/Case採否**：R1過去請求・返品証跡改変、R2住所/rank/割引履歴改変、R3商品・画像マスタ混入、R4画像assetId/pathと実体混同、R5他人注文漏洩、R6並列読取り混在。C1本人order-paid基準、C2商品名/SKU/価格/画像更新後不変、C3住所/rank変更後不変、C4 Web/Native表示差、C5 guest/staff/別customer/失効Session拒否、C6 Dexie/SQLite・DB/Session前後・明細順、C7並列・視覚/a11yを採用。TR1-TR7の条件と採否は台帳に記録。OrderStatus/Shipmentの正規遷移をSnapshot破壊と誤判定しない。
+- **直接証拠・CI**：正式仕様・Seed・Use Case・Dexie/SQLite・Web/Nativeの静的経路を照合。既存`checkout-order-use-cases.test.ts:155-224`は作成時、Web/Native componentは固定DTOの部分証拠で更新後の直接PASSではない。今回直接Vitest/formatter/Playwright・実Web/Android/SQLite・DB/Session前後は未実施。作業前HEAD`0964099a4740`の[Web CI #41400443720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure（Contracts・Style Quality・required Chromium E2E・verify/validate失敗）。新HEADのCIは別判定。
+- **再開条件・次**：固定HEADでProduct/User更新前後のimmutable DTO、Web/Android表示、画像path/assetIdと実バイト、正式rank変更経路、別Role/Session、Dexie/SQLite・DB/Session前後、並列、視覚/a11y、Web rankの正式期待を検証。製品修正は#199で行わない。次の共通対象は非defaultの`SCREEN-ORDERS-DETAIL-S-reviewable`。reviewable-ordersのReviews先頭6件とhidden/deleted明細を再確認する。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A02-01（本人所有権・他人注文拒否）
 

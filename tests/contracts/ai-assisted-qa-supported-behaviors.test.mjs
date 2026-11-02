@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 69,
-      requires_review: 119,
+      basically_analyzed: 70,
+      requires_review: 118,
       classified_rate: 100,
-      basic_analysis_rate: 36.7,
+      basic_analysis_rate: 37.2,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -341,7 +341,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const snapshotAfterChange = data.behaviors.find(
       (item) => item.id === "SCREEN-ORDERS-DETAIL-A02-02",
     );
-    expect(snapshotAfterChange?.analysis_status).toBe("review_required");
+    expect(snapshotAfterChange?.analysis_status).toBe("analyzed");
+    expect(snapshotAfterChange?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(snapshotAfterChange?.risk).toContain("High");
+    expect(snapshotAfterChange?.test_condition).toContain("TR7/C7=");
+    expect(snapshotAfterChange?.basic_analysis_review).toContain("未受入");
+    expect(snapshotAfterChange?.related_use_cases).toEqual(
+      expect.arrayContaining([
+        "CheckoutOrderUseCases.beginOrder",
+        "CheckoutOrderUseCases.getMyCustomerOrder",
+        "AdminProductUseCases.update",
+        "AccountUseCases.updateAddress",
+      ]),
+    );
     expect(snapshotAfterChange?.audit_branch_refs?.length).toBeGreaterThan(0);
     for (const id of [
       "SCREEN-ORDERS-DETAIL-A01-01",
