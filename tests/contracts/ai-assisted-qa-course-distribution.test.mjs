@@ -538,7 +538,7 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
-  it("rejects oversized or invalid external Skill downloads before writing learner files", async () => {
+  it("rejects invalid Skill sizes and oversized downloads", async () => {
     const fixture = courseFixture();
     const first = fixture.manifest.external_skill_files[0];
     const invalidManifest = structuredClone(fixture.manifest);
