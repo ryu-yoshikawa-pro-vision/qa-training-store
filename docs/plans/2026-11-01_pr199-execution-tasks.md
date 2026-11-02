@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-01`（Dirty状態・未保存保全）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-05`は基本分析のみanalyzed（操作93/188、非default16/20）。遷移16/16・コード断片21/21静的照合。直接Vitest/Playwright・実Web/DB/Session・製品適合・最終CIは未受入。
-- **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-02`（未保存プレビュー・DB非永続化）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A02-01`は基本分析のみanalyzed（操作94/188、非default16/20）。静的断片18/18・隔離JSON dirty写像5/5。直接Vitest/Playwright/実Web/DB/Session・製品適合・最終CIは未受入。
+- **CI横断**：作業前HEAD `6ef096471b3c`の[Web CI #41470505670](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41470505670)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-01（Dirty・未保存保全）基本分析受入
+
+- **判定**：台帳の同一IDを`review_required→analyzed`。操作**93→94/188**、非default状態**16/20**。基本分析のみで実Web・製品適合・CI PASSではない。
+- **正式期待・Role/Seed**：`BR/AC-ADMINCAT-001/002`は未保存プレビュー非永続化・集約保存のtransaction整合を要求。`product-aggregate-edit`（初期admin、default商品集約）とdefault（guest→staffログイン）、`product-draft`、`product-basic-shirt`、inactive既存画像・参照ありdraftを比較。active operator/adminを採用、guest/customer/停止staff/失効Sessionは直URL/getEdit/updateと管理DTO非露出を別Case。
+- **UI→Use Case→Repository境界**：`admin-product-pages.tsx:607-711`は`JSON.stringify(value)!==JSON.stringify(initial)||removedVariantIds.length>0`をDirtyとし、`ContextualSaveBar`（`admin-patterns.tsx:104-129`）、`usePreventRemove(dirty&&!saving)`、beforeunload/同一originリンクguard、取消/破棄/確定の遷移、focus復元を持つ。`admin-product-pages.tsx:423-546,762-789`はDirty中に公開・販売終了・複製・削除をdisabled、保存時`AdminProductUseCases.update`→transaction・version CAS→`getEdit`再読込、失敗時はDirtyを維持する。previewは`AdminProductUseCases.preview`の読取経路でtransaction書込みなし（A02-02で独立検証）。
+- **Risk/TR/Condition/Case**：High R1未保存破棄/危険操作、R2 stale version/並列上書き、R3 非staff情報露出、R4 部分更新。Medium R5 saving中戻る（React Navigation guardは`!saving`）、R6 非同期preview旧表示、R7 viewport/focus。TR1正式BR/AC、TR2 Web/SaveBar、TR3 Use Case、TR4 Seed/既存Component。C1 clean→dirty→revert/SKU削除、C2破棄とDB不変、C3リンク/戻る/reload/取消/確定/focus、C4危険操作disabled、C5保存成功/失敗/version/rollback、C6 Role/Session、C7 saving/preview/1023-1024px/視覚/a11yを採用。公開状態遷移・画像primary・専用在庫・プレビュー詳細・非サポートNative管理は別ID。
+- **直接確認と限界**：ソース断片静的assert**18/18**、隔離JSON差分写像**5/5**。既存Component`tests/component/admin-product-pages.test.tsx:263-283`はリンク警告/Escapeでfocus復帰・破棄遷移の部分証拠だが今回の直接Vitestではない。`usePreventRemove`はsaving中に無効となるためback操作、preview後の再編集による旧表示、連続保存は**実再現前のリスク候補**。直接Vitest/formatter/Playwright/既存validator、隔離DB/Session全表前後、Role別・並列・故障注入、実Web/視覚/a11y・製品適合は未受入。固定HEADでC1-C7を実行する。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-02`（未保存プレビューの非永続化）。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-05（公開状態遷移）基本分析受入
 

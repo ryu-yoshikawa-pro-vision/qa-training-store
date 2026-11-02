@@ -16041,28 +16041,31 @@
       "source_line": 127,
       "source_text": "未保存の変更（Dirty）、プレビュー、販売終了（Discontinue）、削除不可（Delete blocked）などの確認ダイアログやステータスを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: Dirty状態",
+      "role": "active operator/admin（StaffPage + Use Case）。guest/customer、停止staff、失効Sessionは管理フォーム/getEdit/updateを拒否する。",
+      "scenario": "product-aggregate-edit（初期admin）/default（初期guest→staffログイン）を主軸。inactive-image-existing-link、product-delete-blocked、cross-role-product-lifecycleを対照に使う。",
+      "data": "product-aggregate-editはdefault商品集約を利用。product-draft（draft、既存在庫10）、product-basic-shirt（published、既存SKU/画像）、inactive既存画像・参照ありdraftを対象に、商品名/価格/画像/既存SKU変更、removeVariantIds、保存失敗・取消・成功再読込を別状態として作る。",
       "action": "Dirty状態",
       "expected": "未保存の編集がある間はDirtyを表示し、保存・破棄前に誤って保存済み表示へ戻さない",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "Dirty状態の前後に、未保存の編集がある間はDirtyを表示し、保存・破棄前に誤って保存済み表示へ戻さないことをUIと集約状態で比較する",
+      "risk": "High R1=Dirty中の誤った公開/削除/複製・未保存変更消失、R2=stale version/並列保存時の上書き・商品集約不整合、R3=非staff/停止Sessionへの管理DTO露出、R4=保存失敗時のDB/Session部分更新。Medium R5=保存中の戻る操作（usePreventRemoveは!saving条件）、R6=非同期プレビューの旧内容表示、R7=browser戻る/リンク/リロードの差、focus・viewport/a11y。いずれも実再現前の候補と区別。",
+      "test_condition": "C1 初期clean→商品名/価格/画像/既存SKU変更でDirty表示、元値復帰でclean、SKU削除のみでもDirty。C2 ContextualSaveBarの破棄でフォーム/削除ID/previewを戻し、Product/Variant/Image/History/Summary/Session不変。C3 リンク・戻る・reloadで未保存警告、取消で入力とfocus維持、確定破棄で遷移。C4 Dirty中の公開/非公開/販売終了/複製/下書き削除disabled、保存・破棄後再有効。C5 正常保存でupdate→version更新/再読込→clean、保存失敗・stale version・故障注入ではDirty維持/DB前後比較。C6 active operator/adminとguest/customer/停止staff/失効Sessionの直URL/getEdit/update拒否・管理DTO非露出。C7 保存中の戻る、連続保存、preview後の追加入力、1023/1024px desktop/tablet・keyboard/focus/a11y・視覚を個別に実Webで検証。",
       "test_responsibility": "操作対象ID、状態・versionとDirty状態の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "Dirty状態が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "case_policy": "採用:C1 clean/dirty/revert/remove、C2破棄/DB不変、C3リンク/戻る/reload/取消/確定、C4 Dirty中の危険操作disabled、C5保存成功/失敗/CAS/rollback、C6 Role/Session、C7 saving競合/preview鮮度/viewport/a11y。除外:実際の公開状態遷移（A01-05）、画像primary整合（A01-03）、専用在庫調整（A01-04）、プレビューの非永続化詳細（A02-02）、Native非サポート管理UI。",
+      "case_selection_reason": "正式admin-catalog.md:9-19,124-135,210-220、Web admin-product-pages.tsx:415-546,607-711,762-789,1127-1163、ContextualSaveBar admin-patterns.tsx:104-129、Use Case admin-product-use-cases.ts:104-110,157-213,285-423、Seed metadata.ts:75-84,339-359,372-381/scenarios.ts:33-38、既存Component admin-product-pages.test.tsx:263-283を照合。静的コード条件18/18、隔離JSON dirty写像5/5。既存ComponentのDirty警告・Escape focusは部分証拠（今回の直接Vitestではない）。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD 6ef096471b3c: BR/AC-ADMINCAT-001/002、active staff/拒否Role、default/product-aggregate-edit、WebのJSON差分Dirty→ContextualSaveBar/usePreventRemove/リンク・beforeunload guard→破棄・確認→Use Case update/getEdit→transaction/CASを照合。High R1-R4、Medium R5-R7、TR1正式仕様/Role、TR2 Web/SaveBar、TR3 Use Case、TR4 Seed/既存Component、C1-C7採否を記録。静的assert18/18・隔離JSON写像5/5。保存中back guard、preview旧内容、連続保存は未再現候補。基本分析のみanalyzed。直接Vitest/formatter/Playwright/既存validator、隔離DB/Session前後、実Web/視覚/a11y、製品適合/最終CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.update"
+      ],
+      "analysis_progress": "2026-11-03 A02-01基本分析のみ完了（操作93→94/188、非default16/20）。C1-C7と実Run/DB/Session/製品適合未受入を分離。次はSCREEN-ADMIN-PRODUCT-DETAIL-A02-02（プレビュー非永続化）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -16087,7 +16090,25 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.update",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 157,
+          "signature": "async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-02",
