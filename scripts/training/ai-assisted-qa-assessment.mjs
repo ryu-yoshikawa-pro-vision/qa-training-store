@@ -28,6 +28,7 @@ import {
   createLiveChallenge,
   createAttemptDirectory,
   finalizeAssessment,
+  isPassingCalibration,
   parseAssessmentArgs,
   parseOpenCodeJsonEvents,
   parseStrictJsonResponse,
@@ -627,7 +628,8 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     if (
       saved.id !== calibrationId ||
       JSON.stringify(saved.identity) !== JSON.stringify(identity) ||
-      saved.status !== "passed"
+      !isPassingCalibration(saved) ||
+      saved.case_count !== calibrationPrompt.expected.size
     )
       fail(
         "saved model calibration is invalid or did not pass; an exact recalibration is required",

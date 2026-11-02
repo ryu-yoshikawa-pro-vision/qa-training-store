@@ -493,6 +493,15 @@ export function validateCandidate(candidate, expected) {
   };
 }
 
+export function isPassingCalibration(calibration) {
+  return (
+    calibration?.status === "passed" &&
+    calibration.critical_false_passes === 0 &&
+    Array.isArray(calibration.mismatches) &&
+    calibration.mismatches.length === 0
+  );
+}
+
 export function finalizeAssessment({
   candidate,
   calibration,
@@ -516,8 +525,9 @@ export function finalizeAssessment({
         ["passed", "blocked", "ungradable"].includes(check.status),
     ) &&
     new Set(deterministicChecks.map((check) => check.id)).size === deterministicChecks.length;
+  const calibrationPassed = isPassingCalibration(calibration);
   const completed =
-    calibration?.status === "passed" &&
+    calibrationPassed &&
     deterministicChecksValid &&
     deterministicChecks.every((check) => check.status === "passed") &&
     objectives.every((item) => item.status === "assessed" && item.level >= 2);
@@ -530,7 +540,7 @@ export function finalizeAssessment({
     deterministicChecks.some((check) => check.status === "ungradable");
   const status = completed
     ? "complete"
-    : hasBlocked || calibration?.status !== "passed"
+    : hasBlocked || !calibrationPassed
       ? "blocked"
       : hasUngradable
         ? "ungradable"

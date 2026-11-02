@@ -631,7 +631,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const normalized = validateCandidate(candidate(), context);
     const args = {
       candidate: normalized,
-      calibration: { id: "cal-1", status: "passed", critical_false_passes: 0 },
+      calibration: { id: "cal-1", status: "passed", critical_false_passes: 0, mismatches: [] },
       sourceSha: "a".repeat(40),
       versions: {
         attempt: 1,
@@ -653,6 +653,24 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(finalizeAssessment(args).completed).toBe(true);
     expect(
       finalizeAssessment({ ...args, calibration: { ...args.calibration, status: "failed" } }),
+    ).toMatchObject({ status: "blocked", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        calibration: { ...args.calibration, critical_false_passes: 1 },
+      }),
+    ).toMatchObject({ status: "blocked", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        calibration: { ...args.calibration, mismatches: [{ case_id: "FALSE-PASS" }] },
+      }),
+    ).toMatchObject({ status: "blocked", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        calibration: { ...args.calibration, mismatches: null },
+      }),
     ).toMatchObject({ status: "blocked", completed: false });
     expect(
       finalizeAssessment({ ...args, deterministicChecks: [{ id: "M00-END", status: "blocked" }] }),
