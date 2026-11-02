@@ -10038,20 +10038,20 @@
       "source_line": 214,
       "source_text": "決済失敗時に、在庫や注文を完了・成功状態へ変更しない。",
       "platform": "web,android",
-      "role": "active customer（本人の注文・決済試行）",
-      "scenario": "defaultからTEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILEDで注文を作成し、gatewayがfailedを返す場合と、TEST-SUCCESSでも処理直前に在庫0へ変更する場合を分ける",
-      "data": "default Seedのorder-payment-failedはpayment_failed/failedとDECLINED。gatewayの3種拒否時はfinalizeFailureへ分岐し、inventoryへ触れない。成功Gatewayでも在庫不足の場合はOUT_OF_STOCKでpayment_failedにする",
+      "role": "active customer（本人のOrderのみ。guest/operator/別customerはrequireCustomerまたはorder.userId照合で拒否）",
+      "scenario": "default Seedは初期guest。regular@example.comで本人ログインしcart-regular-activeからstart→setAddress→setPayment→beginOrder→resumePayment。C1はTEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILEDを個別実行。C2はTEST-SUCCESSでbeginOrder後、対象variantのstockQuantityを0へ変更してからresumePayment。既存order-payment-failedはpayment_failed/failed/DECLINEDの読み取り比較用",
+      "data": "beginOrderはOrder=pending_payment/Payment=processing/Checkout=converted/Cart=consumedを作る。Gatewayの明示拒否3種はfinalizeFailureでPayment=failed（対応errorCode）/Order=payment_failed/OrderStatusHistory=PAYMENT_FAILEDを同一transactionで保存し、在庫・Shipmentを更新しない。成功Gateway後の在庫不足はfinalizePayment内でOUT_OF_STOCKとして同様に失敗確定するが、事前に別操作で0にした在庫を元へ戻すものではない。default既存order-payment-failedは初期から失敗状態",
       "action": "決済失敗時の在庫維持",
-      "expected": "失敗時は支払試行がfailed、注文がpayment_failedになり、対象SKUの在庫は減算されず、shipmentや在庫引当履歴を作らない。成功注文としての画面を出さない",
+      "expected": "3種の決済拒否と最終在庫不足ではPayment=failed、Order=payment_failed、成功の在庫減算・Shipment作成・ORDER_PURCHASE在庫履歴を発生させない。失敗前の在庫を維持する（C2の事前stock=0変更は維持）。OrderStatusHistoryは失敗遷移を記録し、Web/Nativeの結果画面は保存済み状態からfailedを判定して成功表示しない",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "購入できていない商品の在庫を減らす、未払注文で出荷処理を開始する、再試行時に在庫整合を失う",
-      "test_condition": "3決済拒否コードと決済後在庫不足を分け、注文/payment状態・SKU stockQuantity・shipmentの不在・inventory_historyの不変を確認。default Seedの失敗注文と状態を照合する",
-      "test_responsibility": "resumePayment→finalizeFailure/在庫不足分岐→payment_failedを確認し、画面は保存済み失敗状態から失敗表示になることを確認する",
-      "case_policy": "DECLINED/INSUFFICIENT/AUTH_FAILED、成功決済直前の在庫不足を代表として選ぶ。再試行成功は別動作へ分離",
-      "case_selection_reason": "支払失敗時の在庫確保・配送開始は商品を売り止めてしまうため、在庫不変を業務の主要検証責務とする",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
+      "risk": "未払いのOrderをpaidと誤確定、失敗した注文のSKU在庫減算・引当履歴/Shipment誤作成、在庫不足時の外部変更の誤復元、再試行・並列Gateway時の二重更新/DB不整合（High: 金額・在庫・データ保護）",
+      "test_condition": "C1=3拒否コード（DECLINED/INSUFFICIENT/AUTH_FAILED）ごとに本人でresumePaymentし、Order/Paymentの失敗状態、SKU在庫不変、Shipment不在を検査。C2=TEST-SUCCESSでbeginOrder後に対象stockを0へ変更、OUT_OF_STOCK・payment_failed・ORDER_PURCHASE履歴なしを検査。C3=defaultのorder-payment-failed既存Seedとguest→本人ログインの前提を照合。C4=Web/NativeのresolveCheckoutResultKindでfailedを表示し、completeに誤遷移しないことを確認。C5=実Web/Android、失敗前後のOrder/Payment/Inventory/History/Shipment/Session/Cart snapshot、異なるSession・遅延Gateway同時resume/再試行、視覚/a11yを独立実Runで検証",
+      "test_responsibility": "CheckoutOrderUseCases.resumePayment→finalizePayment/finalizeFailure→Dexie/SQLite transactionRunner→Order/Payment/Inventory/Shipment/HistoryとMockPaymentGatewayを照合。既存integrationの3拒否と在庫不足CaseはC1/C2の直接根拠、Web/Nativeは保存済みOrder+latest Paymentから失敗画面を選ぶ。C5の実Run・並列・原子性を既存順次テストのPASSと混同しない",
+      "case_policy": "C1（3種の明示拒否）・C2（決済直前の在庫不足）を採用し、既存integration testの直接証拠に対応。C3はSeed/Session前提の静的採用、C4はWeb/Native状態分岐の静的採用、C5はHigh残リスクとして実行待ち。再試行成功はSCREEN-CHECKOUT-FAILED-A01-02、失敗を成功扱いしない画面境界はA02-02と責務を分ける",
+      "case_selection_reason": "決済拒否と最終在庫不足では失敗理由・在庫の事前状態が異なる。両者で在庫減算・Shipment・引当履歴が発生しないことが金額/在庫保護の基本条件。事前stock=0変更と失敗によるstock減算を区別し、再試行・並列は別の未受入として追跡する",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "現行mainの正式BR-CHECKOUT-003/AC-CHECKOUT-003（checkout-and-payment.md:14-23,210-214,250-254）、Role/State/Data、Web checkout-order-pages.tsx:508-609、Native native-purchase-screens.tsx:1020-1105、CheckoutOrderUseCases.resumePayment/finalizePayment/finalizeFailure:311-329,410-538、Dexie transaction-runnerの成功/失敗scopeとInventory/Payment Repository、Native SQLiteの対応scope/transaction、MockPaymentGateway、default Seedのorder-payment-failedと初期guestを再照合。既存integration checkout-order-use-cases.test.ts:230-277が3拒否のPayment/Order失敗・在庫不変・Shipment不在、および事前在庫0→OUT_OF_STOCK/引当履歴0を直接検査。2026-11-02のHEAD ffedcae1 Web CI #41377091194でVitest(integration) job success。基本分析のRisk/TR/Condition/C1-C5採否は成立するが、C1の在庫履歴全件前後・Session/Cart snapshot、Web/Android実画面・並列Gateway・視覚/a11y・製品適合・全CI成功は別の未受入。旧audit_branch_refsのintegration:363-411は現行363行ファイルの範囲外のため230-277へ是正",
       "requirement_refs": [
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-003"
@@ -10059,7 +10059,7 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02現行mainの仕様/Role/State/Data/UI→UseCase→Dexie・SQLite→Gateway/Seed/Risk/TR/Condition/C1-C5を再照合。基本分析のみanalyzed。実Web/Android、DB/Session全snapshot、並列Gateway、製品適合は未受入",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 508,
@@ -10093,33 +10093,81 @@
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 418,
-          "end_line": 547,
-          "reason": "明示拒否と在庫不足でpaidにせず、inventory更新を避ける"
+          "start_line": 311,
+          "end_line": 329,
+          "reason": "本人Order・processing Paymentの再開とGateway"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 410,
+          "end_line": 538,
+          "reason": "3拒否のfinalizeFailureと在庫不足OUT_OF_STOCK、成功時だけの在庫減算・Shipment"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 86,
+          "end_line": 107,
+          "reason": "成功transactionと失敗transactionのテーブルscope"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 549,
+          "end_line": 597,
+          "reason": "在庫数量更新と引当履歴はupdateQuantityでのみ発生"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 244,
+          "end_line": 275,
+          "reason": "Payment status/version永続化"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 203,
+          "end_line": 216,
+          "reason": "Nativeの成功・失敗transaction scope"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2620,
+          "end_line": 2639,
+          "reason": "Native SQLiteのtransactionRunner"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "3拒否コードのMock Gateway"
         },
         {
           "path": "src/seeds/default-dataset.ts",
           "start_line": 401,
-          "end_line": 556,
-          "reason": "payment_failed/failedとDECLINEDの初期Seed"
+          "end_line": 555,
+          "reason": "defaultの失敗Order/Paymentと本人データ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 84,
+          "reason": "default初期guest、regularログイン必要"
         },
         {
           "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 363,
-          "end_line": 411,
-          "reason": "3決済拒否での在庫不変/Shipmentなしと在庫不足によるFailed遷移"
+          "start_line": 230,
+          "end_line": 277,
+          "reason": "3拒否の在庫不変・Shipmentなし、事前在庫0のOUT_OF_STOCK/在庫履歴なし"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 586,
-          "end_line": 662,
-          "reason": "Webの結果表示はfailedの状態を参照"
+          "start_line": 508,
+          "end_line": 607,
+          "reason": "Webの保存済みOrder状態によるfailed表示"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1115,
-          "end_line": 1198,
-          "reason": "Nativeの結果表示はfailedの状態を参照"
+          "start_line": 1020,
+          "end_line": 1105,
+          "reason": "Nativeの保存済みOrder状態によるfailed表示"
         }
       ],
       "reviewed_against": [
