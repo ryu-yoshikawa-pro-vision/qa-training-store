@@ -16195,31 +16195,34 @@
       "source_line": 127,
       "source_text": "未保存の変更（Dirty）、プレビュー、販売終了（Discontinue）、削除不可（Delete blocked）などの確認ダイアログやステータスを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: 販売終了確認",
+      "role": "active operator/admin（StaffPage＋Use Case requireStaff）。guest/customer/停止staff/失効Sessionは直URL/getEdit/changeStatusの拒否と管理DTO非露出を別Caseで検証。",
+      "scenario": "product-aggregate-edit（初期admin、default商品集約）を主軸。default（初期guest→staffログイン）、cross-role-product-lifecycle（guest初期）、product-delete-blocked、inactive-image-existing-linkを対照。",
+      "data": "defaultのproduct-basic-shirt（published）、product-unpublished（unpublished）は販売終了対象。product-draft（draft）とproduct-discontinued（discontinued終端）は対象外。各Product.version初期値・関連Variant/Image/History/Summaryを取得し、古いversion、別staff並列、停止staff/失効Session、transaction失敗を隔離条件で生成。確定/取消の前後でProduct/Variant/Image/History/Summary/Session全表を比較。",
       "action": "販売終了確認",
-      "expected": "販売終了の不可逆操作に確認を要求し、許可された状態でのみdiscontinuedへ変更する",
+      "expected": "published/unpublishedかつDirty=falseで販売終了の不可逆警告を持つ確認ダイアログを表示。取消/Escape/overlayでは変更せず、確定した場合のみactive staffの再認可とProduct.version CAS/許可遷移を経てdiscontinued・version+1とし、終端状態から再遷移できない。draft/discontinuedまたはDirty中は実行不可。",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "販売終了確認の前後に、販売終了の不可逆操作に確認を要求し、許可された状態でのみdiscontinuedへ変更することをUIと集約状態で比較する",
+      "risk": "High R1=取消・誤確定時の不可逆更新、R2=guest/customer/停止staff/失効Sessionの管理情報露出/無権限更新、R3=stale version・別staff並列・二重確定による上書き、R4=transaction失敗/関連表の意図しない書込み。Medium R5=Dirty中の危険操作、R6=失敗時の理由通知欠落、R7=desktop/tablet・1023/1024px境界とkeyboard/focus/a11y。R6は未再現の静的候補。",
+      "test_condition": "C1 published/unpublishedで不可逆文言を持つ確認ダイアログ表示。C2 閉じる/Escape/overlayではchangeStatus未呼出し・DB不変。C3 確定のみdiscontinued/version+1・再表示終端、Product以外の全表不変。C4 draft/discontinuedで操作非表示・Dirty中disabled。C5 guest/customer/停止staff/失効Sessionの直URL/getEdit/changeStatus拒否・管理DTO非露出（Session clear例外区別）。C6 stale version/別staff並列/二重確定/transaction故障注入でCAS・rollbackと全表前後を検証。C7 desktop/tablet/1023-1024px、keyboard/focus/alertdialog/a11y、失敗通知を確認。",
       "test_responsibility": "操作対象ID、状態・versionと販売終了確認の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "販売終了確認が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "case_policy": "採用:C1許可状態の確認表示、C2取消とDB非変更、C3確定後の不可逆遷移/version/関連表、C4禁止状態・Dirty、C5 Role/Sessionと管理DTO保護、C6 version/並列/二重押下/transaction故障、C7 viewport/focus/視覚/a11y・失敗説明。除外:通常の公開/非公開遷移（A01-05）、下書き削除禁止（A02-04）、在庫調整、非サポートNative管理。",
+      "case_selection_reason": "TR1正式BR/AC-ADMINCAT-001/002とdiscontinue-confirmの状態正本、TR2 Web AdminProductEditContent/ConfirmDialogのDirty・不可逆文言・二重確定、TR3 AdminProductUseCases.changeStatus→DexieProductRepository.changeStatusのactive staff再認可・version CAS・状態遷移・transaction、TR4 default/product-aggregate-edit Seedと既存Componentのmock範囲を照合。High R1-R4・Medium R5-R7をC1-C7に割当て。実alertdialog・DB全表/Session・並列/故障/1023-1024pxは既存mockや静的照合だけでPASSとしない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD ec7a195d0579: 正式docs/spec/features/admin-catalog.md:9-19,120-150,205-220、active staff/拒否Role、default/product-aggregate-edit/対照Seed、WebのConfirmDialog不可逆文言・Dirty guard→AdminProductUseCases.changeStatus(requireStaff/transaction)→DexieProductRepository.changeStatus(version CAS/状態遷移/単一Product更新)を照合。High R1-R4・Medium R5-R7、TR1-TR4、C1-C7採否を個別記録。現HEADの9ソースに対する48/48静的断片assert成功（直接Vitest/Playwrightではない）。UI changeStatusにcatchが見当たらずConfirmDialogはreject時にダイアログを維持するため失敗理由通知欠落候補。製品不具合確定ではない。基本分析のみanalyzed。直接Vitest/formatter/validator全体/Playwright、実Web/Role/Session/DB全表前後/故障注入/視覚/a11y/製品適合/最終CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.changeStatus"
+      ],
       "state_refs": [
         "SCREEN-ADMIN-PRODUCT-DETAIL-S-discontinue-confirm"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-03 A02-03基本分析のみ完了（操作95→96/188、非default16/20）。C1-C7の直接Vitest/Playwright/DB・Session/Role・実Web・視覚・製品適合/最終CIは未受入。次はSCREEN-ADMIN-PRODUCT-DETAIL-A02-04（下書き削除禁止・参照保護）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -16244,7 +16247,25 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.changeStatus",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 216,
+          "signature": "async changeStatus(request: ChangeProductStatusRequest) {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-04",
