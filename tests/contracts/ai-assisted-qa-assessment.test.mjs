@@ -66,6 +66,7 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     fs.mkdirSync(directory, { recursive: true });
     return directory;
   };
+  const read = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
   const failed = { status: "failed", critical_false_passes: 1, mismatches: ["case-1"] };
   const passed = { status: "passed", critical_false_passes: 0, mismatches: [] };
   const candidate = [{ case_id: "case-1", decision: "fail" }];
@@ -78,10 +79,10 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     caseResults: candidate,
   });
   expect(fs.existsSync(cache)).toBe(false);
-  expect(JSON.parse(fs.readFileSync(path.join(first, "calibration-result.json"), "utf8")))
-    .toEqual(failed);
-  expect(JSON.parse(fs.readFileSync(path.join(first, "calibration-candidate.json"), "utf8")))
-    .toEqual({ case_results: candidate });
+  expect(read(path.join(first, "calibration-result.json"))).toEqual(failed);
+  expect(read(path.join(first, "calibration-candidate.json"))).toEqual({
+    case_results: candidate,
+  });
 
   const second = makeAttempt("second");
   persistCalibration({
@@ -90,7 +91,7 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     attemptDirectory: second,
     caseResults: candidate,
   });
-  expect(JSON.parse(fs.readFileSync(cache, "utf8"))).toEqual(passed);
+  expect(read(cache)).toEqual(passed);
 
   const legacy = path.join(root, "legacy-failed.json");
   fs.writeFileSync(legacy, JSON.stringify(failed));
@@ -102,9 +103,8 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     caseResults: candidate,
     existingCalibration: failed,
   });
-  expect(JSON.parse(fs.readFileSync(legacy, "utf8"))).toEqual(failed);
-  expect(JSON.parse(fs.readFileSync(path.join(third, "calibration-result.json"), "utf8")))
-    .toEqual(passed);
+  expect(read(legacy)).toEqual(failed);
+  expect(read(path.join(third, "calibration-result.json"))).toEqual(passed);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
