@@ -320,12 +320,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
     for (const id of [
       "SCREEN-CHECKOUT-PROCESSING-A02-02",
       "SCREEN-CHECKOUT-PROCESSING-A02-03",
-      "SCREEN-ORDERS-LIST-A01-02",
     ]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
-      );
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.retryPayment");
+      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+      expect(entry?.test_condition).toContain("C1");
+      expect(entry?.analysis_progress).toContain("未受入");
     }
+    expect(
+      data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02")?.analysis_status,
+    ).toBe("review_required");
   });
 
   it("requires audited checkout confirmation and keeps address-input scope unresolved", () => {

@@ -9384,30 +9384,30 @@
       "source_line": 161,
       "source_text": "処理中の二重確定、再試行、キャンセルを禁止する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-processing,payment-declined,default。Customer本人/他人・activeセッション・versionを区別する。対象動作: 処理中キャンセルを拒否",
+      "role": "active customer（本人Orderのみ。guest/operator/別customerはresumePayment・retryPaymentで認可/所有権拒否。キャンセル操作は公開Use Case/UIに存在しない）",
+      "scenario": "default Seed（初期guest）からregular customerでログインしcart-regular-active→start→setAddress→setPayment→beginOrderでpending_payment/processingを生成。payment-processing Seedは既存failed注文をpending_payment/processingに変換するが初期guestのため所有者ログインが必要。payment-declinedは失敗後再試行との比較に用いる",
+      "data": "beginOrder後はOrder=pending_payment、Payment=processing/attemptNumber=1/idempotencyKey=orderId-attempt-1、Checkout Session=converted、Cart=consumed。Processing UIにはcancel/refundボタンもキャンセルAPI呼出しもない。CheckoutOrderUseCasesにはcancelOrder/cancelPayment等の公開操作がなく、processing中retryPaymentは既存DTOを返して新Paymentを作らない。resumePaymentのみGateway→finalizeへ進む。画面から戻る操作は決済取消とは別",
       "action": "処理中キャンセルを拒否",
-      "expected": "決済処理中はキャンセル・返金・別の注文確定へ遷移させない",
+      "expected": "処理中の顧客向けWeb/Android画面から注文/決済のキャンセル・返金を実行できず、Order/Payment/在庫/履歴は取消によって変化しない。画面離脱を決済取消とみなさない。処理結果は本人のresumePaymentによる成功/失敗確定へ委ねる。明示的なcancel API拒否の要否は正式仕様の追加判断待ち（存在しないAPIの拒否PASSを捏造しない）",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "処理中キャンセルを拒否について、決済処理中はキャンセル・返金・別の注文確定へ遷移させないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と処理中キャンセルを拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "処理中キャンセルを拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High：処理中の誤キャンセル/返金、別注文の二重確定、他人Order操作、支払中の画面離脱をキャンセルと誤認すること。Gateway遅延中の別Session/タブ並列resumeとDB/在庫/履歴の原子性は別の高リスク未受入。UIにcancelがない静的確認だけで端末の戻る/深いリンク/並列経路の製品適合を保証しない",
+      "test_condition": "C1（静的採用）：正式BR-CHECKOUT-003/AC-CHECKOUT-003、Web Processing 465-505とNative 975-1015にcancel/refund CTA/呼出しがないこと、CheckoutOrderUseCases公開メソッドに取消APIがないことを確認。C2（既存学習用Dexie契約5/5中の該当3件採用）：processing中のstale-version/別method retryは既存DTO、Payment1件/Gateway0/DB snapshot不変、guest/operator/別customer拒否、paid後retry CONFLICT。C3（実Run待ち）：Web/Androidの画面離脱/再読み込み/戻る/直接URLで取消が発生せず、本人の処理中Order/Paymentが保持されることをDB/Session前後比較。C4（実Run待ち・High）：遅延Gateway中の別Session同時resume/画面離脱でcharge回数、Payment/Order/在庫/Shipment/履歴を比較",
+      "test_responsibility": "正式BR-CHECKOUT-003/AC-CHECKOUT-003→Web CustomerPage/CheckoutProcessingContent→NativeCheckoutProcessingScreen→CheckoutOrderUseCases.beginOrder/retryPayment/resumePayment/finalizePayment→Dexie transaction/Native SQLite Payment Repository・Seedを追跡。キャンセルの非提供（静的）と処理中の実データ不変、再開時のGateway/DB確定、Role/State/Dataを別Caseに分離する",
+      "case_policy": "C1は静的コード・正式仕様の基本分析証拠として採用。C2は前HEADと現HEADのCIで学習用隔離Dexie契約5/5 PASS（うち処理中retry/認可/paid後拒否の3件）を参照し、取消APIの実行テストと混同しない。C3は実Web/Android・視覚/アクセシビリティ・DB/Session前後待ち、C4は制御Gateway並列実Run待ち。キャンセル要求への明示エラーという未存在APIの期待は製品適合判断へ保留",
+      "case_selection_reason": "BR-CHECKOUT-003の処理中キャンセル禁止は二重決済/不正返金/データ不整合に直結するHigh。取消CTA/API非提供と処理中retry抑止は確認方法が異なり、画面離脱・別Session並列の実証も別Caseとして管理する。既存契約が確認しない取消APIの拒否をPASSとしない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析受入（2026-11-02、現HEAD 96ad20f707a7）：正式checkout-and-payment.md:16-23,154-167,250-254、Web checkout-order-pages.tsx:457-505（CustomerPage、自動resume/失敗時再開のみ）、Native native-purchase-screens.tsx:975-1015（自動/手動resume、busy中disabled、cancel CTAなし）、CheckoutOrderUseCases.beginOrder:185-310（Order=pending_payment/Payment=processing、Session converted/Cart consumed）、resumePayment:311-329（本人/所有者確認、Gateway→finalize）、retryPayment:332-373（processing既存DTO、失敗後のみ新attempt）、finalizePayment:410-538（Order/Payment/在庫/Shipment/履歴）、Dexie/SQLite Payment Repository、default/payment-processing Seed metadata.ts:75-83,229-237・scenarios.ts:21-79,286-301を照合。公開CheckoutOrderUseCasesに取消/返金APIはなく、Processing画面に取消CTAはない。現HEAD Web CI #41374495938の学習用checkout-processing契約5/5 PASSはretry/認可等の隔離Dexie証拠であり、取消実行PASSではない。Role/State/Data・High Risk/TR/Condition/C1-C4採否を確定したため基本分析のみanalyzed。画面離脱/実Web/Android/視覚/a11y/DB前後/並列Gateway、明示取消APIの正式解釈、製品適合と最終CIは別未受入",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.beginOrder",
+        "CheckoutOrderUseCases.retryPayment",
+        "CheckoutOrderUseCases.resumePayment"
+      ],
+      "analysis_progress": "2026-11-02：A02-03基本分析のみreview_required→analyzed。C1は仕様とWeb/Native/公開Use Caseの非提供を静的確認、C2は既存隔離Dexie契約のretry/認可/paid後拒否を参照。C3実画面/戻る/DB snapshot、C4遅延Gateway並列は未受入。取消APIの明示拒否を検証したと主張しない。再開条件：同一HEADのWeb/Android画面/操作ログ、Session・Order・Payment・Cart・在庫・履歴前後、Gateway同時呼出し記録、必要なら製品側正式判断。CI全体はfailureで別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 457,
@@ -9430,7 +9430,62 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 16,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003の処理中キャンセル/再試行禁止と所有権"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 457,
+          "end_line": 505,
+          "reason": "Web CustomerPageと処理中自動resume・失敗時再開のみ、cancel CTAなし"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 975,
+          "end_line": 1015,
+          "reason": "Native処理中自動/手動resume、busy無効、cancel CTAなし"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 185,
+          "end_line": 373,
+          "reason": "beginOrderのprocessing生成、resume/ retryの本人認可と取消API非提供"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 410,
+          "end_line": 538,
+          "reason": "決済結果確定時のみOrder/Payment/在庫/履歴を変更"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2301,
+          "end_line": 2367,
+          "reason": "Native Paymentのstatus/version永続化"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 286,
+          "end_line": 301,
+          "reason": "payment-processing Seedのfailed→pending_payment/processing変換"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-checkout-processing.test.mjs",
+          "start_line": 150,
+          "end_line": 230,
+          "reason": "隔離Dexieの処理中retry/認可/paid後拒否。取消API自体の実行テストではない"
+        }
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-COMPLETE-A01-01",
