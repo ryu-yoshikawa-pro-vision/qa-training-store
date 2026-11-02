@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A02-01`（プレビュー中のDB非書込み・Session/集約不変）。直前`SCREEN-ADMIN-PRODUCT-NEW-A01-03`は正式BR/AC、Web ProductEditor→AdminProductUseCases.preview→参照Repository/Seed、High R1-R5/Medium R6-R7・C1-C7を照合し基本分析のみanalyzed（操作87/188・非default16/20）。previewの限定公開判定と入力変更後のstale表示/応答逆転は静的High候補、直接Vitest/Playwright・Role別実Web・DB/Session前後・製品適合は未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-01`（既存商品の集約編集・ID/version/在庫・画像保全）。直前`SCREEN-ADMIN-PRODUCT-NEW-A02-01`は基本分析のみanalyzed（操作88/188、非default16/20）。preview非書込みの静的経路とSession失効時clear例外を区別。直接Vitest/Playwright、DB全表・Session前後、故障注入、実Web・製品適合は未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-NEW-A02-01（未保存プレビューの非書込み）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**87→88/188**、非default状態**16/20**維持。正式`BR/AC-ADMINCAT-001/002`、active operator/admin、default初期guest/既存11商品、product-aggregate-edit比較、Web UI→Use Case→参照Repository→Seed、High R1-R5/Medium R6-R7とC1-C7を個別照合。製品適合・DB全表不変の実証ではない。
+- **非書込み経路**：`AdminProductNewContent:337-413`のstaff guardと`onPreview`→`ProductEditor:1059-1125`の未保存preview→`AdminProductUseCases.preview:285-440`の`requireStaff`・`validateTextLimits`・asset/category/brand（新規はReviewSummaryなし）参照・DTO返却。preview本体に`transactionRunner.run`/`createAggregate`/ID採番・DB書込み呼出しなし。明示保存は`create:127-155`で別処理。previewの仮IDは`preview`、保存後予告は`draft`。UIは「データベースには保存されていません。」を表示。
+- **重要な認証例外**：`SessionIdentityResolver:27-58`は不正Session ID時に`CurrentSessionStore.clear()`を実行する。失効SessionでローカルSession storeが変わることと、Product/Inventory/Review等のDB書込みを混同しない。正常staffのSession不変、非staff拒否、失効Sessionのcleanupを別Caseで判定。
+- **既存証拠と不足**：`tests/integration/admin-product-use-cases.test.ts:450-480`はpreview DTOと`products.count()`の部分証拠、`tests/component/admin-product-pages.test.tsx:197-211`は未保存表示の部分証拠。正式仕様・Use Case・UI・identity・既存テストの**18/18静的断片assert成功**（実Vitestではない）。Product/Variant/ProductImage/InventoryHistory/ReviewSummary/Session DB全表・versionの前後deep snapshot、故障注入、Role別実Web、連続preview/stale応答、1023/1024px・視覚/a11y、formatter・直接Vitest/Playwright・最終CIは未受入。
+- **Case採否**：C1正常staff DB全表/Session不変、C2正常/失敗/故障注入/連続preview、C3非staff拒否と失効Session clear例外、C4仮ID/draft/未保存表示とcreate境界、C5無効master/asset/画像/SKU/価格/在庫と公開判定差、C6stale応答とDB副作用分離、C7duplicate draftのmount時sessionStorage消費・viewport/a11yを採用。draft保存・既存編集preview・Native管理画面は別操作。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-01`（商品集約編集のRole/ID/version/在庫・画像・ReviewSummary保全）。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-NEW-A01-03（保存前プレビューの表示・入力反映）
 

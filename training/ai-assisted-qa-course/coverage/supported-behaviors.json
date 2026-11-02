@@ -15251,26 +15251,28 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,product-aggregate-edit,無効な必須アセット。role=operator/admin、状態・対象ID・versionを区別。操作: プレビュー中に書込みしない",
+      "data": "Role: active operator/adminのみ（RouteGuard staff＋Use Case requireStaff）。guest/customer/停止staffは拒否、失効SessionはidentityがCurrentSessionStore.clearする例外を分離。State: default空フォーム→入力→未保存preview（新規IDは仮のpreview、statusAfterSave=draft）→明示createでのみ保存。Data: default初期guest/既存11商品・active master/asset候補、product-aggregate-editは比較用、既存商品ID/versionとpreview仮IDを分離。Session/duplicate draftの画面初期化とpreview操作そのものを区別。",
       "action": "プレビュー中に書込みしない",
-      "expected": "プレビュー操作の前後で商品・在庫・アセット・レビュー集約を変更しない",
+      "expected": "active operator/adminの新規フォームで『未保存内容をプレビュー』のみ実行したとき、Use CaseはrequireStaff→validateTextLimits→asset/category/brand参照→価格・在庫/公開可否計算→DTO返却を行い、transactionRunner/createAggregateやID採番・保存を呼ばず、Product/Variant/ProductImage/InventoryHistory/ReviewSummaryと既存商品version/集計を変更しないこと。UIは『データベースには保存されていません。』とdraft予告を表示し、明示『下書きで保存』のcreateと区別する。正常staffのCurrentSessionStore/DB Sessionも不変とするが、存在しないSession IDではSessionIdentityResolverがstore.clearする認証後処理があり、『全失効Sessionでstore不変』とはしない。DB全表不変と実Web/障害注入は未実証。",
       "rule_refs": [],
       "route": "`/admin/products/new`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "プレビュー中に書込みしないの前後に、プレビュー操作の前後で商品・在庫・アセット・レビュー集約を変更しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionとプレビュー中に書込みしないの結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "プレビュー中に書込みしないが不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: previewがProduct/Variant/Image/InventoryHistory/ReviewSummary/既存商品versionへ副作用を残す可能性（コード上はtransaction/create呼出しなし、実Run未確認）。R2: guest/customer/停止staff/失効Sessionで管理preview/候補が露出。R3: 失効Sessionでidentityのstore.clearをpreview DB書込みと誤認する監査誤判定。R4: previewの限定publishabilityIssuesを完全な公開適格性と誤認。R5: 連続previewの古い応答/入力変更後のstale表示（UIの.then(setPreview)は応答世代を照合しない）。Medium R6: duplicate-draft sessionStorageの初回読取り/削除をpreview副作用と混同。R7: 画像・SKU・価格・在庫境界/1023-1024px・視覚/a11y。実不具合確定なし。",
+      "test_condition": "C1 default active operator/adminで未保存previewを実行し、Product/Variant/ProductImage/InventoryHistory/ReviewSummary/Session DB全行・version・件数のbefore/after deep snapshot一致を検証。C2 previewの成功/入力不備・参照不存在・Repository読取り故障・連続実行で同じDB snapshot不変、transactionRunner/createAggregate/ID採番非呼出し。C3 guest/customer/停止staff/失効Sessionの直URLとUse Case直接呼出し拒否、管理DTO/DB非露出；失効SessionのCurrentSessionStore.clearは許容される認証cleanupとして別assert。C4 preview仮ID=preview、statusAfterSave=draft、未保存文言、明示create前に新Product/INITIAL_STOCK/ReviewSummaryなし、create時だけ新ID/version1。C5 default/product-aggregate-edit・inactive/不存在master/asset・画像0/1/3/4、SKU/stock/price境界でpreview issueと保存/公開の差を記録し、誤PASS防止。C6 入力変更後・連打/応答逆転で古いpreview表示とDB不変を別判定。C7 duplicate-draftのmount時sessionStorage消費とpreview時不変を分離し、1023/1024px・keyboard/視覚/a11y・Sessionを確認。",
+      "test_responsibility": "正式BR/AC-ADMINCAT-001/002→StaffPage/RouteGuard→AdminProductNewContent.onPreview→AdminProductUseCases.preview(requireStaff/validateTextLimits、asset/brand/category/ReviewSummary参照、DTO)→ProductEditor未保存表示をC1-C7で検証。previewにはtransactionRunner/createAggregate呼出しなし（静的証拠）。DB全表snapshot・mock call回数・Session store cleanup分岐・UI staleを固定HEAD隔離fixtureで直接実証し、createは明示submit時のみ。既存IntegrationはProduct件数のみ、Componentは未保存文言のみの部分証拠。",
+      "case_policy": "採用: C1正常staffのDB/Session全表非破壊、C2異常/故障注入/連続previewの原子的不変、C3Role/失効Session拒否とstore.clear例外、C4preview仮ID/draft/未保存表示とcreate境界、C5Seed/公開条件の差、C6stale UIとDB副作用の別判定、C7duplicate mount/viewport/a11y。除外: draft createの原子保存/初期在庫成否（A01-01/02）、preview入力反映の網羅（A01-03）、既存商品編集preview（DETAIL-A02-02）、Native管理UI（非サポート）。",
+      "case_selection_reason": "admin-catalog.md:8-23,95-112,210-220の非書込み要求、AdminProductNewPage:337-413→ProductEditor:1059-1125、AdminProductUseCases.preview:285-440（requireStaff、asset/brand/category/summary読取り、DTOのみ）、create:127-155（transactionRunner.run）、SessionIdentityResolver:27-58（不正Session時clear）、default/product-aggregate-edit Seed、既存Integration:450-480とComponent:197-211を照合。18/18静的断片assert成功。全表DB snapshot/Session storeの直接検証と既存Product countテストの証拠範囲を分離した。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 35b365182dae: 正式BR/AC-ADMINCAT-001/002、active operator/admin/guest/停止staff・失効Session、default初期guest/既存11商品とproduct-aggregate-edit、Web StaffPage→onPreview→AdminProductUseCases.preview→read-only Repository→DTO/未保存文言を照合。18/18コード/仕様/既存テスト断片静的assert成功。previewはtransactionRunner/createAggregate/ID採番呼出しなし、createは別の明示submit。重要な例外: SessionIdentityResolver.getCurrentEntityは不正SessionでCurrentSessionStore.clearするため全Session状態の不変を無条件には要求しない。既存Integrationはproducts.countのみ、Componentは未保存文言のみでありDB全表の直接非書込み証明ではない。High R1-R5・Medium R6-R7/C1-C7の採否を記録。直接Vitest/formatter/Playwright、Role別実Web、Product/Variant/Image/InventoryHistory/ReviewSummary/Session DB前後、故障注入、stale応答、視覚/a11y、製品適合、同一最終HEAD全CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.preview"
+      ],
+      "analysis_progress": "2026-11-02 A02-01基本分析のみ完了（操作87→88/188、非default16/20）。previewの非書込み静的経路とSession失効時clear例外、C1-C7のDB全表snapshot/故障注入/Role別直接Run不足を分離。次はSCREEN-ADMIN-PRODUCT-DETAIL-A01-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 337,
@@ -15292,7 +15294,19 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.preview",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 285,
+          "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
