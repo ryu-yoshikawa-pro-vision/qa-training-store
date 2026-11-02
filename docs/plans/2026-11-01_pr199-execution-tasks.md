@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-LIST-A01-02`（本人注文の状態・詳細導線とSnapshot）。直前`SCREEN-ORDERS-LIST-A01-01`は正式仕様/Role/State/Data、Web/Native→listMyOrders→Dexie/SQLite→default Seed、High Risk/TR/Condition/C1〜C6を再照合し**基本分析のみ**`analyzed`（操作60→61/188、非default14/20）。正式仕様の一覧への支払/配送/タイムライン要求とWeb/Nativeの状態・金額表示には静的差候補。実Role別/21件境界/別人注文非露出/DB・Session前後/視覚・正式オラクルは別の検証待ち。次はA01-02を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-LIST-A02-01`（注文0件の空状態と表示導線）。直前`SCREEN-ORDERS-LIST-A01-02`は正式BR/AC・Role/State/Data、Web/Native一覧→listMyOrders→Dexie/SQLite、default/processing SeedのPayment/Shipment/History、High Risk/TR/Condition/C1〜C6を再照合し**基本分析のみ**`analyzed`（操作61→62/188、非default14/20）。一覧にはorder.statusのみで、正式仕様が要求するPayment/Shipment/Timelineの独立表示は詳細画面側にある静的差候補。Seed Historyは各注文最終状態1行、processingは同時刻履歴のため、時系列・実画面・正式オラクルは別受入待ち。次はA02-01を1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A01-02（支払・配送・タイムラインの基本分析）
+
+- **正式仕様/Role/State/Data**：`docs/spec/features/orders.md:13-36,86-96`のBR-ORDER-001/002・AC-ORDER-001/002と一覧の支払・配送・タイムライン要求を確認。default Seed初期guest→regular本人に5状態（payment_failed/paid/preparing/shipped/delivered）のOrder。Paymentは失敗/成功、Shipmentはpreparing→pending、shipped→shipped、delivered→delivered、paid/failedはなし。defaultのOrderStatusHistoryは各Orderに最終状態1行で、全遷移時系列の直接証拠にはならない。payment-processingは失敗注文をpending_payment/processingへ変換し、同一BASE_CLOCKのretry履歴を追加するため順序の実証が必要。orders-phase1-statusesは初期operatorのためCustomerへ切替が必要。
+- **UI→Use Case→Repositoryと静的差**：Web `checkout-order-pages.tsx:614-649`・Native `native-purchase-screens.tsx:1125-1164`の注文一覧は`OrderListItem`のorder.status・合計・番号・詳細リンクのみ表示。`CheckoutOrderUseCases.listMyOrders:377-387`→Dexie `order-review-repositories.ts:145-168` / SQLite `native-customer-application-repositories.ts:2210-2255` は本人userIdでOrderのみ一覧DTO化。詳細の`getMyCustomerOrder/getDetail`ではPayment/Shipment/Timelineを取得しWeb/Native詳細で表示する。**正式一覧要求と現行一覧表示の位置差**は静的候補であり、製品不具合・適合PASSは未確定。
+- **High Risk/TR/Condition/Case採否**：C1=5状態のOrder/Payment/Shipment/History同一orderId突合（静的採用）、C2=processing Seedのpending_payment/Payment.processingと同時刻History（静的採用、順序実Run待ち）、C3=guest/operator/別customerの非露出（負例実Run待ち）、C4=paid→preparing→shipped→deliveredの遷移・version・履歴整合（実Run待ち）、C5=一覧と詳細の支払/配送/タイムライン表示位置の正式オラクル（判断待ち）、C6=Web/Android・DB/Session前後・視覚/a11y・並列（実Run待ち）。Highは他人の支払/配送情報露出と未払/処理中の誤完了表示。Seed Historyの単一行を全遷移のPASSにしない。
+- **独立判定・引継ぎ**：現行HEAD `e702dc0ffc66`の仕様/Role/State/Data/UI→UseCase→Repository→SeedとCase採否を再照合し、**基本分析のみ**`review_required→analyzed`（操作**61→62/188**、非default**14/20**）。新規直接Vitest/formatter/実Web/Androidは未実施。現HEADのWeb CI #41387632988はcompleted/failure（Code Quality・Integration/Unit/Repository/Component・Training runtime成功、Contracts全体/Style Quality/required Chromium E2E/verify/validate失敗）。最終HEAD全CIは別判定。再開条件は固定HEADのRole別・状態別実画面、Payment/Shipment/History・Session/DB前後、全遷移/並列・視覚/a11y、正式一覧表示オラクル。次は実在`review_required`の`SCREEN-ORDERS-LIST-A02-01`。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A01-01（本人注文一覧・所有権と金額の基本分析）
 

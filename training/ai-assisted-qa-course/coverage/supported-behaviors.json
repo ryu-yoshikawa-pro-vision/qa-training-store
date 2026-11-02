@@ -10717,28 +10717,33 @@
       "source_line": 27,
       "source_text": "カスタマー自身の注文番号、合計金額、支払い、配送、タイムラインを一覧表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-empty,orders-phase1-statuses,payment-processing,payment-declined。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 支払・配送状況とタイムライン",
+      "role": "active customer本人（default初期guestからregular@example.comへログイン）。guest/operator/admin/別customerは本人注文を取得できない",
+      "scenario": "defaultの5注文状態をregular本人で確認。payment-processingは失敗注文をpending_paymentへ変換し、orders-phase1-statusesは初期operatorなので本人Customerへ切替が必要。orders-emptyは別ID",
+      "data": "default Seedはregular本人のpayment_failed/paid/preparing/shipped/delivered各1注文。Paymentはfailed/succeeded、Shipmentはpreparing→pending、shipped→shipped、delivered→delivered、paid/failedは未作成。orderHistoriesは各注文に最終状態1行のみで、全遷移の時系列はSeedだけでは実証不可。payment-processingはpending_payment/processingと同時刻のretry履歴を持つ。Web/Native一覧DTOはOrderListItemでorder.statusのみ",
       "action": "支払・配送状況とタイムライン",
-      "expected": "支払status・配送status・時系列が同じ注文の現在状態を示し、前後関係の矛盾がない",
+      "expected": "本人注文の支払・配送状態と時系列は同じorderIdのOrder/Payment/Shipment/OrderStatusHistoryと矛盾せず、未払・処理中・配達完了を取り違えない。正式一覧仕様は支払・配送・タイムラインの表示を要求するが、現行Web/Native一覧はOrder.statusのみで詳細画面に支払/配送/タイムラインがあるため、表示位置の正式適合は別途判定する",
       "rule_refs": [],
       "route": "`/orders`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "支払・配送状況とタイムラインの事前状態・実施後を比較し、支払status・配送status・時系列が同じ注文の現在状態を示し、前後関係の矛盾がないことを確認する",
-      "test_responsibility": "支払・配送状況とタイムラインの所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "支払・配送状況とタイムラインの誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 本人以外のPayment/Shipment/History露出、payment_failed/pending_paymentを支払済みと誤表示、ShipmentとOrderの状態不整合、同時刻Historyの誤順序、正式一覧の支払・配送・タイムライン非表示",
+      "test_condition": "C1=default本人5状態のOrder/Payment/Shipment/HistoryをorderIdで突合し、preparing→Shipment.pendingとpaid/failedのShipmentなしを明示。C2=payment-processingのpending_payment/Payment.processingと再試行履歴（同一BASE_CLOCKの順序未保証）。C3=guest/operator/別customerの一覧・詳細・DB非露出。C4=paid→preparing→shipped→deliveredの許可遷移とversion競合/履歴順序を独立Runで検証。C5=Web/Native一覧のorder.status表示と詳細のPayment/Shipment/Timeline表示位置を正式仕様に照合。C6=実Web/Android・DB/Session前後・視覚/a11y・複数Sessionを別受入とする",
+      "test_responsibility": "OrdersContent/NativeOrdersScreen→CheckoutOrderUseCases.listMyOrders(requireCustomer)→Dexie/SQLite listByUser(userId)の一覧DTOと、詳細のgetMyCustomerOrder→getDetail(Payment/Shipment/History)を分離し、同一orderIdの整合性と表示位置の差を検証する",
+      "case_policy": "C1/C2=Seed・DTO・Repositoryの静的採用、C3=本人認可と別顧客非露出を負例採用、C4=遷移/History/versionの実Run待ち、C5=正式UI表示オラクル待ち、C6=実Web/Native/DB・視覚の証拠待ち。静的監査を製品適合・実Run PASSにしない",
+      "case_selection_reason": "決済済みと失敗/処理中の誤認および他人の支払・配送履歴の漏洩はHigh。Seedの最終状態のみでは時系列の正しさを証明できず、一覧と詳細の表示位置も正式仕様との独立判定が必要",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD e702dc0ffc66: orders.md BR-ORDER-001/002・AC-ORDER-001/002と一覧要求、default/processing Seed、Web OrdersContent:614-649、NativeOrdersScreen:1125-1164→listMyOrders:377-387→Dexie listByUser:145-168/SQLite:2210-2255、詳細getDetailのPayment/Shipment/History DTOを再照合。default 5状態のPayment/Shipment組合せとSeedのHistory各1行、processing再試行の同時刻履歴を確認。現行一覧DTOにPayment/Shipment/Timelineはなく、Web/Nativeは注文statusのみ表示し、詳細画面には個別表示あり。正式一覧表示との静的差候補（不具合未確定）とHigh Risk/TR/Condition/C1-C6採否を個別確定したため基本分析のみanalyzed。実Web/Android、全遷移履歴、別Role、並列・DB/Session snapshot、視覚/a11y、正式表示オラクル、最終CIは未受入。",
       "requirement_refs": [
         "BR-ORDER-001",
         "BR-ORDER-002",
         "AC-ORDER-001",
-        "AC-ORDER-002"
+        "AC-ORDER-002",
+        "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.listMyOrders",
+        "CheckoutOrderUseCases.getMyOrder",
+        "CheckoutOrderUseCases.getMyCustomerOrder"
+      ],
+      "analysis_progress": "2026-11-02 基本分析review_required→analyzed（操作61→62/188、状態14/20）。直接Vitest/formatter/実Web/Android未実施。Seedの単一Historyでは時系列を証明できず、payment-processingは同一時刻Historyで順序要検証。Web/Native一覧の支払・配送・Timeline非表示は正式オラクル待ち。再開条件は固定HEADで本人/別Role・各状態の実画面、Order/Payment/Shipment/History/Session前後、実遷移・並列のログ、視覚/a11yと正式UI判断。次はSCREEN-ORDERS-LIST-A02-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 606,
@@ -10763,7 +10768,68 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 13,
+          "end_line": 96,
+          "reason": "BR/ACと一覧に支払・配送・タイムラインを要求"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 614,
+          "end_line": 649,
+          "reason": "Web一覧はOrder.statusと合計・詳細リンクのみ"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1125,
+          "end_line": 1164,
+          "reason": "Native一覧はOrder.statusと合計・詳細リンクのみ"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 377,
+          "end_line": 411,
+          "reason": "requireCustomerの本人注文一覧と詳細取得の分離"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 75,
+          "end_line": 168,
+          "reason": "詳細のPayment/Shipment/History DTOと本人一覧DTOの差"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2195,
+          "end_line": 2255,
+          "reason": "SQLite詳細と本人user_id一覧の分離"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 583,
+          "reason": "5注文状態のPayment/Shipment/History初期値（各History1行）"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 91,
+          "reason": "default/orders-phase1-statuses/payment-processing/emptyの変換入口"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 145,
+          "end_line": 245,
+          "reason": "配送遷移は別のstaff用transactionで更新し一覧表示そのものではない"
+        }
+      ]
     },
     {
       "id": "SCREEN-ORDERS-LIST-A02-01",
