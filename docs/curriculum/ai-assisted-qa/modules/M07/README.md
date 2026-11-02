@@ -216,9 +216,15 @@ Step 6: 事実の記録 ────── 判明した客観的事実をメモ�
 
 #### 演習の準備
 
-VS Codeのターミナルを開きます。作業対象のspecファイルは `repaired-assertion.spec.ts` です。
-**【超重要】この段階では、まだテストコードを修正しないでください。**
-修正前の「失敗した記録（before Run）」を確実に残すことが、後の比較検証において必須となるからです。
+VS Codeのターミナルを開きます。まず診断素材Aの`failure-assertion.spec.ts`を**変更せず**実行し、存在しない商品見出しを期待したAssertionの失敗を確認します。
+
+```bash
+pnpm course:run M07 failure-assertion.spec.ts --label diagnostic
+```
+
+この診断Runは、修正用specのbefore/afterとは別に保存します。次に`repaired-assertion.spec.ts`を修正対象にします。配布直後のこのファイルは`throw new Error("TODO: ...")`で停止する未完成specであり、**診断素材AのAssertion失敗と同じエラーにはなりません**。正式Cart仕様と診断Runの結果を踏まえ、TODOを業務Assertionへ置き換える練習です。
+
+**この段階では、まだ修正用specを編集しないでください。** 同じspecの修正前と修正後を別Runとして残します。
 
 #### 手順1：修正前のテストを実行する（before Runの作成）
 
@@ -232,7 +238,7 @@ pnpm course:run M07 repaired-assertion.spec.ts --label before
 
 #### 手順2：実行ログを確認する
 
-テストが実行され、ターミナル上に赤い文字で「FAIL」と表示されて終了します。ターミナルに表示された出力ログから、以下の項目を作業メモに書き出してください。
+修正用specは現状TODOエラーによってFAILになります。診断素材Aの実RunではAssertionがFAILしますが、**異なるspec・原因・Run ID**として記録してください。ターミナルに表示された出力ログから、以下の項目を作業メモに書き出してください。
 
 - 失敗したテストケースの名前
 - 最初にエラーを出力したファイルの行番号
@@ -494,7 +500,7 @@ pnpm course:run M07 repaired-assertion.spec.ts --label after
 
 #### 演習のシチュエーション
 
-カート画面の数量確認テスト（`repaired-assertion.spec.ts`）がタイムアウトで失敗した際、AIツールが次の2つの修正案を提示してきました。
+以下は数量確認テストがタイムアウトで失敗した**架空の場面**についてのAI修正案です。配布直後の`repaired-assertion.spec.ts`はTODOエラーで失敗し、この場面の数量Assertionやタイムアウトを実際に観測したわけではありません。
 
 - **案A**：
   「テスト全体の待機時間を毎回30秒延長しましょう。そして、失敗している数量Assertion（`toHaveText("1")`）を、要素が画面に存在するかどうかだけを確認する緩いチェック（`toBeVisible()`）に書き換えれば、エラーが出なくなります。」

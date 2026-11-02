@@ -772,6 +772,31 @@ describe("AI-assisted QA distribution contract", () => {
     expect(readme).not.toContain("Locatorは合っているがAssertionが案内文だけを確認している");
   });
 
+  it("keeps M07 diagnostic Assertion failure separate from the repair TODO and runs", () => {
+    const exercise = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/exercises/M07/exercise.md"),
+      "utf8",
+    );
+    const lesson = fs.readFileSync(
+      path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/modules/M07/README.md"),
+      "utf8",
+    );
+    const diagnostic = fs.readFileSync(
+      path.join(repositoryRoot, "workspace/M07/failure-assertion.spec.ts"),
+      "utf8",
+    );
+    const repair = fs.readFileSync(
+      path.join(repositoryRoot, "workspace/M07/repaired-assertion.spec.ts"),
+      "utf8",
+    );
+    expect(diagnostic).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
+    expect(repair).toContain('throw new Error("TODO:');
+    expect(exercise).toContain("course:run M07 failure-assertion.spec.ts --label diagnostic");
+    expect(exercise).toContain("course:run M07 repaired-assertion.spec.ts --label before");
+    expect(exercise).toContain("course:run M07 repaired-assertion.spec.ts --label after");
+    expect(lesson).toContain("診断素材AのAssertion失敗と同じエラーにはなりません");
+  });
+
   it("ships complete M08 and M10 public handoff bundles within their single-module loads", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m07End = JSON.parse(

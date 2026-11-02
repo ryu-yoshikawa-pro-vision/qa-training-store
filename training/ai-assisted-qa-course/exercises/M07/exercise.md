@@ -6,23 +6,29 @@
 
 ## 手順
 
-1. Aの`workspace/M07/repaired-assertion.spec.ts`を修正前に実行し、失敗したAssertionとTraceを確認します。失敗Runも証拠として保存されます。
+1. 診断素材Aの`workspace/M07/failure-assertion.spec.ts`を**変更せず**実行し、存在しない商品見出しを期待したAssertionの失敗とTraceを確認します。このRunは修正対象のbefore Runとは別の診断記録です。
+
+   ```bash
+   pnpm course:run M07 failure-assertion.spec.ts --label diagnostic
+   ```
+
+2. 修正対象の`workspace/M07/repaired-assertion.spec.ts`をまだ編集せず、before Runを保存します。初期状態のこのspecは**明示的なTODOエラー**で失敗するため、診断素材AのLocator/Assertion失敗と混同しません。
 
    ```bash
    pnpm course:run M07 repaired-assertion.spec.ts --label before
    ```
 
-2. 修正案が期待結果を弱めないか、仕様と照合して一つだけ直し、別Runで成功を確認します。
+3. 診断素材Aと正式なCart仕様を参照し、修正対象のTODOを必要な業務Assertionに置き換えます。対象商品と数量1など、実際に保証すべき結果を検証し、Assertionを削除してPASSにしません。修正対象の別Runを実行します。
 
    ```bash
    pnpm course:run M07 repaired-assertion.spec.ts --label after
    ```
 
-3. B/CではTest、Product、Environment、Flakyの仮説を列挙し、追加で必要な証拠を示します。
-4. RetryやTimeout延長を原因修正と呼ばず、Trace、Screenshot、ログが示す範囲と限界を記録します。
-5. `workspace/M07/maintenance.spec.ts`の2件を単独実行し、変更前Runを記録します。両testのResetと「マグ追加→カート表示」の重複を探します。
-6. テストごとのResetをPlaywright標準fixtureへ移し、重複する画面操作を小さなPage Objectへまとめます。追加ボタンのLocatorには完全一致を指定し、変更箇所を1か所に集めます。数量1・数量2のAssertionは各testに残し、仕様の確認を弱めません。
-7. 既存2件を共通化した後、P05にある「数量を2へ更新してCartを開き直す」**3件目のtest**を追加します。各testが独立してResetを実行し、業務Assertionを維持していることを確認します。変更前後のspec・コマンド・結果を記録し、1件だけの操作で抽象化が不要な別例も挙げます。失敗時はReset、Locator、AssertionとTraceを確認し、結果を推測しません。
+4. B/CではTest、Product、Environment、Flakyの仮説を列挙し、追加で必要な証拠を示します。
+5. RetryやTimeout延長を原因修正と呼ばず、Trace、Screenshot、ログが示す範囲と限界を記録します。
+6. `workspace/M07/maintenance.spec.ts`の2件を単独実行し、変更前Runを記録します。両testのResetと「マグ追加→カート表示」の重複を探します。
+7. テストごとのResetをPlaywright標準fixtureへ移し、重複する画面操作を小さなPage Objectへまとめます。追加ボタンのLocatorには完全一致を指定し、変更箇所を1か所に集めます。数量1・数量2のAssertionは各testに残し、仕様の確認を弱めません。
+8. 既存2件を共通化した後、P05にある「数量を2へ更新してCartを開き直す」**3件目のtest**を追加します。各testが独立してResetを実行し、業務Assertionを維持していることを確認します。変更前後のspec・コマンド・結果を記録し、1件だけの操作で抽象化が不要な別例も挙げます。失敗時はReset、Locator、AssertionとTraceを確認し、結果を推測しません。
 
 変更前にCodespacesのターミナルで次を実行し、2件の結果を記録します。
 
