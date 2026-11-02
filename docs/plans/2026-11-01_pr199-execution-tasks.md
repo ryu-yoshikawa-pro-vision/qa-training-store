@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-FAILED-A02-02`（失敗注文を成功扱いしない結果境界）。直前A02-01は3決済拒否と成功Gateway後の在庫不足を、正式仕様・Role/State/Data・Web/Native→Use Case→Dexie/SQLite transaction→Gateway・default Seed・Risk/TR/Condition/C1〜C5採否で再照合し、**基本分析のみ**`analyzed`（操作56/188、非default14/20）。既存integrationの拒否/在庫不足直接Caseと現HEADのintegration job成功は証拠だが、Web/Android実画面・全DB/Session前後・並列Gateway・視覚/a11y・製品適合・全CI成功は別未受入。次は実在`review_required`のA02-02を共通キューで1件扱う。
+- **現在の対象**：`SCREEN-CHECKOUT-FAILED-A01-02`（失敗後の許可された再試行）。A02-02は現行台帳で基本分析`analyzed`（操作57/188）。A01-01も正式仕様/Role/State/Data、Web/Native→Use Case→Dexie/SQLite、default/payment-declined Seed、Risk/TR/Condition/C1〜C5、既存component/integrationの直接証拠を再照合して**基本分析のみ**`analyzed`（操作58/188、非default14/20）。ただしWeb/Nativeが個別の失敗理由を表示しない静的差分は製品適合未確定、実Web/Android・全DB/Session snapshot・視覚/a11yは未受入。次は実在`review_required`のA01-02を1件扱う。直前A02-01は3決済拒否と成功Gateway後の在庫不足を、正式仕様・Role/State/Data・Web/Native→Use Case→Dexie/SQLite transaction→Gateway・default Seed・Risk/TR/Condition/C1〜C5採否で再照合し、**基本分析のみ**`analyzed`（操作56/188、非default14/20）。既存integrationの拒否/在庫不足直接Caseと現HEADのintegration job成功は証拠だが、Web/Android実画面・全DB/Session前後・並列Gateway・視覚/a11y・製品適合・全CI成功は別未受入。次は実在`review_required`のA02-02を共通キューで1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A01-01（決済拒否通知の基本分析）
+
+- **正式仕様・Role/State/Data**：`BR-CHECKOUT-003/AC-CHECKOUT-003`と`SCREEN-CHECKOUT-FAILED`の「決済拒否の通知、失敗理由、再試行」を照合。default/payment-declinedは初期guest、regular本人で既存`order-payment-failed`（Order=payment_failed/Payment=failed/errorCode=DECLINED）を取得。3拒否TEST-DECLINED/INSUFFICIENT/AUTH_FAILEDと最終在庫不足OUT_OF_STOCKを区別する。guest/operator/別customerは本人Orderを取得できない。
+- **実装経路と発見**：`MockPaymentGateway.charge→CheckoutOrderUseCases.resumePayment/finalizeFailure→Dexie/Native SQLite Payment/Order/History→getMyOrder→resolveCheckoutResultKind→Web/Native失敗画面`を再照合。両RepositoryのOrderDetailはPayment.errorCodeから`payment.errors.<code>`の`errorDisplayKey`を生成するが、Web `OrderResultContent`とNative `NativeCheckoutResultScreen`の失敗画面は汎用の失敗見出し・再試行案内のみで個別理由を表示しない。**正式UI仕様との静的差分候補**として記録し、実画面と正式期待が未確定のため製品不具合とは断定しない。
+- **High Risk/TR/Condition/Case採否**：C1=本人失敗通知/逆URL/成功非表示（既存Web component直接Case、Nativeは静的照合）、C2=3拒否のPayment.errorCode/Order失敗/在庫不変（既存integration直接Case）、C3=DTO理由キーと画面表示の差・4失敗理由の期待（実Run/正式判断待ち）、C4=guest/別人/欠落ID非露出（Use Case/既存component mock、実Role別待ち）、C5=実Web/Androidの理由別表示・DB/Session/Cart/Payment前後・視覚/a11y・競合（実Run待ち）。再試行成功はA01-02、失敗在庫はA02-01、結果境界はA02-02と責務を分離。
+- **直接証拠と独立判定**：`tests/component/checkout-order-pages.test.tsx:273-302`、`tests/integration/checkout-order-use-cases.test.ts:230-277`を確認。現HEAD `d71accbc060f`の[Web CI #41379490990](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41379490990)ではcomponent/integrationはsuccess、contracts/Style Quality/required Chromium E2E/verify/validateはfailure。今回新規Vitest・formatter・実Web/Androidは未実施。**基本分析のみ**`review_required→analyzed`（操作57→58/188、非default14/20）。製品UI適合、理由の正式オラクル、全DB/Session前後、視覚/a11y、並列Gateway、最終HEADの全CIは未受入。再開条件は固定HEADのWeb/Android理由別実Run・DB snapshotと仕様判断。次の共通対象は`SCREEN-CHECKOUT-FAILED-A01-02`。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-FAILED-A02-01（失敗時在庫保護の基本分析）
 

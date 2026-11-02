@@ -9861,30 +9861,29 @@
       "source_line": 213,
       "source_text": "決済拒否の通知、再試行、カート画面や注文内容確認への導線を表示する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-declined,checkout-resume,在庫変更前後。Customer本人/他人・activeセッション・versionを区別する。対象動作: 決済拒否を通知",
+      "role": "active customer（本人のOrderのみ。guest/operator/別customerはrequireCustomerとorder.userIdで拒否。default/payment-declinedは初期guestなのでregular@example.comで本人ログイン）",
+      "scenario": "defaultおよびpayment-declined（変換はdefault datasetそのまま）。order-payment-failedのOrder=payment_failed/最新Payment=failed/DECLINEDを本人で取得。新規3拒否TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILEDと成功Gateway後のOUT_OF_STOCKを別Caseにする。guest/別customer・存在しないID・逆URLは負例",
+      "data": "default Seedのorder-payment-failedはOrder=payment_failed、Payment=failed/errorCode=DECLINED/attemptNumber=1、初期guest。MockPaymentGatewayは3拒否コードを返し、resumePayment→finalizeFailureがPayment/Order/Historyを失敗確定。Dexie/Native SQLiteのOrderDetail DTOは最新Payment.errorCodeをpayment.errors.<code>形式のerrorDisplayKeyへ変換するが、Web/Nativeの失敗結果画面は共通の失敗見出し・再試行案内のみを表示し、errorDisplayKeyやDECLINED/INSUFFICIENT/AUTH_FAILEDの理由を表示しない（静的UI差）",
       "action": "決済拒否を通知",
-      "expected": "モック決済が失敗した場合に拒否結果を表示し、成功注文として扱わない",
+      "expected": "本人の保存済みOrder=payment_failedかつ最新Payment=failedの場合、Web/Androidで失敗を通知し成功表示しない。正式UI仕様は失敗理由と再試行アクションを要求するため、理由の可視化（3拒否/OUT_OF_STOCKの区別）を実Web/Nativeで確認し、現行の汎用案内のみの表示が仕様に適合するか判断待ち。guest/他人Orderには結果情報を開示しない",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "決済拒否を通知について、モック決済が失敗した場合に拒否結果を表示し、成功注文として扱わないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と決済拒否を通知の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "決済拒否を通知の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 拒否を成功扱いする誤表示、DECLINED/INSUFFICIENT/AUTH_FAILED/OUT_OF_STOCKの理由を識別できないため利用者が誤再試行する可能性、他人Orderの番号/金額露出。画面上の理由欠落は静的差分候補であり、製品不具合・決済損害は未確定",
+      "test_condition": "C1=default/payment-declinedの失敗Orderを本人で取得し、Web/Nativeで失敗見出し・再試行導線・成功非表示を確認（既存componentの逆URL/失敗状態Case）。C2=3拒否GatewayのOrder/Payment.errorCodeと在庫不変・Shipmentなしを既存integrationで照合。C3=DTO.errorDisplayKey（DECLINED/INSUFFICIENT/AUTH_FAILED/OUT_OF_STOCK）とWeb/Native実画面の理由表示を突合し、汎用案内のみなら仕様期待の判断を求める。C4=guest/operator/別customer/欠落orderIdを拒否し番号/金額非露出。C5=固定HEAD実Web/AndroidのRole別・4失敗理由・再試行/逆URL、DB/Session/Cart/Payment前後・視覚/a11y・別Session競合を実証",
+      "test_responsibility": "MockPaymentGateway.charge→CheckoutOrderUseCases.resumePayment/finalizeFailure→Dexie/SQLite Payment/Order/History→getMyOrder(requireCustomer+本人所有権)→OrderRepository.getDetail(errorDisplayKey)→resolveCheckoutResultKind→Web OrderResultContent/NativeCheckoutResultScreen。既存integrationは3拒否の永続化、componentは逆URLと失敗表示を検査するが、理由表示・実Web/Android/全DB snapshotは未受入",
+      "case_policy": "C1（失敗通知と逆URL）・C2（3拒否と保存結果）は採用し既存component/integrationを直接根拠にする。C3（個別失敗理由の可視化）はHighの仕様差候補として採用・実Run/正式期待待ち。C4（認可/欠落）は既存Use Case/画面分岐とcomponentの静的・mock根拠を採用。C5（実Web/Android/DB/Session/視覚/並列）は実Run待ち。再試行成立はFAILED-A01-02、失敗時在庫はFAILED-A02-01、結果状態境界はFAILED-A02-02へ分離",
+      "case_selection_reason": "決済拒否通知はOrder/Paymentの保存済み結果がオラクルであり、URLやGateway呼出し直後のメッセージだけでは成功/失敗を判断できない。3拒否と在庫不足は利用者に必要な対応が異なるため理由表示を別Caseにする。基本分析と製品UI適合・実Runの受入を分離",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02現行mainのBR-CHECKOUT-003/AC-CHECKOUT-003（checkout-and-payment.md:17-23,210-214,250-254）、SCREEN-CHECKOUT-FAILEDの機能・default視覚要求、Role/State/Data、Web checkout-order-pages.tsx:508-607、Native native-purchase-screens.tsx:1020-1105、getMyOrder:389-396、resolveCheckoutResultKind:63-78、resumePayment/finalizeFailure:311-329,500-538、Dexie OrderRepository.getDetail:67-129、Native SQLite getDetail:2142-2186、MockPaymentGateway:13-40、default Seed:400-556とpayment-declinedの無変換:76-79/初期guest metadata:75-84を照合。既存Web component checkout-order-pages.test.tsx:273-302は逆URLの失敗見出し・再試行/欠落ID/未認可、integration checkout-order-use-cases.test.ts:230-277は3拒否のPayment.errorCode/Order失敗/在庫不変を直接検査。HEAD d71accbc Web CI #41379490990のcomponent/integration jobはsuccess、全体CIはfailure。DTOにはerrorDisplayKeyがあるがWeb/Nativeの失敗画面は汎用文言のみで個別理由を表示しない静的差分を確認。C1-C5の採否・High Risk/TR/Conditionを整理し基本分析のみ成立。理由の正式オラクル、実Web/Android、全DB/Session前後、視覚/a11y、製品適合、同一最終HEAD全CIは未受入",
       "requirement_refs": [
-        "BR-CHECKOUT-001",
-        "BR-CHECKOUT-002",
         "BR-CHECKOUT-003",
-        "AC-CHECKOUT-001",
-        "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.resumePayment",
+        "CheckoutOrderUseCases.getMyOrder"
+      ],
+      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 HEAD d71accbcで現行仕様/Role/State/Data→Web/Native→Use Case→Dexie/SQLite→Seed/既存component+integrationを再照合し基本分析のみanalyzed。失敗理由表示の静的差分は正式判断・実画面待ち。次はFAILED-A01-02",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 508,
@@ -9907,7 +9906,123 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getMyOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 389,
+          "signature": "async getMyOrder(orderId: string): Promise<OrderDetailDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.resumePayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 311,
+          "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 17,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003の拒否と失敗確定"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 210,
+          "end_line": 222,
+          "reason": "失敗画面の理由と再試行、default UI状態"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 250,
+          "end_line": 254,
+          "reason": "AC-CHECKOUT-003の整合性"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "3拒否のGateway errorCode"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 311,
+          "end_line": 329,
+          "reason": "本人Orderとprocessing Paymentから再開"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 389,
+          "end_line": 396,
+          "reason": "本人所有権とOrderDetail"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 500,
+          "end_line": 538,
+          "reason": "失敗確定時のPayment/Order/History"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 67,
+          "end_line": 129,
+          "reason": "errorDisplayKeyを含むPayment試行DTO"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2142,
+          "end_line": 2186,
+          "reason": "Native SQLiteもerrorDisplayKeyを返す"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 400,
+          "end_line": 556,
+          "reason": "既存payment_failed/DECLINED Seedと本人Order"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 73,
+          "end_line": 80,
+          "reason": "payment-declinedはdefault datasetを維持"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 84,
+          "reason": "default初期guestとregular本人ログイン"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 508,
+          "end_line": 607,
+          "reason": "Web失敗見出しと汎用案内、理由キー未使用"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1020,
+          "end_line": 1105,
+          "reason": "Native失敗見出しと汎用案内、理由キー未使用"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 273,
+          "end_line": 302,
+          "reason": "逆URL/失敗見出し/未認可モック"
+        },
+        {
+          "path": "tests/integration/checkout-order-use-cases.test.ts",
+          "start_line": 230,
+          "end_line": 277,
+          "reason": "3拒否のPayment.errorCode・在庫不変・Shipmentなし"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-FAILED-A01-02",
