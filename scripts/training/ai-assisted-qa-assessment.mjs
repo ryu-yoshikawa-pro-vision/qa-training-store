@@ -929,10 +929,47 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
   const calibrationId = result.evaluator?.calibration_id;
   if (typeof calibrationId !== "string" || !/^[a-f0-9]{64}$/.test(calibrationId))
     fail("saved completed assessment calibration ID is invalid");
-  const calibration = readJson(
-    assertAssessmentPath(workspaceRoot, `.course-assessments/calibrations/${calibrationId}.json`),
-    "saved model calibration",
+  // A successful retry may have an immutable failed legacy cache. Prefer the
+  // calibration recorded in this attempt; cached successes have no attempt copy.
+  const attemptCalibrationPath = assertAssessmentPath(
+    workspaceRoot,
+    `${relative}/calibration-result.json`,
   );
+  const attemptCandidatePath = assertAssessmentPath(
+    workspaceRoot,
+    `${relative}/calibration-candidate.json`,
+  );
+  const hasAttemptCalibration =
+    fs.existsSync(attemptCalibrationPath) || fs.existsSync(attemptCandidatePath);
+  let calibration;
+  if (hasAttemptCalibration) {
+    if (
+      !fs.existsSync(attemptCalibrationPath) ||
+      !fs.existsSync(attemptCandidatePath) ||
+      !fs.lstatSync(attemptCalibrationPath).isFile() ||
+      !fs.lstatSync(attemptCandidatePath).isFile()
+    )
+      fail("saved completed assessment has an incomplete attempt calibration");
+    calibration = readJson(attemptCalibrationPath, "saved attempt calibration");
+    const candidateCalibration = readJson(attemptCandidatePath, "saved attempt calibration candidate");
+    if (
+      !Array.isArray(candidateCalibration.case_results) ||
+      !Number.isInteger(calibration.case_count) ||
+      calibration.case_count < 1 ||
+      candidateCalibration.case_results.length !== calibration.case_count ||
+      new Set(candidateCalibration.case_results.map((item) => item?.case_id)).size !==
+        calibration.case_count
+    )
+      fail("saved attempt calibration candidate does not match its case count");
+  } else {
+    const sharedPath = assertAssessmentPath(
+      workspaceRoot,
+      `.course-assessments/calibrations/${calibrationId}.json`,
+    );
+    if (!fs.existsSync(sharedPath) || !fs.lstatSync(sharedPath).isFile())
+      fail("saved completed assessment has no valid passing calibration");
+    calibration = readJson(sharedPath, "saved model calibration");
+  }
   const objectiveIds = manifest.objective_ids;
   if (
     manifest.assessment_id !== result.assessment_id ||
@@ -956,8 +993,11 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
     result.deterministic_checks.some((item) => item.status !== "passed") ||
     calibration.id !== calibrationId ||
     !isPassingCalibration(calibration) ||
+    sha256(JSON.stringify(calibration.identity)) !== calibrationId ||
     calibration.identity?.model_id !== result.evaluator.model_id ||
     calibration.identity?.opencode_version !== result.evaluator.opencode_version ||
+    calibration.identity?.evaluator_prompt_sha256 !== result.versions?.evaluator_prompt_sha256 ||
+    calibration.identity?.calibration_prompt_sha256 !== result.versions?.calibration_prompt_sha256 ||
     !isDeepStrictEqual(calibration.identity?.asset_hashes, result.versions?.asset_hashes)
   )
     fail("saved completed assessment lacks consistent verified mastery evidence");

@@ -341,8 +341,15 @@ it("restores a completed result only with the matching candidate and passing cal
   const assessmentId = "123e4567-e89b-42d3-a456-426614174003";
   const sourceSha = "pinned-source";
   const modelId = "provider/model";
-  const calibrationId = "a".repeat(64);
   const assetHashes = { curriculum: "pinned-hash" };
+  const calibrationIdentity = {
+    model_id: modelId,
+    opencode_version: "2.0.22",
+    calibration_prompt_sha256: "calibration-prompt",
+    evaluator_prompt_sha256: "evaluator-prompt",
+    asset_hashes: assetHashes,
+  };
+  const calibrationId = sha256(JSON.stringify(calibrationIdentity));
   const candidate = {
     schema_version: 1,
     assessment_id: assessmentId,
@@ -366,11 +373,8 @@ it("restores a completed result only with the matching candidate and passing cal
     status: "passed",
     critical_false_passes: 0,
     mismatches: [],
-    identity: {
-      model_id: modelId,
-      opencode_version: "2.0.22",
-      asset_hashes: assetHashes,
-    },
+    identity: calibrationIdentity,
+    case_count: 1,
   };
   const result = finalizeAssessment({
     candidate,
@@ -382,6 +386,8 @@ it("restores a completed result only with the matching candidate and passing cal
       modelId,
       openCodeVersion: "2.0.22",
       asset_hashes: assetHashes,
+      calibration_prompt_sha256: calibrationIdentity.calibration_prompt_sha256,
+      evaluator_prompt_sha256: calibrationIdentity.evaluator_prompt_sha256,
     },
     inputSnapshot: [{ evidence_id: "E-M04-01-LIVE", path: "workspace/M04/answers.md" }],
     deterministicChecks: [{ id: "M04-END", status: "passed" }],
@@ -408,13 +414,28 @@ it("restores a completed result only with the matching candidate and passing cal
     }),
   );
   fs.writeFileSync(candidatePath, JSON.stringify(candidate));
-  fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
+  fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, status: "failed" }));
+  fs.writeFileSync(path.join(attempt, "calibration-result.json"), JSON.stringify(calibration));
+  fs.writeFileSync(
+    path.join(attempt, "calibration-candidate.json"),
+    JSON.stringify({ case_results: [{ case_id: "positive", decision: "pass" }] }),
+  );
   const recover = () =>
     reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+  // A successful attempt must remain recoverable despite a legacy failed cache.
   expect(recover().completed).toBe(true);
   expect(JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8"))).toMatchObject({
     assessment_id: assessmentId,
   });
+  const attemptCalibrationPath = path.join(attempt, "calibration-result.json");
+  const attemptCandidatePath = path.join(attempt, "calibration-candidate.json");
+  fs.unlinkSync(attemptCandidatePath);
+  expect(recover).toThrow(/incomplete attempt calibration/);
+  fs.unlinkSync(attemptCalibrationPath);
+  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  // A prior passing shared cache is valid when no per-attempt calibration was run.
+  fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
+  expect(recover().completed).toBe(true);
 
   fs.writeFileSync(candidatePath, JSON.stringify({ ...candidate, objectives: [] }));
   expect(recover).toThrow(/lacks consistent verified mastery evidence/);
