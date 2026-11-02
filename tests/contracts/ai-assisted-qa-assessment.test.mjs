@@ -21,6 +21,7 @@ import {
   validateCandidate,
   validateSavedChallenge,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
+import { filterPhaseKnowledgeGraph } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
   runAiAssistedQaSpecCli,
   verifyM03SkillRuntimeEvidence,
@@ -52,6 +53,37 @@ it("accepts the M07 diagnostic failure spec with a supported main label", () => 
   expect(() =>
     runAiAssistedQaSpecCli(["M07", "failure-assertion.spec.ts", "--label", "diagnostic"], { root }),
   ).toThrow(/Usage: pnpm course:run/);
+});
+
+it("keeps the selected Phase assessment node and its objective links in evaluator sources", () => {
+  const graph = {
+    schema_version: 1,
+    nodes: [
+      { id: "ASSESS-P1", type: "assessment", phase: "P1" },
+      { id: "M00-01", type: "learning_objective", module: "M00" },
+      { id: "ASSESS-P2", type: "assessment", phase: "P2" },
+      { id: "M05-01", type: "learning_objective", module: "M05" },
+      { id: "ASSESS-P3", type: "assessment", phase: "P3" },
+      { id: "M08-01", type: "learning_objective", module: "M08" },
+    ],
+    edges: [
+      { from: "ASSESS-P1", to: "M00-01", relation: "evaluates" },
+      { from: "ASSESS-P2", to: "M05-01", relation: "evaluates" },
+      { from: "ASSESS-P3", to: "M08-01", relation: "evaluates" },
+    ],
+  };
+  for (const [phaseId, moduleId] of [["P1", "M00"], ["P2", "M05"], ["P3", "M08"]]) {
+    const phase = JSON.parse(
+      filterPhaseKnowledgeGraph(JSON.stringify(graph), [moduleId], phaseId),
+    );
+    expect(phase.nodes.map((node) => node.id)).toEqual([
+      `ASSESS-${phaseId}`,
+      `${moduleId}-01`,
+    ]);
+    expect(phase.edges).toEqual([
+      { from: `ASSESS-${phaseId}`, to: `${moduleId}-01`, relation: "evaluates" },
+    ]);
+  }
 });
 
 it("requires a verified distribution SHA before course:run can access learner files", () => {

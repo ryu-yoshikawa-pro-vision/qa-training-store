@@ -123,7 +123,7 @@ function safeSourceText(sourcePath, assetContents, distribution) {
   return { path: sourcePath, sha256: sha256(loaded.bytes), text: loaded.bytes.toString("utf8") };
 }
 
-function filterPhaseKnowledgeGraph(text, phaseModules) {
+export function filterPhaseKnowledgeGraph(text, phaseModules, phaseId) {
   const graph = JSON.parse(text);
   const moduleSet = new Set(phaseModules);
   const nodes = (graph.nodes ?? []).filter((node) => {
@@ -131,7 +131,7 @@ function filterPhaseKnowledgeGraph(text, phaseModules) {
     if (typeof node.module === "string") return moduleSet.has(node.module);
     if (typeof node.id === "string" && /^(?:M(?:0[0-9]|10))-/.test(node.id))
       return moduleSet.has(node.id.slice(0, 3));
-    return node.type === "assessment" && node.phase === phaseModules[0].slice(0, 2);
+    return node.type === "assessment" && node.phase === phaseId;
   });
   const ids = new Set(nodes.map((node) => node.id).filter(Boolean));
   const edges = (graph.edges ?? []).filter((edge) => ids.has(edge.from) && ids.has(edge.to));
@@ -166,7 +166,7 @@ async function loadPhaseInputs(phaseId) {
       if (sourceMaterials.has(sourcePath)) continue;
       const source = safeSourceText(sourcePath, assetContents, distribution);
       if (sourcePath.endsWith("/knowledge-graph.json"))
-        source.text = filterPhaseKnowledgeGraph(source.text, phase.modules);
+        source.text = filterPhaseKnowledgeGraph(source.text, phase.modules, phaseId);
       assertNoSecretText(source.text, `pinned source ${sourcePath}`);
       sourceMaterials.set(sourcePath, source);
     }
