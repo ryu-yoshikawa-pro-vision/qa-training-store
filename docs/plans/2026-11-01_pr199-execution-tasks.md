@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A02-02`（hiddenレビューの再公開・公開集計復元）。直前`SCREEN-ADMIN-REVIEWS-A01-02`は一括結果の1〜50件、成功/失敗混在、逐次transaction/Review・History・Summary、Role/Session、version・deleted・重複ID、Web結果表示とSeed差を照合して**基本分析のみ**`analyzed`（操作75→76/188、非default16/20）。commit後getDetail失敗で変更済みなのに失敗計上されるHigh候補、Web bulk例外未捕捉/50超過、直接Vitest/実Web/DB前後/並列/視覚/a11y/製品適合/最終CIは未受入。次はA02-01のpublished→hiddenと商品集計/履歴の整合を確認。
+- **現在の対象**：`SCREEN-ADMIN-REVIEWS-A02-03`（既存投稿Snapshotの保持）。直前`SCREEN-ADMIN-REVIEWS-A02-02`はhidden→publishedの認可・version・Review/History/Summary・公開一覧・Seed/Case採否を照合し**基本分析のみ**`analyzed`（操作77→78/188、非default16/20）。直接Vitest/実Web/DB/Session・並列・commit後getDetail false failure・視覚/a11y/製品適合/最終CIは未受入。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A02-02（hiddenレビューの再公開）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作77→78/188、非default16/20維持。正式`BR-REVIEW-002/AC-REVIEW-002`、Web desktop/tablet→Use Case→Dexie・Seedを照合しHigh R1-R7/TR1-R7/C1-C7採否を個別確定。
+- **証拠**：default/hidden-reviewsの`review-hidden`（product-mug/rating1/version1、Review.userId=gold対Order.owner=regular）、初期guest→staff。hidden→publishedはReview.version+1、History(hidden→published)1件、Summary.publishedCount+1/ratingTotal+1/rating1Count+1/平均再計算、公開レビューへ追加。本文・評価・注文Snapshot/Session不変。Web hidden行の再公開ボタン、成功/失敗通知・再検索。deletedは終端、published→publishedは拒否。reviews-emptyは0、admin-bulk-partial-failureは商品競合のみ。
+- **High候補・未受入**：commit後`getDetail`失敗のfalse failure、並列staff/権限失効、Summary書込失敗のrollback、Role/PII、商品公開集計/表示の実Run未実証。既存Integrationはpublished→hiddenの逆方向のみ。直接Vitest/Prettier/Playwright・Web desktop/tablet・DB/Session前後・視覚/a11y・製品適合・最終CIはPASSにしない。再開には隔離fixtureでC1〜C7の実行・DB/History/Summary比較と正式期待が必要。
+- **次の共通対象**：`SCREEN-ADMIN-REVIEWS-A02-03`（既存投稿Snapshotの保持）。
+- **CI独立**：変更前HEAD `b4fe812f898e`の[Web CI #41425363541](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41425363541)はcompleted/failure。Contracts/Integration/Unit/Code Qualityはsuccess、Style Quality・required Chromium E2E・verify/validateはfailure。新HEADは別判定。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A02-01（非公開化・公開集計）
 

@@ -13543,29 +13543,31 @@
       "source_path": "docs/spec/features/reviews.md",
       "source_line": 62,
       "source_text": "カスタマーレビューのスナップショットを保持したまま公開／非公開を操作する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,hidden-reviews,admin-bulk-partial-failure。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: レビューを再公開",
+      "platform": "web-desktop, web-tablet（管理レビューはNative正式画面対象外）",
+      "role": "active operator/adminのみ。初期guestからstaffログイン。guest/customer/停止・退会staff/SessionなしはrequireStaffで拒否。権限失効・並列staffは実Run待ち",
+      "scenario": "default/hidden-reviewsはpublished9/hidden1/deleted1（初期guest）、reviews-emptyは0、admin-bulk-partial-failureは商品競合のみ。hidden=review-hiddenをstaffが単体再公開",
+      "data": "review-hidden（product-mug、rating1、version1、status=hidden、Review.userId=goldに対しOrder.userId=regularのcross-owner Seed）をstaffが操作。Review(status/version/title/body/rating/orderItemId)、StatusHistory、ProductReviewSummary(publishedCount/ratingTotal/ratingAverage/rating1〜5Count/version)、公開レビュー一覧、Order/Sessionを前後比較。cross-ownerをcustomer本人の正常投稿例に使わない",
       "action": "レビューを再公開",
-      "expected": "許可されたhiddenレビューをpublishedへ変更し、商品集計を再計算して表示する",
+      "expected": "staffがhidden→publishedへ変更するとReview.status=published/version+1、投稿者・注文Snapshot・本文・評価不変、Historyを1件追加(actor=staff,from=hidden,to=published)。product-mug公開集計はpublishedCount+1/ratingTotal+1/rating1Count+1、平均再計算し公開一覧へ追加。非staff、published→published、deleted→published、stale version/不存在は拒否しDB/Session不変。Webは成功/失敗を通知して再検索。commit後getDetail失敗のfalse failureは未実証",
       "rule_refs": [],
       "route": "`/admin/reviews`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "レビューを再公開の事前状態・実施後を比較し、許可されたhiddenレビューをpublishedへ変更し、商品集計を再計算して表示することを確認する",
-      "test_responsibility": "レビューを再公開の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "レビューを再公開の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staffによるhidden本文/PII露出・無断再公開、High R2=Review/History/Summary部分更新・公開集計誤り、High R3=commit後getDetail失敗で永続再公開済みなのにUI失敗通知、R4=stale/並列staffでHistory/集計二重加算、R5=deleted/publishedの不正遷移、R6=cross-owner Seedの本人例誤用、R7=Web通知・公開一覧不一致。実障害未再現",
+      "test_condition": "TR1/C1=staffでreview-hidden(rating1)を再公開しReview.version+1、History(hidden→published)1件、Summary publishedCount+1/ratingTotal+1/rating1Count+1/平均再計算、公開一覧追加。TR2/C2=guest/customer/停止・退会staff/Sessionなし拒否・PII非露出・DB/Session不変。TR3/C3=published→published、deleted→published、stale version、不存在ID拒否・副作用なし。TR4/C4=2staff並列・権限失効でCAS/History/Summary二重更新なし。TR5/C5=Summary欠損/書込失敗のtransaction rollback、commit後getDetail失敗の永続状態とUI結果の乖離を故障注入。TR6/C6=default/hidden-reviews/reviews-empty/admin-bulk-partial-failureとcross-ownerのSeed差。TR7/C7=Web desktop/tablet再公開ボタン・通知・再検索・商品公開レビュー/集計・視覚/a11y。C1〜C7採用、直接実Run未受入",
+      "test_responsibility": "reviews.md BR-REVIEW-002/AC-REVIEW-002→Web AdminReviewsPage Guard(staff)/AdminReviewsContent.change(item,published)→AdminReviewUseCases.changeVisibility(requireStaff/version/canTransitionReview)→Dexie review-change transaction(Review/History/Summary)→DexieReviewRepository.update(version CAS)・appendStatusHistory・applyPublishedReviewDelta(null→rating)→getDetail(staff再認可)→Web通知・再検索。公開一覧はDexie listPublishedのpublished限定",
+      "case_policy": "C1 hidden→published正常と公開集計、C2 Role/Session/PII、C3 deleted/published/stale/不存在拒否、C4 並列/CAS、C5 rollbackとcommit後getDetail false failure、C6 Seed差/cross-owner、C7 Web desktop/tablet・公開一覧・視覚/a11yを採用。既存integrationは逆方向published→hiddenのみの部分証拠で再公開PASSではない",
+      "case_selection_reason": "再公開はhidden本文を顧客公開面へ戻し、商品件数・平均・評価分布を増加させるHigh認可/集計整合境界。正常・拒否・並列・rollback・通知・Seed・画面を独立Caseに分け基本分析と実Runを区別",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD b4fe812f898e: reviews.md BR/AC、Web staff Guard/hidden行の再公開、Use Case requireStaff/version/遷移、Dexie review-change transaction・CAS・published限定集計/公開一覧、default/hidden/reviews-empty/admin-bulk-partial-failure Seedを照合。High R1-R7/TR1-R7/C1-C7採否を確定し基本分析のみanalyzed。既存integrationは逆方向published→hiddenの部分証拠。直接Vitest/formatter/Playwright・Role別実Web・DB/Session前後・並列/rollback/故障注入・視覚/a11y・製品適合・最終CIは未受入",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
         "AC-REVIEW-001",
         "AC-REVIEW-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "related_use_cases": [
+        "AdminReviewUseCases.changeVisibility"
+      ],
+      "analysis_progress": "2026-11-02: A02-02基本分析のみ完了（操作77→78/188、非default16/20）。直接再公開テスト/DB・Session・並列/故障注入・実Web/視覚/a11y・製品適合/最終CIは検証待ち。次はSCREEN-ADMIN-REVIEWS-A02-03",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 252,
@@ -13586,9 +13588,107 @@
           "line": 33,
           "signature": "case \"default\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "default/hidden-reviewsはpublished9/hidden1/deleted1、初期guest→staff。review-hiddenはrating1/version1/product-mug、Review.userId=gold対Order.userId=regularのcross-owner。reviews-emptyは0、admin-bulk-partial-failureは商品競合のみ"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminReviewUseCases.changeVisibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 392,
+          "signature": "async changeVisibility(input: {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 8,
+          "end_line": 17,
+          "reason": "BR-REVIEW-002のhidden再公開・deleted終端・published限定集計"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 55,
+          "end_line": 96,
+          "reason": "管理レビューWeb desktop/tablet・AC-REVIEW-002"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 252,
+          "end_line": 313,
+          "reason": "staff Guardと単体change/通知/再検索"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 445,
+          "end_line": 461,
+          "reason": "hidden行だけに再公開ボタン"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 392,
+          "end_line": 439,
+          "reason": "staff/version/遷移・transaction・commit後getDetail"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 482,
+          "end_line": 492,
+          "reason": "operator/admin認可"
+        },
+        {
+          "path": "src/domain/policies/state-transitions.ts",
+          "start_line": 26,
+          "end_line": 30,
+          "reason": "hidden→published許可・deleted終端"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 125,
+          "end_line": 140,
+          "reason": "review-changeのReview/History/Summary原子処理"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 322,
+          "end_line": 349,
+          "reason": "Review version CASと公開一覧published限定"
+        },
+        {
+          "path": "src/domain/services/reviews.ts",
+          "start_line": 5,
+          "end_line": 49,
+          "reason": "null→ratingの件数/総計/平均/評価分布加算"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 629,
+          "end_line": 668,
+          "reason": "review-hidden rating1とcross-owner Seed・履歴"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 29,
+          "end_line": 104,
+          "reason": "default/hidden/reviews-empty変換"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 141,
+          "end_line": 143,
+          "reason": "admin-bulk-partial-failureは商品競合のみ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 242,
+          "end_line": 260,
+          "reason": "逆方向published→hiddenのみ既存部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-REVIEWS-A02-03",
