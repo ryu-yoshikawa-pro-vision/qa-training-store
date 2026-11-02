@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-04`（既存SKUの現在在庫表示・在庫調整の専用操作境界）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-03`は基本分析のみanalyzed（操作91/188、非default16/20）。画像primary二重化候補・inactive asset・画像関連transactionのRole/State/Data、C1-C7を照合。直接Vitest/Playwright・実Web/DB前後・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-05`（公開状態の許可遷移・公開適格性/Role/競合）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-04`は基本分析のみanalyzed（操作92/188、非default16/20）。既存SKU現在庫read-onlyと専用在庫調整・履歴原子性、R1-R7/TR1-4/C1-C7を照合。直接Vitest/Playwright・実Web/DB前後・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-04（現在庫表示・専用在庫調整境界）基本分析受入
+
+- **判定**：`review_required→analyzed`、操作**91→92/188**、非default**16/20**。基本分析のみで製品適合/実Web/DB/最終CI PASSではない。
+- **根拠**：正式`BR/AC-ADMINCAT-001/002`と`BR/AC-ADMININV-001/002`、defaultのproduct-basic-shirt 3 SKU=20/10/0、active operator/admin、商品詳細`getEdit→editToForm→ProductEditor`の既存在庫disabled、新規SKUだけ初期在庫入力、`updateAggregate`の既存stock保全・新規INITIAL_STOCK履歴、専用`AdminOperationsUseCases.adjustInventory→DexieInventoryRepository.updateQuantity`のversion CAS/非負整数/履歴transactionを照合。0=out、1〜5=low、6以上=available。available検索は1以上でlowを含むため表示/名称期待を別確認。
+- **Risk/Case**：R1 stale編集フォームと並列在庫調整、R2 Variant/History原子性、R3 非staff情報露出、R4 SKU削除時variant個別CAS省略、R5 在庫分類/初期在庫混同、R6 調整成功後再読取り失敗のUI通知、R7 viewport/a11yを未再現候補として区別。C1既存20/10/0 disabled、C2商品保存と新規SKU初期履歴、C3専用調整version/History、C4 0/1/5/6・不正入力、C5 Role/Session拒否、C6並列/rollback、C7 refresh/故障注入/viewportを採用。Native管理UI/Checkout購入減算/画像・公開状態/在庫一覧全フィルターは別ID。
+- **検証待ち/再開**：既存Componentのdisabled表示とIntegrationの在庫調整・stale/下限拒否は部分証拠。直接Vitest/formatter/Playwright/validator全体、隔離DBのProduct/Variant/History/Session前後、Role別・並列/故障注入、実Web/視覚/a11y、製品適合・同一最終HEAD必須CIは未受入。固定HEADでC1-C7を実行する。製品SUT/正式仕様/Seed/既存製品テスト/workflowは無変更。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-05`（公開状態の許可遷移・不完全商品公開拒否）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-03 基本分析受入（最新）
 

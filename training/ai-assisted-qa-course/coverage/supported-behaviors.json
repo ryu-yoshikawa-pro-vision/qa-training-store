@@ -15777,28 +15777,38 @@
       "source_line": 126,
       "source_text": "既存商品の集約、バリアント、画像、在庫、および公開状態を編集する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: 在庫を表示・管理",
+      "role": "active operator/adminのWeb staffのみ。商品詳細はStaffPage→AdminProductUseCases.getEdit、専用在庫画面はStaffPage→AdminOperationsUseCases.searchInventory/getInventoryDetail/adjustInventoryで再認可。guest/customer/停止staff/失効Sessionは管理DTOと変更を拒否。失効Sessionのlocal store clearは別観測。",
+      "scenario": "default（商品詳細と在庫管理）/product-aggregate-editを主軸、product-delete-blocked/inactive-image-existing-link/cross-role-product-lifecycleは参照・競合対照。0/1/5/6は隔離fixtureで検証。",
+      "data": "defaultは初期guest/Sessionなし。active operator/adminでログイン後、published product-basic-shirtのS/M/L既存SKUの現在庫は20/10/0、variant.version初期1、初期InventoryHistoryあり。商品編集の既存SKUはdisabled現在庫、新規SKUのみinitialStock入力可。専用在庫画面はSKU単位のversion/理由/数量を使用。0=out、1〜5=low、6以上=available分類。Product/Variant/History/Images/Summary/Sessionの前後を区別。Native管理画面は非対象。",
       "action": "在庫を表示・管理",
-      "expected": "SKUの現在在庫を商品詳細に表示し、在庫調整は専用の管理操作・履歴契約を守る",
+      "expected": "active staffの商品詳細はgetEditDto→editToFormから既存SKUのstockQuantity/versionを表示し、既存SKUの現在庫入力をdisabledとする。商品集約updateでは既存stockQuantityを変更せず、新規SKUのみ初期在庫とINITIAL_STOCK履歴を同一transactionで追加する。既存在庫の増減は専用/admin/inventories→AdminOperationsUseCases.adjustInventory→DexieInventoryRepository.updateQuantityでvariant.version CAS、非負整数、reasonCode/理由/actor/before/afterのInventoryHistoryをadjust-inventory transaction（Variant+History）で保存する。失敗/競合/非staffではDB部分更新なし。商品詳細の現在庫は読取時snapshotであり別staff更新後の自動更新は未保証。実Web/DB/製品適合は別受入。",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "在庫を表示・管理の前後に、SKUの現在在庫を商品詳細に表示し、在庫調整は専用の管理操作・履歴契約を守ることをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと在庫を表示・管理の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "在庫を表示・管理が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High候補R1: 別staff在庫調整後に商品編集フォームの現在庫がstaleとなり、編集保存はvariant CASでCONFLICTとなり得る（実Web未再現）。R2: 在庫/履歴transactionの故障時部分保存、R3: 非staff/失効Sessionの管理情報露出・更新、R4: SKU削除指定時の個別variant CAS省略と並列調整の競合（A01-02とも関連）。Medium R5: 0/1/5/6分類とavailable検索（1以上でlow含む）の意味差、R6: 調整transaction成功後getInventoryDetail失敗による画面失敗通知とDB成功の乖離候補、R7: disabled表示・1023/1024px・視覚/a11y。いずれも実不具合未確定。",
+      "test_condition": "C1 staff商品詳細の既存SKU 20/10/0・version・disabledと新規SKU初期在庫入力。C2 商品通常保存の既存stock/History不変、新規SKU初期History・Product/Variant version。C3 専用画面+3/-1調整、History before/after/reason/actor/orderId=nullとversion+1。C4 0/1/5/6分類、負値/小数/変化0/ORDER_PURCHASE/空理由/長文/stale version拒否とDB不変。C5 guest/customer/停止staff/失効Sessionの直URL・Use Case拒否/非露出とSession clear例外。C6 別staff調整後の古い編集フォーム保存・SKU削除と並列CAS、Product/Variant/History/Session前後、rollback/故障注入。C7 desktop/tablet・1023/1024px、refresh、在庫専用操作への導線、履歴/通知/視覚/a11y。",
+      "test_responsibility": "TR1=BR/AC-ADMINCAT-001/002（商品集約/初期在庫保全）+BR/AC-ADMININV-001/002（SKU在庫/履歴原子性）。TR2=SCREEN-ADMIN-PRODUCT-DETAIL/default、SCREEN-ADMIN-INVENTORIES/default/stock-boundariesとdefault product-basic-shirt 20/10/0。TR3=StaffPage→AdminProductEditContent/getEdit→editToForm/ProductEditor→formToUpdateRequest→AdminProductUseCases.update→DexieProductRepository.updateAggregate（既存stock非変更）、およびAdminInventoriesContent→AdminOperationsUseCases.adjustInventory→DexieInventoryRepository.updateQuantity→adjust-inventory transaction。TR4=既存Componentのdisabled現在庫とIntegrationの調整成功/stale/下限拒否は部分証拠。C1-C7は静的分析のCase採否で直接Run PASSではない。",
+      "case_policy": "採用:C1既存SKU現在庫/disabled、C2商品編集・新規SKU初期在庫境界、C3専用在庫調整と履歴、C4 0/1/5/6・入力/version境界、C5 Role/Session非露出、C6並列/stale/rollback、C7 refresh/viewport/a11y/故障注入。除外: Native管理UI（正式非対応）、購入減算の成功判定（Checkout別ID）、画像/公開状態変更（A01-03/A01-05）、在庫一覧の全フィルター（INVENTORIES別ID）。",
+      "case_selection_reason": "正式admin-catalog.md:9-19,119-139,210-220/admin-inventory.md:7-18,63-75、Web admin-product-pages.tsx:278-311,415-445,889-946,1166-1205/admin-operations-pages.tsx:67-133,174-253、Use Case admin-product-use-cases.ts:104-109,157-213/admin-operations-use-cases.ts:53-110、Dexie product-repositories.ts:142-250,510-544,549-656、transaction-runner.ts:70-99、Seed default-dataset.ts:294-337、既存Component admin-product-pages.test.tsx:246-264/Integration admin-operations-use-cases.test.ts:61-135を照合。既存stockはread-only、専用adjust-inventoryはversion CASとHistory transaction。High候補とC1-C7の不足実証を分離。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 6efd2a44d992: BR/AC-ADMINCAT-001/002・BR/AC-ADMININV-001/002、active staff/guest/停止staff、default product-basic-shirt 20/10/0、Web編集read-only現在庫→専用在庫Use Case→Dexie transaction/History、Risk R1-R7/TR1-4/C1-C7の採否を静的照合。既存Component/Integrationは部分証拠。基本分析のみanalyzed、直接Vitest/Playwright/formatter/validator全体、実Web/DB・Session全表前後、Role別/並列/故障注入、視覚/a11y、製品適合・最終CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
-        "AC-ADMINCAT-002"
+        "AC-ADMINCAT-002",
+        "BR-ADMININV-001",
+        "BR-ADMININV-002",
+        "AC-ADMININV-001",
+        "AC-ADMININV-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.update",
+        "AdminOperationsUseCases.searchInventory",
+        "AdminOperationsUseCases.getInventoryDetail",
+        "AdminOperationsUseCases.adjustInventory"
+      ],
+      "analysis_progress": "2026-11-02 A01-04基本分析のみ完了（操作91→92/188、非default16/20）。既存SKU現在庫read-onlyと専用調整/History・CASの責務、0/1/5/6、R1-R7/C1-C7を分離。実Web/DB前後/製品適合/最終CIは未受入。次はSCREEN-ADMIN-PRODUCT-DETAIL-A01-05。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -15823,7 +15833,135 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.update",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 157,
+          "signature": "async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminOperationsUseCases.searchInventory",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 53,
+          "signature": "async searchInventory(query: Partial<InventorySearchQuery> = {}): Promise<Page<InventoryItem>> {"
+        },
+        {
+          "id": "AdminOperationsUseCases.getInventoryDetail",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 68,
+          "signature": "async getInventoryDetail(variantId: string): Promise<InventoryDetail> {"
+        },
+        {
+          "id": "AdminOperationsUseCases.adjustInventory",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 85,
+          "signature": "async adjustInventory(request: AdjustInventoryRequest): Promise<InventoryDetail> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 9,
+          "end_line": 19,
+          "reason": "商品編集/初期在庫保全"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 7,
+          "end_line": 18,
+          "reason": "非負整数・在庫分類/履歴原子性"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 63,
+          "end_line": 75,
+          "reason": "AC-ADMININV-001/002"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 889,
+          "end_line": 946,
+          "reason": "既存stock disabled"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 1166,
+          "end_line": 1205,
+          "reason": "getEdit DTOのstock/version"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 278,
+          "end_line": 311,
+          "reason": "既存SKU更新payloadにstockなし"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 67,
+          "end_line": 133,
+          "reason": "在庫調整時expectedVersion"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 104,
+          "end_line": 109,
+          "reason": "staff再認可"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 53,
+          "end_line": 110,
+          "reason": "在庫調整/入力/transaction"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 142,
+          "end_line": 250,
+          "reason": "既存stock不変・新規初期History"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 549,
+          "end_line": 656,
+          "reason": "在庫CAS・History・分類"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 70,
+          "end_line": 99,
+          "reason": "adjust-inventory transaction scope"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 337,
+          "reason": "20/10/0とversion1"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 135,
+          "reason": "既存調整/rollback部分証拠"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 246,
+          "end_line": 265,
+          "reason": "既存stock disabled部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
