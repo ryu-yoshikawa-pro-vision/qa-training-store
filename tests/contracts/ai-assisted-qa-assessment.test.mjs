@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   assertAssessmentPath,
+  assertModelInputSize,
   atomicWriteJson,
   buildAssessmentAgentConfig,
   buildOpenCodeRunArgs,
@@ -30,6 +31,17 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-qa-assessment-contrac
 
 afterAll(() => {
   fs.rmSync(tempRoot, { recursive: true, force: true });
+});
+
+it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
+  const atLimit = "a".repeat(4 * 1024 * 1024);
+  expect(() => assertModelInputSize(atLimit, "calibration prompt")).not.toThrow();
+  expect(() => assertModelInputSize(atLimit + "あ", "calibration prompt")).toThrow(
+    "calibration prompt exceeds the size limit",
+  );
+  expect(() => assertModelInputSize(null, "assessment prompt")).toThrow(
+    "assessment prompt exceeds the size limit",
+  );
 });
 
 it("requires a verified distribution SHA before course:run can access learner files", () => {

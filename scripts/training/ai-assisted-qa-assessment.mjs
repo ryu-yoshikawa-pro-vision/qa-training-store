@@ -18,6 +18,7 @@ import {
   ASSESSMENT_PHASES,
   MAX_EVIDENCE_FILE_BYTES,
   MAX_EVIDENCE_TOTAL_BYTES,
+  assertModelInputSize,
   assertAssessmentPath,
   assertNoSecretText,
   atomicWriteJson,
@@ -43,7 +44,6 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const WORKSPACE = path.join(ROOT, "workspace");
 const OPEN_CODE_VERSION_REQUIRED = "2.0.22";
-const MAX_MODEL_INPUT_BYTES = 4 * 1024 * 1024;
 const MODEL_TIMEOUT_MS = 180_000;
 const MODEL_OUTPUT_LIMIT = 6 * 1024 * 1024;
 const ASSESSOR_ID = "qa-course-assessment";
@@ -592,6 +592,7 @@ function validateCalibrationOutput(output, expected) {
 
 async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
   const calibrationPrompt = buildCalibrationPrompt(inputs);
+  assertModelInputSize(calibrationPrompt.text, "calibration prompt");
   const calibrationPromptSha = systemPromptHash(CALIBRATION_SYSTEM);
   const assessmentPromptSha = systemPromptHash(ASSESSOR_SYSTEM);
   const identity = {
@@ -681,8 +682,7 @@ function buildAssessmentPrompt({ inputs, challenge, answer, assessmentId }) {
     allowed_knowledge_node_ids_by_objective: inputs.knowledgeNodeIdsByObjective,
   };
   const text = `Perform an independent objective-by-objective assessment using this pinned data. The answer to the live challenge applies only to its listed objective.\n${JSON.stringify(payload)}`;
-  if (Buffer.byteLength(text, "utf8") > MAX_MODEL_INPUT_BYTES)
-    fail("assessment prompt exceeds the size limit");
+  assertModelInputSize(text, "assessment prompt");
   assertNoSecretText(text, "assessment prompt");
   return text;
 }

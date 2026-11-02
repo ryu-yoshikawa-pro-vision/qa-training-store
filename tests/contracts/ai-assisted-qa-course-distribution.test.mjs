@@ -538,6 +538,41 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
+  it("rejects oversized or invalid external Skill downloads before writing learner files", async () => {
+    const fixture = courseFixture();
+    const first = fixture.manifest.external_skill_files[0];
+    const invalidManifest = structuredClone(fixture.manifest);
+    invalidManifest.external_skill_files[0].size = 1024 * 1024 + 1;
+    expect(() => validateCourseManifest(invalidManifest)).toThrow(/invalid size/);
+
+    let bodyRead = false;
+    const fetchImpl = async (url) => {
+      if (!url.endsWith(`/${first.source_path}`)) return fixture.fetchImpl(url);
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (name) => (name === "content-length" ? String(first.size + 1) : null) },
+        arrayBuffer: async () => {
+          bodyRead = true;
+          throw new Error("oversized external Skill body should not be read");
+        },
+      };
+    };
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "b".repeat(40),
+        fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/assessment response exceeds the allowed size/);
+    expect(bodyRead).toBe(false);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("includes learner MIT and third-party license notices in the distribution", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const expected = [

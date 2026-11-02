@@ -21,6 +21,7 @@ const REQUIRED_ASSESSMENT_EXCLUSIONS = [
   "training/ai-assisted-qa-course/assessment/completed-states/**",
 ];
 const ASSESSMENT_MAX_BYTES = 1024 * 1024;
+const MAX_EXTERNAL_SKILL_FILE_BYTES = 1024 * 1024;
 const PHASE_TERMINALS = Object.freeze({ P1: "M04", P2: "M07", P3: "M10" });
 const ASSESSMENT_ASSET_PATH_PATTERN =
   /^(?:training\/ai-assisted-qa-course\/assessment\/(?:scoring-tests\/M(?:0[0-9]|10)\.json|phase-[1-3]-rubric\.md)|docs\/curriculum\/ai-assisted-qa\/knowledge-graph\.json|docs\/spec\/README\.md|training\/workbook\/01_target-risk\.csv)$/;
@@ -210,6 +211,13 @@ export function validateCourseManifest(manifest) {
       !/^[a-f0-9]{40}$/.test(entry.blob_sha ?? "")
     )
       fail(`external Skill entry has no Git blob SHA: ${source}`);
+    if (
+      manifest.external_skill_files.includes(entry) &&
+      (!Number.isSafeInteger(entry.size) ||
+        entry.size <= 0 ||
+        entry.size > MAX_EXTERNAL_SKILL_FILE_BYTES)
+    )
+      fail(`external Skill entry has an invalid size: ${source}`);
   }
   const skillModules = new Set(manifest.external_skill_files.map((entry) => entry.skill));
   const requiredSkills = [
@@ -469,7 +477,7 @@ async function externalSkillBytes(entry, commit, fetchImpl) {
   const response = await fetchImpl(url);
   if (!response.ok)
     fail(`fixed-revision Skill download failed (${response.status}): ${entry.source_path}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const bytes = await readResponseLimited(response, entry.size);
   if (bytes.length !== entry.size || gitBlobSha(bytes) !== entry.blob_sha)
     fail(`fixed-revision Skill content does not match its manifest blob: ${entry.source_path}`);
   return bytes;

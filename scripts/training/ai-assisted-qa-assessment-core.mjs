@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -14,6 +15,7 @@ export const ASSESSMENT_ID_PATTERN =
 export const MODEL_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._#-]*$/i;
 export const MAX_EVIDENCE_FILE_BYTES = 256 * 1024;
 export const MAX_EVIDENCE_TOTAL_BYTES = 2 * 1024 * 1024;
+export const MAX_MODEL_INPUT_BYTES = 4 * 1024 * 1024;
 export const LIVE_CHALLENGE_DIMENSIONS = Object.freeze({
   P1: ["対象データ", "操作順序", "期待結果", "仕様未決の前提"],
   P2: ["初期状態", "LocatorまたはAssertionの原因", "再実行条件", "実行証拠"],
@@ -43,6 +45,11 @@ function fail(message) {
 
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+export function assertModelInputSize(value, label = "model input") {
+  if (typeof value !== "string" || Buffer.byteLength(value, "utf8") > MAX_MODEL_INPUT_BYTES)
+    fail(`${label} exceeds the size limit`);
 }
 
 export function buildOpenCodeEnvironment({
