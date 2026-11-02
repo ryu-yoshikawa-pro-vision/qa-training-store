@@ -22,7 +22,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       screen_actions: 73,
       screen_action_segments: 172,
       non_default_states: 20,
-      unreviewed_state_conditions: 5,
+      unreviewed_state_conditions: 4,
       br_ac: 46,
       use_case_methods: 76,
       supported_total: 188,
@@ -604,7 +604,11 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const reviewable = data.behaviors.find(
       (item) => item.id === "SCREEN-ORDERS-DETAIL-S-reviewable",
     );
-    expect(reviewable?.analysis_status).toBe("review_required");
+    expect(reviewable?.analysis_status).toBe("analyzed");
+    expect(reviewable?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(reviewable?.test_condition).toContain("NOT_POSTED5");
+    expect(reviewable?.case_policy).toContain("C1〜C7採用");
+    expect(reviewable?.basic_analysis_review).toContain("画像比較PASSではない");
   });
 
   it("audits staff-only many-products while retaining unresolved filter behavior", () => {

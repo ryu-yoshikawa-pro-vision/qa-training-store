@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-DETAIL-S-reviewable`（非defaultの配達済みレビュー投稿導線・Web desktop）。直前`SCREEN-ORDERS-DETAIL-A02-02`は現行BR-ORDER-001/AC-ORDER-001、default本人order-paid、beginOrderのSnapshot保存→Dexie/SQLite保存列→Web/Native表示、商品/住所更新経路、High R1-R6/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作69→70/188、非default15/20維持）。実更新後DTO/DB/Session、rank正規変更経路、画像実体、別Role/Session、並列、実Web/Android/SQLite・視覚/a11y・正式UX適合は未受入。次は既存`SCREEN-ORDERS-DETAIL-S-reviewable`のSeed Review数とWeb desktop導線を確認。
-- **CI横断**：作業前HEAD `0964099a4740`の[Web CI #41400443720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A01-01`（本人配達済み明細のレビュー投稿・認可・重複拒否）。直前`SCREEN-ORDERS-DETAIL-S-reviewable`はreviewable-orders初期guest→regular本人、delivered11明細/Review残6/NOT_POSTED5、Web desktop投稿/編集分岐、Order本人認可、Dexie/SQLite・High Risk/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作70/188維持、非default状態15→16/20）。現HEAD d2374fdeのWeb CI #41402699729ではrequired E2E #08 item-9投稿/編集PASS、UI Review desktop job success。全5リンク・別Role/Session・default cross-owner情報保護・DB/並列・個別視覚画像比較/a11y・Seedカタログ2/3対実値1/5・正式製品適合は未受入。次は既存`SCREEN-REVIEWS-EDITOR-A01-01`のBR-REVIEW-001/AC-REVIEW-001、本人所有権・二重投稿・Case採否を確認。
+- **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-S-reviewable（非default Web desktop）
+
+- **基本分析のみ**：`review_required→analyzed`。操作70/188維持、非default状態15→16/20。正式orders.mdのreviewable/Web desktop視覚requiredとreviews.mdのBR-REVIEW-001/AC-REVIEW-001を再照合。実製品適合・個別視覚画像比較・PR最終CIは別受入。
+- **Role/State/Data・Seed**：reviewable-orders Reset初期guest→regular@example.com本人でorder-deliveredを表示。default Seedはdelivered注文1件/11明細（published9＋hidden1＋deleted1 Review）、hidden/deleted Reviewはgold所有でOrderはregular所有。reviewable-ordersのreviews.slice(0,6)でpublished6のみ残り、明細7〜9/hidden/deletedの5件がReviewなし。reviewHistoriesも連動filter、ReviewSummary再構築。教材seed_catalogのdelivered2件/未レビュー3件は実Seedの1件/5件と不一致候補。
+- **UI→Use Case→Repository**：Web OrderDetailPage→getMyCustomerOrder→getMyOrder（requireCustomer、Order.userId照合）→Dexie/SQLite getDetail→ReviewRepository.findByOrderItem→deriveCustomerReviewState。deliveredでReviewなしはNOT_POSTEDとなり投稿リンク5件、残6件はPUBLISHEDで編集リンク。defaultではHIDDEN編集、DELETED再投稿不可、未配達NOT_ELIGIBLE。投稿時の本人資格/二重投稿はCustomerReviewUseCases.getEligibility/createの独立境界。
+- **High Risk/TR/Case採否**：High=他人注文/レビュー本文露出、default cross-owner Review.userId不一致時の既存内容露出候補、二重投稿、未配達/削除済み誤許可、教材期待差。TR1/C1=guest→本人、TR2/C2=6 published＋5 NOT_POSTEDとhref、TR3/C3=default9/1/1・未配達、TR4/C4=別Role/Sessionとcross-owner、TR5/C5=Dexie/SQLite/DB前後/並列/ReviewSummary、TR6/C6=Web desktop個別視覚/a11y、TR7/C7=教材Seed期待差を採用。C4〜C7と全5リンクの直接実証は未受入。
+- **直接証拠・CI**：HEAD d2374fdec5f3の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41402699729)でrequired Chromium E2E #08 item-9レビュー投稿/編集PASS、UI Review desktop job success（1 passed、capture artifact作成）。これは全5リンク・個別画像差分・a11yのPASSではない。Contracts全体・Style Quality・required E2EのCheckout別Case・verify/validateはfailure。今回直接Vitest/Prettier/Playwright・実Android/SQLiteは未実施。契約期待の非default未分析5→4を同一commitで整合。
+- **再開条件・次**：固定HEADで全5リンク/別Role・別Session、cross-owner getEligibility非露出、DB/Session/ReviewSummary前後、並列、個別desktop画像正本/a11y、Seedカタログ期待を実証。製品修正は#199で行わない。次の共通対象は`SCREEN-REVIEWS-EDITOR-A01-01`（本人レビュー投稿と重複拒否）。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A02-02（商品/ユーザー更新後の注文Snapshot不変）
 
