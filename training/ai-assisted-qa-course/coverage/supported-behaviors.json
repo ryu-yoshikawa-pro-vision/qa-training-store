@@ -9275,20 +9275,20 @@
       "source_line": 161,
       "source_text": "処理中の二重確定、再試行、キャンセルを禁止する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/入力: payment-processing,payment-declined,default。Customer本人/他人・activeセッション・versionを区別する。対象動作: 処理中の再試行を拒否",
+      "role": "active customer（本人所有のOrderのみ。guestはAUTHENTICATION_REQUIRED、staffはPERMISSION_DENIED、別customerはNOT_FOUND。Web/Androidの処理中画面はcustomer導線）",
+      "scenario": "default Seedのregular customerでcart-regular-active→start→setAddress→setPayment→beginOrderを実行してPayment=processingを構成。payment-processing固定Seedは初期guestなので本人Sessionを別途準備。payment-declinedは失敗後retryとの対照",
+      "data": "processing Order=pending_payment、Payment=processing/attemptNumber=1/idempotencyKey=orderId-attempt-1。retryPaymentはOrder所有者を確認し、latest Paymentがprocessingなら古いorderActionVersion/異なるmethodCodeでも既存processingDtoを返す。新規Payment/Gateway呼出し/Order更新なし。成功確定後のretryはCONFLICT。resumePaymentは別APIでGatewayを呼び得る",
       "action": "処理中の再試行を拒否",
-      "expected": "決済処理中の再試行要求を拒否し、二重リクエスト・二重決済を行わない",
+      "expected": "処理中は新規決済試行・キャンセル・二重注文を開始しない。現行retryPaymentの抑止は例外拒否ではなく既存processing DTOの冪等返却であり、正式BR-CHECKOUT-003の『再試行禁止』との製品適合解釈は別判定。Web/Androidはprocessing中にretryPayment/キャンセルCTAを出さず、resumePaymentの再開導線のみ持つ（実画面未検証）",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "処理中の再試行を拒否について、決済処理中の再試行要求を拒否し、二重リクエスト・二重決済を行わないことを決済・注文・カート/セッションの状態変化で確認する",
-      "test_responsibility": "本人の購入条件・状態遷移と処理中の再試行を拒否の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "処理中の再試行を拒否の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High：処理中の別method/古いversionからの新規Payment attempt、他人Orderへの再試行、Gateway二重charge/在庫・履歴二重更新。retryPaymentの既存DTO返却とresumePaymentのGateway再開は別操作。MockGatewayはin-flight singleflightを保証せず、並列resumeの安全性は未実証。静的リスク候補を製品不具合確定としない",
+      "test_condition": "C1（学習用隔離Dexie契約PASS）：本人がprocessing中にstale orderActionVersion=0/別methodでretryPaymentしても同一processing DTO、Payment1件・Gateway0回、Order/Payment/Cart/Checkout/Session/在庫/履歴/sequence snapshot不変。C2（同契約PASS）：guest/operator/別customer拒否、Gateway0回、全snapshot不変。C3（同契約PASS）：resumePaymentでpaid確定後のretryはCONFLICT、Payment追加なし・DB不変。C4（実Web/Android待ち）：processing UIの新規retry/cancel不存在、Native busy中disabled、Web再開エラー導線・再読込/視覚/a11y。C5（並列実Run待ち）：遅延Gatewayで2 Session/タブ同時resumeしcharge呼出し・Payment/Order/在庫/Shipment/履歴の原子性を比較",
+      "test_responsibility": "正式BR-CHECKOUT-003/AC-CHECKOUT-003とProcessing画面→CheckoutOrderUseCases.retryPayment（本人/所有権→latest processing分岐→失敗後のみ新attempt）およびresumePayment（processing時Gateway→finalize）→Dexie transaction/Native SQLite Order/Paymentを分離追跡。default/payment-processing Seed、Role/State/Data、High Risk、C1-C5採否を照合し、基本分析と製品適合/実Runを独立判定",
+      "case_policy": "C1-C3を既存学習用Dexie契約5/5 PASSのうち該当3件として基本分析に採用。C4はWeb desktop/Androidの視覚・a11y・再開操作、C5は並列Gateway/DBの独立実Runとして未受入。『禁止』の明示エラー要求か既存試行返却許容かの正式判断は製品適合ゲートへ保留",
+      "case_selection_reason": "処理中の再試行禁止は二重課金・他人Order・在庫/履歴に直結するHigh。処理中冪等返却、Role拒否、成功後CONFLICTを独立Caseとし、UIのbusy抑止と並列resumeのGateway保証は別Caseに分離。既存テストの重複追加を避ける",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析受入（2026-11-02、現HEAD 4a0b490661af）：正式BR-CHECKOUT-003/AC-CHECKOUT-003・checkout-and-payment.md:16-23,154-167、Web checkout-order-pages.tsx:465-505、Native native-purchase-screens.tsx:975-1015、CheckoutOrderUseCases.retryPayment:332-373（本人/所有権→processingなら既存DTO・failedのみ新attempt）/resumePayment:311-329（Gateway再開）→Dexie transactionとNative SQLite Order/Payment、default/payment-processing Seed metadata.ts:75-83・scenarios.tsを照合。学習用ai-assisted-qa-checkout-processing.test.mjs C1-C3を含む5/5 PASS（Web CI #41372993000、Vitest contracts job）を確認。Role/State/Data・High Risk・TR/Condition/Case採否を個別記載したため基本分析のみanalyzed。処理中『再試行禁止』の明示エラー対冪等返却の製品適合判断、実Web/Android、並列Gateway、DB/Session実Run、視覚/a11y、最終CIは別未受入",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -9297,8 +9297,11 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "related_use_cases": [
+        "CheckoutOrderUseCases.retryPayment",
+        "CheckoutOrderUseCases.resumePayment"
+      ],
+      "analysis_progress": "2026-11-02：A02-02基本分析のみreview_required→analyzed。C1-C3学習用契約5/5中の該当3件PASS（HEAD 4a0b4906）、新規テスト追加なし。C4実Web/Android・C5同時Gateway/DB前後と『禁止』の正式解釈は検証待ち。再開条件：Role別実Run/スクリーンショット、並列遅延Gatewayの呼出し・DB/Session snapshot、製品側仕様判断。Style Qualityと全体CIはfailureで別管理",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 457,
@@ -9321,7 +9324,57 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.retryPayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 332,
+          "signature": "async retryPayment(request: RetryPaymentRequest): Promise<OrderProcessingDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.resumePayment",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 311,
+          "signature": "async resumePayment(orderId: string): Promise<OrderResultDto> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 311,
+          "end_line": 373,
+          "reason": "resumeはGateway再開、retryはprocessing中既存DTO・失敗後のみ新attempt"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 465,
+          "end_line": 505,
+          "reason": "Web processing自動resume・エラー時再開導線、新規retry/cancel CTAなし"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 975,
+          "end_line": 1015,
+          "reason": "Native自動/手動resume、busy中無効、新規retry/cancel CTAなし"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-checkout-processing.test.mjs",
+          "start_line": 1,
+          "end_line": 230,
+          "reason": "隔離Dexie C1-C3含む5/5 PASS、順次・非並列契約"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 83,
+          "reason": "default初期guestとregular会員導線の区別"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-CHECKOUT-PROCESSING-A02-03",
