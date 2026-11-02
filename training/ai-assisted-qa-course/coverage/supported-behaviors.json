@@ -12379,20 +12379,20 @@
       "source_line": 27,
       "source_text": "配達完了かつ本人の注文明細に対してレビューを作成・編集する。",
       "platform": "web,android",
-      "role": "Customer",
-      "scenario": "default",
-      "data": "Seed/条件: reviewable-orders,reviews-empty,hidden-reviews。本人/他人、published/hidden/deleted、未配達/配達完了を区別する。対象: 本人レビューを編集",
+      "role": "active customer本人（reviewable-orders初期guest→regular@example.comでログイン）。別customer、guest、operator/admin、停止Sessionは拒否。defaultのhidden/deleted Reviewはgold所有だがOrderはregular所有で、本人hidden編集の正例には使用不可",
+      "scenario": "reviewable-orders Reset→guest→regular本人→delivered order-delivered→published review付き明細で既存値を編集。defaultのhidden/deletedはcross-owner不整合候補の負例。hidden本人編集はOrder/Review.ownerを一致させた学習用隔離fixtureで検証。reviews-emptyはdelivered0",
+      "data": "default delivered1注文/11明細、Review published9/hidden1/deleted1。reviewable-ordersはReview先頭6件publishedを保持、未投稿5件、HistoryをfilterしSummary再構築。published既存version1→更新後version2。hidden/deletedはdefaultでReview.userId=gold、Order.userId=regularのためregularの正常hidden編集には使わない",
       "action": "本人レビューを編集",
-      "expected": "本人のpublished/hiddenレビューに有効な評価・本文・titleを保存し、別人やdeletedの編集は拒否する",
+      "expected": "本人のpublished/hidden Reviewのrating1〜5/title任意/body非空をexpectedVersion一致で更新し、status・owner・orderItemIdを維持、version+1。publishedのrating変更時のみProductReviewSummaryのratingTotal/平均/分布を差分更新しpublishedCountを維持。hiddenの編集では公開Summaryを変更しない。ReviewStatusHistoryは編集だけでは増やさない。別人・deleted・古いversion・不正入力は拒否しReview/History/Summary/Order/Sessionを変更しない。Web/Android実Runと製品適合は別受入",
       "rule_refs": [],
       "route": "`/reviews/[orderItemId]`",
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "本人レビューを編集の事前状態・実施後を比較し、本人のpublished/hiddenレビューに有効な評価・本文・titleを保存し、別人やdeletedの編集は拒否することを確認する",
-      "test_responsibility": "本人レビューを編集の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "本人レビューを編集の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1別人Reviewのrating/title/body改変・cross-owner本文露出、R2 published集計の二重加減算/hidden混入、R3 deleted復活・statusの黙示変更、R4 stale expectedVersion/並列更新によるlost update、R5 transaction内ReviewとSummaryの部分保存・SQLite rowcount未確認、R6 default hidden/deleted SeedのOrder/Review owner不一致、R7 Web/Nativeの失敗表示・再取得・視覚/a11y。製品不具合は未確定",
+      "test_condition": "TR1/C1=reviewable-orders regular本人の既存published version1をrating/title/body変更しversion2・status維持、publishedCount不変・ratingTotal/分布差分。TR2/C2=owner一致のhidden専用隔離fixtureで編集・status hidden/公開Summary不変/History不増。TR3/C3=default cross-owner hidden/deleted、別customer・guest・staff・停止Session・deleted編集を拒否し本文非露出/DB不変。TR4/C4=古いexpectedVersionと別Session同時更新の一方のみ成功、Review/History/Summary原子性・rollback。TR5/C5=rating0/6・title/body空白/上限・境界、拒否時DB/Session不変。TR6/C6=Dexie/SQLiteのversion CAS、published/hidden Summary・History・Order/Session前後。TR7/C7=Web/Android編集・失敗再読込・視覚/a11yと正式UX期待。C2/C3/C4/C6/C7直接実Run未受入",
+      "test_responsibility": "BR-REVIEW-001/002・AC-REVIEW-001/002→Web CustomerReviewContent / NativeReviewScreen→getEligibility(本人OrderとReview状態)→CustomerReviewUseCases.update(requireCustomer→requireOwned→deleted/version/入力検証→review-change transaction)→DexieReviewRepository/NativeReviewRepository.update→ProductReviewSummary。published rating変更だけdelta、hiddenはSummary不変。ReviewStatusHistoryは編集時追加なし。所有権とversionのpre-transaction確認、Repository CASとSQLite更新件数の競合境界は独立実証",
+      "case_policy": "C1 published本人更新/公開集計、C2 hidden本人更新/非公開集計、C3 他Role/owner・deleted拒否、C4 stale version/並列とrollback、C5 入力境界、C6 Dexie/SQLite・Review/History/Summary/Order/Session前後、C7 Web/Android・視覚/a11yを採用。既存integrationのcreate→update→deleteとWeb required E2E #08は部分証拠でありC2/C3/C4/C6/C7のPASSではない。A02-01状態表示、A02-02削除再投稿は別ID",
+      "case_selection_reason": "本人レビューの編集は個人情報と公開評価集計を直接変更するHigh境界。publishedとhiddenで集計条件が異なり、default hidden/deletedはReview.ownerとOrder.ownerが一致しないため正常hidden CaseをSeedから誤認しない。version/並列・transaction・プラットフォーム差を独立Caseとして採用",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 9ca8c66a2efb: reviews.md BR-REVIEW-001/002・AC-REVIEW-001/002、reviewable-orders初期guest→regular・published6/未投稿5、default hidden/deleted cross-owner、Web/Native→getEligibility→update→Dexie/SQLite Review/Summaryを静的再照合。High R1-R7/TR1-TR7/C1-C7の期待・採否を個別確定し基本分析のみanalyzed。既存integrationの本人published更新/version2とWeb required #08は部分証拠。hidden本人編集・別Role/Session・stale/並列・SQLite CAS/DB前後・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。今回直接Vitest/Prettier/Playwright未実施",
       "requirement_refs": [
         "BR-REVIEW-001",
         "BR-REVIEW-002",
@@ -12400,12 +12400,13 @@
         "AC-REVIEW-002"
       ],
       "related_use_cases": [
+        "CustomerReviewUseCases.getEligibility",
         "CustomerReviewUseCases.update"
       ],
       "state_refs": [
         "SCREEN-REVIEWS-EDITOR-S-published"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る",
+      "analysis_progress": "2026-11-02 HEAD 9ca8c66a2efb: 本人published/hidden編集、version、公開Summary、default cross-owner Seedの不適合、Web/Native→Use Case→Dexie/SQLite、High Risk/TR/C1-C7を照合して基本分析のみanalyzed。実Run/製品適合/最終CIは未受入。次はSCREEN-REVIEWS-EDITOR-A02-01",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 57,
@@ -12413,28 +12414,131 @@
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
+        "line": 273,
+        "signature": "\"reviewable-orders\": {",
+        "scenario": "reviewable-orders",
         "applicable": true,
         "alternatives": [
-          "reviews-empty",
-          "reviewable-orders",
-          "hidden-reviews"
+          "default",
+          "hidden-reviews",
+          "reviews-empty"
         ],
         "transform": {
           "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
+          "line": 98,
+          "signature": "case \"reviewable-orders\":"
         },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+        "review_scope": "既存published6件は本人編集の正例。default hidden/deletedはReview.owner=goldとOrder.owner=regularが不一致で本人hidden編集の正例ではない"
       },
       "use_case_evidence": [
+        {
+          "id": "CustomerReviewUseCases.getEligibility",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 62,
+          "signature": "async getEligibility(orderItemId: string): Promise<ReviewEligibilityDto> {"
+        },
         {
           "id": "CustomerReviewUseCases.update",
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 163,
           "signature": "async update(request: UpdateReviewRequest): Promise<ReviewResultDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 5,
+          "end_line": 14,
+          "reason": "本人明細と公開/非公開集計・編集時status維持"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 24,
+          "end_line": 38,
+          "reason": "Web published編集とAndroid defaultの視覚条件"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 80,
+          "end_line": 95,
+          "reason": "AC-REVIEW-001/002本人認可と公開集計"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 92,
+          "end_line": 104,
+          "reason": "reviewable-ordersでReview6件・History filter・Summary再構築"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 590,
+          "end_line": 668,
+          "reason": "delivered11明細、hidden/deleted Review.owner=gold対Order.owner=regular"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 62,
+          "end_line": 103,
+          "reason": "本人Order確認と既存Review返却・cross-owner露出候補"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 163,
+          "end_line": 190,
+          "reason": "requireOwned・deleted/version/入力検証・transaction内公開Summary delta"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 233,
+          "end_line": 259,
+          "reason": "rating/title/body境界とReview.userId認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 306,
+          "end_line": 328,
+          "reason": "Dexie Review取得とexpectedVersion一致更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2451,
+          "end_line": 2505,
+          "reason": "SQLite Review取得とUPDATE WHERE version・rowcount未実証"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 65,
+          "end_line": 83,
+          "reason": "Web既存Reviewの入力初期化"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 145,
+          "end_line": 162,
+          "reason": "Web更新時expectedVersionと汎用失敗文言"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1321,
+          "end_line": 1405,
+          "reason": "Native Review更新と失敗メッセージ・再読込"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 66,
+          "end_line": 123,
+          "reason": "published create→update(version2)→deleteの既存部分証拠"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 157,
+          "end_line": 200,
+          "reason": "default既存published/hidden/deletedと未配達の部分証拠"
         }
       ]
     },

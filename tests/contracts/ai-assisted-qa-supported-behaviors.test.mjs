@@ -794,11 +794,21 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.related_use_cases).toContain(useCase);
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
     }
-    for (const id of ["SCREEN-AUTH-SIGNUP-A02-01", "SCREEN-REVIEWS-EDITOR-A01-02"]) {
+    for (const id of ["SCREEN-AUTH-SIGNUP-A02-01"]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
         "review_required",
       );
     }
+    const reviewEdit = data.behaviors.find(
+      (item) => item.id === "SCREEN-REVIEWS-EDITOR-A01-02",
+    );
+    expect(reviewEdit?.analysis_status).toBe("analyzed");
+    expect(reviewEdit?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(reviewEdit?.related_use_cases).toContain("CustomerReviewUseCases.update");
+    expect(reviewEdit?.risk).toContain("High");
+    expect(reviewEdit?.test_condition).toContain("TR7/C7=");
+    expect(reviewEdit?.basic_analysis_review).toContain("未受入");
+    expect(reviewEdit?.audit_branch_refs?.length).toBeGreaterThan(12);
   });
 
   it("audits the staff discontinue confirmation without certifying the product mutation", () => {

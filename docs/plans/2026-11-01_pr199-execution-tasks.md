@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A01-02`（本人のpublished/hiddenレビュー編集とversion/集計境界）。直前`SCREEN-REVIEWS-EDITOR-A01-01`は正式BR/AC、reviewable-orders初期guest→regular本人、delivered11明細/未投稿5、Web/Native→getEligibility→create→Dexie/SQLite Review/History/Summary、High R1-R7/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作70→71/188、非default16/20維持）。既存integration正常投稿とWeb #08 E2Eは部分証拠。cross-owner情報露出、別Role/Session・並列・DB/Android・視覚/a11y・製品適合・最終CIは未受入。次はA01-02の編集・version競合を個別分析。
+- **現在の対象**：`SCREEN-REVIEWS-EDITOR-A02-01`（レビュー状態表示とpublished/hidden/deletedの公開集計境界）。直前`SCREEN-REVIEWS-EDITOR-A01-02`は本人published/hidden編集・expectedVersion・Review/Summaryの公開集計条件、Web/Native→Use Case→Dexie/SQLite、default hidden/deletedのcross-owner Seed、High R1-R7/TR1-TR7/C1-C7を再照合し**基本分析のみ**`analyzed`（操作71→72/188、非default16/20維持）。既存integration正常更新は部分証拠。hidden本人編集・別Role/Session・並列/SQLite CAS・DB前後・実Web/Android・視覚/a11y・製品適合・最終CIは未受入。次はA02-01の3状態表示と集計境界を個別分析。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A01-02（本人レビュー編集・version/集計）
+
+- **基本分析のみ**：`review_required→analyzed`、操作71→72/188、非default状態16/20維持。正式`BR-REVIEW-001/002・AC-REVIEW-001/002`、本人/他人・published/hidden/deleted、Web/Android→Use Case→Dexie/SQLite、Seed実値とHigh R1-R7/TR1-TR7/C1-C7の採否を個別確認。製品適合・実Run PASSではない。
+- **Role/State/DataとSeed境界**：reviewable-ordersは初期guest→regular本人ログイン、既存published6件/未投稿5件、既存version1。default delivered11明細のhidden/deleted Reviewはgold所有だがOrderはregular所有。default hiddenをregular本人編集の正常Caseと誤認しない。hidden本人編集にはowner一致の隔離学習用fixtureが必要。
+- **UI→Use Case→Repository**：Web `review-user-pages.tsx:65-83,145-162`とNative `native-purchase-screens.tsx:1321-1405`は既存Reviewを取得し`expectedVersion`付きで`CustomerReviewUseCases.update:163-190`を呼ぶ。requireCustomer→requireOwned→deleted/version/入力検証→review-change transaction→Dexie `order-review-repositories.ts:306-328` / SQLite `native-customer-application-repositories.ts:2451-2505`。publishedのrating変更時のみProductReviewSummary差分、hidden編集は公開集計不変。編集ではStatusHistory追加なし。SQLiteのUPDATE WHERE version後の変更件数、owner変更とtransaction間の競合は直接未実証。
+- **Risk/TR/Case採否**：High=他人の本文/評価改変、公開Summary二重計算、deleted復活、version競合・部分保存、cross-owner Seed、UI失敗復帰。C1 published更新/集計、C2 hidden本人更新/集計不変、C3別Role/owner/deleted拒否、C4 stale/並列version・rollback、C5入力境界、C6 Dexie/SQLiteとReview/History/Summary/Order/Session前後、C7 Web/Android/a11yを採用。既存integration `review-user-use-cases.test.ts:66-123`のcreate→update(version2)→deleteとWeb required #08は部分証拠。C2/C3/C4/C6/C7の直接実Run・製品適合は未受入。
+- **検証とCIの独立判定**：現HEAD `9ca8c66a2efb`の[Web CI #41411886158](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41411886158)はcompleted/failure（Contracts success、Style Quality・required Chromium E2E・verify/validate failure）。今回の直接Vitest/Prettier/Playwright・実Web/Androidは未実施。台帳の必須欄・3照合フラグ・操作72/188・状態16/20と学習用契約期待を静的に照合。新HEAD CIは別判定。
+- **再開条件/次**：固定HEADでhidden本人owner一致fixture、別Role/Session、cross-owner情報非露出、stale/同時編集とSQLite CAS、Review/History/Summary/Order/Session前後、Web/Android画面・視覚/a11y・正式UX期待を直接検証。製品修正は#199で行わない。次は`SCREEN-REVIEWS-EDITOR-A02-01`。
 
 ## 2026-11-02 共通逐次：SCREEN-REVIEWS-EDITOR-A01-01（本人初回レビュー投稿）
 
