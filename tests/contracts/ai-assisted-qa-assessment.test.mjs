@@ -21,7 +21,10 @@ import {
   validateCandidate,
   validateSavedChallenge,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
-import { filterPhaseKnowledgeGraph } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
+import {
+  filterPhaseKnowledgeGraph,
+  writeImmutableOpenCodePrompt,
+} from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
   runAiAssistedQaSpecCli,
   verifyM03SkillRuntimeEvidence,
@@ -42,6 +45,27 @@ it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
   );
   expect(() => assertModelInputSize(null, "assessment prompt")).toThrow(
     "assessment prompt exceeds the size limit",
+  );
+});
+
+it("reuses only byte-identical OpenCode prompts after an interrupted assessment", () => {
+  const directory = path.join(tempRoot, "interrupted-opencode");
+  fs.mkdirSync(directory, { recursive: true });
+  for (const fileName of ["calibration-prompt.md", "assessment-prompt.md"]) {
+    const promptPath = path.join(directory, fileName);
+    const prompt = "検証対象と入力SHAを固定する";
+    writeImmutableOpenCodePrompt(promptPath, prompt);
+    expect(fs.readFileSync(promptPath, "utf8")).toBe(prompt);
+    expect(() => writeImmutableOpenCodePrompt(promptPath, prompt)).not.toThrow();
+    expect(() => writeImmutableOpenCodePrompt(promptPath, prompt + "変更")).toThrow(
+      "saved OpenCode prompt differs from the resumed assessment input",
+    );
+    expect(fs.readFileSync(promptPath, "utf8")).toBe(prompt);
+  }
+  const directoryPath = path.join(directory, "not-a-file.md");
+  fs.mkdirSync(directoryPath);
+  expect(() => writeImmutableOpenCodePrompt(directoryPath, "prompt")).toThrow(
+    "saved OpenCode prompt differs from the resumed assessment input",
   );
 });
 

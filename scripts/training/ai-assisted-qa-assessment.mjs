@@ -495,6 +495,21 @@ async function getOpenCodeVersion() {
   return version;
 }
 
+export function writeImmutableOpenCodePrompt(promptPath, prompt) {
+  try {
+    writeImmutableOpenCodePrompt(promptPath, prompt);
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+    const existing = fs.lstatSync(promptPath);
+    if (
+      !existing.isFile() ||
+      existing.isSymbolicLink() ||
+      !fs.readFileSync(promptPath).equals(Buffer.from(prompt, "utf8"))
+    )
+      fail("saved OpenCode prompt differs from the resumed assessment input");
+  }
+}
+
 async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, fileName }) {
   const promptPath = path.join(directory, fileName);
   fs.writeFileSync(promptPath, prompt, { encoding: "utf8", flag: "wx", mode: 0o600 });

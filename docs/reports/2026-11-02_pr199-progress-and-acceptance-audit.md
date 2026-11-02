@@ -134,3 +134,11 @@ M07について、`training/ai-assisted-qa-course/exercises/M07/exercise.md`の�
 ### Phase別知識グラフの評価ソースの修正（2026-11-02）
 
 `ai-assisted-qa-assessment.mjs`の`filterPhaseKnowledgeGraph`は、対象Phaseの`ASSESS-P1/P2/P3`ノードを選ぶ際に`phaseModules[0].slice(0, 2)`を使っていたため、`M00`→`M0`のような値と`P1`が一致せず、3つの評価ノードをすべて除外していた。さらに`P1/P2/P3`のPhaseノード自体も選択しておらず、`ASSESS-P1 → P1`や`M00 → P1`などの`part_of`リンクも失っていた。`phaseId`を正規の引数として渡し、対象Phaseのassessment/phaseノードとリンクを残し、他Phaseを除外するよう修正した。`tests/contracts/ai-assisted-qa-assessment.test.mjs`にP1/P2/P3の回帰テストを追加。内容の全件受入や実OpenCode校正に代わるものではない。
+ 
+### OpenCode中断時のPrompt再開（2026-11-02、独立調査）
+
+正式AI評価の`runOpenCode`は校正と採点のPromptを`flag: "wx"`で保存する。OpenCode実行後・結果確定前にプロセスが停止した場合、同一試行を`--resume`しても既存の`calibration-prompt.md`または`assessment-prompt.md`への再書込みが`EEXIST`となる。未確定試行の安全な再開という評価Planの契約に反する。
+
+既存ファイルが通常ファイルで、内容がUTF-8バイト単位で完全一致する場合のみ再利用し、内容相違・ディレクトリ・シンボリックリンクを拒否するよう修正した。校正と採点の両経路に同じ処理を適用し、同一内容の再実行・変更時拒否・既存内容不変の契約テストを追加。正式評価の結果・合否判定ロジックは変更しない。
+
+直接のNode/Vitestと実OpenCodeによる強制中断・再開の通し実行、および最新HEADのGitHub Actions成功はこの記録時点では未確認。実モデル校正・誤PASS判定の技術受入は引き続き未完了。
