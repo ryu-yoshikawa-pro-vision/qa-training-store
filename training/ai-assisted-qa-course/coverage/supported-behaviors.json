@@ -14776,30 +14776,35 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,many-products,admin-bulk-partial-failure。role=operator/admin、状態・対象ID・versionを区別。操作: 商品編集画面へ遷移",
+      "data": "Role: active operator/admin、guestは/login、customer/停止staffは/forbidden、失効SessionはUse Case再認可。State: default/many-products/admin-bulk-partial-failure、Web desktop/tablet、1023/1024px境界。Data: default初期guest/Sessionなし・11商品（published8/unpublished1/draft1/discontinued1）、product-mug=P-0002、product-discontinued=P-0009。many-productsはload-product-0001〜1000、bulk-partial-failureはproduct-mugのbulk競合設定であり編集遷移には直接非適用。",
       "action": "商品編集画面へ遷移",
-      "expected": "選択した既存商品IDに対する編集画面を開き、別商品の情報を編集しない",
+      "expected": "active operator/adminが一覧の商品行から/admin/products/{選択productId}へ遷移し、当該IDのProduct/Variant/Imageとactiveマスタ・画像候補を編集フォームへ表示すること。別商品の初期値・versionを混在させず、存在しないIDはnot-found、非staff/失効Sessionは拒否すること。遷移とgetEdit/getEditDtoの読取りだけではProduct/Variant/Image/Stock/History/Sessionを変更しないこと。update/公開/複製/削除/previewは別操作として判定すること。",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品編集画面へ遷移の前後に、選択した既存商品IDに対する編集画面を開き、別商品の情報を編集しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと商品編集画面へ遷移の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "商品編集画面へ遷移が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High: 非staffへの管理集約情報露出、異なるproductIdの旧フォーム混在・誤商品更新、古いversionによる上書き。特に同一画面インスタンスでproductIdが変わる際、useAsyncValue旧value→effect resetとProductEditor key=新productId・useState(initial)=初回値固定の静的組合せから旧商品の初期値が新IDフォームに残る可能性（実再現未確認）。Medium: 不存在/不正ID、active候補欠落、1023/1024px・視覚/a11y、many-products ID誤選択。",
+      "test_condition": "C1 default active operator/adminでproduct-mugとproduct-discontinued等を別々に選択し、URL/見出し/商品コード/Variant/画像/status/version一致。C2 guest/customer/停止staff/失効Sessionの一覧/詳細直URL・getEdit拒否と管理情報非露出。C3 存在しない/不正IDはnot-found。C4 同一画面A→B高速route param変更・遅延getEdit逆順完了でフォーム初期値・保存先ID/versionがBに一致し、旧AでBを上書きしない。C5 遷移/候補読取り前後のProduct/Variant/Image/Stock/History/Session snapshot不変、update/preview/duplicate/changeStatus非呼出し。C6 default11件/many-products1000件（20件ページ）/bulk競合Seedで行IDと詳細ID・draft/published/discontinued表示一致。C7 desktop/tablet/1023/1024px・loading/error・keyboard/a11y/視覚、Dirty遷移は別操作。",
+      "test_responsibility": "一覧行productId→Expo Router動的route param→StaffPage/RouteGuard→AdminProductUseCases.getEdit→Dexie getEditDto/getAggregateForAdminの読取り対応、選択ID/version/状態とSession/DB不変を確認。ProductEditor旧初期値残存と別ID保存の可能性はHighの独立実Run待ち。更新/公開/複製/削除/previewは別操作IDで検証し、基本分析・製品適合・実Webを分離。",
+      "case_policy": "採用: C1 staff両Roleと別商品ID、C2非staff/失効Session、C3不存在/不正ID、C4連続遷移/応答逆転・旧フォーム混在、C5 DB/Session/History不変・書込みUse Case非呼出し、C6 default/many-products/bulk競合Seed、C7 1023/1024px・desktop/tablet・loading/error/視覚/a11y。除外: 商品更新/公開/複製/削除/previewの実成否（SCREEN-ADMIN-PRODUCT-DETAIL等）、Native管理画面（非サポート）。",
+      "case_selection_reason": "正式admin-catalog.md:8-23,61-83とBR/AC-ADMINCAT-001/002、AdminProductsPage:251の選択IDリンク→app/admin/products/[productId].tsx:5→AdminProductEditPage:415/StaffPage→AdminProductUseCases.getEdit:104→Dexie getEditDto:510/getAggregateForAdmin:53のID限定読取りを照合。default11件/many-products1000件のRole/State/DataとC1-C7採否を確定。useAsyncValue/フォームstateの旧商品混在は静的High候補として実Run待ち、製品SUT無変更。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 3674a5110ee4: admin-catalog.md:8-23,61-83、AdminProductsPage:251→app/admin/products/[productId].tsx:5→AdminProductEditPage:415-439/RouteGuard:25-55→AdminProductUseCases.getEdit:104-108/requireStaff:524-533→Dexie getEditDto:510-542/getAggregateForAdmin:53-69を照合。default初期guest/11商品、many-products1000件、bulk部分失敗SeedとHigh R1-R7/TR1-R7/C1-C7採否を確認。IDリンク・動的route・StaffPage・getEdit・Dexie ID検索・フォーム境界の14/14コード断片静的assert成功。Highのroute ID切替時の旧フォーム混在/誤商品更新は未再現。直接Vitest/Prettier/Playwright、Role別実Web、ID切替競合、DB/Session前後、1023/1024、視覚/a11y、製品適合・最終CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.search",
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.searchImageAssets",
+        "AdminProductUseCases.update"
+      ],
+      "analysis_progress": "2026-11-02 A02-02基本分析のみ完了（操作83→84/188、非default16/20）。ID隔離/Role/State/Data・UI→Use Case→Dexie/SeedとC1-C7採否を確定。Highの旧フォーム混在は実Web/DB前後/別ID上書き防止を検証待ち。次の共通対象SCREEN-ADMIN-PRODUCT-NEW-A01-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
-        "line": 48,
-        "signature": "export function AdminProductsPage() {"
+        "line": 251,
+        "signature": "<Link href={`/admin/products/${item.productId}`} key=\"product\">"
       },
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
@@ -14818,7 +14823,37 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.search",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 80,
+          "signature": "  async search("
+        },
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "  async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.searchImageAssets",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 111,
+          "signature": "  async searchImageAssets("
+        },
+        {
+          "id": "AdminProductUseCases.update",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 157,
+          "signature": "  async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-S-many-products",

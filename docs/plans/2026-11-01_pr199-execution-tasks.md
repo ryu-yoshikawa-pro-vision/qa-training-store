@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A02-02`（商品編集画面へのstaff導線・対象ID隔離）。直前A02-01は正式管理導線/Role/State/Data、Web Link→new route→StaffPage→候補検索/Repository、default11商品/many-products1000商品、C1-C7採否を照合し基本分析のみanalyzed（操作83/188・状態16/20）。直接実Run/DB・Session不変・1023/1024px・duplicateドラフトは検証待ち。詳細は直下のA02-01記録。直前A01-03は仕様/Role/State/Data、Web→bulkChangeStatus→Dexie、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作82/188・状態16/20）。直接実Run/正式製品適合・表示外selected・Seed制御値の実効性は検証待ち。詳細は直下のA01-03記録。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-NEW-A01-01`（商品新規入力・保存前のRole/State/Dataと入力境界）。直前A02-02は一覧Link→動的route→getEdit→DexieのID限定読取り、default11商品/many-products1000件、C1-C7採否を照合し基本分析のみanalyzed（操作84/188・状態16/20）。Highのroute ID切替時の旧フォーム混在/誤ID保存可能性は実Run・DB/Session前後・視覚/a11y待ち。詳細は直下のA02-02記録。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A02-02（商品編集導線と対象ID隔離）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**83→84/188**、非default状態**16/20**維持。正式`admin-catalog.md:8-23,61-83`、active operator/adminと非staff、default11商品/many-products1000商品、UI→Use Case→Dexie/Seed、High R1-R7/TR1-R7/C1-C7採否を個別照合。製品適合・実Web・保存成功ではない。
+- **ID限定の読取り経路**：`admin-product-pages.tsx:251`の一覧行`/admin/products/${item.productId}`→`app/admin/products/[productId].tsx:4-6`→`AdminProductEditPage:415-439`の`StaffPage`→`AdminProductUseCases.getEdit:104-108`の`requireStaff`→`DexieAdminProductQueryRepository.getEditDto:510-542`→`DexieProductRepository.getAggregateForAdmin:53-69`のID限定Product/Variant/Image読取り。初期表示ではupdate/changeStatus/duplicate/previewを呼ばず、保存は明示submit時のみ。guest→/login、customer/停止staff→/forbidden、Use Case再認可、不存在IDはNOT_FOUND。
+- **High・旧フォーム混在の静的候補**：同一画面インスタンスでroute `productId`がA→Bへ変わると、`useAsyncValue`はeffectまで旧`loaded/value`を保持し得る。編集画面の`ProductEditor key=${productId}-${mutation}`はBへ変わる一方、旧Aの`initial`を`useState(initial)`で保持し、新BのgetEdit結果で初期値を再適用しない可能性がある。保存時はBのIDとフォーム値を結合するため誤商品更新の可能性をHigh候補として記録。Expo Router実remountは未実証で製品不具合確定ではない。
+- **Seed・Case採否**：default初期guest・商品11件（published8/unpublished1/draft1/discontinued1）、many-productsはload-product-0001〜1000、admin-bulk-partial-failureはbulk競合設定で導線直接影響なし。C1 staff両Role/商品IDと詳細一致、C2非staff/失効Session拒否、C3不存在ID、C4 A→B連続遷移と遅延応答/旧フォーム混在、C5 DB/Session/History前後不変・書込み非呼出し、C6 Seed/ページング/状態、C7 1023/1024・desktop/tablet・loading/error・視覚/a11yを採用。商品編集/公開/複製/削除/previewの実成否は別操作、Native管理画面は非対象。
+- **検証・未受入**：選択IDリンク・動的route・StaffPage・getEdit・Dexie ID検索・非同期フォーム境界の14/14コード断片静的assert成功。既存`tests/component/admin-product-pages.test.tsx:199-290`は入力制限/複製/Dirtyの部分証拠のみ。直接Vitest/Prettier/Playwright・Role別実Web/DB・Session前後・1023/1024・視覚/a11y・製品適合は未受入。再開は固定HEADの隔離fixtureでC1-C7、特にA→B同一component再利用/非同期競合と誤ID保存を検証すること。製品修正は#210/別途承認境界。
+- **CI独立**：作業前HEAD `3674a5110ee4`の[Web CI #41441817939](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41441817939)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component等はsuccess、required Chromium E2E・verify/validateはfailure。新HEADは別判定、Mobile PRトリガー未復元。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-NEW-A01-01`（商品新規入力・保存前のRole/State/Dataと入力境界）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A02-01（商品登録画面へのstaff導線）
 
