@@ -10036,16 +10036,16 @@
       "scenario": "default",
       "data": "Seed/入力: payment-declined,checkout-resume,在庫変更前後。Customer本人/他人・activeセッション・versionを区別する。対象動作: 許可された再試行",
       "action": "許可された再試行",
-      "expected": "失敗した本人注文で仕様上再試行可能な状態に限り、同一注文の決済再試行へ進める",
+      "expected": "本人の保存済みOrder=payment_failed・最新Payment=failedと正しいorderActionVersionの場合のみ同一Orderの再試行を開始し、Orderをpending_paymentへ更新、Payment attemptを1件追加、PAYMENT_RETRY_STARTED履歴を記録する。Gateway確定前は在庫/Shipmentを変更せず、成功時のみresumePaymentで同一Orderをpaidへ確定する。guest/operator/別customer・存在しないOrder・古いversion・既にpaidのOrderは拒否し、Order/Payment/Cart/Checkout/Session/在庫/履歴を変更しない。processing中は新attemptを作らず既存DTOを返す。Webは4種類の決済方法を選択可能、NativeはTEST-SUCCESS固定であり正式なPlatform期待は別途判断",
       "rule_refs": [],
       "route": "`/checkout/failed`",
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "許可された再試行について、失敗した本人注文で仕様上再試行可能な状態に限り、同一注文の決済再試行へ進めることを決済・注文・カート/セッションの状態変化で確認する",
+      "risk": "High：別人Orderの決済再試行、重複Payment/Gateway呼出し、二重在庫減算、古いversionからの不正成功、失敗後のCart/Session変更による金額不一致、Web/Nativeの復帰不能",
+      "test_condition": "C1=default/payment-declinedの本人regularでorder-payment-failed(version一致)をretryPaymentし、同一Order/Payment attempt 1→2・pending_payment・PAYMENT_RETRY_STARTED・Gateway0回・Cart/Checkout/Session/在庫不変を検査（学習用隔離Dexie契約）。C2=同じOrderをresumePaymentしてpaid/Payment succeeded、Gateway1回・Order新規作成なし（同契約、順次のみ）。C3=guest/operator/別customer/古いOrder versionを拒否し全DB snapshot/Gateway0回を検査（同契約）。C4=processing中stale versionは新attemptを作らず既存DTO返却、paid後はCONFLICT（同契約）。C5=Webの4方法とNativeの成功固定、Web reject時catch不在とNative retryMessage/busy、実画面/視覚/a11yを確認（実Run・正式判断待ち）。C6=2 Session並列retry/resume・遅延Gateway・Payment/Order/在庫/Shipment/履歴一回性と失敗注入を確認（未実行）。C7=Cart/Checkout変更後の既存Order再試行許容境界、Gateway応答後transaction失敗/再起動・全DB/Session snapshotと仕様判断（未実行）",
       "test_responsibility": "本人の購入条件・状態遷移と許可された再試行の結果を照合する",
-      "case_policy": "正常遷移、期限切れ/競合、本人以外・重複実行を代表Caseに選定",
-      "case_selection_reason": "許可された再試行の不具合が二重決済・他人情報・金額不整合・注文確定に影響するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "case_policy": "C1/C2（失敗から同一Orderで新Payment→順次成功）とC3（認可/stale拒否）、C4（processing冪等・paid後拒否）を採用。tests/contracts/ai-assisted-qa-checkout-processing.test.mjsの該当Caseは現HEAD Web CIの7/7 PASSに含まれる。C5（Web/NativeのUI選択・失敗表示）は静的差異を記録し実Run/正式期待待ち。C6（並列・遅延Gateway）、C7（Cart/Session変更・障害復旧）はHighの独立負例として保留し省略しない。失敗理由はFAILED-A01-01、処理中再試行抑止はPROCESSING-A02-02、失敗結果境界はFAILED-A02-02と分離",
+      "case_selection_reason": "再試行可否はURLやボタン表示ではなく本人Order/最新Payment/versionの保存状態で決まる。新規注文作成と既存Orderへの新Payment追加を区別し、認可・古いversion・処理中冪等・成功後拒否・並列Gatewayを別Caseにする。順次Dexie契約の成功を実Web/Android・SQLite・並列決済・製品適合のPASSへ流用しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02現行mainのBR-CHECKOUT-003/AC-CHECKOUT-003（docs/spec/features/checkout-and-payment.md:17-23,210-220,250-254）、Customer本人/guest/operator/別customer、payment_failed→pending_payment→paid、Order.version/Payment attempt、default/payment-declined（scenarios.ts:73-79はdefaultを維持、初期guestからregularログインが必要）を照合。Web checkout-order-pages.tsx:508-604はgetMyOrder→resolver→4方法retryPayment、reject時catchなし。Native native-purchase-screens.tsx:1025-1103はTEST-SUCCESS固定、busy無効・retryMessage表示。Use Case checkout-order-use-cases.ts:311-373はrequireCustomer/所有権→processing既存DTO返却→failed+version一致のみOrder更新・新Payment・履歴、resumePaymentでGateway/最終確定。Dexie order-review-repositories.ts:43-48,247-270はversion・最新attemptを保持。学習用隔離Dexie tests/contracts/ai-assisted-qa-checkout-processing.test.mjs:235-310の失敗Order正常再試行とguest/operator/別人/stale拒否、および同ファイル:180-231のprocessing/paid境界を確認。現HEAD 45f372f3fe38のWeb CI #41384574248で同ファイル7/7 PASS、ただしcontracts全体は旧台帳期待値等15件failure。Risk/TR/Condition/C1-C7採否を明示し基本分析のみ成立。Web/Native正式Platform期待、実Web/Android、並列Gateway、SQLite/全DB/Session実Run、Cart変更後の許容境界、視覚/a11y、製品適合、全CIは未受入",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10057,7 +10057,7 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.retryPayment"
       ],
-      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "期待・条件を具体化。注文/決済の分岐とSeed内の実値に対する追加レビュー待ち | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 HEAD 45f372f3で仕様/Role/State/Data/Web/Native→retryPayment/resumePayment→Dexie/Seed、High Risk/TR/Condition/C1-C7採否と直接契約7/7 PASSを照合。基本分析のみanalyzed、実Web/Android・並列Gateway・Cart/Session変更後の許容範囲・製品適合・全CIは検証待ち。次はFAILED-A01-03",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 508,
@@ -10086,6 +10086,73 @@
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "line": 332,
           "signature": "async retryPayment(request: RetryPaymentRequest): Promise<OrderProcessingDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 17,
+          "end_line": 23,
+          "reason": "BR-CHECKOUT-003の失敗/processingの決済境界"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 210,
+          "end_line": 220,
+          "reason": "失敗画面の再試行とPlatform UI状態"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 250,
+          "end_line": 254,
+          "reason": "AC-CHECKOUT-003の一回性"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 508,
+          "end_line": 604,
+          "reason": "Webの本人注文取得/4決済方法/エラーcatch欠落"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1025,
+          "end_line": 1103,
+          "reason": "Nativeの本人注文取得/成功固定/busyとエラー"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 311,
+          "end_line": 373,
+          "reason": "本人認可・processing冪等・failed versionと新attempt"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 247,
+          "end_line": 270,
+          "reason": "Payment更新versionとattemptNumber順の最新試行"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 73,
+          "end_line": 79,
+          "reason": "payment-declinedのdefault固定状態"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 680,
+          "end_line": 750,
+          "reason": "regular本人とdefault Seed"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-checkout-processing.test.mjs",
+          "start_line": 180,
+          "end_line": 310,
+          "reason": "7/7 PASSのうち順次再試行・拒否・processing/paid境界の直接契約"
         }
       ]
     },
