@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-04`（ブランド有効・無効切替）。直前`SCREEN-ADMIN-BRANDS-A01-03`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie brands.updateDetails・default Seed3ブランド/公開8商品・名称正規化・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作104/188、非default16/20）。transaction外version CAS、21件超の保存後DTO、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
-- **CI横断**：作業前HEAD `ee3ab578da80`の[Web CI #41496638446](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41496638446)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-INVENTORIES-A01-01`（SKU別在庫と分類）。直前`SCREEN-ADMIN-BRANDS-A01-04`は台帳上の実操作「入力バリデーション」（旧Planの「ブランド有効・無効切替」は誤記）として正式仕様/Role/State/Data・Web→Use Case→Dexie・Seed・Risk/TR/C1-C7を照合し基本分析のみ`analyzed`（操作105/188、非default16/20）。新規/編集の空・80/81文字・正規化重複・stale version・拒否時DB不変の実Run、Role別Web、並列、製品適合、最終CIは未受入。ブランド状態変更自体は分母・分類監査で別途扱う。
+- **CI横断**：作業前HEAD `32be03d6c820`の[Web CI #41503580538](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41503580538)はcompleted/failure。Style Quality/Unit/Repository/Integration/Component/Code Quality等はsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-04（ブランド入力バリデーション）基本分析受入
+
+- **判定と名称訂正**：台帳の実操作は「入力バリデーション」。共通Planに残っていた「ブランド有効・無効切替」は誤記のため、当IDの意味を変更せず訂正した。基本分析のみ`review_required→analyzed`、操作**104→105/188**、非default状態**16/20**。状態切替はWebに実在するが、本IDの入力検証と混同せず分母・分類監査で別途扱う。
+- **正式仕様・Role/State/Data**：`admin-catalog.md:181-195,211-220`はブランド一覧・作成・編集・バリデーションを記載するが、共通AC-ADMINCAT-001/002は商品公開/プレビュー中心。ブランド固有の詳細ACは限定的であり、Use Case/DBの検証条件を製品の正式期待と混同しない。`roles-and-permissions.md:5-19`に従いactive operator/adminのみ許可。default Seedは3ブランド（Basics/Life/Active、全件active/version1）・商品11件中published8件（2/3/3）。不正入力・正規化重複・stale versionで既存Brand/関連表/Session不変を期待し、実DB前後比較は未実施。
+- **経路・境界**：Web `admin-master-pages.tsx:353-376,431-568`の新規required/maxlength80・編集InlineNameEditor disabled/maxlength80・通知・新規送信直後clear→`AdminMasterUseCases.createBrand:172-181/updateBrand:183-198/validName:228-237/requireStaff:239-249`のtrim・0/81文字拒否/Role→`DexieBrandRepository.create/updateDetails:507-531`のbrands.add/編集expectedVersion照合→put、`database.ts:65`のunique nameNormalized、`normalization.ts:1-3`のNFKC/小文字/連続空白統一。編集のversion照合とputは明示transaction外。
+- **Risk/TR/Case採否**：High R1非staff/DTO露出、R2正規化重複・参照破損、R3並列lost-update候補。Medium R4空/80・81文字/NFKC、R5新規失敗時入力clear、R6編集disabled・一般通知・二重送信、R7 filter/21件・viewport/a11y。TR1正式仕様/Role、TR2 Web、TR3 Use Case/Dexie/Session、TR4 Seed/既存テスト。採用C1新規入力境界、C2編集境界/stale version、C3新規・編集重複、C4 Role/Session、C5並列/DB故障、C6全表不変・通知/再入力/filter、C7視覚・keyboard/a11y。除外:新規成功(A01-02)、編集成功(A01-03)、ブランド有効・無効切替、製品SUT変更。
+- **直接照合と未受入**：固定HEAD `32be03d6c820`で10ソース37/37静的断片assert、隔離した正規化参照3/3を確認（製品実装の直接Vitestではない）。既存Integrationは80/81文字、Repository ContractはNFKC重複、Componentはmaxlengthの部分証拠。直接Vitest/Prettier/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、視覚/a11y、製品適合/最終CIは未受入。R3/R5/R6は未再現候補。C1-C7隔離実Runと正式期待照合で再開。
+- **次の共通対象**：`SCREEN-ADMIN-INVENTORIES-A01-01`（SKU別在庫と分類）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-03（ブランド名称編集）基本分析受入
 
