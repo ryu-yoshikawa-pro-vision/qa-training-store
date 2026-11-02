@@ -495,6 +495,32 @@ describe("AI-assisted QA static learning course", () => {
     expect(criterion?.pass_conditions.join(" ")).toContain("反復実践P04・P05・P06");
   });
 
+  it("requires M02 and M08 assessment evidence for multi-condition analysis and Git change review", () => {
+    const root = "training/ai-assisted-qa-course";
+    const rules = [
+      ["M02", "M02-CR-02", "反復実践P01・P02・P03"],
+      ["M08", "M08-CR-02", "反復実践P01・P02・P03"],
+      ["M08", "M08-CR-03", "反復実践P04・P06"],
+    ];
+    for (const [moduleId, criterionId, required] of rules) {
+      const scoring = JSON.parse(
+        fs.readFileSync(
+          path.join(repositoryRoot, root, "assessment/scoring-tests", `${moduleId}.json`),
+          "utf8",
+        ),
+      ) as {
+        criteria: {
+          id: string;
+          required_evidence: string[];
+          pass_conditions: string[];
+        }[];
+      };
+      const criterion = scoring.criteria.find((item) => item.id === criterionId);
+      expect(criterion?.required_evidence.join(" ")).toContain(required);
+      expect(criterion?.pass_conditions.join(" ")).toContain(required);
+    }
+  });
+
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
     const assessmentRoot = "training/ai-assisted-qa-course/assessment";
     const scoring = JSON.parse(
