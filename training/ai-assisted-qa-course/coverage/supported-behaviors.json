@@ -20837,7 +20837,7 @@
       "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
       "case_selection_reason": "ロール変更が権限逸脱や不正データ更新を引き起こさないことを示すため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "基本分析継続（review_required）。正式BR-ADMINUSER-001/AC-ADMINUSER-001（admin-users.md:9-25,43-79）とroles-and-permissions.md:5-24のactive admin専用・operator/admin間のみ・自己/last-admin/withdrawn拒否を確認。AdminUserDetailForm:638-813はadmin Guard、isSelf disabled、ConfirmDialog、role差分、expectedVersion=user.version、失敗理由表示、全Session無効化案内。AdminUserUseCases.changeRole:567-598はrequireAdmin→自己拒否→change-user-access transaction内でtarget/version・operator/admin/withdrawn・active last-admin数を検査し、DexieUserRepository.update:58-64でversion CAS、SessionRepository.deleteByUserId:129-131で対象Session削除。default Seedはadmin1/operator1/customer5、version1（default-dataset.ts:730-779）。High R1=非admin権限昇格、R2=自己/最後のadmin降格、R3=stale CAS/並列ロール変更、R4=対象Session失効漏れ、R5=失敗時の部分更新。Medium R6=withdrawn/customer/欠損target、R7=ConfirmDialog・拒否理由・非同期再読取、R8=desktop/tablet・keyboard/a11y。TR1=正式BR/AC/Role、TR2=詳細UI/ConfirmDialog、TR3=Use Case/Identity/Dexie transaction、TR4=default Seed/既存Integration/学習用契約。C1採用=adminが他人のactive operatorをadminへ昇格しversion1→2、全対象Session削除・他表不変・stale version拒否（学習用契約1 Case追加、同HEAD実行待ち）。C2採用=別admin存在下のadmin→operator/last-admin拒否、C3採用=自己/非admin/withdrawn/customer/失効actorの拒否と全表不変、C4採用=並列version/last-admin interleaving、C5採用=Session削除失敗注入のtransaction rollback、C6採用=実Web確認ダイアログ・成功/拒否理由・Session無効化、C7採用=1023/1024px・desktop/tablet・keyboard/a11y。会員ランク・利用停止は別ID。直接ローカルVitest/formatter/validator・新CaseのCI実行・実Web/製品適合・最終CIは未受入。C1の実行証拠およびC2-C7の採否/既存証拠最終確認後に基本分析判定。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -20845,7 +20845,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeRole"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03: A01-02のRole/State/Data、UI→Use Case→Dexie/Session transaction、default SeedとHigh/Medium Risk・TR1-4・C1-7を照合。学習用契約C1（他人operator→admin、version CAS、全対象Session削除、他表不変、stale拒否）1 Case追加。直接CI実行待ちのためreview_required継続、操作121/188・非default17/20据置。次回同IDで同HEADの契約結果とC2-C7を確認。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -20874,6 +20874,91 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 567,
           "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 25,
+          "reason": "ロール変更制限・自己/last-admin/withdrawn・拒否理由"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 43,
+          "end_line": 79,
+          "reason": "詳細UIとAC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 24,
+          "reason": "active admin専用・role/状態"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 618,
+          "end_line": 813,
+          "reason": "Guard、ConfirmDialog、自己disabled、role/version送信・結果表示"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 567,
+          "end_line": 598,
+          "reason": "changeRoleの認可・version・last-admin・transaction"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 685,
+          "reason": "requireAdmin/target/DTO・拒否コード"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 26,
+          "end_line": 59,
+          "reason": "対象Session失効後のactor再認証"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 58,
+          "end_line": 64,
+          "reason": "DexieUserRepository.updateのversion CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 126,
+          "end_line": 131,
+          "reason": "SessionRepository.deleteByUserId"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 66,
+          "end_line": 76,
+          "reason": "change-user-access users/sessions/checkout_sessions原子境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "default 7ユーザー・admin1/operator1・version1"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 300,
+          "end_line": 355,
+          "reason": "既存promotion/自己/withdrawn部分証拠"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "start_line": 1,
+          "end_line": 220,
+          "reason": "追加C1の隔離Dexie契約、CI実行待ち"
         }
       ]
     },

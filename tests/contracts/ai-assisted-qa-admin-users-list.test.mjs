@@ -137,4 +137,58 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
 
+  it("promotes another active operator with version CAS and invalidates all target sessions", async () => {
+    await database.sessions.add({
+      id: "training-user-operator-second",
+      userId: "user-operator",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    const before = await fullDatabaseSnapshot();
+    const promoted = await forSession("training-user-admin").useCases.changeRole({
+      userId: "user-operator",
+      role: "admin",
+      expectedVersion: 1,
+    });
+    expect(promoted).toMatchObject({
+      userId: "user-operator",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      version: 2,
+    });
+    const after = await fullDatabaseSnapshot();
+    expect(after.users.filter((user) => user.id !== "user-operator")).toEqual(
+      before.users.filter((user) => user.id !== "user-operator"),
+    );
+    expect(after.users.find((user) => user.id === "user-operator")).toMatchObject({
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      version: 2,
+    });
+    expect(after.sessions).toEqual(
+      before.sessions.filter((session) => session.userId !== "user-operator"),
+    );
+    for (const [table, rows] of Object.entries(before)) {
+      if (table !== "users" && table !== "sessions") {
+        expect(after[table]).toEqual(rows);
+      }
+    }
+    const staleBefore = await fullDatabaseSnapshot();
+    await expect(
+      forSession("training-user-admin").useCases.changeRole({
+        userId: "user-operator",
+        role: "operator",
+        expectedVersion: 1,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
+    const invalidated = forSession("training-user-operator");
+    await expect(invalidated.useCases.getDetail("user-admin")).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    expect(await invalidated.store.getSessionId()).toBeNull();
+    expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
+  });
+
 });
