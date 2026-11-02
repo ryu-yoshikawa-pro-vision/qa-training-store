@@ -19014,26 +19014,28 @@
       "source_line": 23,
       "source_text": "注文一覧、決済ステータス、配送ステータス、フィルターを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-phase1-statuses。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 注文絞り込み",
+      "role": "active operator/adminのみ注文検索と顧客メール/金額を閲覧可。guest/customer、停止/退会staff、欠落/失効SessionはStaffPage/RouteGuardとUse Case requireStaff/SessionIdentityResolverで拒否。失効Session clearは通常の読取不変と区別。",
+      "scenario": "defaultとorders-phase1-statusesは同一5注文/Payment5/Shipment3の固定dataset（後者はoperator初期Session、defaultはguest）。注文status=payment_failed/paid/preparing/shipped/delivered、pending_payment・最終ミリ秒・20/21件・同時刻sort・不正範囲・並行更新は隔離fixture。",
+      "data": "default/phase1はorder-payment-failed/paid/preparing/shipped/deliveredの5注文（ORD-20260701-0001〜0005、2026-07-01 01:00〜05:00Z、同一regular@example.com）、Payment failed1/succeeded4・Shipment pending/shipped/deliveredの3件。Order.totalAmountは各OrderItemから計算されるため固定2000円と仮定しない。pageSize20の初期一覧5件、注文statusのみfilter対象。注文番号/顧客emailの部分一致、状態・UTC時刻・金額上下限・sort・pageで検索。DB全表とSessionを隔離前後比較する。",
       "action": "注文絞り込み",
-      "expected": "決済状態・配送状態・検索条件を変更すると対象注文だけを表示する",
+      "expected": "Web /admin/ordersのkeyword・注文status（allまたは単一）・開始/終了日・最低/最高合計・sort・pageをAdminOperationsUseCases.searchOrdersへ渡し、DexieOrderRepository.searchでstatus/keyword/date/amountを積集合で絞り、注文番号tie-break・pageSize20で返す。最低/最高合計は両端含む。API createdFromは>=、createdToは<（上限exclusive）。一方Webの終了日はT23:59:59.999Zを渡すため同日の最終1msを除外する静的境界差がある。Webは決済/配送個別statusのfilterを持たず注文statusだけであり、正式仕様の『フィルター』は個別決済/配送filter必須とは明記しない。filter変更時にpageを1へ戻さず、後続ページから絞ると結果ありでも空ページ候補。いずれも実Web/製品適合は未受入。",
       "rule_refs": [],
       "route": "`/admin/orders`",
-      "risk": "配送遷移の飛び越しと注文・配送不一致",
-      "test_condition": "注文絞り込み実施前後で、決済状態・配送状態・検索条件を変更すると対象注文だけを表示することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、注文絞り込みの入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "注文絞り込みが権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/失効Sessionから顧客email・注文番号・金額DTO漏洩、R2=状態/日付/金額filter誤適用で別注文・支払失敗注文を誤表示、R3=読取による注文/Payment/Shipment/Sessionの意図しない変更。Medium R4=API上限exclusiveに対しWeb終了日T23:59:59.999Zで最終1ms欠落、R5=入力日付をUTC Z固定として利用者ローカル日付と不一致候補、R6=filter変更時pageをリセットせず空ページ候補、R7=20/21件・同時刻sort/tie-break、R8=負金額・min>max・from>to/NaNと検索文字数、R9=全users/orderItems読取・stale・性能、R10=desktop/tablet/keyboard/a11y。R4-R10は静的候補で実Web再現済み不具合としない。",
+      "test_condition": "C1 default/phase1の5注文で注文番号・顧客emailの大小文字/空白/部分一致とstatus all/各値、積集合/空結果、pending_payment隔離を確認。C2 金額min/maxの両端包含・0/負値/逆転・入力境界とOrderItem合計、他注文の混入なし。C3 日付createdFrom>=・API createdTo<、Web終了日23:59:59.999Zの最終ms欠落とUTC/ローカル日付、from>toを境界fixtureで比較。C4 created_asc/desc・total_asc/desc・同値時orderNumber昇順、20/21件page/total、page2→filter縮小時の空表示候補を実Webで確認。C5 active operator/admin許可、guest/customer/停止・退会staff/欠落・失効Sessionの直URL/Use Case拒否、顧客email・金額DTO非露出。C6 正常/拒否/不正入力/読取故障・並行更新の全DB（orders/orderItems/payments/shipments/users）とSession前後不変（失効clearを別記）、別注文混入なし。C7 Web desktop/tablet・1023/1024px、loading/empty/error・keyboard/focus/label/a11yと正式画面参照。直接実Web/DB全表/視覚/故障注入は未実施。",
+      "test_responsibility": "TR1=admin-orders.mdの一覧filter・BR-ADMINORD-001/AC-ADMINORD-001とroles-and-permissions.mdのactive staff/顧客情報保護。TR2=RouteGuard/StaffPage→AdminOrdersContentのkeyword/status/date/amount/sort/pageとUI終了日・page残留。TR3=AdminOperationsUseCases.searchOrders(requireStaff、keyword trim/上限100、pageSize20)→DexieOrderRepository.search(注文status、email/番号、日付exclusive、金額inclusive、orderNumber tie-break、pageItems)とSessionIdentityResolver。TR4=default/phase1 Seed5注文・Payment5/Shipment3、既存Integration/Componentと学習用admin-order-filters契約3Case。C1-C7を基本分析と直接実Run・製品適合・CIから分離。",
+      "case_policy": "採用:C1 Seed5件/keyword/status/積集合、C2 金額上下限・不正範囲、C3 UTC日付/API exclusiveとUI最終ms、C4 sort/tie-break・20/21件・page残留、C5 Role/SessionとDTO非露出、C6 DB/Session全表不変・故障/並行、C7 desktop/tablet/keyboard/a11y。除外:一覧の決済/配送個別status表示(A01-01)、注文詳細遷移(A02-01)、配送状態のversion付き更新(ORDER-DETAIL各ID)、顧客注文一覧、Native管理、製品SUT/正式仕様修正。",
+      "case_selection_reason": "TR1=admin-orders.md:5-25,71-81・roles-and-permissions.md:5-19。TR2=route-guard.tsx:43-55・admin-operations-pages.tsx:293-455（終了日23:59:59.999Z、filter変更時setPage(1)なし）。TR3=admin-operations-use-cases.ts:115-132,289-299、session-identity-resolver.ts:27-59、order-review-repositories.ts:172-223、repository-helpers.ts:10-25。TR4=default-dataset.ts:401-425,460-475,543-589、scenarios.ts:26-38、metadata.ts:262-271、Integration:160-177、Component:183-196、学習用admin-order-filters契約:29-139。High R1-R3、Medium R4-R10とC1-C7の採否を分離。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD 969b45324c09c178f5f6f1f713396ea68af85644: 正式仕様/Role→Web注文filter→Use Case requireStaff→Dexie status/keyword/date/amount/sort/page→default/phase1 Seed5注文・Payment5/Shipment3→既存学習用契約3Caseを照合。10ソース静的断片29/29成功（直接Vitest/Playwrightではない）。API createdTo exclusiveとWeb 23:59:59.999Z最終ms欠落、UTC日付、filter後page残留、決済/配送個別filterの未実装を静的差異/仕様範囲の候補として区別。High R1-R3/Medium R4-R10、TR1-TR4、C1-C7採否と再開条件を確定。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、日付境界/20・21件・視覚/a11y、製品適合、最終HEAD全CIは未受入。C1-C7隔離実Runと正式期待照合で再開。",
       "requirement_refs": [
         "BR-ADMINORD-001",
         "AC-ADMINORD-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminOperationsUseCases.searchOrders"
+      ],
+      "analysis_progress": "2026-11-03 A01-02基本分析のみanalyzed（操作112/188、非default17/20）。静的29/29と既存Integration/Component/学習用filter契約は部分証拠。終了日最終ms・UTC・page残留・Role/DB/Session/実Web/視覚・製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-ORDERS-A02-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 293,
@@ -19055,7 +19057,135 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminOperationsUseCases.searchOrders",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 115,
+          "signature": "async searchOrders(query: Partial<OrderSearchQuery> = {}): Promise<Page<AdminOrderListItem>> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-orders.md",
+          "start_line": 5,
+          "end_line": 25,
+          "reason": "一覧filterと注文・決済/配送statusの正式契約"
+        },
+        {
+          "path": "docs/spec/features/admin-orders.md",
+          "start_line": 71,
+          "end_line": 81,
+          "reason": "AC-ADMINORD-001注文/配送整合（filterの独立仕様は限定的）"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staffのみストア管理、顧客データ保護"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 43,
+          "end_line": 55,
+          "reason": "staff RouteGuard"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "失効Session clearと停止/退会拒否"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 293,
+          "end_line": 344,
+          "reason": "keyword/status/date/amount/sort/pageとUTC終了日上限"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 345,
+          "end_line": 455,
+          "reason": "Web filter UI、page resetなし、一覧/ページャー"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 115,
+          "end_line": 132,
+          "reason": "Use Case requireStaff、keyword trim、pageSize20"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 289,
+          "end_line": 299,
+          "reason": "requireStaff active operator/admin"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 172,
+          "end_line": 223,
+          "reason": "status/keyword/email/date/amount/sort/tie-break、上限exclusive"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/repository-helpers.ts",
+          "start_line": 10,
+          "end_line": 25,
+          "reason": "page validation、slice/total"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 425,
+          "reason": "5注文のstatusとorderId"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 460,
+          "end_line": 475,
+          "reason": "注文番号・作成日時・合計金額"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 543,
+          "end_line": 589,
+          "reason": "Payment5/Shipment3と各status"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 38,
+          "reason": "default/phase1は同じ固定dataset"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 262,
+          "end_line": 271,
+          "reason": "phase1のoperator初期Session"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 160,
+          "end_line": 177,
+          "reason": "検索/状態/期間/金額/sortの部分証拠"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 183,
+          "end_line": 196,
+          "reason": "filter UIと顧客emailの部分証拠"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-order-filters.test.mjs",
+          "start_line": 29,
+          "end_line": 139,
+          "reason": "学習用Dexie検索3Case・exclusive上限/読取不変/認可"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-ORDERS-A02-01",
