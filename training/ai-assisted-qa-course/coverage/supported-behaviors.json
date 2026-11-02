@@ -9140,20 +9140,20 @@
       "source_line": 161,
       "source_text": "処理中の二重確定、再試行、キャンセルを禁止する。",
       "platform": "web,android",
-      "role": "active customer（本人のCheckout Sessionおよび注文に限る）",
-      "scenario": "regular-memberの本人カートからTEST-SUCCESSでconfirm→beginOrderを同じcheckoutSessionIdとcheckoutActionVersionで2度送信し、同じorderIdを返すか検証。処理完了後は同じorderIdでresumePaymentを再実行する",
-      "data": "beginOrderはCheckout Session.orderIdが存在すればexistingPaymentResultを返す。初回でorder.status=pending_payment、payment.status=processing、idempotency key=orderId-attempt-1。処理後に同じorderIdでresumePaymentすると保存済み結果を返す",
+      "role": "active customer（本人のCheckout SessionとOrderのみ。Guest/Staff/他顧客の直接呼出しは認可・所有者検査で拒否）",
+      "scenario": "default Seedのregular customerでログインし、cart-regular-activeからconfirm→beginOrderを同一checkoutSessionId/checkoutActionVersionで順次2回実行。payment-processing Seedはpending_payment/processingだが初期Sessionはguestのため本人ログインが必要。決済確定後に同じorderIdでresumePaymentを再実行する",
+      "data": "初回beginOrderはtransaction内でCheckout Sessionをconverted/orderId設定、Cartをconsumed、Order=pending_payment、Payment=processing/attemptNumber=1/key=orderId-attempt-1、注文履歴1件を生成。2回目はsession.orderId分岐で既存order/paymentを返す。resumePaymentはprocessing以外なら保存済み結果を返し、processingならGateway後にtransaction内でpayment状態を再確認する",
       "action": "二重確定を拒否",
-      "expected": "同じSessionからの重複注文開始は既存orderId/paymentIdへ集約される。決済確定後の再開は注文・決済試行・在庫履歴を重複させない。異なるセッションや並列異常時の保証を実行したとは扱わない",
+      "expected": "同一Checkout Sessionの順次二重beginOrderは既存orderId/paymentIdに集約し、新規注文・決済・sequence・在庫変更を増やさない。確定後の順次resumePaymentはGatewayを再実行せず、Order/Payment/Shipment/在庫・履歴を重複更新しない。並列Gatewayの一度だけの呼出しと実端末の二重タップ抑止は別途未受入",
       "rule_refs": [],
       "route": "`/checkout/processing`",
-      "risk": "複数注文・二重請求・在庫二重減算が発生する",
-      "test_condition": "beginOrderを同じSession/Versionで2回呼び戻り値と注文・決済件数が一致すること、resumePaymentを2回呼んでも支払Gateway回数=1・在庫減算1回・履歴件数の重複がないことを確認する。並列Gateway呼出しの競合は別途実行検証",
-      "test_responsibility": "Use Caseのconverted Session→existingPaymentResult→resumePaymentの保存済み結果の分岐、transactionの成功確定と在庫履歴を追跡する",
-      "case_policy": "重複beginOrderと再開後の重複resumePaymentを採用。画面のbusy無効化も確認し、未実施の同時並列呼出し結果は受入保留とする",
-      "case_selection_reason": "二重確定は決済・在庫・注文整合性への影響が大きく、UI操作抑止だけでなくUse Case境界を検証する必要がある",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md のBR-CHECKOUT-003、AC-CHECKOUT-003、決済処理中/完了/失敗の画面仕様とUse Case→決済Repository・Gateway・状態判定→Web/Native UI、default/payment-processing/payment-declined Seed（guest初期状態は要ログイン）を照合。既存component/integrationテストの対象コードも確認。ソース監査済みであり、今回のコード実行PASS・Android実機・視覚正本の比較は未実施。",
+      "risk": "High：同一Sessionの重複確定による二重注文/二重請求/在庫・履歴二重更新。並列resumePaymentはGateway前に永続的なin-flightロックがなく、MockPaymentGatewayもdelay前のcache照合だけなので同じkeyで複数charge呼出しが可能な静的経路がある。外部実課金の再現・製品不具合確定とは扱わない",
+      "test_condition": "C1（既存Integrationで採用）：同一checkoutSessionId/versionの順次beginOrder 2回が同一orderIdを返し、注文・Payment各1件、sequence/Cart/Checkout/在庫・履歴の余分な変化なし。C2（既存Integration/学習用契約で採用）：成功後の順次resumePayment 2回でGateway1回、Payment1件、在庫減算・履歴・Shipment1回。C3（実Run待ち）：Web/Androidの二重タップ/再読込・busy表示。C4（High・実行証拠待ち）：同一keyの並列resumePaymentを制御Gatewayで重ね、Gateway呼出し数・両戻り値・全DB snapshot/在庫/履歴を比較",
+      "test_responsibility": "正式BR-CHECKOUT-003/AC-CHECKOUT-003、Web Confirm→Processing、Native Confirm busy→Processing/再開、Use Case beginOrder(transaction+existingPaymentResult)→resumePayment→Gateway→finalizePayment、Dexie/Native SQLiteのOrder/Payment/Checkout/Cartと在庫・Shipment・履歴をトレース。Gateway単位の同時実行とDB確定の一度だけ性を分離する",
+      "case_policy": "C1/C2は既存Integration/学習用契約を根拠として基本分析に採用。C3は実Web/Android、C4は同時Gateway制御が必要な独立実Runとして未受入。UI busyだけでUse Caseの並列安全性を証明せず、製品適合PASSとはしない",
+      "case_selection_reason": "BR-CHECKOUT-003の処理中の二重確定禁止とAC-CHECKOUT-003の注文/決済/在庫/履歴整合はHigh。順次冪等性と並列Gateway呼出し・最終DB確定を別Caseに分離し、既存テストの重複を避ける",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析受入（2026-11-02、現行main相当SUT）：BR-CHECKOUT-003/AC-CHECKOUT-003および処理中UI仕様（checkout-and-payment.md:16-23,154-167）、Web Confirm/Processing（checkout-order-pages.tsx:328-345,465-505）、Native Confirm/Processing（native-purchase-screens.tsx:907-969,975-1015）、CheckoutOrderUseCases.beginOrder（185-310：所有者、Session.orderId、version、transaction内converted/order/payment）、resumePayment（311-329：本人所有者、processing状態、Gateway）とfinalizePayment（410-538：payment状態再確認、在庫/Shipment/履歴）、Dexie transaction-runner.ts:102-128、Native SQLite Order/Payment Repository（native-customer-application-repositories.ts:2028-2367）、default/payment-processing Seed（scenarios.ts:21-79,286-304、metadata.ts:75-83,229-237）を再照合。既存Integration checkout-order-use-cases.test.ts:155-226,277-291と学習用checkout-processing契約の順次再開Caseを確認。Role/State/Data・High Risk・TR/Condition/C1-C4採否を本IDへ明示し、基本分析のみanalyzed。並列Gateway、実Web/Android、視覚/アクセシビリティ、DB/Session前後の実Run、製品適合、最新HEADの全CIは別未受入。",
       "requirement_refs": [
         "BR-CHECKOUT-003",
         "AC-CHECKOUT-003"
@@ -9162,7 +9162,7 @@
         "CheckoutOrderUseCases.beginOrder",
         "CheckoutOrderUseCases.resumePayment"
       ],
-      "analysis_progress": "製品/仕様/既存Seed/テストの読み取り監査を完了。今回のPR #199では製品コード・正式Seed・製品テストを変更しない。未実行のCI・Android実機・正本画像比較は別途受入 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "2026-11-02：基本分析のみreview_required→analyzed（現行仕様/Role/State/Data/UI→Use Case→Dexie/SQLite/Seed/High Risk/TR/Condition/Case採否再照合）。C1/C2は既存Integrationの順次実行根拠を確認、今回の新規直接テスト/formatterは未実施。C3実Web/Android、C4並列Gateway制御、DB/Session snapshot、製品適合と最終CIは未受入。再開条件：同一HEADに紐づく実Runログ/スクリーンショット/DB前後/並列Gateway呼出し証拠。製品修正は#210側の判断。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 457,
@@ -9202,33 +9202,63 @@
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 193,
-          "end_line": 224,
-          "reason": "二重beginOrderにおけるorderId既存分岐"
+          "start_line": 185,
+          "end_line": 310,
+          "reason": "transaction内で既存Session.orderIdを先に返しOrder/Paymentを1組生成"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 319,
-          "end_line": 339,
-          "reason": "完了済みpaymentの再開ではgatewayを再実行しない"
+          "start_line": 311,
+          "end_line": 329,
+          "reason": "processing以外は保存結果、processingのみGateway呼出し"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 418,
-          "end_line": 512,
-          "reason": "成功確定時の在庫減算とpayment状態検査"
+          "start_line": 410,
+          "end_line": 538,
+          "reason": "Payment状態再確認と成功/失敗の在庫・履歴・Shipment確定"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 465,
+          "end_line": 505,
+          "reason": "Web processing表示/自動resume/再開"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 907,
+          "end_line": 1015,
+          "reason": "Native確認busy・Processing自動/手動再開busy"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 102,
+          "end_line": 128,
+          "reason": "create-orderとfinalize-paymentのDB transaction対象"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2301,
+          "end_line": 2367,
+          "reason": "Native Paymentのversion/キー/最新試行の永続化"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 14,
+          "end_line": 40,
+          "reason": "同一key cacheはdelay前の照合のみで並列singleflightの保証なし"
         },
         {
           "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 289,
-          "end_line": 364,
-          "reason": "成功再開後の二重在庫減算防止とgateway呼出し1回"
+          "start_line": 155,
+          "end_line": 226,
+          "reason": "成功後の順次resumePayment/在庫減算/Gateway1回"
         },
         {
           "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 411,
-          "end_line": 427,
-          "reason": "同一Checkoutの重複注文作成を同一orderIdへ集約"
+          "start_line": 277,
+          "end_line": 291,
+          "reason": "同一Sessionの順次beginOrderを1件に集約"
         }
       ],
       "reviewed_against": [

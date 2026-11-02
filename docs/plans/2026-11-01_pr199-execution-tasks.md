@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A02-01`（処理中の二重確定拒否）。直前のA01-02は現行SUTのBR/AC・Role/State/Data・Web/Native→Use Case→Dexie/SQLite・Seed・High Risk/TR/Condition/Caseを再照合し、C1/C2直接契約がWeb CI #41369462199で2/2 PASS。基本分析のみ`analyzed`へ移行（操作51/188、状態14/20）。A01-02の実Web/Android・並列Gateway/視覚/アクセシビリティ・製品適合は別の未受入として残す。次回はA02-01を1件扱い、二重確定と再開・再試行の境界を正式仕様と実装から確認する。
-- **CI横断**：変更前HEAD `cdde824310c7`の[Web CI #41369462199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41369462199)はcompleted/failure。A01-02の学習用C1/C2は2/2 PASS（127ms）、Code Quality・Unit/Integration/Component/Repository・主要E2Eはsuccess。一方Contracts全体15失敗（旧集計/固定analyzed期待）、Style Qualityは7ファイル（対象checkout-processing契約を含む）、required Chromium E2E、verify/validateがfailure。対象ファイルのPrettierも未受入で、直接Case成功と区別する。今回の新HEAD CIは別判定。Mobile CIのPRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A02-02`（処理中の再試行禁止）。直前A02-01は現行正式BR/AC・Role/State/Data・Web/Native→Use Case→Dexie/SQLite・Seed・High Risk/TR/Condition/C1〜C4を再照合し、既存Integrationの順次重複確定/再開Caseを根拠に基本分析のみ`analyzed`（操作52/188、状態14/20）。実Web/Android、並列Gateway/視覚・DB/Session前後、製品適合は別未受入。次回はA02-02を1件扱い、processing中のretryPayment/キャンセル禁止と再開の差、並列試行を確認する。
+- **CI横断**：変更前HEAD `2b4b70bc07c2`の[Web CI #41370555910](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41370555910)はcompleted/failure。Code Quality、Unit/Integration/Component/Repository、Training runtime contracts、主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。今回のA02-01は既存Integration/学習用Caseのコード根拠を再利用した基本分析であり、今回の新規直接テスト・formatterは未実施。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-01（順次二重確定の基本分析受入）
+
+- **現行SUT根拠**：正式BR-CHECKOUT-003/AC-CHECKOUT-003、Web Confirm→Processing、Native Confirm busy→Processing自動/手動再開、beginOrderのtransaction内Session.orderId既存分岐・converted/consumed、resumePaymentの所有者/processing判定→Gateway→finalizePaymentのPayment状態再確認、Dexie/Native SQLite、default/payment-processing Seedを個別照合。台帳の旧Integration行411-427は実ファイル範囲外だったため277-291（順次beginOrder）と155-226（順次resumePayment）へ修正。
+- **High RiskとCase**：C1=同一Session/versionの順次beginOrder 2回でOrder/Payment各1件、C2=決済確定後の順次resumePaymentでGateway1回・在庫/履歴/Shipment重複なし（既存Integrationのコード根拠）。C3=Web/Androidの実二重タップ/再読込・busy/視覚/アクセシビリティ、C4=同一keyの並列Gateway制御・DB/Session snapshot（いずれも実Run待ち）。MockPaymentGatewayはdelay前cache参照でin-flight singleflightを提供せず、Use CaseもGateway前の永続lockなし。並列でchargeを2回呼ぶ可能性は**静的リスク候補**で、実課金/製品不具合確定ではない。
+- **判定**：仕様・Role/State/Data・UI→Use Case→Repository・Seed・主要Risk/TR/Condition/Case採否の基本分析条件を満たし、A02-01だけ`review_required→analyzed`。操作**51→52/188**、非default状態**14/20**。既存IntegrationのCI job成功は新規直接テストPASSではなく、実Web/Android・並列Gateway・製品適合・最終CIは未受入。学習用新規テストの重複追加と製品SUT修正はしない。
+- **次の共通対象**：`SCREEN-CHECKOUT-PROCESSING-A02-02`（処理中の再試行禁止）。正式仕様が明示拒否と冪等な既存処理返却のどちらを要求するか、retryPaymentとresumePaymentを分離して確認する。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A01-02（基本分析受入・直接契約結果）
 
