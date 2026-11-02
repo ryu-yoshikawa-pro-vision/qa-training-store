@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-A02-01`（配送状態遷移・Order/Shipment/Historyの同一transaction）。直前`SCREEN-ADMIN-ORDER-DETAIL-A01-02`は状態別次操作とorderActionVersion表示を正式BR/AC/Role→Web→Use Case→Dexie→default/phase1 Seed5注文/既存Component・Integrationへ追跡し、基本分析のみ`analyzed`（操作115/188、非default17/20）。UIはOrder.statusでボタンを出すためShipment不整合時の見かけ上の操作可能性、二重操作、transaction後の再読取失敗をHigh/Medium候補として製品適合未受入。静的49/49、実Vitest/validator/Playwright・Role別Web/DB/Session・並列/視覚/CIは検証待ち。次回はA02-01の正順・CAS・Order/Shipment/History原子性と故障注入条件を確認する。
-- **CI横断**：作業前HEAD `9c8f6ebe45edbf4811f29e87658c30f268f0826c`の[Web CI #41529913239](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41529913239)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。新HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-S01-01`（注文詳細の非default状態。次回に台帳の実在IDと状態を再確認）。直前`SCREEN-ADMIN-ORDER-DETAIL-A02-01`は正式BR/AC/Role→Web→3 Use Case→Dexie transactionの3表scope→Seed5注文と学習用契約4 Caseを照合し基本分析のみ`analyzed`（操作116/188・非default17/20）。CI #41531887947で対象契約4/4 PASS、ただしjob全体/Style/required E2E/verify/validate失敗。途中故障rollback・並列・実Web/DB/Session・製品適合/最終CIは未受入。
+- **CI横断**：作業前HEAD `d20182bf6c0cadf1754e77208d7800e1edac4acd`の[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。学習用注文詳細4 CaseはContracts job内でPASS。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A02-01（配送状態遷移・3表同一transaction）基本分析受入
+
+- **判定**：基本分析のみ`review_required→analyzed`、操作**115→116/188**、非default**17/20**。製品適合・実Web/Native・直接ローカルテスト・最終CIは未受入。
+- **正式仕様・Role/Seed**：`admin-orders.md:9-15,44-79`のBR/ACはpaid→preparing→shipped→delivered、version一致とOrder/Shipment同一transactionを要求。active operator/adminのみ許可。default/phase1の5注文はpayment_failed/paid/preparing/shipped/delivered、Order.version1、Payment5/Shipment3、各注文に初期History1件。default guestとphase1 operatorのSession差を区別。
+- **UI→Use Case→Repository**：`admin-operations-pages.tsx:567-639`が表示versionで3操作を呼ぶ。`AdminOperationsUseCases:154-260`がrequireStaff→transaction内requireOrderVersion→状態・Shipment照合→Order/Shipment/History更新。`DexieOrderRepository.update:43-48`はversion+1、`transaction-runner.ts:117-135`は3操作ともorders/shipments/order_status_historiesのrw transaction。paid→preparing時はpending Shipmentを作成、発送はcarrier/tracking trimとpending照合、配達完了はshipped照合。transaction後の`getOrder`再読取は範囲外であり、成功後読取失敗のUI/DB乖離を別候補とする。
+- **Risk/TR/Case採否**：High R1非staff管理DTO/更新、R2部分commit・履歴欠落/重複、R3 stale/二operator/二重送信。Medium R4 Shipment不整合、R5 commit後再読取失敗、R6 carrier/tracking境界、R7 default/phase1差・pending_payment、R8途中例外rollback、R9視覚/a11y。TR1正式BR/AC/Role、TR2 UI、TR3 Use Case/Dexie transaction、TR4 Seed/既存Integration・学習用契約。採用C1 Seed5件、C2 正順/version/History、C3 stale・並列・Shipment異常、C4 Role/Session、C5入力境界、C6途中故障rollback・post-commit再読取、C7 Web視覚/a11y。詳細の採否・期待・再開条件は台帳を正本とする。
+- **検証証拠**：同HEADの[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)で`ai-assisted-qa-admin-order-detail-actions.test.mjs`は**4/4 PASS**（学習用契約・隔離Dexie）。ただしContracts job全体は別の`supported-behaviors`固定期待1件失敗、Style Quality/required Chromium E2E/verify/validateも失敗。直接ローカルVitest/Prettier/validator/Playwright、実Web・Role/DB/Session全表・並列/途中故障・視覚/a11yは未実施。CIでの4 Case成功は製品適合や全必須job成功を意味しない。
+- **次の共通対象**：`SCREEN-ADMIN-ORDER-DETAIL-S01-01`（注文詳細の非default状態。実在IDと分析状態を再確認）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（状態別次操作・注文version表示）基本分析受入
 
