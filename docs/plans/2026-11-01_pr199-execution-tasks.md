@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-02`（未保存プレビュー・DB非永続化）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A02-01`は基本分析のみanalyzed（操作94/188、非default16/20）。静的断片18/18・隔離JSON dirty写像5/5。直接Vitest/Playwright/実Web/DB/Session・製品適合・最終CIは未受入。
-- **CI横断**：作業前HEAD `6ef096471b3c`の[Web CI #41470505670](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41470505670)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-03`（販売終了確認・不可逆操作）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A02-02`は基本分析のみanalyzed（操作95/188、非default16/20）。静的assert22/22、既存Integration/Componentは部分証拠。直接Vitest/Playwright/実Web/DB/Session・製品適合・最終CIは未受入。
+- **CI横断**：作業前HEAD `89764edcd39e`の[Web CI #41474287000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41474287000)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess、required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-02（未保存プレビュー・DB非永続化）基本分析受入
+
+- **判定**：同一IDを`review_required→analyzed`。操作**94→95/188**、非default状態**16/20**。基本分析のみで製品適合・実Web・CI PASSではない。
+- **正式期待・Role/Seed**：`BR/AC-ADMINCAT-001/002`は未保存フォームのpreviewにDB書込みがないことを要求。product-aggregate-edit（初期admin）とdefault（guest→staffログイン）を主軸、draft/published/unpublished、既存無効画像・参照ありdraft・cross-roleを対照。guest/customer/停止staff/失効Sessionはpreview/getEdit直呼びの拒否と管理DTO非露出を別Case。
+- **UI→Use Case→Repository**：`admin-product-pages.tsx:415-546,607-711,1063-1135`の`onPreview(value, removedVariantIds)`は未保存`formToUpdateRequest`を`AdminProductUseCases.preview`へ渡し、`then(setPreview)`で表示。Use Case `admin-product-use-cases.ts:285-423`はrequireStaff→既存aggregate/asset/master/review summaryの読取り→新規SKU初期在庫・既存SKU DB現在庫・削除指定・価格/primary/公開可否をDTOへ写像し、transaction/writeを呼ばない。保存経路`update`は別。既存Integration `admin-product-use-cases.test.ts:450-575`は新規previewのProduct件数、既存previewのreview summary、SKUのDB不変を部分確認するが、既存編集previewの全表不変を網羅しない。
+- **Risk/TR/Condition/Case**：High R1=preview副作用/全表不変、R2=非staff管理情報露出、R3=previewと保存の検証差、R4=stale version/並列在庫表示。Medium R5=応答逆転、R6=失敗後の旧preview、R7=viewport/focus/a11y。TR1正式仕様、TR2 Web/非同期、TR3 Use Case/読取り、TR4 Seed/既存テスト。C1未保存値と全表不変、C2 SKU現在庫/初期在庫・削除、C3公開条件警告、C4 Role/Session、C5 version/並列/故障、C6旧結果・破棄、C7 desktop/tablet/1023-1024px/a11yを採用。実保存/画像関連永続化/専用在庫/Dirty遷移/新規preview/Native管理は別ID。
+- **直接確認と限界**：ソース断片静的assert**22/22**、台帳JSON構造・必須11文字列・3照合フラグ・件数を検査。直接Vitest/formatter/Playwright/validator全体、隔離DB/Session全表前後、Role別・並列・故障注入、実Web/視覚/a11yは未実施。UIの`then(setPreview)`は世代管理/入力変更時のpreview失効が見えず、previewはproductExpectedVersionをCASしない。旧結果残存・競合時の誤認は**実再現前の候補**。固定HEADでC1-C7を実行し、製品適合/最終CIを独立判定する。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-03`（販売終了確認）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A02-01（Dirty・未保存保全）基本分析受入
 

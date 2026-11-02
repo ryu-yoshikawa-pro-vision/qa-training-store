@@ -16118,28 +16118,31 @@
       "source_line": 127,
       "source_text": "未保存の変更（Dirty）、プレビュー、販売終了（Discontinue）、削除不可（Delete blocked）などの確認ダイアログやステータスを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: プレビュー",
+      "role": "active operator/admin（StaffPage + Use Case requireStaff）。guest/customer/停止staff/失効Sessionは直URL/getEdit/previewと管理DTOの非露出を独立検証。",
+      "scenario": "product-aggregate-edit（初期admin、default集約）を主軸。default（初期guest→staffログイン）、inactive-image-existing-link、product-delete-blocked、cross-role-product-lifecycleを対照。",
+      "data": "product-draft（draft、既存在庫10、asset-mug）、product-basic-shirt（published、既存SKU3・在庫20等）、product-unpublished（unpublished）を対照。未保存の名称・価格・SKU・画像/primary・既存SKU無効化/削除・新規SKU初期在庫をフォームに入力し、プレビュー前後でProduct/Variant/Image/History/Summary/Sessionを比較。無効既存画像・参照ありdraft、古いversion/失効Sessionは隔離条件。",
       "action": "プレビュー",
       "expected": "更新フォームのプレビュー操作が未保存の状態を表示しつつ、永続化を行わない",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "プレビューの前後に、更新フォームのプレビュー操作が未保存の状態を表示しつつ、永続化を行わないことをUIと集約状態で比較する",
+      "risk": "High R1=previewによるProduct/Variant/Image/History/Summary/Sessionへの意図しない書込み、R2=guest/customer/停止staff/失効Sessionへの管理DTO・画像/価格情報露出、R3=preview表示と保存時の公開可否/入力検査差による誤認、R4=stale product/variant versionや並列変更後の旧内容・旧在庫表示。Medium R5=非同期previewの応答逆転/編集後の旧結果残存、R6=preview失敗後の旧preview残存、R7=1023/1024px・keyboard/focus/a11y。R3-R6は実再現前の候補。",
+      "test_condition": "C1 active operator/adminで商品名/説明/価格/画像/primaryを未保存変更→previewに反映、Dirty維持・保存前後DB全表不変。C2 既存SKUのDB現在庫と新規SKU初期在庫、無効化/削除指定をpreviewに反映し、在庫・履歴・Product.versionを変えない。C3 画像0/primaryなし/active SKUなし/無効既存asset・欠落masterでpublishabilityIssuesと保存可否を別判定。C4 guest/customer/停止staff/失効Sessionの直URL/getEdit/preview拒否・管理DTO/画像/価格非露出とSession例外を確認。C5 stale expectedVersion・別staff並列変更・DB故障注入でpreviewの読取り/保存時CASを区別し、DB/Session全表前後を比較。C6 連続previewの応答逆転、preview後の追加編集、preview失敗、破棄/再編集で旧結果が残らないかを確認。C7 desktop/tablet/1023-1024px、keyboard/focus/aria、保存前プレビューの文言・画像・価格・警告・視覚を確認。",
       "test_responsibility": "操作対象ID、状態・versionとプレビューの結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "プレビューが不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "case_policy": "採用:C1未保存フォーム表示/DB不変、C2既存・新規SKU在庫と削除、C3公開可否警告と保存条件の差、C4 Role/Session非露出、C5 version/並列/故障注入、C6 async競合/旧preview/破棄、C7 viewport/視覚/a11y。除外:実保存・CAS成功（A01-01/02）、画像関連の永続化（A01-03）、在庫専用調整（A01-04）、Dirty遷移保全（A02-01）、新規商品preview（PRODUCT-NEW-A01-03）、Native非サポート管理UI。",
+      "case_selection_reason": "正式docs/spec/features/admin-catalog.md:9-19,124-135（未保存previewはDB非書込み）、Web admin-product-pages.tsx:415-546,607-711,1063-1135（onPreview(formToUpdateRequest)→then(setPreview)・結果表示）、Use Case admin-product-use-cases.ts:285-423（requireStaff/getAggregateForAdmin/asset・master・summary読取り、現在庫と初期在庫、publishabilityIssues、transaction/writeなし）、Seed metadata.ts:75-84,350-359/scenarios.ts:28-38,113-142、既存Integration admin-product-use-cases.test.ts:450-575（新規preview商品件数不変・既存summary・variant DB不変）、Component admin-product-pages.test.tsx:193-209（新規previewのみ）を照合。静的assert22/22。既存テストは部分証拠で、今回直接Vitest実行ではない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD 89764edcd39e: BR/AC-ADMINCAT-001/002、active staff/拒否Role、default/product-aggregate-edit/対照Seed、Web未保存form→AdminProductUseCases.preview→read-only repositories→preview DTO/警告を照合。High R1-R4、Medium R5-R7、TR1正式仕様/Role、TR2 UI/非同期、TR3 Use Case/Repository読取り、TR4 Seed/既存Integration・Component、C1-C7採否を記録。ソース断片静的assert22/22、JSON必須項目/3照合フラグを検査。previewメソッド内にtransaction/write呼出しなし、既存Integrationはvariant不変の部分証拠。UIのthen(setPreview)に応答世代管理がなく編集後・失敗後の旧preview残存候補、previewはproductExpectedVersionのCASをしないためstale内容表示候補。未再現のリスクであり不具合確定ではない。基本分析のみanalyzed。直接Vitest/formatter/Playwright/validator全体、隔離DB全表/Session前後、Role別/並列/故障注入、実Web/視覚/a11y、製品適合・最終CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.preview"
+      ],
+      "analysis_progress": "2026-11-03 A02-02基本分析のみ完了（操作94→95/188、非default16/20）。C1-C7、直接Run/DB/Session/実Web・製品適合・最終CIは未受入。次はSCREEN-ADMIN-PRODUCT-DETAIL-A02-03（販売終了確認）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -16164,7 +16167,25 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.preview",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 285,
+          "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
