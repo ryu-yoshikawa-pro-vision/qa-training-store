@@ -468,7 +468,10 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
         checkoutActionVersion: displayed.checkoutActionVersion,
       });
       const order = await database.orders.get(processing.orderId);
-      const lines = await database.order_items.where("orderId").equals(processing.orderId).toArray();
+      const lines = await database.order_items
+        .where("orderId")
+        .equals(processing.orderId)
+        .toArray();
       const payment = await database.payments.where("orderId").equals(processing.orderId).first();
 
       expect(order).toMatchObject({

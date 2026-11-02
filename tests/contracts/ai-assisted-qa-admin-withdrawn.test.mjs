@@ -12,9 +12,7 @@ const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 describe("AI-assisted QA: withdrawn users remain read-only", () => {
   it("rejects rank, status and role changes without modifying records", async () => {
-    const database = new ScenarioShopDatabase(
-      "training-admin-withdrawn-" + crypto.randomUUID(),
-    );
+    const database = new ScenarioShopDatabase("training-admin-withdrawn-" + crypto.randomUUID());
     try {
       await loadSeedDataset(database, createScenarioDataset("default"), "default");
       await database.sessions.put({

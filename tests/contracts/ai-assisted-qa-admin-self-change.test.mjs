@@ -67,9 +67,7 @@ describe("AI-assisted QA: self access changes preserve all records", () => {
     }
   });
   it("rejects non-admin and suspended actors without modifying protected records", async () => {
-    const database = new ScenarioShopDatabase(
-      `training-admin-actor-denied-${crypto.randomUUID()}`,
-    );
+    const database = new ScenarioShopDatabase(`training-admin-actor-denied-${crypto.randomUUID()}`);
     try {
       await loadSeedDataset(database, createScenarioDataset("default"), "default");
       await database.sessions.bulkPut([

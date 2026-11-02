@@ -102,10 +102,12 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
       { from: "ASSESS-P3", to: "P3", relation: "part_of" },
     ],
   };
-  for (const [phaseId, moduleId] of [["P1", "M00"], ["P2", "M05"], ["P3", "M08"]]) {
-    const phase = JSON.parse(
-      filterPhaseKnowledgeGraph(JSON.stringify(graph), [moduleId], phaseId),
-    );
+  for (const [phaseId, moduleId] of [
+    ["P1", "M00"],
+    ["P2", "M05"],
+    ["P3", "M08"],
+  ]) {
+    const phase = JSON.parse(filterPhaseKnowledgeGraph(JSON.stringify(graph), [moduleId], phaseId));
     expect(phase.nodes.map((node) => node.id)).toEqual([
       phaseId,
       `ASSESS-${phaseId}`,

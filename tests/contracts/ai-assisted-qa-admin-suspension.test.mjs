@@ -36,9 +36,7 @@ async function snapshot(database) {
 
 describe("AI-assisted QA: admin suspension and data preservation", () => {
   it("suspends and resumes a customer without reviving checkout or changing the cart", async () => {
-    const database = new ScenarioShopDatabase(
-      `training-admin-status-${crypto.randomUUID()}`,
-    );
+    const database = new ScenarioShopDatabase(`training-admin-status-${crypto.randomUUID()}`);
     try {
       await loadSeedDataset(database, createScenarioDataset("checkout-resume"), "checkout-resume");
       await database.sessions.bulkPut([

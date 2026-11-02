@@ -44,9 +44,7 @@ function createHarness(deleteDatabase) {
 async function snapshotTables(service) {
   const database = service.getDatabase();
   return Object.fromEntries(
-    await Promise.all(
-      database.tables.map(async (table) => [table.name, await table.toArray()]),
-    ),
+    await Promise.all(database.tables.map(async (table) => [table.name, await table.toArray()])),
   );
 }
 

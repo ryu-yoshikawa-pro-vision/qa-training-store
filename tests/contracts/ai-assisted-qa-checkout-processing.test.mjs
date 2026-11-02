@@ -140,10 +140,14 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
     await expect(makeCheckout(null).resumePayment(processing.orderId)).rejects.toMatchObject({
       code: "AUTHENTICATION_REQUIRED",
     });
-    await expect(makeCheckout("training-operator").resumePayment(processing.orderId)).rejects.toMatchObject({
+    await expect(
+      makeCheckout("training-operator").resumePayment(processing.orderId),
+    ).rejects.toMatchObject({
       code: "PERMISSION_DENIED",
     });
-    await expect(makeCheckout("training-gold").resumePayment(processing.orderId)).rejects.toMatchObject({
+    await expect(
+      makeCheckout("training-gold").resumePayment(processing.orderId),
+    ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
     await expect(
@@ -235,7 +239,10 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
   it("retries the seeded failed order with a second payment attempt but no second order", async () => {
     const checkout = makeCheckout("training-regular-a");
     const failedOrder = await database.orders.get("order-payment-failed");
-    expect(failedOrder).toMatchObject({ status: "payment_failed", userId: "user-customer-regular" });
+    expect(failedOrder).toMatchObject({
+      status: "payment_failed",
+      userId: "user-customer-regular",
+    });
     const before = await safetySnapshot();
 
     const processing = await checkout.retryPayment({
@@ -273,8 +280,9 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
     });
     expect(await database.orders.count()).toBe(before.orders.length);
     expect(
-      (await database.payments.where("orderId").equals(failedOrder.id).sortBy("attemptNumber"))
-        .map((payment) => payment.status),
+      (await database.payments.where("orderId").equals(failedOrder.id).sortBy("attemptNumber")).map(
+        (payment) => payment.status,
+      ),
     ).toEqual(["failed", "succeeded"]);
   });
 
@@ -306,5 +314,4 @@ describe("AI-assisted QA SCREEN-CHECKOUT-PROCESSING-A01-02 resume and ownership"
     expect(gatewayCalls).toHaveLength(0);
     expect(await safetySnapshot()).toEqual(before);
   });
-
 });

@@ -295,15 +295,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    const paymentShipment = data.behaviors.find(
-      (item) => item.id === "SCREEN-ORDERS-LIST-A01-02",
-    );
+    const paymentShipment = data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02");
     expectAuditedOrAwaitingReanalysis(paymentShipment);
-    expect(paymentShipment?.reviewed_against).toEqual([
-      "specification",
-      "implementation",
-      "seed",
-    ]);
+    expect(paymentShipment?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(paymentShipment?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
     expect(paymentShipment?.test_condition).toContain("C6=");
     expect(paymentShipment?.risk).toContain("High");
@@ -324,13 +318,13 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(reviewEligibility?.related_use_cases).toContain(
       "CheckoutOrderUseCases.getMyCustomerOrder",
     );
-    expect(reviewEligibility?.related_use_cases).toContain(
-      "CustomerReviewUseCases.getEligibility",
-    );
+    expect(reviewEligibility?.related_use_cases).toContain("CustomerReviewUseCases.getEligibility");
     expect(reviewEligibility?.requirement_refs).toContain("AC-REVIEW-001");
     expect(reviewEligibility?.risk).toContain("High");
     expect(reviewEligibility?.test_condition).toContain("TR7/C7=");
-    expect(reviewEligibility?.basic_analysis_review).toMatch(/未受入|未実施|検証待ち|別管理|別判定/);
+    expect(reviewEligibility?.basic_analysis_review).toMatch(
+      /未受入|未実施|検証待ち|別管理|別判定/,
+    );
     expect(reviewEligibility?.audit_branch_refs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -340,9 +334,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
         }),
       ]),
     );
-    const ownership = data.behaviors.find(
-      (item) => item.id === "SCREEN-ORDERS-DETAIL-A02-01",
-    );
+    const ownership = data.behaviors.find((item) => item.id === "SCREEN-ORDERS-DETAIL-A02-01");
     expectAuditedOrAwaitingReanalysis(ownership);
     expect(ownership?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(ownership?.related_use_cases).toContain("CheckoutOrderUseCases.getMyOrder");
@@ -361,10 +353,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
       (item) => item.id === "SCREEN-ORDERS-DETAIL-A02-02",
     );
     expectAuditedOrAwaitingReanalysis(snapshotAfterChange);
-    expect(snapshotAfterChange?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(snapshotAfterChange?.reviewed_against).toEqual([
+      "specification",
+      "implementation",
+      "seed",
+    ]);
     expect(snapshotAfterChange?.risk).toContain("High");
     expect(snapshotAfterChange?.test_condition).toContain("TR7/C7=");
-    expect(snapshotAfterChange?.basic_analysis_review).toMatch(/未受入|未実施|検証待ち|別管理|別判定/);
+    expect(snapshotAfterChange?.basic_analysis_review).toMatch(
+      /未受入|未実施|検証待ち|別管理|別判定/,
+    );
     expect(snapshotAfterChange?.related_use_cases).toEqual(
       expect.arrayContaining([
         "CheckoutOrderUseCases.beginOrder",
@@ -374,10 +372,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       ]),
     );
     expect(snapshotAfterChange?.audit_branch_refs?.length).toBeGreaterThan(0);
-    for (const id of [
-      "SCREEN-ORDERS-DETAIL-A01-01",
-      "SCREEN-ORDERS-DETAIL-A01-02",
-    ]) {
+    for (const id of ["SCREEN-ORDERS-DETAIL-A01-01", "SCREEN-ORDERS-DETAIL-A01-02"]) {
       const entry = data.behaviors.find((item) => item.id === id);
       expectAuditedOrAwaitingReanalysis(entry);
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -413,10 +408,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.related_use_cases).toContain(useCase);
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    for (const id of [
-      "SCREEN-CHECKOUT-PROCESSING-A02-02",
-      "SCREEN-CHECKOUT-PROCESSING-A02-03",
-    ]) {
+    for (const id of ["SCREEN-CHECKOUT-PROCESSING-A02-02", "SCREEN-CHECKOUT-PROCESSING-A02-03"]) {
       const entry = data.behaviors.find((item) => item.id === id);
       expectAuditedOrAwaitingReanalysis(entry);
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -425,9 +417,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.test_condition).toContain("C1");
       expect(entry?.analysis_progress).toMatch(/未受入|未実施|検証待ち|別管理|別判定/);
     }
-    const orderListStatus = data.behaviors.find(
-      (item) => item.id === "SCREEN-ORDERS-LIST-A01-02",
-    );
+    const orderListStatus = data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02");
     expectAuditedOrAwaitingReanalysis(orderListStatus);
     expect(orderListStatus?.expected).toContain("正式一覧仕様");
     expect(orderListStatus?.test_condition).toContain("同一BASE_CLOCK");
@@ -512,9 +502,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.platform).toBe("web-desktop");
     expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(0);
-    const parent = data.behaviors.find(
-      (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01",
-    );
+    const parent = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01");
     expectAuditedOrAwaitingReanalysis(parent);
   });
 
@@ -799,9 +787,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
         "review_required",
       );
     }
-    const reviewEdit = data.behaviors.find(
-      (item) => item.id === "SCREEN-REVIEWS-EDITOR-A01-02",
-    );
+    const reviewEdit = data.behaviors.find((item) => item.id === "SCREEN-REVIEWS-EDITOR-A01-02");
     expect(reviewEdit?.analysis_status).toBe("analyzed");
     expect(reviewEdit?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(reviewEdit?.related_use_cases).toContain("CustomerReviewUseCases.update");

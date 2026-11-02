@@ -480,7 +480,9 @@ async function externalSkillBytes(entry, commit, fetchImpl) {
     response.redirected === true ||
     (response.url && response.url !== url)
   )
-    fail(`fixed-revision Skill download returned a redirect or non-200 response: ${entry.source_path}`);
+    fail(
+      `fixed-revision Skill download returned a redirect or non-200 response: ${entry.source_path}`,
+    );
   const contentType = response.headers?.get?.("content-type")?.toLowerCase() ?? "";
   if (contentType.includes("text/html") || contentType.includes("xhtml"))
     fail(`fixed-revision Skill download returned HTML: ${entry.source_path}`);

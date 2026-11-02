@@ -56,7 +56,10 @@ describe("AI-assisted QA SCREEN-STOREFRONT-HOME-A02-01 guest and role navigation
       const heroActions = container.querySelector(".home-hero__actions");
       expect(heroActions).not.toBeNull();
       const actions = within(heroActions as HTMLElement);
-      expect(actions.getByRole("link", { name: "商品を見る" })).toHaveAttribute("href", "/products");
+      expect(actions.getByRole("link", { name: "商品を見る" })).toHaveAttribute(
+        "href",
+        "/products",
+      );
       expect(actions.getByRole("link", { name: label })).toHaveAttribute("href", href);
       expect(actions.getAllByRole("link")).toHaveLength(2);
       if (role === null) {

@@ -828,7 +828,10 @@ describe("AI-assisted QA distribution contract", () => {
     );
     const scoring = JSON.parse(
       fs.readFileSync(
-        path.join(repositoryRoot, "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json"),
+        path.join(
+          repositoryRoot,
+          "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json",
+        ),
         "utf8",
       ),
     );
