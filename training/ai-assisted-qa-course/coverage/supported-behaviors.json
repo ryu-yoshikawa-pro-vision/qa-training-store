@@ -19798,7 +19798,7 @@
         "AdminOperationsUseCases.ship",
         "AdminOperationsUseCases.completeDelivery"
       ],
-      "analysis_progress": "2026-11-03 A02-01基本分析のみanalyzed（操作116/188、非default17/20）。同一Dexie transactionの3表scopeと各正順/CAS/Shipment/History、Seed5注文、既存学習用4 Case CI PASSを根拠化。途中例外rollback、実Web・並列・全DB/Session、post-commit再読取故障、製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-ORDER-DETAIL-S01-01（台帳の実在状態IDを確認して選択）。",
+      "analysis_progress": "2026-11-03 A02-01基本分析のみanalyzed（操作116/188、非default17/20）。同一Dexie transactionの3表scopeと各正順/CAS/Shipment/History、Seed5注文、既存学習用4 Case CI PASSを根拠化。途中例外rollback、実Web・並列・全DB/Session、post-commit再読取故障、製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-USERS-A01-01（台帳でreview_requiredの実在操作IDを確認）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 458,

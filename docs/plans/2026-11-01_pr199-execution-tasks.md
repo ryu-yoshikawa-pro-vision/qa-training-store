@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-ORDER-DETAIL-S01-01`（注文詳細の非default状態。次回に台帳の実在IDと状態を再確認）。直前`SCREEN-ADMIN-ORDER-DETAIL-A02-01`は正式BR/AC/Role→Web→3 Use Case→Dexie transactionの3表scope→Seed5注文と学習用契約4 Caseを照合し基本分析のみ`analyzed`（操作116/188・非default17/20）。CI #41531887947で対象契約4/4 PASS、ただしjob全体/Style/required E2E/verify/validate失敗。途中故障rollback・並列・実Web/DB/Session・製品適合/最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A01-01`（ユーザー一覧のRole/Rank/Statusと管理DTO認可。実在ID・状態を確認済み）。直前`SCREEN-ADMIN-ORDER-DETAIL-A02-01`は正式BR/AC/Role→Web→3 Use Case→Dexie transactionの3表scope→Seed5注文と学習用契約4 Caseを照合し基本分析のみ`analyzed`（操作116/188・非default17/20）。CI #41531887947で対象契約4/4 PASS、ただしjob全体/Style/required E2E/verify/validate失敗。途中故障rollback・並列・実Web/DB/Session・製品適合/最終CIは未受入。
 - **CI横断**：作業前HEAD `d20182bf6c0cadf1754e77208d7800e1edac4acd`の[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。学習用注文詳細4 CaseはContracts job内でPASS。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -66,7 +66,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - **UI→Use Case→Repository**：`admin-operations-pages.tsx:567-639`が表示versionで3操作を呼ぶ。`AdminOperationsUseCases:154-260`がrequireStaff→transaction内requireOrderVersion→状態・Shipment照合→Order/Shipment/History更新。`DexieOrderRepository.update:43-48`はversion+1、`transaction-runner.ts:117-135`は3操作ともorders/shipments/order_status_historiesのrw transaction。paid→preparing時はpending Shipmentを作成、発送はcarrier/tracking trimとpending照合、配達完了はshipped照合。transaction後の`getOrder`再読取は範囲外であり、成功後読取失敗のUI/DB乖離を別候補とする。
 - **Risk/TR/Case採否**：High R1非staff管理DTO/更新、R2部分commit・履歴欠落/重複、R3 stale/二operator/二重送信。Medium R4 Shipment不整合、R5 commit後再読取失敗、R6 carrier/tracking境界、R7 default/phase1差・pending_payment、R8途中例外rollback、R9視覚/a11y。TR1正式BR/AC/Role、TR2 UI、TR3 Use Case/Dexie transaction、TR4 Seed/既存Integration・学習用契約。採用C1 Seed5件、C2 正順/version/History、C3 stale・並列・Shipment異常、C4 Role/Session、C5入力境界、C6途中故障rollback・post-commit再読取、C7 Web視覚/a11y。詳細の採否・期待・再開条件は台帳を正本とする。
 - **検証証拠**：同HEADの[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)で`ai-assisted-qa-admin-order-detail-actions.test.mjs`は**4/4 PASS**（学習用契約・隔離Dexie）。ただしContracts job全体は別の`supported-behaviors`固定期待1件失敗、Style Quality/required Chromium E2E/verify/validateも失敗。直接ローカルVitest/Prettier/validator/Playwright、実Web・Role/DB/Session全表・並列/途中故障・視覚/a11yは未実施。CIでの4 Case成功は製品適合や全必須job成功を意味しない。
-- **次の共通対象**：`SCREEN-ADMIN-ORDER-DETAIL-S01-01`（注文詳細の非default状態。実在IDと分析状態を再確認）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
+- **次の共通対象**：`SCREEN-ADMIN-USERS-A01-01`（ユーザー一覧のRole/Rank/Statusと管理DTO認可。台帳でreview_required確認済み）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A01-02（状態別次操作・注文version表示）基本分析受入
 
