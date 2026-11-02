@@ -15457,26 +15457,29 @@
       "platform": "web",
       "role": "Operator / Admin",
       "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: バリアントを編集",
+      "data": "Role: active operator/adminのみ。default初期guest→staff Session。State: draftではSKU/商品コード変更を許可する正式期待、公開後は追加/無効化と識別子不変を区別。Data: defaultのpublished product-basic-shirtはS/M/Lの3 SKU・在庫20/10/0、product-draftはdraft、product-aggregate-editはdefaultと同じデータ。inactive-image-existing-link/product-delete-blockedは参照境界。productExpectedVersion、既存variant.expectedVersion、removeVariantIds、新規SKU initialStockを分離。",
       "action": "バリアントを編集",
-      "expected": "draftで可能なSKU・商品コード変更と公開後の追加・無効化制約を守り、商品variantを整合保存する",
+      "expected": "active staffが既存SKUのSKU/optionValue/価格/購入上限/有効状態を編集するとProduct.version+1、更新Variant.version+1で保存し、既存stockQuantity/InventoryHistoryとstatus/publishedAtを保持する。古いproduct/variant version、不正SKU/価格/optionValue/重複等は拒否し、transaction失敗時は部分保存しない。removeVariantIdsで参照ありSKUはisActive=false、参照なしSKUはVariant/初期History削除、新規SKUはINITIAL_STOCK追加。正式draft限定SKU/コード変更と公開後不変、remove分岐のvariant個別CASは現行コードに明示guardが見当たらずHigh候補として実Run/製品適合待ち。",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "バリアントを編集の前後に、draftで可能なSKU・商品コード変更と公開後の追加・無効化制約を守り、商品variantを整合保存することをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionとバリアントを編集の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "バリアントを編集が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: 非staff/失効Sessionによる管理SKU露出・更新。R2: stale product/variant version上書きとremoveVariantIdsのvariant個別CAS欠落候補。R3: published等でdraft限定SKU/コードを変更できる仕様不適合候補。R4: 既存在庫/Historyの破損。R5: 参照付きSKUの誤削除、参照なしSKU/初期Historyの残存。R6: 重複/不正SKU・optionValue・価格/購入上限・variation、transaction部分保存。R7: commit後getEdit失敗を保存失敗と誤通知する候補。Medium R8: Dirty/保存通知・viewport・a11y。候補は未再現で不具合確定ではない。",
+      "test_condition": "C1 active operator/adminで既存SKUの価格/optionValue/activeを更新しProduct/Variant version+1、status/publishedAt、在庫20/10/0・既存History/Summary/binary不変をDB前後で確認。C2 guest/customer/停止staff/失効Sessionの画面/Use Case拒否と管理DTO非露出、Session clearを分離。C3 stale productExpectedVersion・variant.expectedVersion・並列staff/在庫調整/removeのCASとrollback。C4 draft product-draftでSKU/コード変更、published/unpublished/discontinuedでの識別子変更拒否の正式期待をUI bypassでも対照。C5 removeVariantIdsの参照あり無効化/参照なし削除とHistory、古いvariant version競合。C6 新規SKU初期在庫/INITIAL_STOCK、重複SKU・不正optionValue/価格/購入上限・variation・画像/masterとrollback。C7 既存在庫disabled・active checkbox・Dirty/保存通知、commit後getEdit故障注入、desktop/tablet・1023/1024px・keyboard/視覚/a11y。",
+      "test_responsibility": "正式BR/AC-ADMINCAT-001/002→StaffPage/ProductEditor(既存在庫disabled、active checkbox、remove)→formToUpdateRequest(productExpectedVersion/variant.expectedVersion)→AdminProductUseCases.update(requireStaff/validateMinimum/validateImages)→DexieApplicationTransactionRunner(update-product-aggregate)→DexieProductRepository.updateAggregate(個別CAS/参照削除/History)→getEdit再読取りをC1-C7で追跡。既存Integrationの在庫保持・SKU正規化・inactive assetは部分証拠。製品適合/直接実Web PASSではない。",
+      "case_policy": "採用: C1既存SKU正常更新・version/在庫保全、C2Role/Session拒否、C3product/variant stale versionと並列、C4draft対公開後識別子、C5参照あり/なしremoveとHistory、C6新規SKU/不正入力・rollback、C7Dirty/保存後再読取り/viewport/a11y。除外: 画像編集（DETAIL-A01-03）、状態変更（DETAIL-A01-04等）、新規商品（NEW系）、preview非書込み（DETAIL-A02-02）、非サポートNative管理画面。",
+      "case_selection_reason": "正式admin-catalog.md:8-19,120-134、UI admin-product-pages.tsx:278-306,415-545,885-970、Use Case admin-product-use-cases.ts:157-213,442-499、Dexie product-repositories.ts:142-250、transaction-runner.ts:71-78,134-139、Seed default-dataset.ts:69-82,294-321/scenarios.ts:122-123/metadata.ts:350-359、既存Integration:120-146,302-395を照合。28/28の静的断片照合成功（Vitestではない）。公開後識別子変更、remove個別CAS、commit後getEditはHigh候補・実Run待ち。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD b3deae73b6ed: 正式draft限定SKU/コード・公開後追加/無効化、Role/State/Data、default/product-aggregate-edit/product-draft、UI→Use Case→Dexie transaction/Repository、既存Integrationを照合。High R1-R7/Medium R8、C1-C7の採否と不足証拠を記録。28/28静的断片照合（直接Vitestではない）。既存在庫保持・product/variant version・参照削除分岐はコード上確認。公開後SKU変更のstatus guardとremove分岐のvariant個別CASが見当たらない候補は実再現待ち。直接Vitest/formatter/Playwright、Role別実Web、並列/故障注入、DB/Session全表前後、視覚/a11y、製品適合、最終HEAD全CIは未受入。基本分析のみ完了。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
         "AC-ADMINCAT-001",
         "AC-ADMINCAT-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "related_use_cases": [
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.update"
+      ],
+      "analysis_progress": "2026-11-02 A01-02基本分析のみ完了（操作89→90/188、非default16/20）。既存SKU編集・draft限定・version/在庫・remove分岐とC1-C7を整理。実Run/製品適合待ち。次はSCREEN-ADMIN-PRODUCT-DETAIL-A01-03。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -15501,7 +15504,87 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.update",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 157,
+          "signature": "async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 8,
+          "end_line": 19,
+          "reason": "draft限定コード/SKU・公開後追加/無効化"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 278,
+          "end_line": 306,
+          "reason": "Requestのproduct/variant versionとremove指定"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 885,
+          "end_line": 970,
+          "reason": "SKU/価格/既存在庫disabled/active/remove UI"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 157,
+          "end_line": 213,
+          "reason": "staff認可・更新検証・transaction・保存後再読取り"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 142,
+          "end_line": 250,
+          "reason": "version/CAS、参照削除分岐、在庫/History"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 71,
+          "end_line": 78,
+          "reason": "transactionの対象テーブル"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 69,
+          "end_line": 82,
+          "reason": "published 3-SKU商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 294,
+          "end_line": 321,
+          "reason": "S/M/L・在庫20/10/0"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 122,
+          "end_line": 123,
+          "reason": "product-aggregate-editはdefault維持"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 348,
+          "end_line": 395,
+          "reason": "既存在庫保持・inactive assetの部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-03",

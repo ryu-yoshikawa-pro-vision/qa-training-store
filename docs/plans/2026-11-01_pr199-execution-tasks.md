@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-02`（既存SKUの編集・draft限定変更とversion/在庫境界）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-01`は基本分析のみanalyzed（操作89/188、非default16/20）。正式仕様・Web→Use Case→Dexie・Seedを照合し22/22静的断片assert成功。公開後商品コード/SKU変更、removeVariantIdsのvariant個別CAS、commit後getEditのfalse failureはHigh候補で実Run未確認。直接Vitest/Playwright、DB/Session前後、故障注入、実Web・製品適合は未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-03`（画像編集・primary/asset/関連保全）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-02`は基本分析のみanalyzed（操作90/188、非default16/20）。正式draft限定SKU/コード・既存SKU/version/在庫・remove分岐、Web→Use Case→Dexie・Seedを照合し28/28静的断片確認。公開後識別子変更、remove分岐のvariant CAS、commit後getEdit false failureはHigh候補で実Run待ち。直接Vitest/Playwright、DB/Session全表前後、並列・故障注入、実Web・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-02（既存SKU編集・draft限定/version/在庫）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作**89→90/188**、非default**16/20**維持。正式BR/AC-ADMINCAT-001/002、Role/State/Data、Web→Use Case→Dexie、default/product-aggregate-edit/関連Seed、High R1-R7・Medium R8/C1-C7を照合。製品適合PASSではない。
+- **保存境界**：`ProductEditor:885-970`のSKU/価格・既存在庫disabled・active/remove→`formToUpdateRequest:278-306`のproduct/variant expectedVersion→`AdminProductUseCases.update:157-213`→`DexieProductRepository.updateAggregate:142-250`。既存stock/Historyを保持し、参照ありremoveは無効化、参照なしremoveはVariant/初期History削除。新規SKUのみ初期Historyを作る。
+- **High候補**：正式仕様のdraft限定SKU/商品コード変更に対し、現行UI/Repositoryのstatus別識別子不変guardが見当たらない。remove分岐はvariant個別expectedVersionを照合しない。transaction成功後getEdit失敗は保存済みをUI失敗と表示する可能性。いずれも静的候補で不具合確定ではない。
+- **Case・再開条件**：C1既存SKU正常更新/在庫保全、C2Role/Session拒否、C3product/variant CAS・並列、C4draft対公開後識別子、C5参照あり/なしremove、C6新規SKU・不正入力/rollback、C7Dirty・保存後読取り・viewport/a11yを採用。**28/28静的断片照合成功**（直接Vitest/formatterではない）。固定HEADの隔離DB/Session全表前後、Role別実Web、並列・故障注入、直接Vitest/Playwright、1023/1024px・視覚/a11y、製品適合・同一最終HEAD全CIは未受入。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-03`（画像編集）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-01（既存商品集約編集・保全）
 
