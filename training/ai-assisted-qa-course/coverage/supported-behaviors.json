@@ -18856,7 +18856,7 @@
       "test_condition": "C1 orders-phase1-statusesの5注文と番号/状態/作成時刻/件数・default降順、OrderItem数量合計・別注文混入なしをUI/DTO/DBで照合。C2 active operator/adminの直URL/Use Case、guest/customer/停止・退会staff/欠落・失効Session拒否、顧客メール・金額非露出とDB/Session前後（失効clearを別記）。C3 5注文ごとにOrder.status、Payment.status(failed/succeeded)、Shipment.status(pending/shipped/delivered/なし)を別々に照合し、UIの6列・DTOに個別statusがない差異を正式期待と突合。C4 注文0件・pending_payment・20/21件・同時刻・page/total・並行更新の隔離fixture、フィルターの深掘りはA01-02に委譲。C5 読取り失敗/欠落user・orderItems/Shipment不整合時のUIと全表/Session不変、顧客DTO漏洩なし。C6 一覧から正しいorderIdの詳細へ遷移し、別注文や注文statusと支払/配送の取り違えなし（version付き更新は詳細IDへ分離）。C7 Web desktop/tablet・1023/1024px、loading/empty/error、keyboard/focus/a11yと画面参照。直接実Web/DB前後/視覚/故障注入は未実施。",
       "test_responsibility": "TR1=admin-orders.md BR-ADMINORD-001/AC-ADMINORD-001の注文・配送整合と一覧3種status、roles-and-permissions.mdのactive staff認可。TR2=RouteGuard/StaffPage→AdminOrdersContentの検索/注文status6列・詳細Link。TR3=AdminOperationsUseCases.searchOrders(requireStaff)→DexieOrderRepository.search(status/date/amount/keyword/sort/page)とSessionIdentityResolver。TR4=default-datasetの注文5件/Payment5件/Shipment3件・orders-phase1-statusesのoperator Session、既存Integration/Component/学習用filter契約。C1-C7で基本分析と製品適合/実Web/最終CIを区別。",
       "case_policy": "採用:C1 Seed5注文・番号/状態/件数/順序、C2 active staff/非staff・Session拒否/DTO保護、C3 Order/Payment/Shipment独立statusと一覧表示差、C4 pending_payment/0/20・21件/並行・stale、C5 全表/Session読取り不変・異常、C6 詳細へのorderId導線、C7 desktop/tablet/keyboard/a11y。除外:検索フィルター組合せの詳細(A01-02)、発送準備/発送/配送完了のversion CASとtransaction(ORDER-DETAIL各ID)、顧客注文一覧、Native管理、製品SUT修正。",
-      "case_selection_reason": "TR1=admin-orders.md:5-25,64-70とroles-and-permissions.md:5-19。TR2=route-guard.tsx:43-55、admin-operations-pages.tsx:293-455（注文statusのみ、顧客メール・6列・詳細Link）。TR3=admin-operations-use-cases.ts:115-132,289-299、session-identity-resolver.ts:29-60、order-review-repositories.ts:172-223（注文DTO/検索/件数）。TR4=default-dataset.ts:401-425,460-475,543-589、scenarios.ts:27-43、Integration:160-177、Component:183-196、学習用admin-order-filters契約。High R1-R3、Medium R4-R8、C1-C7採否を分離。",
+      "case_selection_reason": "TR1=admin-orders.md:5-25,71-81とroles-and-permissions.md:5-19。TR2=route-guard.tsx:43-55、admin-operations-pages.tsx:293-455（注文statusのみ、顧客メール・6列・詳細Link）。TR3=admin-operations-use-cases.ts:115-132,289-299、session-identity-resolver.ts:29-60、order-review-repositories.ts:172-223（注文DTO/検索/件数）。TR4=default-dataset.ts:401-425,460-475,543-589、scenarios.ts:27-43、Integration:160-177、Component:183-196、学習用admin-order-filters契約。High R1-R3、Medium R4-R8、C1-C7採否を分離。",
       "analysis_status": "analyzed",
       "basic_analysis_review": "2026-11-03 固定HEAD 218ad21c133f0b793946a02f24bcfa3de924bdd8: 正式仕様/Role→Web一覧6列→Use Case active staff再認可→Dexie Order検索/OrderItem数量→default/phase1 Seed5注文・Payment5・Shipment3を照合。13ソース静的assert 28/28成功（直接Vitest/Playwrightではない）。正式に決済/配送status表示を要求するがUI/DTOは注文statusのみ、差異を製品適合未受入として保持。High R1-R3、Medium R4-R8、TR1-TR4、C1-C7の採否・期待・再開条件を確定。直接formatter/Vitest/validator本体/Playwright、Role別実Web、DB/Session全表前後、支払/配送個別status、20/21件・故障注入/視覚/a11y、製品適合、最終HEAD全CIは未受入。C1-C7隔離実Run・正式期待照合で再開。",
       "requirement_refs": [
@@ -18910,8 +18910,8 @@
         },
         {
           "path": "docs/spec/features/admin-orders.md",
-          "start_line": 64,
-          "end_line": 70,
+          "start_line": 71,
+          "end_line": 81,
           "reason": "AC-ADMINORD-001の注文/配送整合"
         },
         {
@@ -18982,9 +18982,9 @@
         },
         {
           "path": "src/seeds/metadata.ts",
-          "start_line": 195,
-          "end_line": 209,
-          "reason": "orders-phase1-statusesのoperator初期Session（行は再照合対象）"
+          "start_line": 262,
+          "end_line": 271,
+          "reason": "orders-phase1-statusesのoperator初期Session"
         },
         {
           "path": "tests/integration/admin-operations-use-cases.test.ts",
