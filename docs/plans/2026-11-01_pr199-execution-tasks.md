@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-CATEGORIES-A01-04`（カテゴリー入力バリデーション）。直前`SCREEN-ADMIN-CATEGORIES-A01-03`は正式BR/AC・Role/State/Data・Web InlineNameEditor→Use Case→Dexie・Seed・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作100/188、非default16/20）。transaction外version CASの並列競合、保存後検索20件超、二重保存は実再現待ち。直接Vitest/実Web/DB・Session/製品適合/最終CIは未受入。
-- **CI横断**：作業前HEAD `89764edcd39e`の[Web CI #41474287000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41474287000)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess、required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-01`（ブランド一覧）。直前`SCREEN-ADMIN-CATEGORIES-A01-04`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・default Seed4件・High R1-R3/Medium R4-R9・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作101/188、非default16/20）。入力項目別エラー不足、新規失敗時即clear、Unicode境界、編集transaction外CASは実再現待ち。直接Vitest/実Web/DB・Session/製品適合/最終CIは未受入。
+- **CI横断**：作業前HEAD `f06c40a42dad`の[Web CI #41491900393](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41491900393)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-CATEGORIES-A01-04（カテゴリー入力バリデーション）基本分析受入
+
+- **判定**：`SCREEN-ADMIN-CATEGORIES-A01-04`を`review_required→analyzed`。操作**100→101/188**、非default状態**16/20**。基本分析のみで製品適合/実Web/最終CI PASSではない。
+- **正式仕様・Role/State/Data**：`admin-catalog.md:154-166,205-220`とBR/AC-ADMINCAT-001/002、`roles-and-permissions.md:5-19`。active operator/adminのみ、guest/customer/停止staff/失効Sessionは拒否。default Seed4カテゴリー（apparel/home/sports/accessories、active/version1、sortOrder10/20/30/40）。空/空白、80/81文字、NFKC/大小文字/空白正規化重複を新規・編集で隔離し、拒否時の全Category/商品/Session/version不変を期待。
+- **経路**：Web `admin-master-pages.tsx:135-206,258-273,304-375`のStaffPage/新規required・maxlength80/編集InlineNameEditor disabled/一般status→`AdminMasterUseCases.createCategory/updateCategory:80-106`のrequireStaff/validName(trim後空・81以上はVALIDATION)→`DexieCategoryRepository.createAtEnd/updateDetails:364-398`と`database.ts:64` unique nameNormalized、`normalization.ts:1-3` NFKC/小文字/空白正規化。既存Componentはmaxlength、Integrationは80/81、Repositoryは正規化重複の部分証拠。
+- **Risk/TR/Case**：High R1非staff認可/DTO露出、R2正規化重複、R3 UI制約回避の不正保存。Medium R4 HTML requiredと空白、R5 Unicode/NFKC後長さ、R6 一般status・新規失敗時即clear、R7 編集transaction外CAS、R8 二重submit/DB・再読取失敗、R9 focus/a11y。TR1正式仕様、TR2 Web、TR3 Use Case/Dexie、TR4 Seed/既存テスト。C1空/空白、C2 80/81・Unicode、C3 正規化重複、C4 Role/Session、C5 stale version/並列、C6 UI通知/入力保持/DB失敗、C7 viewport/keyboard/a11y・全表前後を採用。新規正常採番/編集正常保存/状態変更/ブランドは別ID。
+- **直接確認と未受入**：固定HEAD `f06c40a42dad`で**37/37ソース断片assert成功**。既存Component/Integration/Repositoryは部分証拠のみ。入力項目別エラー文言・新規失敗時clear・Unicode境界・編集CASは実再現前の候補で不具合確定ではない。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、視覚/a11y、製品適合、同一最終HEAD必須CIは未受入。C1-C7隔離実Runと正式期待の照合で再開。
+- **次の共通対象**：`SCREEN-ADMIN-BRANDS-A01-01`（ブランド一覧）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-CATEGORIES-A01-03（カテゴリー名称編集）基本分析受入
 
