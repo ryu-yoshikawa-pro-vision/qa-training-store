@@ -15594,20 +15594,20 @@
       "source_line": 126,
       "source_text": "既存商品の集約、バリアント、画像、在庫、および公開状態を編集する。",
       "platform": "web",
-      "role": "Operator / Admin",
+      "role": "Operator / Admin（active staffのみ）。guest/customer/停止staff/失効SessionはStaffPageとUse Case requireStaffの拒否・非露出を別Caseで検証。",
       "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: 画像を編集",
+      "data": "Role: active operator/admin、default初期guestからstaff Sessionへ切替。State: published product-basic-shirtの既存画像2件（primary=前面、nonprimary=背面）に3件目のactive assetを追加しprimaryを2番目/3番目へ変更、非primary解除/altText変更/preview/保存。draft product-draftとinactive-image-existing-linkの既存無効assetを対照。Data: default/product-aggregate-edit（同一固定データ）、product-out-of-stockの既存inactive asset、商品versionとimage relationshipId/assetId、画像0/1/2/3/4件、primary0/1/2件、1023/1024px、DB全表・Session前後を区別。Native管理画面は非サポート。",
       "action": "画像を編集",
-      "expected": "画像アセットの関連付けと主画像の必須規則を守り、既存バイナリを誤削除しない",
+      "expected": "active staffは既存/新規active画像を最大3件選択し、altText・順序・primaryを1件に保った状態で商品画像関連を明示保存する。既存inactive assetの関連は維持可能だが新規選択を拒否する。Use Case update→Dexie update-product-aggregate transaction内でProduct.version CASとproduct_images削除/再登録を原子的に行い、既存Asset binary・InventoryHistory・ReviewSummaryを損なわない。primary0/2件・重複asset・4件超・stale product version・非staffは拒否し、失敗時はDB部分更新なし。現行UI toggleImageの非primary解除ではprimary2件を生成しうる静的候補があり、previewは先頭primaryを採るため保存前の一意性保証を実Runで別検証する。実画面/製品適合PASSは未確定。",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "画像を編集の前後に、画像アセットの関連付けと主画像の必須規則を守り、既存バイナリを誤削除しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと画像を編集の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "画像を編集が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High候補 R1: 非primary画像解除後にprimary2件となり、previewは公開可と見せても保存時VALIDATIONとなるUI不整合（純粋JS写像2/2再現、実Web未再現）。R2: stale product version/DB故障でProduct/Variant/product_images/InventoryHistoryが部分保存される懸念。R3: guest/停止staff/失効Sessionから管理画像・asset情報露出/更新。Medium R4: inactive既存assetを誤削除、inactive新規選択を誤許可。R5: 0/1/3/4件、primary0/1/2件、重複asset・altText上限・画像順序境界。R6: previewとsaveの検証差、dirty/通知・viewport/keyboard/a11y。Asset binary削除は本操作の対象外。いずれも実障害確定ではない。",
+      "test_condition": "C1 default active operator/adminでproduct-basic-shirtの既存2画像+active3画像の追加・primary変更・非primary解除・altText/順序を操作し、保存成功時primary=1、Product.version+1、画像関連のみ変更、Asset binary/InventoryHistory/ReviewSummary/Session不変を比較。C2 [A:false,B:true,C:false]からC解除、[A:false,B:false,C:true]からB解除のprimary2件候補と[A:false,B:true]からA解除の対照をUI→preview→saveで再現し、保存前警告・VALIDATION・DB不変を確認。C3 inactive-image-existing-link/product-out-of-stockの既存inactive関連維持と新規inactive選択拒否、存在しないassetのIMAGE_ASSET_NOT_FOUNDを検証。C4 画像0/1/3/4件、primary0/1/2件、重複asset、altText上限、sortOrder再採番を確認。C5 guest/customer/停止staff/失効Sessionの直URL/getEdit/searchImageAssets/preview/update拒否と非露出、Session clearを分離。C6 stale productExpectedVersion、並列staff、遅延DB失敗注入でtransaction rollbackとProduct/Variant/Images/History/Summary/binary全表前後を確認。C7 preview非書込み・save後再読取・dirty/通知、1023/1024px desktop/tablet・keyboard/視覚/a11yを確認。",
+      "test_responsibility": "TR1=BR/AC-ADMINCAT-001/002の公開画像・primary/transaction規約、TR2=SCREEN-ADMIN-PRODUCT-DETAIL/defaultとproduct-aggregate-edit/inactive-image-existing-link Seed、TR3=StaffPage→AdminProductEditContent/getEdit/searchImageAssets→ProductEditor.toggleImage/primary radio/altText→formToUpdateRequest.images→AdminProductUseCases.update(requireStaff/validateMinimum/validateImages)→DexieApplicationTransactionRunner(update-product-aggregate)→DexieProductRepository.updateAggregate/assertImageShape→getEdit、TR4=既存Integrationのinactive asset/画像境界部分証拠。C1-C7は静的経路・採否であり実Web/DB/Playwrightの直接PASSではない。",
+      "case_policy": "採用: C1正常staff画像関連更新/primary一意・既存データ保全、C2非primary解除でprimary2件と対照、C3 inactive既存/新規/不存在asset、C4画像件数・重複・altText境界、C5 Role/Session拒否、C6 product CAS・transaction rollback・DB/Session全表、C7 preview/dirty/viewport/keyboard/a11y。除外: Native管理画面（正式非対象）、Asset binaryの削除操作（画像関連更新のみ）、SKU在庫編集（DETAIL-A01-02）、公開状態変更（DETAIL-A01-05）、商品新規登録（NEW系）。",
+      "case_selection_reason": "現HEADの正式admin-catalog.md:9-19,119-139,210-220、Web admin-product-pages.tsx:278-306,415-545,733-762,990-1055、Use Case admin-product-use-cases.ts:104-125,157-213,285-311,355-375,501-522、Dexie product-repositories.ts:142-250,401-410、transaction-runner.ts:71-78、Seed default-dataset.ts:69-82,331-350/scenarios.ts:33-38,112-123/metadata.ts:75-84,338-359、既存Integration admin-product-use-cases.test.ts:277-300,348-395を照合。toggleImageの写像3例を隔離JSで再実行し3/3期待通り（UI/DBテストではない）。previewは最初のprimaryを選び、Repositoryはprimary2件を拒否する静的差を確認。High候補は製品改修せず実Run待ち。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 現HEAD f7e6c6329310: BR/AC-ADMINCAT-001/002、active staff/guest/停止staff、default/product-basic-shirt画像2件とinactive-image-existing-link、Web→Use Case→Dexie transaction、Risk R1-R6・TR1-4・C1-C7の採否と再開条件を個別照合。toggleImageのprimary二重化候補を隔離JS写像3/3で確認（実Web/Vitestではない）。既存Integrationはinactive assetと画像境界の部分証拠。基本分析のみanalyzed。実Web/Android（管理画面はWebのみ）、DB/Session全表前後、並列/故障注入、直接Vitest/Playwright/formatter、視覚/a11y、製品適合、最終HEAD必須CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -15615,9 +15615,12 @@
         "AC-ADMINCAT-002"
       ],
       "related_use_cases": [
-        "AdminProductUseCases.searchImageAssets"
+        "AdminProductUseCases.getEdit",
+        "AdminProductUseCases.searchImageAssets",
+        "AdminProductUseCases.preview",
+        "AdminProductUseCases.update"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-02 A01-03基本分析のみ完了（操作90→91/188、非default16/20）。primary二重化UI候補・Repository拒否・inactive asset/transaction境界をC1-C7で分離。実Web/DB前後/製品適合/最終CIは未受入。次はSCREEN-ADMIN-PRODUCT-DETAIL-A01-04。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -15644,10 +15647,125 @@
       },
       "use_case_evidence": [
         {
+          "id": "AdminProductUseCases.getEdit",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 104,
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
+        },
+        {
           "id": "AdminProductUseCases.searchImageAssets",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 111,
           "signature": "async searchImageAssets("
+        },
+        {
+          "id": "AdminProductUseCases.preview",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 285,
+          "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+        },
+        {
+          "id": "AdminProductUseCases.update",
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "line": 157,
+          "signature": "async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 9,
+          "end_line": 19,
+          "reason": "公開画像/primary・画像関連のtransaction保全"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 119,
+          "end_line": 139,
+          "reason": "商品詳細画像編集とdesktop/tablet状態"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 210,
+          "end_line": 220,
+          "reason": "公開必須画像とpreview/save分離のAC"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 733,
+          "end_line": 762,
+          "reason": "toggleImage解除後primary二重化候補"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 990,
+          "end_line": 1055,
+          "reason": "inactive asset選択禁止・primary radio・altText UI"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 157,
+          "end_line": 213,
+          "reason": "requireStaff/validateImages/transactionとgetEdit"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 285,
+          "end_line": 311,
+          "reason": "previewの非更新処理入口"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 355,
+          "end_line": 375,
+          "reason": "previewは最初のprimaryを選択"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 501,
+          "end_line": 522,
+          "reason": "inactive既存assetの維持/新規拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 142,
+          "end_line": 250,
+          "reason": "product CAS・image関連削除/再登録"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 401,
+          "end_line": 410,
+          "reason": "画像0/1/3/4・primary0/2・重複の拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 71,
+          "end_line": 78,
+          "reason": "update-product-aggregateのtransaction scope"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 331,
+          "end_line": 350,
+          "reason": "product-basic-shirtのprimary/背面2画像"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 112,
+          "end_line": 123,
+          "reason": "inactive-image-existing-link/product-aggregate-edit"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 348,
+          "end_line": 395,
+          "reason": "inactive既存許可・新規拒否の部分証拠"
         }
       ]
     },

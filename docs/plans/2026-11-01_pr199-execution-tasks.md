@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-03`（画像編集・primary/asset/関連保全）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-02`は基本分析のみanalyzed（操作90/188、非default16/20）。正式draft限定SKU/コード・既存SKU/version/在庫・remove分岐、Web→Use Case→Dexie・Seedを照合し28/28静的断片確認。公開後識別子変更、remove分岐のvariant CAS、commit後getEdit false failureはHigh候補で実Run待ち。直接Vitest/Playwright、DB/Session全表前後、並列・故障注入、実Web・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-04`（既存SKUの現在在庫表示・在庫調整の専用操作境界）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-03`は基本分析のみanalyzed（操作91/188、非default16/20）。画像primary二重化候補・inactive asset・画像関連transactionのRole/State/Data、C1-C7を照合。直接Vitest/Playwright・実Web/DB前後・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-03 基本分析受入（最新）
+
+- **判定**：台帳の同一IDを`review_required→analyzed`に更新。操作**90→91/188**、非default状態**16/20**。これは**基本分析のみ**の完了で、実画面PASS・製品適合・PR最終受入ではない。下の旧A01-03節は前回の調査時点の履歴。
+- **根拠**：正式`BR/AC-ADMINCAT-001/002`（画像/primary・transaction・preview）→`AdminProductEditPage/StaffPage`→`ProductEditor.toggleImage`/primary radio/altText→`formToUpdateRequest`→`AdminProductUseCases.getEdit/searchImageAssets/preview/update`→`DexieProductRepository.updateAggregate/assertImageShape`を照合。defaultの`product-basic-shirt`はprimary/背面の2画像、`inactive-image-existing-link`は既存inactive参照、`product-aggregate-edit`はdefaultデータを使用。staff認可、画像0/1/3/4・primary0/1/2・重複・inactive・version・rollback・DB/Session保全をC1-C7に分離。
+- **High候補**：非primary解除の`isPrimary: index === 0 ? true : image.isPrimary`により[A:false,B:true,C:false]からC解除、[A:false,B:false,C:true]からB解除でprimary=2となる写像を隔離JSで確認（対照1件を含め**3/3**）。`preview`は先頭primaryを採り、Repositoryはprimary=2を`VALIDATION/products.images.invalid`で拒否する静的経路。**実Webでの再現・不具合確定は未実施**。Asset binary削除は更新対象外。
+- **直接検証**：対象JSONはGit blobから取得し188操作/20状態を再集計、基本分析validatorの必須文字列・`reviewed_against`3フラグ・根拠参照を照合。隔離JS写像3/3成功。**Vitest/Playwright/Prettier、既存validator/契約テストの直接実行は未実施**。既存Integrationはinactive asset等の部分証拠で、今回の直接実行PASSには流用しない。
+- **未受入・再開条件**：隔離DBとstaff/guest/停止staff/失効Sessionで3画像選択→primaryを2/3番目へ→非primary解除→preview→save、画面通知・Product/Variant/product_images/InventoryHistory/ReviewSummary/Asset binary/Sessionの前後、並列/stale version/故障注入、1023/1024px・視覚/a11yを確認。最終HEADのWeb/Mobile必須CI・製品適合は別判定。製品SUT/正式仕様/既存Seed/製品テスト/workflowは変更しない。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-04`（在庫表示・専用在庫調整との責務分離）。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-03（画像編集・primary/asset/関連保全）
 
