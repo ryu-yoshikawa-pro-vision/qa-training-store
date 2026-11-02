@@ -471,6 +471,30 @@ describe("AI-assisted QA static learning course", () => {
     expect(cr04?.pass_conditions?.join(" ")).toContain("反復実践P01・P04・P06");
   });
 
+  it("requires M07 maintenance changes to retain the new regression condition", () => {
+    const assessmentRoot = "training/ai-assisted-qa-course";
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, assessmentRoot, "assessment/scoring-tests/M07.json"),
+        "utf8",
+      ),
+    ) as {
+      criteria: {
+        id: string;
+        required_evidence: string[];
+        pass_conditions: string[];
+      }[];
+    };
+    const exercise = fs.readFileSync(
+      path.join(repositoryRoot, assessmentRoot, "exercises/M07/exercise.md"),
+      "utf8",
+    );
+    const criterion = scoring.criteria.find((item) => item.id === "M07-CR-04");
+    expect(exercise).toContain("**P05 新しい回帰条件を自分で追加（M07-04・05）**");
+    expect(criterion?.required_evidence.join(" ")).toContain("反復実践P04・P05・P06");
+    expect(criterion?.pass_conditions.join(" ")).toContain("反復実践P04・P05・P06");
+  });
+
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
     const assessmentRoot = "training/ai-assisted-qa-course/assessment";
     const scoring = JSON.parse(
