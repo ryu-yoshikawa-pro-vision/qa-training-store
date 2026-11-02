@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USERS-A01-01`（ユーザー一覧のRole/Rank/Statusと管理DTO認可。実在ID・状態を確認済み）。直前`SCREEN-ADMIN-ORDER-DETAIL-A02-01`は正式BR/AC/Role→Web→3 Use Case→Dexie transactionの3表scope→Seed5注文と学習用契約4 Caseを照合し基本分析のみ`analyzed`（操作116/188・非default17/20）。CI #41531887947で対象契約4/4 PASS、ただしjob全体/Style/required E2E/verify/validate失敗。途中故障rollback・並列・実Web/DB/Session・製品適合/最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-USERS-A02-01`（自己操作の制限・High自己降格/停止のUI/Use Case拒否）。直前`SCREEN-ADMIN-USERS-A01-01`は正式Role→Web Guard/列→Use Case→Dexie/Seed7件を照合し基本分析のみ`analyzed`（操作117/188、非default17/20）。隔離Dexie3 Case追加、実CI/実Web/製品適合/最終受入は未完。`SCREEN-ADMIN-USERS-A01-02`はRank/Sort UI仕様差の採否待ち。
 - **CI横断**：作業前HEAD `d20182bf6c0cadf1754e77208d7800e1edac4acd`の[Web CI #41531887947](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41531887947)はcompleted/failure。Style Quality/Contracts/required Chromium E2E/verify/validateはfailure、Unit/Integration/Repository/Component/Code Quality等はsuccess。学習用注文詳細4 CaseはContracts job内でPASS。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USERS-A01-01（ユーザー一覧・管理DTO認可）基本分析受入
+
+- **判定**：基本分析のみ`review_required→analyzed`。操作**116→117/188**、非default**17/20**。製品適合・実Web・最終CIは未受入。
+- **Role/State/Data・正式仕様**：`docs/spec/features/admin-users.md:9-15,17-35,75-79`と`roles-and-permissions.md:3-24`はactive adminのみユーザー管理。defaultはcustomer regular/gold/platinum/suspended/withdrawn各1、active operator/admin各1の7件、version1、staff rank=null。default初期guest Session、管理読取には別admin Session。suspended-user/withdrawn-userは対象本人Sessionでありadmin権限を付与しない。
+- **UI→Use Case→Repository**：`review-user-pages.tsx:508-614` Guard(admin)・役割/会員ランク/利用状態/version列・userIdリンク→`AdminUserUseCases.search:520-537` requireAdmin→`DexieUserRepository.search:65-105` users.toArray/Role・Rank・Status積集合/DTO投影・pageItems。正常読取に業務DB書込なし。失効Session時のCurrentSessionStore.clearはDB不変と区別。
+- **Risk/TR/Case**：High R1非admin/非active DTO漏洩、R2他userId混入、R3読取副作用。Medium R4 guest/admin Session、R5失効clear、R6 stale/version、R7ページング/empty、R8視覚/a11y。TR1正式BR/AC/Role、TR2 UI、TR3 Use Case/Dexie、TR4 Seed/既存/学習用テスト。採用C1固定7件、C2 admin/非admin、C3非active/失効、C4 rank=null/version、C5 users/sessions前後、C6実Web・視覚、C7並列/stale。A01-02のRank/Sort絞り込み仕様差と詳細画面の変更/CASは別ID。
+- **検証**：固定HEADで8ソース**29/29静的断片assert**。学習用隔離Dexie3 Caseを`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`に追加（7件DTO・非admin拒否・非active/失効）。**直接Vitest/formatter/validator本体/Playwrightは未実施**。既存Componentの行リンク・Integrationの変更テストは部分証拠。実Web/全DB・Session/20・21件/並列・視覚/a11y/製品適合・同一最終HEAD全必須CIは未受入。
+- **次の共通対象**：`SCREEN-ADMIN-USERS-A02-01`（High自己操作の制限）。A01-02はRank/Sort UIと補助仕様の差の採否待ち。SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-ORDER-DETAIL-A02-01（配送状態遷移・3表同一transaction）基本分析受入
 

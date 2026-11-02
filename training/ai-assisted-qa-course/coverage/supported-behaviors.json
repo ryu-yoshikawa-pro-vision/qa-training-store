@@ -19948,18 +19948,18 @@
       "platform": "web",
       "role": "Admin",
       "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ユーザーのロール・ランク・状態",
+      "data": "default固定7ユーザー：customer regular/gold/platinum/suspended/withdrawn各1、active operator/admin各1、全員version1、staff rank=null。default初期Sessionはguest。active admin Sessionを別途作成して管理一覧を読む。suspended-user/withdrawn-userは対象顧客のSessionを設定するが管理権限なし。対象userId・Role/Rank/Status・version・Session前後を区別。",
       "action": "ユーザーのロール・ランク・状態",
-      "expected": "Adminだけがアカウントのrole・membershipRank・active/suspended/withdrawn状態を確認できる",
+      "expected": "active adminだけが7ユーザーのuserId/role/membershipRank/accountStatus/versionを一覧と管理DTOで確認できる。operator/customer/guest/非activeは管理DTO取得拒否。正常な読取りではusers/sessionsを変更しない。",
       "rule_refs": [],
       "route": "`/admin/users`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "ユーザーのロール・ランク・状態実施前後で、Adminだけがアカウントのrole・membershipRank・active/suspended/withdrawn状態を確認できることを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ユーザーのロール・ランク・状態の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ユーザーのロール・ランク・状態が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1非admin/非active管理DTO漏洩、R2他userId・Role/Rank/Status混入、R3読取副作用。Medium R4 guest/admin Session混同、R5失効Session clear、R6 stale/version、R7ページング/empty、R8視覚・a11y。",
+      "test_condition": "C1 default7ユーザーのrole/rank/status/version・行userIdリンク、C2 admin許可とoperator/customer/guest拒否、C3 suspended/withdrawn拒否と失効Session clear、C4 staff rank=nullと20件page、C5 users/sessions前後不変、C6 Web loading/error/empty・desktop/tablet・keyboard/a11y、C7並列更新・stale再読込を検証する。",
+      "test_responsibility": "UI GuardとUse Caseのadmin再認可、default7ユーザーのDTO・userId/version対応、非active/失効Session拒否、DB読取不変を担当。rank/role/statusの実変更・CAS/最終管理者保護は詳細画面の別IDで検証する。",
+      "case_policy": "C1〜C5を隔離Dexie契約で直接検証する。C6実Web/視覚、C7並列・staleは別受入待ち。A01-02のRank/Sort絞り込みUI差、詳細画面の更新操作は本IDのPASS根拠に含めない。",
+      "case_selection_reason": "管理DTO認可漏洩とユーザー誤結合のHighリスクを優先し、正式Role/State/Data・UI→Use Case→Dexie・Seed7件・C1〜C7採否を独立に照合するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本分析のみ受入。正式admin-users.md BR/ACとroles-and-permissionsのadmin専用→AdminUsersPage Guard(admin)と役割/会員ランク/利用状態/version列→AdminUserUseCases.search requireAdmin→DexieUserRepository.searchのusers.toArray・Role/Rank/Status積集合・DTO投影を照合。default固定7ユーザーとguest初期Session、suspended/withdrawn Sessionを確認。正常読取に業務DB書込なし。失効Session時はCurrentSessionStore.clearがあり、DB不変とstore変化を区別。High R1非admin DTO漏洩/R2誤ユーザー表示/R3読取副作用、Medium R4 Session混同/R5失効clear/R6 stale/R7ページング/R8視覚。TR1正式BR/AC・Role、TR2 UI、TR3 Use Case/Dexie、TR4 Seed・既存/学習用契約。C1〜C7の採否はtest_condition/case_policyを参照。学習用隔離Dexie3 Caseを追加、実CI結果待ち。既存Component行リンク・Integration変更テストは部分証拠。直接Vitest/Playwright、実Web、全DB/Session、並列/視覚・製品適合・最終CIは未受入。A01-02のRank/Sort UI仕様差は別途review_required。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -19967,7 +19967,7 @@
       "related_use_cases": [
         "AdminUserUseCases.search"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03: 正式仕様/Role、Web Guard/列、Use Case再認可、Dexie DTO、default7ユーザーを照合し基本分析のみanalyzed。学習用3 Caseは実Run未確認。次SCREEN-ADMIN-USERS-A02-01。A01-02のRank/Sort差は判断待ち。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -19996,6 +19996,97 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 520,
           "signature": "async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 5,
+          "end_line": 35,
+          "reason": "BR・SCREEN・UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 73,
+          "end_line": 83,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 3,
+          "end_line": 24,
+          "reason": "admin専用・非active拒否"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 508,
+          "end_line": 614,
+          "reason": "Guard/admin検索・一覧列とuserId"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 507,
+          "end_line": 538,
+          "reason": "searchとrequireAdmin"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 655,
+          "reason": "requireAdmin"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 41,
+          "end_line": 106,
+          "reason": "users読取・積集合・DTO"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 23,
+          "end_line": 65,
+          "reason": "失効Session clearと非active拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 782,
+          "reason": "固定7ユーザーとversion"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 73,
+          "reason": "suspended/withdrawn初期Session"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default guest"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 296,
+          "end_line": 314,
+          "reason": "既存行リンクの部分証拠"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 276,
+          "end_line": 350,
+          "reason": "既存変更・拒否の部分証拠"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "start_line": 1,
+          "end_line": 160,
+          "reason": "新規隔離Dexie3 Case（実Run未受入）"
         }
       ]
     },
