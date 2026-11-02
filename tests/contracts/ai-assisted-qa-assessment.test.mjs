@@ -24,6 +24,7 @@ import {
 import {
   exportAssessment,
   filterPhaseKnowledgeGraph,
+  readChallengeAnswer,
   writeImmutableOpenCodePrompt,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
@@ -47,6 +48,30 @@ it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
   expect(() => assertModelInputSize(null, "assessment prompt")).toThrow(
     "assessment prompt exceeds the size limit",
   );
+});
+
+it("reads only a nonempty learner answer after the explicit answer heading", () => {
+  const directory = path.join(tempRoot, "live-answer-section");
+  fs.mkdirSync(directory, { recursive: true });
+  const answerPath = path.join(directory, "answers.md");
+  const challenge = { objective_ids: ["M04-01"] };
+  const preamble = "# Phase assessment answer\\n\\n## M04-01\\n\\nQuestion text only\\n\\n";
+  const put = (content) => fs.writeFileSync(answerPath, content, "utf8");
+
+  put(`${preamble}### Your answer\\n\\n`);
+  expect(() => readChallengeAnswer(answerPath, challenge)).toThrow(/nonempty answer/);
+  put(`${preamble}### Your answer\\n\\n[Write your independent decision]`);
+  expect(() => readChallengeAnswer(answerPath, challenge)).toThrow(/nonempty answer/);
+  put(`${preamble}A learner reply without a dedicated answer section`);
+  expect(() => readChallengeAnswer(answerPath, challenge)).toThrow(/answer section/);
+  put(`${preamble}### Your answer\\n\\nIndependent reasoning\\n`);
+  const parsed = readChallengeAnswer(answerPath, challenge);
+  expect(parsed.answer).toBe("Independent reasoning");
+  expect(parsed.answer).not.toContain("Question text only");
+  expect(parsed.answer_sha256).toBe(sha256("Independent reasoning"));
+
+  put("# Phase assessment answer\\r\\n\\r\\n## M04-01\\r\\n\\r\\nQuestion\\r\\n\\r\\n### Your answer\\r\\n\\r\\nRevised answer\\r\\n");
+  expect(readChallengeAnswer(answerPath, challenge).answer).toBe("Revised answer");
 });
 
 it("reuses only byte-identical OpenCode prompts after an interrupted assessment", () => {

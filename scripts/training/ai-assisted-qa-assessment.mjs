@@ -397,22 +397,19 @@ function makeAnswerTemplate(challenge) {
   return `# Phase assessment answer\n\nThis file stays in the ignored private assessment folder. Do not include credentials or personal identifiers.\n\n## ${challenge.objective_ids[0]}\n\n${challenge.condition}\n\n### Your answer\n\n[Write your independent decision, cited source rule, expected result, evidence, and unresolved assumptions.]\n`;
 }
 
-function readChallengeAnswer(filePath, challenge) {
+export function readChallengeAnswer(filePath, challenge) {
   if (!fs.existsSync(filePath) || !fs.lstatSync(filePath).isFile())
     fail(`challenge answer file is missing: ${filePath}`);
   const text = fs.readFileSync(filePath, "utf8");
   assertNoSecretText(text, "challenge answer");
-  const headings = [...text.matchAll(/^## (M(?:0[0-9]|10)-[0-9]{2})\s*$/gm)].map(
-    (match) => match[1],
-  );
+  const headings = [...text.matchAll(/^## (M(?:0[0-9]|10)-[0-9]{2})[ \t]*\r?$/gm)];
   const expectedId = challenge.objective_ids[0];
-  if (headings.length !== 1 || headings[0] !== expectedId)
+  if (headings.length !== 1 || headings[0][1] !== expectedId)
     fail(`answer file must contain exactly one heading for ${expectedId}`);
-  const answer = text
-    .split(`## ${expectedId}`)[1]
-    ?.split(/^## /m)[0]
-    ?.replace(/^\s*### Your answer\s*/m, "")
-    .trim();
+  const answerHeadings = [...text.matchAll(/^### Your answer[ \t]*\r?$/gm)];
+  if (answerHeadings.length !== 1 || answerHeadings[0].index < headings[0].index)
+    fail(`answer file must contain one answer section under ${expectedId}`);
+  const answer = text.slice(answerHeadings[0].index + answerHeadings[0][0].length).trim();
   if (!answer || answer.includes("[Write your independent"))
     fail(`write a nonempty answer under ${expectedId}`);
   return { answer, answer_sha256: sha256(answer), file_sha256: sha256(text), path: filePath };
@@ -1162,7 +1159,11 @@ async function resumeAttempt(request) {
   const answerReceiptPath = path.join(attemptDirectory, "challenge-answer.json");
   if (fs.existsSync(answerReceiptPath)) {
     const prior = readJson(answerReceiptPath, "challenge answer receipt");
-    if (prior.answer_sha256 !== answer.answer_sha256 || prior.challenge_id !== savedChallenge.id)
+    if (
+      prior.answer_sha256 !== answer.answer_sha256 ||
+      prior.file_sha256 !== answer.file_sha256 ||
+      prior.challenge_id !== savedChallenge.id
+    )
       fail("challenge answer changed after it was recorded; start a new assessment");
   } else {
     atomicWriteJson(answerReceiptPath, {
