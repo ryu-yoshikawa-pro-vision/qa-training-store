@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-01`（商品一覧・公開状態とstaff認可）。直前`SCREEN-ADMIN-DASHBOARD-A02-01`は正式1024px境界・staff/guest・AdminShell→CSS→RouteGuard→getOverview/Dexie・default Seed・High R1-R7/TR1-R7/C1-C7採否を照合し**基本分析のみ**`analyzed`（操作80→81/188、非default16/20）。CSS非表示とDOM/通信PII非露出を区別。直接Role別Vitest/Playwright・DB/Session前後・視覚/a11y・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCTS-A01-02`（商品フィルターと対象外商品の選択混入防止）。直前`SCREEN-ADMIN-PRODUCTS-A01-01`は正式BR/AC、staff認可、Web→search→Dexie、default 11商品とmany-products 1000件のSeed、表示と公開可否の差を静的調査。`analysis_status=review_required`を維持（操作81/188、非default16/20）：保存statusをそのまま表示し、非公開化を要する後発の参照不整合やactive SKU 0件の価格Infinityは別の正式期待/隔離fixture確認が必要。実Run・製品適合・直接テストは未受入。再開条件は直下のA01-01記録。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,17 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCTS-A01-01（商品一覧の保存statusと公開可否境界）
+
+- **状態・件数**：基本分析の期待が未確定のため`review_required`を維持し、操作81/188・非default16/20のまま（増加0）。今回の証拠は静的読取りであり、`analyzed`/製品適合/実Run PASSにしない。共通の次の着手可能対象は`SCREEN-ADMIN-PRODUCTS-A01-02`。A01-01は下記の再開条件が揃うまで同じ調査を繰り返さない。
+- **正式仕様・Role**：`admin-catalog.md:8-13,61-83`のBR-ADMINCAT-001/002・AC-ADMINCAT-001/002、管理商品一覧と公開状態、Web desktop/tabletを参照。Web `AdminProductsPage:48-54`→`StaffPage/RouteGuard:25-55`はactive operator/adminのみ、guestは/login、customer・停止staffは/forbidden。Use Case `AdminProductUseCases.search:80-102`も`requireStaff:524-533`で再認可するため、UI非表示のみを情報保護と混同しない。Native管理画面は対象外。
+- **UI→Use Case→Repository**：`admin-product-pages.tsx:56-84,217-269`は検索条件・pageSize20を`adminProducts.search`へ渡し、商品名/コード・`ProductStatusBadge(item.status)`・カテゴリ/ブランド・有効SKU数/在庫・実効価格を描画する。Dexie `product-repositories.ts:417-507`はproducts/categories/brands/variantsを読取り、Product.statusをそのままDTOへ写し、active SKUの価格・在庫を集約、フィルタ・ソート・ページングする。検索経路に商品/画像/在庫/Session書込みは見当たらないが、実DB前後は未検証。公開状態変更・一括変更は別操作A01-03/A02系として判定する。
+- **Seed実値**：`default-dataset.ts:67-244,269-351,683-780`は11商品（published8/unpublished1/draft1/discontinued1）、publishedでも在庫0の`product-out-of-stock`、12/13 SKUの2商品を含む。`metadata.ts:75-85`と`scenarios.ts:20-40,150-171`ではdefault初期guest/Sessionなし、operator/adminで別ログインが必要。`many-products`は`scenarios.ts:424-455`でpublished 1000商品を生成（20件/ページなら50ページ）。`admin-bulk-partial-failure`は`scenarios.ts:141-143`でproduct-mugの競合設定であり、検索時の公開状態不整合を自動生成するものではない。
+- **High候補・正式期待の未確定**：BR-ADMINCAT-001は「公開時に有効カテゴリ/ブランド/SKU/画像/primaryを検証」を要求するが、検索Repositoryは保存済み`status`を表示し、後からカテゴリ/ブランドがinactiveになった場合の再公開可否を再評価しない。したがって「公開不可商品をpublishedとして誤表示しない」の意味が「保存状態を正確に表示」か「現在の公開適格性も示す」かを正式期待と隔離fixtureで確認する必要がある。さらにactive SKUが0件なら`Math.min(...[])=Infinity`、`Math.max(...[])=-Infinity`となる静的経路がある。表示・製品不具合は未再現。公開済み在庫0はそれだけで公開不可と誤認しない。
+- **Risk/TR/Case採否（調査設計、未実行）**：C1 defaultのstaff両Role・11商品の状態/価格/在庫・20件ページ、C2 guest/customer/停止staff/失効Session直URL・Use Case拒否とPII非露出、C3 many-products 1000件・20件/ページ・最終50ページ/重複欠落、C4 published在庫0とunpublished/draft/discontinuedの状態区別、C5 後発のinactive master/active SKU0・保存statusと公開適格性・価格有限値、C6 検索中の別staff更新/古いversion・一覧とbulk対象の境界、C7 Web desktop/tablet・1023/1024幅・視覚/a11y・DB/Session/History前後を採用。商品登録/保存/プレビュー自体の成功は別IDで検証し、本IDからAC-002のtransaction PASSを導かない。
+- **既存直接証拠と再開条件**：`tests/repository-contract/repositories.test.ts:223-251`は検索のstatus/価格順/在庫0の部分証拠のみ。今回、直接Vitest/formatter/Playwright・実Role別Web・DB/Session前後・視覚/a11y・validator再実行は未実施。A01-01再開には固定HEADの隔離fixtureでC1〜C7を実行し、保存statusと公開適格性の正式オラクル、active SKU0の価格表示、情報非露出、前後不変性を証拠化する。未確定をPASSにせず、先に独立のA01-02へ進む。
+- **CI独立**：調査時HEAD `45170364fdb9`の[Web CI #41435072640](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41435072640)はin_progress。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Qualityはsuccess、required Chromium E2Eは実行中。新HEADの全必須CIは別判定、Mobile PRトリガー未復元。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-DASHBOARD-A02-01（狭幅警告・管理操作非露出）
 
