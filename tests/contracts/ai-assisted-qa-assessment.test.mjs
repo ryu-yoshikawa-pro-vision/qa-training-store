@@ -174,7 +174,10 @@ it("resumes a verified attempt calibration without trusting missing or altered r
   fs.mkdirSync(attemptDirectory, { recursive: true });
   const identity = { model_id: "provider/model", source_sha: "pinned" };
   const calibrationId = "calibration-identity";
-  const expected = new Map([["positive", ["pass"]], ["negative", ["fail"]]]);
+  const expected = new Map([
+    ["positive", ["pass"]],
+    ["negative", ["fail"]],
+  ]);
   const caseResults = [
     { case_id: "positive", decision: "pass", rationale: "supported" },
     { case_id: "negative", decision: "fail", rationale: "missing evidence" },
