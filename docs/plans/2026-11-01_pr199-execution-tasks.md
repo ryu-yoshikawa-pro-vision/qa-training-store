@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-LIST-A02-02`（処理中注文を支払済みと混同しない）。直前`SCREEN-ORDERS-LIST-A02-01`は正式仕様・Role/State/Data、orders-empty/default Seedの0/5件、Web/Native空状態、Use Case→Dexie/SQLite本人抽出、R1-R3/TR1-TR4/C1-C4を照合して**基本分析のみ**`analyzed`（操作62→63/188、非default14/20）。WebはStatePanel既定ホームCTA、Nativeは直接CTAなし。Nativeの正式適合、S-empty視覚/実Run、DB/Session前後は検証待ち。次はA02-02を1件扱う。
+- **現在の対象**：`SCREEN-ORDERS-LIST-A02-03`（決済失敗注文と支払済み注文の区別）。直前`SCREEN-ORDERS-LIST-A02-02`はpayment-processing/defaultのOrder/Payment/History、初期guest→regular本人、Web『支払い待ち』/Native内部status、requireCustomer→Dexie/SQLite本人抽出、High Risk/TR1-TR6/C1-C6を照合して**基本分析のみ**`analyzed`（操作63→64/188、非default14/20）。実Web/Android、Gateway/並列、別Session、DB/Session前後、正式UXと視覚/a11yは検証待ち。次はA02-03を1件扱う。直前`SCREEN-ORDERS-LIST-A02-01`は正式仕様・Role/State/Data、orders-empty/default Seedの0/5件、Web/Native空状態、Use Case→Dexie/SQLite本人抽出、R1-R3/TR1-TR4/C1-C4を照合して**基本分析のみ**`analyzed`（操作62→63/188、非default14/20）。WebはStatePanel既定ホームCTA、Nativeは直接CTAなし。Nativeの正式適合、S-empty視覚/実Run、DB/Session前後は検証待ち。次はA02-02を1件扱う。
 - **CI横断**：作業前HEAD `ffedcae1a95e`の[Web CI #41377091194](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41377091194)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。既存integrationのsuccessを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEADのCIは別判定。Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,14 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A02-02（処理中注文の基本分析）
+
+- **判定**：`review_required→analyzed`（基本分析のみ、操作63→64/188、非default14/20）。正式`docs/spec/features/orders.md:18-35`は一覧の空/処理中/失敗の区別を要求。`BR-ORDER-001/AC-ORDER-001`、関連Checkout処理中の状態を参照。実Run・製品適合・最終CIはPASSではない。
+- **Role/State/Data**：`payment-processing`の初期Sessionはguest（`metadata.ts:229-239`）。regular@example.comへ本人ログインが必要。`scenarios.ts:286-302`はdefaultの失敗注文をOrder.pending_payment/Payment.processingへ変更、errorCode/processedAtをnull、`PAYMENT_RETRY_STARTED`履歴を同じBASE_CLOCKで追加。defaultの本人`order-paid`はOrder.paid/Payment.succeededで対照。Historyの同時刻順序は未証明。
+- **UI→Use Case→Repository**：Web `checkout-order-pages.tsx:40-52,614-649`の一覧はpending_payment『支払い待ち』/paid『発送準備待ち』。Native `native-purchase-screens.tsx:1125-1164`は内部文字列pending_payment/paidをそのまま表示。`CheckoutOrderUseCases.listMyOrders:377-387`のrequireCustomer→Dexie `order-review-repositories.ts:145-169`のuserId抽出／SQLite `native-customer-application-repositories.ts:2209-2249`のuser_id抽出→OrderListItem.status。Payment.statusは一覧DTOに含まれない。正式UX上の『支払い待ち』/Native内部値の妥当性は未決。
+- **Risk/TR/Condition/Case採否**：High=処理中を決済成功と誤認する金額リスク・別人の注文番号/金額露出。TR1/C1=processing SeedのOrder/Payment/History、TR2/C2=paid/succeeded対照、TR3/C3=Web/Nativeラベル差、TR4/C4=guest/staff/別customer拒否とuserId抽出を採用（静的照合）。TR5/C5=Gateway再開・idempotency/二重決済はCheckout processingの独立Case、TR6/C6=実Web/Android・視覚/a11y・DB/Session前後・History順序・正式UXは独立未受入。静的確認を製品適合/実Run PASSへ流用しない。
+- **直接検証・再開条件**：既存validatorの必須文字列・requirement_refs・3照合フラグと件数を構造照合。対象実Vitest/Prettier/Playwrightは未実施。固定HEADの本人/別Role・processing/paid画面、DB/Session snapshot、Gateway呼出し/並列、視覚/正式表示オラクル、全必須CIを取得するまで製品適合と実Runは検証待ち。次の共通対象は`SCREEN-ORDERS-LIST-A02-03`。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-LIST-A02-01（注文0件の基本分析）
 
