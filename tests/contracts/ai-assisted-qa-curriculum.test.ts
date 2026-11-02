@@ -443,6 +443,34 @@ describe("AI-assisted QA static learning course", () => {
     expect(reference).toContain("P06の費用・権限・trigger条件");
   });
 
+  it("aligns M09 CI assessment criteria with its designated trigger and cost exercises", () => {
+    const root = "training/ai-assisted-qa-course";
+    const scoring = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, root, "assessment/scoring-tests/M09.json"), "utf8"),
+    ) as {
+      criteria: {
+        id: string;
+        required_evidence: string[];
+        pass_conditions: string[];
+      }[];
+    };
+    const exercise = fs.readFileSync(
+      path.join(repositoryRoot, root, "exercises/M09/exercise.md"),
+      "utf8",
+    );
+    const byId = (id: string) => scoring.criteria.find((criterion) => criterion.id === id);
+    const cr01 = byId("M09-CR-01");
+    const cr04 = byId("M09-CR-04");
+    expect(exercise).toContain("**P01 別の起動条件を設計（M09-01・04）**");
+    expect(exercise).toContain("**P02 PR HEADとmerge SHAの混同を修正（M09-02）**");
+    expect(exercise).toContain("**P04 CI費用の条件変更（M09-04）**");
+    expect(exercise).toContain("**P06 M10で検証可能な引継ぎを作る（M09-01〜05）**");
+    expect(cr01?.required_evidence?.join(" ")).toContain("反復実践P01・P06");
+    expect(cr01?.pass_conditions?.join(" ")).toContain("反復実践P01・P06");
+    expect(cr04?.required_evidence?.join(" ")).toContain("反復実践P01・P04・P06");
+    expect(cr04?.pass_conditions?.join(" ")).toContain("反復実践P01・P04・P06");
+  });
+
   it("keeps M06 fallback input separate from personal Phase 1 completion", () => {
     const assessmentRoot = "training/ai-assisted-qa-course/assessment";
     const scoring = JSON.parse(
