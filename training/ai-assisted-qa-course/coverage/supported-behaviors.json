@@ -15063,7 +15063,7 @@
         {
           "id": "AdminProductUseCases.preview",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
-          "line": 280,
+          "line": 285,
           "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
         },
         {
