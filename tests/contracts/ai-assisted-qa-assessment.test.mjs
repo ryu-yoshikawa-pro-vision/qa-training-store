@@ -25,6 +25,8 @@ import {
 import {
   exportAssessment,
   filterPhaseKnowledgeGraph,
+  obtainAssessmentCandidate,
+  persistValidatedCandidate,
   persistCalibration,
   readAttemptCalibration,
   readChallengeAnswer,
@@ -106,6 +108,60 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   });
   expect(read(legacy)).toEqual(failed);
   expect(read(path.join(third, "calibration-result.json"))).toEqual(passed);
+});
+
+it("reuses a pinned model candidate after interruption without another model call", async () => {
+  const attemptDirectory = path.join(tempRoot, "resumed-ai-candidate");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const prompt = "Pinned learner evidence and live answer";
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const result = { schema_version: 1, objectives: [] };
+  let runs = 0;
+  const evaluate = () =>
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId,
+      version,
+      run: async () => {
+        runs += 1;
+        return { value: result, sessionId: "session-one" };
+      },
+    });
+  expect(await evaluate()).toEqual({ value: result, sessionId: "session-one" });
+  expect(await evaluate()).toEqual({ value: result, sessionId: "session-one" });
+  expect(runs).toBe(1);
+  await expect(
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt: "Different learner answer",
+      modelId,
+      version,
+      run: async () => {
+        throw new Error("model must not run");
+      },
+    }),
+  ).rejects.toThrow(/differs from the resumed assessment input/);
+  const savedPath = path.join(attemptDirectory, "ai-candidate.json");
+  const saved = JSON.parse(fs.readFileSync(savedPath, "utf8"));
+  fs.writeFileSync(savedPath, JSON.stringify({ ...saved, model_id: "another/model" }));
+  await expect(evaluate()).rejects.toThrow(/differs from the pinned evaluator input/);
+  expect(runs).toBe(1);
+});
+
+it("reuses identical validated candidates but never silently replaces changed results", () => {
+  const attemptDirectory = path.join(tempRoot, "resumed-validated-candidate");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const candidate = { schema_version: 1, objectives: [{ objective_id: "M04-01" }] };
+  persistValidatedCandidate(attemptDirectory, candidate);
+  expect(() => persistValidatedCandidate(attemptDirectory, structuredClone(candidate))).not.toThrow();
+  expect(() =>
+    persistValidatedCandidate(attemptDirectory, {
+      schema_version: 1,
+      objectives: [{ objective_id: "M04-02" }],
+    }),
+  ).toThrow(/differs from the resumed input/);
 });
 
 it("resumes a verified attempt calibration without trusting missing or altered records", () => {

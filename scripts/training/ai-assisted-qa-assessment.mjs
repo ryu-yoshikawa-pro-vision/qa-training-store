@@ -4,6 +4,7 @@ import { Buffer } from "node:buffer";
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import readline from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -1103,6 +1104,61 @@ async function prepareAttempt(request) {
   );
 }
 
+export async function obtainAssessmentCandidate({
+  attemptDirectory,
+  prompt,
+  modelId,
+  version,
+  run,
+}) {
+  const candidatePath = path.join(attemptDirectory, "ai-candidate.json");
+  const promptPath = path.join(attemptDirectory, "assessment-prompt.md");
+  const promptSha256 = sha256(prompt);
+  const evaluatorPromptSha256 = systemPromptHash(ASSESSOR_SYSTEM);
+  if (fs.existsSync(candidatePath)) {
+    if (!fs.lstatSync(candidatePath).isFile() || !fs.existsSync(promptPath))
+      fail("saved assessment candidate or prompt is missing or unsafe");
+    writeImmutableOpenCodePrompt(promptPath, prompt);
+    const saved = readJson(candidatePath, "saved assessment candidate");
+    if (
+      saved.prompt_sha256 !== promptSha256 ||
+      saved.evaluator_prompt_sha256 !== evaluatorPromptSha256 ||
+      saved.model_id !== modelId ||
+      saved.opencode_version !== version ||
+      !saved.candidate ||
+      typeof saved.candidate !== "object" ||
+      Array.isArray(saved.candidate)
+    )
+      fail("saved assessment candidate differs from the pinned evaluator input");
+    return { value: saved.candidate, sessionId: saved.session_id ?? null };
+  }
+  writeImmutableOpenCodePrompt(promptPath, prompt);
+  const response = await run();
+  atomicWriteJson(candidatePath, {
+    received_at: new Date().toISOString(),
+    session_id: response.sessionId ?? null,
+    prompt_sha256: promptSha256,
+    evaluator_prompt_sha256: evaluatorPromptSha256,
+    model_id: modelId,
+    opencode_version: version,
+    candidate: response.value,
+  });
+  return { value: response.value, sessionId: response.sessionId ?? null };
+}
+
+export function persistValidatedCandidate(attemptDirectory, candidate) {
+  const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
+  if (fs.existsSync(candidatePath)) {
+    if (
+      !fs.lstatSync(candidatePath).isFile() ||
+      !isDeepStrictEqual(readJson(candidatePath, "saved validated candidate"), candidate)
+    )
+      fail("saved validated assessment candidate differs from the resumed input");
+    return;
+  }
+  atomicWriteJson(candidatePath, candidate);
+}
+
 async function resumeAttempt(request) {
   const phaseRoot = path.join(WORKSPACE, ".course-assessments", request.phase);
   const attemptsRoot = path.join(phaseRoot, "attempts");
@@ -1274,21 +1330,23 @@ async function resumeAttempt(request) {
         answer,
         assessmentId: request.resumeId,
       });
-      const run = await runOpenCode({
+      const run = await obtainAssessmentCandidate({
+        attemptDirectory,
+        prompt,
         modelId: request.modelId,
         version,
-        systemPrompt: ASSESSOR_SYSTEM,
-        prompt,
-        directory: attemptDirectory,
-        fileName: "assessment-prompt.md",
+        run: () =>
+          runOpenCode({
+            modelId: request.modelId,
+            version,
+            systemPrompt: ASSESSOR_SYSTEM,
+            prompt,
+            directory: attemptDirectory,
+            fileName: "assessment-prompt.md",
+          }),
       });
       aiCandidateRaw = run.value;
       candidateSessionId = run.sessionId ?? null;
-      atomicWriteJson(path.join(attemptDirectory, "ai-candidate.json"), {
-        received_at: new Date().toISOString(),
-        session_id: candidateSessionId,
-        candidate: aiCandidateRaw,
-      });
       normalizedCandidate = validateCandidate(aiCandidateRaw, {
         assessmentId: request.resumeId,
         phaseId: request.phase,
@@ -1418,7 +1476,7 @@ async function resumeAttempt(request) {
     challenge: { ...savedChallenge, answer_sha256: answer.answer_sha256 },
     previousAssessmentId,
   });
-  atomicWriteJson(path.join(attemptDirectory, "validated-candidate.json"), normalizedCandidate);
+  persistValidatedCandidate(attemptDirectory, normalizedCandidate);
   const resultPath = path.join(attemptDirectory, "result.json");
   atomicWriteJson(resultPath, result);
   saveSummary(attemptDirectory, result);
