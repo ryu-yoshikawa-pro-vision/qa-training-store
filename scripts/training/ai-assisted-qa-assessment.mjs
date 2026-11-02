@@ -951,7 +951,10 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
     )
       fail("saved completed assessment has an incomplete attempt calibration");
     calibration = readJson(attemptCalibrationPath, "saved attempt calibration");
-    const candidateCalibration = readJson(attemptCandidatePath, "saved attempt calibration candidate");
+    const candidateCalibration = readJson(
+      attemptCandidatePath,
+      "saved attempt calibration candidate",
+    );
     if (
       !Array.isArray(candidateCalibration.case_results) ||
       !Number.isInteger(calibration.case_count) ||
@@ -997,7 +1000,8 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
     calibration.identity?.model_id !== result.evaluator.model_id ||
     calibration.identity?.opencode_version !== result.evaluator.opencode_version ||
     calibration.identity?.evaluator_prompt_sha256 !== result.versions?.evaluator_prompt_sha256 ||
-    calibration.identity?.calibration_prompt_sha256 !== result.versions?.calibration_prompt_sha256 ||
+    calibration.identity?.calibration_prompt_sha256 !==
+      result.versions?.calibration_prompt_sha256 ||
     !isDeepStrictEqual(calibration.identity?.asset_hashes, result.versions?.asset_hashes)
   )
     fail("saved completed assessment lacks consistent verified mastery evidence");
