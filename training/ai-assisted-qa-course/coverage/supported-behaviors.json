@@ -13858,21 +13858,21 @@
       "source_path": "docs/spec/features/admin-catalog.md",
       "source_line": 27,
       "source_text": "オペレーターおよび管理者が管理対象の概要と主要な管理動線を確認する。",
-      "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,幅1023px/1024px,operator/admin。role=operator/admin、状態・対象ID・versionを区別。操作: 管理対象の概要",
+      "platform": "Web管理（desktop/tablet、1024px以上）。Native管理概要は対象外。1023px以下の警告はA02-01/S-admin-mobile-warning",
+      "role": "active operator/adminの本人Sessionのみ。guest/active customer/suspended・withdrawn staff/無効SessionはRouteGuardとUse Caseで拒否。画面の注文emailはstaffにのみ表示",
+      "scenario": "default Seedのguest初期状態からoperator/adminで個別ログイン。注文status・在庫数量/variant有効・review statusを別条件として検査。1023/1024px境界は別A02-01",
+      "data": "default: active user-operator/user-admin、初期sessions=[]、注文5件(status=payment_failed,paid,preparing,shipped,delivered各1)、Review=published9/hidden1/deleted1。paid件数=1、hidden件数=1、recentOrdersは作成日時降順の最大5件。低在庫はactive variantかつstockQuantity 1〜5（0と6、inactiveは除外）、商品本体の公開/active状態は現実装の条件に含まれない。固定Seed値と、隔離fixtureで0/1/5/6・Role/Session/同時更新を分けて確認",
       "action": "管理対象の概要",
-      "expected": "Operator/Adminに現在の商品・在庫・注文等の集約件数/概要を権限に従って表示する",
+      "expected": "active operator/adminで管理概要の3指標（発送準備待ち=order.status paid件数、低在庫SKU=active variantのstockQuantity 1〜5件数、非公開レビュー=review.status hidden件数）と最近の注文5件（作成日時降順、注文番号/顧客email/状態/合計/日時）を読取り表示する。各指標は対応する注文paid/在庫low/レビューhiddenの管理一覧へ遷移。guest/customer/非active staff/失効Sessionには概要・顧客emailを返さず、読取りだけではOrder/Variant/Review/Sessionの永続データを変更しない。個別集計は独立読取りであり同時更新時の完全一貫snapshotは未保証",
       "rule_refs": [],
       "route": "`/admin`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "管理対象の概要の前後に、Operator/Adminに現在の商品・在庫・注文等の集約件数/概要を権限に従って表示することをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと管理対象の概要の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "管理対象の概要が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: guest/customer/停止staffへ管理件数・顧客email露出。R2: paidとpreparing/shipped/deliveredの取り違えによる発送準備件数誤表示。R3: 低在庫0/1/5/6・inactive variant/商品公開状態の誤集計。R4: hidden/deleted/published混同による非公開件数誤表示。R5: 注文の日時降順・5件上限/顧客emailの過剰露出。R6: 集計3クエリと最近注文の独立読取り間に更新が入る非原子的表示。R7: 読取り副作用/エラー・1023/1024px境界と管理UI非露出",
+      "test_condition": "C1 正常: defaultをoperator/admin別Sessionで読取り、paid=1/hidden=1、低在庫はDBのactive variant 1〜5件数、recentOrders5件・降順・表示項目/リンクを照合。C2 認可: guest/customer/停止staff/失効Sessionの直URL・getOverview拒否、email非露出・Repository呼出し前拒否を検査。C3 境界: stock 0/1/5/6・inactive variant・商品公開状態の差を隔離fixtureで比較。C4 注文: paid/preparing/shipped/delivered/failed別の集計と、6件以上時の最新5件・同日時順序/PIIを検証。C5 Review: hidden/published/deleted遷移前後のhidden件数と非公開本文非露出を確認。C6 無副作用/並列: Order/Variant/Review/Session/History/version前後と同時更新時の集計/一覧整合を記録。C7 Web desktop/tablet: loading/error/0件・リンク/aria/視覚/a11y、1023/1024境界を別A02-01と照合",
+      "test_responsibility": "admin-catalog.md:21-35の管理概要・Roleとroles-and-permissions.md:5-19を、app/admin/index.tsx→AdminOverviewPage/StaffPage→RouteGuard→AdminMasterUseCases.getOverview(requireStaff)→SessionIdentityResolver→DexieAdminOverviewRepository.getOverviewに追跡。UIはpaid/low/hiddenの3カードと最近の注文5件を表示し、getOverviewはthreshold=5/recentLimit=5。Repositoryはorders.status=paid、variant.isActiveかつ1..5、reviews.status=hiddenを数え、OrderRepository.search(created_desc)から5件取得。画面読取りは商品公開/プレビュー保存/注文・在庫・Review変更のUse Caseではない",
+      "case_policy": "採用: C1 default operator/admin・3指標/最近5件、C2 非staff/失効Session拒否・email非露出、C3 0/1/5/6・inactive境界、C4 注文status/最新5件・PII、C5 Review状態別件数、C6 DB/Session不変と同時更新の表示整合、C7 Web表示/リンク・視覚/a11y。除外: 商品公開・注文発送・レビュー公開の更新操作（各別ID）、Native管理概要（非対応）、1023px警告自体の視覚受入（A02-01/状態ID）。直接実Run/製品適合は別ゲート",
+      "case_selection_reason": "概要は管理判断の入口で、paid・1〜5・hiddenという異なるDB条件と本人認可/顧客emailのHigh情報保護境界がある。defaultのpaid1/hidden1/注文5件と隔離fixtureの数量境界・拒否Roleで期待値を具体化。BR-ADMINCAT-001/002・AC-001/002は管理カタログ全体の参照であり、この読取りで商品公開/transaction保存をPASSとは判定しない",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "admin-catalog.md:21-35/roles-and-permissions.md:5-19の管理概要/Role、admin-master-pages.tsx:23-106のstaff guard/3指標/最近注文5件/リンク、admin-master-use-cases.ts:58-61,239-249のrequireStaff→threshold5/limit5、session-identity-resolver.ts:27-59のSession/active判定、order-review-repositories.ts:430-468のpaid・active variant 1..5・hidden・created_desc検索、default-dataset.ts:385-420,729-775の注文5状態/active staff/初期Sessionなし、route-guard.tsx:25-55、既存integration admin-master-use-cases.test.ts:38-80を照合。High R1-R7/TR1-R7/C1-C7の期待/採否は各欄に明記。既存Integrationはoperator正常/低在庫/5件のみの部分証拠で、guest/customer/停止staff拒否、0/1/5/6、並列非原子性、DB/Session前後、実Web/視覚/a11yを実証していない。静的基本分析のみ完了、製品適合PASSではない",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -13882,7 +13882,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.getOverview"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "SCREEN-ADMIN-DASHBOARD-A01-01の仕様・Role/State/Data・UI→Use Case→Dexie・default Seed・High Risk/TR/Condition/Case採否を個別照合し基本分析を完了。直接Vitest/Playwright・Role別実Web・DB/Session前後・同時更新/PII・視覚/a11y・製品適合は検証待ち。次はA02-01（狭幅警告/管理UI非露出）",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 27,
@@ -13908,6 +13908,82 @@
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 58,
           "signature": "async getOverview(): Promise<AdminOverview> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "platform_roles": {
+        "web": "active operator/admin、guest/customer/suspended/withdrawn staff/失効Sessionは拒否。管理画面に注文emailがあるため認可/非露出をHighで検証"
+      },
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 21,
+          "end_line": 35,
+          "reason": "管理概要と管理viewportの正式UI状態"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active operator/adminの管理権限とUse Case認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 23,
+          "end_line": 106,
+          "reason": "StaffPage guard、3カード/最近5件/顧客email/リンク"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "guest/customer/停止staffの管理UI拒否"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 58,
+          "end_line": 61,
+          "reason": "getOverviewのstaff認可とthreshold=5/recentLimit=5"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 239,
+          "end_line": 249,
+          "reason": "active staffのみ許可するUse Case境界"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "Session有効性・active状態の確認"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 430,
+          "end_line": 468,
+          "reason": "paid/active variant 1..5/hidden集計と最近注文5件"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 385,
+          "end_line": 421,
+          "reason": "5注文statusの固定生成"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 776,
+          "reason": "active staffと初期Session空"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 38,
+          "end_line": 80,
+          "reason": "operatorの正常概要・低在庫・最近5件の既存部分テスト"
         }
       ]
     },

@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-DASHBOARD-A01-01`（管理概要の集約件数・認可/非露出）。直前`SCREEN-ADMIN-REVIEWS-A02-03`はレビューvisibility変更時の投稿7項目・OrderItem購入Snapshot不変、History/Summary許可差分、Role/State/SeedとC1〜C7採否を照合して**基本分析のみ**`analyzed`（操作78→79/188、非default16/20）。直接Vitest/実Web/DB・Session・並列/rollback・視覚/a11y・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-DASHBOARD-A02-01`（1023px以下の管理警告と非露出）。直前`SCREEN-ADMIN-DASHBOARD-A01-01`はpaid=1/hidden=1/最近5注文と低在庫active variant 1〜5、staff認可/顧客email、UI→Use Case→Dexie・Seed・High R1-R7/TR1-R7/C1-C7採否を照合し**基本分析のみ**`analyzed`（操作79→80/188、非default16/20）。直接Role別Vitest/Playwright・DB/Session前後・同時更新・視覚/a11y・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `d2374fdec5f3`の[Web CI #41402699729](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41400443720)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。同HEADのrequired E2E #08レビュー投稿/編集はPASS、UI Review desktop job success。ただしContracts全体・Style Quality・required Chromium E2EのCheckout別Case・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -59,6 +59,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+
+## 2026-11-02 共通逐次：SCREEN-ADMIN-DASHBOARD-A01-01（集約件数・認可/非露出）
+
+- **基本分析のみ完了**：`review_required→analyzed`、操作79→80/188、非default16/20維持。正式`admin-catalog.md:21-35`・`roles-and-permissions.md:5-19`、Web `AdminOverviewPage`→`AdminMasterUseCases.getOverview`→`SessionIdentityResolver`→`DexieAdminOverviewRepository`、default SeedとHigh R1-R7/TR1-R7/C1-C7採否を照合。製品適合・実Run/最終CI PASSとは区別。
+- **Role/State/Data・集計オラクル**：defaultはguest初期/Sessionなし、active operator/adminで別Sessionログイン。注文5件はpayment_failed/paid/preparing/shipped/delivered各1。発送準備待ち=paid件数1、非公開レビュー=hidden件数1。低在庫=active variantの数量1〜5（0/6・inactive除外）、最近注文=created_descの5件。UIは注文番号・顧客email・状態・合計・日時とpaid/low/hiddenのリンクを表示。低在庫判定に商品本体の公開状態は含まれないため、正式期待との整合は実証待ち。
+- **認可・Highリスク**：Web `StaffPage/RouteGuard`とUse Case `requireStaff`の両層でactive operator/adminに限定。guest/customer/停止staff/失効Sessionは管理情報と顧客emailを表示/返却しないことをC2で検証。paidとpreparingの誤認、0/1/5/6境界、hidden/deleted混同、recentOrdersの並び/PII、複数独立クエリ間の同時更新非原子性、読取り副作用をR1-R7として区別。
+- **Case採否**：C1=operator/adminの3件数・最近5件/リンク、C2=guest/customer/停止staff/失効Session拒否とemail非露出、C3=在庫0/1/5/6・inactive/商品状態、C4=注文5状態・6件超の最新5件、C5=review hidden/published/deleted、C6=Order/Variant/Review/Session/History/version不変と同時更新、C7=desktop/tablet loading/error/0件・視覚/a11yを採用。商品公開・発送・レビュー更新は別ID、1023px以下の警告自体はA02-01、Native管理概要は非対応。
+- **既存テスト・検証待ち**：`tests/integration/admin-master-use-cases.test.ts:38-80`はoperator正常・低在庫1〜5・最近5件の部分証拠。同一HEAD `3e163db602a4` の[Web CI #41429571443](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41429571443)ではIntegration/Contracts成功だがStyle Quality・required Chromium E2E・verify/validate失敗。今回の直接Vitest/formatter/Playwright・Role別実Web/DB・Session前後・同時更新・視覚/a11yは未実施。再開には隔離fixtureでC1〜C7を実行し正式期待/PII境界を照合する。新HEADのCIは独立判定、Mobile PRトリガー未復元。
+- **次の共通対象**：`SCREEN-ADMIN-DASHBOARD-A02-01`（1023px以下の管理警告と管理情報非露出）。既存`S-admin-mobile-warning`は基本分析済みでも実Web視覚/a11yは別受入。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-REVIEWS-A02-03（既存投稿Snapshot保持）
 
