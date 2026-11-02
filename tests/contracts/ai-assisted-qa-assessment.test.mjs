@@ -1088,30 +1088,26 @@ it("exports a finalized assessment once without copying unexpected files", () =>
   expect(() => exportAssessment("P1", id, root)).toThrow(/already exists/);
 });
 
-it.skipIf(process.platform === "win32")(
-  "rejects a symlinked private assessment source or export destination",
-  () => {
-    const root = path.join(tempRoot, "assessment-export-symlinks");
-    const outside = path.join(tempRoot, "export-outside");
-    const id = "123e4567-e89b-42d3-a456-426614174000";
-    const phaseRoot = path.join(root, ".course-assessments", "P1");
-    const attempt = path.join(phaseRoot, "attempts", id);
-    fs.mkdirSync(attempt, { recursive: true });
-    fs.mkdirSync(outside, { recursive: true });
-    fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+it.skipIf(process.platform === "win32")("rejects unsafe export symlinks", () => {
+  const root = path.join(tempRoot, "assessment-export-symlinks");
+  const outside = path.join(tempRoot, "export-outside");
+  const id = "123e4567-e89b-42d3-a456-426614174000";
+  const phaseRoot = path.join(root, ".course-assessments", "P1");
+  const attempt = path.join(phaseRoot, "attempts", id);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.mkdirSync(outside, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
 
-    fs.symlinkSync(outside, path.join(root, "course-assessment-exports"), "dir");
-    expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
-    expect(fs.readdirSync(outside)).toEqual([]);
-    fs.unlinkSync(path.join(root, "course-assessment-exports"));
+  fs.symlinkSync(outside, path.join(root, "course-assessment-exports"), "dir");
+  expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
+  expect(fs.readdirSync(outside)).toEqual([]);
+  fs.unlinkSync(path.join(root, "course-assessment-exports"));
 
-    fs.renameSync(path.join(root, ".course-assessments"), path.join(root, "moved-attempts"));
-    fs.symlinkSync(
-      path.join(root, "moved-attempts"),
-      path.join(root, ".course-assessments"),
-      "dir",
-    );
-    expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
-  },
-);
-
+  fs.renameSync(path.join(root, ".course-assessments"), path.join(root, "moved-attempts"));
+  fs.symlinkSync(
+    path.join(root, "moved-attempts"),
+    path.join(root, ".course-assessments"),
+    "dir",
+  );
+  expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
+});
