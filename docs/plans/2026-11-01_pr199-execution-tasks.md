@@ -27,7 +27,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-CHECKOUT-CONFIRM-A02-03`（Cart/価格不一致後の修正導線）。前対象`SCREEN-CHECKOUT-CONFIRM-A02-02`はHEAD `01d11fa9e18a`の[Web CI #41365175304](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41365175304)で学習用Checkout契約16/16 PASS（538ms、追加C1/C2を含む）。ただし対象ファイルPrettier違反、Web/Androidの修正導線・視覚/アクセシビリティ・sale-active/expired-sale実Runは未受入で`review_required`を維持する。次は台帳に実在するA02-03のWeb読込失敗/確定失敗、Native取得失敗/確定失敗それぞれの安全な復旧導線を1件として検証する。
+- **現在の対象**：`SCREEN-CHECKOUT-PROCESSING-A01-02`（同一orderIdの再開・本人認可）。前対象`SCREEN-CHECKOUT-CONFIRM-A02-03`はWeb/Nativeの読込失敗・確定失敗の4経路を静的監査済み。実Web/Android、DB/Session/視覚・アクセシビリティ未受入のため`review_required`で検証待ち。詳細は下記の最新節。前対象`SCREEN-CHECKOUT-CONFIRM-A02-02`はHEAD `01d11fa9e18a`の[Web CI #41365175304](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41365175304)で学習用Checkout契約16/16 PASS（538ms、追加C1/C2を含む）。ただし対象ファイルPrettier違反、Web/Androidの修正導線・視覚/アクセシビリティ・sale-active/expired-sale実Runは未受入で`review_required`を維持する。次は台帳に実在するA02-03のWeb読込失敗/確定失敗、Native取得失敗/確定失敗それぞれの安全な復旧導線を1件として検証する。
 - **CI横断**：HEAD `4f5b5f16232`の[Web CI #41351501411](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41351501411)で対象契約3/3 PASS、Code Quality failureは上記helper名の`react-hooks/rules-of-hooks` 1 error、Style Quality failureは別の学習用5ファイル、Vitest contracts全体は旧`analyzed`期待と現台帳`review_required`等の15失敗。確認時点でrequired Chromium E2Eはin_progress。直接Case PASSとCI全体・製品適合・実Web PASSは別判定。Mobile CIは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -46,6 +46,12 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A02-03（4復旧経路の静的監査）
+
+- 現HEAD `37d2a907add5`、台帳の実在IDを再照合。正式 `BR/AC-CHECKOUT-002` に対し、Web `getConfirmation` 失敗は常に `/checkout/payment`、`beginOrder` 失敗は警告文のみ、Native `getConfirmation` 失敗は `confirmation=null` のLoading早期return、`beginOrder` 失敗はErrorMessageのみという**4経路の静的差**を確認。失敗専用のCart復帰導線は実証されていない。詳細なCase採否・Fixture・再開条件は [分析レポート](../reports/2026-10-30_pr199-supported-behavior-analysis.md) の同ID節。
+- `cart-version-invalidates-checkout` Seedは住所・決済未保存なので、確認表示後競合の実証にそのまま流用しない。default regular customerで3 Step完了後にCart版/価格を変更する4 Caseを設計。**実Web/Android・注入E2E・DB/Session/視覚/アクセシビリティは未実行**。対象は `review_required` / 検証待ち、分析50/188・状態14/20は据え置く。製品不具合やPASSと断定しない。
+- 同HEADのWeb CI [#41366388219](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41366388219) はfailure（Style Quality、contracts期待不一致15件、required Chromium Checkout再確認、verify/validate）。Code Quality/Unit/Integration/Repository/Component/Buildはsuccess。Mobile未受入。CI待ちだけで止めず、次の共通対象は台帳実在 `SCREEN-CHECKOUT-PROCESSING-A01-02`。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-CONFIRM-A02-02（追加C1/C2のCI直接結果と復旧導線の未受入）
 
