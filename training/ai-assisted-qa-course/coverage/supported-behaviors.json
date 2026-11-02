@@ -15971,20 +15971,20 @@
       "source_line": 126,
       "source_text": "既存商品の集約、バリアント、画像、在庫、および公開状態を編集する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: product-aggregate-edit,product-delete-blocked,inactive-image-existing-link,cross-role-product-lifecycle。role=operator/admin、状態・対象ID・versionを区別。操作: 公開状態を変更",
+      "role": "active operator/admin（Web staff）。guest/customer/停止staff/失効SessionはStaffPage・Use Case拒否と管理DTO非露出を別Caseで確認。失効Sessionのstore.clearと商品DB変更を区別。",
+      "scenario": "default（初期guest→staffログイン）/product-aggregate-edit（初期admin）を主軸。product-draft・product-unpublished・product-basic-shirt・product-discontinuedを4状態対照。inactive-image-existing-link/product-delete-blocked/cross-role-product-lifecycleを追加条件で参照。",
+      "data": "default Seedのproduct-draft=draft/publishedAt null、product-unpublished=unpublished/publishedAt既存、product-basic-shirt=published/3 SKU/画像2、product-discontinued=discontinued。各version初期1。active master/SKU/画像欠落、inactive asset、stale versionは隔離fixtureで作る。",
       "action": "公開状態を変更",
       "expected": "draft/published/unpublished/discontinuedの許可された状態遷移だけを行い、不完全商品の公開を拒否する",
       "rule_refs": [],
       "route": "`/admin/products/[productId]`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "公開状態を変更の前後に、draft/published/unpublished/discontinuedの許可された状態遷移だけを行い、不完全商品の公開を拒否することをUIと集約状態で比較する",
+      "risk": "High R1=非staff/停止staff/失効Sessionの不正公開・管理DTO露出、R2=stale version/並列上書き、R3=不完全商品・inactive画像assetの公開可否、R4=transaction部分更新。Medium R5=publishedAt初回/再公開、R6=UI非同期失敗通知欠落、R7=Dirty/不可逆販売終了/viewport/a11y。実再現前の候補と区別。",
+      "test_condition": "C1 4状態×4状態16組合せ（許可5・拒否11）とProduct.status/version/updatedAt。C2 draft公開時active category/brand/SKU/画像/primary、各欠落/inactive master・inactive asset拒否とDB不変。C3 初回publishedAt設定、published→unpublished→publishedで維持。C4 discontinued終端とpublished/unpublishedからの確認ダイアログ閉じる無変更・確定のみ更新。C5 active operator/adminとguest/customer/停止staff/失効Sessionの直URL/getEdit/changeStatus拒否・管理DTO非露出、Session clear例外。C6 stale expectedVersion/別staff並列/transaction故障注入とProduct/Variant/Image/History/Summary/Session全表前後・rollback。C7 Dirty中disabled、changeStatus失敗通知、1023/1024px、desktop/tablet・keyboard/視覚/a11y。",
       "test_responsibility": "操作対象ID、状態・versionと公開状態を変更の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "公開状態を変更が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "case_policy": "採用:C1全16遷移、C2公開適格性とinactive master/asset、C3 publishedAt、C4販売終了ConfirmDialog、C5 Role/Session、C6 CAS/rollback/DB前後、C7 Dirty/失敗通知/viewport/a11y。除外: SKU/画像の集約編集（A01-01/02/03）、在庫調整（A01-04）、一括状態変更（PRODUCTS系）、非サポートNative管理UI。",
+      "case_selection_reason": "正式admin-catalog.md:9-19,124-135,210-220、Web admin-product-pages.tsx:423-520、Use Case admin-product-use-cases.ts:216-221,524-534、Dexie product-repositories.ts:253-295、state-transitions.ts:10-15、transaction-runner.ts:79-85,137-139、Seed default-dataset.ts:69-82,165-210/scenarios.ts:33-38,112-142/metadata.ts:75-84,350-359、Integration admin-product-use-cases.test.ts:277-346を照合。状態遷移16/16・コード断片21/21を静的確認（直接Vitestではない）。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD 30f4a0b3a4f3: BR/AC-ADMINCAT-001/002、active staff/拒否Role、4状態Seed、Web→changeStatus→Dexie transaction、Risk R1-R7/TR1-4/C1-C7採否を照合。遷移16/16・コード断片21/21の静的assert、既存Integrationは部分証拠。inactive画像assetの公開時未検査候補、UI catch欠落は実再現待ち。基本分析のみanalyzed。直接Vitest/formatter/Playwright/validator本体、隔離DB/Session前後、Role/並列/故障注入、視覚/a11y、製品適合・最終CIは未受入。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -15994,7 +15994,7 @@
       "related_use_cases": [
         "AdminProductUseCases.changeStatus"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-03 A01-05基本分析のみ完了（操作92→93/188、非default16/20）。遷移・公開適格性/Role/version/Seed・C1-C7採否を整理。実Web/DB・Session/製品適合/最終CI未受入。次はSCREEN-ADMIN-PRODUCT-DETAIL-A02-01。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 415,
@@ -16026,6 +16026,11 @@
           "line": 216,
           "signature": "async changeStatus(request: ChangeProductStatusRequest) {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {

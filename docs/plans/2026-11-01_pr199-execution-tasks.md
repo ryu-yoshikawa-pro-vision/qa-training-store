@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A01-05`（公開状態の許可遷移・公開適格性/Role/競合）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-04`は基本分析のみanalyzed（操作92/188、非default16/20）。既存SKU現在庫read-onlyと専用在庫調整・履歴原子性、R1-R7/TR1-4/C1-C7を照合。直接Vitest/Playwright・実Web/DB前後・製品適合・最終CIは未受入。
+- **現在の対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-01`（Dirty状態・未保存保全）。直前`SCREEN-ADMIN-PRODUCT-DETAIL-A01-05`は基本分析のみanalyzed（操作93/188、非default16/20）。遷移16/16・コード断片21/21静的照合。直接Vitest/Playwright・実Web/DB/Session・製品適合・最終CIは未受入。
 - **CI横断**：作業前HEAD `29f2404ca335`の[Web CI #41438986494](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41438986494)はcompleted/failure。Style Quality・Contracts・Unit/Integration/Repository/Component・Training runtime・Code Quality・UI Review等はsuccess。required Chromium E2E・verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,16 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-05（公開状態遷移）基本分析受入
+
+- **判定**：台帳の同一IDを`review_required→analyzed`。操作**92→93/188**、非default**16/20**。基本分析のみで製品適合/実Web/DB/最終CI PASSではない。
+- **正式根拠・経路**：`BR/AC-ADMINCAT-001/002`→Web `AdminProductEditContent`（Dirty中disabled、expectedVersion送信、販売終了ConfirmDialog）→`AdminProductUseCases.changeStatus`（requireStaff、transaction）→Dexie `changeStatus`（Product CAS、遷移guard、公開時active master/SKU/画像・primary検査、status/version/publishedAt更新）。`state-transitions.ts:10-15`の4×4遷移表を**16/16**、コード断片**21/21**静的assert。直接Vitestではない。
+- **Seed/Role**：default初期guest→staffログイン、product-aggregate-edit初期admin。product-draft（draft/publishedAt null）、product-basic-shirt（published）、product-unpublished（publishedAt既存）、product-discontinued（終端）、初期version=1。inactive-image-existing-link/product-delete-blockedは対照。非staff/失効Sessionの管理DTO非露出・Session clear例外は実Run待ち。
+- **Risk/TR/Case採否**：High R1非staff認可/管理DTO、R2 stale version、R3 不完全公開・inactive asset、R4 rollback。Medium R5 publishedAt、R6 UI非同期失敗通知、R7 Dirty/viewport。TR1正式BR/AC、TR2 Web/Use Case、TR3 Dexie/Policy、TR4 Seed/既存Integration。採用C1全16遷移、C2 active master/SKU/画像/primary欠落、C3 publishedAt、C4不可逆ConfirmDialog、C5 Role/Session、C6競合/rollback/DB全表、C7 Dirty/失敗通知/1023-1024px/a11y。既存Integration:277-346は画像なし公開拒否→追加後成功の部分証拠。商品編集/在庫/一括変更/Native管理は別ID。
+- **High候補と限界**：公開時Dexieは画像関連数/primaryを検査するがasset自体のactive状態を直接照合しない。UIの`void changeStatus(...)`にcatchがなく失敗通知が不明。どちらも静的候補で、実画面・製品不具合確定ではない。
+- **直接検証・再開条件**：静的遷移表16/16・コード断片21/21、JSON必須文字列/3照合フラグ/操作・状態件数を直接検査。**既存validator/契約Vitest/formatter/Playwrightは未実行**。固定HEADの隔離DBでC1-C7をRole別/並列/故障注入しProduct/Variant/Image/History/Summary/Session前後、1023/1024px視覚/a11y、製品適合を判定する。新HEADのWeb/Mobile必須CIは別受入。
+- **次の共通対象**：`SCREEN-ADMIN-PRODUCT-DETAIL-A02-01`（Dirty状態）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-PRODUCT-DETAIL-A01-05（公開状態遷移）調査記録・基本分析継続
 
