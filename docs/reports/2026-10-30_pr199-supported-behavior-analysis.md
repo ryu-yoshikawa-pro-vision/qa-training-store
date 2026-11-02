@@ -10,7 +10,6 @@ High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠�
 
 **基本分析のみ analyzed（操作59→60/188、状態14/20）**。正式checkout-and-payment.md:213は失敗後のカート/確認への導線を要求。Web checkout-order-pages.tsx:520-603は再試行/注文詳細/商品一覧のみ、Native native-purchase-screens.tsx:1025-1103は再試行のみで直接復帰CTAが見当たらない。元Cart=consumed・Checkout=converted（default-dataset.ts:422-459）、本人OrderのgetMyOrder・retryPayment、別のactive Cartでのstart/getActiveとbeginOrderの一回性を照合。C1=Web直接CTA、C2=Native直接CTA、C3=元Cart/Checkoutの再利用禁止、C4=他Roleの注文非開示、C5=新規Cart価格/version/在庫とDB不変、C6=実Web/Android/DB前後・視覚/a11y・並列を分離。C1-C4は静的・既存component部分証拠、C5-C6は実Run待ち。**直接テスト・実画面・正式UXオラクル・製品適合・最終CIは未受入**。HEAD `cc86f5ab56be` のWeb CI #41385325452は確認時点で進行中（Style Quality/Contracts失敗）。製品SUT・正式仕様は変更しない。次はSCREEN-ORDERS-LIST-A01-01。
 
-
 ## 2026-11-02 共通逐次：SCREEN-CHECKOUT-PROCESSING-A02-02（処理中再試行の契約Case追加）
 
 - **対象・正式期待**：正式 `BR-CHECKOUT-003 / AC-CHECKOUT-003` と処理中画面の「再試行・キャンセル禁止」を照合。現行 `CheckoutOrderUseCases.retryPayment` は本人確認と所有権確認後、latest Payment が `processing` なら新規試行を作らず既存 `processingDto` を返す（`src/application/use-cases/checkout-order-use-cases.ts:332-373`）。したがって「例外で拒否」ではなく「新規試行を禁止して既存状態を返却」の実装であり、仕様適合の解釈を明示して検証する。処理済み成功後のretryは `CONFLICT`。 `resumePayment` は別経路でGatewayへ進むため同一視しない。
@@ -37,7 +36,6 @@ High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠�
 - **追加Case/採否**：学習用`tests/contracts/ai-assisted-qa-admin-order-filters.test.mjs`に複合条件と境界、排他的上限/ページング、customer/guest/停止staff拒否・Order/Payment/Shipment/Session不変の3 Caseを追加。JS構文`node --check`成功。C1〜C6のうちWeb実操作、入力異常、Role別描画、正式なPayment/Shipment絞り込み要否、視覚/アクセシビリティは未受入。依存付きVitest/Prettierも未実行であり追加をPASSにしない。
 - **判定/再開**：`review_required`継続。基本分析50/188操作・14/20非default状態（現台帳再集計）、増加なし。新Caseの同一HEAD実行、Web desktop/tabletの境界/Role/DB前後と正式期待が必要。次の共通対象は`SCREEN-ADMIN-ORDERS-A02-01`。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは変更しない。
 
-
 ## 2026-11-02 共通逐次：SCREEN-ADMIN-INVENTORIES-S-stock-boundaries（在庫フィルター直接契約）
 
 - **正式仕様と静的事実**：`docs/spec/features/admin-inventory.md`のBR-ADMININV-001/AC-ADMININV-001は0=`out_of_stock`、1〜5=`low_stock`、6以上=`available`の排他的分類を要求。Web `AdminInventoriesContent`の「在庫あり/低在庫/在庫切れ」選択→`AdminOperationsUseCases.searchInventory`のstaff認可→`DexieInventoryRepository.search`に到達する。Repositoryは`available`を1以上で判定するため、1/5がlowとavailableに重複する。表の「状態」列は`ActiveBadge(isActive)`であり在庫分類ではない。これは既存の製品差分候補で、製品変更は行わない。
@@ -52,7 +50,6 @@ High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠�
 - **採用Case・Risk/TR**：C1=Web無条件0件の説明とパンくずのホーム遷移、C2=StatePanel内CTAなしと正式『復帰導線』の解釈、C3=価格/検索条件付き0件の解除操作、C4=guest/active customer・`empty-catalog`と検索Repository件数、C5=Native empty表示/遷移、C6=Web desktop視覚・キーボード・DB/Session不変。C1/C3の現行UI挙動は学習用直接Caseを追加したが、**仕様適合の採点オラクルは未確定**。Medium候補：復帰導線の認知可能性。Role別公開条件・DB不変は未実証。
 - **直接証拠と独立判定**：既存`tests/component/catalog-pages.test.tsx`は無条件0件・検索/価格フィルター0件を検査し、HEAD `9ab6c414ed9d`のWeb CI #41337557220ではVitest component jobがsuccess。ただし新規`tests/contracts/ai-assisted-qa-catalog-empty-navigation.test.tsx`の2 Caseは今回追加であり、TSX構文/transpile診断0件のみ、Vitest・Prettier・実Web/Android・視覚・DB snapshotは未実施。既存component成功を新CaseのPASSに流用しない。CI全体はStyle Quality・contracts・required E2E・verify/validate失敗。
 - **判定・再開条件・次**：台帳`analysis_status=review_required`と基本分析50/188・非default 14/20を維持。新Caseの同一HEAD直接Vitest、Web desktopの実操作・視覚・アクセシビリティ、パンくずを復帰導線とみなす正式判断、Native・Role/Seed・DB/Session実証が再開条件。次の独立対象は`SCREEN-ADMIN-INVENTORIES-S-stock-boundaries`（在庫0/1/5/6の閾値と正式仕様差）。製品SUT・正式仕様・既存Seed/Reset・製品テスト/workflowは変更しない。
-
 
 ## 2026-11-02 共通逐次：SCREEN-STOREFRONT-HOME-A02-02（顧客用導線）
 
@@ -101,7 +98,6 @@ High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠�
 - **Risk/TR/Condition/Case採否**：C1=active admin+automation/localで全選択肢とmetadataプレビューを照合（採用）。C2=select変更のみでDB/Session/metadata.scenarioが不変、Resetは未実行（採用）。C3=guest/customer/operator/停止adminとproductionのUI非露出・安全な拒否（採用）。C4=有効な非default選択→確認Reset→再読込後metadata/Seed/Session/guest ID/clockと安全遷移（採用、Reset固有の詳細はA01-04へ分離）。C5=未知scenarioをService直呼出しし拒否・DB不変、失敗Resetで画面遷移なし（採用）。C6=Test APIのbuild境界と外部公開環境での到達性・不正なデータ破壊経路を安全な隔離環境で確認（High候補、採用）。Nativeは本画面の必須プラットフォーム外。
 - **判定/再開条件**：静的な基本経路の照合のみ。C1〜C6の独立直接Case、Web Automation/productionの実Run、選択前後snapshot、Reset後metadata・実DB/Session、公開環境境界の証拠は未取得。現時点で`review_required`を維持し、analyzed/製品適合/実Run PASSにしない。次の共通対象は`SCREEN-TEST-CONTROL-A01-02`（クロック操作）。製品SUT/正式仕様/既存Seed/製品テスト/workflowは変更しない。
 
-
 ## 2026-11-02 共通逐次：SCREEN-BOUNDARY-FORBIDDEN-A01-01（拒否画面・情報非露出）
 
 - **正式期待と静的経路**：`docs/spec/roles-and-permissions.md:31-39`と`docs/spec/screen-catalog.md`はWeb desktop/Android双方で権限不足を説明し、安全な戻り先を示すことを要求。`src/presentation/guards/route-guard.tsx:21-56`は未ログインの保護RouteをLogin（customerはreturnTo付き）、ログイン済みの不許可Role/Stateを`/forbidden`へRedirectし、許可時だけ保護childrenを描画する。`app/forbidden.tsx:5-14`と`src/presentation/components/states.tsx:35-69`はWebで権限拒否の見出し・本文とホーム/管理画面の戻り先を表示する構造。RouteGuard/画面はUse Caseの認可代替ではない。
@@ -111,8 +107,8 @@ High Risk=他人注文混入・loading/error/未認可混同・復帰導線欠�
 - **CI別判定**：HEAD `e7d68c61d6cc1baeb863fe08a78e7ddc024ca809`の[Web CI #41319135364](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41319135364)はcompleted/failure（Style Quality、Vitest contracts、Chromium E2E required、verify、validate）。対象の実行PASSには流用しない。
 
 ## 2026-11-01 共通逐次：SCREEN-ADMIN-USER-DETAIL-A02-02（withdrawn変更拒否）
-- **直接実行証拠（後続CI）**：HEAD `a5db600dd14ee7abd78b88cb542a376e1a5e096f`の[Web CI #41317880819](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41317880819)でVitest contractsの`ai-assisted-qa-admin-withdrawn.test.mjs` **1 Case PASS**。C1〜C4の3拒否・5テーブル前後snapshot不変は学習用Dexie fixture上で実行済み。ただしC5の実Web/視覚・C6の別Role/stale version/実並行は未実証。`review_required`維持、基本分析・製品適合・Web/Native PASSへ昇格しない。同RunのVitest contracts全体は15失敗（分離後に`review_required`へ戻したCheckout/Orderの旧`analyzed`期待）、Style Qualityはadmin学習用契約等3ファイルのPrettier違反、required Chromium E2EはCheckout再確認文言未表示で1 Case失敗。これらは別の横断未受入事項であり、旧期待値を合わせるために台帳をPASSへ戻さない。次の共通対象は既調査A02-03を再開条件待ちとして飛ばし、Highリスクの`SCREEN-BOUNDARY-FORBIDDEN-A01-01`。
 
+- **直接実行証拠（後続CI）**：HEAD `a5db600dd14ee7abd78b88cb542a376e1a5e096f`の[Web CI #41317880819](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41317880819)でVitest contractsの`ai-assisted-qa-admin-withdrawn.test.mjs` **1 Case PASS**。C1〜C4の3拒否・5テーブル前後snapshot不変は学習用Dexie fixture上で実行済み。ただしC5の実Web/視覚・C6の別Role/stale version/実並行は未実証。`review_required`維持、基本分析・製品適合・Web/Native PASSへ昇格しない。同RunのVitest contracts全体は15失敗（分離後に`review_required`へ戻したCheckout/Orderの旧`analyzed`期待）、Style Qualityはadmin学習用契約等3ファイルのPrettier違反、required Chromium E2EはCheckout再確認文言未表示で1 Case失敗。これらは別の横断未受入事項であり、旧期待値を合わせるために台帳をPASSへ戻さない。次の共通対象は既調査A02-03を再開条件待ちとして飛ばし、Highリスクの`SCREEN-BOUNDARY-FORBIDDEN-A01-01`。
 
 - **正式期待と実装経路**：`docs/spec/features/admin-users.md:7-15/49-51/78-84`はwithdrawnへのrole/rank/status変更拒否とUI操作不可表示を要求。default Seedの`user-customer-withdrawn`はcustomer/regular/withdrawn。Web `AdminUserDetailForm`は`readOnly = user.accountStatus === "withdrawn"`で変更セクションを隠し、「退会済みユーザーは読取専用です。」と表示する。`AdminUserUseCases.changeMembershipRank`はwithdrawn customerを`INVALID_ROLE`、`changeSuspension`は`INVALID_STATE`で拒否。role変更はcustomer自体が不許可なので、withdrawn専用ガードを単独確認するにはoperator→withdrawnの制御fixtureが必要。
 - **学習用直接Case**：`tests/contracts/ai-assisted-qa-admin-withdrawn.test.mjs`を追加。active adminのSessionを使い、default withdrawn customerのrank/status拒否と、学習専用fixtureでwithdrawn化したoperatorのrole変更拒否を実行する。3操作の拒否コードとUser/version・Session・Checkout・Cart・CartItemの前後snapshot不変を確認する設計。正式Seed・製品SUT・製品テストは変更しない。**Node/Prettier/Vitest/実Webはこのコミット時点では未実行**。fixture上のwithdrawn operatorは正式Seedに存在する状態だと主張しない。
