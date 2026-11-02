@@ -19386,20 +19386,20 @@
       "source_line": 50,
       "source_text": "顧客スナップショット、注文・配送ステータス、次のアクション、バージョンを表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,orders-phase1-statuses,order-version競合。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 顧客スナップショットと注文配送状態",
+      "role": "Web管理画面はactive operator/adminのみ許可。guest/customer、suspended/withdrawn staff、Session欠落/失効はRouteGuard/StaffPageとAdminOperationsUseCases.getOrder→requireStaff/SessionIdentityResolverで拒否。失効Session clearはDB読取不変と分ける。顧客本人であっても管理DTOを閲覧できない。",
+      "scenario": "default / orders-phase1-statuses（同じ5注文。defaultはguest初期Session、phase1はoperator初期Session）。別注文ID、欠損/不正ID、顧客プロフィール変更、Order/Payment/Shipment同時更新、支払/配送欠損、故障注入は隔離fixtureで検証。",
+      "data": "default/phase1はorder-payment-failed,order-paid,order-preparing,order-shipped,order-deliveredの5注文（ORD-20260701-0001〜0005、version=1、同一user-customer-regular）。Payment5件=failed1/succeeded4、Shipment3件=preparing:pending,shipped:shipped,delivered:delivered（payment_failed/paidはnull）。OrderにはmembershipRankSnapshotとshippingAddressSnapshot、OrderItemには商品/SKU/画像/価格snapshotが保存されるが、customer.displayName/emailはOrderに保存されず、getOrderが現在のUserを読み取る。合計金額はOrderItemから生成され注文別に異なるため一律2000円とはしない。注文別の顧客・配送先・支払・配送・商品・versionを隔離照合する。",
       "action": "顧客スナップショットと注文配送状態",
-      "expected": "本人確認の対象注文と顧客スナップショット・配送状態・支払状態が一致する",
+      "expected": "active operator/adminが指定orderIdの詳細を開くと、Order/OrderItemの注文時スナップショット、注文status/version、Payment試行status、Shipment status/追跡情報、注文時配送先、顧客概要を同一注文IDに限定して表示する。Webの顧客概要（displayName/email/userId）はgetOrderが現在のUserから構成し、注文時に固定された顧客氏名/emailのsnapshotではない。正式仕様の「顧客スナップショット」との意味差は製品適合未受入として分離。payment_failed/paidはShipmentなし、preparingはpending、shipped/deliveredは同名Shipmentを期待。詳細読取自体はDBを更新しない。不存在注文/紐付くUser欠落はNOT_FOUND、非staffはDTOを返さない。",
       "rule_refs": [],
       "route": "`/admin/orders/[orderId]`",
-      "risk": "配送遷移の飛び越しと注文・配送不一致",
-      "test_condition": "顧客スナップショットと注文配送状態実施前後で、本人確認の対象注文と顧客スナップショット・配送状態・支払状態が一致することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、顧客スナップショットと注文配送状態の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "顧客スナップショットと注文配送状態が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/失効Sessionから顧客氏名・email・配送先・購入情報漏洩、R2=注文時の顧客スナップショット要求に対し現在UserのdisplayName/emailを表示し、後日プロフィール変更で過去注文の表示が変わる候補、R3=別orderIdのOrderItem/Payment/Shipment混入・読取副作用。Medium R4=getOrderのgetByIdとgetDetailの並列読取・User後読取で並行更新時に注文status/version/顧客の時点が不一致となる候補、R5=User欠落で注文全体がNOT_FOUND、R6=payment_failed/paidのShipment nullと支払失敗表示・複数Payment試行、R7=高速route変更時の旧詳細表示・非同期競合、R8=desktop/tablet/1023-1024px・keyboard/a11y。R2/R4-R8は静的リスク候補で実Web不具合確定ではない。",
+      "test_condition": "C1 default/phase1の5注文をorderId別に開き、OrderNumber/Order.version=1/顧客ID・現User/注文時配送先/商品・SKU・画像・価格snapshot/totalの一致と別注文非混入をDTO・UI・DBで照合。C2 Payment failed1/succeeded4、Shipment null2/pending/shipped/deliveredの注文別statusと試行順・追跡情報、注文status/versionの一致を検証。C3 active operator/admin許可、guest/customer/停止・退会staff/欠落・失効Sessionの直URL・Use Case拒否、顧客DTO非露出、失効Session clearを別記。C4 注文後のUser氏名/email変更・User欠落・配送先/商品マスタ変更で注文時snapshotと現在User表示を区別し、正式期待との不一致を判定。C5 getById/getDetail/User間の並行更新、orderId高速切替、Payment/Shipment欠損・複数試行・不正ID/故障注入で旧注文/不整合/NOT_FOUNDを確認。C6 詳細表示前後のorders/order_items/payments/shipments/order_status_histories/users/Session不変（失効clear別）。C7 Web desktop/tablet・1023/1024px・loading/not-found・keyboard/focus/ariaと正式画面参照。C1-C7の直接実Web/DB/並行/視覚は未実施。",
+      "test_responsibility": "TR1=admin-orders.md:9-15,44-79のBR-ADMINORD-001/AC-ADMINORD-001とroles-and-permissions.md:5-19のactive staff・顧客情報保護、顧客snapshotの定義。TR2=app/admin/orders/[orderId].tsx→StaffPage/AdminOrderDetailContent→useAsyncValue(getOrder)→顧客概要/注文時配送先/OrderItem/Payment/Shipment/versionのWeb表示。TR3=AdminOperationsUseCases.getOrder(requireStaff,Order.getById+getDetail,User.getById)→DexieOrderRepository.getDetail(Order/Items/Payment/Shipment/History)・SessionIdentityResolver。TR4=default-dataset.tsの5注文・Payment5/Shipment3・注文時snapshot、scenarios/metadataのphase1 operator、既存Component/Integrationの部分証拠。C1-C7の基本分析と実Web/製品適合/CIを独立判定。",
+      "case_policy": "採用:C1 5注文と注文時snapshot・現在User/別注文隔離、C2 Payment/Shipment null・各status/複数試行、C3 Role/Session/顧客DTO非露出、C4 顧客profile変更・欠損User/マスタ変更、C5 並行Order/Detail/User・高速route・故障、C6 全DB/Session読取不変、C7 desktop/tablet・keyboard/a11y。除外:一覧filter(ORDERS-A01-02)、一覧→詳細Link(ORDERS-A02-01)、次操作表示version(ORDER-DETAIL-A01-02)、配送更新/原子性(ORDER-DETAIL-A02-01)、顧客自身の注文詳細、Native管理、製品SUT修正。",
+      "case_selection_reason": "TR1=admin-orders.md:9-15,44-79・roles-and-permissions.md:5-19。TR2=admin-operations-pages.tsx:458-565・app/admin/orders/[orderId].tsx:1-7・use-async-value.ts:3-34・route-guard.tsx:43-55。TR3=admin-operations-use-cases.ts:135-152,289-299・order-review-repositories.ts:39-40,73-142・session-identity-resolver.ts:27-59・entities.ts:214-225。TR4=default-dataset.ts:401-475,485-507,543-589・scenarios.ts:26-38・metadata.ts:75-85,262-271・Component:50-105,198-215・Integration:179-227。High R1-R3、Medium R4-R8、C1-C7採否と未再現候補を区別。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD 6e97239aa633485e88fbfba20d1f43962c4fd3a9：正式BR/AC/Role→管理詳細UI→getOrder(requireStaff,Order/Detail/User)→DexieのOrder/Items/Payment/Shipment/History→default/phase1 Seed5注文と既存Component/Integrationを照合。12ソースの静的断片34/34成功（直接Vitest/Playwright/validator本体ではない）。Orderは配送先・会員ランク・商品をsnapshot保持する一方、customer.name/emailは現在Userから組立てるため正式「顧客スナップショット」の意味差をHigh候補として製品適合未受入。High R1-R3、Medium R4-R8、TR1-TR4、C1-C7の採否と再開条件を記録。直接Vitest/formatter/validator本体/Playwright、Role別実Web、顧客プロフィール変更/DB・Session全表前後、並列/故障、視覚/a11y、製品適合・最終HEAD CIは未受入。C1-C7隔離実Runと正式期待照合で再開。",
       "requirement_refs": [
         "BR-ADMINORD-001",
         "AC-ADMINORD-001"
@@ -19407,7 +19407,7 @@
       "related_use_cases": [
         "AdminOperationsUseCases.getOrder"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-01基本分析のみanalyzed（操作114/188、非default17/20）。注文時shippingAddress/OrderItem snapshotと現在User顧客概要を区別し、Payment/Shipment・version・Role/Seedの静的根拠を確定。実Web/DB・Session/並行・顧客profile変更・製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-ORDER-DETAIL-A01-02。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 458,
@@ -19435,6 +19435,145 @@
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
           "line": 135,
           "signature": "async getOrder(orderId: string): Promise<AdminOrderDetailDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-orders.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "BR・注文詳細顧客snapshot/状態/version契約"
+        },
+        {
+          "path": "docs/spec/features/admin-orders.md",
+          "start_line": 44,
+          "end_line": 79,
+          "reason": "詳細機能・画面参照・AC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active operator/admin管理・顧客情報認可"
+        },
+        {
+          "path": "app/admin/orders/[orderId].tsx",
+          "start_line": 1,
+          "end_line": 7,
+          "reason": "orderId route param引継ぎ"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 458,
+          "end_line": 565,
+          "reason": "StaffPage・顧客/配送先/商品/Payment/Shipment/versionの表示"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 567,
+          "end_line": 639,
+          "reason": "状態別操作・versionの別責務"
+        },
+        {
+          "path": "src/presentation/hooks/use-async-value.ts",
+          "start_line": 3,
+          "end_line": 34,
+          "reason": "依存orderId変更と非同期結果"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 43,
+          "end_line": 55,
+          "reason": "管理画面staffルート認可"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "active Session/失効clear"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 135,
+          "end_line": 152,
+          "reason": "getOrderのstaff再認可、Order/Detail並列・現在User読取"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 289,
+          "end_line": 299,
+          "reason": "requireStaff権限"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 39,
+          "end_line": 40,
+          "reason": "OrderのID限定読取"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 73,
+          "end_line": 142,
+          "reason": "注文時snapshot・Payment/Shipment/History DTO"
+        },
+        {
+          "path": "src/domain/contracts/entities.ts",
+          "start_line": 214,
+          "end_line": 225,
+          "reason": "Orderの保持snapshotは会員ランクと配送先"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 401,
+          "end_line": 475,
+          "reason": "5注文/顧客/初期version/配送先snapshot"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 485,
+          "end_line": 507,
+          "reason": "商品/価格/画像snapshot"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 543,
+          "end_line": 589,
+          "reason": "Payment5・Shipment3"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 38,
+          "reason": "default/phase1同一Seed"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 85,
+          "reason": "default guest初期Session"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 50,
+          "end_line": 105,
+          "reason": "詳細UIのfixture"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 198,
+          "end_line": 215,
+          "reason": "詳細version操作の部分証拠"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 179,
+          "end_line": 227,
+          "reason": "Order/Shipment/versionの後続更新部分証拠"
         }
       ]
     },
