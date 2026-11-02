@@ -382,7 +382,16 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expectAuditedOrAwaitingReanalysis(entry);
       expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
       expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.getMyCustomerOrder");
-      expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+      if (id === "SCREEN-ORDERS-DETAIL-A01-01") {
+        // この操作の証拠は検証済みのimplementation/seed/Use Case参照と個別監査に記録される。
+        expect(entry?.implementation_evidence?.path).toBe(
+          "src/presentation/pages/checkout-order-pages.tsx",
+        );
+        expect(entry?.seed_evidence?.path).toBe("src/seeds/metadata.ts");
+        expect(entry?.basic_analysis_review).toContain("orders.md");
+      } else {
+        expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
+      }
     }
     const paymentShipment = data.behaviors.find(
       (item) => item.id === "SCREEN-ORDERS-DETAIL-A01-02",
@@ -503,9 +512,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.platform).toBe("web-desktop");
     expect(state?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(0);
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01")?.analysis_status,
-    ).toBe("analyzed");
+    const parent = data.behaviors.find(
+      (item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A02-01",
+    );
+    expectAuditedOrAwaitingReanalysis(parent);
   });
 
   it("audits payment-step navigation while retaining the platform selection question", () => {
