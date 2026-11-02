@@ -11374,13 +11374,13 @@
       "expected": "注文作成時の単価・SKU・商品名・配送先等のスナップショットを保持し、現在の商品更新に連動して書き換えない",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "注文スナップショットを表示の事前状態・実施後を比較し、注文作成時の単価・SKU・商品名・配送先等のスナップショットを保持し、現在の商品更新に連動して書き換えないことを確認する",
-      "test_responsibility": "注文スナップショットを表示の所有権・状態・スナップショットを検証する",
-      "case_policy": "正常・権限外・状態遷移不可・version競合と境界を選定",
-      "case_selection_reason": "注文スナップショットを表示の誤動作は注文情報の漏えい・削除レビューの復活・集計改変につながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1: 他顧客の注文/住所/支払情報漏えい。High R2: 商品価格・名称・SKU・画像や会員rank/住所の変更で過去Order/OrderItem snapshotが変わる。R3: lineNumber順序/行合計の崩れとOrder合計の不一致。R4: Order本体とitems/payments/shipment/historyの別読取りに更新が挟まり混在する。R5: Web会員rank snapshotの表示欠落候補（製品適合未判定）。",
+      "test_condition": "TR1/C1: default Reset→初期guestからregular本人へログイン→5状態の保存Order/OrderItemとWeb/Native注文詳細の注文番号・商品名・SKU・単価/行合計・住所・会員rankを突合（静的経路確認）。TR2/C2: 作成後にProduct/Variant価格・商品名・画像・User会員rank/住所を変更し、Order/OrderItem保存値・明細順・金額・画像が不変（実Run待ち）。TR3/C3: deliveredのlineNumber 1..9,10,11とDexie/SQLite lineNumber ASC、Web/Native表示順の突合（静的並び順確認）。TR4/C4: guest/staff/別customer/存在しないorderIdを本人detailとして取得不可、Order/Session/DB不変（Use Case静的確認・別Session実Run待ち）。TR5/C5: Web/Nativeのsnapshot表示差（Web rank未表示候補）とA01-02の支払/配送/timeline、A01-03のreviewを独立Caseに分離。TR6/C6: 実Web desktop/Android・SQLite/DB前後・視覚/a11y・更新競合のsnapshot一貫性は未受入。",
+      "test_responsibility": "orders.md BR-ORDER-001/AC-ORDER-001→default/orders-phase1-statuses/reviewable-orders Seedの保存Order/OrderItem→CustomerPage/NativeOrderDetailScreen→getMyCustomerOrder→getMyOrder(requireCustomer/owner check)→Dexie/SQLite getDetail/listItems→表示DTOを追跡。現行Product/User変更とレビュー状態はsnapshotと別責務として扱う。",
+      "case_policy": "採用C1=default本人5状態の保存snapshot/表示対照、C2=現行Product/User更新後の不変性、C3=明細lineNumber境界、C4=guest/staff/別顧客/欠落ID拒否、C5=Web/Native差、C6=実画面・DB/Session前後・同時更新。C1/C3/C4の静的経路は照合済み。C2/C4/C6の直接実RunとC5の正式UX期待は未受入。支払/配送/履歴の詳細はA01-02、レビュー可否はA01-03、所有権拒否の独立操作はA02-01、更新後snapshot維持はA02-02に割当て、当IDの基本分析件数へ重複計上しない。",
+      "case_selection_reason": "注文時点の価格・会員rank・住所・商品名・SKU・画像・明細順序が後から変わると請求・履歴の正確性が損なわれるHighリスク。defaultの5状態/複数明細とreviewable-ordersを用い、現行データ更新後の負例・本人所有権・Web/Native差を独立した受入として識別できる。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD e1f265650aed: orders.md:7-20,58-98のBR-ORDER-001/AC-ORDER-001・本人注文snapshotと明細行順序を確認。default/orders-phase1-statusesは初期guest→regular本人ログイン、default-dataset.ts:400-590でregular本人5状態Order、保存時membershipRankSnapshot/住所・OrderItemの商品名/SKU/単価/画像/lineNumberを構成。Web OrderDetailContent:663-779→getMyCustomerOrder:398-409→getMyOrder:389-396(requireCustomer/owner check)→Dexie order-review-repositories.ts:61-136/SQLite native-customer-application-repositories.ts:2121-2210の保存済みsnapshot DTOを再照合。Dexie/SQLiteのlistItemsはlineNumber昇順で、商品・User現行テーブルを参照せずOrder/OrderItem保存値を返す。Webは商品名/SKU/行合計・配送先・金額を表示、Native NativeOrderDetailScreen:1168-1300は単価/会員rank/住所/商品コードを表示。Webは会員rank表示が見当たらず、Nativeはtimeline表示が見当たらない（後者はA01-02の責務）。High R1-R5/TR1-TR6/C1-C6を個別選定し基本分析のみanalyzed。既存integration checkout-order-use-cases.test.ts:155-224は生成時snapshot/本人detail/支払成功を部分検査するが、商品・User更新後の不変性/全Role負例/実Web/Android/SQLite・DB前後/同時更新は未実施。getMyOrderのOrderとgetDetailは独立読取りのため並列更新時の一貫性は未実証。Web会員rank表示の正式適合、製品不具合、実Run、最終CIは未判定。",
       "requirement_refs": [
         "BR-ORDER-001",
         "BR-ORDER-002",
@@ -11391,7 +11391,7 @@
         "CheckoutOrderUseCases.getMyOrder",
         "CheckoutOrderUseCases.getMyCustomerOrder"
       ],
-      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "個別期待を整理。仕様に定義された各Seedと実装の照合が残る | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-02 e1f265650aed: BR-ORDER-001/AC-ORDER-001、default Seed、Web/Native→getMyCustomerOrder→Dexie/SQLite保存snapshot/lineNumberとR1-R5/TR1-TR6/C1-C6を再照合し基本分析のみanalyzed。Web rank/Native timeline・実Web/Android・更新後不変性/競合/DB前後・正式適合・最終CIは未受入。次はSCREEN-ORDERS-DETAIL-A01-02。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 656,
@@ -11427,6 +11427,11 @@
           "line": 398,
           "signature": "async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
