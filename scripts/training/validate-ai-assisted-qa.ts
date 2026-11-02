@@ -512,6 +512,13 @@ function validateAssessmentPackage(
     ],
     M07: [
       {
+        spec: "failure-assertion.spec.ts",
+        label: "main",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
+      },
+      {
         spec: "repaired-assertion.spec.ts",
         label: "before",
         minimum_tests: 1,

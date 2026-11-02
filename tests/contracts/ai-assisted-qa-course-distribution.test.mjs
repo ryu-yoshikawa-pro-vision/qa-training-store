@@ -789,9 +789,22 @@ describe("AI-assisted QA distribution contract", () => {
       path.join(repositoryRoot, "workspace/M07/repaired-assertion.spec.ts"),
       "utf8",
     );
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "training/ai-assisted-qa-course/assessment/scoring-tests/M07.json"),
+        "utf8",
+      ),
+    );
+    expect(scoring.evaluation_policy.execution_evidence.required_runs).toContainEqual({
+      spec: "failure-assertion.spec.ts",
+      label: "main",
+      minimum_tests: 1,
+      expected_outcome: "failed",
+      require_trace: true,
+    });
     expect(diagnostic).toContain("M07_INTENTIONAL_ASSERTION_FAILURE");
     expect(repair).toContain('throw new Error("TODO:');
-    expect(exercise).toContain("course:run M07 failure-assertion.spec.ts --label diagnostic");
+    expect(exercise).toContain("course:run M07 failure-assertion.spec.ts --label main");
     expect(exercise).toContain("course:run M07 repaired-assertion.spec.ts --label before");
     expect(exercise).toContain("course:run M07 repaired-assertion.spec.ts --label after");
     expect(lesson).toContain("診断素材AのAssertion失敗と同じエラーにはなりません");

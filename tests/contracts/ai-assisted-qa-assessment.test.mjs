@@ -44,6 +44,16 @@ it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
   );
 });
 
+it("accepts the M07 diagnostic failure spec with a supported main label", () => {
+  const root = path.join(tempRoot, "missing-source-sha");
+  expect(() =>
+    runAiAssistedQaSpecCli(["M07", "failure-assertion.spec.ts", "--label", "main"], { root }),
+  ).toThrow("course:run requires the verified distribution source SHA");
+  expect(() =>
+    runAiAssistedQaSpecCli(["M07", "failure-assertion.spec.ts", "--label", "diagnostic"], { root }),
+  ).toThrow(/Usage: pnpm course:run/);
+});
+
 it("requires a verified distribution SHA before course:run can access learner files", () => {
   expect(() =>
     runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {

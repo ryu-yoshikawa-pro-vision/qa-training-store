@@ -107,7 +107,10 @@ CI全体の失敗修正はCodexへ切り分ける。共通逐次の4定期実行
 
 M07について、`training/ai-assisted-qa-course/exercises/M07/exercise.md`の診断素材Aの手順が`repaired-assertion.spec.ts`を誤ったAssertionの実行元として案内していた。実ファイルでは`workspace/M07/failure-assertion.spec.ts`が「存在しない商品」を期待する意図的なAssertion失敗を持ち、`workspace/M07/repaired-assertion.spec.ts`は`throw new Error("TODO: ...")`で中断する未完成spec。実行元とエラー原因が一致しないため、学習者が誤った失敗原因を判定する問題だった。
 
-[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/259b49915f8a40b87c8a0dd3d9e190253893be13)で、診断素材Aの`--label diagnostic`、修正用specの`--label before/after`を区別した。教材READMEのTODOとAssertion失敗を混同する説明も修正。既存の`ai-assisted-qa-course-distribution.test.mjs`に3つのRun手順と実ファイルを照合する契約テストを追加した。**実Chromium Runは未実施**。
+[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/259b49915f8a40b87c8a0dd3d9e190253893be13)で、診断素材Aの独立Runと修正用specの`--label before/after`を区別した。教材READMEのTODOとAssertion失敗を混同する説明も修正。既存の`ai-assisted-qa-course-distribution.test.mjs`に3つのRun手順と実ファイルを照合する契約テストを追加した。**実Chromium Runは未実施**。
+
+
+追加レビューで、診断素材Aは`course:run`の`MODULE_SPECS.M07`の許可一覧に存在せず、`--label diagnostic`も既存`LABELS`に含まれないと判明した。教材だけの修正では実行できないため、`failure-assertion.spec.ts --label main`を許可し、M07の`execution_evidence.required_runs`と`validate-ai-assisted-qa.ts`へ`main`・failed・1 test・Trace必須の診断Runを追加。既存のrepaired before/afterとmaintenance before/afterの要求は維持した。これは新しい製品用E2Eを追加する変更ではなく、既存の学習用診断素材を実行・正式評価できるよう整合させたもの。
 
 ### 正式AI評価の入力境界
 

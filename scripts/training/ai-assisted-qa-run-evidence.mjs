@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const MODULE_SPECS = Object.freeze({
   M05: new Set(["product-link.spec.ts"]),
   M06: new Set(["cart-cases.spec.ts", "new-case.spec.ts"]),
-  M07: new Set(["repaired-assertion.spec.ts", "maintenance.spec.ts"]),
+  M07: new Set(["failure-assertion.spec.ts", "repaired-assertion.spec.ts", "maintenance.spec.ts"]),
 });
 const LABELS = new Set(["main", "initial", "repeat", "before", "after"]);
 const MAX_EVIDENCE_BYTES = 256 * 1024;

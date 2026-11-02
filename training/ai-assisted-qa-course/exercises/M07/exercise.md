@@ -9,7 +9,7 @@
 1. 診断素材Aの`workspace/M07/failure-assertion.spec.ts`を**変更せず**実行し、存在しない商品見出しを期待したAssertionの失敗とTraceを確認します。このRunは修正対象のbefore Runとは別の診断記録です。
 
    ```bash
-   pnpm course:run M07 failure-assertion.spec.ts --label diagnostic
+   pnpm course:run M07 failure-assertion.spec.ts --label main
    ```
 
 2. 修正対象の`workspace/M07/repaired-assertion.spec.ts`をまだ編集せず、before Runを保存します。初期状態のこのspecは**明示的なTODOエラー**で失敗するため、診断素材AのLocator/Assertion失敗と混同しません。

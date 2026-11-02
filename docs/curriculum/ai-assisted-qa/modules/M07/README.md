@@ -219,7 +219,7 @@ Step 6: 事実の記録 ────── 判明した客観的事実をメモ�
 VS Codeのターミナルを開きます。まず診断素材Aの`failure-assertion.spec.ts`を**変更せず**実行し、存在しない商品見出しを期待したAssertionの失敗を確認します。
 
 ```bash
-pnpm course:run M07 failure-assertion.spec.ts --label diagnostic
+pnpm course:run M07 failure-assertion.spec.ts --label main
 ```
 
 この診断Runは、修正用specのbefore/afterとは別に保存します。次に`repaired-assertion.spec.ts`を修正対象にします。配布直後のこのファイルは`throw new Error("TODO: ...")`で停止する未完成specであり、**診断素材AのAssertion失敗と同じエラーにはなりません**。正式Cart仕様と診断Runの結果を踏まえ、TODOを業務Assertionへ置き換える練習です。
