@@ -276,9 +276,20 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02")?.analysis_status,
-    ).toBe("review_required");
+    const paymentShipment = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-LIST-A01-02",
+    );
+    expect(paymentShipment?.analysis_status).toBe("analyzed");
+    expect(paymentShipment?.reviewed_against).toEqual([
+      "specification",
+      "implementation",
+      "seed",
+    ]);
+    expect(paymentShipment?.related_use_cases).toContain("CheckoutOrderUseCases.listMyOrders");
+    expect(paymentShipment?.test_condition).toContain("C6=");
+    expect(paymentShipment?.risk).toContain("High");
+    expect(paymentShipment?.basic_analysis_review).toContain("一覧");
+    expect(paymentShipment?.analysis_progress).toContain("未受入");
   });
 
   it("audits customer order detail ownership, snapshots, and review eligibility", () => {
@@ -296,7 +307,6 @@ describe("サポート機能の仕様と実装の追跡", () => {
     for (const id of [
       "SCREEN-ORDERS-DETAIL-A01-01",
       "SCREEN-ORDERS-DETAIL-A01-02",
-      "SCREEN-ORDERS-LIST-A01-02",
     ]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
         "review_required",
@@ -327,9 +337,12 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.test_condition).toContain("C1");
       expect(entry?.analysis_progress).toContain("未受入");
     }
-    expect(
-      data.behaviors.find((item) => item.id === "SCREEN-ORDERS-LIST-A01-02")?.analysis_status,
-    ).toBe("review_required");
+    const orderListStatus = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-LIST-A01-02",
+    );
+    expect(orderListStatus?.analysis_status).toBe("analyzed");
+    expect(orderListStatus?.expected).toContain("正式一覧仕様");
+    expect(orderListStatus?.test_condition).toContain("同一BASE_CLOCK");
   });
 
   it("requires audited checkout confirmation and keeps address-input scope unresolved", () => {
