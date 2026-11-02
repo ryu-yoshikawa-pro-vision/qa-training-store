@@ -17411,20 +17411,20 @@
       "source_line": 186,
       "source_text": "ブランドの一覧表示、新規作成、編集、およびバリデーション機能を提供する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,cross-role-product-lifecycle。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ブランド新規作成",
+      "role": "active operator/adminのみStaffPage・requireStaffで作成可。guest/customer/停止staff/失効Sessionは直URL・Use Caseで拒否し、管理DTO非露出（失効Sessionのstore clearは別期待）。",
+      "scenario": "default（active operator/admin）を主軸。cross-role-product-lifecycleでRole差を比較。既存名正規化重複、空/空白、80/81文字、連打/並列作成、検索絞込、失効Sessionを隔離条件とする。",
+      "data": "default Seed3ブランド（brand-scenario-basics/Scenario Basics、brand-scenario-life/Scenario Life、brand-scenario-active/Scenario Active）、全件active/version1。商品11件のうち公開8件（Basics2/Life3/Active3）。新規「 新規ブランド 」はtrimして新ID、active/version1、公開商品数0で追加。既存3ブランド/商品/関連データは不変。作成にはexpectedVersion入力がなく、version競合は編集(A01-03)の責務。",
       "action": "ブランド新規作成",
-      "expected": "有効な名称でブランドを登録し、他のブランドを変更しない",
+      "expected": "active staffが有効名を送信するとcreateBrand→DexieBrandRepository.create→brands.addで新規1件（name trim、nameNormalizedはNFKC/小文字/連続空白統一、active/version1、公開商品数0）を保存し、成功通知と検索再取得。空/空白、80文字超はVALIDATION、正規化重複はbrands.nameNormalized uniqueで拒否し既存ブランド・商品を変更しない。検索filterが残れば新規行が即表示されない可能性がある。失敗時もWebが送信直後に入力をclearする経路は実再現待ち。",
       "rule_refs": [],
       "route": "`/admin/brands`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "ブランド新規作成実施前後で、有効な名称でブランドを登録し、他のブランドを変更しないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ブランド新規作成の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ブランド新規作成が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff作成/管理DTO露出、R2=正規化重複/同時作成による二重登録、R3=既存Brand/商品参照破損。Medium R4=trim/空白/80-81文字/NFKC境界、R5=成功後の一覧再取得・検索絞込で非表示、R6=失敗時入力即clear・再試行UX、R7=二重submitの通知競合・非同期順序、R8=viewport/keyboard/a11y。いずれも実Runの製品適合は未判定。",
+      "test_condition": "C1 default3件に「 新規ブランド 」を作成→trim/新ID/active/version1/公開数0、既存3件と商品11件・公開数不変。C2 空/空白/80・81文字、NFKC全半角/大小文字/連続空白重複を隔離して拒否、全表/Session不変。C3 operator/admin許可、guest/customer/停止staff/失効Sessionの直URL/Use Case拒否・DTO非露出（失効Session clearは例外）。C4 同名並列作成/二重submit時に正規化一意性と失敗通知/原子性を確認。C5 検索条件あり・20/21件の新規追加時の一覧再取得と非表示条件を確認。C6 失敗後入力保持/clear・再試行、成功/失敗通知順序を確認。C7 desktop/tablet・1023/1024px・keyboard/focus/required/maxlength/a11y。実Run未実施。",
+      "test_responsibility": "ブランド新規作成のRole/Session認可、名称正規化/長さ・一意制約、既存ブランド/商品不変、同時送信/エラー時のUI通知・再試行、DB/Session前後と視覚/a11yを独立Caseで検証する。",
+      "case_policy": "採用:C1 default新規作成/既存不変、C2 入力境界/正規化重複、C3 Role/Session/DTO非露出、C4 同時・二重送信/DB原子性、C5 filter/pageと再取得、C6 通知・入力clear、C7 viewport/keyboard/a11y。除外:名称編集・version競合(A01-03)、active切替(A01-04)、カテゴリー、商品公開、Native管理、製品SUT修正。",
+      "case_selection_reason": "TR1=admin-catalog.md:181-195,211-220とroles-and-permissions.md:5-19の正式BR/AC・Role。TR2=admin-master-pages.tsx:431-500のStaffPage/create form/mutate/即clear、brandName=80。TR3=AdminMasterUseCases.createBrand:172-181/validName:228-237/requireStaff:239-249→DexieBrandRepository.create、database.ts unique nameNormalized、normalization.ts NFKC。TR4=default-dataset.tsの3ブランド/11商品、既存Integration/Repository/Componentの作成・長さ・重複・UI部分証拠。High R1-R3/Medium R4-R8とC1-C7を対応。実Web/DB・Session/並列/視覚/製品適合は別受入。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 固定HEAD ee3ab578da80: 基本分析受入。正式BR/AC・Role/State/Data・Web StaffPage→Use Case requireStaff/validName→Dexie brands.add/unique nameNormalized→default Seed3ブランド/公開8商品を照合。11ソース34/34の静的断片assertと既存Component/Integration/Repositoryテストの部分証拠。High R1-R3/Medium R4-R8、TR1-TR4/C1-C7採否を記録。新規作成にはexpectedVersionがなく、version競合は編集で扱う。失敗時入力即clear、二重submit通知順序、検索filter非表示は実再現待ち。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/負例/視覚/a11y、製品適合、同一最終HEAD全必須CIは未受入。analyzedは実Run PASSではない。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -17434,7 +17434,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.createBrand"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-02基本分析analyzed（操作103/188、非default16/20）。静的34/34・既存テスト部分証拠、C1-C7実Run/DB・Session前後/Role/負例/並列/検索/視覚・a11y/製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-BRANDS-A01-03。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 431,
@@ -17462,6 +17462,115 @@
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 172,
           "signature": "async createBrand(request: CreateBrandRequest): Promise<BrandAdminListItem> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 181,
+          "end_line": 195,
+          "reason": "ブランド管理"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 211,
+          "end_line": 220,
+          "reason": "共通BR/AC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "staff権限"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 431,
+          "end_line": 500,
+          "reason": "StaffPage/新規フォーム/入力即clear"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 37,
+          "end_line": 60,
+          "reason": "staff route access"
+        },
+        {
+          "path": "src/application/contracts/common.ts",
+          "start_line": 80,
+          "end_line": 80,
+          "reason": "brandName=80"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 172,
+          "end_line": 181,
+          "reason": "createBrand"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 228,
+          "end_line": 249,
+          "reason": "validName/requireStaff"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 59,
+          "reason": "Session/active/失効clear"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 507,
+          "end_line": 530,
+          "reason": "brands.add/active/version1"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/database.ts",
+          "start_line": 65,
+          "end_line": 65,
+          "reason": "unique nameNormalized"
+        },
+        {
+          "path": "src/domain/services/normalization.ts",
+          "start_line": 1,
+          "end_line": 3,
+          "reason": "NFKC/大小文字/空白正規化"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 44,
+          "end_line": 49,
+          "reason": "default3ブランド"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 694,
+          "end_line": 704,
+          "reason": "active/version"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 135,
+          "end_line": 179,
+          "reason": "名称上限・作成/並び順部分証拠"
+        },
+        {
+          "path": "tests/repository-contract/repositories.test.ts",
+          "start_line": 44,
+          "end_line": 53,
+          "reason": "正規化重複部分証拠"
+        },
+        {
+          "path": "tests/component/admin-master-pages.test.tsx",
+          "start_line": 152,
+          "end_line": 170,
+          "reason": "新規フォームUI部分証拠"
         }
       ]
     },

@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-02`（ブランド新規作成）。直前`SCREEN-ADMIN-BRANDS-A01-01`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie・default Seed3ブランド（公開数Basics2/Life3/Active3）・High R1-R3/Medium R4-R7・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作102/188、非default16/20）。21件以上のWebページング非露出、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
-- **CI横断**：作業前HEAD `f06c40a42dad`の[Web CI #41491900393](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41491900393)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ADMIN-BRANDS-A01-03`（ブランド名称編集）。直前`SCREEN-ADMIN-BRANDS-A01-02`は正式BR/AC・Role/State/Data・Web→Use Case→Dexie brands.add・default Seed3ブランド/公開8商品・名称NFKC一意制約・High R1-R3/Medium R4-R8・TR1-TR4/C1-C7を照合し基本分析のみ`analyzed`（操作103/188、非default16/20）。失敗時入力即clear/二重submit通知順序/検索絞込、Role別実Web/DB・Session前後/直接Vitest/製品適合/最終CIは未受入。
+- **CI横断**：作業前HEAD `ee3ab578da80`の[Web CI #41496638446](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41496638446)はcompleted/failure。Style Quality/Code Quality/Unit/Integration/Repository/Componentはsuccess、Contracts/required Chromium E2E/verify/validateはfailure。新HEADのCIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-02（ブランド新規作成）基本分析受入
+
+- **判定**：`SCREEN-ADMIN-BRANDS-A01-02`を`review_required→analyzed`。操作**102→103/188**、非default状態**16/20**。基本分析のみで実Web/製品適合/最終CI PASSではない。
+- **正式仕様・Role/State/Data**：`admin-catalog.md:181-195,211-220`のBR/AC-ADMINCAT-001/002、`roles-and-permissions.md:5-19`。active operator/adminのみ許可。default SeedはScenario Basics/Life/Activeの3ブランド（active/version1）・商品11件中published8件（Basics2/Life3/Active3）。新規「 新規ブランド 」はtrim、新ID/active/version1/公開数0。既存ブランド・商品は不変。作成にはexpectedVersionがなく、競合は編集(A01-03)で別扱い。
+- **経路**：Web `admin-master-pages.tsx:431-500`のStaffPage/required・maxLength80/成功失敗通知/送信直後入力clear→`AdminMasterUseCases.createBrand:172-181`のrequireStaff・validName(trim/空/81文字拒否)→`DexieBrandRepository.create`のbrands.add、新規active/version1、`database.ts:65`のunique nameNormalized、`normalization.ts:1-3`のNFKC/大小文字/空白正規化。検索filter中の追加後非表示、二重submit時の通知順序は実再現待ち。
+- **Risk/TR/Case採否**：High R1非staff作成/DTO露出、R2重複・並列作成、R3既存Brand/商品参照破損。Medium R4入力境界、R5一覧再取得・検索、R6失敗時即clear、R7二重submit通知順序、R8 viewport/a11y。TR1正式仕様、TR2 Web、TR3 Use Case/Session/Dexie、TR4 Seed/既存テスト。採用C1 default作成・既存不変、C2 空/80・81文字/正規化重複、C3 Role/Session/DTO非露出、C4 並列/二重submit・DB原子性、C5 filter/20・21件、C6 通知/入力clear、C7視覚/keyboard/a11y。除外:名称編集・version競合(A01-03)、状態変更(A01-04)、カテゴリー、Native管理、製品修正。
+- **直接確認と未受入**：固定HEAD `ee3ab578da80`で11ソース**34/34静的断片assert成功**。既存Component/Integration/Repositoryは部分証拠で直接Vitest/formatter/validator本体/Playwrightは未実施。Role別実Web、DB/Session全表前後、同時送信/負例/検索/視覚/a11y、製品適合、同一最終HEAD全必須CIは未受入。C1-C7隔離実Runと正式期待を照合して再開。前HEADのWeb CI #41496638446はcompleted/failure（Contracts/required Chromium E2E/verify/validate failure）。
+- **次の共通対象**：`SCREEN-ADMIN-BRANDS-A01-03`（ブランド名称編集）。製品SUT・正式仕様・Seed/Reset・既存製品テスト/workflowは無変更。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-BRANDS-A01-01（ブランド一覧）基本分析受入
 
