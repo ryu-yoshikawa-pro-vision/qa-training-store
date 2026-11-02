@@ -1426,23 +1426,29 @@ function showHistory(phaseId) {
   );
 }
 
-function exportAssessment(phaseId, assessmentId) {
+export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPACE) {
   if (phaseId === "P3") fail("Phase 3 export is not available; use its explicit Git handoff");
-  const source = path.join(WORKSPACE, ".course-assessments", phaseId, "attempts", assessmentId);
-  if (
-    !ASSESSMENT_ID_PATTERN.test(assessmentId) ||
-    !fs.existsSync(source) ||
-    fs.lstatSync(source).isSymbolicLink()
-  )
+  if (!ASSESSMENT_ID_PATTERN.test(assessmentId))
     fail("assessment export source is missing or unsafe");
-  if (!fs.existsSync(path.join(source, "result.json")))
+  const sourceRelative = `.course-assessments/${phaseId}/attempts/${assessmentId}`;
+  const source = assertAssessmentPath(workspaceRoot, sourceRelative);
+  if (!fs.existsSync(source) || !fs.lstatSync(source).isDirectory())
+    fail("assessment export source is missing or unsafe");
+  const resultPath = assertAssessmentPath(workspaceRoot, `${sourceRelative}/result.json`);
+  if (!fs.existsSync(resultPath) || !fs.lstatSync(resultPath).isFile())
     fail("only a finalized assessment record can be exported");
-  const exportRoot = path.join(WORKSPACE, "course-assessment-exports");
+  const exportRoot = assertAssessmentPath(workspaceRoot, "course-assessment-exports");
   fs.mkdirSync(exportRoot, { recursive: true, mode: 0o700 });
+  assertAssessmentPath(workspaceRoot, "course-assessment-exports");
   const target = path.join(exportRoot, assessmentId);
-  if (fs.existsSync(target)) fail("export destination already exists; no files were overwritten");
-  const temp = path.join(exportRoot, `.${assessmentId}.${randomUUID()}.tmp`);
-  fs.mkdirSync(temp, { recursive: false, mode: 0o700 });
+  try {
+    // mkdir is exclusive: concurrent exports must not replace even an empty destination.
+    fs.mkdirSync(target, { recursive: false, mode: 0o700 });
+  } catch (error) {
+    if (error?.code === "EEXIST")
+      fail("export destination already exists; no files were overwritten");
+    throw error;
+  }
   try {
     for (const name of [
       "input-manifest.json",
@@ -1455,14 +1461,13 @@ function exportAssessment(phaseId, assessmentId) {
       "result.json",
       "summary.md",
     ]) {
-      const sourceFile = path.join(source, name);
+      const sourceFile = assertAssessmentPath(workspaceRoot, `${sourceRelative}/${name}`);
       if (!fs.existsSync(sourceFile)) continue;
-      if (fs.lstatSync(sourceFile).isSymbolicLink() || !fs.lstatSync(sourceFile).isFile())
-        fail(`unsafe export file: ${name}`);
-      fs.copyFileSync(sourceFile, path.join(temp, name), fs.constants.COPYFILE_EXCL);
+      if (!fs.lstatSync(sourceFile).isFile()) fail(`unsafe export file: ${name}`);
+      fs.copyFileSync(sourceFile, path.join(target, name), fs.constants.COPYFILE_EXCL);
     }
-    fs.renameSync(temp, target);
   } catch (error) {
+    fs.rmSync(target, { recursive: true, force: true });
     throw new Error(
       `assessment export stopped without replacing existing files: ${error instanceof Error ? error.message : String(error)}`,
     );
