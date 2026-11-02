@@ -914,6 +914,55 @@ function updateCurrentPointer(resultPath, result, workspaceRoot = WORKSPACE) {
   }
 }
 
+function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
+  if (result.completed !== (result.status === "complete"))
+    fail("saved assessment result completion status is inconsistent");
+  if (!result.completed) return;
+  const manifest = readJson(
+    assertAssessmentPath(workspaceRoot, `${relative}/input-manifest.json`),
+    "saved assessment input manifest",
+  );
+  const candidate = readJson(
+    assertAssessmentPath(workspaceRoot, `${relative}/validated-candidate.json`),
+    "saved validated assessment candidate",
+  );
+  const calibrationId = result.evaluator?.calibration_id;
+  if (typeof calibrationId !== "string" || !/^[a-f0-9]{64}$/.test(calibrationId))
+    fail("saved completed assessment calibration ID is invalid");
+  const calibration = readJson(
+    assertAssessmentPath(workspaceRoot, `.course-assessments/calibrations/${calibrationId}.json`),
+    "saved model calibration",
+  );
+  const objectiveIds = manifest.objective_ids;
+  if (
+    manifest.assessment_id !== result.assessment_id ||
+    manifest.phase_id !== result.phase_id ||
+    manifest.source_sha !== result.source_sha ||
+    manifest.evaluator_model_id !== result.evaluator.model_id ||
+    !Array.isArray(objectiveIds) ||
+    objectiveIds.length === 0 ||
+    new Set(objectiveIds).size !== objectiveIds.length ||
+    !Array.isArray(candidate.objectives) ||
+    !isDeepStrictEqual(candidate.objectives, result.objectives) ||
+    candidate.assessment_id !== result.assessment_id ||
+    candidate.phase_id !== result.phase_id ||
+    !isDeepStrictEqual(
+      result.objectives.map((item) => item.objective_id),
+      objectiveIds,
+    ) ||
+    result.objectives.some((item) => item.status !== "assessed" || item.level < 2) ||
+    !Array.isArray(result.deterministic_checks) ||
+    result.deterministic_checks.length === 0 ||
+    result.deterministic_checks.some((item) => item.status !== "passed") ||
+    calibration.id !== calibrationId ||
+    !isPassingCalibration(calibration) ||
+    calibration.identity?.model_id !== result.evaluator.model_id ||
+    calibration.identity?.opencode_version !== result.evaluator.opencode_version ||
+    !isDeepStrictEqual(calibration.identity?.asset_hashes, result.versions?.asset_hashes)
+  )
+    fail("saved completed assessment lacks consistent verified mastery evidence");
+}
+
 export function reconcileFinalizedAssessment({
   workspaceRoot = WORKSPACE,
   phaseId,
@@ -943,6 +992,7 @@ export function reconcileFinalizedAssessment({
     !Number.isFinite(Date.parse(result.created_at))
   )
     fail("saved assessment result differs from the prepared attempt");
+  verifyCompletedAssessmentResult(workspaceRoot, relative, result);
   saveSummary(attemptDirectory, result);
   updateCurrentPointer(resultPath, result, workspaceRoot);
   return result;

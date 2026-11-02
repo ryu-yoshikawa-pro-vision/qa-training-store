@@ -273,7 +273,10 @@ it("recovers an immutable result after summary and pointer publication were inte
   expect(recover).toThrow(/current assessment pointer is invalid/);
 
   fs.writeFileSync(pointerPath, JSON.stringify(pointer));
-  fs.writeFileSync(resultPath, JSON.stringify({ ...result, status: "complete" }));
+  fs.writeFileSync(
+    resultPath,
+    JSON.stringify({ ...result, created_at: "2026-11-02T00:01:00.000Z" }),
+  );
   expect(recover).toThrow(/does not match immutable result bytes/);
   expect(() =>
     reconcileFinalizedAssessment({
@@ -284,6 +287,52 @@ it("recovers an immutable result after summary and pointer publication were inte
       sourceSha,
     }),
   ).toThrow(/differs from the prepared attempt/);
+});
+
+it("does not restore a fabricated completed result without verified evidence", () => {
+  const workspaceRoot = path.join(tempRoot, "forged-completion");
+  const phaseId = "P1";
+  const assessmentId = "123e4567-e89b-42d3-a456-426614174002";
+  const sourceSha = "pinned-source";
+  const modelId = "provider/model";
+  const attempt = path.join(
+    workspaceRoot,
+    ".course-assessments",
+    phaseId,
+    "attempts",
+    assessmentId,
+  );
+  fs.mkdirSync(attempt, { recursive: true });
+  const resultPath = path.join(attempt, "result.json");
+  const result = {
+    schema_version: 1,
+    assessment_id: assessmentId,
+    phase_id: phaseId,
+    terminal_module_id: "M04",
+    evaluator: { model_id: modelId },
+    source_sha: sourceSha,
+    status: "complete",
+    completed: true,
+    objectives: [],
+    created_at: "2026-11-02T00:00:00.000Z",
+  };
+  const recover = () =>
+    reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+  fs.writeFileSync(resultPath, JSON.stringify(result));
+  expect(recover).toThrow(/saved assessment input manifest/);
+  fs.writeFileSync(
+    path.join(attempt, "input-manifest.json"),
+    JSON.stringify({
+      assessment_id: assessmentId,
+      phase_id: phaseId,
+      source_sha: sourceSha,
+      evaluator_model_id: modelId,
+      objective_ids: ["M04-01"],
+    }),
+  );
+  expect(recover).toThrow(/saved validated assessment candidate/);
+  fs.writeFileSync(resultPath, JSON.stringify({ ...result, completed: false }));
+  expect(recover).toThrow(/completion status is inconsistent/);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
