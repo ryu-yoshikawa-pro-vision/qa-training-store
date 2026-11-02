@@ -94,3 +94,36 @@
 ### 後続の作業境界
 
 定期実行4件は分担せず共通現在作業を継続する。今回の横断契約修正を個別IDの基本分析進捗に加算しない。製品SUT・正式仕様・Seed/Reset・既存製品用テスト、#210の製品改修、自動化の設定、外部公開・課金・権限・本人の最終受入には触れていない。Codex向け指示は、残る横断レビュー・調査の完了後に作成する。
+
+## 2026-11-02 教材・正式AI評価・配布処理の独立レビュー
+
+### 担当と変更範囲
+
+CI全体の失敗修正はCodexへ切り分ける。共通逐次の4定期実行は変更せず、個別サポート動作の基本分析を継続させる。ここでは教材・演習の内容、正式AI評価、教材配布のコードと契約テストのみ変更する。Codexの作業指示は本監査で残る作業を確認し終えるまで作成しない。Scenario Shop製品SUT・正式仕様・Seed/Reset・製品用E2E・#210は変更しない。
+
+### M00〜M10の構造と内容確認
+
+教材README・演習・公開クイズ・採点JSONの11モジュール構成、51学習目標の採点基準との対応、78問の確認クイズ、106件の校正Caseは前節の集計どおり。クイズの選択肢の値重複や正答値の欠落も確認対象とし、今回調べた78問に異常はなかった。**これはID・配置・選択肢の構造上の検査結果であり、51学習目標の授業内容の意味的な全件受入、出題の妥当性、実モデル校正ではない**。
+
+M07について、`training/ai-assisted-qa-course/exercises/M07/exercise.md`の診断素材Aの手順が`repaired-assertion.spec.ts`を誤ったAssertionの実行元として案内していた。実ファイルでは`workspace/M07/failure-assertion.spec.ts`が「存在しない商品」を期待する意図的なAssertion失敗を持ち、`workspace/M07/repaired-assertion.spec.ts`は`throw new Error("TODO: ...")`で中断する未完成spec。実行元とエラー原因が一致しないため、学習者が誤った失敗原因を判定する問題だった。
+
+[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/259b49915f8a40b87c8a0dd3d9e190253893be13)で、診断素材Aの`--label diagnostic`、修正用specの`--label before/after`を区別した。教材READMEのTODOとAssertion失敗を混同する説明も修正。既存の`ai-assisted-qa-course-distribution.test.mjs`に3つのRun手順と実ファイルを照合する契約テストを追加した。**実Chromium Runは未実施**。
+
+### 正式AI評価の入力境界
+
+`scripts/training/ai-assisted-qa-assessment.mjs`の正式評価Promptには4MiBの入力上限があったが、`buildCalibrationPrompt`から`obtainCalibration`へ渡す校正Promptには対応する上限検査がなかった。いずれも外部OpenCodeモデルへの入力であり、校正だけ無制限にすべき根拠はない。
+
+[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ba4d967abc6d83847d9172bf9af339aa82ec9d77)で、UTF-8バイト長による共通の4MiB上限を校正・正式評価の両方に適用した。ASCIIの上限値、複数バイト文字の超過、非文字列入力を契約テストへ追加した。モデルの認証・外部送信の本人確認を迂回する変更はない。**実OpenCodeの接続・校正、誤PASS率、再評価の実受入は未実施**。
+
+### 学習用配布の外部ファイル境界
+
+`scripts/training/ai-assisted-qa-course-core.mjs`の外部Skill取得は固定Git blob SHAの照合を実施するものの、取得後の`arrayBuffer()`で全内容を読み込んでから長さを検査していた。許可リストが公開固定リポジトリを指す場合も、サイズ超過レスポンスを無制限にメモリへ取り込む必要はない。
+
+[修正コミット](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ba4d967abc6d83847d9172bf9af339aa82ec9d77)で、既存の応答サイズ制限付き読込を再利用し、各Skillファイルのmanifestの`size`を上限として読み込み中に拒否するよう変更した。manifest自体も正の安全な整数、最大1MiB（現行最大ファイルは約272KB）を要求する。content-length超過時に本文を読み取らず、配布先へファイルを作らない負例を契約テストに追加した。エラー文は[追加修正](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/67569832c4a7472db7321e6f1c534591fb354312)で`external Skill`と明示した。
+
+### 未受入と次の検証
+
+- 本監査ではCI実行を自分の実行環境から起動していない。PRへのpushで起動するGitHub Actionsの最終HEAD結果を確認する。既知のStyle Quality・既存製品用required Chromium E2Eなどの失敗解消はCodex担当であり、テストPASSを先取りしない。
+- M04/M07/M10の実OpenCodeモデル校正、根拠不足・旧SHA・改ざん・Prompt Injection・不正なLevel 2で最終修了PASSを防げること、非公開履歴の再評価は未受入。
+- 配布のclean main起点生成と実学習用コピー、起動・Reset・Chromium、Secret/NOTICE実検証は未受入。Public Template公開・本人所有Private Codespacesの作成、課金・権限・最終受入は指定どおり後続工程。
+- 教材の残りの意味的な全件レビューは継続。今回のM07修正やJSONの存在確認だけで51目標の内容レビュー完了とはしない。
