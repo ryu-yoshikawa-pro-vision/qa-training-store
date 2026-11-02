@@ -16892,20 +16892,20 @@
       "source_line": 160,
       "source_text": "カテゴリーの一覧表示、新規作成、編集、およびバリデーション機能を提供する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,cross-role-product-lifecycle。Operator/Adminの許可差、対象ID、状態versionを確認。操作: カテゴリー編集",
+      "role": "active operator/adminはStaffPageとAdminMasterUseCases.requireStaffで編集可能。guest/customer/停止staff/失効Sessionは直URLとUse Caseで拒否、管理DTO非露出。",
+      "scenario": "default（初期guest→operator/adminログイン）で既存category-apparelの名称編集を主軸。cross-role-product-lifecycleでRole比較。既存名衝突、80/81文字、NFKC/空白、古いversion、別staff並列、読取失敗、20件超の検索ヒット、二重保存は隔離条件。",
+      "data": "default Seed4カテゴリー（category-apparel/ファッション、category-home/ホーム・キッチン、category-sports/スポーツ、category-accessories/バッグ・小物）は全件active/version1・sortOrder10/20/30/40。category-apparelを「 新ファッション 」へ編集→trimして名称更新、nameNormalized更新、version2/updatedAt更新。ID/isActive/sortOrder/createdAt、他3カテゴリーと商品/Variant/Sessionは不変。",
       "action": "カテゴリー編集",
-      "expected": "選択した既存カテゴリーのみ編集し、version不一致で別変更を上書きしない",
+      "expected": "active staffが既存Categoryの名称を編集するとInlineNameEditor→AdminMasterUseCases.updateCategory(requireStaff/validName)→DexieCategoryRepository.updateDetailsでcategoryIdを固定し、name/nameNormalized/updatedAt/versionのみ更新。expectedVersion不一致はCONFLICT、空白・80文字超はVALIDATION、正規化名の重複はDB uniqueで拒否。成功後searchForAdminで再読取し通知/一覧更新。RepositoryのgetById→version照合→putは明示transaction外のため並列CAS原子性は実再現待ち。",
       "rule_refs": [],
       "route": "`/admin/categories`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "カテゴリー編集実施前後で、選択した既存カテゴリーのみ編集し、version不一致で別変更を上書きしないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、カテゴリー編集の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "カテゴリー編集が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=非staff/停止Sessionによる編集・管理DTO露出、R2=Repositoryのtransaction外getById→assertExpectedVersion→putによる同時編集lost-update候補、R3=正規化名重複/保存失敗時のCategory整合性。Medium R4=空白・80/81文字/NFKC境界、R5=保存後searchForAdmin(keyword, pageSize20)で対象が先頭20件に入らず返却DTOがundefinedとなる候補、R6=InlineNameEditorのローカルstate/二重押下/古いversionと一般エラー通知、R7=desktop/tablet/1023-1024px・focus/a11y。R2/R5/R6は実再現前の候補。",
+      "test_condition": "C1 default category-apparelを「 新ファッション 」へ変更→trim/nameNormalized/version+1/updatedAt、ID/active/sortOrder/createdAtと他3カテゴリー/商品/Session全表不変。C2 空/空白、80/81文字、NFKC・大小文字・連続空白重複、DB不変。C3 stale version/別staff同時更新の実CAS、更新消失なし・version連続性・失敗時全表不変。C4 guest/customer/停止staff/失効Sessionの直URL/updateCategory拒否・管理DTO非露出。C5 DB書込失敗/unique競合と保存後searchForAdmin読取失敗・検索ヒット21件以上で保存結果とUI通知/返却DTOの整合を分離。C6 InlineNameEditor保存ボタン有効/無効、成功一覧更新/失敗入力保持、二重押下/遅延応答/古い値。C7 desktop/tablet/1023-1024px・keyboard/focus/aria-label/maxlength/a11y。実Run未実施。",
+      "test_responsibility": "カテゴリー名称編集のRole認可、既存ID/version CAS、正規化重複と境界、単一Category更新・DB/Session不変、保存後DTOとUI通知・再試行をCase別に検証する。",
+      "case_policy": "採用:C1 default名称変更と関連表不変、C2 名称境界/正規化重複、C3 stale version/別staff並列CAS、C4 Role/Session/DTO非露出、C5 DB失敗/保存後再読取・20件超境界、C6 UI入力/通知/連打、C7 viewport/keyboard/a11y。除外:新規作成(A01-02)、並び替え/状態変更(別操作)、ブランド、Native管理、製品SUT修正。",
+      "case_selection_reason": "TR1=admin-catalog.md:154-166,205-220とroles-and-permissions.md:5-19の正式BR/AC・Role（カテゴリー編集固有の詳細ACは限定的）。TR2=admin-master-pages.tsx:135-185,258-273,304-369のStaffPage/mutate/CategoryTable/InlineNameEditor。TR3=AdminMasterUseCases.updateCategory:92-106、validName:228-237、requireStaff:239-249→DexieCategoryRepository.updateDetails:383-398、database.ts:64のunique、normalization.ts:1-3。TR4=default-dataset.ts:37-42,683-693、既存Component:127-151は入力maxlengthの部分証拠、Integrationは作成/上限のみ、Repository contractはunique/別entity versionのみ。High R1-R3/Medium R4-R7をC1-C7へ対応。直接40/40ソース断片assert成功（実Vitestではない）。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 HEAD fa51c7d5d023: 基本分析受入。正式BR/AC・Role/State/Data・Web InlineNameEditor→Use Case requireStaff/validName→Dexie updateDetails/getById/version/put、default Seed4カテゴリーを照合。40/40静的断片assert成功、既存Component/Integration/Repositoryテストは部分証拠でカテゴリー編集の直接実Runではない。High R1-R3/Medium R4-R7、TR1-TR4/C1-C7採否と再開条件を記録。transaction外CAS競合、20件超検索の保存後DTO、UI二重保存は未再現候補。直接Vitest/formatter/validator本体/Playwright、Role別実Web、DB/Session全表前後、並列/故障注入、視覚/a11y、製品適合・最終CIは未受入。analyzedは実Run PASSではない。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -16915,7 +16915,7 @@
       "related_use_cases": [
         "AdminMasterUseCases.updateCategory"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-03 A01-03基本分析analyzed（操作100/188、非default16/20）。40/40静的assertと既存テスト部分証拠。C1-C7実Run/DB・Session前後/Role/並列CAS/保存後読取/視覚/a11y/製品適合/最終CIは検証待ち。次の共通対象SCREEN-ADMIN-CATEGORIES-A01-04。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-master-pages.tsx",
         "line": 135,
@@ -16943,6 +16943,115 @@
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 92,
           "signature": "async updateCategory(request: UpdateCategoryRequest): Promise<CategoryAdminListItem> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 154,
+          "end_line": 166,
+          "reason": "カテゴリー管理とdefault UI"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 205,
+          "end_line": 220,
+          "reason": "共通BR/ACと受入境界"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 19,
+          "reason": "active staff/非staff認可"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 135,
+          "end_line": 185,
+          "reason": "StaffPageとmutate通知"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 258,
+          "end_line": 273,
+          "reason": "updateCategory/expectedVersion"
+        },
+        {
+          "path": "src/presentation/pages/admin-master-pages.tsx",
+          "start_line": 304,
+          "end_line": 368,
+          "reason": "CategoryTable/InlineNameEditor"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 92,
+          "end_line": 106,
+          "reason": "updateCategoryと保存後検索"
+        },
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 228,
+          "end_line": 249,
+          "reason": "validNameとrequireStaff"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 383,
+          "end_line": 398,
+          "reason": "transaction外version確認とput"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/database.ts",
+          "start_line": 64,
+          "end_line": 64,
+          "reason": "unique nameNormalized"
+        },
+        {
+          "path": "src/domain/services/normalization.ts",
+          "start_line": 1,
+          "end_line": 3,
+          "reason": "NFKC/trim/lowercase/空白正規化"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 37,
+          "end_line": 42,
+          "reason": "default4カテゴリーID/名称"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 683,
+          "end_line": 693,
+          "reason": "default active/version/sortOrder"
+        },
+        {
+          "path": "tests/component/admin-master-pages.test.tsx",
+          "start_line": 127,
+          "end_line": 151,
+          "reason": "入力maxlength部分証拠、編集保存は未検証"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 83,
+          "end_line": 142,
+          "reason": "作成/上限部分証拠、編集の直接Caseなし"
+        },
+        {
+          "path": "tests/repository-contract/repositories.test.ts",
+          "start_line": 44,
+          "end_line": 53,
+          "reason": "正規化unique部分証拠"
+        },
+        {
+          "path": "tests/repository-contract/repositories.test.ts",
+          "start_line": 145,
+          "end_line": 161,
+          "reason": "他entity version拒否のみ部分証拠"
         }
       ]
     },
