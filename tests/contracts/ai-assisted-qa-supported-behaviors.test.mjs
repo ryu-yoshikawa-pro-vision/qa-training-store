@@ -27,10 +27,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
       use_case_methods: 76,
       supported_total: 188,
       classified: 188,
-      basically_analyzed: 67,
-      requires_review: 121,
+      basically_analyzed: 68,
+      requires_review: 120,
       classified_rate: 100,
-      basic_analysis_rate: 35.64,
+      basic_analysis_rate: 36.17,
       complete: false,
     });
     expect(data.requirements).toHaveLength(79);
@@ -293,15 +293,40 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
 
   it("audits customer order detail ownership, snapshots, and review eligibility", () => {
+    const reviewEligibility = data.behaviors.find(
+      (item) => item.id === "SCREEN-ORDERS-DETAIL-A01-03",
+    );
+    expect(reviewEligibility?.analysis_status).toBe("analyzed");
+    expect(reviewEligibility?.reviewed_against).toEqual([
+      "specification",
+      "implementation",
+      "seed",
+    ]);
+    expect(reviewEligibility?.related_use_cases).toContain(
+      "CheckoutOrderUseCases.getMyCustomerOrder",
+    );
+    expect(reviewEligibility?.related_use_cases).toContain(
+      "CustomerReviewUseCases.getEligibility",
+    );
+    expect(reviewEligibility?.requirement_refs).toContain("AC-REVIEW-001");
+    expect(reviewEligibility?.risk).toContain("High");
+    expect(reviewEligibility?.test_condition).toContain("TR7/C7=");
+    expect(reviewEligibility?.basic_analysis_review).toContain("未受入");
+    expect(reviewEligibility?.audit_branch_refs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "tests/component/checkout-order-pages.test.tsx",
+          start_line: 330,
+          end_line: 357,
+        }),
+      ]),
+    );
     for (const id of [
-      "SCREEN-ORDERS-DETAIL-A01-03",
       "SCREEN-ORDERS-DETAIL-A02-01",
       "SCREEN-ORDERS-DETAIL-A02-02",
     ]) {
       const entry = data.behaviors.find((item) => item.id === id);
-      expect(entry?.analysis_status).toBe("analyzed");
-      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
-      expect(entry?.related_use_cases).toContain("CheckoutOrderUseCases.getMyCustomerOrder");
+      expect(entry?.analysis_status).toBe("review_required");
       expect(entry?.audit_branch_refs?.length).toBeGreaterThan(0);
     }
     for (const id of [

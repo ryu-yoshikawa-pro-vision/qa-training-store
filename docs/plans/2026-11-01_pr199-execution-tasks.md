@@ -39,8 +39,8 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ORDERS-DETAIL-A01-03`（レビュー投稿可否）。直前`SCREEN-ORDERS-DETAIL-A01-02`はorders.md BR-ORDER-001/002・AC-ORDER-001/002、defaultの本人5状態Payment/Shipment/単一History、Web/Native→getMyCustomerOrder→getMyOrder本人認可→Dexie/SQLiteの同一orderId/attemptNumber/createdAt順DTO、Admin遷移とHigh R1-R6/TR1-TR6/C1-C6を照合し**基本分析のみ**`analyzed`（操作66→67/188、非default15/20維持）。Native timeline非表示・paid Seed Shipment=nullと実決済成功後pendingとの差・Seedの単一履歴/全遷移の差、実Web/Android/SQLite・別Session・並列・DB/Session前後・視覚/a11y・正式UX適合は未受入。次はA01-03を1件扱う。
-- **CI横断**：作業前HEAD `9258ea6170cc`の[Web CI #41396417866](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41396417866)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。対象の既存integration successを実Web/Android・全体CI PASSへ流用しない。今回変更後の新HEAD CIは別判定。Mobile PRトリガーは復元待ち。
+- **現在の対象**：`SCREEN-ORDERS-DETAIL-A02-01`（他人の注文拒否・認可）。直前`SCREEN-ORDERS-DETAIL-A01-03`はレビュー可否のRole/State/Data、正式BR-REVIEW-001/AC-REVIEW-001、Web/Native→getMyCustomerOrder→ReviewRepository→deriveCustomerReviewState、Seedの公開/未投稿/hidden/deleted、High R1-R6/TR1-TR7/C1-C7を照合して**基本分析のみ**`analyzed`（操作67→68/188、非default15/20維持）。defaultのReview.userId≠Order.userIdとgetEligibility existingReview露出候補、reviewable-ordersの実Seed 1 delivered/5未投稿対seed_catalog 2/3、実Web/Native/SQLite・別Session/DB前後・視覚/a11y・正式UX/Fixture適合は未受入。次はHigh認可のA02-01を1件扱う。
+- **CI横断**：作業前HEAD `28be6bb800c6`の[Web CI #41397369433](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41397369433)はcompleted/failure。Code Quality・Unit/Integration/Component/Repository・Training runtime・主要E2Eはsuccess。Contracts全体、Style Quality、required Chromium E2E、verify/validateはfailure。今回の新HEAD CIは別判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
 - **進行・完了**：同じIDの仕様→実装/呼出し元・先→Seed/状態→Risk/TR/Condition/Case・採否→必要な変更→直接のテスト・根拠を確認する。変更しただけで「完了」にしない。静的分析、直接テスト、実Web/Native、製品適合、本人Codespaces、AI評価、CIは別の判定として記録する。単一の対象に必要な直接検証を終えた場合に次へ進む。
@@ -58,6 +58,15 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+
+## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A01-03（レビュー投稿可否）
+
+- **基本分析のみ**：`review_required→analyzed`、操作67→68/188、非default状態15/20維持。正式`orders.md:59-82`のOrderDetail、`reviews.md`のBR-REVIEW-001/AC-REVIEW-001、Role/State/Data、Web/Native→`getMyCustomerOrder`→`getMyOrder`本人認可→Dexie/SQLite OrderDetail→ReviewRepository→`deriveCustomerReviewState`を照合し、High R1-R6/TR1-TR7/C1-C7を個別採否。基本分析の成立は製品適合/実RunのPASSを意味しない。
+- **Seed/仕様の静的差**：`default-dataset.ts:400-650`は本人のdelivered注文1件、明細11件（公開Review9、hidden1、deleted1）。`reviewable-orders`の`scenarios.ts:98-104`はReviewsを先頭6件に切るため、未投稿は明細7～9だけでなくhidden/deleted明細も含め**5件**。一方`docs/07_testability/seed_catalog.md`はdelivered注文**2件**・未レビュー明細**3件**と記載。Fixtureの正式期待・教材のCase期待は未判定であり、製品SUT/Seed/正式仕様は変更しない。
+- **High情報保護候補**：defaultのhidden/deleted Reviewは`user-customer-gold`所有なのに、対象`order-delivered`は`user-customer-regular`所有。`getEligibility`はOrder.userIdで本人確認後、Review.userIdを比較せず`existingReview`（title/body含む）を返す静的経路がある。更新時の`requireOwned`はReview.userIdを検査するため、表示/取得と更新認可の不一致をC4として記録。**実行による情報露出は未再現、製品不具合は未確定**。実Role/別Session・DB/Session前後・ReviewSummary不変を検証し、製品改修は#210の境界で扱う。
+- **UI/直接証拠**：WebはNOT_POSTED投稿、PUBLISHED/HIDDEN編集、DELETED再投稿不可、NOT_ELIGIBLEリンクなし。NativeはNOT_POSTED投稿ボタン、他状態は文字列表示。既存`tests/component/checkout-order-pages.test.tsx:330-357`の5状態表示、`tests/integration/review-user-use-cases.test.ts`の投稿/編集/削除・未配達/hidden/deleted、`e2e/web/phase1-required.spec.ts:213-236`の明細9投稿/編集を静的照合。今回直接Vitest/formatter/実Web/Android/SQLiteは未実施。既存CI successは直接Runや正式UX適合に流用しない。
+- **再開条件・次**：固定HEADでReview.userId不一致時のgetEligibility返却/編集拒否と情報非露出、reviewable-ordersの1/5対文書2/3、5状態の実Web/Native/SQLite、別Role/Session、投稿→hidden→deleted・並列/version・DB/Session前後・視覚/a11yを実証する。次の共通対象はHigh認可の`SCREEN-ORDERS-DETAIL-A02-01`。横断CIは独立未受入。
 
 ## 2026-11-02 共通逐次：SCREEN-ORDERS-DETAIL-A01-02（支払・配送・timeline）
 

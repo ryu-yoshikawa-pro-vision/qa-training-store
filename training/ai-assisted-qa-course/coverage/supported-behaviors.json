@@ -11597,32 +11597,37 @@
       "source_line": 61,
       "source_text": "注文スナップショット、支払い、配送、タイムライン、レビュー投稿可否を表示する。",
       "platform": "web,android",
-      "role": "active customer（本人の配達済み注文・注文明細。guest/他人注文は表示不可）",
-      "scenario": "reviewable-orders Seedを読み込み、初期guestからregular@example.comでログイン。本人のorder-deliveredを表示し、未投稿明細7～9と投稿済明細1～6、defaultの既存レビューと比較する",
-      "data": "reviewable-orders SeedはdefaultのReviewsを先頭6件に減らし、order-deliveredの7～9番目明細をレビューなしにする。CheckoutOrderUseCases.getMyCustomerOrderは本人注文を取得し、各明細のReview状態とorderStatusからNOT_POSTED/PUBLISHED/HIDDEN/DELETED/NOT_ELIGIBLEを求める",
+      "role": "active Customer本人（初期guestのdefault/reviewable-ordersからregular@example.comでログイン）。guest/operator/admin・他customerの注文/明細はgetMyOrderで拒否。Reviewの既存投稿者とOrder所有者の不一致は別のHigh確認事項",
+      "scenario": "reviewable-orders（初期guest→regular本人→order-delivered。Reviews先頭6件のみ残存）とdefault/hidden-reviews（初期guest→regular本人。既存公開9件・非公開1件・削除1件）、未配達paid/payment_failedも対照。Seed catalogの「delivered注文2件/未レビュー3明細」と実Seedの差を別判定",
+      "data": "default-dataset.tsの本人5注文のうちdeliveredはorder-delivered 1件、OrderItemは1～9とhidden/deletedの計11件。defaultは1～9にpublished Review、hidden/deletedに各1 Review（計11件）。hidden/deletedのReview.userIdはuser-customer-goldだがOrder.userIdはuser-customer-regular。reviewable-ordersはReviewsを先頭6件にsliceしHistoryも連動除外するため、7～9だけでなくhidden/deletedの明細もNOT_POSTED（計5明細）になる。Seed catalogの「2件/3明細」と一致しない。getMyCustomerOrderはOrder本人認可後、明細ごとにfindByOrderItem→deriveCustomerReviewStateを実行",
       "action": "レビュー投稿可否を示す",
-      "expected": "配達完了・本人所有・未投稿の明細はWebで『レビューを投稿』、Nativeで『レビューを書く』を選べる。PUBLISHED/HIDDENはWebの編集リンク、DELETEDはWebの再投稿不可表示、未配達は投稿ボタンなし。Nativeで非NOT_POSTEDの状態はテキスト表示になり、Web同等の編集導線とは断定しない",
+      "expected": "本人配達済・Review未存在ならNOT_POSTEDとしてWeb「レビューを投稿」/Native「レビューを書く」、published/hiddenならWeb編集リンク、deletedならWeb再投稿不可、未配達ならNOT_ELIGIBLEで投稿リンクなし。NativeはNOT_POSTED以外を状態文字列で表示しWebと同等の編集導線なし（正式UI適合未判定）。reviewable-ordersの実Seedは未投稿5明細であり、catalog記載3明細とは別途仕様/Fixture確認を要する。既存Reviewが別userIdの場合は編集・本文参照権限を別Caseで検証し、表示だけで認可PASSとしない",
       "rule_refs": [],
       "route": "`/orders/[orderId]`",
-      "risk": "未配達または他人の明細へ投稿できる、削除済レビューを二重投稿する、公開/非公開の編集導線を取り違える",
-      "test_condition": "reviewable-orders Reset→regular会員ログイン→order-deliveredの未投稿明細7～9の投稿リンクと先頭6の編集状態を確認。未配達/削除済みを反例にし、WebとNativeのUI差、別画面Review Use Case側の権限検査を分離して検証する",
-      "test_responsibility": "getMyOrderの本人検査→getMyCustomerOrderのfindByOrderItemとderiveCustomerReviewState→Web/Nativeの注文詳細の状態分岐を追跡する",
-      "case_policy": "未投稿/公開/非公開/削除済/未配達を代表状態とし、独立stateのS-reviewableにあるデータの再利用はするが動作分析の完了とは別に判定する。NativeにWeb同等の編集アクションを要求するかは未決",
-      "case_selection_reason": "配達完了条件と既存レビュー状態で表示可能な操作が変わり、誤ったリンクは不正投稿や二重投稿を招くため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "orders.mdのBR-ORDER-001/AC-ORDER-001・OrderDetail画面契約・default/reviewable-orders Seed、CheckoutOrderUseCases、Dexie/SQLite OrderDetailDTO、Web/Nativeを読み取りで照合。具体的なCaseはaudit_branch_refsに追跡。既存テストの存在を確認したが、今回の実行PASS・実機受入・正本画像比較は未実施。",
+      "risk": "High R1: 別顧客の注文/Review本文・評価・タイトルの漏えい。High R2: default Seedのhidden/deleted Review.userId=goldとOrder.userId=regularの不一致により、getEligibilityが注文所有権のみ確認して別ユーザーのexistingReview DTOを返す静的経路（実再現未実施）。R3: 未配達・deleted明細への誤投稿/重複投稿。R4: reviewable-orders実Seed 1 delivered/5 NOT_POSTEDとseed_catalogの2 delivered/3未投稿の不一致。R5: Webの公開/非公開編集リンクとNativeの状態表示のみのUX差。R6: Read時のReview/Order競合やReview状態の古い表示",
+      "test_condition": "TR1/C1=reviewable-orders Reset→初期guestからregularログイン→order-deliveredの明細1～6がPUBLISHED、7～9とhidden/deletedがNOT_POSTED（計5）でWeb/Native導線を比較（Seed/コード静的確認、実Run待ち）。TR2/C2=defaultで1～9 PUBLISHED、hidden HIDDEN、deleted DELETED、paid/payment_failed NOT_ELIGIBLEをWeb/Nativeで比較（静的確認、実Run待ち）。TR3/C3=guest/operator/admin・別CustomerのOrder取得拒否とReview getEligibility/create/update/delete拒否、DB/Session/ReviewSummary不変を別Sessionで確認（既存integration部分証拠、実Run待ち）。TR4/C4=defaultのgold所有hidden/deleted Reviewをregular注文で参照した際、getEligibilityのexistingReview本文露出・編集拒否の有無を実行検証しHigh情報保護問題として判定（静的経路あり、実Run待ち）。TR5/C5=未配達→delivered・投稿→hidden→deletedの表示/投稿可否、二重投稿・version競合・集計不変を確認（既存integration/E2E部分証拠）。TR6/C6=seed_catalogのdelivered2/未投稿3と実Seedのdelivered1/未投稿5を再計算し正式Fixture期待を確認（静的差分確定、仕様適合未判定）。TR7/C7=固定HEADの実Web/Android/SQLite、DB/Session前後、視覚/a11y、並列Review更新を確認（未受入）",
+      "test_responsibility": "orders.md:59-82のOrderDetailレビュー導線、reviews.md BR-REVIEW-001/AC-REVIEW-001、seed_catalog→default-dataset.ts→scenarios.ts（Reviews slice）→Web OrderDetailContent/NativeOrderDetailScreen→CheckoutOrderUseCases.getMyCustomerOrder→getMyOrder(requireCustomer/Order.userId)→Dexie/SQLite OrderDetail→ReviewRepository.findByOrderItem→deriveCustomerReviewStateの5値を追跡。編集/投稿先はCustomerReviewUseCases.getEligibility/create/update/deleteを別認可経路として確認し、Review.userId不一致はrequireOwned(update/delete)とgetEligibilityの検査差を区別する",
+      "case_policy": "採用C1=reviewable-ordersの6公開+5未投稿の状態別導線、C2=defaultの公開/非公開/削除/未配達、C3=別Role/別Customerの注文/レビュー認可とDB不変、C4=gold所有Reviewのregular注文でのexistingReview露出疑義（High）、C5=投稿/編集/削除・version競合/集計、C6=Seed catalogの2/3と実Seedの1/5の契約差、C7=Web/Native/SQLite/視覚/並列実Run。C1-C6は静的経路・既存component/integration/E2Eの部分根拠を確認。C3/C4/C5/C7直接実RunとC6正式Fixture期待・Native UXは未受入。独立S-reviewableやREVIEWS-EDITORの受入へ結果を流用しない",
+      "case_selection_reason": "Review可否はOrder本人/配達済み/Review状態/Review投稿者の複合条件。既存SeedのReview.userId不一致が情報露出候補、Fixtureの1/5対2/3が学習者のCase期待の誤判定を生むため、High情報保護と状態境界/正式Seed契約/プラットフォーム差を個別Caseに分離した",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-02 HEAD 28be6bb800c6: orders.md:59-82・reviews.md BR-REVIEW-001/AC-REVIEW-001、default/reviewable-orders Seed実数、Web/Native分岐、getMyCustomerOrder→ReviewRepository→deriveCustomerReviewState、getEligibility/create/updateの認可差、既存component:330-357/integration:74-195/required E2E:213-236を照合。Highなdefault SeedのReview.userId不一致・getEligibility existingReview露出候補、seed_catalog 2 delivered/3未投稿に対する実Seed 1 delivered/5未投稿を独立未受入として記録。基本分析のRisk/TR1-7/Case採否のみ成立。直接Vitest/Playwright/Android/SQLite、DB/Session前後、視覚/a11y、実情報露出再現、正式Fixture/Native UX適合、最終CIは未実施・未受入。",
       "requirement_refs": [
         "BR-ORDER-001",
         "AC-ORDER-001",
-        "ROLE-ACCESS"
+        "ROLE-ACCESS",
+        "BR-REVIEW-001",
+        "AC-REVIEW-001"
       ],
       "related_use_cases": [
-        "CheckoutOrderUseCases.getMyCustomerOrder"
+        "CheckoutOrderUseCases.getMyCustomerOrder",
+        "CustomerReviewUseCases.getEligibility",
+        "CustomerReviewUseCases.create",
+        "CustomerReviewUseCases.update"
       ],
       "state_refs": [
         "SCREEN-ORDERS-DETAIL-S-reviewable"
       ],
-      "analysis_progress": "Role/Platform/Data/State/Expected/Risk/Case選定を仕様と実装の具体値に結びつけて基本分析した。NativeとWebの表示差は報告書で未解決として分離し、SUTの修正なし | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "2026-11-02: BR/AC・Role/State/Data・UI→Use Case→Repository・Seed・High R1-R6/TR1-TR7/C1-C7を実コードで再照合して基本分析のみanalyzed。実Run/製品適合/正式Fixture期待は未受入。default hidden/deletedのReview.userId≠Order.userId、getEligibilityの既存Review DTO返却、reviewable-orders 1 delivered/5未投稿対seed_catalog 2/3は別検証待ち",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 656,
@@ -11655,63 +11660,105 @@
       "audit_branch_refs": [
         {
           "path": "docs/spec/features/orders.md",
+          "start_line": 59,
+          "end_line": 83,
+          "reason": "OrderDetailのレビュー可否・reviewable状態・本人制限"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
           "start_line": 5,
-          "end_line": 12,
-          "reason": "BR-ORDER-001の注文Snapshotと本人向けUI要求"
+          "end_line": 18,
+          "reason": "BR-REVIEW-001と本人・配達完了・削除後再投稿不可"
         },
         {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 397,
-          "end_line": 416,
-          "reason": "本人の注文所有権検査とレビュー状態付きCustomerOrderの取得"
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 70,
+          "end_line": 86,
+          "reason": "AC-REVIEW-001の投稿資格制限"
         },
         {
-          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
-          "start_line": 60,
-          "end_line": 139,
-          "reason": "Dexieの永続Order/OrderItem/Payment/Shipment/Status履歴をDTOへ反映"
-        },
-        {
-          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
-          "start_line": 2145,
-          "end_line": 2218,
-          "reason": "SQLiteのOrderItem/Payment/Shipment/Timelineを永続行から復元"
+          "path": "docs/07_testability/seed_catalog.md",
+          "start_line": 1,
+          "end_line": 65,
+          "reason": "reviewable-ordersのdelivered2/未投稿3の文書期待（実Seedと不一致）"
         },
         {
           "path": "src/seeds/default-dataset.ts",
           "start_line": 400,
-          "end_line": 576,
-          "reason": "default Seedの本人のpayment_failed/paid/preparing/shipped/delivered注文とSnapshot"
-        },
-        {
-          "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 722,
-          "end_line": 858,
-          "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
-        },
-        {
-          "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 1257,
-          "end_line": 1398,
-          "reason": "Nativeの本人OrderDetail表示と支払/配送/商品/レビュー導線"
-        },
-        {
-          "path": "src/application/use-cases/customer-review-state.ts",
-          "start_line": 4,
-          "end_line": 15,
-          "reason": "配達済み/未配達とReview状態を5種類へ分類"
+          "end_line": 650,
+          "reason": "default本人5注文・delivered明細11・published9+hidden/deleted2・Review.userId不一致"
         },
         {
           "path": "src/seeds/scenarios.ts",
-          "start_line": 98,
-          "end_line": 104,
-          "reason": "Reviewの先頭6件だけを維持するScenario変換"
+          "start_line": 95,
+          "end_line": 106,
+          "reason": "reviewable-ordersでReviews先頭6件だけ保持しHistoryも除外"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 388,
+          "end_line": 410,
+          "reason": "getMyOrder本人認可→getMyCustomerOrderで明細ごとのReview状態導出"
+        },
+        {
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "start_line": 1,
+          "end_line": 15,
+          "reason": "未配達・未投稿・公開・非公開・削除済の5状態導出"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 54,
+          "end_line": 144,
+          "reason": "getEligibilityの注文本人認可と既存Review返却・createの既存Review拒否"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 250,
+          "end_line": 275,
+          "reason": "update/deleteで使うrequireOwnedのReview.userId検査"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 68,
+          "end_line": 140,
+          "reason": "Web OrderDetail永続DTO取得"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 2135,
+          "end_line": 2210,
+          "reason": "Native OrderDetail永続DTO取得"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 680,
+          "end_line": 720,
+          "reason": "WebのReview状態別投稿/編集/削除済表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1280,
+          "end_line": 1325,
+          "reason": "NativeのNOT_POSTED投稿ボタンと他状態テキスト"
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 558,
-          "end_line": 581,
-          "reason": "Webのレビュー状態別表示の既存componentテスト"
+          "start_line": 330,
+          "end_line": 357,
+          "reason": "5状態別のWeb表示componentテスト（旧558-581は現行範囲外）"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 64,
+          "end_line": 200,
+          "reason": "delivered投稿・編集・削除、未配達/hidden/deletedの部分integration"
+        },
+        {
+          "path": "e2e/web/phase1-required.spec.ts",
+          "start_line": 213,
+          "end_line": 236,
+          "reason": "reviewable-ordersの明細9投稿/編集Web E2E（今回直接実行なし）"
         }
       ],
       "reviewed_against": [
