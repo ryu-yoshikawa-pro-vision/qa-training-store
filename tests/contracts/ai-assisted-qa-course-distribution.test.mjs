@@ -1865,6 +1865,46 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
   });
 
+  it("rejects a start state with mismatched module, revision, or source before copying", async () => {
+    for (const change of [
+      { module_id: "M01" },
+      { revision: "outdated" },
+      { source_sha: "a".repeat(40) },
+      { state: "end" },
+      { public_contract: false },
+    ]) {
+      const fixture = courseFixture();
+      const sourceSha = "f".repeat(40);
+      await syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha,
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      });
+      const targetPath = "course/states/M00/start.json";
+      const state = JSON.parse(
+        fs.readFileSync(path.join(fixture.target, targetPath), "utf8"),
+      );
+      const altered = Buffer.from(JSON.stringify({ ...state, ...change }));
+      writeFixtureFile(fixture.target, targetPath, altered);
+      const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      const record = manifest.files.find((file) => file.target_path === targetPath);
+      record.sha256 = createHash("sha256").update(altered).digest("hex");
+      record.bytes = altered.length;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+        "pinned M00 start state does not match its distribution contract",
+      );
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
+  });
+
   it("rejects sync targets inside or above the source checkout without modifying either tree", async () => {
     const fixture = courseFixture();
     const nestedTarget = path.join(fixture.source, "learner-inside-source");

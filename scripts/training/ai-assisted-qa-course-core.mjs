@@ -1325,6 +1325,15 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     `course/states/${moduleId}/start.json`,
   );
   const startState = JSON.parse(startBytes.toString("utf8"));
+  if (
+    startState.module_id !== moduleId ||
+    startState.state !== "start" ||
+    startState.source_sha !== distribution.source_sha ||
+    startState.revision !== distribution.state_contract_revision ||
+    startState.public_contract !== true ||
+    startState.read_only !== true
+  )
+    fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
   const receiptTime = now.toISOString();
   const receiptPath = `.course-load/${moduleId}-${receiptTime.replace(/[:.]/g, "-")}.json`;
